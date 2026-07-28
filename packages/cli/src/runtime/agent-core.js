@@ -6742,7 +6742,15 @@ export async function chatWithTools(rawMessages, options) {
             options.streamStallMs,
             options.streamStallTimeoutMs,
           ),
-        { signal, onRetry: options.onStreamRetry },
+        {
+          signal,
+          onRetry: (attempt, error, telemetry) =>
+            options.onStreamRetry?.(attempt, error, {
+              ...telemetry,
+              provider: "ollama",
+              model: model || null,
+            }),
+        },
       );
     }
     const response = await fetch(apiUrl, {
@@ -6868,7 +6876,15 @@ export async function chatWithTools(rawMessages, options) {
             options.streamStallMs,
             options.streamStallTimeoutMs,
           ),
-        { signal, onRetry: options.onStreamRetry },
+        {
+          signal,
+          onRetry: (attempt, error, telemetry) =>
+            options.onStreamRetry?.(attempt, error, {
+              ...telemetry,
+              provider: "anthropic",
+              model: effModel,
+            }),
+        },
       );
     }
 
@@ -6972,7 +6988,15 @@ export async function chatWithTools(rawMessages, options) {
           options.streamStallMs,
           options.streamStallTimeoutMs,
         ),
-      { signal, onRetry: options.onStreamRetry },
+      {
+        signal,
+        onRetry: (attempt, error, telemetry) =>
+          options.onStreamRetry?.(attempt, error, {
+            ...telemetry,
+            provider,
+            model: model || defaultModels[provider] || "gpt-4o-mini",
+          }),
+      },
     );
   }
 
@@ -7171,8 +7195,10 @@ export async function _retryStreamingChat(streamFn, opts = {}) {
   const base = opts.baseDelayMs ?? STREAM_RETRY_BASE_MS;
   const signal = opts.signal;
   const sleep = opts.sleep || ((ms) => new Promise((r) => setTimeout(r, ms)));
+  const now = typeof opts.now === "function" ? opts.now : Date.now;
   let attempt = 0;
   for (;;) {
+    const attemptStartedAt = now();
     try {
       return await streamFn();
     } catch (err) {
@@ -7181,7 +7207,9 @@ export async function _retryStreamingChat(streamFn, opts = {}) {
       attempt++;
       if (typeof opts.onRetry === "function") {
         try {
-          opts.onRetry(attempt, err);
+          opts.onRetry(attempt, err, {
+            durationMs: Math.max(0, now() - attemptStartedAt),
+          });
         } catch {
           /* the retry notice is best-effort; never let it mask the retry */
         }

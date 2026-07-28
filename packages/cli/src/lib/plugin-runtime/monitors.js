@@ -22,7 +22,10 @@ import fs from "fs";
 import { discoverPlugins } from "./scopes.js";
 import { partitionByTrust, warnUntrustedOnce } from "./trust.js";
 import { componentCapabilityDenial } from "./capabilities.js";
-import { mergePluginSandboxPolicies } from "./sandbox-policy.js";
+import {
+  issuePluginWorkspaceAuthority,
+  mergePluginSandboxPolicies,
+} from "./sandbox-policy.js";
 
 export const _deps = { readFileSync: fs.readFileSync };
 
@@ -55,7 +58,7 @@ export function _resetMonitorWarnings() {
 }
 
 /** Normalize one raw monitor entry into a validated descriptor, or null. */
-function normalizeMonitor(plugin, raw) {
+function normalizeMonitor(plugin, raw, pluginWorkspaceAuthority) {
   if (!raw || typeof raw !== "object") return null;
   if (typeof raw.name !== "string" || raw.name === "") return null;
   if (typeof raw.command !== "string" || raw.command === "") return null;
@@ -91,6 +94,7 @@ function normalizeMonitor(plugin, raw) {
     intervalMs,
     env,
     cwd: plugin.root,
+    pluginWorkspaceAuthority,
     origin: "plugin:monitor",
     pluginId: plugin.name,
     pluginVersion: plugin.version,
@@ -131,6 +135,18 @@ export function collectPluginMonitors(opts = {}) {
       denied.push({ name: p.name, reason: denial.reason });
       continue;
     }
+    let pluginWorkspaceAuthority;
+    try {
+      pluginWorkspaceAuthority = issuePluginWorkspaceAuthority({
+        root: p.root,
+        origin: "plugin:monitor",
+        pluginId: p.name,
+        pluginVersion: p.version,
+        pluginSource: p.manifest?.manifestPath || "",
+      });
+    } catch {
+      continue;
+    }
     let parsed;
     if (m.absPath) {
       try {
@@ -159,7 +175,7 @@ export function collectPluginMonitors(opts = {}) {
         ? parsed
         : [];
     for (const raw of list) {
-      const desc = normalizeMonitor(p, raw);
+      const desc = normalizeMonitor(p, raw, pluginWorkspaceAuthority);
       if (desc) out.push(desc);
     }
   }

@@ -33,7 +33,11 @@ function fakeLoop() {
       tool: "run_skill",
       args: { skill_name: "csv-clean", input: "x" },
     };
-    yield { type: "tool-result", tool: "run_skill", result: { ok: 1 } };
+    yield {
+      type: "tool-result",
+      tool: "run_skill",
+      result: { ok: 1, toolTelemetryRecord: { durationMs: 12 } },
+    };
     yield {
       type: "tool-executing",
       tool: "mcp__github__search_issues",
@@ -54,6 +58,7 @@ function fakeLoop() {
       type: "tool-result",
       tool: "run_shell",
       result: {
+        toolTelemetryRecord: { durationMs: 34 },
         plugin_bin: {
           plugin: "acme-tools",
           version: "2.1.0",
@@ -83,7 +88,13 @@ function fakeLoop() {
 
 function makeDeps() {
   const out = [];
-  const writes = { tokenUsage: [], toolCalls: [], assistant: [], user: [] };
+  const writes = {
+    tokenUsage: [],
+    toolCalls: [],
+    llmRetries: [],
+    assistant: [],
+    user: [],
+  };
   const deps = {
     bootstrap: async () => ({ db: null }),
     getApprovalGate: async () => ({
@@ -102,6 +113,7 @@ function makeDeps() {
     appendAssistantMessage: (id, c) => writes.assistant.push({ id, c }),
     appendTokenUsage: (id, u) => writes.tokenUsage.push({ id, u }),
     appendToolCallCompact: (id, rec) => writes.toolCalls.push({ id, rec }),
+    appendLlmRetryCompact: (id, rec) => writes.llmRetries.push({ id, rec }),
     appendCompactEvent: () => {},
     getLastSessionId: () => null,
     verifySession: () => ({ status: "verified" }),
@@ -121,7 +133,10 @@ describe("headless runner usage attribution", () => {
       },
       deps,
     );
-    expect(r.exitCode).toBe(0);
+    expect(
+      r.exitCode,
+      JSON.stringify({ result: r, output: out, writes }, null, 2),
+    ).toBe(0);
 
     // envelope usage = main loop only (40/15 child spend excluded)
     const env = JSON.parse(out.join("").trim().split("\n").at(-1));
@@ -154,17 +169,21 @@ describe("headless runner usage attribution", () => {
       tool: "run_skill",
       isError: false,
       skill: "csv-clean",
+      durationMs: 12,
     });
     expect(writes.toolCalls[0].rec.args).toBeUndefined();
     expect(writes.toolCalls[1].rec).toMatchObject({
       tool: "mcp__github__search_issues",
       isError: true,
     });
+    expect(writes.toolCalls[1].rec.durationMs).toEqual(expect.any(Number));
+    expect(writes.toolCalls[1].rec.durationMs).toBeGreaterThanOrEqual(0);
     expect(writes.toolCalls[2].rec).toMatchObject({
       tool: "run_shell",
       isError: false,
       plugin: "acme-tools",
       pluginVersion: "2.1.0",
+      durationMs: 34,
     });
   }, 15000);
 
@@ -194,5 +213,45 @@ describe("headless runner usage attribution", () => {
     await runAgentHeadless({ prompt: "go", outputFormat: "text" }, deps);
     expect(writes.tokenUsage).toHaveLength(0);
     expect(writes.toolCalls).toHaveLength(0);
+  });
+
+  it("persists failed-attempt timing when a single headless run auto-retries", async () => {
+    const { deps, writes } = makeDeps();
+    deps.agentLoop = async function* (_messages, options) {
+      options.onStreamRetry?.(
+        1,
+        Object.assign(new Error("secret proxy URL"), { code: "ECONNRESET" }),
+        {
+          durationMs: 321,
+          provider: "openai",
+          model: "gpt-4o",
+        },
+      );
+      yield { type: "response-complete", content: "done" };
+      yield { type: "run-ended", reason: "complete" };
+    };
+    const result = await runAgentHeadless(
+      {
+        prompt: "go",
+        outputFormat: "text",
+        sessionId: "s-retry",
+        persistSession: true,
+      },
+      deps,
+    );
+    expect(result.exitCode).toBe(0);
+    expect(writes.llmRetries).toEqual([
+      {
+        id: "s-retry",
+        rec: {
+          attempt: 1,
+          durationMs: 321,
+          provider: "openai",
+          model: "gpt-4o",
+          reason: "connection_reset",
+        },
+      },
+    ]);
+    expect(JSON.stringify(writes.llmRetries)).not.toContain("secret");
   });
 });

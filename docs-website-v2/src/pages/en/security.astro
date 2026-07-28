@@ -1,9 +1,12 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import cliPkg from '../../../../packages/cli/package.json';
+
+const CLI_VERSION = cliPkg.version;
 ---
 <BaseLayout
   title="Security & Privacy — U-Key · SIMKey · Signal · Local Ollama | ChainlessChain"
-  description="ChainlessChain security architecture: U-Key/SIMKey hardware chips (private keys never exported), AES-256 + SQLCipher full encryption, Signal end-to-end protocol, local Ollama inference. 4 invention patents, MLPS Level 3 certified."
+  description="ChainlessChain security architecture: U-Key/SIMKey hardware keys, AES-256 + SQLCipher, Signal end-to-end protocol, local Ollama, and attested native-plugin isolation with Linux bubblewrap and Windows AppContainer."
   canonical="https://www.chainlesschain.com/en/security"
   locale="en"
 >
@@ -251,6 +254,25 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
         <div>
           <p class="text-xl leading-relaxed mb-4">MLPS Level 3 · 4 invention patents · group-standard co-author.</p>
           <p class="prose-muted">Co-author of the China Mobile Communications Association group standard <em>Artificial Intelligence — Technical Requirements for Intrinsic Security of Agent</em> (<a href="https://www.ttbz.org.cn/standardDetail.html?id=jy42azxbb1ymwtf6tm371ejs6jcuwz7" target="_blank" rel="noopener" class="font-mono text-ink/80 hover:text-ember">T/ZGCMCA 023—2025</a>), drafted jointly with CAICT (China Academy of Information and Communications Technology) and ~30 other institutions; published and effective 2025-02-07. Enterprise edition supports full audit logging, DLP policy engine, SIEM export (CEF / LEEF / JSON), and automated SOC2 evidence collection.</p>
+        </div>
+      </div>
+
+      <div class="grid md:grid-cols-[auto,1fr] gap-10 md:gap-16">
+        <div class="md:w-48 shrink-0">
+          <div class="font-mono text-xs text-ember mb-2">10</div>
+          <h3 class="font-display text-3xl">cc CLI · native-plugin strong sandbox</h3>
+        </div>
+        <div>
+          <p class="text-xl leading-relaxed mb-4">Let agents invoke local tools without turning plugin code into ambient authority.</p>
+          <p class="prose-muted mb-4">CLI <code>{CLI_VERSION}</code> routes plugin hooks, MCP, LSP, monitors, PTYs, background tasks, and native bins through one Process Broker policy. Linux accepts only attested supported static ELF files for the current architecture, pins the plugin tree by descriptor, and enters a fixed bubblewrap filesystem/network boundary. Windows AppContainer binds the resolver-issued target handle, trusted environment, and policy digest. Copied, replayed, or stale contracts, dynamic loaders, malformed segments, and missing isolation primitives fail before launch.</p>
+          <p class="prose-muted mb-4">Plugin management surfaces signature, SBOM, source, and managed-policy summaries. Plugin-bin and plugin-provided MCP usage is attributed by plugin/version without retaining tool arguments. Publication requires the exact release commit to pass CLI CI and CLI Strict Sandbox across Ubuntu, Windows, and macOS.</p>
+          <div class="flex flex-wrap gap-2">
+            <span class="chip">fd-bound bubblewrap</span>
+            <span class="chip">Windows AppContainer</span>
+            <span class="chip">executable identity</span>
+            <span class="chip">signature · SBOM</span>
+            <span class="chip">fail closed</span>
+          </div>
         </div>
       </div>
     </div>

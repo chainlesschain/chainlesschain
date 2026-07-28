@@ -138,6 +138,11 @@ const NO_WEB_SHELL_FLAG = "--no-web-shell";
  *                                            policy-aware PTY factory.
  * @property {(context: object) => object|null} [terminalSandboxPolicyResolver]
  *                                            Preloaded synchronous resolver.
+ * @property {(selector: object) => object|null} [terminalProjectBindingResolver]
+ *                                            Main-process project DB resolver.
+ * @property {boolean} [requireTerminalProjectBinding]
+ *                                            Fail closed without a DB-backed
+ *                                            project-root selector.
  * @property {Record<string, Function>} [extraHandlers]
  *                                            Extra WS topics to register up-front.
  */
@@ -172,6 +177,8 @@ async function startWebShell(options = {}) {
       config: options.terminalConfig || undefined,
       policyCwd: options.projectRoot || process.cwd(),
       resolveSandboxPolicy: options.terminalSandboxPolicyResolver,
+      resolveProjectBinding: options.terminalProjectBindingResolver,
+      requireProjectBinding: options.requireTerminalProjectBinding === true,
     }));
   // Whether to call shutdown() on close — only when we own the instance.
   const ownsPtyManager = !options.ptyManager;

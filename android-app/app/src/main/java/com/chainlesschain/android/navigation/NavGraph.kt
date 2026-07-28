@@ -867,8 +867,14 @@ fun NavGraph(
             TerminalListScreen(
                 pcPeerId = peerId,
                 onBack = { navController.popBackStack() },
-                onOpenSession = { sessionId ->
-                    navController.navigate(Screen.TerminalSession.createRoute(peerId, sessionId))
+                onOpenSession = { sessionId, projectId ->
+                    navController.navigate(
+                        Screen.TerminalSession.createRoute(
+                            peerId,
+                            projectId,
+                            sessionId,
+                        ),
+                    )
                 },
                 initialCwd = cwd,
             )
@@ -877,6 +883,7 @@ fun NavGraph(
             route = Screen.TerminalSession.routePattern,
             arguments = listOf(
                 navArgument("peerId") { type = NavType.StringType },
+                navArgument("projectId") { type = NavType.StringType },
                 navArgument("sessionId") { type = NavType.StringType },
             ),
         ) {
@@ -1276,9 +1283,13 @@ sealed class Screen(val route: String) {
         }
     }
     data object TerminalSession : Screen("terminal_session") {
-        const val routePattern = "terminal_session/{peerId}/{sessionId}"
-        fun createRoute(peerId: String, sessionId: String) =
-            "terminal_session/$peerId/$sessionId"
+        const val routePattern =
+            "terminal_session/{peerId}/{projectId}/{sessionId}"
+        fun createRoute(
+            peerId: String,
+            projectId: String,
+            sessionId: String,
+        ) = "terminal_session/$peerId/${android.net.Uri.encode(projectId)}/$sessionId"
     }
     data object RemoteAIChat : Screen("remote_ai_chat")
     data object RemoteRAGSearch : Screen("remote_rag_search")

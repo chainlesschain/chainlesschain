@@ -5,6 +5,7 @@
 import { describe, it, expect } from "vitest";
 import {
   isRetryableStreamError,
+  classifyStreamRetryReason,
   STREAM_RETRY_MAX,
   STREAM_RETRY_BASE_MS,
   STREAM_RETRY_MAX_CAP,
@@ -57,6 +58,26 @@ describe("isRetryableStreamError", () => {
   it("exposes a bounded, sane retry budget", () => {
     expect(STREAM_RETRY_MAX).toBeGreaterThanOrEqual(1);
     expect(STREAM_RETRY_BASE_MS).toBeGreaterThan(0);
+  });
+});
+
+describe("classifyStreamRetryReason", () => {
+  it("uses a secret-free controlled vocabulary", () => {
+    expect(
+      classifyStreamRetryReason(
+        Object.assign(new Error("proxy https://tenant.example"), {
+          code: "ETIMEDOUT",
+        }),
+      ),
+    ).toBe("timeout");
+    expect(
+      classifyStreamRetryReason(
+        Object.assign(new Error("fetch failed"), { code: "ECONNRESET" }),
+      ),
+    ).toBe("connection_reset");
+    expect(classifyStreamRetryReason(new Error("unclassified"))).toBe(
+      "unknown",
+    );
   });
 });
 

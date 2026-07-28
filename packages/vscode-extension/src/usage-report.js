@@ -79,6 +79,15 @@ function normalizeAttribution(a) {
   const rows = (arr) =>
     Array.isArray(arr) ? arr.filter((r) => r && typeof r === "object") : [];
   const tools = a.tools && typeof a.tools === "object" ? a.tools : {};
+  const retries =
+    a.retries && typeof a.retries === "object"
+      ? {
+          totalRetries: num(a.retries.totalRetries),
+          durationMs: num(a.retries.durationMs),
+          byReason: rows(a.retries.byReason),
+          byModel: rows(a.retries.byModel),
+        }
+      : null;
   return {
     byOrigin: rows(a.byOrigin),
     bySkill: rows(a.bySkill),
@@ -86,10 +95,14 @@ function normalizeAttribution(a) {
     tools: {
       totalCalls: num(tools.totalCalls),
       totalErrors: num(tools.totalErrors),
+      totalDurationMs: num(tools.totalDurationMs),
+      timedCalls: num(tools.timedCalls),
+      retryCalls: num(tools.retryCalls),
       byTool: rows(tools.byTool),
       byMcpServer: rows(tools.byMcpServer),
       byPlugin: rows(tools.byPlugin),
     },
+    retries,
   };
 }
 
@@ -154,6 +167,16 @@ function strip({ totalTokens, calls, sessions }) {
 
 function fmt(n) {
   return Number(n || 0).toLocaleString("en-US");
+}
+
+function fmtDuration(ms) {
+  const value = Math.max(0, num(ms));
+  if (value < 1000) return `${Math.round(value)} ms`;
+  if (value < 60000) return `${(value / 1000).toFixed(2)} s`;
+  const totalSeconds = Math.round(value / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}m ${seconds}s`;
 }
 
 /**
@@ -302,22 +325,33 @@ function attributionToLines(summary) {
   if (a.tools.byTool.length === 0) {
     lines.push("_No tool_call events recorded._");
   } else {
+    const showDuration = num(a.tools.timedCalls) > 0;
+    const showRetries = num(a.tools.retryCalls) > 0;
     lines.push(
-      `**${fmt(a.tools.totalCalls)} calls · ${fmt(a.tools.totalErrors)} errors** across ${fmt(a.tools.byTool.length)} tool(s).`,
+      `**${fmt(a.tools.totalCalls)} calls · ${fmt(a.tools.totalErrors)} errors` +
+        (showRetries ? ` · ${fmt(a.tools.retryCalls)} observed retries` : "") +
+        (showDuration
+          ? ` · ${fmtDuration(a.tools.totalDurationMs)} observed time`
+          : "") +
+        `** across ${fmt(a.tools.byTool.length)} tool(s).`,
       "",
-      "| Tool | MCP server | Calls | Errors | Turn tokens ≈ |",
-      "| --- | --- | ---: | ---: | ---: |",
+      showDuration || showRetries
+        ? `| Tool | MCP server | Calls | Errors |${showRetries ? " Retries |" : ""}${showDuration ? " Observed time |" : ""} Turn tokens ≈ |`
+        : "| Tool | MCP server | Calls | Errors | Turn tokens ≈ |",
+      showDuration || showRetries
+        ? `| --- | --- | ---: | ---: |${showRetries ? " ---: |" : ""}${showDuration ? " ---: |" : ""} ---: |`
+        : "| --- | --- | ---: | ---: | ---: |",
     );
     const { top, others } = capRows(a.tools.byTool);
     for (const r of top) {
       lines.push(
-        `| ${escapeCell(r.tool || "?")} | ${escapeCell(r.mcpServer || "")} | ${fmt(r.calls)} | ${fmt(r.errors)} | ${fmt(r.turnTokens)} |`,
+        `| ${escapeCell(r.tool || "?")} | ${escapeCell(r.mcpServer || "")} | ${fmt(r.calls)} | ${fmt(r.errors)} |${showRetries ? ` ${fmt(r.retries)} |` : ""}${showDuration ? ` ${fmtDuration(r.durationMs)} |` : ""} ${fmt(r.turnTokens)} |`,
       );
     }
     if (others) {
       // turnTokens is per-row non-summable (see caveat) → never totalled.
       lines.push(
-        `| _…${others.length} more_ | | ${fmt(sumBy(others, "calls"))} | ${fmt(sumBy(others, "errors"))} | — |`,
+        `| _…${others.length} more_ | | ${fmt(sumBy(others, "calls"))} | ${fmt(sumBy(others, "errors"))} |${showRetries ? ` ${fmt(sumBy(others, "retries"))} |` : ""}${showDuration ? ` ${fmtDuration(sumBy(others, "durationMs"))} |` : ""} — |`,
       );
     }
     if (a.tools.byMcpServer.length > 0) {
@@ -325,18 +359,22 @@ function attributionToLines(summary) {
         "",
         "### MCP servers",
         "",
-        "| Server | Calls | Errors | Turn tokens ≈ |",
-        "| --- | ---: | ---: | ---: |",
+        showDuration || showRetries
+          ? `| Server | Calls | Errors |${showRetries ? " Retries |" : ""}${showDuration ? " Observed time |" : ""} Turn tokens ≈ |`
+          : "| Server | Calls | Errors | Turn tokens ≈ |",
+        showDuration || showRetries
+          ? `| --- | ---: | ---: |${showRetries ? " ---: |" : ""}${showDuration ? " ---: |" : ""} ---: |`
+          : "| --- | ---: | ---: | ---: |",
       );
       const servers = capRows(a.tools.byMcpServer);
       for (const r of servers.top) {
         lines.push(
-          `| ${escapeCell(r.server || "?")} | ${fmt(r.calls)} | ${fmt(r.errors)} | ${fmt(r.turnTokens)} |`,
+          `| ${escapeCell(r.server || "?")} | ${fmt(r.calls)} | ${fmt(r.errors)} |${showRetries ? ` ${fmt(r.retries)} |` : ""}${showDuration ? ` ${fmtDuration(r.durationMs)} |` : ""} ${fmt(r.turnTokens)} |`,
         );
       }
       if (servers.others) {
         lines.push(
-          `| _…${servers.others.length} more_ | ${fmt(sumBy(servers.others, "calls"))} | ${fmt(sumBy(servers.others, "errors"))} | — |`,
+          `| _…${servers.others.length} more_ | ${fmt(sumBy(servers.others, "calls"))} | ${fmt(sumBy(servers.others, "errors"))} |${showRetries ? ` ${fmt(sumBy(servers.others, "retries"))} |` : ""}${showDuration ? ` ${fmtDuration(sumBy(servers.others, "durationMs"))} |` : ""} — |`,
         );
       }
     }
@@ -345,22 +383,57 @@ function attributionToLines(summary) {
         "",
         "### Plugins",
         "",
-        "| Plugin | Version | Calls | Errors | Turn tokens ≈ |",
-        "| --- | --- | ---: | ---: | ---: |",
+        showDuration || showRetries
+          ? `| Plugin | Version | Calls | Errors |${showRetries ? " Retries |" : ""}${showDuration ? " Observed time |" : ""} Turn tokens ≈ |`
+          : "| Plugin | Version | Calls | Errors | Turn tokens ≈ |",
+        showDuration || showRetries
+          ? `| --- | --- | ---: | ---: |${showRetries ? " ---: |" : ""}${showDuration ? " ---: |" : ""} ---: |`
+          : "| --- | --- | ---: | ---: | ---: |",
       );
       const plugins = capRows(a.tools.byPlugin);
       for (const r of plugins.top) {
         lines.push(
-          `| ${escapeCell(r.plugin || "?")} | ${escapeCell(r.version || "")} | ${fmt(r.calls)} | ${fmt(r.errors)} | ${fmt(r.turnTokens)} |`,
+          `| ${escapeCell(r.plugin || "?")} | ${escapeCell(r.version || "")} | ${fmt(r.calls)} | ${fmt(r.errors)} |${showRetries ? ` ${fmt(r.retries)} |` : ""}${showDuration ? ` ${fmtDuration(r.durationMs)} |` : ""} ${fmt(r.turnTokens)} |`,
         );
       }
       if (plugins.others) {
         lines.push(
-          `| _…${plugins.others.length} more_ | | ${fmt(sumBy(plugins.others, "calls"))} | ${fmt(sumBy(plugins.others, "errors"))} | — |`,
+          `| _…${plugins.others.length} more_ | | ${fmt(sumBy(plugins.others, "calls"))} | ${fmt(sumBy(plugins.others, "errors"))} |${showRetries ? ` ${fmt(sumBy(plugins.others, "retries"))} |` : ""}${showDuration ? ` ${fmtDuration(sumBy(plugins.others, "durationMs"))} |` : ""} — |`,
         );
       }
     }
     lines.push("", TURN_TOKENS_CAVEAT);
+  }
+
+  if (a.retries && num(a.retries.totalRetries) > 0) {
+    lines.push(
+      "",
+      "## LLM retries",
+      "",
+      `**${fmt(a.retries.totalRetries)} automatic retries · ${fmtDuration(a.retries.durationMs)} in failed attempts.**`,
+      "",
+      "| Reason | Retries | Failed-attempt time |",
+      "| --- | ---: | ---: |",
+    );
+    for (const r of a.retries.byReason) {
+      lines.push(
+        `| ${escapeCell(r.reason || "unknown")} | ${fmt(r.retries)} | ${fmtDuration(r.durationMs)} |`,
+      );
+    }
+    if (a.retries.byModel.length > 0) {
+      lines.push(
+        "",
+        "### Retry by model",
+        "",
+        "| Provider | Model | Retries | Failed-attempt time |",
+        "| --- | --- | ---: | ---: |",
+      );
+      for (const r of a.retries.byModel) {
+        lines.push(
+          `| ${escapeCell(r.provider || "?")} | ${escapeCell(r.model || "?")} | ${fmt(r.retries)} | ${fmtDuration(r.durationMs)} |`,
+        );
+      }
+    }
   }
 
   // ── Hints ──

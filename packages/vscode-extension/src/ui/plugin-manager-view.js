@@ -23,6 +23,7 @@ const {
   buildSkillListArgs,
   parseMcpServers,
   parsePluginInstalled,
+  parsePluginUpgradeResult,
   parseSkillList,
 } = require("../plugin-manager.js");
 const {
@@ -182,17 +183,65 @@ async function handleMessage(vscode, msg) {
       "Upgrade",
     );
     if (choice !== "Upgrade") return;
-    await runCli(
-      buildPluginUpgradeArgs(target, {
-        scope: msg.scope,
-        registry: useRegistry ? source.registry : undefined,
-        packageName: useRegistry ? source.package : undefined,
-      }),
-      120000,
+    const upgradeOptions = {
+      scope: msg.scope,
+      registry: useRegistry ? source.registry : undefined,
+      packageName: useRegistry ? source.package : undefined,
+    };
+    let result = parsePluginUpgradeResult(
+      await runCli(buildPluginUpgradeArgs(target, upgradeOptions), 120000),
     );
+    if (!result) {
+      vscode.window.showWarningMessage(
+        `ChainlessChain: ${msg.name} upgrade returned an unreadable activation result; live sessions were not reloaded.`,
+      );
+      return refresh();
+    }
+    if (
+      result.activationStatus === "rolled_back" &&
+      result.rollbackReason === "capability_consent_required"
+    ) {
+      const added = result.capabilities?.added || [];
+      const retry = await vscode.window.showWarningMessage(
+        [
+          `${msg.name} v${result.version || "?"} requested new capabilities, so the CLI restored v${result.rollbackVersion || "none"}.`,
+          added.length ? `New capabilities:\n• ${added.join("\n• ")}` : "",
+          "Retry the validated upgrade and grant this capability set?",
+        ]
+          .filter(Boolean)
+          .join("\n\n"),
+        { modal: true },
+        "Retry and grant",
+      );
+      if (retry === "Retry and grant") {
+        result = parsePluginUpgradeResult(
+          await runCli(
+            buildPluginUpgradeArgs(target, {
+              ...upgradeOptions,
+              grantCapabilities: true,
+            }),
+            120000,
+          ),
+        );
+      }
+    }
+    if (!result || result.activationStatus === "rolled_back") {
+      vscode.window.showWarningMessage(
+        result
+          ? `ChainlessChain: ${msg.name} upgrade was not activated (${result.rollbackReason || "automatic recovery"}); restored v${result.rollbackVersion || "none"}.`
+          : `ChainlessChain: ${msg.name} retry returned an unreadable activation result; live sessions were not reloaded.`,
+      );
+      return refresh();
+    }
+    if (result.activationStatus === "unchanged") {
+      vscode.window.showInformationMessage(
+        `ChainlessChain: ${msg.name} is already up to date at v${result.version || "?"}.`,
+      );
+      return refresh();
+    }
     const reloaded = reloadActivePluginSessions();
     vscode.window.showInformationMessage(
-      `ChainlessChain: ${msg.name} upgrade finished; reload requested in ${reloaded} live chat session(s).`,
+      `ChainlessChain: ${msg.name} v${result.version || "?"} activated; reload requested in ${reloaded} live chat session(s).`,
     );
     return refresh();
   }

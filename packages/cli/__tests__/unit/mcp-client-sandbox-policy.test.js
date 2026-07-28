@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { EventEmitter } from "node:events";
 import { MCPClient, _deps } from "../../src/lib/mcp-client.js";
+import { executionBroker } from "../../src/lib/process-execution-broker/index.js";
 
 function makeFakeMcpProcess() {
   const proc = new EventEmitter();
@@ -42,17 +43,23 @@ const originalSpawn = _deps.spawn;
 
 afterEach(() => {
   _deps.spawn = originalSpawn;
+  vi.restoreAllMocks();
 });
 
 describe("MCPClient plugin sandbox policy", () => {
   it("forwards explicit stdio requirements to the process broker boundary", async () => {
     const proc = makeFakeMcpProcess();
     _deps.spawn = vi.fn(() => proc);
+    const contract = Object.freeze({ kind: "test-workspace-contract" });
+    const issueAuthority = vi
+      .spyOn(executionBroker, "issueLinuxWorkspaceSandboxExecutionContract")
+      .mockReturnValue(contract);
     const client = new MCPClient();
 
     await client.connect("strict-plugin", {
       command: "strict-mcp",
       origin: "plugin:mcp",
+      pluginWorkspaceRoot: "/plugins/strict-plugin",
       sandboxPolicy: {
         requiredBoundaries: ["filesystem", "network"],
       },
@@ -66,7 +73,18 @@ describe("MCPClient plugin sandbox policy", () => {
         sandboxPolicy: {
           requiredBoundaries: ["filesystem", "network"],
         },
+        sandboxExecutionContract: contract,
       }),
+    );
+    expect(issueAuthority).toHaveBeenCalledWith(
+      "strict-mcp",
+      [],
+      expect.objectContaining({
+        cwd: "/plugins/strict-plugin",
+        shell: false,
+        origin: "plugin:mcp",
+      }),
+      "/plugins/strict-plugin",
     );
     await client.disconnectAll();
   });

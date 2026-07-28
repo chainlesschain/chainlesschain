@@ -43,6 +43,7 @@ import {
   appendAssistantMessage as jsonlAppendAssistantMessage,
   appendTokenUsage as jsonlAppendTokenUsage,
   appendToolCallCompact as jsonlAppendToolCallCompact,
+  appendLlmRetryCompact as jsonlAppendLlmRetryCompact,
   appendCompactEvent as jsonlAppendCompactEvent,
   appendEvent as jsonlAppendEvent,
   readEvents as jsonlReadEvents,
@@ -51,6 +52,7 @@ import {
   getLastSessionId as jsonlGetLastSessionId,
   verifySession as jsonlVerifySession,
 } from "../harness/jsonl-session-store.js";
+import { classifyStreamRetryReason } from "../lib/stream-retry.js";
 import {
   SideEffectLedger,
   reconcileSideEffects,
@@ -503,6 +505,8 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     appendTokenUsage: deps.appendTokenUsage || jsonlAppendTokenUsage,
     appendToolCallCompact:
       deps.appendToolCallCompact || jsonlAppendToolCallCompact,
+    appendLlmRetryCompact:
+      deps.appendLlmRetryCompact || jsonlAppendLlmRetryCompact,
     appendCompactEvent: deps.appendCompactEvent || jsonlAppendCompactEvent,
     appendEvent: deps.appendEvent || jsonlAppendEvent,
     readEvents: deps.readEvents || jsonlReadEvents,
@@ -1626,6 +1630,22 @@ export async function runAgentHeadless(options = {}, deps = {}) {
     // while a human watching a long `cc agent -p` run learns we're still waiting
     // and, when a hard inactivity timeout is set, when it will auto-retry. Plain
     // text (no chalk) since headless stderr is frequently piped/non-TTY.
+    onStreamRetry: (attempt, error, telemetry = {}) => {
+      writeErr(`  ⟳ connection dropped — retrying (attempt ${attempt})…\n`);
+      if (persist) {
+        try {
+          store.appendLlmRetryCompact(sessionId, {
+            attempt,
+            durationMs: telemetry.durationMs,
+            provider: telemetry.provider || provider,
+            model: telemetry.model || model,
+            reason: classifyStreamRetryReason(error),
+          });
+        } catch {
+          /* usage telemetry is best-effort */
+        }
+      }
+    },
     onStall: (ms, timeoutMs) => {
       const silent = Math.round(ms / 1000);
       const retryIn = timeoutMs > ms ? Math.round((timeoutMs - ms) / 1000) : 0;
@@ -1678,6 +1698,11 @@ export async function runAgentHeadless(options = {}, deps = {}) {
 
   const startedAt = deps.now ? deps.now() : Date.now();
   const toolCalls = [];
+  // The core normally attaches a precise toolTelemetryRecord on success.
+  // Keep an event-boundary fallback for denials/early throws that settle
+  // before that record is produced. Tools are serial in this loop, so one
+  // timestamp is sufficient and never leaks into the result envelope.
+  let currentToolStartedAt = null;
   // Policy denials (blocked tool calls) collected for an end-of-run summary,
   // so a non-interactive run surfaces what got blocked the way the REPL's
   // `/permissions denials` does (Claude-Code 2.1.193 denial reasons).
@@ -1970,6 +1995,7 @@ export async function runAgentHeadless(options = {}, deps = {}) {
             break;
           }
           case "tool-executing": {
+            currentToolStartedAt = deps.now ? deps.now() : Date.now();
             const line = `  [${event.tool}] ${formatToolArgs(event.tool, event.args)}`;
             if (isText) writeErr(line + "\n");
             emitStream({
@@ -2057,11 +2083,21 @@ export async function runAgentHeadless(options = {}, deps = {}) {
             if (toolCalls.length > 0) {
               const settledCall = toolCalls[toolCalls.length - 1];
               settledCall.is_error = Boolean(err);
+              settledCall.durationMs =
+                event.result?.toolTelemetryRecord?.durationMs ??
+                (currentToolStartedAt === null
+                  ? undefined
+                  : Math.max(
+                      0,
+                      (deps.now ? deps.now() : Date.now()) -
+                        currentToolStartedAt,
+                    ));
               Object.assign(
                 settledCall,
                 extractPluginUsageAttribution(event.result),
               );
             }
+            currentToolStartedAt = null;
             // Track policy denials (not plain tool failures) for the end-of-run
             // summary. The preceding tool-executing pushed the args.
             if (err) {
@@ -2540,6 +2576,7 @@ export async function runAgentHeadless(options = {}, deps = {}) {
             tc.tool === "run_skill" ? tc.args?.skill_name || null : undefined,
           plugin: tc.plugin || undefined,
           pluginVersion: tc.pluginVersion || undefined,
+          durationMs: tc.durationMs,
         });
       }
       // Attributed child-loop usage first (chronology: it happened during

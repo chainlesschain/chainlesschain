@@ -158,8 +158,11 @@ function nonNegativeInteger(value) {
 
 /**
  * Parse `cc daemon view --json`, retaining only the secret-free fields a task
- * row needs. Prompts, argv, logs, transport tokens and side-effect metadata
- * never cross this boundary.
+ * row needs. Background sessions and read-only team/batch managedTasks share
+ * the projection, but keep distinct ids so the UI never implies that a
+ * short-lived collaboration unit can be independently attached/stopped.
+ * Prompts, argv, logs, transport tokens and side-effect metadata never cross
+ * this boundary.
  */
 function parseBackgroundTaskGovernance(text) {
   let data;
@@ -168,17 +171,39 @@ function parseBackgroundTaskGovernance(text) {
   } catch {
     return [];
   }
-  if (!data || !Array.isArray(data.sessions)) return [];
+  if (!data || typeof data !== "object") return [];
+  const candidates = [
+    ...(Array.isArray(data.sessions)
+      ? data.sessions.slice(0, 1000).map((value) => ({
+          value,
+          kind: "background",
+        }))
+      : []),
+    ...(Array.isArray(data.managedTasks)
+      ? data.managedTasks.slice(0, 1000).map((value) => ({
+          value,
+          kind: "managed",
+        }))
+      : []),
+  ];
   const rows = [];
-  for (const session of data.sessions.slice(0, 1000)) {
+  for (const candidate of candidates.slice(0, 2000)) {
+    const session = candidate.value;
     if (!session || typeof session !== "object") continue;
-    const backgroundId = boundedString(session.id, 160);
+    const backgroundId =
+      candidate.kind === "background" ? boundedString(session.id, 160) : null;
+    const managedTaskId =
+      candidate.kind === "managed"
+        ? boundedString(session.managedTaskId, 512)
+        : null;
     const branch = boundedString(session.branch, 512);
     const worktreePath = boundedString(
       session.worktreePath || session.cwd,
       4096,
     );
-    if (!backgroundId || (!branch && !worktreePath)) continue;
+    if ((!backgroundId && !managedTaskId) || (!branch && !worktreePath)) {
+      continue;
+    }
     const governance =
       session.governance && typeof session.governance === "object"
         ? session.governance
@@ -191,21 +216,38 @@ function parseBackgroundTaskGovernance(text) {
       session.sideEffects && typeof session.sideEffects === "object"
         ? session.sideEffects
         : {};
+    const managementStatus =
+      boundedString(session.lifecycleState || session.status, 64) || "unknown";
     rows.push({
-      backgroundId,
+      ...(backgroundId ? { backgroundId } : {}),
+      ...(managedTaskId
+        ? {
+            managedTaskId,
+            runId: boundedString(session.runId, 160),
+            runKind: boundedString(session.runKind, 32),
+          }
+        : {}),
       branch,
       worktreePath,
       owner:
-        boundedString(governance.owner, 160) || `background:${backgroundId}`,
+        boundedString(governance.owner, 512) ||
+        (backgroundId ? `background:${backgroundId}` : managedTaskId),
       sessionId:
         boundedString(governance.sessionId || session.sessionId, 256) || null,
-      backgroundStatus:
-        boundedString(session.lifecycleState || session.status, 64) ||
-        "unknown",
+      ...(backgroundId
+        ? { backgroundStatus: managementStatus }
+        : { managementStatus }),
       permissionMode: boundedString(governance.permissionMode, 64) || "default",
       resourceBudget: {
         maxTurns: positiveNumber(budget.maxTurns),
         maxCostUsd: positiveNumber(budget.maxCostUsd),
+        ...(managedTaskId
+          ? {
+              maxTasks: positiveNumber(budget.maxTasks),
+              maxTokens: positiveNumber(budget.maxTokens),
+              maxWallMs: positiveNumber(budget.maxWallMs),
+            }
+          : {}),
       },
       sideEffects: {
         total: nonNegativeInteger(effects.total),

@@ -58,19 +58,37 @@ class TerminalRpcClient @Inject constructor(
         val sessionId: String,
         val pid: Int,
         val shell: String,
+        val projectId: String?,
+        val cwd: String?,
         val createdAt: Long,
     )
 
     data class SessionRow(
         val id: String,
+        val projectId: String?,
         val shell: String,
         val cwd: String?,
         val alive: Boolean,
         val lastSeq: Long,
     )
 
-    data class StdoutEvent(val sessionId: String, val data: String, val seq: Long)
-    data class ExitEvent(val sessionId: String, val exitCode: Int?, val signal: String?)
+    data class ProjectChoice(
+        val id: String,
+        val name: String,
+    )
+
+    data class StdoutEvent(
+        val sessionId: String,
+        val projectId: String?,
+        val data: String,
+        val seq: Long,
+    )
+    data class ExitEvent(
+        val sessionId: String,
+        val projectId: String?,
+        val exitCode: Int?,
+        val signal: String?,
+    )
     data class HistoryChunk(val seq: Long, val data: String)
     data class HistoryResponse(val chunks: List<HistoryChunk>, val truncated: Boolean)
 
@@ -161,6 +179,7 @@ class TerminalRpcClient @Inject constructor(
                     val emitted = _stdout.tryEmit(
                         StdoutEvent(
                             sessionId = sessionId,
+                            projectId = payload.optString("projectId").takeIf { it.isNotBlank() },
                             data = payload.optString("data"),
                             seq = seq,
                         ),
@@ -180,6 +199,7 @@ class TerminalRpcClient @Inject constructor(
                     val emitted = _exit.tryEmit(
                         ExitEvent(
                             sessionId = sessionId,
+                            projectId = payload.optString("projectId").takeIf { it.isNotBlank() },
                             exitCode = if (payload.isNull("exitCode")) null else payload.optInt("exitCode"),
                             signal = if (payload.isNull("signal")) null else payload.optString("signal"),
                         ),
@@ -198,12 +218,14 @@ class TerminalRpcClient @Inject constructor(
 
     suspend fun create(
         pcPeerId: String,
+        projectId: String? = null,
         shell: String = "pwsh",
         cwd: String? = null,
         cols: Int = 80,
         rows: Int = 24,
     ): Result<CreatedSession> {
         val params = buildMap<String, Any?> {
+            projectId?.takeIf { it.isNotBlank() }?.let { put("projectId", it) }
             put("shell", shell)
             put("cols", cols)
             put("rows", rows)
@@ -214,18 +236,25 @@ class TerminalRpcClient @Inject constructor(
                 sessionId = json.optString("sessionId"),
                 pid = json.optInt("pid"),
                 shell = json.optString("shell"),
+                projectId = json.optString("projectId").takeIf { it.isNotBlank() },
+                cwd = if (json.isNull("cwd")) null else json.optString("cwd").takeIf { it.isNotBlank() },
                 createdAt = json.optLong("createdAt"),
             )
         }
     }
 
-    suspend fun list(pcPeerId: String): Result<List<SessionRow>> {
-        return rpc.invoke(pcPeerId, "terminal.list", emptyMap()).map { json ->
+    suspend fun list(pcPeerId: String, projectId: String): Result<List<SessionRow>> {
+        return rpc.invoke(
+            pcPeerId,
+            "terminal.list",
+            mapOf("projectId" to projectId),
+        ).map { json ->
             val arr = json.optJSONArray("sessions") ?: return@map emptyList()
             (0 until arr.length()).mapNotNull { idx ->
                 val item = arr.optJSONObject(idx) ?: return@mapNotNull null
                 SessionRow(
                     id = item.optString("id"),
+                    projectId = item.optString("projectId").takeIf { it.isNotBlank() },
                     shell = item.optString("shell"),
                     cwd = if (item.isNull("cwd")) null else item.optString("cwd"),
                     alive = item.optBoolean("alive"),
@@ -235,39 +264,94 @@ class TerminalRpcClient @Inject constructor(
         }
     }
 
-    suspend fun stdin(pcPeerId: String, sessionId: String, data: String): Result<Unit> {
+    /**
+     * Load Desktop database projects for the normal terminal picker. A
+     * synchronized pcRootPath alone is deliberately not treated as local
+     * execution-root approval; Desktop terminal binding requires rootPath.
+     */
+    suspend fun listProjects(pcPeerId: String): Result<List<ProjectChoice>> {
+        return rpc.invoke(
+            pcPeerId,
+            "project.list",
+            mapOf("limit" to 200),
+        ).map { json ->
+            val arr = json.optJSONArray("projects") ?: return@map emptyList()
+            (0 until arr.length()).mapNotNull { idx ->
+                val item = arr.optJSONObject(idx) ?: return@mapNotNull null
+                val id = item.optString("id").takeIf { it.isNotBlank() }
+                    ?: return@mapNotNull null
+                val rootPath = when {
+                    !item.isNull("rootPath") -> item.optString("rootPath")
+                    !item.isNull("root_path") -> item.optString("root_path")
+                    else -> ""
+                }
+                if (rootPath.isBlank()) return@mapNotNull null
+                ProjectChoice(
+                    id = id,
+                    name = item.optString("name").takeIf { it.isNotBlank() } ?: id,
+                )
+            }
+        }
+    }
+
+    suspend fun stdin(
+        pcPeerId: String,
+        projectId: String,
+        sessionId: String,
+        data: String,
+    ): Result<Unit> {
         return rpc.invoke(
             pcPeerId,
             "terminal.stdin",
-            mapOf("sessionId" to sessionId, "data" to data),
+            mapOf("projectId" to projectId, "sessionId" to sessionId, "data" to data),
         ).map { Unit }
     }
 
-    suspend fun resize(pcPeerId: String, sessionId: String, cols: Int, rows: Int): Result<Unit> {
+    suspend fun resize(
+        pcPeerId: String,
+        projectId: String,
+        sessionId: String,
+        cols: Int,
+        rows: Int,
+    ): Result<Unit> {
         return rpc.invoke(
             pcPeerId,
             "terminal.resize",
-            mapOf("sessionId" to sessionId, "cols" to cols, "rows" to rows),
+            mapOf(
+                "projectId" to projectId,
+                "sessionId" to sessionId,
+                "cols" to cols,
+                "rows" to rows,
+            ),
         ).map { Unit }
     }
 
-    suspend fun close(pcPeerId: String, sessionId: String): Result<Unit> {
+    suspend fun close(
+        pcPeerId: String,
+        projectId: String,
+        sessionId: String,
+    ): Result<Unit> {
         return rpc.invoke(
             pcPeerId,
             "terminal.close",
-            mapOf("sessionId" to sessionId),
+            mapOf("projectId" to projectId, "sessionId" to sessionId),
         ).map { Unit }
     }
 
     suspend fun history(
         pcPeerId: String,
+        projectId: String,
         sessionId: String,
         fromSeq: Long = 0,
     ): Result<HistoryResponse> {
         return rpc.invoke(
             pcPeerId,
             "terminal.history",
-            mapOf("sessionId" to sessionId, "fromSeq" to fromSeq),
+            mapOf(
+                "projectId" to projectId,
+                "sessionId" to sessionId,
+                "fromSeq" to fromSeq,
+            ),
         ).map { json ->
             val truncated = json.optBoolean("truncated", false)
             val arr = json.optJSONArray("chunks")

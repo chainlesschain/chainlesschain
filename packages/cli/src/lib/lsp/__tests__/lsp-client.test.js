@@ -100,6 +100,13 @@ describe("LSPClient handshake", () => {
 
   it("passes plugin sandbox requirements to ProcessExecutionBroker", async () => {
     const child = new FakeChild();
+    const contract = Object.freeze({ kind: "test-workspace-contract" });
+    const issueAuthority = vi
+      .spyOn(
+        executionBroker,
+        "issueLinuxWorkspaceSandboxExecutionContract",
+      )
+      .mockReturnValue(contract);
     const brokerSpawn = vi
       .spyOn(executionBroker, "spawn")
       .mockReturnValue(child);
@@ -123,7 +130,18 @@ describe("LSPClient handshake", () => {
         sandboxPolicy: {
           requiredBoundaries: ["filesystem", "network"],
         },
+        sandboxExecutionContract: contract,
       }),
+    );
+    expect(issueAuthority).toHaveBeenCalledWith(
+      "fake-lsp",
+      ["--stdio"],
+      expect.objectContaining({
+        cwd: "/proj",
+        shell: false,
+        origin: "plugin:lsp",
+      }),
+      process.cwd(),
     );
     expect(_deps.spawn).not.toHaveBeenCalled();
   });

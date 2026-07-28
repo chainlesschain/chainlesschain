@@ -16,6 +16,7 @@ export {
   appendAssistantMessage,
   appendToolCall,
   appendToolCallCompact,
+  appendLlmRetryCompact,
   appendToolResult,
   appendCompactEvent,
   readEvents,

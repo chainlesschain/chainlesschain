@@ -61,6 +61,13 @@ public final class PluginManager {
 
     public static List<String> buildPluginUpgradeArgs(
             String source, String scope, String registry, String packageName) {
+        return buildPluginUpgradeArgs(
+                source, scope, registry, packageName, false);
+    }
+
+    public static List<String> buildPluginUpgradeArgs(
+            String source, String scope, String registry, String packageName,
+            boolean grantCapabilities) {
         String target = registry != null && !registry.isEmpty()
                 ? packageName : source;
         List<String> args = new ArrayList<String>(Arrays.asList(
@@ -70,6 +77,7 @@ public final class PluginManager {
             args.add("--registry");
             args.add(registry);
         }
+        if (grantCapabilities) args.add("--grant-capabilities");
         args.add("--json");
         return args;
     }
@@ -129,6 +137,57 @@ public final class PluginManager {
         } catch (RuntimeException e) {
             return null;
         }
+    }
+
+    /**
+     * Transactional {@code plugin upgrade --json} result. Unknown activation
+     * states fail closed so the IDE never reloads sessions against an ambiguous
+     * install. Older CLIs infer activated/unchanged from their result flags.
+     */
+    public static Map<String, Object> parsePluginUpgradeResult(String text) {
+        final Map<?, ?> raw;
+        try {
+            Object parsed = MiniJson.parse(text == null ? "" : text.trim());
+            if (!(parsed instanceof Map)) return null;
+            raw = (Map<?, ?>) parsed;
+        } catch (RuntimeException e) {
+            return null;
+        }
+        String status = str(raw.get("activationStatus"));
+        if (status.isEmpty()) {
+            status = Boolean.TRUE.equals(raw.get("updated"))
+                    || Boolean.TRUE.equals(raw.get("reinstalled"))
+                            ? "activated" : "unchanged";
+        }
+        if (!Arrays.asList("activated", "rolled_back", "unchanged").contains(status)) {
+            return null;
+        }
+        Map<String, Object> out = new LinkedHashMap<String, Object>();
+        out.put("name", bounded(raw.get("name"), 256));
+        out.put("version", bounded(raw.get("version"), 128));
+        out.put("previousVersion", bounded(raw.get("previousVersion"), 128));
+        out.put("activationStatus", status);
+        out.put("rollbackVersion", bounded(raw.get("rollbackVersion"), 128));
+        String reason = str(raw.get("rollbackReason"));
+        out.put("rollbackReason",
+                "capability_consent_required".equals(reason)
+                        || "capability_consent_failed".equals(reason)
+                                ? reason : "");
+        out.put("capabilitiesGranted",
+                Boolean.TRUE.equals(raw.get("capabilitiesGranted")));
+        Object rawCapabilities = raw.get("capabilities");
+        if (rawCapabilities instanceof Map) {
+            Map<?, ?> capabilities = (Map<?, ?>) rawCapabilities;
+            Map<String, Object> safe = new LinkedHashMap<String, Object>();
+            safe.put("consented", Boolean.TRUE.equals(capabilities.get("consented")));
+            safe.put("reason", bounded(capabilities.get("reason"), 512));
+            safe.put("declared", boundedStrings(capabilities.get("declared"), 32, 256));
+            safe.put("added", boundedStrings(capabilities.get("added"), 32, 256));
+            out.put("capabilities", safe);
+        } else {
+            out.put("capabilities", null);
+        }
+        return out;
     }
 
     /** {@code plugin installed --json} → rows; null = unreadable. */

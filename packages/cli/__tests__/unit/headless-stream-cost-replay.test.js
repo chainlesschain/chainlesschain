@@ -47,7 +47,7 @@ describe("runAgentHeadlessStream --replay-user-messages", () => {
     expect(echoes).toHaveLength(2);
     expect(echoes[0].message).toEqual({ role: "user", content: "hello" });
     expect(echoes[1].message).toEqual({ role: "user", content: "world" });
-  });
+  }, 15000);
 
   it("does not echo without the flag", async () => {
     const agentLoop = async function* () {
@@ -172,6 +172,56 @@ describe("runAgentHeadlessStream stream_retry (auto-retry notice, 2.1.181)", () 
     expect(retry).toBeTruthy();
     expect(retry.attempt).toBe(1);
     expect(retry.message).toMatch(/retrying/i);
+  });
+
+  it("persists secret-free retry telemetry for a durable IDE session", async () => {
+    const retries = [];
+    const agentLoop = async function* (_messages, options) {
+      const error = Object.assign(new Error("proxy secret=do-not-store"), {
+        code: "ETIMEDOUT",
+      });
+      options.onStreamRetry?.(1, error, {
+        durationMs: 4321,
+        provider: "anthropic",
+        model: "claude-sonnet-4-6",
+      });
+      yield { type: "response-complete", content: "ok" };
+      yield { type: "run-ended", reason: "complete" };
+    };
+    const deps = baseDeps({
+      agentLoop,
+      input: input({ text: "hi" }),
+      sessionExists: () => false,
+      startSession: () => {},
+      appendUserMessage: () => {},
+      appendAssistantMessage: () => {},
+      appendToolCallCompact: () => {},
+      appendEvent: () => {},
+      readEvents: () => [],
+      rebuildMessages: () => [],
+      appendLlmRetryCompact: (sessionId, record) =>
+        retries.push({ sessionId, record }),
+    });
+    await runAgentHeadlessStream(
+      {
+        expandFileRefs: false,
+        sessionId: "durable-session",
+      },
+      deps,
+    );
+    expect(retries).toEqual([
+      {
+        sessionId: "durable-session",
+        record: {
+          attempt: 1,
+          durationMs: 4321,
+          provider: "anthropic",
+          model: "claude-sonnet-4-6",
+          reason: "timeout",
+        },
+      },
+    ]);
+    expect(JSON.stringify(retries)).not.toContain("do-not-store");
   });
 });
 

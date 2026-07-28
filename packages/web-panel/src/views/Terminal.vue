@@ -10,16 +10,36 @@
       </div>
       <a-space>
         <a-select
+          v-model:value="selectedProjectId"
+          style="width: 220px;"
+          size="small"
+          show-search
+          :loading="loadingProjects"
+          :options="projectOptions"
+          placeholder="选择数据库项目"
+          option-filter-prop="label"
+        />
+        <a-select
           v-model:value="newShell"
           style="width: 130px;"
           size="small"
           :options="shellOptions"
         />
-        <a-button type="primary" size="small" :loading="creating" @click="onCreate">
+        <a-button
+          type="primary"
+          size="small"
+          :loading="creating"
+          :disabled="!selectedProjectId"
+          @click="onCreate"
+        >
           <template #icon><PlusOutlined /></template>
           新会话
         </a-button>
-        <a-button size="small" :loading="loadingList" @click="refreshList">
+        <a-button
+          size="small"
+          :loading="loadingList || loadingProjects"
+          @click="refreshAll"
+        >
           <template #icon><ReloadOutlined /></template>
           刷新
         </a-button>
@@ -70,7 +90,7 @@
     </div>
 
     <div v-if="active" class="terminal-footer">
-      <span>{{ active.shell }} · {{ active.cwd || '(默认 cwd)' }} · seq {{ active.lastSeq }}</span>
+      <span>{{ active.shell }} · {{ active.cwd || '(默认 cwd)' }} · {{ active.projectId }} · seq {{ active.lastSeq }}</span>
       <span v-if="!active.alive" class="footer-exit">已退出 (code={{ active.exitCode ?? '-' }})</span>
     </div>
   </div>
@@ -83,11 +103,16 @@ import {
   PlusOutlined, CloseOutlined, ReloadOutlined,
 } from '@ant-design/icons-vue'
 import { useTerminal } from '../composables/useTerminal.js'
+import { useWsStore } from '../stores/ws.js'
 
 const term = useTerminal()
+const ws = useWsStore()
 
-const sessions = ref([]) // { id, shell, cwd, alive, lastSeq, exitCode, xterm, fitAddon, offs }
+const sessions = ref([]) // { id, projectId, shell, cwd, alive, lastSeq, exitCode, xterm, fitAddon, offs }
 const activeId = ref(null)
+const projects = ref([])
+const selectedProjectId = ref(null)
+const loadingProjects = ref(false)
 const newShell = ref('pwsh')
 const creating = ref(false)
 const loadingList = ref(false)
@@ -104,6 +129,44 @@ const shellOptions = [
 ]
 
 const active = computed(() => sessions.value.find((s) => s.id === activeId.value))
+const projectOptions = computed(() =>
+  projects.value.map((project) => ({
+    value: project.id,
+    label: `${project.name || project.id} (${project.id.slice(0, 8)})`,
+  })),
+)
+
+async function loadProjects() {
+  loadingProjects.value = true
+  try {
+    const reply = await ws.sendRaw({ type: 'project.list', limit: 500 })
+    if (reply?.ok === false) {
+      throw new Error(reply.error || 'project_list_failed')
+    }
+    const result = reply?.result ?? reply
+    const rows = Array.isArray(result?.projects)
+      ? result.projects
+      : Array.isArray(result)
+        ? result
+        : []
+    // Only a local root_path is eligible for Desktop PTY binding.
+    projects.value = rows.filter(
+      (project) =>
+        project?.id &&
+        typeof (project.root_path ?? project.rootPath) === 'string' &&
+        String(project.root_path ?? project.rootPath).trim() !== '',
+    )
+    if (!projects.value.some((project) => project.id === selectedProjectId.value)) {
+      selectedProjectId.value = null
+    }
+  } catch (e) {
+    projects.value = []
+    selectedProjectId.value = null
+    error.value = e?.message || String(e)
+  } finally {
+    loadingProjects.value = false
+  }
+}
 
 function shortId(id) {
   return id ? id.slice(0, 8) : ''
@@ -152,7 +215,7 @@ async function mountXterm(session) {
 
   // stdin: xterm.onData → terminal.stdin
   const offData = xterm.onData((data) => {
-    term.stdin(session.id, data).catch((e) => {
+    term.stdin(session.projectId, session.id, data).catch((e) => {
       // Dangerous-keyword blocks return error envelopes; surface as toast
       // instead of throwing into the keystroke loop.
       if (String(e?.message || '').includes('dangerous_keyword_blocked')) {
@@ -185,7 +248,11 @@ async function mountXterm(session) {
   // For freshly created sessions this is empty, but for sessions joined via
   // refreshList() this brings the buffer up to date.
   try {
-    const { chunks, truncated } = await term.history(session.id, 0)
+    const { chunks, truncated } = await term.history(
+      session.projectId,
+      session.id,
+      0,
+    )
     if (truncated) {
       xterm.writeln('\x1b[2m[history truncated — earlier output was evicted]\x1b[0m')
     }
@@ -201,7 +268,9 @@ async function mountXterm(session) {
   const ro = new ResizeObserver(() => {
     try {
       fitAddon.fit()
-      term.resize(session.id, xterm.cols, xterm.rows).catch(() => {})
+      term
+        .resize(session.projectId, session.id, xterm.cols, xterm.rows)
+        .catch(() => {})
     } catch { /* benign during teardown */ }
   })
   ro.observe(container)
@@ -213,14 +282,24 @@ async function mountXterm(session) {
 }
 
 async function onCreate() {
+  if (!selectedProjectId.value) {
+    error.value = '请先选择一个数据库项目'
+    return
+  }
   creating.value = true
   error.value = ''
   try {
-    const created = await term.create({ shell: newShell.value, cols: 80, rows: 24 })
+    const created = await term.create({
+      projectId: selectedProjectId.value,
+      shell: newShell.value,
+      cols: 80,
+      rows: 24,
+    })
     const session = {
       id: created.sessionId,
+      projectId: created.projectId,
       shell: created.shell,
-      cwd: '',
+      cwd: created.cwd,
       alive: true,
       lastSeq: 0,
       exitCode: null,
@@ -240,7 +319,8 @@ async function onCreate() {
 
 async function onClose(id) {
   try {
-    await term.close(id)
+    const session = sessions.value.find((candidate) => candidate.id === id)
+    await term.close(session?.projectId, id)
   } catch (e) {
     // Even if close fails, drop from list — server-side exit will likely
     // arrive separately and reconcile.
@@ -273,13 +353,17 @@ function activate(id) {
 }
 
 async function refreshList() {
+  if (!selectedProjectId.value) {
+    return
+  }
   loadingList.value = true
   error.value = ''
   try {
-    const remote = await term.list()
+    const remote = await term.list(selectedProjectId.value)
     // Adopt any server-side sessions we don't already track. Skip ones we
     // own (id match) — they keep their xterm + subscriptions.
     for (const r of remote) {
+      if (r.projectId !== selectedProjectId.value) continue
       const owned = sessions.value.find((s) => s.id === r.id)
       if (owned) {
         owned.alive = r.alive
@@ -288,6 +372,7 @@ async function refreshList() {
       }
       const session = {
         id: r.id,
+        projectId: r.projectId,
         shell: r.shell,
         cwd: r.cwd,
         alive: r.alive,
@@ -310,8 +395,15 @@ async function refreshList() {
   }
 }
 
+async function refreshAll() {
+  await loadProjects()
+  if (selectedProjectId.value) {
+    await refreshList()
+  }
+}
+
 onMounted(async () => {
-  await refreshList()
+  await refreshAll()
 })
 
 onBeforeUnmount(() => {
@@ -327,6 +419,16 @@ watch(activeId, () => {
     const s = active.value
     try { s?.fitAddon?.fit() } catch { /* benign */ }
   })
+})
+
+watch(selectedProjectId, async () => {
+  for (const session of [...sessions.value]) {
+    removeSession(session.id)
+  }
+  activeId.value = null
+  if (selectedProjectId.value) {
+    await refreshList()
+  }
 })
 </script>
 

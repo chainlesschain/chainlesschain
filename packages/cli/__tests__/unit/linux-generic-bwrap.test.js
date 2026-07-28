@@ -1,0 +1,598 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  admitLinuxGenericSandboxExecutionContract,
+  issueLinuxGenericSandboxExecutionContract,
+  planLinuxGenericBubblewrap,
+  verifyIssuedLinuxGenericSandboxExecutionContract,
+  verifyLinuxGenericBubblewrapPlan,
+} from "../../src/lib/process-execution-broker/linux-generic-bwrap.js";
+import { executionBroker } from "../../src/lib/process-execution-broker/index.js";
+
+const ROOT = "/work/project";
+const CWD = "/work/project/subdir";
+const ROOT_IDENTITY = Object.freeze({
+  realPath: ROOT,
+  fileId: Object.freeze({ dev: "11", ino: "22" }),
+  mode: 0o040755,
+  uid: 1000,
+  gid: 1000,
+});
+const CWD_IDENTITY = Object.freeze({
+  realPath: CWD,
+  fileId: Object.freeze({ dev: "11", ino: "23" }),
+  mode: 0o040755,
+  uid: 1000,
+  gid: 1000,
+});
+const SYSTEM_DIRECTORY = Object.freeze({
+  realPath: "/usr",
+  fileId: Object.freeze({ dev: "1", ino: "2" }),
+  mode: 0o040755,
+  uid: 0,
+  gid: 0,
+});
+const SYSTEM_FILE = Object.freeze({
+  realPath: "/usr/bin/node",
+  fileId: Object.freeze({ dev: "1", ino: "3" }),
+  mode: 0o100755,
+  uid: 0,
+  gid: 0,
+});
+const ETC_FILE = Object.freeze({
+  realPath: "/etc/passwd",
+  fileId: Object.freeze({ dev: "1", ino: "4" }),
+  mode: 0o100644,
+  uid: 0,
+  gid: 0,
+});
+
+function attestWorkspace(root = ROOT, cwd = CWD) {
+  return {
+    workspaceRoot: root,
+    workingDirectory: cwd,
+    rootIdentity:
+      root === ROOT
+        ? ROOT_IDENTITY
+        : {
+            ...ROOT_IDENTITY,
+            realPath: root,
+          },
+    cwdIdentity:
+      cwd === CWD
+        ? CWD_IDENTITY
+        : {
+            ...CWD_IDENTITY,
+            realPath: cwd,
+          },
+  };
+}
+
+function provenance(overrides = {}) {
+  return {
+    origin: "plugin:mcp",
+    command: "node",
+    args: ["server.js"],
+    cwd: CWD,
+    shell: false,
+    sync: false,
+    stdio: ["pipe", "pipe", "pipe"],
+    requiredBoundaries: ["filesystem", "network"],
+    ...overrides,
+  };
+}
+
+function issue(overrides = {}, attest = attestWorkspace) {
+  const spec = provenance(overrides);
+  return issueLinuxGenericSandboxExecutionContract(
+    {
+      ...spec,
+      workspaceRoot: overrides.workspaceRoot || ROOT,
+    },
+    { attestWorkspace: attest },
+  );
+}
+
+function rootOwnedFile(realPath, ino) {
+  return {
+    realPath,
+    fileId: { dev: "1", ino: String(ino) },
+    mode: 0o100755,
+    uid: 0,
+    gid: 0,
+  };
+}
+
+function resources(contract, overrides = {}) {
+  const closeProbe = vi.fn();
+  const cleanup = vi.fn();
+  return {
+    attestedContractDigest: contract.contractDigest,
+    attestContract: vi.fn(() => true),
+    attestFinal: vi.fn(() => true),
+    closeProbe,
+    cleanup,
+    supervisor: {
+      probeFd: 100,
+      finalFd: 200,
+      identity: rootOwnedFile("/usr/bin/bwrap", 10),
+    },
+    workspace: {
+      probeFd: 101,
+      finalFd: 201,
+      identity: ROOT_IDENTITY,
+    },
+    system: [
+      {
+        destination: "/usr",
+        probeFd: 102,
+        finalFd: 202,
+        identity: SYSTEM_DIRECTORY,
+      },
+    ],
+    systemSymlinks: [
+      { destination: "/bin", target: "usr/bin" },
+      { destination: "/lib", target: "usr/lib" },
+      { destination: "/lib64", target: "usr/lib64" },
+    ],
+    etc: [
+      {
+        destination: "/etc/passwd",
+        probeFd: 103,
+        finalFd: 203,
+        identity: ETC_FILE,
+      },
+    ],
+    seccomp: {
+      probeFd: 104,
+      finalFd: 204,
+      sha256: "a".repeat(64),
+      policy: "deny-network-creation",
+    },
+    target: {
+      attestedContractDigest: contract.contractDigest,
+      requestedCommand: "node",
+      resolvedCommand: "/usr/bin/node",
+      args: ["server.js"],
+      scope: "system",
+      identity: SYSTEM_FILE,
+    },
+    ...overrides,
+  };
+}
+
+function successfulProbe(call) {
+  return {
+    runnable: true,
+    policyDigest: call.policyDigest,
+    contractDigest: call.contractDigest,
+    emptyRoot: true,
+    undeclaredRootReadOnly: true,
+    workspaceReadWrite: true,
+    systemReadOnly: true,
+    hostHomeHidden: true,
+    outsideMarkerHidden: true,
+    networkNamespace: true,
+    networkNamespaceChanged: true,
+    socketCreationDenied: true,
+  };
+}
+
+describe("Linux generic bubblewrap authority contract", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("rejects a forged writable host root and a cwd symlink escape", () => {
+    expect(() =>
+      issue({ workspaceRoot: "/", cwd: "/" }, () => attestWorkspace("/", "/")),
+    ).toThrow(/unsafe writable workspace root/);
+
+    expect(() =>
+      issue({ cwd: "/outside" }, () => attestWorkspace(ROOT, "/outside")),
+    ).toThrow(/escapes the canonical workspace root/);
+
+    expect(() =>
+      issueLinuxGenericSandboxExecutionContract(
+        {
+          ...provenance({ cwd: "/home/alice" }),
+          workspaceRoot: "/home/alice",
+        },
+        {
+          attestWorkspace: () => attestWorkspace("/home/alice", "/home/alice"),
+          homedir: () => "/home/alice",
+        },
+      ),
+    ).toThrow(/unsafe writable workspace root/);
+    expect(() =>
+      issueLinuxGenericSandboxExecutionContract(
+        {
+          ...provenance({ cwd: "/home" }),
+          workspaceRoot: "/home",
+        },
+        {
+          attestWorkspace: () => attestWorkspace("/home", "/home"),
+          homedir: () => "/home/alice",
+        },
+      ),
+    ).toThrow(/unsafe writable workspace root/);
+    for (const broadRoot of [
+      "/tmp",
+      "/var",
+      "/run",
+      "/opt",
+      "/mnt",
+      "/media",
+      "/srv",
+    ]) {
+      expect(() =>
+        issueLinuxGenericSandboxExecutionContract(
+          {
+            ...provenance({ cwd: broadRoot }),
+            workspaceRoot: broadRoot,
+          },
+          {
+            attestWorkspace: () => attestWorkspace(broadRoot, broadRoot),
+            homedir: () => "/home/alice",
+          },
+        ),
+      ).toThrow(/unsafe writable workspace root/);
+    }
+  });
+
+  it("binds origin, command, argv, cwd, shell mode, sync, stdio and tightens boundaries only", () => {
+    const commandContract = issue({
+      requiredBoundaries: ["filesystem"],
+    });
+    expect(
+      verifyIssuedLinuxGenericSandboxExecutionContract(
+        commandContract,
+        provenance({ requiredBoundaries: ["filesystem", "network"] }),
+      ),
+    ).toBe(true);
+    expect(
+      verifyIssuedLinuxGenericSandboxExecutionContract(
+        commandContract,
+        provenance({
+          command: "python3",
+          requiredBoundaries: ["filesystem", "network"],
+        }),
+      ),
+    ).toBe(false);
+    expect(
+      verifyIssuedLinuxGenericSandboxExecutionContract(
+        commandContract,
+        provenance({ requiredBoundaries: ["network"] }),
+      ),
+    ).toBe(false);
+  });
+
+  it("is one-shot and refuses command drift without consuming the valid contract", () => {
+    const commandContract = issue();
+    const drift = planLinuxGenericBubblewrap(
+      {
+        contract: commandContract,
+        provenance: provenance({ args: ["replacement.js"] }),
+        resources: resources(commandContract),
+        probe: successfulProbe,
+      },
+      { platform: "linux" },
+    );
+    expect(drift.applied).toBe(false);
+    expect(drift.reason).toBe("linux_generic_execution_contract_invalid");
+
+    const accepted = planLinuxGenericBubblewrap(
+      {
+        contract: commandContract,
+        provenance: provenance(),
+        resources: resources(commandContract),
+        probe: successfulProbe,
+      },
+      { platform: "linux" },
+    );
+    expect(accepted.applied).toBe(true);
+
+    const replay = planLinuxGenericBubblewrap(
+      {
+        contract: commandContract,
+        provenance: provenance(),
+        resources: resources(commandContract),
+        probe: successfulProbe,
+      },
+      { platform: "linux" },
+    );
+    expect(replay.applied).toBe(false);
+    expect(replay.reason).toBe("linux_generic_execution_contract_invalid");
+  });
+
+  it("uses separate one-shot Broker admission and platform authorities", () => {
+    const commandContract = issue();
+    const admitted = admitLinuxGenericSandboxExecutionContract(
+      commandContract,
+      provenance(),
+    );
+    expect(admitted).toMatchObject({
+      kind: "strict-workspace-command",
+      workspaceRoot: ROOT,
+      workingDirectory: CWD,
+    });
+    expect(
+      verifyIssuedLinuxGenericSandboxExecutionContract(
+        commandContract,
+        provenance(),
+      ),
+    ).toBe(false);
+
+    const plan = planLinuxGenericBubblewrap(
+      {
+        contract: admitted,
+        provenance: provenance(),
+        resources: resources(commandContract),
+        probe: successfulProbe,
+      },
+      { platform: "linux" },
+    );
+    expect(plan.applied).toBe(true);
+    expect(
+      planLinuxGenericBubblewrap(
+        {
+          contract: admitted,
+          provenance: provenance(),
+          resources: resources(commandContract),
+          probe: successfulProbe,
+        },
+        { platform: "linux" },
+      ).reason,
+    ).toBe("linux_generic_execution_contract_invalid");
+  });
+});
+
+describe("Linux generic bubblewrap exact mount plan", () => {
+  it("maps only rw workspace, anonymous scratch, root-owned runtime, and exact /etc files", () => {
+    const commandContract = issue();
+    const hostHomeSecret = "/home/alice/.ssh/id_ed25519";
+    const outsideMarker = "/work/outside-marker";
+    const plan = planLinuxGenericBubblewrap(
+      {
+        contract: commandContract,
+        provenance: provenance(),
+        resources: resources(commandContract),
+        environment: {
+          HOME: "/home/alice",
+          LD_PRELOAD: "/tmp/evil.so",
+          SAFE_FLAG: "yes",
+        },
+        probe: successfulProbe,
+      },
+      { platform: "linux" },
+    );
+
+    expect(plan.applied).toBe(true);
+    expect(plan.guarantees).toEqual(["filesystem", "network"]);
+    expect(plan.filesystemPolicy).toMatchObject({
+      workspaceRoot: ROOT,
+      workspaceAccess: "read-write",
+      systemAccess: "read-only",
+      hostRootMapped: false,
+      hostHomeMapped: false,
+      workspaceDescriptorBound: true,
+    });
+    expect(plan.args).toContain("--bind-fd");
+    expect(plan.args).toContain("--ro-bind-fd");
+    expect(plan.args).toContain("--unshare-net");
+    expect(plan.args).toContain("--seccomp");
+    expect(plan.args).toContain("--remount-ro");
+    expect(plan.args[plan.args.indexOf("--remount-ro") + 1]).toBe("/");
+    expect(plan.args.indexOf("--remount-ro")).toBeLessThan(
+      plan.args.indexOf("--tmpfs"),
+    );
+    expect(plan.args.indexOf("--symlink")).toBeLessThan(
+      plan.args.indexOf("--remount-ro"),
+    );
+    expect(plan.args.indexOf("--ro-bind-fd")).toBeLessThan(
+      plan.args.indexOf("--remount-ro"),
+    );
+    expect(plan.args.indexOf("--tmpfs")).toBeLessThan(
+      plan.args.indexOf("--bind-fd"),
+    );
+    expect(plan.args.indexOf("--file")).toBeLessThan(
+      plan.args.findIndex(
+        (value, index) =>
+          value === "/run" && plan.args[index - 1] === "--tmpfs",
+      ),
+    );
+    expect(plan.args).not.toContain("--ro-bind");
+    expect(
+      plan.args.some(
+        (value, index) =>
+          value === "/" &&
+          ["--bind-fd", "--ro-bind-fd"].includes(plan.args[index - 2]),
+      ),
+    ).toBe(false);
+    expect(plan.args).not.toContain("/home/alice");
+    expect(plan.args).not.toContain(hostHomeSecret);
+    expect(plan.args).not.toContain(outsideMarker);
+    expect(plan.args).not.toContain("/tmp/evil.so");
+    expect(plan.args).toContain("/etc/passwd");
+    for (const exactFile of ["/etc/passwd", "/etc/group", "/etc/hosts"]) {
+      expect(
+        plan.args.some(
+          (value, index) =>
+            value === exactFile && plan.args[index - 1] === "--dir",
+        ),
+      ).toBe(false);
+    }
+    const broadEtcBind = plan.args.some(
+      (value, index) =>
+        value === "/etc" &&
+        ["--bind-fd", "--ro-bind-fd"].includes(plan.args[index - 2]),
+    );
+    expect(broadEtcBind).toBe(false);
+    expect(verifyLinuxGenericBubblewrapPlan(plan)).toBe(true);
+    expect(executionBroker._validateSandboxPlan(plan)).toMatchObject({
+      backend: "linux-bwrap-workspace",
+      policyAttested: true,
+      runtimeProbe: {
+        kind: "linux-bwrap-generic-workspace-policy-v1",
+        descriptorMounts: true,
+      },
+    });
+    expect(() =>
+      executionBroker._validateSandboxPlan({
+        ...plan,
+        enforcement: "other-backend",
+        backend: "other-backend",
+        runtimeProbe: {
+          kind: "other-policy-v1",
+          attempted: true,
+          runnable: true,
+          reason: null,
+          contractDigest: plan.runtimeProbe.contractDigest,
+        },
+      }),
+    ).toThrow(
+      /generic workspace evidence requires its typed runtime probe kind/,
+    );
+  });
+
+  it("preserves an IPC fd3 and allocates private descriptors after it", () => {
+    const stdio = ["ignore", "pipe", "pipe", "ipc"];
+    const commandContract = issue({ stdio });
+    const seen = [];
+    const plan = planLinuxGenericBubblewrap(
+      {
+        contract: commandContract,
+        provenance: provenance({ stdio }),
+        resources: resources(commandContract),
+        probe(call) {
+          seen.push(call);
+          return successfulProbe(call);
+        },
+      },
+      { platform: "linux" },
+    );
+
+    expect(plan.applied).toBe(true);
+    expect(plan.options.stdio.slice(0, 4)).toEqual(stdio);
+    expect(plan.command).toBe("/proc/self/fd/4");
+    expect(plan.options.stdio.slice(4)).toEqual([200, 201, 202, 203, 204]);
+    expect(seen[0].options.stdio.slice(0, 4)).toEqual([
+      "ignore",
+      "pipe",
+      "pipe",
+      "ignore",
+    ]);
+    const channelIndex = plan.args.indexOf("NODE_CHANNEL_FD");
+    expect(plan.args[channelIndex + 1]).toBe("3");
+  });
+
+  it("rejects untrusted runtime mounts and exact /etc allowlist escapes", () => {
+    const first = issue();
+    const untrusted = resources(first);
+    untrusted.system[0] = {
+      ...untrusted.system[0],
+      identity: { ...SYSTEM_DIRECTORY, uid: 1000 },
+    };
+    expect(
+      planLinuxGenericBubblewrap(
+        {
+          contract: first,
+          provenance: provenance(),
+          resources: untrusted,
+          probe: successfulProbe,
+        },
+        { platform: "linux" },
+      ).reason,
+    ).toBe("linux_generic_resources_unattested");
+
+    const second = issue();
+    const broadEtc = resources(second);
+    broadEtc.etc[0] = {
+      ...broadEtc.etc[0],
+      destination: "/etc/shadow",
+    };
+    expect(
+      planLinuxGenericBubblewrap(
+        {
+          contract: second,
+          provenance: provenance(),
+          resources: broadEtc,
+          probe: successfulProbe,
+        },
+        { platform: "linux" },
+      ).reason,
+    ).toBe("linux_generic_resources_unattested");
+  });
+
+  it("binds resolved target argv and rejects shell reinterpretation", () => {
+    const drifted = issue();
+    const driftedResources = resources(drifted);
+    driftedResources.target.args = ["server.js", "--drift"];
+    expect(
+      planLinuxGenericBubblewrap(
+        {
+          contract: drifted,
+          provenance: provenance(),
+          resources: driftedResources,
+          probe: successfulProbe,
+        },
+        { platform: "linux" },
+      ).reason,
+    ).toBe("linux_generic_resources_unattested");
+
+    expect(() =>
+      issue({
+        command: "printf ok",
+        args: ["&&", "printf done"],
+        shell: true,
+      }),
+    ).toThrow(/requires shell:false/);
+  });
+
+  it("fails closed when policy-digest or final attestation evidence is tampered", () => {
+    const first = issue();
+    const digestMismatch = planLinuxGenericBubblewrap(
+      {
+        contract: first,
+        provenance: provenance(),
+        resources: resources(first),
+        probe(call) {
+          return {
+            ...successfulProbe(call),
+            policyDigest: "0".repeat(64),
+          };
+        },
+      },
+      { platform: "linux" },
+    );
+    expect(digestMismatch.applied).toBe(false);
+    expect(digestMismatch.reason).toBe("linux_generic_policy_probe_failed");
+
+    const second = issue();
+    const changed = resources(second, { attestFinal: vi.fn(() => false) });
+    const finalMismatch = planLinuxGenericBubblewrap(
+      {
+        contract: second,
+        provenance: provenance(),
+        resources: changed,
+        probe: successfulProbe,
+      },
+      { platform: "linux" },
+    );
+    expect(finalMismatch.applied).toBe(false);
+    expect(finalMismatch.reason).toBe(
+      "linux_generic_execution_contract_changed",
+    );
+  });
+
+  it("rejects numeric/inherited descriptors before issuing authority", () => {
+    expect(() => issue({ stdio: ["ignore", "pipe", 9] })).toThrow(
+      /rejects inherited\/numeric stdio/,
+    );
+    expect(() => issue({ stdio: "inherit" })).toThrow(
+      /requires pipe\/ignore\/array stdio/,
+    );
+    expect(() => issue({ detached: true })).toThrow(
+      /rejects detached\/identity\/argv0\/serialization overrides/,
+    );
+  });
+});

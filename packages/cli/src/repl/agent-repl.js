@@ -48,10 +48,12 @@ import {
   appendCompactEvent,
   appendTokenUsage,
   appendToolCallCompact,
+  appendLlmRetryCompact,
   appendEvent,
   rebuildMessages,
   sessionExists,
 } from "../harness/jsonl-session-store.js";
+import { classifyStreamRetryReason } from "../lib/stream-retry.js";
 import { CLISkillLoader } from "../lib/skill-loader.js";
 import { storeMemory, consolidateMemory } from "../lib/hierarchical-memory.js";
 import { CLIContextEngineering } from "../lib/cli-context-engineering.js";
@@ -353,13 +355,25 @@ export async function agentLoop(messages, options) {
         chalk.gray(`  ⎌ checkpoint ${event.id} (before ${event.tool})\n`),
       );
     } else if (event.type === "tool-executing") {
-      _lastExec = { tool: event.tool, args: event.args };
+      _lastExec = {
+        tool: event.tool,
+        args: event.args,
+        startedAt: options.now ? options.now() : Date.now(),
+      };
       process.stdout.write(
         chalk.gray(
           `  [${event.tool}] ${formatToolArgs(event.tool, event.args)}\n`,
         ),
       );
     } else if (event.type === "tool-result") {
+      const durationMs =
+        event.result?.toolTelemetryRecord?.durationMs ??
+        (_lastExec?.tool === event.tool
+          ? Math.max(
+              0,
+              (options.now ? options.now() : Date.now()) - _lastExec.startedAt,
+            )
+          : undefined);
       // 用量归因: persist a compact tool_call record (name + error flag +
       // skill/plugin hints — never args, which can carry whole file bodies)
       // so `cc session usage --by tool|mcp|plugin` and `cc insights` can
@@ -375,6 +389,7 @@ export async function agentLoop(messages, options) {
                 ? _lastExec.args?.skill_name
                 : undefined,
             ...extractPluginUsageAttribution(event.result),
+            durationMs,
           });
         } catch (_e) {
           // persistence is best-effort — never break the turn
@@ -5570,12 +5585,26 @@ export async function startAgentRepl(options = {}) {
         // streaming call hits a transient connection drop and retries, tell the
         // user instead of leaving them staring at a silent pause. To stderr so
         // it never corrupts the streamed answer on stdout.
-        onStreamRetry: (attempt) =>
+        onStreamRetry: (attempt, error, telemetry = {}) => {
           process.stderr.write(
             chalk.dim(
               `  ⟳ connection dropped — retrying (attempt ${attempt})…\n`,
             ),
-          ),
+          );
+          if (useJsonl && sessionId) {
+            try {
+              appendLlmRetryCompact(sessionId, {
+                attempt,
+                durationMs: telemetry.durationMs,
+                provider: telemetry.provider || provider,
+                model: telemetry.model || activeModel,
+                reason: classifyStreamRetryReason(error),
+              });
+            } catch {
+              /* usage telemetry is best-effort */
+            }
+          }
+        },
         // Stream-stall hint (Claude-Code 2.1.185): the connection is alive but
         // the API has gone silent mid-response — tell the user we're still
         // waiting instead of leaving a frozen spinner. stderr so it never

@@ -90,21 +90,92 @@ class TerminalListViewModel @Inject constructor(
         }
         _state.update { it.copy(loading = true, error = null) }
         viewModelScope.launch {
-            terminalRpc.list(pcPeerId)
-                .onSuccess { rows ->
-                    _state.update { it.copy(loading = false, sessions = rows) }
+            terminalRpc.listProjects(pcPeerId)
+                .onSuccess { projects ->
+                    val selected = _state.value.selectedProjectId
+                        ?.takeIf { id -> projects.any { it.id == id } }
+                    _state.update { current ->
+                        current.copy(
+                            projects = projects,
+                            selectedProjectId = selected,
+                            sessions = emptyList(),
+                        )
+                    }
+                    if (selected != null) {
+                        loadSessions(selected)
+                    } else {
+                        _state.update { it.copy(loading = false) }
+                    }
                 }
                 .onFailure { e ->
-                    _state.update { it.copy(loading = false, error = e.message ?: "失败") }
+                    _state.update {
+                        it.copy(
+                            projects = emptyList(),
+                            selectedProjectId = null,
+                            sessions = emptyList(),
+                            loading = false,
+                            error = e.message ?: "项目列表加载失败",
+                        )
+                    }
                 }
+        }
+    }
+
+    private suspend fun loadSessions(projectId: String) {
+        terminalRpc.list(pcPeerId, projectId)
+            .onSuccess { rows ->
+                _state.update { current ->
+                    current.copy(
+                        loading = false,
+                        sessions = if (current.selectedProjectId == projectId) {
+                            rows
+                        } else {
+                            emptyList()
+                        },
+                    )
+                }
+            }
+            .onFailure { e ->
+                _state.update { it.copy(loading = false, error = e.message ?: "失败") }
+            }
+    }
+
+    fun selectProject(projectId: String) {
+        val selected = projectId.takeIf { candidate ->
+            _state.value.projects.any { it.id == candidate }
+        }
+        _state.update {
+            it.copy(
+                selectedProjectId = selected,
+                sessions = emptyList(),
+                loading = selected != null,
+                error = null,
+            )
+        }
+        if (selected != null) {
+            viewModelScope.launch {
+                loadSessions(selected)
+            }
         }
     }
 
     fun createSession(shell: String, cwd: String? = null) {
         if (pcPeerId.isEmpty()) return
+        val projectId = _state.value.selectedProjectId
+        // Project-detail navigation may still supply cwd as a migration
+        // selector. Normal terminal creation requires an explicit DB project.
+        if (projectId == null && cwd.isNullOrBlank()) {
+            _state.update { it.copy(error = "请先选择一个桌面项目") }
+            return
+        }
         _state.update { it.copy(creating = true, error = null) }
         viewModelScope.launch {
-            terminalRpc.create(pcPeerId, shell = shell, cwd = cwd)
+            terminalRpc.create(
+                pcPeerId,
+                projectId = projectId,
+                shell = shell,
+                cwd = cwd,
+            )
                 .onSuccess { created ->
                     // Plan A.1 v5.0.3.53-fix7 真机 E2E 真因：原 `it.copy(lastCreatedId = it.lastCreatedId)`
                     // 把 onSuccess 闭包参数 `it`（CreatedSession）shadow 了，又用 state.it.lastCreatedId
@@ -116,7 +187,13 @@ class TerminalListViewModel @Inject constructor(
                         created.sessionId,
                         created.pid,
                     )
-                    _state.update { it.copy(creating = false, lastCreatedId = created.sessionId) }
+                    _state.update {
+                        it.copy(
+                            creating = false,
+                            lastCreatedId = created.sessionId,
+                            lastCreatedProjectId = created.projectId ?: projectId,
+                        )
+                    }
                     refresh()
                 }
                 .onFailure { e ->
@@ -128,13 +205,16 @@ class TerminalListViewModel @Inject constructor(
 
     /** Plan A.1 fix7: 调用方触发 navigation 后调此方法清掉 lastCreatedId，避免下次进 list 屏重复跳转。 */
     fun consumeLastCreatedId() {
-        _state.update { it.copy(lastCreatedId = null) }
+        _state.update {
+            it.copy(lastCreatedId = null, lastCreatedProjectId = null)
+        }
     }
 
     fun closeSession(sessionId: String) {
         if (pcPeerId.isEmpty()) return
+        val projectId = _state.value.selectedProjectId ?: return
         viewModelScope.launch {
-            terminalRpc.close(pcPeerId, sessionId)
+            terminalRpc.close(pcPeerId, projectId, sessionId)
             refresh()
         }
     }
@@ -143,7 +223,10 @@ class TerminalListViewModel @Inject constructor(
 data class TerminalListState(
     val loading: Boolean = false,
     val creating: Boolean = false,
+    val projects: List<TerminalRpcClient.ProjectChoice> = emptyList(),
+    val selectedProjectId: String? = null,
     val sessions: List<TerminalRpcClient.SessionRow> = emptyList(),
     val lastCreatedId: String? = null,
+    val lastCreatedProjectId: String? = null,
     val error: String? = null,
 )

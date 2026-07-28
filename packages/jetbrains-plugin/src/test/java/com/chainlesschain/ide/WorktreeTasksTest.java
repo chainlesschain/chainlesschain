@@ -159,4 +159,46 @@ final class WorktreeTasksTest {
                         .get(0).get("backgroundId"));
         assertTrue(WorktreeTasks.parseBackgroundTaskGovernance("not json").isEmpty());
     }
+
+    @Test
+    void projectsReadOnlyCollaborationGovernanceWithoutBackgroundControlId() {
+        String daemon = "{"
+                + "\"sessions\":[],\"managedTasks\":[{"
+                + "\"managedTaskId\":\"batch-1700000000000-a1b2c3:unit-1\","
+                + "\"runId\":\"batch-1700000000000-a1b2c3\","
+                + "\"runKind\":\"batch\","
+                + "\"branch\":\"batch/unit-1\","
+                + "\"worktreePath\":\"C:\\\\repo\\\\.cc-worktrees\\\\unit-1\","
+                + "\"status\":\"test-failed\","
+                + "\"governance\":{"
+                + "\"owner\":\"batch:batch-1700000000000-a1b2c3:unit-1\","
+                + "\"sessionId\":\"session-batch-unit-1\","
+                + "\"permissionMode\":\"acceptEdits\","
+                + "\"resourceBudget\":{\"maxTurns\":8,\"maxCostUsd\":3,"
+                + "\"maxTasks\":4,\"maxTokens\":20000,\"maxWallMs\":60000}},"
+                + "\"sideEffects\":{\"total\":3,\"unsettled\":1,\"unknown\":0,"
+                + "\"metadata\":{\"secret\":\"must-not-cross\"}},"
+                + "\"prompt\":\"secret prompt\"}]}";
+
+        List<Map<String, Object>> projected =
+                WorktreeTasks.parseBackgroundTaskGovernance(daemon);
+        assertEquals(1, projected.size());
+        Map<String, Object> row = projected.get(0);
+        assertEquals("batch-1700000000000-a1b2c3:unit-1",
+                row.get("managedTaskId"));
+        assertEquals("batch", row.get("runKind"));
+        assertEquals("test-failed", row.get("managementStatus"));
+        assertFalse(row.containsKey("backgroundId"));
+        assertFalse(MiniJson.stringify(projected).contains("secret"));
+
+        Map<String, Object> task = new LinkedHashMap<String, Object>();
+        task.put("branch", "batch/unit-1");
+        task.put("path", "C:/wrong");
+        Map<String, Object> attached =
+                WorktreeTasks.attachTaskGovernance(Arrays.asList(task), daemon).get(0);
+        assertEquals("batch-1700000000000-a1b2c3:unit-1",
+                attached.get("managedTaskId"));
+        assertTrue(WorktreeTasks.formatTaskLine(attached)
+                .contains("batch: test-failed / acceptEdits"));
+    }
 }

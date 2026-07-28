@@ -93,6 +93,7 @@ import {
   CloseOutlined,
   ReloadOutlined,
 } from "@ant-design/icons-vue";
+import { useProjectStore } from "@/stores/project";
 
 interface Props {
   open: boolean;
@@ -100,9 +101,11 @@ interface Props {
 }
 const props = defineProps<Props>();
 defineEmits<{ (e: "update:open", v: boolean): void }>();
+const projectStore = useProjectStore();
 
 interface SessionRow {
   id: string;
+  projectId?: string;
   shell: string;
   cwd?: string;
   alive: boolean;
@@ -201,9 +204,11 @@ async function mountXterm(session: SessionRow) {
   session.fitAddon = fitAddon;
 
   const offData = xterm.onData((data: string) => {
-    electronAPI.terminal.stdin(session.id, data).catch((e: any) => {
-      message.error("stdin 失败: " + (e?.message || e));
-    });
+    electronAPI.terminal
+      .stdin(session.projectId, session.id, data)
+      .catch((e: any) => {
+        message.error("stdin 失败: " + (e?.message || e));
+      });
   });
 
   stdoutHandlers.set(session.id, ({ data, seq }) => {
@@ -230,6 +235,7 @@ async function mountXterm(session: SessionRow) {
 
   try {
     const { chunks, truncated } = await electronAPI.terminal.history(
+      session.projectId,
       session.id,
       0,
     );
@@ -248,7 +254,7 @@ async function mountXterm(session: SessionRow) {
     try {
       fitAddon.fit();
       electronAPI.terminal
-        .resize(session.id, xterm.cols, xterm.rows)
+        .resize(session.projectId, session.id, xterm.cols, xterm.rows)
         .catch(() => {});
     } catch {
       /* benign */
@@ -273,16 +279,22 @@ async function onCreate() {
   creating.value = true;
   error.value = "";
   try {
+    const projectId = projectStore.currentProject?.id;
+    if (!projectId) {
+      throw new Error("请先打开一个项目，再创建绑定到该项目的终端");
+    }
     ensureGlobalListeners();
     const created = await electronAPI.terminal.create({
+      projectId,
       shell: newShell.value,
       cols: 80,
       rows: 24,
     });
     const s: SessionRow = {
       id: created.sessionId,
+      projectId: created.projectId || projectId,
       shell: created.shell,
-      cwd: "",
+      cwd: created.cwd,
       alive: true,
       lastSeq: 0,
       exitCode: null,
@@ -302,7 +314,8 @@ async function onCreate() {
 
 async function onCloseSession(id: string) {
   try {
-    await electronAPI.terminal.close(id);
+    const session = sessions.value.find((candidate) => candidate.id === id);
+    await electronAPI.terminal.close(session?.projectId, id);
   } catch (e: any) {
     error.value = e?.message || String(e);
   }
@@ -347,20 +360,30 @@ async function refreshList() {
   if (!electronAPI?.terminal) {
     return;
   }
+  const projectId = projectStore.currentProject?.id;
+  if (!projectId) {
+    error.value = "请先打开一个项目，再查看该项目的终端会话";
+    return;
+  }
   loadingList.value = true;
   error.value = "";
   try {
     ensureGlobalListeners();
-    const remote = await electronAPI.terminal.list();
+    const remote = await electronAPI.terminal.list(projectId);
     for (const r of remote) {
+      if (r.projectId !== projectId) {
+        continue;
+      }
       const owned = sessions.value.find((s) => s.id === r.id);
       if (owned) {
         owned.alive = r.alive;
         owned.lastSeq = r.lastSeq;
+        owned.cwd = r.cwd;
         continue;
       }
       const s: SessionRow = {
         id: r.id,
+        projectId: r.projectId,
         shell: r.shell,
         cwd: r.cwd,
         alive: r.alive,
@@ -407,6 +430,19 @@ watch(
     }
   },
   { immediate: true },
+);
+
+watch(
+  () => projectStore.currentProject?.id,
+  () => {
+    for (const session of [...sessions.value]) {
+      removeSession(session.id);
+    }
+    activeId.value = null;
+    if (props.open && projectStore.currentProject?.id) {
+      refreshList();
+    }
+  },
 );
 
 onBeforeUnmount(() => {

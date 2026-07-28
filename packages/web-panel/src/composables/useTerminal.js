@@ -52,7 +52,7 @@ function ensureWsListener(ws) {
   ws.onMessage((msg) => {
     if (!msg || typeof msg.type !== 'string') return
     if (msg.type === 'terminal.stdout') {
-      const { sessionId, data, seq } = msg.payload || {}
+      const { sessionId, projectId, data, seq } = msg.payload || {}
       if (!sessionId) return
       // Decode base64 → utf-8 once per push so every subscriber gets the
       // already-decoded string. Doing it inline (rather than per-callback)
@@ -67,13 +67,13 @@ function ensureWsListener(ws) {
       } catch {
         decoded = ''
       }
-      const evt = { sessionId, data: decoded, seq }
+      const evt = { sessionId, projectId, data: decoded, seq }
       stdoutSubs.get(sessionId)?.forEach((cb) => cb(evt))
       stdoutAnySubs.forEach((cb) => cb(evt))
     } else if (msg.type === 'terminal.exit') {
-      const { sessionId, exitCode, signal } = msg.payload || {}
+      const { sessionId, projectId, exitCode, signal } = msg.payload || {}
       if (!sessionId) return
-      const evt = { sessionId, exitCode, signal }
+      const evt = { sessionId, projectId, exitCode, signal }
       exitSubs.get(sessionId)?.forEach((cb) => cb(evt))
       exitAnySubs.forEach((cb) => cb(evt))
     }
@@ -103,6 +103,7 @@ export function useTerminal() {
     const reply = await ws.sendRaw({
       type: 'terminal.create',
       payload: {
+        projectId: req.projectId,
         shell: req.shell,
         cwd: req.cwd,
         env: req.env,
@@ -120,17 +121,20 @@ export function useTerminal() {
   }
 
   /** @returns {Promise<Array<{ id, shell, cwd, createdAt, alive, lastSeq }>>} */
-  async function list() {
-    const reply = await ws.sendRaw({ type: 'terminal.list', payload: {} })
+  async function list(projectId) {
+    const reply = await ws.sendRaw({
+      type: 'terminal.list',
+      payload: { projectId },
+    })
     if (reply.ok === false) throw new Error(reply.error || 'terminal_list_failed')
     const result = reply.result ?? reply
     return Array.isArray(result.sessions) ? result.sessions : []
   }
 
-  async function stdin(sessionId, data) {
+  async function stdin(projectId, sessionId, data) {
     const reply = await ws.sendRaw({
       type: 'terminal.stdin',
-      payload: { sessionId, data: toBase64Utf8(String(data)) },
+      payload: { projectId, sessionId, data: toBase64Utf8(String(data)) },
     })
     if (reply.ok === false) {
       throw new Error(reply.error || 'terminal_stdin_failed')
@@ -138,10 +142,10 @@ export function useTerminal() {
     return reply.result ?? reply
   }
 
-  async function resize(sessionId, cols, rows) {
+  async function resize(projectId, sessionId, cols, rows) {
     const reply = await ws.sendRaw({
       type: 'terminal.resize',
-      payload: { sessionId, cols, rows },
+      payload: { projectId, sessionId, cols, rows },
     })
     if (reply.ok === false) {
       throw new Error(reply.error || 'terminal_resize_failed')
@@ -149,10 +153,10 @@ export function useTerminal() {
     return reply.result ?? reply
   }
 
-  async function close(sessionId) {
+  async function close(projectId, sessionId) {
     const reply = await ws.sendRaw({
       type: 'terminal.close',
-      payload: { sessionId },
+      payload: { projectId, sessionId },
     })
     if (reply.ok === false) {
       throw new Error(reply.error || 'terminal_close_failed')
@@ -164,10 +168,10 @@ export function useTerminal() {
    * @returns {Promise<{ chunks: Array<{seq, data:string}>, truncated:boolean }>}
    * `data` is decoded UTF-8 (not base64).
    */
-  async function history(sessionId, fromSeq = 0) {
+  async function history(projectId, sessionId, fromSeq = 0) {
     const reply = await ws.sendRaw({
       type: 'terminal.history',
-      payload: { sessionId, fromSeq },
+      payload: { projectId, sessionId, fromSeq },
     })
     if (reply.ok === false) {
       throw new Error(reply.error || 'terminal_history_failed')

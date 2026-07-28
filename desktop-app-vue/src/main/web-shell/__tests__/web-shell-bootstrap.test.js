@@ -138,6 +138,8 @@ describe("startWebShell", () => {
       config: undefined,
       policyCwd: projectRoot,
       resolveSandboxPolicy: undefined,
+      resolveProjectBinding: undefined,
+      requireProjectBinding: false,
     });
     expect(local.ptyManager).toBe(localPtyManager);
     await local.close();

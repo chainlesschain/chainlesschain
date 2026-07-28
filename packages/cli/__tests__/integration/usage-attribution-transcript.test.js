@@ -69,7 +69,11 @@ async function seedSession(id) {
     model: "claude-opus-4-8",
   });
   store.appendUserMessage(id, "do the thing");
-  store.appendToolCallCompact(id, { tool: "read_file", isError: false });
+  store.appendToolCallCompact(id, {
+    tool: "read_file",
+    isError: false,
+    durationMs: 125,
+  });
   store.appendToolCallCompact(id, {
     tool: "run_skill",
     isError: false,
@@ -84,6 +88,14 @@ async function seedSession(id) {
     isError: false,
     plugin: "review-suite",
     pluginVersion: "1.4.0",
+    durationMs: 250,
+  });
+  store.appendLlmRetryCompact(id, {
+    attempt: 1,
+    durationMs: 750,
+    provider: "anthropic",
+    model: "claude-opus-4-8",
+    reason: "connection_reset",
   });
   store.appendTokenUsage(id, {
     provider: "anthropic",
@@ -146,10 +158,12 @@ describe("REPL wrapper persists compact tool_call events", () => {
       tool: "run_skill",
       is_error: false,
       skill: "csv-clean",
+      duration_ms: expect.any(Number),
     });
     expect(toolEvents[1].data).toEqual({
       tool: "mcp__github__search_issues",
       is_error: true,
+      duration_ms: expect.any(Number),
     });
     // args (which can carry file bodies) must never be persisted
     expect(JSON.stringify(toolEvents)).not.toContain("secret-blob");
@@ -217,6 +231,10 @@ describe("cc session usage — attribution surfaces", () => {
     // tools + MCP bucket + turn association (single turn → all tools get 175)
     expect(payload.attribution.tools.totalCalls).toBe(4);
     expect(payload.attribution.tools.totalErrors).toBe(1);
+    expect(payload.attribution.tools).toMatchObject({
+      totalDurationMs: 375,
+      timedCalls: 2,
+    });
     const skillRow = payload.attribution.tools.byTool.find(
       (t) => t.tool === "run_skill",
     );
@@ -244,6 +262,17 @@ describe("cc session usage — attribution surfaces", () => {
         turnTokens: 175,
       }),
     ]);
+    expect(payload.attribution.retries).toMatchObject({
+      totalRetries: 1,
+      durationMs: 750,
+      byReason: [
+        {
+          reason: "connection_reset",
+          retries: 1,
+          durationMs: 750,
+        },
+      ],
+    });
   });
 
   it("--by tool/origin/mcp/plugin render breakdowns; global mode works too", async () => {
@@ -281,6 +310,14 @@ describe("cc session usage — attribution surfaces", () => {
       }),
     );
     expect(pluginLogs.join("\n")).toContain("review-suite@1.4.0");
+
+    const retryLogs = await captureStdout(() =>
+      program.parseAsync(["session", "usage", "s-by", "--by", "retry"], {
+        from: "user",
+      }),
+    );
+    expect(retryLogs.join("\n")).toContain("connection_reset");
+    expect(retryLogs.join("\n")).toContain("failedAttemptTime=750ms");
   });
 
   it("default output is unchanged (no attribution lines) and invalid --by is rejected", async () => {

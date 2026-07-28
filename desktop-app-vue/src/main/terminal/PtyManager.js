@@ -23,6 +23,7 @@
 
 const EventEmitter = require("events");
 const { randomUUID } = require("crypto");
+const fs = require("node:fs");
 const path = require("node:path");
 const { RingBuffer } = require("./RingBuffer");
 const {
@@ -122,6 +123,68 @@ function desktopBrokerUnavailable(policy) {
   return error;
 }
 
+function ptyProjectBindingError(code, message, details = {}) {
+  const error = new Error(message);
+  error.code = code;
+  error.projectBindingFailClosed = true;
+  Object.assign(error, details);
+  return error;
+}
+
+function canonicalDirectory(candidate, code, message) {
+  if (typeof candidate !== "string" || candidate.trim() === "") {
+    throw ptyProjectBindingError(code, message);
+  }
+  try {
+    const canonical = fs.realpathSync.native(path.resolve(candidate));
+    if (!fs.statSync(canonical).isDirectory()) {
+      throw new Error("not_a_directory");
+    }
+    return canonical;
+  } catch (cause) {
+    throw ptyProjectBindingError(code, message, { cause });
+  }
+}
+
+function isWithinRoot(root, candidate) {
+  const relative = path.relative(root, candidate);
+  return (
+    relative === "" ||
+    (!relative.startsWith(`..${path.sep}`) &&
+      relative !== ".." &&
+      !path.isAbsolute(relative))
+  );
+}
+
+function normalizeProjectId(projectId) {
+  return typeof projectId === "string" && projectId.trim() !== ""
+    ? projectId.trim()
+    : null;
+}
+
+function projectRootCandidate(project) {
+  // `pc_root_path` is synchronized from remote clients and has no local
+  // approval/provenance marker. It may help the compatibility resolver find
+  // a DB row, but it must never become the executable root. Only the Desktop
+  // project's local `root_path` is eligible here.
+  return project.root_path ?? project.rootPath;
+}
+
+function hasUnattestedRemoteRootProvenance(project) {
+  const sourcePeerId = project.source_peer_id ?? project.sourcePeerId;
+  const pcRootPath = project.pc_root_path ?? project.pcRootPath;
+  return (
+    typeof sourcePeerId === "string" &&
+    sourcePeerId.trim() !== "" &&
+    typeof pcRootPath === "string" &&
+    pcRootPath.trim() !== ""
+  );
+}
+
+function isPromiseLike(value) {
+  return Boolean(value && typeof value.then === "function");
+}
+
 class PtyManager extends EventEmitter {
   /**
    * @param {object} [opts]
@@ -143,8 +206,22 @@ class PtyManager extends EventEmitter {
     ) {
       throw new TypeError("resolveSandboxPolicy must be a function or null");
     }
-    this._policyCwd = path.resolve(opts.policyCwd || process.cwd());
+    const resolveProjectBinding =
+      opts.resolveProjectBinding ?? opts._deps?.resolveProjectBinding ?? null;
+    if (
+      resolveProjectBinding !== null &&
+      typeof resolveProjectBinding !== "function"
+    ) {
+      throw new TypeError("resolveProjectBinding must be a function or null");
+    }
+    this._requireProjectBinding = opts.requireProjectBinding === true;
+    this._policyCwd = opts.policyCwd
+      ? path.resolve(opts.policyCwd)
+      : this._requireProjectBinding
+        ? null
+        : path.resolve(process.cwd());
     this._resolveSandboxPolicy = resolveSandboxPolicy;
+    this._resolveProjectBinding = resolveProjectBinding;
     this._deps = {
       loadNodePty: opts._deps?.loadNodePty || (() => require("node-pty")),
       spawnPty: opts._deps?.spawnPty || null,
@@ -156,6 +233,153 @@ class PtyManager extends EventEmitter {
     this._sessions = new Map();
     this._idleTimer = null;
     this._stopped = false;
+  }
+
+  _resolveCreateBinding(req) {
+    const requestedProjectId = normalizeProjectId(req.projectId);
+    if (
+      req.cwd !== undefined &&
+      req.cwd !== null &&
+      typeof req.cwd !== "string"
+    ) {
+      throw ptyProjectBindingError(
+        "ERR_PTY_EXECUTION_CWD_INVALID",
+        "terminal_execution_cwd_invalid",
+      );
+    }
+    if (!this._requireProjectBinding && !requestedProjectId) {
+      const cwd = req.cwd || this.config.defaultCwd || process.cwd();
+      return {
+        projectId: null,
+        workspaceCwd: this._policyCwd,
+        executionCwd: cwd,
+      };
+    }
+
+    if (!this._resolveProjectBinding) {
+      throw ptyProjectBindingError(
+        "ERR_PTY_PROJECT_AUTHORITY_UNAVAILABLE",
+        "terminal_project_selector_unavailable",
+      );
+    }
+    const project = this._resolveProjectBinding({
+      projectId: requestedProjectId,
+      legacyCwd: req.cwd,
+    });
+    if (isPromiseLike(project)) {
+      throw ptyProjectBindingError(
+        "ERR_PTY_PROJECT_AUTHORITY_ASYNC",
+        "terminal_project_selector_must_be_synchronous",
+      );
+    }
+    if (!project || typeof project !== "object") {
+      throw ptyProjectBindingError(
+        "ERR_PTY_DB_PROJECT_BINDING_REQUIRED",
+        "database_project_binding_required",
+      );
+    }
+    const projectId = normalizeProjectId(project.id);
+    if (!projectId) {
+      throw ptyProjectBindingError(
+        "ERR_PTY_PROJECT_BINDING_INVALID",
+        "terminal_project_record_missing_id",
+      );
+    }
+    if (requestedProjectId && projectId !== requestedProjectId) {
+      throw ptyProjectBindingError(
+        "ERR_PTY_PROJECT_BINDING_INVALID",
+        "terminal_project_record_id_mismatch",
+      );
+    }
+    if (
+      project.deleted !== undefined &&
+      project.deleted !== null &&
+      Number(project.deleted) !== 0
+    ) {
+      throw ptyProjectBindingError(
+        "ERR_PTY_PROJECT_BINDING_INVALID",
+        "terminal_project_is_deleted",
+      );
+    }
+    // Existing schema has no "locally approved root" provenance bit.
+    // Remote-sourced rows with pc_root_path therefore cannot prove that
+    // root_path was chosen locally (legacy sync may copy pc_root_path into
+    // root_path). Fail closed until such a marker/migration exists.
+    if (hasUnattestedRemoteRootProvenance(project)) {
+      throw ptyProjectBindingError(
+        "ERR_PTY_PROJECT_ROOT_PROVENANCE_UNATTESTED",
+        "terminal_project_root_provenance_unattested",
+        { projectId },
+      );
+    }
+
+    const workspaceCwd = canonicalDirectory(
+      projectRootCandidate(project),
+      "ERR_PTY_PROJECT_ROOT_INVALID",
+      "terminal_project_root_invalid",
+    );
+    // Without projectId, `cwd` is accepted only as the legacy Android lookup
+    // selector. It is not reused as an execution-directory claim.
+    const requestedCwd = requestedProjectId && req.cwd
+      ? path.isAbsolute(req.cwd)
+        ? req.cwd
+        : path.resolve(workspaceCwd, req.cwd)
+      : workspaceCwd;
+    const executionCwd = canonicalDirectory(
+      requestedCwd,
+      "ERR_PTY_EXECUTION_CWD_INVALID",
+      "terminal_execution_cwd_invalid",
+    );
+    if (!isWithinRoot(workspaceCwd, executionCwd)) {
+      throw ptyProjectBindingError(
+        "ERR_PTY_EXECUTION_CWD_OUTSIDE_PROJECT",
+        "terminal_execution_cwd_outside_database_project",
+        { projectId },
+      );
+    }
+
+    return {
+      projectId,
+      workspaceCwd,
+      executionCwd,
+    };
+  }
+
+  _resolvePolicy(workspaceCwd, executionCwd) {
+    if (!this._resolveSandboxPolicy) {
+      return null;
+    }
+    return validatePinnedSandboxPolicy(
+      this._resolveSandboxPolicy({
+        workspaceCwd,
+        executionCwd,
+      }),
+    );
+  }
+
+  _normalizeProjectScope(projectId) {
+    const requestedProjectId = normalizeProjectId(projectId);
+    if (this._requireProjectBinding && !requestedProjectId) {
+      throw ptyProjectBindingError(
+        "ERR_PTY_PROJECT_SCOPE_REQUIRED",
+        "terminal_project_scope_required",
+      );
+    }
+    return requestedProjectId;
+  }
+
+  _assertProjectScope(session, projectId) {
+    const requestedProjectId = this._normalizeProjectScope(projectId);
+    if (
+      requestedProjectId &&
+      (!session.projectId || session.projectId !== requestedProjectId)
+    ) {
+      // Do not reveal whether a guessed cross-project session id exists.
+      throw ptyProjectBindingError(
+        "ERR_PTY_SESSION_PROJECT_MISMATCH",
+        "terminal_session_not_found_in_project",
+      );
+    }
   }
 
   /**
@@ -189,18 +413,12 @@ class PtyManager extends EventEmitter {
       throw new Error("shell_not_allowed");
     }
 
-    const cwd = req.cwd || this.config.defaultCwd || process.cwd();
-    // req.cwd can originate in the renderer, WebSocket, or mobile command
-    // payload. It may discover a stricter policy, but it must never replace
-    // the fixed host root captured when this manager was constructed.
-    const sandboxPolicy = this._resolveSandboxPolicy
-      ? validatePinnedSandboxPolicy(
-          this._resolveSandboxPolicy({
-            workspaceCwd: this._policyCwd,
-            executionCwd: cwd,
-          }),
-        )
-      : null;
+    // projectId / legacy cwd select a main-process database record. Its local
+    // canonical root fixes the initial execution/policy root. This does not
+    // attest later interactive shell cwd changes.
+    const binding = this._resolveCreateBinding(req);
+    const cwd = binding.executionCwd;
+    const sandboxPolicy = this._resolvePolicy(binding.workspaceCwd, cwd);
     const desktopBroker = this._deps.getProcessBroker();
     const brokerSpawnPty =
       typeof desktopBroker?.spawnPty === "function"
@@ -256,6 +474,7 @@ class PtyManager extends EventEmitter {
       id: sessionId,
       shell,
       cwd,
+      projectId: binding.projectId,
       cols,
       rows,
       proc,
@@ -270,6 +489,7 @@ class PtyManager extends EventEmitter {
       session.lastActivityAt = this._deps.now();
       this.emit("stdout", {
         sessionId,
+        projectId: session.projectId,
         data: buf,
         seq,
       });
@@ -281,6 +501,7 @@ class PtyManager extends EventEmitter {
       session.signal = signal ?? null;
       this.emit("exit", {
         sessionId,
+        projectId: session.projectId,
         exitCode: session.exitCode,
         signal: session.signal,
       });
@@ -299,6 +520,8 @@ class PtyManager extends EventEmitter {
       sessionId,
       pid: proc.pid,
       shell,
+      projectId: session.projectId,
+      cwd: session.cwd,
       createdAt: session.createdAt,
     };
   }
@@ -307,11 +530,13 @@ class PtyManager extends EventEmitter {
    * @param {string} sessionId
    * @param {Buffer | string} data
    */
-  write(sessionId, data) {
+  write(sessionId, data, projectId = null) {
+    this._normalizeProjectScope(projectId);
     const session = this._sessions.get(sessionId);
     if (!session) {
       throw new Error("session_not_found");
     }
+    this._assertProjectScope(session, projectId);
     if (!session.alive) {
       throw new Error("session_not_alive");
     }
@@ -325,11 +550,13 @@ class PtyManager extends EventEmitter {
    * @param {number} cols
    * @param {number} rows
    */
-  resize(sessionId, cols, rows) {
+  resize(sessionId, cols, rows, projectId = null) {
+    this._normalizeProjectScope(projectId);
     const session = this._sessions.get(sessionId);
     if (!session) {
       throw new Error("session_not_found");
     }
+    this._assertProjectScope(session, projectId);
     if (!session.alive) {
       throw new Error("session_not_alive");
     }
@@ -344,11 +571,13 @@ class PtyManager extends EventEmitter {
   /**
    * @param {string} sessionId
    */
-  close(sessionId) {
+  close(sessionId, projectId = null) {
+    this._normalizeProjectScope(projectId);
     const session = this._sessions.get(sessionId);
     if (!session) {
       throw new Error("session_not_found");
     }
+    this._assertProjectScope(session, projectId);
     if (session.alive) {
       try {
         session.proc.kill();
@@ -361,12 +590,17 @@ class PtyManager extends EventEmitter {
   /**
    * @returns {Array<{ id: string, shell: string, cwd: string, createdAt: number, alive: boolean, lastSeq: number }>}
    */
-  list() {
+  list(projectId = null) {
+    const requestedProjectId = this._normalizeProjectScope(projectId);
     const out = [];
     for (const s of this._sessions.values()) {
+      if (requestedProjectId && s.projectId !== requestedProjectId) {
+        continue;
+      }
       out.push({
         id: s.id,
         shell: s.shell,
+        projectId: s.projectId,
         cwd: s.cwd,
         createdAt: s.createdAt,
         alive: s.alive,
@@ -380,11 +614,13 @@ class PtyManager extends EventEmitter {
    * @param {string} sessionId
    * @param {number} [fromSeq]
    */
-  history(sessionId, fromSeq = 0) {
+  history(sessionId, fromSeq = 0, projectId = null) {
+    this._normalizeProjectScope(projectId);
     const session = this._sessions.get(sessionId);
     if (!session) {
       throw new Error("session_not_found");
     }
+    this._assertProjectScope(session, projectId);
     return session.ringBuffer.since(fromSeq);
   }
 
@@ -439,13 +675,28 @@ class PtyManager extends EventEmitter {
   get _sessionCount() {
     return this._sessions.size;
   }
+
+  get requiresProjectScope() {
+    return this._requireProjectBinding;
+  }
 }
 
 class PtySession {
-  constructor({ id, shell, cwd, cols, rows, proc, createdAt, ringBuffer }) {
+  constructor({
+    id,
+    shell,
+    cwd,
+    projectId,
+    cols,
+    rows,
+    proc,
+    createdAt,
+    ringBuffer,
+  }) {
     this.id = id;
     this.shell = shell;
     this.cwd = cwd;
+    this.projectId = projectId;
     this.cols = cols;
     this.rows = rows;
     this.proc = proc;

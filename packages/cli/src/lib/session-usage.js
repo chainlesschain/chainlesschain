@@ -32,6 +32,33 @@ function toNumber(v) {
   return Number.isFinite(n) ? n : 0;
 }
 
+const MAX_OBSERVED_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
+
+function observedDuration(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const number = Number(value);
+  if (!Number.isFinite(number) || number < 0) return null;
+  return Math.min(MAX_OBSERVED_DURATION_MS, Math.round(number));
+}
+
+function eventDuration(event) {
+  return observedDuration(
+    event?.data?.duration_ms ??
+      event?.data?.durationMs ??
+      event?.data?.result?.toolTelemetryRecord?.durationMs,
+  );
+}
+
+function addObservedDuration(row, durationMs) {
+  if (durationMs === null) return;
+  row.durationMs = (row.durationMs || 0) + durationMs;
+  row.timedCalls = (row.timedCalls || 0) + 1;
+}
+
+function addObservedRetry(row) {
+  row.retries = (row.retries || 0) + 1;
+}
+
 /**
  * Extract the optional usage-attribution frame (用量归因) persisted alongside
  * a token_usage event's data: `{ origin, skill?, subagentId?, role?,
@@ -210,6 +237,56 @@ function _isToolResultError(event) {
 }
 
 /**
+ * Aggregate compact `llm_retry` events. Each event represents one failed
+ * streaming attempt that the runtime actually retried and includes only a
+ * controlled reason plus its elapsed time — never the raw provider error.
+ */
+export function aggregateLlmRetries(events) {
+  const byReason = new Map();
+  const byModel = new Map();
+  let totalRetries = 0;
+  let durationMs = 0;
+
+  const add = (map, key, seed, elapsed) => {
+    const row = map.get(key) || { ...seed, retries: 0, durationMs: 0 };
+    row.retries++;
+    row.durationMs += elapsed;
+    map.set(key, row);
+  };
+
+  for (const event of events || []) {
+    if (event?.type !== "llm_retry") continue;
+    const data = event.data || {};
+    const elapsed = eventDuration(event) ?? 0;
+    const reason =
+      typeof data.reason === "string" && data.reason ? data.reason : "unknown";
+    const provider =
+      typeof data.provider === "string" && data.provider ? data.provider : null;
+    const model =
+      typeof data.model === "string" && data.model ? data.model : null;
+    totalRetries++;
+    durationMs += elapsed;
+    add(byReason, reason, { reason }, elapsed);
+    add(
+      byModel,
+      `${provider || "?"}/${model || "?"}`,
+      { provider, model },
+      elapsed,
+    );
+  }
+
+  if (totalRetries === 0) return null;
+  const byRetriesDesc = (a, b) =>
+    b.retries - a.retries || b.durationMs - a.durationMs;
+  return {
+    totalRetries,
+    durationMs,
+    byReason: Array.from(byReason.values()).sort(byRetriesDesc),
+    byModel: Array.from(byModel.values()).sort(byRetriesDesc),
+  };
+}
+
+/**
  * Aggregate the transcript's tool events: per-tool call/error counts, an MCP
  * server bucket (`mcp__<server>__*`), and a turn-associated token figure.
  *
@@ -232,6 +309,9 @@ export function aggregateToolCalls(events) {
   const byPlugin = new Map();
   let totalCalls = 0;
   let totalErrors = 0;
+  let totalDurationMs = 0;
+  let timedCalls = 0;
+  let retryCalls = 0;
 
   const bumpTool = (name) => {
     let t = byTool.get(name);
@@ -276,6 +356,8 @@ export function aggregateToolCalls(events) {
   let turnPlugins = new Set();
   let turnTokens = 0;
   let pendingPlugin = null;
+  let pendingObservation = null;
+  let failedToolsInTurn = new Set();
   const flushTurn = () => {
     if (turnTokens > 0) {
       for (const name of turnTools) bumpTool(name).turnTokens += turnTokens;
@@ -291,6 +373,8 @@ export function aggregateToolCalls(events) {
     turnPlugins = new Set();
     turnTokens = 0;
     pendingPlugin = null;
+    pendingObservation = null;
+    failedToolsInTurn = new Set();
   };
 
   for (const evt of events || []) {
@@ -301,20 +385,35 @@ export function aggregateToolCalls(events) {
     }
     if (evt.type === "tool_call") {
       const name = evt.data?.tool || "?";
+      const durationMs = eventDuration(evt);
+      const isRetry = failedToolsInTurn.has(name);
       totalCalls++;
       const t = bumpTool(name);
       t.calls++;
       const isErr = evt.data?.is_error === true;
+      if (durationMs !== null) {
+        totalDurationMs += durationMs;
+        timedCalls++;
+        addObservedDuration(t, durationMs);
+      }
+      if (isRetry) {
+        retryCalls++;
+        addObservedRetry(t);
+      }
       if (isErr) {
         totalErrors++;
         t.errors++;
       }
+      if (isErr) failedToolsInTurn.add(name);
+      else failedToolsInTurn.delete(name);
       turnTools.add(name);
       const server = mcpServerOf(name);
       if (server) {
         const s = bumpServer(server);
         s.calls++;
         if (isErr) s.errors++;
+        addObservedDuration(s, durationMs);
+        if (isRetry) addObservedRetry(s);
         turnServers.add(server);
       }
       const plugin =
@@ -326,23 +425,42 @@ export function aggregateToolCalls(events) {
           ? evt.data.plugin_version
           : null;
       pendingPlugin = { tool: name, plugin, version: pluginVersion };
+      pendingObservation = {
+        tool: name,
+        durationCounted: durationMs !== null,
+        errorCounted: isErr,
+      };
       if (plugin) {
         const p = bumpPlugin(plugin, pluginVersion);
         p.calls++;
         if (isErr) p.errors++;
+        addObservedDuration(p, durationMs);
+        if (isRetry) addObservedRetry(p);
         turnPlugins.add(`${plugin}@${pluginVersion || "?"}`);
       }
       continue;
     }
     if (evt.type === "tool_result") {
       const name = evt.data?.tool || "?";
+      const durationMs = eventDuration(evt);
       turnTools.add(name);
       const server = mcpServerOf(name);
       if (server) turnServers.add(server);
-      if (_isToolResultError(evt)) {
+      const isErr = _isToolResultError(evt);
+      const pairedObservation =
+        pendingObservation?.tool === name ? pendingObservation : null;
+      if (isErr && !pairedObservation?.errorCounted) {
         totalErrors++;
         bumpTool(name).errors++;
         if (server) bumpServer(server).errors++;
+      }
+      if (isErr) failedToolsInTurn.add(name);
+      else failedToolsInTurn.delete(name);
+      if (durationMs !== null && !pairedObservation?.durationCounted) {
+        totalDurationMs += durationMs;
+        timedCalls++;
+        addObservedDuration(bumpTool(name), durationMs);
+        if (server) addObservedDuration(bumpServer(server), durationMs);
       }
       const extracted = extractPluginUsageAttribution(evt.data?.result);
       const plugin =
@@ -360,10 +478,14 @@ export function aggregateToolCalls(events) {
           pendingPlugin?.plugin === plugin &&
           (pendingPlugin?.version || null) === (pluginVersion || null);
         if (!countedByCall) p.calls++;
-        if (_isToolResultError(evt) && !countedByCall) p.errors++;
+        if (isErr && !countedByCall) p.errors++;
+        if (!countedByCall || !pairedObservation?.durationCounted) {
+          addObservedDuration(p, durationMs);
+        }
         turnPlugins.add(`${plugin}@${pluginVersion || "?"}`);
       }
       pendingPlugin = null;
+      pendingObservation = null;
       continue;
     }
     const u = extractUsage(evt);
@@ -375,6 +497,8 @@ export function aggregateToolCalls(events) {
   return {
     totalCalls,
     totalErrors,
+    ...(timedCalls > 0 ? { totalDurationMs, timedCalls } : {}),
+    ...(retryCalls > 0 ? { retryCalls } : {}),
     byTool: Array.from(byTool.values()).sort(byCallsDesc),
     byMcpServer: Array.from(byServer.values()).sort(byCallsDesc),
     byPlugin: Array.from(byPlugin.values()).sort(byCallsDesc),
@@ -386,9 +510,11 @@ export function aggregateToolCalls(events) {
  * roll-ups + the tool/MCP call aggregation. Pure.
  */
 export function sessionAttribution(events) {
+  const retries = aggregateLlmRetries(events);
   return {
     ...aggregateUsageAttribution(events),
     tools: aggregateToolCalls(events),
+    ...(retries ? { retries } : {}),
   };
 }
 
@@ -519,8 +645,15 @@ export function allSessionsUsage({ limit = 1000 } = {}) {
   const gTool = new Map();
   const gServer = new Map();
   const gPlugin = new Map();
+  const gRetryReason = new Map();
+  const gRetryModel = new Map();
   let gToolCalls = 0;
   let gToolErrors = 0;
+  let gToolDurationMs = 0;
+  let gTimedToolCalls = 0;
+  let gToolRetryCalls = 0;
+  let gLlmRetries = 0;
+  let gLlmRetryDurationMs = 0;
   const mergeRow = (map, key, row, seed) => {
     const entry = map.get(key) || { ...seed, ..._newSums() };
     _addSums(entry, row);
@@ -545,6 +678,9 @@ export function allSessionsUsage({ limit = 1000 } = {}) {
     const tools = a.tools || {};
     gToolCalls += tools.totalCalls || 0;
     gToolErrors += tools.totalErrors || 0;
+    gToolDurationMs += tools.totalDurationMs || 0;
+    gTimedToolCalls += tools.timedCalls || 0;
+    gToolRetryCalls += tools.retryCalls || 0;
     for (const row of tools.byTool || []) {
       const entry = gTool.get(row.tool) || {
         tool: row.tool,
@@ -556,6 +692,12 @@ export function allSessionsUsage({ limit = 1000 } = {}) {
       entry.calls += row.calls || 0;
       entry.errors += row.errors || 0;
       entry.turnTokens += row.turnTokens || 0;
+      if (row.durationMs !== undefined) {
+        entry.durationMs = (entry.durationMs || 0) + (row.durationMs || 0);
+        entry.timedCalls = (entry.timedCalls || 0) + (row.timedCalls || 0);
+      }
+      if (row.retries !== undefined)
+        entry.retries = (entry.retries || 0) + (row.retries || 0);
       gTool.set(row.tool, entry);
     }
     for (const row of tools.byMcpServer || []) {
@@ -568,6 +710,12 @@ export function allSessionsUsage({ limit = 1000 } = {}) {
       entry.calls += row.calls || 0;
       entry.errors += row.errors || 0;
       entry.turnTokens += row.turnTokens || 0;
+      if (row.durationMs !== undefined) {
+        entry.durationMs = (entry.durationMs || 0) + (row.durationMs || 0);
+        entry.timedCalls = (entry.timedCalls || 0) + (row.timedCalls || 0);
+      }
+      if (row.retries !== undefined)
+        entry.retries = (entry.retries || 0) + (row.retries || 0);
       gServer.set(row.server, entry);
     }
     for (const row of tools.byPlugin || []) {
@@ -582,10 +730,45 @@ export function allSessionsUsage({ limit = 1000 } = {}) {
       entry.calls += row.calls || 0;
       entry.errors += row.errors || 0;
       entry.turnTokens += row.turnTokens || 0;
+      if (row.durationMs !== undefined) {
+        entry.durationMs = (entry.durationMs || 0) + (row.durationMs || 0);
+        entry.timedCalls = (entry.timedCalls || 0) + (row.timedCalls || 0);
+      }
+      if (row.retries !== undefined)
+        entry.retries = (entry.retries || 0) + (row.retries || 0);
       gPlugin.set(key, entry);
+    }
+    const retries = a.retries || null;
+    if (retries) {
+      gLlmRetries += retries.totalRetries || 0;
+      gLlmRetryDurationMs += retries.durationMs || 0;
+      for (const row of retries.byReason || []) {
+        const entry = gRetryReason.get(row.reason) || {
+          reason: row.reason,
+          retries: 0,
+          durationMs: 0,
+        };
+        entry.retries += row.retries || 0;
+        entry.durationMs += row.durationMs || 0;
+        gRetryReason.set(row.reason, entry);
+      }
+      for (const row of retries.byModel || []) {
+        const key = `${row.provider || "?"}/${row.model || "?"}`;
+        const entry = gRetryModel.get(key) || {
+          provider: row.provider || null,
+          model: row.model || null,
+          retries: 0,
+          durationMs: 0,
+        };
+        entry.retries += row.retries || 0;
+        entry.durationMs += row.durationMs || 0;
+        gRetryModel.set(key, entry);
+      }
     }
   }
   const byCallsDesc = (a, b) => b.calls - a.calls;
+  const byRetriesDesc = (a, b) =>
+    b.retries - a.retries || b.durationMs - a.durationMs;
 
   return {
     sessions: perSession,
@@ -601,10 +784,27 @@ export function allSessionsUsage({ limit = 1000 } = {}) {
       tools: {
         totalCalls: gToolCalls,
         totalErrors: gToolErrors,
+        ...(gTimedToolCalls > 0
+          ? {
+              totalDurationMs: gToolDurationMs,
+              timedCalls: gTimedToolCalls,
+            }
+          : {}),
+        ...(gToolRetryCalls > 0 ? { retryCalls: gToolRetryCalls } : {}),
         byTool: Array.from(gTool.values()).sort(byCallsDesc),
         byMcpServer: Array.from(gServer.values()).sort(byCallsDesc),
         byPlugin: Array.from(gPlugin.values()).sort(byCallsDesc),
       },
+      ...(gLlmRetries > 0
+        ? {
+            retries: {
+              totalRetries: gLlmRetries,
+              durationMs: gLlmRetryDurationMs,
+              byReason: Array.from(gRetryReason.values()).sort(byRetriesDesc),
+              byModel: Array.from(gRetryModel.values()).sort(byRetriesDesc),
+            },
+          }
+        : {}),
     },
   };
 }

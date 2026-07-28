@@ -5,6 +5,42 @@
 
 ## [Unreleased]
 
+#### Added — CLI 0.162.183 + VS Code 0.37.35 + JetBrains 0.4.74：质量上下文、插件治理与 Worktree 任务
+
+> `chainlesschain` `0.162.182 → 0.162.183`，VS Code `0.37.34 → 0.37.35`，JetBrains `0.4.73 → 0.4.74`（2026-07-27）；PDH 保持 `0.4.57`，Agent SDK 保持 `0.1.7`。
+
+- 双 IDE 通过 `cc-ide-quality/v1` 提供有界的测试、覆盖率和调试器快照，并携带上下文新鲜度；VS Code Notebook 使用真实 notebook 上下文。
+- Installation Doctor 增加 Node/Java、managed CLI 与插件 registry 离线恢复诊断，不从不可信工作区探测可执行文件。
+- Plugin Manager 支持分 scope 启停、来源感知升级、当前会话重载，以及签名、SBOM、来源和 managed-policy 摘要。
+- session usage 可按插件/版本归因 plugin-bin 与插件 MCP 调用，不保存工具参数。
+- IDE 创建的隔离 worktree 任务以受监督后台 Agent 运行，显示 owner/session、权限模式、预算、生命周期与有界副作用计数；缺少等价 durable state 的 team/batch 行明确标为 unmanaged。
+
+#### Fixed — CLI 0.162.182：原生插件强沙箱与可执行身份闭环
+
+- 插件原生 bin 的 resolver target、字面 argv、plugin root 与 executable identity 绑定到一次性 contract；复制、重放、过期或异步复用在进程启动前失败闭合。
+- Linux 严格路径只接受受支持的当前架构静态 ELF，拒绝动态 loader、畸形 segment 和可执行栈，并通过文件描述符钉住插件树后进入固定 bubblewrap 文件系统/网络策略。
+- Windows AppContainer 保留目标句柄和策略摘要，跨 probe、spawn、IPC 与 detached 边界复核身份。
+- npm 发布仍要求同一精确提交的 `CLI CI` 与 `CLI Strict Sandbox` 在 Ubuntu、Windows、macOS 全矩阵通过，本地结果不能替代。
+
+#### Added — CLI 0.162.181 + PDH 0.4.57 + Agent SDK 0.1.7：完整可恢复采集
+
+- CLI Process Broker 在前台、后台、IPC、plugin hook、MCP、monitor、LSP 与 PTY 路径保持 sandbox identity；插件可声明必需隔离边界，能力不足时不静默降级。
+- Agent SDK 同步后台会话、权限决定、交互与 durable event 恢复契约。
+- PDH 的本地数据库、桌面客户端、移动 API、地图、社交、IM、教育、音乐、健康、购物与出行 adapter 使用显式游标和有界页预算；部分/不可读 SQLite 不再误推进 checkpoint。
+- 发布验证覆盖 PDH 282 个测试文件 / 4,528 项测试、Agent SDK build + 50 项测试、Web Panel 与隔离 worktree/WebSocket 回归。
+
+#### Added — CLI 0.162.180 + PDH 0.4.56：事务化多源事实归并
+
+- 来源别名、producer raw observation、字段级冲突决策、批内引用重写与最终实体在一个 Vault 事务中提交；KG/RAG 只消费真实持久 ID。
+- QQ NT 数据库直读与 Python sidecar 解码共享 canonical 消息身份，富文本和可变已读状态合并时保留旧证据；升级前行重建 key 而不是重复插入。
+- 长 sidecar、Android 与 Windows 增量采集加强取消、checkpoint、lookback 与 resume 边界。
+
+#### Added — CLI 0.162.179 + PDH 0.4.55：跨端实时采集与输入失败闭合
+
+- 桌面端、Web Panel 与 CLI 共用实时采集控制和流式结果，支持临时 Cookie/OAuth 与 Android ADB。
+- readiness 只报告当前可达输入；缺失备份、无效来源页或不可达输入失败闭合。
+- 取消、超时与不完整分页保留旧水位，下一轮可安全续扫。
+
 #### Added — Python Agent SDK 0.1.0：PyPI 首发 + 公开 wheel 安装矩阵
 
 > `chainlesschain-agent-sdk==0.1.0` 已通过 PyPI Trusted Publishing 正式发布；支持 Python 3.10–3.13、零运行时依赖，与 TypeScript SDK 共用 Agent Protocol v1。

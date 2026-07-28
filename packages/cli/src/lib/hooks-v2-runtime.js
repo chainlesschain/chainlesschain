@@ -36,25 +36,53 @@ const { buildManagedHookEnvironment } = hookEnvironment;
 const VALID_HOOK_EVENTS = new Set([
   "Setup",
   // Session
-  "PreToolUse", "PostToolUse", "Notification", "Stop", "SubagentStart", "SubagentStop",
-  "SessionResume", "SessionPause", "PostCompact", "StopFailure",
+  "PreToolUse",
+  "PostToolUse",
+  "Notification",
+  "Stop",
+  "SubagentStart",
+  "SubagentStop",
+  "SessionResume",
+  "SessionPause",
+  "PostCompact",
+  "StopFailure",
   // Auth
-  "PreCommit", "PostCommit",
+  "PreCommit",
+  "PostCommit",
   // Skill
-  "UserPromptSubmit", "UserPromptExpansion", "SessionStart", "SessionEnd",
+  "UserPromptSubmit",
+  "UserPromptExpansion",
+  "SessionStart",
+  "SessionEnd",
   // Model
-  "PreCompact", "ModelSelection",
+  "PreCompact",
+  "ModelSelection",
   // Config
-  "ConfigChange", "PermissionAllow", "PermissionDeny", "PermissionRequest", "PermissionDenied",
+  "ConfigChange",
+  "PermissionAllow",
+  "PermissionDeny",
+  "PermissionRequest",
+  "PermissionDenied",
   // Timeline
   "TimelineEntry",
   // MCP
-  "McpRequest", "McpResponse", "MCPElicitation", "Elicitation", "ElicitationResult",
+  "McpRequest",
+  "McpResponse",
+  "MCPElicitation",
+  "Elicitation",
+  "ElicitationResult",
   // Task / workspace lifecycle
-  "TaskCreated", "TaskCompleted", "InstructionsLoaded", "CwdChanged",
-  "WorktreeCreate", "WorktreeRemove", "TeammateIdle",
+  "TaskCreated",
+  "TaskCompleted",
+  "InstructionsLoaded",
+  "CwdChanged",
+  "WorktreeCreate",
+  "WorktreeRemove",
+  "TeammateIdle",
   // Tool aggregate / failure / filesystem lifecycle
-  "PostToolUseFailure", "PostToolBatch", "FileChanged",
+  "PostToolUseFailure",
+  "PostToolBatch",
+  "FileChanged",
 ]);
 
 const VALID_EXECUTOR_TYPES = new Set([
@@ -137,7 +165,9 @@ function strictestDecision(results) {
 
 function hostnameMatches(hostname, pattern) {
   const host = String(hostname || "").toLowerCase();
-  const rule = String(pattern || "").trim().toLowerCase();
+  const rule = String(pattern || "")
+    .trim()
+    .toLowerCase();
   if (!host || !rule) return false;
   if (rule.startsWith("*.")) {
     const suffix = rule.slice(1);
@@ -259,10 +289,7 @@ export function assertManagedHookPolicy(
       );
     }
     const executable = String(hook.command || "");
-    const commandCandidates = new Set([
-      executable,
-      path.basename(executable),
-    ]);
+    const commandCandidates = new Set([executable, path.basename(executable)]);
     if (
       Array.isArray(policy.commandAllowlist) &&
       ![...commandCandidates].some((value) =>
@@ -315,7 +342,11 @@ export function fileChangedHookMatches(hook, context = {}) {
     hook?.globs ?? hook?.paths ?? hook?.glob ?? hook?.if ?? null;
   if (configured == null) return true;
   const patterns = (Array.isArray(configured) ? configured : [configured])
-    .map((value) => String(value || "").trim().replace(/\\/g, "/"))
+    .map((value) =>
+      String(value || "")
+        .trim()
+        .replace(/\\/g, "/"),
+    )
     .filter(Boolean);
   if (patterns.length === 0) return true;
 
@@ -457,14 +488,18 @@ class HooksV2Runtime extends EventEmitter {
       const config = JSON.parse(content);
       this.hooks.clear();
 
-      const hookDefs = Array.isArray(config) ? config : (config.hooks || []);
+      const hookDefs = Array.isArray(config) ? config : config.hooks || [];
       for (const def of hookDefs) {
         if (!VALID_HOOK_EVENTS.has(def.event)) {
-          process.emitWarning(`[hooks-v2] Unknown event type: ${def.event}, skipping`);
+          process.emitWarning(
+            `[hooks-v2] Unknown event type: ${def.event}, skipping`,
+          );
           continue;
         }
         if (!VALID_EXECUTOR_TYPES.has(def.type)) {
-          process.emitWarning(`[hooks-v2] Unknown executor type: ${def.type} for ${def.event}, skipping`);
+          process.emitWarning(
+            `[hooks-v2] Unknown executor type: ${def.type} for ${def.event}, skipping`,
+          );
           continue;
         }
         const id = def.id || crypto.randomUUID();
@@ -472,7 +507,10 @@ class HooksV2Runtime extends EventEmitter {
         this.hooks.get(def.event).push({ id, ...def });
       }
       this._loaded = true;
-      this.emit("loaded", { count: hookDefs.length, events: Array.from(this.hooks.keys()) });
+      this.emit("loaded", {
+        count: hookDefs.length,
+        events: Array.from(this.hooks.keys()),
+      });
     } catch (e) {
       if (e.code !== "ENOENT") {
         this.emit("load:error", e);
@@ -484,8 +522,10 @@ class HooksV2Runtime extends EventEmitter {
    * Register a hook programmatically
    */
   registerHook(def) {
-    if (!VALID_HOOK_EVENTS.has(def.event)) throw new Error(`Invalid event: ${def.event}`);
-    if (!VALID_EXECUTOR_TYPES.has(def.type)) throw new Error(`Invalid executor type: ${def.type}`);
+    if (!VALID_HOOK_EVENTS.has(def.event))
+      throw new Error(`Invalid event: ${def.event}`);
+    if (!VALID_EXECUTOR_TYPES.has(def.type))
+      throw new Error(`Invalid executor type: ${def.type}`);
     const contract = HOOK_EVENT_CONTRACTS[def.event];
     if (!contract.allowedExecutors.includes(def.type)) {
       throw new Error(
@@ -501,7 +541,7 @@ class HooksV2Runtime extends EventEmitter {
 
   unregisterHook(id) {
     for (const [event, hooks] of this.hooks.entries()) {
-      const idx = hooks.findIndex(h => h.id === id);
+      const idx = hooks.findIndex((h) => h.id === id);
       if (idx >= 0) {
         hooks.splice(idx, 1);
         return true;
@@ -536,20 +576,20 @@ class HooksV2Runtime extends EventEmitter {
     );
     const durableRecord =
       this.durableStore && options.skipDurable !== true
-      ? this.durableStore.enqueueInbox(
-          {
-            runtime_type: "hooks.v2",
-            requiresHandler: true,
-            event: eventName,
-            context,
-          },
-          {
-            id: context.event_id || context.eventId || null,
-            claimOwner: this.durableOwner,
-            leaseMs: longestHookTimeout + this.durableRecoveryBufferMs,
-          },
-        )
-      : null;
+        ? this.durableStore.enqueueInbox(
+            {
+              runtime_type: "hooks.v2",
+              requiresHandler: true,
+              event: eventName,
+              context,
+            },
+            {
+              id: context.event_id || context.eventId || null,
+              claimOwner: this.durableOwner,
+              leaseMs: longestHookTimeout + this.durableRecoveryBufferMs,
+            },
+          )
+        : null;
     if (durableRecord?.duplicate) {
       if (durableRecord.status === "done" && durableRecord.result) {
         return { ...durableRecord.result, duplicate: true };
@@ -577,7 +617,13 @@ class HooksV2Runtime extends EventEmitter {
     const runOne = async (hook) => {
       const execId = crypto.randomUUID();
       const start = Date.now();
-      const record = { execId, hookId: hook.id, event: eventName, type: hook.type, startedAt: new Date() };
+      const record = {
+        execId,
+        hookId: hook.id,
+        event: eventName,
+        type: hook.type,
+        startedAt: new Date(),
+      };
 
       try {
         assertManagedHookPolicy(
@@ -629,9 +675,10 @@ class HooksV2Runtime extends EventEmitter {
       this.executionLog.push(record);
       return record;
     };
-    const results = options.parallel === false
-      ? []
-      : await Promise.all(uniqueHooks.map(runOne));
+    const results =
+      options.parallel === false
+        ? []
+        : await Promise.all(uniqueHooks.map(runOne));
     if (options.parallel === false) {
       for (const hook of uniqueHooks) results.push(await runOne(hook));
     }
@@ -643,8 +690,7 @@ class HooksV2Runtime extends EventEmitter {
     const blocked = decision === "block";
     const blockingResult = blocking[0]?.result || null;
     const outcome = {
-      success:
-        !blocked && results.every((record) => record.status !== "error"),
+      success: !blocked && results.every((record) => record.status !== "error"),
       results,
       blocked,
       requiresApproval: decision === "ask",
@@ -689,24 +735,32 @@ class HooksV2Runtime extends EventEmitter {
       throw new Error("command hook requires a command");
     }
     const budget = hookBudget(hook);
-    const sandboxPolicy = resolveHookSandboxPolicy(
-      hook,
-      this.managedPolicy,
-    );
+    const sandboxPolicy = resolveHookSandboxPolicy(hook, this.managedPolicy);
+    const commandOptions = {
+      cwd: hook.cwd || this.configDir || process.cwd(),
+      env: buildHookEnvironment(hook, this.managedPolicy),
+      stdio: ["pipe", "pipe", "pipe"],
+      timeout: budget.timeoutMs,
+      shell: hook.shell === true,
+      origin: "hook",
+      scope: "hook",
+      policy: "allow",
+      hookName: hook.id,
+      ...(sandboxPolicy ? { sandboxPolicy } : {}),
+    };
+    const sandboxExecutionContract =
+      this.executionBroker.issueLinuxWorkspaceSandboxExecutionContract?.(
+        hook.command,
+        hook.args || [],
+        commandOptions,
+        process.cwd(),
+      );
     const child = await this.executionBroker.spawn(
       hook.command,
       hook.args || [],
       {
-        cwd: hook.cwd || this.configDir || process.cwd(),
-        env: buildHookEnvironment(hook, this.managedPolicy),
-        stdio: ["pipe", "pipe", "pipe"],
-        timeout: budget.timeoutMs,
-        shell: hook.shell === true,
-        origin: "hook",
-        scope: "hook",
-        policy: "allow",
-        hookName: hook.id,
-        ...(sandboxPolicy ? { sandboxPolicy } : {}),
+        ...commandOptions,
+        ...(sandboxExecutionContract ? { sandboxExecutionContract } : {}),
       },
     );
     const payload = JSON.stringify({
@@ -716,14 +770,19 @@ class HooksV2Runtime extends EventEmitter {
     });
     child.stdin?.end(payload);
     return new Promise((resolve, reject) => {
-      let stdout = "", stderr = "";
-      child.stdout?.on("data", d => stdout += d);
-      child.stderr?.on("data", d => stderr += d);
+      let stdout = "",
+        stderr = "";
+      child.stdout?.on("data", (d) => (stdout += d));
+      child.stderr?.on("data", (d) => (stderr += d));
       child.on("error", reject);
       child.on("exit", (code) => {
         if (code === 0) {
           let parsed = {};
-          try { parsed = JSON.parse(stdout); } catch { parsed = { raw: stdout }; }
+          try {
+            parsed = JSON.parse(stdout);
+          } catch {
+            parsed = { raw: stdout };
+          }
           resolve({ ...parsed, exitCode: code, stderr });
         } else {
           reject(new Error(`Hook command failed with exit ${code}: ${stderr}`));
@@ -763,7 +822,10 @@ class HooksV2Runtime extends EventEmitter {
       const res = await this.fetchImpl(target, {
         method,
         headers,
-        body: method !== "GET" ? JSON.stringify({ event: hook.event, context }) : undefined,
+        body:
+          method !== "GET"
+            ? JSON.stringify({ event: hook.event, context })
+            : undefined,
         signal: controller.signal,
       });
       clearTimeout(timer);
@@ -782,10 +844,7 @@ class HooksV2Runtime extends EventEmitter {
       throw new Error("prompt hook executor is not configured");
     }
     const budget = hookBudget(hook);
-    const sandboxPolicy = resolveHookSandboxPolicy(
-      hook,
-      this.managedPolicy,
-    );
+    const sandboxPolicy = resolveHookSandboxPolicy(hook, this.managedPolicy);
     return executeWithHookTimeout("prompt", budget, (signal) =>
       executor({
         hook,
@@ -805,10 +864,7 @@ class HooksV2Runtime extends EventEmitter {
       throw new Error("agent hook executor is not configured");
     }
     const budget = hookBudget(hook);
-    const sandboxPolicy = resolveHookSandboxPolicy(
-      hook,
-      this.managedPolicy,
-    );
+    const sandboxPolicy = resolveHookSandboxPolicy(hook, this.managedPolicy);
     return executeWithHookTimeout("agent", budget, (signal) =>
       executor({
         hook,
@@ -858,10 +914,7 @@ class HooksV2Runtime extends EventEmitter {
       }
     }
     const budget = hookBudget(hook);
-    const sandboxPolicy = resolveHookSandboxPolicy(
-      hook,
-      this.managedPolicy,
-    );
+    const sandboxPolicy = resolveHookSandboxPolicy(hook, this.managedPolicy);
     return executeWithHookTimeout("mcp_tool", budget, (signal) =>
       executor({
         server: hook.server,
@@ -889,7 +942,12 @@ class HooksV2Runtime extends EventEmitter {
   getHookRegistry() {
     const registry = {};
     for (const [event, hooks] of this.hooks.entries()) {
-      registry[event] = hooks.map(h => ({ id: h.id, type: h.type, description: h.description, blocking: h.blocking }));
+      registry[event] = hooks.map((h) => ({
+        id: h.id,
+        type: h.type,
+        description: h.description,
+        blocking: h.blocking,
+      }));
     }
     return registry;
   }

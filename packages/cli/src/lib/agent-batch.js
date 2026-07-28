@@ -94,7 +94,10 @@ export async function runBatch(opts, deps) {
     try {
       worktreePath = createWorktree(unit.key, branch);
       onEvent({ type: "unit:start", key: unit.key, branch });
-      await runAgent(unit.prompt, worktreePath);
+      await runAgent(unit.prompt, worktreePath, {
+        key: unit.key,
+        branch,
+      });
 
       const stat = diffStat(worktreePath);
       record.filesChanged = stat.filesChanged;

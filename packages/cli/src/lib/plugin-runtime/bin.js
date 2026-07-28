@@ -1118,7 +1118,7 @@ export function createPluginSandboxExecutionContract(invocation) {
       contractVersion: 1,
       kind:
         runtime === "native"
-          ? "strict-plugin-native-static-elf-bin"
+          ? "strict-plugin-native-elf-bin"
           : "strict-plugin-node-bin",
       pluginRoot,
       workingDirectory: pluginRoot,

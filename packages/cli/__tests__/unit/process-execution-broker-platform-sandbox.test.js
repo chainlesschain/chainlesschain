@@ -322,34 +322,66 @@ function createLinuxStaticElf64({
 }
 
 function createLinuxStaticPieElf64({
+  elfType = 3,
   machine = 62,
   includeDynamic = true,
   dynamicSegmentCount = 1,
   includeInterp = false,
+  interpreterPath = "/lib64/ld-linux-x86-64.so.2",
   dynamicNeeded = false,
+  dynamicNeededNames = null,
+  dynamicRunpath = false,
   dynamicFlags1 = 0x08000000n,
   dynamicTerminated = true,
   dynamicExecutable = false,
   dynamicFileSize = null,
   dynamicVirtualAddress = 0x1000n,
 } = {}) {
+  const neededNames = Array.isArray(dynamicNeededNames)
+    ? dynamicNeededNames
+    : [];
+  const stringParts = [Buffer.from([0])];
+  const neededOffsets = [];
+  let stringBytes = 1;
+  for (const name of neededNames) {
+    neededOffsets.push(stringBytes);
+    const encoded = Buffer.from(`${name}\0`, "ascii");
+    stringParts.push(encoded);
+    stringBytes += encoded.length;
+  }
+  const stringTable =
+    neededNames.length > 0 ? Buffer.concat(stringParts) : Buffer.alloc(0);
   const dynamicEntries = [];
   if (dynamicNeeded) dynamicEntries.push([1n, 0n]);
+  neededOffsets.forEach((offset) => {
+    dynamicEntries.push([1n, BigInt(offset)]);
+  });
+  if (neededNames.length > 0) {
+    dynamicEntries.push([5n, 0n], [10n, BigInt(stringTable.length)]);
+  }
+  if (dynamicRunpath) dynamicEntries.push([29n, 0n]);
   if (dynamicFlags1 !== null) {
     dynamicEntries.push([0x6ffffffbn, BigInt(dynamicFlags1)]);
   }
   if (dynamicTerminated) dynamicEntries.push([0n, 0n]);
   const dynamicTable = Buffer.alloc(dynamicEntries.length * 16);
+  const dynamicOffset = 0x1000;
+  const stringTableOffset = dynamicOffset + dynamicTable.length;
+  const stringTableVirtualAddress = 0x1000n + BigInt(dynamicTable.length);
   dynamicEntries.forEach(([tag, value], index) => {
     dynamicTable.writeBigUInt64LE(tag, index * 16);
-    dynamicTable.writeBigUInt64LE(value, index * 16 + 8);
+    dynamicTable.writeBigUInt64LE(
+      tag === 5n ? stringTableVirtualAddress : value,
+      index * 16 + 8,
+    );
   });
 
-  const dynamicOffset = 0x1000;
-  const interp = Buffer.from("/lib64/ld-linux-x86-64.so.2\0", "utf8");
-  const interpOffset = dynamicOffset + dynamicTable.length;
+  const interp = Buffer.from(`${interpreterPath}\0`, "utf8");
+  const interpOffset = stringTableOffset + stringTable.length;
   const payloadBytes =
-    dynamicTable.length + (includeInterp ? interp.length : 0);
+    dynamicTable.length +
+    stringTable.length +
+    (includeInterp ? interp.length : 0);
   const includeDataLoad = payloadBytes > 0;
   const programHeaderCount =
     1 +
@@ -364,7 +396,7 @@ function createLinuxStaticPieElf64({
   image[4] = 2;
   image[5] = 1;
   image[6] = 1;
-  image.writeUInt16LE(3, 16);
+  image.writeUInt16LE(elfType, 16);
   image.writeUInt16LE(machine, 18);
   image.writeUInt32LE(1, 20);
   image.writeBigUInt64LE(0x200n, 24);
@@ -438,8 +470,76 @@ function createLinuxStaticPieElf64({
     });
   }
   dynamicTable.copy(image, dynamicOffset);
+  stringTable.copy(image, stringTableOffset);
   if (includeInterp) interp.copy(image, interpOffset);
   return image;
+}
+
+function createLinuxDynamicElf64WithOverlappingLoaderView() {
+  const original = createLinuxStaticPieElf64({
+    includeInterp: true,
+    interpreterPath: "/lib64/ld-linux.so.2",
+    dynamicNeededNames: ["libc.so.6"],
+  });
+  const programHeaderOffset = Number(original.readBigUInt64LE(32));
+  const programHeaderBytes = original.readUInt16LE(54);
+  const programHeaderCount = original.readUInt16LE(56);
+  const dataLoadOffset = programHeaderOffset + programHeaderBytes;
+  const dataFileOffset = original.readBigUInt64LE(dataLoadOffset + 8);
+  const dataVirtualAddress = original.readBigUInt64LE(dataLoadOffset + 16);
+  const dataFileSize = original.readBigUInt64LE(dataLoadOffset + 32);
+  const alternateFileOffset = 0x2000n;
+  const image = Buffer.alloc(Number(alternateFileOffset + dataFileSize));
+  original.copy(image);
+  original
+    .subarray(Number(dataFileOffset), Number(dataFileOffset + dataFileSize))
+    .copy(image, Number(alternateFileOffset));
+
+  // The file-offset view remains a benign DT_NEEDED table, while a Linux
+  // loader that honors the later MAP_FIXED PT_LOAD would see DT_RUNPATH at
+  // the same PT_DYNAMIC virtual address.
+  image.writeBigUInt64LE(29n, Number(alternateFileOffset));
+  const hostileLoadOffset =
+    programHeaderOffset + programHeaderCount * programHeaderBytes;
+  image.writeUInt16LE(programHeaderCount + 1, 56);
+  image.writeUInt32LE(1, hostileLoadOffset);
+  image.writeUInt32LE(0x6, hostileLoadOffset + 4);
+  image.writeBigUInt64LE(alternateFileOffset, hostileLoadOffset + 8);
+  image.writeBigUInt64LE(dataVirtualAddress, hostileLoadOffset + 16);
+  image.writeBigUInt64LE(dataVirtualAddress, hostileLoadOffset + 24);
+  image.writeBigUInt64LE(dataFileSize, hostileLoadOffset + 32);
+  image.writeBigUInt64LE(dataFileSize, hostileLoadOffset + 40);
+  image.writeBigUInt64LE(0x1000n, hostileLoadOffset + 48);
+  return image;
+}
+
+function createLinuxElf64WithPageOnlyLoadOverlap() {
+  const original = createLinuxStaticElf64({
+    extraProgramType: 1,
+    loadFileSize: 0x801,
+    loadMemorySize: 0x801,
+  });
+  const image = Buffer.alloc(0x2000);
+  original.copy(image);
+  const programHeaderOffset = Number(image.readBigUInt64LE(32));
+  const programHeaderBytes = image.readUInt16LE(54);
+  const secondLoadOffset = programHeaderOffset + 2 * programHeaderBytes;
+  image.writeUInt32LE(1, secondLoadOffset);
+  image.writeUInt32LE(0x4, secondLoadOffset + 4);
+  image.writeBigUInt64LE(0xff0n, secondLoadOffset + 8);
+  image.writeBigUInt64LE(0x400ff0n, secondLoadOffset + 16);
+  image.writeBigUInt64LE(0x400ff0n, secondLoadOffset + 24);
+  image.writeBigUInt64LE(0x10n, secondLoadOffset + 32);
+  image.writeBigUInt64LE(0x10n, secondLoadOffset + 40);
+  image.writeBigUInt64LE(0x1000n, secondLoadOffset + 48);
+  return image;
+}
+
+function createLinuxAuxv64(pageSize) {
+  const auxv = Buffer.alloc(32);
+  auxv.writeBigUInt64LE(6n, 0);
+  auxv.writeBigUInt64LE(BigInt(pageSize), 8);
+  return auxv;
 }
 
 function createLinuxStrongHarness({
@@ -472,8 +572,9 @@ function createLinuxStrongHarness({
   nativeEntryMode = 0o100755,
   bwrapDevice = 11,
   bwrapInode = null,
+  linuxPageSize = 4096,
 } = {}) {
-  const nativeStatic = entryRuntime === "native-static-elf";
+  const nativeStatic = entryRuntime !== "node";
   const entryPath = nativeStatic ? "/plugin/bin/tool" : "/plugin/bin/tool.js";
   const sandboxEntryPath = nativeStatic
     ? "/opt/chainless/plugin/bin/tool"
@@ -505,6 +606,7 @@ function createLinuxStrongHarness({
     ["/lib/libc.so.6", Buffer.from("libc")],
     ["/lib64/ld-linux.so.2", Buffer.from("loader")],
     ["/etc/ld.so.cache", Buffer.from("loader-cache")],
+    ["/proc/self/auxv", createLinuxAuxv64(linuxPageSize)],
     [
       "/proc/self/mountinfo",
       Buffer.from("1 0 0:1 / / rw,relatime - ext4 /dev/root rw\n"),
@@ -1240,7 +1342,9 @@ function createLinuxStrongHarness({
   const contract = Object.freeze({
     contractVersion: 1,
     kind: nativeStatic
-      ? "strict-plugin-native-static-elf-bin"
+      ? entryRuntime === "native-dynamic-elf"
+        ? "strict-plugin-native-elf-bin"
+        : "strict-plugin-native-static-elf-bin"
       : "strict-plugin-node-bin",
     pluginRoot: "/plugin",
     workingDirectory: "/plugin",
@@ -1272,6 +1376,7 @@ function createLinuxStrongHarness({
     identities,
     fdOffsets,
     lddInspectionSources,
+    linuxPageSize,
     mountIds,
     get nativeEntryExecuteRemoved() {
       return nativeEntryExecuteRemoved;
@@ -1538,6 +1643,26 @@ function createLinuxPluginTreeRuntimeProbe(overrides = {}) {
   });
 }
 
+function createLinuxDynamicNativeRuntimeProbe(overrides = {}) {
+  return createLinuxSupervisorRuntimeProbe({
+    kind: "linux-bwrap-plugin-native-dynamic-elf-policy-v1",
+    targetRuntime: "native-dynamic-elf",
+    contentSnapshot: true,
+    contentSnapshotScope: "plugin-entry-executable",
+    contentSnapshotMechanism: "verified-o_tmpfile-copy-bwrap-ro-bind-data-v1",
+    initialDynamicLoadClosureDescriptorBound: true,
+    initialDynamicLoadClosureScope:
+      "initial-pt_interp-and-direct-dt_needed-attested-system-set",
+    initialDynamicLoadClosureMechanism:
+      "parsed-elf-direct-system-set-to-attested-node-runtime-fds-v1",
+    initialDynamicInterpreter: "/lib64/ld-linux-x86-64.so.2",
+    initialDynamicDependencyCount: 2,
+    initialDynamicRuntimeFileCount: 3,
+    initialDynamicLoadClosureDigest: "d".repeat(64),
+    ...overrides,
+  });
+}
+
 function appliedPlan(command, args, options, overrides = {}) {
   return {
     contractVersion: 1,
@@ -1570,6 +1695,18 @@ function appliedLinuxBwrapPluginTreePlan(
     policyDigest: "c".repeat(64),
     guarantees: [SANDBOX_BOUNDARIES.FILESYSTEM, SANDBOX_BOUNDARIES.NETWORK],
     runtimeProbe: createLinuxPluginTreeRuntimeProbe(),
+    ...overrides,
+  });
+}
+
+function appliedLinuxBwrapDynamicNativePlan(
+  command,
+  args,
+  options,
+  overrides = {},
+) {
+  return appliedLinuxBwrapPluginTreePlan(command, args, options, {
+    runtimeProbe: createLinuxDynamicNativeRuntimeProbe(),
     ...overrides,
   });
 }
@@ -3046,6 +3183,251 @@ describe("platform sandbox adapter contract", () => {
     expect(harness.openFiles.size).toBe(0);
   });
 
+  it.each([
+    ["dynamic PIE ET_DYN", {}],
+    ["dynamic non-PIE ET_EXEC", { elfType: 2, dynamicFlags1: null }],
+  ])(
+    "binds a %s interpreter and direct DT_NEEDED set to pinned trusted runtime files",
+    (_label, elfOptions) => {
+      const harness = createLinuxStrongHarness({
+        entryRuntime: "native-dynamic-elf",
+        nativeEntry: createLinuxStaticPieElf64({
+          ...elfOptions,
+          includeInterp: true,
+          interpreterPath: "/lib64/ld-linux.so.2",
+          dynamicNeededNames: ["libc.so.6"],
+        }),
+      });
+      const plan = applyLinuxStrongNativeHarness(harness);
+
+      expect(harness.contract.kind).toBe("strict-plugin-native-elf-bin");
+      expect(plan).toMatchObject({
+        applied: true,
+        backend: "linux-bwrap",
+        enforcement: "linux-bwrap",
+        policyAttested: true,
+        reason: null,
+        guarantees: [SANDBOX_BOUNDARIES.FILESYSTEM, SANDBOX_BOUNDARIES.NETWORK],
+        runtimeProbe: {
+          kind: "linux-bwrap-plugin-native-dynamic-elf-policy-v1",
+          attempted: true,
+          runnable: true,
+          reason: null,
+          probeRuntime: "node",
+          targetRuntime: "native-dynamic-elf",
+          contentSnapshot: true,
+          contentSnapshotScope: "plugin-entry-executable",
+          initialDynamicLoadClosureDescriptorBound: true,
+          initialDynamicLoadClosureScope:
+            "initial-pt_interp-and-direct-dt_needed-attested-system-set",
+          initialDynamicLoadClosureMechanism:
+            "parsed-elf-direct-system-set-to-attested-node-runtime-fds-v1",
+          initialDynamicInterpreter: "/lib64/ld-linux.so.2",
+          initialDynamicDependencyCount: 1,
+          initialDynamicRuntimeFileCount: 2,
+          initialDynamicLoadClosureDigest:
+            expect.stringMatching(/^[a-f0-9]{64}$/),
+          handleAtomic: false,
+        },
+      });
+      expect(plan.args.slice(-4)).toEqual([
+        "--",
+        "/opt/chainless/plugin/bin/tool",
+        "--label",
+        "ready",
+      ]);
+      expect(linuxBwrapFileMounts(plan.args)).toEqual(
+        expect.arrayContaining([
+          {
+            mode: "ro-bind-fd",
+            childFd: expect.any(Number),
+            destination: "/lib/libc.so.6",
+            permissions: null,
+          },
+          {
+            mode: "ro-bind-fd",
+            childFd: expect.any(Number),
+            destination: "/lib64/ld-linux.so.2",
+            permissions: null,
+          },
+          {
+            mode: "ro-bind-data",
+            childFd: expect.any(Number),
+            destination: "/opt/chainless/plugin/bin/tool",
+            permissions: "0500",
+          },
+        ]),
+      );
+      expect(harness.lddInspectionSources).toEqual(["/runtime/node"]);
+      expect(harness.lddInspectionSources.includes(harness.entryPath)).toBe(
+        false,
+      );
+      expect(plan.args.join("\0")).not.toContain("LD_LIBRARY_PATH");
+
+      plan.cleanup();
+      expect(harness.openFiles.size).toBe(0);
+    },
+  );
+
+  it.each([
+    [
+      "later PT_LOAD overlay of the PT_DYNAMIC loader view",
+      createLinuxDynamicElf64WithOverlappingLoaderView(),
+    ],
+    [
+      "page-rounded PT_LOAD overlap without raw virtual-range overlap",
+      createLinuxElf64WithPageOnlyLoadOverlap(),
+    ],
+  ])(
+    "rejects a native ELF with %s before runtime inspection or target start",
+    (_label, nativeEntry) => {
+      const harness = createLinuxStrongHarness({
+        entryRuntime: "native-dynamic-elf",
+        nativeEntry,
+      });
+      const plan = applyLinuxStrongNativeHarness(harness);
+
+      expect(plan).toMatchObject({
+        applied: false,
+        backend: null,
+        candidateBackend: "linux-bwrap",
+        policyAttested: false,
+        reason: "linux_bwrap_execution_contract_invalid",
+        guarantees: [],
+        runtimeProbe: {
+          kind: "linux-bwrap-plugin-native-elf-policy-v1",
+          attempted: false,
+          runnable: false,
+          reason: "native_entry_load_segment_page_overlap",
+          targetRuntime: "native-unclassified",
+          contentSnapshot: false,
+          handleAtomic: false,
+        },
+      });
+      expect(harness.lddInspectionSources).toEqual([]);
+      expect(
+        harness.spawnSync.mock.calls.some(([, spawnArgs]) =>
+          spawnArgs?.includes("/opt/chainless/plugin/bin/tool"),
+        ),
+      ).toBe(false);
+      expect(harness.openFiles.size).toBe(0);
+    },
+  );
+
+  it("fails closed when the trusted Linux runtime page-size contract is invalid", () => {
+    const harness = createLinuxStrongHarness({
+      entryRuntime: "native-dynamic-elf",
+      nativeEntry: createLinuxStaticPieElf64({
+        includeInterp: true,
+        interpreterPath: "/lib64/ld-linux.so.2",
+        dynamicNeededNames: ["libc.so.6"],
+      }),
+      linuxPageSize: 3000,
+    });
+    const plan = applyLinuxStrongNativeHarness(harness);
+
+    expect(plan).toMatchObject({
+      applied: false,
+      backend: null,
+      candidateBackend: "linux-bwrap",
+      policyAttested: false,
+      reason: "linux_bwrap_execution_contract_invalid",
+      guarantees: [],
+      runtimeProbe: {
+        attempted: false,
+        runnable: false,
+        reason: "linux_runtime_page_size_unattested",
+        targetRuntime: "native-unclassified",
+        contentSnapshot: false,
+        handleAtomic: false,
+      },
+    });
+    expect(harness.lddInspectionSources).toEqual([]);
+    expect(harness.openFiles.size).toBe(0);
+  });
+
+  it.each([
+    [
+      "an interpreter outside the trusted runtime closure",
+      createLinuxStaticPieElf64({
+        includeInterp: true,
+        interpreterPath: "/lib64/other-loader.so",
+        dynamicNeededNames: ["libc.so.6"],
+      }),
+      "native_dynamic_interpreter_outside_direct_system_set",
+      "linux_bwrap_native_runtime_unattested",
+      true,
+      "native-dynamic-elf",
+    ],
+    [
+      "a DT_NEEDED member outside the trusted runtime closure",
+      createLinuxStaticPieElf64({
+        includeInterp: true,
+        interpreterPath: "/lib64/ld-linux.so.2",
+        dynamicNeededNames: ["libplugin-private.so"],
+      }),
+      "native_dynamic_dependency_outside_direct_system_set",
+      "linux_bwrap_native_runtime_unattested",
+      true,
+      "native-dynamic-elf",
+    ],
+    [
+      "DT_RUNPATH loader search injection",
+      createLinuxStaticPieElf64({
+        includeInterp: true,
+        interpreterPath: "/lib64/ld-linux.so.2",
+        dynamicNeededNames: ["libc.so.6"],
+        dynamicRunpath: true,
+      }),
+      "native_entry_dynamic_loader_directive_unsupported",
+      "linux_bwrap_execution_contract_invalid",
+      false,
+      "native-unclassified",
+    ],
+  ])(
+    "fails closed for dynamic native %s before the plugin target can start",
+    (
+      _label,
+      nativeEntry,
+      expectedProbeReason,
+      expectedPlanReason,
+      inspectedNode,
+      expectedRuntime,
+    ) => {
+      const harness = createLinuxStrongHarness({
+        entryRuntime: "native-dynamic-elf",
+        nativeEntry,
+      });
+      const plan = applyLinuxStrongNativeHarness(harness);
+
+      expect(plan).toMatchObject({
+        applied: false,
+        backend: null,
+        candidateBackend: "linux-bwrap",
+        policyAttested: false,
+        reason: expectedPlanReason,
+        guarantees: [],
+        runtimeProbe: {
+          attempted: false,
+          runnable: false,
+          reason: expectedProbeReason,
+          targetRuntime: expectedRuntime,
+          contentSnapshot: false,
+          handleAtomic: false,
+        },
+      });
+      expect(harness.lddInspectionSources).toEqual(
+        inspectedNode ? ["/runtime/node"] : [],
+      );
+      expect(
+        harness.spawnSync.mock.calls.some(([, spawnArgs]) =>
+          spawnArgs?.includes("/opt/chainless/plugin/bin/tool"),
+        ),
+      ).toBe(false);
+      expect(harness.openFiles.size).toBe(0);
+    },
+  );
+
   it("keeps a native entry snapshot runnable after the source inode changes", () => {
     const harness = createLinuxStrongHarness({
       entryRuntime: "native-static-elf",
@@ -3301,7 +3683,7 @@ describe("platform sandbox adapter contract", () => {
     [
       "PT_INTERP",
       createLinuxStaticElf64({ extraProgramType: 3 }),
-      "native_entry_interpreter_unsupported",
+      "native_entry_interpreter_invalid",
     ],
     [
       "PT_DYNAMIC",
@@ -3321,7 +3703,7 @@ describe("platform sandbox adapter contract", () => {
     [
       "ET_DYN with PT_INTERP",
       createLinuxStaticPieElf64({ includeInterp: true }),
-      "native_entry_interpreter_unsupported",
+      "native_entry_dynamic_contract_required",
     ],
     [
       "ET_DYN with duplicate PT_DYNAMIC",
@@ -8101,6 +8483,167 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
       expect(nativeSpawn).not.toHaveBeenCalled();
     },
   );
+
+  it("preserves descriptor-bound dynamic ELF direct-system-set evidence in the audit log", () => {
+    const child = createChild();
+    const nativeSpawn = vi.fn(() => child);
+    const runtimeProbe = createLinuxDynamicNativeRuntimeProbe();
+    executionBroker._native = { spawn: nativeSpawn };
+    executionBroker._sandboxAdapter = {
+      applySandbox: vi.fn((command, args, options) =>
+        appliedLinuxBwrapDynamicNativePlan(command, args, options, {
+          runtimeProbe,
+        }),
+      ),
+      postSpawnSandbox: vi.fn(),
+    };
+
+    const returned = executionBroker.spawn("tool", ["run"], {
+      origin: "test:dynamic-native-runtime-probe",
+      policy: "allow",
+    });
+
+    expect(returned).toBe(child);
+    expect(nativeSpawn).toHaveBeenCalledOnce();
+    expect(executionBroker.getAuditLog(1)[0].sandboxRuntimeProbe).toEqual(
+      runtimeProbe,
+    );
+  });
+
+  it.each([
+    [
+      "forged scope",
+      {
+        initialDynamicLoadClosureScope: "all-runtime-files",
+      },
+    ],
+    [
+      "forged mechanism",
+      {
+        initialDynamicLoadClosureMechanism: "path-based-loader-closure",
+      },
+    ],
+    [
+      "interpreter outside system roots",
+      {
+        initialDynamicInterpreter: "/tmp/ld-linux.so",
+      },
+    ],
+    [
+      "non-canonical interpreter",
+      {
+        initialDynamicInterpreter: "/lib64/../lib64/ld-linux-x86-64.so.2",
+      },
+    ],
+    [
+      "dependency count above 128",
+      {
+        initialDynamicDependencyCount: 129,
+      },
+    ],
+    [
+      "runtime file count above the direct system set",
+      {
+        initialDynamicRuntimeFileCount: 4,
+      },
+    ],
+    [
+      "runtime file count below the unique direct dependency set",
+      {
+        initialDynamicDependencyCount: 3,
+        initialDynamicRuntimeFileCount: 2,
+      },
+    ],
+    [
+      "invalid digest",
+      {
+        initialDynamicLoadClosureDigest: "D".repeat(64),
+      },
+    ],
+    [
+      "non-dynamic kind",
+      {
+        kind: "linux-bwrap-plugin-native-static-elf-policy-v1",
+      },
+    ],
+    [
+      "non-dynamic target runtime",
+      {
+        targetRuntime: "native-static-elf",
+      },
+    ],
+    [
+      "atomic handle claim",
+      {
+        handleAtomic: true,
+      },
+    ],
+    [
+      "without descriptor binding",
+      {
+        initialDynamicLoadClosureDescriptorBound: false,
+      },
+    ],
+  ])(
+    "rejects dynamic ELF direct-system-set evidence with %s before native spawn",
+    (_label, runtimeProbeOverrides) => {
+      const nativeSpawn = vi.fn();
+      executionBroker._native = { spawn: nativeSpawn };
+      executionBroker._sandboxAdapter = {
+        applySandbox: vi.fn((command, args, options) =>
+          appliedLinuxBwrapDynamicNativePlan(command, args, options, {
+            runtimeProbe: createLinuxDynamicNativeRuntimeProbe(
+              runtimeProbeOverrides,
+            ),
+          }),
+        ),
+        postSpawnSandbox: vi.fn(),
+      };
+
+      expect(() =>
+        executionBroker.spawn("tool", ["run"], {
+          origin: `test:invalid-dynamic-native-runtime-probe-${_label}`,
+          policy: "allow",
+          sandboxPolicy: {
+            requiredBoundaries: [SANDBOX_BOUNDARIES.FILESYSTEM],
+          },
+        }),
+      ).toThrow(/initialDynamicLoadClosure|initial dynamic direct system set/);
+      expect(nativeSpawn).not.toHaveBeenCalled();
+    },
+  );
+
+  it("rejects successful dynamic ELF evidence without a descriptor-bound direct system set", () => {
+    const nativeSpawn = vi.fn();
+    executionBroker._native = { spawn: nativeSpawn };
+    executionBroker._sandboxAdapter = {
+      applySandbox: vi.fn((command, args, options) =>
+        appliedLinuxBwrapDynamicNativePlan(command, args, options, {
+          runtimeProbe: createLinuxDynamicNativeRuntimeProbe({
+            initialDynamicLoadClosureDescriptorBound: undefined,
+            initialDynamicLoadClosureScope: undefined,
+            initialDynamicLoadClosureMechanism: undefined,
+            initialDynamicInterpreter: undefined,
+            initialDynamicDependencyCount: undefined,
+            initialDynamicRuntimeFileCount: undefined,
+            initialDynamicLoadClosureDigest: undefined,
+          }),
+        }),
+      ),
+      postSpawnSandbox: vi.fn(),
+    };
+
+    expect(() =>
+      executionBroker.spawn("tool", ["run"], {
+        origin: "test:missing-dynamic-native-runtime-probe-closure",
+        policy: "allow",
+        sandboxPolicy: {
+          requiredBoundaries: [SANDBOX_BOUNDARIES.FILESYSTEM],
+        },
+      }),
+    ).toThrow(/successful dynamic ELF evidence/);
+    expect(nativeSpawn).not.toHaveBeenCalled();
+  });
 
   it("preserves complete bwrap supervisor evidence in the audit log", () => {
     const child = createChild();

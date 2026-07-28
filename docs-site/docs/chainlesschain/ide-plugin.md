@@ -1,6 +1,6 @@
 # IDE 插件使用指南（VS Code / JetBrains）
 
-> **版本: VS Code 扩展 `0.37.16`（Open VSX 已上架，安装破万）+ JetBrains 插件 `0.4.60`（JetBrains Marketplace 已上架）| 更新 2026-07-16 | 状态: ✅ 双端功能对齐 | 9+ IDE 工具 | Chat 面板 + Plan 审阅 + 原生 Diff 评审 + 后台代理 | VS 侧 ~914 专项测试 + JB 侧 JUnit / ~1213 smoke 断言**
+> **当前推荐组合（2026-07-28）：CLI `0.162.183` + VS Code 扩展 `0.37.35`（Open VSX）+ JetBrains 插件 `0.4.74`（JetBrains Marketplace）。双端共享 Agent Protocol、质量上下文、插件治理与 worktree 后台任务契约。**
 >
 > 把 ChainlessChain 的 `cc` agent 变成**编辑器里的一等公民**：侧边栏 Chat 面板直接对话、计划以可编辑 Markdown 文档审阅、文件改动走编辑器原生 diff 评审（可逐块接受、可行级批注）、代理自动感知你的选区与诊断。VS Code 与 JetBrains 双端同一套协议、同一套功能面，会话还能跨 IDE 互相续接。
 
@@ -121,23 +121,51 @@ settings 权限规则对 `Write`/`Edit` 配了 `ask` 且在交互会话时，终
 - **提交时自动共享**：每次发消息自动携带活动文件、打开的标签、选区（`<ide-context>` 块，只进在途消息不进持久化）。
 - **编辑后诊断回喂**：agent 改完文件，等语言服务器消化（默认 600ms）后把新的 error/warning 附回工具结果——agent 在同一循环内看到自己刚引入的报错并修掉。
 - **终端上下文**：`getTerminalOutput` 让 agent 读最近的终端命令 / 输出 / 退出码（VS Code 需 1.93+ shell integration；JetBrains 读终端缓冲）。
+- **质量上下文 (`cc-ide-quality/v1`)**：有界发送最近测试结果、覆盖率摘要与调试器状态，并携带 Context v2 新鲜度元数据；过期快照会被标注而不是伪装成当前状态。
+- **Notebook 实际上下文**：VS Code 侧 Jupyter 执行使用当前 notebook / cell 的真实上下文，不再只按普通文本编辑器推断。
 - 总开关 `CC_IDE_CONTEXT=0`（IDE 工具本身仍可被显式调用）。
 
-### 6. 后台与协作面板
+### 6. 插件生命周期与供应链信息
+
+“Manage Plugins & MCP” 由 CLI runtime 执行实际变更，IDE 不维护第二份插件状态：
+
+- 按 `user / project / local` scope 启用或禁用插件，升级时保留来源并提示新增 capability consent。
+- 当前会话可重载插件状态；签名、SBOM、registry / Git / local 来源、managed-policy 来源与生效范围在同一视图展示。
+- 来源元数据在展示前脱敏，不从不可信工作区目录探测 Node、Java 或 `cc`。
+- Token Usage / session usage 可按插件 id/version 归因 plugin-bin 和插件提供的 MCP 调用，但不保存工具参数。
+
+命令行等价操作：
+
+```bash
+cc plugin installed
+cc plugin enable <name> --scope user
+cc plugin disable <name> --scope project
+cc plugin upgrade <source> --scope user
+```
+
+### 7. 后台与协作面板
 
 | 面板                  | 入口（命令面板 / Tools 菜单）        | 作用                                                                                                                                                                             |
 | --------------------- | ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Background Agents** | ChainlessChain: Background Agents    | 列出 `cc agent --bg` 后台会话，追加指令 / 停止 / 重命名 / 续接                                                                                                                   |
 | **Team Monitor**      | ChainlessChain: Team Monitor         | 观察 `cc team run` 快照：任务图、lease 持有者、进度                                                                                                                              |
 | **Remote Control**    | ChainlessChain: Remote Control       | 起 `cc remote-control` 配对主机，IDE 内直接渲染一次性配对 URI 的 QR 码（0.37.12/0.4.56+，手机扫码即配对），relay（E2EE 跨网）可在 IDE 设置面配置，手机 / Web 观察-提问-审批-中断 |
-| **Worktree Tasks**    | ChainlessChain: Worktree Tasks       | 代理任务 worktree：新建隔离任务（开集成终端）、变更足迹 + `git merge-tree` 冲突预览、Merge back / Discard                                                                        |
-| **Plugin & MCP 管理** | ChainlessChain: Manage Plugins & MCP | 运行时插件信任 / 卸载 / 添加，MCP server 测试 / 移除，技能列表过滤                                                                                                               |
+| **Worktree Tasks**    | ChainlessChain: Worktree Tasks       | 新建受监督的隔离后台任务；显示 owner/session、权限模式、资源预算、生命周期、副作用计数、变更足迹与冲突预览；Merge back / Discard                                                 |
+| **Plugin & MCP 管理** | ChainlessChain: Manage Plugins & MCP | 分 scope 启停 / 升级 / 重载、签名与 SBOM 摘要、managed-policy 来源；MCP server 测试 / 移除，技能列表过滤                                                                         |
 | **Chrome Connector**  | ChainlessChain: Chrome Connector     | 驱动 `cc browse chrome`，抓取页面 console / network / DOM / 截图成报告                                                                                                           |
 | **Token Usage**       | ChainlessChain: Show Token Usage     | 全时段 / 24h / 7d / 30d 用量、按模型汇总、Top 会话                                                                                                                               |
 | **Dashboard**         | ChainlessChain IDE: Open Dashboard   | 桥接状态卡 + 实时工具调用流 + Restart                                                                                                                                            |
 | **What's New**        | ChainlessChain: What's New           | 渲染 `cc changelog`，配合 CLI 版本检查 / 一键升级                                                                                                                                |
 
-### 7. 深链与本地化
+Worktree Tasks 只把拥有 durable 后台状态的 IDE 任务标为 **managed**。`cc team` / `cc batch` 行在尚未提供等价 owner、预算与恢复状态时明确显示 **unmanaged**，不会把只能观察的任务伪装成可安全控制。
+
+### 8. Installation Doctor 与离线恢复
+
+- VS Code / JetBrains Doctor 同时检查 `cc`、Node.js、Java、managed CLI 与插件 registry。
+- managed CLI 损坏或 registry 暂时离线时会显示可恢复状态与操作建议；诊断不会从工作区目录执行同名程序。
+- 远程 / WSL 环境继续检查桥接端口、远端 CLI 与网络模式；输出中的 token、路径型来源与凭据会脱敏。
+
+### 9. 深链与本地化
 
 - **深链**：`vscode://chainlesschain.chainlesschain-ide/open` / `jetbrains://…/chainlesschain/open`，参数 `prompt` / `session` / `file` / `line` / `workspace` / `mode`——prompt 只**预填不自动发送**，`mode` 永拒 `bypassPermissions`，异 workspace 链接被忽略（详见「安全考虑」）。
 - **本地化**：界面按 IDE 语言呈现英文或中文（VS Code l10n / JetBrains `CcBundle` DynamicBundle），双语 key 齐平由测试门禁保证。
@@ -273,6 +301,8 @@ JetBrains 纯核在**无 IntelliJ SDK 的机器**上用 `javac --release 8` 编�
 - **Windows CWD 劫持防护**：spawn 全部注入 `NoDefaultCurrentDirectoryInExePath`，仓库里放个恶意 `cc.bat` 也不会被执行。
 - **设置注入防护**：`chat.model` / `chat.provider` 过 shell 元字符消毒；MCP 请求体按 UTF-8 多字节重组防截断。
 - **API key 走 env**：面板子进程经 `CC_API_KEY` 环境变量传 key，不进 argv（防进程列表泄露）。
+- **插件策略失败闭合**：插件 hook、MCP、LSP、monitor、PTY、后台任务与原生 bin 都服从 CLI runtime 的 capability / sandbox policy；缺少声明、授权或隔离能力时 IDE 不提供绕过按钮。
+- **供应链摘要不等于信任放行**：签名、SBOM 和来源只用于展示与策略判断；被组织策略禁用的插件仍可在管理视图中看见，但不能加载执行。
 
 ### fail-safe 语义
 
@@ -289,7 +319,7 @@ cc ide doctor          # 解释桥接发现为何成功/失败
 cc ide status          # 此刻会连哪台 + MCP config（token 脱敏）
 ```
 
-编辑器内：**Diagnose Bridge**（含 **Remote / WSL Doctor** 段：WSL2 mirrored networking / 远端缺 cc / 桥接端口死掉，每项带可复制的修复命令）、**Show Bridge Status**、**Restart Bridge**、**Open Dashboard**（实时工具调用流）。
+编辑器内：**Diagnose Bridge**（含 Node/Java、managed CLI、插件 registry 离线恢复及 **Remote / WSL Doctor**：WSL2 mirrored networking / 远端缺 cc / 桥接端口死掉，每项带可复制的修复命令）、**Show Bridge Status**、**Restart Bridge**、**Open Dashboard**（实时工具调用流）。
 
 ### 常见问题
 

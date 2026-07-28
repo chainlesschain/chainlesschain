@@ -57,7 +57,7 @@ function buildPluginLifecycleArgs(name, enabled, scope = "user") {
 
 function buildPluginUpgradeArgs(
   source,
-  { scope = "user", registry, packageName } = {},
+  { scope = "user", registry, packageName, grantCapabilities = false } = {},
 ) {
   const target = registry ? packageName : source;
   const args = [
@@ -68,6 +68,7 @@ function buildPluginUpgradeArgs(
     String(scope),
   ];
   if (registry) args.push("--registry", String(registry));
+  if (grantCapabilities) args.push("--grant-capabilities");
   args.push("--json");
   return args;
 }
@@ -110,6 +111,58 @@ function parseArray(text) {
   } catch {
     return null;
   }
+}
+
+/**
+ * Parse the transactional `plugin upgrade --json` result. Older CLIs without
+ * activationStatus remain compatible, while unreadable or unknown states fail
+ * closed so the IDE does not reload sessions against an ambiguous install.
+ */
+function parsePluginUpgradeResult(text) {
+  let parsed;
+  try {
+    parsed = JSON.parse(String(text || "").trim());
+  } catch {
+    return null;
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+  const inferredStatus =
+    parsed.updated === true || parsed.reinstalled === true
+      ? "activated"
+      : "unchanged";
+  const activationStatus =
+    typeof parsed.activationStatus === "string"
+      ? parsed.activationStatus
+      : inferredStatus;
+  if (!["activated", "rolled_back", "unchanged"].includes(activationStatus)) {
+    return null;
+  }
+  const capabilities =
+    parsed.capabilities && typeof parsed.capabilities === "object"
+      ? parsed.capabilities
+      : null;
+  return {
+    name: bounded(parsed.name, 256),
+    version: bounded(parsed.version, 128),
+    previousVersion: bounded(parsed.previousVersion, 128),
+    activationStatus,
+    rollbackVersion: bounded(parsed.rollbackVersion, 128),
+    rollbackReason: [
+      "capability_consent_required",
+      "capability_consent_failed",
+    ].includes(parsed.rollbackReason)
+      ? parsed.rollbackReason
+      : "",
+    capabilitiesGranted: parsed.capabilitiesGranted === true,
+    capabilities: capabilities
+      ? {
+          consented: capabilities.consented === true,
+          reason: bounded(capabilities.reason, 512),
+          declared: boundedStringArray(capabilities.declared, 32, 256),
+          added: boundedStringArray(capabilities.added, 32, 256),
+        }
+      : null,
+  };
 }
 
 /** `plugin installed --json` → [{name, version, scope, dir, ok}]; null = unreadable. */
@@ -211,6 +264,14 @@ function parsePluginPolicy(policy) {
   };
 }
 
+function boundedStringArray(value, maxItems, maxLength) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((item) => typeof item === "string" && item)
+    .slice(0, maxItems)
+    .map((item) => bounded(item, maxLength));
+}
+
 /** `mcp servers --json` → policy-annotated rows; null = unreadable. */
 function parseMcpServers(text) {
   const rows = parseArray(text);
@@ -258,5 +319,6 @@ module.exports = {
   buildSkillListArgs,
   parseMcpServers,
   parsePluginInstalled,
+  parsePluginUpgradeResult,
   parseSkillList,
 };

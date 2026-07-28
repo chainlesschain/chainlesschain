@@ -50,6 +50,7 @@ export const _deps = {
   existsSync: fs.existsSync,
   mkdirSync: fs.mkdirSync,
   rmSync: fs.rmSync,
+  renameSync: fs.renameSync,
   readdirSync: fs.readdirSync,
   readFileSync: fs.readFileSync,
   copyFileSync: fs.copyFileSync,
@@ -58,6 +59,8 @@ export const _deps = {
   mkdtempSync: fs.mkdtempSync,
   spawnSync: (...args) => executionBroker.spawnSync(...args),
 };
+
+const pendingPluginTransactions = new WeakMap();
 
 /**
  * Install a plugin from a local directory into a scope's immutable version dir.
@@ -111,66 +114,116 @@ export function installFromDirectory(srcDir, opts = {}) {
   }
 
   const dest = pluginVersionDir(scope, name, version, { cwd: opts.cwd });
-  if (_deps.existsSync(dest)) {
-    if (!opts.force) {
-      throw new Error(
-        `${name}@${version} is already installed at ${scope} scope (immutable). ` +
-          `Use --force to reinstall, or bump the version.`,
+  const destExists = _deps.existsSync(dest);
+  if (destExists && !opts.force) {
+    throw new Error(
+      `${name}@${version} is already installed at ${scope} scope (immutable). ` +
+        `Use --force to reinstall, or bump the version.`,
+    );
+  }
+
+  const nameDir = pluginNameDir(scope, name, { cwd: opts.cwd });
+  _deps.mkdirSync(nameDir, { recursive: true });
+  const transactionRoot = _deps.mkdtempSync(path.join(nameDir, ".install-"));
+  const staged = path.join(transactionRoot, "staged");
+  const backup = destExists ? path.join(transactionRoot, "previous") : null;
+  const previousActive = getActiveVersion(name, { scope, cwd: opts.cwd });
+  let installedAtDest = false;
+  let transactionRetained = false;
+
+  try {
+    _deps.mkdirSync(staged, { recursive: true });
+    copyDirGuarded(src, staged, staged);
+
+    // A lock may ONLY exist if THIS installer wrote it. The source is untrusted
+    // and may ship its own `.plugin-lock.json` or provenance metadata.
+    _deps.rmSync(path.join(staged, LOCK_FILENAME), { force: true });
+    _deps.rmSync(path.join(staged, SOURCE_METADATA_FILENAME), { force: true });
+
+    if (sourceMetadata) {
+      _deps.writeFileSync(
+        path.join(staged, SOURCE_METADATA_FILENAME),
+        JSON.stringify(sourceMetadata, null, 2),
+        "utf8",
       );
     }
-    _deps.rmSync(dest, { recursive: true, force: true });
+
+    // Record the verified signature into the staged immutable version. The
+    // manifest and complete component SBOM are re-verified below before any
+    // active bytes or pointer can change.
+    if (verification) {
+      const stagedManifest = path.join(
+        staged,
+        path.relative(src, manifest.manifestPath),
+      );
+      writePluginLock(staged, {
+        manifestFile: stagedManifest,
+        sha256: verification.sha256,
+        publicKeySha256: verification.publicKeySha256,
+        signatureVerified: verification.signatureVerified === true,
+        signatureBase64: verification.signatureBase64,
+        publicKeyPem: verification.publicKeyPem,
+        sbom: buildPluginSbom(staged),
+      });
+    }
+    validateStagedInstall(staged, { name, version, verification });
+
+    // Commit the fully validated directory with same-volume renames. A forced
+    // same-version reinstall retains the old bytes until the caller finalizes
+    // the upgrade transaction.
+    if (backup) _deps.renameSync(dest, backup);
+    try {
+      _deps.renameSync(staged, dest);
+      installedAtDest = true;
+    } catch (error) {
+      if (backup && _deps.existsSync(backup) && !_deps.existsSync(dest)) {
+        _deps.renameSync(backup, dest);
+      }
+      throw error;
+    }
+
+    try {
+      setActiveVersion(name, version, { scope, cwd: opts.cwd });
+    } catch (error) {
+      restoreInstalledBytes({ dest, backup });
+      restoreActivePointer(name, previousActive, { scope, cwd: opts.cwd });
+      installedAtDest = false;
+      throw error;
+    }
+
+    const result = {
+      name,
+      version,
+      scope,
+      dir: dest,
+      warnings: manifest.warnings,
+      signatureVerified: verification?.signatureVerified === true,
+      sourceMetadata,
+      enabled: isPluginEnabled(name, { scope, cwd: opts.cwd }),
+      loadValidated: true,
+    };
+    if (opts.transactional === true) {
+      pendingPluginTransactions.set(result, {
+        name,
+        version,
+        scope,
+        cwd: opts.cwd,
+        dest,
+        backup,
+        transactionRoot,
+        previousActive,
+      });
+      transactionRetained = true;
+    }
+    return result;
+  } finally {
+    if (!transactionRetained) {
+      if (installedAtDest && backup && _deps.existsSync(backup)) {
+        _deps.rmSync(backup, { recursive: true, force: true });
+      }
+      _deps.rmSync(transactionRoot, { recursive: true, force: true });
+    }
   }
-
-  _deps.mkdirSync(dest, { recursive: true });
-  copyDirGuarded(src, dest, dest);
-
-  // A lock may ONLY exist if THIS installer wrote it. The source is untrusted
-  // and may ship its own `.plugin-lock.json` (copied verbatim above) — on an
-  // unsigned install that forged lock would otherwise survive into the
-  // "immutable" version dir and defeat load-time requireSignedPlugins.
-  _deps.rmSync(path.join(dest, LOCK_FILENAME), { force: true });
-  _deps.rmSync(path.join(dest, SOURCE_METADATA_FILENAME), { force: true });
-
-  if (sourceMetadata) {
-    _deps.writeFileSync(
-      path.join(dest, SOURCE_METADATA_FILENAME),
-      JSON.stringify(sourceMetadata, null, 2),
-      "utf8",
-    );
-  }
-
-  // Record the verified signature into the installed (immutable) version dir so
-  // load-time enforcement can re-check it. The manifest was copied verbatim, so
-  // its bytes/sha in `dest` match what we verified in `src`.
-  if (verification) {
-    const destManifest = path.join(
-      dest,
-      path.relative(src, manifest.manifestPath),
-    );
-    writePluginLock(dest, {
-      manifestFile: destManifest,
-      sha256: verification.sha256,
-      publicKeySha256: verification.publicKeySha256,
-      signatureVerified: verification.signatureVerified === true,
-      signatureBase64: verification.signatureBase64,
-      publicKeyPem: verification.publicKeyPem,
-      sbom: buildPluginSbom(dest),
-    });
-  }
-
-  // Make the freshly-installed version active.
-  setActiveVersion(name, version, { scope, cwd: opts.cwd });
-
-  return {
-    name,
-    version,
-    scope,
-    dir: dest,
-    warnings: manifest.warnings,
-    signatureVerified: verification?.signatureVerified === true,
-    sourceMetadata,
-    enabled: isPluginEnabled(name, { scope, cwd: opts.cwd }),
-  };
 }
 
 /**
@@ -264,7 +317,7 @@ export function updatePlugin(source, opts = {}) {
       if (previousVersion !== version) {
         setActiveVersion(name, version, { scope, cwd: opts.cwd });
       }
-      return {
+      const result = {
         name,
         version,
         previousVersion,
@@ -273,6 +326,20 @@ export function updatePlugin(source, opts = {}) {
         source: sourceMetadata?.source || null,
         ref: sourceMetadata?.ref || null,
       };
+      if (opts.transactional === true && previousVersion !== version) {
+        pendingPluginTransactions.set(result, {
+          name,
+          version,
+          scope,
+          cwd: opts.cwd,
+          dest,
+          backup: null,
+          transactionRoot: null,
+          previousActive: previousVersion,
+          pointerOnly: true,
+        });
+      }
+      return result;
     }
 
     const res = installFromDirectory(dir, {
@@ -280,8 +347,9 @@ export function updatePlugin(source, opts = {}) {
       scope,
       force: true,
       sourceMetadata,
+      transactional: opts.transactional === true,
     });
-    return {
+    const result = {
       ...res,
       previousVersion,
       updated: previousVersion !== version,
@@ -289,7 +357,63 @@ export function updatePlugin(source, opts = {}) {
       source: sourceMetadata?.source || null,
       ref: sourceMetadata?.ref || null,
     };
+    transferPendingTransaction(res, result);
+    return result;
   });
+}
+
+/**
+ * Commit a transactional update after capability consent and command-layer
+ * validation have succeeded. Backup cleanup is best-effort: an active,
+ * validated install must not be reported as failed solely because antivirus or
+ * another reader briefly holds the hidden rollback directory open.
+ */
+export function finalizePluginUpdate(result) {
+  const transaction = pendingPluginTransactions.get(result);
+  if (!transaction) return { finalized: false };
+  pendingPluginTransactions.delete(result);
+  let cleanupPending = false;
+  if (transaction.transactionRoot) {
+    try {
+      _deps.rmSync(transaction.transactionRoot, {
+        recursive: true,
+        force: true,
+      });
+    } catch {
+      cleanupPending = true;
+    }
+  }
+  return { finalized: true, cleanupPending };
+}
+
+/**
+ * Restore the active version and, for a forced same-version reinstall, the
+ * exact prior bytes. New rejected versions are removed so `.active` fallback
+ * cannot silently select them later.
+ */
+export function rollbackPluginUpdate(result) {
+  const transaction = pendingPluginTransactions.get(result);
+  if (!transaction) return { rolledBack: false, version: null };
+
+  restoreActivePointer(
+    transaction.name,
+    transaction.previousActive,
+    transaction,
+  );
+  if (!transaction.pointerOnly) {
+    restoreInstalledBytes(transaction);
+  }
+  pendingPluginTransactions.delete(result);
+  if (transaction.transactionRoot) {
+    _deps.rmSync(transaction.transactionRoot, {
+      recursive: true,
+      force: true,
+    });
+  }
+  return {
+    rolledBack: true,
+    version: transaction.previousActive || null,
+  };
 }
 
 /**
@@ -530,8 +654,16 @@ export function setActiveVersion(name, version, opts = {}) {
   if (!_deps.existsSync(versionDir)) {
     throw new Error(`${name}@${version} is not installed at ${scope} scope`);
   }
-  const activeFile = path.join(pluginNameDir(scope, name, { cwd }), ".active");
-  _deps.writeFileSync(activeFile, String(version), "utf8");
+  const nameDir = pluginNameDir(scope, name, { cwd });
+  const activeFile = path.join(nameDir, ".active");
+  const tempDir = _deps.mkdtempSync(path.join(nameDir, ".active-"));
+  const tempFile = path.join(tempDir, "next");
+  try {
+    _deps.writeFileSync(tempFile, String(version), "utf8");
+    _deps.renameSync(tempFile, activeFile);
+  } finally {
+    _deps.rmSync(tempDir, { recursive: true, force: true });
+  }
   return { name, version, scope, active: version };
 }
 
@@ -654,5 +786,65 @@ function copyDirGuarded(src, dst, root) {
     } else if (entry.isFile()) {
       _deps.copyFileSync(from, to);
     }
+  }
+}
+
+function validateStagedInstall(root, { name, version, verification }) {
+  const parsed = parsePluginManifest(root);
+  if (
+    !parsed.ok ||
+    parsed.metadata.name !== name ||
+    parsed.metadata.version !== version
+  ) {
+    const details = parsed.errors?.length
+      ? `: ${parsed.errors.join("; ")}`
+      : "";
+    throw new Error(`staged plugin failed load validation${details}`);
+  }
+  if (verification) {
+    const signature = verifyInstalledSignature({ root });
+    if (!signature.signed) {
+      throw new Error(
+        `staged plugin failed signature/SBOM validation: ${signature.reason || "unknown error"}`,
+      );
+    }
+  }
+}
+
+function transferPendingTransaction(from, to) {
+  const transaction = pendingPluginTransactions.get(from);
+  if (!transaction) return;
+  pendingPluginTransactions.delete(from);
+  pendingPluginTransactions.set(to, transaction);
+}
+
+function restoreActivePointer(name, version, opts = {}) {
+  if (version) {
+    setActiveVersion(name, version, opts);
+    return;
+  }
+  _deps.rmSync(
+    path.join(
+      pluginNameDir(opts.scope || "user", name, { cwd: opts.cwd }),
+      ".active",
+    ),
+    { force: true },
+  );
+}
+
+function restoreInstalledBytes({ dest, backup, transactionRoot }) {
+  if (!backup) {
+    _deps.rmSync(dest, { recursive: true, force: true });
+    return;
+  }
+  const rejected = path.join(transactionRoot, "rejected");
+  _deps.renameSync(dest, rejected);
+  try {
+    _deps.renameSync(backup, dest);
+  } catch (error) {
+    if (_deps.existsSync(rejected) && !_deps.existsSync(dest)) {
+      _deps.renameSync(rejected, dest);
+    }
+    throw error;
   }
 }

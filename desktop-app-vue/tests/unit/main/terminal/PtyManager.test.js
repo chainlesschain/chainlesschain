@@ -1,9 +1,19 @@
+import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { afterEach, describe, it, expect, beforeEach, vi } from "vitest";
 import pkg from "../../../../src/main/terminal/PtyManager.js";
 import brokerPkg from "../../../../src/main/process/desktop-process-broker.js";
 const { PtyManager } = pkg;
 const { installDesktopProcessBroker } = brokerPkg;
+
+const tempRoots = [];
+
+afterEach(() => {
+  while (tempRoots.length > 0) {
+    fs.rmSync(tempRoots.pop(), { recursive: true, force: true });
+  }
+});
 
 // Mock node-pty: each `spawn` returns a fake ptyProcess with stubs that we
 // can drive from the test (e.g. trigger onData to simulate stdout).
@@ -433,5 +443,241 @@ describe("PtyManager Plugin-bin sandbox policy", () => {
       sandboxFailClosed: true,
     });
     expect(loadNodePty).not.toHaveBeenCalled();
+  });
+});
+
+function makeBoundProjectManager({
+  shell = "bash",
+  projectOverrides = {},
+  resolveSandboxPolicy = () => null,
+} = {}) {
+  const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), "pty-project-"));
+  tempRoots.push(tmpRoot);
+  const workspace = path.join(tmpRoot, "workspace");
+  const subdir = path.join(workspace, "subdir");
+  const strictDir = path.join(workspace, "strict");
+  const outside = path.join(tmpRoot, "outside");
+  for (const dir of [workspace, subdir, strictDir, outside]) {
+    fs.mkdirSync(dir);
+  }
+  const fake = makeFakePty();
+  const pty = { spawn: vi.fn(() => fake.proc) };
+  const broker = {
+    spawnPty: vi.fn(() => fake.proc),
+  };
+  const project = {
+    id: "project-1",
+    root_path: workspace,
+    deleted: 0,
+    ...projectOverrides,
+  };
+  const resolveProjectBinding = vi.fn(() => project);
+  const policyResolver = vi.fn(resolveSandboxPolicy);
+  const mgr = new PtyManager({
+    requireProjectBinding: true,
+    resolveProjectBinding,
+    resolveSandboxPolicy: policyResolver,
+    config: {
+      defaultShell: shell,
+      shellWhitelist: ["bash", "pwsh", "cmd"],
+    },
+    _deps: {
+      loadNodePty: () => pty,
+      getProcessBroker: () => broker,
+    },
+  });
+  return {
+    mgr,
+    fake,
+    broker,
+    project,
+    resolveProjectBinding,
+    resolveSandboxPolicy: policyResolver,
+    workspace,
+    subdir,
+    strictDir,
+    outside,
+  };
+}
+
+describe("PtyManager DB-backed project-root selector", () => {
+  it("derives the initial workspace/cwd from the DB project record", () => {
+    const {
+      mgr,
+      broker,
+      resolveProjectBinding,
+      resolveSandboxPolicy,
+      workspace,
+      subdir,
+    } = makeBoundProjectManager();
+
+    const created = mgr.create({
+      projectId: "project-1",
+      shell: "bash",
+      cwd: subdir,
+      env: { KEEP_ME: "yes" },
+    });
+
+    expect(resolveProjectBinding).toHaveBeenCalledWith({
+      projectId: "project-1",
+      legacyCwd: subdir,
+    });
+    expect(resolveSandboxPolicy).toHaveBeenCalledWith({
+      workspaceCwd: fs.realpathSync.native(workspace),
+      executionCwd: fs.realpathSync.native(subdir),
+    });
+    expect(broker.spawnPty.mock.calls[0][3].cwd).toBe(
+      fs.realpathSync.native(subdir),
+    );
+    expect(broker.spawnPty.mock.calls[0][3].env).toMatchObject({
+      KEEP_ME: "yes",
+    });
+    expect(created).toMatchObject({
+      projectId: "project-1",
+      cwd: fs.realpathSync.native(subdir),
+    });
+    expect(mgr.list("project-1")[0]).toMatchObject({
+      projectId: "project-1",
+      cwd: fs.realpathSync.native(subdir),
+    });
+  });
+
+  it("rejects a remote-sourced pc_root_path without local approval provenance", () => {
+    const dbRoot = fs.mkdtempSync(path.join(os.tmpdir(), "pty-db-root-"));
+    tempRoots.push(dbRoot);
+    const { mgr, broker } = makeBoundProjectManager({
+      projectOverrides: {
+        source_peer_id: "desktop-peer",
+        pc_root_path: dbRoot,
+      },
+    });
+
+    expect(() =>
+      mgr.create({ projectId: "project-1", shell: "bash" }),
+    ).toThrowError(
+      expect.objectContaining({
+        code: "ERR_PTY_PROJECT_ROOT_PROVENANCE_UNATTESTED",
+      }),
+    );
+    expect(broker.spawnPty).not.toHaveBeenCalled();
+  });
+
+  it("rejects missing, deleted, mismatched and async project records before PTY allocation", () => {
+    const cases = [
+      {
+        resolver: () => null,
+        code: "ERR_PTY_DB_PROJECT_BINDING_REQUIRED",
+      },
+      {
+        resolver: () => ({
+          id: "project-1",
+          root_path: process.cwd(),
+          deleted: 2,
+        }),
+        code: "ERR_PTY_PROJECT_BINDING_INVALID",
+      },
+      {
+        resolver: () => ({
+          id: "other-project",
+          root_path: process.cwd(),
+          deleted: 0,
+        }),
+        code: "ERR_PTY_PROJECT_BINDING_INVALID",
+      },
+      {
+        resolver: () => Promise.resolve(null),
+        code: "ERR_PTY_PROJECT_AUTHORITY_ASYNC",
+      },
+    ];
+
+    for (const { resolver, code } of cases) {
+      const loadNodePty = vi.fn();
+      const mgr = new PtyManager({
+        requireProjectBinding: true,
+        resolveProjectBinding: resolver,
+        _deps: { loadNodePty },
+      });
+      let error;
+      try {
+        mgr.create({ projectId: "project-1", shell: "pwsh" });
+      } catch (caught) {
+        error = caught;
+      }
+      expect(error).toMatchObject({
+        code,
+        projectBindingFailClosed: true,
+      });
+      expect(loadNodePty).not.toHaveBeenCalled();
+    }
+  });
+
+  it("rejects a caller cwd outside the canonical database project root", () => {
+    const { mgr, outside } = makeBoundProjectManager();
+
+    expect(() =>
+      mgr.create({
+        projectId: "project-1",
+        shell: "bash",
+        cwd: outside,
+      }),
+    ).toThrowError(
+      expect.objectContaining({
+        code: "ERR_PTY_EXECUTION_CWD_OUTSIDE_PROJECT",
+        projectBindingFailClosed: true,
+      }),
+    );
+  });
+
+  it("uses a legacy cwd only to select the project and starts at root_path", () => {
+    const { mgr, broker, workspace, outside } = makeBoundProjectManager();
+    mgr._resolveProjectBinding.mockImplementation(() => ({
+      id: "project-1",
+      root_path: workspace,
+      pc_root_path: outside,
+      deleted: 0,
+    }));
+
+    mgr.create({ shell: "bash", cwd: outside });
+
+    expect(mgr._resolveProjectBinding).toHaveBeenCalledWith({
+      projectId: null,
+      legacyCwd: outside,
+    });
+    expect(broker.spawnPty.mock.calls[0][3].cwd).toBe(
+      fs.realpathSync.native(workspace),
+    );
+  });
+
+  it("forwards arbitrary shell input in one bulk write without cwd claims", () => {
+    const { mgr, fake, workspace } = makeBoundProjectManager();
+    const { sessionId } = mgr.create({
+      projectId: "project-1",
+      shell: "bash",
+    });
+    const command = "x=cd; $x ../outside\r";
+
+    mgr.write(sessionId, command, "project-1");
+
+    expect(fake.proc.writes).toEqual([command]);
+    expect(mgr.list("project-1")[0].cwd).toBe(
+      fs.realpathSync.native(workspace),
+    );
+  });
+
+  it("requires an exact project scope for list and session operations", () => {
+    const { mgr, fake } = makeBoundProjectManager();
+    const { sessionId } = mgr.create({
+      projectId: "project-1",
+      shell: "bash",
+    });
+
+    expect(() => mgr.list()).toThrowError(
+      expect.objectContaining({ code: "ERR_PTY_PROJECT_SCOPE_REQUIRED" }),
+    );
+    expect(() => mgr.write(sessionId, "pwd\r", "project-2")).toThrowError(
+      expect.objectContaining({ code: "ERR_PTY_SESSION_PROJECT_MISMATCH" }),
+    );
+    expect(fake.proc.writes).toEqual([]);
+    expect(mgr.list("project-2")).toEqual([]);
   });
 });

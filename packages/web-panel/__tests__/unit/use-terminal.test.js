@@ -51,10 +51,22 @@ describe('useTerminal — imperative API', () => {
       },
     })
     const t = useTerminal()
-    const res = await t.create({ shell: 'pwsh', cols: 80, rows: 24 })
+    const res = await t.create({
+      projectId: 'project-1',
+      shell: 'pwsh',
+      cols: 80,
+      rows: 24,
+    })
     expect(sendRaw).toHaveBeenCalledWith({
       type: 'terminal.create',
-      payload: { shell: 'pwsh', cwd: undefined, env: undefined, cols: 80, rows: 24 },
+      payload: {
+        projectId: 'project-1',
+        shell: 'pwsh',
+        cwd: undefined,
+        env: undefined,
+        cols: 80,
+        rows: 24,
+      },
     })
     expect(res.sessionId).toBe('sess-1')
     expect(res.pid).toBe(999)
@@ -76,7 +88,11 @@ describe('useTerminal — imperative API', () => {
       },
     })
     const t = useTerminal()
-    const sessions = await t.list()
+    const sessions = await t.list('project-1')
+    expect(sendRaw).toHaveBeenCalledWith({
+      type: 'terminal.list',
+      payload: { projectId: 'project-1' },
+    })
     expect(sessions).toHaveLength(1)
     expect(sessions[0].id).toBe('s1')
   })
@@ -84,16 +100,17 @@ describe('useTerminal — imperative API', () => {
   it('list returns empty array when result.sessions missing', async () => {
     sendRaw.mockResolvedValueOnce({ ok: true, result: {} })
     const t = useTerminal()
-    const sessions = await t.list()
+    const sessions = await t.list('project-1')
     expect(sessions).toEqual([])
   })
 
   it('stdin base64-encodes UTF-8 and sends payload', async () => {
     sendRaw.mockResolvedValueOnce({ ok: true, result: { ok: true } })
     const t = useTerminal()
-    await t.stdin('sess-1', 'ls\r')
+    await t.stdin('project-1', 'sess-1', 'ls\r')
     const call = sendRaw.mock.calls[0][0]
     expect(call.type).toBe('terminal.stdin')
+    expect(call.payload.projectId).toBe('project-1')
     expect(call.payload.sessionId).toBe('sess-1')
     // 'ls\r' = 6c 73 0d → "bHMNCg==" no, just "bHMN" (3 bytes)
     expect(call.payload.data).toBe(
@@ -104,7 +121,7 @@ describe('useTerminal — imperative API', () => {
   it('stdin encodes multi-byte UTF-8 (CJK) correctly', async () => {
     sendRaw.mockResolvedValueOnce({ ok: true, result: { ok: true } })
     const t = useTerminal()
-    await t.stdin('sess-1', '中文测试')
+    await t.stdin('project-1', 'sess-1', '中文测试')
     const call = sendRaw.mock.calls[0][0]
     // Server-side decode should round-trip to original string
     const b64 = call.payload.data
@@ -115,20 +132,25 @@ describe('useTerminal — imperative API', () => {
   it('resize sends cols+rows', async () => {
     sendRaw.mockResolvedValueOnce({ ok: true, result: { ok: true } })
     const t = useTerminal()
-    await t.resize('sess-1', 120, 40)
+    await t.resize('project-1', 'sess-1', 120, 40)
     expect(sendRaw).toHaveBeenCalledWith({
       type: 'terminal.resize',
-      payload: { sessionId: 'sess-1', cols: 120, rows: 40 },
+      payload: {
+        projectId: 'project-1',
+        sessionId: 'sess-1',
+        cols: 120,
+        rows: 40,
+      },
     })
   })
 
   it('close sends sessionId', async () => {
     sendRaw.mockResolvedValueOnce({ ok: true, result: { ok: true } })
     const t = useTerminal()
-    await t.close('sess-1')
+    await t.close('project-1', 'sess-1')
     expect(sendRaw).toHaveBeenCalledWith({
       type: 'terminal.close',
-      payload: { sessionId: 'sess-1' },
+      payload: { projectId: 'project-1', sessionId: 'sess-1' },
     })
   })
 
@@ -144,7 +166,11 @@ describe('useTerminal — imperative API', () => {
       },
     })
     const t = useTerminal()
-    const { chunks, truncated } = await t.history('sess-1', 0)
+    const { chunks, truncated } = await t.history(
+      'project-1',
+      'sess-1',
+      0,
+    )
     expect(truncated).toBe(true)
     expect(chunks).toHaveLength(2)
     expect(chunks[0].data).toBe('hello')
@@ -190,7 +216,14 @@ describe('useTerminal — subscription fan-out', () => {
       type: 'terminal.exit',
       payload: { sessionId: 'a', exitCode: 0, signal: null },
     })
-    expect(calls).toEqual([{ sessionId: 'a', exitCode: 0, signal: null }])
+    expect(calls).toEqual([
+      {
+        sessionId: 'a',
+        projectId: undefined,
+        exitCode: 0,
+        signal: null,
+      },
+    ])
   })
 
   it('returned unsubscribe function detaches the callback', () => {

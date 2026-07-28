@@ -66,6 +66,7 @@ describe("cc batch — real worktree integration", () => {
         repoDir: repo,
         log: (m) => logs.push(m),
         err: (m) => logs.push("ERR:" + m),
+        collaborationStore: false,
         // Real worktree + git deps; only the agent is stubbed.
         batchDeps: {
           createWorktree: (key, branch) => createWorktree(repo, branch).path,
@@ -116,6 +117,7 @@ describe("cc batch — real worktree integration", () => {
         repoDir: repo,
         log: (m) => logs.push(m),
         err: (m) => logs.push("ERR:" + m),
+        collaborationStore: false,
         batchDeps: {
           createWorktree: (key, branch) => createWorktree(repo, branch).path,
           removeWorktree: (p, opts) => removeWorktree(repo, p, opts),

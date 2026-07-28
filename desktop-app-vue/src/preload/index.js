@@ -3393,14 +3393,21 @@ contextBridge.exposeInMainWorld("electronAPI", {
     // safely — no base64 layer needed here, unlike the WS path).
     terminal: {
       create: (req) => ipcRenderer.invoke("terminal:create", req || {}),
-      list: () => ipcRenderer.invoke("terminal:list"),
-      stdin: (sessionId, data) =>
-        ipcRenderer.invoke("terminal:stdin", { sessionId, data }),
-      resize: (sessionId, cols, rows) =>
-        ipcRenderer.invoke("terminal:resize", { sessionId, cols, rows }),
-      close: (sessionId) => ipcRenderer.invoke("terminal:close", { sessionId }),
-      history: (sessionId, fromSeq) =>
+      list: (projectId) => ipcRenderer.invoke("terminal:list", { projectId }),
+      stdin: (projectId, sessionId, data) =>
+        ipcRenderer.invoke("terminal:stdin", { projectId, sessionId, data }),
+      resize: (projectId, sessionId, cols, rows) =>
+        ipcRenderer.invoke("terminal:resize", {
+          projectId,
+          sessionId,
+          cols,
+          rows,
+        }),
+      close: (projectId, sessionId) =>
+        ipcRenderer.invoke("terminal:close", { projectId, sessionId }),
+      history: (projectId, sessionId, fromSeq) =>
         ipcRenderer.invoke("terminal:history", {
+          projectId,
           sessionId,
           fromSeq: fromSeq || 0,
         }),

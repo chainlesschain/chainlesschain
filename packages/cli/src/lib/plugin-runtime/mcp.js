@@ -21,7 +21,10 @@ import {
   componentCapabilityDenial,
   networkTargetDenial,
 } from "./capabilities.js";
-import { mergePluginSandboxPolicies } from "./sandbox-policy.js";
+import {
+  issuePluginWorkspaceAuthority,
+  mergePluginSandboxPolicies,
+} from "./sandbox-policy.js";
 
 export const _deps = { readFileSync: fs.readFileSync };
 
@@ -89,6 +92,21 @@ export function collectPluginMcpServers(opts = {}) {
     if (!p.manifest || p.manifest.ok !== true) continue;
     const m = p.manifest.components?.mcp;
     if (!m) continue;
+    const pluginSource = m.absPath || p.manifest.manifestPath;
+    let pluginWorkspaceAuthority;
+    try {
+      pluginWorkspaceAuthority = issuePluginWorkspaceAuthority({
+        root: p.root,
+        origin: "plugin:mcp",
+        pluginId: p.name,
+        pluginVersion: p.version,
+        pluginSource,
+      });
+    } catch {
+      // The discovery root disappeared or stopped resolving safely. Refuse the
+      // component instead of copying an attacker-controlled path downstream.
+      continue;
+    }
     // Component-level capability gate: a plugin that declared a permissions
     // block but under-declared the `mcp` capability its server needs gets its
     // MCP component refused here (mirrors the hooks/monitors/bin/lsp denial).
@@ -150,7 +168,8 @@ export function collectPluginMcpServers(opts = {}) {
         policy: "allow",
         pluginId: p.name,
         pluginVersion: p.version,
-        pluginSource: m.absPath || p.manifest.manifestPath,
+        pluginSource,
+        pluginWorkspaceAuthority,
       };
       added++;
     }

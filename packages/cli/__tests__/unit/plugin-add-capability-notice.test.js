@@ -14,6 +14,7 @@ import {
   _deps as consentDeps,
   listCapabilityConsent,
 } from "../../src/lib/plugin-runtime/capability-consent.js";
+import { getActiveVersion } from "../../src/lib/plugin-runtime/install.js";
 
 let cwd, srcRoot, storeDir, logSpy, errSpy, origStorePath;
 
@@ -174,9 +175,51 @@ describe("cc plugin upgrade — capability diff", () => {
       "--scope",
       "project",
     );
-    expect(text).toMatch(/Updated greeter/);
+    expect(text).not.toMatch(/Updated greeter/);
     expect(text).toMatch(/capability consent required/);
     expect(text).toMatch(/network:\*/);
+    expect(getActiveVersion("greeter", { scope: "project", cwd })).toBe(
+      "1.0.0",
+    );
+  });
+
+  it("reports an automatic rollback in JSON when widened capabilities are not granted", async () => {
+    await run(
+      "add",
+      makeSource("greeter", "1.0.0", { process: true }),
+      "--scope",
+      "project",
+      "--grant-capabilities",
+      "--json",
+    );
+
+    const out = JSON.parse(
+      await run(
+        "upgrade",
+        makeSource("greeter", "2.0.0", {
+          process: true,
+          network: "*",
+        }),
+        "--scope",
+        "project",
+        "--json",
+      ),
+    );
+    expect(out).toMatchObject({
+      activationStatus: "rolled_back",
+      rollbackVersion: "1.0.0",
+      rollbackReason: "capability_consent_required",
+      capabilitiesGranted: false,
+      loadValidated: true,
+    });
+    expect(getActiveVersion("greeter", { scope: "project", cwd })).toBe(
+      "1.0.0",
+    );
+    expect(
+      fs.existsSync(
+        path.join(cwd, ".chainlesschain", "plugins", "greeter", "2.0.0"),
+      ),
+    ).toBe(false);
   });
 
   it("--grant-capabilities re-consents the widened set during upgrade", async () => {
@@ -203,6 +246,9 @@ describe("cc plugin upgrade — capability diff", () => {
     );
     expect(entry).toBeTruthy();
     expect(entry.version).toBe("2.0.0");
+    expect(getActiveVersion("greeter", { scope: "project", cwd })).toBe(
+      "2.0.0",
+    );
   });
 
   it("shows a satisfied notice when an upgrade does not widen", async () => {

@@ -15,6 +15,7 @@ import {
   aggregateUsage,
   aggregateUsageAttribution,
   aggregateToolCalls,
+  aggregateLlmRetries,
   sessionAttribution,
   mcpServerOf,
   sessionUsage,
@@ -310,6 +311,93 @@ describe("aggregateToolCalls", () => {
     );
   });
 
+  it("associates bounded tool duration and observed same-turn retries", () => {
+    const r = aggregateToolCalls([
+      { type: "user_message", data: { content: "go" } },
+      compactCall("read_file", true, { duration_ms: 120 }),
+      compactCall("read_file", false, { duration_ms: 80 }),
+      compactCall("mcp__github__search", false, {
+        duration_ms: 50,
+        plugin: "review-suite",
+        plugin_version: "1.4.0",
+      }),
+    ]);
+    expect(r).toMatchObject({
+      totalCalls: 3,
+      totalErrors: 1,
+      totalDurationMs: 250,
+      timedCalls: 3,
+      retryCalls: 1,
+    });
+    expect(r.byTool.find((row) => row.tool === "read_file")).toMatchObject({
+      calls: 2,
+      errors: 1,
+      durationMs: 200,
+      timedCalls: 2,
+      retries: 1,
+    });
+    expect(r.byMcpServer[0]).toMatchObject({
+      server: "github",
+      durationMs: 50,
+      timedCalls: 1,
+    });
+    expect(r.byPlugin[0]).toMatchObject({
+      plugin: "review-suite",
+      version: "1.4.0",
+      durationMs: 50,
+      timedCalls: 1,
+    });
+  });
+
+  it("does not double-count timing/error when paired call and result repeat telemetry", () => {
+    const r = aggregateToolCalls([
+      compactCall("mcp__github__search", true, {
+        duration_ms: 75,
+        plugin: "review-suite",
+        plugin_version: "1.4.0",
+      }),
+      {
+        type: "tool_result",
+        data: {
+          tool: "mcp__github__search",
+          result: {
+            error: "rate limited",
+            toolTelemetryRecord: { durationMs: 75 },
+            toolAttribution: {
+              source: "plugin:review-suite",
+              version: "1.4.0",
+            },
+          },
+        },
+      },
+    ]);
+
+    expect(r).toMatchObject({
+      totalCalls: 1,
+      totalErrors: 1,
+      totalDurationMs: 75,
+      timedCalls: 1,
+    });
+    expect(r.byTool[0]).toMatchObject({
+      calls: 1,
+      errors: 1,
+      durationMs: 75,
+      timedCalls: 1,
+    });
+    expect(r.byMcpServer[0]).toMatchObject({
+      calls: 1,
+      errors: 1,
+      durationMs: 75,
+      timedCalls: 1,
+    });
+    expect(r.byPlugin[0]).toMatchObject({
+      calls: 1,
+      errors: 1,
+      durationMs: 75,
+      timedCalls: 1,
+    });
+  });
+
   it("transcripts without tool events aggregate to zeros", () => {
     const r = aggregateToolCalls([
       { type: "user_message", data: { content: "hi" } },
@@ -325,6 +413,51 @@ describe("aggregateToolCalls", () => {
   it("handles empty + nullish input", () => {
     expect(aggregateToolCalls([]).totalCalls).toBe(0);
     expect(aggregateToolCalls(null).totalCalls).toBe(0);
+  });
+});
+
+describe("aggregateLlmRetries", () => {
+  it("groups actual failed-attempt durations by reason and provider/model", () => {
+    const r = aggregateLlmRetries([
+      {
+        type: "llm_retry",
+        data: {
+          attempt: 1,
+          duration_ms: 1250,
+          reason: "connection_reset",
+          provider: "anthropic",
+          model: "claude-sonnet-4-6",
+        },
+      },
+      {
+        type: "llm_retry",
+        data: {
+          attempt: 2,
+          duration_ms: 3000,
+          reason: "timeout",
+          provider: "anthropic",
+          model: "claude-sonnet-4-6",
+        },
+      },
+    ]);
+    expect(r).toMatchObject({ totalRetries: 2, durationMs: 4250 });
+    expect(r.byReason).toEqual(
+      expect.arrayContaining([
+        { reason: "connection_reset", retries: 1, durationMs: 1250 },
+        { reason: "timeout", retries: 1, durationMs: 3000 },
+      ]),
+    );
+    expect(r.byModel[0]).toMatchObject({
+      provider: "anthropic",
+      model: "claude-sonnet-4-6",
+      retries: 2,
+      durationMs: 4250,
+    });
+  });
+
+  it("is absent for legacy transcripts", () => {
+    expect(aggregateLlmRetries([])).toBeNull();
+    expect(aggregateLlmRetries([legacyUsage("opus", 1, 1)])).toBeNull();
   });
 });
 

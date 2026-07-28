@@ -11,13 +11,17 @@
 >
 > 镜像通常会在发布后稍候自动补齐（项目发版流程也会主动触发同步）；补齐后用默认镜像源安装即可正常。
 
-## 2026-07-25 当前主线 — **v5.0.3.135 / CLI 0.162.179 / PDH 0.4.55 / VS Code 0.37.33**
+## 2026-07-28 当前主线 — **v5.0.3.135 / CLI 0.162.183 / PDH 0.4.57 / VS Code 0.37.35 / JetBrains 0.4.74**
 
-> npm 公网 `latest` 已对齐 `chainlesschain@0.162.179` 与 `@chainlesschain/personal-data-hub@0.4.55`；桌面端与 Android 当前为 `5.0.3.135`，VS Code 扩展为 `0.37.33`。Python Agent SDK `chainlesschain-agent-sdk==0.1.0` 已通过 PyPI Trusted Publishing 发布。
+> npm 公网 `latest` 已对齐 `chainlesschain@0.162.183`、`@chainlesschain/personal-data-hub@0.4.57` 与 `@chainlesschain/agent-sdk@0.1.7`；桌面端与 Android 源码版本保持 `5.0.3.135`，VS Code / JetBrains 扩展分别为 `0.37.35` / `0.4.74`。Python Agent SDK 与 TypeScript SDK 共用 Agent Protocol v1。
 >
-> 本轮主线是个人数据中台跨端实时采集：**92 个已注册采集契约 / 18 类数据源**按当前宿主和输入显示真实 readiness，桌面端、Web Panel 与 CLI 统一支持立即同步、文件、目录、临时 Cookie、临时 OAuth 和 Android ADB 六类入口。Cookie/OAuth 不持久化；缺失备份、无效来源页或不可达输入失败闭合；长任务只有完整稳定扫描后才推进水位，取消或中断可安全续扫。另修复 QQ NT 字段语义、Windows Recent / Android 系统数据续扫、WhatsApp 带密钥备份和微信读书游标保留。
+> 本轮把“能运行”进一步收口到“边界可证明、状态可恢复”：CLI 的插件原生进程在 Linux 走 fd 绑定的 bubblewrap 强边界，在 Windows 走带目标句柄与策略摘要证明的 AppContainer；前台、后台、IPC、hook、MCP、monitor、LSP 与 PTY 统一遵守插件沙箱策略，缺少声明或隔离能力时失败闭合。后台交互、事件恢复与副作用台账继续通过 Agent SDK 保持跨端一致。
 >
-> 详见[个人数据中台用户指南](docs-site/docs/chainlesschain/personal-data-hub.md)、[系统架构与安全边界](docs/design/Personal_Data_Hub_Architecture.md)及[更新日志](CHANGELOG.md)。
+> IDE 双端新增有界的测试结果 / 覆盖率 / 调试器质量上下文、Node/Java 与离线恢复诊断、带签名/SBOM/策略来源的插件生命周期管理，以及受监督的 worktree 后台任务视图；插件 bin 与插件提供的 MCP 调用可按插件和版本归因，但不会把工具参数写入用量记录。
+>
+> 个人数据中台仍提供 **92 个已注册采集契约 / 18 类数据源**，现把来源别名、原始 observation、字段级冲突决策、引用重写与最终实体放进同一事务；本地数据库、桌面客户端、移动 API、社交、健康、教育、音乐、购物和出行采集统一采用显式游标与有界分页，部分或不可读结果不会误推进 checkpoint。
+>
+> 详见 [CLI Runtime 当前实现](docs-site/docs/chainlesschain/cli-runtime-current.md)、[IDE 插件使用指南](docs-site/docs/chainlesschain/ide-plugin.md)、[个人数据中台用户指南](docs-site/docs/chainlesschain/personal-data-hub.md)、[运行时设计核对](docs/design/cli-runtime-current.md)、[个人数据中台架构](docs/design/Personal_Data_Hub_Architecture.md)及[更新日志](CHANGELOG.md)。
 
 ## 2026-07-24 当前发布 — **cc CLI 0.162.177 / IDE VS Code 0.37.31：技能子进程统一进入宿主 Process Broker**
 
@@ -1837,14 +1841,14 @@ KG 4 个 tab：force-directed graph (ECharts) / 实体表 / 关系表 / 类型�
 
 收口跨链桥设计 §11 + 联邦治理 v0.2 §11 列出的全部可做项（链上锚定阻塞 Q-COMP-3、真实 RPC 适配器需 desktop 大工程，此两项继续保留）：
 
-| Wave                                            | 模块                                    | 内容                                                                                                                                                                                                                                        |
+| Wave | 模块 | 内容 |
 | ----------------------------------------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| **A1** Cross-federation 互信（v0.3 #1）         | `core-mtc/lib/federation-governance.js` | `SCHEMA_CROSS_FED_TRUST_ANCHOR` schema + `createCrossFederationTrustAnchor` + `validateCrossFederationTrustAnchor`（含 EXPIRED 检查）。CLI: `cc mtc federation cross-trust-create/validate`                                                 |
-| **A2** 离线审计第三方接口（v0.3 #3）            | 同上 lib                                | `auditGovernanceLog(events, fedId)` 纯函数：检测 UNKNOWN_ACTOR / ACTOR_KEY_MISMATCH / BOOTSTRAP_KEY_MISMATCH / OUT_OF_ORDER 四类问题，返回 `{ok, findings[], final_state}`。CLI: `cc mtc federation audit <fed> [--summary                  | --json]` |
-| **B1** 多跳桥（bridge §11 #3）                  | `cross-chain-mtc.js`                    | `buildMultiHopBridgeEnvelope` 链 ≥2 个单跳 envelope，强制 `leg[i].dst_chain == leg[i+1].src_chain` 连续性；新 schema `mtc-bridge-multihop/v1`。`verifyMultiHopBridgeEnvelope` per-leg 验证。CLI: `cc crosschain mtc-multihop-build/-verify` |
-| **B2** Gas-aware batch（bridge §11 #4）         | 同上                                    | `shouldCloseBatchGasAware` 启发式：staged ≥ 50 硬关；current_gas > baseline×1.5 延迟；否则关。CLI: `cc crosschain mtc-gas-check <chain> --staged-count <n> [--current-gas-usd]`                                                             |
-| **B3** SLA Manager 集成（bridge §11 #6）        | 同上                                    | `getBridgeMtcSlaMetrics` 输出 `cc sla` 兼容形状：`sla_status` (ok/degraded/down) + staging/批次/最近批次时间。CLI: `cc crosschain mtc-sla`                                                                                                  |
-| **C** Web-panel 监控 dashboard（bridge §11 #5） | `Mtc.vue` 跨链桥 tab                    | 新增"SLA / Monitoring" 卡片：4 个统计 (status / staged / batches/h / last batch) + 30s 自动 poll `cc crosschain mtc-sla --json`，可纳入外部 Prometheus / Grafana                                                                            |
+| **A1** Cross-federation 互信（v0.3 #1） | `core-mtc/lib/federation-governance.js` | `SCHEMA_CROSS_FED_TRUST_ANCHOR` schema + `createCrossFederationTrustAnchor` + `validateCrossFederationTrustAnchor`（含 EXPIRED 检查）。CLI: `cc mtc federation cross-trust-create/validate` |
+| **A2** 离线审计第三方接口（v0.3 #3） | 同上 lib | `auditGovernanceLog(events, fedId)` 纯函数：检测 UNKNOWN_ACTOR / ACTOR_KEY_MISMATCH / BOOTSTRAP_KEY_MISMATCH / OUT_OF_ORDER 四类问题，返回 `{ok, findings[], final_state}`。CLI: `cc mtc federation audit <fed> [--summary                  | --json]` |
+| **B1** 多跳桥（bridge §11 #3） | `cross-chain-mtc.js` | `buildMultiHopBridgeEnvelope` 链 ≥2 个单跳 envelope，强制 `leg[i].dst_chain == leg[i+1].src_chain` 连续性；新 schema `mtc-bridge-multihop/v1`。`verifyMultiHopBridgeEnvelope` per-leg 验证。CLI: `cc crosschain mtc-multihop-build/-verify` |
+| **B2** Gas-aware batch（bridge §11 #4） | 同上 | `shouldCloseBatchGasAware` 启发式：staged ≥ 50 硬关；current_gas > baseline×1.5 延迟；否则关。CLI: `cc crosschain mtc-gas-check <chain> --staged-count <n> [--current-gas-usd]` |
+| **B3** SLA Manager 集成（bridge §11 #6） | 同上 | `getBridgeMtcSlaMetrics` 输出 `cc sla` 兼容形状：`sla_status` (ok/degraded/down) + staging/批次/最近批次时间。CLI: `cc crosschain mtc-sla` |
+| **C** Web-panel 监控 dashboard（bridge §11 #5） | `Mtc.vue` 跨链桥 tab | 新增"SLA / Monitoring" 卡片：4 个统计 (status / staged / batches/h / last batch) + 30s 自动 poll `cc crosschain mtc-sla --json`，可纳入外部 Prometheus / Grafana |
 
 **累计测试**：core-mtc 232 (+12 v0.3 lib) + CLI integration 66 (+6 governance + 4 crosschain) + lib unit 70 (+14 v0.2 lib) = **358 全绿**。
 
@@ -1948,15 +1952,15 @@ KG 4 个 tab：force-directed graph (ECharts) / 实体表 / 关系表 / 类型�
 
 落地两份治理 / 跨链设计文档（关闭 §12 已知限制 #2/#6）+ `cc crosschain mtc-*` 一组新子命令，让现有桥流程能 opt-in 写 MTC envelope：
 
-| 模块                        | 内容                                                                                                                                                                                                              |
+| 模块 | 内容 |
 | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 设计文档 — 联邦治理 v1      | `docs/design/MTC_联邦治理_v1.md`：5 阶段联邦生命周期 (Bootstrap/Steady/Dispute/Wind-down/Closed) + 准入审批流（候选期权重 0.5）+ M-of-N 阈值业务场景分级 + 三种退出路径 + Fork/Merge 语义 + governance.log schema |
-| 设计文档 — 跨链桥 MTC 化 v1 | `docs/design/MTC_跨链桥_v1.md`：`mtc/v1/bridge/<chain-pair>/...` 字典序 namespace + 桥两侧 MTCA 三种互信模式（Independent/Federated/Light Client）+ 跨链特有威胁分析 (T1 oracle 共谋 / T5 censorship)             |
-| CLI lib                     | `packages/cli/src/lib/cross-chain-mtc.js` 新增：`bridgeNamespace` 强制字典序 + 信任锚 store (Independent 模式) + `assembleBridgeBatch` / `verifyBridgeEnvelope` + `stageBridgeOp` / `closeBatch` staging 生命周期 |
-| 4 个新子命令                | `cc crosschain mtc-status` / `mtc-envelope` / `mtc-verify` / `mtc-trust-anchor {add,list,remove}` / `mtc-batch`                                                                                                   |
-| `--mtc` opt-in flag         | `cc crosschain bridge                                                                                                                                                                                             | swap | send --mtc` 在原命令成功后写一条 staging op；`cc crosschain mtc-batch` 关 staging 为按 chain-pair 分组的批次（landmark + envelopes 持久化到 batches/<pair>-<seq>/） |
-| Bug fix                     | `_dbFromCtx` 修向上多层查找 `_db`（之前只看 root program → 永远 null，导致桥命令 spawnSync 全挂）+ crosschain `preAction` 自动 bootstrap DB                                                                       |
-| core-mtc 改动               | `NAMESPACE_RE` 加 `bridge` kind（additive，不破坏现有 did/skill/audit）                                                                                                                                           |
+| 设计文档 — 联邦治理 v1 | `docs/design/MTC_联邦治理_v1.md`：5 阶段联邦生命周期 (Bootstrap/Steady/Dispute/Wind-down/Closed) + 准入审批流（候选期权重 0.5）+ M-of-N 阈值业务场景分级 + 三种退出路径 + Fork/Merge 语义 + governance.log schema |
+| 设计文档 — 跨链桥 MTC 化 v1 | `docs/design/MTC_跨链桥_v1.md`：`mtc/v1/bridge/<chain-pair>/...` 字典序 namespace + 桥两侧 MTCA 三种互信模式（Independent/Federated/Light Client）+ 跨链特有威胁分析 (T1 oracle 共谋 / T5 censorship) |
+| CLI lib | `packages/cli/src/lib/cross-chain-mtc.js` 新增：`bridgeNamespace` 强制字典序 + 信任锚 store (Independent 模式) + `assembleBridgeBatch` / `verifyBridgeEnvelope` + `stageBridgeOp` / `closeBatch` staging 生命周期 |
+| 4 个新子命令 | `cc crosschain mtc-status` / `mtc-envelope` / `mtc-verify` / `mtc-trust-anchor {add,list,remove}` / `mtc-batch` |
+| `--mtc` opt-in flag | `cc crosschain bridge                                                                                                                                                                                             | swap | send --mtc` 在原命令成功后写一条 staging op；`cc crosschain mtc-batch` 关 staging 为按 chain-pair 分组的批次（landmark + envelopes 持久化到 batches/<pair>-<seq>/） |
+| Bug fix | `_dbFromCtx` 修向上多层查找 `_db`（之前只看 root program → 永远 null，导致桥命令 spawnSync 全挂）+ crosschain `preAction` 自动 bootstrap DB |
+| core-mtc 改动 | `NAMESPACE_RE` 加 `bridge` kind（additive，不破坏现有 did/skill/audit） |
 
 **累计测试**：lib 56 unit + CLI 14 integration + 7 e2e + core-mtc 182 + 既有 cross-chain 83 = **342 测试全绿**，覆盖 unit / integration / e2e 三层 + 跨进程独立验证。
 

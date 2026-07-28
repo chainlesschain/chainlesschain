@@ -1,7 +1,63 @@
 import { describe, expect, it, vi } from "vitest";
+import { EventEmitter } from "node:events";
 import { HooksV2Runtime } from "../../src/lib/hooks-v2-runtime.js";
 
 describe("Hooks v2 managed execution policy", () => {
+  it("issues a non-shell command authority from the host project root", async () => {
+    const child = new EventEmitter();
+    child.stdin = { end: vi.fn() };
+    child.stdout = new EventEmitter();
+    child.stderr = new EventEmitter();
+    const contract = Object.freeze({ kind: "test-workspace-contract" });
+    const broker = {
+      issueLinuxWorkspaceSandboxExecutionContract: vi.fn(() => contract),
+      spawn: vi.fn(() => {
+        setImmediate(() => child.emit("exit", 0));
+        return child;
+      }),
+    };
+    const runtime = new HooksV2Runtime(undefined, {
+      broker,
+      managedPolicy: {
+        sandboxPolicy: {
+          requiredBoundaries: ["filesystem", "network"],
+        },
+      },
+    });
+
+    await runtime._execCommand(
+      {
+        id: "safe-hook",
+        event: "PostToolUse",
+        command: "node",
+        args: ["guard.js"],
+        cwd: process.cwd(),
+        shell: false,
+      },
+      {},
+    );
+
+    expect(
+      broker.issueLinuxWorkspaceSandboxExecutionContract,
+    ).toHaveBeenCalledWith(
+      "node",
+      ["guard.js"],
+      expect.objectContaining({
+        cwd: process.cwd(),
+        shell: false,
+        origin: "hook",
+      }),
+      process.cwd(),
+    );
+    expect(broker.spawn).toHaveBeenCalledWith(
+      "node",
+      ["guard.js"],
+      expect.objectContaining({
+        sandboxExecutionContract: contract,
+      }),
+    );
+  });
+
   it("denies shell mode and commands outside an explicit allowlist", async () => {
     const broker = { spawn: vi.fn() };
     const runtime = new HooksV2Runtime(undefined, {
@@ -26,9 +82,9 @@ describe("Hooks v2 managed execution policy", () => {
 
     expect(outcome.success).toBe(false);
     expect(outcome.results).toHaveLength(2);
-    expect(outcome.results.every((result) =>
-      result.error.includes("managed"),
-    )).toBe(true);
+    expect(
+      outcome.results.every((result) => result.error.includes("managed")),
+    ).toBe(true);
     expect(broker.spawn).not.toHaveBeenCalled();
   });
 
@@ -127,8 +183,7 @@ describe("Hooks v2 managed execution policy", () => {
     });
     expect(outcome.results[0]).toMatchObject({
       status: "error",
-      error:
-        "windows-job-restricted-token cannot satisfy filesystem, network",
+      error: "windows-job-restricted-token cannot satisfy filesystem, network",
       decision: "block",
     });
   });

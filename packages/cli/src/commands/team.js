@@ -24,13 +24,47 @@ import { TeamWorktreeCoordinator } from "../lib/agent-team/team-worktree.js";
 import { TeamBudget } from "../lib/agent-team/team-budget.js";
 import { TeamMailbox } from "../lib/agent-team/team-mailbox.js";
 import { executionBroker } from "../lib/process-execution-broker/index.js";
+import {
+  createCollaborationRun,
+  createCollaborationRunId,
+  createCollaborationSessionId,
+  finalizeCollaborationRun,
+  readCollaborationRun,
+  updateCollaborationUnit,
+} from "../lib/collaboration-run-store.js";
+import { loadSideEffectLedger } from "../lib/side-effect-ledger-store.js";
 
 export const _deps = {
   spawn: (...args) => executionBroker.spawn(...args),
+  collaborationStore: {
+    createRun: createCollaborationRun,
+    createRunId: createCollaborationRunId,
+    createSessionId: createCollaborationSessionId,
+    readRun: readCollaborationRun,
+    updateUnit: updateCollaborationUnit,
+    finalizeRun: finalizeCollaborationRun,
+    loadSideEffects: (sessionId) =>
+      loadSideEffectLedger(sessionId, { failIfUnavailable: false }),
+  },
 };
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const BIN = path.resolve(__dirname, "..", "..", "bin", "chainlesschain.js");
+
+function normalizePermissionMode(value) {
+  const mode = String(value || "acceptEdits");
+  return new Set([
+    "manual",
+    "auto",
+    "dontAsk",
+    "default",
+    "plan",
+    "acceptEdits",
+    "bypassPermissions",
+  ]).has(mode)
+    ? mode
+    : "acceptEdits";
+}
 
 /** Load + validate a task-graph file into a registry (throws on bad input). */
 export function loadRegistry(file, { ttlMs } = {}) {
@@ -136,6 +170,13 @@ export function spawnAgent(prompt, cwd, opts = {}) {
       "text",
     ];
     if (opts.model) args.push("--model", opts.model);
+    if (opts.sessionId) args.push("--session", opts.sessionId);
+    if (Number(opts.maxTurns) > 0) {
+      args.push("--max-turns", String(opts.maxTurns));
+    }
+    if (Number(opts.maxBudgetUsd) > 0) {
+      args.push("--max-budget-usd", String(opts.maxBudgetUsd));
+    }
     const child = _deps.spawn(process.execPath, args, {
       cwd,
       env: { ...process.env, CLAUDECODE: "1" },
@@ -162,12 +203,15 @@ export function spawnAgent(prompt, cwd, opts = {}) {
 
 /** Real executor: hand a task's `prompt` to a headless `cc agent -p` in cwd. */
 function makeAgentRunTask(opts = {}) {
-  return function runTask({ task }) {
+  return function runTask({ key, task }) {
     const prompt = task.metadata?.prompt || task?.prompt;
     if (!prompt) {
       throw new Error(`task "${task.key}" has no \`prompt\` to --agent`);
     }
-    return spawnAgent(prompt, process.cwd(), opts);
+    return spawnAgent(prompt, process.cwd(), {
+      ...opts,
+      sessionId: opts.sessionIdForTask?.(key) || null,
+    });
   };
 }
 
@@ -221,6 +265,13 @@ export function registerTeamCommand(program, { logger } = {}) {
     )
     .option("--model <model>", "Model for --agent runs")
     .option(
+      "--permission-mode <mode>",
+      "Permission mode for each --agent task",
+      "acceptEdits",
+    )
+    .option("--agent-max-turns <n>", "Per-agent task turn cap")
+    .option("--agent-max-budget-usd <amount>", "Per-agent task cost cap")
+    .option(
       "--worktree",
       "Run each task's `command` in its own git worktree (parallel isolation)",
     )
@@ -272,6 +323,7 @@ export function registerTeamCommand(program, { logger } = {}) {
           : null,
       });
       let priorMembers = [];
+      let priorCollaborationRunId = null;
       try {
         // Resume from a prior (possibly crashed) run's state: completed tasks
         // stay COMPLETED, and any lease left dangling by a crash is reclaimed so
@@ -297,6 +349,7 @@ export function registerTeamCommand(program, { logger } = {}) {
                 },
               });
             priorMembers = Array.isArray(snap.members) ? snap.members : [];
+            priorCollaborationRunId = snap.collaborationRunId || null;
           }
           // A teammate whose lease is still dangling here crashed last run — its
           // task is about to be reclaimed, so report it LOST before the sweep.
@@ -331,6 +384,86 @@ export function registerTeamCommand(program, { logger } = {}) {
         return;
       }
 
+      const permissionMode = normalizePermissionMode(options.permissionMode);
+      let priorCollaborationRun = null;
+      if (priorCollaborationRunId) {
+        try {
+          priorCollaborationRun = _deps.collaborationStore.readRun(
+            priorCollaborationRunId,
+          );
+        } catch {
+          // A malformed/foreign v3 pointer must not block registry recovery.
+          priorCollaborationRun = null;
+        }
+      }
+      const priorUnits = new Map(
+        (priorCollaborationRun?.units || []).map((unit) => [unit.key, unit]),
+      );
+      let collaborationRun;
+      try {
+        const runId = _deps.collaborationStore.createRunId("team");
+        collaborationRun = _deps.collaborationStore.createRun({
+          id: runId,
+          kind: "team",
+          repoRoot: process.cwd(),
+          permissionMode: options.agent ? permissionMode : "default",
+          resourceBudget: {
+            maxTurns: options.agentMaxTurns,
+            maxCostUsd: options.agentMaxBudgetUsd,
+            maxTasks: options.maxTasks,
+            maxTokens: options.maxTokens,
+            maxWallMs: options.maxWall
+              ? Math.max(1, Number(options.maxWall)) * 1000
+              : null,
+          },
+          units: reg.list().map((task) => ({
+            key: task.key,
+            branch: options.worktree ? `team/${task.key}` : null,
+            sessionId: options.agent
+              ? priorUnits.get(task.key)?.sessionId ||
+                _deps.collaborationStore.createSessionId(runId, task.key)
+              : null,
+            status:
+              String(task.status || "").toLowerCase() === "completed"
+                ? "completed"
+                : "pending",
+          })),
+        });
+      } catch (err) {
+        (log.error || console.error)(
+          `Failed to persist team governance: ${err.message}`,
+        );
+        process.exitCode = 1;
+        return;
+      }
+      const collaborationUnits = new Map(
+        collaborationRun.units.map((unit) => [unit.key, unit]),
+      );
+      const settleGovernance = (key, status, extra = {}) => {
+        const unit = collaborationUnits.get(key);
+        let sideEffects = null;
+        if (unit?.sessionId) {
+          try {
+            sideEffects = _deps.collaborationStore.loadSideEffects(
+              unit.sessionId,
+            );
+          } catch {
+            /* side-effect summary is additive */
+          }
+        }
+        const updated = _deps.collaborationStore.updateUnit(
+          collaborationRun.id,
+          key,
+          {
+            status,
+            ...extra,
+            ...(sideEffects ? { sideEffects } : {}),
+          },
+        );
+        const next = updated.units.find((candidate) => candidate.key === key);
+        if (next) collaborationUnits.set(key, next);
+      };
+
       // Persist a snapshot after each task settles so a crash mid-run is
       // resumable (persist-after-run alone would lose everything on a crash).
       // v2 bundles registry + mailbox + budget + member lifecycle so a resume
@@ -347,11 +480,12 @@ export function registerTeamCommand(program, { logger } = {}) {
             tmp,
             JSON.stringify(
               {
-                version: 2,
+                version: 3,
                 registry: reg.snapshot(),
                 mailbox: mailbox.snapshot(),
                 budget: budget.snapshot(),
                 members: runnerRef ? runnerRef.members() : priorMembers,
+                collaborationRunId: collaborationRun.id,
               },
               null,
               2,
@@ -379,8 +513,20 @@ export function registerTeamCommand(program, { logger } = {}) {
         coord = new TeamWorktreeCoordinator(process.cwd(), {
           sparsePaths: splitList(options.sparsePaths),
           symlinkDirectories: splitList(options.symlinkDirs),
+          onWorktree: ({ key, branch, path: worktreePath }) => {
+            settleGovernance(key, "running", {
+              branch,
+              worktreePath,
+              startedAt: Date.now(),
+            });
+          },
         });
         if (!coord.isGitRepo()) {
+          try {
+            _deps.collaborationStore.finalizeRun(collaborationRun.id, "failed");
+          } catch {
+            /* the original validation error remains primary */
+          }
           (log.error || console.error)(
             "--worktree requires a git repository (run inside one)",
           );
@@ -397,7 +543,13 @@ export function registerTeamCommand(program, { logger } = {}) {
               if (!prompt) {
                 throw new Error(`task "${key}" has no \`prompt\` to --agent`);
               }
-              await spawnAgent(prompt, cwd, { model: options.model });
+              await spawnAgent(prompt, cwd, {
+                model: options.model,
+                permissionMode,
+                maxTurns: options.agentMaxTurns,
+                maxBudgetUsd: options.agentMaxBudgetUsd,
+                sessionId: collaborationUnits.get(key)?.sessionId,
+              });
             },
           });
         } else {
@@ -412,7 +564,13 @@ export function registerTeamCommand(program, { logger } = {}) {
         );
         runTask = makeShellRunTask(log);
       } else if (options.agent)
-        runTask = makeAgentRunTask({ model: options.model });
+        runTask = makeAgentRunTask({
+          model: options.model,
+          permissionMode,
+          maxTurns: options.agentMaxTurns,
+          maxBudgetUsd: options.agentMaxBudgetUsd,
+          sessionIdForTask: (key) => collaborationUnits.get(key)?.sessionId,
+        });
       else runTask = async () => ({ dryRun: true });
 
       // Optional workflow tracing (Claude-Code 2.1.202 parity): every task
@@ -439,6 +597,19 @@ export function registerTeamCommand(program, { logger } = {}) {
         mailbox,
         recorder,
         onEvent: (e) => {
+          if (e.type === "task:claimed") {
+            settleGovernance(e.key, "running", {
+              startedAt: Date.now(),
+            });
+          } else if (e.type === "task:completed") {
+            settleGovernance(e.key, "completed", {
+              endedAt: Date.now(),
+            });
+          } else if (e.type === "task:failed") {
+            settleGovernance(e.key, e.retry ? "pending" : "failed", {
+              endedAt: e.retry ? null : Date.now(),
+            });
+          }
           if (options.json) console.log(JSON.stringify(e));
           else if (e.type === "task:claimed")
             (log.info || console.log)(`  → ${e.key} [${e.holder}]`);
@@ -459,8 +630,43 @@ export function registerTeamCommand(program, { logger } = {}) {
       runner.seedMembers(priorMembers);
       runnerRef = runner;
 
-      const summary = await runner.run();
+      let summary;
+      try {
+        summary = await runner.run();
+      } catch (err) {
+        try {
+          _deps.collaborationStore.finalizeRun(collaborationRun.id, "failed");
+        } catch {
+          /* retain the original runner failure */
+        }
+        throw err;
+      }
       persist();
+      try {
+        // Reconcile from the authoritative registry after all event callbacks.
+        // This closes any best-effort onEvent write that failed mid-run.
+        for (const task of reg.list()) {
+          const state = String(task.status || "").toLowerCase();
+          const status =
+            state === "completed"
+              ? "completed"
+              : state === "cancelled" || state === "pending"
+                ? "cancelled"
+                : "failed";
+          settleGovernance(task.key, status, {
+            endedAt: Date.now(),
+          });
+        }
+        _deps.collaborationStore.finalizeRun(
+          collaborationRun.id,
+          summary.done ? "completed" : "failed",
+        );
+      } catch (err) {
+        (log.error || console.error)(
+          `Failed to finalize team governance: ${err.message}`,
+        );
+        process.exitCode = 1;
+      }
 
       if (recorder && options.otlp) {
         try {

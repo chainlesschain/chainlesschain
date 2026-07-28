@@ -44,7 +44,9 @@ export class PluginMonitorSupervisor {
     this._pluginSpawn = opts.brokerSpawn || this._spawn;
     const eventRuntimeStore =
       opts.eventRuntimeStore ||
-      (process.env.CC_EVENT_RUNTIME_DURABLE === "1" ? new EventRuntimeStore() : null);
+      (process.env.CC_EVENT_RUNTIME_DURABLE === "1"
+        ? new EventRuntimeStore()
+        : null);
     this._runtimeProducer = eventRuntimeStore
       ? new EventRuntimeProducer({ store: eventRuntimeStore, emitter: this })
       : null;
@@ -118,7 +120,11 @@ export class PluginMonitorSupervisor {
           { origin: "monitor", id: monitorEventId(desc.id, { stream, line }) },
         );
       } catch (error) {
-        this._outputs.push({ ...output, stream: "error", line: `durable publish failed: ${error.message}` });
+        this._outputs.push({
+          ...output,
+          stream: "error",
+          line: `durable publish failed: ${error.message}`,
+        });
       }
       if (this._outputs.length > OUTPUT_RING) this._outputs.shift();
     }
@@ -211,24 +217,37 @@ export class PluginMonitorSupervisor {
 
   _spawnForDescriptor(desc, options) {
     const isPlugin = desc?.origin === "plugin:monitor";
+    const spawnOptions = {
+      ...options,
+      origin: isPlugin ? desc.origin : "plugin-monitor:process",
+      policy: "allow",
+      scope: "plugin-monitor",
+      ...(isPlugin
+        ? {
+            pluginId: desc.pluginId,
+            pluginVersion: desc.pluginVersion,
+            pluginSource: desc.pluginSource,
+            ...(desc.sandboxPolicy
+              ? { sandboxPolicy: desc.sandboxPolicy }
+              : {}),
+          }
+        : {}),
+    };
+    const sandboxExecutionContract =
+      isPlugin && desc.pluginWorkspaceRoot
+        ? executionBroker.issueLinuxWorkspaceSandboxExecutionContract(
+            desc.command,
+            desc.args,
+            spawnOptions,
+            desc.pluginWorkspaceRoot,
+          )
+        : null;
     return (isPlugin ? this._pluginSpawn : this._spawn)(
       desc.command,
       desc.args,
       {
-        ...options,
-        origin: isPlugin ? desc.origin : "plugin-monitor:process",
-        policy: "allow",
-        scope: "plugin-monitor",
-        ...(isPlugin
-          ? {
-              pluginId: desc.pluginId,
-              pluginVersion: desc.pluginVersion,
-              pluginSource: desc.pluginSource,
-              ...(desc.sandboxPolicy
-                ? { sandboxPolicy: desc.sandboxPolicy }
-                : {}),
-            }
-          : {}),
+        ...spawnOptions,
+        ...(sandboxExecutionContract ? { sandboxExecutionContract } : {}),
       },
     );
   }

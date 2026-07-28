@@ -72,7 +72,10 @@ describe("TeamWorktreeCoordinator.makeRunTask", () => {
     };
     _deps.commit = () => true;
 
-    const coord = new TeamWorktreeCoordinator("/repo");
+    const observed = [];
+    const coord = new TeamWorktreeCoordinator("/repo", {
+      onWorktree: (record) => observed.push(record),
+    });
     const runTask = coord.makeRunTask();
     const out = await runTask({
       key: "build",
@@ -81,6 +84,14 @@ describe("TeamWorktreeCoordinator.makeRunTask", () => {
     expect(out).toEqual({ branch: "team/build", committed: true });
     expect(created).toEqual(["team/build"]);
     expect(ran).toEqual([{ cmd: "make", cwd: "/wt/team-build" }]);
+    expect(observed).toEqual([
+      {
+        key: "build",
+        branch: "team/build",
+        path: "/wt/team-build",
+        holder: undefined,
+      },
+    ]);
   });
 
   it("throws (task failure) when the task has no command", async () => {

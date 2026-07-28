@@ -1,3 +1,6 @@
+import fs from "node:fs";
+import path from "node:path";
+
 /**
  * Normalize the small, declarative sandbox contract exposed to plugins.
  *
@@ -14,11 +17,107 @@ export const PLUGIN_SANDBOX_BOUNDARIES = Object.freeze([
 ]);
 
 const SUPPORTED_BOUNDARIES = new Set(PLUGIN_SANDBOX_BOUNDARIES);
+const PLUGIN_WORKSPACE_AUTHORITY_KIND = "trusted-plugin-workspace";
+const pluginWorkspaceAuthorities = new WeakMap();
 
 function invalidPolicy(message) {
   const error = new Error(message);
   error.code = "ERR_PLUGIN_SANDBOX_POLICY_INVALID";
   return error;
+}
+
+function normalizedProvenance(value = {}) {
+  return Object.freeze({
+    origin: typeof value.origin === "string" ? value.origin : "",
+    pluginId: typeof value.pluginId === "string" ? value.pluginId : "",
+    pluginVersion:
+      typeof value.pluginVersion === "string" ? value.pluginVersion : "",
+    pluginSource:
+      typeof value.pluginSource === "string" ? value.pluginSource : "",
+  });
+}
+
+function sameProvenance(left, right) {
+  return (
+    left.origin === right.origin &&
+    left.pluginId === right.pluginId &&
+    left.pluginVersion === right.pluginVersion &&
+    left.pluginSource === right.pluginSource
+  );
+}
+
+/**
+ * Mint an opaque, reusable authority from a plugin root produced by trusted
+ * installed-plugin discovery. Manifest/server/monitor data receives only the
+ * token: the canonical writable root stays in this module's WeakMap.
+ *
+ * A token is reusable because MCP reconnects and interval monitors can launch
+ * more than once. The process broker still mints a separate one-shot execution
+ * contract for every child.
+ */
+export function issuePluginWorkspaceAuthority(value = {}) {
+  if (
+    typeof value.root !== "string" ||
+    value.root.length === 0 ||
+    value.root.includes("\0")
+  ) {
+    throw invalidPolicy("trusted plugin workspace root must be a path");
+  }
+  const requestedRoot = path.resolve(value.root);
+  let canonicalRoot;
+  let stat;
+  try {
+    const implementation = fs.realpathSync.native || fs.realpathSync;
+    canonicalRoot = implementation.call(fs.realpathSync, requestedRoot);
+    stat = fs.statSync(canonicalRoot);
+  } catch {
+    throw invalidPolicy("trusted plugin workspace root is unavailable");
+  }
+  if (!stat.isDirectory()) {
+    throw invalidPolicy("trusted plugin workspace root must be a directory");
+  }
+
+  const provenance = normalizedProvenance(value);
+  if (
+    !provenance.origin.startsWith("plugin:") ||
+    !provenance.pluginId ||
+    !provenance.pluginVersion
+  ) {
+    throw invalidPolicy("trusted plugin workspace provenance is incomplete");
+  }
+
+  const authority = Object.freeze({
+    contractVersion: 1,
+    kind: PLUGIN_WORKSPACE_AUTHORITY_KIND,
+  });
+  pluginWorkspaceAuthorities.set(
+    authority,
+    Object.freeze({ root: canonicalRoot, provenance }),
+  );
+  return authority;
+}
+
+/**
+ * Resolve an authority only for the exact plugin/component provenance to which
+ * the loader bound it. Structurally similar manifest objects are not accepted.
+ */
+export function resolvePluginWorkspaceAuthority(authority, provenance = {}) {
+  if (
+    !authority ||
+    typeof authority !== "object" ||
+    authority.contractVersion !== 1 ||
+    authority.kind !== PLUGIN_WORKSPACE_AUTHORITY_KIND
+  ) {
+    return null;
+  }
+  const binding = pluginWorkspaceAuthorities.get(authority);
+  if (
+    !binding ||
+    !sameProvenance(binding.provenance, normalizedProvenance(provenance))
+  ) {
+    return null;
+  }
+  return binding.root;
 }
 
 /**

@@ -68,6 +68,9 @@ describe("team command process Broker", () => {
     const completed = spawnAgent("private teammate prompt", "/repo", {
       permissionMode: "plan",
       model: "test-model",
+      sessionId: "session-team-task-1",
+      maxTurns: 6,
+      maxBudgetUsd: 2.5,
     });
     child.emit("close", 0);
 
@@ -84,6 +87,12 @@ describe("team command process Broker", () => {
         "text",
         "--model",
         "test-model",
+        "--session",
+        "session-team-task-1",
+        "--max-turns",
+        "6",
+        "--max-budget-usd",
+        "2.5",
       ]),
     );
     expect(args).not.toContain("private teammate prompt");

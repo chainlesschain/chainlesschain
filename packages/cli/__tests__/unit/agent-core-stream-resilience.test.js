@@ -295,6 +295,26 @@ describe("_retryStreamingChat (bounded auto-retry, 2.1.181)", () => {
     expect(onRetry).toHaveBeenCalledTimes(2);
   });
 
+  it("reports the elapsed time of each failed attempt", async () => {
+    const clock = [100, 350, 1000, 1600];
+    const onRetry = vi.fn();
+    let calls = 0;
+    await _retryStreamingChat(
+      async () => {
+        calls++;
+        if (calls < 3) throw new Error("socket hang up");
+        return "ok";
+      },
+      {
+        sleep: noSleep,
+        onRetry,
+        now: () => clock.shift(),
+      },
+    );
+    expect(onRetry.mock.calls[0][2]).toEqual({ durationMs: 250 });
+    expect(onRetry.mock.calls[1][2]).toEqual({ durationMs: 600 });
+  });
+
   it("gives up after the retry budget and rethrows the last error", async () => {
     let calls = 0;
     const drop = new Error("socket hang up");

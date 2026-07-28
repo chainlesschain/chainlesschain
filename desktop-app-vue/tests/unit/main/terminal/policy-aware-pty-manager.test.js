@@ -99,6 +99,27 @@ describe("Desktop policy-aware PtyManager bootstrap", () => {
     expect(typeof manager._resolveSandboxPolicy).toBe("function");
   });
 
+  it("passes the synchronous main-process DB project selector into the manager", async () => {
+    const resolveProjectBinding = vi.fn(() => null);
+    const manager = await createPolicyAwarePtyManager({
+      requireProjectBinding: true,
+      resolveProjectBinding,
+      policyLoaderOptions: {
+        importModule: async () => ({
+          collectWorkspacePluginBinSandboxPolicy: () => null,
+        }),
+      },
+      _deps: {
+        loadNodePty: vi.fn(),
+        getProcessBroker: () => null,
+      },
+    });
+
+    expect(manager._requireProjectBinding).toBe(true);
+    expect(manager._policyCwd).toBeNull();
+    expect(manager._resolveProjectBinding).toBe(resolveProjectBinding);
+  });
+
   it("resolves the packaged dist/main/terminal location to Resources/packages", () => {
     const resourcesRoot = path.join(
       path.parse(process.cwd()).root,

@@ -83,7 +83,7 @@ export class LSPClient extends EventEmitter {
     const spawnFn = String(this.origin || "").startsWith("plugin:")
       ? executionBroker.spawn.bind(executionBroker)
       : _deps.spawn;
-    this._child = spawnFn(spawnSpec.file, spawnSpec.args, {
+    const spawnOptions = {
       cwd: this.rootPath,
       env: { ...process.env, ...this.env },
       stdio: ["pipe", "pipe", "pipe"],
@@ -103,6 +103,17 @@ export class LSPClient extends EventEmitter {
               : {}),
           }
         : {}),
+    };
+    const sandboxExecutionContract =
+      executionBroker.issueLinuxWorkspaceSandboxExecutionContract(
+        spawnSpec.file,
+        spawnSpec.args,
+        spawnOptions,
+        process.cwd(),
+      );
+    this._child = spawnFn(spawnSpec.file, spawnSpec.args, {
+      ...spawnOptions,
+      ...(sandboxExecutionContract ? { sandboxExecutionContract } : {}),
     });
 
     this._child.on("error", (err) => {

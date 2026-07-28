@@ -321,6 +321,7 @@ describe("runAgentHeadlessStream", () => {
         isError: false,
         plugin: "review-suite",
         pluginVersion: "1.4.0",
+        durationMs: expect.any(Number),
       }),
     ]);
   });

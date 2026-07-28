@@ -30,6 +30,14 @@ import {
 } from "../harness/worktree-isolator.js";
 import { findProjectRoot } from "../lib/project-detector.js";
 import executionBroker from "../lib/process-execution-broker/index.js";
+import {
+  createCollaborationRun,
+  createCollaborationRunId,
+  createCollaborationSessionId,
+  finalizeCollaborationRun,
+  updateCollaborationUnit,
+} from "../lib/collaboration-run-store.js";
+import { loadSideEffectLedger } from "../lib/side-effect-ledger-store.js";
 
 export const _processDeps = {
   spawn: executionBroker.spawn.bind(executionBroker),
@@ -86,6 +94,13 @@ export function registerBatchCommand(program) {
     .option("--test <cmd>", "Default test command run in each worktree")
     .option("--merge", "Merge clean, passing branches back to base")
     .option("--model <model>", "Model for agent runs")
+    .option(
+      "--permission-mode <mode>",
+      "Permission mode for each agent unit",
+      "acceptEdits",
+    )
+    .option("--max-turns <n>", "Per-unit agent turn cap")
+    .option("--max-budget-usd <amount>", "Per-unit agent cost cap")
     .option("--json", "Machine-readable JSON output")
     .action(async (options) => {
       process.exitCode = await runBatchCommand(options);
@@ -97,6 +112,18 @@ export async function runBatchCommand(options = {}, _deps = {}) {
   const errLog = _deps.err || ((m) => logger.error(m));
   const repoDir =
     _deps.repoDir || findProjectRoot(process.cwd()) || process.cwd();
+  const collaborationStore =
+    _deps.collaborationStore === false
+      ? null
+      : _deps.collaborationStore || {
+          createRun: createCollaborationRun,
+          createRunId: createCollaborationRunId,
+          createSessionId: createCollaborationSessionId,
+          updateUnit: updateCollaborationUnit,
+          finalizeRun: finalizeCollaborationRun,
+          loadSideEffects: (sessionId) =>
+            loadSideEffectLedger(sessionId, { failIfUnavailable: false }),
+        };
 
   // 1. Resolve the unit list — from a file, or by decomposing a goal.
   let units;
@@ -123,14 +150,53 @@ export async function runBatchCommand(options = {}, _deps = {}) {
     return 4;
   }
 
+  const permissionMode = normalizePermissionMode(options.permissionMode);
+  let governanceRun = null;
+  const governanceByKey = new Map();
+  if (collaborationStore) {
+    try {
+      const runId = collaborationStore.createRunId("batch");
+      governanceRun = collaborationStore.createRun({
+        id: runId,
+        kind: "batch",
+        repoRoot: repoDir,
+        permissionMode,
+        resourceBudget: {
+          maxTurns: options.maxTurns,
+          maxCostUsd: options.maxBudgetUsd,
+          maxTasks: Array.isArray(units) ? units.length : null,
+        },
+        units: (Array.isArray(units) ? units : []).map((unit, index) => {
+          const key = String(unit?.key || `unit-${index + 1}`);
+          const branch = `batch/${sanitize(key)}`;
+          const sessionId = collaborationStore.createSessionId(runId, key);
+          return { key, branch, sessionId };
+        }),
+      });
+      for (const unit of governanceRun.units) {
+        governanceByKey.set(unit.key, unit);
+      }
+    } catch (err) {
+      errLog(`Failed to persist batch governance: ${err.message}`);
+      return 1;
+    }
+  }
+
   // 2. Run the batch with real worktree + agent + git deps.
-  const deps = _deps.batchDeps || {
+  const baseDeps = _deps.batchDeps || {
     createWorktree: (key, branch) => createWorktree(repoDir, branch).path,
     removeWorktree: (worktreePath, opts) =>
       removeWorktree(repoDir, worktreePath, opts),
     runAgent:
       _deps.runAgent ||
-      ((prompt, cwd) => spawnAgent(prompt, cwd, { model: options.model })),
+      ((prompt, cwd, unit) =>
+        spawnAgent(prompt, cwd, {
+          model: options.model,
+          permissionMode,
+          maxTurns: options.maxTurns,
+          maxBudgetUsd: options.maxBudgetUsd,
+          sessionId: governanceByKey.get(unit?.key)?.sessionId,
+        })),
     runTest: _deps.runTest || runTestCommand,
     diffStat: _deps.diffStat || gitDiffStat,
     commit: _deps.commit || gitCommitAll,
@@ -138,6 +204,21 @@ export async function runBatchCommand(options = {}, _deps = {}) {
     mergeBranch: (branch, message) =>
       mergeWorktree(repoDir, branch, { message }),
     branchFor: (key) => `batch/${sanitize(key)}`,
+  };
+  const deps = {
+    ...baseDeps,
+    createWorktree: (key, branch) => {
+      const worktreePath = baseDeps.createWorktree(key, branch);
+      if (governanceRun) {
+        collaborationStore.updateUnit(governanceRun.id, key, {
+          status: "running",
+          branch,
+          worktreePath,
+          startedAt: Date.now(),
+        });
+      }
+      return worktreePath;
+    },
   };
 
   const onEvent = options.json ? () => {} : (ev) => log(formatEvent(ev));
@@ -155,8 +236,59 @@ export async function runBatchCommand(options = {}, _deps = {}) {
       deps,
     );
   } catch (err) {
+    if (governanceRun) {
+      try {
+        collaborationStore.finalizeRun(governanceRun.id, "failed");
+      } catch {
+        /* retain the running record for diagnosis */
+      }
+    }
     errLog(`Batch failed: ${err.message}`);
     return 1;
+  }
+
+  if (governanceRun) {
+    try {
+      for (const record of outcome.units) {
+        const unit = governanceByKey.get(record.key);
+        let sideEffects = null;
+        if (unit?.sessionId) {
+          try {
+            sideEffects = collaborationStore.loadSideEffects(unit.sessionId);
+          } catch {
+            /* side-effect summary is additive */
+          }
+        }
+        const completed = new Set(["done", "no-changes"]).has(record.status);
+        collaborationStore.updateUnit(governanceRun.id, record.key, {
+          status: completed ? "completed" : record.status,
+          endedAt: Date.now(),
+          ...(sideEffects ? { sideEffects } : {}),
+        });
+      }
+      const failed = outcome.summary.testFailed + outcome.summary.errored > 0;
+      const finalized = collaborationStore.finalizeRun(
+        governanceRun.id,
+        failed ? "failed" : "completed",
+      );
+      outcome.governance = {
+        runId: finalized.id,
+        owner: finalized.owner,
+        status: finalized.status,
+        permissionMode: finalized.permissionMode,
+        resourceBudget: finalized.resourceBudget,
+        units: finalized.units.map((unit) => ({
+          key: unit.key,
+          owner: unit.owner,
+          sessionId: unit.sessionId,
+          status: unit.status,
+          sideEffects: unit.sideEffects,
+        })),
+      };
+    } catch (err) {
+      errLog(`Failed to finalize batch governance: ${err.message}`);
+      return 1;
+    }
   }
 
   if (options.json) {
@@ -187,6 +319,21 @@ function sanitize(key) {
   return String(key).replace(/[^a-zA-Z0-9._-]/g, "-");
 }
 
+function normalizePermissionMode(value) {
+  const mode = String(value || "acceptEdits");
+  return new Set([
+    "manual",
+    "auto",
+    "dontAsk",
+    "default",
+    "plan",
+    "acceptEdits",
+    "bypassPermissions",
+  ]).has(mode)
+    ? mode
+    : "acceptEdits";
+}
+
 function spawnBatchProcess(command, args, options, origin) {
   return _processDeps.spawn(command, args, {
     ...options,
@@ -212,14 +359,18 @@ function spawnAgent(prompt, cwd, opts = {}) {
     const args = [
       BIN,
       "agent",
-      "-p",
-      prompt,
       "--permission-mode",
-      "acceptEdits",
+      normalizePermissionMode(opts.permissionMode),
       "--output-format",
       "text",
     ];
     if (opts.model) args.push("--model", opts.model);
+    if (opts.sessionId) args.push("--session", opts.sessionId);
+    if (Number(opts.maxTurns) > 0)
+      args.push("--max-turns", String(opts.maxTurns));
+    if (Number(opts.maxBudgetUsd) > 0) {
+      args.push("--max-budget-usd", String(opts.maxBudgetUsd));
+    }
     const child = spawnBatchProcess(
       process.execPath,
       args,
@@ -233,6 +384,10 @@ function spawnAgent(prompt, cwd, opts = {}) {
     );
     let err = "";
     child.stderr?.on("data", (d) => (err += d.toString("utf8")));
+    if (child.stdin) {
+      child.stdin.on("error", () => {});
+      child.stdin.end(String(prompt || ""));
+    }
     child.on("error", (e) => reject(new Error(e.message)));
     child.on("close", (code) =>
       code === 0

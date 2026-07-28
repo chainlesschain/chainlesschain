@@ -3,6 +3,10 @@ import chalk from "chalk";
 import { logger } from "../lib/logger.js";
 import { readPrLinkLedger } from "../lib/pr-link-ledger.js";
 import { loadSideEffectLedger } from "../lib/side-effect-ledger-store.js";
+import {
+  listCollaborationRuns,
+  projectCollaborationTasks,
+} from "../lib/collaboration-run-store.js";
 import executionBroker from "../lib/process-execution-broker/index.js";
 
 function formatAge(ms) {
@@ -502,7 +506,13 @@ async function runDashboardView(options = {}) {
   if (options.json || !process.stdout.isTTY || !process.stdin.isTTY) {
     const sessions = listAll();
     if (options.json) {
-      console.log(JSON.stringify({ sessions }, null, 2));
+      let managedTasks = [];
+      try {
+        managedTasks = projectCollaborationTasks(listCollaborationRuns());
+      } catch {
+        /* collaboration governance is additive and best-effort */
+      }
+      console.log(JSON.stringify({ sessions, managedTasks }, null, 2));
     } else {
       printBackgroundAgents(sessions);
       logger.log(

@@ -230,4 +230,73 @@ describe("background task governance", () => {
       { branch: "main" },
     ]);
   });
+
+  it("projects read-only team/batch managed tasks without background control ids", () => {
+    const payload = JSON.stringify({
+      sessions: [],
+      managedTasks: [
+        {
+          managedTaskId: "team-1700000000000-a1b2c3:review",
+          runId: "team-1700000000000-a1b2c3",
+          runKind: "team",
+          branch: "team/review",
+          worktreePath: "/repo/.cc-worktrees/team-review",
+          status: "running",
+          governance: {
+            owner: "team:team-1700000000000-a1b2c3:review",
+            sessionId: "session-team-review",
+            permissionMode: "acceptEdits",
+            resourceBudget: {
+              maxTurns: 8,
+              maxCostUsd: 3,
+              maxTasks: 4,
+              maxTokens: 20000,
+              maxWallMs: 60000,
+            },
+          },
+          sideEffects: {
+            total: 3,
+            unsettled: 1,
+            unknown: 0,
+            metadata: { secret: "must not cross" },
+          },
+          prompt: "secret prompt",
+        },
+      ],
+    });
+
+    const rows = parseBackgroundTaskGovernance(payload);
+    expect(rows).toEqual([
+      {
+        managedTaskId: "team-1700000000000-a1b2c3:review",
+        runId: "team-1700000000000-a1b2c3",
+        runKind: "team",
+        branch: "team/review",
+        worktreePath: "/repo/.cc-worktrees/team-review",
+        owner: "team:team-1700000000000-a1b2c3:review",
+        sessionId: "session-team-review",
+        managementStatus: "running",
+        permissionMode: "acceptEdits",
+        resourceBudget: {
+          maxTurns: 8,
+          maxCostUsd: 3,
+          maxTasks: 4,
+          maxTokens: 20000,
+          maxWallMs: 60000,
+        },
+        sideEffects: { total: 3, unsettled: 1, unknown: 0 },
+      },
+    ]);
+    expect(rows[0].backgroundId).toBeUndefined();
+    expect(JSON.stringify(rows)).not.toContain("secret");
+
+    const [attached] = attachTaskGovernance(
+      [{ branch: "team/review", path: "/wrong" }],
+      payload,
+    );
+    expect(attached).toMatchObject({
+      managedTaskId: "team-1700000000000-a1b2c3:review",
+      managementStatus: "running",
+    });
+  });
 });

@@ -116,20 +116,38 @@ public final class WorktreeTasks {
             return rows;
         }
         if (!(parsed instanceof Map)) return rows;
-        Object sessions = ((Map<?, ?>) parsed).get("sessions");
-        if (!(sessions instanceof List)) return rows;
+        Map<?, ?> root = (Map<?, ?>) parsed;
+        List<Object> candidates = new ArrayList<Object>();
+        Object sessions = root.get("sessions");
+        if (sessions instanceof List) {
+            int sessionCount = 0;
+            for (Object raw : (List<?>) sessions) {
+                if (sessionCount++ >= 1000) break;
+                candidates.add(raw);
+            }
+        }
+        Object managedTasks = root.get("managedTasks");
+        if (managedTasks instanceof List) {
+            int managedCount = 0;
+            for (Object raw : (List<?>) managedTasks) {
+                if (managedCount++ >= 1000) break;
+                candidates.add(raw);
+            }
+        }
         int count = 0;
-        for (Object raw : (List<?>) sessions) {
-            if (count++ >= 1000) break;
+        for (Object raw : candidates) {
+            if (count++ >= 2000) break;
             if (!(raw instanceof Map)) continue;
             Map<?, ?> session = (Map<?, ?>) raw;
             String backgroundId = boundedString(session.get("id"), 160);
+            String managedTaskId = boundedString(session.get("managedTaskId"), 512);
             String branch = boundedString(session.get("branch"), 512);
             String worktreePath = boundedString(
                     session.get("worktreePath") != null
                             ? session.get("worktreePath") : session.get("cwd"),
                     4096);
-            if (backgroundId == null || (branch == null && worktreePath == null)) continue;
+            if ((backgroundId == null && managedTaskId == null)
+                    || (branch == null && worktreePath == null)) continue;
             Map<?, ?> governance = session.get("governance") instanceof Map
                     ? (Map<?, ?>) session.get("governance")
                     : new LinkedHashMap<Object, Object>();
@@ -141,11 +159,19 @@ public final class WorktreeTasks {
                     : new LinkedHashMap<Object, Object>();
 
             Map<String, Object> row = new LinkedHashMap<String, Object>();
-            row.put("backgroundId", backgroundId);
+            if (backgroundId != null) {
+                row.put("backgroundId", backgroundId);
+            } else {
+                row.put("managedTaskId", managedTaskId);
+                row.put("runId", boundedString(session.get("runId"), 160));
+                row.put("runKind", boundedString(session.get("runKind"), 32));
+            }
             row.put("branch", branch);
             row.put("worktreePath", worktreePath);
-            String owner = boundedString(governance.get("owner"), 160);
-            row.put("owner", owner == null ? "background:" + backgroundId : owner);
+            String owner = boundedString(governance.get("owner"), 512);
+            row.put("owner", owner == null
+                    ? (backgroundId == null ? managedTaskId : "background:" + backgroundId)
+                    : owner);
             String sessionId = boundedString(
                     governance.get("sessionId") != null
                             ? governance.get("sessionId") : session.get("sessionId"),
@@ -155,13 +181,23 @@ public final class WorktreeTasks {
                     session.get("lifecycleState") != null
                             ? session.get("lifecycleState") : session.get("status"),
                     64);
-            row.put("backgroundStatus", status == null ? "unknown" : status);
+            String managementStatus = status == null ? "unknown" : status;
+            if (backgroundId != null) {
+                row.put("backgroundStatus", managementStatus);
+            } else {
+                row.put("managementStatus", managementStatus);
+            }
             String permissionMode = boundedString(governance.get("permissionMode"), 64);
             row.put("permissionMode",
                     permissionMode == null ? "default" : permissionMode);
             Map<String, Object> resourceBudget = new LinkedHashMap<String, Object>();
             resourceBudget.put("maxTurns", positiveNumber(budget.get("maxTurns")));
             resourceBudget.put("maxCostUsd", positiveNumber(budget.get("maxCostUsd")));
+            if (managedTaskId != null) {
+                resourceBudget.put("maxTasks", positiveNumber(budget.get("maxTasks")));
+                resourceBudget.put("maxTokens", positiveNumber(budget.get("maxTokens")));
+                resourceBudget.put("maxWallMs", positiveNumber(budget.get("maxWallMs")));
+            }
             row.put("resourceBudget", resourceBudget);
             Map<String, Object> sideEffects = new LinkedHashMap<String, Object>();
             sideEffects.put("total", nonNegativeLong(effects.get("total")));
@@ -281,15 +317,24 @@ public final class WorktreeTasks {
                 sb.append(')');
             }
         }
-        if (t.get("backgroundId") != null) {
-            sb.append("  bg: ").append(t.get("backgroundStatus"));
+        if (t.get("backgroundId") != null || t.get("managedTaskId") != null) {
+            String managementKind = t.get("backgroundId") != null
+                    ? "bg"
+                    : String.valueOf(t.get("runKind") == null ? "managed" : t.get("runKind"));
+            Object managementStatus = t.get("managementStatus") != null
+                    ? t.get("managementStatus") : t.get("backgroundStatus");
+            sb.append("  ").append(managementKind).append(": ").append(managementStatus);
             sb.append(" / ").append(t.get("permissionMode"));
             Object budget = t.get("resourceBudget");
             if (budget instanceof Map) {
                 Object turns = ((Map<?, ?>) budget).get("maxTurns");
                 Object cost = ((Map<?, ?>) budget).get("maxCostUsd");
+                Object tasks = ((Map<?, ?>) budget).get("maxTasks");
+                Object tokens = ((Map<?, ?>) budget).get("maxTokens");
                 if (turns != null) sb.append(" / turns ").append(turns);
                 if (cost != null) sb.append(" / $").append(cost);
+                if (tasks != null) sb.append(" / tasks ").append(tasks);
+                if (tokens != null) sb.append(" / tokens ").append(tokens);
             }
             Object effects = t.get("sideEffects");
             if (effects instanceof Map) {

@@ -1,6 +1,6 @@
 # 个人数据中台 (Personal Data Hub)
 
-> **状态（2026-07-25）：92 个采集契约 / 18 类已注册；PDH 0.4.55 + CLI 0.162.179 已发布。92 是能力清单，不代表每个来源都已在当前设备或账号上可用；页面会按真实输入与宿主能力显示“可采集 / 需配置 / 不可用”。**
+> **状态（2026-07-28）：92 个采集契约 / 18 类已注册；PDH 0.4.57 + CLI 0.162.183 已发布。92 是能力清单，不代表每个来源都已在当前设备或账号上可用；页面会按真实输入与宿主能力显示“可采集 / 需配置 / 不可用”。**
 >
 > 让数据回归个人。各 App 的数据先落到你自己设备上，本地 LLM 才能用它帮你回答跨源问题。任何分析都不经云端 — 默认拒绝非本地 LLM，除非显式 opt-in。
 
@@ -26,6 +26,18 @@
 ## 最新更新
 
 > 本节汇总近几个版本的采集能力更新；更细的逐 Phase 落地记录见 [系统架构 → Phase 历史](#phase-历史)。
+
+### 事务化多源归并与完整续扫（CLI 0.162.183 / PDH 0.4.57）
+
+同一条事实可能同时来自 QQ NT 数据库、Python sidecar、Android 备份或其它采集路径。新版不再用“后写覆盖前写”处理这些证据：
+
+- 来源别名、每个 producer 的原始 observation、字段级冲突决策、批内引用重写和最终实体在**同一事务**提交；任一步失败都会整体回滚。
+- 富文本、联系人名、已读状态等字段按质量与新鲜度合并，旧 observation 仍可审计回查；升级前的 QQ 行会迁移到 canonical identity，不重复生成一份实体。
+- KG 与 RAG 只接收 Vault 真正落盘后的 ID 与引用，避免索引指向已被归并掉的临时 ID。
+- 本地数据库、桌面客户端、移动 API、地图、社交、IM、教育、音乐、健康、购物和出行来源统一使用显式游标与有界页预算。
+- 重复页、停滞页、部分读取、不可读 SQLite、取消或超时会明确报错并保留旧 checkpoint；修好输入后再次同步即可从安全位置继续。
+
+对于日常用户，这意味着同一账号从多条路径采集不会静默复制或丢字段，长历史也不会因为单次预算到顶就被误判为“已经采完”。
 
 ### 跨端实时采集与可靠性收口（v5.0.3.135 / CLI 0.162.179 / PDH 0.4.55）
 
@@ -79,7 +91,7 @@
 
 此外：**email 账单 LLM 补全（Phase 5.5）** — 邮件账单解析在结构化字段缺失时走 LLM gap-fill 补齐金额 / 商户 / 时间；**iOS 加密备份解密（Phase 7.5b）** — 移动提取层支持解密 iOS 加密备份后导入。当前 PDH 包共 **51 个 Adapter**、**121 测试文件 / 2040 测试**。
 
-> 注：改动 `packages/personal-data-hub/lib/**` 发版时必同步 bump pdh 包 version + npm publish + Android `USR_VERSION`（否则真机走 fast-path 跳解压用旧代码）。当前公网版本为 PDH 0.4.55 / CLI 0.162.179；Android runtime bundle 仍按独立发布步骤与应用版本同步。
+> 注：改动 `packages/personal-data-hub/lib/**` 发版时必同步 bump pdh 包 version + npm publish + Android `USR_VERSION`（否则真机走 fast-path 跳解压用旧代码）。当前公网版本为 PDH 0.4.57 / CLI 0.162.183；Android runtime bundle 仍按独立发布步骤与应用版本同步。
 
 ## 核心特性
 
@@ -96,7 +108,9 @@
 - 🔍 **RAG 派生 (CcRagSink + BM25)**：events 转 RagDoc 写入既有 BM25 索引；Qdrant 向量检索预留 Phase 4
 - 🌉 **CcLLMAdapter (LLM 桥)**：依赖注入复用桌面端已配好的 LLM Manager (Ollama / Volcengine / Anthropic / Gemini / DeepSeek)；Hub 包本身**不**依赖 cc 模块，bridge 在 desktop / cli 入口分别注入，Hub 自身可独立单元测
 - 🔁 **AdapterRegistry 全流水线**：health → sync → archive raw → normalize → partition valid/invalid → vault → KG sink → RAG sink → watermark → audit，单段失败不阻塞整体（坏数据进 invalid 队列），sink 故障容忍
+- 🧩 **事务化多源归并**：来源别名、producer raw observation、字段级冲突决策、引用重写与最终实体一次提交；KG / RAG 只消费 canonical 持久 ID
 - ⏬ **增量同步 watermark**：每个 (adapter, partition) 一个水位，重跑同窗口 0 重复事件；`findBySource(adapter, originalId)` 提供去重原语
+- 🧭 **显式游标与完整续扫**：长历史使用版本化 cursor + 有界页预算；重复/停滞页、部分读取、取消与不可读数据库失败闭合且不推进 checkpoint
 - 🌊 **流式同步进度 (Phase 5.7)**：`sync-adapter-stream` / `sync-all-stream` 主题推送 connecting / fetching / normalizing / done / error 事件，UI 实时进度条
 - 🔄 **重试退避 (Phase 5.7)**：网络瞬断自动 3 次指数退避，IMAP 连接 / Alipay 解压都受益
 - 🧾 **审计日志**：每一次 ingest / query / ask / register / unregister 都落 `audit_log` 表，含来源 adapter / 事件 id / 时间戳 / action / 操作者，支持 `queryAudit` 反查
@@ -290,7 +304,7 @@
 | 12.6.9 (+)                 | **WeChat cc hub wechat CLI**                               | `cc hub wechat env-probe / register --uin --db --wechat-data-path [--force-provider] / list / unregister <uin>` 4 个 verb 镜像 4 WS 主题；`--json` 全 verb 可机读；脚本/Plan A 手机内嵌终端可用，无需 Vue UI（同 `cc hub aichat` 模式）                                                                                                                                                                                                                                                                                                                                     | +14 单测                                                                                                                                                                                                                                                                                                                             |
 | 12.6.10 (+)                | **WeChat Vue UI 鉴权向导 (web-panel)**                     | `WechatWizard.vue` 3-step drawer：Step 1 env-probe checklist（adb/root/frida/wechat 5 行）→ Step 2 uin + dbPath + wechatDataPath + forceProvider 表单 → Step 3 result + reasons 反馈；`usePersonalDataHub.js` 加 `probeWechatEnv` / `registerWechat` / `listWechatAccounts` / `unregisterWechat` 4 method 镜像 WS topics；`PersonalDataHub.vue` 顶部加「添加 WeChat」按钮 + `WechatOutlined` 图标                                                                                                                                                                           | +6 composable 单测                                                                                                                                                                                                                                                                                                                   |
 | 阶段性快照（v5.0.3.85 时） | —                                                          | —                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | 67 文件 / 1223 测试（含 Phase 10.2 集成 + E2E 6 + 3 场景；doubao scaffold + toutiao/kuaishou scaffold + analysis-skills backfill + WeChat Phase 12.6 §18.1-10 全套：KeyProvider + Frida agent + env-probe + Setup + 12.6.7 bootstrap + 12.6.8 IPC/WS wiring + 12.6.9 CLI + 12.6.10 Vue UI + 2026-05-21 Phase 10.3.1-10.3.6 全 land） |
-| **当前目录（2026-07-25）** | —                                                          | 生成器从所有导出 collector 构造并核对目录，包含 `email-imap` 与 `ai-chat-history`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | **92 个采集契约 / 18 类**；能力清单、当前 readiness 与真机/真账号验收分层记录                                                                                                                                                                                                                                                        |
+| **当前目录（2026-07-28）** | —                                                          | 生成器从所有导出 collector 构造并核对目录，包含 `email-imap` 与 `ai-chat-history`；多源输入经来源别名、raw observation 与字段级质量决策事务化归并                                                                                                                                                                                                                                                                                                                                                                                                                           | **92 个采集契约 / 18 类**；能力清单、当前 readiness、完整续扫与真机/真账号验收分层记录                                                                                                                                                                                                                                               |
 
 > 全部路线图的代码路径已实施。剩余发布验收依赖外部条件：9 厂商 AIChat 真账号 smoke；Doubao 私有接口真实 HAR fixture pin；Toutiao/Kuaishou 等动态签名命中率；WhatsApp 用户备份 + key 的真机 UX；WeChat 8.0+ rooted-device E2E。
 
@@ -837,7 +851,7 @@ hub.importAlipayBill({ csvPath: "C:/Users/.../alipay_record.csv" });
 
 ## 测试覆盖率
 
-- **总单测**：**184 个测试文件 / 2876 单元测试**（最新基线 v5.0.3.119，pdh 0.4.28；含 89 个 adapter 全套契约/解析测 + 分析管线去噪 + analysis.overview 跨 app 概览 + root 取证（salvager / leaf-page scan / mem dump 解析）+ 设备级 schema 字典，经 CLI vitest 二进制 `npx vitest run` 全绿）
+- **发布验证基线**：PDH 0.4.57 为 **282 个测试文件 / 4,528 项测试**；包含 adapter 契约/解析、事务化多源归并、来源别名、raw observation、完整续扫/分页失败闭合、分析管线、root 取证与设备级 schema 字典
 - **覆盖矩阵**：
   - `__tests__/ids.test.js` — UUID v7 唯一性 / 时间序性
   - `__tests__/schemas.test.js` — 5 类实体所有 subtype + 边界字段
@@ -868,7 +882,7 @@ hub.importAlipayBill({ csvPath: "C:/Users/.../alipay_record.csv" });
 
 ```bash
 cd packages/personal-data-hub
-npm test                                  # 全部 (184 file / 2876 test)
+npm test                                  # 运行当前包的完整测试集
 npx vitest run __tests__/vault.test.js    # 单文件
 ```
 

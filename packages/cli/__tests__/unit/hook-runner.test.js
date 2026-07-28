@@ -15,6 +15,7 @@ import {
   _processDeps,
   _restoreProcessRunners,
 } from "../../src/lib/hook-runner.js";
+import { executionBroker } from "../../src/lib/process-execution-broker/index.js";
 
 const {
   runCommandHook,
@@ -63,6 +64,10 @@ function stub(returns) {
 it("routes default hooks through the process broker adapter", () => {
   const originalRunner = _processDeps.runSync;
   const runSync = vi.fn(() => ({ status: 0, stdout: "ok", stderr: "" }));
+  const issueAuthority = vi.spyOn(
+    executionBroker,
+    "issueLinuxWorkspaceSandboxExecutionContract",
+  );
   _processDeps.runSync = runSync;
 
   try {
@@ -88,7 +93,22 @@ it("routes default hooks through the process broker adapter", () => {
       }),
     );
     expect(runSync.mock.calls[0][2]).not.toHaveProperty("sandboxPolicy");
+    expect(issueAuthority).toHaveBeenCalledWith(
+      "guard.sh",
+      [],
+      expect.objectContaining({
+        cwd: "C:/workspace",
+        shell: true,
+        origin: "hook",
+      }),
+      process.cwd(),
+      { sync: true },
+    );
+    expect(runSync.mock.calls[0][2]).not.toHaveProperty(
+      "sandboxExecutionContract",
+    );
   } finally {
+    issueAuthority.mockRestore();
     _processDeps.runSync = originalRunner;
   }
 });

@@ -5,10 +5,11 @@ import vscodePkg from '../../../../packages/vscode-extension/package.json';
 
 const CLI_VERSION = cliPkg.version;
 const VSCODE_VERSION = vscodePkg.version;
+const JETBRAINS_VERSION = '0.4.74';
 ---
 <BaseLayout
   title="IDE Integration — VS Code + JetBrains extensions, agent in your editor | ChainlessChain"
-  description="ChainlessChain IDE bridge: VS Code (on Open VSX) + JetBrains (on Marketplace) extensions. Selection shared with every prompt, diagnostics fed back automatically, edits reviewed in the editor's native diff (hunk-level picking + Request-changes inline notes + openMultiDiff multi-file batch review), Jupyter kernel execution, sidebar Chat panel (Plan mode + approval cards + conversation tabs + session resume), in-editor app preview (one-click crash restart), terminal-context sharing (getTerminalOutput + @terminal), CLI version-sync."
+  description="ChainlessChain IDE bridge for VS Code (Open VSX) and JetBrains (Marketplace): selection and diagnostics, native diff approval, bounded test/coverage/debugger quality context, signature/SBOM/policy-aware plugin governance, supervised worktree tasks, Jupyter kernels, sidebar Chat, app preview, terminal context, and CLI version-sync."
   canonical="https://www.chainlesschain.com/en/ide"
   locale="en"
 >
@@ -16,7 +17,7 @@ const VSCODE_VERSION = vscodePkg.version;
     <div class="absolute inset-0 bg-grid-paper opacity-60 pointer-events-none"></div>
     <div class="container-wide relative pt-20 pb-20 md:pt-28 md:pb-24">
       <div class="max-w-4xl">
-        <div class="chip mb-6 animate-fade-in">IDE Integration · VS Code {VSCODE_VERSION} on Open VSX + JetBrains</div>
+        <div class="chip mb-6 animate-fade-in">IDE Integration · VS Code {VSCODE_VERSION} on Open VSX + JetBrains {JETBRAINS_VERSION}</div>
         <h1 class="animate-fade-in-delay font-display text-6xl md:text-display-lg leading-[1.02]">
           The agent in your editor:<br/><span class="italic text-ember">sees what you see, changes what you approve</span>.
         </h1>
@@ -30,7 +31,7 @@ const VSCODE_VERSION = vscodePkg.version;
           <a href="https://docs.chainlesschain.com/chainlesschain/ide-bridge.html" rel="noopener" class="btn-ghost">Full docs ↗</a>
         </div>
         <p class="mt-5 text-sm text-muted">
-          VS Code <strong class="text-ink">{VSCODE_VERSION}</strong> is live on Open VSX and is recommended with CLI <strong class="text-ink">{CLI_VERSION}</strong>. Release 0.37.33 also preserves the provider's real HTTP 403 diagnosis—with secrets redacted—so billing, model access, and invalid-key errors no longer collapse into one message.
+          VS Code <strong class="text-ink">{VSCODE_VERSION}</strong> and JetBrains <strong class="text-ink">{JETBRAINS_VERSION}</strong> are recommended with CLI <strong class="text-ink">{CLI_VERSION}</strong>. Quality context, plugin governance, and worktree task state all come from the same authoritative CLI runtime.
         </p>
       </div>
     </div>
@@ -38,7 +39,7 @@ const VSCODE_VERSION = vscodePkg.version;
 
   <section class="py-16 md:py-24">
     <div class="container-wide">
-      <h2 class="text-4xl md:text-5xl mb-12 max-w-3xl">Nine things, the moment you open the editor.</h2>
+      <h2 class="text-4xl md:text-5xl mb-12 max-w-3xl">Twelve things, the moment you open the editor.</h2>
       <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         {[
           ['Sense', 'Selection with every prompt', 'Each prompt automatically carries your current selection + open tabs (an <ide-context> block) — the model knows what you are looking at, never persisted to the session.'],
@@ -48,6 +49,9 @@ const VSCODE_VERSION = vscodePkg.version;
           ['Chat', 'Sidebar Chat panel', 'Talk to the agent without a terminal: streaming replies + tool traces + Plan-mode cards + Approve/Deny cards + multiple conversation tabs (each its own agent process, switching restores the transcript) + session resume + /sessions switcher.'],
           ['Preview', 'In-editor app preview', 'Start App Preview finds your dev script → runs the dev server → detects the served URL → opens it embedded in the editor (VS Code’s built-in Simple Browser / JetBrains’ JCEF browser, falling back to the external browser when JCEF is unavailable); the dev server’s HMR handles live reload on edits; if the dev server dies unexpectedly it reports a crash with a one-click Restart instead of silently stopping.'],
           ['Terminal', 'Terminal-context sharing', 'getTerminalOutput lets the agent see the commands you just ran in the integrated terminal — their output and exit code (VS Code 1.93+ shell integration) — so it knows what you ran and how it failed. Auto-injected into <ide-context> each turn, plus an explicit @terminal mention.'],
+          ['Quality', 'Tests, coverage, and debugger context', 'cc-ide-quality/v1 sends bounded quality snapshots with freshness metadata. Stale results stay visibly stale, and VS Code notebook execution carries the real notebook and cell context.'],
+          ['Plugins', 'Lifecycle and supply-chain governance', 'Enable or disable by scope, upgrade from the recorded source, and reload active sessions. Signature, SBOM, registry/Git/local source, and managed-policy summaries come from the CLI runtime, not a second IDE-side state store.'],
+          ['Isolation', 'Supervised worktree tasks', 'IDE-created isolated tasks run as background worktree agents with owner/session, permission mode, budget, lifecycle, and bounded side-effect counts. Observe-only team/batch rows remain explicitly unmanaged.'],
           ['Sync', 'CLI version-sync', 'On activation it checks cc --version and offers a one-click upgrade if your chainlesschain CLI is older than the extension needs; the "Upgrade CLI" palette command runs npm i -g chainlesschain@latest on demand — keeping the extension (Open VSX) and CLI (npm) in step.'],
           ['Complete', '@ files / live slash commands', '@-path TAB completion ranks editor-open files first; @-completion offers @selection / @diagnostics / @terminal; /status /doctor /mcp /hooks /permissions /agents /tasks /memory inspect the active session, alongside /new /plan /approve /reject /stop /expand.'],
         ].map(([tag, title, desc]) => (
@@ -101,7 +105,7 @@ const VSCODE_VERSION = vscodePkg.version;
         <h2 class="text-3xl md:text-4xl mb-6 font-display">Two steps to install</h2>
         <ol class="space-y-4 text-muted leading-relaxed">
           <li><strong class="text-ink">1. Install the CLI:</strong> <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">npm i -g chainlesschain</code> (current recommended <code class="font-mono text-sm">{CLI_VERSION}</code>, bridge minimum <code class="font-mono text-sm">0.162.47</code>; <code class="font-mono text-sm">cc ide doctor</code> diagnoses connectivity)</li>
-          <li><strong class="text-ink">2. Install the extension:</strong> VSCodium / Cursor etc. — search <strong class="text-ink">ChainlessChain IDE</strong> in the extension panel (Open VSX currently <code class="font-mono text-sm">{VSCODE_VERSION}</code>); IDEA / PyCharm / WebStorm — Settings → Plugins → Marketplace, same name (2024.2+). The Microsoft VS Code Marketplace listing is pending; stock VS Code users can download and install the <code class="font-mono text-sm">.vsix</code> from Open VSX.</li>
+          <li><strong class="text-ink">2. Install the extension:</strong> VSCodium / Cursor etc. — search <strong class="text-ink">ChainlessChain IDE</strong> in the extension panel (Open VSX currently <code class="font-mono text-sm">{VSCODE_VERSION}</code>); IDEA / PyCharm / WebStorm — Settings → Plugins → Marketplace, same name (current <code class="font-mono text-sm">{JETBRAINS_VERSION}</code>, 2024.2+). The Microsoft VS Code Marketplace listing is pending; stock VS Code users can download and install the <code class="font-mono text-sm">.vsix</code> from Open VSX.</li>
         </ol>
         <p class="mt-6 text-sm text-muted">
           Safe defaults: server binds localhost only + per-instance random Bearer token + 0600 lockfile; on the CLI side <code class="font-mono text-xs">--no-ide</code> / <code class="font-mono text-xs">CC_IDE_CONTEXT=0</code> / <code class="font-mono text-xs">CC_IDE_DIFF_APPROVAL=0</code> switch each behavior off.

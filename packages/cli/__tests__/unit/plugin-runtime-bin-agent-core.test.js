@@ -419,7 +419,7 @@ describe("agent-core strict plugin bin route", () => {
           ],
           executionContract: expect.objectContaining({
             contractVersion: 1,
-            kind: "strict-plugin-native-static-elf-bin",
+            kind: "strict-plugin-native-elf-bin",
             pluginRoot: root,
             workingDirectory: root,
             runtimePath: canonicalRuntime,

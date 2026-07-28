@@ -5,17 +5,18 @@ import vscodePkg from '../../../packages/vscode-extension/package.json';
 
 const CLI_VERSION = cliPkg.version;
 const VSCODE_VERSION = vscodePkg.version;
+const JETBRAINS_VERSION = '0.4.74';
 ---
 <BaseLayout
   title="IDE 集成 — VS Code + JetBrains 双扩展，agent 进编辑器 | ChainlessChain"
-  description="ChainlessChain IDE 桥接：VS Code（Open VSX 已上架）+ JetBrains（Marketplace 已上架）双扩展。选区随 prompt 注入、诊断自动回喂、编辑审批走编辑器原生 diff（hunk 级挑块 + Request changes 行内批注 + openMultiDiff 多文件批量评审）、Jupyter kernel 执行、侧边栏 Chat 面板（Plan 模式 + 审批卡 + 多会话 tab + 会话续接）、App 内嵌预览（崩溃一键重启）、终端上下文共享（getTerminalOutput + @terminal）、CLI 版本对齐。"
+  description="ChainlessChain IDE 桥接：VS Code（Open VSX）+ JetBrains（Marketplace）双扩展。选区与诊断回喂、原生 diff 审批、测试/覆盖率/调试器质量上下文、插件签名/SBOM/策略治理、受监督 worktree 后台任务、Jupyter kernel、侧边栏 Chat、App 预览、终端上下文与 CLI 版本对齐。"
   canonical="https://www.chainlesschain.com/ide"
 >
   <section class="relative overflow-hidden">
     <div class="absolute inset-0 bg-grid-paper opacity-60 pointer-events-none"></div>
     <div class="container-wide relative pt-20 pb-20 md:pt-28 md:pb-24">
       <div class="max-w-4xl">
-        <div class="chip mb-6 animate-fade-in">IDE 集成 · VS Code {VSCODE_VERSION}（Open VSX）+ JetBrains</div>
+        <div class="chip mb-6 animate-fade-in">IDE 集成 · VS Code {VSCODE_VERSION}（Open VSX）+ JetBrains {JETBRAINS_VERSION}</div>
         <h1 class="animate-fade-in-delay font-display text-6xl md:text-display-lg leading-[1.02]">
           agent 进编辑器：<br/><span class="italic text-ember">看你所看，改你所审</span>。
         </h1>
@@ -29,7 +30,7 @@ const VSCODE_VERSION = vscodePkg.version;
           <a href="https://docs.chainlesschain.com/chainlesschain/ide-bridge.html" rel="noopener" class="btn-ghost">完整文档 ↗</a>
         </div>
         <p class="mt-5 text-sm text-muted">
-          当前 VS Code 版 <strong class="text-ink">{VSCODE_VERSION}</strong> 已在 Open VSX 上架，推荐搭配 CLI <strong class="text-ink">{CLI_VERSION}</strong>；0.37.33 还会保留供应商返回的真实 403 原因并在展示前脱敏，欠费、模型权限与 API Key 错误不再混成同一个提示。
+          当前 VS Code <strong class="text-ink">{VSCODE_VERSION}</strong> 与 JetBrains <strong class="text-ink">{JETBRAINS_VERSION}</strong> 推荐搭配 CLI <strong class="text-ink">{CLI_VERSION}</strong>：质量上下文、插件治理和 worktree 后台任务都由同一 CLI runtime 提供权威状态。
         </p>
       </div>
     </div>
@@ -37,7 +38,7 @@ const VSCODE_VERSION = vscodePkg.version;
 
   <section class="py-16 md:py-24">
     <div class="container-wide">
-      <h2 class="text-4xl md:text-5xl mb-12 max-w-3xl">九件事，进编辑器就发生。</h2>
+      <h2 class="text-4xl md:text-5xl mb-12 max-w-3xl">十二件事，进编辑器就发生。</h2>
       <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         {[
           ['感知', '选区随 prompt 注入', '每条 prompt 自动附带当前选区 + 打开的标签页（<ide-context> 块）——模型即时知道"你正看着什么"，不写入会话持久化。'],
@@ -47,6 +48,9 @@ const VSCODE_VERSION = vscodePkg.version;
           ['对话', '侧边栏 Chat 面板', '不开终端直接对话：流式回复 + 工具轨迹 + Plan 模式卡片 + Approve/Deny 审批卡 + 多会话 tab（各自独立 agent 进程、切换恢复 transcript）+ 会话跨重启续接 + /sessions 切换。'],
           ['预览', 'App 内嵌预览', 'Start App Preview 自动识别项目 dev 脚本 → 拉起 dev server → 解析本地 URL → 编辑器内嵌打开（VS Code 内置 Simple Browser / JetBrains JCEF 浏览器，不支持时回退外部浏览器）；dev server 的 HMR 负责改文件即时热重载；dev server 意外退出时报崩溃并一键 Restart，不再默默停掉。'],
           ['终端', '终端上下文共享', 'getTerminalOutput 让 agent 看到你刚在集成终端跑的命令、输出、退出码（VS Code 1.93+ shell integration）——它知道你刚跑了什么、怎么失败的。每轮自动注入 <ide-context> + 显式 @terminal at-mention。'],
+          ['质量', '测试 / 覆盖率 / 调试器上下文', 'cc-ide-quality/v1 发送有界质量快照并标记新鲜度；过期结果不会伪装成当前状态，VS Code Notebook 执行携带真实 notebook/cell 上下文。'],
+          ['插件', '生命周期 + 供应链治理', '按 scope 启停、来源感知升级、当前会话重载；签名、SBOM、registry/Git/local 来源与 managed-policy 摘要由 CLI runtime 提供，IDE 不另建旁路状态。'],
+          ['隔离', '受监督 Worktree 任务', 'IDE 创建的隔离任务作为后台 worktree agent 运行，显示 owner/session、权限模式、预算、生命周期和副作用计数；只能观察的 team/batch 行明确标为 unmanaged。'],
           ['同步', 'CLI 版本对齐', '激活时检测 cc --version，低于扩展所需最低版本一键提示升级；命令面板「Upgrade CLI」随时从 IDE 跑 npm i -g chainlesschain@latest——扩展（Open VSX）与 CLI（npm）独立发版轨,这条让它们对齐。'],
           ['补全', '@ 文件 / 实时斜杠命令', 'REPL 里 @ 路径 TAB 补全把编辑器打开的文件排最前；面板 @ 补全含 @selection / @diagnostics / @terminal；/status /doctor /mcp /hooks /permissions /agents /tasks /memory 读取当前会话，另含 /new /plan /approve /reject /stop /expand。'],
         ].map(([tag, title, desc]) => (
@@ -100,7 +104,7 @@ const VSCODE_VERSION = vscodePkg.version;
         <h2 class="text-3xl md:text-4xl mb-6 font-display">两步装好</h2>
         <ol class="space-y-4 text-muted leading-relaxed">
           <li><strong class="text-ink">1. 装 CLI：</strong><code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">npm i -g chainlesschain</code>（推荐当前 <code class="font-mono text-sm">{CLI_VERSION}</code>，桥接最低 <code class="font-mono text-sm">0.162.47</code>；<code class="font-mono text-sm">cc ide doctor</code> 可诊断连接）</li>
-          <li><strong class="text-ink">2. 装扩展：</strong>VSCodium / Cursor 等在扩展面板搜 <strong class="text-ink">ChainlessChain IDE</strong>（Open VSX 当前 <code class="font-mono text-sm">{VSCODE_VERSION}</code>）；IDEA / PyCharm / WebStorm 在 Settings → Plugins → Marketplace 搜同名（2024.2+）。官方版 VS Code 暂未上架 Marketplace，可从 Open VSX 页面下载 <code class="font-mono text-sm">.vsix</code> 本地安装。</li>
+          <li><strong class="text-ink">2. 装扩展：</strong>VSCodium / Cursor 等在扩展面板搜 <strong class="text-ink">ChainlessChain IDE</strong>（Open VSX 当前 <code class="font-mono text-sm">{VSCODE_VERSION}</code>）；IDEA / PyCharm / WebStorm 在 Settings → Plugins → Marketplace 搜同名（当前 <code class="font-mono text-sm">{JETBRAINS_VERSION}</code>，2024.2+）。官方版 VS Code 暂未上架 Marketplace，可从 Open VSX 页面下载 <code class="font-mono text-sm">.vsix</code> 本地安装。</li>
         </ol>
         <p class="mt-6 text-sm text-muted">
           安全默认：server 仅绑定 localhost + 每实例随机 Bearer token + 锁文件 0600；CLI 端 <code class="font-mono text-xs">--no-ide</code> / <code class="font-mono text-xs">CC_IDE_CONTEXT=0</code> / <code class="font-mono text-xs">CC_IDE_DIFF_APPROVAL=0</code> 随时关闭对应行为。

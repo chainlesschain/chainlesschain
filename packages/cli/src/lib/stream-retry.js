@@ -81,3 +81,32 @@ export function isRetryableStreamError(err, signal) {
     msg,
   );
 }
+
+/**
+ * Reduce a retryable stream failure to a small, secret-free reason vocabulary
+ * suitable for persisted usage telemetry. Never persist the provider's raw
+ * error message: it can contain a request URL, tenant id, or proxy details.
+ */
+export function classifyStreamRetryReason(err) {
+  const code = String(err?.code || err?.cause?.code || "").toUpperCase();
+  if (code === "ETIMEDOUT") return "timeout";
+  if (["EAI_AGAIN", "ENOTFOUND"].includes(code)) return "dns";
+  if (code === "ECONNREFUSED") return "connection_refused";
+  if (code === "ENETUNREACH") return "network_unreachable";
+  if (["ECONNRESET", "EPIPE", "UND_ERR_SOCKET"].includes(code)) {
+    return "connection_reset";
+  }
+  const msg = String(err?.message || err || "").toLowerCase();
+  if (/timed?\s*out|etimedout/.test(msg)) return "timeout";
+  if (/eai_again|enotfound|dns/.test(msg)) return "dns";
+  if (/econnrefused/.test(msg)) return "connection_refused";
+  if (/network unreachable|enetunreach/.test(msg)) return "network_unreachable";
+  if (
+    /econnreset|socket hang ?up|terminated|fetch failed|network error|premature close/.test(
+      msg,
+    )
+  ) {
+    return "connection_reset";
+  }
+  return "unknown";
+}

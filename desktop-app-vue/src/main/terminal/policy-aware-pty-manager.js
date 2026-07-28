@@ -88,8 +88,13 @@ function loadDesktopPluginBinSandboxPolicyResolver(options = {}) {
 
 /**
  * Construct a Desktop PtyManager only after its synchronous policy resolver is
- * ready. The host-owned policy root is snapshotted here; a later caller-supplied
- * cwd can only add requirements inside the canonical collector.
+ * ready. Production callers inject a synchronous main-process database
+ * project selector; the local `root_path` is selected per session. A
+ * renderer / WS / mobile caller cannot supply a policy/workspace root.
+ *
+ * This fixes the initial PTY root only. Arbitrary interactive shell `cd`
+ * remains an explicit residual because PTY byte streams are not a reliable
+ * shell-state boundary.
  */
 async function createPolicyAwarePtyManager(options = {}) {
   const resolveSandboxPolicy =
@@ -99,7 +104,11 @@ async function createPolicyAwarePtyManager(options = {}) {
     ));
   return new PtyManager({
     config: options.config,
-    policyCwd: path.resolve(options.policyCwd || process.cwd()),
+    ...(options.policyCwd
+      ? { policyCwd: path.resolve(options.policyCwd) }
+      : {}),
+    resolveProjectBinding: options.resolveProjectBinding,
+    requireProjectBinding: options.requireProjectBinding === true,
     resolveSandboxPolicy,
     ...(options._deps ? { _deps: options._deps } : {}),
   });

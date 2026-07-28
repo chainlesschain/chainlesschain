@@ -78,11 +78,13 @@ describe("setupTerminalIpc", () => {
 
   it("terminal:create forwards req to PtyManager.create", async () => {
     const r = await ipcMain._invoke("terminal:create", {
+      projectId: "project-1",
       shell: "pwsh",
       cols: 80,
       rows: 24,
     });
     expect(pty.create).toHaveBeenCalledWith({
+      projectId: "project-1",
       shell: "pwsh",
       cwd: undefined,
       env: undefined,
@@ -93,16 +95,20 @@ describe("setupTerminalIpc", () => {
   });
 
   it("terminal:list returns PtyManager.list result", async () => {
-    const r = await ipcMain._invoke("terminal:list", {});
+    const r = await ipcMain._invoke("terminal:list", {
+      projectId: "project-1",
+    });
     expect(r).toEqual([{ id: "ipc-1", alive: true, lastSeq: 3 }]);
+    expect(pty.list).toHaveBeenCalledWith("project-1");
   });
 
   it("terminal:stdin forwards string data to PtyManager.write", async () => {
     await ipcMain._invoke("terminal:stdin", {
+      projectId: "project-1",
       sessionId: "ipc-1",
       data: "ls\r",
     });
-    expect(pty.write).toHaveBeenCalledWith("ipc-1", "ls\r");
+    expect(pty.write).toHaveBeenCalledWith("ipc-1", "ls\r", "project-1");
   });
 
   it("terminal:stdin throws when data is not string", async () => {
@@ -119,25 +125,36 @@ describe("setupTerminalIpc", () => {
 
   it("terminal:resize forwards cols+rows", async () => {
     await ipcMain._invoke("terminal:resize", {
+      projectId: "project-1",
       sessionId: "ipc-1",
       cols: 120,
       rows: 40,
     });
-    expect(pty.resize).toHaveBeenCalledWith("ipc-1", 120, 40);
+    expect(pty.resize).toHaveBeenCalledWith(
+      "ipc-1",
+      120,
+      40,
+      "project-1",
+    );
   });
 
   it("terminal:close calls PtyManager.close", async () => {
-    await ipcMain._invoke("terminal:close", { sessionId: "ipc-1" });
-    expect(pty.close).toHaveBeenCalledWith("ipc-1");
+    await ipcMain._invoke("terminal:close", {
+      projectId: "project-1",
+      sessionId: "ipc-1",
+    });
+    expect(pty.close).toHaveBeenCalledWith("ipc-1", "project-1");
   });
 
   it("terminal:history decodes Buffer to UTF-8 string", async () => {
     const r = await ipcMain._invoke("terminal:history", {
+      projectId: "project-1",
       sessionId: "ipc-1",
       fromSeq: 0,
     });
     expect(r.truncated).toBe(false);
     expect(r.chunks).toEqual([{ seq: 1, data: "hi" }]);
+    expect(pty.history).toHaveBeenCalledWith("ipc-1", 0, "project-1");
   });
 
   it("PtyManager 'stdout' event broadcasts terminal:stdout to all webContents", () => {
@@ -153,12 +170,14 @@ describe("setupTerminalIpc", () => {
     });
     pty.emit("stdout", {
       sessionId: "ipc-1",
+      projectId: "project-1",
       data: Buffer.from("hello", "utf-8"),
       seq: 7,
     });
     for (const s of sinks) {
       expect(s.send).toHaveBeenCalledWith("terminal:stdout", {
         sessionId: "ipc-1",
+        projectId: "project-1",
         data: "hello",
         seq: 7,
       });
@@ -166,9 +185,15 @@ describe("setupTerminalIpc", () => {
   });
 
   it("PtyManager 'exit' event broadcasts terminal:exit", () => {
-    pty.emit("exit", { sessionId: "ipc-1", exitCode: 0, signal: null });
+    pty.emit("exit", {
+      sessionId: "ipc-1",
+      projectId: "project-1",
+      exitCode: 0,
+      signal: null,
+    });
     expect(sinks[0].send).toHaveBeenCalledWith("terminal:exit", {
       sessionId: "ipc-1",
+      projectId: "project-1",
       exitCode: 0,
       signal: null,
     });

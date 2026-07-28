@@ -73,7 +73,7 @@ JetBrains tag workflow 的构建、测试、GUI smoke、制品上传和 `publish
 | IDE Context 质量上下文      | 双端新增 `cc-ide-quality/v1` Test/Coverage/Debugger 只读快照，VS Code Notebook 执行附带真实 Context v2；宿主 API 缺失时显式降级                                                       |
 | Plugin IDE 生命周期         | 双端直接展示并执行 upgrade、enable/disable、source、signature/SBOM、managed policy 与 live-session reload；CLI 保持最终授权和供应链判定权                                             |
 | Plugin 用量归因             | plugin bin 与 plugin 提供的 MCP 工具按 plugin/version 写入无参数 compact transcript，并进入 CLI/双 IDE Usage 报告                                                                     |
-| Worktree 后台治理           | IDE 新任务以 `--bg --worktree` 启动；同一任务行展示 lifecycle、owner/session、permission mode、预算和脱敏副作用计数；team/batch 持久治理仍开放                                        |
+| Worktree 后台治理           | IDE 新任务以 `--bg --worktree` 启动；同一任务行展示 lifecycle、owner/session、permission mode、预算和脱敏副作用计数；team/batch 也已接入独立耐久治理记录与只读 IDE 投影               |
 
 已验证发布版本与当前源码版本一致：CLI `0.162.183`、VS Code `0.37.35`、
 JetBrains `0.4.74`。
@@ -529,9 +529,21 @@ VS Code / JetBrains Usage 报告均展示 plugin 调用、错误和 turn-token �
 真实 JSONL transcript 与命令输出集成测试、MCP provenance、三种 runner、双 IDE
 报告回归通过。
 
-仍开放的是每次 tool/LLM retry 与真实耗时关联、token/cost 到具体
-diff/test/artifact 的因果关联，以及按 workspace/team/managed policy 导出的合规
-报表和预算告警。因此不能把现有 token 报表等同于完整效果评估平台。
+**2026-07-28 Retry 与耗时归因首批收口**：REPL、单次 headless 与 IDE 使用的
+stream runner 现从 runtime `toolTelemetryRecord` 把每次 tool 的真实耗时写入
+无参数 compact record；同一 turn 内失败后再次调用同名工具会标记为 observed
+retry。自动 LLM 流重试则精确持久化失败 attempt 的耗时、实际 provider/model 和
+受控原因码，不保存原始错误、URL 或凭据。单 session 与全局 Usage 聚合按
+tool/MCP server/plugin 汇总 timed calls、耗时和 observed retries，并按原因和
+模型汇总 LLM retries；`cc session usage --by retry`、VS Code Markdown 与
+JetBrains 报告均直接消费同一权威数据。旧 transcript 没有这些字段时保持旧
+JSON/报表形状。当前增量已经过 JS 定向矩阵和 JetBrains `UsageReportTest`
+验证，尚未纳入下一公开版本。
+
+仍开放的是非流式 provider/SDK 内部重试的统一可见性、跨 turn 的语义重试判定、
+token/cost 到具体 diff/test/artifact 的因果关联，以及按
+workspace/team/managed policy 导出的合规报表和预算告警。因此不能把现有 token
+报表等同于完整效果评估平台。
 
 #### 10. Worktree、并行 Agent 和合并体验已有首批产品面
 
@@ -554,10 +566,22 @@ permission mode 只接受公开枚举，预算只接受正数。`cc daemon view 
 副作用摘要；旧任务没有权威记录时明确显示 unmanaged。`team/*` 分支也能被识别，
 不会再从面板消失。CLI/VS Code 定向 26 项与 JetBrains 纯核/编译回归通过。
 
-仍开放的是让短生命周期 team/batch 暴露同等耐久的 owner/session/权限/账本
-envelope；提供 hunk/file review 后再 merge、可恢复的 merge checkpoint/rollback，
-以及真实并发、多根、Windows/macOS/Linux 和 IDE 重启矩阵。当前已不是“没有
-Worktree 产品面”，但还不是统一的多 Agent 治理中心。
+**2026-07-28 Team/Batch 耐久治理收口**：新增独立
+`collaboration-runs/v1` 持久层；它不会把共享 coordinator 下的协作单元伪装成可
+attach/stop 的 background process。每个 run/unit 都持久化有界 owner、Agent
+session ID、permission mode、资源预算、生命周期和脱敏
+SideEffectLedger 计数；prompt、argv、tool arguments、模型输出、凭据和副作用
+metadata 不进入记录。`team --state` 升级为 v3 并关联耐久 run，恢复时沿用未完成
+任务的 session identity；`batch --json` 返回同一治理摘要，且 Agent prompt 改走
+stdin，不再出现在进程 argv。`cc daemon view --json` 以独立
+`managedTasks` 只读投影输出这些记录，VS Code/JetBrains 按 branch/path 关联并明确
+保留 managed task ID，而不是生成后台控制 ID。CLI、真实 git worktree 和恢复相关
+11 个测试文件 87 项通过；JetBrains `WorktreeTasksTest`/`UsageReportTest` 通过并
+完成编译。该增量尚未进入下一公开版本。
+
+仍开放的是提供 hunk/file review 后再 merge、可恢复的 merge
+checkpoint/rollback，以及真实并发、多根、Windows/macOS/Linux 和 IDE 重启矩阵。
+当前已不是“没有 Worktree 产品面”，但还不是统一的多 Agent 治理中心。
 
 #### 11. 测试、调试和质量门已有发布门，尚未完全进入主流程
 
@@ -622,7 +646,7 @@ ghost-text provider，复用 `cc complete --json`，限制上下文/输出长度
 ### 长期：P2
 
 1. Usage/Insights、plugin/version 归因与双 IDE 报表已接线；继续 retry/diff/test 因果归因和企业导出。
-2. Worktree 隔离、冲突预判、双 IDE 管理面及 background owner/权限/预算/账本治理已接线；继续 team/batch 耐久治理与可恢复 merge。
+2. Worktree 隔离、冲突预判、双 IDE 管理面，以及 background/team/batch 的 owner/session/权限/预算/账本耐久治理已接线；继续 hunk/file review 与可恢复 merge。
 3. 双 IDE 发布门和 Test/Coverage/Debugger API 已接线；继续自动测试修复循环、最小生态样例和多版本宿主矩阵。
 4. 面向企业的离线、私有部署、策略同步和合规报表。
 

@@ -8,16 +8,17 @@
  * — sessions opened in either shell are visible in the other.
  *
  * IPC channels (request → response):
- *   terminal:create   ({ shell, cwd, env, cols, rows }) → { sessionId, pid, shell, createdAt }
- *   terminal:list     () → [{ id, shell, cwd, alive, lastSeq }, …]
- *   terminal:stdin    ({ sessionId, data })           → { ok: true }     // data: UTF-8 string
- *   terminal:resize   ({ sessionId, cols, rows })     → { ok: true }
- *   terminal:close    ({ sessionId })                 → { ok: true }
- *   terminal:history  ({ sessionId, fromSeq })        → { chunks:[{seq,data}], truncated }
+ *   terminal:create   ({ projectId, shell, cwd, env, cols, rows }) → session
+ *   terminal:list     ({ projectId }) → project-scoped sessions
+ *   terminal:stdin    ({ projectId, sessionId, data }) → { ok: true }
+ *   terminal:resize   ({ projectId, sessionId, cols, rows }) → { ok: true }
+ *   terminal:close    ({ projectId, sessionId }) → { ok: true }
+ *   terminal:history  ({ projectId, sessionId, fromSeq }) → history
  *
- * Server-pushed events (main → all renderers):
- *   terminal:stdout   ({ sessionId, data, seq })      // data: UTF-8 string
- *   terminal:exit     ({ sessionId, exitCode, signal })
+ * Server-pushed events carry projectId. They are sent only to Electron
+ * WebContents owned by this same local Desktop process. That same-user,
+ * context-isolated renderer set is the native trust boundary; remote browser
+ * clients use the per-connection scoped WS path instead.
  *
  * Unlike the WS protocol, the IPC bridge passes UTF-8 strings directly
  * (no base64) — Electron's structured-clone IPC handles binary safely.
@@ -44,6 +45,7 @@
 // no-op (production callers shouldn't double-setup) while tests with
 // fresh fakes get clean state per call.
 const _activeSetups = new WeakSet();
+const { createBoundTerminalSession } = require("./terminal-create-request");
 
 /**
  * Register the terminal:* IPC handlers + start fan-out of PtyManager
@@ -92,55 +94,53 @@ function setupTerminalIpc(options) {
   }
 
   ipcMain.handle("terminal:create", async (_event, req = {}) => {
-    return ptyManager.create({
-      shell: req.shell,
-      cwd: req.cwd,
-      env: req.env,
-      cols: req.cols,
-      rows: req.rows,
-    });
+    return createBoundTerminalSession(ptyManager, req);
   });
 
-  ipcMain.handle("terminal:list", async () => {
-    return ptyManager.list();
+  ipcMain.handle("terminal:list", async (_event, req = {}) => {
+    return ptyManager.list(req.projectId);
   });
 
   ipcMain.handle("terminal:stdin", async (_event, req = {}) => {
-    const { sessionId, data } = req;
+    const { projectId, sessionId, data } = req;
     if (!sessionId) {
       throw new Error("session_id_required");
     }
     if (typeof data !== "string") {
       throw new Error("data_must_be_string");
     }
-    ptyManager.write(sessionId, data);
+    ptyManager.write(sessionId, data, projectId);
     return { ok: true };
   });
 
   ipcMain.handle("terminal:resize", async (_event, req = {}) => {
-    const { sessionId, cols, rows } = req;
+    const { projectId, sessionId, cols, rows } = req;
     if (!sessionId) {
       throw new Error("session_id_required");
     }
-    ptyManager.resize(sessionId, cols, rows);
+    ptyManager.resize(sessionId, cols, rows, projectId);
     return { ok: true };
   });
 
   ipcMain.handle("terminal:close", async (_event, req = {}) => {
-    const { sessionId } = req;
+    const { projectId, sessionId } = req;
     if (!sessionId) {
       throw new Error("session_id_required");
     }
-    ptyManager.close(sessionId);
+    ptyManager.close(sessionId, projectId);
     return { ok: true };
   });
 
   ipcMain.handle("terminal:history", async (_event, req = {}) => {
-    const { sessionId, fromSeq } = req;
+    const { projectId, sessionId, fromSeq } = req;
     if (!sessionId) {
       throw new Error("session_id_required");
     }
-    const { chunks, truncated } = ptyManager.history(sessionId, fromSeq || 0);
+    const { chunks, truncated } = ptyManager.history(
+      sessionId,
+      fromSeq || 0,
+      projectId,
+    );
     return {
       chunks: chunks.map((c) => ({
         seq: c.seq,
@@ -150,12 +150,12 @@ function setupTerminalIpc(options) {
     };
   });
 
-  function onStdout({ sessionId, data, seq }) {
+  function onStdout({ sessionId, projectId, data, seq }) {
     const str = Buffer.isBuffer(data) ? data.toString("utf-8") : String(data);
-    broadcast("terminal:stdout", { sessionId, data: str, seq });
+    broadcast("terminal:stdout", { sessionId, projectId, data: str, seq });
   }
-  function onExit({ sessionId, exitCode, signal }) {
-    broadcast("terminal:exit", { sessionId, exitCode, signal });
+  function onExit({ sessionId, projectId, exitCode, signal }) {
+    broadcast("terminal:exit", { sessionId, projectId, exitCode, signal });
   }
   ptyManager.on("stdout", onStdout);
   ptyManager.on("exit", onExit);

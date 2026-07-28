@@ -13,10 +13,10 @@
  *     // spread handlers into wsHandlers
  *     attachServerEvents();  // subscribes PtyManager events → ws.broadcast
  *
- * `broadcast(frame)` is the ws-cli-loader.js return value — fan-out to all
- * connected clients on the embedded WS gateway. Phase 1 broadcasts every
- * stdout/exit to every client; the SPA filters by sessionId. Phase 4 will
- * track per-client subscription if needed.
+ * In DB-bound Desktop production, every operation carries projectId and
+ * stdout/exit is sent only to WebSocket connections that successfully
+ * selected that project. Client-side filtering is not an authorization
+ * boundary.
  *
  * Payload data is base64(UTF-8) on the wire — see design §3.3 / §3.4. The
  * handlers do the encode/decode so the PtyManager stays Buffer-native and
@@ -32,6 +32,9 @@ const DEFAULT_DANGEROUS_PATTERNS = [
   // Bash fork bomb literal — match the canonical sequence
   /:\(\)\s*{\s*:\s*\|\s*:\s*&\s*}\s*;\s*:/,
 ];
+const {
+  createBoundTerminalSession,
+} = require("../../terminal/terminal-create-request");
 
 function bufferToBase64(buf) {
   return Buffer.isBuffer(buf)
@@ -78,30 +81,83 @@ function createTerminalHandlers(options) {
   const requireConfirmation =
     options.requireConfirmation || (async () => false);
   const verifyTrustedSource = options.verifyTrustedSource || (() => true);
+  const requireProjectScope =
+    options.requireProjectScope ?? ptyManager.requiresProjectScope === true;
+  const clientProjectScopes = new Map();
 
-  // Server → all-clients fan-out plumbing. The bootstrap calls this once
-  // after constructing the WS gateway so events route there.
+  function projectIdFrom(payload) {
+    const projectId =
+      typeof payload?.projectId === "string" ? payload.projectId.trim() : "";
+    if (requireProjectScope && !projectId) {
+      const error = new Error("terminal_project_scope_required");
+      error.code = "ERR_PTY_PROJECT_SCOPE_REQUIRED";
+      throw error;
+    }
+    return projectId || null;
+  }
+
+  function rememberClientProject(ctx, projectId) {
+    if (!requireProjectScope || !projectId || !ctx?.clientId || !ctx?.ws) {
+      return;
+    }
+    let entry = clientProjectScopes.get(ctx.clientId);
+    if (!entry) {
+      entry = {
+        projectIds: new Set(),
+        server: ctx.server,
+        ws: ctx.ws,
+      };
+      clientProjectScopes.set(ctx.clientId, entry);
+      ctx.ws.once?.("close", () => {
+        clientProjectScopes.delete(ctx.clientId);
+      });
+    }
+    entry.projectIds.add(projectId);
+  }
+
+  function publishProjectEvent(projectId, frame) {
+    if (!requireProjectScope) {
+      broadcast(frame);
+      return;
+    }
+    if (!projectId) {
+      return;
+    }
+    for (const entry of clientProjectScopes.values()) {
+      if (!entry.projectIds.has(projectId)) {
+        continue;
+      }
+      try {
+        entry.server?._send?.(entry.ws, frame);
+      } catch {
+        // Socket teardown races are handled by the close hook.
+      }
+    }
+  }
+
+  // Server → project-subscribed-client fan-out plumbing.
   function attachServerEvents() {
-    ptyManager.on("stdout", ({ sessionId, data, seq }) => {
-      broadcast({
+    ptyManager.on("stdout", ({ sessionId, projectId, data, seq }) => {
+      publishProjectEvent(projectId, {
         type: "terminal.stdout",
         payload: {
           sessionId,
+          projectId,
           data: bufferToBase64(data),
           seq,
         },
       });
     });
-    ptyManager.on("exit", ({ sessionId, exitCode, signal }) => {
-      broadcast({
+    ptyManager.on("exit", ({ sessionId, projectId, exitCode, signal }) => {
+      publishProjectEvent(projectId, {
         type: "terminal.exit",
-        payload: { sessionId, exitCode, signal },
+        payload: { sessionId, projectId, exitCode, signal },
       });
     });
   }
 
   const handlers = {
-    "terminal.create": async (frame) => {
+    "terminal.create": async (frame, ctx) => {
       if (!verifyTrustedSource(frame)) {
         return null;
       } // silent drop
@@ -109,27 +165,30 @@ function createTerminalHandlers(options) {
       // PtyManager.create throws on whitelist / native / cap failures.
       // The dispatcher converts thrown errors into `.result` ok:false
       // envelopes, so SPA gets a clean error.code.
-      return ptyManager.create({
-        shell: payload.shell,
-        cwd: payload.cwd,
-        env: payload.env,
-        cols: payload.cols,
-        rows: payload.rows,
-      });
+      const projectId = projectIdFrom(payload);
+      const created = createBoundTerminalSession(ptyManager, payload);
+      rememberClientProject(ctx, projectId);
+      return created;
     },
 
-    "terminal.list": async (frame) => {
+    "terminal.list": async (frame, ctx) => {
       if (!verifyTrustedSource(frame)) {
         return null;
       }
-      return { sessions: ptyManager.list() };
+      const payload = frame?.payload || frame || {};
+      const projectId = projectIdFrom(payload);
+      const sessions = ptyManager.list(projectId);
+      rememberClientProject(ctx, projectId);
+      return { sessions };
     },
 
     "terminal.stdin": async (frame) => {
       if (!verifyTrustedSource(frame)) {
         return null;
       }
-      const { sessionId, data } = frame?.payload || frame || {};
+      const payload = frame?.payload || frame || {};
+      const { sessionId, data } = payload;
+      const projectId = projectIdFrom(payload);
       if (!sessionId) {
         throw new Error("session_id_required");
       }
@@ -141,7 +200,7 @@ function createTerminalHandlers(options) {
           throw new Error("dangerous_keyword_blocked");
         }
       }
-      ptyManager.write(sessionId, buf);
+      ptyManager.write(sessionId, buf, projectId);
       return { ok: true };
     },
 
@@ -149,11 +208,13 @@ function createTerminalHandlers(options) {
       if (!verifyTrustedSource(frame)) {
         return null;
       }
-      const { sessionId, cols, rows } = frame?.payload || frame || {};
+      const payload = frame?.payload || frame || {};
+      const { sessionId, cols, rows } = payload;
+      const projectId = projectIdFrom(payload);
       if (!sessionId) {
         throw new Error("session_id_required");
       }
-      ptyManager.resize(sessionId, cols, rows);
+      ptyManager.resize(sessionId, cols, rows, projectId);
       return { ok: true };
     },
 
@@ -161,11 +222,13 @@ function createTerminalHandlers(options) {
       if (!verifyTrustedSource(frame)) {
         return null;
       }
-      const { sessionId } = frame?.payload || frame || {};
+      const payload = frame?.payload || frame || {};
+      const { sessionId } = payload;
+      const projectId = projectIdFrom(payload);
       if (!sessionId) {
         throw new Error("session_id_required");
       }
-      ptyManager.close(sessionId);
+      ptyManager.close(sessionId, projectId);
       return { ok: true };
     },
 
@@ -173,11 +236,17 @@ function createTerminalHandlers(options) {
       if (!verifyTrustedSource(frame)) {
         return null;
       }
-      const { sessionId, fromSeq } = frame?.payload || frame || {};
+      const payload = frame?.payload || frame || {};
+      const { sessionId, fromSeq } = payload;
+      const projectId = projectIdFrom(payload);
       if (!sessionId) {
         throw new Error("session_id_required");
       }
-      const { chunks, truncated } = ptyManager.history(sessionId, fromSeq || 0);
+      const { chunks, truncated } = ptyManager.history(
+        sessionId,
+        fromSeq || 0,
+        projectId,
+      );
       return {
         chunks: chunks.map((c) => ({
           seq: c.seq,

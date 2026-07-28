@@ -82,11 +82,13 @@ import {
   appendUserMessage as jsonlAppendUserMessage,
   appendAssistantMessage as jsonlAppendAssistantMessage,
   appendToolCallCompact as jsonlAppendToolCallCompact,
+  appendLlmRetryCompact as jsonlAppendLlmRetryCompact,
   appendEvent as jsonlAppendEvent,
   readEvents as jsonlReadEvents,
   rebuildMessages as jsonlRebuildMessages,
   sessionExists as jsonlSessionExists,
 } from "../harness/jsonl-session-store.js";
+import { classifyStreamRetryReason } from "../lib/stream-retry.js";
 import {
   SideEffectLedger,
   reconcileSideEffects,
@@ -733,6 +735,7 @@ async function runTurn(
     sideEffects,
     turnNumber,
     turnBindingFeed,
+    now = Date.now,
   },
 ) {
   const usage = {
@@ -750,6 +753,10 @@ async function runTurn(
   // tools serially). Non-null only between a dangerous tool's tool-executing
   // and its tool-result.
   let currentSideEffectOpId = null;
+  // Precise tool telemetry is normally carried by tool-result. Keep a private
+  // event-boundary fallback for denials/early throws that settle before the
+  // core can create that record.
+  let currentToolStartedAt = null;
   const diffReviewFollowUps = new DiffReviewFollowUpTracker(
     sideEffects?.ledger,
   );
@@ -780,6 +787,7 @@ async function runTurn(
     turnBindingFeed?.handleEvent(event);
     switch (event.type) {
       case "tool-executing": {
+        currentToolStartedAt = now();
         // Additive protocol-v1 correlation id ("tu-<n>", session-scoped —
         // agent-sdk docs/PROTOCOL.md §1.2.1): the matching tool_result below
         // echoes the same id so UIs can pair calls without adjacency.
@@ -875,8 +883,14 @@ async function runTurn(
           (toolCalls.length > 0 ? toolCalls[toolCalls.length - 1] : null);
         if (lastCall) {
           lastCall.is_error = Boolean(err);
+          lastCall.durationMs =
+            event.result?.toolTelemetryRecord?.durationMs ??
+            (currentToolStartedAt === null
+              ? undefined
+              : Math.max(0, now() - currentToolStartedAt));
           Object.assign(lastCall, extractPluginUsageAttribution(event.result));
         }
+        currentToolStartedAt = null;
         const pm = getPlanModeManager();
         const settledItem = lastCall?.planItemId
           ? pm.settlePlanItem(lastCall.planItemId, {
@@ -1197,6 +1211,8 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
       deps.appendAssistantMessage || jsonlAppendAssistantMessage,
     appendToolCallCompact:
       deps.appendToolCallCompact || jsonlAppendToolCallCompact,
+    appendLlmRetryCompact:
+      deps.appendLlmRetryCompact || jsonlAppendLlmRetryCompact,
     appendEvent: deps.appendEvent || jsonlAppendEvent,
     readEvents: deps.readEvents || jsonlReadEvents,
     rebuildMessages: deps.rebuildMessages || jsonlRebuildMessages,
@@ -2078,12 +2094,26 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
     // transient API connection drop and is retrying. Surfaced unconditionally
     // (not gated on --include-partial-messages) so programmatic NDJSON
     // consumers can log/monitor reconnects rather than seeing an opaque pause.
-    onStreamRetry: (attempt) =>
+    onStreamRetry: (attempt, error, telemetry = {}) => {
       emit({
         type: "stream_retry",
         attempt,
         message: "API connection dropped — retrying",
-      }),
+      });
+      if (persist) {
+        try {
+          store.appendLlmRetryCompact(sessionId, {
+            attempt,
+            durationMs: telemetry.durationMs,
+            provider: telemetry.provider || provider,
+            model: telemetry.model || model,
+            reason: classifyStreamRetryReason(error),
+          });
+        } catch {
+          /* usage telemetry is best-effort */
+        }
+      }
+    },
     // Visible cross-vendor fallback notice: when the configured provider hits an
     // auth error and the loop falls back to another vendor (or relabels via
     // baseUrl), surface it as a `raw` info line the panel renders instead of a
@@ -2814,6 +2844,7 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
           sideEffects,
           turnNumber: turns,
           turnBindingFeed,
+          now: deps.now || Date.now,
         },
       );
     } catch (err) {
@@ -2914,6 +2945,7 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
                 : undefined,
             plugin: call.plugin || undefined,
             pluginVersion: call.pluginVersion || undefined,
+            durationMs: call.durationMs,
           });
         }
       } catch {

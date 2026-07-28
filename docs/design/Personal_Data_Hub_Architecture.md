@@ -1,13 +1,16 @@
 # Personal Data Hub Architecture — 个人数据中台（让数据回归个人）
 
-> **状态**：持续迭代（2026-07-25）。当前导出并注册 **92 个采集契约**（+ 多个同形平台共享 base 工厂 `_bank-base` / `_reading-base` / `_python-sidecar-base` / `_local-im-db-reader` / `_local-im-pc-adapter` 等），发布包为 `@chainlesschain/personal-data-hub` **0.4.55**，随 `chainlesschain` CLI **0.162.179** 对外提供采集入口。这里的 92 是能力面清单，不等同于 92 个默认实例都经过真实来源验证：其中同时包含真实本地/官方采集器、离线导入解析器、自定义 fetch seam 和实验性 schema reader。当前主线：
+> **状态**：持续迭代（2026-07-28）。当前导出并注册 **92 个采集契约**（+ 多个同形平台共享 base 工厂 `_bank-base` / `_reading-base` / `_python-sidecar-base` / `_local-im-db-reader` / `_local-im-pc-adapter` 等），发布包为 `@chainlesschain/personal-data-hub` **0.4.57**，随 `chainlesschain` CLI **0.162.183** 对外提供采集入口。这里的 92 是能力面清单，不等同于 92 个默认实例都经过真实来源验证：其中同时包含真实本地/官方采集器、离线导入解析器、自定义 fetch seam 和实验性 schema reader。当前主线：
 >
 > **成熟度口径校准**：目录中的 `export` / `capability` 只证明契约和接线存在；只有经过来源发现、readiness、完整性水位、隐私边界与真实主机/设备验证的实现才称为“真实接通”。下文早期版本记录里的“真接通”“snapshot + cookie-api 双模”沿用当时的导出契约口径，其中一部分 cookie-api 实际是调用方注入 endpoint/fetch 的开发 seam，不应当作开箱即用的官方实时采集。
 >
-> 1. **跨端实时采集与输入契约**：CLI、桌面端和 Web Panel 共用同一 Registry 与流式进度协议，按 adapter 能力选择立即同步、文件、目录、临时 Cookie、临时 OAuth 或 Android ADB。临时凭据只存在于本次调用；readiness 只报告当前宿主真正可达的输入，缺失 Cookie、快照、备份、设备或自定义 fetch 时 fail closed。
-> 2. **长任务完整性边界**：Registry 只在完整、稳定扫描完成后提交普通或分区水位；超时、取消、输入变化、分页截断和 sidecar 中止都会保留旧 checkpoint。Python sidecar、Windows Recent 与 Android system-data 均支持协作取消和有界续扫，避免“部分结果被当成完整结果”。
-> 3. **Root 设备端侧取证采集（核心新能力）**——绕开 cookie/签名风控，直取已登录加密 app 的本地库。**方法 B**：免密钥 `/proc/<pid>/mem` 内存扫描（引擎无关、扛反调试、无需登录口令，rooted 设备首选）；**方法 C**：frida `sqlcipher_export` 在线解密加密 IM（可复现脚本 + runbook）；SQLite 叶子页 **salvager**（+`--unaligned` 扫描，从损坏 mem dump 救出明文页）→ PDH ingest glue；**D1/D2 root 采集**（WCDB2/抖音叶子页命中 + 扫描生命周期硬化）；多 app 并采 + 来源归属。运维 runbook 见 [`../internal/pdh-db-decryption-runbook.md`](https://github.com/chainlesschain/chainlesschain/blob/main/docs/internal/pdh-db-decryption-runbook.md)。证据驱动收口：抖音/头条 ByteDance 栈 WCDB2·IM 经真机确认 salvage 不支持，已诚实标注状态表。
-> 4. **AI 分析增强**：analysis 管线去噪（话题名分组 / 兴趣过滤 / timeline inventory 排除）+ `analysis.overview` 跨 app 统一快照（决策支持），`ask({crossApp})` 把跨 app 概览注入 AnalysisEngine prompt；schema 字典升级到设备级精确（微信 sjqz 258 表 + 抖音/头条 ByteDance IM 库字段字典 + 解密状态）。
+> 1. **事务化多源事实归并**：`LocalVault.putBatchResolved()` 在一个事务中注册不可变来源别名、保留 producer-specific raw observation、执行字段级冲突决策、重写批内引用并持久化最终实体；KG / RAG sink 只消费真正落盘的 canonical ID。QQ NT 数据库直读与 Python sidecar 解码由此共享消息身份，富文本和可变已读状态合并时不丢旧证据。
+> 2. **跨端实时采集与输入契约**：CLI、桌面端和 Web Panel 共用同一 Registry 与流式进度协议，按 adapter 能力选择立即同步、文件、目录、临时 Cookie、临时 OAuth 或 Android ADB。临时凭据只存在于本次调用；readiness 只报告当前宿主真正可达的输入，缺失 Cookie、快照、备份、设备或自定义 fetch 时 fail closed。
+> 3. **完整、可恢复的长任务边界**：本地数据库、桌面客户端、移动 API、地图、社交、IM、教育、音乐、健康、购物与出行 adapter 使用显式版本化游标和有界页预算。Registry 只在完整、稳定扫描完成后提交普通或分区水位；超时、取消、输入变化、重复/停滞页、分页截断、不可读 SQLite 和 sidecar 中止都会保留旧 checkpoint。
+> 4. **Root 设备端侧取证采集（核心新能力）**——绕开 cookie/签名风控，直取已登录加密 app 的本地库。**方法 B**：免密钥 `/proc/<pid>/mem` 内存扫描（引擎无关、扛反调试、无需登录口令，rooted 设备首选）；**方法 C**：frida `sqlcipher_export` 在线解密加密 IM（可复现脚本 + runbook）；SQLite 叶子页 **salvager**（+`--unaligned` 扫描，从损坏 mem dump 救出明文页）→ PDH ingest glue；**D1/D2 root 采集**（WCDB2/抖音叶子页命中 + 扫描生命周期硬化）；多 app 并采 + 来源归属。运维 runbook 见 [`../internal/pdh-db-decryption-runbook.md`](https://github.com/chainlesschain/chainlesschain/blob/main/docs/internal/pdh-db-decryption-runbook.md)。证据驱动收口：抖音/头条 ByteDance 栈 WCDB2·IM 经真机确认 salvage 不支持，已诚实标注状态表。
+> 5. **AI 分析增强**：analysis 管线去噪（话题名分组 / 兴趣过滤 / timeline inventory 排除）+ `analysis.overview` 跨 app 统一快照（决策支持），`ask({crossApp})` 把跨 app 概览注入 AnalysisEngine prompt；schema 字典升级到设备级精确（微信 sjqz 258 表 + 抖音/头条 ByteDance IM 库字段字典 + 解密状态）。
+>
+> **2026-07-26 v0.4.56–0.4.57 收口**：Vault schema 新增来源身份别名与 raw observation 持久面，旧 QQ 行在升级时重建 canonical key 而非重复插入；adapter 侧统一补齐取消、lookback、重复页、停滞页、部分读取与显式恢复规则。发布验证覆盖 PDH **282 个测试文件 / 4,528 项测试**，并与 Agent SDK 0.1.7、Web Panel、隔离 Git worktree / WebSocket 回归一起验证。
 >
 > **v0.6（2026-06-14，随 v5.0.3.110 ship）**：Phase 0–13 + 多平台采集 + Phase 13+ 长尾扩面均已落地，**61 个 adapter 真接通（+2 平台族 base）/ ~139 测试文件 / 2236 测试**，pdh npm 包 0.4.18。v0.6 一轮 `/loop` 补齐完成阶段所有 ≥⭐⭐⭐ 平台 + 可行长尾，新增 13 个采集 adapter（同程旅行 / 滴滴企业版 / 大众点评 / 知乎 / CSDN / WPS 云文档 / 腾讯文档 / 百度网盘 / 酷狗音乐 / 爱奇艺 / 腾讯视频 / BOSS 直聘，每个 snapshot + cookie-api 双模），并抽出 3 个同形平台共享工厂 `_document-base`（文档/云盘）、`_video-base`（视频观看史）。核心目标 = 把 ChainlessChain 从"个人 AI 工具集"升级为**用户全数据的本地中台 + AI 分析引擎**，兑现"数据回归个人"承诺。
 >

@@ -74,10 +74,16 @@ describe("terminal-handlers", () => {
   describe("envelope routing", () => {
     it("terminal.create forwards payload to PtyManager.create", async () => {
       const res = await handlers["terminal.create"]({
-        payload: { shell: "pwsh", cols: 100, rows: 30 },
+        payload: {
+          projectId: "project-1",
+          shell: "pwsh",
+          cols: 100,
+          rows: 30,
+        },
       });
       expect(pty.calls.create).toHaveLength(1);
       expect(pty.calls.create[0]).toMatchObject({
+        projectId: "project-1",
         shell: "pwsh",
         cols: 100,
         rows: 30,
@@ -232,10 +238,58 @@ describe("terminal-handlers", () => {
       expect(broadcastFrames[0].type).toBe("terminal.exit");
       expect(broadcastFrames[0].payload).toEqual({
         sessionId: "sess-1",
+        projectId: undefined,
         exitCode: 0,
         signal: null,
       });
     });
+
+    it("requires projectId and sends events only to subscribed WS clients in DB-bound mode", async () => {
+      pty.requiresProjectScope = true;
+      const local = createTerminalHandlers({
+        ptyManager: pty,
+        broadcast,
+      });
+      const ws = { once: vi.fn() };
+      const server = { _send: vi.fn() };
+      const ctx = { clientId: "client-1", ws, server };
+
+      await expect(
+        local.handlers["terminal.list"]({ payload: {} }, ctx),
+      ).rejects.toThrow("terminal_project_scope_required");
+      await local.handlers["terminal.list"](
+        { payload: { projectId: "project-1" } },
+        ctx,
+      );
+      local.attachServerEvents();
+
+      pty.emit("stdout", {
+        sessionId: "sess-1",
+        projectId: "project-2",
+        data: Buffer.from("hidden", "utf-8"),
+        seq: 1,
+      });
+      expect(server._send).not.toHaveBeenCalled();
+
+      pty.emit("stdout", {
+        sessionId: "sess-1",
+        projectId: "project-1",
+        data: Buffer.from("visible", "utf-8"),
+        seq: 2,
+      });
+      expect(server._send).toHaveBeenCalledTimes(1);
+      expect(server._send.mock.calls[0][0]).toBe(ws);
+      expect(server._send.mock.calls[0][1]).toMatchObject({
+        type: "terminal.stdout",
+        payload: {
+          projectId: "project-1",
+          sessionId: "sess-1",
+          seq: 2,
+        },
+      });
+      expect(broadcastFrames).toEqual([]);
+    });
+
   });
 
   describe("DEFAULT_DANGEROUS_PATTERNS", () => {

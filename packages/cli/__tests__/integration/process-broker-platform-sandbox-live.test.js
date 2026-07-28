@@ -1820,7 +1820,7 @@ describe.runIf(LIVE && SUPPORTED)(
     );
 
     it.runIf(process.platform === "linux")(
-      "runs attested static ET_EXEC and static PIE Plugin native ELFs and rejects interpreted or scripted entries",
+      "runs attested static and direct-system-set dynamic Plugin native ELFs and rejects scripted entries",
       () => {
         const nonce = `${process.pid}-${Date.now()}`;
         const workspace = fs.mkdtempSync(
@@ -2014,7 +2014,14 @@ describe.runIf(LIVE && SUPPORTED)(
 
           const dynamicBuild = nativeSpawnSync(
             "/usr/bin/cc",
-            ["-no-pie", "-O2", "-o", dynamicEntry, nativeSource],
+            [
+              "-no-pie",
+              "-Wl,-z,noexecstack",
+              "-O2",
+              "-o",
+              dynamicEntry,
+              nativeSource,
+            ],
             { encoding: "utf8", timeout: 60_000 },
           );
           expect(
@@ -2048,9 +2055,11 @@ describe.runIf(LIVE && SUPPORTED)(
             { mode: 0o700 },
           );
 
-          for (const [alias, entryPath] of [
-            ["strict-native", staticEntry],
-            ["strict-native-static-pie", staticPieEntry],
+          for (const [alias, entryPath, targetRuntime] of [
+            ["strict-native", staticEntry, "native-static-elf"],
+            ["strict-native-static-pie", staticPieEntry, "native-static-elf"],
+            ["dynamic-native", dynamicEntry, "native-dynamic-elf"],
+            ["dynamic-pie-native", dynamicPieEntry, "native-dynamic-elf"],
           ]) {
             const destination = `/opt/chainless/plugin/bin/${path.basename(
               entryPath,
@@ -2165,16 +2174,35 @@ describe.runIf(LIVE && SUPPORTED)(
                 SANDBOX_BOUNDARIES.NETWORK,
               ],
               sandboxRuntimeProbe: {
-                kind: "linux-bwrap-plugin-native-static-elf-policy-v1",
+                kind:
+                  targetRuntime === "native-dynamic-elf"
+                    ? "linux-bwrap-plugin-native-dynamic-elf-policy-v1"
+                    : "linux-bwrap-plugin-native-static-elf-policy-v1",
                 attempted: true,
                 runnable: true,
                 reason: null,
                 probeRuntime: "node",
-                targetRuntime: "native-static-elf",
+                targetRuntime,
                 contentSnapshot: true,
                 contentSnapshotScope: "plugin-entry-executable",
                 contentSnapshotMechanism:
                   "verified-o_tmpfile-copy-bwrap-ro-bind-data-v1",
+                ...(targetRuntime === "native-dynamic-elf"
+                  ? {
+                      initialDynamicLoadClosureDescriptorBound: true,
+                      initialDynamicLoadClosureScope:
+                        "initial-pt_interp-and-direct-dt_needed-attested-system-set",
+                      initialDynamicLoadClosureMechanism:
+                        "parsed-elf-direct-system-set-to-attested-node-runtime-fds-v1",
+                      initialDynamicInterpreter: expect.stringMatching(
+                        /^\/(?:usr\/)?lib(?:64)?\//,
+                      ),
+                      initialDynamicDependencyCount: expect.any(Number),
+                      initialDynamicRuntimeFileCount: expect.any(Number),
+                      initialDynamicLoadClosureDigest:
+                        expect.stringMatching(/^[a-f0-9]{64}$/),
+                    }
+                  : {}),
                 handleAtomic: false,
               },
             });
@@ -2193,8 +2221,6 @@ describe.runIf(LIVE && SUPPORTED)(
           }
 
           for (const [alias, reason] of [
-            ["dynamic-native", "native_entry_interpreter_unsupported"],
-            ["dynamic-pie-native", "native_entry_interpreter_unsupported"],
             ["script-native", "native_entry_not_elf"],
           ]) {
             const negative = runPluginCommand(
@@ -2222,12 +2248,12 @@ describe.runIf(LIVE && SUPPORTED)(
               sandboxCandidateBackend: "linux-bwrap",
               sandboxPolicyAttested: false,
               sandboxRuntimeProbe: {
-                kind: "linux-bwrap-plugin-native-static-elf-policy-v1",
+                kind: "linux-bwrap-plugin-native-elf-policy-v1",
                 attempted: false,
                 runnable: false,
                 reason,
                 probeRuntime: "node",
-                targetRuntime: "native-static-elf",
+                targetRuntime: "native-unclassified",
                 contentSnapshot: false,
                 handleAtomic: false,
               },

@@ -45,7 +45,7 @@ features:
     details: RBAC权限、SOC2合规、SCIM用户配置、DLP数据防泄漏、SIEM安全信息管理
 ---
 
-> **2026-07-25 设计核对**：当前产品 `5.0.3.135`、CLI `0.162.179`、PDH `0.4.55`。个人数据中台的 92 个采集契约按“能力清单 / 当前 readiness / 真机验收”分层记录；跨端实时采集、临时凭据、ADB、协作取消和完整扫描水位均由共享 Registry 契约约束。CLI 的 Process Broker、凭据代理、durable runtime 事件、结构化输出和 IDE plan/diff review 仍按统一运行时边界治理。详见[个人数据中台架构](/Personal_Data_Hub_Architecture)与[运行时实现核对文档](/cli-runtime-current)。
+> **2026-07-28 设计核对**：当前产品 `5.0.3.135`、CLI `0.162.183`、PDH `0.4.57`、Agent SDK `0.1.7`，IDE VS Code `0.37.35` / JetBrains `0.4.74`。个人数据中台把来源别名、raw observation、字段级冲突决策、引用重写与最终实体纳入同一事务，并以显式游标/有界分页保证完整续扫。CLI 的 Process Broker 对插件 hook、MCP、LSP、monitor、PTY、后台任务与原生 bin 强制统一 sandbox contract，Linux 与 Windows 分别提供 fd-bound bubblewrap 和 AppContainer attestation；IDE 质量上下文、插件供应链信息与 worktree 后台状态继续由同一运行时治理。详见[个人数据中台架构](/Personal_Data_Hub_Architecture)与[运行时实现核对文档](/cli-runtime-current)。
 
 ## 快速导航
 

@@ -215,10 +215,22 @@ public final class UsageReport {
         Map<String, Object> tools = new LinkedHashMap<String, Object>();
         tools.put("totalCalls", num(rawTools.get("totalCalls")));
         tools.put("totalErrors", num(rawTools.get("totalErrors")));
+        tools.put("totalDurationMs", num(rawTools.get("totalDurationMs")));
+        tools.put("timedCalls", num(rawTools.get("timedCalls")));
+        tools.put("retryCalls", num(rawTools.get("retryCalls")));
         tools.put("byTool", mapRows(rawTools.get("byTool")));
         tools.put("byMcpServer", mapRows(rawTools.get("byMcpServer")));
         tools.put("byPlugin", mapRows(rawTools.get("byPlugin")));
         n.put("tools", tools);
+        if (a.get("retries") instanceof Map) {
+            Map<String, Object> rawRetries = asMap(a.get("retries"));
+            Map<String, Object> retries = new LinkedHashMap<String, Object>();
+            retries.put("totalRetries", num(rawRetries.get("totalRetries")));
+            retries.put("durationMs", num(rawRetries.get("durationMs")));
+            retries.put("byReason", mapRows(rawRetries.get("byReason")));
+            retries.put("byModel", mapRows(rawRetries.get("byModel")));
+            n.put("retries", retries);
+        }
         return n;
     }
 
@@ -366,25 +378,49 @@ public final class UsageReport {
         if (byTool.isEmpty()) {
             sb.append("\nTool calls:\n  (no tool_call events recorded)\n");
         } else {
+            boolean showDuration = num(tools.get("timedCalls")) > 0;
+            boolean showRetries = num(tools.get("retryCalls")) > 0;
             sb.append("\nTool calls: ").append(fmt(num(tools.get("totalCalls"))))
                     .append(" calls · ").append(fmt(num(tools.get("totalErrors"))))
-                    .append(" errors across ").append(fmt(byTool.size())).append(" tool(s)\n");
+                    .append(" errors");
+            if (showRetries) {
+                sb.append(" · ").append(fmt(num(tools.get("retryCalls"))))
+                        .append(" observed retries");
+            }
+            if (showDuration) {
+                sb.append(" · ").append(fmtDuration(num(tools.get("totalDurationMs"))))
+                        .append(" observed time");
+            }
+            sb.append(" across ").append(fmt(byTool.size())).append(" tool(s)\n");
             List<Map<String, Object>> top = capTop(byTool);
             List<Map<String, Object>> others = capOthers(byTool);
             for (Map<String, Object> r : top) {
                 sb.append("  ").append(pad(cell(r.get("tool"), "?"), 28))
                         .append(" ").append(pad(cell(r.get("mcpServer"), ""), 12))
                         .append("  calls ").append(pad(fmt(num(r.get("calls"))), 6))
-                        .append("  errors ").append(pad(fmt(num(r.get("errors"))), 4))
-                        .append("  turn tokens ≈ ").append(fmt(num(r.get("turnTokens")))).append('\n');
+                        .append("  errors ").append(pad(fmt(num(r.get("errors"))), 4));
+                if (showRetries) {
+                    sb.append("  retries ").append(pad(fmt(num(r.get("retries"))), 4));
+                }
+                if (showDuration) {
+                    sb.append("  observed ").append(pad(fmtDuration(num(r.get("durationMs"))), 9));
+                }
+                sb.append("  turn tokens ≈ ").append(fmt(num(r.get("turnTokens")))).append('\n');
             }
             if (others != null) {
                 // turnTokens is per-row non-summable (see the note) → never totalled.
                 sb.append("  ").append(pad("…" + others.size() + " more", 28))
                         .append(" ").append(pad("", 12))
                         .append("  calls ").append(pad(fmt(sumBy(others, "calls")), 6))
-                        .append("  errors ").append(pad(fmt(sumBy(others, "errors")), 4))
-                        .append("  turn tokens ≈ —\n");
+                        .append("  errors ").append(pad(fmt(sumBy(others, "errors")), 4));
+                if (showRetries) {
+                    sb.append("  retries ").append(pad(fmt(sumBy(others, "retries")), 4));
+                }
+                if (showDuration) {
+                    sb.append("  observed ")
+                            .append(pad(fmtDuration(sumBy(others, "durationMs")), 9));
+                }
+                sb.append("  turn tokens ≈ —\n");
             }
             List<Map<String, Object>> byServer = rowsOf(tools.get("byMcpServer"));
             if (!byServer.isEmpty()) {
@@ -394,14 +430,27 @@ public final class UsageReport {
                 for (Map<String, Object> r : sTop) {
                     sb.append("    ").append(pad(cell(r.get("server"), "?"), 26))
                             .append("  calls ").append(pad(fmt(num(r.get("calls"))), 6))
-                            .append("  errors ").append(pad(fmt(num(r.get("errors"))), 4))
-                            .append("  turn tokens ≈ ").append(fmt(num(r.get("turnTokens")))).append('\n');
+                            .append("  errors ").append(pad(fmt(num(r.get("errors"))), 4));
+                    if (showRetries) {
+                        sb.append("  retries ").append(pad(fmt(num(r.get("retries"))), 4));
+                    }
+                    if (showDuration) {
+                        sb.append("  observed ").append(pad(fmtDuration(num(r.get("durationMs"))), 9));
+                    }
+                    sb.append("  turn tokens ≈ ").append(fmt(num(r.get("turnTokens")))).append('\n');
                 }
                 if (sOthers != null) {
                     sb.append("    ").append(pad("…" + sOthers.size() + " more", 26))
                             .append("  calls ").append(pad(fmt(sumBy(sOthers, "calls")), 6))
-                            .append("  errors ").append(pad(fmt(sumBy(sOthers, "errors")), 4))
-                            .append("  turn tokens ≈ —\n");
+                            .append("  errors ").append(pad(fmt(sumBy(sOthers, "errors")), 4));
+                    if (showRetries) {
+                        sb.append("  retries ").append(pad(fmt(sumBy(sOthers, "retries")), 4));
+                    }
+                    if (showDuration) {
+                        sb.append("  observed ")
+                                .append(pad(fmtDuration(sumBy(sOthers, "durationMs")), 9));
+                    }
+                    sb.append("  turn tokens ≈ —\n");
                 }
             }
             List<Map<String, Object>> byPlugin = rowsOf(tools.get("byPlugin"));
@@ -416,8 +465,14 @@ public final class UsageReport {
                     }
                     sb.append("    ").append(pad(label, 26))
                             .append("  calls ").append(pad(fmt(num(r.get("calls"))), 6))
-                            .append("  errors ").append(pad(fmt(num(r.get("errors"))), 4))
-                            .append("  turn tokens ≈ ")
+                            .append("  errors ").append(pad(fmt(num(r.get("errors"))), 4));
+                    if (showRetries) {
+                        sb.append("  retries ").append(pad(fmt(num(r.get("retries"))), 4));
+                    }
+                    if (showDuration) {
+                        sb.append("  observed ").append(pad(fmtDuration(num(r.get("durationMs"))), 9));
+                    }
+                    sb.append("  turn tokens ≈ ")
                             .append(fmt(num(r.get("turnTokens")))).append('\n');
                 }
                 if (pOthers != null) {
@@ -425,14 +480,49 @@ public final class UsageReport {
                             .append("  calls ")
                             .append(pad(fmt(sumBy(pOthers, "calls")), 6))
                             .append("  errors ")
-                            .append(pad(fmt(sumBy(pOthers, "errors")), 4))
-                            .append("  turn tokens ≈ —\n");
+                            .append(pad(fmt(sumBy(pOthers, "errors")), 4));
+                    if (showRetries) {
+                        sb.append("  retries ").append(pad(fmt(sumBy(pOthers, "retries")), 4));
+                    }
+                    if (showDuration) {
+                        sb.append("  observed ")
+                                .append(pad(fmtDuration(sumBy(pOthers, "durationMs")), 9));
+                    }
+                    sb.append("  turn tokens ≈ —\n");
                 }
             }
             sb.append("  Note: \"turn tokens ≈\" is an approximation — every token_usage event in a\n")
                     .append("  turn is attributed to EVERY tool that ran in that turn, so a turn's tokens\n")
                     .append("  count once per distinct tool/server; do not sum that column across rows\n")
                     .append("  (it is not a partition).\n");
+        }
+
+        Map<String, Object> retries = asMap(a.get("retries"));
+        if (num(retries.get("totalRetries")) > 0) {
+            sb.append("\nLLM retries: ")
+                    .append(fmt(num(retries.get("totalRetries"))))
+                    .append(" automatic retries · ")
+                    .append(fmtDuration(num(retries.get("durationMs"))))
+                    .append(" in failed attempts\n");
+            List<Map<String, Object>> byReason = rowsOf(retries.get("byReason"));
+            for (Map<String, Object> r : byReason) {
+                sb.append("  ").append(pad(cell(r.get("reason"), "unknown"), 24))
+                        .append(" retries ").append(pad(fmt(num(r.get("retries"))), 5))
+                        .append(" failed-attempt time ")
+                        .append(fmtDuration(num(r.get("durationMs")))).append('\n');
+            }
+            List<Map<String, Object>> byRetryModel = rowsOf(retries.get("byModel"));
+            if (!byRetryModel.isEmpty()) {
+                sb.append("  By model:\n");
+                for (Map<String, Object> r : byRetryModel) {
+                    String label = cell(r.get("provider"), "?") + "/"
+                            + cell(r.get("model"), "?");
+                    sb.append("    ").append(pad(label, 34))
+                            .append(" retries ").append(pad(fmt(num(r.get("retries"))), 5))
+                            .append(" failed-attempt time ")
+                            .append(fmtDuration(num(r.get("durationMs")))).append('\n');
+                }
+            }
         }
 
         // ── Hints ──
@@ -517,6 +607,18 @@ public final class UsageReport {
 
     private static String fmt(long n) {
         return String.format("%,d", n);
+    }
+
+    private static String fmtDuration(long ms) {
+        long value = Math.max(0, ms);
+        if (value < 1000) return value + " ms";
+        if (value < 60000) {
+            return String.format(java.util.Locale.ROOT, "%.2f s", value / 1000.0);
+        }
+        long totalSeconds = Math.round(value / 1000.0);
+        long minutes = totalSeconds / 60;
+        long seconds = totalSeconds % 60;
+        return minutes + "m " + seconds + "s";
     }
 
     private static String pad(String s, int width) {

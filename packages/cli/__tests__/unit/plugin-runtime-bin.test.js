@@ -551,7 +551,7 @@ describe("resolvePluginBinInvocation", () => {
     };
     expect(contract).toMatchObject({
       contractVersion: 1,
-      kind: "strict-plugin-native-static-elf-bin",
+      kind: "strict-plugin-native-elf-bin",
       pluginRoot: fs.realpathSync.native(dir),
       workingDirectory: fs.realpathSync.native(dir),
       runtimePath: canonicalRuntime,

@@ -31,6 +31,7 @@ class TerminalSessionViewModel @Inject constructor(
 ) : ViewModel() {
 
     val pcPeerId: String = savedStateHandle.get<String>("peerId") ?: ""
+    val projectId: String = savedStateHandle.get<String>("projectId") ?: ""
     val sessionId: String = savedStateHandle.get<String>("sessionId") ?: ""
 
     private val _state = MutableStateFlow(TerminalSessionUiState())
@@ -60,7 +61,8 @@ class TerminalSessionViewModel @Inject constructor(
                 .collect { evt ->
                     // Plan A.1 v5.0.3.53-fix6: 完整诊断 — log 每条 stdout 进 collector
                     // 显示 sessionId match 状态 + lastSeq gate 状态，最终 emit 与否。
-                    val matches = evt.sessionId == sessionId
+                    val matches =
+                        evt.sessionId == sessionId && evt.projectId == projectId
                     val pastGate = evt.seq > lastSeq
                     Timber.d("[TerminalSessionVM] stdout sessionMatch=$matches gate=$pastGate (evt.seq=${evt.seq} lastSeq=$lastSeq) dataLen=${evt.data.length} evtSid=${evt.sessionId.take(8)}… mySid=${sessionId.take(8)}…")
                     if (matches && pastGate) {
@@ -72,7 +74,9 @@ class TerminalSessionViewModel @Inject constructor(
         }
         viewModelScope.launch {
             terminalRpc.observeExit()
-                .filter { it.sessionId == sessionId }
+                .filter {
+                    it.sessionId == sessionId && it.projectId == projectId
+                }
                 .collect { evt ->
                     _state.update { it.copy(alive = false, exitCode = evt.exitCode) }
                     _exitToUi.tryEmit(evt)
@@ -82,7 +86,12 @@ class TerminalSessionViewModel @Inject constructor(
 
     private fun backfillHistory() {
         viewModelScope.launch {
-            terminalRpc.history(pcPeerId, sessionId, fromSeq = 0)
+            terminalRpc.history(
+                pcPeerId,
+                projectId,
+                sessionId,
+                fromSeq = 0,
+            )
                 .onSuccess { res ->
                     if (res.truncated) {
                         _stdoutToUi.tryEmit("[2m[history truncated — earlier output dropped][0m\r\n")
@@ -102,7 +111,7 @@ class TerminalSessionViewModel @Inject constructor(
 
     fun sendInput(data: String) {
         viewModelScope.launch {
-            terminalRpc.stdin(pcPeerId, sessionId, data)
+            terminalRpc.stdin(pcPeerId, projectId, sessionId, data)
                 .onFailure { e ->
                     val msg = e.message ?: ""
                     if (msg.contains("dangerous_keyword_blocked")) {
@@ -116,13 +125,13 @@ class TerminalSessionViewModel @Inject constructor(
 
     fun sendResize(cols: Int, rows: Int) {
         viewModelScope.launch {
-            terminalRpc.resize(pcPeerId, sessionId, cols, rows)
+            terminalRpc.resize(pcPeerId, projectId, sessionId, cols, rows)
         }
     }
 
     fun closeSession() {
         viewModelScope.launch {
-            terminalRpc.close(pcPeerId, sessionId)
+            terminalRpc.close(pcPeerId, projectId, sessionId)
         }
     }
 

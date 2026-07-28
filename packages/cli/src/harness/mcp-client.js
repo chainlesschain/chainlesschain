@@ -14,6 +14,7 @@ import { EventEmitter } from "events";
 import { pathToFileURL } from "url";
 import { safeJsonParse } from "../lib/safe-json.js";
 import { EventRuntimeProducer } from "../lib/event-runtime-producer.js";
+import { resolvePluginWorkspaceAuthority } from "../lib/plugin-runtime/sandbox-policy.js";
 
 /**
  * Injectable dependencies — overridable from tests.
@@ -62,8 +63,7 @@ const URL_ELICITATION_REQUIRED = -32042;
 function supportsUrlElicitationVersion(version) {
   const normalized = String(version || "");
   return (
-    /^\d{4}-\d{2}-\d{2}$/.test(normalized) &&
-    normalized >= MCP_PROTOCOL_VERSION
+    /^\d{4}-\d{2}-\d{2}$/.test(normalized) && normalized >= MCP_PROTOCOL_VERSION
   );
 }
 
@@ -130,9 +130,7 @@ export function normalizeMcpElicitationRequest(
 
   const elicitationId = String(params.elicitationId || "").trim();
   if (!elicitationId) {
-    const error = new Error(
-      "URL mode MCP elicitation requires elicitationId",
-    );
+    const error = new Error("URL mode MCP elicitation requires elicitationId");
     error.code = "CC_MCP_ELICITATION_INVALID";
     throw error;
   }
@@ -267,10 +265,14 @@ export class MCPClient extends EventEmitter {
       Number(options.maxConcurrentElicitations) > 0
         ? Math.min(128, Number(options.maxConcurrentElicitations))
         : 32;
-    this._protocolVersion =
-      String(options.protocolVersion || MCP_PROTOCOL_VERSION);
+    this._protocolVersion = String(
+      options.protocolVersion || MCP_PROTOCOL_VERSION,
+    );
     this._runtimeProducer = options.eventRuntimeStore
-      ? new EventRuntimeProducer({ store: options.eventRuntimeStore, emitter: this })
+      ? new EventRuntimeProducer({
+          store: options.eventRuntimeStore,
+          emitter: this,
+        })
       : null;
   }
 
@@ -279,11 +281,11 @@ export class MCPClient extends EventEmitter {
     const sessionId = options.sessionId;
     if (sessionId != null && sessionId !== "") {
       const key = String(sessionId);
-      if (typeof handler === "function") this._elicitationHandlers.set(key, handler);
+      if (typeof handler === "function")
+        this._elicitationHandlers.set(key, handler);
       else this._elicitationHandlers.delete(key);
     } else {
-      this._elicitationHandler =
-        typeof handler === "function" ? handler : null;
+      this._elicitationHandler = typeof handler === "function" ? handler : null;
     }
     if (Number(options.timeoutMs) > 0) {
       this._elicitationTimeoutMs = Number(options.timeoutMs);
@@ -389,8 +391,9 @@ export class MCPClient extends EventEmitter {
       requestId,
       params,
     );
-    const negotiatedVersion =
-      this.servers.get(String(serverName))?.protocolVersion;
+    const negotiatedVersion = this.servers.get(
+      String(serverName),
+    )?.protocolVersion;
     if (
       request.mode === "url" &&
       negotiatedVersion &&
@@ -431,10 +434,7 @@ export class MCPClient extends EventEmitter {
           direct !== undefined &&
           String(direct?.action || "").toLowerCase() !== "defer"
         ) {
-          const response = this._normalizeElicitationResponse(
-            direct,
-            request,
-          );
+          const response = this._normalizeElicitationResponse(direct, request);
           this._settleUrlElicitation(request, response);
           try {
             this._runtimeProducer?.store.acknowledgeInbox(
@@ -504,7 +504,8 @@ export class MCPClient extends EventEmitter {
       });
       this.emit("elicitation-request", {
         ...request,
-        respond: (response) => this.respondElicitation(serverName, requestId, response),
+        respond: (response) =>
+          this.respondElicitation(serverName, requestId, response),
         cancel: () => this.cancelElicitation(serverName, requestId),
       });
     });
@@ -515,9 +516,7 @@ export class MCPClient extends EventEmitter {
     if (!id) return;
     const existing = this._urlElicitations.get(id);
     if (existing && existing.server !== request.server) {
-      throw new Error(
-        `MCP URL elicitation id collision across servers: ${id}`,
-      );
+      throw new Error(`MCP URL elicitation id collision across servers: ${id}`);
     }
     if (existing && existing.request?.url !== request.url) {
       throw new Error(
@@ -544,7 +543,9 @@ export class MCPClient extends EventEmitter {
     const entry = this._urlElicitations.get(request.elicitationId);
     if (!entry || entry.status === "completed") return;
     entry.status =
-      response?.action === "accept" ? "accepted" : response?.action || "decline";
+      response?.action === "accept"
+        ? "accepted"
+        : response?.action || "decline";
     if (entry.status === "accepted" && entry.completionNotified) {
       this._completeUrlElicitation(entry);
     }
@@ -757,7 +758,26 @@ export class MCPClient extends EventEmitter {
             `stdio transport requires a command (server "${name}")`,
           );
         }
-        const proc = _deps.spawn(config.command, config.args || [], {
+        const isPlugin = config.origin === "plugin:mcp";
+        const pluginWorkspaceRoot = isPlugin
+          ? resolvePluginWorkspaceAuthority(config.pluginWorkspaceAuthority, {
+              origin: config.origin,
+              pluginId: config.pluginId,
+              pluginVersion: config.pluginVersion,
+              pluginSource: config.pluginSource,
+            })
+          : null;
+        if (
+          isPlugin &&
+          config.sandboxPolicy?.requiredBoundaries?.length > 0 &&
+          !pluginWorkspaceRoot
+        ) {
+          throw new Error(
+            `plugin MCP server "${name}" is missing its trusted workspace authority`,
+          );
+        }
+        const spawnOptions = {
+          cwd: pluginWorkspaceRoot || process.cwd(),
           stdio: ["pipe", "pipe", "pipe"],
           // process.env < agent identity (CLAUDECODE / session id) < the
           // server's own config.env, so an explicit per-server override wins.
@@ -776,6 +796,19 @@ export class MCPClient extends EventEmitter {
           ...(config.sandboxPolicy
             ? { sandboxPolicy: config.sandboxPolicy }
             : {}),
+        };
+        const sandboxExecutionContract =
+          !isPlugin || pluginWorkspaceRoot
+            ? executionBroker.issueLinuxWorkspaceSandboxExecutionContract(
+                config.command,
+                config.args || [],
+                spawnOptions,
+                pluginWorkspaceRoot || process.cwd(),
+              )
+            : null;
+        const proc = _deps.spawn(config.command, config.args || [], {
+          ...spawnOptions,
+          ...(sandboxExecutionContract ? { sandboxExecutionContract } : {}),
         });
 
         entry.process = proc;
@@ -1113,7 +1146,8 @@ export class MCPClient extends EventEmitter {
       } catch {
         return false;
       }
-      if (request.mode !== "url" || ids.has(request.elicitationId)) return false;
+      if (request.mode !== "url" || ids.has(request.elicitationId))
+        return false;
       ids.add(request.elicitationId);
       normalized.push(request);
     }
@@ -1392,10 +1426,7 @@ export class MCPClient extends EventEmitter {
     entry._httpMessageStream = stream;
     stream.promise = (async () => {
       try {
-        while (
-          !stream.stopped &&
-          this.servers.get(serverName) === entry
-        ) {
+        while (!stream.stopped && this.servers.get(serverName) === entry) {
           stream.controller =
             typeof AbortController === "function"
               ? new AbortController()
@@ -1427,9 +1458,7 @@ export class MCPClient extends EventEmitter {
               );
             }
             const contentType = response.headers?.get
-              ? String(
-                  response.headers.get("content-type") || "",
-                ).toLowerCase()
+              ? String(response.headers.get("content-type") || "").toLowerCase()
               : "";
             if (!contentType.includes("text/event-stream")) return;
             const cap = Number.isFinite(entry.config?.maxBufferChars)
@@ -1438,8 +1467,7 @@ export class MCPClient extends EventEmitter {
             await _consumeSseMessageStream(response, {
               cap,
               stream,
-              onMessage: (message) =>
-                this._handleMessage(serverName, message),
+              onMessage: (message) => this._handleMessage(serverName, message),
             });
           } catch (error) {
             if (stream.stopped || stream.controller?.signal.aborted) return;
@@ -1564,11 +1592,8 @@ export class MCPClient extends EventEmitter {
 
       let envelope;
       if (contentType.includes("text/event-stream")) {
-        envelope = await _extractSseResponse(
-          response,
-          id,
-          cap,
-          (message) => this._handleMessage(serverName, message),
+        envelope = await _extractSseResponse(response, id, cap, (message) =>
+          this._handleMessage(serverName, message),
         );
       } else {
         const text = await _readBodyCapped(response, cap);
@@ -1813,8 +1838,7 @@ export class MCPClient extends EventEmitter {
         ...(entry.httpSessionId
           ? { "Mcp-Session-Id": entry.httpSessionId }
           : {}),
-        "MCP-Protocol-Version":
-          entry.protocolVersion || this._protocolVersion,
+        "MCP-Protocol-Version": entry.protocolVersion || this._protocolVersion,
       };
       try {
         const pending = _deps.fetch(entry.httpUrl, {
@@ -1986,9 +2010,7 @@ async function _consumeSseMessageStream(
       if (done) break;
       buffer += decoder.decode(value, { stream: true });
       if (cap > 0 && buffer.length > cap) {
-        throw new Error(
-          `MCP HTTP SSE event exceeded the ${cap}-char cap`,
-        );
+        throw new Error(`MCP HTTP SSE event exceeded the ${cap}-char cap`);
       }
       let boundary;
       while ((boundary = buffer.search(/\r?\n\r?\n/)) >= 0) {

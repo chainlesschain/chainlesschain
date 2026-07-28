@@ -4,10 +4,11 @@
  * Platform enforcement currently available:
  * - macOS: Seatbelt sandbox-exec profiles
  * - Linux: prlimit resource-limit wrapper, plus a narrow bubblewrap backend
- *   for an attested direct strict Plugin Node bin or static ELF native bin.
- *   Shells, dynamically linked binaries, broader working directories,
- *   host-writable paths, inherited descriptors, and network egress remain
- *   fail-closed.
+ *   for an attested direct strict Plugin Node bin or a narrow static/dynamic
+ *   ELF native bin. Dynamic acceptance binds PT_INTERP plus the entry's direct
+ *   DT_NEEDED names to an attested system-file set; broader loader surfaces,
+ *   shells, broader working directories, host-writable paths, inherited
+ *   descriptors, and network egress remain fail-closed.
  * - Windows: Win32 Job Object + restricted-token wrapper, with an attested
  *   zero-capability AppContainer for explicit filesystem/network boundaries
  *
@@ -25,6 +26,10 @@ import * as fs from "node:fs";
 import crypto from "node:crypto";
 import { spawnSync as nativeSpawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import {
+  applyLinuxGenericWorkspaceSandbox,
+  isLinuxGenericWorkspaceContract,
+} from "./linux-generic-bwrap-runtime.js";
 
 /**
  * Stable boundary identifiers shared by broker policies, platform plans, and
@@ -169,6 +174,15 @@ const LINUX_ELF64_PROGRAM_HEADER_BYTES = 56;
 const LINUX_ELF64_DYNAMIC_ENTRY_BYTES = 16;
 const LINUX_ELF_MAX_PROGRAM_HEADERS = 128;
 const LINUX_ELF_MAX_DYNAMIC_ENTRIES = 4096;
+const LINUX_ELF_MAX_NEEDED_ENTRIES = 128;
+const LINUX_ELF_MAX_INTERPRETER_BYTES = 4096;
+const LINUX_ELF_MAX_STRING_TABLE_BYTES = 1024 * 1024;
+const LINUX_AUXV_ENTRY_BYTES = 16;
+const LINUX_AUXV_MAX_BYTES = 64 * 1024;
+const LINUX_AUXV_PAGE_SIZE = 6n;
+const LINUX_MIN_RUNTIME_PAGE_BYTES = 4096;
+const LINUX_MAX_RUNTIME_PAGE_BYTES = 1024 * 1024;
+const LINUX_ELF_MAX_UINT64 = (1n << 64n) - 1n;
 const LINUX_ELF_TYPE_EXEC = 2;
 const LINUX_ELF_TYPE_DYN = 3;
 const LINUX_ELF_PROGRAM_LOAD = 1;
@@ -177,8 +191,24 @@ const LINUX_ELF_PROGRAM_INTERP = 3;
 const LINUX_ELF_PROGRAM_GNU_STACK = 0x6474e551;
 const LINUX_ELF_DYNAMIC_NULL = 0n;
 const LINUX_ELF_DYNAMIC_NEEDED = 1n;
+const LINUX_ELF_DYNAMIC_STRTAB = 5n;
+const LINUX_ELF_DYNAMIC_STRSZ = 10n;
+const LINUX_ELF_DYNAMIC_RPATH = 15n;
+const LINUX_ELF_DYNAMIC_TEXTREL = 22n;
+const LINUX_ELF_DYNAMIC_FLAGS = 30n;
+const LINUX_ELF_DYNAMIC_RUNPATH = 29n;
+const LINUX_ELF_DYNAMIC_CONFIG = 0x6ffffefan;
+const LINUX_ELF_DYNAMIC_DEPAUDIT = 0x6ffffefbn;
+const LINUX_ELF_DYNAMIC_AUDIT = 0x6ffffefcn;
 const LINUX_ELF_DYNAMIC_FLAGS_1 = 0x6ffffffbn;
+const LINUX_ELF_DYNAMIC_AUXILIARY = 0x7ffffffdn;
+const LINUX_ELF_DYNAMIC_FILTER = 0x7fffffffn;
+const LINUX_ELF_DYNAMIC_FLAG_TEXTREL = 0x4n;
 const LINUX_ELF_DYNAMIC_FLAG_PIE = 0x08000000n;
+const LINUX_NATIVE_DYNAMIC_DIRECT_SYSTEM_SET_SCOPE =
+  "initial-pt_interp-and-direct-dt_needed-attested-system-set";
+const LINUX_NATIVE_DYNAMIC_DIRECT_SYSTEM_SET_MECHANISM =
+  "parsed-elf-direct-system-set-to-attested-node-runtime-fds-v1";
 const LINUX_ELF_MACHINES = Object.freeze({
   x64: 62,
   arm64: 183,
@@ -2600,8 +2630,11 @@ function linuxBubblewrapProbe(
   contentSnapshot = null,
   supervisorBinding = null,
   pluginTreeSnapshot = null,
+  nativeDynamicClosure = null,
 ) {
-  const native = targetRuntime === "native-static-elf";
+  const native =
+    typeof targetRuntime === "string" && targetRuntime.startsWith("native-");
+  const dynamicNative = targetRuntime === "native-dynamic-elf";
   const expectedSnapshotScope = native
     ? LINUX_NATIVE_ENTRY_SNAPSHOT_SCOPE
     : LINUX_NODE_ENTRY_SNAPSHOT_SCOPE;
@@ -2631,10 +2664,34 @@ function linuxBubblewrapProbe(
       LINUX_NODE_PLUGIN_TREE_SNAPSHOT_CONSISTENCY &&
     pluginTreeSnapshot?.contractBound === false &&
     pluginTreeSnapshot?.atomic === false;
+  const initialDynamicLoadClosureDescriptorBound =
+    dynamicNative &&
+    attempted &&
+    snapshot &&
+    runnable &&
+    reason === null &&
+    supervisorDescriptorBound &&
+    nativeDynamicClosure?.mechanism ===
+      LINUX_NATIVE_DYNAMIC_DIRECT_SYSTEM_SET_MECHANISM &&
+    nativeDynamicClosure?.scope ===
+      LINUX_NATIVE_DYNAMIC_DIRECT_SYSTEM_SET_SCOPE &&
+    typeof nativeDynamicClosure?.interpreter === "string" &&
+    path.posix.isAbsolute(nativeDynamicClosure.interpreter) &&
+    Number.isSafeInteger(nativeDynamicClosure?.dependencies) &&
+    nativeDynamicClosure.dependencies >= 0 &&
+    nativeDynamicClosure.dependencies <= LINUX_ELF_MAX_NEEDED_ENTRIES &&
+    Number.isSafeInteger(nativeDynamicClosure?.files) &&
+    nativeDynamicClosure.files >= 1 &&
+    typeof nativeDynamicClosure?.digest === "string" &&
+    /^[a-f0-9]{64}$/.test(nativeDynamicClosure.digest);
   return {
-    kind: native
-      ? "linux-bwrap-plugin-native-static-elf-policy-v1"
-      : "linux-bwrap-plugin-node-policy-v1",
+    kind: dynamicNative
+      ? "linux-bwrap-plugin-native-dynamic-elf-policy-v1"
+      : targetRuntime === "native-static-elf"
+        ? "linux-bwrap-plugin-native-static-elf-policy-v1"
+        : native
+          ? "linux-bwrap-plugin-native-elf-policy-v1"
+          : "linux-bwrap-plugin-node-policy-v1",
     attempted,
     runnable,
     reason,
@@ -2658,6 +2715,17 @@ function linuxBubblewrapProbe(
           pluginTreeSnapshotConsistency: pluginTreeSnapshot.consistency,
           pluginTreeSnapshotContractBound: pluginTreeSnapshot.contractBound,
           pluginTreeSnapshotAtomic: pluginTreeSnapshot.atomic,
+        }
+      : {}),
+    ...(initialDynamicLoadClosureDescriptorBound
+      ? {
+          initialDynamicLoadClosureDescriptorBound: true,
+          initialDynamicLoadClosureScope: nativeDynamicClosure.scope,
+          initialDynamicLoadClosureMechanism: nativeDynamicClosure.mechanism,
+          initialDynamicInterpreter: nativeDynamicClosure.interpreter,
+          initialDynamicDependencyCount: nativeDynamicClosure.dependencies,
+          initialDynamicRuntimeFileCount: nativeDynamicClosure.files,
+          initialDynamicLoadClosureDigest: nativeDynamicClosure.digest,
         }
       : {}),
     supervisorDescriptorBound,
@@ -2957,8 +3025,11 @@ function validateLinuxPluginContract(
   { sealedEntry = false } = {},
 ) {
   const nodeContract = contract?.kind === "strict-plugin-node-bin";
-  const nativeContract =
+  const legacyStaticNativeContract =
     contract?.kind === "strict-plugin-native-static-elf-bin";
+  const nativeContract =
+    legacyStaticNativeContract ||
+    contract?.kind === "strict-plugin-native-elf-bin";
   const entryIsSealed =
     (nodeContract || nativeContract) && sealedEntry === true;
   if (
@@ -3081,14 +3152,20 @@ function validateLinuxPluginContract(
   let entryFormat = null;
   if (nativeContract && !entryIsSealed) {
     try {
-      entryFormat = inspectLinuxStaticNativePath(
-        runtime,
-        contract.entryIdentity,
-      );
+      entryFormat = inspectLinuxNativePath(runtime, contract.entryIdentity);
     } catch (error) {
       return {
         ok: false,
         reason: error.message || "native_entry_unattested",
+      };
+    }
+    if (
+      legacyStaticNativeContract &&
+      entryFormat.runtime !== "native-static-elf"
+    ) {
+      return {
+        ok: false,
+        reason: "native_entry_dynamic_contract_required",
       };
     }
   }
@@ -3101,7 +3178,12 @@ function validateLinuxPluginContract(
   return {
     ok: true,
     contract,
-    entryRuntime: nativeContract ? "native-static-elf" : "node",
+    entryRuntime: nativeContract
+      ? entryFormat?.runtime ||
+        (legacyStaticNativeContract
+          ? "native-static-elf"
+          : "native-unclassified")
+      : "node",
     entryFormat,
   };
 }
@@ -3170,7 +3252,7 @@ function hashLinuxOpenFile(runtime, fd, bytes) {
 }
 
 function linuxEntrySnapshotContract(targetRuntime) {
-  if (targetRuntime === "native-static-elf") {
+  if (targetRuntime?.startsWith("native-")) {
     return {
       scope: LINUX_NATIVE_ENTRY_SNAPSHOT_SCOPE,
       targetMode: LINUX_NATIVE_ENTRY_SNAPSHOT_TARGET_MODE,
@@ -3663,18 +3745,169 @@ function attestLinuxNodePluginTreeSnapshot(
   }
 }
 
+function validLinuxRuntimePageSize(value) {
+  if (
+    !Number.isSafeInteger(value) ||
+    value < LINUX_MIN_RUNTIME_PAGE_BYTES ||
+    value > LINUX_MAX_RUNTIME_PAGE_BYTES
+  ) {
+    return false;
+  }
+  const size = BigInt(value);
+  return (size & (size - 1n)) === 0n;
+}
+
+function readLinuxPageSizeFromAuxv(runtimeFs) {
+  // AT_PAGESZ is emitted by the kernel for this exact process and matches the
+  // page granularity used by the ELF loader. Avoid filesystem block sizes or
+  // an external getconf binary, neither of which is the loader contract.
+  const raw = runtimeFs.readFileSync("/proc/self/auxv");
+  const auxv = Buffer.isBuffer(raw) ? raw : Buffer.from(raw);
+  if (
+    auxv.length < LINUX_AUXV_ENTRY_BYTES ||
+    auxv.length > LINUX_AUXV_MAX_BYTES ||
+    auxv.length % LINUX_AUXV_ENTRY_BYTES !== 0
+  ) {
+    throw new Error("linux_runtime_auxv_invalid");
+  }
+  let pageSize = null;
+  let terminated = false;
+  for (let offset = 0; offset < auxv.length; offset += LINUX_AUXV_ENTRY_BYTES) {
+    const tag = auxv.readBigUInt64LE(offset);
+    const value = auxv.readBigUInt64LE(offset + 8);
+    if (tag === 0n) {
+      terminated = true;
+      break;
+    }
+    if (tag !== LINUX_AUXV_PAGE_SIZE) continue;
+    if (pageSize !== null || value > BigInt(Number.MAX_SAFE_INTEGER)) {
+      throw new Error("linux_runtime_page_size_ambiguous");
+    }
+    pageSize = Number(value);
+  }
+  if (!terminated || !validLinuxRuntimePageSize(pageSize)) {
+    throw new Error("linux_runtime_page_size_unattested");
+  }
+  return pageSize;
+}
+
+function linuxElfRuntimePageSize(runtime) {
+  const pageSize =
+    typeof runtime.linuxPageSize === "function"
+      ? runtime.linuxPageSize()
+      : readLinuxPageSizeFromAuxv(runtime.fs);
+  if (!validLinuxRuntimePageSize(pageSize)) {
+    throw new Error("linux_runtime_page_size_unattested");
+  }
+  return BigInt(pageSize);
+}
+
+function linuxElfAlignDown(value, alignment) {
+  return value - (value % alignment);
+}
+
+function linuxElfAlignUp(value, alignment) {
+  const remainder = value % alignment;
+  return remainder === 0n ? value : value + alignment - remainder;
+}
+
+function attestLinuxElfLoadMappings(loadSegments, pageSize) {
+  // Linux maps later PT_LOAD entries with MAP_FIXED. Even disjoint byte ranges
+  // can therefore replace one another after the loader rounds them to pages.
+  // A conservative no-overlap contract keeps our file-offset parser and the
+  // in-memory dynamic-loader view identical.
+  const ranges = [];
+  for (const load of loadSegments) {
+    if (
+      load.fileOffset % pageSize !== load.virtualAddress % pageSize ||
+      (load.alignment > 1n &&
+        ((load.alignment & (load.alignment - 1n)) !== 0n ||
+          load.fileOffset % load.alignment !==
+            load.virtualAddress % load.alignment))
+    ) {
+      throw new Error("native_entry_load_segment_alignment_invalid");
+    }
+    if (
+      load.virtualAddress > LINUX_ELF_MAX_UINT64 - load.memorySize ||
+      load.virtualAddress + load.memorySize >
+        LINUX_ELF_MAX_UINT64 - (pageSize - 1n)
+    ) {
+      throw new Error("native_entry_load_segment_virtual_range_overflow");
+    }
+    if (load.memorySize === 0n) continue;
+    ranges.push({
+      start: linuxElfAlignDown(load.virtualAddress, pageSize),
+      end: linuxElfAlignUp(load.virtualAddress + load.memorySize, pageSize),
+    });
+  }
+  ranges.sort((left, right) =>
+    left.start < right.start ? -1 : left.start > right.start ? 1 : 0,
+  );
+  for (let index = 1; index < ranges.length; index += 1) {
+    if (ranges[index].start < ranges[index - 1].end) {
+      throw new Error("native_entry_load_segment_page_overlap");
+    }
+  }
+}
+
+function linuxElfVirtualRangeFileMappings(loadSegments, address, bytes) {
+  return loadSegments
+    .filter((load) => {
+      if (address < load.virtualAddress) return false;
+      const delta = address - load.virtualAddress;
+      return (
+        delta <= load.fileSize &&
+        bytes <= load.fileSize - delta &&
+        delta <= load.memorySize &&
+        bytes <= load.memorySize - delta
+      );
+    })
+    .map((load) => ({
+      load,
+      fileOffset: load.fileOffset + (address - load.virtualAddress),
+    }));
+}
+
+function readLinuxElfString(table, offset, label) {
+  if (!Number.isSafeInteger(offset) || offset < 0 || offset >= table.length) {
+    throw new Error(`native_entry_${label}_string_out_of_bounds`);
+  }
+  const end = table.indexOf(0, offset);
+  if (end < 0) {
+    throw new Error(`native_entry_${label}_string_unterminated`);
+  }
+  const bytes = table.subarray(offset, end);
+  if (bytes.length < 1 || bytes.some((value) => value < 0x21 || value > 0x7e)) {
+    throw new Error(`native_entry_${label}_string_invalid`);
+  }
+  return bytes.toString("ascii");
+}
+
+function linuxSystemDynamicPath(value) {
+  return (
+    typeof value === "string" &&
+    path.posix.isAbsolute(value) &&
+    path.posix.normalize(value) === value &&
+    !value.includes("\0") &&
+    ["/lib/", "/lib64/", "/usr/lib/", "/usr/lib64/"].some((prefix) =>
+      value.startsWith(prefix),
+    )
+  );
+}
+
 /**
- * Classify one already-pinned plugin entry without invoking it or any host
- * inspection utility. The native slice accepts conventional fully static
- * ELF64 ET_EXEC images and a narrow static-PIE-shaped ELF:
- * ET_DYN without PT_INTERP, with one bounded PT_DYNAMIC table that declares
- * PIE but no external DT_NEEDED dependency.
+ * Classify one already-pinned plugin entry without invoking it or passing it
+ * to a host inspection utility. Besides conventional fully static ET_EXEC and
+ * static-PIE-shaped ET_DYN images, the parser can describe a narrow dynamic
+ * executable. The caller must separately prove that its PT_INTERP and every
+ * direct DT_NEEDED member are present in a pinned, attested system-file set.
  */
-function inspectLinuxStaticNativeElf(runtime, fd, identity) {
+function inspectLinuxNativeElf(runtime, fd, identity) {
   const expectedMachine = LINUX_ELF_MACHINES[runtime.arch];
   if (!expectedMachine) {
     throw new Error(`unsupported_elf_architecture:${String(runtime.arch)}`);
   }
+  const runtimePageSize = linuxElfRuntimePageSize(runtime);
   const before = runtime.fs.fstatSync(fd);
   if (
     !before.isFile() ||
@@ -3741,6 +3974,7 @@ function inspectLinuxStaticNativeElf(runtime, fd, identity) {
   let nonExecutableStack = false;
   const loadSegments = [];
   const dynamicSegments = [];
+  const interpreterSegments = [];
   for (let index = 0; index < programHeaderCount; index += 1) {
     const offset =
       Number(programHeaderOffset) + index * LINUX_ELF64_PROGRAM_HEADER_BYTES;
@@ -3756,6 +3990,7 @@ function inspectLinuxStaticNativeElf(runtime, fd, identity) {
     const virtualAddress = program.readBigUInt64LE(16);
     const fileSize = program.readBigUInt64LE(32);
     const memorySize = program.readBigUInt64LE(40);
+    const alignment = program.readBigUInt64LE(48);
     if (fileOffset > fileBytes || fileSize > fileBytes - fileOffset) {
       throw new Error("native_entry_segment_out_of_bounds");
     }
@@ -3763,18 +3998,21 @@ function inspectLinuxStaticNativeElf(runtime, fd, identity) {
       throw new Error("native_entry_segment_out_of_bounds");
     }
     if (type === LINUX_ELF_PROGRAM_INTERP) {
-      throw new Error("native_entry_interpreter_unsupported");
+      interpreterSegments.push({
+        flags,
+        fileOffset,
+        fileSize,
+        memorySize,
+      });
     }
     if (type === LINUX_ELF_PROGRAM_DYNAMIC) {
-      if (elfType === LINUX_ELF_TYPE_EXEC) {
-        throw new Error("native_entry_dynamic_elf_unsupported");
-      }
       dynamicSegments.push({
         flags,
         fileOffset,
         virtualAddress,
         fileSize,
         memorySize,
+        alignment,
       });
     }
     if (type === LINUX_ELF_PROGRAM_GNU_STACK) {
@@ -3790,6 +4028,7 @@ function inspectLinuxStaticNativeElf(runtime, fd, identity) {
         virtualAddress,
         fileSize,
         memorySize,
+        alignment,
       });
     }
     if (type === LINUX_ELF_PROGRAM_LOAD && (flags & 0x1) !== 0) {
@@ -3805,6 +4044,7 @@ function inspectLinuxStaticNativeElf(runtime, fd, identity) {
       }
     }
   }
+  attestLinuxElfLoadMappings(loadSegments, runtimePageSize);
   if (!executableLoad || !entryInExecutableLoad) {
     throw new Error("native_entry_has_no_executable_entry_segment");
   }
@@ -3812,23 +4052,65 @@ function inspectLinuxStaticNativeElf(runtime, fd, identity) {
     throw new Error("native_entry_nonexecutable_stack_unattested");
   }
 
-  if (elfType === LINUX_ELF_TYPE_DYN) {
+  if (interpreterSegments.length > 1) {
+    throw new Error("native_entry_interpreter_ambiguous");
+  }
+  let interpreter = null;
+  if (interpreterSegments.length === 1) {
+    const segment = interpreterSegments[0];
+    if (
+      (segment.flags & 0x3) !== 0 ||
+      segment.fileSize < 2n ||
+      segment.fileSize > BigInt(LINUX_ELF_MAX_INTERPRETER_BYTES) ||
+      segment.fileSize > segment.memorySize
+    ) {
+      throw new Error("native_entry_interpreter_invalid");
+    }
+    const contents = readLinuxFdExactly(
+      runtime,
+      fd,
+      Number(segment.fileSize),
+      Number(segment.fileOffset),
+    );
+    if (
+      contents[contents.length - 1] !== 0 ||
+      contents.indexOf(0) !== contents.length - 1
+    ) {
+      throw new Error("native_entry_interpreter_unterminated");
+    }
+    interpreter = readLinuxElfString(contents, 0, "interpreter");
+    if (!linuxSystemDynamicPath(interpreter)) {
+      throw new Error("native_entry_interpreter_outside_system_roots");
+    }
+  }
+
+  const staticPie = elfType === LINUX_ELF_TYPE_DYN && interpreter === null;
+  const dynamicExecutable = interpreter !== null;
+  let dynamicMetadata = null;
+  if (elfType === LINUX_ELF_TYPE_EXEC && !dynamicExecutable) {
+    if (dynamicSegments.length > 0) {
+      throw new Error("native_entry_dynamic_elf_unsupported");
+    }
+  } else {
+    const prefix = staticPie
+      ? "native_entry_static_pie"
+      : "native_entry_dynamic";
     if (dynamicSegments.length === 0) {
-      throw new Error("native_entry_static_pie_dynamic_segment_missing");
+      throw new Error(`${prefix}_dynamic_segment_missing`);
     }
     if (dynamicSegments.length !== 1) {
-      throw new Error("native_entry_static_pie_dynamic_segment_ambiguous");
+      throw new Error(`${prefix}_dynamic_segment_ambiguous`);
     }
     const dynamic = dynamicSegments[0];
     if ((dynamic.flags & 0x1) !== 0) {
-      throw new Error("native_entry_static_pie_dynamic_segment_executable");
+      throw new Error(`${prefix}_dynamic_segment_executable`);
     }
     if (
       dynamic.fileSize < BigInt(LINUX_ELF64_DYNAMIC_ENTRY_BYTES) ||
       dynamic.fileSize % BigInt(LINUX_ELF64_DYNAMIC_ENTRY_BYTES) !== 0n ||
       dynamic.fileSize > dynamic.memorySize
     ) {
-      throw new Error("native_entry_static_pie_dynamic_segment_invalid");
+      throw new Error(`${prefix}_dynamic_segment_invalid`);
     }
     const dynamicEntries =
       dynamic.fileSize / BigInt(LINUX_ELF64_DYNAMIC_ENTRY_BYTES);
@@ -3836,9 +4118,9 @@ function inspectLinuxStaticNativeElf(runtime, fd, identity) {
       dynamicEntries < 1n ||
       dynamicEntries > BigInt(LINUX_ELF_MAX_DYNAMIC_ENTRIES)
     ) {
-      throw new Error("native_entry_static_pie_dynamic_table_too_large");
+      throw new Error(`${prefix}_dynamic_table_too_large`);
     }
-    const containingLoad = loadSegments.find((load) => {
+    const containingLoads = loadSegments.filter((load) => {
       if (
         dynamic.fileOffset < load.fileOffset ||
         dynamic.virtualAddress < load.virtualAddress
@@ -3855,8 +4137,22 @@ function inspectLinuxStaticNativeElf(runtime, fd, identity) {
         dynamic.memorySize <= load.memorySize - memoryDelta
       );
     });
-    if (!containingLoad) {
-      throw new Error("native_entry_static_pie_dynamic_segment_unmapped");
+    if (containingLoads.length === 0) {
+      throw new Error(`${prefix}_dynamic_segment_unmapped`);
+    }
+    if (containingLoads.length !== 1) {
+      throw new Error(`${prefix}_dynamic_segment_mapping_ambiguous`);
+    }
+    const dynamicLoaderMappings = linuxElfVirtualRangeFileMappings(
+      loadSegments,
+      dynamic.virtualAddress,
+      dynamic.fileSize,
+    );
+    if (
+      dynamicLoaderMappings.length !== 1 ||
+      dynamicLoaderMappings[0].fileOffset !== dynamic.fileOffset
+    ) {
+      throw new Error(`${prefix}_dynamic_segment_loader_view_mismatch`);
     }
 
     const dynamicTable = readLinuxFdExactly(
@@ -3865,8 +4161,21 @@ function inspectLinuxStaticNativeElf(runtime, fd, identity) {
       Number(dynamic.fileSize),
       Number(dynamic.fileOffset),
     );
+    const neededOffsets = [];
+    const forbiddenDependencyTags = new Set([
+      LINUX_ELF_DYNAMIC_RPATH,
+      LINUX_ELF_DYNAMIC_RUNPATH,
+      LINUX_ELF_DYNAMIC_CONFIG,
+      LINUX_ELF_DYNAMIC_DEPAUDIT,
+      LINUX_ELF_DYNAMIC_AUDIT,
+      LINUX_ELF_DYNAMIC_AUXILIARY,
+      LINUX_ELF_DYNAMIC_FILTER,
+    ]);
     let terminated = false;
+    let flags = null;
     let flags1 = null;
+    let stringTableAddress = null;
+    let stringTableBytes = null;
     for (
       let offset = 0;
       offset < dynamicTable.length;
@@ -3878,21 +4187,113 @@ function inspectLinuxStaticNativeElf(runtime, fd, identity) {
         terminated = true;
         break;
       }
-      if (tag === LINUX_ELF_DYNAMIC_NEEDED) {
-        throw new Error("native_entry_static_pie_dependency_unsupported");
+      if (
+        tag === LINUX_ELF_DYNAMIC_TEXTREL ||
+        forbiddenDependencyTags.has(tag)
+      ) {
+        throw new Error(`${prefix}_loader_directive_unsupported`);
       }
-      if (tag === LINUX_ELF_DYNAMIC_FLAGS_1) {
+      if (tag === LINUX_ELF_DYNAMIC_NEEDED) {
+        neededOffsets.push(value);
+        if (neededOffsets.length > LINUX_ELF_MAX_NEEDED_ENTRIES) {
+          throw new Error(`${prefix}_dependency_count_exceeded`);
+        }
+      } else if (tag === LINUX_ELF_DYNAMIC_STRTAB) {
+        if (stringTableAddress !== null) {
+          throw new Error(`${prefix}_string_table_ambiguous`);
+        }
+        stringTableAddress = value;
+      } else if (tag === LINUX_ELF_DYNAMIC_STRSZ) {
+        if (stringTableBytes !== null) {
+          throw new Error(`${prefix}_string_table_ambiguous`);
+        }
+        stringTableBytes = value;
+      } else if (tag === LINUX_ELF_DYNAMIC_FLAGS) {
+        if (flags !== null) {
+          throw new Error(`${prefix}_flags_ambiguous`);
+        }
+        flags = value;
+      } else if (tag === LINUX_ELF_DYNAMIC_FLAGS_1) {
         if (flags1 !== null) {
-          throw new Error("native_entry_static_pie_flags_ambiguous");
+          throw new Error(`${prefix}_flags_ambiguous`);
         }
         flags1 = value;
       }
     }
     if (!terminated) {
-      throw new Error("native_entry_static_pie_dynamic_table_unterminated");
+      throw new Error(`${prefix}_dynamic_table_unterminated`);
     }
-    if (flags1 === null || (flags1 & LINUX_ELF_DYNAMIC_FLAG_PIE) === 0n) {
-      throw new Error("native_entry_static_pie_flag_missing");
+    if (flags !== null && (flags & LINUX_ELF_DYNAMIC_FLAG_TEXTREL) !== 0n) {
+      throw new Error(`${prefix}_text_relocation_unsupported`);
+    }
+    if (
+      elfType === LINUX_ELF_TYPE_DYN &&
+      (flags1 === null || (flags1 & LINUX_ELF_DYNAMIC_FLAG_PIE) === 0n)
+    ) {
+      throw new Error(`${prefix}_flag_missing`);
+    }
+    if (staticPie && neededOffsets.length > 0) {
+      throw new Error("native_entry_static_pie_dependency_unsupported");
+    }
+
+    let needed = [];
+    if (neededOffsets.length > 0) {
+      if (
+        stringTableAddress === null ||
+        stringTableBytes === null ||
+        stringTableBytes < 1n ||
+        stringTableBytes > BigInt(LINUX_ELF_MAX_STRING_TABLE_BYTES)
+      ) {
+        throw new Error(`${prefix}_string_table_invalid`);
+      }
+      const stringTableMappings = linuxElfVirtualRangeFileMappings(
+        loadSegments,
+        stringTableAddress,
+        stringTableBytes,
+      );
+      if (stringTableMappings.length === 0) {
+        throw new Error(`${prefix}_string_table_unmapped`);
+      }
+      if (stringTableMappings.length !== 1) {
+        throw new Error(`${prefix}_string_table_mapping_ambiguous`);
+      }
+      const stringTableOffset = stringTableMappings[0].fileOffset;
+      if (stringTableOffset > BigInt(Number.MAX_SAFE_INTEGER)) {
+        throw new Error(`${prefix}_string_table_unmapped`);
+      }
+      const stringTable = readLinuxFdExactly(
+        runtime,
+        fd,
+        Number(stringTableBytes),
+        Number(stringTableOffset),
+      );
+      needed = neededOffsets.map((offset) => {
+        if (offset > BigInt(Number.MAX_SAFE_INTEGER)) {
+          throw new Error(`${prefix}_dependency_string_out_of_bounds`);
+        }
+        const name = readLinuxElfString(
+          stringTable,
+          Number(offset),
+          "dynamic_dependency",
+        );
+        if (
+          !/^[A-Za-z0-9][A-Za-z0-9._+-]{0,254}$/.test(name) ||
+          path.posix.basename(name) !== name
+        ) {
+          throw new Error("native_entry_dynamic_dependency_name_invalid");
+        }
+        return name;
+      });
+      if (new Set(needed).size !== needed.length) {
+        throw new Error("native_entry_dynamic_dependency_ambiguous");
+      }
+    }
+
+    if (dynamicExecutable) {
+      dynamicMetadata = Object.freeze({
+        interpreter,
+        needed: Object.freeze(needed),
+      });
     }
   }
 
@@ -3902,17 +4303,23 @@ function inspectLinuxStaticNativeElf(runtime, fd, identity) {
     throw new Error("native_entry_changed_during_elf_attestation");
   }
   return Object.freeze({
-    format:
-      elfType === LINUX_ELF_TYPE_DYN
+    runtime: dynamicExecutable ? "native-dynamic-elf" : "native-static-elf",
+    format: dynamicExecutable
+      ? elfType === LINUX_ELF_TYPE_DYN
+        ? "elf64-dynamic-pie-et-dyn"
+        : "elf64-dynamic-et-exec"
+      : elfType === LINUX_ELF_TYPE_DYN
         ? "elf64-static-pie-shaped-et-dyn"
         : "elf64-static-et-exec",
     architecture: runtime.arch,
     machine: expectedMachine,
+    loaderPageBytes: Number(runtimePageSize),
     programHeaders: programHeaderCount,
+    ...(dynamicMetadata || {}),
   });
 }
 
-function inspectLinuxStaticNativePath(runtime, identity) {
+function inspectLinuxNativePath(runtime, identity) {
   let fd;
   try {
     const constants = runtime.fs.constants || fs.constants;
@@ -3921,7 +4328,7 @@ function inspectLinuxStaticNativePath(runtime, identity) {
       Number(constants.O_NOFOLLOW || 0) |
       Number(constants.O_NONBLOCK || 0);
     fd = runtime.fs.openSync(identity.realPath, flags);
-    return inspectLinuxStaticNativeElf(runtime, fd, identity);
+    return inspectLinuxNativeElf(runtime, fd, identity);
   } finally {
     if (fd !== undefined) {
       try {
@@ -4656,6 +5063,87 @@ function pinLinuxRuntimeMounts(runtime, runtimeMounts, runtimeIdentity) {
   }
 }
 
+// Bind only the kernel-selected interpreter and the entry ELF's direct
+// DT_NEEDED names. This deliberately does not claim transitive or dlopen-time
+// closure; handleAtomic remains false for the wider launch chain.
+function bindLinuxNativeDynamicRuntime(entryFormat, pinnedRuntimeMounts) {
+  if (entryFormat?.runtime !== "native-dynamic-elf") return null;
+  if (
+    !linuxSystemDynamicPath(entryFormat.interpreter) ||
+    !Array.isArray(entryFormat.needed) ||
+    entryFormat.needed.length > LINUX_ELF_MAX_NEEDED_ENTRIES
+  ) {
+    throw new Error("native_dynamic_metadata_invalid");
+  }
+  const systemMounts = (pinnedRuntimeMounts || []).filter(
+    (mount) =>
+      linuxSystemDynamicPath(mount?.destination) &&
+      Number.isInteger(mount?.fd) &&
+      typeof mount?.fileId?.dev === "string" &&
+      typeof mount?.fileId?.ino === "string" &&
+      Number.isSafeInteger(mount?.bytes) &&
+      mount.bytes > 0 &&
+      Number.isFinite(mount?.mtimeMs),
+  );
+  const interpreterMount = systemMounts.find(
+    (mount) => mount.destination === entryFormat.interpreter,
+  );
+  if (!interpreterMount) {
+    throw new Error("native_dynamic_interpreter_outside_direct_system_set");
+  }
+  const selected = new Map([[interpreterMount.destination, interpreterMount]]);
+  for (const dependency of entryFormat.needed) {
+    if (
+      typeof dependency !== "string" ||
+      !/^[A-Za-z0-9][A-Za-z0-9._+-]{0,254}$/.test(dependency)
+    ) {
+      throw new Error("native_dynamic_dependency_name_invalid");
+    }
+    const matches = systemMounts.filter(
+      (mount) => path.posix.basename(mount.destination) === dependency,
+    );
+    if (matches.length === 0) {
+      throw new Error("native_dynamic_dependency_outside_direct_system_set");
+    }
+    if (matches.length !== 1) {
+      throw new Error("native_dynamic_dependency_runtime_ambiguous");
+    }
+    selected.set(matches[0].destination, matches[0]);
+  }
+  const members = [...selected.values()]
+    .map((mount) => ({
+      destination: mount.destination,
+      fileId: {
+        dev: mount.fileId.dev,
+        ino: mount.fileId.ino,
+      },
+      bytes: mount.bytes,
+      mtimeMs: mount.mtimeMs,
+    }))
+    .sort((left, right) => left.destination.localeCompare(right.destination));
+  const digest = crypto
+    .createHash("sha256")
+    .update(
+      JSON.stringify({
+        version: 1,
+        scope: LINUX_NATIVE_DYNAMIC_DIRECT_SYSTEM_SET_SCOPE,
+        mechanism: LINUX_NATIVE_DYNAMIC_DIRECT_SYSTEM_SET_MECHANISM,
+        interpreter: entryFormat.interpreter,
+        needed: [...entryFormat.needed].sort(),
+        members,
+      }),
+    )
+    .digest("hex");
+  return Object.freeze({
+    scope: LINUX_NATIVE_DYNAMIC_DIRECT_SYSTEM_SET_SCOPE,
+    mechanism: LINUX_NATIVE_DYNAMIC_DIRECT_SYSTEM_SET_MECHANISM,
+    interpreter: entryFormat.interpreter,
+    dependencies: entryFormat.needed.length,
+    files: members.length,
+    digest,
+  });
+}
+
 function linuxSandboxEnvironment() {
   return {
     HOME: "/home/sandbox",
@@ -4932,11 +5420,22 @@ export function applyLinuxSandbox(
   );
 
   if (requiresStrongLinuxBoundary) {
+    if (isLinuxGenericWorkspaceContract(sandboxOpts.executionContract)) {
+      return applyLinuxGenericWorkspaceSandbox(
+        command,
+        args,
+        spawnOpts,
+        sandboxOpts,
+        runtime,
+      );
+    }
     const requestedEntryRuntime =
       sandboxOpts.executionContract?.kind ===
       "strict-plugin-native-static-elf-bin"
         ? "native-static-elf"
-        : "node";
+        : sandboxOpts.executionContract?.kind === "strict-plugin-native-elf-bin"
+          ? "native-unclassified"
+          : "node";
     const validation = validateLinuxPluginContract(
       command,
       args,
@@ -5009,6 +5508,29 @@ export function applyLinuxSandbox(
         guarantees: [],
       });
     }
+    let nativeDynamicClosure = null;
+    try {
+      nativeDynamicClosure = bindLinuxNativeDynamicRuntime(
+        validation.entryFormat,
+        pinnedRuntimeMounts,
+      );
+    } catch (error) {
+      closeLinuxPinnedMounts(runtime, pinnedRuntimeMounts);
+      return createSandboxPlan({
+        ...base,
+        backend: null,
+        candidateBackend: LINUX_BWRAP_BACKEND,
+        policyAttested: false,
+        runtimeProbe: linuxBubblewrapProbe(
+          false,
+          false,
+          error.message || "native_dynamic_direct_system_set_unattested",
+          validation.entryRuntime,
+        ),
+        reason: "linux_bwrap_native_runtime_unattested",
+        guarantees: [],
+      });
+    }
 
     let pinnedMounts = [];
     let pluginTree;
@@ -5046,8 +5568,8 @@ export function applyLinuxSandbox(
       ) {
         throw new Error("plugin_entry_pin_mismatch");
       }
-      if (validation.entryRuntime === "native-static-elf") {
-        entryFormat = inspectLinuxStaticNativeElf(
+      if (validation.entryRuntime.startsWith("native-")) {
+        entryFormat = inspectLinuxNativeElf(
           runtime,
           entryMount.fd,
           validation.contract.entryIdentity,
@@ -5325,10 +5847,9 @@ export function applyLinuxSandbox(
       environment,
       seccompFilter,
     );
-    const targetArgs =
-      validation.entryRuntime === "native-static-elf"
-        ? [sandboxEntry, ...args]
-        : ["/opt/chainless/runtime/node", sandboxEntry, ...args.slice(1)];
+    const targetArgs = validation.entryRuntime.startsWith("native-")
+      ? [sandboxEntry, ...args]
+      : ["/opt/chainless/runtime/node", sandboxEntry, ...args.slice(1)];
     const snapshotPolicyBinding = entrySnapshot
       ? {
           scope: entrySnapshot.attestation.scope,
@@ -5389,6 +5910,9 @@ export function applyLinuxSandbox(
                 },
           ),
           contentSnapshot: snapshotPolicyBinding,
+          ...(nativeDynamicClosure
+            ? { initialDynamicLoadClosure: nativeDynamicClosure }
+            : {}),
           ...(validation.entryRuntime === "node"
             ? { pluginTreeContentSnapshot: pluginTreeSnapshot }
             : {}),
@@ -5398,10 +5922,9 @@ export function applyLinuxSandbox(
             sha256: seccompFilter.sha256,
           },
           policyArgs,
-          target:
-            validation.entryRuntime === "native-static-elf"
-              ? targetArgs.slice(0, 1)
-              : targetArgs.slice(0, 2),
+          target: validation.entryRuntime.startsWith("native-")
+            ? targetArgs.slice(0, 1)
+            : targetArgs.slice(0, 2),
         }),
       )
       .digest("hex");
@@ -5556,6 +6079,7 @@ export function applyLinuxSandbox(
         entrySnapshot?.attestation,
         supervisorBinding,
         pluginTreeSnapshot,
+        nativeDynamicClosure,
       ),
     );
     const options = {

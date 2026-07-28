@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { EventEmitter } from "node:events";
 import { PluginMonitorSupervisor } from "../../src/lib/plugin-monitor-supervisor.js";
+import { executionBroker } from "../../src/lib/process-execution-broker/index.js";
 
 /** A fake child process: EventEmitter with pipe-like stdout/stderr + kill(). */
 function makeChild() {
@@ -146,6 +147,45 @@ describe("PluginMonitorSupervisor — longRunning mode", () => {
     expect(out.map((o) => o.stream)).toEqual(["stdout", "stderr"]);
     sup.stopAll();
     expect(child.kill).toHaveBeenCalledWith("SIGTERM"); // reaped
+  });
+
+  it("uses only the loader-injected plugin root as writable authority", () => {
+    const spawn = makeSpawn();
+    const contract = Object.freeze({ kind: "test-workspace-contract" });
+    const issueAuthority = vi
+      .spyOn(executionBroker, "issueLinuxWorkspaceSandboxExecutionContract")
+      .mockReturnValue(contract);
+    sup = new PluginMonitorSupervisor({
+      spawn,
+      brokerSpawn: spawn,
+    });
+    sup.start([
+      mon({
+        mode: "longRunning",
+        origin: "plugin:monitor",
+        cwd: "/manifest-controlled-cwd",
+        pluginWorkspaceRoot: "/trusted/plugins/p",
+        pluginId: "p",
+        pluginVersion: "1.0.0",
+        pluginSource: "/trusted/plugins/p/plugin.json",
+        sandboxPolicy: {
+          requiredBoundaries: ["filesystem", "network"],
+        },
+      }),
+    ]);
+
+    expect(issueAuthority).toHaveBeenCalledWith(
+      "echo",
+      ["hi"],
+      expect.objectContaining({
+        cwd: "/manifest-controlled-cwd",
+        shell: false,
+        origin: "plugin:monitor",
+      }),
+      "/trusted/plugins/p",
+    );
+    expect(spawn.calls[0].opts.sandboxExecutionContract).toBe(contract);
+    issueAuthority.mockRestore();
   });
 });
 

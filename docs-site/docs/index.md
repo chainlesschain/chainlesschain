@@ -43,7 +43,7 @@ features:
     details: 单元、集成、E2E 与文档持续对齐，减少设计与实现偏移。
 ---
 
-> **2026-07-25 当前主线快照**：桌面/Android 源码版本 `5.0.3.135`；CLI `0.162.179`、PDH `0.4.55` 与 VS Code IDE 扩展 `0.37.33` 已分别发布。个人数据中台现注册 92 个采集契约 / 18 类数据源，桌面端、Web Panel 与 CLI 共用立即同步、文件、目录、临时 Cookie、临时 OAuth 和 Android ADB 六类入口；readiness、取消、完整扫描水位和失败闭合边界已统一。详细入口：[个人数据中台](/chainlesschain/personal-data-hub)、[CLI Runtime 当前实现](/chainlesschain/cli-runtime-current) 与 [Python Agent SDK](/chainlesschain/python-agent-sdk)。
+> **2026-07-28 当前主线快照**：桌面/Android 源码版本保持 `5.0.3.135`；CLI `0.162.183`、PDH `0.4.57`、Agent SDK `0.1.7`、VS Code `0.37.35` 与 JetBrains `0.4.74` 已分别发布。个人数据中台的 92 个采集契约 / 18 类数据源现支持事务化多源归并与显式游标续扫；CLI 原生插件执行补齐 Linux fd-bound bubblewrap 与 Windows AppContainer 强边界；IDE 双端新增质量上下文、插件供应链管理和受监督 worktree 后台任务。详细入口：[CLI Runtime 当前实现](/chainlesschain/cli-runtime-current)、[IDE 插件使用指南](/chainlesschain/ide-plugin)、[个人数据中台](/chainlesschain/personal-data-hub)与[更新日志](/changelog)。
 
 > 2026-04-08 更新：文档站已对齐 CLI Agent Runtime 重构、统一 runtime event、session record、后台任务增强、Worktree 合并助手、压缩观测、会话迁移，以及 **Coding Agent Phase 5 最小 Harness + 真实 interrupt**。
 >

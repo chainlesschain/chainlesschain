@@ -388,6 +388,55 @@ describe("attribution rendering", () => {
     expect(md).not.toContain("needs CLI-side event tagging");
   });
 
+  it("renders measured tool time, observed retries, and LLM failed-attempt time", () => {
+    const u = attributedUsageFixture();
+    Object.assign(u.attribution.tools, {
+      totalDurationMs: 2500,
+      timedCalls: 7,
+      retryCalls: 1,
+    });
+    Object.assign(u.attribution.tools.byTool[0], {
+      durationMs: 2000,
+      timedCalls: 4,
+      retries: 1,
+    });
+    Object.assign(u.attribution.tools.byTool[1], {
+      durationMs: 500,
+      timedCalls: 3,
+      retries: 0,
+    });
+    Object.assign(u.attribution.tools.byMcpServer[0], {
+      durationMs: 500,
+      timedCalls: 3,
+      retries: 0,
+    });
+    Object.assign(u.attribution.tools.byPlugin[0], {
+      durationMs: 500,
+      timedCalls: 2,
+      retries: 0,
+    });
+    u.attribution.retries = {
+      totalRetries: 2,
+      durationMs: 4250,
+      byReason: [{ reason: "timeout", retries: 2, durationMs: 4250 }],
+      byModel: [
+        {
+          provider: "anthropic",
+          model: "claude-sonnet-4-6",
+          retries: 2,
+          durationMs: 4250,
+        },
+      ],
+    };
+    const report = usageToMarkdown(summarize(u));
+    expect(report).toContain("1 observed retries · 2.50 s observed time");
+    expect(report).toContain("| read_file |  | 4 | 1 | 1 | 2.00 s | 600 |");
+    expect(report).toContain("## LLM retries");
+    expect(report).toContain("2 automatic retries · 4.25 s");
+    expect(report).toContain("| timeout | 2 | 4.25 s |");
+    expect(report).toContain("| anthropic | claude-sonnet-4-6 | 2 | 4.25 s |");
+  });
+
   it("renders empty-state placeholders when attribution arrays are empty", () => {
     const u = attributedUsageFixture();
     u.attribution = { byOrigin: [], bySkill: [], bySubagent: [], tools: {} };

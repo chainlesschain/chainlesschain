@@ -37,7 +37,12 @@ import {
  * (for --json folding) or null when the plugin declares nothing / can't be
  * resolved.
  */
-async function resolvePluginCapabilityNotice(name, scope, cwd) {
+async function resolvePluginCapabilityNotice(
+  name,
+  scope,
+  cwd,
+  { strict = false } = {},
+) {
   try {
     const { discoverPlugins } = await import("../lib/plugin-runtime/scopes.js");
     const { describeCapabilities } =
@@ -46,7 +51,12 @@ async function resolvePluginCapabilityNotice(name, scope, cwd) {
     const installed = discoverPlugins({ cwd, skipPolicy: true }).find(
       (p) => p.name === name && p.scope === scope,
     );
-    if (!installed) return null;
+    if (!installed) {
+      if (strict) {
+        throw new Error(`${name} is not discoverable at ${scope} scope`);
+      }
+      return null;
+    }
     const declared = installed.manifest?.capabilities;
     if (!declared || consent.capabilitiesAreEmpty(declared)) return null;
     const entry = consent.loadConsentStore()[`${scope}:${name}`] || null;
@@ -57,7 +67,12 @@ async function resolvePluginCapabilityNotice(name, scope, cwd) {
       reason: status.reason,
       added: status.added,
     };
-  } catch {
+  } catch (error) {
+    if (strict) {
+      throw new Error(
+        `installed plugin capability validation failed: ${error.message}`,
+      );
+    }
     return null; // capability rendering is advisory — never break an install
   }
 }
@@ -1568,7 +1583,11 @@ export function registerPluginCommand(program) {
     )
     .option("--json", "Output as JSON")
     .action(async (source, options) => {
-      const { updatePlugin } = await import("../lib/plugin-runtime/install.js");
+      const {
+        updatePlugin,
+        finalizePluginUpdate,
+        rollbackPluginUpdate,
+      } = await import("../lib/plugin-runtime/install.js");
       let installSource = source;
       let integritySha = null;
       let sourceMetadata = null;
@@ -1647,8 +1666,9 @@ export function registerPluginCommand(program) {
               requireTrustedKey: requiresManagedSignature,
             }
           : null;
+      let res = null;
       try {
-        const res = updatePlugin(installSource, {
+        res = updatePlugin(installSource, {
           scope: options.scope,
           cwd: process.cwd(),
           force: options.force,
@@ -1656,11 +1676,13 @@ export function registerPluginCommand(program) {
           sourceMetadata,
           managedPolicy: managed,
           policySource: options.registry || source,
+          transactional: true,
         });
         const upgradeNotice = await resolvePluginCapabilityNotice(
           res.name,
           options.scope,
           process.cwd(),
+          { strict: true },
         );
         if (res.updated || res.reinstalled)
           await auditPluginInstall(
@@ -1670,19 +1692,53 @@ export function registerPluginCommand(program) {
             upgradeNotice,
           );
 
+        let capabilitiesGranted = false;
         if (options.json) {
-          let capabilitiesGranted = false;
-          if (
-            options.grantCapabilities &&
-            upgradeNotice &&
-            !upgradeNotice.consented
-          ) {
+          if (options.grantCapabilities && upgradeNotice?.consented === false) {
             capabilitiesGranted = await grantInstalledPluginCapabilities(
               res.name,
               options.scope,
               process.cwd(),
             );
           }
+        } else {
+          capabilitiesGranted = await applyCapabilityConsentGate(
+            res.name,
+            options.scope,
+            upgradeNotice,
+            process.cwd(),
+            {
+              grant: options.grantCapabilities === true,
+              interactive: Boolean(process.stdin.isTTY),
+            },
+          );
+        }
+
+        const changed = res.updated || res.reinstalled;
+        const consentBlocked =
+          changed &&
+          upgradeNotice?.consented === false &&
+          capabilitiesGranted !== true;
+        const rollbackReason = consentBlocked
+          ? options.grantCapabilities
+            ? "capability_consent_failed"
+            : "capability_consent_required"
+          : null;
+        let activationStatus = changed ? "activated" : "unchanged";
+        let rollbackVersion = null;
+        let cleanupPending = false;
+        if (rollbackReason) {
+          const recovery = rollbackPluginUpdate(res);
+          if (!recovery.rolledBack) {
+            throw new Error("upgrade rollback transaction was unavailable");
+          }
+          activationStatus = "rolled_back";
+          rollbackVersion = recovery.version;
+        } else {
+          cleanupPending = finalizePluginUpdate(res).cleanupPending === true;
+        }
+
+        if (options.json) {
           console.log(
             JSON.stringify(
               {
@@ -1690,6 +1746,10 @@ export function registerPluginCommand(program) {
                 scope: options.scope,
                 capabilities: upgradeNotice,
                 capabilitiesGranted,
+                activationStatus,
+                rollbackVersion,
+                rollbackReason,
+                cleanupPending,
               },
               null,
               2,
@@ -1698,7 +1758,14 @@ export function registerPluginCommand(program) {
           return;
         }
 
-        if (res.updated) {
+        if (activationStatus === "rolled_back") {
+          logger.warn(
+            `Upgrade not activated: ${rollbackReason.replaceAll("_", " ")}; ` +
+              (rollbackVersion
+                ? `restored ${res.name} v${rollbackVersion}`
+                : `removed the rejected ${res.name} v${res.version} install`),
+          );
+        } else if (res.updated) {
           logger.success(
             `Updated ${res.name}: ${res.previousVersion ? `v${res.previousVersion} → ` : ""}v${res.version} (${options.scope} scope)`,
           );
@@ -1711,22 +1778,21 @@ export function registerPluginCommand(program) {
             `${res.name} is already up to date at v${res.version} (use --force to reinstall)`,
           );
         }
-        // Surface the (possibly widened) capability set + re-consent hint. An
-        // upgrade that adds a capability shows a `⚠ capability consent required`
-        // notice diffed against the prior consent, then either auto-grants
-        // (--grant-capabilities) or blocks interactively to re-consent now.
-        await applyCapabilityConsentGate(
-          res.name,
-          options.scope,
-          upgradeNotice,
-          process.cwd(),
-          {
-            grant: options.grantCapabilities === true,
-            interactive: Boolean(process.stdin.isTTY),
-          },
-        );
       } catch (err) {
-        logger.error(`Upgrade failed: ${err.message}`);
+        let recoveryNote = "";
+        if (res) {
+          try {
+            const recovery = rollbackPluginUpdate(res);
+            if (recovery.rolledBack) {
+              recoveryNote = recovery.version
+                ? `; restored v${recovery.version}`
+                : "; removed the rejected install";
+            }
+          } catch (recoveryError) {
+            recoveryNote = `; automatic recovery failed: ${recoveryError.message}`;
+          }
+        }
+        logger.error(`Upgrade failed: ${err.message}${recoveryNote}`);
         process.exitCode = 1;
       }
     });

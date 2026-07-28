@@ -15,6 +15,7 @@ import {
   buildSkillListArgs,
   parseMcpServers,
   parsePluginInstalled,
+  parsePluginUpgradeResult,
   parseSkillList,
 } from "../../../vscode-extension/src/plugin-manager.js";
 
@@ -84,6 +85,7 @@ describe("plugin/MCP manager argv builders", () => {
         scope: "project",
         registry: "https://registry.example/plugins.json",
         packageName: "p1",
+        grantCapabilities: true,
       }),
     ).toEqual([
       "plugin",
@@ -93,6 +95,7 @@ describe("plugin/MCP manager argv builders", () => {
       "project",
       "--registry",
       "https://registry.example/plugins.json",
+      "--grant-capabilities",
       "--json",
     ]);
     expect(buildPluginConsentArgs("p1", "status", "user")).toEqual([
@@ -154,6 +157,58 @@ describe("plugin/MCP manager parsers", () => {
     expect(parsePluginInstalled("[]")).toEqual([]);
     expect(parseMcpServers("nope")).toBeNull();
     expect(parseSkillList("{}")).toBeNull();
+    expect(parsePluginUpgradeResult("not json")).toBeNull();
+  });
+
+  it("parses activated and automatically rolled-back upgrades", () => {
+    expect(
+      parsePluginUpgradeResult(
+        JSON.stringify({
+          name: "a",
+          version: "2.0.0",
+          previousVersion: "1.0.0",
+          updated: true,
+        }),
+      ),
+    ).toMatchObject({
+      activationStatus: "activated",
+      version: "2.0.0",
+      previousVersion: "1.0.0",
+    });
+    expect(
+      parsePluginUpgradeResult(
+        JSON.stringify({
+          name: "a",
+          version: "2.0.0",
+          activationStatus: "rolled_back",
+          rollbackVersion: "1.0.0",
+          rollbackReason: "capability_consent_required",
+          capabilities: {
+            consented: false,
+            reason: "capabilities widened",
+            declared: ["process", "network:*"],
+            added: ["network:*"],
+          },
+        }),
+      ),
+    ).toEqual({
+      name: "a",
+      version: "2.0.0",
+      previousVersion: "",
+      activationStatus: "rolled_back",
+      rollbackVersion: "1.0.0",
+      rollbackReason: "capability_consent_required",
+      capabilitiesGranted: false,
+      capabilities: {
+        consented: false,
+        reason: "capabilities widened",
+        declared: ["process", "network:*"],
+        added: ["network:*"],
+      },
+    });
+    expect(
+      parsePluginUpgradeResult('{"activationStatus":"partially_active"}'),
+    ).toBeNull();
   });
 
   it("parses plugin installed rows with scope + manifest validity", () => {

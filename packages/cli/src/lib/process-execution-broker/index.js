@@ -38,6 +38,11 @@ import {
   postSpawnSandbox as _postSpawnSandbox,
   SANDBOX_BOUNDARIES,
 } from "./platform-sandbox.js";
+import {
+  admitLinuxGenericSandboxExecutionContract,
+  issueLinuxGenericSandboxExecutionContract,
+  LINUX_GENERIC_CONTRACT_KIND,
+} from "./linux-generic-bwrap.js";
 import { consumeIssuedPluginSandboxExecutionContract } from "../plugin-runtime/bin.js";
 import { credentialAgent } from "./credential-agent.js";
 
@@ -271,6 +276,24 @@ class ProcessExecutionBroker extends EventEmitter {
         },
       );
     };
+    if (raw?.kind === LINUX_GENERIC_CONTRACT_KIND) {
+      const admitted = admitLinuxGenericSandboxExecutionContract(raw, {
+        origin: options.origin || "unknown",
+        command: launch?.command,
+        args: launch?.args,
+        cwd: options.cwd || process.cwd(),
+        shell: options.shell,
+        sync: launch?.sync === true,
+        stdio: options.stdio,
+        requiredBoundaries,
+      });
+      if (!admitted) {
+        return invalid(
+          "sandboxExecutionContract was not issued for this workspace launch provenance",
+        );
+      }
+      return admitted;
+    }
     if (
       !consumeIssuedPluginSandboxExecutionContract(raw, {
         origin: options.origin,
@@ -315,6 +338,7 @@ class ProcessExecutionBroker extends EventEmitter {
       ![
         "strict-plugin-node-bin",
         "strict-plugin-native-static-elf-bin",
+        "strict-plugin-native-elf-bin",
       ].includes(raw.kind)
     ) {
       return invalid("unsupported sandboxExecutionContract kind or version");
@@ -404,6 +428,57 @@ class ProcessExecutionBroker extends EventEmitter {
       rootIdentity,
       entryIdentity: this._freezeExecutableIdentity(entryIdentity),
       runtimeIdentity: this._freezeExecutableIdentity(runtimeIdentity),
+    });
+  }
+
+  /**
+   * Issue a private one-launch Linux workspace authority for trusted host
+   * call-sites. The writable root is a positional host value, never read from
+   * a manifest/spawn option. Unsupported platforms and mixed boundary sets
+   * return null so the normal fail-closed adapter path remains authoritative.
+   */
+  issueLinuxWorkspaceSandboxExecutionContract(
+    command,
+    args = [],
+    options = {},
+    trustedWorkspaceRoot = process.cwd(),
+    { sync = false } = {},
+  ) {
+    const requiredBoundaries = [
+      ...new Set([
+        ...(options.requiredBoundaries || []),
+        ...(options.sandboxPolicy?.requiredBoundaries || []),
+      ]),
+    ];
+    if (
+      process.platform !== "linux" ||
+      requiredBoundaries.length === 0 ||
+      (options.shell !== undefined &&
+        options.shell !== null &&
+        options.shell !== false) ||
+      requiredBoundaries.some(
+        (boundary) =>
+          boundary !== SANDBOX_BOUNDARIES.FILESYSTEM &&
+          boundary !== SANDBOX_BOUNDARIES.NETWORK,
+      )
+    ) {
+      return null;
+    }
+    return issueLinuxGenericSandboxExecutionContract({
+      origin: options.origin || "unknown",
+      command,
+      args,
+      cwd: options.cwd || trustedWorkspaceRoot,
+      workspaceRoot: trustedWorkspaceRoot,
+      shell: options.shell,
+      sync,
+      stdio: options.stdio,
+      requiredBoundaries,
+      detached: options.detached,
+      uid: options.uid,
+      gid: options.gid,
+      argv0: options.argv0,
+      serialization: options.serialization,
     });
   }
 
@@ -636,6 +711,7 @@ class ProcessExecutionBroker extends EventEmitter {
       );
     }
     let runtimeProbe = null;
+    let genericWorkspaceProbe = false;
     if (plan.runtimeProbe !== null && plan.runtimeProbe !== undefined) {
       if (
         typeof plan.runtimeProbe !== "object" ||
@@ -659,6 +735,9 @@ class ProcessExecutionBroker extends EventEmitter {
         "pluginTreeContentSnapshotScope",
         "pluginTreeContentSnapshotMechanism",
         "pluginTreeSnapshotConsistency",
+        "initialDynamicLoadClosureScope",
+        "initialDynamicLoadClosureMechanism",
+        "initialDynamicInterpreter",
       ]) {
         if (
           plan.runtimeProbe[field] !== undefined &&
@@ -677,6 +756,7 @@ class ProcessExecutionBroker extends EventEmitter {
         "pluginTreeContentSnapshot",
         "pluginTreeSnapshotContractBound",
         "pluginTreeSnapshotAtomic",
+        "initialDynamicLoadClosureDescriptorBound",
       ]) {
         if (
           plan.runtimeProbe[field] !== undefined &&
@@ -691,6 +771,8 @@ class ProcessExecutionBroker extends EventEmitter {
       for (const field of [
         "pluginTreeContentSnapshotFiles",
         "pluginTreeContentSnapshotBytes",
+        "initialDynamicDependencyCount",
+        "initialDynamicRuntimeFileCount",
       ]) {
         if (
           plan.runtimeProbe[field] !== undefined &&
@@ -714,6 +796,19 @@ class ProcessExecutionBroker extends EventEmitter {
         throw this._sandboxError(
           "invalid_sandbox_plan",
           "Sandbox runtime probe pluginTreeContentSnapshotDigest must be a lowercase SHA-256 value",
+        );
+      }
+      if (
+        plan.runtimeProbe.initialDynamicLoadClosureDigest !== undefined &&
+        (typeof plan.runtimeProbe.initialDynamicLoadClosureDigest !==
+          "string" ||
+          !/^[a-f0-9]{64}$/.test(
+            plan.runtimeProbe.initialDynamicLoadClosureDigest,
+          ))
+      ) {
+        throw this._sandboxError(
+          "invalid_sandbox_plan",
+          "Sandbox runtime probe initialDynamicLoadClosureDigest must be a lowercase SHA-256 value",
         );
       }
       const pluginTreeSnapshot =
@@ -899,6 +994,225 @@ class ProcessExecutionBroker extends EventEmitter {
           );
         }
       }
+      const initialDynamicLoadClosureBound =
+        plan.runtimeProbe.initialDynamicLoadClosureDescriptorBound === true;
+      const initialDynamicEvidenceFields = [
+        "initialDynamicLoadClosureScope",
+        "initialDynamicLoadClosureMechanism",
+        "initialDynamicInterpreter",
+        "initialDynamicDependencyCount",
+        "initialDynamicRuntimeFileCount",
+        "initialDynamicLoadClosureDigest",
+      ];
+      const initialDynamicInterpreter =
+        plan.runtimeProbe.initialDynamicInterpreter;
+      const initialDynamicDependencyCount =
+        plan.runtimeProbe.initialDynamicDependencyCount;
+      const initialDynamicRuntimeFileCount =
+        plan.runtimeProbe.initialDynamicRuntimeFileCount;
+      const successfulDynamicProbe =
+        plan.applied === true &&
+        plan.runtimeProbe.kind ===
+          "linux-bwrap-plugin-native-dynamic-elf-policy-v1" &&
+        plan.runtimeProbe.runnable === true;
+      if (
+        initialDynamicLoadClosureBound &&
+        (plan.applied !== true ||
+          plan.platform !== "linux" ||
+          plan.enforcement !== "linux-bwrap" ||
+          backend !== "linux-bwrap" ||
+          candidateBackend !== null ||
+          policyAttested !== true ||
+          policyDigest === null ||
+          !guarantees.includes(SANDBOX_BOUNDARIES.FILESYSTEM) ||
+          !guarantees.includes(SANDBOX_BOUNDARIES.NETWORK) ||
+          plan.runtimeProbe.attempted !== true ||
+          plan.runtimeProbe.runnable !== true ||
+          plan.runtimeProbe.reason !== null ||
+          plan.runtimeProbe.kind !==
+            "linux-bwrap-plugin-native-dynamic-elf-policy-v1" ||
+          plan.runtimeProbe.probeRuntime !== "node" ||
+          plan.runtimeProbe.targetRuntime !== "native-dynamic-elf" ||
+          plan.runtimeProbe.contentSnapshot !== true ||
+          plan.runtimeProbe.contentSnapshotScope !==
+            "plugin-entry-executable" ||
+          plan.runtimeProbe.contentSnapshotMechanism !==
+            "verified-o_tmpfile-copy-bwrap-ro-bind-data-v1" ||
+          plan.runtimeProbe.handleAtomic !== false ||
+          !supervisorBound ||
+          plan.runtimeProbe.initialDynamicLoadClosureScope !==
+            "initial-pt_interp-and-direct-dt_needed-attested-system-set" ||
+          plan.runtimeProbe.initialDynamicLoadClosureMechanism !==
+            "parsed-elf-direct-system-set-to-attested-node-runtime-fds-v1" ||
+          typeof initialDynamicInterpreter !== "string" ||
+          !path.posix.isAbsolute(initialDynamicInterpreter) ||
+          path.posix.normalize(initialDynamicInterpreter) !==
+            initialDynamicInterpreter ||
+          !["/lib/", "/lib64/", "/usr/lib/", "/usr/lib64/"].some((prefix) =>
+            initialDynamicInterpreter.startsWith(prefix),
+          ) ||
+          !Number.isSafeInteger(initialDynamicDependencyCount) ||
+          initialDynamicDependencyCount < 0 ||
+          initialDynamicDependencyCount > 128 ||
+          !Number.isSafeInteger(initialDynamicRuntimeFileCount) ||
+          initialDynamicRuntimeFileCount < 1 ||
+          initialDynamicRuntimeFileCount > 129 ||
+          initialDynamicRuntimeFileCount <
+            Math.max(1, initialDynamicDependencyCount) ||
+          initialDynamicRuntimeFileCount > initialDynamicDependencyCount + 1 ||
+          !/^[a-f0-9]{64}$/.test(
+            plan.runtimeProbe.initialDynamicLoadClosureDigest || "",
+          ))
+      ) {
+        throw this._sandboxError(
+          "invalid_sandbox_plan",
+          "Sandbox runtime probe initial dynamic direct system set evidence must use the typed descriptor-bound contract",
+        );
+      }
+      if (
+        !initialDynamicLoadClosureBound &&
+        initialDynamicEvidenceFields.some(
+          (field) => plan.runtimeProbe[field] !== undefined,
+        )
+      ) {
+        throw this._sandboxError(
+          "invalid_sandbox_plan",
+          "Sandbox runtime probe initial dynamic direct system set evidence requires initialDynamicLoadClosureDescriptorBound",
+        );
+      }
+      if (successfulDynamicProbe && !initialDynamicLoadClosureBound) {
+        throw this._sandboxError(
+          "invalid_sandbox_plan",
+          "Sandbox runtime probe successful dynamic ELF evidence requires a descriptor-bound initial direct system set",
+        );
+      }
+      const genericWorkspaceEvidenceFields = [
+        "contractDigest",
+        "policyDigest",
+        "emptyRoot",
+        "undeclaredRootReadOnly",
+        "workspaceReadWrite",
+        "systemReadOnly",
+        "hostHomeHidden",
+        "outsideMarkerHidden",
+        "networkNamespace",
+        "networkNamespaceChanged",
+        "socketCreationDenied",
+        "descriptorMounts",
+      ];
+      for (const field of ["contractDigest", "policyDigest"]) {
+        if (
+          plan.runtimeProbe[field] !== undefined &&
+          (typeof plan.runtimeProbe[field] !== "string" ||
+            !/^[a-f0-9]{64}$/.test(plan.runtimeProbe[field]))
+        ) {
+          throw this._sandboxError(
+            "invalid_sandbox_plan",
+            `Sandbox runtime probe ${field} must be a lowercase SHA-256 value`,
+          );
+        }
+      }
+      for (const field of genericWorkspaceEvidenceFields.slice(2)) {
+        if (
+          plan.runtimeProbe[field] !== undefined &&
+          typeof plan.runtimeProbe[field] !== "boolean"
+        ) {
+          throw this._sandboxError(
+            "invalid_sandbox_plan",
+            `Sandbox runtime probe ${field} must be boolean`,
+          );
+        }
+      }
+      const genericWorkspaceKind =
+        plan.runtimeProbe.kind === "linux-bwrap-generic-workspace-policy-v1";
+      if (
+        !genericWorkspaceKind &&
+        genericWorkspaceEvidenceFields.some(
+          (field) => plan.runtimeProbe[field] !== undefined,
+        )
+      ) {
+        throw this._sandboxError(
+          "invalid_sandbox_plan",
+          "Linux generic workspace evidence requires its typed runtime probe kind",
+        );
+      }
+      if (genericWorkspaceKind) {
+        const filesystemPolicy = plan.filesystemPolicy;
+        const networkPolicy = plan.networkPolicy;
+        const workspaceRoot = filesystemPolicy?.workspaceRoot;
+        const workingDirectory = filesystemPolicy?.workingDirectory;
+        const workspaceRelative =
+          typeof workspaceRoot === "string" &&
+          typeof workingDirectory === "string"
+            ? path.posix.relative(workspaceRoot, workingDirectory)
+            : "..";
+        genericWorkspaceProbe =
+          plan.applied === true &&
+          plan.platform === "linux" &&
+          plan.enforcement === "linux-bwrap-workspace" &&
+          backend === "linux-bwrap-workspace" &&
+          candidateBackend === null &&
+          policyAttested === true &&
+          policyDigest !== null &&
+          plan.runtimeProbe.policyDigest === policyDigest &&
+          /^[a-f0-9]{64}$/.test(plan.runtimeProbe.contractDigest || "") &&
+          guarantees.includes(SANDBOX_BOUNDARIES.FILESYSTEM) &&
+          guarantees.includes(SANDBOX_BOUNDARIES.NETWORK) &&
+          plan.runtimeProbe.attempted === true &&
+          plan.runtimeProbe.runnable === true &&
+          plan.runtimeProbe.reason === null &&
+          plan.runtimeProbe.probeRuntime === "posix-sh" &&
+          plan.runtimeProbe.targetRuntime === "generic-command" &&
+          plan.runtimeProbe.contentSnapshot === false &&
+          plan.runtimeProbe.handleAtomic === false &&
+          [
+            "emptyRoot",
+            "undeclaredRootReadOnly",
+            "workspaceReadWrite",
+            "systemReadOnly",
+            "hostHomeHidden",
+            "outsideMarkerHidden",
+            "networkNamespace",
+            "networkNamespaceChanged",
+            "socketCreationDenied",
+            "descriptorMounts",
+          ].every((field) => plan.runtimeProbe[field] === true) &&
+          typeof workspaceRoot === "string" &&
+          path.posix.isAbsolute(workspaceRoot) &&
+          workspaceRoot !== "/" &&
+          typeof workingDirectory === "string" &&
+          path.posix.isAbsolute(workingDirectory) &&
+          workspaceRelative !== ".." &&
+          !workspaceRelative.startsWith("../") &&
+          !path.posix.isAbsolute(workspaceRelative) &&
+          filesystemPolicy.workspaceAccess === "read-write" &&
+          filesystemPolicy.systemAccess === "read-only" &&
+          filesystemPolicy.undeclaredRootAccess === "read-only" &&
+          filesystemPolicy.hostRootMapped === false &&
+          filesystemPolicy.hostHomeMapped === false &&
+          filesystemPolicy.workspaceDescriptorBound === true &&
+          filesystemPolicy.systemDescriptorBound === true &&
+          filesystemPolicy.exactEtcFileDescriptors === true &&
+          networkPolicy?.namespace === "new" &&
+          networkPolicy?.namespaceIdentityChanged === true &&
+          networkPolicy?.seccomp === "deny-network-creation" &&
+          plan.command.startsWith("/proc/self/fd/") &&
+          plan.options?.cwd === "/" &&
+          plan.options?.shell === false &&
+          Array.isArray(plan.options?.stdio) &&
+          plan.args.includes("--bind-fd") &&
+          plan.args.includes("--ro-bind-fd") &&
+          plan.args.includes("--remount-ro") &&
+          plan.args.includes("--unshare-net") &&
+          plan.args.includes("--seccomp") &&
+          !plan.args.includes("--ro-bind");
+        if (!genericWorkspaceProbe) {
+          throw this._sandboxError(
+            "invalid_sandbox_plan",
+            "Linux generic workspace evidence must use the typed descriptor-bound empty-root contract",
+          );
+        }
+      }
       runtimeProbe = {
         kind: plan.runtimeProbe.kind,
         attempted: plan.runtimeProbe.attempted,
@@ -944,6 +1258,19 @@ class ProcessExecutionBroker extends EventEmitter {
           runtimeProbe[field] = plan.runtimeProbe[field];
         }
       }
+      for (const field of [
+        "initialDynamicLoadClosureDescriptorBound",
+        ...initialDynamicEvidenceFields,
+      ]) {
+        if (plan.runtimeProbe[field] !== undefined) {
+          runtimeProbe[field] = plan.runtimeProbe[field];
+        }
+      }
+      for (const field of genericWorkspaceEvidenceFields) {
+        if (plan.runtimeProbe[field] !== undefined) {
+          runtimeProbe[field] = plan.runtimeProbe[field];
+        }
+      }
       if (supervisorIdentity !== undefined) {
         runtimeProbe.supervisorExecutableIdentity = {
           path: supervisorIdentity.path,
@@ -959,6 +1286,12 @@ class ProcessExecutionBroker extends EventEmitter {
           gid: supervisorIdentity.gid,
         };
       }
+    }
+    if (backend === "linux-bwrap-workspace" && !genericWorkspaceProbe) {
+      throw this._sandboxError(
+        "invalid_sandbox_plan",
+        "Applied Linux generic workspace plans require typed runtime evidence",
+      );
     }
     const postSpawn = plan.postSpawn || { required: false, mode: "none" };
     if (

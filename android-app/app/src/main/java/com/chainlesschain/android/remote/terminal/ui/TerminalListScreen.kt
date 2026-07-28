@@ -26,7 +26,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 fun TerminalListScreen(
     pcPeerId: String,
     onBack: () -> Unit,
-    onOpenSession: (sessionId: String) -> Unit,
+    onOpenSession: (sessionId: String, projectId: String) -> Unit,
     initialCwd: String? = null,
     viewModel: TerminalListViewModel = hiltViewModel(),
 ) {
@@ -34,6 +34,10 @@ fun TerminalListScreen(
     val dcReady by viewModel.dataChannelReady.collectAsState()
     var showCreateDialog by remember { mutableStateOf(false) }
     var autoCreated by remember { mutableStateOf(false) }
+    var projectMenuExpanded by remember { mutableStateOf(false) }
+    val selectedProject = state.projects.firstOrNull {
+        it.id == state.selectedProjectId
+    }
 
     // Sub-phase 5-6 (2026-05-17): 项目详情页 Terminal icon 入口传 initialCwd
     // → 进 list 屏自动创建一个落 cwd 的 session，省点 "新会话 → 选 shell"。
@@ -52,8 +56,9 @@ fun TerminalListScreen(
     // 终端输出 → 误以为"打不开"。消费一次即清，避免重新进 List 时重复跳转。
     LaunchedEffect(state.lastCreatedId) {
         val newId = state.lastCreatedId
-        if (!newId.isNullOrBlank()) {
-            onOpenSession(newId)
+        val projectId = state.lastCreatedProjectId
+        if (!newId.isNullOrBlank() && !projectId.isNullOrBlank()) {
+            onOpenSession(newId, projectId)
             viewModel.consumeLastCreatedId()
         }
     }
@@ -75,11 +80,13 @@ fun TerminalListScreen(
             )
         },
         floatingActionButton = {
-            ExtendedFloatingActionButton(
-                text = { Text("新会话") },
-                icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                onClick = { showCreateDialog = true },
-            )
+            if (state.selectedProjectId != null) {
+                ExtendedFloatingActionButton(
+                    text = { Text("新会话") },
+                    icon = { Icon(Icons.Default.Add, contentDescription = null) },
+                    onClick = { showCreateDialog = true },
+                )
+            }
         },
     ) { padding ->
         Column(
@@ -124,6 +131,37 @@ fun TerminalListScreen(
                     ),
                 )
             }
+
+            Box(modifier = Modifier.fillMaxWidth()) {
+                OutlinedButton(
+                    onClick = { projectMenuExpanded = true },
+                    enabled = state.projects.isNotEmpty(),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        selectedProject?.let {
+                            "${it.name} (${it.id.take(8)})"
+                        } ?: "选择桌面数据库项目",
+                    )
+                }
+                DropdownMenu(
+                    expanded = projectMenuExpanded,
+                    onDismissRequest = { projectMenuExpanded = false },
+                ) {
+                    state.projects.forEach { project ->
+                        DropdownMenuItem(
+                            text = {
+                                Text("${project.name} (${project.id.take(8)})")
+                            },
+                            onClick = {
+                                viewModel.selectProject(project.id)
+                                projectMenuExpanded = false
+                            },
+                        )
+                    }
+                }
+            }
+
             state.error?.let { err ->
                 Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)) {
                     Text(err, modifier = Modifier.padding(12.dp), color = MaterialTheme.colorScheme.onErrorContainer)
@@ -145,7 +183,11 @@ fun TerminalListScreen(
                     items(state.sessions, key = { it.id }) { session ->
                         SessionRow(
                             session = session,
-                            onClick = { onOpenSession(session.id) },
+                            onClick = {
+                                session.projectId?.let { projectId ->
+                                    onOpenSession(session.id, projectId)
+                                }
+                            },
                             onClose = { viewModel.closeSession(session.id) },
                         )
                     }

@@ -126,6 +126,8 @@ export class TeamWorktreeCoordinator {
       sparsePaths: options.sparsePaths ?? null,
       symlinkDirectories: options.symlinkDirectories ?? null,
     };
+    this._onWorktree =
+      typeof options.onWorktree === "function" ? options.onWorktree : null;
   }
 
   isGitRepo() {
@@ -173,6 +175,7 @@ export class TeamWorktreeCoordinator {
         wtOptions,
       );
       this._created.set(key, { branch, path: worktreePath, committed: false });
+      this._onWorktree?.({ key, branch, path: worktreePath, holder });
       if (typeof runInWorktree === "function") {
         await runInWorktree({ key, task, holder, cwd: worktreePath });
       } else {

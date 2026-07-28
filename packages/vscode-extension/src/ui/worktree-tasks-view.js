@@ -275,19 +275,22 @@ function renderHtml() {
   }
 
   function governanceCell(t){
-    if (!t.backgroundId) return '<span class="muted">unmanaged</span>';
+    const managedId = t.managedTaskId || t.backgroundId;
+    if (!managedId) return '<span class="muted">unmanaged</span>';
     const b = t.resourceBudget || {};
     const e = t.sideEffects || {};
     const budget = [
       b.maxTurns ? 'turns '+b.maxTurns : '',
-      b.maxCostUsd ? '$'+b.maxCostUsd : ''
+      b.maxCostUsd ? '$'+b.maxCostUsd : '',
+      b.maxTasks ? 'tasks '+b.maxTasks : '',
+      b.maxTokens ? 'tokens '+b.maxTokens : ''
     ].filter(Boolean).join(' / ') || 'unbounded';
     const effects = Number(e.total||0)
       ? 'effects '+Number(e.total||0)+' / unsettled '+Number(e.unsettled||0)
         +' / unknown '+Number(e.unknown||0)
       : 'no effects';
     return '<span class="pill">'+esc(t.permissionMode||'default')+'</span> '
-      + '<span class="muted">'+esc(t.owner||t.backgroundId)+'</span><br>'
+      + '<span class="muted">'+esc(t.owner||managedId)+'</span><br>'
       + '<span class="muted">'+esc(budget)+' · '+esc(effects)+'</span>';
   }
 
@@ -304,8 +307,8 @@ function renderHtml() {
     body.innerHTML = '<table><thead><tr><th>branch</th><th>changes</th><th>state</th><th>governance</th><th>merge risk</th><th style="width:170px"></th></tr></thead><tbody>'
       + m.tasks.map(t => '<tr><td title="'+esc(t.path)+'">'+esc(t.branch)+'</td>'
         + '<td>'+esc(t.stat)+' <span class="muted">↑'+t.ahead+'</span></td>'
-        + '<td>'+(t.backgroundStatus
-          ? '<span class="'+(t.backgroundStatus==='failed'||t.backgroundStatus==='lost'?'bad':'ok')+'">'+esc(t.backgroundStatus)+'</span>'
+        + '<td>'+(t.managementStatus||t.backgroundStatus
+          ? '<span class="'+((t.managementStatus||t.backgroundStatus)==='failed'||(t.managementStatus||t.backgroundStatus)==='lost'?'bad':'ok')+'">'+esc(t.managementStatus||t.backgroundStatus)+'</span>'
           : (t.dirty?'<span class="warn">working (dirty)</span>':'<span class="muted">idle</span>'))+'</td>'
         + '<td>'+governanceCell(t)+'</td>'
         + '<td>'+riskCell(t.merge)+'</td>'

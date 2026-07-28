@@ -17,21 +17,44 @@ function normalizeInvocation(argsOrOptions, maybeOptions) {
 
 function runHookProcess(file, argsOrOptions, maybeOptions) {
   const { args, options } = normalizeInvocation(argsOrOptions, maybeOptions);
-  return _processDeps.run(file, args, {
+  const processOptions = {
     ...options,
     origin: options.origin || "hook",
     policy: "allow",
     scope: "hook",
+  };
+  const sandboxExecutionContract =
+    executionBroker.issueLinuxWorkspaceSandboxExecutionContract(
+      file,
+      args,
+      processOptions,
+      process.cwd(),
+    );
+  return _processDeps.run(file, args, {
+    ...processOptions,
+    ...(sandboxExecutionContract ? { sandboxExecutionContract } : {}),
   });
 }
 
 function runHookProcessSync(file, argsOrOptions, maybeOptions) {
   const { args, options } = normalizeInvocation(argsOrOptions, maybeOptions);
-  return _processDeps.runSync(file, args, {
+  const processOptions = {
     ...options,
     origin: options.origin || "hook",
     policy: "allow",
     scope: "hook",
+  };
+  const sandboxExecutionContract =
+    executionBroker.issueLinuxWorkspaceSandboxExecutionContract(
+      file,
+      args,
+      processOptions,
+      process.cwd(),
+      { sync: true },
+    );
+  return _processDeps.runSync(file, args, {
+    ...processOptions,
+    ...(sandboxExecutionContract ? { sandboxExecutionContract } : {}),
   });
 }
 

@@ -6,6 +6,8 @@ import {
   installFromDirectory,
   installFromSource,
   updatePlugin,
+  finalizePluginUpdate,
+  rollbackPluginUpdate,
   listInstalled,
   uninstall,
   setActiveVersion,
@@ -94,6 +96,76 @@ describe("installFromDirectory", () => {
       force: true,
     });
     expect(res.version).toBe("1.0.0");
+  });
+
+  it("keeps the active bytes intact when a forced reinstall copy fails", () => {
+    const original = makeSource("greeter", "1.0.0");
+    fs.writeFileSync(
+      path.join(original, "skills", "hello", "SKILL.md"),
+      "original",
+    );
+    installFromDirectory(original, { scope: "project", cwd });
+    const replacement = makeSource("greeter", "1.0.0");
+    fs.writeFileSync(
+      path.join(replacement, "skills", "hello", "SKILL.md"),
+      "replacement",
+    );
+    const copyFileSync = installDeps.copyFileSync;
+    installDeps.copyFileSync = (from, to) => {
+      if (from.endsWith("SKILL.md")) throw new Error("injected copy failure");
+      return copyFileSync(from, to);
+    };
+    try {
+      expect(() =>
+        installFromDirectory(replacement, {
+          scope: "project",
+          cwd,
+          force: true,
+        }),
+      ).toThrow(/injected copy failure/);
+    } finally {
+      installDeps.copyFileSync = copyFileSync;
+    }
+
+    const dest = pluginVersionDir("project", "greeter", "1.0.0", { cwd });
+    expect(
+      fs.readFileSync(path.join(dest, "skills", "hello", "SKILL.md"), "utf8"),
+    ).toBe("original");
+    expect(getActiveVersion("greeter", { scope: "project", cwd })).toBe(
+      "1.0.0",
+    );
+  });
+
+  it("rejects a corrupted staged copy before replacing active bytes", () => {
+    const original = makeSource("greeter", "1.0.0");
+    installFromDirectory(original, { scope: "project", cwd });
+    const replacement = makeSource("greeter", "1.0.0");
+    const copyFileSync = installDeps.copyFileSync;
+    installDeps.copyFileSync = (from, to) => {
+      copyFileSync(from, to);
+      if (path.basename(from) === "plugin.json") {
+        fs.writeFileSync(to, "{not-json", "utf8");
+      }
+    };
+    try {
+      expect(() =>
+        installFromDirectory(replacement, {
+          scope: "project",
+          cwd,
+          force: true,
+        }),
+      ).toThrow(/staged plugin failed load validation/);
+    } finally {
+      installDeps.copyFileSync = copyFileSync;
+    }
+
+    const dest = pluginVersionDir("project", "greeter", "1.0.0", { cwd });
+    expect(
+      JSON.parse(fs.readFileSync(path.join(dest, "plugin.json"), "utf8")),
+    ).toMatchObject({
+      name: "greeter",
+      version: "1.0.0",
+    });
   });
 
   it("rejects an invalid manifest", () => {
@@ -248,6 +320,52 @@ describe("updatePlugin (upgrade from source)", () => {
     expect(res.updated).toBe(true);
     expect(res.previousVersion).toBe(null);
     expect(getActiveVersion("fresh", { scope: "project", cwd })).toBe("1.0.0");
+  });
+
+  it("restores active version and exact bytes when a transaction rolls back", () => {
+    const original = makeSource("widget", "1.0.0");
+    fs.writeFileSync(
+      path.join(original, "skills", "hello", "SKILL.md"),
+      "original",
+    );
+    installFromDirectory(original, { scope: "project", cwd });
+
+    const sameVersion = makeSource("widget", "1.0.0");
+    fs.writeFileSync(
+      path.join(sameVersion, "skills", "hello", "SKILL.md"),
+      "replacement",
+    );
+    const reinstall = updatePlugin(sameVersion, {
+      scope: "project",
+      cwd,
+      force: true,
+      transactional: true,
+    });
+    expect(
+      fs.readFileSync(
+        path.join(reinstall.dir, "skills", "hello", "SKILL.md"),
+        "utf8",
+      ),
+    ).toBe("replacement");
+    expect(rollbackPluginUpdate(reinstall)).toEqual({
+      rolledBack: true,
+      version: "1.0.0",
+    });
+    expect(
+      fs.readFileSync(
+        path.join(reinstall.dir, "skills", "hello", "SKILL.md"),
+        "utf8",
+      ),
+    ).toBe("original");
+
+    const upgrade = updatePlugin(makeSource("widget", "2.0.0"), {
+      scope: "project",
+      cwd,
+      transactional: true,
+    });
+    expect(getActiveVersion("widget", { scope: "project", cwd })).toBe("2.0.0");
+    expect(finalizePluginUpdate(upgrade)).toMatchObject({ finalized: true });
+    expect(getActiveVersion("widget", { scope: "project", cwd })).toBe("2.0.0");
   });
 });
 

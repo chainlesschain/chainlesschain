@@ -164,22 +164,73 @@ export function appendToolCall(sessionId, toolName, args) {
 
 /**
  * Compact tool-call record for usage attribution (用量归因): tool name +
- * error flag (+ optional skill and plugin/version hints) — deliberately NOT
- * the args, which can carry whole file bodies (write_file content) and would
- * bloat the transcript. Written at tool-result time by the agent drivers so
- * `cc session usage --by tool|mcp|plugin` and `cc insights` can aggregate tool
- * use for any persisted session.
+ * error flag (+ optional skill, plugin/version, and bounded observed duration)
+ * — deliberately NOT the args, which can carry whole file bodies (write_file
+ * content) and would bloat the transcript. Written at tool-result time by the
+ * agent drivers so `cc session usage --by tool|mcp|plugin` and `cc insights`
+ * can aggregate tool use for any persisted session.
  */
 export function appendToolCallCompact(
   sessionId,
-  { tool, isError, skill, plugin, pluginVersion } = {},
+  { tool, isError, skill, plugin, pluginVersion, durationMs } = {},
 ) {
+  const duration = normalizeCompactDuration(durationMs);
   appendEvent(sessionId, "tool_call", {
     tool: tool || "?",
     is_error: Boolean(isError),
     ...(skill ? { skill: String(skill) } : {}),
     ...(plugin ? { plugin: String(plugin) } : {}),
     ...(pluginVersion ? { plugin_version: String(pluginVersion) } : {}),
+    ...(duration !== null ? { duration_ms: duration } : {}),
+  });
+}
+
+/** Hard cap for one observed failed LLM/tool attempt (seven days). */
+export const MAX_COMPACT_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
+
+function normalizeCompactDuration(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const number = Number(value);
+  if (!Number.isFinite(number) || number < 0) return null;
+  return Math.min(MAX_COMPACT_DURATION_MS, Math.round(number));
+}
+
+/**
+ * Persist one automatic LLM stream retry without raw errors, prompts, URLs, or
+ * credentials. Provider/model are bounded identity labels; reason is a closed
+ * vocabulary produced by classifyStreamRetryReason().
+ */
+export function appendLlmRetryCompact(
+  sessionId,
+  { attempt, durationMs, provider, model, reason } = {},
+) {
+  const attemptNumber = Math.max(
+    1,
+    Math.min(15, Math.trunc(Number(attempt) || 1)),
+  );
+  const duration = normalizeCompactDuration(durationMs);
+  const cleanLabel = (value, max) => {
+    if (typeof value !== "string") return null;
+    const clean = value.replace(/\p{Cc}/gu, "").trim();
+    return clean ? clean.slice(0, max) : null;
+  };
+  const allowedReasons = new Set([
+    "timeout",
+    "dns",
+    "connection_refused",
+    "network_unreachable",
+    "connection_reset",
+    "unknown",
+  ]);
+  const cleanReason = allowedReasons.has(reason) ? reason : "unknown";
+  const cleanProvider = cleanLabel(provider, 64);
+  const cleanModel = cleanLabel(model, 128);
+  appendEvent(sessionId, "llm_retry", {
+    attempt: attemptNumber,
+    duration_ms: duration ?? 0,
+    reason: cleanReason,
+    ...(cleanProvider ? { provider: cleanProvider } : {}),
+    ...(cleanModel ? { model: cleanModel } : {}),
   });
 }
 

@@ -71,11 +71,36 @@ describe("cc team run --state atomic persistence (CLI-level)", () => {
     execFileSync(
       process.execPath,
       [BIN, "team", "run", "--tasks", graph, "--state", state],
-      { encoding: "utf8", timeout: 60000, cwd: dir },
+      {
+        encoding: "utf8",
+        timeout: 60000,
+        cwd: dir,
+        env: {
+          ...process.env,
+          CC_COLLABORATION_RUNS_DIR: path.join(dir, "collaboration-runs"),
+        },
+      },
     );
     const snap = JSON.parse(fs.readFileSync(state, "utf8"));
-    expect(snap.version).toBe(2);
+    expect(snap.version).toBe(3);
     expect(snap.registry).toBeTruthy();
+    expect(snap.collaborationRunId).toMatch(/^team-/);
+    const runFile = path.join(
+      dir,
+      "collaboration-runs",
+      `${snap.collaborationRunId}.json`,
+    );
+    const governance = JSON.parse(fs.readFileSync(runFile, "utf8"));
+    expect(governance).toMatchObject({
+      kind: "team",
+      status: "completed",
+      owner: `team:${snap.collaborationRunId}`,
+      units: [
+        { key: "a", status: "completed" },
+        { key: "b", status: "completed" },
+      ],
+    });
+    expect(JSON.stringify(governance)).not.toContain("echo a");
     // Atomicity contract: the temp file must have been renamed away.
     expect(fs.existsSync(`${state}.tmp`)).toBe(false);
   });
@@ -92,6 +117,10 @@ describe("cc team run --state atomic persistence (CLI-level)", () => {
         timeout: 60000,
         cwd: dir,
         stdio: ["ignore", "pipe", "pipe"],
+        env: {
+          ...process.env,
+          CC_COLLABORATION_RUNS_DIR: path.join(dir, "collaboration-runs"),
+        },
       });
     } catch (err) {
       failed = err;

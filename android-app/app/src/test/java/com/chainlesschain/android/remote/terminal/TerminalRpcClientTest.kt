@@ -91,20 +91,32 @@ class TerminalRpcClientTest {
 
     @Test
     fun `create returns CreatedSession from JSON result`() = runTest(testDispatcher) {
-        coEvery { rpc.invoke("pc-1", "terminal.create", any(), any()) } returns
+        val captured = slot<Map<String, Any?>>()
+        coEvery { rpc.invoke("pc-1", "terminal.create", capture(captured), any()) } returns
             Result.success(
                 JSONObject()
                     .put("sessionId", "sess-1")
                     .put("pid", 42)
                     .put("shell", "pwsh")
+                    .put("projectId", "project-1")
+                    .put("cwd", "C:\\projects\\one")
                     .put("createdAt", 1700000000000L),
             )
-        val res = client.create("pc-1", shell = "pwsh", cols = 80, rows = 24)
+        val res = client.create(
+            "pc-1",
+            projectId = "project-1",
+            shell = "pwsh",
+            cols = 80,
+            rows = 24,
+        )
         assertTrue(res.isSuccess)
         val session = res.getOrNull()!!
+        assertEquals("project-1", captured.captured["projectId"])
         assertEquals("sess-1", session.sessionId)
         assertEquals(42, session.pid)
         assertEquals("pwsh", session.shell)
+        assertEquals("project-1", session.projectId)
+        assertEquals("C:\\projects\\one", session.cwd)
         assertEquals(1700000000000L, session.createdAt)
     }
 
@@ -118,6 +130,7 @@ class TerminalRpcClientTest {
                         .put(
                             JSONObject()
                                 .put("id", "s1")
+                                .put("projectId", "project-1")
                                 .put("shell", "pwsh")
                                 .put("cwd", "C:\\")
                                 .put("alive", true)
@@ -132,10 +145,11 @@ class TerminalRpcClientTest {
                         ),
                 ),
             )
-        val res = client.list("pc-1")
+        val res = client.list("pc-1", "project-1")
         val rows = res.getOrNull()!!
         assertEquals(2, rows.size)
         assertEquals("s1", rows[0].id)
+        assertEquals("project-1", rows[0].projectId)
         assertEquals("C:\\", rows[0].cwd)
         assertTrue(rows[0].alive)
         assertEquals(12, rows[1].lastSeq)
@@ -145,9 +159,36 @@ class TerminalRpcClientTest {
     fun `list returns empty when sessions array missing`() = runTest(testDispatcher) {
         coEvery { rpc.invoke("pc-1", "terminal.list", any(), any()) } returns
             Result.success(JSONObject())
-        val res = client.list("pc-1")
+        val res = client.list("pc-1", "project-1")
         assertTrue(res.isSuccess)
         assertEquals(emptyList(), res.getOrNull())
+    }
+
+    @Test
+    fun `listProjects keeps only projects with a local root path`() = runTest(testDispatcher) {
+        coEvery { rpc.invoke("pc-1", "project.list", any(), any()) } returns
+            Result.success(
+                JSONObject().put(
+                    "projects",
+                    JSONArray()
+                        .put(
+                            JSONObject()
+                                .put("id", "p1")
+                                .put("name", "Local")
+                                .put("rootPath", "C:\\projects\\local"),
+                        )
+                        .put(
+                            JSONObject()
+                                .put("id", "p2")
+                                .put("name", "Remote claim only")
+                                .put("pcRootPath", "C:\\unapproved"),
+                        ),
+                ),
+            )
+
+        val projects = client.listProjects("pc-1").getOrThrow()
+
+        assertEquals(listOf(TerminalRpcClient.ProjectChoice("p1", "Local")), projects)
     }
 
     @Test
@@ -155,9 +196,10 @@ class TerminalRpcClientTest {
         val captured = slot<Map<String, Any?>>()
         coEvery { rpc.invoke("pc-1", "terminal.stdin", capture(captured), any()) } returns
             Result.success(JSONObject().put("ok", true))
-        val res = client.stdin("pc-1", "s1", "ls\r")
+        val res = client.stdin("pc-1", "project-1", "s1", "ls\r")
         assertTrue(res.isSuccess)
         assertEquals("s1", captured.captured["sessionId"])
+        assertEquals("project-1", captured.captured["projectId"])
         assertEquals("ls\r", captured.captured["data"])
     }
 
@@ -166,7 +208,8 @@ class TerminalRpcClientTest {
         val captured = slot<Map<String, Any?>>()
         coEvery { rpc.invoke("pc-1", "terminal.resize", capture(captured), any()) } returns
             Result.success(JSONObject().put("ok", true))
-        client.resize("pc-1", "s1", 120, 40).getOrThrow()
+        client.resize("pc-1", "project-1", "s1", 120, 40).getOrThrow()
+        assertEquals("project-1", captured.captured["projectId"])
         assertEquals(120, captured.captured["cols"])
         assertEquals(40, captured.captured["rows"])
     }
@@ -176,7 +219,8 @@ class TerminalRpcClientTest {
         val captured = slot<Map<String, Any?>>()
         coEvery { rpc.invoke("pc-1", "terminal.close", capture(captured), any()) } returns
             Result.success(JSONObject().put("ok", true))
-        client.close("pc-1", "s1").getOrThrow()
+        client.close("pc-1", "project-1", "s1").getOrThrow()
+        assertEquals("project-1", captured.captured["projectId"])
         assertEquals("s1", captured.captured["sessionId"])
     }
 
@@ -193,7 +237,12 @@ class TerminalRpcClientTest {
                             .put(JSONObject().put("seq", 6).put("data", "世界")),
                     ),
             )
-        val res = client.history("pc-1", "s1", fromSeq = 5).getOrThrow()
+        val res = client.history(
+            "pc-1",
+            "project-1",
+            "s1",
+            fromSeq = 5,
+        ).getOrThrow()
         assertTrue(res.truncated)
         assertEquals(2, res.chunks.size)
         assertEquals("hello", res.chunks[0].data)
@@ -219,6 +268,7 @@ class TerminalRpcClientTest {
                 JSONObject()
                     .put("event", "terminal.stdout")
                     .put("sessionId", "s1")
+                    .put("projectId", "project-1")
                     .put("data", "hello world")
                     .put("seq", 99),
             )
@@ -227,6 +277,7 @@ class TerminalRpcClientTest {
 
         assertEquals(1, received.size)
         assertEquals("s1", received[0].sessionId)
+        assertEquals("project-1", received[0].projectId)
         assertEquals("hello world", received[0].data)
         assertEquals(99, received[0].seq)
         job.cancel()
@@ -247,6 +298,7 @@ class TerminalRpcClientTest {
                 JSONObject()
                     .put("event", "terminal.exit")
                     .put("sessionId", "s1")
+                    .put("projectId", "project-1")
                     .put("exitCode", 0)
                     .put("signal", JSONObject.NULL),
             )
@@ -255,6 +307,7 @@ class TerminalRpcClientTest {
 
         assertEquals(1, received.size)
         assertEquals(0, received[0].exitCode)
+        assertEquals("project-1", received[0].projectId)
         assertEquals(null, received[0].signal)
         job.cancel()
     }

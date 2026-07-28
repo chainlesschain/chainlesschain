@@ -971,6 +971,9 @@ class ChainlessChainApp {
       const {
         createPolicyAwarePtyManager,
       } = require("./terminal/policy-aware-pty-manager");
+      const {
+        createDatabaseProjectBindingResolver,
+      } = require("./terminal/database-project-binding-resolver");
       const { setupTerminalIpc } = require("./terminal/terminal-ipc");
       const {
         createTerminalConfirmation,
@@ -978,8 +981,14 @@ class ChainlessChainApp {
       const { ipcMain } = require("electron");
       // Await the CLI ESM policy collector before registering terminal IPC.
       // create() remains synchronous and can never race a lazy import.
+      this._terminalProjectBindingResolver =
+        createDatabaseProjectBindingResolver({
+          getDatabase: () =>
+            this.dbManager || this.databaseManager || this.database || null,
+        });
       this.ptyManager = await createPolicyAwarePtyManager({
-        policyCwd: process.cwd(),
+        requireProjectBinding: true,
+        resolveProjectBinding: this._terminalProjectBindingResolver,
       });
       this._disposeTerminalIpc = setupTerminalIpc({
         ptyManager: this.ptyManager,
@@ -1018,6 +1027,9 @@ class ChainlessChainApp {
         // Plan A: share PtyManager so terminal sessions are visible in both
         // web-shell SPA and V6 native (when user toggles between them).
         ptyManager: this.ptyManager,
+        terminalProjectBindingResolver:
+          this._terminalProjectBindingResolver || null,
+        requireTerminalProjectBinding: true,
         terminalRequireConfirmation: this.terminalRequireConfirmation,
         // Phase 2: pass the (possibly-null) MCP singleton so mcp.list_tools /
         // mcp.call_tool can surface desktop MCP servers to the embedded SPA.
@@ -2066,7 +2078,7 @@ class ChainlessChainApp {
     this._mobileTerminalSubs = new Map(); // sessionId → Set<peerId>
     this._mobileTerminalFanoutAttached = true;
 
-    this.ptyManager.on("stdout", ({ sessionId, data, seq }) => {
+    this.ptyManager.on("stdout", ({ sessionId, projectId, data, seq }) => {
       const subs = this._mobileTerminalSubs.get(sessionId);
       if (!subs || subs.size === 0 || !this.mobileBridge) {
         return;
@@ -2076,6 +2088,7 @@ class ChainlessChainApp {
         payload: JSON.stringify({
           event: "terminal.stdout",
           sessionId,
+          projectId,
           // Mobile protocol uses plain string (Android's JSON parser is
           // happy with UTF-8 directly; we keep base64 only on the
           // browser-side WS protocol to dodge JSON.stringify escape edge
@@ -2094,7 +2107,9 @@ class ChainlessChainApp {
       }
     });
 
-    this.ptyManager.on("exit", ({ sessionId, exitCode, signal }) => {
+    this.ptyManager.on(
+      "exit",
+      ({ sessionId, projectId, exitCode, signal }) => {
       const subs = this._mobileTerminalSubs.get(sessionId);
       if (!subs || subs.size === 0 || !this.mobileBridge) {
         this._mobileTerminalSubs.delete(sessionId);
@@ -2105,6 +2120,7 @@ class ChainlessChainApp {
         payload: JSON.stringify({
           event: "terminal.exit",
           sessionId,
+          projectId,
           exitCode,
           signal,
         }),
@@ -2113,7 +2129,8 @@ class ChainlessChainApp {
         this.mobileBridge.sendToMobile(peerId, frame).catch(() => {});
       }
       this._mobileTerminalSubs.delete(sessionId);
-    });
+      },
+    );
   }
 
   _subscribeMobileToSession(peerId, sessionId) {
@@ -2282,13 +2299,13 @@ class ChainlessChainApp {
     this._ensureMobileTerminalFanout();
     switch (action) {
       case "create": {
-        const created = this.ptyManager.create({
-          shell: params.shell,
-          cwd: params.cwd,
-          env: params.env,
-          cols: params.cols,
-          rows: params.rows,
-        });
+        // Legacy Android releases only send cwd=pcRootPath. PtyManager uses it
+        // solely as a database-match selector when projectId is absent; the
+        // caller path never becomes the initial workspace/policy root.
+        const {
+          createBoundTerminalSession,
+        } = require("./terminal/terminal-create-request");
+        const created = createBoundTerminalSession(this.ptyManager, params);
         // Subscribe this mobile peer to the new session's stdout/exit so
         // every chunk is fanned out via sendToMobile. Cleared on
         // terminal.close or pty exit (see _ensureMobileTerminalFanout).
@@ -2297,20 +2314,28 @@ class ChainlessChainApp {
         }
         return created;
       }
-      case "list":
+      case "list": {
+        if (!params.projectId) {
+          throw new Error("terminal_project_scope_required");
+        }
+        const sessions = this.ptyManager.list(params.projectId);
         // Adopt — subscribe this mobile to all currently live sessions so
         // it can join an existing terminal opened from another shell.
         if (ctx.mobilePeerId) {
-          for (const s of this.ptyManager.list()) {
+          for (const s of sessions) {
             if (s.alive) {
               this._subscribeMobileToSession(ctx.mobilePeerId, s.id);
             }
           }
         }
-        return { sessions: this.ptyManager.list() };
+        return { sessions };
+      }
       case "stdin": {
         if (!params.sessionId) {
           throw new Error("session_id_required");
+        }
+        if (!params.projectId) {
+          throw new Error("terminal_project_scope_required");
         }
         const text = typeof params.data === "string" ? params.data : "";
         // Apply the same dangerous-keyword gate as the WS path. Android is
@@ -2334,28 +2359,43 @@ class ChainlessChainApp {
             }
           }
         }
-        this.ptyManager.write(params.sessionId, text);
+        this.ptyManager.write(params.sessionId, text, params.projectId);
         return { ok: true };
       }
       case "resize":
         if (!params.sessionId) {
           throw new Error("session_id_required");
         }
-        this.ptyManager.resize(params.sessionId, params.cols, params.rows);
+        if (!params.projectId) {
+          throw new Error("terminal_project_scope_required");
+        }
+        this.ptyManager.resize(
+          params.sessionId,
+          params.cols,
+          params.rows,
+          params.projectId,
+        );
         return { ok: true };
       case "close":
         if (!params.sessionId) {
           throw new Error("session_id_required");
         }
-        this.ptyManager.close(params.sessionId);
+        if (!params.projectId) {
+          throw new Error("terminal_project_scope_required");
+        }
+        this.ptyManager.close(params.sessionId, params.projectId);
         return { ok: true };
       case "history": {
         if (!params.sessionId) {
           throw new Error("session_id_required");
         }
+        if (!params.projectId) {
+          throw new Error("terminal_project_scope_required");
+        }
         const { chunks, truncated } = this.ptyManager.history(
           params.sessionId,
           params.fromSeq || 0,
+          params.projectId,
         );
         return {
           chunks: chunks.map((c) => ({

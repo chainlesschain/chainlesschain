@@ -215,6 +215,33 @@ final class UsageReportTest {
     }
 
     @Test
+    void rendersMeasuredToolTimeAndLlmRetryTelemetry() {
+        String telemetry = "{"
+                + "\"total\":{\"totalTokens\":1,\"calls\":1},\"sessions\":[],\"byModel\":[],"
+                + "\"attribution\":{\"byOrigin\":[],\"bySkill\":[],\"bySubagent\":[],"
+                + "\"tools\":{\"totalCalls\":2,\"totalErrors\":1,\"totalDurationMs\":2500,"
+                + "\"timedCalls\":2,\"retryCalls\":1,"
+                + "\"byTool\":[{\"tool\":\"read_file\",\"mcpServer\":null,\"calls\":2,"
+                + "\"errors\":1,\"retries\":1,\"durationMs\":2500,\"timedCalls\":2,"
+                + "\"turnTokens\":100}],\"byMcpServer\":[],\"byPlugin\":[]},"
+                + "\"retries\":{\"totalRetries\":2,\"durationMs\":4250,"
+                + "\"byReason\":[{\"reason\":\"timeout\",\"retries\":2,\"durationMs\":4250}],"
+                + "\"byModel\":[{\"provider\":\"anthropic\",\"model\":\"claude-sonnet-4-6\","
+                + "\"retries\":2,\"durationMs\":4250}]}}}";
+        String report = UsageReport.render(
+                UsageReport.parseUsageJson(telemetry),
+                SessionList.parseSessionList("[]"), NOW);
+        String squashed = report.replaceAll("\\s+", " ");
+        assertTrue(report.contains("1 observed retries · 2.50 s observed time"));
+        assertTrue(squashed.contains(
+                "read_file calls 2 errors 1 retries 1 observed 2.50 s turn tokens ≈ 100"));
+        assertTrue(report.contains("LLM retries: 2 automatic retries · 4.25 s"));
+        assertTrue(squashed.contains("timeout retries 2 failed-attempt time 4.25 s"));
+        assertTrue(squashed.contains(
+                "anthropic/claude-sonnet-4-6 retries 2 failed-attempt time 4.25 s"));
+    }
+
+    @Test
     void rendersEmptyStatePlaceholders() {
         String report = UsageReport.render(UsageReport.parseUsageJson("{"
                 + "\"total\":{\"totalTokens\":1,\"calls\":1},\"sessions\":[],\"byModel\":[],"

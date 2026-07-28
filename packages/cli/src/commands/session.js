@@ -1334,6 +1334,7 @@ export function registerSessionCommand(program) {
     "tool",
     "mcp",
     "plugin",
+    "retry",
     "model",
   ];
 
@@ -1347,9 +1348,19 @@ export function registerSessionCommand(program) {
       logger.log(
         `  ${chalk.gray(String(label).padEnd(28))} in=${r.inputTokens}  out=${r.outputTokens}  total=${chalk.cyan(r.totalTokens.toLocaleString())}  calls=${r.calls}`,
       );
+    const elapsed = (ms) => {
+      const value = Math.max(0, Number(ms) || 0);
+      if (value < 1000) return `${Math.round(value)}ms`;
+      return `${(value / 1000).toFixed(2)}s`;
+    };
     const toolRow = (label, r) =>
       logger.log(
-        `  ${chalk.gray(String(label).padEnd(28))} calls=${r.calls}  errors=${r.errors}  turnTokens≈${chalk.cyan((r.turnTokens || 0).toLocaleString())}`,
+        `  ${chalk.gray(String(label).padEnd(28))} calls=${r.calls}  errors=${r.errors}` +
+          (r.retries != null ? `  retries=${r.retries}` : "") +
+          (r.timedCalls != null
+            ? `  observed=${elapsed(r.durationMs)} (${r.timedCalls} timed)`
+            : "") +
+          `  turnTokens≈${chalk.cyan((r.turnTokens || 0).toLocaleString())}`,
       );
     const empty = (what) => logger.log(chalk.gray(`  (no ${what} recorded)`));
 
@@ -1414,6 +1425,25 @@ export function registerSessionCommand(program) {
             "  turnTokens = tokens of turns that used the plugin (approximation; do not sum across rows)",
           ),
         );
+        return;
+      }
+      case "retry": {
+        const retry = a.retries || null;
+        if (!retry || !retry.totalRetries)
+          return empty("automatic LLM retries");
+        logger.log(
+          `  ${chalk.gray("all".padEnd(28))} retries=${retry.totalRetries}  failedAttemptTime=${chalk.cyan(elapsed(retry.durationMs))}`,
+        );
+        for (const r of retry.byReason || []) {
+          logger.log(
+            `  ${chalk.gray(String(r.reason || "unknown").padEnd(28))} retries=${r.retries}  failedAttemptTime=${chalk.cyan(elapsed(r.durationMs))}`,
+          );
+        }
+        for (const r of retry.byModel || []) {
+          logger.log(
+            `  ${chalk.gray(`${r.provider || "?"}/${r.model || "?"}`.padEnd(28))} retries=${r.retries}  failedAttemptTime=${chalk.cyan(elapsed(r.durationMs))}`,
+          );
+        }
         return;
       }
       default:
