@@ -50,11 +50,11 @@ async function waitForFdGrowthToClear(before, timeoutMs = 5_000) {
 }
 
 async function warmBrokerAsyncRuntime(cwd) {
-  // The credential transport Worker and the Broker's lazy Hooks v2 import
-  // intentionally keep process-lifetime libuv descriptors. Establish those
-  // host-runtime descriptors before measuring per-launch FD ownership. Keep
-  // the warmup explicitly unsandboxed so a first-use sandbox leak can never
-  // be absorbed into the baseline.
+  // The credential transport Worker, the Broker's lazy Hooks v2 import, and
+  // the first piped async child intentionally establish process-lifetime
+  // libuv descriptors. Establish those host-runtime descriptors before
+  // measuring per-launch FD ownership. Keep the warmup explicitly unsandboxed
+  // so a first-use sandbox leak can never be absorbed into the baseline.
   let readyTimeout;
   try {
     await Promise.race([
@@ -77,11 +77,13 @@ async function warmBrokerAsyncRuntime(cwd) {
     const child = executionBroker.spawn(process.execPath, ["-e", ""], {
       cwd,
       shell: false,
-      stdio: ["ignore", "ignore", "ignore"],
+      stdio: ["ignore", "pipe", "pipe"],
       origin: "test:linux-live-fd-baseline-warmup",
       scope: "sandbox-test",
       policy: "allow",
     });
+    child.stdout.resume();
+    child.stderr.resume();
     const [code, signal] = await once(child, "close");
     if (code !== 0 || signal !== null) {
       throw new Error(
