@@ -125,11 +125,28 @@ describe("collectPluginHooks", () => {
     });
 
     const broker = {
+      issueLinuxWorkspaceSandboxExecutionContract: vi.fn(() => ({
+        kind: "test-plugin-hook-contract",
+      })),
       spawnSync: vi.fn(() => ({ status: 0, stdout: "", stderr: "" })),
     };
-    runHooks(map.SessionStart[0].hooks, {}, { broker, event: "SessionStart" });
+    runHooks(
+      map.SessionStart[0].hooks,
+      {},
+      {
+        broker,
+        cwd,
+        event: "SessionStart",
+      },
+    );
     expect(broker.spawnSync.mock.calls[0][2].sandboxPolicy).toEqual({
       requiredBoundaries: ["filesystem", "network"],
+    });
+    expect(broker.spawnSync.mock.calls[0][2]).toMatchObject({
+      shell: false,
+      sandboxExecutionContract: {
+        kind: "test-plugin-hook-contract",
+      },
     });
   });
 

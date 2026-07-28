@@ -18,6 +18,55 @@ function sha256(value) {
   return crypto.createHash("sha256").update(value).digest("hex");
 }
 
+function hostDescendants(rootPid) {
+  const children = new Map();
+  for (const entry of fs.readdirSync("/proc")) {
+    if (!/^\d+$/.test(entry)) continue;
+    try {
+      const status = fs.readFileSync(`/proc/${entry}/status`, "utf8");
+      const parentPid = Number(status.match(/^PPid:\s+(\d+)$/m)?.[1]);
+      if (!Number.isSafeInteger(parentPid)) continue;
+      if (!children.has(parentPid)) children.set(parentPid, []);
+      children.get(parentPid).push(Number(entry));
+    } catch {
+      // Processes can exit while /proc is being enumerated.
+    }
+  }
+  const descendants = [];
+  const pending = [...(children.get(rootPid) || [])];
+  while (pending.length > 0) {
+    const pid = pending.shift();
+    descendants.push(pid);
+    pending.push(...(children.get(pid) || []));
+  }
+  return descendants;
+}
+
+async function waitForGenericGrandchild(wrapperPid, timeoutMs = 10_000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const descendants = hostDescendants(wrapperPid);
+    for (const pid of descendants) {
+      try {
+        const commandLine = fs
+          .readFileSync(`/proc/${pid}/cmdline`)
+          .toString("utf8")
+          .replaceAll("\0", " ");
+        if (
+          commandLine.includes("verify-tree-termination.sh") &&
+          commandLine.includes("grandchild")
+        ) {
+          return { grandchildHostPid: pid, descendantHostPids: descendants };
+        }
+      } catch {
+        // Retry while the sandbox process tree is stabilizing.
+      }
+    }
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+  throw new Error("generic grandchild host process was not found");
+}
+
 function summarizeDestinationBindings(planArgs, destination) {
   const roBindData = [];
   const roBindFd = [];
@@ -254,6 +303,54 @@ if (mode === "positive") {
     supervisorPlan,
     audit: executionBroker.getAuditLog(1)[0] || null,
   });
+} else if (mode === "generic-parent-exit") {
+  const request = JSON.parse(extra);
+  const command = "/bin/sh";
+  const args = [request.scriptPath, request.pidMarker];
+  const options = {
+    cwd: value,
+    shell: false,
+    stdio: ["ignore", "ignore", "ignore"],
+    origin: "test:linux-generic-parent-exit-live",
+    scope: "sandbox-test",
+    policy: "allow",
+    timeout: 120_000,
+    sandboxPolicy: {
+      profile: "strict",
+      requiredBoundaries: [
+        SANDBOX_BOUNDARIES.FILESYSTEM,
+        SANDBOX_BOUNDARIES.NETWORK,
+      ],
+    },
+  };
+  const contract = executionBroker.issueLinuxWorkspaceSandboxExecutionContract(
+    command,
+    args,
+    options,
+    value,
+  );
+  const child = executionBroker.spawn(command, args, {
+    ...options,
+    sandboxExecutionContract: contract,
+  });
+  const deadline = Date.now() + 15_000;
+  while (!fs.existsSync(request.pidMarker)) {
+    if (Date.now() >= deadline) {
+      throw new Error("generic grandchild did not publish its host pid");
+    }
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+  const { grandchildHostPid, descendantHostPids } =
+    await waitForGenericGrandchild(child.pid);
+  fs.writeSync(
+    1,
+    JSON.stringify({
+      wrapperPid: child.pid,
+      grandchildHostPid,
+      descendantHostPids,
+    }),
+  );
+  process.exit(0);
 } else if (mode === "missing-contract") {
   let error = null;
   try {

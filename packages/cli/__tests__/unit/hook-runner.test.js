@@ -55,8 +55,10 @@ function fakeChild() {
 let calls;
 function stub(returns) {
   // returns: {status, stdout, stderr, error}
-  _deps.spawnSync = vi.fn((cmd, opts) => {
-    calls.push({ cmd, opts });
+  _deps.spawnSync = vi.fn((cmd, argvOrOpts, maybeOpts) => {
+    const args = Array.isArray(argvOrOpts) ? argvOrOpts : [];
+    const opts = Array.isArray(argvOrOpts) ? maybeOpts : argvOrOpts;
+    calls.push({ cmd, args, opts });
     return { status: 0, stdout: "", stderr: "", ...returns };
   });
 }
@@ -93,20 +95,114 @@ it("routes default hooks through the process broker adapter", () => {
       }),
     );
     expect(runSync.mock.calls[0][2]).not.toHaveProperty("sandboxPolicy");
-    expect(issueAuthority).toHaveBeenCalledWith(
-      "guard.sh",
-      [],
-      expect.objectContaining({
-        cwd: "C:/workspace",
-        shell: true,
-        origin: "hook",
-      }),
-      process.cwd(),
-      { sync: true },
-    );
+    expect(issueAuthority).not.toHaveBeenCalled();
     expect(runSync.mock.calls[0][2]).not.toHaveProperty(
       "sandboxExecutionContract",
     );
+  } finally {
+    issueAuthority.mockRestore();
+    _processDeps.runSync = originalRunner;
+  }
+});
+
+it("issues a fresh one-shot authority for each strong settings hook launch", () => {
+  const originalRunner = _processDeps.runSync;
+  const runSync = vi.fn(() => ({ status: 0, stdout: "", stderr: "" }));
+  const contracts = [
+    Object.freeze({ kind: "hook-contract", nonce: "one" }),
+    Object.freeze({ kind: "hook-contract", nonce: "two" }),
+  ];
+  const issueAuthority = vi
+    .spyOn(executionBroker, "issueLinuxWorkspaceSandboxExecutionContract")
+    .mockImplementation(() => contracts.shift());
+  _processDeps.runSync = runSync;
+
+  try {
+    const options = {
+      cwd: process.cwd(),
+      requiredBoundaries: ["filesystem", "network"],
+      // A caller-controlled replay/forgery must never reach the Broker.
+      sandboxExecutionContract: { kind: "forged-replay" },
+    };
+    runBrokerCommandHook("printf safe", {}, options);
+    runBrokerCommandHook("printf safe", {}, options);
+
+    expect(issueAuthority).toHaveBeenCalledTimes(2);
+    for (const call of issueAuthority.mock.calls) {
+      expect(call[0]).toBe(
+        process.platform === "win32"
+          ? process.env.ComSpec || "cmd.exe"
+          : "/bin/sh",
+      );
+      expect(call[1]).toEqual(
+        process.platform === "win32"
+          ? ["/d", "/s", "/c", "printf safe"]
+          : ["-c", "printf safe"],
+      );
+      expect(call[2]).toMatchObject({
+        cwd: process.cwd(),
+        shell: false,
+        origin: "hook",
+      });
+      expect(call[3]).toBe(process.cwd());
+      expect(call[4]).toEqual({ sync: true });
+    }
+    expect(runSync.mock.calls[0][2].sandboxExecutionContract).toMatchObject({
+      nonce: "one",
+    });
+    expect(runSync.mock.calls[1][2].sandboxExecutionContract).toMatchObject({
+      nonce: "two",
+    });
+    expect(runSync.mock.calls[0][2].sandboxExecutionContract).not.toBe(
+      options.sandboxExecutionContract,
+    );
+  } finally {
+    issueAuthority.mockRestore();
+    _processDeps.runSync = originalRunner;
+  }
+});
+
+it("fails closed instead of guessing process.cwd for a strong settings hook", () => {
+  stub({ status: 0 });
+
+  expect(
+    runCommandHook("guard.sh", {}, { requiredBoundaries: ["filesystem"] }),
+  ).toMatchObject({
+    decision: "block",
+    sandboxDenied: true,
+    error:
+      "hook working directory must be an absolute trusted path for filesystem/network sandboxing",
+  });
+  expect(_deps.spawnSync).not.toHaveBeenCalled();
+});
+
+it("converts contract-attestation failures into a blocking sandbox denial", () => {
+  const originalRunner = _processDeps.runSync;
+  const runSync = vi.fn(() => ({ status: 0, stdout: "", stderr: "" }));
+  const issueAuthority = vi
+    .spyOn(executionBroker, "issueLinuxWorkspaceSandboxExecutionContract")
+    .mockImplementation(() => {
+      throw new Error("unsafe writable workspace root");
+    });
+  _processDeps.runSync = runSync;
+
+  try {
+    expect(
+      runBrokerCommandHook(
+        "guard.sh",
+        {},
+        {
+          cwd: process.cwd(),
+          requiredBoundaries: ["filesystem"],
+        },
+      ),
+    ).toMatchObject({
+      decision: "block",
+      sandboxDenied: true,
+      error:
+        "trusted hook sandbox contract issuance failed: unsafe writable workspace root",
+    });
+    expect(runSync).not.toHaveBeenCalled();
   } finally {
     issueAuthority.mockRestore();
     _processDeps.runSync = originalRunner;
@@ -163,7 +259,10 @@ it("merges managed and per-hook sandbox requirements into the broker call", () =
       },
     ],
     {},
-    { requiredBoundaries: ["process-tree"] },
+    {
+      cwd: process.cwd(),
+      requiredBoundaries: ["process-tree"],
+    },
   );
 
   expect(calls[0].opts.sandboxPolicy).toEqual({
@@ -189,6 +288,7 @@ it("turns an explicit broker boundary refusal into a blocking hook result", () =
         profile: "strict",
         requiredBoundaries: ["filesystem", "network"],
       },
+      cwd: process.cwd(),
     },
   );
 
@@ -226,6 +326,51 @@ it("routes plugin hooks through the supplied Process Execution Broker", () => {
       policy: "allow",
       pluginId: "p",
     }),
+  );
+});
+
+it("binds a plugin settings hook to the caller cwd, not manifest authority", () => {
+  const issued = Object.freeze({ kind: "plugin-hook-contract" });
+  const forged = Object.freeze({ kind: "forged-contract" });
+  const broker = {
+    issueLinuxWorkspaceSandboxExecutionContract: vi.fn(() => issued),
+    spawnSync: vi.fn(() => ({ status: 0, stdout: "", stderr: "" })),
+  };
+  const result = runHooks(
+    [
+      {
+        command: "echo guarded",
+        origin: "plugin:hook",
+        pluginId: "p",
+        requiredBoundaries: ["filesystem", "network"],
+        sandboxExecutionContract: forged,
+      },
+    ],
+    {},
+    { broker, cwd: process.cwd() },
+  );
+
+  expect(result.decision).toBe("continue");
+  expect(
+    broker.issueLinuxWorkspaceSandboxExecutionContract,
+  ).toHaveBeenCalledWith(
+    process.platform === "win32" ? process.env.ComSpec || "cmd.exe" : "/bin/sh",
+    process.platform === "win32"
+      ? ["/d", "/s", "/c", "echo guarded"]
+      : ["-c", "echo guarded"],
+    expect.objectContaining({
+      cwd: process.cwd(),
+      shell: false,
+    }),
+    process.cwd(),
+    { sync: true },
+  );
+  expect(broker.spawnSync.mock.calls[0][2]).toMatchObject({
+    sandboxExecutionContract: issued,
+    shell: false,
+  });
+  expect(broker.spawnSync.mock.calls[0][2].sandboxExecutionContract).not.toBe(
+    forged,
   );
 });
 
@@ -404,7 +549,7 @@ describe("per-hook shell selection (P1 #8 — shell: powershell|pwsh)", () => {
     expect(c.argvOrOpts[0]).toBe("-NoProfile");
     expect(c.argvOrOpts[c.argvOrOpts.length - 2]).toBe("-Command");
     expect(c.argvOrOpts[c.argvOrOpts.length - 1]).toBe("Get-Item x.txt");
-    expect(c.maybeOpts.shell).toBeUndefined();
+    expect(c.maybeOpts.shell).toBe(false);
     // stdin protocol unchanged (payload now carries schema_version)
     expect(c.maybeOpts.input).toBe(JSON.stringify({ schema_version: 1 }));
   });
@@ -672,13 +817,15 @@ describe("runCommandHookAsync — async single hook", () => {
           profile: "strict",
           requiredBoundaries: ["filesystem", "network"],
         },
+        cwd: process.cwd(),
       },
     );
 
     expect(_deps.spawn).toHaveBeenCalledWith(
-      "guard.sh",
+      expect.any(String),
+      expect.any(Array),
       expect.objectContaining({
-        shell: true,
+        shell: false,
         sandboxPolicy: {
           profile: "strict",
           requiredBoundaries: ["filesystem", "network"],
@@ -702,6 +849,7 @@ describe("runCommandHookAsync — async single hook", () => {
         {},
         {
           requiredBoundaries: ["filesystem"],
+          cwd: process.cwd(),
         },
       ),
     ).resolves.toMatchObject({

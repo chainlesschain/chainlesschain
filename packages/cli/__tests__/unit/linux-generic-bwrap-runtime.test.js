@@ -29,6 +29,11 @@ function typedStat(raw) {
 function createLinuxRuntime({
   omitCapability = null,
   omitSystemNode = false,
+  mutateSystemTargetAfterProbe = false,
+  finalReadError = false,
+  mountInfo = "20 1 8:1 / / rw,relatime - ext4 /dev/root rw\n",
+  mountInfoAfterProbe = null,
+  homeIdentityAlias = false,
 } = {}) {
   const bwrapContents = Buffer.from("ELF-bwrap-supervisor");
   const nodeContents = Buffer.from("ELF-node-runtime");
@@ -36,6 +41,23 @@ function createLinuxRuntime({
   const passwdContents = Buffer.from("root:x:0:0:root:/root:/bin/sh\n");
   const entries = new Map([
     [ROOT, { stat: typedStat(ROOT_STAT), buffer: null }],
+    [
+      "/home/alice",
+      {
+        stat: typedStat(
+          homeIdentityAlias
+            ? ROOT_STAT
+            : {
+                dev: 10,
+                ino: 21,
+                mode: 0o040700,
+                uid: 1000,
+                gid: 1000,
+              },
+        ),
+        buffer: null,
+      },
+    ],
     [
       "/usr",
       {
@@ -123,6 +145,8 @@ function createLinuxRuntime({
   const hostFiles = new Map();
   const closed = [];
   let nextFd = 50;
+  let failDescriptorReads = false;
+  let probeCompleted = false;
 
   const getEntry = (value) => {
     const entry = entries.get(value);
@@ -211,6 +235,11 @@ function createLinuxRuntime({
       );
     },
     readSync(fd, output, offset, length, position) {
+      if (failDescriptorReads) {
+        const error = new Error("EIO");
+        error.code = "EIO";
+        throw error;
+      }
       const source = openFiles.get(fd)?.buffer;
       if (!source) return 0;
       const available = Math.max(0, Math.min(length, source.length - position));
@@ -251,6 +280,13 @@ function createLinuxRuntime({
       hostFiles.set(value, String(contents));
     },
     readFileSync(value, encoding) {
+      if (value === "/proc/self/mountinfo") {
+        const contents =
+          probeCompleted && mountInfoAfterProbe !== null
+            ? mountInfoAfterProbe
+            : mountInfo;
+        return encoding ? contents : Buffer.from(contents);
+      }
       if (!hostFiles.has(value)) throw new Error("ENOENT");
       const contents = hostFiles.get(value);
       return encoding ? contents : Buffer.from(contents);
@@ -278,6 +314,14 @@ function createLinuxRuntime({
     }
     const script = args.at(-1);
     const digests = String(script).match(/[a-f0-9]{64}/g) || [];
+    if (mutateSystemTargetAfterProbe) {
+      const target = entries.get("/usr/bin/node");
+      if (target) {
+        target.stat = typedStat({ ...target.stat, ino: 404 });
+      }
+    }
+    if (finalReadError) failDescriptorReads = true;
+    probeCompleted = true;
     return {
       status: 0,
       stdout: `${digests[0]}\n${digests[1]}\n`,
@@ -302,11 +346,11 @@ function createLinuxRuntime({
   };
 }
 
-function issueAndAdmit() {
+function issueAndAdmit({ command = "node", args = ["server.js"] } = {}) {
   const provenance = {
     origin: "mcp:server:test",
-    command: "node",
-    args: ["server.js"],
+    command,
+    args,
     cwd: ROOT,
     shell: false,
     sync: false,
@@ -358,7 +402,7 @@ function applyHarness(harness, admitted, overrides = {}) {
     origin: "mcp:server:test",
   };
   return applySandbox(
-    "node",
+    overrides.command || "node",
     overrides.args || ["server.js"],
     spawnOptions,
     "strict",
@@ -390,6 +434,11 @@ describe("Linux generic production runtime integration", () => {
         workspaceDescriptorBound: true,
         systemDescriptorBound: true,
         exactEtcFileDescriptors: true,
+        workspaceRecursiveBind: true,
+        workspaceMountTopology:
+          "no-strict-descendants-or-forbidden-root-aliases-at-attestation",
+        mountTopologySource: "proc-self-mountinfo",
+        mountTopologyAtomic: false,
       },
       networkPolicy: {
         namespace: "new",
@@ -400,6 +449,10 @@ describe("Linux generic production runtime integration", () => {
         emptyRoot: true,
         undeclaredRootReadOnly: true,
         workspaceReadWrite: true,
+        workspaceMountTopologyAttested: true,
+        workspaceRootAliasAttested: true,
+        anonymousDevWritable: true,
+        mountTopologyAtomic: false,
         systemReadOnly: true,
         hostHomeHidden: true,
         outsideMarkerHidden: true,
@@ -428,8 +481,11 @@ describe("Linux generic production runtime integration", () => {
     expect(probeScript).toContain("mount_is_read_only /");
     expect(probeScript).toContain("mount_is_read_only /usr");
     expect(probeScript).toContain("/proc/self/mountinfo");
+    expect(probeScript).toContain("workspace_mount_topology_is_attested");
+    expect(probeScript).toContain("want='/work/project'");
     expect(probeScript).toContain("/chainless-undeclared-root");
     expect(probeScript).toContain("/usr/.chainless-system-write");
+    expect(probeScript).toContain("/dev/shm/.chainless-bwrap-dev-shm-");
 
     plan.cleanup();
     expect(harness.openFiles.size).toBe(0);
@@ -453,12 +509,19 @@ describe("Linux generic production runtime integration", () => {
   it("uses a root-owned system Python fallback when Node lives outside mounted system roots", () => {
     const harness = createLinuxRuntime({ omitSystemNode: true });
     harness.runtime.execPath = "/opt/hostedtoolcache/node/bin/node";
-    const { admitted } = issueAndAdmit();
-    const plan = applyHarness(harness, admitted);
+    const { admitted } = issueAndAdmit({
+      command: "/usr/bin/python3",
+      args: ["server.py"],
+    });
+    const plan = applyHarness(harness, admitted, {
+      command: "/usr/bin/python3",
+      args: ["server.py"],
+    });
 
     expect(plan.applied).toBe(true);
     const probeScript = harness.calls[1].args.at(-1);
     expect(probeScript).toContain("/usr/bin/python3");
+    expect(probeScript).toContain("'-I' '-S' '-c'");
     expect(probeScript).toContain("import errno,socket,sys");
     plan.cleanup();
   });
@@ -477,6 +540,136 @@ describe("Linux generic production runtime integration", () => {
 
     const replay = applyHarness(harness, admitted);
     expect(replay.reason).toBe("linux_generic_execution_contract_invalid");
+    expect(harness.openFiles.size).toBe(0);
+  });
+
+  it("rejects a root-owned system target whose inode changes after the policy probe", () => {
+    const harness = createLinuxRuntime({
+      mutateSystemTargetAfterProbe: true,
+    });
+    const { admitted } = issueAndAdmit();
+    const plan = applyHarness(harness, admitted);
+
+    expect(plan).toMatchObject({
+      applied: false,
+      reason: "linux_generic_execution_contract_changed",
+      guarantees: [],
+    });
+    expect(harness.openFiles.size).toBe(0);
+  });
+
+  it("rejects an escaped strict-descendant mount imported by recursive bind-fd", () => {
+    const harness = createLinuxRuntime({
+      mountInfo: [
+        "20 1 8:1 / / rw,relatime - ext4 /dev/root rw",
+        "21 20 0:44 / /work/project/escape\\040home rw,nosuid - fuse.bindfs bindfs rw",
+        "",
+      ].join("\n"),
+    });
+    const { admitted } = issueAndAdmit();
+    const plan = applyHarness(harness, admitted);
+
+    expect(plan).toMatchObject({
+      applied: false,
+      reason: "linux_generic_resources_unattested",
+      guarantees: [],
+    });
+    expect(harness.calls).toHaveLength(0);
+    expect(harness.openFiles.size).toBe(0);
+  });
+
+  it("rejects a workspace root whose directory identity aliases host HOME", () => {
+    const harness = createLinuxRuntime({
+      homeIdentityAlias: true,
+    });
+    const { admitted } = issueAndAdmit();
+    const plan = applyHarness(harness, admitted);
+
+    expect(plan).toMatchObject({
+      applied: false,
+      reason: "linux_generic_resources_unattested",
+      guarantees: [],
+    });
+    expect(harness.openFiles.size).toBe(0);
+  });
+
+  it("rejects root mount provenance sourced from a forbidden system subtree", () => {
+    const harness = createLinuxRuntime({
+      mountInfo: [
+        "20 1 8:1 / / rw,relatime - ext4 /dev/root rw",
+        "21 20 8:1 /etc/project /work/project rw,relatime - ext4 /dev/root rw",
+        "",
+      ].join("\n"),
+    });
+    const { admitted } = issueAndAdmit();
+    const plan = applyHarness(harness, admitted);
+
+    expect(plan).toMatchObject({
+      applied: false,
+      reason: "linux_generic_resources_unattested",
+      guarantees: [],
+    });
+    expect(harness.openFiles.size).toBe(0);
+  });
+
+  it("fails closed for an opaque FUSE workspace-root origin", () => {
+    const harness = createLinuxRuntime({
+      mountInfo: [
+        "20 1 8:1 / / rw,relatime - ext4 /dev/root rw",
+        "21 20 0:44 / /work/project rw,nosuid - fuse.bindfs bindfs rw",
+        "",
+      ].join("\n"),
+    });
+    const { admitted } = issueAndAdmit();
+    const plan = applyHarness(harness, admitted);
+
+    expect(plan).toMatchObject({
+      applied: false,
+      reason: "linux_generic_resources_unattested",
+      guarantees: [],
+    });
+    expect(harness.openFiles.size).toBe(0);
+  });
+
+  it("re-attests mount topology after the probe and rejects escaped drift", () => {
+    const initial = "20 1 8:1 / / rw,relatime - ext4 /dev/root rw\n";
+    const harness = createLinuxRuntime({
+      mountInfo: initial,
+      mountInfoAfterProbe: [
+        initial.trimEnd(),
+        "21 20 0:44 / /work/project/late\\040escape rw,nosuid - fuse.bindfs bindfs rw",
+        "",
+      ].join("\n"),
+    });
+    const { admitted } = issueAndAdmit();
+    const plan = applyHarness(harness, admitted);
+
+    expect(plan).toMatchObject({
+      applied: false,
+      reason: "linux_generic_execution_contract_changed",
+      guarantees: [],
+    });
+    expect(harness.calls).toHaveLength(2);
+    expect(harness.openFiles.size).toBe(0);
+  });
+
+  it("closes every descriptor when final supervisor hashing throws EIO", () => {
+    const harness = createLinuxRuntime({ finalReadError: true });
+    const { admitted } = issueAndAdmit();
+    let thrown = null;
+    let plan;
+    try {
+      plan = applyHarness(harness, admitted);
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(thrown).toBeNull();
+    expect(plan).toMatchObject({
+      applied: false,
+      reason: "linux_generic_execution_contract_changed",
+      guarantees: [],
+    });
     expect(harness.openFiles.size).toBe(0);
   });
 });

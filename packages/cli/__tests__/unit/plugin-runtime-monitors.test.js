@@ -9,6 +9,7 @@ import {
   _deps as trustDeps,
   _resetTrustWarnings,
 } from "../../src/lib/plugin-runtime/trust.js";
+import { resolvePluginWorkspaceAuthority } from "../../src/lib/plugin-runtime/sandbox-policy.js";
 
 let cwd;
 let storeFile;
@@ -78,7 +79,7 @@ describe("collectPluginMonitors — component-level capability gate", () => {
 
 describe("collectPluginMonitors", () => {
   it("collects + namespaces monitors from a trusted (local) plugin", () => {
-    installMonitorPlugin("local", "toolkit", {
+    const pluginRoot = installMonitorPlugin("local", "toolkit", {
       monitors: [
         {
           name: "tests",
@@ -103,6 +104,15 @@ describe("collectPluginMonitors", () => {
     expect(tests.intervalMs).toBe(5000);
     expect(tests.command).toBe("npm");
     expect(tests).not.toHaveProperty("sandboxPolicy");
+    expect(tests).not.toHaveProperty("pluginWorkspaceRoot");
+    expect(
+      resolvePluginWorkspaceAuthority(tests.pluginWorkspaceAuthority, {
+        origin: tests.origin,
+        pluginId: tests.pluginId,
+        pluginVersion: tests.pluginVersion,
+        pluginSource: tests.pluginSource,
+      }),
+    ).toBe(fs.realpathSync.native(pluginRoot));
     const logs = mons.find((m) => m.name === "logs");
     expect(logs.mode).toBe("longRunning");
   });

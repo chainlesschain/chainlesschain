@@ -204,14 +204,24 @@ describe("cc agenda", () => {
   });
 
   describe("command monitor execution policy", () => {
-    it("passes a synchronous frozen workspace policy to the Broker", async () => {
-      const original = _processDeps.execSync;
+    it("runs a pinned Linux policy through explicit shell argv and a workspace contract", async () => {
+      const originalExecFileSync = _processDeps.execFileSync;
+      const originalIssuer =
+        _processDeps.issueLinuxWorkspaceSandboxExecutionContract;
+      const originalPlatform = _processDeps.platform;
       const calls = [];
       const sandboxPolicy = createPinnedPolicy("filesystem", "network");
+      const sandboxExecutionContract = Object.freeze({
+        kind: "strict-workspace-command",
+      });
       const resolveSandboxPolicy = vi.fn(() => sandboxPolicy);
+      const issueContract = vi.fn(() => sandboxExecutionContract);
       try {
-        _processDeps.execSync = (command, options) => {
-          calls.push([command, options]);
+        _processDeps.platform = "linux";
+        _processDeps.issueLinuxWorkspaceSandboxExecutionContract =
+          issueContract;
+        _processDeps.execFileSync = (file, args, options) => {
+          calls.push([file, args, options]);
           return "BUILD OK\n";
         };
         createCommandMonitor({
@@ -236,17 +246,84 @@ describe("cc agenda", () => {
           workspaceCwd: dir,
           executionCwd: dir,
         });
-        expect(calls).toHaveLength(1);
-        expect(calls[0][0]).toBe("echo BUILD OK");
-        expect(calls[0][1]).toEqual(
+        expect(issueContract).toHaveBeenCalledWith(
+          "/bin/sh",
+          ["-c", "echo BUILD OK"],
           expect.objectContaining({
             cwd: dir,
             sandboxPolicy,
+            shell: false,
+          }),
+          dir,
+          { sync: true },
+        );
+        expect(calls).toHaveLength(1);
+        expect(calls[0][0]).toBe("/bin/sh");
+        expect(calls[0][1]).toEqual(["-c", "echo BUILD OK"]);
+        expect(calls[0][2]).toEqual(
+          expect.objectContaining({
+            cwd: dir,
+            sandboxPolicy,
+            sandboxExecutionContract,
+            shell: false,
           }),
         );
-        expect(calls[0][1].sandboxPolicy).toBe(sandboxPolicy);
+        expect(calls[0][2].sandboxPolicy).toBe(sandboxPolicy);
       } finally {
-        _processDeps.execSync = original;
+        _processDeps.execFileSync = originalExecFileSync;
+        _processDeps.issueLinuxWorkspaceSandboxExecutionContract =
+          originalIssuer;
+        _processDeps.platform = originalPlatform;
+      }
+    });
+
+    it("fails closed before execution when Linux cannot issue the one-shot contract", async () => {
+      const originalExecFileSync = _processDeps.execFileSync;
+      const originalIssuer =
+        _processDeps.issueLinuxWorkspaceSandboxExecutionContract;
+      const originalPlatform = _processDeps.platform;
+      const execFileSync = vi.fn(() => "BUILD OK\n");
+      try {
+        _processDeps.platform = "linux";
+        _processDeps.issueLinuxWorkspaceSandboxExecutionContract = vi.fn(
+          () => null,
+        );
+        _processDeps.execFileSync = execFileSync;
+        const monitor = createCommandMonitor({
+          command: "echo BUILD OK",
+          intervalMs: 1000,
+          stopWhen: "OK",
+        });
+
+        const code = await runAgendaRun(
+          { json: true },
+          {
+            store,
+            log,
+            now: () => clock + 2000,
+            resolveSandboxPolicy: () =>
+              createPinnedPolicy("filesystem", "network"),
+          },
+        );
+
+        expect(code).toBe(1);
+        expect(execFileSync).not.toHaveBeenCalled();
+        const { actions } = JSON.parse(logs.join("\n"));
+        expect(actions[0]).toEqual(
+          expect.objectContaining({
+            id: monitor.id,
+            action: "error",
+            errorCode: "ERR_PROCESS_SANDBOX_BOUNDARY_UNSATISFIED",
+            sandboxReason:
+              "agenda_monitor_linux_execution_contract_unavailable",
+            sandboxFailClosed: true,
+          }),
+        );
+      } finally {
+        _processDeps.execFileSync = originalExecFileSync;
+        _processDeps.issueLinuxWorkspaceSandboxExecutionContract =
+          originalIssuer;
+        _processDeps.platform = originalPlatform;
       }
     });
 
@@ -346,10 +423,17 @@ describe("cc agenda", () => {
     );
 
     it("does not let a sandbox failure output satisfy stopWhen", async () => {
-      const original = _processDeps.execSync;
+      const originalExecFileSync = _processDeps.execFileSync;
+      const originalIssuer =
+        _processDeps.issueLinuxWorkspaceSandboxExecutionContract;
+      const originalPlatform = _processDeps.platform;
       const notify = vi.fn(async () => ({}));
       try {
-        _processDeps.execSync = vi.fn(() => {
+        _processDeps.platform = "linux";
+        _processDeps.issueLinuxWorkspaceSandboxExecutionContract = vi.fn(() =>
+          Object.freeze({ kind: "strict-workspace-command" }),
+        );
+        _processDeps.execFileSync = vi.fn(() => {
           throw Object.assign(new Error("sandbox unavailable"), {
             code: "ERR_PROCESS_SANDBOX_BOUNDARY_UNSATISFIED",
             sandboxReason: "required_boundary_unavailable",
@@ -395,7 +479,10 @@ describe("cc agenda", () => {
         expect(persisted.checks).toBe(0);
         expect(persisted).not.toHaveProperty("executionLease");
       } finally {
-        _processDeps.execSync = original;
+        _processDeps.execFileSync = originalExecFileSync;
+        _processDeps.issueLinuxWorkspaceSandboxExecutionContract =
+          originalIssuer;
+        _processDeps.platform = originalPlatform;
       }
     });
 

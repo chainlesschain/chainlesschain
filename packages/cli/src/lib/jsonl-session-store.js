@@ -17,6 +17,7 @@ export {
   appendToolCall,
   appendToolCallCompact,
   appendLlmRetryCompact,
+  MAX_COMPACT_DURATION_MS,
   appendToolResult,
   appendCompactEvent,
   readEvents,

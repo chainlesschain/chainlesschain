@@ -12,6 +12,7 @@ import {
   _deps as trustDeps,
   _resetTrustWarnings,
 } from "../../src/lib/plugin-runtime/trust.js";
+import { resolvePluginWorkspaceAuthority } from "../../src/lib/plugin-runtime/sandbox-policy.js";
 
 let cwd;
 let storeFile;
@@ -55,7 +56,7 @@ afterEach(() => {
 
 describe("collectPluginMcpServers", () => {
   it("collects `mcpServers` from a trusted (local-scope) plugin's .mcp.json", () => {
-    installMcpPlugin("local", "weather", {
+    const pluginRoot = installMcpPlugin("local", "weather", {
       mcpServers: {
         weather: { command: "weather-mcp", args: ["--stdio"] },
       },
@@ -65,6 +66,18 @@ describe("collectPluginMcpServers", () => {
     expect(servers.weather.command).toBe("weather-mcp");
     expect(servers.weather.args).toEqual(["--stdio"]);
     expect(servers.weather).not.toHaveProperty("sandboxPolicy");
+    expect(servers.weather).not.toHaveProperty("pluginWorkspaceRoot");
+    expect(
+      resolvePluginWorkspaceAuthority(
+        servers.weather.pluginWorkspaceAuthority,
+        {
+          origin: servers.weather.origin,
+          pluginId: servers.weather.pluginId,
+          pluginVersion: servers.weather.pluginVersion,
+          pluginSource: servers.weather.pluginSource,
+        },
+      ),
+    ).toBe(fs.realpathSync.native(pluginRoot));
   });
 
   it("merges manifest and server sandbox requirements before stdio launch", () => {
@@ -106,9 +119,9 @@ describe("collectPluginMcpServers", () => {
       },
     });
 
-    expect(
-      collectPluginMcpServers({ cwd, scopes: ["local"] }).servers,
-    ).toEqual({});
+    expect(collectPluginMcpServers({ cwd, scopes: ["local"] }).servers).toEqual(
+      {},
+    );
   });
 
   it("accepts the bare `servers` key too", () => {

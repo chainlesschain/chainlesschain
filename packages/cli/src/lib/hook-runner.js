@@ -1,5 +1,13 @@
 import runner from "./hook-runner.cjs";
 import executionBroker from "./process-execution-broker/index.js";
+import hookShellCommand from "./hook-shell-command.cjs";
+
+const {
+  issueTrustedHookSandboxContract,
+  requireTrustedHookRoot,
+  requiresExplicitHookShell,
+  sandboxBoundaryError,
+} = hookShellCommand;
 
 const brokerRunner = executionBroker.spawn.bind(executionBroker);
 const brokerSyncRunner = executionBroker.spawnSync.bind(executionBroker);
@@ -17,19 +25,39 @@ function normalizeInvocation(argsOrOptions, maybeOptions) {
 
 function runHookProcess(file, argsOrOptions, maybeOptions) {
   const { args, options } = normalizeInvocation(argsOrOptions, maybeOptions);
+  const callerOptions = { ...options };
+  delete callerOptions.sandboxExecutionContract;
   const processOptions = {
-    ...options,
-    origin: options.origin || "hook",
+    ...callerOptions,
+    origin: callerOptions.origin || "hook",
     policy: "allow",
     scope: "hook",
   };
-  const sandboxExecutionContract =
-    executionBroker.issueLinuxWorkspaceSandboxExecutionContract(
-      file,
-      args,
-      processOptions,
-      process.cwd(),
+  const requiresContract = requiresExplicitHookShell(
+    processOptions.sandboxPolicy,
+  );
+  const trustedRoot = requiresContract
+    ? requireTrustedHookRoot(processOptions.cwd)
+    : null;
+  const sandboxExecutionContract = requiresContract
+    ? issueTrustedHookSandboxContract({
+        issuer: executionBroker.issueLinuxWorkspaceSandboxExecutionContract,
+        receiver: executionBroker,
+        file,
+        args,
+        options: processOptions,
+        trustedRoot,
+      })
+    : null;
+  if (
+    process.platform === "linux" &&
+    requiresContract &&
+    !sandboxExecutionContract
+  ) {
+    throw sandboxBoundaryError(
+      "trusted Linux hook sandbox contract could not be issued",
     );
+  }
   return _processDeps.run(file, args, {
     ...processOptions,
     ...(sandboxExecutionContract ? { sandboxExecutionContract } : {}),
@@ -38,20 +66,40 @@ function runHookProcess(file, argsOrOptions, maybeOptions) {
 
 function runHookProcessSync(file, argsOrOptions, maybeOptions) {
   const { args, options } = normalizeInvocation(argsOrOptions, maybeOptions);
+  const callerOptions = { ...options };
+  delete callerOptions.sandboxExecutionContract;
   const processOptions = {
-    ...options,
-    origin: options.origin || "hook",
+    ...callerOptions,
+    origin: callerOptions.origin || "hook",
     policy: "allow",
     scope: "hook",
   };
-  const sandboxExecutionContract =
-    executionBroker.issueLinuxWorkspaceSandboxExecutionContract(
-      file,
-      args,
-      processOptions,
-      process.cwd(),
-      { sync: true },
+  const requiresContract = requiresExplicitHookShell(
+    processOptions.sandboxPolicy,
+  );
+  const trustedRoot = requiresContract
+    ? requireTrustedHookRoot(processOptions.cwd)
+    : null;
+  const sandboxExecutionContract = requiresContract
+    ? issueTrustedHookSandboxContract({
+        issuer: executionBroker.issueLinuxWorkspaceSandboxExecutionContract,
+        receiver: executionBroker,
+        file,
+        args,
+        options: processOptions,
+        trustedRoot,
+        sync: true,
+      })
+    : null;
+  if (
+    process.platform === "linux" &&
+    requiresContract &&
+    !sandboxExecutionContract
+  ) {
+    throw sandboxBoundaryError(
+      "trusted Linux hook sandbox contract could not be issued",
     );
+  }
   return _processDeps.runSync(file, args, {
     ...processOptions,
     ...(sandboxExecutionContract ? { sandboxExecutionContract } : {}),

@@ -26,12 +26,21 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import broker from "./process-execution-broker/index.js";
 import hookEnvironment from "./hook-environment.cjs";
+import hookShellCommand from "./hook-shell-command.cjs";
 import permissionRules from "./permission-rules.cjs";
 import { EventRuntimeStore } from "./event-runtime-store.js";
 import { getDefaultEventRuntimeHost } from "./event-runtime-host.js";
 
 const { globToRegExp } = permissionRules;
 const { buildManagedHookEnvironment } = hookEnvironment;
+const {
+  buildExplicitHookShellInvocation,
+  issueTrustedHookSandboxContract,
+  isPathInside,
+  requireTrustedHookRoot,
+  requiresExplicitHookShell,
+  sandboxBoundaryError,
+} = hookShellCommand;
 
 const VALID_HOOK_EVENTS = new Set([
   "Setup",
@@ -423,6 +432,10 @@ class HooksV2Runtime extends EventEmitter {
   constructor(configDir, options = {}) {
     super();
     this.configDir = configDir;
+    // Both values are host constructor inputs. Hook definitions may select a
+    // cwd inside this root, but can never replace the writable root used to
+    // issue a Linux one-shot execution contract.
+    this.workspaceRoot = options.workspaceRoot || configDir || null;
     this.durableStore = options.durableStore || null;
     this.durableOwner =
       options.durableOwner ||
@@ -736,28 +749,68 @@ class HooksV2Runtime extends EventEmitter {
     }
     const budget = hookBudget(hook);
     const sandboxPolicy = resolveHookSandboxPolicy(hook, this.managedPolicy);
+    const requiresContract = requiresExplicitHookShell(sandboxPolicy);
+    const trustedRoot = requiresContract
+      ? requireTrustedHookRoot(
+          this.workspaceRoot,
+          "Hooks v2 trusted workspace root",
+        )
+      : null;
+    const commandCwd =
+      hook.cwd || this.configDir || trustedRoot || process.cwd();
+    if (requiresContract) {
+      requireTrustedHookRoot(commandCwd, "Hooks v2 hook working directory");
+      if (!isPathInside(trustedRoot, commandCwd)) {
+        throw sandboxBoundaryError(
+          "Hooks v2 hook working directory escapes the trusted workspace root",
+        );
+      }
+    }
+    const invocation =
+      requiresContract && hook.shell === true
+        ? buildExplicitHookShellInvocation(hook.command, {
+            args: hook.args || [],
+          })
+        : {
+            file: hook.command,
+            argv: hook.args || [],
+          };
     const commandOptions = {
-      cwd: hook.cwd || this.configDir || process.cwd(),
+      cwd: commandCwd,
       env: buildHookEnvironment(hook, this.managedPolicy),
       stdio: ["pipe", "pipe", "pipe"],
       timeout: budget.timeoutMs,
-      shell: hook.shell === true,
+      shell: requiresContract ? false : hook.shell === true,
       origin: "hook",
       scope: "hook",
       policy: "allow",
       hookName: hook.id,
       ...(sandboxPolicy ? { sandboxPolicy } : {}),
     };
-    const sandboxExecutionContract =
-      this.executionBroker.issueLinuxWorkspaceSandboxExecutionContract?.(
-        hook.command,
-        hook.args || [],
-        commandOptions,
-        process.cwd(),
+    const sandboxExecutionContract = requiresContract
+      ? issueTrustedHookSandboxContract({
+          issuer:
+            this.executionBroker.issueLinuxWorkspaceSandboxExecutionContract,
+          receiver: this.executionBroker,
+          file: invocation.file,
+          args: invocation.argv,
+          options: commandOptions,
+          trustedRoot,
+          label: "trusted Hooks v2 sandbox contract issuance failed",
+        })
+      : null;
+    if (
+      process.platform === "linux" &&
+      requiresContract &&
+      !sandboxExecutionContract
+    ) {
+      throw sandboxBoundaryError(
+        "trusted Linux Hooks v2 sandbox contract could not be issued",
       );
+    }
     const child = await this.executionBroker.spawn(
-      hook.command,
-      hook.args || [],
+      invocation.file,
+      invocation.argv,
       {
         ...commandOptions,
         ...(sandboxExecutionContract ? { sandboxExecutionContract } : {}),

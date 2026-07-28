@@ -2,6 +2,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { EventEmitter } from "node:events";
 import { MCPClient, _deps } from "../../src/lib/mcp-client.js";
 import { executionBroker } from "../../src/lib/process-execution-broker/index.js";
+import {
+  issuePluginWorkspaceAuthority,
+  resolvePluginWorkspaceAuthority,
+} from "../../src/lib/plugin-runtime/sandbox-policy.js";
 
 function makeFakeMcpProcess() {
   const proc = new EventEmitter();
@@ -55,11 +59,25 @@ describe("MCPClient plugin sandbox policy", () => {
       .spyOn(executionBroker, "issueLinuxWorkspaceSandboxExecutionContract")
       .mockReturnValue(contract);
     const client = new MCPClient();
+    const provenance = {
+      origin: "plugin:mcp",
+      pluginId: "strict-plugin",
+      pluginVersion: "1.0.0",
+      pluginSource: "trusted-test-source",
+    };
+    const pluginWorkspaceAuthority = issuePluginWorkspaceAuthority({
+      root: process.cwd(),
+      ...provenance,
+    });
+    const trustedRoot = resolvePluginWorkspaceAuthority(
+      pluginWorkspaceAuthority,
+      provenance,
+    );
 
     await client.connect("strict-plugin", {
       command: "strict-mcp",
-      origin: "plugin:mcp",
-      pluginWorkspaceRoot: "/plugins/strict-plugin",
+      ...provenance,
+      pluginWorkspaceAuthority,
       sandboxPolicy: {
         requiredBoundaries: ["filesystem", "network"],
       },
@@ -80,13 +98,42 @@ describe("MCPClient plugin sandbox policy", () => {
       "strict-mcp",
       [],
       expect.objectContaining({
-        cwd: "/plugins/strict-plugin",
+        cwd: trustedRoot,
         shell: false,
         origin: "plugin:mcp",
       }),
-      "/plugins/strict-plugin",
+      trustedRoot,
     );
     await client.disconnectAll();
+  });
+
+  it("rejects a lookalike manifest authority before spawning a strict plugin server", async () => {
+    _deps.spawn = vi.fn(() => makeFakeMcpProcess());
+    const issueAuthority = vi.spyOn(
+      executionBroker,
+      "issueLinuxWorkspaceSandboxExecutionContract",
+    );
+    const client = new MCPClient();
+
+    await expect(
+      client.connect("forged-plugin", {
+        command: "forged-mcp",
+        origin: "plugin:mcp",
+        pluginId: "forged-plugin",
+        pluginVersion: "1.0.0",
+        pluginSource: "manifest-controlled",
+        pluginWorkspaceAuthority: {
+          contractVersion: 1,
+          kind: "trusted-plugin-workspace",
+        },
+        sandboxPolicy: {
+          requiredBoundaries: ["filesystem", "network"],
+        },
+      }),
+    ).rejects.toThrow(/missing its trusted workspace authority/);
+
+    expect(issueAuthority).not.toHaveBeenCalled();
+    expect(_deps.spawn).not.toHaveBeenCalled();
   });
 
   it("keeps legacy stdio spawn options free of sandboxPolicy", async () => {

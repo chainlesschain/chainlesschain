@@ -51,6 +51,7 @@ const ETC_FILE_ALLOWLIST = new Set([
 const FORBIDDEN_EXACT_WORKSPACE_ROOTS = new Set([
   "/",
   "/home",
+  "/home/sandbox",
   "/media",
   "/mnt",
   "/opt",
@@ -59,6 +60,7 @@ const FORBIDDEN_EXACT_WORKSPACE_ROOTS = new Set([
   "/srv",
   "/tmp",
   "/var",
+  "/var/tmp",
 ]);
 const FORBIDDEN_WORKSPACE_SUBTREES = [
   "/bin",
@@ -503,6 +505,47 @@ function expectedTargetInvocation(issued) {
   };
 }
 
+function validateWorkspaceMountTopology(value, issued) {
+  if (
+    !value ||
+    value.version !== 1 ||
+    value.source !== "proc-self-mountinfo" ||
+    value.workspaceRoot !== issued.workspaceRoot ||
+    !/^[a-f0-9]{64}$/.test(value.digest || "") ||
+    !Number.isSafeInteger(value.lineageEntryCount) ||
+    value.lineageEntryCount < 1 ||
+    !Number.isSafeInteger(value.filesystemEntryCount) ||
+    value.filesystemEntryCount < 1 ||
+    !Number.isSafeInteger(value.aliasCount) ||
+    value.aliasCount < 1 ||
+    !Number.isSafeInteger(value.forbiddenIdentityCount) ||
+    value.forbiddenIdentityCount < 1 ||
+    value.strictDescendantMountsAtAttestation !== 0 ||
+    value.rootAliasAttested !== true ||
+    value.recursiveBind !== true ||
+    value.mountTopologyAtomic !== false
+  ) {
+    throw new Error(
+      "workspace mount topology is missing or permits host aliases",
+    );
+  }
+  return Object.freeze({
+    version: value.version,
+    source: value.source,
+    workspaceRoot: value.workspaceRoot,
+    digest: value.digest,
+    lineageEntryCount: value.lineageEntryCount,
+    filesystemEntryCount: value.filesystemEntryCount,
+    aliasCount: value.aliasCount,
+    forbiddenIdentityCount: value.forbiddenIdentityCount,
+    strictDescendantMountsAtAttestation:
+      value.strictDescendantMountsAtAttestation,
+    rootAliasAttested: value.rootAliasAttested,
+    recursiveBind: value.recursiveBind,
+    mountTopologyAtomic: value.mountTopologyAtomic,
+  });
+}
+
 function validateResourceContract(resources, issued) {
   if (
     !resources ||
@@ -520,10 +563,17 @@ function validateResourceContract(resources, issued) {
   ) {
     throw new Error("workspace descriptor does not match contract authority");
   }
+  const workspaceMountTopology = validateWorkspaceMountTopology(
+    resources.workspace.mountTopology,
+    issued,
+  );
   if (
     !validateRootOwnedIdentity(resources.supervisor?.identity, {
       directory: false,
     }) ||
+    !/^[a-f0-9]{64}$/.test(resources.supervisor?.sha256 || "") ||
+    !Number.isSafeInteger(resources.supervisor?.bytes) ||
+    resources.supervisor.bytes <= 0 ||
     !Number.isInteger(resources.supervisor?.probeFd) ||
     !Number.isInteger(resources.supervisor?.finalFd)
   ) {
@@ -601,7 +651,22 @@ function validateResourceContract(resources, issued) {
   ) {
     throw new Error("target must be workspace-bound or root-owned system code");
   }
-  return { system, symlinks, etc, target };
+  return {
+    supervisor: {
+      identity: resources.supervisor.identity,
+      sha256: resources.supervisor.sha256,
+      bytes: resources.supervisor.bytes,
+    },
+    system,
+    symlinks,
+    etc,
+    seccomp: {
+      policy: resources.seccomp.policy,
+      sha256: resources.seccomp.sha256,
+    },
+    workspaceMountTopology,
+    target,
+  };
 }
 
 function sanitizedEnvironment(environment, stdio) {
@@ -826,24 +891,14 @@ function buildPolicyArgs({ issued, validated, descriptors, environment }) {
   for (const directory of directories) {
     if (
       SCRATCH_MOUNTS.some(
-        (scratch) =>
-          directory !== scratch && isWithin(scratch, directory),
+        (scratch) => directory !== scratch && isWithin(scratch, directory),
       )
     ) {
       args.push("--dir", directory);
     }
   }
-  args.push(
-    "--bind-fd",
-    String(workspace.childFd),
-    issued.workspaceRoot,
-  );
-  args.push(
-    "--proc",
-    "/proc",
-    "--dev",
-    "/dev",
-  );
+  args.push("--bind-fd", String(workspace.childFd), issued.workspaceRoot);
+  args.push("--proc", "/proc", "--dev", "/dev");
   for (const key of Object.keys(environment).sort()) {
     args.push("--setenv", key, environment[key]);
   }
@@ -862,6 +917,7 @@ function policyBinding({
     version: PLAN_VERSION,
     backend: LINUX_GENERIC_BWRAP_BACKEND,
     contractDigest: issued.contractDigest,
+    supervisor: validated.supervisor,
     workspace: {
       root: issued.workspaceRoot,
       cwd: issued.workingDirectory,
@@ -869,6 +925,7 @@ function policyBinding({
       cwdIdentity: issued.cwdIdentity,
       access: "read-write",
       descriptorBound: true,
+      mountTopology: validated.workspaceMountTopology,
     },
     system: validated.system.map((entry) => ({
       destination: entry.destination,
@@ -883,12 +940,16 @@ function policyBinding({
     })),
     network: {
       namespace: "new",
-      seccomp: "deny-network-creation",
+      seccomp: validated.seccomp,
     },
     target: {
+      requestedCommand: validated.target.requestedCommand,
       command: validated.target.resolvedCommand,
       args: validated.target.args,
       scope: validated.target.scope,
+      ...(validated.target.scope === "system"
+        ? { identity: validated.target.identity }
+        : {}),
     },
     requiredBoundaries: [...requiredBoundaries].sort(),
     environmentDigest: sha256(stableJson(environment)),
@@ -1045,6 +1106,8 @@ export function planLinuxGenericBubblewrap(
     probeResult.emptyRoot !== true ||
     probeResult.undeclaredRootReadOnly !== true ||
     probeResult.workspaceReadWrite !== true ||
+    probeResult.workspaceMountTopologyAttested !== true ||
+    probeResult.anonymousDevWritable !== true ||
     probeResult.systemReadOnly !== true ||
     probeResult.hostHomeHidden !== true ||
     probeResult.outsideMarkerHidden !== true ||
@@ -1058,7 +1121,13 @@ export function planLinuxGenericBubblewrap(
       cleanup,
     );
   }
-  if (resources.attestFinal?.(issued) !== true) {
+  let finalAttested = false;
+  try {
+    finalAttested = resources.attestFinal?.(issued) === true;
+  } catch {
+    finalAttested = false;
+  }
+  if (!finalAttested) {
     return unavailablePlan(
       "linux_generic_execution_contract_changed",
       requiredBoundaries,
@@ -1118,11 +1187,16 @@ export function planLinuxGenericBubblewrap(
       targetRuntime: "generic-command",
       contentSnapshot: false,
       handleAtomic: false,
+      mountTopologyAtomic: false,
       contractDigest: issued.contractDigest,
       policyDigest,
+      mountTopologyDigest: validated.workspaceMountTopology.digest,
       emptyRoot: true,
       undeclaredRootReadOnly: true,
       workspaceReadWrite: true,
+      workspaceMountTopologyAttested: true,
+      workspaceRootAliasAttested: true,
+      anonymousDevWritable: true,
       systemReadOnly: true,
       hostHomeHidden: true,
       outsideMarkerHidden: true,
@@ -1139,6 +1213,7 @@ export function planLinuxGenericBubblewrap(
       undeclaredRootAccess: "read-only",
       anonymousWritablePaths: Object.freeze([
         SANDBOX_HOME,
+        "/dev",
         "/run",
         "/tmp",
         "/var/tmp",
@@ -1148,6 +1223,12 @@ export function planLinuxGenericBubblewrap(
       workspaceDescriptorBound: true,
       systemDescriptorBound: true,
       exactEtcFileDescriptors: true,
+      workspaceRecursiveBind: true,
+      workspaceMountTopology:
+        "no-strict-descendants-or-forbidden-root-aliases-at-attestation",
+      mountTopologySource: validated.workspaceMountTopology.source,
+      mountTopologyDigest: validated.workspaceMountTopology.digest,
+      mountTopologyAtomic: false,
     }),
     networkPolicy: Object.freeze({
       namespace: "new",

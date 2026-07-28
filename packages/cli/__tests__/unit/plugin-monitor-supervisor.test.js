@@ -2,6 +2,10 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { EventEmitter } from "node:events";
 import { PluginMonitorSupervisor } from "../../src/lib/plugin-monitor-supervisor.js";
 import { executionBroker } from "../../src/lib/process-execution-broker/index.js";
+import {
+  issuePluginWorkspaceAuthority,
+  resolvePluginWorkspaceAuthority,
+} from "../../src/lib/plugin-runtime/sandbox-policy.js";
 
 /** A fake child process: EventEmitter with pipe-like stdout/stderr + kill(). */
 function makeChild() {
@@ -155,6 +159,20 @@ describe("PluginMonitorSupervisor — longRunning mode", () => {
     const issueAuthority = vi
       .spyOn(executionBroker, "issueLinuxWorkspaceSandboxExecutionContract")
       .mockReturnValue(contract);
+    const provenance = {
+      origin: "plugin:monitor",
+      pluginId: "p",
+      pluginVersion: "1.0.0",
+      pluginSource: "/trusted/plugins/p/plugin.json",
+    };
+    const pluginWorkspaceAuthority = issuePluginWorkspaceAuthority({
+      root: process.cwd(),
+      ...provenance,
+    });
+    const trustedRoot = resolvePluginWorkspaceAuthority(
+      pluginWorkspaceAuthority,
+      provenance,
+    );
     sup = new PluginMonitorSupervisor({
       spawn,
       brokerSpawn: spawn,
@@ -162,12 +180,9 @@ describe("PluginMonitorSupervisor — longRunning mode", () => {
     sup.start([
       mon({
         mode: "longRunning",
-        origin: "plugin:monitor",
         cwd: "/manifest-controlled-cwd",
-        pluginWorkspaceRoot: "/trusted/plugins/p",
-        pluginId: "p",
-        pluginVersion: "1.0.0",
-        pluginSource: "/trusted/plugins/p/plugin.json",
+        ...provenance,
+        pluginWorkspaceAuthority,
         sandboxPolicy: {
           requiredBoundaries: ["filesystem", "network"],
         },
@@ -182,10 +197,45 @@ describe("PluginMonitorSupervisor — longRunning mode", () => {
         shell: false,
         origin: "plugin:monitor",
       }),
-      "/trusted/plugins/p",
+      trustedRoot,
     );
     expect(spawn.calls[0].opts.sandboxExecutionContract).toBe(contract);
     issueAuthority.mockRestore();
+  });
+
+  it("rejects a lookalike manifest authority before spawning a strict plugin monitor", () => {
+    const spawn = makeSpawn();
+    const issueAuthority = vi.spyOn(
+      executionBroker,
+      "issueLinuxWorkspaceSandboxExecutionContract",
+    );
+    sup = new PluginMonitorSupervisor({
+      spawn,
+      brokerSpawn: spawn,
+    });
+
+    sup.start([
+      mon({
+        mode: "longRunning",
+        origin: "plugin:monitor",
+        pluginId: "p",
+        pluginVersion: "1.0.0",
+        pluginSource: "manifest-controlled",
+        pluginWorkspaceAuthority: {
+          contractVersion: 1,
+          kind: "trusted-plugin-workspace",
+        },
+        sandboxPolicy: {
+          requiredBoundaries: ["filesystem", "network"],
+        },
+      }),
+    ]);
+
+    expect(issueAuthority).not.toHaveBeenCalled();
+    expect(spawn.calls).toHaveLength(0);
+    expect(sup.peekOutputs()[0].line).toMatch(
+      /missing its trusted workspace authority/,
+    );
   });
 });
 

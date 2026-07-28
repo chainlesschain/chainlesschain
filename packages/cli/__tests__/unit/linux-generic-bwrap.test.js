@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { EventEmitter } from "node:events";
 import {
   admitLinuxGenericSandboxExecutionContract,
   issueLinuxGenericSandboxExecutionContract,
@@ -7,6 +8,7 @@ import {
   verifyLinuxGenericBubblewrapPlan,
 } from "../../src/lib/process-execution-broker/linux-generic-bwrap.js";
 import { executionBroker } from "../../src/lib/process-execution-broker/index.js";
+import runtimeProvenanceLedger from "../../src/lib/runtime-provenance-ledger.js";
 
 const ROOT = "/work/project";
 const CWD = "/work/project/subdir";
@@ -44,6 +46,20 @@ const ETC_FILE = Object.freeze({
   mode: 0o100644,
   uid: 0,
   gid: 0,
+});
+const MOUNT_TOPOLOGY = Object.freeze({
+  version: 1,
+  source: "proc-self-mountinfo",
+  workspaceRoot: ROOT,
+  digest: "f".repeat(64),
+  lineageEntryCount: 1,
+  filesystemEntryCount: 1,
+  aliasCount: 1,
+  forbiddenIdentityCount: 8,
+  strictDescendantMountsAtAttestation: 0,
+  rootAliasAttested: true,
+  recursiveBind: true,
+  mountTopologyAtomic: false,
 });
 
 function attestWorkspace(root = ROOT, cwd = CWD) {
@@ -115,11 +131,14 @@ function resources(contract, overrides = {}) {
       probeFd: 100,
       finalFd: 200,
       identity: rootOwnedFile("/usr/bin/bwrap", 10),
+      sha256: "b".repeat(64),
+      bytes: 1024,
     },
     workspace: {
       probeFd: 101,
       finalFd: 201,
       identity: ROOT_IDENTITY,
+      mountTopology: MOUNT_TOPOLOGY,
     },
     system: [
       {
@@ -168,6 +187,8 @@ function successfulProbe(call) {
     emptyRoot: true,
     undeclaredRootReadOnly: true,
     workspaceReadWrite: true,
+    workspaceMountTopologyAttested: true,
+    anonymousDevWritable: true,
     systemReadOnly: true,
     hostHomeHidden: true,
     outsideMarkerHidden: true,
@@ -218,11 +239,13 @@ describe("Linux generic bubblewrap authority contract", () => {
     for (const broadRoot of [
       "/tmp",
       "/var",
+      "/var/tmp",
       "/run",
       "/opt",
       "/mnt",
       "/media",
       "/srv",
+      "/home/sandbox",
     ]) {
       expect(() =>
         issueLinuxGenericSandboxExecutionContract(
@@ -375,6 +398,12 @@ describe("Linux generic bubblewrap exact mount plan", () => {
       hostRootMapped: false,
       hostHomeMapped: false,
       workspaceDescriptorBound: true,
+      workspaceRecursiveBind: true,
+      workspaceMountTopology:
+        "no-strict-descendants-or-forbidden-root-aliases-at-attestation",
+      mountTopologySource: "proc-self-mountinfo",
+      mountTopologyDigest: MOUNT_TOPOLOGY.digest,
+      mountTopologyAtomic: false,
     });
     expect(plan.args).toContain("--bind-fd");
     expect(plan.args).toContain("--ro-bind-fd");
@@ -428,14 +457,74 @@ describe("Linux generic bubblewrap exact mount plan", () => {
     );
     expect(broadEtcBind).toBe(false);
     expect(verifyLinuxGenericBubblewrapPlan(plan)).toBe(true);
-    expect(executionBroker._validateSandboxPlan(plan)).toMatchObject({
+    const validatedPlan = executionBroker._validateSandboxPlan(plan);
+    expect(validatedPlan).toMatchObject({
       backend: "linux-bwrap-workspace",
       policyAttested: true,
       runtimeProbe: {
         kind: "linux-bwrap-generic-workspace-policy-v1",
         descriptorMounts: true,
+        workspaceMountTopologyAttested: true,
+        workspaceRootAliasAttested: true,
+        mountTopologyDigest: MOUNT_TOPOLOGY.digest,
+        mountTopologyAtomic: false,
       },
     });
+    const audit = {};
+    executionBroker._applySandboxAudit(audit, validatedPlan, true);
+    expect(audit).toMatchObject({
+      sandboxFilesystemPolicy: {
+        workspaceRoot: ROOT,
+        workingDirectory: CWD,
+        workspaceAccess: "read-write",
+        systemAccess: "read-only",
+        undeclaredRootAccess: "read-only",
+        hostRootMapped: false,
+        hostHomeMapped: false,
+        workspaceDescriptorBound: true,
+        systemDescriptorBound: true,
+        exactEtcFileDescriptors: true,
+        workspaceRecursiveBind: true,
+        workspaceMountTopology:
+          "no-strict-descendants-or-forbidden-root-aliases-at-attestation",
+        mountTopologySource: "proc-self-mountinfo",
+        mountTopologyDigest: MOUNT_TOPOLOGY.digest,
+        mountTopologyAtomic: false,
+      },
+      sandboxNetworkPolicy: {
+        namespace: "new",
+        namespaceIdentityChanged: true,
+        seccomp: "deny-network-creation",
+      },
+    });
+    expect(audit.sandboxFilesystemPolicy.anonymousWritablePaths).toEqual([
+      "/home/sandbox",
+      "/dev",
+      "/run",
+      "/tmp",
+      "/var/tmp",
+    ]);
+    expect(() =>
+      executionBroker._validateSandboxPlan({
+        ...plan,
+        filesystemPolicy: {
+          ...plan.filesystemPolicy,
+          anonymousWritablePaths: [
+            ...plan.filesystemPolicy.anonymousWritablePaths,
+            "/host-forgery",
+          ],
+        },
+      }),
+    ).toThrow(/typed descriptor-bound empty-root contract/);
+    expect(() =>
+      executionBroker._validateSandboxPlan({
+        ...plan,
+        runtimeProbe: {
+          ...plan.runtimeProbe,
+          mountTopologyDigest: "0".repeat(64),
+        },
+      }),
+    ).toThrow(/typed descriptor-bound empty-root contract/);
     expect(() =>
       executionBroker._validateSandboxPlan({
         ...plan,
@@ -582,6 +671,142 @@ describe("Linux generic bubblewrap exact mount plan", () => {
     expect(finalMismatch.reason).toBe(
       "linux_generic_execution_contract_changed",
     );
+
+    const third = issue();
+    const cleanup = vi.fn();
+    const throwing = resources(third, {
+      cleanup,
+      attestFinal: vi.fn(() => {
+        throw new Error("EIO");
+      }),
+    });
+    let thrown = null;
+    let attestationFailure;
+    try {
+      attestationFailure = planLinuxGenericBubblewrap(
+        {
+          contract: third,
+          provenance: provenance(),
+          resources: throwing,
+          probe: successfulProbe,
+        },
+        { platform: "linux" },
+      );
+    } catch (error) {
+      thrown = error;
+    }
+    expect(thrown).toBeNull();
+    expect(attestationFailure).toMatchObject({
+      applied: false,
+      reason: "linux_generic_execution_contract_changed",
+      guarantees: [],
+    });
+    expect(cleanup).toHaveBeenCalledOnce();
+  });
+
+  it("rejects runnable probe output that does not prove root and system mounts read-only", () => {
+    for (const field of ["undeclaredRootReadOnly", "systemReadOnly"]) {
+      const commandContract = issue();
+      const plan = planLinuxGenericBubblewrap(
+        {
+          contract: commandContract,
+          provenance: provenance(),
+          resources: resources(commandContract),
+          probe(call) {
+            return { ...successfulProbe(call), [field]: false };
+          },
+        },
+        { platform: "linux" },
+      );
+      expect(plan).toMatchObject({
+        applied: false,
+        reason: "linux_generic_policy_probe_failed",
+        guarantees: [],
+      });
+    }
+  });
+
+  it("rejects resources without typed no-alias mount-topology evidence", () => {
+    const commandContract = issue();
+    const acquired = resources(commandContract);
+    acquired.workspace = {
+      ...acquired.workspace,
+      mountTopology: {
+        ...acquired.workspace.mountTopology,
+        rootAliasAttested: false,
+      },
+    };
+    const plan = planLinuxGenericBubblewrap(
+      {
+        contract: commandContract,
+        provenance: provenance(),
+        resources: acquired,
+        probe: successfulProbe,
+      },
+      { platform: "linux" },
+    );
+
+    expect(plan).toMatchObject({
+      applied: false,
+      reason: "linux_generic_resources_unattested",
+      guarantees: [],
+    });
+    expect(acquired.cleanup).toHaveBeenCalledOnce();
+  });
+
+  it("binds the seccomp bytes, supervisor image, and system target identity into policyDigest", () => {
+    const variants = [
+      (value) => value,
+      (value) => {
+        value.seccomp = {
+          ...value.seccomp,
+          sha256: "c".repeat(64),
+        };
+        return value;
+      },
+      (value) => {
+        value.supervisor = {
+          ...value.supervisor,
+          sha256: "d".repeat(64),
+        };
+        return value;
+      },
+      (value) => {
+        value.target = {
+          ...value.target,
+          identity: rootOwnedFile("/usr/bin/node", 999),
+        };
+        return value;
+      },
+      (value) => {
+        value.workspace = {
+          ...value.workspace,
+          mountTopology: {
+            ...value.workspace.mountTopology,
+            digest: "9".repeat(64),
+          },
+        };
+        return value;
+      },
+    ];
+    const plans = variants.map((mutate) => {
+      const commandContract = issue();
+      return planLinuxGenericBubblewrap(
+        {
+          contract: commandContract,
+          provenance: provenance(),
+          resources: mutate(resources(commandContract)),
+          probe: successfulProbe,
+        },
+        { platform: "linux" },
+      );
+    });
+
+    expect(plans.every((plan) => plan.applied)).toBe(true);
+    expect(new Set(plans.map((plan) => plan.policyDigest)).size).toBe(
+      variants.length,
+    );
+    for (const plan of plans) plan.cleanup();
   });
 
   it("rejects numeric/inherited descriptors before issuing authority", () => {
@@ -594,5 +819,165 @@ describe("Linux generic bubblewrap exact mount plan", () => {
     expect(() => issue({ detached: true })).toThrow(
       /rejects detached\/identity\/argv0\/serialization overrides/,
     );
+  });
+
+  it("releases parent mount descriptors immediately after async spawn returns", () => {
+    const planningContract = issue();
+    const acquiredResources = resources(planningContract);
+    const plan = planLinuxGenericBubblewrap(
+      {
+        contract: planningContract,
+        provenance: provenance(),
+        resources: acquiredResources,
+        probe: successfulProbe,
+      },
+      { platform: "linux" },
+    );
+    const launchContract = issue();
+    const child = new EventEmitter();
+    child.pid = 4321;
+    child.kill = vi.fn();
+    const nativeSpawn = vi.fn(() => child);
+    const previous = {
+      native: executionBroker._native,
+      adapter: executionBroker._sandboxAdapter,
+      sandboxEnabled: executionBroker._sandboxEnabled,
+      platformEnabled: executionBroker._platformSandboxEnabled,
+      credentialFiltering: executionBroker._credentialFilteringEnabled,
+      credentialAgent: executionBroker._credentialAgentEnabled,
+      disabled: process.env.CC_SANDBOX_DISABLE,
+      strict: process.env.CC_SANDBOX_STRICT,
+    };
+
+    try {
+      delete process.env.CC_SANDBOX_DISABLE;
+      process.env.CC_SANDBOX_STRICT = "1";
+      executionBroker._sandboxEnabled = true;
+      executionBroker._platformSandboxEnabled = true;
+      executionBroker._credentialFilteringEnabled = false;
+      executionBroker._credentialAgentEnabled = false;
+      executionBroker._native = { spawn: nativeSpawn };
+      executionBroker._sandboxAdapter = {
+        applySandbox: vi.fn(() => plan),
+        postSpawnSandbox: vi.fn(),
+      };
+
+      const returned = executionBroker.spawn("node", ["server.js"], {
+        origin: "plugin:mcp",
+        cwd: CWD,
+        shell: false,
+        stdio: ["pipe", "pipe", "pipe"],
+        policy: "allow",
+        sandboxPolicy: {
+          requiredBoundaries: ["filesystem", "network"],
+        },
+        sandboxExecutionContract: launchContract,
+      });
+
+      expect(returned).toBe(child);
+      expect(nativeSpawn).toHaveBeenCalledOnce();
+      expect(acquiredResources.cleanup).toHaveBeenCalledOnce();
+      child.emit("exit", 0, null);
+      expect(acquiredResources.cleanup).toHaveBeenCalledOnce();
+    } finally {
+      executionBroker._native = previous.native;
+      executionBroker._sandboxAdapter = previous.adapter;
+      executionBroker._sandboxEnabled = previous.sandboxEnabled;
+      executionBroker._platformSandboxEnabled = previous.platformEnabled;
+      executionBroker._credentialFilteringEnabled =
+        previous.credentialFiltering;
+      executionBroker._credentialAgentEnabled = previous.credentialAgent;
+      if (previous.disabled === undefined) {
+        delete process.env.CC_SANDBOX_DISABLE;
+      } else {
+        process.env.CC_SANDBOX_DISABLE = previous.disabled;
+      }
+      if (previous.strict === undefined) {
+        delete process.env.CC_SANDBOX_STRICT;
+      } else {
+        process.env.CC_SANDBOX_STRICT = previous.strict;
+      }
+      executionBroker.flushAuditLog();
+    }
+  });
+
+  it("records sanitized generic policy evidence in the hash-chained RPL", () => {
+    const before = runtimeProvenanceLedger.getProvenance().length;
+    executionBroker._writeRplEntry(
+      {
+        executionId: "generic-rpl-test",
+        origin: "test:generic-rpl",
+        command: "node",
+        args: ["server.js"],
+        cwd: CWD,
+        exitCode: 0,
+        permissionDecision: "allow",
+        policy: "allow",
+        scope: "sandbox-test",
+        sandboxed: true,
+        sandboxBackend: "linux-bwrap-workspace",
+        sandboxGuarantees: ["filesystem", "network"],
+        sandboxPolicyAttested: true,
+        sandboxPolicyDigest: "e".repeat(64),
+        sandboxFilesystemPolicy: {
+          workspaceRoot: ROOT,
+          workingDirectory: CWD,
+          workspaceAccess: "read-write",
+          systemAccess: "read-only",
+          undeclaredRootAccess: "read-only",
+          anonymousWritablePaths: [
+            "/home/sandbox",
+            "/dev",
+            "/run",
+            "/tmp",
+            "/var/tmp",
+          ],
+          hostRootMapped: false,
+          hostHomeMapped: false,
+          workspaceDescriptorBound: true,
+          systemDescriptorBound: true,
+          exactEtcFileDescriptors: true,
+          workspaceRecursiveBind: true,
+          workspaceMountTopology:
+            "no-strict-descendants-or-forbidden-root-aliases-at-attestation",
+          mountTopologySource: "proc-self-mountinfo",
+          mountTopologyDigest: MOUNT_TOPOLOGY.digest,
+          mountTopologyAtomic: false,
+        },
+        sandboxNetworkPolicy: {
+          namespace: "new",
+          namespaceIdentityChanged: true,
+          seccomp: "deny-network-creation",
+        },
+      },
+      "completed",
+    );
+
+    const entries = runtimeProvenanceLedger.getProvenance();
+    expect(entries).toHaveLength(before + 1);
+    expect(entries.at(-1)).toMatchObject({
+      type: "process.execution",
+      source: "test:generic-rpl",
+      artifactId: "generic-rpl-test",
+      sandbox: {
+        applied: true,
+        backend: "linux-bwrap-workspace",
+        guarantees: ["filesystem", "network"],
+        policyAttested: true,
+        policyDigest: "e".repeat(64),
+        filesystemPolicy: {
+          workspaceRoot: ROOT,
+          workingDirectory: CWD,
+          mountTopologyDigest: MOUNT_TOPOLOGY.digest,
+          mountTopologyAtomic: false,
+        },
+        networkPolicy: {
+          namespace: "new",
+          namespaceIdentityChanged: true,
+          seccomp: "deny-network-creation",
+        },
+      },
+    });
+    expect(runtimeProvenanceLedger.verifyIntegrity()).toBe(true);
   });
 });

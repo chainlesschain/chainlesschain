@@ -26,9 +26,14 @@ const {
   loadShellConfig,
 } = require("./shell-selector.cjs");
 const { mergeHookDecisions } = require("./hook-event-bus.cjs");
+const { buildManagedHookEnvironment } = require("./hook-environment.cjs");
 const {
-  buildManagedHookEnvironment,
-} = require("./hook-environment.cjs");
+  buildExplicitHookShellInvocation,
+  issueTrustedHookSandboxContract,
+  requireTrustedHookRoot,
+  requiresExplicitHookShell,
+  sandboxBoundaryError,
+} = require("./hook-shell-command.cjs");
 
 const _deps = { runSync: null, run: null };
 Object.defineProperties(_deps, {
@@ -125,17 +130,13 @@ function hookSpawnFailure(error) {
   const sandboxDenied =
     error?.code === "ERR_PROCESS_SANDBOX_BOUNDARY_UNSATISFIED";
   return {
-    decision: sandboxDenied
-      ? HOOK_DECISIONS.BLOCK
-      : HOOK_DECISIONS.CONTINUE,
+    decision: sandboxDenied ? HOOK_DECISIONS.BLOCK : HOOK_DECISIONS.CONTINUE,
     reason: sandboxDenied
       ? `hook sandbox denied: ${error.message}`
       : `hook spawn failed: ${error.message}`,
     exitCode: null,
     error: error.message,
-    ...(sandboxDenied
-      ? { sandboxDenied: true }
-      : { nonBlockingError: true }),
+    ...(sandboxDenied ? { sandboxDenied: true } : { nonBlockingError: true }),
   };
 }
 
@@ -321,12 +322,17 @@ function _runCommandHookInner(command, input = {}, opts = {}) {
   let res;
   try {
     const sandboxPolicy = resolveHookSandboxPolicy({}, opts);
+    const explicitSandboxShell = requiresExplicitHookShell(sandboxPolicy);
+    const trustedRoot = explicitSandboxShell
+      ? requireTrustedHookRoot(cwd)
+      : null;
+    const workingDirectory = trustedRoot || cwd || process.cwd();
     const common = {
       input: JSON.stringify({
         ...input,
         schema_version: input.schema_version ?? HOOK_PAYLOAD_SCHEMA_VERSION,
       }),
-      cwd: cwd || process.cwd(),
+      cwd: workingDirectory,
       encoding: "utf-8",
       timeout,
       maxBuffer: 8 * 1024 * 1024,
@@ -346,6 +352,7 @@ function _runCommandHookInner(command, input = {}, opts = {}) {
       pluginId: opts.pluginId || null,
       pluginVersion: opts.pluginVersion || null,
       pluginSource: opts.pluginSource || null,
+      ...(explicitSandboxShell || usePowershell ? { shell: false } : {}),
       ...(sandboxPolicy ? { sandboxPolicy } : {}),
     };
     const brokerRunSync =
@@ -355,13 +362,42 @@ function _runCommandHookInner(command, input = {}, opts = {}) {
         ? opts.broker["spawnSync"].bind(opts.broker)
         : null;
     if (brokerRunSync) {
-      const invocation = usePowershell
-        ? buildPowershellArgv(command, shellKind, {
-            executionPolicy: loadShellConfig({ cwd: common.cwd })
-              .executionPolicy,
+      const powershellOptions = {
+        executionPolicy: loadShellConfig({ cwd: common.cwd }).executionPolicy,
+      };
+      const invocation = explicitSandboxShell
+        ? buildExplicitHookShellInvocation(command, {
+            shellKind,
+            buildPowershellArgv,
+            powershellOptions,
           })
-        : { file: command, argv: [] };
-      res = brokerRunSync(invocation.file, invocation.argv, processOptions);
+        : usePowershell
+          ? buildPowershellArgv(command, shellKind, powershellOptions)
+          : { file: command, argv: [] };
+      let brokerOptions = processOptions;
+      if (explicitSandboxShell) {
+        const issuer = opts.broker?.issueLinuxWorkspaceSandboxExecutionContract;
+        const sandboxExecutionContract = issueTrustedHookSandboxContract({
+          issuer,
+          receiver: opts.broker,
+          file: invocation.file,
+          args: invocation.argv,
+          options: processOptions,
+          trustedRoot,
+          sync: true,
+          label: "trusted plugin hook sandbox contract issuance failed",
+        });
+        if (process.platform === "linux" && !sandboxExecutionContract) {
+          throw sandboxBoundaryError(
+            "trusted Linux hook sandbox contract issuer is unavailable",
+          );
+        }
+        brokerOptions = {
+          ...processOptions,
+          ...(sandboxExecutionContract ? { sandboxExecutionContract } : {}),
+        };
+      }
+      res = brokerRunSync(invocation.file, invocation.argv, brokerOptions);
     } else if (usePowershell) {
       // Per-hook `shell: powershell|pwsh` (settings hook entry): explicit argv
       // instead of the default shell; the enterprise ExecutionPolicy override
@@ -374,6 +410,12 @@ function _runCommandHookInner(command, input = {}, opts = {}) {
         throw new Error("hook process runner unavailable");
       }
       res = _deps.runSync(inv.file, inv.argv, processOptions);
+    } else if (explicitSandboxShell) {
+      if (typeof _deps.runSync !== "function") {
+        throw new Error("hook process runner unavailable");
+      }
+      const invocation = buildExplicitHookShellInvocation(command);
+      res = _deps.runSync(invocation.file, invocation.argv, processOptions);
     } else {
       if (typeof _deps.runSync !== "function") {
         throw new Error("hook process runner unavailable");
@@ -467,7 +509,6 @@ async function _runCommandHookInnerAsync(command, input = {}, opts = {}) {
       : 60000;
   const shellKind = normalizeShellKind(opts.shell);
   const usePowershell = shellKind === "powershell" || shellKind === "pwsh";
-  const wd = cwd || process.cwd();
   const inputJson = JSON.stringify({
     ...input,
     schema_version: input.schema_version ?? HOOK_PAYLOAD_SCHEMA_VERSION,
@@ -485,6 +526,14 @@ async function _runCommandHookInnerAsync(command, input = {}, opts = {}) {
   } catch (error) {
     return hookSpawnFailure(error);
   }
+  const explicitSandboxShell = requiresExplicitHookShell(sandboxPolicy);
+  let trustedRoot;
+  try {
+    trustedRoot = explicitSandboxShell ? requireTrustedHookRoot(cwd) : null;
+  } catch (error) {
+    return hookSpawnFailure(error);
+  }
+  const wd = trustedRoot || cwd || process.cwd();
   const processOptions = {
     cwd: wd,
     env: spawnEnv,
@@ -494,6 +543,7 @@ async function _runCommandHookInnerAsync(command, input = {}, opts = {}) {
     pluginId: opts.pluginId || null,
     pluginVersion: opts.pluginVersion || null,
     pluginSource: opts.pluginSource || null,
+    ...(explicitSandboxShell || usePowershell ? { shell: false } : {}),
     ...(sandboxPolicy ? { sandboxPolicy } : {}),
   };
 
@@ -509,7 +559,38 @@ async function _runCommandHookInnerAsync(command, input = {}, opts = {}) {
     if (typeof run !== "function") {
       throw new Error("hook process runner unavailable");
     }
-    if (usePowershell) {
+    if (explicitSandboxShell) {
+      const invocation = buildExplicitHookShellInvocation(command, {
+        shellKind,
+        buildPowershellArgv,
+        powershellOptions: {
+          executionPolicy: loadShellConfig({ cwd: wd }).executionPolicy,
+        },
+      });
+      let brokerOptions = processOptions;
+      if (brokerRun) {
+        const issuer = opts.broker?.issueLinuxWorkspaceSandboxExecutionContract;
+        const sandboxExecutionContract = issueTrustedHookSandboxContract({
+          issuer,
+          receiver: opts.broker,
+          file: invocation.file,
+          args: invocation.argv,
+          options: processOptions,
+          trustedRoot,
+          label: "trusted plugin hook sandbox contract issuance failed",
+        });
+        if (process.platform === "linux" && !sandboxExecutionContract) {
+          throw sandboxBoundaryError(
+            "trusted Linux hook sandbox contract issuer is unavailable",
+          );
+        }
+        brokerOptions = {
+          ...processOptions,
+          ...(sandboxExecutionContract ? { sandboxExecutionContract } : {}),
+        };
+      }
+      child = run(invocation.file, invocation.argv, brokerOptions);
+    } else if (usePowershell) {
       const { executionPolicy } = loadShellConfig({ cwd: wd });
       const inv = buildPowershellArgv(command, shellKind, { executionPolicy });
       child = run(inv.file, inv.argv, processOptions);

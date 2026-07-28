@@ -11,9 +11,42 @@ on:
       - "packages/cli/package.json"
       - ".gitattributes"
       - "packages/cli/src/lib/plugin-runtime/bin.js"
+      - "packages/cli/src/lib/plugin-runtime/mcp.js"
+      - "packages/cli/src/lib/plugin-runtime/monitors.js"
+      - "packages/cli/src/lib/plugin-runtime/hooks.js"
+      - "packages/cli/src/lib/plugin-runtime/sandbox-policy.js"
+      - "packages/cli/src/lib/runtime-provenance-ledger.js"
+      - "packages/cli/src/harness/mcp-client.js"
+      - "packages/cli/src/harness/background-task-manager.js"
+      - "packages/cli/src/harness/background-task-worker.js"
+      - "packages/cli/src/harness/background-task-command-runner.js"
+      - "packages/cli/src/lib/hook-runner.js"
+      - "packages/cli/src/lib/hook-runner.cjs"
+      - "packages/cli/src/lib/hook-shell-command.cjs"
+      - "packages/cli/src/lib/async-hook-supervisor.js"
+      - "packages/cli/src/lib/async-hook-supervisor.cjs"
+      - "packages/cli/src/lib/hooks-v2-runtime.js"
+      - "packages/cli/src/lib/lsp/lsp-client.js"
+      - "packages/cli/src/lib/plugin-monitor-supervisor.js"
+      - "packages/cli/src/commands/agenda.js"
       - "packages/cli/src/runtime/agent-core.js"
       - "packages/cli/src/lib/agent-sandbox.js"
       - "packages/cli/__tests__/unit/process-execution-broker-platform-sandbox.test.js"
+      - "packages/cli/__tests__/unit/linux-generic-bwrap.test.js"
+      - "packages/cli/__tests__/unit/linux-generic-bwrap-runtime.test.js"
+      - "packages/cli/__tests__/unit/hook-runner.test.js"
+      - "packages/cli/__tests__/unit/async-hook-supervisor.test.js"
+      - "packages/cli/__tests__/unit/hooks-v2-managed-policy.test.js"
+      - "packages/cli/__tests__/unit/mcp-client-sandbox-policy.test.js"
+      - "packages/cli/__tests__/unit/plugin-monitor-supervisor.test.js"
+      - "packages/cli/__tests__/unit/plugin-runtime-mcp.test.js"
+      - "packages/cli/__tests__/unit/plugin-runtime-monitors.test.js"
+      - "packages/cli/__tests__/unit/plugin-runtime-hooks.test.js"
+      - "packages/cli/__tests__/unit/plugin-runtime-process-boundary.test.js"
+      - "packages/cli/__tests__/unit/agenda-command.test.js"
+      - "packages/cli/__tests__/unit/background-task-manager.test.js"
+      - "packages/cli/__tests__/unit/background-task-command-runner.test.js"
+      - "packages/cli/src/lib/lsp/__tests__/lsp-client.test.js"
       - "packages/cli/__tests__/unit/plugin-runtime-bin.test.js"
       - "packages/cli/__tests__/unit/plugin-runtime-bin-agent-core.test.js"
       - "packages/cli/__tests__/integration/process-broker-platform-sandbox-live.test.js"
@@ -33,9 +66,42 @@ on:
       - "packages/cli/package.json"
       - ".gitattributes"
       - "packages/cli/src/lib/plugin-runtime/bin.js"
+      - "packages/cli/src/lib/plugin-runtime/mcp.js"
+      - "packages/cli/src/lib/plugin-runtime/monitors.js"
+      - "packages/cli/src/lib/plugin-runtime/hooks.js"
+      - "packages/cli/src/lib/plugin-runtime/sandbox-policy.js"
+      - "packages/cli/src/lib/runtime-provenance-ledger.js"
+      - "packages/cli/src/harness/mcp-client.js"
+      - "packages/cli/src/harness/background-task-manager.js"
+      - "packages/cli/src/harness/background-task-worker.js"
+      - "packages/cli/src/harness/background-task-command-runner.js"
+      - "packages/cli/src/lib/hook-runner.js"
+      - "packages/cli/src/lib/hook-runner.cjs"
+      - "packages/cli/src/lib/hook-shell-command.cjs"
+      - "packages/cli/src/lib/async-hook-supervisor.js"
+      - "packages/cli/src/lib/async-hook-supervisor.cjs"
+      - "packages/cli/src/lib/hooks-v2-runtime.js"
+      - "packages/cli/src/lib/lsp/lsp-client.js"
+      - "packages/cli/src/lib/plugin-monitor-supervisor.js"
+      - "packages/cli/src/commands/agenda.js"
       - "packages/cli/src/runtime/agent-core.js"
       - "packages/cli/src/lib/agent-sandbox.js"
       - "packages/cli/__tests__/unit/process-execution-broker-platform-sandbox.test.js"
+      - "packages/cli/__tests__/unit/linux-generic-bwrap.test.js"
+      - "packages/cli/__tests__/unit/linux-generic-bwrap-runtime.test.js"
+      - "packages/cli/__tests__/unit/hook-runner.test.js"
+      - "packages/cli/__tests__/unit/async-hook-supervisor.test.js"
+      - "packages/cli/__tests__/unit/hooks-v2-managed-policy.test.js"
+      - "packages/cli/__tests__/unit/mcp-client-sandbox-policy.test.js"
+      - "packages/cli/__tests__/unit/plugin-monitor-supervisor.test.js"
+      - "packages/cli/__tests__/unit/plugin-runtime-mcp.test.js"
+      - "packages/cli/__tests__/unit/plugin-runtime-monitors.test.js"
+      - "packages/cli/__tests__/unit/plugin-runtime-hooks.test.js"
+      - "packages/cli/__tests__/unit/plugin-runtime-process-boundary.test.js"
+      - "packages/cli/__tests__/unit/agenda-command.test.js"
+      - "packages/cli/__tests__/unit/background-task-manager.test.js"
+      - "packages/cli/__tests__/unit/background-task-command-runner.test.js"
+      - "packages/cli/src/lib/lsp/__tests__/lsp-client.test.js"
       - "packages/cli/__tests__/unit/plugin-runtime-bin.test.js"
       - "packages/cli/__tests__/unit/plugin-runtime-bin-agent-core.test.js"
       - "packages/cli/__tests__/integration/process-broker-platform-sandbox-live.test.js"
@@ -83,15 +149,40 @@ jobs:
         shell: bash
         run: |
           sudo apt-get update
-          sudo apt-get install -y bubblewrap build-essential
+          sudo apt-get install -y \
+            bubblewrap \
+            build-essential \
+            libcap-dev \
+            libselinux1-dev \
+            meson \
+            ninja-build
+          curl -fL \
+            https://github.com/containers/bubblewrap/releases/download/v0.11.2/bubblewrap-0.11.2.tar.xz \
+            -o /tmp/bubblewrap-0.11.2.tar.xz
+          echo "69abc30005d2186baf7737feacd8da35633b93cf5af38838ecff17c5f8e924f6  /tmp/bubblewrap-0.11.2.tar.xz" \
+            | sha256sum -c -
+          tar -C /tmp -xf /tmp/bubblewrap-0.11.2.tar.xz
+          meson setup \
+            /tmp/bubblewrap-0.11.2-build \
+            /tmp/bubblewrap-0.11.2 \
+            -Dtests=false \
+            -Dman=disabled \
+            -Dbash_completion=disabled \
+            -Dzsh_completion=disabled
+          meson compile -C /tmp/bubblewrap-0.11.2-build
+          sudo install -m 0755 \
+            /tmp/bubblewrap-0.11.2-build/bwrap \
+            /usr/bin/bwrap
           sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
           /usr/bin/bwrap --version
           /usr/bin/bwrap --help | grep -F -- "--file FD DEST"
+          /usr/bin/bwrap --help | grep -F -- --bind-fd
           /usr/bin/bwrap --help | grep -F -- --ro-bind-fd
           /usr/bin/bwrap --help | grep -F -- "--ro-bind-data FD DEST"
           /usr/bin/bwrap --help | grep -F -- "--perms OCTAL"
           /usr/bin/bwrap --help | grep -F -- --disable-userns
           /usr/bin/bwrap --help | grep -F -- --assert-userns-disabled
+          /usr/bin/bwrap --help | grep -F -- --remount-ro
           /usr/bin/bwrap --help | grep -F -- --seccomp
 
       - name: Run platform sandbox contract tests
@@ -100,6 +191,21 @@ jobs:
           npx vitest run --reporter=json
           --outputFile=strict-sandbox-contract-result.json
           __tests__/unit/process-execution-broker-platform-sandbox.test.js
+          __tests__/unit/linux-generic-bwrap.test.js
+          __tests__/unit/linux-generic-bwrap-runtime.test.js
+          __tests__/unit/hook-runner.test.js
+          __tests__/unit/async-hook-supervisor.test.js
+          __tests__/unit/hooks-v2-managed-policy.test.js
+          __tests__/unit/mcp-client-sandbox-policy.test.js
+          __tests__/unit/plugin-monitor-supervisor.test.js
+          __tests__/unit/plugin-runtime-mcp.test.js
+          __tests__/unit/plugin-runtime-monitors.test.js
+          __tests__/unit/plugin-runtime-hooks.test.js
+          __tests__/unit/plugin-runtime-process-boundary.test.js
+          __tests__/unit/agenda-command.test.js
+          __tests__/unit/background-task-manager.test.js
+          __tests__/unit/background-task-command-runner.test.js
+          src/lib/lsp/__tests__/lsp-client.test.js
           __tests__/unit/plugin-runtime-bin.test.js
           __tests__/unit/plugin-runtime-bin-agent-core.test.js
 

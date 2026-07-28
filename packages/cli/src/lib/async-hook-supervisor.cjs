@@ -36,6 +36,13 @@ const {
   tryParseDecision,
   resolveHookSandboxPolicy,
 } = require("./hook-runner.cjs");
+const {
+  buildExplicitHookShellInvocation,
+  issueTrustedHookSandboxContract,
+  requireTrustedHookRoot,
+  requiresExplicitHookShell,
+  sandboxBoundaryError,
+} = require("./hook-shell-command.cjs");
 
 const DEFAULT_TIMEOUT_MS = 60000;
 const MAX_TIMEOUT_MS = 600000;
@@ -117,8 +124,25 @@ class AsyncHookSupervisor {
    * the process 'exit' reaper, where async work would be cut off. A child with no
    * real pid (the unit-test fakes) falls back to its own `.kill()`.
    */
-  _killChildTree(child, signal = "SIGTERM") {
+  _killChildTree(
+    child,
+    signal = "SIGTERM",
+    { sandboxManagedTree = false } = {},
+  ) {
     if (!child) return;
+    if (sandboxManagedTree) {
+      // The Linux generic backend launches bubblewrap with --die-with-parent,
+      // --new-session, and a private PID namespace. Killing the Broker child
+      // therefore tears down the complete sandbox tree; a negative host PID
+      // would be both unnecessary and invalid because strong launches must not
+      // use detached:true.
+      try {
+        child.kill(signal);
+      } catch {
+        /* already gone */
+      }
+      return;
+    }
     const pid = child.pid;
     if (typeof pid !== "number" || pid <= 0) {
       try {
@@ -361,25 +385,39 @@ class AsyncHookSupervisor {
         : DEFAULT_TIMEOUT_MS;
 
     let child;
+    let sandboxManagedTree = false;
     try {
       const sandboxPolicy = resolveHookSandboxPolicy(hook, opts);
+      const explicitSandboxShell = requiresExplicitHookShell(sandboxPolicy);
+      const trustedRoot = explicitSandboxShell
+        ? requireTrustedHookRoot(opts.cwd)
+        : null;
+      const workingDirectory = trustedRoot || opts.cwd || process.cwd();
+      sandboxManagedTree =
+        explicitSandboxShell && this._deps.platform === "linux";
       const spawnOptions = {
-        cwd: opts.cwd || process.cwd(),
-        shell: true,
+        cwd: workingDirectory,
+        shell: explicitSandboxShell ? false : true,
         // POSIX: own process group so a timeout / stopAll can signal the whole
         // tree (shell + the real hook command), not just the shell wrapper.
         // No-op on Windows, where the tree is reaped via `taskkill /T` instead.
-        detached: this._deps.platform !== "win32",
+        detached: this._deps.platform !== "win32" && !sandboxManagedTree,
         env: {
           ...process.env,
           CLAUDE_HOOK_EVENT: hook.event || payload.hook_event_name || "",
         },
         ...(sandboxPolicy ? { sandboxPolicy } : {}),
       };
-      if (typeof this._deps.run !== "function") {
+      const brokerRun =
+        explicitSandboxShell &&
+        opts.broker &&
+        typeof opts.broker.spawn === "function"
+          ? opts.broker.spawn.bind(opts.broker)
+          : null;
+      if (typeof (brokerRun || this._deps.run) !== "function") {
         throw new Error("async hook process runner unavailable");
       }
-      child = this._deps.run(hook.command, {
+      const processOptions = {
         ...spawnOptions,
         origin: hook.origin || "async-hook:command",
         policy: "allow",
@@ -387,7 +425,39 @@ class AsyncHookSupervisor {
         pluginId: hook.pluginId || null,
         pluginVersion: hook.pluginVersion || null,
         pluginSource: hook.pluginSource || null,
-      });
+      };
+      if (explicitSandboxShell) {
+        const invocation = buildExplicitHookShellInvocation(hook.command, {
+          platform: this._deps.platform,
+        });
+        const run = brokerRun || this._deps.run;
+        let brokerOptions = processOptions;
+        if (brokerRun) {
+          const issuer =
+            opts.broker.issueLinuxWorkspaceSandboxExecutionContract;
+          const sandboxExecutionContract = issueTrustedHookSandboxContract({
+            issuer,
+            receiver: opts.broker,
+            file: invocation.file,
+            args: invocation.argv,
+            options: processOptions,
+            trustedRoot,
+            label: "trusted async-hook sandbox contract issuance failed",
+          });
+          if (this._deps.platform === "linux" && !sandboxExecutionContract) {
+            throw sandboxBoundaryError(
+              "trusted Linux async-hook sandbox contract issuer is unavailable",
+            );
+          }
+          brokerOptions = {
+            ...processOptions,
+            ...(sandboxExecutionContract ? { sandboxExecutionContract } : {}),
+          };
+        }
+        child = run(invocation.file, invocation.argv, brokerOptions);
+      } else {
+        child = this._deps.run(hook.command, processOptions);
+      }
     } catch (err) {
       const sandboxDenied =
         err?.code === "ERR_PROCESS_SANDBOX_BOUNDARY_UNSATISFIED";
@@ -406,7 +476,7 @@ class AsyncHookSupervisor {
     let out = "";
     let errOut = "";
     let killedByTimeout = false;
-    const rec = { child, timer: null };
+    const rec = { child, timer: null, sandboxManagedTree };
     this._running.set(key, rec);
 
     try {
@@ -432,7 +502,7 @@ class AsyncHookSupervisor {
       killedByTimeout = true;
       // Tree-kill: a hook that spawned a subprocess (e.g. `npm test`) must not
       // leave that subprocess orphaned when it exceeds its timeout.
-      this._killChildTree(child, "SIGTERM");
+      this._killChildTree(child, "SIGTERM", { sandboxManagedTree });
     }, timeout);
     if (typeof timer.unref === "function") timer.unref();
     rec.timer = timer;
@@ -594,7 +664,9 @@ class AsyncHookSupervisor {
       }
       // Tree-kill (not a bare child.kill) so a session end / process exit never
       // leaves an orphaned hook subprocess — the guarantee this class documents.
-      this._killChildTree(rec.child, "SIGTERM");
+      this._killChildTree(rec.child, "SIGTERM", {
+        sandboxManagedTree: rec.sandboxManagedTree === true,
+      });
       this._running.delete(key);
     }
     try {

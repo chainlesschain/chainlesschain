@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { PluginMonitorSupervisor } from "../../src/lib/plugin-monitor-supervisor.js";
+import { issuePluginWorkspaceAuthority } from "../../src/lib/plugin-runtime/sandbox-policy.js";
 
 function child() {
   return {
@@ -16,6 +17,13 @@ describe("plugin process boundary", () => {
     const spawned = child();
     const brokerSpawn = vi.fn(() => spawned);
     const supervisor = new PluginMonitorSupervisor({ brokerSpawn });
+    const pluginWorkspaceAuthority = issuePluginWorkspaceAuthority({
+      root: process.cwd(),
+      origin: "plugin:monitor",
+      pluginId: "p",
+      pluginVersion: "1.0.0",
+      pluginSource: "/plugin/monitors.json",
+    });
     supervisor.start([
       {
         id: "p:monitor",
@@ -28,6 +36,7 @@ describe("plugin process boundary", () => {
         pluginId: "p",
         pluginVersion: "1.0.0",
         pluginSource: "/plugin/monitors.json",
+        pluginWorkspaceAuthority,
         sandboxPolicy: {
           requiredBoundaries: ["filesystem", "network"],
         },
@@ -82,7 +91,14 @@ describe("plugin process boundary", () => {
         },
       },
     });
-    supervisor._record({ id: "p:watch", plugin: "p", name: "watch" }, "stdout", "ready\n");
-    expect(records[0]).toMatchObject({ queue: "inbox", event: { origin: "monitor", type: "monitor_output" } });
+    supervisor._record(
+      { id: "p:watch", plugin: "p", name: "watch" },
+      "stdout",
+      "ready\n",
+    );
+    expect(records[0]).toMatchObject({
+      queue: "inbox",
+      event: { origin: "monitor", type: "monitor_output" },
+    });
   });
 });

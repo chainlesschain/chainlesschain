@@ -36,6 +36,10 @@ const { evaluateShellCommandPolicy } = sharedShellPolicy;
 export const _processDeps = {
   spawn: (...args) => executionBroker.spawn(...args),
   execSync: (...args) => executionBroker.execSync(...args),
+  execFileSync: (...args) => executionBroker.execFileSync(...args),
+  issueLinuxWorkspaceSandboxExecutionContract: (...args) =>
+    executionBroker.issueLinuxWorkspaceSandboxExecutionContract(...args),
+  platform: process.platform,
 };
 
 const BIN_PATH = fileURLToPath(
@@ -97,6 +101,34 @@ function validatePinnedSandboxPolicy(policy) {
     );
   }
   return policy;
+}
+
+function explicitShellInvocation(command, platform = process.platform) {
+  if (platform === "win32") {
+    return {
+      file: process.env.ComSpec || "cmd.exe",
+      args: ["/d", "/s", "/c", command],
+    };
+  }
+  return {
+    file: "/bin/sh",
+    args: ["-c", command],
+  };
+}
+
+function createAgendaSandboxContractError(sandboxPolicy) {
+  const requiredBoundaries = [...sandboxPolicy.requiredBoundaries];
+  const error = createAgendaPolicyError(
+    "ERR_PROCESS_SANDBOX_BOUNDARY_UNSATISFIED",
+    "agenda_monitor_linux_execution_contract_unavailable",
+    `Agenda command monitor cannot bind its Linux sandbox contract: ${requiredBoundaries.join(", ")}`,
+  );
+  error.requiredBoundaries = requiredBoundaries;
+  error.actualGuarantees = [];
+  error.missingBoundaries = [...requiredBoundaries];
+  error.sandboxBackend = null;
+  error.sandboxCandidateBackend = "linux-bwrap-workspace";
+  return error;
 }
 
 function isExecutionPolicyFailure(error) {
@@ -634,6 +666,48 @@ function defaultRunCommand(
       executionCwd: workspaceCwd,
     }),
   );
+  if (sandboxPolicy) {
+    const invocation = explicitShellInvocation(command, _processDeps.platform);
+    const spawnOptions = {
+      cwd: workspaceCwd,
+      encoding: "utf-8",
+      stdio: ["ignore", "pipe", "pipe"],
+      timeout: 60000,
+      origin: "agenda:monitor-command",
+      policy: "allow",
+      scope: "agenda",
+      shell: false,
+      sandboxPolicy,
+    };
+    let sandboxExecutionContract;
+    try {
+      sandboxExecutionContract =
+        _processDeps.issueLinuxWorkspaceSandboxExecutionContract(
+          invocation.file,
+          invocation.args,
+          spawnOptions,
+          workspaceCwd,
+          { sync: true },
+        );
+    } catch (cause) {
+      const error = createAgendaSandboxContractError(sandboxPolicy);
+      error.cause = cause;
+      throw error;
+    }
+    if (_processDeps.platform === "linux" && !sandboxExecutionContract) {
+      throw createAgendaSandboxContractError(sandboxPolicy);
+    }
+    try {
+      return _processDeps.execFileSync(invocation.file, invocation.args, {
+        ...spawnOptions,
+        ...(sandboxExecutionContract ? { sandboxExecutionContract } : {}),
+      });
+    } catch (err) {
+      if (isExecutionPolicyFailure(err)) throw err;
+      // A non-zero exit still yields output we want to match against.
+      return (err.stdout || "") + (err.stderr || "");
+    }
+  }
   try {
     return _processDeps.execSync(command, {
       cwd: workspaceCwd,
@@ -644,7 +718,6 @@ function defaultRunCommand(
       policy: "allow",
       scope: "agenda",
       shell: true,
-      ...(sandboxPolicy ? { sandboxPolicy } : {}),
     });
   } catch (err) {
     if (isExecutionPolicyFailure(err)) throw err;

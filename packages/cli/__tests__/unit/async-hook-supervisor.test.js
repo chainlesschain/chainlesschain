@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { EventEmitter } from "node:events";
 import { createRequire } from "node:module";
 import fs from "node:fs";
@@ -45,8 +45,10 @@ function makeFakeChild() {
 function makeSpawn(children) {
   let i = 0;
   const calls = [];
-  const spawn = (command, opts) => {
-    calls.push({ command, opts });
+  const spawn = (command, argsOrOpts, maybeOpts) => {
+    const args = Array.isArray(argsOrOpts) ? argsOrOpts : [];
+    const opts = Array.isArray(argsOrOpts) ? maybeOpts : argsOrOpts;
+    calls.push({ command, args, opts });
     const c = children[i++];
     if (!c) throw new Error("spawn called more times than children provided");
     c._command = command;
@@ -115,20 +117,17 @@ describe("AsyncHookSupervisor.dispatch (fire-and-forget)", () => {
         {
           sandboxPolicy: {
             profile: "strict",
-            requiredBoundaries: ["resource-limits"],
+            requiredBoundaries: ["network"],
           },
+          cwd: process.cwd(),
         },
       );
 
       expect(calls[0].options).toMatchObject({
-        shell: true,
+        shell: false,
         sandboxPolicy: {
           profile: "strict",
-          requiredBoundaries: [
-            "resource-limits",
-            "network",
-            "filesystem",
-          ],
+          requiredBoundaries: ["network", "filesystem"],
         },
       });
     } finally {
@@ -157,6 +156,7 @@ describe("AsyncHookSupervisor.dispatch (fire-and-forget)", () => {
         },
       ],
       {},
+      { cwd: process.cwd() },
     );
 
     expect(sup.drainResults()[0]).toMatchObject({
@@ -165,6 +165,75 @@ describe("AsyncHookSupervisor.dispatch (fire-and-forget)", () => {
       error:
         "hook sandbox denied: windows-job-restricted-token cannot satisfy filesystem, network",
     });
+    sup.stopAll();
+  });
+
+  it("fails closed when a strong async hook has no caller-issued cwd", () => {
+    const spawn = vi.fn(() => makeFakeChild());
+    const sup = new AsyncHookSupervisor({ spawn });
+
+    sup.dispatch(
+      [
+        {
+          command: "scan-workspace",
+          event: "PostToolUse",
+          requiredBoundaries: ["filesystem"],
+        },
+      ],
+      {},
+    );
+
+    expect(spawn).not.toHaveBeenCalled();
+    expect(sup.drainResults()[0]).toMatchObject({
+      ok: false,
+      sandboxDenied: true,
+      error:
+        "hook sandbox denied: hook working directory must be an absolute trusted path for filesystem/network sandboxing",
+    });
+    sup.stopAll();
+  });
+
+  it("ignores a forged async-hook contract and issues from the caller cwd", () => {
+    const child = makeFakeChild();
+    const issued = Object.freeze({ kind: "issued-async-hook-contract" });
+    const forged = Object.freeze({ kind: "forged-async-hook-contract" });
+    const broker = {
+      issueLinuxWorkspaceSandboxExecutionContract: vi.fn(() => issued),
+      spawn: vi.fn(() => child),
+    };
+    const sup = new AsyncHookSupervisor({ platform: "linux" });
+
+    sup.dispatch(
+      [
+        {
+          command: "scan-workspace",
+          event: "PostToolUse",
+          requiredBoundaries: ["filesystem", "network"],
+          sandboxExecutionContract: forged,
+        },
+      ],
+      {},
+      { cwd: process.cwd(), broker },
+    );
+
+    expect(
+      broker.issueLinuxWorkspaceSandboxExecutionContract,
+    ).toHaveBeenCalledWith(
+      "/bin/sh",
+      ["-c", "scan-workspace"],
+      expect.objectContaining({
+        cwd: process.cwd(),
+        shell: false,
+        detached: false,
+      }),
+      process.cwd(),
+    );
+    expect(broker.spawn.mock.calls[0][2]).toMatchObject({
+      sandboxExecutionContract: issued,
+    });
+    expect(broker.spawn.mock.calls[0][2].sandboxExecutionContract).not.toBe(
+      forged,
+    );
     sup.stopAll();
   });
 
@@ -335,6 +404,82 @@ describe("AsyncHookSupervisor guardrails", () => {
     const disp = sup.dispatch([{ command: "another", event: "E" }], {});
     expect(disp[0].dispatched).toBe(false);
     expect(disp[0].reason).toMatch(/stopped/);
+  });
+
+  it("uses the bwrap parent lifecycle for Linux strong-hook stopAll", () => {
+    const child = makeFakeChild();
+    child.pid = 4242;
+    child.kill = vi.fn(() => {
+      child.killed = true;
+      return true;
+    });
+    const killProcess = vi.fn();
+    const spawn = makeSpawn([child]);
+    const sup = new AsyncHookSupervisor({
+      platform: "linux",
+      spawn,
+      killProcess,
+    });
+
+    sup.dispatch(
+      [
+        {
+          command: "scan . && echo done",
+          event: "Stop",
+          requiredBoundaries: ["filesystem", "network"],
+        },
+      ],
+      {},
+      { cwd: process.cwd() },
+    );
+
+    expect(spawn.calls[0]).toMatchObject({
+      command: "/bin/sh",
+      args: ["-c", "scan . && echo done"],
+      opts: {
+        cwd: process.cwd(),
+        shell: false,
+        detached: false,
+      },
+    });
+    sup.stopAll();
+    expect(child.kill).toHaveBeenCalledWith("SIGTERM");
+    expect(killProcess).not.toHaveBeenCalled();
+  });
+
+  it("uses the same bwrap parent teardown when a Linux strong hook times out", async () => {
+    const child = makeFakeChild();
+    child.pid = 4343;
+    child.kill = vi.fn(() => {
+      child.killed = true;
+      return true;
+    });
+    const killProcess = vi.fn();
+    const sup = new AsyncHookSupervisor({
+      platform: "linux",
+      spawn: makeSpawn([child]),
+      killProcess,
+    });
+
+    sup.dispatch(
+      [
+        {
+          command: "long-running-check",
+          event: "Stop",
+          timeout: 0.01,
+          requiredBoundaries: ["filesystem"],
+        },
+      ],
+      {},
+      { cwd: process.cwd() },
+    );
+    await new Promise((resolve) => setTimeout(resolve, 40));
+
+    expect(child.kill).toHaveBeenCalledWith("SIGTERM");
+    expect(killProcess).not.toHaveBeenCalled();
+    child.emit("close", null);
+    expect(sup.peekResults()[0].error).toMatch(/timed out/);
+    sup.stopAll();
   });
 
   it("does NOT register a process 'exit' listener until a hook is dispatched", () => {

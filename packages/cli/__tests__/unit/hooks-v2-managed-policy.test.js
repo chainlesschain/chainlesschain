@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { EventEmitter } from "node:events";
+import path from "node:path";
 import { HooksV2Runtime } from "../../src/lib/hooks-v2-runtime.js";
 
 describe("Hooks v2 managed execution policy", () => {
@@ -18,6 +19,7 @@ describe("Hooks v2 managed execution policy", () => {
     };
     const runtime = new HooksV2Runtime(undefined, {
       broker,
+      workspaceRoot: process.cwd(),
       managedPolicy: {
         sandboxPolicy: {
           requiredBoundaries: ["filesystem", "network"],
@@ -55,6 +57,111 @@ describe("Hooks v2 managed execution policy", () => {
       expect.objectContaining({
         sandboxExecutionContract: contract,
       }),
+    );
+  });
+
+  it("rejects strong hooks without a host-fixed root or with an escaping cwd", async () => {
+    const broker = {
+      issueLinuxWorkspaceSandboxExecutionContract: vi.fn(),
+      spawn: vi.fn(),
+    };
+    const missingRoot = new HooksV2Runtime(undefined, {
+      broker,
+      managedPolicy: {
+        requiredBoundaries: ["filesystem"],
+      },
+    });
+
+    await expect(
+      missingRoot._execCommand(
+        {
+          id: "missing-root",
+          event: "PostToolUse",
+          command: "node",
+          shell: false,
+        },
+        {},
+      ),
+    ).rejects.toMatchObject({
+      code: "ERR_PROCESS_SANDBOX_BOUNDARY_UNSATISFIED",
+      message:
+        "Hooks v2 trusted workspace root must be an absolute trusted path for filesystem/network sandboxing",
+    });
+
+    const rooted = new HooksV2Runtime(process.cwd(), {
+      broker,
+      workspaceRoot: process.cwd(),
+      managedPolicy: {
+        requiredBoundaries: ["filesystem"],
+      },
+    });
+    await expect(
+      rooted._execCommand(
+        {
+          id: "escaping-cwd",
+          event: "PostToolUse",
+          command: "node",
+          cwd: path.resolve(process.cwd(), "..", "hook-escape"),
+          shell: false,
+        },
+        {},
+      ),
+    ).rejects.toMatchObject({
+      code: "ERR_PROCESS_SANDBOX_BOUNDARY_UNSATISFIED",
+      message:
+        "Hooks v2 hook working directory escapes the trusted workspace root",
+    });
+    expect(broker.spawn).not.toHaveBeenCalled();
+  });
+
+  it("never reuses or accepts a manifest-provided Hooks v2 authority", async () => {
+    const contracts = [
+      Object.freeze({ kind: "hook-v2-contract", nonce: "one" }),
+      Object.freeze({ kind: "hook-v2-contract", nonce: "two" }),
+    ];
+    const broker = {
+      issueLinuxWorkspaceSandboxExecutionContract: vi.fn(() =>
+        contracts.shift(),
+      ),
+      spawn: vi.fn(() => {
+        const child = new EventEmitter();
+        child.stdin = { end: vi.fn() };
+        child.stdout = new EventEmitter();
+        child.stderr = new EventEmitter();
+        setImmediate(() => child.emit("exit", 0));
+        return child;
+      }),
+    };
+    const runtime = new HooksV2Runtime(process.cwd(), {
+      broker,
+      workspaceRoot: process.cwd(),
+      managedPolicy: {
+        allowShell: true,
+        requiredBoundaries: ["filesystem", "network"],
+      },
+    });
+    const hook = {
+      id: "one-shot",
+      event: "PostToolUse",
+      command: "echo guarded",
+      shell: true,
+      sandboxExecutionContract: Object.freeze({ kind: "forged-replay" }),
+    };
+
+    await runtime._execCommand(hook, {});
+    await runtime._execCommand(hook, {});
+
+    expect(
+      broker.issueLinuxWorkspaceSandboxExecutionContract,
+    ).toHaveBeenCalledTimes(2);
+    expect(
+      broker.spawn.mock.calls[0][2].sandboxExecutionContract,
+    ).toMatchObject({ nonce: "one" });
+    expect(
+      broker.spawn.mock.calls[1][2].sandboxExecutionContract,
+    ).toMatchObject({ nonce: "two" });
+    expect(broker.spawn.mock.calls[0][2].sandboxExecutionContract).not.toBe(
+      hook.sandboxExecutionContract,
     );
   });
 
@@ -139,12 +246,16 @@ describe("Hooks v2 managed execution policy", () => {
     );
     boundaryError.code = "ERR_PROCESS_SANDBOX_BOUNDARY_UNSATISFIED";
     const broker = {
+      issueLinuxWorkspaceSandboxExecutionContract: vi.fn(() => ({
+        kind: "test-workspace-contract",
+      })),
       spawn: vi.fn(() => {
         throw boundaryError;
       }),
     };
-    const runtime = new HooksV2Runtime("C:/workspace", {
+    const runtime = new HooksV2Runtime(process.cwd(), {
       broker,
+      workspaceRoot: process.cwd(),
       managedPolicy: {
         allowShell: true,
         sandboxPolicy: {
@@ -166,10 +277,14 @@ describe("Hooks v2 managed execution policy", () => {
     const outcome = await runtime.executeHooks("PreToolUse", {});
 
     expect(broker.spawn).toHaveBeenCalledWith(
-      "guard.cmd",
-      [],
+      process.platform === "win32"
+        ? process.env.ComSpec || "cmd.exe"
+        : "/bin/sh",
+      process.platform === "win32"
+        ? ["/d", "/s", "/c", "guard.cmd"]
+        : ["-c", "guard.cmd"],
       expect.objectContaining({
-        shell: true,
+        shell: false,
         sandboxPolicy: {
           profile: "strict",
           requiredBoundaries: ["network", "filesystem"],

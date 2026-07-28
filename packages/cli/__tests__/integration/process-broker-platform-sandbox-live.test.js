@@ -48,6 +48,14 @@ function quotePosix(value) {
   return `'${String(value).replaceAll("'", "'\\''")}'`;
 }
 
+function mountInfoPath(value) {
+  return String(value)
+    .replaceAll("\\", "\\134")
+    .replaceAll(" ", "\\040")
+    .replaceAll("\t", "\\011")
+    .replaceAll("\n", "\\012");
+}
+
 function fileSha256(filePath) {
   return crypto
     .createHash("sha256")
@@ -2276,6 +2284,566 @@ describe.runIf(LIVE && SUPPORTED)(
         }
       },
       150_000,
+    );
+
+    it.runIf(process.platform === "linux")(
+      "enforces the Broker-issued generic workspace boundary through the final target",
+      async () => {
+        const nonce = `${process.pid}-${Date.now()}`;
+        const workspace = fs.mkdtempSync(
+          path.join(os.tmpdir(), "cc-linux-generic-live-"),
+        );
+        const scriptPath = path.join(workspace, "verify-boundary.sh");
+        const longRunningScriptPath = path.join(
+          workspace,
+          "verify-async-cleanup.sh",
+        );
+        const treeScriptPath = path.join(
+          workspace,
+          "verify-tree-termination.sh",
+        );
+        const workspaceMarker = path.join(workspace, "workspace-marker.txt");
+        const asyncReadyMarker = path.join(workspace, "async-ready.txt");
+        const asyncReleaseMarker = path.join(workspace, "async-release.txt");
+        const asyncDoneMarker = path.join(workspace, "async-done.txt");
+        const treePidMarker = path.join(workspace, "tree-grandchild.pid");
+        const parentExitPidMarker = path.join(
+          workspace,
+          "parent-exit-grandchild.pid",
+        );
+        const hostileImportMarker = path.join(
+          workspace,
+          "hostile-python-imported.txt",
+        );
+        const outsideMarker = path.join(
+          os.tmpdir(),
+          `.cc-linux-generic-outside-${nonce}`,
+        );
+        const homeMarker = path.join(
+          os.homedir(),
+          `.cc-linux-generic-home-${nonce}`,
+        );
+        const devShmMarker = path.join(
+          "/dev/shm",
+          `.cc-linux-generic-dev-shm-${nonce}`,
+        );
+        const hostNetworkNamespace = fs.readlinkSync("/proc/self/ns/net");
+        const fdTargetCounts = () => {
+          const counts = new Map();
+          for (const entry of fs.readdirSync("/proc/self/fd")) {
+            try {
+              const target = String(fs.readlinkSync(`/proc/self/fd/${entry}`));
+              counts.set(target, (counts.get(target) || 0) + 1);
+            } catch {
+              // The descriptor used to enumerate /proc/self/fd can disappear.
+            }
+          }
+          return counts;
+        };
+        const waitForPath = async (target, timeoutMs = 10_000) => {
+          const deadline = Date.now() + timeoutMs;
+          while (!fs.existsSync(target)) {
+            if (Date.now() >= deadline) {
+              throw new Error(`Timed out waiting for ${target}`);
+            }
+            await new Promise((resolve) => setTimeout(resolve, 25));
+          }
+        };
+        const hostProcessExists = (pid) => {
+          try {
+            process.kill(pid, 0);
+            return true;
+          } catch (error) {
+            if (error?.code === "ESRCH") return false;
+            throw error;
+          }
+        };
+        const hostDescendants = (rootPid) => {
+          const children = new Map();
+          for (const entry of fs.readdirSync("/proc")) {
+            if (!/^\d+$/.test(entry)) continue;
+            try {
+              const status = fs.readFileSync(`/proc/${entry}/status`, "utf8");
+              const parentPid = Number(status.match(/^PPid:\s+(\d+)$/m)?.[1]);
+              if (!Number.isSafeInteger(parentPid)) continue;
+              if (!children.has(parentPid)) children.set(parentPid, []);
+              children.get(parentPid).push(Number(entry));
+            } catch {
+              // Processes can exit while /proc is being enumerated.
+            }
+          }
+          const descendants = [];
+          const pending = [...(children.get(rootPid) || [])];
+          while (pending.length > 0) {
+            const pid = pending.shift();
+            descendants.push(pid);
+            pending.push(...(children.get(pid) || []));
+          }
+          return descendants;
+        };
+        const waitForTreeGrandchild = async (
+          wrapperPid,
+          timeoutMs = 10_000,
+        ) => {
+          const deadline = Date.now() + timeoutMs;
+          while (Date.now() < deadline) {
+            for (const pid of hostDescendants(wrapperPid)) {
+              try {
+                const commandLine = fs
+                  .readFileSync(`/proc/${pid}/cmdline`)
+                  .toString("utf8")
+                  .replaceAll("\0", " ");
+                if (
+                  commandLine.includes("verify-tree-termination.sh") &&
+                  commandLine.includes("grandchild")
+                ) {
+                  return pid;
+                }
+              } catch {
+                // Retry while the sandbox process tree is stabilizing.
+              }
+            }
+            await new Promise((resolve) => setTimeout(resolve, 25));
+          }
+          throw new Error(
+            `Timed out locating sandbox grandchild below ${wrapperPid}`,
+          );
+        };
+        const waitForHostProcessExit = async (pid, timeoutMs = 10_000) => {
+          const deadline = Date.now() + timeoutMs;
+          while (hostProcessExists(pid)) {
+            if (Date.now() >= deadline) {
+              throw new Error(`Timed out waiting for host pid ${pid} to exit`);
+            }
+            await new Promise((resolve) => setTimeout(resolve, 25));
+          }
+        };
+        const socketProbe = [
+          "import errno,socket,sys",
+          "try:",
+          " s=socket.socket(socket.AF_INET,socket.SOCK_STREAM)",
+          "except OSError as e:",
+          " sys.exit(0 if e.errno==errno.EPERM else 6)",
+          "else:",
+          " s.close()",
+          " sys.exit(5)",
+        ].join("\n");
+        const mountCheck = [
+          "mount_is_read_only() {",
+          '  want="$1"',
+          "  seen=0",
+          "  while IFS=' ' read -r _ _ _ _ mountpoint mountopts _; do",
+          '    [ "$mountpoint" = "$want" ] || continue',
+          "    seen=1",
+          '    case ",$mountopts," in',
+          "      *,ro,*) ;;",
+          "      *) return 1 ;;",
+          "    esac",
+          "  done < /proc/self/mountinfo",
+          '  [ "$seen" = 1 ]',
+          "}",
+          "workspace_mount_topology_is_attested() {",
+          `  want=${quotePosix(mountInfoPath(workspace))}`,
+          '  prefix="${want}/"',
+          "  seen=0",
+          "  while IFS=' ' read -r _ _ _ _ mountpoint _; do",
+          '    [ "$mountpoint" = "$want" ] && seen=1',
+          '    case "$mountpoint" in',
+          '      "$prefix"*) return 1 ;;',
+          "    esac",
+          "  done < /proc/self/mountinfo",
+          '  [ "$seen" = 1 ]',
+          "}",
+        ];
+        const script = [
+          "#!/bin/sh",
+          "set -eu",
+          ...mountCheck,
+          "mount_is_read_only /",
+          "mount_is_read_only /usr",
+          "workspace_mount_topology_is_attested",
+          "for fdpath in /proc/$$/fd/*; do",
+          '  fd="${fdpath##*/}"',
+          '  case "$fd" in 0|1|2) continue ;; esac',
+          '  target="$(readlink "$fdpath" 2>/dev/null || true)"',
+          `  case "$target" in ${quotePosix(
+            workspace,
+          )}|/usr|/etc/group|/etc/hosts|/etc/ld.so.cache|/etc/nsswitch.conf|/etc/passwd|*bwrap*|*"(deleted)"*) exit 22 ;; esac`,
+          "done",
+          `test ! -e ${quotePosix(homeMarker)}`,
+          `test ! -e ${quotePosix(outsideMarker)}`,
+          "test ! -e /etc/shadow",
+          `test ! -e ${quotePosix(devShmMarker)}`,
+          `printf sandbox-dev > ${quotePosix(devShmMarker)}`,
+          `test "$(cat ${quotePosix(devShmMarker)})" = sandbox-dev`,
+          `rm -f ${quotePosix(devShmMarker)}`,
+          "if printf x > /chainless-final-root-write 2>/dev/null; then exit 20; fi",
+          "test ! -e /chainless-final-root-write",
+          "if printf x > /usr/.chainless-final-system-write 2>/dev/null; then exit 21; fi",
+          "test ! -e /usr/.chainless-final-system-write",
+          `test "$(readlink /proc/self/ns/net)" != ${quotePosix(
+            hostNetworkNamespace,
+          )}`,
+          `printf workspace-ok > ${quotePosix(workspaceMarker)}`,
+          `/usr/bin/python3 -I -S -c ${quotePosix(socketProbe)}`,
+          "printf generic-live-ok",
+        ].join("\n");
+        let asyncChild = null;
+        let treeChild = null;
+        const trackedHostPids = new Set();
+
+        try {
+          fs.writeFileSync(outsideMarker, "host-outside", {
+            encoding: "utf8",
+            flag: "wx",
+            mode: 0o600,
+          });
+          fs.writeFileSync(homeMarker, "host-home", {
+            encoding: "utf8",
+            flag: "wx",
+            mode: 0o600,
+          });
+          fs.writeFileSync(devShmMarker, "host-dev-shm", {
+            encoding: "utf8",
+            flag: "wx",
+            mode: 0o600,
+          });
+          fs.writeFileSync(
+            path.join(workspace, "socket.py"),
+            `open(${JSON.stringify(hostileImportMarker)}, "w").write("socket")\n`,
+            "utf8",
+          );
+          fs.writeFileSync(
+            path.join(workspace, "sitecustomize.py"),
+            `open(${JSON.stringify(hostileImportMarker)}, "w").write("site")\n`,
+            "utf8",
+          );
+          fs.writeFileSync(scriptPath, script, { mode: 0o700 });
+          fs.writeFileSync(
+            longRunningScriptPath,
+            [
+              "#!/bin/sh",
+              "set -eu",
+              `printf ready > ${quotePosix(asyncReadyMarker)}`,
+              `while [ ! -e ${quotePosix(asyncReleaseMarker)} ]; do`,
+              "  /usr/bin/sleep 0.05",
+              "done",
+              `printf done > ${quotePosix(asyncDoneMarker)}`,
+            ].join("\n"),
+            { mode: 0o700 },
+          );
+          fs.writeFileSync(
+            treeScriptPath,
+            [
+              "#!/bin/sh",
+              "set -eu",
+              'pid_marker="$1"',
+              'if [ "${2:-}" = "grandchild" ]; then',
+              '  printf ready > "$pid_marker"',
+              "  while :; do /usr/bin/sleep 1; done",
+              "fi",
+              '/bin/sh "$0" "$pid_marker" grandchild &',
+              'grandchild="$!"',
+              'while [ ! -s "$pid_marker" ]; do /usr/bin/sleep 0.05; done',
+              'wait "$grandchild"',
+            ].join("\n"),
+            { mode: 0o700 },
+          );
+
+          const command = "/bin/sh";
+          const args = [scriptPath];
+          const spawnOptions = {
+            cwd: workspace,
+            shell: false,
+            stdio: ["ignore", "pipe", "pipe"],
+            origin: "test:linux-generic-workspace-live",
+            scope: "sandbox-test",
+            policy: "allow",
+            encoding: "utf8",
+            timeout: 120_000,
+            env: {
+              ...process.env,
+              PYTHONHOME: workspace,
+              PYTHONPATH: workspace,
+            },
+            sandboxPolicy: {
+              requiredBoundaries: [
+                SANDBOX_BOUNDARIES.FILESYSTEM,
+                SANDBOX_BOUNDARIES.NETWORK,
+              ],
+            },
+          };
+          const executionContract =
+            executionBroker.issueLinuxWorkspaceSandboxExecutionContract(
+              command,
+              args,
+              spawnOptions,
+              workspace,
+              { sync: true },
+            );
+          expect(executionContract).not.toBeNull();
+          const beforeFds = fdTargetCounts();
+          const result = executionBroker.spawnSync(command, args, {
+            ...spawnOptions,
+            sandboxExecutionContract: executionContract,
+          });
+          const afterFds = fdTargetCounts();
+          const failureContext = JSON.stringify({
+            status: result.status,
+            signal: result.signal,
+            error: result.error?.message,
+            stdout: result.stdout,
+            stderr: result.stderr,
+          });
+
+          expect(result.error, failureContext).toBeUndefined();
+          expect(result.status, failureContext).toBe(0);
+          expect(result.stdout).toBe("generic-live-ok");
+          expect(fs.readFileSync(workspaceMarker, "utf8")).toBe("workspace-ok");
+          expect(fs.readFileSync(outsideMarker, "utf8")).toBe("host-outside");
+          expect(fs.readFileSync(homeMarker, "utf8")).toBe("host-home");
+          expect(fs.readFileSync(devShmMarker, "utf8")).toBe("host-dev-shm");
+          expect(fs.existsSync(hostileImportMarker)).toBe(false);
+          expect(
+            [...afterFds.entries()].filter(
+              ([target, count]) => count > (beforeFds.get(target) || 0),
+            ),
+          ).toEqual([]);
+
+          expect(executionBroker.getAuditLog(1)[0]).toMatchObject({
+            permissionDecision: "allow",
+            sandboxed: true,
+            sandboxState: "ready",
+            sandboxBackend: "linux-bwrap-workspace",
+            sandboxEnforcement: "linux-bwrap-workspace",
+            sandboxPolicyAttested: true,
+            sandboxGuarantees: [
+              SANDBOX_BOUNDARIES.FILESYSTEM,
+              SANDBOX_BOUNDARIES.NETWORK,
+            ],
+            sandboxRuntimeProbe: {
+              kind: "linux-bwrap-generic-workspace-policy-v1",
+              runnable: true,
+              emptyRoot: true,
+              undeclaredRootReadOnly: true,
+              workspaceReadWrite: true,
+              workspaceMountTopologyAttested: true,
+              workspaceRootAliasAttested: true,
+              anonymousDevWritable: true,
+              systemReadOnly: true,
+              hostHomeHidden: true,
+              outsideMarkerHidden: true,
+              networkNamespace: true,
+              networkNamespaceChanged: true,
+              socketCreationDenied: true,
+              descriptorMounts: true,
+              mountTopologyAtomic: false,
+              mountTopologyDigest: expect.stringMatching(/^[a-f0-9]{64}$/),
+            },
+            sandboxFilesystemPolicy: {
+              workspaceRoot: workspace,
+              workingDirectory: workspace,
+              workspaceAccess: "read-write",
+              systemAccess: "read-only",
+              undeclaredRootAccess: "read-only",
+              anonymousWritablePaths: [
+                "/home/sandbox",
+                "/dev",
+                "/run",
+                "/tmp",
+                "/var/tmp",
+              ],
+              hostRootMapped: false,
+              hostHomeMapped: false,
+              workspaceDescriptorBound: true,
+              systemDescriptorBound: true,
+              exactEtcFileDescriptors: true,
+              workspaceRecursiveBind: true,
+              workspaceMountTopology:
+                "no-strict-descendants-or-forbidden-root-aliases-at-attestation",
+              mountTopologySource: "proc-self-mountinfo",
+              mountTopologyDigest: expect.stringMatching(/^[a-f0-9]{64}$/),
+              mountTopologyAtomic: false,
+            },
+            sandboxNetworkPolicy: {
+              namespace: "new",
+              namespaceIdentityChanged: true,
+              seccomp: "deny-network-creation",
+            },
+          });
+
+          fs.rmSync(workspaceMarker, { force: true });
+          let replayError = null;
+          try {
+            executionBroker.spawnSync(command, args, {
+              ...spawnOptions,
+              sandboxExecutionContract: executionContract,
+            });
+          } catch (error) {
+            replayError = error;
+          }
+          expect(replayError?.code).toBe(
+            "ERR_PROCESS_SANDBOX_BOUNDARY_UNSATISFIED",
+          );
+          expect(fs.existsSync(workspaceMarker)).toBe(false);
+
+          const asyncArgs = [longRunningScriptPath];
+          const asyncOptions = {
+            ...spawnOptions,
+            stdio: ["ignore", "ignore", "ignore"],
+          };
+          delete asyncOptions.encoding;
+          const asyncExecutionContract =
+            executionBroker.issueLinuxWorkspaceSandboxExecutionContract(
+              command,
+              asyncArgs,
+              asyncOptions,
+              workspace,
+            );
+          const beforeAsyncFds = fdTargetCounts();
+          asyncChild = executionBroker.spawn(command, asyncArgs, {
+            ...asyncOptions,
+            sandboxExecutionContract: asyncExecutionContract,
+          });
+          await waitForPath(asyncReadyMarker);
+          expect(asyncChild.exitCode).toBeNull();
+          const activeAsyncFds = fdTargetCounts();
+          const descriptorTargets = new Set([
+            workspace,
+            "/usr",
+            "/etc/group",
+            "/etc/hosts",
+            "/etc/ld.so.cache",
+            "/etc/nsswitch.conf",
+            "/etc/passwd",
+            "/usr/bin/bwrap",
+          ]);
+          expect(
+            [...activeAsyncFds.entries()].filter(
+              ([target, count]) =>
+                count > (beforeAsyncFds.get(target) || 0) &&
+                (descriptorTargets.has(target) || target.includes("(deleted)")),
+            ),
+          ).toEqual([]);
+          const asyncExit = once(asyncChild, "exit");
+          fs.writeFileSync(asyncReleaseMarker, "release", "utf8");
+          const [asyncCode, asyncSignal] = await asyncExit;
+          expect({ asyncCode, asyncSignal }).toEqual({
+            asyncCode: 0,
+            asyncSignal: null,
+          });
+          asyncChild = null;
+          expect(fs.readFileSync(asyncDoneMarker, "utf8")).toBe("done");
+
+          const treeArgs = [treeScriptPath, treePidMarker];
+          const treeOptions = {
+            ...spawnOptions,
+            stdio: ["ignore", "ignore", "ignore"],
+          };
+          delete treeOptions.encoding;
+          const treeContract =
+            executionBroker.issueLinuxWorkspaceSandboxExecutionContract(
+              command,
+              treeArgs,
+              treeOptions,
+              workspace,
+            );
+          treeChild = executionBroker.spawn(command, treeArgs, {
+            ...treeOptions,
+            sandboxExecutionContract: treeContract,
+          });
+          await waitForPath(treePidMarker);
+          expect(fs.readFileSync(treePidMarker, "utf8")).toBe("ready");
+          const treeGrandchildPid = await waitForTreeGrandchild(treeChild.pid);
+          const treeDescendants = hostDescendants(treeChild.pid);
+          for (const pid of treeDescendants) trackedHostPids.add(pid);
+          expect(treeDescendants).toContain(treeGrandchildPid);
+          const treeExit = once(treeChild, "exit");
+          expect(treeChild.kill("SIGTERM")).toBe(true);
+          await treeExit;
+          treeChild = null;
+          for (const pid of treeDescendants) {
+            await waitForHostProcessExit(pid);
+            trackedHostPids.delete(pid);
+          }
+
+          const parentExitFixture = fileURLToPath(
+            new URL(
+              "../fixtures/process-broker-linux-bwrap-live-child.mjs",
+              import.meta.url,
+            ),
+          );
+          const parentExit = nativeSpawnSync(
+            process.execPath,
+            [
+              parentExitFixture,
+              "generic-parent-exit",
+              workspace,
+              JSON.stringify({
+                scriptPath: treeScriptPath,
+                pidMarker: parentExitPidMarker,
+              }),
+            ],
+            {
+              encoding: "utf8",
+              timeout: 45_000,
+              windowsHide: true,
+              env: {
+                ...process.env,
+                CC_SANDBOX_STRICT: "1",
+              },
+            },
+          );
+          const parentExitContext = JSON.stringify({
+            status: parentExit.status,
+            signal: parentExit.signal,
+            error: parentExit.error?.message,
+            stdout: parentExit.stdout,
+            stderr: parentExit.stderr,
+          });
+          expect(parentExit.error, parentExitContext).toBeUndefined();
+          expect(parentExit.status, parentExitContext).toBe(0);
+          const parentExitResult = JSON.parse(parentExit.stdout);
+          expect(parentExitResult.wrapperPid).toBeGreaterThan(1);
+          expect(parentExitResult.grandchildHostPid).toBeGreaterThan(1);
+          expect(fs.readFileSync(parentExitPidMarker, "utf8")).toBe("ready");
+          expect(parentExitResult.descendantHostPids).toContain(
+            parentExitResult.grandchildHostPid,
+          );
+          for (const pid of parentExitResult.descendantHostPids) {
+            trackedHostPids.add(pid);
+            await waitForHostProcessExit(pid);
+            trackedHostPids.delete(pid);
+          }
+        } finally {
+          if (
+            asyncChild &&
+            asyncChild.exitCode === null &&
+            asyncChild.signalCode === null
+          ) {
+            asyncChild.kill();
+          }
+          if (
+            treeChild &&
+            treeChild.exitCode === null &&
+            treeChild.signalCode === null
+          ) {
+            treeChild.kill();
+          }
+          for (const pid of trackedHostPids) {
+            try {
+              process.kill(pid, "SIGKILL");
+            } catch {
+              // The expected successful path has already reaped the process.
+            }
+          }
+          fs.rmSync(workspace, { recursive: true, force: true });
+          fs.rmSync(outsideMarker, { force: true });
+          fs.rmSync(homeMarker, { force: true });
+          fs.rmSync(devShmMarker, { force: true });
+        }
+      },
+      180_000,
     );
 
     it.runIf(process.platform === "linux")(

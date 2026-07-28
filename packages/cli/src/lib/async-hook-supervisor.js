@@ -1,5 +1,13 @@
 import supervisor from "./async-hook-supervisor.cjs";
 import executionBroker from "./process-execution-broker/index.js";
+import hookShellCommand from "./hook-shell-command.cjs";
+
+const {
+  issueTrustedHookSandboxContract,
+  requireTrustedHookRoot,
+  requiresExplicitHookShell,
+  sandboxBoundaryError,
+} = hookShellCommand;
 
 const brokerRunner = executionBroker.spawn.bind(executionBroker);
 const brokerSyncRunner = executionBroker.spawnSync.bind(executionBroker);
@@ -9,12 +17,50 @@ export const _processDeps = {
   runSync: brokerSyncRunner,
 };
 
-function runAsyncHook(command, options = {}) {
-  return _processDeps.run(command, [], {
-    ...options,
-    origin: options.origin || "async-hook:command",
+function normalizeInvocation(argsOrOptions, maybeOptions) {
+  return Array.isArray(argsOrOptions)
+    ? { args: argsOrOptions, options: maybeOptions || {} }
+    : { args: [], options: argsOrOptions || {} };
+}
+
+function runAsyncHook(command, argsOrOptions = {}, maybeOptions) {
+  const { args, options } = normalizeInvocation(argsOrOptions, maybeOptions);
+  const callerOptions = { ...options };
+  delete callerOptions.sandboxExecutionContract;
+  const processOptions = {
+    ...callerOptions,
+    origin: callerOptions.origin || "async-hook:command",
     policy: "allow",
     scope: "async-hook",
+  };
+  const requiresContract = requiresExplicitHookShell(
+    processOptions.sandboxPolicy,
+  );
+  const trustedRoot = requiresContract
+    ? requireTrustedHookRoot(processOptions.cwd)
+    : null;
+  const sandboxExecutionContract = requiresContract
+    ? issueTrustedHookSandboxContract({
+        issuer: executionBroker.issueLinuxWorkspaceSandboxExecutionContract,
+        receiver: executionBroker,
+        file: command,
+        args,
+        options: processOptions,
+        trustedRoot,
+      })
+    : null;
+  if (
+    process.platform === "linux" &&
+    requiresContract &&
+    !sandboxExecutionContract
+  ) {
+    throw sandboxBoundaryError(
+      "trusted Linux async-hook sandbox contract could not be issued",
+    );
+  }
+  return _processDeps.run(command, args, {
+    ...processOptions,
+    ...(sandboxExecutionContract ? { sandboxExecutionContract } : {}),
   });
 }
 

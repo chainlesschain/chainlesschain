@@ -19,6 +19,9 @@ import {
 
 const BWRAP_PATH = "/usr/bin/bwrap";
 const MAX_ATTESTED_FILE_BYTES = 256 * 1024 * 1024;
+const MAX_MOUNTINFO_BYTES = 4 * 1024 * 1024;
+const MOUNTINFO_PATH = "/proc/self/mountinfo";
+const MOUNT_TOPOLOGY_VERSION = 1;
 const O_TMPFILE = 0x410000;
 const SYSTEM_DESTINATIONS = [
   "/usr",
@@ -43,6 +46,46 @@ const ETC_ALLOWLIST = [
   "/etc/nsswitch.conf",
   "/etc/passwd",
 ];
+const FORBIDDEN_EXACT_WORKSPACE_ALIASES = [
+  "/",
+  "/home",
+  "/home/sandbox",
+  "/media",
+  "/mnt",
+  "/opt",
+  "/root",
+  "/run",
+  "/srv",
+  "/tmp",
+  "/var",
+  "/var/tmp",
+];
+const FORBIDDEN_WORKSPACE_ALIAS_SUBTREES = [
+  "/bin",
+  "/boot",
+  "/dev",
+  "/etc",
+  "/lib",
+  "/lib32",
+  "/lib64",
+  "/proc",
+  "/sbin",
+  "/sys",
+  "/usr",
+];
+const OPAQUE_NON_ROOT_FILESYSTEMS = new Set([
+  "9p",
+  "aufs",
+  "ceph",
+  "cifs",
+  "ecryptfs",
+  "glusterfs",
+  "nfs",
+  "nfs4",
+  "overlay",
+  "smb3",
+  "virtiofs",
+]);
 const REQUIRED_BWRAP_OPTIONS = [
   "--assert-userns-disabled",
   "--bind-fd",
@@ -219,6 +262,277 @@ function shellQuote(value) {
   return `'${String(value).replaceAll("'", `'\\''`)}'`;
 }
 
+function stableJson(value) {
+  if (Array.isArray(value)) {
+    return `[${value.map((entry) => stableJson(entry)).join(",")}]`;
+  }
+  if (value && typeof value === "object") {
+    return `{${Object.keys(value)
+      .sort()
+      .map((key) => `${JSON.stringify(key)}:${stableJson(value[key])}`)
+      .join(",")}}`;
+  }
+  return JSON.stringify(value);
+}
+
+function sha256(value) {
+  return crypto.createHash("sha256").update(value).digest("hex");
+}
+
+function decodeMountInfoPath(value) {
+  if (typeof value !== "string" || !value) {
+    throw new Error("mountinfo_path_invalid");
+  }
+  const decoded = [];
+  const escapes = new Map([
+    ["040", " "],
+    ["011", "\t"],
+    ["012", "\n"],
+    ["134", "\\"],
+  ]);
+  for (let index = 0; index < value.length; index += 1) {
+    if (value[index] !== "\\") {
+      decoded.push(value[index]);
+      continue;
+    }
+    const octal = value.slice(index + 1, index + 4);
+    if (!escapes.has(octal)) {
+      throw new Error("mountinfo_path_escape_invalid");
+    }
+    decoded.push(escapes.get(octal));
+    index += 3;
+  }
+  const result = decoded.join("");
+  if (
+    result.includes("\0") ||
+    !path.posix.isAbsolute(result) ||
+    path.posix.normalize(result) !== result
+  ) {
+    throw new Error("mountinfo_path_invalid");
+  }
+  return result;
+}
+
+function encodeMountInfoPath(value) {
+  return String(value)
+    .replaceAll("\\", "\\134")
+    .replaceAll(" ", "\\040")
+    .replaceAll("\t", "\\011")
+    .replaceAll("\n", "\\012");
+}
+
+function parseMountInfo(runtime) {
+  const raw = String(runtime.fs.readFileSync(MOUNTINFO_PATH, "utf8"));
+  if (
+    Buffer.byteLength(raw, "utf8") < 1 ||
+    Buffer.byteLength(raw, "utf8") > MAX_MOUNTINFO_BYTES
+  ) {
+    throw new Error("mountinfo_size_invalid");
+  }
+  const entries = [];
+  for (const line of raw.split("\n")) {
+    if (!line) continue;
+    const fields = line.split(" ");
+    const separator = fields.indexOf("-");
+    if (
+      separator < 6 ||
+      fields.length < separator + 4 ||
+      !/^\d+$/.test(fields[0] || "") ||
+      !/^\d+$/.test(fields[1] || "") ||
+      !/^\d+:\d+$/.test(fields[2] || "")
+    ) {
+      throw new Error("mountinfo_entry_invalid");
+    }
+    const root = decodeMountInfoPath(fields[3]);
+    const mountPoint = decodeMountInfoPath(fields[4]);
+    const fsType = fields[separator + 1];
+    if (
+      !fsType ||
+      fsType.includes("\0") ||
+      fields.slice(separator + 1).some((field) => !field)
+    ) {
+      throw new Error("mountinfo_entry_invalid");
+    }
+    entries.push(
+      Object.freeze({
+        mountId: fields[0],
+        parentId: fields[1],
+        majorMinor: fields[2],
+        root,
+        mountPoint,
+        fsType,
+        lineDigest: sha256(line),
+      }),
+    );
+  }
+  if (entries.length === 0) throw new Error("mountinfo_empty");
+  return entries;
+}
+
+function mountDepth(value) {
+  return value === "/" ? 0 : value.split("/").filter(Boolean).length;
+}
+
+function containingMount(entries, target) {
+  const candidates = entries.filter((entry) =>
+    isWithin(entry.mountPoint, target),
+  );
+  if (candidates.length === 0) throw new Error("mountinfo_root_unavailable");
+  const deepest = Math.max(
+    ...candidates.map((entry) => mountDepth(entry.mountPoint)),
+  );
+  const matches = candidates.filter(
+    (entry) => mountDepth(entry.mountPoint) === deepest,
+  );
+  if (matches.length !== 1) {
+    throw new Error("mountinfo_workspace_mount_ambiguous");
+  }
+  return matches[0];
+}
+
+function sameDirectoryIdentity(left, right) {
+  return (
+    String(left?.dev ?? left?.fileId?.dev) ===
+      String(right?.dev ?? right?.fileId?.dev) &&
+    String(left?.ino ?? left?.fileId?.ino) ===
+      String(right?.ino ?? right?.fileId?.ino)
+  );
+}
+
+function workspaceMountTopology(runtime, workspaceRoot, workspaceIdentity) {
+  const entries = parseMountInfo(runtime);
+  const descendants = entries.filter(
+    (entry) =>
+      entry.mountPoint !== workspaceRoot &&
+      isWithin(workspaceRoot, entry.mountPoint),
+  );
+  if (descendants.length > 0) {
+    throw new Error("workspace_descendant_mount_detected");
+  }
+
+  const mountedBy = containingMount(entries, workspaceRoot);
+  const rootMount = containingMount(entries, "/");
+  const workspaceRelative = path.posix.relative(
+    mountedBy.mountPoint,
+    workspaceRoot,
+  );
+  const filesystemPath = path.posix.join(mountedBy.root, workspaceRelative);
+  const sameFilesystem = entries.filter(
+    (entry) => entry.majorMinor === mountedBy.majorMinor,
+  );
+  const aliases = new Set();
+  for (const entry of sameFilesystem) {
+    if (!isWithin(entry.root, filesystemPath)) continue;
+    aliases.add(
+      path.posix.join(
+        entry.mountPoint,
+        path.posix.relative(entry.root, filesystemPath),
+      ),
+    );
+  }
+  if (aliases.size === 0) {
+    throw new Error("workspace_mount_provenance_unavailable");
+  }
+  if (
+    mountedBy.mountPoint !== "/" &&
+    mountedBy.root !== "/" &&
+    mountedBy.mountPoint === workspaceRoot
+  ) {
+    throw new Error("workspace_root_bind_alias_forbidden");
+  }
+  if ([...aliases].some((alias) => alias !== workspaceRoot)) {
+    throw new Error("workspace_root_alias_forbidden");
+  }
+
+  let home;
+  try {
+    home = realpath(runtime, runtime.homedir());
+  } catch {
+    throw new Error("workspace_home_identity_unavailable");
+  }
+  const forbiddenExact = new Set([
+    ...FORBIDDEN_EXACT_WORKSPACE_ALIASES,
+    ...FORBIDDEN_WORKSPACE_ALIAS_SUBTREES,
+    home,
+  ]);
+  for (const alias of aliases) {
+    if (
+      forbiddenExact.has(alias) ||
+      FORBIDDEN_WORKSPACE_ALIAS_SUBTREES.some((root) => isWithin(root, alias))
+    ) {
+      throw new Error("workspace_root_alias_forbidden");
+    }
+  }
+
+  const forbiddenIdentities = [];
+  for (const candidate of forbiddenExact) {
+    try {
+      const canonical = realpath(runtime, candidate);
+      const stat = runtime.fs.statSync(canonical);
+      if (!stat.isDirectory?.()) continue;
+      const observed = {
+        path: candidate,
+        canonical,
+        dev: String(stat.dev),
+        ino: String(stat.ino),
+      };
+      forbiddenIdentities.push(observed);
+      if (sameDirectoryIdentity(stat, workspaceIdentity)) {
+        throw new Error("workspace_root_identity_alias_forbidden");
+      }
+    } catch (error) {
+      if (error?.message === "workspace_root_identity_alias_forbidden") {
+        throw error;
+      }
+      // Missing optional system roots do not weaken the paths that exist.
+    }
+  }
+
+  const opaqueFilesystem =
+    mountedBy.fsType.startsWith("fuse") ||
+    OPAQUE_NON_ROOT_FILESYSTEMS.has(mountedBy.fsType);
+  if (mountedBy.mountPoint !== "/" && opaqueFilesystem) {
+    throw new Error("workspace_mount_provenance_opaque");
+  }
+
+  const lineage = entries.filter((entry) =>
+    isWithin(entry.mountPoint, workspaceRoot),
+  );
+  const binding = {
+    version: MOUNT_TOPOLOGY_VERSION,
+    source: "proc-self-mountinfo",
+    workspaceRoot,
+    containingMount: mountedBy.lineDigest,
+    rootMount: rootMount.lineDigest,
+    lineageEntryDigests: lineage.map((entry) => entry.lineDigest).sort(),
+    filesystemEntryDigests: sameFilesystem
+      .map((entry) => entry.lineDigest)
+      .sort(),
+    aliasDigests: [...aliases].map(sha256).sort(),
+    forbiddenIdentityDigests: forbiddenIdentities
+      .map((entry) => sha256(stableJson(entry)))
+      .sort(),
+    strictDescendantMountsAtAttestation: 0,
+    recursiveBind: true,
+    mountTopologyAtomic: false,
+  };
+  return Object.freeze({
+    version: binding.version,
+    source: binding.source,
+    workspaceRoot: binding.workspaceRoot,
+    digest: sha256(stableJson(binding)),
+    lineageEntryCount: binding.lineageEntryDigests.length,
+    filesystemEntryCount: binding.filesystemEntryDigests.length,
+    aliasCount: binding.aliasDigests.length,
+    forbiddenIdentityCount: binding.forbiddenIdentityDigests.length,
+    strictDescendantMountsAtAttestation:
+      binding.strictDescendantMountsAtAttestation,
+    rootAliasAttested: true,
+    recursiveBind: binding.recursiveBind,
+    mountTopologyAtomic: binding.mountTopologyAtomic,
+  });
+}
+
 function normalizedStdio(stdio) {
   if (stdio === undefined || stdio === null || stdio === "pipe") {
     return ["pipe", "pipe", "pipe"];
@@ -383,6 +697,11 @@ function createTrustedResources(
     const cwdPins = openPair(contract.workingDirectory, {
       directory: true,
     });
+    const initialWorkspaceMountTopology = workspaceMountTopology(
+      runtime,
+      contract.workspaceRoot,
+      workspace.identity,
+    );
 
     const supervisor = openPair(BWRAP_PATH, {
       directory: false,
@@ -661,8 +980,20 @@ function createTrustedResources(
       );
     };
     const attestFinal = (issued) => {
+      let finalWorkspaceMountTopology;
+      try {
+        finalWorkspaceMountTopology = workspaceMountTopology(
+          runtime,
+          contract.workspaceRoot,
+          workspace.identity,
+        );
+      } catch {
+        return false;
+      }
       if (
         !launchStaysBound(issued) ||
+        finalWorkspaceMountTopology.digest !==
+          initialWorkspaceMountTopology.digest ||
         !pathAttested(contract.workspaceRoot, workspace.identity, true) ||
         !pathAttested(contract.workingDirectory, cwdPins.identity, true) ||
         !descriptorAttested(workspace.finalFd, workspace.identity, true) ||
@@ -698,12 +1029,12 @@ function createTrustedResources(
           (target.scope === "workspace"
             ? isWithin(contract.workspaceRoot, currentTarget.canonical)
             : rootOwned(currentTarget.stat, {
-                  directory: false,
-                  executable: true,
-                }) &&
-                statMatchesIdentity(currentTarget.stat, target.identity, {
-                  directory: false,
-                }))
+                directory: false,
+                executable: true,
+              }) &&
+              statMatchesIdentity(currentTarget.stat, target.identity, {
+                directory: false,
+              }))
         );
       } catch {
         return false;
@@ -724,10 +1055,19 @@ function createTrustedResources(
         runtime.homedir(),
         `.chainless-bwrap-home-${nonce}`,
       );
+      const workspaceHomeAliasMarker = path.posix.join(
+        contract.workspaceRoot,
+        path.posix.basename(homeMarker),
+      );
+      const devShmMarker = path.posix.join(
+        "/dev/shm",
+        `.chainless-bwrap-dev-shm-${nonce}`,
+      );
       const outsideContents = `host-only-${nonce}`;
       const homeContents = `home-only-${nonce}`;
       let outsideCreated = false;
       let homeCreated = false;
+      let devShmCreated = false;
       try {
         runtime.fs.writeFileSync(outsideMarker, outsideContents, {
           encoding: "utf8",
@@ -741,6 +1081,12 @@ function createTrustedResources(
           mode: 0o600,
         });
         homeCreated = true;
+        runtime.fs.writeFileSync(devShmMarker, `host-dev-shm-${nonce}`, {
+          encoding: "utf8",
+          flag: "wx",
+          mode: 0o600,
+        });
+        devShmCreated = true;
         const socketProbe =
           socketProbeRuntime.kind === "node"
             ? {
@@ -761,6 +1107,7 @@ function createTrustedResources(
             : {
                 args: [
                   "-I",
+                  "-S",
                   "-c",
                   [
                     "import errno,socket,sys",
@@ -793,11 +1140,29 @@ function createTrustedResources(
           "  done < /proc/self/mountinfo",
           '  [ "$seen" = 1 ]',
           "}",
+          "workspace_mount_topology_is_attested() {",
+          `  want=${shellQuote(encodeMountInfoPath(contract.workspaceRoot))}`,
+          '  prefix="${want}/"',
+          "  seen=0",
+          "  while IFS=' ' read -r _ _ _ _ mountpoint _; do",
+          '    [ "$mountpoint" = "$want" ] && seen=1',
+          '    case "$mountpoint" in',
+          '      "$prefix"*) return 1 ;;',
+          "    esac",
+          `  done < ${MOUNTINFO_PATH}`,
+          '  [ "$seen" = 1 ]',
+          "}",
           "mount_is_read_only /",
           "mount_is_read_only /usr",
+          "workspace_mount_topology_is_attested",
           `test ! -e ${shellQuote("/etc/shadow")}`,
           `test ! -e ${shellQuote(homeMarker)}`,
+          `test ! -e ${shellQuote(workspaceHomeAliasMarker)}`,
           `test ! -e ${shellQuote(outsideMarker)}`,
+          `test ! -e ${shellQuote(devShmMarker)}`,
+          `printf %s ${shellQuote(nonce)} > ${shellQuote(devShmMarker)}`,
+          `test "$(cat ${shellQuote(devShmMarker)})" = ${shellQuote(nonce)}`,
+          `rm -f ${shellQuote(devShmMarker)}`,
           "if printf x > /chainless-undeclared-root 2>/dev/null; then exit 12; fi",
           "test ! -e /chainless-undeclared-root",
           "if printf x > /usr/.chainless-system-write 2>/dev/null; then exit 13; fi",
@@ -824,15 +1189,19 @@ function createTrustedResources(
             outsideContents;
         const homeUnchanged =
           homeCreated &&
-          String(runtime.fs.readFileSync(homeMarker, "utf8")) ===
-            homeContents;
+          String(runtime.fs.readFileSync(homeMarker, "utf8")) === homeContents;
+        const devShmUnchanged =
+          devShmCreated &&
+          String(runtime.fs.readFileSync(devShmMarker, "utf8")) ===
+            `host-dev-shm-${nonce}`;
         const expectedOutput = `${call.policyDigest}\n${call.contractDigest}\n`;
         const runnable =
           !result?.error &&
           result?.status === 0 &&
           String(result.stdout) === expectedOutput &&
           outsideUnchanged &&
-          homeUnchanged;
+          homeUnchanged &&
+          devShmUnchanged;
         return {
           runnable,
           policyDigest: runnable ? call.policyDigest : null,
@@ -840,6 +1209,8 @@ function createTrustedResources(
           emptyRoot: runnable,
           undeclaredRootReadOnly: runnable,
           workspaceReadWrite: runnable,
+          workspaceMountTopologyAttested: runnable,
+          anonymousDevWritable: runnable,
           systemReadOnly: runnable,
           hostHomeHidden: runnable,
           outsideMarkerHidden: runnable,
@@ -854,6 +1225,7 @@ function createTrustedResources(
           workspaceMarker,
           outsideMarker,
           homeMarker,
+          devShmMarker,
         ]) {
           try {
             runtime.fs.unlinkSync(marker);
@@ -874,11 +1246,14 @@ function createTrustedResources(
         probeFd: supervisor.probeFd,
         finalFd: supervisor.finalFd,
         identity: supervisor.identity,
+        sha256: supervisorFinalDigest,
+        bytes: supervisorBytes,
       },
       workspace: {
         probeFd: workspace.probeFd,
         finalFd: workspace.finalFd,
         identity: workspace.identity,
+        mountTopology: initialWorkspaceMountTopology,
       },
       system,
       systemSymlinks,

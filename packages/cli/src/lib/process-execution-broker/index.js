@@ -44,6 +44,7 @@ import {
   LINUX_GENERIC_CONTRACT_KIND,
 } from "./linux-generic-bwrap.js";
 import { consumeIssuedPluginSandboxExecutionContract } from "../plugin-runtime/bin.js";
+import runtimeProvenanceLedger from "../runtime-provenance-ledger.js";
 import { credentialAgent } from "./credential-agent.js";
 
 const SUPPORTED_SANDBOX_BOUNDARIES = new Set(Object.values(SANDBOX_BOUNDARIES));
@@ -55,7 +56,6 @@ const SUPPORTED_SANDBOX_PROFILES = new Set([
 
 // 延迟导入避免循环依赖
 let _traceCtx = null;
-let _rpl = null;
 let _hooksV2 = null;
 const _ipcBus = null;
 
@@ -71,14 +71,7 @@ function getTraceCtx() {
 }
 
 function getRpl() {
-  if (!_rpl) {
-    try {
-      _rpl = require("../runtime-provenance-ledger.js");
-    } catch {
-      _rpl = null;
-    }
-  }
-  return _rpl;
+  return runtimeProvenanceLedger;
 }
 
 function getHooksV2() {
@@ -712,6 +705,8 @@ class ProcessExecutionBroker extends EventEmitter {
     }
     let runtimeProbe = null;
     let genericWorkspaceProbe = false;
+    let sanitizedFilesystemPolicy = null;
+    let sanitizedNetworkPolicy = null;
     if (plan.runtimeProbe !== null && plan.runtimeProbe !== undefined) {
       if (
         typeof plan.runtimeProbe !== "object" ||
@@ -1089,9 +1084,13 @@ class ProcessExecutionBroker extends EventEmitter {
       const genericWorkspaceEvidenceFields = [
         "contractDigest",
         "policyDigest",
+        "mountTopologyDigest",
         "emptyRoot",
         "undeclaredRootReadOnly",
         "workspaceReadWrite",
+        "workspaceMountTopologyAttested",
+        "workspaceRootAliasAttested",
+        "anonymousDevWritable",
         "systemReadOnly",
         "hostHomeHidden",
         "outsideMarkerHidden",
@@ -1099,8 +1098,13 @@ class ProcessExecutionBroker extends EventEmitter {
         "networkNamespaceChanged",
         "socketCreationDenied",
         "descriptorMounts",
+        "mountTopologyAtomic",
       ];
-      for (const field of ["contractDigest", "policyDigest"]) {
+      for (const field of [
+        "contractDigest",
+        "policyDigest",
+        "mountTopologyDigest",
+      ]) {
         if (
           plan.runtimeProbe[field] !== undefined &&
           (typeof plan.runtimeProbe[field] !== "string" ||
@@ -1112,7 +1116,7 @@ class ProcessExecutionBroker extends EventEmitter {
           );
         }
       }
-      for (const field of genericWorkspaceEvidenceFields.slice(2)) {
+      for (const field of genericWorkspaceEvidenceFields.slice(3)) {
         if (
           plan.runtimeProbe[field] !== undefined &&
           typeof plan.runtimeProbe[field] !== "boolean"
@@ -1165,10 +1169,16 @@ class ProcessExecutionBroker extends EventEmitter {
           plan.runtimeProbe.targetRuntime === "generic-command" &&
           plan.runtimeProbe.contentSnapshot === false &&
           plan.runtimeProbe.handleAtomic === false &&
+          plan.runtimeProbe.mountTopologyAtomic === false &&
+          plan.runtimeProbe.mountTopologyDigest ===
+            filesystemPolicy?.mountTopologyDigest &&
           [
             "emptyRoot",
             "undeclaredRootReadOnly",
             "workspaceReadWrite",
+            "workspaceMountTopologyAttested",
+            "workspaceRootAliasAttested",
+            "anonymousDevWritable",
             "systemReadOnly",
             "hostHomeHidden",
             "outsideMarkerHidden",
@@ -1193,6 +1203,18 @@ class ProcessExecutionBroker extends EventEmitter {
           filesystemPolicy.workspaceDescriptorBound === true &&
           filesystemPolicy.systemDescriptorBound === true &&
           filesystemPolicy.exactEtcFileDescriptors === true &&
+          filesystemPolicy.workspaceRecursiveBind === true &&
+          filesystemPolicy.workspaceMountTopology ===
+            "no-strict-descendants-or-forbidden-root-aliases-at-attestation" &&
+          filesystemPolicy.mountTopologySource === "proc-self-mountinfo" &&
+          /^[a-f0-9]{64}$/.test(filesystemPolicy.mountTopologyDigest || "") &&
+          filesystemPolicy.mountTopologyAtomic === false &&
+          Array.isArray(filesystemPolicy.anonymousWritablePaths) &&
+          filesystemPolicy.anonymousWritablePaths.length === 5 &&
+          ["/home/sandbox", "/dev", "/run", "/tmp", "/var/tmp"].every(
+            (value, index) =>
+              filesystemPolicy.anonymousWritablePaths[index] === value,
+          ) &&
           networkPolicy?.namespace === "new" &&
           networkPolicy?.namespaceIdentityChanged === true &&
           networkPolicy?.seccomp === "deny-network-creation" &&
@@ -1212,6 +1234,31 @@ class ProcessExecutionBroker extends EventEmitter {
             "Linux generic workspace evidence must use the typed descriptor-bound empty-root contract",
           );
         }
+        sanitizedFilesystemPolicy = Object.freeze({
+          workspaceRoot,
+          workingDirectory,
+          workspaceAccess: filesystemPolicy.workspaceAccess,
+          systemAccess: filesystemPolicy.systemAccess,
+          undeclaredRootAccess: filesystemPolicy.undeclaredRootAccess,
+          anonymousWritablePaths: Object.freeze([
+            ...filesystemPolicy.anonymousWritablePaths,
+          ]),
+          hostRootMapped: filesystemPolicy.hostRootMapped,
+          hostHomeMapped: filesystemPolicy.hostHomeMapped,
+          workspaceDescriptorBound: filesystemPolicy.workspaceDescriptorBound,
+          systemDescriptorBound: filesystemPolicy.systemDescriptorBound,
+          exactEtcFileDescriptors: filesystemPolicy.exactEtcFileDescriptors,
+          workspaceRecursiveBind: filesystemPolicy.workspaceRecursiveBind,
+          workspaceMountTopology: filesystemPolicy.workspaceMountTopology,
+          mountTopologySource: filesystemPolicy.mountTopologySource,
+          mountTopologyDigest: filesystemPolicy.mountTopologyDigest,
+          mountTopologyAtomic: filesystemPolicy.mountTopologyAtomic,
+        });
+        sanitizedNetworkPolicy = Object.freeze({
+          namespace: networkPolicy.namespace,
+          namespaceIdentityChanged: networkPolicy.namespaceIdentityChanged,
+          seccomp: networkPolicy.seccomp,
+        });
       }
       runtimeProbe = {
         kind: plan.runtimeProbe.kind,
@@ -1314,6 +1361,12 @@ class ProcessExecutionBroker extends EventEmitter {
       policyAttested,
       policyDigest,
       runtimeProbe,
+      ...(sanitizedFilesystemPolicy
+        ? {
+            filesystemPolicy: sanitizedFilesystemPolicy,
+            networkPolicy: sanitizedNetworkPolicy,
+          }
+        : {}),
       postSpawn: { ...postSpawn },
     };
   }
@@ -1468,6 +1521,39 @@ class ProcessExecutionBroker extends EventEmitter {
     auditEntry.sandboxPolicyAttested =
       typeof plan?.policyAttested === "boolean" ? plan.policyAttested : null;
     auditEntry.sandboxPolicyDigest = plan?.policyDigest || null;
+    const genericPolicy =
+      applied === true && plan?.backend === "linux-bwrap-workspace";
+    auditEntry.sandboxFilesystemPolicy = genericPolicy
+      ? {
+          workspaceRoot: plan.filesystemPolicy.workspaceRoot,
+          workingDirectory: plan.filesystemPolicy.workingDirectory,
+          workspaceAccess: plan.filesystemPolicy.workspaceAccess,
+          systemAccess: plan.filesystemPolicy.systemAccess,
+          undeclaredRootAccess: plan.filesystemPolicy.undeclaredRootAccess,
+          anonymousWritablePaths: [
+            ...plan.filesystemPolicy.anonymousWritablePaths,
+          ],
+          hostRootMapped: plan.filesystemPolicy.hostRootMapped,
+          hostHomeMapped: plan.filesystemPolicy.hostHomeMapped,
+          workspaceDescriptorBound:
+            plan.filesystemPolicy.workspaceDescriptorBound,
+          systemDescriptorBound: plan.filesystemPolicy.systemDescriptorBound,
+          exactEtcFileDescriptors:
+            plan.filesystemPolicy.exactEtcFileDescriptors,
+          workspaceRecursiveBind: plan.filesystemPolicy.workspaceRecursiveBind,
+          workspaceMountTopology: plan.filesystemPolicy.workspaceMountTopology,
+          mountTopologySource: plan.filesystemPolicy.mountTopologySource,
+          mountTopologyDigest: plan.filesystemPolicy.mountTopologyDigest,
+          mountTopologyAtomic: plan.filesystemPolicy.mountTopologyAtomic,
+        }
+      : null;
+    auditEntry.sandboxNetworkPolicy = genericPolicy
+      ? {
+          namespace: plan.networkPolicy.namespace,
+          namespaceIdentityChanged: plan.networkPolicy.namespaceIdentityChanged,
+          seccomp: plan.networkPolicy.seccomp,
+        }
+      : null;
     auditEntry.sandboxCandidateReason = plan?.candidateBackend
       ? plan?.reason || null
       : null;
@@ -1729,12 +1815,13 @@ class ProcessExecutionBroker extends EventEmitter {
 
   _writeRplEntry(auditEntry, status = "started", error = null) {
     const rpl = getRpl();
-    if (!rpl || !rpl.default) return;
+    if (!rpl) return;
     try {
       const traceCtx = this._getTraceContext();
-      rpl.default.append(
+      if (typeof rpl.record !== "function") return;
+      rpl.record(
+        "process.execution",
         {
-          kind: "process.execution",
           component: auditEntry.origin,
           action: "spawn",
           artifactId: auditEntry.executionId,
@@ -1754,6 +1841,15 @@ class ProcessExecutionBroker extends EventEmitter {
             decision: auditEntry.permissionDecision,
             policy: auditEntry.policy,
             scope: auditEntry.scope,
+          },
+          sandbox: {
+            applied: auditEntry.sandboxed === true,
+            backend: auditEntry.sandboxBackend || null,
+            guarantees: [...(auditEntry.sandboxGuarantees || [])],
+            policyAttested: auditEntry.sandboxPolicyAttested === true,
+            policyDigest: auditEntry.sandboxPolicyDigest || null,
+            filesystemPolicy: auditEntry.sandboxFilesystemPolicy || null,
+            networkPolicy: auditEntry.sandboxNetworkPolicy || null,
           },
           traceId:
             traceCtx?.traceId || auditEntry.traceId || `trace-${Date.now()}`,
@@ -1940,6 +2036,18 @@ class ProcessExecutionBroker extends EventEmitter {
       proc,
       sandboxPlan.cleanup,
     );
+    if (
+      sandboxPlan.applied === true &&
+      sandboxPlan.backend === "linux-bwrap-workspace" &&
+      sandboxPlan.postSpawn.required === false
+    ) {
+      // child_process.spawn() has synchronously duplicated every stdio entry
+      // into the launched bwrap process before returning. Generic workspace
+      // plans do not need a parent-side post-spawn handle, so retaining their
+      // pinned mount/seccomp descriptors until a long-lived MCP/LSP/monitor
+      // exits would turn each child into an avoidable FD leak.
+      cleanupSandbox();
+    }
     try {
       this._runPostSpawnSandbox(proc, sandboxPlan, auditEntry);
       auditEntry.pid = proc.pid;
