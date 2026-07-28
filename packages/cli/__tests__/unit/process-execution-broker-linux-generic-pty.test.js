@@ -223,6 +223,12 @@ describe("ProcessExecutionBroker Linux generic PTY", () => {
     child.emit("exit", 0, null);
     expect(onExit).toHaveBeenCalledWith({ exitCode: 0, signal: null });
     expect(ptyAdapter.releaseTerminal).toHaveBeenCalledOnce();
+    expect(() => proc.resize(140, 50)).toThrow(
+      expect.objectContaining({
+        code: "ERR_PTY_TERMINAL_CLOSED",
+      }),
+    );
+    expect(ptyAdapter.resize).toHaveBeenCalledTimes(1);
 
     expect(executionBroker.getAuditLog(1)[0]).toMatchObject({
       operation: "pty.spawn",
@@ -328,6 +334,11 @@ describe("ProcessExecutionBroker Linux generic PTY", () => {
         }
         adapter.releaseTerminal(terminal);
       }
+      expect(() => adapter.resize(terminal, 121, 43)).toThrow(
+        expect.objectContaining({
+          code: "ERR_PTY_TERMINAL_CLOSED",
+        }),
+      );
     },
   );
 });

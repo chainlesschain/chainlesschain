@@ -699,7 +699,17 @@ class DBSyncManager extends EventEmitter {
    * 插入或更新本地记录
    */
   insertOrUpdateLocal(tableName, record) {
-    const columns = Object.keys(record);
+    // Every caller of this helper applies data downloaded from the backend or
+    // selected during backend-conflict resolution. A project root is local
+    // execution authority, not syncable metadata. Strip it again here so raw
+    // conflict merge payloads cannot bypass FieldMapper.
+    const safeRecord =
+      tableName === "projects"
+        ? Object.fromEntries(
+            Object.entries(record).filter(([column]) => column !== "root_path"),
+          )
+        : record;
+    const columns = Object.keys(safeRecord);
     const placeholders = columns.map(() => "?").join(", ");
     const updateSet = columns
       .map((col) => `${col} = excluded.${col}`)
@@ -709,7 +719,7 @@ class DBSyncManager extends EventEmitter {
       `INSERT INTO ${tableName} (${columns.join(", ")})
        VALUES (${placeholders})
        ON CONFLICT(id) DO UPDATE SET ${updateSet}`,
-      Object.values(record),
+      Object.values(safeRecord),
     );
   }
 

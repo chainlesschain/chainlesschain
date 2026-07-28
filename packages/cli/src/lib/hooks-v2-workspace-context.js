@@ -84,6 +84,9 @@ function invalidateWorkspaceRecord(record) {
 
 function verifyWorkspaceRecord(record) {
   if (!record) return null;
+  if (registeredHostWorkspaces.get(record.binding.bindingId) !== record) {
+    return null;
+  }
   let currentIdentity;
   try {
     currentIdentity = captureWorkspaceIdentity(record.binding.workspaceRoot);
@@ -98,17 +101,23 @@ function verifyWorkspaceRecord(record) {
   return record.binding;
 }
 
-function workspaceBindingId(canonicalRoot) {
+function pruneInvalidWorkspaceRecords() {
+  for (const record of Array.from(registeredHostWorkspaces.values())) {
+    verifyWorkspaceRecord(record);
+  }
+}
+
+function workspaceBindingId(identity) {
   return createHash("sha256")
-    .update("chainlesschain.hooks-v2-host-workspace.v1\0")
-    .update(canonicalRoot)
+    .update("chainlesschain.hooks-v2-host-workspace.v2\0")
+    .update(workspaceIdentityKey(identity), "utf8")
     .digest("hex");
 }
 
 /**
  * Register a root selected by trusted host bootstrap code. Durable records
- * persist only the returned opaque stable digest; the canonical path and
- * directory identity remain process-local.
+ * persist only the returned opaque stable digest; the plaintext canonical path
+ * and directory identity remain process-local.
  */
 export function registerHostHooksV2Workspace(workspaceRoot) {
   const identity = captureWorkspaceIdentity(workspaceRoot);
@@ -125,6 +134,12 @@ export function registerHostHooksV2Workspace(workspaceRoot) {
     }
   }
 
+  // A long-running host may create and remove many isolated worktrees. Sweep
+  // stale filesystem identities before enforcing the bounded registry so
+  // deleted roots cannot exhaust future trusted registrations.
+  if (registeredHostWorkspaces.size >= MAX_REGISTERED_HOST_WORKSPACES) {
+    pruneInvalidWorkspaceRecords();
+  }
   if (registeredHostWorkspaces.size >= MAX_REGISTERED_HOST_WORKSPACES) {
     const error = new Error(
       "Hooks v2 host workspace registry capacity exceeded",
@@ -133,7 +148,7 @@ export function registerHostHooksV2Workspace(workspaceRoot) {
     throw error;
   }
 
-  const bindingId = workspaceBindingId(identity.canonicalRoot);
+  const bindingId = workspaceBindingId(identity);
   const collidingRecord = registeredHostWorkspaces.get(bindingId);
   if (collidingRecord) {
     const collidingBinding = verifyWorkspaceRecord(collidingRecord);
@@ -213,4 +228,18 @@ export function resolveRegisteredHostHooksV2Workspace(bindingId) {
     return null;
   }
   return verifyWorkspaceRecord(registeredHostWorkspaces.get(bindingId));
+}
+
+/**
+ * Revoke a process-local binding owned by trusted host lifecycle code.
+ * Payloads, hooks, and durable records must never call this release seam.
+ */
+export function releaseRegisteredHostHooksV2Workspace(bindingId) {
+  if (typeof bindingId !== "string" || !/^[a-f0-9]{64}$/.test(bindingId)) {
+    return false;
+  }
+  const record = registeredHostWorkspaces.get(bindingId);
+  if (!record) return false;
+  invalidateWorkspaceRecord(record);
+  return true;
 }

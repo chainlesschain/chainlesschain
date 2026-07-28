@@ -221,7 +221,10 @@ class FieldMapper {
           description: backendRecord.description,
           project_type: backendRecord.projectType,
           status: backendRecord.status,
-          root_path: backendRecord.rootPath,
+          // `root_path` is a local execution-authority binding. The generic
+          // backend sync has no trusted peer/root provenance, so a backend
+          // filesystem claim is deliberately discarded instead of mapping it
+          // to either root_path or pc_root_path.
           file_count: backendRecord.fileCount,
           total_size: backendRecord.totalSize,
           device_id: backendRecord.deviceId,

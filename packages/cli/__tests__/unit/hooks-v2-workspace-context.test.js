@@ -7,6 +7,7 @@ import {
   currentHostHooksV2WorkspaceBinding,
   currentHostHooksV2WorkspaceRoot,
   registerHostHooksV2Workspace,
+  releaseRegisteredHostHooksV2Workspace,
   resolveRegisteredHostHooksV2Workspace,
   runWithHostHooksV2Workspace,
 } from "../../src/lib/hooks-v2-workspace-context.js";
@@ -22,6 +23,22 @@ describe("Hooks v2 trusted host workspace context", () => {
     const workspaceRoot = path.join(parent, name);
     fs.mkdirSync(workspaceRoot);
     return { parent, workspaceRoot };
+  }
+
+  function expectedWorkspaceBindingId(workspaceRoot) {
+    const canonicalRoot = fs.realpathSync.native(workspaceRoot);
+    const stats = fs.statSync(canonicalRoot, { bigint: true });
+    return createHash("sha256")
+      .update("chainlesschain.hooks-v2-host-workspace.v2\0")
+      .update(
+        JSON.stringify([
+          canonicalRoot,
+          stats.dev.toString(),
+          stats.ino.toString(),
+        ]),
+        "utf8",
+      )
+      .digest("hex");
   }
 
   afterEach(() => {
@@ -109,10 +126,7 @@ describe("Hooks v2 trusted host workspace context", () => {
     const binding = registerHostHooksV2Workspace(root);
     const duplicate = registerHostHooksV2Workspace(root);
     const otherBinding = registerHostHooksV2Workspace(otherRoot);
-    const expectedStableBindingId = createHash("sha256")
-      .update("chainlesschain.hooks-v2-host-workspace.v1\0")
-      .update(fs.realpathSync.native(root))
-      .digest("hex");
+    const expectedStableBindingId = expectedWorkspaceBindingId(root);
 
     expect(binding).toEqual({
       bindingId: expect.stringMatching(/^[a-f0-9]{64}$/),
@@ -159,7 +173,11 @@ describe("Hooks v2 trusted host workspace context", () => {
 
     const replacementBinding = registerHostHooksV2Workspace(root);
     expect(replacementBinding).not.toBe(originalBinding);
-    expect(replacementBinding.bindingId).toBe(originalBinding.bindingId);
+    expect(replacementBinding.bindingId).toBe(expectedWorkspaceBindingId(root));
+    expect(replacementBinding.bindingId).not.toBe(originalBinding.bindingId);
+    expect(
+      resolveRegisteredHostHooksV2Workspace(originalBinding.bindingId),
+    ).toBeNull();
   });
 
   it("exposes the immutable binding only inside its async host scope", async () => {
@@ -174,4 +192,54 @@ describe("Hooks v2 trusted host workspace context", () => {
     });
     expect(currentHostHooksV2WorkspaceBinding()).toBeNull();
   });
+
+  it("revokes a binding immediately, including from an active async scope", async () => {
+    const root = createWorkspace("released-host-workspace").workspaceRoot;
+
+    await runWithHostHooksV2Workspace(root, async () => {
+      const binding = currentHostHooksV2WorkspaceBinding();
+      expect(binding).not.toBeNull();
+      expect(releaseRegisteredHostHooksV2Workspace(binding.bindingId)).toBe(
+        true,
+      );
+      expect(currentHostHooksV2WorkspaceBinding()).toBeNull();
+      expect(currentHostHooksV2WorkspaceRoot()).toBeNull();
+      expect(
+        resolveRegisteredHostHooksV2Workspace(binding.bindingId),
+      ).toBeNull();
+      expect(releaseRegisteredHostHooksV2Workspace(binding.bindingId)).toBe(
+        false,
+      );
+    });
+  });
+
+  it("sweeps deleted roots before enforcing registry capacity", () => {
+    const capacityRoot = createWorkspace(
+      "registry-capacity-workspaces",
+    ).workspaceRoot;
+    const workspaceRoots = [];
+    for (let index = 0; index < 1024; index += 1) {
+      const workspaceRoot = path.join(
+        capacityRoot,
+        `workspace-${String(index).padStart(4, "0")}`,
+      );
+      fs.mkdirSync(workspaceRoot);
+      workspaceRoots.push(workspaceRoot);
+      registerHostHooksV2Workspace(workspaceRoot);
+    }
+
+    const overflowRoot = path.join(capacityRoot, "workspace-overflow");
+    fs.mkdirSync(overflowRoot);
+    expect(() => registerHostHooksV2Workspace(overflowRoot)).toThrow(
+      expect.objectContaining({
+        code: "CC_HOOK_TRUSTED_WORKSPACE_LIMIT",
+      }),
+    );
+
+    fs.rmSync(workspaceRoots[0], { recursive: true });
+    expect(registerHostHooksV2Workspace(overflowRoot)).toEqual({
+      bindingId: expect.stringMatching(/^[a-f0-9]{64}$/),
+      workspaceRoot: fs.realpathSync.native(overflowRoot),
+    });
+  }, 20_000);
 });

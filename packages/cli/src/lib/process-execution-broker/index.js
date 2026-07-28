@@ -345,6 +345,11 @@ function createNativePtyAdapter() {
     },
     resize(terminal, cols, rows) {
       const state = terminalState(terminal);
+      if (state.disposed || !Number.isInteger(state.fd)) {
+        const error = new Error("pty_terminal_closed");
+        error.code = "ERR_PTY_TERMINAL_CLOSED";
+        throw error;
+      }
       if (
         !Number.isInteger(cols) ||
         cols <= 0 ||
@@ -379,6 +384,7 @@ function createNativePtyAdapter() {
       const state = terminalStates.get(terminal);
       if (state) {
         state.disposed = true;
+        state.fd = null;
         state.writeQueue.length = 0;
         state.pendingWriteBytes = 0;
         if (state.writeImmediate) {
@@ -453,6 +459,11 @@ function wrapSandboxedPty(terminal, child, command, ptyAdapter) {
       return ptyAdapter.write(terminal, data);
     },
     resize(cols, rows) {
+      if (closed) {
+        const error = new Error("pty_terminal_closed");
+        error.code = "ERR_PTY_TERMINAL_CLOSED";
+        throw error;
+      }
       return ptyAdapter.resize(terminal, cols, rows);
     },
     clear() {

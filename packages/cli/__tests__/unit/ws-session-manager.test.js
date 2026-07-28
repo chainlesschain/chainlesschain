@@ -1,4 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import os from "node:os";
 import path from "node:path";
 
 // Mock all heavy dependencies before importing
@@ -111,6 +112,30 @@ import { resolveRegisteredHostHooksV2Workspace } from "../../src/lib/hooks-v2-wo
 describe("WSSessionManager", () => {
   let manager;
   let mockDb;
+  const temporaryWorkspaceRoots = [];
+
+  function createHostWorkspace() {
+    const workspaceRoot = fs.mkdtempSync(
+      path.join(os.tmpdir(), "cc-hooks-v2-ws-session-"),
+    );
+    temporaryWorkspaceRoots.push(workspaceRoot);
+    return fs.realpathSync.native(workspaceRoot);
+  }
+
+  function mockRealIsolatedWorktree() {
+    createWorktree.mockImplementationOnce((repoDir, branchName) => {
+      const worktreePath = path.join(
+        repoDir,
+        ".worktrees",
+        branchName.replace(/\//g, "-"),
+      );
+      fs.mkdirSync(worktreePath, { recursive: true });
+      return {
+        path: worktreePath,
+        branch: branchName,
+      };
+    });
+  }
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -122,6 +147,12 @@ describe("WSSessionManager", () => {
       all: vi.fn(() => []),
     };
     manager = new WSSessionManager({ db: mockDb, config: { test: true } });
+  });
+
+  afterEach(() => {
+    for (const workspaceRoot of temporaryWorkspaceRoots.splice(0)) {
+      fs.rmSync(workspaceRoot, { recursive: true, force: true });
+    }
   });
 
   describe("constructor", () => {
@@ -847,6 +878,41 @@ describe("WSSessionManager", () => {
         session.worktree.path,
         { deleteBranch: true },
       );
+    });
+
+    it("revokes an isolated worktree binding even when cleanup fails", () => {
+      const hostRoot = createHostWorkspace();
+      const m = new WSSessionManager({ defaultProjectRoot: hostRoot });
+      mockRealIsolatedWorktree();
+      const { sessionId } = m.createSession({
+        worktreeIsolation: true,
+      });
+      const session = m.getSession(sessionId);
+      const bindingId = session.hooksV2WorkspaceBindingId;
+      expect(
+        resolveRegisteredHostHooksV2Workspace(bindingId)?.workspaceRoot,
+      ).toBe(fs.realpathSync.native(session.worktree.path));
+      removeWorktree.mockImplementationOnce(() => {
+        throw new Error("simulated worktree cleanup failure");
+      });
+
+      expect(() => m.closeSession(sessionId)).not.toThrow();
+
+      expect(resolveRegisteredHostHooksV2Workspace(bindingId)).toBeNull();
+      expect(m.getSession(sessionId)).toBeNull();
+    });
+
+    it("retains the shared default host binding after session close", () => {
+      const hostRoot = createHostWorkspace();
+      const m = new WSSessionManager({ defaultProjectRoot: hostRoot });
+      const { sessionId } = m.createSession();
+      const bindingId = m.getSession(sessionId).hooksV2WorkspaceBindingId;
+
+      m.closeSession(sessionId);
+
+      expect(
+        resolveRegisteredHostHooksV2Workspace(bindingId)?.workspaceRoot,
+      ).toBe(hostRoot);
     });
   });
 

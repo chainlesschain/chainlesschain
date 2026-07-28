@@ -45,7 +45,10 @@ import {
   CODING_AGENT_MVP_TOOL_NAMES,
   listCodingAgentToolNames,
 } from "../../runtime/coding-agent-contract.js";
-import { registerHostHooksV2Workspace } from "../../lib/hooks-v2-workspace-context.js";
+import {
+  registerHostHooksV2Workspace,
+  releaseRegisteredHostHooksV2Workspace,
+} from "../../lib/hooks-v2-workspace-context.js";
 
 function normalizeHostWorkspaceRoot(workspaceRoot) {
   if (
@@ -62,12 +65,26 @@ function normalizeHostWorkspaceRoot(workspaceRoot) {
   }
 }
 
-function bindSessionHooksV2Workspace(session, workspaceRoot) {
+function bindSessionHooksV2Workspace(
+  session,
+  workspaceRoot,
+  { releaseOnClose = false, protectedBindingId = null } = {},
+) {
   const binding = workspaceRoot
     ? registerHostHooksV2Workspace(workspaceRoot)
     : null;
   Object.defineProperty(session, "hooksV2WorkspaceBindingId", {
     value: binding?.bindingId || null,
+    enumerable: false,
+    writable: false,
+    configurable: false,
+  });
+  Object.defineProperty(session, "_releaseHooksV2WorkspaceBindingOnClose", {
+    value: Boolean(
+      binding &&
+      releaseOnClose === true &&
+      binding.bindingId !== protectedBindingId,
+    ),
     enumerable: false,
     writable: false,
     configurable: false,
@@ -120,9 +137,9 @@ export class WSSessionManager {
     this._hooksV2HostWorkspaceRoot = normalizeHostWorkspaceRoot(
       this.defaultProjectRoot,
     );
-    if (this._hooksV2HostWorkspaceRoot) {
-      registerHostHooksV2Workspace(this._hooksV2HostWorkspaceRoot);
-    }
+    this._hooksV2HostWorkspaceBindingId = this._hooksV2HostWorkspaceRoot
+      ? registerHostHooksV2Workspace(this._hooksV2HostWorkspaceRoot).bindingId
+      : null;
     this.mcpClient = options.mcpClient || null;
     this.allowedMcpServerNames = Array.isArray(options.allowedMcpServerNames)
       ? options.allowedMcpServerNames
@@ -485,6 +502,10 @@ export class WSSessionManager {
           ? normalizeHostWorkspaceRoot(projectRoot)
           : hostAuthorizedBaseRoot
         : null,
+      {
+        releaseOnClose: Boolean(hostAuthorizedBaseRoot && worktree),
+        protectedBindingId: this._hooksV2HostWorkspaceBindingId,
+      },
     );
 
     if (this.db) {
@@ -623,6 +644,13 @@ export class WSSessionManager {
   closeSession(sessionId) {
     const session = this.sessions.get(sessionId);
     if (!session) return;
+
+    if (
+      session._releaseHooksV2WorkspaceBindingOnClose === true &&
+      session.hooksV2WorkspaceBindingId
+    ) {
+      releaseRegisteredHostHooksV2Workspace(session.hooksV2WorkspaceBindingId);
+    }
 
     session.status = "closed";
 
