@@ -5,7 +5,7 @@
  * @module project/project-ai-ipc-code
  */
 const { logger } = require("../utils/logger.js");
-const path = require("path");
+const { resolveManagedProjectRoot } = require("./project-root-path.js");
 
 function registerCodeHandlers(ctx) {
   const { ipcMain, database, llmManager, mainWindow } = ctx;
@@ -194,10 +194,10 @@ function registerCodeHandlers(ctx) {
         const projectConfig = getProjectConfig();
 
         // 使用项目名称或ID作为目录名
-        const dirName = project.name
-          ? project.name.replace(/[^\w\s-]/g, "_")
-          : `project_${projectId}`;
-        projectPath = path.join(projectConfig.getProjectsRootPath(), dirName);
+        projectPath = resolveManagedProjectRoot(
+          projectConfig.getProjectsRootPath(),
+          projectId,
+        );
 
         // 创建目录
         await fs.mkdir(projectPath, { recursive: true });
@@ -206,7 +206,7 @@ function registerCodeHandlers(ctx) {
         // 更新数据库中的项目路径
         database.db
           .prepare(
-            "UPDATE projects SET root_path = ?, updated_at = ? WHERE id = ?",
+            "UPDATE projects SET root_path = ?, root_path_local_attested = 1, updated_at = ? WHERE id = ?",
           )
           .run(projectPath, Date.now(), projectId);
 

@@ -13,6 +13,10 @@ const path = require("path");
 const FileCacheManager = require("./file-cache-manager.js");
 const ConflictError = require("../errors/conflict-error.js");
 const { getSyncLockManager } = require("./sync-lock-manager.js");
+const {
+  resolveManagedProjectRoot,
+  resolveProjectChildPath,
+} = require("./project-root-path.js");
 
 let databaseInitPromise = null;
 
@@ -248,7 +252,7 @@ function registerProjectCoreIPC({
         try {
           const { getProjectConfig } = require("./project-config");
           const projectConfig = getProjectConfig();
-          const projectRootPath = require("path").join(
+          const projectRootPath = resolveManagedProjectRoot(
             projectConfig.getProjectsRootPath(),
             cleanedProject.id,
           );
@@ -265,9 +269,13 @@ function registerProjectCoreIPC({
 
           // 立即更新项目的root_path（无论项目类型和是否有文件）
           // updateProject 是同步函数
-          database.updateProject(cleanedProject.id, {
-            root_path: projectRootPath,
-          });
+          database.updateProject(
+            cleanedProject.id,
+            {
+              root_path: projectRootPath,
+            },
+            { attestRootPath: true },
+          );
           logger.info("[Main] 项目root_path已设置:", projectRootPath);
         } catch (dirError) {
           logger.error("[Main] 创建项目目录失败:", dirError);
@@ -449,7 +457,7 @@ function registerProjectCoreIPC({
               // 为所有类型项目创建根目录并设置root_path（统一从系统配置读取）
               try {
                 const projectConfig = getProjectConfig();
-                const projectRootPath = path.join(
+                const projectRootPath = resolveManagedProjectRoot(
                   projectConfig.getProjectsRootPath(),
                   localProject.id,
                 );
@@ -464,15 +472,22 @@ function registerProjectCoreIPC({
 
                 // 立即更新项目的root_path（无论项目类型和是否有文件）
                 // updateProject 是同步函数
-                database.updateProject(localProject.id, {
-                  root_path: projectRootPath,
-                });
+                database.updateProject(
+                  localProject.id,
+                  {
+                    root_path: projectRootPath,
+                  },
+                  { attestRootPath: true },
+                );
                 logger.info("[Main] 项目root_path已设置:", projectRootPath);
 
                 // 如果有文件，写入到文件系统
                 if (accumulatedData.files.length > 0) {
                   for (const file of accumulatedData.files) {
-                    const filePath = path.join(projectRootPath, file.path);
+                    const filePath = resolveProjectChildPath(
+                      projectRootPath,
+                      file.path,
+                    );
                     logger.info("[Main] 写入文件:", filePath);
 
                     // 解码base64内容
@@ -625,7 +640,7 @@ function registerProjectCoreIPC({
 
       // 创建项目文件夹
       const projectConfig = getProjectConfig();
-      const projectRootPath = path.join(
+      const projectRootPath = resolveManagedProjectRoot(
         projectConfig.getProjectsRootPath(),
         projectId,
       );
@@ -659,7 +674,7 @@ function registerProjectCoreIPC({
       // 保存到本地数据库
       if (project) {
         const database = await getActiveDatabase();
-        await database.saveProject(project);
+        await database.saveProject(project, { attestRootPath: true });
         logger.info("[Main] 项目已保存到本地数据库");
 
         // 保存项目文件记录
@@ -837,7 +852,7 @@ function registerProjectCoreIPC({
       }
 
       // 如果已经有 root_path，不需要修复
-      if (project.root_path) {
+      if (project.root_path && Number(project.root_path_local_attested) === 1) {
         logger.info("[Main] 项目已有 root_path，无需修复:", project.root_path);
         return {
           success: true,
@@ -849,7 +864,7 @@ function registerProjectCoreIPC({
       // 创建项目目录
       const { getProjectConfig } = require("./project-config");
       const projectConfig = getProjectConfig();
-      const projectRootPath = path.join(
+      const projectRootPath = resolveManagedProjectRoot(
         projectConfig.getProjectsRootPath(),
         projectId,
       );
@@ -858,9 +873,13 @@ function registerProjectCoreIPC({
       await fs.mkdir(projectRootPath, { recursive: true });
 
       // 更新项目的 root_path
-      database.updateProject(projectId, {
-        root_path: projectRootPath,
-      });
+      database.updateProject(
+        projectId,
+        {
+          root_path: projectRootPath,
+        },
+        { attestRootPath: true },
+      );
 
       // 获取项目文件并写入文件系统
       const projectFiles = database.db
@@ -873,7 +892,7 @@ function registerProjectCoreIPC({
 
         for (const file of projectFiles) {
           try {
-            const filePath = path.join(
+            const filePath = resolveProjectChildPath(
               projectRootPath,
               file.file_path || file.file_name,
             );
@@ -935,7 +954,7 @@ function registerProjectCoreIPC({
       }
 
       // 检查是否已有root_path
-      if (project.root_path) {
+      if (project.root_path && Number(project.root_path_local_attested) === 1) {
         logger.info("[Main] 项目已有root_path:", project.root_path);
         return {
           success: true,
@@ -947,7 +966,7 @@ function registerProjectCoreIPC({
       // 创建项目目录
       const { getProjectConfig } = require("./project-config");
       const projectConfig = getProjectConfig();
-      const projectRootPath = require("path").join(
+      const projectRootPath = resolveManagedProjectRoot(
         projectConfig.getProjectsRootPath(),
         projectId,
       );
@@ -956,9 +975,13 @@ function registerProjectCoreIPC({
       await require("fs").promises.mkdir(projectRootPath, { recursive: true });
 
       // 更新数据库（updateProject 是同步函数）
-      database.updateProject(projectId, {
-        root_path: projectRootPath,
-      });
+      database.updateProject(
+        projectId,
+        {
+          root_path: projectRootPath,
+        },
+        { attestRootPath: true },
+      );
 
       logger.info("[Main] 项目root_path修复完成:", projectRootPath);
       return { success: true, message: "修复成功", rootPath: projectRootPath };
@@ -984,10 +1007,14 @@ function registerProjectCoreIPC({
       const brokenProjects = database.db
         .prepare(
           `
-        SELECT id, name, project_type, root_path
+        SELECT id, name, project_type, root_path, root_path_local_attested
         FROM projects
         WHERE project_type = 'document'
-          AND (root_path IS NULL OR root_path = '')
+          AND (
+            root_path IS NULL
+            OR root_path = ''
+            OR root_path_local_attested != 1
+          )
         ORDER BY created_at DESC
       `,
         )
@@ -1017,7 +1044,7 @@ function registerProjectCoreIPC({
       // 逐个修复
       for (const project of brokenProjects) {
         try {
-          const projectRootPath = require("path").join(
+          const projectRootPath = resolveManagedProjectRoot(
             projectConfig.getProjectsRootPath(),
             project.id,
           );
@@ -1031,9 +1058,13 @@ function registerProjectCoreIPC({
           });
 
           // 更新数据库（updateProject 是同步函数）
-          database.updateProject(project.id, {
-            root_path: projectRootPath,
-          });
+          database.updateProject(
+            project.id,
+            {
+              root_path: projectRootPath,
+            },
+            { attestRootPath: true },
+          );
 
           results.fixed++;
           results.details.push({
@@ -2348,7 +2379,7 @@ function registerProjectCoreIPC({
       // 生成项目ID和路径
       const projectId = crypto.randomUUID();
       const projectConfig = getProjectConfig();
-      const projectRootPath = path.join(
+      const projectRootPath = resolveManagedProjectRoot(
         projectConfig.getProjectsRootPath(),
         projectId,
       );
@@ -2380,7 +2411,7 @@ function registerProjectCoreIPC({
           }),
         };
 
-        await database.saveProject(project);
+        await database.saveProject(project, { attestRootPath: true });
         logger.info("[Main] 项目已保存到数据库, ID:", projectId);
       }
 

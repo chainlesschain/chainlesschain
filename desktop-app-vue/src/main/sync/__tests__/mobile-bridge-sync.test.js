@@ -187,6 +187,7 @@ function bootstrapSchema(sqlDb) {
       project_type TEXT NOT NULL CHECK(project_type IN ('web', 'document', 'data', 'app', 'presentation', 'spreadsheet', 'design', 'code', 'workflow', 'knowledge')),
       status TEXT DEFAULT 'active' CHECK(status IN ('draft', 'active', 'completed', 'archived')),
       root_path TEXT,
+      root_path_local_attested INTEGER NOT NULL DEFAULT 0,
       file_count INTEGER DEFAULT 0,
       total_size INTEGER DEFAULT 0,
       tags TEXT,
@@ -198,7 +199,8 @@ function bootstrapSchema(sqlDb) {
       deleted INTEGER DEFAULT 0,
       -- v1.3 (2026-05-17) Android 项目管理 → 远程终端入口
       source_peer_id TEXT,
-      pc_root_path TEXT
+      pc_root_path TEXT,
+      CHECK(root_path IS NULL OR root_path_local_attested = 1)
     );
 
     -- v1.1 W5 (2026-05-12) issue #19 — CONVERSATION 同步用最小子集，不带 messages
@@ -1699,9 +1701,10 @@ describe("MobileBridgeSync · _fetchProjects (v1.3 source_peer_id + pc_root_path
   it("emits source_peer_id + pc_root_path in payload when columns set", async () => {
     dbManager.run(
       `INSERT INTO projects (id, user_id, name, project_type, status,
-        root_path, created_at, updated_at, device_id, source_peer_id, pc_root_path)
+        root_path, root_path_local_attested, created_at, updated_at,
+        device_id, source_peer_id, pc_root_path)
        VALUES ('p1', 'u1', 'Test', 'document', 'active',
-        '/home/x/proj', 100, 100, 'DEV-A', 'PC-PEER-XYZ', '/home/x/proj')`,
+        '/home/x/proj', 1, 100, 100, 'DEV-A', 'PC-PEER-XYZ', '/home/x/proj')`,
     );
     const rows = await sync._fetchProjects(dbManager, 0, null, 100);
     expect(rows).toHaveLength(1);
@@ -1725,9 +1728,10 @@ describe("MobileBridgeSync · _fetchProjects (v1.3 source_peer_id + pc_root_path
   it("falls back pc_root_path to root_path when column null", async () => {
     dbManager.run(
       `INSERT INTO projects (id, user_id, name, project_type, status,
-        root_path, created_at, updated_at, device_id, source_peer_id, pc_root_path)
+        root_path, root_path_local_attested, created_at, updated_at,
+        device_id, source_peer_id, pc_root_path)
        VALUES ('p3', 'u1', 'X', 'document', 'active',
-        '/legacy/path', 100, 100, 'DEV-C', NULL, NULL)`,
+        '/legacy/path', 1, 100, 100, 'DEV-C', NULL, NULL)`,
     );
     const rows = await sync._fetchProjects(dbManager, 0, null, 100);
     const decoded = JSON.parse(rows[0].data);
@@ -1776,6 +1780,7 @@ describe("MobileBridgeSync · _applyProject (v1.3 field-level merge)", () => {
     expect(row.source_peer_id).toBe("PC-XYZ");
     expect(row.pc_root_path).toBe("/pc/path");
     expect(row.root_path).toBeNull();
+    expect(row.root_path_local_attested).toBe(0);
   });
 
   it("does not let root_path bypass missing provenance on a new remote row", async () => {
@@ -1802,11 +1807,12 @@ describe("MobileBridgeSync · _applyProject (v1.3 field-level merge)", () => {
     expect(result).toEqual({ status: "applied" });
 
     const row = dbManager.get(
-      `SELECT root_path, source_peer_id, pc_root_path
+      `SELECT root_path, root_path_local_attested, source_peer_id, pc_root_path
          FROM projects WHERE id = ?`,
       ["unprovenanced-new"],
     );
     expect(row.root_path).toBeNull();
+    expect(row.root_path_local_attested).toBe(0);
     expect(row.source_peer_id).toBeNull();
     expect(row.pc_root_path).toBeNull();
   });
@@ -1874,9 +1880,10 @@ describe("MobileBridgeSync · _applyProject (v1.3 field-level merge)", () => {
   it("preserves the local root_path when an unprovenanced update supplies a malicious root", async () => {
     dbManager.run(
       `INSERT INTO projects (id, user_id, name, project_type, status,
-        root_path, created_at, updated_at, source_peer_id, pc_root_path)
+        root_path, root_path_local_attested, created_at, updated_at,
+        source_peer_id, pc_root_path)
        VALUES ('local-root', 'u1', 'Local', 'document', 'active',
-        '/locally/approved', 100, 100, 'PC-ORIGINAL', '/original/path')`,
+        '/locally/approved', 1, 100, 100, 'PC-ORIGINAL', '/original/path')`,
     );
 
     const result = await sync.handlePush({
@@ -1902,12 +1909,13 @@ describe("MobileBridgeSync · _applyProject (v1.3 field-level merge)", () => {
     expect(result).toEqual({ status: "applied" });
 
     const row = dbManager.get(
-      `SELECT name, root_path, source_peer_id, pc_root_path
+      `SELECT name, root_path, root_path_local_attested, source_peer_id, pc_root_path
          FROM projects WHERE id = ?`,
       ["local-root"],
     );
     expect(row.name).toBe("Remote rename");
     expect(row.root_path).toBe("/locally/approved");
+    expect(row.root_path_local_attested).toBe(1);
     expect(row.source_peer_id).toBe("PC-ORIGINAL");
     expect(row.pc_root_path).toBe("/original/path");
   });
@@ -1946,9 +1954,9 @@ describe("MobileBridgeSync · handleProjectList (v1.3 Sub-phase 10)", () => {
   it("returns all active projects regardless of userId (trust handled at signaling layer)", async () => {
     dbManager.run(
       `INSERT INTO projects (id, user_id, name, project_type, status,
-        root_path, created_at, updated_at)
-       VALUES ('p-default', 'default', 'PC Side', 'document', 'active', '/x', 100, 100),
-              ('p-other',   'u-other',  'Other Owner', 'document', 'active', '/y', 101, 101)`,
+        root_path, root_path_local_attested, created_at, updated_at)
+       VALUES ('p-default', 'default', 'PC Side', 'document', 'active', '/x', 1, 100, 100),
+              ('p-other',   'u-other',  'Other Owner', 'document', 'active', '/y', 1, 101, 101)`,
     );
     // 不传 userId
     const r1 = await sync.handleProjectList({});
@@ -1963,9 +1971,10 @@ describe("MobileBridgeSync · handleProjectList (v1.3 Sub-phase 10)", () => {
   it("returns user projects with sourcePeerId + pcRootPath derived", async () => {
     dbManager.run(
       `INSERT INTO projects (id, user_id, name, project_type, status,
-        root_path, created_at, updated_at, device_id, source_peer_id, pc_root_path)
+        root_path, root_path_local_attested, created_at, updated_at,
+        device_id, source_peer_id, pc_root_path)
        VALUES ('p1', 'u1', 'PC Proj', 'document', 'active',
-        '/home/x', 100, 200, 'DEV', 'PC-XYZ', '/home/x')`,
+        '/home/x', 1, 100, 200, 'DEV', 'PC-XYZ', '/home/x')`,
     );
     const result = await sync.handleProjectList({ userId: "u1" });
     expect(result.projects).toHaveLength(1);
@@ -2052,9 +2061,10 @@ describe("MobileBridgeSync · handleProjectPullSingle (v1.3 Sub-phase 10)", () =
   it("returns project metadata + empty files list when no project_files table rows", async () => {
     dbManager.run(
       `INSERT INTO projects (id, user_id, name, project_type, status,
-        root_path, created_at, updated_at, source_peer_id, pc_root_path)
+        root_path, root_path_local_attested, created_at, updated_at,
+        source_peer_id, pc_root_path)
        VALUES ('p1', 'u1', 'Test', 'document', 'active',
-        '/home/x', 100, 100, 'PC-Z', '/home/x')`,
+        '/home/x', 1, 100, 100, 'PC-Z', '/home/x')`,
     );
     // 注意：这个测试库 schema 没建 project_files 表，所以 query 应抛错被 catch
     // 实测：handleProjectPullSingle 会因 project_files 缺失抛 SQL error，但 v0.1
@@ -2108,8 +2118,8 @@ describe("MobileBridgeSync · handleProjectUpdatePath (Sub-phase 5-6 fix)", () =
   it("updates pc_root_path without promoting it to the local root_path", async () => {
     dbManager.run(
       `INSERT INTO projects (id, user_id, name, project_type, status,
-        root_path, created_at, updated_at, pc_root_path)
-       VALUES ('p1', 'u1', 'T', 'document', 'active', null, 100, 100, null)`,
+        root_path, root_path_local_attested, created_at, updated_at, pc_root_path)
+       VALUES ('p1', 'u1', 'T', 'document', 'active', null, 0, 100, 100, null)`,
     );
     const result = await sync.handleProjectUpdatePath({
       projectId: "p1",
@@ -2127,8 +2137,8 @@ describe("MobileBridgeSync · handleProjectUpdatePath (Sub-phase 5-6 fix)", () =
   it("preserves an existing local root_path", async () => {
     dbManager.run(
       `INSERT INTO projects (id, user_id, name, project_type, status,
-        root_path, created_at, updated_at, pc_root_path)
-       VALUES ('p1', 'u1', 'T', 'document', 'active', '/existing/root', 100, 100, null)`,
+        root_path, root_path_local_attested, created_at, updated_at, pc_root_path)
+       VALUES ('p1', 'u1', 'T', 'document', 'active', '/existing/root', 1, 100, 100, null)`,
     );
     const result = await sync.handleProjectUpdatePath({
       projectId: "p1",

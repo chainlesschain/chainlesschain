@@ -229,6 +229,10 @@ describe("agent-core Linux generic strong background shell route", () => {
   });
 
   it("rejects a non-absolute host workspace root even when it resolves to the pinned workspace", async () => {
+    fs.rmSync(cwd, { recursive: true, force: true });
+    cwd = fs.mkdtempSync(
+      path.join(process.cwd(), ".cc-agent-bg-relative-root-"),
+    );
     installStrictNodeBin();
     const issuer = vi.fn(() => Object.freeze({ kind: "must-not-issue" }));
     const run = vi.fn();

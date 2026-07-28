@@ -474,6 +474,7 @@ function makeBoundProjectManager({
   const project = {
     id: "project-1",
     root_path: workspace,
+    root_path_local_attested: 1,
     deleted: 0,
     ...projectOverrides,
   };
@@ -681,6 +682,7 @@ describe("PtyManager DB-backed project-root selector", () => {
       projectOverrides: {
         source_peer_id: "desktop-peer",
         pc_root_path: dbRoot,
+        root_path_local_attested: 0,
       },
     });
 
@@ -689,6 +691,24 @@ describe("PtyManager DB-backed project-root selector", () => {
     ).toThrowError(
       expect.objectContaining({
         code: "ERR_PTY_PROJECT_ROOT_PROVENANCE_UNATTESTED",
+      }),
+    );
+    expect(broker.spawnPty).not.toHaveBeenCalled();
+  });
+
+  it("rejects a historical root without a local host attestation", () => {
+    const { mgr, broker } = makeBoundProjectManager({
+      projectOverrides: {
+        root_path_local_attested: 0,
+      },
+    });
+
+    expect(() =>
+      mgr.create({ projectId: "project-1", shell: "bash" }),
+    ).toThrowError(
+      expect.objectContaining({
+        code: "ERR_PTY_PROJECT_ROOT_PROVENANCE_UNATTESTED",
+        projectBindingFailClosed: true,
       }),
     );
     expect(broker.spawnPty).not.toHaveBeenCalled();
@@ -765,6 +785,7 @@ describe("PtyManager DB-backed project-root selector", () => {
     mgr._resolveProjectBinding.mockImplementation(() => ({
       id: "project-1",
       root_path: workspace,
+      root_path_local_attested: 1,
       pc_root_path: outside,
       deleted: 0,
     }));

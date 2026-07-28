@@ -24,6 +24,7 @@ describe("Desktop terminal database project binding resolver", () => {
     const project = {
       id: "project-1",
       root_path: projectRoot,
+      root_path_local_attested: 1,
       deleted: 0,
     };
     const getProjectById = vi.fn(() => project);
@@ -44,15 +45,17 @@ describe("Desktop terminal database project binding resolver", () => {
       {
         id: "project-1",
         root_path: path.join(tmpRoot, "other"),
+        root_path_local_attested: 0,
         pc_root_path: pcRoot,
         source_peer_id: "desktop-peer",
         deleted: 0,
       },
     ];
     const all = vi.fn(() => rows);
+    const prepare = vi.fn(() => ({ all }));
     const resolver = createDatabaseProjectBindingResolver({
       getDatabase: () => ({
-        db: { prepare: vi.fn(() => ({ all })) },
+        db: { prepare },
       }),
     });
 
@@ -62,6 +65,9 @@ describe("Desktop terminal database project binding resolver", () => {
       }),
     ).toBe(rows[0]);
     expect(all).toHaveBeenCalledOnce();
+    expect(prepare).toHaveBeenCalledWith(
+      expect.stringContaining("root_path_local_attested"),
+    );
   });
 
   it("rejects a legacy cwd that is absent or ambiguously bound", () => {

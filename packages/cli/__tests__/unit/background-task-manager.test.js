@@ -6,6 +6,7 @@ import {
   existsSync,
   appendFileSync,
   readFileSync,
+  realpathSync,
 } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -87,9 +88,11 @@ describe("BackgroundTaskManager", () => {
 
     it("pins a strict policy and canonical workspace before persistence", () => {
       manager.destroy();
-      const policyCwd = join(testDir, "trusted-workspace");
-      const taskCwd = join(policyCwd, "requested-task-cwd");
-      mkdirSync(taskCwd, { recursive: true });
+      const requestedPolicyCwd = join(testDir, "trusted-workspace");
+      const requestedTaskCwd = join(requestedPolicyCwd, "requested-task-cwd");
+      mkdirSync(requestedTaskCwd, { recursive: true });
+      const policyCwd = realpathSync.native(requestedPolicyCwd);
+      const taskCwd = realpathSync.native(requestedTaskCwd);
       const policy = createPinnedPolicy("filesystem", "network");
       const resolveSandboxPolicy = vi.fn(() => policy);
       _deps.spawn = vi.fn();
@@ -362,9 +365,11 @@ describe("BackgroundTaskManager", () => {
 
     it("starts a pinned task with a sanitized trusted-worker envelope", () => {
       manager.destroy();
-      const policyCwd = join(testDir, "trusted-workspace");
-      const taskCwd = join(policyCwd, "nested");
-      mkdirSync(taskCwd, { recursive: true });
+      const requestedPolicyCwd = join(testDir, "trusted-workspace");
+      const requestedTaskCwd = join(requestedPolicyCwd, "nested");
+      mkdirSync(requestedTaskCwd, { recursive: true });
+      const policyCwd = realpathSync.native(requestedPolicyCwd);
+      const taskCwd = realpathSync.native(requestedTaskCwd);
       const policy = createPinnedPolicy("network", "filesystem");
       manager = new BackgroundTaskManager({
         policyCwd,

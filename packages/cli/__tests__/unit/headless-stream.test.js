@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, vi } from "vitest";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, realpathSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import {
@@ -176,8 +176,8 @@ describe("runAgentHeadlessStream", () => {
       .map((l) => JSON.parse(l));
 
   it("binds lifecycle hooks to the streaming CLI host cwd", async () => {
-    const trustedRoot = mkdtempSync(
-      path.join(tmpdir(), "stream-host-workspace-"),
+    const trustedRoot = realpathSync.native(
+      mkdtempSync(path.join(tmpdir(), "stream-host-workspace-")),
     );
     const observedRoots = [];
     const agentLoop = async function* () {

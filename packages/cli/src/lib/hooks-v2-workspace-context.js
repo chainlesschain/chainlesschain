@@ -29,6 +29,16 @@ function invalidWorkspaceRoot(message, cause) {
   return error;
 }
 
+function workspaceGeneration(stats) {
+  // dev+ino alone is insufficient: filesystems may immediately reuse an inode
+  // after a same-path directory replacement. Prefer the stable creation
+  // timestamp and fail closed on metadata changes when a filesystem does not
+  // expose one.
+  return stats.birthtimeNs > 0n
+    ? `birth:${stats.birthtimeNs.toString()}`
+    : `ctime:${stats.ctimeNs.toString()}`;
+}
+
 function captureWorkspaceIdentity(workspaceRoot) {
   const resolvedRoot = validateHostWorkspaceRoot(workspaceRoot);
   let canonicalRoot;
@@ -51,6 +61,7 @@ function captureWorkspaceIdentity(workspaceRoot) {
     canonicalRoot,
     device: stats.dev,
     inode: stats.ino,
+    generation: workspaceGeneration(stats),
   });
 }
 
@@ -59,6 +70,7 @@ function workspaceIdentityKey(identity) {
     identity.canonicalRoot,
     identity.device.toString(),
     identity.inode.toString(),
+    identity.generation,
   ]);
 }
 
@@ -66,7 +78,8 @@ function sameWorkspaceIdentity(left, right) {
   return (
     left.canonicalRoot === right.canonicalRoot &&
     left.device === right.device &&
-    left.inode === right.inode
+    left.inode === right.inode &&
+    left.generation === right.generation
   );
 }
 
@@ -109,7 +122,7 @@ function pruneInvalidWorkspaceRecords() {
 
 function workspaceBindingId(identity) {
   return createHash("sha256")
-    .update("chainlesschain.hooks-v2-host-workspace.v2\0")
+    .update("chainlesschain.hooks-v2-host-workspace.v3\0")
     .update(workspaceIdentityKey(identity), "utf8")
     .digest("hex");
 }

@@ -3,6 +3,7 @@ const { EventEmitter } = require("events");
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
+const { resolveProjectChildPath } = require("../project/project-root-path.js");
 let chokidar;
 try {
   chokidar = require("chokidar");
@@ -55,6 +56,14 @@ class FileSyncManager extends EventEmitter {
     return false;
   }
 
+  hasAttestedLocalRoot(project) {
+    return (
+      project?.root_path &&
+      Number(project.root_path_local_attested) === 1 &&
+      this.isLocalPath(project.root_path)
+    );
+  }
+
   /**
    * 保存文件（双向同步：数据库 + 文件系统）
    * @param {string} fileId - 文件 ID
@@ -99,12 +108,17 @@ class FileSyncManager extends EventEmitter {
 
       // 4. 获取项目信息
       const project = this.database.db
-        .prepare("SELECT root_path FROM projects WHERE id = ?")
+        .prepare(
+          "SELECT root_path, root_path_local_attested FROM projects WHERE id = ?",
+        )
         .get(projectId);
 
       // 5. 写入文件系统（如果有本地路径）
-      if (project?.root_path && this.isLocalPath(project.root_path)) {
-        const fsPath = path.join(project.root_path, file.file_path);
+      if (this.hasAttestedLocalRoot(project)) {
+        const fsPath = resolveProjectChildPath(
+          project.root_path,
+          file.file_path,
+        );
         logger.info(`[FileSyncManager] 写入文件系统: ${fsPath}`);
 
         // 确保目录存在
@@ -154,14 +168,16 @@ class FileSyncManager extends EventEmitter {
     try {
       // 1. 获取项目信息
       const project = this.database.db
-        .prepare("SELECT root_path FROM projects WHERE id = ?")
+        .prepare(
+          "SELECT root_path, root_path_local_attested FROM projects WHERE id = ?",
+        )
         .get(projectId);
-      if (!project?.root_path || !this.isLocalPath(project.root_path)) {
+      if (!this.hasAttestedLocalRoot(project)) {
         logger.info("[FileSyncManager] 项目没有本地路径，跳过同步");
         return;
       }
 
-      const fsPath = path.join(project.root_path, relativePath);
+      const fsPath = resolveProjectChildPath(project.root_path, relativePath);
 
       // 2. 读取文件内容
       const content = await fs.promises.readFile(fsPath, "utf8");
@@ -250,7 +266,9 @@ class FileSyncManager extends EventEmitter {
       }
 
       const project = this.database.db
-        .prepare("SELECT root_path FROM projects WHERE id = ?")
+        .prepare(
+          "SELECT root_path, root_path_local_attested FROM projects WHERE id = ?",
+        )
         .get(file.project_id);
 
       let finalContent = null;
@@ -260,8 +278,12 @@ class FileSyncManager extends EventEmitter {
         finalContent = file.content;
       } else if (resolution === "use-fs") {
         // 使用文件系统版本
-        if (project?.root_path && file.fs_path) {
-          finalContent = await fs.promises.readFile(file.fs_path, "utf8");
+        if (this.hasAttestedLocalRoot(project) && file.file_path) {
+          const fsPath = resolveProjectChildPath(
+            project.root_path,
+            file.file_path,
+          );
+          finalContent = await fs.promises.readFile(fsPath, "utf8");
         } else {
           throw new Error("文件系统路径不存在");
         }
@@ -301,9 +323,11 @@ class FileSyncManager extends EventEmitter {
 
     try {
       const project = this.database.db
-        .prepare("SELECT root_path FROM projects WHERE id = ?")
+        .prepare(
+          "SELECT root_path, root_path_local_attested FROM projects WHERE id = ?",
+        )
         .get(projectId);
-      if (!project?.root_path || !this.isLocalPath(project.root_path)) {
+      if (!this.hasAttestedLocalRoot(project)) {
         logger.info("[FileSyncManager] 项目没有本地路径，跳过刷新");
         return;
       }
@@ -313,7 +337,10 @@ class FileSyncManager extends EventEmitter {
         .all(projectId);
 
       for (const file of files) {
-        const fsPath = path.join(project.root_path, file.file_path);
+        const fsPath = resolveProjectChildPath(
+          project.root_path,
+          file.file_path,
+        );
 
         // 确保目录存在
         await fs.promises.mkdir(path.dirname(fsPath), { recursive: true });
@@ -343,10 +370,19 @@ class FileSyncManager extends EventEmitter {
       this.stopWatch(projectId);
     }
 
-    if (!rootPath || !this.isLocalPath(rootPath)) {
+    const project = this.database.db
+      .prepare(
+        "SELECT root_path, root_path_local_attested FROM projects WHERE id = ?",
+      )
+      .get(projectId);
+    if (
+      !this.hasAttestedLocalRoot(project) ||
+      path.resolve(project.root_path) !== path.resolve(rootPath || "")
+    ) {
       logger.info("[FileSyncManager] 项目没有本地路径，跳过监听");
       return;
     }
+    rootPath = project.root_path;
 
     logger.info(
       `[FileSyncManager] 开始监听项目: ${projectId}, 路径: ${rootPath}`,

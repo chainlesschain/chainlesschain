@@ -701,12 +701,16 @@ class DBSyncManager extends EventEmitter {
   insertOrUpdateLocal(tableName, record) {
     // Every caller of this helper applies data downloaded from the backend or
     // selected during backend-conflict resolution. A project root is local
-    // execution authority, not syncable metadata. Strip it again here so raw
-    // conflict merge payloads cannot bypass FieldMapper.
+    // execution authority, not syncable metadata. Its local attestation bit is
+    // host-owned too. Strip both again here so raw conflict merge payloads
+    // cannot bypass FieldMapper.
     const safeRecord =
       tableName === "projects"
         ? Object.fromEntries(
-            Object.entries(record).filter(([column]) => column !== "root_path"),
+            Object.entries(record).filter(
+              ([column]) =>
+                column !== "root_path" && column !== "root_path_local_attested",
+            ),
           )
         : record;
     const columns = Object.keys(safeRecord);

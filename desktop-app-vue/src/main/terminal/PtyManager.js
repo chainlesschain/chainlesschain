@@ -181,22 +181,16 @@ function normalizeProjectId(projectId) {
 }
 
 function projectRootCandidate(project) {
-  // `pc_root_path` is synchronized from remote clients and has no local
-  // approval/provenance marker. It may help the compatibility resolver find
-  // a DB row, but it must never become the executable root. Only the Desktop
-  // project's local `root_path` is eligible here.
+  // `pc_root_path` may help the compatibility resolver find a DB row, but it
+  // must never become the executable root. Only the Desktop project's local
+  // `root_path` is eligible here.
   return project.root_path ?? project.rootPath;
 }
 
-function hasUnattestedRemoteRootProvenance(project) {
-  const sourcePeerId = project.source_peer_id ?? project.sourcePeerId;
-  const pcRootPath = project.pc_root_path ?? project.pcRootPath;
-  return (
-    typeof sourcePeerId === "string" &&
-    sourcePeerId.trim() !== "" &&
-    typeof pcRootPath === "string" &&
-    pcRootPath.trim() !== ""
-  );
+function hasLocallyAttestedProjectRoot(project) {
+  const attestation =
+    project.root_path_local_attested ?? project.rootPathLocalAttested;
+  return Number(attestation) === 1;
 }
 
 function isPromiseLike(value) {
@@ -342,11 +336,10 @@ class PtyManager extends EventEmitter {
         "terminal_project_is_deleted",
       );
     }
-    // Existing schema has no "locally approved root" provenance bit.
-    // Remote-sourced rows with pc_root_path therefore cannot prove that
-    // root_path was chosen locally (legacy sync may copy pc_root_path into
-    // root_path). Fail closed until such a marker/migration exists.
-    if (hasUnattestedRemoteRootProvenance(project)) {
+    // Historical, renderer-derived, backend, and mobile records all default
+    // to unattested. Only a trusted main-process directory-binding flow can
+    // set this host-local proof.
+    if (!hasLocallyAttestedProjectRoot(project)) {
       throw ptyProjectBindingError(
         "ERR_PTY_PROJECT_ROOT_PROVENANCE_UNATTESTED",
         "terminal_project_root_provenance_unattested",

@@ -154,6 +154,7 @@ function createTables(dbManager, logger) {
         project_type TEXT NOT NULL CHECK(project_type IN ('web', 'document', 'data', 'app', 'presentation', 'spreadsheet', 'design', 'code', 'workflow', 'knowledge')),
         status TEXT DEFAULT 'active' CHECK(status IN ('draft', 'active', 'completed', 'archived')),
         root_path TEXT,
+        root_path_local_attested INTEGER NOT NULL DEFAULT 0,
         file_count INTEGER DEFAULT 0,
         total_size INTEGER DEFAULT 0,
         template_id TEXT,
@@ -170,7 +171,8 @@ function createTables(dbManager, logger) {
         delivered_at TEXT,
         -- Android 项目管理 → 远程终端入口（详见 docs/design/Android_Project_Remote_Terminal_Entry.md）
         source_peer_id TEXT,  -- 同步来源 PC peerId（FROM_PC 项目）
-        pc_root_path TEXT     -- 项目在 PC 文件系统的绝对路径（FROM_PC 项目）
+        pc_root_path TEXT,    -- 项目在 PC 文件系统的绝对路径（FROM_PC 项目）
+        CHECK(root_path IS NULL OR root_path_local_attested = 1)
       );
 
       -- 项目文件表
@@ -4220,7 +4222,8 @@ function createTables(dbManager, logger) {
   try {
     dbManager.migrateDatabase();
   } catch (error) {
-    logger.warn("[Database] 数据库迁移失败（可忽略）:", error.message);
+    logger.error("[Database] 数据库安全迁移失败，初始化已中止:", error.message);
+    throw error;
   }
 }
 

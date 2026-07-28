@@ -12,6 +12,9 @@ const {
   isPathWithin,
   assertSafeProgramOpen,
 } = require("../utils/safe-open.js");
+const {
+  resolveManagedProjectRoot,
+} = require("../project/project-root-path.js");
 
 /**
  * 注册文件操作相关的 IPC 处理器
@@ -201,7 +204,7 @@ function registerFileIPC({
         logger.info("[Main] 在文件管理器中显示:", filePath);
 
         // 获取项目根路径
-        const rootPath = path.join(
+        const rootPath = resolveManagedProjectRoot(
           projectConfig.getProjectsRootPath(),
           projectId,
         );

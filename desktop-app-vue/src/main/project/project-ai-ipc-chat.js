@@ -11,6 +11,7 @@ const { looseParseJSON } = require("../ai-engine/response-parser.js");
 const axios = require("axios");
 const crypto = require("crypto");
 const path = require("path");
+const { resolveManagedProjectRoot } = require("./project-root-path.js");
 
 /**
  * 当前活跃的AI对话AbortController
@@ -272,9 +273,8 @@ function registerChatHandlers(ctx) {
       if (!project && isTestMode) {
         logger.info("[Main] 测试模式：创建虚拟项目", projectId);
         const os = require("os");
-        const tmpDir = path.join(
-          os.tmpdir(),
-          "chainlesschain-test-projects",
+        const tmpDir = resolveManagedProjectRoot(
+          path.join(os.tmpdir(), "chainlesschain-test-projects"),
           projectId,
         );
 
@@ -294,15 +294,14 @@ function registerChatHandlers(ctx) {
           database.db
             .prepare(
               `
-            INSERT OR IGNORE INTO projects (id, name, type, root_path, user_id, created_at, updated_at, description)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT OR IGNORE INTO projects (id, name, type, user_id, created_at, updated_at, description)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
           `,
             )
             .run(
               project.id,
               project.name,
               project.type,
-              project.root_path,
               project.user_id,
               project.created_at,
               project.updated_at,
@@ -320,6 +319,11 @@ function registerChatHandlers(ctx) {
         try {
           const fs = require("fs");
           fs.mkdirSync(tmpDir, { recursive: true });
+          database.db
+            .prepare(
+              "UPDATE projects SET root_path = ?, root_path_local_attested = 1, updated_at = ? WHERE id = ?",
+            )
+            .run(tmpDir, Date.now(), projectId);
           logger.info("[Main] 测试项目目录已创建:", tmpDir);
         } catch (fsError) {
           logger.warn("[Main] 无法创建测试项目目录:", fsError.message);
@@ -341,10 +345,10 @@ function registerChatHandlers(ctx) {
         const projectConfig = getProjectConfig();
 
         // 使用项目名称或ID作为目录名
-        const dirName = project.name
-          ? project.name.replace(/[^\w\s-]/g, "_")
-          : `project_${projectId}`;
-        projectPath = path.join(projectConfig.getProjectsRootPath(), dirName);
+        projectPath = resolveManagedProjectRoot(
+          projectConfig.getProjectsRootPath(),
+          projectId,
+        );
 
         // 创建目录
         await fs.mkdir(projectPath, { recursive: true });
@@ -353,7 +357,7 @@ function registerChatHandlers(ctx) {
         // 更新数据库中的项目路径
         database.db
           .prepare(
-            "UPDATE projects SET root_path = ?, updated_at = ? WHERE id = ?",
+            "UPDATE projects SET root_path = ?, root_path_local_attested = 1, updated_at = ? WHERE id = ?",
           )
           .run(projectPath, Date.now(), projectId);
 

@@ -28,13 +28,18 @@ describe("Hooks v2 trusted host workspace context", () => {
   function expectedWorkspaceBindingId(workspaceRoot) {
     const canonicalRoot = fs.realpathSync.native(workspaceRoot);
     const stats = fs.statSync(canonicalRoot, { bigint: true });
+    const generation =
+      stats.birthtimeNs > 0n
+        ? `birth:${stats.birthtimeNs.toString()}`
+        : `ctime:${stats.ctimeNs.toString()}`;
     return createHash("sha256")
-      .update("chainlesschain.hooks-v2-host-workspace.v2\0")
+      .update("chainlesschain.hooks-v2-host-workspace.v3\0")
       .update(
         JSON.stringify([
           canonicalRoot,
           stats.dev.toString(),
           stats.ino.toString(),
+          generation,
         ]),
         "utf8",
       )

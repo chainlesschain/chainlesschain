@@ -518,7 +518,6 @@ class DatabaseManager {
 
     // Wrap Database.run() method for compatibility
     // Store reference to manager for use in nested function
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
     const manager = this;
     this.db.run = function (sql, params) {
       try {
@@ -1933,11 +1932,11 @@ class DatabaseManager {
    * @param {Object} project - 项目数据
    * @returns {Object} 保存的项目
    */
-  saveProject(project) {
+  saveProject(project, options = {}) {
     const {
       saveProject: _saveProject,
     } = require("./database/database-projects");
-    return _saveProject(this, logger, project);
+    return _saveProject(this, logger, project, options);
   }
 
   /**
@@ -1946,11 +1945,11 @@ class DatabaseManager {
    * @param {Object} updates - 更新数据
    * @returns {Object|null} 更新后的项目
    */
-  updateProject(projectId, updates) {
+  updateProject(projectId, updates, options = {}) {
     const {
       updateProject: _updateProject,
     } = require("./database/database-projects");
-    return _updateProject(this, logger, projectId, updates);
+    return _updateProject(this, logger, projectId, updates, options);
   }
 
   /**

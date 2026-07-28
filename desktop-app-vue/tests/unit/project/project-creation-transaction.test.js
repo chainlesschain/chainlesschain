@@ -6,148 +6,152 @@
  * @version 0.27.0
  */
 
-import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
-import { TransactionManager } from '../../../src/main/utils/transaction-manager.js';
+import { describe, test, expect, beforeEach, afterEach, vi } from "vitest";
+import { TransactionManager } from "../../../src/main/utils/transaction-manager.js";
 import {
   createProjectWithTransaction,
   createQuickProjectWithTransaction,
-} from '../../../src/main/project/project-creation-transaction.js';
-import fs from 'fs/promises';
-import path from 'path';
+} from "../../../src/main/project/project-creation-transaction.js";
+import fs from "fs/promises";
+import path from "path";
 
-describe('TransactionManager 单元测试', () => {
+describe("TransactionManager 单元测试", () => {
   let transaction;
 
   beforeEach(() => {
-    transaction = new TransactionManager('test-transaction');
+    transaction = new TransactionManager("test-transaction");
   });
 
-  test('应该成功执行并提交事务', async () => {
-    const result1 = await transaction.step('step1', async () => 'result1');
-    const result2 = await transaction.step('step2', async () => 'result2');
+  test("应该成功执行并提交事务", async () => {
+    const result1 = await transaction.step("step1", async () => "result1");
+    const result2 = await transaction.step("step2", async () => "result2");
 
     await transaction.commit();
 
-    expect(result1).toBe('result1');
-    expect(result2).toBe('result2');
-    expect(transaction.status).toBe('committed');
+    expect(result1).toBe("result1");
+    expect(result2).toBe("result2");
+    expect(transaction.status).toBe("committed");
   });
 
-  test('应该在步骤失败时抛出错误', async () => {
+  test("应该在步骤失败时抛出错误", async () => {
     await expect(async () => {
-      await transaction.step('failing-step', async () => {
-        throw new Error('Step failed');
+      await transaction.step("failing-step", async () => {
+        throw new Error("Step failed");
       });
-    }).rejects.toThrow('Step failed');
+    }).rejects.toThrow("Step failed");
 
-    expect(transaction.status).toBe('running');
+    expect(transaction.status).toBe("running");
     expect(transaction.error).toBeTruthy();
   });
 
-  test('应该按相反顺序回滚步骤', async () => {
+  test("应该按相反顺序回滚步骤", async () => {
     const rollbackOrder = [];
 
     await transaction.step(
-      'step1',
-      async () => 'result1',
-      async () => rollbackOrder.push('step1')
+      "step1",
+      async () => "result1",
+      async () => rollbackOrder.push("step1"),
     );
 
     await transaction.step(
-      'step2',
-      async () => 'result2',
-      async () => rollbackOrder.push('step2')
+      "step2",
+      async () => "result2",
+      async () => rollbackOrder.push("step2"),
     );
 
     await transaction.step(
-      'step3',
-      async () => 'result3',
-      async () => rollbackOrder.push('step3')
+      "step3",
+      async () => "result3",
+      async () => rollbackOrder.push("step3"),
     );
 
     await transaction.rollback();
 
-    expect(rollbackOrder).toEqual(['step3', 'step2', 'step1']);
-    expect(transaction.status).toBe('rolled_back');
+    expect(rollbackOrder).toEqual(["step3", "step2", "step1"]);
+    expect(transaction.status).toBe("rolled_back");
   });
 
-  test('应该跳过没有回滚函数的步骤', async () => {
+  test("应该跳过没有回滚函数的步骤", async () => {
     const rollbackCalls = [];
 
-    await transaction.step('step1', async () => 'result1', null); // 无回滚
+    await transaction.step("step1", async () => "result1", null); // 无回滚
 
     await transaction.step(
-      'step2',
-      async () => 'result2',
-      async () => rollbackCalls.push('step2')
+      "step2",
+      async () => "result2",
+      async () => rollbackCalls.push("step2"),
     );
 
     await transaction.rollback();
 
-    expect(rollbackCalls).toEqual(['step2']);
+    expect(rollbackCalls).toEqual(["step2"]);
   });
 
-  test('应该在回滚失败时记录错误但继续回滚其他步骤', async () => {
+  test("应该在回滚失败时记录错误但继续回滚其他步骤", async () => {
     const rollbackCalls = [];
 
     await transaction.step(
-      'step1',
-      async () => 'result1',
+      "step1",
+      async () => "result1",
       async () => {
-        rollbackCalls.push('step1');
-      }
+        rollbackCalls.push("step1");
+      },
     );
 
     await transaction.step(
-      'step2',
-      async () => 'result2',
+      "step2",
+      async () => "result2",
       async () => {
-        rollbackCalls.push('step2-before-error');
-        throw new Error('Rollback failed');
-      }
+        rollbackCalls.push("step2-before-error");
+        throw new Error("Rollback failed");
+      },
     );
 
     await transaction.step(
-      'step3',
-      async () => 'result3',
+      "step3",
+      async () => "result3",
       async () => {
-        rollbackCalls.push('step3');
-      }
+        rollbackCalls.push("step3");
+      },
     );
 
-    await expect(transaction.rollback()).rejects.toThrow('事务回滚部分失败');
+    await expect(transaction.rollback()).rejects.toThrow("事务回滚部分失败");
 
     // 应该尝试回滚所有步骤，即使某些失败
-    expect(rollbackCalls).toContain('step3');
-    expect(rollbackCalls).toContain('step2-before-error');
-    expect(rollbackCalls).toContain('step1');
+    expect(rollbackCalls).toContain("step3");
+    expect(rollbackCalls).toContain("step2-before-error");
+    expect(rollbackCalls).toContain("step1");
   });
 
-  test('应该正确报告事务信息', async () => {
-    await transaction.step('step1', async () => 'result1');
-    await transaction.step('step2', async () => 'result2');
+  test("应该正确报告事务信息", async () => {
+    await transaction.step("step1", async () => "result1");
+    await transaction.step("step2", async () => "result2");
     await transaction.commit();
 
     const info = transaction.getInfo();
 
-    expect(info.name).toBe('test-transaction');
-    expect(info.status).toBe('committed');
+    expect(info.name).toBe("test-transaction");
+    expect(info.status).toBe("committed");
     expect(info.stepCount).toBe(2);
     expect(info.completedSteps).toBe(2);
     expect(info.duration).toBeGreaterThanOrEqual(0);
   });
 
-  test('应该能获取步骤结果', async () => {
-    await transaction.step('generate-id', async () => 'test-id-123');
-    await transaction.step('create-resource', async () => ({ id: 'test-id-123' }));
+  test("应该能获取步骤结果", async () => {
+    await transaction.step("generate-id", async () => "test-id-123");
+    await transaction.step("create-resource", async () => ({
+      id: "test-id-123",
+    }));
 
-    expect(transaction.getStepResult('generate-id')).toBe('test-id-123');
-    expect(transaction.getStepResult('create-resource')).toEqual({ id: 'test-id-123' });
-    expect(transaction.getLastResult()).toEqual({ id: 'test-id-123' });
+    expect(transaction.getStepResult("generate-id")).toBe("test-id-123");
+    expect(transaction.getStepResult("create-resource")).toEqual({
+      id: "test-id-123",
+    });
+    expect(transaction.getLastResult()).toEqual({ id: "test-id-123" });
   });
 });
 
-describe('项目创建事务集成测试', () => {
+describe("项目创建事务集成测试", () => {
   let mockHttpClient;
   let mockDatabase;
   let mockProjectConfig;
@@ -155,7 +159,12 @@ describe('项目创建事务集成测试', () => {
 
   beforeEach(async () => {
     // 创建临时测试目录
-    testProjectsDir = path.join(process.cwd(), 'tests', 'temp', 'projects-' + Date.now());
+    testProjectsDir = path.join(
+      process.cwd(),
+      "tests",
+      "temp",
+      "projects-" + Date.now(),
+    );
     await fs.mkdir(testProjectsDir, { recursive: true });
 
     // Mock HTTP 客户端
@@ -190,21 +199,21 @@ describe('项目创建事务集成测试', () => {
     }
   });
 
-  test('应该成功创建项目', async () => {
+  test("应该成功创建项目", async () => {
     const createData = {
-      name: 'Test Project',
-      userId: 'user-123',
+      name: "Test Project",
+      userId: "user-123",
     };
 
     const mockBackendProject = {
-      id: 'project-123',
-      name: 'Test Project',
-      project_type: 'web',
+      id: "project-123",
+      name: "Test Project",
+      project_type: "web",
       files: [
         {
-          path: 'index.html',
-          content: Buffer.from('<html></html>').toString('base64'),
-          content_encoding: 'base64',
+          path: "index.html",
+          content: Buffer.from("<html></html>").toString("base64"),
+          content_encoding: "base64",
         },
       ],
     };
@@ -220,7 +229,7 @@ describe('项目创建事务集成测试', () => {
     });
 
     expect(result.success).toBe(true);
-    expect(result.project.id).toBe('project-123');
+    expect(result.project.id).toBe("project-123");
 
     // 验证调用顺序
     expect(mockHttpClient.createProject).toHaveBeenCalledWith(createData);
@@ -229,18 +238,21 @@ describe('项目创建事务集成测试', () => {
     expect(mockDatabase.saveProjectFiles).toHaveBeenCalled();
 
     // 验证目录已创建
-    const projectDir = path.join(testProjectsDir, 'project-123');
-    const exists = await fs.access(projectDir).then(() => true).catch(() => false);
+    const projectDir = path.join(testProjectsDir, "project-123");
+    const exists = await fs
+      .access(projectDir)
+      .then(() => true)
+      .catch(() => false);
     expect(exists).toBe(true);
   });
 
-  test('应该在后端创建失败时回滚', async () => {
+  test("应该在后端创建失败时回滚", async () => {
     const createData = {
-      name: 'Test Project',
-      userId: 'user-123',
+      name: "Test Project",
+      userId: "user-123",
     };
 
-    mockHttpClient.createProject.mockRejectedValue(new Error('Backend error'));
+    mockHttpClient.createProject.mockRejectedValue(new Error("Backend error"));
 
     await expect(
       createProjectWithTransaction({
@@ -249,8 +261,8 @@ describe('项目创建事务集成测试', () => {
         database: mockDatabase,
         projectConfig: mockProjectConfig,
         replaceUndefinedWithNull: (obj) => obj,
-      })
-    ).rejects.toThrow('Backend error');
+      }),
+    ).rejects.toThrow("Backend error");
 
     // 验证数据库未被调用
     expect(mockDatabase.saveProject).not.toHaveBeenCalled();
@@ -260,21 +272,21 @@ describe('项目创建事务集成测试', () => {
     expect(files.length).toBe(0);
   });
 
-  test('应该在数据库保存失败时回滚', async () => {
+  test("应该在数据库保存失败时回滚", async () => {
     const createData = {
-      name: 'Test Project',
-      userId: 'user-123',
+      name: "Test Project",
+      userId: "user-123",
     };
 
     const mockBackendProject = {
-      id: 'project-123',
-      name: 'Test Project',
-      project_type: 'web',
+      id: "project-123",
+      name: "Test Project",
+      project_type: "web",
       files: [],
     };
 
     mockHttpClient.createProject.mockResolvedValue(mockBackendProject);
-    mockDatabase.saveProject.mockRejectedValue(new Error('Database error'));
+    mockDatabase.saveProject.mockRejectedValue(new Error("Database error"));
 
     await expect(
       createProjectWithTransaction({
@@ -283,27 +295,27 @@ describe('项目创建事务集成测试', () => {
         database: mockDatabase,
         projectConfig: mockProjectConfig,
         replaceUndefinedWithNull: (obj) => obj,
-      })
-    ).rejects.toThrow('Database error');
+      }),
+    ).rejects.toThrow("Database error");
 
     // 验证后端项目已被删除
-    expect(mockHttpClient.deleteProject).toHaveBeenCalledWith('project-123');
+    expect(mockHttpClient.deleteProject).toHaveBeenCalledWith("project-123");
 
     // 验证无残留目录
     const files = await fs.readdir(testProjectsDir);
     expect(files.length).toBe(0);
   });
 
-  test('应该在文件系统创建失败时回滚', async () => {
+  test("应该在文件系统创建失败时回滚", async () => {
     const createData = {
-      name: 'Test Project',
-      userId: 'user-123',
+      name: "Test Project",
+      userId: "user-123",
     };
 
     const mockBackendProject = {
-      id: 'project-123',
-      name: 'Test Project',
-      project_type: 'web',
+      id: "project-123",
+      name: "Test Project",
+      project_type: "web",
       files: [],
     };
 
@@ -311,7 +323,7 @@ describe('项目创建事务集成测试', () => {
 
     // Mock fs.mkdir 失败
     const originalMkdir = fs.mkdir;
-    fs.mkdir = vi.fn().mockRejectedValue(new Error('Disk full'));
+    fs.mkdir = vi.fn().mockRejectedValue(new Error("Disk full"));
 
     await expect(
       createProjectWithTransaction({
@@ -320,32 +332,34 @@ describe('项目创建事务集成测试', () => {
         database: mockDatabase,
         projectConfig: mockProjectConfig,
         replaceUndefinedWithNull: (obj) => obj,
-      })
-    ).rejects.toThrow('Disk full');
+      }),
+    ).rejects.toThrow("Disk full");
 
     // 恢复原始函数
     fs.mkdir = originalMkdir;
 
     // 验证回滚
-    expect(mockHttpClient.deleteProject).toHaveBeenCalledWith('project-123');
-    expect(mockDatabase.deleteProject).toHaveBeenCalledWith('project-123');
+    expect(mockHttpClient.deleteProject).toHaveBeenCalledWith("project-123");
+    expect(mockDatabase.deleteProject).toHaveBeenCalledWith("project-123");
   });
 
-  test('应该在文件保存失败时回滚', async () => {
+  test("应该在文件保存失败时回滚", async () => {
     const createData = {
-      name: 'Test Project',
-      userId: 'user-123',
+      name: "Test Project",
+      userId: "user-123",
     };
 
     const mockBackendProject = {
-      id: 'project-123',
-      name: 'Test Project',
-      project_type: 'web',
-      files: [{ path: 'test.txt', content: 'test' }],
+      id: "project-123",
+      name: "Test Project",
+      project_type: "web",
+      files: [{ path: "test.txt", content: "test" }],
     };
 
     mockHttpClient.createProject.mockResolvedValue(mockBackendProject);
-    mockDatabase.saveProjectFiles.mockRejectedValue(new Error('File save error'));
+    mockDatabase.saveProjectFiles.mockRejectedValue(
+      new Error("File save error"),
+    );
 
     await expect(
       createProjectWithTransaction({
@@ -354,8 +368,8 @@ describe('项目创建事务集成测试', () => {
         database: mockDatabase,
         projectConfig: mockProjectConfig,
         replaceUndefinedWithNull: (obj) => obj,
-      })
-    ).rejects.toThrow('File save error');
+      }),
+    ).rejects.toThrow("File save error");
 
     // 验证完整回滚
     expect(mockHttpClient.deleteProject).toHaveBeenCalled();
@@ -365,15 +379,53 @@ describe('项目创建事务集成测试', () => {
     const files = await fs.readdir(testProjectsDir);
     expect(files.length).toBe(0);
   });
+
+  test("拒绝后端路径穿越 ID，且不创建、不认证、也不删除越界目录", async () => {
+    const escapedName = `transaction-escape-${Date.now()}`;
+    const escapedPath = path.resolve(testProjectsDir, "..", escapedName);
+    await fs.rm(escapedPath, { recursive: true, force: true });
+    mockHttpClient.createProject.mockResolvedValue({
+      id: `../${escapedName}`,
+      name: "Malicious Project",
+      project_type: "web",
+      files: [],
+    });
+
+    await expect(
+      createProjectWithTransaction({
+        createData: { name: "Malicious Project", userId: "user-123" },
+        httpClient: mockHttpClient,
+        database: mockDatabase,
+        projectConfig: mockProjectConfig,
+        replaceUndefinedWithNull: (obj) => obj,
+      }),
+    ).rejects.toMatchObject({
+      code: "ERR_PROJECT_ROOT_ID_INVALID",
+      projectRootBindingFailClosed: true,
+    });
+
+    expect(mockDatabase.updateProject).not.toHaveBeenCalled();
+    expect(
+      await fs
+        .access(escapedPath)
+        .then(() => true)
+        .catch(() => false),
+    ).toBe(false);
+  });
 });
 
-describe('快速创建项目事务测试', () => {
+describe("快速创建项目事务测试", () => {
   let mockDatabase;
   let mockProjectConfig;
   let testProjectsDir;
 
   beforeEach(async () => {
-    testProjectsDir = path.join(process.cwd(), 'tests', 'temp', 'quick-projects-' + Date.now());
+    testProjectsDir = path.join(
+      process.cwd(),
+      "tests",
+      "temp",
+      "quick-projects-" + Date.now(),
+    );
     await fs.mkdir(testProjectsDir, { recursive: true });
 
     mockDatabase = {
@@ -395,12 +447,12 @@ describe('快速创建项目事务测试', () => {
     }
   });
 
-  test('应该成功快速创建项目', async () => {
+  test("应该成功快速创建项目", async () => {
     const createData = {
-      name: 'Quick Test Project',
-      description: 'Test description',
-      userId: 'user-123',
-      projectType: 'document',
+      name: "Quick Test Project",
+      description: "Test description",
+      userId: "user-123",
+      projectType: "document",
     };
 
     const result = await createQuickProjectWithTransaction({
@@ -412,7 +464,7 @@ describe('快速创建项目事务测试', () => {
 
     expect(result.success).toBe(true);
     expect(result.project.id).toBeTruthy();
-    expect(result.project.name).toBe('Quick Test Project');
+    expect(result.project.name).toBe("Quick Test Project");
 
     // 验证数据库调用
     expect(mockDatabase.saveProject).toHaveBeenCalled();
@@ -420,26 +472,32 @@ describe('快速创建项目事务测试', () => {
 
     // 验证目录和 README 创建
     const projectDir = path.join(testProjectsDir, result.project.id);
-    const readmePath = path.join(projectDir, 'README.md');
+    const readmePath = path.join(projectDir, "README.md");
 
-    const dirExists = await fs.access(projectDir).then(() => true).catch(() => false);
-    const readmeExists = await fs.access(readmePath).then(() => true).catch(() => false);
+    const dirExists = await fs
+      .access(projectDir)
+      .then(() => true)
+      .catch(() => false);
+    const readmeExists = await fs
+      .access(readmePath)
+      .then(() => true)
+      .catch(() => false);
 
     expect(dirExists).toBe(true);
     expect(readmeExists).toBe(true);
 
-    const readmeContent = await fs.readFile(readmePath, 'utf-8');
-    expect(readmeContent).toContain('Quick Test Project');
-    expect(readmeContent).toContain('Test description');
+    const readmeContent = await fs.readFile(readmePath, "utf-8");
+    expect(readmeContent).toContain("Quick Test Project");
+    expect(readmeContent).toContain("Test description");
   });
 
-  test('应该在数据库保存失败时回滚', async () => {
+  test("应该在数据库保存失败时回滚", async () => {
     const createData = {
-      name: 'Quick Test Project',
-      userId: 'user-123',
+      name: "Quick Test Project",
+      userId: "user-123",
     };
 
-    mockDatabase.saveProject.mockRejectedValue(new Error('Database error'));
+    mockDatabase.saveProject.mockRejectedValue(new Error("Database error"));
 
     await expect(
       createQuickProjectWithTransaction({
@@ -447,8 +505,8 @@ describe('快速创建项目事务测试', () => {
         database: mockDatabase,
         projectConfig: mockProjectConfig,
         replaceUndefinedWithNull: (obj) => obj,
-      })
-    ).rejects.toThrow('Database error');
+      }),
+    ).rejects.toThrow("Database error");
 
     // 验证目录已清理
     const files = await fs.readdir(testProjectsDir);
@@ -456,14 +514,19 @@ describe('快速创建项目事务测试', () => {
   });
 });
 
-describe('并发创建测试', () => {
+describe("并发创建测试", () => {
   let mockHttpClient;
   let mockDatabase;
   let mockProjectConfig;
   let testProjectsDir;
 
   beforeEach(async () => {
-    testProjectsDir = path.join(process.cwd(), 'tests', 'temp', 'concurrent-' + Date.now());
+    testProjectsDir = path.join(
+      process.cwd(),
+      "tests",
+      "temp",
+      "concurrent-" + Date.now(),
+    );
     await fs.mkdir(testProjectsDir, { recursive: true });
 
     mockHttpClient = {
@@ -492,18 +555,18 @@ describe('并发创建测试', () => {
     }
   });
 
-  test('并发创建应该产生唯一的项目ID', async () => {
+  test("并发创建应该产生唯一的项目ID", async () => {
     const createData = {
-      name: 'Concurrent Test',
-      userId: 'user-123',
+      name: "Concurrent Test",
+      userId: "user-123",
     };
 
     // Mock 后端返回唯一 ID
     let counter = 0;
     mockHttpClient.createProject.mockImplementation(async () => ({
       id: `project-${++counter}`,
-      name: 'Test',
-      project_type: 'web',
+      name: "Test",
+      project_type: "web",
       files: [],
     }));
 
@@ -517,13 +580,13 @@ describe('并发创建测试', () => {
           database: mockDatabase,
           projectConfig: mockProjectConfig,
           replaceUndefinedWithNull: (obj) => obj,
-        })
+        }),
       );
 
     const results = await Promise.allSettled(promises);
 
     const successIds = results
-      .filter((r) => r.status === 'fulfilled')
+      .filter((r) => r.status === "fulfilled")
       .map((r) => r.value.project.id);
 
     // 所有成功的 ID 应该唯一

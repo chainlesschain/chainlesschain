@@ -41,6 +41,17 @@ const {
 const PerformanceMetrics = require("./performance-metrics");
 const FileSecurityValidator = require("./file-security-validator");
 const { RetryManager, RETRY_STRATEGIES } = require("./retry-manager");
+const {
+  isContainedPath,
+  resolveProjectChildPath,
+} = require("../project/project-root-path.js");
+
+function externalCachePathError(message = "external_cache_path_unattested") {
+  const error = new Error(message);
+  error.code = "ERR_EXTERNAL_CACHE_PATH_UNATTESTED";
+  error.externalCachePathFailClosed = true;
+  return error;
+}
 
 class ExternalDeviceFileManager extends EventEmitter {
   constructor(
@@ -75,6 +86,13 @@ class ExternalDeviceFileManager extends EventEmitter {
 
       ...options,
     };
+    if (
+      typeof this.options.cacheDir !== "string" ||
+      this.options.cacheDir.trim() === ""
+    ) {
+      throw externalCachePathError("external_cache_root_invalid");
+    }
+    this.options.cacheDir = path.resolve(this.options.cacheDir);
 
     // 活跃的传输任务
     this.activeTransfers = new Map(); // transferId -> task
@@ -116,6 +134,118 @@ class ExternalDeviceFileManager extends EventEmitter {
         "[ExternalDeviceFileManager] 创建缓存目录:",
         this.options.cacheDir,
       );
+    }
+  }
+
+  /**
+   * Resolve a cache path only after proving that both its lexical path and,
+   * when present, its real path remain underneath the host-configured cache
+   * directory. This prevents legacy/remote-controlled DB values and symlinks
+   * from becoming read, copy, or unlink authority.
+   */
+  resolveAttestedCachePath(cachePath, { mustExist = false } = {}) {
+    if (
+      typeof cachePath !== "string" ||
+      cachePath.trim() === "" ||
+      cachePath.includes("\0")
+    ) {
+      throw externalCachePathError();
+    }
+
+    const cacheRoot = path.resolve(this.options.cacheDir);
+    const resolvedPath = path.resolve(cachePath);
+    if (!isContainedPath(cacheRoot, resolvedPath)) {
+      throw externalCachePathError();
+    }
+
+    let realCacheRoot;
+    try {
+      realCacheRoot = fs.realpathSync(cacheRoot);
+    } catch {
+      throw externalCachePathError("external_cache_root_unavailable");
+    }
+
+    if (fs.existsSync(resolvedPath)) {
+      let realPath;
+      try {
+        realPath = fs.realpathSync(resolvedPath);
+      } catch {
+        throw externalCachePathError();
+      }
+      if (!isContainedPath(realCacheRoot, realPath)) {
+        throw externalCachePathError();
+      }
+    } else {
+      if (mustExist) {
+        const error = new Error("external_cache_file_missing");
+        error.code = "ERR_EXTERNAL_CACHE_FILE_MISSING";
+        throw error;
+      }
+
+      const parentPath = path.dirname(resolvedPath);
+      if (!fs.existsSync(parentPath)) {
+        throw externalCachePathError("external_cache_parent_unavailable");
+      }
+      let realParentPath;
+      try {
+        realParentPath = fs.realpathSync(parentPath);
+      } catch {
+        throw externalCachePathError();
+      }
+      if (
+        realParentPath !== realCacheRoot &&
+        !isContainedPath(realCacheRoot, realParentPath)
+      ) {
+        throw externalCachePathError();
+      }
+    }
+
+    return resolvedPath;
+  }
+
+  createLocalCachePath() {
+    return this.resolveAttestedCachePath(
+      path.join(this.options.cacheDir, `external-${uuidv4()}`),
+    );
+  }
+
+  clearCacheRecord(fileId) {
+    this.db
+      .prepare(
+        `
+        UPDATE external_device_files
+        SET is_cached = 0, cache_path = NULL
+        WHERE id = ?
+      `,
+      )
+      .run(fileId);
+  }
+
+  getAttestedCachedPath(file, { invalidAsMiss = false } = {}) {
+    if (!file?.is_cached || !file.cache_path) {
+      return null;
+    }
+
+    try {
+      return this.resolveAttestedCachePath(file.cache_path, {
+        mustExist: true,
+      });
+    } catch (error) {
+      this.clearCacheRecord(file.id);
+      logger.warn(
+        "[ExternalDeviceFileManager] Rejected untrusted or missing cache path",
+        {
+          fileId: file.id,
+          code: error.code,
+        },
+      );
+      if (
+        !invalidAsMiss &&
+        error.code === "ERR_EXTERNAL_CACHE_PATH_UNATTESTED"
+      ) {
+        throw error;
+      }
+      return null;
     }
   }
 
@@ -771,8 +901,11 @@ class ExternalDeviceFileManager extends EventEmitter {
         });
       }
 
-      // 检查是否已缓存
-      if (file.is_cached && file.cache_path && fs.existsSync(file.cache_path)) {
+      // 检查是否已缓存。历史 DB 路径只有通过本地缓存边界证明后才可使用。
+      const existingCachePath = this.getAttestedCachedPath(file, {
+        invalidAsMiss: true,
+      });
+      if (existingCachePath) {
         logger.info(
           "[ExternalDeviceFileManager] 文件已缓存，跳过拉取:",
           fileId,
@@ -784,7 +917,7 @@ class ExternalDeviceFileManager extends EventEmitter {
         return {
           success: true,
           cached: true,
-          cachePath: file.cache_path,
+          cachePath: existingCachePath,
         };
       }
 
@@ -833,18 +966,9 @@ class ExternalDeviceFileManager extends EventEmitter {
         startedAt: Date.now(),
       });
 
-      // 生成缓存路径
-      const cachePath = path.join(
-        this.options.cacheDir,
-        file.device_id,
-        `${file.file_id}_${file.display_name}`,
-      );
-
-      // 确保目录存在
-      const cacheDir = path.dirname(cachePath);
-      if (!fs.existsSync(cacheDir)) {
-        fs.mkdirSync(cacheDir, { recursive: true });
-      }
+      // Use a host-generated random leaf. Remote device/file/display values
+      // are metadata only and never participate in destination construction.
+      const cachePath = this.createLocalCachePath();
 
       // 使用fileTransferManager下载文件（带重试）
       await this.retryManager.execute(
@@ -878,12 +1002,18 @@ class ExternalDeviceFileManager extends EventEmitter {
         },
       );
 
-      // 验证文件
-      const isValid = await this.verifyFileCached(cachePath, file.checksum);
+      // Re-attest the downloaded path before any read or cleanup authority.
+      const downloadedCachePath = this.resolveAttestedCachePath(cachePath, {
+        mustExist: true,
+      });
+      const isValid = await this.verifyFileCached(
+        downloadedCachePath,
+        file.checksum,
+      );
       if (!isValid) {
         // 删除无效文件
-        if (fs.existsSync(cachePath)) {
-          fs.unlinkSync(cachePath);
+        if (fs.existsSync(downloadedCachePath)) {
+          fs.unlinkSync(downloadedCachePath);
         }
         throw new Error("File verification failed");
       }
@@ -897,7 +1027,7 @@ class ExternalDeviceFileManager extends EventEmitter {
         WHERE id = ?
       `,
         )
-        .run(cachePath, Date.now(), Date.now(), fileId);
+        .run(downloadedCachePath, Date.now(), Date.now(), fileId);
 
       // 更新传输任务
       await this.updateTransferTask(taskId, {
@@ -910,7 +1040,7 @@ class ExternalDeviceFileManager extends EventEmitter {
 
       logger.info("[ExternalDeviceFileManager] 文件拉取完成:", {
         fileId,
-        cachePath,
+        cachePath: downloadedCachePath,
         duration,
       });
 
@@ -919,13 +1049,13 @@ class ExternalDeviceFileManager extends EventEmitter {
 
       this.emit("file-pulled", {
         fileId,
-        cachePath,
+        cachePath: downloadedCachePath,
         duration,
       });
 
       return {
         success: true,
-        cachePath,
+        cachePath: downloadedCachePath,
         duration,
       };
     } catch (error) {
@@ -1150,8 +1280,9 @@ class ExternalDeviceFileManager extends EventEmitter {
         throw new Error("File not found");
       }
 
-      // 确保文件已缓存
-      if (!file.is_cached || !file.cache_path) {
+      // 确保文件已缓存，并拒绝把历史越界 cache_path 当成本地读权限。
+      let cachePath = this.getAttestedCachedPath(file);
+      if (!cachePath) {
         logger.info("[ExternalDeviceFileManager] 文件未缓存，先拉取文件");
         await this.pullFile(fileId);
 
@@ -1159,20 +1290,25 @@ class ExternalDeviceFileManager extends EventEmitter {
         const updatedFile = this.db
           .prepare("SELECT * FROM external_device_files WHERE id = ?")
           .get(fileId);
-        file.cache_path = updatedFile.cache_path;
+        cachePath = this.getAttestedCachedPath(updatedFile);
+      }
+      if (!cachePath) {
+        const error = new Error("external_cache_file_unavailable");
+        error.code = "ERR_EXTERNAL_CACHE_FILE_UNAVAILABLE";
+        throw error;
       }
 
       // 调用RAG系统的文件导入API
       logger.info("[ExternalDeviceFileManager] 导入文件到RAG:", {
         fileId,
-        filePath: file.cache_path,
+        filePath: cachePath,
         fileName: file.display_name,
       });
 
       // 读取文件内容
       let content = "";
       try {
-        const fileContent = fs.readFileSync(file.cache_path, "utf8");
+        const fileContent = fs.readFileSync(cachePath, "utf8");
         content = fileContent;
       } catch (readError) {
         logger.warn(
@@ -1325,8 +1461,9 @@ class ExternalDeviceFileManager extends EventEmitter {
         throw new Error("File not found");
       }
 
-      // 确保文件已缓存
-      if (!file.is_cached || !file.cache_path) {
+      // 确保文件已缓存，并拒绝把历史越界 cache_path 当成本地复制权限。
+      let cachePath = this.getAttestedCachedPath(file);
+      if (!cachePath) {
         logger.info("[ExternalDeviceFileManager] 文件未缓存，先拉取文件");
         await this.pullFile(fileId);
 
@@ -1334,7 +1471,12 @@ class ExternalDeviceFileManager extends EventEmitter {
         const updatedFile = this.db
           .prepare("SELECT * FROM external_device_files WHERE id = ?")
           .get(fileId);
-        file.cache_path = updatedFile.cache_path;
+        cachePath = this.getAttestedCachedPath(updatedFile);
+      }
+      if (!cachePath) {
+        const error = new Error("external_cache_file_unavailable");
+        error.code = "ERR_EXTERNAL_CACHE_FILE_UNAVAILABLE";
+        throw error;
       }
 
       // 获取项目信息
@@ -1345,32 +1487,37 @@ class ExternalDeviceFileManager extends EventEmitter {
       if (!project) {
         throw new Error("Project not found");
       }
-
-      // 确定目标路径
-      const projectFilesDir = path.join(
-        path.dirname(this.db.dbPath),
-        "projects",
-        projectId,
-        "files",
-      );
-
-      // 确保项目文件目录存在
-      if (!fs.existsSync(projectFilesDir)) {
-        fs.mkdirSync(projectFilesDir, { recursive: true });
+      if (
+        !project.root_path ||
+        Number(project.root_path_local_attested) !== 1
+      ) {
+        const error = new Error("project_root_provenance_unattested");
+        error.code = "ERR_PROJECT_ROOT_PROVENANCE_UNATTESTED";
+        error.projectRootBindingFailClosed = true;
+        throw error;
       }
 
       // 生成唯一文件名（避免冲突）
-      const timestamp = Date.now();
-      const ext = path.extname(file.display_name);
-      const basename = path.basename(file.display_name, ext);
-      const targetFileName = `${basename}_${timestamp}${ext}`;
-      const targetPath = path.join(projectFilesDir, targetFileName);
+      const displayName =
+        typeof file.display_name === "string" ? file.display_name : "";
+      const leafName = path.posix.basename(path.win32.basename(displayName));
+      const candidateExtension = path.extname(leafName);
+      const extension = /^\.[A-Za-z0-9]{1,16}$/.test(candidateExtension)
+        ? candidateExtension
+        : "";
+      const targetFileName = `external-${uuidv4()}${extension}`;
+      const relativeFilePath = path.posix.join("files", targetFileName);
+      const targetPath = resolveProjectChildPath(
+        project.root_path,
+        relativeFilePath,
+      );
+      fs.mkdirSync(path.dirname(targetPath), { recursive: true });
 
       // 复制文件到项目目录
-      fs.copyFileSync(file.cache_path, targetPath);
+      fs.copyFileSync(cachePath, targetPath);
 
       logger.info("[ExternalDeviceFileManager] 文件已复制到项目目录:", {
-        sourcePath: file.cache_path,
+        sourcePath: cachePath,
         targetPath,
       });
 
@@ -1391,7 +1538,7 @@ class ExternalDeviceFileManager extends EventEmitter {
           projectFileId,
           projectId,
           file.display_name,
-          targetPath,
+          relativeFilePath,
           file.mime_type,
           file.file_size,
           "external-device",
@@ -1513,31 +1660,29 @@ class ExternalDeviceFileManager extends EventEmitter {
           break;
         }
 
-        // 删除缓存文件
-        if (fs.existsSync(file.cache_path)) {
-          try {
-            fs.unlinkSync(file.cache_path);
-            freedSpace += file.file_size;
-            evictedFiles.push(file.id);
-
-            // 更新数据库
-            this.db
-              .prepare(
-                `
-              UPDATE external_device_files
-              SET is_cached = 0, cache_path = NULL
-              WHERE id = ?
-            `,
-              )
-              .run(file.id);
-
-            logger.info("[ExternalDeviceFileManager] 淘汰缓存文件:", {
-              fileId: file.id,
-              size: file.file_size,
+        // Never let a persisted cache_path grant unlink authority outside the
+        // configured cache. Invalid legacy rows lose only their DB cache flag.
+        try {
+          const cachePath = this.resolveAttestedCachePath(file.cache_path);
+          if (fs.existsSync(cachePath)) {
+            const existingCachePath = this.resolveAttestedCachePath(cachePath, {
+              mustExist: true,
             });
-          } catch (error) {
-            logger.warn("[ExternalDeviceFileManager] 删除缓存文件失败:", error);
+            fs.unlinkSync(existingCachePath);
+            freedSpace += file.file_size;
           }
+          this.clearCacheRecord(file.id);
+          evictedFiles.push(file.id);
+
+          logger.info("[ExternalDeviceFileManager] 淘汰缓存文件:", {
+            fileId: file.id,
+            size: file.file_size,
+          });
+        } catch (error) {
+          if (error.code === "ERR_EXTERNAL_CACHE_PATH_UNATTESTED") {
+            this.clearCacheRecord(file.id);
+          }
+          logger.warn("[ExternalDeviceFileManager] 删除缓存文件失败:", error);
         }
       }
 
@@ -1619,8 +1764,11 @@ class ExternalDeviceFileManager extends EventEmitter {
     }
 
     try {
+      const attestedFilePath = this.resolveAttestedCachePath(filePath, {
+        mustExist: true,
+      });
       const hash = crypto.createHash("sha256");
-      const stream = fs.createReadStream(filePath);
+      const stream = fs.createReadStream(attestedFilePath);
 
       return new Promise((resolve, reject) => {
         stream.on("data", (data) => hash.update(data));
@@ -1946,23 +2094,21 @@ class ExternalDeviceFileManager extends EventEmitter {
       let cleanedCount = 0;
 
       for (const file of expiredFiles) {
-        if (fs.existsSync(file.cache_path)) {
-          try {
-            fs.unlinkSync(file.cache_path);
+        try {
+          const cachePath = this.resolveAttestedCachePath(file.cache_path);
+          if (fs.existsSync(cachePath)) {
+            const existingCachePath = this.resolveAttestedCachePath(cachePath, {
+              mustExist: true,
+            });
+            fs.unlinkSync(existingCachePath);
             cleanedCount++;
-
-            this.db
-              .prepare(
-                `
-              UPDATE external_device_files
-              SET is_cached = 0, cache_path = NULL
-              WHERE id = ?
-            `,
-              )
-              .run(file.id);
-          } catch (error) {
-            logger.warn("[ExternalDeviceFileManager] 删除过期缓存失败:", error);
           }
+          this.clearCacheRecord(file.id);
+        } catch (error) {
+          if (error.code === "ERR_EXTERNAL_CACHE_PATH_UNATTESTED") {
+            this.clearCacheRecord(file.id);
+          }
+          logger.warn("[ExternalDeviceFileManager] 删除过期缓存失败:", error);
         }
       }
 

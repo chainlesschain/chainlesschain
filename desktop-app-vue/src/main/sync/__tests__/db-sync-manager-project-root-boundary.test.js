@@ -83,10 +83,10 @@ function insertLocalProject({
   database.db.run(
     `INSERT INTO projects (
        id, user_id, name, description, project_type, status, root_path,
-       file_count, total_size, created_at, updated_at, synced_at, sync_status,
-       device_id, deleted, source_peer_id, pc_root_path
+       root_path_local_attested, file_count, total_size, created_at, updated_at,
+       synced_at, sync_status, device_id, deleted, source_peer_id, pc_root_path
      ) VALUES (?, 'user-1', ?, NULL, 'document', 'active', ?,
-       0, 0, 1000, ?, ?, 'synced', 'local-device', 0, NULL, NULL)`,
+       1, 0, 0, 1000, ?, ?, 'synced', 'local-device', 0, NULL, NULL)`,
     [id, name, rootPath, updatedAt, syncedAt],
   );
 }
@@ -110,6 +110,7 @@ beforeEach(() => {
       project_type TEXT NOT NULL,
       status TEXT,
       root_path TEXT,
+      root_path_local_attested INTEGER NOT NULL DEFAULT 0,
       file_count INTEGER DEFAULT 0,
       total_size INTEGER DEFAULT 0,
       created_at INTEGER NOT NULL,
@@ -119,7 +120,8 @@ beforeEach(() => {
       device_id TEXT,
       deleted INTEGER DEFAULT 0,
       source_peer_id TEXT,
-      pc_root_path TEXT
+      pc_root_path TEXT,
+      CHECK(root_path IS NULL OR root_path_local_attested = 1)
     )
   `);
   database = { db: createDatabaseFacade(sqlDb) };
@@ -151,6 +153,7 @@ describe("DBSyncManager project root boundary", () => {
     const row = getProject();
     expect(row.name).toBe("Remote project");
     expect(row.root_path).toBeNull();
+    expect(row.root_path_local_attested).toBe(0);
     expect(row.pc_root_path).toBeNull();
     expect(row.source_peer_id).toBeNull();
     expect(
@@ -173,6 +176,7 @@ describe("DBSyncManager project root boundary", () => {
     const row = getProject();
     expect(row.name).toBe("Remote rename");
     expect(row.root_path).toBe("/locally/approved");
+    expect(row.root_path_local_attested).toBe(1);
     expect(row.pc_root_path).toBeNull();
     expect(row.source_peer_id).toBeNull();
   });
@@ -192,6 +196,7 @@ describe("DBSyncManager project root boundary", () => {
     const row = getProject("remote-conflict");
     expect(row.name).toBe("Accepted remote metadata");
     expect(row.root_path).toBe("/locally/approved");
+    expect(row.root_path_local_attested).toBe(1);
     expect(row.pc_root_path).toBeNull();
     expect(row.source_peer_id).toBeNull();
   });
@@ -207,6 +212,7 @@ describe("DBSyncManager project root boundary", () => {
       project_type: "document",
       status: "active",
       root_path: maliciousRoot,
+      root_path_local_attested: 1,
       file_count: 0,
       total_size: 0,
       created_at: 1_000,
@@ -218,6 +224,7 @@ describe("DBSyncManager project root boundary", () => {
     const row = getProject("conflicted-project");
     expect(row.name).toBe("Merged metadata");
     expect(row.root_path).toBe("/locally/approved");
+    expect(row.root_path_local_attested).toBe(1);
     expect(row.pc_root_path).toBeNull();
     expect(row.source_peer_id).toBeNull();
   });

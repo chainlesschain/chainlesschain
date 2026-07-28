@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -125,7 +125,9 @@ describe("headless-runner — pure helpers", () => {
 describe("headless-runner — output formats", () => {
   it("binds lifecycle hooks to the CLI host cwd for the full async run", async () => {
     const { deps } = makeDeps(replyText("scoped"));
-    const trustedRoot = mkdtempSync(join(tmpdir(), "headless-host-workspace-"));
+    const trustedRoot = realpathSync.native(
+      mkdtempSync(join(tmpdir(), "headless-host-workspace-")),
+    );
     const observedRoots = [];
     deps.executeHooksV2Event = vi.fn(async () => {
       await Promise.resolve();

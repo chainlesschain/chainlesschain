@@ -211,8 +211,124 @@ function ensureTaskBoardOwnerSchema(dbManager, logger) {
   }
 }
 
+/**
+ * Establish the host-wide project-root invariant for existing databases:
+ * root_path IS NULL OR root_path_local_attested = 1.
+ *
+ * Historical roots are selectors/data, not local execution authority. Keep a
+ * best-effort copy in pc_root_path for compatibility, then quarantine them.
+ * Triggers protect databases whose original projects table has no V8 CHECK.
+ */
+function ensureProjectRootAttestationInvariant(dbManager, logger) {
+  try {
+    const projectsInfo = dbManager.db
+      .prepare("PRAGMA table_info(projects)")
+      .all();
+    if (projectsInfo.length === 0) {
+      throw new Error("projects_table_missing");
+    }
+
+    if (!projectsInfo.some((col) => col.name === "root_path_local_attested")) {
+      logger.info(
+        "[Database] 添加 projects.root_path_local_attested 列 (V8, fail-closed)",
+      );
+      dbManager.db.run(
+        "ALTER TABLE projects ADD COLUMN root_path_local_attested INTEGER NOT NULL DEFAULT 0",
+      );
+    }
+    if (!projectsInfo.some((col) => col.name === "pc_root_path")) {
+      logger.info(
+        "[Database] 添加 projects.pc_root_path 列用于隔离历史 root_path",
+      );
+      dbManager.db.run("ALTER TABLE projects ADD COLUMN pc_root_path TEXT");
+    }
+
+    dbManager.db.run(`
+      UPDATE projects
+      SET pc_root_path = COALESCE(
+            NULLIF(pc_root_path, ''),
+            NULLIF(root_path, '')
+          ),
+          root_path = NULL,
+          root_path_local_attested = 0
+      WHERE root_path IS NOT NULL
+        AND root_path_local_attested != 1
+    `);
+
+    dbManager.db.exec(`
+      DROP TRIGGER IF EXISTS projects_root_attestation_insert_guard;
+      DROP TRIGGER IF EXISTS projects_root_attestation_update_guard;
+
+      CREATE TRIGGER projects_root_attestation_insert_guard
+      BEFORE INSERT ON projects
+      FOR EACH ROW
+      WHEN NEW.root_path IS NOT NULL
+        AND NEW.root_path_local_attested != 1
+      BEGIN
+        SELECT RAISE(ABORT, 'projects_root_path_requires_local_attestation');
+      END;
+
+      CREATE TRIGGER projects_root_attestation_update_guard
+      BEFORE UPDATE OF root_path, root_path_local_attested ON projects
+      FOR EACH ROW
+      WHEN NEW.root_path IS NOT NULL
+        AND NEW.root_path_local_attested != 1
+      BEGIN
+        SELECT RAISE(ABORT, 'projects_root_path_requires_local_attestation');
+      END;
+    `);
+
+    const verifiedColumns = dbManager.db
+      .prepare("PRAGMA table_info(projects)")
+      .all();
+    const unsafeCount = dbManager.db
+      .prepare(
+        `SELECT COUNT(*) AS count
+         FROM projects
+         WHERE root_path IS NOT NULL
+           AND root_path_local_attested != 1`,
+      )
+      .get();
+    const guards = dbManager.db
+      .prepare(
+        `SELECT name, sql
+         FROM sqlite_master
+         WHERE type = 'trigger'
+           AND name IN (
+             'projects_root_attestation_insert_guard',
+             'projects_root_attestation_update_guard'
+           )`,
+      )
+      .all();
+    if (
+      !verifiedColumns.some((col) => col.name === "root_path_local_attested") ||
+      !verifiedColumns.some((col) => col.name === "pc_root_path") ||
+      Number(unsafeCount?.count) !== 0 ||
+      guards.length !== 2 ||
+      guards.some(
+        (guard) =>
+          !guard.sql?.includes("root_path_local_attested != 1") ||
+          !guard.sql?.includes("projects_root_path_requires_local_attestation"),
+      )
+    ) {
+      throw new Error("project_root_attestation_invariant_not_established");
+    }
+  } catch (cause) {
+    const error = new Error("project_root_attestation_migration_failed");
+    error.code = "ERR_PROJECT_ROOT_ATTESTATION_MIGRATION_FAILED";
+    error.projectRootBindingFailClosed = true;
+    error.cause = cause;
+    throw error;
+  }
+}
+
 function migrateDatabase(dbManager, logger) {
   logger.info("[Database] 开始数据库迁移...");
+
+  // This security migration is deliberately outside the legacy best-effort
+  // catch. Initialization must fail rather than enable filesystem consumers
+  // with an unquarantined historical root.
+  ensureProjectRootAttestationInvariant(dbManager, logger);
 
   try {
     // ==================== 原有迁移 ====================
@@ -694,9 +810,16 @@ function migrateDatabase(dbManager, logger) {
   } catch (error) {
     logger.error("[Database] 数据库迁移失败:", error);
   }
+
+  // V4 may rebuild projects and therefore replace its legacy-table triggers.
+  // Keep this outside the best-effort catch for the same fail-closed reason.
+  ensureProjectRootAttestationInvariant(dbManager, logger);
 }
 
 function runMigrationsOptimized(dbManager, logger) {
+  // Never let a stale migration_version suppress the security invariant.
+  ensureProjectRootAttestationInvariant(dbManager, logger);
+
   try {
     // 创建迁移版本表（如果不存在）
     dbManager.db.exec(`
@@ -713,7 +836,7 @@ function runMigrationsOptimized(dbManager, logger) {
       .get();
 
     // 定义最新迁移版本号
-    const LATEST_VERSION = 7; // v7: 修复 migrations 路径 bug + 装载 009_embedding_cache / 009_memory_system
+    const LATEST_VERSION = 8; // v8: projects.root_path 本地主机证明，历史记录默认 fail-closed
 
     // BUGFIX: 总是检查关键列是否存在，即使版本号正确
     // 这确保了即使迁移版本号被更新但列没有添加的情况也能被修复
@@ -1392,6 +1515,7 @@ function rebuildProjectsTable(dbManager, logger) {
         project_type TEXT NOT NULL CHECK(project_type IN ('web', 'document', 'data', 'app', 'presentation', 'spreadsheet', 'design', 'code', 'workflow', 'knowledge')),
         status TEXT DEFAULT 'active' CHECK(status IN ('draft', 'active', 'completed', 'archived')),
         root_path TEXT,
+        root_path_local_attested INTEGER NOT NULL DEFAULT 0,
         file_count INTEGER DEFAULT 0,
         total_size INTEGER DEFAULT 0,
         template_id TEXT,
@@ -1404,17 +1528,38 @@ function rebuildProjectsTable(dbManager, logger) {
         synced_at INTEGER,
         device_id TEXT,
         deleted INTEGER DEFAULT 0,
-        category_id TEXT
+        category_id TEXT,
+        delivered_at TEXT,
+        source_peer_id TEXT,
+        pc_root_path TEXT,
+        CHECK(root_path IS NULL OR root_path_local_attested = 1)
       )
     `);
 
     // 3. 复制数据
     dbManager.db.run(`
-      INSERT INTO projects
+      INSERT INTO projects (
+        id, user_id, name, description, project_type, status, root_path,
+        root_path_local_attested, file_count, total_size, template_id,
+        cover_image_url, tags, metadata, created_at, updated_at, sync_status,
+        synced_at, device_id, deleted, category_id, delivered_at,
+        source_peer_id, pc_root_path
+      )
       SELECT id, user_id, name, description, project_type, status, root_path,
+             ${
+               dbManager.checkColumnExists(
+                 "projects_old",
+                 "root_path_local_attested",
+               )
+                 ? "COALESCE(root_path_local_attested, 0)"
+                 : "0"
+             },
              file_count, total_size, template_id, cover_image_url, tags, metadata,
              created_at, updated_at, sync_status, synced_at, device_id, deleted,
-             ${dbManager.checkColumnExists("projects_old", "category_id") ? "category_id" : "NULL"}
+             ${dbManager.checkColumnExists("projects_old", "category_id") ? "category_id" : "NULL"},
+             ${dbManager.checkColumnExists("projects_old", "delivered_at") ? "delivered_at" : "NULL"},
+             ${dbManager.checkColumnExists("projects_old", "source_peer_id") ? "source_peer_id" : "NULL"},
+             ${dbManager.checkColumnExists("projects_old", "pc_root_path") ? "pc_root_path" : "NULL"}
       FROM projects_old
     `);
 

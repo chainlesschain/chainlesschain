@@ -34,7 +34,7 @@ function listActiveProjects(database) {
     // window and terminal manager are initialized.
     return database.db
       .prepare(
-        `SELECT id, root_path, pc_root_path, source_peer_id, deleted
+        `SELECT id, root_path, root_path_local_attested, pc_root_path, source_peer_id, deleted
          FROM projects
          WHERE deleted = 0
            AND (pc_root_path IS NOT NULL OR root_path IS NOT NULL)`,
@@ -91,12 +91,10 @@ function createDatabaseProjectBindingResolver({ getDatabase }) {
     if (!canonicalLegacyCwd) {
       return null;
     }
-    const matches = listActiveProjects(database).filter(
-      (project) =>
-        projectSelectorPaths(project).some(
-          (candidate) =>
-            canonicalDirectory(candidate) === canonicalLegacyCwd,
-        ),
+    const matches = listActiveProjects(database).filter((project) =>
+      projectSelectorPaths(project).some(
+        (candidate) => canonicalDirectory(candidate) === canonicalLegacyCwd,
+      ),
     );
     return matches.length === 1 ? matches[0] : null;
   };

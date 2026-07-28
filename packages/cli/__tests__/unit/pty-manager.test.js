@@ -8,6 +8,8 @@
  * and stopped-manager guards.
  */
 import { describe, it, expect, vi } from "vitest";
+import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { PtyManager } from "../../src/gateways/terminal/PtyManager.js";
 import { executionBroker } from "../../src/lib/process-execution-broker/index.js";
@@ -131,14 +133,24 @@ describe("PtyManager plugin sandbox policy", () => {
   it("passes the exact pinned policy from the fixed workspace resolver", () => {
     const { loadNodePty } = makeFakeDeps();
     const calls = [];
+    const workspaceRoot = fs.realpathSync.native(
+      fs.mkdtempSync(path.join(os.tmpdir(), "cc-pty-policy-workspace-")),
+    );
+    const requestedExecutionCwd = path.join(
+      workspaceRoot,
+      "requested-worktree",
+    );
+    fs.mkdirSync(requestedExecutionCwd);
+    const executionCwd = fs.realpathSync.native(requestedExecutionCwd);
     const policy = Object.freeze({
       requiredBoundaries: Object.freeze(["filesystem", "network"]),
     });
     const resolveSandboxPolicy = vi.fn(() => policy);
     const mgr = new PtyManager({
-      policyCwd: "trusted-workspace",
+      policyCwd: workspaceRoot,
       resolveSandboxPolicy,
       _deps: {
+        platform: () => "test",
         loadNodePty,
         spawnPty(pty, command, args, options) {
           calls.push({ pty, command, args, options });
@@ -147,14 +159,19 @@ describe("PtyManager plugin sandbox policy", () => {
       },
     });
 
-    mgr.create({ shell: "bash", cwd: "requested-worktree" });
+    try {
+      mgr.create({ shell: "bash", cwd: "requested-worktree" });
 
-    expect(resolveSandboxPolicy).toHaveBeenCalledWith({
-      workspaceCwd: path.resolve("trusted-workspace"),
-      executionCwd: path.resolve("trusted-workspace", "requested-worktree"),
-    });
-    expect(calls).toHaveLength(1);
-    expect(calls[0].options.sandboxPolicy).toBe(policy);
+      expect(resolveSandboxPolicy).toHaveBeenCalledWith({
+        workspaceCwd: workspaceRoot,
+        executionCwd,
+      });
+      expect(calls).toHaveLength(1);
+      expect(calls[0].options.sandboxPolicy).toBe(policy);
+    } finally {
+      mgr.shutdown();
+      fs.rmSync(workspaceRoot, { recursive: true, force: true });
+    }
   });
 
   it("issues a Linux PTY contract from the fixed host root before loading node-pty", () => {

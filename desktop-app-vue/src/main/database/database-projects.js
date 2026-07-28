@@ -215,7 +215,11 @@ function getProjectById(dbManager, logger, projectId) {
   return cleaned;
 }
 
-function saveProject(dbManager, logger, project) {
+function hasUsableRootPath(rootPath) {
+  return typeof rootPath === "string" && rootPath.trim() !== "";
+}
+
+function saveProject(dbManager, logger, project, options = {}) {
   // Check if database is initialized
   if (!dbManager.db) {
     const errorMsg =
@@ -228,7 +232,6 @@ function saveProject(dbManager, logger, project) {
   const projectType =
     safeProject.project_type ?? safeProject.projectType ?? "web";
   const userId = safeProject.user_id ?? safeProject.userId ?? "local-user";
-  const rootPath = safeProject.root_path ?? safeProject.rootPath ?? null;
   const templateId = safeProject.template_id ?? safeProject.templateId ?? null;
   const coverImageUrl =
     safeProject.cover_image_url ?? safeProject.coverImageUrl ?? null;
@@ -299,14 +302,71 @@ function saveProject(dbManager, logger, project) {
   const deviceId = safeProject.device_id ?? safeProject.deviceId ?? null;
   const deleted = safeProject.deleted ?? 0;
   const categoryId = safeProject.category_id ?? safeProject.categoryId ?? null;
+  const existingProject = safeProject.id
+    ? dbManager.db
+        .prepare(
+          `SELECT root_path, root_path_local_attested, pc_root_path,
+                  source_peer_id, delivered_at
+           FROM projects WHERE id = ?`,
+        )
+        .get(safeProject.id)
+    : null;
+  if (options.requireNewProject === true && existingProject) {
+    const error = new Error("project_id_collision");
+    error.code = "ERR_PROJECT_ID_COLLISION";
+    error.projectCreationFailClosed = true;
+    throw error;
+  }
+  const requestedRootPath =
+    safeProject.root_path ?? safeProject.rootPath ?? null;
+  const existingRootIsAttested =
+    hasUsableRootPath(existingProject?.root_path) &&
+    Number(existingProject?.root_path_local_attested) === 1;
+  const rootPathLocalAttested =
+    options.attestRootPath === true
+      ? hasUsableRootPath(requestedRootPath)
+        ? 1
+        : 0
+      : existingRootIsAttested
+        ? 1
+        : 0;
+  const persistedRootPath =
+    options.attestRootPath === true
+      ? rootPathLocalAttested === 1
+        ? requestedRootPath
+        : null
+      : existingRootIsAttested
+        ? existingProject.root_path
+        : null;
+  const deliveredAt =
+    safeProject.delivered_at !== undefined
+      ? safeProject.delivered_at
+      : safeProject.deliveredAt !== undefined
+        ? safeProject.deliveredAt
+        : (existingProject?.delivered_at ?? null);
+  const sourcePeerId =
+    safeProject.source_peer_id !== undefined
+      ? safeProject.source_peer_id
+      : safeProject.sourcePeerId !== undefined
+        ? safeProject.sourcePeerId
+        : (existingProject?.source_peer_id ?? null);
+  const pcRootPath =
+    safeProject.pc_root_path !== undefined
+      ? safeProject.pc_root_path
+      : safeProject.pcRootPath !== undefined
+        ? safeProject.pcRootPath
+        : (existingProject?.pc_root_path ?? null);
 
+  const insertOperation =
+    options.requireNewProject === true ? "INSERT" : "INSERT OR REPLACE";
   const stmt = dbManager.db.prepare(`
-    INSERT OR REPLACE INTO projects (
+    ${insertOperation} INTO projects (
       id, user_id, name, description, project_type, status,
-      root_path, file_count, total_size, template_id, cover_image_url,
-      tags, metadata, created_at, updated_at, sync_status, synced_at,
-      device_id, deleted, category_id
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      root_path, root_path_local_attested, file_count, total_size, template_id,
+      cover_image_url, tags, metadata, created_at, updated_at, sync_status,
+      synced_at, device_id, deleted, category_id, delivered_at,
+      source_peer_id, pc_root_path
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   const params = [
@@ -316,7 +376,8 @@ function saveProject(dbManager, logger, project) {
     safeProject.description,
     projectType,
     safeProject.status || "active",
-    rootPath,
+    persistedRootPath,
+    rootPathLocalAttested,
     fileCount,
     totalSize,
     templateId,
@@ -330,6 +391,9 @@ function saveProject(dbManager, logger, project) {
     deviceId,
     deleted,
     categoryId,
+    deliveredAt,
+    sourcePeerId,
+    pcRootPath,
   ].map((value) => (value === undefined ? null : value));
 
   logger.info("[Database] 最终params准备绑定:");
@@ -362,7 +426,8 @@ function saveProject(dbManager, logger, project) {
     description: safeProject.description,
     project_type: projectType,
     status: safeProject.status || "active",
-    root_path: rootPath,
+    root_path: persistedRootPath,
+    root_path_local_attested: rootPathLocalAttested,
     file_count: fileCount,
     total_size: totalSize,
     template_id: templateId,
@@ -376,15 +441,43 @@ function saveProject(dbManager, logger, project) {
     device_id: deviceId,
     deleted: deleted,
     category_id: categoryId,
+    delivered_at: deliveredAt,
+    source_peer_id: sourcePeerId,
+    pc_root_path: pcRootPath,
   };
 
   logger.info("[Database] saveProject 完成，返回结果");
   return savedProject;
 }
 
-function updateProject(dbManager, logger, projectId, updates) {
+function updateProject(dbManager, logger, projectId, updates, options = {}) {
   const fields = [];
   const values = [];
+  const hasRootPathUpdate = updates.root_path !== undefined;
+  const existingProject = hasRootPathUpdate
+    ? dbManager.db
+        .prepare(
+          "SELECT root_path, root_path_local_attested FROM projects WHERE id = ?",
+        )
+        .get(projectId)
+    : null;
+  const requestedRootIsUsable = hasUsableRootPath(updates.root_path);
+  const existingRootIsAttested =
+    hasUsableRootPath(existingProject?.root_path) &&
+    Number(existingProject?.root_path_local_attested) === 1;
+  const mayPersistRequestedRoot =
+    options.attestRootPath === true && requestedRootIsUsable;
+  const preserveExistingRoot =
+    options.attestRootPath !== true &&
+    requestedRootIsUsable &&
+    existingRootIsAttested;
+  const persistedRootPath = mayPersistRequestedRoot
+    ? updates.root_path
+    : preserveExistingRoot
+      ? existingProject.root_path
+      : null;
+  const persistedRootAttestation =
+    mayPersistRequestedRoot || preserveExistingRoot ? 1 : 0;
 
   // 动态构建更新字段
   const allowedFields = [
@@ -413,10 +506,18 @@ function updateProject(dbManager, logger, projectId, updates) {
             : JSON.stringify(updates[field]),
         );
       } else {
-        values.push(updates[field]);
+        values.push(field === "root_path" ? persistedRootPath : updates[field]);
       }
     }
   });
+
+  if (hasRootPathUpdate) {
+    // Untrusted new/changed roots are quarantined as NULL. A byte-identical
+    // or spoofed non-empty value cannot replace/revoke an existing host root.
+    // Explicit null/empty is still a deliberate clear operation.
+    fields.push("root_path_local_attested = ?");
+    values.push(persistedRootAttestation);
+  }
 
   // 总是更新 updated_at
   fields.push("updated_at = ?");

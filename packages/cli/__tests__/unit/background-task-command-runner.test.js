@@ -14,11 +14,12 @@ describe("background task command runner", () => {
   let cwd;
 
   beforeEach(() => {
-    workspace = fs.mkdtempSync(
-      path.join(os.tmpdir(), "cc-background-command-"),
+    workspace = fs.realpathSync.native(
+      fs.mkdtempSync(path.join(os.tmpdir(), "cc-background-command-")),
     );
     cwd = path.join(workspace, "nested");
     fs.mkdirSync(cwd);
+    cwd = fs.realpathSync.native(cwd);
   });
 
   afterEach(() => {

@@ -8,6 +8,10 @@ const CheckpointManager = require("./checkpoint-manager");
 const crypto = require("crypto");
 const fs = require("fs").promises;
 const path = require("path");
+const {
+  resolveManagedProjectRoot,
+  resolveProjectChildPath,
+} = require("./project-root-path.js");
 
 /**
  * 流式创建项目（支持断点续传）
@@ -326,7 +330,7 @@ async function saveProjectToDatabase(options) {
   await database.saveProject(localProject);
 
   // 创建项目目录
-  const projectRootPath = path.join(
+  const projectRootPath = resolveManagedProjectRoot(
     projectConfig.getProjectsRootPath(),
     localProject.id,
   );
@@ -335,14 +339,18 @@ async function saveProjectToDatabase(options) {
   await fs.mkdir(projectRootPath, { recursive: true });
 
   // 更新 root_path
-  database.updateProject(localProject.id, {
-    root_path: projectRootPath,
-  });
+  database.updateProject(
+    localProject.id,
+    {
+      root_path: projectRootPath,
+    },
+    { attestRootPath: true },
+  );
 
   // 写入文件
   if (accumulatedData.files.length > 0) {
     for (const file of accumulatedData.files) {
-      const filePath = path.join(projectRootPath, file.path);
+      const filePath = resolveProjectChildPath(projectRootPath, file.path);
       logger.info("[StreamCheckpoint] 写入文件:", filePath);
 
       // 确保目录存在

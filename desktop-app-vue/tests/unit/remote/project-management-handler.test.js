@@ -104,6 +104,7 @@ describe("ProjectManagementHandler", () => {
       const [sql, args] = mockDatabase.run.mock.calls[0];
       expect(sql).toContain("INSERT INTO projects");
       expect(sql).not.toContain("root_path");
+      expect(sql).not.toContain("root_path_local_attested");
       // args: [id, userId, name, description=null, type, now, now]
       expect(args[2]).toBe("My Project");
       expect(args[3]).toBeNull();
@@ -136,6 +137,7 @@ describe("ProjectManagementHandler", () => {
       expect(args[3]).toBe("Some desc");
       expect(args[4]).toBe("code");
       expect(sql).not.toContain("root_path");
+      expect(sql).not.toContain("root_path_local_attested");
       expect(args).not.toContain(maliciousRoot);
       expect(result.requiresLocalRootBinding).toBe(true);
     });

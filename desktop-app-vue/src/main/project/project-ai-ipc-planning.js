@@ -5,8 +5,8 @@
  * @module project/project-ai-ipc-planning
  */
 const { logger } = require("../utils/logger.js");
-const path = require("path");
 const { getMessageAggregator } = require("../utils/message-aggregator.js");
+const { resolveManagedProjectRoot } = require("./project-root-path.js");
 
 function registerPlanningHandlers(ctx) {
   const {
@@ -91,7 +91,7 @@ function registerPlanningHandlers(ctx) {
           const path = require("path");
           const projectConfig = getProjectConfig();
           const dirName = projectId || `task_${taskPlanId}`;
-          const projectRootPath = path.join(
+          const projectRootPath = resolveManagedProjectRoot(
             projectConfig.getProjectsRootPath(),
             dirName,
           );
@@ -100,10 +100,14 @@ function registerPlanningHandlers(ctx) {
           logger.info("[Main] 项目目录已创建:", projectRootPath);
 
           if (projectId) {
-            database.updateProject(projectId, {
-              root_path: projectRootPath,
-              updated_at: Date.now(),
-            });
+            database.updateProject(
+              projectId,
+              {
+                root_path: projectRootPath,
+                updated_at: Date.now(),
+              },
+              { attestRootPath: true },
+            );
           }
 
           projectContext.root_path = projectRootPath;
