@@ -1075,6 +1075,7 @@ const hooksRuntime = new HooksV2Runtime(undefined, {
       ? new EventRuntimeStore()
       : null),
 });
+broker._setHooksEventSink(hooksRuntime);
 
 export async function executeRecoveredHooksV2Event(
   runtime,

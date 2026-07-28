@@ -57,7 +57,6 @@ const SUPPORTED_SANDBOX_PROFILES = new Set([
 
 // 延迟导入避免循环依赖
 let _traceCtx = null;
-let _hooksV2 = null;
 const _ipcBus = null;
 
 function getTraceCtx() {
@@ -73,17 +72,6 @@ function getTraceCtx() {
 
 function getRpl() {
   return runtimeProvenanceLedger;
-}
-
-function getHooksV2() {
-  if (!_hooksV2) {
-    try {
-      _hooksV2 = require("../hooks-v2-runtime.js");
-    } catch {
-      _hooksV2 = null;
-    }
-  }
-  return _hooksV2;
 }
 
 function createNativePtyAdapter() {
@@ -548,6 +536,7 @@ class ProcessExecutionBroker extends EventEmitter {
       postSpawnSandbox: _postSpawnSandbox,
     };
     this._ptyAdapter = createNativePtyAdapter();
+    this._hooksEventSink = null;
 
     this._ensureLogDir();
     this._loadPermissions();
@@ -2375,13 +2364,20 @@ class ProcessExecutionBroker extends EventEmitter {
   }
 
   _emitHooksEvent(event, data) {
-    const hooks = getHooksV2();
-    if (!hooks || !hooks.hooksV2) return;
+    const hooks = this._hooksEventSink;
+    if (!hooks) return;
     try {
-      hooks.hooksV2.emit(event, data);
+      hooks.emit(event, data);
     } catch {
       // Hook reporting must not hide the process execution result.
     }
+  }
+
+  _setHooksEventSink(hooks) {
+    if (hooks !== null && typeof hooks?.emit !== "function") {
+      throw new TypeError("hooks event sink must expose emit()");
+    }
+    this._hooksEventSink = hooks;
   }
 
   spawn(command, args, options = {}) {

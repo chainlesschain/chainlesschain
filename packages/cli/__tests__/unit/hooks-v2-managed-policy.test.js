@@ -3,10 +3,11 @@ import { EventEmitter } from "node:events";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import {
+import hooksRuntime, {
   executeRecoveredHooksV2Event,
   HooksV2Runtime,
 } from "../../src/lib/hooks-v2-runtime.js";
+import executionBroker from "../../src/lib/process-execution-broker/index.js";
 import {
   currentHostHooksV2WorkspaceRoot,
   registerHostHooksV2Workspace,
@@ -25,6 +26,21 @@ function createManagedPolicyWorkspace(name) {
 
 afterAll(() => {
   fs.rmSync(managedPolicyWorkspaceParent, { recursive: true, force: true });
+});
+
+describe("Hooks v2 broker event wiring", () => {
+  it("registers the default runtime as the broker event sink", () => {
+    const listener = vi.fn();
+    const event = { executionId: "exec-1" };
+    hooksRuntime.on("tool:start", listener);
+    try {
+      executionBroker._emitHooksEvent("tool:start", event);
+      expect(listener).toHaveBeenCalledWith(event);
+      expect(executionBroker._hooksEventSink).toBe(hooksRuntime);
+    } finally {
+      hooksRuntime.off("tool:start", listener);
+    }
+  });
 });
 
 describe("Hooks v2 managed execution policy", () => {

@@ -19,10 +19,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 import { executionBroker } from "../../src/lib/process-execution-broker/index.js";
-import {
-  _backgroundTaskCommandDeps,
-  executeBackgroundTaskCommand,
-} from "../../src/harness/background-task-command-runner.js";
+import { executeBackgroundTaskCommand } from "../../src/harness/background-task-command-runner.js";
 import {
   applyWindowsSandbox,
   resetWindowsSandboxAdapterCache,
@@ -82,11 +79,11 @@ function fileIdentity(filePath) {
 }
 
 async function warmBrokerAsyncRuntime(cwd) {
-  // The credential transport Worker, the Broker's lazy Hooks v2 import, and
-  // the first piped async child intentionally establish process-lifetime
-  // libuv descriptors. Establish those host-runtime descriptors before
-  // measuring per-launch FD ownership. Keep the warmup explicitly unsandboxed
-  // so a first-use sandbox leak can never be absorbed into the baseline.
+  // The credential transport Worker and first piped async child intentionally
+  // establish process-lifetime libuv descriptors. Establish those host-runtime
+  // descriptors before measuring per-launch FD ownership. Keep the warmup
+  // explicitly unsandboxed so a first-use sandbox leak can never be absorbed
+  // into the baseline.
   let readyTimeout;
   try {
     await Promise.race([
@@ -2646,105 +2643,26 @@ describe.runIf(LIVE && SUPPORTED)(
           `.cc-linux-generic-dev-shm-${nonce}`,
         );
         const hostNetworkNamespace = fs.readlinkSync("/proc/self/ns/net");
-        const diagnosticRead = (reader, fallback = null) => {
-          try {
-            return reader();
-          } catch {
-            return fallback;
-          }
-        };
-        const fdSnapshot = () => {
-          const snapshot = new Map();
+        const fdTargetCounts = () => {
+          const counts = new Map();
           for (const entry of fs.readdirSync("/proc/self/fd")) {
             try {
-              snapshot.set(
-                Number(entry),
-                String(fs.readlinkSync(`/proc/self/fd/${entry}`)),
-              );
+              const target = String(fs.readlinkSync(`/proc/self/fd/${entry}`));
+              counts.set(target, (counts.get(target) || 0) + 1);
             } catch {
               // The descriptor used to enumerate /proc/self/fd can disappear.
             }
           }
-          return snapshot;
-        };
-        const fdTargetCounts = (snapshot = fdSnapshot()) => {
-          const counts = new Map();
-          for (const target of snapshot.values()) {
-            counts.set(target, (counts.get(target) || 0) + 1);
-          }
           return counts;
         };
-        const positiveFdGrowth = (before, after = fdTargetCounts()) =>
-          [...after.entries()]
+        const positiveFdGrowth = (before) =>
+          [...fdTargetCounts().entries()]
             .map(([target, count]) => ({
               target,
               count: count - (before.get(target) || 0),
             }))
             .filter((entry) => entry.count > 0)
             .sort((left, right) => left.target.localeCompare(right.target));
-        const activeHandleObjects = () =>
-          typeof process._getActiveHandles === "function"
-            ? process._getActiveHandles()
-            : [];
-        const handleSummary = (handle, baseline) => ({
-          type: handle?.constructor?.name || null,
-          new: handle ? !baseline.has(handle) : false,
-          fd: diagnosticRead(() => handle.fd ?? handle._handle?.fd),
-          pid: diagnosticRead(() => handle.pid),
-        });
-        const activeHandleSummary = (baseline) =>
-          activeHandleObjects().map((handle) =>
-            handleSummary(handle, baseline),
-          );
-        const childSummary = (child) =>
-          child
-            ? {
-                pid: child.pid ?? null,
-                exitCode: child.exitCode ?? null,
-                signalCode: child.signalCode ?? null,
-                closes: [child._closesGot, child._closesNeeded],
-                procFdSupervisor: String(child.spawnfile || "").startsWith(
-                  "/proc/self/fd/",
-                ),
-                newSession: child.spawnargs?.includes("--new-session") || false,
-                stdio: (child.stdio || []).map((stream, index) => ({
-                  index,
-                  type: stream?.constructor?.name || null,
-                  fd: diagnosticRead(() => stream.fd ?? stream._handle?.fd),
-                  destroyed: stream?.destroyed ?? null,
-                })),
-              }
-            : null;
-        const fdDelta = (beforeSnapshot, afterSnapshot) => {
-          const beforeCounts = fdTargetCounts(beforeSnapshot);
-          const afterCounts = fdTargetCounts(afterSnapshot);
-          const unixRows = diagnosticRead(
-            () => fs.readFileSync("/proc/net/unix", "utf8").split("\n"),
-            [],
-          );
-          return [...afterSnapshot.entries()]
-            .filter(
-              ([fd, target]) =>
-                afterCounts.get(target) > (beforeCounts.get(target) || 0) &&
-                beforeSnapshot.get(fd) !== target,
-            )
-            .map(([fd, target]) => ({
-              fd,
-              target,
-              targetGrowth:
-                afterCounts.get(target) - (beforeCounts.get(target) || 0),
-              baselineTarget: beforeSnapshot.get(fd) ?? null,
-              fdinfo: diagnosticRead(() =>
-                fs.readFileSync(`/proc/self/fdinfo/${fd}`, "utf8").trim(),
-              ),
-              unixSocket:
-                unixRows.find((line) =>
-                  line
-                    .split(/\s+/)
-                    .includes(target.match(/^socket:\[(\d+)\]$/)?.[1]),
-                ) || null,
-            }));
-        };
         const waitForFdGrowthToClear = async (before, timeoutMs = 5_000) => {
           const deadline = Date.now() + timeoutMs;
           let growth = positiveFdGrowth(before);
@@ -3025,32 +2943,48 @@ describe.runIf(LIVE && SUPPORTED)(
           ).toEqual([]);
 
           await warmBrokerAsyncRuntime(workspace);
-          const beforeBackgroundFdSnapshot = fdSnapshot();
-          const baselineHandleObjects = new Set(activeHandleObjects());
-          const originalBackgroundExecFile =
-            _backgroundTaskCommandDeps.execFile;
-          const launchTraces = [];
-          const captureLaunchPhase = (trace, phase) => {
-            const snapshot = fdSnapshot();
-            trace[phase] = {
-              child: childSummary(trace.child),
-              fds: fdDelta(trace.before, snapshot),
-              handles: activeHandleSummary(baselineHandleObjects),
-            };
+          const credentialInfoBefore =
+            executionBroker._credentialAgent.getInfo();
+          const credentialWorkerThreadBefore =
+            executionBroker._credentialAgent._credentialTransport?._worker
+              ?.threadId ?? null;
+          const credentialListenerPaths = () => {
+            const currentProcessSocketInodes = new Set();
+            for (const entry of fs.readdirSync("/proc/self/fd")) {
+              try {
+                const target = fs.readlinkSync(`/proc/self/fd/${entry}`);
+                const match = /^socket:\[(\d+)\]$/.exec(target);
+                if (match) currentProcessSocketInodes.add(match[1]);
+              } catch {
+                // The descriptor used to enumerate /proc/self/fd can disappear.
+              }
+            }
+            return fs
+              .readFileSync("/proc/net/unix", "utf8")
+              .split("\n")
+              .map((line) => line.trim().split(/\s+/))
+              .filter(
+                (fields) =>
+                  fields.length >= 8 &&
+                  currentProcessSocketInodes.has(fields[6]),
+              )
+              .map((fields) => fields.slice(7).join(" "))
+              .filter((value) =>
+                /^cc-cred-[a-f0-9]{24}\.sock$/.test(
+                  path.posix.basename(value || ""),
+                ),
+              )
+              .sort();
           };
-          _backgroundTaskCommandDeps.execFile = (...execFileArgs) => {
-            const trace = { before: fdSnapshot() };
-            launchTraces.push(trace);
-            const callbackIndex = execFileArgs.length - 1;
-            const originalCallback = execFileArgs[callbackIndex];
-            execFileArgs[callbackIndex] = (...callbackArgs) => {
-              captureLaunchPhase(trace, "callback");
-              return originalCallback(...callbackArgs);
-            };
-            trace.child = originalBackgroundExecFile(...execFileArgs);
-            captureLaunchPhase(trace, "spawn");
-            return trace.child;
-          };
+          const credentialListenersBefore = credentialListenerPaths();
+          expect(credentialInfoBefore.transportInfo).toMatchObject({
+            available: true,
+            ready: true,
+          });
+          expect(credentialListenersBefore).toEqual([
+            credentialInfoBefore.transportInfo.endpoint,
+          ]);
+          const beforeBackgroundFds = fdTargetCounts();
           const backgroundRequest = {
             command: [
               `test ! -e ${quotePosix(outsideMarker)}`,
@@ -3063,25 +2997,10 @@ describe.runIf(LIVE && SUPPORTED)(
             workspaceCwd: workspace,
             requiredBoundaries: ["filesystem", "network"],
           };
-          const captureStableLaunch = async (trace) => {
-            trace.stableGrowth = await waitForFdGrowthToClear(
-              fdTargetCounts(trace.before),
-            );
-            captureLaunchPhase(trace, "stable");
-          };
-          const backgroundOutputs = [];
-          try {
-            backgroundOutputs.push(
-              await executeBackgroundTaskCommand(backgroundRequest),
-            );
-            await captureStableLaunch(launchTraces[0]);
-            backgroundOutputs.push(
-              await executeBackgroundTaskCommand(backgroundRequest),
-            );
-            await captureStableLaunch(launchTraces[1]);
-          } finally {
-            _backgroundTaskCommandDeps.execFile = originalBackgroundExecFile;
-          }
+          const backgroundOutputs = [
+            await executeBackgroundTaskCommand(backgroundRequest),
+            await executeBackgroundTaskCommand(backgroundRequest),
+          ];
           expect(backgroundOutputs).toEqual([
             "background-live-ok",
             "background-live-ok",
@@ -3090,59 +3009,22 @@ describe.runIf(LIVE && SUPPORTED)(
             "background-ok",
           );
           expect(fs.readFileSync(outsideMarker, "utf8")).toBe("host-outside");
-          const controlTrace = { before: fdSnapshot() };
-          const controlFds = Array.from(
-            { length: launchTraces[0].spawn.child.stdio.length - 3 },
-            () => fs.openSync("/dev/null", "r"),
-          );
-          try {
-            controlTrace.child = nativeSpawn(process.execPath, ["-e", ""], {
-              cwd: workspace,
-              stdio: ["ignore", "pipe", "pipe", ...controlFds],
-            });
-            await once(controlTrace.child, "close");
-          } finally {
-            for (const fd of controlFds) fs.closeSync(fd);
-          }
-          await captureStableLaunch(controlTrace);
-          const stableFdSnapshot = fdSnapshot();
-          const backgroundFdGrowth = positiveFdGrowth(
-            fdTargetCounts(beforeBackgroundFdSnapshot),
-            fdTargetCounts(stableFdSnapshot),
-          );
-          const credentialInfo = executionBroker._credentialAgent.getInfo();
-          const socketCount = (snapshot) =>
-            [...snapshot.values()].filter((value) =>
-              value.startsWith("socket:["),
-            ).length;
-          const traceReport = (trace) => {
-            const report = { ...trace };
-            delete report.child;
-            delete report.before;
-            return report;
-          };
-          const backgroundFdDiagnostics = {
-            growth: backgroundFdGrowth,
-            totalFdCountDelta:
-              stableFdSnapshot.size - beforeBackgroundFdSnapshot.size,
-            socketFdCountDelta:
-              socketCount(stableFdSnapshot) -
-              socketCount(beforeBackgroundFdSnapshot),
-            totalFdDelta: fdDelta(beforeBackgroundFdSnapshot, stableFdSnapshot),
-            extendedStdioControl: traceReport(controlTrace),
-            credential: {
-              transport: credentialInfo.transportInfo,
-              workerThreadId:
-                executionBroker._credentialAgent._credentialTransport?._worker
-                  ?.threadId ?? null,
-            },
-            activeHandles: activeHandleSummary(baselineHandleObjects),
-            launches: launchTraces.map(traceReport),
-          };
+          const backgroundFdGrowth =
+            await waitForFdGrowthToClear(beforeBackgroundFds);
           expect(
             backgroundFdGrowth,
-            JSON.stringify(backgroundFdDiagnostics, null, 2),
+            JSON.stringify(backgroundFdGrowth),
           ).toEqual([]);
+          const credentialInfoAfter =
+            executionBroker._credentialAgent.getInfo();
+          expect(credentialInfoAfter.transportInfo.endpoint).toBe(
+            credentialInfoBefore.transportInfo.endpoint,
+          );
+          expect(
+            executionBroker._credentialAgent._credentialTransport?._worker
+              ?.threadId ?? null,
+          ).toBe(credentialWorkerThreadBefore);
+          expect(credentialListenerPaths()).toEqual(credentialListenersBefore);
 
           expect(executionBroker.getAuditLog(1)[0]).toMatchObject({
             permissionDecision: "allow",
