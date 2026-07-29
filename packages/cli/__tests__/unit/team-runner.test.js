@@ -12,6 +12,16 @@ function freshRegistry() {
   return new TaskLeaseRegistry({ now: () => t, defaultTtlMs: 1_000_000 });
 }
 
+function activeAttempt(runner, key) {
+  const claim = runner.activeClaims().find((item) => item.key === key);
+  if (!claim) throw new Error(`No active claim for ${key}`);
+  return {
+    holder: claim.holder,
+    leaseId: claim.leaseId,
+    fencingToken: claim.fencingToken,
+  };
+}
+
 describe("TeamRunner DAG execution", () => {
   it("runs a diamond DAG in dependency order, each task exactly once", async () => {
     const reg = freshRegistry();
@@ -682,6 +692,385 @@ describe("TeamRunner team budget", () => {
       success: false,
       stats: { cancelled: 1 },
     });
+  });
+});
+
+describe("TeamRunner human takeover", () => {
+  it("interrupts an active task and fails it closed for adjudication", async () => {
+    const reg = freshRegistry();
+    reg.addTask({ key: "deploy", title: "deploy" });
+    const events = [];
+    let started;
+    const taskStarted = new Promise((resolve) => {
+      started = resolve;
+    });
+    const runner = new TeamRunner(reg, {
+      teammates: 1,
+      onEvent: (event) => events.push(event),
+      runTask: async ({ signal }) => {
+        started();
+        await new Promise((resolve, reject) => {
+          signal.addEventListener(
+            "abort",
+            () => reject(signal.reason || new Error("aborted")),
+            { once: true },
+          );
+        });
+      },
+    });
+
+    const running = runner.run();
+    await taskStarted;
+    expect(runner.activeClaims()).toEqual([
+      expect.objectContaining({
+        key: "deploy",
+        holder: "teammate-1",
+        leaseId: expect.any(String),
+        fencingToken: expect.any(String),
+        interrupted: false,
+      }),
+    ]);
+    const attempt = activeAttempt(runner, "deploy");
+    expect(
+      runner.interruptTask("deploy", {
+        ...attempt,
+        reason: "operator taking control",
+        actor: "alice",
+        requestId: "interrupt-1",
+        evidenceDigest: "sha256:interrupt-evidence",
+      }),
+    ).toMatchObject({ ok: true });
+
+    const summary = await running;
+    expect(summary).toMatchObject({
+      done: false,
+      success: false,
+      stats: {
+        cancelled: 1,
+        adjudicationRequired: 1,
+      },
+    });
+    expect(reg.getTask("deploy")).toMatchObject({
+      status: "cancelled",
+      metadata: {
+        adjudication: {
+          required: true,
+          code: "TEAM_TASK_HUMAN_INTERRUPTED",
+          evidenceDigest: "sha256:interrupt-evidence",
+        },
+      },
+    });
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: "task:interrupt-requested",
+        key: "deploy",
+        requestId: "interrupt-1",
+      }),
+    );
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: "task:failed",
+        key: "deploy",
+        retry: false,
+        interrupted: true,
+        requestId: "interrupt-1",
+      }),
+    );
+    expect(runner.activeClaims()).toEqual([]);
+  });
+
+  it("rejects missing or stale attempt bindings without aborting current work", async () => {
+    const reg = freshRegistry();
+    reg.addTask({ key: "deploy", title: "deploy" });
+    let started;
+    const taskStarted = new Promise((resolve) => {
+      started = resolve;
+    });
+    let taskSignal;
+    const runner = new TeamRunner(reg, {
+      teammates: 1,
+      runTask: async ({ signal }) => {
+        taskSignal = signal;
+        started();
+        await new Promise((resolve, reject) => {
+          signal.addEventListener(
+            "abort",
+            () => reject(signal.reason || new Error("aborted")),
+            { once: true },
+          );
+        });
+      },
+    });
+
+    const running = runner.run();
+    await taskStarted;
+    const attempt = activeAttempt(runner, "deploy");
+    expect(runner.interruptTask("deploy")).toEqual({
+      ok: false,
+      reason: "stale_attempt",
+    });
+    for (const stale of [
+      { ...attempt, holder: "teammate-2" },
+      { ...attempt, leaseId: `${attempt.leaseId}-old` },
+      { ...attempt, fencingToken: 1 },
+    ]) {
+      expect(runner.interruptTask("deploy", stale)).toEqual({
+        ok: false,
+        reason: "stale_attempt",
+      });
+    }
+    expect(taskSignal.aborted).toBe(false);
+
+    expect(
+      runner.interruptTask("deploy", {
+        ...attempt,
+        requestId: "interrupt-current-attempt",
+      }),
+    ).toMatchObject({ ok: true });
+    await running;
+    expect(taskSignal.aborted).toBe(true);
+  });
+
+  it("persists only a changed lease identity after expired-lease reacquire", async () => {
+    let now = 1_000;
+    const reg = new TaskLeaseRegistry({
+      now: () => now,
+      defaultTtlMs: 50,
+    });
+    reg.addTask({ key: "deploy", title: "deploy" });
+    let started;
+    const taskStarted = new Promise((resolve) => {
+      started = resolve;
+    });
+    const leaseChanges = [];
+    const runner = new TeamRunner(reg, {
+      teammates: 1,
+      ttlMs: 50,
+      renewEveryMs: 1_000_000,
+      onLeaseChanged: (change) => leaseChanges.push(change),
+      runTask: async (context) => {
+        started(context);
+        await new Promise((resolve, reject) => {
+          context.signal.addEventListener(
+            "abort",
+            () => reject(context.signal.reason || new Error("aborted")),
+            { once: true },
+          );
+        });
+      },
+    });
+
+    const running = runner.run();
+    const context = await taskStarted;
+    const initial = activeAttempt(runner, "deploy");
+    expect(context.renew()).toMatchObject({ ok: true });
+    expect(activeAttempt(runner, "deploy")).toEqual(initial);
+    expect(leaseChanges).toEqual([]);
+
+    now = 1_100;
+    expect(context.renew()).toMatchObject({ ok: true });
+    const reacquired = activeAttempt(runner, "deploy");
+    expect(reacquired.leaseId).not.toBe(initial.leaseId);
+    expect(reacquired.fencingToken).not.toBe(initial.fencingToken);
+    expect(leaseChanges).toEqual([
+      expect.objectContaining({
+        key: "deploy",
+        holder: reacquired.holder,
+        previousLeaseId: initial.leaseId,
+        leaseId: reacquired.leaseId,
+        previousFencingToken: initial.fencingToken,
+        fencingToken: reacquired.fencingToken,
+      }),
+    ]);
+
+    expect(
+      runner.interruptTask("deploy", {
+        ...initial,
+        requestId: "interrupt-old-attempt",
+      }),
+    ).toEqual({ ok: false, reason: "stale_attempt" });
+    expect(
+      runner.interruptTask("deploy", {
+        ...reacquired,
+        requestId: "interrupt-new-attempt",
+      }),
+    ).toMatchObject({ ok: true });
+    await running;
+  });
+
+  it("fails closed when a changed lease identity cannot be persisted", async () => {
+    let now = 1_000;
+    const reg = new TaskLeaseRegistry({
+      now: () => now,
+      defaultTtlMs: 50,
+    });
+    reg.addTask({ key: "remote-write", title: "remote-write" });
+    let started;
+    const taskStarted = new Promise((resolve) => {
+      started = resolve;
+    });
+    const runner = new TeamRunner(reg, {
+      teammates: 1,
+      ttlMs: 50,
+      renewEveryMs: 1_000_000,
+      onLeaseChanged: () => {
+        throw new Error("state persistence unavailable");
+      },
+      runTask: async (context) => {
+        started(context);
+        await new Promise((resolve, reject) => {
+          context.signal.addEventListener(
+            "abort",
+            () => reject(context.signal.reason || new Error("aborted")),
+            { once: true },
+          );
+        });
+      },
+    });
+
+    const running = runner.run();
+    const context = await taskStarted;
+    now = 1_100;
+    const renewal = context.renew();
+    expect(renewal).toMatchObject({
+      ok: false,
+      reason: "lease_change_persist_failed",
+      error: {
+        code: "TEAM_LEASE_CHANGE_PERSIST_FAILED",
+        retryable: false,
+      },
+    });
+    expect(context.signal).toMatchObject({ aborted: true });
+    expect(context.signal.reason).toMatchObject({
+      code: "TEAM_LEASE_CHANGE_PERSIST_FAILED",
+      adjudication: {
+        code: "TEAM_LEASE_CHANGE_PERSIST_FAILED",
+        leaseId: activeAttempt(runner, "remote-write").leaseId,
+      },
+    });
+    await expect(running).rejects.toMatchObject({
+      code: "TEAM_LEASE_CHANGE_PERSIST_FAILED",
+    });
+    expect(reg.getTask("remote-write")).toMatchObject({
+      status: "cancelled",
+      metadata: {
+        adjudication: {
+          required: true,
+          code: "TEAM_LEASE_CHANGE_PERSIST_FAILED",
+        },
+      },
+    });
+  });
+
+  it("fails closed when an executor ignores abort and returns a result", async () => {
+    const reg = freshRegistry();
+    reg.addTask({ key: "remote-write", title: "remote-write" });
+    const budget = new TeamBudget({ maxTokens: 100 });
+    let started;
+    let finish;
+    const taskStarted = new Promise((resolve) => {
+      started = resolve;
+    });
+    const mayFinish = new Promise((resolve) => {
+      finish = resolve;
+    });
+    const runner = new TeamRunner(reg, {
+      teammates: 1,
+      budget,
+      runTask: async () => {
+        started();
+        await mayFinish;
+        return {
+          usage: { input_tokens: 3, output_tokens: 2 },
+          provider: "test",
+          model: "test-model",
+        };
+      },
+    });
+
+    const running = runner.run();
+    await taskStarted;
+    const attempt = activeAttempt(runner, "remote-write");
+    expect(
+      runner.interruptTask("remote-write", {
+        ...attempt,
+        requestId: "interrupt-race",
+      }),
+    ).toMatchObject({ ok: true });
+    expect(
+      runner.interruptTask("remote-write", {
+        ...attempt,
+        requestId: "interrupt-race",
+      }),
+    ).toMatchObject({ ok: true, idempotent: true });
+    expect(
+      runner.interruptTask("remote-write", {
+        ...attempt,
+        requestId: "interrupt-conflict",
+      }),
+    ).toEqual({ ok: false, reason: "already_interrupted" });
+    finish();
+
+    await running;
+    expect(reg.getTask("remote-write")).toMatchObject({
+      status: "cancelled",
+      metadata: {
+        adjudication: { required: true },
+      },
+    });
+    expect(budget.status()).toMatchObject({
+      tasks: 1,
+      tokens: 5,
+    });
+    expect(runner.interruptTask("remote-write")).toEqual({
+      ok: false,
+      reason: "not_active",
+    });
+  });
+
+  it("aborts all active work fail-closed on a coordinator control failure", async () => {
+    const reg = freshRegistry();
+    reg.addTask({ key: "a", title: "a" });
+    reg.addTask({ key: "b", title: "b" });
+    let started = 0;
+    let bothStarted;
+    const ready = new Promise((resolve) => {
+      bothStarted = resolve;
+    });
+    const runner = new TeamRunner(reg, {
+      teammates: 2,
+      runTask: ({ signal }) =>
+        new Promise((resolve, reject) => {
+          started += 1;
+          if (started === 2) bothStarted();
+          signal.addEventListener(
+            "abort",
+            () => reject(new Error("generic executor abort")),
+            { once: true },
+          );
+        }),
+    });
+
+    const running = runner.run();
+    await ready;
+    const failure = new Error("control log rolled back");
+    failure.code = "TEAM_CONTROL_ROLLBACK";
+    expect(runner.abortRun(failure)).toEqual({
+      ok: true,
+      activeClaims: 2,
+    });
+    await expect(running).rejects.toThrow("control log rolled back");
+    for (const key of ["a", "b"]) {
+      expect(reg.getTask(key)).toMatchObject({
+        status: "cancelled",
+        metadata: {
+          adjudication: {
+            required: true,
+            code: "TEAM_CONTROL_ROLLBACK",
+          },
+        },
+      });
+    }
   });
 });
 

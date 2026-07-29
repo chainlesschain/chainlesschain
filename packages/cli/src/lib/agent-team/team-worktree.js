@@ -48,9 +48,32 @@ export const _processDeps = {
 };
 
 export const MAX_TEAM_WORKTREE_STDERR_BYTES = 64 * 1024;
-const TEAM_WORKTREE_SNAPSHOT_VERSION = 3;
+const TEAM_WORKTREE_SNAPSHOT_VERSION = 5;
+const PUBLISHED_TEAM_WORKTREE_SNAPSHOT_VERSION = 3;
+const LEGACY_TEAM_WORKTREE_SNAPSHOT_VERSION = 4;
 const MAX_RUN_ID_BYTES = 256;
 const MAX_RECORD_VALUE_BYTES = 4096;
+const CHECKPOINT_DIGEST = /^sha256:[a-f0-9]{64}$/;
+const CHECKPOINT_COVERAGE = new Set(["full", "partial", "none"]);
+const CHECKPOINT_STATES = new Set([
+  "preparing",
+  "prepared",
+  "running",
+  "rollback_required",
+  "committed",
+  "rolled_back",
+  "rollback_failed",
+  "restoring",
+  "restored",
+  "restore_failed",
+  "aborted",
+]);
+const CHECKPOINT_TERMINAL_STATES = new Set([
+  "committed",
+  "rolled_back",
+  "restored",
+  "aborted",
+]);
 
 /**
  * Resolve the sparse-checkout / dependency-symlink options for a task, letting a
@@ -102,10 +125,42 @@ function requireAdjudication(error, code) {
     error instanceof Error ? error : new Error(String(error || code));
   failure.code = failure.code || code;
   failure.retryable = false;
+  failure.adjudication ||= {
+    code: failure.code,
+    reason: failure.message,
+    evidenceDigest: null,
+  };
   return failure;
 }
 
-function defaultRunShell(command, cwd, { signal = null } = {}) {
+function abortReason(signal, code, message) {
+  const reason = signal?.reason;
+  if (
+    reason instanceof Error &&
+    (reason.name !== "AbortError" ||
+      typeof reason.code === "string" ||
+      reason.adjudication ||
+      reason.interruptEvidence)
+  ) {
+    return reason;
+  }
+  const failure = new Error(
+    reason == null ? message : safeProcessError(reason, message),
+  );
+  failure.code = code;
+  if (reason && (typeof reason === "object" || typeof reason === "function")) {
+    for (const field of ["adjudication", "interruptEvidence", "requestId"]) {
+      if (reason[field] !== undefined) failure[field] = reason[field];
+    }
+  }
+  return failure;
+}
+
+function defaultRunShell(
+  command,
+  cwd,
+  { signal = null, managedCheckpoint = false } = {},
+) {
   return new Promise((resolve, reject) => {
     let child;
     try {
@@ -116,7 +171,8 @@ function defaultRunShell(command, cwd, { signal = null } = {}) {
         origin: "team-worktree:task-command",
         policy: "allow",
         scope: "team-worktree",
-        detached: process.platform !== "win32",
+        detached: managedCheckpoint ? false : process.platform !== "win32",
+        ...(managedCheckpoint ? { requiredBoundaries: ["process-tree"] } : {}),
       });
     } catch (error) {
       reject(error instanceof Error ? error : new Error(String(error)));
@@ -129,6 +185,7 @@ function defaultRunShell(command, cwd, { signal = null } = {}) {
     let terminationError = null;
     let terminationTimer = null;
     let abortListener = null;
+    let processError = null;
     const finish = (error, value) => {
       if (settled) return;
       settled = true;
@@ -141,14 +198,29 @@ function defaultRunShell(command, cwd, { signal = null } = {}) {
     };
     const terminate = () => {
       if (settled || terminationError) return;
-      terminationError = new Error("Team worktree shell task was cancelled");
-      terminationError.code = "TEAM_WORKTREE_SHELL_ABORTED";
+      terminationError = abortReason(
+        signal,
+        "TEAM_WORKTREE_SHELL_ABORTED",
+        "Team worktree shell task was cancelled",
+      );
       try {
         _processDeps.killProcessTree(child);
       } catch {
         /* wait for close or the bounded grace timer */
       }
-      terminationTimer = setTimeout(() => finish(terminationError), 5000);
+      terminationTimer = setTimeout(() => {
+        if (managedCheckpoint) {
+          // A managed checkpoint may not begin rollback while any writer could
+          // still be alive. Retry termination, but keep waiting for `close`.
+          try {
+            _processDeps.killProcessTree(child);
+          } catch {
+            /* the durable transaction remains running/fail-closed */
+          }
+          return;
+        }
+        finish(terminationError);
+      }, 5000);
     };
 
     // A piped stdout that nobody consumes can fill its OS buffer and deadlock a
@@ -172,19 +244,20 @@ function defaultRunShell(command, cwd, { signal = null } = {}) {
     });
     child.once("error", (error) => {
       if (!terminationError) {
-        finish(
-          new Error(
-            safeProcessError(
-              error?.message || error,
-              "command failed to start",
-            ),
-          ),
+        const failure = new Error(
+          safeProcessError(error?.message || error, "command failed to start"),
         );
+        if (managedCheckpoint) processError = failure;
+        else finish(failure);
       }
     });
     child.once("close", (code) => {
       if (terminationError) {
         finish(terminationError);
+        return;
+      }
+      if (processError) {
+        finish(processError);
         return;
       }
       if (code === 0) {
@@ -500,6 +573,232 @@ function normalizeManagedLinks(value, key) {
   return links;
 }
 
+function normalizeDependencyKeys(task, key) {
+  const value = task?.dependsOn ?? task?.metadata?.dependsOn ?? [];
+  if (!Array.isArray(value)) {
+    throw new TypeError(`invalid dependencies for team worktree "${key}"`);
+  }
+  const seen = new Set();
+  const dependencies = [];
+  for (const item of value) {
+    const dependency = requireRecordString(item, "dependency key");
+    if (dependency === key) {
+      throw new TypeError(`team worktree "${key}" cannot depend on itself`);
+    }
+    if (seen.has(dependency)) {
+      throw new TypeError(
+        `duplicate dependency "${dependency}" for team worktree "${key}"`,
+      );
+    }
+    seen.add(dependency);
+    dependencies.push(dependency);
+  }
+  return dependencies.sort();
+}
+
+function normalizeDependencyCommits(value, key) {
+  if (!Array.isArray(value)) {
+    throw new TypeError(
+      `invalid team worktree dependency commits for "${key}"`,
+    );
+  }
+  const seen = new Set();
+  const commits = value.map((item) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      throw new TypeError(
+        `invalid team worktree dependency commit for "${key}"`,
+      );
+    }
+    const dependencyKey = requireRecordString(item.key, "dependency key");
+    if (dependencyKey === key || seen.has(dependencyKey)) {
+      throw new TypeError(
+        `invalid team worktree dependency order for "${key}"`,
+      );
+    }
+    seen.add(dependencyKey);
+    const branch = requireRecordString(item.branch, "dependency branch");
+    if (!isGitSafeBranch(branch)) {
+      throw new TypeError(
+        `invalid team worktree dependency branch for "${key}"`,
+      );
+    }
+    return {
+      key: dependencyKey,
+      branch,
+      commitOid: requireGitOid(
+        item.commitOid,
+        `dependencyCommits.${dependencyKey}.commitOid`,
+      ),
+    };
+  });
+  const stable = [...commits].sort((left, right) =>
+    left.key < right.key ? -1 : left.key > right.key ? 1 : 0,
+  );
+  if (stable.some((item, index) => item.key !== commits[index].key)) {
+    throw new TypeError(`unstable team worktree dependency order for "${key}"`);
+  }
+  return commits;
+}
+
+function optionalCheckpointDigest(value, field, key) {
+  if (value == null) return null;
+  if (typeof value !== "string" || !CHECKPOINT_DIGEST.test(value)) {
+    throw new TypeError(
+      `invalid team worktree checkpoint ${field} for "${key}"`,
+    );
+  }
+  return value;
+}
+
+function normalizeCheckpointPaths(value, key) {
+  if (!Array.isArray(value)) {
+    throw new TypeError(
+      `invalid team worktree checkpoint uncoveredPaths for "${key}"`,
+    );
+  }
+  const paths = value.map((item) =>
+    requireRecordString(item, "checkpoint.uncoveredPaths"),
+  );
+  if (new Set(paths).size !== paths.length) {
+    throw new TypeError(
+      `duplicate team worktree checkpoint uncovered path for "${key}"`,
+    );
+  }
+  return [...paths];
+}
+
+function normalizeWorktreeCheckpoint(value, key) {
+  if (value == null) return null;
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new TypeError(`invalid team worktree checkpoint for "${key}"`);
+  }
+  const state = requireRecordString(value.state, "checkpoint.state");
+  const coverage = requireRecordString(value.coverage, "checkpoint.coverage");
+  const fileCoverage = requireRecordString(
+    value.fileCoverage,
+    "checkpoint.fileCoverage",
+  );
+  if (
+    !CHECKPOINT_STATES.has(state) ||
+    !CHECKPOINT_COVERAGE.has(coverage) ||
+    !CHECKPOINT_COVERAGE.has(fileCoverage) ||
+    value.requestedCoverage !== "partial" ||
+    typeof value.externalSideEffects !== "boolean"
+  ) {
+    throw new TypeError(
+      `invalid team worktree checkpoint coverage/state for "${key}"`,
+    );
+  }
+  const uncoveredPaths = normalizeCheckpointPaths(value.uncoveredPaths, key);
+  if (
+    coverage === "full" &&
+    (value.externalSideEffects || uncoveredPaths.length > 0)
+  ) {
+    throw new TypeError(
+      `team worktree checkpoint overstates full coverage for "${key}"`,
+    );
+  }
+  const updatedAt = requireRecordString(
+    value.updatedAt,
+    "checkpoint.updatedAt",
+  );
+  if (!Number.isFinite(Date.parse(updatedAt))) {
+    throw new TypeError(
+      `invalid team worktree checkpoint timestamp for "${key}"`,
+    );
+  }
+  const taskKey = requireRecordString(value.taskKey, "checkpoint.taskKey");
+  if (taskKey !== key) {
+    throw new TypeError(
+      `team worktree checkpoint task binding changed for "${key}"`,
+    );
+  }
+  return {
+    transactionId: requireRecordString(
+      value.transactionId,
+      "checkpoint.transactionId",
+    ),
+    checkpointId: requireRecordString(
+      value.checkpointId,
+      "checkpoint.checkpointId",
+    ),
+    runId: requireRecordString(value.runId, "checkpoint.runId"),
+    taskKey,
+    workspaceRoot: requireRecordString(
+      value.workspaceRoot,
+      "checkpoint.workspaceRoot",
+    ),
+    state,
+    stateDir: requireRecordString(value.stateDir, "checkpoint.stateDir"),
+    writerIsolation: requireRecordString(
+      value.writerIsolation,
+      "checkpoint.writerIsolation",
+    ),
+    requestedCoverage: "partial",
+    coverage,
+    fileCoverage,
+    externalSideEffects: value.externalSideEffects,
+    uncoveredPaths,
+    checkpointDigest: optionalCheckpointDigest(
+      value.checkpointDigest,
+      "checkpointDigest",
+      key,
+    ),
+    writeManifestDigest: optionalCheckpointDigest(
+      value.writeManifestDigest,
+      "writeManifestDigest",
+      key,
+    ),
+    evidenceDigest: optionalCheckpointDigest(
+      value.evidenceDigest,
+      "evidenceDigest",
+      key,
+    ),
+    updatedAt,
+    recoveryRequired: !CHECKPOINT_TERMINAL_STATES.has(state),
+    failureCode:
+      value.failureCode == null
+        ? null
+        : requireRecordString(value.failureCode, "checkpoint.failureCode"),
+  };
+}
+
+export function summarizeWorktreeCheckpoint(snapshot, key) {
+  if (!snapshot || typeof snapshot !== "object" || Array.isArray(snapshot)) {
+    throw new TypeError(
+      `invalid workspace transaction snapshot for team task "${key}"`,
+    );
+  }
+  const latestFailure = Array.isArray(snapshot.failureEvidence)
+    ? snapshot.failureEvidence.at(-1)
+    : null;
+  return normalizeWorktreeCheckpoint(
+    {
+      transactionId: snapshot.id,
+      checkpointId: snapshot.checkpointId,
+      runId: snapshot.runId,
+      taskKey: snapshot.taskKey,
+      workspaceRoot: snapshot.workspaceRoot,
+      state: snapshot.state,
+      stateDir: snapshot.stateDir,
+      writerIsolation: snapshot.writerIsolation || "unknown",
+      requestedCoverage: "partial",
+      coverage: snapshot.coverage || "none",
+      fileCoverage: snapshot.fileCoverage || "none",
+      externalSideEffects: snapshot.externalSideEffects !== false,
+      uncoveredPaths: Array.isArray(snapshot.uncoveredPaths)
+        ? snapshot.uncoveredPaths
+        : [],
+      checkpointDigest: snapshot.checkpoint?.digest || null,
+      writeManifestDigest: snapshot.writeManifest?.digest || null,
+      evidenceDigest: snapshot.evidence?.evidenceDigest || null,
+      updatedAt: snapshot.updatedAt,
+      failureCode: latestFailure?.code || null,
+    },
+    key,
+  );
+}
+
 export class TeamWorktreeCoordinator {
   constructor(repoDir, options = {}) {
     this.repoDir = repoDir;
@@ -514,6 +813,12 @@ export class TeamWorktreeCoordinator {
     };
     this._onWorktree =
       typeof options.onWorktree === "function" ? options.onWorktree : null;
+    this._checkpointBroker = options.checkpointBroker || null;
+    this._onCheckpoint =
+      typeof options.onCheckpoint === "function" ? options.onCheckpoint : null;
+    this._checkpointExclusions = Array.isArray(options.checkpointExclusions)
+      ? [...options.checkpointExclusions]
+      : [];
     const recovered =
       options.snapshot ??
       options.recover ??
@@ -608,6 +913,422 @@ export class TeamWorktreeCoordinator {
     )}`;
   }
 
+  _checkpointRecord(key, record) {
+    return {
+      key,
+      branch: record.branch,
+      path: record.path,
+      committed: record.committed === true,
+      completed: record.completed === true,
+      commitOid: record.commitOid || null,
+      dependencyCommits: record.dependencyCommits.map((dependency) => ({
+        ...dependency,
+      })),
+      baselineCommitOid: record.baselineCommitOid,
+      imported: record.imported === true,
+      integration: { ...record.integration },
+      managedLinks: [...(record.managedLinks || [])],
+      workspaceCheckpoint: record.workspaceCheckpoint
+        ? {
+            ...record.workspaceCheckpoint,
+            uncoveredPaths: [...record.workspaceCheckpoint.uncoveredPaths],
+          }
+        : null,
+      cleanupPrepared: record.cleanupPrepared === true,
+      cleaned: record.cleaned === true,
+    };
+  }
+
+  _publishCheckpoint(key, record, phase, details = {}) {
+    if (!this._onCheckpoint) return;
+    this._onCheckpoint({
+      key,
+      phase,
+      ...details,
+      checkpoint: record.workspaceCheckpoint
+        ? {
+            ...record.workspaceCheckpoint,
+            uncoveredPaths: [...record.workspaceCheckpoint.uncoveredPaths],
+          }
+        : null,
+      worktree: this._checkpointRecord(key, record),
+    });
+  }
+
+  _updateCheckpoint(key, record, guard, phase, details = {}) {
+    record.workspaceCheckpoint = summarizeWorktreeCheckpoint(
+      guard.snapshot(),
+      key,
+    );
+    this._publishCheckpoint(key, record, phase, details);
+    return record.workspaceCheckpoint;
+  }
+
+  /**
+   * Import a completed task result produced by another worker process. Callers
+   * register dependencies in topological order before running a downstream
+   * task. The same branch/path/OID checks used by snapshot recovery apply, so a
+   * stale or replaced worker result cannot become merge authority.
+   */
+  registerCompletedDependency(key, result) {
+    requireRecordString(key, "key");
+    if (!result || typeof result !== "object" || Array.isArray(result)) {
+      throw new TypeError(`invalid completed dependency result for "${key}"`);
+    }
+    const record = {
+      key,
+      branch: result.branch,
+      path: result.worktreePath,
+      committed: result.committed,
+      completed: true,
+      commitOid: result.commitOid,
+      dependencyCommits: result.dependencyCommits || [],
+      baselineCommitOid: result.baselineCommitOid,
+      imported: true,
+      integration: emptyIntegrationState(),
+      managedLinks: result.managedLinks || [],
+      workspaceCheckpoint: result.workspaceCheckpoint || null,
+      cleanupPrepared: false,
+      cleaned: false,
+    };
+    const existing = this._created.get(key);
+    if (existing) {
+      const same =
+        existing.completed === true &&
+        existing.branch === record.branch &&
+        existing.path === record.path &&
+        existing.committed === record.committed &&
+        existing.commitOid === record.commitOid &&
+        existing.baselineCommitOid === record.baselineCommitOid &&
+        existing.imported === true &&
+        JSON.stringify(existing.dependencyCommits) ===
+          JSON.stringify(record.dependencyCommits) &&
+        JSON.stringify(existing.managedLinks) ===
+          JSON.stringify(record.managedLinks) &&
+        JSON.stringify(existing.workspaceCheckpoint) ===
+          JSON.stringify(record.workspaceCheckpoint);
+      if (!same) {
+        throw requireAdjudication(
+          new Error(`completed dependency result for "${key}" changed`),
+          "TEAM_WORKTREE_DEPENDENCY_ADJUDICATION_REQUIRED",
+        );
+      }
+      const branchHead = _deps.resolveGitRef(this.repoDir, existing.branch);
+      const worktreeHead = _deps.resolveGitRef(existing.path, "HEAD");
+      if (
+        branchHead !== existing.commitOid ||
+        worktreeHead !== existing.commitOid ||
+        !_deps.isWorktreeClean(existing.path)
+      ) {
+        throw requireAdjudication(
+          new Error(`completed dependency result for "${key}" drifted`),
+          "TEAM_WORKTREE_DEPENDENCY_ADJUDICATION_REQUIRED",
+        );
+      }
+      return this;
+    }
+    this.seed([record]);
+    const imported = this._created.get(key);
+    try {
+      const branchHead = _deps.resolveGitRef(this.repoDir, imported.branch);
+      const worktreeHead = _deps.resolveGitRef(imported.path, "HEAD");
+      if (
+        branchHead !== imported.commitOid ||
+        worktreeHead !== imported.commitOid ||
+        !_deps.isWorktreeClean(imported.path) ||
+        (imported.baselineCommitOid !== imported.commitOid &&
+          !_deps.isGitAncestor(
+            this.repoDir,
+            imported.baselineCommitOid,
+            imported.commitOid,
+          ))
+      ) {
+        throw new Error("completed dependency result could not be verified");
+      }
+    } catch (error) {
+      this._created.delete(key);
+      throw this._dependencyAdjudication(key, key, error);
+    }
+    return this;
+  }
+
+  _dependencyAdjudication(key, dependency, error, mergeResult = null) {
+    if (error?.code === "TEAM_WORKTREE_DEPENDENCY_ADJUDICATION_REQUIRED") {
+      return error;
+    }
+    const reason =
+      error instanceof Error ? error.message : String(error || "unknown error");
+    const failure = requireAdjudication(
+      new Error(
+        `task "${key}" dependency "${dependency}" requires adjudication: ${reason}`,
+      ),
+      "TEAM_WORKTREE_DEPENDENCY_ADJUDICATION_REQUIRED",
+    );
+    failure.dependency = dependency;
+    if (mergeResult?.conflicts?.length) {
+      failure.conflicts = mergeResult.conflicts;
+    }
+    return failure;
+  }
+
+  _assertDependencyBinding(key, binding) {
+    const info = this._created.get(binding.key);
+    if (!info) {
+      const branchHead = _deps.resolveGitRef(this.repoDir, binding.branch);
+      if (branchHead !== binding.commitOid) {
+        throw new Error(
+          `dependency branch "${binding.branch}" moved after settlement`,
+        );
+      }
+      return null;
+    }
+    if (info.completed !== true || info.commitOid == null) {
+      throw new Error("completed dependency worktree output is unavailable");
+    }
+    if (
+      info.branch !== binding.branch ||
+      info.commitOid !== binding.commitOid
+    ) {
+      throw new Error("persisted dependency commit binding changed");
+    }
+    const branchHead = _deps.resolveGitRef(this.repoDir, binding.branch);
+    if (branchHead !== binding.commitOid) {
+      throw new Error(
+        `dependency branch "${binding.branch}" moved after settlement`,
+      );
+    }
+    if (_deps.pathExists(info.path)) {
+      const worktreeHead = _deps.resolveGitRef(info.path, "HEAD");
+      if (worktreeHead !== binding.commitOid) {
+        throw new Error(
+          `dependency worktree HEAD for "${binding.key}" moved after settlement`,
+        );
+      }
+      if (!_deps.isWorktreeClean(info.path)) {
+        throw new Error(
+          `dependency worktree "${binding.key}" has unsettled changes`,
+        );
+      }
+    } else if (!info.cleaned) {
+      throw new Error(`dependency worktree "${binding.key}" is missing`);
+    }
+    if (
+      info.baselineCommitOid !== binding.commitOid &&
+      !_deps.isGitAncestor(
+        this.repoDir,
+        info.baselineCommitOid,
+        binding.commitOid,
+      )
+    ) {
+      throw new Error(
+        `dependency commit for "${binding.key}" no longer descends from its persisted baseline`,
+      );
+    }
+    return info;
+  }
+
+  _assertDependencyBindings(key, bindings, { baselineCommitOid = null } = {}) {
+    for (const binding of bindings) {
+      try {
+        this._assertDependencyBinding(key, binding);
+        if (
+          baselineCommitOid != null &&
+          baselineCommitOid !== binding.commitOid &&
+          !_deps.isGitAncestor(
+            this.repoDir,
+            binding.commitOid,
+            baselineCommitOid,
+          )
+        ) {
+          throw new Error(
+            `dependency commit "${binding.commitOid}" is absent from the persisted task baseline`,
+          );
+        }
+      } catch (error) {
+        throw this._dependencyAdjudication(key, binding.key, error);
+      }
+    }
+  }
+
+  _planDependencyCommits(key, task) {
+    let dependencies;
+    try {
+      dependencies = normalizeDependencyKeys(task, key);
+    } catch (error) {
+      throw this._dependencyAdjudication(key, key, error);
+    }
+    const bindings = dependencies.map((dependency) => {
+      const info = this._created.get(dependency);
+      if (!info || info.completed !== true || info.commitOid == null) {
+        throw this._dependencyAdjudication(
+          key,
+          dependency,
+          new Error("completed dependency worktree output is unavailable"),
+        );
+      }
+      return {
+        key: dependency,
+        branch: info.branch,
+        commitOid: info.commitOid,
+      };
+    });
+    this._assertDependencyBindings(key, bindings);
+    return bindings;
+  }
+
+  _composeDependencyBaseline(key, record) {
+    let baselineCommitOid = _deps.resolveGitRef(record.path, "HEAD");
+    const branchHead = _deps.resolveGitRef(this.repoDir, record.branch);
+    if (branchHead !== baselineCommitOid) {
+      throw this._dependencyAdjudication(
+        key,
+        key,
+        new Error("new task branch and worktree HEAD do not match"),
+      );
+    }
+    record.baselineCommitOid = baselineCommitOid;
+
+    for (const binding of record.dependencyCommits) {
+      this._assertDependencyBindings(key, [binding]);
+      if (
+        baselineCommitOid === binding.commitOid ||
+        _deps.isGitAncestor(this.repoDir, binding.commitOid, baselineCommitOid)
+      ) {
+        continue;
+      }
+      const previousBaseline = baselineCommitOid;
+      let mergeResult;
+      try {
+        mergeResult = _deps.mergeWorktree(record.path, binding.commitOid, {
+          message: `Compose dependency ${binding.key} for team task ${key}`,
+          deleteBranch: false,
+        });
+      } catch (error) {
+        throw this._dependencyAdjudication(key, binding.key, error);
+      }
+      if (mergeResult?.success !== true) {
+        throw this._dependencyAdjudication(
+          key,
+          binding.key,
+          new Error(
+            `dependency merge failed: ${
+              mergeResult?.message || "unknown error"
+            }`,
+          ),
+          mergeResult,
+        );
+      }
+      baselineCommitOid = _deps.resolveGitRef(record.path, "HEAD");
+      const postMergeBranch = _deps.resolveGitRef(this.repoDir, record.branch);
+      if (
+        postMergeBranch !== baselineCommitOid ||
+        (previousBaseline !== baselineCommitOid &&
+          !_deps.isGitAncestor(
+            this.repoDir,
+            previousBaseline,
+            baselineCommitOid,
+          )) ||
+        (binding.commitOid !== baselineCommitOid &&
+          !_deps.isGitAncestor(
+            this.repoDir,
+            binding.commitOid,
+            baselineCommitOid,
+          )) ||
+        !_deps.isWorktreeClean(record.path)
+      ) {
+        throw this._dependencyAdjudication(
+          key,
+          binding.key,
+          new Error("dependency merge result could not be verified"),
+        );
+      }
+      record.baselineCommitOid = baselineCommitOid;
+    }
+
+    this._assertDependencyBindings(key, record.dependencyCommits, {
+      baselineCommitOid,
+    });
+    return baselineCommitOid;
+  }
+
+  _assertTaskBaseline(key, record) {
+    const branchHead = _deps.resolveGitRef(this.repoDir, record.branch);
+    const worktreeHead = _deps.resolveGitRef(record.path, "HEAD");
+    if (
+      branchHead !== record.baselineCommitOid ||
+      worktreeHead !== record.baselineCommitOid ||
+      !_deps.isWorktreeClean(record.path)
+    ) {
+      throw this._dependencyAdjudication(
+        key,
+        key,
+        new Error("task dependency baseline moved before execution"),
+      );
+    }
+    this._assertDependencyBindings(key, record.dependencyCommits, {
+      baselineCommitOid: record.baselineCommitOid,
+    });
+  }
+
+  _validateDependencyGraph(keys) {
+    for (const key of keys) {
+      const info = this._created.get(key);
+      for (const binding of info.dependencyCommits) {
+        const dependency = this._created.get(binding.key);
+        if (!dependency && info.imported) continue;
+        if (
+          !dependency ||
+          dependency.completed !== true ||
+          dependency.branch !== binding.branch ||
+          dependency.commitOid !== binding.commitOid
+        ) {
+          throw new TypeError(
+            `invalid persisted dependency binding for "${key}"`,
+          );
+        }
+      }
+    }
+
+    const visiting = new Set();
+    const visited = new Set();
+    const visit = (key) => {
+      if (visited.has(key)) return;
+      if (visiting.has(key)) {
+        throw new TypeError("cyclic team worktree dependency snapshot");
+      }
+      visiting.add(key);
+      for (const binding of this._created.get(key)?.dependencyCommits || []) {
+        if (this._created.has(binding.key)) visit(binding.key);
+      }
+      visiting.delete(key);
+      visited.add(key);
+    };
+    for (const key of keys) visit(key);
+
+    for (const key of keys) {
+      const info = this._created.get(key);
+      if (info.dependencyCommits.length === 0 || info.cleaned) continue;
+      this._assertDependencyBindings(key, info.dependencyCommits, {
+        baselineCommitOid: info.baselineCommitOid,
+      });
+      if (
+        info.completed &&
+        info.baselineCommitOid !== info.commitOid &&
+        !_deps.isGitAncestor(
+          this.repoDir,
+          info.baselineCommitOid,
+          info.commitOid,
+        )
+      ) {
+        throw this._dependencyAdjudication(
+          key,
+          key,
+          new Error("settled task commit no longer contains its baseline"),
+        );
+      }
+    }
+  }
+
   /** Seed validated worktree records after recovering team state. */
   seed(records) {
     if (!Array.isArray(records)) {
@@ -639,11 +1360,13 @@ export class TeamWorktreeCoordinator {
       const completed = record.completed ?? true;
       const cleanupPrepared = record.cleanupPrepared;
       const cleaned = record.cleaned;
+      const imported = record.imported ?? false;
       if (
         typeof committed !== "boolean" ||
         typeof completed !== "boolean" ||
         typeof cleanupPrepared !== "boolean" ||
-        typeof cleaned !== "boolean"
+        typeof cleaned !== "boolean" ||
+        typeof imported !== "boolean"
       ) {
         throw new TypeError(
           `invalid team worktree completion state for "${key}"`,
@@ -656,6 +1379,27 @@ export class TeamWorktreeCoordinator {
           : requireGitOid(record.commitOid, "commitOid");
       const integration = normalizeIntegrationState(record.integration, key);
       const managedLinks = normalizeManagedLinks(record.managedLinks, key);
+      const workspaceCheckpoint = normalizeWorktreeCheckpoint(
+        record.workspaceCheckpoint,
+        key,
+      );
+      const dependencyCommits = normalizeDependencyCommits(
+        record.dependencyCommits,
+        key,
+      );
+      const baselineCommitOid = requireGitOid(
+        record.baselineCommitOid,
+        "baselineCommitOid",
+      );
+      if (
+        workspaceCheckpoint &&
+        (workspaceCheckpoint.workspaceRoot !== worktreePath ||
+          workspaceCheckpoint.runId !== (this.runId || "team-worktree"))
+      ) {
+        throw new TypeError(
+          `team worktree checkpoint authority changed for "${key}"`,
+        );
+      }
       if (
         !completed &&
         (committed ||
@@ -666,6 +1410,22 @@ export class TeamWorktreeCoordinator {
       ) {
         throw new TypeError(
           `invalid unfinished team worktree recovery state for "${key}"`,
+        );
+      }
+      if (imported && !completed) {
+        throw new TypeError(
+          `invalid imported team worktree recovery state for "${key}"`,
+        );
+      }
+      if (
+        completed &&
+        workspaceCheckpoint &&
+        (workspaceCheckpoint.state !== "committed" ||
+          !workspaceCheckpoint.writeManifestDigest ||
+          !workspaceCheckpoint.evidenceDigest)
+      ) {
+        throw new TypeError(
+          `completed team worktree "${key}" has no committed checkpoint evidence`,
         );
       }
       if (
@@ -690,14 +1450,24 @@ export class TeamWorktreeCoordinator {
           committed,
           completed,
           commitOid,
+          dependencyCommits,
+          baselineCommitOid,
+          imported,
           integration,
           managedLinks,
+          workspaceCheckpoint,
           cleanupPrepared,
           cleaned,
         },
       });
     }
     for (const { key, info } of normalized) this._created.set(key, info);
+    try {
+      this._validateDependencyGraph(normalized.map(({ key }) => key));
+    } catch (error) {
+      for (const { key } of normalized) this._created.delete(key);
+      throw error;
+    }
     return this;
   }
 
@@ -714,12 +1484,116 @@ export class TeamWorktreeCoordinator {
         committed: info.committed === true,
         completed: info.completed === true,
         commitOid: info.commitOid || null,
+        dependencyCommits: info.dependencyCommits.map((dependency) => ({
+          ...dependency,
+        })),
+        baselineCommitOid: info.baselineCommitOid,
+        imported: info.imported === true,
         integration: { ...info.integration },
         managedLinks: [...(info.managedLinks || [])],
+        ...(info.workspaceCheckpoint
+          ? {
+              workspaceCheckpoint: {
+                ...info.workspaceCheckpoint,
+                uncoveredPaths: [...info.workspaceCheckpoint.uncoveredPaths],
+              },
+            }
+          : {}),
         cleanupPrepared: info.cleanupPrepared === true,
         cleaned: info.cleaned === true,
       })),
     };
+  }
+
+  _migratePublishedV3Records(records) {
+    const baselineCommitOid = this._baseTarget.commitOid;
+    return records.map((record) => {
+      if (!record || typeof record !== "object" || Array.isArray(record)) {
+        throw new TypeError("invalid v3 team worktree record");
+      }
+      if (record.workspaceCheckpoint != null) {
+        throw new TypeError(
+          "v3 team worktree record cannot carry checkpoint authority",
+        );
+      }
+      const key = requireRecordString(record.key, "key");
+      const branch = requireRecordString(record.branch, "branch");
+      const worktreePath = _deps.assertManagedWorktreePath(
+        this.repoDir,
+        requireRecordString(record.path, "path"),
+        { branchName: branch },
+      );
+      const completed = record.completed ?? true;
+      const commitOid = completed
+        ? requireGitOid(record.commitOid, "commitOid")
+        : null;
+      const integration = normalizeIntegrationState(record.integration, key);
+      const cleanupPrepared = record.cleanupPrepared === true;
+      const cleaned = record.cleaned === true;
+      if (completed) {
+        if (
+          baselineCommitOid !== commitOid &&
+          !_deps.isGitAncestor(this.repoDir, baselineCommitOid, commitOid)
+        ) {
+          throw new TypeError(
+            `v3 team worktree "${key}" commit does not descend from its run base`,
+          );
+        }
+        if (integration.merged) {
+          const currentHead = _deps.resolveGitRef(this.repoDir, "HEAD");
+          if (
+            commitOid !== currentHead &&
+            !_deps.isGitAncestor(this.repoDir, commitOid, currentHead)
+          ) {
+            throw new TypeError(
+              `v3 merged team worktree "${key}" is absent from current HEAD`,
+            );
+          }
+        } else {
+          const branchHead = _deps.resolveGitRef(this.repoDir, branch);
+          if (branchHead !== commitOid) {
+            throw new TypeError(
+              `v3 team worktree "${key}" branch no longer matches its commit`,
+            );
+          }
+        }
+        if (_deps.pathExists(worktreePath)) {
+          if (
+            _deps.resolveGitRef(worktreePath, "HEAD") !== commitOid ||
+            !_deps.isWorktreeClean(worktreePath, {
+              includeIgnored: true,
+            })
+          ) {
+            throw new TypeError(
+              `v3 team worktree "${key}" cannot prove a clean committed tree`,
+            );
+          }
+        } else if (!cleanupPrepared && !cleaned && !integration.merged) {
+          throw new TypeError(
+            `v3 team worktree "${key}" disappeared before durable cleanup`,
+          );
+        }
+      } else {
+        const branchHead = _deps.resolveGitRef(this.repoDir, branch);
+        if (
+          !_deps.pathExists(worktreePath) ||
+          branchHead !== baselineCommitOid ||
+          _deps.resolveGitRef(worktreePath, "HEAD") !== baselineCommitOid ||
+          !_deps.isWorktreeClean(worktreePath, { includeIgnored: true })
+        ) {
+          throw new TypeError(
+            `v3 unfinished team worktree "${key}" has an unverifiable baseline`,
+          );
+        }
+      }
+      return {
+        ...record,
+        path: worktreePath,
+        dependencyCommits: [],
+        baselineCommitOid,
+        imported: false,
+      };
+    });
   }
 
   /** Restore a snapshot into an empty coordinator. */
@@ -733,7 +1607,11 @@ export class TeamWorktreeCoordinator {
       !snapshot ||
       typeof snapshot !== "object" ||
       Array.isArray(snapshot) ||
-      snapshot.version !== TEAM_WORKTREE_SNAPSHOT_VERSION ||
+      ![
+        PUBLISHED_TEAM_WORKTREE_SNAPSHOT_VERSION,
+        LEGACY_TEAM_WORKTREE_SNAPSHOT_VERSION,
+        TEAM_WORKTREE_SNAPSHOT_VERSION,
+      ].includes(snapshot.version) ||
       !snapshot.baseTarget ||
       !Array.isArray(snapshot.records)
     ) {
@@ -749,7 +1627,11 @@ export class TeamWorktreeCoordinator {
     }
     this._baseTarget = normalizeBaseTarget(snapshot.baseTarget);
     try {
-      return this.seed(snapshot.records);
+      const records =
+        snapshot.version === PUBLISHED_TEAM_WORKTREE_SNAPSHOT_VERSION
+          ? this._migratePublishedV3Records(snapshot.records)
+          : snapshot.records;
+      return this.seed(records);
     } catch (error) {
       this.runId = previousRunId;
       this._baseTarget = previousBaseTarget;
@@ -768,8 +1650,23 @@ export class TeamWorktreeCoordinator {
   makeRunTask({ runInWorktree = null } = {}) {
     return async (context) => {
       const { key, task, holder } = context;
+      const executionLease = task?.lease || task?.metadata?.lease || null;
+      const checkpointEvent = (details = {}) => ({
+        ...(executionLease
+          ? {
+              lease: {
+                holder: executionLease.holder,
+                leaseId: executionLease.leaseId,
+                ownerPid: executionLease.ownerPid,
+                fencingToken: executionLease.fencingToken,
+              },
+            }
+          : {}),
+        ...details,
+      });
       this._assertBaseTarget();
       const branch = this.branchFor(key);
+      const dependencyCommits = this._planDependencyCommits(key, task);
       // A retry (the prior attempt failed and TaskLeaseRegistry re-queued the
       // task) would collide with its own leftover worktree: createWorktree
       // derives a DETERMINISTIC path from the branch and throws "Worktree
@@ -785,14 +1682,34 @@ export class TeamWorktreeCoordinator {
             "TEAM_WORKTREE_RETRY_ADJUDICATION_REQUIRED",
           );
         }
+        if (
+          prior.workspaceCheckpoint &&
+          !["rolled_back", "aborted"].includes(prior.workspaceCheckpoint.state)
+        ) {
+          throw requireAdjudication(
+            new Error(
+              `task "${key}" has unsettled workspace checkpoint ${prior.workspaceCheckpoint.transactionId} (${prior.workspaceCheckpoint.state})`,
+            ),
+            "TEAM_WORKTREE_CHECKPOINT_RECOVERY_REQUIRED",
+          );
+        }
+        if (
+          JSON.stringify(prior.dependencyCommits) !==
+          JSON.stringify(dependencyCommits)
+        ) {
+          throw requireAdjudication(
+            new Error(`task "${key}" dependency commits changed before retry`),
+            "TEAM_WORKTREE_RETRY_ADJUDICATION_REQUIRED",
+          );
+        }
+        this._assertDependencyBindings(key, prior.dependencyCommits);
         const priorPath = _deps.assertManagedWorktreePath(
           this.repoDir,
           prior.path,
           { branchName: prior.branch },
         );
         const priorBranchHead = _deps.resolveGitRef(this.repoDir, prior.branch);
-        const baseHead = _deps.resolveGitRef(this.repoDir, "HEAD");
-        if (priorBranchHead !== baseHead) {
+        if (priorBranchHead !== prior.baselineCommitOid) {
           throw requireAdjudication(
             new Error(`task "${key}" has an unsettled worktree commit`),
             "TEAM_WORKTREE_RETRY_ADJUDICATION_REQUIRED",
@@ -834,7 +1751,7 @@ export class TeamWorktreeCoordinator {
       const created = _deps.createWorktree(
         this.repoDir,
         branch,
-        null,
+        this._baseTarget.commitOid,
         wtOptions,
       );
       const createdPath = created.path;
@@ -843,21 +1760,49 @@ export class TeamWorktreeCoordinator {
         createdPath,
         { branchName: branch },
       );
+      let initialBaselineCommitOid;
+      try {
+        initialBaselineCommitOid = requireGitOid(
+          _deps.resolveGitRef(worktreePath, "HEAD"),
+          "baselineCommitOid",
+        );
+      } catch (error) {
+        throw requireAdjudication(
+          error,
+          "TEAM_WORKTREE_CREATE_ADJUDICATION_REQUIRED",
+        );
+      }
       this._created.set(key, {
         branch,
         path: worktreePath,
         committed: false,
         completed: false,
         commitOid: null,
+        dependencyCommits,
+        baselineCommitOid: initialBaselineCommitOid,
+        imported: false,
         integration: emptyIntegrationState(),
         managedLinks: normalizeManagedLinks(
           created.symlinkedDirectories || [],
           key,
         ),
+        workspaceCheckpoint: null,
         cleanupPrepared: false,
         cleaned: false,
       });
+      const record = this._created.get(key);
       this._onWorktree?.({ key, branch, path: worktreePath, holder });
+      this._composeDependencyBaseline(key, record);
+      this._assertTaskBaseline(key, record);
+      if (record.dependencyCommits.length > 0) {
+        this._onWorktree?.({
+          key,
+          branch,
+          path: worktreePath,
+          holder,
+          baselineComposed: true,
+        });
+      }
       if (typeof context.renew === "function") {
         const fence = await context.renew();
         if (!fence?.ok) {
@@ -878,93 +1823,311 @@ export class TeamWorktreeCoordinator {
           "TEAM_WORKTREE_EXECUTION_CANCELLED",
         );
       }
-      let executionResult = null;
-      try {
-        if (typeof runInWorktree === "function") {
-          executionResult = await runInWorktree({
-            ...context,
-            cwd: worktreePath,
-          });
-        } else {
-          const command = task.metadata?.command || task?.command;
-          if (!command) {
+      const executeAndValidate = async (managedCheckpoint) => {
+        let executionResult = null;
+        try {
+          if (typeof runInWorktree === "function") {
+            executionResult = await runInWorktree({
+              ...context,
+              cwd: worktreePath,
+              managedCheckpoint,
+            });
+          } else {
+            const command = task.metadata?.command || task?.command;
+            if (!command) {
+              throw new Error(
+                `task "${key}" has no \`command\` to run in a worktree`,
+              );
+            }
+            await _deps.runShell(command, worktreePath, {
+              signal: context.signal || null,
+              managedCheckpoint,
+            });
+          }
+        } catch (error) {
+          if (task.metadata?.retrySafe === true) throw error;
+          throw requireAdjudication(
+            error,
+            "TEAM_WORKTREE_EXECUTION_ADJUDICATION_REQUIRED",
+          );
+        }
+        if (context.signal?.aborted) {
+          throw requireAdjudication(
+            new Error(`task "${key}" was cancelled before commit`),
+            "TEAM_WORKTREE_COMMIT_CANCELLED",
+          );
+        }
+        let committed;
+        let commitOid;
+        try {
+          committed = _deps.commit(worktreePath, `team task ${key}`);
+          commitOid = requireGitOid(
+            _deps.resolveGitRef(worktreePath, "HEAD"),
+            "commitOid",
+          );
+          const branchHead = _deps.resolveGitRef(this.repoDir, branch);
+          if (
+            branchHead !== commitOid ||
+            (record.baselineCommitOid !== commitOid &&
+              !_deps.isGitAncestor(
+                this.repoDir,
+                record.baselineCommitOid,
+                commitOid,
+              )) ||
+            !_deps.isWorktreeClean(worktreePath)
+          ) {
             throw new Error(
-              `task "${key}" has no \`command\` to run in a worktree`,
+              "task commit no longer contains its verified baseline",
             );
           }
-          await _deps.runShell(command, worktreePath, {
-            signal: context.signal || null,
+          this._assertDependencyBindings(key, record.dependencyCommits, {
+            baselineCommitOid: commitOid,
           });
+        } catch (error) {
+          throw requireAdjudication(
+            error,
+            "TEAM_WORKTREE_COMMIT_ADJUDICATION_REQUIRED",
+          );
         }
-      } catch (error) {
-        if (task.metadata?.retrySafe === true) throw error;
-        throw requireAdjudication(
-          error,
-          "TEAM_WORKTREE_EXECUTION_ADJUDICATION_REQUIRED",
-        );
-      }
-      if (context.signal?.aborted) {
-        throw requireAdjudication(
-          new Error(`task "${key}" was cancelled before commit`),
-          "TEAM_WORKTREE_COMMIT_CANCELLED",
-        );
-      }
-      let committed;
-      let commitOid;
-      try {
-        committed = _deps.commit(worktreePath, `team task ${key}`);
-        commitOid = _deps.resolveGitRef(worktreePath, "HEAD");
-      } catch (error) {
-        throw requireAdjudication(
-          error,
-          "TEAM_WORKTREE_COMMIT_ADJUDICATION_REQUIRED",
-        );
-      }
-      // Git commit/ref resolution are synchronous today. Yield once so a wall
-      // timer, fatal peer failure, or cancellation that became ready while Git
-      // held the event loop can fence this output before it is authorized.
-      await new Promise((resolveYield) => setImmediate(resolveYield));
-      if (context.signal?.aborted) {
-        throw requireAdjudication(
-          new Error(`task "${key}" was cancelled after commit`),
-          "TEAM_WORKTREE_POST_COMMIT_ADJUDICATION_REQUIRED",
-        );
-      }
-      if (typeof context.renew === "function") {
-        const fence = await context.renew();
-        if (!fence?.ok) {
+        // Git commit/ref resolution are synchronous today. Yield once so a wall
+        // timer, fatal peer failure, or cancellation that became ready while
+        // Git held the event loop can fence this output before authorization.
+        await new Promise((resolveYield) => setImmediate(resolveYield));
+        if (context.signal?.aborted) {
+          throw requireAdjudication(
+            new Error(`task "${key}" was cancelled after commit`),
+            "TEAM_WORKTREE_POST_COMMIT_ADJUDICATION_REQUIRED",
+          );
+        }
+        if (typeof context.renew === "function") {
+          const fence = await context.renew();
+          if (!fence?.ok) {
+            throw requireAdjudication(
+              new Error(
+                `task "${key}" lost its lease after committing worktree output`,
+              ),
+              "TEAM_WORKTREE_POST_COMMIT_ADJUDICATION_REQUIRED",
+            );
+          }
+        }
+        if (context.budget?.reason?.() === "max-wall-ms") {
           throw requireAdjudication(
             new Error(
-              `task "${key}" lost its lease after committing worktree output`,
+              `task "${key}" exceeded the team wall-clock budget during commit`,
             ),
             "TEAM_WORKTREE_POST_COMMIT_ADJUDICATION_REQUIRED",
           );
         }
-      }
-      if (context.budget?.reason?.() === "max-wall-ms") {
-        throw requireAdjudication(
-          new Error(
-            `task "${key}" exceeded the team wall-clock budget during commit`,
-          ),
-          "TEAM_WORKTREE_POST_COMMIT_ADJUDICATION_REQUIRED",
-        );
-      }
-      const record = this._created.get(key);
-      record.committed = committed;
-      record.completed = true;
-      record.commitOid = commitOid;
-      return {
-        branch,
-        committed,
-        ...(executionResult?.usage ? { usage: executionResult.usage } : {}),
-        ...(executionResult?.provider
-          ? { provider: executionResult.provider }
-          : {}),
-        ...(executionResult?.model ? { model: executionResult.model } : {}),
-        ...(executionResult?.usageRecords
-          ? { usageRecords: executionResult.usageRecords }
-          : {}),
+        return { executionResult, committed, commitOid };
       };
+
+      const completeRecord = ({ executionResult, committed, commitOid }) => {
+        record.committed = committed;
+        record.completed = true;
+        record.commitOid = commitOid;
+        return {
+          branch: record.branch,
+          worktreePath: record.path,
+          committed: record.committed,
+          commitOid: record.commitOid,
+          baselineCommitOid: record.baselineCommitOid,
+          dependencyCommits: record.dependencyCommits.map((dependency) => ({
+            ...dependency,
+          })),
+          managedLinks: [...(record.managedLinks || [])],
+          ...(record.workspaceCheckpoint
+            ? {
+                workspaceCheckpoint: {
+                  ...record.workspaceCheckpoint,
+                  uncoveredPaths: [
+                    ...record.workspaceCheckpoint.uncoveredPaths,
+                  ],
+                },
+              }
+            : {}),
+          ...(executionResult?.usage ? { usage: executionResult.usage } : {}),
+          ...(executionResult?.provider
+            ? { provider: executionResult.provider }
+            : {}),
+          ...(executionResult?.model ? { model: executionResult.model } : {}),
+          ...(executionResult?.usageRecords
+            ? { usageRecords: executionResult.usageRecords }
+            : {}),
+        };
+      };
+
+      if (!this._checkpointBroker) {
+        if (task.metadata?.managedCheckpointRequired === true) {
+          throw requireAdjudication(
+            new Error(`task "${key}" requires a managed workspace checkpoint`),
+            "TEAM_WORKTREE_CHECKPOINT_REQUIRED",
+          );
+        }
+        return completeRecord(await executeAndValidate(false));
+      }
+
+      let guard;
+      try {
+        guard = this._checkpointBroker.beginTask({
+          runId: this.runId || "team-worktree",
+          taskKey: key,
+          workspaceRoot: worktreePath,
+          coverageTarget: "partial",
+          writerIsolation: "unknown",
+          externalSideEffects: true,
+          exclusions: this._checkpointExclusions,
+        });
+        this._updateCheckpoint(
+          key,
+          record,
+          guard,
+          "prepared",
+          checkpointEvent(),
+        );
+        guard.markRunning();
+        this._updateCheckpoint(
+          key,
+          record,
+          guard,
+          "running",
+          checkpointEvent(),
+        );
+      } catch (error) {
+        if (guard) {
+          try {
+            guard.rollback({
+              reason: "team checkpoint preparation/persistence failed",
+            });
+            record.workspaceCheckpoint = summarizeWorktreeCheckpoint(
+              guard.snapshot(),
+              key,
+            );
+            this._publishCheckpoint(
+              key,
+              record,
+              "preparation-rolled-back",
+              checkpointEvent(),
+            );
+          } catch {
+            /* the durable checkpoint remains fail-closed for recovery */
+          }
+        }
+        const failure = requireAdjudication(
+          new Error(
+            `task "${key}" could not prepare its workspace checkpoint: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+          ),
+          "TEAM_WORKTREE_CHECKPOINT_PREPARE_FAILED",
+        );
+        failure.workspaceCheckpoint = record.workspaceCheckpoint;
+        throw failure;
+      }
+
+      let accepted = false;
+      try {
+        const attempt = await executeAndValidate(true);
+        this._publishCheckpoint(
+          key,
+          record,
+          "validated",
+          checkpointEvent({ verifiedCommitOid: attempt.commitOid }),
+        );
+        guard.accept();
+        accepted = true;
+        this._updateCheckpoint(
+          key,
+          record,
+          guard,
+          "committed",
+          checkpointEvent({ verifiedCommitOid: attempt.commitOid }),
+        );
+        const result = completeRecord(attempt);
+        this._publishCheckpoint(
+          key,
+          record,
+          "completed",
+          checkpointEvent({ verifiedCommitOid: attempt.commitOid }),
+        );
+        return result;
+      } catch (caughtError) {
+        const taskError =
+          caughtError instanceof Error
+            ? caughtError
+            : new Error(String(caughtError));
+        if (accepted) {
+          try {
+            record.workspaceCheckpoint = summarizeWorktreeCheckpoint(
+              guard.snapshot(),
+              key,
+            );
+          } catch {
+            /* the durable transaction store remains authoritative */
+          }
+          const failure = requireAdjudication(
+            new Error(
+              `task "${key}" committed its workspace checkpoint but final result persistence could not be proven: ${taskError.message}`,
+            ),
+            "TEAM_WORKTREE_CHECKPOINT_SETTLEMENT_FAILED",
+          );
+          failure.taskError = taskError;
+          failure.workspaceCheckpoint = record.workspaceCheckpoint;
+          throw failure;
+        }
+        try {
+          guard.rollback({
+            reason:
+              context.signal?.aborted === true
+                ? "team worktree task interrupted"
+                : "team worktree task failed",
+          });
+          record.workspaceCheckpoint = summarizeWorktreeCheckpoint(
+            guard.snapshot(),
+            key,
+          );
+          this._publishCheckpoint(
+            key,
+            record,
+            "rolled-back",
+            checkpointEvent(),
+          );
+          taskError.workspaceCheckpoint = {
+            ...record.workspaceCheckpoint,
+            uncoveredPaths: [...record.workspaceCheckpoint.uncoveredPaths],
+          };
+          throw taskError;
+        } catch (rollbackError) {
+          if (rollbackError === taskError) throw taskError;
+          try {
+            record.workspaceCheckpoint = summarizeWorktreeCheckpoint(
+              guard.snapshot(),
+              key,
+            );
+            this._publishCheckpoint(
+              key,
+              record,
+              "rollback-recovery-required",
+              checkpointEvent(),
+            );
+          } catch {
+            /* the underlying transaction remains the recovery authority */
+          }
+          const failure = requireAdjudication(
+            new Error(
+              `task "${key}" failed and its workspace checkpoint rollback could not be proven: ${
+                rollbackError instanceof Error
+                  ? rollbackError.message
+                  : String(rollbackError)
+              }`,
+            ),
+            "TEAM_WORKTREE_CHECKPOINT_ROLLBACK_FAILED",
+          );
+          failure.taskError = taskError;
+          failure.rollbackError = rollbackError;
+          failure.workspaceCheckpoint = record.workspaceCheckpoint;
+          throw failure;
+        }
+      }
     };
   }
 
@@ -973,13 +2136,27 @@ export class TeamWorktreeCoordinator {
    * base. Merging is in-order, so a later branch that conflicts with an
    * already-merged one is reported as a conflict rather than silently clobbering.
    *
-   * @param {object} [opts] { merge:boolean }  actually merge clean branches
+   * onProgress runs synchronously before and after each worktree. Returning a
+   * Promise is rejected before the corresponding operation so callers cannot
+   * accidentally release their lease while Git continues in the background.
+   *
+   * @param {object} [opts] { merge:boolean, onProgress?:Function }
    * @returns {Array<{key,branch,committed,clean,merged,conflicts,error?}>}
    */
-  integrate({ merge = false } = {}) {
+  integrate({ merge = false, onProgress = null } = {}) {
+    if (onProgress == null) return this._integrate({ merge });
+    return this._runWithWorktreeProgress({
+      phase: "integrate",
+      onProgress,
+      run: (key) => this._integrate({ merge, onlyKey: key }),
+    });
+  }
+
+  _integrate({ merge = false, onlyKey = null } = {}) {
     this._assertBaseTarget({ merge });
     const results = [];
     for (const [key, info] of this._created) {
+      if (onlyKey != null && key !== onlyKey) continue;
       const target = this._assertBaseTarget({ merge });
       if (info.completed === false) {
         results.push({
@@ -990,6 +2167,34 @@ export class TeamWorktreeCoordinator {
           merged: false,
           conflicts: [],
           note: "task did not complete",
+        });
+        continue;
+      }
+      try {
+        this._assertDependencyBindings(key, info.dependencyCommits, {
+          baselineCommitOid: info.baselineCommitOid,
+        });
+        if (
+          info.baselineCommitOid !== info.commitOid &&
+          !_deps.isGitAncestor(
+            this.repoDir,
+            info.baselineCommitOid,
+            info.commitOid,
+          )
+        ) {
+          throw new Error(
+            `worktree commit for "${key}" no longer contains its dependency baseline`,
+          );
+        }
+      } catch (error) {
+        results.push({
+          key,
+          branch: info.branch,
+          committed: info.committed,
+          clean: false,
+          merged: false,
+          conflicts: error?.conflicts || [],
+          error: error instanceof Error ? error.message : String(error),
         });
         continue;
       }
@@ -1288,9 +2493,21 @@ export class TeamWorktreeCoordinator {
    * sufficient proof that a missing worktree may be finalized without rerunning
    * its task or replaying integration.
    */
-  prepareCleanupAll({ requireMerged = false } = {}) {
+  prepareCleanupAll({ requireMerged = false, onProgress = null } = {}) {
+    if (onProgress == null) {
+      return this._prepareCleanupAll({ requireMerged });
+    }
+    return this._runWithWorktreeProgress({
+      phase: "prepare-cleanup",
+      onProgress,
+      run: (key) => this._prepareCleanupAll({ requireMerged, onlyKey: key }),
+    });
+  }
+
+  _prepareCleanupAll({ requireMerged = false, onlyKey = null } = {}) {
     const results = [];
     for (const [key, info] of this._created) {
+      if (onlyKey != null && key !== onlyKey) continue;
       if (info.cleaned || info.cleanupPrepared) {
         results.push({
           key,
@@ -1325,9 +2542,19 @@ export class TeamWorktreeCoordinator {
    * Failed removals remain in the recovery snapshot and are returned to the
    * caller; they are never hidden by clearing the entire in-memory manifest.
    */
-  cleanupAll({ deleteBranch = false } = {}) {
+  cleanupAll({ deleteBranch = false, onProgress = null } = {}) {
+    if (onProgress == null) return this._cleanupAll({ deleteBranch });
+    return this._runWithWorktreeProgress({
+      phase: "cleanup",
+      onProgress,
+      run: (key) => this._cleanupAll({ deleteBranch, onlyKey: key }),
+    });
+  }
+
+  _cleanupAll({ deleteBranch = false, onlyKey = null } = {}) {
     const results = [];
     for (const [key, info] of Array.from(this._created)) {
+      if (onlyKey != null && key !== onlyKey) continue;
       if (info.cleaned) {
         results.push({
           key,
@@ -1395,6 +2622,51 @@ export class TeamWorktreeCoordinator {
       }
     }
     return results;
+  }
+
+  _runWithWorktreeProgress({ phase, onProgress, run }) {
+    if (typeof onProgress !== "function") {
+      throw new TypeError("onProgress must be a function");
+    }
+    const entries = Array.from(this._created);
+    const total = entries.length;
+    const results = [];
+    for (const [offset, [key, info]] of entries.entries()) {
+      const progress = {
+        phase,
+        worktree: info.path,
+        task: key,
+        branch: info.branch,
+        index: offset + 1,
+        total,
+      };
+      this._callWorktreeProgress(onProgress, {
+        ...progress,
+        timing: "before",
+      });
+      results.push(...run(key));
+      this._callWorktreeProgress(onProgress, {
+        ...progress,
+        timing: "after",
+      });
+    }
+    return results;
+  }
+
+  _callWorktreeProgress(onProgress, event) {
+    const returned = onProgress(event);
+    if (
+      returned != null &&
+      (typeof returned === "object" || typeof returned === "function") &&
+      typeof returned.then === "function"
+    ) {
+      // Consume a native/foreign rejected thenable so rejecting unsupported
+      // async callbacks cannot become an unhandled-rejection side channel.
+      Promise.resolve(returned).catch(() => {});
+      const error = new TypeError("onProgress callback must be synchronous");
+      error.code = "TEAM_WORKTREE_ASYNC_PROGRESS_UNSUPPORTED";
+      throw error;
+    }
   }
 
   branches() {

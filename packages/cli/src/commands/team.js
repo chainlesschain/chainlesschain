@@ -17,6 +17,7 @@
 
 import fs from "fs";
 import path from "path";
+import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "url";
 import { TaskLeaseRegistry } from "../lib/agent-team/task-lease.js";
 import { TeamRunner } from "../lib/agent-team/team-runner.js";
@@ -45,6 +46,17 @@ import { stopBackgroundAgentChildTree } from "../lib/background-agent-supervisor
 import { redactSecrets } from "../lib/secret-scan.js";
 import { tightenPermissionMode } from "../lib/subagent-contract.js";
 import { TeamRunStateLock } from "../lib/agent-team/team-run-state-lock.js";
+import {
+  computeTeamAdjudicationEvidenceDigest,
+  TeamAdjudicationStore,
+} from "../lib/agent-team/team-adjudication.js";
+import {
+  computeTeamControlAdjudicationDigest,
+  computeTeamControlAttemptDigest,
+  TeamControlStore,
+} from "../lib/agent-team/team-control-store.js";
+import { TeamProcessCheckpointBroker } from "../lib/agent-team/team-process-checkpoint.js";
+import { registerTeamDistributedCommands } from "./team-distributed.js";
 
 export const _deps = {
   spawn: (...args) => executionBroker.spawn(...args),
@@ -80,6 +92,174 @@ export const MAX_TEAM_AGENT_STDERR_BYTES = 64 * 1024;
 export const MAX_TEAM_AGENT_INBOX_MESSAGES = 16;
 export const MAX_TEAM_AGENT_INBOX_BODY_CHARS = 1024;
 export const MAX_TEAM_STATE_BYTES = 64 * 1024 * 1024;
+export const TEAM_STATE_VERSION = 6;
+
+function readTeamStateSnapshot(statePath) {
+  let before;
+  try {
+    before = fs.lstatSync(statePath);
+  } catch (error) {
+    if (error?.code === "ENOENT") {
+      throw new Error(`Team state not found: ${statePath}`);
+    }
+    throw error;
+  }
+  if (
+    before.isSymbolicLink() ||
+    !before.isFile() ||
+    Number(before.nlink) !== 1
+  ) {
+    throw new Error(
+      `Team state must be a regular, single-link file: ${statePath}`,
+    );
+  }
+  if (process.platform !== "win32" && (Number(before.mode) & 0o077) !== 0) {
+    throw new Error(`Team state permissions must be 0600: ${statePath}`);
+  }
+  const bytes = Number(before.size);
+  if (bytes <= 0 || bytes > MAX_TEAM_STATE_BYTES) {
+    throw new Error(
+      `Team state exceeds the safe ${MAX_TEAM_STATE_BYTES}-byte limit`,
+    );
+  }
+  let descriptor = null;
+  try {
+    descriptor = fs.openSync(
+      statePath,
+      fs.constants.O_RDONLY | Number(fs.constants.O_NOFOLLOW || 0),
+    );
+    const opened = fs.fstatSync(descriptor);
+    const sameIdentity =
+      opened.isFile() &&
+      Number(opened.nlink) === 1 &&
+      String(opened.dev) === String(before.dev) &&
+      String(opened.ino) === String(before.ino) &&
+      Number(opened.size) === bytes;
+    if (!sameIdentity) {
+      throw new Error(
+        `Team state identity changed while opening: ${statePath}`,
+      );
+    }
+    const body = fs.readFileSync(descriptor);
+    const after = fs.fstatSync(descriptor);
+    if (
+      String(after.dev) !== String(opened.dev) ||
+      String(after.ino) !== String(opened.ino) ||
+      Number(after.size) !== body.length ||
+      Number(after.mtimeMs) !== Number(opened.mtimeMs) ||
+      Number(after.ctimeMs) !== Number(opened.ctimeMs)
+    ) {
+      throw new Error(`Team state changed while being read: ${statePath}`);
+    }
+    const text = new TextDecoder("utf-8", { fatal: true }).decode(body);
+    return JSON.parse(text);
+  } finally {
+    if (descriptor != null) fs.closeSync(descriptor);
+  }
+}
+
+function writeTeamStateSnapshot(statePath, snapshot) {
+  const contents = `${JSON.stringify(snapshot, null, 2)}\n`;
+  const bytes = Buffer.byteLength(contents, "utf8");
+  if (bytes > MAX_TEAM_STATE_BYTES) {
+    throw new Error(
+      `Team state exceeds the safe ${MAX_TEAM_STATE_BYTES}-byte limit`,
+    );
+  }
+  const temporary = `${statePath}.${process.pid}.${randomUUID()}.tmp`;
+  let descriptor = null;
+  try {
+    descriptor = fs.openSync(temporary, "wx", 0o600);
+    fs.writeFileSync(descriptor, contents, "utf8");
+    fs.fsyncSync(descriptor);
+    fs.closeSync(descriptor);
+    descriptor = null;
+    fs.renameSync(temporary, statePath);
+    try {
+      fs.chmodSync(statePath, 0o600);
+    } catch {
+      /* Windows does not expose POSIX mode semantics */
+    }
+    if (process.platform !== "win32") {
+      let directoryDescriptor = null;
+      try {
+        directoryDescriptor = fs.openSync(path.dirname(statePath), "r");
+        fs.fsyncSync(directoryDescriptor);
+      } finally {
+        if (directoryDescriptor != null) {
+          fs.closeSync(directoryDescriptor);
+        }
+      }
+    }
+  } finally {
+    if (descriptor != null) {
+      try {
+        fs.closeSync(descriptor);
+      } catch {
+        /* preserve the authoritative persistence failure */
+      }
+    }
+    try {
+      if (fs.existsSync(temporary)) fs.rmSync(temporary, { force: true });
+    } catch {
+      /* preserve the authoritative persistence failure */
+    }
+  }
+}
+
+function ensureTeamStateV6(snapshot) {
+  if (!snapshot || ![5, TEAM_STATE_VERSION].includes(snapshot.version)) {
+    throw new Error("Team state is not a supported v5/v6 authority contract");
+  }
+  if (snapshot.version === TEAM_STATE_VERSION) {
+    if (
+      typeof snapshot.stateId !== "string" ||
+      !snapshot.stateId.startsWith("team_state_") ||
+      typeof snapshot.adjudicationRunId !== "string"
+    ) {
+      throw new Error("Team state is missing its v6 control authority");
+    }
+    return snapshot;
+  }
+  return {
+    ...snapshot,
+    version: TEAM_STATE_VERSION,
+    stateId: `team_state_${randomUUID()}`,
+    controlCursor: null,
+    adjudicationRunId: snapshot.collaborationRunId,
+    adjudicationCursor: null,
+  };
+}
+
+function adjudicationBindingFor(task, unit = null) {
+  const existing = task?.metadata?.adjudication?.case;
+  if (
+    existing?.caseId &&
+    existing?.registryDigest &&
+    existing?.sideEffectDigest
+  ) {
+    return {
+      taskKey: task.key,
+      registryDigest: existing.registryDigest,
+      sideEffectDigest: existing.sideEffectDigest,
+    };
+  }
+  return {
+    taskKey: task.key,
+    registryDigest: computeTeamAdjudicationEvidenceDigest({
+      key: task.key,
+      status: task.status,
+      attempts: task.attempts,
+      dependsOn: task.dependsOn,
+      lastError: task.metadata?.lastError || null,
+      adjudication: task.metadata?.adjudication || null,
+    }),
+    sideEffectDigest: computeTeamAdjudicationEvidenceDigest({
+      collaborationUnit: unit || null,
+      interruptEvidence: task.metadata?.adjudication?.evidenceDigest || null,
+    }),
+  };
+}
 
 function safeProcessError(value, fallback) {
   const text = redactSecrets(String(value || "")).trim();
@@ -131,6 +311,29 @@ function assertTrustedStateLocation(statePath, repoRoot) {
       "Real team execution requires --state outside the agent-writable repository",
     );
   }
+}
+
+function assertExternalManagedCheckpointStateDir(stateDir, repoRoot) {
+  const target = path.resolve(stateDir);
+  if (isPathWithin(target, repoRoot)) {
+    throw new Error(
+      "Managed checkpoint state must be outside the agent-writable repository",
+    );
+  }
+  let ancestor = target;
+  while (!fs.existsSync(ancestor)) {
+    const parent = path.dirname(ancestor);
+    if (parent === ancestor) break;
+    ancestor = parent;
+  }
+  const realAncestor = fs.realpathSync.native(ancestor);
+  const projected = path.resolve(realAncestor, path.relative(ancestor, target));
+  if (isPathWithin(projected, repoRoot)) {
+    throw new Error(
+      "Managed checkpoint state resolves inside the agent-writable repository",
+    );
+  }
+  return target;
 }
 
 export function restoreTeamExecutionContract(options, command, stored) {
@@ -212,6 +415,28 @@ export function restoreTeamExecutionContract(options, command, stored) {
         `Team resume state has an invalid execution option: ${field}`,
       );
     }
+  }
+  const storedManagedCheckpoint = stored.managedCheckpoint === true;
+  if (
+    Object.prototype.hasOwnProperty.call(stored, "managedCheckpoint") &&
+    typeof stored.managedCheckpoint !== "boolean"
+  ) {
+    throw new Error(
+      "Team resume state has an invalid managed checkpoint authority",
+    );
+  }
+  const storedCheckpointStateDir =
+    stored.checkpointStateDir == null ? null : stored.checkpointStateDir;
+  if (
+    storedManagedCheckpoint
+      ? typeof storedCheckpointStateDir !== "string" ||
+        storedCheckpointStateDir.length === 0 ||
+        storedCheckpointStateDir.includes("\0")
+      : storedCheckpointStateDir !== null
+  ) {
+    throw new Error(
+      "Team resume state has an invalid checkpoint state directory",
+    );
   }
   if (
     stored.worktree
@@ -341,6 +566,27 @@ export function restoreTeamExecutionContract(options, command, stored) {
   } else {
     options.merge = stored.merge === true;
   }
+  if (optionWasProvided(command, "managedCheckpoint")) {
+    if ((options.managedCheckpoint === true) !== storedManagedCheckpoint) {
+      throw new Error(
+        "--managed-checkpoint must match its persisted resume authority",
+      );
+    }
+  } else {
+    options.managedCheckpoint = storedManagedCheckpoint;
+  }
+  if (optionWasProvided(command, "checkpointStateDir")) {
+    if (
+      storedCheckpointStateDir === null ||
+      !sameFilesystemPath(options.checkpointStateDir, storedCheckpointStateDir)
+    ) {
+      throw new Error(
+        "--checkpoint-state-dir must match its persisted resume authority",
+      );
+    }
+  } else {
+    options.checkpointStateDir = storedCheckpointStateDir || undefined;
+  }
 }
 
 export function parseTeammateCount(value, { max = MAX_TEAMMATES } = {}) {
@@ -380,9 +626,35 @@ function teamAgentError(code, message, details = {}) {
   return error;
 }
 
+function teamAbortReason(signal, code, message) {
+  const reason = signal?.reason;
+  if (
+    reason instanceof Error &&
+    (reason.name !== "AbortError" ||
+      typeof reason.code === "string" ||
+      reason.adjudication ||
+      reason.interruptEvidence)
+  ) {
+    return reason;
+  }
+  const failure = teamAgentError(
+    code,
+    reason == null ? message : safeProcessError(reason, message),
+  );
+  if (reason && (typeof reason === "object" || typeof reason === "function")) {
+    for (const field of ["adjudication", "interruptEvidence", "requestId"]) {
+      if (reason[field] !== undefined) failure[field] = reason[field];
+    }
+  }
+  return failure;
+}
+
 function usageTokens(usage) {
   return (
-    (Number(usage?.input_tokens) || 0) + (Number(usage?.output_tokens) || 0)
+    (Number(usage?.input_tokens) || 0) +
+    (Number(usage?.output_tokens) || 0) +
+    (Number(usage?.cache_read_input_tokens) || 0) +
+    (Number(usage?.cache_creation_input_tokens) || 0)
   );
 }
 
@@ -645,7 +917,8 @@ export function makeShellRunTask() {
       };
       const terminate = () => {
         if (settled || terminationError) return;
-        terminationError = teamAgentError(
+        terminationError = teamAbortReason(
+          signal,
           "TEAM_SHELL_ABORTED",
           "Team shell task was cancelled",
         );
@@ -727,7 +1000,13 @@ export function spawnAgent(prompt, cwd, opts = {}) {
         cwd,
         env: { ...process.env, CLAUDECODE: "1" },
         windowsHide: true,
-        detached: process.platform !== "win32",
+        detached:
+          opts.managedCheckpoint === true
+            ? false
+            : process.platform !== "win32",
+        ...(opts.managedCheckpoint === true
+          ? { requiredBoundaries: ["process-tree"] }
+          : {}),
         origin: "team:agent",
         policy: "allow",
         scope: "team",
@@ -777,7 +1056,17 @@ export function spawnAgent(prompt, cwd, opts = {}) {
         Number(opts.terminationGraceMs) > 0
           ? Number(opts.terminationGraceMs)
           : 5000;
-      terminationTimer = setTimeout(() => settle(terminatingError), graceMs);
+      terminationTimer = setTimeout(() => {
+        if (opts.managedCheckpoint === true) {
+          try {
+            _deps.killProcessTree(child);
+          } catch {
+            /* keep waiting for close; the transaction remains fail-closed */
+          }
+          return;
+        }
+        settle(terminatingError);
+      }, graceMs);
     };
     const attachUsage = (error, summary) => {
       if (summary?.usage) error.usage = summary.usage;
@@ -864,7 +1153,8 @@ export function spawnAgent(prompt, cwd, opts = {}) {
     if (opts.signal) {
       abortListener = () =>
         terminate(
-          teamAgentError(
+          teamAbortReason(
+            opts.signal,
             "TEAM_AGENT_ABORTED",
             "Teammate execution was cancelled",
           ),
@@ -897,12 +1187,12 @@ export function spawnAgent(prompt, cwd, opts = {}) {
     }
     child.on("error", (error) => {
       if (terminatingError) return;
-      settle(
-        teamAgentError(
-          "TEAM_AGENT_SPAWN_FAILED",
-          safeProcessError(error?.message, "Failed to spawn teammate agent"),
-        ),
+      const failure = teamAgentError(
+        "TEAM_AGENT_SPAWN_FAILED",
+        safeProcessError(error?.message, "Failed to spawn teammate agent"),
       );
+      if (opts.managedCheckpoint === true) terminatingError = failure;
+      else settle(failure);
     });
     child.on("close", (code) => {
       if (settled) return;
@@ -1028,6 +1318,84 @@ export function makeAgentRunTask(opts = {}) {
   };
 }
 
+export function dispatchTeamControlInterrupt(runner, request) {
+  const interrupted = runner.interruptTask(request.taskKey, {
+    holder: request.holder,
+    leaseId: request.leaseId,
+    fencingToken: request.fencingToken,
+    requestId: request.requestId,
+    actor: request.actor,
+    reason: request.reason,
+    evidenceDigest: request.digest,
+  });
+  const outcome = interrupted.ok
+    ? "accepted"
+    : interrupted.reason === "not_active"
+      ? "not_active"
+      : interrupted.reason === "stale_attempt"
+        ? "stale_attempt"
+        : "rejected";
+  return { interrupted, outcome };
+}
+
+export function buildTeamControlBindings(snapshot) {
+  if (
+    snapshot?.version !== TEAM_STATE_VERSION ||
+    typeof snapshot?.stateId !== "string"
+  ) {
+    throw new Error(
+      "Team control bindings require a v6 state (resume an older state first)",
+    );
+  }
+  const registry = TaskLeaseRegistry.restore(snapshot.registry);
+  return {
+    version: snapshot.version,
+    stateId: snapshot.stateId,
+    tasks: registry.list().map((task) => {
+      let attempt = null;
+      if (task.status === "in_progress") {
+        const holder = task.lease?.holder;
+        const leaseId = task.lease?.leaseId;
+        const fencingToken =
+          task.lease?.fencingToken ?? task.lease?.leaseId ?? null;
+        attempt = {
+          holder,
+          leaseId,
+          fencingToken,
+          digest: computeTeamControlAttemptDigest({
+            holder,
+            leaseId,
+            fencingToken,
+          }),
+        };
+      }
+      let adjudication = null;
+      if (task.metadata?.adjudication?.required === true) {
+        const binding = task.metadata.adjudication.case;
+        if (!binding?.caseId || !binding.sideEffectDigest) {
+          throw new Error(
+            `Team task "${task.key}" has an incomplete adjudication binding`,
+          );
+        }
+        adjudication = {
+          caseId: binding.caseId,
+          evidenceDigest: binding.sideEffectDigest,
+          digest: computeTeamControlAdjudicationDigest({
+            caseId: binding.caseId,
+            evidenceDigest: binding.sideEffectDigest,
+          }),
+        };
+      }
+      return {
+        key: task.key,
+        status: task.status,
+        attempt,
+        adjudication,
+      };
+    }),
+  };
+}
+
 export function registerTeamCommand(program, { logger } = {}) {
   const log = logger || console;
   const team = program
@@ -1035,6 +1403,46 @@ export function registerTeamCommand(program, { logger } = {}) {
     .description(
       "Run a declared task graph across N teammates (exclusive leases + dependency DAG)",
     );
+  registerTeamDistributedCommands(team, {
+    logger: log,
+    agentExecutor: spawnAgent,
+    buildAgentPrompt: buildTeamAgentPrompt,
+  });
+
+  team
+    .command("control-bindings")
+    .description(
+      "Show state/attempt/adjudication CAS values for durable human control",
+    )
+    .requiredOption("--state <file>", "Trusted team state file")
+    .option("--json", "Output bindings as JSON")
+    .action((options) => {
+      try {
+        const result = buildTeamControlBindings(
+          readTeamStateSnapshot(path.resolve(options.state)),
+        );
+        if (options.json) {
+          console.log(JSON.stringify(result, null, 2));
+          return;
+        }
+        (log.log || console.log)(`stateId: ${result.stateId}`);
+        for (const task of result.tasks) {
+          const bindings = [];
+          if (task.attempt) bindings.push(`attempt=${task.attempt.digest}`);
+          if (task.adjudication) {
+            bindings.push(`adjudication=${task.adjudication.digest}`);
+          }
+          if (bindings.length > 0) {
+            (log.log || console.log)(
+              `  ${task.key} [${task.status}] ${bindings.join(" ")}`,
+            );
+          }
+        }
+      } catch (error) {
+        (log.error || console.error)(error.message);
+        process.exitCode = 1;
+      }
+    });
 
   team
     .command("plan")
@@ -1066,6 +1474,353 @@ export function registerTeamCommand(program, { logger } = {}) {
     });
 
   team
+    .command("adjudications")
+    .description("List durable side-effect adjudication cases for a team state")
+    .requiredOption("--state <file>", "Trusted team state file")
+    .option("--json", "Output cases as JSON")
+    .action((options) => {
+      try {
+        const snapshot = readTeamStateSnapshot(path.resolve(options.state));
+        if (
+          snapshot.version !== TEAM_STATE_VERSION ||
+          typeof snapshot.stateId !== "string" ||
+          typeof snapshot.adjudicationRunId !== "string"
+        ) {
+          throw new Error("Resume the v5 state once before listing cases");
+        }
+        const store = new TeamAdjudicationStore({
+          statePath: path.resolve(options.state),
+          collaborationRunId: snapshot.adjudicationRunId,
+        });
+        const result = store.read({
+          anchor: snapshot.adjudicationCursor || null,
+        });
+        if (options.json) {
+          console.log(JSON.stringify(result, null, 2));
+          return;
+        }
+        if (result.cases.length === 0) {
+          (log.log || console.log)("No team adjudication cases.");
+          return;
+        }
+        for (const item of result.cases) {
+          (log.log || console.log)(
+            `${item.taskKey}: ${item.status} (${item.recovery.state})` +
+              (item.decision ? ` decision=${item.decision.value}` : ""),
+          );
+        }
+      } catch (error) {
+        (log.error || console.error)(error.message);
+        process.exitCode = 1;
+      }
+    });
+
+  team
+    .command("interrupt")
+    .description("Request durable human takeover of an active team task")
+    .requiredOption("--state <file>", "Trusted team state file")
+    .requiredOption("--task <key>", "Task key to take over")
+    .requiredOption(
+      "--expected-state-id <id>",
+      "Exact state authority shown by the latest monitor snapshot",
+    )
+    .requiredOption(
+      "--expected-attempt-digest <digest>",
+      "Exact holder/lease/fencing attempt digest shown by the latest snapshot",
+    )
+    .option("--actor <identity>", "Operator identity", "cli-operator")
+    .option(
+      "--reason <text>",
+      "Reason for takeover",
+      "human takeover requested",
+    )
+    .option("--request-id <id>", "Idempotency key")
+    .option("--json", "Output the durable request as JSON")
+    .action((options) => {
+      try {
+        const statePath = path.resolve(options.state);
+        const snapshot = readTeamStateSnapshot(statePath);
+        if (
+          snapshot.version !== TEAM_STATE_VERSION ||
+          typeof snapshot.stateId !== "string"
+        ) {
+          throw new Error(
+            "Team interrupt requires a v6 state (resume an older state first)",
+          );
+        }
+        if (snapshot.stateId !== options.expectedStateId) {
+          throw new Error(
+            "Team state authority changed; refresh before requesting takeover",
+          );
+        }
+        const registry = TaskLeaseRegistry.restore(snapshot.registry);
+        const task = registry.getTask(options.task);
+        if (!task) throw new Error(`Team task not found: ${options.task}`);
+        if (task.status !== "in_progress") {
+          throw new Error(
+            `Team task "${options.task}" is not in progress (${task.status})`,
+          );
+        }
+        const holder = task.lease?.holder;
+        const leaseId = task.lease?.leaseId;
+        const fencingToken =
+          task.lease?.fencingToken ?? task.lease?.leaseId ?? null;
+        const currentAttemptDigest = computeTeamControlAttemptDigest({
+          holder,
+          leaseId,
+          fencingToken,
+        });
+        if (currentAttemptDigest !== options.expectedAttemptDigest) {
+          throw new Error(
+            "Team task attempt changed; refresh before requesting takeover",
+          );
+        }
+        const store = new TeamControlStore({
+          statePath,
+          stateId: snapshot.stateId,
+        });
+        const request = store.requestInterrupt({
+          ...(options.requestId ? { requestId: options.requestId } : {}),
+          taskKey: options.task,
+          holder,
+          leaseId,
+          fencingToken,
+          actor: options.actor,
+          reason: options.reason,
+        });
+        if (options.json) {
+          console.log(JSON.stringify(request, null, 2));
+        } else {
+          (log.log || console.log)(
+            `Human takeover requested for "${options.task}" (${request.request.requestId})`,
+          );
+        }
+      } catch (error) {
+        (log.error || console.error)(error.message);
+        process.exitCode = 1;
+      }
+    });
+
+  team
+    .command("adjudicate")
+    .description(
+      "Apply a one-shot retry/accept/cancel decision to an ambiguous task",
+    )
+    .requiredOption("--state <file>", "Trusted team state file")
+    .requiredOption("--task <key>", "Task key requiring adjudication")
+    .requiredOption(
+      "--decision <decision>",
+      "Decision: retry, accept, or cancel",
+    )
+    .requiredOption(
+      "--expected-state-id <id>",
+      "Exact state authority shown by the latest monitor snapshot",
+    )
+    .requiredOption(
+      "--expected-adjudication-digest <digest>",
+      "Exact adjudication case/evidence digest shown by the latest snapshot",
+    )
+    .option("--authority <identity>", "Operator authority", "cli-operator")
+    .requiredOption("--reason <text>", "Reason/evidence summary")
+    .option("--json", "Output the applied decision as JSON")
+    .action((options) => {
+      let stateLock = null;
+      try {
+        const decision = String(options.decision || "").toLowerCase();
+        if (!["retry", "accept", "cancel"].includes(decision)) {
+          throw new Error("--decision must be retry, accept, or cancel");
+        }
+        stateLock = TeamRunStateLock.acquire(path.resolve(options.state));
+        const statePath = stateLock.statePath;
+        const snapshot = readTeamStateSnapshot(statePath);
+        if (
+          snapshot.version !== TEAM_STATE_VERSION ||
+          typeof snapshot.stateId !== "string" ||
+          typeof snapshot.adjudicationRunId !== "string"
+        ) {
+          throw new Error(
+            "Team adjudication requires a v6 state prepared by --resume",
+          );
+        }
+        if (snapshot.stateId !== options.expectedStateId) {
+          throw new Error(
+            "Team state authority changed; refresh before adjudicating",
+          );
+        }
+        const registry = TaskLeaseRegistry.restore(snapshot.registry);
+        const task = registry.getTask(options.task);
+        if (!task) throw new Error(`Team task not found: ${options.task}`);
+        const storedBinding = task.metadata?.adjudication?.case;
+        if (
+          !storedBinding?.caseId ||
+          !storedBinding.registryDigest ||
+          !storedBinding.sideEffectDigest
+        ) {
+          throw new Error(
+            `Team task "${options.task}" has no durable adjudication case`,
+          );
+        }
+        const currentAdjudicationDigest = computeTeamControlAdjudicationDigest({
+          caseId: storedBinding.caseId,
+          evidenceDigest: storedBinding.sideEffectDigest,
+        });
+        if (currentAdjudicationDigest !== options.expectedAdjudicationDigest) {
+          throw new Error(
+            "Team adjudication authority changed; refresh before deciding",
+          );
+        }
+        const binding = {
+          taskKey: task.key,
+          registryDigest: storedBinding.registryDigest,
+          sideEffectDigest: storedBinding.sideEffectDigest,
+        };
+        const store = new TeamAdjudicationStore({
+          statePath,
+          collaborationRunId: snapshot.adjudicationRunId,
+        });
+        let adjudicationCase = store.getCase(binding, {
+          anchor: snapshot.adjudicationCursor || null,
+        });
+        if (!adjudicationCase) {
+          throw new Error(
+            `Durable adjudication case not found for "${options.task}"`,
+          );
+        }
+        if (adjudicationCase.caseId !== storedBinding.caseId) {
+          throw new Error("Team adjudication case binding mismatch");
+        }
+        const reasonDigest = computeTeamAdjudicationEvidenceDigest({
+          reason: options.reason,
+        });
+        const decided = store.decideCase(
+          {
+            ...binding,
+            decision,
+            authority: options.authority,
+            reasonDigest,
+            expectedRevision: adjudicationCase.revision,
+          },
+          { anchor: snapshot.adjudicationCursor || null },
+        );
+        adjudicationCase = decided.case;
+        const consumer = `team-state:${snapshot.stateId}:${task.key}`;
+        const claimed = store.claimDecision(
+          {
+            ...binding,
+            decisionDigest: adjudicationCase.decision.decisionDigest,
+            consumer,
+            expectedRevision: adjudicationCase.revision,
+          },
+          { anchor: decided.cursor },
+        );
+        adjudicationCase = claimed.case;
+        const claimedDecisionId = adjudicationCase.claim?.claimId || null;
+        const appliedDecision = task.metadata?.adjudication?.decision || null;
+        const retryAlreadyPersisted =
+          decision === "retry" &&
+          task.metadata?.adjudication?.required === false &&
+          appliedDecision?.id === claimedDecisionId &&
+          appliedDecision?.action === decision;
+        if (
+          !claimed.authorization &&
+          adjudicationCase.recovery.state === "retry_outcome_unknown" &&
+          !retryAlreadyPersisted
+        ) {
+          throw new Error(
+            "Retry authorization was already consumed but its outcome is unknown; automatic replay is forbidden",
+          );
+        }
+        if (
+          !claimed.authorization &&
+          adjudicationCase.recovery.state === "complete"
+        ) {
+          snapshot.adjudicationCursor = claimed.cursor;
+          writeTeamStateSnapshot(statePath, snapshot);
+          const result = {
+            ok: true,
+            idempotent: true,
+            task: registry.getTask(task.key),
+            case: adjudicationCase,
+          };
+          if (options.json) console.log(JSON.stringify(result, null, 2));
+          else
+            (log.log || console.log)(
+              `Decision already applied for "${task.key}"`,
+            );
+          return;
+        }
+        const claimId =
+          claimed.authorization?.claimId || adjudicationCase.claim?.claimId;
+        const claimDigest =
+          claimed.authorization?.claimDigest ||
+          adjudicationCase.claim?.claimDigest;
+        if (!claimId || !claimDigest) {
+          throw new Error("Team adjudication claim authority is unavailable");
+        }
+        const applied = registry.resolveAdjudication(task.key, {
+          decision,
+          decisionId: claimId,
+          actor: options.authority,
+          reason: options.reason,
+          evidenceDigest: task.metadata?.adjudication?.evidenceDigest || null,
+          result:
+            decision === "accept"
+              ? {
+                  adjudicated: true,
+                  caseId: adjudicationCase.caseId,
+                  claimId,
+                }
+              : null,
+        });
+        if (!applied.ok) {
+          throw new Error(
+            `Could not apply team adjudication: ${applied.reason}`,
+          );
+        }
+        snapshot.registry = registry.snapshot();
+        snapshot.adjudicationCursor = claimed.cursor;
+        writeTeamStateSnapshot(statePath, snapshot);
+        const outcomeDigest = computeTeamAdjudicationEvidenceDigest({
+          stateId: snapshot.stateId,
+          task: registry.getTask(task.key),
+          claimId,
+        });
+        const completed = store.completeCase(
+          {
+            ...binding,
+            claimDigest,
+            outcomeDigest,
+            expectedRevision: adjudicationCase.revision,
+          },
+          { anchor: claimed.cursor },
+        );
+        snapshot.adjudicationCursor = completed.cursor;
+        writeTeamStateSnapshot(statePath, snapshot);
+        const result = {
+          ok: true,
+          decision,
+          task: registry.getTask(task.key),
+          case: completed.case,
+        };
+        if (options.json) console.log(JSON.stringify(result, null, 2));
+        else
+          (log.log || console.log)(
+            `Applied ${decision} decision to "${task.key}"`,
+          );
+      } catch (error) {
+        (log.error || console.error)(error.message);
+        process.exitCode = 1;
+      } finally {
+        if (stateLock && stateLock.release() !== true) {
+          (log.error || console.error)(
+            "Lost team state lock ownership before adjudication release",
+          );
+          process.exitCode = 1;
+        }
+      }
+    });
+
+  team
     .command("run")
     .description("Run a task graph with N cooperating teammates")
     .requiredOption("--tasks <file>", "Task-graph JSON file")
@@ -1092,6 +1847,14 @@ export function registerTeamCommand(program, { logger } = {}) {
     .option(
       "--worktree",
       "Run each task's `command` in its own git worktree (parallel isolation)",
+    )
+    .option(
+      "--managed-checkpoint",
+      "With --worktree: capture task writes/commit in a fail-closed Process Broker checkpoint",
+    )
+    .option(
+      "--checkpoint-state-dir <dir>",
+      "External managed checkpoint store (defaults beside --state)",
     )
     .option(
       "--merge",
@@ -1155,16 +1918,10 @@ export function registerTeamCommand(program, { logger } = {}) {
           if (!fs.existsSync(options.state)) {
             throw new Error(`Team resume state not found: ${options.state}`);
           }
-          const stateBytes = fs.statSync(options.state).size;
-          if (stateBytes <= 0 || stateBytes > MAX_TEAM_STATE_BYTES) {
-            throw new Error(
-              `Team resume state exceeds the safe ${MAX_TEAM_STATE_BYTES}-byte limit`,
-            );
-          }
-          resumeSnapshot = JSON.parse(fs.readFileSync(options.state, "utf8"));
+          resumeSnapshot = readTeamStateSnapshot(options.state);
           if (
             !resumeSnapshot ||
-            resumeSnapshot.version !== 5 ||
+            ![5, TEAM_STATE_VERSION].includes(resumeSnapshot.version) ||
             !resumeSnapshot.registry ||
             !resumeSnapshot.execution ||
             !resumeSnapshot.budget ||
@@ -1174,9 +1931,10 @@ export function registerTeamCommand(program, { logger } = {}) {
             !resumeSnapshot.collaborationCursor
           ) {
             throw new Error(
-              "Team resume state is missing the v5 authority contract",
+              "Team resume state is missing the v5/v6 authority contract",
             );
           }
+          resumeSnapshot = ensureTeamStateV6(resumeSnapshot);
           restoreTeamExecutionContract(
             options,
             command,
@@ -1210,9 +1968,44 @@ export function registerTeamCommand(program, { logger } = {}) {
           process.exitCode = 1;
           return;
         }
+        if (options.managedCheckpoint && !options.worktree) {
+          (log.error || console.error)(
+            "--managed-checkpoint requires --worktree",
+          );
+          process.exitCode = 1;
+          return;
+        }
+        if (options.checkpointStateDir && !options.managedCheckpoint) {
+          (log.error || console.error)(
+            "--checkpoint-state-dir requires --managed-checkpoint",
+          );
+          process.exitCode = 1;
+          return;
+        }
+        if (options.managedCheckpoint && !options.state) {
+          (log.error || console.error)(
+            "--managed-checkpoint requires trusted --state outside the repository",
+          );
+          process.exitCode = 1;
+          return;
+        }
         if (teamExecutionMode(options) !== "dry-run" && options.state) {
           try {
             assertTrustedStateLocation(options.state, canonicalRepoRoot());
+          } catch (error) {
+            (log.error || console.error)(error.message);
+            process.exitCode = 1;
+            return;
+          }
+        }
+        let managedCheckpointStateDir = null;
+        if (options.managedCheckpoint) {
+          try {
+            managedCheckpointStateDir = assertExternalManagedCheckpointStateDir(
+              options.checkpointStateDir ||
+                `${options.state}.workspace-transactions`,
+              canonicalRepoRoot(),
+            );
           } catch (error) {
             (log.error || console.error)(error.message);
             process.exitCode = 1;
@@ -1365,6 +2158,8 @@ export function registerTeamCommand(program, { logger } = {}) {
           exec: options.exec === true,
           agent: options.agent === true,
           worktree: options.worktree === true,
+          managedCheckpoint: options.managedCheckpoint === true,
+          checkpointStateDir: managedCheckpointStateDir,
           merge: options.merge === true,
           teammates,
           permissionMode,
@@ -1404,7 +2199,11 @@ export function registerTeamCommand(program, { logger } = {}) {
             return;
           }
         }
-        if ((options.exec || options.worktree) && !options.agent) {
+        if (
+          (options.exec || options.worktree) &&
+          !options.agent &&
+          !options.managedCheckpoint
+        ) {
           const checkpointTask = reg
             .list()
             .find((task) => taskContracts.get(task.key)?.checkpointRequired);
@@ -1455,6 +2254,12 @@ export function registerTeamCommand(program, { logger } = {}) {
             );
           }
         }
+        const stateId = resumeSnapshot?.stateId || `team_state_${randomUUID()}`;
+        let controlCursor = resumeSnapshot?.controlCursor || null;
+        let adjudicationCursor = resumeSnapshot?.adjudicationCursor || null;
+        let adjudicationRunId = resumeSnapshot?.adjudicationRunId || null;
+        let adjudicationStore = null;
+        let controlStore = null;
         let priorCollaborationRun = null;
         if (priorCollaborationRunId) {
           const recovery = _deps.collaborationStore.readRecovery(
@@ -1488,20 +2293,110 @@ export function registerTeamCommand(program, { logger } = {}) {
           );
         }
         if (resumeSnapshot && executionContract.mode !== "dry-run") {
-          const ambiguous = (priorCollaborationRun?.units || []).find(
-            (unit) =>
-              Number(unit.sideEffects?.unsettled) > 0 ||
-              Number(unit.sideEffects?.unknown) > 0 ||
-              (unit.status === "completed" &&
-                String(reg.getTask(unit.key)?.status || "").toLowerCase() !==
-                  "completed") ||
-              (unit.startedAt != null &&
-                unit.status !== "completed" &&
-                unit.status !== "cancelled"),
+          adjudicationRunId = adjudicationRunId || priorCollaborationRunId;
+          adjudicationStore = new TeamAdjudicationStore({
+            statePath: options.state,
+            collaborationRunId: adjudicationRunId,
+          });
+          // Always prove the persisted cursor before trusting a valid-looking
+          // adjudication file. This detects rollback even when no case is
+          // currently pending.
+          adjudicationCursor = adjudicationStore.read({
+            anchor: adjudicationCursor,
+          }).cursor;
+          const unitsByKey = new Map(
+            (priorCollaborationRun?.units || []).map((unit) => [
+              unit.key,
+              unit,
+            ]),
           );
-          if (ambiguous) {
+          const ambiguousKeys = new Set(
+            (priorCollaborationRun?.units || [])
+              .filter((unit) => {
+                const task = reg.getTask(unit.key);
+                const resolved =
+                  task?.metadata?.adjudication?.required === false &&
+                  task?.metadata?.adjudication?.decision;
+                if (resolved) return false;
+                return (
+                  Number(unit.sideEffects?.unsettled) > 0 ||
+                  Number(unit.sideEffects?.unknown) > 0 ||
+                  (unit.status === "completed" &&
+                    String(task?.status || "").toLowerCase() !== "completed") ||
+                  (unit.startedAt != null &&
+                    unit.status !== "completed" &&
+                    unit.status !== "cancelled")
+                );
+              })
+              .map((unit) => unit.key),
+          );
+          for (const pending of reg.pendingAdjudications()) {
+            ambiguousKeys.add(pending.key);
+          }
+          for (const key of ambiguousKeys) {
+            let task = reg.getTask(key);
+            if (!task) {
+              throw new Error(
+                `Collaboration recovery references unknown task "${key}"`,
+              );
+            }
+            if (task.metadata?.adjudication?.required !== true) {
+              const required = reg.requireAdjudication(key, {
+                code: "TEAM_RESUME_ADJUDICATION_REQUIRED",
+                reason:
+                  "prior real execution side effects require adjudication",
+                evidenceDigest: computeTeamAdjudicationEvidenceDigest({
+                  unit: unitsByKey.get(key) || null,
+                }),
+              });
+              if (!required.ok) {
+                throw new Error(
+                  `Could not fail task "${key}" closed: ${required.reason}`,
+                );
+              }
+              task = reg.getTask(key);
+            }
+            const binding = adjudicationBindingFor(
+              task,
+              unitsByKey.get(key) || null,
+            );
+            const opened = adjudicationStore.openCase(binding, {
+              anchor: adjudicationCursor,
+              expectedCursor: adjudicationCursor,
+            });
+            adjudicationCursor = opened.cursor;
+            const bound = reg.bindAdjudicationCase(key, {
+              caseId: opened.case.caseId,
+              registryDigest: binding.registryDigest,
+              sideEffectDigest: binding.sideEffectDigest,
+            });
+            if (!bound.ok) {
+              throw new Error(
+                `Could not bind adjudication case for "${key}": ${bound.reason}`,
+              );
+            }
+          }
+          const pending = reg.pendingAdjudications();
+          if (pending.length > 0) {
+            const upgraded = {
+              ...resumeSnapshot,
+              version: TEAM_STATE_VERSION,
+              stateId,
+              registry: reg.snapshot(),
+              mailbox: mailbox.snapshot(),
+              budget: budget.snapshot(),
+              members: priorMembers,
+              controlCursor,
+              adjudicationRunId,
+              adjudicationCursor,
+            };
+            writeTeamStateSnapshot(options.state, upgraded);
             const error = new Error(
-              `Team resume requires side-effect adjudication for task "${ambiguous.key}"`,
+              `Team resume requires side-effect adjudication for ${pending
+                .map((item) => `"${item.key}"`)
+                .join(
+                  ", ",
+                )}; run \`cc team adjudicate --state "${options.state}" --task <key> --decision <retry|accept|cancel> --reason <text>\``,
             );
             error.code = "TEAM_RESUME_ADJUDICATION_REQUIRED";
             throw error;
@@ -1511,6 +2406,7 @@ export function registerTeamCommand(program, { logger } = {}) {
           (priorCollaborationRun?.units || []).map((unit) => [unit.key, unit]),
         );
         const runId = _deps.collaborationStore.createRunId("team");
+        adjudicationRunId = adjudicationRunId || runId;
         const worktreeRunId = resumeSnapshot?.execution?.worktreeRunId || runId;
         executionContract.worktreeRunId = options.worktree
           ? worktreeRunId
@@ -1534,7 +2430,8 @@ export function registerTeamCommand(program, { logger } = {}) {
               maxTokens: limits.maxTokens,
               maxWallMs: limits.maxWallMs,
             },
-            checkpointRequired: options.agent === true,
+            checkpointRequired:
+              options.agent === true || options.managedCheckpoint === true,
             worktreeRequired: options.worktree === true,
             units: reg.list().map((task) => ({
               key: task.key,
@@ -1561,7 +2458,8 @@ export function registerTeamCommand(program, { logger } = {}) {
                 maxWallMs: taskContracts.get(task.key)?.maxWallMs,
               },
               checkpointRequired:
-                taskContracts.get(task.key)?.checkpointRequired === true,
+                taskContracts.get(task.key)?.checkpointRequired === true ||
+                options.managedCheckpoint === true,
               worktreeRequired:
                 taskContracts.get(task.key)?.worktreeRequired === true,
               scopePaths: task.metadata?.scopePaths || [],
@@ -1604,50 +2502,33 @@ export function registerTeamCommand(program, { logger } = {}) {
 
         // Persist a snapshot after each task settles so a crash mid-run is
         // resumable (persist-after-run alone would lose everything on a crash).
-        // v5 also records execution authority, recovery cursors, bounded mailbox,
+        // v6 also records execution authority, recovery cursors, bounded mailbox,
         // scope ownership, and worktree integration state. Persistence is
         // fail-closed when it gates a claim, rather than a best-effort event sink.
         let runnerRef = null;
         const persist = () => {
           if (!options.state) return;
-          // Atomic write (tmp + rename): a crash mid-write must not truncate
-          // the ONLY resume file — a torn snapshot makes --resume throw and
-          // loses all progress.
-          const tmp = `${options.state}.${process.pid}.${Date.now()}.tmp`;
-          const contents = JSON.stringify(
-            {
-              version: 5,
-              registry: reg.snapshot(),
-              mailbox: mailbox.snapshot(),
-              budget: budget.snapshot(),
-              scopeLock: scopeLock?.snapshot() || null,
-              worktrees: coord?.snapshot?.() || null,
-              members: runnerRef ? runnerRef.members() : priorMembers,
-              collaborationRunId: collaborationRun.id,
-              collaborationCursor: _deps.collaborationStore.readCursor(
-                collaborationRun.id,
-              ),
-              execution: executionContract,
-            },
-            null,
-            2,
-          );
-          const bytes = Buffer.byteLength(contents, "utf8");
-          if (bytes > MAX_TEAM_STATE_BYTES) {
-            throw new Error(
-              `Team state exceeds the safe ${MAX_TEAM_STATE_BYTES}-byte limit`,
-            );
-          }
-          try {
-            fs.writeFileSync(tmp, contents, { encoding: "utf8", mode: 0o600 });
-            fs.renameSync(tmp, options.state);
-          } finally {
-            try {
-              if (fs.existsSync(tmp)) fs.rmSync(tmp, { force: true });
-            } catch {
-              /* preserve the authoritative write/rename failure */
-            }
-          }
+          // Reuse the v6 authority writer so every persistence path gets the
+          // same byte cap, exclusive temporary file, fsync, atomic replace,
+          // and private final permissions.
+          writeTeamStateSnapshot(options.state, {
+            version: TEAM_STATE_VERSION,
+            stateId,
+            registry: reg.snapshot(),
+            mailbox: mailbox.snapshot(),
+            budget: budget.snapshot(),
+            scopeLock: scopeLock?.snapshot() || null,
+            worktrees: coord?.snapshot?.() || null,
+            members: runnerRef ? runnerRef.members() : priorMembers,
+            collaborationRunId: collaborationRun.id,
+            collaborationCursor: _deps.collaborationStore.readCursor(
+              collaborationRun.id,
+            ),
+            controlCursor,
+            adjudicationRunId,
+            adjudicationCursor,
+            execution: executionContract,
+          });
         };
 
         // Pick the executor. Default is a dry-run (validate + schedule, no side
@@ -1663,11 +2544,21 @@ export function registerTeamCommand(program, { logger } = {}) {
                   .filter(Boolean)
               : null;
           try {
+            const checkpointBroker = options.managedCheckpoint
+              ? new TeamProcessCheckpointBroker({
+                  broker: executionBroker,
+                  stateDir: managedCheckpointStateDir,
+                  coverageTarget: "partial",
+                  writerIsolation: "unknown",
+                  externalSideEffects: true,
+                })
+              : null;
             coord = new TeamWorktreeCoordinator(process.cwd(), {
               runId: worktreeRunId,
               snapshot: resumeSnapshot?.worktrees || undefined,
               sparsePaths: splitList(options.sparsePaths),
               symlinkDirectories: splitList(options.symlinkDirs),
+              checkpointBroker,
               onWorktree: ({ key, branch, path: worktreePath }) => {
                 settleGovernance(key, "running", {
                   branch,
@@ -1678,6 +2569,14 @@ export function registerTeamCommand(program, { logger } = {}) {
                 // worktree exists. A crash after creation must not leave an
                 // invisible deterministic branch/path that resume would
                 // otherwise collide with.
+                persist();
+              },
+              onCheckpoint: ({ key, checkpoint }) => {
+                settleGovernance(key, "running", {
+                  workspaceCheckpoint: checkpoint,
+                });
+                // Prepared/running/final checkpoint authority must reach the
+                // trusted team state before execution advances.
                 persist();
               },
             });
@@ -1719,6 +2618,7 @@ export function registerTeamCommand(program, { logger } = {}) {
                 inbox = [],
                 budgetReservation = null,
                 signal = null,
+                managedCheckpoint = false,
               }) => {
                 const prompt = task.metadata?.prompt || task?.prompt;
                 if (!prompt) {
@@ -1733,6 +2633,13 @@ export function registerTeamCommand(program, { logger } = {}) {
                   cwd,
                   {
                     ...contract,
+                    // The outer worktree transaction is the workspace
+                    // checkpoint authority. Avoid nesting an agent checkpoint
+                    // against the same writable tree.
+                    checkpointRequired: managedCheckpoint
+                      ? false
+                      : contract.checkpointRequired,
+                    managedCheckpoint,
                     sessionId: collaborationUnits.get(key)?.sessionId,
                     signal,
                   },
@@ -1803,6 +2710,36 @@ export function registerTeamCommand(program, { logger } = {}) {
           });
         }
 
+        const ensureTaskAdjudicationCase = (key) => {
+          const task = reg.getTask(key);
+          if (
+            !adjudicationStore ||
+            task?.metadata?.adjudication?.required !== true
+          ) {
+            return null;
+          }
+          const binding = adjudicationBindingFor(
+            task,
+            collaborationUnits.get(key) || null,
+          );
+          const opened = adjudicationStore.openCase(binding, {
+            anchor: adjudicationCursor,
+            expectedCursor: adjudicationCursor,
+          });
+          adjudicationCursor = opened.cursor;
+          const bound = reg.bindAdjudicationCase(key, {
+            caseId: opened.case.caseId,
+            registryDigest: binding.registryDigest,
+            sideEffectDigest: binding.sideEffectDigest,
+          });
+          if (!bound.ok) {
+            throw new Error(
+              `Could not bind adjudication case for "${key}": ${bound.reason}`,
+            );
+          }
+          return opened.case;
+        };
+
         const runner = new TeamRunner(reg, {
           teammates,
           maxTasks: limits.maxTasks || undefined,
@@ -1843,6 +2780,10 @@ export function registerTeamCommand(program, { logger } = {}) {
             settleGovernance(key, governanceStatus, {
               endedAt: governanceStatus === "pending" ? null : Date.now(),
             });
+            ensureTaskAdjudicationCase(key);
+            persist();
+          },
+          onLeaseChanged: () => {
             persist();
           },
           onEvent: (e) => {
@@ -1864,10 +2805,70 @@ export function registerTeamCommand(program, { logger } = {}) {
         runner.seedMembers(priorMembers);
         runnerRef = runner;
 
+        const controlWorkerId = `coordinator-${process.pid}-${stateId}`;
+        let controlTimer = null;
+        let controlFailed = false;
+        const pollControls = () => {
+          if (!controlStore || controlFailed) return;
+          try {
+            const pending = controlStore.pending({
+              anchor: controlCursor,
+            });
+            for (const request of pending) {
+              const { outcome } = dispatchTeamControlInterrupt(runner, request);
+              controlStore.acknowledge({
+                requestId: request.requestId,
+                outcome,
+                workerId: controlWorkerId,
+              });
+              controlCursor = controlStore.cursor();
+              persist();
+            }
+          } catch (error) {
+            controlFailed = true;
+            if (controlTimer) {
+              clearInterval(controlTimer);
+              controlTimer = null;
+            }
+            runner.abortRun(error, { requireAdjudication: true });
+          }
+        };
+
         let summary;
         try {
           persist();
-          summary = await runner.run();
+          if (options.state) {
+            adjudicationStore =
+              adjudicationStore ||
+              new TeamAdjudicationStore({
+                statePath: options.state,
+                collaborationRunId: adjudicationRunId,
+              });
+            adjudicationCursor = adjudicationStore.read({
+              anchor: adjudicationCursor,
+            }).cursor;
+            controlStore = new TeamControlStore({
+              statePath: options.state,
+              stateId,
+            });
+            controlStore.pending({ anchor: controlCursor });
+            controlCursor = controlStore.cursor();
+            persist();
+          }
+          const running = runner.run();
+          if (controlStore) {
+            pollControls();
+            controlTimer = setInterval(pollControls, 100);
+            controlTimer.unref?.();
+          }
+          try {
+            summary = await running;
+          } finally {
+            if (controlTimer) {
+              clearInterval(controlTimer);
+              controlTimer = null;
+            }
+          }
         } catch (err) {
           try {
             _deps.collaborationStore.finalizeRun(collaborationRun.id, "failed");
@@ -1875,6 +2876,18 @@ export function registerTeamCommand(program, { logger } = {}) {
             /* retain the original runner failure */
           }
           throw err;
+        }
+        if (controlStore) {
+          for (const request of controlStore.pending({
+            anchor: controlCursor,
+          })) {
+            controlStore.acknowledge({
+              requestId: request.requestId,
+              outcome: "not_active",
+              workerId: controlWorkerId,
+            });
+            controlCursor = controlStore.cursor();
+          }
         }
         persist();
         let governanceFailed = false;

@@ -5,7 +5,9 @@ import { PassThrough } from "node:stream";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   _deps,
+  buildTeamControlBindings,
   buildTeamAgentPrompt,
+  dispatchTeamControlInterrupt,
   MAX_TEAMMATES,
   makeShellRunTask,
   parsePositiveOption,
@@ -13,6 +15,11 @@ import {
   restoreTeamExecutionContract,
   spawnAgent,
 } from "../../src/commands/team.js";
+import { TaskLeaseRegistry } from "../../src/lib/agent-team/task-lease.js";
+import {
+  computeTeamControlAdjudicationDigest,
+  computeTeamControlAttemptDigest,
+} from "../../src/lib/agent-team/team-control-store.js";
 
 const ORIGINAL_SPAWN = _deps.spawn;
 const ORIGINAL_KILL_PROCESS_TREE = _deps.killProcessTree;
@@ -32,6 +39,108 @@ function createChild({ stdin = false } = {}) {
 afterEach(() => {
   _deps.spawn = ORIGINAL_SPAWN;
   _deps.killProcessTree = ORIGINAL_KILL_PROCESS_TREE;
+});
+
+describe("team durable control dispatch", () => {
+  it.each([
+    [{ ok: true }, "accepted"],
+    [{ ok: false, reason: "not_active" }, "not_active"],
+    [{ ok: false, reason: "stale_attempt" }, "stale_attempt"],
+    [{ ok: false, reason: "already_interrupted" }, "rejected"],
+  ])("forwards the exact attempt binding and maps %j", (result, outcome) => {
+    const interruptTask = vi.fn(() => result);
+    const request = {
+      taskKey: "deploy",
+      holder: "worker-2",
+      leaseId: "lease-epoch:4",
+      fencingToken: "lease-epoch:4",
+      requestId: "tctl_exact-attempt",
+      actor: "operator",
+      reason: "inspect side effects",
+      digest: `sha256:${"a".repeat(64)}`,
+    };
+
+    expect(dispatchTeamControlInterrupt({ interruptTask }, request)).toEqual({
+      interrupted: result,
+      outcome,
+    });
+    expect(interruptTask).toHaveBeenCalledWith("deploy", {
+      holder: request.holder,
+      leaseId: request.leaseId,
+      fencingToken: request.fencingToken,
+      requestId: request.requestId,
+      actor: request.actor,
+      reason: request.reason,
+      evidenceDigest: request.digest,
+    });
+  });
+
+  it("publishes refreshable attempt and adjudication CAS bindings", () => {
+    const registry = new TaskLeaseRegistry({
+      groupId: "control-bindings",
+      now: () => 1_000,
+      leaseEpoch: "control-bindings",
+    });
+    expect(registry.addTask({ key: "active", title: "active task" }).ok).toBe(
+      true,
+    );
+    expect(
+      registry.addTask({ key: "ambiguous", title: "ambiguous task" }).ok,
+    ).toBe(true);
+    const acquired = registry.acquire("active", { holder: "worker-1" });
+    expect(acquired.ok).toBe(true);
+    const sideEffectDigest = `sha256:${"b".repeat(64)}`;
+    expect(
+      registry.requireAdjudication("ambiguous", {
+        evidenceDigest: sideEffectDigest,
+      }).ok,
+    ).toBe(true);
+    expect(
+      registry.bindAdjudicationCase("ambiguous", {
+        caseId: "tadj_case-control-binding",
+        registryDigest: `sha256:${"c".repeat(64)}`,
+        sideEffectDigest,
+      }).ok,
+    ).toBe(true);
+
+    expect(
+      buildTeamControlBindings({
+        version: 6,
+        stateId: "team_state_control-bindings",
+        registry: registry.snapshot(),
+      }),
+    ).toMatchObject({
+      stateId: "team_state_control-bindings",
+      tasks: [
+        {
+          key: "active",
+          status: "in_progress",
+          attempt: {
+            holder: acquired.lease.holder,
+            leaseId: acquired.lease.leaseId,
+            fencingToken: acquired.lease.leaseId,
+            digest: computeTeamControlAttemptDigest({
+              holder: acquired.lease.holder,
+              leaseId: acquired.lease.leaseId,
+              fencingToken: acquired.lease.leaseId,
+            }),
+          },
+          adjudication: null,
+        },
+        {
+          key: "ambiguous",
+          adjudication: {
+            caseId: "tadj_case-control-binding",
+            evidenceDigest: sideEffectDigest,
+            digest: computeTeamControlAdjudicationDigest({
+              caseId: "tadj_case-control-binding",
+              evidenceDigest: sideEffectDigest,
+            }),
+          },
+        },
+      ],
+    });
+  });
 });
 
 describe("team command process Broker", () => {
@@ -104,6 +213,30 @@ describe("team command process Broker", () => {
     await expect(completed).rejects.toMatchObject({
       code: "TEAM_SHELL_ABORTED",
     });
+    expect(_deps.killProcessTree).toHaveBeenCalledOnce();
+  });
+
+  it("propagates IDE takeover adjudication from a real shell executor", async () => {
+    const child = createChild();
+    _deps.spawn = vi.fn(() => child);
+    _deps.killProcessTree = vi.fn(() => child.kill());
+    const controller = new AbortController();
+    const takeover = Object.assign(new Error("operator takeover"), {
+      code: "TEAM_TASK_HUMAN_INTERRUPTED",
+      retryable: false,
+      adjudication: {
+        code: "TEAM_TASK_HUMAN_INTERRUPTED",
+        evidenceDigest: `sha256:${"b".repeat(64)}`,
+      },
+    });
+    const completed = makeShellRunTask(console)({
+      task: { key: "takeover", metadata: { command: "long-command" } },
+      signal: controller.signal,
+    });
+
+    controller.abort(takeover);
+
+    await expect(completed).rejects.toBe(takeover);
     expect(_deps.killProcessTree).toHaveBeenCalledOnce();
   });
 
@@ -224,6 +357,33 @@ describe("team command process Broker", () => {
     expect(child.kill).toHaveBeenCalledOnce();
   });
 
+  it("counts cache-only stream usage against the live teammate token ceiling", async () => {
+    const child = createChild({ stdin: true });
+    _deps.spawn = vi.fn(() => child);
+    const completed = spawnAgent("cache-bounded", "/repo", { maxTokens: 7 });
+
+    child.stdout.write(
+      `${JSON.stringify({
+        type: "token_usage",
+        usage: {
+          cache_read_input_tokens: 4,
+          cache_creation_input_tokens: 3,
+        },
+      })}\n`,
+    );
+
+    await expect(completed).rejects.toMatchObject({
+      code: "TEAM_AGENT_TOKEN_LIMIT",
+      maxTokens: 7,
+      tokens: 7,
+      usage: expect.objectContaining({
+        cache_read_input_tokens: 4,
+        cache_creation_input_tokens: 3,
+      }),
+    });
+    expect(child.kill).toHaveBeenCalledOnce();
+  });
+
   it("kills a teammate that exceeds its per-task wall-clock ceiling", async () => {
     const child = createChild({ stdin: true });
     _deps.spawn = vi.fn(() => child);
@@ -265,6 +425,43 @@ describe("team command process Broker", () => {
     await expect(completed).rejects.toMatchObject({
       code: "TEAM_AGENT_TOKEN_LIMIT",
     });
+  });
+
+  it("uses process-tree containment and preserves takeover evidence for a managed agent", async () => {
+    const child = createChild({ stdin: true });
+    child.kill = vi.fn(() => true);
+    _deps.spawn = vi.fn(() => child);
+    _deps.killProcessTree = vi.fn(() => child.kill());
+    const controller = new AbortController();
+    const takeover = Object.assign(new Error("operator takeover"), {
+      code: "TEAM_TASK_HUMAN_INTERRUPTED",
+      retryable: false,
+      adjudication: {
+        code: "TEAM_TASK_HUMAN_INTERRUPTED",
+        evidenceDigest: `sha256:${"c".repeat(64)}`,
+      },
+    });
+    let rejected = false;
+    const completed = spawnAgent("bounded", "/repo", {
+      signal: controller.signal,
+      managedCheckpoint: true,
+    }).catch((error) => {
+      rejected = true;
+      throw error;
+    });
+
+    controller.abort(takeover);
+    await new Promise((resolve) => setImmediate(resolve));
+
+    expect(rejected).toBe(false);
+    expect(_deps.spawn.mock.calls[0][2]).toEqual(
+      expect.objectContaining({
+        detached: false,
+        requiredBoundaries: ["process-tree"],
+      }),
+    );
+    child.emit("close", null);
+    await expect(completed).rejects.toBe(takeover);
   });
 
   it("bills valid partial usage when a later stream line is malformed", async () => {

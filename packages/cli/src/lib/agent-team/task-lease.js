@@ -28,6 +28,11 @@ import { randomUUID } from "node:crypto";
 
 export const DEFAULT_LEASE_TTL_MS = 60000;
 export const DEFAULT_MAX_ATTEMPTS = 3;
+export const ADJUDICATION_DECISIONS = Object.freeze({
+  RETRY: "retry",
+  ACCEPT: "accept",
+  CANCEL: "cancel",
+});
 
 export class TaskLeaseRegistry {
   constructor({
@@ -423,7 +428,14 @@ export class TaskLeaseRegistry {
    */
   fail(
     key,
-    { holder, leaseId, error = null, retryable = true, now = this._now() } = {},
+    {
+      holder,
+      leaseId,
+      error = null,
+      retryable = true,
+      adjudication = null,
+      now = this._now(),
+    } = {},
   ) {
     const id = this._byKey.get(key);
     const task = id ? this._tasks.get(id) : null;
@@ -434,6 +446,23 @@ export class TaskLeaseRegistry {
     }
     const attempts = (task.metadata?.attempts || 0) + 1;
     const willRetry = retryable !== false && attempts < this.maxAttempts;
+    const adjudicationRequest =
+      !willRetry && adjudication && typeof adjudication === "object"
+        ? {
+            required: true,
+            code:
+              adjudication.code ||
+              "TEAM_TASK_SIDE_EFFECT_ADJUDICATION_REQUIRED",
+            reason:
+              adjudication.reason ||
+              (error ? String(error) : "task outcome requires adjudication"),
+            evidenceDigest: adjudication.evidenceDigest || null,
+            requestedAt: Number.isFinite(adjudication.requestedAt)
+              ? adjudication.requestedAt
+              : now,
+            decision: null,
+          }
+        : task.metadata?.adjudication || null;
     const ok = this._write(task, {
       status: willRetry ? TASK_STATUS.PENDING : TASK_STATUS.CANCELLED,
       assignee: null,
@@ -442,6 +471,7 @@ export class TaskLeaseRegistry {
         lease: null,
         attempts,
         lastError: error ? String(error) : null,
+        ...(adjudicationRequest ? { adjudication: adjudicationRequest } : {}),
       },
     });
     if (!ok) return { ok: false, reason: "concurrent" };
@@ -529,6 +559,14 @@ export class TaskLeaseRegistry {
       if (!candidate.retry) {
         metadata.attempts = (fresh.metadata?.attempts || 0) + 1;
         metadata.lastError = String(error);
+        metadata.adjudication = {
+          required: true,
+          code: "TEAM_TASK_ABANDONED_ADJUDICATION_REQUIRED",
+          reason: String(error),
+          evidenceDigest: null,
+          requestedAt: this._now(),
+          decision: null,
+        };
       }
       if (
         this._write(fresh, {
@@ -550,6 +588,234 @@ export class TaskLeaseRegistry {
     return { reclaimed, adjudicationRequired };
   }
 
+  /**
+   * Resolve a fail-closed task after a durable human decision has been
+   * authenticated by the adjudication log.
+   *
+   * This is deliberately the only TaskLeaseRegistry operation allowed to move
+   * a CANCELLED task out of a terminal state. The generic SharedTaskList keeps
+   * its terminal-state invariant; this method performs a compare-by-revision
+   * replacement and records the exceptional transition in task history.
+   */
+  resolveAdjudication(
+    key,
+    {
+      decision,
+      decisionId,
+      actor = "human",
+      reason = null,
+      evidenceDigest = null,
+      result = null,
+      now = this._now(),
+    } = {},
+  ) {
+    const allowed = new Set(Object.values(ADJUDICATION_DECISIONS));
+    if (!allowed.has(decision)) {
+      return { ok: false, reason: "invalid_decision" };
+    }
+    if (!decisionId || typeof decisionId !== "string") {
+      return { ok: false, reason: "decision_id_required" };
+    }
+    const id = this._byKey.get(key);
+    const task = id ? this._tasks.get(id) : null;
+    if (!task) return { ok: false, reason: "not_found" };
+    const pending = task.metadata?.adjudication || null;
+    if (pending?.required !== true) {
+      const prior = pending?.decision || null;
+      if (prior?.id === decisionId && prior?.action === decision) {
+        return {
+          ok: true,
+          idempotent: true,
+          decision,
+          status: task.status,
+        };
+      }
+      return { ok: false, reason: "adjudication_not_required" };
+    }
+    if (task.status !== TASK_STATUS.CANCELLED) {
+      return { ok: false, reason: "invalid_task_state" };
+    }
+    if (pending.evidenceDigest && pending.evidenceDigest !== evidenceDigest) {
+      return { ok: false, reason: "evidence_mismatch" };
+    }
+
+    const status =
+      decision === ADJUDICATION_DECISIONS.RETRY
+        ? TASK_STATUS.PENDING
+        : decision === ADJUDICATION_DECISIONS.ACCEPT
+          ? TASK_STATUS.COMPLETED
+          : TASK_STATUS.CANCELLED;
+    const decidedAt = Number.isFinite(now) ? now : this._now();
+    const decisionRecord = {
+      id: decisionId,
+      action: decision,
+      actor: actor ? String(actor) : "human",
+      reason: reason == null ? null : String(reason),
+      evidenceDigest: evidenceDigest || pending.evidenceDigest || null,
+      decidedAt,
+    };
+    const snapshot = this._tasks.snapshot();
+    const stored = snapshot.tasks.find((candidate) => candidate.id === task.id);
+    if (!stored || stored.rev !== task.rev) {
+      return { ok: false, reason: "concurrent" };
+    }
+    stored.status = status;
+    stored.assignee = null;
+    stored.updatedAt = decidedAt;
+    stored.rev += 1;
+    stored.metadata = {
+      ...stored.metadata,
+      lease: null,
+      ...(decision === ADJUDICATION_DECISIONS.ACCEPT
+        ? {
+            result: result ?? {
+              adjudicated: true,
+              decisionId,
+            },
+          }
+        : {}),
+      adjudication: {
+        ...pending,
+        required: false,
+        decision: decisionRecord,
+      },
+    };
+    stored.history = [
+      ...(stored.history || []),
+      {
+        ts: decidedAt,
+        actor: decisionRecord.actor,
+        action: "adjudicated",
+        changes: ["status", "assignee", "metadata"],
+        decision: decisionRecord.action,
+        decisionId,
+      },
+    ];
+    this._tasks = SharedTaskList.restore(snapshot, { now: this._now });
+    this._rebuildIndexes();
+    if (status === TASK_STATUS.PENDING) {
+      this._enqueueIfReady(key, decidedAt);
+    } else if (status === TASK_STATUS.COMPLETED) {
+      for (const dependent of this._dependentsByKey.get(key) || []) {
+        this._enqueueIfReady(dependent, decidedAt);
+      }
+    }
+    return { ok: true, decision, status };
+  }
+
+  /**
+   * Force any recovery-ambiguous task into the fail-closed adjudication state.
+   * This exceptional transition is used only when durable collaboration
+   * evidence contradicts or weakens the registry snapshot.
+   */
+  requireAdjudication(
+    key,
+    {
+      code = "TEAM_TASK_SIDE_EFFECT_ADJUDICATION_REQUIRED",
+      reason = "task outcome requires adjudication",
+      evidenceDigest = null,
+      now = this._now(),
+    } = {},
+  ) {
+    const id = this._byKey.get(key);
+    const task = id ? this._tasks.get(id) : null;
+    if (!task) return { ok: false, reason: "not_found" };
+    if (task.metadata?.adjudication?.required === true) {
+      return { ok: true, idempotent: true };
+    }
+    const snapshot = this._tasks.snapshot();
+    const stored = snapshot.tasks.find((candidate) => candidate.id === task.id);
+    if (!stored || stored.rev !== task.rev) {
+      return { ok: false, reason: "concurrent" };
+    }
+    const requestedAt = Number.isFinite(now) ? now : this._now();
+    const priorStatus = stored.status;
+    stored.status = TASK_STATUS.CANCELLED;
+    stored.assignee = null;
+    stored.updatedAt = requestedAt;
+    stored.rev += 1;
+    stored.metadata = {
+      ...stored.metadata,
+      lease: null,
+      lastError: String(reason),
+      adjudication: {
+        required: true,
+        code: String(code),
+        reason: String(reason),
+        evidenceDigest: evidenceDigest || null,
+        requestedAt,
+        priorStatus,
+        decision: null,
+      },
+    };
+    stored.history = [
+      ...(stored.history || []),
+      {
+        ts: requestedAt,
+        actor: "recovery",
+        action: "adjudication-required",
+        changes: ["status", "assignee", "metadata"],
+      },
+    ];
+    this._tasks = SharedTaskList.restore(snapshot, { now: this._now });
+    this._rebuildIndexes();
+    return { ok: true, priorStatus };
+  }
+
+  /** Bind a pending adjudication to its immutable durable case evidence. */
+  bindAdjudicationCase(key, { caseId, registryDigest, sideEffectDigest } = {}) {
+    const id = this._byKey.get(key);
+    const task = id ? this._tasks.get(id) : null;
+    if (!task) return { ok: false, reason: "not_found" };
+    const adjudication = task.metadata?.adjudication || null;
+    if (adjudication?.required !== true) {
+      return { ok: false, reason: "adjudication_not_required" };
+    }
+    for (const [name, value] of Object.entries({
+      caseId,
+      registryDigest,
+      sideEffectDigest,
+    })) {
+      if (typeof value !== "string" || value.length === 0) {
+        return { ok: false, reason: `${name}_required` };
+      }
+    }
+    const current = adjudication.case || null;
+    if (current) {
+      if (
+        current.caseId === caseId &&
+        current.registryDigest === registryDigest &&
+        current.sideEffectDigest === sideEffectDigest
+      ) {
+        return { ok: true, idempotent: true, case: { ...current } };
+      }
+      return { ok: false, reason: "case_binding_conflict" };
+    }
+    const binding = { caseId, registryDigest, sideEffectDigest };
+    const ok = this._write(task, {
+      metadata: {
+        ...task.metadata,
+        adjudication: {
+          ...adjudication,
+          case: binding,
+        },
+      },
+    });
+    return ok
+      ? { ok: true, case: { ...binding } }
+      : { ok: false, reason: "concurrent" };
+  }
+
+  pendingAdjudications() {
+    return this.list()
+      .filter((task) => task.metadata?.adjudication?.required === true)
+      .map((task) => ({
+        key: task.key,
+        status: task.status,
+        ...task.metadata.adjudication,
+      }));
+  }
+
   stats({ now = this._now() } = {}) {
     const base = this._tasks.stats();
     let leased = 0;
@@ -566,6 +832,7 @@ export class TaskLeaseRegistry {
       leased,
       expiredLeases: expired,
       claimable: this.claimable({ now }).length,
+      adjudicationRequired: this.pendingAdjudications().length,
     };
   }
 
@@ -575,8 +842,9 @@ export class TaskLeaseRegistry {
       .list()
       .every(
         (t) =>
-          t.status === TASK_STATUS.COMPLETED ||
-          t.status === TASK_STATUS.CANCELLED,
+          (t.status === TASK_STATUS.COMPLETED ||
+            t.status === TASK_STATUS.CANCELLED) &&
+          t.metadata?.adjudication?.required !== true,
       );
   }
 

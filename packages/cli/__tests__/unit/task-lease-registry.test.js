@@ -269,6 +269,181 @@ describe("TaskLeaseRegistry fail / retry / cancel", () => {
     ).toMatchObject({ ok: true, retry: false, attempts: 1 });
     expect(reg.getTask("side-effect").status).toBe("cancelled");
   });
+
+  it("fails an ambiguous side effect closed until a matching human decision", () => {
+    const clock = makeClock();
+    const reg = new TaskLeaseRegistry({
+      now: clock.now,
+      maxAttempts: 5,
+    });
+    reg.addTask({ key: "side-effect", title: "side-effect" });
+    const claim = reg.acquire("side-effect", { holder: "a" });
+
+    expect(
+      reg.fail("side-effect", {
+        holder: "a",
+        leaseId: claim.lease.leaseId,
+        error: "interrupt raced with an external write",
+        retryable: false,
+        adjudication: {
+          code: "TEAM_TASK_HUMAN_INTERRUPTED",
+          evidenceDigest: "sha256:evidence",
+        },
+      }),
+    ).toMatchObject({ ok: true, retry: false, attempts: 1 });
+    expect(reg.allDone()).toBe(false);
+    expect(reg.stats().adjudicationRequired).toBe(1);
+    expect(reg.pendingAdjudications()).toEqual([
+      expect.objectContaining({
+        key: "side-effect",
+        required: true,
+        evidenceDigest: "sha256:evidence",
+      }),
+    ]);
+    expect(
+      reg.resolveAdjudication("side-effect", {
+        decision: "retry",
+        decisionId: "decision-1",
+        evidenceDigest: "sha256:wrong",
+      }),
+    ).toEqual({ ok: false, reason: "evidence_mismatch" });
+    expect(reg.claimable()).toEqual([]);
+    expect(
+      reg.bindAdjudicationCase("side-effect", {
+        caseId: "case-1",
+        registryDigest: "sha256:registry",
+        sideEffectDigest: "sha256:side-effect",
+      }),
+    ).toMatchObject({ ok: true });
+    expect(
+      reg.bindAdjudicationCase("side-effect", {
+        caseId: "case-1",
+        registryDigest: "sha256:registry",
+        sideEffectDigest: "sha256:side-effect",
+      }),
+    ).toMatchObject({ ok: true, idempotent: true });
+    expect(
+      reg.bindAdjudicationCase("side-effect", {
+        caseId: "different",
+        registryDigest: "sha256:registry",
+        sideEffectDigest: "sha256:side-effect",
+      }),
+    ).toEqual({ ok: false, reason: "case_binding_conflict" });
+
+    expect(
+      reg.resolveAdjudication("side-effect", {
+        decision: "retry",
+        decisionId: "decision-1",
+        actor: "operator@example.test",
+        reason: "verified no write occurred",
+        evidenceDigest: "sha256:evidence",
+      }),
+    ).toMatchObject({
+      ok: true,
+      decision: "retry",
+      status: "pending",
+    });
+    expect(reg.claimable()).toEqual(["side-effect"]);
+    expect(reg.getTask("side-effect").metadata.adjudication).toMatchObject({
+      required: false,
+      decision: {
+        id: "decision-1",
+        action: "retry",
+        actor: "operator@example.test",
+      },
+    });
+    expect(
+      reg.resolveAdjudication("side-effect", {
+        decision: "retry",
+        decisionId: "decision-1",
+      }),
+    ).toMatchObject({ ok: true, idempotent: true });
+  });
+
+  it("accepts an observed side effect and unblocks its dependents", () => {
+    const reg = new TaskLeaseRegistry();
+    reg.addTask({ key: "write", title: "write" });
+    reg.addTask({ key: "verify", title: "verify", dependsOn: ["write"] });
+    const claim = reg.acquire("write", { holder: "a" });
+    reg.fail("write", {
+      holder: "a",
+      leaseId: claim.lease.leaseId,
+      error: "outcome unknown",
+      retryable: false,
+      adjudication: { evidenceDigest: "sha256:observed" },
+    });
+
+    expect(
+      reg.resolveAdjudication("write", {
+        decision: "accept",
+        decisionId: "decision-accept",
+        evidenceDigest: "sha256:observed",
+        result: { externalId: "remote-123" },
+      }),
+    ).toMatchObject({ ok: true, status: "completed" });
+    expect(reg.getTask("write")).toMatchObject({
+      status: "completed",
+      metadata: { result: { externalId: "remote-123" } },
+    });
+    expect(reg.claimable()).toEqual(["verify"]);
+  });
+
+  it("keeps an explicitly cancelled adjudication terminal and rejects conflicts", () => {
+    const reg = new TaskLeaseRegistry();
+    reg.addTask({ key: "unsafe", title: "unsafe" });
+    const claim = reg.acquire("unsafe", { holder: "a" });
+    reg.fail("unsafe", {
+      holder: "a",
+      leaseId: claim.lease.leaseId,
+      error: "unknown",
+      retryable: false,
+      adjudication: {},
+    });
+
+    expect(
+      reg.resolveAdjudication("unsafe", {
+        decision: "cancel",
+        decisionId: "decision-cancel",
+      }),
+    ).toMatchObject({ ok: true, status: "cancelled" });
+    expect(reg.allDone()).toBe(true);
+    expect(
+      reg.resolveAdjudication("unsafe", {
+        decision: "retry",
+        decisionId: "different",
+      }),
+    ).toEqual({ ok: false, reason: "adjudication_not_required" });
+  });
+
+  it("fails a completed task closed when recovery evidence becomes ambiguous", () => {
+    const reg = new TaskLeaseRegistry();
+    reg.addTask({ key: "external", title: "external" });
+    const claim = reg.acquire("external", { holder: "a" });
+    reg.complete("external", {
+      holder: "a",
+      leaseId: claim.lease.leaseId,
+      result: { reported: "ok" },
+    });
+
+    expect(
+      reg.requireAdjudication("external", {
+        code: "TEAM_SIDE_EFFECT_LEDGER_UNKNOWN",
+        reason: "side-effect ledger contains an unknown settlement",
+        evidenceDigest: "sha256:ledger",
+      }),
+    ).toMatchObject({ ok: true, priorStatus: "completed" });
+    expect(reg.getTask("external")).toMatchObject({
+      status: "cancelled",
+      metadata: {
+        adjudication: {
+          required: true,
+          priorStatus: "completed",
+          evidenceDigest: "sha256:ledger",
+        },
+      },
+    });
+    expect(reg.allDone()).toBe(false);
+  });
 });
 
 describe("TaskLeaseRegistry snapshot / restore", () => {
@@ -373,9 +548,14 @@ describe("TaskLeaseRegistry crash resume (session recovery)", () => {
       attempts: 1,
       metadata: {
         lastError: "manual adjudication required",
+        adjudication: {
+          required: true,
+          code: "TEAM_TASK_ABANDONED_ADJUDICATION_REQUIRED",
+        },
       },
     });
     expect(reg.claimable()).toEqual(["safe"]);
+    expect(reg.allDone()).toBe(false);
   });
 });
 

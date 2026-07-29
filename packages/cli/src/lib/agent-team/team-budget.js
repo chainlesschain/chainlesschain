@@ -138,7 +138,10 @@ export class TeamBudget {
     this.tasks += 1;
     if (usage) {
       this.tokens +=
-        (Number(usage.input_tokens) || 0) + (Number(usage.output_tokens) || 0);
+        (Number(usage.input_tokens) || 0) +
+        (Number(usage.output_tokens) || 0) +
+        (Number(usage.cache_read_input_tokens) || 0) +
+        (Number(usage.cache_creation_input_tokens) || 0);
       if (Array.isArray(usageRecords) && usageRecords.length > 0) {
         for (const record of usageRecords) {
           this._recordCost(record);

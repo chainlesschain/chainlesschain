@@ -52,7 +52,143 @@ function writeCmd(file, content) {
   return `"${NODE}" -e "require('fs').writeFileSync('${file}','${content}')"`;
 }
 
-describe("cc team worktree (real git)", { timeout: 60_000 }, () => {
+describe("cc team worktree (real git)", { timeout: 120_000 }, () => {
+  it("propagates a stable multi-dependency commit baseline into a downstream task and resume", async () => {
+    const producer = new TeamWorktreeCoordinator(repo, {
+      runId: "dag-baseline",
+    });
+    const produce = producer.makeRunTask();
+    const aResult = await produce({
+      key: "a",
+      task: { metadata: { command: writeCmd("fileA.txt", "AAA") } },
+    });
+    const bResult = await produce({
+      key: "b",
+      task: { metadata: { command: writeCmd("fileB.txt", "BBB") } },
+    });
+
+    const coord = new TeamWorktreeCoordinator(repo, {
+      runId: "dag-baseline",
+    });
+    coord.registerCompletedDependency("a", aResult);
+    coord.registerCompletedDependency("b", bResult);
+    const consumeResult = await coord.makeRunTask()({
+      key: "consume",
+      task: {
+        dependsOn: ["b", "a"],
+        metadata: {
+          command: `"${NODE}" -e "const f=require('fs');f.writeFileSync('combined.txt',f.readFileSync('fileA.txt','utf8')+'+'+f.readFileSync('fileB.txt','utf8'))"`,
+        },
+      },
+    });
+
+    expect(aResult).toMatchObject({
+      worktreePath: expect.any(String),
+      commitOid: expect.stringMatching(/^[a-f0-9]{40,64}$/),
+    });
+    expect(
+      readFileSync(
+        path.join(consumeResult.worktreePath, "combined.txt"),
+        "utf8",
+      ),
+    ).toBe("AAA+BBB");
+    const snapshot = coord.snapshot();
+    expect(
+      snapshot.records.find((record) => record.key === "consume")
+        .dependencyCommits,
+    ).toEqual([
+      {
+        key: "a",
+        branch: aResult.branch,
+        commitOid: aResult.commitOid,
+      },
+      {
+        key: "b",
+        branch: bResult.branch,
+        commitOid: bResult.commitOid,
+      },
+    ]);
+
+    const recovered = new TeamWorktreeCoordinator(repo, { snapshot });
+    const integ = recovered.integrate({ merge: true });
+    expect(integ.every((result) => result.clean && result.merged)).toBe(true);
+    recovered.prepareCleanupAll({ requireMerged: true });
+    recovered.cleanupAll();
+    expect(readFileSync(path.join(repo, "combined.txt"), "utf8")).toBe(
+      "AAA+BBB",
+    );
+  });
+
+  it("requires adjudication when stable dependency composition conflicts", async () => {
+    const coord = new TeamWorktreeCoordinator(repo);
+    const runTask = coord.makeRunTask();
+    const a = await runTask({
+      key: "a",
+      task: { metadata: { command: writeCmd("shared.txt", "from-A") } },
+    });
+    const b = await runTask({
+      key: "b",
+      task: { metadata: { command: writeCmd("shared.txt", "from-B") } },
+    });
+    let executed = false;
+
+    await expect(
+      coord.makeRunTask({
+        runInWorktree: async () => {
+          executed = true;
+        },
+      })({
+        key: "consume",
+        task: {
+          dependsOn: ["b", "a"],
+          metadata: { prompt: "must not execute" },
+        },
+      }),
+    ).rejects.toMatchObject({
+      code: "TEAM_WORKTREE_DEPENDENCY_ADJUDICATION_REQUIRED",
+      retryable: false,
+      dependency: "b",
+    });
+    expect(executed).toBe(false);
+    const record = coord
+      .snapshot()
+      .records.find((item) => item.key === "consume");
+    expect(record.dependencyCommits.map((item) => item.commitOid)).toEqual([
+      a.commitOid,
+      b.commitOid,
+    ]);
+    expect(readFileSync(path.join(record.path, "shared.txt"), "utf8")).toBe(
+      "from-A",
+    );
+  });
+
+  it("rejects a recovered dependency binding after its branch ref drifts", async () => {
+    const coord = new TeamWorktreeCoordinator(repo, {
+      runId: "dependency-drift",
+    });
+    const runTask = coord.makeRunTask();
+    const a = await runTask({
+      key: "a",
+      task: { metadata: { command: writeCmd("a.txt", "A") } },
+    });
+    await runTask({
+      key: "b",
+      task: {
+        dependsOn: ["a"],
+        metadata: { command: writeCmd("b.txt", "B") },
+      },
+    });
+    const snapshot = coord.snapshot();
+
+    writeFileSync(path.join(a.worktreePath, "drift.txt"), "drift", "utf8");
+    git(["add", "-A"], a.worktreePath);
+    git(["commit", "-m", "move dependency branch"], a.worktreePath);
+
+    expect(() => new TeamWorktreeCoordinator(repo, { snapshot })).toThrow(
+      /dependency branch .* moved after settlement/,
+    );
+  });
+
   it("runs two independent tasks in isolated worktrees and merges both clean", async () => {
     const reg = new TaskLeaseRegistry({ defaultTtlMs: 1_000_000 });
     reg.addTask({

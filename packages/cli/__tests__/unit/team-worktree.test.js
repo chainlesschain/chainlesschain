@@ -14,6 +14,8 @@ let savedProcessDeps;
 let fakeAncestors;
 const fakeOid = (value) =>
   createHash("sha1").update(String(value)).digest("hex");
+const fakeDigest = (value) =>
+  `sha256:${createHash("sha256").update(String(value)).digest("hex")}`;
 beforeEach(() => {
   saved = { ..._deps };
   savedProcessDeps = { ..._processDeps };
@@ -126,6 +128,49 @@ describe("TeamWorktreeCoordinator process contracts", () => {
     expect(_processDeps.killProcessTree).toHaveBeenCalledOnce();
   });
 
+  it("preserves IDE takeover adjudication and keeps managed writers fenced until close", async () => {
+    const child = new EventEmitter();
+    child.stdout = new EventEmitter();
+    child.stderr = new EventEmitter();
+    child.kill = vi.fn(() => true);
+    _processDeps.spawn = vi.fn(() => child);
+    _processDeps.killProcessTree = vi.fn(() => child.kill());
+    const controller = new AbortController();
+    const takeover = Object.assign(new Error("operator takeover"), {
+      code: "TEAM_TASK_HUMAN_INTERRUPTED",
+      retryable: false,
+      adjudication: {
+        code: "TEAM_TASK_HUMAN_INTERRUPTED",
+        evidenceDigest: `sha256:${"a".repeat(64)}`,
+      },
+    });
+    let rejected = false;
+    const pending = _deps
+      .runShell("long command", "/wt/task", {
+        signal: controller.signal,
+        managedCheckpoint: true,
+      })
+      .catch((error) => {
+        rejected = true;
+        throw error;
+      });
+
+    controller.abort(takeover);
+    await new Promise((resolve) => setImmediate(resolve));
+
+    expect(rejected).toBe(false);
+    expect(_processDeps.spawn).toHaveBeenCalledWith(
+      "long command",
+      [],
+      expect.objectContaining({
+        detached: false,
+        requiredBoundaries: ["process-tree"],
+      }),
+    );
+    child.emit("close", null);
+    await expect(pending).rejects.toBe(takeover);
+  });
+
   it("brokers worktree staging and commit without a shell", () => {
     _processDeps.execFileSync = vi.fn((file, args) => {
       if (args.includes("diff")) {
@@ -192,6 +237,149 @@ describe("TeamWorktreeCoordinator process contracts", () => {
 });
 
 describe("TeamWorktreeCoordinator.makeRunTask", () => {
+  function checkpointBroker({ rollbackFails = false } = {}) {
+    const calls = [];
+    return {
+      calls,
+      beginTask(options) {
+        calls.push({ type: "begin", options });
+        let state = "prepared";
+        let failureEvidence = [];
+        const snapshot = () => ({
+          id: `txn-${options.taskKey}`,
+          checkpointId: `checkpoint-txn-${options.taskKey}`,
+          runId: options.runId,
+          taskKey: options.taskKey,
+          workspaceRoot: options.workspaceRoot,
+          stateDir: "/trusted/checkpoints",
+          state,
+          writerIsolation: "unknown",
+          requestedCoverage: "partial",
+          coverage: state === "rollback_failed" ? "none" : "partial",
+          fileCoverage: state === "rollback_failed" ? "none" : "partial",
+          externalSideEffects: true,
+          uncoveredPaths: [".git", "@external-git-metadata"],
+          checkpoint: { digest: fakeDigest("baseline") },
+          writeManifest: ["committed", "rolled_back"].includes(state)
+            ? { digest: fakeDigest(`writes-${state}`) }
+            : null,
+          evidence: ["committed", "rolled_back"].includes(state)
+            ? { evidenceDigest: fakeDigest(`evidence-${state}`) }
+            : null,
+          failureEvidence,
+          updatedAt: "2026-07-29T10:00:00.000Z",
+        });
+        return {
+          snapshot,
+          markRunning() {
+            calls.push({ type: "running" });
+            state = "running";
+            return snapshot();
+          },
+          accept() {
+            calls.push({ type: "accept" });
+            state = "committed";
+            return snapshot().evidence;
+          },
+          rollback() {
+            calls.push({ type: "rollback" });
+            if (rollbackFails) {
+              state = "rollback_failed";
+              failureEvidence = [
+                { code: "WORKSPACE_TRANSACTION_ROLLBACK_FAILED" },
+              ];
+              throw new Error("rollback failed");
+            }
+            state = "rolled_back";
+            return snapshot().evidence;
+          },
+        };
+      },
+    };
+  }
+
+  function installDependencyGitFake() {
+    const baseOid = fakeOid("dag-base");
+    const refs = new Map([["/repo\0HEAD", baseOid]]);
+    const branchByPath = new Map();
+    const parents = new Map([[baseOid, []]]);
+    const mergeCalls = [];
+    const conflictOids = new Set();
+    let sequence = 0;
+    const refKey = (cwd, ref) => `${cwd}\0${ref}`;
+    const ancestorOf = (ancestor, descendant) => {
+      if (ancestor === descendant) return true;
+      const pending = [descendant];
+      const visited = new Set();
+      while (pending.length > 0) {
+        const oid = pending.pop();
+        if (visited.has(oid)) continue;
+        visited.add(oid);
+        for (const parent of parents.get(oid) || []) {
+          if (parent === ancestor) return true;
+          pending.push(parent);
+        }
+      }
+      return false;
+    };
+    _deps.createWorktree = (_repo, branch, baseRef) => {
+      const worktreePath = `/wt/${branch.replaceAll("/", "-")}`;
+      const start = baseRef || refs.get(refKey("/repo", "HEAD"));
+      refs.set(refKey("/repo", branch), start);
+      refs.set(refKey(worktreePath, "HEAD"), start);
+      branchByPath.set(worktreePath, branch);
+      return { path: worktreePath };
+    };
+    _deps.resolveGitRef = (cwd, ref = "HEAD") => {
+      const oid = refs.get(refKey(cwd, ref));
+      if (!oid) throw new Error(`unknown ref ${cwd}:${ref}`);
+      return oid;
+    };
+    _deps.isGitAncestor = (_cwd, ancestor, descendant = "HEAD") => {
+      const descendantOid =
+        descendant === "HEAD" ? refs.get(refKey("/repo", "HEAD")) : descendant;
+      return ancestorOf(ancestor, descendantOid);
+    };
+    _deps.commit = (worktreePath) => {
+      const branch = branchByPath.get(worktreePath);
+      const parent = refs.get(refKey(worktreePath, "HEAD"));
+      const commitOid = fakeOid(`task:${branch}:${++sequence}`);
+      parents.set(commitOid, [parent]);
+      refs.set(refKey(worktreePath, "HEAD"), commitOid);
+      refs.set(refKey("/repo", branch), commitOid);
+      return true;
+    };
+    _deps.mergeWorktree = (worktreePath, commitOid) => {
+      mergeCalls.push(commitOid);
+      if (conflictOids.has(commitOid)) {
+        return {
+          success: false,
+          message: "dependency conflict",
+          conflicts: [{ file: "shared.txt" }],
+        };
+      }
+      const branch = branchByPath.get(worktreePath);
+      const current = refs.get(refKey(worktreePath, "HEAD"));
+      const mergeOid = fakeOid(
+        `merge:${branch}:${current}:${commitOid}:${++sequence}`,
+      );
+      parents.set(mergeOid, [current, commitOid]);
+      refs.set(refKey(worktreePath, "HEAD"), mergeOid);
+      refs.set(refKey("/repo", branch), mergeOid);
+      return { success: true };
+    };
+    _deps.runShell = async () => {};
+
+    return {
+      ancestorOf,
+      baseOid,
+      conflictOids,
+      mergeCalls,
+      refs,
+      refKey,
+    };
+  }
+
   it("creates a per-task worktree, runs the command there, and commits", async () => {
     const created = [];
     const ran = [];
@@ -214,7 +402,12 @@ describe("TeamWorktreeCoordinator.makeRunTask", () => {
       key: "build",
       task: { metadata: { command: "make" } },
     });
-    expect(out).toEqual({ branch: "team/build", committed: true });
+    expect(out).toMatchObject({
+      branch: "team/build",
+      worktreePath: "/wt/team-build",
+      committed: true,
+      commitOid: fakeOid("base"),
+    });
     expect(created).toEqual(["team/build"]);
     expect(ran).toEqual([{ cmd: "make", cwd: "/wt/team-build" }]);
     expect(observed).toEqual([
@@ -228,7 +421,7 @@ describe("TeamWorktreeCoordinator.makeRunTask", () => {
   });
 
   it("throws (task failure) when the task has no command", async () => {
-    _deps.createWorktree = () => ({ path: "/wt/x" });
+    _deps.createWorktree = () => ({ path: "/wt/team-x" });
     const coord = new TeamWorktreeCoordinator("/repo");
     await expect(
       coord.makeRunTask()({ key: "x", task: { metadata: {} } }),
@@ -253,7 +446,12 @@ describe("TeamWorktreeCoordinator.makeRunTask", () => {
       key: "fix",
       task: { metadata: { prompt: "fix the bug" } },
     });
-    expect(out).toEqual({ branch: "team/fix", committed: true });
+    expect(out).toMatchObject({
+      branch: "team/fix",
+      worktreePath: "/wt/team-fix",
+      committed: true,
+      commitOid: fakeOid("team-fix"),
+    });
     // The agent ran in the per-task worktree cwd, not process.cwd().
     expect(calls).toEqual([
       { key: "fix", prompt: "fix the bug", cwd: "/wt/team-fix" },
@@ -261,7 +459,7 @@ describe("TeamWorktreeCoordinator.makeRunTask", () => {
   });
 
   it("propagates an injected executor failure as a task failure", async () => {
-    _deps.createWorktree = () => ({ path: "/wt/x" });
+    _deps.createWorktree = () => ({ path: "/wt/team-x" });
     const coord = new TeamWorktreeCoordinator("/repo");
     await expect(
       coord.makeRunTask({
@@ -270,6 +468,153 @@ describe("TeamWorktreeCoordinator.makeRunTask", () => {
         },
       })({ key: "x", task: { metadata: { prompt: "p" } } }),
     ).rejects.toThrow(/agent exited 1/);
+  });
+
+  it("accepts a managed checkpoint only after execution, commit, and validation", async () => {
+    const broker = checkpointBroker();
+    const phases = [];
+    const oid = fakeOid("managed");
+    _deps.createWorktree = () => ({ path: "/wt/team-managed" });
+    _deps.resolveGitRef = () => oid;
+    _deps.commit = vi.fn(() => true);
+    _deps.runShell = vi.fn(async () => {});
+    const coord = new TeamWorktreeCoordinator("/repo", {
+      runId: "managed-run",
+      checkpointBroker: broker,
+      onCheckpoint: (event) => phases.push(event),
+    });
+
+    const result = await coord.makeRunTask()({
+      key: "managed",
+      task: {
+        lease: {
+          holder: "worker",
+          leaseId: "lease-1",
+          ownerPid: 123,
+          fencingToken: 7,
+        },
+        metadata: { command: "build" },
+      },
+    });
+
+    expect(_deps.runShell).toHaveBeenCalledWith(
+      "build",
+      "/wt/team-managed",
+      expect.objectContaining({ managedCheckpoint: true }),
+    );
+    expect(broker.calls.map((item) => item.type)).toEqual([
+      "begin",
+      "running",
+      "accept",
+    ]);
+    expect(phases.map((event) => event.phase)).toEqual([
+      "prepared",
+      "running",
+      "validated",
+      "committed",
+      "completed",
+    ]);
+    expect(phases.at(-1)).toMatchObject({
+      lease: { leaseId: "lease-1", fencingToken: 7 },
+      verifiedCommitOid: oid,
+      worktree: { completed: true, commitOid: oid },
+    });
+    expect(result.workspaceCheckpoint).toMatchObject({
+      runId: "managed-run",
+      taskKey: "managed",
+      workspaceRoot: "/wt/team-managed",
+      state: "committed",
+      coverage: "partial",
+      externalSideEffects: true,
+      recoveryRequired: false,
+      writeManifestDigest: fakeDigest("writes-committed"),
+      evidenceDigest: fakeDigest("evidence-committed"),
+    });
+  });
+
+  it("rolls back a failed managed executor and preserves takeover adjudication", async () => {
+    const broker = checkpointBroker();
+    const phases = [];
+    _deps.createWorktree = () => ({ path: "/wt/team-takeover" });
+    _deps.resolveGitRef = () => fakeOid("takeover");
+    const takeover = Object.assign(new Error("operator takeover"), {
+      code: "TEAM_TASK_HUMAN_INTERRUPTED",
+      adjudication: {
+        code: "TEAM_TASK_HUMAN_INTERRUPTED",
+        evidenceDigest: fakeDigest("takeover"),
+      },
+    });
+    const coord = new TeamWorktreeCoordinator("/repo", {
+      runId: "takeover-run",
+      checkpointBroker: broker,
+      onCheckpoint: ({ phase }) => phases.push(phase),
+    });
+
+    const error = await coord
+      .makeRunTask({
+        runInWorktree: async () => {
+          throw takeover;
+        },
+      })({
+        key: "takeover",
+        task: { metadata: { prompt: "work" } },
+      })
+      .catch((caught) => caught);
+
+    expect(error).toBe(takeover);
+    expect(error).toMatchObject({
+      retryable: false,
+      adjudication: takeover.adjudication,
+      workspaceCheckpoint: {
+        state: "rolled_back",
+        recoveryRequired: false,
+      },
+    });
+    expect(broker.calls.map((item) => item.type)).toEqual([
+      "begin",
+      "running",
+      "rollback",
+    ]);
+    expect(phases).toContain("rolled-back");
+    expect(coord.snapshot().records[0]).toMatchObject({
+      completed: false,
+      workspaceCheckpoint: { state: "rolled_back" },
+    });
+  });
+
+  it("fails closed when managed checkpoint rollback cannot be proven", async () => {
+    const broker = checkpointBroker({ rollbackFails: true });
+    _deps.createWorktree = () => ({ path: "/wt/team-broken" });
+    _deps.resolveGitRef = () => fakeOid("broken");
+    const coord = new TeamWorktreeCoordinator("/repo", {
+      checkpointBroker: broker,
+    });
+
+    await expect(
+      coord.makeRunTask({
+        runInWorktree: async () => {
+          throw new Error("task failed");
+        },
+      })({
+        key: "broken",
+        task: { metadata: { prompt: "work" } },
+      }),
+    ).rejects.toMatchObject({
+      code: "TEAM_WORKTREE_CHECKPOINT_ROLLBACK_FAILED",
+      retryable: false,
+      adjudication: {
+        code: "TEAM_WORKTREE_CHECKPOINT_ROLLBACK_FAILED",
+        reason: expect.stringContaining(
+          "workspace checkpoint rollback could not be proven",
+        ),
+        evidenceDigest: null,
+      },
+      workspaceCheckpoint: {
+        state: "rollback_failed",
+        coverage: "none",
+        recoveryRequired: true,
+      },
+    });
   });
 
   it("requires adjudication when the post-commit lease fence is lost", async () => {
@@ -312,9 +657,14 @@ describe("TeamWorktreeCoordinator.makeRunTask", () => {
   it("treats commit OID capture failure as non-retryable", async () => {
     _deps.createWorktree = () => ({ path: "/wt/oid" });
     _deps.runShell = async () => {};
-    _deps.commit = () => true;
+    let committed = false;
+    _deps.commit = () => {
+      committed = true;
+      return true;
+    };
     _deps.resolveGitRef = (cwd) => {
       if (cwd === "/repo") return fakeOid("base");
+      if (!committed) return fakeOid("base");
       throw new Error("rev-parse unavailable");
     };
     const coord = new TeamWorktreeCoordinator("/repo");
@@ -368,7 +718,12 @@ describe("TeamWorktreeCoordinator.makeRunTask", () => {
 
     // Retry: must succeed — the stale worktree is removed first, not collided on.
     const out = await rt(cmd);
-    expect(out).toEqual({ branch: "team/flaky", committed: true });
+    expect(out).toMatchObject({
+      branch: "team/flaky",
+      worktreePath: "/wt/team-flaky",
+      committed: true,
+      commitOid: fakeOid("base"),
+    });
     expect(removed).toEqual(["/wt/team-flaky"]); // prior attempt torn down
     expect(coord.branches()).toEqual(["team/flaky"]); // single live entry
   });
@@ -397,6 +752,202 @@ describe("TeamWorktreeCoordinator.makeRunTask", () => {
       retryable: false,
     });
     expect(_deps.removeWorktree).not.toHaveBeenCalled();
+  });
+
+  it("composes completed dependency commits in stable key order before execution", async () => {
+    const fakeGit = installDependencyGitFake();
+    const coord = new TeamWorktreeCoordinator("/repo", {
+      runId: "dependency-run",
+    });
+    const runTask = coord.makeRunTask();
+    const a = await runTask({
+      key: "a",
+      task: { metadata: { command: "a" } },
+    });
+    const b = await runTask({
+      key: "b",
+      task: { metadata: { command: "b" } },
+    });
+    let observedBaseline = null;
+    const dependentRunner = coord.makeRunTask({
+      runInWorktree: async ({ cwd }) => {
+        observedBaseline = _deps.resolveGitRef(cwd, "HEAD");
+      },
+    });
+    const c = await dependentRunner({
+      key: "c",
+      task: {
+        dependsOn: ["b", "a"],
+        metadata: { prompt: "consume both" },
+      },
+    });
+
+    expect(fakeGit.mergeCalls).toEqual([a.commitOid, b.commitOid]);
+    expect(fakeGit.ancestorOf(a.commitOid, observedBaseline)).toBe(true);
+    expect(fakeGit.ancestorOf(b.commitOid, observedBaseline)).toBe(true);
+    expect(c).toMatchObject({
+      branch: coord.branchFor("c"),
+      worktreePath: expect.stringContaining("dependency-run"),
+      committed: true,
+      commitOid: expect.any(String),
+    });
+    expect(
+      coord.snapshot().records.find((record) => record.key === "c"),
+    ).toMatchObject({
+      dependencyCommits: [
+        { key: "a", branch: a.branch, commitOid: a.commitOid },
+        { key: "b", branch: b.branch, commitOid: b.commitOid },
+      ],
+      baselineCommitOid: observedBaseline,
+    });
+  });
+
+  it("registers a completed dependency result from another coordinator process", async () => {
+    const fakeGit = installDependencyGitFake();
+    const producer = new TeamWorktreeCoordinator("/repo", {
+      runId: "distributed-run",
+    });
+    const producerRunTask = producer.makeRunTask();
+    await producerRunTask({
+      key: "root",
+      task: { metadata: { command: "build root" } },
+    });
+    const upstream = await producerRunTask({
+      key: "upstream",
+      task: {
+        dependsOn: ["root"],
+        metadata: { command: "build upstream" },
+      },
+    });
+    const consumer = new TeamWorktreeCoordinator("/repo", {
+      runId: "distributed-run",
+    });
+
+    expect(consumer.registerCompletedDependency("upstream", upstream)).toBe(
+      consumer,
+    );
+    expect(consumer.registerCompletedDependency("upstream", upstream)).toBe(
+      consumer,
+    );
+    let baseline = null;
+    const downstream = await consumer.makeRunTask({
+      runInWorktree: async ({ cwd }) => {
+        baseline = _deps.resolveGitRef(cwd, "HEAD");
+      },
+    })({
+      key: "downstream",
+      task: {
+        dependsOn: ["upstream"],
+        metadata: { prompt: "consume upstream" },
+      },
+    });
+
+    expect(fakeGit.ancestorOf(upstream.commitOid, baseline)).toBe(true);
+    expect(consumer.snapshot().records.map((record) => record.key)).toEqual([
+      "upstream",
+      "downstream",
+    ]);
+    expect(downstream).toMatchObject({
+      worktreePath: expect.any(String),
+      commitOid: expect.any(String),
+      dependencyCommits: [
+        {
+          key: "upstream",
+          branch: upstream.branch,
+          commitOid: upstream.commitOid,
+        },
+      ],
+    });
+  });
+
+  it("fails closed for a conflicting dependency baseline and does not execute the task", async () => {
+    const fakeGit = installDependencyGitFake();
+    const coord = new TeamWorktreeCoordinator("/repo");
+    const runTask = coord.makeRunTask();
+    const a = await runTask({
+      key: "a",
+      task: { metadata: { command: "a" } },
+    });
+    const b = await runTask({
+      key: "b",
+      task: { metadata: { command: "b" } },
+    });
+    fakeGit.conflictOids.add(b.commitOid);
+    const execute = vi.fn();
+
+    await expect(
+      coord.makeRunTask({ runInWorktree: execute })({
+        key: "downstream",
+        task: {
+          dependsOn: ["b", "a"],
+          metadata: { prompt: "must not run" },
+        },
+      }),
+    ).rejects.toMatchObject({
+      code: "TEAM_WORKTREE_DEPENDENCY_ADJUDICATION_REQUIRED",
+      retryable: false,
+      dependency: "b",
+      conflicts: [{ file: "shared.txt" }],
+    });
+    expect(execute).not.toHaveBeenCalled();
+    expect(fakeGit.mergeCalls).toEqual([a.commitOid, b.commitOid]);
+    const downstream = coord
+      .snapshot()
+      .records.find((record) => record.key === "downstream");
+    expect(downstream).toMatchObject({
+      completed: false,
+      committed: false,
+      dependencyCommits: [
+        { key: "a", commitOid: a.commitOid },
+        { key: "b", commitOid: b.commitOid },
+      ],
+    });
+    expect(fakeGit.ancestorOf(a.commitOid, downstream.baselineCommitOid)).toBe(
+      true,
+    );
+    expect(fakeGit.ancestorOf(b.commitOid, downstream.baselineCommitOid)).toBe(
+      false,
+    );
+  });
+
+  it("restores dependency OID bindings and rejects dependency ref drift", async () => {
+    const fakeGit = installDependencyGitFake();
+    const original = new TeamWorktreeCoordinator("/repo", {
+      runId: "resume-dependencies",
+    });
+    const runTask = original.makeRunTask();
+    const a = await runTask({
+      key: "a",
+      task: { metadata: { command: "a" } },
+    });
+    await runTask({
+      key: "b",
+      task: {
+        dependsOn: ["a"],
+        metadata: { command: "b" },
+      },
+    });
+    const snapshot = original.snapshot();
+
+    expect(
+      new TeamWorktreeCoordinator("/repo", { snapshot }).snapshot(),
+    ).toEqual(snapshot);
+
+    const tampered = structuredClone(snapshot);
+    tampered.records.find(
+      (record) => record.key === "b",
+    ).dependencyCommits[0].commitOid = fakeOid("tampered");
+    expect(
+      () => new TeamWorktreeCoordinator("/repo", { snapshot: tampered }),
+    ).toThrow(/invalid persisted dependency binding/);
+
+    fakeGit.refs.set(
+      fakeGit.refKey("/repo", a.branch),
+      fakeOid("dependency-branch-moved"),
+    );
+    expect(() => new TeamWorktreeCoordinator("/repo", { snapshot })).toThrow(
+      /dependency branch .* moved after settlement/,
+    );
   });
 });
 
@@ -467,6 +1018,9 @@ describe("TeamWorktreeCoordinator run identity and recovery", () => {
           committed: true,
           completed: true,
           commitOid: fakeOid("done"),
+          dependencyCommits: [],
+          baselineCommitOid: fakeOid("done"),
+          imported: false,
           integration: {
             previewed: false,
             clean: null,
@@ -487,6 +1041,9 @@ describe("TeamWorktreeCoordinator run identity and recovery", () => {
         committed: true,
         completed: true,
         commitOid: fakeOid("done"),
+        dependencyCommits: [],
+        baselineCommitOid: fakeOid("done"),
+        imported: false,
         integration: {
           previewed: false,
           clean: null,
@@ -505,7 +1062,7 @@ describe("TeamWorktreeCoordinator run identity and recovery", () => {
         new TeamWorktreeCoordinator("/repo", {
           runId: "run-b",
           snapshot: {
-            version: 3,
+            version: 4,
             runId: "run-a",
             baseTarget: {
               branch: "main",
@@ -515,6 +1072,74 @@ describe("TeamWorktreeCoordinator run identity and recovery", () => {
           },
         }),
     ).toThrow(/runId mismatch/);
+  });
+
+  it("migrates the published v3 manifest only after proving its Git baseline", () => {
+    const base = fakeOid("v3-base");
+    const branch = new TeamWorktreeCoordinator("/repo", {
+      runId: "v3-run",
+    }).branchFor("done");
+    const worktreePath = "/wt/v3-done";
+    _deps.resolveGitRef = (cwd, ref = "HEAD") => {
+      if (
+        (cwd === "/repo" && ["HEAD", branch].includes(ref)) ||
+        (cwd === worktreePath && ref === "HEAD")
+      ) {
+        return base;
+      }
+      throw new Error(`unknown ref ${cwd}:${ref}`);
+    };
+    const publishedV3 = {
+      version: 3,
+      runId: "v3-run",
+      baseTarget: { branch: "main", commitOid: base },
+      records: [
+        {
+          key: "done",
+          branch,
+          path: worktreePath,
+          committed: false,
+          completed: true,
+          commitOid: base,
+          integration: {
+            previewed: false,
+            clean: null,
+            merged: false,
+            baseCommit: null,
+            mergeCommit: null,
+          },
+          managedLinks: [],
+          cleanupPrepared: false,
+          cleaned: false,
+        },
+      ],
+    };
+
+    const migrated = new TeamWorktreeCoordinator("/repo", {
+      snapshot: publishedV3,
+    }).snapshot();
+
+    expect(migrated).toMatchObject({
+      version: 5,
+      runId: "v3-run",
+      records: [
+        {
+          key: "done",
+          dependencyCommits: [],
+          baselineCommitOid: base,
+          imported: false,
+        },
+      ],
+    });
+
+    _deps.resolveGitRef = (cwd, ref = "HEAD") =>
+      cwd === "/repo" && ref === branch ? fakeOid("moved") : base;
+    expect(
+      () =>
+        new TeamWorktreeCoordinator("/repo", {
+          snapshot: publishedV3,
+        }),
+    ).toThrow(/branch no longer matches/);
   });
 
   it("rejects a recovered path that does not match its managed branch path", () => {
@@ -535,7 +1160,7 @@ describe("TeamWorktreeCoordinator run identity and recovery", () => {
         new TeamWorktreeCoordinator("/repo", {
           runId: "run-safe",
           snapshot: {
-            version: 3,
+            version: 4,
             runId: "run-safe",
             baseTarget: {
               branch: "main",
@@ -719,6 +1344,235 @@ describe("TeamWorktreeCoordinator.integrate", () => {
     });
     expect(result[0].error).toMatch(/Git refs moved while previewing/);
     expect(_deps.mergeWorktree).not.toHaveBeenCalled();
+  });
+});
+
+describe("TeamWorktreeCoordinator worktree progress", () => {
+  async function readyCoordinator() {
+    _deps.createWorktree = (_repo, branch) => ({
+      path: `/wt/${branch.replaceAll("/", "-")}`,
+    });
+    _deps.runShell = async () => {};
+    _deps.commit = () => true;
+    _deps.previewWorktreeMerge = vi.fn(() => ({
+      success: true,
+      conflicts: [],
+    }));
+    _deps.removeWorktree = vi.fn();
+
+    const coordinator = new TeamWorktreeCoordinator("/repo");
+    const runTask = coordinator.makeRunTask();
+    await runTask({ key: "a", task: { metadata: { command: "build-a" } } });
+    await runTask({ key: "b", task: { metadata: { command: "build-b" } } });
+    return coordinator;
+  }
+
+  it("emits stable synchronous before/after events for every worktree operation", async () => {
+    const coordinator = await readyCoordinator();
+    const events = [];
+    const onProgress = (event) => events.push(event);
+
+    expect(
+      Array.isArray(coordinator.integrate({ merge: false, onProgress })),
+    ).toBe(true);
+    expect(Array.isArray(coordinator.prepareCleanupAll({ onProgress }))).toBe(
+      true,
+    );
+    expect(Array.isArray(coordinator.cleanupAll({ onProgress }))).toBe(true);
+
+    expect(events).toEqual([
+      {
+        phase: "integrate",
+        timing: "before",
+        worktree: "/wt/team-a",
+        task: "a",
+        branch: "team/a",
+        index: 1,
+        total: 2,
+      },
+      {
+        phase: "integrate",
+        timing: "after",
+        worktree: "/wt/team-a",
+        task: "a",
+        branch: "team/a",
+        index: 1,
+        total: 2,
+      },
+      {
+        phase: "integrate",
+        timing: "before",
+        worktree: "/wt/team-b",
+        task: "b",
+        branch: "team/b",
+        index: 2,
+        total: 2,
+      },
+      {
+        phase: "integrate",
+        timing: "after",
+        worktree: "/wt/team-b",
+        task: "b",
+        branch: "team/b",
+        index: 2,
+        total: 2,
+      },
+      {
+        phase: "prepare-cleanup",
+        timing: "before",
+        worktree: "/wt/team-a",
+        task: "a",
+        branch: "team/a",
+        index: 1,
+        total: 2,
+      },
+      {
+        phase: "prepare-cleanup",
+        timing: "after",
+        worktree: "/wt/team-a",
+        task: "a",
+        branch: "team/a",
+        index: 1,
+        total: 2,
+      },
+      {
+        phase: "prepare-cleanup",
+        timing: "before",
+        worktree: "/wt/team-b",
+        task: "b",
+        branch: "team/b",
+        index: 2,
+        total: 2,
+      },
+      {
+        phase: "prepare-cleanup",
+        timing: "after",
+        worktree: "/wt/team-b",
+        task: "b",
+        branch: "team/b",
+        index: 2,
+        total: 2,
+      },
+      {
+        phase: "cleanup",
+        timing: "before",
+        worktree: "/wt/team-a",
+        task: "a",
+        branch: "team/a",
+        index: 1,
+        total: 2,
+      },
+      {
+        phase: "cleanup",
+        timing: "after",
+        worktree: "/wt/team-a",
+        task: "a",
+        branch: "team/a",
+        index: 1,
+        total: 2,
+      },
+      {
+        phase: "cleanup",
+        timing: "before",
+        worktree: "/wt/team-b",
+        task: "b",
+        branch: "team/b",
+        index: 2,
+        total: 2,
+      },
+      {
+        phase: "cleanup",
+        timing: "after",
+        worktree: "/wt/team-b",
+        task: "b",
+        branch: "team/b",
+        index: 2,
+        total: 2,
+      },
+    ]);
+  });
+
+  it("fails closed on callback errors before later worktree side effects", async () => {
+    const coordinator = await readyCoordinator();
+    const preview = _deps.previewWorktreeMerge;
+
+    expect(() =>
+      coordinator.integrate({
+        merge: false,
+        onProgress(event) {
+          if (event.task === "a" && event.timing === "after") {
+            throw new Error("integration lease lost");
+          }
+        },
+      }),
+    ).toThrow("integration lease lost");
+    expect(preview).toHaveBeenCalledTimes(1);
+    expect(coordinator.snapshot().records).toMatchObject([
+      { key: "a", integration: { previewed: true } },
+      { key: "b", integration: { previewed: false } },
+    ]);
+
+    coordinator.integrate({ merge: false });
+    expect(() =>
+      coordinator.prepareCleanupAll({
+        onProgress(event) {
+          if (event.task === "a" && event.timing === "after") {
+            throw new Error("preparation lease lost");
+          }
+        },
+      }),
+    ).toThrow("preparation lease lost");
+    expect(coordinator.snapshot().records).toMatchObject([
+      { key: "a", cleanupPrepared: true },
+      { key: "b", cleanupPrepared: false },
+    ]);
+
+    coordinator.prepareCleanupAll();
+    expect(() =>
+      coordinator.cleanupAll({
+        onProgress(event) {
+          if (event.task === "a" && event.timing === "after") {
+            throw new Error("cleanup lease lost");
+          }
+        },
+      }),
+    ).toThrow("cleanup lease lost");
+    expect(_deps.removeWorktree).toHaveBeenCalledTimes(1);
+    expect(coordinator.snapshot().records).toMatchObject([
+      { key: "a", cleaned: true },
+      { key: "b", cleaned: false },
+    ]);
+  });
+
+  it("keeps all three APIs synchronous when no callback is supplied", async () => {
+    const coordinator = await readyCoordinator();
+
+    const integration = coordinator.integrate({ merge: false });
+    expect(Array.isArray(integration)).toBe(true);
+    const preparation = coordinator.prepareCleanupAll();
+    expect(Array.isArray(preparation)).toBe(true);
+    const cleanup = coordinator.cleanupAll();
+    expect(Array.isArray(cleanup)).toBe(true);
+  });
+
+  it("rejects an asynchronous callback before the worktree operation", async () => {
+    const coordinator = await readyCoordinator();
+
+    expect(() =>
+      coordinator.integrate({
+        merge: false,
+        onProgress: () => Promise.resolve(),
+      }),
+    ).toThrow(
+      expect.objectContaining({
+        code: "TEAM_WORKTREE_ASYNC_PROGRESS_UNSUPPORTED",
+      }),
+    );
+    expect(_deps.previewWorktreeMerge).not.toHaveBeenCalled();
+    expect(coordinator.snapshot().records).toMatchObject([
+      { key: "a", integration: { previewed: false } },
+      { key: "b", integration: { previewed: false } },
+    ]);
   });
 });
 

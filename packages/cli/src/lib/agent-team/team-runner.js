@@ -16,6 +16,10 @@
 
 import { emitHooksV2Event } from "../hooks-v2-producers.js";
 
+function leaseFencingToken(lease) {
+  return lease?.fencingToken ?? lease?.leaseId ?? null;
+}
+
 export class TeamRunner {
   /**
    * @param {TaskLeaseRegistry} registry
@@ -68,6 +72,11 @@ export class TeamRunner {
       typeof opts.beforeTask === "function" ? opts.beforeTask : null;
     this.afterTask =
       typeof opts.afterTask === "function" ? opts.afterTask : null;
+    // A lease that expires and is reacquired receives a new fencing identity.
+    // Persist that identity synchronously before the executor can settle under
+    // it. Ordinary renewals keep the same identity and do not call this hook.
+    this.onLeaseChanged =
+      typeof opts.onLeaseChanged === "function" ? opts.onLeaseChanged : null;
     this._executions = 0;
     this._reservedExecutions = 0;
     this._inFlight = 0;
@@ -78,6 +87,7 @@ export class TeamRunner {
     this._activeKeys = new Set();
     this._members = new Map(); // holder → lifecycle record
     this._budgetStopped = false;
+    this._registryBudgetReason = null;
     this._fatalError = null;
     // Idle workers wait on graph progress instead of polling the full graph
     // through setTimeout(0). This matters once a team has many workers but only
@@ -85,6 +95,7 @@ export class TeamRunner {
     this._progressWaiters = new Set();
     this._workerCount = 1;
     this._claimControllers = new Set();
+    this._claimsByKey = new Map();
     this._wallTimer = null;
   }
 
@@ -150,6 +161,121 @@ export class TeamRunner {
     for (const r of records) {
       if (r && r.holder) this._members.set(r.holder, { ...r });
     }
+  }
+
+  /** Snapshot of local in-flight claims for an IDE/operator control surface. */
+  activeClaims() {
+    return Array.from(this._claimsByKey.values()).map((claim) => ({
+      key: claim.key,
+      holder: claim.holder,
+      leaseId: claim.leaseId,
+      fencingToken: claim.fencingToken,
+      interrupted: !!claim.interruption,
+      interruption: claim.interruption ? { ...claim.interruption } : null,
+    }));
+  }
+
+  /**
+   * Request human takeover of an executing task.
+   *
+   * Aborting the executor cannot prove whether an external side effect landed,
+   * so the task always settles fail-closed into adjudication rather than being
+   * silently retried. A durable control log supplies requestId/evidenceDigest
+   * in production and must bind the exact active holder/lease/fencing identity;
+   * keeping this method synchronous makes it safe to call from a file-control
+   * watcher or an embedded IDE host.
+   */
+  interruptTask(
+    key,
+    {
+      holder = null,
+      leaseId = null,
+      fencingToken = null,
+      reason = "human takeover requested",
+      actor = "human",
+      requestId = null,
+      evidenceDigest = null,
+    } = {},
+  ) {
+    const claim = this._claimsByKey.get(key);
+    if (!claim) return { ok: false, reason: "not_active" };
+    if (
+      holder !== claim.holder ||
+      leaseId !== claim.leaseId ||
+      fencingToken !== claim.fencingToken
+    ) {
+      return { ok: false, reason: "stale_attempt" };
+    }
+    if (claim.interruption) {
+      if (
+        requestId &&
+        claim.interruption.requestId &&
+        requestId !== claim.interruption.requestId
+      ) {
+        return { ok: false, reason: "already_interrupted" };
+      }
+      return {
+        ok: true,
+        idempotent: true,
+        interruption: { ...claim.interruption },
+      };
+    }
+    claim.interruption = {
+      holder: claim.holder,
+      leaseId: claim.leaseId,
+      fencingToken: claim.fencingToken,
+      requestId: requestId || null,
+      actor: actor ? String(actor) : "human",
+      reason: String(reason || "human takeover requested"),
+      evidenceDigest: evidenceDigest || null,
+      requestedAt: this._now(),
+    };
+    const error = this._interruptionError(claim);
+    try {
+      claim.abortController.abort(error);
+    } catch {
+      /* settlement remains fenced by the task lease */
+    }
+    this._emit("task:interrupt-requested", {
+      key,
+      holder: claim.holder,
+      leaseId: claim.leaseId,
+      fencingToken: claim.fencingToken,
+      requestId: claim.interruption.requestId,
+      actor: claim.interruption.actor,
+      reason: claim.interruption.reason,
+    });
+    this._signalProgress();
+    return { ok: true, interruption: { ...claim.interruption } };
+  }
+
+  /**
+   * Fail the coordinator closed (for example when its durable control log is
+   * corrupt or rolled back). Active executors are aborted and settle as
+   * adjudication-required because their external outcome may be unknown.
+   */
+  abortRun(error, { requireAdjudication = true } = {}) {
+    const failure =
+      error instanceof Error ? error : new Error(String(error || "team abort"));
+    if (requireAdjudication) {
+      failure.retryable = false;
+      failure.adjudication = {
+        code: failure.code || "TEAM_RUN_ABORTED_ADJUDICATION_REQUIRED",
+        reason: failure.message,
+        evidenceDigest: null,
+        requestedAt: this._now(),
+      };
+    }
+    this._setFatal(failure, { phase: "external-control" });
+    for (const claim of this._claimsByKey.values()) {
+      claim.coordinatorAbort = failure;
+      try {
+        claim.abortController.abort(failure);
+      } catch {
+        /* settlement remains fenced by the task lease */
+      }
+    }
+    return { ok: true, activeClaims: this._claimsByKey.size };
   }
 
   /**
@@ -244,7 +370,9 @@ export class TeamRunner {
       requestedTeammates: this.teammates,
       activeTeammates: workerCount,
       budgetStopped: this._budgetStopped,
-      budgetReason: this.budget ? this.budget.reason() : null,
+      budgetReason: this.budget
+        ? this.budget.reason()
+        : this._registryBudgetReason,
       members: this.members(),
       messages: this.mailbox ? this.mailbox.size() : 0,
       mailboxStatus: this.mailbox?.status?.() || null,
@@ -319,16 +447,26 @@ export class TeamRunner {
       }
       const acq = this.registry.acquire(key, { holder, ttlMs: this.ttlMs });
       if (!acq.ok) {
+        if (
+          ["max-tasks", "max-tokens", "max-usd", "max-wall-ms"].includes(
+            acq.reason,
+          )
+        ) {
+          this._budgetStopped = true;
+          this._registryBudgetReason = acq.reason;
+          this._emit("run:budget-exhausted", { reason: acq.reason });
+          this._setState(holder, "shutdown", { reason: acq.reason });
+          this._signalProgress();
+          return;
+        }
         // Lost the race to a peer (or it just got blocked) — try another.
         this._setState(holder, "idle");
         await this._tick();
         continue;
       }
-      const budgetReservation = this._reserveTaskBudget(
-        key,
-        this.registry.getTask(key),
-        acq.lease,
-      );
+      const budgetReservation = acq.budgetReservation
+        ? { ok: true, ...acq.budgetReservation }
+        : this._reserveTaskBudget(key, this.registry.getTask(key), acq.lease);
       if (!budgetReservation.ok) {
         this.registry.release(key, {
           holder,
@@ -445,17 +583,21 @@ export class TeamRunner {
       key,
       lease,
       leaseId: lease?.leaseId,
+      fencingToken: leaseFencingToken(lease),
       heartbeat: null,
       lost: false,
       abortController: new AbortController(),
       budgetReservation,
       budgetSettled: false,
+      interruption: null,
+      coordinatorAbort: null,
     };
     // Fence the task immediately after acquire, before any async durable hook.
     // Otherwise a slow beforeTask can outlive the TTL and a peer can run the
     // same side effect concurrently.
     this._activeKeys.add(key);
     this._claimControllers.add(claim.abortController);
+    this._claimsByKey.set(key, claim);
     const effectiveTtl =
       this.ttlMs > 0 ? this.ttlMs : this.registry.defaultTtlMs || 60000;
     const every = Math.max(
@@ -468,6 +610,71 @@ export class TeamRunner {
     }, every);
     if (typeof claim.heartbeat.unref === "function") claim.heartbeat.unref();
     return claim;
+  }
+
+  _applyRenewedLease(claim, lease) {
+    const previousLease = claim.lease;
+    const previousLeaseId = claim.leaseId;
+    const previousFencingToken = claim.fencingToken;
+    claim.lease = lease;
+    claim.leaseId = lease?.leaseId;
+    claim.fencingToken = leaseFencingToken(lease);
+    const identityChanged =
+      claim.leaseId !== previousLeaseId ||
+      claim.fencingToken !== previousFencingToken;
+    if (!identityChanged || !this.onLeaseChanged) {
+      return { ok: true, identityChanged };
+    }
+    try {
+      const callbackResult = this.onLeaseChanged({
+        key: claim.key,
+        holder: claim.holder,
+        previousLease: previousLease ? { ...previousLease } : null,
+        lease: lease ? { ...lease } : null,
+        previousLeaseId,
+        leaseId: claim.leaseId,
+        previousFencingToken,
+        fencingToken: claim.fencingToken,
+      });
+      if (
+        callbackResult &&
+        (typeof callbackResult === "object" ||
+          typeof callbackResult === "function") &&
+        typeof callbackResult.then === "function"
+      ) {
+        Promise.resolve(callbackResult).catch(() => {});
+        throw new Error("onLeaseChanged must be synchronous");
+      }
+      return { ok: true, identityChanged: true };
+    } catch (error) {
+      const cause =
+        error instanceof Error
+          ? error
+          : new Error(String(error || "lease identity persistence failed"));
+      const failure = new Error(cause.message, { cause });
+      failure.code = "TEAM_LEASE_CHANGE_PERSIST_FAILED";
+      failure.retryable = false;
+      failure.adjudication = failure.adjudication || {
+        code: failure.code,
+        reason: failure.message,
+        evidenceDigest: null,
+        requestedAt: this._now(),
+        holder: claim.holder,
+        leaseId: claim.leaseId,
+        fencingToken: claim.fencingToken,
+      };
+      claim.coordinatorAbort = failure;
+      this._setFatal(failure, {
+        phase: "lease-change",
+        key: claim.key,
+        holder: claim.holder,
+      });
+      return {
+        ok: false,
+        reason: "lease_change_persist_failed",
+        error: failure,
+      };
+    }
   }
 
   _renewClaim(claim) {
@@ -489,11 +696,12 @@ export class TeamRunner {
           ttlMs: this.ttlMs,
         });
         if (result?.ok) {
-          claim.lease = result.lease;
-          claim.leaseId = result.lease.leaseId;
+          const applied = this._applyRenewedLease(claim, result.lease);
+          if (!applied.ok) result = applied;
         }
       } else if (result?.ok) {
-        claim.lease = result.lease;
+        const applied = this._applyRenewedLease(claim, result.lease);
+        if (!applied.ok) result = applied;
       }
     } catch {
       result = { ok: false, reason: "renew_failed" };
@@ -502,7 +710,7 @@ export class TeamRunner {
       claim.lost = true;
       try {
         claim.abortController.abort(
-          new Error(`Lease for task "${claim.key}" was lost`),
+          result?.error || new Error(`Lease for task "${claim.key}" was lost`),
         );
       } catch {
         /* the fencing token still prevents stale settlement */
@@ -517,6 +725,34 @@ export class TeamRunner {
     if (claim.heartbeat) clearInterval(claim.heartbeat);
     this._activeKeys.delete(claim.key);
     this._claimControllers.delete(claim.abortController);
+    if (this._claimsByKey.get(claim.key) === claim) {
+      this._claimsByKey.delete(claim.key);
+    }
+  }
+
+  _interruptionError(claim, executionResult = null) {
+    const interruption = claim?.interruption || {};
+    const error = new Error(interruption.reason || "human takeover requested");
+    error.code = "TEAM_TASK_HUMAN_INTERRUPTED";
+    error.retryable = false;
+    error.adjudication = {
+      code: error.code,
+      reason: error.message,
+      evidenceDigest: interruption.evidenceDigest || null,
+      requestedAt: interruption.requestedAt || this._now(),
+      requestId: interruption.requestId || null,
+      actor: interruption.actor || "human",
+      holder: interruption.holder || claim?.holder || null,
+      leaseId: interruption.leaseId || claim?.leaseId || null,
+      fencingToken: interruption.fencingToken ?? claim?.fencingToken ?? null,
+    };
+    if (executionResult && typeof executionResult === "object") {
+      error.usage = executionResult.usage || null;
+      error.usageRecords = executionResult.usageRecords || null;
+      error.provider = executionResult.provider;
+      error.model = executionResult.model;
+    }
+    return error;
   }
 
   _abandonClaim(holder, key, claim) {
@@ -683,6 +919,9 @@ export class TeamRunner {
         })
       : null;
     try {
+      if (claim.interruption) {
+        throw this._interruptionError(claim);
+      }
       const result = await this.runTask({
         key,
         task,
@@ -695,6 +934,15 @@ export class TeamRunner {
         budgetReservation: claim.budgetReservation,
         signal: claim.abortController.signal,
       });
+      // The executor may ignore AbortSignal or finish concurrently with an IDE
+      // takeover request. Never turn that race into an automatic success:
+      // preserve usage, then fail closed for explicit adjudication.
+      if (claim.interruption) {
+        throw this._interruptionError(claim, result);
+      }
+      if (claim.coordinatorAbort) {
+        throw claim.coordinatorAbort;
+      }
       // Fold usage/cost into the team budget regardless — the task DID execute
       // and consumed resources. `--exec` shell tasks carry no usage → only the
       // task-count / wall-clock dimensions move.
@@ -763,8 +1011,9 @@ export class TeamRunner {
         });
       }
     } catch (err) {
+      const failure = claim.coordinatorAbort || err;
       if (span) {
-        span.recordException(err, "task_failure");
+        span.recordException(failure, "task_failure");
         span.end({ status: "error" });
       }
       // A failed task still consumed a task-count slot (and any wall-clock) — fold
@@ -772,10 +1021,10 @@ export class TeamRunner {
       if (this.budget && !claim.budgetSettled) {
         this.budget.record(
           {
-            usage: err?.usage || null,
-            usageRecords: err?.usageRecords || null,
-            provider: err?.provider,
-            model: err?.model,
+            usage: failure?.usage || null,
+            usageRecords: failure?.usageRecords || null,
+            provider: failure?.provider,
+            model: failure?.model,
             reservationId: claim.budgetReservation?.id,
           },
           this._now(),
@@ -785,34 +1034,39 @@ export class TeamRunner {
       const outcome = this.registry.fail(key, {
         holder,
         leaseId: claim.leaseId,
-        error: err?.message || String(err),
-        retryable: err?.retryable !== false,
+        error: failure?.message || String(failure),
+        retryable: failure?.retryable !== false,
+        adjudication: failure?.adjudication || null,
       });
       if (outcome?.ok) {
         this._setState(holder, "failed-task", {
-          error: err?.message || String(err),
+          error: failure?.message || String(failure),
         });
         this._emit("task:failed", {
           key,
           holder,
-          error: err?.message || String(err),
+          error: failure?.message || String(failure),
           retry: outcome.retry === true,
           attempts: outcome.attempts,
+          interrupted: failure?.code === "TEAM_TASK_HUMAN_INTERRUPTED",
+          requestId: failure?.adjudication?.requestId || null,
         });
         await this._notifySettlement({
           key,
           holder,
           status: outcome.retry === true ? "pending" : "failed",
-          error: err?.message || String(err),
+          error: failure?.message || String(failure),
           retry: outcome.retry === true,
           attempts: outcome.attempts,
+          interrupted: failure?.code === "TEAM_TASK_HUMAN_INTERRUPTED",
+          requestId: failure?.adjudication?.requestId || null,
         });
       } else {
         this._emit("task:failure-discarded", {
           key,
           holder,
           reason: outcome?.reason || "lease_lost",
-          error: err?.message || String(err),
+          error: failure?.message || String(failure),
           ms: this._now() - startedAt,
         });
         await this._notifySettlement({

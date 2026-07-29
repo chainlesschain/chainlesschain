@@ -32,6 +32,21 @@ describe("TeamBudget dimensions", () => {
     expect(b.reason()).toBe("max-tokens");
   });
 
+  it("counts cache read/write tokens against the token cap", () => {
+    const b = new TeamBudget({ maxTokens: 10 });
+    b.record({
+      usage: {
+        input_tokens: 2,
+        output_tokens: 2,
+        cache_read_input_tokens: 3,
+        cache_creation_input_tokens: 3,
+      },
+    });
+
+    expect(b.status().tokens).toBe(10);
+    expect(b.reason()).toBe("max-tokens");
+  });
+
   it("stops at the USD cap via the composed CostBudget", () => {
     // A known-priced Anthropic model so the cost is non-zero and deterministic.
     const b = new TeamBudget({ maxUsd: 0.01 });

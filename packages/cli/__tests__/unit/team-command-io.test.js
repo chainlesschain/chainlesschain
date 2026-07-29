@@ -119,7 +119,11 @@ describe(
         },
       );
       const snap = JSON.parse(fs.readFileSync(state, "utf8"));
-      expect(snap.version).toBe(5);
+      expect(snap.version).toBe(6);
+      expect(snap.stateId).toMatch(/^team_state_/);
+      expect(snap).toHaveProperty("controlCursor");
+      expect(snap.adjudicationRunId).toBe(snap.collaborationRunId);
+      expect(snap).toHaveProperty("adjudicationCursor");
       expect(snap.registry).toBeTruthy();
       expect(snap.execution).toMatchObject({
         mode: "dry-run",
