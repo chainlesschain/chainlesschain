@@ -6,15 +6,6 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import {
-  adjudicateDistributedQueue,
-  distributedQueueStatus,
-  finalizeDistributedQueue,
-  initDistributedQueue,
-} from "../src/commands/team-distributed.js";
-import { TeamDistributedQueue } from "../src/lib/agent-team/team-distributed-queue.js";
-import { TeamProcessCheckpointBroker } from "../src/lib/agent-team/team-process-checkpoint.js";
-import executionBroker from "../src/lib/process-execution-broker/index.js";
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const workerPath = path.join(
@@ -24,6 +15,74 @@ const workerPath = path.join(
 const repositoryRoot = path.resolve(scriptDirectory, "../../..");
 const activeChildren = new Set();
 const MIB = 1024 * 1024;
+const SOURCE_OVERRIDE_ROOTS = [
+  "packages/cli/bin",
+  "packages/cli/scripts",
+  "packages/cli/src",
+  "packages/agent-sdk/src",
+];
+let adjudicateDistributedQueue;
+let distributedQueueStatus;
+let finalizeDistributedQueue;
+let initDistributedQueue;
+let TeamDistributedQueue;
+let TeamProcessCheckpointBroker;
+let stopBackgroundAgentChildTree;
+let executionBroker;
+let runtimeModulesPromise;
+
+export async function loadSoakRuntimeModules() {
+  runtimeModulesPromise ||= Promise.all([
+    import("../src/commands/team-distributed.js"),
+    import("../src/lib/agent-team/team-distributed-queue.js"),
+    import("../src/lib/agent-team/team-process-checkpoint.js"),
+    import("../src/lib/background-agent-supervisor.js"),
+    import("../src/lib/process-execution-broker/index.js"),
+  ]).then(([commands, queue, checkpoint, supervisor, broker]) => {
+    adjudicateDistributedQueue = commands.adjudicateDistributedQueue;
+    distributedQueueStatus = commands.distributedQueueStatus;
+    finalizeDistributedQueue = commands.finalizeDistributedQueue;
+    initDistributedQueue = commands.initDistributedQueue;
+    TeamDistributedQueue = queue.TeamDistributedQueue;
+    TeamProcessCheckpointBroker = checkpoint.TeamProcessCheckpointBroker;
+    stopBackgroundAgentChildTree = supervisor.stopBackgroundAgentChildTree;
+    executionBroker = broker.default;
+  });
+  await runtimeModulesPromise;
+}
+
+function sanitizeGitEnvironment(environment) {
+  for (const key of Object.keys(environment)) {
+    if (/^GIT_/iu.test(key)) delete environment[key];
+  }
+  environment.GIT_OPTIONAL_LOCKS = "0";
+  environment.GIT_TERMINAL_PROMPT = "0";
+  return environment;
+}
+
+function safeGitEnvironment(environment = process.env, extraEnvironment = {}) {
+  const sanitized = {};
+  for (const [key, value] of Object.entries(environment)) {
+    if (!/^GIT_/iu.test(key)) sanitized[key] = value;
+  }
+  return {
+    ...sanitized,
+    GIT_OPTIONAL_LOCKS: "0",
+    GIT_TERMINAL_PROMPT: "0",
+    ...extraEnvironment,
+  };
+}
+
+function safeGitArguments(repo, args) {
+  const safeDirectory = path.resolve(repo).replaceAll("\\", "/");
+  return [
+    "-c",
+    `safe.directory=${safeDirectory}`,
+    "-c",
+    "core.fsmonitor=false",
+    ...args,
+  ];
+}
 
 function readArgument(argv, index) {
   const argument = argv[index];
@@ -126,7 +185,10 @@ function parseOptions(argv, environment) {
     seed: unsignedInteger(environment.CC_TEAM_SOAK_SEED || 0x5eed2026, "seed"),
     output: path.resolve(
       environment.CC_TEAM_SOAK_OUTPUT ||
-        path.join(repositoryRoot, "artifacts", "cli-team-soak-result.json"),
+        path.join(
+          os.tmpdir(),
+          `cc-team-soak-result-${process.pid}-${crypto.randomUUID()}.json`,
+        ),
     ),
     expectedSha: environment.CC_TEAM_SOAK_EXPECTED_SHA || null,
     maxRounds: optionalPositiveInteger(
@@ -137,11 +199,17 @@ function parseOptions(argv, environment) {
       environment.CC_TEAM_SOAK_REQUIRE_MANAGED_AGENT,
       "CC_TEAM_SOAK_REQUIRE_MANAGED_AGENT",
     ),
+    verifySourceOnly: false,
   };
 
   for (let index = 0; index < argv.length;) {
     if (argv[index] === "--help" || argv[index] === "-h") {
       options.help = true;
+      index += 1;
+      continue;
+    }
+    if (argv[index] === "--verify-source-only") {
+      options.verifySourceOnly = true;
       index += 1;
       continue;
     }
@@ -237,6 +305,20 @@ function parseOptions(argv, environment) {
       "expected SHA must be a full 40-64 digit hex commit ID",
     );
   }
+  if (options.expectedSha != null) {
+    options.expectedSha = options.expectedSha.toLowerCase();
+  }
+  if (options.verifySourceOnly && options.expectedSha == null) {
+    throw new TypeError("--verify-source-only requires --expected-sha");
+  }
+  if (
+    options.expectedSha != null &&
+    isPathInside(repositoryRoot, options.output)
+  ) {
+    throw new TypeError(
+      "an exact-SHA soak report must be written outside the calling repository",
+    );
+  }
   if (options.crashes > 2) {
     throw new TypeError(
       "crash count must be 1 or 2 so the pinned three-attempt queue can still complete",
@@ -268,33 +350,796 @@ Options:
   --require-managed-agent <boolean>
                              Require the managed-process capability probe
   --expected-sha <sha>       Fail unless checkout HEAD is this exact full SHA
-                             and the tracked worktree is clean
+                             and controlled worktree bytes/modes match it
+  --verify-source-only       Verify exact-SHA source evidence, then exit
   --output <path>            JSON result path
 `);
+}
+
+function isPathInside(parentPath, candidatePath) {
+  const relative = path.relative(
+    path.resolve(parentPath),
+    path.resolve(candidatePath),
+  );
+  return (
+    relative === "" ||
+    (relative !== ".." &&
+      !relative.startsWith(`..${path.sep}`) &&
+      !path.isAbsolute(relative))
+  );
 }
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
 }
 
-function currentCommit() {
-  const result = spawnSync("git", ["rev-parse", "HEAD"], {
-    cwd: repositoryRoot,
-    encoding: "utf8",
-    env: { ...process.env, GIT_OPTIONAL_LOCKS: "0" },
+function gitCommand(
+  args,
+  {
+    encoding = "utf8",
+    input,
+    maxBuffer = 64 * MIB,
+    root = repositoryRoot,
+  } = {},
+) {
+  const result = spawnSync("git", safeGitArguments(root, args), {
+    cwd: root,
+    encoding,
+    env: safeGitEnvironment(),
+    input,
+    maxBuffer,
     windowsHide: true,
   });
+  if (result.error || result.status !== 0) {
+    throw new Error(
+      `git ${args.join(" ")} failed: ${
+        result.error?.message ||
+        (Buffer.isBuffer(result.stderr)
+          ? result.stderr.toString("utf8").trim()
+          : result.stderr?.trim()) ||
+        `exit ${result.status}`
+      }`,
+    );
+  }
+  return result.stdout;
+}
+
+function nullDelimitedGitPaths(args, root = repositoryRoot) {
+  const output = gitCommand(args, { encoding: null, root });
+  const paths = [];
+  for (let offset = 0; offset < output.length;) {
+    const end = output.indexOf(0, offset);
+    if (end < 0) {
+      throw new Error(`git ${args[0]} emitted an unterminated path`);
+    }
+    if (end > offset) {
+      const rawPath = output.subarray(offset, end);
+      const decodedPath = rawPath.toString("utf8");
+      if (!Buffer.from(decodedPath, "utf8").equals(rawPath)) {
+        throw new Error("Git emitted a path that is not valid UTF-8");
+      }
+      paths.push(decodedPath);
+    }
+    offset = end + 1;
+  }
+  return {
+    paths,
+    evidenceDigest: crypto.createHash("sha256").update(output).digest("hex"),
+  };
+}
+
+function gitBlobOid(bytes, objectFormat) {
+  const hash = crypto.createHash(objectFormat);
+  hash.update(Buffer.from(`blob ${bytes.length}\0`, "utf8"));
+  hash.update(bytes);
+  return hash.digest("hex");
+}
+
+const SOURCE_ATTRIBUTE_NAMES = [
+  "text",
+  "eol",
+  "filter",
+  "working-tree-encoding",
+  "ident",
+  "crlf",
+];
+
+function checkedSourceAttributes(
+  entries,
+  source = null,
+  root = repositoryRoot,
+) {
+  const inputParts = [];
+  for (const entry of entries) {
+    inputParts.push(entry.pathBytes, Buffer.from([0]));
+  }
+  const args = ["check-attr", "-z", "--stdin"];
+  if (source != null) args.push("--source", source);
+  args.push(...SOURCE_ATTRIBUTE_NAMES);
+  const output = gitCommand(args, {
+    encoding: null,
+    input: Buffer.concat(inputParts),
+    root,
+  });
+  const fields = [];
+  for (let offset = 0; offset < output.length;) {
+    const end = output.indexOf(0, offset);
+    if (end < 0) {
+      throw new Error("git check-attr emitted an unterminated field");
+    }
+    fields.push(output.subarray(offset, end).toString("utf8"));
+    offset = end + 1;
+  }
+  if (fields.length % 3 !== 0) {
+    throw new Error("git check-attr emitted an incomplete record");
+  }
+  const byPath = new Map();
+  for (let index = 0; index < fields.length; index += 3) {
+    const [relativePath, attribute, value] = fields.slice(index, index + 3);
+    if (!SOURCE_ATTRIBUTE_NAMES.includes(attribute)) {
+      throw new Error(`git check-attr emitted an unknown ${attribute} field`);
+    }
+    const attributes = byPath.get(relativePath) || {};
+    attributes[attribute] = value;
+    byPath.set(relativePath, attributes);
+  }
+  for (const entry of entries) {
+    const attributes = byPath.get(entry.relativePath);
+    if (
+      attributes == null ||
+      SOURCE_ATTRIBUTE_NAMES.some((attribute) => attributes[attribute] == null)
+    ) {
+      throw new Error(
+        `Git attributes are incomplete for ${entry.relativePath}`,
+      );
+    }
+  }
+  return byPath;
+}
+
+export function crlfWorkingTreeBytes(blobBytes) {
+  let insertedCarriageReturns = 0;
+  for (let index = 0; index < blobBytes.length; index += 1) {
+    if (blobBytes[index] === 0x0a && blobBytes[index - 1] !== 0x0d) {
+      insertedCarriageReturns += 1;
+    }
+  }
+  if (insertedCarriageReturns === 0) return blobBytes;
+  const output = Buffer.allocUnsafe(blobBytes.length + insertedCarriageReturns);
+  let outputOffset = 0;
+  for (let index = 0; index < blobBytes.length; index += 1) {
+    if (blobBytes[index] === 0x0a && blobBytes[index - 1] !== 0x0d) {
+      output[outputOffset] = 0x0d;
+      outputOffset += 1;
+    }
+    output[outputOffset] = blobBytes[index];
+    outputOffset += 1;
+  }
+  return output;
+}
+
+function statField(stat, name) {
+  const nanosecondName = `${name}Ns`;
+  if (stat[nanosecondName] != null) return String(stat[nanosecondName]);
+  return String(Math.trunc(Number(stat[`${name}Ms`]) * 1_000_000));
+}
+
+function statFingerprint(stat) {
+  return {
+    dev: String(stat.dev),
+    ino: String(stat.ino),
+    mode: String(stat.mode),
+    nlink: String(stat.nlink),
+    size: String(stat.size),
+    mtimeNs: statField(stat, "mtime"),
+    ctimeNs: statField(stat, "ctime"),
+  };
+}
+
+function sameStatFingerprint(left, right, { pathToHandle = false } = {}) {
+  if (!left || !right) return false;
+  const fields =
+    pathToHandle && process.platform === "win32"
+      ? ["mode", "nlink", "size", "mtimeNs", "ctimeNs"]
+      : ["dev", "ino", "mode", "nlink", "size", "mtimeNs", "ctimeNs"];
+  return fields.every((field) => left[field] === right[field]);
+}
+
+function sameDirectoryIdentity(left, right) {
+  if (!left || !right) return false;
+  if (left.ino !== right.ino || left.mode !== right.mode) return false;
+  return (
+    process.platform === "win32" ||
+    left.dev === "0" ||
+    right.dev === "0" ||
+    left.dev === right.dev
+  );
+}
+
+function sourceVerificationError(evidence) {
+  const error = new Error(
+    `exact-SHA controlled source verification failed: ${evidence.errors
+      .slice(0, 10)
+      .join("; ")}`,
+  );
+  error.code = "ERR_SOAK_EXACT_SOURCE_MISMATCH";
+  error.sourceEvidence = evidence;
+  return error;
+}
+
+export function verifyExactSourceTree(
+  expectedSha,
+  sourceRoot = repositoryRoot,
+) {
+  const normalizedExpectedSha = String(expectedSha).toLowerCase();
+  const headSha = currentCommit(sourceRoot);
+  const expectedTreeOid = commitTreeOid(normalizedExpectedSha, sourceRoot);
+  const headTreeOid = commitTreeOid(headSha, sourceRoot);
+  const objectFormat = String(
+    gitCommand(["rev-parse", "--show-object-format"], {
+      root: sourceRoot,
+    }),
+  )
+    .trim()
+    .toLowerCase();
+  if (objectFormat !== "sha1" && objectFormat !== "sha256") {
+    throw new Error(`unsupported Git object format: ${objectFormat}`);
+  }
+
+  const untracked = nullDelimitedGitPaths(
+    ["ls-files", "--others", "--exclude-standard", "-z"],
+    sourceRoot,
+  );
+  const ignoredSourceOverrides = nullDelimitedGitPaths(
+    [
+      "ls-files",
+      "--others",
+      "--ignored",
+      "--exclude-standard",
+      "-z",
+      "--",
+      ...SOURCE_OVERRIDE_ROOTS,
+    ],
+    sourceRoot,
+  );
+  const evidence = {
+    available: true,
+    matches: false,
+    expectedSha: normalizedExpectedSha,
+    headSha,
+    expectedTreeOid,
+    headTreeOid,
+    objectFormat,
+    trackedEntries: 0,
+    trackedBytes: 0,
+    sourceEntriesDigest: null,
+    untracked: {
+      count: untracked.paths.length,
+      sample: untracked.paths.slice(0, 20),
+      evidenceDigest: untracked.evidenceDigest,
+    },
+    ignoredSourceOverrides: {
+      count: ignoredSourceOverrides.paths.length,
+      sample: ignoredSourceOverrides.paths.slice(0, 20),
+      evidenceDigest: ignoredSourceOverrides.evidenceDigest,
+    },
+    errors: [],
+  };
+  const recordError = (message) => {
+    if (evidence.errors.length < 50) evidence.errors.push(message);
+  };
+
+  if (headSha !== normalizedExpectedSha) {
+    recordError(
+      `HEAD ${headSha || "unavailable"} does not match ${normalizedExpectedSha}`,
+    );
+  }
+  if (expectedTreeOid == null || headTreeOid !== expectedTreeOid) {
+    recordError(
+      `HEAD tree ${headTreeOid || "unavailable"} does not match ${
+        expectedTreeOid || "unavailable"
+      }`,
+    );
+  }
+  if (untracked.paths.length > 0) {
+    recordError(
+      `${untracked.paths.length} untracked path(s) are present, including ${untracked.paths
+        .slice(0, 5)
+        .join(", ")}`,
+    );
+  }
+  if (ignoredSourceOverrides.paths.length > 0) {
+    recordError(
+      `${ignoredSourceOverrides.paths.length} ignored source override(s) are present, including ${ignoredSourceOverrides.paths
+        .slice(0, 5)
+        .join(", ")}`,
+    );
+  }
+  if (evidence.errors.length > 0) {
+    throw sourceVerificationError(evidence);
+  }
+
+  const treeOutput = gitCommand(
+    ["ls-tree", "-rz", "--full-tree", normalizedExpectedSha],
+    { encoding: null, root: sourceRoot },
+  );
+  const treeEntries = [];
+  for (let offset = 0; offset < treeOutput.length;) {
+    const end = treeOutput.indexOf(0, offset);
+    if (end < 0) {
+      recordError("git ls-tree emitted an unterminated entry");
+      break;
+    }
+    const entry = treeOutput.subarray(offset, end);
+    offset = end + 1;
+    if (entry.length === 0) continue;
+    const tab = entry.indexOf(0x09);
+    if (tab < 0) {
+      recordError("git ls-tree emitted an entry without a path");
+      continue;
+    }
+    const header = entry.subarray(0, tab).toString("ascii");
+    const match = /^([0-7]{6}) (blob|commit) ([0-9a-f]+)$/u.exec(header);
+    if (!match) {
+      recordError(`unsupported Git tree entry header: ${header}`);
+      continue;
+    }
+    const [, mode, objectType, expectedOid] = match;
+    const pathBytes = entry.subarray(tab + 1);
+    const relativePath = pathBytes.toString("utf8");
+    if (!Buffer.from(relativePath, "utf8").equals(pathBytes)) {
+      recordError("tracked path is not valid UTF-8");
+      continue;
+    }
+    if (
+      relativePath === "" ||
+      path.posix.isAbsolute(relativePath) ||
+      path.posix.normalize(relativePath) !== relativePath ||
+      relativePath.split("/").includes("..") ||
+      (process.platform === "win32" && relativePath.includes("\\"))
+    ) {
+      recordError(`unsafe tracked path: ${relativePath}`);
+      continue;
+    }
+    treeEntries.push({
+      mode,
+      objectType,
+      expectedOid,
+      pathBytes,
+      relativePath,
+    });
+  }
+  if (evidence.errors.length > 0) {
+    throw sourceVerificationError(evidence);
+  }
+
+  const expectedAttributes = checkedSourceAttributes(
+    treeEntries,
+    normalizedExpectedSha,
+    sourceRoot,
+  );
+  const worktreeAttributes = checkedSourceAttributes(
+    treeEntries,
+    null,
+    sourceRoot,
+  );
+  let crlfEntries = 0;
+  for (const entry of treeEntries) {
+    const expected = expectedAttributes.get(entry.relativePath);
+    const actual = worktreeAttributes.get(entry.relativePath);
+    for (const attribute of SOURCE_ATTRIBUTE_NAMES) {
+      if (expected[attribute] !== actual[attribute]) {
+        recordError(
+          `${entry.relativePath}: worktree ${attribute}=${actual[attribute]} does not match committed ${expected[attribute]}`,
+        );
+      }
+    }
+    for (const dangerousAttribute of [
+      "filter",
+      "working-tree-encoding",
+      "ident",
+      "crlf",
+    ]) {
+      if (
+        expected[dangerousAttribute] !== "unspecified" &&
+        expected[dangerousAttribute] !== "unset"
+      ) {
+        recordError(
+          `${entry.relativePath}: unsupported ${dangerousAttribute}=${expected[dangerousAttribute]} conversion`,
+        );
+      }
+    }
+    if (!["set", "auto", "unset", "unspecified"].includes(expected.text)) {
+      recordError(
+        `${entry.relativePath}: unsupported text=${expected.text} attribute`,
+      );
+    }
+    if (!["lf", "crlf", "unset", "unspecified"].includes(expected.eol)) {
+      recordError(
+        `${entry.relativePath}: unsupported eol=${expected.eol} attribute`,
+      );
+    }
+    if (
+      expected.eol === "crlf" &&
+      expected.text !== "set" &&
+      entry.mode !== "120000"
+    ) {
+      recordError(
+        `${entry.relativePath}: eol=crlf requires an explicit text attribute`,
+      );
+    }
+    if (expected.eol === "crlf" && entry.mode !== "120000") {
+      crlfEntries += 1;
+    }
+  }
+  evidence.attributes = {
+    committedMatchesWorktree: evidence.errors.length === 0,
+    policy:
+      "built-in text/eol only; filter, working-tree-encoding, ident, and legacy crlf conversions rejected",
+    crlfEntries,
+  };
+  if (evidence.errors.length > 0) {
+    throw sourceVerificationError(evidence);
+  }
+  const canonicalRepositoryRoot = fs.realpathSync.native(sourceRoot);
+  const parentIdentities = new Map();
+  const verifiedPaths = [];
+  const sourceDigest = crypto.createHash("sha256");
+  parentIdentities.set("", {
+    absolutePath: sourceRoot,
+    canonicalPath: canonicalRepositoryRoot,
+    fingerprint: statFingerprint(fs.lstatSync(sourceRoot, { bigint: true })),
+  });
+
+  function trustedParent(relativePath) {
+    const parentRelativePath = path.posix.dirname(relativePath);
+    const key = parentRelativePath === "." ? "" : parentRelativePath;
+    const cached = parentIdentities.get(key);
+    if (cached) return cached.absolutePath;
+    const parentOfParent = trustedParent(key);
+    const basename = path.posix.basename(key);
+    const absolutePath = path.join(parentOfParent, basename);
+    const parentStat = fs.lstatSync(absolutePath, { bigint: true });
+    if (!parentStat.isDirectory() || parentStat.isSymbolicLink()) {
+      throw new Error(`tracked parent is not a real directory: ${key}`);
+    }
+    const canonicalPath = fs.realpathSync.native(absolutePath);
+    if (!isPathInside(canonicalRepositoryRoot, canonicalPath)) {
+      throw new Error(`tracked parent escapes the repository: ${key}`);
+    }
+    parentIdentities.set(key, {
+      absolutePath,
+      canonicalPath,
+      fingerprint: statFingerprint(parentStat),
+    });
+    return absolutePath;
+  }
+
+  for (const {
+    mode,
+    objectType,
+    expectedOid,
+    pathBytes,
+    relativePath,
+  } of treeEntries) {
+    sourceDigest.update(Buffer.from(`${mode} ${expectedOid}\t`, "ascii"));
+    sourceDigest.update(pathBytes);
+    sourceDigest.update(Buffer.from([0]));
+    evidence.trackedEntries += 1;
+
+    try {
+      if (objectType !== "blob") {
+        throw new Error(
+          `unsupported tracked ${objectType} entry at ${relativePath}`,
+        );
+      }
+      const parentPath = trustedParent(relativePath);
+      const absolutePath = path.join(
+        parentPath,
+        path.posix.basename(relativePath),
+      );
+      const before = fs.lstatSync(absolutePath, { bigint: true });
+      let bytes;
+      if (mode === "120000") {
+        if (!before.isSymbolicLink()) {
+          throw new Error(`tracked symlink is not a symlink: ${relativePath}`);
+        }
+        bytes = fs.readlinkSync(absolutePath, { encoding: "buffer" });
+      } else {
+        if (mode !== "100644" && mode !== "100755") {
+          throw new Error(`unsupported tracked file mode ${mode}`);
+        }
+        if (
+          !before.isFile() ||
+          before.isSymbolicLink() ||
+          Number(before.nlink) !== 1
+        ) {
+          throw new Error(
+            `tracked file is not a single-link regular file: ${relativePath}`,
+          );
+        }
+        if (process.platform !== "win32") {
+          const executable = (Number(before.mode) & 0o111) !== 0;
+          if (executable !== (mode === "100755")) {
+            throw new Error(
+              `tracked executable mode mismatch at ${relativePath}`,
+            );
+          }
+        }
+        const flags = fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW || 0);
+        const descriptor = fs.openSync(absolutePath, flags);
+        try {
+          const opened = statFingerprint(
+            fs.fstatSync(descriptor, { bigint: true }),
+          );
+          if (
+            !sameStatFingerprint(statFingerprint(before), opened, {
+              pathToHandle: true,
+            })
+          ) {
+            throw new Error(
+              `tracked file changed while opening: ${relativePath}`,
+            );
+          }
+          bytes = fs.readFileSync(descriptor);
+          const afterRead = statFingerprint(
+            fs.fstatSync(descriptor, { bigint: true }),
+          );
+          if (!sameStatFingerprint(opened, afterRead)) {
+            throw new Error(
+              `tracked file changed while reading: ${relativePath}`,
+            );
+          }
+        } finally {
+          fs.closeSync(descriptor);
+        }
+      }
+      const after = fs.lstatSync(absolutePath, { bigint: true });
+      if (
+        !sameStatFingerprint(statFingerprint(before), statFingerprint(after))
+      ) {
+        throw new Error(`tracked path changed while reading: ${relativePath}`);
+      }
+      const attributes = expectedAttributes.get(relativePath);
+      if (mode !== "120000" && attributes.eol === "crlf") {
+        const blobBytes = gitCommand(["cat-file", "blob", expectedOid], {
+          encoding: null,
+          root: sourceRoot,
+        });
+        const expectedWorkingTreeBytes = crlfWorkingTreeBytes(blobBytes);
+        if (!bytes.equals(expectedWorkingTreeBytes)) {
+          throw new Error(
+            `controlled CRLF worktree bytes mismatch at ${relativePath}`,
+          );
+        }
+      } else {
+        const actualOid = gitBlobOid(bytes, objectFormat);
+        if (actualOid !== expectedOid) {
+          throw new Error(
+            `raw worktree blob mismatch at ${relativePath}: expected ${expectedOid}, got ${actualOid}`,
+          );
+        }
+      }
+      evidence.trackedBytes += bytes.length;
+      verifiedPaths.push({
+        absolutePath,
+        relativePath,
+        fingerprint: statFingerprint(after),
+      });
+    } catch (error) {
+      recordError(`${relativePath}: ${error?.message || String(error)}`);
+    }
+  }
+
+  evidence.sourceEntriesDigest = sourceDigest.digest("hex");
+  for (const identity of parentIdentities.values()) {
+    try {
+      const currentStat = statFingerprint(
+        fs.lstatSync(identity.absolutePath, { bigint: true }),
+      );
+      const currentCanonicalPath = fs.realpathSync.native(
+        identity.absolutePath,
+      );
+      if (
+        !sameStatFingerprint(identity.fingerprint, currentStat) ||
+        currentCanonicalPath !== identity.canonicalPath
+      ) {
+        recordError(
+          `tracked parent changed during source verification: ${path.relative(
+            sourceRoot,
+            identity.absolutePath,
+          )}`,
+        );
+      }
+    } catch (error) {
+      recordError(
+        `tracked parent recheck failed: ${error?.message || String(error)}`,
+      );
+    }
+  }
+  for (const verifiedPath of verifiedPaths) {
+    try {
+      const current = statFingerprint(
+        fs.lstatSync(verifiedPath.absolutePath, { bigint: true }),
+      );
+      if (!sameStatFingerprint(verifiedPath.fingerprint, current)) {
+        recordError(
+          `tracked path changed after verification: ${verifiedPath.relativePath}`,
+        );
+      }
+    } catch (error) {
+      recordError(
+        `${verifiedPath.relativePath}: post-verification stat failed: ${
+          error?.message || String(error)
+        }`,
+      );
+    }
+  }
+  if (
+    currentCommit(sourceRoot) !== normalizedExpectedSha ||
+    commitTreeOid(normalizedExpectedSha, sourceRoot) !== expectedTreeOid
+  ) {
+    recordError("HEAD or expected tree changed during source verification");
+  }
+  const trackedWorktreeAfter = trackedWorktreeEvidence(sourceRoot);
+  if (!trackedWorktreeAfter.available || !trackedWorktreeAfter.clean) {
+    recordError("tracked worktree changed during source verification");
+  }
+  const untrackedAfter = nullDelimitedGitPaths(
+    ["ls-files", "--others", "--exclude-standard", "-z"],
+    sourceRoot,
+  );
+  if (untrackedAfter.paths.length > 0) {
+    recordError(
+      `untracked paths appeared during source verification: ${untrackedAfter.paths
+        .slice(0, 5)
+        .join(", ")}`,
+    );
+  }
+  const ignoredSourceOverridesAfter = nullDelimitedGitPaths(
+    [
+      "ls-files",
+      "--others",
+      "--ignored",
+      "--exclude-standard",
+      "-z",
+      "--",
+      ...SOURCE_OVERRIDE_ROOTS,
+    ],
+    sourceRoot,
+  );
+  if (ignoredSourceOverridesAfter.paths.length > 0) {
+    recordError(
+      `ignored source overrides appeared during source verification: ${ignoredSourceOverridesAfter.paths
+        .slice(0, 5)
+        .join(", ")}`,
+    );
+  }
+  if (evidence.errors.length > 0) {
+    throw sourceVerificationError(evidence);
+  }
+  evidence.matches = true;
+  return evidence;
+}
+
+function currentCommit(root = repositoryRoot) {
+  const result = spawnSync(
+    "git",
+    safeGitArguments(root, ["rev-parse", "HEAD"]),
+    {
+      cwd: root,
+      encoding: "utf8",
+      env: safeGitEnvironment(),
+      windowsHide: true,
+    },
+  );
   return result.status === 0 ? result.stdout.trim().toLowerCase() : null;
 }
 
-function trackedWorktreeEvidence() {
+function commitTreeOid(revision, root = repositoryRoot) {
+  if (!revision) return null;
   const result = spawnSync(
     "git",
-    ["status", "--porcelain=v1", "--untracked-files=no"],
+    safeGitArguments(root, ["rev-parse", `${revision}^{tree}`]),
     {
-      cwd: repositoryRoot,
+      cwd: root,
       encoding: "utf8",
-      env: { ...process.env, GIT_OPTIONAL_LOCKS: "0" },
+      env: safeGitEnvironment(),
+      windowsHide: true,
+    },
+  );
+  return result.status === 0 ? result.stdout.trim().toLowerCase() : null;
+}
+
+function branchRefEvidence(root = repositoryRoot) {
+  const result = spawnSync(
+    "git",
+    safeGitArguments(root, ["symbolic-ref", "--quiet", "HEAD"]),
+    {
+      cwd: root,
+      encoding: "utf8",
+      env: safeGitEnvironment(),
+      windowsHide: true,
+    },
+  );
+  const errorMessage =
+    result.error == null
+      ? null
+      : String(result.error?.message || result.error).slice(0, 500);
+  const detached = result.status === 1 && errorMessage == null;
+  return {
+    available: (result.status === 0 || detached) && errorMessage == null,
+    ref: result.status === 0 ? result.stdout.trim() : null,
+    detached,
+    status: result.status,
+    error: errorMessage,
+  };
+}
+
+function trackedDiffEvidence(root = repositoryRoot) {
+  const commonOptions = {
+    cwd: root,
+    encoding: "utf8",
+    env: safeGitEnvironment(),
+    maxBuffer: 64 * MIB,
+    windowsHide: true,
+  };
+  const unstaged = spawnSync(
+    "git",
+    safeGitArguments(root, [
+      "diff",
+      "--binary",
+      "--no-ext-diff",
+      "--no-textconv",
+    ]),
+    commonOptions,
+  );
+  const staged = spawnSync(
+    "git",
+    safeGitArguments(root, [
+      "diff",
+      "--cached",
+      "--binary",
+      "--no-ext-diff",
+      "--no-textconv",
+    ]),
+    commonOptions,
+  );
+  const unstagedOutput =
+    typeof unstaged.stdout === "string" ? unstaged.stdout : "";
+  const stagedOutput = typeof staged.stdout === "string" ? staged.stdout : "";
+  const errors = [unstaged, staged]
+    .map((result) =>
+      result.error == null
+        ? null
+        : String(result.error?.message || result.error).slice(0, 500),
+    )
+    .filter(Boolean);
+  const available =
+    unstaged.status === 0 && staged.status === 0 && errors.length === 0;
+  return {
+    available,
+    unstagedStatus: unstaged.status,
+    stagedStatus: staged.status,
+    unstagedBytes: Buffer.byteLength(unstagedOutput),
+    stagedBytes: Buffer.byteLength(stagedOutput),
+    evidenceDigest: digestText(`${unstagedOutput}\0${stagedOutput}`),
+    error: errors.join("; ") || null,
+  };
+}
+
+function trackedWorktreeEvidence(root = repositoryRoot) {
+  const result = spawnSync(
+    "git",
+    safeGitArguments(root, [
+      "status",
+      "--porcelain=v1",
+      "--untracked-files=no",
+    ]),
+    {
+      cwd: root,
+      encoding: "utf8",
+      env: safeGitEnvironment(),
       maxBuffer: 16 * MIB,
       windowsHide: true,
     },
@@ -305,7 +1150,9 @@ function trackedWorktreeEvidence() {
     result.error == null
       ? null
       : String(result.error?.message || result.error).slice(0, 500);
-  const available = result.status === 0 && errorMessage == null;
+  const diff = trackedDiffEvidence(root);
+  const available =
+    result.status === 0 && errorMessage == null && diff.available;
   return {
     available,
     clean: available && changes.length === 0,
@@ -313,14 +1160,277 @@ function trackedWorktreeEvidence() {
     changeCount: changes.length,
     changes,
     evidenceDigest: digestText(output),
-    error: errorMessage,
+    diff,
+    error:
+      errorMessage ||
+      diff.error ||
+      (!diff.available
+        ? `git diff exited ${diff.unstagedStatus}/${diff.stagedStatus}`
+        : null),
   };
 }
 
+function repositoryOverlayEvidence() {
+  try {
+    const untracked = nullDelimitedGitPaths([
+      "ls-files",
+      "--others",
+      "--exclude-standard",
+      "-z",
+    ]);
+    const ignoredSourceOverrides = nullDelimitedGitPaths([
+      "ls-files",
+      "--others",
+      "--ignored",
+      "--exclude-standard",
+      "-z",
+      "--",
+      ...SOURCE_OVERRIDE_ROOTS,
+    ]);
+    return {
+      available: true,
+      untracked: {
+        count: untracked.paths.length,
+        sample: untracked.paths.slice(0, 20),
+        evidenceDigest: untracked.evidenceDigest,
+      },
+      ignoredSourceOverrides: {
+        count: ignoredSourceOverrides.paths.length,
+        sample: ignoredSourceOverrides.paths.slice(0, 20),
+        evidenceDigest: ignoredSourceOverrides.evidenceDigest,
+      },
+      error: null,
+    };
+  } catch (error) {
+    return {
+      available: false,
+      untracked: null,
+      ignoredSourceOverrides: null,
+      error: String(error?.message || error).slice(0, 500),
+    };
+  }
+}
+
+function invocationRepositoryEvidence() {
+  const commitSha = currentCommit();
+  const branch = branchRefEvidence();
+  const trackedWorktree = trackedWorktreeEvidence();
+  const overlays = repositoryOverlayEvidence();
+  const treeOid = commitTreeOid(commitSha);
+  return {
+    available:
+      commitSha != null &&
+      treeOid != null &&
+      branch.available &&
+      trackedWorktree.available &&
+      overlays.available,
+    commitSha,
+    treeOid,
+    branch,
+    trackedWorktree,
+    overlays,
+  };
+}
+
+function sameInvocationRepository(before, after) {
+  return (
+    before.available &&
+    after.available &&
+    before.commitSha === after.commitSha &&
+    before.treeOid === after.treeOid &&
+    before.branch.ref === after.branch.ref &&
+    before.branch.detached === after.branch.detached &&
+    before.trackedWorktree.clean === after.trackedWorktree.clean &&
+    before.trackedWorktree.changeCount === after.trackedWorktree.changeCount &&
+    before.trackedWorktree.evidenceDigest ===
+      after.trackedWorktree.evidenceDigest &&
+    before.trackedWorktree.diff.evidenceDigest ===
+      after.trackedWorktree.diff.evidenceDigest &&
+    JSON.stringify(before.trackedWorktree.changes) ===
+      JSON.stringify(after.trackedWorktree.changes) &&
+    before.overlays.available === after.overlays.available &&
+    before.overlays.untracked?.count === after.overlays.untracked?.count &&
+    before.overlays.untracked?.evidenceDigest ===
+      after.overlays.untracked?.evidenceDigest &&
+    before.overlays.ignoredSourceOverrides?.count ===
+      after.overlays.ignoredSourceOverrides?.count &&
+    before.overlays.ignoredSourceOverrides?.evidenceDigest ===
+      after.overlays.ignoredSourceOverrides?.evidenceDigest
+  );
+}
+
+function lstatIfPresent(filePath, options) {
+  try {
+    return fs.lstatSync(filePath, options);
+  } catch (error) {
+    if (error?.code === "ENOENT") return null;
+    throw error;
+  }
+}
+
+function prepareReportOutput(filePath) {
+  const requestedPath = path.resolve(filePath);
+  if (lstatIfPresent(requestedPath) != null) {
+    throw new Error(`soak report output already exists: ${requestedPath}`);
+  }
+
+  const requestedParent = path.dirname(requestedPath);
+  let nearestExistingAncestor = requestedParent;
+  for (;;) {
+    const ancestorStat = lstatIfPresent(nearestExistingAncestor);
+    if (ancestorStat != null) {
+      if (!ancestorStat.isDirectory() || ancestorStat.isSymbolicLink()) {
+        throw new Error(
+          `soak report ancestor is not a real directory: ${nearestExistingAncestor}`,
+        );
+      }
+      break;
+    }
+    const next = path.dirname(nearestExistingAncestor);
+    if (next === nearestExistingAncestor) {
+      throw new Error(
+        `soak report has no existing filesystem ancestor: ${requestedPath}`,
+      );
+    }
+    nearestExistingAncestor = next;
+  }
+
+  const canonicalRepositoryRoot = fs.realpathSync.native(repositoryRoot);
+  const canonicalAncestor = fs.realpathSync.native(nearestExistingAncestor);
+  if (isPathInside(canonicalRepositoryRoot, canonicalAncestor)) {
+    throw new Error(
+      "soak report output resolves inside the calling repository",
+    );
+  }
+  fs.mkdirSync(requestedParent, { recursive: true });
+  const canonicalParent = fs.realpathSync.native(requestedParent);
+  if (isPathInside(canonicalRepositoryRoot, canonicalParent)) {
+    throw new Error(
+      "soak report output resolves inside the calling repository",
+    );
+  }
+  const parentStat = fs.lstatSync(canonicalParent, { bigint: true });
+  if (!parentStat.isDirectory() || parentStat.isSymbolicLink()) {
+    throw new Error("soak report canonical parent is not a real directory");
+  }
+  const canonicalPath = path.join(
+    canonicalParent,
+    path.basename(requestedPath),
+  );
+  if (lstatIfPresent(canonicalPath) != null) {
+    throw new Error(`soak report output already exists: ${canonicalPath}`);
+  }
+  return {
+    requestedPath,
+    requestedParent,
+    canonicalRepositoryRoot,
+    canonicalParent,
+    canonicalPath,
+    parentFingerprint: statFingerprint(parentStat),
+  };
+}
+
+function assertReportOutputAuthority(authority) {
+  const canonicalParent = fs.realpathSync.native(authority.requestedParent);
+  if (canonicalParent !== authority.canonicalParent) {
+    throw new Error("soak report parent changed after output validation");
+  }
+  const parentStat = fs.lstatSync(authority.canonicalParent, {
+    bigint: true,
+  });
+  if (
+    !parentStat.isDirectory() ||
+    parentStat.isSymbolicLink() ||
+    !sameDirectoryIdentity(
+      authority.parentFingerprint,
+      statFingerprint(parentStat),
+    )
+  ) {
+    throw new Error("soak report parent identity changed before write");
+  }
+  if (lstatIfPresent(authority.canonicalPath) != null) {
+    throw new Error(
+      `soak report output already exists: ${authority.canonicalPath}`,
+    );
+  }
+}
+
+function appendRepositoryMutationFailure(report) {
+  if (
+    report.failures.some(
+      (failure) =>
+        failure.message ===
+        "soak changed the calling repository branch, HEAD, tree, or tracked status",
+    )
+  ) {
+    return;
+  }
+  report.failures.push({
+    name: "Error",
+    code: null,
+    message:
+      "soak changed the calling repository branch, HEAD, tree, or tracked status",
+    stack: null,
+  });
+}
+
+function writeReportExclusive(authority, report, invocationRepositoryBefore) {
+  assertReportOutputAuthority(authority);
+  const flags =
+    fs.constants.O_CREAT |
+    fs.constants.O_EXCL |
+    fs.constants.O_WRONLY |
+    (fs.constants.O_NOFOLLOW || 0);
+  const descriptor = fs.openSync(authority.canonicalPath, flags, 0o600);
+  try {
+    const openedPath = fs.lstatSync(authority.canonicalPath);
+    const openedCanonicalPath = fs.realpathSync.native(authority.canonicalPath);
+    if (
+      !openedPath.isFile() ||
+      openedPath.isSymbolicLink() ||
+      Number(openedPath.nlink) !== 1 ||
+      path.dirname(openedCanonicalPath) !== authority.canonicalParent ||
+      isPathInside(authority.canonicalRepositoryRoot, openedCanonicalPath)
+    ) {
+      throw new Error("exclusive soak report output is not a regular file");
+    }
+    const provisional = Buffer.from(
+      `${JSON.stringify(report, null, 2)}\n`,
+      "utf8",
+    );
+    fs.writeSync(descriptor, provisional, 0, provisional.length, 0);
+    fs.fsyncSync(descriptor);
+
+    const afterReportWrite = invocationRepositoryEvidence();
+    const unchanged = sameInvocationRepository(
+      invocationRepositoryBefore,
+      afterReportWrite,
+    );
+    report.checkoutEvidence.invocationRepository.afterReportWrite =
+      afterReportWrite;
+    report.checkoutEvidence.invocationRepository.after = afterReportWrite;
+    report.checkoutEvidence.invocationRepository.unchanged = unchanged;
+    if (!unchanged) {
+      report.success = false;
+      appendRepositoryMutationFailure(report);
+    }
+    const finalReport = Buffer.from(
+      `${JSON.stringify(report, null, 2)}\n`,
+      "utf8",
+    );
+    fs.ftruncateSync(descriptor, 0);
+    fs.writeSync(descriptor, finalReport, 0, finalReport.length, 0);
+    fs.fsyncSync(descriptor);
+  } finally {
+    fs.closeSync(descriptor);
+  }
+}
+
 function git(repo, ...args) {
-  return execFileSync("git", args, {
+  return execFileSync("git", safeGitArguments(repo, args), {
     cwd: repo,
     encoding: "utf8",
+    env: safeGitEnvironment(),
     stdio: ["ignore", "pipe", "pipe"],
     windowsHide: true,
   }).trim();
@@ -510,7 +1620,8 @@ function createWorker(configurationPath, mode, workerId) {
     [workerPath, configurationPath, mode, workerId],
     {
       cwd: repositoryRoot,
-      env: { ...process.env },
+      detached: process.platform !== "win32",
+      env: safeGitEnvironment(),
       shell: false,
       windowsHide: true,
       stdio: ["ignore", "pipe", "pipe"],
@@ -561,15 +1672,58 @@ function createWorker(configurationPath, mode, workerId) {
   return { child, done };
 }
 
-async function withTimeout(promise, milliseconds, label, children = []) {
+function childIsRunning(child) {
+  return (
+    child?.pid != null && child.exitCode == null && child.signalCode == null
+  );
+}
+
+export function terminateSoakChildTree(child, signal = "SIGTERM") {
+  if (!childIsRunning(child)) return false;
+  try {
+    stopBackgroundAgentChildTree(child.pid, { signal });
+    return true;
+  } catch (error) {
+    if (!childIsRunning(child)) return false;
+    try {
+      child.kill(signal);
+    } catch {
+      // Preserve the complete-tree failure below. A direct kill is only a
+      // last-chance nudge and does not satisfy the descendant-tree contract.
+    }
+    const wrapped = new Error(
+      `failed to terminate soak process tree ${child.pid}: ${
+        error?.message || String(error)
+      }`,
+      { cause: error },
+    );
+    wrapped.code = error?.code || "ERR_SOAK_PROCESS_TREE_TERMINATION";
+    throw wrapped;
+  }
+}
+
+export async function withTimeout(promise, milliseconds, label, children = []) {
   let timer;
   try {
     return await Promise.race([
       promise,
       new Promise((_, reject) => {
         timer = setTimeout(() => {
-          for (const child of children) child.kill();
-          reject(new Error(`${label} timed out after ${milliseconds} ms`));
+          const failures = [];
+          for (const child of children) {
+            try {
+              terminateSoakChildTree(child, "SIGKILL");
+            } catch (error) {
+              failures.push(error);
+            }
+          }
+          const timeoutError = new Error(
+            `${label} timed out after ${milliseconds} ms`,
+            failures.length > 0 ? { cause: failures[0] } : undefined,
+          );
+          timeoutError.code = "ERR_SOAK_TIMEOUT";
+          timeoutError.processTreeTerminationFailures = failures;
+          reject(timeoutError);
         }, milliseconds);
       }),
     ]);
@@ -582,11 +1736,6 @@ function writeJson(filePath, value) {
   fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`, {
     mode: 0o600,
   });
-}
-
-function writeReport(filePath, report) {
-  fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  writeJson(filePath, report);
 }
 
 async function terminateActiveWorkers() {
@@ -602,11 +1751,42 @@ async function terminateActiveWorkers() {
         child.once("close", resolve);
       }),
   );
-  for (const child of children) child.kill();
+  const terminationFailures = [];
+  for (const child of children) {
+    try {
+      terminateSoakChildTree(child, "SIGTERM");
+    } catch (error) {
+      terminationFailures.push(error);
+    }
+  }
   await Promise.race([
     Promise.all(closed),
     new Promise((resolve) => setTimeout(resolve, 2_000)),
   ]);
+  for (const child of children.filter(childIsRunning)) {
+    try {
+      terminateSoakChildTree(child, "SIGKILL");
+    } catch (error) {
+      terminationFailures.push(error);
+    }
+  }
+  await Promise.race([
+    Promise.all(closed),
+    new Promise((resolve) => setTimeout(resolve, 5_000)),
+  ]);
+  const livePids = children.filter(childIsRunning).map((child) => child.pid);
+  if (livePids.length > 0 || terminationFailures.length > 0) {
+    const error = new Error(
+      livePids.length > 0
+        ? `soak worker process trees did not terminate: ${livePids.join(", ")}`
+        : `soak worker process-tree cleanup reported ${terminationFailures.length} failure(s)`,
+      terminationFailures.length > 0
+        ? { cause: terminationFailures[0] }
+        : undefined,
+    );
+    error.code = "ERR_SOAK_PROCESS_TREE_CLEANUP";
+    throw error;
+  }
 }
 
 function digestText(value) {
@@ -681,6 +1861,7 @@ function probeManagedProcessCapability(rootDirectory) {
       stdio: ["ignore", "pipe", "pipe"],
       shell: false,
       windowsHide: true,
+      env: safeGitEnvironment(),
       origin: "team-soak:managed-process-probe",
       policy: "allow",
       scope: "team-soak",
@@ -1454,9 +2635,16 @@ async function runRound(
 }
 
 async function run(options) {
-  const commitSha = currentCommit();
-  const expectedSha = options.expectedSha?.toLowerCase() || null;
-  const trackedWorktree = trackedWorktreeEvidence();
+  const reportOutput = prepareReportOutput(options.output);
+  options.output = reportOutput.canonicalPath;
+  const expectedSha = options.expectedSha || null;
+  const sourceBytes =
+    expectedSha == null ? null : verifyExactSourceTree(expectedSha);
+  const invocationRepositoryBefore = invocationRepositoryEvidence();
+  const commitSha = invocationRepositoryBefore.commitSha;
+  const expectedTreeOid = commitTreeOid(expectedSha);
+  const headTreeOid = invocationRepositoryBefore.treeOid;
+  const trackedWorktree = invocationRepositoryBefore.trackedWorktree;
 
   const startedAt = new Date();
   const startedMonotonic = performance.now();
@@ -1476,8 +2664,20 @@ async function run(options) {
       expectedSha,
       headMatchesExpected:
         expectedSha == null ? null : commitSha === expectedSha,
+      expectedTreeOid,
+      headTreeOid,
+      sourceTreeMatchesExpected:
+        expectedSha == null ? null : headTreeOid === expectedTreeOid,
       trackedWorktreeRequired: expectedSha != null,
       trackedWorktree,
+      sourceBytes,
+      invocationRepository: {
+        before: invocationRepositoryBefore,
+        afterCleanup: null,
+        afterReportWrite: null,
+        after: null,
+        unchanged: null,
+      },
     },
     coverageSemantics: {
       managedProcess: "capability-probe",
@@ -1522,8 +2722,16 @@ async function run(options) {
   const workerMaximumRssSamples = [];
   try {
     assert(
+      invocationRepositoryBefore.available,
+      "calling repository identity could not be captured before the soak",
+    );
+    assert(
       expectedSha == null || commitSha === expectedSha,
       `checkout SHA mismatch: expected ${expectedSha}, got ${commitSha || "unavailable"}`,
+    );
+    assert(
+      expectedSha == null || headTreeOid === expectedTreeOid,
+      `checkout tree mismatch: expected ${expectedTreeOid || "unavailable"}, got ${headTreeOid || "unavailable"}`,
     );
     assert(
       expectedSha == null || trackedWorktree.available,
@@ -1537,6 +2745,7 @@ async function run(options) {
         .slice(0, 20)
         .join(", ")}`,
     );
+    await loadSoakRuntimeModules();
     report.platformCapability = probeManagedProcessCapability(rootDirectory);
     assert(
       !options.requireManagedAgent ||
@@ -1608,7 +2817,17 @@ async function run(options) {
       stack: error?.stack || null,
     });
   } finally {
-    await terminateActiveWorkers();
+    try {
+      await terminateActiveWorkers();
+    } catch (error) {
+      report.success = false;
+      report.failures.push({
+        name: error?.name || "Error",
+        code: error?.code || null,
+        message: error?.message || String(error),
+        stack: error?.stack || null,
+      });
+    }
     try {
       fs.rmSync(rootDirectory, { recursive: true, force: true });
     } catch (error) {
@@ -1622,13 +2841,28 @@ async function run(options) {
         stack: error?.stack || null,
       });
     }
+    const invocationRepositoryAfter = invocationRepositoryEvidence();
+    const invocationRepositoryUnchanged = sameInvocationRepository(
+      invocationRepositoryBefore,
+      invocationRepositoryAfter,
+    );
+    report.checkoutEvidence.invocationRepository.afterCleanup =
+      invocationRepositoryAfter;
+    report.checkoutEvidence.invocationRepository.after =
+      invocationRepositoryAfter;
+    report.checkoutEvidence.invocationRepository.unchanged =
+      invocationRepositoryUnchanged;
+    if (!invocationRepositoryUnchanged) {
+      report.success = false;
+      appendRepositoryMutationFailure(report);
+    }
     report.finishedAt = new Date().toISOString();
     report.elapsedMs = Math.round(performance.now() - startedMonotonic);
     report.memory ||= {
       ...rssTrend(parentRssSamples, options),
       workerMaximaTrend: rssTrend(workerMaximumRssSamples, options),
     };
-    writeReport(options.output, report);
+    writeReportExclusive(reportOutput, report, invocationRepositoryBefore);
   }
   process.stdout.write(
     `${JSON.stringify({
@@ -1645,15 +2879,32 @@ async function run(options) {
   return report.success;
 }
 
-let options;
-try {
-  options = parseOptions(process.argv.slice(2), process.env);
-  if (options.help) {
-    printHelp();
-  } else if (!(await run(options))) {
+async function main() {
+  sanitizeGitEnvironment(process.env);
+  let options;
+  try {
+    options = parseOptions(process.argv.slice(2), process.env);
+    if (options.help) {
+      printHelp();
+    } else if (options.verifySourceOnly) {
+      const sourceBytes = verifyExactSourceTree(options.expectedSha);
+      process.stdout.write(
+        `${JSON.stringify({
+          success: true,
+          expectedSha: options.expectedSha,
+          sourceBytes,
+        })}\n`,
+      );
+    } else if (!(await run(options))) {
+      process.exitCode = 1;
+    }
+  } catch (error) {
+    process.stderr.write(`${error?.stack || error}\n`);
     process.exitCode = 1;
   }
-} catch (error) {
-  process.stderr.write(`${error?.stack || error}\n`);
-  process.exitCode = 1;
 }
+
+const invokedAsMain =
+  process.argv[1] != null &&
+  path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+if (invokedAsMain) await main();

@@ -4,8 +4,11 @@ on:
   pull_request:
     paths:
       - ".github/workflows/cli-team-soak.yml"
+      - ".github/actions/setup-node-deps/action.yml"
+      - ".gitattributes"
       - "package.json"
       - "package-lock.json"
+      - "packages/agent-sdk/**"
       - "packages/cli/**"
   schedule:
     - cron: "23 3 * * 1"
@@ -66,7 +69,7 @@ jobs:
       # shell-worktree fallback. Agent work is a deterministic contract,
       # worktree, and checkpoint exercise without a live model.
       CC_TEAM_SOAK_REQUIRE_MANAGED_AGENT: ${{ matrix.os == 'windows-latest' && 'true' || 'false' }}
-      CC_TEAM_SOAK_OUTPUT: artifacts/cli-team-soak-result.json
+      CC_TEAM_SOAK_OUTPUT: ${{ runner.temp }}/cli-team-soak-result.json
     steps:
       - name: Checkout exact soak commit
         uses: actions/checkout@v5
@@ -81,6 +84,45 @@ jobs:
 
       - uses: ./.github/actions/setup-node-deps
 
+      - name: Bind installed source to exact soak commit
+        # The CLI bin is committed as 100755, so npm's workspace bin linker
+        # must not need any tracked normalization. Bind the two bootstrap files
+        # here; the harness validates every controlled worktree byte before it
+        # imports repository runtime modules.
+        shell: bash
+        run: |
+          set -euo pipefail
+          cli_bin="packages/cli/bin/chainlesschain.js"
+          soak_script="packages/cli/scripts/team-distributed-soak.mjs"
+          expected_sha="$(
+            printf '%s' "${CC_TEAM_SOAK_EXPECTED_SHA}" |
+              tr '[:upper:]' '[:lower:]'
+          )"
+          [[ "${expected_sha}" =~ ^[0-9a-f]{40,64}$ ]]
+          export CC_TEAM_SOAK_EXPECTED_SHA="${expected_sha}"
+          printf 'CC_TEAM_SOAK_EXPECTED_SHA=%s\n' "${expected_sha}" >> \
+            "${GITHUB_ENV}"
+          test "$(git rev-parse HEAD | tr '[:upper:]' '[:lower:]')" = \
+            "${expected_sha}"
+          test "$(git rev-parse 'HEAD^{tree}')" = \
+            "$(git rev-parse "${expected_sha}^{tree}")"
+          read -r bin_mode bin_type expected_bin_oid bin_path < <(
+            git ls-tree "${expected_sha}" -- "${cli_bin}"
+          )
+          test "${bin_mode}" = "100755"
+          test "${bin_type}" = "blob"
+          test "${bin_path}" = "${cli_bin}"
+          test "$(git hash-object --no-filters "${cli_bin}")" = \
+            "${expected_bin_oid}"
+          read -r script_mode script_type expected_script_oid script_path < <(
+            git ls-tree "${expected_sha}" -- "${soak_script}"
+          )
+          test "${script_mode}" = "100644"
+          test "${script_type}" = "blob"
+          test "${script_path}" = "${soak_script}"
+          test "$(git hash-object --no-filters "${soak_script}")" = \
+            "${expected_script_oid}"
+
       - name: Run managed-process probe and deterministic Agent contract soak
         run: npm run test:cli-team-soak
 
@@ -89,6 +131,6 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: cli-team-soak-${{ matrix.os }}-${{ github.run_attempt }}
-          path: artifacts/cli-team-soak-result.json
+          path: ${{ runner.temp }}/cli-team-soak-result.json
           if-no-files-found: warn
           retention-days: 14
