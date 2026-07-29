@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.162.187",
+      "cliVersions": ["0.162.186", "0.162.187"],
+      "date": "2026-07-29",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Added — cc CLI 0.162.187: large Agent Teams safety foundation",
+          "body": "> `chainlesschain` **0.162.186 → 0.162.187** (2026-07-29).\n> CLI-only release; `@chainlesschain/personal-data-hub` remains **0.4.57**\n> and `@chainlesschain/agent-sdk` remains **0.1.7**.\n\n- **Scale-ready scheduling**: indexed leases and dependency bookkeeping support\n  10,000-task graphs with up to 64 local workers, while bounded mailboxes apply\n  explicit backpressure instead of allowing unbounded coordination queues.\n- **Fenced execution authority**: per-task contracts, scope ownership,\n  cross-process run locks, lease fencing, and append-only collaboration\n  governance prevent stale workers or generic state updates from mutating\n  settled work.\n- **Fail-closed budgets and recovery**: claim-time token/USD reservations,\n  restored active wall time, required usage attribution, and explicit\n  unpriced-usage state stop budgeted remote work when cost evidence is missing.\n  After a crash, only dry runs or tasks marked `retrySafe` are reclaimed\n  automatically; ambiguous real side effects require adjudication.\n- **Durable worktree settlement**: recovery snapshots bind the original base\n  branch and commit, pin task output to immutable commit OIDs, recheck refs\n  around preview/merge/cleanup, and use prepare→persist→remove→persist cleanup\n  without discarding dirty, moved, or unmerged worktrees.\n- **Honest completion boundary**: this release is the P2-16 safety and scale\n  foundation, not the completed production-scale Agent Teams program. IDE\n  human takeover, distributed queues, long-running soak coverage, interactive\n  side-effect adjudication, and dependency-branch baseline propagation remain.\n- **Release validation gate**: publication requires the exact merged release\n  commit to pass `CLI CI`, `CLI Strict Sandbox`, and the three-platform\n  `CLI Background Interaction E2E` workflow; local tests remain supplementary."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.162.186",
       "cliVersions": ["0.162.185", "0.162.186"],
       "date": "2026-07-29",
