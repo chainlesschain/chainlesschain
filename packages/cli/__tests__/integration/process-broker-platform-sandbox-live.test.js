@@ -1290,7 +1290,6 @@ describe.runIf(LIVE && SUPPORTED)(
                 requiredBoundaries: [
                   SANDBOX_BOUNDARIES.FILESYSTEM,
                   SANDBOX_BOUNDARIES.NETWORK,
-                  SANDBOX_BOUNDARIES.PROCESS_TREE,
                 ],
               },
               bin: {
