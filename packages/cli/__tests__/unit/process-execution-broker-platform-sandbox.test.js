@@ -1693,7 +1693,11 @@ function appliedLinuxBwrapPluginTreePlan(
     candidateBackend: null,
     policyAttested: true,
     policyDigest: "c".repeat(64),
-    guarantees: [SANDBOX_BOUNDARIES.FILESYSTEM, SANDBOX_BOUNDARIES.NETWORK],
+    guarantees: [
+      SANDBOX_BOUNDARIES.FILESYSTEM,
+      SANDBOX_BOUNDARIES.NETWORK,
+      SANDBOX_BOUNDARIES.PROCESS_TREE,
+    ],
     runtimeProbe: createLinuxPluginTreeRuntimeProbe(),
     ...overrides,
   });
@@ -1930,7 +1934,11 @@ describe("platform sandbox adapter contract", () => {
       enforcement: "linux-bwrap",
       policyAttested: true,
       reason: null,
-      guarantees: [SANDBOX_BOUNDARIES.FILESYSTEM, SANDBOX_BOUNDARIES.NETWORK],
+      guarantees: [
+        SANDBOX_BOUNDARIES.FILESYSTEM,
+        SANDBOX_BOUNDARIES.NETWORK,
+        SANDBOX_BOUNDARIES.PROCESS_TREE,
+      ],
       runtimeProbe: {
         attempted: true,
         runnable: true,
@@ -2916,7 +2924,11 @@ describe("platform sandbox adapter contract", () => {
       enforcement: "linux-bwrap",
       policyAttested: true,
       reason: null,
-      guarantees: [SANDBOX_BOUNDARIES.FILESYSTEM, SANDBOX_BOUNDARIES.NETWORK],
+      guarantees: [
+        SANDBOX_BOUNDARIES.FILESYSTEM,
+        SANDBOX_BOUNDARIES.NETWORK,
+        SANDBOX_BOUNDARIES.PROCESS_TREE,
+      ],
       runtimeProbe: {
         kind: "linux-bwrap-plugin-native-static-elf-policy-v1",
         attempted: true,
@@ -3154,7 +3166,11 @@ describe("platform sandbox adapter contract", () => {
       enforcement: "linux-bwrap",
       policyAttested: true,
       reason: null,
-      guarantees: [SANDBOX_BOUNDARIES.FILESYSTEM, SANDBOX_BOUNDARIES.NETWORK],
+      guarantees: [
+        SANDBOX_BOUNDARIES.FILESYSTEM,
+        SANDBOX_BOUNDARIES.NETWORK,
+        SANDBOX_BOUNDARIES.PROCESS_TREE,
+      ],
       runtimeProbe: {
         kind: "linux-bwrap-plugin-native-static-elf-policy-v1",
         attempted: true,
@@ -3207,7 +3223,11 @@ describe("platform sandbox adapter contract", () => {
         enforcement: "linux-bwrap",
         policyAttested: true,
         reason: null,
-        guarantees: [SANDBOX_BOUNDARIES.FILESYSTEM, SANDBOX_BOUNDARIES.NETWORK],
+        guarantees: [
+          SANDBOX_BOUNDARIES.FILESYSTEM,
+          SANDBOX_BOUNDARIES.NETWORK,
+          SANDBOX_BOUNDARIES.PROCESS_TREE,
+        ],
         runtimeProbe: {
           kind: "linux-bwrap-plugin-native-dynamic-elf-policy-v1",
           attempted: true,
@@ -3945,7 +3965,11 @@ describe("platform sandbox adapter contract", () => {
       applied: true,
       backend: "linux-bwrap",
       policyAttested: true,
-      guarantees: [SANDBOX_BOUNDARIES.FILESYSTEM, SANDBOX_BOUNDARIES.NETWORK],
+      guarantees: [
+        SANDBOX_BOUNDARIES.FILESYSTEM,
+        SANDBOX_BOUNDARIES.NETWORK,
+        SANDBOX_BOUNDARIES.PROCESS_TREE,
+      ],
       options: {
         shell: false,
         detached: false,
@@ -4081,7 +4105,11 @@ describe("platform sandbox adapter contract", () => {
       applied: true,
       policyAttested: true,
       reason: null,
-      guarantees: [SANDBOX_BOUNDARIES.FILESYSTEM, SANDBOX_BOUNDARIES.NETWORK],
+      guarantees: [
+        SANDBOX_BOUNDARIES.FILESYSTEM,
+        SANDBOX_BOUNDARIES.NETWORK,
+        SANDBOX_BOUNDARIES.PROCESS_TREE,
+      ],
       runtimeProbe: {
         attempted: true,
         runnable: true,
@@ -5659,6 +5687,55 @@ describe("platform sandbox adapter contract", () => {
     expect(plan.applied).toBe(true);
     expect(plan.command).toBe(modernHost);
     expect(realpathSync.native).toHaveBeenCalledWith(modernHost);
+    plan.cleanup();
+    expect(resetWindowsSandboxAdapterCache()).toBe(true);
+  });
+
+  it("falls back to the protected in-box host when PowerShell 7 cannot probe under restriction", () => {
+    const harness = createWindowsAdapterHarness();
+    const modernHost = "C:\\Program Files\\PowerShell\\7\\pwsh.exe";
+    const inboxHost =
+      "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe";
+    const exists = harness.fsRuntime.existsSync.getMockImplementation();
+    harness.fsRuntime.existsSync.mockImplementation(
+      (value) => String(value) === modernHost || exists(value),
+    );
+    const realpathSync = vi.fn((value) => String(value));
+    realpathSync.native = vi.fn((value) => String(value));
+    harness.fsRuntime.realpathSync = realpathSync;
+    const nativeProbe = harness.spawnSync.getMockImplementation();
+    harness.spawnSync.mockImplementation((command, args, options) =>
+      command === modernHost
+        ? {
+            status: 125,
+            stdout: "",
+            stderr: "CC_WINDOWS_SANDBOX_ERROR: access denied",
+          }
+        : nativeProbe(command, args, options),
+    );
+
+    const plan = applyWindowsSandbox(
+      "tool.exe",
+      [],
+      {},
+      { profileName: "strict", sync: true },
+      {
+        platform: "win32",
+        fs: harness.fsRuntime,
+        windowsAdapterContent: "adapter-bytes",
+        windowsDir: () => "C:\\Windows",
+        tmpdir: () => "C:\\temp",
+        randomBytes: (size) => Buffer.alloc(size, 0x9d),
+        joinPath: path.win32.join,
+        spawnSync: harness.spawnSync,
+      },
+    );
+
+    expect(plan.applied).toBe(true);
+    expect(plan.command).toBe(inboxHost);
+    expect(harness.spawnSync).toHaveBeenCalledTimes(2);
+    expect(harness.spawnSync.mock.calls[0][0]).toBe(modernHost);
+    expect(harness.spawnSync.mock.calls[1][0]).toBe(inboxHost);
     plan.cleanup();
     expect(resetWindowsSandboxAdapterCache()).toBe(true);
   });
@@ -7823,6 +7900,7 @@ describe.runIf(process.platform === "win32")(
         const result = executionBroker.spawnSync(
           nodeExecutable,
           [
+            "--no-warnings",
             "-e",
             [
               "(async () => {",
@@ -8517,6 +8595,7 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
       sandboxGuarantees: [
         SANDBOX_BOUNDARIES.FILESYSTEM,
         SANDBOX_BOUNDARIES.NETWORK,
+        SANDBOX_BOUNDARIES.PROCESS_TREE,
       ],
     });
     expect(auditEntry.sandboxRuntimeProbe).toEqual(runtimeProbe);

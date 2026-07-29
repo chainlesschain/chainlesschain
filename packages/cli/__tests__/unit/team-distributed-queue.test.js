@@ -7,6 +7,11 @@ import {
   TeamDistributedQueueError,
 } from "../../src/lib/agent-team/team-distributed-queue.js";
 import { TeamRunner } from "../../src/lib/agent-team/team-runner.js";
+import {
+  SECURE_FILE_IDENTITY_ERROR,
+  SecureFileIdentityError,
+  isAffectedWindowsZeroDeviceStatRuntime,
+} from "../../src/lib/secure-file-identity.js";
 
 const temporaryDirectories = [];
 
@@ -21,6 +26,28 @@ function tempState(name = "queue.json") {
 function deterministicIds(prefix = "test") {
   let sequence = 0;
   return (kind) => `${prefix}-${kind}-${++sequence}`;
+}
+
+function statProjection(stat, overrides) {
+  return new Proxy(stat, {
+    get(target, property) {
+      if (Object.hasOwn(overrides, property)) return overrides[property];
+      const value = Reflect.get(target, property, target);
+      return typeof value === "function" ? value.bind(target) : value;
+    },
+  });
+}
+
+function projectedFileSystem(filePath, overrides) {
+  const runtimeFs = Object.create(fs);
+  const nativeLstatSync = fs.lstatSync.bind(fs);
+  runtimeFs.lstatSync = (target, options) => {
+    const stat = nativeLstatSync(target, options);
+    return path.resolve(String(target)) === path.resolve(filePath)
+      ? statProjection(stat, overrides)
+      : stat;
+  };
+  return runtimeFs;
 }
 
 function makeClock(start = 1_000) {
@@ -130,6 +157,134 @@ afterEach(() => {
 });
 
 describe("TeamDistributedQueue durable registry adapter", () => {
+  it("bridges a zero-device queue path only on affected Windows libuv", () => {
+    const filePath = tempState();
+    const runtimeFs = projectedFileSystem(filePath, { dev: 0n });
+    const queue = createQueue(filePath, {
+      fileSystem: runtimeFs,
+    });
+
+    if (!isAffectedWindowsZeroDeviceStatRuntime()) {
+      expect(() => queue.claim({ holder: "worker" })).toThrow(
+        expect.objectContaining({ code: "TEAM_QUEUE_PATH_RACE" }),
+      );
+      return;
+    }
+    expect(queue.claim({ holder: "worker" })).toMatchObject({
+      ok: true,
+      key: "build",
+    });
+  });
+
+  it.each([
+    SECURE_FILE_IDENTITY_ERROR.INVALID_PARENT,
+    SECURE_FILE_IDENTITY_ERROR.PARENT_RACE,
+  ])(
+    "maps secure queue parent error %s to an insecure-path error and preserves its cause",
+    (secureCode) => {
+      const filePath = tempState();
+      const secureCause = new SecureFileIdentityError(
+        secureCode,
+        "secure parent rejected",
+      );
+      const queue = new TeamDistributedQueue({
+        filePath,
+        secureFileParent: () => {
+          throw secureCause;
+        },
+      });
+      let failure;
+      try {
+        queue.stats();
+      } catch (error) {
+        failure = error;
+      }
+
+      expect(failure).toMatchObject({
+        code: "TEAM_QUEUE_INSECURE_PATH",
+        filePath: path.resolve(filePath),
+      });
+      expect(failure.cause).toBe(secureCause);
+    },
+  );
+
+  it("maps secure queue parent write failures without collapsing them to write-failed", () => {
+    const filePath = tempState();
+    const secureCause = new SecureFileIdentityError(
+      SECURE_FILE_IDENTITY_ERROR.PARENT_RACE,
+      "secure parent changed",
+    );
+    let secureParentCalls = 0;
+
+    let failure;
+    try {
+      createQueue(filePath, {
+        secureFileParent: () => {
+          secureParentCalls += 1;
+          if (secureParentCalls === 1) {
+            return { missing: true, identity: null, serialized: null };
+          }
+          throw secureCause;
+        },
+      });
+    } catch (error) {
+      failure = error;
+    }
+
+    expect(secureParentCalls).toBe(2);
+    expect(failure).toMatchObject({ code: "TEAM_QUEUE_INSECURE_PATH" });
+    expect(failure.cause).toBe(secureCause);
+  });
+
+  it("keeps the queue read-failed code for ordinary I/O failures", () => {
+    const filePath = tempState();
+    const ioFailure = Object.assign(new Error("device unavailable"), {
+      code: "EIO",
+    });
+    const queue = new TeamDistributedQueue({
+      filePath,
+      secureFileParent: () => {
+        throw ioFailure;
+      },
+    });
+    let failure;
+    try {
+      queue.stats();
+    } catch (error) {
+      failure = error;
+    }
+
+    expect(failure).toMatchObject({ code: "TEAM_QUEUE_READ_FAILED" });
+    expect(failure.cause).toBe(ioFailure);
+  });
+
+  it("keeps the queue write-failed code for ordinary I/O failures", () => {
+    const filePath = tempState();
+    const ioFailure = Object.assign(new Error("device unavailable"), {
+      code: "EIO",
+    });
+    let secureParentCalls = 0;
+
+    let failure;
+    try {
+      createQueue(filePath, {
+        secureFileParent: () => {
+          secureParentCalls += 1;
+          if (secureParentCalls === 1) {
+            return { missing: true, identity: null, serialized: null };
+          }
+          throw ioFailure;
+        },
+      });
+    } catch (error) {
+      failure = error;
+    }
+
+    expect(secureParentCalls).toBe(2);
+    expect(failure).toMatchObject({ code: "TEAM_QUEUE_WRITE_FAILED" });
+    expect(failure.cause).toBe(ioFailure);
+  });
+
   it("persists a DAG and exposes the TaskLeaseRegistry-compatible surface", () => {
     const filePath = tempState();
     const queue = createQueue(filePath);

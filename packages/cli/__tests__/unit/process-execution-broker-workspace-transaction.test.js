@@ -29,6 +29,15 @@ function fixture() {
   return { root, workspaceRoot, stateDir, lockDir };
 }
 
+function createDirectoryAlias(target, alias) {
+  fs.symlinkSync(
+    target,
+    alias,
+    process.platform === "win32" ? "junction" : "dir",
+  );
+  return alias;
+}
+
 function begin(input, options = {}) {
   const transaction = executionBroker.beginWorkspaceTransaction({
     stateDir: input.stateDir,
@@ -218,6 +227,119 @@ describe("ProcessExecutionBroker workspace transactions", () => {
       .getAuditLog(20)
       .find((entry) => entry.executionId === running.executions[0].executionId);
     expect(audit.workspaceTransactionIds).toContain(transaction.id);
+  });
+
+  it("records async, sync, and PTY executions from a canonical cwd alias", () => {
+    const input = fixture();
+    const cwdAlias = createDirectoryAlias(
+      input.workspaceRoot,
+      path.join(input.root, "workspace-alias"),
+    );
+    useTestSandboxPlan();
+
+    const asyncProc = new EventEmitter();
+    asyncProc.pid = 42_010;
+    asyncProc.kill = vi.fn();
+    const spawnSync = vi.fn(() => ({
+      status: 0,
+      signal: null,
+      error: null,
+      stdout: "",
+      stderr: "",
+    }));
+    const spawn = vi.fn(() => asyncProc);
+    executionBroker._native = {
+      ...(ORIGINAL_NATIVE || {}),
+      spawn,
+      spawnSync,
+    };
+    const transaction = begin(input);
+
+    executionBroker.spawn("async-command", [], {
+      cwd: cwdAlias,
+      origin: "team:alias-async",
+      scope: "team",
+      policy: "allow",
+      shell: false,
+    });
+    asyncProc.emit("close", 0, null);
+
+    executionBroker.spawnSync("sync-command", [], {
+      cwd: cwdAlias,
+      origin: "team:alias-sync",
+      scope: "team",
+      policy: "allow",
+      shell: false,
+    });
+
+    // The legacy node-pty branch cannot attest a process tree. Admission was
+    // already exercised above; bypass only its automatic boundary upgrade so
+    // prepareSpawn can prove the aliased PTY cwd is still durably recorded.
+    vi.spyOn(
+      executionBroker,
+      "_workspaceTransactionRequiredBoundaries",
+    ).mockReturnValue([]);
+    let settlePty;
+    const ptyProc = {
+      pid: 42_011,
+      kill: vi.fn(),
+      onExit: vi.fn((listener) => {
+        settlePty = listener;
+        return { dispose: vi.fn() };
+      }),
+    };
+    executionBroker.spawnPty(
+      { spawn: vi.fn(() => ptyProc) },
+      "pty-command",
+      [],
+      {
+        cwd: cwdAlias,
+        origin: "terminal:alias-pty",
+        scope: "team",
+        policy: "allow",
+      },
+    );
+    settlePty({ exitCode: 0, signal: null });
+
+    const canonicalCwd = fs.realpathSync.native(input.workspaceRoot);
+    expect(spawn.mock.calls[0][2].cwd).toBe(canonicalCwd);
+    expect(spawnSync.mock.calls[0][2].cwd).toBe(canonicalCwd);
+    const executions = transaction.snapshot().executions;
+    expect(executions).toHaveLength(3);
+    expect(
+      executions.map(({ origin, cwd, status }) => ({ origin, cwd, status })),
+    ).toEqual([
+      {
+        origin: "team:alias-async",
+        cwd: canonicalCwd,
+        status: "settled",
+      },
+      {
+        origin: "team:alias-sync",
+        cwd: canonicalCwd,
+        status: "settled",
+      },
+      {
+        origin: "terminal:alias-pty",
+        cwd: canonicalCwd,
+        status: "settled",
+      },
+    ]);
+
+    const ptyExecution = executions.find(
+      (entry) => entry.origin === "terminal:alias-pty",
+    );
+    transaction.updateExecutionGuarantees(ptyExecution.executionId, {
+      treeGuarantee: true,
+    });
+    expect(
+      transaction.rollback({ reason: "canonical cwd alias regression" }),
+    ).toMatchObject({
+      outcome: "rolled_back",
+      executions: expect.arrayContaining(
+        executions.map((entry) => entry.executionId),
+      ),
+    });
   });
 
   it("uses close rather than exit as the asynchronous writer fence", () => {
@@ -463,9 +585,10 @@ describe("ProcessExecutionBroker workspace transactions", () => {
       ["script.js"],
       expect.objectContaining({
         requiredBoundaries: expect.arrayContaining(["process-tree"]),
+        cwd: transaction.workspaceRoot,
         shell: false,
       }),
-      input.workspaceRoot,
+      transaction.workspaceRoot,
       { sync: true, pty: false },
     );
     expect(transaction.rollback().outcome).toBe("rolled_back");

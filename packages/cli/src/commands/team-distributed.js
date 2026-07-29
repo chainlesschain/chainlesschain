@@ -20,6 +20,13 @@ import { TeamProcessCheckpointBroker } from "../lib/agent-team/team-process-chec
 import { CostBudget } from "../lib/cost-budget.js";
 import { resolveTeamTaskContract } from "../lib/agent-team/team-task-contract.js";
 import executionBroker from "../lib/process-execution-broker/index.js";
+import {
+  SECURE_FILE_IDENTITY_ERROR,
+  SecureFileIdentityError,
+  sameFileStatIdentity,
+  samePathHandleFileIdentity,
+  withTrustedFileParentSync,
+} from "../lib/secure-file-identity.js";
 
 const MAX_GRAPH_BYTES = 64 * 1024 * 1024;
 const MAX_AGENT_PROMPT_BYTES = 1024 * 1024;
@@ -59,16 +66,16 @@ const AUTHORITY_KIND = "chainlesschain.team.distributed";
 const AUTHORITY_VERSION = 1;
 
 export class TeamDistributedCliError extends Error {
-  constructor(code, message, details = null) {
-    super(message);
+  constructor(code, message, details = null, cause = null) {
+    super(message, cause ? { cause } : undefined);
     this.name = "TeamDistributedCliError";
     this.code = code;
     if (details != null) this.details = details;
   }
 }
 
-function fail(code, message, details) {
-  throw new TeamDistributedCliError(code, message, details);
+function fail(code, message, details, cause = null) {
+  throw new TeamDistributedCliError(code, message, details, cause);
 }
 
 function samePath(left, right) {
@@ -524,54 +531,95 @@ function applyAgentBudgetReservation(contract, reservation) {
   return effective;
 }
 
-function privateRegularRead(filePath, maxBytes, label) {
+function privateRegularRead(
+  filePath,
+  maxBytes,
+  label,
+  { runtimeFs = fs, secureFileParent = withTrustedFileParentSync } = {},
+) {
   const absolute = path.resolve(filePath);
-  let before;
   try {
-    before = fs.lstatSync(absolute);
+    return secureFileParent(
+      runtimeFs,
+      absolute,
+      ({ canonicalPath, parentDevice }) => {
+        let before;
+        try {
+          before = runtimeFs.lstatSync(canonicalPath, { bigint: true });
+        } catch (error) {
+          fail(
+            "TEAM_QUEUE_INPUT_UNAVAILABLE",
+            `Cannot inspect ${label} ${absolute}: ${error.message}`,
+          );
+        }
+        if (
+          !before.isFile() ||
+          before.isSymbolicLink() ||
+          Number(before.nlink) !== 1
+        ) {
+          fail(
+            "TEAM_QUEUE_INSECURE_INPUT",
+            `${label} must be a regular, single-link file: ${absolute}`,
+          );
+        }
+        const expectedBytes = Number(before.size);
+        if (expectedBytes <= 0 || expectedBytes > maxBytes) {
+          fail(
+            "TEAM_QUEUE_INPUT_TOO_LARGE",
+            `${label} must be between 1 and ${maxBytes} bytes`,
+          );
+        }
+        const descriptor = runtimeFs.openSync(
+          canonicalPath,
+          runtimeFs.constants.O_RDONLY | (runtimeFs.constants.O_NOFOLLOW || 0),
+        );
+        try {
+          const opened = runtimeFs.fstatSync(descriptor, { bigint: true });
+          if (
+            !opened.isFile() ||
+            Number(opened.nlink) !== 1 ||
+            !samePathHandleFileIdentity(before, opened, parentDevice)
+          ) {
+            fail(
+              "TEAM_QUEUE_INPUT_RACE",
+              `${label} changed while it was being opened`,
+            );
+          }
+          const body = runtimeFs.readFileSync(descriptor, "utf8");
+          const after = runtimeFs.fstatSync(descriptor, { bigint: true });
+          if (
+            Buffer.byteLength(body, "utf8") !== expectedBytes ||
+            !sameFileStatIdentity(opened, after)
+          ) {
+            fail(
+              "TEAM_QUEUE_INPUT_RACE",
+              `${label} changed while it was being read`,
+            );
+          }
+          return body;
+        } finally {
+          runtimeFs.closeSync(descriptor);
+        }
+      },
+    );
   } catch (error) {
-    fail(
-      "TEAM_QUEUE_INPUT_UNAVAILABLE",
-      `Cannot inspect ${label} ${absolute}: ${error.message}`,
-    );
-  }
-  if (
-    !before.isFile() ||
-    before.isSymbolicLink() ||
-    Number(before.nlink) !== 1
-  ) {
-    fail(
-      "TEAM_QUEUE_INSECURE_INPUT",
-      `${label} must be a regular, single-link file: ${absolute}`,
-    );
-  }
-  if (before.size <= 0 || before.size > maxBytes) {
-    fail(
-      "TEAM_QUEUE_INPUT_TOO_LARGE",
-      `${label} must be between 1 and ${maxBytes} bytes`,
-    );
-  }
-  const descriptor = fs.openSync(
-    absolute,
-    fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW || 0),
-  );
-  try {
-    const opened = fs.fstatSync(descriptor);
-    if (
-      !opened.isFile() ||
-      Number(opened.nlink) !== 1 ||
-      opened.dev !== before.dev ||
-      opened.ino !== before.ino ||
-      opened.size !== before.size
-    ) {
+    if (error instanceof TeamDistributedCliError) throw error;
+    if (error instanceof SecureFileIdentityError) {
+      const code =
+        error.code === SECURE_FILE_IDENTITY_ERROR.PARENT_RACE
+          ? "TEAM_QUEUE_INPUT_RACE"
+          : "TEAM_QUEUE_INSECURE_INPUT";
       fail(
-        "TEAM_QUEUE_INPUT_RACE",
-        `${label} changed while it was being opened`,
+        code,
+        `Cannot securely read ${label} ${absolute}: ${error.message}`,
+        { secureFileIdentityCode: error.code },
+        error,
       );
     }
-    return fs.readFileSync(descriptor, "utf8");
-  } finally {
-    fs.closeSync(descriptor);
+    fail(
+      "TEAM_QUEUE_INPUT_UNAVAILABLE",
+      `Cannot securely read ${label} ${absolute}: ${error.message}`,
+    );
   }
 }
 
@@ -775,11 +823,18 @@ function normalizeTasks(
   return tasks;
 }
 
-function readTasks(filePath, options = {}) {
+function readTasks(
+  filePath,
+  options = {},
+  { runtimeFs = fs, secureFileParent = withTrustedFileParentSync } = {},
+) {
   let parsed;
   try {
     parsed = JSON.parse(
-      privateRegularRead(filePath, MAX_GRAPH_BYTES, "task graph"),
+      privateRegularRead(filePath, MAX_GRAPH_BYTES, "task graph", {
+        runtimeFs,
+        secureFileParent,
+      }),
     );
   } catch (error) {
     if (error instanceof TeamDistributedCliError) throw error;
@@ -1111,6 +1166,8 @@ function defaultDependencies(overrides = {}) {
     Runner: TeamRunner,
     WorktreeCoordinator: TeamWorktreeCoordinator,
     CheckpointBroker: TeamProcessCheckpointBroker,
+    fileSystem: fs,
+    secureFileParent: withTrustedFileParentSync,
     agentExecutor: null,
     buildAgentPrompt: (prompt) => prompt,
     onRunner: null,
@@ -1237,10 +1294,17 @@ export function initDistributedQueue(options, dependencyOverrides = {}) {
     mode === AGENT_WORKTREE_MODE
       ? agentAuthorityForOptions(options, budget)
       : null;
-  const tasks = readTasks(options.tasks, {
-    mode,
-    agentAuthority: agent,
-  });
+  const tasks = readTasks(
+    options.tasks,
+    {
+      mode,
+      agentAuthority: agent,
+    },
+    {
+      runtimeFs: deps.fileSystem,
+      secureFileParent: deps.secureFileParent,
+    },
+  );
   if (budget.maxTasks == null) budget.maxTasks = tasks.length;
   const authority = authorityFor({
     repoRoot,

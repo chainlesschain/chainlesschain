@@ -1113,8 +1113,8 @@ function buildWindowsAdapterInvocation(entry, invocation) {
   };
 }
 
-function resolveWindowsPowerShellHost(runtime, loaderMode) {
-  if (loaderMode !== "powershell-byte-assembly") return null;
+function resolveWindowsPowerShellHosts(runtime, loaderMode) {
+  if (loaderMode !== "powershell-byte-assembly") return [];
   const windowsDirectory = path.win32.resolve(runtime.windowsDir());
   const driveRoot = path.win32.parse(windowsDirectory).root;
   const modernHost = runtime.joinPath(
@@ -1126,13 +1126,14 @@ function resolveWindowsPowerShellHost(runtime, loaderMode) {
   );
   const realpath =
     runtime.fs.realpathSync?.native || runtime.fs.realpathSync || null;
+  const hosts = [];
   if (runtime.fs.existsSync(modernHost) && typeof realpath === "function") {
     try {
       if (
         windowsCanonicalPathKey(realpath.call(runtime.fs, modernHost)) ===
         windowsCanonicalPathKey(modernHost)
       ) {
-        return modernHost;
+        hosts.push(modernHost);
       }
     } catch {
       // Fall through to the protected in-box host.
@@ -1146,15 +1147,24 @@ function resolveWindowsPowerShellHost(runtime, loaderMode) {
     "v1.0",
     "powershell.exe",
   );
-  return runtime.fs.existsSync(inboxHost) ? inboxHost : null;
+  if (runtime.fs.existsSync(inboxHost) && !hosts.includes(inboxHost)) {
+    hosts.push(inboxHost);
+  }
+  return hosts;
 }
 
 function createFreshWindowsAdapter(runtime, source, hostEnvironment) {
   const materialized = materializeWindowsAdapter(runtime, source);
   if (!materialized.assemblyPath) return materialized;
 
-  const powershell = resolveWindowsPowerShellHost(runtime, source.loaderMode);
-  if (source.loaderMode === "powershell-byte-assembly" && !powershell) {
+  const powershellHosts = resolveWindowsPowerShellHosts(
+    runtime,
+    source.loaderMode,
+  );
+  if (
+    source.loaderMode === "powershell-byte-assembly" &&
+    powershellHosts.length === 0
+  ) {
     const assemblyDeleted = materialized.cleanupAssembly();
     return {
       reason: assemblyDeleted
@@ -1188,7 +1198,7 @@ function createFreshWindowsAdapter(runtime, source, hostEnvironment) {
     sourceDigest: source.sourceDigest,
     sourceContractDigest: source.sourceContractDigest,
     loaderMode: source.loaderMode,
-    powershellPath: powershell,
+    powershellPath: powershellHosts[0] || null,
     adapterDirectory: materialized.adapterDirectory,
     assemblyPath: materialized.assemblyPath,
     assemblyDigest: attestation.assemblyDigest,
@@ -1198,69 +1208,76 @@ function createFreshWindowsAdapter(runtime, source, hostEnvironment) {
     retired: false,
     cleaned: false,
   };
-  const probePayload = materializeWindowsAdapterInvocation(runtime, [
-    "--probe-helper",
-  ]);
-  if (!probePayload.payloadPath) {
-    const assemblyDeleted = materialized.cleanupAssembly();
-    return assemblyDeleted
-      ? probePayload
-      : { reason: "windows_native_adapter_compile_cleanup_unverified" };
-  }
-  const probeInvocation = buildWindowsAdapterInvocation(entry, probePayload);
-  let probeResult;
-  let probePayloadDeleted = false;
-  try {
-    probeResult = runtime.spawnSync(
-      probeInvocation.command,
-      probeInvocation.args,
-      {
-        shell: false,
-        windowsHide: true,
-        encoding: "utf8",
-        timeout: WINDOWS_SANDBOX_HELPER_OPERATION_TIMEOUT_MS,
-        cwd: runtime.joinPath(runtime.windowsDir(), "System32"),
-        env: hostEnvironment,
-      },
-    );
-  } catch (error) {
-    probeResult = { error, status: null };
-  } finally {
-    probePayloadDeleted = probeInvocation.cleanup();
-  }
-  let probeReady = false;
-  try {
-    const probe = JSON.parse(String(probeResult?.stdout || "").trim());
-    probeReady =
-      probeResult?.status === 0 &&
-      probe?.ready === true &&
-      probe?.hostRuntime ===
-        (source.loaderMode === "managed-executable"
-          ? "managed-executable-v1"
-          : "powershell-byte-assembly-v1") &&
-      (source.sourceContractDigest === null ||
-        probe?.sourceSha256 === source.sourceContractDigest);
-  } catch {
-    probeReady = false;
-  }
-  if (
-    !probePayloadDeleted ||
-    !probeReady ||
-    !verifyWindowsAdapterEntry(entry, runtime, source)
-  ) {
-    const assemblyDeleted = materialized.cleanupAssembly();
-    return {
-      reason:
-        !assemblyDeleted || !probePayloadDeleted
-          ? "windows_native_adapter_compile_cleanup_unverified"
-          : "windows_in_memory_adapter_probe_failed",
-    };
+  const probeHosts =
+    source.loaderMode === "powershell-byte-assembly" ? powershellHosts : [null];
+  for (const powershellPath of probeHosts) {
+    entry.powershellPath = powershellPath;
+    const probePayload = materializeWindowsAdapterInvocation(runtime, [
+      "--probe-helper",
+    ]);
+    if (!probePayload.payloadPath) {
+      const assemblyDeleted = materialized.cleanupAssembly();
+      return assemblyDeleted
+        ? probePayload
+        : { reason: "windows_native_adapter_compile_cleanup_unverified" };
+    }
+    const probeInvocation = buildWindowsAdapterInvocation(entry, probePayload);
+    let probeResult;
+    let probePayloadDeleted = false;
+    try {
+      probeResult = runtime.spawnSync(
+        probeInvocation.command,
+        probeInvocation.args,
+        {
+          shell: false,
+          windowsHide: true,
+          encoding: "utf8",
+          timeout: WINDOWS_SANDBOX_HELPER_OPERATION_TIMEOUT_MS,
+          cwd: runtime.joinPath(runtime.windowsDir(), "System32"),
+          env: hostEnvironment,
+        },
+      );
+    } catch (error) {
+      probeResult = { error, status: null };
+    } finally {
+      probePayloadDeleted = probeInvocation.cleanup();
+    }
+    if (!probePayloadDeleted) {
+      materialized.cleanupAssembly();
+      return {
+        reason: "windows_native_adapter_compile_cleanup_unverified",
+      };
+    }
+    let probeReady = false;
+    try {
+      const probe = JSON.parse(String(probeResult?.stdout || "").trim());
+      probeReady =
+        probeResult?.status === 0 &&
+        probe?.ready === true &&
+        probe?.hostRuntime ===
+          (source.loaderMode === "managed-executable"
+            ? "managed-executable-v1"
+            : "powershell-byte-assembly-v1") &&
+        (source.sourceContractDigest === null ||
+          probe?.sourceSha256 === source.sourceContractDigest);
+    } catch {
+      probeReady = false;
+    }
+    if (!probeReady) continue;
+    if (!verifyWindowsAdapterEntry(entry, runtime, source)) break;
+
+    windowsAdapterCacheEntries.add(entry);
+    windowsAdapterCache = entry;
+    registerWindowsAdapterExitCleanup();
+    return { entry };
   }
 
-  windowsAdapterCacheEntries.add(entry);
-  windowsAdapterCache = entry;
-  registerWindowsAdapterExitCleanup();
-  return { entry };
+  const assemblyDeleted = materialized.cleanupAssembly();
+  return {
+    reason: assemblyDeleted
+      ? "windows_in_memory_adapter_probe_failed"
+      : "windows_native_adapter_compile_cleanup_unverified",
+  };
 }
 
 function acquireWindowsAdapterLease(runtime, source, hostEnvironment) {
@@ -6117,7 +6134,11 @@ export function applyLinuxSandbox(
       policyDigest,
       runtimeProbe,
       reason: null,
-      guarantees: [SANDBOX_BOUNDARIES.FILESYSTEM, SANDBOX_BOUNDARIES.NETWORK],
+      guarantees: [
+        SANDBOX_BOUNDARIES.FILESYSTEM,
+        SANDBOX_BOUNDARIES.NETWORK,
+        SANDBOX_BOUNDARIES.PROCESS_TREE,
+      ],
       command: finalLaunch.command,
       args: [...policyArgs, "--", ...targetArgs],
       options,

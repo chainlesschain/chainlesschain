@@ -2,13 +2,14 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   computeTeamAdjudicationEvidenceDigest,
   TEAM_ADJUDICATION_ACTIONS,
   TEAM_ADJUDICATION_ERROR_CODES,
   TeamAdjudicationStore,
 } from "../../src/lib/agent-team/team-adjudication.js";
+import { isAffectedWindowsZeroDeviceStatRuntime } from "../../src/lib/secure-file-identity.js";
 
 function thrownCode(action) {
   try {
@@ -17,6 +18,35 @@ function thrownCode(action) {
     return error.code;
   }
   throw new Error("Expected action to throw");
+}
+
+function statProjection(stat, overrides) {
+  return new Proxy(stat, {
+    get(target, property) {
+      if (Object.hasOwn(overrides, property)) return overrides[property];
+      const value = Reflect.get(target, property, target);
+      return typeof value === "function" ? value.bind(target) : value;
+    },
+  });
+}
+
+function createDirectoryAlias(target, alias) {
+  try {
+    fs.symlinkSync(
+      target,
+      alias,
+      process.platform === "win32" ? "junction" : "dir",
+    );
+    return true;
+  } catch (error) {
+    if (
+      process.platform === "win32" &&
+      ["EACCES", "EPERM", "ENOTSUP"].includes(error?.code)
+    ) {
+      return false;
+    }
+    throw error;
+  }
 }
 
 describe("TeamAdjudicationStore", () => {
@@ -34,6 +64,7 @@ describe("TeamAdjudicationStore", () => {
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     fs.rmSync(directory, { recursive: true, force: true });
   });
 
@@ -77,6 +108,28 @@ describe("TeamAdjudicationStore", () => {
       ...overrides,
     });
   }
+
+  it("bridges a zero-device adjudication path only on affected Windows libuv", () => {
+    const target = store();
+    openCase(target);
+    const nativeLstatSync = fs.lstatSync.bind(fs);
+    vi.spyOn(fs, "lstatSync").mockImplementation((requested, options) => {
+      const stat = nativeLstatSync(requested, options);
+      return path.resolve(String(requested)) === path.resolve(filePath)
+        ? statProjection(stat, {
+            dev: typeof stat.dev === "bigint" ? 0n : 0,
+          })
+        : stat;
+    });
+
+    if (!isAffectedWindowsZeroDeviceStatRuntime()) {
+      expect(thrownCode(() => target.read())).toBe(
+        TEAM_ADJUDICATION_ERROR_CODES.UNSAFE_PATH,
+      );
+      return;
+    }
+    expect(target.read().cases).toHaveLength(1);
+  });
 
   it("binds the canonical state/run/evidence and persists a private log", () => {
     const target = store();
@@ -123,6 +176,107 @@ describe("TeamAdjudicationStore", () => {
       duplicate: true,
       case: opened.case,
     });
+  });
+
+  it("writes an aliased authority through its canonical parent", () => {
+    const canonicalParent = path.join(directory, "canonical-authority");
+    const aliasParent = path.join(directory, "authority-alias");
+    fs.mkdirSync(canonicalParent);
+    if (!createDirectoryAlias(canonicalParent, aliasParent)) return;
+
+    const aliasedState = path.join(aliasParent, "team-state.json");
+    const aliasedAdjudication = path.join(
+      aliasParent,
+      "team-state.adjudication.json",
+    );
+    fs.writeFileSync(aliasedState, "{}\n", { mode: 0o600 });
+    const target = new TeamAdjudicationStore({
+      statePath: aliasedState,
+      filePath: aliasedAdjudication,
+      collaborationRunId: "team-1000-alias",
+      now: () => now,
+    });
+    openCase(target);
+
+    const canonicalDirectory = fs.realpathSync.native(canonicalParent);
+    const canonicalAdjudication = path.join(
+      canonicalDirectory,
+      path.basename(aliasedAdjudication),
+    );
+    expect(target.filePath).toBe(canonicalAdjudication);
+    expect(
+      JSON.parse(fs.readFileSync(canonicalAdjudication, "utf8")),
+    ).toMatchObject({
+      collaborationRunId: "team-1000-alias",
+      events: [{ type: "case.open" }],
+    });
+    expect(
+      fs
+        .readdirSync(canonicalDirectory)
+        .filter((entry) => entry.endsWith(".tmp")),
+    ).toEqual([]);
+  });
+
+  it("maps a parent identity swap to the adjudication unsafe-path error", () => {
+    const canonicalParent = fs.realpathSync.native(directory);
+    const nativeOpenSync = fs.openSync.bind(fs);
+    const nativeFstatSync = fs.fstatSync.bind(fs);
+    const nativeLstatSync = fs.lstatSync.bind(fs);
+    let parentDescriptor = null;
+    let parentFstats = 0;
+    let parentChanged = false;
+    const swappingFs = {
+      ...fs,
+      constants: fs.constants,
+      realpathSync: fs.realpathSync,
+      openSync(requested, ...args) {
+        const descriptor = nativeOpenSync(requested, ...args);
+        if (
+          parentDescriptor === null &&
+          path.resolve(String(requested)).toLowerCase() ===
+            path.resolve(canonicalParent).toLowerCase()
+        ) {
+          parentDescriptor = descriptor;
+        }
+        return descriptor;
+      },
+      fstatSync(descriptor, options) {
+        const stat = nativeFstatSync(descriptor, options);
+        if (descriptor === parentDescriptor) {
+          parentFstats += 1;
+          if (parentFstats === 2) parentChanged = true;
+        }
+        return stat;
+      },
+      lstatSync(requested, options) {
+        const stat = nativeLstatSync(requested, options);
+        if (
+          parentChanged &&
+          path.resolve(String(requested)).toLowerCase() ===
+            path.resolve(canonicalParent).toLowerCase()
+        ) {
+          return statProjection(stat, {
+            ino: typeof stat.ino === "bigint" ? stat.ino + 1n : stat.ino + 1,
+          });
+        }
+        return stat;
+      },
+    };
+    const target = store({ _fs: swappingFs });
+
+    let failure = null;
+    try {
+      openCase(target);
+    } catch (error) {
+      failure = error;
+    }
+    expect(failure).toMatchObject({
+      code: TEAM_ADJUDICATION_ERROR_CODES.UNSAFE_PATH,
+    });
+    expect(failure.code).not.toMatch(/^SECURE_/u);
+    expect(
+      fs.readdirSync(directory).filter((entry) => entry.endsWith(".tmp")),
+    ).toEqual([]);
   });
 
   it.each([
@@ -405,6 +559,13 @@ describe("TeamAdjudicationStore", () => {
   it("preserves the last valid state when an atomic replacement fails", () => {
     const healthy = store();
     const opened = openCase(healthy);
+    const token = "known-failing-attempt";
+    const temporaryPath = path.join(
+      directory,
+      `.${path.basename(filePath)}.${process.pid}.${token}.tmp`,
+    );
+    const unrelatedTemporary = path.join(directory, "unrelated-writer.tmp");
+    fs.writeFileSync(unrelatedTemporary, "keep\n", { mode: 0o600 });
     const failingFs = {
       ...fs,
       constants: fs.constants,
@@ -418,7 +579,10 @@ describe("TeamAdjudicationStore", () => {
         return fs.renameSync(source, destination);
       },
     };
-    const failing = store({ _fs: failingFs });
+    const failing = store({
+      _fs: failingFs,
+      _randomUUID: () => token,
+    });
 
     expect(
       thrownCode(() =>
@@ -431,9 +595,24 @@ describe("TeamAdjudicationStore", () => {
       ),
     ).toBe(TEAM_ADJUDICATION_ERROR_CODES.WRITE_FAILED);
     expect(healthy.getCase(binding())).toEqual(opened.case);
-    expect(
-      fs.readdirSync(directory).filter((entry) => entry.endsWith(".tmp")),
-    ).toEqual([]);
+    expect(fs.existsSync(temporaryPath)).toBe(false);
+    expect(fs.readFileSync(unrelatedTemporary, "utf8")).toBe("keep\n");
+  });
+
+  it("preserves an O_EXCL collision that this writer did not create", () => {
+    const token = "existing-attempt";
+    const temporaryPath = path.join(
+      directory,
+      `.${path.basename(filePath)}.${process.pid}.${token}.tmp`,
+    );
+    fs.writeFileSync(temporaryPath, "foreign\n", { mode: 0o600 });
+    const target = store({ _randomUUID: () => token });
+
+    expect(thrownCode(() => openCase(target))).toBe(
+      TEAM_ADJUDICATION_ERROR_CODES.WRITE_FAILED,
+    );
+    expect(fs.readFileSync(temporaryPath, "utf8")).toBe("foreign\n");
+    expect(fs.existsSync(filePath)).toBe(false);
   });
 
   it("rejects symlink and hard-link authority paths", () => {

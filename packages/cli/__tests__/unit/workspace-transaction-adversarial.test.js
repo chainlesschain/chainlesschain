@@ -2,13 +2,15 @@ import { EventEmitter } from "node:events";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   WORKSPACE_TRANSACTION_COVERAGE,
   WORKSPACE_TRANSACTION_ERROR,
   WORKSPACE_TRANSACTION_STATE,
   WorkspaceTransactionManager,
+  isPathInside,
 } from "../../src/lib/process-execution-broker/workspace-transaction.js";
+import { isAffectedWindowsZeroDeviceStatRuntime } from "../../src/lib/secure-file-identity.js";
 
 const roots = [];
 
@@ -26,6 +28,15 @@ function fixture() {
     "baseline\n",
   );
   return { root, workspaceRoot, stateDir, lockDir };
+}
+
+function createDirectoryAlias(target, alias) {
+  fs.symlinkSync(
+    target,
+    alias,
+    process.platform === "win32" ? "junction" : "dir",
+  );
+  return alias;
 }
 
 function manager(input, overrides = {}) {
@@ -75,13 +86,90 @@ function fakeProcess(pid = 41_001) {
   return proc;
 }
 
+function statProjection(stat, overrides) {
+  return new Proxy(stat, {
+    get(target, property) {
+      if (Object.prototype.hasOwnProperty.call(overrides, property)) {
+        return overrides[property];
+      }
+      const value = Reflect.get(target, property, target);
+      return typeof value === "function" ? value.bind(target) : value;
+    },
+  });
+}
+
 afterEach(() => {
+  vi.restoreAllMocks();
   for (const root of roots.splice(0)) {
     fs.rmSync(root, { recursive: true, force: true });
   }
 });
 
 describe("workspace transaction adversarial safety", () => {
+  it("accepts a zero-device projection only on the affected Windows runtime", () => {
+    const input = fixture();
+    const rootDescriptor = fs.openSync(
+      input.workspaceRoot,
+      fs.constants.O_RDONLY,
+    );
+    const rootHandleStat = fs.fstatSync(rootDescriptor, { bigint: true });
+    fs.closeSync(rootDescriptor);
+    expect(rootHandleStat.dev).not.toBe(0n);
+
+    const nativeLstatSync = fs.lstatSync.bind(fs);
+    vi.spyOn(fs, "lstatSync").mockImplementation((target, options) => {
+      const stat = nativeLstatSync(target, options);
+      const absolute = path.resolve(String(target));
+      return isPathInside(input.workspaceRoot, absolute)
+        ? statProjection(stat, {
+            dev: typeof stat.dev === "bigint" ? 0n : 0,
+          })
+        : stat;
+    });
+
+    const runtime = manager(input);
+    if (!isAffectedWindowsZeroDeviceStatRuntime()) {
+      expect(() => begin(runtime, input)).toThrow(
+        expect.objectContaining({
+          code: WORKSPACE_TRANSACTION_ERROR.SNAPSHOT_RACE,
+        }),
+      );
+      return;
+    }
+    const transaction = begin(runtime, input);
+    expect(transaction.snapshot().workspaceRootIdentity).toEqual({
+      dev: String(rootHandleStat.dev),
+      ino: String(rootHandleStat.ino),
+    });
+    expect(transaction.rollback({ reason: "projection regression" })).toEqual(
+      expect.objectContaining({
+        outcome: "rolled_back",
+        fileCoverage: WORKSPACE_TRANSACTION_COVERAGE.FULL,
+      }),
+    );
+  });
+
+  it("keeps zero-device compatibility fail-closed when the inode changes", () => {
+    const input = fixture();
+    const target = path.join(input.workspaceRoot, "src", "tracked.txt");
+    const nativeLstatSync = fs.lstatSync.bind(fs);
+    vi.spyOn(fs, "lstatSync").mockImplementation((requested, options) => {
+      const stat = nativeLstatSync(requested, options);
+      if (path.resolve(String(requested)) !== target) return stat;
+      return statProjection(stat, {
+        dev: typeof stat.dev === "bigint" ? 0n : 0,
+        ino:
+          typeof stat.ino === "bigint" ? stat.ino + 1n : Number(stat.ino) + 1,
+      });
+    });
+
+    expect(() => begin(manager(input), input)).toThrow(
+      expect.objectContaining({
+        code: WORKSPACE_TRANSACTION_ERROR.SNAPSHOT_RACE,
+      }),
+    );
+  });
+
   it("rejects caller-selected production lock authorities", () => {
     const input = fixture();
     expect(
@@ -112,14 +200,93 @@ describe("workspace transaction adversarial safety", () => {
     expect(fs.readdirSync(input.workspaceRoot).sort()).toEqual(["src"]);
   });
 
+  it("rejects a lock registry reached through an alias before creating it", () => {
+    const input = fixture();
+    const workspaceAlias = createDirectoryAlias(
+      input.workspaceRoot,
+      path.join(input.root, "workspace-alias"),
+    );
+    input.lockDir = path.join(workspaceAlias, ".transaction-locks");
+    const runtime = manager(input);
+    const mkdir = vi.spyOn(fs, "mkdirSync");
+
+    expect(() => begin(runtime, input)).toThrow(
+      expect.objectContaining({
+        code: WORKSPACE_TRANSACTION_ERROR.INVALID_PATH,
+        resolvedLockDir: path.join(
+          fs.realpathSync.native(input.workspaceRoot),
+          ".transaction-locks",
+        ),
+      }),
+    );
+    expect(mkdir).not.toHaveBeenCalled();
+    expect(fs.existsSync(input.lockDir)).toBe(false);
+    expect(fs.existsSync(input.stateDir)).toBe(false);
+    expect(fs.readdirSync(input.workspaceRoot).sort()).toEqual(["src"]);
+  });
+
+  it("rejects a state root reached through an alias before creating anything", () => {
+    const input = fixture();
+    const workspaceAlias = createDirectoryAlias(
+      input.workspaceRoot,
+      path.join(input.root, "workspace-state-alias"),
+    );
+    input.stateDir = path.join(workspaceAlias, ".transaction-state");
+    const runtime = manager(input);
+    const mkdir = vi.spyOn(fs, "mkdirSync");
+
+    expect(() => begin(runtime, input)).toThrow(
+      expect.objectContaining({
+        code: WORKSPACE_TRANSACTION_ERROR.INVALID_PATH,
+        resolvedStateDir: path.join(
+          fs.realpathSync.native(input.workspaceRoot),
+          ".transaction-state",
+        ),
+      }),
+    );
+    expect(mkdir).not.toHaveBeenCalled();
+    expect(fs.existsSync(input.stateDir)).toBe(false);
+    expect(fs.existsSync(input.lockDir)).toBe(false);
+    expect(fs.readdirSync(input.workspaceRoot).sort()).toEqual(["src"]);
+  });
+
+  it("fails closed on an unrelated unresolvable cwd while a transaction is active", () => {
+    const input = fixture();
+    const runtime = manager(input);
+    const transaction = begin(runtime, input);
+    const missingCwd = path.join(input.root, "missing", "cwd");
+
+    expect(() => runtime.hasActiveTransactionForCwd(missingCwd)).toThrow(
+      expect.objectContaining({
+        code: WORKSPACE_TRANSACTION_ERROR.INVALID_PATH,
+        cwd: missingCwd,
+      }),
+    );
+    expect(() =>
+      runtime.prepareSpawn(audit(input, { cwd: missingCwd })),
+    ).toThrow(
+      expect.objectContaining({
+        code: WORKSPACE_TRANSACTION_ERROR.INVALID_PATH,
+        cwd: missingCwd,
+      }),
+    );
+    expect(
+      transaction.rollback({ reason: "unresolvable cwd regression" }),
+    ).toMatchObject({ outcome: "rolled_back" });
+  });
+
   it("pins the workspace root identity and never restores into a replacement", () => {
     const input = fixture();
     const runtime = manager(input);
     const transaction = begin(runtime, input);
-    const originalRoot = path.join(input.root, "workspace-original");
+    const canonicalWorkspaceRoot = fs.realpathSync.native(input.workspaceRoot);
+    const originalRoot = path.join(
+      path.dirname(canonicalWorkspaceRoot),
+      "workspace-original",
+    );
 
-    fs.renameSync(input.workspaceRoot, originalRoot);
-    fs.mkdirSync(input.workspaceRoot);
+    fs.renameSync(canonicalWorkspaceRoot, originalRoot);
+    fs.mkdirSync(canonicalWorkspaceRoot);
 
     expect(() => transaction.rollback({ reason: "root replaced" })).toThrow(
       expect.objectContaining({
@@ -129,7 +296,7 @@ describe("workspace transaction adversarial safety", () => {
         }),
       }),
     );
-    expect(fs.readdirSync(input.workspaceRoot)).toEqual([]);
+    expect(fs.readdirSync(canonicalWorkspaceRoot)).toEqual([]);
     expect(
       fs.readFileSync(path.join(originalRoot, "src", "tracked.txt"), "utf8"),
     ).toBe("baseline\n");

@@ -20,6 +20,13 @@ import os from "node:os";
 import path from "node:path";
 import { createHash, randomUUID } from "node:crypto";
 import { withFileLock } from "../with-file-lock.js";
+import {
+  fileStatIdentity as statIdentity,
+  sameFileStatIdentity as sameStatIdentity,
+  samePathHandleDirectoryIdentity,
+  samePathHandleFileIdentity as samePathHandleIdentity,
+  withTrustedFileParentSync,
+} from "../secure-file-identity.js";
 
 export const WORKSPACE_TRANSACTION_VERSION = 1;
 
@@ -158,6 +165,60 @@ function isStrictlyInside(root, candidate) {
 function realpath(value) {
   const implementation = fs.realpathSync.native || fs.realpathSync;
   return implementation(value);
+}
+
+function canonicalPathThroughExistingAncestor(value, label) {
+  const requested = path.resolve(value);
+  const missingSegments = [];
+  let ancestor = requested;
+
+  for (;;) {
+    try {
+      return path.resolve(realpath(ancestor), ...missingSegments);
+    } catch (cause) {
+      if (cause?.code !== "ENOENT") {
+        throw codedError(
+          WORKSPACE_TRANSACTION_ERROR.INVALID_PATH,
+          `${label} cannot be resolved through a stable ancestor: ${requested}`,
+          { path: requested, ancestor },
+          cause,
+        );
+      }
+      const parent = path.dirname(ancestor);
+      if (samePath(parent, ancestor)) {
+        throw codedError(
+          WORKSPACE_TRANSACTION_ERROR.INVALID_PATH,
+          `${label} has no resolvable filesystem ancestor: ${requested}`,
+          { path: requested },
+          cause,
+        );
+      }
+      missingSegments.unshift(path.basename(ancestor));
+      ancestor = parent;
+    }
+  }
+}
+
+function pathsOverlap(left, right) {
+  return (
+    samePath(left, right) ||
+    isStrictlyInside(left, right) ||
+    isStrictlyInside(right, left)
+  );
+}
+
+function canonicalProcessCwd(cwd) {
+  const requested = path.resolve(cwd || process.cwd());
+  try {
+    return { requested, canonical: realpath(requested) };
+  } catch (cause) {
+    throw codedError(
+      WORKSPACE_TRANSACTION_ERROR.INVALID_PATH,
+      `managed process cwd cannot be resolved: ${requested}`,
+      { cwd: requested },
+      cause,
+    );
+  }
 }
 
 function assertSafeDirectory(value, label, { create = false } = {}) {
@@ -487,28 +548,6 @@ function readJson(filePath, limits) {
   }
 }
 
-function statIdentity(stat) {
-  return {
-    dev: String(stat.dev),
-    ino: String(stat.ino),
-    mode: Number(stat.mode),
-    size: Number(stat.size),
-    mtimeMs: Number(stat.mtimeMs),
-    ctimeMs: Number(stat.ctimeMs),
-  };
-}
-
-function sameStatIdentity(left, right) {
-  return (
-    String(left.dev) === String(right.dev) &&
-    String(left.ino) === String(right.ino) &&
-    Number(left.mode) === Number(right.mode) &&
-    Number(left.size) === Number(right.size) &&
-    Number(left.mtimeMs) === Number(right.mtimeMs) &&
-    Number(left.ctimeMs) === Number(right.ctimeMs)
-  );
-}
-
 function normalizedMtimeMs(stat) {
   const value = Number(stat?.mtimeMs);
   if (!Number.isFinite(value)) {
@@ -540,24 +579,6 @@ function sameWorkspaceRootIdentity(left, right) {
 }
 
 function inspectWorkspaceRoot(root, expectedIdentity = null) {
-  let entry;
-  try {
-    entry = fs.lstatSync(root);
-  } catch (cause) {
-    throw codedError(
-      WORKSPACE_TRANSACTION_ERROR.SNAPSHOT_RACE,
-      `workspace root is unavailable: ${root}`,
-      { workspaceRoot: root },
-      cause,
-    );
-  }
-  if (entry.isSymbolicLink() || !entry.isDirectory()) {
-    throw codedError(
-      WORKSPACE_TRANSACTION_ERROR.PATH_ESCAPE,
-      `workspace root is no longer a real directory: ${root}`,
-      { workspaceRoot: root },
-    );
-  }
   let canonical;
   try {
     canonical = realpath(root);
@@ -576,7 +597,48 @@ function inspectWorkspaceRoot(root, expectedIdentity = null) {
       { workspaceRoot: root, resolvedPath: canonical },
     );
   }
-  const identity = workspaceRootIdentity(entry);
+  let entry;
+  let opened;
+  try {
+    ({ entry, opened } = withTrustedFileParentSync(
+      fs,
+      path.join(root, ".__cc_workspace_root_identity_probe__"),
+      ({ parentPath, parentDescriptor, parentDevice }) => {
+        if (!samePath(root, parentPath)) {
+          throw codedError(
+            WORKSPACE_TRANSACTION_ERROR.PATH_ESCAPE,
+            `workspace root resolves to a different path: ${root}`,
+            { workspaceRoot: root, resolvedPath: parentPath },
+          );
+        }
+        const pathEntry = fs.lstatSync(parentPath, { bigint: true });
+        const handleEntry = fs.fstatSync(parentDescriptor, { bigint: true });
+        if (
+          pathEntry.isSymbolicLink() ||
+          !pathEntry.isDirectory() ||
+          !handleEntry.isDirectory() ||
+          !samePathHandleDirectoryIdentity(pathEntry, handleEntry, parentDevice)
+        ) {
+          throw codedError(
+            WORKSPACE_TRANSACTION_ERROR.SNAPSHOT_RACE,
+            "workspace root identity changed while opening it",
+            { workspaceRoot: root },
+          );
+        }
+        return { entry: pathEntry, opened: handleEntry };
+      },
+    ));
+  } catch (cause) {
+    if (cause?.code === WORKSPACE_TRANSACTION_ERROR.PATH_ESCAPE) throw cause;
+    if (cause?.code === WORKSPACE_TRANSACTION_ERROR.SNAPSHOT_RACE) throw cause;
+    throw codedError(
+      WORKSPACE_TRANSACTION_ERROR.SNAPSHOT_RACE,
+      `workspace root cannot be opened safely: ${root}`,
+      { workspaceRoot: root },
+      cause,
+    );
+  }
+  const identity = workspaceRootIdentity(opened);
   if (
     expectedIdentity &&
     !sameWorkspaceRootIdentity(identity, expectedIdentity)
@@ -679,7 +741,12 @@ function writeBlob(blobDir, hash, body, limits) {
   }
 }
 
-function readStableRegularFile(abs, initialStat, limits) {
+function readStableRegularFile(
+  abs,
+  initialStat,
+  limits,
+  expectedWorkspaceDevice,
+) {
   const size = Number(initialStat.size);
   if (size > limits.maxFileBytes) {
     throw codedError(
@@ -692,11 +759,11 @@ function readStableRegularFile(abs, initialStat, limits) {
   try {
     const noFollow = Number(fs.constants.O_NOFOLLOW || 0);
     descriptor = fs.openSync(abs, fs.constants.O_RDONLY | noFollow);
-    const opened = fs.fstatSync(descriptor);
+    const opened = fs.fstatSync(descriptor, { bigint: true });
     if (
       !opened.isFile() ||
       Number(opened.nlink) !== 1 ||
-      !sameStatIdentity(statIdentity(initialStat), statIdentity(opened))
+      !samePathHandleIdentity(initialStat, opened, expectedWorkspaceDevice)
     ) {
       throw codedError(
         WORKSPACE_TRANSACTION_ERROR.SNAPSHOT_RACE,
@@ -705,7 +772,7 @@ function readStableRegularFile(abs, initialStat, limits) {
       );
     }
     const body = fs.readFileSync(descriptor);
-    const after = fs.fstatSync(descriptor);
+    const after = fs.fstatSync(descriptor, { bigint: true });
     if (
       body.byteLength !== size ||
       !sameStatIdentity(statIdentity(opened), statIdentity(after))
@@ -792,7 +859,7 @@ function scanWorkspace(
     if (pathIsExcluded(relative, exclusions)) return;
     let initial;
     try {
-      initial = fs.lstatSync(abs);
+      initial = fs.lstatSync(abs, { bigint: true });
     } catch (cause) {
       throw codedError(
         WORKSPACE_TRANSACTION_ERROR.SNAPSHOT_RACE,
@@ -856,7 +923,7 @@ function scanWorkspace(
       for (const name of names) {
         walk(path.join(abs, name), path.join(relative, name));
       }
-      const after = fs.lstatSync(abs);
+      const after = fs.lstatSync(abs, { bigint: true });
       if (
         !after.isDirectory() ||
         after.isSymbolicLink() ||
@@ -892,7 +959,12 @@ function scanWorkspace(
           },
         );
       }
-      const body = readStableRegularFile(abs, initial, limits);
+      const body = readStableRegularFile(
+        abs,
+        initial,
+        limits,
+        rootBefore.descriptor.identity.dev,
+      );
       const hash = hashBuffer(body);
       if (blobDir) writeBlob(blobDir, hash, body, limits);
       entries.push({
@@ -1508,7 +1580,7 @@ function safeCurrentEntry(root, relative, expectedRootIdentity) {
   }
   let entry = null;
   try {
-    entry = fs.lstatSync(abs);
+    entry = fs.lstatSync(abs, { bigint: true });
   } catch (error) {
     if (error?.code !== "ENOENT") throw error;
   }
@@ -1557,8 +1629,8 @@ function restoreEntryMetadata(abs, descriptor) {
   }
   fs.utimesSync(
     abs,
-    Number(current.atimeMs) / 1_000,
-    Number(descriptor.mtimeMs) / 1_000,
+    new Date(Number(current.atimeMs)),
+    new Date(Number(descriptor.mtimeMs)),
   );
 }
 
@@ -1684,6 +1756,7 @@ function restoreBaseline(root, baseline, blobDir, limits) {
         path.join(root, nativePath(entry.path)),
         currentEntry,
         limits,
+        expectedRootIdentity.dev,
       );
       alreadyRestored =
         hashBuffer(body) === entry.sha256 &&
@@ -2661,29 +2734,32 @@ export class WorkspaceTransactionManager {
     this._active = new Map();
   }
 
-  _ensureLockRoot(workspaceRoot = null) {
+  _preflightLockRoot(workspaceRoot = null) {
     const requestedLockDir = path.resolve(this.lockDir);
-    if (
-      workspaceRoot &&
-      (samePath(requestedLockDir, workspaceRoot) ||
-        isStrictlyInside(workspaceRoot, requestedLockDir) ||
-        isStrictlyInside(requestedLockDir, workspaceRoot))
-    ) {
+    const projectedLockDir = canonicalPathThroughExistingAncestor(
+      requestedLockDir,
+      "lock directory",
+    );
+    if (workspaceRoot && pathsOverlap(projectedLockDir, workspaceRoot)) {
       throw codedError(
         WORKSPACE_TRANSACTION_ERROR.INVALID_PATH,
         "workspace transaction lock directory must be disjoint from the workspace",
-        { workspaceRoot, lockDir: requestedLockDir },
+        {
+          workspaceRoot,
+          lockDir: requestedLockDir,
+          resolvedLockDir: projectedLockDir,
+        },
       );
     }
+    return { requestedLockDir, projectedLockDir };
+  }
+
+  _ensureLockRoot(workspaceRoot = null) {
+    this._preflightLockRoot(workspaceRoot);
     this.lockDir = assertSafeDirectory(this.lockDir, "lock directory", {
       create: true,
     });
-    if (
-      workspaceRoot &&
-      (samePath(this.lockDir, workspaceRoot) ||
-        isStrictlyInside(workspaceRoot, this.lockDir) ||
-        isStrictlyInside(this.lockDir, workspaceRoot))
-    ) {
+    if (workspaceRoot && pathsOverlap(this.lockDir, workspaceRoot)) {
       throw codedError(
         WORKSPACE_TRANSACTION_ERROR.INVALID_PATH,
         "workspace transaction lock directory must be disjoint from the workspace",
@@ -2724,7 +2800,32 @@ export class WorkspaceTransactionManager {
     return lock;
   }
 
+  _preflightStateRoot(workspaceRoot = null) {
+    const requestedStateDir = path.resolve(this.stateDir);
+    const projectedStateDir = canonicalPathThroughExistingAncestor(
+      requestedStateDir,
+      "state directory",
+    );
+    if (
+      workspaceRoot &&
+      (samePath(projectedStateDir, workspaceRoot) ||
+        isStrictlyInside(workspaceRoot, projectedStateDir))
+    ) {
+      throw codedError(
+        WORKSPACE_TRANSACTION_ERROR.INVALID_PATH,
+        "workspace transaction state directory must be outside the workspace",
+        {
+          workspaceRoot,
+          stateDir: requestedStateDir,
+          resolvedStateDir: projectedStateDir,
+        },
+      );
+    }
+    return { requestedStateDir, projectedStateDir };
+  }
+
   _ensureStateRoot(workspaceRoot = null) {
+    this._preflightStateRoot(workspaceRoot);
     const stateDir = assertSafeDirectory(this.stateDir, "state directory", {
       create: true,
     });
@@ -2751,6 +2852,10 @@ export class WorkspaceTransactionManager {
       "workspace root",
     );
     assertNotFilesystemRoot(workspaceRoot);
+    // Reject canonical aliases (macOS /var -> /private/var, Windows 8.3, and
+    // symlink/junction paths) before state or lock setup creates anything.
+    this._preflightLockRoot(workspaceRoot);
+    this._preflightStateRoot(workspaceRoot);
     this._ensureStateRoot(workspaceRoot);
     this._ensureLockRoot(workspaceRoot);
     const runId = normalizeBoundedText(options.runId, "runId");
@@ -3042,57 +3147,79 @@ export class WorkspaceTransactionManager {
    * transaction whose canonical workspace contains the child's cwd records the
    * process before execution, so evidence persistence failure denies the spawn.
    */
-  hasActiveTransactionForCwd(cwd) {
-    const requestedCwd = path.resolve(cwd || process.cwd());
-    for (const transaction of this._active.values()) {
-      if (TERMINAL_STATES.has(transaction.state)) continue;
-      if (isPathInside(transaction.workspaceRoot, requestedCwd)) {
-        return true;
+  activeWorkspaceMembershipForCwd(cwd) {
+    const active = [...this._active.values()].filter(
+      (transaction) => !TERMINAL_STATES.has(transaction.state),
+    );
+    if (active.length === 0) return null;
+    const { requested, canonical } = canonicalProcessCwd(cwd);
+    for (const transaction of active) {
+      const requestedInside = isPathInside(
+        transaction.workspaceRoot,
+        requested,
+      );
+      const canonicalInside = isPathInside(
+        transaction.workspaceRoot,
+        canonical,
+      );
+      if (requestedInside && !canonicalInside) {
+        throw codedError(
+          WORKSPACE_TRANSACTION_ERROR.PATH_ESCAPE,
+          "managed process cwd resolves outside its workspace transaction",
+          {
+            cwd: requested,
+            resolvedCwd: canonical,
+            transactionId: transaction.id,
+          },
+        );
       }
-    }
-    return false;
-  }
-
-  activeWorkspaceRootForCwd(cwd) {
-    const requestedCwd = path.resolve(cwd || process.cwd());
-    for (const transaction of this._active.values()) {
-      if (TERMINAL_STATES.has(transaction.state)) continue;
-      if (isPathInside(transaction.workspaceRoot, requestedCwd)) {
-        return transaction.workspaceRoot;
+      if (canonicalInside) {
+        return {
+          workspaceRoot: transaction.workspaceRoot,
+          cwd: canonical,
+        };
       }
     }
     return null;
   }
 
+  hasActiveTransactionForCwd(cwd) {
+    return this.activeWorkspaceMembershipForCwd(cwd) !== null;
+  }
+
+  activeWorkspaceRootForCwd(cwd) {
+    return this.activeWorkspaceMembershipForCwd(cwd)?.workspaceRoot || null;
+  }
+
   prepareSpawn(entry) {
     const matches = [];
-    for (const transaction of this._active.values()) {
-      if (TERMINAL_STATES.has(transaction.state)) continue;
-      const requestedCwd = path.resolve(entry.cwd || process.cwd());
-      if (!isPathInside(transaction.workspaceRoot, requestedCwd)) continue;
-      transaction._assertWorkspaceRootIdentity();
-      let canonicalCwd;
-      try {
-        canonicalCwd = realpath(requestedCwd);
-      } catch (cause) {
-        throw codedError(
-          WORKSPACE_TRANSACTION_ERROR.INVALID_PATH,
-          `managed process cwd cannot be resolved: ${requestedCwd}`,
-          { cwd: requestedCwd, transactionId: transaction.id },
-          cause,
-        );
-      }
-      if (!isPathInside(transaction.workspaceRoot, canonicalCwd)) {
+    const active = [...this._active.values()].filter(
+      (transaction) => !TERMINAL_STATES.has(transaction.state),
+    );
+    if (active.length === 0) return matches;
+    const { requested, canonical } = canonicalProcessCwd(entry.cwd);
+    for (const transaction of active) {
+      const requestedInside = isPathInside(
+        transaction.workspaceRoot,
+        requested,
+      );
+      const canonicalInside = isPathInside(
+        transaction.workspaceRoot,
+        canonical,
+      );
+      if (requestedInside && !canonicalInside) {
         throw codedError(
           WORKSPACE_TRANSACTION_ERROR.PATH_ESCAPE,
           "managed process cwd resolves outside its workspace transaction",
           {
-            cwd: requestedCwd,
-            resolvedCwd: canonicalCwd,
+            cwd: requested,
+            resolvedCwd: canonical,
             transactionId: transaction.id,
           },
         );
       }
+      if (!canonicalInside) continue;
+      transaction._assertWorkspaceRootIdentity();
       if (entry.detached === true) {
         throw codedError(
           WORKSPACE_TRANSACTION_ERROR.DETACHED_PROCESS,
@@ -3100,11 +3227,11 @@ export class WorkspaceTransactionManager {
           {
             transactionId: transaction.id,
             executionId: entry.executionId,
-            cwd: canonicalCwd,
+            cwd: canonical,
           },
         );
       }
-      transaction.recordExecution({ ...entry, cwd: canonicalCwd });
+      transaction.recordExecution({ ...entry, cwd: canonical });
       matches.push(transaction.id);
     }
     return matches;

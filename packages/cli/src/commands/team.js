@@ -57,6 +57,12 @@ import {
 } from "../lib/agent-team/team-control-store.js";
 import { TeamProcessCheckpointBroker } from "../lib/agent-team/team-process-checkpoint.js";
 import { registerTeamDistributedCommands } from "./team-distributed.js";
+import {
+  sameFileStatIdentity,
+  samePathHandleFileIdentity,
+  SecureFileIdentityError,
+  withTrustedFileParentSync,
+} from "../lib/secure-file-identity.js";
 
 export const _deps = {
   spawn: (...args) => executionBroker.spawn(...args),
@@ -94,71 +100,90 @@ export const MAX_TEAM_AGENT_INBOX_BODY_CHARS = 1024;
 export const MAX_TEAM_STATE_BYTES = 64 * 1024 * 1024;
 export const TEAM_STATE_VERSION = 6;
 
-function readTeamStateSnapshot(statePath) {
-  let before;
+function teamStateUnsafeParentError(statePath, cause) {
+  return new Error(`Team state parent identity is unsafe: ${statePath}`, {
+    cause,
+  });
+}
+
+export function readTeamStateSnapshot(statePath) {
   try {
-    before = fs.lstatSync(statePath);
-  } catch (error) {
-    if (error?.code === "ENOENT") {
-      throw new Error(`Team state not found: ${statePath}`);
-    }
-    throw error;
-  }
-  if (
-    before.isSymbolicLink() ||
-    !before.isFile() ||
-    Number(before.nlink) !== 1
-  ) {
-    throw new Error(
-      `Team state must be a regular, single-link file: ${statePath}`,
-    );
-  }
-  if (process.platform !== "win32" && (Number(before.mode) & 0o077) !== 0) {
-    throw new Error(`Team state permissions must be 0600: ${statePath}`);
-  }
-  const bytes = Number(before.size);
-  if (bytes <= 0 || bytes > MAX_TEAM_STATE_BYTES) {
-    throw new Error(
-      `Team state exceeds the safe ${MAX_TEAM_STATE_BYTES}-byte limit`,
-    );
-  }
-  let descriptor = null;
-  try {
-    descriptor = fs.openSync(
+    return withTrustedFileParentSync(
+      fs,
       statePath,
-      fs.constants.O_RDONLY | Number(fs.constants.O_NOFOLLOW || 0),
+      ({ canonicalPath, parentDevice }) => {
+        let before;
+        try {
+          before = fs.lstatSync(canonicalPath, { bigint: true });
+        } catch (error) {
+          if (error?.code === "ENOENT") {
+            throw new Error(`Team state not found: ${statePath}`);
+          }
+          throw error;
+        }
+        if (
+          before.isSymbolicLink() ||
+          !before.isFile() ||
+          Number(before.nlink) !== 1
+        ) {
+          throw new Error(
+            `Team state must be a regular, single-link file: ${statePath}`,
+          );
+        }
+        if (
+          process.platform !== "win32" &&
+          (Number(before.mode) & 0o077) !== 0
+        ) {
+          throw new Error(`Team state permissions must be 0600: ${statePath}`);
+        }
+        const bytes = Number(before.size);
+        if (bytes <= 0 || bytes > MAX_TEAM_STATE_BYTES) {
+          throw new Error(
+            `Team state exceeds the safe ${MAX_TEAM_STATE_BYTES}-byte limit`,
+          );
+        }
+        let descriptor = null;
+        try {
+          descriptor = fs.openSync(
+            canonicalPath,
+            fs.constants.O_RDONLY | Number(fs.constants.O_NOFOLLOW || 0),
+          );
+          const opened = fs.fstatSync(descriptor, { bigint: true });
+          if (
+            !opened.isFile() ||
+            Number(opened.nlink) !== 1 ||
+            !samePathHandleFileIdentity(before, opened, parentDevice)
+          ) {
+            throw new Error(
+              `Team state identity changed while opening: ${statePath}`,
+            );
+          }
+          const body = fs.readFileSync(descriptor);
+          const after = fs.fstatSync(descriptor, { bigint: true });
+          if (
+            Number(after.size) !== body.length ||
+            !sameFileStatIdentity(opened, after)
+          ) {
+            throw new Error(
+              `Team state changed while being read: ${statePath}`,
+            );
+          }
+          const text = new TextDecoder("utf-8", { fatal: true }).decode(body);
+          return JSON.parse(text);
+        } finally {
+          if (descriptor != null) fs.closeSync(descriptor);
+        }
+      },
     );
-    const opened = fs.fstatSync(descriptor);
-    const sameIdentity =
-      opened.isFile() &&
-      Number(opened.nlink) === 1 &&
-      String(opened.dev) === String(before.dev) &&
-      String(opened.ino) === String(before.ino) &&
-      Number(opened.size) === bytes;
-    if (!sameIdentity) {
-      throw new Error(
-        `Team state identity changed while opening: ${statePath}`,
-      );
+  } catch (cause) {
+    if (cause instanceof SecureFileIdentityError) {
+      throw teamStateUnsafeParentError(statePath, cause);
     }
-    const body = fs.readFileSync(descriptor);
-    const after = fs.fstatSync(descriptor);
-    if (
-      String(after.dev) !== String(opened.dev) ||
-      String(after.ino) !== String(opened.ino) ||
-      Number(after.size) !== body.length ||
-      Number(after.mtimeMs) !== Number(opened.mtimeMs) ||
-      Number(after.ctimeMs) !== Number(opened.ctimeMs)
-    ) {
-      throw new Error(`Team state changed while being read: ${statePath}`);
-    }
-    const text = new TextDecoder("utf-8", { fatal: true }).decode(body);
-    return JSON.parse(text);
-  } finally {
-    if (descriptor != null) fs.closeSync(descriptor);
+    throw cause;
   }
 }
 
-function writeTeamStateSnapshot(statePath, snapshot) {
+export function writeTeamStateSnapshot(statePath, snapshot) {
   const contents = `${JSON.stringify(snapshot, null, 2)}\n`;
   const bytes = Buffer.byteLength(contents, "utf8");
   if (bytes > MAX_TEAM_STATE_BYTES) {
@@ -166,44 +191,62 @@ function writeTeamStateSnapshot(statePath, snapshot) {
       `Team state exceeds the safe ${MAX_TEAM_STATE_BYTES}-byte limit`,
     );
   }
-  const temporary = `${statePath}.${process.pid}.${randomUUID()}.tmp`;
-  let descriptor = null;
+
+  // Security precondition: the canonical parent and its ancestors cannot be
+  // renamed by an untrusted concurrent writer during this callback. Node's
+  // path-based primitives are not an openat-style authority boundary.
   try {
-    descriptor = fs.openSync(temporary, "wx", 0o600);
-    fs.writeFileSync(descriptor, contents, "utf8");
-    fs.fsyncSync(descriptor);
-    fs.closeSync(descriptor);
-    descriptor = null;
-    fs.renameSync(temporary, statePath);
-    try {
-      fs.chmodSync(statePath, 0o600);
-    } catch {
-      /* Windows does not expose POSIX mode semantics */
-    }
-    if (process.platform !== "win32") {
-      let directoryDescriptor = null;
-      try {
-        directoryDescriptor = fs.openSync(path.dirname(statePath), "r");
-        fs.fsyncSync(directoryDescriptor);
-      } finally {
-        if (directoryDescriptor != null) {
-          fs.closeSync(directoryDescriptor);
+    return withTrustedFileParentSync(
+      fs,
+      statePath,
+      ({ canonicalPath, parentPath, parentDescriptor }) => {
+        const temporary = path.join(
+          parentPath,
+          `${path.basename(canonicalPath)}.${process.pid}.${randomUUID()}.tmp`,
+        );
+        let descriptor = null;
+        let renamed = false;
+        let temporaryCreated = false;
+        try {
+          descriptor = fs.openSync(temporary, "wx", 0o600);
+          temporaryCreated = true;
+          fs.writeFileSync(descriptor, contents, "utf8");
+          fs.fsyncSync(descriptor);
+          fs.closeSync(descriptor);
+          descriptor = null;
+          fs.renameSync(temporary, canonicalPath);
+          renamed = true;
+          try {
+            fs.chmodSync(canonicalPath, 0o600);
+          } catch {
+            /* Windows does not expose POSIX mode semantics */
+          }
+          if (process.platform !== "win32") {
+            fs.fsyncSync(parentDescriptor);
+          }
+        } finally {
+          if (descriptor != null) {
+            try {
+              fs.closeSync(descriptor);
+            } catch {
+              /* preserve the authoritative persistence failure */
+            }
+          }
+          if (!renamed && temporaryCreated) {
+            try {
+              fs.unlinkSync(temporary);
+            } catch {
+              /* clean only this attempt's canonical temporary path */
+            }
+          }
         }
-      }
+      },
+    );
+  } catch (cause) {
+    if (cause instanceof SecureFileIdentityError) {
+      throw teamStateUnsafeParentError(statePath, cause);
     }
-  } finally {
-    if (descriptor != null) {
-      try {
-        fs.closeSync(descriptor);
-      } catch {
-        /* preserve the authoritative persistence failure */
-      }
-    }
-    try {
-      if (fs.existsSync(temporary)) fs.rmSync(temporary, { force: true });
-    } catch {
-      /* preserve the authoritative persistence failure */
-    }
+    throw cause;
   }
 }
 

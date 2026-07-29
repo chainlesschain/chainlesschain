@@ -50,6 +50,7 @@ export {
   _anthropicThinkingParams,
   _normalizeAnthropicResponse,
   _resetFileFreshness,
+  _withPostEditDiagnostics,
   _getSharedCodeIntel,
   disposeSharedCodeIntel,
   emitToolHookLifecycle,

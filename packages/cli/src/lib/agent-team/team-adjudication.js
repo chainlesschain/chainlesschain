@@ -26,6 +26,12 @@ import path from "node:path";
 import { createHash, randomUUID } from "node:crypto";
 import { TextDecoder } from "node:util";
 import { withFileLock } from "../with-file-lock.js";
+import {
+  sameFileStatIdentity,
+  samePathHandleFileIdentity,
+  SecureFileIdentityError,
+  withTrustedFileParentSync,
+} from "../secure-file-identity.js";
 
 export const TEAM_ADJUDICATION_SCHEMA_VERSION = 1;
 export const TEAM_ADJUDICATION_DECISIONS = Object.freeze({
@@ -323,9 +329,9 @@ function unsafePath(message, filePath, cause = null) {
   );
 }
 
-function lstatOrNull(runtimeFs, filePath) {
+function lstatOrNull(runtimeFs, filePath, options = undefined) {
   try {
-    return runtimeFs.lstatSync(filePath);
+    return runtimeFs.lstatSync(filePath, options);
   } catch (error) {
     if (error?.code === "ENOENT") return null;
     throw error;
@@ -335,12 +341,17 @@ function lstatOrNull(runtimeFs, filePath) {
 function assertRegularSingleLink(runtimeFs, filePath, options = {}) {
   const {
     allowMissing = false,
+    bigint = false,
     requireMode0600 = false,
     platform = process.platform,
   } = options;
   let entry;
   try {
-    entry = lstatOrNull(runtimeFs, filePath);
+    entry = lstatOrNull(
+      runtimeFs,
+      filePath,
+      bigint ? { bigint: true } : undefined,
+    );
   } catch (cause) {
     throw unsafePath(
       `Could not inspect team adjudication path: ${filePath}`,
@@ -372,25 +383,6 @@ function assertRegularSingleLink(runtimeFs, filePath, options = {}) {
     );
   }
   return entry;
-}
-
-function sameFileIdentity(left, right) {
-  if (!left || !right) return false;
-  if (
-    left.dev !== undefined &&
-    right.dev !== undefined &&
-    left.dev !== right.dev
-  ) {
-    return false;
-  }
-  if (
-    left.ino !== undefined &&
-    right.ino !== undefined &&
-    left.ino !== right.ino
-  ) {
-    return false;
-  }
-  return Number(left.nlink) === 1 && Number(right.nlink) === 1;
 }
 
 function canonicalAuthorityPath(runtimeFs, input, label, { mustExist }) {
@@ -989,57 +981,79 @@ export class TeamAdjudicationStore {
   }
 
   _secureRead() {
-    const before = assertRegularSingleLink(this._fs, this.filePath, {
-      requireMode0600: true,
-      platform: this._platform,
-    });
-    if (Number(before.size) <= 0 || Number(before.size) > this.maxBytes) {
-      throw adjudicationError(
-        TEAM_ADJUDICATION_ERROR_CODES.LIMIT,
-        `Team adjudication file must be between 1 and ${this.maxBytes} bytes`,
-      );
-    }
-    let descriptor = null;
     try {
-      const flags =
-        Number(this._fs.constants?.O_RDONLY ?? fs.constants.O_RDONLY) |
-        Number(this._fs.constants?.O_NOFOLLOW ?? fs.constants.O_NOFOLLOW ?? 0);
-      descriptor = this._fs.openSync(this.filePath, flags);
-      const opened = this._fs.fstatSync(descriptor);
-      if (!opened.isFile() || !sameFileIdentity(before, opened)) {
-        throw unsafePath(
-          "Team adjudication file identity changed while opening",
-          this.filePath,
-        );
-      }
-      const bytes = this._fs.readFileSync(descriptor);
-      const after = this._fs.fstatSync(descriptor);
-      if (
-        !sameFileIdentity(opened, after) ||
-        Number(after.size) !== bytes.length
-      ) {
-        throw unsafePath(
-          "Team adjudication file changed while reading",
-          this.filePath,
-        );
-      }
-      return bytes;
+      return withTrustedFileParentSync(
+        this._fs,
+        this.filePath,
+        ({ canonicalPath, parentDevice }) => {
+          const before = assertRegularSingleLink(this._fs, canonicalPath, {
+            bigint: true,
+            requireMode0600: true,
+            platform: this._platform,
+          });
+          if (Number(before.size) <= 0 || Number(before.size) > this.maxBytes) {
+            throw adjudicationError(
+              TEAM_ADJUDICATION_ERROR_CODES.LIMIT,
+              `Team adjudication file must be between 1 and ${this.maxBytes} bytes`,
+            );
+          }
+          let descriptor = null;
+          try {
+            const flags =
+              Number(this._fs.constants?.O_RDONLY ?? fs.constants.O_RDONLY) |
+              Number(
+                this._fs.constants?.O_NOFOLLOW ?? fs.constants.O_NOFOLLOW ?? 0,
+              );
+            descriptor = this._fs.openSync(canonicalPath, flags);
+            const opened = this._fs.fstatSync(descriptor, { bigint: true });
+            if (
+              !opened.isFile() ||
+              Number(opened.nlink) !== 1 ||
+              !samePathHandleFileIdentity(before, opened, parentDevice)
+            ) {
+              throw unsafePath(
+                "Team adjudication file identity changed while opening",
+                this.filePath,
+              );
+            }
+            const bytes = this._fs.readFileSync(descriptor);
+            const after = this._fs.fstatSync(descriptor, { bigint: true });
+            if (
+              !sameFileStatIdentity(opened, after) ||
+              Number(after.size) !== bytes.length
+            ) {
+              throw unsafePath(
+                "Team adjudication file changed while reading",
+                this.filePath,
+              );
+            }
+            return bytes;
+          } finally {
+            if (descriptor !== null) {
+              try {
+                this._fs.closeSync(descriptor);
+              } catch {
+                // The authoritative read error, if any, is reported above.
+              }
+            }
+          }
+        },
+      );
     } catch (cause) {
       if (isAdjudicationError(cause)) throw cause;
+      if (cause instanceof SecureFileIdentityError) {
+        throw unsafePath(
+          "Team adjudication parent identity is unsafe",
+          this.filePath,
+          cause,
+        );
+      }
       throw adjudicationError(
         TEAM_ADJUDICATION_ERROR_CODES.READ_FAILED,
         "Could not securely read team adjudication state",
         { filePath: this.filePath },
         cause,
       );
-    } finally {
-      if (descriptor !== null) {
-        try {
-          this._fs.closeSync(descriptor);
-        } catch {
-          // The authoritative read error, if any, is reported above.
-        }
-      }
     }
   }
 
@@ -1104,66 +1118,87 @@ export class TeamAdjudicationStore {
         `Team adjudication file cannot exceed ${this.maxBytes} bytes`,
       );
     }
-    const directory = path.dirname(this.filePath);
-    const token = String(this._randomUUID()).replace(/[^a-zA-Z0-9._-]/g, "-");
-    const temporaryPath = path.join(
-      directory,
-      `.${path.basename(this.filePath)}.${process.pid}.${token}.tmp`,
-    );
-    let descriptor = null;
-    let renamed = false;
-    try {
-      const flags =
-        Number(this._fs.constants?.O_WRONLY ?? fs.constants.O_WRONLY) |
-        Number(this._fs.constants?.O_CREAT ?? fs.constants.O_CREAT) |
-        Number(this._fs.constants?.O_EXCL ?? fs.constants.O_EXCL) |
-        Number(this._fs.constants?.O_NOFOLLOW ?? fs.constants.O_NOFOLLOW ?? 0);
-      descriptor = this._fs.openSync(temporaryPath, flags, 0o600);
-      this._fs.writeFileSync(descriptor, serialized, "utf8");
-      this._fs.fsyncSync(descriptor);
-      const temporaryStat = this._fs.fstatSync(descriptor);
-      if (!temporaryStat.isFile() || Number(temporaryStat.nlink) !== 1) {
-        throw unsafePath(
-          "Atomic team adjudication temporary file is not private",
-          temporaryPath,
-        );
-      }
-      this._fs.closeSync(descriptor);
-      descriptor = null;
 
-      this._assertAuthorityPaths();
-      this._fs.renameSync(temporaryPath, this.filePath);
-      renamed = true;
-      this._fs.chmodSync(this.filePath, 0o600);
-      const persisted = this._secureRead();
-      if (!persisted.equals(Buffer.from(serialized, "utf8"))) {
-        throw adjudicationError(
-          TEAM_ADJUDICATION_ERROR_CODES.WRITE_FAILED,
-          "Atomic team adjudication write verification failed",
-        );
-      }
-      if (this._platform !== "win32") {
-        const directoryDescriptor = this._fs.openSync(directory, "r");
-        try {
-          this._fs.fsyncSync(directoryDescriptor);
-        } finally {
-          this._fs.closeSync(directoryDescriptor);
-        }
-      }
+    // Security precondition: the canonical parent and its ancestors cannot be
+    // renamed by an untrusted concurrent writer during this callback. Node's
+    // path-based primitives are not an openat-style authority boundary.
+    try {
+      return withTrustedFileParentSync(
+        this._fs,
+        this.filePath,
+        ({ canonicalPath, parentPath, parentDescriptor }) => {
+          const token = String(this._randomUUID()).replace(
+            /[^a-zA-Z0-9._-]/g,
+            "-",
+          );
+          const temporaryPath = path.join(
+            parentPath,
+            `.${path.basename(canonicalPath)}.${process.pid}.${token}.tmp`,
+          );
+          let descriptor = null;
+          let renamed = false;
+          let temporaryCreated = false;
+          const flags =
+            Number(this._fs.constants?.O_WRONLY ?? fs.constants.O_WRONLY) |
+            Number(this._fs.constants?.O_CREAT ?? fs.constants.O_CREAT) |
+            Number(this._fs.constants?.O_EXCL ?? fs.constants.O_EXCL) |
+            Number(
+              this._fs.constants?.O_NOFOLLOW ?? fs.constants.O_NOFOLLOW ?? 0,
+            );
+          try {
+            descriptor = this._fs.openSync(temporaryPath, flags, 0o600);
+            temporaryCreated = true;
+            this._fs.writeFileSync(descriptor, serialized, "utf8");
+            this._fs.fsyncSync(descriptor);
+            const temporaryStat = this._fs.fstatSync(descriptor);
+            if (!temporaryStat.isFile() || Number(temporaryStat.nlink) !== 1) {
+              throw unsafePath(
+                "Atomic team adjudication temporary file is not private",
+                temporaryPath,
+              );
+            }
+            this._fs.closeSync(descriptor);
+            descriptor = null;
+
+            this._assertAuthorityPaths();
+            this._fs.renameSync(temporaryPath, canonicalPath);
+            renamed = true;
+            this._fs.chmodSync(canonicalPath, 0o600);
+            const persisted = this._secureRead();
+            if (!persisted.equals(Buffer.from(serialized, "utf8"))) {
+              throw adjudicationError(
+                TEAM_ADJUDICATION_ERROR_CODES.WRITE_FAILED,
+                "Atomic team adjudication write verification failed",
+              );
+            }
+            if (this._platform !== "win32") {
+              this._fs.fsyncSync(parentDescriptor);
+            }
+          } finally {
+            if (descriptor !== null) {
+              try {
+                this._fs.closeSync(descriptor);
+              } catch {
+                // Best-effort descriptor cleanup.
+              }
+            }
+            if (!renamed && temporaryCreated) {
+              try {
+                this._fs.unlinkSync(temporaryPath);
+              } catch {
+                // Clean only this attempt's canonical temporary path.
+              }
+            }
+          }
+        },
+      );
     } catch (cause) {
-      if (descriptor !== null) {
-        try {
-          this._fs.closeSync(descriptor);
-        } catch {
-          // Best-effort descriptor cleanup.
-        }
-      }
-      if (!renamed) {
-        try {
-          this._fs.rmSync(temporaryPath, { force: true });
-        } catch {
-          // Preserve the authoritative failure.
-        }
+      if (cause instanceof SecureFileIdentityError) {
+        throw unsafePath(
+          "Team adjudication parent identity is unsafe",
+          this.filePath,
+          cause,
+        );
       }
       if (isAdjudicationError(cause)) throw cause;
       throw adjudicationError(

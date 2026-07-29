@@ -2061,6 +2061,7 @@ describe.runIf(LIVE && SUPPORTED)(
             sandboxGuarantees: [
               SANDBOX_BOUNDARIES.FILESYSTEM,
               SANDBOX_BOUNDARIES.NETWORK,
+              SANDBOX_BOUNDARIES.PROCESS_TREE,
             ],
             sandboxRuntimeProbe: {
               kind: "linux-bwrap-plugin-node-policy-v1",
@@ -2492,6 +2493,7 @@ describe.runIf(LIVE && SUPPORTED)(
               sandboxGuarantees: [
                 SANDBOX_BOUNDARIES.FILESYSTEM,
                 SANDBOX_BOUNDARIES.NETWORK,
+                SANDBOX_BOUNDARIES.PROCESS_TREE,
               ],
               sandboxRuntimeProbe: {
                 kind:
@@ -3037,6 +3039,7 @@ describe.runIf(LIVE && SUPPORTED)(
             sandboxGuarantees: [
               SANDBOX_BOUNDARIES.FILESYSTEM,
               SANDBOX_BOUNDARIES.NETWORK,
+              SANDBOX_BOUNDARIES.PROCESS_TREE,
             ],
             sandboxRuntimeProbe: {
               kind: "linux-bwrap-generic-workspace-policy-v1",
@@ -3092,6 +3095,14 @@ describe.runIf(LIVE && SUPPORTED)(
               namespace: "new",
               namespaceIdentityChanged: true,
               seccomp: "deny-network-creation",
+            },
+            sandboxProcessTreePolicy: {
+              namespace: "new",
+              namespaceIdentityChanged: true,
+              init: "bubblewrap-pid1-reaper",
+              parentDeathSignal: "SIGKILL",
+              asPid1: false,
+              closeFence: "pid-namespace-empty-or-killed",
             },
           });
 

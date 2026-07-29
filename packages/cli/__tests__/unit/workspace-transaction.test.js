@@ -623,12 +623,13 @@ describe("WorkspaceTransactionManager", () => {
       "committed\n",
     );
     const evidence = transaction.accept();
+    const canonicalWorkspaceRoot = fs.realpathSync.native(input.workspaceRoot);
 
     const inspected = runtime.inspect(transaction.id);
     expect(inspected).toMatchObject({
       id: transaction.id,
       state: WORKSPACE_TRANSACTION_STATE.COMMITTED,
-      workspaceRoot: input.workspaceRoot,
+      workspaceRoot: canonicalWorkspaceRoot,
       runId: "read-run",
       taskKey: "read-task",
       coverage: WORKSPACE_TRANSACTION_COVERAGE.FULL,
@@ -646,7 +647,7 @@ describe("WorkspaceTransactionManager", () => {
       expect.objectContaining({
         id: transaction.id,
         state: WORKSPACE_TRANSACTION_STATE.COMMITTED,
-        workspaceRoot: input.workspaceRoot,
+        workspaceRoot: canonicalWorkspaceRoot,
         runId: "read-run",
         taskKey: "read-task",
         coverage: WORKSPACE_TRANSACTION_COVERAGE.FULL,

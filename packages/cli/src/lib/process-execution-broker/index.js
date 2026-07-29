@@ -2486,37 +2486,44 @@ class ProcessExecutionBroker extends EventEmitter {
     return manager;
   }
 
-  _workspaceTransactionRequiredBoundaries(cwd) {
+  _workspaceTransactionMembershipForCwd(cwd) {
+    const memberships = [];
     for (const manager of this._workspaceTransactionManagers.values()) {
-      if (manager.hasActiveTransactionForCwd(cwd)) {
-        return [SANDBOX_BOUNDARIES.PROCESS_TREE];
-      }
-    }
-    return [];
-  }
-
-  _workspaceTransactionRootForCwd(cwd) {
-    const roots = [];
-    for (const manager of this._workspaceTransactionManagers.values()) {
-      const root = manager.activeWorkspaceRootForCwd(cwd);
-      if (!root) continue;
+      const membership = manager.activeWorkspaceMembershipForCwd(cwd);
+      if (!membership) continue;
       const key =
         process.platform === "win32"
-          ? path.resolve(root).toLowerCase()
-          : path.resolve(root);
-      if (!roots.some((entry) => entry.key === key)) {
-        roots.push({ key, root });
+          ? path.resolve(membership.workspaceRoot).toLowerCase()
+          : path.resolve(membership.workspaceRoot);
+      if (!memberships.some((entry) => entry.key === key)) {
+        memberships.push({ key, ...membership });
       }
     }
-    if (roots.length > 1) {
+    if (memberships.length > 1) {
       const error = new Error(
         "multiple workspace transactions claim the same process cwd",
       );
       error.code = "WORKSPACE_TRANSACTION_OVERLAPPING_WORKSPACE";
-      error.workspaceRoots = roots.map((entry) => entry.root);
+      error.workspaceRoots = memberships.map((entry) => entry.workspaceRoot);
       throw error;
     }
-    return roots[0]?.root || null;
+    return memberships[0] || null;
+  }
+
+  _workspaceTransactionRequiredBoundaries(cwd, membership = undefined) {
+    const resolved =
+      membership === undefined
+        ? this._workspaceTransactionMembershipForCwd(cwd)
+        : membership;
+    return resolved ? [SANDBOX_BOUNDARIES.PROCESS_TREE] : [];
+  }
+
+  _workspaceTransactionRootForCwd(cwd, membership = undefined) {
+    const resolved =
+      membership === undefined
+        ? this._workspaceTransactionMembershipForCwd(cwd)
+        : membership;
+    return resolved?.workspaceRoot || null;
   }
 
   _withWorkspaceTransactionBoundaries(
@@ -2524,7 +2531,11 @@ class ProcessExecutionBroker extends EventEmitter {
     cwd,
     { command, args = [], sync = false, pty = false } = {},
   ) {
-    const required = this._workspaceTransactionRequiredBoundaries(cwd);
+    const membership = this._workspaceTransactionMembershipForCwd(cwd);
+    const required = this._workspaceTransactionRequiredBoundaries(
+      cwd,
+      membership,
+    );
     if (required.length === 0) return options;
     if (
       options.requiredBoundaries !== undefined &&
@@ -2535,11 +2546,12 @@ class ProcessExecutionBroker extends EventEmitter {
     }
     const nextOptions = {
       ...options,
+      ...(membership?.cwd ? { cwd: membership.cwd } : {}),
       requiredBoundaries: [
         ...new Set([...(options.requiredBoundaries || []), ...required]),
       ],
     };
-    const workspaceRoot = this._workspaceTransactionRootForCwd(cwd);
+    const workspaceRoot = this._workspaceTransactionRootForCwd(cwd, membership);
     if (workspaceRoot && nextOptions.sandboxExecutionContract === undefined) {
       const contract = this.issueLinuxWorkspaceSandboxExecutionContract(
         command,
@@ -2658,12 +2670,13 @@ class ProcessExecutionBroker extends EventEmitter {
     const executionId = crypto.randomUUID();
     const startTime = Date.now();
     const origin = options.origin || "unknown";
-    const cwd = options.cwd || process.cwd();
-    options = this._withWorkspaceTransactionBoundaries(options, cwd, {
+    const requestedCwd = options.cwd || process.cwd();
+    options = this._withWorkspaceTransactionBoundaries(options, requestedCwd, {
       command,
       args,
       sync: false,
     });
+    const cwd = options.cwd || requestedCwd;
     const scope = options.scope || "default";
     const policy = options.policy || this._checkPermission(origin, command);
     const isDangerous = this._isDangerousCommand(
@@ -2944,12 +2957,13 @@ class ProcessExecutionBroker extends EventEmitter {
     const executionId = crypto.randomUUID();
     const startTime = Date.now();
     const origin = options.origin || "unknown";
-    const cwd = options.cwd || process.cwd();
-    options = this._withWorkspaceTransactionBoundaries(options, cwd, {
+    const requestedCwd = options.cwd || process.cwd();
+    options = this._withWorkspaceTransactionBoundaries(options, requestedCwd, {
       command,
       args,
       sync: true,
     });
+    const cwd = options.cwd || requestedCwd;
     const scope = options.scope || "default";
     const policy = options.policy || this._checkPermission(origin, command);
     const isDangerous = this._isDangerousCommand(

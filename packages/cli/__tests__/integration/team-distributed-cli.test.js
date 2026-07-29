@@ -15,6 +15,11 @@ import {
 } from "../../src/commands/team-distributed.js";
 import { TeamDistributedQueue } from "../../src/lib/agent-team/team-distributed-queue.js";
 import { TeamProcessCheckpointBroker } from "../../src/lib/agent-team/team-process-checkpoint.js";
+import {
+  SECURE_FILE_IDENTITY_ERROR,
+  SecureFileIdentityError,
+  isAffectedWindowsZeroDeviceStatRuntime,
+} from "../../src/lib/secure-file-identity.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const workerFixture = path.resolve(
@@ -60,6 +65,28 @@ function writeGraph(location, tasks) {
   fs.writeFileSync(location, `${JSON.stringify({ tasks }, null, 2)}\n`, {
     mode: 0o600,
   });
+}
+
+function statProjection(stat, overrides) {
+  return new Proxy(stat, {
+    get(target, property) {
+      if (Object.hasOwn(overrides, property)) return overrides[property];
+      const value = Reflect.get(target, property, target);
+      return typeof value === "function" ? value.bind(target) : value;
+    },
+  });
+}
+
+function projectedFileSystem(filePath, overrides) {
+  const runtimeFs = Object.create(fs);
+  const nativeLstatSync = fs.lstatSync.bind(fs);
+  runtimeFs.lstatSync = (target, options) => {
+    const stat = nativeLstatSync(target, options);
+    return path.resolve(String(target)) === path.resolve(filePath)
+      ? statProjection(stat, overrides)
+      : stat;
+  };
+  return runtimeFs;
 }
 
 function nodeWrite(file, value, { delay = 0, requireFiles = [] } = {}) {
@@ -163,6 +190,118 @@ afterEach(() => {
 });
 
 describe("team distributed CLI", () => {
+  it("bridges a zero-device task graph only on affected Windows libuv", () => {
+    const fixture = makeRepo();
+    writeGraph(fixture.graph, [
+      {
+        key: "build",
+        command: nodeWrite("result.txt", "done\n"),
+      },
+    ]);
+    const runtimeFs = projectedFileSystem(fixture.graph, {
+      dev: 0n,
+    });
+
+    const initialize = () =>
+      initDistributedQueue(
+        {
+          state: fixture.state,
+          repo: fixture.repo,
+          runId: "zero-device-graph",
+          tasks: fixture.graph,
+          maxTasks: 1,
+        },
+        { fileSystem: runtimeFs },
+      );
+    if (!isAffectedWindowsZeroDeviceStatRuntime()) {
+      expect(initialize).toThrow(
+        expect.objectContaining({ code: "TEAM_QUEUE_INPUT_RACE" }),
+      );
+      return;
+    }
+    expect(initialize()).toMatchObject({
+      runId: "zero-device-graph",
+      mode: "shell-worktree",
+    });
+  });
+
+  it.each([
+    [SECURE_FILE_IDENTITY_ERROR.INVALID_PARENT, "TEAM_QUEUE_INSECURE_INPUT"],
+    [SECURE_FILE_IDENTITY_ERROR.PARENT_RACE, "TEAM_QUEUE_INPUT_RACE"],
+  ])(
+    "maps secure task-graph parent error %s to %s and preserves its cause",
+    (secureCode, expectedCode) => {
+      const fixture = makeRepo();
+      writeGraph(fixture.graph, [
+        {
+          key: "build",
+          command: nodeWrite("result.txt", "done\n"),
+        },
+      ]);
+      const secureCause = new SecureFileIdentityError(
+        secureCode,
+        "secure parent rejected",
+      );
+      let failure;
+      try {
+        initDistributedQueue(
+          {
+            state: fixture.state,
+            repo: fixture.repo,
+            runId: `secure-parent-${secureCode}`,
+            tasks: fixture.graph,
+            maxTasks: 1,
+          },
+          {
+            secureFileParent: () => {
+              throw secureCause;
+            },
+          },
+        );
+      } catch (error) {
+        failure = error;
+      }
+
+      expect(failure).toMatchObject({
+        code: expectedCode,
+        details: { secureFileIdentityCode: secureCode },
+      });
+      expect(failure.cause).toBe(secureCause);
+    },
+  );
+
+  it("keeps the task-graph unavailable code for ordinary I/O failures", () => {
+    const fixture = makeRepo();
+    writeGraph(fixture.graph, [
+      {
+        key: "build",
+        command: nodeWrite("result.txt", "done\n"),
+      },
+    ]);
+    const ioFailure = Object.assign(new Error("device unavailable"), {
+      code: "EIO",
+    });
+
+    expect(() =>
+      initDistributedQueue(
+        {
+          state: fixture.state,
+          repo: fixture.repo,
+          runId: "ordinary-io-parent",
+          tasks: fixture.graph,
+          maxTasks: 1,
+        },
+        {
+          secureFileParent: () => {
+            throw ioFailure;
+          },
+        },
+      ),
+    ).toThrow(
+      expect.objectContaining({ code: "TEAM_QUEUE_INPUT_UNAVAILABLE" }),
+    );
+  });
+
   it(
     "runs a real two-process DAG, composes dependency baselines, and finalizes",
     { timeout: 120_000 },

@@ -22,6 +22,7 @@ import { runAgentHeadless } from "../../src/runtime/headless-runner.js";
 import { runAgentHeadlessStream } from "../../src/runtime/headless-stream.js";
 import { createAgentRuntimeFactory } from "../../src/runtime/runtime-factory.js";
 import { resolveAgentPolicy } from "../../src/runtime/policies/agent-policy.js";
+import executionBroker from "../../src/lib/process-execution-broker/index.js";
 
 function scriptedChat(toolName, toolArgs) {
   let turn = 0;
@@ -279,9 +280,38 @@ describe("managed checkpoint agent integration", () => {
       `"${process.execPath}" -e ` +
       `"eval(Buffer.from('${encoded}','base64').toString('utf8'))"`;
 
-    const events = await runLoop(workspace, stateDir, "run_shell", {
-      command,
-    });
+    // This test isolates the Broker/checkpoint writer fence from native
+    // platform availability. The real Linux/macOS/Windows boundaries have
+    // their own strict CI matrix; ordinary unit runners must not depend on a
+    // host bubblewrap/AppContainer installation.
+    const sandboxPlan = vi
+      .spyOn(executionBroker, "_prepareSandboxPlan")
+      .mockImplementation((file, argv, options, context = {}) => ({
+        contractVersion: 1,
+        applied: true,
+        platform: process.platform,
+        profile: "strict",
+        command: file,
+        args: [...(argv || [])],
+        options: { ...options },
+        enforcement: "test-process-tree",
+        backend: "test-process-tree",
+        guarantees: ["process-tree"],
+        requiredBoundaries: [
+          ...(context.sandboxPolicy?.requiredBoundaries || []),
+        ],
+        reason: null,
+        postSpawn: { required: false, mode: "none" },
+        cleanup: vi.fn(),
+      }));
+    let events;
+    try {
+      events = await runLoop(workspace, stateDir, "run_shell", {
+        command,
+      });
+    } finally {
+      sandboxPlan.mockRestore();
+    }
 
     const processResult = events.find((event) => event.type === "tool-result");
     expect(

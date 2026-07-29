@@ -19,6 +19,13 @@ import fs from "node:fs";
 import path from "node:path";
 import { TaskLeaseRegistry } from "./task-lease.js";
 import { withFileLock } from "../with-file-lock.js";
+import {
+  SecureFileIdentityError,
+  fileStatIdentity,
+  sameFileStatIdentity,
+  samePathHandleFileIdentity,
+  withTrustedFileParentSync,
+} from "../secure-file-identity.js";
 
 export const TEAM_DISTRIBUTED_QUEUE_SCHEMA_VERSION = 1;
 export const DEFAULT_DISTRIBUTED_QUEUE_MAX_BYTES = 64 * 1024 * 1024;
@@ -177,6 +184,16 @@ export class TeamDistributedQueueError extends Error {
 
 function queueError(code, message, filePath, cause) {
   return new TeamDistributedQueueError(code, message, { cause, filePath });
+}
+
+function secureParentQueueError(cause, filePath, operation) {
+  if (!(cause instanceof SecureFileIdentityError)) return null;
+  return queueError(
+    "TEAM_QUEUE_INSECURE_PATH",
+    `Distributed queue ${operation} rejected an insecure parent path: ${filePath}`,
+    filePath,
+    cause,
+  );
 }
 
 function isPlainObject(value) {
@@ -1554,7 +1571,7 @@ function refreshDigests(state) {
 }
 
 function modeIsPrivate(stat) {
-  return process.platform === "win32" || (stat.mode & 0o777) === 0o600;
+  return process.platform === "win32" || (Number(stat.mode) & 0o777) === 0o600;
 }
 
 function assertRegularPrivateFile(stat, filePath) {
@@ -1565,7 +1582,7 @@ function assertRegularPrivateFile(stat, filePath) {
       filePath,
     );
   }
-  if (stat.nlink !== 1) {
+  if (Number(stat.nlink) !== 1) {
     throw queueError(
       "TEAM_QUEUE_INSECURE_PATH",
       `Distributed queue state must not be hard-linked: ${filePath}`,
@@ -1582,21 +1599,7 @@ function assertRegularPrivateFile(stat, filePath) {
 }
 
 function pathIdentity(stat) {
-  return {
-    dev: stat.dev,
-    ino: stat.ino,
-    size: stat.size,
-  };
-}
-
-function sameIdentity(left, right) {
-  return (
-    left &&
-    right &&
-    left.dev === right.dev &&
-    left.ino === right.ino &&
-    left.size === right.size
-  );
+  return fileStatIdentity(stat);
 }
 
 function assertNoSymlinkDirectories(directory, filePath) {
@@ -1663,85 +1666,115 @@ function prepareDirectory(filePath) {
   }
 }
 
-function secureRead(filePath, maxBytes, { allowMissing = false } = {}) {
-  let lstat;
+function secureRead(
+  runtimeFs,
+  filePath,
+  maxBytes,
+  { allowMissing = false, secureFileParent = withTrustedFileParentSync } = {},
+) {
   try {
-    lstat = fs.lstatSync(filePath);
-  } catch (cause) {
-    if (cause?.code === "ENOENT" && allowMissing) {
-      return { missing: true, identity: null, serialized: null };
-    }
-    if (cause?.code === "ENOENT") {
-      throw queueError(
-        "TEAM_QUEUE_NOT_INITIALIZED",
-        `Distributed queue state does not exist: ${filePath}`,
-        filePath,
-        cause,
-      );
-    }
-    throw queueError(
-      "TEAM_QUEUE_READ_FAILED",
-      `Could not inspect distributed queue state: ${filePath}`,
+    return secureFileParent(
+      runtimeFs,
       filePath,
-      cause,
-    );
-  }
-  assertRegularPrivateFile(lstat, filePath);
-  if (lstat.size > maxBytes) {
-    throw queueError(
-      "TEAM_QUEUE_TOO_LARGE",
-      `Distributed queue state exceeds ${maxBytes} bytes: ${filePath}`,
-      filePath,
-    );
-  }
+      ({ canonicalPath, parentDevice }) => {
+        let lstat;
+        try {
+          lstat = runtimeFs.lstatSync(canonicalPath, { bigint: true });
+        } catch (cause) {
+          if (cause?.code === "ENOENT" && allowMissing) {
+            return { missing: true, identity: null, serialized: null };
+          }
+          if (cause?.code === "ENOENT") {
+            throw queueError(
+              "TEAM_QUEUE_NOT_INITIALIZED",
+              `Distributed queue state does not exist: ${filePath}`,
+              filePath,
+              cause,
+            );
+          }
+          throw queueError(
+            "TEAM_QUEUE_READ_FAILED",
+            `Could not inspect distributed queue state: ${filePath}`,
+            filePath,
+            cause,
+          );
+        }
+        assertRegularPrivateFile(lstat, filePath);
+        if (Number(lstat.size) > maxBytes) {
+          throw queueError(
+            "TEAM_QUEUE_TOO_LARGE",
+            `Distributed queue state exceeds ${maxBytes} bytes: ${filePath}`,
+            filePath,
+          );
+        }
 
-  let descriptor = null;
-  try {
-    const noFollow = fs.constants.O_NOFOLLOW || 0;
-    descriptor = fs.openSync(filePath, fs.constants.O_RDONLY | noFollow);
-    const stat = fs.fstatSync(descriptor);
-    assertRegularPrivateFile(stat, filePath);
-    if (
-      stat.dev !== lstat.dev ||
-      stat.ino !== lstat.ino ||
-      stat.size !== lstat.size
-    ) {
-      throw queueError(
-        "TEAM_QUEUE_PATH_RACE",
-        `Distributed queue state changed while opening: ${filePath}`,
-        filePath,
-      );
-    }
-    const serialized = fs.readFileSync(descriptor, "utf8");
-    if (Buffer.byteLength(serialized) > maxBytes) {
-      throw queueError(
-        "TEAM_QUEUE_TOO_LARGE",
-        `Distributed queue state exceeds ${maxBytes} bytes: ${filePath}`,
-        filePath,
-      );
-    }
-    return {
-      missing: false,
-      identity: pathIdentity(stat),
-      serialized,
-    };
+        let descriptor = null;
+        try {
+          const noFollow = runtimeFs.constants.O_NOFOLLOW || 0;
+          descriptor = runtimeFs.openSync(
+            canonicalPath,
+            runtimeFs.constants.O_RDONLY | noFollow,
+          );
+          const stat = runtimeFs.fstatSync(descriptor, { bigint: true });
+          assertRegularPrivateFile(stat, filePath);
+          if (!samePathHandleFileIdentity(lstat, stat, parentDevice)) {
+            throw queueError(
+              "TEAM_QUEUE_PATH_RACE",
+              `Distributed queue state changed while opening: ${filePath}`,
+              filePath,
+            );
+          }
+          const serialized = runtimeFs.readFileSync(descriptor, "utf8");
+          const after = runtimeFs.fstatSync(descriptor, { bigint: true });
+          if (
+            Buffer.byteLength(serialized) !== Number(stat.size) ||
+            !sameFileStatIdentity(stat, after)
+          ) {
+            throw queueError(
+              "TEAM_QUEUE_PATH_RACE",
+              `Distributed queue state changed while reading: ${filePath}`,
+              filePath,
+            );
+          }
+          if (Buffer.byteLength(serialized) > maxBytes) {
+            throw queueError(
+              "TEAM_QUEUE_TOO_LARGE",
+              `Distributed queue state exceeds ${maxBytes} bytes: ${filePath}`,
+              filePath,
+            );
+          }
+          return {
+            missing: false,
+            identity: pathIdentity(stat),
+            serialized,
+          };
+        } finally {
+          if (descriptor != null) runtimeFs.closeSync(descriptor);
+        }
+      },
+    );
   } catch (cause) {
     if (cause instanceof TeamDistributedQueueError) throw cause;
+    const secureFailure = secureParentQueueError(cause, filePath, "read");
+    if (secureFailure) throw secureFailure;
     throw queueError(
       "TEAM_QUEUE_READ_FAILED",
       `Could not securely read distributed queue state: ${filePath}`,
       filePath,
       cause,
     );
-  } finally {
-    if (descriptor != null) fs.closeSync(descriptor);
   }
 }
 
-function assertTargetIdentity(filePath, expectedIdentity) {
+function assertTargetIdentity(
+  runtimeFs,
+  filePath,
+  expectedIdentity,
+  expectedDevice,
+) {
   let stat;
   try {
-    stat = fs.lstatSync(filePath);
+    stat = runtimeFs.lstatSync(filePath, { bigint: true });
   } catch (cause) {
     if (cause?.code === "ENOENT" && expectedIdentity == null) return;
     throw queueError(
@@ -1759,7 +1792,7 @@ function assertTargetIdentity(filePath, expectedIdentity) {
     );
   }
   assertRegularPrivateFile(stat, filePath);
-  if (!sameIdentity(pathIdentity(stat), expectedIdentity)) {
+  if (!samePathHandleFileIdentity(stat, expectedIdentity, expectedDevice)) {
     throw queueError(
       "TEAM_QUEUE_PATH_RACE",
       `Distributed queue state changed before replace: ${filePath}`,
@@ -1768,7 +1801,14 @@ function assertTargetIdentity(filePath, expectedIdentity) {
   }
 }
 
-function atomicWrite(filePath, state, maxBytes, expectedIdentity) {
+function atomicWrite(
+  runtimeFs,
+  filePath,
+  state,
+  maxBytes,
+  expectedIdentity,
+  { secureFileParent = withTrustedFileParentSync } = {},
+) {
   const serialized = `${JSON.stringify(state)}\n`;
   if (Buffer.byteLength(serialized) > maxBytes) {
     throw queueError(
@@ -1777,56 +1817,70 @@ function atomicWrite(filePath, state, maxBytes, expectedIdentity) {
       filePath,
     );
   }
-  const directory = path.dirname(filePath);
-  const temporaryPath = path.join(
-    directory,
-    `.${path.basename(filePath)}.${process.pid}.${crypto.randomUUID()}.tmp`,
-  );
-  let descriptor = null;
-  let renamed = false;
   try {
-    descriptor = fs.openSync(temporaryPath, "wx", 0o600);
-    fs.fchmodSync(descriptor, 0o600);
-    fs.writeFileSync(descriptor, serialized, "utf8");
-    fs.fsyncSync(descriptor);
-    fs.closeSync(descriptor);
-    descriptor = null;
-    assertTargetIdentity(filePath, expectedIdentity);
-    fs.renameSync(temporaryPath, filePath);
-    renamed = true;
-    const written = fs.lstatSync(filePath);
-    assertRegularPrivateFile(written, filePath);
-    if (process.platform !== "win32") {
-      const directoryDescriptor = fs.openSync(directory, "r");
-      try {
-        fs.fsyncSync(directoryDescriptor);
-      } finally {
-        fs.closeSync(directoryDescriptor);
-      }
-    }
+    return secureFileParent(
+      runtimeFs,
+      filePath,
+      ({
+        canonicalPath,
+        parentDescriptor,
+        parentDevice,
+        parentPath: directory,
+      }) => {
+        const temporaryPath = path.join(
+          directory,
+          `.${path.basename(canonicalPath)}.${process.pid}.${crypto.randomUUID()}.tmp`,
+        );
+        let descriptor = null;
+        let renamed = false;
+        try {
+          descriptor = runtimeFs.openSync(temporaryPath, "wx", 0o600);
+          runtimeFs.fchmodSync(descriptor, 0o600);
+          runtimeFs.writeFileSync(descriptor, serialized, "utf8");
+          runtimeFs.fsyncSync(descriptor);
+          runtimeFs.closeSync(descriptor);
+          descriptor = null;
+          assertTargetIdentity(
+            runtimeFs,
+            canonicalPath,
+            expectedIdentity,
+            parentDevice,
+          );
+          runtimeFs.renameSync(temporaryPath, canonicalPath);
+          renamed = true;
+          const written = runtimeFs.lstatSync(canonicalPath, { bigint: true });
+          assertRegularPrivateFile(written, filePath);
+          if (process.platform !== "win32") {
+            runtimeFs.fsyncSync(parentDescriptor);
+          }
+        } finally {
+          if (descriptor != null) {
+            try {
+              runtimeFs.closeSync(descriptor);
+            } catch {
+              // Preserve the original write failure.
+            }
+          }
+          if (!renamed) {
+            try {
+              runtimeFs.unlinkSync(temporaryPath);
+            } catch {
+              // The exact per-attempt temporary file is safe to clean best-effort.
+            }
+          }
+        }
+      },
+    );
   } catch (cause) {
     if (cause instanceof TeamDistributedQueueError) throw cause;
+    const secureFailure = secureParentQueueError(cause, filePath, "write");
+    if (secureFailure) throw secureFailure;
     throw queueError(
       "TEAM_QUEUE_WRITE_FAILED",
       `Could not atomically write distributed queue state: ${filePath}`,
       filePath,
       cause,
     );
-  } finally {
-    if (descriptor != null) {
-      try {
-        fs.closeSync(descriptor);
-      } catch {
-        // Preserve the original write failure.
-      }
-    }
-    if (!renamed) {
-      try {
-        fs.unlinkSync(temporaryPath);
-      } catch {
-        // The exact per-attempt temporary file is safe to clean best-effort.
-      }
-    }
   }
 }
 
@@ -3037,6 +3091,8 @@ export class TeamDistributedQueue {
     isProcessAlive = defaultProcessAlive,
     maxStateBytes = DEFAULT_DISTRIBUTED_QUEUE_MAX_BYTES,
     lock = withFileLock,
+    fileSystem = fs,
+    secureFileParent = withTrustedFileParentSync,
     lockTimeoutMs = 30000,
     lockStaleMs = 30000,
     lockRetryMs = 10,
@@ -3061,6 +3117,12 @@ export class TeamDistributedQueue {
     if (typeof isProcessAlive !== "function") {
       throw new TypeError("isProcessAlive must be a function");
     }
+    if (!fileSystem || typeof fileSystem !== "object") {
+      throw new TypeError("fileSystem must be an fs-compatible object");
+    }
+    if (typeof secureFileParent !== "function") {
+      throw new TypeError("secureFileParent must be a function");
+    }
     this.filePath = path.resolve(target);
     this._now = now;
     this._id = id;
@@ -3071,6 +3133,8 @@ export class TeamDistributedQueue {
       label: "maxStateBytes",
     });
     this._lock = lock;
+    this._fileSystem = fileSystem;
+    this._secureFileParent = secureFileParent;
     this._lockOptions = {
       timeoutMs: lockTimeoutMs,
       staleMs: lockStaleMs,
@@ -3140,9 +3204,15 @@ export class TeamDistributedQueue {
     const limits = normalizeLimits(budget);
     prepareDirectory(this.filePath);
     return this._underLock(() => {
-      const existing = secureRead(this.filePath, this._maxStateBytes, {
-        allowMissing: true,
-      });
+      const existing = secureRead(
+        this._fileSystem,
+        this.filePath,
+        this._maxStateBytes,
+        {
+          allowMissing: true,
+          secureFileParent: this._secureFileParent,
+        },
+      );
       if (!existing.missing) {
         throw queueError(
           "TEAM_QUEUE_ALREADY_EXISTS",
@@ -3201,7 +3271,14 @@ export class TeamDistributedQueue {
           cause,
         );
       }
-      atomicWrite(this.filePath, state, this._maxStateBytes, null);
+      atomicWrite(
+        this._fileSystem,
+        this.filePath,
+        state,
+        this._maxStateBytes,
+        null,
+        { secureFileParent: this._secureFileParent },
+      );
       return {
         ok: true,
         queueId: state.queueId,
@@ -4881,7 +4958,12 @@ export class TeamDistributedQueue {
   _transact(action, { readOnly = false, now: explicitNow } = {}) {
     prepareDirectory(this.filePath);
     return this._underLock(() => {
-      const loaded = secureRead(this.filePath, this._maxStateBytes);
+      const loaded = secureRead(
+        this._fileSystem,
+        this.filePath,
+        this._maxStateBytes,
+        { secureFileParent: this._secureFileParent },
+      );
       const state = parseState(loaded.serialized, this.filePath);
       validateState(state, this.filePath, this._expected);
       const operationNow = validTimestamp(
@@ -4939,7 +5021,14 @@ export class TeamDistributedQueue {
             cause,
           );
         }
-        atomicWrite(this.filePath, state, this._maxStateBytes, loaded.identity);
+        atomicWrite(
+          this._fileSystem,
+          this.filePath,
+          state,
+          this._maxStateBytes,
+          loaded.identity,
+          { secureFileParent: this._secureFileParent },
+        );
       }
       return cloneJson(result, "queue operation result");
     });

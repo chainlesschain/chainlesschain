@@ -1,10 +1,15 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import os from "node:os";
 import fs from "node:fs";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { loadRegistry, MAX_TEAM_STATE_BYTES } from "../../src/commands/team.js";
+import {
+  loadRegistry,
+  MAX_TEAM_STATE_BYTES,
+  readTeamStateSnapshot,
+  writeTeamStateSnapshot,
+} from "../../src/commands/team.js";
 import { readCollaborationRun } from "../../src/lib/collaboration-run-store.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -15,12 +20,83 @@ beforeEach(() => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-team-io-"));
 });
 afterEach(() => {
+  vi.restoreAllMocks();
   try {
     fs.rmSync(dir, { recursive: true, force: true });
   } catch {
     /* best-effort */
   }
 });
+
+function statProjection(stat, overrides) {
+  return new Proxy(stat, {
+    get(target, property) {
+      if (Object.hasOwn(overrides, property)) return overrides[property];
+      const value = Reflect.get(target, property, target);
+      return typeof value === "function" ? value.bind(target) : value;
+    },
+  });
+}
+
+function createDirectoryAlias(target, alias) {
+  try {
+    fs.symlinkSync(
+      target,
+      alias,
+      process.platform === "win32" ? "junction" : "dir",
+    );
+    return true;
+  } catch (error) {
+    if (
+      process.platform === "win32" &&
+      ["EACCES", "EPERM", "ENOTSUP"].includes(error?.code)
+    ) {
+      return false;
+    }
+    throw error;
+  }
+}
+
+function mockParentIdentitySwap(authorityParent) {
+  const nativeOpenSync = fs.openSync.bind(fs);
+  const nativeFstatSync = fs.fstatSync.bind(fs);
+  const nativeLstatSync = fs.lstatSync.bind(fs);
+  const authorityIdentity = path.resolve(authorityParent).toLowerCase();
+  let parentDescriptor = null;
+  let parentFstats = 0;
+  let parentChanged = false;
+
+  vi.spyOn(fs, "openSync").mockImplementation((requested, ...args) => {
+    const descriptor = nativeOpenSync(requested, ...args);
+    if (
+      parentDescriptor === null &&
+      path.resolve(String(requested)).toLowerCase() === authorityIdentity
+    ) {
+      parentDescriptor = descriptor;
+    }
+    return descriptor;
+  });
+  vi.spyOn(fs, "fstatSync").mockImplementation((descriptor, options) => {
+    const stat = nativeFstatSync(descriptor, options);
+    if (descriptor === parentDescriptor) {
+      parentFstats += 1;
+      if (parentFstats === 2) parentChanged = true;
+    }
+    return stat;
+  });
+  vi.spyOn(fs, "lstatSync").mockImplementation((requested, options) => {
+    const stat = nativeLstatSync(requested, options);
+    if (
+      parentChanged &&
+      path.resolve(String(requested)).toLowerCase() === authorityIdentity
+    ) {
+      return statProjection(stat, {
+        ino: typeof stat.ino === "bigint" ? stat.ino + 1n : stat.ino + 1,
+      });
+    }
+    return stat;
+  });
+}
 
 function writeGraph(name, tasks) {
   const f = path.join(dir, name);
@@ -97,6 +173,116 @@ describe(
   "cc team run --state atomic persistence (CLI-level)",
   { timeout: 60_000 },
   () => {
+    it("writes through a directory alias to the canonical state parent", () => {
+      const canonicalParent = path.join(dir, "canonical-state");
+      const aliasParent = path.join(dir, "state-alias");
+      fs.mkdirSync(canonicalParent);
+      if (!createDirectoryAlias(canonicalParent, aliasParent)) return;
+
+      const aliasedState = path.join(aliasParent, "state.json");
+      const canonicalState = path.join(
+        fs.realpathSync.native(canonicalParent),
+        "state.json",
+      );
+      writeTeamStateSnapshot(aliasedState, {
+        version: 6,
+        stateId: "team_state_alias_writer",
+      });
+
+      expect(JSON.parse(fs.readFileSync(canonicalState, "utf8"))).toMatchObject(
+        {
+          version: 6,
+          stateId: "team_state_alias_writer",
+        },
+      );
+      expect(
+        fs.readdirSync(canonicalParent).filter((name) => name.endsWith(".tmp")),
+      ).toEqual([]);
+    });
+
+    it("maps a parent identity swap to a team-state domain error", () => {
+      const authorityParent = path.join(dir, "trusted-state");
+      fs.mkdirSync(authorityParent);
+      const state = path.join(authorityParent, "state.json");
+      mockParentIdentitySwap(authorityParent);
+
+      let failure = null;
+      try {
+        writeTeamStateSnapshot(state, {
+          version: 6,
+          stateId: "team_state_parent_swap",
+        });
+      } catch (error) {
+        failure = error;
+      }
+      expect(failure).toBeTruthy();
+      expect(failure.message).toMatch(/Team state parent identity is unsafe/u);
+      expect(String(failure.code || "")).not.toMatch(/^SECURE_/u);
+      expect(
+        fs.readdirSync(authorityParent).filter((name) => name.endsWith(".tmp")),
+      ).toEqual([]);
+    });
+
+    it("maps a read-side parent swap without leaking a SECURE code", () => {
+      const authorityParent = path.join(dir, "trusted-read-state");
+      fs.mkdirSync(authorityParent);
+      const state = path.join(authorityParent, "state.json");
+      writeTeamStateSnapshot(state, {
+        version: 6,
+        stateId: "team_state_read_parent_swap",
+      });
+      mockParentIdentitySwap(authorityParent);
+
+      let failure = null;
+      try {
+        readTeamStateSnapshot(state);
+      } catch (error) {
+        failure = error;
+      }
+      expect(failure).toBeTruthy();
+      expect(failure.message).toMatch(/Team state parent identity is unsafe/u);
+      expect(String(failure.code || "")).not.toMatch(/^SECURE_/u);
+      expect(failure.cause?.code).toMatch(/^SECURE_/u);
+    });
+
+    it("preserves an O_EXCL collision that this writer did not create", () => {
+      const authorityParent = path.join(dir, "exclusive-state");
+      fs.mkdirSync(authorityParent);
+      const state = path.join(authorityParent, "state.json");
+      const nativeOpenSync = fs.openSync.bind(fs);
+      let collisionPath = null;
+
+      vi.spyOn(fs, "openSync").mockImplementation(
+        (requested, flags, ...args) => {
+          if (
+            collisionPath === null &&
+            typeof requested === "string" &&
+            requested.endsWith(".tmp") &&
+            flags === "wx"
+          ) {
+            collisionPath = requested;
+            const descriptor = nativeOpenSync(requested, "wx", 0o600);
+            fs.writeFileSync(descriptor, "foreign\n", "utf8");
+            fs.closeSync(descriptor);
+            const error = new Error("simulated exclusive-create collision");
+            error.code = "EEXIST";
+            throw error;
+          }
+          return nativeOpenSync(requested, flags, ...args);
+        },
+      );
+
+      expect(() =>
+        writeTeamStateSnapshot(state, {
+          version: 6,
+          stateId: "team_state_exclusive_collision",
+        }),
+      ).toThrowError(expect.objectContaining({ code: "EEXIST" }));
+      expect(collisionPath).toBeTruthy();
+      expect(fs.readFileSync(collisionPath, "utf8")).toBe("foreign\n");
+      expect(fs.existsSync(state)).toBe(false);
+    });
+
     it("writes the state file via tmp+rename and leaves no .tmp behind", () => {
       const graph = writeGraph("g.json", [
         { key: "a", title: "a", command: "echo a" },
