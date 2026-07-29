@@ -1290,6 +1290,7 @@ describe.runIf(LIVE && SUPPORTED)(
                 requiredBoundaries: [
                   SANDBOX_BOUNDARIES.FILESYSTEM,
                   SANDBOX_BOUNDARIES.NETWORK,
+                  SANDBOX_BOUNDARIES.PROCESS_TREE,
                 ],
               },
               bin: {
@@ -1457,6 +1458,7 @@ describe.runIf(LIVE && SUPPORTED)(
             sandboxRequired: [
               SANDBOX_BOUNDARIES.FILESYSTEM,
               SANDBOX_BOUNDARIES.NETWORK,
+              SANDBOX_BOUNDARIES.PROCESS_TREE,
             ],
             sandboxGuarantees: [
               SANDBOX_BOUNDARIES.FILESYSTEM,
@@ -3037,6 +3039,7 @@ describe.runIf(LIVE && SUPPORTED)(
             sandboxGuarantees: [
               SANDBOX_BOUNDARIES.FILESYSTEM,
               SANDBOX_BOUNDARIES.NETWORK,
+              SANDBOX_BOUNDARIES.PROCESS_TREE,
             ],
             sandboxRuntimeProbe: {
               kind: "linux-bwrap-generic-workspace-policy-v1",

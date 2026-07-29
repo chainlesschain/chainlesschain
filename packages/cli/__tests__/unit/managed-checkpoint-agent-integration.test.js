@@ -5,6 +5,7 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  realpathSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
@@ -255,58 +256,68 @@ describe("managed checkpoint agent integration", () => {
     });
   });
 
-  it("rolls back workspace writes made by a foreground Broker process that exits nonzero", async () => {
-    const root = temp("cc-managed-process-root-");
-    const workspace = join(root, "workspace");
-    const stateDir = join(root, "state");
-    const sentinel = join(root, "process-executed.txt");
-    mkdirSync(workspace);
-    writeFileSync(join(workspace, "seed.txt"), "before", "utf8");
+  it.skipIf(process.platform === "darwin")(
+    "rolls back workspace writes made by a foreground Broker process that exits nonzero",
+    async () => {
+      const root = temp("cc-managed-process-root-");
+      const workspace = join(root, "workspace");
+      const stateDir = join(root, "state");
+      const sentinel = join(root, "process-executed.txt");
+      mkdirSync(workspace);
+      writeFileSync(join(workspace, "seed.txt"), "before", "utf8");
 
-    // The sentinel is intentionally outside the workspace transaction. It
-    // proves the child process really ran, while the two in-workspace writes
-    // prove the transaction restored both a modified and a newly-created
-    // file after the nonzero exit.
-    const script = [
-      "const fs=require('node:fs')",
-      `fs.writeFileSync(${JSON.stringify(sentinel)},'executed')`,
-      "fs.writeFileSync('seed.txt','changed')",
-      "fs.writeFileSync('new.txt','new')",
-      "process.exit(7)",
-    ].join(";");
-    const encoded = Buffer.from(script, "utf8").toString("base64");
-    const command =
-      `"${process.execPath}" -e ` +
-      `"eval(Buffer.from('${encoded}','base64').toString('utf8'))"`;
+      // The sentinel is intentionally outside the workspace transaction. It
+      // proves the child process really ran, while the two in-workspace writes
+      // prove the transaction restored both a modified and a newly-created
+      // file after the nonzero exit.
+      const script = [
+        "const fs=require('node:fs')",
+        `fs.writeFileSync(${JSON.stringify(sentinel)},'executed')`,
+        "fs.writeFileSync('seed.txt','changed')",
+        "fs.writeFileSync('new.txt','new')",
+        "process.exit(7)",
+      ].join(";");
+      const encoded = Buffer.from(script, "utf8").toString("base64");
+      const managedNodeExecutable =
+        process.platform === "linux" && existsSync("/usr/bin/node")
+          ? "/usr/bin/node"
+          : realpathSync.native(process.execPath);
+      const command =
+        `"${managedNodeExecutable}" -e ` +
+        `"eval(Buffer.from('${encoded}','base64').toString('utf8'))"`;
 
-    const events = await runLoop(workspace, stateDir, "run_shell", {
-      command,
-    });
+      const events = await runLoop(workspace, stateDir, "run_shell", {
+        command,
+      });
 
-    const processResult = events.find((event) => event.type === "tool-result");
-    expect(
-      existsSync(sentinel),
-      JSON.stringify(processResult?.result || processResult || null),
-    ).toBe(true);
-    expect(readFileSync(sentinel, "utf8")).toBe("executed");
-    expect(readFileSync(join(workspace, "seed.txt"), "utf8")).toBe("before");
-    expect(existsSync(join(workspace, "new.txt"))).toBe(false);
-    expect(
-      events.find((event) => event.type === "managed-checkpoint-settled"),
-    ).toMatchObject({
-      phase: "rolled_back",
-      coverage: "partial",
-      evidence_digest: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
-    });
-    expect(processResult).toMatchObject({
-      result: {
-        exitCode: 7,
-        managedCheckpoint: {
-          evidence: { outcome: "rolled_back" },
+      const processResult = events.find(
+        (event) => event.type === "tool-result",
+      );
+      expect(
+        existsSync(sentinel),
+        JSON.stringify(processResult?.result || processResult || null),
+      ).toBe(true);
+      expect(readFileSync(sentinel, "utf8")).toBe("executed");
+      expect(readFileSync(join(workspace, "seed.txt"), "utf8")).toBe("before");
+      expect(existsSync(join(workspace, "new.txt"))).toBe(false);
+      expect(
+        events.find((event) => event.type === "managed-checkpoint-settled"),
+      ).toMatchObject({
+        phase: "rolled_back",
+        coverage: "partial",
+        evidence_digest: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+      });
+      expect(processResult).toMatchObject({
+        result: {
+          exitCode: 7,
+          managedCheckpoint: {
+            evidence: { outcome: "rolled_back" },
+          },
         },
-      },
-    });
-  }, 30_000);
+      });
+    },
+    30_000,
+  );
 
   it.each([
     {

@@ -51,6 +51,7 @@ export {
   _normalizeAnthropicResponse,
   _resetFileFreshness,
   _getSharedCodeIntel,
+  _withPostEditDiagnostics,
   disposeSharedCodeIntel,
   emitToolHookLifecycle,
   emitToolBatchHookLifecycle,

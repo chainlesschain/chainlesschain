@@ -160,6 +160,18 @@ function realpath(value) {
   return implementation(value);
 }
 
+function canonicalProspectivePath(value) {
+  let current = path.resolve(value);
+  const missing = [];
+  while (!fs.existsSync(current)) {
+    const parent = path.dirname(current);
+    if (parent === current) break;
+    missing.unshift(path.basename(current));
+    current = parent;
+  }
+  return path.join(realpath(current), ...missing);
+}
+
 function assertSafeDirectory(value, label, { create = false } = {}) {
   if (
     typeof value !== "string" ||
@@ -509,6 +521,16 @@ function sameStatIdentity(left, right) {
   );
 }
 
+function sameOpenedFileIdentity(left, right) {
+  return (
+    String(left.dev) === String(right.dev) &&
+    String(left.ino) === String(right.ino) &&
+    Number(left.mode) === Number(right.mode) &&
+    Number(left.size) === Number(right.size) &&
+    normalizedMtimeMs(left) === normalizedMtimeMs(right)
+  );
+}
+
 function normalizedMtimeMs(stat) {
   const value = Number(stat?.mtimeMs);
   if (!Number.isFinite(value)) {
@@ -696,12 +718,16 @@ function readStableRegularFile(abs, initialStat, limits) {
     if (
       !opened.isFile() ||
       Number(opened.nlink) !== 1 ||
-      !sameStatIdentity(statIdentity(initialStat), statIdentity(opened))
+      !sameOpenedFileIdentity(initialStat, opened)
     ) {
       throw codedError(
         WORKSPACE_TRANSACTION_ERROR.SNAPSHOT_RACE,
         `file identity changed while opening checkpoint input: ${abs}`,
-        { path: abs },
+        {
+          path: abs,
+          pathIdentity: statIdentity(initialStat),
+          openedIdentity: statIdentity(opened),
+        },
       );
     }
     const body = fs.readFileSync(descriptor);
@@ -1557,8 +1583,8 @@ function restoreEntryMetadata(abs, descriptor) {
   }
   fs.utimesSync(
     abs,
-    Number(current.atimeMs) / 1_000,
-    Number(descriptor.mtimeMs) / 1_000,
+    new Date(Math.trunc(Number(current.atimeMs))),
+    new Date(Number(descriptor.mtimeMs)),
   );
 }
 
@@ -2663,16 +2689,17 @@ export class WorkspaceTransactionManager {
 
   _ensureLockRoot(workspaceRoot = null) {
     const requestedLockDir = path.resolve(this.lockDir);
+    const comparableLockDir = canonicalProspectivePath(requestedLockDir);
     if (
       workspaceRoot &&
-      (samePath(requestedLockDir, workspaceRoot) ||
-        isStrictlyInside(workspaceRoot, requestedLockDir) ||
-        isStrictlyInside(requestedLockDir, workspaceRoot))
+      (samePath(comparableLockDir, workspaceRoot) ||
+        isStrictlyInside(workspaceRoot, comparableLockDir) ||
+        isStrictlyInside(comparableLockDir, workspaceRoot))
     ) {
       throw codedError(
         WORKSPACE_TRANSACTION_ERROR.INVALID_PATH,
         "workspace transaction lock directory must be disjoint from the workspace",
-        { workspaceRoot, lockDir: requestedLockDir },
+        { workspaceRoot, lockDir: comparableLockDir },
       );
     }
     this.lockDir = assertSafeDirectory(this.lockDir, "lock directory", {
@@ -2725,6 +2752,18 @@ export class WorkspaceTransactionManager {
   }
 
   _ensureStateRoot(workspaceRoot = null) {
+    const requestedStateDir = canonicalProspectivePath(this.stateDir);
+    if (
+      workspaceRoot &&
+      (samePath(requestedStateDir, workspaceRoot) ||
+        isStrictlyInside(workspaceRoot, requestedStateDir))
+    ) {
+      throw codedError(
+        WORKSPACE_TRANSACTION_ERROR.INVALID_PATH,
+        "workspace transaction state directory must be outside the workspace",
+        { workspaceRoot, stateDir: requestedStateDir },
+      );
+    }
     const stateDir = assertSafeDirectory(this.stateDir, "state directory", {
       create: true,
     });
@@ -3064,7 +3103,7 @@ export class WorkspaceTransactionManager {
     return null;
   }
 
-  prepareSpawn(entry) {
+  _matchingSpawnEntries(entry) {
     const matches = [];
     for (const transaction of this._active.values()) {
       if (TERMINAL_STATES.has(transaction.state)) continue;
@@ -3104,10 +3143,23 @@ export class WorkspaceTransactionManager {
           },
         );
       }
-      transaction.recordExecution({ ...entry, cwd: canonicalCwd });
-      matches.push(transaction.id);
+      matches.push({ transaction, canonicalCwd });
     }
     return matches;
+  }
+
+  preflightSpawn(entry) {
+    return this._matchingSpawnEntries(entry).map(
+      ({ transaction }) => transaction.id,
+    );
+  }
+
+  prepareSpawn(entry) {
+    const matches = this._matchingSpawnEntries(entry);
+    for (const { transaction, canonicalCwd } of matches) {
+      transaction.recordExecution({ ...entry, cwd: canonicalCwd });
+    }
+    return matches.map(({ transaction }) => transaction.id);
   }
 
   bindProcess(entry, proc) {
