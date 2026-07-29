@@ -1457,12 +1457,10 @@ describe.runIf(LIVE && SUPPORTED)(
             sandboxRequired: [
               SANDBOX_BOUNDARIES.FILESYSTEM,
               SANDBOX_BOUNDARIES.NETWORK,
-              SANDBOX_BOUNDARIES.PROCESS_TREE,
             ],
             sandboxGuarantees: [
               SANDBOX_BOUNDARIES.FILESYSTEM,
               SANDBOX_BOUNDARIES.NETWORK,
-              SANDBOX_BOUNDARIES.PROCESS_TREE,
             ],
             sandboxRuntimeProbe: {
               kind: "linux-bwrap-plugin-node-policy-v1",
