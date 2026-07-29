@@ -284,6 +284,13 @@ export function registerEvalCommand(program, { logger } = {}) {
           (log.error || console.error)(`  otlp write failed: ${e.message}`);
         }
       }
+      try {
+        const { exportTelemetryRecorder } =
+          await import("../lib/observability/index.js");
+        exportTelemetryRecorder(recorder);
+      } catch {
+        // Collector export is best-effort and never changes evaluation gates.
+      }
 
       // Append to the trend history (a compact record — pass counts + per-task
       // pass/fail + a timestamp/label — so `cc eval --trend` can chart it).

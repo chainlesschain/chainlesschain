@@ -8,9 +8,16 @@ import "../src/lib/process-execution-broker/patch-child-process.js";
 import { ensureUtf8 } from "../src/lib/ensure-utf8.js";
 ensureUtf8();
 
-// Initialize observability layer (M3 + M8: trace context, metrics, OTLP export)
-import { initObservability } from "../src/lib/observability/index.js";
-initObservability({ otlpEnabled: false }); // OTLP disabled by default, enable via env OTEL_EXPORTER_OTLP_ENDPOINT
+// Initialize observability before command modules load so every completed span
+// can reach a standard OTel Collector. Export stays off unless the global flag
+// or an OTEL_EXPORTER_OTLP_* endpoint is present.
+import {
+  initObservability,
+  resolveOtlpEndpointFromArgv,
+} from "../src/lib/observability/index.js";
+const observability = initObservability({
+  endpoint: resolveOtlpEndpointFromArgv(process.argv),
+});
 
 // Force blocking stdio when piped, so process.exit() flushes the full output
 // before the process tears down. Without this, macOS (and occasionally Linux)
@@ -37,6 +44,15 @@ import {
 // Funnel rejections/exceptions that escape a command action (async event
 // handlers, detached tasks, third-party libs) through the same friendly
 // boundary as the top-level parse, instead of Node's default ugly-stack crash.
-installGlobalErrorHandlers();
+installGlobalErrorHandlers(process, async (error) => {
+  await observability.shutdown().catch(() => {});
+  reportFatal(error);
+});
 
-runCli(process.argv).catch(reportFatal);
+runCli(process.argv).then(
+  () => observability.shutdown().catch(() => {}),
+  async (error) => {
+    await observability.shutdown().catch(() => {});
+    reportFatal(error);
+  },
+);

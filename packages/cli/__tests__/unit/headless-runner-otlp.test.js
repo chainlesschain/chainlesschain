@@ -9,12 +9,19 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { runAgentHeadless } from "../../src/runtime/headless-runner.js";
+import {
+  initObservability,
+  resetObservabilityForTests,
+} from "../../src/lib/observability/index.js";
+import { TraceContext } from "../../src/lib/execution-trace/trace-context.js";
 
 let tmp;
-beforeEach(() => {
+beforeEach(async () => {
+  await resetObservabilityForTests();
   tmp = fs.mkdtempSync(path.join(os.tmpdir(), "cc-hl-otlp-"));
 });
-afterEach(() => {
+afterEach(async () => {
+  await resetObservabilityForTests();
   try {
     fs.rmSync(tmp, { recursive: true, force: true });
   } catch {
@@ -92,6 +99,41 @@ describe("runAgentHeadless --otlp", () => {
     );
     expect(res.isError).toBe(false);
     // No otlp path → nothing written into tmp.
+    expect(fs.readdirSync(tmp)).toHaveLength(0);
+  });
+
+  it("records and enqueues spans when only the standard Collector is enabled", async () => {
+    const payloads = [];
+    const exporter = {
+      enabled: true,
+      exportSpans: () => true,
+      exportTracePayload: (payload) => {
+        payloads.push(payload);
+        return true;
+      },
+      exportMetrics: () => false,
+      shutdown: async () => ({ exported: payloads.length }),
+      getStats: () => ({ enabled: true }),
+    };
+    initObservability(
+      {},
+      {
+        exporter,
+        traceContext: new TraceContext(),
+        metricsCollector: { collect: () => ({ resourceMetrics: [] }) },
+      },
+    );
+    const { deps } = makeDeps(recordingLoop);
+    const result = await runAgentHeadless(
+      { prompt: "do work", outputFormat: "json", expandFileRefs: false },
+      deps,
+    );
+
+    expect(result.isError).toBe(false);
+    expect(payloads).toHaveLength(1);
+    expect(
+      payloads[0].resourceSpans[0].scopeSpans[0].spans.map((item) => item.name),
+    ).toContain("agent.model");
     expect(fs.readdirSync(tmp)).toHaveLength(0);
   });
 });

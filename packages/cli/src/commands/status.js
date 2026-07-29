@@ -1,6 +1,30 @@
 import chalk from "chalk";
 import logger from "../lib/logger.js";
 import { collectStatusReport } from "../runtime/diagnostics.js";
+import { getObservabilityRuntime } from "../lib/observability/index.js";
+
+export function collectOtlpStatus(runtime = getObservabilityRuntime()) {
+  return (
+    runtime?.getStats?.() || {
+      enabled: false,
+      protocol: "http/json",
+      tracesEndpoint: null,
+      metricsEndpoint: null,
+      queued: 0,
+      queueCapacity: 0,
+      queuePressure: "normal",
+      enqueued: 0,
+      exported: 0,
+      retried: 0,
+      dropped: 0,
+      permanentFailures: 0,
+      recovered: 0,
+      spoolErrors: 0,
+      configurationErrors: [],
+      lastError: null,
+    }
+  );
+}
 
 export function registerStatusCommand(program) {
   program
@@ -10,6 +34,9 @@ export function registerStatusCommand(program) {
     .action(async (options) => {
       try {
         const report = await collectStatusReport();
+        report.observability = {
+          otlp: collectOtlpStatus(),
+        };
 
         if (options.json) {
           console.log(JSON.stringify(report, null, 2));
@@ -64,6 +91,34 @@ export function registerStatusCommand(program) {
         for (const p of report.ports) {
           const icon = p.open ? chalk.green("●") : chalk.gray("○");
           logger.log(`  ${icon} ${p.name}: ${p.port}`);
+        }
+
+        const otlp = report.observability.otlp;
+        logger.log(chalk.bold("\n  OpenTelemetry Collector\n"));
+        if (!otlp.enabled) {
+          logger.log(`  ${chalk.gray("○")} OTLP export disabled`);
+          if (otlp.configurationErrors?.length) {
+            logger.log(
+              `    configuration: ${otlp.configurationErrors.join("; ")}`,
+            );
+          }
+        } else {
+          logger.log(
+            `  ${chalk.green("●")} ${otlp.protocol} · queue ${otlp.queued}/${otlp.queueCapacity} (${otlp.queuePressure})`,
+          );
+          logger.log(`    traces: ${otlp.tracesEndpoint || "disabled"}`);
+          logger.log(`    metrics: ${otlp.metricsEndpoint || "disabled"}`);
+          if (otlp.retried || otlp.dropped || otlp.permanentFailures) {
+            logger.log(
+              `    retries ${otlp.retried}, dropped ${otlp.dropped}, permanent failures ${otlp.permanentFailures}`,
+            );
+          }
+          if (otlp.configurationErrors?.length) {
+            logger.log(
+              `    configuration: ${otlp.configurationErrors.join("; ")}`,
+            );
+          }
+          if (otlp.lastError) logger.log(`    last error: ${otlp.lastError}`);
         }
 
         logger.newline();
