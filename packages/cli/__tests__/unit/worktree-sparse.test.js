@@ -103,6 +103,14 @@ describe("worktree-sparse: planSymlinkDirectories", () => {
     }
   });
 
+  it("allows only node_modules dependency roots", () => {
+    for (const bad of [".", ".git", ".worktrees", "src", "dist"]) {
+      expect(() =>
+        planSymlinkDirectories([bad], { repoDir, worktreePath }),
+      ).toThrow(/not an approved dependency root/);
+    }
+  });
+
   it("requires repoDir and worktreePath", () => {
     expect(() => planSymlinkDirectories(["node_modules"], {})).toThrow(
       /requires repoDir and worktreePath/,

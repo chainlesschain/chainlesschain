@@ -909,8 +909,28 @@ Desktop coding-agent core 134 个、Desktop lifecycle 24 个、SDK protocol/agen
 | ----- | ------------------------ | ----------------------------------------------------- |
 | P2-14 | 全工具文件回滚           | Process Broker 捕获所有文件写入，支持 checkpoint 回滚 |
 | P2-15 | Auto mode 安全分类器     | 危险操作自动识别评测集                                |
-| P2-16 | 大规模 Agent Teams       | 多 agent 协作扩展                                     |
+| P2-16 | 大规模 Agent Teams       | 🟡 基础批次（2026-07-29），尚未完成                   |
 | P2-17 | 标准 OTel Collector 出口 | ✅ 完成（2026-07-29），兼容生态可观测性工具           |
+
+### P2-16 状态：🟡 基础批次（2026-07-29）
+
+- **已实现**：10k task / 64 worker indexed scheduler、有界 mailbox/backpressure、真实 stream usage、
+  per-task tightened contract、fenced lease、claim-time token/USD reservation、scope ownership、
+  fail-closed append-only durable journal、跨进程 canonical state ownership、journal seq+digest
+  恢复锚点、commit OID/integration 状态，以及 prepare→persist→remove→persist 两阶段 cleanup。
+  崩溃后只有 dry-run 或显式 `retrySafe: true` 的任务会自动重领；其他真实任务停止并要求裁决。
+  启用 token/USD cap 时，usage 缺失或远端模型无法定价同样 fail closed。
+- **写隔离**：多 worker 的真实 Agent/shell 执行必须使用 `--worktree`；`scopePaths` 仅用于调度，
+  不作为实际写集的安全证明。恢复的 worktree path 必须绑定当前 repo/run/branch 的
+  `.worktrees` 直接子目录。
+- **状态 authority**：collaboration governance journal 保持无 prompt/argv；`--state` 是未签名
+  的可信控制面，保存 task graph、命令/提示词、预算、权限及 mailbox 内容。真实执行要求 state
+  位于 Agent 可写 repo 外；seq+digest 是回滚/分叉一致性锚点，不是认证。v5 schema 会硬拒绝
+  v2–v4 状态。
+- **已知隔离边界**：`--symlink-dirs` 只接受显式批准的 `node_modules` 根，但链接仍可写主
+  checkout 依赖；worktree DAG 只保证依赖执行顺序，尚不把上游未集成分支成果作为下游基线。
+- **仍缺**：IDE Agent View 人工接管、可交互的 kill-point/side-effect recovery adjudication 与安全续跑、
+  跨进程分布式队列与长期 soak。
 
 ### P2-17 状态：✅ 完成（2026-07-29）
 

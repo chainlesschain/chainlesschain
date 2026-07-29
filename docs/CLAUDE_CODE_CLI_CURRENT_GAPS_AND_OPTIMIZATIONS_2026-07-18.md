@@ -805,15 +805,37 @@ ChainlessChain 已有 auto/dontAsk 等权限模式。若要进一步对标 Claud
 应先建立离线风险集和回归基准，评测越权路径、秘密外发、生产部署、强推、未审核合并、
 第三方 Agent 无隔离执行等场景。分类器只能增加一道防线，不能替代 deny 规则和 OS 沙箱。
 
-### 14.3 大规模 Agent Teams
+### 14.3 大规模 Agent Teams：🟡 基础批次（2026-07-29）
 
-已有 Team、Workflow、Batch 和 Worktree 原语。只有在以下条件满足后才建议继续扩规模：
+当前状态是基础批次，而非完成。已有 Team、Workflow、Batch 和 Worktree 原语，并新增：
 
-- 每个 child 有独立预算、checkpoint 和权限上限。
-- 文件冲突、任务租约、重复执行和 crash recovery 已可验证。
-- Agent View 可人工接管，且事件队列有背压。
+- 10k task / 64 worker indexed scheduler；
+- bounded mailbox/backpressure 与真实 stream usage；
+- per-task tightened contract、fenced lease、claim-time token/USD reservation；启用 token/USD cap 时，
+  usage 缺失或远端模型无法定价会 fail closed；
+- scope ownership、fail-closed durable hooks/journal、跨进程 state ownership；
+- 崩溃后的真实任务默认停止并要求裁决，只有 dry-run 或显式 `retrySafe: true` 才自动重领；
+- resume 以 append-only journal seq+digest 锚定治理状态，并保留带 commit/integration/cleanup
+  阶段的 run-scoped worktree manifest；
+- worktree cleanup 采用 prepare→persist→remove→persist 两阶段协议，恢复路径绑定当前 repo、
+  run、branch 与 `.worktrees` 直接子目录。
 
-否则增加并发只会放大冲突、成本和不可恢复副作用。
+多 worker 的真实 Agent/shell 执行强制使用 `--worktree`；`scopePaths` 只影响调度，不能证明命令的
+实际写集。collaboration governance journal 不保存 prompt/argv，但 `--state` 恢复文件是**未签名
+的可信控制面 authority**，包含 task graph、命令/提示词、预算、权限与 mailbox 内容。真实执行
+强制把它放在 Agent 可写 repo 之外；seq+digest 只提供回滚/分叉一致性，不是来源认证。v5 严格
+authority schema 会拒绝 v2–v4 状态。`--symlink-dirs` 只允许显式批准的 `node_modules` 根，且它
+是指向主 checkout 的可写共享，会降低依赖隔离。
+
+仍未闭环：
+
+- IDE Agent View 人工接管；
+- 可交互的 kill-point/side-effect recovery adjudication 与安全续跑；
+- 跨进程分布式队列与长期 soak；
+- worktree DAG 当前只保证执行顺序；依赖任务不会自动继承上游未集成分支的文件成果。
+
+在这些故障与运维闭环完成前，不应把基础扩容宣传为生产级大规模 Agent Teams；继续增加并发仍会
+放大冲突、成本和不可恢复副作用。
 
 ### 14.4 标准 OTel Collector 出口：✅ 已完成（2026-07-29）
 
