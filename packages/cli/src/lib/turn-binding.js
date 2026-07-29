@@ -69,6 +69,20 @@ export function classifyToolKind(name) {
  *   mutation WITHOUT a checkpoint                        → NONE (files unrecoverable)
  */
 export function computeCoverage(flags = {}) {
+  const managedCoverage =
+    flags.managedCheckpointCoverage === TURN_COVERAGE.FULL ||
+    flags.managedCheckpointCoverage === TURN_COVERAGE.PARTIAL ||
+    flags.managedCheckpointCoverage === TURN_COVERAGE.NONE
+      ? flags.managedCheckpointCoverage
+      : null;
+  // An explicit managed-checkpoint verdict is stronger than the legacy
+  // tool-name heuristic. `none` means the requested writer lifetime could not
+  // be bounded; `partial` means workspace recovery exists but at least one
+  // path/effect remains outside it.
+  if (managedCoverage === TURN_COVERAGE.NONE) return TURN_COVERAGE.NONE;
+  if (managedCoverage === TURN_COVERAGE.PARTIAL) {
+    return TURN_COVERAGE.PARTIAL;
+  }
   const sideEffects = Boolean(
     flags.ranShell ||
     flags.spawnedExternalProcess ||
@@ -76,8 +90,21 @@ export function computeCoverage(flags = {}) {
   );
   if (sideEffects) return TURN_COVERAGE.PARTIAL;
   if (!flags.mutatedFiles) return TURN_COVERAGE.FULL;
-  if (flags.hasFileCheckpoint) return TURN_COVERAGE.FULL;
+  if (managedCoverage === TURN_COVERAGE.FULL || flags.hasFileCheckpoint) {
+    return TURN_COVERAGE.FULL;
+  }
   return TURN_COVERAGE.NONE;
+}
+
+function mergeManagedCoverage(current, next) {
+  const rank = {
+    [TURN_COVERAGE.FULL]: 2,
+    [TURN_COVERAGE.PARTIAL]: 1,
+    [TURN_COVERAGE.NONE]: 0,
+  };
+  if (!(next in rank)) return current ?? null;
+  if (!(current in rank)) return next;
+  return rank[next] < rank[current] ? next : current;
 }
 
 function emptyRecord(turnId, conversationOffset) {
@@ -92,6 +119,7 @@ function emptyRecord(turnId, conversationOffset) {
     permissionDecisionIds: [],
     childAgentIds: [],
     childBindings: [],
+    managedCheckpoints: [],
     worktreeId: null,
     // side-effect flags → coverage (kept internal; surfaced via `coverage`)
     _flags: {
@@ -100,6 +128,7 @@ function emptyRecord(turnId, conversationOffset) {
       userEditedDuringTurn: false,
       mutatedFiles: false,
       hasFileCheckpoint: false,
+      managedCheckpointCoverage: null,
     },
   };
 }
@@ -206,6 +235,62 @@ export class TurnBindingLog {
     return this;
   }
 
+  /**
+   * Bind durable Process Broker workspace-transaction evidence without
+   * overloading `fileCheckpointId` (which belongs to the legacy git rewind
+   * engine). Multiple tool calls may settle in one turn, so the worst coverage
+   * verdict governs the turn.
+   */
+  recordManagedCheckpoint(turnId, checkpoint = {}) {
+    const coverage =
+      checkpoint.coverage === TURN_COVERAGE.FULL ||
+      checkpoint.coverage === TURN_COVERAGE.PARTIAL ||
+      checkpoint.coverage === TURN_COVERAGE.NONE
+        ? checkpoint.coverage
+        : TURN_COVERAGE.NONE;
+    const normalized = {
+      toolUseId:
+        checkpoint.toolUseId == null ? null : String(checkpoint.toolUseId),
+      tool: checkpoint.tool == null ? null : String(checkpoint.tool),
+      transactionId:
+        checkpoint.transactionId == null
+          ? null
+          : String(checkpoint.transactionId),
+      checkpointId:
+        checkpoint.checkpointId == null
+          ? null
+          : String(checkpoint.checkpointId),
+      evidenceDigest:
+        checkpoint.evidenceDigest == null
+          ? null
+          : String(checkpoint.evidenceDigest),
+      phase: checkpoint.phase == null ? null : String(checkpoint.phase),
+      coverage,
+      fileCoverage:
+        checkpoint.fileCoverage === TURN_COVERAGE.FULL ||
+        checkpoint.fileCoverage === TURN_COVERAGE.PARTIAL ||
+        checkpoint.fileCoverage === TURN_COVERAGE.NONE
+          ? checkpoint.fileCoverage
+          : TURN_COVERAGE.NONE,
+    };
+    const rec = this._rec(turnId);
+    const existingIndex = rec.managedCheckpoints.findIndex(
+      (item) =>
+        (normalized.transactionId &&
+          item.transactionId === normalized.transactionId) ||
+        (!normalized.transactionId &&
+          normalized.toolUseId &&
+          item.toolUseId === normalized.toolUseId),
+    );
+    if (existingIndex === -1) rec.managedCheckpoints.push(normalized);
+    else rec.managedCheckpoints[existingIndex] = normalized;
+    rec._flags.managedCheckpointCoverage = mergeManagedCoverage(
+      rec._flags.managedCheckpointCoverage,
+      coverage,
+    );
+    return this;
+  }
+
   setWorktree(turnId, worktreeId) {
     this._rec(turnId).worktreeId =
       worktreeId == null ? null : String(worktreeId);
@@ -271,6 +356,13 @@ export class TurnBindingLog {
         checkpointIds: [...binding.checkpointIds],
         toolUseIds: [...binding.toolUseIds],
       })),
+      ...(rec.managedCheckpoints.length > 0
+        ? {
+            managedCheckpoints: rec.managedCheckpoints.map((checkpoint) => ({
+              ...checkpoint,
+            })),
+          }
+        : {}),
       worktreeId: rec.worktreeId,
       coverage: computeCoverage(rec._flags),
     };
@@ -280,7 +372,13 @@ export class TurnBindingLog {
     return {
       turns: this._order.map((id) => {
         const r = this._turns.get(id);
-        return { ...r, _flags: { ...r._flags } };
+        return {
+          ...r,
+          managedCheckpoints: r.managedCheckpoints.map((checkpoint) => ({
+            ...checkpoint,
+          })),
+          _flags: { ...r._flags },
+        };
       }),
     };
   }
@@ -314,6 +412,39 @@ export class TurnBindingLog {
                 : [],
               worktreeId: binding.worktreeId ?? null,
               worktreePath: binding.worktreePath ?? null,
+            }))
+          : [],
+        managedCheckpoints: Array.isArray(r.managedCheckpoints)
+          ? r.managedCheckpoints.map((checkpoint) => ({
+              toolUseId:
+                checkpoint?.toolUseId == null
+                  ? null
+                  : String(checkpoint.toolUseId),
+              tool: checkpoint?.tool == null ? null : String(checkpoint.tool),
+              transactionId:
+                checkpoint?.transactionId == null
+                  ? null
+                  : String(checkpoint.transactionId),
+              checkpointId:
+                checkpoint?.checkpointId == null
+                  ? null
+                  : String(checkpoint.checkpointId),
+              evidenceDigest:
+                checkpoint?.evidenceDigest == null
+                  ? null
+                  : String(checkpoint.evidenceDigest),
+              phase:
+                checkpoint?.phase == null ? null : String(checkpoint.phase),
+              coverage:
+                checkpoint?.coverage === TURN_COVERAGE.FULL ||
+                checkpoint?.coverage === TURN_COVERAGE.PARTIAL
+                  ? checkpoint.coverage
+                  : TURN_COVERAGE.NONE,
+              fileCoverage:
+                checkpoint?.fileCoverage === TURN_COVERAGE.FULL ||
+                checkpoint?.fileCoverage === TURN_COVERAGE.PARTIAL
+                  ? checkpoint.fileCoverage
+                  : TURN_COVERAGE.NONE,
             }))
           : [],
         worktreeId: r.worktreeId ?? null,
@@ -534,6 +665,33 @@ export function createTurnBindingFeed({
         case "checkpoint":
           if (event.id != null) {
             log.bindCheckpoint(turnId, event.id);
+            dirty = true;
+          }
+          break;
+        case "managed-checkpoint-settled":
+          log.recordManagedCheckpoint(turnId, {
+            toolUseId: event.tool_use_id,
+            tool: event.tool,
+            transactionId: event.transaction_id,
+            checkpointId: event.id,
+            evidenceDigest: event.evidence_digest,
+            phase: event.phase,
+            coverage: event.coverage,
+            fileCoverage: event.file_coverage,
+          });
+          dirty = true;
+          break;
+        case "managed-checkpoint-error":
+          if (event.phase !== "prepare" && event.recovery_required === true) {
+            log.recordManagedCheckpoint(turnId, {
+              toolUseId: event.tool_use_id,
+              tool: event.tool,
+              transactionId: event.transaction_id,
+              checkpointId: event.checkpoint_id,
+              phase: event.phase || "settle",
+              coverage: TURN_COVERAGE.NONE,
+              fileCoverage: TURN_COVERAGE.NONE,
+            });
             dirty = true;
           }
           break;

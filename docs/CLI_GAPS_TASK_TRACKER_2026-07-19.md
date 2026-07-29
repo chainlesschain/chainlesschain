@@ -905,12 +905,34 @@ Desktop coding-agent core 134 个、Desktop lifecycle 24 个、SDK protocol/agen
 
 ## 🟢 P2 任务（差异化方向，按需执行）
 
-| #     | 任务                     | 说明                                                  |
-| ----- | ------------------------ | ----------------------------------------------------- |
-| P2-14 | 全工具文件回滚           | Process Broker 捕获所有文件写入，支持 checkpoint 回滚 |
-| P2-15 | Auto mode 安全分类器     | ✅ 完成（2026-07-29），危险操作自动识别评测集         |
-| P2-16 | 大规模 Agent Teams       | 🟡 基础批次（2026-07-29），尚未完成                   |
-| P2-17 | 标准 OTel Collector 出口 | ✅ 完成（2026-07-29），兼容生态可观测性工具           |
+| #     | 任务                     | 说明                                                        |
+| ----- | ------------------------ | ----------------------------------------------------------- |
+| P2-14 | 全工具文件回滚           | ✅ 分层完成（2026-07-29），受控工作区写入可 checkpoint 回滚 |
+| P2-15 | Auto mode 安全分类器     | ✅ 完成（2026-07-29），危险操作自动识别评测集               |
+| P2-16 | 大规模 Agent Teams       | 🟡 基础批次（2026-07-29），尚未完成                         |
+| P2-17 | 标准 OTel Collector 出口 | ✅ 完成（2026-07-29），兼容生态可观测性工具                 |
+
+### P2-14 状态：✅ 分层完成（2026-07-29）
+
+- **工作区事务**：Process Broker 在受控执行前建立持久 checkpoint，记录工作区内容、
+  mode 与毫秒级 mtime；成功时提交，失败或取消时回滚。死进程只有在 owner/lock 精确匹配、
+  所有 execution 已 settled 且具备 process-tree proof 时才自动回滚，否则返回
+  `recovery_required`。workspace root 的 canonical path 与 device/inode identity、state
+  authority 和跨进程锁均被固定，替换根目录、锁目录绕行或并发 owner 冲突会 fail closed。
+- **覆盖等级**：只有可信调用方显式声明 `coverageTarget=full`、
+  `writerIsolation=exclusive-workspace`，且没有 exclusions、unsafe entries、外部 Git
+  metadata 或外部副作用时，事务引擎才允许 `full`；managed shell/process 的工作区文件可恢复，
+  但网络、数据库、消息、部署、支付等副作用仍为 `partial`；ambient MCP/LSP、后台
+  shell/Agent/Hook、外部 executor 或 additional roots 会跳过 checkpoint、报告 `none`，不会
+  虚报为可恢复。
+- **平台边界**：Linux managed shell/process 要求受信 bubblewrap execution contract；
+  Windows 使用 restricted token + kill-on-close Job，并在要求的 AppContainer 边界不可用时
+  fail closed；macOS 当前只对直接文件工具提供 checkpoint，managed shell/process 因尚无
+  可证明的 process-tree 保证而在 native spawn 前拒绝。
+- **验证证据**：17 个核心测试文件为 198 passed / 16 skipped / 0 failed；共享 state lock
+  16/16 通过；真实 Windows restricted Node → nested Broker → `git --version`、跨进程锁和
+  crash recovery 均通过。P2-16 下游兼容烟测中的旧 commit/rollback 回归及真实双进程 DAG
+  也通过。
 
 ### P2-15 状态：✅ 完成（2026-07-29）
 

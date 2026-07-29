@@ -14,6 +14,8 @@
  * reclaimed merely because the directory is old, and corrupt ownership fails
  * closed. Confirmed-dead owners are reclaimed with an exact-token marker inside
  * the lock directory so a delayed contender cannot delete a replacement lock.
+ * Strict callers may use bounded jittered retries and an after-release yield to
+ * avoid Windows sharing transients and fixed-interval lock convoys.
  *
  * @param {string} targetPath  the file being guarded (lock is `${targetPath}.lock`)
  * @param {(ctx:{locked:boolean})=>T} fn  critical section; receives whether the lock was held
@@ -24,9 +26,13 @@ export function withFileLock(targetPath, fn, opts = {}) {
     timeoutMs = 2000,
     staleMs = 30000,
     retryMs = 25,
+    maxRetryMs = Math.max(retryMs, 100),
+    retryJitterMs = retryMs,
+    yieldAfterReleaseMs = 0,
     _fs = defaultFs,
     _now = () => Date.now(),
     _sleep = sleepSync,
+    _random = Math.random,
     _isProcessAlive = isProcessAlive,
     _ownerToken = () => randomUUID(),
     failIfUnavailable = false,
@@ -40,6 +46,8 @@ export function withFileLock(targetPath, fn, opts = {}) {
     token: _ownerToken(),
   };
   let held = false;
+  let acquisitionError = null;
+  let retryAttempt = 0;
   const deadline = _now() + timeoutMs;
 
   for (;;) {
@@ -55,13 +63,50 @@ export function withFileLock(targetPath, fn, opts = {}) {
         break;
       } catch (error) {
         _fs.rmSync(lockDir, { recursive: true, force: true });
-        if (failIfUnavailable) throw error;
+        acquisitionError = error;
+        if (
+          failIfUnavailable &&
+          isTransientLockError(error) &&
+          waitForRetry({
+            _now,
+            _sleep,
+            _random,
+            deadline,
+            retryAttempt: retryAttempt++,
+            retryMs,
+            maxRetryMs,
+            retryJitterMs,
+          })
+        ) {
+          continue;
+        }
         break;
       }
-    } catch (err) {
-      if (!err || err.code !== "EEXIST") break; // unexpected fs error → run unlocked
+    } catch (error) {
+      if (!error || error.code !== "EEXIST") {
+        acquisitionError = error;
+        if (
+          failIfUnavailable &&
+          isTransientLockError(error) &&
+          waitForRetry({
+            _now,
+            _sleep,
+            _random,
+            deadline,
+            retryAttempt: retryAttempt++,
+            retryMs,
+            maxRetryMs,
+            retryJitterMs,
+          })
+        ) {
+          continue;
+        }
+        break;
+      }
 
-      const incumbent = readOwner(_fs, ownerPath);
+      const ownerRead = readOwnerResult(_fs, ownerPath);
+      const incumbent = ownerRead.owner;
+      acquisitionError = ownerRead.error;
       if (incumbent) {
         if (!_isProcessAlive(incumbent.pid)) {
           if (reclaimOwnedDirectory(_fs, lockDir, incumbent, _isProcessAlive)) {
@@ -81,14 +126,30 @@ export function withFileLock(targetPath, fn, opts = {}) {
           /* stat lost a race with the holder releasing — retry/wait below */
         }
       }
-      if (_now() >= deadline) break; // timed out → run unlocked (best-effort)
-      _sleep(retryMs);
+      if (
+        !waitForRetry({
+          _now,
+          _sleep,
+          _random,
+          deadline,
+          retryAttempt: retryAttempt++,
+          retryMs,
+          maxRetryMs,
+          retryJitterMs,
+        })
+      ) {
+        break;
+      }
     }
   }
 
   if (!held && failIfUnavailable) {
-    const error = new Error(`Could not acquire state lock: ${targetPath}`);
+    const error = new Error(
+      `Could not acquire state lock: ${targetPath}`,
+      acquisitionError ? { cause: acquisitionError } : undefined,
+    );
     error.code = "STATE_LOCK_UNAVAILABLE";
+    error.attempts = retryAttempt + 1;
     throw error;
   }
 
@@ -116,6 +177,11 @@ export function withFileLock(targetPath, fn, opts = {}) {
     if (!error.code) error.code = "STATE_LOCK_OWNERSHIP_LOST";
     throw error;
   }
+  if (held && released && yieldAfterReleaseMs > 0) {
+    // The lock is already gone. This lets an existing waiter run before a
+    // process performing many tiny transactions can immediately reacquire it.
+    _sleep(yieldAfterReleaseMs);
+  }
   return result;
 }
 
@@ -140,25 +206,76 @@ function isProcessAlive(pid) {
   }
 }
 
+const TRANSIENT_LOCK_ERROR_CODES = new Set([
+  "EACCES",
+  "EBUSY",
+  "EMFILE",
+  "ENFILE",
+  "ENOENT",
+  "ENOTEMPTY",
+  "EPERM",
+]);
+
+function isTransientLockError(error) {
+  return !!error && TRANSIENT_LOCK_ERROR_CODES.has(error.code);
+}
+
+function waitForRetry({
+  _now,
+  _sleep,
+  _random,
+  deadline,
+  retryAttempt,
+  retryMs,
+  maxRetryMs,
+  retryJitterMs,
+}) {
+  const remaining = deadline - _now();
+  if (remaining <= 0) return false;
+
+  const base = Math.max(1, Number(retryMs) || 1);
+  const maximum = Math.max(base, Number(maxRetryMs) || base);
+  const exponent = Math.min(Math.max(0, retryAttempt), 8);
+  const exponential = Math.min(maximum, base * 2 ** exponent);
+  const jitterLimit = Math.max(0, Number(retryJitterMs) || 0);
+  const sample = Number(_random());
+  const jitter =
+    jitterLimit > 0 && Number.isFinite(sample)
+      ? Math.floor(Math.min(1, Math.max(0, sample)) * jitterLimit)
+      : 0;
+  _sleep(Math.min(remaining, exponential + jitter));
+  return true;
+}
+
 function readOwner(_fs, ownerPath) {
+  return readOwnerResult(_fs, ownerPath).owner;
+}
+
+function readOwnerResult(_fs, ownerPath) {
+  let owner;
   try {
-    const owner = JSON.parse(_fs.readFileSync(ownerPath, "utf8"));
-    if (
-      !owner ||
-      typeof owner !== "object" ||
-      Array.isArray(owner) ||
-      !Number.isSafeInteger(owner.pid) ||
-      owner.pid <= 0 ||
-      !Number.isFinite(owner.startedAt) ||
-      typeof owner.token !== "string" ||
-      !/^[a-zA-Z0-9-]{16,128}$/.test(owner.token)
-    ) {
-      return null;
-    }
-    return owner;
-  } catch {
-    return null;
+    owner = JSON.parse(_fs.readFileSync(ownerPath, "utf8"));
+  } catch (cause) {
+    if (cause?.code) return { owner: null, error: cause };
+    const error = new Error("State lock owner metadata is corrupt", { cause });
+    error.code = "STATE_LOCK_OWNER_CORRUPT";
+    return { owner: null, error };
   }
+  if (
+    !owner ||
+    typeof owner !== "object" ||
+    Array.isArray(owner) ||
+    !Number.isSafeInteger(owner.pid) ||
+    owner.pid <= 0 ||
+    !Number.isFinite(owner.startedAt) ||
+    typeof owner.token !== "string" ||
+    !/^[a-zA-Z0-9-]{16,128}$/.test(owner.token)
+  ) {
+    const error = new Error("State lock owner metadata is corrupt");
+    error.code = "STATE_LOCK_OWNER_CORRUPT";
+    return { owner: null, error };
+  }
+  return { owner, error: null };
 }
 
 function sameOwner(left, right) {

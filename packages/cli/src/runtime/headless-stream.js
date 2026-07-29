@@ -2065,6 +2065,9 @@ async function runAgentHeadlessStreamInWorkspace(options = {}, deps = {}) {
     // only, a no-op outside a git repo.
     autoCheckpoint: options.autoCheckpoint || false,
     checkpointSession: options.checkpointSession || sessionId,
+    managedCheckpoint: options.managedCheckpoint === true,
+    managedCheckpointStateDir: options.managedCheckpointStateDir || null,
+    managedCheckpointExclusions: options.managedCheckpointExclusions || [],
     hookDb: db,
     approvalGate,
     permissionRules,

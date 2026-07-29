@@ -95,6 +95,10 @@ import {
 } from "../lib/provider-http-error.js";
 import { buildPermissionDecision } from "../lib/permission-decision.js";
 import { resolveSandboxPolicyPath } from "../lib/agent-sandbox.js";
+import {
+  beginManagedToolCheckpoint,
+  settleManagedToolCheckpoint,
+} from "../lib/managed-tool-checkpoint.js";
 
 export { formatProviderHttpError };
 
@@ -2223,6 +2227,7 @@ export async function executeTool(name, args, context = {}) {
       backgroundSubAgents: context.backgroundSubAgents || null,
       toolAdmission: context.toolAdmission || null,
       unattendedActionPolicy: context.unattendedActionPolicy || null,
+      managedCheckpoint: context.managedCheckpoint === true,
     });
   } catch (err) {
     if (hookDb) {
@@ -2866,12 +2871,19 @@ async function _postEditDiagnostics(filePath, cwd, additionalDirectories) {
 }
 
 /** Merge post-edit diagnostics into a successful edit result (no-op if none). */
-async function _withPostEditDiagnostics(
+export async function _withPostEditDiagnostics(
   result,
   filePath,
   cwd,
   additionalDirectories,
+  managedCheckpoint = false,
 ) {
+  // A cold language server is a long-lived child process. Starting one inside
+  // a managed workspace transaction would keep a writer bound past tool
+  // settlement and make commit/rollback unverifiable. Managed edits therefore
+  // skip this best-effort enrichment; callers can request diagnostics after the
+  // checkpoint has sealed.
+  if (managedCheckpoint) return result;
   const newDiagnostics = await _postEditDiagnostics(
     filePath,
     cwd,
@@ -3061,6 +3073,7 @@ async function executeToolInner(
     subAgentUsageSink = null,
     toolAdmission = null,
     unattendedActionPolicy = null,
+    managedCheckpoint = false,
     // Hook-envelope tracing: this run's trace id, threaded into child loops
     // (spawn_sub_agent / isolated run_skill) as their parent_id.
     hookTraceId = null,
@@ -3220,6 +3233,7 @@ async function executeToolInner(
             filePath,
             cwd,
             additionalDirectories,
+            managedCheckpoint,
           ),
           filePath,
           cwd,
@@ -3300,6 +3314,7 @@ async function executeToolInner(
             targetPath,
             cwd,
             additionalDirectories,
+            managedCheckpoint,
           ),
           targetPath,
           cwd,
@@ -3399,6 +3414,7 @@ async function executeToolInner(
             filePath,
             cwd,
             additionalDirectories,
+            managedCheckpoint,
           ),
           filePath,
           cwd,
@@ -3463,6 +3479,7 @@ async function executeToolInner(
             filePath,
             cwd,
             additionalDirectories,
+            managedCheckpoint,
           ),
           filePath,
           cwd,
@@ -8172,6 +8189,55 @@ async function _autoCheckpointBeforeTool(toolContext, toolName, toolArgs) {
   }
 }
 
+function _managedCheckpointUncoveredWriterReason(toolContext) {
+  if (
+    Array.isArray(toolContext?.additionalDirectories) &&
+    toolContext.additionalDirectories.length > 0
+  ) {
+    return "additional_workspace_roots_not_transactional";
+  }
+  if (
+    toolContext?.mcpClient?.servers instanceof Map &&
+    toolContext.mcpClient.servers.size > 0
+  ) {
+    return "ambient_mcp_server_writer_not_quiescent";
+  }
+  const workspaceRoot = path.resolve(toolContext?.cwd || process.cwd());
+  const hasOverlappingCodeIntel = [..._codeIntelPool.keys()].some(
+    (candidate) => {
+      const lspRoot = path.resolve(candidate);
+      const workspaceToLsp = path.relative(workspaceRoot, lspRoot);
+      const lspToWorkspace = path.relative(lspRoot, workspaceRoot);
+      const isInside = (relative) =>
+        relative === "" ||
+        (relative !== ".." &&
+          !relative.startsWith(`..${path.sep}`) &&
+          !path.isAbsolute(relative));
+      return isInside(workspaceToLsp) || isInside(lspToWorkspace);
+    },
+  );
+  if (hasOverlappingCodeIntel) {
+    return "ambient_lsp_writer_not_quiescent";
+  }
+  if (
+    [..._backgroundShellTasks.values()].some(
+      (task) => task?.status === "running",
+    )
+  ) {
+    return "ambient_background_shell_writer_not_quiescent";
+  }
+  if (
+    toolContext?.backgroundSubAgents instanceof Map &&
+    toolContext.backgroundSubAgents.size > 0
+  ) {
+    return "ambient_background_agent_writer_not_quiescent";
+  }
+  if (toolContext?.hookSupervisor && toolContext?.settingsHooks) {
+    return "asynchronous_hook_writer_not_quiescent";
+  }
+  return null;
+}
+
 /**
  * Async generator that drives the agentic tool-use loop.
  *
@@ -8399,6 +8465,13 @@ export async function* agentLoop(messages, options) {
     autoCheckpoint: options.autoCheckpoint || false,
     checkpointSession:
       options.checkpointSession || options.sessionId || "agent",
+    managedCheckpoint: options.managedCheckpoint === true,
+    managedCheckpointStateDir: options.managedCheckpointStateDir || null,
+    managedCheckpointExclusions: Array.isArray(
+      options.managedCheckpointExclusions,
+    )
+      ? [...options.managedCheckpointExclusions]
+      : [],
     // Sub-agent nesting level (0 = main loop); spawn_sub_agent caps at
     // MAX_SUB_AGENT_DEPTH using this.
     subAgentDepth: options.subAgentDepth || 0,
@@ -9230,136 +9303,307 @@ export async function* agentLoop(messages, options) {
           turn_id: `${runId}:t${budget.consumed}`,
         };
 
-      yield {
-        type: "tool-executing",
-        tool: toolName,
-        args: toolArgs,
-        tool_use_id: call.id,
-        turn_id: `${runId}:t${budget.consumed}`,
-      };
-
-      let toolResult;
-      let toolError = null;
-      // Per-span unified ids (P2 observability): a tool span carries its turn.id
-      // (correlating with the model span of the same iteration), the provider's
-      // tool_use.id (so a tool-result event can be tied back to its call), and —
-      // when auto-checkpoint fired before a mutating tool — the checkpoint.id the
-      // user could restore to. All normalized through buildTelemetryAttributes.
-      // tool_arguments CONTENT is opt-in (--otlp-content): the alias key is only
-      // present when explicitly enabled, so by default the field is omitted
-      // entirely (byte-identical default OTLP), and even opted-in it's length-
-      // capped by redactContent. Mirrors the run-level content.prompt opt-in.
-      const toolContentOptIn = options.otlpIncludeContent === true;
-      const toolIdAttrs = recorder
-        ? buildTelemetryAttributes(
-            {
-              turnId: `${runId}:t${budget.consumed}`,
-              toolUseId: call.id,
-              checkpointId: cpId || undefined,
-              ...(toolContentOptIn ? { toolArguments: toolArgs } : {}),
-            },
-            { includeContent: toolContentOptIn },
-          )
-        : null;
+      let managedCheckpointHandle = null;
+      let managedCheckpointPreparationError = null;
       try {
-        toolResult = await _withSpan(
-          recorder,
-          "agent.tool",
-          { "tool.name": toolName, ...(toolIdAttrs || {}) },
-          () =>
-            executeTool(toolName, toolArgs, {
-              ...toolContext,
-              toolCallId: call.id,
-              turnId: `${runId}:t${budget.consumed}`,
-            }),
-          (span, r) => {
-            span.setAttribute(
-              "tool.is_error",
-              !!(r && typeof r === "object" && r.error),
-            );
-            // permission.decision_id (P2): a GATED tool result carries a
-            // `policy` (deny / ask-fail / host-block / sandbox); allow-path
-            // tools execute with no distinct decision. Stamp a stable id
-            // (derived from the call + gate, so it's recomputable from the
-            // tool-result's policy + tool_call_id) plus the low-cardinality
-            // decision, letting a blocked tool span be tied to its decision.
-            const decision =
-              r && typeof r === "object"
-                ? permissionDecision(call.id, toolName, r)
-                : null;
-            if (decision?.id) {
-              const permAttrs = buildTelemetryAttributes({
-                decisionId: decision.id,
-                "permission.decision": decision.decision,
-              });
-              if (permAttrs["permission.decision_id"]) {
-                span.setAttribute(
-                  "permission.decision_id",
-                  permAttrs["permission.decision_id"],
-                );
-              }
-              if (permAttrs["permission.decision"]) {
-                span.setAttribute(
-                  "permission.decision",
-                  permAttrs["permission.decision"],
-                );
-              }
-            }
-          },
-          "tool_error",
-        );
-      } catch (err) {
-        toolResult = { error: err.message };
-        toolError = err.message;
+        managedCheckpointHandle = beginManagedToolCheckpoint({
+          enabled: toolContext.managedCheckpoint === true,
+          broker,
+          workspaceRoot: toolContext.cwd || process.cwd(),
+          stateDir: toolContext.managedCheckpointStateDir || undefined,
+          runId,
+          taskKey: `${runId}:t${budget.consumed}:${call.id}:${toolName}`,
+          toolName,
+          toolArgs,
+          externalToolExecutor:
+            toolContext.externalToolExecutors?.[toolName] || null,
+          unmanagedWriterReason:
+            _managedCheckpointUncoveredWriterReason(toolContext),
+          exclusions: toolContext.managedCheckpointExclusions || [],
+        });
+      } catch (error) {
+        managedCheckpointPreparationError = error;
+        yield {
+          type: "managed-checkpoint-error",
+          phase: "prepare",
+          tool: toolName,
+          error: error.message,
+          code: error.code || null,
+          coverage: "none",
+          tool_use_id: call.id,
+          turn_id: `${runId}:t${budget.consumed}`,
+        };
       }
-      if (recorder) recorder.counter("agent.tool.calls", 1);
+      let managedCheckpointSettled = managedCheckpointHandle?.skipped === true;
+      let managedCheckpointSettlementAttempted = false;
+      try {
+        if (managedCheckpointHandle) {
+          yield {
+            type: "managed-checkpoint",
+            phase: managedCheckpointHandle.skipped ? "unavailable" : "prepared",
+            id: managedCheckpointHandle.checkpointId || null,
+            transaction_id: managedCheckpointHandle.transactionId || null,
+            tool: toolName,
+            coverage: managedCheckpointHandle.skipped
+              ? managedCheckpointHandle.coverage
+              : managedCheckpointHandle.prepared?.coverage || "partial",
+            reason: managedCheckpointHandle.reason || null,
+            tool_use_id: call.id,
+            turn_id: `${runId}:t${budget.consumed}`,
+          };
+        }
 
-      throwIfAborted(signal);
+        // A preparation failure is a strict admission failure: the tool never
+        // starts, so do not emit the observationally stronger `tool-executing`
+        // event. Consumers use that event to bind hooks, telemetry and turns to
+        // an actual invocation.
+        if (!managedCheckpointPreparationError) {
+          yield {
+            type: "tool-executing",
+            tool: toolName,
+            args: toolArgs,
+            tool_use_id: call.id,
+            turn_id: `${runId}:t${budget.consumed}`,
+          };
+        }
 
-      // Append budget warning to tool result so the LLM sees it
-      const warningMsg = budget.toWarningMessage();
-      // Cap an individual tool result so one giant output can't blow the
-      // context — but tell the model when we cut it (no more silent
-      // mid-content slice). See MAX_TOOL_RESULT_CHARS / capToolResultString.
-      const resultStr = capToolResultString(
-        safeStringifyToolResult(toolResult),
-      );
-      const toolContent = warningMsg
-        ? `${resultStr}\n\n${warningMsg}`
-        : resultStr;
+        let toolResult;
+        let toolError = null;
+        // Per-span unified ids (P2 observability): a tool span carries its turn.id
+        // (correlating with the model span of the same iteration), the provider's
+        // tool_use.id (so a tool-result event can be tied back to its call), and —
+        // when auto-checkpoint fired before a mutating tool — the checkpoint.id the
+        // user could restore to. All normalized through buildTelemetryAttributes.
+        // tool_arguments CONTENT is opt-in (--otlp-content): the alias key is only
+        // present when explicitly enabled, so by default the field is omitted
+        // entirely (byte-identical default OTLP), and even opted-in it's length-
+        // capped by redactContent. Mirrors the run-level content.prompt opt-in.
+        const toolContentOptIn = options.otlpIncludeContent === true;
+        const toolIdAttrs = recorder
+          ? buildTelemetryAttributes(
+              {
+                turnId: `${runId}:t${budget.consumed}`,
+                toolUseId: call.id,
+                checkpointId: cpId || undefined,
+                ...(toolContentOptIn ? { toolArguments: toolArgs } : {}),
+              },
+              { includeContent: toolContentOptIn },
+            )
+          : null;
+        if (managedCheckpointPreparationError) {
+          toolError = managedCheckpointPreparationError.message;
+          toolResult = {
+            error: `[Managed checkpoint] Preparation failed; "${toolName}" was blocked before execution: ${managedCheckpointPreparationError.message}`,
+            managedCheckpoint: {
+              status: "not_started",
+              coverage: "none",
+              code: managedCheckpointPreparationError.code || null,
+            },
+          };
+        } else {
+          try {
+            toolResult = await _withSpan(
+              recorder,
+              "agent.tool",
+              { "tool.name": toolName, ...(toolIdAttrs || {}) },
+              () =>
+                executeTool(toolName, toolArgs, {
+                  ...toolContext,
+                  toolCallId: call.id,
+                  turnId: `${runId}:t${budget.consumed}`,
+                }),
+              (span, r) => {
+                span.setAttribute(
+                  "tool.is_error",
+                  !!(r && typeof r === "object" && r.error),
+                );
+                // permission.decision_id (P2): a GATED tool result carries a
+                // `policy` (deny / ask-fail / host-block / sandbox); allow-path
+                // tools execute with no distinct decision. Stamp a stable id
+                // (derived from the call + gate, so it's recomputable from the
+                // tool-result's policy + tool_call_id) plus the low-cardinality
+                // decision, letting a blocked tool span be tied to its decision.
+                const decision =
+                  r && typeof r === "object"
+                    ? permissionDecision(call.id, toolName, r)
+                    : null;
+                if (decision?.id) {
+                  const permAttrs = buildTelemetryAttributes({
+                    decisionId: decision.id,
+                    "permission.decision": decision.decision,
+                  });
+                  if (permAttrs["permission.decision_id"]) {
+                    span.setAttribute(
+                      "permission.decision_id",
+                      permAttrs["permission.decision_id"],
+                    );
+                  }
+                  if (permAttrs["permission.decision"]) {
+                    span.setAttribute(
+                      "permission.decision",
+                      permAttrs["permission.decision"],
+                    );
+                  }
+                }
+              },
+              "tool_error",
+            );
+          } catch (err) {
+            toolResult = { error: err.message };
+            toolError = err.message;
+          }
+        }
+        if (recorder) recorder.counter("agent.tool.calls", 1);
 
-      const decision = permissionDecision(call.id, toolName, toolResult);
-      yield {
-        type: "tool-result",
-        tool: toolName,
-        result: toolResult,
-        error: toolError,
-        tool_use_id: call.id,
-        turn_id: `${runId}:t${budget.consumed}`,
-        permission_decision_id: decision?.id || null,
-        permission_decision: decision,
-      };
+        if (managedCheckpointHandle) {
+          const interrupted = signal?.aborted === true;
+          const toolSucceeded =
+            !interrupted &&
+            !toolError &&
+            !(toolResult && typeof toolResult === "object" && toolResult.error);
+          try {
+            managedCheckpointSettlementAttempted = true;
+            const managedCheckpoint = settleManagedToolCheckpoint(
+              managedCheckpointHandle,
+              {
+                success: toolSucceeded,
+                reason: interrupted
+                  ? "agent tool interrupted"
+                  : toolError ||
+                    (toolResult && typeof toolResult === "object"
+                      ? toolResult.error
+                      : null) ||
+                    "agent tool failed",
+              },
+            );
+            managedCheckpointSettled = true;
+            if (toolResult && typeof toolResult === "object") {
+              toolResult.managedCheckpoint = managedCheckpoint;
+            }
+            yield {
+              type: "managed-checkpoint-settled",
+              phase: managedCheckpoint?.skipped
+                ? "unavailable"
+                : toolSucceeded
+                  ? "committed"
+                  : "rolled_back",
+              id: managedCheckpoint?.checkpointId || null,
+              transaction_id: managedCheckpoint?.transactionId || null,
+              evidence_digest:
+                managedCheckpoint?.evidence?.evidenceDigest || null,
+              coverage: managedCheckpoint?.coverage || "none",
+              file_coverage: managedCheckpoint?.fileCoverage || "none",
+              reason: managedCheckpoint?.reason || null,
+              tool: toolName,
+              tool_use_id: call.id,
+              turn_id: `${runId}:t${budget.consumed}`,
+            };
+          } catch (checkpointError) {
+            toolError = checkpointError.message;
+            toolResult = {
+              error: `[Managed checkpoint] ${checkpointError.message}. Manual recovery/adjudication is required before this workspace is reused.`,
+              managedCheckpoint: {
+                status: "recovery_required",
+                coverage: "none",
+                code: checkpointError.code || null,
+                transactionId: checkpointError.transactionId || null,
+                checkpointId: checkpointError.checkpointId || null,
+                settlement: checkpointError.settlement || null,
+                originalToolError:
+                  toolResult && typeof toolResult === "object"
+                    ? toolResult.error || null
+                    : null,
+              },
+            };
+            yield {
+              type: "managed-checkpoint-error",
+              phase: checkpointError.settlement || "settle",
+              tool: toolName,
+              error: checkpointError.message,
+              code: checkpointError.code || null,
+              transaction_id: checkpointError.transactionId || null,
+              checkpoint_id: checkpointError.checkpointId || null,
+              coverage: "none",
+              recovery_required: true,
+              tool_use_id: call.id,
+              turn_id: `${runId}:t${budget.consumed}`,
+            };
+          }
+        }
 
-      messages.push({
-        role: "tool",
-        content: toolContent,
-        tool_call_id: call.id,
-      });
-      const failed = emitToolHookLifecycle({
-        tool: toolName,
-        args: toolArgs,
-        result: toolResult,
-        error: toolError,
-        sessionId: options.sessionId || null,
-        turnId,
-        toolUseId: call.id,
-        cwd: options.cwd || process.cwd(),
-      });
-      toolBatchRecords.push({
-        tool: toolName,
-        toolUseId: call.id,
-        failed,
-      });
+        throwIfAborted(signal);
+
+        // Append budget warning to tool result so the LLM sees it
+        const warningMsg = budget.toWarningMessage();
+        // Cap an individual tool result so one giant output can't blow the
+        // context — but tell the model when we cut it (no more silent
+        // mid-content slice). See MAX_TOOL_RESULT_CHARS / capToolResultString.
+        const resultStr = capToolResultString(
+          safeStringifyToolResult(toolResult),
+        );
+        const toolContent = warningMsg
+          ? `${resultStr}\n\n${warningMsg}`
+          : resultStr;
+
+        const decision = permissionDecision(call.id, toolName, toolResult);
+        yield {
+          type: "tool-result",
+          tool: toolName,
+          result: toolResult,
+          error: toolError,
+          tool_use_id: call.id,
+          turn_id: `${runId}:t${budget.consumed}`,
+          permission_decision_id: decision?.id || null,
+          permission_decision: decision,
+        };
+
+        messages.push({
+          role: "tool",
+          content: toolContent,
+          tool_call_id: call.id,
+        });
+        const failed = emitToolHookLifecycle({
+          tool: toolName,
+          args: toolArgs,
+          result: toolResult,
+          error: toolError,
+          sessionId: options.sessionId || null,
+          turnId,
+          toolUseId: call.id,
+          cwd: options.cwd || process.cwd(),
+        });
+        toolBatchRecords.push({
+          tool: toolName,
+          toolUseId: call.id,
+          failed,
+        });
+      } finally {
+        if (
+          managedCheckpointHandle &&
+          !managedCheckpointHandle.skipped &&
+          !managedCheckpointSettled &&
+          !managedCheckpointSettlementAttempted
+        ) {
+          try {
+            managedCheckpointSettlementAttempted = true;
+            settleManagedToolCheckpoint(managedCheckpointHandle, {
+              success: false,
+              reason:
+                "agent event consumer closed before managed tool settlement",
+            });
+            managedCheckpointSettled = true;
+          } catch (abandonError) {
+            // Async-generator return() executes this finally. Propagate a
+            // settlement failure so cancellation cannot silently strand a
+            // PREPARED transaction or advertise recoverable/full evidence.
+            abandonError.message = `managed checkpoint cancellation rollback failed: ${abandonError.message}`;
+            // Intentionally override the generator's pending return(): a failed
+            // rollback is security-relevant and must remain observable.
+            // eslint-disable-next-line no-unsafe-finally
+            throw abandonError;
+          }
+        }
+      }
     }
     emitToolBatchHookLifecycle({
       records: toolBatchRecords,

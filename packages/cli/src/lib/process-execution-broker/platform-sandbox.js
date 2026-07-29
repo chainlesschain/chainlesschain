@@ -5418,7 +5418,8 @@ export function applyLinuxSandbox(
   const requiresStrongLinuxBoundary = requiredBoundaries.some(
     (boundary) =>
       boundary === SANDBOX_BOUNDARIES.FILESYSTEM ||
-      boundary === SANDBOX_BOUNDARIES.NETWORK,
+      boundary === SANDBOX_BOUNDARIES.NETWORK ||
+      boundary === SANDBOX_BOUNDARIES.PROCESS_TREE,
   );
 
   if (requiresStrongLinuxBoundary) {

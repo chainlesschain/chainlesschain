@@ -1,6 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { agentLoop } from "../../src/runtime/agent-core.js";
@@ -42,9 +48,11 @@ async function runLoop(messages, options) {
 
 describe("agent-core auto-checkpoint (before mutating tools)", () => {
   let repo;
+  let managedStateDir;
 
   beforeEach(() => {
     repo = mkdtempSync(join(tmpdir(), "cc-autocp-"));
+    managedStateDir = mkdtempSync(join(tmpdir(), "cc-managed-cp-state-"));
     git(repo, "init", "-q");
     git(repo, "config", "user.email", "t@test.local");
     git(repo, "config", "user.name", "tester");
@@ -56,6 +64,7 @@ describe("agent-core auto-checkpoint (before mutating tools)", () => {
 
   afterEach(() => {
     rmSync(repo, { recursive: true, force: true });
+    rmSync(managedStateDir, { recursive: true, force: true });
   });
 
   const baseOpts = (extra) => ({
@@ -130,5 +139,40 @@ describe("agent-core auto-checkpoint (before mutating tools)", () => {
     } finally {
       rmSync(plain, { recursive: true, force: true });
     }
+  });
+
+  it("commits an explicit managed workspace transaction with honest coverage", async () => {
+    const events = await runLoop([{ role: "user", content: "write it" }], {
+      ...baseOpts(),
+      autoCheckpoint: false,
+      managedCheckpoint: true,
+      managedCheckpointStateDir: managedStateDir,
+    });
+
+    const prepared = events.find((e) => e.type === "managed-checkpoint");
+    const settled = events.find((e) => e.type === "managed-checkpoint-settled");
+    const result = events.find((e) => e.type === "tool-result");
+
+    expect(prepared).toMatchObject({
+      phase: "prepared",
+      tool: "write_file",
+      coverage: "partial",
+      transaction_id: expect.stringMatching(/^wcp-/),
+    });
+    expect(settled).toMatchObject({
+      phase: "committed",
+      tool: "write_file",
+      coverage: "partial",
+      file_coverage: "partial",
+      transaction_id: prepared.transaction_id,
+      evidence_digest: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+    });
+    expect(result.result.managedCheckpoint.evidence).toMatchObject({
+      outcome: "committed",
+      coverage: "partial",
+      fileCoverage: "partial",
+    });
+    expect(existsSync(join(repo, "out.txt"))).toBe(true);
+    expect(readFileSync(join(repo, "out.txt"), "utf8")).toBe("hi");
   });
 });

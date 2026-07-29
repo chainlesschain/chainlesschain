@@ -6895,6 +6895,43 @@ describe("platform sandbox adapter contract", () => {
     );
   });
 
+  it("reapplies restricted-token policy idempotently for nested workers", () => {
+    const runStart = windowsSandboxSource.indexOf("public static int Run(");
+    const runEnd = windowsSandboxSource.indexOf(
+      "public static void WriteIdentityError(",
+      runStart,
+    );
+    const runSource = windowsSandboxSource.slice(runStart, runEnd);
+
+    expect(windowsSandboxSource).toContain(
+      "private static bool TokenHasUnexpectedEnabledPrivileges(IntPtr token)",
+    );
+    expect(windowsSandboxSource).toContain(
+      "private static bool TokenWasFiltered(IntPtr token)",
+    );
+    expect(windowsSandboxSource).toContain(
+      "private static bool TokenHasEnabledAdministratorSid(IntPtr token)",
+    );
+    expect(windowsSandboxSource).toContain(
+      "private static void AssertRestrictedTokenPolicy(",
+    );
+    expect(runSource).toContain("UInt32 restrictedTokenFlags = 0;");
+    expect(runSource).toMatch(
+      /!TokenWasFiltered\(sourceToken\) \|\|\s+TokenHasUnexpectedEnabledPrivileges\(sourceToken\)/,
+    );
+    expect(runSource).toMatch(
+      /disableAdministratorSids &&\s+TokenHasEnabledAdministratorSid\(sourceToken\)/,
+    );
+    expect(runSource).toMatch(
+      /CreateRestrictedToken\([\s\S]*restrictedTokenFlags,[\s\S]*out restrictedToken\)/,
+    );
+    expect(runSource).toMatch(
+      /AssertRestrictedTokenPolicy\(\s*restrictedToken,\s*disableAdministratorSids\);/,
+    );
+    expect(runSource).not.toContain("IsTokenRestricted(");
+    expect(runSource).not.toContain("CC_WINDOWS_SANDBOXED");
+  });
+
   it("builds an explicit AppContainer environment for readiness probes", () => {
     const nodeProbeStart = windowsSandboxSource.indexOf(
       "public static int RunNodeSnapshotProbe(",
@@ -7758,6 +7795,91 @@ describe.runIf(process.platform === "win32")(
       expect(result.error).toBeUndefined();
       expect(result.status, result.stderr).toBe(0);
       expect(result.stdout.trim()).toBe("1");
+    }, 180_000);
+
+    it("runs a nested Broker launch from an already restricted worker", () => {
+      const previousStrict = process.env.CC_SANDBOX_STRICT;
+      const previousDisable = process.env.CC_SANDBOX_DISABLE;
+      const previousSandboxEnabled = executionBroker._sandboxEnabled;
+      const previousPlatformEnabled = executionBroker._platformSandboxEnabled;
+      const nodeExecutable = fs.realpathSync.native(process.execPath);
+      const brokerModuleUrl = new URL(
+        "../../src/lib/process-execution-broker/index.js",
+        import.meta.url,
+      ).href;
+      process.env.CC_SANDBOX_STRICT = "1";
+      delete process.env.CC_SANDBOX_DISABLE;
+      executionBroker._sandboxEnabled = true;
+      executionBroker._platformSandboxEnabled = true;
+      try {
+        const result = executionBroker.spawnSync(
+          nodeExecutable,
+          [
+            "-e",
+            [
+              "(async () => {",
+              `  const { executionBroker } = await import(${JSON.stringify(
+                brokerModuleUrl,
+              )});`,
+              "  executionBroker._sandboxEnabled = true;",
+              "  executionBroker._platformSandboxEnabled = true;",
+              "  const nested = executionBroker.spawnSync(",
+              "    'git',",
+              "    ['--version'],",
+              "    {",
+              "      origin: 'test:windows-nested-restricted-broker',",
+              "      policy: 'allow',",
+              "      encoding: 'utf8',",
+              "      timeout: 30000,",
+              "      env: process.env,",
+              "    },",
+              "  );",
+              "  process.stdout.write(JSON.stringify({",
+              "    status: nested.status,",
+              "    stdout: nested.stdout,",
+              "    stderr: nested.stderr,",
+              "    error: nested.error",
+              "      ? { code: nested.error.code, message: nested.error.message }",
+              "      : null,",
+              "  }));",
+              "})().catch((error) => {",
+              "  process.stderr.write(error.stack || error.message);",
+              "  process.exitCode = 91;",
+              "});",
+            ].join("\n"),
+          ],
+          {
+            origin: "test:windows-outer-restricted-broker",
+            policy: "allow",
+            encoding: "utf8",
+            timeout: 90_000,
+            env: process.env,
+          },
+        );
+        expect(result.error).toBeUndefined();
+        expect(result.status, result.stderr).toBe(0);
+        expect(result.stderr).toBe("");
+        const nestedReport = JSON.parse(result.stdout);
+        expect(nestedReport).toMatchObject({
+          status: 0,
+          error: null,
+        });
+        expect(nestedReport.stderr).toBe("");
+        expect(nestedReport.stdout).toMatch(/^git version /);
+      } finally {
+        if (previousStrict === undefined) {
+          delete process.env.CC_SANDBOX_STRICT;
+        } else {
+          process.env.CC_SANDBOX_STRICT = previousStrict;
+        }
+        if (previousDisable === undefined) {
+          delete process.env.CC_SANDBOX_DISABLE;
+        } else {
+          process.env.CC_SANDBOX_DISABLE = previousDisable;
+        }
+        executionBroker._sandboxEnabled = previousSandboxEnabled;
+        executionBroker._platformSandboxEnabled = previousPlatformEnabled;
+      }
     }, 180_000);
 
     it("starts a real child only after the native wrapper is active", () => {

@@ -99,6 +99,7 @@ import {
 } from "../lib/repl-denials.js";
 import executionBroker from "../lib/process-execution-broker/index.js";
 import { extractPluginUsageAttribution } from "../lib/plugin-usage-attribution.js";
+import { formatManagedCheckpointEvent } from "../lib/managed-checkpoint-render.js";
 
 const goalBrokerRunner = executionBroker.spawnSync.bind(executionBroker);
 
@@ -1579,6 +1580,9 @@ async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
     autoPin: _autoPinResolved,
     autoCheckpoint: options.autoCheckpoint || false,
     checkpointSession: options.checkpointSession || sessionId,
+    managedCheckpoint: options.managedCheckpoint === true,
+    managedCheckpointStateDir: options.managedCheckpointStateDir || null,
+    managedCheckpointExclusions: options.managedCheckpointExclusions || [],
     hookDb: db,
     approvalGate,
     permissionRules,
@@ -2006,6 +2010,14 @@ async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
       for await (const event of runLoop(messages, loopOptions)) {
         if (turnBindingFeed) turnBindingFeed.handleEvent(event);
         switch (event.type) {
+          case "managed-checkpoint":
+          case "managed-checkpoint-settled":
+          case "managed-checkpoint-error": {
+            const line = formatManagedCheckpointEvent(event);
+            if (isText && line) writeErr(`${line}\n`);
+            if (isStream) emitStream(event);
+            break;
+          }
           case "checkpoint": {
             if (isText)
               writeErr(`  ⎌ checkpoint ${event.id} (before ${event.tool})\n`);

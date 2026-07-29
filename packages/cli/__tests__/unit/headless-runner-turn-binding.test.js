@@ -119,6 +119,51 @@ describe("headless-runner — turn→checkpoint binding feed + persistence", () 
     expect(last.turns[0].childAgentIds).toEqual(["sub-fg-1"]);
   });
 
+  it("persists managed workspace checkpoint evidence and coverage", async () => {
+    const { deps, appended } = makeDeps();
+    deps.agentLoop = loopWith([
+      {
+        type: "tool-executing",
+        tool: "write_file",
+        tool_use_id: "managed-call-1",
+        args: { path: "a.txt" },
+      },
+      {
+        type: "managed-checkpoint-settled",
+        phase: "committed",
+        id: "managed-checkpoint-1",
+        transaction_id: "managed-transaction-1",
+        evidence_digest: `sha256:${"b".repeat(64)}`,
+        coverage: "partial",
+        file_coverage: "partial",
+        tool: "write_file",
+        tool_use_id: "managed-call-1",
+      },
+      {
+        type: "tool-result",
+        tool: "write_file",
+        tool_use_id: "managed-call-1",
+        result: { ok: true },
+      },
+    ]);
+
+    await runAgentHeadless({ prompt: "task", resume: "sess-managed" }, deps);
+
+    const turn = TurnBindingLog.fromJSON(
+      bindingSnapshots(appended).at(-1).data,
+    ).list()[0];
+    expect(turn.coverage).toBe(TURN_COVERAGE.PARTIAL);
+    expect(turn.managedCheckpoints).toEqual([
+      expect.objectContaining({
+        toolUseId: "managed-call-1",
+        transactionId: "managed-transaction-1",
+        checkpointId: "managed-checkpoint-1",
+        evidenceDigest: `sha256:${"b".repeat(64)}`,
+        coverage: TURN_COVERAGE.PARTIAL,
+      }),
+    ]);
+  });
+
   it("a tool-free persisted turn writes an explicit full-coverage binding", async () => {
     const { deps, appended } = makeDeps();
     deps.agentLoop = loopWith([]);
