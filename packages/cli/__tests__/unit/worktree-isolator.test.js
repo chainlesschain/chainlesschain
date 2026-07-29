@@ -1,8 +1,15 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { mkdirSync, rmSync, existsSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import {
+  mkdirSync,
+  rmSync,
+  existsSync,
+  readFileSync,
+  writeFileSync,
+  symlinkSync,
+} from "node:fs";
+import { basename, join, resolve } from "node:path";
 import { tmpdir } from "node:os";
-import { execSync } from "node:child_process";
+import { execFileSync, execSync } from "node:child_process";
 
 // We use real git operations for these tests (no mocks).
 // Each test gets its own temp git repo.
@@ -25,6 +32,9 @@ function createTestRepo() {
 // Dynamic import after setup
 const {
   createWorktree,
+  assertManagedWorktreePath,
+  managedWorktreePath,
+  removeManagedDependencyLinks,
   removeWorktree,
   listWorktrees,
   pruneWorktrees,
@@ -37,7 +47,7 @@ const {
   mergeWorktree,
 } = await import("../../src/lib/worktree-isolator.js");
 
-describe("worktree-isolator", () => {
+describe("worktree-isolator", { timeout: 60_000 }, () => {
   let repoDir;
 
   beforeEach(() => {
@@ -138,6 +148,23 @@ describe("worktree-isolator", () => {
       expect(
         existsSync(join(path, "node_modules", "leftpad", "package.json")),
       ).toBe(true);
+      expect(
+        removeManagedDependencyLinks(repoDir, path, symlinkedDirectories),
+      ).toEqual(["node_modules"]);
+      expect(existsSync(join(path, "node_modules"))).toBe(false);
+      expect(
+        existsSync(join(repoDir, "node_modules", "leftpad", "package.json")),
+      ).toBe(true);
+      mkdirSync(join(path, "node_modules"), { recursive: true });
+      writeFileSync(
+        join(path, "node_modules", "local.txt"),
+        "must survive",
+        "utf-8",
+      );
+      expect(() =>
+        removeManagedDependencyLinks(repoDir, path, symlinkedDirectories),
+      ).toThrow(/replaced by a real path/);
+      expect(existsSync(join(path, "node_modules", "local.txt"))).toBe(true);
     });
 
     it("skips approved-but-absent symlink dirs without error", () => {
@@ -151,6 +178,25 @@ describe("worktree-isolator", () => {
       expect(symlinkedDirectories).toBeUndefined();
     });
 
+    it("never replaces an existing dependency directory in a new worktree", () => {
+      seedMonorepo(repoDir);
+      const dependencyDir = join(repoDir, "packages", "app", "node_modules");
+      mkdirSync(dependencyDir, { recursive: true });
+      writeFileSync(join(dependencyDir, "keep.txt"), "keep", "utf-8");
+      execSync("git add -f packages/app/node_modules/keep.txt", {
+        cwd: repoDir,
+      });
+      execSync('git commit -m "track dependency fixture"', { cwd: repoDir });
+
+      expect(() =>
+        createWorktree(repoDir, "existing-dependency", null, {
+          symlinkDirectories: ["packages/app/node_modules"],
+        }),
+      ).toThrow(/destination already exists/);
+      expect(existsSync(join(dependencyDir, "keep.txt"))).toBe(true);
+      expect(listWorktrees(repoDir)).toHaveLength(1);
+    });
+
     it("fails closed on junction/symlink escape attempts", () => {
       seedMonorepo(repoDir);
       expect(() =>
@@ -158,6 +204,52 @@ describe("worktree-isolator", () => {
           symlinkDirectories: ["../outside"],
         }),
       ).toThrow(/Unsafe symlink directory/);
+    });
+
+    it("rejects repository roots, git metadata, and tracked source links before creation", () => {
+      seedMonorepo(repoDir);
+      for (const [index, unsafe] of [".", ".git", "packages/cli"].entries()) {
+        const branch = `unsafe-link-${index}`;
+        expect(() =>
+          createWorktree(repoDir, branch, null, {
+            symlinkDirectories: [unsafe],
+          }),
+        ).toThrow(/not an approved dependency root/);
+        expect(listWorktrees(repoDir)).toHaveLength(1);
+      }
+    });
+
+    it("rejects a dependency source symlink or junction", () => {
+      seedMonorepo(repoDir);
+      const outside = join(baseDir, "outside-node-modules");
+      mkdirSync(outside, { recursive: true });
+      symlinkSync(
+        outside,
+        join(repoDir, "node_modules"),
+        process.platform === "win32" ? "junction" : "dir",
+      );
+
+      expect(() =>
+        createWorktree(repoDir, "source-link", null, {
+          symlinkDirectories: ["node_modules"],
+        }),
+      ).toThrow(/must not be a symbolic link or junction/);
+      expect(listWorktrees(repoDir)).toHaveLength(1);
+    });
+
+    it("rolls back a worktree when post-create sparse setup fails", () => {
+      expect(() =>
+        createWorktree(repoDir, "bad-sparse-file", null, {
+          sparsePaths: ["README.md"],
+        }),
+      ).toThrow();
+      expect(listWorktrees(repoDir)).toHaveLength(1);
+      expect(
+        execSync("git branch --list bad-sparse-file", {
+          cwd: repoDir,
+          encoding: "utf8",
+        }).trim(),
+      ).toBe("");
     });
   });
 
@@ -187,6 +279,257 @@ describe("worktree-isolator", () => {
         encoding: "utf-8",
       });
       expect(branches).toContain("keep-branch");
+    });
+
+    it("settles a missing worktree branch idempotently with its pinned OID", () => {
+      const branchName = "idempotent-settlement";
+      const { path } = createWorktree(repoDir, branchName);
+      const expectedBranchOid = execSync("git rev-parse HEAD", {
+        cwd: path,
+        encoding: "utf-8",
+      }).trim();
+
+      removeWorktree(repoDir, path, { deleteBranch: false });
+      expect(existsSync(path)).toBe(false);
+      expect(
+        execFileSync("git", ["branch", "--list", branchName], {
+          cwd: repoDir,
+          encoding: "utf-8",
+        }).trim(),
+      ).toBe(branchName);
+
+      const settlement = {
+        deleteBranch: true,
+        branchName,
+        expectedBranchOid,
+      };
+      removeWorktree(repoDir, path, settlement);
+      expect(
+        execFileSync("git", ["branch", "--list", branchName], {
+          cwd: repoDir,
+          encoding: "utf-8",
+        }).trim(),
+      ).toBe("");
+      expect(() => removeWorktree(repoDir, path, settlement)).not.toThrow();
+    });
+
+    it("refuses ignored files by default and only forces removal explicitly", () => {
+      writeFileSync(join(repoDir, ".gitignore"), "ignored/\n", "utf-8");
+      execSync("git add .gitignore", { cwd: repoDir });
+      execSync('git commit -m "ignore build output"', { cwd: repoDir });
+      const { path } = createWorktree(repoDir, "dirty-ignored");
+      mkdirSync(join(path, "ignored"), { recursive: true });
+      writeFileSync(join(path, "ignored", "keep.txt"), "keep", "utf-8");
+
+      expect(() =>
+        removeWorktree(repoDir, path, {
+          deleteBranch: true,
+          branchName: "dirty-ignored",
+        }),
+      ).toThrow(/tracked, untracked, or ignored files/);
+      expect(existsSync(join(path, "ignored", "keep.txt"))).toBe(true);
+
+      removeWorktree(repoDir, path, {
+        deleteBranch: true,
+        branchName: "dirty-ignored",
+        force: true,
+      });
+      expect(existsSync(path)).toBe(false);
+    });
+
+    it("force removal unlinks a nested filesystem link without following it", () => {
+      const { path } = createWorktree(repoDir, "linked-escape");
+      const outside = join(baseDir, "outside-force-remove");
+      const sentinel = join(outside, "sentinel.txt");
+      const nested = join(path, "nested");
+      mkdirSync(outside, { recursive: true });
+      mkdirSync(nested, { recursive: true });
+      writeFileSync(sentinel, "keep", "utf-8");
+      symlinkSync(
+        outside,
+        join(nested, "escape"),
+        process.platform === "win32" ? "junction" : "dir",
+      );
+
+      removeWorktree(repoDir, path, {
+        branchName: "linked-escape",
+        force: true,
+      });
+      expect(existsSync(path)).toBe(false);
+      expect(readFileSync(sentinel, "utf-8")).toBe("keep");
+    });
+
+    it("removes a clean committed filesystem link without following it", () => {
+      const { path } = createWorktree(repoDir, "committed-link");
+      const outside = join(baseDir, "outside-committed-link");
+      const sentinel = join(outside, "sentinel.txt");
+      mkdirSync(outside, { recursive: true });
+      writeFileSync(sentinel, "keep", "utf-8");
+      symlinkSync(
+        outside,
+        join(path, "escape"),
+        process.platform === "win32" ? "junction" : "dir",
+      );
+      execSync("git add -A", { cwd: path });
+      execSync('git commit -m "track filesystem link"', { cwd: path });
+      expect(
+        execSync("git status --porcelain", {
+          cwd: path,
+          encoding: "utf-8",
+        }).trim(),
+      ).toBe("");
+
+      removeWorktree(repoDir, path, {
+        branchName: "committed-link",
+      });
+      expect(existsSync(path)).toBe(false);
+      expect(readFileSync(sentinel, "utf-8")).toBe("keep");
+    });
+
+    it("refuses to remove a locked worktree even with force", () => {
+      const { path } = createWorktree(repoDir, "locked-removal");
+      execFileSync(
+        "git",
+        ["worktree", "lock", "--reason", "active lease", path],
+        { cwd: repoDir },
+      );
+
+      expect(() =>
+        removeWorktree(repoDir, path, {
+          branchName: "locked-removal",
+          force: true,
+        }),
+      ).toThrow(/locked worktree.*active lease/);
+      expect(existsSync(path)).toBe(true);
+    });
+
+    it("pins branch identity before a destructive removal", () => {
+      const { path } = createWorktree(repoDir, "pinned-removal");
+      const expected = execSync("git rev-parse HEAD", {
+        cwd: path,
+        encoding: "utf-8",
+      }).trim();
+      writeFileSync(join(path, "new.txt"), "new", "utf-8");
+      execSync("git add new.txt", { cwd: path });
+      execSync('git commit -m "advance branch"', { cwd: path });
+
+      expect(() =>
+        removeWorktree(repoDir, path, {
+          deleteBranch: false,
+          branchName: "pinned-removal",
+          expectedBranchOid: expected,
+          force: true,
+        }),
+      ).toThrow(/branch moved/);
+      expect(existsSync(path)).toBe(true);
+    });
+
+    it("rejects the repository root and unregistered managed paths", () => {
+      expect(() =>
+        removeWorktree(repoDir, repoDir, { deleteBranch: false }),
+      ).toThrow(/unmanaged worktree path/);
+      expect(existsSync(join(repoDir, "README.md"))).toBe(true);
+
+      const unregistered = managedWorktreePath(repoDir, "unregistered");
+      mkdirSync(unregistered, { recursive: true });
+      writeFileSync(join(unregistered, "keep.txt"), "keep", "utf8");
+      expect(() =>
+        removeWorktree(repoDir, unregistered, {
+          deleteBranch: false,
+          branchName: "unregistered",
+        }),
+      ).toThrow(/unregistered worktree path/);
+      expect(existsSync(join(unregistered, "keep.txt"))).toBe(true);
+    });
+
+    it("rejects self-removal when invoked from a managed linked worktree", () => {
+      const { path } = createWorktree(repoDir, "agent/self-removal");
+      const sentinel = join(path, "sentinel.txt");
+      writeFileSync(sentinel, "keep", "utf-8");
+
+      expect(() =>
+        removeWorktree(path, path, {
+          branchName: "agent/self-removal",
+          force: true,
+        }),
+      ).toThrow(/unmanaged worktree path/);
+      expect(readFileSync(sentinel, "utf-8")).toBe("keep");
+    });
+
+    it("returns the physical target for a managed-root path alias", () => {
+      const { path } = createWorktree(repoDir, "aliased-target");
+      const managedRootAlias = join(baseDir, "managed-root-alias");
+      symlinkSync(
+        join(repoDir, ".worktrees"),
+        managedRootAlias,
+        process.platform === "win32" ? "junction" : "dir",
+      );
+      const aliasedPath = join(managedRootAlias, basename(path));
+
+      expect(
+        assertManagedWorktreePath(repoDir, aliasedPath, {
+          branchName: "aliased-target",
+        }),
+      ).toBe(path);
+    });
+
+    it("rejects a checkout that disappeared from the git registry", () => {
+      const { path } = createWorktree(repoDir, "registry-disappeared");
+      const sentinel = join(path, "sentinel.txt");
+      writeFileSync(sentinel, "keep", "utf-8");
+      const gitFile = readFileSync(join(path, ".git"), "utf-8");
+      const gitDir = gitFile.match(/^gitdir:\s*(.+)$/m)?.[1]?.trim();
+      expect(gitDir).toBeTruthy();
+      rmSync(resolve(path, gitDir), { recursive: true, force: true });
+
+      expect(() =>
+        removeWorktree(repoDir, path, {
+          branchName: "registry-disappeared",
+          force: true,
+        }),
+      ).toThrow(/unregistered worktree path/);
+      expect(readFileSync(sentinel, "utf-8")).toBe("keep");
+    });
+
+    it("rejects a registered path whose git common-dir identity changed", () => {
+      const { path } = createWorktree(repoDir, "replaced-checkout");
+      rmSync(join(path, ".git"), { force: true });
+      execSync("git init", { cwd: path, encoding: "utf-8" });
+      writeFileSync(join(path, "sentinel.txt"), "keep", "utf-8");
+
+      expect(() =>
+        removeWorktree(repoDir, path, {
+          branchName: "replaced-checkout",
+          force: true,
+        }),
+      ).toThrow(/expected git repository/);
+      expect(existsSync(join(path, "sentinel.txt"))).toBe(true);
+    });
+
+    it("rejects a colliding branch-derived path before cleanup", () => {
+      const { path } = createWorktree(repoDir, "agent/a-b/c");
+      writeFileSync(join(path, "sentinel.txt"), "keep", "utf-8");
+
+      expect(() =>
+        assertManagedWorktreePath(repoDir, path, {
+          branchName: "agent/a/b-c",
+        }),
+      ).toThrow(/registered worktree branch does not match/);
+      expect(existsSync(join(path, "sentinel.txt"))).toBe(true);
+    });
+
+    it("binds a managed path to its exact branch-derived location", () => {
+      const expected = managedWorktreePath(repoDir, "safe/branch");
+      expect(
+        assertManagedWorktreePath(repoDir, expected, {
+          branchName: "safe/branch",
+        }),
+      ).toBe(expected);
+      expect(() =>
+        assertManagedWorktreePath(repoDir, expected, {
+          branchName: "other/branch",
+        }),
+      ).toThrow(/does not match its branch/);
     });
   });
 
@@ -353,6 +696,23 @@ describe("worktree-isolator", () => {
       expect(
         listWorktrees(repoDir).some((w) => w.branch === "agent/dirty2"),
       ).toBe(false);
+    });
+
+    it("force:true safely removes a worktree with an untracked nested link", () => {
+      const wt = createWorktree(repoDir, "agent/linked-escape");
+      const outside = join(baseDir, "outside-agent-cleanup");
+      const sentinel = join(outside, "sentinel.txt");
+      mkdirSync(outside, { recursive: true });
+      writeFileSync(sentinel, "keep", "utf-8");
+      symlinkSync(
+        outside,
+        join(wt.path, "escape"),
+        process.platform === "win32" ? "junction" : "dir",
+      );
+
+      expect(cleanupAgentWorktrees(repoDir, { force: true })).toBe(1);
+      expect(existsSync(wt.path)).toBe(false);
+      expect(readFileSync(sentinel, "utf-8")).toBe("keep");
     });
   });
 

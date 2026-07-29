@@ -387,6 +387,11 @@ describe("7. worktree isolation", () => {
       },
     );
     expect(result.removed).toBe(true);
-    expect(removeWorktree).toHaveBeenCalledWith("r", "wt");
+    expect(removeWorktree).toHaveBeenCalledWith("r", "wt", {
+      deleteBranch: true,
+      branchName: "b",
+      expectedBranchOid: "same-sha",
+      force: false,
+    });
   });
 });

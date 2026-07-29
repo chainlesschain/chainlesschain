@@ -8,7 +8,7 @@
  *      its worktree under the INNER root (nearest .git wins), the outer
  *      checkout is never touched
  *  7b. worktree-in-worktree — creating a worktree from inside another
- *      worktree works and registers with the shared repo
+ *      worktree works and creates a sibling below the primary repo anchor
  *  7c. junction/symlink path — repo reached through a directory link
  *      (Windows junction / POSIX symlink; junctions need no admin) still
  *      creates, lists and removes worktrees
@@ -16,12 +16,13 @@
  *      no MERGE_HEAD, clean status, base content intact
  */
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { execSync } from "node:child_process";
+import { execFileSync, execSync } from "node:child_process";
 import {
   existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  realpathSync,
   rmSync,
   symlinkSync,
   writeFileSync,
@@ -55,6 +56,10 @@ function initRepo(dir) {
   return dir;
 }
 
+function physicalPath(value) {
+  return realpathSync.native ? realpathSync.native(value) : realpathSync(value);
+}
+
 beforeEach(() => {
   baseDir = mkdtempSync(join(tmpdir(), "cc-wt-edge-"));
 });
@@ -71,7 +76,9 @@ describe("7a. nested repo — nearest .git wins, outer checkout untouched", () =
     const info = setupAgentWorktree({ cwd: inner });
     try {
       expect(info.repoRoot).toBe(inner);
-      expect(info.path.startsWith(join(inner, ".worktrees"))).toBe(true);
+      expect(
+        info.path.startsWith(join(physicalPath(inner), ".worktrees")),
+      ).toBe(true);
       // the outer repo never grows a .worktrees dir nor sees the branch
       expect(existsSync(join(outer, ".worktrees"))).toBe(false);
       const outerBranches = execSync("git branch --list 'cc-agent-*'", {
@@ -94,33 +101,110 @@ describe("7a. nested repo — nearest .git wins, outer checkout untouched", () =
   });
 });
 
-describe("7b. worktree created from inside another worktree", () => {
-  it("registers with the shared repo and materializes a usable checkout", () => {
-    const repo = initRepo(join(baseDir, "repo"));
-    const outerWt = createWorktree(repo, "agent/outer-wt");
-    expect(existsSync(join(outerWt.path, "README.md"))).toBe(true);
+describe(
+  "7b. worktree created from inside another worktree",
+  { timeout: 60_000 },
+  () => {
+    it("registers with the shared repo and materializes a usable checkout", () => {
+      const repo = initRepo(join(baseDir, "repo"));
+      const outerWt = createWorktree(repo, "agent/outer-wt");
+      expect(existsSync(join(outerWt.path, "README.md"))).toBe(true);
 
-    // create a second worktree USING the first worktree as the repo dir —
-    // git worktree metadata is shared, so this must work and register
-    const innerWt = createWorktree(outerWt.path, "agent/inner-wt");
-    expect(existsSync(join(innerWt.path, "README.md"))).toBe(true);
-    expect(innerWt.path.startsWith(join(outerWt.path, ".worktrees"))).toBe(
-      true,
-    );
+      // Create a second worktree USING the first worktree as the repo dir. Git
+      // common-dir identity resolves the primary checkout as the sole management
+      // anchor, so the two agent worktrees are siblings rather than a nested
+      // deletion boundary below an arbitrary linked checkout.
+      const innerWt = createWorktree(outerWt.path, "agent/inner-wt");
+      expect(existsSync(join(innerWt.path, "README.md"))).toBe(true);
+      expect(innerWt.path).toBe(
+        join(physicalPath(repo), ".worktrees", "agent-inner-wt"),
+      );
+      expect(innerWt.path.startsWith(join(outerWt.path, ".worktrees"))).toBe(
+        false,
+      );
 
-    // both are visible from the main repo's shared worktree list
-    const branches = listWorktrees(repo).map((w) => w.branch);
-    expect(branches).toContain("agent/outer-wt");
-    expect(branches).toContain("agent/inner-wt");
+      // both are visible from the main repo's shared worktree list
+      const branches = listWorktrees(repo).map((w) => w.branch);
+      expect(branches).toContain("agent/outer-wt");
+      expect(branches).toContain("agent/inner-wt");
 
-    // teardown INNER first (removing outer first would orphan it), then outer
-    removeWorktree(repo, innerWt.path);
-    removeWorktree(repo, outerWt.path);
-    const after = listWorktrees(repo).map((w) => w.branch);
-    expect(after).not.toContain("agent/inner-wt");
-    expect(after).not.toContain("agent/outer-wt");
-  });
-});
+      // Teardown remains independent because both are siblings.
+      removeWorktree(repo, innerWt.path);
+      removeWorktree(repo, outerWt.path);
+      const after = listWorktrees(repo).map((w) => w.branch);
+      expect(after).not.toContain("agent/inner-wt");
+      expect(after).not.toContain("agent/outer-wt");
+    });
+
+    it("rejects a registered child below an external worktree as unmanaged", () => {
+      const repo = initRepo(join(baseDir, "repo-external"));
+      const externalParent = join(baseDir, "external-parent");
+      const externalChild = join(
+        externalParent,
+        ".worktrees",
+        "agent-external-child",
+      );
+      execFileSync(
+        "git",
+        ["worktree", "add", externalParent, "-b", "external-parent"],
+        { cwd: repo },
+      );
+      execFileSync(
+        "git",
+        ["worktree", "add", externalChild, "-b", "agent/external-child"],
+        { cwd: repo },
+      );
+      writeFileSync(join(externalChild, "sentinel.txt"), "keep\n", "utf-8");
+
+      expect(() =>
+        removeWorktree(repo, externalChild, {
+          branchName: "agent/external-child",
+          force: true,
+        }),
+      ).toThrow(/unmanaged worktree path/);
+      expect(readFileSync(join(externalChild, "sentinel.txt"), "utf-8")).toBe(
+        "keep\n",
+      );
+    });
+
+    it("rejects a linked checkout when the common repository is bare", () => {
+      const seed = initRepo(join(baseDir, "bare-seed"));
+      const bareRepo = join(baseDir, "central.git");
+      const externalLinked = join(baseDir, "bare-linked");
+      execFileSync("git", ["clone", "--bare", seed, bareRepo]);
+      execFileSync(
+        "git",
+        [
+          `--git-dir=${bareRepo}`,
+          "worktree",
+          "add",
+          "-b",
+          "external-linked",
+          externalLinked,
+          "HEAD",
+        ],
+        { cwd: baseDir },
+      );
+
+      expect(() =>
+        createWorktree(externalLinked, "agent/must-not-anchor"),
+      ).toThrow(/primary git worktree is unavailable/);
+      expect(existsSync(join(externalLinked, ".worktrees"))).toBe(false);
+      expect(
+        execFileSync(
+          "git",
+          [
+            `--git-dir=${bareRepo}`,
+            "branch",
+            "--list",
+            "agent/must-not-anchor",
+          ],
+          { cwd: baseDir, encoding: "utf-8" },
+        ).trim(),
+      ).toBe("");
+    });
+  },
+);
 
 describe("7c. repo reached through a directory link (junction on Windows, symlink elsewhere)", () => {
   it("create / list / remove all work through the linked path", () => {

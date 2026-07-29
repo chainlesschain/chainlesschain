@@ -938,7 +938,12 @@ async function runTurn(
           usage.cache_creation_input_tokens +=
             event.usage?.cache_creation_input_tokens || 0;
         }
-        emit({ type: "token_usage", usage: event.usage });
+        emit({
+          type: "token_usage",
+          provider: event.provider,
+          model: event.model,
+          usage: event.usage,
+        });
         if (costBudget) {
           costBudget.add({
             provider: event.provider,

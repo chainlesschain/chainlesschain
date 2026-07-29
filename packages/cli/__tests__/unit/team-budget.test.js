@@ -63,10 +63,93 @@ describe("TeamBudget dimensions", () => {
     expect(b.status().spentUsd).toBe(0);
     expect(b.shouldStop()).toBe(false);
   });
+
+  it("fails closed when a USD-capped remote usage record cannot be priced", () => {
+    const b = new TeamBudget({ maxUsd: 1 });
+    b.record({
+      provider: "unknown-remote",
+      model: "unpriced-model",
+      usage: usage(100, 20),
+    });
+
+    expect(b.reason()).toBe("unpriced-usage");
+    expect(b.status()).toMatchObject({
+      unpricedUsage: true,
+      spentUsd: 0,
+    });
+    const restored = TeamBudget.restore(b.snapshot());
+    expect(restored.reason()).toBe("unpriced-usage");
+  });
+
+  it("atomically reserves fair token slices for concurrent tasks", () => {
+    const b = new TeamBudget({ maxTokens: 100 });
+    const first = b.reserve("lease-a", { slots: 4 });
+    const second = b.reserve("lease-b", { slots: 3 });
+    const third = b.reserve("lease-c", {
+      slots: 2,
+      maxTokens: 10,
+    });
+
+    expect(first).toMatchObject({ ok: true, maxTokens: 25 });
+    expect(second).toMatchObject({ ok: true, maxTokens: 25 });
+    expect(third).toMatchObject({ ok: true, maxTokens: 10 });
+    expect(b.status()).toMatchObject({
+      reservedTokens: 60,
+      reservations: 3,
+    });
+    expect(b.releaseReservation("lease-b")).toBe(true);
+    expect(b.status()).toMatchObject({
+      reservedTokens: 35,
+      reservations: 2,
+    });
+  });
+
+  it("never reserves more USD than the unsettled team remainder", () => {
+    const b = new TeamBudget({ maxUsd: 0.08 });
+    const reservations = Array.from({ length: 8 }, (_, index) =>
+      b.reserve(`usd-${index}`, { slots: 8 - index }),
+    );
+
+    expect(reservations.every((reservation) => reservation.ok)).toBe(true);
+    expect(
+      reservations.reduce(
+        (total, reservation) => total + reservation.maxUsd,
+        0,
+      ),
+    ).toBeCloseTo(0.08, 10);
+    expect(b.status().reservedUsd).toBeCloseTo(0.08, 10);
+    expect(b.reserve("blocked", { slots: 1 })).toMatchObject({
+      ok: false,
+      reason: "max-usd",
+      temporary: true,
+    });
+  });
+
+  it("prices each actual provider/model record without double counting tokens", () => {
+    const b = new TeamBudget({ maxUsd: 100 });
+    b.record({
+      usage: usage(30, 10),
+      usageRecords: [
+        {
+          provider: "anthropic",
+          model: "claude-3-5-sonnet-20241022",
+          usage: usage(20, 5),
+        },
+        {
+          provider: "openai",
+          model: "gpt-4o",
+          usage: usage(10, 5),
+        },
+      ],
+    });
+
+    expect(b.tokens).toBe(40);
+    expect(b.cost.spentUsd).toBeGreaterThan(0);
+  });
 });
 
 describe("TeamBudget snapshot/restore (resume consistency)", () => {
-  it("carries task/token/USD totals across a resume, restarting the time window", () => {
+  it("carries settled totals and active wall time without charging downtime", () => {
     let t = 1000;
     const b = new TeamBudget({
       maxTasks: 10,
@@ -80,23 +163,52 @@ describe("TeamBudget snapshot/restore (resume consistency)", () => {
       model: "claude-3-5-sonnet-20241022",
       usage: usage(1000, 500),
     });
-    b.record({ usage: usage(200, 100) });
+    b.record({
+      provider: "anthropic",
+      model: "claude-3-5-sonnet-20241022",
+      usage: usage(200, 100),
+    });
+    t = 1300;
     const snap = b.snapshot();
     expect(snap.totals.tasks).toBe(2);
     expect(snap.totals.tokens).toBe(1800);
     expect(snap.totals.spentUsd).toBeGreaterThan(0);
+    expect(snap.totals.elapsedMs).toBe(300);
 
     let t2 = 9999; // resumed much later — time window must NOT count the gap
     const r = TeamBudget.restore(snap, { now: () => t2 });
     expect(r.tasks).toBe(2);
     expect(r.tokens).toBe(1800);
     expect(r.cost.spentUsd).toBe(snap.totals.spentUsd);
-    // Wall-clock restarts on the next task, not from the pre-crash start.
+    expect(r.status().elapsedMs).toBe(300);
     expect(r.shouldStop()).toBe(false);
-    r.record({}); // starts a fresh window at t2
-    t2 = 9999 + 4999;
+    t2 = 9999 + 4699;
     expect(r.shouldStop()).toBe(false);
-    t2 = 9999 + 5000;
+    t2 = 9999 + 4700;
     expect(r.reason()).toBe("max-wall-ms");
+  });
+
+  it("never raises persisted caps through lower-level restore overrides", () => {
+    const original = new TeamBudget({
+      maxTasks: 2,
+      maxTokens: 100,
+      maxUsd: 1,
+      maxWallMs: 1000,
+    });
+    const restored = TeamBudget.restore(original.snapshot(), {
+      overrides: {
+        maxTasks: 20,
+        maxTokens: 1000,
+        maxUsd: 10,
+        maxWallMs: 10000,
+      },
+    });
+
+    expect(restored.snapshot().limits).toEqual({
+      maxTasks: 2,
+      maxTokens: 100,
+      maxUsd: 1,
+      maxWallMs: 1000,
+    });
   });
 });

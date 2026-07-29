@@ -60,6 +60,20 @@ describe("TaskLeaseRegistry.addTask", () => {
       reg.addTask({ key: "join", title: "join", dependsOn: ["l", "r"] }).ok,
     ).toBe(true);
   });
+
+  it(
+    "bulk-validates a 10,000-task deep DAG without recursive stack overflow",
+    { timeout: 30_000 },
+    () => {
+      const definitions = Array.from({ length: 10_000 }, (_, index) => ({
+        key: `deep-${index}`,
+        title: `Deep ${index}`,
+        dependsOn: index === 0 ? [] : [`deep-${index - 1}`],
+      }));
+      expect(reg.addTasks(definitions)).toMatchObject({ ok: true });
+      expect(reg.claimable()).toEqual(["deep-0"]);
+    },
+  );
 });
 
 describe("TaskLeaseRegistry exclusive lease (no double-processing)", () => {
@@ -85,12 +99,37 @@ describe("TaskLeaseRegistry exclusive lease (no double-processing)", () => {
     const a = reg.acquire("t1", { holder: "agentA", ttlMs: 1000 });
     expect(a.lease.expiresAt).toBe(clock.now() + 1000);
     clock.advance(500);
-    const r = reg.renew("t1", { holder: "agentA", ttlMs: 1000 });
+    const r = reg.renew("t1", {
+      holder: "agentA",
+      leaseId: a.lease.leaseId,
+      ttlMs: 1000,
+    });
     expect(r.ok).toBe(true);
     expect(r.lease.renewals).toBe(1);
     expect(r.lease.expiresAt).toBe(clock.now() + 1000);
     // A non-holder cannot renew.
     expect(reg.renew("t1", { holder: "agentB" }).ok).toBe(false);
+  });
+
+  it("fences an older executor even when its holder label is reused", () => {
+    const first = reg.acquire("t1", { holder: "agentA", ttlMs: 1000 });
+    clock.advance(1001);
+    const second = reg.acquire("t1", { holder: "agentA", ttlMs: 1000 });
+
+    expect(second.ok).toBe(true);
+    expect(second.lease.leaseId).not.toBe(first.lease.leaseId);
+    expect(
+      reg.complete("t1", {
+        holder: "agentA",
+        leaseId: first.lease.leaseId,
+      }),
+    ).toMatchObject({ ok: false, reason: "not_holder_or_expired" });
+    expect(
+      reg.complete("t1", {
+        holder: "agentA",
+        leaseId: second.lease.leaseId,
+      }),
+    ).toMatchObject({ ok: true });
   });
 
   it("lets another holder STEAL an expired lease", () => {
@@ -111,10 +150,14 @@ describe("TaskLeaseRegistry crash recovery", () => {
     reg.addTask({ key: "t1", title: "T1" });
     reg.addTask({ key: "t2", title: "T2" });
     reg.acquire("t1", { holder: "dead", ttlMs: 1000 });
-    reg.acquire("t2", { holder: "alive", ttlMs: 1000 });
+    const alive = reg.acquire("t2", { holder: "alive", ttlMs: 1000 });
     clock.advance(600);
     // "alive" heartbeats; "dead" does not.
-    reg.renew("t2", { holder: "alive", ttlMs: 1000 });
+    reg.renew("t2", {
+      holder: "alive",
+      leaseId: alive.lease.leaseId,
+      ttlMs: 1000,
+    });
     clock.advance(600); // t1 now 1200ms old (expired), t2 renewed 600ms ago (valid)
     const reclaimed = reg.reclaimExpired();
     expect(reclaimed).toEqual(["t1"]);
@@ -131,16 +174,24 @@ describe("TaskLeaseRegistry crash recovery", () => {
     const clock = makeClock();
     const reg = new TaskLeaseRegistry({ now: clock.now, defaultTtlMs: 1000 });
     reg.addTask({ key: "t1", title: "T1" });
-    reg.acquire("t1", { holder: "slow", ttlMs: 1000 });
+    const slow = reg.acquire("t1", { holder: "slow", ttlMs: 1000 });
     clock.advance(1001);
     reg.reclaimExpired();
-    reg.acquire("t1", { holder: "fast" });
+    const fast = reg.acquire("t1", { holder: "fast" });
     // The slow teammate finally returns and tries to complete — rejected.
-    const bad = reg.complete("t1", { holder: "slow" });
+    const bad = reg.complete("t1", {
+      holder: "slow",
+      leaseId: slow.lease.leaseId,
+    });
     expect(bad.ok).toBe(false);
     expect(bad.reason).toBe("not_holder_or_expired");
     // The current holder can.
-    expect(reg.complete("t1", { holder: "fast" }).ok).toBe(true);
+    expect(
+      reg.complete("t1", {
+        holder: "fast",
+        leaseId: fast.lease.leaseId,
+      }).ok,
+    ).toBe(true);
     expect(reg.getTask("t1").status).toBe("completed");
   });
 });
@@ -162,8 +213,11 @@ describe("TaskLeaseRegistry dependency gating", () => {
     expect(blocked.unmet).toEqual(["build"]);
 
     // Finish build → test unblocks.
-    reg.acquire("build", { holder: "a" });
-    reg.complete("build", { holder: "a" });
+    const build = reg.acquire("build", { holder: "a" });
+    reg.complete("build", {
+      holder: "a",
+      leaseId: build.lease.leaseId,
+    });
     expect(reg.claimable()).toEqual(["test"]);
     expect(reg.acquire("test", { holder: "b" }).ok).toBe(true);
   });
@@ -175,17 +229,45 @@ describe("TaskLeaseRegistry fail / retry / cancel", () => {
     const reg = new TaskLeaseRegistry({ now: clock.now, maxAttempts: 2 });
     reg.addTask({ key: "flaky", title: "flaky" });
 
-    reg.acquire("flaky", { holder: "a" });
-    const f1 = reg.fail("flaky", { holder: "a", error: "boom1" });
+    const first = reg.acquire("flaky", { holder: "a" });
+    const f1 = reg.fail("flaky", {
+      holder: "a",
+      leaseId: first.lease.leaseId,
+      error: "boom1",
+    });
     expect(f1).toMatchObject({ ok: true, retry: true, attempts: 1 });
     expect(reg.getTask("flaky").status).toBe("pending"); // reclaimable
 
-    reg.acquire("flaky", { holder: "b" });
-    const f2 = reg.fail("flaky", { holder: "b", error: "boom2" });
+    const second = reg.acquire("flaky", { holder: "b" });
+    const f2 = reg.fail("flaky", {
+      holder: "b",
+      leaseId: second.lease.leaseId,
+      error: "boom2",
+    });
     expect(f2).toMatchObject({ ok: true, retry: false, attempts: 2 });
     expect(reg.getTask("flaky").status).toBe("cancelled"); // gave up
     // A cancelled (terminal) task can't be re-acquired.
     expect(reg.acquire("flaky", { holder: "c" }).reason).toBe("terminal");
+  });
+
+  it("cancels a non-retryable attempt immediately", () => {
+    const clock = makeClock();
+    const reg = new TaskLeaseRegistry({
+      now: clock.now,
+      maxAttempts: 5,
+    });
+    reg.addTask({ key: "side-effect", title: "side-effect" });
+    const claim = reg.acquire("side-effect", { holder: "a" });
+
+    expect(
+      reg.fail("side-effect", {
+        holder: "a",
+        leaseId: claim.lease.leaseId,
+        error: "unknown external result",
+        retryable: false,
+      }),
+    ).toMatchObject({ ok: true, retry: false, attempts: 1 });
+    expect(reg.getTask("side-effect").status).toBe("cancelled");
   });
 });
 
@@ -218,8 +300,8 @@ describe("TaskLeaseRegistry crash resume (session recovery)", () => {
     const reg = new TaskLeaseRegistry({ now: clock.now, defaultTtlMs: 1000 });
     reg.addTask({ key: "a", title: "A" });
     reg.addTask({ key: "b", title: "B" });
-    reg.acquire("a", { holder: "x" });
-    reg.complete("a", { holder: "x" });
+    const a = reg.acquire("a", { holder: "x" });
+    reg.complete("a", { holder: "x", leaseId: a.lease.leaseId });
     reg.acquire("b", { holder: "y" }); // in-flight when the process "crashes"
 
     const snap = JSON.parse(JSON.stringify(reg.snapshot()));
@@ -256,6 +338,45 @@ describe("TaskLeaseRegistry crash resume (session recovery)", () => {
     expect(restored.claimable()).toEqual(["a"]);
     expect(restored.acquire("a", { holder: "rescuer" }).ok).toBe(true);
   });
+
+  it("fails abandoned non-retry-safe work closed for adjudication", () => {
+    const reg = new TaskLeaseRegistry({ defaultTtlMs: 60_000 });
+    reg.addTask({
+      key: "unsafe",
+      title: "May have external side effects",
+      metadata: { retrySafe: false },
+    });
+    reg.addTask({
+      key: "safe",
+      title: "Idempotent",
+      metadata: { retrySafe: true },
+    });
+    reg.acquire("unsafe", { holder: "lost-a" });
+    reg.acquire("safe", { holder: "lost-b" });
+
+    const recovery = reg.reconcileAbandoned({
+      shouldRetry: (task) => task.metadata?.retrySafe === true,
+      error: "manual adjudication required",
+    });
+
+    expect(recovery).toEqual({
+      reclaimed: ["safe"],
+      adjudicationRequired: ["unsafe"],
+    });
+    expect(reg.getTask("safe")).toMatchObject({
+      status: "pending",
+      lease: null,
+    });
+    expect(reg.getTask("unsafe")).toMatchObject({
+      status: "cancelled",
+      lease: null,
+      attempts: 1,
+      metadata: {
+        lastError: "manual adjudication required",
+      },
+    });
+    expect(reg.claimable()).toEqual(["safe"]);
+  });
 });
 
 describe("TaskLeaseRegistry stats / allDone", () => {
@@ -264,16 +385,16 @@ describe("TaskLeaseRegistry stats / allDone", () => {
     const reg = new TaskLeaseRegistry({ now: clock.now, defaultTtlMs: 1000 });
     reg.addTask({ key: "a", title: "A" });
     reg.addTask({ key: "b", title: "B" });
-    reg.acquire("a", { holder: "x" });
+    const a = reg.acquire("a", { holder: "x" });
     const s = reg.stats();
     expect(s.total).toBe(2);
     expect(s.leased).toBe(1);
     expect(s.claimable).toBe(1); // b
     expect(reg.allDone()).toBe(false);
 
-    reg.complete("a", { holder: "x" });
-    reg.acquire("b", { holder: "y" });
-    reg.complete("b", { holder: "y" });
+    reg.complete("a", { holder: "x", leaseId: a.lease.leaseId });
+    const b = reg.acquire("b", { holder: "y" });
+    reg.complete("b", { holder: "y", leaseId: b.lease.leaseId });
     expect(reg.allDone()).toBe(true);
   });
 });

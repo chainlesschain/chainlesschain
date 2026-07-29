@@ -1,5 +1,8 @@
 export {
   createWorktree,
+  managedWorktreePath,
+  assertManagedWorktreePath,
+  removeManagedDependencyLinks,
   removeWorktree,
   listWorktrees,
   pruneWorktrees,

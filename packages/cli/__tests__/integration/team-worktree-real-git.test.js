@@ -52,7 +52,7 @@ function writeCmd(file, content) {
   return `"${NODE}" -e "require('fs').writeFileSync('${file}','${content}')"`;
 }
 
-describe("cc team worktree (real git)", () => {
+describe("cc team worktree (real git)", { timeout: 60_000 }, () => {
   it("runs two independent tasks in isolated worktrees and merges both clean", async () => {
     const reg = new TaskLeaseRegistry({ defaultTtlMs: 1_000_000 });
     reg.addTask({
@@ -76,6 +76,7 @@ describe("cc team worktree (real git)", () => {
 
     const integ = coord.integrate({ merge: true });
     expect(integ.every((r) => r.committed && r.clean && r.merged)).toBe(true);
+    coord.prepareCleanupAll({ requireMerged: true });
     coord.cleanupAll();
 
     // Both files landed on main after the merges.
@@ -106,8 +107,6 @@ describe("cc team worktree (real git)", () => {
     await runner.run();
 
     const integ = coord.integrate({ merge: true });
-    coord.cleanupAll();
-
     const a = integ.find((r) => r.key === "a");
     const b = integ.find((r) => r.key === "b");
     // First branch merges clean; the second now conflicts on shared.txt.
@@ -121,5 +120,29 @@ describe("cc team worktree (real git)", () => {
     expect(readFileSync(path.join(repo, "shared.txt"), "utf8")).toContain(
       "from-A",
     );
+  });
+
+  it("refuses to merge a recovered run into a different checked-out branch", async () => {
+    const reg = new TaskLeaseRegistry({ defaultTtlMs: 1_000_000 });
+    reg.addTask({
+      key: "a",
+      title: "a",
+      metadata: { command: writeCmd("wrong-target.txt", "task-output") },
+    });
+    const coord = new TeamWorktreeCoordinator(repo, { runId: "base-binding" });
+    const runner = new TeamRunner(reg, {
+      teammates: 1,
+      runTask: coord.makeRunTask(),
+    });
+    await runner.run();
+    const snapshot = coord.snapshot();
+
+    git(["switch", "-c", "release"]);
+    const recovered = new TeamWorktreeCoordinator(repo, { snapshot });
+
+    expect(() => recovered.integrate({ merge: true })).toThrow(
+      /base target changed/,
+    );
+    expect(existsSync(path.join(repo, "wrong-target.txt"))).toBe(false);
   });
 });

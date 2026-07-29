@@ -54,6 +54,24 @@ function safeGitRel(raw) {
 }
 
 /**
+ * Dependency reuse is intentionally narrow. Task plans are untrusted input, so
+ * an arbitrary "approved" directory would let a plan link tracked source (or
+ * `.git`) back into the supposedly isolated checkout. Only dependency install
+ * roots are supported; expand this allowlist only with equivalent isolation
+ * tests.
+ */
+function isApprovedDependencyDirectory(rel) {
+  const segments = rel.split("/");
+  return (
+    segments.length > 0 &&
+    segments.every(
+      (segment) => segment.length > 0 && segment !== "." && segment !== "..",
+    ) &&
+    segments.at(-1) === "node_modules"
+  );
+}
+
+/**
  * Validate + normalize sparse-checkout include paths.
  *
  * @param {string[]|string|null|undefined} paths
@@ -111,6 +129,11 @@ export function planSymlinkDirectories(dirs, { repoDir, worktreePath } = {}) {
     const rel = safeGitRel(raw);
     if (!rel) {
       throw new Error(`Unsafe symlink directory: ${JSON.stringify(raw)}`);
+    }
+    if (!isApprovedDependencyDirectory(rel)) {
+      throw new Error(
+        `Symlink directory is not an approved dependency root: ${JSON.stringify(raw)}`,
+      );
     }
     if (seen.has(rel)) continue;
     seen.add(rel);

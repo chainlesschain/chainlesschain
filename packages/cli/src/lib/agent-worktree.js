@@ -133,29 +133,28 @@ export function validateAgentWorktree(info, { deps = _deps } = {}) {
   }
 }
 
-function removeVerifiedAgentWorktree(info, deps) {
-  // Unit seams historically inject removeWorktree directly. Keep that seam,
-  // while production uses a non-forced git removal: if the tree changed
-  // between inspection and deletion, git refuses instead of discarding it.
-  if (deps.removeWorktree && deps.removeWorktree !== removeWorktree) {
-    deps.removeWorktree(info.repoRoot, info.path);
-    return null;
-  }
-
-  git(["worktree", "remove", info.path], info.repoRoot, deps, {
-    origin: "agent-worktree:cleanup",
-    stdio: ["ignore", "pipe", "pipe"],
-  });
+function removeVerifiedAgentWorktree(info, deps, expectedBranchOid) {
+  // Keep the injectable removal seam, but send production and tests through
+  // the same pinned cleanup contract. The shared isolator re-validates the
+  // managed path immediately before mutation and refuses branch-ref movement
+  // after the clean-tree inspection above.
+  const remove = deps.removeWorktree || removeWorktree;
+  const pathExistedBefore = existsSync(info.path);
   try {
-    git(["branch", "-D", "--", info.branch], info.repoRoot, deps, {
-      origin: "agent-worktree:cleanup",
-      stdio: ["ignore", "pipe", "pipe"],
+    remove(info.repoRoot, info.path, {
+      deleteBranch: true,
+      branchName: info.branch,
+      expectedBranchOid,
+      force: false,
     });
     return null;
   } catch (error) {
-    // The worktree itself is already gone. Preserve an honest warning rather
-    // than claiming the whole cleanup failed and that the path was kept.
-    return `branch cleanup failed: ${error.message}`;
+    if (pathExistedBefore && !existsSync(info.path)) {
+      // The worktree itself is already gone. Preserve an honest warning rather
+      // than claiming the whole cleanup failed and that the path was kept.
+      return `branch cleanup failed: ${error.message}`;
+    }
+    throw error;
   }
 }
 
@@ -224,7 +223,7 @@ export function finishAgentWorktree(info, { deps = _deps } = {}) {
   const hasCommits = headSha !== null && headSha !== info.baseSha;
   if (!dirty && !hasCommits) {
     try {
-      const warning = removeVerifiedAgentWorktree(info, deps);
+      const warning = removeVerifiedAgentWorktree(info, deps, headSha);
       return {
         removed: true,
         kept: false,

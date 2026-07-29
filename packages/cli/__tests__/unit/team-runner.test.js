@@ -271,6 +271,138 @@ describe("TeamRunner events + guards", () => {
     expect(summary.executions).toBe(1);
   });
 
+  it("keeps a task fenced and heartbeating while beforeTask awaits", async () => {
+    let now = 1000;
+    const reg = new TaskLeaseRegistry({
+      now: () => now,
+      defaultTtlMs: 100,
+    });
+    reg.addTask({ key: "prepared", title: "prepared" });
+    let runs = 0;
+    const runner = new TeamRunner(reg, {
+      teammates: 2,
+      ttlMs: 100,
+      renewEveryMs: 25,
+      now: () => now,
+      beforeTask: async () => {
+        now += 1000;
+        await new Promise((resolve) => setTimeout(resolve, 40));
+      },
+      runTask: async () => {
+        runs += 1;
+      },
+    });
+
+    const summary = await runner.run();
+    expect(summary.done).toBe(true);
+    expect(summary.executions).toBe(1);
+    expect(runs).toBe(1);
+  });
+
+  it("does not persist a phantom failure after its fenced lease is stolen", async () => {
+    let now = 1000;
+    const reg = new TaskLeaseRegistry({
+      now: () => now,
+      defaultTtlMs: 100,
+    });
+    reg.addTask({ key: "stolen", title: "stolen" });
+    const events = [];
+    const settlements = [];
+    const runner = new TeamRunner(reg, {
+      teammates: 1,
+      ttlMs: 100,
+      maxTasks: 1,
+      now: () => now,
+      onEvent: (event) => events.push(event.type),
+      afterTask: (settlement) => settlements.push(settlement),
+      runTask: async () => {
+        now += 1000;
+        expect(reg.acquire("stolen", { holder: "external" }).ok).toBe(true);
+        throw new Error("old executor failed late");
+      },
+    });
+
+    const summary = await runner.run();
+    expect(summary.done).toBe(false);
+    expect(events).toContain("task:failure-discarded");
+    expect(events).not.toContain("task:failed");
+    expect(settlements).toEqual([
+      expect.objectContaining({
+        status: "failure-discarded",
+        reason: "not_holder_or_expired",
+      }),
+    ]);
+    expect(reg.getTask("stolen")).toMatchObject({
+      status: "in_progress",
+      lease: { holder: "external" },
+    });
+  });
+
+  it("keeps workers alive while claims are in durable preparation", async () => {
+    const reg = freshRegistry();
+    reg.addTask({ key: "root", title: "root" });
+    for (let index = 0; index < 8; index += 1) {
+      reg.addTask({
+        key: `leaf-${index}`,
+        title: `leaf-${index}`,
+        dependsOn: ["root"],
+      });
+    }
+    let active = 0;
+    let peak = 0;
+    const runner = new TeamRunner(reg, {
+      teammates: 8,
+      beforeTask: async () => new Promise((resolve) => setImmediate(resolve)),
+      runTask: async () => {
+        active += 1;
+        peak = Math.max(peak, active);
+        await new Promise((resolve) => setImmediate(resolve));
+        active -= 1;
+      },
+    });
+
+    const summary = await runner.run();
+    expect(summary.done).toBe(true);
+    expect(peak).toBeGreaterThan(1);
+  });
+
+  it("abandons prepared reservations when a peer beforeTask fails", async () => {
+    const reg = freshRegistry();
+    for (const key of ["a", "b", "c"]) {
+      reg.addTask({ key, title: key });
+    }
+    let releasePeers;
+    const peerGate = new Promise((resolve) => {
+      releasePeers = resolve;
+    });
+    let executions = 0;
+    const runner = new TeamRunner(reg, {
+      teammates: 3,
+      beforeTask: async ({ key }) => {
+        if (key === "a") {
+          await Promise.resolve();
+          throw new Error("durable claim failed");
+        }
+        await peerGate;
+      },
+      runTask: async () => {
+        executions += 1;
+      },
+    });
+
+    const running = runner.run();
+    await new Promise((resolve) => setImmediate(resolve));
+    releasePeers();
+    await expect(running).rejects.toThrow("durable claim failed");
+    expect(executions).toBe(0);
+    for (const key of ["a", "b", "c"]) {
+      expect(reg.getTask(key)).toMatchObject({
+        status: "pending",
+        lease: null,
+      });
+    }
+  });
+
   it("requires runTask", async () => {
     const reg = freshRegistry();
     reg.addTask({ key: "x", title: "x" });
@@ -293,9 +425,53 @@ describe("TeamRunner events + guards", () => {
     expect(summary.done).toBe(false);
     expect(ran).toBe(3); // stopped at the budget
   });
+
+  it("reserves maxTasks atomically across concurrent teammates", async () => {
+    const reg = freshRegistry();
+    for (let i = 0; i < 20; i++) {
+      reg.addTask({ key: `t${i}`, title: `t${i}` });
+    }
+    let ran = 0;
+    const runner = new TeamRunner(reg, {
+      teammates: 16,
+      maxTasks: 3,
+      runTask: async () => {
+        ran++;
+        await new Promise((resolve) => setImmediate(resolve));
+      },
+    });
+
+    const summary = await runner.run();
+    expect(summary.done).toBe(false);
+    expect(summary.executions).toBe(3);
+    expect(ran).toBe(3);
+  });
 });
 
 describe("TeamRunner team budget", () => {
+  it("reserves a team task budget before concurrent claims", async () => {
+    const reg = freshRegistry();
+    for (let i = 0; i < 20; i++) {
+      reg.addTask({ key: `t${i}`, title: `t${i}` });
+    }
+    let ran = 0;
+    const budget = new TeamBudget({ maxTasks: 3 });
+    const runner = new TeamRunner(reg, {
+      teammates: 16,
+      maxTasks: 100,
+      budget,
+      runTask: async () => {
+        ran++;
+        await new Promise((resolve) => setImmediate(resolve));
+      },
+    });
+
+    const summary = await runner.run();
+    expect(ran).toBe(3);
+    expect(summary.executions).toBe(3);
+    expect(summary.budgetReason).toBe("max-tasks");
+  });
+
   it("stops claiming once the team token budget is exhausted", async () => {
     const reg = freshRegistry();
     for (let i = 0; i < 10; i++) reg.addTask({ key: `t${i}`, title: `t${i}` });
@@ -335,6 +511,177 @@ describe("TeamRunner team budget", () => {
     const summary = await runner.run();
     expect(ran).toBe(4); // stopped by the task budget, not the attempt cap
     expect(summary.budgetReason).toBe("max-tasks");
+  });
+
+  it("accounts usage attached to a failed agent error", async () => {
+    const reg = freshRegistry();
+    reg.maxAttempts = 1;
+    reg.addTask({ key: "bounded", title: "bounded" });
+    const budget = new TeamBudget({ maxTokens: 5 });
+    const runner = new TeamRunner(reg, {
+      teammates: 1,
+      budget,
+      runTask: async () => {
+        const error = new Error("token limit");
+        error.usage = { input_tokens: 3, output_tokens: 2 };
+        error.provider = "openai";
+        error.model = "test";
+        throw error;
+      },
+    });
+
+    await runner.run();
+    expect(budget.status()).toMatchObject({
+      tasks: 1,
+      tokens: 5,
+      reason: "max-tokens",
+    });
+  });
+
+  it("bounds a concurrent frontier with per-claim token reservations", async () => {
+    const reg = freshRegistry();
+    for (let index = 0; index < 32; index += 1) {
+      reg.addTask({ key: `bounded-${index}`, title: `bounded-${index}` });
+    }
+    const budget = new TeamBudget({ maxTokens: 160 });
+    const observedLimits = [];
+    const runner = new TeamRunner(reg, {
+      teammates: 16,
+      budget,
+      budgetForTask: () => ({}),
+      runTask: async ({ budgetReservation }) => {
+        observedLimits.push(budgetReservation.maxTokens);
+        await new Promise((resolve) => setImmediate(resolve));
+        return {
+          usage: {
+            input_tokens: budgetReservation.maxTokens,
+            output_tokens: 0,
+          },
+        };
+      },
+    });
+
+    const summary = await runner.run();
+    expect(summary.done).toBe(false);
+    expect(observedLimits).toHaveLength(16);
+    expect(observedLimits.reduce((total, limit) => total + limit, 0)).toBe(160);
+    expect(budget.status()).toMatchObject({
+      tokens: 160,
+      reservedTokens: 0,
+      reservations: 0,
+      reason: "max-tokens",
+    });
+  });
+
+  it("aborts in-flight task signals at the team wall-clock ceiling", async () => {
+    const reg = freshRegistry();
+    reg.maxAttempts = 1;
+    reg.addTask({ key: "wall", title: "wall" });
+    const budget = new TeamBudget({ maxWallMs: 10 });
+    let aborted = false;
+    const runner = new TeamRunner(reg, {
+      teammates: 1,
+      budget,
+      runTask: ({ signal }) =>
+        new Promise((resolve, reject) => {
+          signal.addEventListener(
+            "abort",
+            () => {
+              aborted = true;
+              reject(new Error("aborted"));
+            },
+            { once: true },
+          );
+        }),
+    });
+
+    const summary = await runner.run();
+    expect(aborted).toBe(true);
+    expect(summary.budgetStopped).toBe(true);
+    expect(summary.budgetReason).toBe("max-wall-ms");
+  });
+
+  it("uses only the remaining wall time after budget restore", async () => {
+    let priorNow = 1000;
+    const prior = new TeamBudget({
+      maxWallMs: 500,
+      now: () => priorNow,
+    });
+    prior.record({});
+    priorNow = 1450;
+    const budget = TeamBudget.restore(prior.snapshot(), {
+      now: () => Date.now(),
+    });
+    const reg = freshRegistry();
+    reg.maxAttempts = 1;
+    reg.addTask({ key: "remaining-wall", title: "remaining-wall" });
+    const startedAt = Date.now();
+    const runner = new TeamRunner(reg, {
+      teammates: 1,
+      budget,
+      runTask: ({ signal }) =>
+        new Promise((resolve, reject) => {
+          signal.addEventListener("abort", () => reject(new Error("aborted")), {
+            once: true,
+          });
+        }),
+    });
+
+    const summary = await runner.run();
+    expect(Date.now() - startedAt).toBeLessThan(300);
+    expect(summary.budgetReason).toBe("max-wall-ms");
+  });
+
+  it("does not complete a task whose USD-capped usage cannot be priced", async () => {
+    const reg = freshRegistry();
+    reg.maxAttempts = 3;
+    reg.addTask({ key: "unpriced", title: "unpriced" });
+    const budget = new TeamBudget({ maxUsd: 1 });
+    const runner = new TeamRunner(reg, {
+      teammates: 1,
+      budget,
+      runTask: async () => ({
+        provider: "unknown-remote",
+        model: "unpriced-model",
+        usage: { input_tokens: 10, output_tokens: 2 },
+      }),
+    });
+
+    const summary = await runner.run();
+    expect(summary).toMatchObject({
+      done: true,
+      success: false,
+      budgetStopped: true,
+      budgetReason: "unpriced-usage",
+      stats: { cancelled: 1, completed: 0 },
+    });
+    expect(reg.getTask("unpriced").metadata.lastError).toMatch(
+      /cannot account for unpriced remote usage/,
+    );
+  });
+
+  it("does not retry an explicitly non-retryable failure", async () => {
+    const reg = freshRegistry();
+    reg.maxAttempts = 3;
+    reg.addTask({ key: "unsafe", title: "unsafe" });
+    let executions = 0;
+    const runner = new TeamRunner(reg, {
+      teammates: 1,
+      runTask: async () => {
+        executions += 1;
+        const error = new Error("requires adjudication");
+        error.retryable = false;
+        throw error;
+      },
+    });
+
+    const summary = await runner.run();
+    expect(executions).toBe(1);
+    expect(summary).toMatchObject({
+      done: true,
+      success: false,
+      stats: { cancelled: 1 },
+    });
   });
 });
 
@@ -392,6 +739,40 @@ describe("TeamRunner directed messaging", () => {
     const t1 = mailbox.peek("teammate-1");
     const t2 = mailbox.peek("teammate-2");
     expect(anyCrossDelivery || t1.length > 0 || t2.length > 0).toBe(true);
+  });
+
+  it("surfaces bounded mailbox backpressure without evicting messages", async () => {
+    const reg = freshRegistry();
+    reg.maxAttempts = 1;
+    reg.addTask({ key: "noisy", title: "noisy" });
+    const mailbox = new TeamMailbox({
+      maxMessages: 1,
+      maxMessageBytes: 512,
+      maxTotalBytes: 1024,
+      recipients: ["teammate-1", "coordinator"],
+    });
+    const events = [];
+    const runner = new TeamRunner(reg, {
+      teammates: 1,
+      mailbox,
+      onEvent: (event) => events.push(event),
+      runTask: async ({ sendMessage }) => {
+        sendMessage("coordinator", "first");
+        sendMessage("coordinator", "second");
+      },
+    });
+
+    const summary = await runner.run();
+    expect(summary.done).toBe(true);
+    expect(summary.success).toBe(false);
+    expect(summary.stats.cancelled).toBe(1);
+    expect(mailbox.log().map((message) => message.body)).toEqual(["first"]);
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: "mailbox:backpressure",
+        code: "TEAM_MAILBOX_CAPACITY_EXCEEDED",
+      }),
+    );
   });
 });
 

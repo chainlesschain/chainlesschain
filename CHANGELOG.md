@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — cc CLI 0.162.187: large Agent Teams safety foundation
+
+> `chainlesschain` **0.162.186 → 0.162.187** (2026-07-29).
+> CLI-only release; `@chainlesschain/personal-data-hub` remains **0.4.57**
+> and `@chainlesschain/agent-sdk` remains **0.1.7**.
+
+- **Scale-ready scheduling**: indexed leases and dependency bookkeeping support
+  10,000-task graphs with up to 64 local workers, while bounded mailboxes apply
+  explicit backpressure instead of allowing unbounded coordination queues.
+- **Fenced execution authority**: per-task contracts, scope ownership,
+  cross-process run locks, lease fencing, and append-only collaboration
+  governance prevent stale workers or generic state updates from mutating
+  settled work.
+- **Fail-closed budgets and recovery**: claim-time token/USD reservations,
+  restored active wall time, required usage attribution, and explicit
+  unpriced-usage state stop budgeted remote work when cost evidence is missing.
+  After a crash, only dry runs or tasks marked `retrySafe` are reclaimed
+  automatically; ambiguous real side effects require adjudication.
+- **Durable worktree settlement**: recovery snapshots bind the original base
+  branch and commit, pin task output to immutable commit OIDs, recheck refs
+  around preview/merge/cleanup, and use prepare→persist→remove→persist cleanup
+  without discarding dirty, moved, or unmerged worktrees.
+- **Honest completion boundary**: this release is the P2-16 safety and scale
+  foundation, not the completed production-scale Agent Teams program. IDE
+  human takeover, distributed queues, long-running soak coverage, interactive
+  side-effect adjudication, and dependency-branch baseline propagation remain.
+- **Release validation gate**: publication requires the exact merged release
+  commit to pass `CLI CI`, `CLI Strict Sandbox`, and the three-platform
+  `CLI Background Interaction E2E` workflow; local tests remain supplementary.
+
 ### Added — cc CLI 0.162.186: standard OpenTelemetry Collector export
 
 > `chainlesschain` **0.162.185 → 0.162.186** (2026-07-29).
