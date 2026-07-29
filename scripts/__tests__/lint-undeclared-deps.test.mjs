@@ -48,7 +48,9 @@ test("detects static default/named import", () => {
 });
 
 test("detects side-effect import", () => {
-  assert.deepEqual(detectExternalImports('import "dotenv/config";'), ["dotenv"]);
+  assert.deepEqual(detectExternalImports('import "dotenv/config";'), [
+    "dotenv",
+  ]);
 });
 
 test("detects dynamic import()", () => {
@@ -67,7 +69,9 @@ test("detects export ... from", () => {
 
 test("scoped-subpath import resolves to base package", () => {
   assert.deepEqual(
-    detectExternalImports('import { ed25519 } from "@noble/curves/ed25519.js";'),
+    detectExternalImports(
+      'import { ed25519 } from "@noble/curves/ed25519.js";',
+    ),
     ["@noble/curves"],
   );
 });
@@ -103,10 +107,13 @@ test("ignores node builtins (bare + node: prefix)", () => {
   );
 });
 
-test("ignores host-provided ambients (electron/vscode)", () => {
+test("ignores host-provided ambients and Seatbelt profile imports", () => {
   assert.deepEqual(
     detectExternalImports(
-      'const e = require("electron"); import * as vscode from "vscode";',
+      [
+        'const e = require("electron"); import * as vscode from "vscode";',
+        `const profile = '(import "system.sb")';`,
+      ].join("\n"),
     ),
     [],
   );
@@ -121,13 +128,13 @@ test("ignores import-shaped text in line comments", () => {
 });
 
 test("ignores import-shaped text in block/JSDoc comments", () => {
-  const src = "/**\n * import express from \"express\"\n */\nconst y = 1;";
+  const src = '/**\n * import express from "express"\n */\nconst y = 1;';
   assert.deepEqual(detectExternalImports(src), []);
 });
 
 test("ignores imports embedded in template literals (codegen)", () => {
   const src =
-    "const generated = `import express from \"express\";\\n" +
+    'const generated = `import express from "express";\\n' +
     'require("@modelcontextprotocol/sdk");`;';
   assert.deepEqual(detectExternalImports(src), []);
 });
