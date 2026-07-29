@@ -7831,6 +7831,7 @@ describe.runIf(process.platform === "win32")(
               )});`,
               "  executionBroker._sandboxEnabled = true;",
               "  executionBroker._platformSandboxEnabled = true;",
+              "  delete process.env.CC_SANDBOX_STRICT;",
               "  const nested = executionBroker.spawnSync(",
               "    'git',",
               "    ['--version'],",
@@ -7843,10 +7844,13 @@ describe.runIf(process.platform === "win32")(
               "      requiredBoundaries: ['process-tree'],",
               "    },",
               "  );",
+              "  const audit = executionBroker.getAuditLog(1)[0];",
               "  process.stdout.write(JSON.stringify({",
               "    status: nested.status,",
               "    stdout: nested.stdout,",
               "    stderr: nested.stderr,",
+              "    sandboxBackend: audit?.sandboxBackend || null,",
+              "    sandboxGuarantees: audit?.sandboxGuarantees || [],",
               "    error: nested.error",
               "      ? { code: nested.error.code, message: nested.error.message }",
               "      : null,",
@@ -7862,7 +7866,12 @@ describe.runIf(process.platform === "win32")(
             policy: "allow",
             encoding: "utf8",
             timeout: 90_000,
-            env: process.env,
+            env: {
+              ...process.env,
+              NODE_OPTIONS: [process.env.NODE_OPTIONS, "--no-warnings"]
+                .filter(Boolean)
+                .join(" "),
+            },
           },
         );
         expect(result.error).toBeUndefined();
@@ -7872,6 +7881,8 @@ describe.runIf(process.platform === "win32")(
         expect(nestedReport).toMatchObject({
           status: 0,
           error: null,
+          sandboxBackend: "windows-job-restricted-token",
+          sandboxGuarantees: expect.arrayContaining(["process-tree"]),
         });
         expect(nestedReport.stderr).toBe("");
         expect(nestedReport.stdout).toMatch(/^git version /);
