@@ -4,9 +4,19 @@ import { withFileLock } from "../../src/lib/with-file-lock.js";
 // In-memory fake fs modelling the lock DIRECTORY as a single key.
 function fakeLockFs() {
   const dirs = new Map(); // lockDir -> mtimeMs
+  const files = new Map();
+  const normalize = (p) => String(p).replaceAll("\\", "/");
+  const parentDir = (p) => p.slice(0, p.lastIndexOf("/")) || "/";
+  const enoent = () => {
+    const error = new Error("ENOENT");
+    error.code = "ENOENT";
+    return error;
+  };
   return {
     dirs,
+    files,
     mkdirSync: vi.fn((p) => {
+      p = normalize(p);
       if (dirs.has(p)) {
         const e = new Error("EEXIST");
         e.code = "EEXIST";
@@ -15,25 +25,48 @@ function fakeLockFs() {
       dirs.set(p, 0);
     }),
     statSync: vi.fn((p) => {
-      if (!dirs.has(p)) {
-        const e = new Error("ENOENT");
-        e.code = "ENOENT";
-        throw e;
-      }
+      p = normalize(p);
+      if (!dirs.has(p)) throw enoent();
       return { mtimeMs: dirs.get(p) };
     }),
-    rmSync: vi.fn((p) => dirs.delete(p)),
+    readFileSync: vi.fn((p) => {
+      p = normalize(p);
+      if (!files.has(p)) throw enoent();
+      return files.get(p);
+    }),
+    writeFileSync: vi.fn((p, value, options = {}) => {
+      p = normalize(p);
+      if (!dirs.has(parentDir(p))) throw enoent();
+      if (options.flag === "wx" && files.has(p)) {
+        const error = new Error("EEXIST");
+        error.code = "EEXIST";
+        throw error;
+      }
+      files.set(p, String(value));
+    }),
+    rmSync: vi.fn((p) => {
+      p = normalize(p);
+      if (files.delete(p)) return;
+      dirs.delete(p);
+      for (const key of Array.from(files.keys())) {
+        if (key.startsWith(`${p}/`)) files.delete(key);
+      }
+    }),
   };
 }
 
 describe("withFileLock", () => {
   it("acquires the lock, runs fn (locked:true), and releases", () => {
     const _fs = fakeLockFs();
-    const result = withFileLock("/state.json", (ctx) => {
-      expect(ctx.locked).toBe(true);
-      expect(_fs.dirs.has("/state.json.lock")).toBe(true); // held during fn
-      return "ok";
-    }, { _fs });
+    const result = withFileLock(
+      "/state.json",
+      (ctx) => {
+        expect(ctx.locked).toBe(true);
+        expect(_fs.dirs.has("/state.json.lock")).toBe(true); // held during fn
+        return "ok";
+      },
+      { _fs },
+    );
     expect(result).toBe("ok");
     expect(_fs.dirs.has("/state.json.lock")).toBe(false); // released after
   });
@@ -41,9 +74,13 @@ describe("withFileLock", () => {
   it("releases the lock even if fn throws", () => {
     const _fs = fakeLockFs();
     expect(() =>
-      withFileLock("/s.json", () => {
-        throw new Error("boom");
-      }, { _fs }),
+      withFileLock(
+        "/s.json",
+        () => {
+          throw new Error("boom");
+        },
+        { _fs },
+      ),
     ).toThrow("boom");
     expect(_fs.dirs.has("/s.json.lock")).toBe(false);
   });
@@ -129,5 +166,139 @@ describe("withFileLock", () => {
         failIfUnavailable: true,
       }),
     ).toThrowError(/Could not acquire state lock/);
+  });
+
+  it("strict mode never reclaims a live owner based only on stale mtime", () => {
+    const _fs = fakeLockFs();
+    const lockDir = "/critical.json.lock";
+    _fs.dirs.set(lockDir, 0);
+    _fs.writeFileSync(
+      `${lockDir}/owner.json`,
+      JSON.stringify({
+        pid: 4242,
+        startedAt: 1,
+        token: "live-owner-token-0001",
+      }),
+    );
+    let now = 100_000;
+
+    expect(() =>
+      withFileLock("/critical.json", () => true, {
+        _fs,
+        timeoutMs: 10,
+        staleMs: 1,
+        _now: () => (now += 20),
+        _sleep: () => {},
+        _isProcessAlive: () => true,
+        failIfUnavailable: true,
+      }),
+    ).toThrowError(/Could not acquire state lock/);
+    expect(_fs.dirs.has(lockDir)).toBe(true);
+  });
+
+  it("a delayed dead-owner reclaimer never deletes a replacement owner", () => {
+    const _fs = fakeLockFs();
+    const lockDir = "/critical.json.lock";
+    const ownerPath = `${lockDir}/owner.json`;
+    const deadOwner = {
+      pid: 4242,
+      startedAt: 1,
+      token: "dead-owner-token-0001",
+    };
+    const liveOwner = {
+      pid: 4343,
+      startedAt: 2,
+      token: "replacement-token-0001",
+    };
+    _fs.dirs.set(lockDir, 0);
+    _fs.writeFileSync(ownerPath, JSON.stringify(deadOwner));
+    const originalWrite = _fs.writeFileSync;
+    let replaced = false;
+    _fs.writeFileSync = vi.fn((p, value, options) => {
+      originalWrite(p, value, options);
+      if (
+        !replaced &&
+        String(p).replaceAll("\\", "/") ===
+          `${lockDir}/.reclaim-${deadOwner.token}`
+      ) {
+        replaced = true;
+        _fs.rmSync(lockDir, { recursive: true, force: true });
+        _fs.mkdirSync(lockDir);
+        originalWrite(ownerPath, JSON.stringify(liveOwner));
+      }
+    });
+    let now = 1000;
+
+    expect(() =>
+      withFileLock("/critical.json", () => true, {
+        _fs,
+        timeoutMs: 10,
+        _now: () => (now += 20),
+        _sleep: () => {},
+        _isProcessAlive: (pid) => pid === liveOwner.pid,
+        _ownerToken: () => "contender-token-0001",
+        failIfUnavailable: true,
+      }),
+    ).toThrowError(/Could not acquire state lock/);
+    expect(JSON.parse(_fs.readFileSync(ownerPath))).toEqual(liveOwner);
+    expect(_fs.dirs.has(lockDir)).toBe(true);
+  });
+
+  it("release leaves a replacement owner untouched when the token changed", () => {
+    const _fs = fakeLockFs();
+    const lockDir = "/critical.json.lock";
+    const replacement = {
+      pid: 5151,
+      startedAt: 2,
+      token: "replacement-token-0002",
+    };
+
+    withFileLock(
+      "/critical.json",
+      () => {
+        _fs.writeFileSync(`${lockDir}/owner.json`, JSON.stringify(replacement));
+      },
+      {
+        _fs,
+        _ownerToken: () => "original-owner-token-0001",
+      },
+    );
+
+    expect(JSON.parse(_fs.readFileSync(`${lockDir}/owner.json`))).toEqual(
+      replacement,
+    );
+    expect(_fs.dirs.has(lockDir)).toBe(true);
+  });
+
+  it("strict mode fails closed when ownership is lost before release", () => {
+    const _fs = fakeLockFs();
+    const lockDir = "/critical.json.lock";
+    const replacement = {
+      pid: 6161,
+      startedAt: 3,
+      token: "replacement-token-0003",
+    };
+
+    expect(() =>
+      withFileLock(
+        "/critical.json",
+        () => {
+          _fs.writeFileSync(
+            `${lockDir}/owner.json`,
+            JSON.stringify(replacement),
+          );
+        },
+        {
+          _fs,
+          _ownerToken: () => "original-owner-token-0002",
+          failIfUnavailable: true,
+        },
+      ),
+    ).toThrowError(
+      expect.objectContaining({ code: "STATE_LOCK_OWNERSHIP_LOST" }),
+    );
+    expect(JSON.parse(_fs.readFileSync(`${lockDir}/owner.json`))).toEqual(
+      replacement,
+    );
   });
 });

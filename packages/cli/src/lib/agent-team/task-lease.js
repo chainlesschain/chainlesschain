@@ -24,6 +24,7 @@
  */
 
 import { SharedTaskList, TASK_STATUS } from "@chainlesschain/session-core";
+import { randomUUID } from "node:crypto";
 
 export const DEFAULT_LEASE_TTL_MS = 60000;
 export const DEFAULT_MAX_ATTEMPTS = 3;
@@ -34,12 +35,27 @@ export class TaskLeaseRegistry {
     now = () => Date.now(),
     defaultTtlMs = DEFAULT_LEASE_TTL_MS,
     maxAttempts = DEFAULT_MAX_ATTEMPTS,
+    leaseEpoch = randomUUID(),
   } = {}) {
     this._now = typeof now === "function" ? now : () => now;
     this.defaultTtlMs = defaultTtlMs > 0 ? defaultTtlMs : DEFAULT_LEASE_TTL_MS;
     this.maxAttempts = maxAttempts > 0 ? maxAttempts : DEFAULT_MAX_ATTEMPTS;
+    this._leaseEpoch = String(leaseEpoch || randomUUID());
+    this._leaseSequence = 0;
     this._tasks = new SharedTaskList({ groupId, now: this._now });
     this._byKey = new Map(); // stable user key → internal SharedTaskList id
+    // Large-team scheduling indexes. The original implementation rebuilt and
+    // scanned the full task graph for every claim, which turns a 5k-task run
+    // into O(tasks² × teammates) work. Keep the dependency graph and ready
+    // queues incrementally so the hot claim path only touches ready work.
+    this._depsByKey = new Map();
+    this._dependentsByKey = new Map();
+    this._readyByPriority = new Map([
+      ["high", new Set()],
+      ["normal", new Set()],
+      ["low", new Set()],
+    ]);
+    this._leasedKeys = new Set();
   }
 
   /**
@@ -72,20 +88,101 @@ export class TaskLeaseRegistry {
     if (cycle) {
       return { ok: false, reason: "dependency cycle", cycle };
     }
+    return this._insertTask({
+      key: k,
+      title,
+      dependsOn: deps,
+      priority,
+      metadata,
+      createdBy,
+    });
+  }
+
+  /**
+   * Atomically validate and add a whole graph in O(V + E). `loadRegistry`
+   * uses this path for large plans so adding N tasks does not run N complete
+   * graph traversals. No task is inserted when validation fails.
+   */
+  addTasks(definitions = []) {
+    if (!Array.isArray(definitions) || definitions.length === 0) {
+      return { ok: false, reason: "tasks required" };
+    }
+    const normalized = [];
+    const seen = new Set(this._byKey.keys());
+    for (const source of definitions) {
+      const item = source && typeof source === "object" ? source : {};
+      const key = item.key || `t_${this._tasks.size() + normalized.length + 1}`;
+      if (seen.has(key)) {
+        return { ok: false, reason: `duplicate task key "${key}"`, key };
+      }
+      if (!item.title || typeof item.title !== "string") {
+        return { ok: false, reason: "title required", key };
+      }
+      seen.add(key);
+      normalized.push({
+        key,
+        title: item.title,
+        dependsOn: Array.isArray(item.dependsOn)
+          ? item.dependsOn.filter(Boolean)
+          : [],
+        priority: item.priority || "normal",
+        metadata: item.metadata || {},
+        createdBy: item.createdBy ?? null,
+      });
+    }
+
+    const adjacency = new Map(this._depsByKey);
+    for (const item of normalized) {
+      adjacency.set(item.key, item.dependsOn);
+    }
+    const cycle = this._findCycle(adjacency);
+    if (cycle) {
+      return { ok: false, reason: "dependency cycle", cycle };
+    }
+
+    const inserted = normalized.map((item) => this._insertTask(item));
+    return {
+      ok: true,
+      keys: inserted.map((item) => item.key),
+      ids: inserted.map((item) => item.id),
+    };
+  }
+
+  _insertTask({
+    key,
+    title,
+    dependsOn = [],
+    priority = "normal",
+    metadata = {},
+    createdBy = null,
+  }) {
     const created = this._tasks.add({
       title,
       priority,
       createdBy,
       metadata: {
         ...metadata,
-        key: k,
-        dependsOn: deps,
+        key,
+        dependsOn,
         lease: null,
         attempts: 0,
       },
     });
-    this._byKey.set(k, created.id);
-    return { ok: true, key: k, id: created.id };
+    this._byKey.set(key, created.id);
+    this._depsByKey.set(key, [...dependsOn]);
+    if (!this._dependentsByKey.has(key)) {
+      this._dependentsByKey.set(key, new Set());
+    }
+    for (const dependency of dependsOn) {
+      let dependents = this._dependentsByKey.get(dependency);
+      if (!dependents) {
+        dependents = new Set();
+        this._dependentsByKey.set(dependency, dependents);
+      }
+      dependents.add(key);
+    }
+    this._enqueueIfReady(key);
+    return { ok: true, key, id: created.id };
   }
 
   /** Resolve a stable key → the current task object (or null). */
@@ -140,25 +237,58 @@ export class TaskLeaseRegistry {
     return !!(lease && lease.expiresAt > now);
   }
 
+  _leaseOwned(lease, { holder, leaseId, now }) {
+    return !!(
+      this._leaseValid(lease, now) &&
+      lease.holder === holder &&
+      typeof leaseId === "string" &&
+      leaseId.length > 0 &&
+      lease.leaseId === leaseId
+    );
+  }
+
+  _nextLeaseId() {
+    this._leaseSequence += 1;
+    return `${this._leaseEpoch}:${this._leaseSequence}`;
+  }
+
   /**
    * Keys that could be leased right now: PENDING (or a task whose lease has
    * expired) with all dependencies COMPLETED and no currently-valid lease.
    */
   claimable({ now = this._now() } = {}) {
+    this._requeueExpiredLeases(now);
     const out = [];
-    for (const t of this._tasks.list()) {
-      const v = this._view(t);
-      if (
-        v.status === TASK_STATUS.COMPLETED ||
-        v.status === TASK_STATUS.CANCELLED
-      ) {
-        continue;
+    for (const priority of ["high", "normal", "low"]) {
+      for (const key of this._readyByPriority.get(priority)) {
+        out.push(key);
       }
-      if (this._leaseValid(v.lease, now)) continue; // held by a live teammate
-      if (this.unmetDependencies(v.key).length > 0) continue; // blocked by deps
-      out.push(v.key);
     }
     return out;
+  }
+
+  /** O(1) ready-frontier size for fair worker/budget reservation. */
+  claimableCount({ now = this._now() } = {}) {
+    this._requeueExpiredLeases(now);
+    let count = 0;
+    for (const queue of this._readyByPriority.values()) count += queue.size;
+    return count;
+  }
+
+  /**
+   * Return one ready key without materializing the whole ready set. The runner
+   * acquires it immediately, which removes it from the queue synchronously.
+   */
+  nextClaimable({ now = this._now(), excludeKeys = null } = {}) {
+    this._requeueExpiredLeases(now);
+    const excluded =
+      excludeKeys instanceof Set ? excludeKeys : new Set(excludeKeys || []);
+    for (const priority of ["high", "normal", "low"]) {
+      for (const key of this._readyByPriority.get(priority)) {
+        if (!excluded.has(key)) return key;
+      }
+    }
+    return null;
   }
 
   /**
@@ -170,7 +300,7 @@ export class TaskLeaseRegistry {
    *   - expired lease held by another    → steal (stolen:true)
    * @returns {{ ok:boolean, reason?:string, lease?:object, unmet?:string[], holder?:string, expiresAt?:number }}
    */
-  acquire(key, { holder, ttlMs, now = this._now() } = {}) {
+  acquire(key, { holder, leaseId = null, ttlMs, now = this._now() } = {}) {
     if (!holder) return { ok: false, reason: "holder required" };
     const id = this._byKey.get(key);
     const task = id ? this._tasks.get(id) : null;
@@ -186,39 +316,48 @@ export class TaskLeaseRegistry {
       return { ok: false, reason: "blocked_by_deps", unmet };
     }
     const existing = task.metadata?.lease || null;
-    if (this._leaseValid(existing, now) && existing.holder !== holder) {
-      return {
-        ok: false,
-        reason: "leased",
-        holder: existing.holder,
-        expiresAt: existing.expiresAt,
-      };
+    const existingValid = this._leaseValid(existing, now);
+    if (existingValid) {
+      // Holder labels are intentionally human-readable and may be reused after
+      // a restart. They are not authority. Only the unguessable leaseId fences
+      // an older executor from renewing or settling a newer lease.
+      if (!this._leaseOwned(existing, { holder, leaseId, now })) {
+        return {
+          ok: false,
+          reason: "leased",
+          holder: existing.holder,
+          expiresAt: existing.expiresAt,
+        };
+      }
     }
     const ttl = ttlMs > 0 ? ttlMs : this.defaultTtlMs;
-    const sameHolder = existing && existing.holder === holder;
+    const renewing = existingValid;
     const lease = {
       holder,
-      acquiredAt: sameHolder ? existing.acquiredAt : now,
+      leaseId: renewing ? existing.leaseId : this._nextLeaseId(),
+      acquiredAt: renewing ? existing.acquiredAt : now,
       expiresAt: now + ttl,
-      renewals: sameHolder ? (existing.renewals || 0) + 1 : 0,
-      stolen: !!(existing && existing.holder !== holder),
+      renewals: renewing ? (existing.renewals || 0) + 1 : 0,
+      stolen: !renewing && !!existing,
     };
-    return this._write(task, {
+    const ok = this._write(task, {
       status: TASK_STATUS.IN_PROGRESS,
       assignee: holder,
       metadata: { ...task.metadata, lease },
-    })
-      ? { ok: true, lease }
-      : { ok: false, reason: "concurrent" };
+    });
+    if (!ok) return { ok: false, reason: "concurrent" };
+    this._removeReady(key);
+    this._leasedKeys.add(key);
+    return { ok: true, lease };
   }
 
   /** Extend the lease you hold. Fails if you're not the current valid holder. */
-  renew(key, { holder, ttlMs, now = this._now() } = {}) {
+  renew(key, { holder, leaseId, ttlMs, now = this._now() } = {}) {
     const id = this._byKey.get(key);
     const task = id ? this._tasks.get(id) : null;
     if (!task) return { ok: false, reason: "not_found" };
     const lease = task.metadata?.lease || null;
-    if (!this._leaseValid(lease, now) || lease.holder !== holder) {
+    if (!this._leaseOwned(lease, { holder, leaseId, now })) {
       return { ok: false, reason: "not_holder_or_expired" };
     }
     const ttl = ttlMs > 0 ? ttlMs : this.defaultTtlMs;
@@ -233,40 +372,47 @@ export class TaskLeaseRegistry {
   }
 
   /** Voluntarily give up a lease — the task returns to PENDING for re-claim. */
-  release(key, { holder, now = this._now() } = {}) {
+  release(key, { holder, leaseId, now = this._now() } = {}) {
     const id = this._byKey.get(key);
     const task = id ? this._tasks.get(id) : null;
     if (!task) return { ok: false, reason: "not_found" };
     const lease = task.metadata?.lease || null;
-    if (!lease || lease.holder !== holder) {
-      return { ok: false, reason: "not_holder" };
+    if (!this._leaseOwned(lease, { holder, leaseId, now })) {
+      return { ok: false, reason: "not_holder_or_expired" };
     }
-    return this._write(task, {
+    const ok = this._write(task, {
       status: TASK_STATUS.PENDING,
       assignee: null,
       metadata: { ...task.metadata, lease: null },
-    })
-      ? { ok: true }
-      : { ok: false, reason: "concurrent" };
+    });
+    if (!ok) return { ok: false, reason: "concurrent" };
+    this._leasedKeys.delete(key);
+    this._enqueueIfReady(key, now);
+    return { ok: true };
   }
 
   /** Complete a task you hold the lease on → terminal COMPLETED. */
-  complete(key, { holder, result = null, now = this._now() } = {}) {
+  complete(key, { holder, leaseId, result = null, now = this._now() } = {}) {
     const id = this._byKey.get(key);
     const task = id ? this._tasks.get(id) : null;
     if (!task) return { ok: false, reason: "not_found" };
     const lease = task.metadata?.lease || null;
     // Only the valid holder may complete — prevents a stale teammate (whose
     // lease already expired and was reassigned) from marking another's work done.
-    if (!this._leaseValid(lease, now) || lease.holder !== holder) {
+    if (!this._leaseOwned(lease, { holder, leaseId, now })) {
       return { ok: false, reason: "not_holder_or_expired" };
     }
-    return this._write(task, {
+    const ok = this._write(task, {
       status: TASK_STATUS.COMPLETED,
       metadata: { ...task.metadata, lease: null, result },
-    })
-      ? { ok: true }
-      : { ok: false, reason: "concurrent" };
+    });
+    if (!ok) return { ok: false, reason: "concurrent" };
+    this._leasedKeys.delete(key);
+    this._removeReady(key);
+    for (const dependent of this._dependentsByKey.get(key) || []) {
+      this._enqueueIfReady(dependent, now);
+    }
+    return { ok: true };
   }
 
   /**
@@ -275,16 +421,19 @@ export class TaskLeaseRegistry {
    * doesn't loop forever on a doomed task.
    * @returns {{ ok:boolean, retry?:boolean, attempts?:number, reason?:string }}
    */
-  fail(key, { holder, error = null, now = this._now() } = {}) {
+  fail(
+    key,
+    { holder, leaseId, error = null, retryable = true, now = this._now() } = {},
+  ) {
     const id = this._byKey.get(key);
     const task = id ? this._tasks.get(id) : null;
     if (!task) return { ok: false, reason: "not_found" };
     const lease = task.metadata?.lease || null;
-    if (!lease || lease.holder !== holder) {
-      return { ok: false, reason: "not_holder" };
+    if (!this._leaseOwned(lease, { holder, leaseId, now })) {
+      return { ok: false, reason: "not_holder_or_expired" };
     }
     const attempts = (task.metadata?.attempts || 0) + 1;
-    const willRetry = attempts < this.maxAttempts;
+    const willRetry = retryable !== false && attempts < this.maxAttempts;
     const ok = this._write(task, {
       status: willRetry ? TASK_STATUS.PENDING : TASK_STATUS.CANCELLED,
       assignee: null,
@@ -296,6 +445,9 @@ export class TaskLeaseRegistry {
       },
     });
     if (!ok) return { ok: false, reason: "concurrent" };
+    this._leasedKeys.delete(key);
+    this._removeReady(key);
+    if (willRetry) this._enqueueIfReady(key, now);
     return { ok: true, retry: willRetry, attempts };
   }
 
@@ -317,6 +469,8 @@ export class TaskLeaseRegistry {
             metadata: { ...fresh.metadata, lease: null },
           })
         ) {
+          this._leasedKeys.delete(fresh.metadata?.key);
+          this._enqueueIfReady(fresh.metadata?.key, now);
           reclaimed.push(fresh.metadata?.key);
         }
       }
@@ -334,22 +488,66 @@ export class TaskLeaseRegistry {
    * Returns the reclaimed keys.
    */
   reclaimAll() {
-    const reclaimed = [];
+    return this.reconcileAbandoned().reclaimed;
+  }
+
+  /**
+   * Reconcile leases restored from a process that is known to be gone.
+   *
+   * A caller may opt individual tasks into retry. Everything else is cancelled
+   * fail-closed so an unknown external side effect is not silently replayed.
+   * The returned lists let the resume authority report which tasks need human
+   * adjudication.
+   */
+  reconcileAbandoned({
+    shouldRetry = () => true,
+    error = "prior execution outcome requires adjudication",
+  } = {}) {
+    if (typeof shouldRetry !== "function") {
+      throw new TypeError("shouldRetry must be a function");
+    }
+    const candidates = [];
     for (const t of this._tasks.list()) {
       const lease = t.metadata?.lease || null;
       if (!lease) continue;
-      const fresh = this._tasks.get(t.id); // re-read for current rev
+      candidates.push({
+        key: t.metadata?.key,
+        retry: shouldRetry(t) === true,
+      });
+    }
+
+    const reclaimed = [];
+    const adjudicationRequired = [];
+    for (const candidate of candidates) {
+      const id = this._byKey.get(candidate.key);
+      const fresh = id ? this._tasks.get(id) : null;
+      if (!fresh?.metadata?.lease) continue;
+      const metadata = {
+        ...fresh.metadata,
+        lease: null,
+      };
+      if (!candidate.retry) {
+        metadata.attempts = (fresh.metadata?.attempts || 0) + 1;
+        metadata.lastError = String(error);
+      }
       if (
         this._write(fresh, {
-          status: TASK_STATUS.PENDING,
+          status: candidate.retry ? TASK_STATUS.PENDING : TASK_STATUS.CANCELLED,
           assignee: null,
-          metadata: { ...fresh.metadata, lease: null },
+          metadata,
         })
       ) {
-        reclaimed.push(fresh.metadata?.key);
+        this._leasedKeys.delete(candidate.key);
+        this._removeReady(candidate.key);
+        if (candidate.retry) {
+          this._enqueueIfReady(candidate.key);
+          reclaimed.push(candidate.key);
+        } else {
+          adjudicationRequired.push(candidate.key);
+        }
       }
     }
-    return reclaimed;
+    return { reclaimed, adjudicationRequired };
   }
 
   stats({ now = this._now() } = {}) {
@@ -401,6 +599,7 @@ export class TaskLeaseRegistry {
     });
     reg._tasks = SharedTaskList.restore(snapshot.tasks, { now: reg._now });
     reg._byKey = new Map(snapshot?.registry?.byKey || []);
+    reg._rebuildIndexes();
     return reg;
   }
 
@@ -427,36 +626,137 @@ export class TaskLeaseRegistry {
    * null. A self-edge counts as a cycle.
    */
   _detectCycleIfAdded(key, deps) {
-    // Build adjacency from current tasks, then add the candidate.
-    const adj = new Map();
-    for (const t of this._tasks.list()) {
-      adj.set(t.metadata?.key, t.metadata?.dependsOn || []);
-    }
+    const adj = new Map(this._depsByKey);
     adj.set(key, deps);
+    return this._findCycle(adj, [key]);
+  }
+
+  _findCycle(adj, roots = null) {
     const WHITE = 0,
       GRAY = 1,
       BLACK = 2;
     const color = new Map();
-    const stack = [];
-    let found = null;
-    const visit = (node) => {
-      color.set(node, GRAY);
-      stack.push(node);
-      for (const next of adj.get(node) || []) {
-        if (!adj.has(next)) continue; // edge to a not-yet-added task: no cycle via it
-        const c = color.get(next) || WHITE;
-        if (c === GRAY) {
-          found = [...stack.slice(stack.indexOf(next)), next];
-          return true;
+    // Iterative DFS avoids overflowing the JS call stack on a legitimate deep
+    // graph (for example a 10,000-task migration chain).
+    for (const root of roots || adj.keys()) {
+      if ((color.get(root) || WHITE) !== WHITE) continue;
+      const path = [root];
+      const frames = [
+        {
+          node: root,
+          edges: adj.get(root) || [],
+          index: 0,
+        },
+      ];
+      color.set(root, GRAY);
+      while (frames.length > 0) {
+        const frame = frames[frames.length - 1];
+        if (frame.index >= frame.edges.length) {
+          color.set(frame.node, BLACK);
+          frames.pop();
+          path.pop();
+          continue;
         }
-        if (c === WHITE && visit(next)) return true;
+        const next = frame.edges[frame.index++];
+        if (!adj.has(next)) continue;
+        const state = color.get(next) || WHITE;
+        if (state === GRAY) {
+          return [...path.slice(path.indexOf(next)), next];
+        }
+        if (state === BLACK) continue;
+        color.set(next, GRAY);
+        path.push(next);
+        frames.push({
+          node: next,
+          edges: adj.get(next) || [],
+          index: 0,
+        });
       }
-      stack.pop();
-      color.set(node, BLACK);
-      return false;
-    };
-    // Only need to start from the candidate — a new cycle must pass through it.
-    if (visit(key)) return found;
+    }
     return null;
+  }
+
+  _priorityFor(task) {
+    return task?.priority === "high"
+      ? "high"
+      : task?.priority === "low"
+        ? "low"
+        : "normal";
+  }
+
+  _removeReady(key) {
+    for (const queue of this._readyByPriority.values()) queue.delete(key);
+  }
+
+  _dependenciesCompleted(key) {
+    for (const dependency of this._depsByKey.get(key) || []) {
+      if (this._statusOf(dependency) !== TASK_STATUS.COMPLETED) return false;
+    }
+    return true;
+  }
+
+  _enqueueIfReady(key, now = this._now()) {
+    if (!key) return false;
+    const task = this.getTask(key);
+    if (
+      !task ||
+      task.status === TASK_STATUS.COMPLETED ||
+      task.status === TASK_STATUS.CANCELLED
+    ) {
+      this._removeReady(key);
+      this._leasedKeys.delete(key);
+      return false;
+    }
+    if (this._leaseValid(task.lease, now)) {
+      this._removeReady(key);
+      this._leasedKeys.add(key);
+      return false;
+    }
+    if (!this._dependenciesCompleted(key)) {
+      this._removeReady(key);
+      return false;
+    }
+    this._leasedKeys.delete(key);
+    this._readyByPriority.get(this._priorityFor(task)).add(key);
+    return true;
+  }
+
+  _requeueExpiredLeases(now = this._now()) {
+    for (const key of Array.from(this._leasedKeys)) {
+      const task = this.getTask(key);
+      if (!task || !this._leaseValid(task.lease, now)) {
+        this._leasedKeys.delete(key);
+        this._enqueueIfReady(key, now);
+      }
+    }
+  }
+
+  _rebuildIndexes() {
+    this._depsByKey = new Map();
+    this._dependentsByKey = new Map();
+    this._readyByPriority = new Map([
+      ["high", new Set()],
+      ["normal", new Set()],
+      ["low", new Set()],
+    ]);
+    this._leasedKeys = new Set();
+    for (const task of this._tasks.list()) {
+      const key = task.metadata?.key;
+      const dependencies = task.metadata?.dependsOn || [];
+      this._depsByKey.set(key, [...dependencies]);
+      if (!this._dependentsByKey.has(key)) {
+        this._dependentsByKey.set(key, new Set());
+      }
+      for (const dependency of dependencies) {
+        let dependents = this._dependentsByKey.get(dependency);
+        if (!dependents) {
+          dependents = new Set();
+          this._dependentsByKey.set(dependency, dependents);
+        }
+        dependents.add(key);
+      }
+    }
+    const now = this._now();
+    for (const key of this._byKey.keys()) this._enqueueIfReady(key, now);
   }
 }

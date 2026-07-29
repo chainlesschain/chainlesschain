@@ -11,11 +11,12 @@
  *                 (same pricing/cache-token rules as `--max-budget-usd`)
  *   - maxWallMs   wall-clock since the first task started (time cap)
  *
- * Because a task's cost is only known once it returns, the team may overshoot a
- * token/USD cap by at most one task — like CostBudget, it never STARTS a task
- * once already over. A dimension left null is simply inactive. The clock is
- * injected so the wall-clock cap is deterministic in tests, and snapshot/restore
- * carries the running totals so `cc team run --resume` doesn't reset the budget.
+ * Concurrent agent tasks reserve a bounded slice of the remaining token/USD
+ * ceilings before they start. The slice becomes the child task's own hard stop,
+ * preventing a 64-worker frontier from each spending the full team remainder.
+ * A dimension left null is inactive. Snapshot/restore carries settled totals;
+ * in-flight reservations are intentionally discarded after a crash because the
+ * caller must adjudicate those executions before resuming.
  */
 
 import { CostBudget } from "../cost-budget.js";
@@ -24,6 +25,58 @@ const pos = (n) => {
   const v = Number(n);
   return Number.isFinite(v) && v > 0 ? v : null;
 };
+
+function assertBudgetSnapshot(snap) {
+  if (
+    !snap ||
+    typeof snap !== "object" ||
+    Array.isArray(snap) ||
+    !snap.limits ||
+    typeof snap.limits !== "object" ||
+    !snap.totals ||
+    typeof snap.totals !== "object"
+  ) {
+    throw new TypeError("invalid team budget snapshot");
+  }
+  for (const field of ["maxTasks", "maxTokens", "maxUsd", "maxWallMs"]) {
+    const value = snap.limits[field];
+    if (value !== null && (!Number.isFinite(value) || value <= 0)) {
+      throw new TypeError(`invalid team budget limit: ${field}`);
+    }
+  }
+  for (const field of ["tasks", "tokens", "spentUsd", "elapsedMs"]) {
+    const value = snap.totals[field];
+    if (!Number.isFinite(value) || value < 0) {
+      throw new TypeError(`invalid team budget total: ${field}`);
+    }
+  }
+  for (const field of ["maxTasks", "maxTokens"]) {
+    const value = snap.limits[field];
+    if (value !== null && !Number.isSafeInteger(value)) {
+      throw new TypeError(`invalid team budget integer limit: ${field}`);
+    }
+  }
+  for (const field of ["tasks", "tokens"]) {
+    if (!Number.isSafeInteger(snap.totals[field])) {
+      throw new TypeError(`invalid team budget integer total: ${field}`);
+    }
+  }
+  if (
+    typeof snap.totals.started !== "boolean" ||
+    typeof snap.totals.unpricedUsage !== "boolean" ||
+    (snap.totals.startedAt !== null &&
+      (!Number.isFinite(snap.totals.startedAt) || snap.totals.startedAt < 0))
+  ) {
+    throw new TypeError("invalid team budget wall-clock state");
+  }
+  if (
+    (snap.totals.started && snap.totals.startedAt === null) ||
+    (!snap.totals.started &&
+      (snap.totals.startedAt !== null || snap.totals.elapsedMs !== 0))
+  ) {
+    throw new TypeError("inconsistent team budget wall-clock state");
+  }
+}
 
 export class TeamBudget {
   constructor({
@@ -42,6 +95,10 @@ export class TeamBudget {
     this.tasks = 0;
     this.tokens = 0;
     this.startedAt = null; // set on the first recorded task
+    this.unpricedUsage = false;
+    this._reservations = new Map();
+    this.reservedTokens = 0;
+    this.reservedUsd = 0;
   }
 
   /** Any dimension active? (an all-null budget never stops anything). */
@@ -66,15 +123,130 @@ export class TeamBudget {
    * task-count / wall-clock dimensions move for it.
    * @returns {this}
    */
-  record({ usage = null, provider, model } = {}, now = this._now()) {
+  record(
+    {
+      usage = null,
+      usageRecords = null,
+      provider,
+      model,
+      reservationId = null,
+    } = {},
+    now = this._now(),
+  ) {
     this.start(now);
+    if (reservationId) this.releaseReservation(reservationId);
     this.tasks += 1;
     if (usage) {
       this.tokens +=
         (Number(usage.input_tokens) || 0) + (Number(usage.output_tokens) || 0);
-      this.cost.add({ provider, model, usage });
+      if (Array.isArray(usageRecords) && usageRecords.length > 0) {
+        for (const record of usageRecords) {
+          this._recordCost(record);
+        }
+      } else {
+        this._recordCost({ provider, model, usage });
+      }
     }
     return this;
+  }
+
+  _recordCost(record) {
+    const estimate = this.cost.add(record);
+    if (!this.cost.enabled()) return estimate;
+    const value = record?.usage || {};
+    const tokens =
+      (Number(value.input_tokens) || 0) +
+      (Number(value.output_tokens) || 0) +
+      (Number(value.cache_read_input_tokens) || 0) +
+      (Number(value.cache_creation_input_tokens) || 0);
+    const price = Number(estimate?.totalCost);
+    if (
+      tokens > 0 &&
+      estimate?.free !== true &&
+      (estimate?.matched !== true || !Number.isFinite(price) || price < 0)
+    ) {
+      this.unpricedUsage = true;
+    }
+    return estimate;
+  }
+
+  /**
+   * Reserve one fair slice of the remaining token/USD ceilings.
+   *
+   * `slots` is the number of claim slots sharing the current remainder. A
+   * task-level cap can only tighten its slice. The returned limits are suitable
+   * for passing directly to the child agent.
+   */
+  reserve(id, { maxTokens = null, maxUsd = null, slots = 1 } = {}) {
+    const key = String(id || "");
+    if (!key) throw new Error("team budget reservation id is required");
+    const existing = this._reservations.get(key);
+    if (existing) return { ok: true, ...existing, reused: true };
+
+    const divisor =
+      Number.isSafeInteger(slots) && slots > 0 ? Math.max(1, slots) : 1;
+    const requestedTokens = pos(maxTokens);
+    const requestedUsd = pos(maxUsd);
+    let tokenSlice = requestedTokens;
+    let usdSlice = requestedUsd;
+
+    if (this.maxTokens != null) {
+      const remaining = Math.max(
+        0,
+        Math.floor(this.maxTokens - this.tokens - this.reservedTokens),
+      );
+      if (remaining <= 0) {
+        return {
+          ok: false,
+          reason: "max-tokens",
+          temporary: this.reservedTokens > 0,
+        };
+      }
+      const fair = Math.max(1, Math.ceil(remaining / divisor));
+      tokenSlice =
+        requestedTokens == null ? fair : Math.min(requestedTokens, fair);
+    }
+
+    if (this.cost.limitUsd != null) {
+      const remaining = Math.max(
+        0,
+        this.cost.limitUsd - this.cost.spentUsd - this.reservedUsd,
+      );
+      if (remaining <= Number.EPSILON) {
+        return {
+          ok: false,
+          reason: "max-usd",
+          temporary: this.reservedUsd > 0,
+        };
+      }
+      const fair = remaining / divisor;
+      usdSlice = requestedUsd == null ? fair : Math.min(requestedUsd, fair);
+    }
+
+    const reservation = {
+      id: key,
+      maxTokens: tokenSlice,
+      maxUsd: usdSlice,
+      reservedTokens: this.maxTokens == null ? 0 : tokenSlice || 0,
+      reservedUsd: this.cost.limitUsd == null ? 0 : usdSlice || 0,
+    };
+    this._reservations.set(key, reservation);
+    this.reservedTokens += reservation.reservedTokens;
+    this.reservedUsd += reservation.reservedUsd;
+    return { ok: true, ...reservation, reused: false };
+  }
+
+  releaseReservation(id) {
+    const key = String(id || "");
+    const reservation = this._reservations.get(key);
+    if (!reservation) return false;
+    this._reservations.delete(key);
+    this.reservedTokens = Math.max(
+      0,
+      this.reservedTokens - reservation.reservedTokens,
+    );
+    this.reservedUsd = Math.max(0, this.reservedUsd - reservation.reservedUsd);
+    return true;
   }
 
   /**
@@ -87,6 +259,9 @@ export class TeamBudget {
     }
     if (this.maxTokens != null && this.tokens >= this.maxTokens) {
       return "max-tokens";
+    }
+    if (this.cost.enabled() && this.unpricedUsage) {
+      return "unpriced-usage";
     }
     if (this.cost.exceeded()) return "max-usd";
     if (
@@ -110,15 +285,21 @@ export class TeamBudget {
       maxTasks: this.maxTasks,
       tokens: this.tokens,
       maxTokens: this.maxTokens,
+      reservedTokens: this.reservedTokens,
       spentUsd: this.cost.spentUsd,
       maxUsd: this.cost.limitUsd,
+      reservedUsd: this.reservedUsd,
+      reservations: this._reservations.size,
+      unpricedUsage: this.unpricedUsage,
       elapsedMs: this.startedAt == null ? 0 : now - this.startedAt,
       maxWallMs: this.maxWallMs,
       reason: this.reason(now),
     };
   }
 
-  snapshot() {
+  snapshot(now = this._now()) {
+    const started = this.startedAt != null;
+    const elapsedMs = started ? Math.max(0, now - this.startedAt) : 0;
     return {
       limits: {
         maxTasks: this.maxTasks,
@@ -131,18 +312,26 @@ export class TeamBudget {
         tokens: this.tokens,
         spentUsd: this.cost.spentUsd,
         startedAt: this.startedAt,
+        started,
+        elapsedMs,
+        unpricedUsage: this.unpricedUsage,
       },
     };
   }
 
   /**
-   * Restore running totals + caps from a snapshot. `overrides` lets the current
-   * CLI invocation RAISE/lower a cap on resume — a provided (non-nullish) value
-   * wins over the snapshot's; an omitted one keeps the prior cap (so a resume
-   * with no flags can't silently drop a safety cap).
+   * Restore running totals + caps from a snapshot. A provided override can only
+   * tighten a persisted cap; an omitted value keeps the prior cap so resume
+   * cannot silently widen its resource authority.
    */
   static restore(snap, { now = () => Date.now(), table, overrides = {} } = {}) {
-    const pick = (o, s) => (o == null ? s : o);
+    assertBudgetSnapshot(snap);
+    const pick = (override, stored) => {
+      const next = pos(override);
+      const prior = pos(stored);
+      if (next == null) return prior;
+      return prior == null ? next : Math.min(prior, next);
+    };
     const b = new TeamBudget({
       maxTasks: pick(overrides.maxTasks, snap?.limits?.maxTasks),
       maxTokens: pick(overrides.maxTokens, snap?.limits?.maxTokens),
@@ -151,15 +340,22 @@ export class TeamBudget {
       table,
       now,
     });
-    b.tasks = Number(snap?.totals?.tasks) || 0;
-    b.tokens = Number(snap?.totals?.tokens) || 0;
+    b.tasks = snap.totals.tasks;
+    b.tokens = snap.totals.tokens;
     // Preserve prior USD spend so the cap keeps counting across a resume.
-    const spent = Number(snap?.totals?.spentUsd);
-    b.cost.spentUsd = Number.isFinite(spent) && spent >= 0 ? spent : 0;
+    const spent = snap.totals.spentUsd;
+    b.cost.spentUsd = spent;
     if (b.cost.spentUsd > 0) b.cost.priced = true;
-    // A time cap must NOT keep counting wall-clock across a crash gap (the
-    // process was down); restart the window on the next recorded task.
-    b.startedAt = null;
+    b.unpricedUsage = snap.totals.unpricedUsage;
+    // Preserve active execution time without charging process downtime. This
+    // prevents repeated resume from refreshing the team-wide wall-clock cap.
+    const restoredAt = b._now();
+    const elapsed = snap.totals.elapsedMs;
+    const started = snap.totals.started;
+    b.startedAt =
+      started && Number.isFinite(elapsed) && elapsed >= 0
+        ? restoredAt - elapsed
+        : null;
     return b;
   }
 }
