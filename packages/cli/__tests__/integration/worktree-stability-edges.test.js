@@ -22,6 +22,7 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  realpathSync,
   rmSync,
   symlinkSync,
   writeFileSync,
@@ -55,6 +56,10 @@ function initRepo(dir) {
   return dir;
 }
 
+function physicalPath(value) {
+  return realpathSync.native ? realpathSync.native(value) : realpathSync(value);
+}
+
 beforeEach(() => {
   baseDir = mkdtempSync(join(tmpdir(), "cc-wt-edge-"));
 });
@@ -71,7 +76,9 @@ describe("7a. nested repo — nearest .git wins, outer checkout untouched", () =
     const info = setupAgentWorktree({ cwd: inner });
     try {
       expect(info.repoRoot).toBe(inner);
-      expect(info.path.startsWith(join(inner, ".worktrees"))).toBe(true);
+      expect(
+        info.path.startsWith(join(physicalPath(inner), ".worktrees")),
+      ).toBe(true);
       // the outer repo never grows a .worktrees dir nor sees the branch
       expect(existsSync(join(outer, ".worktrees"))).toBe(false);
       const outerBranches = execSync("git branch --list 'cc-agent-*'", {
@@ -109,7 +116,9 @@ describe(
       // deletion boundary below an arbitrary linked checkout.
       const innerWt = createWorktree(outerWt.path, "agent/inner-wt");
       expect(existsSync(join(innerWt.path, "README.md"))).toBe(true);
-      expect(innerWt.path).toBe(join(repo, ".worktrees", "agent-inner-wt"));
+      expect(innerWt.path).toBe(
+        join(physicalPath(repo), ".worktrees", "agent-inner-wt"),
+      );
       expect(innerWt.path.startsWith(join(outerWt.path, ".worktrees"))).toBe(
         false,
       );
