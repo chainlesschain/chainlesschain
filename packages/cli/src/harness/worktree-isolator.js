@@ -15,8 +15,9 @@ import {
   symlinkSync,
   unlinkSync,
   mkdirSync,
+  rmSync,
 } from "node:fs";
-import { resolve, dirname, relative, isAbsolute } from "node:path";
+import { resolve, dirname, relative, isAbsolute, basename } from "node:path";
 import {
   isGitRepo,
   gitExec,
@@ -32,18 +33,170 @@ import {
 
 const WORKTREE_DIR = ".worktrees";
 
+function normalizeFilesystemPath(value) {
+  const absolute = resolve(value);
+  return process.platform === "win32" ? absolute.toLowerCase() : absolute;
+}
+
+function nativeRealpath(value) {
+  return realpathSync.native ? realpathSync.native(value) : realpathSync(value);
+}
+
+/**
+ * Resolve filesystem aliases without requiring the complete target to exist.
+ * `realpathSync()` alone cannot validate a not-yet-created worktree, while a
+ * lexical `resolve()` treats macOS' `/var` and `/private/var` (or a repository
+ * directory symlink) as different locations. Resolve the deepest existing
+ * prefix physically, then append only the still-missing path segments.
+ */
+function canonicalExistingPrefixPath(value) {
+  let cursor = resolve(value);
+  const missing = [];
+
+  for (;;) {
+    try {
+      return resolve(nativeRealpath(cursor), ...missing);
+    } catch (error) {
+      if (error?.code !== "ENOENT") throw error;
+      const parent = dirname(cursor);
+      if (parent === cursor) throw error;
+      missing.unshift(basename(cursor));
+      cursor = parent;
+    }
+  }
+}
+
 function sameFilesystemPath(left, right) {
-  const a = resolve(left);
-  const b = resolve(right);
-  return process.platform === "win32"
-    ? a.toLowerCase() === b.toLowerCase()
-    : a === b;
+  return (
+    normalizeFilesystemPath(canonicalExistingPrefixPath(left)) ===
+    normalizeFilesystemPath(canonicalExistingPrefixPath(right))
+  );
 }
 
 function assertNotSymlink(target, label) {
-  if (existsSync(target) && lstatSync(target).isSymbolicLink()) {
+  let stat;
+  try {
+    stat = lstatSync(target);
+  } catch (error) {
+    if (error?.code === "ENOENT") return;
+    throw error;
+  }
+  if (stat.isSymbolicLink()) {
     throw new Error(`${label} must not be a symbolic link or junction`);
   }
+}
+
+function gitRepositoryIdentity(repoDir) {
+  const [topLevel, commonDir, ...unexpected] = gitExecArgs(
+    ["rev-parse", "--show-toplevel", "--git-common-dir"],
+    repoDir,
+  ).split(/\r?\n/);
+  if (!topLevel || !commonDir || unexpected.length > 0) {
+    throw new Error("unable to determine git repository identity");
+  }
+  const absoluteCommonDir = isAbsolute(commonDir)
+    ? commonDir
+    : resolve(repoDir, commonDir);
+  return {
+    topLevel,
+    topLevelIdentity: normalizeFilesystemPath(
+      canonicalExistingPrefixPath(topLevel),
+    ),
+    commonDirIdentity: normalizeFilesystemPath(
+      canonicalExistingPrefixPath(absoluteCommonDir),
+    ),
+  };
+}
+
+function assertSameGitRepository(repoDir, expectedCommonDir, expectedRoot) {
+  const identity = gitRepositoryIdentity(repoDir);
+  if (
+    identity.commonDirIdentity !== expectedCommonDir ||
+    identity.topLevelIdentity !== expectedRoot
+  ) {
+    throw new Error("worktree does not belong to the expected git repository");
+  }
+}
+
+function parseRegisteredWorktrees(output) {
+  const worktrees = [];
+  let current = {};
+
+  for (const line of output.split(/\r?\n/)) {
+    if (line.startsWith("worktree ")) {
+      if (current.path) worktrees.push(current);
+      current = { path: line.slice(9) };
+    } else if (line.startsWith("HEAD ")) {
+      current.head = line.slice(5);
+    } else if (line.startsWith("branch ")) {
+      current.branch = line.slice(7).replace("refs/heads/", "");
+    } else if (line === "bare") {
+      current.bare = true;
+    } else if (line === "detached") {
+      current.detached = true;
+    } else if (line === "locked") {
+      current.locked = true;
+    } else if (line.startsWith("locked ")) {
+      current.locked = true;
+      current.lockReason = line.slice(7);
+    } else if (line === "prunable") {
+      current.prunable = true;
+    } else if (line.startsWith("prunable ")) {
+      current.prunable = true;
+      current.prunableReason = line.slice(9);
+    }
+  }
+  if (current.path) worktrees.push(current);
+  return worktrees;
+}
+
+function readRegisteredWorktrees(repoDir) {
+  return parseRegisteredWorktrees(
+    gitExec("worktree list --porcelain", repoDir),
+  );
+}
+
+function repositoryManagementContext(repoDir) {
+  const repository = gitRepositoryIdentity(repoDir);
+  const registeredWorktrees = readRegisteredWorktrees(repoDir);
+  const invocationRegistered = registeredWorktrees.some((worktree) => {
+    if (worktree.bare || !worktree.path) return false;
+    try {
+      return (
+        normalizeFilesystemPath(canonicalExistingPrefixPath(worktree.path)) ===
+        repository.topLevelIdentity
+      );
+    } catch {
+      return false;
+    }
+  });
+  if (!invocationRegistered) {
+    throw new Error("repository checkout is not a registered git worktree");
+  }
+
+  // Git lists the primary checkout first. It is the sole management anchor:
+  // calls made from a linked worktree still create a sibling below the primary
+  // checkout's `.worktrees`, never below an arbitrary externally-located
+  // registered checkout.
+  const primary = registeredWorktrees[0];
+  if (!primary || primary.bare || !primary.path || !existsSync(primary.path)) {
+    throw new Error("primary git worktree is unavailable");
+  }
+  const primaryPath = canonicalExistingPrefixPath(primary.path);
+  const primaryIdentity = normalizeFilesystemPath(primaryPath);
+  assertSameGitRepository(
+    primary.path,
+    repository.commonDirIdentity,
+    primaryIdentity,
+  );
+
+  return {
+    repository,
+    registeredWorktrees,
+    primaryPath,
+    primaryIdentity,
+    managedRoot: resolve(primaryPath, WORKTREE_DIR),
+  };
 }
 
 function assertPhysicalDescendant(target, root, label) {
@@ -79,7 +232,8 @@ function assertNoSymlinkAncestors(root, target, label) {
 
 export function managedWorktreePath(repoDir, branchName) {
   assertSafeGitRef(branchName, "branch name");
-  return resolve(repoDir, WORKTREE_DIR, branchName.replace(/\//g, "-"));
+  const { managedRoot } = repositoryManagementContext(repoDir);
+  return resolve(managedRoot, branchName.replace(/\//g, "-"));
 }
 
 /**
@@ -101,29 +255,63 @@ export function assertManagedWorktreePath(
   ) {
     throw new TypeError("managed worktree path must be a non-empty string");
   }
-  const repoRoot = resolve(repoDir);
-  const managedRoot = resolve(repoRoot, WORKTREE_DIR);
+  if (branchName != null) {
+    assertSafeGitRef(branchName, "branch name");
+  }
+
+  const context = repositoryManagementContext(repoDir);
   const candidate = resolve(worktreePath);
-  const fromRoot = relative(managedRoot, candidate);
+  const candidatePath = canonicalExistingPrefixPath(candidate);
+  const candidateIdentity = normalizeFilesystemPath(candidatePath);
+  const registered = context.registeredWorktrees.find((worktree) => {
+    try {
+      return sameFilesystemPath(worktree.path, candidatePath);
+    } catch {
+      return false;
+    }
+  });
+  const managedRootPath = canonicalExistingPrefixPath(context.managedRoot);
+  const managedRootIdentity = normalizeFilesystemPath(managedRootPath);
   if (
-    fromRoot === "" ||
-    isAbsolute(fromRoot) ||
-    fromRoot === ".." ||
-    fromRoot.startsWith(`..${pathSeparator()}`) ||
-    !sameFilesystemPath(dirname(candidate), managedRoot) ||
-    sameFilesystemPath(candidate, repoRoot)
+    candidateIdentity === context.primaryIdentity ||
+    candidateIdentity === context.repository.topLevelIdentity ||
+    normalizeFilesystemPath(dirname(candidateIdentity)) !==
+      normalizeFilesystemPath(managedRootIdentity)
   ) {
     throw new Error("refusing unmanaged worktree path");
   }
+
+  if (registered && branchName && registered.branch !== branchName) {
+    throw new Error(
+      "registered worktree branch does not match cleanup request",
+    );
+  }
+  const effectiveBranch = branchName || registered?.branch || null;
+  if (effectiveBranch != null) {
+    assertSafeGitRef(effectiveBranch, "branch name");
+  }
   if (
-    branchName != null &&
-    !sameFilesystemPath(candidate, managedWorktreePath(repoRoot, branchName))
+    effectiveBranch != null &&
+    !sameFilesystemPath(
+      candidatePath,
+      resolve(managedRootPath, effectiveBranch.replace(/\//g, "-")),
+    )
   ) {
     throw new Error("managed worktree path does not match its branch");
   }
-  assertNotSymlink(managedRoot, "managed worktree root");
+
+  if (registered && existsSync(candidatePath)) {
+    assertSameGitRepository(
+      candidatePath,
+      context.repository.commonDirIdentity,
+      candidateIdentity,
+    );
+  }
+
+  assertNotSymlink(context.managedRoot, "managed worktree root");
   assertNotSymlink(candidate, "managed worktree");
-  return candidate;
+  assertNotSymlink(candidatePath, "managed worktree");
+  return candidatePath;
 }
 
 function pathSeparator() {
@@ -314,6 +502,77 @@ export function createWorktree(repoDir, branchName, baseBranch, options = {}) {
   return result;
 }
 
+function findRegisteredWorktreeByPath(worktrees, worktreePath) {
+  return (
+    worktrees.find((worktree) =>
+      sameFilesystemPath(worktree.path, worktreePath),
+    ) || null
+  );
+}
+
+function validateWorktreeRemovalTarget(repoDir, worktreePath, branchName) {
+  const validatedPath = assertManagedWorktreePath(repoDir, worktreePath, {
+    branchName,
+  });
+  const registered = findRegisteredWorktreeByPath(
+    readRegisteredWorktrees(repoDir),
+    validatedPath,
+  );
+  if (existsSync(validatedPath) && !registered) {
+    throw new Error("refusing to remove an unregistered worktree path");
+  }
+  if (registered?.locked) {
+    const reason = registered.lockReason ? `: ${registered.lockReason}` : "";
+    throw new Error(`refusing to remove a locked worktree${reason}`);
+  }
+  if (registered && branchName && registered.branch !== branchName) {
+    throw new Error(
+      "registered worktree branch does not match cleanup request",
+    );
+  }
+  return { validatedPath, registered };
+}
+
+function assertWorktreeCleanForRemoval(worktreePath) {
+  const status = gitExecArgs(
+    [
+      "status",
+      "--porcelain=v1",
+      "--untracked-files=all",
+      "--ignored=matching",
+      "--ignore-submodules=none",
+    ],
+    worktreePath,
+  );
+  if (status.trim() !== "") {
+    throw new Error(
+      "refusing to remove a worktree with tracked, untracked, or ignored files",
+    );
+  }
+}
+
+function readLocalBranchOid(repoDir, branch) {
+  assertSafeGitRef(branch, "branch name");
+  const ref = `refs/heads/${branch}`;
+  const output = gitExecArgs(
+    ["for-each-ref", "--format=%(refname) %(objectname)", ref],
+    repoDir,
+  ).trim();
+  if (output === "") return null;
+  const prefix = `${ref} `;
+  const exactMatches = output
+    .split(/\r?\n/)
+    .filter((line) => line.startsWith(prefix));
+  if (
+    exactMatches.length !== 1 ||
+    !/^[a-f0-9]{40,64}$/i.test(exactMatches[0].slice(prefix.length))
+  ) {
+    if (exactMatches.length === 0) return null;
+    throw new Error(`unable to verify worktree branch: ${branch}`);
+  }
+  return exactMatches[0].slice(prefix.length).toLowerCase();
+}
+
 export function removeWorktree(repoDir, worktreePath, options = {}) {
   const deleteBranch = options.deleteBranch !== false;
   const force = options.force === true;
@@ -327,40 +586,16 @@ export function removeWorktree(repoDir, worktreePath, options = {}) {
   ) {
     throw new TypeError("expected worktree branch OID is invalid");
   }
-  const validatedPath = assertManagedWorktreePath(repoDir, worktreePath, {
-    branchName: options.branchName || null,
-  });
-  const registered = listWorktrees(repoDir).find((worktree) =>
-    sameFilesystemPath(worktree.path, validatedPath),
+  const initialTarget = validateWorktreeRemovalTarget(
+    repoDir,
+    worktreePath,
+    options.branchName || null,
   );
-  if (existsSync(validatedPath) && !registered) {
-    throw new Error("refusing to remove an unregistered worktree path");
-  }
-  if (
-    registered &&
-    options.branchName &&
-    registered.branch !== options.branchName
-  ) {
-    throw new Error(
-      "registered worktree branch does not match cleanup request",
-    );
-  }
+  const validatedPath = initialTarget.validatedPath;
+  const registered = initialTarget.registered;
+  const initiallySettled = registered == null && !existsSync(validatedPath);
   if (!force && existsSync(validatedPath)) {
-    const status = gitExecArgs(
-      [
-        "status",
-        "--porcelain=v1",
-        "--untracked-files=all",
-        "--ignored=matching",
-        "--ignore-submodules=none",
-      ],
-      validatedPath,
-    );
-    if (status.trim() !== "") {
-      throw new Error(
-        "refusing to remove a worktree with tracked, untracked, or ignored files",
-      );
-    }
+    assertWorktreeCleanForRemoval(validatedPath);
   }
 
   let branch =
@@ -381,21 +616,13 @@ export function removeWorktree(repoDir, worktreePath, options = {}) {
     }
   }
   let removalBranchOid = expectedBranchOid;
-  if (deleteBranch && branch && removalBranchOid == null) {
-    removalBranchOid = gitExecArgs(
-      ["rev-parse", "--verify", `refs/heads/${branch}^{commit}`],
-      repoDir,
-    )
-      .trim()
-      .toLowerCase();
-  }
-  if (branch && removalBranchOid) {
-    const currentBranchOid = gitExecArgs(
-      ["rev-parse", "--verify", `refs/heads/${branch}^{commit}`],
-      repoDir,
-    )
-      .trim()
-      .toLowerCase();
+  if (branch && (deleteBranch || removalBranchOid != null)) {
+    const currentBranchOid = readLocalBranchOid(repoDir, branch);
+    if (currentBranchOid == null) {
+      if (initiallySettled) return;
+      throw new Error(`Failed to verify worktree branch: ${branch}`);
+    }
+    removalBranchOid = removalBranchOid || currentBranchOid;
     if (currentBranchOid !== removalBranchOid) {
       throw new Error(
         `refusing to remove worktree after branch moved: ${branch}`,
@@ -406,20 +633,70 @@ export function removeWorktree(repoDir, worktreePath, options = {}) {
   // Missing + unregistered is the idempotent recovery state after a crash
   // between physical removal and snapshot settlement.
   if (registered || existsSync(validatedPath)) {
-    try {
-      gitExecArgs(
-        ["worktree", "remove", validatedPath, ...(force ? ["--force"] : [])],
-        repoDir,
-      );
-    } catch (error) {
-      try {
-        gitExecArgs(["worktree", "prune"], repoDir);
-      } catch {
-        /* preserve the authoritative remove failure */
+    if (!force && existsSync(validatedPath)) {
+      assertWorktreeCleanForRemoval(validatedPath);
+    }
+    if (branch && removalBranchOid) {
+      const currentBranchOid = readLocalBranchOid(repoDir, branch);
+      if (currentBranchOid == null) {
+        throw new Error(`Failed to verify worktree branch: ${branch}`);
       }
-      throw new Error(`Failed to remove managed worktree: ${validatedPath}`, {
-        cause: error,
-      });
+      if (currentBranchOid !== removalBranchOid) {
+        throw new Error(
+          `refusing to remove worktree after branch moved: ${branch}`,
+        );
+      }
+    }
+
+    // Re-read every path/registry/branch/lock authority as the final operation
+    // before deletion. In particular, persisted metadata is not deletion
+    // authority if it disappeared from Git's registry, became locked, or
+    // stopped identifying the same common repository.
+    const currentTarget = validateWorktreeRemovalTarget(
+      repoDir,
+      validatedPath,
+      options.branchName || registered?.branch || null,
+    );
+    const currentPath = currentTarget.validatedPath;
+    if (currentTarget.registered || existsSync(currentPath)) {
+      try {
+        if (process.platform === "win32") {
+          // Git for Windows follows directory junctions during
+          // `worktree remove --force`. Node 22's rmSync unlinks reparse points
+          // without traversing their targets, so remove the already-canonical,
+          // physically-verified checkout and then settle only stale, unlocked
+          // registry metadata. Exact-path verification below remains
+          // authoritative.
+          if (existsSync(currentPath)) {
+            rmSync(currentPath, {
+              recursive: true,
+              force: true,
+              maxRetries: 2,
+              retryDelay: 100,
+            });
+          }
+          gitExecArgs(["worktree", "prune", "--expire", "now"], repoDir);
+        } else {
+          gitExecArgs(
+            ["worktree", "remove", currentPath, ...(force ? ["--force"] : [])],
+            repoDir,
+          );
+        }
+      } catch (error) {
+        throw new Error(`Failed to remove managed worktree: ${validatedPath}`, {
+          cause: error,
+        });
+      }
+
+      const remaining = findRegisteredWorktreeByPath(
+        readRegisteredWorktrees(repoDir),
+        currentPath,
+      );
+      if (remaining || existsSync(currentPath)) {
+        throw new Error(
+          `Failed to verify managed worktree removal: ${validatedPath}`,
+        );
+      }
     }
   }
 
@@ -432,26 +709,16 @@ export function removeWorktree(repoDir, worktreePath, options = {}) {
   ) {
     try {
       assertSafeGitRef(branch, "branch name");
-      if (removalBranchOid) {
-        const currentBranchOid = gitExecArgs(
-          ["rev-parse", "--verify", `refs/heads/${branch}^{commit}`],
-          repoDir,
-        )
-          .trim()
-          .toLowerCase();
-        if (currentBranchOid !== removalBranchOid) {
-          throw new Error(`worktree branch moved during removal: ${branch}`);
-        }
+      const currentBranchOid = readLocalBranchOid(repoDir, branch);
+      if (currentBranchOid == null) return;
+      if (removalBranchOid && currentBranchOid !== removalBranchOid) {
+        throw new Error(`worktree branch moved during removal: ${branch}`);
       }
       gitExecArgs(["branch", "-D", branch], repoDir);
     } catch (error) {
       try {
-        gitExecArgs(
-          ["show-ref", "--verify", "--quiet", `refs/heads/${branch}`],
-          repoDir,
-        );
+        if (readLocalBranchOid(repoDir, branch) == null) return;
       } catch (probeError) {
-        if (probeError?.status === 1 || probeError?.code === 1) return;
         throw new Error(`Failed to verify worktree branch: ${branch}`, {
           cause: probeError,
         });
@@ -467,25 +734,7 @@ export function listWorktrees(repoDir) {
   if (!isGitRepo(repoDir)) return [];
 
   try {
-    const output = gitExec("worktree list --porcelain", repoDir);
-    const worktrees = [];
-    let current = {};
-
-    for (const line of output.split("\n")) {
-      if (line.startsWith("worktree ")) {
-        if (current.path) worktrees.push(current);
-        current = { path: line.slice(9) };
-      } else if (line.startsWith("HEAD ")) {
-        current.head = line.slice(5);
-      } else if (line.startsWith("branch ")) {
-        current.branch = line.slice(7).replace("refs/heads/", "");
-      } else if (line === "bare") {
-        current.bare = true;
-      }
-    }
-    if (current.path) worktrees.push(current);
-
-    return worktrees;
+    return readRegisteredWorktrees(repoDir);
   } catch (_e) {
     return [];
   }
