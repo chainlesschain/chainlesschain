@@ -6913,17 +6913,23 @@ describe("platform sandbox adapter contract", () => {
       "private static bool TokenHasEnabledAdministratorSid(IntPtr token)",
     );
     expect(windowsSandboxSource).toContain(
+      "private static extern bool DuplicateTokenEx(",
+    );
+    expect(windowsSandboxSource).toContain(
       "private static void AssertRestrictedTokenPolicy(",
     );
     expect(runSource).toContain("UInt32 restrictedTokenFlags = 0;");
     expect(runSource).toMatch(
-      /!TokenWasFiltered\(sourceToken\) \|\|\s+TokenHasUnexpectedEnabledPrivileges\(sourceToken\)/,
+      /!sourceTokenWasFiltered \|\|\s+sourceTokenHasUnexpectedEnabledPrivileges/,
     );
     expect(runSource).toMatch(
-      /disableAdministratorSids &&\s+TokenHasEnabledAdministratorSid\(sourceToken\)/,
+      /sourceTokenHasEnabledAdministratorSid\)\s+\{\s+restrictedTokenFlags \|= LUA_TOKEN/,
     );
     expect(runSource).toMatch(
-      /CreateRestrictedToken\([\s\S]*restrictedTokenFlags,[\s\S]*out restrictedToken\)/,
+      /restrictedTokenFlags == 0\)[\s\S]*DuplicateTokenEx\([\s\S]*TokenPrimary,[\s\S]*out restrictedToken\)/,
+    );
+    expect(runSource).toMatch(
+      /else\s+\{[\s\S]*CreateRestrictedToken\([\s\S]*restrictedTokenFlags,[\s\S]*out restrictedToken\)/,
     );
     expect(runSource).toMatch(
       /AssertRestrictedTokenPolicy\(\s*restrictedToken,\s*disableAdministratorSids\);/,
@@ -7478,6 +7484,8 @@ describe("platform sandbox adapter contract", () => {
 describe.runIf(process.platform === "win32")(
   "Windows sandbox live enforcement",
   () => {
+    const liveNodeExecutable = fs.realpathSync.native(process.execPath);
+
     it("loads only verified helper bytes when the temp directory contains loader sidecars", () => {
       const workspace = fs.mkdtempSync(
         path.join(os.tmpdir(), "cc-windows-byte-helper-live-"),
@@ -7503,8 +7511,8 @@ describe.runIf(process.platform === "win32")(
         process.env.SystemRoot = workspace;
         expect(resetWindowsSandboxAdapterCache()).toBe(true);
         plan = applyWindowsSandbox(
-          process.execPath,
-          ["-e", "process.stdout.write('byte-helper-ok')"],
+          path.join(trustedWindowsDirectory, "System32", "cmd.exe"),
+          ["/d", "/s", "/c", "echo byte-helper-ok"],
           {
             cwd: workspace,
             encoding: "utf8",
@@ -7562,7 +7570,7 @@ describe.runIf(process.platform === "win32")(
         });
         expect(result.error).toBeUndefined();
         expect(result.status, result.stderr).toBe(0);
-        expect(result.stdout).toBe("byte-helper-ok");
+        expect(result.stdout.trim()).toBe("byte-helper-ok");
         expect(result.stderr).toBe("");
       } finally {
         if (previousWindir === undefined) {
@@ -7598,7 +7606,7 @@ describe.runIf(process.platform === "win32")(
       try {
         expect(resetWindowsSandboxAdapterCache()).toBe(true);
         plan = applyWindowsSandbox(
-          process.execPath,
+          liveNodeExecutable,
           [
             "-e",
             `require('node:fs').writeFileSync(${JSON.stringify(
@@ -7832,6 +7840,7 @@ describe.runIf(process.platform === "win32")(
               "      encoding: 'utf8',",
               "      timeout: 30000,",
               "      env: process.env,",
+              "      requiredBoundaries: ['process-tree'],",
               "    },",
               "  );",
               "  process.stdout.write(JSON.stringify({",
@@ -7894,7 +7903,7 @@ describe.runIf(process.platform === "win32")(
       let grandchildPid;
       try {
         const result = executionBroker.spawnSync(
-          process.execPath,
+          liveNodeExecutable,
           [
             "-e",
             [
@@ -7954,9 +7963,11 @@ describe.runIf(process.platform === "win32")(
           ),
         ].map((match) => match[0]);
         expect(privileges).not.toHaveLength(0);
-        expect(
-          privileges.every((name) => name === "SeChangeNotifyPrivilege"),
-        ).toBe(true);
+        // DISABLE_MAX_PRIVILEGE disables unexpected privileges; it does not
+        // promise to remove their names from TokenPrivileges/whoami output.
+        // Native AssertRestrictedTokenPolicy above is the authoritative
+        // enabled-state check.
+        expect(privileges).toContain("SeChangeNotifyPrivilege");
         expect(() => process.kill(grandchildPid, 0)).toThrow();
         grandchildPid = null;
         expect(executionBroker.getAuditLog(1)[0]).toMatchObject({
@@ -8046,7 +8057,7 @@ describe.runIf(process.platform === "win32")(
       let ipcTimer;
       try {
         child = executionBroker.spawn(
-          process.execPath,
+          liveNodeExecutable,
           [
             "-e",
             [
@@ -8174,7 +8185,7 @@ describe.runIf(process.platform === "win32")(
       let targetPid;
       try {
         child = executionBroker.spawn(
-          process.execPath,
+          liveNodeExecutable,
           ["-e", "setInterval(() => {}, 1000)"],
           {
             origin: "test:windows-native-sandbox-detached-live",

@@ -93,6 +93,7 @@ namespace ChainlessChain.WindowsSandbox
         private const Int32 HRESULT_FROM_WIN32_ERROR_ALREADY_EXISTS =
             unchecked((Int32)0x800700B7);
         private const Int32 SecurityImpersonation = 2;
+        private const Int32 TokenPrimary = 1;
         private const Int32 WinBuiltinAdministratorsSid = 26;
         private const UInt32 SECURITY_MAX_SID_SIZE = 68;
         private const UInt32 SE_PRIVILEGE_ENABLED_BY_DEFAULT = 0x00000001;
@@ -596,6 +597,16 @@ namespace ChainlessChain.WindowsSandbox
         private static extern bool DuplicateToken(
             IntPtr existingToken,
             Int32 impersonationLevel,
+            out IntPtr duplicateToken);
+
+        [DllImport("advapi32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool DuplicateTokenEx(
+            IntPtr existingToken,
+            UInt32 desiredAccess,
+            IntPtr tokenAttributes,
+            Int32 impersonationLevel,
+            Int32 tokenType,
             out IntPtr duplicateToken);
 
         [DllImport("advapi32.dll", SetLastError = true)]
@@ -3291,33 +3302,70 @@ namespace ChainlessChain.WindowsSandbox
                 // already restricted ExistingToken. Apply only restrictions
                 // that the current token does not already satisfy: repeating
                 // DISABLE_MAX_PRIVILEGE on a nested restricted worker can fail
-                // with ERROR_INVALID_PARAMETER. A zero-flag call still creates
-                // a child token while preserving every existing restriction.
+                // with ERROR_INVALID_PARAMETER. The zero-delta path below uses
+                // an exact primary-token duplicate instead of filtering again.
+                bool sourceTokenWasFiltered =
+                    TokenWasFiltered(sourceToken);
+                bool sourceTokenHasUnexpectedEnabledPrivileges =
+                    TokenHasUnexpectedEnabledPrivileges(sourceToken);
+                bool sourceTokenHasEnabledAdministratorSid =
+                    disableAdministratorSids &&
+                    TokenHasEnabledAdministratorSid(sourceToken);
                 UInt32 restrictedTokenFlags = 0;
                 if (
-                    !TokenWasFiltered(sourceToken) ||
-                    TokenHasUnexpectedEnabledPrivileges(sourceToken))
+                    !sourceTokenWasFiltered ||
+                    sourceTokenHasUnexpectedEnabledPrivileges)
                 {
                     restrictedTokenFlags |= DISABLE_MAX_PRIVILEGE;
                 }
                 if (
-                    disableAdministratorSids &&
-                    TokenHasEnabledAdministratorSid(sourceToken))
+                    sourceTokenHasEnabledAdministratorSid)
                 {
                     restrictedTokenFlags |= LUA_TOKEN;
                 }
-                if (!CreateRestrictedToken(
-                    sourceToken,
-                    restrictedTokenFlags,
-                    0,
-                    IntPtr.Zero,
-                    0,
-                    IntPtr.Zero,
-                    0,
-                    IntPtr.Zero,
-                    out restrictedToken))
+                // An inherited sandbox token may already carry restricting
+                // SIDs. Passing empty restriction arrays back through
+                // CreateRestrictedToken is not a reliable identity operation:
+                // Windows can reject that zero-delta filter with
+                // ERROR_INVALID_PARAMETER. Duplicate the already compliant
+                // primary token instead, preserving its complete restriction
+                // set. The policy assertion below remains authoritative.
+                if (restrictedTokenFlags == 0)
                 {
-                    ThrowLastError("CreateRestrictedToken");
+                    if (!DuplicateTokenEx(
+                        sourceToken,
+                        tokenAccess,
+                        IntPtr.Zero,
+                        SecurityImpersonation,
+                        TokenPrimary,
+                        out restrictedToken))
+                    {
+                        ThrowLastError("DuplicateTokenEx(compliant primary)");
+                    }
+                }
+                else
+                {
+                    if (!CreateRestrictedToken(
+                        sourceToken,
+                        restrictedTokenFlags,
+                        0,
+                        IntPtr.Zero,
+                        0,
+                        IntPtr.Zero,
+                        0,
+                        IntPtr.Zero,
+                        out restrictedToken))
+                    {
+                        ThrowLastError(
+                            String.Format(
+                                CultureInfo.InvariantCulture,
+                                "CreateRestrictedToken(flags={0},filtered={1}," +
+                                "unexpectedPrivileges={2},enabledAdmin={3})",
+                                restrictedTokenFlags,
+                                sourceTokenWasFiltered,
+                                sourceTokenHasUnexpectedEnabledPrivileges,
+                                sourceTokenHasEnabledAdministratorSid));
+                    }
                 }
                 AssertRestrictedTokenPolicy(
                     restrictedToken,
