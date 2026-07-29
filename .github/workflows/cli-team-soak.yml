@@ -1,0 +1,94 @@
+name: CLI Agent Team Soak
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/cli-team-soak.yml"
+      - "package.json"
+      - "package-lock.json"
+      - "packages/cli/**"
+  schedule:
+    - cron: "23 3 * * 1"
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: "Exact full commit SHA to test (blank uses selected ref)"
+        required: false
+        type: string
+      duration_minutes:
+        description: "Soak duration on each operating system"
+        required: true
+        default: "120"
+        type: choice
+        options:
+          - "10"
+          - "30"
+          - "120"
+          - "240"
+      seed:
+        description: "Reproducible unsigned 32-bit fault seed"
+        required: true
+        default: "1592598566"
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  distributed-soak:
+    name: "distributed DAG/fault soak (${{ matrix.os }})"
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 300
+    env:
+      # Pull requests execute one real short round. The scheduled gate runs for
+      # at least two hours on every OS; workflow_dispatch remains configurable.
+      CC_TEAM_SOAK_DURATION_MINUTES: ${{ github.event_name == 'pull_request' && '0.25' || inputs.duration_minutes || '120' }}
+      CC_TEAM_SOAK_MAX_ROUNDS: ${{ github.event_name == 'pull_request' && '1' || '' }}
+      CC_TEAM_SOAK_EXPECTED_SHA: ${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
+      CC_TEAM_SOAK_SEED: ${{ inputs.seed || '1592598566' }}
+      CC_TEAM_SOAK_WORKERS: "2"
+      CC_TEAM_SOAK_TASKS: ${{ github.event_name == 'pull_request' && '5' || '8' }}
+      CC_TEAM_SOAK_CRASHES: "2"
+      CC_TEAM_SOAK_TTL_MS: "120000"
+      CC_TEAM_SOAK_MAX_RSS_MB: "1024"
+      CC_TEAM_SOAK_MAX_RSS_GROWTH_MB: "256"
+      # Windows must pass the managed-process capability probe. Linux uses the
+      # managed path when its bwrap contract is available; macOS records the
+      # process-tree fail-closed profile and uses the explicitly labelled
+      # shell-worktree fallback. Agent work is a deterministic contract,
+      # worktree, and checkpoint exercise without a live model.
+      CC_TEAM_SOAK_REQUIRE_MANAGED_AGENT: ${{ matrix.os == 'windows-latest' && 'true' || 'false' }}
+      CC_TEAM_SOAK_OUTPUT: artifacts/cli-team-soak-result.json
+    steps:
+      - name: Checkout exact soak commit
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+
+      - uses: ./.github/actions/setup-node-deps
+
+      - name: Run managed-process probe and deterministic Agent contract soak
+        run: npm run test:cli-team-soak
+
+      - name: Upload Agent Team soak result
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: cli-team-soak-${{ matrix.os }}-${{ github.run_attempt }}
+          path: artifacts/cli-team-soak-result.json
+          if-no-files-found: warn
+          retention-days: 14
