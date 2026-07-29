@@ -205,6 +205,9 @@ function successfulProbe(call) {
     outsideMarkerHidden: true,
     networkNamespace: true,
     networkNamespaceChanged: true,
+    pidNamespace: true,
+    pidNamespaceChanged: true,
+    processTreeCloseProbe: true,
     socketCreationDenied: true,
   };
 }
@@ -280,7 +283,9 @@ describe("Linux generic bubblewrap authority contract", () => {
     expect(
       verifyIssuedLinuxGenericSandboxExecutionContract(
         commandContract,
-        provenance({ requiredBoundaries: ["filesystem", "network"] }),
+        provenance({
+          requiredBoundaries: ["filesystem", "network", "process-tree"],
+        }),
       ),
     ).toBe(true);
     expect(
@@ -298,6 +303,9 @@ describe("Linux generic bubblewrap authority contract", () => {
         provenance({ requiredBoundaries: ["network"] }),
       ),
     ).toBe(false);
+    expect(() =>
+      issue({ requiredBoundaries: ["filesystem", "process-exec"] }),
+    ).toThrow(/filesystem, network, and process-tree/);
 
     const ptyContract = issue({ pty: true });
     expect(
@@ -455,7 +463,7 @@ describe("Linux generic bubblewrap exact mount plan", () => {
     );
 
     expect(plan.applied).toBe(true);
-    expect(plan.guarantees).toEqual(["filesystem", "network"]);
+    expect(plan.guarantees).toEqual(["filesystem", "network", "process-tree"]);
     expect(plan.filesystemPolicy).toMatchObject({
       workspaceRoot: ROOT,
       workspaceAccess: "read-write",
@@ -475,6 +483,8 @@ describe("Linux generic bubblewrap exact mount plan", () => {
     expect(plan.args).toContain("--bind-fd");
     expect(plan.args).toContain("--ro-bind-fd");
     expect(plan.args).toContain("--die-with-parent");
+    expect(plan.args).toContain("--unshare-pid");
+    expect(plan.args).not.toContain("--as-pid-1");
     expect(plan.args).toContain("--unshare-net");
     expect(plan.args).toContain("--seccomp");
     expect(plan.args).toContain("--remount-ro");
@@ -534,6 +544,12 @@ describe("Linux generic bubblewrap exact mount plan", () => {
         descriptorMounts: true,
         workspaceMountTopologyAttested: true,
         workspaceRootAliasAttested: true,
+        pidNamespace: true,
+        pidNamespaceChanged: true,
+        processTreeCloseProbe: true,
+        bubblewrapPid1Reaper: true,
+        dieWithParent: true,
+        closeImpliesProcessTreeClosed: true,
         mountTopologyDigest: MOUNT_TOPOLOGY.digest,
         sourceMountSetDigest: MOUNT_TOPOLOGY.sourceMountSetDigest,
         sourceMountPropagationPrivateAtAttestation: true,
@@ -567,6 +583,14 @@ describe("Linux generic bubblewrap exact mount plan", () => {
         namespace: "new",
         namespaceIdentityChanged: true,
         seccomp: "deny-network-creation",
+      },
+      sandboxProcessTreePolicy: {
+        namespace: "new",
+        namespaceIdentityChanged: true,
+        init: "bubblewrap-pid1-reaper",
+        parentDeathSignal: "SIGKILL",
+        asPid1: false,
+        closeFence: "pid-namespace-empty-or-killed",
       },
     });
     expect(audit.sandboxFilesystemPolicy.anonymousWritablePaths).toEqual([
@@ -603,6 +627,30 @@ describe("Linux generic bubblewrap exact mount plan", () => {
         runtimeProbe: {
           ...plan.runtimeProbe,
           sourceMountPropagationPrivateAtAttestation: false,
+        },
+      }),
+    ).toThrow(/typed descriptor-bound empty-root contract/);
+    expect(() =>
+      executionBroker._validateSandboxPlan({
+        ...plan,
+        args: plan.args.filter((value) => value !== "--unshare-pid"),
+      }),
+    ).toThrow(/typed descriptor-bound empty-root contract/);
+    expect(() =>
+      executionBroker._validateSandboxPlan({
+        ...plan,
+        runtimeProbe: {
+          ...plan.runtimeProbe,
+          pidNamespaceChanged: false,
+        },
+      }),
+    ).toThrow(/typed descriptor-bound empty-root contract/);
+    expect(() =>
+      executionBroker._validateSandboxPlan({
+        ...plan,
+        processTreePolicy: {
+          ...plan.processTreePolicy,
+          closeFence: "unproven",
         },
       }),
     ).toThrow(/typed descriptor-bound empty-root contract/);
@@ -795,7 +843,13 @@ describe("Linux generic bubblewrap exact mount plan", () => {
   });
 
   it("rejects runnable probe output that does not prove root and system mounts read-only", () => {
-    for (const field of ["undeclaredRootReadOnly", "systemReadOnly"]) {
+    for (const field of [
+      "undeclaredRootReadOnly",
+      "systemReadOnly",
+      "pidNamespace",
+      "pidNamespaceChanged",
+      "processTreeCloseProbe",
+    ]) {
       const commandContract = issue();
       const plan = planLinuxGenericBubblewrap(
         {
@@ -1034,7 +1088,7 @@ describe("Linux generic bubblewrap exact mount plan", () => {
         scope: "sandbox-test",
         sandboxed: true,
         sandboxBackend: "linux-bwrap-workspace",
-        sandboxGuarantees: ["filesystem", "network"],
+        sandboxGuarantees: ["filesystem", "network", "process-tree"],
         sandboxPolicyAttested: true,
         sandboxPolicyDigest: "e".repeat(64),
         sandboxFilesystemPolicy: {
@@ -1069,6 +1123,14 @@ describe("Linux generic bubblewrap exact mount plan", () => {
           namespaceIdentityChanged: true,
           seccomp: "deny-network-creation",
         },
+        sandboxProcessTreePolicy: {
+          namespace: "new",
+          namespaceIdentityChanged: true,
+          init: "bubblewrap-pid1-reaper",
+          parentDeathSignal: "SIGKILL",
+          asPid1: false,
+          closeFence: "pid-namespace-empty-or-killed",
+        },
       },
       "completed",
     );
@@ -1082,7 +1144,7 @@ describe("Linux generic bubblewrap exact mount plan", () => {
       sandbox: {
         applied: true,
         backend: "linux-bwrap-workspace",
-        guarantees: ["filesystem", "network"],
+        guarantees: ["filesystem", "network", "process-tree"],
         policyAttested: true,
         policyDigest: "e".repeat(64),
         filesystemPolicy: {
@@ -1097,6 +1159,14 @@ describe("Linux generic bubblewrap exact mount plan", () => {
           namespace: "new",
           namespaceIdentityChanged: true,
           seccomp: "deny-network-creation",
+        },
+        processTreePolicy: {
+          namespace: "new",
+          namespaceIdentityChanged: true,
+          init: "bubblewrap-pid1-reaper",
+          parentDeathSignal: "SIGKILL",
+          asPid1: false,
+          closeFence: "pid-namespace-empty-or-killed",
         },
       },
     });

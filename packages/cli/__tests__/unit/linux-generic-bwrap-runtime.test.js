@@ -31,6 +31,7 @@ function createLinuxRuntime({
   omitSystemNode = false,
   mutateSystemTargetAfterProbe = false,
   finalReadError = false,
+  simulateProcessTreeLeak = false,
   mountInfo = "20 1 8:1 / / rw,relatime - ext4 /dev/root rw\n",
   mountInfoAfterProbe = null,
   homeIdentityAlias = false,
@@ -210,7 +211,8 @@ function createLinuxRuntime({
       return (
         entries.has(value) ||
         symlinks.has(value) ||
-        syntheticDirectories.has(value)
+        syntheticDirectories.has(value) ||
+        hostFiles.has(value)
       );
     },
     lstatSync(value) {
@@ -231,6 +233,7 @@ function createLinuxRuntime({
     },
     readlinkSync(value) {
       if (value === "/proc/self/ns/net") return "net:[4026531992]";
+      if (value === "/proc/self/ns/pid") return "pid:[4026531993]";
       if (!symlinks.has(value)) throw new Error("EINVAL");
       return symlinks.get(value);
     },
@@ -314,12 +317,14 @@ function createLinuxRuntime({
   const capabilities = [
     "--assert-userns-disabled",
     "--bind-fd",
+    "--die-with-parent",
     "--disable-userns",
     "--file",
     "--perms",
     "--remount-ro",
     "--ro-bind-fd",
     "--seccomp",
+    "--unshare-pid",
   ].filter((entry) => entry !== omitCapability);
   const calls = [];
   const spawnSync = vi.fn((command, args, options) => {
@@ -333,6 +338,12 @@ function createLinuxRuntime({
     }
     const script = args.at(-1);
     const digests = String(script).match(/[a-f0-9]{64}/g) || [];
+    if (simulateProcessTreeLeak) {
+      const marker = String(script).match(
+        /\/work\/project\/\.chainless-bwrap-tree-probe-[a-f0-9]+/,
+      )?.[0];
+      if (marker) hostFiles.set(marker, "late-writer");
+    }
     if (mutateSystemTargetAfterProbe) {
       const target = entries.get("/usr/bin/node");
       if (target) {
@@ -379,7 +390,7 @@ function issueAndAdmit({
     sync: false,
     pty,
     stdio: ["pipe", "pipe", "pipe"],
-    requiredBoundaries: ["filesystem", "network"],
+    requiredBoundaries: ["filesystem", "network", "process-tree"],
   };
   const contract = issueLinuxGenericSandboxExecutionContract(
     { ...provenance, workspaceRoot: ROOT },
@@ -433,7 +444,7 @@ function applyHarness(harness, admitted, overrides = {}) {
     harness.runtime,
     {
       profile: "strict",
-      requiredBoundaries: ["filesystem", "network"],
+      requiredBoundaries: ["filesystem", "network", "process-tree"],
       sync: false,
       ...(overrides.pty ? { pty: true } : {}),
       executionContract: admitted,
@@ -481,7 +492,7 @@ describe("Linux generic production runtime integration", () => {
     expect(plan).toMatchObject({
       applied: true,
       backend: "linux-bwrap-workspace",
-      guarantees: ["filesystem", "network"],
+      guarantees: ["filesystem", "network", "process-tree"],
       policyAttested: true,
       filesystemPolicy: {
         workspaceRoot: ROOT,
@@ -501,6 +512,14 @@ describe("Linux generic production runtime integration", () => {
         namespace: "new",
         seccomp: "deny-network-creation",
       },
+      processTreePolicy: {
+        namespace: "new",
+        namespaceIdentityChanged: true,
+        init: "bubblewrap-pid1-reaper",
+        parentDeathSignal: "SIGKILL",
+        asPid1: false,
+        closeFence: "pid-namespace-empty-or-killed",
+      },
       runtimeProbe: {
         kind: "linux-bwrap-generic-workspace-policy-v1",
         emptyRoot: true,
@@ -516,6 +535,12 @@ describe("Linux generic production runtime integration", () => {
         outsideMarkerHidden: true,
         networkNamespace: true,
         networkNamespaceChanged: true,
+        pidNamespace: true,
+        pidNamespaceChanged: true,
+        processTreeCloseProbe: true,
+        bubblewrapPid1Reaper: true,
+        dieWithParent: true,
+        closeImpliesProcessTreeClosed: true,
         socketCreationDenied: true,
       },
     });
@@ -530,6 +555,9 @@ describe("Linux generic production runtime integration", () => {
     expect(plan.args).toContain("--ro-bind-fd");
     expect(plan.args).toContain("--remount-ro");
     expect(plan.args).toContain("--unshare-net");
+    expect(plan.args).toContain("--unshare-pid");
+    expect(plan.args).toContain("--die-with-parent");
+    expect(plan.args).not.toContain("--as-pid-1");
     expect(plan.args).toContain("--seccomp");
     expect(plan.args).not.toContain("/home/alice");
     expect(
@@ -543,6 +571,8 @@ describe("Linux generic production runtime integration", () => {
     expect(harness.calls[1].options.timeout).toBe(10_000);
     const probeScript = harness.calls[1].args.at(-1);
     expect(probeScript).toContain("net:[4026531992]");
+    expect(probeScript).toContain("pid:[4026531993]");
+    expect(probeScript).toContain(".chainless-bwrap-tree-probe-");
     expect(probeScript).toContain("mount_is_read_only /");
     expect(probeScript).toContain("mount_is_read_only /usr");
     expect(probeScript).toContain("/proc/self/mountinfo");
@@ -556,8 +586,28 @@ describe("Linux generic production runtime integration", () => {
     expect(harness.openFiles.size).toBe(0);
   });
 
-  it("fails closed when bind-fd capability is absent", () => {
-    const harness = createLinuxRuntime({ omitCapability: "--bind-fd" });
+  it.each(["--bind-fd", "--unshare-pid", "--die-with-parent"])(
+    "fails closed when required bubblewrap capability %s is absent",
+    (omitCapability) => {
+      const harness = createLinuxRuntime({ omitCapability });
+      const { admitted } = issueAndAdmit();
+      const plan = applyHarness(harness, admitted);
+
+      expect(plan).toMatchObject({
+        applied: false,
+        candidateBackend: "linux-bwrap-workspace",
+        guarantees: [],
+        policyAttested: false,
+        reason: "linux_generic_bwrap_unavailable",
+      });
+      expect(harness.openFiles.size).toBe(0);
+    },
+  );
+
+  it("fails closed when the live close probe observes a surviving writer", () => {
+    const harness = createLinuxRuntime({
+      simulateProcessTreeLeak: true,
+    });
     const { admitted } = issueAndAdmit();
     const plan = applyHarness(harness, admitted);
 
@@ -566,7 +616,7 @@ describe("Linux generic production runtime integration", () => {
       candidateBackend: "linux-bwrap-workspace",
       guarantees: [],
       policyAttested: false,
-      reason: "linux_generic_bwrap_unavailable",
+      reason: "linux_generic_policy_probe_failed",
     });
     expect(harness.openFiles.size).toBe(0);
   });

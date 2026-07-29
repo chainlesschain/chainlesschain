@@ -3,7 +3,7 @@
  *
  * This module is intentionally independent from platform-sandbox.js so the
  * Broker can adopt it without weakening the narrow Plugin-bin contract. A raw
- * manifest policy can request filesystem/network boundaries, but it cannot
+ * manifest policy can request filesystem/network/process-tree boundaries, but it cannot
  * nominate a writable root: only an exact object issued here is accepted, and
  * every contract is single-use.
  *
@@ -26,7 +26,7 @@ export const LINUX_GENERIC_BWRAP_BACKEND = "linux-bwrap-workspace";
 export const LINUX_GENERIC_CONTRACT_KIND = "strict-workspace-command";
 export const LINUX_GENERIC_PTY_LAUNCHER_PATH = "/usr/bin/setsid";
 
-const SUPPORTED_BOUNDARIES = new Set(["filesystem", "network"]);
+const SUPPORTED_BOUNDARIES = new Set(["filesystem", "network", "process-tree"]);
 const SYSTEM_RUNTIME_DESTINATIONS = new Set([
   "/usr",
   "/bin",
@@ -185,7 +185,7 @@ function normalizeBoundaries(boundaries) {
     )
   ) {
     throw new TypeError(
-      "requiredBoundaries may contain only filesystem and network",
+      "requiredBoundaries may contain only filesystem, network, and process-tree",
     );
   }
   return Object.freeze(normalized);
@@ -1018,6 +1018,13 @@ function policyBinding({
       namespace: "new",
       seccomp: validated.seccomp,
     },
+    processTree: {
+      namespace: "new",
+      init: "bubblewrap-pid1-reaper",
+      dieWithParent: true,
+      asPid1: false,
+      closeFence: "pid-namespace-empty-or-killed",
+    },
     target: {
       requestedCommand: validated.target.requestedCommand,
       command: validated.target.resolvedCommand,
@@ -1199,6 +1206,9 @@ export function planLinuxGenericBubblewrap(
     probeResult.outsideMarkerHidden !== true ||
     probeResult.networkNamespace !== true ||
     probeResult.networkNamespaceChanged !== true ||
+    probeResult.pidNamespace !== true ||
+    probeResult.pidNamespaceChanged !== true ||
+    probeResult.processTreeCloseProbe !== true ||
     probeResult.socketCreationDenied !== true
   ) {
     return unavailablePlan(
@@ -1268,7 +1278,7 @@ export function planLinuxGenericBubblewrap(
     enforcement: LINUX_GENERIC_BWRAP_BACKEND,
     backend: LINUX_GENERIC_BWRAP_BACKEND,
     candidateBackend: null,
-    guarantees: Object.freeze(["filesystem", "network"]),
+    guarantees: Object.freeze(["filesystem", "network", "process-tree"]),
     requiredBoundaries: Object.freeze([...requiredBoundaries]),
     policyAttested: true,
     policyDigest,
@@ -1303,6 +1313,12 @@ export function planLinuxGenericBubblewrap(
       outsideMarkerHidden: true,
       networkNamespace: true,
       networkNamespaceChanged: true,
+      pidNamespace: true,
+      pidNamespaceChanged: true,
+      processTreeCloseProbe: true,
+      bubblewrapPid1Reaper: true,
+      dieWithParent: true,
+      closeImpliesProcessTreeClosed: true,
       socketCreationDenied: true,
       descriptorMounts: true,
     }),
@@ -1338,6 +1354,14 @@ export function planLinuxGenericBubblewrap(
       namespace: "new",
       namespaceIdentityChanged: true,
       seccomp: "deny-network-creation",
+    }),
+    processTreePolicy: Object.freeze({
+      namespace: "new",
+      namespaceIdentityChanged: true,
+      init: "bubblewrap-pid1-reaper",
+      parentDeathSignal: "SIGKILL",
+      asPid1: false,
+      closeFence: "pid-namespace-empty-or-killed",
     }),
     ptyPolicy: issued.pty
       ? Object.freeze({

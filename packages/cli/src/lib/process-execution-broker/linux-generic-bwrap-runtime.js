@@ -90,12 +90,14 @@ const OPAQUE_NON_ROOT_FILESYSTEMS = new Set([
 const REQUIRED_BWRAP_OPTIONS = [
   "--assert-userns-disabled",
   "--bind-fd",
+  "--die-with-parent",
   "--disable-userns",
   "--file",
   "--perms",
   "--remount-ro",
   "--ro-bind-fd",
   "--seccomp",
+  "--unshare-pid",
 ];
 const SECCOMP_ARCHITECTURES = Object.freeze({
   x64: Object.freeze({
@@ -127,6 +129,8 @@ const DEFAULT_RUNTIME = Object.freeze({
   homedir: () => os.homedir(),
   tmpdir: () => os.tmpdir(),
   randomBytes: (size) => crypto.randomBytes(size),
+  sleepSync: (milliseconds) =>
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, milliseconds),
   spawnSync: nativeSpawnSync,
 });
 
@@ -771,6 +775,12 @@ function createTrustedResources(
     if (!/^net:\[\d+\]$/.test(hostNetworkNamespace)) {
       throw new Error("host_network_namespace_identity_unavailable");
     }
+    const hostPidNamespace = String(
+      runtime.fs.readlinkSync("/proc/self/ns/pid"),
+    );
+    if (!/^pid:\[\d+\]$/.test(hostPidNamespace)) {
+      throw new Error("host_pid_namespace_identity_unavailable");
+    }
 
     const workspace = openPair(contract.workspaceRoot, {
       directory: true,
@@ -1245,6 +1255,10 @@ function createTrustedResources(
         contract.workspaceRoot,
         `.chainless-bwrap-probe-${nonce}`,
       );
+      const processTreeMarker = path.posix.join(
+        contract.workspaceRoot,
+        `.chainless-bwrap-tree-probe-${nonce}`,
+      );
       const outsideMarker = path.posix.join(
         runtime.tmpdir(),
         `.chainless-bwrap-outside-${nonce}`,
@@ -1368,10 +1382,16 @@ function createTrustedResources(
           `test "$(readlink /proc/self/ns/net)" != ${shellQuote(
             hostNetworkNamespace,
           )}`,
+          `test "$(readlink /proc/self/ns/pid)" != ${shellQuote(
+            hostPidNamespace,
+          )}`,
           `printf %s ${shellQuote(nonce)} > ${shellQuote(workspaceMarker)}`,
           `test "$(cat ${shellQuote(workspaceMarker)})" = ${shellQuote(nonce)}`,
           `rm -f ${shellQuote(workspaceMarker)}`,
           socketProbeCommand,
+          `( sleep 0.05; printf late-writer > ${shellQuote(
+            processTreeMarker,
+          )} ) &`,
           `printf '%s\\n%s\\n' ${shellQuote(call.policyDigest)} ${shellQuote(
             call.contractDigest,
           )}`,
@@ -1392,6 +1412,8 @@ function createTrustedResources(
           devShmCreated &&
           String(runtime.fs.readFileSync(devShmMarker, "utf8")) ===
             `host-dev-shm-${nonce}`;
+        runtime.sleepSync(75);
+        const processTreeClosed = !runtime.fs.existsSync(processTreeMarker);
         const expectedOutput = `${call.policyDigest}\n${call.contractDigest}\n`;
         const runnable =
           !result?.error &&
@@ -1399,7 +1421,8 @@ function createTrustedResources(
           String(result.stdout) === expectedOutput &&
           outsideUnchanged &&
           homeUnchanged &&
-          devShmUnchanged;
+          devShmUnchanged &&
+          processTreeClosed;
         return {
           runnable,
           policyDigest: runnable ? call.policyDigest : null,
@@ -1414,6 +1437,9 @@ function createTrustedResources(
           outsideMarkerHidden: runnable,
           networkNamespace: runnable,
           networkNamespaceChanged: runnable,
+          pidNamespace: runnable,
+          pidNamespaceChanged: runnable,
+          processTreeCloseProbe: runnable,
           socketCreationDenied: runnable,
         };
       } catch {
@@ -1421,6 +1447,7 @@ function createTrustedResources(
       } finally {
         for (const marker of [
           workspaceMarker,
+          processTreeMarker,
           outsideMarker,
           homeMarker,
           devShmMarker,

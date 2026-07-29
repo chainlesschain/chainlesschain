@@ -111,6 +111,7 @@ import { resolveSlashMacro } from "./slash-macro.js";
 import { expandMcpPrompt, renderMcpSurface } from "./mcp-prompt.js";
 import { newCostStore, addUsage } from "./session-cost.js";
 import { extractPluginUsageAttribution } from "../lib/plugin-usage-attribution.js";
+import { formatManagedCheckpointEvent } from "../lib/managed-checkpoint-render.js";
 import { parseThinkCommand, parseEffortCommand } from "./think-command.js";
 import { parseBtwCommand, buildAsideBlock, applyAside } from "./btw-command.js";
 import { shouldStreamLive } from "./stream-decision.js";
@@ -340,7 +341,14 @@ export async function agentLoop(messages, options) {
         /* advisory — never break the turn */
       }
     }
-    if (event.type === "checkpoint") {
+    const managedCheckpointLine = formatManagedCheckpointEvent(event);
+    if (managedCheckpointLine) {
+      const render =
+        event.type === "managed-checkpoint-error" || event.coverage === "none"
+          ? chalk.yellow
+          : chalk.gray;
+      process.stdout.write(render(`${managedCheckpointLine}\n`));
+    } else if (event.type === "checkpoint") {
       // Remember which file snapshot lines up with the live conversation so
       // `/rewind <n>` can restore code + conversation together (Claude-Code
       // parity). atMessageCount = messages.length at snapshot time; see
@@ -588,6 +596,13 @@ async function startAgentReplInWorkspace(options = {}) {
   // Snapshot the work tree before each mutating tool (git engine) so the user
   // can `cc checkpoint restore` to just before any tool call.
   const autoCheckpoint = options.autoCheckpoint === true;
+  const managedCheckpoint = options.managedCheckpoint === true;
+  const managedCheckpointStateDir = options.managedCheckpointStateDir || null;
+  const managedCheckpointExclusions = Array.isArray(
+    options.managedCheckpointExclusions,
+  )
+    ? options.managedCheckpointExclusions
+    : [];
 
   // --fallback-model: walk an ordered backup-model chain when a turn's LLM
   // call fails (transient error or model-not-found). Built once; passed into
@@ -5653,6 +5668,9 @@ async function startAgentReplInWorkspace(options = {}) {
         sandbox: _sandbox,
         autoCheckpoint,
         checkpointSession: sessionId,
+        managedCheckpoint,
+        managedCheckpointStateDir,
+        managedCheckpointExclusions,
         checkpointMarks: _checkpointMarks,
         // Explicit turn-binding producer (null unless a JSONL session): the
         // wrapper folds every loop event into the live table.

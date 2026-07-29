@@ -33,6 +33,20 @@ export function resolveAgentPolicy({
       : [],
     sandbox: overrides.sandbox || null,
     autoCheckpoint: overrides.autoCheckpoint === true,
+    // Managed workspace checkpoints are consumed by both headless runners and
+    // the interactive REPL. Keep these explicit because this policy is an
+    // allowlist; dropping them would silently disable the requested safety
+    // boundary for interactive tool execution.
+    managedCheckpoint: overrides.managedCheckpoint === true,
+    managedCheckpointStateDir:
+      overrides.managedCheckpointStateDir == null
+        ? null
+        : String(overrides.managedCheckpointStateDir),
+    managedCheckpointExclusions: Array.isArray(
+      overrides.managedCheckpointExclusions,
+    )
+      ? [...overrides.managedCheckpointExclusions]
+      : [],
     worktreeId:
       overrides.worktreeId == null ? null : String(overrides.worktreeId),
     systemPrompt: overrides.systemPrompt || null,

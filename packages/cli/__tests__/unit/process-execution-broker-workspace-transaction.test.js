@@ -1,0 +1,603 @@
+import { EventEmitter } from "node:events";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import executionBroker from "../../src/lib/process-execution-broker/index.js";
+import {
+  WORKSPACE_TRANSACTION_COVERAGE,
+  WORKSPACE_TRANSACTION_ERROR,
+  WORKSPACE_TRANSACTION_STATE,
+} from "../../src/lib/process-execution-broker/workspace-transaction.js";
+
+const ORIGINAL_NATIVE = executionBroker._native;
+const roots = [];
+const transactions = [];
+const managerKeys = [];
+
+function fixture() {
+  const root = fs.mkdtempSync(
+    path.join(os.tmpdir(), "cc-broker-workspace-transaction-"),
+  );
+  roots.push(root);
+  const workspaceRoot = path.join(root, "workspace");
+  const stateDir = path.join(root, "state");
+  const lockDir = path.join(root, "locks");
+  fs.mkdirSync(workspaceRoot);
+  fs.writeFileSync(path.join(workspaceRoot, "before.txt"), "before\n");
+  managerKeys.push(`${path.resolve(stateDir)}\0<default>`);
+  return { root, workspaceRoot, stateDir, lockDir };
+}
+
+function begin(input, options = {}) {
+  const transaction = executionBroker.beginWorkspaceTransaction({
+    stateDir: input.stateDir,
+    runId: "broker-run",
+    taskKey: "broker-task",
+    workspaceRoot: input.workspaceRoot,
+    coverageTarget: WORKSPACE_TRANSACTION_COVERAGE.PARTIAL,
+    externalSideEffects: false,
+    ...options,
+  });
+  transactions.push(transaction);
+  return transaction;
+}
+
+function useTestSandboxPlan({ processTree = true, postSpawn = false } = {}) {
+  return vi
+    .spyOn(executionBroker, "_prepareSandboxPlan")
+    .mockImplementation((command, args, options, context = {}) => ({
+      contractVersion: 1,
+      applied: processTree,
+      platform: process.platform,
+      profile: "default",
+      command,
+      args: [...(args || [])],
+      options: { ...options },
+      enforcement: processTree ? "test-process-tree" : null,
+      backend: processTree ? "test-process-tree" : null,
+      guarantees: processTree ? ["process-tree"] : [],
+      requiredBoundaries: [
+        ...(context.sandboxPolicy?.requiredBoundaries || []),
+      ],
+      reason: processTree ? null : "test_unsandboxed",
+      postSpawn: {
+        required: postSpawn,
+        mode: postSpawn ? "sync" : "none",
+      },
+      cleanup: vi.fn(),
+    }));
+}
+
+afterEach(() => {
+  executionBroker._native = ORIGINAL_NATIVE;
+  vi.restoreAllMocks();
+  for (const transaction of transactions.splice(0)) {
+    if (transaction.manager?._active?.has(transaction.id)) {
+      try {
+        transaction._lock?.release();
+      } catch {
+        // Test cleanup only; the assertion retains the fail-closed state.
+      }
+      transaction.manager._active.delete(transaction.id);
+    }
+  }
+  for (const key of managerKeys.splice(0)) {
+    executionBroker._workspaceTransactionManagers.delete(key);
+  }
+  for (const root of roots.splice(0)) {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+describe("ProcessExecutionBroker workspace transactions", () => {
+  it("uses one canonical lock authority across caller lockDir and stateDir choices", () => {
+    const input = fixture();
+    const first = executionBroker.beginWorkspaceTransaction({
+      stateDir: input.stateDir,
+      lockDir: path.join(input.root, "caller-lock-a"),
+      runId: "canonical-a",
+      taskKey: "canonical-a",
+      workspaceRoot: input.workspaceRoot,
+      coverageTarget: WORKSPACE_TRANSACTION_COVERAGE.PARTIAL,
+    });
+    transactions.push(first);
+
+    const otherStateDir = path.join(input.root, "other-state");
+    managerKeys.push(`${path.resolve(otherStateDir)}\0<default>`);
+    expect(() =>
+      executionBroker.beginWorkspaceTransaction({
+        stateDir: otherStateDir,
+        lockDir: path.join(input.root, "caller-lock-b"),
+        runId: "canonical-b",
+        taskKey: "canonical-b",
+        workspaceRoot: input.workspaceRoot,
+        coverageTarget: WORKSPACE_TRANSACTION_COVERAGE.PARTIAL,
+      }),
+    ).toThrow(
+      expect.objectContaining({
+        code: WORKSPACE_TRANSACTION_ERROR.OVERLAPPING_WORKSPACE,
+        ownerTransactionId: first.id,
+      }),
+    );
+    expect(fs.existsSync(path.join(input.root, "caller-lock-a"))).toBe(false);
+    expect(fs.existsSync(path.join(input.root, "caller-lock-b"))).toBe(false);
+    expect(first.rollback().outcome).toBe("rolled_back");
+  });
+
+  it("records sync execution before native code writes and seals typed evidence", () => {
+    const input = fixture();
+    const sandboxPlan = useTestSandboxPlan();
+    let transaction;
+    const spawnSync = vi.fn(() => {
+      expect(transaction.snapshot().executions).toEqual([
+        expect.objectContaining({
+          status: "prepared",
+          treeGuarantee: "process-tree",
+        }),
+      ]);
+      fs.writeFileSync(
+        path.join(input.workspaceRoot, "child.txt"),
+        "child-write\n",
+      );
+      return {
+        status: 0,
+        signal: null,
+        error: null,
+        stdout: "",
+        stderr: "",
+      };
+    });
+    executionBroker._native = {
+      ...(ORIGINAL_NATIVE || {}),
+      spawnSync,
+    };
+    transaction = begin(input);
+
+    const result = executionBroker.spawnSync("test-command", [], {
+      cwd: input.workspaceRoot,
+      origin: "team:test",
+      scope: "team",
+      policy: "allow",
+      shell: false,
+      encoding: "utf8",
+      workspaceTransactionId: "caller-cannot-select-a-transaction",
+      workspaceTransactionStateDir: "caller-cannot-select-state",
+      workspaceTransactionCapture: false,
+    });
+    expect(result.status).toBe(0);
+    expect(
+      sandboxPlan.mock.calls[0][3].sandboxPolicy.requiredBoundaries,
+    ).toContain("process-tree");
+    expect(spawnSync.mock.calls[0][2]).not.toHaveProperty(
+      "workspaceTransactionId",
+    );
+    expect(spawnSync.mock.calls[0][2]).not.toHaveProperty(
+      "workspaceTransactionStateDir",
+    );
+    expect(spawnSync.mock.calls[0][2]).not.toHaveProperty(
+      "workspaceTransactionCapture",
+    );
+
+    const running = transaction.snapshot();
+    expect(running.executions).toEqual([
+      expect.objectContaining({
+        executionId: expect.any(String),
+        origin: "team:test",
+        cwd: expect.any(String),
+        status: "settled",
+        treeGuarantee: "process-tree",
+        commandDigest: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+      }),
+    ]);
+    const evidence = transaction.accept();
+    expect(evidence.executions).toEqual([running.executions[0].executionId]);
+    expect(
+      executionBroker.inspectWorkspaceTransaction(transaction.id, {
+        stateDir: input.stateDir,
+      }),
+    ).toMatchObject({
+      id: transaction.id,
+      state: WORKSPACE_TRANSACTION_STATE.COMMITTED,
+      runId: "broker-run",
+      taskKey: "broker-task",
+    });
+    expect(
+      executionBroker.listWorkspaceTransactions({
+        stateDir: input.stateDir,
+        workspaceRoot: input.workspaceRoot,
+      }),
+    ).toEqual([
+      expect.objectContaining({
+        id: transaction.id,
+        state: WORKSPACE_TRANSACTION_STATE.COMMITTED,
+      }),
+    ]);
+
+    const audit = executionBroker
+      .getAuditLog(20)
+      .find((entry) => entry.executionId === running.executions[0].executionId);
+    expect(audit.workspaceTransactionIds).toContain(transaction.id);
+  });
+
+  it("uses close rather than exit as the asynchronous writer fence", () => {
+    const input = fixture();
+    useTestSandboxPlan();
+    const proc = new EventEmitter();
+    proc.pid = 42_001;
+    proc.kill = vi.fn();
+    executionBroker._native = {
+      ...(ORIGINAL_NATIVE || {}),
+      spawn: vi.fn(() => proc),
+    };
+    const transaction = begin(input);
+
+    executionBroker.spawn("test-command", [], {
+      cwd: input.workspaceRoot,
+      origin: "team:test",
+      scope: "team",
+      policy: "allow",
+      shell: false,
+    });
+    expect(transaction.snapshot().executions[0]).toMatchObject({
+      status: "running",
+      treeGuarantee: "process-tree",
+    });
+    expect(() => transaction.rollback()).toThrow(
+      expect.objectContaining({
+        code: WORKSPACE_TRANSACTION_ERROR.WRITERS_ACTIVE,
+      }),
+    );
+
+    proc.emit("exit", 0, null);
+    fs.writeFileSync(
+      path.join(input.workspaceRoot, "late.txt"),
+      "late-after-exit\n",
+    );
+    expect(transaction.snapshot().executions[0].status).toBe("running");
+
+    proc.emit("close", 0, null);
+    expect(transaction.snapshot().executions[0].status).toBe("settled");
+    const evidence = transaction.rollback({
+      reason: "task failed after writer close",
+    });
+    expect(evidence.outcome).toBe("rolled_back");
+    expect(fs.existsSync(path.join(input.workspaceRoot, "late.txt"))).toBe(
+      false,
+    );
+  });
+
+  it("upgrades the writer fence only after synchronous post-spawn enforcement", () => {
+    const input = fixture();
+    useTestSandboxPlan({ postSpawn: true });
+    const proc = new EventEmitter();
+    proc.pid = 42_003;
+    proc.kill = vi.fn();
+    executionBroker._native = {
+      ...(ORIGINAL_NATIVE || {}),
+      spawn: vi.fn(() => proc),
+    };
+    const transaction = begin(input);
+    const postSpawnSandbox = vi
+      .spyOn(executionBroker._sandboxAdapter, "postSpawnSandbox")
+      .mockImplementation(() => {
+        expect(transaction.snapshot().executions[0]).toMatchObject({
+          status: "running",
+          treeGuarantee: "unproven",
+        });
+      });
+
+    executionBroker.spawn("test-command", [], {
+      cwd: input.workspaceRoot,
+      origin: "team:test",
+      scope: "team",
+      policy: "allow",
+      shell: false,
+    });
+    expect(postSpawnSandbox).toHaveBeenCalledOnce();
+    expect(transaction.snapshot().executions[0]).toMatchObject({
+      status: "running",
+      treeGuarantee: "process-tree",
+      treeGuaranteeVerifiedAt: expect.any(String),
+    });
+
+    proc.emit("close", 0, null);
+    expect(transaction.accept().outcome).toBe("committed");
+  });
+
+  it("exposes a close fence when post-spawn enforcement fails", async () => {
+    const input = fixture();
+    useTestSandboxPlan({ postSpawn: true });
+    const proc = new EventEmitter();
+    proc.pid = 42_004;
+    proc.kill = vi.fn(() => {
+      queueMicrotask(() => proc.emit("close", null, "SIGKILL"));
+      return true;
+    });
+    executionBroker._native = {
+      ...(ORIGINAL_NATIVE || {}),
+      spawn: vi.fn(() => proc),
+    };
+    vi.spyOn(
+      executionBroker._sandboxAdapter,
+      "postSpawnSandbox",
+    ).mockImplementation(() => {
+      throw new Error("post-spawn attestation failed");
+    });
+    const transaction = begin(input);
+
+    let failure;
+    try {
+      executionBroker.spawn("test-command", [], {
+        cwd: input.workspaceRoot,
+        origin: "team:test",
+        scope: "team",
+        policy: "allow",
+        shell: false,
+      });
+    } catch (error) {
+      failure = error;
+    }
+    expect(failure.spawnedProcess).toBe(proc);
+    expect(failure.workspaceTerminationRequested).toBe(true);
+    expect(failure.workspaceProcessClosed).toBeInstanceOf(Promise);
+    await expect(failure.workspaceProcessClosed).resolves.toMatchObject({
+      observed: true,
+      signal: "SIGKILL",
+    });
+    expect(transaction.snapshot().executions[0]).toMatchObject({
+      status: "settled",
+      treeGuarantee: "unproven",
+    });
+    expect(() => transaction.rollback()).toThrow(
+      expect.objectContaining({
+        code: WORKSPACE_TRANSACTION_ERROR.WRITERS_ACTIVE,
+      }),
+    );
+  });
+
+  it("rejects detached writers before invoking the native spawn", () => {
+    const input = fixture();
+    useTestSandboxPlan();
+    const spawn = vi.fn();
+    executionBroker._native = {
+      ...(ORIGINAL_NATIVE || {}),
+      spawn,
+    };
+    const transaction = begin(input);
+
+    expect(() =>
+      executionBroker.spawn("test-command", [], {
+        cwd: input.workspaceRoot,
+        origin: "team:test",
+        scope: "team",
+        policy: "allow",
+        shell: false,
+        detached: true,
+      }),
+    ).toThrow(
+      expect.objectContaining({
+        code: WORKSPACE_TRANSACTION_ERROR.DETACHED_PROCESS,
+      }),
+    );
+    expect(spawn).not.toHaveBeenCalled();
+    expect(transaction.rollback().outcome).toBe("rolled_back");
+  });
+
+  it("fails closed before spawn when macOS-like authority cannot prove process-tree", () => {
+    const input = fixture();
+    const spawn = vi.fn();
+    const issue = vi
+      .spyOn(executionBroker, "issueLinuxWorkspaceSandboxExecutionContract")
+      .mockReturnValue(null);
+    executionBroker._native = {
+      ...(ORIGINAL_NATIVE || {}),
+      spawn,
+    };
+    vi.spyOn(executionBroker, "_prepareSandboxPlan").mockImplementation(
+      (_command, _args, _options, context = {}) => {
+        expect(context.sandboxPolicy.requiredBoundaries).toContain(
+          "process-tree",
+        );
+        const error = new Error(
+          "test platform cannot guarantee process-tree closure",
+        );
+        error.code = "ERR_PROCESS_SANDBOX_BOUNDARY_UNSATISFIED";
+        error.sandboxReason = "required_boundaries_unsatisfied";
+        error.sandboxFailClosed = true;
+        error.requiredBoundaries = ["process-tree"];
+        error.missingBoundaries = ["process-tree"];
+        throw error;
+      },
+    );
+    const transaction = begin(input);
+
+    expect(() =>
+      executionBroker.spawn("test-command", [], {
+        cwd: input.workspaceRoot,
+        origin: "team:test",
+        scope: "team",
+        policy: "allow",
+        shell: false,
+      }),
+    ).toThrow(
+      expect.objectContaining({
+        code: "ERR_PROCESS_SANDBOX_BOUNDARY_UNSATISFIED",
+      }),
+    );
+    expect(spawn).not.toHaveBeenCalled();
+    expect(issue).toHaveBeenCalledOnce();
+    expect(transaction.snapshot()).toMatchObject({
+      state: WORKSPACE_TRANSACTION_STATE.PREPARED,
+      executions: [],
+    });
+    expect(transaction.rollback().outcome).toBe("rolled_back");
+  });
+
+  it("issues a Linux workspace execution contract from active transaction authority", () => {
+    const input = fixture();
+    const transaction = begin(input);
+    const issuedContract = Object.freeze({ kind: "test-linux-contract" });
+    const issue = vi
+      .spyOn(executionBroker, "issueLinuxWorkspaceSandboxExecutionContract")
+      .mockReturnValue(issuedContract);
+
+    const options = executionBroker._withWorkspaceTransactionBoundaries(
+      {
+        cwd: input.workspaceRoot,
+        origin: "agent:test",
+        shell: false,
+      },
+      input.workspaceRoot,
+      {
+        command: "node",
+        args: ["script.js"],
+        sync: true,
+      },
+    );
+
+    expect(options.requiredBoundaries).toContain("process-tree");
+    expect(options.sandboxExecutionContract).toBe(issuedContract);
+    expect(issue).toHaveBeenCalledWith(
+      "node",
+      ["script.js"],
+      expect.objectContaining({
+        requiredBoundaries: expect.arrayContaining(["process-tree"]),
+        shell: false,
+      }),
+      input.workspaceRoot,
+      { sync: true, pty: false },
+    );
+    expect(transaction.rollback().outcome).toBe("rolled_back");
+  });
+
+  it("uses an explicit Linux shell argv for managed execSync", () => {
+    vi.spyOn(
+      executionBroker,
+      "_requiresExplicitLinuxWorkspaceShell",
+    ).mockReturnValue(true);
+    const spawnSync = vi.spyOn(executionBroker, "spawnSync").mockReturnValue({
+      status: 0,
+      signal: null,
+      error: null,
+      stdout: "ok\n",
+      stderr: "",
+    });
+
+    expect(
+      executionBroker.execSync("printf 'ok\\n'", {
+        cwd: "C:\\trusted-workspace",
+        encoding: "utf8",
+      }),
+    ).toBe("ok\n");
+    expect(spawnSync).toHaveBeenCalledWith(
+      "/bin/sh",
+      ["-c", "printf 'ok\\n'"],
+      expect.objectContaining({
+        cwd: "C:\\trusted-workspace",
+        shell: false,
+        origin: "shell:execSync",
+      }),
+    );
+  });
+
+  it("settles an unsandboxed PTY through onExit and strips transaction controls", () => {
+    const input = fixture();
+    // Bypass only automatic admission so this unit can exercise the legacy
+    // node-pty onExit binding. Production transactions require process-tree
+    // and deny this unsandboxed path before ptyModule.spawn().
+    vi.spyOn(
+      executionBroker,
+      "_workspaceTransactionRequiredBoundaries",
+    ).mockReturnValue([]);
+    let onExit;
+    const proc = {
+      pid: 42_002,
+      kill: vi.fn(),
+      onExit: vi.fn((listener) => {
+        onExit = listener;
+        return { dispose: vi.fn() };
+      }),
+    };
+    const ptyModule = {
+      spawn: vi.fn(() => proc),
+    };
+    const transaction = begin(input);
+
+    executionBroker.spawnPty(ptyModule, "test-shell", [], {
+      cwd: input.workspaceRoot,
+      origin: "terminal:test",
+      scope: "team",
+      policy: "allow",
+      workspaceTransactionId: "forged-id",
+      workspaceTransactionStateDir: "forged-state",
+      workspaceTransactionCapture: false,
+    });
+    const nativeOptions = ptyModule.spawn.mock.calls[0][2];
+    expect(nativeOptions).not.toHaveProperty("workspaceTransactionId");
+    expect(nativeOptions).not.toHaveProperty("workspaceTransactionStateDir");
+    expect(nativeOptions).not.toHaveProperty("workspaceTransactionCapture");
+    expect(proc.onExit).toHaveBeenCalledOnce();
+    expect(transaction.snapshot().executions[0].status).toBe("running");
+
+    onExit({ exitCode: 0, signal: null });
+    expect(transaction.snapshot().executions[0]).toMatchObject({
+      status: "settled",
+      exitCode: 0,
+      treeGuarantee: "unproven",
+    });
+    expect(() => transaction.accept()).toThrow(
+      expect.objectContaining({
+        code: WORKSPACE_TRANSACTION_ERROR.WRITERS_ACTIVE,
+      }),
+    );
+    expect(transaction.snapshot()).toMatchObject({
+      state: WORKSPACE_TRANSACTION_STATE.ROLLBACK_REQUIRED,
+      fileCoverage: WORKSPACE_TRANSACTION_COVERAGE.NONE,
+      coverage: WORKSPACE_TRANSACTION_COVERAGE.NONE,
+    });
+  });
+
+  it("keeps a settled sync spawn fail-closed without a process-tree guarantee", () => {
+    const input = fixture();
+    useTestSandboxPlan({ processTree: false });
+    executionBroker._native = {
+      ...(ORIGINAL_NATIVE || {}),
+      spawnSync: vi.fn(() => ({
+        status: 0,
+        signal: null,
+        error: null,
+        stdout: "",
+        stderr: "",
+      })),
+    };
+    const transaction = begin(input);
+
+    executionBroker.spawnSync("test-command", [], {
+      cwd: input.workspaceRoot,
+      origin: "team:test",
+      scope: "team",
+      policy: "allow",
+      shell: false,
+    });
+    expect(transaction.snapshot().executions[0]).toMatchObject({
+      status: "settled",
+      treeGuarantee: "unproven",
+    });
+    expect(() => transaction.accept()).toThrow(
+      expect.objectContaining({
+        code: WORKSPACE_TRANSACTION_ERROR.WRITERS_ACTIVE,
+      }),
+    );
+    expect(transaction.snapshot()).toMatchObject({
+      state: WORKSPACE_TRANSACTION_STATE.ROLLBACK_REQUIRED,
+      fileCoverage: WORKSPACE_TRANSACTION_COVERAGE.NONE,
+      coverage: WORKSPACE_TRANSACTION_COVERAGE.NONE,
+    });
+    expect(() => transaction.rollback()).toThrow(
+      expect.objectContaining({
+        code: WORKSPACE_TRANSACTION_ERROR.WRITERS_ACTIVE,
+      }),
+    );
+  });
+});

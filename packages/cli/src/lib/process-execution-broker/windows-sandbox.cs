@@ -92,7 +92,13 @@ namespace ChainlessChain.WindowsSandbox
         private const Int32 ERROR_IO_PENDING = 997;
         private const Int32 HRESULT_FROM_WIN32_ERROR_ALREADY_EXISTS =
             unchecked((Int32)0x800700B7);
+        private const Int32 SecurityImpersonation = 2;
+        private const Int32 WinBuiltinAdministratorsSid = 26;
+        private const UInt32 SECURITY_MAX_SID_SIZE = 68;
+        private const UInt32 SE_PRIVILEGE_ENABLED_BY_DEFAULT = 0x00000001;
+        private const UInt32 SE_PRIVILEGE_ENABLED = 0x00000002;
         private const Int32 TokenPrivileges = 3;
+        private const Int32 TokenHasRestrictions = 21;
         private const Int32 TokenIsAppContainer = 29;
         private const Int32 TokenCapabilities = 30;
         private const Int32 TokenAppContainerSid = 31;
@@ -585,9 +591,27 @@ namespace ChainlessChain.WindowsSandbox
             IntPtr sidsToRestrict,
             out IntPtr restrictedToken);
 
-        [DllImport("advapi32.dll")]
+        [DllImport("advapi32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
-        private static extern bool IsTokenRestricted(IntPtr token);
+        private static extern bool DuplicateToken(
+            IntPtr existingToken,
+            Int32 impersonationLevel,
+            out IntPtr duplicateToken);
+
+        [DllImport("advapi32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool CheckTokenMembership(
+            IntPtr token,
+            IntPtr sidToCheck,
+            [MarshalAs(UnmanagedType.Bool)] out bool isMember);
+
+        [DllImport("advapi32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool CreateWellKnownSid(
+            Int32 wellKnownSidType,
+            IntPtr domainSid,
+            IntPtr sid,
+            ref UInt32 sidSize);
 
         [DllImport("advapi32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
@@ -919,6 +943,184 @@ namespace ChainlessChain.WindowsSandbox
             {
                 Marshal.FreeHGlobal(information);
                 throw;
+            }
+        }
+
+        private static bool ReadTokenBoolean(
+            IntPtr token,
+            Int32 informationClass,
+            string description)
+        {
+            IntPtr information = IntPtr.Zero;
+            try
+            {
+                UInt32 informationLength;
+                information = ReadTokenInformation(
+                    token,
+                    informationClass,
+                    out informationLength);
+                if (informationLength < sizeof(Byte))
+                    throw new InvalidDataException(
+                        "Token omitted its " + description);
+                return Marshal.ReadByte(information) != 0;
+            }
+            finally
+            {
+                if (information != IntPtr.Zero)
+                    Marshal.FreeHGlobal(information);
+            }
+        }
+
+        private static bool TokenWasFiltered(IntPtr token)
+        {
+            return ReadTokenBoolean(
+                token,
+                TokenHasRestrictions,
+                "restriction status");
+        }
+
+        private static bool TokenHasUnexpectedEnabledPrivileges(IntPtr token)
+        {
+            IntPtr privilegesBuffer = IntPtr.Zero;
+            try
+            {
+                UInt32 informationLength;
+                privilegesBuffer = ReadTokenInformation(
+                    token,
+                    TokenPrivileges,
+                    out informationLength);
+                if (informationLength < sizeof(Int32))
+                    throw new InvalidDataException(
+                        "Token omitted its privilege list");
+                Int32 privilegeCount = Marshal.ReadInt32(privilegesBuffer);
+                int privilegeOffset = sizeof(Int32);
+                int privilegeSize = Marshal.SizeOf(
+                    typeof(LUID_AND_ATTRIBUTES));
+                for (int index = 0; index < privilegeCount; index++)
+                {
+                    int entryOffset = checked(
+                        privilegeOffset + index * privilegeSize);
+                    if (
+                        checked((UInt32)(entryOffset + privilegeSize)) >
+                        informationLength)
+                    {
+                        throw new InvalidDataException(
+                            "Token privilege list is truncated");
+                    }
+                    LUID_AND_ATTRIBUTES privilege =
+                        (LUID_AND_ATTRIBUTES)Marshal.PtrToStructure(
+                            IntPtr.Add(privilegesBuffer, entryOffset),
+                            typeof(LUID_AND_ATTRIBUTES));
+                    UInt32 privilegeNameLength = 0;
+                    LookupPrivilegeName(
+                        null,
+                        ref privilege.Luid,
+                        null,
+                        ref privilegeNameLength);
+                    if (privilegeNameLength == 0)
+                        ThrowLastError("LookupPrivilegeName(size)");
+                    StringBuilder privilegeName = new StringBuilder(
+                        checked((Int32)privilegeNameLength + 1));
+                    if (!LookupPrivilegeName(
+                        null,
+                        ref privilege.Luid,
+                        privilegeName,
+                        ref privilegeNameLength))
+                    {
+                        ThrowLastError("LookupPrivilegeName");
+                    }
+                    if (!String.Equals(
+                        privilegeName.ToString(),
+                        "SeChangeNotifyPrivilege",
+                        StringComparison.Ordinal) &&
+                        (
+                            privilege.Attributes &
+                            (
+                                SE_PRIVILEGE_ENABLED |
+                                SE_PRIVILEGE_ENABLED_BY_DEFAULT)) != 0)
+                    {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            finally
+            {
+                if (privilegesBuffer != IntPtr.Zero)
+                    Marshal.FreeHGlobal(privilegesBuffer);
+            }
+        }
+
+        private static bool TokenIsAppContainerToken(IntPtr token)
+        {
+            return ReadTokenBoolean(
+                token,
+                TokenIsAppContainer,
+                "AppContainer status");
+        }
+
+        private static bool TokenHasEnabledAdministratorSid(IntPtr token)
+        {
+            if (TokenIsAppContainerToken(token))
+                return false;
+
+            IntPtr administratorSid = IntPtr.Zero;
+            IntPtr impersonationToken = IntPtr.Zero;
+            try
+            {
+                administratorSid = Marshal.AllocHGlobal(
+                    checked((Int32)SECURITY_MAX_SID_SIZE));
+                UInt32 administratorSidSize = SECURITY_MAX_SID_SIZE;
+                if (!CreateWellKnownSid(
+                    WinBuiltinAdministratorsSid,
+                    IntPtr.Zero,
+                    administratorSid,
+                    ref administratorSidSize))
+                {
+                    ThrowLastError("CreateWellKnownSid(Administrators)");
+                }
+                if (!DuplicateToken(
+                    token,
+                    SecurityImpersonation,
+                    out impersonationToken))
+                {
+                    ThrowLastError("DuplicateToken");
+                }
+                bool isMember;
+                if (!CheckTokenMembership(
+                    impersonationToken,
+                    administratorSid,
+                    out isMember))
+                {
+                    ThrowLastError("CheckTokenMembership(Administrators)");
+                }
+                return isMember;
+            }
+            finally
+            {
+                if (impersonationToken != IntPtr.Zero)
+                    CloseHandle(impersonationToken);
+                if (administratorSid != IntPtr.Zero)
+                    Marshal.FreeHGlobal(administratorSid);
+            }
+        }
+
+        private static void AssertRestrictedTokenPolicy(
+            IntPtr token,
+            bool disableAdministratorSids)
+        {
+            if (!TokenWasFiltered(token))
+                throw new InvalidDataException(
+                    "Restricted token is not marked as filtered");
+            if (TokenHasUnexpectedEnabledPrivileges(token))
+                throw new InvalidDataException(
+                    "Restricted token retained an unexpected enabled privilege");
+            if (
+                disableAdministratorSids &&
+                TokenHasEnabledAdministratorSid(token))
+            {
+                throw new InvalidDataException(
+                    "Restricted token retained an enabled Administrators SID");
             }
         }
 
@@ -3082,16 +3284,28 @@ namespace ChainlessChain.WindowsSandbox
                     ThrowLastError("OpenProcessToken");
                 }
 
-                UInt32 restrictedTokenFlags = DISABLE_MAX_PRIVILEGE;
                 // The ordinary compatibility profile removes privileges while
                 // retaining the caller's enabled SIDs so nested tools such as
                 // Git for Windows can still create their helper processes and
-                // anonymous pipes. Strong profiles additionally deny enabled
-                // administrator SIDs with LUA_TOKEN. Re-applying LUA_TOKEN to
-                // an already restricted parent can fail with
-                // ERROR_INVALID_PARAMETER.
-                if (disableAdministratorSids && !IsTokenRestricted(sourceToken))
+                // anonymous pipes. CreateRestrictedToken explicitly accepts an
+                // already restricted ExistingToken. Apply only restrictions
+                // that the current token does not already satisfy: repeating
+                // DISABLE_MAX_PRIVILEGE on a nested restricted worker can fail
+                // with ERROR_INVALID_PARAMETER. A zero-flag call still creates
+                // a child token while preserving every existing restriction.
+                UInt32 restrictedTokenFlags = 0;
+                if (
+                    !TokenWasFiltered(sourceToken) ||
+                    TokenHasUnexpectedEnabledPrivileges(sourceToken))
+                {
+                    restrictedTokenFlags |= DISABLE_MAX_PRIVILEGE;
+                }
+                if (
+                    disableAdministratorSids &&
+                    TokenHasEnabledAdministratorSid(sourceToken))
+                {
                     restrictedTokenFlags |= LUA_TOKEN;
+                }
                 if (!CreateRestrictedToken(
                     sourceToken,
                     restrictedTokenFlags,
@@ -3105,6 +3319,9 @@ namespace ChainlessChain.WindowsSandbox
                 {
                     ThrowLastError("CreateRestrictedToken");
                 }
+                AssertRestrictedTokenPolicy(
+                    restrictedToken,
+                    disableAdministratorSids);
 
                 job = CreateJobObject(IntPtr.Zero, null);
                 if (job == IntPtr.Zero) ThrowLastError("CreateJobObject");

@@ -168,6 +168,204 @@ describe("withFileLock", () => {
     ).toThrowError(/Could not acquire state lock/);
   });
 
+  it("strict mode retries transient Windows filesystem errors with bounded jitter", () => {
+    const _fs = fakeLockFs();
+    const originalMkdir = _fs.mkdirSync;
+    let attempts = 0;
+    _fs.mkdirSync = vi.fn((lockDir) => {
+      attempts += 1;
+      if (attempts <= 2) {
+        const error = new Error("transient Windows filesystem contention");
+        error.code = attempts === 1 ? "EPERM" : "ENOTEMPTY";
+        throw error;
+      }
+      return originalMkdir(lockDir);
+    });
+    let now = 0;
+    const sleeps = [];
+    const random = [0, 0.5];
+
+    expect(
+      withFileLock("/critical.json", (ctx) => ctx.locked, {
+        _fs,
+        timeoutMs: 100,
+        retryMs: 10,
+        maxRetryMs: 20,
+        retryJitterMs: 10,
+        _now: () => now,
+        _sleep: (milliseconds) => {
+          sleeps.push(milliseconds);
+          now += milliseconds;
+        },
+        _random: () => random.shift() ?? 0,
+        failIfUnavailable: true,
+      }),
+    ).toBe(true);
+    expect(attempts).toBe(3);
+    expect(sleeps).toEqual([10, 25]);
+  });
+
+  it("strict mode preserves a persistent transient filesystem cause after its deadline", () => {
+    const _fs = fakeLockFs();
+    _fs.mkdirSync = vi.fn(() => {
+      const error = new Error("persistent Windows denial");
+      error.code = "EPERM";
+      throw error;
+    });
+    let now = 0;
+
+    expect(() =>
+      withFileLock("/critical.json", () => true, {
+        _fs,
+        timeoutMs: 25,
+        retryMs: 10,
+        maxRetryMs: 10,
+        retryJitterMs: 0,
+        _now: () => now,
+        _sleep: (milliseconds) => {
+          now += milliseconds;
+        },
+        _random: () => 0,
+        failIfUnavailable: true,
+      }),
+    ).toThrowError(
+      expect.objectContaining({
+        code: "STATE_LOCK_UNAVAILABLE",
+        cause: expect.objectContaining({ code: "EPERM" }),
+      }),
+    );
+    expect(now).toBe(25);
+  });
+
+  it("strict mode preserves transient owner-read errors and never enters unlocked", () => {
+    const _fs = fakeLockFs();
+    const lockDir = "/critical.json.lock";
+    _fs.dirs.set(lockDir, 0);
+    const originalRead = _fs.readFileSync;
+    _fs.readFileSync = vi.fn((ownerPath) => {
+      if (String(ownerPath).endsWith("owner.json")) {
+        const error = new Error("Windows owner read is busy");
+        error.code = "EBUSY";
+        throw error;
+      }
+      return originalRead(ownerPath);
+    });
+    let now = 0;
+    let ran = false;
+
+    let failure;
+    try {
+      withFileLock(
+        "/critical.json",
+        () => {
+          ran = true;
+        },
+        {
+          _fs,
+          timeoutMs: 20,
+          retryMs: 5,
+          maxRetryMs: 5,
+          retryJitterMs: 0,
+          _now: () => now,
+          _sleep: (milliseconds) => {
+            now += milliseconds;
+          },
+          _random: () => 0,
+          failIfUnavailable: true,
+        },
+      );
+    } catch (error) {
+      failure = error;
+    }
+    expect(ran).toBe(false);
+    expect(failure).toMatchObject({
+      code: "STATE_LOCK_UNAVAILABLE",
+      cause: {
+        code: "EBUSY",
+      },
+    });
+    expect(_fs.dirs.has(lockDir)).toBe(true);
+  });
+
+  it("strict mode reports corrupt owner metadata without reclaiming it", () => {
+    const _fs = fakeLockFs();
+    const lockDir = "/critical.json.lock";
+    _fs.dirs.set(lockDir, 0);
+    _fs.writeFileSync(`${lockDir}/owner.json`, "{not-json");
+    let now = 0;
+
+    let failure;
+    try {
+      withFileLock("/critical.json", () => true, {
+        _fs,
+        timeoutMs: 10,
+        retryMs: 5,
+        maxRetryMs: 5,
+        retryJitterMs: 0,
+        _now: () => now,
+        _sleep: (milliseconds) => {
+          now += milliseconds;
+        },
+        _random: () => 0,
+        failIfUnavailable: true,
+      });
+    } catch (error) {
+      failure = error;
+    }
+    expect(failure).toMatchObject({
+      code: "STATE_LOCK_UNAVAILABLE",
+      cause: {
+        code: "STATE_LOCK_OWNER_CORRUPT",
+      },
+    });
+    expect(_fs.readFileSync(`${lockDir}/owner.json`)).toBe("{not-json");
+  });
+
+  it("uses non-uniform contention backoff and yields only after releasing", () => {
+    const _fs = fakeLockFs();
+    const lockDir = "/critical.json.lock";
+    _fs.dirs.set(lockDir, 0);
+    _fs.writeFileSync(
+      `${lockDir}/owner.json`,
+      JSON.stringify({
+        pid: 4242,
+        startedAt: 1,
+        token: "contended-owner-token-0001",
+      }),
+    );
+    let now = 0;
+    let waits = 0;
+    const sleeps = [];
+
+    const result = withFileLock("/critical.json", (ctx) => ctx.locked, {
+      _fs,
+      timeoutMs: 200,
+      retryMs: 10,
+      maxRetryMs: 40,
+      retryJitterMs: 10,
+      yieldAfterReleaseMs: 17,
+      _now: () => now,
+      _sleep: (milliseconds) => {
+        sleeps.push({
+          milliseconds,
+          held: _fs.dirs.has(lockDir),
+        });
+        now += milliseconds;
+        waits += 1;
+        if (waits === 2) {
+          _fs.rmSync(lockDir, { recursive: true, force: true });
+        }
+      },
+      _random: () => (waits === 0 ? 0 : 0.5),
+      _isProcessAlive: () => true,
+      failIfUnavailable: true,
+    });
+
+    expect(result).toBe(true);
+    expect(sleeps.map((entry) => entry.milliseconds)).toEqual([10, 25, 17]);
+    expect(sleeps.at(-1)).toEqual({ milliseconds: 17, held: false });
+  });
+
   it("strict mode never reclaims a live owner based only on stale mtime", () => {
     const _fs = fakeLockFs();
     const lockDir = "/critical.json.lock";

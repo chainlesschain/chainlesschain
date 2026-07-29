@@ -60,6 +60,26 @@ describe("computeCoverage", () => {
       computeCoverage({ mutatedFiles: true, hasFileCheckpoint: false }),
     ).toBe(TURN_COVERAGE.NONE);
   });
+  it("uses the explicit managed-checkpoint verdict over legacy heuristics", () => {
+    expect(
+      computeCoverage({
+        mutatedFiles: true,
+        managedCheckpointCoverage: TURN_COVERAGE.PARTIAL,
+      }),
+    ).toBe(TURN_COVERAGE.PARTIAL);
+    expect(
+      computeCoverage({
+        ranShell: true,
+        managedCheckpointCoverage: TURN_COVERAGE.NONE,
+      }),
+    ).toBe(TURN_COVERAGE.NONE);
+    expect(
+      computeCoverage({
+        mutatedFiles: true,
+        managedCheckpointCoverage: TURN_COVERAGE.FULL,
+      }),
+    ).toBe(TURN_COVERAGE.FULL);
+  });
 });
 
 describe("TurnBindingLog", () => {
@@ -314,6 +334,77 @@ describe("createTurnBindingFeed (shared producer core)", () => {
     expect(turn.coverage).toBe(TURN_COVERAGE.PARTIAL);
   });
 
+  it("binds managed workspace evidence and persists its honest coverage", () => {
+    const feed = createTurnBindingFeed({ nonce: "N" });
+    feed.beginTurn(3);
+    feed.handleEvent({
+      type: "tool-executing",
+      tool: "write_file",
+      tool_use_id: "provider-call-managed",
+    });
+    feed.handleEvent({
+      type: "managed-checkpoint-settled",
+      phase: "committed",
+      id: "wcp-checkpoint-1",
+      transaction_id: "wcp-transaction-1",
+      evidence_digest: `sha256:${"a".repeat(64)}`,
+      coverage: "partial",
+      file_coverage: "partial",
+      tool: "write_file",
+      tool_use_id: "provider-call-managed",
+    });
+
+    const turn = feed.log.get("N:t0");
+    expect(turn.coverage).toBe(TURN_COVERAGE.PARTIAL);
+    expect(turn.managedCheckpoints).toEqual([
+      {
+        toolUseId: "provider-call-managed",
+        tool: "write_file",
+        transactionId: "wcp-transaction-1",
+        checkpointId: "wcp-checkpoint-1",
+        evidenceDigest: `sha256:${"a".repeat(64)}`,
+        phase: "committed",
+        coverage: TURN_COVERAGE.PARTIAL,
+        fileCoverage: TURN_COVERAGE.PARTIAL,
+      },
+    ]);
+
+    const restored = TurnBindingLog.fromJSON(
+      JSON.parse(JSON.stringify(feed.log.toJSON())),
+    );
+    expect(restored.get("N:t0")).toEqual(turn);
+  });
+
+  it("records settlement recovery as coverage none but ignores preparation denial", () => {
+    const feed = createTurnBindingFeed({ nonce: "N" });
+    feed.beginTurn(3);
+    feed.handleEvent({
+      type: "managed-checkpoint-error",
+      phase: "prepare",
+      coverage: "none",
+      tool: "write_file",
+      tool_use_id: "blocked-call",
+    });
+    expect(feed.log.get("N:t0").coverage).toBe(TURN_COVERAGE.FULL);
+
+    feed.handleEvent({
+      type: "tool-executing",
+      tool: "run_shell",
+      tool_use_id: "started-call",
+    });
+    feed.handleEvent({
+      type: "managed-checkpoint-error",
+      phase: "rollback",
+      recovery_required: true,
+      coverage: "none",
+      transaction_id: "wcp-transaction-failed",
+      checkpoint_id: "wcp-checkpoint-failed",
+      tool: "run_shell",
+      tool_use_id: "started-call",
+    });
+    expect(feed.log.get("N:t0").coverage).toBe(TURN_COVERAGE.NONE);
+  });
+
   it("records an explicit permission decision without requiring result.policy", () => {
     const feed = createTurnBindingFeed({ nonce: "N" });
     feed.beginTurn(3);
@@ -334,9 +425,7 @@ describe("createTurnBindingFeed (shared producer core)", () => {
       result: { approval: { approved: true } },
     });
 
-    expect(feed.log.get("N:t0").permissionDecisionIds).toEqual([
-      "decision-43",
-    ]);
+    expect(feed.log.get("N:t0").permissionDecisionIds).toEqual(["decision-43"]);
   });
 
   it("persists child checkpoint/worktree/trace lineage in the parent turn", () => {
