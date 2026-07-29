@@ -581,16 +581,17 @@ function activate(context) {
       },
     ),
 
-    // Read-only "cc team" monitor: pick the `cc team run --state <file>`
-    // snapshot (remembered per workspace) and watch it live — task graph,
-    // lease holders, budget. The CLI runs the team; this window watches.
+    // Legacy `cc team run` / distributed `cc team queue` Agent View: the
+    // extension reads snapshots but routes takeover, checkpoint recovery and
+    // adjudication through the resolved CLI. It never writes state directly.
     vscode.commands.registerCommand("chainlesschain.team.monitor", async () => {
       const KEY = "chainlesschain.team.lastStatePath";
       const last = context.workspaceState.get(KEY);
       const picked = await vscode.window.showOpenDialog({
         canSelectMany: false,
         openLabel: "Monitor this team state file",
-        title: "Select a `cc team run --state <file>` JSON snapshot",
+        title:
+          "Select a `cc team run` or distributed `cc team queue` state snapshot",
         defaultUri: last ? vscode.Uri.file(last) : undefined,
         filters: { "Team state": ["json"], "All files": ["*"] },
       });
@@ -598,7 +599,13 @@ function activate(context) {
       if (!file) return;
       await context.workspaceState.update(KEY, file);
       const { openTeamMonitor } = require("./ui/team-monitor-view.js");
-      openTeamMonitor(vscode, file);
+      const { getResolvedCli } = require("./cli-binary.js");
+      const { runCliResult } = require("./chat/introspect-commands.js");
+      openTeamMonitor(vscode, file, {
+        command: getResolvedCli(),
+        runCliResult,
+        cwd: vscode.workspace.workspaceFolders?.[0]?.uri?.fsPath,
+      });
     }),
     // Background Agents panel: list `cc agent --bg` supervisor sessions,
     // interactively take one over (follow-up prompts / stop-turn via the

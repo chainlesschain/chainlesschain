@@ -14,7 +14,7 @@
  * activation registers everything WITHOUT starting a server, writing a
  * lockfile, or probing the cc binary — pure wiring, fast and hermetic.
  */
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { createRequire } from "node:module";
 
 // extension.js does a native `require("vscode")` — vite aliases don't reach
@@ -128,6 +128,43 @@ describe("extension activate() wiring", () => {
     // there is no facade at all, which is exactly the hostile case.
     expect(vscode.__commands["chainlesschain.diff.accept"]()).toBeUndefined();
     expect(vscode.__commands["chainlesschain.diff.reject"]()).toBeUndefined();
+  });
+
+  it("wires the team Agent View to the resolved CLI and structured result runner", async () => {
+    const view = require("../../../vscode-extension/src/ui/team-monitor-view.js");
+    const cli = require("../../../vscode-extension/src/cli-binary.js");
+    const introspect = require("../../../vscode-extension/src/chat/introspect-commands.js");
+    const originalOpen = view.openTeamMonitor;
+    const originalResolve = cli.getResolvedCli;
+    const originalRunner = introspect.runCliResult;
+    const originalDialog = vscode.window.showOpenDialog;
+    const openTeamMonitor = vi.fn();
+    const runCliResult = vi.fn();
+    try {
+      view.openTeamMonitor = openTeamMonitor;
+      cli.getResolvedCli = () => "C:/managed/cc.cmd";
+      introspect.runCliResult = runCliResult;
+      vscode.window.showOpenDialog = () =>
+        Promise.resolve([{ fsPath: "C:/state files/queue.json" }]);
+      vscode.workspace.workspaceFolders = [{ uri: { fsPath: "C:/workspace" } }];
+
+      await vscode.__commands["chainlesschain.team.monitor"]();
+
+      expect(openTeamMonitor).toHaveBeenCalledWith(
+        vscode,
+        "C:/state files/queue.json",
+        {
+          command: "C:/managed/cc.cmd",
+          runCliResult,
+          cwd: "C:/workspace",
+        },
+      );
+    } finally {
+      view.openTeamMonitor = originalOpen;
+      cli.getResolvedCli = originalResolve;
+      introspect.runCliResult = originalRunner;
+      vscode.window.showOpenDialog = originalDialog;
+    }
   });
 
   it("offers a one-shot Window Reload after provider wiring without auto-reloading", async () => {
