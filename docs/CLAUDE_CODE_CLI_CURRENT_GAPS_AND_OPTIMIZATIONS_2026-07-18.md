@@ -591,18 +591,21 @@ tool-executing 和 tool-result 全程保留 provider 原始 `tool_use_id`、`tur
 permission decision id；父 turn 也持久化 child trace/checkpoint/tool/worktree lineage、
 IDE user edit 标记及顶层交互 `--worktree` branch id。
 
-当前 coverage 保持诚实：checkpoint 覆盖的文件工具可标为 `full`；IDE 用户改写、shell
-和外部进程副作用标为 `partial`，没有 checkpoint 的文件修改为 `none`。这不是漏记，
-而是避免把无法撤销的网络、数据库或外部进程副作用承诺为可完整恢复。
+当前 coverage 保持诚实：只有可信调用方显式声明 `coverageTarget=full`、
+`writerIsolation=exclusive-workspace`，且没有 exclusions、unsafe entries、外部 Git metadata
+或外部副作用时，事务引擎才允许 `full`。受平台隔离保证的 managed shell/process 会把工作区
+内容、mode 与毫秒级 mtime 纳入持久事务，但因网络、数据库、消息、部署、支付等副作用不可撤销，
+整体仍标为 `partial`；ambient MCP/LSP、后台 shell/Agent/Hook、外部 executor 或 additional
+roots 会跳过 checkpoint 并报告 `none`。只有 active managed process 缺少强制
+platform/process-tree 边界时才在 spawn 前 fail closed。Linux managed process 要求受信
+bubblewrap contract，Windows 使用 restricted token + kill-on-close Job；macOS managed
+shell/process 目前因没有可证明的 process-tree 保证而在 native spawn 前拒绝，直接文件工具仍可
+checkpoint。
 
-后续增强：
-
-1. 在 Process Broker 中增加运行前后文件摘要或变更日志，逐步把 shell 文件变更从
-   `partial` 提升为可恢复；外部网络/数据库副作用仍必须明确不可回滚。
-2. 将同一 binding/coverage 视图直接暴露给 SDK 与 IDE 的恢复 UI。
-
-这也是最值得做的差异化：Claude Code 官方 checkpoint 主要跟踪编辑工具，ChainlessChain 可进一步
-覆盖受 Broker 管理的全部文件写入，但不能对外部副作用作虚假承诺。
+Process Broker 已完成运行前 checkpoint、成功提交、失败/取消回滚，以及 canonical workspace
+identity、state authority 和跨进程锁。死进程只有在 owner/lock 精确匹配、所有 execution 已
+settled 且具备 process-tree proof 时才自动回滚，否则返回 `recovery_required`。后续增强只剩把
+同一 binding/coverage 与 recovery 视图直接暴露给 SDK 和 IDE；外部副作用继续明确不可回滚。
 
 ## 10. P1：Plugin 凭据与供应链闭环
 
@@ -788,16 +791,28 @@ Bridge/store 和 SDK protocol fixtures 的回归验证。Remote/WSL/SSH/Dev Cont
 
 ## 14. P2：可形成差异化、但不应抢占 P0/P1 的方向
 
-### 14.1 全工具文件回滚
+### 14.1 全工具文件回滚：✅ 分层完成（2026-07-29）
 
-利用 Process Broker 在受控进程前后记录文件系统变化，把 shell、脚本、插件和 MCP stdio 引起的
-工作区写入纳入 checkpoint。建议采用分层承诺：
+Process Broker 已在受控执行前建立持久 workspace transaction，并在成功时提交、失败或取消时
+回滚；跨进程互斥、workspace root identity 与 authority 路径均 fail closed。死进程只有在
+owner/lock 精确匹配、所有 execution 已 settled 且具备 process-tree proof 时才自动回滚，
+否则返回 `recovery_required`。采用分层承诺：
 
-- `full`：所有文件写入都被捕获，可恢复。
-- `partial`：工作区文件可恢复，但外部副作用不可恢复。
-- `none`：没有可信快照。
+- `full`：可信调用方显式声明 `coverageTarget=full` 与
+  `writerIsolation=exclusive-workspace`，且没有 exclusions、unsafe entries、外部 Git
+  metadata 或外部副作用。
+- `partial`：受平台保证的 managed shell/process 工作区文件可恢复，但外部副作用不可恢复。
+- `none`：没有可信快照，或存在未静止 writer/additional root；checkpoint 会跳过并明确报告
+  coverage。只有 active managed process 缺少强制 platform/process-tree 边界时才拒绝执行。
 
-不要把数据库写入、发送消息、部署或支付等外部动作包装成“可回滚”。
+Linux managed process 要求受信 bubblewrap execution contract；Windows 使用 restricted
+token + kill-on-close Job，并在要求的 AppContainer 边界缺失时拒绝；macOS managed
+shell/process 当前因没有可证明的 process-tree 保证而在 native spawn 前拒绝，直接文件工具仍
+可 checkpoint。数据库写入、发送消息、部署、支付等外部动作不会被包装成“可回滚”。
+
+验证包括 17 个核心测试文件（198 passed / 16 skipped / 0 failed）、共享 state lock
+16/16、真实 Windows nested restricted-token Broker 与跨进程 crash recovery。P2-16 下游兼容
+烟测中的旧 commit/rollback 回归和真实双进程 DAG 也通过。
 
 ### 14.2 Auto mode 安全分类器评测：✅ 已完成（2026-07-29）
 

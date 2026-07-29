@@ -168,6 +168,19 @@ export function registerAgentCommand(program) {
       "Disable auto-checkpointing (it is on by default inside git repos)",
     )
     .option(
+      "--managed-checkpoint",
+      "Checkpoint bounded mutating tools with Process Broker; unavailable writer lifetimes are reported as coverage none",
+    )
+    .option(
+      "--managed-checkpoint-state <dir>",
+      "Durable managed-checkpoint state directory (must be outside the workspace)",
+    )
+    .option(
+      "--managed-checkpoint-exclude <path>",
+      "Explicit workspace path excluded from managed checkpoints; repeatable and reported as partial coverage",
+      (val, prev) => (prev || []).concat([val]),
+    )
+    .option(
       "--safe-mode",
       "Run bare: disable project memory, settings hooks, memory recall, IDE context, status line and update notice (permission rules STAY active)",
     )
@@ -994,6 +1007,9 @@ export function registerAgentCommand(program) {
             // paths (default ON in a git repo) so panel/stream sessions snapshot
             // before mutating tools and can be rewound via `cc checkpoint`.
             autoCheckpoint,
+            managedCheckpoint: options.managedCheckpoint === true,
+            managedCheckpointStateDir: options.managedCheckpointState || null,
+            managedCheckpointExclusions: options.managedCheckpointExclude || [],
             permissionMode: options.permissionMode,
             allowedTools: parseToolList(options.allowedTools),
             disallowedTools: parseToolList(options.disallowedTools),
@@ -1232,6 +1248,9 @@ export function registerAgentCommand(program) {
           additionalDirectories,
           sandbox: agentSandbox,
           autoCheckpoint,
+          managedCheckpoint: options.managedCheckpoint === true,
+          managedCheckpointStateDir: options.managedCheckpointState || null,
+          managedCheckpointExclusions: options.managedCheckpointExclude || [],
           // --worktree: stamp the isolation worktree (branch name) onto each
           // turn's explicit turn-binding record (advisory; null without it).
           worktreeId: _worktree ? _worktree.branch : null,
@@ -1436,6 +1455,9 @@ export function registerAgentCommand(program) {
         additionalDirectories,
         sandbox: interactiveSandbox,
         autoCheckpoint,
+        managedCheckpoint: options.managedCheckpoint === true,
+        managedCheckpointStateDir: options.managedCheckpointState || null,
+        managedCheckpointExclusions: options.managedCheckpointExclude || [],
         // Keep interactive --worktree sessions in the same explicit
         // turn-binding coverage model as headless runs.
         worktreeId: _worktree ? _worktree.branch : null,

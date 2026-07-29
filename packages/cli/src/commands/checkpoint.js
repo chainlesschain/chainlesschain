@@ -22,6 +22,7 @@
 import chalk from "chalk";
 import { resolve } from "path";
 import { logger } from "../lib/logger.js";
+import { registerManagedCheckpointCommands } from "./checkpoint-managed.js";
 
 /** git-plumbing engine adapter (normalized interface). */
 function gitEngine(gs, dir, session) {
@@ -131,6 +132,8 @@ export function registerCheckpointCommand(program) {
   const cp = program
     .command("checkpoint")
     .description("Snapshot / rewind file state (git-plumbing, copy fallback)");
+
+  registerManagedCheckpointCommands(cp);
 
   cp.command("create [paths...]")
     .description(

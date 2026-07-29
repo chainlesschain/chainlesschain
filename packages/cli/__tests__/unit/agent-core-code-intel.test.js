@@ -7,6 +7,7 @@ import {
   disposeSharedCodeIntel,
   formatToolArgs,
   _getSharedCodeIntel,
+  _withPostEditDiagnostics,
 } from "../../src/runtime/agent-core.js";
 import { probeServers } from "../../src/lib/lsp/lsp-server-registry.js";
 
@@ -170,6 +171,19 @@ describe("post-edit diagnostics — zero cost without a language server", () => 
     );
     expect(res.success).toBe(true);
     expect(res.newDiagnostics).toBeUndefined();
+  });
+
+  it("managed checkpoints bypass diagnostics before any LSP probing", async () => {
+    const result = { success: true };
+    await expect(
+      _withPostEditDiagnostics(
+        result,
+        "would-probe.ts",
+        path.join(tmpDir, "missing-workspace"),
+        [],
+        true,
+      ),
+    ).resolves.toBe(result);
   });
 
   it("edit_file returns quickly and unchanged when no server is available", async () => {

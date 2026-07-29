@@ -44,18 +44,25 @@ function genericPtyPlan(cleanup) {
     platform: "linux",
     profile: "strict",
     command: "/proc/self/fd/3",
-    args: ["--ctty", "/proc/self/fd/4", "--die-with-parent", "--"],
+    args: [
+      "--ctty",
+      "/proc/self/fd/4",
+      "--die-with-parent",
+      "--unshare-pid",
+      "--",
+    ],
     options: {
       cwd: "/",
       shell: false,
+      detached: false,
       env: { PATH: "/usr/bin:/bin" },
       stdio: ["pipe", "pipe", "pipe", 31],
     },
     enforcement: "linux-bwrap-workspace",
     backend: "linux-bwrap-workspace",
     candidateBackend: null,
-    guarantees: ["filesystem", "network"],
-    requiredBoundaries: ["filesystem", "network"],
+    guarantees: ["filesystem", "network", "process-tree"],
+    requiredBoundaries: ["filesystem", "network", "process-tree"],
     policyAttested: true,
     policyDigest: "a".repeat(64),
     runtimeProbe: {
@@ -93,6 +100,14 @@ function genericPtyPlan(cleanup) {
       namespace: "new",
       namespaceIdentityChanged: true,
       seccomp: "deny-network-creation",
+    },
+    processTreePolicy: {
+      namespace: "new",
+      namespaceIdentityChanged: true,
+      init: "bubblewrap-pid1-reaper",
+      parentDeathSignal: "SIGKILL",
+      asPid1: false,
+      closeFence: "pid-namespace-empty-or-killed",
     },
     ptyPolicy: {
       mode: "dedicated-controlling-terminal",
@@ -164,7 +179,11 @@ describe("ProcessExecutionBroker Linux generic PTY", () => {
 
     const ptyModule = { spawn: vi.fn(), open: vi.fn() };
     const sandboxPolicy = Object.freeze({
-      requiredBoundaries: Object.freeze(["filesystem", "network"]),
+      requiredBoundaries: Object.freeze([
+        "filesystem",
+        "network",
+        "process-tree",
+      ]),
     });
     const options = {
       origin: "terminal:pty",
@@ -193,7 +212,7 @@ describe("ProcessExecutionBroker Linux generic PTY", () => {
       expect.objectContaining({
         pty: true,
         sandboxPolicy: expect.objectContaining({
-          requiredBoundaries: ["filesystem", "network"],
+          requiredBoundaries: ["filesystem", "network", "process-tree"],
         }),
       }),
     );
@@ -235,7 +254,7 @@ describe("ProcessExecutionBroker Linux generic PTY", () => {
       pty: true,
       sandboxed: true,
       sandboxBackend: "linux-bwrap-workspace",
-      sandboxGuarantees: ["filesystem", "network"],
+      sandboxGuarantees: ["filesystem", "network", "process-tree"],
       sandboxPtyPolicy: {
         mode: "dedicated-controlling-terminal",
         launcherPath: "/usr/bin/setsid",
@@ -255,7 +274,11 @@ describe("ProcessExecutionBroker Linux generic PTY", () => {
     executionBroker._native = { spawn: nativeSpawn };
 
     const sandboxPolicy = Object.freeze({
-      requiredBoundaries: Object.freeze(["filesystem", "network"]),
+      requiredBoundaries: Object.freeze([
+        "filesystem",
+        "network",
+        "process-tree",
+      ]),
     });
     const options = {
       origin: "terminal:pty-native-missing",

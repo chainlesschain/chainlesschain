@@ -47,6 +47,7 @@ import {
 import { consumeIssuedPluginSandboxExecutionContract } from "../plugin-runtime/bin.js";
 import runtimeProvenanceLedger from "../runtime-provenance-ledger.js";
 import { credentialAgent } from "./credential-agent.js";
+import { WorkspaceTransactionManager } from "./workspace-transaction.js";
 
 const SUPPORTED_SANDBOX_BOUNDARIES = new Set(Object.values(SANDBOX_BOUNDARIES));
 const SUPPORTED_SANDBOX_PROFILES = new Set([
@@ -537,6 +538,7 @@ class ProcessExecutionBroker extends EventEmitter {
     };
     this._ptyAdapter = createNativePtyAdapter();
     this._hooksEventSink = null;
+    this._workspaceTransactionManagers = new Map();
 
     this._ensureLogDir();
     this._loadPermissions();
@@ -868,7 +870,8 @@ class ProcessExecutionBroker extends EventEmitter {
       requiredBoundaries.some(
         (boundary) =>
           boundary !== SANDBOX_BOUNDARIES.FILESYSTEM &&
-          boundary !== SANDBOX_BOUNDARIES.NETWORK,
+          boundary !== SANDBOX_BOUNDARIES.NETWORK &&
+          boundary !== SANDBOX_BOUNDARIES.PROCESS_TREE,
       )
     ) {
       return null;
@@ -984,6 +987,12 @@ class ProcessExecutionBroker extends EventEmitter {
     delete options.sandboxPolicy;
     delete options.requiredBoundaries;
     delete options.sandboxExecutionContract;
+  }
+
+  _stripWorkspaceTransactionOptions(options) {
+    delete options.workspaceTransactionId;
+    delete options.workspaceTransactionStateDir;
+    delete options.workspaceTransactionCapture;
   }
 
   _sandboxUnavailablePlan(command, args, options, reason, sandboxPolicy = {}) {
@@ -1124,6 +1133,7 @@ class ProcessExecutionBroker extends EventEmitter {
     let genericWorkspaceProbe = false;
     let sanitizedFilesystemPolicy = null;
     let sanitizedNetworkPolicy = null;
+    let sanitizedProcessTreePolicy = null;
     let sanitizedPtyPolicy = null;
     if (plan.runtimeProbe !== null && plan.runtimeProbe !== undefined) {
       if (
@@ -1515,6 +1525,12 @@ class ProcessExecutionBroker extends EventEmitter {
         "outsideMarkerHidden",
         "networkNamespace",
         "networkNamespaceChanged",
+        "pidNamespace",
+        "pidNamespaceChanged",
+        "processTreeCloseProbe",
+        "bubblewrapPid1Reaper",
+        "dieWithParent",
+        "closeImpliesProcessTreeClosed",
         "socketCreationDenied",
         "descriptorMounts",
         "mountTopologyAtomic",
@@ -1564,6 +1580,7 @@ class ProcessExecutionBroker extends EventEmitter {
       if (genericWorkspaceKind) {
         const filesystemPolicy = plan.filesystemPolicy;
         const networkPolicy = plan.networkPolicy;
+        const processTreePolicy = plan.processTreePolicy;
         const ptyPolicy = plan.ptyPolicy ?? null;
         const ptyPlan =
           ptyPolicy !== null &&
@@ -1607,6 +1624,7 @@ class ProcessExecutionBroker extends EventEmitter {
           /^[a-f0-9]{64}$/.test(plan.runtimeProbe.contractDigest || "") &&
           guarantees.includes(SANDBOX_BOUNDARIES.FILESYSTEM) &&
           guarantees.includes(SANDBOX_BOUNDARIES.NETWORK) &&
+          guarantees.includes(SANDBOX_BOUNDARIES.PROCESS_TREE) &&
           plan.runtimeProbe.attempted === true &&
           plan.runtimeProbe.runnable === true &&
           plan.runtimeProbe.reason === null &&
@@ -1633,6 +1651,12 @@ class ProcessExecutionBroker extends EventEmitter {
             "outsideMarkerHidden",
             "networkNamespace",
             "networkNamespaceChanged",
+            "pidNamespace",
+            "pidNamespaceChanged",
+            "processTreeCloseProbe",
+            "bubblewrapPid1Reaper",
+            "dieWithParent",
+            "closeImpliesProcessTreeClosed",
             "socketCreationDenied",
             "descriptorMounts",
           ].every((field) => plan.runtimeProbe[field] === true) &&
@@ -1670,14 +1694,24 @@ class ProcessExecutionBroker extends EventEmitter {
           networkPolicy?.namespace === "new" &&
           networkPolicy?.namespaceIdentityChanged === true &&
           networkPolicy?.seccomp === "deny-network-creation" &&
+          processTreePolicy?.namespace === "new" &&
+          processTreePolicy?.namespaceIdentityChanged === true &&
+          processTreePolicy?.init === "bubblewrap-pid1-reaper" &&
+          processTreePolicy?.parentDeathSignal === "SIGKILL" &&
+          processTreePolicy?.asPid1 === false &&
+          processTreePolicy?.closeFence === "pid-namespace-empty-or-killed" &&
           plan.command.startsWith("/proc/self/fd/") &&
           plan.options?.cwd === "/" &&
           plan.options?.shell === false &&
+          plan.options?.detached === false &&
           Array.isArray(plan.options?.stdio) &&
           plan.args.includes("--bind-fd") &&
           plan.args.includes("--ro-bind-fd") &&
           plan.args.includes("--remount-ro") &&
           plan.args.includes("--unshare-net") &&
+          plan.args.includes("--unshare-pid") &&
+          plan.args.includes("--die-with-parent") &&
+          !plan.args.includes("--as-pid-1") &&
           plan.args.includes("--seccomp") &&
           !plan.args.includes("--ro-bind") &&
           ptyPlanValid;
@@ -1714,6 +1748,14 @@ class ProcessExecutionBroker extends EventEmitter {
           namespace: networkPolicy.namespace,
           namespaceIdentityChanged: networkPolicy.namespaceIdentityChanged,
           seccomp: networkPolicy.seccomp,
+        });
+        sanitizedProcessTreePolicy = Object.freeze({
+          namespace: processTreePolicy.namespace,
+          namespaceIdentityChanged: processTreePolicy.namespaceIdentityChanged,
+          init: processTreePolicy.init,
+          parentDeathSignal: processTreePolicy.parentDeathSignal,
+          asPid1: processTreePolicy.asPid1,
+          closeFence: processTreePolicy.closeFence,
         });
         sanitizedPtyPolicy = ptyPlan
           ? Object.freeze({
@@ -1835,6 +1877,7 @@ class ProcessExecutionBroker extends EventEmitter {
         ? {
             filesystemPolicy: sanitizedFilesystemPolicy,
             networkPolicy: sanitizedNetworkPolicy,
+            processTreePolicy: sanitizedProcessTreePolicy,
             ptyPolicy: sanitizedPtyPolicy,
           }
         : {}),
@@ -2038,6 +2081,17 @@ class ProcessExecutionBroker extends EventEmitter {
           seccomp: plan.networkPolicy.seccomp,
         }
       : null;
+    auditEntry.sandboxProcessTreePolicy = genericPolicy
+      ? {
+          namespace: plan.processTreePolicy.namespace,
+          namespaceIdentityChanged:
+            plan.processTreePolicy.namespaceIdentityChanged,
+          init: plan.processTreePolicy.init,
+          parentDeathSignal: plan.processTreePolicy.parentDeathSignal,
+          asPid1: plan.processTreePolicy.asPid1,
+          closeFence: plan.processTreePolicy.closeFence,
+        }
+      : null;
     auditEntry.sandboxPtyPolicy =
       genericPolicy && plan.ptyPolicy
         ? {
@@ -2115,6 +2169,34 @@ class ProcessExecutionBroker extends EventEmitter {
     return run;
   }
 
+  _createWorkspaceProcessCloseFence(auditEntry, proc) {
+    if (
+      !Array.isArray(auditEntry.workspaceTransactionIds) ||
+      auditEntry.workspaceTransactionIds.length === 0
+    ) {
+      return null;
+    }
+    return new Promise((resolve) => {
+      if (typeof proc?.once === "function") {
+        proc.once("close", (exitCode, signal) => {
+          resolve({ observed: true, exitCode, signal });
+        });
+        return;
+      }
+      if (typeof proc?.onExit === "function") {
+        proc.onExit((event = {}) => {
+          resolve({
+            observed: true,
+            exitCode: event.exitCode ?? null,
+            signal: event.signal ?? null,
+          });
+        });
+        return;
+      }
+      resolve({ observed: false, exitCode: null, signal: null });
+    });
+  }
+
   _runPostSpawnSandbox(proc, plan, auditEntry) {
     if (!plan.applied || !plan.postSpawn.required) {
       this._applySandboxAudit(auditEntry, plan, plan.applied);
@@ -2142,10 +2224,12 @@ class ProcessExecutionBroker extends EventEmitter {
         } catch {
           // The sandbox failure remains fatal even if the child already exited.
         }
-        throw this._sandboxError(
+        const failure = this._sandboxError(
           "post_spawn_failed",
           `Post-spawn sandbox setup failed: ${error.message}`,
         );
+        failure.processTerminationRequested = true;
+        throw failure;
       }
       process.emitWarning(
         `Post-spawn sandbox setup failed (continuing without): ${error.message}`,
@@ -2163,10 +2247,12 @@ class ProcessExecutionBroker extends EventEmitter {
         } catch {
           // The sandbox failure remains fatal even if the child already exited.
         }
-        throw this._sandboxError(
+        const failure = this._sandboxError(
           "async_post_spawn_contract_violation",
           "Strict sandbox adapter returned an asynchronous post-spawn result",
         );
+        failure.processTerminationRequested = true;
+        throw failure;
       }
       auditEntry.sandboxed = false;
       auditEntry.sandboxState = "pending";
@@ -2349,6 +2435,7 @@ class ProcessExecutionBroker extends EventEmitter {
             policyDigest: auditEntry.sandboxPolicyDigest || null,
             filesystemPolicy: auditEntry.sandboxFilesystemPolicy || null,
             networkPolicy: auditEntry.sandboxNetworkPolicy || null,
+            processTreePolicy: auditEntry.sandboxProcessTreePolicy || null,
           },
           traceId:
             traceCtx?.traceId || auditEntry.traceId || `trace-${Date.now()}`,
@@ -2380,11 +2467,216 @@ class ProcessExecutionBroker extends EventEmitter {
     this._hooksEventSink = hooks;
   }
 
+  _workspaceTransactionManager(stateDir, _lockDir) {
+    const stateKey =
+      typeof stateDir === "string" && stateDir.trim()
+        ? path.resolve(stateDir)
+        : "<default>";
+    // Lock authority is intentionally not caller-selectable. Keep accepting
+    // legacy lockDir-bearing option objects at the Broker boundary, but route
+    // every one of them to the same canonical manager.
+    const key = `${stateKey}\0<default>`;
+    let manager = this._workspaceTransactionManagers.get(key);
+    if (!manager) {
+      manager = new WorkspaceTransactionManager({
+        ...(stateKey === "<default>" ? {} : { stateDir: stateKey }),
+      });
+      this._workspaceTransactionManagers.set(key, manager);
+    }
+    return manager;
+  }
+
+  _workspaceTransactionRequiredBoundaries(cwd) {
+    for (const manager of this._workspaceTransactionManagers.values()) {
+      if (manager.hasActiveTransactionForCwd(cwd)) {
+        return [SANDBOX_BOUNDARIES.PROCESS_TREE];
+      }
+    }
+    return [];
+  }
+
+  _workspaceTransactionRootForCwd(cwd) {
+    const roots = [];
+    for (const manager of this._workspaceTransactionManagers.values()) {
+      const root = manager.activeWorkspaceRootForCwd(cwd);
+      if (!root) continue;
+      const key =
+        process.platform === "win32"
+          ? path.resolve(root).toLowerCase()
+          : path.resolve(root);
+      if (!roots.some((entry) => entry.key === key)) {
+        roots.push({ key, root });
+      }
+    }
+    if (roots.length > 1) {
+      const error = new Error(
+        "multiple workspace transactions claim the same process cwd",
+      );
+      error.code = "WORKSPACE_TRANSACTION_OVERLAPPING_WORKSPACE";
+      error.workspaceRoots = roots.map((entry) => entry.root);
+      throw error;
+    }
+    return roots[0]?.root || null;
+  }
+
+  _withWorkspaceTransactionBoundaries(
+    options,
+    cwd,
+    { command, args = [], sync = false, pty = false } = {},
+  ) {
+    const required = this._workspaceTransactionRequiredBoundaries(cwd);
+    if (required.length === 0) return options;
+    if (
+      options.requiredBoundaries !== undefined &&
+      !Array.isArray(options.requiredBoundaries)
+    ) {
+      // Preserve the invalid value so normal policy validation rejects it.
+      return options;
+    }
+    const nextOptions = {
+      ...options,
+      requiredBoundaries: [
+        ...new Set([...(options.requiredBoundaries || []), ...required]),
+      ],
+    };
+    const workspaceRoot = this._workspaceTransactionRootForCwd(cwd);
+    if (workspaceRoot && nextOptions.sandboxExecutionContract === undefined) {
+      const contract = this.issueLinuxWorkspaceSandboxExecutionContract(
+        command,
+        args,
+        nextOptions,
+        workspaceRoot,
+        { sync, pty },
+      );
+      if (contract) nextOptions.sandboxExecutionContract = contract;
+    }
+    return nextOptions;
+  }
+
+  _requiresExplicitLinuxWorkspaceShell(cwd) {
+    return (
+      process.platform === "linux" &&
+      this._workspaceTransactionRequiredBoundaries(cwd).length > 0
+    );
+  }
+
+  _explicitLinuxShellInvocation(command, options = {}) {
+    return {
+      command:
+        typeof options.shell === "string" && options.shell.trim()
+          ? options.shell
+          : "/bin/sh",
+      args: ["-c", String(command)],
+    };
+  }
+
+  /**
+   * Start a fail-closed, content-addressed workspace checkpoint transaction.
+   *
+   * Active transactions automatically bind every Broker spawn whose canonical
+   * cwd is inside their workspace. The transaction itself owns accept/rollback
+   * and durable evidence APIs.
+   */
+  beginWorkspaceTransaction(options = {}) {
+    return this._workspaceTransactionManager(
+      options.stateDir,
+      options.lockDir,
+    ).begin(options);
+  }
+
+  recoverWorkspaceTransactions(options = {}) {
+    return this._workspaceTransactionManager(
+      options.stateDir,
+      options.lockDir,
+    ).recoverPending(options);
+  }
+
+  inspectWorkspaceTransaction(id, options = {}) {
+    return this._workspaceTransactionManager(
+      options.stateDir,
+      options.lockDir,
+    ).inspect(id);
+  }
+
+  listWorkspaceTransactions(options = {}) {
+    return this._workspaceTransactionManager(
+      options.stateDir,
+      options.lockDir,
+    ).list(options);
+  }
+
+  restoreWorkspaceTransaction(id, options = {}) {
+    return this._workspaceTransactionManager(
+      options.stateDir,
+      options.lockDir,
+    ).restore(id, options);
+  }
+
+  undoWorkspaceTransactionRestore(id, options = {}) {
+    return this._workspaceTransactionManager(
+      options.stateDir,
+      options.lockDir,
+    ).undoRestore(id, options);
+  }
+
+  getWorkspaceTransaction(id) {
+    for (const manager of this._workspaceTransactionManagers.values()) {
+      const transaction = manager.get(id);
+      if (transaction) return transaction;
+    }
+    return null;
+  }
+
+  _prepareWorkspaceTransactionAudit(auditEntry) {
+    const transactionIds = [];
+    for (const manager of this._workspaceTransactionManagers.values()) {
+      transactionIds.push(...manager.prepareSpawn(auditEntry));
+    }
+    auditEntry.workspaceTransactionIds = [...new Set(transactionIds)].sort();
+    return auditEntry.workspaceTransactionIds;
+  }
+
+  _preflightWorkspaceTransactionAudit(auditEntry) {
+    const transactionIds = [];
+    try {
+      for (const manager of this._workspaceTransactionManagers.values()) {
+        transactionIds.push(...manager.preflightSpawn(auditEntry));
+      }
+    } catch (error) {
+      error.auditEntry = auditEntry;
+      throw error;
+    }
+    return [...new Set(transactionIds)].sort();
+  }
+
+  _bindWorkspaceTransactionProcess(auditEntry, proc) {
+    for (const manager of this._workspaceTransactionManagers.values()) {
+      manager.bindProcess(auditEntry, proc);
+    }
+  }
+
+  _updateWorkspaceTransactionProcessGuarantees(auditEntry) {
+    for (const manager of this._workspaceTransactionManagers.values()) {
+      manager.updateProcessGuarantees(auditEntry);
+    }
+  }
+
+  _settleWorkspaceTransactionSpawn(auditEntry, outcome = {}) {
+    for (const manager of this._workspaceTransactionManagers.values()) {
+      manager.settleSpawn(auditEntry, outcome);
+    }
+  }
+
   spawn(command, args, options = {}) {
     const executionId = crypto.randomUUID();
     const startTime = Date.now();
     const origin = options.origin || "unknown";
     const cwd = options.cwd || process.cwd();
+    options = this._withWorkspaceTransactionBoundaries(options, cwd, {
+      command,
+      args,
+      sync: false,
+    });
     const scope = options.scope || "default";
     const policy = options.policy || this._checkPermission(origin, command);
     const isDangerous = this._isDangerousCommand(
@@ -2408,6 +2700,7 @@ class ProcessExecutionBroker extends EventEmitter {
       policy,
       isDangerous,
       shell: !!options.shell,
+      detached: options.detached === true,
       pid: null,
       exitCode: null,
       endTime: null,
@@ -2463,9 +2756,12 @@ class ProcessExecutionBroker extends EventEmitter {
     }
 
     // 传播traceparent环境变量
+    this._preflightWorkspaceTransactionAudit(auditEntry);
+
     const spawnOpts = this._sanitizeOptions(options);
     this._stripSandboxControlOptions(spawnOpts);
     this._stripPluginControlOptions(spawnOpts);
+    this._stripWorkspaceTransactionOptions(spawnOpts);
     if (traceCtx) {
       spawnOpts.env = { ...(spawnOpts.env || process.env) };
       spawnOpts.env.TRACEPARENT = traceCtx.traceparent;
@@ -2527,17 +2823,45 @@ class ProcessExecutionBroker extends EventEmitter {
       sandboxPlan,
       sandboxPlan.applied && !sandboxPlan.postSpawn.required,
     );
+    try {
+      this._prepareWorkspaceTransactionAudit(auditEntry);
+    } catch (transactionError) {
+      sandboxPlan.cleanup?.();
+      transactionError.auditEntry = auditEntry;
+      throw transactionError;
+    }
 
     // Use native spawn from _native (set by patch-child-process.js)
     const nativeSpawnFn = this._native?.spawn || nativeSpawn;
     let proc;
     try {
       proc = nativeSpawnFn(command, args, optsForSpawn);
+      this._bindWorkspaceTransactionProcess(auditEntry, proc);
     } catch (spawnError) {
+      if (proc && typeof proc.kill === "function") {
+        try {
+          proc.kill("SIGKILL");
+        } catch {
+          // The transaction remains unsettled if shutdown cannot be proven.
+        }
+      }
+      if (!proc) {
+        try {
+          this._settleWorkspaceTransactionSpawn(auditEntry, {
+            error: spawnError.message,
+          });
+        } catch {
+          // An unsettled durable execution keeps the transaction fail-closed.
+        }
+      }
       sandboxPlan.cleanup?.();
       throw spawnError;
     }
     auditEntry.pid = proc.pid;
+    const workspaceProcessClosed = this._createWorkspaceProcessCloseFence(
+      auditEntry,
+      proc,
+    );
     const cleanupSandbox = this._scheduleSandboxCleanup(
       proc,
       sandboxPlan.cleanup,
@@ -2558,6 +2882,7 @@ class ProcessExecutionBroker extends EventEmitter {
     }
     try {
       this._runPostSpawnSandbox(proc, sandboxPlan, auditEntry);
+      this._updateWorkspaceTransactionProcessGuarantees(auditEntry);
       auditEntry.pid = proc.pid;
       if (Number.isSafeInteger(proc.sandboxWrapperPid)) {
         auditEntry.sandboxWrapperPid = proc.sandboxWrapperPid;
@@ -2566,9 +2891,19 @@ class ProcessExecutionBroker extends EventEmitter {
         auditEntry.sandboxTargetPid = proc.sandboxTargetPid;
       }
     } catch (postSpawnError) {
+      if (postSpawnError.processTerminationRequested !== true) {
+        try {
+          proc.kill?.("SIGKILL");
+        } catch {
+          // The close fence remains pending and recovery stays fail-closed.
+        }
+      }
       cleanupSandbox();
       this._recordSandboxDenial(auditEntry, postSpawnError, startTime);
       postSpawnError.auditEntry = auditEntry;
+      postSpawnError.spawnedProcess = proc;
+      postSpawnError.workspaceProcessClosed = workspaceProcessClosed;
+      postSpawnError.workspaceTerminationRequested = true;
       throw postSpawnError;
     }
 
@@ -2625,6 +2960,11 @@ class ProcessExecutionBroker extends EventEmitter {
     const startTime = Date.now();
     const origin = options.origin || "unknown";
     const cwd = options.cwd || process.cwd();
+    options = this._withWorkspaceTransactionBoundaries(options, cwd, {
+      command,
+      args,
+      sync: true,
+    });
     const scope = options.scope || "default";
     const policy = options.policy || this._checkPermission(origin, command);
     const isDangerous = this._isDangerousCommand(
@@ -2648,6 +2988,7 @@ class ProcessExecutionBroker extends EventEmitter {
       policy,
       isDangerous,
       shell: !!options.shell,
+      detached: options.detached === true,
       sync: true,
       pluginId: options.pluginId || null,
       pluginVersion: options.pluginVersion || null,
@@ -2693,9 +3034,12 @@ class ProcessExecutionBroker extends EventEmitter {
       throw err;
     }
 
+    this._preflightWorkspaceTransactionAudit(auditEntry);
+
     const spawnOpts = this._sanitizeOptions(options);
     this._stripSandboxControlOptions(spawnOpts);
     this._stripPluginControlOptions(spawnOpts);
+    this._stripWorkspaceTransactionOptions(spawnOpts);
     if (traceCtx) {
       spawnOpts.env = { ...(spawnOpts.env || process.env) };
       spawnOpts.env.TRACEPARENT = traceCtx.traceparent;
@@ -2754,10 +3098,22 @@ class ProcessExecutionBroker extends EventEmitter {
     args = [...sandboxPlan.args];
     const optsForSync = { ...sandboxPlan.options };
     this._applySandboxAudit(auditEntry, sandboxPlan, sandboxPlan.applied);
+    try {
+      this._prepareWorkspaceTransactionAudit(auditEntry);
+    } catch (transactionError) {
+      sandboxPlan.cleanup?.();
+      transactionError.auditEntry = auditEntry;
+      throw transactionError;
+    }
 
     const nativeSpawnSyncFn = this._native?.spawnSync || nativeSpawnSync;
     try {
       const result = nativeSpawnSyncFn(command, args, optsForSync);
+      this._settleWorkspaceTransactionSpawn(auditEntry, {
+        exitCode: result.status,
+        signal: result.signal,
+        error: result.error?.message || null,
+      });
       if (sandboxPlan.applied) this._stats.sandboxed++;
       auditEntry.exitCode = result.status;
       auditEntry.endTime = Date.now();
@@ -2766,6 +3122,14 @@ class ProcessExecutionBroker extends EventEmitter {
       this._writeRplEntry(auditEntry, "completed");
       return result;
     } catch (err) {
+      try {
+        this._settleWorkspaceTransactionSpawn(auditEntry, {
+          error: err.message,
+        });
+      } catch {
+        // Preserve the primary spawn failure; transaction settlement remains
+        // fail-closed and blocks accept/rollback.
+      }
       auditEntry.error = err.message;
       auditEntry.endTime = Date.now();
       auditEntry.durationMs = auditEntry.endTime - startTime;
@@ -2788,6 +3152,11 @@ class ProcessExecutionBroker extends EventEmitter {
     if (!ptyModule || typeof ptyModule.spawn !== "function") {
       throw new TypeError("pty_module_spawn_unavailable");
     }
+    options = this._withWorkspaceTransactionBoundaries(
+      options,
+      options.cwd || process.cwd(),
+      { command, args, sync: false, pty: true },
+    );
     const executionId = crypto.randomUUID();
     const startTime = Date.now();
     const origin = options.origin || "terminal:pty";
@@ -2806,6 +3175,7 @@ class ProcessExecutionBroker extends EventEmitter {
       policy,
       operation: "pty.spawn",
       pty: true,
+      detached: options.detached === true,
       sandboxed: false,
       sandboxReason: "native_pty_host_boundary",
       sandboxRequired: [],
@@ -2850,6 +3220,7 @@ class ProcessExecutionBroker extends EventEmitter {
     const spawnOptions = { ...options, args: [...auditEntry.args] };
     this._stripSandboxControlOptions(spawnOptions);
     this._stripPluginControlOptions(spawnOptions);
+    this._stripWorkspaceTransactionOptions(spawnOptions);
     try {
       const terminalName =
         typeof options.name === "string" && options.name
@@ -2880,12 +3251,23 @@ class ProcessExecutionBroker extends EventEmitter {
       }
       const filteredArgs = spawnOptions.args || [];
       delete spawnOptions.args;
+      this._prepareWorkspaceTransactionAudit(auditEntry);
 
       if (sandboxPolicy.requiredBoundaries.length === 0) {
         delete spawnOptions.origin;
         delete spawnOptions.policy;
         delete spawnOptions.scope;
         const proc = ptyModule.spawn(command, filteredArgs, spawnOptions);
+        try {
+          this._bindWorkspaceTransactionProcess(auditEntry, proc);
+        } catch (transactionError) {
+          try {
+            proc.kill?.();
+          } catch {
+            // The durable execution remains unsettled and blocks recovery.
+          }
+          throw transactionError;
+        }
         auditEntry.pid = proc?.pid ?? null;
         auditEntry.endTime = Date.now();
         auditEntry.durationMs = auditEntry.endTime - startTime;
@@ -2966,6 +3348,7 @@ class ProcessExecutionBroker extends EventEmitter {
           ],
         });
         proc = wrapSandboxedPty(terminal, child, command, this._ptyAdapter);
+        this._bindWorkspaceTransactionProcess(auditEntry, proc);
       } catch (ptyError) {
         if (child && typeof child.kill === "function") {
           try {
@@ -3025,6 +3408,7 @@ class ProcessExecutionBroker extends EventEmitter {
       }
       sandboxPlan.cleanup?.();
       this._applySandboxAudit(auditEntry, sandboxPlan, true);
+      this._updateWorkspaceTransactionProcessGuarantees(auditEntry);
       this._stats.sandboxed++;
 
       child.once("exit", (code, signal) => {
@@ -3064,6 +3448,14 @@ class ProcessExecutionBroker extends EventEmitter {
   exec(command, options, callback) {
     const opts = typeof options === "function" ? {} : options;
     const cb = typeof options === "function" ? options : callback;
+    if (this._requiresExplicitLinuxWorkspaceShell(opts.cwd || process.cwd())) {
+      const invocation = this._explicitLinuxShellInvocation(command, opts);
+      return this.spawn(invocation.command, invocation.args, {
+        ...opts,
+        shell: false,
+        origin: opts.origin || "shell:exec",
+      });
+    }
     return this.spawn(command, [], {
       ...opts,
       shell: true,
@@ -3072,6 +3464,27 @@ class ProcessExecutionBroker extends EventEmitter {
   }
 
   execSync(command, options = {}) {
+    if (
+      this._requiresExplicitLinuxWorkspaceShell(options.cwd || process.cwd())
+    ) {
+      const invocation = this._explicitLinuxShellInvocation(command, options);
+      const result = this.spawnSync(invocation.command, invocation.args, {
+        ...options,
+        shell: false,
+        origin: options.origin || "shell:execSync",
+      });
+      if (result?.error) throw result.error;
+      if (result?.status != null && result.status !== 0) {
+        const error = new Error(
+          `Command failed (exit ${result.status}): ${command}`,
+        );
+        error.status = result.status;
+        error.stdout = result.stdout;
+        error.stderr = result.stderr;
+        throw error;
+      }
+      return result?.stdout ?? "";
+    }
     const spawnOpts = {
       ...options,
       shell: true,

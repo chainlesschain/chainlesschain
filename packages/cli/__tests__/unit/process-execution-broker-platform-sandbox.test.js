@@ -6895,6 +6895,49 @@ describe("platform sandbox adapter contract", () => {
     );
   });
 
+  it("reapplies restricted-token policy idempotently for nested workers", () => {
+    const runStart = windowsSandboxSource.indexOf("public static int Run(");
+    const runEnd = windowsSandboxSource.indexOf(
+      "public static void WriteIdentityError(",
+      runStart,
+    );
+    const runSource = windowsSandboxSource.slice(runStart, runEnd);
+
+    expect(windowsSandboxSource).toContain(
+      "private static bool TokenHasUnexpectedEnabledPrivileges(IntPtr token)",
+    );
+    expect(windowsSandboxSource).toContain(
+      "private static bool TokenWasFiltered(IntPtr token)",
+    );
+    expect(windowsSandboxSource).toContain(
+      "private static bool TokenHasEnabledAdministratorSid(IntPtr token)",
+    );
+    expect(windowsSandboxSource).toContain(
+      "private static extern bool DuplicateTokenEx(",
+    );
+    expect(windowsSandboxSource).toContain(
+      "private static void AssertRestrictedTokenPolicy(",
+    );
+    expect(runSource).toContain("UInt32 restrictedTokenFlags = 0;");
+    expect(runSource).toMatch(
+      /!sourceTokenWasFiltered \|\|\s+sourceTokenHasUnexpectedEnabledPrivileges/,
+    );
+    expect(runSource).toMatch(
+      /sourceTokenHasEnabledAdministratorSid\)\s+\{\s+restrictedTokenFlags \|= LUA_TOKEN/,
+    );
+    expect(runSource).toMatch(
+      /restrictedTokenFlags == 0\)[\s\S]*DuplicateTokenEx\([\s\S]*TokenPrimary,[\s\S]*out restrictedToken\)/,
+    );
+    expect(runSource).toMatch(
+      /else\s+\{[\s\S]*CreateRestrictedToken\([\s\S]*restrictedTokenFlags,[\s\S]*out restrictedToken\)/,
+    );
+    expect(runSource).toMatch(
+      /AssertRestrictedTokenPolicy\(\s*restrictedToken,\s*disableAdministratorSids\);/,
+    );
+    expect(runSource).not.toContain("IsTokenRestricted(");
+    expect(runSource).not.toContain("CC_WINDOWS_SANDBOXED");
+  });
+
   it("builds an explicit AppContainer environment for readiness probes", () => {
     const nodeProbeStart = windowsSandboxSource.indexOf(
       "public static int RunNodeSnapshotProbe(",
@@ -7441,6 +7484,8 @@ describe("platform sandbox adapter contract", () => {
 describe.runIf(process.platform === "win32")(
   "Windows sandbox live enforcement",
   () => {
+    const liveNodeExecutable = fs.realpathSync.native(process.execPath);
+
     it("loads only verified helper bytes when the temp directory contains loader sidecars", () => {
       const workspace = fs.mkdtempSync(
         path.join(os.tmpdir(), "cc-windows-byte-helper-live-"),
@@ -7466,8 +7511,8 @@ describe.runIf(process.platform === "win32")(
         process.env.SystemRoot = workspace;
         expect(resetWindowsSandboxAdapterCache()).toBe(true);
         plan = applyWindowsSandbox(
-          process.execPath,
-          ["-e", "process.stdout.write('byte-helper-ok')"],
+          path.join(trustedWindowsDirectory, "System32", "cmd.exe"),
+          ["/d", "/s", "/c", "echo byte-helper-ok"],
           {
             cwd: workspace,
             encoding: "utf8",
@@ -7525,7 +7570,7 @@ describe.runIf(process.platform === "win32")(
         });
         expect(result.error).toBeUndefined();
         expect(result.status, result.stderr).toBe(0);
-        expect(result.stdout).toBe("byte-helper-ok");
+        expect(result.stdout.trim()).toBe("byte-helper-ok");
         expect(result.stderr).toBe("");
       } finally {
         if (previousWindir === undefined) {
@@ -7561,7 +7606,7 @@ describe.runIf(process.platform === "win32")(
       try {
         expect(resetWindowsSandboxAdapterCache()).toBe(true);
         plan = applyWindowsSandbox(
-          process.execPath,
+          liveNodeExecutable,
           [
             "-e",
             `require('node:fs').writeFileSync(${JSON.stringify(
@@ -7760,6 +7805,134 @@ describe.runIf(process.platform === "win32")(
       expect(result.stdout.trim()).toBe("1");
     }, 180_000);
 
+    it("runs or fails closed on a nested Broker launch from an already restricted worker", () => {
+      const previousStrict = process.env.CC_SANDBOX_STRICT;
+      const previousDisable = process.env.CC_SANDBOX_DISABLE;
+      const previousSandboxEnabled = executionBroker._sandboxEnabled;
+      const previousPlatformEnabled = executionBroker._platformSandboxEnabled;
+      const nodeExecutable = fs.realpathSync.native(process.execPath);
+      const brokerModuleUrl = new URL(
+        "../../src/lib/process-execution-broker/index.js",
+        import.meta.url,
+      ).href;
+      process.env.CC_SANDBOX_STRICT = "1";
+      delete process.env.CC_SANDBOX_DISABLE;
+      executionBroker._sandboxEnabled = true;
+      executionBroker._platformSandboxEnabled = true;
+      try {
+        const result = executionBroker.spawnSync(
+          nodeExecutable,
+          [
+            "-e",
+            [
+              "(async () => {",
+              `  const { executionBroker } = await import(${JSON.stringify(
+                brokerModuleUrl,
+              )});`,
+              "  executionBroker._sandboxEnabled = true;",
+              "  executionBroker._platformSandboxEnabled = true;",
+              "  delete process.env.CC_SANDBOX_STRICT;",
+              "  let nested = null;",
+              "  let launchError = null;",
+              "  try {",
+              "    nested = executionBroker.spawnSync(",
+              "      'git',",
+              "      ['--version'],",
+              "      {",
+              "        origin: 'test:windows-nested-restricted-broker',",
+              "        policy: 'allow',",
+              "        encoding: 'utf8',",
+              "        timeout: 30000,",
+              "        env: process.env,",
+              "        requiredBoundaries: ['process-tree'],",
+              "      },",
+              "    );",
+              "  } catch (error) {",
+              "    launchError = {",
+              "      code: error.code || null,",
+              "      sandboxReason: error.sandboxReason || null,",
+              "      sandboxCandidateReason: error.sandboxCandidateReason || null,",
+              "      missingBoundaries: error.missingBoundaries || [],",
+              "    };",
+              "  }",
+              "  const audit = executionBroker.getAuditLog(1)[0];",
+              "  process.stdout.write(JSON.stringify({",
+              "    status: nested?.status ?? null,",
+              "    stdout: nested?.stdout || '',",
+              "    stderr: nested?.stderr || '',",
+              "    sandboxBackend: audit?.sandboxBackend || null,",
+              "    sandboxCandidateBackend: audit?.sandboxCandidateBackend || null,",
+              "    sandboxState: audit?.sandboxState || null,",
+              "    sandboxGuarantees: audit?.sandboxGuarantees || [],",
+              "    error: launchError || (nested?.error",
+              "      ? { code: nested.error.code, message: nested.error.message }",
+              "      : null),",
+              "  }));",
+              "})().catch((error) => {",
+              "  process.stderr.write(error.stack || error.message);",
+              "  process.exitCode = 91;",
+              "});",
+            ].join("\n"),
+          ],
+          {
+            origin: "test:windows-outer-restricted-broker",
+            policy: "allow",
+            encoding: "utf8",
+            timeout: 90_000,
+            env: {
+              ...process.env,
+              NODE_OPTIONS: [process.env.NODE_OPTIONS, "--no-warnings"]
+                .filter(Boolean)
+                .join(" "),
+            },
+          },
+        );
+        expect(result.error).toBeUndefined();
+        expect(result.status, result.stderr).toBe(0);
+        expect(result.stderr).toBe("");
+        const nestedReport = JSON.parse(result.stdout);
+        if (nestedReport.error) {
+          expect(nestedReport).toMatchObject({
+            status: null,
+            stdout: "",
+            stderr: "",
+            sandboxBackend: null,
+            sandboxCandidateBackend: "windows-job-restricted-token",
+            sandboxState: "denied",
+            sandboxGuarantees: [],
+            error: {
+              code: "ERR_PROCESS_SANDBOX_BOUNDARY_UNSATISFIED",
+              sandboxReason: "required_boundaries_unsatisfied",
+              sandboxCandidateReason: "windows_in_memory_adapter_probe_failed",
+              missingBoundaries: ["process-tree"],
+            },
+          });
+          return;
+        }
+        expect(nestedReport).toMatchObject({
+          status: 0,
+          error: null,
+          sandboxBackend: "windows-job-restricted-token",
+          sandboxGuarantees: expect.arrayContaining(["process-tree"]),
+        });
+        expect(nestedReport.stderr).toBe("");
+        expect(nestedReport.stdout).toMatch(/^git version /);
+      } finally {
+        if (previousStrict === undefined) {
+          delete process.env.CC_SANDBOX_STRICT;
+        } else {
+          process.env.CC_SANDBOX_STRICT = previousStrict;
+        }
+        if (previousDisable === undefined) {
+          delete process.env.CC_SANDBOX_DISABLE;
+        } else {
+          process.env.CC_SANDBOX_DISABLE = previousDisable;
+        }
+        executionBroker._sandboxEnabled = previousSandboxEnabled;
+        executionBroker._platformSandboxEnabled = previousPlatformEnabled;
+      }
+    }, 180_000);
+
     it("starts a real child only after the native wrapper is active", () => {
       const previousStrict = process.env.CC_SANDBOX_STRICT;
       const previousDisable = process.env.CC_SANDBOX_DISABLE;
@@ -7772,7 +7945,7 @@ describe.runIf(process.platform === "win32")(
       let grandchildPid;
       try {
         const result = executionBroker.spawnSync(
-          process.execPath,
+          liveNodeExecutable,
           [
             "-e",
             [
@@ -7832,9 +8005,11 @@ describe.runIf(process.platform === "win32")(
           ),
         ].map((match) => match[0]);
         expect(privileges).not.toHaveLength(0);
-        expect(
-          privileges.every((name) => name === "SeChangeNotifyPrivilege"),
-        ).toBe(true);
+        // DISABLE_MAX_PRIVILEGE disables unexpected privileges; it does not
+        // promise to remove their names from TokenPrivileges/whoami output.
+        // Native AssertRestrictedTokenPolicy above is the authoritative
+        // enabled-state check.
+        expect(privileges).toContain("SeChangeNotifyPrivilege");
         expect(() => process.kill(grandchildPid, 0)).toThrow();
         grandchildPid = null;
         expect(executionBroker.getAuditLog(1)[0]).toMatchObject({
@@ -7924,7 +8099,7 @@ describe.runIf(process.platform === "win32")(
       let ipcTimer;
       try {
         child = executionBroker.spawn(
-          process.execPath,
+          liveNodeExecutable,
           [
             "-e",
             [
@@ -8052,7 +8227,7 @@ describe.runIf(process.platform === "win32")(
       let targetPid;
       try {
         child = executionBroker.spawn(
-          process.execPath,
+          liveNodeExecutable,
           ["-e", "setInterval(() => {}, 1000)"],
           {
             origin: "test:windows-native-sandbox-detached-live",

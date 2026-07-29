@@ -3036,6 +3036,7 @@ describe.runIf(LIVE && SUPPORTED)(
             sandboxGuarantees: [
               SANDBOX_BOUNDARIES.FILESYSTEM,
               SANDBOX_BOUNDARIES.NETWORK,
+              SANDBOX_BOUNDARIES.PROCESS_TREE,
             ],
             sandboxRuntimeProbe: {
               kind: "linux-bwrap-generic-workspace-policy-v1",
@@ -3051,6 +3052,12 @@ describe.runIf(LIVE && SUPPORTED)(
               outsideMarkerHidden: true,
               networkNamespace: true,
               networkNamespaceChanged: true,
+              pidNamespace: true,
+              pidNamespaceChanged: true,
+              processTreeCloseProbe: true,
+              bubblewrapPid1Reaper: true,
+              dieWithParent: true,
+              closeImpliesProcessTreeClosed: true,
               socketCreationDenied: true,
               descriptorMounts: true,
               mountTopologyAtomic: false,
@@ -3436,7 +3443,7 @@ describe.runIf(LIVE && SUPPORTED)(
             pty: true,
             sandboxed: true,
             sandboxBackend: "linux-bwrap-workspace",
-            sandboxGuarantees: ["filesystem", "network"],
+            sandboxGuarantees: ["filesystem", "network", "process-tree"],
             sandboxPtyPolicy: {
               mode: "dedicated-controlling-terminal",
               launcherPath: "/usr/bin/setsid",
