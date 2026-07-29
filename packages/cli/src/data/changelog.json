@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.162.186",
+      "cliVersions": ["0.162.185", "0.162.186"],
+      "date": "2026-07-29",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Added — cc CLI 0.162.186: standard OpenTelemetry Collector export",
+          "body": "> `chainlesschain` **0.162.185 → 0.162.186** (2026-07-29).\n> CLI-only release; `@chainlesschain/personal-data-hub` remains **0.4.57**\n> and `@chainlesschain/agent-sdk` remains **0.1.7**.\n\n- **Standard Collector protocols**: traces and metrics export over OTLP/HTTP\n  JSON, OTLP/HTTP protobuf, or OTLP/gRPC, with standard global and per-signal\n  endpoint, protocol, header, timeout, compression, service, and resource\n  environment variables.\n- **Enterprise transport**: HTTPS and HTTP/2 gRPC support custom CA trust plus\n  client certificate/key mTLS without allowing custom headers to override\n  protocol framing.\n- **Bounded delivery**: batching, queue-pressure reporting, `Retry-After` and\n  exponential retries, permanent-failure/drop counters, and atomic per-process\n  crash spools provide bounded recovery without stealing a live process queue.\n- **Real runtime wiring**: agent, eval, and team recorders feed the Collector;\n  team runs add task, token, USD cost, failure, and completion aggregates with\n  workflow dimensions. Normal and gated exits perform a final flush.\n- **Private by default**: prompt, response, and tool-argument content stays\n  local unless explicitly enabled; all exported string attributes and events\n  continue through secret redaction.\n- **Release validation gate**: publication requires this exact release commit\n  to pass `CLI CI` and `CLI Strict Sandbox` on their configured Ubuntu,\n  Windows, and macOS runners; local tests remain supplementary."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.162.185",
       "cliVersions": ["0.162.184", "0.162.185"],
       "date": "2026-07-29",
