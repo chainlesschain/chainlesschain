@@ -768,7 +768,11 @@ function readStableRegularFile(
       throw codedError(
         WORKSPACE_TRANSACTION_ERROR.SNAPSHOT_RACE,
         `file identity changed while opening checkpoint input: ${abs}`,
-        { path: abs },
+        {
+          path: abs,
+          pathIdentity: statIdentity(initialStat),
+          openedIdentity: statIdentity(opened),
+        },
       );
     }
     const body = fs.readFileSync(descriptor);
@@ -3191,7 +3195,7 @@ export class WorkspaceTransactionManager {
     return this.activeWorkspaceMembershipForCwd(cwd)?.workspaceRoot || null;
   }
 
-  prepareSpawn(entry) {
+  _matchingSpawnEntries(entry) {
     const matches = [];
     const active = [...this._active.values()].filter(
       (transaction) => !TERMINAL_STATES.has(transaction.state),
@@ -3231,10 +3235,23 @@ export class WorkspaceTransactionManager {
           },
         );
       }
-      transaction.recordExecution({ ...entry, cwd: canonical });
-      matches.push(transaction.id);
+      matches.push({ transaction, canonicalCwd: canonical });
     }
     return matches;
+  }
+
+  preflightSpawn(entry) {
+    return this._matchingSpawnEntries(entry).map(
+      ({ transaction }) => transaction.id,
+    );
+  }
+
+  prepareSpawn(entry) {
+    const matches = this._matchingSpawnEntries(entry);
+    for (const { transaction, canonicalCwd } of matches) {
+      transaction.recordExecution({ ...entry, cwd: canonicalCwd });
+    }
+    return matches.map(({ transaction }) => transaction.id);
   }
 
   bindProcess(entry, proc) {

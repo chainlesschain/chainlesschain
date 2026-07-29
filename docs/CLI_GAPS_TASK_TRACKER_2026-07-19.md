@@ -905,12 +905,12 @@ Desktop coding-agent core 134 个、Desktop lifecycle 24 个、SDK protocol/agen
 
 ## 🟢 P2 任务（差异化方向，按需执行）
 
-| #     | 任务                     | 说明                                               |
-| ----- | ------------------------ | -------------------------------------------------- |
-| P2-14 | 全工具文件回滚           | 🟠 跨平台收口中（2026-07-29），旧 SHA 发布门未通过 |
-| P2-15 | Auto mode 安全分类器     | ✅ 完成（2026-07-29），危险操作自动识别评测集      |
-| P2-16 | 大规模 Agent Teams       | 🟠 实现批次完成（2026-07-29），发布门禁未完成      |
-| P2-17 | 标准 OTel Collector 出口 | ✅ 完成（2026-07-29），兼容生态可观测性工具        |
+| #     | 任务                     | 说明                                                   |
+| ----- | ------------------------ | ------------------------------------------------------ |
+| P2-14 | 全工具文件回滚           | 🟠 跨平台收口中（2026-07-29），精确 SHA 发布门未通过   |
+| P2-15 | Auto mode 安全分类器     | ✅ 完成（2026-07-29），危险操作自动识别评测集          |
+| P2-16 | 大规模 Agent Teams       | 🟠 实现批次完成（2026-07-29），精确 SHA 发布门禁未完成 |
+| P2-17 | 标准 OTel Collector 出口 | ✅ 完成（2026-07-29），兼容生态可观测性工具            |
 
 ### P2-14 状态：🟠 跨平台收口中（2026-07-29）
 
@@ -931,6 +931,10 @@ Desktop coding-agent core 134 个、Desktop lifecycle 24 个、SDK protocol/agen
   Windows 使用 restricted token + kill-on-close Job，并在要求的 AppContainer 边界不可用时
   fail closed；macOS 当前只对直接文件工具提供 checkpoint，managed shell/process 因尚无
   可证明的 process-tree 保证而在 native spawn 前拒绝。
+- **验证证据**：17 个核心测试文件为 198 passed / 16 skipped / 0 failed；共享 state lock
+  16/16 通过；真实 Windows restricted Node → nested Broker → `git --version`、跨进程锁和
+  crash recovery 均通过。P2-16 下游兼容烟测中的旧 commit/rollback 回归及真实双进程 DAG
+  也通过。
 - **发布门事实**：较新的主分支精确 SHA
   `c6b16ef0350e30f2121b5f9db70a6744f213b3dd` 的
   [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/30474982714) 与

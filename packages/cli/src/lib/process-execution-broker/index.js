@@ -2648,6 +2648,19 @@ class ProcessExecutionBroker extends EventEmitter {
     return auditEntry.workspaceTransactionIds;
   }
 
+  _preflightWorkspaceTransactionAudit(auditEntry) {
+    const transactionIds = [];
+    try {
+      for (const manager of this._workspaceTransactionManagers.values()) {
+        transactionIds.push(...manager.preflightSpawn(auditEntry));
+      }
+    } catch (error) {
+      error.auditEntry = auditEntry;
+      throw error;
+    }
+    return [...new Set(transactionIds)].sort();
+  }
+
   _bindWorkspaceTransactionProcess(auditEntry, proc) {
     for (const manager of this._workspaceTransactionManagers.values()) {
       manager.bindProcess(auditEntry, proc);
@@ -2756,6 +2769,8 @@ class ProcessExecutionBroker extends EventEmitter {
     }
 
     // 传播traceparent环境变量
+    this._preflightWorkspaceTransactionAudit(auditEntry);
+
     const spawnOpts = this._sanitizeOptions(options);
     this._stripSandboxControlOptions(spawnOpts);
     this._stripPluginControlOptions(spawnOpts);
@@ -3032,6 +3047,8 @@ class ProcessExecutionBroker extends EventEmitter {
       err.auditEntry = auditEntry;
       throw err;
     }
+
+    this._preflightWorkspaceTransactionAudit(auditEntry);
 
     const spawnOpts = this._sanitizeOptions(options);
     this._stripSandboxControlOptions(spawnOpts);
