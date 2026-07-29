@@ -24,18 +24,18 @@
 > principal/project-membership ACL，以及策略不会随交互 shell 内 `cd` 动态发现或放宽；
 > P1-12 双语言 SDK 已完成，
 > Python SDK 0.1.0 已发布 PyPI
-> 最后更新：2026-07-29（按 `e7b9d86a00` 精确双门全绿、最终候选修复、安全终审与生成清单复核）
+> 最后更新：2026-07-29（已复核 P2-14/P2-16 本地候选、最新失败发布门、安全边界与生成清单）
 
 ---
 
 ## 执行优先级
 
-| 优先级    | 任务数 | 说明                                   |
-| --------- | ------ | -------------------------------------- |
-| 🔴 **P0** | **0**  | P0-1、P0-2 已完成                      |
-| 🟠 P0/P1  | 0      | P0/P1-3 权限控制面统一已完成           |
-| 🟢 P1     | 0      | P1-4、P1-9 实现与精确 SHA 发布门已完成 |
-| 🟢 P2     | 4      | 差异化方向（不抢占 P0/P1）             |
+| 优先级    | 任务数 | 说明                                    |
+| --------- | ------ | --------------------------------------- |
+| 🔴 **P0** | **0**  | P0-1、P0-2 已完成                       |
+| 🟠 P0/P1  | 0      | P0/P1-3 权限控制面统一已完成            |
+| 🟢 P1     | 0      | P1-4、P1-9 实现与精确 SHA 发布门已完成  |
+| 🟢 P2     | 4      | 共跟踪 4 项：2 项完成、2 项发布门未闭合 |
 
 ---
 
@@ -905,20 +905,22 @@ Desktop coding-agent core 134 个、Desktop lifecycle 24 个、SDK protocol/agen
 
 ## 🟢 P2 任务（差异化方向，按需执行）
 
-| #     | 任务                     | 说明                                                        |
-| ----- | ------------------------ | ----------------------------------------------------------- |
-| P2-14 | 全工具文件回滚           | ✅ 分层完成（2026-07-29），受控工作区写入可 checkpoint 回滚 |
-| P2-15 | Auto mode 安全分类器     | ✅ 完成（2026-07-29），危险操作自动识别评测集               |
-| P2-16 | 大规模 Agent Teams       | 🟡 基础批次（2026-07-29），尚未完成                         |
-| P2-17 | 标准 OTel Collector 出口 | ✅ 完成（2026-07-29），兼容生态可观测性工具                 |
+| #     | 任务                     | 说明                                               |
+| ----- | ------------------------ | -------------------------------------------------- |
+| P2-14 | 全工具文件回滚           | 🟠 跨平台收口中（2026-07-29），旧 SHA 发布门未通过 |
+| P2-15 | Auto mode 安全分类器     | ✅ 完成（2026-07-29），危险操作自动识别评测集      |
+| P2-16 | 大规模 Agent Teams       | 🟠 实现批次完成（2026-07-29），发布门禁未完成      |
+| P2-17 | 标准 OTel Collector 出口 | ✅ 完成（2026-07-29），兼容生态可观测性工具        |
 
-### P2-14 状态：✅ 分层完成（2026-07-29）
+### P2-14 状态：🟠 跨平台收口中（2026-07-29）
 
-- **工作区事务**：Process Broker 在受控执行前建立持久 checkpoint，记录工作区内容、
+- **已实现能力**：Process Broker 在受控执行前建立持久 checkpoint，记录工作区内容、
   mode 与毫秒级 mtime；成功时提交，失败或取消时回滚。死进程只有在 owner/lock 精确匹配、
   所有 execution 已 settled 且具备 process-tree proof 时才自动回滚，否则返回
   `recovery_required`。workspace root 的 canonical path 与 device/inode identity、state
-  authority 和跨进程锁均被固定，替换根目录、锁目录绕行或并发 owner 冲突会 fail closed。
+  authority 和跨进程锁均被固定；普通的根目录替换、锁目录绕行或并发 owner 冲突会
+  fail closed，但 Node 不提供 `openat`/handle-relative rename，不能声称已消除完整的
+  rename-away/replace/restore ABA。
 - **覆盖等级**：只有可信调用方显式声明 `coverageTarget=full`、
   `writerIsolation=exclusive-workspace`，且没有 exclusions、unsafe entries、外部 Git
   metadata 或外部副作用时，事务引擎才允许 `full`；managed shell/process 的工作区文件可恢复，
@@ -929,10 +931,18 @@ Desktop coding-agent core 134 个、Desktop lifecycle 24 个、SDK protocol/agen
   Windows 使用 restricted token + kill-on-close Job，并在要求的 AppContainer 边界不可用时
   fail closed；macOS 当前只对直接文件工具提供 checkpoint，managed shell/process 因尚无
   可证明的 process-tree 保证而在 native spawn 前拒绝。
-- **验证证据**：17 个核心测试文件为 198 passed / 16 skipped / 0 failed；共享 state lock
-  16/16 通过；真实 Windows restricted Node → nested Broker → `git --version`、跨进程锁和
-  crash recovery 均通过。P2-16 下游兼容烟测中的旧 commit/rollback 回归及真实双进程 DAG
-  也通过。
+- **发布门事实**：较新的主分支精确 SHA
+  `c6b16ef0350e30f2121b5f9db70a6744f213b3dd` 的
+  [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/30474982714) 与
+  [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/30474982468)
+  仍未通过；此前 `2cbac832ebf12c856c237fe4d9e9e7f5a246204c` 的
+  [Agent Team Soak](https://github.com/chainlesschain/chainlesschain/actions/runs/30469007043)
+  也失败。因此本地测试只能作为补充证据，不能支持“完成”结论。
+- **当前候选收口**：canonical cwd/alias 固定、Windows Node/libuv path/handle identity
+  兼容桥、队列 authority 路径校验和 POSIX mtime 恢复精度的候选修复已经落入本地工作树；
+  针对性复验为 331 passed / 1 skipped。它们仍须先形成新的精确 SHA，再由同一 SHA 的
+  CLI CI 与 CLI Strict Sandbox Ubuntu、Windows、macOS 全部矩阵证明，才能重新判定
+  P2-14 完成。
 
 ### P2-15 状态：✅ 完成（2026-07-29）
 
@@ -955,14 +965,16 @@ Desktop coding-agent core 134 个、Desktop lifecycle 24 个、SDK protocol/agen
   managed deny、凭据 guard、Process Broker 或 OS sandbox。本批不把只覆盖部分入口的接线
   宣称为全工具运行时防护。
 
-### P2-16 状态：🟡 基础批次（2026-07-29）
+### P2-16 状态：🟠 实现批次完成，发布门禁未完成（2026-07-29）
 
-- **已实现**：10k task / 64 worker indexed scheduler、有界 mailbox/backpressure、真实 stream usage、
+- **核心实现**：10k task / 64 worker indexed scheduler、有界 mailbox/backpressure、真实 stream usage、
   per-task tightened contract、fenced lease、claim-time token/USD reservation、scope ownership、
-  fail-closed append-only durable journal、跨进程 canonical state ownership、journal seq+digest
-  恢复锚点、commit OID/integration 状态，以及 prepare→persist→remove→persist 两阶段 cleanup。
-  崩溃后只有 dry-run 或显式 `retrySafe: true` 的任务会自动重领；其他真实任务停止并要求裁决。
-  启用 token/USD cap 时，usage 缺失或远端模型无法定价同样 fail closed。
+  fail-closed append-only durable journal、共享文件系统跨进程队列、全局精确 lease/fence interrupt、
+  恢复裁决、Git branch/worktree/commit 精确绑定、finalizer heartbeat/takeover/CAS，以及 checkpoint
+  集成均已落地。崩溃后只有 dry-run 或显式 `retrySafe: true` 的任务会自动重领；其他真实任务
+  停止并要求裁决。启用 token/USD cap 时，usage 缺失或远端模型无法定价同样 fail closed。
+- **控制与验收实现**：VS Code 与 JetBrains 已有分布式 Team 控制；三平台 deterministic
+  Agent contract soak harness、故障注入和精确 SHA/工作树洁净校验已加入。
 - **写隔离**：多 worker 的真实 Agent/shell 执行必须使用 `--worktree`；`scopePaths` 仅用于调度，
   不作为实际写集的安全证明。恢复的 worktree path 必须绑定当前 repo/run/branch 的
   `.worktrees` 直接子目录。
@@ -970,10 +982,20 @@ Desktop coding-agent core 134 个、Desktop lifecycle 24 个、SDK protocol/agen
   的可信控制面，保存 task graph、命令/提示词、预算、权限及 mailbox 内容。真实执行要求 state
   位于 Agent 可写 repo 外；seq+digest 是回滚/分叉一致性锚点，不是认证。v5 schema 会硬拒绝
   v2–v4 状态。
-- **已知隔离边界**：`--symlink-dirs` 只接受显式批准的 `node_modules` 根，但链接仍可写主
-  checkout 依赖；worktree DAG 只保证依赖执行顺序，尚不把上游未集成分支成果作为下游基线。
-- **仍缺**：IDE Agent View 人工接管、可交互的 kill-point/side-effect recovery adjudication 与安全续跑、
-  跨进程分布式队列与长期 soak。
+- **已知边界**：队列依赖共享的本地文件系统，不是带共识的多主机网络队列；未签名 state
+  仍是可信控制面；网络、数据库、消息、部署等外部副作用不可由 checkpoint 回滚；当前 soak
+  使用 deterministic Agent contract，不覆盖真实模型服务。全平台的父目录身份检查因 Node
+  缺少 `openat`/handle-relative authority，不能消除敌对可写父目录的完整 ABA；这项保证要求
+  父目录及祖先受信。另有独立的 Windows Broker parent-path final-check 到子进程 open/spawn
+  非原子 TOCTOU。`full` 回滚覆盖还要求 `exclusive-workspace`；`--symlink-dirs` 只接受显式
+  批准的 `node_modules` 根，但链接仍可写主 checkout 依赖。POSIX soak 超时清理依赖 worker
+  自成进程组，不能据此证明可清理主动 `setsid` 逃逸的后代；外部强杀主进程也不会执行 JS
+  `finally`。
+- **发布门事实**：`2cbac832ebf12c856c237fe4d9e9e7f5a246204c` 的 CLI CI、CLI Strict
+  Sandbox 与 Agent Team Soak 均未通过；实现批次完成不等于 P2-16 完成或可发布。
+- **完成条件**：新的同一精确 SHA 必须通过 CLI CI、CLI Strict Sandbox 与 Agent Team
+  short soak 的全部 Ubuntu、Windows、macOS 矩阵，并在三平台完成 120 分钟长期 soak；
+  在这些门禁全部通过前保持未完成。
 
 ### P2-17 状态：✅ 完成（2026-07-29）
 
