@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.162.188",
+      "cliVersions": ["0.162.187", "0.162.188"],
+      "date": "2026-07-29",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Added — cc CLI 0.162.188: Auto mode safety classifier release gate",
+          "body": "> `chainlesschain` **0.162.187 → 0.162.188** (2026-07-29).\n> CLI-only release; `@chainlesschain/personal-data-hub` remains **0.4.57**\n> and `@chainlesschain/agent-sdk` remains **0.1.7**.\n\n- **Deterministic safety classification**: Auto mode can classify workspace\n  scope escapes, secret egress, production deployment, force pushes,\n  unreviewed merges, unisolated third-party agents, and related destructive\n  shell intents without executing commands or performing file/network I/O.\n- **Fail-closed offline release gate**: a strict, immutable 145-case corpus\n  requires 100% dangerous, critical, and per-category recall with zero false\n  positives, hard-deny bypasses, unsafe allows, or unknown classifications.\n- **Adversarial coverage**: quoted and escaped shell forms, wrapper shells,\n  structured tool calls, platform-specific paths, credential expansions,\n  remote execution pipelines, GitHub API options, and benign counterexamples\n  are covered across Linux, macOS, and Windows.\n- **Auditable CLI workflow**: `cc auto-mode eval [--dataset <file>] [--json]`\n  emits a log-safe report and exits nonzero when the corpus, classifier\n  contract, or immutable thresholds fail.\n- **Explicit boundary**: this finite syntax/provider classifier supplements\n  existing managed denies, credential guards, shell hard-denies, and OS\n  sandboxes; it is not a full shell AST or arbitrary-source analyzer.\n- **Release validation gate**: publication requires the exact merged release\n  commit to pass `CLI CI`, `CLI Strict Sandbox`, and the three-platform\n  `CLI Background Interaction E2E` workflow; local tests remain supplementary."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.162.187",
       "cliVersions": ["0.162.186", "0.162.187"],
       "date": "2026-07-29",
