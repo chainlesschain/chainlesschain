@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — cc CLI 0.162.188: Auto mode safety classifier release gate
+
+> `chainlesschain` **0.162.187 → 0.162.188** (2026-07-29).
+> CLI-only release; `@chainlesschain/personal-data-hub` remains **0.4.57**
+> and `@chainlesschain/agent-sdk` remains **0.1.7**.
+
+- **Deterministic safety classification**: Auto mode can classify workspace
+  scope escapes, secret egress, production deployment, force pushes,
+  unreviewed merges, unisolated third-party agents, and related destructive
+  shell intents without executing commands or performing file/network I/O.
+- **Fail-closed offline release gate**: a strict, immutable 145-case corpus
+  requires 100% dangerous, critical, and per-category recall with zero false
+  positives, hard-deny bypasses, unsafe allows, or unknown classifications.
+- **Adversarial coverage**: quoted and escaped shell forms, wrapper shells,
+  structured tool calls, platform-specific paths, credential expansions,
+  remote execution pipelines, GitHub API options, and benign counterexamples
+  are covered across Linux, macOS, and Windows.
+- **Auditable CLI workflow**: `cc auto-mode eval [--dataset <file>] [--json]`
+  emits a log-safe report and exits nonzero when the corpus, classifier
+  contract, or immutable thresholds fail.
+- **Explicit boundary**: this finite syntax/provider classifier supplements
+  existing managed denies, credential guards, shell hard-denies, and OS
+  sandboxes; it is not a full shell AST or arbitrary-source analyzer.
+- **Release validation gate**: publication requires the exact merged release
+  commit to pass `CLI CI`, `CLI Strict Sandbox`, and the three-platform
+  `CLI Background Interaction E2E` workflow; local tests remain supplementary.
+
 ### Added — cc CLI 0.162.187: large Agent Teams safety foundation
 
 > `chainlesschain` **0.162.186 → 0.162.187** (2026-07-29).

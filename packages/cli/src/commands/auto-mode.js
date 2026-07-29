@@ -5,6 +5,11 @@ import {
   loadAutoModeConfig,
   resolveAutoModeDecisions,
 } from "../lib/auto-mode-config.js";
+import {
+  formatAutoModeSafetyEvalReport,
+  loadAutoModeSafetyDataset,
+  runAutoModeSafetyEval,
+} from "../lib/auto-mode-safety-eval.js";
 
 function printJson(value) {
   console.log(JSON.stringify(value, null, 2));
@@ -37,6 +42,39 @@ function printConfigSummary(config, resolved) {
   }
   if (config.managedFile) {
     logger.log(chalk.yellow(`  managed: ${config.managedFile}`));
+  }
+}
+
+export function runAutoModeSafetyEvalCommand(options = {}, deps = {}) {
+  const output = deps.output || ((value) => console.log(value));
+  const log = deps.logger || logger;
+  const setExitCode = deps.setExitCode || ((code) => (process.exitCode = code));
+  const loadDataset = deps.loadDataset || loadAutoModeSafetyDataset;
+  const runEval = deps.runEval || runAutoModeSafetyEval;
+
+  try {
+    const dataset = loadDataset(options.dataset);
+    const report = runEval(dataset);
+    if (options.json) output(JSON.stringify(report, null, 2));
+    else log.log(formatAutoModeSafetyEvalReport(report));
+    if (!report.ok) setExitCode(1);
+    return report;
+  } catch (error) {
+    const envelope = {
+      schema: "chainlesschain.auto-mode-safety-error/v1",
+      ok: false,
+      error: {
+        code: error.code || "auto-mode-safety-eval-failed",
+        message: error.message,
+        ...(Array.isArray(error.errors)
+          ? { validationErrors: error.errors.slice(0, 50) }
+          : {}),
+      },
+    };
+    if (options.json) output(JSON.stringify(envelope, null, 2));
+    else log.error(chalk.red(`auto-mode eval failed: ${error.message}`));
+    setExitCode(1);
+    return envelope;
   }
 }
 
@@ -84,4 +122,13 @@ export function registerAutoModeCommand(program) {
         process.exitCode = 1;
       }
     });
+
+  cmd
+    .command("eval")
+    .description(
+      "Run the offline dangerous-operation classifier corpus and CI gate",
+    )
+    .option("--dataset <file>", "Evaluate a custom versioned JSON dataset")
+    .option("--json", "Output one machine-readable JSON report")
+    .action((options) => runAutoModeSafetyEvalCommand(options));
 }
