@@ -2,7 +2,7 @@
 
 > 来源：`CLAUDE_CODE_CLI_CURRENT_GAPS_AND_OPTIMIZATIONS_2026-07-18.md`
 > 创建日期：2026-07-19
-> 当前 CLI 版本：`0.162.187`
+> 当前 CLI 版本：`0.162.188`
 > 状态：P0-1 Broker/凭据、静态进程清单、Windows 原生进程边界、Node IPC/detached 语义与
 > 真实三平台 strict CI 已完成；P0-2 当前 turn、持久化、跨宿主 authority/binding 与真实三平台
 > 断线重连 E2E 已完成；P0/P1-3 权限控制面统一已完成。P1-4/P1-9 已在发布候选
@@ -908,7 +908,7 @@ Desktop coding-agent core 134 个、Desktop lifecycle 24 个、SDK protocol/agen
 | #     | 任务                     | 说明                                                        |
 | ----- | ------------------------ | ----------------------------------------------------------- |
 | P2-14 | 全工具文件回滚           | ✅ 分层完成（2026-07-29），受控工作区写入可 checkpoint 回滚 |
-| P2-15 | Auto mode 安全分类器     | 危险操作自动识别评测集                                      |
+| P2-15 | Auto mode 安全分类器     | ✅ 完成（2026-07-29），危险操作自动识别评测集               |
 | P2-16 | 大规模 Agent Teams       | 🟡 基础批次（2026-07-29），尚未完成                         |
 | P2-17 | 标准 OTel Collector 出口 | ✅ 完成（2026-07-29），兼容生态可观测性工具                 |
 
@@ -933,6 +933,27 @@ Desktop coding-agent core 134 个、Desktop lifecycle 24 个、SDK protocol/agen
   16/16 通过；真实 Windows restricted Node → nested Broker → `git --version`、跨进程锁和
   crash recovery 均通过。P2-16 下游兼容烟测中的旧 commit/rollback 回归及真实双进程 DAG
   也通过。
+
+### P2-15 状态：✅ 完成（2026-07-29）
+
+- **纯离线分类器**：新增版本化、无 I/O 的 Auto mode 安全分类器，输出稳定
+  `riskLevel`、category、reason code 和 signal；不执行命令、不读取样本引用文件，也不把原始
+  参数复制到报告。
+- **评测集**：`auto-mode-safety-eval-v1.json` 共 145 个样本（100 dangerous +
+  45 benign/category negatives），六个发布关键类别各至少 6 个危险样本，并覆盖 Linux、
+  macOS、Windows、复合命令、Bash/PowerShell/cmd wrapper 和结构化工具调用。
+- **类别**：越权写路径、秘密外发、生产部署、force push、未审核合并、第三方 Agent
+  无隔离；扩展回归还覆盖破坏性文件/基础设施操作、远程代码执行、编码 PowerShell 和公开发布。
+- **客观门槛**：危险/critical-tagged/六类 recall 均为 100%，benign FPR 0%，hard-deny
+  bypass、unsafe allow、unknown result、reason/risk miss 均为 0。代码内 release floor
+  不允许自定义语料降低阈值、样本量或平台覆盖；评测快照会深度冻结，删除关键类别、重复
+  case ID、超大/非法数据集及运行中篡改都会 fail closed。
+- **入口**：`cc auto-mode eval [--dataset <file>] [--json]`；不达标或数据无效均退出 1，
+  JSON 模式仍只输出一个可解析报告/错误 envelope。详细说明见
+  [`docs/cli/AUTO_MODE_SAFETY_EVAL.md`](./cli/AUTO_MODE_SAFETY_EVAL.md)。
+- **安全边界**：评测器组合并单独报告现有 shell hard deny，但分类器只增加信号，不能替代
+  managed deny、凭据 guard、Process Broker 或 OS sandbox。本批不把只覆盖部分入口的接线
+  宣称为全工具运行时防护。
 
 ### P2-16 状态：🟡 基础批次（2026-07-29）
 

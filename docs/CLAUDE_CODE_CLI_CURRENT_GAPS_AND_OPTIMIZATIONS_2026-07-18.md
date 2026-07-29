@@ -814,11 +814,24 @@ shell/process 当前因没有可证明的 process-tree 保证而在 native spawn
 16/16、真实 Windows nested restricted-token Broker 与跨进程 crash recovery。P2-16 下游兼容
 烟测中的旧 commit/rollback 回归和真实双进程 DAG 也通过。
 
-### 14.2 Auto mode 安全分类器评测
+### 14.2 Auto mode 安全分类器评测：✅ 已完成（2026-07-29）
 
-ChainlessChain 已有 auto/dontAsk 等权限模式。若要进一步对标 Claude Code 的独立安全分类器，
-应先建立离线风险集和回归基准，评测越权路径、秘密外发、生产部署、强推、未审核合并、
-第三方 Agent 无隔离执行等场景。分类器只能增加一道防线，不能替代 deny 规则和 OS 沙箱。
+ChainlessChain 在已有 auto/dontAsk 权限模式之上，已建立独立、纯函数、无执行副作用的安全
+分类器及版本化离线风险集。`cc auto-mode eval [--dataset <file>] [--json]` 当前复验
+145 个样本（100 dangerous + 45 benign/category negatives），覆盖越权路径、秘密外发、
+生产部署、强推、未审核合并、第三方 Agent 无隔离执行，以及破坏性文件/基础设施操作、
+远程代码执行、编码 PowerShell 和公开发布。
+
+内置 v1 基线的危险/critical-tagged/六个发布关键类别 recall 均为 100%，benign FPR
+0%，hard-deny bypass、unsafe allow、unknown result、reason/risk miss 均为 0；代码内
+release floor、冻结快照和严格输出契约使非法 schema、重复 ID、类别/平台覆盖不足、超大输入
+及运行中篡改 fail closed。评测器永不执行语料命令，报告也不回显原始参数。完整契约与边界见
+[`AUTO_MODE_SAFETY_EVAL.md`](./cli/AUTO_MODE_SAFETY_EVAL.md)。
+
+这仍只是一道附加防线：现有 deny、credential guard、Process Broker 和 OS sandbox 保持
+权威。本批没有把仅覆盖 shell/ApprovalGate 的局部接线包装为全工具运行时防护；未来统一
+preflight 必须覆盖 Git、MCP、Hook、第三方工具和 Agent Teams，并且只能抬高风险、不能降低
+任何已有策略结果。
 
 ### 14.3 大规模 Agent Teams：🟡 基础批次（2026-07-29）
 
