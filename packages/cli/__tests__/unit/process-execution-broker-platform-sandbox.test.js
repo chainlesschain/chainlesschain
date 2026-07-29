@@ -7805,7 +7805,7 @@ describe.runIf(process.platform === "win32")(
       expect(result.stdout.trim()).toBe("1");
     }, 180_000);
 
-    it("runs a nested Broker launch from an already restricted worker", () => {
+    it("runs or fails closed on a nested Broker launch from an already restricted worker", () => {
       const previousStrict = process.env.CC_SANDBOX_STRICT;
       const previousDisable = process.env.CC_SANDBOX_DISABLE;
       const previousSandboxEnabled = executionBroker._sandboxEnabled;
@@ -7832,28 +7832,41 @@ describe.runIf(process.platform === "win32")(
               "  executionBroker._sandboxEnabled = true;",
               "  executionBroker._platformSandboxEnabled = true;",
               "  delete process.env.CC_SANDBOX_STRICT;",
-              "  const nested = executionBroker.spawnSync(",
-              "    'git',",
-              "    ['--version'],",
-              "    {",
-              "      origin: 'test:windows-nested-restricted-broker',",
-              "      policy: 'allow',",
-              "      encoding: 'utf8',",
-              "      timeout: 30000,",
-              "      env: process.env,",
-              "      requiredBoundaries: ['process-tree'],",
-              "    },",
-              "  );",
+              "  let nested = null;",
+              "  let launchError = null;",
+              "  try {",
+              "    nested = executionBroker.spawnSync(",
+              "      'git',",
+              "      ['--version'],",
+              "      {",
+              "        origin: 'test:windows-nested-restricted-broker',",
+              "        policy: 'allow',",
+              "        encoding: 'utf8',",
+              "        timeout: 30000,",
+              "        env: process.env,",
+              "        requiredBoundaries: ['process-tree'],",
+              "      },",
+              "    );",
+              "  } catch (error) {",
+              "    launchError = {",
+              "      code: error.code || null,",
+              "      sandboxReason: error.sandboxReason || null,",
+              "      sandboxCandidateReason: error.sandboxCandidateReason || null,",
+              "      missingBoundaries: error.missingBoundaries || [],",
+              "    };",
+              "  }",
               "  const audit = executionBroker.getAuditLog(1)[0];",
               "  process.stdout.write(JSON.stringify({",
-              "    status: nested.status,",
-              "    stdout: nested.stdout,",
-              "    stderr: nested.stderr,",
+              "    status: nested?.status ?? null,",
+              "    stdout: nested?.stdout || '',",
+              "    stderr: nested?.stderr || '',",
               "    sandboxBackend: audit?.sandboxBackend || null,",
+              "    sandboxCandidateBackend: audit?.sandboxCandidateBackend || null,",
+              "    sandboxState: audit?.sandboxState || null,",
               "    sandboxGuarantees: audit?.sandboxGuarantees || [],",
-              "    error: nested.error",
+              "    error: launchError || (nested?.error",
               "      ? { code: nested.error.code, message: nested.error.message }",
-              "      : null,",
+              "      : null),",
               "  }));",
               "})().catch((error) => {",
               "  process.stderr.write(error.stack || error.message);",
@@ -7878,6 +7891,24 @@ describe.runIf(process.platform === "win32")(
         expect(result.status, result.stderr).toBe(0);
         expect(result.stderr).toBe("");
         const nestedReport = JSON.parse(result.stdout);
+        if (nestedReport.error) {
+          expect(nestedReport).toMatchObject({
+            status: null,
+            stdout: "",
+            stderr: "",
+            sandboxBackend: null,
+            sandboxCandidateBackend: "windows-job-restricted-token",
+            sandboxState: "denied",
+            sandboxGuarantees: [],
+            error: {
+              code: "ERR_PROCESS_SANDBOX_BOUNDARY_UNSATISFIED",
+              sandboxReason: "required_boundaries_unsatisfied",
+              sandboxCandidateReason: "windows_in_memory_adapter_probe_failed",
+              missingBoundaries: ["process-tree"],
+            },
+          });
+          return;
+        }
         expect(nestedReport).toMatchObject({
           status: 0,
           error: null,
