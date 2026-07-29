@@ -573,17 +573,26 @@ export function registerTeamCommand(program, { logger } = {}) {
         });
       else runTask = async () => ({ dryRun: true });
 
-      // Optional workflow tracing (Claude-Code 2.1.202 parity): every task
-      // execution becomes a `team.task` span tagged with workflow.run_id +
-      // workflow.name so a collector can reassemble the run as one workflow.
+      // Workflow tracing (Claude-Code 2.1.202 parity): every task execution can
+      // be written to a local OTLP file, exported to a Collector, or both.
       let recorder = null;
-      if (options.otlp) {
+      let collectorEnabled = false;
+      try {
+        const { isOtlpCollectorEnabled } =
+          await import("../lib/observability/index.js");
+        collectorEnabled = isOtlpCollectorEnabled();
+      } catch {
+        collectorEnabled = false;
+      }
+      const workflowRunId = `team-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const workflowName = path.basename(options.tasks);
+      if (options.otlp || collectorEnabled) {
         const { TelemetryRecorder } =
           await import("../lib/telemetry/span-recorder.js");
         recorder = new TelemetryRecorder({
           defaultAttributes: {
-            "workflow.run_id": `team-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-            "workflow.name": path.basename(options.tasks),
+            "workflow.run_id": workflowRunId,
+            "workflow.name": workflowName,
           },
         });
       }
@@ -679,6 +688,22 @@ export function registerTeamCommand(program, { logger } = {}) {
             (log.info || console.log)(`  OTLP spans → ${options.otlp}`);
         } catch (e) {
           (log.error || console.error)(`  otlp write failed: ${e.message}`);
+        }
+      }
+
+      if (collectorEnabled) {
+        try {
+          const { exportTelemetryRecorder, exportTeamTelemetry } =
+            await import("../lib/observability/index.js");
+          if (recorder) exportTelemetryRecorder(recorder);
+          exportTeamTelemetry({
+            workflowRunId,
+            workflowName,
+            summary,
+            budget,
+          });
+        } catch {
+          // Collector export is best-effort and never changes team settlement.
         }
       }
 

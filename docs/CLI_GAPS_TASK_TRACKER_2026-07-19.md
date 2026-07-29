@@ -2,7 +2,7 @@
 
 > 来源：`CLAUDE_CODE_CLI_CURRENT_GAPS_AND_OPTIMIZATIONS_2026-07-18.md`
 > 创建日期：2026-07-19
-> 当前 CLI 版本：`0.162.185`
+> 当前 CLI 版本：`0.162.186`
 > 状态：P0-1 Broker/凭据、静态进程清单、Windows 原生进程边界、Node IPC/detached 语义与
 > 真实三平台 strict CI 已完成；P0-2 当前 turn、持久化、跨宿主 authority/binding 与真实三平台
 > 断线重连 E2E 已完成；P0/P1-3 权限控制面统一已完成。P1-4/P1-9 已在发布候选
@@ -910,7 +910,23 @@ Desktop coding-agent core 134 个、Desktop lifecycle 24 个、SDK protocol/agen
 | P2-14 | 全工具文件回滚           | Process Broker 捕获所有文件写入，支持 checkpoint 回滚 |
 | P2-15 | Auto mode 安全分类器     | 危险操作自动识别评测集                                |
 | P2-16 | 大规模 Agent Teams       | 多 agent 协作扩展                                     |
-| P2-17 | 标准 OTel Collector 出口 | 兼容生态可观测性工具                                  |
+| P2-17 | 标准 OTel Collector 出口 | ✅ 完成（2026-07-29），兼容生态可观测性工具           |
+
+### P2-17 状态：✅ 完成（2026-07-29）
+
+- **标准协议**：真实 binary 支持 traces/metrics 的 OTLP/HTTP JSON、OTLP/HTTP protobuf、
+  OTLP/gRPC，消费标准全局/分 signal endpoint、protocol、headers、timeout、compression、
+  service/resource attributes 环境变量。
+- **企业传输**：HTTPS/HTTP2 mTLS 支持 CA、client certificate/key；自定义 headers 不可覆盖
+  content framing 或 gRPC pseudo headers。
+- **可靠性**：有界 queue/batch、queue pressure、`Retry-After`/指数退避、最大尝试、
+  dropped/permanent failure 计数、原子 crash spool 与死亡 owner 恢复闭环。
+- **真实接线**：agent/eval/team recorder 进入 Collector，正常或失败退出均 final flush；
+  team 输出 task/token/USD/failure/completed 聚合并保留 workflow 维度。
+- **隐私与运维**：内容默认不进入 recorder，离机 string 继续脱敏；`cc status --json` 暴露
+  protocol、endpoint、queue/retry/drop/recovery/spool 状态。
+- **证据**：`otlp-collector-exporter.test.js`、`otlp-cli-entrypoint.test.js`、
+  `headless-runner-otlp.test.js`、`status-observability.test.js`。
 
 ---
 

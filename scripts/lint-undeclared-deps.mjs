@@ -94,7 +94,11 @@ const BUILTINS = new Set([
 // `frida` native binary can never build there anyway. Declaring it as an npm
 // (optional) dependency would only bloat the bundle with a non-functional,
 // host-arch JS shell. So it is host-provided ambient, like electron/vscode.
-const ALLOWED_AMBIENT = new Set(["electron", "vscode", "frida"]);
+//
+// `system.sb` is Apple's built-in Seatbelt baseline. It appears inside the
+// generated sandbox profile string `(import "system.sb")`; it is not a
+// JavaScript package import and must not be reported as an npm dependency.
+const ALLOWED_AMBIENT = new Set(["electron", "vscode", "frida", "system.sb"]);
 
 // npm package-name shape (lowercase, optional scope). Anything that fails
 // this is not a real specifier — e.g. `${indexPath}` left over from a

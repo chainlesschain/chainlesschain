@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — cc CLI 0.162.186: standard OpenTelemetry Collector export
+
+> `chainlesschain` **0.162.185 → 0.162.186** (2026-07-29).
+> CLI-only release; `@chainlesschain/personal-data-hub` remains **0.4.57**
+> and `@chainlesschain/agent-sdk` remains **0.1.7**.
+
+- **Standard Collector protocols**: traces and metrics export over OTLP/HTTP
+  JSON, OTLP/HTTP protobuf, or OTLP/gRPC, with standard global and per-signal
+  endpoint, protocol, header, timeout, compression, service, and resource
+  environment variables.
+- **Enterprise transport**: HTTPS and HTTP/2 gRPC support custom CA trust plus
+  client certificate/key mTLS without allowing custom headers to override
+  protocol framing.
+- **Bounded delivery**: batching, queue-pressure reporting, `Retry-After` and
+  exponential retries, permanent-failure/drop counters, and atomic per-process
+  crash spools provide bounded recovery without stealing a live process queue.
+- **Real runtime wiring**: agent, eval, and team recorders feed the Collector;
+  team runs add task, token, USD cost, failure, and completion aggregates with
+  workflow dimensions. Normal and gated exits perform a final flush.
+- **Private by default**: prompt, response, and tool-argument content stays
+  local unless explicitly enabled; all exported string attributes and events
+  continue through secret redaction.
+- **Release validation gate**: publication requires this exact release commit
+  to pass `CLI CI` and `CLI Strict Sandbox` on their configured Ubuntu,
+  Windows, and macOS runners; local tests remain supplementary.
+
 ### Fixed — cc CLI 0.162.185: sandbox authority and Hook runtime hardening
 
 > `chainlesschain` **0.162.184 → 0.162.185** (2026-07-29).

@@ -1,6 +1,10 @@
 /**
- * Observability - 可观测性模块统一导出
- * M3 阶段模块：包含分布式追踪 + 性能指标收集
+ * Process-level observability runtime.
+ *
+ * It bridges the existing W3C TraceContext / MetricsCollector and the
+ * TelemetryRecorder used by agent, eval and team runs into one standard OTLP
+ * Collector exporter. Collector export is opt-in and content remains absent
+ * unless the caller explicitly enabled the existing `--otlp-content` switch.
  */
 
 import {
@@ -11,25 +15,193 @@ import {
   metricsCollector,
   MetricsCollector,
 } from "../execution-trace/metrics-collector.js";
+import { OtlpExporter, resolveOtlpConfig } from "./otlp-exporter.js";
 
-export { traceContext, TraceContext, metricsCollector, MetricsCollector };
+export {
+  traceContext,
+  TraceContext,
+  metricsCollector,
+  MetricsCollector,
+  OtlpExporter,
+  resolveOtlpConfig,
+};
 
-/**
- * 初始化可观测性模块
- * @param {Object} [options={}]
- * @param {boolean} [options.tracingEnabled=true] - 是否启用追踪
- * @param {boolean} [options.metricsEnabled=true] - 是否启用指标收集
- */
-export function initObservability(options = {}) {
-  const { tracingEnabled = true, metricsEnabled = true } = options;
+function collectedMetrics(collector) {
+  const raw = collector?.collect?.();
+  const source = raw?.resourceMetrics?.[0]?.scopeMetrics?.[0]?.metrics || [];
+  return source.map((metric) => {
+    if (metric.type === "counter") {
+      return {
+        name: metric.name,
+        type: "sum",
+        value: metric.value,
+        attributes: metric.labels,
+      };
+    }
+    if (metric.type === "histogram") {
+      return {
+        name: metric.name,
+        type: "histogram",
+        count: metric.count,
+        sum: metric.sum,
+        attributes: metric.labels,
+      };
+    }
+    return {
+      name: metric.name,
+      type: "gauge",
+      value: metric.value,
+      attributes: metric.labels,
+    };
+  });
+}
 
-  // 可观测性模块初始化逻辑
-  return {
-    tracingEnabled,
-    metricsEnabled,
-    traceContext,
-    metricsCollector,
-  };
+export class ObservabilityRuntime {
+  constructor(options = {}, deps = {}) {
+    this.traceContext = deps.traceContext || traceContext;
+    this.metricsCollector = deps.metricsCollector || metricsCollector;
+    this.exporter =
+      deps.exporter ||
+      new OtlpExporter(
+        {
+          ...options,
+          config:
+            options.config ||
+            resolveOtlpConfig(options, deps.env || process.env, deps),
+        },
+        deps,
+      );
+    this._closed = false;
+    this._onSpanEnd = (span) => this.exporter.exportSpans([span]);
+    if (this.exporter.enabled) {
+      this.traceContext.on("span:end", this._onSpanEnd);
+    }
+  }
+
+  get enabled() {
+    return this.exporter.enabled && !this._closed;
+  }
+
+  exportRecorder(recorder, { redact = true } = {}) {
+    if (!this.enabled || !recorder?.toOtlp) return false;
+    return this.exporter.exportTracePayload(recorder.toOtlp({ redact }), {
+      redact,
+    });
+  }
+
+  exportTeamSummary({ workflowRunId, workflowName, summary, budget } = {}) {
+    if (!this.enabled) return false;
+    const attributes = {
+      "workflow.run_id": workflowRunId || "unknown",
+      "workflow.name": workflowName || "team",
+    };
+    const stats = summary?.stats || {};
+    const budgetStatus = budget?.status?.() || budget || {};
+    return this.exporter.exportMetrics([
+      {
+        name: "chainlesschain.team.tasks",
+        type: "gauge",
+        unit: "{task}",
+        value: Number(budgetStatus.tasks ?? summary?.executions) || 0,
+        attributes,
+      },
+      {
+        name: "chainlesschain.team.tokens",
+        type: "gauge",
+        unit: "{token}",
+        value: Number(budgetStatus.tokens) || 0,
+        attributes,
+      },
+      {
+        name: "chainlesschain.team.cost",
+        type: "gauge",
+        unit: "USD",
+        value: Number(budgetStatus.spentUsd) || 0,
+        attributes,
+      },
+      {
+        name: "chainlesschain.team.failures",
+        type: "gauge",
+        unit: "{failure}",
+        value: Number(stats.failed) || 0,
+        attributes,
+      },
+      {
+        name: "chainlesschain.team.completed",
+        type: "gauge",
+        unit: "{task}",
+        value: Number(stats.completed) || 0,
+        attributes,
+      },
+    ]);
+  }
+
+  captureMetrics() {
+    if (!this.enabled) return false;
+    const metrics = collectedMetrics(this.metricsCollector);
+    return metrics.length > 0 ? this.exporter.exportMetrics(metrics) : false;
+  }
+
+  async shutdown(options = {}) {
+    if (this._closed) return this.exporter.getStats();
+    this.traceContext.off("span:end", this._onSpanEnd);
+    this.captureMetrics();
+    const stats = await this.exporter.shutdown(options);
+    this._closed = true;
+    return stats;
+  }
+
+  getStats() {
+    return this.exporter.getStats();
+  }
+}
+
+let defaultRuntime = null;
+
+export function resolveOtlpEndpointFromArgv(argv = process.argv) {
+  const args = Array.isArray(argv) ? argv.slice(2) : [];
+  for (let index = 0; index < args.length; index++) {
+    const token = args[index];
+    if (token === "--otlp-endpoint") return args[index + 1] || null;
+    if (token.startsWith("--otlp-endpoint=")) {
+      return token.slice("--otlp-endpoint=".length) || null;
+    }
+  }
+  return null;
+}
+
+export function initObservability(options = {}, deps = {}) {
+  if (defaultRuntime && !defaultRuntime._closed) return defaultRuntime;
+  defaultRuntime = new ObservabilityRuntime(options, deps);
+  return defaultRuntime;
+}
+
+export function getObservabilityRuntime() {
+  return defaultRuntime;
+}
+
+export function isOtlpCollectorEnabled() {
+  return defaultRuntime?.enabled === true;
+}
+
+export function exportTelemetryRecorder(recorder, options) {
+  return defaultRuntime?.exportRecorder(recorder, options) || false;
+}
+
+export function exportTeamTelemetry(summary) {
+  return defaultRuntime?.exportTeamSummary(summary) || false;
+}
+
+export async function shutdownObservability(options) {
+  return defaultRuntime?.shutdown(options);
+}
+
+/** Test-only lifecycle seam; avoids state leaking across module-level tests. */
+export async function resetObservabilityForTests() {
+  if (defaultRuntime && !defaultRuntime._closed) {
+    await defaultRuntime.shutdown({ timeoutMs: 0 });
+  }
+  defaultRuntime = null;
 }
 
 export * from "../execution-trace/index.js";

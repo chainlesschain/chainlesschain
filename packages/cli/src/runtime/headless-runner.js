@@ -1443,11 +1443,19 @@ async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
     }
   }
 
-  // --otlp <file>: attach an OpenTelemetry recorder so the real agent loop's
-  // model/tool/retry spans are captured and exported as OTLP/JSON on exit.
-  // Off by default (zero cost) — only built when a path is requested.
+  // Attach an OpenTelemetry recorder when either the legacy --otlp file sink or
+  // the process-level Collector exporter is enabled. Both sinks consume the
+  // same privacy-gated spans; the default path remains zero cost.
   let _otlpRecorder = null;
-  if (options.otlp) {
+  let _collectorEnabled = false;
+  try {
+    const { isOtlpCollectorEnabled } =
+      await import("../lib/observability/index.js");
+    _collectorEnabled = isOtlpCollectorEnabled();
+  } catch {
+    _collectorEnabled = false;
+  }
+  if (options.otlp || _collectorEnabled) {
     try {
       const { TelemetryRecorder } =
         await import("../lib/telemetry/span-recorder.js");
@@ -2151,7 +2159,12 @@ async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
               usage.cache_creation_input_tokens +=
                 event.usage?.cache_creation_input_tokens || 0;
             }
-            emitStream({ type: "token_usage", usage: event.usage });
+            emitStream({
+              type: "token_usage",
+              provider: event.provider,
+              model: event.model,
+              usage: event.usage,
+            });
             if (costBudget) {
               costBudget.add({
                 provider: event.provider,
@@ -2709,24 +2722,35 @@ async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
     writeOut(finalText + (finalText.endsWith("\n") ? "" : "\n"));
   }
 
-  // --otlp: write the captured spans/counters as OTLP/JSON. Best-effort — a
-  // write failure logs to stderr but never changes the run's exit code.
-  if (_otlpRecorder && options.otlp) {
-    try {
-      const fsp = await import("node:fs");
-      fsp.writeFileSync(
-        options.otlp,
-        JSON.stringify(_otlpRecorder.toOtlp(), null, 2),
-        "utf-8",
-      );
-      if (!isStream) {
-        const sum = _otlpRecorder.summary();
-        process.stderr.write(
-          `[otlp] ${sum.spanCount} span(s) → ${options.otlp}\n`,
+  // Export once to each configured sink. Collector enqueue is durable and
+  // best-effort; the process lifecycle force-flushes it before exit.
+  if (_otlpRecorder) {
+    if (options.otlp) {
+      try {
+        const fsp = await import("node:fs");
+        fsp.writeFileSync(
+          options.otlp,
+          JSON.stringify(_otlpRecorder.toOtlp(), null, 2),
+          "utf-8",
         );
+        if (!isStream) {
+          const sum = _otlpRecorder.summary();
+          process.stderr.write(
+            `[otlp] ${sum.spanCount} span(s) → ${options.otlp}\n`,
+          );
+        }
+      } catch (err) {
+        process.stderr.write(`[otlp] export failed: ${err.message}\n`);
       }
-    } catch (err) {
-      process.stderr.write(`[otlp] export failed: ${err.message}\n`);
+    }
+    if (_collectorEnabled) {
+      try {
+        const { exportTelemetryRecorder } =
+          await import("../lib/observability/index.js");
+        exportTelemetryRecorder(_otlpRecorder);
+      } catch {
+        // Telemetry is observational only and never changes the agent result.
+      }
     }
   }
 

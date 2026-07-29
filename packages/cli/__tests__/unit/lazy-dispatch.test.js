@@ -89,6 +89,22 @@ describe("resolveCommandToken", () => {
     );
   });
 
+  it("skips global options with values before the command", () => {
+    expect(
+      resolveCommandToken(
+        argv("--otlp-endpoint", "http://localhost:4318", "eval"),
+      ),
+    ).toBe("eval");
+    expect(
+      resolveCommandToken(
+        argv("--otlp-endpoint=http://localhost:4318", "agent"),
+      ),
+    ).toBe("agent");
+    expect(
+      resolveCommandToken(argv("--jsii-runtime", "native", "status")),
+    ).toBe("status");
+  });
+
   it("returns null for version/help flags with no command", () => {
     expect(resolveCommandToken(argv("--version"))).toBeNull();
     expect(resolveCommandToken(argv("-v"))).toBeNull();

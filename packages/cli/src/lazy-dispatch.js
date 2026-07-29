@@ -24,9 +24,20 @@ const manifest = JSON.parse(
 /** Return the first top-level command token in a process argv array. */
 export function resolveCommandToken(argv = []) {
   const args = Array.isArray(argv) ? argv.slice(2) : [];
-  for (const token of args) {
+  for (let index = 0; index < args.length; index++) {
+    const token = args[index];
     if (token === "--") return null;
     if (token === "--verbose" || token === "--quiet") continue;
+    if (token === "--otlp-endpoint" || token === "--jsii-runtime") {
+      index++;
+      continue;
+    }
+    if (
+      token.startsWith("--otlp-endpoint=") ||
+      token.startsWith("--jsii-runtime=")
+    ) {
+      continue;
+    }
     if (["--help", "-h", "--version", "-v", "-V"].includes(token)) return null;
     if (!token.startsWith("-")) return token;
   }
