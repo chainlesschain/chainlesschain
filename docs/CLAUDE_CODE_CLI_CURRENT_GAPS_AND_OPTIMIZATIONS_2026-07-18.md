@@ -2,10 +2,13 @@
 
 > 评估日期：2026-07-18  
 > 评估对象：`packages/cli`、`packages/agent-sdk` 及 Coding Agent 相关验证链  
-> 初始评估仓库基线：CLI `0.162.177`；当前复核候选：CLI `0.162.188`
+> 初始评估仓库基线：CLI `0.162.177`；当前发布准备版本：CLI `0.162.189`（尚未发布）
+> 已验收实现候选：CLI `0.162.188` / exact SHA
+> `7df6feced4670ac71d19548752d18ac4cc225025`
 > 对标基线：截至评估日的 Claude Code 官方滚动文档  
-> 文档状态：持续复核版；2026-07-29 已复核 P2-14/P2-16 本地候选、最新失败发布门、
-> 安全边界及静态进程清单。
+> 文档状态：持续复核版；2026-07-31 已按 exact SHA
+> `7df6feced4670ac71d19548752d18ac4cc225025` 的三平台短门与长期 soak 复核
+> P2-14/P2-16，并保留安全边界及静态进程清单。
 > 说明：本文只列“当前仍值得投入”的净差距。已落地能力不再重复列为待办，历史实施过程见
 > [`CLAUDE_CODE_CLI_INCREMENTAL_GAP_ANALYSIS_2026-07-12.md`](./CLAUDE_CODE_CLI_INCREMENTAL_GAP_ANALYSIS_2026-07-12.md)。
 
@@ -791,7 +794,7 @@ Bridge/store 和 SDK protocol fixtures 的回归验证。Remote/WSL/SSH/Dev Cont
 
 ## 14. P2：可形成差异化、但不应抢占 P0/P1 的方向
 
-### 14.1 全工具文件回滚：🟡 跨平台收口中（2026-07-29）
+### 14.1 全工具文件回滚（受控 writer 范围）：✅ 限定范围完成（2026-07-31）
 
 P2-14 的实现批次已落地：Process Broker 会在受控执行前建立持久 workspace transaction，并在
 成功时提交、失败或取消时回滚；跨进程互斥、workspace root identity、canonical cwd 与
@@ -809,15 +812,13 @@ Linux managed process 要求受信 bubblewrap execution contract；Windows 使�
 token + kill-on-close Job，并在要求的强边界缺失时拒绝；macOS 不能证明 process-tree 的路径
 同样失败关闭。数据库写入、发送消息、部署、支付等 external side effects 仍不可回滚。
 
-该项**尚未完成**。较新的主分支 exact SHA
-`c6b16ef0350e30f2121b5f9db70a6744f213b3dd` 的
-[CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/30474982714) 与
-[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/30474982468)
-仍失败，证明本地与局部测试不能替代发布门。macOS `/var`→`/private/var`、Windows 8.3
-路径别名、Windows Node/libuv path/handle identity 与 POSIX mtime 恢复精度的候选修复已在
-本地工作树实现，针对性复验为 331 passed / 1 skipped；它们仍须形成**同一个新 exact SHA**，
-并同时通过 `CLI CI` 和 `CLI Strict Sandbox` 的 Linux、Windows、macOS 全部配置矩阵，才可把
-P2-14 改为完成或进入发布。旧 SHA、局部矩阵或本地结果均不能复用。
+该项已按限定范围完成。exact SHA
+`7df6feced4670ac71d19548752d18ac4cc225025` 的
+[CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/30549100935) 与
+[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/30549100289)
+均成功，Linux、Windows、macOS 配置全部通过。这里的“完成”只覆盖 Process Broker 管理的
+声明 workspace writer 和已经证明的 `full`/`partial`/`none` 分层契约；不表示捕获宿主机
+所有文件写入，也不包含数据库、消息、部署、支付等不可回滚 external side effects。
 
 ### 14.2 Auto mode 安全分类器评测：✅ 已完成（2026-07-29）
 
@@ -838,51 +839,58 @@ release floor、冻结快照和严格输出契约使非法 schema、重复 ID、
 preflight 必须覆盖 Git、MCP、Hook、第三方工具和 Agent Teams，并且只能抬高风险、不能降低
 任何已有策略结果。
 
-### 14.3 大规模 Agent Teams：🟡 实现批次已落地，发布门未闭合（2026-07-29）
+### 14.3 大规模 Agent Teams：✅ 发布门闭合（2026-07-31）
 
-P2-16 的实现批次已落地，但不等于生产发布完成。除既有 Team、Workflow、Batch 和 Worktree
-原语外，当前包括：
+P2-16 已完成实现与候选发布门复核。除既有 Team、Workflow、Batch 和 Worktree 原语外，
+当前包括：
 
-- 10k task / 64 worker indexed scheduler；
-- bounded mailbox/backpressure 与真实 stream usage；
-- per-task tightened contract、fenced lease、claim-time token/USD reservation；启用 token/USD cap 时，
-  usage 缺失或远端模型无法定价会 fail closed；
-- scope ownership、fail-closed durable hooks/journal、跨进程 state ownership；
+- 单进程内 10k task / 64 个异步 TeamRunner worker 的 indexed scheduler 规模验证；
+- bounded mailbox/backpressure 与真实 stream usage；mailbox 仍是库内接口，公共 CLI 没有
+  `cc team send`，分布式 queue 也没有 teammate 消息命令；
+- per-task tightened contract、fenced lease、claim-time token/USD reservation；启用
+  token/USD cap 时，usage 缺失或远端模型无法定价会 fail closed；
+- scope ownership、fail-closed durable state/control logs 与跨进程 state ownership；
 - 崩溃后的真实任务默认停止并要求裁决，只有 dry-run 或显式 `retrySafe: true` 才自动重领；
-- resume 以 append-only journal seq+digest 锚定治理状态，并保留带 commit/integration/cleanup
-  阶段的 run-scoped worktree manifest；
-- worktree cleanup 采用 prepare→persist→remove→persist 两阶段协议，恢复路径绑定当前 repo、
-  run、branch 与 `.worktrees` 直接子目录；
+- 本地 `team run` v6 authority、v5 单次 `--resume` 迁移和 v2–v4 拒绝；分布式 queue 使用
+  独立 schema v1，两类状态不可互换；
+- worktree cleanup 的 prepare→persist→remove→persist 两阶段协议，以及绑定当前 repo、
+  run、branch 与 `.worktrees` 直接子目录的恢复路径；
 - VS Code 与 JetBrains 的 IDE human-control 入口；
 - 共享本地文件系统上的跨进程 durable queue、全局 lease/fence interrupt；
-- interactive adjudication 与显式 safe resume；
-- 下游任务 worktree 的 dependency baseline composition；
+- interactive adjudication、显式 safe resume 与 dependency baseline composition；
 - 可在 Linux、Windows、macOS 运行的 deterministic soak harness。
 
-多 worker 的真实 Agent/shell 执行强制使用 `--worktree`；`scopePaths` 只影响调度，不能证明命令的
-实际写集。collaboration governance journal 不保存 prompt/argv，但 `--state` 恢复文件是**未签名
-的可信控制面 authority**，包含 task graph、命令/提示词、预算、权限与 mailbox 内容。真实执行
-强制把它放在 Agent 可写 repo 之外；seq+digest 只提供回滚/分叉一致性，不是来源认证。v5 严格
-authority schema 会拒绝 v2–v4 状态。`--symlink-dirs` 只允许显式批准的 `node_modules` 根，且它
-是指向主 checkout 的可写共享，会降低依赖隔离。
+Worktree 按任务而不是 teammate 创建；多 worker 的真实 Agent/shell 执行强制使用
+`--worktree`。`scopePaths` 只影响调度，不能证明命令的实际写集。collaboration governance
+log 不保存 prompt/argv，但 `--state` 是未签名可信控制面 authority，包含 task graph、
+命令/提示词、预算和权限等执行状态。真实执行必须把它放在 Agent 可写 repo 之外；摘要只提供
+完整性、误绑定和回滚锚点，不是来源认证。`--symlink-dirs` 指向主 checkout 的可写共享依赖，
+会降低隔离。
 
-真实边界保持不变：当前 queue 是**共享本地文件系统队列**，不是带共识、复制与拜占庭容错的网络
-队列；state authority 仍是 unsigned trusted state；external side effects 不可由 checkpoint
-回滚；deterministic soak 使用可复现的 Agent contract，不是 live-model 质量或非确定性验证。
-Node 不提供 `openat`/handle-relative authority，基于路径的父目录检查无法消除敌对可写父目录
-完整 ABA，因此路径身份保证要求父目录及祖先受信。与此独立，Windows spawn 的 cwd/path 检查
-与进程创建间仍有 TOCTOU；`full` 回滚覆盖还要求 `exclusive-workspace`。这些前提不能混写为
-一个保证，也不能泛化到敌对共享目录。POSIX soak 的超时清理依赖 worker 自成进程组，不能用
-当前回归证明主动 `setsid` 逃逸后代或外部强杀主进程时的 JS `finally` 清理。
+本地 resume 保留已消耗 active wall time而不计算进程停机时间；分布式全局 wall 从第一次
+acquire 开始，此后包含 worker 停机时间，并在执行器返回、checkpoint、commit 与完成发布尾部
+继续 fencing，超限后不能发布成功。队列监控应使用 `queue status` 的锁内一致视图；不支持
+高频直接轮询原始 JSON，Windows 原子替换期间尤其可能出现短暂读取争用。
 
-发布门仍未闭合：`2cbac832ebf12c856c237fe4d9e9e7f5a246204c` 的
-[CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/30469007408)、
-[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/30469007296)
-与 [Agent Team Soak](https://github.com/chainlesschain/chainlesschain/actions/runs/30469007043)
-均失败。必须由**同一个新候选 exact SHA** 先通过 `CLI CI`、`CLI Strict Sandbox` 与 Agent
-Team short soak 的全部配置短门，再在 Linux、Windows、macOS 各完成 120 分钟 soak。
-任一平台失败、超时、只跑本地或结果附着在旧 SHA 上，都不能标记 P2-16 完成、合入发布分支或
-发布。因此当前应写“实现批次已落地”，不应写“生产级大规模 Agent Teams 已完成”。
+Agent Team checkpoint authority 当前为 `coverageTarget=partial`、
+`writerIsolation=unknown`、`externalSideEffects=true`；只覆盖 Process Broker 管理且位于
+声明范围内的 writer，不捕获宿主机全部写入，也不回滚网络、数据库、消息、部署或支付。
+
+真实边界保持不变：queue 是**共享可信本地文件系统队列**，不是带共识、复制与 BFT 的网络
+队列；deterministic soak 不是 live-model 质量或非确定性验证。Node 不提供
+`openat`/handle-relative authority，基于路径的父目录检查无法消除敌对可写父目录完整 ABA；
+Windows spawn 的 cwd/path 检查与进程创建间另有 TOCTOU。POSIX 清理不能证明捕获主动
+`setsid` 逃逸后代，外部强杀主进程也不会执行 JS `finally`。
+
+发布证据绑定 exact SHA `7df6feced4670ac71d19548752d18ac4cc225025`：
+
+- [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/30549100935)；
+- [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/30549100289)；
+- [Agent Team short](https://github.com/chainlesschain/chainlesschain/actions/runs/30549100307)；
+- [Linux、Windows、macOS 各 120 分钟 soak](https://github.com/chainlesschain/chainlesschain/actions/runs/30549142504)。
+
+四道门均成功，长期 soak 的三个 OS artifact 已核验。该 soak 使用 2 个真实 OS worker
+进程验证跨进程 DAG、故障与恢复；单进程 10k/64 结果不构成 64 个分布式进程保证。
 
 ### 14.4 标准 OTel Collector 出口：✅ 已完成（2026-07-29）
 
@@ -926,14 +934,14 @@ cc team run tasks.json
 
 ## 15. 建议实施路线
 
-| 批次          | 时间建议 | 交付目标                                                                          | 退出条件                                          |
-| ------------- | -------- | --------------------------------------------------------------------------------- | ------------------------------------------------- |
-| M0 事实基线   | 1 周     | 统一 parity 验收脚本、spawn 清单、文档状态清理、权限双系统标识                    | 当前能力可一键复验，旧待办和权限 UI 不再误导      |
-| M1 可信执行   | 4–6 周   | Process Broker、Linux/macOS/Windows 后端、凭据 default-on、关键状态 fail-closed   | 所有生产子进程统一受控，三平台严格测试通过        |
-| M2 实时交互   | 2–3 周   | 已有 worker-child IPC、持久 settlement 与跨宿主 resolver 之上的三平台断线重连 E2E | 所有宿主同 turn 继续，stale response 全拒且可恢复 |
-| M3 扩展运行时 | 4–6 周   | Hooks v2、常驻 Event Runtime、MCP Elicitation/Channels                            | 事件可恢复、幂等、有界，Hook 协议稳定             |
-| M4 协议收口   | 3–4 周   | Context ledger、统一 turn binding、标准 JSON Schema、双语言 SDK/IDE golden gate   | CLI/SDK/IDE/Desktop 事件与恢复语义一致            |
-| M5 差异化     | 按需求   | 全工具文件回滚、安全分类器评测、大规模 Agent                                      | 有真实用户指标与故障模型后再投入                  |
+| 批次          | 时间建议      | 交付目标                                                                            | 退出条件                                                        |
+| ------------- | ------------- | ----------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| M0 事实基线   | 1 周          | 统一 parity 验收脚本、spawn 清单、文档状态清理、权限双系统标识                      | 当前能力可一键复验，旧待办和权限 UI 不再误导                    |
+| M1 可信执行   | 4–6 周        | Process Broker、Linux/macOS/Windows 后端、凭据 default-on、关键状态 fail-closed     | 所有生产子进程统一受控，三平台严格测试通过                      |
+| M2 实时交互   | 2–3 周        | 已有 worker-child IPC、持久 settlement 与跨宿主 resolver 之上的三平台断线重连 E2E   | 所有宿主同 turn 继续，stale response 全拒且可恢复               |
+| M3 扩展运行时 | 4–6 周        | Hooks v2、常驻 Event Runtime、MCP Elicitation/Channels                              | 事件可恢复、幂等、有界，Hook 协议稳定                           |
+| M4 协议收口   | 3–4 周        | Context ledger、统一 turn binding、标准 JSON Schema、双语言 SDK/IDE golden gate     | CLI/SDK/IDE/Desktop 事件与恢复语义一致                          |
+| M5 差异化     | ✅ 2026-07-31 | P2-14 限定范围文件回滚、P2-15 安全分类器、P2-16 大规模 Agent Teams、P2-17 OTel 出口 | 四项均完成；P2-14/P2-16 的 exact-SHA 三平台短门与长期 soak 全绿 |
 
 可以并行的工作：
 

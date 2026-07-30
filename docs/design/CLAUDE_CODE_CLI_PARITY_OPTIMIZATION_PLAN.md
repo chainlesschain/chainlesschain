@@ -35,51 +35,54 @@ ChainlessChain CLI 已具备会话恢复、Checkpoint、上下文压缩、MCP、
 6. 异步 Hooks、后台 Monitors 和失败唤醒。
 7. 以任务成功率为核心的可靠性评测体系。
 
-## 1.5 实施进度总览（2026-07-29 更新）
+## 1.5 实施进度总览（2026-07-31 更新）
 
 > 每格状态基于真实落地代码 + 测试（非「已有同名命令」）。剩余项既有内核 OS 隔离、
-> 跨平台 toolchain、真机三端、活模型非确定性和 Docker 等环境门，也有 P2-14/P2-16
-> 必须完成的新 exact SHA 三平台发布门；本地结果不替代权威矩阵。
+> 跨平台 toolchain、真机三端、活模型非确定性和 Docker 等环境门；P2-14/P2-16 的
+> exact SHA 三平台发布门已经闭合，但已声明的安全边界继续成立。本地结果仍不替代权威矩阵。
 
-| Phase | 主题            | 状态                              | Windows 已落地（可测）                                                                                                                                                                                                                                         | 剩余/发布门                                                                                                                                                                                                                                                   |
-| ----- | --------------- | --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1     | OS 沙箱 + 网络  | **核心落地，硬隔离阻塞**          | 网络域策略判定 + SSRF 守卫 + **出口过滤代理**（把策略从判定变强制，跨平台免 root）+ **DNS 重绑定守卫**（解析后复检私网 IP + pin 连接）+ **文件系统路径策略硬化**（穿越/边界/symlink 逃逸，接 checkFilePermission）                                             | 内核级出口硬隔离（Seatbelt/bwrap netns/AppContainer）、沙箱内后台 Shell、跨平台隔离 E2E                                                                                                                                                                       |
-| 2     | LSP 代码智能    | **四期全落地**                    | LSP client/manager + `cc code-intel` + 接入 agent 链 + 编辑后增量诊断 + **崩溃自动重启有界守卫**                                                                                                                                                               | Rust/Java 真机验证（无 toolchain）。**Go 真机验证 DONE 2026-07-07**：gopls v0.22 全功能过（def/refs/hover/rename/diag/bench 冷启 1.45s/warm ~11ms/RSS 184MB），并修出真 bug——normalizeUri 不统一盘符冒号编码（gopls 发裸 `C:` vs 客户端 `C%3A`）→ Go 诊断恒空 |
-| 3     | 插件运行时      | **核心完备**                      | 8/8 manifest 组件接真实 agent 链 + 安装生命周期 + 双 fail-closed gate + trust + 热加载 + monitor 每轮注入                                                                                                                                                      | remote-manifest source + 私有仓认证 + 离线 seed cache（网络/凭据耦合，niche defer）                                                                                                                                                                           |
-| 4     | Agent Team      | **🟡 实现批次落地，发布门未闭合** | lease+DAG + `cc team` 真执行 + v5 authority 恢复 + fenced lease + 10k task/64 worker + 两阶段 worktree cleanup + IDE human control + 跨进程共享 FS queue + interactive adjudication/safe resume + dependency baseline composition + deterministic soak harness | 同一 exact SHA 的 `CLI CI`、`CLI Strict Sandbox`、Agent Team short gates 全绿，并完成 Linux/Windows/macOS 各 120 分钟 soak；共享 FS queue、unsigned state、不可回滚外部副作用等边界不得省略                                                                   |
-| 5     | Remote Control  | **服务端落地，设备阻塞**          | RemoteCommandLedger（幂等/全序/撤销）+ **接进 `cc serve` 活 WS 路径**（execute/stream **及**真正的接管路径 remote-session prompt/approval/interrupt 均幂等；并发重发竞态已修）—— 客户端带 commandId 即生效                                                     | 三端客户端**发送** commandId 协议采纳 + 三端真 UX/同步 E2E + worktree 远程会话真机                                                                                                                                                                            |
-| 6     | 异步 Hooks      | **✅ 全闭合**                     | async hooks + auto-rewake + Stop/SubagentStart/ConfigChange/**SessionPause/Resume** + MCP 前缀钩子 + 无头支持                                                                                                                                                  | —                                                                                                                                                                                                                                                             |
-| 7     | 可靠性评测/OTel | **核心落地**                      | eval 框架 + **10** 客观任务类别（SWE-bench 六类全覆盖：bug 修复/跨文件重构/测试补全/**构建失败修复**/**依赖升级**/安全修复 exploit-probe）+ TelemetryRecorder + agent-core 真埋点 + `--otlp` + **发布趋势报告/回归门** + **compaction 确定性 pin 事实保留**    | 活模型验未 pin 事实摘要保留率（非确定性）。auto-pin 已默认开（2026-07-07 拍板，CC_AUTO_PIN=0/config false 可关）                                                                                                                                              |
+| Phase | 主题            | 状态                     | Windows 已落地（可测）                                                                                                                                                                                                                                                                | 剩余/发布门                                                                                                                                                                                                                                                   |
+| ----- | --------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1     | OS 沙箱 + 网络  | **核心落地，硬隔离阻塞** | 网络域策略判定 + SSRF 守卫 + **出口过滤代理**（把策略从判定变强制，跨平台免 root）+ **DNS 重绑定守卫**（解析后复检私网 IP + pin 连接）+ **文件系统路径策略硬化**（穿越/边界/symlink 逃逸，接 checkFilePermission）                                                                    | 内核级出口硬隔离（Seatbelt/bwrap netns/AppContainer）、沙箱内后台 Shell、跨平台隔离 E2E                                                                                                                                                                       |
+| 2     | LSP 代码智能    | **四期全落地**           | LSP client/manager + `cc code-intel` + 接入 agent 链 + 编辑后增量诊断 + **崩溃自动重启有界守卫**                                                                                                                                                                                      | Rust/Java 真机验证（无 toolchain）。**Go 真机验证 DONE 2026-07-07**：gopls v0.22 全功能过（def/refs/hover/rename/diag/bench 冷启 1.45s/warm ~11ms/RSS 184MB），并修出真 bug——normalizeUri 不统一盘符冒号编码（gopls 发裸 `C:` vs 客户端 `C%3A`）→ Go 诊断恒空 |
+| 3     | 插件运行时      | **核心完备**             | 8/8 manifest 组件接真实 agent 链 + 安装生命周期 + 双 fail-closed gate + trust + 热加载 + monitor 每轮注入                                                                                                                                                                             | remote-manifest source + 私有仓认证 + 离线 seed cache（网络/凭据耦合，niche defer）                                                                                                                                                                           |
+| 4     | Agent Team      | **✅ P2-16 发布门闭合**  | lease+DAG + `cc team` 真执行 + 本地 v6 authority/queue v1 + fenced lease + 单进程内 10k task/64 async worker 验证 + 两阶段 worktree cleanup + IDE human control + 跨进程共享 FS queue + interactive adjudication/safe resume + dependency baseline composition + wall lifecycle fence | exact SHA `7df6feced4670ac71d19548752d18ac4cc225025` 的 `CLI CI`、`CLI Strict Sandbox`、Agent Team short 与 Linux/Windows/macOS 各 120 分钟 soak 已全绿；共享 FS queue、unsigned state、partial checkpoint、不可回滚外部副作用等边界继续成立                  |
+| 5     | Remote Control  | **服务端落地，设备阻塞** | RemoteCommandLedger（幂等/全序/撤销）+ **接进 `cc serve` 活 WS 路径**（execute/stream **及**真正的接管路径 remote-session prompt/approval/interrupt 均幂等；并发重发竞态已修）—— 客户端带 commandId 即生效                                                                            | 三端客户端**发送** commandId 协议采纳 + 三端真 UX/同步 E2E + worktree 远程会话真机                                                                                                                                                                            |
+| 6     | 异步 Hooks      | **✅ 全闭合**            | async hooks + auto-rewake + Stop/SubagentStart/ConfigChange/**SessionPause/Resume** + MCP 前缀钩子 + 无头支持                                                                                                                                                                         | —                                                                                                                                                                                                                                                             |
+| 7     | 可靠性评测/OTel | **核心落地**             | eval 框架 + **10** 客观任务类别（SWE-bench 六类全覆盖：bug 修复/跨文件重构/测试补全/**构建失败修复**/**依赖升级**/安全修复 exploit-probe）+ TelemetryRecorder + agent-core 真埋点 + `--otlp` + **发布趋势报告/回归门** + **compaction 确定性 pin 事实保留**                           | 活模型验未 pin 事实摘要保留率（非确定性）。auto-pin 已默认开（2026-07-07 拍板，CC_AUTO_PIN=0/config false 可关）                                                                                                                                              |
 
-**结论**：Phase 6 完全闭合；Phase 4 的 P2-16 实现批次已落地，但发布门仍未闭合。1、2、3、
-5、7 的 Windows-doable 主体已落地并测试；剩余项既包括其它 OS 内核、各语言 toolchain、
-真机三端、活模型和 Docker 等环境门，也包括 P2-14/P2-16 必须在同一候选 exact SHA 上完成的
-三平台权威发布矩阵与长期 soak。
+**结论**：Phase 6 完全闭合；Phase 4 的 P2-16 已由同一候选 exact SHA 完成三平台短门与
+长期 soak，P2-14 也已按受控 writer 的限定范围闭合。1、2、3、5、7 的 Windows-doable
+主体已落地并测试；其它 OS 内核、各语言 toolchain、真机三端、活模型和 Docker 等环境门
+仍按各自章节推进，不改变 P2-14/P2-16 已声明的安全边界。
 
-### P2-14 / P2-16 发布状态校准（2026-07-29）
+### P2-14 / P2-16 发布状态校准（2026-07-31）
 
-- **P2-14：跨平台收口中，不是完成。** 持久 workspace transaction、分层
-  `full`/`partial`/`none` coverage、rollback/recovery 与 Broker 接线已经落地；canonical
-  alias、Windows Node/libuv identity 与 POSIX mtime 的本地候选也已完成针对性复验。但较新的
-  主分支 SHA `c6b16ef0350e30f2121b5f9db70a6744f213b3dd` 的
-  [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/30474982714) 与
-  [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/30474982468)
-  仍失败。只有待形成的同一个新 exact SHA 同时通过两道门的 Linux、Windows、macOS 全部配置，
-  才可改为完成或发布；本地、局部矩阵和旧 SHA 结果不能替代。
-- **P2-16：实现批次已落地，发布门未闭合。** IDE human control、跨进程共享本地 FS queue、
-  interactive adjudication/safe resume、dependency baseline composition 与 deterministic soak
-  harness 已实现。`2cbac832ebf12c856c237fe4d9e9e7f5a246204c` 的
-  [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/30469007408)、
-  [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/30469007296)
-  与 [Agent Team Soak](https://github.com/chainlesschain/chainlesschain/actions/runs/30469007043)
-  均失败。候选发布仍要求同一新 exact SHA 通过三道 short gates，并在 Linux、Windows、macOS
-  各完成 120 分钟 soak。
+- **P2-14：限定范围完成。** 持久 workspace transaction、分层
+  `full`/`partial`/`none` coverage、rollback/recovery 与 Broker 接线已经落地。exact SHA
+  `7df6feced4670ac71d19548752d18ac4cc225025` 的
+  [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/30549100935)
+  与
+  [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/30549100289)
+  均成功，三平台配置全部通过。“完成”只覆盖 Process Broker 管理的声明 workspace writer，
+  不表示捕获宿主机所有文件写入，也不包含不可回滚 external side effects。
+- **P2-16：完成。** 同一 exact SHA 的
+  [Agent Team short](https://github.com/chainlesschain/chainlesschain/actions/runs/30549100307)
+  与
+  [Linux、Windows、macOS 各 120 分钟 soak](https://github.com/chainlesschain/chainlesschain/actions/runs/30549142504)
+  均成功，三个 OS artifact 已核验。长期 soak 使用 2 个真实 OS worker 验证跨进程 DAG、
+  故障和恢复；10k task/64 worker 是单进程内 TeamRunner 规模验证，不是 64 个分布式进程保证。
+- **状态与预算语义。** 本地 `team run` 当前状态是 v6，v5 只允许通过一次 `--resume`
+  迁移，v2–v4 被拒；分布式 queue 使用独立 schema v1。分布式全局 wall 从第一次 acquire
+  开始，随后包含 worker 停机时间，并在执行器、checkpoint、commit 和完成发布尾部 fencing。
+  监控应使用 `queue status`；高频直接轮询原始 JSON 不受支持。
 - **边界不变。** 共享本地 FS queue 不是共识网络队列；恢复 authority 是 unsigned trusted
-  state；external side effects 不可回滚；deterministic soak 不等于 live-model 验证。Node
-  不提供 `openat`/handle-relative authority，路径身份保证要求父目录及祖先受信，不能消除完整
-  ABA；Windows spawn 另有检查到创建间的 TOCTOU。`full` 回滚覆盖还独立要求
-  `exclusive-workspace`，不能把两项前提合并成对敌对共享目录的保证。POSIX soak 超时清理依赖
-  worker 自成进程组，当前回归不证明主动 `setsid` 逃逸后代或外部强杀时的 JS `finally`。
+  state；Agent Team checkpoint 是 `partial`/`writerIsolation=unknown`，external side effects
+  不可回滚；deterministic soak 不等于 live-model 验证。路径身份保证要求 state 父目录及
+  祖先可信，P2-14 的 `full` coverage 还独立要求
+  `writerIsolation=exclusive-workspace`，不能扩写为敌对共享目录保证。Node 不提供
+  `openat`/handle-relative authority，不能消除完整 ABA；Windows spawn 另有检查到创建间的
+  TOCTOU。POSIX 清理不证明主动 `setsid` 逃逸后代或外部强杀时的 JS `finally`。
 
 ## 2. 实施原则
 
@@ -263,17 +266,17 @@ plugin/
 
 ### Phase 4：Agent Team 与协作任务图（P2 / P2-16）
 
-> 状态：**🟡 P2-16 实现批次已落地，发布门未闭合（更新于 2026-07-29）** —— 4.1–4.4 的既有能力继续保留；本批又落地 IDE human control、跨进程共享本地 FS queue、interactive adjudication/safe resume、dependency baseline composition 与 deterministic soak harness。当前仍不能表述为“全部闭合”：同一候选 exact SHA 的三平台短门和 Linux/Windows/macOS 各 120 分钟 soak 尚未全部通过。
+> 状态：**✅ P2-16 完成（更新于 2026-07-31）** —— 4.1–4.4 的能力已落地；exact SHA `7df6feced4670ac71d19548752d18ac4cc225025` 的三平台短门和 Linux/Windows/macOS 各 120 分钟 soak 已全部通过。共享本地 FS queue、unsigned state、partial checkpoint、不可回滚 external side effects 与 deterministic soak 非 live-model 验证等边界继续成立。
 >
 > **4.1 已落地（lease + DAG 核心）**：`lib/agent-team/task-lease.js` `TaskLeaseRegistry` —— **组合** 真 `SharedTaskList`（复用乐观锁/状态机/snapshot/终态守卫），叠加两项它缺的能力：**独占 lease + TTL**（同一任务同时至多一个 holder，valid 期内他人 acquire 被拒、过期可 steal；renew 心跳/release 归还——满足验收「多 Agent 不重复处理已 lease 的任务」）+ **崩溃回收** `reclaimExpired()`（过期 lease 扫回 PENDING 可重派，过期 stale holder 不能再 complete/renew——满足「teammate 崩溃后任务可回收重分配」）+ **依赖 DAG** `dependsOn`（deps 未全 COMPLETED 不可 acquire；加边即检环，自环/回边拒绝防死锁）+ fail 重试到上限转 CANCEL + snapshot/restore（团队会话恢复）。clock 注入 → lease 过期确定性可测。13 单测。
 >
-> **4.2 已落地（`cc team` 接真实执行）**：`lib/agent-team/team-runner.js` `TeamRunner` 驱动 N 个 teammate 并发 claim→acquire(独占)→run→complete/fail 循环（registry 的 lease+DAG 保证一任务至多一 teammate 跑、deps 完成才起；CANCELLED 任务的 dependent 永不跑）。`runTask` 注入（离线可测）；事件流（run:start/task:claimed/completed/failed/run:end）。`commands/team.js` `cc team plan`（拓扑波次预览）+ `cc team run`（默认 dry-run 校验+排程无副作用；`--exec` 真跑各 task shell `command`；`--agent` 把 `prompt` 交无头 `cc agent -p`；`--teammates N`/`--ttl`/`--json`；未全完 exit 1）。**真机端到端**（`--exec` 真 shell，3 teammate 跑菱形图）：build →（test-a ‖ test-b 并发 peak 2）→ deploy，每任务恰一次，exit 0。20 单测（13 registry + 7 runner）。新增顶层 `cc team` 命令（计数 162→163）。
+> **4.2 已落地（`cc team` 接真实执行）**：`lib/agent-team/team-runner.js` `TeamRunner` 驱动 N 个 teammate 并发 claim→acquire(独占)→run→complete/fail 循环（registry 的 lease+DAG 保证一任务至多一 teammate 跑、deps 完成才起；CANCELLED 任务的 dependent 永不跑）。`runTask` 注入（离线可测）；事件流（run:start/task:claimed/completed/failed/run:end）。`commands/team.js` `cc team plan`（拓扑波次预览）+ `cc team run`（默认 dry-run 校验+排程无副作用；`--exec` 真跑各 task shell `command`；`--agent` 把 `prompt` 交无头 `cc agent -p`；`--teammates N`/`--ttl`/`--json`；未全完 exit 1）。**真机端到端**（当前真实并行使用 `--exec --worktree`，3 teammate 跑菱形图）：build →（test-a ‖ test-b 并发 peak 2）→ deploy，每任务恰一次，exit 0。20 单测（13 registry + 7 runner）。新增顶层 `cc team` 命令（计数 162→163）。
 >
-> **4.3 已落地（会话恢复 + per-teammate worktree 隔离）**：`cc team run --state <file> --resume` —— 每任务 settle 后写 snapshot（崩溃可恢复），`--resume` 从 state 恢复图 + `reclaimExpired()` 释放崩溃残留 lease（COMPLETED 保持，未完重跑）。真机验证：跑完写 4 completed → resume「4/4 already done」0 执行、副作用不重现。`lib/agent-team/team-worktree.js` `TeamWorktreeCoordinator` —— 每 teammate 在**自己的 git worktree** 跑 task `command`（并行不争工作区），`integrate({merge})` **顺序** 逐 branch preview→合并干净者→冲突**报告不强合**（后一 branch 与已合并者冲突时被检出，满足「并行 Worktree 修改可预览冲突并安全合并」）。git 面注入可单测。`cc team run --worktree [--merge]`（需 git 仓）。真机验证：6 单测（注入 git）+ 2 **真 git** 集成（temp 仓：两独立任务隔离双 clean 合并；两任务改同文件→先合并者成、后者 CONFLICT 不合、base 保留 A 版）+ `--worktree --merge` e2e（2 并发 worktree→双合并→worktree 清理）。
+> **4.3 已落地（v6 authority 恢复 + per-task worktree 隔离）**：`cc team run --state <file> --resume` 在每任务 settle 后持久化状态；当前本地状态为 v6，v5 只允许通过一次 `--resume` 迁移，v2–v4 被拒。COMPLETED 任务保持完成；遗弃 lease 只有 dry-run 或显式 `retrySafe: true` 才自动重领，其他真实任务进入 evidence-pinned adjudication。`lib/agent-team/team-worktree.js` `TeamWorktreeCoordinator` 为**每个任务**创建独立 git worktree，并让下游任务组合已验证的 dependency baseline；`integrate({merge})` 顺序 preview 后只合并干净分支，冲突报告但不强合。`cc team run --worktree` 本身就是 shell-worktree 真实执行，`--merge` 仅在预览干净后合并。
 >
-> **4.4 P2-16 实现批次已落地，发布门未闭合（更新于 2026-07-29）**：`TeamBudget` 继续提供 maxTasks/maxTokens/maxUsd/maxWallMs 四维团队预算；恢复只允许收紧 cap，并保留已消耗 active wall time而不计进程停机时间。mailbox 使用有界队列/backpressure，TeamRunner 提供 teammate 生命周期和显式非幂等重试 opt-in；崩溃后只有 dry-run 或显式 `retrySafe: true` 的任务会自动重领，其他真实任务进入 interactive adjudication，再由显式 safe resume 继续。启用 token/USD cap 时，usage 缺失或远端模型无法定价会 fail closed。`--agent --worktree` 的真实并行执行强制 worktree，恢复状态升级为严格 v5 authority；v2–v4 不直接恢复。worktree 记录 task commit OID、preview/merge 状态，以 prepare→persist→remove→persist 清理，并为依赖任务组合已验证的 dependency baseline。VS Code/JetBrains 提供 IDE human-control 入口；跨进程 worker 通过共享本地文件系统 durable queue 协调；deterministic soak harness 提供三平台故障与恢复复验。
+> **4.4 P2-16 完成（更新于 2026-07-31）**：`TeamBudget` 提供 maxTasks/maxTokens/maxUsd/maxWallMs 四维团队预算；本地恢复只允许收紧 cap，并保留已消耗 active wall time而不计进程停机时间。分布式 queue 使用独立 schema v1，全局 wall 从第一次 acquire 开始，此后包含 worker 停机时间，并在执行器返回、checkpoint、commit 与完成发布尾部继续 fencing，超限后不能发布成功。启用 token/USD cap 时，usage 缺失或远端模型无法定价会 fail closed。TeamRunner mailbox 使用有界队列/backpressure，但当前公共 CLI 没有 `cc team send`，分布式 queue 也没有 teammate 消息命令。worktree 按任务创建，以 prepare→persist→remove→persist 清理；VS Code/JetBrains 提供 human-control，跨进程 worker 通过共享可信本地文件系统 durable queue 协调。单进程内 10k task/64 async worker 验证 scheduler 规模；三平台长期 soak 使用 2 个真实 OS worker 验证跨进程故障与恢复。
 >
-> 上述 queue 不是共识网络队列，`--state` 仍是未签名可信控制面；journal seq+digest 是一致性锚点而非来源认证。external side effects 不可由 checkpoint 回滚，deterministic soak 也不是 live-model 质量验证。Node 不提供 `openat`/handle-relative authority，路径身份保证要求父目录及祖先受信，无法排除完整 ABA；Windows spawn 另有检查到创建间的 TOCTOU。`full` 回滚覆盖还独立要求 `exclusive-workspace`。POSIX soak 超时清理依赖 worker 自成进程组，不能证明主动 `setsid` 逃逸后代或外部强杀时的 JS `finally`。发布前仍须由同一 exact SHA 通过 `CLI CI`、`CLI Strict Sandbox`、Agent Team short gates，并在 Linux、Windows、macOS 各完成 120 分钟 soak。
+> 上述 queue 不是共识网络队列，`--state` 仍是未签名可信控制面；摘要是一致性、误绑定和回滚锚点而非来源认证。监控必须优先使用 `queue status` 的锁内一致视图，高频直接轮询原始 JSON 不受支持。Agent Team checkpoint authority 为 `coverageTarget=partial`、`writerIsolation=unknown`、`externalSideEffects=true`，不能回滚网络、数据库、消息、部署或支付。Node 不提供 `openat`/handle-relative authority，无法排除完整 ABA；Windows spawn 另有检查到创建间的 TOCTOU。POSIX 清理不证明主动 `setsid` 逃逸后代或外部强杀时的 JS `finally`。exact SHA `7df6feced4670ac71d19548752d18ac4cc225025` 的 `CLI CI`、`CLI Strict Sandbox`、Agent Team short 与三平台长期 soak 已全部成功。
 >
 > **4.5 已落地（`cc batch` 动态 worktree 批处理 —— 复用 Phase 4 隔离原语，2026-07-09）**：把一个大改动拆成 N 个**互相独立**的 UNIT，每个跑在自己的 git worktree 里（有界并发），跑测试，汇总每单元 agent 状态/测试结果/diff stat/合并冲突预览。与 `cc team` 的区别：team 是**有依赖 DAG** 的显式任务图，batch 假设单元互相独立并支持 `--decompose <goal> --parts N` 让 agent 用 `--json-schema` **自动拆分** 单元表（`--plan-only` 只出表不跑）。`lib/agent-batch.js`（纯 fan-out+聚合，全 deps 注入）：每单元 worktree 跑 agent+测试、**顺序集成**（后分支冲突如实报告不覆盖、test-failed 永不合并、no-change 跳过）；`mapPool` 有界并发保序。`commands/batch.js` 复用 `worktree-isolator`（create/remove/preview/merge）+ 每单元 `cc agent -p --permission-mode acceptEdits` + git numstat/`--no-verify` commit；`--concurrency`/`--test`/`--merge`/`--model`/`--json`；有 test-failed 或 error 时 exit 1（CI 门），未合并分支保留供检查。15 单测（8 core + 7 command）+ 2 **真 git** 集成（真 worktree：两独立单元真合入 main；两单元改同一行 → 第二个真合并冲突被如实报告 merged=1/conflicted=1、base 未覆盖）。新增顶层 `cc batch` 命令。
 
@@ -286,8 +289,8 @@ plugin/
 - 建立团队级共享任务图和依赖关系。
 - 支持 task create/update/claim/release/complete。
 - 使用 lease 防止多个 Agent 重复领取同一任务。
-- 支持 Agent 间直接消息和定向通知。
-- 每个 teammate 可使用独立 Worktree。
+- 库内 mailbox 支持有界定向消息；公共 CLI 不提供 `cc team send` 或分布式 teammate 消息命令。
+- 每个任务可使用独立 Worktree。
 - 增加 teammate idle、failed、shutdown、lost 状态。
 - 主 Agent 异常退出后可恢复团队任务。
 - 支持 token、时间、并发数和费用预算。
@@ -453,7 +456,7 @@ plugin/
 | 模型 fallback（跨 provider） | ✅      | ✅           | ✅       | ✅       | ✅     | ✅         | ✅   |
 | 可靠性评测（任务成功率）     | ✅      | ✅           | n/a      | ✅       | ✅     | ✅         | ✅   |
 
-> 更新判读（2026-07-29）：Sandbox 与 Remote Control 的既有结论保留；Agent Team 不标记“全绿”。P2-16 的实现批次已经包含 10k task/64 worker、安全预算、fenced lease、严格 v5 authority、append-only journal、两阶段 worktree cleanup、IDE human control、跨进程共享 FS queue、interactive adjudication/safe resume、dependency baseline composition 与 deterministic soak harness；但同一 exact SHA 的三平台 short gates 和 Linux/Windows/macOS 各 120 分钟 soak 尚未闭合，因此 Agent Team 仍是 🟡，不能发布为已完成。
+> 更新判读（2026-07-31）：Sandbox 与 Remote Control 的既有结论保留；Agent Team 的 P2-16 发布门已闭合。当前能力包含单进程内 10k task/64 async worker 规模验证、安全预算、fenced lease、本地 v6 authority/queue v1、wall lifecycle fence、两阶段 worktree cleanup、IDE human control、跨进程共享 FS queue、interactive adjudication/safe resume、dependency baseline composition 与 deterministic soak harness。exact SHA `7df6feced4670ac71d19548752d18ac4cc225025` 的三平台 short gates 和 Linux/Windows/macOS 各 120 分钟 soak 已成功；长期 soak 使用 2 个真实 OS worker，不能扩写为 64 个分布式进程保证。
 
 ## 7. 近期首批任务建议
 

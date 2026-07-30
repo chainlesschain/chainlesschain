@@ -1,307 +1,703 @@
-# Agent Team — 声明式任务图团队编排（`cc team`）
+# Agent Team：声明式任务图协作（`cc team`）
 
-> **版本: Phase 4 (Agent Team) 全闭合 · 2026-07-04 | 状态: ✅ 生产就绪 | 独占 lease + 依赖 DAG + 团队预算 + 定向消息 + 会话恢复 + Worktree 隔离 | 50 测试（48 单元 + 2 真-git 集成）**
->
-> `cc team` 把一份声明式任务图交给 N 个协作 teammate 并发执行：每个任务由**至多一个** teammate 持有独占租约（lease）执行，依赖未满足的任务不会启动，崩溃的 teammate 其任务会被自动回收重派。相比 [Cowork](./cowork.md) 的 master-worker 模式，Agent Team 提供了 lease 互斥的**共享任务图**、四维**团队预算**、teammate 间**定向消息**、以及每个 teammate 独立 **git worktree** 的并行隔离。
+> 状态：P2-16 已完成（2026-07-31）。候选 exact SHA
+> `7df6feced4670ac71d19548752d18ac4cc225025` 的
+> [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/30549100935)、
+> [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/30549100289)、
+> [Agent Team short](https://github.com/chainlesschain/chainlesschain/actions/runs/30549100307)
+> 与
+> [Linux、Windows、macOS 各 120 分钟 soak](https://github.com/chainlesschain/chainlesschain/actions/runs/30549142504)
+> 均成功。本文同时保留共享 FS queue、partial checkpoint、unsigned state 和不可回滚
+> external side effects 等边界。
 
-## 概述
+`cc team` 用依赖 DAG、独占租约、预算和隔离 worktree 协调一组 shell 或 Agent 任务。
+它提供三种运行形态：
 
-Agent Team 是 ChainlessChain CLI 的多智能体任务图编排器。它解决的核心问题是：当一批任务之间存在**依赖关系**、需要**多个 teammate 并发**推进、且必须**不重复执行、不超预算、崩溃可恢复**时，如何安全地调度。
+| 形态           | 命令                | 适用场景                                     |
+| -------------- | ------------------- | -------------------------------------------- |
+| 计划预览       | `cc team plan`      | 校验任务图并查看可并行波次，不执行任务       |
+| 单协调器       | `cc team run`       | 一个 CLI 进程内运行多个 teammate 循环        |
+| 耐久多进程队列 | `cc team queue ...` | 多个 OS 进程通过同一可信本地文件系统协调任务 |
 
-系统以一个 JSON 任务图为输入（每个任务声明 `key` / `title` / `dependsOn` / 要跑的 `command` 或 `prompt`），经拓扑排序后由 `TeamRunner` 驱动 N 个 teammate 循环「领取可执行任务 → 获取独占租约 → 执行 → 完成/失败重试」。底层的 `TaskLeaseRegistry` 组合复用 `session-core` 的 `SharedTaskList`（乐观锁 + 状态机 + 快照），叠加了它缺失的两项关键能力——**独占租约 + TTL** 和 **依赖 DAG**——从而保证：
+> “多进程队列”不是网络队列或共识系统。所有 worker 必须能看到同一 Git 仓库和同一可信
+> 队列文件，并依赖本地文件锁语义。
 
-- 一个任务在同一时刻**至多被一个 teammate 执行**（独占 lease），即便 M 个 teammate 同时抢占；
-- 一个任务**只有在其全部依赖 COMPLETED 后才可领取**（DAG 门控），依赖被取消的任务永不执行；
-- **teammate 崩溃**（租约过期未续）后，其任务被扫回 PENDING 重新分配。
+## 核心保证
 
-`cc team run` 默认是**干跑（dry-run）**——只校验任务图 + 排程、无任何副作用，等价于 `cc eval --dry-run` 的安全探索语义；显式加 `--exec`（跑 shell 命令）或 `--agent`（把 prompt 交给无头 agent）才真正执行。
+- 只有依赖全部完成的任务才可领取；未知依赖和依赖环在运行前被拒绝。
+- 同一时刻至多一个未过期、未被 fencing 的租约有权结算某个任务。
+- 过期或失效的 holder 不能再提交完成状态。
+- 真实并行任务可使用每任务一个 Git worktree，依赖任务会基于已验证的依赖提交继续工作。
+- 团队级与单 Agent 级预算只允许收紧，不能由 worker 或恢复流程放宽。
+- 结果不明确时默认进入人工裁决，不会静默重放可能产生外部副作用的任务。
 
-## 核心特性
+这些保证不是“外部副作用 exactly-once”。租约和 fencing 能保护调度状态，但不能撤销已经
+发出的网络请求、数据库写入、消息、部署或付款。
 
-- 🔒 **独占租约 + TTL**: 同一任务同时至多一个 holder，valid 期内他人领取被拒；租约过期可被 steal，崩溃 teammate 的任务自动回收。
-- 🕸️ **依赖 DAG**: 任务声明 `dependsOn`，依赖全部完成才可领取；加边即 DFS 检环，自环/回边在加载期被拒（防死锁）。
-- 💰 **四维团队预算**: `--max-tasks` / `--max-tokens` / `--max-usd`（委托已审计的 `CostBudget`，同 `--max-budget-usd` 计价）/ `--max-wall`；领取前检查、每任务结算后累加（失败任务也计数），至多超支在途任务数。
-- 📬 **定向 + 广播消息**: teammate 间 `sendMessage(to, body)`（定向到某 teammate 或 `*` 广播），per-recipient 投递游标——广播对每个 teammate 恰投一次，teammate 收不到自己的广播。
-- 🔄 **会话恢复**: `--state <file>` 每任务结算后写快照，`--resume` 从快照恢复任务图 + 消息 + 预算 + teammate 生命周期；崩溃残留租约被回收重跑，已完成任务保持完成。
-- 🌲 **Worktree 隔离**: `--worktree` 让每个 teammate 在**自己的 git worktree** 执行（`--exec` 或 `--agent` 均可），并行编辑不争工作区；`--merge` 顺序预览并合并干净分支，冲突**报告不强合**。
-- 👤 **Teammate 生命周期**: 每个 teammate 有 idle / running / failed / shutdown 状态 + `teammate:state` 事件；resume 时对崩溃 holder 的回收租约报 `teammate:lost`。
-- 📡 **机器可读事件流**: `--json` 输出 `run:start` / `task:claimed` / `task:completed` / `task:failed` / `teammate:state` / `run:budget-exhausted` / `run:end` JSON Lines，供面板 / CI 消费。
-- 🔁 **失败重试 → 取消**: 任务失败在 attempt 上限内退回 PENDING 重试，达上限转 CANCELLED（终态），团队不在必败任务上死循环。
-- 🚦 **CI 门**: 任务图未全部完成时进程退出码为 1，可直接用作流水线闸门。
+## 任务图
 
-## 系统架构
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        cc team run                                │
-│                  (commands/team.js — CLI 编排)                     │
-│   载入任务图 · 建 budget/mailbox · 选执行器 · 事件打印 · 快照持久化    │
-└───────────────┬───────────────────────────────┬──────────────────┘
-                │                               │
-     ┌──────────▼──────────┐        ┌───────────▼────────────┐
-     │     TeamRunner      │        │   TeamWorktreeCoordinator│
-     │ (team-runner.js)    │        │  (team-worktree.js)      │
-     │ N teammate worker   │        │  每任务一个 git worktree  │
-     │ 循环：              │        │  顺序 preview→merge      │
-     │  claimable? ─┐      │        │  冲突报告不强合           │
-     │  budget.stop?│      │        └──────────────────────────┘
-     │  acquire ────┤      │
-     │  run ────────┤      │        ┌──────────────────────────┐
-     │  complete/fail│─────┼───────▶│   TeamBudget             │
-     │  lifecycle    │      │  fold  │  (team-budget.js)        │
-     │  drain inbox  │──────┼───────▶│  tasks/tokens/usd/wall   │
-     └───────┬───────┘      │        │  snapshot/restore        │
-             │              │        └──────────────────────────┘
-             │              │        ┌──────────────────────────┐
-             │              └───────▶│   TeamMailbox            │
-             │                       │  (team-mailbox.js)       │
-             │                       │  directed + broadcast    │
-             │                       │  per-recipient 游标       │
-             ▼                       └──────────────────────────┘
-     ┌───────────────────────────────────────────────┐
-     │            TaskLeaseRegistry                    │
-     │            (task-lease.js)                      │
-     │  组合 SharedTaskList（乐观锁 rev + 状态机 +      │
-     │  快照）+ 独占 lease/TTL + dependsOn DAG +        │
-     │  reclaimExpired 崩溃回收 + 检环                   │
-     └───────────────────────┬───────────────────────┘
-                             │ composes
-                 ┌───────────▼────────────┐
-                 │  SharedTaskList         │
-                 │  (@chainlesschain/      │
-                 │   session-core)         │
-                 └─────────────────────────┘
-```
-
-**执行时序（一个 teammate worker 的循环）：**
-
-```
-loop:
-  ├─ executions ≥ maxTasks?          → shutdown(max-tasks)
-  ├─ budget.shouldStop()?            → shutdown(reason) + run:budget-exhausted
-  ├─ nextClaimable(holder)?
-  │    ├─ 无 & 有在途 → idle, tick, 重试
-  │    └─ 无 & 无在途 → shutdown(no-more-work)
-  ├─ acquire(lease)?  失败 → idle, tick, 重试
-  └─ execute:
-       running → drain inbox → runTask(inbox,sendMessage,budget)
-       ├─ 成功 → complete + budget.record(usage) + completed++
-       └─ 抛错 → fail(retry|cancel) + budget.record() + failed++
-```
-
-## 命令参考
-
-### `cc team plan`
-
-展示任务图的拓扑波次（wave）排程，不执行。
-
-```bash
-cc team plan --tasks graph.json           # 人类可读波次
-cc team plan --tasks graph.json --json     # { waves, total } JSON
-```
-
-每个 wave 是「其依赖全部落在前序 wave」的任务集合——同一 wave 内的任务可并发。
-
-### `cc team run`
-
-用 N 个协作 teammate 运行任务图。
-
-| 旗标                   | 说明                                                           | 默认       |
-| ---------------------- | -------------------------------------------------------------- | ---------- |
-| `--tasks <file>`       | 任务图 JSON 文件（必填）                                       | —          |
-| `--teammates <n>`      | 并发 teammate 数                                               | `2`        |
-| `--ttl <seconds>`      | 每任务租约 TTL（秒）                                           | `60`       |
-| `--exec`               | 真实执行每个任务的 shell `command`                             | 关（干跑） |
-| `--agent`              | 把每个任务的 `prompt` 交给无头 `cc agent -p`                   | 关         |
-| `--model <model>`      | `--agent` 运行使用的模型                                       | 默认模型   |
-| `--worktree`           | 每个任务在自己的 git worktree 执行（并行隔离；需 git 仓）      | 关         |
-| `--merge`              | 配合 `--worktree`：把干净分支顺序合并回 base（冲突报告不强合） | 关         |
-| `--max-tasks <n>`      | 预算：团队总任务执行数                                         | 无限       |
-| `--max-tokens <n>`     | 预算：团队总 LLM token 数                                      | 无限       |
-| `--max-usd <n>`        | 预算：团队总估算 USD 花费                                      | 无限       |
-| `--max-wall <seconds>` | 预算：整轮墙钟秒数                                             | 无限       |
-| `--state <file>`       | 把团队进度持久化到文件（供崩溃后 `--resume`）                  | 关         |
-| `--resume`             | 从 `--state` 恢复（已完成任务保持，陈旧租约释放）              | 关         |
-| `--json`               | 以 JSON Lines 输出事件流                                       | 关         |
-
-**执行器优先级**：`--worktree`（+ `--exec`/`--agent`）> `--exec` > `--agent` > 干跑。默认干跑安全无副作用。
-
-## 任务图格式
-
-任务图是一个 JSON 文件（也接受顶层裸数组）：
+任务文件可以是顶层数组，也可以使用 `{ "tasks": [...] }`。
 
 ```json
 {
   "tasks": [
-    { "key": "build", "title": "编译", "command": "npm run build" },
     {
-      "key": "test-a",
+      "key": "build",
+      "title": "构建",
+      "command": "npm run build",
+      "priority": "high",
+      "retrySafe": true
+    },
+    {
+      "key": "unit-test",
       "title": "单元测试",
+      "command": "npm test",
       "dependsOn": ["build"],
-      "command": "npm run test:unit"
+      "retrySafe": true
     },
     {
-      "key": "test-b",
-      "title": "集成测试",
+      "key": "lint",
+      "title": "代码检查",
+      "command": "npm run lint",
       "dependsOn": ["build"],
-      "command": "npm run test:integration"
-    },
-    {
-      "key": "deploy",
-      "title": "部署",
-      "dependsOn": ["test-a", "test-b"],
-      "prompt": "把 dist/ 部署到预发布环境并回报健康检查结果",
-      "priority": "high"
+      "retrySafe": true
     }
   ]
 }
 ```
 
-| 字段        | 必填                     | 说明                                                        |
-| ----------- | ------------------------ | ----------------------------------------------------------- |
-| `key`       | 是                       | 稳定的任务标识（供 `dependsOn` 引用，与插入顺序无关）       |
-| `title`     | 是                       | 人类可读标题                                                |
-| `dependsOn` | 否                       | 依赖的 `key` 列表；全部 COMPLETED 才可领取（也接受 `deps`） |
-| `command`   | `--exec`/`--worktree` 时 | 要执行的 shell 命令                                         |
-| `prompt`    | `--agent` 时             | 交给无头 agent 的自然语言任务                               |
-| `priority`  | 否                       | `high` / `normal` / `low`——领取时高优先                     |
+`unit-test` 与 `lint` 会在 `build` 成功后并行执行。
 
-依赖成环（含自环）在加载期即被拒绝并报出环路路径。
+### 字段
 
-## 配置参考
+| 字段                 | 说明                                                       |
+| -------------------- | ---------------------------------------------------------- |
+| `key`                | 必填、稳定且唯一的任务标识                                 |
+| `title`              | 可选；省略时使用 `key`                                     |
+| `dependsOn` / `deps` | 依赖任务的 `key` 数组                                      |
+| `priority`           | `high`、`normal` 或 `low`                                  |
+| `command`            | shell 模式执行的命令                                       |
+| `prompt`             | Agent 模式交给 headless Agent 的提示                       |
+| `retrySafe`          | 只有确认任务可安全重复执行时才设为 `true`                  |
+| `scopePaths`         | 单进程 runner 的调度冲突范围；不是文件系统权限或写入隔离   |
+| `sparsePaths`        | worktree 只物化的路径                                      |
+| `symlinkDirectories` | 显式共享的可写依赖目录；会削弱隔离                         |
+| `agent` / `policy`   | 每任务 Agent 权限、模型和预算约束；`policy` 优先于 `agent` |
 
-| 项           | 机制                            | 默认 | 备注                                           |
-| ------------ | ------------------------------- | ---- | ---------------------------------------------- |
-| 并发度       | `--teammates`                   | 2    | 独立任务的最大并发执行数                       |
-| 租约 TTL     | `--ttl`（秒）                   | 60   | 超时未续约 → 任务可被回收/steal                |
-| 失败重试上限 | `TaskLeaseRegistry.maxAttempts` | 3    | 达上限转 CANCELLED 终态                        |
-| 任务预算     | `--max-tasks`                   | ∞    | 总执行数（含失败）上限                         |
-| Token 预算   | `--max-tokens`                  | ∞    | input+output 累加（仅 `--agent` 有 usage）     |
-| USD 预算     | `--max-usd`                     | ∞    | 委托 `CostBudget`，含 cache-token 计价         |
-| 墙钟预算     | `--max-wall`（秒）              | ∞    | 首个任务开始起计；resume 时窗口**重启**        |
-| 状态文件     | `--state`                       | 无   | v2 快照：registry + mailbox + budget + members |
+`agent` 和 `policy` 支持：
 
-**预算与 resume 的交互**：`--resume` 会恢复上次的预算 running totals（花费累计不清零）；若 resume 时又传了预算旗标，则 CLI 旗标**覆盖**旧上限（省略的旗标保留旧上限——绝不静默丢掉一个安全阈）。墙钟窗口 resume 时重启，不计崩溃间隔。
+- `permissionMode`
+- `model`
+- `maxTurns`
+- `maxBudgetUsd`
+- `maxTokens`
+- `maxWallMs`
+- `checkpointRequired`
+- `worktreeRequired`
 
-## 性能指标
+任务级权限和预算只能等于或严于父级。单进程 runner 会报告被收紧的任务契约；分布式 Agent
+队列在初始化时直接拒绝不能原样满足的契约。
 
-| 维度          | 特性                                                                    |
-| ------------- | ----------------------------------------------------------------------- |
-| 调度开销      | 纯内存 lease/DAG 记账，无外部依赖；`claimable()` 每轮 O(任务数)         |
-| 并发上限      | `--teammates` 精确封顶（4 独立任务 + 2 teammate → 峰值恰 2 并发，非 4） |
-| 依赖门控      | 依赖未全 COMPLETED 的任务零执行；被取消依赖的任务永不跑                 |
-| 预算超支界    | 至多超支「在途任务数」——领取前检查，结算后累加                          |
-| 崩溃回收      | 租约 TTL 过期即 `reclaimExpired()` 扫回 PENDING，O(任务数)              |
-| 快照大小      | 与任务数 + 消息数线性，JSON 序列化                                      |
-| Worktree 集成 | 顺序 preview→merge，后合并分支与已合并者冲突时被检出（非静默覆盖）      |
+分布式 `agent-worktree` 图必须提供非空 `prompt`，并拒绝 `command` 或其他不受支持的字段。
+建议 shell 图和 Agent 图分开维护。
 
-> 真机端到端验证（`--exec` 真 shell，3 teammate 跑菱形图）：`build →（test-a ‖ test-b 并发峰值 2）→ deploy`，每任务恰执行一次，退出码 0。预算：`--max-tasks 2` 在 2/3 处停；`--resume --max-tasks 10` 续跑至 3/3，totals 累计。
+Agent 图示例：
 
-## 测试覆盖
-
-共 **50 测试**（48 单元 + 2 真-git 集成），全绿。
-
-| 测试文件                         | 数量 | 覆盖                                                                                |
-| -------------------------------- | ---- | ----------------------------------------------------------------------------------- |
-| `task-lease-registry.test.js`    | 14   | 独占 lease / TTL steal / 崩溃回收 / DAG 门控 / 检环 / 重试→取消 / 快照往返          |
-| `team-runner.test.js`            | 13   | 菱形 DAG 顺序 + 每任务恰一次 / 并发封顶 / 失败重试 / 预算停止 / 定向消息 / 生命周期 |
-| `team-worktree.test.js`          | 8    | 每任务 worktree / 注入执行器（agent prompt）/ 顺序合并 / 冲突不合 / cleanup         |
-| `team-budget.test.js`            | 7    | 四维封顶 / 结算累加 / snapshot resume / CLI 覆盖旧 cap / NaN 防毒                   |
-| `team-mailbox.test.js`           | 6    | 定向投递一次 / 广播每人一次 / peek 不进游标 / 单调 id / snapshot 重投               |
-| `team-worktree-real-git.test.js` | 2    | **真 git**：两独立任务双 clean 合并 / 同文件冲突后者 CONFLICT base 保留             |
-
-## 安全考虑
-
-- **命令执行边界**：`--exec` 与 `--worktree` 会真实执行任务图里的 shell `command`——任务图文件应视为可信输入，勿运行来源不明的任务图。`--agent` 走无头 `cc agent -p`，继承 agent 自身的权限模式（默认 `acceptEdits`）。
-- **Worktree 隔离**：`--worktree` 让并行任务各自在独立 git worktree 修改，杜绝并行写争用；合并阶段冲突**只报告不强合**，绝不静默覆盖 base。
-- **预算即安全阀**：USD 预算委托经审计的 `CostBudget`，对畸形/负成本做 NaN 防毒（不会把上限静默失效为无限）；resume 时省略的预算旗标保留旧上限，防止误删安全阈。
-- **崩溃语义**：过期租约的陈旧 holder 不能再 `complete`/`renew`（防止一个已被重派的僵尸 teammate 误标他人工作完成）。
-- **干跑默认**：`cc team run` 不加 `--exec`/`--agent` 时零副作用，鼓励先 `plan` / 干跑校验再真跑。
-
-## 故障排除
-
-| 现象                                   | 原因                         | 处理                                                            |
-| -------------------------------------- | ---------------------------- | --------------------------------------------------------------- |
-| `dependency cycle [a → b → a]`         | 任务图成环                   | 检查 `dependsOn`，打破环路                                      |
-| `--worktree requires a git repository` | 不在 git 仓内                | 在 git 仓根运行，或先 `git init`                                |
-| 任务卡在 pending 不执行                | 依赖未完成或依赖被 CANCELLED | `cc team plan` 看波次；被取消依赖的任务永不跑（设计如此）       |
-| `budget reached (max-tasks)` 提前停    | 命中团队预算                 | 调高对应 `--max-*`，或 `--resume` 时用更高的 cap 续跑           |
-| resume 后仍立即停                      | 旧快照的预算上限已耗尽       | resume 时显式传更高的 `--max-tasks` 等覆盖旧 cap                |
-| 合并报冲突未合并                       | 两任务改了同一文件           | 预期行为——冲突分支被报告不强合，手工解决后再合                  |
-| teammate `lost`（resume 时）           | 上次运行崩溃残留租约         | 正常回收——该任务已扫回 PENDING 重跑                             |
-| `--agent` 任务全失败                   | 无模型/provider 凭据         | 配置模型（见 `cc auth` / 环境变量），或先用 `--exec` 验证图结构 |
-
-## 关键文件
-
-| 文件                                               | 职责                                                                          |
-| -------------------------------------------------- | ----------------------------------------------------------------------------- |
-| `packages/cli/src/commands/team.js`                | `cc team plan/run` CLI 编排、任务图加载、执行器选择、事件打印、快照持久化     |
-| `packages/cli/src/lib/agent-team/task-lease.js`    | `TaskLeaseRegistry`——独占 lease + TTL + DAG + 崩溃回收（组合 SharedTaskList） |
-| `packages/cli/src/lib/agent-team/team-runner.js`   | `TeamRunner`——N teammate worker pool、生命周期、预算/消息接线                 |
-| `packages/cli/src/lib/agent-team/team-budget.js`   | `TeamBudget`——四维团队预算 + snapshot/restore                                 |
-| `packages/cli/src/lib/agent-team/team-mailbox.js`  | `TeamMailbox`——定向/广播消息 + per-recipient 游标                             |
-| `packages/cli/src/lib/agent-team/team-worktree.js` | `TeamWorktreeCoordinator`——每任务 git worktree + 顺序合并                     |
-| `packages/cli/src/harness/worktree-isolator.js`    | 底层 git worktree 创建/预览/合并原语                                          |
-
-## 使用示例
-
-### 1. 预览排程（不执行）
-
-```bash
-cc team plan --tasks pipeline.json
-# Task graph: 4 task(s), 3 wave(s)
-#   wave 1: build
-#   wave 2: test-a, test-b
-#   wave 3: deploy
+```json
+{
+  "tasks": [
+    {
+      "key": "fix-cli",
+      "title": "修复 CLI",
+      "prompt": "修复指定测试并说明根因，只修改 packages/cli。",
+      "retrySafe": false,
+      "agent": {
+        "model": "<model>",
+        "maxTurns": 20,
+        "maxTokens": 50000
+      },
+      "policy": {
+        "permissionMode": "acceptEdits",
+        "checkpointRequired": true,
+        "worktreeRequired": true
+      }
+    }
+  ]
+}
 ```
 
-### 2. 真实执行 shell 命令，3 个 teammate
+## 计划预览
 
 ```bash
-cc team run --tasks pipeline.json --exec --teammates 3
-#   → build [teammate-1]
-#   ✔ build
-#   → test-a [teammate-1]
-#   → test-b [teammate-2]
-#   ✔ test-a
-#   ✔ test-b
-#   → deploy [teammate-1]
-#   ✔ deploy
-# Team run: 4/4 completed (3 teammates, 4 executions, peak 2 concurrent)
+cc team plan --tasks team-shell.json
+cc team plan --tasks team-shell.json --json
 ```
 
-### 3. 带预算 + 崩溃恢复
+`plan` 只输出拓扑波次，不执行 `command` 或 `prompt`。
+
+## 单协调器运行：`cc team run`
+
+### 执行模式
+
+| 参数组合                             | 行为                               |
+| ------------------------------------ | ---------------------------------- |
+| 无 `--exec`、`--agent`、`--worktree` | dry-run；不执行任务命令            |
+| `--exec --teammates 1`               | 在当前仓库目录真实执行 shell       |
+| `--agent --teammates 1`              | 在当前仓库目录运行 headless Agent  |
+| `--worktree`                         | 真实 shell-worktree 执行           |
+| `--exec --worktree`                  | 与上项相同，但意图更明确           |
+| `--agent --worktree`                 | 在每任务独立 worktree 中运行 Agent |
+
+注意：
+
+- `--worktree` 本身就是一种真实执行模式，不是 dry-run。
+- `--exec` 与 `--agent` 互斥。
+- 真实执行且 `--teammates` 大于 1 时必须启用 `--worktree`。
+- 默认 `--teammates` 为 `2`；因此共享当前目录的真实执行应显式传入 `--teammates 1`。
+- dry-run 不运行任务，但显式指定的 `--state` 或 `--otlp` 仍可能写文件；`--json` 仍会输出事件。
+
+### 示例
+
+安全预览：
 
 ```bash
-# 首次运行：限制总任务数 2，进度存盘
-cc team run --tasks pipeline.json --exec --max-tasks 2 --state .team-state.json
-# ... 2/4 completed — stopped early (max-tasks)
-
-# 提高预算续跑，已完成的不重做
-cc team run --tasks pipeline.json --exec --resume --state .team-state.json --max-tasks 10
-# Resumed: 2/4 already done
-# ... 4/4 completed
+cc team run --tasks team-shell.json
 ```
 
-### 4. 每个 agent 任务在自己的 worktree 并行执行并合并
+单 worker 共享当前目录执行：
 
 ```bash
-cc team run --tasks refactor.json --agent --worktree --merge --teammates 4
-# 每个 teammate 在独立 git worktree 跑 prompt，结束后干净分支自动合并回 base，
-# 冲突分支报告但不强合。
+cc team run --tasks team-shell.json --exec --teammates 1
 ```
 
-### 5. CI 门（JSON 事件流 + 退出码）
+四个 teammate、每任务独立 worktree：
 
 ```bash
-cc team run --tasks ci-graph.json --exec --json > events.jsonl
-# 逐行 JSON 事件；任务图未全完成时退出码为 1，可直接做流水线闸门
+cc team run \
+  --tasks team-shell.json \
+  --exec \
+  --worktree \
+  --teammates 4
 ```
+
+带状态、托管 checkpoint 和顺序合并：
+
+```bash
+cc team run \
+  --tasks team-shell.json \
+  --exec \
+  --worktree \
+  --managed-checkpoint \
+  --checkpoint-state-dir /srv/cc-team/checkpoints/release-001 \
+  --merge \
+  --teammates 4 \
+  --state /srv/cc-team/state/release-001.json
+```
+
+`--state` 和 checkpoint 存储应位于任务不可写、仓库外部的可信目录。Windows 可使用等价的
+受保护绝对路径。
+
+### 参数
+
+| 分组       | 参数                                                                                                                              |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| 输入与租约 | `--tasks <file>`、`--teammates <n>`、`--ttl <seconds>`                                                                            |
+| 执行器     | `--exec`、`--agent`、`--worktree`                                                                                                 |
+| Agent      | `--model`、`--permission-mode`、`--agent-max-turns`、`--agent-max-budget-usd`、`--agent-max-tokens`、`--agent-max-wall <seconds>` |
+| Worktree   | `--merge`、`--sparse-paths <csv>`、`--symlink-dirs <csv>`                                                                         |
+| Checkpoint | `--managed-checkpoint`、`--checkpoint-state-dir <dir>`                                                                            |
+| 团队预算   | `--max-tasks`、`--max-tokens`、`--max-usd`、`--max-wall <seconds>`                                                                |
+| 恢复与输出 | `--state`、`--resume`、`--json`、`--otlp <file>`                                                                                  |
+
+`--managed-checkpoint` 要求 `--worktree` 和仓库外部的可信 `--state`。
+`--checkpoint-state-dir` 只能与托管 checkpoint 一起使用，并且不能与状态文件重合。
+
+## Worktree 与合并
+
+Worktree 是按任务创建的，不是按 teammate 创建的。一个 teammate 连续领取两个任务时会使用
+两个不同的任务 worktree。
+
+- 每个成功任务记录分支、worktree、提交和基线证据。
+- 依赖任务会组合已完成依赖的已验证提交。
+- `--merge` 在预览成功后顺序合并干净分支。
+- 冲突或 Git 基线漂移会阻止合并，不会强制覆盖。
+- 失败或被阻止的 worktree 会保留，供检查和人工恢复。
+- `--sparse-paths` 控制物化范围，不代表写权限。
+- `--symlink-dirs` 会把主 checkout 中的依赖目录作为可写共享目录暴露给任务，因此会削弱
+  worktree 隔离。
+
+## 本地状态与恢复
+
+新运行指定 `--state` 时，目标文件必须尚不存在：
+
+```bash
+cc team run \
+  --tasks team-shell.json \
+  --exec \
+  --worktree \
+  --state /srv/cc-team/state/release-001.json
+```
+
+恢复时使用同一任务图和状态：
+
+```bash
+cc team run \
+  --tasks team-shell.json \
+  --exec \
+  --worktree \
+  --state /srv/cc-team/state/release-001.json \
+  --resume
+```
+
+当前本地状态版本为 `v6`：
+
+- `v5` 只允许通过一次 `--resume` 迁移到 `v6`。
+- `v2` 至 `v4` 不再接受。
+- `control-bindings`、`interrupt`、`adjudications` 和 `adjudicate` 要求 `v6`。
+- 不带 `--resume` 不会覆盖已有状态文件。
+
+恢复不会扩大原 authority：
+
+- 执行模式、模型、worktree、merge、checkpoint 和物化配置必须匹配。
+- teammate 并发、权限、团队预算和单 Agent 上限只能保持不变或收紧。
+- 省略恢复参数时继承原值。
+- 已耗用预算继续累计。
+- 本地 `--max-wall` 保存的是已消耗的活跃运行时间；进程停止期间不计入该窗口。
+
+因此不要把预算上限当成“暂停点”。已经耗尽的 authority 不能通过 `--resume --max-*` 抬高。
+
+## 本地人工中断与裁决
+
+先获取当前 CAS 绑定：
+
+```bash
+cc team control-bindings \
+  --state /srv/cc-team/state/release-001.json \
+  --json
+```
+
+只对输出中显示的精确运行尝试发出中断：
+
+```bash
+cc team interrupt \
+  --state /srv/cc-team/state/release-001.json \
+  --task build \
+  --expected-state-id <state-id> \
+  --expected-attempt-digest <sha256-digest> \
+  --request-id tctl_takeover_build_001 \
+  --reason "人工接管构建" \
+  --json
+```
+
+列出待裁决案例：
+
+```bash
+cc team adjudications \
+  --state /srv/cc-team/state/release-001.json \
+  --json
+```
+
+刷新绑定后应用一次性决定：
+
+```bash
+cc team adjudicate \
+  --state /srv/cc-team/state/release-001.json \
+  --task build \
+  --decision retry \
+  --expected-state-id <state-id> \
+  --expected-adjudication-digest <sha256-digest> \
+  --reason "已确认前一次未产生外部副作用" \
+  --json
+```
+
+决定语义：
+
+| 决定     | 结果                                   |
+| -------- | -------------------------------------- |
+| `retry`  | 回到 pending，允许安全重跑             |
+| `accept` | 操作者确认结果已经生效，标记 completed |
+| `cancel` | 保持 cancelled，不再执行               |
+
+决定与精确状态、任务尝试和证据摘要绑定。发生 stale digest 时必须重新读取绑定，不能复用旧值。
+裁决后通过 `cc team run ... --resume` 继续。
+
+## 耐久多进程队列：`cc team queue`
+
+### 前置条件
+
+- 仓库必须是 Git 仓库。
+- 队列 `--state` 必须在任务可写仓库之外，且初始化时不存在。
+- 所有 worker 必须使用相同的规范化仓库路径、状态路径和 `--run-id`。
+- 状态目录应由可信操作者控制并使用严格 OS ACL。
+- 队列状态是独立的 schema `v1`，不能与本地 `team run` 的 `v6` 状态互换。
+- 每个队列任务始终使用自己的 worktree。
+- `agent-worktree` 队列必须启用托管 checkpoint。
+
+### Shell 队列完整流程
+
+初始化：
+
+```bash
+cc team queue init \
+  --tasks team-shell.json \
+  --state /srv/cc-team/queue/release-001.json \
+  --run-id release-001 \
+  --repo /work/chainlesschain \
+  --mode shell-worktree \
+  --max-tasks 6 \
+  --json
+```
+
+初始化结果会生成 `queueId` 和 `authorityDigest`。这两个值不能在 `queue init` 时由调用方提供；
+保存返回值，并在所有后续命令中固定它们。
+
+在两个终端或服务进程中分别启动一个 worker：
+
+```bash
+cc team queue worker \
+  --state /srv/cc-team/queue/release-001.json \
+  --run-id release-001 \
+  --repo /work/chainlesschain \
+  --queue-id <queue-id> \
+  --authority-digest <authority-digest> \
+  --worker-id worker-a
+```
+
+```bash
+cc team queue worker \
+  --state /srv/cc-team/queue/release-001.json \
+  --run-id release-001 \
+  --repo /work/chainlesschain \
+  --queue-id <queue-id> \
+  --authority-digest <authority-digest> \
+  --worker-id worker-b
+```
+
+每次 `queue worker` 只启动一个 OS worker 进程。CLI 没有 `--workers N` 启动器。
+
+读取同一 revision 的状态视图：
+
+```bash
+cc team queue status \
+  --state /srv/cc-team/queue/release-001.json \
+  --run-id release-001 \
+  --repo /work/chainlesschain \
+  --queue-id <queue-id> \
+  --authority-digest <authority-digest> \
+  --json
+```
+
+任务全部完成且没有待裁决案例后，先预览：
+
+```bash
+cc team queue finalize \
+  --state /srv/cc-team/queue/release-001.json \
+  --run-id release-001 \
+  --repo /work/chainlesschain \
+  --queue-id <queue-id> \
+  --authority-digest <authority-digest> \
+  --operation-id preview-release-001 \
+  --finalizer-id operator-a \
+  --json
+```
+
+确认预览后执行 fenced 合并：
+
+```bash
+cc team queue finalize \
+  --state /srv/cc-team/queue/release-001.json \
+  --run-id release-001 \
+  --repo /work/chainlesschain \
+  --queue-id <queue-id> \
+  --authority-digest <authority-digest> \
+  --operation-id merge-release-001 \
+  --finalizer-id operator-a \
+  --merge \
+  --json
+```
+
+不带 `--merge` 的 finalization 只记录干净预览并保留 worktree。带 `--merge` 时按顺序执行
+fenced merge，再以可恢复的 prepare → persist → remove → persist 流程清理。冲突、Git 漂移
+或失去 finalizer lease 会阻止操作并保留证据。
+
+### Agent 队列
+
+Agent 图不能包含 `command`：
+
+```bash
+cc team queue init \
+  --tasks team-agent.json \
+  --state /srv/cc-team/queue/agent-001.json \
+  --run-id agent-001 \
+  --repo /work/chainlesschain \
+  --mode agent-worktree \
+  --managed-checkpoint \
+  --checkpoint-state-dir /srv/cc-team/checkpoints/agent-001 \
+  --model <model> \
+  --permission-mode acceptEdits \
+  --agent-max-turns 20 \
+  --agent-max-tokens 50000 \
+  --json
+```
+
+worker 从已固定 authority 派生执行模式。`--agent`、`--managed-checkpoint` 和
+`--checkpoint-state-dir` 只是额外断言，不能改变队列：
+
+```bash
+cc team queue worker \
+  --state /srv/cc-team/queue/agent-001.json \
+  --run-id agent-001 \
+  --repo /work/chainlesschain \
+  --queue-id <queue-id> \
+  --authority-digest <authority-digest> \
+  --worker-id agent-worker-a \
+  --agent \
+  --managed-checkpoint
+```
+
+### 公共参数
+
+所有队列子命令使用：
+
+| 参数             | 说明                       |
+| ---------------- | -------------------------- |
+| `--state <file>` | 队列状态；必须位于仓库外   |
+| `--run-id <id>`  | 调用方选择并固定的运行标识 |
+| `--repo <dir>`   | 仓库；默认当前仓库         |
+| `--json`         | 输出一个 JSON 对象         |
+
+除 `init` 外，现有队列命令还接受：
+
+| 参数                          | 说明                                      |
+| ----------------------------- | ----------------------------------------- |
+| `--queue-id <id>`             | 初始化返回的队列标识                      |
+| `--authority-digest <sha256>` | 初始化返回的 64 位十六进制 authority 摘要 |
+
+这两个 pin 在 CLI 中是可选参数，但生产操作应始终传入，以避免打开错误队列或错误 authority。
+
+### 子命令参数
+
+| 子命令       | 专有参数                                                                                                                                                                                                                                                                                                  |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `init`       | `--tasks`、`--mode shell-worktree\|agent-worktree`、`--max-tasks`、`--max-tokens`、`--max-usd`、`--max-wall-ms`、`--model`、`--permission-mode`、`--agent-max-turns`、`--agent-max-tokens`、`--agent-max-budget-usd`、`--agent-max-wall-ms`、`--managed-checkpoint`、`--checkpoint-state-dir`、`--ttl-ms` |
+| `status`     | `--mode`，用于断言固定模式                                                                                                                                                                                                                                                                                |
+| `worker`     | `--worker-id`、`--mode`、`--ttl-ms`、`--renew-every-ms`、`--max-tasks`、`--managed-checkpoint`、`--checkpoint-state-dir`、`--agent`                                                                                                                                                                       |
+| `interrupt`  | `--task`、`--holder`、`--lease-id`、`--fencing-token`、`--request-id`、`--actor`、`--reason`                                                                                                                                                                                                              |
+| `recover`    | `--task`、`--recovery-id`、`--evidence-digest`、`--actor`、`--reason`、`--repair-git-baseline`                                                                                                                                                                                                            |
+| `adjudicate` | `--task`、`--decision retry\|accept\|cancel`、`--decision-id`、`--evidence-digest`、`--actor`、`--reason`                                                                                                                                                                                                 |
+| `finalize`   | `--mode`、`--merge`、`--operation-id`、`--finalizer-id`、`--ttl-ms`                                                                                                                                                                                                                                       |
+
+本地 `team run` 的 wall 和 lease 参数使用秒；队列的对应参数使用毫秒。
+
+`queue worker --max-tasks` 只是该 worker 进程的本地执行上限，不会改变
+`queue init --max-tasks` 固定的全局预算。
+
+## 分布式中断、恢复与裁决
+
+`queue status --json` 提供当前 holder、lease、fencing 和待裁决证据。控制命令必须绑定这些
+精确值。
+
+中断一个确切任务尝试：
+
+```bash
+cc team queue interrupt \
+  --state /srv/cc-team/queue/release-001.json \
+  --run-id release-001 \
+  --repo /work/chainlesschain \
+  --queue-id <queue-id> \
+  --authority-digest <authority-digest> \
+  --task build \
+  --holder worker-a \
+  --lease-id <lease-id> \
+  --fencing-token <token> \
+  --request-id interrupt-build-001 \
+  --actor operator-a \
+  --reason "人工接管"
+```
+
+恢复一个已证明被遗弃的托管 checkpoint（以下沿用前面的 `agent-001` 队列）：
+
+```bash
+cc team queue recover \
+  --state /srv/cc-team/queue/agent-001.json \
+  --run-id agent-001 \
+  --repo /work/chainlesschain \
+  --queue-id <queue-id> \
+  --authority-digest <authority-digest> \
+  --task fix-cli \
+  --recovery-id recover-fix-cli-001 \
+  --evidence-digest sha256:<64-hex> \
+  --reason "worker 已失联，回滚已捕获工作区"
+```
+
+`recover` 只处理托管 checkpoint 的恢复与协调，不代表外部副作用已经确定。
+`--repair-git-baseline` 只能用于证据精确绑定的已遗弃任务，不能重置其他任务或整个仓库。
+
+裁决未知结果：
+
+```bash
+cc team queue adjudicate \
+  --state /srv/cc-team/queue/release-001.json \
+  --run-id release-001 \
+  --repo /work/chainlesschain \
+  --queue-id <queue-id> \
+  --authority-digest <authority-digest> \
+  --task build \
+  --decision retry \
+  --decision-id decide-build-001 \
+  --evidence-digest sha256:<64-hex> \
+  --reason "已核验外部系统，前一次操作未生效"
+```
+
+`request-id`、`recovery-id` 和 `decision-id` 应在重试 CLI 调用时保持不变，用于幂等识别；
+不要为同一逻辑操作每次生成新 ID。
+
+## 租约、重试与预算
+
+默认任务租约 TTL 为 60 秒，默认每任务最多 3 次尝试。实际重试还受团队预算约束。
+
+- 普通失败只有在任务声明 `retrySafe: true` 时才会自动重试。
+- `retrySafe` 应只用于幂等操作，或已经具备外部幂等键和可验证结果的操作。
+- 进程崩溃、人工中断、租约遗弃或无法证明副作用结果时，真实任务进入 fail-closed 裁决。
+- dry-run 或明确 `retrySafe` 的遗弃任务可以自动重新领取。
+- stale holder 即使后来成功返回，也不能发布完成状态。
+- fencing 保护的是队列状态，不能收回 stale 进程已经发出的外部请求。
+
+四维团队预算：
+
+| 预算   | 本地                   | 队列初始化           | 含义               |
+| ------ | ---------------------- | -------------------- | ------------------ |
+| 尝试数 | `--max-tasks`          | `--max-tasks`        | 全局任务执行尝试数 |
+| Token  | `--max-tokens`         | `--max-tokens`       | Agent token 总量   |
+| USD    | `--max-usd`            | `--max-usd`          | Agent 估算费用     |
+| 墙钟   | `--max-wall <seconds>` | `--max-wall-ms <ms>` | 团队时间上限       |
+
+本地省略预算表示不设置该维度上限。队列省略 `--max-tasks` 时默认等于任务数，其他维度默认
+不设上限；如果希望 `retrySafe` 任务有重试空间，应在初始化时显式配置更大的全局尝试预算。
+
+启用 token 或 USD 上限时：
+
+- 领取 Agent 任务前会预留可用额度。
+- 任务级额度不能超过团队剩余额度。
+- usage 缺失或模型无法定价时会 fail closed，而不是把未知消费当作零。
+
+时间语义不同：
+
+- 本地恢复保留已使用的活跃 wall time，但不计算 CLI 停机时间。
+- 队列 wall time 在第一次成功领取任务时开始；此后即使所有 worker 停机，时间仍继续计算。
+- 队列在执行器返回、checkpoint、提交和完成发布阶段都会重新检查 wall fence。
+- 即使执行器忽略取消信号，超限后也不能发布完成；结果不明确时进入裁决。
+
+## 托管 checkpoint 的范围
+
+`--managed-checkpoint` 会让 Process Broker 管理声明范围内的任务执行，并在成功时接受
+checkpoint，在失败或中止时回滚已捕获的工作区状态。
+
+> 它不表示“捕获机器上的所有文件写入”。
+
+Agent Team 当前 checkpoint authority 明确声明：
+
+- `coverageTarget: "partial"`
+- `writerIsolation: "unknown"`
+- `externalSideEffects: true`
+
+因此：
+
+- 只覆盖由 Process Broker 管理、且位于声明工作区范围内的 writer。
+- 未托管子进程、其他本地进程和范围外路径不在保证内。
+- 网络、数据库、消息、部署、支付和其他外部系统操作不可由 checkpoint 回滚。
+- worktree、Git 提交和 checkpoint 共同提供恢复证据，但不构成外部事务。
+- 如果业务需要可重试外部操作，仍应使用业务幂等键、事务日志和结果核验。
+
+分布式 `agent-worktree` 强制托管 checkpoint；分布式 shell 模式和本地 worktree 模式可以
+按需启用。
+
+## 输出与可观测性
+
+- `cc team run --json` 输出 JSON Lines 事件流。
+- `cc team run --otlp <file>` 写入 OTLP/JSON span；每次执行产生一个 `team.task` span，并带有
+  `workflow.run_id` 和 `workflow.name`。
+- `cc team queue ... --json` 每次命令输出一个 JSON 对象，不是 JSON Lines 事件流。
+- 使用 `queue status` 获取锁内的一致状态视图。
+
+不要用高频直接读取队列 JSON 文件代替 `queue status`。原始读取不参与锁协议；Windows 上还
+可能与原子替换发生短暂争用。只读监控若必须访问原始文件，应降低频率并实现退避和重试。
+
+TeamRunner 库内部有有界 mailbox 接口，但当前公共 CLI 没有 `cc team send`，分布式队列也没有
+teammate 消息命令。不要把定向消息当作现有 CLI 工作流契约。
+
+## 面向 CLI 使用者的硬限制
+
+| 项目                                        | 限制                              |
+| ------------------------------------------- | --------------------------------- |
+| 本地 teammate                               | `1` 至 `64`；默认 `2`             |
+| 本地任务图                                  | 最多 10,000 个任务                |
+| 本地依赖边                                  | 最多 100,000 条                   |
+| 本地任务文件 / 状态                         | 最大 64 MiB                       |
+| 本地 `scopePaths`                           | 每任务最多 128 项                 |
+| 本地控制日志                                | 最多 10,000 个事件、最大 8 MiB    |
+| 队列任务图文件                              | 1 字节至 64 MiB                   |
+| 队列状态                                    | 最大 64 MiB                       |
+| 分布式 Agent prompt                         | 每任务最大 1 MiB                  |
+| 分布式 `sparsePaths` / `symlinkDirectories` | 每字段每任务最多 128 项           |
+| 自动任务尝试                                | 默认最多 3 次，且仍受全局预算限制 |
+| 队列 worker 启动                            | 每次 `queue worker` 一个 OS 进程  |
+
+10,000 任务、64 worker 的规模测试是同一进程内的 `TeamRunner` 异步 worker 测试，不代表
+64 个分布式 OS 进程的生产保证。跨平台分布式发布 soak 使用 2 个 worker 进程验证确定性
+DAG、故障和恢复流程；它也不等价于 live-model 质量测试。
+
+## 安全边界
+
+### 可信输入和状态
+
+- `command` 会被 shell 原样执行，任务图必须视为代码。
+- `prompt`、权限、预算、模型和 checkpoint 配置同样属于执行 authority。
+- 本地状态和队列状态可能包含命令、提示、预算和权限信息，应由严格 ACL 保护。
+- 队列状态未签名。`queueId`、摘要和 revision 是一致性、误绑定和回滚检测锚点，不是来源认证。
+- 能写队列状态或其可信父目录的主体属于控制面 TCB。
+
+### 文件系统与进程边界
+
+- 路径身份检查要求状态文件父目录及祖先可信。
+- Node.js 没有完整的 `openat`/handle-relative authority，不能消除敌对可写父目录下的所有
+  ABA 竞态。
+- Windows 在最终检查与进程创建之间仍存在独立 TOCTOU 窗口。
+- Linux 托管执行依赖受信的隔离启动器和 `bwrap` 能力。
+- Windows 使用受限 token 和 kill-on-close Job 等平台原语。
+- macOS 在无法证明所需进程树隔离时会 fail closed。
+- POSIX 清理不能证明捕获主动 `setsid` 逃逸的后代。
+- 外部强杀主 CLI 进程时，JavaScript `finally` 不保证运行；恢复必须依赖耐久状态和显式协调。
+
+### 队列边界
+
+- 队列依赖共享本地文件系统与文件锁，不提供复制、仲裁、BFT 或多主共识。
+- 不承诺任意 NFS/SMB 实现都具有所需锁和原子替换语义。
+- `scopePaths` 只影响本地调度，不限制进程实际写入。
+- writable symlink 依赖目录会绕过部分 worktree 隔离。
+- deterministic soak 验证故障协议，不验证实时模型质量、供应商可用性或外部 API 幂等性。
+
+## 常见问题
+
+| 现象                                           | 原因与处理                                                        |
+| ---------------------------------------------- | ----------------------------------------------------------------- |
+| `--exec` 使用默认 teammate 数时报必须 worktree | 默认并发为 2；改用 `--teammates 1` 或启用 `--worktree`            |
+| `queue init` 报 unknown option `--queue-id`    | 这是预期行为；该值由初始化生成，只用于后续命令                    |
+| 状态路径在仓库内被拒绝                         | 把状态和 checkpoint 存储移到任务不可写的仓库外可信目录            |
+| 新运行提示状态已存在                           | 使用 `--resume`，或选择新的状态路径；CLI 不会静默覆盖             |
+| v2–v4 状态无法恢复                             | 不受支持；只有 v5 可通过一次 `--resume` 迁移到 v6                 |
+| 恢复时提高 cap 被拒绝                          | 恢复 authority 只能保持或收紧，不能扩权                           |
+| task 卡在 adjudication                         | 先刷新 status/bindings 和证据，再显式选择 retry、accept 或 cancel |
+| authority/attempt/evidence mismatch            | 状态已经变化；重新查询，不能复用旧 digest                         |
+| finalization blocked                           | 检查冲突、Git 漂移、未完成任务和待裁决案例；worktree 会保留       |
+| managed checkpoint fail closed                 | 检查平台隔离、可信路径和 Process Broker 前置条件                  |
+| token/USD 预算下 Agent 失败                    | 检查 usage 与模型价格；未知计量在启用 cap 时不会按零处理          |
+| worker 超过本地 `--max-tasks` 后退出           | 这是单 worker 上限；启动新 worker，但不能改变初始化时的全局预算   |
 
 ## 相关文档
 
-- [Cowork 多智能体协作系统](./cowork.md) — master-worker 模式的多智能体系统（Agent Team 的姊妹能力）
-- [CLI Agent 模式](./cli-agent.md) — `cc agent -p` 无头执行（`--agent` 任务的底层）
-- [可靠性评测 `cc eval`](./cli-eval.md) — 任务成功率评测 + 趋势报告（同 Phase 7 CI 门思路）
-- [A2A 协议](./a2a-protocol.md) — 代理间通信协议
-- [CLI 对标 Claude Code 优化计划](/design/CLAUDE_CODE_CLI_PARITY_OPTIMIZATION_PLAN) Phase 4（Agent Team）
+- [CLI Agent 模式](./cli-agent.md)
+- [CLI 安全沙箱](./cli-sandbox.md)
+- [Checkpoint 与回滚](./checkpoint.md)
+- [Cowork 多智能体协作](./cowork.md)
+- [CLI 对标 Claude Code 优化计划](/design/CLAUDE_CODE_CLI_PARITY_OPTIMIZATION_PLAN)

@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — cc CLI 0.162.189: managed rollback and distributed Agent Teams closure
+
+> `chainlesschain` **0.162.188 → 0.162.189** (2026-07-31).
+> CLI-only release metadata; `@chainlesschain/personal-data-hub` remains
+> **0.4.57** and `@chainlesschain/agent-sdk` remains **0.1.7**.
+
+- **Managed workspace rollback**: Process Broker-managed workspace write paths
+  record durable recovery evidence, establish checkpoints at accepted
+  boundaries, and apply fenced rollback after failure, cancellation, or
+  timeout. `full`, `partial`, and `none` coverage outcomes remain explicit,
+  while unsupported external side effects stay outside the rollback guarantee.
+- **Distributed Agent Teams authority**: local schema v6 is the current state
+  authority, with v5 accepted only through CLI-owned resume migration. The
+  separate distributed queue schema v1 uses queue authority digests, leases,
+  and compare-and-swap fences for supported shared-filesystem coordination; it
+  is not a consensus or network-partition-tolerant queue.
+- **Wall-clock lifecycle fence**: linearized `startedAt` and `observedAt`
+  checks surround executor activity, active managed shell and agent work is
+  aborted when the wall-clock budget expires, and commit/checkpoint publication
+  is fenced so late results cannot become completed tasks. Accepted committed
+  evidence instead enters explicit adjudication.
+- **CLI-owned IDE controls**: VS Code and JetBrains surfaces observe the raw
+  local v6 or distributed queue v1 JSON as read-only state and route takeover,
+  recovery, and adjudication through CLI-owned authority, digest, lease, and
+  evidence fences.
+- **Validated implementation candidate**: candidate
+  `7df6feced4670ac71d19548752d18ac4cc225025` completed the
+  [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/30549100935),
+  [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/30549100289),
+  [short distributed soak](https://github.com/chainlesschain/chainlesschain/actions/runs/30549100307),
+  and [long distributed soak](https://github.com/chainlesschain/chainlesschain/actions/runs/30549142504)
+  gates successfully.
+- **Final release-SHA gate remains mandatory**: this version and changelog
+  preparation creates a distinct final release commit. Publication still
+  requires that exact final release SHA to pass the authoritative required
+  matrices; candidate and local results do not authorize publication.
+
 ### Added — cc CLI 0.162.188: Auto mode safety classifier release gate
 
 > `chainlesschain` **0.162.187 → 0.162.188** (2026-07-29).

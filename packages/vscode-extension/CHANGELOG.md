@@ -2,6 +2,21 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.37] - Distributed Agent Team controls (2026-07-31)
+
+- Observe current local Agent Team schema v6 authority and separate distributed
+  queue schema v1 snapshots; legacy local v5 state must first pass through the
+  CLI-owned resume migration.
+- Route takeover, managed checkpoint recovery, and side-effect adjudication
+  through the resolved CLI with exact state or queue authority digests plus
+  lease and evidence fences, so stale UI actions fail closed.
+- Keep raw Agent Team and queue JSON read-only in the IDE: file watching and
+  refresh update projections, while all authoritative mutations remain
+  CLI-owned compare-and-swap operations.
+- This entry prepares extension release metadata only. Version 0.37.37 is not
+  claimed as published, and its exact release commit remains subject to the
+  required release gates.
+
 ## [0.37.36] - Retry, collaboration, and plugin recovery governance (2026-07-28)
 
 - Show measured tool duration, observed tool retries, and controlled streaming

@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.162.189",
+      "cliVersions": ["0.162.188", "0.162.189"],
+      "date": "2026-07-31",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Added — cc CLI 0.162.189: managed rollback and distributed Agent Teams closure",
+          "body": "> `chainlesschain` **0.162.188 → 0.162.189** (2026-07-31).\n> CLI-only release metadata; `@chainlesschain/personal-data-hub` remains\n> **0.4.57** and `@chainlesschain/agent-sdk` remains **0.1.7**.\n\n- **Managed workspace rollback**: Process Broker-managed workspace write paths\n  record durable recovery evidence, establish checkpoints at accepted\n  boundaries, and apply fenced rollback after failure, cancellation, or\n  timeout. `full`, `partial`, and `none` coverage outcomes remain explicit,\n  while unsupported external side effects stay outside the rollback guarantee.\n- **Distributed Agent Teams authority**: local schema v6 is the current state\n  authority, with v5 accepted only through CLI-owned resume migration. The\n  separate distributed queue schema v1 uses queue authority digests, leases,\n  and compare-and-swap fences for supported shared-filesystem coordination; it\n  is not a consensus or network-partition-tolerant queue.\n- **Wall-clock lifecycle fence**: linearized `startedAt` and `observedAt`\n  checks surround executor activity, active managed shell and agent work is\n  aborted when the wall-clock budget expires, and commit/checkpoint publication\n  is fenced so late results cannot become completed tasks. Accepted committed\n  evidence instead enters explicit adjudication.\n- **CLI-owned IDE controls**: VS Code and JetBrains surfaces observe the raw\n  local v6 or distributed queue v1 JSON as read-only state and route takeover,\n  recovery, and adjudication through CLI-owned authority, digest, lease, and\n  evidence fences.\n- **Validated implementation candidate**: candidate\n  `7df6feced4670ac71d19548752d18ac4cc225025` completed the\n  [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/30549100935),\n  [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/30549100289),\n  [short distributed soak](https://github.com/chainlesschain/chainlesschain/actions/runs/30549100307),\n  and [long distributed soak](https://github.com/chainlesschain/chainlesschain/actions/runs/30549142504)\n  gates successfully.\n- **Final release-SHA gate remains mandatory**: this version and changelog\n  preparation creates a distinct final release commit. Publication still\n  requires that exact final release SHA to pass the authoritative required\n  matrices; candidate and local results do not authorize publication."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.162.188",
       "cliVersions": ["0.162.187", "0.162.188"],
       "date": "2026-07-29",
