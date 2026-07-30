@@ -102,7 +102,7 @@ async function makeFixture(runId, { taskCount = 1 } = {}) {
   };
 }
 
-function runFinalizeChild(fixture, mode, finalizerId) {
+function runFinalizeChild(fixture, mode, finalizerId, readyPath = null) {
   return new Promise((resolve) => {
     const child = spawn(
       process.execPath,
@@ -113,6 +113,7 @@ function runFinalizeChild(fixture, mode, finalizerId) {
         fixture.runId,
         mode,
         finalizerId,
+        ...(readyPath ? [readyPath] : []),
       ],
       {
         cwd: path.dirname(workerFixture),
@@ -141,6 +142,15 @@ function runFinalizeChild(fixture, mode, finalizerId) {
       resolve({ code, output, stdout, stderr });
     });
   });
+}
+
+async function waitForFile(filePath, timeoutMs = 10_000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (fs.existsSync(filePath)) return;
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+  throw new Error(`Timed out waiting for finalizer readiness: ${filePath}`);
 }
 
 function expectOnlyPrimaryWorktree(repo) {
@@ -398,8 +408,14 @@ describe("distributed finalization real Git recovery", () => {
     { timeout: 60_000 },
     async () => {
       const fixture = await makeFixture("finalize-concurrent");
-      const slow = runFinalizeChild(fixture, "slow", "slow-live-finalizer");
-      await new Promise((resolve) => setTimeout(resolve, 150));
+      const readyPath = path.join(fixture.root, "slow-finalizer.ready");
+      const slow = runFinalizeChild(
+        fixture,
+        "slow",
+        "slow-live-finalizer",
+        readyPath,
+      );
+      await waitForFile(readyPath);
       const competitor = await runFinalizeChild(
         fixture,
         "normal",

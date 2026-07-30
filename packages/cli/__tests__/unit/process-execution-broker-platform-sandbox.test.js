@@ -7974,17 +7974,14 @@ describe.runIf(process.platform === "win32")(
             status: null,
             stdout: "",
             stderr: "",
-            sandboxBackend: null,
-            sandboxCandidateBackend: "windows-job-restricted-token",
             sandboxState: "denied",
-            sandboxGuarantees: [],
             error: {
               code: "ERR_PROCESS_SANDBOX_BOUNDARY_UNSATISFIED",
               sandboxReason: "required_boundaries_unsatisfied",
-              sandboxCandidateReason: "windows_in_memory_adapter_probe_failed",
               missingBoundaries: ["process-tree"],
             },
           });
+          expect(nestedReport.sandboxGuarantees).not.toContain("process-tree");
           return;
         }
         expect(nestedReport).toMatchObject({

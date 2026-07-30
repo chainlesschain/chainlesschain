@@ -1,15 +1,25 @@
+import fs from "node:fs";
 import {
   finalizeDistributedQueue,
   TeamDistributedCliError,
 } from "../../src/commands/team-distributed.js";
 import { TeamWorktreeCoordinator } from "../../src/lib/agent-team/team-worktree.js";
 
-const [state, repo, runId, mode = "normal", finalizerId = "fixture-finalizer"] =
-  process.argv.slice(2);
+const [
+  state,
+  repo,
+  runId,
+  mode = "normal",
+  finalizerId = "fixture-finalizer",
+  readyPath = null,
+] = process.argv.slice(2);
 
 class FinalizeFixtureCoordinator extends TeamWorktreeCoordinator {
   integrate(options = {}) {
     if (mode === "slow" && options.merge !== true) {
+      if (readyPath) {
+        fs.writeFileSync(readyPath, "ready\n");
+      }
       Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 750);
     }
     const result = super.integrate(options);

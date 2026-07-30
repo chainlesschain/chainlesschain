@@ -69,7 +69,6 @@ jobs:
       # shell-worktree fallback. Agent work is a deterministic contract,
       # worktree, and checkpoint exercise without a live model.
       CC_TEAM_SOAK_REQUIRE_MANAGED_AGENT: ${{ matrix.os == 'windows-latest' && 'true' || 'false' }}
-      CC_TEAM_SOAK_OUTPUT: ${{ runner.temp }}/cli-team-soak-result.json
     steps:
       - name: Checkout exact soak commit
         uses: actions/checkout@v5
@@ -124,6 +123,8 @@ jobs:
             "${expected_script_oid}"
 
       - name: Run managed-process probe and deterministic Agent contract soak
+        env:
+          CC_TEAM_SOAK_OUTPUT: ${{ runner.temp }}/cli-team-soak-result.json
         run: npm run test:cli-team-soak
 
       - name: Upload Agent Team soak result
