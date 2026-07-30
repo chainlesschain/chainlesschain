@@ -17,6 +17,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v5
@@ -30,9 +32,9 @@ jobs:
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
 
-      - name: Run Jest tests (no coverage)
-        id: jest
-        run: npm run test:jest
+      - name: Run CLI tests
+        id: cli
+        run: npm test
 
       - name: Run Vitest tests (no coverage)
         id: vitest
@@ -45,11 +47,11 @@ jobs:
         with:
           script: |
             const mark = (s) => s === 'success' ? '✅' : s === 'skipped' ? '⏭️' : '❌';
-            const jest = '${{ steps.jest.outcome }}';
+            const cli = '${{ steps.cli.outcome }}';
             const vitest = '${{ steps.vitest.outcome }}';
             const output = `## 🧪 Test Results
 
-            - ${mark(jest)} Jest tests: \`${jest}\`
+            - ${mark(cli)} CLI tests: \`${cli}\`
             - ${mark(vitest)} Vitest tests: \`${vitest}\`
 
             For detailed coverage reports, please check the full test workflow.
@@ -70,6 +72,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v5
