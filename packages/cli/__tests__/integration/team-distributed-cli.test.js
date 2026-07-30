@@ -3,6 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { Command } from "commander";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   adjudicateDistributedQueue,
@@ -11,6 +12,7 @@ import {
   initDistributedQueue,
   interruptDistributedQueue,
   recoverDistributedQueueCheckpoint,
+  registerTeamDistributedCommands,
   runDistributedWorker,
 } from "../../src/commands/team-distributed.js";
 import { TeamDistributedQueue } from "../../src/lib/agent-team/team-distributed-queue.js";
@@ -280,6 +282,59 @@ afterEach(() => {
 });
 
 describe("team distributed CLI", () => {
+  it("generates init authority instead of accepting ignored caller pins", () => {
+    for (const invalidOptions of [
+      { queueId: "caller-queue" },
+      { authorityDigest: "a".repeat(64) },
+    ]) {
+      expect(() => initDistributedQueue(invalidOptions)).toThrowError(
+        expect.objectContaining({ code: "TEAM_QUEUE_INVALID_OPTION" }),
+      );
+    }
+
+    const program = new Command().exitOverride().configureOutput({
+      writeErr() {},
+    });
+    const team = program.command("team");
+    const queue = registerTeamDistributedCommands(team, {
+      logger: { log() {}, error() {} },
+    });
+    const init = queue.commands.find((command) => command.name() === "init");
+    const status = queue.commands.find(
+      (command) => command.name() === "status",
+    );
+
+    expect(init.options.map((option) => option.long)).not.toContain(
+      "--queue-id",
+    );
+    expect(init.options.map((option) => option.long)).not.toContain(
+      "--authority-digest",
+    );
+    expect(status.options.map((option) => option.long)).toEqual(
+      expect.arrayContaining(["--queue-id", "--authority-digest"]),
+    );
+    expect(() =>
+      program.parse(
+        [
+          "team",
+          "queue",
+          "init",
+          "--tasks",
+          "tasks.json",
+          "--state",
+          "queue.json",
+          "--run-id",
+          "run-1",
+          "--queue-id",
+          "caller-queue",
+        ],
+        { from: "user" },
+      ),
+    ).toThrowError(
+      expect.objectContaining({ code: "commander.unknownOption" }),
+    );
+  });
+
   it("bridges a zero-device task graph only on affected Windows libuv", () => {
     const fixture = makeRepo();
     writeGraph(fixture.graph, [
