@@ -237,7 +237,7 @@ describe("TeamWorktreeCoordinator process contracts", () => {
 });
 
 describe("TeamWorktreeCoordinator.makeRunTask", () => {
-  function checkpointBroker({ rollbackFails = false } = {}) {
+  function checkpointBroker({ rollbackFails = false, onAccept = null } = {}) {
     const calls = [];
     return {
       calls,
@@ -279,6 +279,7 @@ describe("TeamWorktreeCoordinator.makeRunTask", () => {
           accept() {
             calls.push({ type: "accept" });
             state = "committed";
+            if (typeof onAccept === "function") onAccept();
             return snapshot().evidence;
           },
           rollback() {
@@ -530,6 +531,165 @@ describe("TeamWorktreeCoordinator.makeRunTask", () => {
       writeManifestDigest: fakeDigest("writes-committed"),
       evidenceDigest: fakeDigest("evidence-committed"),
     });
+  });
+
+  it("rolls back when the wall expires while publishing validated checkpoint evidence", async () => {
+    const broker = checkpointBroker();
+    const phases = [];
+    let exhausted = false;
+    const oid = fakeOid("wall-before-accept");
+    _deps.createWorktree = () => ({ path: "/wt/team-wall-before-accept" });
+    _deps.resolveGitRef = () => oid;
+    _deps.commit = vi.fn(() => true);
+    _deps.runShell = vi.fn(async () => {});
+    const coord = new TeamWorktreeCoordinator("/repo", {
+      runId: "wall-before-accept-run",
+      checkpointBroker: broker,
+      onCheckpoint: ({ phase }) => {
+        phases.push(phase);
+        if (phase === "validated") exhausted = true;
+      },
+    });
+
+    await expect(
+      coord.makeRunTask()({
+        key: "wall-before-accept",
+        task: { metadata: { command: "build" } },
+        budget: {
+          reason: () => (exhausted ? "max-wall-ms" : null),
+        },
+      }),
+    ).rejects.toMatchObject({
+      code: "TEAM_WORKTREE_POST_COMMIT_ADJUDICATION_REQUIRED",
+      retryable: false,
+      workspaceCheckpoint: {
+        state: "rolled_back",
+        recoveryRequired: false,
+      },
+    });
+    expect(broker.calls.map((item) => item.type)).toEqual([
+      "begin",
+      "running",
+      "rollback",
+    ]);
+    expect(phases).toEqual(["prepared", "running", "validated", "rolled-back"]);
+    expect(coord.snapshot().records[0]).toMatchObject({
+      completed: false,
+      workspaceCheckpoint: { state: "rolled_back" },
+    });
+  });
+
+  it("fails closed with committed evidence when the wall expires during checkpoint acceptance", async () => {
+    let exhausted = false;
+    const broker = checkpointBroker({
+      onAccept: () => {
+        exhausted = true;
+      },
+    });
+    const phases = [];
+    const oid = fakeOid("wall-during-accept");
+    _deps.createWorktree = () => ({ path: "/wt/team-wall-during-accept" });
+    _deps.resolveGitRef = () => oid;
+    _deps.commit = vi.fn(() => true);
+    _deps.runShell = vi.fn(async () => {});
+    const coord = new TeamWorktreeCoordinator("/repo", {
+      runId: "wall-during-accept-run",
+      checkpointBroker: broker,
+      onCheckpoint: ({ phase }) => phases.push(phase),
+    });
+
+    await expect(
+      coord.makeRunTask()({
+        key: "wall-during-accept",
+        task: { metadata: { command: "build" } },
+        budget: {
+          reason: () => (exhausted ? "max-wall-ms" : null),
+        },
+      }),
+    ).rejects.toMatchObject({
+      code: "TEAM_WORKTREE_CHECKPOINT_SETTLEMENT_FAILED",
+      retryable: false,
+      taskError: {
+        code: "TEAM_WORKTREE_POST_COMMIT_ADJUDICATION_REQUIRED",
+      },
+      workspaceCheckpoint: {
+        state: "committed",
+        recoveryRequired: false,
+      },
+    });
+    expect(broker.calls.map((item) => item.type)).toEqual([
+      "begin",
+      "running",
+      "accept",
+    ]);
+    expect(phases).toEqual(["prepared", "running", "validated", "committed"]);
+    expect(coord.snapshot().records[0]).toMatchObject({
+      completed: false,
+      workspaceCheckpoint: { state: "committed" },
+    });
+  });
+
+  it("keeps restorable completed evidence when the wall expires during completion publish", async () => {
+    const broker = checkpointBroker();
+    const phases = [];
+    let exhausted = false;
+    const oid = fakeOid("wall-during-completed-publish");
+    _deps.createWorktree = () => ({
+      path: "/wt/team-wall-during-completed-publish",
+    });
+    _deps.resolveGitRef = () => oid;
+    _deps.commit = vi.fn(() => true);
+    _deps.runShell = vi.fn(async () => {});
+    const coord = new TeamWorktreeCoordinator("/repo", {
+      runId: "wall-during-completed-publish-run",
+      checkpointBroker: broker,
+      onCheckpoint: ({ phase }) => {
+        phases.push(phase);
+        if (phase === "completed") exhausted = true;
+      },
+    });
+
+    await expect(
+      coord.makeRunTask()({
+        key: "wall-during-completed-publish",
+        task: { metadata: { command: "build" } },
+        budget: {
+          reason: () => (exhausted ? "max-wall-ms" : null),
+        },
+      }),
+    ).rejects.toMatchObject({
+      code: "TEAM_WORKTREE_CHECKPOINT_SETTLEMENT_FAILED",
+      retryable: false,
+      taskError: {
+        code: "TEAM_WORKTREE_POST_COMMIT_ADJUDICATION_REQUIRED",
+      },
+      workspaceCheckpoint: {
+        state: "committed",
+        recoveryRequired: false,
+      },
+    });
+    expect(broker.calls.map((item) => item.type)).toEqual([
+      "begin",
+      "running",
+      "accept",
+    ]);
+    expect(phases).toEqual([
+      "prepared",
+      "running",
+      "validated",
+      "committed",
+      "completed",
+    ]);
+    const snapshot = coord.snapshot();
+    expect(snapshot.records[0]).toMatchObject({
+      committed: true,
+      completed: true,
+      commitOid: oid,
+      workspaceCheckpoint: { state: "committed" },
+    });
+    expect(
+      new TeamWorktreeCoordinator("/repo", { snapshot }).snapshot(),
+    ).toEqual(snapshot);
   });
 
   it("rolls back a failed managed executor and preserves takeover adjudication", async () => {

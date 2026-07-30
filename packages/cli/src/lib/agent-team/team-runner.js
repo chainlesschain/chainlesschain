@@ -311,7 +311,9 @@ export class TeamRunner {
           }
           for (const controller of this._claimControllers) {
             try {
-              controller.abort(new Error("Team wall-clock budget exhausted"));
+              const error = new Error("Team wall-clock budget exhausted");
+              error.code = "TEAM_WALL_BUDGET_EXHAUSTED";
+              controller.abort(error);
             } catch {
               /* every settlement remains fenced by its lease id */
             }
@@ -514,6 +516,29 @@ export class TeamRunner {
         }
         this._abandonClaim(holder, key, claim);
         this._setState(holder, "shutdown", { reason: "fatal-error" });
+        return;
+      }
+      // `beforeTask` may persist a durable claim slowly enough to cross the
+      // wall-clock deadline. The timer's AbortSignal is advisory: this is the
+      // last authoritative fence before handing control to the executor.
+      // Preserve an explicit human interruption so `_execute` can settle it
+      // fail-closed for adjudication instead of silently abandoning it.
+      const preparedBudgetReason = this.budget?.reason?.();
+      if (
+        !claim.interruption &&
+        !claim.coordinatorAbort &&
+        preparedBudgetReason === "max-wall-ms"
+      ) {
+        if (!this._budgetStopped) {
+          this._budgetStopped = true;
+          this._emit("run:budget-exhausted", {
+            reason: preparedBudgetReason,
+          });
+        }
+        this._abandonClaim(holder, key, claim);
+        this._setState(holder, "shutdown", {
+          reason: preparedBudgetReason,
+        });
         return;
       }
       await this._execute(holder, key, claim);
@@ -942,6 +967,24 @@ export class TeamRunner {
       }
       if (claim.coordinatorAbort) {
         throw claim.coordinatorAbort;
+      }
+      // Executors are allowed to return after observing (or even ignoring) an
+      // aborted signal. Re-read the authoritative budget before recording or
+      // completing so a late result can never become a phantom success.
+      if (
+        this.budget?.reason?.() === "max-wall-ms" ||
+        claim.abortController.signal.reason?.code ===
+          "TEAM_WALL_BUDGET_EXHAUSTED"
+      ) {
+        if (!this._budgetStopped) {
+          this._budgetStopped = true;
+          this._emit("run:budget-exhausted", {
+            reason: "max-wall-ms",
+          });
+        }
+        const error = new Error("Team wall-clock budget exhausted");
+        error.code = "TEAM_WALL_BUDGET_EXHAUSTED";
+        throw error;
       }
       // Fold usage/cost into the team budget regardless — the task DID execute
       // and consumed resources. `--exec` shell tasks carry no usage → only the

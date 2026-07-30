@@ -1993,6 +1993,7 @@ describe("TeamDistributedQueue durable registry adapter", () => {
       tasksSettled: 2,
       tokens: 80,
       spentUsd: 1.5,
+      observedAt: clock.now(),
       reason: "max-tasks",
     });
   });

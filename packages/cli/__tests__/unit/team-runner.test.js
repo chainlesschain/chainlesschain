@@ -642,6 +642,152 @@ describe("TeamRunner team budget", () => {
     expect(summary.budgetReason).toBe("max-wall-ms");
   });
 
+  it("abandons a prepared claim when beforeTask crosses the wall deadline", async () => {
+    let now = 1000;
+    const reg = new TaskLeaseRegistry({
+      now: () => now,
+      defaultTtlMs: 1_000_000,
+    });
+    reg.addTask({ key: "prepared-wall", title: "prepared-wall" });
+    const budget = new TeamBudget({
+      maxTokens: 100,
+      maxWallMs: 10_000,
+      now: () => now,
+    });
+    let enteredBeforeTask;
+    const beforeTaskEntered = new Promise((resolve) => {
+      enteredBeforeTask = resolve;
+    });
+    let releaseBeforeTask;
+    const beforeTaskGate = new Promise((resolve) => {
+      releaseBeforeTask = resolve;
+    });
+    const events = [];
+    let executions = 0;
+    const runner = new TeamRunner(reg, {
+      teammates: 1,
+      budget,
+      onEvent: (event) => events.push(event),
+      beforeTask: async () => {
+        enteredBeforeTask();
+        await beforeTaskGate;
+      },
+      runTask: async () => {
+        executions += 1;
+      },
+    });
+
+    const running = runner.run();
+    await beforeTaskEntered;
+    expect(budget.status()).toMatchObject({
+      reservations: 1,
+      reservedTokens: 100,
+    });
+    now += 10_000;
+    releaseBeforeTask();
+
+    const summary = await running;
+    expect(executions).toBe(0);
+    expect(summary).toMatchObject({
+      done: false,
+      executions: 0,
+      budgetStopped: true,
+      budgetReason: "max-wall-ms",
+      stats: { pending: 1, completed: 0 },
+      members: [
+        expect.objectContaining({
+          state: "shutdown",
+        }),
+      ],
+    });
+    expect(reg.getTask("prepared-wall")).toMatchObject({
+      status: "pending",
+      lease: null,
+    });
+    expect(budget.status()).toMatchObject({
+      tasks: 0,
+      reservations: 0,
+      reservedTokens: 0,
+      reason: "max-wall-ms",
+    });
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: "run:budget-exhausted",
+        reason: "max-wall-ms",
+      }),
+    );
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: "teammate:state",
+        state: "shutdown",
+        reason: "max-wall-ms",
+      }),
+    );
+  });
+
+  it("rejects a late executor result after the wall deadline", async () => {
+    const reg = freshRegistry();
+    reg.addTask({ key: "late-wall", title: "late-wall" });
+    const budget = new TeamBudget({
+      maxWallMs: 10,
+    });
+    const events = [];
+    let executions = 0;
+    let signalWasAborted = false;
+    const runner = new TeamRunner(reg, {
+      teammates: 1,
+      budget,
+      onEvent: (event) => events.push(event),
+      runTask: async ({ signal }) => {
+        executions += 1;
+        return new Promise((resolve) => {
+          const returnLateResult = () => {
+            signalWasAborted = signal.aborted;
+            // Deliberately turn an abort into a successful-looking result.
+            resolve("late result");
+          };
+          if (signal.aborted) {
+            returnLateResult();
+            return;
+          }
+          signal.addEventListener("abort", returnLateResult, { once: true });
+        });
+      },
+    });
+
+    const summary = await runner.run();
+    expect(executions).toBe(1);
+    expect(signalWasAborted).toBe(true);
+    expect(summary).toMatchObject({
+      done: false,
+      success: false,
+      executions: 1,
+      budgetStopped: true,
+      budgetReason: "max-wall-ms",
+      stats: { pending: 1, completed: 0 },
+    });
+    expect(reg.getTask("late-wall")).toMatchObject({
+      status: "pending",
+      lease: null,
+      metadata: {
+        lastError: "Team wall-clock budget exhausted",
+      },
+    });
+    expect(budget.status()).toMatchObject({
+      tasks: 1,
+      reservations: 0,
+      reason: "max-wall-ms",
+    });
+    expect(events.some((event) => event.type === "task:completed")).toBe(false);
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: "task:failed",
+        retry: true,
+        error: "Team wall-clock budget exhausted",
+      }),
+    );
+  });
+
   it("does not complete a task whose USD-capped usage cannot be priced", async () => {
     const reg = freshRegistry();
     reg.maxAttempts = 3;

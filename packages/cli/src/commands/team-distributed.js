@@ -1069,6 +1069,84 @@ function completedResult(task) {
   return task?.status === "completed" ? task.metadata?.result || null : null;
 }
 
+function wallBudgetForQueueStats(queueStats, queue, deps) {
+  const persisted = queueStats?.budget;
+  const maxWallMs = Number(persisted?.maxWallMs);
+  if (!Number.isFinite(maxWallMs) || maxWallMs <= 0) return null;
+
+  const persistedStarted = Number.isFinite(persisted?.startedAt);
+  let startedAt = persistedStarted ? persisted.startedAt : null;
+  const status = () => {
+    const elapsedMs =
+      startedAt == null ? 0 : Math.max(0, deps.now() - startedAt);
+    return {
+      tasks: 0,
+      maxTasks: null,
+      tokens: 0,
+      maxTokens: null,
+      reservedTokens: 0,
+      spentUsd: 0,
+      maxUsd: null,
+      reservedUsd: 0,
+      reservations: 0,
+      unpricedUsage: false,
+      elapsedMs,
+      maxWallMs,
+      reason: elapsedMs >= maxWallMs ? "max-wall-ms" : null,
+    };
+  };
+
+  // Durable queue transactions remain the sole authority for task/token/USD
+  // reservations and settlement. This adapter carries only the wall
+  // deadline so TeamRunner can abort an active claim (including worktree
+  // commit/checkpoint work) instead of noticing the cap only at the next
+  // acquire. Refresh an as-yet-unused queue immediately before Runner starts:
+  // a peer that acquired before the refresh supplies the durable start, while
+  // a peer that acquires after it cannot receive an earlier deadline.
+  return {
+    maxWallMs,
+    start() {
+      if (startedAt == null) {
+        const refreshed = queue.budgetStatus();
+        if (
+          !Number.isFinite(refreshed?.startedAt) &&
+          !Number.isFinite(refreshed?.observedAt)
+        ) {
+          fail(
+            "TEAM_QUEUE_BUDGET_VIEW_INVALID",
+            "Distributed queue wall budget lacks a linearized observation time",
+          );
+        }
+        startedAt = Number.isFinite(refreshed.startedAt)
+          ? refreshed.startedAt
+          : refreshed.observedAt;
+      }
+      return this;
+    },
+    record() {
+      return this;
+    },
+    releaseReservation() {
+      return false;
+    },
+    status,
+    reason() {
+      return status().reason;
+    },
+    shouldStop() {
+      return status().reason != null;
+    },
+  };
+}
+
+function distributedTasksDone(tasks) {
+  return tasks.every(
+    (task) =>
+      ["completed", "cancelled"].includes(task.status) &&
+      task.metadata?.adjudication?.required !== true,
+  );
+}
+
 function importCompletedDependencies(coordinator, queue, task) {
   const imported = new Set(
     (coordinator.snapshot().records || []).map((record) => record.key),
@@ -1178,6 +1256,7 @@ function defaultDependencies(overrides = {}) {
     buildAgentPrompt: (prompt) => prompt,
     onRunner: null,
     resolveRepoRoot: defaultResolveRepoRoot,
+    now: () => Date.now(),
     git: (repoRoot, args) =>
       String(
         executionBroker.execFileSync("git", args, {
@@ -2292,14 +2371,22 @@ export async function runDistributedWorker(options, dependencyOverrides = {}) {
     optionalPositive(options.pollMs, "--poll-ms", { integer: true }) ?? 250;
   let remainingExecutions = localMaxTasks;
   const summaries = [];
+  const hasWallBudget = Number(opened.snapshot?.budget?.limits?.maxWallMs) > 0;
   // A runner exits when it sees no LOCAL in-flight work. In distributed mode
   // that may simply mean another process owns the dependency that will unlock
   // our next task. Keep observing the durable queue while a live lease exists,
   // then run another one-worker claim loop when the frontier advances.
   for (;;) {
+    if (summaries.length > 0 && remainingExecutions <= 0) break;
+    let queueStats = null;
     if (summaries.length > 0) {
-      if (opened.queue.allDone() || remainingExecutions <= 0) break;
-      const queueStats = opened.queue.stats();
+      queueStats = opened.queue.stats();
+      if (
+        queueStats.completed + queueStats.cancelled === queueStats.total &&
+        queueStats.adjudicationRequired === 0
+      ) {
+        break;
+      }
       if (queueStats.budget?.reason || queueStats.adjudicationRequired > 0) {
         break;
       }
@@ -2315,11 +2402,18 @@ export async function runDistributedWorker(options, dependencyOverrides = {}) {
         break;
       }
     }
+    if (hasWallBudget && queueStats == null) {
+      queueStats = opened.queue.stats();
+    }
     const runner = new deps.Runner(registry, {
       teammates: 1,
       ttlMs,
       renewEveryMs,
       maxTasks: remainingExecutions,
+      budget:
+        queueStats == null
+          ? null
+          : wallBudgetForQueueStats(queueStats, opened.queue, deps),
       emitHook: async () => {},
       beforeTask: ({ task }) => {
         importCompletedDependencies(coordinator, opened.queue, task);
@@ -2340,21 +2434,29 @@ export async function runDistributedWorker(options, dependencyOverrides = {}) {
     remainingExecutions -= round.executions;
     if (round.budgetStopped && round.executions === 0) break;
   }
+  const status = distributedQueueStatus(options, deps);
   const lastSummary = summaries.at(-1);
+  const done = distributedTasksDone(status.tasks);
+  const durableBudgetReason = status.stats.budget?.reason || null;
+  const durableStopReason = done ? null : durableBudgetReason;
+  const localBudgetReason = lastSummary?.budgetReason || null;
   const summary = {
     ...lastSummary,
-    done: opened.queue.allDone(),
-    success:
-      opened.queue.allDone() &&
-      opened.queue.stats().completed === opened.queue.stats().total,
+    done,
+    success: done && status.stats.completed === status.stats.total,
     executions: summaries.reduce((total, round) => total + round.executions, 0),
     maxConcurrent: Math.max(
       0,
       ...summaries.map((round) => round.maxConcurrent || 0),
     ),
     rounds: summaries.length,
+    budgetStopped:
+      lastSummary?.budgetStopped === true || durableStopReason != null,
+    budgetReason: localBudgetReason || durableStopReason,
+    localBudgetReason,
+    durableBudgetReason,
+    stats: status.stats,
   };
-  const status = distributedQueueStatus(options, deps);
   return {
     workerId,
     summary,

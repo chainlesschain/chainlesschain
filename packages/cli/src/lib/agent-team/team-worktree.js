@@ -1664,6 +1664,27 @@ export class TeamWorktreeCoordinator {
           : {}),
         ...details,
       });
+      const assertWallFence = (phase) => {
+        if (
+          context.signal?.aborted !== true &&
+          context.budget?.reason?.() !== "max-wall-ms"
+        ) {
+          return;
+        }
+        const message = `task "${key}" crossed the team wall-clock budget ${phase}`;
+        const failure =
+          context.signal?.aborted === true
+            ? abortReason(
+                context.signal,
+                "TEAM_WORKTREE_POST_COMMIT_ADJUDICATION_REQUIRED",
+                message,
+              )
+            : new Error(message);
+        throw requireAdjudication(
+          failure,
+          "TEAM_WORKTREE_POST_COMMIT_ADJUDICATION_REQUIRED",
+        );
+      };
       this._assertBaseTarget();
       const branch = this.branchFor(key);
       const dependencyCommits = this._planDependencyCommits(key, task);
@@ -2025,16 +2046,20 @@ export class TeamWorktreeCoordinator {
       }
 
       let accepted = false;
+      let verifiedCommitOid = null;
       try {
         const attempt = await executeAndValidate(true);
+        verifiedCommitOid = attempt.commitOid;
         this._publishCheckpoint(
           key,
           record,
           "validated",
           checkpointEvent({ verifiedCommitOid: attempt.commitOid }),
         );
+        assertWallFence("before checkpoint acceptance");
         guard.accept();
         accepted = true;
+        assertWallFence("during checkpoint acceptance");
         this._updateCheckpoint(
           key,
           record,
@@ -2042,13 +2067,16 @@ export class TeamWorktreeCoordinator {
           "committed",
           checkpointEvent({ verifiedCommitOid: attempt.commitOid }),
         );
+        assertWallFence("while publishing the committed checkpoint");
         const result = completeRecord(attempt);
+        assertWallFence("while materializing the completed worktree result");
         this._publishCheckpoint(
           key,
           record,
           "completed",
           checkpointEvent({ verifiedCommitOid: attempt.commitOid }),
         );
+        assertWallFence("while publishing checkpoint completion");
         return result;
       } catch (caughtError) {
         const taskError =
@@ -2061,6 +2089,14 @@ export class TeamWorktreeCoordinator {
               guard.snapshot(),
               key,
             );
+            if (verifiedCommitOid && record.completed !== true) {
+              this._publishCheckpoint(
+                key,
+                record,
+                "committed",
+                checkpointEvent({ verifiedCommitOid }),
+              );
+            }
           } catch {
             /* the durable transaction store remains authoritative */
           }

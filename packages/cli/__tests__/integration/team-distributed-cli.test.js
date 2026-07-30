@@ -15,6 +15,7 @@ import {
 } from "../../src/commands/team-distributed.js";
 import { TeamDistributedQueue } from "../../src/lib/agent-team/team-distributed-queue.js";
 import { TeamProcessCheckpointBroker } from "../../src/lib/agent-team/team-process-checkpoint.js";
+import { TeamRunner } from "../../src/lib/agent-team/team-runner.js";
 import executionBroker from "../../src/lib/process-execution-broker/index.js";
 import {
   SECURE_FILE_IDENTITY_ERROR,
@@ -122,6 +123,43 @@ function nodeWrite(file, value, { delay = 0, requireFiles = [] } = {}) {
     .join("");
   const source = `const fs=require('fs');setTimeout(()=>{${assertions}fs.writeFileSync(${JSON.stringify(file)},${JSON.stringify(value)})},${delay})`;
   return `node -e "eval(Buffer.from('${Buffer.from(source).toString("base64")}','base64').toString())"`;
+}
+
+function deferred() {
+  let resolve;
+  let reject;
+  const promise = new Promise((onResolve, onReject) => {
+    resolve = onResolve;
+    reject = onReject;
+  });
+  return { promise, resolve, reject };
+}
+
+function lightweightWorktreeCoordinator(runTask) {
+  return class LightweightWorktreeCoordinator {
+    constructor(_repoRoot, { snapshot } = {}) {
+      this._snapshot = snapshot || { records: [] };
+    }
+
+    isGitRepo() {
+      return true;
+    }
+
+    snapshot() {
+      return {
+        ...this._snapshot,
+        records: [...(this._snapshot.records || [])],
+      };
+    }
+
+    registerCompletedDependency() {}
+
+    seed() {}
+
+    makeRunTask() {
+      return runTask;
+    }
+  };
 }
 
 function spawnWorker({ state, repo, runId, workerId, mode = "run" }) {
@@ -235,6 +273,7 @@ function useDeterministicProcessTreeSandbox() {
 
 afterEach(() => {
   vi.restoreAllMocks();
+  vi.useRealTimers();
   for (const directory of temporaryDirectories.splice(0)) {
     fs.rmSync(directory, { recursive: true, force: true });
   }
@@ -488,6 +527,495 @@ describe("team distributed CLI", () => {
       rounds: 2,
     });
   });
+
+  it(
+    "restores durable wall elapsed time and aborts an active real runner claim",
+    { timeout: 30_000 },
+    async () => {
+      vi.useFakeTimers();
+      const initialNow = 2_000_000_000_000;
+      vi.setSystemTime(initialNow);
+      const fixture = makeRepo();
+      writeGraph(fixture.graph, [
+        {
+          key: "wall-active",
+          command: nodeWrite("never-written.txt", "unexpected\n"),
+        },
+      ]);
+      initDistributedQueue({
+        state: fixture.state,
+        repo: fixture.repo,
+        runId: "wall-active",
+        tasks: fixture.graph,
+        maxTasks: 5,
+        maxWallMs: 1_000,
+      });
+
+      const durableQueue = TeamDistributedQueue.open({
+        filePath: fixture.state,
+        runId: "wall-active",
+      });
+      const now = () => Date.now();
+      const started = deferred();
+      let activeSignal = null;
+      let runnerBudget = null;
+      let persistedStartedAt = null;
+      const WorktreeCoordinator = lightweightWorktreeCoordinator(
+        async ({ signal }) => {
+          activeSignal = signal;
+          started.resolve();
+          return new Promise((_resolve, reject) => {
+            if (signal.aborted) {
+              reject(signal.reason);
+              return;
+            }
+            signal.addEventListener("abort", () => reject(signal.reason), {
+              once: true,
+            });
+          });
+        },
+      );
+      const workerPromise = runDistributedWorker(
+        {
+          state: fixture.state,
+          repo: fixture.repo,
+          runId: "wall-active",
+          workerId: "wall-worker",
+        },
+        {
+          WorktreeCoordinator,
+          now,
+          onRunner(runner) {
+            // The initial queue view was still unused. Start the durable wall
+            // clock from a peer after that view but before Runner.start(), then
+            // advance partway through the cap. The adapter must refresh and use
+            // this persisted start rather than its earlier observation.
+            vi.setSystemTime(initialNow + 200);
+            const seed = durableQueue.acquire("wall-active", {
+              holder: "elapsed-seed",
+            });
+            expect(seed).toMatchObject({ ok: true });
+            expect(
+              durableQueue.release("wall-active", {
+                holder: "elapsed-seed",
+                leaseId: seed.lease.leaseId,
+              }),
+            ).toMatchObject({ ok: true });
+            persistedStartedAt = durableQueue.stats().budget.startedAt;
+            vi.setSystemTime(initialNow + 600);
+            expect(runner).toBeInstanceOf(TeamRunner);
+            runnerBudget = runner.budget;
+          },
+        },
+      );
+      await started.promise;
+
+      expect(activeSignal.aborted).toBe(false);
+      expect(runnerBudget).toBeTruthy();
+      expect(runnerBudget.maxWallMs).toBe(1_000);
+      expect(runnerBudget.status()).toMatchObject({
+        maxTasks: null,
+        maxWallMs: 1_000,
+        reason: null,
+      });
+      expect(persistedStartedAt).toBe(initialNow + 200);
+      expect(runnerBudget.status().elapsedMs).toBe(400);
+
+      await vi.advanceTimersByTimeAsync(601);
+      const worker = await workerPromise;
+      expect(activeSignal.aborted).toBe(true);
+      expect(worker.summary).toMatchObject({
+        done: false,
+        success: false,
+        executions: 1,
+        budgetStopped: true,
+        budgetReason: "max-wall-ms",
+        localBudgetReason: "max-wall-ms",
+        durableBudgetReason: "max-wall-ms",
+        stats: {
+          completed: 0,
+          leased: 0,
+          budget: {
+            reason: "max-wall-ms",
+            reservations: 0,
+          },
+        },
+      });
+      expect(worker.queue.stats).toBe(worker.summary.stats);
+      expect(worker.queue.stats.budget.startedAt).toBe(persistedStartedAt);
+    },
+  );
+
+  it(
+    "does not spend an unused durable wall cap while its refresh waits",
+    { timeout: 30_000 },
+    async () => {
+      vi.useFakeTimers();
+      const initialNow = 2_100_000_000_000;
+      vi.setSystemTime(initialNow);
+      const fixture = makeRepo();
+      writeGraph(fixture.graph, [
+        {
+          key: "wall-after-view",
+          command: nodeWrite("wall-after-view.txt", "done\n"),
+        },
+      ]);
+      initDistributedQueue({
+        state: fixture.state,
+        repo: fixture.repo,
+        runId: "wall-after-view",
+        tasks: fixture.graph,
+        maxTasks: 5,
+        maxWallMs: 1_000,
+      });
+
+      let delayedRefresh = false;
+      const Queue = {
+        open(options) {
+          const queue = TeamDistributedQueue.open(options);
+          return new Proxy(queue, {
+            get(target, property) {
+              if (property === "budgetStatus") {
+                return (...args) => {
+                  if (!delayedRefresh) {
+                    delayedRefresh = true;
+                    vi.setSystemTime(initialNow + 2_000);
+                  }
+                  return target.budgetStatus(...args);
+                };
+              }
+              const value = Reflect.get(target, property, target);
+              return typeof value === "function" ? value.bind(target) : value;
+            },
+          });
+        },
+      };
+      const runTask = vi.fn(async () => ({ marker: "executed-after-view" }));
+
+      const worker = await runDistributedWorker(
+        {
+          state: fixture.state,
+          repo: fixture.repo,
+          runId: "wall-after-view",
+          workerId: "wall-after-view-worker",
+        },
+        {
+          Queue,
+          WorktreeCoordinator: lightweightWorktreeCoordinator(runTask),
+          now: () => Date.now(),
+        },
+      );
+
+      expect(delayedRefresh).toBe(true);
+      expect(runTask).toHaveBeenCalledOnce();
+      expect(worker.summary).toMatchObject({
+        done: true,
+        success: true,
+        executions: 1,
+        budgetStopped: false,
+        budgetReason: null,
+        localBudgetReason: null,
+        durableBudgetReason: null,
+      });
+      expect(worker.queue.stats.budget).toMatchObject({
+        startedAt: initialNow + 2_000,
+        reason: null,
+        reservations: 0,
+      });
+    },
+  );
+
+  it(
+    "does not execute when the durable wall budget expired before the first runner",
+    { timeout: 30_000 },
+    async () => {
+      const fixture = makeRepo();
+      writeGraph(fixture.graph, [
+        {
+          key: "wall-expired",
+          command: nodeWrite("never-started.txt", "unexpected\n"),
+        },
+      ]);
+      initDistributedQueue({
+        state: fixture.state,
+        repo: fixture.repo,
+        runId: "wall-expired",
+        tasks: fixture.graph,
+        maxTasks: 5,
+        maxWallMs: 100,
+      });
+
+      const durableQueue = TeamDistributedQueue.open({
+        filePath: fixture.state,
+        runId: "wall-expired",
+      });
+      const seed = durableQueue.acquire("wall-expired", {
+        holder: "elapsed-seed",
+      });
+      expect(seed).toMatchObject({ ok: true });
+      expect(
+        durableQueue.release("wall-expired", {
+          holder: "elapsed-seed",
+          leaseId: seed.lease.leaseId,
+        }),
+      ).toMatchObject({ ok: true });
+
+      const now = () => Date.now() + 150;
+      const runTask = vi.fn(async () => ({ unexpected: true }));
+      let runnerBudget = null;
+      const worker = await runDistributedWorker(
+        {
+          state: fixture.state,
+          repo: fixture.repo,
+          runId: "wall-expired",
+          workerId: "expired-worker",
+        },
+        {
+          Queue: {
+            open(options) {
+              return TeamDistributedQueue.open({ ...options, now });
+            },
+          },
+          WorktreeCoordinator: lightweightWorktreeCoordinator(runTask),
+          now,
+          onRunner(runner) {
+            expect(runner).toBeInstanceOf(TeamRunner);
+            runnerBudget = runner.budget;
+          },
+        },
+      );
+
+      expect(runTask).not.toHaveBeenCalled();
+      expect(runnerBudget.reason()).toBe("max-wall-ms");
+      expect(worker.summary).toMatchObject({
+        done: false,
+        success: false,
+        executions: 0,
+        budgetStopped: true,
+        budgetReason: "max-wall-ms",
+        localBudgetReason: "max-wall-ms",
+        durableBudgetReason: "max-wall-ms",
+        stats: {
+          completed: 0,
+          leased: 0,
+          budget: {
+            reason: "max-wall-ms",
+            reservations: 0,
+          },
+        },
+      });
+    },
+  );
+
+  it(
+    "builds the final summary from one atomic status revision",
+    { timeout: 30_000 },
+    async () => {
+      const fixture = makeRepo();
+      writeGraph(fixture.graph, [
+        {
+          key: "atomic-summary",
+          command: nodeWrite("atomic-summary.txt", "done\n"),
+        },
+      ]);
+      initDistributedQueue({
+        state: fixture.state,
+        repo: fixture.repo,
+        runId: "atomic-summary",
+        tasks: fixture.graph,
+        maxTasks: 2,
+      });
+
+      let allDoneReads = 0;
+      let statusViewReads = 0;
+      let statsReads = 0;
+      let lateMutation = null;
+      const Queue = {
+        open(options) {
+          const queue = TeamDistributedQueue.open(options);
+          return new Proxy(queue, {
+            get(target, property) {
+              if (property === "allDone") {
+                return () => {
+                  allDoneReads += 1;
+                  throw new Error(
+                    "worker must derive terminal state from its atomic stats view",
+                  );
+                };
+              }
+              if (property === "stats") {
+                return (...args) => {
+                  statsReads += 1;
+                  return target.stats(...args);
+                };
+              }
+              if (property === "statusView") {
+                return (...args) => {
+                  statusViewReads += 1;
+                  const view = target.statusView(...args);
+                  lateMutation = target.addTask({
+                    key: "late-peer-task",
+                    title: "late peer task",
+                    metadata: { command: "unused" },
+                  });
+                  return view;
+                };
+              }
+              const value = Reflect.get(target, property, target);
+              return typeof value === "function" ? value.bind(target) : value;
+            },
+          });
+        },
+      };
+      class CompletingRunner {
+        constructor(registry) {
+          this.registry = registry;
+        }
+
+        async run() {
+          const key = this.registry.nextClaimable();
+          const acquired = this.registry.acquire(key, {
+            holder: "summary-runner",
+          });
+          expect(acquired).toMatchObject({ ok: true });
+          expect(
+            this.registry.complete(key, {
+              holder: "summary-runner",
+              leaseId: acquired.lease.leaseId,
+              result: { marker: "atomic-status-view" },
+            }),
+          ).toMatchObject({ ok: true });
+          return {
+            done: true,
+            success: true,
+            executions: 1,
+            maxConcurrent: 1,
+            requestedTeammates: 1,
+            activeTeammates: 1,
+            budgetStopped: false,
+            budgetReason: null,
+            members: [],
+            messages: 0,
+            stats: this.registry.stats(),
+          };
+        }
+      }
+
+      const worker = await runDistributedWorker(
+        {
+          state: fixture.state,
+          repo: fixture.repo,
+          runId: "atomic-summary",
+          workerId: "summary-worker",
+        },
+        { Queue, Runner: CompletingRunner },
+      );
+
+      expect(lateMutation).toMatchObject({ ok: true });
+      expect(allDoneReads).toBe(0);
+      expect(statsReads).toBe(1);
+      expect(statusViewReads).toBe(1);
+      expect(worker.summary).toMatchObject({
+        done: true,
+        success: true,
+        executions: 1,
+        stats: {
+          total: 1,
+          completed: 1,
+        },
+      });
+      expect(worker.summary.stats).toBe(worker.queue.stats);
+      expect(worker.summary.stats.revision).toBe(worker.queue.revision);
+      expect(worker.queue.stats.revision).toBe(worker.queue.revision);
+
+      const nativeStatus = distributedQueueStatus({
+        state: fixture.state,
+        repo: fixture.repo,
+        runId: "atomic-summary",
+      });
+      expect(nativeStatus.revision).toBeGreaterThan(worker.queue.revision);
+      expect(nativeStatus.stats).toMatchObject({
+        total: 2,
+        completed: 1,
+      });
+      expect(nativeStatus.tasks.map((task) => task.key)).toContain(
+        "late-peer-task",
+      );
+    },
+  );
+
+  it(
+    "reports a peer-exhausted global task budget from the same queue status",
+    { timeout: 30_000 },
+    async () => {
+      const fixture = makeRepo();
+      writeGraph(fixture.graph, [
+        { key: "peer-task", command: nodeWrite("peer.txt", "peer\n") },
+        { key: "blocked-task", command: nodeWrite("blocked.txt", "blocked\n") },
+      ]);
+      initDistributedQueue({
+        state: fixture.state,
+        repo: fixture.repo,
+        runId: "peer-budget",
+        tasks: fixture.graph,
+        maxTasks: 1,
+      });
+
+      const peerQueue = TeamDistributedQueue.open({
+        filePath: fixture.state,
+        runId: "peer-budget",
+      });
+      const acquired = peerQueue.acquire("peer-task", {
+        holder: "budget-peer",
+      });
+      expect(acquired).toMatchObject({ ok: true });
+      expect(
+        peerQueue.complete("peer-task", {
+          holder: "budget-peer",
+          leaseId: acquired.lease.leaseId,
+          result: { marker: "peer-completed" },
+        }),
+      ).toMatchObject({ ok: true });
+
+      const runTask = vi.fn(async () => ({ unexpected: true }));
+      const worker = await runDistributedWorker(
+        {
+          state: fixture.state,
+          repo: fixture.repo,
+          runId: "peer-budget",
+          workerId: "budget-observer",
+        },
+        {
+          WorktreeCoordinator: lightweightWorktreeCoordinator(runTask),
+        },
+      );
+
+      expect(runTask).not.toHaveBeenCalled();
+      expect(worker.summary).toMatchObject({
+        done: false,
+        success: false,
+        executions: 0,
+        budgetStopped: true,
+        budgetReason: "max-tasks",
+        localBudgetReason: "max-tasks",
+        durableBudgetReason: "max-tasks",
+        stats: {
+          total: 2,
+          completed: 1,
+          leased: 0,
+          budget: {
+            reason: "max-tasks",
+            reservations: 0,
+          },
+        },
+      });
+      expect(worker.summary.stats).toBe(worker.queue.stats);
+      expect(worker.summary.budgetReason).toBe(
+        worker.queue.stats.budget.reason,
+      );
+      expect(worker.summary.stats.revision).toBe(worker.queue.revision);
+    },
+  );
 
   it(
     "runs a real two-process DAG, composes dependency baselines, and finalizes",

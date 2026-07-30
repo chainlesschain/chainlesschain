@@ -2762,6 +2762,7 @@ function budgetStatus(state, now) {
   return {
     ...cloneJson(totals),
     ...cloneJson(limits),
+    observedAt: now,
     reservedTokens,
     reservedUsd,
     reservations: reservations.length,
