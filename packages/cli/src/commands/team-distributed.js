@@ -2303,7 +2303,11 @@ export async function runDistributedWorker(options, dependencyOverrides = {}) {
       if (queueStats.budget?.reason || queueStats.adjudicationRequired > 0) {
         break;
       }
-      if (opened.queue.claimableCount() === 0) {
+      // `claimable` and `leased` must come from the same durable queue
+      // revision. A peer can claim between separate reads, and combining the
+      // new claimable count with an older leased count would falsely report an
+      // idle queue and make this worker exit while work is still in flight.
+      if (queueStats.claimable === 0) {
         if (queueStats.leased > 0) {
           await deps.sleep(pollMs);
           continue;

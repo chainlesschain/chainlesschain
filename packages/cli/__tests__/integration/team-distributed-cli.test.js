@@ -400,6 +400,95 @@ describe("team distributed CLI", () => {
     );
   });
 
+  it("keeps draining from one queue revision when a peer claims between observations", async () => {
+    const fixture = makeRepo();
+    writeGraph(fixture.graph, [
+      {
+        key: "interleaved",
+        command: nodeWrite("interleaved.txt", "done\n"),
+      },
+    ]);
+    initDistributedQueue({
+      state: fixture.state,
+      repo: fixture.repo,
+      runId: "atomic-drain-view",
+      tasks: fixture.graph,
+      maxTasks: 2,
+    });
+
+    let peerClaim = null;
+    let claimableCountReads = 0;
+    let runnerRuns = 0;
+    const Queue = {
+      open(options) {
+        const queue = TeamDistributedQueue.open(options);
+        return new Proxy(queue, {
+          get(target, property) {
+            if (property === "stats") {
+              return (...args) => {
+                const stats = target.stats(...args);
+                if (peerClaim == null) {
+                  expect(stats).toMatchObject({ claimable: 1, leased: 0 });
+                  peerClaim = target.acquire("interleaved", {
+                    holder: "interleaving-peer",
+                    ttlMs: 60_000,
+                  });
+                  expect(peerClaim).toMatchObject({ ok: true });
+                }
+                return stats;
+              };
+            }
+            if (property === "claimableCount") {
+              return (...args) => {
+                claimableCountReads += 1;
+                return target.claimableCount(...args);
+              };
+            }
+            const value = Reflect.get(target, property, target);
+            return typeof value === "function" ? value.bind(target) : value;
+          },
+        });
+      },
+    };
+    class ControlledRunner {
+      async run() {
+        runnerRuns += 1;
+        return {
+          done: false,
+          success: false,
+          executions: runnerRuns === 1 ? 0 : 1,
+          maxConcurrent: 0,
+          requestedTeammates: 1,
+          activeTeammates: 1,
+          budgetStopped: false,
+          budgetReason: null,
+          members: [],
+          messages: 0,
+          stats: {},
+        };
+      }
+    }
+
+    const worker = await runDistributedWorker(
+      {
+        state: fixture.state,
+        repo: fixture.repo,
+        runId: "atomic-drain-view",
+        workerId: "observing-worker",
+        maxTasks: 1,
+      },
+      { Queue, Runner: ControlledRunner },
+    );
+
+    expect(peerClaim).toMatchObject({ ok: true });
+    expect(claimableCountReads).toBe(0);
+    expect(runnerRuns).toBe(2);
+    expect(worker.summary).toMatchObject({
+      executions: 1,
+      rounds: 2,
+    });
+  });
+
   it(
     "runs a real two-process DAG, composes dependency baselines, and finalizes",
     { timeout: 120_000 },

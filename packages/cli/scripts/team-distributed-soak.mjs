@@ -2485,9 +2485,27 @@ async function runRound(
     (total, worker) => total + worker.executions,
     0,
   );
+  const status = distributedQueueStatus({
+    state: fixture.statePath,
+    repo: fixture.repo,
+    runId: fixture.runId,
+    mode: workflowMode,
+  });
   assert(
     workerExecutionTotal === fixture.tasks.length,
-    `worker execution evidence accounts for ${workerExecutionTotal}/${fixture.tasks.length} tasks`,
+    `worker execution evidence accounts for ${workerExecutionTotal}/${
+      fixture.tasks.length
+    } tasks: ${JSON.stringify({
+      workers: workerExecutionLimits,
+      stats: status.stats,
+      tasks: status.tasks.map((task) => ({
+        key: task.key,
+        status: task.status,
+        attempts: task.metadata?.attempts,
+        lastError: task.metadata?.lastError,
+        adjudication: task.metadata?.adjudication,
+      })),
+    }).slice(0, 8_000)}`,
   );
   const productiveWorkers = workerExecutionLimits.filter(
     (worker) => worker.executions > 0,
@@ -2501,12 +2519,6 @@ async function runRound(
     "a worker process exceeded the configured RSS ceiling",
   );
 
-  const status = distributedQueueStatus({
-    state: fixture.statePath,
-    repo: fixture.repo,
-    runId: fixture.runId,
-    mode: workflowMode,
-  });
   assert(status.stats.total === fixture.tasks.length, "task count changed");
   assert(
     status.stats.completed === fixture.tasks.length &&
