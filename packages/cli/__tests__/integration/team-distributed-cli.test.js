@@ -80,13 +80,36 @@ function statProjection(stat, overrides) {
 function projectedFileSystem(filePath, overrides) {
   const runtimeFs = Object.create(fs);
   const nativeLstatSync = fs.lstatSync.bind(fs);
+  const canonicalFilePath = path.join(
+    fs.realpathSync.native(path.dirname(filePath)),
+    path.basename(filePath),
+  );
   runtimeFs.lstatSync = (target, options) => {
     const stat = nativeLstatSync(target, options);
-    return path.resolve(String(target)) === path.resolve(filePath)
+    return path.resolve(String(target)) === path.resolve(canonicalFilePath)
       ? statProjection(stat, overrides)
       : stat;
   };
   return runtimeFs;
+}
+
+function createDirectoryAlias(target, alias) {
+  try {
+    fs.symlinkSync(
+      target,
+      alias,
+      process.platform === "win32" ? "junction" : "dir",
+    );
+    return true;
+  } catch (error) {
+    if (
+      process.platform === "win32" &&
+      ["EACCES", "EPERM", "ENOTSUP"].includes(error?.code)
+    ) {
+      return false;
+    }
+    throw error;
+  }
 }
 
 function nodeWrite(file, value, { delay = 0, requireFiles = [] } = {}) {
@@ -223,6 +246,53 @@ describe("team distributed CLI", () => {
       runId: "zero-device-graph",
       mode: "shell-worktree",
     });
+  });
+
+  it("pins queue and checkpoint authorities to canonical paths", () => {
+    const fixture = makeRepo();
+    const canonicalParent = path.join(fixture.root, "checkpoint-authority");
+    const aliasParent = path.join(fixture.root, "checkpoint-authority-alias");
+    fs.mkdirSync(canonicalParent);
+    if (!createDirectoryAlias(canonicalParent, aliasParent)) return;
+    const requestedCheckpointStateDir = path.join(aliasParent, "transactions");
+    const canonicalCheckpointStateDir = path.join(
+      fs.realpathSync.native(canonicalParent),
+      "transactions",
+    );
+    const canonicalStatePath = path.join(
+      fs.realpathSync.native(path.dirname(fixture.state)),
+      path.basename(fixture.state),
+    );
+    writeGraph(fixture.graph, [
+      {
+        key: "canonical-authority",
+        command: nodeWrite("canonical.txt", "canonical\n"),
+      },
+    ]);
+
+    const initialized = initDistributedQueue({
+      state: fixture.state,
+      repo: fixture.repo,
+      runId: "canonical-authority",
+      tasks: fixture.graph,
+      managedCheckpoint: true,
+      checkpointStateDir: requestedCheckpointStateDir,
+    });
+    expect(initialized.statePath).toBe(canonicalStatePath);
+    expect(initialized.authority.checkpoint.stateDir).toBe(
+      canonicalCheckpointStateDir,
+    );
+    expect(initialized.checkpoint.stateDir).toBe(canonicalCheckpointStateDir);
+
+    const status = distributedQueueStatus({
+      state: fixture.state,
+      repo: fixture.repo,
+      runId: "canonical-authority",
+      checkpointStateDir: requestedCheckpointStateDir,
+    });
+    expect(status.authority.checkpoint.stateDir).toBe(
+      canonicalCheckpointStateDir,
+    );
   });
 
   it.each([
@@ -429,6 +499,10 @@ describe("team distributed CLI", () => {
         managedCheckpoint: true,
         checkpointStateDir,
       });
+      const canonicalCheckpointStateDir = path.join(
+        fs.realpathSync.native(fixture.root),
+        path.basename(checkpointStateDir),
+      );
 
       const worker = await runDistributedWorker({
         state: fixture.state,
@@ -448,7 +522,7 @@ describe("team distributed CLI", () => {
       });
       expect(status.authority.checkpoint).toEqual({
         enabled: true,
-        stateDir: checkpointStateDir,
+        stateDir: canonicalCheckpointStateDir,
         coverageTarget: "partial",
         writerIsolation: "unknown",
         externalSideEffects: true,
@@ -899,6 +973,10 @@ describe("team distributed CLI", () => {
       managedCheckpoint: true,
       checkpointStateDir,
     });
+    const canonicalCheckpointStateDir = path.join(
+      fs.realpathSync.native(fixture.root),
+      path.basename(checkpointStateDir),
+    );
 
     const baselineCommitOid = git(fixture.repo, "rev-parse", "HEAD");
     const branch = "team/accept-control/accept-task";
@@ -953,7 +1031,7 @@ describe("team distributed CLI", () => {
           runId: "accept-control",
           taskKey: "accept-task",
           workspaceRoot: worktreePath,
-          stateDir: checkpointStateDir,
+          stateDir: canonicalCheckpointStateDir,
           state,
           writerIsolation: "unknown",
           requestedCoverage: "partial",

@@ -112,10 +112,11 @@ describe("TeamAdjudicationStore", () => {
   it("bridges a zero-device adjudication path only on affected Windows libuv", () => {
     const target = store();
     openCase(target);
+    const canonicalFilePath = fs.realpathSync.native(filePath);
     const nativeLstatSync = fs.lstatSync.bind(fs);
     vi.spyOn(fs, "lstatSync").mockImplementation((requested, options) => {
       const stat = nativeLstatSync(requested, options);
-      return path.resolve(String(requested)) === path.resolve(filePath)
+      return path.resolve(String(requested)) === path.resolve(canonicalFilePath)
         ? statProjection(stat, {
             dev: typeof stat.dev === "bigint" ? 0n : 0,
           })
@@ -559,6 +560,7 @@ describe("TeamAdjudicationStore", () => {
   it("preserves the last valid state when an atomic replacement fails", () => {
     const healthy = store();
     const opened = openCase(healthy);
+    const canonicalFilePath = fs.realpathSync.native(filePath);
     const token = "known-failing-attempt";
     const temporaryPath = path.join(
       directory,
@@ -571,7 +573,7 @@ describe("TeamAdjudicationStore", () => {
       constants: fs.constants,
       realpathSync: fs.realpathSync,
       renameSync(source, destination) {
-        if (destination === filePath) {
+        if (path.resolve(destination) === path.resolve(canonicalFilePath)) {
           const error = new Error("simulated rename failure");
           error.code = "EIO";
           throw error;

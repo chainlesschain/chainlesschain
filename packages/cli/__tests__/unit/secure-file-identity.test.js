@@ -186,6 +186,10 @@ describe("secure file identity", () => {
     );
     temporaryDirectories.push(directory);
     const filePath = path.join(directory, "state.json");
+    const canonicalFilePath = path.join(
+      fs.realpathSync.native(directory),
+      path.basename(filePath),
+    );
 
     const result = withTrustedFileParentSync(
       fs,
@@ -199,7 +203,7 @@ describe("secure file identity", () => {
       },
     );
 
-    expect(result).toBe(filePath);
+    expect(result).toBe(canonicalFilePath);
     expect(fs.readFileSync(filePath, "utf8")).toBe("{}\n");
   });
 
@@ -221,6 +225,7 @@ describe("secure file identity", () => {
       );
       temporaryDirectories.push(directory);
       const filePath = path.join(directory, "state.json");
+      const canonicalDirectory = fs.realpathSync.native(directory);
       const nativeOpenSync = fs.openSync.bind(fs);
       let mutated = false;
       const runtimeFs = {
@@ -230,7 +235,7 @@ describe("secure file identity", () => {
         openSync(target, ...args) {
           if (
             !mutated &&
-            path.resolve(String(target)) === path.resolve(directory)
+            path.resolve(String(target)) === path.resolve(canonicalDirectory)
           ) {
             mutated = true;
             mutateParent(directory);
@@ -328,6 +333,7 @@ describe("secure file identity", () => {
     );
     temporaryDirectories.push(directory);
     const filePath = path.join(directory, "state.json");
+    const canonicalDirectory = fs.realpathSync.native(directory);
     let parentInspections = 0;
     const runtimeFs = {
       ...fs,
@@ -335,7 +341,9 @@ describe("secure file identity", () => {
       realpathSync: fs.realpathSync,
       lstatSync(target, options) {
         const stat = fs.lstatSync(target, options);
-        if (path.resolve(target) !== path.resolve(directory)) return stat;
+        if (path.resolve(target) !== path.resolve(canonicalDirectory)) {
+          return stat;
+        }
         parentInspections += 1;
         return parentInspections === 2
           ? projectedStat(stat, { ino: stat.ino + 1n })

@@ -108,6 +108,7 @@ afterEach(() => {
 describe("workspace transaction adversarial safety", () => {
   it("accepts a zero-device projection only on the affected Windows runtime", () => {
     const input = fixture();
+    const canonicalWorkspaceRoot = fs.realpathSync.native(input.workspaceRoot);
     const rootDescriptor = fs.openSync(
       input.workspaceRoot,
       fs.constants.O_RDONLY,
@@ -120,7 +121,7 @@ describe("workspace transaction adversarial safety", () => {
     vi.spyOn(fs, "lstatSync").mockImplementation((target, options) => {
       const stat = nativeLstatSync(target, options);
       const absolute = path.resolve(String(target));
-      return isPathInside(input.workspaceRoot, absolute)
+      return isPathInside(canonicalWorkspaceRoot, absolute)
         ? statProjection(stat, {
             dev: typeof stat.dev === "bigint" ? 0n : 0,
           })
@@ -151,7 +152,11 @@ describe("workspace transaction adversarial safety", () => {
 
   it("keeps zero-device compatibility fail-closed when the inode changes", () => {
     const input = fixture();
-    const target = path.join(input.workspaceRoot, "src", "tracked.txt");
+    const target = path.join(
+      fs.realpathSync.native(input.workspaceRoot),
+      "src",
+      "tracked.txt",
+    );
     const nativeLstatSync = fs.lstatSync.bind(fs);
     vi.spyOn(fs, "lstatSync").mockImplementation((requested, options) => {
       const stat = nativeLstatSync(requested, options);
@@ -166,6 +171,28 @@ describe("workspace transaction adversarial safety", () => {
     expect(() => begin(manager(input), input)).toThrow(
       expect.objectContaining({
         code: WORKSPACE_TRANSACTION_ERROR.SNAPSHOT_RACE,
+      }),
+    );
+  });
+
+  it("rejects pre-epoch mtimes that cannot be restored portably", () => {
+    const input = fixture();
+    const target = path.join(
+      fs.realpathSync.native(input.workspaceRoot),
+      "src",
+      "tracked.txt",
+    );
+    const nativeLstatSync = fs.lstatSync.bind(fs);
+    vi.spyOn(fs, "lstatSync").mockImplementation((requested, options) => {
+      const stat = nativeLstatSync(requested, options);
+      return path.resolve(String(requested)) === target
+        ? statProjection(stat, { mtimeMs: -1 })
+        : stat;
+    });
+
+    expect(() => begin(manager(input), input)).toThrow(
+      expect.objectContaining({
+        code: WORKSPACE_TRANSACTION_ERROR.UNSAFE_ENTRY,
       }),
     );
   });

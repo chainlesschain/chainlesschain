@@ -891,7 +891,7 @@ function assertExternalStatePath(statePath, repoRoot) {
       "Distributed queue --state resolves inside the agent-writable repository",
     );
   }
-  return target;
+  return projected;
 }
 
 function assertExternalCheckpointStateDir(stateDir, repoRoot, statePath) {
@@ -922,7 +922,13 @@ function assertExternalCheckpointStateDir(stateDir, repoRoot, statePath) {
       "Distributed checkpoint state resolves inside the agent-writable repository",
     );
   }
-  return target;
+  if (samePath(projected, statePath)) {
+    fail(
+      "TEAM_QUEUE_CHECKPOINT_STATE_CONFLICT",
+      "Distributed checkpoint state directory must differ from the queue state file",
+    );
+  }
+  return projected;
 }
 
 function checkpointAuthority({ enabled = false, stateDir = null } = {}) {
@@ -1231,9 +1237,14 @@ function openPinnedQueue(options, deps) {
     );
   }
   if (options.checkpointStateDir) {
+    const canonicalCheckpointStateDir = assertExternalCheckpointStateDir(
+      options.checkpointStateDir,
+      repoRoot,
+      statePath,
+    );
     if (
       authority.checkpoint.enabled !== true ||
-      !samePath(options.checkpointStateDir, authority.checkpoint.stateDir)
+      !samePath(canonicalCheckpointStateDir, authority.checkpoint.stateDir)
     ) {
       fail(
         "TEAM_QUEUE_CHECKPOINT_AUTHORITY_MISMATCH",

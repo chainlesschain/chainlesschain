@@ -559,7 +559,40 @@ function normalizedMtimeMs(stat) {
   // Node's utimes API cannot reproduce sub-millisecond timestamps reliably on
   // every supported filesystem. Persist and verify the portable millisecond
   // precision that rollback can actually restore.
-  return Math.trunc(value);
+  const wholeMilliseconds = Math.trunc(value);
+  const bucketMidpoint = wholeMilliseconds + 0.5;
+  if (
+    !Number.isSafeInteger(wholeMilliseconds) ||
+    wholeMilliseconds < 0 ||
+    bucketMidpoint <= wholeMilliseconds ||
+    Math.trunc(bucketMidpoint) !== wholeMilliseconds
+  ) {
+    throw codedError(
+      WORKSPACE_TRANSACTION_ERROR.UNSAFE_ENTRY,
+      "filesystem entry has a modification timestamp that cannot be restored portably",
+      { mtimeMs: value },
+    );
+  }
+  return wholeMilliseconds;
+}
+
+function portableTimestampSeconds(value, fallback = Number.NaN) {
+  for (const candidate of [value, fallback]) {
+    const wholeMilliseconds = Math.trunc(Number(candidate));
+    const bucketMidpoint = wholeMilliseconds + 0.5;
+    if (
+      Number.isSafeInteger(wholeMilliseconds) &&
+      wholeMilliseconds >= 0 &&
+      bucketMidpoint > wholeMilliseconds &&
+      Math.trunc(bucketMidpoint) === wholeMilliseconds
+    ) {
+      return bucketMidpoint / 1000;
+    }
+  }
+  throw codedError(
+    WORKSPACE_TRANSACTION_ERROR.STATE_CORRUPT,
+    "checkpoint has a timestamp that cannot be restored portably",
+  );
 }
 
 function workspaceRootIdentity(stat) {
@@ -1631,10 +1664,17 @@ function restoreEntryMetadata(abs, descriptor) {
   if (process.platform !== "win32") {
     fs.chmodSync(abs, descriptor.mode & 0o7777);
   }
+  // Pass a value in the middle of the persisted millisecond bucket. Passing a
+  // Date at the exact boundary makes Node/libuv convert the integer
+  // millisecond through a floating-point seconds value; on some POSIX hosts
+  // that conversion lands one nanosecond below the boundary and stat() then
+  // reports the preceding millisecond. The checkpoint deliberately records
+  // portable whole-millisecond precision, so the midpoint restores that same
+  // bucket without weakening the subsequent exact descriptor verification.
   fs.utimesSync(
     abs,
-    new Date(Number(current.atimeMs)),
-    new Date(Number(descriptor.mtimeMs)),
+    portableTimestampSeconds(current.atimeMs, descriptor.mtimeMs),
+    portableTimestampSeconds(descriptor.mtimeMs),
   );
 }
 

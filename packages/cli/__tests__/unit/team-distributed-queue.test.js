@@ -41,9 +41,13 @@ function statProjection(stat, overrides) {
 function projectedFileSystem(filePath, overrides) {
   const runtimeFs = Object.create(fs);
   const nativeLstatSync = fs.lstatSync.bind(fs);
+  const canonicalFilePath = path.join(
+    fs.realpathSync.native(path.dirname(filePath)),
+    path.basename(filePath),
+  );
   runtimeFs.lstatSync = (target, options) => {
     const stat = nativeLstatSync(target, options);
-    return path.resolve(String(target)) === path.resolve(filePath)
+    return path.resolve(String(target)) === path.resolve(canonicalFilePath)
       ? statProjection(stat, overrides)
       : stat;
   };

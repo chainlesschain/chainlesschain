@@ -61,7 +61,9 @@ function mockParentIdentitySwap(authorityParent) {
   const nativeOpenSync = fs.openSync.bind(fs);
   const nativeFstatSync = fs.fstatSync.bind(fs);
   const nativeLstatSync = fs.lstatSync.bind(fs);
-  const authorityIdentity = path.resolve(authorityParent).toLowerCase();
+  const authorityIdentity = path
+    .resolve(fs.realpathSync.native(authorityParent))
+    .toLowerCase();
   let parentDescriptor = null;
   let parentFstats = 0;
   let parentChanged = false;
