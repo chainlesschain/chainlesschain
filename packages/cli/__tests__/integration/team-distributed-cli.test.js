@@ -3,7 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   adjudicateDistributedQueue,
   distributedQueueStatus,
@@ -15,6 +15,7 @@ import {
 } from "../../src/commands/team-distributed.js";
 import { TeamDistributedQueue } from "../../src/lib/agent-team/team-distributed-queue.js";
 import { TeamProcessCheckpointBroker } from "../../src/lib/agent-team/team-process-checkpoint.js";
+import executionBroker from "../../src/lib/process-execution-broker/index.js";
 import {
   SECURE_FILE_IDENTITY_ERROR,
   SecureFileIdentityError,
@@ -206,7 +207,34 @@ function spawnRecoveryWorker({ state, repo, runId, workerId, sentinel }) {
   });
 }
 
+function useDeterministicProcessTreeSandbox() {
+  // These tests isolate checkpoint orchestration from host sandbox
+  // availability. Native Linux/macOS/Windows enforcement stays covered by the
+  // live and Strict Sandbox suites.
+  return vi
+    .spyOn(executionBroker, "_prepareSandboxPlan")
+    .mockImplementation((command, args, options, context = {}) => ({
+      contractVersion: 1,
+      applied: true,
+      platform: process.platform,
+      profile: context.sandboxPolicy?.profile || "default",
+      command,
+      args: [...(args || [])],
+      options: { ...options },
+      enforcement: "test-process-tree",
+      backend: "test-process-tree",
+      guarantees: ["process-tree"],
+      requiredBoundaries: [
+        ...(context.sandboxPolicy?.requiredBoundaries || []),
+      ],
+      reason: null,
+      postSpawn: { required: false, mode: "none" },
+      cleanup: vi.fn(),
+    }));
+}
+
 afterEach(() => {
+  vi.restoreAllMocks();
   for (const directory of temporaryDirectories.splice(0)) {
     fs.rmSync(directory, { recursive: true, force: true });
   }
@@ -480,6 +508,7 @@ describe("team distributed CLI", () => {
     "persists managed checkpoint running/final evidence with the worktree result",
     { timeout: 120_000 },
     async () => {
+      useDeterministicProcessTreeSandbox();
       const fixture = makeRepo();
       const checkpointStateDir = path.join(
         fixture.root,
@@ -558,6 +587,7 @@ describe("team distributed CLI", () => {
     "restores a rolled-back worktree from queue history before cross-process retry",
     { timeout: 120_000 },
     async () => {
+      useDeterministicProcessTreeSandbox();
       const fixture = makeRepo();
       const checkpointStateDir = path.join(fixture.root, "retry-checkpoints");
       const sentinel = path.join(fixture.root, "first-attempt");
@@ -736,6 +766,7 @@ describe("team distributed CLI", () => {
     "recovers a dead Agent checkpoint, adjudicates retry, and continues under a new fence",
     { timeout: 120_000 },
     async () => {
+      useDeterministicProcessTreeSandbox();
       const fixture = makeRepo();
       const checkpointStateDir = path.join(
         fixture.root,

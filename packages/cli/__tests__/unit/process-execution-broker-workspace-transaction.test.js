@@ -481,6 +481,10 @@ describe("ProcessExecutionBroker workspace transactions", () => {
   it("rejects detached writers before invoking the native spawn", () => {
     const input = fixture();
     useTestSandboxPlan();
+    const issue = vi.spyOn(
+      executionBroker,
+      "issueLinuxWorkspaceSandboxExecutionContract",
+    );
     const spawn = vi.fn();
     executionBroker._native = {
       ...(ORIGINAL_NATIVE || {}),
@@ -502,6 +506,7 @@ describe("ProcessExecutionBroker workspace transactions", () => {
         code: WORKSPACE_TRANSACTION_ERROR.DETACHED_PROCESS,
       }),
     );
+    expect(issue).not.toHaveBeenCalled();
     expect(spawn).not.toHaveBeenCalled();
     expect(transaction.rollback().outcome).toBe("rolled_back");
   });

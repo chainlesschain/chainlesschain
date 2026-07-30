@@ -2,13 +2,14 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   distributedQueueStatus,
   finalizeDistributedQueue,
   initDistributedQueue,
   runDistributedWorker,
 } from "../../src/commands/team-distributed.js";
+import executionBroker from "../../src/lib/process-execution-broker/index.js";
 
 const temporaryDirectories = [];
 
@@ -78,7 +79,34 @@ function pricedUsage(input = 10, output = 5, cacheRead = 0, cacheCreation = 0) {
   };
 }
 
+function useDeterministicProcessTreeSandbox() {
+  // These tests isolate Agent/checkpoint orchestration from host sandbox
+  // availability. Native Linux/macOS/Windows enforcement stays covered by the
+  // live and Strict Sandbox suites.
+  return vi
+    .spyOn(executionBroker, "_prepareSandboxPlan")
+    .mockImplementation((command, args, options, context = {}) => ({
+      contractVersion: 1,
+      applied: true,
+      platform: process.platform,
+      profile: context.sandboxPolicy?.profile || "default",
+      command,
+      args: [...(args || [])],
+      options: { ...options },
+      enforcement: "test-process-tree",
+      backend: "test-process-tree",
+      guarantees: ["process-tree"],
+      requiredBoundaries: [
+        ...(context.sandboxPolicy?.requiredBoundaries || []),
+      ],
+      reason: null,
+      postSpawn: { required: false, mode: "none" },
+      cleanup: vi.fn(),
+    }));
+}
+
 afterEach(() => {
+  vi.restoreAllMocks();
   for (const directory of temporaryDirectories.splice(0)) {
     fs.rmSync(directory, { recursive: true, force: true });
   }
@@ -139,6 +167,7 @@ describe("team distributed native Agent workers", () => {
     "executes in a managed worktree and binds prompt, usage, Git, and checkpoint evidence",
     { timeout: 120_000 },
     async () => {
+      useDeterministicProcessTreeSandbox();
       const fixture = makeRepo();
       writeGraph(fixture.graph, [
         {
@@ -304,6 +333,7 @@ describe("team distributed native Agent workers", () => {
     "lets competing workers claim distinct Agent tasks exactly once",
     { timeout: 120_000 },
     async () => {
+      useDeterministicProcessTreeSandbox();
       const fixture = makeRepo();
       writeGraph(fixture.graph, [
         { key: "left", prompt: "left", retrySafe: true },
@@ -371,6 +401,7 @@ describe("team distributed native Agent workers", () => {
     "rolls back and refuses a budgeted Agent result with missing usage",
     { timeout: 120_000 },
     async () => {
+      useDeterministicProcessTreeSandbox();
       const fixture = makeRepo();
       writeGraph(fixture.graph, [
         { key: "unmetered", prompt: "unmetered", retrySafe: true },
@@ -431,6 +462,7 @@ describe("team distributed native Agent workers", () => {
     "charges a failed Agent attempt, rolls it back, and retries under a new fence",
     { timeout: 120_000 },
     async () => {
+      useDeterministicProcessTreeSandbox();
       const fixture = makeRepo();
       writeGraph(fixture.graph, [
         { key: "retry", prompt: "retry", retrySafe: true },
@@ -509,6 +541,7 @@ describe("team distributed native Agent workers", () => {
     "rejects unpriced USD usage and honors exact-fence human cancellation",
     { timeout: 120_000 },
     async () => {
+      useDeterministicProcessTreeSandbox();
       const unpriced = makeRepo();
       writeGraph(unpriced.graph, [
         { key: "unpriced", prompt: "unpriced", retrySafe: true },

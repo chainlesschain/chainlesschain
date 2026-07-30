@@ -2552,7 +2552,13 @@ class ProcessExecutionBroker extends EventEmitter {
       ],
     };
     const workspaceRoot = this._workspaceTransactionRootForCwd(cwd, membership);
-    if (workspaceRoot && nextOptions.sandboxExecutionContract === undefined) {
+    // Transaction preflight always rejects detached writers. Do not let a
+    // platform contract fail first and hide that stable, typed denial.
+    if (
+      workspaceRoot &&
+      nextOptions.detached !== true &&
+      nextOptions.sandboxExecutionContract === undefined
+    ) {
       const contract = this.issueLinuxWorkspaceSandboxExecutionContract(
         command,
         args,
