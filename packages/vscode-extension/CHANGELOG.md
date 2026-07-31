@@ -13,9 +13,11 @@ All notable changes to this extension are documented here.
 - Keep raw Agent Team and queue JSON read-only in the IDE: file watching and
   refresh update projections, while all authoritative mutations remain
   CLI-owned compare-and-swap operations.
-- This entry prepares extension release metadata only. Version 0.37.37 is not
-  claimed as published, and its exact release commit remains subject to the
-  required release gates.
+- Version 0.37.37 is public on Open VSX. Tag `ide-vscode-v0.37.37` points to
+  exact commit `33e4d512d319bc771190f672bcc7847fb4099835`; the
+  [release workflow](https://github.com/chainlesschain/chainlesschain/actions/runs/30616688007)
+  passed packaging, stable/minimum Extension Host smoke, publication, and
+  registry readback. The Microsoft VS Code Marketplace remains unpublished.
 
 ## [0.37.36] - Retry, collaboration, and plugin recovery governance (2026-07-28)
 

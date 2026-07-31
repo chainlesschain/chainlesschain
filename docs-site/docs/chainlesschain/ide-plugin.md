@@ -1,6 +1,6 @@
 # IDE 插件使用指南（VS Code / JetBrains）
 
-> **当前推荐组合（2026-07-29）：CLI `0.162.185` + VS Code 扩展 `0.37.36`（Open VSX）+ JetBrains 插件 `0.4.75`（JetBrains Marketplace）。双端共享 Agent Protocol、质量/重试归因、事务化插件治理与 worktree/team/batch durable 状态契约。**
+> **当前推荐组合（2026-08-01）：CLI `0.162.189` + VS Code 扩展 `0.37.37`（Open VSX）+ JetBrains 插件 `0.4.76`（JetBrains Marketplace）。三个版本均已公开；双端共享 Agent Protocol、质量/重试归因、事务化插件治理、本地 Agent Team v6 authority 与分布式 queue v1 契约。**
 >
 > 把 ChainlessChain 的 `cc` agent 变成**编辑器里的一等公民**：侧边栏 Chat 面板直接对话、计划以可编辑 Markdown 文档审阅、文件改动走编辑器原生 diff 评审（可逐块接受、可行级批注）、代理自动感知你的选区与诊断。VS Code 与 JetBrains 双端同一套协议、同一套功能面，会话还能跨 IDE 互相续接。
 
@@ -41,6 +41,8 @@ cc ide --help               # 确认有 ide 子命令
 
 - **已上架 [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge)**（插件 ID `com.chainlesschain.ide`）：_Settings → Plugins → Marketplace_ 搜 **ChainlessChain IDE** 一键安装。仅依赖 platform 模块，非 Java IDE 同样可装。
 - 离线 / 源码安装：`./gradlew buildPlugin` 得 `build/distributions/*.zip` → _Settings → Plugins → ⚙ → Install Plugin from Disk_。
+
+本轮公开标签 `ide-vscode-v0.37.37` 与 `ide-jetbrains-v0.4.76` 精确指向提交 [`33e4d512d3`](https://github.com/chainlesschain/chainlesschain/commit/33e4d512d319bc771190f672bcc7847fb4099835)。[Open VSX 发布门](https://github.com/chainlesschain/chainlesschain/actions/runs/30616688007)成功并完成公开 registry 回读；[JetBrains 发布门](https://github.com/chainlesschain/chainlesschain/actions/runs/30645282946)完成构建、验证与上传，随后 Marketplace API 独立确认 `0.4.76` 已审核并公开。微软 VS Code Marketplace 未发布，不能把 Open VSX 的公开状态扩写到该渠道。
 
 ### 3. 配置大模型（首次）
 
@@ -149,7 +151,7 @@ cc plugin upgrade <source> --scope user
 | 面板                  | 入口（命令面板 / Tools 菜单）        | 作用                                                                                                                                                                                    |
 | --------------------- | ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Background Agents** | ChainlessChain: Background Agents    | 列出 `cc agent --bg` 后台会话，追加指令 / 停止 / 重命名 / 续接                                                                                                                          |
-| **Team Monitor**      | ChainlessChain: Team Monitor         | 查看 `cc team` / `cc batch` 的 durable owner/session、权限模式、预算、生命周期、副作用计数、任务图、lease 与进度；不授予后台 attach/stop 控制                                           |
+| **Team Monitor**      | ChainlessChain: Team Monitor         | 只读观察 local v6 / queue v1 authority、任务图、lease、预算与进度；takeover、managed recovery 和副作用裁决携精确 digest/lease/evidence fence 交回 CLI，IDE 不直接改权威 JSON            |
 | **Remote Control**    | ChainlessChain: Remote Control       | 起 `cc remote-control` 配对主机，IDE 内直接渲染一次性配对 URI 的 QR 码（0.37.12/0.4.56+，手机扫码即配对），relay（E2EE 跨网）可在 IDE 设置面配置，手机 / Web 观察-提问-审批-中断        |
 | **Worktree Tasks**    | ChainlessChain: Worktree Tasks       | 新建受监督的隔离后台任务；显示 worktree 与 team/batch 协作记录的 owner/session、权限模式、资源预算、生命周期、副作用计数、变更足迹与冲突预览；仅 worktree 任务提供 Merge back / Discard |
 | **Plugin & MCP 管理** | ChainlessChain: Manage Plugins & MCP | 分 scope 启停 / 升级 / 重载、签名与 SBOM 摘要、managed-policy 来源；MCP server 测试 / 移除，技能列表过滤                                                                                |
@@ -159,6 +161,8 @@ cc plugin upgrade <source> --scope user
 | **What's New**        | ChainlessChain: What's New           | 渲染 `cc changelog`，配合 CLI 版本检查 / 一键升级                                                                                                                                       |
 
 Worktree 后台任务与 `cc team` / `cc batch` 协作单元都使用 durable 治理记录；协作记录不保存 prompt、argv、工具参数、输出或凭据。**managed** 表示治理状态可审计，不代表 team/batch 获得后台进程控制能力；只有真正拥有后台会话的 worktree 任务显示 attach/stop/Merge back/Discard。
+
+Agent Team 的 human-control 与后台进程控制是两套 authority：IDE 可以针对当前 state/queue digest 发起 takeover、checkpoint recovery 或 side-effect adjudication，但实际 compare-and-swap 由 CLI 完成；过期 digest、lease 或 evidence 会失败关闭。原始团队状态仍是只读投影，不能通过编辑文件绕过 CLI 的迁移、预算或 fencing 规则。
 
 ### 8. Installation Doctor 与离线恢复
 

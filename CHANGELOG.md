@@ -39,10 +39,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   [short distributed soak](https://github.com/chainlesschain/chainlesschain/actions/runs/30549100307),
   and [long distributed soak](https://github.com/chainlesschain/chainlesschain/actions/runs/30549142504)
   gates successfully.
-- **Final release-SHA gate remains mandatory**: this version and changelog
-  preparation creates a distinct final release commit. Publication still
-  requires that exact final release SHA to pass the authoritative required
-  matrices; candidate and local results do not authorize publication.
+- **Published release evidence**: exact release commit
+  [`2607af0dadeb951583139942e5f2add3e95e1208`](https://github.com/chainlesschain/chainlesschain/commit/2607af0dadeb951583139942e5f2add3e95e1208)
+  passed [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/30586603353),
+  [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/30586603019),
+  the [long Agent Team soak](https://github.com/chainlesschain/chainlesschain/actions/runs/30564377629),
+  and [npm publication](https://github.com/chainlesschain/chainlesschain/actions/runs/30588174291).
+  `chainlesschain@0.162.189` is public on npm; candidate and local results remain
+  supplementary and do not replace these exact-release-SHA gates.
 
 ### Added — cc CLI 0.162.188: Auto mode safety classifier release gate
 

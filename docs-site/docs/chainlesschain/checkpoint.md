@@ -1,12 +1,16 @@
 # 检查点 / 回滚（cc checkpoint）
 
-> **版本: 双引擎 (git-plumbing + copy fallback) | 状态: ✅ 生产可用 | Claude-Code rewind 平价 | 14 单元测试全绿**
+> **当前 CLI: 0.162.189 | 双引擎 (git-plumbing + copy fallback) | P2-14 限定范围托管回滚已完成 | Claude-Code rewind 平价**
 >
 > `cc checkpoint` 提供**文件状态快照与回滚**能力，对标 Claude Code 的 rewind。它采用**双引擎**设计：在 git 工作树中默认走 git-plumbing 影子提交（零触真实索引/工作区），非 git 目录则退回基于复制的快照。配合 `cc agent --checkpoint`，可在 agent 每次改文件前自动快照，随时回滚。
 
 ## 概述
 
 让 AI agent 大胆改代码的前提是「随时能撤回」。`cc checkpoint` 为当前工作目录的文件状态打快照，并能精确回滚到任意快照——回滚会删除「快照后新建」的文件、重建「快照后删除」的文件，并在回滚前自动先打一个安全检查点。它与 git 提交互补：检查点是**会话内的临时安全网**，不污染你的提交历史。
+
+CLI `0.162.189` 还把 checkpoint 接入 Process Broker 的托管 workspace transaction：声明范围内的 managed writer 在执行前建立持久恢复证据，成功时接受 checkpoint，失败、取消或超时时带 fence 回滚。该 P2-14 完成口径是**限定范围**，与“捕获机器上的所有文件写入”不同：未托管进程、其他本地进程、范围外路径，以及网络、数据库、消息、部署和支付等外部副作用均不在保证内。
+
+覆盖结果会明确报告为 `full`、`partial` 或 `none`。`full` 仍要求 `writerIsolation=exclusive-workspace`；Agent Team 的当前 checkpoint authority 是 `coverageTarget=partial`、`writerIsolation=unknown`、`externalSideEffects=true`。团队模式的使用与恢复边界见 [Agent Team 用户指南](./cli-team.md#托管-checkpoint-的范围)。
 
 ### 双引擎
 

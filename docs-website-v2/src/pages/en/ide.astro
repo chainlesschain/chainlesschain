@@ -5,7 +5,7 @@ import vscodePkg from '../../../../packages/vscode-extension/package.json';
 
 const CLI_VERSION = cliPkg.version;
 const VSCODE_VERSION = vscodePkg.version;
-const JETBRAINS_VERSION = '0.4.75';
+const JETBRAINS_VERSION = '0.4.76';
 ---
 <BaseLayout
   title="IDE Integration — VS Code + JetBrains extensions, agent in your editor | ChainlessChain"
@@ -31,7 +31,7 @@ const JETBRAINS_VERSION = '0.4.75';
           <a href="https://docs.chainlesschain.com/chainlesschain/ide-bridge.html" rel="noopener" class="btn-ghost">Full docs ↗</a>
         </div>
         <p class="mt-5 text-sm text-muted">
-          VS Code <strong class="text-ink">{VSCODE_VERSION}</strong> and JetBrains <strong class="text-ink">{JETBRAINS_VERSION}</strong> are recommended with CLI <strong class="text-ink">{CLI_VERSION}</strong>. Quality/retry attribution, transactional plugin recovery, and durable worktree/team/batch governance all come from the same authoritative CLI runtime.
+          VS Code <strong class="text-ink">{VSCODE_VERSION}</strong> is publicly listed on Open VSX, and JetBrains <strong class="text-ink">{JETBRAINS_VERSION}</strong> is publicly listed on JetBrains Marketplace; both are recommended with CLI <strong class="text-ink">{CLI_VERSION}</strong>. Quality/retry attribution, transactional plugin recovery, and durable worktree/team/batch governance all come from the same authoritative CLI runtime. A Microsoft VS Code Marketplace build has not been published.
         </p>
       </div>
     </div>
@@ -39,7 +39,7 @@ const JETBRAINS_VERSION = '0.4.75';
 
   <section class="py-16 md:py-24">
     <div class="container-wide">
-      <h2 class="text-4xl md:text-5xl mb-12 max-w-3xl">Twelve things, the moment you open the editor.</h2>
+      <h2 class="text-4xl md:text-5xl mb-12 max-w-3xl">Thirteen things, the moment you open the editor.</h2>
       <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         {[
           ['Sense', 'Selection with every prompt', 'Each prompt automatically carries your current selection + open tabs (an <ide-context> block) — the model knows what you are looking at, never persisted to the session.'],
@@ -51,7 +51,7 @@ const JETBRAINS_VERSION = '0.4.75';
           ['Terminal', 'Terminal-context sharing', 'getTerminalOutput lets the agent see the commands you just ran in the integrated terminal — their output and exit code (VS Code 1.93+ shell integration) — so it knows what you ran and how it failed. Auto-injected into <ide-context> each turn, plus an explicit @terminal mention.'],
           ['Quality', 'Tests, coverage, and debugger context', 'cc-ide-quality/v1 sends bounded quality snapshots with freshness metadata. Stale results stay visibly stale, and VS Code notebook execution carries the real notebook and cell context.'],
           ['Plugins', 'Transactional upgrades and supply-chain governance', 'Enable or disable by scope. Upgrades stage and revalidate manifests/signatures/SBOMs before atomic activation, restoring the previous version on failure. IDEs reload only after activation and require explicit consent for capability widening.'],
-          ['Governance', 'Worktree and collaboration tasks', 'Worktree, team, and batch records show owner/session, permission mode, budget, lifecycle, and bounded side-effect counts. Team/batch governance stays auditable without exposing background attach/stop controls.'],
+          ['Governance', 'Distributed Agent Teams', 'The IDE observes raw local team-state v6 and separate distributed-queue v1 snapshots read-only. Takeover, managed-checkpoint recovery, and side-effect adjudication return to the CLI with authority-digest, lease, and evidence fences. Stale UI actions fail closed; the IDE never mutates authoritative JSON directly.'],
           ['Attribution', 'Tool duration and retries', 'Usage views show measured tool duration, observed same-turn retries, and secret-free streaming LLM retry reasons with actual provider/model identity, without retaining tool arguments, output, or credentials.'],
           ['Sync', 'CLI version-sync', 'On activation it checks cc --version and offers a one-click upgrade if your chainlesschain CLI is older than the extension needs; the "Upgrade CLI" palette command runs npm i -g chainlesschain@latest on demand — keeping the extension (Open VSX) and CLI (npm) in step.'],
           ['Complete', '@ files / live slash commands', '@-path TAB completion ranks editor-open files first; @-completion offers @selection / @diagnostics / @terminal; /status /doctor /mcp /hooks /permissions /agents /tasks /memory inspect the active session, alongside /new /plan /approve /reject /stop /expand.'],
@@ -75,7 +75,7 @@ const JETBRAINS_VERSION = '0.4.75';
           The extension is just the bridge —<br/><span class="italic text-ember">cc agent does the work</span>.
         </h2>
         <p class="mt-6 text-lg text-muted">
-          Run <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">cc agent</code> in the editor's integrated terminal and it auto-connects to the extension's MCP server — that's how the nine things above happen.
+          Run <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">cc agent</code> in the editor's integrated terminal and it auto-connects to the extension's MCP server — that's how the thirteen things above happen.
           The same agent ships a full suite of companion commands: a permission gateway, checkpoint rollback, cost reporting, loop automation and structured output — identical inside the IDE and in a bare terminal.
         </p>
       </div>
@@ -106,7 +106,7 @@ const JETBRAINS_VERSION = '0.4.75';
         <h2 class="text-3xl md:text-4xl mb-6 font-display">Two steps to install</h2>
         <ol class="space-y-4 text-muted leading-relaxed">
           <li><strong class="text-ink">1. Install the CLI:</strong> <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">npm i -g chainlesschain</code> (current recommended <code class="font-mono text-sm">{CLI_VERSION}</code>, bridge minimum <code class="font-mono text-sm">0.162.47</code>; <code class="font-mono text-sm">cc ide doctor</code> diagnoses connectivity)</li>
-          <li><strong class="text-ink">2. Install the extension:</strong> VSCodium / Cursor etc. — search <strong class="text-ink">ChainlessChain IDE</strong> in the extension panel (Open VSX currently <code class="font-mono text-sm">{VSCODE_VERSION}</code>); IDEA / PyCharm / WebStorm — Settings → Plugins → Marketplace, same name (current <code class="font-mono text-sm">{JETBRAINS_VERSION}</code>, 2024.2+). The Microsoft VS Code Marketplace listing is pending; stock VS Code users can download and install the <code class="font-mono text-sm">.vsix</code> from Open VSX.</li>
+          <li><strong class="text-ink">2. Install the extension:</strong> VSCodium / Cursor etc. — search <strong class="text-ink">ChainlessChain IDE</strong> in the extension panel (Open VSX currently <code class="font-mono text-sm">{VSCODE_VERSION}</code>); IDEA / PyCharm / WebStorm — Settings → Plugins → Marketplace, same name (current <code class="font-mono text-sm">{JETBRAINS_VERSION}</code>, 2024.2+). The Microsoft VS Code Marketplace build has not been published; stock VS Code users can download and install the <code class="font-mono text-sm">.vsix</code> from Open VSX.</li>
         </ol>
         <p class="mt-6 text-sm text-muted">
           Safe defaults: server binds localhost only + per-instance random Bearer token + 0600 lockfile; on the CLI side <code class="font-mono text-xs">--no-ide</code> / <code class="font-mono text-xs">CC_IDE_CONTEXT=0</code> / <code class="font-mono text-xs">CC_IDE_DIFF_APPROVAL=0</code> switch each behavior off.

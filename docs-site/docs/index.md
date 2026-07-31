@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人 AI 管理平台
-  tagline: "v5.0.3.135 | CLI 0.162.185 · IDE VS Code 0.37.36 / JetBrains 0.4.75 | PDH 0.4.57 · 92 个采集契约 / 18 类来源 | 后台/PTY 强执行边界、Hooks v2 与事务化插件升级均可恢复；精确发布提交 d7d378d3e1 的三平台门禁已通过"
+  tagline: "v5.0.3.135 | CLI 0.162.189 · IDE VS Code 0.37.37 / JetBrains 0.4.76 | P2-14 限定范围托管回滚 · P2-16 Agent Teams 发布门闭合 | PDH 0.4.57"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -20,30 +20,27 @@ hero:
       link: https://github.com/chainlesschain
 
 features:
+  - icon: 🛟
+    title: P2-14 托管回滚
+    details: Process Broker 为声明工作区 writer 建立持久 checkpoint，失败、取消或超时后按 full / partial / none 覆盖契约恢复；范围外写入和外部副作用不伪装成可回滚。
+  - icon: 🤝
+    title: P2-16 Agent Teams
+    details: 依赖 DAG、fenced lease、四维预算、每任务 worktree、本地 v6 authority 与分布式 queue v1 已完成三平台短门及长期 soak。
+  - icon: 🧑‍💻
+    title: 双 IDE 人工控制
+    details: VS Code 0.37.37 与 JetBrains 0.4.76 已公开；IDE 只读观察团队状态，takeover、恢复和副作用裁决均交由 CLI authority fence 执行。
   - icon: 🔐
     title: 安全优先
-    details: 支持本地优先、权限控制、会话持久化与远程访问保护。
-  - icon: 🤖
-    title: AI 原生
-    details: 支持多 Provider、多模型、Agent 工作流、压缩策略与会话恢复。
-  - icon: 🧭
-    title: CLI + Web Panel
-    details: 同时提供 Headless CLI、Web 管理面板、任务监控与会话管理。
-  - icon: 🖥️
-    title: 远程终端 (Plan A · NEW)
-    details: Android 手机远程操控桌面 PTY，跨壳一致（V6 / Web Shell / cc ui / 移动端）；xterm.js 渲染 + 高危关键字桌面端二次确认。
-  - icon: 📱
-    title: iOS Phase 1-6 + Knowledge/AI Extended（v5.0.3.61 .ipa shipped）
-    details: 框架级完整移植 — Phase 1 桌面配对三流 + Phase 2 远程桌面终端 xterm.js WKWebView + Phase 3 远程操控 framework + 4 typed skill + Phase 4 Notification skill 11 method + Phase 5 AI Chat（流式 + cancel 顺序 + 多对话隔离，~358 单测）+ Phase 6 sprint（Knowledge 30 method + AI Extended 25 method hybrid 全收口 + 15 main tab + 多模态 v0.3 实时录音 + Agent streaming）。SwiftUI + Swift Concurrency + Google WebRTC SDK。iOS deployment target = 16（覆盖 iPhone 8+），真签名 .ipa 7.7MB 已入 release。剩 Phase 6.0/6.4 + 1.7/2.7/3.7/4.7/5.7 真机 E2E 38 场景（Mac+iPhone+真桌面，~3.5h）。
+    details: 本地优先、权限控制、会话恢复、Process Broker 与跨平台沙箱共同保护 Agent 执行边界。
   - icon: 🧠
-    title: Personal Data Hub v0.2（NEW · v5.0.3.80-84）
-    details: 个人数据中枢 v0.2 大爆发 — Android in-app collector 4 件套（Bilibili A8 v0.1/v0.2 + 微博 Weibo + WeChat Phase 12.10 SQLCipher decrypt + QQ Phase 13.5 XOR-IMEI）真机离桌面运行，WebView+OkHttp+SQLCipher vault on-device。A3 端侧 LLM 骨架（HTTP-Hybrid：Kotlin Ktor :11434 ↔ in-APK cc OllamaClient）；HubLocal 5 卡接通 + ModelStatusBanner 5 状态 UI。CLI + desktop wiring 11 个 no-arg adapter（Weibo/Douyin/Xiaohongshu/Toutiao/Kuaishou/QQ/百度地图/腾讯地图/京东/美团/拼多多）跨壳对称；6 个需 per-account credential adapter 延后到 accounts.json loader 阶段。Path Y desktop returns RAG context + Android-local LLM 9 云 vendor 全接通。
+    title: Personal Data Hub 0.4.57
+    details: 92 个采集契约覆盖 18 类来源，支持事务化事实归并、显式游标、有界分页与部分结果失败闭合。
   - icon: 🧪
     title: 工程化验证
-    details: 单元、集成、E2E 与文档持续对齐，减少设计与实现偏移。
+    details: CLI 0.162.189 与双 IDE 发布绑定精确提交和权威 CI；本地结果只作补充，不替代发布门。
 ---
 
-> **2026-07-29 当前主线快照**：桌面/Android 源码版本保持 `5.0.3.135`；CLI `0.162.185`、PDH `0.4.57`、Agent SDK `0.1.7`、VS Code `0.37.36` 与 JetBrains `0.4.75` 已分别发布。个人数据中台的 92 个采集契约 / 18 类数据源继续提供事务化多源归并与显式游标续扫；CLI 把强沙箱补齐到插件异步/后台进程、通用后台任务与 CLI/桌面 PTY，Hooks v2 完成可信根 binding、EPIPE 协议和单一 Broker runtime 收口；IDE 双端新增耗时/重试归因、team/batch durable 治理与事务化插件升级恢复。精确发布提交 `d7d378d3e1` 的三平台 CLI 门禁已通过。详细入口：[CLI Runtime 当前实现](/chainlesschain/cli-runtime-current)、[IDE 插件使用指南](/chainlesschain/ide-plugin)、[个人数据中台](/chainlesschain/personal-data-hub)与[更新日志](/changelog)。
+> **2026-08-01 当前主线快照**：桌面、Android 与 iOS 源码版本保持 `5.0.3.135`；CLI `0.162.189`、PDH `0.4.57`、Agent SDK `0.1.7`、Open VSX `0.37.37` 与 JetBrains Marketplace `0.4.76` 均已公开。P2-14 以限定范围完成 Process Broker 托管 checkpoint/回滚，P2-16 完成 Agent Teams 的本地 v6 authority、分布式 queue v1、wall lifecycle fence、IDE human-control 与三平台长期 soak。托管回滚只覆盖声明工作区内由 Broker 管理的 writer，不捕获宿主机全部写入，也不回滚网络、数据库、消息、部署或支付；共享 FS queue 不是共识网络队列。CLI 精确发布提交 `2607af0dad` 与 IDE 精确发布提交 `33e4d512d3` 的权威门禁均已成功。详细入口：[CLI Runtime 当前实现](/chainlesschain/cli-runtime-current)、[Agent Team](/chainlesschain/cli-team)、[IDE 插件使用指南](/chainlesschain/ide-plugin)、[个人数据中台](/chainlesschain/personal-data-hub)与[更新日志](/changelog)。
 
 > 2026-04-08 更新：文档站已对齐 CLI Agent Runtime 重构、统一 runtime event、session record、后台任务增强、Worktree 合并助手、压缩观测、会话迁移，以及 **Coding Agent Phase 5 最小 Harness + 真实 interrupt**。
 >

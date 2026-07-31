@@ -11,23 +11,23 @@
 >
 > 镜像通常会在发布后稍候自动补齐（项目发版流程也会主动触发同步）；补齐后用默认镜像源安装即可正常。
 
-## 2026-07-29 当前主线 — **v5.0.3.135 / CLI 0.162.185 / PDH 0.4.57 / VS Code 0.37.36 / JetBrains 0.4.75**
+## 2026-08-01 当前主线 — **v5.0.3.135 / CLI 0.162.189 / PDH 0.4.57 / VS Code 0.37.37 / JetBrains 0.4.76**
 
-> npm 公网 `latest` 已对齐 `chainlesschain@0.162.185`、`@chainlesschain/personal-data-hub@0.4.57` 与 `@chainlesschain/agent-sdk@0.1.7`；桌面端与 Android 源码版本保持 `5.0.3.135`，VS Code / JetBrains 扩展分别为 `0.37.36` / `0.4.75`。Python Agent SDK 与 TypeScript SDK 共用 Agent Protocol v1。
+> npm 公网 `latest` 已对齐 `chainlesschain@0.162.189`、`@chainlesschain/personal-data-hub@0.4.57` 与 `@chainlesschain/agent-sdk@0.1.7`；桌面、Android 与 iOS 源码版本保持 `5.0.3.135`。VS Code / VSCodium 扩展 `0.37.37` 已在 [Open VSX](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide) 公开，JetBrains 插件 `0.4.76` 已在 [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge) 审核通过并公开；微软 VS Code Marketplace 尚未发布。
 >
-> CLI `0.162.185` 把强执行边界补齐到插件异步/后台进程、通用后台任务、CLI PTY 与桌面项目 PTY：Linux bind source 必须证明 private mount propagation，钉住的父进程描述符在 spawn 后关闭，raw PTY 在 close/error 后立即失效，attached session 停止时回收整个 POSIX 进程组或 Windows 进程树。未经证明的项目根会被隔离，远端元数据不能获得本机 PTY authority。
+> CLI `0.162.189` 完成 P2-14 的**限定范围托管回滚**：Process Broker 管理的声明 workspace writer 会建立持久 checkpoint，在成功时接受，在失败、取消或超时时执行带 fence 的恢复，并明确报告 `full / partial / none` 覆盖层级。它不表示捕获宿主机所有文件写入；未托管进程、范围外路径，以及网络、数据库、消息、部署和支付等外部副作用均不在回滚保证内。
 >
-> Hooks v2 现在以 generation-aware opaque identity 绑定可信宿主根；hook 子进程在晚到的 stdin `EPIPE` 下仍保留 status 0 输出与 status 2 block 协议。Hooks 与 Broker 只保留一份 runtime graph，避免重复 CredentialTransport worker、listener 与稳态 FD。
+> P2-16 **大规模 Agent Teams** 已完成发布门闭合：本地状态 authority 为 schema v6，分布式共享文件系统 queue 使用独立 schema v1、lease、digest 与 compare-and-swap fence；wall-clock fence 覆盖执行、checkpoint、commit 与完成发布尾部。共享 FS queue 不是共识或网络分区容错队列，状态仍是受信但未签名的控制面。10,000 task / 64 worker 是单进程内异步 TeamRunner 规模验证；跨进程长期 soak 使用 2 个真实 OS worker 验证 DAG、故障与恢复，不构成 64 个分布式进程保证。
 >
-> CLI `0.162.184` 与 IDE `0.37.36 / 0.4.75` 同步增加工具耗时、同轮重试和脱敏 LLM retry 归因；team/batch 的 owner、会话、权限、预算、生命周期与副作用计数进入 durable 治理状态。插件升级采用 staging 校验 + 原子激活，复制、加载、post-install 或 capability widening 失败时恢复旧版本；IDE 只在确认 `activated` 后重载会话，并在扩大能力前要求显式批准。
+> VS Code `0.37.37` 与 JetBrains `0.4.76` 只读观察本地 v6 / queue v1 原始状态，并把 takeover、managed checkpoint recovery 与 side-effect adjudication 交回 CLI，以精确 authority digest、lease 和 evidence fence 执行；IDE 不直接改写权威 JSON。
 >
-> 个人数据中台仍提供 **92 个已注册采集契约 / 18 类数据源**，现把来源别名、原始 observation、字段级冲突决策、引用重写与最终实体放进同一事务；本地数据库、桌面客户端、移动 API、社交、健康、教育、音乐、购物和出行采集统一采用显式游标与有界分页，部分或不可读结果不会误推进 checkpoint。
+> 个人数据中台仍提供 **92 个已注册采集契约 / 18 类数据源**，PDH 保持 `0.4.57`；来源别名、原始 observation、字段级冲突决策、引用重写与最终实体在同一事务中提交，部分或不可读结果不会误推进 checkpoint。
 >
-> 精确发布提交 `d7d378d3e1` 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/30402651323)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/30402651097) 与 [npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/30404265474) 均已成功；本地测试只作补充，不替代三平台发布门。
+> CLI 精确发布提交 [`2607af0dad`](https://github.com/chainlesschain/chainlesschain/commit/2607af0dadeb951583139942e5f2add3e95e1208) 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/30586603353)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/30586603019)、[Agent Team 长期 soak](https://github.com/chainlesschain/chainlesschain/actions/runs/30564377629) 与 [npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/30588174291) 均成功。双 IDE 标签精确指向提交 [`33e4d512d3`](https://github.com/chainlesschain/chainlesschain/commit/33e4d512d319bc771190f672bcc7847fb4099835)，[Open VSX 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/30616688007)与 [JetBrains 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/30645282946)均成功；本地测试只作补充，不替代精确提交发布门。
 >
-> 详见 [CLI Runtime 当前实现](docs-site/docs/chainlesschain/cli-runtime-current.md)、[IDE 插件使用指南](docs-site/docs/chainlesschain/ide-plugin.md)、[个人数据中台用户指南](docs-site/docs/chainlesschain/personal-data-hub.md)、[运行时设计核对](docs/design/cli-runtime-current.md)、[个人数据中台架构](docs/design/Personal_Data_Hub_Architecture.md)及[更新日志](CHANGELOG.md)。
+> 详见 [CLI Runtime 当前实现](docs-site/docs/chainlesschain/cli-runtime-current.md)、[Agent Team 用户指南](docs-site/docs/chainlesschain/cli-team.md)、[IDE 插件使用指南](docs-site/docs/chainlesschain/ide-plugin.md)、[个人数据中台用户指南](docs-site/docs/chainlesschain/personal-data-hub.md)、[运行时设计核对](docs/design/cli-runtime-current.md)、[个人数据中台架构](docs/design/Personal_Data_Hub_Architecture.md)及[更新日志](CHANGELOG.md)。
 
-## 2026-07-24 当前发布 — **cc CLI 0.162.177 / IDE VS Code 0.37.31：技能子进程统一进入宿主 Process Broker**
+## 2026-07-24 历史发布 — **cc CLI 0.162.177 / IDE VS Code 0.37.31：技能子进程统一进入宿主 Process Broker**
 
 > `chainlesschain@0.162.177` 已发布到 npm `latest`，VS Code 扩展 `0.37.31` 已发布到 Open VSX。CLI-Anything 与 CLI 指令技能包生成的 handler 不再直接持有 `child_process`：声明 `shell-exec` 的技能仅获得宿主注入、冻结且带权威来源信息的 Process Broker facade；CLI-Anything 使用字面 argv + `shell:false`，危险字符、未闭合引号或缺少 Broker 时 fail closed。发布门覆盖 Ubuntu / Windows / macOS 的 unit、integration、E2E、打包和真实 CLI/Extension Host 烟测；本地 CLI 单元四分片 **24,562 项通过、5 项跳过**。详见 [CLI Runtime 当前实现](docs-site/docs/chainlesschain/cli-runtime-current.md)、[CLI 技能包用户指南](docs-site/docs/chainlesschain/cli-skill-packs.md) 与 [运行时设计核对](docs/design/cli-runtime-current.md)。
 
@@ -2783,7 +2783,7 @@ signals, reason, recommendedConcurrency, suggestedRoles }`。支持 monorepo 边
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v5.0.3.114-blue.svg)
+![Version](https://img.shields.io/badge/version-v5.0.3.135-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
@@ -2791,7 +2791,7 @@ signals, reason, recommendedConcurrency, suggestedRoles }`。支持 monorepo 边
 ![Tests](https://img.shields.io/badge/tests-30000%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-146-blue.svg)
 ![Commands](https://img.shields.io/badge/CLI%20commands-175-blue.svg)
-![CLI](https://img.shields.io/badge/cli-0.162.72-blue.svg)
+![CLI](https://img.shields.io/badge/cli-0.162.189-blue.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
 
 **去中心化 · 隐私优先 · AI原生**
@@ -4374,7 +4374,7 @@ chainlesschain start    # 启动应用（或 cc start / clc start / clchain star
 | 测试覆盖率   | ~30%   | ~80%   | **+167%**      |
 | LLM规划成本  | 基准   | -70%   | **月省$2,550** |
 
-详见: [Phase 2 测试总结](./docs/reports/phase2/PHASE2_FINAL_SUMMARY.md) | [永久记忆文档](./docs/features/PERMANENT_MEMORY_INTEGRATION.md) | [Hooks 系统设计](./docs/design/HOOKS_SYSTEM_DESIGN.md) | [完整版本历史](./docs/CHANGELOG.md)
+详见: [Phase 2 测试总结](./docs/reports/status/PHASE2_FINAL_SUMMARY.md) | [永久记忆文档](./docs/features/PERMANENT_MEMORY_INTEGRATION.md) | [Hooks 系统设计](./docs/design/HOOKS_SYSTEM_DESIGN.md) | [完整版本历史](./docs/CHANGELOG.md)
 
 ### 项目状态 (整体完成度: 100%)
 
@@ -4592,7 +4592,7 @@ chainlesschain start    # 启动应用（或 cc start / clc start / clchain star
 - ✅ **性能基准建立** - 142K ops/s项目操作，271K ops/s文件操作
 - ✅ **测试覆盖率~80%** - 测试驱动的持续质量提升
 
-详细功能说明见 [Phase 2 测试总结](./docs/reports/phase2/PHASE2_FINAL_SUMMARY.md)
+详细功能说明见 [Phase 2 测试总结](./docs/reports/status/PHASE2_FINAL_SUMMARY.md)
 
 ### 7️⃣ 企业级权限系统 (100% 完成) ✅
 
@@ -4612,7 +4612,7 @@ chainlesschain start    # 启动应用（或 cc start / clc start / clchain star
 - ✅ **可恢复压缩** - 保留URL/路径引用、按需恢复内容
 - ✅ **17个IPC通道** - 完整前端访问接口
 
-详细功能说明见 [Context Engineering 文档](./docs/MANUS_OPTIMIZATION_GUIDE.md)
+详细功能说明见 [Context Engineering 文档](./docs/optimization/MANUS_OPTIMIZATION_GUIDE.md)
 
 ### 9️⃣ Plan Mode + Skills 系统 (100% 完成) ✅
 
@@ -4707,7 +4707,7 @@ docker-compose up -d
 docker exec chainlesschain-ollama ollama pull qwen2:7b
 ```
 
-更多详细说明见 [开发指南](./docs/DEVELOPMENT.md)
+更多详细说明见 [开发指南](./docs/development/DEVELOPMENT.md)
 
 ## 📥 下载安装
 
@@ -4953,7 +4953,7 @@ chainlesschain/
 - [x] **社区生态**: 插件市场(22 IPC) + 社区MCP服务器发现/安装 ✅ v0.34.0
 - [x] **企业高级功能**: SSO(SAML/OAuth/OIDC) + 审计日志(18 IPC) + 合规管理 ✅ v0.34.0
 
-详细路线图见 [开发计划](./docs/DEVELOPMENT.md#开发路线图)
+详细路线图见 [开发计划](./docs/development/DEVELOPMENT.md#开发路线图)
 
 ## 🤝 贡献指南
 
@@ -4965,7 +4965,7 @@ chainlesschain/
 4. 推送到分支 (`git push origin feature/AmazingFeature`)
 5. 开启Pull Request
 
-详见 [贡献指南](./docs/DEVELOPMENT.md#贡献指南)
+详见 [贡献指南](./docs/development/DEVELOPMENT.md#贡献指南)
 
 ## 📜 许可证
 
@@ -4989,19 +4989,19 @@ chainlesschain/
 - [✨ 功能详解](./docs/FEATURES.md) - 详细功能列表和说明
 - [📥 安装指南](./docs/quick-start/INSTALLATION.md) - 各平台详细安装步骤
 - [🏗️ 架构文档](./docs/ARCHITECTURE.md) - 技术架构和项目结构
-- [💻 开发指南](./docs/DEVELOPMENT.md) - 开发环境搭建和贡献规范
+- [💻 开发指南](./docs/development/DEVELOPMENT.md) - 开发环境搭建和贡献规范
 - [📝 版本历史](./docs/CHANGELOG.md) - 完整版本更新记录
-- [⛓️ 区块链文档](./docs/BLOCKCHAIN.md) - 区块链集成和跨链桥
-- [🔧 API参考](./docs/API_REFERENCE.md) - API接口文档
-- [📚 用户手册](./docs/USER_MANUAL_COMPLETE.md) - 完整用户使用手册
+- [⛓️ 区块链文档](./docs/blockchain/BLOCKCHAIN.md) - 区块链集成和跨链桥
+- [🔧 API参考](./docs/api/API_REFERENCE.md) - API接口文档
+- [📚 用户手册](./docs/guides/USER_MANUAL_COMPLETE.md) - 完整用户使用手册
 
 **永久记忆与测试文档**:
 
 - [🧠 永久记忆集成](./docs/features/PERMANENT_MEMORY_INTEGRATION.md) - Daily Notes + MEMORY.md + 混合搜索
-- [🧪 Phase 2 测试总结](./docs/reports/phase2/PHASE2_FINAL_SUMMARY.md) - 233测试用例，99.6%通过率
-- [🔒 安全测试报告](./docs/reports/phase2/PHASE2_TASK13_SECURITY_TESTS.md) - OWASP Top 10覆盖80%
-- [📊 IPC处理器测试](./docs/reports/phase2/PHASE2_TASK7_IPC_HANDLERS_TESTS.md) - 66个IPC处理器测试
-- [💾 数据库边界测试](./docs/reports/phase2/PHASE2_TASK8_DATABASE_TESTS.md) - 14个边界条件测试
+- [🧪 Phase 2 测试总结](./docs/reports/status/PHASE2_FINAL_SUMMARY.md) - 233测试用例，99.6%通过率
+- [🔒 安全测试报告](./docs/reports/status/PHASE2_TASK13_SECURITY_TESTS.md) - OWASP Top 10覆盖80%
+- [📊 IPC处理器测试](./docs/reports/status/PHASE2_TASK7_IPC_HANDLERS_TESTS.md) - 66个IPC处理器测试
+- [💾 数据库边界测试](./docs/reports/status/PHASE2_TASK8_DATABASE_TESTS.md) - 14个边界条件测试
 
 **工作流优化文档**:
 

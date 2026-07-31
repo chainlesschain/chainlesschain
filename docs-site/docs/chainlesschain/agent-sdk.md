@@ -1,6 +1,6 @@
 # Agent SDK — TypeScript + Python 智能体接入套件
 
-> **更新: 2026-07-24 | 状态: ✅ 已发布（npm `@chainlesschain/agent-sdk@0.1.0` / PyPI `chainlesschain-agent-sdk==0.1.0`） | 协议版本 Agent Protocol v1 | TypeScript 36 测试 + Python 21 测试**
+> **更新: 2026-08-01 | 状态: ✅ 已发布（npm `@chainlesschain/agent-sdk@0.1.7` / PyPI `chainlesschain-agent-sdk==0.1.0`） | 协议版本 Agent Protocol v1 | TypeScript + Python 双语言契约**
 >
 > Agent SDK 把 `cc agent` 的 stream-json 双工协议固化为**带类型的正式契约**：Node/浏览器使用 TypeScript 包，Python 自动化与 CI 使用 PyPI 包；流式事件、审批回调、检查点、会话恢复不再靠各消费端手拼 argv、手写 NDJSON 解析。VS Code 扩展、web-panel 已迁移到 TypeScript SDK；JetBrains 插件（Kotlin/Java）对齐同一份语言中立协议。
 
@@ -56,19 +56,19 @@ Agent SDK 把这四件事收敛为两个零运行时依赖的正式包——带 
 
 发布入口：
 
-| 入口 | 环境 | 内容 |
-| --- | --- | --- |
-| `@chainlesschain/agent-sdk` | Node | `AgentSession`、`attachBackgroundSession`、session/checkpoint 包装、全部协议类型 |
-| `@chainlesschain/agent-sdk/protocol` | 任意 | 纯类型 + type guards，零运行时 I/O |
-| `@chainlesschain/agent-sdk/browser` | 浏览器 | 协议类型 + NDJSON 解码器 + `bg-*` 帧助手（零 Node import） |
-| `chainlesschain-agent-sdk` | Python ≥ 3.10 | `asyncio` `AgentSession`、22 类 typed event、NDJSON 解码器与 approval/question/elicitation callback |
+| 入口                                 | 环境          | 内容                                                                                                |
+| ------------------------------------ | ------------- | --------------------------------------------------------------------------------------------------- |
+| `@chainlesschain/agent-sdk`          | Node          | `AgentSession`、`attachBackgroundSession`、session/checkpoint 包装、全部协议类型                    |
+| `@chainlesschain/agent-sdk/protocol` | 任意          | 纯类型 + type guards，零运行时 I/O                                                                  |
+| `@chainlesschain/agent-sdk/browser`  | 浏览器        | 协议类型 + NDJSON 解码器 + `bg-*` 帧助手（零 Node import）                                          |
+| `chainlesschain-agent-sdk`           | Python ≥ 3.10 | `asyncio` `AgentSession`、22 类 typed event、NDJSON 解码器与 approval/question/elicitation callback |
 
 ## 安装
 
 ### TypeScript / Node
 
 ```bash
-npm install "@chainlesschain/agent-sdk@0.1.0"
+npm install "@chainlesschain/agent-sdk@0.1.7"
 ```
 
 ### Python
@@ -81,7 +81,7 @@ Python 包已在 [PyPI](https://pypi.org/project/chainlesschain-agent-sdk/) 公�
 Python 3.10、3.11、3.12、3.13。SDK 通过子进程驱动 `cc agent`，因此 CLI 需要单独安装：
 
 ```bash
-npm install --global "chainlesschain@0.162.177"
+npm install --global "chainlesschain@0.162.189"
 cc --version
 ```
 
@@ -126,11 +126,12 @@ session.end();
 ```ts
 import { AgentSession, listSessions } from "@chainlesschain/agent-sdk";
 
-const sessions = await listSessions();               // cc session list --json
+const sessions = await listSessions(); // cc session list --json
 const last = sessions[0];
 const resumed = new AgentSession({ resume: last.id });
 resumed.on("init", (e) => {
-  if ((e.resumed_messages ?? 0) > 0) console.log(`回放了 ${e.resumed_messages} 条历史`);
+  if ((e.resumed_messages ?? 0) > 0)
+    console.log(`回放了 ${e.resumed_messages} 条历史`);
 });
 resumed.start();
 ```
@@ -138,13 +139,17 @@ resumed.start();
 ### 检查点（改动前快照 → 出错回滚）
 
 ```ts
-import { createCheckpoint, listCheckpoints, restoreCheckpoint } from "@chainlesschain/agent-sdk";
+import {
+  createCheckpoint,
+  listCheckpoints,
+  restoreCheckpoint,
+} from "@chainlesschain/agent-sdk";
 
-const cp = await createCheckpoint([]);               // 全工作区快照
+const cp = await createCheckpoint([]); // 全工作区快照
 try {
   await runRiskyAgentTask();
 } catch {
-  await restoreCheckpoint(String(cp.id));            // 文件级回滚
+  await restoreCheckpoint(String(cp.id)); // 文件级回滚
 }
 ```
 
@@ -154,14 +159,14 @@ try {
 import { attachBackgroundSession } from "@chainlesschain/agent-sdk";
 
 const handle = await attachBackgroundSession({
-  id: "bg-1719...",                                  // 读状态文件取 pipe+token
+  id: "bg-1719...", // 读状态文件取 pipe+token
   onEvent: (e) => {
     if (e.type === "turn-ended") console.log(`第 ${e.turn} 轮完成`);
     if (e.type === "idle") handle.prompt("继续下一步");
   },
 });
 handle.prompt("补充：优先修 P0");
-handle.stopTurn();                                   // 停当前轮（会话保留）
+handle.stopTurn(); // 停当前轮（会话保留）
 handle.detach();
 ```
 
@@ -228,83 +233,83 @@ asyncio.run(main())
 
 ### TypeScript AgentSession 选项
 
-| 选项 | 类型 | 默认 | 说明 |
-| --- | --- | --- | --- |
-| `cliPath` | `string` | `"cc"` | CLI 可执行文件；`.js` 路径自动经 `process.execPath` 执行 |
-| `cwd` / `env` | `string` / `object` | 继承 | 子进程工作目录 / 环境（在 `process.env` 之上合并） |
-| `sessionId` | `string` | — | **新**会话声明 id（`--session`）；可恢复会话必填 |
-| `resume` | `string` | — | 续既有会话（`--resume`）；与 `sessionId` 同给时 `resume` 优先 |
-| `forkSession` | `boolean` | `false` | 分叉而非追加（`--fork-session`） |
-| `permissionMode` | `"default" \| "plan" \| "acceptEdits" \| "bypassPermissions" \| "auto"` | `"default"` | `default` 不加 flag |
-| `model` / `provider` | `string` | CLI 自解析 | 显式钉死模型/提供商 |
-| `includePartialMessages` | `boolean` | `true` | 关闭则无文本/思考增量事件 |
-| `onApproval` | `(req) => Promise<boolean>` | — | 提供即隐含 `--interactive-approvals` |
-| `onQuestion` | `(q) => Promise<string \| string[] \| null>` | — | 提供即设 `CC_INTERACTIVE_QUESTIONS=1`；返回 `null` 取消 |
-| `extraArgs` | `string[]` | `[]` | 追加在 SDK 所有 flag 之后（如 `--base-url`、`--think`） |
-| `spawn` | `typeof spawn` | node | 测试注入缝 |
+| 选项                     | 类型                                                                    | 默认        | 说明                                                          |
+| ------------------------ | ----------------------------------------------------------------------- | ----------- | ------------------------------------------------------------- |
+| `cliPath`                | `string`                                                                | `"cc"`      | CLI 可执行文件；`.js` 路径自动经 `process.execPath` 执行      |
+| `cwd` / `env`            | `string` / `object`                                                     | 继承        | 子进程工作目录 / 环境（在 `process.env` 之上合并）            |
+| `sessionId`              | `string`                                                                | —           | **新**会话声明 id（`--session`）；可恢复会话必填              |
+| `resume`                 | `string`                                                                | —           | 续既有会话（`--resume`）；与 `sessionId` 同给时 `resume` 优先 |
+| `forkSession`            | `boolean`                                                               | `false`     | 分叉而非追加（`--fork-session`）                              |
+| `permissionMode`         | `"default" \| "plan" \| "acceptEdits" \| "bypassPermissions" \| "auto"` | `"default"` | `default` 不加 flag                                           |
+| `model` / `provider`     | `string`                                                                | CLI 自解析  | 显式钉死模型/提供商                                           |
+| `includePartialMessages` | `boolean`                                                               | `true`      | 关闭则无文本/思考增量事件                                     |
+| `onApproval`             | `(req) => Promise<boolean>`                                             | —           | 提供即隐含 `--interactive-approvals`                          |
+| `onQuestion`             | `(q) => Promise<string \| string[] \| null>`                            | —           | 提供即设 `CC_INTERACTIVE_QUESTIONS=1`；返回 `null` 取消       |
+| `extraArgs`              | `string[]`                                                              | `[]`        | 追加在 SDK 所有 flag 之后（如 `--base-url`、`--think`）       |
+| `spawn`                  | `typeof spawn`                                                          | node        | 测试注入缝                                                    |
 
 ### Python AgentSessionOptions
 
 Python 使用同一组语义，字段名改为 snake_case：
 
-| Python 字段 | 对应语义 |
-| --- | --- |
-| `cli_path` / `cwd` / `env` | CLI 路径、工作目录与子进程环境 |
-| `session_id` / `resume` / `fork_session` | 新会话持久化、恢复与分叉；`resume` 优先 |
-| `permission_mode` | `default` / `plan` / `acceptEdits` / `bypassPermissions` / `auto` |
-| `model` / `provider` | 显式固定模型与 provider |
-| `include_partial_messages` | 是否接收文本/思考增量，默认 `True` |
-| `extra_args` | 追加 CLI 参数 tuple |
+| Python 字段                              | 对应语义                                                          |
+| ---------------------------------------- | ----------------------------------------------------------------- |
+| `cli_path` / `cwd` / `env`               | CLI 路径、工作目录与子进程环境                                    |
+| `session_id` / `resume` / `fork_session` | 新会话持久化、恢复与分叉；`resume` 优先                           |
+| `permission_mode`                        | `default` / `plan` / `acceptEdits` / `bypassPermissions` / `auto` |
+| `model` / `provider`                     | 显式固定模型与 provider                                           |
+| `include_partial_messages`               | 是否接收文本/思考增量，默认 `True`                                |
+| `extra_args`                             | 追加 CLI 参数 tuple                                               |
 
 `on_event`、`on_approval`、`on_question`、`on_elicitation`、`on_error` 与 `on_stderr`
 作为 `AgentSession(...)` 的关键字参数传入；普通函数与 coroutine 都受支持。
 
 ### 相关环境变量（CLI 侧语义，SDK 透传）
 
-| 变量 | 默认 | 说明 |
-| --- | --- | --- |
-| `CC_APPROVAL_TIMEOUT_MS` | `120000` | 审批无人应答的 fail-closed 超时 |
-| `CC_QUESTION_TIMEOUT_MS` | `180000` | ask_user_question 超时（取消，模型自主继续） |
-| `CC_INTERACTIVE_QUESTIONS` | 关 | `onQuestion` 自动置 `1` |
-| `CC_STREAM_COALESCE_MS` | `50` | CLI 侧增量合帧窗口 |
-| `CC_AUTO_IMAGE` | 开 | `0` 关闭消息内图片路径自动附带 |
+| 变量                       | 默认     | 说明                                         |
+| -------------------------- | -------- | -------------------------------------------- |
+| `CC_APPROVAL_TIMEOUT_MS`   | `120000` | 审批无人应答的 fail-closed 超时              |
+| `CC_QUESTION_TIMEOUT_MS`   | `180000` | ask_user_question 超时（取消，模型自主继续） |
+| `CC_INTERACTIVE_QUESTIONS` | 关       | `onQuestion` 自动置 `1`                      |
+| `CC_STREAM_COALESCE_MS`    | `50`     | CLI 侧增量合帧窗口                           |
+| `CC_AUTO_IMAGE`            | 开       | `0` 关闭消息内图片路径自动附带               |
 
 ## 性能指标
 
 实测（Windows 10 Workstations，Node 22，2026-07-09）：
 
-| 指标 | 数值 | 口径 |
-| --- | --- | --- |
-| NDJSON 解码吞吐 | **~14.7 万事件/秒（17.8 MB/s）** | 20 万条真实形状 `stream_event` 增量，50 行/chunk |
-| 跨 chunk 切行路径 | **~16.1 万事件/秒** | 每行强制切成两个 chunk 的最坏情况 |
-| 单行上限 | 1 MiB | 超限丢弃并报 `onError`（防恶意/失控行撑爆内存） |
-| 真 CLI e2e 全程 | **~7 秒** | 2 次冷 spawn + 3 个 agent 轮次 + 审批往返 + resume（fake LLM） |
-| CJS 构建体积 | **~30 KB / 零运行时依赖** | vendor 进 VS Code 扩展的全部增量 |
-| 审批阻塞开销 | 0（事件驱动） | 无轮询；挂起数 = 未决审批数 |
+| 指标              | 数值                             | 口径                                                           |
+| ----------------- | -------------------------------- | -------------------------------------------------------------- |
+| NDJSON 解码吞吐   | **~14.7 万事件/秒（17.8 MB/s）** | 20 万条真实形状 `stream_event` 增量，50 行/chunk               |
+| 跨 chunk 切行路径 | **~16.1 万事件/秒**              | 每行强制切成两个 chunk 的最坏情况                              |
+| 单行上限          | 1 MiB                            | 超限丢弃并报 `onError`（防恶意/失控行撑爆内存）                |
+| 真 CLI e2e 全程   | **~7 秒**                        | 2 次冷 spawn + 3 个 agent 轮次 + 审批往返 + resume（fake LLM） |
+| CJS 构建体积      | **~30 KB / 零运行时依赖**        | vendor 进 VS Code 扩展的全部增量                               |
+| 审批阻塞开销      | 0（事件驱动）                    | 无轮询；挂起数 = 未决审批数                                    |
 
 ## 测试覆盖
 
 ### TypeScript
 
-| 层 | 套件 | 数量 | 覆盖点 |
-| --- | --- | --- | --- |
-| 单元 | `__tests__/ndjson.test.ts` | 9 | 切行重组 / CRLF / 坏行不拖累后行 / 1 MiB 上限 / 多字节 UTF-8 跨 chunk / flush 幂等 |
-| 单元 | `__tests__/protocol.test.ts` | 4 | type guards 全走查 |
-| 单元 | `__tests__/agent-session.test.ts` | 12 | argv 契约 / 事件分发 / 审批回调 fail-closed / 问题回调取消 / nextResult / exit 单发 / 未知事件不炸泵 |
-| 单元 | `__tests__/cli-json.test.ts` | 5 | JSON 解析 / 失败注上下文 / 裸数组与包裹对象两形态 |
-| 集成 | `__tests__/background.test.ts` | 3 | **真 net 服务器 + 真命名管道**：token 握手 / 错 token 拒绝 / 静默服务器超时 |
-| e2e | `__tests__/e2e-agent-session.test.ts` | 1（3 会话） | **真 `cc` CLI**：init/session_id → 文本流 → 审批放行后文件真实写盘 → resume 回放（`resumed_messages > 0`） |
+| 层   | 套件                                  | 数量        | 覆盖点                                                                                                     |
+| ---- | ------------------------------------- | ----------- | ---------------------------------------------------------------------------------------------------------- |
+| 单元 | `__tests__/ndjson.test.ts`            | 9           | 切行重组 / CRLF / 坏行不拖累后行 / 1 MiB 上限 / 多字节 UTF-8 跨 chunk / flush 幂等                         |
+| 单元 | `__tests__/protocol.test.ts`          | 4           | type guards 全走查                                                                                         |
+| 单元 | `__tests__/agent-session.test.ts`     | 12          | argv 契约 / 事件分发 / 审批回调 fail-closed / 问题回调取消 / nextResult / exit 单发 / 未知事件不炸泵       |
+| 单元 | `__tests__/cli-json.test.ts`          | 5           | JSON 解析 / 失败注上下文 / 裸数组与包裹对象两形态                                                          |
+| 集成 | `__tests__/background.test.ts`        | 3           | **真 net 服务器 + 真命名管道**：token 握手 / 错 token 拒绝 / 静默服务器超时                                |
+| e2e  | `__tests__/e2e-agent-session.test.ts` | 1（3 会话） | **真 `cc` CLI**：init/session_id → 文本流 → 审批放行后文件真实写盘 → resume 回放（`resumed_messages > 0`） |
 
 合计 **36 测试全绿**；消费端回归：VS Code 58 文件/512 绿（含 SDK 委托契约 4 测 + 首会话持久化回归 1 测）、web-panel 121 文件/2458 绿、JetBrains PureLogicSmokeMain 663/0。
 
 ### Python
 
-| 套件 | 数量 | 覆盖点 |
-| --- | --- | --- |
-| `test_protocol.py` | 8 | 22 类事件清单、nested dataclass、未知事件/新增字段无损、共享 fixture |
-| `test_ndjson.py` | 5 | 任意 byte 边界、拆分 UTF-8、CRLF、坏行隔离、最终无换行 flush |
-| `test_session.py` | 5 | argv 对齐、跨平台 spawn、真实子进程双工、callback fail-closed、提前退出 |
-| `test_ci_consumer.py` | 3 | 穷举 handler、先 journal 后 dispatch、canonical fixture replay |
+| 套件                  | 数量 | 覆盖点                                                                  |
+| --------------------- | ---- | ----------------------------------------------------------------------- |
+| `test_protocol.py`    | 8    | 22 类事件清单、nested dataclass、未知事件/新增字段无损、共享 fixture    |
+| `test_ndjson.py`      | 5    | 任意 byte 边界、拆分 UTF-8、CRLF、坏行隔离、最终无换行 flush            |
+| `test_session.py`     | 5    | argv 对齐、跨平台 spawn、真实子进程双工、callback fail-closed、提前退出 |
+| `test_ci_consumer.py` | 3    | 穷举 handler、先 journal 后 dispatch、canonical fixture replay          |
 
 合计 **21 项 hermetic 测试**，常规 CI 覆盖 Python 3.10、3.12、3.13。0.1.0
 发布后另有一条只访问公开 PyPI 的 wheel 安装矩阵，三个 Python 版本全部通过 metadata、
@@ -323,38 +328,38 @@ Python 使用同一组语义，字段名改为 snake_case：
 
 ## 故障排除
 
-| 症状 | 原因 | 处置 |
-| --- | --- | --- |
-| `resume` 后历史为空（`resumed_messages: 0`） | 首次会话没传 `sessionId` —— **匿名流式会话不落盘**（CLI 设计如此） | 首启就给 `sessionId`；`resume` 一个不存在的 id 会静默新建 |
-| Windows 下 spawn 报 ENOENT | `cliPath` 指向 `.cmd`/裸名但环境缺 PATH 项 | SDK 已走 `cmd.exe /c`；确认 `cc --version` 在同环境可跑，或 `cliPath` 给绝对路径 |
-| 审批卡 120 秒后自动拒绝 | `onApproval` 回调挂起未决议 | 回调内加自己的 UI 超时；或调 `CC_APPROVAL_TIMEOUT_MS` |
-| `question_request` 从不出现 | 宿主没提供 `onQuestion`（未设 `CC_INTERACTIVE_QUESTIONS`） | 提供回调即可；旧版 CLI 忽略该 env → 优雅降级为模型自主继续 |
-| 事件流"丢了半行" | 绕过 SDK 直接 `split("\n")` 解析 stdout | 用 `createNdjsonDecoder`（carry buffer + close flush） |
-| 杀掉会话后临时目录删不掉（EBUSY） | 刚被 kill 的 cc 子进程短暂持有 SQLite 锁 | 等退出事件再清理；清理加重试（SDK e2e 即此写法） |
-| `attachBackgroundSession` 握手超时 | worker 已退出但状态文件残留 / token 轮换 | 重读状态文件（每次心跳会重写 `transport`）；确认 `status: "running"` |
-| vendored SDK 与 `packages/agent-sdk` 行为不一致 | 改了 SDK 源没重跑同步脚本 | `node scripts/sync-agent-sdk.mjs`（vendor 目录禁止手改） |
+| 症状                                            | 原因                                                               | 处置                                                                             |
+| ----------------------------------------------- | ------------------------------------------------------------------ | -------------------------------------------------------------------------------- |
+| `resume` 后历史为空（`resumed_messages: 0`）    | 首次会话没传 `sessionId` —— **匿名流式会话不落盘**（CLI 设计如此） | 首启就给 `sessionId`；`resume` 一个不存在的 id 会静默新建                        |
+| Windows 下 spawn 报 ENOENT                      | `cliPath` 指向 `.cmd`/裸名但环境缺 PATH 项                         | SDK 已走 `cmd.exe /c`；确认 `cc --version` 在同环境可跑，或 `cliPath` 给绝对路径 |
+| 审批卡 120 秒后自动拒绝                         | `onApproval` 回调挂起未决议                                        | 回调内加自己的 UI 超时；或调 `CC_APPROVAL_TIMEOUT_MS`                            |
+| `question_request` 从不出现                     | 宿主没提供 `onQuestion`（未设 `CC_INTERACTIVE_QUESTIONS`）         | 提供回调即可；旧版 CLI 忽略该 env → 优雅降级为模型自主继续                       |
+| 事件流"丢了半行"                                | 绕过 SDK 直接 `split("\n")` 解析 stdout                            | 用 `createNdjsonDecoder`（carry buffer + close flush）                           |
+| 杀掉会话后临时目录删不掉（EBUSY）               | 刚被 kill 的 cc 子进程短暂持有 SQLite 锁                           | 等退出事件再清理；清理加重试（SDK e2e 即此写法）                                 |
+| `attachBackgroundSession` 握手超时              | worker 已退出但状态文件残留 / token 轮换                           | 重读状态文件（每次心跳会重写 `transport`）；确认 `status: "running"`             |
+| vendored SDK 与 `packages/agent-sdk` 行为不一致 | 改了 SDK 源没重跑同步脚本                                          | `node scripts/sync-agent-sdk.mjs`（vendor 目录禁止手改）                         |
 
 ## 关键文件
 
-| 文件 | 说明 |
-| --- | --- |
-| `packages/agent-sdk/src/protocol.ts` | **契约单一来源**：全事件/输入/帧类型 + guards + `PROTOCOL_VERSION` |
-| `packages/agent-sdk/src/agent-session.ts` | `AgentSession` spawn 双工客户端（argv 构造 + 事件分发 + 审批/问题自动应答） |
-| `packages/agent-sdk/src/ndjson.ts` | carry-buffer NDJSON 解码器（含 `flush()`） |
-| `packages/agent-sdk/src/background.ts` | 后台会话 pipe 客户端 + 状态文件读取 |
-| `packages/agent-sdk/src/cli-json.ts` | session/checkpoint `--json` 一次性包装 |
-| `packages/agent-sdk/src/browser.ts` | 浏览器安全入口（`bgRequest` / `isBgPushFrame`） |
-| `packages/agent-sdk/docs/PROTOCOL.md` | **语言中立契约文档**（JetBrains 的兼容面） |
-| `packages/agent-sdk/scripts/build.mjs` | tsc 双构建（ESM + CJS） |
-| `packages/agent-sdk-python/src/chainlesschain_agent_sdk/protocol.py` | Python 22 类 typed event、未知事件透传与 wire parser |
-| `packages/agent-sdk-python/src/chainlesschain_agent_sdk/session.py` | Python `asyncio` 双工会话与 callback 协调 |
-| `packages/agent-sdk-python/examples/ci_gate.py` | 穷举 CI consumer、事件 journal 与离线 fixture replay |
-| `.github/workflows/python-agent-sdk-release.yml` | wheel/sdist 验证与 PyPI Trusted Publishing |
-| `.github/workflows/python-agent-sdk-pypi-smoke.yml` | 发布后公开 PyPI wheel 安装矩阵 |
-| `packages/vscode-extension/scripts/sync-agent-sdk.mjs` | vendor 同步脚本（改 SDK 后必跑） |
-| `packages/vscode-extension/src/vendor/agent-sdk/` | vendored CJS（生成物，禁手改） |
-| `packages/cli/src/runtime/headless-stream.js` | 协议的 CLI 侧真源（stream-json 双工实现） |
-| `packages/cli/src/lib/background-session-transport.js` | 后台管道协议的 CLI 侧真源 |
+| 文件                                                                 | 说明                                                                        |
+| -------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| `packages/agent-sdk/src/protocol.ts`                                 | **契约单一来源**：全事件/输入/帧类型 + guards + `PROTOCOL_VERSION`          |
+| `packages/agent-sdk/src/agent-session.ts`                            | `AgentSession` spawn 双工客户端（argv 构造 + 事件分发 + 审批/问题自动应答） |
+| `packages/agent-sdk/src/ndjson.ts`                                   | carry-buffer NDJSON 解码器（含 `flush()`）                                  |
+| `packages/agent-sdk/src/background.ts`                               | 后台会话 pipe 客户端 + 状态文件读取                                         |
+| `packages/agent-sdk/src/cli-json.ts`                                 | session/checkpoint `--json` 一次性包装                                      |
+| `packages/agent-sdk/src/browser.ts`                                  | 浏览器安全入口（`bgRequest` / `isBgPushFrame`）                             |
+| `packages/agent-sdk/docs/PROTOCOL.md`                                | **语言中立契约文档**（JetBrains 的兼容面）                                  |
+| `packages/agent-sdk/scripts/build.mjs`                               | tsc 双构建（ESM + CJS）                                                     |
+| `packages/agent-sdk-python/src/chainlesschain_agent_sdk/protocol.py` | Python 22 类 typed event、未知事件透传与 wire parser                        |
+| `packages/agent-sdk-python/src/chainlesschain_agent_sdk/session.py`  | Python `asyncio` 双工会话与 callback 协调                                   |
+| `packages/agent-sdk-python/examples/ci_gate.py`                      | 穷举 CI consumer、事件 journal 与离线 fixture replay                        |
+| `.github/workflows/python-agent-sdk-release.yml`                     | wheel/sdist 验证与 PyPI Trusted Publishing                                  |
+| `.github/workflows/python-agent-sdk-pypi-smoke.yml`                  | 发布后公开 PyPI wheel 安装矩阵                                              |
+| `packages/vscode-extension/scripts/sync-agent-sdk.mjs`               | vendor 同步脚本（改 SDK 后必跑）                                            |
+| `packages/vscode-extension/src/vendor/agent-sdk/`                    | vendored CJS（生成物，禁手改）                                              |
+| `packages/cli/src/runtime/headless-stream.js`                        | 协议的 CLI 侧真源（stream-json 双工实现）                                   |
+| `packages/cli/src/lib/background-session-transport.js`               | 后台管道协议的 CLI 侧真源                                                   |
 
 ## 协议演进规则
 

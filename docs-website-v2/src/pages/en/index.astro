@@ -503,7 +503,7 @@ const badges = [
           No GUI required — <code class="font-mono text-sm bg-cream px-2 py-0.5 rounded">chainlesschain</code> runs local AI, agent coding, and multi-agent orchestration entirely in the terminal.
         </p>
         <p class="text-sm text-muted mb-8">
-          Current {CLI_VERSION}: background work, plugin processes, and PTYs share a fail-closed execution boundary, while Hooks, collaboration runs, and plugin upgrades keep recoverable, auditable durable state.
+          Current {CLI_VERSION}: the Process Broker checkpoints managed workspace writes and applies fenced rollback after failure, cancellation, or timeout, with explicit full / partial / none coverage. Agent Teams carries authority digests, leases, CAS, and wall-clock fences through local state v6 and shared-filesystem distributed queue v1. Auto mode adds a 145-case offline safety-classification gate that fails closed.
         </p>
         <div class="grid grid-cols-3 gap-6 mb-8">
           <div>
@@ -511,7 +511,7 @@ const badges = [
             <div class="text-sm text-muted mt-1">CLI commands</div>
           </div>
           <div>
-            <div class="font-display text-4xl text-ember">139</div>
+            <div class="font-display text-4xl text-ember">146</div>
             <div class="text-sm text-muted mt-1">Built-in skills</div>
           </div>
           <div>

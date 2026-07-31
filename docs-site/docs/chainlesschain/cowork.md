@@ -1,8 +1,8 @@
 # Cowork 多智能体协作系统
 
-> **当前版本: CLI Cowork 0.162.175（2026-07-22） | 状态: ✅ CLI 命令可用 | 运行时测试持续维护**
+> **当前版本：CLI 0.162.189（2026-08-01） | 状态: ✅ Cowork 命令可用；P2-16 Agent Teams 已完成发布门 | 运行时测试持续维护**
 >
-> 当前代码同时保留历史桌面端 Cowork 能力；CLI 入口以 `packages/cli/src/commands/cowork.js` 为准，命令实现采用按需加载。本文中的桌面 IPC 数量、旧版本性能数字和历史模块行数仅作为演进记录，不作为 CLI 当前 SLA。
+> 当前代码同时保留历史桌面端 Cowork 能力；CLI 入口以 `packages/cli/src/commands/cowork.js` 为准，命令实现采用按需加载。Cowork 与基于 DAG / lease / queue 的 `cc team` 是不同入口；大规模协作与回滚边界见 [Agent Team 用户指南](./cli-team.md)。本文中的桌面 IPC 数量、旧版本性能数字和历史模块行数仅作为演进记录，不作为 CLI 当前 SLA。
 
 ## 概述
 
@@ -16,17 +16,17 @@ ChainlessChain Cowork 是一个生产级的多智能体协作系统，基于 Cla
 
 本文按以下模块组织：
 
-| 模块 | 内容 |
-| --- | --- |
-| [系统架构](#系统架构) | Cowork 层次、任务执行与持久化边界 |
-| [配置参考](#配置参考) | TeammateTool、FileSandbox、长时任务和 CLI 运行参数 |
-| [性能指标](#性能指标) | 历史桌面基线与当前 CLI 的测量口径 |
-| [测试覆盖率](#测试覆盖率) | 桌面 E2E 与 CLI unit/integration/e2e 覆盖 |
-| [安全考虑](#安全考虑) | 文件、凭据、沙箱、传输与审计边界 |
-| [故障排查](#故障排查) | 桌面 IPC 与 CLI 常见故障 |
-| [关键文件](#关键文件) | 桌面实现与 CLI 实现入口 |
-| [使用示例](#使用示例) | 当前可直接执行的 CLI 示例 |
-| [相关文档](#相关文档) | 用户指南、设计文档和测试文档 |
+| 模块                      | 内容                                               |
+| ------------------------- | -------------------------------------------------- |
+| [系统架构](#系统架构)     | Cowork 层次、任务执行与持久化边界                  |
+| [配置参考](#配置参考)     | TeammateTool、FileSandbox、长时任务和 CLI 运行参数 |
+| [性能指标](#性能指标)     | 历史桌面基线与当前 CLI 的测量口径                  |
+| [测试覆盖率](#测试覆盖率) | 桌面 E2E 与 CLI unit/integration/e2e 覆盖          |
+| [安全考虑](#安全考虑)     | 文件、凭据、沙箱、传输与审计边界                   |
+| [故障排查](#故障排查)     | 桌面 IPC 与 CLI 常见故障                           |
+| [关键文件](#关键文件)     | 桌面实现与 CLI 实现入口                            |
+| [使用示例](#使用示例)     | 当前可直接执行的 CLI 示例                          |
+| [相关文档](#相关文档)     | 用户指南、设计文档和测试文档                       |
 
 ## 核心特性
 
@@ -1160,12 +1160,7 @@ import CoworkAnalytics from "@/pages/CoworkAnalytics.vue";
 // 类型定义
 type TeamStatus = "active" | "paused" | "completed" | "failed";
 type TaskStatus =
-  | "pending"
-  | "running"
-  | "paused"
-  | "completed"
-  | "failed"
-  | "cancelled";
+  "pending" | "running" | "paused" | "completed" | "failed" | "cancelled";
 
 // Store 结构
 const useCoworkStore = defineStore("cowork", {
@@ -1518,15 +1513,15 @@ const logs = await window.electron.ipcRenderer.invoke("cowork:get-logs", {
 
 ### 当前 CLI 文件
 
-| 文件 | 职责 |
-| --- | --- |
-| `packages/cli/src/commands/cowork.js` | Cowork CLI 子命令注册与参数解析 |
-| `packages/cli/src/lib/cowork/` | debate、compare、分析、任务、工作流、观察与学习实现 |
-| `packages/cli/src/lib/cowork-task-runner.js` | Cowork 任务执行与状态收口 |
-| `packages/cli/src/lib/cowork-workflow.js` | DAG 工作流持久化与执行 |
-| `packages/cli/src/lib/cowork-cron.js` | 定时任务配置与运行 |
-| `packages/cli/src/lib/cowork-share.js` | 签名共享包导出、导入和校验 |
-| `packages/cli/src/lib/process-execution-broker/` | shell、sandbox、credential agent 安全边界 |
+| 文件                                             | 职责                                                |
+| ------------------------------------------------ | --------------------------------------------------- |
+| `packages/cli/src/commands/cowork.js`            | Cowork CLI 子命令注册与参数解析                     |
+| `packages/cli/src/lib/cowork/`                   | debate、compare、分析、任务、工作流、观察与学习实现 |
+| `packages/cli/src/lib/cowork-task-runner.js`     | Cowork 任务执行与状态收口                           |
+| `packages/cli/src/lib/cowork-workflow.js`        | DAG 工作流持久化与执行                              |
+| `packages/cli/src/lib/cowork-cron.js`            | 定时任务配置与运行                                  |
+| `packages/cli/src/lib/cowork-share.js`           | 签名共享包导出、导入和校验                          |
+| `packages/cli/src/lib/process-execution-broker/` | shell、sandbox、credential agent 安全边界           |
 
 ## 前端路由（v1.1.0 新增）
 

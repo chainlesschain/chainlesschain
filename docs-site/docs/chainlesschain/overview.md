@@ -1,6 +1,8 @@
 # ChainlessChain 系统概述
 
-> **当前版本: v5.0.3.134 进化版 | 146 桌面技能 + 25 Android 技能 | CLI v0.162.168 / 175 命令 / 30,000+ 测试 | Android 5.0.3.134 (versionCode 503134 · USR_VERSION 74 · binariesVersion 20260703) | iOS 5.0.3 (build 134，ad-hoc 签名 .ipa)**
+> **当前版本（2026-08-01）：v5.0.3.135 | CLI 0.162.189 | PDH 0.4.57（92 个采集契约 / 18 类来源）| Agent SDK 0.1.7 | VS Code 0.37.37（Open VSX）| JetBrains 0.4.76（Marketplace）| Android versionCode 503135 | iOS build 135**
+>
+> **P2-14 / P2-16 当前能力**：Process Broker 对声明 workspace writer 提供持久 checkpoint 与失败、取消、超时后的 fenced rollback；覆盖层级为 `full / partial / none`，不表示捕获宿主机全部写入，也不回滚外部副作用。Agent Teams 已具备本地 schema v6 authority、独立分布式 queue v1、fenced lease、四维预算、每任务 worktree、wall lifecycle fence 与双 IDE human-control。共享 FS queue 不是共识网络队列；10k task / 64 worker 是单进程异步规模验证，长期跨进程 soak 使用 2 个真实 OS worker。
 >
 > **v5.0.3.127–130 QQ空间一键采集 + 微信朋友圈采集 + §8.3 学习层备份上设备 + 个人助手 UX 收口（2026-06-24）**：QQ空间（Qzone）本地无库走 API——新增 `pdh/lib/forensics/qzone-collect.js`（`g_tk`=bkn hash over qzone 域 `p_skey`；说说/留言板/相册 → EVENT）+ `cc hub collect-qzone` + Android「QQ空间」一键采集卡（内嵌 WebView ptlogin2 登录 → 抓 cookie → in-APK 采集，真机 404 事件）；微信朋友圈 `SnsMicroMsg.db` 明文采集（`parseSnsEvents`，真机 2824 条）；§8.3 学习层备份命令上设备（`cc memory/instinct/learning export/import` → vault + 记忆 + 习惯 + 自进化轨迹全资产端到端备份）；个人助手 UX——卡死静默看门狗（20s 安抚/120s 友好超时+重试/进程退出自动重启）+ 待裁决信任卡固定（sticky）可见不再被消息流滚走。`pdh` 0.4.33→**0.4.36** + `chainlesschain` 0.162.101→**0.162.117** 已发 npm；Android cc bundle `internal-binaries-android-v20260624`（USR_VERSION 58）。
 >
@@ -1255,7 +1257,7 @@ CLI Agent核心架构大幅升级，借鉴oh-my-openagent等先进实践。
 
 **本地服务**
 
-- Runtime: Node.js 18+
+- Runtime: Node.js 22.12.0+
 - Database: SQLite + SQLCipher (AES-256加密)
 - Search: 全文搜索 + 向量检索
 - AI: Ollama (本地大模型) + 14+云LLM

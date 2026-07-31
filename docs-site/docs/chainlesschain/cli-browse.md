@@ -152,7 +152,7 @@ screenshot 选项:
   --json               JSON 输出
 ```
 
-前置依赖: Node.js ≥ 18（内置 fetch）。`screenshot` 需要 `npm install -g playwright`；`chrome` 子命令只需本机装有 Chrome（走 CDP，不需要 Playwright）。
+前置依赖: ChainlessChain CLI 要求 Node.js ≥ 22.12.0。`screenshot` 需要 `npm install -g playwright`；`chrome` 子命令只需本机装有 Chrome（走 CDP，不需要 Playwright）。
 
 ## 性能指标
 
@@ -248,7 +248,7 @@ cc browse chrome state -t 1 --no-dom     # 只看第 2 个 tab 的 console 报�
 
 | 问题                                 | 解决方案                                                                |
 | ------------------------------------ | ----------------------------------------------------------------------- |
-| `Fetch failed: fetch is not defined` | Node.js 版本需 >= 18（内置 fetch API）                                  |
+| `Fetch failed: fetch is not defined` | Node.js 版本需 >= 22.12.0；升级后重新安装当前 CLI                       |
 | `Screenshot failed`                  | 安装 Playwright：`npm install -g playwright`                            |
 | `No elements matching "..."`         | 检查 CSS 选择器是否正确，页面可能使用动态渲染                           |
 | 文本内容被截断                       | 默认显示前 5000 字符，使用 `--json` 获取完整内容                        |

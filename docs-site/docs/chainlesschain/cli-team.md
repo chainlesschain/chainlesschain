@@ -1,14 +1,14 @@
 # Agent Team：声明式任务图协作（`cc team`）
 
-> 状态：P2-16 已完成（2026-07-31）。候选 exact SHA
-> `7df6feced4670ac71d19548752d18ac4cc225025` 的
-> [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/30549100935)、
-> [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/30549100289)、
-> [Agent Team short](https://github.com/chainlesschain/chainlesschain/actions/runs/30549100307)
-> 与
-> [Linux、Windows、macOS 各 120 分钟 soak](https://github.com/chainlesschain/chainlesschain/actions/runs/30549142504)
-> 均成功。本文同时保留共享 FS queue、partial checkpoint、unsigned state 和不可回滚
-> external side effects 等边界。
+> 状态：P2-16 已完成并随 CLI `0.162.189` 公开（2026-07-31）。实现候选
+> `7df6feced4670ac71d19548752d18ac4cc225025` 的三平台短门与各 120 分钟 soak
+> 均成功；最终发布提交
+> [`2607af0dadeb951583139942e5f2add3e95e1208`](https://github.com/chainlesschain/chainlesschain/commit/2607af0dadeb951583139942e5f2add3e95e1208)
+> 又通过 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/30586603353)、
+> [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/30586603019)、
+> [Agent Team 长期 soak](https://github.com/chainlesschain/chainlesschain/actions/runs/30564377629)
+> 与 [npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/30588174291)。本文同时保留
+> 共享 FS queue、partial checkpoint、unsigned state 和不可回滚 external side effects 等边界。
 
 `cc team` 用依赖 DAG、独占租约、预算和隔离 worktree 协调一组 shell 或 Agent 任务。
 它提供三种运行形态：

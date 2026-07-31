@@ -5,7 +5,7 @@ import vscodePkg from '../../../packages/vscode-extension/package.json';
 
 const CLI_VERSION = cliPkg.version;
 const VSCODE_VERSION = vscodePkg.version;
-const JETBRAINS_VERSION = '0.4.75';
+const JETBRAINS_VERSION = '0.4.76';
 ---
 <BaseLayout
   title="IDE 集成 — VS Code + JetBrains 双扩展，agent 进编辑器 | ChainlessChain"
@@ -30,7 +30,7 @@ const JETBRAINS_VERSION = '0.4.75';
           <a href="https://docs.chainlesschain.com/chainlesschain/ide-bridge.html" rel="noopener" class="btn-ghost">完整文档 ↗</a>
         </div>
         <p class="mt-5 text-sm text-muted">
-          当前 VS Code <strong class="text-ink">{VSCODE_VERSION}</strong> 与 JetBrains <strong class="text-ink">{JETBRAINS_VERSION}</strong> 推荐搭配 CLI <strong class="text-ink">{CLI_VERSION}</strong>：质量/重试归因、事务化插件恢复，以及 worktree/team/batch durable 治理状态都由同一 CLI runtime 提供。
+          当前 VS Code <strong class="text-ink">{VSCODE_VERSION}</strong> 已公开上架 Open VSX，JetBrains <strong class="text-ink">{JETBRAINS_VERSION}</strong> 已公开上架 JetBrains Marketplace；推荐搭配 CLI <strong class="text-ink">{CLI_VERSION}</strong>。质量/重试归因、事务化插件恢复，以及 worktree/team/batch durable 治理状态都由同一 CLI runtime 提供。微软 VS Code Marketplace 版本仍未发布。
         </p>
       </div>
     </div>
@@ -38,7 +38,7 @@ const JETBRAINS_VERSION = '0.4.75';
 
   <section class="py-16 md:py-24">
     <div class="container-wide">
-      <h2 class="text-4xl md:text-5xl mb-12 max-w-3xl">十二件事，进编辑器就发生。</h2>
+      <h2 class="text-4xl md:text-5xl mb-12 max-w-3xl">十三件事，进编辑器就发生。</h2>
       <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         {[
           ['感知', '选区随 prompt 注入', '每条 prompt 自动附带当前选区 + 打开的标签页（<ide-context> 块）——模型即时知道"你正看着什么"，不写入会话持久化。'],
@@ -50,7 +50,7 @@ const JETBRAINS_VERSION = '0.4.75';
           ['终端', '终端上下文共享', 'getTerminalOutput 让 agent 看到你刚在集成终端跑的命令、输出、退出码（VS Code 1.93+ shell integration）——它知道你刚跑了什么、怎么失败的。每轮自动注入 <ide-context> + 显式 @terminal at-mention。'],
           ['质量', '测试 / 覆盖率 / 调试器上下文', 'cc-ide-quality/v1 发送有界质量快照并标记新鲜度；过期结果不会伪装成当前状态，VS Code Notebook 执行携带真实 notebook/cell 上下文。'],
           ['插件', '事务化升级 + 供应链治理', '按 scope 启停；升级先 staging 校验 manifest/签名/SBOM 再原子激活，失败恢复旧版本。IDE 只在 activated 后重载会话，扩大 capability 前要求显式批准。'],
-          ['治理', 'Worktree 与协作任务', 'worktree、team 与 batch 都显示 owner/session、权限模式、预算、生命周期和副作用计数；team/batch 只获得可审计治理状态，不暴露后台 attach/stop 控制。'],
+          ['治理', 'Distributed Agent Teams', 'IDE 只读观察本地 team state v6 与独立 distributed queue v1 原始快照；takeover、managed checkpoint recovery 与副作用 adjudication 全部交回 CLI，并绑定 authority digest、lease 与 evidence fence。过期 UI 动作失败闭合，IDE 不直接改权威 JSON。'],
           ['归因', '耗时与重试可见', '用量视图展示真实工具耗时、同轮观测重试和脱敏的流式 LLM retry 原因/实际 provider/model，不保存工具参数、输出或凭据。'],
           ['同步', 'CLI 版本对齐', '激活时检测 cc --version，低于扩展所需最低版本一键提示升级；命令面板「Upgrade CLI」随时从 IDE 跑 npm i -g chainlesschain@latest——扩展（Open VSX）与 CLI（npm）独立发版轨,这条让它们对齐。'],
           ['补全', '@ 文件 / 实时斜杠命令', 'REPL 里 @ 路径 TAB 补全把编辑器打开的文件排最前；面板 @ 补全含 @selection / @diagnostics / @terminal；/status /doctor /mcp /hooks /permissions /agents /tasks /memory 读取当前会话，另含 /new /plan /approve /reject /stop /expand。'],
@@ -74,7 +74,7 @@ const JETBRAINS_VERSION = '0.4.75';
           扩展只是桥，<br/><span class="italic text-ember">真正干活的是 cc agent</span>。
         </h2>
         <p class="mt-6 text-lg text-muted">
-          在编辑器集成终端里跑 <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">cc agent</code> 即自动连上扩展的 MCP server——上面那九件事就是这么发生的。
+          在编辑器集成终端里跑 <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">cc agent</code> 即自动连上扩展的 MCP server——上面十三件事就是这么发生的。
           同一个 agent 还带一整套伴生命令：权限网关、检查点回滚、花费统计、循环自动化、结构化输出，在 IDE 里和在裸终端里完全一致。
         </p>
       </div>

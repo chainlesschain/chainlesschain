@@ -11,9 +11,14 @@
 - Keep raw Agent Team and queue JSON read-only in the IDE: file watching and
   refresh update projections, while all authoritative mutations remain
   CLI-owned compare-and-swap operations.
-- This entry prepares plugin release metadata only. Version 0.4.76 is not
-  claimed as published, and its exact release commit remains subject to the
-  required release gates.
+- Version 0.4.76 is approved, listed, and public on the JetBrains Marketplace.
+  Tag `ide-jetbrains-v0.4.76` points to exact commit
+  `33e4d512d319bc771190f672bcc7847fb4099835`; the
+  [release workflow](https://github.com/chainlesschain/chainlesschain/actions/runs/30645282946)
+  passed JUnit, pure-logic smoke, structure/project verification, Plugin
+  Verifier, Remote Robot GUI smoke, upload, and post-upload verification. That
+  run still observed the Marketplace review as pending; the Marketplace API
+  later independently confirmed 0.4.76 as approved, listed, and public.
 
 ## [0.4.75] - Retry, collaboration, and plugin recovery governance (2026-07-28)
 

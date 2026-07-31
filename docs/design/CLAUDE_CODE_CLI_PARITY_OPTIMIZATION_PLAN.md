@@ -58,6 +58,20 @@ ChainlessChain CLI 已具备会话恢复、Checkpoint、上下文压缩、MCP、
 
 ### P2-14 / P2-16 发布状态校准（2026-07-31）
 
+> **正式发布补充（2026-08-01）**：下方 `7df6feced4670ac71d19548752d18ac4cc225025`
+> 继续作为实现候选与首轮三平台短门/长期 soak 的可追溯证据；正式发布版本为
+> `chainlesschain@0.162.189`，release SHA
+> `2607af0dadeb951583139942e5f2add3e95e1208`，npm registry 的 `gitHead` 与之相同。
+> 该最终 SHA 的
+> [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/30586603353)、
+> [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/30586603019)、
+> [CLI Background Interaction E2E](https://github.com/chainlesschain/chainlesschain/actions/runs/30586603055)、
+> [Linux / Windows / macOS 各 120 分钟 Agent Team soak](https://github.com/chainlesschain/chainlesschain/actions/runs/30564377629)
+> 与
+> [npm publish](https://github.com/chainlesschain/chainlesschain/actions/runs/30588174291)
+> 均已成功。因此 P2-14 的“限定范围完成”和 P2-16 的“完成”现同时具备候选实现证据、
+> 最终发布提交门禁与 registry 发布事实；既有安全边界不因正式发布而扩大。
+
 - **P2-14：限定范围完成。** 持久 workspace transaction、分层
   `full`/`partial`/`none` coverage、rollback/recovery 与 Broker 接线已经落地。exact SHA
   `7df6feced4670ac71d19548752d18ac4cc225025` 的

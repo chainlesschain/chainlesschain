@@ -507,7 +507,7 @@ const badges = [
           无需启动任何 GUI — <code class="font-mono text-sm bg-cream px-2 py-0.5 rounded">chainlesschain</code> 让本地 AI、Agent 编码、多智能体协作全部在终端里完成。
         </p>
         <p class="text-sm text-muted mb-8">
-          当前 {CLI_VERSION}：后台任务、插件进程与 PTY 统一进入失败闭合的执行边界；Hooks、协作任务和插件升级都有可恢复、可审计的 durable 状态。
+          当前 {CLI_VERSION}：Process Broker 为受管 workspace 写入建立 checkpoint，并在失败、取消或超时后按 fence 回滚，覆盖范围明确标为 full / partial / none；Agent Teams 以本地 state v6 和共享文件系统 distributed queue v1 承载 authority digest、lease、CAS 与 wall-clock fence。Auto mode 另有 145-case 离线安全分类门，危险操作分类失败即闭合。
         </p>
         <div class="grid grid-cols-3 gap-6 mb-8">
           <div>

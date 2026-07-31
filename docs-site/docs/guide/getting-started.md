@@ -393,7 +393,7 @@ chmod 777 data/uploads
 
 ### 6. 技术架构
 
-见 [技术栈](/guide/tech-stack)。首次安装关键依赖：Node ≥ 20、Docker（Desktop / Engine）、可选 Java 17 + Python 3.10+（自建后端）。
+见 [技术栈](/guide/tech-stack)。首次安装关键依赖：Node ≥ 22.12.0、Docker（Desktop / Engine）、可选 Java 17 + Python 3.10+（自建后端）。
 
 ### 7. 系统特点
 

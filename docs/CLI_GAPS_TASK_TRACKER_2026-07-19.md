@@ -2,8 +2,10 @@
 
 > 来源：`CLAUDE_CODE_CLI_CURRENT_GAPS_AND_OPTIMIZATIONS_2026-07-18.md`
 > 创建日期：2026-07-19
-> 当前发布准备 CLI 版本：`0.162.189`（尚未发布；已验收实现候选
-> `7df6feced4670ac71d19548752d18ac4cc225025` 对应 `0.162.188`）
+> 当前已发布 CLI 版本：`0.162.189`；精确发布提交
+> `2607af0dadeb951583139942e5f2add3e95e1208` 的 CLI CI、CLI Strict Sandbox、
+> Agent Team 长期 soak 与 npm publish 均成功。已验收实现候选
+> `7df6feced4670ac71d19548752d18ac4cc225025` 对应 `0.162.188`，仅保留为候选阶段证据。
 > 状态：P0-1 Broker/凭据、静态进程清单、Windows 原生进程边界、Node IPC/detached 语义与
 > 真实三平台 strict CI 已完成；P0-2 当前 turn、持久化、跨宿主 authority/binding 与真实三平台
 > 断线重连 E2E 已完成；P0/P1-3 权限控制面统一已完成。P1-4/P1-9 已在发布候选
@@ -25,7 +27,12 @@
 > principal/project-membership ACL，以及策略不会随交互 shell 内 `cd` 动态发现或放宽；
 > P1-12 双语言 SDK 已完成，
 > Python SDK 0.1.0 已发布 PyPI
-> 最后更新：2026-07-31（P2-14/P2-16 已按 exact SHA `7df6feced4670ac71d19548752d18ac4cc225025` 的三平台发布门与长期 soak 完成复核）
+> 最后更新：2026-08-01（P2-14/P2-16 已随 `0.162.189` 发布；final exact SHA
+> `2607af0dadeb951583139942e5f2add3e95e1208` 的
+> [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/30586603353)、
+> [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/30586603019)、
+> [Agent Team 长期 soak](https://github.com/chainlesschain/chainlesschain/actions/runs/30564377629)
+> 与 [npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/30588174291) 均成功）
 
 ---
 

@@ -60,6 +60,7 @@ const categories = [
       ['loop', 'Recurring / self-paced prompt & command runner'],
       ['goal', 'Cross-session persistent goals / OKR'],
       ['permissions', '.claude/settings.json allow/ask/deny rules'],
+      ['auto-mode eval [--json]', 'Run the dangerous-operation classifier corpus and CI gate offline, without command execution or file/network I/O'],
       ['output-style list', 'Output style personas (explanatory/learning)'],
       ['statusline preview', 'Custom / built-in context-usage status line'],
       ['mcp login', 'Remote MCP server OAuth (PKCE)'],
@@ -161,6 +162,8 @@ const categories = [
       ['cowork compare', 'A/B option comparison'],
       ['cowork analyze', 'Code analysis'],
       ['cowork status', 'Cowork status'],
+      ['team run --tasks <file>', 'Declared dependency DAG with budgets, leases, worktrees, and recoverable state'],
+      ['team queue init / worker / finalize', 'Shared-filesystem distributed queue v1 with CLI-owned authority digests, leases, and CAS fences'],
     ],
   },
   {
@@ -516,6 +519,9 @@ const packs = [
           ['cc loop', 'Repeat a prompt or command on a fixed / adaptive interval with stop conditions'],
           ['cc goal', 'Persistent cross-session goals / OKRs the agent advances each turn'],
           ['cc mcp / ide / pdh', 'Feed MCP servers, your editor and an Android device into the agent loop; large tool surfaces auto-enable Tool Search with deferred schemas, saving 10-30% context'],
+          ['cc team run', 'Run a declared task DAG; one local runner is validated at 10,000 tasks and up to 64 workers with durable budgets and recovery state'],
+          ['cc team queue', 'Coordinate multi-process workers on a supported shared filesystem through queue v1; authority digests, leases, and CAS reject stale writes'],
+          ['cc auto-mode eval', 'Audit dangerous-operation classification against an immutable 145-case offline corpus; a failed gate exits nonzero and never executes evaluated commands'],
           ['cc output-style', 'Named personas layered onto the system prompt (explanatory / learning)'],
           ['--json-schema', 'Structured output: the reply is validated against a JSON Schema, retried on failure'],
         ].map(([cmd, desc]) => (
@@ -595,6 +601,12 @@ const packs = [
         </p>
         <p class="mt-4 text-lg text-muted">
           CLI <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">{CLI_VERSION}</code> extends strong process boundaries to plugin hooks, MCP, LSP, monitors, PTYs, background tasks, and native bins. Linux pins the plugin tree by descriptor before entering a fixed bubblewrap policy; Windows AppContainer binds the target handle and policy digest. Copied, replayed, or stale contracts, dynamic loaders, and missing isolation primitives fail before launch.
+        </p>
+        <p class="mt-4 text-lg text-muted">
+          P2-14 managed rollback covers only declared workspace write paths owned by the Process Broker. It establishes durable checkpoints at accepted boundaries, applies fenced rollback after failure, cancellation, or timeout, and reports <code class="font-mono text-sm">full</code>, <code class="font-mono text-sm">partial</code>, or <code class="font-mono text-sm">none</code> coverage honestly. Unmanaged writers, additional roots, and external-system side effects remain outside the rollback guarantee.
+        </p>
+        <p class="mt-4 text-lg text-muted">
+          P2-16 Agent Teams uses local state v6 as authority and adds a separate distributed queue v1 for supported shared filesystems. Queue authority digests, leases, CAS, and wall-clock fences prevent stale workers or late results from publishing. A 10,000-task DAG with up to 64 local workers is the validated boundary for one local runner; the shared-filesystem queue is not consensus and is not network-partition tolerant.
         </p>
         <p class="mt-4 text-lg text-muted">
           The current CLI carries PDH 0.4.57. Source aliases, raw observations, field-level conflict decisions, rewritten references, and final entities commit in one transaction. Desktop, Web Panel, and CLI share one live-collection protocol; transient Cookie/OAuth inputs are not persisted, and partial reads, unreadable databases, or incomplete pagination retain the previous checkpoint for a safe resume.

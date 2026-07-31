@@ -11,23 +11,23 @@
 >
 > The mirror usually catches up shortly after a release (the project's publish pipeline also triggers a sync proactively); once synced, the default mirror works fine.
 
-## 2026-07-29 Current mainline — **v5.0.3.135 / CLI 0.162.185 / PDH 0.4.57 / VS Code 0.37.36 / JetBrains 0.4.75**
+## 2026-08-01 Current mainline — **v5.0.3.135 / CLI 0.162.189 / PDH 0.4.57 / VS Code 0.37.37 / JetBrains 0.4.76**
 
-> npm `latest` now aligns `chainlesschain@0.162.185`, `@chainlesschain/personal-data-hub@0.4.57`, and `@chainlesschain/agent-sdk@0.1.7`. Desktop and Android source remain at `5.0.3.135`; the VS Code and JetBrains extensions are `0.37.36` and `0.4.75`. The Python and TypeScript Agent SDKs share Agent Protocol v1.
+> npm `latest` now aligns `chainlesschain@0.162.189`, `@chainlesschain/personal-data-hub@0.4.57`, and `@chainlesschain/agent-sdk@0.1.7`; Desktop, Android, and iOS source remain at `5.0.3.135`. VS Code/VSCodium extension `0.37.37` is public on [Open VSX](https://open-vsx.org/extension/chainlesschain/chainlesschain-ide), and JetBrains plugin `0.4.76` is approved and public on the [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge). The Microsoft VS Code Marketplace release remains unavailable.
 >
-> CLI `0.162.185` completes the strong execution boundary across async/background plugin processes, generic background work, CLI PTYs, and Desktop project PTYs. Linux bind sources must prove private mount propagation, parent-side pinned descriptors close after spawn, raw PTYs invalidate on close/error, and stopping an attached session reaps its entire POSIX process group or Windows process tree. Unattested project roots are quarantined, and remote metadata cannot acquire local PTY authority.
+> CLI `0.162.189` closes P2-14 as **managed rollback with an explicit scope**. Process Broker-managed, declared workspace writers establish durable checkpoints, accept them on success, and apply fenced recovery after failure, cancellation, or timeout while reporting `full / partial / none` coverage. This does not capture every host write: unmanaged processes, paths outside the declared workspace, and external effects such as network calls, databases, messages, deployments, and payments remain outside the rollback guarantee.
 >
-> Hooks v2 now binds trusted host roots to generation-aware opaque identities. Hook subprocesses preserve status-0 output and the status-2 block protocol when Node reports a late stdin `EPIPE`. Hooks and the Broker keep a single runtime graph, preventing duplicate CredentialTransport workers, listeners, and steady-state descriptors.
+> P2-16 **large Agent Teams** has closed its release gates. Local state authority is schema v6; the separate shared-filesystem queue schema v1 uses leases, authority digests, and compare-and-swap fences, with wall-clock checks around execution, checkpoints, commits, and completion publication. The shared-FS queue is not a consensus or partition-tolerant network queue, and its state is a trusted but unsigned control plane. The 10,000-task/64-worker result covers in-process asynchronous TeamRunner workers; the long cross-process soak used two real OS workers for DAG, failure, and recovery scenarios and is not a 64-process distributed guarantee.
 >
-> CLI `0.162.184` and IDE releases `0.37.36 / 0.4.75` add measured tool duration, same-turn retries, and secret-free LLM retry attribution; durable owner, session, permission, budget, lifecycle, and side-effect state for team/batch collaboration; and staged, transactional plugin upgrades with exact rollback. IDE sessions reload only after confirmed activation, and capability widening requires explicit approval.
+> VS Code `0.37.37` and JetBrains `0.4.76` observe raw local-v6 and queue-v1 state read-only. Takeover, managed-checkpoint recovery, and side-effect adjudication are routed back through the CLI with exact authority digests, leases, and evidence fences; the IDE never mutates authoritative JSON directly.
 >
-> The Personal Data Hub still exposes **92 registered collection contracts across 18 source categories**. Source aliases, raw observations, field-level conflict decisions, reference rewriting, and final entities now commit in one transaction. Local databases, desktop clients, mobile APIs, social, health, education, music, shopping, and travel collectors use explicit cursors and bounded pagination, so partial or unreadable results cannot silently advance checkpoints.
+> The Personal Data Hub still exposes **92 registered collection contracts across 18 source categories** and remains at `0.4.57`. Source aliases, raw observations, field-level conflict decisions, reference rewriting, and final entities commit in one transaction, so partial or unreadable results cannot silently advance checkpoints.
 >
-> The exact release commit `d7d378d3e1` passed [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/30402651323), [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/30402651097), and the [npm publish workflow](https://github.com/chainlesschain/chainlesschain/actions/runs/30404265474). Local tests remain supplementary and do not replace the three-platform release gate.
+> Exact CLI release commit [`2607af0dad`](https://github.com/chainlesschain/chainlesschain/commit/2607af0dadeb951583139942e5f2add3e95e1208) passed [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/30586603353), [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/30586603019), the [long Agent Team soak](https://github.com/chainlesschain/chainlesschain/actions/runs/30564377629), and [npm publication](https://github.com/chainlesschain/chainlesschain/actions/runs/30588174291). Both IDE tags point exactly to [`33e4d512d3`](https://github.com/chainlesschain/chainlesschain/commit/33e4d512d319bc771190f672bcc7847fb4099835); the [Open VSX release](https://github.com/chainlesschain/chainlesschain/actions/runs/30616688007) and [JetBrains release](https://github.com/chainlesschain/chainlesschain/actions/runs/30645282946) succeeded. Local tests remain supplementary and do not replace exact-commit release gates.
 >
-> See the [current CLI Runtime guide](docs-site/docs/chainlesschain/cli-runtime-current.md), [IDE extension guide](docs-site/docs/chainlesschain/ide-plugin.md), [Personal Data Hub guide](docs-site/docs/chainlesschain/personal-data-hub.md), [runtime design check](docs/design/cli-runtime-current.md), [Personal Data Hub architecture](docs/design/Personal_Data_Hub_Architecture.md), and [changelog](CHANGELOG.md).
+> See the [current CLI Runtime guide](docs-site/docs/chainlesschain/cli-runtime-current.md), [Agent Team guide](docs-site/docs/chainlesschain/cli-team.md), [IDE extension guide](docs-site/docs/chainlesschain/ide-plugin.md), [Personal Data Hub guide](docs-site/docs/chainlesschain/personal-data-hub.md), [runtime design check](docs/design/cli-runtime-current.md), [Personal Data Hub architecture](docs/design/Personal_Data_Hub_Architecture.md), and [changelog](CHANGELOG.md).
 
-## 2026-07-24 Current release — **cc CLI 0.162.177 / VS Code extension 0.37.31: generated skill processes are now host-brokered**
+## 2026-07-24 Historical release — **cc CLI 0.162.177 / VS Code extension 0.37.31: generated skill processes are now host-brokered**
 
 > `chainlesschain@0.162.177` is live on npm `latest`, and VS Code extension `0.37.31` is live on Open VSX. Generated CLI-Anything and CLI Skill Pack handlers no longer hold `child_process` directly: a skill declaring `shell-exec` receives only a frozen, host-injected Process Broker facade with authoritative provenance. CLI-Anything executes literal argv with `shell:false`; unsafe metacharacters, unmatched quotes, or a missing Broker fail closed. Release gates covered unit, integration, E2E, packaging, and real CLI/Extension Host smoke tests across Ubuntu, Windows, and macOS; the local four-shard CLI unit run finished with **24,562 passing and 5 skipped**. See the [CLI Runtime guide](docs-site/docs/chainlesschain/cli-runtime-current.md), [CLI Skill Packs user guide](docs-site/docs/chainlesschain/cli-skill-packs.md), and [runtime design check](docs/design/cli-runtime-current.md).
 
@@ -2497,7 +2497,7 @@ Design, protocol, and test matrix: [docs/design/modules/79_Coding_Agent系统.md
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v5.0.3.114-blue.svg)
+![Version](https://img.shields.io/badge/version-v5.0.3.135-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
@@ -2505,7 +2505,7 @@ Design, protocol, and test matrix: [docs/design/modules/79_Coding_Agent系统.md
 ![Tests](https://img.shields.io/badge/tests-30000%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-146-blue.svg)
 ![Commands](https://img.shields.io/badge/CLI%20commands-175-blue.svg)
-![CLI](https://img.shields.io/badge/cli-0.162.72-blue.svg)
+![CLI](https://img.shields.io/badge/cli-0.162.189-blue.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
 
 **Decentralized · Privacy First · AI Native**
@@ -3826,7 +3826,7 @@ Studied 10 external skill standards (Tavily-search, Find-Skills, Proactive-Agent
 | Test Coverage         | ~30%     | ~80%   | **+167%**              |
 | LLM Planning Cost     | Baseline | -70%   | **$2,550/month saved** |
 
-See: [Phase 2 Test Summary](./docs/reports/phase2/PHASE2_FINAL_SUMMARY.md) | [Permanent Memory Docs](./docs/features/PERMANENT_MEMORY_INTEGRATION.md) | [Hooks System Design](./docs/design/HOOKS_SYSTEM_DESIGN.md) | [Full Changelog](./docs/CHANGELOG.md)
+See: [Phase 2 Test Summary](./docs/reports/status/PHASE2_FINAL_SUMMARY.md) | [Permanent Memory Docs](./docs/features/PERMANENT_MEMORY_INTEGRATION.md) | [Hooks System Design](./docs/design/HOOKS_SYSTEM_DESIGN.md) | [Full Changelog](./docs/CHANGELOG.md)
 
 - ✅ **Documentation Structure Reorganization** - Reorganized documentation directory with new categories: flows/, implementation-reports/, status-reports/, test-reports/
 - ✅ **Desktop App Root Directory Reorganization** - Optimized desktop-app-vue project structure for improved code maintainability
@@ -4105,7 +4105,7 @@ Detailed documentation: [Permanent Memory Integration](./docs/features/PERMANENT
 - ✅ **Performance benchmarks established** - 142K ops/s project operations, 271K ops/s file operations
 - ✅ **~80% test coverage** - Test-driven continuous quality improvement
 
-Detailed documentation: [Phase 2 Test Summary](./docs/reports/phase2/PHASE2_FINAL_SUMMARY.md)
+Detailed documentation: [Phase 2 Test Summary](./docs/reports/status/PHASE2_FINAL_SUMMARY.md)
 
 ### 7️⃣ Enterprise Permission System (100% Complete) ✅
 
@@ -4125,7 +4125,7 @@ Detailed documentation: [Phase 2 Test Summary](./docs/reports/phase2/PHASE2_FINA
 - ✅ **Recoverable compression** - Preserve URL/path references, on-demand content recovery
 - ✅ **17 IPC channels** - Complete frontend access interface
 
-Detailed documentation: [Context Engineering Docs](./docs/MANUS_OPTIMIZATION_GUIDE.md)
+Detailed documentation: [Context Engineering Docs](./docs/optimization/MANUS_OPTIMIZATION_GUIDE.md)
 
 ### 9️⃣ Plan Mode + Skills System (100% Complete) ✅
 
@@ -5584,7 +5584,7 @@ Phase 2 testing improvement plan completed:
 - A04: Insecure Design (3 tests)
 - A07: Authentication Failures (4 tests)
 
-Details: [Phase 2 Test Summary](./docs/reports/phase2/PHASE2_FINAL_SUMMARY.md)
+Details: [Phase 2 Test Summary](./docs/reports/status/PHASE2_FINAL_SUMMARY.md)
 
 ## Technical Architecture
 
@@ -6141,19 +6141,19 @@ Core encryption libraries use **Apache 2.0** license
 - [✨ Features Guide](./docs/FEATURES.md) - Detailed feature list
 - [📥 Installation Guide](./docs/quick-start/INSTALLATION.md) - Platform-specific installation
 - [🏗️ Architecture](./docs/ARCHITECTURE.md) - Technical architecture
-- [💻 Development Guide](./docs/DEVELOPMENT.md) - Development setup
+- [💻 Development Guide](./docs/development/DEVELOPMENT.md) - Development setup
 - [📝 Changelog](./docs/CHANGELOG.md) - Full version history
-- [⛓️ Blockchain Docs](./docs/BLOCKCHAIN.md) - Blockchain integration
-- [🔧 API Reference](./docs/API_REFERENCE.md) - API documentation
-- [📚 User Manual](./docs/USER_MANUAL_COMPLETE.md) - Complete user manual
+- [⛓️ Blockchain Docs](./docs/blockchain/BLOCKCHAIN.md) - Blockchain integration
+- [🔧 API Reference](./docs/api/API_REFERENCE.md) - API documentation
+- [📚 User Manual](./docs/guides/USER_MANUAL_COMPLETE.md) - Complete user manual
 
 **Permanent Memory & Test Documentation**:
 
 - [🧠 Permanent Memory Integration](./docs/features/PERMANENT_MEMORY_INTEGRATION.md) - Daily Notes + MEMORY.md + Hybrid Search
-- [🧪 Phase 2 Test Summary](./docs/reports/phase2/PHASE2_FINAL_SUMMARY.md) - 2000+ test cases, 99.6% pass rate
-- [🔒 Security Test Report](./docs/reports/phase2/PHASE2_TASK13_SECURITY_TESTS.md) - OWASP Top 10 coverage 80%
-- [📊 IPC Handler Tests](./docs/reports/phase2/PHASE2_TASK7_IPC_HANDLERS_TESTS.md) - 66 IPC handler tests
-- [💾 Database Boundary Tests](./docs/reports/phase2/PHASE2_TASK8_DATABASE_TESTS.md) - 14 boundary condition tests
+- [🧪 Phase 2 Test Summary](./docs/reports/status/PHASE2_FINAL_SUMMARY.md) - 2000+ test cases, 99.6% pass rate
+- [🔒 Security Test Report](./docs/reports/status/PHASE2_TASK13_SECURITY_TESTS.md) - OWASP Top 10 coverage 80%
+- [📊 IPC Handler Tests](./docs/reports/status/PHASE2_TASK7_IPC_HANDLERS_TESTS.md) - 66 IPC handler tests
+- [💾 Database Boundary Tests](./docs/reports/status/PHASE2_TASK8_DATABASE_TESTS.md) - 14 boundary condition tests
 
 **Workflow Optimization Documentation**:
 

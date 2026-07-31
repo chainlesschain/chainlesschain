@@ -1,10 +1,10 @@
-# CLI Runtime 当前实现核对（0.162.185）
+# CLI Runtime 当前实现核对（0.162.189）
 
-> 更新时间：2026-07-29。本文只记录已经进入当前代码并完成发布门验证的运行时能力；路线图与实验性设计仍以各自的计划文档为准。
+> 更新时间：2026-08-01。本文只记录已经进入当前代码并完成正式发布门验证的运行时能力；路线图与实验性设计仍以各自的计划文档为准。
 
 ## 当前边界
 
-CLI 运行时由四个相互协作的层组成：命令分发、会话生命周期、工具执行安全和 hooks 事件总线。
+CLI 运行时由命令分发、会话生命周期、受控执行与回滚、Agent Team authority、扩展运行时、事件总线和可观测出口共同组成。
 
 ```text
 cc entry
@@ -13,7 +13,8 @@ cc entry
   │    └─ local attach transport (NDJSON / TCP fallback)
   ├─ process-execution-broker
   │    ├─ platform sandbox + native execution attestation
-  │    └─ credential agent
+  │    ├─ credential agent
+  │    └─ managed workspace transaction + recovery authority
   ├─ plugin runtime
   │    ├─ manifest capability + sandbox policy
   │    ├─ hooks / MCP / LSP / monitors / native bins
@@ -21,7 +22,12 @@ cc entry
   ├─ skill-process-broker
   │    └─ host-owned facade → process-execution-broker
   ├─ durable event + interaction journal
+  ├─ Agent Team authority
+  │    ├─ local state v6 + distributed queue v1
+  │    └─ budget / lease / worktree / adjudication fences
   ├─ bounded usage + retry attribution
+  ├─ Auto mode safety classifier
+  ├─ OTLP traces + metrics exporter
   └─ session hooks (Setup / Notification / lifecycle)
 ```
 
@@ -66,7 +72,26 @@ cc entry
 - 配置、状态、服务、日志、缓存和 JSONL 会话共享这条目录契约。单元、集成和 E2E 夹具必须设置独立的 `CHAINLESSCHAIN_HOME`，不得写入开发者真实 home。
 - `cc session export` 默认经过 secret scan/redaction；`--no-redact` 是显式可信备份开关。
 
-### 5. Hooks 与进程生命周期
+### 5. Process Broker 受控 checkpoint 与回滚（P2-14）
+
+- Process Broker 在接受受控 workspace writer 执行前建立持久 workspace transaction，记录声明范围内的文件内容、mode 与毫秒级 mtime；执行成功后提交，失败、取消或超时后按 fenced authority 回滚。
+- crash recovery 只有在 owner/lock 精确匹配、相关 execution 全部 settled 且具备可信 process-tree proof 时才自动回滚；证据不足时返回 `recovery_required`，不会把不确定状态伪装成恢复成功。
+- coverage 分为 `full`、`partial` 与 `none`。`full` 还要求受控 writer 完整接线和 `writerIsolation=exclusive-workspace`；部分入口、并发未知 writer 或外部副作用只能报告较弱 coverage。
+- 完成口径只覆盖 Process Broker 管理且位于声明 workspace 范围内的 writer，不表示捕获宿主机上的全部文件写入。网络、数据库、消息、部署、支付以及其它外部副作用不在回滚承诺内。
+- workspace root 的 canonical path、device/inode identity、state binding 与可信父目录共同参与恢复校验。Node.js 不提供 `openat` / handle-relative authority，无法声称消除完整 ABA；Windows native spawn 仍存在检查到创建之间的有限 TOCTOU，相关路径保持失败闭合或降级为显式恢复。
+
+### 6. 大规模 Agent Teams（P2-16）
+
+- TeamRunner 使用 indexed scheduler、依赖 bookkeeping、有界 mailbox/backpressure 与 per-task tightened contract；单进程内已验证 10,000 task / 64 个异步 worker 的调度规模。
+- 本地状态以 schema v6 为当前 authority；v5 只允许由 `team run --resume` 执行一次 CLI-owned 迁移，v2-v4 被拒。分布式协作使用独立 queue schema v1，不能把两类状态文件混写或由 IDE 直接修改。
+- 分布式 queue 以 state/queue authority digest、lease、compare-and-swap 与完成发布尾部 fencing 协调多个进程。它依赖共享且可信的本地文件系统，不是带复制、共识或网络分区容错的分布式数据库。
+- `TeamBudget` 同时限制 `maxTasks`、`maxTokens`、`maxUsd` 与 `maxWallMs`。启用 token/USD cap 时，usage 缺失或远端模型无法定价会失败闭合；恢复只允许收紧 cap，不能抹去已经消费的预算。
+- 本地 active wall time 不计算进程停机时间；分布式全局 wall 从第一次 acquire 开始并包含 worker 停机时间。executor 返回、checkpoint、commit 和完成发布尾部都会重新 fencing，超限后的迟到结果不能发布为成功。
+- worktree 按任务隔离并执行 prepare → persist → remove → persist 两阶段清理。崩溃后的不确定外部副作用进入交互式 adjudication；只有 dry-run、明确 `retrySafe` 或具有可接受 committed evidence 的任务才能按相应路径安全恢复。
+- TeamRunner 库保留有界 mailbox，但公共 CLI 当前没有 `cc team send`，分布式 queue 也没有 teammate 消息命令，不能把内部消息接口宣传成公共命令契约。
+- Agent Team checkpoint authority 当前为 `coverageTarget=partial`、`writerIsolation=unknown`、`externalSideEffects=true`。三平台长期 soak 使用 2 个真实 OS worker 验证跨进程 DAG、故障与恢复；它与单进程 64-worker 规模测试是两项不同证据。
+
+### 7. Hooks 与进程生命周期
 
 - `Setup` 在命令执行前触发，可注入受控环境变量。
 - `Notification` 支持把会话状态转发到配置的通知适配器。
@@ -80,15 +105,24 @@ cc entry
 - 默认 Hooks runtime 通过显式 event sink 注册到 Broker，不再反向同步加载第二份 ESM 模块图；首次执行后只保留一个 CredentialTransport worker/listener，重复后台执行相对预热基线保持稳态 FD 零增长。
 - WMIC 不存在时才使用 PowerShell/CIM，避免在权限拒绝场景重复做高延迟探测。受管沙箱同时禁止进程枚举与树终止时，真实树测试按能力跳过，解析和 fallback 行为由可注入单元测试覆盖。
 
-### 6. 插件生命周期、归因与 IDE 运行时
+### 8. 插件生命周期、归因与 IDE 运行时
 
 - `cc plugin` 的安装、分 scope 启停、source-aware 升级、回滚和 live-session reload 由 CLI runtime 持有；IDE 只呈现命令结果，不自行绕过组织策略。
 - 插件升级先进入 staging，重新校验 manifest 与签名 SBOM，再原子激活。复制、load check、post-install 或 capability widening 被拒时恢复旧 active version；强制重装同版本也保留并恢复原字节。CLI 对外只返回受控的 `activated / rolled_back / unchanged` 结果。
 - 插件管理面显示签名、SBOM、来源、托管策略及 registry/Git/local 元数据的脱敏摘要。来源字符串不会作为 shell 命令执行，工作区目录也不会参与可执行文件探测。
 - compact transcript 与 `cc session usage` 可按插件 id/version 归因 plugin-bin 和插件提供的 MCP 调用，并记录有界工具耗时、同轮观测重试与脱敏的流式 LLM retry 原因/实际 provider/model；不持久化工具参数、输出或凭据。
 - VS Code 与 JetBrains 通过 `cc-ide-quality/v1` 提供有界的测试、覆盖率和调试器快照，并携带 Context v2 freshness 元数据；Notebook 执行使用真实 notebook 上下文。
-- VS Code `0.37.36` 与 JetBrains `0.4.75` 只在插件升级结果为 `activated` 后重载 live session；capability widening 必须先展示新增能力并由用户显式批准，`rolled_back` 或不可读结果保持失败闭合。
+- VS Code `0.37.37` 与 JetBrains `0.4.76` 只在插件升级结果为 `activated` 后重载 live session；capability widening 必须先展示新增能力并由用户显式批准，`rolled_back` 或不可读结果保持失败闭合。
+- 两个 IDE 只读观察本地 Agent Team schema v6 与分布式 queue schema v1。takeover、managed checkpoint recovery 和 side-effect adjudication 必须携带精确 authority digest、lease/evidence fence，并通过解析出的 CLI 执行；文件监听与刷新只更新投影，不能绕开 CLI-owned compare-and-swap authority。
+- VS Code `0.37.37` 已在 Open VSX 公开，JetBrains `0.4.76` 已在 JetBrains Marketplace 审核通过并公开；二者均来自 `33e4d512d319bc771190f672bcc7847fb4099835`。此状态不表示 Microsoft VS Code Marketplace 已发布。
 - Installation Doctor 同时报告 Node/Java、managed CLI 和插件 registry 的离线恢复状态；恢复建议不把不可信工作区加入命令搜索路径。
+
+### 9. Auto mode 安全分类与标准 OTLP 出口
+
+- Auto mode 安全分类器使用版本化、不可变的离线评测语料识别 workspace 越界、秘密外传、生产部署、force push、未审合并和未隔离第三方 Agent 等危险意图。评测器不执行语料命令，也不在报告中回显原始参数。
+- 分类结果只是一道附加风险信号，不能降低 shell hard deny、managed deny、credential guard、Process Broker 或 OS sandbox 的既有结论；尚未进入统一 preflight 的 Git、MCP、Hook、第三方工具与 Agent Team 路径不能被宣传为已受分类器全面保护。
+- OTLP exporter 支持 traces/metrics 的 OTLP/HTTP JSON、OTLP/HTTP protobuf 与 OTLP/gRPC，读取标准全局及 per-signal endpoint、protocol、header、timeout、compression、service/resource 配置，并支持自定义 CA 与 mTLS。
+- exporter 使用有界 batching、queue-pressure 计数、`Retry-After` / 指数重试、永久失败与 drop 指标、原子 crash spool 和退出前 final flush。prompt、response 与工具参数默认不出站，所有字符串属性和事件继续经过秘密脱敏。
 
 ## 关键入口
 
@@ -98,6 +132,10 @@ cc entry
 | 后台监督        | `packages/cli/src/lib/background-agent-supervisor.js`                                                                                            |
 | 交互协议        | `packages/cli/src/lib/ipc-attach-protocol.js`、`background-session-transport.js`                                                                 |
 | 执行安全        | `packages/cli/src/lib/process-execution-broker/`                                                                                                 |
+| 受控事务与回滚  | `packages/cli/src/lib/process-execution-broker/workspace-transaction.js`、`commands/checkpoint-managed.js`                                       |
+| Agent Team      | `packages/cli/src/lib/agent-team/`、`commands/team.js`、`commands/team-distributed.js`                                                           |
+| Auto 安全分类   | `packages/cli/src/lib/auto-mode-safety-classifier.js`、`lib/auto-mode-safety-eval.js`、`commands/auto-mode.js`                                   |
+| OTLP 出口       | `packages/cli/src/lib/otlp-exporter.js`、`lib/observability/otlp-exporter.js`                                                                    |
 | 插件沙箱策略    | `packages/cli/src/lib/plugin-runtime/sandbox-policy.js`                                                                                          |
 | 插件生命周期    | `packages/cli/src/lib/plugin-runtime/install.js`、`commands/plugin.js`                                                                           |
 | 插件用量归因    | `packages/cli/src/lib/plugin-usage-attribution.js`、`lib/session-usage.js`                                                                       |
@@ -120,6 +158,6 @@ npm run test:integration
 npm run test:e2e
 ```
 
-`0.162.185` 的精确发布提交为 `d7d378d3e14825d316f28a3ee62a8ab8da40c452`。该提交的 [CLI CI run 30402651323](https://github.com/chainlesschain/chainlesschain/actions/runs/30402651323)、[CLI Strict Sandbox run 30402651097](https://github.com/chainlesschain/chainlesschain/actions/runs/30402651097) 与 [npm publish run 30404265474](https://github.com/chainlesschain/chainlesschain/actions/runs/30404265474) 均已成功；Code Quality & Security、Full Test Automation、E2E、Project Management E2E 与 CI Tests 也在同一 `head_sha` 成功。Linux、Windows、macOS 的发布矩阵必须来自精确提交；本地测试只作补充，不能替代发布门。
+`0.162.189` 的精确正式发布提交为 `2607af0dadeb951583139942e5f2add3e95e1208`，npm registry 的 `latest` 元数据也以该 SHA 为 `gitHead`。该提交的 [CLI CI run 30586603353](https://github.com/chainlesschain/chainlesschain/actions/runs/30586603353)、[CLI Strict Sandbox run 30586603019](https://github.com/chainlesschain/chainlesschain/actions/runs/30586603019)、[CLI Background Interaction E2E run 30586603055](https://github.com/chainlesschain/chainlesschain/actions/runs/30586603055)、[三平台 Agent Team 120 分钟 soak run 30564377629](https://github.com/chainlesschain/chainlesschain/actions/runs/30564377629) 与 [npm publish run 30588174291](https://github.com/chainlesschain/chainlesschain/actions/runs/30588174291) 均已成功；Code Quality & Security、Full Test Automation、E2E、Project Management E2E 与 CI Tests 也在同一 `head_sha` 成功。Linux、Windows、macOS 的发布矩阵必须来自精确提交；本地测试只作补充，不能替代发布门。
 
-平台专项还应覆盖 Linux bubblewrap 的 fd 绑定、private mount topology、静态 ELF/架构/segment/栈校验、通用后台/PTY 强边界与网络隔离，以及 Windows `.cmd` 启动、AppContainer 目标句柄/策略摘要、后台 attach、停止自 PID 记录、hook 输出清理和进程树能力探测。Hooks 专项需覆盖 stdin `EPIPE` 的 status 0/2 协议、单一 CredentialTransport listener 与 teardown 后 FD 零增长。TCP attach 需要运行对应的 IPC/transport 回归测试。真实系统能力不可用时，测试必须明确跳过并由注入测试补齐，不得把权限拒绝伪装成功。
+平台专项还应覆盖 Linux bubblewrap 的 fd 绑定、private mount topology、静态 ELF/架构/segment/栈校验、通用后台/PTY 强边界与网络隔离，以及 Windows `.cmd` 启动、AppContainer 目标句柄/策略摘要、后台 attach、停止自 PID 记录、hook 输出清理和进程树能力探测。P2-14 专项必须区分 `full` / `partial` / `none`，验证 crash recovery 在证据不足时进入 `recovery_required`；P2-16 专项必须分别覆盖单进程规模测试、真实跨进程短门和三平台长期 soak。Hooks 专项需覆盖 stdin `EPIPE` 的 status 0/2 协议、单一 CredentialTransport listener 与 teardown 后 FD 零增长。TCP attach 需要运行对应的 IPC/transport 回归测试。真实系统能力不可用时，测试必须明确跳过并由注入测试补齐，不得把权限拒绝伪装成功。

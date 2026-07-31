@@ -9,7 +9,7 @@ export default defineConfig({
   transformPageData(pageData) {
     if (pageData.relativePath === "index.md" && pageData.frontmatter.hero) {
       pageData.frontmatter.hero.tagline =
-        "v5.0.3.135 · CLI 0.162.185 · PDH 0.4.57｜后台/PTY authority · Hooks v2 · 事务化插件恢复 · IDE 协作治理";
+        "v5.0.3.135 · CLI 0.162.189 · PDH 0.4.57｜P2-14 受控回滚 · P2-16 Agent Teams · IDE CLI-owned controls";
     }
   },
 
@@ -862,7 +862,7 @@ export default defineConfig({
           ],
         },
         {
-          text: "v5.0.2.10 Agent 架构与 Runtime 重构 (77-83) ⭐NEW",
+          text: "当前 Agent / CLI / IDE 主线 (77-103)",
           collapsed: false,
           items: [
             {
@@ -874,7 +874,7 @@ export default defineConfig({
               link: "/modules/m78-cli-agent-runtime",
             },
             {
-              text: "CLI Runtime 当前实现核对 (0.162.185) ⭐NEW",
+              text: "CLI Runtime 当前实现核对 (0.162.189) ⭐NEW",
               link: "/cli-runtime-current",
             },
             {
@@ -976,6 +976,14 @@ export default defineConfig({
             {
               text: "101b QQNT Frida 采集方案 ⭐NEW",
               link: "/modules/m101b-qqnt-frida-collection",
+            },
+            {
+              text: "102 Remote Session 方案 ⭐NEW",
+              link: "/modules/m102-remote-session",
+            },
+            {
+              text: "103 Agent SDK 平台化方案 ⭐NEW",
+              link: "/modules/m103-agent-sdk-platform",
             },
           ],
         },

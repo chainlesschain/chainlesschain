@@ -2,13 +2,14 @@
 
 > 评估日期：2026-07-18  
 > 评估对象：`packages/cli`、`packages/agent-sdk` 及 Coding Agent 相关验证链  
-> 初始评估仓库基线：CLI `0.162.177`；当前发布准备版本：CLI `0.162.189`（尚未发布）
+> 初始评估仓库基线：CLI `0.162.177`；当前已发布版本：CLI `0.162.189` / final exact SHA
+> `2607af0dadeb951583139942e5f2add3e95e1208`
 > 已验收实现候选：CLI `0.162.188` / exact SHA
-> `7df6feced4670ac71d19548752d18ac4cc225025`
+> `7df6feced4670ac71d19548752d18ac4cc225025`（仅保留为候选阶段证据）
 > 对标基线：截至评估日的 Claude Code 官方滚动文档  
-> 文档状态：持续复核版；2026-07-31 已按 exact SHA
-> `7df6feced4670ac71d19548752d18ac4cc225025` 的三平台短门与长期 soak 复核
-> P2-14/P2-16，并保留安全边界及静态进程清单。
+> 文档状态：持续复核版；2026-08-01 已复核 final exact SHA
+> `2607af0dadeb951583139942e5f2add3e95e1208` 的三平台短门、长期 soak 与 npm 发布，
+> P2-14/P2-16 已随 `0.162.189` 公开，并保留安全边界及静态进程清单。
 > 说明：本文只列“当前仍值得投入”的净差距。已落地能力不再重复列为待办，历史实施过程见
 > [`CLAUDE_CODE_CLI_INCREMENTAL_GAP_ANALYSIS_2026-07-12.md`](./CLAUDE_CODE_CLI_INCREMENTAL_GAP_ANALYSIS_2026-07-12.md)。
 

@@ -5,6 +5,26 @@
 
 ## [Unreleased]
 
+#### Added — CLI 0.162.189：P2-14 托管回滚与 P2-16 大规模 Agent Teams 发布闭环
+
+> `chainlesschain` `0.162.185 → 0.162.189`（2026-07-31）；PDH 保持 `0.4.57`，Agent SDK 保持 `0.1.7`。npm `latest` 已公开 `0.162.189`。
+
+- **0.162.186 — 标准 OTel Collector 出口**：agent、eval 与 team 可通过 OTLP/HTTP JSON、protobuf 或 OTLP/gRPC 导出 traces/metrics，支持 mTLS、有界队列、重试、最终 flush 与默认脱敏。
+- **0.162.187 — Agent Teams 安全与规模基础**：indexed scheduler 支持单进程内 10,000 task / 64 个异步 worker；加入 fenced lease、四维预算、崩溃后裁决与两阶段 worktree cleanup。
+- **0.162.188 — Auto mode 安全分类器**：145 个不可变离线用例覆盖 workspace escape、secret egress、生产部署、force push、未审 merge 与无隔离第三方 Agent，危险/关键场景要求 100% recall 且零 unsafe allow。
+- **0.162.189 — P2-14/P2-16 闭环**：Process Broker 管理的声明 workspace writer 建立持久 checkpoint，在失败、取消或超时后带 fence 回滚，并显式报告 `full / partial / none`；本地 Agent Team 使用 schema v6 authority，独立分布式 queue v1 使用 digest、lease 与 compare-and-swap fence，wall-clock 预算覆盖执行、checkpoint、commit 与完成发布尾部。
+- **边界保持明确**：托管 checkpoint 不捕获宿主机全部写入，不覆盖未托管进程、范围外路径或网络、数据库、消息、部署、支付；共享 FS queue 不是共识或网络分区容错队列。10k/64 是单进程规模验证，跨进程长期 soak 使用 2 个真实 OS worker。
+- **精确发布证据**：提交 [`2607af0dad`](https://github.com/chainlesschain/chainlesschain/commit/2607af0dadeb951583139942e5f2add3e95e1208) 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/30586603353)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/30586603019)、[Agent Team 长期 soak](https://github.com/chainlesschain/chainlesschain/actions/runs/30564377629) 与 [npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/30588174291) 均成功。
+
+#### Added — VS Code 0.37.37 + JetBrains 0.4.76：分布式 Agent Team 人工控制正式公开
+
+> VS Code `0.37.36 → 0.37.37`、JetBrains `0.4.75 → 0.4.76`（2026-07-31），推荐配合 CLI `0.162.189`。VS Code/VSCodium 版本已在 Open VSX 公开，JetBrains 版本已审核通过并在 Marketplace 公开；微软 VS Code Marketplace 仍未发布。
+
+- IDE 只读观察本地 Agent Team schema v6 authority 与独立 queue schema v1；旧本地 v5 状态必须先经 CLI-owned resume migration。
+- takeover、managed checkpoint recovery 与 side-effect adjudication 全部交回 CLI，并绑定精确 state/queue authority digest、lease 与 evidence fence；过期 UI 操作失败关闭。
+- raw Agent Team / queue JSON 在 IDE 中保持只读，文件监听和刷新只更新投影；权威写操作继续由 CLI compare-and-swap 持有。
+- 双标签精确指向提交 [`33e4d512d3`](https://github.com/chainlesschain/chainlesschain/commit/33e4d512d319bc771190f672bcc7847fb4099835)；[Open VSX 发布工作流](https://github.com/chainlesschain/chainlesschain/actions/runs/30616688007)成功并完成公开 registry 回读；[JetBrains 发布工作流](https://github.com/chainlesschain/chainlesschain/actions/runs/30645282946)完成构建、验证与上传，Marketplace API 随后确认 `0.4.76` 已审核并公开。
+
 #### Fixed — CLI 0.162.185：沙箱 authority、PTY 与 Hook runtime 收口
 
 > `chainlesschain` `0.162.184 → 0.162.185`（2026-07-29）；PDH 保持 `0.4.57`，Agent SDK 保持 `0.1.7`。

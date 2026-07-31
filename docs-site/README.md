@@ -7,12 +7,14 @@
 ### 已完成的文档
 
 #### 指南
+
 - ✅ 简介 (`/guide/introduction`)
 - ✅ 快速开始 (`/guide/getting-started`)
 - ⏳ 系统架构 (待完成)
 - ⏳ 技术栈 (待完成)
 
 #### U盾/SIMKey厂家管理系统
+
 - ✅ 系统概述 (`/manufacturer/overview`)
 - ✅ 快速开始 (`/manufacturer/quick-start`)
 - ✅ 安装部署 (`/manufacturer/installation`)
@@ -27,6 +29,7 @@
 - ⏳ 操作日志 (待完成)
 
 #### API参考
+
 - ✅ API简介 (`/api/introduction`)
 - ✅ 设备管理API (`/api/manufacturer/devices`)
 - ⏳ APP版本管理API (待完成)
@@ -35,6 +38,7 @@
 - ⏳ 操作日志API (待完成)
 
 #### ChainlessChain个人AI系统
+
 - ⏳ 系统概述 (待完成)
 - ⏳ 安装部署 (待完成)
 - ⏳ 知识库管理 (待完成)
@@ -48,7 +52,7 @@
 
 ### 前置要求
 
-- Node.js 18+
+- Node.js 22.12.0+
 - npm 或 yarn
 
 ### 安装依赖
@@ -236,7 +240,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: 18
+          node-version: 22.12.0
 
       - name: Install dependencies
         working-directory: docs-site
@@ -265,9 +269,11 @@ jobs:
 export default defineConfig({
   // ...
   define: {
-    __API_URL__: JSON.stringify(process.env.API_URL || 'http://localhost:8080/api')
-  }
-})
+    __API_URL__: JSON.stringify(
+      process.env.API_URL || "http://localhost:8080/api",
+    ),
+  },
+});
 ```
 
 ## 📝 贡献指南
@@ -287,7 +293,7 @@ VitePress支持标准Markdown和扩展语法：
 
 ```javascript
 // 支持语法高亮
-const hello = 'world'
+const hello = "world";
 ```
 
 #### 提示框
@@ -318,7 +324,7 @@ const hello = 'world'
 
 ```markdown
 | 列1 | 列2 | 列3 |
-|-----|-----|-----|
+| --- | --- | --- |
 | A   | B   | C   |
 ```
 
@@ -336,22 +342,30 @@ const hello = 'world'
    - ❌ `GettingStarted.md`
 
 2. **标题层级**: 一个文档只有一个H1标题
+
    ```markdown
    # 一级标题（H1）- 只有一个
+
    ## 二级标题（H2）
+
    ### 三级标题（H3）
    ```
 
 3. **代码示例**: 提供多语言示例
+
    ```markdown
    #### JavaScript
+
    \`\`\`javascript
    // 代码
    \`\`\`
 
    #### Python
+
    \`\`\`python
+
    # 代码
+
    \`\`\`
    ```
 
@@ -366,7 +380,7 @@ VitePress内置本地搜索功能，已在配置中启用：
 
 ```javascript
 search: {
-  provider: 'local'
+  provider: "local";
 }
 ```
 
@@ -380,16 +394,16 @@ search: {
 export default defineConfig({
   locales: {
     root: {
-      label: '简体中文',
-      lang: 'zh-CN'
+      label: "简体中文",
+      lang: "zh-CN",
     },
     en: {
-      label: 'English',
-      lang: 'en-US',
-      link: '/en/'
-    }
-  }
-})
+      label: "English",
+      lang: "en-US",
+      link: "/en/",
+    },
+  },
+});
 ```
 
 ## 📊 统计分析
@@ -401,16 +415,19 @@ export default defineConfig({
   head: [
     // ...
     [
-      'script',
-      { async: '', src: 'https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX' }
+      "script",
+      {
+        async: "",
+        src: "https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX",
+      },
     ],
     [
-      'script',
+      "script",
       {},
-      "window.dataLayer = window.dataLayer || [];\nfunction gtag(){dataLayer.push(arguments);}\ngtag('js', new Date());\ngtag('config', 'G-XXXXXXXXXX');"
-    ]
-  ]
-})
+      "window.dataLayer = window.dataLayer || [];\nfunction gtag(){dataLayer.push(arguments);}\ngtag('js', new Date());\ngtag('config', 'G-XXXXXXXXXX');",
+    ],
+  ],
+});
 ```
 
 ## 🐛 故障排查
@@ -435,12 +452,9 @@ rm -rf docs/.vitepress/cache docs/.vitepress/dist
 可以在配置中忽略：
 
 ```javascript
-ignoreDeadLinks: true
+ignoreDeadLinks: true;
 // 或只忽略特定链接
-ignoreDeadLinks: [
-  /^https?:\/\/localhost/,
-  /some-pattern/
-]
+ignoreDeadLinks: [/^https?:\/\/localhost/, /some-pattern/];
 ```
 
 ## 📞 技术支持
@@ -459,6 +473,7 @@ MIT License
 **文档网站构建完成！** 🎉
 
 下一步可以：
+
 1. 继续完善待创建的文档页面
 2. 添加更多API参考文档
 3. 添加截图和视频教程

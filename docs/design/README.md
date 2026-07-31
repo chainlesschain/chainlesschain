@@ -1,10 +1,13 @@
 ﻿# 设计文档
 
-> 本目录是 ChainlessChain 的研发设计入口，也是 `docs-site` 设计区的同步源。CLI Runtime 核对已更新到 2026-07-24 / CLI 0.162.177 的实际代码状态。
+> 本目录是 ChainlessChain 的研发设计入口，也是用户文档站与设计文档站的共享设计源。CLI Runtime 核对已更新到 2026-08-01 / CLI 0.162.189 的正式发布状态。
 
 ## 当前重点
 
 - CLI Agent Runtime、Cowork Runtime、Web Panel、Hooks、Workflow 等主线设计仍以 `docs/design/modules/` 为准。
+- P2-14 已按限定范围完成：Process Broker 为其管理的声明 workspace writer 提供持久 checkpoint、分层 coverage 与 fenced rollback/recovery；外部副作用不在回滚承诺内。
+- P2-16 已完成本地 Agent Team v6 authority、分布式 queue v1、预算/lease/wall fencing、两阶段 worktree 清理、交互式裁决与三平台长期 soak；10k task / 64 worker 是单进程规模验证，长期 soak 使用 2 个真实 OS worker。
+- VS Code `0.37.37` 与 JetBrains `0.4.76` 已公开，两端只读投影 Agent Team 状态，takeover、checkpoint recovery 与副作用裁决继续由 CLI-owned authority 执行。
 - Managed Agents 对标已新增独立模块 `91_Managed_Agents对标计划.md`，底层能力沉到共享包 `@chainlesschain/session-core`。
 - `session-core` 当前已覆盖 SessionHandle、TraceStore、SessionManager、IdleParker、AgentGroup、SharedTaskList、MemoryStore、MemoryConsolidator、ApprovalGate、BetaFlags、StreamRouter、file-adapters。
 - CLI 已接入 `memory recall/store`、`session policy`、`config beta list|enable|disable`；Desktop 仍处于 shim + 后续收口阶段。
@@ -13,12 +16,24 @@
 
 ### `cli-runtime-current.md`
 
+- 版本基线更新为 CLI `0.162.189`，正式发布 SHA 为 `2607af0dadeb951583139942e5f2add3e95e1208`。
 - 明确 `CHAINLESSCHAIN_HOME` 是完整运行目录覆盖值，测试夹具不得写入真实 home。
 - 补充 process-execution-broker 的非秘密会话标识 allowlist 与默认凭据过滤边界。
 - 补充 `skill-process-broker`：`shell-exec` 技能只获得宿主冻结 facade，来源元数据不可由 handler 伪造。
 - 记录 CLI-Anything 的字面 argv + `shell:false`，以及 CLI 指令技能包 direct/hybrid handler 的 Broker 接线与 fail-closed 行为。
 - 记录异步 hook 的 POSIX 进程组 / Windows `taskkill` + 后代快照 fallback 设计。
-- 记录 unit / integration / E2E 三平台分层门禁、打包/启动校验与 0.162.177 发布基线。
+- 记录 unit / integration / E2E 三平台分层门禁、P2-14/P2-16 专项门、120 分钟 Agent Team soak、打包/启动校验与 0.162.189 发布基线。
+
+### `CLAUDE_CODE_CLI_PARITY_OPTIMIZATION_PLAN.md`
+
+- P2-14 保持“限定范围完成”，不把 Process Broker coverage 扩写成宿主机所有写入保证。
+- P2-16 保持“完成”，同时区分单进程 10k/64 规模证据和双进程三平台长期 soak。
+- 增加候选实现 SHA 与正式 release SHA 的双层证据，避免把候选门禁误写成 registry 发布提交。
+
+### `modules/98_IDE桥接对标方案.md`
+
+- 页首增加当前发布状态：VS Code `0.37.37`（Open VSX）与 JetBrains `0.4.76`（JetBrains Marketplace）。
+- 初版 Phase 0–7、`0.2.x` / `0.1.0` 和当时的 Marketplace 待审状态继续保留为历史首发记录，不再冒充当前版本。
 
 ### `modules/91_Managed_Agents对标计划.md`
 
@@ -63,6 +78,9 @@
 
 近期与本目录直接相关的新增验证包括：
 
+- CLI `0.162.189` exact-SHA：CLI CI、CLI Strict Sandbox、Background Interaction E2E、三平台 Agent Team 120 分钟 soak 与 npm publish 全绿
+- IDE exact-SHA `33e4d512d319bc771190f672bcc7847fb4099835`：VS Code 0.37.37 Open VSX 发布/回读通过；JetBrains 0.4.76 build/verify/publish 成功，Marketplace API 随后确认已审核并公开
+
 - `@chainlesschain/session-core`: `293/293`
 - CLI unit: `session-core-singletons.test.js` `4/4`
 - CLI unit: `cli-context-engineering.test.js` `55/55`
@@ -72,12 +90,11 @@
 
 ## 文档同步说明
 
-- 设计源文件在 `docs/design/`
-- 文档站镜像在 `docs-site/docs/design/`
-- 同步脚本为 `docs-site/scripts/sync-design-docs.js`
-- 新增模块如果需要在文档站展示，必须同时补齐：
-  - `sync-design-docs.js` 的文件名映射
-  - `docs-site/docs/.vitepress/config.js` 的 sidebar 链接
+- 共享设计源文件在 `docs/design/`，不要直接修改生成镜像。
+- 用户文档站镜像在 `docs-site/docs/design/`，同步脚本为 `docs-site/scripts/sync-design-docs.js`。
+- 设计文档站镜像在 `docs-site-design/docs/`，同步脚本为 `docs-site-design/scripts/sync-docs.js`；其自定义 `index.md` 与 `.vitepress/` 不会被覆盖。
+- 中文源文件名到两个站点 ASCII 文件名的单一映射位于 `docs/design/_filename-map.json`。
+- 新增模块如果需要在文档站展示，必须同时补齐 `_filename-map.json` 与两个站点相应 `.vitepress/config.js` 的导航入口；只运行同步脚本不会自动生成 sidebar。
 
 ## 目录说明
 
