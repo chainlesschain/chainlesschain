@@ -1,11 +1,14 @@
 name: IDE Extensions
 
 # Builds the two IDE-bridge editor extensions and uploads their artifacts.
-# Publishing to the marketplaces happens ONLY on a dedicated tag and ONLY when
-# the corresponding secret is present — a normal push just builds + uploads.
+# Publishing to the marketplaces happens ONLY on a dedicated tag. A normal
+# push just builds + uploads.
 #
-#   tag ide-vscode-v*     -> publish the VS Code extension   (needs VSCE_PAT)
-#   tag ide-jetbrains-v*  -> publish the JetBrains plugin     (needs JETBRAINS_PUBLISH_TOKEN)
+#   tag ide-vscode-v*     -> publish the VS Code extension   (needs OVSX_PAT;
+#                                                             VSCE_PAT optional)
+#   tag ide-jetbrains-v*  -> publish the JetBrains plugin     (needs publish
+#                                                             token; signing
+#                                                             is recommended)
 
 on:
   push:
@@ -13,6 +16,7 @@ on:
     paths:
       - "packages/vscode-extension/**"
       - "packages/jetbrains-plugin/**"
+      - "scripts/verify-ide-marketplace.mjs"
       - ".github/workflows/ide-extensions.yml"
     tags:
       - "ide-vscode-v*"
@@ -21,6 +25,7 @@ on:
     paths:
       - "packages/vscode-extension/**"
       - "packages/jetbrains-plugin/**"
+      - "scripts/verify-ide-marketplace.mjs"
       - ".github/workflows/ide-extensions.yml"
   workflow_dispatch:
     inputs:
@@ -29,7 +34,7 @@ on:
           Publish the packaged .vsix to the official VS Code Marketplace
           (needs VSCE_PAT). Use to backfill a version already tagged +
           published to Open VSX without retagging — the Open VSX step stays
-          tag-gated so it won't re-publish (a duplicate version would fail).
+          tag-gated, so a backfill cannot alter the Open VSX release.
         type: boolean
         default: false
 
@@ -50,13 +55,19 @@ jobs:
         with:
           node-version: "22.12.0"
 
+      - name: Unit tests
+        run: npm run test:unit
+
+      - name: Marketplace verifier self-test
+        run: node ../../scripts/verify-ide-marketplace.mjs --self-test
+
       # Windows is a release gate because the bridge lockfile uses a native
       # owner-only DACL. Exercise both the latest editor and engines.vscode's
       # minimum supported release from a freshly packaged VSIX.
       - name: Package .vsix
         run: |
           node scripts/sync-elicitation-schema.mjs --check
-          npx --yes @vscode/vsce@latest package --no-dependencies --out chainlesschain-ide.vsix
+          npx --yes @vscode/vsce@3.9.2 package --no-dependencies --out chainlesschain-ide.vsix
 
       - name: Verify .vsix metadata
         run: |
@@ -85,11 +96,27 @@ jobs:
         with:
           node-version: "22.12.0"
 
+      - name: Validate VS Code release tag version
+        if: startsWith(github.ref, 'refs/tags/ide-vscode-v')
+        shell: bash
+        run: |
+          set -euo pipefail
+          package_version="$(node -p "require('./package.json').version")"
+          expected_tag="ide-vscode-v${package_version}"
+          if [ "$GITHUB_REF_NAME" != "$expected_tag" ]; then
+            echo "::error::Release tag '$GITHUB_REF_NAME' does not match package.json version '$package_version' (expected '$expected_tag')."
+            exit 1
+          fi
+          echo "Validated release tag: $expected_tag"
+
+      - name: Unit tests
+        run: npm run test:unit
+
       # The extension has no runtime npm deps — package straight to a .vsix.
       - name: Package .vsix
         run: |
           node scripts/sync-elicitation-schema.mjs --check
-          npx --yes @vscode/vsce@latest package --no-dependencies --out chainlesschain-ide.vsix
+          npx --yes @vscode/vsce@3.9.2 package --no-dependencies --out chainlesschain-ide.vsix
 
       # Parse gate: a .vsix is a ZIP — crack it open (dependency-free reader
       # in the script) and assert the marketplace metadata is coherent before
@@ -134,12 +161,30 @@ jobs:
             echo "::error::OVSX_PAT secret is not set — cannot publish to Open VSX."
             exit 1
           fi
-          npx --yes ovsx@latest create-namespace chainlesschain || true
-          npx --yes ovsx@latest publish chainlesschain-ide.vsix
+          # --skip-duplicate makes an exact-version tag workflow safe to rerun.
+          # Other authentication, network, and validation failures still fail.
+          npx --yes ovsx@1.0.2 publish --skip-duplicate chainlesschain-ide.vsix
 
       - name: Verify Open VSX listing
         if: startsWith(github.ref, 'refs/tags/ide-vscode-v')
-        run: node ../../scripts/verify-ide-marketplace.mjs open-vsx "$(node -p "require('./package.json').version")"
+        env:
+          # Open VSX can accept an upload before allVersions/download metadata
+          # converges. Allow roughly ten minutes instead of a two-minute false
+          # negative while still failing persistent registry/network errors.
+          CC_MARKETPLACE_VERIFY_ATTEMPTS: "30"
+          CC_MARKETPLACE_VERIFY_DELAY_MS: "20000"
+        run: |
+          set -euo pipefail
+          version="$(node -p "require('./package.json').version")"
+          result="$(node ../../scripts/verify-ide-marketplace.mjs open-vsx "$version" --artifact chainlesschain-ide.vsix)"
+          echo "$result"
+          {
+            echo "### Open VSX verification"
+            echo
+            echo '```json'
+            echo "$result"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
       # Official VS Code Marketplace — optional; needs a VSCE_PAT secret (an
       # Azure DevOps PAT, org "All accessible organizations", scope
@@ -162,8 +207,8 @@ jobs:
             echo "::notice::VSCE_PAT not set — skipping official Marketplace (Open VSX already published)."
             exit 0
           fi
-          npx --yes @vscode/vsce@latest verify-pat chainlesschain -p "$VSCE_PAT"
-          npx --yes @vscode/vsce@latest publish --no-dependencies --packagePath chainlesschain-ide.vsix -p "$VSCE_PAT"
+          npx --yes @vscode/vsce@3.9.2 verify-pat chainlesschain -p "$VSCE_PAT"
+          npx --yes @vscode/vsce@3.9.2 publish --no-dependencies --packagePath chainlesschain-ide.vsix -p "$VSCE_PAT"
 
   jetbrains:
     name: JetBrains plugin (build + publish)
@@ -182,6 +227,35 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
+      - name: Validate JetBrains version sources and release tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          gradle_version="$(sed -nE 's/^version[[:space:]]*=[[:space:]]*"([^"]+)"[[:space:]]*$/\1/p' build.gradle.kts)"
+          plugin_xml_version="$(sed -nE 's@^[[:space:]]*<version>([^<]+)</version>[[:space:]]*$@\1@p' src/main/resources/META-INF/plugin.xml)"
+          if [[ -z "$gradle_version" || "$gradle_version" == *$'\n'* ]]; then
+            echo "::error::Expected exactly one project version in build.gradle.kts."
+            exit 1
+          fi
+          if [[ -z "$plugin_xml_version" || "$plugin_xml_version" == *$'\n'* ]]; then
+            echo "::error::Expected exactly one <version> in plugin.xml."
+            exit 1
+          fi
+          if [ "$gradle_version" != "$plugin_xml_version" ]; then
+            echo "::error::JetBrains version mismatch: Gradle=$gradle_version plugin.xml=$plugin_xml_version."
+            exit 1
+          fi
+          if [[ "$GITHUB_REF" == refs/tags/ide-jetbrains-v* ]]; then
+            expected_tag="ide-jetbrains-v${gradle_version}"
+            if [ "$GITHUB_REF_NAME" != "$expected_tag" ]; then
+              echo "::error::Release tag '$GITHUB_REF_NAME' does not match JetBrains version '$gradle_version' (expected '$expected_tag')."
+              exit 1
+            fi
+            echo "Validated release tag: $expected_tag"
+          else
+            echo "Validated matching JetBrains version sources: $gradle_version"
+          fi
+
       # Pure-core regression gate: 300+ assertions over the vscode-parity pure
       # layers (PureLogicSmokeMain exits 1 on any failure). Runs before the
       # full build so a logic regression fails fast.
@@ -197,6 +271,14 @@ jobs:
       # Downloads the IntelliJ Platform SDK + builds the signed-able plugin zip.
       - name: Build plugin
         run: ./gradlew buildPlugin --no-daemon --stacktrace
+
+      - name: Verify plugin structure and project configuration
+        run: >-
+          ./gradlew verifyPluginStructure verifyPluginProjectConfiguration
+          --no-daemon --stacktrace
+
+      - name: Verify plugin compatibility
+        run: ./gradlew verifyPlugin --no-daemon --stacktrace
 
       # Release GUI gate: exercise the packaged plugin in a real sandbox IDE
       # before uploading/publishing it. Keep this separate from headless
@@ -252,8 +334,60 @@ jobs:
             echo "::error::JETBRAINS_PUBLISH_TOKEN secret is not set — cannot publish."
             exit 1
           fi
+          signing_secret_count=0
+          for secret_name in CERTIFICATE_CHAIN PRIVATE_KEY PRIVATE_KEY_PASSWORD; do
+            if [ -z "${!secret_name:-}" ]; then
+              echo "::notice::$secret_name is not configured."
+            else
+              signing_secret_count=$((signing_secret_count + 1))
+            fi
+          done
+          if [ "$signing_secret_count" -ne 0 ] && [ "$signing_secret_count" -ne 3 ]; then
+            echo "::error::JetBrains author signing is only safe with all three signing secrets configured."
+            exit 1
+          fi
+          if [ "$signing_secret_count" -eq 0 ]; then
+            echo "::warning::Author signing secrets are not configured; signPlugin will be skipped, matching the existing Marketplace release path."
+          else
+            echo "All JetBrains author signing secrets are configured."
+          fi
           ./gradlew publishPlugin --no-daemon --stacktrace
 
+  jetbrains-marketplace-verify:
+    name: JetBrains Marketplace (post-publish verification)
+    needs: jetbrains
+    if: startsWith(github.ref, 'refs/tags/ide-jetbrains-v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: packages/jetbrains-plugin
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+
       - name: Verify JetBrains Marketplace listing
-        if: startsWith(github.ref, 'refs/tags/ide-jetbrains-v')
-        run: node ../../scripts/verify-ide-marketplace.mjs jetbrains "$(sed -n 's/^version = "\(.*\)"/\1/p' build.gradle.kts | head -n 1)"
+        env:
+          # A successful publishPlugin upload may wait for human Marketplace
+          # approval. Reachable pending state is reported, not treated as an
+          # upload failure; HTTP/network/malformed and explicitly hidden states
+          # still fail.
+          CC_MARKETPLACE_VERIFY_ATTEMPTS: "12"
+          CC_MARKETPLACE_VERIFY_DELAY_MS: "10000"
+        run: |
+          set -euo pipefail
+          version="$(sed -nE 's/^version[[:space:]]*=[[:space:]]*"([^"]+)"[[:space:]]*$/\1/p' build.gradle.kts)"
+          result="$(node ../../scripts/verify-ide-marketplace.mjs jetbrains "$version" --allow-pending)"
+          echo "$result"
+          if [[ "$result" == *'"status":"pending"'* ]]; then
+            echo "::warning::JetBrains Marketplace upload succeeded; version $version is pending manual approval/listing."
+          fi
+          {
+            echo "### JetBrains Marketplace verification"
+            echo
+            echo '```json'
+            echo "$result"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
