@@ -1,8 +1,9 @@
 # ChainlessChain IDE Bridge (VS Code)
 
-Current Open VSX release: **0.37.31**, coordinated with
-`chainlesschain@0.162.177`. The bridge protocol and minimum supported CLI
-version remain unchanged.
+Current source/package version: **0.37.37**, coordinated with
+`chainlesschain@0.162.189`. Registry availability is verified separately from
+repository metadata. The bridge protocol and minimum supported CLI version
+remain unchanged.
 
 Bridges the ChainlessChain **`cc` agent CLI** to VS Code. When this extension is
 active, running `cc agent` inside the editor's integrated terminal lets the
