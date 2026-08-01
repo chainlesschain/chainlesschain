@@ -2,6 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawn, spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   createFakeCliEnvironment,
@@ -114,8 +115,11 @@ describe("JetBrains real-host journey driver", () => {
   it("fixture peer streams, settles controls, and advertises resume state", async () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-jb-peer-"));
     temporaryRoots.push(root);
-    const script = path.resolve(
-      "tests/fixtures/ide-roadmap/fake-stream-json-agent.mjs",
+    const script = fileURLToPath(
+      new URL(
+        "../../../../tests/fixtures/ide-roadmap/fake-stream-json-agent.mjs",
+        import.meta.url,
+      ),
     );
     const statePath = path.join(root, "state.json");
     const environment = {
