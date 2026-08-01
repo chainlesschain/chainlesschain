@@ -7,21 +7,218 @@
  * @module cowork-task-runner
  */
 
+import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, appendFileSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { SubAgentContext } from "./sub-agent-context.js";
 import { getTemplate, setUserTemplates } from "./cowork-task-templates.js";
 import { mountTemplateMcpTools } from "./cowork-mcp-tools.js";
 import { listUserTemplates } from "./cowork-template-marketplace.js";
+import {
+  createMcpCallLedger,
+  McpEffect,
+  normalizeMcpEffectContract,
+} from "./mcp-call-ledger.js";
+import {
+  createSessionMcpLedgerSink,
+  formatMcpLedgerRecoveryNotice,
+  reduceMcpLedgerEvents,
+} from "./mcp-call-ledger-store.js";
+import {
+  appendAuthorityEvent as appendSessionEvent,
+  appendAuthorityEventIfHead as appendSessionEventIfHead,
+  isUnsafeSessionId,
+  readVerifiedEvents as readVerifiedSessionEvents,
+} from "../harness/jsonl-session-store.js";
 
 // ─── Dependencies (overridable for testing) ──────────────────────────────────
 
-export const _deps = { existsSync, mkdirSync, appendFileSync, readFileSync };
+export const _deps = {
+  existsSync,
+  mkdirSync,
+  appendFileSync,
+  readFileSync,
+  appendSessionEvent,
+  appendSessionEventIfHead,
+  readVerifiedSessionEvents,
+  randomUUID,
+};
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const DEFAULT_MAX_ITERATIONS = 50;
 const DEFAULT_TOKEN_BUDGET = 100_000;
+
+function resolveCoworkMcpSessionId(requested) {
+  if (requested != null) {
+    if (typeof requested !== "string" || isUnsafeSessionId(requested)) {
+      const error = new Error("Cowork MCP session id is invalid");
+      error.code = "CC_COWORK_MCP_SESSION_INVALID";
+      throw error;
+    }
+    return requested;
+  }
+  return `cowork-mcp-${_deps.randomUUID()}`;
+}
+
+function publicMcpRecoveryState(recovery, blockMode, readErrorCode = null) {
+  const unsettled = Array.isArray(recovery?.unsettled)
+    ? recovery.unsettled.slice(0, 20).map((record) => ({
+        ledgerId: record.ledgerId,
+        serverName: record.serverName,
+        toolName: record.toolName,
+        effect: record.effectContract?.effect || McpEffect.UNKNOWN,
+      }))
+    : [];
+  const incidents = Array.isArray(recovery?.incidents)
+    ? recovery.incidents.slice(0, 20).map((incident) => ({
+        code: incident.code,
+        ledgerId: incident.ledgerId || null,
+      }))
+    : [];
+  if (readErrorCode) incidents.push({ code: readErrorCode, ledgerId: null });
+  return Object.freeze({
+    blockMode,
+    unsettled: Object.freeze(unsettled),
+    incidents: Object.freeze(incidents),
+  });
+}
+
+function guardMcpLedgerForRecovery(ledger, recoveryState) {
+  if (!ledger || !recoveryState?.blockMode) return ledger;
+  const begin = async (call = {}) => {
+    const effect = normalizeMcpEffectContract(
+      call.effectContract || call.effect || {},
+    ).effect;
+    const blocked =
+      recoveryState.blockMode === "all" ||
+      (recoveryState.blockMode === "unsafe" && effect !== McpEffect.READ);
+    if (blocked) {
+      const error = new Error(
+        `Cowork MCP ${effect} call blocked until durable recovery incidents are explicitly adjudicated`,
+      );
+      error.code = "CC_COWORK_MCP_RECOVERY_BLOCKED";
+      error.effect = effect;
+      error.blockMode = recoveryState.blockMode;
+      throw error;
+    }
+    return ledger.begin(call);
+  };
+  return Object.freeze({ begin, beginCall: begin });
+}
+
+function assertCoworkMcpSessionBinding(events, templateId) {
+  for (const event of Array.isArray(events) ? events : []) {
+    if (event?.type !== "cowork_mcp_session") continue;
+    const binding = event.data;
+    if (
+      binding?.schemaVersion !== 1 ||
+      typeof binding.taskId !== "string" ||
+      typeof binding.templateId !== "string"
+    ) {
+      const error = new Error("Cowork MCP session binding is malformed");
+      error.code = "CC_COWORK_MCP_SESSION_BIND_INVALID";
+      throw error;
+    }
+    if (binding.templateId !== templateId) {
+      const error = new Error(
+        `Cowork MCP session is already bound to template ${binding.templateId}`,
+      );
+      error.code = "CC_COWORK_MCP_SESSION_BIND_CONFLICT";
+      throw error;
+    }
+  }
+}
+
+/**
+ * Build one session-scoped durable ledger for every template MCP call. The
+ * returned ledger is handed to SubAgentContext, so agent-core must complete a
+ * durable started prewrite before invoking unknown/write/destructive tools.
+ */
+export function prepareCoworkMcpRuntime(mcp, options = {}) {
+  if (
+    !mcp?.mcpClient ||
+    !Array.isArray(mcp.extraToolDefinitions) ||
+    mcp.extraToolDefinitions.length === 0
+  ) {
+    return {
+      sessionId: null,
+      ledger: null,
+      recoveryNotice: null,
+      recoveryState: null,
+    };
+  }
+
+  const sessionId = resolveCoworkMcpSessionId(options.mcpSessionId);
+  if (typeof options.onProgress === "function") {
+    options.onProgress({ type: "mcp-session", sessionId });
+  }
+  let recoveryNotice = null;
+  let recoveryState = null;
+  let bindingAllowed = false;
+  let expectedHeadHash = null;
+  try {
+    const verifiedEvents = _deps.readVerifiedSessionEvents(sessionId) || [];
+    assertCoworkMcpSessionBinding(
+      verifiedEvents,
+      String(options.templateId || "free"),
+    );
+    const recovery = reduceMcpLedgerEvents(verifiedEvents);
+    expectedHeadHash = verifiedEvents.at(-1)?.hash || null;
+    bindingAllowed = true;
+    recoveryNotice = formatMcpLedgerRecoveryNotice(recovery);
+    const blockMode =
+      recovery.incidents.length > 0
+        ? "all"
+        : recovery.unsettled.length > 0
+          ? "unsafe"
+          : null;
+    recoveryState = publicMcpRecoveryState(recovery, blockMode);
+    if (recoveryNotice && typeof options.onProgress === "function") {
+      options.onProgress({
+        type: "mcp-recovery",
+        sessionId,
+        unsettled: recovery.unsettled.length,
+        incidents: recovery.incidents.length,
+        recovery: recoveryState,
+      });
+    }
+  } catch (error) {
+    recoveryNotice =
+      "MCP recovery notice — the durable Cowork MCP ledger could not be read. " +
+      "Do not execute or retry MCP tools until the session transcript has " +
+      `been inspected (${error?.code || "CC_MCP_LEDGER_EVENT_READ_FAILED"}).`;
+    recoveryState = publicMcpRecoveryState(
+      null,
+      "all",
+      error?.code || "CC_MCP_LEDGER_EVENT_READ_FAILED",
+    );
+    if (typeof options.onProgress === "function") {
+      options.onProgress({
+        type: "mcp-recovery",
+        sessionId,
+        unsettled: 0,
+        incidents: 1,
+        recovery: recoveryState,
+      });
+    }
+  }
+
+  const sink = createSessionMcpLedgerSink(sessionId, {
+    appendEvent: _deps.appendSessionEvent,
+  });
+  return {
+    sessionId,
+    recoveryNotice,
+    recoveryState,
+    bindingAllowed,
+    expectedHeadHash,
+    ledger: guardMcpLedgerForRecovery(
+      createMcpCallLedger({ sink }),
+      recoveryState,
+    ),
+  };
+}
 
 // ─── Runner ───────────────────────────────────────────────────────────────────
 
@@ -37,6 +234,7 @@ const DEFAULT_TOKEN_BUDGET = 100_000;
  * @param {object} [options.llmOptions] - LLM provider/model/key
  * @param {number} [options.maxIterations] - Override iteration limit
  * @param {number} [options.tokenBudget] - Override token budget
+ * @param {string} [options.mcpSessionId] - Stable MCP ledger session for resume
  * @returns {Promise<{ taskId: string, status: string, result: object }>}
  */
 export async function runCoworkTask(options = {}) {
@@ -51,6 +249,7 @@ export async function runCoworkTask(options = {}) {
     tokenBudget = DEFAULT_TOKEN_BUDGET,
     onProgress = null,
     signal = null,
+    mcpSessionId = null,
   } = options;
 
   if (!userMessage || typeof userMessage !== "string") {
@@ -95,7 +294,7 @@ export async function runCoworkTask(options = {}) {
     taskParts.push(`\n## 用户提供的文件\n${files.join("\n")}`);
   }
 
-  const task = taskParts.join("\n");
+  let task = taskParts.join("\n");
 
   // Mount template-declared MCP servers (best-effort, failures are tolerated)
   const mcp = await mountTemplateMcpTools(template, {
@@ -103,72 +302,108 @@ export async function runCoworkTask(options = {}) {
       if (onProgress) onProgress({ type: "mcp-warning", message: msg });
     },
   });
-  if (onProgress && (mcp.mounted.length > 0 || mcp.skipped.length > 0)) {
-    onProgress({
-      type: "mcp-mounted",
-      mounted: mcp.mounted,
-      skipped: mcp.skipped.map((s) => s.name),
-      toolCount: mcp.extraToolDefinitions.length,
-    });
-  }
-
-  // Create isolated sub-agent context
-  const subAgent = SubAgentContext.create({
-    role: `cowork-${template.id}`,
-    task,
-    inheritedContext: null,
-    maxIterations,
-    tokenBudget,
-    db,
-    llmOptions,
-    cwd,
-    onProgress,
-    signal,
-    extraToolDefinitions: mcp.extraToolDefinitions,
-    externalToolDescriptors: mcp.externalToolDescriptors,
-    externalToolExecutors: mcp.externalToolExecutors,
-    mcpClient: mcp.mcpClient,
-  });
-
-  const taskId = subAgent.id;
-
-  // Build loop options — pass shell policy overrides if template declares them
-  const loopOptions = {};
-  if (
-    Array.isArray(template.shellPolicyOverrides) &&
-    template.shellPolicyOverrides.length
-  ) {
-    loopOptions.shellPolicyOverrides = template.shellPolicyOverrides;
-  }
-
-  // Run the agent with the user's message
   try {
-    const result = await subAgent.run(userMessage, loopOptions);
-    const entry = {
-      taskId,
-      status: subAgent.status,
+    if (onProgress && (mcp.mounted.length > 0 || mcp.skipped.length > 0)) {
+      onProgress({
+        type: "mcp-mounted",
+        mounted: mcp.mounted,
+        skipped: mcp.skipped.map((s) => s.name),
+        toolCount: mcp.extraToolDefinitions.length,
+      });
+    }
+    const mcpRuntime = prepareCoworkMcpRuntime(mcp, {
+      mcpSessionId,
+      onProgress,
       templateId: template.id,
-      templateName: template.name,
-      result,
-    };
-    _appendHistory(cwd, entry, userMessage);
-    return entry;
-  } catch (err) {
-    const entry = {
-      taskId,
-      status: "failed",
-      templateId: template.id,
-      templateName: template.name,
-      result: {
-        summary: `Task failed: ${err.message}`,
-        artifacts: [],
-        tokenCount: 0,
-        toolsUsed: [],
-        iterationCount: 0,
-      },
-    };
-    _appendHistory(cwd, entry, userMessage);
-    return entry;
+    });
+    if (mcpRuntime.recoveryNotice) {
+      task += `\n\n## MCP Recovery Authority\n${mcpRuntime.recoveryNotice}`;
+    }
+
+    // Create isolated sub-agent context
+    const subAgent = SubAgentContext.create({
+      role: `cowork-${template.id}`,
+      task,
+      inheritedContext: null,
+      maxIterations,
+      tokenBudget,
+      db,
+      llmOptions,
+      cwd,
+      onProgress,
+      signal,
+      extraToolDefinitions: mcp.extraToolDefinitions,
+      externalToolDescriptors: mcp.externalToolDescriptors,
+      externalToolExecutors: mcp.externalToolExecutors,
+      mcpClient: mcp.mcpClient,
+      ...(mcpRuntime.ledger ? { mcpCallLedger: mcpRuntime.ledger } : {}),
+    });
+
+    const taskId = subAgent.id;
+
+    if (mcpRuntime.sessionId && mcpRuntime.bindingAllowed) {
+      const mapped = await _deps.appendSessionEventIfHead(
+        mcpRuntime.sessionId,
+        "cowork_mcp_session",
+        {
+          schemaVersion: 1,
+          taskId,
+          templateId: template.id,
+        },
+        mcpRuntime.expectedHeadHash,
+      );
+      if (mapped === false) {
+        const error = new Error(
+          "Cowork MCP task/session binding was not persisted",
+        );
+        error.code = "CC_COWORK_MCP_SESSION_BIND_FAILED";
+        throw error;
+      }
+    }
+
+    // Build loop options — pass shell policy overrides if template declares them
+    const loopOptions =
+      mcpRuntime.sessionId && mcpRuntime.bindingAllowed
+        ? { sessionId: mcpRuntime.sessionId }
+        : {};
+    if (
+      Array.isArray(template.shellPolicyOverrides) &&
+      template.shellPolicyOverrides.length
+    ) {
+      loopOptions.shellPolicyOverrides = template.shellPolicyOverrides;
+    }
+
+    // Run the agent with the user's message
+    try {
+      const result = await subAgent.run(userMessage, loopOptions);
+      const entry = {
+        taskId,
+        status: subAgent.status,
+        templateId: template.id,
+        templateName: template.name,
+        ...(mcpRuntime.sessionId ? { mcpSessionId: mcpRuntime.sessionId } : {}),
+        result,
+      };
+      _appendHistory(cwd, entry, userMessage);
+      return entry;
+    } catch (err) {
+      const entry = {
+        taskId,
+        status: "failed",
+        templateId: template.id,
+        templateName: template.name,
+        ...(mcpRuntime.sessionId ? { mcpSessionId: mcpRuntime.sessionId } : {}),
+        result: {
+          summary: `Task failed: ${err.message}`,
+          artifacts: [],
+          tokenCount: 0,
+          toolsUsed: [],
+          iterationCount: 0,
+        },
+      };
+      _appendHistory(cwd, entry, userMessage);
+      return entry;
+    }
   } finally {
     await mcp.cleanup();
   }

@@ -12,6 +12,8 @@
 export {
   appendEvent,
   appendEventIfHead,
+  appendAuthorityEvent,
+  appendAuthorityEventIfHead,
   startSession,
   appendUserMessage,
   appendAssistantMessage,
@@ -22,6 +24,7 @@ export {
   appendToolResult,
   appendCompactEvent,
   readEvents,
+  readVerifiedEvents,
   findLatestEvent,
   rebuildMessages,
   getJsonlSessionMetadata,

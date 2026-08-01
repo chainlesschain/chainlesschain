@@ -106,6 +106,7 @@ const CHILD_USAGE = {
   provider: "anthropic",
   model: "claude-haiku-4-5",
   usage: { input_tokens: 40, output_tokens: 15 },
+  source: "semantic-compaction",
 };
 
 describe("agentLoop sub-agent usage attribution", () => {
@@ -149,6 +150,7 @@ describe("agentLoop sub-agent usage attribution", () => {
       provider: "anthropic",
       model: "claude-haiku-4-5",
       usage: { input_tokens: 40, output_tokens: 15 },
+      source: "semantic-compaction",
       attribution: {
         origin: "subagent",
         subagentId: "sub-mock-1",

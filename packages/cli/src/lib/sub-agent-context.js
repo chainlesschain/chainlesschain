@@ -481,6 +481,7 @@ export class SubAgentContext {
               provider: event.provider || null,
               model: event.model || null,
               usage: event.usage || null,
+              ...(event.source ? { source: event.source } : {}),
               attribution: event.attribution || null,
             });
           } catch (_e) {

@@ -46,7 +46,29 @@ async function* twoExpensiveCalls() {
   yield { type: "run-ended", runId: "r", reason: "complete" };
 }
 
-describe("runAgentHeadless --max-budget-usd", () => {
+async function* expensiveCompactionThenReply() {
+  yield {
+    type: "token-usage",
+    provider: "anthropic",
+    model: "claude-opus",
+    usage: { input_tokens: 1_000_000, output_tokens: 0 },
+    source: "semantic-compaction",
+  };
+  yield { type: "response-complete", content: "should-not-finish" };
+  yield { type: "run-ended", reason: "complete" };
+}
+
+async function* degradedCompaction() {
+  yield {
+    type: "compaction-degraded",
+    reason: "invalid_llm_summary:invalid_json",
+    summaryMode: "extractive-fallback",
+  };
+  yield { type: "response-complete", content: "fallback answer" };
+  yield { type: "run-ended", reason: "complete" };
+}
+
+describe("runAgentHeadless --max-budget-usd", { timeout: 20_000 }, () => {
   it("stops at the cap with error_max_budget", async () => {
     const { deps, out } = makeDeps(twoExpensiveCalls);
     const res = await runAgentHeadless(
@@ -64,6 +86,25 @@ describe("runAgentHeadless --max-budget-usd", () => {
     const env = envelope(out);
     expect(env.subtype).toBe("error_max_budget");
     // stopped before the second call / final response
+    expect(env.result).not.toBe("should-not-finish");
+  });
+
+  it("charges semantic compaction usage before the next model call", async () => {
+    const { deps, out } = makeDeps(expensiveCompactionThenReply);
+    const res = await runAgentHeadless(
+      {
+        prompt: "do work",
+        outputFormat: "json",
+        maxCostUsd: 4,
+        expandFileRefs: false,
+      },
+      deps,
+    );
+
+    expect(res.exitCode).toBe(4);
+    const env = envelope(out);
+    expect(env.subtype).toBe("error_max_budget");
+    expect(env.usage.input_tokens).toBe(1_000_000);
     expect(env.result).not.toBe("should-not-finish");
   });
 
@@ -143,5 +184,56 @@ describe("runAgentHeadless --max-budget-usd", () => {
     expect(events.some((e) => e.type === "cost_warning")).toBe(true);
     // free model never trips the cap → still a success
     expect(events.at(-1)).toMatchObject({ subtype: "success" });
+  });
+});
+
+describe("semantic compaction degradation visibility", () => {
+  it("surfaces degradation on stderr in text mode", async () => {
+    const { deps, out, err } = makeDeps(degradedCompaction);
+    await runAgentHeadless(
+      { prompt: "x", outputFormat: "text", expandFileRefs: false },
+      deps,
+    );
+
+    expect(out.join("")).toContain("fallback answer");
+    expect(err.join("")).toContain(
+      "Semantic compaction degraded to extractive-fallback",
+    );
+  });
+
+  it("includes degradation in the JSON result envelope", async () => {
+    const { deps, out } = makeDeps(degradedCompaction);
+    await runAgentHeadless(
+      { prompt: "x", outputFormat: "json", expandFileRefs: false },
+      deps,
+    );
+
+    expect(envelope(out).compaction_degradations).toEqual([
+      {
+        reason: "invalid_llm_summary:invalid_json",
+        summary_mode: "extractive-fallback",
+      },
+    ]);
+  });
+
+  it("emits degradation and annotates the stream result", async () => {
+    const { deps, out } = makeDeps(degradedCompaction);
+    await runAgentHeadless(
+      { prompt: "x", outputFormat: "stream-json", expandFileRefs: false },
+      deps,
+    );
+    const events = out
+      .join("")
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line));
+
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: "compaction-degraded",
+        summaryMode: "extractive-fallback",
+      }),
+    );
+    expect(events.at(-1).compaction_degradations).toHaveLength(1);
   });
 });

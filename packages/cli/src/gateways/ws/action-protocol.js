@@ -55,6 +55,7 @@ export async function handleCoworkTask(server, id, ws, message) {
       cwd: server.projectRoot || process.cwd(),
       llmOptions: {},
       signal: ac.signal,
+      ...(message.mcpSessionId ? { mcpSessionId: message.mcpSessionId } : {}),
       ...(useParallel
         ? {
             agents: message.agents || 3,
@@ -72,6 +73,14 @@ export async function handleCoworkTask(server, id, ws, message) {
           tool: progress.tool,
           iterationCount: progress.iterationCount,
           tokenCount: progress.tokenCount,
+          ...(progress.sessionId ? { mcpSessionId: progress.sessionId } : {}),
+          ...(Number.isInteger(progress.unsettled)
+            ? { unsettled: progress.unsettled }
+            : {}),
+          ...(Number.isInteger(progress.incidents)
+            ? { incidents: progress.incidents }
+            : {}),
+          ...(progress.recovery ? { recovery: progress.recovery } : {}),
         });
       },
     });
@@ -90,6 +99,7 @@ export async function handleCoworkTask(server, id, ws, message) {
       tokenCount: result.result?.tokenCount || 0,
       parallel: result.parallel || false,
       subtaskCount: result.result?.subtaskCount || 0,
+      ...(result.mcpSessionId ? { mcpSessionId: result.mcpSessionId } : {}),
       mode: result.mode || (useDebate ? "debate" : "agent"),
       ...(useDebate
         ? {

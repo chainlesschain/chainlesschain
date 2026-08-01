@@ -46,7 +46,9 @@ import {
   appendLlmRetryCompact as jsonlAppendLlmRetryCompact,
   appendCompactEvent as jsonlAppendCompactEvent,
   appendEvent as jsonlAppendEvent,
+  appendAuthorityEvent as jsonlAppendAuthorityEvent,
   readEvents as jsonlReadEvents,
+  readVerifiedEvents as jsonlReadVerifiedEvents,
   findLatestEvent as jsonlFindLatestEvent,
   rebuildMessages as jsonlRebuildMessages,
   sessionExists as jsonlSessionExists,
@@ -64,7 +66,7 @@ import { SIDE_EFFECT_LEDGER_EVENT } from "../lib/side-effect-ledger-store.js";
 import {
   createSessionMcpLedgerSink,
   formatMcpLedgerRecoveryNotice,
-  reduceMcpLedgerEvents,
+  loadMcpLedgerRecovery,
 } from "../lib/mcp-call-ledger-store.js";
 import { TurnBindingLog, createTurnBindingFeed } from "../lib/turn-binding.js";
 import { TURN_BINDING_EVENT } from "../lib/turn-binding-store.js";
@@ -529,7 +531,16 @@ async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
   const hasInjectedSessionStore =
     typeof deps.sessionExists === "function" ||
     typeof deps.rebuildMessages === "function" ||
-    typeof deps.appendEvent === "function";
+    typeof deps.appendEvent === "function" ||
+    typeof deps.appendAuthorityEvent === "function" ||
+    typeof deps.readVerifiedEvents === "function";
+  const unavailableAuthorityCapability = (operation) => () => {
+    const error = new Error(
+      `Injected session store must provide ${operation} for MCP authority`,
+    );
+    error.code = "SESSION_AUTHORITY_CAPABILITY_UNAVAILABLE";
+    throw error;
+  };
   const storeFindLatestEvent =
     deps.findLatestEvent ||
     (deps.readEvents
@@ -570,7 +581,17 @@ async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
     appendEvent:
       deps.appendEvent ||
       (hasInjectedSessionStore ? () => true : jsonlAppendEvent),
+    appendAuthorityEvent:
+      deps.appendAuthorityEvent ||
+      (hasInjectedSessionStore
+        ? unavailableAuthorityCapability("appendAuthorityEvent")
+        : jsonlAppendAuthorityEvent),
     readEvents: storeReadEvents,
+    readVerifiedEvents:
+      deps.readVerifiedEvents ||
+      (hasInjectedSessionStore
+        ? unavailableAuthorityCapability("readVerifiedEvents")
+        : jsonlReadVerifiedEvents),
     findLatestEvent: storeFindLatestEvent,
     getLastSessionId: deps.getLastSessionId || jsonlGetLastSessionId,
     verifySession:
@@ -1027,9 +1048,9 @@ async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
       // started-only record means the external server may have completed the
       // operation before the process died, so replay must stop for inspection.
       try {
-        const mcpRecovery = reduceMcpLedgerEvents(
-          store.readEvents(resumeId) || [],
-        );
+        const mcpRecovery = loadMcpLedgerRecovery(resumeId, {
+          readVerifiedEvents: store.readVerifiedEvents,
+        });
         resumeMcpCallContext = formatMcpLedgerRecoveryNotice(mcpRecovery);
         if (resumeMcpCallContext) {
           const risky = mcpRecovery.unsettled.filter(
@@ -1724,7 +1745,7 @@ async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
     // the external call; a settlement failure leaves a recoverable started row.
     mcpLedgerSink: persist
       ? createSessionMcpLedgerSink(sessionId, {
-          appendEvent: store.appendEvent,
+          appendEvent: store.appendAuthorityEvent,
         })
       : null,
     // chatFn passthrough lets tests drive the loop deterministically.
@@ -1815,6 +1836,7 @@ async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
   // so a non-interactive run surfaces what got blocked the way the REPL's
   // `/permissions denials` does (Claude-Code 2.1.193 denial reasons).
   const denials = [];
+  const compactionDegradations = [];
   const usage = {
     input_tokens: 0,
     output_tokens: 0,
@@ -2231,6 +2253,23 @@ async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
             }
             break;
           }
+          case "compaction-degraded": {
+            const reason = String(event.reason || "semantic-summary-degraded")
+              .replace(/\s+/g, " ")
+              .slice(0, 500);
+            const degradation = {
+              reason,
+              summary_mode: event.summaryMode || "none",
+            };
+            compactionDegradations.push(degradation);
+            if (isText) {
+              writeErr(
+                `  Semantic compaction degraded to ${degradation.summary_mode}: ${reason}\n`,
+              );
+            }
+            emitStream({ ...event, reason });
+            break;
+          }
           case "token-usage": {
             if (event.attribution) {
               // Child-loop (sub-agent / isolated-skill) spend: excluded from
@@ -2257,6 +2296,7 @@ async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
               provider: event.provider,
               model: event.model,
               usage: event.usage,
+              ...(event.source ? { source: event.source } : {}),
             });
             if (costBudget) {
               costBudget.add({
@@ -2512,6 +2552,7 @@ async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
             numTurns: budget.consumed,
             durationMs: (deps.now ? deps.now() : Date.now()) - startedAt,
             denials,
+            compactionDegradations,
           }),
         ) + "\n",
       );
@@ -2793,6 +2834,9 @@ async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
       num_turns: budget.consumed,
       duration_ms: durationMs,
       usage,
+      ...(compactionDegradations.length
+        ? { compaction_degradations: compactionDegradations }
+        : {}),
     });
   } else if (isJson) {
     writeOut(
@@ -2807,6 +2851,7 @@ async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
           numTurns: budget.consumed,
           durationMs,
           denials,
+          compactionDegradations,
         }),
       ) + "\n",
     );
@@ -2866,6 +2911,7 @@ function buildResultEnvelope({
   numTurns,
   durationMs,
   denials,
+  compactionDegradations,
 }) {
   const env = {
     type: "result",
@@ -2881,5 +2927,8 @@ function buildResultEnvelope({
   // Only present when something was blocked — keeps the no-denial envelope
   // byte-identical to before (Claude-Code 2.1.193 denial reasons, json mode).
   if (Array.isArray(denials) && denials.length) env.denials = denials;
+  if (Array.isArray(compactionDegradations) && compactionDegradations.length) {
+    env.compaction_degradations = compactionDegradations;
+  }
   return env;
 }

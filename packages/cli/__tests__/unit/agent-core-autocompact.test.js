@@ -132,8 +132,31 @@ describe("agentLoop headless auto-compaction", () => {
       degraded: false,
       summaryProvider: "mock-summary",
       summaryModel: "summary-1",
-      summaryUsage: { inputTokens: 123, outputTokens: 45 },
+      summaryUsage: {
+        inputTokens: 123,
+        outputTokens: 45,
+        cacheReadTokens: 0,
+        cacheCreationTokens: 0,
+      },
     });
+    expect(
+      events.filter(
+        (event) =>
+          event.type === "token-usage" &&
+          event.source === "semantic-compaction",
+      ),
+    ).toEqual([
+      expect.objectContaining({
+        provider: "mock-summary",
+        model: "summary-1",
+        usage: {
+          input_tokens: 123,
+          output_tokens: 45,
+          cache_read_input_tokens: 0,
+          cache_creation_input_tokens: 0,
+        },
+      }),
+    ]);
     expect(
       messages.some((message) =>
         String(message.content).includes("finish the requested change"),
@@ -156,6 +179,54 @@ describe("agentLoop headless auto-compaction", () => {
       summaryMode: "extractive-fallback",
     });
     expect(degraded.reason).toMatch(/^invalid_llm_summary:/);
+  });
+
+  it("commits degraded compaction before a budget consumer stops on usage", async () => {
+    const messages = seedLargeHistory();
+    const original = messages.length;
+    const onCompaction = vi.fn();
+    const events = [];
+
+    for await (const event of agentLoop(messages, {
+      chatFn: finalReplyChatFn(),
+      onCompaction,
+      compactionLlmQuery: async () => ({
+        summary: "not-json",
+        usage: { input_tokens: 1_000_000, output_tokens: 10 },
+        provider: "mock-summary",
+        model: "summary-budget-cutoff",
+      }),
+    })) {
+      events.push(event);
+      if (
+        event.type === "token-usage" &&
+        event.source === "semantic-compaction"
+      ) {
+        break;
+      }
+    }
+
+    expect(messages.length).toBeLessThan(original);
+    expect(onCompaction).toHaveBeenCalledOnce();
+    expect(events.map((event) => event.type)).toEqual(
+      expect.arrayContaining([
+        "compaction-degraded",
+        "compaction",
+        "token-usage",
+      ]),
+    );
+    expect(
+      events.findIndex((event) => event.type === "compaction-degraded"),
+    ).toBeLessThan(
+      events.findIndex(
+        (event) =>
+          event.type === "token-usage" &&
+          event.source === "semantic-compaction",
+      ),
+    );
+    expect(events.some((event) => event.type === "response-complete")).toBe(
+      false,
+    );
   });
 });
 

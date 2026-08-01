@@ -174,6 +174,31 @@ describe("run_skill controlled execution boundary", () => {
     expect(mocks.childConfigs[0]).not.toHaveProperty("processBroker");
   });
 
+  it("awaits the host's async execution materializer before creating the child", async () => {
+    registerSkill({ id: "async-authorized", isolation: true });
+    const materializeSkillForExecution = vi.fn(async (skill, context) => {
+      await Promise.resolve();
+      expect(context.loadedBecause).toBe("run_skill");
+      return { ...skill, body: "# Authorized after IDE confirmation" };
+    });
+    const skillLoader = {
+      getResolvedSkills: () => mocks.skills,
+      materializeSkillForExecution,
+    };
+
+    const result = await executeTool(
+      "run_skill",
+      { skill_name: "async-authorized", input: "inspect" },
+      { cwd: tempDir, skillLoader },
+    );
+
+    expect(result).toMatchObject({ success: true, isolated: true });
+    expect(materializeSkillForExecution).toHaveBeenCalledOnce();
+    expect(mocks.childConfigs[0].task).toContain(
+      "Authorized after IDE confirmation",
+    );
+  });
+
   it("inherits parent authority objects without adding executable MCP definitions", async () => {
     registerSkill({ id: "guarded", isolation: true });
     const permissionRules = { evaluate: vi.fn() };

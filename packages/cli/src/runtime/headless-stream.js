@@ -85,7 +85,9 @@ import {
   appendToolCallCompact as jsonlAppendToolCallCompact,
   appendLlmRetryCompact as jsonlAppendLlmRetryCompact,
   appendEvent as jsonlAppendEvent,
+  appendAuthorityEvent as jsonlAppendAuthorityEvent,
   readEvents as jsonlReadEvents,
+  readVerifiedEvents as jsonlReadVerifiedEvents,
   findLatestEvent as jsonlFindLatestEvent,
   rebuildMessages as jsonlRebuildMessages,
   sessionExists as jsonlSessionExists,
@@ -104,7 +106,7 @@ import {
 import {
   createSessionMcpLedgerSink,
   formatMcpLedgerRecoveryNotice,
-  reduceMcpLedgerEvents,
+  loadMcpLedgerRecovery,
 } from "../lib/mcp-call-ledger-store.js";
 import { operationIdempotencyKey } from "../lib/idempotency.js";
 import { TurnBindingLog, createTurnBindingFeed } from "../lib/turn-binding.js";
@@ -949,6 +951,7 @@ async function runTurn(
           provider: event.provider,
           model: event.model,
           usage: event.usage,
+          ...(event.source ? { source: event.source } : {}),
         });
         if (costBudget) {
           costBudget.add({
@@ -1242,7 +1245,16 @@ async function runAgentHeadlessStreamInWorkspace(options = {}, deps = {}) {
   const hasInjectedSessionStore =
     typeof deps.sessionExists === "function" ||
     typeof deps.rebuildMessages === "function" ||
-    typeof deps.appendEvent === "function";
+    typeof deps.appendEvent === "function" ||
+    typeof deps.appendAuthorityEvent === "function" ||
+    typeof deps.readVerifiedEvents === "function";
+  const unavailableAuthorityCapability = (operation) => () => {
+    const error = new Error(
+      `Injected session store must provide ${operation} for MCP authority`,
+    );
+    error.code = "SESSION_AUTHORITY_CAPABILITY_UNAVAILABLE";
+    throw error;
+  };
   const storeFindLatestEvent =
     deps.findLatestEvent ||
     (deps.readEvents
@@ -1274,7 +1286,17 @@ async function runAgentHeadlessStreamInWorkspace(options = {}, deps = {}) {
     appendEvent:
       deps.appendEvent ||
       (hasInjectedSessionStore ? () => true : jsonlAppendEvent),
+    appendAuthorityEvent:
+      deps.appendAuthorityEvent ||
+      (hasInjectedSessionStore
+        ? unavailableAuthorityCapability("appendAuthorityEvent")
+        : jsonlAppendAuthorityEvent),
     readEvents: storeReadEvents,
+    readVerifiedEvents:
+      deps.readVerifiedEvents ||
+      (hasInjectedSessionStore
+        ? unavailableAuthorityCapability("readVerifiedEvents")
+        : jsonlReadVerifiedEvents),
     findLatestEvent: storeFindLatestEvent,
     rebuildMessages: deps.rebuildMessages || jsonlRebuildMessages,
   };
@@ -1283,7 +1305,7 @@ async function runAgentHeadlessStreamInWorkspace(options = {}, deps = {}) {
   const persist = Boolean(options.sessionId) && options.ephemeral !== true;
   const mcpLedgerSink = persist
     ? createSessionMcpLedgerSink(sessionId, {
-        appendEvent: store.appendEvent,
+        appendEvent: store.appendAuthorityEvent,
       })
     : null;
 
@@ -1770,9 +1792,9 @@ async function runAgentHeadlessStreamInWorkspace(options = {}, deps = {}) {
           messages.push({ role: "system", content: sideEffectRecovery.notice });
         }
         try {
-          const recovery = reduceMcpLedgerEvents(
-            store.readEvents(sessionId) || [],
-          );
+          const recovery = loadMcpLedgerRecovery(sessionId, {
+            readVerifiedEvents: store.readVerifiedEvents,
+          });
           const notice = formatMcpLedgerRecoveryNotice(recovery);
           if (notice) {
             mcpCallRecovery = {

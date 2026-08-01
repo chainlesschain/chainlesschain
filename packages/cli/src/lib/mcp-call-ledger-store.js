@@ -8,12 +8,15 @@
  * instead of automatically replaying the MCP operation.
  */
 import {
-  appendEvent as storeAppendEvent,
-  readEvents as storeReadEvents,
+  appendAuthorityEvent as storeAppendAuthorityEvent,
+  readVerifiedEvents as storeReadVerifiedEvents,
 } from "../harness/jsonl-session-store.js";
 import {
+  LedgerFailureAction,
   MCP_CALL_LEDGER_SCHEMA_VERSION,
   McpCallStatus,
+  McpEffect,
+  normalizeMcpEffectContract,
 } from "./mcp-call-ledger.js";
 
 export const MCP_CALL_LEDGER_EVENT = "mcp_call_ledger";
@@ -24,6 +27,43 @@ const TERMINAL = new Set([
   McpCallStatus.FAILED,
   McpCallStatus.CANCELLED,
 ]);
+const SHA256_DIGEST = /^sha256:[0-9a-f]{64}$/i;
+const RECORD_FIELDS = new Set([
+  "schemaVersion",
+  "ledgerId",
+  "sessionId",
+  "turnId",
+  "toolName",
+  "serverName",
+  "inputDigest",
+  "inputBytes",
+  "effectContract",
+  "resourceScopes",
+  "networkScopes",
+  "prewritePolicy",
+  "prewritePersistence",
+  "status",
+  "startedAt",
+  "settledAt",
+  "outputSummary",
+  "outputDigest",
+  "errorSummary",
+  "settlementPersistence",
+]);
+const EFFECT_CONTRACT_FIELDS = new Set([
+  "schemaVersion",
+  "effect",
+  "classification",
+  "readOnly",
+  "sideEffecting",
+  "destructive",
+  "idempotent",
+  "openWorld",
+  "trusted",
+  "source",
+]);
+const OUTPUT_SUMMARY_FIELDS = new Set(["sha256", "bytes", "kind"]);
+const ERROR_SUMMARY_FIELDS = new Set(["name", "code", "messageDigest"]);
 
 export class McpCallLedgerStoreError extends Error {
   constructor(code, message, options = {}) {
@@ -35,17 +75,178 @@ export class McpCallLedgerStoreError extends Error {
   }
 }
 
-function validRecord(record) {
+function validTimestamp(value) {
+  return typeof value === "string" && Number.isFinite(Date.parse(value));
+}
+
+function isPlainObject(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
+}
+
+function hasOnlyFields(value, allowedFields) {
   return (
-    record &&
-    typeof record === "object" &&
+    isPlainObject(value) &&
+    Object.keys(value).every((field) => allowedFields.has(field))
+  );
+}
+
+function canonicalStringArray(value) {
+  if (!Array.isArray(value) || value.some((item) => typeof item !== "string")) {
+    return null;
+  }
+  return Object.freeze([...value]);
+}
+
+function canonicalOutputSummary(value) {
+  if (value === null) return null;
+  if (
+    !hasOnlyFields(value, OUTPUT_SUMMARY_FIELDS) ||
+    !SHA256_DIGEST.test(String(value.sha256 || "")) ||
+    !Number.isInteger(value.bytes) ||
+    value.bytes < 0 ||
+    typeof value.kind !== "string" ||
+    !value.kind
+  ) {
+    return false;
+  }
+  return Object.freeze({
+    sha256: value.sha256,
+    bytes: value.bytes,
+    kind: value.kind,
+  });
+}
+
+function canonicalErrorSummary(value) {
+  if (value === null) return null;
+  if (
+    !hasOnlyFields(value, ERROR_SUMMARY_FIELDS) ||
+    typeof value.name !== "string" ||
+    !value.name ||
+    (value.code !== null && typeof value.code !== "string") ||
+    !SHA256_DIGEST.test(String(value.messageDigest || ""))
+  ) {
+    return false;
+  }
+  return Object.freeze({
+    name: value.name,
+    code: value.code,
+    messageDigest: value.messageDigest,
+  });
+}
+
+function canonicalRecord(record) {
+  if (!hasOnlyFields(record, RECORD_FIELDS)) return null;
+  if (!hasOnlyFields(record.effectContract, EFFECT_CONTRACT_FIELDS))
+    return null;
+  if (
+    record.effectContract.schemaVersion !== undefined &&
+    record.effectContract.schemaVersion !== MCP_CALL_LEDGER_SCHEMA_VERSION
+  ) {
+    return null;
+  }
+
+  const effectContract = normalizeMcpEffectContract(record.effectContract);
+  const resourceScopes = canonicalStringArray(record.resourceScopes);
+  const networkScopes = canonicalStringArray(record.networkScopes);
+  const outputSummary = canonicalOutputSummary(record.outputSummary);
+  const errorSummary = canonicalErrorSummary(record.errorSummary);
+  const baseValid =
     record.schemaVersion === MCP_CALL_LEDGER_SCHEMA_VERSION &&
     typeof record.ledgerId === "string" &&
     record.ledgerId.length > 0 &&
+    (record.sessionId === null || typeof record.sessionId === "string") &&
+    (record.turnId === null || typeof record.turnId === "string") &&
     typeof record.toolName === "string" &&
     typeof record.serverName === "string" &&
-    [McpCallStatus.STARTED, ...TERMINAL].includes(record.status)
-  );
+    SHA256_DIGEST.test(String(record.inputDigest || "")) &&
+    Number.isInteger(record.inputBytes) &&
+    record.inputBytes >= 0 &&
+    Object.values(McpEffect).includes(effectContract.effect) &&
+    resourceScopes !== null &&
+    networkScopes !== null &&
+    outputSummary !== false &&
+    errorSummary !== false &&
+    (record.outputDigest === null ||
+      SHA256_DIGEST.test(String(record.outputDigest || ""))) &&
+    (outputSummary === null
+      ? record.outputDigest === null
+      : record.outputDigest === outputSummary.sha256) &&
+    Object.values(LedgerFailureAction).includes(record.prewritePolicy) &&
+    (![McpEffect.WRITE, McpEffect.DESTRUCTIVE].includes(
+      effectContract.effect,
+    ) ||
+      record.prewritePolicy === LedgerFailureAction.FAIL_CLOSED) &&
+    ["pending", "persisted", "failed-open", "failed-closed"].includes(
+      record.prewritePersistence,
+    ) &&
+    validTimestamp(record.startedAt) &&
+    [McpCallStatus.STARTED, ...TERMINAL].includes(record.status);
+  if (!baseValid) return null;
+
+  if (record.status === McpCallStatus.STARTED) {
+    if (
+      record.prewritePersistence === "pending" &&
+      record.settledAt === null &&
+      outputSummary === null &&
+      record.outputDigest === null &&
+      errorSummary === null &&
+      record.settlementPersistence == null
+    ) {
+      return Object.freeze({
+        schemaVersion: record.schemaVersion,
+        ledgerId: record.ledgerId,
+        sessionId: record.sessionId,
+        turnId: record.turnId,
+        toolName: record.toolName,
+        serverName: record.serverName,
+        inputDigest: record.inputDigest,
+        inputBytes: record.inputBytes,
+        effectContract,
+        resourceScopes,
+        networkScopes,
+        prewritePolicy: record.prewritePolicy,
+        prewritePersistence: record.prewritePersistence,
+        status: record.status,
+        startedAt: record.startedAt,
+        settledAt: null,
+        outputSummary: null,
+        outputDigest: null,
+        errorSummary: null,
+      });
+    }
+    return null;
+  }
+  if (
+    record.prewritePersistence !== "persisted" ||
+    !validTimestamp(record.settledAt) ||
+    record.settlementPersistence !== "pending"
+  ) {
+    return null;
+  }
+  return Object.freeze({
+    schemaVersion: record.schemaVersion,
+    ledgerId: record.ledgerId,
+    sessionId: record.sessionId,
+    turnId: record.turnId,
+    toolName: record.toolName,
+    serverName: record.serverName,
+    inputDigest: record.inputDigest,
+    inputBytes: record.inputBytes,
+    effectContract,
+    resourceScopes,
+    networkScopes,
+    prewritePolicy: record.prewritePolicy,
+    prewritePersistence: record.prewritePersistence,
+    status: record.status,
+    startedAt: record.startedAt,
+    settledAt: record.settledAt,
+    outputSummary,
+    outputDigest: record.outputDigest,
+    errorSummary,
+    settlementPersistence: record.settlementPersistence,
+  });
 }
 
 function phaseMatchesRecord(phase, record) {
@@ -55,9 +256,45 @@ function phaseMatchesRecord(phase, record) {
   );
 }
 
+const IMMUTABLE_RECORD_FIELDS = Object.freeze([
+  "schemaVersion",
+  "ledgerId",
+  "sessionId",
+  "turnId",
+  "toolName",
+  "serverName",
+  "inputDigest",
+  "inputBytes",
+  "effectContract",
+  "resourceScopes",
+  "networkScopes",
+  "prewritePolicy",
+  "startedAt",
+]);
+
+function stableValue(value) {
+  if (Array.isArray(value)) return value.map(stableValue);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.keys(value)
+        .sort()
+        .map((key) => [key, stableValue(value[key])]),
+    );
+  }
+  return value ?? null;
+}
+
+function immutableRecordMatches(started, settled) {
+  return IMMUTABLE_RECORD_FIELDS.every(
+    (field) =>
+      JSON.stringify(stableValue(started?.[field])) ===
+      JSON.stringify(stableValue(settled?.[field])),
+  );
+}
+
 /** Create the async sink accepted by `McpCallLedger`. */
 export function createSessionMcpLedgerSink(sessionId, options = {}) {
-  const appendEvent = options.appendEvent || storeAppendEvent;
+  const appendEvent = options.appendEvent || storeAppendAuthorityEvent;
   if (typeof sessionId !== "string" || !sessionId.trim()) {
     throw new TypeError("MCP ledger session sink requires sessionId");
   }
@@ -66,11 +303,19 @@ export function createSessionMcpLedgerSink(sessionId, options = {}) {
   }
 
   return async (record, metadata = {}) => {
-    if (!validRecord(record)) {
+    const canonical = canonicalRecord(record);
+    if (!canonical) {
       throw new McpCallLedgerStoreError(
         "CC_MCP_LEDGER_RECORD_INVALID",
         "MCP ledger refused to persist an invalid record",
         { sessionId, ledgerId: record?.ledgerId || null },
+      );
+    }
+    if (canonical.sessionId !== sessionId) {
+      throw new McpCallLedgerStoreError(
+        "CC_MCP_LEDGER_SESSION_MISMATCH",
+        "MCP ledger record session does not match its durable transcript",
+        { sessionId, ledgerId: canonical.ledgerId },
       );
     }
     const phase = String(metadata.phase || "");
@@ -78,21 +323,21 @@ export function createSessionMcpLedgerSink(sessionId, options = {}) {
       throw new McpCallLedgerStoreError(
         "CC_MCP_LEDGER_PHASE_INVALID",
         `MCP ledger event phase is invalid: ${phase || "(missing)"}`,
-        { sessionId, ledgerId: record.ledgerId },
+        { sessionId, ledgerId: canonical.ledgerId },
       );
     }
-    if (!phaseMatchesRecord(phase, record)) {
+    if (!phaseMatchesRecord(phase, canonical)) {
       throw new McpCallLedgerStoreError(
         "CC_MCP_LEDGER_PHASE_STATUS_MISMATCH",
-        `MCP ledger event phase ${phase} does not match status ${record.status}`,
-        { sessionId, ledgerId: record.ledgerId },
+        `MCP ledger event phase ${phase} does not match status ${canonical.status}`,
+        { sessionId, ledgerId: canonical.ledgerId },
       );
     }
     try {
       const written = await appendEvent(sessionId, MCP_CALL_LEDGER_EVENT, {
         schemaVersion: MCP_CALL_LEDGER_EVENT_SCHEMA_VERSION,
         phase,
-        record,
+        record: canonical,
       });
       if (written === false) {
         throw new Error("canonical session store rejected the event");
@@ -102,7 +347,7 @@ export function createSessionMcpLedgerSink(sessionId, options = {}) {
       throw new McpCallLedgerStoreError(
         "CC_MCP_LEDGER_EVENT_PERSIST_FAILED",
         `MCP ledger event persistence failed for ${sessionId}: ${cause.message}`,
-        { sessionId, ledgerId: record.ledgerId, cause },
+        { sessionId, ledgerId: canonical.ledgerId, cause },
       );
     }
   };
@@ -118,10 +363,10 @@ export function reduceMcpLedgerEvents(events) {
   for (const event of Array.isArray(events) ? events : []) {
     if (event?.type !== MCP_CALL_LEDGER_EVENT) continue;
     const envelope = event.data;
-    const record = envelope?.record;
+    const record = canonicalRecord(envelope?.record);
     if (
       envelope?.schemaVersion !== MCP_CALL_LEDGER_EVENT_SCHEMA_VERSION ||
-      !validRecord(record) ||
+      !record ||
       !phaseMatchesRecord(envelope?.phase, record)
     ) {
       incidents.push(
@@ -143,10 +388,32 @@ export function reduceMcpLedgerEvents(events) {
       );
       continue;
     }
+    if (previous && record.status === McpCallStatus.STARTED) {
+      incidents.push(
+        Object.freeze({
+          code: "CC_MCP_LEDGER_DUPLICATE_START",
+          ledgerId: record.ledgerId,
+        }),
+      );
+      continue;
+    }
     if (!previous && record.status !== McpCallStatus.STARTED) {
       incidents.push(
         Object.freeze({
           code: "CC_MCP_LEDGER_START_MISSING",
+          ledgerId: record.ledgerId,
+        }),
+      );
+      continue;
+    }
+    if (
+      previous &&
+      record.status !== McpCallStatus.STARTED &&
+      !immutableRecordMatches(previous, record)
+    ) {
+      incidents.push(
+        Object.freeze({
+          code: "CC_MCP_LEDGER_RECORD_MISMATCH",
           ledgerId: record.ledgerId,
         }),
       );
@@ -166,9 +433,10 @@ export function reduceMcpLedgerEvents(events) {
 }
 
 export function loadMcpLedgerRecovery(sessionId, options = {}) {
-  const readEvents = options.readEvents || storeReadEvents;
+  const readVerifiedEvents =
+    options.readVerifiedEvents || storeReadVerifiedEvents;
   try {
-    return reduceMcpLedgerEvents(readEvents(sessionId) || []);
+    return reduceMcpLedgerEvents(readVerifiedEvents(sessionId) || []);
   } catch (cause) {
     throw new McpCallLedgerStoreError(
       "CC_MCP_LEDGER_EVENT_READ_FAILED",

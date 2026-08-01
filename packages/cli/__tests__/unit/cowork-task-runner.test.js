@@ -56,6 +56,7 @@ import {
   _mockRun,
 } from "../../src/lib/sub-agent-context.js";
 import { _mockMount, _mockCleanup } from "../../src/lib/cowork-mcp-tools.js";
+import { executeTool } from "../../src/runtime/agent-core.js";
 
 describe("cowork-task-runner", () => {
   beforeEach(() => {
@@ -64,6 +65,10 @@ describe("cowork-task-runner", () => {
     _deps.existsSync = vi.fn(() => true);
     _deps.mkdirSync = vi.fn();
     _deps.appendFileSync = vi.fn();
+    _deps.appendSessionEvent = vi.fn(() => true);
+    _deps.appendSessionEventIfHead = vi.fn(() => true);
+    _deps.readVerifiedSessionEvents = vi.fn(() => []);
+    _deps.randomUUID = vi.fn(() => "stable-cowork-session");
     _mockRun.mockResolvedValue({
       summary: "Task completed successfully",
       artifacts: [],
@@ -489,6 +494,334 @@ describe("cowork-task-runner", () => {
     expect(opts.externalToolDescriptors).toEqual({ mcp__fetch__get: fakeDesc });
     expect(opts.externalToolExecutors).toEqual({ mcp__fetch__get: fakeExec });
     expect(opts.mcpClient).toBe(fakeClient);
+    expect(opts.mcpCallLedger).toBeDefined();
+  });
+
+  it("blocks an unknown/write MCP call when the Cowork durable prewrite fails", async () => {
+    const toolName = "mcp__publisher__publish";
+    const fakeClient = { callTool: vi.fn(async () => ({ ok: true })) };
+    const descriptor = {
+      name: toolName,
+      kind: "mcp",
+      source: "cowork-template-mcp",
+      effectContract: {
+        declaredEffect: "write",
+        authorizedEffect: null,
+        sourceTrusted: false,
+        annotations: {},
+      },
+    };
+    const executor = {
+      kind: "mcp",
+      serverName: "publisher",
+      toolName: "publish",
+    };
+    _mockMount.mockResolvedValueOnce({
+      mcpClient: fakeClient,
+      mounted: ["publisher"],
+      skipped: [],
+      extraToolDefinitions: [
+        {
+          type: "function",
+          function: {
+            name: toolName,
+            description: "Publish",
+            parameters: { type: "object", properties: {} },
+          },
+        },
+      ],
+      externalToolDescriptors: { [toolName]: descriptor },
+      externalToolExecutors: { [toolName]: executor },
+      cleanup: _mockCleanup,
+    });
+    _deps.appendSessionEvent = vi.fn((_sessionId, type) => {
+      if (type === "cowork_mcp_session") return true;
+      throw new Error("durable store unavailable");
+    });
+
+    const run = await runCoworkTask({
+      templateId: "doc-convert",
+      userMessage: "publish",
+      mcpSessionId: "cowork-safe-session",
+    });
+    const context = _mockCreate.mock.calls[0][0];
+    const result = await executeTool(
+      toolName,
+      { repository: "owner/repo" },
+      {
+        cwd: process.cwd(),
+        sessionId: run.mcpSessionId,
+        planManager: {
+          isActive: () => false,
+          isToolAllowed: () => true,
+        },
+        mcpClient: fakeClient,
+        mcpCallLedger: context.mcpCallLedger,
+        externalToolDescriptors: { [toolName]: descriptor },
+        externalToolExecutors: { [toolName]: executor },
+      },
+    );
+
+    expect(result).toMatchObject({
+      policy: { decision: "blocked", via: "mcp-ledger-prewrite" },
+    });
+    expect(result.error).toContain("ledger prewrite failed");
+    expect(fakeClient.callTool).not.toHaveBeenCalled();
+  });
+
+  it("injects prior unsettled MCP recovery into the Cowork child authority", async () => {
+    const onProgress = vi.fn();
+    const toolName = "mcp__publisher__publish";
+    const fakeClient = { callTool: vi.fn() };
+    const descriptor = {
+      name: toolName,
+      kind: "mcp",
+      source: "cowork-template-mcp",
+      effectContract: {
+        declaredEffect: "write",
+        authorizedEffect: null,
+        sourceTrusted: false,
+        annotations: {},
+      },
+    };
+    const executor = {
+      kind: "mcp",
+      serverName: "publisher",
+      toolName: "publish",
+    };
+    _mockMount.mockResolvedValueOnce({
+      mcpClient: fakeClient,
+      mounted: ["publisher"],
+      skipped: [],
+      extraToolDefinitions: [
+        {
+          type: "function",
+          function: {
+            name: toolName,
+            description: "Publish",
+            parameters: { type: "object", properties: {} },
+          },
+        },
+      ],
+      externalToolDescriptors: { [toolName]: descriptor },
+      externalToolExecutors: { [toolName]: executor },
+      cleanup: _mockCleanup,
+    });
+    _deps.readVerifiedSessionEvents = vi.fn(() => [
+      {
+        type: "mcp_call_ledger",
+        data: {
+          schemaVersion: 1,
+          phase: "started",
+          record: {
+            schemaVersion: 1,
+            ledgerId: "mcp-prior-1",
+            toolName: "mcp__publisher__publish",
+            serverName: "publisher",
+            sessionId: "cowork-resume-session",
+            turnId: "turn-1",
+            inputDigest: `sha256:${"a".repeat(64)}`,
+            inputBytes: 2,
+            status: "started",
+            effectContract: { effect: "write" },
+            resourceScopes: [],
+            networkScopes: [],
+            prewritePolicy: "fail-closed",
+            prewritePersistence: "pending",
+            startedAt: "2026-08-01T00:00:00.000Z",
+            settledAt: null,
+            outputSummary: null,
+            outputDigest: null,
+            errorSummary: null,
+          },
+        },
+      },
+    ]);
+
+    const result = await runCoworkTask({
+      templateId: "doc-convert",
+      userMessage: "resume publishing",
+      mcpSessionId: "cowork-resume-session",
+      onProgress,
+    });
+
+    expect(result.mcpSessionId).toBe("cowork-resume-session");
+    const context = _mockCreate.mock.calls[0][0];
+    expect(context.task).toContain("Do NOT automatically retry");
+    expect(_mockRun.mock.calls[0][1]).toMatchObject({
+      sessionId: "cowork-resume-session",
+    });
+    expect(_deps.appendSessionEventIfHead).toHaveBeenCalledWith(
+      "cowork-resume-session",
+      "cowork_mcp_session",
+      expect.objectContaining({ taskId: "sub-test-123456" }),
+      null,
+    );
+    expect(onProgress).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "mcp-recovery",
+        sessionId: "cowork-resume-session",
+        unsettled: 1,
+        recovery: expect.objectContaining({ blockMode: "unsafe" }),
+      }),
+    );
+
+    const replay = await executeTool(
+      toolName,
+      { repository: "owner/repo" },
+      {
+        cwd: process.cwd(),
+        sessionId: "cowork-resume-session",
+        planManager: {
+          isActive: () => false,
+          isToolAllowed: () => true,
+        },
+        mcpClient: fakeClient,
+        mcpCallLedger: context.mcpCallLedger,
+        externalToolDescriptors: { [toolName]: descriptor },
+        externalToolExecutors: { [toolName]: executor },
+      },
+    );
+    expect(replay).toMatchObject({
+      policy: { decision: "blocked", via: "mcp-ledger-prewrite" },
+    });
+    expect(replay.error).toContain("explicitly adjudicated");
+    expect(fakeClient.callTool).not.toHaveBeenCalled();
+  });
+
+  it("blocks every MCP effect when the durable transcript cannot be verified", async () => {
+    _mockMount.mockResolvedValueOnce({
+      mcpClient: { callTool: vi.fn() },
+      mounted: ["reader"],
+      skipped: [],
+      extraToolDefinitions: [{ type: "function", function: { name: "read" } }],
+      externalToolDescriptors: {},
+      externalToolExecutors: {},
+      cleanup: _mockCleanup,
+    });
+    _deps.readVerifiedSessionEvents = vi.fn(() => {
+      const error = new Error("hash chain broken");
+      error.code = "SESSION_TRANSCRIPT_UNVERIFIED";
+      throw error;
+    });
+    const onProgress = vi.fn();
+
+    await runCoworkTask({
+      templateId: "doc-convert",
+      userMessage: "read",
+      mcpSessionId: "cowork-corrupt-session",
+      onProgress,
+    });
+
+    const ledger = _mockCreate.mock.calls[0][0].mcpCallLedger;
+    await expect(
+      ledger.begin({
+        toolName: "mcp__reader__read",
+        serverName: "reader",
+        effectContract: { effect: "read", trusted: true },
+      }),
+    ).rejects.toMatchObject({
+      code: "CC_COWORK_MCP_RECOVERY_BLOCKED",
+      blockMode: "all",
+    });
+    expect(onProgress).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "mcp-recovery",
+        recovery: expect.objectContaining({ blockMode: "all" }),
+      }),
+    );
+  });
+
+  it("does not rebind an MCP recovery session to a different template", async () => {
+    _mockMount.mockResolvedValueOnce({
+      mcpClient: { callTool: vi.fn() },
+      mounted: ["reader"],
+      skipped: [],
+      extraToolDefinitions: [{ type: "function", function: { name: "read" } }],
+      externalToolDescriptors: {},
+      externalToolExecutors: {},
+      cleanup: _mockCleanup,
+    });
+    _deps.readVerifiedSessionEvents = vi.fn(() => [
+      {
+        type: "cowork_mcp_session",
+        hash: "sha256:bound-head",
+        data: {
+          schemaVersion: 1,
+          taskId: "old-task",
+          templateId: "code-helper",
+        },
+      },
+    ]);
+
+    await runCoworkTask({
+      templateId: "doc-convert",
+      userMessage: "read",
+      mcpSessionId: "cowork-bound-session",
+    });
+
+    expect(_deps.appendSessionEventIfHead).not.toHaveBeenCalled();
+    expect(_mockRun.mock.calls[0][1]).not.toHaveProperty("sessionId");
+    await expect(
+      _mockCreate.mock.calls[0][0].mcpCallLedger.begin({
+        toolName: "mcp__reader__read",
+        serverName: "reader",
+        effectContract: { effect: "read", trusted: true },
+      }),
+    ).rejects.toMatchObject({
+      code: "CC_COWORK_MCP_RECOVERY_BLOCKED",
+      blockMode: "all",
+    });
+  });
+
+  it("cleans up and aborts when the session head changes before binding", async () => {
+    _mockMount.mockResolvedValueOnce({
+      mcpClient: { callTool: vi.fn() },
+      mounted: ["reader"],
+      skipped: [],
+      extraToolDefinitions: [{ type: "function", function: { name: "read" } }],
+      externalToolDescriptors: {},
+      externalToolExecutors: {},
+      cleanup: _mockCleanup,
+    });
+    _deps.appendSessionEventIfHead = vi.fn(() => {
+      const error = new Error("session advanced");
+      error.code = "SESSION_REVISION_STALE";
+      throw error;
+    });
+
+    await expect(
+      runCoworkTask({
+        templateId: "doc-convert",
+        userMessage: "read",
+        mcpSessionId: "cowork-raced-session",
+      }),
+    ).rejects.toMatchObject({ code: "SESSION_REVISION_STALE" });
+    expect(_mockRun).not.toHaveBeenCalled();
+    expect(_mockCleanup).toHaveBeenCalledOnce();
+  });
+
+  it("cleans up mounted MCP servers when runtime setup throws", async () => {
+    _mockMount.mockResolvedValueOnce({
+      mcpClient: { callTool: vi.fn() },
+      mounted: ["publisher"],
+      skipped: [],
+      extraToolDefinitions: [{ type: "function", function: { name: "x" } }],
+      externalToolDescriptors: {},
+      externalToolExecutors: {},
+      cleanup: _mockCleanup,
+    });
+    _mockCreate.mockImplementationOnce(() => {
+      throw new Error("context unavailable");
+    });
+
+    await expect(
+      runCoworkTask({
+        templateId: "doc-convert",
+        userMessage: "publish",
+      }),
+    ).rejects.toThrow("context unavailable");
+    expect(_mockCleanup).toHaveBeenCalledOnce();
   });
 
   it("always calls cleanup(), even when the sub-agent throws", async () => {

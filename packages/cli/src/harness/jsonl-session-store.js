@@ -202,7 +202,7 @@ function appendEventLocked(
   sessionId,
   type,
   data,
-  { expectedHeadHash, compareHead = false } = {},
+  { expectedHeadHash, compareHead = false, requireIndexAnchor = false } = {},
 ) {
   const filePath = sessionPath(sessionId);
   return withFileLock(
@@ -236,9 +236,38 @@ function appendEventLocked(
       ensurePrivateFile(filePath);
       try {
         recordSessionEvent(getSessionsDir(), sessionId, event, hash);
-      } catch {
+      } catch (cause) {
+        if (requireIndexAnchor) {
+          const error = new Error(
+            `Session authority anchor could not be persisted: ${sessionId}`,
+            { cause },
+          );
+          error.code = "SESSION_INDEX_ANCHOR_FAILED";
+          error.sessionId = sessionId;
+          throw error;
+        }
         // The metadata index is explicitly rebuildable. Never turn a committed
         // transcript event into an apparent failure that a caller may retry.
+      }
+      if (requireIndexAnchor) {
+        const verification = verifyTranscriptFile(filePath);
+        const anchoredMeta = readSessionMeta(getSessionsDir(), sessionId);
+        const anchored =
+          verification.status === TRANSCRIPT_CHAIN_STATUS.VERIFIED &&
+          verification.malformedLines === 0 &&
+          !verification.truncatedTail &&
+          anchoredMeta?.deleted !== true &&
+          anchoredMeta?.last_hash === hash &&
+          Number(anchoredMeta?.event_count) === verification.chainedEvents;
+        if (!anchored) {
+          const error = new Error(
+            `Session authority anchor does not match the transcript: ${sessionId}`,
+          );
+          error.code = "SESSION_INDEX_ANCHOR_FAILED";
+          error.sessionId = sessionId;
+          error.verification = verification;
+          throw error;
+        }
       }
       return { hash, recovery };
     },
@@ -258,6 +287,16 @@ export function appendEvent(sessionId, type, data) {
 }
 
 /**
+ * Append an authority-bearing event only when both the transcript and its
+ * crash/tail-truncation anchor are durably updated and still agree.
+ */
+export function appendAuthorityEvent(sessionId, type, data) {
+  return appendEventLocked(sessionId, type, data, {
+    requireIndexAnchor: true,
+  });
+}
+
+/**
  * Compare-and-append for revisioned IDE actions. The head check and append run
  * under the transcript's canonical writer lock, so a stale preview can never
  * commit after another session writer advances the chain.
@@ -274,6 +313,20 @@ export function appendEventIfHead(
   });
 }
 
+/** Authority-bearing compare-and-append with a mandatory index anchor. */
+export function appendAuthorityEventIfHead(
+  sessionId,
+  type,
+  data,
+  expectedHeadHash = null,
+) {
+  return appendEventLocked(sessionId, type, data, {
+    expectedHeadHash,
+    compareHead: true,
+    requireIndexAnchor: true,
+  });
+}
+
 function verifyTranscriptFile(filePath) {
   const result = {
     status: TRANSCRIPT_CHAIN_STATUS.EMPTY,
@@ -283,6 +336,7 @@ function verifyTranscriptFile(filePath) {
     truncatedTail: false,
     firstInvalidLine: null,
     reason: null,
+    lastHash: null,
   };
   let lastHash = null;
   let sawChain = false;
@@ -324,6 +378,7 @@ function verifyTranscriptFile(filePath) {
       }
       sawChain = true;
       lastHash = event.hash;
+      result.lastHash = lastHash;
       result.chainedEvents += 1;
     } else {
       if (sawChain) {
@@ -603,6 +658,85 @@ export function readEvents(sessionId) {
   }
 
   return events;
+}
+
+/**
+ * Read authority-bearing events only from a fully verified transcript.
+ *
+ * `readEvents()` is intentionally tolerant for user-facing history recovery:
+ * it skips malformed records and accepts legacy transcripts. That behavior is
+ * unsafe for replay ledgers, where a removed `started` record or forged
+ * `settled` record can turn an outcome-unknown side effect into an apparent
+ * success. This variant takes the canonical writer lock, verifies the complete
+ * hash chain against the independently persisted session-index head/count,
+ * and parses the same locked file before returning any event. The sidecar is
+ * a crash/tail-truncation anchor, not a defense against an attacker who can
+ * rewrite both transcript and index; stronger adversaries require an external
+ * signed/HMAC anchor.
+ */
+export function readVerifiedEvents(sessionId) {
+  if (isUnsafeSessionId(sessionId)) {
+    const error = new Error(
+      `unsafe session id: ${String(sessionId).slice(0, 60)}`,
+    );
+    error.code = "SESSION_TRANSCRIPT_UNVERIFIED";
+    error.sessionId = sessionId;
+    throw error;
+  }
+  const filePath = sessionPath(sessionId);
+
+  return withFileLock(
+    filePath,
+    () => {
+      if (!existsSync(filePath)) return [];
+      const verification = verifyTranscriptFile(filePath);
+      const meta = readSessionMeta(getSessionsDir(), sessionId);
+      const trustedStatus =
+        verification.status === TRANSCRIPT_CHAIN_STATUS.VERIFIED;
+      const anchoredHead =
+        meta?.deleted !== true &&
+        meta?.last_hash === verification.lastHash &&
+        Number(meta?.event_count) === verification.chainedEvents;
+      if (
+        !trustedStatus ||
+        !anchoredHead ||
+        verification.malformedLines > 0 ||
+        verification.truncatedTail
+      ) {
+        const error = new Error(
+          `session transcript is not fully verified and anchored (${verification.status})`,
+        );
+        error.code = "SESSION_TRANSCRIPT_UNVERIFIED";
+        error.sessionId = sessionId;
+        error.verification = verification;
+        throw error;
+      }
+
+      const events = [];
+      for (const { line } of iterateFileLinesSync(filePath)) {
+        try {
+          events.push(JSON.parse(line));
+        } catch (cause) {
+          const error = new Error(
+            "session transcript changed or became malformed while locked",
+            { cause },
+          );
+          error.code = "SESSION_TRANSCRIPT_UNVERIFIED";
+          error.sessionId = sessionId;
+          throw error;
+        }
+      }
+      return events;
+    },
+    {
+      failIfUnavailable: true,
+      timeoutMs: 30_000,
+      retryMs: 1,
+      maxRetryMs: 8,
+      retryJitterMs: 4,
+      yieldAfterReleaseMs: 2,
+    },
+  );
 }
 
 /**

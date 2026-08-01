@@ -91,7 +91,7 @@ describe("agent-core MCP call ledger", () => {
 
     await executeTool(
       TOOL_NAME,
-      { uri: "https://example.test/private?q=secret" },
+      { uri: "https://user:credential@example.test/private?q=query-secret" },
       toolOptions(
         cwd,
         { callTool: vi.fn(async () => ({ ok: true })) },
@@ -111,6 +111,11 @@ describe("agent-core MCP call ledger", () => {
       trusted: false,
     });
     expect(records[0].networkScopes).toEqual(["https://example.test"]);
+    expect(records[0].resourceScopes).toEqual([]);
+    const atRest = JSON.stringify(records);
+    expect(atRest).not.toContain("credential");
+    expect(atRest).not.toContain("query-secret");
+    expect(atRest).not.toContain("/private");
   });
 
   it("blocks a write MCP call when the prewrite cannot be persisted", async () => {

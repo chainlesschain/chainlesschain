@@ -564,6 +564,11 @@ export class PromptCompressor {
               Number(
                 usage.cache_read_input_tokens ?? usage.cache_read_tokens,
               ) || 0,
+            cacheCreationTokens:
+              Number(
+                usage.cache_creation_input_tokens ??
+                  usage.cache_creation_tokens,
+              ) || 0,
           };
         }
         summaryProvider = queryResult.provider || null;

@@ -442,6 +442,12 @@ export class McpCallLedger {
         )
       : null;
     const errorSummary = outcome.error ? summarizeError(outcome.error) : null;
+    const settlementPersistence =
+      current.prewritePersistence === "failed-open"
+        ? "skipped-no-prewrite"
+        : this._sink
+          ? "pending"
+          : "memory-only";
     let settled = {
       ...current,
       status,
@@ -449,9 +455,16 @@ export class McpCallLedger {
       outputSummary: output,
       outputDigest: output?.sha256 || null,
       errorSummary,
-      settlementPersistence: this._sink ? "pending" : "memory-only",
+      settlementPersistence,
     };
     this._records.set(ledgerId, settled);
+
+    // A failed-open call has no durable start. Appending a terminal record would
+    // create an orphan authority event that recovery must reject, so settlement
+    // remains an in-memory fact for this process only.
+    if (current.prewritePersistence === "failed-open") {
+      return frozenSnapshot(settled);
+    }
 
     try {
       const persisted = await this._persist(settled, "settled");

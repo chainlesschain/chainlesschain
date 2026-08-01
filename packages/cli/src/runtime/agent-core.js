@@ -3317,10 +3317,18 @@ function mcpLedgerScopes(args) {
     if (typeof value !== "string") return;
 
     const normalizedKey = String(key).toLowerCase();
-    if (/url|uri|endpoint|origin|host/.test(normalizedKey)) {
+    const isNetworkScope = /url|uri|endpoint|origin|host/.test(normalizedKey);
+    if (isNetworkScope) {
       networkScopes.push(value);
     }
-    if (/path|file|uri|resource|repo|project|workspace/.test(normalizedKey)) {
+    // URL/URI values can carry credentials, query secrets and private paths.
+    // The network ledger normalizes them to origin only; never duplicate the
+    // raw value into resourceScopes, whose identifiers are intentionally not
+    // URL parsers. The input digest still binds the exact request at rest.
+    if (
+      !isNetworkScope &&
+      /path|file|resource|repo|project|workspace/.test(normalizedKey)
+    ) {
       resourceScopes.push(`${normalizedKey}:${value}`);
     }
   };
@@ -3514,12 +3522,6 @@ async function executeToolInner(
 
     case "write_file": {
       const filePath = path.resolve(cwd, args.path);
-      const instructionPreflight = await _preflightMutationSubtreeInstructions(
-        filePath,
-        cwd,
-        subtreeInstructionScope,
-      );
-      if (instructionPreflight) return attachDescriptor(instructionPreflight);
       const dir = path.dirname(filePath);
       // Overwriting an existing file: refuse if it changed on disk since the
       // agent last observed it (external concurrent edit).
@@ -3554,12 +3556,6 @@ async function executeToolInner(
         return attachDescriptor({ error: "path is required" });
       }
       const filePath = path.resolve(cwd, args.path);
-      const instructionPreflight = await _preflightMutationSubtreeInstructions(
-        filePath,
-        cwd,
-        subtreeInstructionScope,
-      );
-      if (instructionPreflight) return attachDescriptor(instructionPreflight);
       if (!fs.existsSync(filePath)) {
         return attachDescriptor({ error: `File not found: ${filePath}` });
       }
@@ -3587,12 +3583,6 @@ async function executeToolInner(
       }
       const filePath = path.resolve(cwd, args.path);
       const targetPath = path.resolve(cwd, args.target_path);
-      const instructionPreflight = await _preflightMutationSubtreeInstructions(
-        [filePath, targetPath],
-        cwd,
-        subtreeInstructionScope,
-      );
-      if (instructionPreflight) return attachDescriptor(instructionPreflight);
       if (filePath === targetPath) {
         return attachDescriptor({
           error: "Source and target paths are the same",
@@ -3645,12 +3635,6 @@ async function executeToolInner(
 
     case "notebook_edit": {
       const filePath = path.resolve(cwd, args.path);
-      const instructionPreflight = await _preflightMutationSubtreeInstructions(
-        filePath,
-        cwd,
-        subtreeInstructionScope,
-      );
-      if (instructionPreflight) return attachDescriptor(instructionPreflight);
       if (!fs.existsSync(filePath)) {
         return attachDescriptor({ error: `Notebook not found: ${filePath}` });
       }
@@ -3670,12 +3654,6 @@ async function executeToolInner(
 
     case "edit_file": {
       const filePath = path.resolve(cwd, args.path);
-      const instructionPreflight = await _preflightMutationSubtreeInstructions(
-        filePath,
-        cwd,
-        subtreeInstructionScope,
-      );
-      if (instructionPreflight) return attachDescriptor(instructionPreflight);
       if (!fs.existsSync(filePath)) {
         return attachDescriptor({ error: `File not found: ${filePath}` });
       }
@@ -3761,12 +3739,6 @@ async function executeToolInner(
       // Reference a line by its content hash rather than line number or
       // exact string — robust against whitespace drift and concurrent edits.
       const filePath = path.resolve(cwd, args.path);
-      const instructionPreflight = await _preflightMutationSubtreeInstructions(
-        filePath,
-        cwd,
-        subtreeInstructionScope,
-      );
-      if (instructionPreflight) return attachDescriptor(instructionPreflight);
       if (!fs.existsSync(filePath)) {
         return attachDescriptor({ error: `File not found: ${filePath}` });
       }
@@ -5616,7 +5588,14 @@ async function executeToolInner(
         });
       }
       try {
-        if (typeof skillLoader.materializeSkill === "function") {
+        if (typeof skillLoader.materializeSkillForExecution === "function") {
+          match = await skillLoader.materializeSkillForExecution(match, {
+            sessionId,
+            turnId,
+            loadedBecause: "run_skill",
+            bodyIncluded: false,
+          });
+        } else if (typeof skillLoader.materializeSkill === "function") {
           match = skillLoader.materializeSkill(match, {
             sessionId,
             turnId,
@@ -5697,6 +5676,7 @@ async function executeToolInner(
                           provider: u?.provider ?? null,
                           model: u?.model ?? null,
                           usage: u?.usage || null,
+                          ...(u?.source ? { source: u.source } : {}),
                           attribution: {
                             origin: "skill",
                             skill: args.skill_name,
@@ -6643,6 +6623,7 @@ function* _drainSubAgentUsage(sink) {
       provider: u?.provider ?? null,
       model: u?.model ?? null,
       usage: u?.usage || {},
+      ...(u?.source ? { source: u.source } : {}),
       attribution: u?.attribution || null,
     };
   }
@@ -7091,6 +7072,7 @@ async function _executeSpawnSubAgent(args, ctx) {
                   provider: u?.provider ?? null,
                   model: u?.model ?? null,
                   usage: u?.usage || null,
+                  ...(u?.source ? { source: u.source } : {}),
                   attribution: {
                     origin: "subagent",
                     subagentId: subCtxRef?.id || null,
@@ -8877,6 +8859,21 @@ async function _getAutoCompactor(options) {
   return compressor;
 }
 
+function _compactionTokenUsage(stats) {
+  const summaryUsage = stats?.summaryUsage;
+  if (!summaryUsage || typeof summaryUsage !== "object") return null;
+  const tokenCount = (value) => {
+    const number = Number(value);
+    return Number.isFinite(number) && number > 0 ? Math.trunc(number) : 0;
+  };
+  return {
+    input_tokens: tokenCount(summaryUsage.inputTokens),
+    output_tokens: tokenCount(summaryUsage.outputTokens),
+    cache_read_input_tokens: tokenCount(summaryUsage.cacheReadTokens),
+    cache_creation_input_tokens: tokenCount(summaryUsage.cacheCreationTokens),
+  };
+}
+
 /**
  * Run `fn` inside an OpenTelemetry span when `options.recorder` is attached,
  * else run it bare (zero overhead on the un-instrumented path). `onResult`
@@ -9376,6 +9373,7 @@ export async function* agentLoop(messages, options) {
                   preserveToolPairs: true,
                   ...pinOpts,
                 });
+          const compactionUsage = _compactionTokenUsage(stats);
           if (stats.degraded === true) {
             yield {
               type: "compaction-degraded",
@@ -9425,6 +9423,22 @@ export async function* agentLoop(messages, options) {
               cwd: options.cwd || process.cwd(),
             });
             yield { type: "compaction", stats, runId };
+          }
+          if (compactionUsage) {
+            // PromptCompressor calls the provider directly, outside the main
+            // chat request. Apply/persist the resulting compaction and surface
+            // any degraded fallback before yielding billable usage: a
+            // headless consumer may stop the generator as soon as its cost cap
+            // is exceeded. Usage still arrives exactly once and before the
+            // next model call, without entering the normal response path.
+            yield {
+              type: "token-usage",
+              provider: stats.summaryProvider || options.provider || null,
+              model: stats.summaryModel || options.model || null,
+              usage: compactionUsage,
+              source: "semantic-compaction",
+              runId,
+            };
           }
         }
       } catch (_e) {

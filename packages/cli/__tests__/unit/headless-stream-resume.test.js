@@ -36,6 +36,10 @@ function harness({ over = {}, options = {} } = {}) {
     startSession: (id, meta) => calls.started.push({ id, meta }),
     appendUserMessage: (id, c) => calls.users.push(c),
     appendAssistantMessage: (id, c) => calls.assistants.push(c),
+    appendEvent: () => true,
+    appendAuthorityEvent: () => true,
+    readEvents: () => [],
+    readVerifiedEvents: () => [],
     rebuildMessages: () => {
       calls.rebuilt += 1;
       return [];

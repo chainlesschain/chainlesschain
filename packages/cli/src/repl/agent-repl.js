@@ -50,6 +50,7 @@ import {
   appendToolCallCompact,
   appendLlmRetryCompact,
   appendEvent,
+  appendAuthorityEvent,
   rebuildMessages,
   sessionExists,
   forkSession,
@@ -5983,7 +5984,9 @@ async function startAgentReplInWorkspace(options = {}) {
         externalToolDescriptors: _adhocMcp?.externalToolDescriptors,
         mcpLedgerSink:
           useJsonl && sessionId
-            ? createSessionMcpLedgerSink(sessionId, { appendEvent })
+            ? createSessionMcpLedgerSink(sessionId, {
+                appendEvent: appendAuthorityEvent,
+              })
             : null,
         chatFn: _fallbackChatFn,
       });

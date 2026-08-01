@@ -92,6 +92,39 @@ describe("runAgentHeadlessStream --max-budget-usd", () => {
     expect(outcome.exitCode).toBe(1);
   });
 
+  it("charges and labels semantic compaction usage", async () => {
+    const compactionLoop = async function* () {
+      yield {
+        type: "token-usage",
+        provider: "anthropic",
+        model: "claude-opus",
+        usage: { input_tokens: 1_000_000, output_tokens: 0 },
+        source: "semantic-compaction",
+      };
+      yield { type: "response-complete", content: "should-not-finish" };
+      yield { type: "run-ended", reason: "complete" };
+    };
+    const deps = baseDeps({
+      agentLoop: compactionLoop,
+      input: input({ text: "one" }),
+    });
+
+    await runAgentHeadlessStream(
+      { expandFileRefs: false, maxCostUsd: 4 },
+      deps,
+    );
+    const events = parse(deps._lines);
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: "token_usage",
+        source: "semantic-compaction",
+      }),
+    );
+    expect(
+      events.filter((event) => event.type === "result").at(-1),
+    ).toMatchObject({ subtype: "error_max_budget" });
+  });
+
   it("no cap → both turns complete", async () => {
     const deps = baseDeps({
       agentLoop: expensiveLoop,
@@ -104,6 +137,46 @@ describe("runAgentHeadlessStream --max-budget-usd", () => {
     const results = parse(deps._lines).filter((e) => e.type === "result");
     expect(results).toHaveLength(2);
     expect(outcome.exitCode).toBe(0);
+  });
+});
+
+describe("runAgentHeadlessStream MCP recovery authority", () => {
+  it("surfaces a fail-closed recovery incident when verified reading fails", async () => {
+    const error = new Error("anchored transcript mismatch");
+    error.code = "SESSION_TRANSCRIPT_UNVERIFIED";
+    const deps = baseDeps({
+      agentLoop: async function* () {
+        yield { type: "response-complete", content: "done" };
+        yield { type: "run-ended", reason: "complete" };
+      },
+      input: input({ text: "continue" }),
+      sessionExists: () => true,
+      rebuildMessages: () => [],
+      readEvents: () => [],
+      readVerifiedEvents: () => {
+        throw error;
+      },
+      appendUserMessage: () => {},
+      appendAssistantMessage: () => {},
+      appendEvent: () => true,
+      appendAuthorityEvent: () => true,
+      loadSideEffectLedger: () => null,
+    });
+
+    await runAgentHeadlessStream(
+      { expandFileRefs: false, sessionId: "durable-session" },
+      deps,
+    );
+
+    expect(parse(deps._lines)).toContainEqual(
+      expect.objectContaining({
+        type: "raw",
+        subtype: "mcp_call_recovery",
+        count: 0,
+        incidents: 1,
+        session_id: "durable-session",
+      }),
+    );
   });
 });
 

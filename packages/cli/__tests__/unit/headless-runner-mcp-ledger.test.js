@@ -11,6 +11,7 @@ function fakeGate() {
 }
 
 function ledgerRecord(status = "started") {
+  const settled = status !== "started";
   return {
     schemaVersion: 1,
     ledgerId: "mcp-old-1",
@@ -18,8 +19,20 @@ function ledgerRecord(status = "started") {
     turnId: "turn-old",
     toolName: "mcp__repo__publish",
     serverName: "repo",
+    inputDigest: `sha256:${"a".repeat(64)}`,
+    inputBytes: 2,
     status,
     effectContract: { effect: "write" },
+    resourceScopes: [],
+    networkScopes: [],
+    prewritePolicy: "fail-closed",
+    prewritePersistence: settled ? "persisted" : "pending",
+    startedAt: "2026-08-01T00:00:00.000Z",
+    settledAt: settled ? "2026-08-01T00:00:01.000Z" : null,
+    outputSummary: null,
+    outputDigest: null,
+    errorSummary: null,
+    ...(settled ? { settlementPersistence: "pending" } : {}),
   };
 }
 
@@ -32,7 +45,7 @@ function ledgerEvent(record, phase = "started") {
 
 function harness(events) {
   const captured = {};
-  const appendEvent = vi.fn(() => true);
+  const appendAuthorityEvent = vi.fn(() => true);
   const deps = {
     bootstrap: async () => ({ db: null }),
     getApprovalGate: async () => fakeGate(),
@@ -51,15 +64,17 @@ function harness(events) {
       { role: "assistant", content: "answer" },
     ],
     readEvents: () => events,
+    readVerifiedEvents: () => events,
     startSession: () => {},
     appendUserMessage: () => {},
     appendAssistantMessage: () => {},
     appendTokenUsage: () => {},
     appendCompactEvent: () => {},
-    appendEvent,
+    appendEvent: () => true,
+    appendAuthorityEvent,
     getLastSessionId: () => "sid",
   };
-  return { captured, appendEvent, deps };
+  return { captured, appendAuthorityEvent, deps };
 }
 
 const systemText = (messages) =>
@@ -87,16 +102,26 @@ describe("headless MCP ledger persistence and recovery", () => {
 
     const next = { ...ledgerRecord(), ledgerId: "mcp-new-1" };
     await setup.captured.options.mcpLedgerSink(next, { phase: "started" });
-    expect(setup.appendEvent).toHaveBeenCalledWith(
+    expect(setup.appendAuthorityEvent).toHaveBeenCalledWith(
       "sid",
       MCP_CALL_LEDGER_EVENT,
-      expect.objectContaining({ phase: "started", record: next }),
+      expect.objectContaining({
+        phase: "started",
+        record: expect.objectContaining({
+          ledgerId: next.ledgerId,
+          effectContract: expect.objectContaining({
+            schemaVersion: 1,
+            effect: "write",
+            sideEffecting: true,
+          }),
+        }),
+      }),
     );
   });
 
   it("does not inject an MCP notice after a proven settlement", async () => {
     const started = ledgerRecord();
-    const completed = { ...started, status: "completed" };
+    const completed = ledgerRecord("completed");
     const setup = harness([
       ledgerEvent(started),
       ledgerEvent(completed, "settled"),
@@ -110,5 +135,42 @@ describe("headless MCP ledger persistence and recovery", () => {
     expect(systemText(setup.captured.messages)).not.toContain(
       "MCP recovery notice",
     );
+  });
+
+  it("fails recovery closed when the verified transcript reader rejects", async () => {
+    const setup = harness([]);
+    setup.deps.readVerifiedEvents = () => {
+      const error = new Error("anchored transcript mismatch");
+      error.code = "SESSION_TRANSCRIPT_UNVERIFIED";
+      throw error;
+    };
+
+    await runAgentHeadless(
+      { prompt: "continue", resume: "sid", outputFormat: "json" },
+      setup.deps,
+    );
+
+    expect(systemText(setup.captured.messages)).toContain(
+      "durable MCP call ledger could not be read",
+    );
+    expect(systemText(setup.captured.messages)).toContain(
+      "CC_MCP_LEDGER_EVENT_READ_FAILED",
+    );
+  });
+
+  it("does not treat an injected ordinary append as an authority sink", async () => {
+    const setup = harness([]);
+    delete setup.deps.appendAuthorityEvent;
+
+    await runAgentHeadless(
+      { prompt: "continue", resume: "sid", outputFormat: "json" },
+      setup.deps,
+    );
+
+    await expect(
+      setup.captured.options.mcpLedgerSink(ledgerRecord(), {
+        phase: "started",
+      }),
+    ).rejects.toMatchObject({ code: "CC_MCP_LEDGER_EVENT_PERSIST_FAILED" });
   });
 });

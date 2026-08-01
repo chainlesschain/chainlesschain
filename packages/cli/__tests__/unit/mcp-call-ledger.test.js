@@ -176,9 +176,10 @@ describe("McpCallLedger", () => {
       call.settle({ output: { found: true } }),
     ).resolves.toMatchObject({
       status: "completed",
-      settlementPersistence: "persisted",
+      prewritePersistence: "failed-open",
+      settlementPersistence: "skipped-no-prewrite",
     });
-    expect(sink).toHaveBeenCalledTimes(2);
+    expect(sink).toHaveBeenCalledTimes(1);
   });
 
   it("fails closed for unknown effects by default and exposes an explicit override", async () => {

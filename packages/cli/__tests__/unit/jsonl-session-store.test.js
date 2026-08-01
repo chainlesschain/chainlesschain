@@ -27,7 +27,9 @@ const {
   appendToolResult,
   appendCompactEvent,
   appendEvent,
+  appendAuthorityEvent,
   readEvents,
+  readVerifiedEvents,
   findLatestEvent,
   rebuildMessages,
   getJsonlSessionMetadata,
@@ -213,6 +215,63 @@ describe("jsonl-session-store", () => {
         "user_message",
         "assistant_message",
       ]);
+    });
+  });
+
+  describe("readVerifiedEvents", () => {
+    it("returns fully chained events and rejects tampered authority history", () => {
+      const id = startSession("verified-ledger", { title: "verified" });
+      appendEvent(id, "mcp_call_ledger", { phase: "started" });
+
+      expect(readVerifiedEvents(id).map((event) => event.type)).toEqual([
+        "session_start",
+        "mcp_call_ledger",
+      ]);
+
+      const file = sessionPath(id);
+      writeFileSync(
+        file,
+        readFileSync(file, "utf8").replace(
+          '"phase":"started"',
+          '"phase":"settled"',
+        ),
+        "utf8",
+      );
+      expect(() => readVerifiedEvents(id)).toThrow(
+        expect.objectContaining({ code: "SESSION_TRANSCRIPT_UNVERIFIED" }),
+      );
+    });
+
+    it("rejects a valid-looking chain whose anchored tail was removed", () => {
+      const id = startSession("truncated-ledger", { title: "verified" });
+      appendEvent(id, "mcp_call_ledger", { phase: "started" });
+      const file = sessionPath(id);
+      const lines = readFileSync(file, "utf8").trimEnd().split("\n");
+
+      writeFileSync(file, `${lines[0]}\n`, "utf8");
+
+      expect(verifySession(id).status).toBe("verified");
+      expect(() => readVerifiedEvents(id)).toThrow(
+        expect.objectContaining({ code: "SESSION_TRANSCRIPT_UNVERIFIED" }),
+      );
+    });
+
+    it("fails an authority append when the persisted anchor cannot catch up", () => {
+      const id = startSession("stale-authority-anchor", { title: "verified" });
+      appendEvent(id, "ordinary", { value: 1 });
+      const metaFile = join(sessionsDir, `${id}.meta.json`);
+      const meta = JSON.parse(readFileSync(metaFile, "utf8"));
+      writeFileSync(
+        metaFile,
+        `${JSON.stringify({ ...meta, event_count: 0 })}\n`,
+        "utf8",
+      );
+
+      expect(() =>
+        appendAuthorityEvent(id, "mcp_call_ledger", { phase: "started" }),
+      ).toThrow(
+        expect.objectContaining({ code: "SESSION_INDEX_ANCHOR_FAILED" }),
+      );
     });
   });
 

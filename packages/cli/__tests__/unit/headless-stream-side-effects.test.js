@@ -48,7 +48,9 @@ function harness({ over = {}, options = {}, loop } = {}) {
     appendUserMessage: () => {},
     appendAssistantMessage: () => {},
     appendEvent: () => true,
+    appendAuthorityEvent: () => true,
     readEvents: () => [],
+    readVerifiedEvents: () => [],
     rebuildMessages: () => [],
     ...over,
   };
@@ -90,15 +92,26 @@ describe("stream side-effect ledger — resume reconcile + recovery notice", () 
       turnId: "old-turn",
       toolName: "mcp__repo__publish",
       serverName: "repo",
+      inputDigest: `sha256:${"a".repeat(64)}`,
+      inputBytes: 2,
       status: "started",
       effectContract: { effect: "write" },
+      resourceScopes: [],
+      networkScopes: [],
+      prewritePolicy: "fail-closed",
+      prewritePersistence: "pending",
+      startedAt: "2026-08-01T00:00:00.000Z",
+      settledAt: null,
+      outputSummary: null,
+      outputDigest: null,
+      errorSummary: null,
     };
-    const appendEvent = vi.fn(() => true);
+    const appendAuthorityEvent = vi.fn(() => true);
     const h = harness({
       options: { sessionId: "chat-abc" },
       over: {
         sessionExists: () => true,
-        readEvents: () => [
+        readVerifiedEvents: () => [
           {
             type: MCP_CALL_LEDGER_EVENT,
             data: {
@@ -109,7 +122,7 @@ describe("stream side-effect ledger — resume reconcile + recovery notice", () 
           },
         ],
         rebuildMessages: () => [],
-        appendEvent,
+        appendAuthorityEvent,
       },
     });
 
@@ -134,7 +147,7 @@ describe("stream side-effect ledger — resume reconcile + recovery notice", () 
     await h.seenLoopOptions[0].mcpLedgerSink(mcpRecord, {
       phase: "started",
     });
-    expect(appendEvent).toHaveBeenCalledWith(
+    expect(appendAuthorityEvent).toHaveBeenCalledWith(
       "chat-abc",
       MCP_CALL_LEDGER_EVENT,
       expect.objectContaining({ phase: "started", record: mcpRecord }),

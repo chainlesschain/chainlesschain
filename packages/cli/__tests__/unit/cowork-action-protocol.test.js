@@ -167,6 +167,31 @@ describe("handleCoworkTask (action-protocol)", () => {
       iterationCount: 1,
       tokenCount: 100,
     });
+
+    const recovery = {
+      blockMode: "unsafe",
+      unsettled: [{ ledgerId: "mcp-1", toolName: "publish" }],
+      incidents: [],
+    };
+    capturedOpts.onProgress({
+      type: "mcp-recovery",
+      sessionId: "cowork-mcp-1",
+      unsettled: 1,
+      incidents: 0,
+      recovery,
+    });
+    expect(server._send).toHaveBeenCalledWith(ws, {
+      id: "req-prog",
+      type: "cowork:progress",
+      event: "mcp-recovery",
+      tool: undefined,
+      iterationCount: undefined,
+      tokenCount: undefined,
+      mcpSessionId: "cowork-mcp-1",
+      unsettled: 1,
+      incidents: 0,
+      recovery,
+    });
   });
 
   it("calls runCoworkTask with correct parameters", async () => {

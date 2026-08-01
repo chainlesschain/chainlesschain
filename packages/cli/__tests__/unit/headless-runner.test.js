@@ -989,7 +989,12 @@ describe("headless-runner — session resume + persistence", () => {
         // this fake faithful to the JSONL store contract so fail-closed
         // metadata persistence does not abort before the assistant message.
         readEvents: () => events.raw,
+        readVerifiedEvents: () => events.raw,
         appendEvent: (id, type, data) => {
+          events.raw.push({ id, type, data });
+          return true;
+        },
+        appendAuthorityEvent: (id, type, data) => {
           events.raw.push({ id, type, data });
           return true;
         },
@@ -1357,6 +1362,11 @@ describe("headless-runner — goal-condition cross-process resume", () => {
             (snapshots[id] = snapshots[id] || []).push(data);
         },
         readEvents: (id) => log[id] || [],
+        readVerifiedEvents: (id) => log[id] || [],
+        appendAuthorityEvent: (id, type, data) => {
+          (log[id] = log[id] || []).push({ type, timestamp: 0, data });
+          return true;
+        },
       },
     };
   }
