@@ -70,6 +70,19 @@ export class WSAgentHandler {
     const revision = Number(session.mcpLedgerRecoveryRevision || 0);
     const rawClient = session.mcpClient || null;
     if (!this._mcpRecoveryRuntime || this._mcpRecoveryClient !== rawClient) {
+      const controller = this._mcpRecoveryRuntime?.controller || null;
+      // Only a newly verified resume revision may lower an existing runtime
+      // latch. A transport/client replacement by itself preserves settlement
+      // outcome-unknown authority across the new wrapper.
+      if (
+        controller &&
+        this._mcpRecoveryRevision !== revision &&
+        typeof controller.replaceVerifiedRecovery === "function"
+      ) {
+        controller.replaceVerifiedRecovery(
+          session.mcpLedgerRecovery || { incidents: [], unsettled: [] },
+        );
+      }
       this._mcpRecoveryRuntime = createMcpHostRecoveryRuntime({
         bundle: {
           mcpClient: rawClient,
@@ -80,7 +93,7 @@ export class WSAgentHandler {
         sessionId: session.id,
         sink: createSessionMcpLedgerSink(session.id),
         recovery: session.mcpLedgerRecovery || null,
-        controller: this._mcpRecoveryRuntime?.controller || null,
+        controller,
       });
       this._mcpRecoveryClient = rawClient;
       this._mcpRecoveryRevision = revision;
@@ -91,6 +104,26 @@ export class WSAgentHandler {
       this._mcpRecoveryRevision = revision;
     }
     return this._mcpRecoveryRuntime;
+  }
+
+  refreshMcpRecoveryRuntime() {
+    try {
+      return this._ensureMcpRecoveryRuntime();
+    } catch (cause) {
+      const error = new Error("WS MCP recovery runtime refresh failed", {
+        cause,
+      });
+      try {
+        error.code = cause?.code || "CC_MCP_RECOVERY_REFRESH_FAILED";
+      } catch {
+        error.code = "CC_MCP_RECOVERY_REFRESH_FAILED";
+      }
+      // If an earlier runtime exists, make it unusable immediately. The
+      // session protocol also attaches an ALL-blocking projection so a future
+      // runtime cannot silently recover as clean.
+      this._mcpRecoveryRuntime?.controller?.latchAll?.(error.code);
+      throw error;
+    }
   }
 
   _recordSessionState(type, payload = {}) {

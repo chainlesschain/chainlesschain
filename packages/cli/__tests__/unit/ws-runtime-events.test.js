@@ -108,12 +108,12 @@ function createServer() {
   };
 }
 
+const cleanSideEffectLedger = () => ({ ops: [] });
+
 describe("ws MCP recovery projection", () => {
   it("surfaces unsettled MCP calls without retaining their arguments", () => {
     const recovery = buildResumeRecovery("sess-mcp", {
-      loadSideEffectLedger: () => {
-        throw new Error("no side-effect ledger");
-      },
+      loadSideEffectLedger: cleanSideEffectLedger,
       loadMcpLedgerRecovery: () => ({
         unsettled: [
           {
@@ -151,9 +151,7 @@ describe("ws MCP recovery projection", () => {
 
   it("retains MCP authority state when a custom formatter returns no notice", () => {
     const recovery = buildResumeRecovery("sess-mcp", {
-      loadSideEffectLedger: () => {
-        throw new Error("no side-effect ledger");
-      },
+      loadSideEffectLedger: cleanSideEffectLedger,
       loadMcpLedgerRecovery: () => ({
         unsettled: [
           {
@@ -180,9 +178,7 @@ describe("ws MCP recovery projection", () => {
     "turns malformed MCP recovery into a fail-closed incident",
     (malformed) => {
       const recovery = buildResumeRecovery("sess-mcp", {
-        loadSideEffectLedger: () => {
-          throw new Error("no side-effect ledger");
-        },
+        loadSideEffectLedger: cleanSideEffectLedger,
         loadMcpLedgerRecovery: () => malformed,
       });
 
@@ -200,9 +196,7 @@ describe("ws MCP recovery projection", () => {
       code: "CC_MCP_LEDGER_EVENT_READ_FAILED",
     });
     const recovery = buildResumeRecovery("sess-mcp", {
-      loadSideEffectLedger: () => {
-        throw new Error("no side-effect ledger");
-      },
+      loadSideEffectLedger: cleanSideEffectLedger,
       loadMcpLedgerRecovery: () => {
         throw error;
       },
@@ -216,6 +210,90 @@ describe("ws MCP recovery projection", () => {
     ]);
     expect(recovery.notice).toContain("Do NOT automatically retry");
     expect(recovery.notice).not.toContain("corrupt transcript");
+  });
+
+  it("rejects Proxy/accessor recovery without reading time-varying getters", () => {
+    let proxyReads = 0;
+    const proxied = new Proxy(
+      {
+        unsettled: [
+          { ledgerId: "unsafe", effectContract: { effect: "write" } },
+        ],
+        incidents: [],
+      },
+      {
+        get(target, key, receiver) {
+          proxyReads += 1;
+          return Reflect.get(target, key, receiver);
+        },
+      },
+    );
+    const accessor = { incidents: [] };
+    Object.defineProperty(accessor, "unsettled", {
+      enumerable: true,
+      get: () => [],
+    });
+
+    for (const malformed of [proxied, accessor]) {
+      const recovery = buildResumeRecovery("sess-mcp", {
+        loadSideEffectLedger: cleanSideEffectLedger,
+        loadMcpLedgerRecovery: () => malformed,
+      });
+      expect(recovery.mcp).toMatchObject({
+        blockMode: "all",
+        incidents: [{ code: "CC_MCP_LEDGER_RECOVERY_INVALID", ledgerId: null }],
+      });
+    }
+    expect(proxyReads).toBe(0);
+  });
+
+  it("fails closed on an asynchronous formatter and only formats frozen redacted data", () => {
+    let formatted = null;
+    const recovery = buildResumeRecovery("sess-mcp", {
+      loadSideEffectLedger: cleanSideEffectLedger,
+      loadMcpLedgerRecovery: () => ({
+        unsettled: [
+          {
+            ledgerId: "mcp-format",
+            serverName: "repo",
+            toolName: "publish",
+            effectContract: { effect: "write" },
+            secretArgument: "must-not-reach-formatter",
+          },
+        ],
+        incidents: [],
+      }),
+      formatMcpLedgerRecoveryNotice: (projection) => {
+        formatted = projection;
+        return Promise.resolve("late notice");
+      },
+    });
+
+    expect(Object.isFrozen(formatted)).toBe(true);
+    expect(Object.isFrozen(formatted.unsettled)).toBe(true);
+    expect(JSON.stringify(formatted)).not.toContain("must-not-reach-formatter");
+    expect(recovery.mcp).toMatchObject({
+      blockMode: "all",
+      incidents: [{ code: "CC_MCP_LEDGER_RECOVERY_INVALID", ledgerId: null }],
+    });
+  });
+
+  it("surfaces side-effect ledger read failures instead of dropping recovery", () => {
+    const error = Object.assign(new Error("secret parse details"), {
+      code: "CC_SIDE_EFFECT_LEDGER_CORRUPT",
+    });
+    const recovery = buildResumeRecovery("sess-side-effect", {
+      loadSideEffectLedger: () => {
+        throw error;
+      },
+      loadMcpLedgerRecovery: () => ({ unsettled: [], incidents: [] }),
+    });
+
+    expect(recovery.sideEffectIncidents).toEqual([
+      { code: "CC_SIDE_EFFECT_LEDGER_CORRUPT" },
+    ]);
+    expect(recovery.notice).toContain("Do NOT automatically retry");
+    expect(recovery.notice).not.toContain("secret parse details");
   });
 });
 
@@ -314,6 +392,43 @@ describe("ws runtime event emission", () => {
         }),
       }),
     );
+  });
+
+  it("binds recovery authority before refreshing a live handler", async () => {
+    const observations = [];
+    const handler = {
+      refreshMcpRecoveryRuntime: vi.fn(() => {
+        observations.push({
+          recovery: server._session.mcpLedgerRecovery,
+          revision: server._session.mcpLedgerRecoveryRevision,
+        });
+      }),
+    };
+    server.sessionHandlers.set("sess-1", handler);
+    server.resumeRecoveryDependencies = {
+      loadSideEffectLedger: cleanSideEffectLedger,
+      loadMcpLedgerRecovery: () => ({
+        unsettled: [],
+        incidents: [{ code: "SESSION_TRANSCRIPT_UNVERIFIED" }],
+      }),
+    };
+
+    await handleSessionResume(server, "req-authority", ws, {
+      sessionId: "sess-1",
+    });
+
+    expect(handler.refreshMcpRecoveryRuntime).toHaveBeenCalledOnce();
+    expect(observations).toEqual([
+      {
+        recovery: expect.objectContaining({
+          blockMode: "all",
+          incidents: [
+            { code: "SESSION_TRANSCRIPT_UNVERIFIED", ledgerId: null },
+          ],
+        }),
+        revision: 1,
+      },
+    ]);
   });
 
   it("emits runtime worktree and compression summary events", async () => {

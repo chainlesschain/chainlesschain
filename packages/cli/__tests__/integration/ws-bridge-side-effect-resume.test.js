@@ -157,6 +157,14 @@ describe("WS bridge side-effect resume", () => {
     session.mcpClient = { callTool: vi.fn() };
     const interaction = { emit: vi.fn(), rejectAllPending: vi.fn() };
     const handler = new WSAgentHandler({ session, interaction, db: null });
+    // Warm a clean controller first. Resume must refresh this exact live
+    // handler before it can serve another turn.
+    session.mcpLedgerRecovery = { unsettled: [], incidents: [] };
+    session.mcpLedgerRecoveryRevision = 1;
+    agentLoop.mockReturnValue(
+      fakeLoop([{ type: "response-complete", content: "warm" }]),
+    );
+    await handler.handleMessage("warm runtime", "req-warm");
     const readError = Object.assign(new Error("unverified transcript"), {
       code: "SESSION_TRANSCRIPT_UNVERIFIED",
     });
@@ -212,6 +220,149 @@ describe("WS bridge side-effect resume", () => {
       blockMode: "all",
     });
     expect(session.mcpClient.callTool).not.toHaveBeenCalled();
+  });
+
+  it("binds a proxied MCP projection as ALL-blocking on the real handler path", async () => {
+    const session = makeSession();
+    session.mcpClient = { callTool: vi.fn() };
+    const interaction = { emit: vi.fn(), rejectAllPending: vi.fn() };
+    const handler = new WSAgentHandler({ session, interaction, db: null });
+    let getterReads = 0;
+    const recovery = new Proxy(
+      {
+        unsettled: [
+          {
+            ledgerId: "proxy-write",
+            serverName: "repo",
+            toolName: "publish",
+            effectContract: { effect: "write" },
+          },
+        ],
+        incidents: [],
+      },
+      {
+        get(target, key, receiver) {
+          getterReads += 1;
+          return Reflect.get(target, key, receiver);
+        },
+      },
+    );
+    const server = {
+      sessionManager: { resumeSession: () => session },
+      sessionHandlers: new Map([[session.id, handler]]),
+      resumeRecoveryDependencies: {
+        loadSideEffectLedger: () => ({ ops: [] }),
+        loadMcpLedgerRecovery: () => recovery,
+      },
+      emit: vi.fn(),
+      _send: vi.fn(),
+    };
+
+    await handleSessionResume(
+      server,
+      "req-proxy",
+      {},
+      { sessionId: session.id },
+    );
+    expect(getterReads).toBe(0);
+    expect(session.mcpLedgerRecovery).toMatchObject({
+      blockMode: "all",
+      incidents: [{ code: "CC_MCP_LEDGER_RECOVERY_INVALID", ledgerId: null }],
+    });
+
+    agentLoop.mockReturnValue(
+      fakeLoop([{ type: "response-complete", content: "blocked" }]),
+    );
+    await handler.handleMessage("retry proxy", "req-proxy-turn");
+    const loopOptions = agentLoop.mock.calls.at(-1)[1];
+    await expect(
+      loopOptions.mcpCallLedger.begin({
+        sessionId: session.id,
+        serverName: "repo",
+        toolName: "status",
+        input: {},
+        effectContract: { effect: "read" },
+      }),
+    ).rejects.toMatchObject({ blockMode: "all" });
+    await expect(
+      loopOptions.mcpHostClient.callTool("repo", "status", {}),
+    ).rejects.toMatchObject({ blockMode: "all" });
+    expect(session.mcpClient.callTool).not.toHaveBeenCalled();
+  });
+
+  it("preserves an unsafe settlement latch when the raw MCP client changes", async () => {
+    const session = makeSession();
+    const firstClient = { callTool: vi.fn(async () => ({ ok: true })) };
+    const secondClient = { callTool: vi.fn(async () => ({ ok: true })) };
+    session.mcpClient = firstClient;
+    session.mcpLedgerRecovery = { unsettled: [], incidents: [] };
+    session.mcpLedgerRecoveryRevision = 1;
+    const interaction = { emit: vi.fn(), rejectAllPending: vi.fn() };
+    const handler = new WSAgentHandler({ session, interaction, db: null });
+    const initialRuntime = handler.refreshMcpRecoveryRuntime();
+    initialRuntime.controller.latchUnsafe("CC_MCP_LEDGER_SETTLE_FAILED");
+
+    session.mcpClient = secondClient;
+    agentLoop.mockReturnValue(
+      fakeLoop([{ type: "response-complete", content: "blocked" }]),
+    );
+    await handler.handleMessage("publish again", "req-client-change");
+    const loopOptions = agentLoop.mock.calls.at(-1)[1];
+
+    expect(loopOptions.mcpCallLedger.recoveryAdmission).toMatchObject({
+      blockMode: "unsafe",
+      reasonCode: "CC_MCP_LEDGER_SETTLE_FAILED",
+    });
+    await expect(
+      loopOptions.mcpCallLedger.begin({
+        sessionId: session.id,
+        serverName: "repo",
+        toolName: "publish",
+        input: {},
+        effectContract: { effect: "write" },
+      }),
+    ).rejects.toMatchObject({ blockMode: "unsafe" });
+    await expect(
+      loopOptions.mcpHostClient.callTool("repo", "publish", {}),
+    ).rejects.toMatchObject({ blockMode: "unsafe" });
+    expect(firstClient.callTool).not.toHaveBeenCalled();
+    expect(secondClient.callTool).not.toHaveBeenCalled();
+  });
+
+  it("returns a diagnosable ALL-blocking resume when handler refresh fails", async () => {
+    const session = makeSession();
+    session.mcpClient = {}; // truthy, but cannot build a guarded callTool client
+    const interaction = { emit: vi.fn(), rejectAllPending: vi.fn() };
+    const handler = new WSAgentHandler({ session, interaction, db: null });
+    const sent = [];
+    const server = {
+      sessionManager: { resumeSession: () => session },
+      sessionHandlers: new Map([[session.id, handler]]),
+      resumeRecoveryDependencies: {
+        loadSideEffectLedger: () => ({ ops: [] }),
+        loadMcpLedgerRecovery: () => ({ unsettled: [], incidents: [] }),
+      },
+      emit: vi.fn(),
+      _send: (_ws, envelope) => sent.push(envelope),
+    };
+
+    await expect(
+      handleSessionResume(
+        server,
+        "req-refresh-fail",
+        {},
+        {
+          sessionId: session.id,
+        },
+      ),
+    ).resolves.toBeUndefined();
+
+    expect(session.mcpLedgerRecovery).toMatchObject({
+      blockMode: "all",
+      incidents: [{ code: "CC_MCP_RECOVERY_REFRESH_FAILED", ledgerId: null }],
+    });
+    expect(JSON.stringify(sent)).toContain("CC_MCP_RECOVERY_REFRESH_FAILED");
+    expect(JSON.stringify(sent)).toContain("session.resumed");
   });
 
   it("fails closed before a dangerous tool when the ledger write is unavailable", async () => {

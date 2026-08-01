@@ -11,6 +11,110 @@ import {
   formatMcpLedgerRecoveryNotice,
   loadMcpLedgerRecovery,
 } from "../../lib/mcp-call-ledger-store.js";
+import { isProxy } from "node:util/types";
+import {
+  MCP_RECOVERY_INVALID_CODE,
+  classifyMcpRecoveryAdmission,
+} from "../../lib/mcp-ledger-recovery-admission.js";
+
+function recoveryErrorCode(error, fallbackCode) {
+  try {
+    return typeof error?.code === "string" && error.code
+      ? error.code
+      : fallbackCode;
+  } catch {
+    return fallbackCode;
+  }
+}
+
+function ownDataValue(record, key, fallback = null) {
+  if (!record || typeof record !== "object" || isProxy(record)) {
+    const error = new TypeError(`MCP recovery ${key} record is not plain data`);
+    error.code = MCP_RECOVERY_INVALID_CODE;
+    throw error;
+  }
+  const descriptor = Object.getOwnPropertyDescriptor(record, key);
+  if (!descriptor) return fallback;
+  if (!("value" in descriptor)) {
+    const error = new TypeError(`MCP recovery ${key} must be a data property`);
+    error.code = MCP_RECOVERY_INVALID_CODE;
+    throw error;
+  }
+  return descriptor.value;
+}
+
+function snapshotMcpRecord(record) {
+  const effectContract = ownDataValue(record, "effectContract", null);
+  let effect = "unknown";
+  if (effectContract != null) {
+    if (typeof effectContract !== "object" || isProxy(effectContract)) {
+      const error = new TypeError("MCP recovery effect contract is malformed");
+      error.code = MCP_RECOVERY_INVALID_CODE;
+      throw error;
+    }
+    effect = ownDataValue(effectContract, "effect", "unknown") || "unknown";
+  }
+  return Object.freeze({
+    ledgerId: ownDataValue(record, "ledgerId", null),
+    serverName: ownDataValue(record, "serverName", "unknown"),
+    toolName: ownDataValue(record, "toolName", "unknown"),
+    effect,
+  });
+}
+
+function snapshotMcpIncident(incident) {
+  return Object.freeze({
+    code: ownDataValue(incident, "code", MCP_RECOVERY_INVALID_CODE),
+    ledgerId: ownDataValue(incident, "ledgerId", null),
+  });
+}
+
+function strictMcpRecoverySnapshot(recovery) {
+  if (recovery == null) {
+    const error = new TypeError("MCP recovery projection is missing");
+    error.code = MCP_RECOVERY_INVALID_CODE;
+    throw error;
+  }
+  const admission = classifyMcpRecoveryAdmission(recovery);
+  if (admission.reasonCode) {
+    const error = new TypeError("MCP recovery projection is malformed");
+    error.code = admission.reasonCode;
+    throw error;
+  }
+
+  // classifyMcpRecoveryAdmission rejects proxies/accessors first. Capture the
+  // two authority arrays exactly once as own data descriptors so a formatter
+  // or time-varying getter can never turn an unsafe projection into clean state.
+  const descriptors = Object.getOwnPropertyDescriptors(recovery);
+  const unsettledSource = descriptors.unsettled?.value;
+  const incidentsSource = descriptors.incidents?.value;
+  if (!Array.isArray(unsettledSource) || !Array.isArray(incidentsSource)) {
+    const error = new TypeError("MCP recovery arrays are unavailable");
+    error.code = MCP_RECOVERY_INVALID_CODE;
+    throw error;
+  }
+  const unsettled = Object.freeze(unsettledSource.map(snapshotMcpRecord));
+  const incidents = Object.freeze(incidentsSource.map(snapshotMcpIncident));
+  return Object.freeze({ admission, unsettled, incidents });
+}
+
+function failClosedMcpRecovery(
+  error,
+  fallbackCode = "CC_MCP_LEDGER_EVENT_READ_FAILED",
+) {
+  const code = recoveryErrorCode(error, fallbackCode);
+  const incident = Object.freeze({ code, ledgerId: null });
+  return Object.freeze({
+    count: 1,
+    unsettled: Object.freeze([]),
+    incidents: Object.freeze([incident]),
+    blockMode: "all",
+    notice:
+      "MCP recovery notice — the durable MCP ledger could not be verified. " +
+      "Do NOT automatically retry prior MCP actions; inspect the session " +
+      `transcript first (${code}).`,
+  });
+}
 
 /**
  * P0-2: on a bridge/IDE resume, surface any irreversible tool that was in flight
@@ -44,63 +148,78 @@ function buildSideEffectResumeRecovery(sessionId, loadLedger) {
             `  • [${it.kind}]${it.key ? ` (${it.key})` : ""} — ${it.reason}`,
         )
         .join("\n");
-    return { count: items.length, items, notice };
-  } catch {
-    return null;
+    return { count: items.length, items, incidents: [], notice };
+  } catch (error) {
+    const code = recoveryErrorCode(
+      error,
+      "CC_SIDE_EFFECT_LEDGER_RECOVERY_FAILED",
+    );
+    return {
+      count: 1,
+      items: [],
+      incidents: [{ code }],
+      notice:
+        "Side-effect recovery notice — the durable side-effect ledger could " +
+        "not be verified. Do NOT automatically retry prior irreversible " +
+        `operations until the transcript is inspected (${code}).`,
+    };
   }
 }
 
 function buildMcpResumeRecovery(sessionId, loadRecovery, formatNotice) {
   try {
-    const recovery = loadRecovery(sessionId);
-    if (
-      !recovery ||
-      !Array.isArray(recovery.unsettled) ||
-      !Array.isArray(recovery.incidents)
-    ) {
-      const invalid = new TypeError(
-        "MCP recovery must contain unsettled and incidents arrays",
-      );
-      invalid.code = "CC_MCP_LEDGER_RECOVERY_INVALID";
-      throw invalid;
-    }
-    const unsettled = recovery.unsettled.map((record) => ({
-      ledgerId: record.ledgerId,
-      serverName: record.serverName,
-      toolName: record.toolName,
-      effect: record.effectContract?.effect || "unknown",
-      status: "outcome_unknown",
-    }));
-    const incidents = recovery.incidents.map((incident) => ({
-      code: incident.code,
-      ledgerId: incident.ledgerId || null,
-    }));
+    const snapshot = strictMcpRecoverySnapshot(loadRecovery(sessionId));
+    const unsettled = Object.freeze(
+      snapshot.unsettled.map((record) =>
+        Object.freeze({
+          ledgerId: record.ledgerId,
+          serverName: record.serverName,
+          toolName: record.toolName,
+          effect: record.effect,
+          status: "outcome_unknown",
+        }),
+      ),
+    );
+    const incidents = snapshot.incidents;
     const requiresInspection = unsettled.length > 0 || incidents.length > 0;
-    const notice = requiresInspection
-      ? formatNotice(recovery) ||
+    let notice = null;
+    if (requiresInspection) {
+      const formatterProjection = Object.freeze({
+        unsettled: Object.freeze(
+          snapshot.unsettled.map((record) =>
+            Object.freeze({
+              ledgerId: record.ledgerId,
+              serverName: record.serverName,
+              toolName: record.toolName,
+              effectContract: Object.freeze({ effect: record.effect }),
+            }),
+          ),
+        ),
+        incidents,
+      });
+      notice = formatNotice(formatterProjection);
+      if (notice != null && typeof notice !== "string") {
+        const error = new TypeError(
+          "MCP recovery formatter must return a synchronous string or null",
+        );
+        error.code = MCP_RECOVERY_INVALID_CODE;
+        throw error;
+      }
+      notice ||=
         "MCP recovery notice — durable MCP state requires inspection. Do NOT " +
-          "automatically retry prior MCP actions until recovery is adjudicated."
-      : null;
-    return {
+        "automatically retry prior MCP actions until recovery is adjudicated.";
+    }
+    return Object.freeze({
       count: unsettled.length + incidents.length,
       unsettled,
       incidents,
       notice,
-    };
+      ...(snapshot.admission.blockMode
+        ? { blockMode: snapshot.admission.blockMode }
+        : {}),
+    });
   } catch (error) {
-    const incident = {
-      code: error?.code || "CC_MCP_LEDGER_EVENT_READ_FAILED",
-      ledgerId: null,
-    };
-    return {
-      count: 1,
-      unsettled: [],
-      incidents: [incident],
-      notice:
-        "MCP recovery notice — the durable MCP ledger could not be read. " +
-        "Do NOT automatically retry prior MCP actions; inspect the session " +
-        `transcript first (${incident.code}).`,
-    };
+    return failClosedMcpRecovery(error);
   }
 }
 
@@ -124,6 +243,7 @@ export function buildResumeRecovery(sessionId, dependencies = {}) {
   return {
     count: (sideEffects?.count || 0) + (mcp?.count || 0),
     items: sideEffects?.items || [],
+    sideEffectIncidents: sideEffects?.incidents || [],
     ...(mcp ? { mcp } : {}),
     notice: [sideEffects?.notice, mcp?.notice].filter(Boolean).join("\n\n"),
   };
@@ -367,29 +487,10 @@ export async function handleSessionResume(server, id, ws, message) {
     return;
   }
 
-  if (!server.sessionHandlers.has(sessionId)) {
-    try {
-      await ensureSessionHandler(server, ws, session);
-    } catch (_err) {
-      // Session resumed without live handler.
-    }
-  }
-
-  const history = (session.messages || []).filter((m) => m.role !== "system");
-  const record = createSessionRecord(session, {
-    history,
-    messageCount: history.length,
-    status: "resumed",
-  });
-  const stateSnapshot =
-    typeof server.sessionManager.getSessionStateSnapshot === "function"
-      ? server.sessionManager.getSessionStateSnapshot(session.id)
-      : null;
-
   // P0-2: reconcile the crash-safe side-effect ledger. If a dangerous tool was
   // in flight when the prior worker died, warn the IDE client AND inject a
   // system note so the resumed model does not silently replay it.
-  const recovery = buildResumeRecovery(
+  let recovery = buildResumeRecovery(
     session.id,
     server.resumeRecoveryDependencies || {},
   );
@@ -404,6 +505,60 @@ export async function handleSessionResume(server, id, ws, message) {
   if (recovery?.notice && Array.isArray(session.messages)) {
     session.messages.push({ role: "system", content: recovery.notice });
   }
+
+  // Recovery authority must be attached before a handler is created/refreshed
+  // or history is exposed. Otherwise an existing clean controller can admit a
+  // turn in the resume window before the unsafe projection reaches it.
+  if (!server.sessionHandlers.has(sessionId)) {
+    try {
+      await ensureSessionHandler(server, ws, session);
+    } catch (_err) {
+      // Session resumed without live handler. A future handler still reads the
+      // already-attached fail-closed recovery authority from the session.
+    }
+  }
+  const handler = server.sessionHandlers.get(sessionId);
+  if (typeof handler?.refreshMcpRecoveryRuntime === "function") {
+    try {
+      handler.refreshMcpRecoveryRuntime();
+    } catch (error) {
+      const failedMcp = failClosedMcpRecovery(
+        error,
+        "CC_MCP_RECOVERY_REFRESH_FAILED",
+      );
+      session.mcpLedgerRecovery = failedMcp;
+      session.mcpLedgerRecoveryRevision =
+        Number(session.mcpLedgerRecoveryRevision || 0) + 1;
+      recovery = Object.freeze({
+        ...recovery,
+        count:
+          Math.max(
+            0,
+            Number(recovery?.count || 0) - Number(recovery?.mcp?.count || 0),
+          ) + failedMcp.count,
+        mcp: failedMcp,
+        notice: [recovery?.notice, failedMcp.notice]
+          .filter(Boolean)
+          .join("\n\n"),
+      });
+      if (Array.isArray(session.messages)) {
+        session.messages.push({ role: "system", content: failedMcp.notice });
+      }
+    }
+  }
+
+  const history = (
+    Array.isArray(session.messages) ? session.messages : []
+  ).filter((m) => m?.role !== "system");
+  const record = createSessionRecord(session, {
+    history,
+    messageCount: history.length,
+    status: "resumed",
+  });
+  const stateSnapshot =
+    typeof server.sessionManager.getSessionStateSnapshot === "function"
+      ? server.sessionManager.getSessionStateSnapshot(session.id)
+      : null;
 
   server.emit(
     RUNTIME_EVENTS.SESSION_RESUME,
