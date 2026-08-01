@@ -5,6 +5,7 @@ import {
   readdirSync,
   readFileSync,
   rmSync,
+  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -604,9 +605,21 @@ describe("background agent supervisor", () => {
   });
 
   it("resumeBackgroundAgent rebuilds the persisted provider and policy profile", () => {
-    const settings = join(dir, "settings.json");
-    const mcp = join(dir, "mcp.json");
-    const bundle = join(dir, "bundle");
+    // Hosted macOS and Windows runners expose tmp paths through aliases
+    // (/var -> /private/var, or short-name/junction paths). Exercise that
+    // explicitly: the persisted profile owns canonical paths, not the input
+    // spelling used by the first launch.
+    const profileRoot = join(dir, "profile-root");
+    const profileAlias = join(dir, "profile-alias");
+    mkdirSync(profileRoot);
+    symlinkSync(
+      profileRoot,
+      profileAlias,
+      process.platform === "win32" ? "junction" : "dir",
+    );
+    const settings = join(profileAlias, "settings.json");
+    const mcp = join(profileAlias, "mcp.json");
+    const bundle = join(profileAlias, "bundle");
     writeFileSync(settings, "{}\n");
     writeFileSync(mcp, '{"mcpServers":{}}\n');
     mkdirSync(bundle);
@@ -649,6 +662,7 @@ describe("background agent supervisor", () => {
         resourceBudget: { maxTurns: 7, maxCostUsd: 1.5 },
       },
     });
+    expect(original.launchProfile.settings.file).not.toBe(settings);
     writeBackgroundAgentState({
       ...readBackgroundAgentState(original.id),
       status: "completed",
@@ -674,11 +688,11 @@ describe("background agent supervisor", () => {
         "--sandbox-mode",
         "strict",
         "--mcp-config",
-        mcp,
+        original.launchProfile.mcp.configFile,
         "--settings",
-        settings,
+        original.launchProfile.settings.file,
         "--bundle",
-        bundle,
+        original.launchProfile.plugins.bundle,
         "--max-turns",
         "7",
         "--max-budget-usd",
