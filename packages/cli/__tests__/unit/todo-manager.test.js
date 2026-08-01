@@ -1,12 +1,29 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import {
   writeTodos,
   getTodos,
+  getTodoSnapshot,
   clearTodos,
   validateTodos,
   summarizeTodos,
   resetAllStores,
+  recoverTodoSnapshot,
+  resolveTodoStateDir,
+  todoSnapshotPath,
+  TodoSnapshotPersistence,
+  TODO_PERSISTENCE_ERROR_CODES,
+  TODO_SNAPSHOT_SCHEMA,
+  TODO_SNAPSHOT_VERSION,
 } from "../../src/lib/todo-manager.js";
+
+const MEMORY_ONLY = Object.freeze({ memoryOnly: true });
+const writeMemoryTodos = (sessionId, todos) =>
+  writeTodos(sessionId, todos, MEMORY_ONLY);
+const getMemoryTodos = (sessionId) => getTodos(sessionId, MEMORY_ONLY);
+const clearMemoryTodos = (sessionId) => clearTodos(sessionId, MEMORY_ONLY);
 
 describe("todo-manager — validateTodos()", () => {
   it("accepts an empty array", () => {
@@ -64,54 +81,54 @@ describe("todo-manager — writeTodos() / getTodos() / clearTodos()", () => {
   beforeEach(() => resetAllStores());
 
   it("writes and reads back", () => {
-    const result = writeTodos("sess-1", [
+    const result = writeMemoryTodos("sess-1", [
       { id: "a", content: "step a", status: "pending" },
       { id: "b", content: "step b", status: "in_progress" },
     ]);
     expect(result.success).toBe(true);
     expect(result.count).toBe(2);
-    const todos = getTodos("sess-1");
+    const todos = getMemoryTodos("sess-1");
     expect(todos).toHaveLength(2);
     expect(todos[1].status).toBe("in_progress");
   });
 
   it("is idempotent — second write replaces first", () => {
-    writeTodos("s", [{ id: "a", content: "x", status: "pending" }]);
-    writeTodos("s", [{ id: "b", content: "y", status: "completed" }]);
-    const todos = getTodos("s");
+    writeMemoryTodos("s", [{ id: "a", content: "x", status: "pending" }]);
+    writeMemoryTodos("s", [{ id: "b", content: "y", status: "completed" }]);
+    const todos = getMemoryTodos("s");
     expect(todos).toHaveLength(1);
     expect(todos[0].id).toBe("b");
   });
 
   it("isolates sessions", () => {
-    writeTodos("s1", [{ id: "a", content: "x", status: "pending" }]);
-    writeTodos("s2", [{ id: "b", content: "y", status: "pending" }]);
-    expect(getTodos("s1")[0].id).toBe("a");
-    expect(getTodos("s2")[0].id).toBe("b");
+    writeMemoryTodos("s1", [{ id: "a", content: "x", status: "pending" }]);
+    writeMemoryTodos("s2", [{ id: "b", content: "y", status: "pending" }]);
+    expect(getMemoryTodos("s1")[0].id).toBe("a");
+    expect(getMemoryTodos("s2")[0].id).toBe("b");
   });
 
   it("returns error on invalid write (store unchanged)", () => {
-    writeTodos("s", [{ id: "a", content: "x", status: "pending" }]);
-    const result = writeTodos("s", [
+    writeMemoryTodos("s", [{ id: "a", content: "x", status: "pending" }]);
+    const result = writeMemoryTodos("s", [
       { id: "a", content: "x", status: "in_progress" },
       { id: "b", content: "y", status: "in_progress" },
     ]);
     expect(result.success).toBe(false);
-    expect(getTodos("s")).toHaveLength(1);
-    expect(getTodos("s")[0].status).toBe("pending");
+    expect(getMemoryTodos("s")).toHaveLength(1);
+    expect(getMemoryTodos("s")[0].status).toBe("pending");
   });
 
   it("clearTodos empties the list", () => {
-    writeTodos("s", [{ id: "a", content: "x", status: "pending" }]);
-    clearTodos("s");
-    expect(getTodos("s")).toHaveLength(0);
+    writeMemoryTodos("s", [{ id: "a", content: "x", status: "pending" }]);
+    clearMemoryTodos("s");
+    expect(getMemoryTodos("s")).toHaveLength(0);
   });
 
   it("getTodos returns a deep copy (mutation safe)", () => {
-    writeTodos("s", [{ id: "a", content: "x", status: "pending" }]);
-    const todos = getTodos("s");
+    writeMemoryTodos("s", [{ id: "a", content: "x", status: "pending" }]);
+    const todos = getMemoryTodos("s");
     todos[0].status = "completed";
-    expect(getTodos("s")[0].status).toBe("pending");
+    expect(getMemoryTodos("s")[0].status).toBe("pending");
   });
 });
 
@@ -145,6 +162,225 @@ describe("todo-manager — summarizeTodos()", () => {
       completed: 0,
       cancelled: 0,
     });
+  });
+});
+
+describe("todo-manager — durable session snapshots", () => {
+  let tempRoot;
+  let stateDir;
+
+  beforeEach(() => {
+    resetAllStores();
+    tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "cc-todos-"));
+    stateDir = path.join(tempRoot, "todo-state");
+  });
+
+  afterEach(() => {
+    resetAllStores();
+    fs.rmSync(tempRoot, { recursive: true, force: true });
+  });
+
+  it("prefers the injectable CHAINLESSCHAIN_DATA_DIR seam", () => {
+    const dataDir = path.join(tempRoot, "explicit-data");
+    expect(
+      resolveTodoStateDir({
+        env: { CHAINLESSCHAIN_DATA_DIR: dataDir },
+        getStatePath: () => path.join(tempRoot, "fallback-state"),
+      }),
+    ).toBe(path.join(dataDir, "todos"));
+  });
+
+  it("keeps an unnamed session on the compatible memory-only path", () => {
+    const result = writeTodos(
+      undefined,
+      [{ id: "memory", content: "ephemeral", status: "pending" }],
+      { stateDir },
+    );
+    expect(result).toMatchObject({ success: true, revision: 1 });
+    expect(getTodos(undefined, { stateDir })[0].id).toBe("memory");
+    expect(fs.existsSync(stateDir)).toBe(false);
+  });
+
+  it("round-trips a versioned snapshot after an in-process restart", () => {
+    const sessionId = "session-restart";
+    const options = { stateDir };
+    const first = writeTodos(
+      sessionId,
+      [
+        { id: "a", content: "restore me", status: "in_progress" },
+        { id: "b", content: "next", status: "pending" },
+      ],
+      options,
+    );
+    expect(first).toMatchObject({ success: true, revision: 1, count: 2 });
+
+    const filePath = todoSnapshotPath(sessionId, options);
+    const onDisk = JSON.parse(fs.readFileSync(filePath, "utf8"));
+    expect(onDisk).toMatchObject({
+      schema: TODO_SNAPSHOT_SCHEMA,
+      version: TODO_SNAPSHOT_VERSION,
+      sessionId,
+      revision: 1,
+    });
+
+    resetAllStores();
+    const restored = getTodoSnapshot(sessionId, options);
+    expect(restored.revision).toBe(1);
+    expect(restored.todos.map((todo) => todo.id)).toEqual(["a", "b"]);
+    expect(restored.todos[0].status).toBe("in_progress");
+  });
+
+  it("blocks corrupt snapshots without overwriting them and supports quarantine recovery", () => {
+    const sessionId = "session-corrupt";
+    const options = { stateDir };
+    const filePath = todoSnapshotPath(sessionId, options);
+    fs.mkdirSync(stateDir, { recursive: true });
+    fs.writeFileSync(filePath, '{"schema":', "utf8");
+    const corruptBytes = fs.readFileSync(filePath, "utf8");
+
+    let loadError;
+    try {
+      getTodos(sessionId, options);
+    } catch (error) {
+      loadError = error;
+    }
+    expect(loadError?.code).toBe(TODO_PERSISTENCE_ERROR_CODES.CORRUPT);
+    expect(loadError?.recoveryStrategy).toBe("quarantine-corrupt");
+
+    const refused = writeTodos(
+      sessionId,
+      [{ id: "a", content: "must not overwrite", status: "pending" }],
+      options,
+    );
+    expect(refused).toMatchObject({
+      success: false,
+      code: TODO_PERSISTENCE_ERROR_CODES.CORRUPT,
+      recoveryStrategy: "quarantine-corrupt",
+    });
+    expect(fs.readFileSync(filePath, "utf8")).toBe(corruptBytes);
+
+    const recovery = recoverTodoSnapshot(
+      sessionId,
+      "quarantine-corrupt",
+      options,
+    );
+    expect(recovery.recovered).toBe(1);
+    expect(fs.existsSync(recovery.quarantinePath)).toBe(true);
+    expect(getTodos(sessionId, options)).toEqual([]);
+  });
+
+  it("rejects a stale revision instead of using last-write-wins", () => {
+    const sessionId = "session-cas";
+    const options = { stateDir };
+    const first = writeTodos(
+      sessionId,
+      [{ id: "a", content: "first", status: "pending" }],
+      options,
+    );
+    expect(getTodoSnapshot(sessionId, options).revision).toBe(1);
+
+    const concurrentWriter = new TodoSnapshotPersistence({
+      stateDir,
+      validateTodos,
+    });
+    concurrentWriter.compareAndSwap(sessionId, first.revision, [
+      { id: "b", content: "concurrent", status: "completed" },
+    ]);
+
+    const conflict = writeTodos(
+      sessionId,
+      [{ id: "c", content: "stale", status: "pending" }],
+      options,
+    );
+    expect(conflict).toMatchObject({
+      success: false,
+      code: TODO_PERSISTENCE_ERROR_CODES.REVISION_CONFLICT,
+      expectedRevision: 1,
+      actualRevision: 2,
+    });
+
+    resetAllStores();
+    expect(getTodos(sessionId, options)).toEqual([
+      { id: "b", content: "concurrent", status: "completed" },
+    ]);
+  });
+
+  it("keeps the prior snapshot and memory state when atomic replacement fails", () => {
+    const sessionId = "session-atomic-failure";
+    const options = { stateDir };
+    writeTodos(
+      sessionId,
+      [{ id: "safe", content: "committed", status: "pending" }],
+      options,
+    );
+    resetAllStores();
+
+    const failingPersistence = new TodoSnapshotPersistence({
+      stateDir,
+      validateTodos,
+      beforeRename: () => {
+        throw new Error("injected rename failure");
+      },
+    });
+    expect(
+      getTodoSnapshot(sessionId, { persistence: failingPersistence }).revision,
+    ).toBe(1);
+    const secret = "TOP-SECRET-TODO-CONTENT";
+    const failed = writeTodos(
+      sessionId,
+      [{ id: "secret", content: secret, status: "pending" }],
+      { persistence: failingPersistence },
+    );
+    expect(failed).toMatchObject({
+      success: false,
+      code: TODO_PERSISTENCE_ERROR_CODES.WRITE_FAILED,
+    });
+    expect(JSON.stringify(failed)).not.toContain(secret);
+    expect(
+      fs.readdirSync(stateDir).filter((name) => name.endsWith(".tmp")),
+    ).toEqual([]);
+
+    resetAllStores();
+    expect(getTodos(sessionId, options)).toEqual([
+      { id: "safe", content: "committed", status: "pending" },
+    ]);
+  });
+
+  it("makes an orphaned half-write visible until explicitly discarded", () => {
+    const sessionId = "session-half-write";
+    const options = { stateDir };
+    writeTodos(
+      sessionId,
+      [{ id: "safe", content: "committed", status: "pending" }],
+      options,
+    );
+    resetAllStores();
+    const filePath = todoSnapshotPath(sessionId, options);
+    const orphan = path.join(
+      stateDir,
+      `.${path.basename(filePath)}.999.crash.tmp`,
+    );
+    fs.writeFileSync(orphan, '{"partial":', "utf8");
+
+    const refused = writeTodos(
+      sessionId,
+      [{ id: "new", content: "blocked", status: "pending" }],
+      options,
+    );
+    expect(refused).toMatchObject({
+      success: false,
+      code: TODO_PERSISTENCE_ERROR_CODES.RECOVERY_REQUIRED,
+      recoveryStrategy: "discard-temporary",
+    });
+    expect(fs.existsSync(orphan)).toBe(true);
+
+    const recovery = recoverTodoSnapshot(
+      sessionId,
+      "discard-temporary",
+      options,
+    );
+    expect(recovery.recovered).toBe(1);
+    expect(getTodos(sessionId, options)[0].id).toBe("safe");
   });
 });
 

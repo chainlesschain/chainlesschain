@@ -8,6 +8,29 @@
  */
 
 import { EventEmitter } from "events";
+import {
+  createPlanSessionEvent,
+  PLAN_PERSISTENCE_ERROR_CODES,
+  PLAN_SESSION_LEGACY_SNAPSHOT_VERSION,
+  PLAN_SESSION_SNAPSHOT_SCHEMA,
+  PLAN_SESSION_SNAPSHOT_VERSION,
+  PlanPersistenceError,
+  PlanSessionPersistence,
+} from "./plan-persistence.js";
+
+export {
+  isUnsafePlanSessionId,
+  PLAN_PERSISTENCE_ERROR_CODES,
+  PLAN_SESSION_EVENT_SCHEMA,
+  PLAN_SESSION_EVENT_VERSION,
+  PLAN_SESSION_LEGACY_SNAPSHOT_VERSION,
+  PLAN_SESSION_SNAPSHOT_SCHEMA,
+  PLAN_SESSION_SNAPSHOT_VERSION,
+  planSnapshotPath,
+  PlanPersistenceError,
+  PlanSessionPersistence,
+  resolvePlanStateDir,
+} from "./plan-persistence.js";
 
 /**
  * Plan item status
@@ -91,10 +114,14 @@ export class PlanItem {
     this.tool = data.tool || null;
     this.params = data.params || {};
     this.dependencies = data.dependencies || [];
+    this.owner = data.owner ?? null;
+    this.checkpoint = data.checkpoint ?? null;
+    this.approval = data.approval ?? null;
+    this.evidenceLineage = data.evidenceLineage ?? [];
     this.estimatedImpact = data.estimatedImpact || "low"; // low, medium, high
     this.status = data.status || PlanStatus.PENDING;
-    this.result = null;
-    this.error = null;
+    this.result = data.result ?? null;
+    this.error = data.error ?? null;
     this.turn = Number.isInteger(data.turn) && data.turn > 0 ? data.turn : null;
     this.toolUseId = data.toolUseId || null;
     this.startedAt = data.startedAt || null;
@@ -127,7 +154,7 @@ export class ExecutionPlan {
     this.version =
       Number.isInteger(data.version) && data.version > 0 ? data.version : 1;
     this.revisionOf = data.revisionOf || null;
-    this.createdAt = new Date().toISOString();
+    this.createdAt = data.createdAt || new Date().toISOString();
   }
 
   addItem(item) {
@@ -258,13 +285,523 @@ export class ExecutionPlan {
   }
 }
 
+const PLAN_ITEM_SNAPSHOT_FIELDS = Object.freeze([
+  "id",
+  "order",
+  "title",
+  "description",
+  "tool",
+  "params",
+  "dependencies",
+  "owner",
+  "checkpoint",
+  "approval",
+  "evidenceLineage",
+  "estimatedImpact",
+  "status",
+  "result",
+  "error",
+  "turn",
+  "toolUseId",
+  "startedAt",
+  "completedAt",
+]);
+const PLAN_SNAPSHOT_FIELDS = Object.freeze([
+  "id",
+  "title",
+  "description",
+  "goal",
+  "items",
+  "status",
+  "version",
+  "revisionOf",
+  "createdAt",
+]);
+const PLAN_MANAGER_SNAPSHOT_FIELDS = Object.freeze([
+  "state",
+  "currentPlan",
+  "history",
+  "blockedToolLog",
+  "executionLock",
+]);
+const LEGACY_PLAN_ITEM_SNAPSHOT_FIELDS = Object.freeze(
+  PLAN_ITEM_SNAPSHOT_FIELDS.filter(
+    (field) =>
+      !["owner", "checkpoint", "approval", "evidenceLineage"].includes(field),
+  ),
+);
+const LEGACY_PLAN_MANAGER_SNAPSHOT_FIELDS = Object.freeze([
+  "state",
+  "currentPlan",
+  "history",
+  "blockedToolLog",
+]);
+const LEGACY_SESSION_SNAPSHOT_FIELDS = Object.freeze([
+  "schema",
+  "version",
+  "sessionId",
+  "revision",
+  "updatedAt",
+  "state",
+]);
+const EXECUTION_LOCK_FIELDS = Object.freeze([
+  "planId",
+  "permissionMode",
+  "approvedItemIds",
+  "allowedTools",
+  "createdAt",
+]);
+const AUTHORIZED_ITEM_STATUSES = new Set([
+  PlanStatus.APPROVED,
+  PlanStatus.EXECUTING,
+  PlanStatus.COMPLETED,
+  PlanStatus.FAILED,
+]);
+const AUTHORITY_STATES = new Set([
+  PlanState.APPROVED,
+  PlanState.EXECUTING,
+  PlanState.COMPLETED,
+  PlanState.FAILED,
+]);
+
+function isPlainObject(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
+}
+
+function assertExactKeys(value, fields, label) {
+  if (!isPlainObject(value)) throw new Error(`${label} must be an object`);
+  const actual = Object.keys(value).sort();
+  const expected = [...fields].sort();
+  if (
+    actual.length !== expected.length ||
+    actual.some((key, index) => key !== expected[index])
+  ) {
+    throw new Error(`${label} has missing or unknown fields`);
+  }
+}
+
+function cloneJsonValue(value, label) {
+  try {
+    return JSON.parse(JSON.stringify(value));
+  } catch (error) {
+    throw new Error(`${label} must be JSON-serializable`, { cause: error });
+  }
+}
+
+function optionalString(value, label) {
+  if (value == null) return null;
+  if (typeof value !== "string") throw new Error(`${label} must be a string`);
+  return value;
+}
+
+function serializePlanItem(item) {
+  return {
+    id: item.id,
+    order: item.order,
+    title: item.title,
+    description: item.description,
+    tool: item.tool,
+    params: cloneJsonValue(item.params ?? {}, "plan item params"),
+    dependencies: [...(item.dependencies || [])],
+    owner: item.owner ?? null,
+    checkpoint: cloneJsonValue(item.checkpoint ?? null, "plan checkpoint"),
+    approval: cloneJsonValue(item.approval ?? null, "plan approval"),
+    evidenceLineage: cloneJsonValue(
+      item.evidenceLineage ?? [],
+      "plan evidence lineage",
+    ),
+    estimatedImpact: item.estimatedImpact,
+    status: item.status,
+    result: cloneJsonValue(item.result ?? null, "plan item result"),
+    error: item.error ?? null,
+    turn: item.turn ?? null,
+    toolUseId: item.toolUseId ?? null,
+    startedAt: item.startedAt ?? null,
+    completedAt: item.completedAt ?? null,
+  };
+}
+
+function normalizePlanItem(value, index) {
+  assertExactKeys(value, PLAN_ITEM_SNAPSHOT_FIELDS, "plan item");
+  if (typeof value.id !== "string" || !value.id) {
+    throw new Error("plan item id must be a non-empty string");
+  }
+  if (!Number.isSafeInteger(value.order) || value.order !== index) {
+    throw new Error("plan item order is invalid");
+  }
+  if (
+    typeof value.title !== "string" ||
+    typeof value.description !== "string"
+  ) {
+    throw new Error("plan item title and description must be strings");
+  }
+  if (value.tool != null && typeof value.tool !== "string") {
+    throw new Error("plan item tool must be a string or null");
+  }
+  if (!isPlainObject(value.params)) {
+    throw new Error("plan item params must be an object");
+  }
+  if (
+    !Array.isArray(value.dependencies) ||
+    value.dependencies.some((dependency) => typeof dependency !== "string") ||
+    new Set(value.dependencies).size !== value.dependencies.length
+  ) {
+    throw new Error("plan item dependencies must be unique strings");
+  }
+  if (value.owner != null && typeof value.owner !== "string") {
+    throw new Error("plan item owner must be a string or null");
+  }
+  if (!Array.isArray(value.evidenceLineage)) {
+    throw new Error("plan item evidenceLineage must be an array");
+  }
+  if (!Object.hasOwn(IMPACT_MULTIPLIERS, value.estimatedImpact)) {
+    throw new Error("plan item estimatedImpact is invalid");
+  }
+  if (!Object.values(PlanStatus).includes(value.status)) {
+    throw new Error("plan item status is invalid");
+  }
+  if (value.error != null && typeof value.error !== "string") {
+    throw new Error("plan item error must be a string or null");
+  }
+  if (
+    value.turn != null &&
+    (!Number.isSafeInteger(value.turn) || value.turn < 1)
+  ) {
+    throw new Error("plan item turn must be a positive integer or null");
+  }
+  for (const [field, fieldValue] of [
+    ["toolUseId", value.toolUseId],
+    ["startedAt", value.startedAt],
+    ["completedAt", value.completedAt],
+  ]) {
+    optionalString(fieldValue, `plan item ${field}`);
+  }
+  return serializePlanItem(value);
+}
+
+function migrateLegacyPlanItem(value, index) {
+  assertExactKeys(value, LEGACY_PLAN_ITEM_SNAPSHOT_FIELDS, "legacy plan item");
+  return normalizePlanItem(
+    {
+      ...value,
+      owner: null,
+      checkpoint: null,
+      approval: null,
+      evidenceLineage: [],
+    },
+    index,
+  );
+}
+
+function serializePlan(plan) {
+  if (!plan) return null;
+  return {
+    id: plan.id,
+    title: plan.title,
+    description: plan.description,
+    goal: plan.goal,
+    items: plan.items.map((item) => serializePlanItem(item)),
+    status: plan.status,
+    version: plan.version,
+    revisionOf: plan.revisionOf,
+    createdAt: plan.createdAt,
+  };
+}
+
+function normalizePlan(value) {
+  assertExactKeys(value, PLAN_SNAPSHOT_FIELDS, "execution plan");
+  if (
+    typeof value.id !== "string" ||
+    !value.id ||
+    typeof value.title !== "string" ||
+    typeof value.description !== "string" ||
+    typeof value.goal !== "string" ||
+    typeof value.createdAt !== "string" ||
+    !value.createdAt
+  ) {
+    throw new Error("execution plan identity fields are invalid");
+  }
+  if (!Array.isArray(value.items)) {
+    throw new Error("execution plan items must be an array");
+  }
+  if (!Object.values(PlanState).includes(value.status)) {
+    throw new Error("execution plan status is invalid");
+  }
+  if (!Number.isSafeInteger(value.version) || value.version < 1) {
+    throw new Error("execution plan version is invalid");
+  }
+  optionalString(value.revisionOf, "execution plan revisionOf");
+  const items = value.items.map((item, index) =>
+    normalizePlanItem(item, index),
+  );
+  if (new Set(items.map((item) => item.id)).size !== items.length) {
+    throw new Error("execution plan item ids must be unique");
+  }
+  return {
+    id: value.id,
+    title: value.title,
+    description: value.description,
+    goal: value.goal,
+    items,
+    status: value.status,
+    version: value.version,
+    revisionOf: value.revisionOf,
+    createdAt: value.createdAt,
+  };
+}
+
+function migrateLegacyPlan(value) {
+  assertExactKeys(value, PLAN_SNAPSHOT_FIELDS, "legacy execution plan");
+  if (!Array.isArray(value.items)) {
+    throw new Error("legacy execution plan items must be an array");
+  }
+  return normalizePlan({
+    ...value,
+    items: value.items.map((item, index) => migrateLegacyPlanItem(item, index)),
+  });
+}
+
+function normalizeExecutionLock(value, plan) {
+  assertExactKeys(value, EXECUTION_LOCK_FIELDS, "execution lock");
+  if (
+    value.planId !== plan.id ||
+    typeof value.permissionMode !== "string" ||
+    !value.permissionMode ||
+    typeof value.createdAt !== "string" ||
+    !value.createdAt ||
+    !Array.isArray(value.approvedItemIds) ||
+    !Array.isArray(value.allowedTools)
+  ) {
+    throw new Error("execution lock identity fields are invalid");
+  }
+  for (const [label, entries] of [
+    ["approvedItemIds", value.approvedItemIds],
+    ["allowedTools", value.allowedTools],
+  ]) {
+    if (
+      entries.some((entry) => typeof entry !== "string" || !entry) ||
+      new Set(entries).size !== entries.length
+    ) {
+      throw new Error(`execution lock ${label} must contain unique strings`);
+    }
+  }
+
+  const itemMap = new Map(plan.items.map((item) => [item.id, item]));
+  const approvedIds = new Set(value.approvedItemIds);
+  for (const itemId of approvedIds) {
+    const item = itemMap.get(itemId);
+    if (!item || !AUTHORIZED_ITEM_STATUSES.has(item.status)) {
+      throw new Error("execution lock references an unauthorized plan item");
+    }
+  }
+  for (const item of plan.items) {
+    if (
+      AUTHORIZED_ITEM_STATUSES.has(item.status) !== approvedIds.has(item.id)
+    ) {
+      throw new Error("execution lock does not exactly cover authorized items");
+    }
+  }
+
+  const expectedTools = new Set(READ_TOOLS);
+  for (const itemId of approvedIds) {
+    const tool = itemMap.get(itemId)?.tool;
+    if (tool) expectedTools.add(tool);
+  }
+  if (
+    expectedTools.size !== value.allowedTools.length ||
+    value.allowedTools.some((tool) => !expectedTools.has(tool))
+  ) {
+    throw new Error("execution lock allowedTools widens or changes approval");
+  }
+
+  return Object.freeze({
+    planId: value.planId,
+    permissionMode: value.permissionMode,
+    approvedItemIds: Object.freeze([...value.approvedItemIds]),
+    allowedTools: Object.freeze([...value.allowedTools]),
+    createdAt: value.createdAt,
+  });
+}
+
+function emptyPlanManagerState() {
+  return {
+    state: PlanState.INACTIVE,
+    currentPlan: null,
+    history: [],
+    blockedToolLog: [],
+    executionLock: null,
+  };
+}
+
+function serializeManagerState(manager) {
+  return {
+    state: manager.state,
+    currentPlan: serializePlan(manager.currentPlan),
+    history: manager.history.map((plan) => serializePlan(plan)),
+    blockedToolLog: manager.blockedToolLog.map((entry) => ({ ...entry })),
+    executionLock: manager.getExecutionLock(),
+  };
+}
+
+function normalizeManagerState(value) {
+  assertExactKeys(value, PLAN_MANAGER_SNAPSHOT_FIELDS, "plan manager state");
+  if (!Object.values(PlanState).includes(value.state)) {
+    throw new Error("plan manager state is invalid");
+  }
+  if (!Array.isArray(value.history) || !Array.isArray(value.blockedToolLog)) {
+    throw new Error("plan manager history and blockedToolLog must be arrays");
+  }
+  const currentPlan =
+    value.currentPlan == null ? null : normalizePlan(value.currentPlan);
+  const history = value.history.map((plan) => normalizePlan(plan));
+  const blockedToolLog = value.blockedToolLog.map((entry) => {
+    assertExactKeys(
+      entry,
+      ["tool", "reason", "timestamp"],
+      "blocked tool entry",
+    );
+    if (
+      typeof entry.tool !== "string" ||
+      typeof entry.reason !== "string" ||
+      typeof entry.timestamp !== "string"
+    ) {
+      throw new Error("blocked tool entry is invalid");
+    }
+    return { ...entry };
+  });
+
+  if (value.state === PlanState.INACTIVE) {
+    if (currentPlan !== null || value.executionLock !== null) {
+      throw new Error(
+        "inactive plan state cannot retain a plan authority lock",
+      );
+    }
+  } else {
+    if (!currentPlan || currentPlan.status !== value.state) {
+      throw new Error("active plan state and current plan do not match");
+    }
+    if (value.state !== PlanState.ANALYZING) {
+      const ids = new Set(currentPlan.items.map((item) => item.id));
+      for (const item of currentPlan.items) {
+        if (item.dependencies.some((dependency) => !ids.has(dependency))) {
+          throw new Error("execution plan contains an unknown dependency");
+        }
+      }
+    }
+  }
+
+  let executionLock = null;
+  if (AUTHORITY_STATES.has(value.state)) {
+    if (!value.executionLock) {
+      throw new Error("authority-bearing plan state is missing executionLock");
+    }
+    executionLock = normalizeExecutionLock(value.executionLock, currentPlan);
+  } else if (value.executionLock !== null) {
+    throw new Error("non-executing plan state cannot carry executionLock");
+  }
+
+  return {
+    state: value.state,
+    currentPlan,
+    history,
+    blockedToolLog,
+    executionLock,
+  };
+}
+
+function migrateLegacySessionSnapshot(value, { sessionId }) {
+  assertExactKeys(
+    value,
+    LEGACY_SESSION_SNAPSHOT_FIELDS,
+    "legacy plan session snapshot",
+  );
+  if (
+    value.schema !== PLAN_SESSION_SNAPSHOT_SCHEMA ||
+    value.version !== PLAN_SESSION_LEGACY_SNAPSHOT_VERSION ||
+    value.sessionId !== sessionId ||
+    !Number.isSafeInteger(value.revision) ||
+    value.revision < 1 ||
+    !Number.isFinite(value.updatedAt)
+  ) {
+    throw new Error("legacy plan session snapshot identity is invalid");
+  }
+
+  assertExactKeys(
+    value.state,
+    LEGACY_PLAN_MANAGER_SNAPSHOT_FIELDS,
+    "legacy plan manager state",
+  );
+  if (
+    ![PlanState.INACTIVE, PlanState.ANALYZING, PlanState.PLAN_READY].includes(
+      value.state.state,
+    )
+  ) {
+    throw new Error(
+      "legacy authority-bearing plan state cannot be migrated without an executionLock",
+    );
+  }
+  if (
+    !Array.isArray(value.state.history) ||
+    !Array.isArray(value.state.blockedToolLog)
+  ) {
+    throw new Error("legacy plan manager collections are invalid");
+  }
+
+  const state = normalizeManagerState({
+    state: value.state.state,
+    currentPlan:
+      value.state.currentPlan == null
+        ? null
+        : migrateLegacyPlan(value.state.currentPlan),
+    history: value.state.history.map((plan) => migrateLegacyPlan(plan)),
+    blockedToolLog: value.state.blockedToolLog.map((entry) => ({ ...entry })),
+    executionLock: null,
+  });
+  return {
+    schema: PLAN_SESSION_SNAPSHOT_SCHEMA,
+    version: PLAN_SESSION_SNAPSHOT_VERSION,
+    sessionId,
+    revision: value.revision,
+    updatedAt: value.updatedAt,
+    event: createPlanSessionEvent({
+      sessionId,
+      revision: value.revision,
+      previousRevision: value.revision - 1,
+      type: "legacy-snapshot-migrated",
+      timestamp: value.updatedAt,
+    }),
+    state,
+  };
+}
+
+function persistenceFailure(error) {
+  const known =
+    error instanceof PlanPersistenceError ||
+    String(error?.code || "").startsWith("PLAN_");
+  return {
+    error: known ? error.message : "Plan persistence failed",
+    code: known ? error.code : PLAN_PERSISTENCE_ERROR_CODES.WRITE_FAILED,
+    ...(Number.isSafeInteger(error?.expectedRevision)
+      ? { expectedRevision: error.expectedRevision }
+      : {}),
+    ...(Number.isSafeInteger(error?.actualRevision)
+      ? { actualRevision: error.actualRevision }
+      : {}),
+    ...(typeof error?.recoveryStrategy === "string"
+      ? { recoveryStrategy: error.recoveryStrategy }
+      : {}),
+  };
+}
+
 /**
  * Plan Mode Manager
  *
  * Controls the plan mode lifecycle in the agent REPL.
  */
 export class PlanModeManager extends EventEmitter {
-  constructor() {
+  constructor(options = {}) {
     super();
     this.state = PlanState.INACTIVE;
     this.currentPlan = null;
@@ -272,6 +809,160 @@ export class PlanModeManager extends EventEmitter {
     this.blockedToolLog = [];
     this.executionLock = null;
     this._hookDb = null;
+    const sessionId =
+      typeof options.sessionId === "string" && options.sessionId
+        ? options.sessionId
+        : null;
+    const memoryOnly =
+      !sessionId ||
+      options.memoryOnly === true ||
+      options.persistence === false;
+    Object.defineProperties(this, {
+      sessionId: {
+        value: sessionId,
+        enumerable: true,
+        writable: false,
+        configurable: false,
+      },
+      memoryOnly: {
+        value: memoryOnly,
+        enumerable: true,
+        writable: false,
+        configurable: false,
+      },
+    });
+    this.revision = 0;
+    this.updatedAt = 0;
+    this.lastEvent = null;
+    this._persistence = null;
+
+    if (!this.memoryOnly) {
+      const supplied = options.persistence;
+      this._persistence =
+        supplied && typeof supplied === "object"
+          ? supplied
+          : new PlanSessionPersistence({
+              ...(options.persistenceOptions || {}),
+              ...(options.stateDir ? { stateDir: options.stateDir } : {}),
+              normalizeState: normalizeManagerState,
+              emptyState: emptyPlanManagerState,
+              migrateSnapshot: migrateLegacySessionSnapshot,
+            });
+      if (typeof this._persistence.configureStateSchema === "function") {
+        this._persistence.configureStateSchema({
+          normalizeState: normalizeManagerState,
+          emptyState: emptyPlanManagerState,
+          migrateSnapshot: migrateLegacySessionSnapshot,
+        });
+      }
+      const snapshot = this._persistence.load(this.sessionId);
+      this._applyManagerState(snapshot.state);
+      this.revision = snapshot.revision;
+      this.updatedAt = snapshot.updatedAt;
+      this.lastEvent = snapshot.event;
+    }
+  }
+
+  _applyManagerState(value) {
+    const normalized = normalizeManagerState(value);
+    this.state = normalized.state;
+    this.currentPlan = normalized.currentPlan
+      ? new ExecutionPlan(normalized.currentPlan)
+      : null;
+    this.history = normalized.history.map((plan) => new ExecutionPlan(plan));
+    this.blockedToolLog = normalized.blockedToolLog.map((entry) => ({
+      ...entry,
+    }));
+    this.executionLock = normalized.executionLock;
+  }
+
+  _beginMutation() {
+    if (!this._persistence) return { rollback: null };
+    try {
+      return {
+        rollback: {
+          state: serializeManagerState(this),
+          revision: this.revision,
+          updatedAt: this.updatedAt,
+          event: this.lastEvent,
+        },
+      };
+    } catch (error) {
+      return { failure: persistenceFailure(error) };
+    }
+  }
+
+  _commitMutation(transaction, eventType) {
+    if (!this._persistence) {
+      const previousRevision = this.revision;
+      this.revision += 1;
+      this.updatedAt = Date.now();
+      this.lastEvent = this.sessionId
+        ? createPlanSessionEvent({
+            sessionId: this.sessionId,
+            revision: this.revision,
+            previousRevision,
+            type: eventType,
+            timestamp: this.updatedAt,
+          })
+        : null;
+      if (this.lastEvent) this.emit("session-event", { ...this.lastEvent });
+      return null;
+    }
+
+    try {
+      const snapshot = this._persistence.compareAndSwap(
+        this.sessionId,
+        this.revision,
+        serializeManagerState(this),
+        eventType,
+      );
+      this.revision = snapshot.revision;
+      this.updatedAt = snapshot.updatedAt;
+      this.lastEvent = snapshot.event;
+      this.emit("session-event", { ...this.lastEvent });
+      return null;
+    } catch (error) {
+      const rollback = transaction?.rollback;
+      if (rollback) {
+        this._applyManagerState(rollback.state);
+        this.revision = rollback.revision;
+        this.updatedAt = rollback.updatedAt;
+        this.lastEvent = rollback.event;
+      }
+      return persistenceFailure(error);
+    }
+  }
+
+  getSessionSnapshot() {
+    return {
+      schema: PLAN_SESSION_SNAPSHOT_SCHEMA,
+      version: PLAN_SESSION_SNAPSHOT_VERSION,
+      sessionId: this.sessionId,
+      revision: this.revision,
+      updatedAt: this.updatedAt,
+      event: this.lastEvent ? { ...this.lastEvent } : null,
+      state: serializeManagerState(this),
+    };
+  }
+
+  reloadSession() {
+    if (!this._persistence) {
+      return { memoryOnly: true, snapshot: this.getSessionSnapshot() };
+    }
+    const snapshot = this._persistence.load(this.sessionId);
+    this._applyManagerState(snapshot.state);
+    this.revision = snapshot.revision;
+    this.updatedAt = snapshot.updatedAt;
+    this.lastEvent = snapshot.event;
+    return { memoryOnly: false, snapshot: this.getSessionSnapshot() };
+  }
+
+  recoverSessionPersistence(strategy) {
+    if (!this._persistence) {
+      return { strategy, recovered: 0, memoryOnly: true };
+    }
+    return this._persistence.recover(this.sessionId, strategy);
   }
 
   /**
@@ -295,6 +986,8 @@ export class PlanModeManager extends EventEmitter {
     if (this.isActive()) {
       return { error: "Already in plan mode" };
     }
+    const transaction = this._beginMutation();
+    if (transaction.failure) return transaction.failure;
 
     this.currentPlan = new ExecutionPlan({
       title: options.title || "New Plan",
@@ -304,9 +997,15 @@ export class PlanModeManager extends EventEmitter {
     this.blockedToolLog = [];
     this.executionLock = null;
 
+    const persistenceFailureResult = this._commitMutation(
+      transaction,
+      "plan-entered",
+    );
+    if (persistenceFailureResult) return persistenceFailureResult;
+
     this.emit("enter", { plan: this.currentPlan, state: this.state });
     this._fireHook("PlanModeEnter", { planId: this.currentPlan.id });
-    return { plan: this.currentPlan };
+    return { plan: this.currentPlan, revision: this.revision };
   }
 
   /**
@@ -316,6 +1015,8 @@ export class PlanModeManager extends EventEmitter {
     if (!this.isActive()) {
       return { error: "Not in plan mode" };
     }
+    const transaction = this._beginMutation();
+    if (transaction.failure) return transaction.failure;
 
     if (options.savePlan && this.currentPlan) {
       this.history.push(this.currentPlan);
@@ -327,8 +1028,14 @@ export class PlanModeManager extends EventEmitter {
     this.blockedToolLog = [];
     this.executionLock = null;
 
+    const persistenceFailureResult = this._commitMutation(
+      transaction,
+      options.eventType || "plan-exited",
+    );
+    if (persistenceFailureResult) return persistenceFailureResult;
+
     this.emit("exit", { plan, reason: options.reason || "manual" });
-    return { plan };
+    return { plan, revision: this.revision };
   }
 
   /**
@@ -344,10 +1051,17 @@ export class PlanModeManager extends EventEmitter {
     ) {
       return { error: "Approved plan is locked" };
     }
+    const transaction = this._beginMutation();
+    if (transaction.failure) return transaction.failure;
 
     const item = this.currentPlan.addItem(itemData);
+    const persistenceFailureResult = this._commitMutation(
+      transaction,
+      "plan-item-added",
+    );
+    if (persistenceFailureResult) return persistenceFailureResult;
     this.emit("item-added", { planId: this.currentPlan.id, item });
-    return { item };
+    return { item, revision: this.revision };
   }
 
   /**
@@ -357,11 +1071,18 @@ export class PlanModeManager extends EventEmitter {
     if (this.state !== PlanState.ANALYZING) {
       return { error: "Plan is not in analyzing state" };
     }
+    const transaction = this._beginMutation();
+    if (transaction.failure) return transaction.failure;
 
     this.state = PlanState.PLAN_READY;
     this.currentPlan.status = PlanState.PLAN_READY;
+    const persistenceFailureResult = this._commitMutation(
+      transaction,
+      "plan-ready",
+    );
+    if (persistenceFailureResult) return persistenceFailureResult;
     this.emit("plan-ready", { plan: this.currentPlan });
-    return { plan: this.currentPlan };
+    return { plan: this.currentPlan, revision: this.revision };
   }
 
   /**
@@ -379,6 +1100,8 @@ export class PlanModeManager extends EventEmitter {
     ) {
       return { error: "Approved plan is locked" };
     }
+    const transaction = this._beginMutation();
+    if (transaction.failure) return transaction.failure;
 
     const previousPlan = this.currentPlan;
     this.history.push(previousPlan);
@@ -397,6 +1120,11 @@ export class PlanModeManager extends EventEmitter {
       previousPlan,
       reason: String(options.reason || "revision"),
     };
+    const persistenceFailureResult = this._commitMutation(
+      transaction,
+      "plan-revised",
+    );
+    if (persistenceFailureResult) return persistenceFailureResult;
     this.emit("plan-revised", payload);
     this._fireHook("PlanRevised", {
       planId: this.currentPlan.id,
@@ -404,7 +1132,7 @@ export class PlanModeManager extends EventEmitter {
       version: this.currentPlan.version,
       reason: payload.reason,
     });
-    return payload;
+    return { ...payload, revision: this.revision };
   }
 
   /**
@@ -417,6 +1145,8 @@ export class PlanModeManager extends EventEmitter {
     ) {
       return { error: "Plan is not ready for approval" };
     }
+    const transaction = this._beginMutation();
+    if (transaction.failure) return transaction.failure;
 
     const approvedItems = options.itemIds
       ? this.currentPlan.items.filter((i) => options.itemIds.includes(i.id))
@@ -430,8 +1160,23 @@ export class PlanModeManager extends EventEmitter {
       approvedItems,
       options.permissionMode,
     );
+    for (const item of approvedItems) {
+      item.approval = {
+        ...(isPlainObject(item.approval)
+          ? cloneJsonValue(item.approval, "plan approval")
+          : {}),
+        decision: "approved",
+        permissionMode: this.executionLock.permissionMode,
+        approvedAt: this.executionLock.createdAt,
+      };
+    }
     this.state = PlanState.APPROVED;
     this.currentPlan.status = PlanState.APPROVED;
+    const persistenceFailureResult = this._commitMutation(
+      transaction,
+      "plan-approved",
+    );
+    if (persistenceFailureResult) return persistenceFailureResult;
     this.emit("plan-approved", {
       plan: this.currentPlan,
       approvedCount: approvedItems.length,
@@ -447,6 +1192,7 @@ export class PlanModeManager extends EventEmitter {
       plan: this.currentPlan,
       approvedCount: approvedItems.length,
       executionLock: this.getExecutionLock(),
+      revision: this.revision,
     };
   }
 
@@ -496,6 +1242,8 @@ export class PlanModeManager extends EventEmitter {
         candidate.status === PlanStatus.APPROVED && candidate.tool === tool,
     );
     if (!item) return null;
+    const transaction = this._beginMutation();
+    if (transaction.failure) return transaction.failure;
 
     item.status = PlanStatus.EXECUTING;
     item.toolUseId = context.toolUseId || null;
@@ -505,8 +1253,19 @@ export class PlanModeManager extends EventEmitter {
     item.completedAt = null;
     item.result = null;
     item.error = null;
+    if (context.owner !== undefined) item.owner = context.owner;
+    if (context.checkpoint !== undefined) item.checkpoint = context.checkpoint;
+    if (context.approval !== undefined) item.approval = context.approval;
+    if (context.evidenceLineage !== undefined) {
+      item.evidenceLineage = context.evidenceLineage;
+    }
     this.state = PlanState.EXECUTING;
     this.currentPlan.status = PlanState.EXECUTING;
+    const persistenceFailureResult = this._commitMutation(
+      transaction,
+      "plan-item-executing",
+    );
+    if (persistenceFailureResult) return persistenceFailureResult;
     this.emit("item-executing", { planId: this.currentPlan.id, item });
     this._fireHook("PlanItemExecute", {
       planId: this.currentPlan.id,
@@ -523,12 +1282,20 @@ export class PlanModeManager extends EventEmitter {
     if (!this.currentPlan || !itemId) return null;
     const item = this.currentPlan.getItem(itemId);
     if (!item || item.status !== PlanStatus.EXECUTING) return null;
+    const transaction = this._beginMutation();
+    if (transaction.failure) return transaction.failure;
 
     const success = options.success !== false;
     item.status = success ? PlanStatus.COMPLETED : PlanStatus.FAILED;
     item.completedAt = String(options.completedAt || new Date().toISOString());
     item.result = success ? (options.result ?? null) : null;
     item.error = success ? null : String(options.error || "tool failed");
+    if (options.owner !== undefined) item.owner = options.owner;
+    if (options.checkpoint !== undefined) item.checkpoint = options.checkpoint;
+    if (options.approval !== undefined) item.approval = options.approval;
+    if (options.evidenceLineage !== undefined) {
+      item.evidenceLineage = options.evidenceLineage;
+    }
 
     const tracked = this.currentPlan.items.filter((candidate) =>
       [
@@ -553,6 +1320,11 @@ export class PlanModeManager extends EventEmitter {
       this.state = PlanState.EXECUTING;
     }
     this.currentPlan.status = this.state;
+    const persistenceFailureResult = this._commitMutation(
+      transaction,
+      "plan-item-settled",
+    );
+    if (persistenceFailureResult) return persistenceFailureResult;
     this.emit("item-settled", {
       planId: this.currentPlan.id,
       item,
@@ -569,14 +1341,29 @@ export class PlanModeManager extends EventEmitter {
     if (!this.isActive()) {
       return { error: "No active plan" };
     }
+    const transaction = this._beginMutation();
+    if (transaction.failure) return transaction.failure;
 
     for (const item of this.currentPlan.items) {
       item.status = PlanStatus.REJECTED;
     }
 
+    const plan = this.currentPlan;
     this.state = PlanState.REJECTED;
-    this._fireHook("PlanRejected", { planId: this.currentPlan.id, reason });
-    return this.exitPlanMode({ savePlan: true, reason: reason || "rejected" });
+    this.currentPlan.status = PlanState.REJECTED;
+    this.history.push(this.currentPlan);
+    this.state = PlanState.INACTIVE;
+    this.currentPlan = null;
+    this.blockedToolLog = [];
+    this.executionLock = null;
+    const persistenceFailureResult = this._commitMutation(
+      transaction,
+      "plan-rejected",
+    );
+    if (persistenceFailureResult) return persistenceFailureResult;
+    this._fireHook("PlanRejected", { planId: plan.id, reason });
+    this.emit("exit", { plan, reason: reason || "rejected" });
+    return { plan, revision: this.revision };
   }
 
   /**
@@ -608,11 +1395,24 @@ export class PlanModeManager extends EventEmitter {
   }
 
   _recordBlockedTool(toolName, reason) {
+    const transaction = this._beginMutation();
+    if (transaction.failure) {
+      this.emit("persistence-error", transaction.failure);
+      return;
+    }
     this.blockedToolLog.push({
       tool: toolName,
       reason,
       timestamp: new Date().toISOString(),
     });
+    const persistenceFailureResult = this._commitMutation(
+      transaction,
+      "plan-tool-blocked",
+    );
+    if (persistenceFailureResult) {
+      this.emit("persistence-error", persistenceFailureResult);
+      return;
+    }
     this.emit("tool-blocked", { toolName, reason });
   }
 
@@ -681,9 +1481,21 @@ export class PlanModeManager extends EventEmitter {
     if (!this.currentPlan) return { error: "No active plan" };
     if (this.state !== PlanState.APPROVED)
       return { error: "Plan not approved" };
+    const startTransaction = this._beginMutation();
+    if (startTransaction.failure) return startTransaction.failure;
 
     this.state = PlanState.EXECUTING;
     this.currentPlan.status = PlanState.EXECUTING;
+    const startPersistenceFailure = this._commitMutation(
+      startTransaction,
+      "plan-execution-started",
+    );
+    if (startPersistenceFailure) return startPersistenceFailure;
+    // Keep the last committed state as the rollback point while the executor
+    // mutates item statuses/results in memory. A failed final CAS/write must
+    // not leave memory ahead of the durable execution-start snapshot.
+    const settleTransaction = this._beginMutation();
+    if (settleTransaction.failure) return settleTransaction.failure;
 
     const results = await this.currentPlan.executeInOrder(async (item) => {
       this._fireHook("PlanItemExecute", {
@@ -697,8 +1509,13 @@ export class PlanModeManager extends EventEmitter {
     const allDone = results.every((r) => r.success);
     this.state = allDone ? PlanState.COMPLETED : PlanState.FAILED;
     this.currentPlan.status = allDone ? PlanState.COMPLETED : PlanState.FAILED;
+    const settlePersistenceFailure = this._commitMutation(
+      settleTransaction,
+      "plan-execution-settled",
+    );
+    if (settlePersistenceFailure) return settlePersistenceFailure;
 
-    return { results, success: allDone };
+    return { results, success: allDone, revision: this.revision };
   }
 
   /**
@@ -725,9 +1542,9 @@ export class PlanModeManager extends EventEmitter {
 // Singleton
 let _instance = null;
 
-export function getPlanModeManager() {
+export function getPlanModeManager(options = {}) {
   if (!_instance) {
-    _instance = new PlanModeManager();
+    _instance = new PlanModeManager(options);
   }
   return _instance;
 }

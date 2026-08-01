@@ -194,6 +194,7 @@ const defaultFs = {
   statSync: (p) => fs.statSync(p),
   readFileSync: (p, o) => fs.readFileSync(p, o),
   writeFileSync: (p, value, o) => fs.writeFileSync(p, value, o),
+  renameSync: (from, to) => fs.renameSync(from, to),
   rmSync: (p, o) => fs.rmSync(p, o),
 };
 
@@ -348,6 +349,27 @@ function reclaimLegacyDirectory(_fs, lockDir, stat) {
 function releaseOwnedDirectory(_fs, lockDir, owner) {
   if (!sameOwner(readOwner(_fs, path.join(lockDir, "owner.json")), owner)) {
     return false;
+  }
+  // Atomically move the exact owned directory out of the acquisition path,
+  // then remove that uniquely-tokened directory. A replacement owner may
+  // create `lockDir` immediately after the rename and can never be deleted by
+  // this delayed releaser. Injected filesystems without rename support retain
+  // the conservative marker protocol below.
+  if (typeof _fs.renameSync === "function") {
+    const releasedDir = `${lockDir}.release-${owner.token}`;
+    try {
+      _fs.renameSync(lockDir, releasedDir);
+      try {
+        _fs.rmSync(releasedDir, { recursive: true, force: true });
+      } catch {
+        // The acquisition path is already free. This uniquely named release
+        // directory is harmless cache debris if cleanup is interrupted.
+      }
+      return true;
+    } catch (error) {
+      if (error?.code === "ENOENT") return false;
+      // Windows sharing transients fall back to the marker-based release.
+    }
   }
   const markerPath = path.join(lockDir, `.release-${owner.token}`);
   try {

@@ -1,7 +1,28 @@
+import {
+  TODO_PERSISTENCE_ERROR_CODES,
+  TODO_SNAPSHOT_SCHEMA,
+  TODO_SNAPSHOT_VERSION,
+  TodoPersistenceError,
+  TodoSnapshotPersistence,
+  resolveTodoStateDir,
+} from "./todo-persistence.js";
+
+export {
+  TODO_PERSISTENCE_ERROR_CODES,
+  TODO_SNAPSHOT_SCHEMA,
+  TODO_SNAPSHOT_VERSION,
+  TodoPersistenceError,
+  TodoSnapshotPersistence,
+  resolveTodoStateDir,
+  todoSnapshotPath,
+} from "./todo-persistence.js";
+
 /**
  * Session TODO Manager
  *
- * In-memory per-session TODO list. One instance per sessionId.
+ * Session-scoped TODO list. Named sessions use a versioned, revision-CAS
+ * snapshot by default; the unnamed/default store and `{ memoryOnly: true }`
+ * retain the original in-memory behavior.
  * Inspired by open-agents todo_write tool.
  *
  * Contract:
@@ -19,10 +40,83 @@ const VALID_STATUSES = Object.freeze([
 
 const _stores = new Map();
 
-export function getTodoStore(sessionId) {
-  const key = sessionId || "__default__";
+function cloneTodos(todos) {
+  return todos.map((todo) => ({
+    id: todo.id,
+    content: todo.content,
+    status: todo.status,
+  }));
+}
+
+function resolveStoreTarget(sessionId, options = {}) {
+  if (
+    !sessionId ||
+    options.memoryOnly === true ||
+    options.persistence === false
+  ) {
+    return {
+      key: `memory:${sessionId || "__default__"}`,
+      persistence: null,
+    };
+  }
+  const supplied = options.persistence;
+  const persistence =
+    supplied && typeof supplied === "object"
+      ? supplied
+      : new TodoSnapshotPersistence({
+          ...(options.persistenceOptions || {}),
+          ...(options.stateDir ? { stateDir: options.stateDir } : {}),
+          validateTodos,
+        });
+  const identity =
+    persistence.identity ||
+    persistence.stateDir ||
+    resolveTodoStateDir({ stateDir: options.stateDir });
+  return {
+    key: `persistent:${identity}:${sessionId}`,
+    persistence,
+  };
+}
+
+function persistenceFailure(error) {
+  const known =
+    error instanceof TodoPersistenceError ||
+    String(error?.code || "").startsWith("TODO_");
+  return {
+    success: false,
+    code: known ? error.code : TODO_PERSISTENCE_ERROR_CODES.WRITE_FAILED,
+    error: known ? error.message : "TODO persistence failed",
+    ...(Number.isSafeInteger(error?.expectedRevision)
+      ? { expectedRevision: error.expectedRevision }
+      : {}),
+    ...(Number.isSafeInteger(error?.actualRevision)
+      ? { actualRevision: error.actualRevision }
+      : {}),
+    ...(typeof error?.recoveryStrategy === "string"
+      ? { recoveryStrategy: error.recoveryStrategy }
+      : {}),
+  };
+}
+
+export function getTodoStore(sessionId, options = {}) {
+  const { key, persistence } = resolveStoreTarget(sessionId, options);
   if (!_stores.has(key)) {
-    _stores.set(key, { todos: [] });
+    if (persistence) {
+      const snapshot = persistence.load(sessionId);
+      _stores.set(key, {
+        todos: cloneTodos(snapshot.todos),
+        revision: snapshot.revision,
+        persistence,
+        sessionId,
+      });
+    } else {
+      _stores.set(key, {
+        todos: [],
+        revision: 0,
+        persistence: null,
+        sessionId: sessionId || null,
+      });
+    }
   }
   return _stores.get(key);
 }
@@ -64,33 +158,106 @@ export function validateTodos(todos) {
   return { valid: true };
 }
 
-export function writeTodos(sessionId, todos) {
+export function writeTodos(sessionId, todos, options = {}) {
   const check = validateTodos(todos);
   if (!check.valid) {
     return { success: false, error: check.error };
   }
-  const store = getTodoStore(sessionId);
-  store.todos = todos.map((t) => ({
-    id: t.id,
-    content: t.content,
-    status: t.status,
-  }));
+  const hasExpectedRevision = Object.prototype.hasOwnProperty.call(
+    options,
+    "expectedRevision",
+  );
+  if (
+    hasExpectedRevision &&
+    (!Number.isSafeInteger(options.expectedRevision) ||
+      options.expectedRevision < 0)
+  ) {
+    return {
+      success: false,
+      code: TODO_PERSISTENCE_ERROR_CODES.REVISION_CONFLICT,
+      error: "expectedRevision must be a non-negative safe integer",
+    };
+  }
+  let store;
+  try {
+    store = getTodoStore(sessionId, options);
+  } catch (error) {
+    return persistenceFailure(error);
+  }
+  const nextTodos = cloneTodos(todos);
+  if (store.persistence) {
+    const expectedRevision = hasExpectedRevision
+      ? options.expectedRevision
+      : store.revision;
+    let snapshot;
+    try {
+      snapshot = store.persistence.compareAndSwap(
+        sessionId,
+        expectedRevision,
+        nextTodos,
+      );
+    } catch (error) {
+      return persistenceFailure(error);
+    }
+    store.todos = cloneTodos(snapshot.todos);
+    store.revision = snapshot.revision;
+  } else {
+    if (hasExpectedRevision && options.expectedRevision !== store.revision) {
+      return {
+        success: false,
+        code: TODO_PERSISTENCE_ERROR_CODES.REVISION_CONFLICT,
+        error: "TODO snapshot revision conflict",
+        expectedRevision: options.expectedRevision,
+        actualRevision: store.revision,
+      };
+    }
+    store.todos = nextTodos;
+    store.revision += 1;
+  }
   return {
     success: true,
     count: store.todos.length,
     summary: summarizeTodos(store.todos),
+    revision: store.revision,
   };
 }
 
-export function getTodos(sessionId) {
-  const store = getTodoStore(sessionId);
-  return store.todos.map((t) => ({ ...t }));
+export function getTodos(sessionId, options = {}) {
+  const store = getTodoStore(sessionId, options);
+  if (store.persistence && options.refresh !== false) {
+    const snapshot = store.persistence.load(sessionId);
+    store.todos = cloneTodos(snapshot.todos);
+    store.revision = snapshot.revision;
+  }
+  return cloneTodos(store.todos);
 }
 
-export function clearTodos(sessionId) {
-  const store = getTodoStore(sessionId);
-  store.todos = [];
-  return { success: true };
+export function getTodoSnapshot(sessionId, options = {}) {
+  const todos = getTodos(sessionId, options);
+  const store = getTodoStore(sessionId, { ...options, refresh: false });
+  return {
+    schema: TODO_SNAPSHOT_SCHEMA,
+    version: TODO_SNAPSHOT_VERSION,
+    sessionId: sessionId || null,
+    revision: store.revision,
+    todos,
+  };
+}
+
+export function clearTodos(sessionId, options = {}) {
+  const result = writeTodos(sessionId, [], options);
+  if (!result.success) return result;
+  return { success: true, revision: result.revision };
+}
+
+export function recoverTodoSnapshot(sessionId, strategy, options = {}) {
+  const { key, persistence } = resolveStoreTarget(sessionId, options);
+  if (!persistence) {
+    return { strategy, recovered: 0, memoryOnly: true };
+  }
+  const result = persistence.recover(sessionId, strategy);
+  _stores.delete(key);
+  return result;
 }
 
 export function summarizeTodos(todos) {
