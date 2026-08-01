@@ -47,6 +47,7 @@ import {
   runCoworkTask,
   runCoworkTaskParallel,
   runCoworkDebate,
+  prepareCoworkMcpRuntime,
   _deps,
 } from "../../src/lib/cowork-task-runner.js";
 import { _mockStartDebate } from "../../src/lib/cowork/debate-review-cli.js";
@@ -57,6 +58,85 @@ import {
 } from "../../src/lib/sub-agent-context.js";
 import { _mockMount, _mockCleanup } from "../../src/lib/cowork-mcp-tools.js";
 import { executeTool } from "../../src/runtime/agent-core.js";
+import { summarizeMcpPayload } from "../../src/lib/mcp-call-ledger.js";
+import {
+  MCP_CALL_LEDGER_EVENT,
+  MCP_CALL_RECOVERY_ADJUDICATION_EVENT,
+  computeMcpRecoveryDigest,
+  reduceMcpLedgerEvents,
+} from "../../src/lib/mcp-call-ledger-store.js";
+
+function rawHead(sequence) {
+  return sequence.toString(16).padStart(64, "0");
+}
+
+function adjudicatedRecoveryEvents(count, sessionId) {
+  const events = [];
+  let head = null;
+  for (let index = 0; index < count; index += 1) {
+    const input = summarizeMcpPayload({ index });
+    const nextHead = rawHead(index + 1);
+    events.push({
+      type: MCP_CALL_LEDGER_EVENT,
+      timestamp: index + 1,
+      prevHash: head,
+      hash: nextHead,
+      data: {
+        schemaVersion: 1,
+        phase: "started",
+        record: {
+          schemaVersion: 1,
+          ledgerId: `mcp-deny-${index}`,
+          sessionId,
+          turnId: `turn-${index}`,
+          toolName: "publish",
+          serverName: "repo",
+          inputDigest: input.sha256,
+          inputBytes: input.bytes,
+          effectContract: { effect: "write" },
+          resourceScopes: [],
+          networkScopes: [],
+          prewritePolicy: "fail-closed",
+          prewritePersistence: "pending",
+          status: "started",
+          startedAt: "2026-08-02T00:00:00.000Z",
+          settledAt: null,
+          outputSummary: null,
+          outputDigest: null,
+          errorSummary: null,
+        },
+      },
+    });
+    head = nextHead;
+  }
+  for (let index = 0; index < count; index += 1) {
+    const recovery = reduceMcpLedgerEvents(events, {
+      sessionId,
+      verified: true,
+    });
+    const nextHead = rawHead(count + index + 1);
+    events.push({
+      type: MCP_CALL_RECOVERY_ADJUDICATION_EVENT,
+      timestamp: count + index + 1,
+      prevHash: head,
+      hash: nextHead,
+      data: {
+        schemaVersion: 1,
+        requestId: `request-${index}`,
+        sessionId,
+        ledgerId: `mcp-deny-${index}`,
+        decision: "confirmed_applied",
+        expectedHeadHash: head,
+        expectedRecoveryDigest: computeMcpRecoveryDigest(recovery),
+        authority: "local-cli-tty",
+        confirmation: "typed-digest-host-stopped",
+        reasonDigest: `sha256:${"f".repeat(64)}`,
+      },
+    });
+    head = nextHead;
+  }
+  return events;
+}
 
 describe("cowork-task-runner", () => {
   beforeEach(() => {
@@ -610,6 +690,8 @@ describe("cowork-task-runner", () => {
     _deps.readVerifiedSessionEvents = vi.fn(() => [
       {
         type: "mcp_call_ledger",
+        prevHash: null,
+        hash: "a".repeat(64),
         data: {
           schemaVersion: 1,
           phase: "started",
@@ -655,7 +737,7 @@ describe("cowork-task-runner", () => {
       "cowork-resume-session",
       "cowork_mcp_session",
       expect.objectContaining({ taskId: "sub-test-123456" }),
-      null,
+      "a".repeat(64),
     );
     expect(onProgress).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -687,6 +769,60 @@ describe("cowork-task-runner", () => {
     });
     expect(replay.error).toContain("explicitly adjudicated");
     expect(fakeClient.callTool).not.toHaveBeenCalled();
+  });
+
+  it("retains every exact replay deny in Cowork host authority", async () => {
+    const sessionId = "cowork-replay-deny-session";
+    const events = adjudicatedRecoveryEvents(25, sessionId);
+    const onProgress = vi.fn();
+    _deps.readVerifiedSessionEvents = vi.fn(() => events);
+
+    const runtime = prepareCoworkMcpRuntime(
+      {
+        mcpClient: { callTool: vi.fn() },
+        extraToolDefinitions: [
+          { type: "function", function: { name: "mcp__repo__publish" } },
+        ],
+      },
+      { mcpSessionId: sessionId, templateId: "doc-convert", onProgress },
+    );
+
+    expect(runtime.recoveryState.replayDenied).toHaveLength(25);
+    expect(runtime.recoveryState.replayDenied[24]).toMatchObject({
+      ledgerId: "mcp-deny-24",
+      serverName: "repo",
+      toolName: "publish",
+      inputBytes: summarizeMcpPayload({ index: 24 }).bytes,
+    });
+    expect(runtime.recoveryState.replayDenied[24]).toHaveProperty(
+      "replayDigest",
+    );
+    expect(runtime.recoveryState.replayDenied[24]).not.toHaveProperty(
+      "inputDigest",
+    );
+    expect(Object.isFrozen(runtime.recoveryState.replayDenied)).toBe(true);
+    expect(Object.isFrozen(runtime.recoveryState.replayDenied[24])).toBe(true);
+    expect(onProgress).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "mcp-recovery",
+        recovery: expect.objectContaining({
+          replayDenied: expect.arrayContaining([
+            expect.objectContaining({ ledgerId: "mcp-deny-24" }),
+          ]),
+        }),
+      }),
+    );
+    await expect(
+      runtime.ledger.begin({
+        toolName: "publish",
+        serverName: "repo",
+        input: { index: 24 },
+        effectContract: { effect: "read", trusted: true },
+      }),
+    ).rejects.toMatchObject({
+      code: "CC_MCP_LEDGER_EXACT_REPLAY_DENIED",
+      retryable: false,
+    });
   });
 
   it("blocks every MCP effect when the durable transcript cannot be verified", async () => {

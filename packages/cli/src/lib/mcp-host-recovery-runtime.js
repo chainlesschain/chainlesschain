@@ -60,22 +60,28 @@ function tightenRecoveryController(controller, recovery, recoveryError) {
   }
   if (
     typeof controller.latchUnsafe !== "function" ||
-    typeof controller.latchAll !== "function"
+    typeof controller.latchAll !== "function" ||
+    typeof controller.replaceVerifiedRecovery !== "function"
   ) {
     throw new TypeError("MCP recovery controller is invalid");
   }
 
-  const incoming = createMcpRecoveryAdmissionController(recovery, {
-    recoveryError,
-  }).admission;
-  const reasonCode = incoming.reasonCode || recoveryErrorCode(recoveryError);
-  if (incoming.blockMode === "all") {
-    controller.latchAll(reasonCode);
-  } else if (incoming.blockMode === "unsafe") {
-    controller.latchUnsafe(reasonCode);
+  const previous = controller.admission;
+  if (recovery != null) {
+    // Install the complete verified projection, including exact-replay denies.
+    // The controller rejects any replacement that would remove prior deny
+    // authority. Re-apply the prior runtime latch below so this merge cannot
+    // otherwise lower an in-process failure state.
+    controller.replaceVerifiedRecovery(recovery);
   }
-  // A clean projection is deliberately a no-op here. Clearing a runtime latch
-  // requires the controller's explicit verified-replacement authority.
+  if (previous?.blockMode === "all") {
+    controller.latchAll(previous.reasonCode || null);
+  } else if (previous?.blockMode === "unsafe") {
+    controller.latchUnsafe(previous.reasonCode || null);
+  }
+  if (recoveryError != null) {
+    controller.latchAll(recoveryErrorCode(recoveryError));
+  }
   return controller;
 }
 

@@ -494,7 +494,13 @@ describe("MCP call ledger session store", () => {
   );
 
   it("binds recovery records to the requested session", () => {
-    const crossSessionEvents = [event(record({ sessionId: "session-2" }))];
+    const crossSessionEvents = [
+      {
+        ...event(record({ sessionId: "session-2" })),
+        prevHash: null,
+        hash: "f".repeat(64),
+      },
+    ];
 
     expect(reduceMcpLedgerEvents(crossSessionEvents).records).toHaveLength(1);
     const reduced = reduceMcpLedgerEvents(crossSessionEvents, {

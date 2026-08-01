@@ -17,6 +17,21 @@ import {
   classifyMcpRecoveryAdmission,
 } from "../../lib/mcp-ledger-recovery-admission.js";
 
+const PAYLOAD_DIGEST = /^sha256:[0-9a-f]{64}$/;
+const RAW_AUTHORITY_HASH = /^[0-9a-f]{64}$/;
+const MCP_REPLAY_DENY_FIELDS = new Set([
+  "ledgerId",
+  "serverName",
+  "toolName",
+  "inputBytes",
+  "replayDigest",
+]);
+const MCP_RECOVERY_REMEDIATIONS = new Set([
+  "inspect_transcript",
+  "adjudicate_started_calls",
+  "exact_replay_denied",
+]);
+
 function recoveryErrorCode(error, fallbackCode) {
   try {
     return typeof error?.code === "string" && error.code
@@ -89,6 +104,47 @@ function snapshotMcpIncident(incident) {
   });
 }
 
+function snapshotMcpReplayDeny(entry) {
+  if (!entry || typeof entry !== "object" || isProxy(entry)) {
+    const error = new TypeError("MCP replay deny entry is malformed");
+    error.code = MCP_RECOVERY_INVALID_CODE;
+    throw error;
+  }
+  const descriptors = Object.getOwnPropertyDescriptors(entry);
+  const fields = Object.keys(descriptors);
+  if (
+    fields.length !== MCP_REPLAY_DENY_FIELDS.size ||
+    fields.some((field) => !MCP_REPLAY_DENY_FIELDS.has(field)) ||
+    [...MCP_REPLAY_DENY_FIELDS].some(
+      (field) => !descriptors[field] || !("value" in descriptors[field]),
+    )
+  ) {
+    const error = new TypeError("MCP replay deny entry schema is invalid");
+    error.code = MCP_RECOVERY_INVALID_CODE;
+    throw error;
+  }
+  const snapshot = Object.freeze({
+    ledgerId: recoveryString(descriptors.ledgerId.value, null),
+    serverName: recoveryString(descriptors.serverName.value, null),
+    toolName: recoveryString(descriptors.toolName.value, null),
+    inputBytes: descriptors.inputBytes.value,
+    replayDigest: recoveryString(descriptors.replayDigest.value, null),
+  });
+  if (
+    !snapshot.ledgerId ||
+    !snapshot.serverName ||
+    !snapshot.toolName ||
+    !Number.isInteger(snapshot.inputBytes) ||
+    snapshot.inputBytes < 0 ||
+    !PAYLOAD_DIGEST.test(snapshot.replayDigest || "")
+  ) {
+    const error = new TypeError("MCP replay deny identity is invalid");
+    error.code = MCP_RECOVERY_INVALID_CODE;
+    throw error;
+  }
+  return snapshot;
+}
+
 function strictMcpRecoverySnapshot(recovery) {
   if (recovery == null) {
     const error = new TypeError("MCP recovery projection is missing");
@@ -108,14 +164,55 @@ function strictMcpRecoverySnapshot(recovery) {
   const descriptors = Object.getOwnPropertyDescriptors(recovery);
   const unsettledSource = descriptors.unsettled?.value;
   const incidentsSource = descriptors.incidents?.value;
-  if (!Array.isArray(unsettledSource) || !Array.isArray(incidentsSource)) {
+  const replayDeniedSource = descriptors.replayDenied?.value;
+  if (
+    !Array.isArray(unsettledSource) ||
+    !Array.isArray(incidentsSource) ||
+    !Array.isArray(replayDeniedSource)
+  ) {
     const error = new TypeError("MCP recovery arrays are unavailable");
     error.code = MCP_RECOVERY_INVALID_CODE;
     throw error;
   }
   const unsettled = Object.freeze(unsettledSource.map(snapshotMcpRecord));
   const incidents = Object.freeze(incidentsSource.map(snapshotMcpIncident));
-  return Object.freeze({ admission, unsettled, incidents });
+  const replayDenied = Object.freeze(
+    replayDeniedSource.map(snapshotMcpReplayDeny),
+  );
+  const headHash = recoveryString(
+    ownDataValue(recovery, "headHash", null),
+    null,
+  );
+  const recoveryDigest = recoveryString(
+    ownDataValue(recovery, "recoveryDigest", null),
+    null,
+  );
+  if (
+    (headHash != null && !RAW_AUTHORITY_HASH.test(headHash)) ||
+    (recoveryDigest != null && !PAYLOAD_DIGEST.test(recoveryDigest))
+  ) {
+    const error = new TypeError("MCP recovery authority digest is invalid");
+    error.code = MCP_RECOVERY_INVALID_CODE;
+    throw error;
+  }
+  const remediation = recoveryString(
+    ownDataValue(recovery, "remediation", null),
+    null,
+  );
+  if (remediation !== null && !MCP_RECOVERY_REMEDIATIONS.has(remediation)) {
+    const error = new TypeError("MCP recovery remediation is invalid");
+    error.code = MCP_RECOVERY_INVALID_CODE;
+    throw error;
+  }
+  return Object.freeze({
+    admission,
+    unsettled,
+    incidents,
+    replayDenied,
+    headHash,
+    recoveryDigest,
+    remediation,
+  });
 }
 
 function failClosedMcpRecovery(
@@ -128,7 +225,11 @@ function failClosedMcpRecovery(
     count: 1,
     unsettled: Object.freeze([]),
     incidents: Object.freeze([incident]),
+    replayDenied: Object.freeze([]),
     blockMode: "all",
+    headHash: null,
+    recoveryDigest: null,
+    remediation: "inspect_transcript",
     notice:
       "MCP recovery notice — the durable MCP ledger could not be verified. " +
       "Do NOT automatically retry prior MCP actions; inspect the session " +
@@ -204,6 +305,7 @@ function buildMcpResumeRecovery(sessionId, loadRecovery, formatNotice) {
     const requiresInspection =
       unsettled.length > 0 ||
       incidents.length > 0 ||
+      snapshot.replayDenied.length > 0 ||
       snapshot.admission.blockMode != null;
     let notice = null;
     if (requiresInspection) {
@@ -219,6 +321,7 @@ function buildMcpResumeRecovery(sessionId, loadRecovery, formatNotice) {
           ),
         ),
         incidents,
+        replayDenied: snapshot.replayDenied,
       });
       notice = formatNotice(formatterProjection);
       if (notice != null && typeof notice !== "string") {
@@ -233,9 +336,13 @@ function buildMcpResumeRecovery(sessionId, loadRecovery, formatNotice) {
         "automatically retry prior MCP actions until recovery is adjudicated.";
     }
     return Object.freeze({
-      count: unsettled.length + incidents.length,
+      count: unsettled.length + incidents.length + snapshot.replayDenied.length,
       unsettled,
       incidents,
+      headHash: snapshot.headHash,
+      recoveryDigest: snapshot.recoveryDigest,
+      replayDenied: snapshot.replayDenied,
+      remediation: snapshot.remediation,
       notice,
       ...(snapshot.admission.blockMode
         ? { blockMode: snapshot.admission.blockMode }
@@ -521,6 +628,7 @@ export async function handleSessionResume(server, id, ws, message) {
     count: 0,
     unsettled: [],
     incidents: [],
+    replayDenied: [],
     notice: null,
   };
   session.mcpLedgerRecoveryRevision =

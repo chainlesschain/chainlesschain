@@ -80,7 +80,11 @@ export class WSAgentHandler {
         typeof controller.replaceVerifiedRecovery === "function"
       ) {
         controller.replaceVerifiedRecovery(
-          session.mcpLedgerRecovery || { incidents: [], unsettled: [] },
+          session.mcpLedgerRecovery || {
+            incidents: [],
+            unsettled: [],
+            replayDenied: [],
+          },
         );
       }
       this._mcpRecoveryRuntime = createMcpHostRecoveryRuntime({
@@ -99,7 +103,11 @@ export class WSAgentHandler {
       this._mcpRecoveryRevision = revision;
     } else if (this._mcpRecoveryRevision !== revision) {
       this._mcpRecoveryRuntime.controller.replaceVerifiedRecovery(
-        session.mcpLedgerRecovery || { incidents: [], unsettled: [] },
+        session.mcpLedgerRecovery || {
+          incidents: [],
+          unsettled: [],
+          replayDenied: [],
+        },
       );
       this._mcpRecoveryRevision = revision;
     }

@@ -20,19 +20,31 @@ import {
   MCP_CALL_LEDGER_SCHEMA_VERSION,
   McpCallStatus,
   McpEffect,
+  computeMcpExactReplayDigest,
   normalizeMcpLedgerProtocolText,
   normalizeMcpEffectContract,
+  sha256PayloadDigest,
 } from "./mcp-call-ledger.js";
 
 export const MCP_CALL_LEDGER_EVENT = "mcp_call_ledger";
 export const MCP_CALL_LEDGER_EVENT_SCHEMA_VERSION = 1;
+export const MCP_CALL_RECOVERY_ADJUDICATION_EVENT =
+  "mcp_call_recovery_adjudication";
+export const MCP_CALL_RECOVERY_ADJUDICATION_SCHEMA_VERSION = 1;
+export const McpCallRecoveryDecision = Object.freeze({
+  CONFIRMED_APPLIED: "confirmed_applied",
+  CONFIRMED_NOT_APPLIED: "confirmed_not_applied",
+});
+export const MCP_CALL_RECOVERY_AUTHORITY = "local-cli-tty";
+export const MCP_CALL_RECOVERY_CONFIRMATION = "typed-digest-host-stopped";
 
 const TERMINAL = new Set([
   McpCallStatus.COMPLETED,
   McpCallStatus.FAILED,
   McpCallStatus.CANCELLED,
 ]);
-const SHA256_DIGEST = /^sha256:[0-9a-f]{64}$/i;
+const PAYLOAD_DIGEST = /^sha256:[0-9a-f]{64}$/;
+const RAW_AUTHORITY_HASH = /^[0-9a-f]{64}$/;
 const OUTPUT_KINDS = new Set(MCP_CALL_LEDGER_OUTPUT_KINDS);
 const RECORD_FIELDS = new Set([
   "schemaVersion",
@@ -70,6 +82,19 @@ const EFFECT_CONTRACT_FIELDS = new Set([
 ]);
 const OUTPUT_SUMMARY_FIELDS = new Set(["sha256", "bytes", "kind"]);
 const ERROR_SUMMARY_FIELDS = new Set(["name", "code", "messageDigest"]);
+const ADJUDICATION_FIELDS = new Set([
+  "schemaVersion",
+  "requestId",
+  "sessionId",
+  "ledgerId",
+  "decision",
+  "expectedHeadHash",
+  "expectedRecoveryDigest",
+  "authority",
+  "confirmation",
+  "reasonDigest",
+]);
+const RECOVERY_DIGEST_SCHEMA_VERSION = 1;
 
 export class McpCallLedgerStoreError extends Error {
   constructor(code, message, options = {}) {
@@ -102,6 +127,17 @@ function hasOnlyFields(value, allowedFields) {
   );
 }
 
+function hasExactFields(value, requiredFields) {
+  if (!hasOnlyFields(value, requiredFields)) return false;
+  const fields = Object.keys(value);
+  return (
+    fields.length === requiredFields.size &&
+    [...requiredFields].every((field) =>
+      Object.prototype.hasOwnProperty.call(value, field),
+    )
+  );
+}
+
 function canonicalScopes(value, canonicalize) {
   if (!Array.isArray(value) || value.some((item) => typeof item !== "string")) {
     return null;
@@ -119,7 +155,7 @@ function canonicalOutputSummary(value) {
   if (value === null) return null;
   if (
     !hasOnlyFields(value, OUTPUT_SUMMARY_FIELDS) ||
-    !SHA256_DIGEST.test(String(value.sha256 || "")) ||
+    !PAYLOAD_DIGEST.test(String(value.sha256 || "")) ||
     !Number.isInteger(value.bytes) ||
     value.bytes < 0 ||
     !OUTPUT_KINDS.has(value.kind)
@@ -146,7 +182,7 @@ function canonicalErrorSummary(value) {
         value.code,
         MCP_CALL_LEDGER_PROTOCOL_LIMITS.errorCode,
       )) ||
-    !SHA256_DIGEST.test(String(value.messageDigest || ""))
+    !PAYLOAD_DIGEST.test(String(value.messageDigest || ""))
   ) {
     return false;
   }
@@ -210,7 +246,7 @@ function canonicalRecord(record) {
       MCP_CALL_LEDGER_PROTOCOL_LIMITS.identifier,
     ) &&
     effectSourceValid &&
-    SHA256_DIGEST.test(String(record.inputDigest || "")) &&
+    PAYLOAD_DIGEST.test(String(record.inputDigest || "")) &&
     Number.isInteger(record.inputBytes) &&
     record.inputBytes >= 0 &&
     Object.values(McpEffect).includes(effectContract.effect) &&
@@ -219,7 +255,7 @@ function canonicalRecord(record) {
     outputSummary !== false &&
     errorSummary !== false &&
     (record.outputDigest === null ||
-      SHA256_DIGEST.test(String(record.outputDigest || ""))) &&
+      PAYLOAD_DIGEST.test(String(record.outputDigest || ""))) &&
     (outputSummary === null
       ? record.outputDigest === null
       : record.outputDigest === outputSummary.sha256) &&
@@ -334,6 +370,121 @@ function stableValue(value) {
   return value ?? null;
 }
 
+function stableSorted(values) {
+  return values.map(stableValue).sort((left, right) => {
+    const leftDigest = sha256PayloadDigest(left);
+    const rightDigest = sha256PayloadDigest(right);
+    const digestOrder =
+      leftDigest < rightDigest ? -1 : leftDigest > rightDigest ? 1 : 0;
+    if (digestOrder) return digestOrder;
+    const leftJson = JSON.stringify(left);
+    const rightJson = JSON.stringify(right);
+    return leftJson < rightJson ? -1 : leftJson > rightJson ? 1 : 0;
+  });
+}
+
+function canonicalAdjudication(value) {
+  if (
+    !hasExactFields(value, ADJUDICATION_FIELDS) ||
+    value.schemaVersion !== MCP_CALL_RECOVERY_ADJUDICATION_SCHEMA_VERSION ||
+    !isCanonicalProtocolText(
+      value.requestId,
+      MCP_CALL_LEDGER_PROTOCOL_LIMITS.identifier,
+    ) ||
+    !isCanonicalProtocolText(
+      value.sessionId,
+      MCP_CALL_LEDGER_PROTOCOL_LIMITS.identifier,
+    ) ||
+    !isCanonicalProtocolText(
+      value.ledgerId,
+      MCP_CALL_LEDGER_PROTOCOL_LIMITS.ledgerId,
+    ) ||
+    !Object.values(McpCallRecoveryDecision).includes(value.decision) ||
+    !RAW_AUTHORITY_HASH.test(String(value.expectedHeadHash || "")) ||
+    !PAYLOAD_DIGEST.test(String(value.expectedRecoveryDigest || "")) ||
+    value.authority !== MCP_CALL_RECOVERY_AUTHORITY ||
+    value.confirmation !== MCP_CALL_RECOVERY_CONFIRMATION ||
+    !PAYLOAD_DIGEST.test(String(value.reasonDigest || ""))
+  ) {
+    return null;
+  }
+  return Object.freeze({
+    schemaVersion: value.schemaVersion,
+    requestId: value.requestId,
+    sessionId: value.sessionId,
+    ledgerId: value.ledgerId,
+    decision: value.decision,
+    expectedHeadHash: value.expectedHeadHash,
+    expectedRecoveryDigest: value.expectedRecoveryDigest,
+    authority: value.authority,
+    confirmation: value.confirmation,
+    reasonDigest: value.reasonDigest,
+  });
+}
+
+function replayToolNamesFromRecord(record) {
+  const toolName = record?.toolName;
+  const serverName = record?.serverName;
+  if (typeof toolName !== "string" || typeof serverName !== "string") {
+    return [];
+  }
+  const aliasPrefix = `mcp__${serverName}__`;
+  if (!toolName.startsWith(aliasPrefix)) return [toolName];
+  const stripped = toolName.slice(aliasPrefix.length);
+  // Historical records did not identify whether toolName was the raw host
+  // name or the model-facing alias. Preserve both exact candidates so either
+  // interpretation remains denied; new writes use the raw name in agent-core.
+  return stripped && stripped !== toolName ? [toolName, stripped] : [toolName];
+}
+
+export function deriveMcpExactReplayDenies(record) {
+  return Object.freeze(
+    replayToolNamesFromRecord(record).map((toolName) =>
+      Object.freeze({
+        ledgerId: record.ledgerId,
+        serverName: record.serverName,
+        toolName,
+        inputBytes: record.inputBytes,
+        replayDigest: computeMcpExactReplayDigest({ ...record, toolName }),
+      }),
+    ),
+  );
+}
+
+function exactReplayKey(value) {
+  return JSON.stringify([
+    value?.serverName || null,
+    value?.toolName || null,
+    Number.isInteger(value?.inputBytes) ? value.inputBytes : null,
+    value?.replayDigest || computeMcpExactReplayDigest(value),
+  ]);
+}
+
+function exactReplayKeysFromRecord(record) {
+  return deriveMcpExactReplayDenies(record).map(exactReplayKey);
+}
+
+/** Deterministic digest of the complete active MCP recovery authority. */
+export function computeMcpRecoveryDigest(recovery = {}) {
+  const unsettled = Array.isArray(recovery.unsettled) ? recovery.unsettled : [];
+  const incidents = Array.isArray(recovery.incidents) ? recovery.incidents : [];
+  const adjudications = Array.isArray(recovery.adjudications)
+    ? recovery.adjudications
+    : [];
+  const replayDenied = Array.isArray(recovery.replayDenied)
+    ? recovery.replayDenied
+    : [];
+  return sha256PayloadDigest({
+    schemaVersion: RECOVERY_DIGEST_SCHEMA_VERSION,
+    sessionId: recovery.sessionId || null,
+    headHash: recovery.headHash || null,
+    unsettled: stableSorted(unsettled),
+    incidents: stableSorted(incidents),
+    adjudications: stableSorted(adjudications),
+    replayDenied: stableSorted(replayDenied),
+  });
+}
+
 function immutableRecordMatches(started, settled) {
   return IMMUTABLE_RECORD_FIELDS.every(
     (field) =>
@@ -415,9 +566,113 @@ export function createSessionMcpLedgerSink(sessionId, options = {}) {
 export function reduceMcpLedgerEvents(events, options = {}) {
   const records = new Map();
   const incidents = [];
+  const adjudications = new Map();
+  const adjudicationRequestIds = new Set();
+  const replayDenied = new Map();
   const targetSessionId =
     typeof options.sessionId === "string" ? options.sessionId : null;
-  for (const event of Array.isArray(events) ? events : []) {
+  const verified = options.verified === true;
+  const sourceEvents = Array.isArray(events) ? events : [];
+  const addIncident = (code, ledgerId = null) => {
+    incidents.push(Object.freeze({ code, ledgerId }));
+  };
+  let prefixHeadHash = null;
+
+  for (const event of sourceEvents) {
+    const priorHeadHash = prefixHeadHash;
+    const eventHeadHash = RAW_AUTHORITY_HASH.test(String(event?.hash || ""))
+      ? event.hash
+      : null;
+    const prefixLinked =
+      eventHeadHash !== null && (event?.prevHash ?? null) === priorHeadHash;
+    prefixHeadHash = eventHeadHash;
+    if (verified && !prefixLinked) {
+      addIncident("CC_MCP_RECOVERY_AUTHORITY_PREFIX_INVALID");
+      continue;
+    }
+
+    if (event?.type === MCP_CALL_RECOVERY_ADJUDICATION_EVENT) {
+      const adjudication = canonicalAdjudication(event.data);
+      if (!adjudication) {
+        addIncident("CC_MCP_RECOVERY_ADJUDICATION_CORRUPT");
+        continue;
+      }
+      if (!verified) {
+        addIncident(
+          "CC_MCP_RECOVERY_ADJUDICATION_UNVERIFIED",
+          adjudication.ledgerId,
+        );
+        continue;
+      }
+      if (
+        targetSessionId === null ||
+        adjudication.sessionId !== targetSessionId ||
+        priorHeadHash !== adjudication.expectedHeadHash ||
+        event.prevHash !== adjudication.expectedHeadHash
+      ) {
+        addIncident(
+          "CC_MCP_RECOVERY_ADJUDICATION_HEAD_MISMATCH",
+          adjudication.ledgerId,
+        );
+        continue;
+      }
+      if (incidents.length > 0) {
+        addIncident(
+          "CC_MCP_RECOVERY_ADJUDICATION_INCIDENTS_PRESENT",
+          adjudication.ledgerId,
+        );
+        continue;
+      }
+
+      const currentSnapshots = [...records.values()];
+      const currentRecovery = {
+        sessionId: targetSessionId,
+        headHash: priorHeadHash,
+        unsettled: currentSnapshots.filter(
+          (record) =>
+            record.status === McpCallStatus.STARTED &&
+            !adjudications.has(record.ledgerId),
+        ),
+        incidents,
+        adjudications: [...adjudications.values()],
+        replayDenied: [...replayDenied.values()],
+      };
+      if (
+        adjudication.expectedRecoveryDigest !==
+        computeMcpRecoveryDigest(currentRecovery)
+      ) {
+        addIncident(
+          "CC_MCP_RECOVERY_ADJUDICATION_DIGEST_MISMATCH",
+          adjudication.ledgerId,
+        );
+        continue;
+      }
+
+      const target = records.get(adjudication.ledgerId);
+      if (
+        !target ||
+        target.status !== McpCallStatus.STARTED ||
+        adjudications.has(adjudication.ledgerId) ||
+        adjudicationRequestIds.has(adjudication.requestId)
+      ) {
+        addIncident(
+          "CC_MCP_RECOVERY_ADJUDICATION_TARGET_INVALID",
+          adjudication.ledgerId,
+        );
+        continue;
+      }
+
+      adjudications.set(adjudication.ledgerId, adjudication);
+      adjudicationRequestIds.add(adjudication.requestId);
+      if (adjudication.decision === McpCallRecoveryDecision.CONFIRMED_APPLIED) {
+        for (const deny of deriveMcpExactReplayDenies(target)) {
+          const key = exactReplayKey(deny);
+          if (!replayDenied.has(key)) replayDenied.set(key, deny);
+        }
+      }
+      continue;
+    }
+
     if (event?.type !== MCP_CALL_LEDGER_EVENT) continue;
     const envelope = event.data;
     const record = canonicalRecord(envelope?.record);
@@ -426,51 +681,38 @@ export function reduceMcpLedgerEvents(events, options = {}) {
       !record ||
       !phaseMatchesRecord(envelope?.phase, record)
     ) {
-      incidents.push(
-        Object.freeze({
-          code: "CC_MCP_LEDGER_EVENT_CORRUPT",
-          ledgerId: record?.ledgerId || null,
-        }),
-      );
+      addIncident("CC_MCP_LEDGER_EVENT_CORRUPT", record?.ledgerId || null);
       continue;
     }
 
     if (targetSessionId !== null && record.sessionId !== targetSessionId) {
-      incidents.push(
-        Object.freeze({
-          code: "CC_MCP_LEDGER_SESSION_MISMATCH",
-          ledgerId: record.ledgerId,
-        }),
-      );
+      addIncident("CC_MCP_LEDGER_SESSION_MISMATCH", record.ledgerId);
+      continue;
+    }
+
+    if (adjudications.has(record.ledgerId)) {
+      addIncident("CC_MCP_LEDGER_ADJUDICATED_REWRITTEN", record.ledgerId);
+      continue;
+    }
+
+    if (
+      exactReplayKeysFromRecord(record).some((key) => replayDenied.has(key))
+    ) {
+      addIncident("CC_MCP_LEDGER_EXACT_REPLAY_RECORDED", record.ledgerId);
       continue;
     }
 
     const previous = records.get(record.ledgerId);
     if (previous && TERMINAL.has(previous.status)) {
-      incidents.push(
-        Object.freeze({
-          code: "CC_MCP_LEDGER_TERMINAL_REWRITTEN",
-          ledgerId: record.ledgerId,
-        }),
-      );
+      addIncident("CC_MCP_LEDGER_TERMINAL_REWRITTEN", record.ledgerId);
       continue;
     }
     if (previous && record.status === McpCallStatus.STARTED) {
-      incidents.push(
-        Object.freeze({
-          code: "CC_MCP_LEDGER_DUPLICATE_START",
-          ledgerId: record.ledgerId,
-        }),
-      );
+      addIncident("CC_MCP_LEDGER_DUPLICATE_START", record.ledgerId);
       continue;
     }
     if (!previous && record.status !== McpCallStatus.STARTED) {
-      incidents.push(
-        Object.freeze({
-          code: "CC_MCP_LEDGER_START_MISSING",
-          ledgerId: record.ledgerId,
-        }),
-      );
+      addIncident("CC_MCP_LEDGER_START_MISSING", record.ledgerId);
       continue;
     }
     if (
@@ -478,24 +720,41 @@ export function reduceMcpLedgerEvents(events, options = {}) {
       record.status !== McpCallStatus.STARTED &&
       !immutableRecordMatches(previous, record)
     ) {
-      incidents.push(
-        Object.freeze({
-          code: "CC_MCP_LEDGER_RECORD_MISMATCH",
-          ledgerId: record.ledgerId,
-        }),
-      );
+      addIncident("CC_MCP_LEDGER_RECORD_MISMATCH", record.ledgerId);
       continue;
     }
     records.set(record.ledgerId, Object.freeze({ ...record }));
   }
 
   const snapshots = [...records.values()];
-  return Object.freeze({
+  const unsettled = snapshots.filter(
+    (record) =>
+      record.status === McpCallStatus.STARTED &&
+      !adjudications.has(record.ledgerId),
+  );
+  const denied = [...replayDenied.values()];
+  const recovery = {
+    sessionId: targetSessionId,
     records: Object.freeze(snapshots),
-    unsettled: Object.freeze(
-      snapshots.filter((record) => record.status === McpCallStatus.STARTED),
-    ),
+    unsettled: Object.freeze(unsettled),
     incidents: Object.freeze(incidents),
+    adjudications: Object.freeze([...adjudications.values()]),
+    replayDenied: Object.freeze(denied),
+    verified,
+    headHash: prefixHeadHash,
+  };
+  const remediation =
+    incidents.length > 0
+      ? "inspect_transcript"
+      : unsettled.length > 0
+        ? "adjudicate_started_calls"
+        : denied.length > 0
+          ? "exact_replay_denied"
+          : null;
+  return Object.freeze({
+    ...recovery,
+    recoveryDigest: computeMcpRecoveryDigest(recovery),
+    remediation,
   });
 }
 
@@ -513,6 +772,7 @@ export function loadMcpLedgerRecovery(sessionId, options = {}) {
     }
     return reduceMcpLedgerEvents(verifiedEvents, {
       sessionId,
+      verified: true,
     });
   } catch (cause) {
     throw new McpCallLedgerStoreError(
@@ -532,7 +792,16 @@ export function formatMcpLedgerRecoveryNotice(recovery, options = {}) {
   const incidents = Array.isArray(recovery?.incidents)
     ? recovery.incidents.slice(0, maxItems)
     : [];
-  if (unsettled.length === 0 && incidents.length === 0) return null;
+  const replayDenied = Array.isArray(recovery?.replayDenied)
+    ? recovery.replayDenied.slice(0, maxItems)
+    : [];
+  if (
+    unsettled.length === 0 &&
+    incidents.length === 0 &&
+    replayDenied.length === 0
+  ) {
+    return null;
+  }
 
   const lines = unsettled.map((record) => {
     const effect = record.effectContract?.effect || "unknown";
@@ -543,16 +812,22 @@ export function formatMcpLedgerRecoveryNotice(recovery, options = {}) {
       `  • ledger incident ${incident.code}${incident.ledgerId ? ` (${incident.ledgerId})` : ""} — fail closed and inspect transcript`,
     );
   }
+  for (const deny of replayDenied) {
+    lines.push(
+      `  • ${deny.ledgerId}: ${deny.serverName}/${deny.toolName} — exact replay denied (${deny.replayDigest})`,
+    );
+  }
   const omitted =
     Math.max(0, (recovery?.unsettled?.length || 0) - unsettled.length) +
-    Math.max(0, (recovery?.incidents?.length || 0) - incidents.length);
+    Math.max(0, (recovery?.incidents?.length || 0) - incidents.length) +
+    Math.max(0, (recovery?.replayDenied?.length || 0) - replayDenied.length);
   if (omitted > 0)
     lines.push(`  • ${omitted} additional ledger item(s) omitted`);
 
   return (
-    "MCP recovery notice — a previous run left MCP calls whose durable " +
-    "outcome cannot be proven. Do NOT automatically retry them. Verify the " +
-    "external resource first and ask the user when uncertain:\n" +
+    "MCP recovery notice — a previous run left MCP recovery authority that " +
+    "must be enforced. Do NOT automatically retry denied or outcome-unknown " +
+    "calls. Verify the external resource first and ask the user when uncertain:\n" +
     lines.join("\n")
   );
 }

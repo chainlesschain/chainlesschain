@@ -610,7 +610,11 @@ describe("agent-repl MCP host runtime manager", () => {
       createSessionMcpLedgerSink,
       appendAuthorityEvent,
     });
-    const recovery = Object.freeze({ unsettled: [], incidents: [] });
+    const recovery = Object.freeze({
+      unsettled: [],
+      incidents: [],
+      replayDenied: [],
+    });
     const adhocMcp = {
       mcpClient: rawClient,
       externalToolExecutors: { ide: { kind: "mcp" } },
@@ -672,13 +676,13 @@ describe("agent-repl MCP host runtime manager", () => {
       adhocMcp: { mcpClient: rawClient },
       sessionId: "old-session",
       persistent: true,
-      recovery: { unsettled: [], incidents: [] },
+      recovery: { unsettled: [], incidents: [], replayDenied: [] },
     });
     const preparedRuntime = manager.prepare({
       adhocMcp: { mcpClient: rawClient },
       sessionId: "new-session",
       persistent: true,
-      recovery: { unsettled: [], incidents: [] },
+      recovery: { unsettled: [], incidents: [], replayDenied: [] },
     });
 
     expect(preparedRuntime).not.toBe(oldRuntime);
@@ -761,7 +765,12 @@ describe("agent-repl MCP recovery resume transaction", () => {
     const candidate = prepareReplJsonlResumeCandidate("target-session", {
       loadMcpLedgerRecovery: () => {
         order.push("verified-recovery");
-        return { records: [], unsettled: [], incidents: [] };
+        return {
+          records: [],
+          unsettled: [],
+          incidents: [],
+          replayDenied: [],
+        };
       },
       formatMcpLedgerRecoveryNotice: () => null,
       rebuildMessages: () => {

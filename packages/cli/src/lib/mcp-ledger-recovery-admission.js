@@ -1,8 +1,12 @@
 import { isProxy } from "node:util/types";
 import {
+  MCP_CALL_LEDGER_PROTOCOL_LIMITS,
   McpEffect,
+  computeMcpExactReplayDigest,
   createMcpCallLedger,
+  normalizeMcpLedgerProtocolText,
   normalizeMcpEffectContract,
+  summarizeMcpPayload,
 } from "./mcp-call-ledger.js";
 
 export const McpRecoveryBlockMode = Object.freeze({
@@ -12,6 +16,18 @@ export const McpRecoveryBlockMode = Object.freeze({
 
 export const MCP_RECOVERY_INVALID_CODE = "CC_MCP_LEDGER_RECOVERY_INVALID";
 export const MCP_OUTCOME_UNKNOWN_CODE = "CC_MCP_LEDGER_OUTCOME_UNKNOWN";
+export const MCP_EXACT_REPLAY_DENIED_CODE = "CC_MCP_LEDGER_EXACT_REPLAY_DENIED";
+export const MCP_RECOVERY_DENY_REGRESSION_CODE =
+  "CC_MCP_LEDGER_REPLAY_DENY_REGRESSION";
+
+const SHA256_DIGEST = /^sha256:[0-9a-f]{64}$/;
+const REPLAY_DENY_FIELDS = new Set([
+  "ledgerId",
+  "serverName",
+  "toolName",
+  "inputBytes",
+  "replayDigest",
+]);
 
 const RECOVERY_CONTROLLERS = new WeakSet();
 const GUARDED_LEDGER_CONTROLLERS = new WeakMap();
@@ -25,9 +41,145 @@ function ownDataValue(record, key) {
   return { valid: true, value: descriptor.value };
 }
 
+function isPlainDataObject(value) {
+  if (
+    !value ||
+    typeof value !== "object" ||
+    Array.isArray(value) ||
+    isProxy(value)
+  ) {
+    return false;
+  }
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
+}
+
+function canonicalReplayDenyEntry(value) {
+  if (!isPlainDataObject(value)) return null;
+  const descriptors = Object.getOwnPropertyDescriptors(value);
+  const fields = Object.keys(descriptors);
+  if (
+    fields.length !== REPLAY_DENY_FIELDS.size ||
+    fields.some((field) => !REPLAY_DENY_FIELDS.has(field)) ||
+    [...REPLAY_DENY_FIELDS].some(
+      (field) => !descriptors[field] || !("value" in descriptors[field]),
+    )
+  ) {
+    return null;
+  }
+  const ledgerId = descriptors.ledgerId.value;
+  const serverName = descriptors.serverName.value;
+  const toolName = descriptors.toolName.value;
+  const inputBytes = descriptors.inputBytes.value;
+  const replayDigest = descriptors.replayDigest.value;
+  if (
+    typeof ledgerId !== "string" ||
+    ledgerId !==
+      normalizeMcpLedgerProtocolText(
+        ledgerId,
+        null,
+        MCP_CALL_LEDGER_PROTOCOL_LIMITS.ledgerId,
+      ) ||
+    typeof serverName !== "string" ||
+    serverName !==
+      normalizeMcpLedgerProtocolText(
+        serverName,
+        null,
+        MCP_CALL_LEDGER_PROTOCOL_LIMITS.identifier,
+      ) ||
+    typeof toolName !== "string" ||
+    toolName !==
+      normalizeMcpLedgerProtocolText(
+        toolName,
+        null,
+        MCP_CALL_LEDGER_PROTOCOL_LIMITS.identifier,
+      ) ||
+    !Number.isInteger(inputBytes) ||
+    inputBytes < 0 ||
+    typeof replayDigest !== "string" ||
+    !SHA256_DIGEST.test(replayDigest)
+  ) {
+    return null;
+  }
+  return Object.freeze({
+    ledgerId,
+    serverName,
+    toolName,
+    inputBytes,
+    replayDigest,
+  });
+}
+
+function replayDenyKey(value) {
+  return JSON.stringify([
+    value?.serverName || null,
+    value?.toolName || null,
+    Number.isInteger(value?.inputBytes) ? value.inputBytes : null,
+    value?.replayDigest || null,
+  ]);
+}
+
+function replayDenyAuthorityKey(value) {
+  return JSON.stringify([value?.ledgerId || null, replayDenyKey(value)]);
+}
+
+function replayIdentityForCall(call = {}) {
+  const serverName = normalizeMcpLedgerProtocolText(
+    call.serverName || call.server,
+    null,
+    MCP_CALL_LEDGER_PROTOCOL_LIMITS.identifier,
+  );
+  const toolNameValue = normalizeMcpLedgerProtocolText(
+    call.toolName || call.tool,
+    null,
+    MCP_CALL_LEDGER_PROTOCOL_LIMITS.identifier,
+  );
+  if (!serverName || !toolNameValue) return null;
+  const toolName = toolNameValue;
+  const input = Object.prototype.hasOwnProperty.call(call, "input")
+    ? call.input
+    : {};
+  const summary = summarizeMcpPayload(input);
+  return Object.freeze({
+    serverName,
+    toolName,
+    inputBytes: summary.bytes,
+    replayDigest: computeMcpExactReplayDigest({
+      serverName,
+      toolName,
+      inputDigest: summary.sha256,
+      inputBytes: summary.bytes,
+    }),
+  });
+}
+
+function findReplayDeny(replayDenied, call) {
+  if (!Array.isArray(replayDenied) || replayDenied.length === 0) return null;
+  const identity = replayIdentityForCall(call);
+  if (!identity) return null;
+  const key = replayDenyKey(identity);
+  return replayDenied.find((entry) => replayDenyKey(entry) === key) || null;
+}
+
+function invalidRecoveryProjection() {
+  return {
+    valid: false,
+    incidents: 0,
+    unsettled: 0,
+    explicitMode: null,
+    replayDenied: Object.freeze([]),
+  };
+}
+
 function inspectRecoveryProjection(recovery) {
   if (recovery == null) {
-    return { valid: true, incidents: 0, unsettled: 0, explicitMode: null };
+    return {
+      valid: true,
+      incidents: 0,
+      unsettled: 0,
+      explicitMode: null,
+      replayDenied: Object.freeze([]),
+    };
   }
 
   try {
@@ -36,11 +188,11 @@ function inspectRecoveryProjection(recovery) {
       isProxy(recovery) ||
       Array.isArray(recovery)
     ) {
-      return { valid: false, incidents: 0, unsettled: 0, explicitMode: null };
+      return invalidRecoveryProjection();
     }
     const prototype = Object.getPrototypeOf(recovery);
     if (prototype !== Object.prototype && prototype !== null) {
-      return { valid: false, incidents: 0, unsettled: 0, explicitMode: null };
+      return invalidRecoveryProjection();
     }
 
     const thenDescriptor = Object.getOwnPropertyDescriptor(recovery, "then");
@@ -49,7 +201,7 @@ function inspectRecoveryProjection(recovery) {
       (!("value" in thenDescriptor) ||
         typeof thenDescriptor.value === "function")
     ) {
-      return { valid: false, incidents: 0, unsettled: 0, explicitMode: null };
+      return invalidRecoveryProjection();
     }
 
     const incidentsProperty = ownDataValue(recovery, "incidents");
@@ -64,7 +216,7 @@ function inspectRecoveryProjection(recovery) {
       !Array.isArray(incidentsValue) ||
       !Array.isArray(unsettledValue)
     ) {
-      return { valid: false, incidents: 0, unsettled: 0, explicitMode: null };
+      return invalidRecoveryProjection();
     }
 
     const blockModeDescriptor = Object.getOwnPropertyDescriptor(
@@ -72,7 +224,7 @@ function inspectRecoveryProjection(recovery) {
       "blockMode",
     );
     if (blockModeDescriptor && !("value" in blockModeDescriptor)) {
-      return { valid: false, incidents: 0, unsettled: 0, explicitMode: null };
+      return invalidRecoveryProjection();
     }
     const explicitMode = blockModeDescriptor?.value;
     if (
@@ -80,7 +232,27 @@ function inspectRecoveryProjection(recovery) {
       explicitMode !== McpRecoveryBlockMode.ALL &&
       explicitMode !== McpRecoveryBlockMode.UNSAFE
     ) {
-      return { valid: false, incidents: 0, unsettled: 0, explicitMode: null };
+      return invalidRecoveryProjection();
+    }
+
+    const replayDeniedDescriptor = Object.getOwnPropertyDescriptor(
+      recovery,
+      "replayDenied",
+    );
+    if (!replayDeniedDescriptor || !("value" in replayDeniedDescriptor)) {
+      return invalidRecoveryProjection();
+    }
+    const replayDeniedValue = replayDeniedDescriptor.value;
+    if (isProxy(replayDeniedValue) || !Array.isArray(replayDeniedValue)) {
+      return invalidRecoveryProjection();
+    }
+    const replayDenied = replayDeniedValue.map(canonicalReplayDenyEntry);
+    if (replayDenied.some((entry) => entry === null)) {
+      return invalidRecoveryProjection();
+    }
+    const replayKeys = new Set(replayDenied.map(replayDenyKey));
+    if (replayKeys.size !== replayDenied.length) {
+      return invalidRecoveryProjection();
     }
 
     return {
@@ -88,11 +260,12 @@ function inspectRecoveryProjection(recovery) {
       incidents: incidentsValue.length,
       unsettled: unsettledValue.length,
       explicitMode: explicitMode ?? null,
+      replayDenied: Object.freeze(replayDenied),
     };
   } catch {
     // Accessors/proxies are not trusted recovery evidence. Keep admission
     // synchronous and fail closed instead of allowing a malformed projection.
-    return { valid: false, incidents: 0, unsettled: 0, explicitMode: null };
+    return invalidRecoveryProjection();
   }
 }
 
@@ -110,6 +283,7 @@ export function classifyMcpRecoveryAdmission(
 ) {
   const projection = inspectRecoveryProjection(recovery);
   const { incidents, unsettled, explicitMode } = projection;
+  const replayDenied = projection.replayDenied.length;
   const requestedModeValid =
     requestedMode == null ||
     requestedMode === McpRecoveryBlockMode.ALL ||
@@ -129,7 +303,13 @@ export function classifyMcpRecoveryAdmission(
   } else if (unsettled > 0) {
     blockMode = McpRecoveryBlockMode.UNSAFE;
   }
-  return Object.freeze({ blockMode, incidents, unsettled, reasonCode });
+  return Object.freeze({
+    blockMode,
+    incidents,
+    unsettled,
+    replayDenied,
+    reasonCode,
+  });
 }
 
 function admissionRank(blockMode) {
@@ -147,6 +327,7 @@ export function createMcpRecoveryAdmissionController(
   recovery = null,
   options = {},
 ) {
+  let currentProjection = inspectRecoveryProjection(recovery);
   let currentAdmission = classifyMcpRecoveryAdmission(recovery, options);
 
   const latch = (blockMode, reasonCode = null) => {
@@ -179,12 +360,29 @@ export function createMcpRecoveryAdmissionController(
       return currentAdmission;
     },
     replaceVerifiedRecovery(nextRecovery) {
+      const replacementProjection = inspectRecoveryProjection(nextRecovery);
       const replacement = classifyMcpRecoveryAdmission(nextRecovery);
       if (replacement.reasonCode === MCP_RECOVERY_INVALID_CODE) {
         return latch(McpRecoveryBlockMode.ALL, MCP_RECOVERY_INVALID_CODE);
       }
+      const replacementAuthority = new Set(
+        replacementProjection.replayDenied.map(replayDenyAuthorityKey),
+      );
+      const losesDeny = currentProjection.replayDenied.some(
+        (entry) => !replacementAuthority.has(replayDenyAuthorityKey(entry)),
+      );
+      if (losesDeny) {
+        return latch(
+          McpRecoveryBlockMode.ALL,
+          MCP_RECOVERY_DENY_REGRESSION_CODE,
+        );
+      }
+      currentProjection = replacementProjection;
       currentAdmission = replacement;
       return currentAdmission;
+    },
+    findReplayDeny(call) {
+      return findReplayDeny(currentProjection.replayDenied, call);
     },
     latchUnsafe(reasonCode = null) {
       return latch(McpRecoveryBlockMode.UNSAFE, reasonCode);
@@ -217,6 +415,24 @@ export class McpLedgerRecoveryBlockedError extends Error {
       options.code || admission.reasonCode || "CC_MCP_LEDGER_RECOVERY_BLOCKED";
     this.effect = effect;
     this.blockMode = admission.blockMode;
+  }
+}
+
+export class McpExactReplayDeniedError extends Error {
+  constructor(effect, deny) {
+    super(
+      "MCP call exactly matches a prior confirmed-applied call and must not be replayed",
+    );
+    this.name = "McpExactReplayDeniedError";
+    this.code = MCP_EXACT_REPLAY_DENIED_CODE;
+    this.effect = effect;
+    this.ledgerId = deny?.ledgerId || null;
+    this.serverName = deny?.serverName || null;
+    this.toolName = deny?.toolName || null;
+    this.inputBytes = deny?.inputBytes ?? null;
+    this.replayDigest = deny?.replayDigest || null;
+    this.replayDenied = true;
+    this.retryable = false;
   }
 }
 
@@ -354,18 +570,40 @@ export function guardMcpLedgerForRecovery(ledger, recovery, options = {}) {
   if (controller && GUARDED_LEDGER_CONTROLLERS.get(ledger) === controller) {
     return ledger;
   }
+  const staticProjection = controller
+    ? null
+    : inspectRecoveryProjection(recovery);
   const staticAdmission = controller
     ? null
     : classifyMcpRecoveryAdmission(recovery, options);
-  if (!controller && !staticAdmission.blockMode) return ledger;
+  if (
+    !controller &&
+    !staticAdmission.blockMode &&
+    staticProjection.replayDenied.length === 0
+  ) {
+    return ledger;
+  }
   const getAdmission = () =>
     controller ? controller.getAdmission() : staticAdmission;
+  const getReplayDeny = (call) =>
+    controller
+      ? controller.findReplayDeny(call)
+      : findReplayDeny(staticProjection.replayDenied, call);
 
   const begin = async (call = {}) => {
     const admission = getAdmission();
-    const effect = normalizeMcpEffectContract(
+    const normalizedEffect = normalizeMcpEffectContract(
       call.effectContract || call.effect || {},
-    ).effect;
+    );
+    const effect =
+      normalizedEffect.effect === McpEffect.READ &&
+      normalizedEffect.trusted !== true
+        ? McpEffect.UNKNOWN
+        : normalizedEffect.effect;
+    const deny = getReplayDeny(call);
+    if (deny) {
+      throw new McpExactReplayDeniedError(effect, deny);
+    }
     const blocked =
       admission.blockMode === McpRecoveryBlockMode.ALL ||
       (admission.blockMode === McpRecoveryBlockMode.UNSAFE &&
@@ -408,6 +646,29 @@ export function guardMcpLedgerForRecovery(ledger, recovery, options = {}) {
   Object.freeze(guarded);
   if (controller) GUARDED_LEDGER_CONTROLLERS.set(guarded, controller);
   return guarded;
+}
+
+/**
+ * Monotonically tighten a branded dynamic ledger after an external call's
+ * outcome becomes unknowable. The WeakMap is the capability boundary: callers
+ * can latch a guarded ledger but cannot read, replace, or downgrade its
+ * controller.
+ */
+export function markMcpLedgerOutcomeUnknown(
+  ledger,
+  reasonCode = MCP_OUTCOME_UNKNOWN_CODE,
+) {
+  const controller =
+    ledger && (typeof ledger === "object" || typeof ledger === "function")
+      ? GUARDED_LEDGER_CONTROLLERS.get(ledger)
+      : null;
+  if (!controller) return false;
+  controller.latchUnsafe(
+    typeof reasonCode === "string" && reasonCode
+      ? reasonCode
+      : MCP_OUTCOME_UNKNOWN_CODE,
+  );
+  return true;
 }
 
 /** Build the normal call ledger, then apply the shared recovery admission. */

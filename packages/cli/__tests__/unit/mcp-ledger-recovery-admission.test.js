@@ -1,20 +1,45 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  MCP_EXACT_REPLAY_DENIED_CODE,
   MCP_OUTCOME_UNKNOWN_CODE,
+  MCP_RECOVERY_DENY_REGRESSION_CODE,
   MCP_RECOVERY_INVALID_CODE,
   classifyMcpRecoveryAdmission,
   createMcpRecoveryAdmissionController,
   createRecoveryGuardedMcpCallLedger,
   createRecoveryGuardedMcpClient,
   guardMcpLedgerForRecovery,
+  markMcpLedgerOutcomeUnknown,
 } from "../../src/lib/mcp-ledger-recovery-admission.js";
+import {
+  computeMcpExactReplayDigest,
+  summarizeMcpPayload,
+} from "../../src/lib/mcp-call-ledger.js";
+import { deriveMcpExactReplayDenies } from "../../src/lib/mcp-call-ledger-store.js";
 import { executeTool } from "../../src/runtime/agent-core.js";
 
-function call(effect) {
+function call(effect, { trusted = effect === "read", input = {} } = {}) {
   return {
-    toolName: "mcp__repo__publish",
+    toolName: "publish",
     serverName: "repo",
-    effectContract: { effect },
+    input,
+    effectContract: { effect, trusted },
+  };
+}
+
+function replayDeny(input = {}) {
+  const summary = summarizeMcpPayload(input);
+  return {
+    ledgerId: "mcp-confirmed-applied",
+    serverName: "repo",
+    toolName: "publish",
+    inputBytes: summary.bytes,
+    replayDigest: computeMcpExactReplayDigest({
+      serverName: "repo",
+      toolName: "publish",
+      inputDigest: summary.sha256,
+      inputBytes: summary.bytes,
+    }),
   };
 }
 
@@ -23,7 +48,7 @@ describe("MCP ledger recovery admission", () => {
     const begin = vi.fn();
     const incidentGuard = guardMcpLedgerForRecovery(
       { begin },
-      { incidents: [{ code: "CORRUPT" }], unsettled: [] },
+      { incidents: [{ code: "CORRUPT" }], unsettled: [], replayDenied: [] },
     );
     await expect(incidentGuard.begin(call("read"))).rejects.toMatchObject({
       code: "CC_MCP_LEDGER_RECOVERY_BLOCKED",
@@ -45,7 +70,11 @@ describe("MCP ledger recovery admission", () => {
     const begin = vi.fn(async () => ({ ledgerId: "new-read" }));
     const guarded = guardMcpLedgerForRecovery(
       { begin },
-      { incidents: [], unsettled: [{ ledgerId: "old-write" }] },
+      {
+        incidents: [],
+        unsettled: [{ ledgerId: "old-write" }],
+        replayDenied: [],
+      },
     );
 
     await expect(guarded.begin(call("read"))).resolves.toEqual({
@@ -59,20 +88,174 @@ describe("MCP ledger recovery admission", () => {
     expect(begin).toHaveBeenCalledTimes(1);
   });
 
+  it("downgrades an untrusted read to unknown under unsafe recovery", async () => {
+    const begin = vi.fn();
+    const guarded = guardMcpLedgerForRecovery(
+      { begin },
+      {
+        incidents: [],
+        unsettled: [{ ledgerId: "old-write" }],
+        replayDenied: [],
+      },
+    );
+
+    await expect(
+      guarded.begin(call("read", { trusted: false })),
+    ).rejects.toMatchObject({
+      blockMode: "unsafe",
+      effect: "unknown",
+    });
+    expect(begin).not.toHaveBeenCalled();
+  });
+
   it("delegates byte-identically when recovery is clean", () => {
     const ledger = { begin: vi.fn() };
     expect(
-      guardMcpLedgerForRecovery(ledger, { incidents: [], unsettled: [] }),
+      guardMcpLedgerForRecovery(ledger, {
+        incidents: [],
+        unsettled: [],
+        replayDenied: [],
+      }),
     ).toBe(ledger);
     expect(classifyMcpRecoveryAdmission(null).blockMode).toBeNull();
+  });
+
+  it.each(["read", "unknown", "write", "destructive"])(
+    "denies an exact confirmed-applied replay classified as %s",
+    async (effect) => {
+      const begin = vi.fn();
+      const input = { repository: "owner/repo", release: 7 };
+      const guarded = guardMcpLedgerForRecovery(
+        { begin },
+        {
+          incidents: [],
+          unsettled: [],
+          replayDenied: [replayDeny(input)],
+        },
+      );
+
+      await expect(
+        guarded.begin({
+          ...call(effect, { trusted: true, input }),
+          resourceScopes: [`metadata-change-${effect}`],
+          networkScopes: [`https://changed.example/${effect}`],
+        }),
+      ).rejects.toMatchObject({
+        code: MCP_EXACT_REPLAY_DENIED_CODE,
+        replayDenied: true,
+        retryable: false,
+        effect,
+      });
+      expect(begin).not.toHaveBeenCalled();
+    },
+  );
+
+  it("allows a different canonical input while retaining an exact deny", async () => {
+    const begin = vi.fn(async () => ({ ledgerId: "different-input" }));
+    const guarded = guardMcpLedgerForRecovery(
+      { begin },
+      {
+        incidents: [],
+        unsettled: [],
+        replayDenied: [replayDeny({ release: 1 })],
+      },
+    );
+
+    await expect(
+      guarded.begin(call("write", { input: { release: 2 } })),
+    ).resolves.toEqual({ ledgerId: "different-input" });
+    expect(begin).toHaveBeenCalledOnce();
+  });
+
+  it("matches both exact candidates for ambiguous historical tool identities", async () => {
+    const input = { release: 9 };
+    const summary = summarizeMcpPayload(input);
+    const historical = {
+      ledgerId: "historical-model-or-host-call",
+      serverName: "repo",
+      toolName: "mcp__repo__publish",
+      inputDigest: summary.sha256,
+      inputBytes: summary.bytes,
+    };
+    const candidates = deriveMcpExactReplayDenies(historical);
+    expect(candidates.map((entry) => entry.toolName)).toEqual([
+      "mcp__repo__publish",
+      "publish",
+    ]);
+    const rawHostGuard = guardMcpLedgerForRecovery(
+      { begin: vi.fn() },
+      { incidents: [], unsettled: [], replayDenied: candidates },
+    );
+
+    await expect(
+      rawHostGuard.begin({
+        serverName: "repo",
+        toolName: "publish",
+        input,
+        effectContract: { effect: "write" },
+      }),
+    ).rejects.toMatchObject({ code: MCP_EXACT_REPLAY_DENIED_CODE });
+
+    const prefixedRawTool = "mcp__repo__publish";
+    const prefixedGuard = guardMcpLedgerForRecovery(
+      { begin: vi.fn() },
+      { incidents: [], unsettled: [], replayDenied: candidates },
+    );
+    await expect(
+      prefixedGuard.begin({
+        serverName: "repo",
+        toolName: prefixedRawTool,
+        input,
+        effectContract: { effect: "write" },
+      }),
+    ).rejects.toMatchObject({ code: MCP_EXACT_REPLAY_DENIED_CODE });
+  });
+
+  it("fails closed on malformed or truncated exact replay authority", async () => {
+    const malformed = replayDeny({ release: 1 });
+    delete malformed.inputBytes;
+    malformed.inputDigest = `sha256:${"a".repeat(64)}`;
+    const begin = vi.fn();
+    const guarded = guardMcpLedgerForRecovery(
+      { begin },
+      { incidents: [], unsettled: [], replayDenied: [malformed] },
+    );
+
+    await expect(guarded.begin(call("read"))).rejects.toMatchObject({
+      code: MCP_RECOVERY_INVALID_CODE,
+      blockMode: "all",
+    });
+    expect(begin).not.toHaveBeenCalled();
+  });
+
+  it("fails closed on uppercase replay digests instead of accepting an inert deny", async () => {
+    const uppercase = replayDeny({ release: 1 });
+    uppercase.replayDigest = uppercase.replayDigest.toUpperCase();
+    const begin = vi.fn();
+    const guarded = guardMcpLedgerForRecovery(
+      { begin },
+      { incidents: [], unsettled: [], replayDenied: [uppercase] },
+    );
+
+    await expect(
+      guarded.begin(call("read", { input: { release: 1 } })),
+    ).rejects.toMatchObject({
+      code: MCP_RECOVERY_INVALID_CODE,
+      blockMode: "all",
+    });
+    expect(begin).not.toHaveBeenCalled();
   });
 
   it.each([
     ["primitive", "invalid"],
     ["array", []],
-    ["promise", Promise.resolve({ incidents: [], unsettled: [] })],
-    ["thenable", { then() {}, incidents: [], unsettled: [] }],
+    [
+      "promise",
+      Promise.resolve({ incidents: [], unsettled: [], replayDenied: [] }),
+    ],
+    ["thenable", { then() {}, incidents: [], unsettled: [], replayDenied: [] }],
     ["missing fields", {}],
+    ["missing replay denied", { incidents: [], unsettled: [] }],
     ["missing incidents", { unsettled: [] }],
     ["missing unsettled", { incidents: [] }],
     ["null incidents", { incidents: null, unsettled: [] }],
@@ -81,7 +264,12 @@ describe("MCP ledger recovery admission", () => {
     ["promise unsettled", { incidents: [], unsettled: Promise.resolve([]) }],
     [
       "invalid explicit block mode",
-      { incidents: [], unsettled: [], blockMode: "unexpected" },
+      {
+        incidents: [],
+        unsettled: [],
+        replayDenied: [],
+        blockMode: "unexpected",
+      },
     ],
   ])("fails closed on a malformed %s recovery", (_label, recovery) => {
     expect(classifyMcpRecoveryAdmission(recovery)).toMatchObject({
@@ -156,7 +344,7 @@ describe("MCP ledger recovery admission", () => {
 
   it("rejects inherited projection fields and accessor block modes", () => {
     const inherited = Object.create({ incidents: [], unsettled: [] });
-    const accessorMode = { incidents: [], unsettled: [] };
+    const accessorMode = { incidents: [], unsettled: [], replayDenied: [] };
     Object.defineProperty(accessorMode, "blockMode", {
       get() {
         return "unsafe";
@@ -173,12 +361,17 @@ describe("MCP ledger recovery admission", () => {
 
   it("accepts ordinary mutable, frozen, and null-prototype projections", () => {
     const projections = [
-      { incidents: [], unsettled: [] },
+      { incidents: [], unsettled: [], replayDenied: [] },
       Object.freeze({
         incidents: Object.freeze([]),
         unsettled: Object.freeze([]),
+        replayDenied: Object.freeze([]),
       }),
-      Object.assign(Object.create(null), { incidents: [], unsettled: [] }),
+      Object.assign(Object.create(null), {
+        incidents: [],
+        unsettled: [],
+        replayDenied: [],
+      }),
     ];
 
     for (const recovery of projections) {
@@ -222,7 +415,7 @@ describe("MCP ledger recovery admission", () => {
 
   it("does not launder a proxied recovery through a factory block-mode override", async () => {
     const recovery = new Proxy(
-      { incidents: [{ code: "CORRUPT" }], unsettled: [] },
+      { incidents: [{ code: "CORRUPT" }], unsettled: [], replayDenied: [] },
       {
         get(target, key, receiver) {
           if (key === "incidents") return [];
@@ -245,6 +438,7 @@ describe("MCP ledger recovery admission", () => {
     const controller = createMcpRecoveryAdmissionController({
       incidents: [],
       unsettled: [],
+      replayDenied: [],
     });
     const ledger = {
       begin: vi.fn(async () => ({ ledgerId: "dynamic", settle: vi.fn() })),
@@ -274,12 +468,105 @@ describe("MCP ledger recovery admission", () => {
       effect: "read",
     });
 
-    controller.replaceVerifiedRecovery({ incidents: [], unsettled: [] });
+    controller.replaceVerifiedRecovery({
+      incidents: [],
+      unsettled: [],
+      replayDenied: [],
+    });
     expect(guarded.recoveryAdmission.blockMode).toBeNull();
     await expect(guarded.begin(call("unknown"))).resolves.toMatchObject({
       ledgerId: "dynamic",
     });
     expect(ledger.begin).toHaveBeenCalledTimes(3);
+  });
+
+  it("rejects deny truncation or conflict while allowing monotonic additions", async () => {
+    const controller = createMcpRecoveryAdmissionController({
+      incidents: [],
+      unsettled: [],
+      replayDenied: [],
+    });
+    const begin = vi.fn(async () => ({ ledgerId: "dynamic" }));
+    const guarded = guardMcpLedgerForRecovery({ begin }, controller);
+    const input = { release: 3 };
+    const existing = replayDeny(input);
+
+    controller.replaceVerifiedRecovery({
+      incidents: [],
+      unsettled: [],
+      replayDenied: [existing],
+    });
+    await expect(guarded.begin(call("read", { input }))).rejects.toMatchObject({
+      code: MCP_EXACT_REPLAY_DENIED_CODE,
+    });
+
+    controller.replaceVerifiedRecovery({
+      incidents: [],
+      unsettled: [],
+      replayDenied: [],
+    });
+    expect(controller.admission).toMatchObject({
+      blockMode: "all",
+      reasonCode: MCP_RECOVERY_DENY_REGRESSION_CODE,
+    });
+    await expect(
+      guarded.begin(call("read", { input: { release: 999 } })),
+    ).rejects.toMatchObject({
+      code: MCP_RECOVERY_DENY_REGRESSION_CODE,
+      blockMode: "all",
+    });
+    await expect(guarded.begin(call("read", { input }))).rejects.toMatchObject({
+      code: MCP_EXACT_REPLAY_DENIED_CODE,
+    });
+
+    const conflicting = replayDeny({ release: 4 });
+    conflicting.ledgerId = existing.ledgerId;
+    controller.replaceVerifiedRecovery({
+      incidents: [],
+      unsettled: [],
+      replayDenied: [conflicting],
+    });
+    expect(controller.admission.reasonCode).toBe(
+      MCP_RECOVERY_DENY_REGRESSION_CODE,
+    );
+
+    const added = replayDeny({ release: 5 });
+    added.ledgerId = "mcp-confirmed-applied-new";
+    controller.replaceVerifiedRecovery({
+      incidents: [],
+      unsettled: [],
+      replayDenied: [existing, added],
+    });
+    expect(controller.admission).toMatchObject({
+      blockMode: null,
+      replayDenied: 2,
+    });
+    await expect(
+      guarded.begin(call("read", { input: { release: 5 } })),
+    ).rejects.toMatchObject({ code: MCP_EXACT_REPLAY_DENIED_CODE });
+    expect(begin).not.toHaveBeenCalled();
+  });
+
+  it("marks only a branded dynamic ledger outcome unknown without exposing its controller", async () => {
+    const controller = createMcpRecoveryAdmissionController();
+    const begin = vi.fn(async () => ({ ledgerId: "dynamic", settle: vi.fn() }));
+    const rawLedger = { begin };
+    const guarded = guardMcpLedgerForRecovery(rawLedger, controller);
+
+    expect(markMcpLedgerOutcomeUnknown(rawLedger, "CC_TEST_UNKNOWN")).toBe(
+      false,
+    );
+    expect(markMcpLedgerOutcomeUnknown(guarded, "CC_TEST_UNKNOWN")).toBe(true);
+    expect(guarded.controller).toBeUndefined();
+    expect(guarded.recoveryAdmission).toMatchObject({
+      blockMode: "unsafe",
+      reasonCode: "CC_TEST_UNKNOWN",
+    });
+    await expect(guarded.begin(call("write"))).rejects.toMatchObject({
+      blockMode: "unsafe",
+      effect: "write",
+    });
+    expect(begin).not.toHaveBeenCalled();
   });
 
   it("applies stricter recovery options to an authentic controller", async () => {
@@ -313,7 +600,7 @@ describe("MCP ledger recovery admission", () => {
   it("latches invalid verified replacements to all until an explicit valid replacement", () => {
     const controller = createMcpRecoveryAdmissionController();
     controller.replaceVerifiedRecovery(
-      Promise.resolve({ incidents: [], unsettled: [] }),
+      Promise.resolve({ incidents: [], unsettled: [], replayDenied: [] }),
     );
     expect(controller.admission).toMatchObject({
       blockMode: "all",
@@ -322,7 +609,11 @@ describe("MCP ledger recovery admission", () => {
 
     controller.latchUnsafe();
     expect(controller.admission.blockMode).toBe("all");
-    controller.replaceVerifiedRecovery({ incidents: [], unsettled: [] });
+    controller.replaceVerifiedRecovery({
+      incidents: [],
+      unsettled: [],
+      replayDenied: [],
+    });
     expect(controller.admission).toMatchObject({
       blockMode: null,
       reasonCode: null,
@@ -353,7 +644,11 @@ describe("MCP ledger recovery admission", () => {
       reasonCode: "CC_MCP_LEDGER_SETTLE_FAILED",
     });
 
-    controller.replaceVerifiedRecovery({ incidents: [], unsettled: [] });
+    controller.replaceVerifiedRecovery({
+      incidents: [],
+      unsettled: [],
+      replayDenied: [],
+    });
     await expect(
       guardedTicket.settleCall({ status: "completed" }),
     ).rejects.toBe(settlementError);
@@ -485,6 +780,7 @@ describe("MCP ledger recovery admission", () => {
     const controller = createMcpRecoveryAdmissionController({
       incidents: [],
       unsettled: [{ ledgerId: "prior" }],
+      replayDenied: [],
     });
     const client = createRecoveryGuardedMcpClient({
       client: { callTool },
@@ -517,6 +813,7 @@ describe("MCP ledger recovery admission", () => {
     const controller = createMcpRecoveryAdmissionController({
       incidents: [],
       unsettled: [{ ledgerId: "prior" }],
+      replayDenied: [],
     });
     const client = createRecoveryGuardedMcpClient({
       client: { callTool },
@@ -828,7 +1125,7 @@ describe("MCP ledger recovery admission", () => {
     const callTool = vi.fn();
     const ledger = guardMcpLedgerForRecovery(
       { begin: vi.fn() },
-      { incidents: [{ code: "CORRUPT" }], unsettled: [] },
+      { incidents: [{ code: "CORRUPT" }], unsettled: [], replayDenied: [] },
     );
     const toolName = "mcp__repo__status";
 

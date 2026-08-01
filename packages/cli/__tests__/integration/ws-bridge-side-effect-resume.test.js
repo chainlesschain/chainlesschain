@@ -159,7 +159,11 @@ describe("WS bridge side-effect resume", () => {
     const handler = new WSAgentHandler({ session, interaction, db: null });
     // Warm a clean controller first. Resume must refresh this exact live
     // handler before it can serve another turn.
-    session.mcpLedgerRecovery = { unsettled: [], incidents: [] };
+    session.mcpLedgerRecovery = {
+      unsettled: [],
+      incidents: [],
+      replayDenied: [],
+    };
     session.mcpLedgerRecoveryRevision = 1;
     agentLoop.mockReturnValue(
       fakeLoop([{ type: "response-complete", content: "warm" }]),
@@ -210,7 +214,8 @@ describe("WS bridge side-effect resume", () => {
       }),
     ).rejects.toMatchObject({
       code: "CC_MCP_LEDGER_RECOVERY_BLOCKED",
-      effect: "read",
+      // A read claim without host trust is deliberately projected to unknown.
+      effect: "unknown",
       blockMode: "all",
     });
     await expect(
@@ -295,7 +300,11 @@ describe("WS bridge side-effect resume", () => {
     const firstClient = { callTool: vi.fn(async () => ({ ok: true })) };
     const secondClient = { callTool: vi.fn(async () => ({ ok: true })) };
     session.mcpClient = firstClient;
-    session.mcpLedgerRecovery = { unsettled: [], incidents: [] };
+    session.mcpLedgerRecovery = {
+      unsettled: [],
+      incidents: [],
+      replayDenied: [],
+    };
     session.mcpLedgerRecoveryRevision = 1;
     const interaction = { emit: vi.fn(), rejectAllPending: vi.fn() };
     const handler = new WSAgentHandler({ session, interaction, db: null });
@@ -331,7 +340,13 @@ describe("WS bridge side-effect resume", () => {
 
   it("returns a diagnosable ALL-blocking resume when handler refresh fails", async () => {
     const session = makeSession();
-    session.mcpClient = {}; // truthy, but cannot build a guarded callTool client
+    const invalidClient = {};
+    Object.defineProperty(invalidClient, "callTool", {
+      get() {
+        throw new Error("callTool capability cannot be inspected");
+      },
+    });
+    session.mcpClient = invalidClient;
     const interaction = { emit: vi.fn(), rejectAllPending: vi.fn() };
     const handler = new WSAgentHandler({ session, interaction, db: null });
     const sent = [];
@@ -340,7 +355,11 @@ describe("WS bridge side-effect resume", () => {
       sessionHandlers: new Map([[session.id, handler]]),
       resumeRecoveryDependencies: {
         loadSideEffectLedger: () => ({ ops: [] }),
-        loadMcpLedgerRecovery: () => ({ unsettled: [], incidents: [] }),
+        loadMcpLedgerRecovery: () => ({
+          unsettled: [],
+          incidents: [],
+          replayDenied: [],
+        }),
       },
       emit: vi.fn(),
       _send: (_ws, envelope) => sent.push(envelope),

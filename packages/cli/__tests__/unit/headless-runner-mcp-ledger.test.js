@@ -2,6 +2,9 @@ import { describe, expect, it, vi } from "vitest";
 import { runAgentHeadless } from "../../src/runtime/headless-runner.js";
 import { MCP_CALL_LEDGER_EVENT } from "../../src/lib/mcp-call-ledger-store.js";
 
+const HEAD_1 = "1".repeat(64);
+const HEAD_2 = "2".repeat(64);
+
 function fakeGate() {
   return {
     setSessionPolicy: () => {},
@@ -39,6 +42,8 @@ function ledgerRecord(status = "started") {
 function ledgerEvent(record, phase = "started") {
   return {
     type: MCP_CALL_LEDGER_EVENT,
+    prevHash: phase === "started" ? null : HEAD_1,
+    hash: phase === "started" ? HEAD_1 : HEAD_2,
     data: { schemaVersion: 1, phase, record },
   };
 }
@@ -121,7 +126,7 @@ describe("headless MCP ledger persistence and recovery", () => {
       toolName: "mcp__repo__status",
       serverName: "repo",
       input: {},
-      effectContract: { effect: "read" },
+      effectContract: { effect: "read", trusted: true },
     });
     expect(setup.appendAuthorityEvent).toHaveBeenCalledWith(
       "sid",
@@ -195,7 +200,8 @@ describe("headless MCP ledger persistence and recovery", () => {
       }),
     ).rejects.toMatchObject({
       code: "CC_MCP_LEDGER_RECOVERY_BLOCKED",
-      effect: "read",
+      // An untrusted read claim is deliberately projected to unknown.
+      effect: "unknown",
       blockMode: "all",
     });
     await expect(

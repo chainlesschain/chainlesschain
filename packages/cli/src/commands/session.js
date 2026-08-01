@@ -65,6 +65,7 @@ import {
   readWorkflowSession,
 } from "../lib/workflow-state-reader.js";
 import { executionBroker } from "../lib/process-execution-broker/index.js";
+import { registerSessionMcpRecoveryCommands } from "./session-mcp-recovery.js";
 
 export const _deps = {
   execFileSync: (...args) => executionBroker.execFileSync(...args),
@@ -219,6 +220,8 @@ export function registerSessionCommand(program) {
   const session = program
     .command("session")
     .description("Conversation session management");
+
+  registerSessionMcpRecoveryCommands(session);
 
   // session list
   session

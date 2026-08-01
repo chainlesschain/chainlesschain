@@ -60,24 +60,48 @@ function resolveCoworkMcpSessionId(requested) {
 
 function publicMcpRecoveryState(recovery, blockMode, readErrorCode = null) {
   const unsettled = Array.isArray(recovery?.unsettled)
-    ? recovery.unsettled.slice(0, 20).map((record) => ({
-        ledgerId: record.ledgerId,
-        serverName: record.serverName,
-        toolName: record.toolName,
-        effect: record.effectContract?.effect || McpEffect.UNKNOWN,
-      }))
+    ? recovery.unsettled.slice(0, 20).map((record) =>
+        Object.freeze({
+          ledgerId: record.ledgerId,
+          serverName: record.serverName,
+          toolName: record.toolName,
+          effect: record.effectContract?.effect || McpEffect.UNKNOWN,
+        }),
+      )
     : [];
   const incidents = Array.isArray(recovery?.incidents)
-    ? recovery.incidents.slice(0, 20).map((incident) => ({
-        code: incident.code,
-        ledgerId: incident.ledgerId || null,
-      }))
+    ? recovery.incidents.slice(0, 20).map((incident) =>
+        Object.freeze({
+          code: incident.code,
+          ledgerId: incident.ledgerId || null,
+        }),
+      )
     : [];
-  if (readErrorCode) incidents.push({ code: readErrorCode, ledgerId: null });
+  // Exact replay denies are active admission authority, not display samples.
+  // Never truncate this list: dropping one entry would re-enable that call.
+  const replayDenied = Array.isArray(recovery?.replayDenied)
+    ? recovery.replayDenied.map((entry) =>
+        Object.freeze({
+          ledgerId: entry.ledgerId,
+          serverName: entry.serverName,
+          toolName: entry.toolName,
+          inputBytes: entry.inputBytes,
+          replayDigest: entry.replayDigest,
+        }),
+      )
+    : [];
+  if (readErrorCode) {
+    incidents.push(Object.freeze({ code: readErrorCode, ledgerId: null }));
+  }
   return Object.freeze({
     blockMode,
     unsettled: Object.freeze(unsettled),
     incidents: Object.freeze(incidents),
+    replayDenied: Object.freeze(replayDenied),
+    headHash: recovery?.headHash || null,
+    recoveryDigest: recovery?.recoveryDigest || null,
+    remediation:
+      recovery?.remediation || (readErrorCode ? "inspect_transcript" : null),
   });
 }
 
@@ -144,7 +168,10 @@ export function prepareCoworkMcpRuntime(mcp, options = {}) {
       verifiedEvents,
       String(options.templateId || "free"),
     );
-    const recovery = reduceMcpLedgerEvents(verifiedEvents);
+    const recovery = reduceMcpLedgerEvents(verifiedEvents, {
+      sessionId,
+      verified: true,
+    });
     expectedHeadHash = verifiedEvents.at(-1)?.hash || null;
     bindingAllowed = true;
     recoveryNotice = formatMcpLedgerRecoveryNotice(recovery);

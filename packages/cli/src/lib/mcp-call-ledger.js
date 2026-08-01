@@ -115,7 +115,7 @@ function canonicalStringify(value, stack = new Set()) {
   }
 }
 
-function payloadSummary(value) {
+export function summarizeMcpPayload(value) {
   const canonical = canonicalStringify(value);
   return Object.freeze({
     sha256: `sha256:${createHash("sha256").update(canonical).digest("hex")}`,
@@ -133,7 +133,27 @@ function payloadSummary(value) {
 
 /** Return a stable SHA-256 digest without retaining the source value. */
 export function sha256PayloadDigest(value) {
-  return payloadSummary(value).sha256;
+  return summarizeMcpPayload(value).sha256;
+}
+
+/**
+ * Content-free identity for one exact MCP invocation. The byte count is bound
+ * alongside the payload digest so every admission surface compares the same
+ * canonical input representation used by the durable ledger.
+ */
+export function computeMcpExactReplayDigest({
+  serverName,
+  toolName,
+  inputDigest,
+  inputBytes,
+} = {}) {
+  return sha256PayloadDigest({
+    schemaVersion: 1,
+    serverName,
+    toolName,
+    inputDigest,
+    inputBytes,
+  });
 }
 
 function replaceProtocolControlCharacters(value) {
@@ -421,7 +441,7 @@ export class McpCallLedger {
     const effectContract = normalizeMcpEffectContract(
       call.effectContract || call.effect || {},
     );
-    const input = payloadSummary(
+    const input = summarizeMcpPayload(
       Object.prototype.hasOwnProperty.call(call, "input") ? call.input : {},
     );
     const prewritePolicy =
@@ -539,7 +559,7 @@ export class McpCallLedger {
       Object.prototype.hasOwnProperty.call(outcome, "output") ||
       Object.prototype.hasOwnProperty.call(outcome, "result");
     const output = hasOutput
-      ? payloadSummary(
+      ? summarizeMcpPayload(
           Object.prototype.hasOwnProperty.call(outcome, "output")
             ? outcome.output
             : outcome.result,

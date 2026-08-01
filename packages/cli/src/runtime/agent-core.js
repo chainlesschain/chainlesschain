@@ -5895,7 +5895,7 @@ async function executeToolInner(
             ledgerTicket = await ledger.begin({
               sessionId,
               turnId,
-              toolName: name,
+              toolName: localToolExecutor.toolName,
               serverName: localToolExecutor.serverName,
               input: args || {},
               effectContract: ledgerEffectContract,

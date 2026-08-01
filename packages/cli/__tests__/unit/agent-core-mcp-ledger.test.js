@@ -73,7 +73,7 @@ describe("agent-core MCP call ledger", () => {
     expect(events[0].record).toMatchObject({
       sessionId: "session-ledger",
       turnId: "turn-ledger",
-      toolName: TOOL_NAME,
+      toolName: "update",
       serverName: "files",
       effectContract: { effect: "write", trusted: false },
       resourceScopes: ["path:src/a.js"],

@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  computeMcpExactReplayDigest,
+  summarizeMcpPayload,
+} from "../../src/lib/mcp-call-ledger.js";
+import {
   createMcpHostRecoveryRuntime,
   resolveHostMcpEffect,
 } from "../../src/lib/mcp-host-recovery-runtime.js";
@@ -49,7 +53,7 @@ describe("host-owned MCP recovery runtime", () => {
     const runtime = createMcpHostRecoveryRuntime({
       bundle: { mcpClient: rawClient },
       sessionId: "session-roots",
-      recovery: { incidents: [], unsettled: [] },
+      recovery: { incidents: [], unsettled: [], replayDenied: [] },
     });
 
     expect(runtime.client).toBe(rawClient);
@@ -81,6 +85,7 @@ describe("host-owned MCP recovery runtime", () => {
       recovery: {
         incidents: [],
         unsettled: [{ ledgerId: "outcome-unknown" }],
+        replayDenied: [],
       },
     });
 
@@ -117,6 +122,7 @@ describe("host-owned MCP recovery runtime", () => {
       recovery: {
         incidents: [],
         unsettled: [{ ledgerId: "prior-unknown" }],
+        replayDenied: [],
       },
     });
 
@@ -137,6 +143,7 @@ describe("host-owned MCP recovery runtime", () => {
     const controller = createMcpRecoveryAdmissionController({
       incidents: [],
       unsettled: [],
+      replayDenied: [],
     });
 
     const unsafeRuntime = createMcpHostRecoveryRuntime({
@@ -147,6 +154,7 @@ describe("host-owned MCP recovery runtime", () => {
       recovery: {
         incidents: [],
         unsettled: [{ ledgerId: "prior-unknown" }],
+        replayDenied: [],
       },
     });
     expect(unsafeRuntime.controller).toBe(controller);
@@ -164,7 +172,7 @@ describe("host-owned MCP recovery runtime", () => {
       sessionId: "session-controller",
       sink: vi.fn(async () => true),
       controller,
-      recovery: { incidents: [], unsettled: [] },
+      recovery: { incidents: [], unsettled: [], replayDenied: [] },
     });
     expect(controller.admission.blockMode).toBe("unsafe");
 
@@ -173,7 +181,7 @@ describe("host-owned MCP recovery runtime", () => {
       sessionId: "session-controller",
       sink: vi.fn(async () => true),
       controller,
-      recovery: { incidents: [], unsettled: [] },
+      recovery: { incidents: [], unsettled: [], replayDenied: [] },
       recoveryError: Object.assign(new Error("verified read failed"), {
         code: "CC_TEST_RECOVERY_READ_FAILED",
       }),
@@ -182,6 +190,67 @@ describe("host-owned MCP recovery runtime", () => {
       blockMode: "all",
       reasonCode: "CC_TEST_RECOVERY_READ_FAILED",
     });
+  });
+
+  it("installs incoming exact-replay denies into a supplied controller", async () => {
+    const input = { release: 7 };
+    const summary = summarizeMcpPayload(input);
+    const rawClient = { callTool: vi.fn(async () => ({ content: [] })) };
+    const append = vi.fn(async () => true);
+    const controller = createMcpRecoveryAdmissionController({
+      incidents: [],
+      unsettled: [],
+      replayDenied: [],
+    });
+    const runtime = createMcpHostRecoveryRuntime({
+      bundle: bundle(rawClient),
+      sessionId: "session-replay-deny",
+      sink: append,
+      controller,
+      recovery: {
+        incidents: [],
+        unsettled: [],
+        replayDenied: [
+          {
+            ledgerId: "mcp-confirmed-applied",
+            serverName: "publisher",
+            toolName: "publish",
+            inputBytes: summary.bytes,
+            replayDigest: computeMcpExactReplayDigest({
+              serverName: "publisher",
+              toolName: "publish",
+              inputDigest: summary.sha256,
+              inputBytes: summary.bytes,
+            }),
+          },
+        ],
+      },
+    });
+
+    expect(controller.admission).toMatchObject({
+      blockMode: null,
+      replayDenied: 1,
+    });
+    await expect(
+      runtime.ledger.begin({
+        sessionId: "session-replay-deny",
+        serverName: "publisher",
+        toolName: "publish",
+        input,
+        effectContract: { effect: "write" },
+      }),
+    ).rejects.toMatchObject({
+      code: "CC_MCP_LEDGER_EXACT_REPLAY_DENIED",
+      ledgerId: "mcp-confirmed-applied",
+    });
+    await expect(
+      runtime.client.callTool("publisher", "publish", input),
+    ).rejects.toMatchObject({
+      code: "CC_MCP_LEDGER_EXACT_REPLAY_DENIED",
+      ledgerId: "mcp-confirmed-applied",
+    });
+    expect(rawClient.callTool).not.toHaveBeenCalled();
+    expect(append).not.toHaveBeenCalled();
   });
 
   it("shares dynamic settlement-failure admission with agent-core ledger", async () => {
@@ -195,7 +264,7 @@ describe("host-owned MCP recovery runtime", () => {
         if (appendCount === 2) throw new Error("settlement unavailable");
         return true;
       }),
-      recovery: { incidents: [], unsettled: [] },
+      recovery: { incidents: [], unsettled: [], replayDenied: [] },
     });
 
     await expect(
@@ -225,7 +294,7 @@ describe("host-owned MCP recovery runtime", () => {
       bundle: bundle({ callTool }),
       sessionId: "session-transport",
       sink: append,
-      recovery: { incidents: [], unsettled: [] },
+      recovery: { incidents: [], unsettled: [], replayDenied: [] },
     });
 
     await expect(
@@ -258,7 +327,7 @@ describe("host-owned MCP recovery runtime", () => {
       bundle: bundle(rawClient),
       sessionId: "session-frozen",
       sink: append,
-      recovery: { incidents: [], unsettled: [] },
+      recovery: { incidents: [], unsettled: [], replayDenied: [] },
     });
 
     await expect(

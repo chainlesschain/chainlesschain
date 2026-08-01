@@ -111,6 +111,72 @@ function createServer() {
 const cleanSideEffectLedger = () => ({ ops: [] });
 
 describe("ws MCP recovery projection", () => {
+  it("projects complete read-only recovery authority without truncating replay denies", () => {
+    const replayDenied = Array.from({ length: 25 }, (_, index) => ({
+      ledgerId: `mcp-deny-${index}`,
+      serverName: "repo",
+      toolName: "publish",
+      inputBytes: index + 1,
+      replayDigest: `sha256:${index.toString(16).padStart(64, "0")}`,
+    }));
+    const recovery = buildResumeRecovery("sess-mcp", {
+      loadSideEffectLedger: cleanSideEffectLedger,
+      loadMcpLedgerRecovery: () => ({
+        unsettled: [],
+        incidents: [],
+        replayDenied,
+        headHash: "a".repeat(64),
+        recoveryDigest: `sha256:${"b".repeat(64)}`,
+        remediation: "exact_replay_denied",
+      }),
+    });
+
+    expect(recovery.mcp).toMatchObject({
+      count: 25,
+      headHash: "a".repeat(64),
+      recoveryDigest: `sha256:${"b".repeat(64)}`,
+      remediation: "exact_replay_denied",
+    });
+    expect(recovery.mcp.replayDenied).toHaveLength(25);
+    expect(recovery.mcp.replayDenied[24]).toEqual(replayDenied[24]);
+    expect(Object.isFrozen(recovery.mcp.replayDenied)).toBe(true);
+    expect(Object.isFrozen(recovery.mcp.replayDenied[0])).toBe(true);
+    expect(JSON.stringify(recovery.mcp)).not.toContain("inputDigest");
+    expect(recovery.mcp.notice).toContain("exact replay denied");
+  });
+
+  it("fails closed on malformed replay authority or authority digests", () => {
+    for (const authority of [
+      {
+        replayDenied: [
+          {
+            ledgerId: "mcp-old-shape",
+            serverName: "repo",
+            toolName: "publish",
+            inputDigest: `sha256:${"c".repeat(64)}`,
+          },
+        ],
+      },
+      { headHash: `sha256:${"d".repeat(64)}` },
+      { recoveryDigest: "e".repeat(64) },
+      { remediation: "retry_automatically" },
+    ]) {
+      const recovery = buildResumeRecovery("sess-mcp", {
+        loadSideEffectLedger: cleanSideEffectLedger,
+        loadMcpLedgerRecovery: () => ({
+          unsettled: [],
+          incidents: [],
+          ...authority,
+        }),
+      });
+      expect(recovery.mcp).toMatchObject({
+        blockMode: "all",
+        remediation: "inspect_transcript",
+        incidents: [{ code: "CC_MCP_LEDGER_RECOVERY_INVALID", ledgerId: null }],
+      });
+    }
+  });
+
   it("surfaces unsettled MCP calls without retaining their arguments", () => {
     const recovery = buildResumeRecovery("sess-mcp", {
       loadSideEffectLedger: cleanSideEffectLedger,
@@ -127,6 +193,7 @@ describe("ws MCP recovery projection", () => {
           },
         ],
         incidents: [],
+        replayDenied: [],
       }),
     });
 
@@ -162,6 +229,7 @@ describe("ws MCP recovery projection", () => {
           },
         ],
         incidents: [],
+        replayDenied: [],
       }),
       formatMcpLedgerRecoveryNotice: () => null,
     });
@@ -220,6 +288,7 @@ describe("ws MCP recovery projection", () => {
           { ledgerId: "unsafe", effectContract: { effect: "write" } },
         ],
         incidents: [],
+        replayDenied: [],
       },
       {
         get(target, key, receiver) {
@@ -262,6 +331,7 @@ describe("ws MCP recovery projection", () => {
           },
         ],
         incidents: [],
+        replayDenied: [],
       }),
       formatMcpLedgerRecoveryNotice: (projection) => {
         formatted = projection;
@@ -307,6 +377,7 @@ describe("ws MCP recovery projection", () => {
       loadMcpLedgerRecovery: () => ({
         unsettled: [],
         incidents: [],
+        replayDenied: [],
         blockMode: "all",
       }),
       formatMcpLedgerRecoveryNotice: () => null,
@@ -324,7 +395,11 @@ describe("ws MCP recovery projection", () => {
       loadSideEffectLedger: () => {
         throw error;
       },
-      loadMcpLedgerRecovery: () => ({ unsettled: [], incidents: [] }),
+      loadMcpLedgerRecovery: () => ({
+        unsettled: [],
+        incidents: [],
+        replayDenied: [],
+      }),
     });
 
     expect(recovery.sideEffectIncidents).toEqual([
@@ -448,6 +523,7 @@ describe("ws runtime event emission", () => {
       loadMcpLedgerRecovery: () => ({
         unsettled: [],
         incidents: [{ code: "SESSION_TRANSCRIPT_UNVERIFIED" }],
+        replayDenied: [],
       }),
     };
 
@@ -479,7 +555,11 @@ describe("ws runtime event emission", () => {
     server.sessionHandlers.set("sess-1", handler);
     server.resumeRecoveryDependencies = {
       loadSideEffectLedger: cleanSideEffectLedger,
-      loadMcpLedgerRecovery: () => ({ unsettled: [], incidents: [] }),
+      loadMcpLedgerRecovery: () => ({
+        unsettled: [],
+        incidents: [],
+        replayDenied: [],
+      }),
     };
 
     await expect(
