@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   createMcpCallLedger,
   LedgerFailureAction,
+  MCP_CALL_LEDGER_PROTOCOL_LIMITS,
   McpCallLedger,
   McpEffect,
   sha256PayloadDigest,
@@ -10,6 +11,13 @@ import {
 function clock(...values) {
   let index = 0;
   return () => values[Math.min(index++, values.length - 1)];
+}
+
+function hasProtocolControlCharacter(value) {
+  return [...value].some((character) => {
+    const code = character.charCodeAt(0);
+    return code <= 31 || (code >= 127 && code <= 159);
+  });
 }
 
 describe("McpCallLedger", () => {
@@ -95,6 +103,100 @@ describe("McpCallLedger", () => {
     expect(atRest).not.toContain("network-secret");
     expect(atRest).not.toContain("query-secret");
     expect(atRest).not.toContain("output-secret-token");
+  });
+
+  it("bounds and canonicalizes resource and credential-free network scopes", async () => {
+    const sink = vi.fn(async () => {});
+    const ledger = createMcpCallLedger({ sink });
+    const call = await ledger.begin({
+      sessionId: "session-1",
+      toolName: "lookup",
+      serverName: "catalog",
+      input: {},
+      effectContract: { effect: "read" },
+      resourceScopes: [
+        " repo:one ",
+        "repo:one",
+        "x".repeat(MCP_CALL_LEDGER_PROTOCOL_LIMITS.resourceScope + 20),
+        ...Array.from(
+          { length: MCP_CALL_LEDGER_PROTOCOL_LIMITS.scopeCount + 10 },
+          (_, index) => `repo:${index}`,
+        ),
+      ],
+      networkScopes: [
+        "https://user:secret@example.com/private?token=secret#fragment",
+        "https://example.com/another-path?another=secret",
+        ...Array.from(
+          { length: MCP_CALL_LEDGER_PROTOCOL_LIMITS.scopeCount + 10 },
+          (_, index) => `https://host-${index}.example.com/private?secret=yes`,
+        ),
+      ],
+    });
+
+    expect(call.record.resourceScopes).toHaveLength(
+      MCP_CALL_LEDGER_PROTOCOL_LIMITS.scopeCount,
+    );
+    expect(call.record.resourceScopes.slice(0, 2)).toEqual([
+      "repo:one",
+      "x".repeat(MCP_CALL_LEDGER_PROTOCOL_LIMITS.resourceScope),
+    ]);
+    expect(call.record.networkScopes).toHaveLength(
+      MCP_CALL_LEDGER_PROTOCOL_LIMITS.scopeCount,
+    );
+    expect(call.record.networkScopes[0]).toBe("https://example.com");
+    expect(JSON.stringify(call.record.networkScopes)).not.toMatch(
+      /secret|private|token|fragment/,
+    );
+  });
+
+  it("sanitizes and bounds protocol identifiers and error labels", async () => {
+    const sink = vi.fn(async () => {});
+    const ledger = createMcpCallLedger({
+      sink,
+      randomUUID: () => `uuid\r\n${"u".repeat(300)}`,
+    });
+    const call = await ledger.begin({
+      sessionId: `session\r\n${"s".repeat(300)}`,
+      turnId: `turn\0${"t".repeat(300)}`,
+      toolName: `tool\r\n${"t".repeat(300)}`,
+      serverName: `server\u007f${"s".repeat(300)}`,
+      input: {},
+      effectContract: {
+        effect: "read",
+        source: `source\r\n${"x".repeat(300)}`,
+      },
+    });
+    const settled = await call.settle({
+      error: Object.assign(new Error("private"), {
+        name: `Remote\r\n${"n".repeat(120)}`,
+        code: `FAIL\0${"c".repeat(160)}`,
+      }),
+    });
+
+    for (const value of [
+      call.ledgerId,
+      call.record.sessionId,
+      call.record.turnId,
+      call.record.toolName,
+      call.record.serverName,
+      call.record.effectContract.source,
+      settled.errorSummary.name,
+      settled.errorSummary.code,
+    ]) {
+      expect(hasProtocolControlCharacter(value)).toBe(false);
+    }
+    expect(call.ledgerId.length).toBeLessThanOrEqual(
+      MCP_CALL_LEDGER_PROTOCOL_LIMITS.ledgerId,
+    );
+    expect(call.record.toolName.length).toBeLessThanOrEqual(
+      MCP_CALL_LEDGER_PROTOCOL_LIMITS.identifier,
+    );
+    expect(settled.errorSummary.name.length).toBeLessThanOrEqual(
+      MCP_CALL_LEDGER_PROTOCOL_LIMITS.errorName,
+    );
+    expect(settled.errorSummary.code.length).toBeLessThanOrEqual(
+      MCP_CALL_LEDGER_PROTOCOL_LIMITS.errorCode,
+    );
   });
 
   it("issues a unique ledger id for every call even with a repeated UUID seam", async () => {
@@ -199,12 +301,11 @@ describe("McpCallLedger", () => {
       effect: McpEffect.UNKNOWN,
     });
 
-    let attempts = 0;
+    const sink = vi.fn(async () => {
+      throw new Error("unavailable");
+    });
     const open = new McpCallLedger({
-      sink: async () => {
-        attempts += 1;
-        if (attempts === 1) throw new Error("unavailable once");
-      },
+      sink,
       prewriteFailurePolicy: {
         [McpEffect.UNKNOWN]: LedgerFailureAction.FAIL_OPEN,
       },
@@ -219,7 +320,14 @@ describe("McpCallLedger", () => {
       prewritePolicy: LedgerFailureAction.FAIL_OPEN,
       record: { prewritePersistence: "failed-open" },
     });
-    await call.settle({ status: "completed" });
+    const first = await call.settle({ status: "completed" });
+    const second = await call.settle({ status: "completed" });
+    expect(first).toMatchObject({
+      status: "completed",
+      settlementPersistence: "skipped-no-prewrite",
+    });
+    expect(second).toEqual(first);
+    expect(sink).toHaveBeenCalledTimes(1);
   });
 
   it("does not allow policy options to weaken write or destructive prewrites", () => {

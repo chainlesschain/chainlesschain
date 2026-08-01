@@ -12,10 +12,15 @@ import {
   readVerifiedEvents as storeReadVerifiedEvents,
 } from "../harness/jsonl-session-store.js";
 import {
+  canonicalizeMcpNetworkScopes,
+  canonicalizeMcpResourceScopes,
   LedgerFailureAction,
+  MCP_CALL_LEDGER_OUTPUT_KINDS,
+  MCP_CALL_LEDGER_PROTOCOL_LIMITS,
   MCP_CALL_LEDGER_SCHEMA_VERSION,
   McpCallStatus,
   McpEffect,
+  normalizeMcpLedgerProtocolText,
   normalizeMcpEffectContract,
 } from "./mcp-call-ledger.js";
 
@@ -28,6 +33,7 @@ const TERMINAL = new Set([
   McpCallStatus.CANCELLED,
 ]);
 const SHA256_DIGEST = /^sha256:[0-9a-f]{64}$/i;
+const OUTPUT_KINDS = new Set(MCP_CALL_LEDGER_OUTPUT_KINDS);
 const RECORD_FIELDS = new Set([
   "schemaVersion",
   "ledgerId",
@@ -70,8 +76,12 @@ export class McpCallLedgerStoreError extends Error {
     super(message, options.cause ? { cause: options.cause } : undefined);
     this.name = "McpCallLedgerStoreError";
     this.code = code;
-    this.sessionId = options.sessionId || null;
-    this.ledgerId = options.ledgerId || null;
+    this.sessionId = normalizeMcpLedgerProtocolText(options.sessionId, null);
+    this.ledgerId = normalizeMcpLedgerProtocolText(
+      options.ledgerId,
+      null,
+      MCP_CALL_LEDGER_PROTOCOL_LIMITS.ledgerId,
+    );
   }
 }
 
@@ -92,11 +102,17 @@ function hasOnlyFields(value, allowedFields) {
   );
 }
 
-function canonicalStringArray(value) {
+function canonicalScopes(value, canonicalize) {
   if (!Array.isArray(value) || value.some((item) => typeof item !== "string")) {
     return null;
   }
-  return Object.freeze([...value]);
+  return Object.freeze(canonicalize(value));
+}
+
+function isCanonicalProtocolText(value, maxLength, nullable = false) {
+  if (value === null) return nullable;
+  if (typeof value !== "string") return false;
+  return value === normalizeMcpLedgerProtocolText(value, null, maxLength);
 }
 
 function canonicalOutputSummary(value) {
@@ -106,8 +122,7 @@ function canonicalOutputSummary(value) {
     !SHA256_DIGEST.test(String(value.sha256 || "")) ||
     !Number.isInteger(value.bytes) ||
     value.bytes < 0 ||
-    typeof value.kind !== "string" ||
-    !value.kind
+    !OUTPUT_KINDS.has(value.kind)
   ) {
     return false;
   }
@@ -122,9 +137,15 @@ function canonicalErrorSummary(value) {
   if (value === null) return null;
   if (
     !hasOnlyFields(value, ERROR_SUMMARY_FIELDS) ||
-    typeof value.name !== "string" ||
-    !value.name ||
-    (value.code !== null && typeof value.code !== "string") ||
+    !isCanonicalProtocolText(
+      value.name,
+      MCP_CALL_LEDGER_PROTOCOL_LIMITS.errorName,
+    ) ||
+    (value.code !== null &&
+      !isCanonicalProtocolText(
+        value.code,
+        MCP_CALL_LEDGER_PROTOCOL_LIMITS.errorCode,
+      )) ||
     !SHA256_DIGEST.test(String(value.messageDigest || ""))
   ) {
     return false;
@@ -148,18 +169,47 @@ function canonicalRecord(record) {
   }
 
   const effectContract = normalizeMcpEffectContract(record.effectContract);
-  const resourceScopes = canonicalStringArray(record.resourceScopes);
-  const networkScopes = canonicalStringArray(record.networkScopes);
+  const resourceScopes = canonicalScopes(
+    record.resourceScopes,
+    canonicalizeMcpResourceScopes,
+  );
+  const networkScopes = canonicalScopes(
+    record.networkScopes,
+    canonicalizeMcpNetworkScopes,
+  );
   const outputSummary = canonicalOutputSummary(record.outputSummary);
   const errorSummary = canonicalErrorSummary(record.errorSummary);
+  const effectSourceValid =
+    record.effectContract.source == null ||
+    isCanonicalProtocolText(
+      record.effectContract.source,
+      MCP_CALL_LEDGER_PROTOCOL_LIMITS.identifier,
+    );
   const baseValid =
     record.schemaVersion === MCP_CALL_LEDGER_SCHEMA_VERSION &&
-    typeof record.ledgerId === "string" &&
-    record.ledgerId.length > 0 &&
-    (record.sessionId === null || typeof record.sessionId === "string") &&
-    (record.turnId === null || typeof record.turnId === "string") &&
-    typeof record.toolName === "string" &&
-    typeof record.serverName === "string" &&
+    isCanonicalProtocolText(
+      record.ledgerId,
+      MCP_CALL_LEDGER_PROTOCOL_LIMITS.ledgerId,
+    ) &&
+    isCanonicalProtocolText(
+      record.sessionId,
+      MCP_CALL_LEDGER_PROTOCOL_LIMITS.identifier,
+      true,
+    ) &&
+    isCanonicalProtocolText(
+      record.turnId,
+      MCP_CALL_LEDGER_PROTOCOL_LIMITS.identifier,
+      true,
+    ) &&
+    isCanonicalProtocolText(
+      record.toolName,
+      MCP_CALL_LEDGER_PROTOCOL_LIMITS.identifier,
+    ) &&
+    isCanonicalProtocolText(
+      record.serverName,
+      MCP_CALL_LEDGER_PROTOCOL_LIMITS.identifier,
+    ) &&
+    effectSourceValid &&
     SHA256_DIGEST.test(String(record.inputDigest || "")) &&
     Number.isInteger(record.inputBytes) &&
     record.inputBytes >= 0 &&
@@ -295,7 +345,12 @@ function immutableRecordMatches(started, settled) {
 /** Create the async sink accepted by `McpCallLedger`. */
 export function createSessionMcpLedgerSink(sessionId, options = {}) {
   const appendEvent = options.appendEvent || storeAppendAuthorityEvent;
-  if (typeof sessionId !== "string" || !sessionId.trim()) {
+  if (
+    !isCanonicalProtocolText(
+      sessionId,
+      MCP_CALL_LEDGER_PROTOCOL_LIMITS.identifier,
+    )
+  ) {
     throw new TypeError("MCP ledger session sink requires sessionId");
   }
   if (typeof appendEvent !== "function") {
@@ -357,9 +412,11 @@ export function createSessionMcpLedgerSink(sessionId, options = {}) {
  * Fold transcript events into the latest record per ledger id. Malformed MCP
  * ledger events are incidents, not silently skipped authority facts.
  */
-export function reduceMcpLedgerEvents(events) {
+export function reduceMcpLedgerEvents(events, options = {}) {
   const records = new Map();
   const incidents = [];
+  const targetSessionId =
+    typeof options.sessionId === "string" ? options.sessionId : null;
   for (const event of Array.isArray(events) ? events : []) {
     if (event?.type !== MCP_CALL_LEDGER_EVENT) continue;
     const envelope = event.data;
@@ -373,6 +430,16 @@ export function reduceMcpLedgerEvents(events) {
         Object.freeze({
           code: "CC_MCP_LEDGER_EVENT_CORRUPT",
           ledgerId: record?.ledgerId || null,
+        }),
+      );
+      continue;
+    }
+
+    if (targetSessionId !== null && record.sessionId !== targetSessionId) {
+      incidents.push(
+        Object.freeze({
+          code: "CC_MCP_LEDGER_SESSION_MISMATCH",
+          ledgerId: record.ledgerId,
         }),
       );
       continue;
@@ -436,7 +503,9 @@ export function loadMcpLedgerRecovery(sessionId, options = {}) {
   const readVerifiedEvents =
     options.readVerifiedEvents || storeReadVerifiedEvents;
   try {
-    return reduceMcpLedgerEvents(readVerifiedEvents(sessionId) || []);
+    return reduceMcpLedgerEvents(readVerifiedEvents(sessionId) || [], {
+      sessionId,
+    });
   } catch (cause) {
     throw new McpCallLedgerStoreError(
       "CC_MCP_LEDGER_EVENT_READ_FAILED",

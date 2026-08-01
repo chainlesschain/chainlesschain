@@ -2,6 +2,31 @@ import { createHash, randomUUID as nodeRandomUUID } from "node:crypto";
 
 export const MCP_CALL_LEDGER_SCHEMA_VERSION = 1;
 
+export const MCP_CALL_LEDGER_PROTOCOL_LIMITS = Object.freeze({
+  identifier: 256,
+  ledgerId: 256,
+  errorName: 96,
+  errorCode: 128,
+  scopeCount: 64,
+  resourceScope: 1024,
+  networkScopeInput: 2048,
+  networkScope: 512,
+});
+
+export const MCP_CALL_LEDGER_OUTPUT_KINDS = Object.freeze([
+  "array",
+  "bigint",
+  "boolean",
+  "buffer",
+  "function",
+  "null",
+  "number",
+  "object",
+  "string",
+  "symbol",
+  "undefined",
+]);
+
 export const McpEffect = Object.freeze({
   READ: "read",
   UNKNOWN: "unknown",
@@ -111,9 +136,32 @@ export function sha256PayloadDigest(value) {
   return payloadSummary(value).sha256;
 }
 
-function safeIdentifier(value, fallback = null, maxLength = 256) {
+function replaceProtocolControlCharacters(value) {
+  return [...value]
+    .map((character) => {
+      const code = character.charCodeAt(0);
+      return code <= 31 || (code >= 127 && code <= 159) ? " " : character;
+    })
+    .join("");
+}
+
+/** Canonicalize a bounded protocol label without retaining control bytes. */
+export function normalizeMcpLedgerProtocolText(
+  value,
+  fallback = null,
+  maxLength = MCP_CALL_LEDGER_PROTOCOL_LIMITS.identifier,
+) {
   if (value === undefined || value === null || value === "") return fallback;
-  return String(value).trim().slice(0, maxLength) || fallback;
+  const text = replaceProtocolControlCharacters(String(value));
+  return text.trim().slice(0, maxLength).trim() || fallback;
+}
+
+function safeIdentifier(
+  value,
+  fallback = null,
+  maxLength = MCP_CALL_LEDGER_PROTOCOL_LIMITS.identifier,
+) {
+  return normalizeMcpLedgerProtocolText(value, fallback, maxLength);
 }
 
 function nullableBoolean(value) {
@@ -151,21 +199,40 @@ export function normalizeMcpEffectContract(contract = {}) {
     idempotent: nullableBoolean(contract.idempotent),
     openWorld: nullableBoolean(contract.openWorld),
     trusted: contract.trusted === true,
-    source: safeIdentifier(contract.source, null),
+    source: safeIdentifier(
+      contract.source,
+      null,
+      MCP_CALL_LEDGER_PROTOCOL_LIMITS.identifier,
+    ),
   });
 }
 
-function normalizeResourceScopes(scopes) {
+export function canonicalizeMcpResourceScopes(scopes) {
   if (!Array.isArray(scopes)) return [];
-  return [
-    ...new Set(
-      scopes.map((scope) => safeIdentifier(scope, null, 1024)).filter(Boolean),
-    ),
-  ];
+  const normalized = [];
+  const seen = new Set();
+  for (const scope of scopes) {
+    if (typeof scope !== "string") continue;
+    const value = safeIdentifier(
+      scope,
+      null,
+      MCP_CALL_LEDGER_PROTOCOL_LIMITS.resourceScope,
+    );
+    if (!value || seen.has(value)) continue;
+    seen.add(value);
+    normalized.push(value);
+    if (normalized.length >= MCP_CALL_LEDGER_PROTOCOL_LIMITS.scopeCount) break;
+  }
+  return normalized;
 }
 
 function normalizeNetworkScope(scope) {
-  const value = safeIdentifier(scope, null, 2048);
+  if (typeof scope !== "string") return null;
+  const value = safeIdentifier(
+    scope,
+    null,
+    MCP_CALL_LEDGER_PROTOCOL_LIMITS.networkScopeInput,
+  );
   if (!value) return null;
 
   // Network ledger entries retain the authority target, never URL credentials,
@@ -173,16 +240,28 @@ function normalizeNetworkScope(scope) {
   try {
     const url = new URL(value.includes("://") ? value : `https://${value}`);
     if (!url.hostname) return null;
-    return `${url.protocol}//${url.hostname.toLowerCase()}${url.port ? `:${url.port}` : ""}`;
+    return safeIdentifier(
+      `${url.protocol}//${url.hostname.toLowerCase()}${url.port ? `:${url.port}` : ""}`,
+      null,
+      MCP_CALL_LEDGER_PROTOCOL_LIMITS.networkScope,
+    );
   } catch {
-    const withoutCredentials = value.replace(/^.*@/, "");
-    return withoutCredentials.split(/[/?#]/, 1)[0].toLowerCase() || null;
+    return null;
   }
 }
 
-function normalizeNetworkScopes(scopes) {
+export function canonicalizeMcpNetworkScopes(scopes) {
   if (!Array.isArray(scopes)) return [];
-  return [...new Set(scopes.map(normalizeNetworkScope).filter(Boolean))];
+  const normalized = [];
+  const seen = new Set();
+  for (const scope of scopes) {
+    const value = normalizeNetworkScope(scope);
+    if (!value || seen.has(value)) continue;
+    seen.add(value);
+    normalized.push(value);
+    if (normalized.length >= MCP_CALL_LEDGER_PROTOCOL_LIMITS.scopeCount) break;
+  }
+  return normalized;
 }
 
 function timestamp(now) {
@@ -209,8 +288,16 @@ function frozenSnapshot(record) {
 function summarizeError(error) {
   const message = String(error?.message || error || "unknown error");
   return Object.freeze({
-    name: safeIdentifier(error?.name, "Error", 96),
-    code: safeIdentifier(error?.code, null, 128),
+    name: safeIdentifier(
+      error?.name,
+      "Error",
+      MCP_CALL_LEDGER_PROTOCOL_LIMITS.errorName,
+    ),
+    code: safeIdentifier(
+      error?.code,
+      null,
+      MCP_CALL_LEDGER_PROTOCOL_LIMITS.errorCode,
+    ),
     messageDigest: sha256PayloadDigest(message),
   });
 }
@@ -316,8 +403,16 @@ export class McpCallLedger {
   }
 
   async begin(call = {}) {
-    const toolName = safeIdentifier(call.toolName || call.tool, null);
-    const serverName = safeIdentifier(call.serverName || call.server, null);
+    const toolName = safeIdentifier(
+      call.toolName || call.tool,
+      null,
+      MCP_CALL_LEDGER_PROTOCOL_LIMITS.identifier,
+    );
+    const serverName = safeIdentifier(
+      call.serverName || call.server,
+      null,
+      MCP_CALL_LEDGER_PROTOCOL_LIMITS.identifier,
+    );
     if (!toolName) throw new TypeError("MCP ledger begin requires toolName");
     if (!serverName)
       throw new TypeError("MCP ledger begin requires serverName");
@@ -335,15 +430,23 @@ export class McpCallLedger {
     let record = {
       schemaVersion: MCP_CALL_LEDGER_SCHEMA_VERSION,
       ledgerId,
-      sessionId: safeIdentifier(call.sessionId, null),
-      turnId: safeIdentifier(call.turnId ?? call.turn, null),
+      sessionId: safeIdentifier(
+        call.sessionId,
+        null,
+        MCP_CALL_LEDGER_PROTOCOL_LIMITS.identifier,
+      ),
+      turnId: safeIdentifier(
+        call.turnId ?? call.turn,
+        null,
+        MCP_CALL_LEDGER_PROTOCOL_LIMITS.identifier,
+      ),
       toolName,
       serverName,
       inputDigest: input.sha256,
       inputBytes: input.bytes,
       effectContract,
-      resourceScopes: normalizeResourceScopes(call.resourceScopes),
-      networkScopes: normalizeNetworkScopes(call.networkScopes),
+      resourceScopes: canonicalizeMcpResourceScopes(call.resourceScopes),
+      networkScopes: canonicalizeMcpNetworkScopes(call.networkScopes),
       prewritePolicy,
       prewritePersistence: this._sink ? "pending" : "memory-only",
       status: McpCallStatus.STARTED,
@@ -415,6 +518,7 @@ export class McpCallLedger {
         ? ticketOrLedgerId
         : ticketOrLedgerId?.ledgerId,
       null,
+      MCP_CALL_LEDGER_PROTOCOL_LIMITS.ledgerId,
     );
     if (!ledgerId || !this._records.has(ledgerId)) {
       throw new Error(`Unknown MCP ledger entry: ${ledgerId || "(missing)"}`);
