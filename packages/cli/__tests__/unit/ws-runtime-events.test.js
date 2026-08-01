@@ -278,6 +278,44 @@ describe("ws MCP recovery projection", () => {
     });
   });
 
+  it("rejects non-string recovery scalars without projecting object content", () => {
+    const recovery = buildResumeRecovery("sess-mcp", {
+      loadSideEffectLedger: cleanSideEffectLedger,
+      loadMcpLedgerRecovery: () => ({
+        unsettled: [
+          {
+            ledgerId: { secret: "must-not-project" },
+            serverName: "repo",
+            toolName: "publish",
+            effectContract: { effect: "write" },
+          },
+        ],
+        incidents: [],
+      }),
+    });
+
+    expect(recovery.mcp).toMatchObject({
+      blockMode: "all",
+      incidents: [{ code: "CC_MCP_LEDGER_RECOVERY_INVALID", ledgerId: null }],
+    });
+    expect(JSON.stringify(recovery)).not.toContain("must-not-project");
+  });
+
+  it("keeps an explicit recovery block mode visible even with empty arrays", () => {
+    const recovery = buildResumeRecovery("sess-mcp", {
+      loadSideEffectLedger: cleanSideEffectLedger,
+      loadMcpLedgerRecovery: () => ({
+        unsettled: [],
+        incidents: [],
+        blockMode: "all",
+      }),
+      formatMcpLedgerRecoveryNotice: () => null,
+    });
+
+    expect(recovery.mcp).toMatchObject({ blockMode: "all", count: 0 });
+    expect(recovery.notice).toContain("requires inspection");
+  });
+
   it("surfaces side-effect ledger read failures instead of dropping recovery", () => {
     const error = Object.assign(new Error("secret parse details"), {
       code: "CC_SIDE_EFFECT_LEDGER_CORRUPT",
@@ -429,6 +467,42 @@ describe("ws runtime event emission", () => {
         revision: 1,
       },
     ]);
+  });
+
+  it("turns an asynchronous handler refresh rejection into a resumed fail-closed response", async () => {
+    const refreshError = Object.assign(new Error("async refresh failed"), {
+      code: "CC_ASYNC_MCP_REFRESH_FAILED",
+    });
+    const handler = {
+      refreshMcpRecoveryRuntime: vi.fn().mockRejectedValue(refreshError),
+    };
+    server.sessionHandlers.set("sess-1", handler);
+    server.resumeRecoveryDependencies = {
+      loadSideEffectLedger: cleanSideEffectLedger,
+      loadMcpLedgerRecovery: () => ({ unsettled: [], incidents: [] }),
+    };
+
+    await expect(
+      handleSessionResume(server, "req-async-refresh", ws, {
+        sessionId: "sess-1",
+      }),
+    ).resolves.toBeUndefined();
+
+    expect(server._session.mcpLedgerRecovery).toMatchObject({
+      blockMode: "all",
+      incidents: [{ code: "CC_ASYNC_MCP_REFRESH_FAILED", ledgerId: null }],
+    });
+    expect(server._send).toHaveBeenCalledWith(
+      ws,
+      expect.objectContaining({
+        type: "session.resumed",
+        payload: expect.objectContaining({
+          recovery: expect.objectContaining({
+            mcp: expect.objectContaining({ blockMode: "all" }),
+          }),
+        }),
+      }),
+    );
   });
 
   it("emits runtime worktree and compression summary events", async () => {

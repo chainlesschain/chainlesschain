@@ -43,6 +43,14 @@ function ownDataValue(record, key, fallback = null) {
   return descriptor.value;
 }
 
+function recoveryString(value, fallback) {
+  if (value == null) return fallback;
+  if (typeof value === "string") return value;
+  const error = new TypeError("MCP recovery scalar must be a string");
+  error.code = MCP_RECOVERY_INVALID_CODE;
+  throw error;
+}
+
 function snapshotMcpRecord(record) {
   const effectContract = ownDataValue(record, "effectContract", null);
   let effect = "unknown";
@@ -52,20 +60,32 @@ function snapshotMcpRecord(record) {
       error.code = MCP_RECOVERY_INVALID_CODE;
       throw error;
     }
-    effect = ownDataValue(effectContract, "effect", "unknown") || "unknown";
+    effect = recoveryString(
+      ownDataValue(effectContract, "effect", "unknown"),
+      "unknown",
+    );
   }
   return Object.freeze({
-    ledgerId: ownDataValue(record, "ledgerId", null),
-    serverName: ownDataValue(record, "serverName", "unknown"),
-    toolName: ownDataValue(record, "toolName", "unknown"),
+    ledgerId: recoveryString(ownDataValue(record, "ledgerId", null), null),
+    serverName: recoveryString(
+      ownDataValue(record, "serverName", "unknown"),
+      "unknown",
+    ),
+    toolName: recoveryString(
+      ownDataValue(record, "toolName", "unknown"),
+      "unknown",
+    ),
     effect,
   });
 }
 
 function snapshotMcpIncident(incident) {
   return Object.freeze({
-    code: ownDataValue(incident, "code", MCP_RECOVERY_INVALID_CODE),
-    ledgerId: ownDataValue(incident, "ledgerId", null),
+    code: recoveryString(
+      ownDataValue(incident, "code", MCP_RECOVERY_INVALID_CODE),
+      MCP_RECOVERY_INVALID_CODE,
+    ),
+    ledgerId: recoveryString(ownDataValue(incident, "ledgerId", null), null),
   });
 }
 
@@ -181,7 +201,10 @@ function buildMcpResumeRecovery(sessionId, loadRecovery, formatNotice) {
       ),
     );
     const incidents = snapshot.incidents;
-    const requiresInspection = unsettled.length > 0 || incidents.length > 0;
+    const requiresInspection =
+      unsettled.length > 0 ||
+      incidents.length > 0 ||
+      snapshot.admission.blockMode != null;
     let notice = null;
     if (requiresInspection) {
       const formatterProjection = Object.freeze({
@@ -520,7 +543,7 @@ export async function handleSessionResume(server, id, ws, message) {
   const handler = server.sessionHandlers.get(sessionId);
   if (typeof handler?.refreshMcpRecoveryRuntime === "function") {
     try {
-      handler.refreshMcpRecoveryRuntime();
+      await handler.refreshMcpRecoveryRuntime();
     } catch (error) {
       const failedMcp = failClosedMcpRecovery(
         error,
