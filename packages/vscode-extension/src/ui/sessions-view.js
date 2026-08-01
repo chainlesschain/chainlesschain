@@ -1,46 +1,35 @@
 /**
- * Sessions Workbench webview (gap #3 跨端 Remote/Cloud Session 入口) — one
- * panel across every session surface:
- *  - chat sessions   `cc session list --json`
- *  - IDE sessions    ~/.chainlesschain/ide/session-index.json
- *  - background      supervisor state dir (background-agents.js, like the
- *                    Background Agents panel — no CLI round-trip)
- *  - remote control  `cc remote-control status --json`
- *
- * Every source is loaded with per-call error tolerance: a failing source shows
- * a warning row, never a blank panel. Actions route to the least invasive
- * existing flow: resume → the chat view's resumeSessionId (injected hook from
- * extension.js, falls back to a `cc session resume` terminal); attach → opens
- * the Background Agents panel (which owns the take-over transport/log UI);
- * stop/continue/rename(background) → `cc daemon … --json`; rename(chat/ide) →
- * shared IDE index overlay; delete → `cc session delete --force` + index
- * prune; stop(remote) → `cc remote-control stop --port … --json`.
- *
- * Singleton panel; 15s auto-refresh while visible. Row aggregation/rendering
- * is pure and lives in ../sessions-workbench.js.
+ * Existing Sessions Workbench webview over the CLI-owned canonical session
+ * projection. The IDE never joins state/index files or reads transport tokens;
+ * every mutation is revision-gated and routed through a CLI command.
  */
 const { execFile } = require("child_process");
 const { hardenedEnv } = require("../hardened-env");
 const { escapeCmdArgs } = require("../win-shell");
 const {
   buildWorkbenchArgs,
-  aggregateSessions,
+  parseSessionProjection,
+  canRunProjectionAction,
+  recheckProjectionAction,
+  materializeActionPreview,
   filterRows,
   renderWorkbenchHtml,
 } = require("../sessions-workbench.js");
 
 const REFRESH_MS = 15000;
 // Session/agent ids come back through webview messages — keep them argv-safe
-// (Windows execFile runs through a shell for the .cmd shim, like every other
-// cc call in this extension).
-const SAFE_ID = /^[\w@.:-]+$/;
-
 let _panel = null;
 let _timer = null;
 let _rows = [];
 let _errors = [];
 let _query = "";
 let _hooks = {};
+let _snapshot = {
+  connected: false,
+  revision: null,
+  rows: [],
+  error: "not loaded",
+};
 
 function cliCommand(vscode) {
   const { getResolvedCli } = require("../cli-binary");
@@ -104,171 +93,165 @@ function postRows() {
   });
 }
 
-/** Load all four sources in parallel; per-source failures become warning rows. */
+function projectionArgs(vscode) {
+  const cwd = vscode.workspace.workspaceFolders?.[0]?.uri?.fsPath || null;
+  return buildWorkbenchArgs({ cwd }).sessionProjection;
+}
+
+async function readProjection(vscode) {
+  const result = await runCliJson(vscode, projectionArgs(vscode));
+  return result.ok
+    ? parseSessionProjection(result.raw)
+    : {
+        connected: false,
+        revision: null,
+        rows: [],
+        error: result.error || "cc session projection unavailable",
+      };
+}
+
+/** Load the one CLI-owned projection; any failure clears stale actions. */
 async function loadData(vscode) {
-  const args = buildWorkbenchArgs();
-  const errors = [];
-
-  const [chatRes, remoteRes] = await Promise.all([
-    runCliJson(vscode, args.sessionList),
-    runCliJson(vscode, args.remoteControlStatus),
-  ]);
-
-  let chatSessions = [];
-  if (chatRes.ok) {
-    const { parseSessionList } = require("../chat/session-list.js");
-    chatSessions = parseSessionList(chatRes.raw);
+  _snapshot = await readProjection(vscode);
+  _rows = _snapshot.connected ? _snapshot.rows : [];
+  _errors = [];
+  if (!_snapshot.connected) {
+    _errors.push({
+      source: "cc session projection",
+      message: _snapshot.error || "disconnected",
+    });
   } else {
-    errors.push({ source: "cc session list", message: chatRes.error });
+    for (const [source, status] of Object.entries(_snapshot.sources || {})) {
+      if (status?.ok === false) {
+        _errors.push({
+          source,
+          message: status.error || "source unavailable",
+        });
+      }
+    }
   }
-
-  let remoteControl = [];
-  if (remoteRes.ok) {
-    remoteControl = Array.isArray(remoteRes.json) ? remoteRes.json : [];
-  } else {
-    errors.push({
-      source: "cc remote-control status",
-      message: remoteRes.error,
-    });
-  }
-
-  let ideIndex = [];
-  try {
-    const { readIdeSessionIndex } = require("../chat/ide-session-index.js");
-    ideIndex = readIdeSessionIndex();
-  } catch (e) {
-    errors.push({
-      source: "IDE session index",
-      message: e?.message || String(e),
-    });
-  }
-
-  let backgroundAgents = [];
-  try {
-    const { listBackgroundSessions } = require("../background-agents.js");
-    backgroundAgents = listBackgroundSessions();
-  } catch (e) {
-    errors.push({
-      source: "background agents",
-      message: e?.message || String(e),
-    });
-  }
-
-  _rows = aggregateSessions({
-    chatSessions,
-    ideIndex,
-    backgroundAgents,
-    remoteControl,
-  });
-  _errors = errors;
   postRows();
 }
 
-async function runAction(vscode, msg) {
-  const id = String(msg.id || "");
-  const kind = String(msg.kind || "");
-  if (!SAFE_ID.test(id)) return;
+function terminalToken(value) {
+  const text = String(value || "");
+  if (process.platform === "win32") {
+    return `"${text.replace(/"/g, '""')}"`;
+  }
+  return `'${text.replace(/'/g, `'"'"'`)}'`;
+}
 
-  switch (msg.act) {
-    case "resume": {
-      // Least invasive resume: the chat view already exposes resumeSessionId
-      // (used by /sessions and deep links) — extension.js injects it here.
-      if (typeof _hooks.resumeChatSession === "function") {
-        _hooks.resumeChatSession(id);
-        post({ type: "info", text: `resuming ${id} in the chat panel` });
-      } else {
-        const term = vscode.window.createTerminal("ChainlessChain Session");
-        term.show();
-        term.sendText(`${cliCommand(vscode)} session resume ${id}`);
-      }
+function openPreviewTerminal(vscode, args) {
+  if (
+    !Array.isArray(args) ||
+    args.length === 0 ||
+    args.length > 32 ||
+    args.some(
+      (value) =>
+        typeof value !== "string" ||
+        value.includes("\0") ||
+        /[\r\n]/.test(value),
+    )
+  ) {
+    return false;
+  }
+  const term = vscode.window.createTerminal("ChainlessChain Session");
+  term.show();
+  term.sendText(
+    [terminalToken(cliCommand(vscode)), ...args.map(terminalToken)].join(" "),
+  );
+  return true;
+}
+
+async function showCliOutput(vscode, title, result) {
+  if (!result.ok) {
+    post({ type: "info", text: `${title} failed: ${result.error}` });
+    return;
+  }
+  const doc = await vscode.workspace.openTextDocument({
+    content: result.raw || JSON.stringify(result.json || {}, null, 2),
+    language: "json",
+  });
+  await vscode.window.showTextDocument(doc, { preview: true });
+}
+
+async function runAction(vscode, msg) {
+  const renderedSnapshot = _snapshot;
+  const request = {
+    id: String(msg.id || ""),
+    action: String(msg.act || ""),
+    revision: String(msg.revision || ""),
+    itemRevision: String(msg.itemRevision || ""),
+  };
+  if (!canRunProjectionAction(renderedSnapshot, request)) {
+    post({
+      type: "info",
+      text: "Session data is disconnected or stale; action was not sent.",
+    });
+    await loadData(vscode);
+    return;
+  }
+  const currentSnapshot = await readProjection(vscode);
+  const checked = recheckProjectionAction(
+    renderedSnapshot,
+    currentSnapshot,
+    request,
+  );
+  if (!checked.ok) {
+    post({
+      type: "info",
+      text: `${checked.error}; refresh before retrying.`,
+    });
+    await loadData(vscode);
+    return;
+  }
+  const route = materializeActionPreview(checked.preview, {
+    prompt: msg.text,
+  });
+  if (!route) {
+    post({ type: "info", text: "Action input is missing or invalid." });
+    return;
+  }
+
+  if (route.executor === "host") {
+    if (
+      request.action === "dispatch" &&
+      checked.row.kind === "local" &&
+      typeof _hooks.resumeChatSession === "function"
+    ) {
+      _hooks.resumeChatSession(checked.row.sourceId);
+      post({
+        type: "info",
+        text: `resuming ${checked.row.sourceId} in the chat panel`,
+      });
       return;
     }
-    case "rename": {
-      const title = String(msg.title || "").trim();
-      if (!title) return;
-      if (kind === "background") {
-        const r = await runCliJson(vscode, [
-          "daemon",
-          "rename",
-          id,
-          title,
-          "--json",
-        ]);
-        if (!r.ok) post({ type: "info", text: `rename failed: ${r.error}` });
-      } else {
-        try {
-          const {
-            renameIdeSessionRecord,
-          } = require("../chat/ide-session-index.js");
-          renameIdeSessionRecord(id, title);
-        } catch (e) {
-          post({ type: "info", text: `rename failed: ${e?.message || e}` });
-        }
-      }
-      await loadData(vscode);
-      return;
+    if (!openPreviewTerminal(vscode, route.argv)) {
+      post({ type: "info", text: "Host action preview was rejected." });
     }
-    case "delete": {
-      const proceed = await vscode.window.showWarningMessage(
-        `Delete session ${id}? Its saved transcript is removed. This cannot be undone.`,
-        { modal: true },
-        "Delete",
-      );
-      if (proceed !== "Delete") return;
-      const { deleteCliSession } = require("../chat/session-list.js");
-      await deleteCliSession({ command: cliCommand(vscode), id });
-      try {
-        const {
-          removeIdeSessionRecord,
-        } = require("../chat/ide-session-index.js");
-        removeIdeSessionRecord(id);
-      } catch {
-        /* index prune is best-effort */
-      }
-      await loadData(vscode);
-      return;
+    return;
+  }
+
+  if (route.executor === "terminal") {
+    if (!openPreviewTerminal(vscode, route.argv)) {
+      post({ type: "info", text: "Terminal action preview was rejected." });
     }
-    case "attach": {
-      // The Background Agents panel owns the interactive take-over transport
-      // (agent-sdk pipe client) + live log UI — reuse it instead of cloning.
-      const { openBackgroundAgents } = require("./background-agents-view.js");
-      openBackgroundAgents(vscode);
-      return;
-    }
-    case "stop": {
-      if (kind === "remote") {
-        const port = Number(msg.port);
-        if (!Number.isFinite(port) || port <= 0) return;
-        const r = await runCliJson(vscode, [
-          "remote-control",
-          "stop",
-          "--port",
-          String(port),
-          "--json",
-        ]);
-        if (!r.ok) post({ type: "info", text: `stop failed: ${r.error}` });
-      } else {
-        const r = await runCliJson(vscode, ["daemon", "stop", id, "--json"]);
-        if (!r.ok) post({ type: "info", text: `stop failed: ${r.error}` });
-      }
-      await loadData(vscode);
-      return;
-    }
-    case "continue": {
-      const text = String(msg.text || "").trim();
-      if (!text) return;
-      const r = await runCliJson(vscode, [
-        "daemon",
-        "resume",
-        id,
-        text,
-        "--json",
-      ]);
-      if (!r.ok) post({ type: "info", text: `continue failed: ${r.error}` });
-      await loadData(vscode);
-      return;
-    }
-    default:
+    return;
+  }
+
+  const result = await runCliJson(vscode, route.argv);
+  if (request.action === "peek") {
+    await showCliOutput(vscode, "peek", result);
+    return;
+  }
+  if (!result.ok) {
+    post({
+      type: "info",
+      text: `${request.action} failed: ${result.error}`,
+    });
+  }
+  if (route.mutates) {
+    await loadData(vscode);
   }
 }
 
@@ -313,6 +296,12 @@ function openSessionsWorkbench(vscode, hooks = {}) {
     _rows = [];
     _errors = [];
     _query = "";
+    _snapshot = {
+      connected: false,
+      revision: null,
+      rows: [],
+      error: "disposed",
+    };
   });
   loadData(vscode);
   _timer = setInterval(() => {
@@ -377,9 +366,11 @@ function renderPageHtml() {
     if (!b) return;
     const msg = { command:'action', act: b.getAttribute('data-act'), id: b.getAttribute('data-id'),
                   kind: b.getAttribute('data-kind'), sessionId: b.getAttribute('data-session'),
-                  port: b.getAttribute('data-port') };
-    if (msg.act==='rename'){ const t=prompt('New title'); if(!t) return; msg.title=t; }
-    if (msg.act==='continue'){ const t=prompt('Prompt to continue this session with'); if(!t) return; msg.text=t; }
+                  port: b.getAttribute('data-port'), revision: b.getAttribute('data-revision'),
+                  itemRevision: b.getAttribute('data-item-revision') };
+    if (msg.act==='dispatch' && msg.kind==='background'){
+      const t=prompt('Prompt to dispatch this finished session with'); if(!t) return; msg.text=t;
+    }
     vscode.postMessage(msg);
   });
   window.addEventListener('message', (ev)=>{

@@ -1,0 +1,519 @@
+{
+  "schema": "chainlesschain.session-projection/v1",
+  "schemaVersion": 1,
+  "authority": "cli",
+  "connected": true,
+  "generatedAt": "2026-08-01T00:10:00.000Z",
+  "revision": "sha256:503dda21cca770369a2e5ad0a25a300ab079d09cd9cedc342ae1b5d4b637c0be",
+  "sources": {
+    "local": { "ok": true, "count": 1, "error": null },
+    "background": { "ok": true, "count": 1, "error": null },
+    "remote": { "ok": true, "count": 1, "error": null },
+    "team": { "ok": true, "count": 1, "error": null },
+    "workflow": { "ok": true, "count": 1, "error": null }
+  },
+  "sessions": [
+    {
+      "id": "workflow:workflow-fixture",
+      "sourceId": "workflow-fixture",
+      "kind": "workflow",
+      "state": "needs_input",
+      "title": "Workflow workflow-fixture",
+      "capabilities": ["peek", "checkpoint"],
+      "actions": [
+        {
+          "id": "dispatch",
+          "available": false,
+          "reason": "this session kind has no dispatch route",
+          "preview": null
+        },
+        {
+          "id": "peek",
+          "available": true,
+          "reason": null,
+          "preview": {
+            "executor": "cli",
+            "argv": [
+              "session",
+              "workflow",
+              "workflow-fixture",
+              "--json",
+              "--cwd",
+              "C:/repo"
+            ],
+            "mutates": false,
+            "input": null
+          }
+        },
+        {
+          "id": "reply",
+          "available": false,
+          "reason": "reply is only supported by interactive background sessions",
+          "preview": null
+        },
+        {
+          "id": "attach",
+          "available": false,
+          "reason": "attach is only supported by interactive background sessions",
+          "preview": null
+        },
+        {
+          "id": "detach",
+          "available": false,
+          "reason": "no control-plane attachment id exists; detach is local to the attach client",
+          "preview": null
+        },
+        {
+          "id": "stop",
+          "available": false,
+          "reason": "session is not an active stoppable control-plane process",
+          "preview": null
+        },
+        {
+          "id": "checkpoint",
+          "available": true,
+          "reason": null,
+          "preview": {
+            "executor": "cli",
+            "argv": [
+              "checkpoint",
+              "create",
+              "--dir",
+              "C:/repo",
+              "--session",
+              "workflow-fixture",
+              "--json"
+            ],
+            "mutates": true,
+            "input": null
+          }
+        },
+        {
+          "id": "archive",
+          "available": false,
+          "reason": "coding workflow state has no non-destructive archive route",
+          "preview": null
+        }
+      ],
+      "linkedSessionId": "workflow-fixture",
+      "owner": { "type": "local-user", "id": null },
+      "environment": {
+        "cwd": "C:/repo",
+        "host": null,
+        "port": null,
+        "mode": null
+      },
+      "worktree": null,
+      "artifact": { "count": 0, "latest": null },
+      "approval": { "pending": true, "type": "input", "count": 0 },
+      "pr": { "count": 0, "latest": null },
+      "lastEvent": {
+        "type": "state:needs_input",
+        "at": "2026-08-01T00:05:00.000Z"
+      },
+      "revision": "sha256:fc8b6a01dcf0a17185fce503c7859df35251d1593f64219f3d7beed2ca7d7eb4"
+    },
+    {
+      "id": "background:bg-fixture",
+      "sourceId": "bg-fixture",
+      "kind": "background",
+      "state": "needs_input",
+      "title": "Background fixture",
+      "capabilities": ["peek", "reply", "attach", "stop"],
+      "actions": [
+        {
+          "id": "dispatch",
+          "available": false,
+          "reason": "background session is already active",
+          "preview": null
+        },
+        {
+          "id": "peek",
+          "available": true,
+          "reason": null,
+          "preview": {
+            "executor": "cli",
+            "argv": ["daemon", "view", "bg-fixture", "--json"],
+            "mutates": false,
+            "input": null
+          }
+        },
+        {
+          "id": "reply",
+          "available": true,
+          "reason": null,
+          "preview": {
+            "executor": "terminal",
+            "argv": ["attach", "bg-fixture"],
+            "mutates": false,
+            "input": null
+          }
+        },
+        {
+          "id": "attach",
+          "available": true,
+          "reason": null,
+          "preview": {
+            "executor": "terminal",
+            "argv": ["attach", "bg-fixture"],
+            "mutates": false,
+            "input": null
+          }
+        },
+        {
+          "id": "detach",
+          "available": false,
+          "reason": "no control-plane attachment id exists; detach is local to the attach client",
+          "preview": null
+        },
+        {
+          "id": "stop",
+          "available": true,
+          "reason": null,
+          "preview": {
+            "executor": "cli",
+            "argv": ["daemon", "stop", "bg-fixture", "--json"],
+            "mutates": true,
+            "input": null
+          }
+        },
+        {
+          "id": "checkpoint",
+          "available": false,
+          "reason": "no git-backed session checkpoint capability is available",
+          "preview": null
+        },
+        {
+          "id": "archive",
+          "available": false,
+          "reason": "no non-destructive session archive capability is available",
+          "preview": null
+        }
+      ],
+      "linkedSessionId": "local-fixture",
+      "owner": { "type": "local-user", "id": "alice" },
+      "environment": {
+        "cwd": "C:/repo",
+        "host": null,
+        "port": null,
+        "mode": null
+      },
+      "worktree": {
+        "repoRoot": "C:/repo",
+        "path": "C:/repo-wt",
+        "branch": "agent/bg-fixture",
+        "baseSha": "abc123"
+      },
+      "artifact": {
+        "count": 1,
+        "latest": {
+          "id": "art-1",
+          "title": "report.md",
+          "kind": "report",
+          "createdAt": "2026-08-01T00:02:00.000Z"
+        }
+      },
+      "approval": { "pending": true, "type": "input", "count": 0 },
+      "pr": {
+        "count": 1,
+        "latest": {
+          "number": 42,
+          "repo": "org/repo",
+          "url": "https://github.com/org/repo/pull/42",
+          "state": "open",
+          "updatedAt": "2026-08-01T00:03:00.000Z"
+        }
+      },
+      "lastEvent": {
+        "type": "state:needs_input",
+        "at": "2026-08-01T00:04:00.000Z"
+      },
+      "revision": "sha256:6cc27116fb89bf1f9b970959e06eb02063989c992c0d55dd5863ca47b980c893"
+    },
+    {
+      "id": "team:team-fixture",
+      "sourceId": "team-fixture",
+      "kind": "team",
+      "state": "blocked",
+      "title": "Team run team-fixture",
+      "capabilities": [],
+      "actions": [
+        {
+          "id": "dispatch",
+          "available": false,
+          "reason": "this session kind has no dispatch route",
+          "preview": null
+        },
+        {
+          "id": "peek",
+          "available": false,
+          "reason": "team collaboration runs have no run-level CLI detail route",
+          "preview": null
+        },
+        {
+          "id": "reply",
+          "available": false,
+          "reason": "reply is only supported by interactive background sessions",
+          "preview": null
+        },
+        {
+          "id": "attach",
+          "available": false,
+          "reason": "attach is only supported by interactive background sessions",
+          "preview": null
+        },
+        {
+          "id": "detach",
+          "available": false,
+          "reason": "no control-plane attachment id exists; detach is local to the attach client",
+          "preview": null
+        },
+        {
+          "id": "stop",
+          "available": false,
+          "reason": "session is not an active stoppable control-plane process",
+          "preview": null
+        },
+        {
+          "id": "checkpoint",
+          "available": false,
+          "reason": "team checkpoints are task-scoped; no run-level checkpoint route exists",
+          "preview": null
+        },
+        {
+          "id": "archive",
+          "available": false,
+          "reason": "the collaboration run store has no non-destructive archive route",
+          "preview": null
+        }
+      ],
+      "linkedSessionId": "team-session-fixture",
+      "owner": { "type": "team-coordinator", "id": null },
+      "environment": {
+        "cwd": "C:/repo",
+        "host": null,
+        "port": null,
+        "mode": null
+      },
+      "worktree": {
+        "repoRoot": "C:/repo",
+        "path": "C:/repo-review",
+        "branch": "agent/review",
+        "baseSha": null,
+        "count": 1
+      },
+      "artifact": { "count": 0, "latest": null },
+      "approval": { "pending": true, "type": "adjudication", "count": 1 },
+      "pr": { "count": 0, "latest": null },
+      "lastEvent": {
+        "type": "state:blocked",
+        "at": "2026-08-01T00:06:00.000Z"
+      },
+      "revision": "sha256:0d647bfb6f3cd72d461827092a06dcd7e02c1865432bea7979f510a99d090d88"
+    },
+    {
+      "id": "remote:remote-fixture",
+      "sourceId": "remote-fixture",
+      "kind": "remote",
+      "state": "working",
+      "title": "Remote control remote-fixture",
+      "capabilities": ["peek", "stop"],
+      "actions": [
+        {
+          "id": "dispatch",
+          "available": false,
+          "reason": "this session kind has no dispatch route",
+          "preview": null
+        },
+        {
+          "id": "peek",
+          "available": true,
+          "reason": null,
+          "preview": {
+            "executor": "cli",
+            "argv": ["remote-control", "status", "--json"],
+            "mutates": false,
+            "input": null
+          }
+        },
+        {
+          "id": "reply",
+          "available": false,
+          "reason": "reply is only supported by interactive background sessions",
+          "preview": null
+        },
+        {
+          "id": "attach",
+          "available": false,
+          "reason": "attach is only supported by interactive background sessions",
+          "preview": null
+        },
+        {
+          "id": "detach",
+          "available": false,
+          "reason": "no control-plane attachment id exists; detach is local to the attach client",
+          "preview": null
+        },
+        {
+          "id": "stop",
+          "available": true,
+          "reason": null,
+          "preview": {
+            "executor": "cli",
+            "argv": ["remote-control", "stop", "--port", "18800", "--json"],
+            "mutates": true,
+            "input": null
+          }
+        },
+        {
+          "id": "checkpoint",
+          "available": false,
+          "reason": "remote sessions have no local checkpoint route",
+          "preview": null
+        },
+        {
+          "id": "archive",
+          "available": false,
+          "reason": "no non-destructive session archive capability is available",
+          "preview": null
+        }
+      ],
+      "linkedSessionId": "local-fixture",
+      "owner": { "type": "remote-peer", "id": "phone" },
+      "environment": {
+        "cwd": null,
+        "host": "0.0.0.0",
+        "port": 18800,
+        "mode": "direct"
+      },
+      "worktree": null,
+      "artifact": {
+        "count": 1,
+        "latest": {
+          "id": "art-1",
+          "title": "report.md",
+          "kind": "report",
+          "createdAt": "2026-08-01T00:02:00.000Z"
+        }
+      },
+      "approval": { "pending": false, "type": null, "count": 0 },
+      "pr": {
+        "count": 1,
+        "latest": {
+          "number": 42,
+          "repo": "org/repo",
+          "url": "https://github.com/org/repo/pull/42",
+          "state": "open",
+          "updatedAt": "2026-08-01T00:03:00.000Z"
+        }
+      },
+      "lastEvent": {
+        "type": "state:working",
+        "at": "2026-08-01T00:01:00.000Z"
+      },
+      "revision": "sha256:8252ee8c9f10fd8079c6415568a31715836715b642995a0f791b6423ba433dce"
+    },
+    {
+      "id": "local:local-fixture",
+      "sourceId": "local-fixture",
+      "kind": "local",
+      "state": "stopped",
+      "title": "Local fixture",
+      "capabilities": ["dispatch", "peek"],
+      "actions": [
+        {
+          "id": "dispatch",
+          "available": true,
+          "reason": null,
+          "preview": {
+            "executor": "host",
+            "argv": ["session", "resume", "local-fixture"],
+            "mutates": true,
+            "input": null
+          }
+        },
+        {
+          "id": "peek",
+          "available": true,
+          "reason": null,
+          "preview": {
+            "executor": "cli",
+            "argv": ["session", "show", "local-fixture", "--json"],
+            "mutates": false,
+            "input": null
+          }
+        },
+        {
+          "id": "reply",
+          "available": false,
+          "reason": "reply is only supported by interactive background sessions",
+          "preview": null
+        },
+        {
+          "id": "attach",
+          "available": false,
+          "reason": "attach is only supported by interactive background sessions",
+          "preview": null
+        },
+        {
+          "id": "detach",
+          "available": false,
+          "reason": "no control-plane attachment id exists; detach is local to the attach client",
+          "preview": null
+        },
+        {
+          "id": "stop",
+          "available": false,
+          "reason": "session is not an active stoppable control-plane process",
+          "preview": null
+        },
+        {
+          "id": "checkpoint",
+          "available": false,
+          "reason": "no git-backed session checkpoint capability is available",
+          "preview": null
+        },
+        {
+          "id": "archive",
+          "available": false,
+          "reason": "no non-destructive session archive capability is available",
+          "preview": null
+        }
+      ],
+      "linkedSessionId": "local-fixture",
+      "owner": { "type": "local-user", "id": null },
+      "environment": {
+        "cwd": "C:/repo",
+        "host": null,
+        "port": null,
+        "mode": null
+      },
+      "worktree": null,
+      "artifact": {
+        "count": 1,
+        "latest": {
+          "id": "art-1",
+          "title": "report.md",
+          "kind": "report",
+          "createdAt": "2026-08-01T00:02:00.000Z"
+        }
+      },
+      "approval": { "pending": false, "type": null, "count": 0 },
+      "pr": {
+        "count": 1,
+        "latest": {
+          "number": 42,
+          "repo": "org/repo",
+          "url": "https://github.com/org/repo/pull/42",
+          "state": "open",
+          "updatedAt": "2026-08-01T00:03:00.000Z"
+        }
+      },
+      "lastEvent": {
+        "type": "state:stopped",
+        "at": "2026-08-01T00:00:00.000Z"
+      },
+      "revision": "sha256:f7aa0f59863d75e501223e93eb0afd5ca0fadd792316a6cb661f179cd11b0308"
+    }
+  ]
+}

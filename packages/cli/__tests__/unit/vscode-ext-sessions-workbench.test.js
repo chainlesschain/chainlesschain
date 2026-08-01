@@ -11,6 +11,11 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import {
   buildWorkbenchArgs,
+  parseSessionProjection,
+  canRunProjectionAction,
+  previewProjectionAction,
+  recheckProjectionAction,
+  materializeActionPreview,
   toEpoch,
   formatRelativeTime,
   deriveActions,
@@ -26,15 +31,14 @@ const NOW = Date.parse("2026-07-11T12:00:00Z");
 describe("buildWorkbenchArgs", () => {
   it("returns the exact cc argv arrays the panel spawns", () => {
     expect(buildWorkbenchArgs()).toEqual({
-      sessionList: ["session", "list", "--json", "-n", "100"],
-      remoteControlStatus: ["remote-control", "status", "--json"],
+      sessionProjection: ["session", "projection", "--json", "-n", "100"],
     });
   });
 
   it("honours a custom session-list limit", () => {
-    expect(buildWorkbenchArgs({ limit: 7 }).sessionList).toEqual([
+    expect(buildWorkbenchArgs({ limit: 7 }).sessionProjection).toEqual([
       "session",
-      "list",
+      "projection",
       "--json",
       "-n",
       "7",
@@ -429,6 +433,170 @@ describe("renderWorkbenchHtml (escaping!)", () => {
     expect(escapeHtml(`&<>"'`)).toBe("&amp;&lt;&gt;&quot;&#39;");
     expect(escapeHtml(null)).toBe("");
     expect(escapeHtml(undefined)).toBe("");
+  });
+});
+
+describe("canonical CLI projection parity and fail-closed dispatch", () => {
+  const fixturePath = fileURLToPath(
+    new URL("../fixtures/session-projection-v1.json", import.meta.url),
+  );
+  const fixtureText = readFileSync(fixturePath, "utf8");
+
+  it("consumes the shared five-kind fixture without IDE-side joins", () => {
+    const snapshot = parseSessionProjection(fixtureText);
+    expect(snapshot.connected).toBe(true);
+    expect(snapshot.revision).toBe(
+      "sha256:503dda21cca770369a2e5ad0a25a300ab079d09cd9cedc342ae1b5d4b637c0be",
+    );
+    expect(snapshot.rows.map((row) => row.kind)).toEqual([
+      "workflow",
+      "background",
+      "team",
+      "remote",
+      "local",
+    ]);
+    expect(snapshot.rows[1].actions).toEqual([
+      "peek",
+      "reply",
+      "attach",
+      "stop",
+    ]);
+    expect(snapshot.rows[4].actions).toEqual(["dispatch", "peek"]);
+    expect(snapshot.rows[1].sourceId).toBe("bg-fixture");
+    expect(snapshot.rows[3].port).toBe(18800);
+    expect(snapshot.rows[2].actions).toEqual([]);
+  });
+
+  it("clears every row/action on disconnect, malformed data or stale revision", () => {
+    const disconnected = JSON.parse(fixtureText);
+    disconnected.connected = false;
+    disconnected.reason = "socket closed";
+    expect(parseSessionProjection(disconnected)).toMatchObject({
+      connected: false,
+      rows: [],
+      error: "socket closed",
+    });
+    expect(parseSessionProjection("not-json")).toMatchObject({
+      connected: false,
+      rows: [],
+    });
+    expect(
+      parseSessionProjection(fixtureText, {
+        expectedRevision: "sha256:older",
+      }),
+    ).toMatchObject({ connected: false, stale: true, rows: [] });
+  });
+
+  it("requires the current projection revision and advertised action", () => {
+    const snapshot = parseSessionProjection(fixtureText);
+    expect(
+      canRunProjectionAction(snapshot, {
+        id: "background:bg-fixture",
+        action: "reply",
+        revision: snapshot.revision,
+      }),
+    ).toBe(true);
+    expect(
+      canRunProjectionAction(snapshot, {
+        id: "background:bg-fixture",
+        action: "checkpoint",
+        revision: snapshot.revision,
+      }),
+    ).toBe(false);
+    expect(
+      canRunProjectionAction(snapshot, {
+        id: "background:bg-fixture",
+        action: "stop",
+        revision: "sha256:stale",
+      }),
+    ).toBe(false);
+    expect(
+      canRunProjectionAction(
+        { ...snapshot, connected: false },
+        {
+          id: "background:bg-fixture",
+          action: "stop",
+          revision: snapshot.revision,
+        },
+      ),
+    ).toBe(false);
+  });
+
+  it("uses only CLI-authored local/background/remote routes and rejects stale targets", () => {
+    const snapshot = parseSessionProjection(fixtureText);
+    const local = snapshot.rows.find((row) => row.kind === "local");
+    const background = snapshot.rows.find((row) => row.kind === "background");
+    const remote = snapshot.rows.find((row) => row.kind === "remote");
+    const localRequest = {
+      id: local.id,
+      action: "dispatch",
+      revision: snapshot.revision,
+      itemRevision: local.revision,
+    };
+
+    expect(previewProjectionAction(snapshot, localRequest)).toMatchObject({
+      ok: true,
+      preview: {
+        executor: "host",
+        argv: ["session", "resume", "local-fixture"],
+      },
+    });
+    expect(
+      previewProjectionAction(snapshot, {
+        id: background.id,
+        action: "stop",
+        revision: snapshot.revision,
+        itemRevision: background.revision,
+      }).preview.argv,
+    ).toEqual(["daemon", "stop", "bg-fixture", "--json"]);
+    expect(
+      previewProjectionAction(snapshot, {
+        id: remote.id,
+        action: "stop",
+        revision: snapshot.revision,
+        itemRevision: remote.revision,
+      }).preview.argv,
+    ).toEqual(["remote-control", "stop", "--port", "18800", "--json"]);
+
+    const changed = parseSessionProjection(fixtureText);
+    changed.rows = changed.rows.map((row) =>
+      row.id === local.id ? { ...row, revision: "sha256:changed" } : row,
+    );
+    expect(
+      recheckProjectionAction(snapshot, changed, localRequest),
+    ).toMatchObject({ ok: false, code: "SESSION_PROJECTION_STALE" });
+    expect(
+      recheckProjectionAction(
+        snapshot,
+        { ...changed, connected: false },
+        localRequest,
+      ),
+    ).toMatchObject({
+      ok: false,
+      code: "SESSION_PROJECTION_DISCONNECTED",
+    });
+    expect(
+      materializeActionPreview(
+        {
+          executor: "cli",
+          argv: ["daemon", "resume", "done", "$prompt", "--json"],
+          mutates: true,
+          input: "prompt",
+        },
+        { prompt: "continue safely" },
+      ).argv,
+    ).toEqual(["daemon", "resume", "done", "continue safely", "--json"]);
+  });
+
+  it("binds canonical source ids and envelope revisions into action buttons", () => {
+    const snapshot = parseSessionProjection(fixtureText);
+    const html = renderWorkbenchHtml(snapshot.rows, { now: NOW });
+    expect(html).toContain('data-source-id="bg-fixture"');
+    expect(html).toContain(`data-revision="${snapshot.revision}"`);
+    expect(html).toContain('data-act="reply"');
+    expect(html).toContain('data-act="checkpoint"');
+    expect(html).not.toContain('data-act="detach"');
+    expect(html).not.toContain('data-act="archive"');
   });
 });
 

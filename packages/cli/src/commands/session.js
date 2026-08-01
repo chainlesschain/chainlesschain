@@ -258,6 +258,213 @@ export function registerSessionCommand(program) {
       }
     });
 
+  // Canonical IDE/control-plane projection. This is the only Sessions
+  // Workbench read contract: IDEs must not merge supervisor/index files on
+  // their own because that recreates lifecycle and capability drift.
+  session
+    .command("projection")
+    .description("Emit the canonical versioned session projection for IDEs")
+    .option("-n, --limit <n>", "Max local sessions", "100")
+    .option("--cwd <path>", "Project root for workflow sessions")
+    .option("--json", "Output as JSON")
+    .action(async (options) => {
+      let ctx = null;
+      const stdout = console.log;
+      const stdoutWrite = process.stdout.write;
+      let jsonPayload = null;
+      // Some legacy core packages log initialization directly to stdout. Hold
+      // stdout until shutdown so --json remains one parseable document.
+      if (options.json) {
+        console.log = () => {};
+        process.stdout.write = (_chunk, encoding, callback) => {
+          const done = typeof encoding === "function" ? encoding : callback;
+          if (typeof done === "function") done();
+          return true;
+        };
+      }
+      try {
+        const limit = Math.max(1, parseInt(options.limit) || 100);
+        const projectRoot = path.resolve(options.cwd || process.cwd());
+        const sourceErrors = {};
+        let local = [];
+        let background = [];
+        let remote = [];
+        let team = [];
+        let workflow = [];
+        let artifacts = [];
+        let prLinks = {};
+
+        try {
+          ctx = await bootstrap({ verbose: program.opts().verbose });
+          if (ctx.db) {
+            local.push(
+              ...listSessions(ctx.db.getDatabase(), { limit }).map((item) => ({
+                ...item,
+                _store: "db",
+              })),
+            );
+          }
+        } catch (error) {
+          sourceErrors.local = error?.message || String(error);
+        }
+        try {
+          // JSONL is the canonical transcript store and can be read without
+          // bootstrapping legacy native DB/config packages (some of which
+          // write banners directly to stdout and would corrupt --json).
+          local.push(
+            ...listJsonlSessions({ limit }).map((item) => ({
+              ...item,
+              _store: "jsonl",
+            })),
+          );
+          local = rankSessions(local, limit);
+        } catch (error) {
+          sourceErrors.local = error?.message || String(error);
+        }
+        try {
+          const { listBackgroundAgents } =
+            await import("../lib/background-agent-supervisor.js");
+          background = listBackgroundAgents({ all: true });
+        } catch (error) {
+          sourceErrors.background = error?.message || String(error);
+        }
+        try {
+          const { readRemoteControlStates } =
+            await import("../lib/remote-control.js");
+          remote = readRemoteControlStates();
+        } catch (error) {
+          sourceErrors.remote = error?.message || String(error);
+        }
+        try {
+          const { listCollaborationRuns } =
+            await import("../lib/collaboration-run-store.js");
+          team = listCollaborationRuns({ limit }).filter(
+            (run) => run?.kind === "team",
+          );
+        } catch (error) {
+          sourceErrors.team = error?.message || String(error);
+        }
+        try {
+          workflow = listWorkflowSessions(projectRoot)
+            .slice(0, limit)
+            .map((item) => ({
+              ...item,
+              id: item.sessionId,
+              cwd: projectRoot,
+              checkpointCwd: projectRoot,
+              checkpointSessionId: item.sessionId,
+            }));
+        } catch (error) {
+          sourceErrors.workflow = error?.message || String(error);
+        }
+        try {
+          // A file checkpoint is advertised only after the existing CLI git
+          // engine proves that the exact worktree is supported. Copy-mode
+          // checkpoints need explicit paths and therefore cannot truthfully be
+          // offered as a one-click session action.
+          const { isCheckpointAvailable } =
+            await import("../lib/checkpoint-store.js");
+          const capability = new Map();
+          const decorate = (items, pathFor, sessionFor) =>
+            items.map((item) => {
+              const candidate = pathFor(item);
+              if (!candidate) return item;
+              const checkpointCwd = path.resolve(candidate);
+              let available = capability.get(checkpointCwd);
+              if (available === undefined) {
+                try {
+                  available = isCheckpointAvailable(checkpointCwd);
+                } catch {
+                  available = false;
+                }
+                capability.set(checkpointCwd, available);
+              }
+              return {
+                ...item,
+                checkpointAvailable: available === true,
+                checkpointCwd,
+                checkpointSessionId: sessionFor(item),
+              };
+            });
+          local = decorate(
+            local,
+            (item) => item?.workspace || item?.cwd,
+            (item) => item?.id,
+          );
+          background = decorate(
+            background,
+            (item) => item?.cwd,
+            (item) => item?.sessionId || item?.id,
+          );
+          workflow = decorate(
+            workflow,
+            (item) => item?.checkpointCwd,
+            (item) => item?.checkpointSessionId,
+          );
+        } catch {
+          // Capability detection is additive. Missing git support leaves the
+          // checkpoint action unavailable with its explicit reason.
+        }
+        try {
+          const { ArtifactStore } = await import("../lib/artifact-store.js");
+          artifacts = new ArtifactStore().list();
+        } catch {
+          // Summaries are optional; absence never removes a session.
+        }
+        try {
+          const { readPrLinkLedger } = await import("../lib/pr-link-ledger.js");
+          prLinks = readPrLinkLedger();
+        } catch {
+          // Summaries are optional; absence never removes a session.
+        }
+
+        const { buildSessionProjection } =
+          await import("../lib/session-projection.js");
+        const projection = buildSessionProjection({
+          local,
+          background,
+          remote,
+          team,
+          workflow,
+          artifacts,
+          prLinks,
+          sourceErrors,
+        });
+        if (options.json) {
+          jsonPayload = JSON.stringify(projection, null, 2);
+        } else {
+          logger.log(
+            `${projection.sessions.length} sessions; revision ${projection.revision}`,
+          );
+          for (const item of projection.sessions) {
+            logger.log(
+              `  ${item.id}  ${item.state}  [${item.capabilities.join(", ")}]`,
+            );
+          }
+        }
+      } catch (error) {
+        const { disconnectedSessionProjection } =
+          await import("../lib/session-projection.js");
+        if (options.json) {
+          jsonPayload = JSON.stringify(
+            disconnectedSessionProjection(error?.message || String(error)),
+            null,
+            2,
+          );
+        } else {
+          logger.error(`Failed: ${error.message}`);
+        }
+        process.exitCode = 1;
+      } finally {
+        if (ctx) await shutdown();
+        if (options.json) {
+          console.log = stdout;
+          process.stdout.write = stdoutWrite;
+          stdout(jsonPayload || "{}");
+        }
+      }
+    });
+
   // session show
   session
     .command("show")

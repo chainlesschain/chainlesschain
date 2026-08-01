@@ -59,6 +59,12 @@ public final class SessionsWorkbench {
     public static final String ACT_STOP = "stop";
     public static final String ACT_LOGS = "logs";
     public static final String ACT_STATUS = "status";
+    public static final String ACT_DISPATCH = "dispatch";
+    public static final String ACT_PEEK = "peek";
+    public static final String ACT_REPLY = "reply";
+    public static final String ACT_DETACH = "detach";
+    public static final String ACT_CHECKPOINT = "checkpoint";
+    public static final String ACT_ARCHIVE = "archive";
 
     /** One unified row — field names match the VS Code twin's model. */
     public static final class Row {
@@ -74,10 +80,30 @@ public final class SessionsWorkbench {
         public final List<String> actions;
         /** Background rows: the chat session they run ("" otherwise). */
         public final String sessionId;
+        /** CLI-native id used for actions; {@link #id} is the canonical id. */
+        public final String sourceId;
+        /** Projection envelope revision captured with this row. */
+        public final String projectionRevision;
+        /** Per-item content revision. */
+        public final String itemRevision;
+        /** Exact CLI-authored action routes keyed by action id. */
+        public final Map<String, SessionProjection.ActionPreview> actionPreviews;
+        /** Remote-control port, or 0. */
+        public final long port;
 
         Row(String id, String kind, String title, String workspace, String status,
                 long lastActivity, boolean waitingApproval, List<String> actions,
                 String sessionId) {
+            this(id, kind, title, workspace, status, lastActivity,
+                    waitingApproval, actions, sessionId, id, "", "", 0L,
+                    Map.of());
+        }
+
+        Row(String id, String kind, String title, String workspace, String status,
+                long lastActivity, boolean waitingApproval, List<String> actions,
+                String sessionId, String sourceId, String projectionRevision,
+                String itemRevision, long port,
+                Map<String, SessionProjection.ActionPreview> actionPreviews) {
             this.id = id == null ? "" : id;
             this.kind = kind == null ? "" : kind;
             this.title = title == null ? "" : title;
@@ -88,6 +114,13 @@ public final class SessionsWorkbench {
             this.actions = Collections.unmodifiableList(
                     new ArrayList<String>(actions == null ? List.of() : actions));
             this.sessionId = sessionId == null ? "" : sessionId;
+            this.sourceId = sourceId == null ? "" : sourceId;
+            this.projectionRevision = projectionRevision == null ? "" : projectionRevision;
+            this.itemRevision = itemRevision == null ? "" : itemRevision;
+            this.port = port;
+            this.actionPreviews = Collections.unmodifiableMap(
+                    new LinkedHashMap<String, SessionProjection.ActionPreview>(
+                            actionPreviews == null ? Map.of() : actionPreviews));
         }
     }
 
@@ -111,6 +144,30 @@ public final class SessionsWorkbench {
             return Arrays.asList(ACT_STATUS, ACT_STOP);
         }
         return List.of();
+    }
+
+    /** Rows from the one CLI-owned projection; disconnected snapshots are empty. */
+    public static List<Row> projectionRows(SessionProjection.Snapshot snapshot) {
+        if (snapshot == null || !snapshot.connected) return List.of();
+        List<Row> rows = new ArrayList<Row>();
+        for (SessionProjection.Item item : snapshot.sessions) {
+            rows.add(new Row(
+                    item.id,
+                    item.kind,
+                    item.title,
+                    item.cwd,
+                    item.state,
+                    parseTimestamp(item.lastEventAt),
+                    "needs_input".equals(item.state) || "blocked".equals(item.state),
+                    item.actions,
+                    item.linkedSessionId,
+                    item.sourceId,
+                    snapshot.revision,
+                    item.revision,
+                    item.port,
+                    item.previews));
+        }
+        return Collections.unmodifiableList(rows);
     }
 
     // ------------------------------------------------------- source → rows

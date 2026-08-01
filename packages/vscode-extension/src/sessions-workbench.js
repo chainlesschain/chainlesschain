@@ -24,15 +24,344 @@
 const { isBlockingPhase } = require("./phase-attention");
 
 const KINDS = ["chat", "ide", "background", "remote"];
+const SESSION_PROJECTION_SCHEMA = "chainlesschain.session-projection/v1";
+const SESSION_PROJECTION_VERSION = 1;
+const PROJECTION_KINDS = new Set([
+  "local",
+  "background",
+  "remote",
+  "team",
+  "workflow",
+]);
+const PROJECTION_STATES = new Set([
+  "working",
+  "needs_input",
+  "blocked",
+  "done",
+  "failed",
+  "stopped",
+]);
+const PROJECTION_ACTIONS = new Set([
+  "dispatch",
+  "peek",
+  "reply",
+  "attach",
+  "detach",
+  "stop",
+  "checkpoint",
+  "archive",
+]);
+const PROJECTION_ACTION_EXECUTORS = new Set(["cli", "terminal", "host"]);
+const PROJECTION_PROMPT_PLACEHOLDER = "$prompt";
+
+function parseActionPreview(value) {
+  if (
+    !value ||
+    typeof value !== "object" ||
+    !PROJECTION_ACTION_EXECUTORS.has(value.executor) ||
+    !Array.isArray(value.argv) ||
+    value.argv.length === 0 ||
+    !value.argv.every((arg) => typeof arg === "string") ||
+    typeof value.mutates !== "boolean" ||
+    ![null, "prompt"].includes(value.input ?? null)
+  ) {
+    return null;
+  }
+  const input = value.input ?? null;
+  const placeholders = value.argv.filter(
+    (arg) => arg === PROJECTION_PROMPT_PLACEHOLDER,
+  ).length;
+  if (
+    (input === "prompt" && placeholders !== 1) ||
+    (input === null && placeholders !== 0)
+  ) {
+    return null;
+  }
+  return {
+    executor: value.executor,
+    argv: [...value.argv],
+    mutates: value.mutates,
+    input,
+  };
+}
 
 /** The `cc …` argv arrays the workbench needs (state-dir sources excluded). */
-function buildWorkbenchArgs({ limit = 100 } = {}) {
+function buildWorkbenchArgs({ limit = 100, cwd = null } = {}) {
+  const sessionProjection = [
+    "session",
+    "projection",
+    "--json",
+    "-n",
+    String(limit),
+  ];
+  if (typeof cwd === "string" && cwd.trim()) {
+    sessionProjection.push("--cwd", cwd.trim());
+  }
   return {
-    // Same shape the chat picker uses (session-list.js).
-    sessionList: ["session", "list", "--json", "-n", String(limit)],
-    // Token is already redacted by the CLI in --json output.
-    remoteControlStatus: ["remote-control", "status", "--json"],
+    sessionProjection,
   };
+}
+
+/**
+ * Parse the CLI-owned v1 projection. Any transport/schema/revision problem
+ * returns an empty disconnected snapshot so stale buttons cannot survive.
+ */
+function parseSessionProjection(input, { expectedRevision = null } = {}) {
+  let root;
+  try {
+    root = typeof input === "string" ? JSON.parse(input) : input;
+  } catch {
+    return {
+      connected: false,
+      stale: false,
+      revision: null,
+      rows: [],
+      error: "invalid session projection JSON",
+    };
+  }
+  if (
+    !root ||
+    typeof root !== "object" ||
+    root.schema !== SESSION_PROJECTION_SCHEMA ||
+    root.schemaVersion !== SESSION_PROJECTION_VERSION ||
+    root.authority !== "cli"
+  ) {
+    return {
+      connected: false,
+      stale: false,
+      revision: null,
+      rows: [],
+      error: "unsupported or non-CLI session projection",
+    };
+  }
+  const revision =
+    typeof root.revision === "string" && root.revision ? root.revision : null;
+  if (root.connected !== true || !revision || !Array.isArray(root.sessions)) {
+    return {
+      connected: false,
+      stale: false,
+      revision,
+      rows: [],
+      sources: root.sources || {},
+      error: String(root.reason || "CLI session projection disconnected"),
+    };
+  }
+  if (expectedRevision && revision !== expectedRevision) {
+    return {
+      connected: false,
+      stale: true,
+      revision,
+      rows: [],
+      sources: root.sources || {},
+      error: "stale session projection revision",
+    };
+  }
+
+  const rows = [];
+  for (const item of root.sessions) {
+    if (
+      !item ||
+      typeof item !== "object" ||
+      typeof item.id !== "string" ||
+      !item.id ||
+      typeof item.sourceId !== "string" ||
+      !item.sourceId ||
+      !PROJECTION_KINDS.has(item.kind) ||
+      !PROJECTION_STATES.has(item.state) ||
+      typeof item.revision !== "string" ||
+      !Array.isArray(item.actions)
+    ) {
+      return {
+        connected: false,
+        stale: false,
+        revision,
+        rows: [],
+        sources: root.sources || {},
+        error: "malformed session projection row",
+      };
+    }
+    const actionAvailability = {};
+    for (const action of item.actions) {
+      if (
+        action &&
+        typeof action.id === "string" &&
+        PROJECTION_ACTIONS.has(action.id)
+      ) {
+        const available = action.available === true;
+        const preview = parseActionPreview(action.preview);
+        if ((available && !preview) || (!available && action.preview != null)) {
+          return {
+            connected: false,
+            stale: false,
+            revision,
+            rows: [],
+            sources: root.sources || {},
+            error: "malformed session action preview",
+          };
+        }
+        actionAvailability[action.id] = {
+          available,
+          reason:
+            typeof action.reason === "string" && action.reason
+              ? action.reason
+              : null,
+          preview,
+        };
+      }
+    }
+    if (Object.keys(actionAvailability).length !== PROJECTION_ACTIONS.size) {
+      return {
+        connected: false,
+        stale: false,
+        revision,
+        rows: [],
+        sources: root.sources || {},
+        error: "incomplete session action availability",
+      };
+    }
+    const actions = [...PROJECTION_ACTIONS].filter(
+      (id) => actionAvailability[id]?.available === true,
+    );
+    rows.push({
+      id: item.id,
+      sourceId: item.sourceId,
+      kind: item.kind,
+      title: typeof item.title === "string" ? item.title : item.sourceId,
+      workspace:
+        typeof item.environment?.cwd === "string" ? item.environment.cwd : "",
+      status: item.state,
+      state: item.state,
+      lastActivity: toEpoch(item.lastEvent?.at),
+      waitingApproval: item.state === "needs_input" || item.state === "blocked",
+      actions,
+      actionAvailability,
+      actionPreviews: Object.fromEntries(
+        actions.map((id) => [id, actionAvailability[id].preview]),
+      ),
+      sessionId:
+        typeof item.linkedSessionId === "string" ? item.linkedSessionId : null,
+      port:
+        item.environment?.port != null &&
+        Number.isFinite(Number(item.environment.port)) &&
+        Number(item.environment.port) > 0
+          ? Number(item.environment.port)
+          : null,
+      projectionRevision: revision,
+      revision: item.revision,
+      owner: item.owner || null,
+      worktree: item.worktree || null,
+      artifact: item.artifact || null,
+      approval: item.approval || null,
+      pr: item.pr || null,
+    });
+  }
+  return {
+    connected: true,
+    stale: false,
+    revision,
+    generatedAt: root.generatedAt || null,
+    sources: root.sources || {},
+    rows: sortRows(rows),
+    error: null,
+  };
+}
+
+/** Re-check authority + revision + advertised availability at dispatch time. */
+function canRunProjectionAction(snapshot, request) {
+  if (!snapshot?.connected || !snapshot.revision || !request) return false;
+  if (request.revision !== snapshot.revision) return false;
+  const row = (snapshot.rows || []).find((item) => item.id === request.id);
+  return Boolean(
+    row &&
+    row.projectionRevision === snapshot.revision &&
+    row.actions.includes(request.action),
+  );
+}
+
+/** Resolve the exact CLI/terminal/host route shown with one rendered row. */
+function previewProjectionAction(snapshot, request) {
+  if (!canRunProjectionAction(snapshot, request)) {
+    return {
+      ok: false,
+      code: "SESSION_PROJECTION_STALE",
+      error: "session projection is disconnected, stale, or unavailable",
+    };
+  }
+  const row = snapshot.rows.find((item) => item.id === request.id);
+  if (!row || request.itemRevision !== row.revision) {
+    return {
+      ok: false,
+      code: "SESSION_PROJECTION_STALE",
+      error: "session item revision changed",
+    };
+  }
+  const action = row.actionAvailability?.[request.action];
+  if (!action?.available || !action.preview) {
+    return {
+      ok: false,
+      code: "SESSION_ACTION_UNAVAILABLE",
+      error: action?.reason || "session action is unavailable",
+    };
+  }
+  return {
+    ok: true,
+    row,
+    preview: action.preview,
+    expectedRevision: snapshot.revision,
+    expectedItemRevision: row.revision,
+  };
+}
+
+/** Per-item revision CAS against a freshly fetched CLI projection. */
+function recheckProjectionAction(renderedSnapshot, currentSnapshot, request) {
+  const rendered = previewProjectionAction(renderedSnapshot, request);
+  if (!rendered.ok) return rendered;
+  if (!currentSnapshot?.connected) {
+    return {
+      ok: false,
+      code: "SESSION_PROJECTION_DISCONNECTED",
+      error: "current session projection is disconnected",
+    };
+  }
+  const row = (currentSnapshot.rows || []).find(
+    (item) => item.id === request.id,
+  );
+  if (!row || row.revision !== request.itemRevision) {
+    return {
+      ok: false,
+      code: "SESSION_PROJECTION_STALE",
+      error: "session item changed before dispatch",
+    };
+  }
+  const action = row.actionAvailability?.[request.action];
+  if (!action?.available || !action.preview) {
+    return {
+      ok: false,
+      code: "SESSION_ACTION_UNAVAILABLE",
+      error: action?.reason || "session action is no longer available",
+    };
+  }
+  return {
+    ok: true,
+    row,
+    preview: action.preview,
+    expectedRevision: request.revision,
+    expectedItemRevision: request.itemRevision,
+    currentRevision: currentSnapshot.revision,
+  };
+}
+
+function materializeActionPreview(actionPreview, { prompt = null } = {}) {
+  const parsed = parseActionPreview(actionPreview);
+  if (!parsed) return null;
+  if (parsed.input === "prompt") {
+    const text = typeof prompt === "string" ? prompt.trim() : "";
+    if (!text) return null;
+    parsed.argv = parsed.argv.map((arg) =>
+      arg === PROJECTION_PROMPT_PLACEHOLDER ? text : arg,
+    );
+  }
+  return parsed;
 }
 
 /** Epoch-ms from an epoch number, numeric string, or date string. */
@@ -219,7 +548,12 @@ function aggregateSessions({
 
 /** waitingApproval first, then running, then lastActivity desc, then id. */
 function sortRows(rows) {
-  const rank = (r) => (r.waitingApproval ? 0 : r.status === "running" ? 1 : 2);
+  const rank = (r) => {
+    if (r.status === "needs_input") return 0;
+    if (r.status === "blocked" || r.waitingApproval) return 1;
+    if (r.status === "working" || r.status === "running") return 2;
+    return 3;
+  };
   return [...(rows || [])].sort((a, b) => {
     const d = rank(a) - rank(b);
     if (d !== 0) return d;
@@ -260,7 +594,13 @@ function escapeHtml(value) {
 }
 
 const ACTION_LABELS = {
+  dispatch: "Dispatch",
+  peek: "Peek",
+  reply: "Reply",
   attach: "Attach",
+  detach: "Detach",
+  checkpoint: "Checkpoint",
+  archive: "Archive",
   resume: "Resume",
   continue: "Continue",
   stop: "Stop",
@@ -291,6 +631,13 @@ function renderWorkbenchHtml(rows, { now = Date.now(), errors = [] } = {}) {
         .map(
           (a) =>
             `<button class="${a === "attach" || a === "resume" ? "" : "sec"}" data-act="${escapeHtml(a)}" data-id="${escapeHtml(r.id)}" data-kind="${escapeHtml(r.kind)}"` +
+            (r.sourceId ? ` data-source-id="${escapeHtml(r.sourceId)}"` : "") +
+            (r.projectionRevision
+              ? ` data-revision="${escapeHtml(r.projectionRevision)}"`
+              : "") +
+            (r.revision
+              ? ` data-item-revision="${escapeHtml(r.revision)}"`
+              : "") +
             (r.sessionId ? ` data-session="${escapeHtml(r.sessionId)}"` : "") +
             (r.port != null ? ` data-port="${escapeHtml(r.port)}"` : "") +
             `>${ACTION_LABELS[a] || escapeHtml(a)}</button>`,
@@ -322,8 +669,20 @@ function renderWorkbenchHtml(rows, { now = Date.now(), errors = [] } = {}) {
 
 module.exports = {
   KINDS,
+  SESSION_PROJECTION_SCHEMA,
+  SESSION_PROJECTION_VERSION,
+  PROJECTION_KINDS,
+  PROJECTION_STATES,
+  PROJECTION_ACTIONS,
+  PROJECTION_ACTION_EXECUTORS,
+  PROJECTION_PROMPT_PLACEHOLDER,
   ACTION_LABELS,
   buildWorkbenchArgs,
+  parseSessionProjection,
+  canRunProjectionAction,
+  previewProjectionAction,
+  recheckProjectionAction,
+  materializeActionPreview,
   toEpoch,
   formatRelativeTime,
   deriveActions,
