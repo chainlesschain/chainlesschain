@@ -43,6 +43,20 @@ function bundle(client) {
 }
 
 describe("host-owned MCP recovery runtime", () => {
+  it("preserves notification-only clients that do not implement callTool", () => {
+    const setRoots = vi.fn();
+    const rawClient = { setRoots };
+    const runtime = createMcpHostRecoveryRuntime({
+      bundle: { mcpClient: rawClient },
+      sessionId: "session-roots",
+      recovery: { incidents: [], unsettled: [] },
+    });
+
+    expect(runtime.client).toBe(rawClient);
+    runtime.client.setRoots(["file:///workspace"]);
+    expect(setRoots).toHaveBeenCalledWith(["file:///workspace"]);
+  });
+
   it("never grants read authority from server names or declarations", () => {
     const mcp = bundle({ callTool: vi.fn() });
     expect(resolveHostMcpEffect(mcp, "ide", "getSelection")).toMatchObject({

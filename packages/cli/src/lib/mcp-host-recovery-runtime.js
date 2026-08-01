@@ -102,16 +102,20 @@ export function createMcpHostRecoveryRuntime({
     sink,
     controller: admissionController,
   });
-  const client = rawClient
-    ? createRecoveryGuardedMcpClient({
-        client: rawClient,
-        ledger,
-        controller: admissionController,
-        resolveEffect: (serverName, toolName) =>
-          resolveHostMcpEffect(bundle, serverName, toolName),
-        sessionId,
-      })
-    : null;
+  // Some MCP surfaces are notification/root-only facades and intentionally do
+  // not expose callTool(). Keep those clients usable for their non-tool
+  // methods; there is no tool call to admit or ledger-wrap in that case.
+  const client =
+    rawClient && typeof rawClient.callTool === "function"
+      ? createRecoveryGuardedMcpClient({
+          client: rawClient,
+          ledger,
+          controller: admissionController,
+          resolveEffect: (serverName, toolName) =>
+            resolveHostMcpEffect(bundle, serverName, toolName),
+          sessionId,
+        })
+      : rawClient;
   return Object.freeze({
     controller: admissionController,
     ledger,
