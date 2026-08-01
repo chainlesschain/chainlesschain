@@ -68,7 +68,23 @@ export async function downloadAndVerify(ctx) {
   const lock = acquireLock(lockPath);
   const partialPath = `${outputPath}.partial-${process.pid}-${crypto.randomUUID()}`;
   let partialFd = null;
+  let partialIdentity = null;
   let committedPath = false;
+  let previousOutput = null;
+  let retainLockForRecovery = false;
+  const assertOwnedDownloadLock = () => {
+    try {
+      assertDownloadLockOwned(lock);
+    } catch (error) {
+      if (error?.code === "DOWNLOAD_LOCK_LOST") {
+        // The pathname may already belong to another writer. From this point
+        // onward, cleanup may close our old descriptor but must never inspect,
+        // restore, delete, or otherwise mutate the current lock pathname.
+        retainLockForRecovery = true;
+      }
+      throw error;
+    }
+  };
 
   try {
     // Re-check the complete ancestor chain after lock acquisition. This
@@ -125,6 +141,7 @@ export async function downloadAndVerify(ctx) {
       // is held; descriptor/path identity checks on both sides of the commit
       // bind the verified bytes to the file that actually becomes outputPath.
       partialFd = fs.openSync(partialPath, "wx+", 0o600);
+      partialIdentity = snapshotDescriptorIdentity(partialFd);
       const iterator = body[Symbol.asyncIterator]();
       while (true) {
         const { value: chunk, done } = await awaitBeforeDeadline(
@@ -181,16 +198,23 @@ export async function downloadAndVerify(ctx) {
     // Re-check immediately before the commit point. renameSync atomically
     // replaces an existing regular file; there is deliberately no unlink gap.
     assertSafeFileOrMissing(outputPath, "output path");
-    assertDownloadLockOwned(lock);
+    assertOwnedDownloadLock();
+    previousOutput = snapshotExistingOutput(outputPath);
     try {
       assertPathMatchesDescriptor(
         partialPath,
         partialFd,
         "verified partial download",
       );
+      assertOutputMatchesSnapshotForCommit(outputPath, previousOutput);
+      // Snapshotting and hashing the previous output can take long enough for
+      // lock ownership to change. Keep the final ownership check adjacent to
+      // the commit point so a lock already known to be foreign is never
+      // followed by an output mutation.
+      assertOwnedDownloadLock();
       fs.renameSync(partialPath, outputPath);
       committedPath = true;
-      assertDownloadLockOwned(lock);
+      assertOwnedDownloadLock();
       assertPathMatchesDescriptor(outputPath, partialFd, "committed download");
       if (sha256Descriptor(partialFd) !== actualSha) {
         throw new DownloadError(
@@ -199,21 +223,132 @@ export async function downloadAndVerify(ctx) {
         );
       }
       fsyncDirectory(path.dirname(outputPath));
-      assertDownloadLockOwned(lock);
+      assertOwnedDownloadLock();
+      if (previousOutput) {
+        discardPreviousOutputSnapshot(previousOutput);
+        previousOutput = null;
+      }
     } catch (err) {
+      let recoveryError = null;
+      let manualRecoveryError = null;
+      if (err instanceof DownloadError && err.code === "DOWNLOAD_LOCK_LOST") {
+        if (previousOutput) previousOutput.retained = true;
+        retainLockForRecovery = true;
+        if (committedPath) {
+          throw createOutputRecoveryRequiredError({
+            cause: err,
+            outputPath,
+            snapshot: previousOutput,
+          });
+        }
+        throw err;
+      }
+      if (!committedPath && err?.retainDownloadLock === true) {
+        if (previousOutput) previousOutput.retained = true;
+        retainLockForRecovery = true;
+        throw err;
+      }
+      if (
+        committedPath &&
+        err?.code === "OUTPUT_RECOVERY_CLEANUP_SYNC_FAILED" &&
+        err?.recoveryArtifactRemoved === true
+      ) {
+        // The verified output is committed and the recovery name is gone in
+        // the live namespace, but the unlink could not be made durable. There
+        // is no safe rollback source anymore, so preserve the output and lock.
+        previousOutput = null;
+        retainLockForRecovery = true;
+        throw err;
+      }
       if (committedPath) {
-        let lockStillOwned = false;
-        try {
-          assertDownloadLockOwned(lock);
-          lockStillOwned = true;
-        } catch {
-          /* preserve any pathname now owned by a replacement lock holder */
-        }
-        if (lockStillOwned) {
-          removeRegularFileIfPresent(outputPath);
+        if (previousOutput) {
+          try {
+            assertOwnedDownloadLock();
+            const committedOutput = snapshotOpenFile(
+              outputPath,
+              partialFd,
+              "committed download before recovery",
+            );
+            fs.closeSync(partialFd);
+            partialFd = null;
+            restorePreviousOutput({
+              snapshot: previousOutput,
+              outputPath,
+              committedOutput,
+              assertLockOwned: assertOwnedDownloadLock,
+            });
+            previousOutput = null;
+            committedPath = false;
+          } catch (restoreError) {
+            retainLockForRecovery = true;
+            if (restoreError?.code === "DOWNLOAD_LOCK_LOST") {
+              previousOutput.retained = true;
+              manualRecoveryError = createOutputRecoveryRequiredError({
+                cause: restoreError,
+                outputPath,
+                snapshot: previousOutput,
+              });
+            } else if (
+              restoreError?.code === "OUTPUT_RECOVERY_CLEANUP_SYNC_FAILED" &&
+              restoreError?.recoveryArtifactRemoved === true &&
+              restoreError?.outputRestored === true
+            ) {
+              previousOutput = null;
+              committedPath = false;
+              recoveryError = restoreError;
+            } else {
+              previousOutput.retained = true;
+              recoveryError = restoreError;
+            }
+          }
         } else {
-          removePathIfMatchesDescriptor(outputPath, partialFd);
+          let lockStillOwned = false;
+          let lockOwnershipError = null;
+          try {
+            assertOwnedDownloadLock();
+            lockStillOwned = true;
+          } catch (error) {
+            lockOwnershipError = error;
+          }
+          if (lockOwnershipError?.code === "DOWNLOAD_LOCK_LOST") {
+            manualRecoveryError = createOutputRecoveryRequiredError({
+              cause: lockOwnershipError,
+              outputPath,
+              snapshot: null,
+            });
+          } else if (lockStillOwned) {
+            removeRegularFileIfPresent(outputPath);
+          } else {
+            removePathIfMatchesDescriptor(outputPath, partialFd);
+          }
         }
+      }
+      if (manualRecoveryError) throw manualRecoveryError;
+      if (!committedPath && previousOutput && !previousOutput.retained) {
+        try {
+          discardPreviousOutputSnapshot(previousOutput);
+          previousOutput = null;
+        } catch (cleanupError) {
+          retainLockForRecovery = true;
+          if (cleanupError?.recoveryArtifactRemoved === true) {
+            previousOutput = null;
+          } else {
+            previousOutput.retained = true;
+          }
+          recoveryError ||= cleanupError;
+        }
+      }
+      if (recoveryError) {
+        if (
+          recoveryError?.code === "OUTPUT_RECOVERY_CLEANUP_SYNC_FAILED" &&
+          recoveryError?.recoveryArtifactRemoved === true
+        ) {
+          throw recoveryError;
+        }
+        throw new DownloadError(
+          `could not restore the previous output after commit failure (${err.code || err.message}): ${recoveryError.message}; recovery artifact retained at ${previousOutput?.recoveryPath || "unknown"}`,
+          "OUTPUT_RECOVERY_FAILED",
+        );
       }
       if (err instanceof DownloadError && err.code === "DOWNLOAD_LOCK_LOST") {
         throw err;
@@ -224,10 +359,21 @@ export async function downloadAndVerify(ctx) {
       );
     }
 
-    fs.closeSync(partialFd);
+    try {
+      fs.closeSync(partialFd);
+    } catch {
+      /* committed bytes and transaction state are already verified */
+    }
     partialFd = null;
-
     return { outputPath, bytes, sha256: actualSha };
+  } catch (error) {
+    if (
+      error?.code === "DOWNLOAD_LOCK_LOST" ||
+      error?.retainDownloadLock === true
+    ) {
+      retainLockForRecovery = true;
+    }
+    throw error;
   } finally {
     if (partialFd !== null) {
       try {
@@ -236,8 +382,11 @@ export async function downloadAndVerify(ctx) {
         /* best effort */
       }
     }
-    removeRegularFileIfPresent(partialPath);
-    releaseLock(lock);
+    if (!committedPath && partialIdentity) {
+      removePathIfMatchesIdentity(partialPath, partialIdentity);
+    }
+    if (retainLockForRecovery) retainLock(lock);
+    else releaseLock(lock);
   }
 }
 
@@ -308,10 +457,330 @@ function removePathIfMatchesDescriptor(filePath, fd) {
       descriptorStat.ino === pathStat.ino
     ) {
       fs.unlinkSync(filePath);
+      return true;
     }
   } catch {
     /* a missing or exchanged pathname must not be removed */
   }
+  return false;
+}
+
+function snapshotDescriptorIdentity(fd) {
+  const stat = fs.fstatSync(fd, { bigint: true });
+  if (!stat.isFile() || (stat.dev === 0n && stat.ino === 0n)) {
+    throw new DownloadError(
+      "partial download descriptor has no stable file identity",
+      "PARTIAL_REPLACED",
+    );
+  }
+  return { dev: stat.dev, ino: stat.ino };
+}
+
+function removePathIfMatchesIdentity(filePath, identity) {
+  try {
+    const pathStat = fs.lstatSync(filePath, { bigint: true });
+    if (
+      !pathStat.isSymbolicLink() &&
+      pathStat.isFile() &&
+      pathStat.dev === identity.dev &&
+      pathStat.ino === identity.ino
+    ) {
+      fs.unlinkSync(filePath);
+      return true;
+    }
+  } catch {
+    /* a missing or exchanged pathname must not be removed */
+  }
+  return false;
+}
+
+function createOutputRecoveryRequiredError({ cause, outputPath, snapshot }) {
+  const recoveryPath = snapshot?.recoveryPath || null;
+  const retained = recoveryPath
+    ? `the verified previous output is retained at ${recoveryPath}`
+    : "no previous output snapshot exists";
+  const error = new DownloadError(
+    `download lock ownership was lost after the output commit (${cause?.message || "unknown"}); ${outputPath} was left untouched and ${retained}; inspect the output and recovery artifact manually`,
+    "OUTPUT_RECOVERY_REQUIRED",
+  );
+  error.recoveryPath = recoveryPath;
+  error.retainDownloadLock = true;
+  return error;
+}
+
+function createRecoveryCleanupSyncError(recoveryPath, cause) {
+  const error = new DownloadError(
+    `the recovery artifact was removed but its directory entry could not be synchronized (${cause?.message || "unknown"}); inspect ${path.dirname(recoveryPath)} before retrying`,
+    "OUTPUT_RECOVERY_CLEANUP_SYNC_FAILED",
+  );
+  error.recoveryPath = recoveryPath;
+  error.recoveryArtifactRemoved = true;
+  error.retainDownloadLock = true;
+  return error;
+}
+
+function createSnapshotRecoveryRequiredError(recoveryPath, cause) {
+  const retained = recoveryPath
+    ? `a recovery artifact was retained at ${recoveryPath}`
+    : "no verified recovery artifact exists";
+  const error = new DownloadError(
+    `the existing output changed while its recovery snapshot was being created (${cause?.code || cause?.message || "unknown"}); ${retained} and the download lock was retained for manual inspection`,
+    "OUTPUT_SNAPSHOT_RECOVERY_REQUIRED",
+  );
+  error.recoveryPath = recoveryPath;
+  error.retainDownloadLock = true;
+  return error;
+}
+
+function snapshotExistingOutput(outputPath) {
+  if (!lstatOrNull(outputPath)) return null;
+
+  const recoveryPath = `${outputPath}.recovery-${process.pid}-${crypto.randomUUID()}`;
+  assertSafeDownloadPath(recoveryPath, "output recovery path", true);
+  const noFollow = fs.constants.O_NOFOLLOW || 0;
+  let fd = null;
+  let linked = false;
+  let snapshot = null;
+  try {
+    fd = fs.openSync(outputPath, fs.constants.O_RDONLY | noFollow);
+    const recorded = snapshotOpenFile(outputPath, fd, "existing output");
+    snapshot = {
+      recoveryPath,
+      ...recorded,
+      retained: false,
+    };
+    fs.closeSync(fd);
+    fd = null;
+
+    // Windows cannot replace a pathname while the old inode has an open
+    // handle. Close the verifier first, then bind a sibling hard link to the
+    // recorded inode and re-open both names to close the exchange window.
+    fs.linkSync(outputPath, recoveryPath);
+    linked = true;
+    try {
+      assertPathMatchesSnapshot(outputPath, snapshot, "existing output");
+      assertPathMatchesSnapshot(
+        recoveryPath,
+        snapshot,
+        "existing output recovery snapshot",
+      );
+    } catch (validationError) {
+      snapshot.retained = true;
+      throw createSnapshotRecoveryRequiredError(recoveryPath, validationError);
+    }
+    fsyncDirectory(path.dirname(outputPath));
+    return snapshot;
+  } catch (error) {
+    let cleanupError = null;
+    if (error?.code === "OUTPUT_SNAPSHOT_RECOVERY_REQUIRED") {
+      cleanupError = error;
+    } else if (linked && snapshot) {
+      if (removePathIfMatchesSnapshot(recoveryPath, snapshot)) {
+        try {
+          fsyncDirectory(path.dirname(recoveryPath));
+        } catch (syncError) {
+          cleanupError = createRecoveryCleanupSyncError(
+            recoveryPath,
+            syncError,
+          );
+        }
+      } else {
+        cleanupError = createSnapshotRecoveryRequiredError(recoveryPath, error);
+      }
+    }
+    if (fd !== null) {
+      try {
+        fs.closeSync(fd);
+      } catch {
+        /* best effort */
+      }
+    }
+    if (cleanupError) throw cleanupError;
+    if (error instanceof DownloadError) throw error;
+    throw new DownloadError(
+      `could not snapshot the existing output: ${error.message}`,
+      "OUTPUT_SNAPSHOT_FAILED",
+    );
+  }
+}
+
+function assertOutputMatchesSnapshotForCommit(outputPath, snapshot) {
+  if (!snapshot) {
+    if (lstatOrNull(outputPath)) {
+      throw createSnapshotRecoveryRequiredError(
+        null,
+        new DownloadError(
+          "output appeared after the no-output snapshot",
+          "OUTPUT_RECOVERY_CHANGED",
+        ),
+      );
+    }
+    return;
+  }
+
+  try {
+    assertPathMatchesSnapshot(
+      outputPath,
+      snapshot,
+      "existing output before commit",
+    );
+  } catch (error) {
+    snapshot.retained = true;
+    throw createSnapshotRecoveryRequiredError(snapshot.recoveryPath, error);
+  }
+}
+
+function snapshotOpenFile(filePath, fd, label) {
+  assertPathMatchesDescriptor(filePath, fd, label);
+  const before = fs.fstatSync(fd, { bigint: true });
+  const sha256 = sha256Descriptor(fd);
+  const after = fs.fstatSync(fd, { bigint: true });
+  if (!sameSnapshotState(before, after)) {
+    throw new DownloadError(
+      `${label} changed while it was being hashed`,
+      "OUTPUT_RECOVERY_CHANGED",
+    );
+  }
+  assertPathMatchesDescriptor(filePath, fd, label);
+  return {
+    sha256,
+    dev: after.dev,
+    ino: after.ino,
+    size: after.size,
+    mode: after.mode,
+    mtimeNs: after.mtimeNs,
+  };
+}
+
+function sameSnapshotState(first, second) {
+  return (
+    first.isFile() &&
+    second.isFile() &&
+    !(first.dev === 0n && first.ino === 0n) &&
+    first.dev === second.dev &&
+    first.ino === second.ino &&
+    first.size === second.size &&
+    first.mode === second.mode &&
+    first.mtimeNs === second.mtimeNs
+  );
+}
+
+function assertPreviousOutputSnapshot(snapshot) {
+  assertPathMatchesSnapshot(
+    snapshot.recoveryPath,
+    snapshot,
+    "existing output recovery snapshot",
+  );
+}
+
+function restorePreviousOutput({
+  snapshot,
+  outputPath,
+  committedOutput,
+  assertLockOwned,
+}) {
+  const restorePath = `${outputPath}.restore-${process.pid}-${crypto.randomUUID()}`;
+  assertSafeDownloadPath(restorePath, "output restore path", true);
+  try {
+    assertLockOwned();
+    assertPathMatchesSnapshot(
+      outputPath,
+      committedOutput,
+      "committed download before recovery",
+    );
+    assertPreviousOutputSnapshot(snapshot);
+    fs.linkSync(snapshot.recoveryPath, restorePath);
+    assertPathMatchesSnapshot(
+      restorePath,
+      snapshot,
+      "output restore candidate",
+    );
+    assertPathMatchesSnapshot(
+      outputPath,
+      committedOutput,
+      "committed download before recovery",
+    );
+    assertLockOwned();
+    fs.renameSync(restorePath, outputPath);
+    assertPathMatchesSnapshot(outputPath, snapshot, "restored previous output");
+    fsyncDirectory(path.dirname(outputPath));
+    try {
+      discardPreviousOutputSnapshot(snapshot);
+    } catch (error) {
+      if (error?.recoveryArtifactRemoved === true) {
+        error.outputRestored = true;
+      }
+      throw error;
+    }
+  } finally {
+    removePathIfMatchesSnapshot(restorePath, snapshot);
+  }
+}
+
+function discardPreviousOutputSnapshot(snapshot) {
+  assertPathMatchesSnapshot(
+    snapshot.recoveryPath,
+    snapshot,
+    "existing output recovery snapshot",
+  );
+  if (!removePathIfMatchesSnapshot(snapshot.recoveryPath, snapshot)) {
+    throw new DownloadError(
+      "existing output recovery snapshot could not be removed safely",
+      "OUTPUT_RECOVERY_CLEANUP_FAILED",
+    );
+  }
+  try {
+    fsyncDirectory(path.dirname(snapshot.recoveryPath));
+  } catch (error) {
+    throw createRecoveryCleanupSyncError(snapshot.recoveryPath, error);
+  }
+}
+
+function assertPathMatchesSnapshot(filePath, snapshot, label) {
+  const noFollow = fs.constants.O_NOFOLLOW || 0;
+  let fd = null;
+  try {
+    fd = fs.openSync(filePath, fs.constants.O_RDONLY | noFollow);
+    assertPathMatchesDescriptor(filePath, fd, label);
+    const before = fs.fstatSync(fd, { bigint: true });
+    const sha256 = sha256Descriptor(fd);
+    const after = fs.fstatSync(fd, { bigint: true });
+    if (
+      !sameSnapshotState(before, after) ||
+      after.dev !== snapshot.dev ||
+      after.ino !== snapshot.ino ||
+      after.size !== snapshot.size ||
+      after.mode !== snapshot.mode ||
+      after.mtimeNs !== snapshot.mtimeNs ||
+      sha256 !== snapshot.sha256
+    ) {
+      throw new DownloadError(
+        `${label} changed before it could be used safely`,
+        "OUTPUT_RECOVERY_CHANGED",
+      );
+    }
+  } finally {
+    if (fd !== null) fs.closeSync(fd);
+  }
+}
+
+function removePathIfMatchesSnapshot(filePath, snapshot) {
+  try {
+    assertPathMatchesSnapshot(filePath, snapshot, "output recovery artifact");
+    const stat = fs.lstatSync(filePath, { bigint: true });
+    if (
+      !stat.isSymbolicLink() &&
+      stat.isFile() &&
+      stat.dev === snapshot.dev &&
+      stat.ino === snapshot.ino
+    ) {
+      fs.unlinkSync(filePath);
+      return true;
+    }
+  } catch {
+    /* exchanged or missing recovery paths are retained */
+  }
+  return false;
 }
 
 function sha256Descriptor(fd) {
@@ -454,11 +923,7 @@ function outputFromLock(lockPath) {
 
 function releaseLock(lock) {
   if (!lock) return;
-  try {
-    fs.closeSync(lock.fd);
-  } catch {
-    /* best effort */
-  }
+  closeLockHandle(lock);
   try {
     const stat = fs.lstatSync(lock.lockPath);
     if (stat.isSymbolicLink() || !stat.isFile()) return;
@@ -468,6 +933,20 @@ function releaseLock(lock) {
   } catch {
     /* best effort; a stale lock fails closed on the next attempt */
   }
+}
+
+function retainLock(lock) {
+  closeLockHandle(lock);
+}
+
+function closeLockHandle(lock) {
+  if (!lock || lock.fd === null) return;
+  try {
+    fs.closeSync(lock.fd);
+  } catch {
+    /* best effort */
+  }
+  lock.fd = null;
 }
 
 function removeRegularFileIfPresent(filePath) {

@@ -94,6 +94,16 @@ function transactionResidue(dir, outputName) {
     );
 }
 
+function recoveryResidue(dir, outputName) {
+  return fs
+    .readdirSync(dir)
+    .filter(
+      (name) =>
+        name.startsWith(`${outputName}.recovery-`) ||
+        name.startsWith(`${outputName}.restore-`),
+    );
+}
+
 describe("downloadAndVerify", () => {
   let tmpDir;
 
@@ -382,6 +392,399 @@ describe("downloadAndVerify", () => {
       fetchImpl: fakeFetchStream(payload),
     });
     expect(fs.readFileSync(outputPath, "utf-8")).toBe("new-contents");
+    expect(recoveryResidue(tmpDir, "existing.exe")).toEqual([]);
+  });
+
+  it("never rolls back output after post-rename lock loss and retains the verified previous artifact", async () => {
+    const outputPath = path.join(tmpDir, "restore-existing.exe");
+    const lockPath = `${outputPath}.lock`;
+    fs.writeFileSync(outputPath, "old-contents");
+    if (process.platform !== "win32") fs.chmodSync(outputPath, 0o640);
+    const before = fs.statSync(outputPath, { bigint: true });
+    const payload = Buffer.from("new-contents");
+    const originalRenameSync = fs.renameSync.bind(fs);
+    let restoreRenames = 0;
+    const renameSpy = vi
+      .spyOn(fs, "renameSync")
+      .mockImplementation((sourcePath, destinationPath) => {
+        if (String(sourcePath).startsWith(`${outputPath}.restore-`)) {
+          restoreRenames += 1;
+        }
+        const result = originalRenameSync(sourcePath, destinationPath);
+        if (
+          String(sourcePath).startsWith(`${outputPath}.partial-`) &&
+          path.resolve(String(destinationPath)) === path.resolve(outputPath)
+        ) {
+          fs.unlinkSync(lockPath);
+          fs.writeFileSync(lockPath, "foreign-owner");
+        }
+        return result;
+      });
+    let error;
+    try {
+      await downloadAndVerify({
+        url: "https://x",
+        sha256: sha256Hex(payload),
+        outputPath,
+        fetchImpl: fakeFetchStream(payload),
+      });
+    } catch (caught) {
+      error = caught;
+    } finally {
+      renameSpy.mockRestore();
+    }
+
+    expect(error).toMatchObject({
+      code: "OUTPUT_RECOVERY_REQUIRED",
+      retainDownloadLock: true,
+    });
+    expect(error.message).toContain("was left untouched");
+    expect(restoreRenames).toBe(0);
+    expect(fs.readFileSync(outputPath, "utf8")).toBe("new-contents");
+    expect(fs.readFileSync(lockPath, "utf8")).toBe("foreign-owner");
+    const residue = recoveryResidue(tmpDir, "restore-existing.exe");
+    expect(residue).toHaveLength(1);
+    const recoveryPath = path.join(tmpDir, residue[0]);
+    const recoveryStat = fs.statSync(recoveryPath, { bigint: true });
+    expect(error.recoveryPath).toBe(recoveryPath);
+    expect(fs.readFileSync(recoveryPath, "utf8")).toBe("old-contents");
+    expect(recoveryStat.dev).toBe(before.dev);
+    expect(recoveryStat.ino).toBe(before.ino);
+    expect(recoveryStat.mode).toBe(before.mode);
+  });
+
+  it("does not commit output when the lock is replaced during snapshot creation", async () => {
+    const outputPath = path.join(tmpDir, "snapshot-lock-loss.exe");
+    const lockPath = `${outputPath}.lock`;
+    fs.writeFileSync(outputPath, "old-contents");
+    const payload = Buffer.from("new-contents");
+    const originalLinkSync = fs.linkSync.bind(fs);
+    const originalRenameSync = fs.renameSync.bind(fs);
+    let lockReplaced = false;
+    let commitRenames = 0;
+    const linkSpy = vi
+      .spyOn(fs, "linkSync")
+      .mockImplementation((sourcePath, destinationPath) => {
+        const result = originalLinkSync(sourcePath, destinationPath);
+        if (
+          !lockReplaced &&
+          String(destinationPath).startsWith(`${outputPath}.recovery-`)
+        ) {
+          fs.unlinkSync(lockPath);
+          fs.writeFileSync(lockPath, "foreign-owner");
+          lockReplaced = true;
+        }
+        return result;
+      });
+    const renameSpy = vi
+      .spyOn(fs, "renameSync")
+      .mockImplementation((sourcePath, destinationPath) => {
+        if (
+          String(sourcePath).startsWith(`${outputPath}.partial-`) &&
+          path.resolve(String(destinationPath)) === path.resolve(outputPath)
+        ) {
+          commitRenames += 1;
+        }
+        return originalRenameSync(sourcePath, destinationPath);
+      });
+    let error;
+    try {
+      await downloadAndVerify({
+        url: "https://x",
+        sha256: sha256Hex(payload),
+        outputPath,
+        fetchImpl: fakeFetchStream(payload),
+      });
+    } catch (caught) {
+      error = caught;
+    } finally {
+      linkSpy.mockRestore();
+      renameSpy.mockRestore();
+    }
+
+    expect(lockReplaced).toBe(true);
+    expect(error).toMatchObject({ code: "DOWNLOAD_LOCK_LOST" });
+    expect(commitRenames).toBe(0);
+    expect(fs.readFileSync(outputPath, "utf8")).toBe("old-contents");
+    expect(fs.readFileSync(lockPath, "utf8")).toBe("foreign-owner");
+    const residue = recoveryResidue(tmpDir, "snapshot-lock-loss.exe");
+    expect(residue).toHaveLength(1);
+    expect(fs.readFileSync(path.join(tmpDir, residue[0]), "utf8")).toBe(
+      "old-contents",
+    );
+  });
+
+  it("retains an unverified recovery artifact and its own lock when the snapshot link races", async () => {
+    const outputPath = path.join(tmpDir, "snapshot-race.exe");
+    const displacedPath = path.join(tmpDir, "snapshot-race.displaced.exe");
+    const lockPath = `${outputPath}.lock`;
+    fs.writeFileSync(outputPath, "old-contents");
+    const payload = Buffer.from("new-contents");
+    const originalLinkSync = fs.linkSync.bind(fs);
+    let exchanged = false;
+    const linkSpy = vi
+      .spyOn(fs, "linkSync")
+      .mockImplementation((sourcePath, destinationPath) => {
+        if (
+          !exchanged &&
+          path.resolve(String(sourcePath)) === path.resolve(outputPath) &&
+          String(destinationPath).startsWith(`${outputPath}.recovery-`)
+        ) {
+          fs.renameSync(outputPath, displacedPath);
+          fs.writeFileSync(outputPath, "foreign-output");
+          exchanged = true;
+        }
+        return originalLinkSync(sourcePath, destinationPath);
+      });
+    let error;
+    try {
+      await downloadAndVerify({
+        url: "https://x",
+        sha256: sha256Hex(payload),
+        outputPath,
+        fetchImpl: fakeFetchStream(payload),
+      });
+    } catch (caught) {
+      error = caught;
+    } finally {
+      linkSpy.mockRestore();
+    }
+
+    expect(exchanged).toBe(true);
+    expect(error).toMatchObject({
+      code: "OUTPUT_SNAPSHOT_RECOVERY_REQUIRED",
+      retainDownloadLock: true,
+    });
+    expect(fs.readFileSync(outputPath, "utf8")).toBe("foreign-output");
+    expect(fs.readFileSync(displacedPath, "utf8")).toBe("old-contents");
+    const residue = recoveryResidue(tmpDir, "snapshot-race.exe");
+    expect(residue).toHaveLength(1);
+    const recoveryPath = path.join(tmpDir, residue[0]);
+    expect(error.recoveryPath).toBe(recoveryPath);
+    expect(fs.readFileSync(recoveryPath, "utf8")).toBe("foreign-output");
+    expect(fs.existsSync(lockPath)).toBe(true);
+  });
+
+  it("retains the verified recovery artifact when output changes after the snapshot link", async () => {
+    const outputPath = path.join(tmpDir, "snapshot-after-link-race.exe");
+    const lockPath = `${outputPath}.lock`;
+    fs.writeFileSync(outputPath, "old-contents");
+    const before = fs.statSync(outputPath, { bigint: true });
+    const payload = Buffer.from("new-contents");
+    const originalLinkSync = fs.linkSync.bind(fs);
+    let exchanged = false;
+    const linkSpy = vi
+      .spyOn(fs, "linkSync")
+      .mockImplementation((sourcePath, destinationPath) => {
+        const result = originalLinkSync(sourcePath, destinationPath);
+        if (
+          !exchanged &&
+          String(destinationPath).startsWith(`${outputPath}.recovery-`)
+        ) {
+          fs.unlinkSync(outputPath);
+          fs.writeFileSync(outputPath, "foreign-output");
+          exchanged = true;
+        }
+        return result;
+      });
+    let error;
+    try {
+      await downloadAndVerify({
+        url: "https://x",
+        sha256: sha256Hex(payload),
+        outputPath,
+        fetchImpl: fakeFetchStream(payload),
+      });
+    } catch (caught) {
+      error = caught;
+    } finally {
+      linkSpy.mockRestore();
+    }
+
+    expect(exchanged).toBe(true);
+    expect(error).toMatchObject({
+      code: "OUTPUT_SNAPSHOT_RECOVERY_REQUIRED",
+      retainDownloadLock: true,
+    });
+    expect(fs.readFileSync(outputPath, "utf8")).toBe("foreign-output");
+    expect(fs.existsSync(lockPath)).toBe(true);
+    const residue = recoveryResidue(tmpDir, "snapshot-after-link-race.exe");
+    expect(residue).toHaveLength(1);
+    const recoveryPath = path.join(tmpDir, residue[0]);
+    const recoveryStat = fs.statSync(recoveryPath, { bigint: true });
+    expect(error.recoveryPath).toBe(recoveryPath);
+    expect(fs.readFileSync(recoveryPath, "utf8")).toBe("old-contents");
+    expect(recoveryStat.dev).toBe(before.dev);
+    expect(recoveryStat.ino).toBe(before.ino);
+  });
+
+  it("fsyncs the parent directory after removing a successful recovery snapshot", async () => {
+    const outputPath = path.join(tmpDir, "cleanup-sync.exe");
+    fs.writeFileSync(outputPath, "old-contents");
+    const payload = Buffer.from("new-contents");
+    const originalFsyncSync = fs.fsyncSync.bind(fs);
+    let directorySyncs = 0;
+    const fsyncSpy = vi.spyOn(fs, "fsyncSync").mockImplementation((fd) => {
+      if (fs.fstatSync(fd).isDirectory()) directorySyncs += 1;
+      return originalFsyncSync(fd);
+    });
+    try {
+      await downloadAndVerify({
+        url: "https://x",
+        sha256: sha256Hex(payload),
+        outputPath,
+        fetchImpl: fakeFetchStream(payload),
+      });
+    } finally {
+      fsyncSpy.mockRestore();
+    }
+
+    expect(directorySyncs).toBeGreaterThanOrEqual(3);
+    expect(fs.readFileSync(outputPath, "utf8")).toBe("new-contents");
+    expect(recoveryResidue(tmpDir, "cleanup-sync.exe")).toEqual([]);
+  });
+
+  it("retains the lock and committed output when recovery unlink fsync fails", async () => {
+    const outputPath = path.join(tmpDir, "cleanup-sync-fails.exe");
+    const lockPath = `${outputPath}.lock`;
+    fs.writeFileSync(outputPath, "old-contents");
+    const payload = Buffer.from("new-contents");
+    const originalFsyncSync = fs.fsyncSync.bind(fs);
+    let directorySyncs = 0;
+    const fsyncSpy = vi.spyOn(fs, "fsyncSync").mockImplementation((fd) => {
+      if (fs.fstatSync(fd).isDirectory()) {
+        directorySyncs += 1;
+        if (directorySyncs === 3) {
+          const error = new Error("recovery unlink fsync failed");
+          error.code = "EIO";
+          throw error;
+        }
+      }
+      return originalFsyncSync(fd);
+    });
+    let error;
+    try {
+      await downloadAndVerify({
+        url: "https://x",
+        sha256: sha256Hex(payload),
+        outputPath,
+        fetchImpl: fakeFetchStream(payload),
+      });
+    } catch (caught) {
+      error = caught;
+    } finally {
+      fsyncSpy.mockRestore();
+    }
+
+    expect(error).toMatchObject({
+      code: "OUTPUT_RECOVERY_CLEANUP_SYNC_FAILED",
+      recoveryArtifactRemoved: true,
+      retainDownloadLock: true,
+    });
+    expect(directorySyncs).toBe(3);
+    expect(fs.readFileSync(outputPath, "utf8")).toBe("new-contents");
+    expect(fs.existsSync(lockPath)).toBe(true);
+    expect(recoveryResidue(tmpDir, "cleanup-sync-fails.exe")).toEqual([]);
+  });
+
+  it("restores the original destination after post-rename directory fsync fails", async () => {
+    const outputPath = path.join(tmpDir, "restore-fsync.exe");
+    const lockPath = `${outputPath}.lock`;
+    fs.writeFileSync(outputPath, "old-contents");
+    const before = fs.statSync(outputPath, { bigint: true });
+    const payload = Buffer.from("new-contents");
+    const originalFsyncSync = fs.fsyncSync.bind(fs);
+    let directorySyncs = 0;
+    const fsyncSpy = vi.spyOn(fs, "fsyncSync").mockImplementation((fd) => {
+      if (fs.fstatSync(fd).isDirectory()) {
+        directorySyncs += 1;
+        if (directorySyncs === 2) {
+          const error = new Error("directory fsync interrupted");
+          error.code = "EIO";
+          throw error;
+        }
+      }
+      return originalFsyncSync(fd);
+    });
+    try {
+      await expect(
+        downloadAndVerify({
+          url: "https://x",
+          sha256: sha256Hex(payload),
+          outputPath,
+          fetchImpl: fakeFetchStream(payload),
+        }),
+      ).rejects.toMatchObject({ code: "FINALIZE_FAILED" });
+    } finally {
+      fsyncSpy.mockRestore();
+    }
+
+    const after = fs.statSync(outputPath, { bigint: true });
+    expect(directorySyncs).toBeGreaterThanOrEqual(3);
+    expect(fs.readFileSync(outputPath, "utf8")).toBe("old-contents");
+    expect(after.dev).toBe(before.dev);
+    expect(after.ino).toBe(before.ino);
+    expect(fs.existsSync(lockPath)).toBe(false);
+    expect(recoveryResidue(tmpDir, "restore-fsync.exe")).toEqual([]);
+  });
+
+  it("retains a recovery artifact and lock when post-rename restoration fails", async () => {
+    const outputPath = path.join(tmpDir, "recovery-fails.exe");
+    const lockPath = `${outputPath}.lock`;
+    fs.writeFileSync(outputPath, "old-contents");
+    const before = fs.statSync(outputPath, { bigint: true });
+    const payload = Buffer.from("new-contents");
+    const originalRenameSync = fs.renameSync.bind(fs);
+    const originalLinkSync = fs.linkSync.bind(fs);
+    const renameSpy = vi
+      .spyOn(fs, "renameSync")
+      .mockImplementation((sourcePath, destinationPath) => {
+        const result = originalRenameSync(sourcePath, destinationPath);
+        if (
+          String(sourcePath).startsWith(`${outputPath}.partial-`) &&
+          path.resolve(String(destinationPath)) === path.resolve(outputPath)
+        ) {
+          fs.writeFileSync(outputPath, "damaged-after-commit");
+        }
+        return result;
+      });
+    const linkSpy = vi
+      .spyOn(fs, "linkSync")
+      .mockImplementation((sourcePath, destinationPath) => {
+        if (String(destinationPath).startsWith(`${outputPath}.restore-`)) {
+          const error = new Error("restore link denied");
+          error.code = "EACCES";
+          throw error;
+        }
+        return originalLinkSync(sourcePath, destinationPath);
+      });
+    let error;
+    try {
+      await downloadAndVerify({
+        url: "https://x",
+        sha256: sha256Hex(payload),
+        outputPath,
+        fetchImpl: fakeFetchStream(payload),
+      });
+    } catch (caught) {
+      error = caught;
+    } finally {
+      renameSpy.mockRestore();
+      linkSpy.mockRestore();
+    }
+
+    expect(error).toMatchObject({ code: "OUTPUT_RECOVERY_FAILED" });
+    expect(error.message).toContain("recovery artifact retained at");
+    expect(fs.readFileSync(outputPath, "utf8")).toBe("damaged-after-commit");
+    const residue = recoveryResidue(tmpDir, "recovery-fails.exe");
+    expect(residue).toHaveLength(1);
+    expect(residue[0]).toContain(".recovery-");
+    const recoveryPath = path.join(tmpDir, residue[0]);
+    const recoveryStat = fs.statSync(recoveryPath, { bigint: true });
+    expect(fs.readFileSync(recoveryPath, "utf8")).toBe("old-contents");
+    expect(recoveryStat.dev).toBe(before.dev);
+    expect(recoveryStat.ino).toBe(before.ino);
+    expect(fs.existsSync(lockPath)).toBe(true);
   });
 
   it("never unlinks the existing output before the atomic rename", async () => {
@@ -469,6 +872,37 @@ describe("downloadAndVerify", () => {
     }
     expect(fs.existsSync(outputPath)).toBe(false);
     expect(transactionResidue(tmpDir, "partial-exchanged.exe")).toEqual([]);
+  });
+
+  it("does not delete a foreign partial pathname during final cleanup", async () => {
+    const outputPath = path.join(tmpDir, "partial-cleanup-exchanged.exe");
+    const payload = Buffer.from("trusted-download-bytes");
+    let foreignPartialPath = null;
+
+    await expect(
+      downloadAndVerify({
+        url: "https://x",
+        sha256: sha256Hex(payload),
+        outputPath,
+        fetchImpl: fakeFetchStream(payload),
+        onProgress: () => {
+          if (foreignPartialPath) return;
+          const partialName = fs
+            .readdirSync(tmpDir)
+            .find((name) =>
+              name.startsWith("partial-cleanup-exchanged.exe.partial-"),
+            );
+          foreignPartialPath = path.join(tmpDir, partialName);
+          fs.unlinkSync(foreignPartialPath);
+          fs.writeFileSync(foreignPartialPath, "foreign-partial");
+        },
+      }),
+    ).rejects.toMatchObject({ code: "PARTIAL_REPLACED" });
+
+    expect(foreignPartialPath).not.toBeNull();
+    expect(fs.readFileSync(foreignPartialPath, "utf8")).toBe("foreign-partial");
+    expect(fs.existsSync(`${outputPath}.lock`)).toBe(false);
+    expect(fs.existsSync(outputPath)).toBe(false);
   });
 
   it("fails closed when another writer owns the output lock", async () => {
