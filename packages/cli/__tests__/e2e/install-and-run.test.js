@@ -26,11 +26,10 @@ describe("E2E: install and run", () => {
         timeout: 30000,
       },
     );
-    expect(result).toContain("setup");
-    expect(result).toContain("start");
-    expect(result).toContain("stop");
+    expect(result).toContain("Core commands:");
+    expect(result).toContain("Global options:");
+    expect(result).toContain("cc help --all");
     expect(result).toContain("status");
-    expect(result).toContain("services");
     expect(result).toContain("config");
     expect(result).toContain("update");
     expect(result).toContain("doctor");

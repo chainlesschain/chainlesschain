@@ -59,12 +59,12 @@ describe("E2E: CLI aliases", () => {
     it("--help shows usage information", () => {
       const result = runCli("--help");
       expect(result).toContain("Usage:");
-      expect(result).toContain("Options:");
-      expect(result).toContain("Commands:");
+      expect(result).toContain("Core commands:");
+      expect(result).toContain("Global options:");
     });
 
     it("help includes system management commands", () => {
-      const result = runCli("--help");
+      const result = runCli("help --all");
       expect(result).toContain("setup");
       expect(result).toContain("start");
       expect(result).toContain("stop");
@@ -76,7 +76,7 @@ describe("E2E: CLI aliases", () => {
     });
 
     it("help includes headless commands", () => {
-      const result = runCli("--help");
+      const result = runCli("help --all");
       expect(result).toContain("db");
       expect(result).toContain("note");
       expect(result).toContain("chat");
