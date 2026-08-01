@@ -29,24 +29,22 @@ export const _deps = {
 };
 
 function findLatestLedgerEvent(sessionId) {
-  const valid = (event) => Array.isArray(event?.data?.ops);
   if (
     typeof _deps.findLatestEvent === "function" &&
     _deps.findLatestEvent !== storeFindLatestEvent
   ) {
-    return _deps.findLatestEvent(sessionId, SIDE_EFFECT_LEDGER_EVENT, valid);
+    return _deps.findLatestEvent(sessionId, SIDE_EFFECT_LEDGER_EVENT);
   }
   // Existing tests and embedders historically injected only readEvents.
   if (_deps.readEvents !== storeReadEvents) {
     const events = _deps.readEvents(sessionId) || [];
     for (let index = events.length - 1; index >= 0; index -= 1) {
       const event = events[index];
-      if (event?.type === SIDE_EFFECT_LEDGER_EVENT && valid(event))
-        return event;
+      if (event?.type === SIDE_EFFECT_LEDGER_EVENT) return event;
     }
     return null;
   }
-  return storeFindLatestEvent(sessionId, SIDE_EFFECT_LEDGER_EVENT, valid);
+  return storeFindLatestEvent(sessionId, SIDE_EFFECT_LEDGER_EVENT);
 }
 
 export class SideEffectLedgerPersistenceError extends Error {
@@ -132,6 +130,11 @@ export function loadSideEffectLedger(sessionId, opts = {}) {
   }
   if (event) {
     try {
+      if (!Array.isArray(event?.data?.ops)) {
+        throw new TypeError(
+          "latest side-effect ledger snapshot must contain an ops array",
+        );
+      }
       return SideEffectLedger.fromJSON(event.data, opts);
     } catch (error) {
       const fallback = persistenceFailure(

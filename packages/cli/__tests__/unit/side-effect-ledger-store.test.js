@@ -63,6 +63,18 @@ describe("side-effect-ledger-store", () => {
     ).toEqual(["fresh"]);
   });
 
+  it("fails closed when the newest ledger event is malformed", () => {
+    persistSideEffectLedger("s1", crashedLedger());
+    _deps.appendEvent("s1", SIDE_EFFECT_LEDGER_EVENT, { ops: "corrupt" });
+
+    expect(() => loadSideEffectLedger("s1")).toThrowError(
+      expect.objectContaining({
+        code: "SIDE_EFFECT_LEDGER_READ_FAILED",
+        operation: "read",
+      }),
+    );
+  });
+
   it("empty ledger when the session never persisted one", () => {
     _deps.appendEvent("s1", "user_message", { role: "user", content: "hi" });
     expect(loadSideEffectLedger("s1").list()).toEqual([]);
