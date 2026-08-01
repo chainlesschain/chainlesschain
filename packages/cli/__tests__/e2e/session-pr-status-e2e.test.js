@@ -12,7 +12,7 @@ const t = testHome("session-pr-status");
 afterAll(() => t.cleanup());
 
 function writeChecks(name, obj) {
-  const p = path.join(t.home, name);
+  const p = path.join(t.workspace, name);
   fs.writeFileSync(p, JSON.stringify(obj), "utf-8");
   return p;
 }
@@ -21,15 +21,16 @@ function run(args) {
   return spawnSync(
     process.execPath,
     [CLI_BIN, "session", "pr-status", ...args],
-    { env: t.env(), cwd: t.home, encoding: "utf-8" },
+    { env: t.env(), cwd: t.workspace, encoding: "utf-8" },
   );
 }
 
 function parseJson(stdout) {
-  const s = stdout.replace(/^﻿/, "");
+  const s = stdout.replace(/^\uFEFF/, "");
   return JSON.parse(s.slice(s.indexOf("{")));
 }
 
+const HEAD_COMMIT = "a".repeat(40);
 const READY = {
   branch: "feat/x",
   prNumber: 7,
@@ -37,8 +38,12 @@ const READY = {
   branchProtectionSatisfied: true,
   reviewApproved: true,
   pendingApprovals: 0,
+  headCommitSha: HEAD_COMMIT,
+  ciCommitSha: HEAD_COMMIT,
   requiredChecks: ["build"],
-  checks: [{ name: "build", state: "success" }],
+  requiredMatrixComplete: true,
+  checks: [{ name: "build", state: "success", commitSha: HEAD_COMMIT }],
+  sideEffects: [],
 };
 
 describe("cc session pr-status (P1-4)", () => {

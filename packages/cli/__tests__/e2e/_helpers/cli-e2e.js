@@ -17,7 +17,7 @@
  *   spawnSync(process.execPath, [CLI_BIN, ...], { env: t.env() });
  *   const port = await freePort();        // inside an async beforeAll/it
  */
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -40,34 +40,45 @@ export const CLI_BIN = join(
  * module scope; register `cleanup()` in afterAll.
  *
  * @param {string} label  short slug for the temp-dir name
- * @returns {{ home: string, env: (extra?: object) => object,
+ * @returns {{ home: string, configHome: string, workspace: string,
+ *             env: (extra?: object) => object,
  *             writeScript: (body: string) => string, cleanup: () => void }}
  */
 export function testHome(label = "e2e") {
-  const home = mkdtempSync(join(tmpdir(), `cc-${label}-`));
+  const root = mkdtempSync(join(tmpdir(), `cc-${label}-`));
+  const configHome = join(root, "config");
+  const workspace = join(root, "workspace");
+  mkdirSync(configHome, { recursive: true });
+  mkdirSync(workspace, { recursive: true });
   return {
-    home,
+    // Keep `home` as the config-home compatibility alias used by older tests.
+    // The process cwd must use `workspace`: production deliberately rejects a
+    // CHAINLESSCHAIN_HOME that is the cwd (or one of its ancestors), because a
+    // permission repair must never target the user's working tree.
+    home: configHome,
+    configHome,
+    workspace,
     // CHAINLESSCHAIN_HOME is what getUserDataPath() honors first → isolates the
     // bootstrap DB. HOME/USERPROFILE are set too for any path that still reads
     // them, but they do NOT redirect the DB on Windows on their own.
     env: (extra = {}) => ({
       ...process.env,
-      CHAINLESSCHAIN_HOME: home,
-      HOME: home,
-      USERPROFILE: home,
+      CHAINLESSCHAIN_HOME: configHome,
+      HOME: configHome,
+      USERPROFILE: configHome,
       ...extra,
     }),
     // A throwaway .js script, run as `node <path>`. Use instead of inline
     // `node -e "...()"` — exec-mode loops are shell:true, and the "()" in an
     // inline -e is a POSIX /bin/sh (dash) syntax error. A path is portable.
     writeScript(body) {
-      const p = join(home, `s${Math.random().toString(36).slice(2)}.js`);
+      const p = join(workspace, `s${Math.random().toString(36).slice(2)}.js`);
       writeFileSync(p, body, "utf-8");
       return p;
     },
     cleanup() {
       try {
-        rmSync(home, { recursive: true, force: true });
+        rmSync(root, { recursive: true, force: true });
       } catch {
         /* best-effort */
       }

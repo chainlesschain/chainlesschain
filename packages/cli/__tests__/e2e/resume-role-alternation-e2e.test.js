@@ -128,7 +128,7 @@ function runResume(sessionId) {
       ],
       {
         env: t.env(),
-        cwd: t.home,
+        cwd: t.workspace,
         stdio: ["ignore", "pipe", "pipe"],
       },
     );

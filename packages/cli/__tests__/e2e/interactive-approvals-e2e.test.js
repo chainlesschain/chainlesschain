@@ -20,7 +20,7 @@ let llmPort;
 
 beforeAll(async () => {
   // settings `ask` on Write → write_file hits the confirm tier
-  const dotClaude = path.join(t.home, ".claude");
+  const dotClaude = path.join(t.workspace, ".claude");
   fs.mkdirSync(dotClaude, { recursive: true });
   fs.writeFileSync(
     path.join(dotClaude, "settings.json"),
@@ -107,7 +107,7 @@ function startAgent() {
       "--base-url",
       `http://127.0.0.1:${llmPort}`,
     ],
-    { cwd: t.home, env: t.env(), stdio: ["pipe", "pipe", "pipe"] },
+    { cwd: t.workspace, env: t.env(), stdio: ["pipe", "pipe", "pipe"] },
   );
   const events = [];
   let buf = "";
@@ -147,13 +147,13 @@ describe("real cc agent --interactive-approvals", () => {
       const req = events.find((e) => e.type === "approval_request");
       expect(req.tool).toBe("write_file");
       // the file must NOT exist while the approval is pending
-      expect(fs.existsSync(path.join(t.home, "yes.txt"))).toBe(false);
+      expect(fs.existsSync(path.join(t.workspace, "yes.txt"))).toBe(false);
 
       send({ type: "approval", id: req.id, approve: true });
       await expect
         .poll(() => events.some((e) => e.type === "result"), { timeout: 60000 })
         .toBe(true);
-      expect(fs.readFileSync(path.join(t.home, "yes.txt"), "utf-8")).toBe(
+      expect(fs.readFileSync(path.join(t.workspace, "yes.txt"), "utf-8")).toBe(
         "approved content",
       );
       expect(events.find((e) => e.type === "approval_resolved").approved).toBe(
@@ -184,7 +184,7 @@ describe("real cc agent --interactive-approvals", () => {
       await expect
         .poll(() => events.some((e) => e.type === "result"), { timeout: 60000 })
         .toBe(true);
-      expect(fs.existsSync(path.join(t.home, "no.txt"))).toBe(false);
+      expect(fs.existsSync(path.join(t.workspace, "no.txt"))).toBe(false);
       expect(events.find((e) => e.type === "approval_resolved").approved).toBe(
         false,
       );
