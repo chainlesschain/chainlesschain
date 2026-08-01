@@ -61,6 +61,24 @@ describe("WSChatHandler", () => {
       });
     });
 
+    it("records the running and settled recovery states", async () => {
+      session._recordSessionStateEvent = vi.fn();
+      chatWithStreaming.mockResolvedValue("Response text");
+
+      await handler.handleMessage("Hello chat", "req-state");
+
+      expect(session._recordSessionStateEvent).toHaveBeenNthCalledWith(
+        1,
+        "run.started",
+        expect.objectContaining({ requestId: "req-state" }),
+      );
+      expect(session._recordSessionStateEvent).toHaveBeenNthCalledWith(
+        2,
+        "run.settled",
+        expect.objectContaining({ requestId: "req-state" }),
+      );
+    });
+
     it("returns busy error when already processing", async () => {
       // Create a blocking call
       let resolveChat;

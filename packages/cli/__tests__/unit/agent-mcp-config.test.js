@@ -144,6 +144,12 @@ describe("setupMcpFromConfig", () => {
           name: "get",
           description: "get weather",
           inputSchema: { type: "object", properties: { city: {} } },
+          annotations: {
+            readOnlyHint: true,
+            destructiveHint: false,
+            idempotentHint: true,
+            openWorldHint: true,
+          },
         },
       ],
     });
@@ -167,6 +173,18 @@ describe("setupMcpFromConfig", () => {
     expect(res.externalToolDescriptors["mcp__weather__get"]).toMatchObject({
       kind: "mcp",
       source: "weather",
+      isReadOnly: true,
+      effectContract: {
+        declaredEffect: "read",
+        authorizedEffect: null,
+        sourceTrusted: false,
+        annotations: {
+          readOnlyHint: true,
+          destructiveHint: false,
+          idempotentHint: true,
+          openWorldHint: true,
+        },
+      },
     });
   });
 

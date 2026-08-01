@@ -59,7 +59,6 @@ import {
 } from "../lib/idempotency.js";
 import { buildSearchCommand } from "../lib/search-command.js";
 import { discoverCommands } from "../lib/slash-commands.js";
-import { createSkillProcessBroker } from "../lib/skill-process-broker.js";
 import {
   isRetryableStreamError,
   STREAM_RETRY_BASE_MS,
@@ -70,10 +69,6 @@ import {
   replaceByHash,
   snippetAround,
 } from "../lib/hashline.js";
-import {
-  mountSkillMcpServers,
-  unmountSkillMcpServers,
-} from "../lib/skill-mcp.js";
 import {
   hasImageContent,
   toOllamaMessages,
@@ -99,6 +94,15 @@ import {
   beginManagedToolCheckpoint,
   settleManagedToolCheckpoint,
 } from "../lib/managed-tool-checkpoint.js";
+import { createMcpCallLedger } from "../lib/mcp-call-ledger.js";
+import {
+  createHostOwnedMcpEffectContract,
+  createMcpConflictScheduler,
+} from "../lib/mcp-conflict-scheduler.js";
+import {
+  buildExtractiveHandoff,
+  formatStructuredHandoff,
+} from "../harness/structured-handoff.js";
 
 export { formatProviderHttpError };
 
@@ -112,6 +116,25 @@ export { formatProviderHttpError };
 const _activeMcpServers = new Set();
 export function getActiveMcpServers() {
   return new Set(_activeMcpServers);
+}
+
+// Direct executeTool callers do not pass agentLoop's run-scoped scheduler.
+// Share a bounded scheduler per MCP client so two concurrent calls cannot each
+// create a private lock and accidentally bypass unknown/write serialization.
+const _directMcpSchedulers = new WeakMap();
+function directMcpConflictScheduler(mcpClient) {
+  if (
+    (typeof mcpClient !== "object" || mcpClient === null) &&
+    typeof mcpClient !== "function"
+  ) {
+    return createMcpConflictScheduler({ maxActive: 1 });
+  }
+  let scheduler = _directMcpSchedulers.get(mcpClient);
+  if (!scheduler) {
+    scheduler = createMcpConflictScheduler();
+    _directMcpSchedulers.set(mcpClient, scheduler);
+  }
+  return scheduler;
 }
 
 const { isDangerousGitCommand, isReadOnlyGitCommand, normalizeGitCommand } =
@@ -2282,6 +2305,8 @@ export async function executeTool(name, args, context = {}) {
       externalToolDescriptors: context.externalToolDescriptors || null,
       externalToolExecutors: context.externalToolExecutors || null,
       mcpClient: context.mcpClient || null,
+      mcpCallLedger: context.mcpCallLedger || null,
+      mcpConflictScheduler: context.mcpConflictScheduler || null,
       subtreeInstructionScope:
         context.subtreeInstructionScope || context.sessionId || "__legacy__",
       shellPolicyOverrides: context.shellPolicyOverrides || null,
@@ -3220,6 +3245,89 @@ async function promoteBrowserScreenshot(
   }
 }
 
+const MCP_LEDGER_EFFECTS = new Set(["read", "unknown", "write", "destructive"]);
+
+/**
+ * Reduce descriptor + managed-host metadata to the host-owned contract written
+ * to the MCP ledger. A server's read-only declaration is never promoted to a
+ * read authorization. Server declarations may only make the classification
+ * stricter (write/destructive) when host authority is absent.
+ */
+function mcpLedgerEffectContract(descriptor, hostPolicy) {
+  const descriptorContract = descriptor?.effectContract || {};
+  const hostContract = hostPolicy?.effectContract || {};
+  const authorizedCandidate =
+    hostContract.authorizedEffect || hostPolicy?.authorizedEffect;
+  const authorizedEffect = MCP_LEDGER_EFFECTS.has(authorizedCandidate)
+    ? authorizedCandidate
+    : null;
+  const declaredEffect = MCP_LEDGER_EFFECTS.has(
+    descriptorContract.declaredEffect,
+  )
+    ? descriptorContract.declaredEffect
+    : "unknown";
+  const effect =
+    authorizedEffect ||
+    (declaredEffect === "destructive" || declaredEffect === "write"
+      ? declaredEffect
+      : "unknown");
+  const annotations = descriptorContract.annotations || {};
+
+  return {
+    effect,
+    destructive:
+      effect === "destructive" || annotations.destructiveHint === true,
+    sideEffecting: effect === "write" || effect === "destructive",
+    idempotent:
+      typeof annotations.idempotentHint === "boolean"
+        ? annotations.idempotentHint
+        : null,
+    openWorld:
+      typeof annotations.openWorldHint === "boolean"
+        ? annotations.openWorldHint
+        : null,
+    trusted:
+      authorizedEffect != null &&
+      (hostContract.trusted === true || hostPolicy?.sourceTrusted === true),
+    source:
+      hostContract.provenance ||
+      descriptorContract.provenance ||
+      descriptor?.source ||
+      "mcp",
+  };
+}
+
+function mcpLedgerScopes(args) {
+  const resourceScopes = [];
+  const networkScopes = [];
+  const visit = (value, key = "", depth = 0) => {
+    if (depth > 3 || value == null) return;
+    if (Array.isArray(value)) {
+      value.slice(0, 32).forEach((entry) => visit(entry, key, depth + 1));
+      return;
+    }
+    if (typeof value === "object") {
+      Object.entries(value)
+        .slice(0, 64)
+        .forEach(([childKey, childValue]) =>
+          visit(childValue, childKey, depth + 1),
+        );
+      return;
+    }
+    if (typeof value !== "string") return;
+
+    const normalizedKey = String(key).toLowerCase();
+    if (/url|uri|endpoint|origin|host/.test(normalizedKey)) {
+      networkScopes.push(value);
+    }
+    if (/path|file|uri|resource|repo|project|workspace/.test(normalizedKey)) {
+      resourceScopes.push(`${normalizedKey}:${value}`);
+    }
+  };
+  visit(args || {});
+  return { resourceScopes, networkScopes };
+}
+
 async function executeToolInner(
   name,
   args,
@@ -3240,6 +3348,8 @@ async function executeToolInner(
     externalToolExecutors,
     extraToolDefinitions = null,
     mcpClient,
+    mcpCallLedger = null,
+    mcpConflictScheduler = null,
     subtreeInstructionScope = "__legacy__",
     memoryDb = null,
     permanentMemory = null,
@@ -3404,6 +3514,12 @@ async function executeToolInner(
 
     case "write_file": {
       const filePath = path.resolve(cwd, args.path);
+      const instructionPreflight = await _preflightMutationSubtreeInstructions(
+        filePath,
+        cwd,
+        subtreeInstructionScope,
+      );
+      if (instructionPreflight) return attachDescriptor(instructionPreflight);
       const dir = path.dirname(filePath);
       // Overwriting an existing file: refuse if it changed on disk since the
       // agent last observed it (external concurrent edit).
@@ -3438,6 +3554,12 @@ async function executeToolInner(
         return attachDescriptor({ error: "path is required" });
       }
       const filePath = path.resolve(cwd, args.path);
+      const instructionPreflight = await _preflightMutationSubtreeInstructions(
+        filePath,
+        cwd,
+        subtreeInstructionScope,
+      );
+      if (instructionPreflight) return attachDescriptor(instructionPreflight);
       if (!fs.existsSync(filePath)) {
         return attachDescriptor({ error: `File not found: ${filePath}` });
       }
@@ -3465,6 +3587,12 @@ async function executeToolInner(
       }
       const filePath = path.resolve(cwd, args.path);
       const targetPath = path.resolve(cwd, args.target_path);
+      const instructionPreflight = await _preflightMutationSubtreeInstructions(
+        [filePath, targetPath],
+        cwd,
+        subtreeInstructionScope,
+      );
+      if (instructionPreflight) return attachDescriptor(instructionPreflight);
       if (filePath === targetPath) {
         return attachDescriptor({
           error: "Source and target paths are the same",
@@ -3517,6 +3645,12 @@ async function executeToolInner(
 
     case "notebook_edit": {
       const filePath = path.resolve(cwd, args.path);
+      const instructionPreflight = await _preflightMutationSubtreeInstructions(
+        filePath,
+        cwd,
+        subtreeInstructionScope,
+      );
+      if (instructionPreflight) return attachDescriptor(instructionPreflight);
       if (!fs.existsSync(filePath)) {
         return attachDescriptor({ error: `Notebook not found: ${filePath}` });
       }
@@ -3536,6 +3670,12 @@ async function executeToolInner(
 
     case "edit_file": {
       const filePath = path.resolve(cwd, args.path);
+      const instructionPreflight = await _preflightMutationSubtreeInstructions(
+        filePath,
+        cwd,
+        subtreeInstructionScope,
+      );
+      if (instructionPreflight) return attachDescriptor(instructionPreflight);
       if (!fs.existsSync(filePath)) {
         return attachDescriptor({ error: `File not found: ${filePath}` });
       }
@@ -3621,6 +3761,12 @@ async function executeToolInner(
       // Reference a line by its content hash rather than line number or
       // exact string — robust against whitespace drift and concurrent edits.
       const filePath = path.resolve(cwd, args.path);
+      const instructionPreflight = await _preflightMutationSubtreeInstructions(
+        filePath,
+        cwd,
+        subtreeInstructionScope,
+      );
+      if (instructionPreflight) return attachDescriptor(instructionPreflight);
       if (!fs.existsSync(filePath)) {
         return attachDescriptor({ error: `File not found: ${filePath}` });
       }
@@ -4658,6 +4804,8 @@ async function executeToolInner(
           // Parent MCP plumbing — a spawn can inherit these into the child,
           // filtered by the resolved contract's mcpServers allow-list.
           mcpClient,
+          mcpCallLedger,
+          mcpConflictScheduler,
           externalToolDescriptors,
           externalToolExecutors,
           extraToolDefinitions,
@@ -5479,6 +5627,11 @@ async function executeToolInner(
       } catch (error) {
         return attachDescriptor({
           error: `Skill "${args.skill_name}" body could not be loaded: ${error.message}`,
+          ...(error?.code ? { code: error.code } : {}),
+          policy: {
+            decision: "blocked",
+            via: "skill-execution-boundary",
+          },
         });
       }
 
@@ -5505,11 +5658,15 @@ async function executeToolInner(
         // Run skill through isolated sub-agent context
         const subCtx = SubAgentContext.create({
           role: `skill-${args.skill_name}`,
-          task: `Execute the "${args.skill_name}" skill with input: ${(args.input || "").substring(0, 200)}`,
+          task:
+            `Execute the "${args.skill_name}" skill using only the approved tools.\n\n` +
+            `Authoritative skill instructions:\n${String(match.body || "").substring(0, 48000)}\n\n` +
+            `User input:\n${String(args.input || "").substring(0, 8000)}`,
           allowedTools: isolatedSkillTools,
           hookParentTraceId: hookTraceId || null,
           toolAdmission,
           cwd,
+          llmOptions: llmOptions || null,
           ...(permissionRules ? { permissionRules } : {}),
           ...(hostManagedToolPolicy
             ? {
@@ -5528,6 +5685,8 @@ async function executeToolInner(
           ...(shellPolicyOverrides ? { shellPolicyOverrides } : {}),
           ...(classifyAllShell ? { classifyAllShell: true } : {}),
           ...(unattendedActionPolicy ? { unattendedActionPolicy } : {}),
+          ...(mcpCallLedger ? { mcpCallLedger } : {}),
+          ...(mcpConflictScheduler ? { mcpConflictScheduler } : {}),
           onUsage: skillUsageSink
             ? (u) => {
                 try {
@@ -5570,74 +5729,15 @@ async function executeToolInner(
         }
       }
 
-      // Skill-Embedded MCP: mount the skill's declared MCP servers for
-      // the duration of handler.execute, then unmount in finally. The
-      // handler may use them via taskContext.mcpClient. If mcpClient is
-      // null (no MCP set up for this session), skip silently.
-      let mountedMcpServers = [];
-      const hasSkillMcps =
-        Array.isArray(match.mcpServers) && match.mcpServers.length > 0;
-      if (hasSkillMcps && mcpClient) {
-        try {
-          const mountResult = await mountSkillMcpServers(mcpClient, match, {
-            onWarn: (msg) => {
-              // Non-fatal — logged as warning, skipped servers captured
-              // in mountResult.skipped.
-
-              console.warn(msg);
-            },
-          });
-          mountedMcpServers = mountResult.mounted;
-          for (const s of mountedMcpServers) {
-            _activeMcpServers.add(typeof s === "string" ? s : s.name);
-          }
-        } catch (err) {
-          return attachDescriptor({
-            error: `Skill MCP mount failed: ${err.message}`,
-          });
-        }
-      }
-
-      try {
-        const handlerPath = path.join(match.skillDir, "handler.js");
-        const imported = await import(
-          `file://${handlerPath.replace(/\\/g, "/")}`
-        );
-        const handler = imported.default || imported;
-        if (handler.init) await handler.init(match);
-        const task = {
-          params: { input: args.input },
-          input: args.input,
-          action: args.input,
-        };
-        const taskContext = {
-          projectRoot: cwd,
-          workspacePath: cwd,
-          processBroker: createSkillProcessBroker(match),
-          // Expose the MCP client + mounted servers so the skill handler
-          // can call MCP tools directly without going through the agent
-          // loop. Handlers that don't need MCP can ignore these.
-          mcpClient: mcpClient || null,
-          mountedMcpServers,
-        };
-        const result = await handler.execute(task, taskContext, match);
-        return attachDescriptor(result);
-      } catch (err) {
-        return attachDescriptor({
-          error: `Skill execution failed: ${err.message}`,
-        });
-      } finally {
-        if (mountedMcpServers.length > 0 && mcpClient) {
-          try {
-            await unmountSkillMcpServers(mcpClient, mountedMcpServers);
-          } catch (_err) {
-            // Non-critical — mount/unmount errors don't fail the skill
-          }
-          for (const s of mountedMcpServers) {
-            _activeMcpServers.delete(typeof s === "string" ? s : s.name);
-          }
-        }
-      }
+      // Defense in depth: materializeSkill currently rejects this path before
+      // reaching here. Keep the runtime fence explicit so a custom/legacy
+      // loader can never re-enable arbitrary handler.js imports in the CLI
+      // process or hand a Skill the raw MCP client/process broker.
+      return attachDescriptor({
+        error: `Skill "${args.skill_name}" cannot execute handler.js directly. Add isolation: true and use the controlled agent-tool path.`,
+        code: "CC_SKILL_DIRECT_HANDLER_BLOCKED",
+        policy: { decision: "blocked", via: "skill-execution-boundary" },
+      });
     }
 
     case "list_skills": {
@@ -5753,20 +5853,121 @@ async function executeToolInner(
           return attachDescriptor(deferredGate);
         }
 
+        const schedulerScopes = mcpLedgerScopes(args || {});
+        const ledgerEffectContract = mcpLedgerEffectContract(
+          localToolDescriptor,
+          hostToolPolicy,
+        );
+        const schedulerEffectContract = ledgerEffectContract.trusted
+          ? createHostOwnedMcpEffectContract(ledgerEffectContract)
+          : ledgerEffectContract;
+        const scheduler =
+          mcpConflictScheduler || directMcpConflictScheduler(mcpClient);
+        let schedulerLease;
         try {
-          const result = await mcpClient.callTool(
-            localToolExecutor.serverName,
-            localToolExecutor.toolName,
-            args || {},
+          schedulerLease = await scheduler.acquire(
+            {
+              effectContract: schedulerEffectContract,
+              ...schedulerScopes,
+            },
+            { signal },
           );
-          if (result && typeof result === "object") {
-            return attachDescriptor(result);
-          }
-          return attachDescriptor({ result });
         } catch (err) {
           return attachDescriptor({
-            error: `MCP tool execution failed: ${err.message}`,
+            error: `MCP tool blocked by the effect conflict scheduler: ${err.message}`,
+            policy: {
+              decision: "blocked",
+              via: "mcp-conflict-scheduler",
+              code: err?.code || null,
+            },
           });
+        }
+
+        try {
+          const ledger = mcpCallLedger || createMcpCallLedger();
+          let ledgerTicket;
+          try {
+            ledgerTicket = await ledger.begin({
+              sessionId,
+              turnId,
+              toolName: name,
+              serverName: localToolExecutor.serverName,
+              input: args || {},
+              effectContract: ledgerEffectContract,
+              ...schedulerScopes,
+            });
+          } catch (err) {
+            return attachDescriptor({
+              error: `MCP tool blocked because its call ledger prewrite failed: ${err.message}`,
+              policy: {
+                decision: "blocked",
+                via: "mcp-ledger-prewrite",
+                ledgerId: err?.ledgerId || null,
+              },
+            });
+          }
+
+          try {
+            const result = await mcpClient.callTool(
+              localToolExecutor.serverName,
+              localToolExecutor.toolName,
+              args || {},
+            );
+            const protocolError = result?.isError === true;
+            try {
+              await ledgerTicket.settle(
+                protocolError
+                  ? {
+                      status: "failed",
+                      output: result,
+                      error: new Error("MCP server returned isError=true"),
+                    }
+                  : { status: "completed", output: result },
+              );
+            } catch (ledgerError) {
+              return attachDescriptor({
+                error:
+                  "MCP tool may have completed, but its ledger settlement failed; do not retry automatically.",
+                mcpLedgerId: ledgerTicket.ledgerId,
+                mcpLedgerIncident: {
+                  phase: "settled",
+                  code: ledgerError?.code || "CC_MCP_LEDGER_SETTLE_FAILED",
+                },
+              });
+            }
+            if (result && typeof result === "object") {
+              return attachDescriptor({
+                ...result,
+                mcpLedgerId: ledgerTicket.ledgerId,
+              });
+            }
+            return attachDescriptor({
+              result,
+              mcpLedgerId: ledgerTicket.ledgerId,
+            });
+          } catch (err) {
+            try {
+              await ledgerTicket.settle({
+                status: signal?.aborted ? "cancelled" : "failed",
+                error: err,
+              });
+            } catch (ledgerError) {
+              return attachDescriptor({
+                error: `MCP tool execution failed (${err.message}) and ledger settlement also failed; do not retry automatically.`,
+                mcpLedgerId: ledgerTicket.ledgerId,
+                mcpLedgerIncident: {
+                  phase: "settled",
+                  code: ledgerError?.code || "CC_MCP_LEDGER_SETTLE_FAILED",
+                },
+              });
+            }
+            return attachDescriptor({
+              error: `MCP tool execution failed: ${err.message}`,
+              mcpLedgerId: ledgerTicket.ledgerId,
+            });
+          }
+        } finally {
+          schedulerLease.release();
         }
       }
 
@@ -6447,6 +6648,34 @@ function* _drainSubAgentUsage(sink) {
   }
 }
 
+/**
+ * Build the bounded, deterministic parent-to-child handoff used when callers
+ * do not supply explicit context. Keeping the same nine-field schema as
+ * semantic compaction prevents decisions, tests, and unresolved side effects
+ * from disappearing merely because work crosses a sub-agent boundary.
+ */
+export function buildSubAgentHandoffContext(messages) {
+  if (!Array.isArray(messages)) return null;
+  const hasContent = messages.some((message) => {
+    if (!message || !["user", "assistant", "tool"].includes(message.role)) {
+      return false;
+    }
+    if (typeof message.content === "string") {
+      return message.content.trim().length > 0;
+    }
+    return message.content != null;
+  });
+  if (!hasContent) return null;
+
+  const handoff = buildExtractiveHandoff(messages, {
+    maxContentChars: 6000,
+    maxItemsPerField: 6,
+    maxItemChars: 500,
+    maxFallbackSourceChars: 16000,
+  });
+  return `[Structured parent handoff v1]\n${formatStructuredHandoff(handoff)}`;
+}
+
 async function _executeSpawnSubAgent(args, ctx) {
   // Nesting cap: refuse before any context/registry work.
   const currentDepth = ctx.subAgentDepth || 0;
@@ -6779,22 +7008,17 @@ async function _executeSpawnSubAgent(args, ctx) {
     }
   }
 
-  // Auto-condense parent context if caller didn't provide explicit context.
+  // Build a structured parent handoff if the caller did not provide explicit
+  // context. An explicit `context: fresh` suppresses inheritance entirely.
   // An explicit `context: fresh` contract suppresses this inheritance (the
-  // child starts clean); `fork` / unset keep the existing auto-condense.
+  // child starts clean); `fork` / unset keep deterministic auto-inheritance.
   let resolvedContext = inheritedContext || null;
   if (
     !resolvedContext &&
     explicitContext !== "fresh" &&
     Array.isArray(ctx.parentMessages)
   ) {
-    const recentMsgs = ctx.parentMessages
-      .filter((m) => m.role === "assistant" && typeof m.content === "string")
-      .slice(-3)
-      .map((m) => m.content.substring(0, 200));
-    if (recentMsgs.length > 0) {
-      resolvedContext = recentMsgs.join("\n---\n");
-    }
+    resolvedContext = buildSubAgentHandoffContext(ctx.parentMessages);
   }
 
   // Link child to parent session so registry-scoped queries and
@@ -6961,6 +7185,10 @@ async function _executeSpawnSubAgent(args, ctx) {
           externalToolDescriptors: inheritedMcp.externalToolDescriptors,
           externalToolExecutors: inheritedMcp.externalToolExecutors,
           mcpClient: inheritedMcp.mcpClient,
+          ...(ctx.mcpCallLedger ? { mcpCallLedger: ctx.mcpCallLedger } : {}),
+          ...(ctx.mcpConflictScheduler
+            ? { mcpConflictScheduler: ctx.mcpConflictScheduler }
+            : {}),
         }
       : {}),
     ...(inheritedHooks ? { settingsHooks: inheritedHooks } : {}),
@@ -7298,7 +7526,14 @@ export async function chatWithTools(rawMessages, options) {
         () =>
           _chatOllamaStreaming(
             apiUrl,
-            { model, messages: ollamaMessages, tools },
+            {
+              model,
+              messages: ollamaMessages,
+              tools,
+              ...(options.maxOutputTokens
+                ? { options: { num_predict: options.maxOutputTokens } }
+                : {}),
+            },
             options.onToken,
             signal,
             options.onStall,
@@ -7325,6 +7560,9 @@ export async function chatWithTools(rawMessages, options) {
         messages: ollamaMessages,
         tools,
         stream: false,
+        ...(options.maxOutputTokens
+          ? { options: { num_predict: options.maxOutputTokens } }
+          : {}),
       }),
     });
     if (!response.ok) {
@@ -7383,7 +7621,9 @@ export async function chatWithTools(rawMessages, options) {
     );
     const body = {
       model: effModel,
-      max_tokens: anthropicMaxTokens || 8192,
+      max_tokens: options.maxOutputTokens
+        ? Math.min(anthropicMaxTokens || 8192, options.maxOutputTokens)
+        : anthropicMaxTokens || 8192,
       // Convert cc's internal OpenAI-shaped history (role:"tool" results,
       // assistant tool_calls[]) into Anthropic content blocks. Without this,
       // multi-turn tool use 400s on turn 2 (Anthropic rejects role:"tool" and
@@ -7542,6 +7782,9 @@ export async function chatWithTools(rawMessages, options) {
             tools,
             stream: true,
             stream_options: { include_usage: true },
+            ...(options.maxOutputTokens
+              ? { max_tokens: options.maxOutputTokens }
+              : {}),
           },
           key,
           options.onToken,
@@ -7574,6 +7817,9 @@ export async function chatWithTools(rawMessages, options) {
       model: model || defaultModels[provider] || "gpt-4o-mini",
       messages,
       tools,
+      ...(options.maxOutputTokens
+        ? { max_tokens: options.maxOutputTokens }
+        : {}),
     }),
   });
 
@@ -8579,9 +8825,45 @@ async function _getAutoCompactor(options) {
     if (feature("PROMPT_COMPRESSOR")) {
       const { PromptCompressor } =
         await import("../harness/prompt-compressor.js");
+      const llmQuery =
+        typeof options.compactionLlmQuery === "function"
+          ? options.compactionLlmQuery
+          : options.chatFn
+            ? null
+            : async (prompt) => {
+                const maxOutputTokens = Math.min(
+                  4096,
+                  Math.max(
+                    256,
+                    Number(options.compactionMaxOutputTokens) || 2048,
+                  ),
+                );
+                const response = await chatWithTools(
+                  [{ role: "user", content: prompt }],
+                  {
+                    ...options,
+                    contextEngine: null,
+                    enabledToolNames: [],
+                    extraToolDefinitions: [],
+                    hostManagedToolPolicy: null,
+                    onToken: undefined,
+                    onStall: undefined,
+                    onStreamRetry: undefined,
+                    maxOutputTokens,
+                  },
+                );
+                return {
+                  summary: response?.message?.content || "",
+                  usage: response?.usage || null,
+                  provider: options.provider || null,
+                  model: options.model || null,
+                };
+              };
       compressor = new PromptCompressor({
         model: options.model,
         provider: options.provider,
+        llmQuery,
+        summaryInputMaxChars: options.compactionInputMaxChars,
       });
     }
   } catch {
@@ -8705,6 +8987,11 @@ export async function* agentLoop(messages, options) {
   const effectiveAllowedToolNames = Object.freeze(
     getEffectiveToolDefinitions(options).map((tool) => tool.function.name),
   );
+  const mcpCallLedger =
+    options.mcpCallLedger ||
+    createMcpCallLedger({ sink: options.mcpLedgerSink || null });
+  const mcpConflictScheduler =
+    options.mcpConflictScheduler || createMcpConflictScheduler();
 
   const toolContext = {
     hookDb: options.hookDb || null,
@@ -8742,9 +9029,11 @@ export async function* agentLoop(messages, options) {
     // contract's mcpServers allow-list). Otherwise consumed only at agentLoop.
     extraToolDefinitions: options.extraToolDefinitions || null,
     mcpClient: options.mcpClient || null,
+    mcpCallLedger,
+    mcpConflictScheduler,
     // A loop-local identity prevents one session's lazy instruction commits
-    // from suppressing first-access delivery in another session at the same cwd.
-    // Hosts may inject a stable identity across resumed turns.
+    // from suppressing first-access delivery in another session at the same
+    // cwd. Hosts may inject a stable identity across resumed turns.
     subtreeInstructionScope:
       options.subtreeInstructionScope || options.sessionId || Symbol(runId),
     // Parent memory source — a spawn can inherit the parent's hierarchical
@@ -8906,7 +9195,7 @@ export async function* agentLoop(messages, options) {
         // line) when provided; otherwise fall back to a clear stderr notice.
         const message =
           reason === "env-key"
-            ? `"${from}" 鉴权失败，已临时切换到不同厂商 "${to}"（请检查 ${from} 的 API key：cc config set llm.apiKey …）。`
+            ? `"${from}" 鉴权失败，已临时切换到不同厂商 "${to}"（请检查 ${from} 的 API key：cc config set-secret llm.apiKey）。`
             : reason === "model-mismatch"
               ? `模型 "${fromModel}" 不属于 ${from}，已改用其默认模型 "${toModel}"（用 cc config set llm.model 设置正确的 ${from} 模型）。`
               : `provider 配置与 baseUrl 不一致，已按 baseUrl 切换到 "${to}"。`;
@@ -9087,6 +9376,15 @@ export async function* agentLoop(messages, options) {
                   preserveToolPairs: true,
                   ...pinOpts,
                 });
+          if (stats.degraded === true) {
+            yield {
+              type: "compaction-degraded",
+              runId,
+              reason: stats.degradedReason || "semantic-summary-degraded",
+              summaryMode: stats.summaryMode || "extractive-fallback",
+              stats,
+            };
+          }
           if (stats.saved > 0 && compacted.length < messages.length) {
             messages.splice(0, messages.length, ...compacted);
             // Persist the compaction so a later --resume rebuilds from the
@@ -9131,7 +9429,12 @@ export async function* agentLoop(messages, options) {
         }
       } catch (_e) {
         if (isAbortError(_e) || signal?.aborted) throw _e;
-        // Compaction is best-effort — proceed with the uncompacted messages.
+        yield {
+          type: "compaction-degraded",
+          runId,
+          reason: `compaction_failed:${_e?.message || String(_e)}`,
+          summaryMode: "none",
+        };
       }
     }
 

@@ -42,6 +42,19 @@ async function drain(iterable) {
 }
 
 describe("agentLoop headless auto-compaction", () => {
+  const structuredSummary = () =>
+    JSON.stringify({
+      objective: "finish the requested change",
+      constraints: ["do not widen permissions"],
+      keyDecisions: ["use a session-scoped state model"],
+      changedFiles: ["src/a.js"],
+      tests: ["unit tests passed"],
+      unresolvedSideEffects: [],
+      checkpoints: ["checkpoint-1"],
+      blockers: [],
+      nextSteps: ["run integration tests"],
+    });
+
   it("compacts a large history and emits a compaction event + onCompaction", async () => {
     const messages = seedLargeHistory();
     const original = messages.length;
@@ -95,6 +108,55 @@ describe("agentLoop headless auto-compaction", () => {
 
     expect(events.find((e) => e.type === "compaction")).toBeUndefined();
   });
+
+  it("uses the injected structured provider query before count truncation", async () => {
+    const messages = seedLargeHistory();
+    const compactionLlmQuery = vi.fn(async () => ({
+      summary: structuredSummary(),
+      usage: { input_tokens: 123, output_tokens: 45 },
+      provider: "mock-summary",
+      model: "summary-1",
+    }));
+
+    const events = await drain(
+      agentLoop(messages, {
+        chatFn: finalReplyChatFn(),
+        compactionLlmQuery,
+      }),
+    );
+
+    const compaction = events.find((event) => event.type === "compaction");
+    expect(compactionLlmQuery).toHaveBeenCalledOnce();
+    expect(compaction.stats).toMatchObject({
+      summaryMode: "llm-structured",
+      degraded: false,
+      summaryProvider: "mock-summary",
+      summaryModel: "summary-1",
+      summaryUsage: { inputTokens: 123, outputTokens: 45 },
+    });
+    expect(
+      messages.some((message) =>
+        String(message.content).includes("finish the requested change"),
+      ),
+    ).toBe(true);
+  });
+
+  it("emits an explicit degraded event when semantic output is invalid", async () => {
+    const events = await drain(
+      agentLoop(seedLargeHistory(), {
+        chatFn: finalReplyChatFn(),
+        compactionLlmQuery: async () => "not-json",
+      }),
+    );
+
+    const degraded = events.find(
+      (event) => event.type === "compaction-degraded",
+    );
+    expect(degraded).toMatchObject({
+      summaryMode: "extractive-fallback",
+    });
+    expect(degraded.reason).toMatch(/^invalid_llm_summary:/);
+  });
 });
 
 describe("agentLoop microcompact auto-trigger", () => {
@@ -116,7 +178,11 @@ describe("agentLoop microcompact auto-trigger", () => {
     return {
       compress: vi.fn(async (msgs) => ({
         messages: [msgs[0], ...msgs.slice(-2)],
-        stats: { saved: 1, originalMessages: msgs.length, compressedMessages: 3 },
+        stats: {
+          saved: 1,
+          originalMessages: msgs.length,
+          compressedMessages: 3,
+        },
       })),
       shouldAutoCompact: (msgs) =>
         msgs.reduce(
@@ -132,7 +198,9 @@ describe("agentLoop microcompact auto-trigger", () => {
     const events = await drain(
       agentLoop(messages, { chatFn: finalReplyChatFn(), _autoCompactor: comp }),
     );
-    expect(events.find((e) => e.type === "micro-compaction")?.stats.trimmed).toBe(1);
+    expect(
+      events.find((e) => e.type === "micro-compaction")?.stats.trimmed,
+    ).toBe(1);
     expect(events.find((e) => e.type === "compaction")).toBeUndefined(); // full skipped
     expect(comp.compress).not.toHaveBeenCalled();
     expect(messages.find((m) => m.role === "tool").content).toContain(

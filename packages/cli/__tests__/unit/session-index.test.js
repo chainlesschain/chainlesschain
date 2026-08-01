@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { mkdtempSync, rmSync, mkdirSync, writeFileSync } from "node:fs";
+import {
+  appendFileSync,
+  mkdtempSync,
+  rmSync,
+  mkdirSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -114,6 +120,30 @@ describe("session-index sync + list", () => {
     expect(st.sessions).toBe(1);
     expect(st.messages).toBe(2);
     expect(st.events).toBe(3); // start + 2 messages
+    db.close();
+  });
+
+  it("streams the transcript and indexes the latest append-only rename", () => {
+    writeSession("session-a", {
+      title: "Original",
+      msgs: [{ role: "user", content: "needle" }],
+    });
+    appendFileSync(
+      join(sessionsDir, "session-a.jsonl"),
+      `${JSON.stringify({
+        type: "session_rename",
+        timestamp: 9_000,
+        data: { title: "Renamed" },
+      })}\n`,
+      "utf8",
+    );
+    const db = openIndex({ file: ":memory:" });
+    syncIndex(db);
+    expect(getIndexedSession(db, "session-a")).toMatchObject({
+      title: "Renamed",
+      event_count: 3,
+      last_ts: 9_000,
+    });
     db.close();
   });
 });

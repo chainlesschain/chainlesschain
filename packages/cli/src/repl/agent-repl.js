@@ -55,6 +55,11 @@ import {
   forkSession,
 } from "../harness/jsonl-session-store.js";
 import { classifyStreamRetryReason } from "../lib/stream-retry.js";
+import {
+  createSessionMcpLedgerSink,
+  formatMcpLedgerRecoveryNotice,
+  loadMcpLedgerRecovery,
+} from "../lib/mcp-call-ledger-store.js";
 import { CLISkillLoader } from "../lib/skill-loader.js";
 import { storeMemory, consolidateMemory } from "../lib/hierarchical-memory.js";
 import { CLIContextEngineering } from "../lib/cli-context-engineering.js";
@@ -92,6 +97,7 @@ import { collapseConsecutiveMessagesInPlace } from "../runtime/message-roles.js"
 import {
   AGENT_TOOLS,
   buildSystemPrompt,
+  chatWithTools,
   executeTool as coreExecuteTool,
   agentLoop as coreAgentLoop,
   formatToolArgs,
@@ -652,7 +658,30 @@ async function startAgentReplInWorkspace(options = {}) {
 
   // Initialize prompt compressor (adaptive to model's context window)
   if (feature("PROMPT_COMPRESSOR")) {
-    _compressor = new PromptCompressor({ model, provider });
+    _compressor = new PromptCompressor({
+      model,
+      provider,
+      llmQuery: async (prompt) => {
+        const response = await chatWithTools(
+          [{ role: "user", content: prompt }],
+          {
+            provider,
+            model,
+            baseUrl,
+            apiKey,
+            enabledToolNames: [],
+            extraToolDefinitions: [],
+            maxOutputTokens: 2048,
+          },
+        );
+        return {
+          summary: response?.message?.content || "",
+          usage: response?.usage || null,
+          provider,
+          model,
+        };
+      },
+    });
   }
   const _autoPinOpt = resolveAutoPinOption({ config: _autoPinCfgValue });
   // Compaction options shared by /compact + auto-compact. Adds the
@@ -1180,6 +1209,31 @@ async function startAgentReplInWorkspace(options = {}) {
   let _replBaseSystem = _buildReplBaseSystem();
   let _activeOutputStyle = null; // { name, body }
   const messages = [{ role: "system", content: _replBaseSystem }];
+  const _injectMcpRecoveryNotice = (targetMessages, targetSessionId) => {
+    if (!useJsonl || !targetSessionId) return false;
+    try {
+      const recovery = loadMcpLedgerRecovery(targetSessionId);
+      const notice = formatMcpLedgerRecoveryNotice(recovery);
+      if (!notice) return false;
+      targetMessages.push({ role: "system", content: notice });
+      logger.warn(
+        `⚠ ${recovery.unsettled.length} interrupted MCP call(s) and ${recovery.incidents.length} ledger incident(s) require inspection before replay.`,
+      );
+      return true;
+    } catch (error) {
+      targetMessages.push({
+        role: "system",
+        content:
+          "MCP recovery notice — the durable MCP call ledger could not be read. " +
+          "Do not execute or retry MCP tools until the session transcript has " +
+          `been inspected (${error?.code || "CC_MCP_LEDGER_EVENT_READ_FAILED"}).`,
+      });
+      logger.warn(
+        "⚠ MCP ledger recovery failed closed; inspect the transcript before using MCP tools.",
+      );
+      return true;
+    }
+  };
   // Resume-degenerate role sanitation (Claude Code 2.1.187 parity): a one-shot
   // flag armed when a resumed transcript ends with a bare `user` turn (the prior
   // run produced no assistant response). Consumed by the first model call so the
@@ -1557,6 +1611,7 @@ async function startAgentReplInWorkspace(options = {}) {
         }
         const rebuilt = rebuildMessages(sessionId);
         if (rebuilt.length > 0) {
+          _injectMcpRecoveryNotice(messages, sessionId);
           messages.push(...rebuilt.filter((m) => m.role !== "system"));
           // Arm the resume role-merge if the prior run left a dangling user turn.
           _sanitizeRolesNextTurn =
@@ -3828,6 +3883,11 @@ async function startAgentReplInWorkspace(options = {}) {
         logger.info(
           `Compacted: ${stats.originalMessages} → ${stats.compressedMessages} messages, saved ${stats.saved} tokens (${stats.strategy})`,
         );
+        if (stats.degraded === true) {
+          logger.warn(
+            `Semantic compaction degraded to ${stats.summaryMode}: ${stats.degradedReason}`,
+          );
+        }
       } else if (contextEngine && messages.length > 5) {
         const compacted = contextEngine.smartCompact(messages);
         messages.length = 0;
@@ -3910,6 +3970,7 @@ async function startAgentReplInWorkspace(options = {}) {
             }
             const rebuilt = rebuildMessages(resumeId);
             messages.length = 1; // keep system prompt
+            _injectMcpRecoveryNotice(messages, resumeId);
             messages.push(...rebuilt.filter((m) => m.role !== "system"));
             _sanitizeRolesNextTurn =
               messages[messages.length - 1]?.role === "user";
@@ -4903,7 +4964,12 @@ async function startAgentReplInWorkspace(options = {}) {
         } else if (cmd.action === "help") {
           logger.log(renderConfigHelp());
         } else if (cmd.action === "get") {
-          logger.log(renderConfigGet(cmd.key, cm.getConfigValue(cmd.key)));
+          logger.log(
+            renderConfigGet(
+              cmd.key,
+              cm.getConfigValue(cmd.key, { resolveSecrets: false }),
+            ),
+          );
         } else if (cmd.action === "set") {
           cm.setConfigValue(cmd.key, cmd.value);
           logger.log(
@@ -5915,6 +5981,10 @@ async function startAgentReplInWorkspace(options = {}) {
         extraToolDefinitions: _adhocMcp?.extraToolDefinitions,
         externalToolExecutors: _adhocMcp?.externalToolExecutors,
         externalToolDescriptors: _adhocMcp?.externalToolDescriptors,
+        mcpLedgerSink:
+          useJsonl && sessionId
+            ? createSessionMcpLedgerSink(sessionId, { appendEvent })
+            : null,
         chatFn: _fallbackChatFn,
       });
       _persistReplContextSources();
@@ -6131,6 +6201,11 @@ async function startAgentReplInWorkspace(options = {}) {
             logger.verbose(
               `Auto-compacted: ${stats.strategy} (saved ${stats.saved} tokens)`,
             );
+            if (stats.degraded === true) {
+              logger.warn(
+                `Auto-compaction degraded to ${stats.summaryMode}: ${stats.degradedReason}`,
+              );
+            }
             // Write compact checkpoint to JSONL for crash recovery
             if (useJsonl && sessionId) {
               appendCompactEvent(sessionId, {
@@ -6140,7 +6215,7 @@ async function startAgentReplInWorkspace(options = {}) {
             }
           }
         } catch (_e) {
-          // Non-critical — continue with uncompacted messages
+          logger.warn(`Auto-compaction failed: ${_e.message}`);
         }
       }
 

@@ -17,18 +17,12 @@
  * without touching the user's home dir.
  */
 
-import {
-  existsSync,
-  mkdirSync,
-  readdirSync,
-  statSync,
-  readFileSync,
-} from "node:fs";
+import { existsSync, readdirSync, statSync } from "node:fs";
 import { join, basename } from "node:path";
 import { createRequire } from "node:module";
 import { getHomeDir } from "../lib/paths.js";
-import { readEvents, toIsoSafe } from "./jsonl-session-store.js";
-import { latestChainHash } from "./transcript-integrity.js";
+import { iterateFileLinesSync } from "../lib/file-lines.js";
+import { ensurePrivateDirectory, ensurePrivateFile } from "../lib/secure-fs.js";
 
 const requireCjs = createRequire(import.meta.url);
 
@@ -50,7 +44,7 @@ function sessionsDir() {
 
 function indexPath() {
   const dir = getHomeDir();
-  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+  ensurePrivateDirectory(dir);
   return join(dir, "session-index.db");
 }
 
@@ -82,43 +76,82 @@ CREATE INDEX IF NOT EXISTS idx_sessions_last_ts ON sessions(last_ts DESC);
  */
 export function openIndex({ file } = {}) {
   const Database = _deps.loadDatabase();
-  const db = new Database(file || indexPath());
+  const target = file || indexPath();
+  const db = new Database(target);
   db.pragma("journal_mode = WAL");
   db.exec(SCHEMA);
+  if (target !== ":memory:") {
+    ensurePrivateFile(target);
+    ensurePrivateFile(`${target}-wal`);
+    ensurePrivateFile(`${target}-shm`);
+  }
   return db;
 }
 
 /** Max characters of concatenated message content indexed per session. */
 const CONTENT_CAP = 200_000;
 
-function summarizeEvents(id, events) {
-  const startEvent = events.find((e) => e.type === "session_start");
-  const lastEvent = events[events.length - 1];
-  const messageCount = events.filter(
-    (e) => e.type === "user_message" || e.type === "assistant_message",
-  ).length;
+function toIsoSafe(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return "";
+  const date = new Date(number);
+  return Number.isNaN(date.getTime()) ? "" : date.toISOString();
+}
+
+function summarizeSessionFile(id, filePath) {
+  let startEvent = null;
+  let lastEvent = null;
+  let renamedTitle = null;
+  let messageCount = 0;
+  let eventCount = 0;
+  let chainHash = "";
   const parts = [];
   let used = 0;
-  for (const e of events) {
-    if (e.type !== "user_message" && e.type !== "assistant_message") continue;
-    const c = e.data?.content;
-    const s = typeof c === "string" ? c : c == null ? "" : JSON.stringify(c);
-    if (!s) continue;
-    parts.push(s);
-    used += s.length;
-    if (used >= CONTENT_CAP) break;
+  for (const { line } of iterateFileLinesSync(filePath)) {
+    let event;
+    try {
+      event = JSON.parse(line);
+    } catch {
+      continue;
+    }
+    eventCount += 1;
+    lastEvent = event;
+    if (!startEvent && event.type === "session_start") startEvent = event;
+    if (event.type === "session_rename" && event.data?.title) {
+      renamedTitle = String(event.data.title);
+    }
+    if (event.type === "user_message" || event.type === "assistant_message") {
+      messageCount += 1;
+      if (used < CONTENT_CAP) {
+        const content = event.data?.content;
+        const text =
+          typeof content === "string"
+            ? content
+            : content == null
+              ? ""
+              : JSON.stringify(content);
+        if (text) {
+          const bounded = text.slice(0, CONTENT_CAP - used);
+          parts.push(bounded);
+          used += bounded.length;
+        }
+      }
+    }
+    if (typeof event.hash === "string") chainHash = event.hash;
   }
+  if (!lastEvent) return null;
   return {
     id,
-    title: startEvent?.data?.title || "Untitled",
+    title: renamedTitle || startEvent?.data?.title || "Untitled",
     provider: startEvent?.data?.provider || "",
     model: startEvent?.data?.model || "",
     message_count: messageCount,
-    event_count: events.length,
+    event_count: eventCount,
     created_at: toIsoSafe(startEvent?.timestamp),
     updated_at: toIsoSafe(lastEvent?.timestamp),
     last_ts: lastEvent?.timestamp || 0,
     content: parts.join("\n").slice(0, CONTENT_CAP),
+    chain_hash: chainHash,
   };
 }
 
@@ -137,16 +170,10 @@ ON CONFLICT(id) DO UPDATE SET
  * @returns {boolean} true if a row was written.
  */
 export function indexOneSession(db, id, { mtimeMs = 0, sizeBytes = 0 } = {}) {
-  const events = readEvents(id);
-  if (events.length === 0) return false;
-  const s = summarizeEvents(id, events);
   const filePath = join(sessionsDir(), `${id}.jsonl`);
-  let chainHash = "";
-  try {
-    chainHash = latestChainHash(readFileSync(filePath, "utf-8")) || "";
-  } catch {
-    /* chain hash is best-effort */
-  }
+  if (!existsSync(filePath)) return false;
+  const s = summarizeSessionFile(id, filePath);
+  if (!s) return false;
   db.prepare(UPSERT_SESSION).run({
     id: s.id,
     title: s.title,
@@ -157,7 +184,7 @@ export function indexOneSession(db, id, { mtimeMs = 0, sizeBytes = 0 } = {}) {
     created_at: s.created_at,
     updated_at: s.updated_at,
     last_ts: s.last_ts,
-    chain_hash: chainHash,
+    chain_hash: s.chain_hash,
     mtime_ms: Math.floor(mtimeMs),
     size_bytes: sizeBytes,
   });
@@ -270,7 +297,8 @@ export function searchSessions(db, query, { limit = 20 } = {}) {
             .replace(/\s+/g, " ")
             .trim()
         : "";
-    const { _text, ...rest } = r;
+    const rest = { ...r };
+    delete rest._text;
     return { ...rest, snippet };
   });
 }

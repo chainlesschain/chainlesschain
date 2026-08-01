@@ -10,7 +10,6 @@ import chalk from "chalk";
 import ora from "ora";
 import fs from "fs";
 import path from "path";
-import { createSkillProcessBroker } from "../lib/skill-process-broker.js";
 import { logger } from "../lib/logger.js";
 import {
   CLISkillLoader,
@@ -321,11 +320,11 @@ export function registerSkillCommand(program) {
   // skill run
   skill
     .command("run")
-    .description("Execute a skill")
+    .description("Execute a skill through a controlled agent/tool route")
     .argument("<name>", "Skill name")
     .argument("[input...]", "Input for the skill")
     .option("--json", "Output as JSON")
-    .action(async (name, inputParts, options) => {
+    .action(async (name, _inputParts, options) => {
       const skills = loader.loadAll();
       let s = skills.find((sk) => sk.id === name || sk.dirName === name);
 
@@ -352,64 +351,39 @@ export function registerSkillCommand(program) {
           bodyIncluded: false,
         });
       } catch (error) {
-        logger.error(`Skill "${s.id}" body could not be loaded: ${error.message}`);
-        process.exit(1);
-      }
-
-      const spinner = ora(`Running ${s.displayName}...`).start();
-      const input = inputParts.join(" ");
-
-      try {
-        const handlerPath = path.join(s.skillDir, "handler.js");
-        const imported = await import(
-          `file://${handlerPath.replace(/\\/g, "/")}`
-        );
-        const handler = imported.default || imported;
-
-        if (handler.init) {
-          await handler.init(s);
-        }
-
-        const task = {
-          params: { input },
-          input,
-          action: input,
+        const failure = {
+          success: false,
+          code: error.code || "CC_SKILL_MATERIALIZE_FAILED",
+          error: error.message,
         };
-        const context = {
-          projectRoot: process.cwd(),
-          workspacePath: process.cwd(),
-          workspaceRoot: process.cwd(),
-          processBroker: createSkillProcessBroker(s),
-        };
-
-        const result = await handler.execute(task, context, s);
-        spinner.stop();
-
         if (options.json) {
-          console.log(JSON.stringify(result, null, 2));
-        } else if (result.success) {
-          logger.success(result.message || "Done");
-          if (result.result && typeof result.result === "object") {
-            for (const [key, val] of Object.entries(result.result)) {
-              if (typeof val === "string" && val.length > 200) {
-                logger.log(`  ${chalk.cyan(key)}: ${val.substring(0, 200)}...`);
-              } else {
-                logger.log(`  ${chalk.cyan(key)}: ${JSON.stringify(val)}`);
-              }
-            }
-          }
+          console.log(JSON.stringify(failure, null, 2));
         } else {
-          logger.error(
-            result.message || result.error || "Skill execution failed",
-          );
-        }
-      } catch (err) {
-        spinner.fail(`Skill execution failed: ${err.message}`);
-        if (program.opts().verbose) {
-          console.error(err.stack);
+          logger.error(failure.error);
         }
         process.exit(1);
+        return;
       }
+
+      // Defense in depth: materializeSkill currently rejects this direct CLI
+      // transport before reaching here. Keep the command itself free of any
+      // dynamic handler import so an injected/custom loader cannot recreate the
+      // bypass. Handler-backed skills must run through the agent's controlled
+      // run_skill/isolation path, where every external call re-enters host tool
+      // policy. Until that route is available, fail closed.
+      const denial = {
+        success: false,
+        code: "CC_SKILL_DIRECT_HANDLER_BLOCKED",
+        error:
+          `Skill "${s.id}" cannot execute handler.js directly. ` +
+          "Run it through an isolated agent/tool route.",
+      };
+      if (options.json) {
+        console.log(JSON.stringify(denial, null, 2));
+      } else {
+        logger.error(denial.error);
+      }
+      process.exit(1);
     });
 
   // skill add — create a custom skill scaffold

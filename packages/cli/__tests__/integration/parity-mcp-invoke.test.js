@@ -69,6 +69,16 @@ function buildLoopOptions({ mock, mcpClient, workDir }) {
     // Fresh PlanModeManager per test — the default singleton can leak
     // state between tests and between the real runtime and the harness.
     planManager: new PlanModeManager(),
+    extraToolDefinitions: [
+      {
+        type: "function",
+        function: {
+          name: TOOL_NAME,
+          description: "Mock weather MCP tool",
+          parameters: { type: "object", properties: {} },
+        },
+      },
+    ],
     externalToolDescriptors: {
       [TOOL_NAME]: {
         name: TOOL_NAME,

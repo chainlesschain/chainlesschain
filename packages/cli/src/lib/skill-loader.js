@@ -32,6 +32,17 @@ import { normalizeSkillPaths } from "./skill-path-scope.js";
 import { discoverPluginSkillLayers } from "./plugin-runtime/skills.js";
 import settingsLoader from "./settings-loader.cjs";
 import contextSourceLedger from "./context-source-ledger.js";
+import {
+  assertControlledSkillExecution,
+  captureSkillExecutionSnapshot,
+  describeSkillExecutionAuthority,
+  executionIdentityMetadata,
+  isSkillExecutionContext,
+  skillDigestDriftError,
+  skillIdentityChangedError,
+  skillReauthorizationError,
+  skillTrustRequiredError,
+} from "./skill-execution-identity.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -235,7 +246,9 @@ function readSkillFrontmatter(skillMd, maxBytes = 256 * 1024) {
       if (read <= 0) break;
       chunks.push(chunk.subarray(0, read));
       total += read;
-      const prefix = Buffer.concat(chunks).toString("utf-8").replace(/^\uFEFF/, "");
+      const prefix = Buffer.concat(chunks)
+        .toString("utf-8")
+        .replace(/^\uFEFF/, "");
       const firstLineEnd = prefix.search(/\r?\n/);
       if (firstLineEnd >= 0 && prefix.slice(0, firstLineEnd).trim() !== "---") {
         return {};
@@ -325,10 +338,20 @@ export function prepareSkillBody(skill, args) {
  * Multi-layer CLI skill loader
  */
 export class CLISkillLoader {
-  constructor({ contextLedger = contextSourceLedger } = {}) {
+  constructor({
+    contextLedger = contextSourceLedger,
+    reauthorizeSkill = null,
+    trustedExecutionSources = ["bundled", "cli-bundled", "managed"],
+  } = {}) {
+    if (reauthorizeSkill !== null && typeof reauthorizeSkill !== "function") {
+      throw new TypeError("reauthorizeSkill must be a function or null");
+    }
     this._cache = null;
     this._bodyCache = new Map();
     this._contextLedger = contextLedger;
+    this._reauthorizeSkill = reauthorizeSkill;
+    this._trustedExecutionSources = new Set(trustedExecutionSources);
+    this._authorizedExecutionDigests = new Map();
     this._cacheStats = {
       descriptorScans: 0,
       descriptorCacheHits: 0,
@@ -496,9 +519,17 @@ export class CLISkillLoader {
       try {
         const data = readSkillFrontmatter(skillMd);
         const stat = fs.statSync(skillMd);
+        const id = data.name || entry.name;
+        const isolation = data.isolation === true;
+        const snapshot = captureSkillExecutionSnapshot({
+          skillDir,
+          skillId: id,
+          source: layer,
+        });
+        const hasHandler = snapshot.handlerPresent;
 
         out.push({
-          id: data.name || entry.name,
+          id,
           displayName: data.displayName || entry.name,
           description: data.description || "",
           version: data.version || "1.0.0",
@@ -518,17 +549,22 @@ export class CLISkillLoader {
           // context). null (the default) = applies everywhere.
           paths: normalizeSkillPaths(data),
           dirName: entry.name,
-          hasHandler: fs.existsSync(path.join(skillDir, "handler.js")),
-          isolation: data.isolation === true,
+          hasHandler,
+          isolation,
+          executionIdentity: executionIdentityMetadata(snapshot),
+          executionAuthority: describeSkillExecutionAuthority({
+            hasHandler,
+            isolation,
+          }),
           // Two-tier loading: discovery retains only the descriptor. The body
           // and embedded MCP declarations are populated on first use.
           body: null,
           bodyLoaded: false,
           mcpServers: [],
           source: layer,
-          skillDir,
-          skillMdPath: skillMd,
-          skillFileBytes: stat.size,
+          skillDir: snapshot.rootRealPath,
+          skillMdPath: path.join(snapshot.rootRealPath, "SKILL.md"),
+          skillFileBytes: snapshot.skillFileBytes,
           skillFileMtimeMs: stat.mtimeMs,
         });
       } catch {
@@ -539,23 +575,150 @@ export class CLISkillLoader {
 
   /**
    * Materialize a descriptor's markdown body and embedded MCP declarations.
-   * Cache entries are invalidated by file size/mtime and never include content
-   * in provenance records.
+   * The exact SKILL.md + handler.js digest is re-read before every execution or
+   * prompt materialization. Cache entries are keyed by that digest, not mutable
+   * size/mtime metadata, and provenance records never include source content.
    */
   materializeSkill(skill, context = {}) {
     if (!skill || !skill.skillMdPath) {
       throw new TypeError("A discovered skill descriptor is required");
     }
-    const stat = fs.statSync(skill.skillMdPath);
-    const signature = `${stat.size}:${stat.mtimeMs}`;
+
+    const snapshot = captureSkillExecutionSnapshot({
+      skillDir: skill.skillDir,
+      skillId: skill.id,
+      source: skill.source,
+    });
+    const discovered = skill.executionIdentity;
+    if (
+      !discovered ||
+      discovered.identityDigest !== snapshot.identityDigest ||
+      discovered.handlerPresent !== snapshot.handlerPresent
+    ) {
+      throw skillIdentityChangedError(skill);
+    }
+    if (
+      isSkillExecutionContext(context) &&
+      skill.hasHandler === true &&
+      (skill.isolation !== true || context.loadedBecause !== "run_skill")
+    ) {
+      assertControlledSkillExecution(skill, context);
+    }
+
+    const contentChanged = discovered.contentDigest !== snapshot.contentDigest;
+    const executionRequiresTrust =
+      isSkillExecutionContext(context) &&
+      skill.hasHandler === true &&
+      !this._trustedExecutionSources.has(String(skill.source || ""));
+    const previouslyAuthorizedDigest = this._authorizedExecutionDigests.get(
+      snapshot.identityDigest,
+    );
+    const firstUseAuthorization =
+      executionRequiresTrust &&
+      previouslyAuthorizedDigest !== snapshot.contentDigest;
+    if (contentChanged || firstUseAuthorization) {
+      if (!this._reauthorizeSkill) {
+        if (firstUseAuthorization && !contentChanged) {
+          throw skillTrustRequiredError(skill);
+        }
+        throw skillDigestDriftError(
+          skill,
+          discovered.contentDigest,
+          snapshot.contentDigest,
+        );
+      }
+      let decision;
+      try {
+        decision = this._reauthorizeSkill(
+          Object.freeze({
+            skill: Object.freeze({
+              id: skill.id,
+              source: skill.source,
+              skillDir: skill.skillDir,
+            }),
+            identityDigest: snapshot.identityDigest,
+            reason:
+              firstUseAuthorization && !contentChanged
+                ? "first-use"
+                : firstUseAuthorization
+                  ? "first-use-content-drift"
+                  : "content-drift",
+            previousDigest:
+              previouslyAuthorizedDigest ||
+              (contentChanged ? discovered.contentDigest : null),
+            discoveredDigest: discovered.contentDigest,
+            currentDigest: snapshot.contentDigest,
+            componentDigests: Object.freeze({
+              ...snapshot.componentDigests,
+            }),
+            loadedBecause: context.loadedBecause || "explicit",
+            sessionId: context.sessionId || null,
+            turnId: context.turnId || null,
+          }),
+        );
+      } catch (cause) {
+        throw skillReauthorizationError(skill, cause);
+      }
+      if (decision && typeof decision.then === "function") {
+        throw skillReauthorizationError(
+          skill,
+          new TypeError("reauthorizeSkill must return synchronously"),
+        );
+      }
+      if (decision !== true && decision?.authorized !== true) {
+        if (firstUseAuthorization && !contentChanged) {
+          throw skillTrustRequiredError(skill);
+        }
+        throw skillDigestDriftError(
+          skill,
+          discovered.contentDigest,
+          snapshot.contentDigest,
+        );
+      }
+      if (executionRequiresTrust) {
+        this._authorizedExecutionDigests.set(
+          snapshot.identityDigest,
+          snapshot.contentDigest,
+        );
+      }
+    } else if (
+      isSkillExecutionContext(context) &&
+      skill.hasHandler === true &&
+      this._trustedExecutionSources.has(String(skill.source || ""))
+    ) {
+      this._authorizedExecutionDigests.set(
+        snapshot.identityDigest,
+        snapshot.contentDigest,
+      );
+    }
+
+    const parsed = parseSkillMd(snapshot.skillMdContent);
+    const runtimeId = parsed.data.name || skill.dirName;
+    if (String(runtimeId) !== String(skill.id)) {
+      throw skillIdentityChangedError(skill);
+    }
+    const runtimeIsolation = parsed.data.isolation === true;
+    skill.handler = parsed.data.handler || null;
+    skill.capabilities = parsed.data.capabilities || [];
+    skill.isolation = runtimeIsolation;
+    skill.executionIdentity = executionIdentityMetadata(snapshot);
+    skill.executionAuthority = describeSkillExecutionAuthority({
+      hasHandler: skill.hasHandler,
+      isolation: runtimeIsolation,
+    });
+
+    // This is deliberately after fresh parsing/digest verification: a changed
+    // `isolation` field cannot reuse the descriptor's old authority decision.
+    assertControlledSkillExecution(skill, context);
+
+    const signature = snapshot.contentDigest;
     let cached = this._bodyCache.get(skill.skillMdPath);
     let cacheRead = false;
     if (cached?.signature === signature) {
       this._cacheStats.bodyCacheHits += 1;
       cacheRead = true;
     } else {
-      const content = fs.readFileSync(skill.skillMdPath, "utf-8");
-      const { body } = parseSkillMd(content);
+      const { body } = parsed;
       cached = {
         signature,
         body,
@@ -570,8 +733,8 @@ export class CLISkillLoader {
     skill.body = cached.body;
     skill.mcpServers = cached.mcpServers;
     skill.bodyLoaded = true;
-    skill.skillFileBytes = stat.size;
-    skill.skillFileMtimeMs = stat.mtimeMs;
+    skill.skillFileBytes = snapshot.skillFileBytes;
+    skill.skillFileMtimeMs = fs.statSync(skill.skillMdPath).mtimeMs;
 
     const prior = this._cacheStats.bodyLoads.get(skill.skillMdPath) || {
       id: skill.id,
@@ -604,8 +767,7 @@ export class CLISkillLoader {
         // Only text that actually entered a model prompt consumes context
         // tokens. Ordinary run_skill materialization is still recorded, but
         // as a content-size/cache observation rather than a false token charge.
-        tokenCount:
-          context.bodyIncluded === true ? cached.estimatedTokens : 0,
+        tokenCount: context.bodyIncluded === true ? cached.estimatedTokens : 0,
         metadata: {
           source: skill.source,
           loadedBecause: reason,

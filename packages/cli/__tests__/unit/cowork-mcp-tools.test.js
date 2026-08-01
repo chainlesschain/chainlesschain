@@ -45,6 +45,7 @@ describe("cowork-mcp-tools", () => {
           properties: { url: { type: "string" } },
           required: ["url"],
         },
+        annotations: { readOnlyHint: true, openWorldHint: true },
       });
 
       expect(definition).toEqual({
@@ -65,6 +66,12 @@ describe("cowork-mcp-tools", () => {
         category: "mcp",
         serverName: "fetch",
         originalName: "get",
+        isReadOnly: true,
+        effectContract: {
+          declaredEffect: "read",
+          authorizedEffect: null,
+          sourceTrusted: false,
+        },
       });
       expect(executor).toEqual({
         kind: "mcp",
@@ -130,9 +137,10 @@ describe("cowork-mcp-tools", () => {
           ],
         },
       });
-      _deps.importMcpClient = async () => function MockClient() {
-        return fake;
-      };
+      _deps.importMcpClient = async () =>
+        function MockClient() {
+          return fake;
+        };
 
       const res = await mountTemplateMcpTools({
         mcpServers: [
@@ -163,9 +171,10 @@ describe("cowork-mcp-tools", () => {
         connectFail: { broken: "spawn failed" },
         tools: { good: [{ name: "ping" }] },
       });
-      _deps.importMcpClient = async () => function MockClient() {
-        return fake;
-      };
+      _deps.importMcpClient = async () =>
+        function MockClient() {
+          return fake;
+        };
 
       const onWarn = vi.fn();
       const res = await mountTemplateMcpTools(
@@ -179,9 +188,7 @@ describe("cowork-mcp-tools", () => {
       );
 
       expect(res.mounted).toEqual(["good"]);
-      expect(res.skipped).toEqual([
-        { name: "broken", error: "spawn failed" },
-      ]);
+      expect(res.skipped).toEqual([{ name: "broken", error: "spawn failed" }]);
       expect(res.extraToolDefinitions).toHaveLength(1);
       expect(res.extraToolDefinitions[0].function.name).toBe("mcp__good__ping");
       expect(onWarn).toHaveBeenCalledOnce();
@@ -189,9 +196,10 @@ describe("cowork-mcp-tools", () => {
 
     it("cleanup() disconnects mounted servers", async () => {
       const fake = makeFakeClient({ tools: { a: [{ name: "t1" }] } });
-      _deps.importMcpClient = async () => function MockClient() {
-        return fake;
-      };
+      _deps.importMcpClient = async () =>
+        function MockClient() {
+          return fake;
+        };
 
       const res = await mountTemplateMcpTools({
         mcpServers: [{ name: "a", command: "echo" }],
@@ -207,9 +215,10 @@ describe("cowork-mcp-tools", () => {
         ...makeFakeClient({ tools: { a: [{ name: "t1" }] } }),
         disconnectAll,
       };
-      _deps.importMcpClient = async () => function MockClient() {
-        return fake;
-      };
+      _deps.importMcpClient = async () =>
+        function MockClient() {
+          return fake;
+        };
 
       const res = await mountTemplateMcpTools({
         mcpServers: [{ name: "a", command: "echo" }],
@@ -224,9 +233,10 @@ describe("cowork-mcp-tools", () => {
       fake.disconnect = async () => {
         throw new Error("boom");
       };
-      _deps.importMcpClient = async () => function MockClient() {
-        return fake;
-      };
+      _deps.importMcpClient = async () =>
+        function MockClient() {
+          return fake;
+        };
 
       const res = await mountTemplateMcpTools({
         mcpServers: [{ name: "a", command: "echo" }],

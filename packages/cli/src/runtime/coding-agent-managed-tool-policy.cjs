@@ -84,7 +84,9 @@ function selectHigherRiskLevel(...values) {
   }
 
   return normalized.reduce((current, candidate) =>
-    RISK_LEVEL_ORDER[candidate] > RISK_LEVEL_ORDER[current] ? candidate : current,
+    RISK_LEVEL_ORDER[candidate] > RISK_LEVEL_ORDER[current]
+      ? candidate
+      : current,
   );
 }
 
@@ -124,8 +126,11 @@ function resolveManagedToolPolicy(managedTool, options = {}) {
   const enabled = normalizeBoolean(managedTool?.enabled, true);
   const deprecated = normalizeBoolean(managedTool?.deprecated, false);
   const riskLevel = normalizeRiskLevel(managedTool?.risk_level, "medium");
+  // Risk is not an effect proof. Only an explicit host-owned metadata field can
+  // classify a managed tool as read-only.
   const isReadOnly =
-    normalizeBoolean(managedTool?.is_read_only, false) || riskLevel === "low";
+    normalizeBoolean(managedTool?.is_read_only, false) ||
+    normalizeBoolean(managedTool?.isReadOnly, false);
 
   if (!name) {
     return {

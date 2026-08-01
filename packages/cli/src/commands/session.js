@@ -15,6 +15,7 @@ import {
   listSessions,
   getSession,
   deleteSession,
+  updateSession,
   exportSessionMarkdown,
   CONVERSATION_MATURITY_V2,
   TURN_LIFECYCLE_V2,
@@ -49,7 +50,9 @@ import {
 import {
   listJsonlSessions,
   rebuildMessages,
-  sessionExists,
+  getJsonlSessionMetadata,
+  resolveSessionId,
+  deleteJsonlSession,
   readEvents,
   migrateLegacySessions,
   migrateLegacySessionsBatch,
@@ -66,6 +69,9 @@ import { executionBroker } from "../lib/process-execution-broker/index.js";
 export const _deps = {
   execFileSync: (...args) => executionBroker.execFileSync(...args),
 };
+
+export const PR_STATUS_SCHEMA = "chainlesschain.session-pr-status";
+export const PR_STATUS_VERSION = 1;
 
 // DB sessions store `updated_at` as SQLite datetime('now') → "YYYY-MM-DD
 // HH:MM:SS" (UTC, space at index 10); JSONL sessions store toISOString() →
@@ -90,21 +96,25 @@ function _sessionEpoch(ts) {
  *
  * @param {object} signals  {branch, prNumber, hasOpenPr, headCommitSha,
  *   branchProtectionSatisfied, reviewApproved, pendingApprovals,
- *   requiredChecks, checks}
+ *   requiredChecks, requiredMatrixComplete, checks, ciCommitSha, sideEffects}
  * @param {{enabled?:boolean}} [opts]
  * @returns {{statusBar:string, autoMerge:{allow:boolean,reason:string,unmet:string[]}, lines:string[]}}
  */
 export async function renderPrStatus(signals = {}, opts = {}) {
-  const { autoMergeDecision, describePrStatusBar } =
+  const { strictAutoMergeDecision, describePrStatusBar } =
     await import("../lib/pr-automation-policy.js");
-  const autoMerge = autoMergeDecision({
+  const autoMerge = strictAutoMergeDecision({
     enabled: opts.enabled === true,
     hasOpenPr: signals.hasOpenPr,
     branchProtectionSatisfied: signals.branchProtectionSatisfied,
     reviewApproved: signals.reviewApproved,
     pendingApprovals: signals.pendingApprovals,
     requiredChecks: signals.requiredChecks,
+    requiredMatrixComplete: signals.requiredMatrixComplete,
     checks: signals.checks,
+    headCommitSha: signals.headCommitSha,
+    ciCommitSha: signals.ciCommitSha,
+    sideEffects: signals.sideEffects,
   });
   const statusBar = describePrStatusBar({
     branch: signals.branch,
@@ -119,7 +129,15 @@ export async function renderPrStatus(signals = {}, opts = {}) {
   } else {
     lines.push(`auto-merge: ✗ blocked (${autoMerge.unmet.join(", ")})`);
   }
-  return { statusBar, autoMerge, lines };
+  return {
+    schema: PR_STATUS_SCHEMA,
+    version: PR_STATUS_VERSION,
+    headCommitSha: signals.headCommitSha || null,
+    ciCommitSha: signals.ciCommitSha || null,
+    statusBar,
+    autoMerge,
+    lines,
+  };
 }
 
 /**
@@ -132,11 +150,16 @@ export function mapGhPrToSignals(gh = {}) {
   const rollup = Array.isArray(gh.statusCheckRollup)
     ? gh.statusCheckRollup
     : [];
+  const headCommitSha = gh.headRefOid || undefined;
   return {
     branch: gh.headRefName || undefined,
     prNumber: gh.number,
     hasOpenPr: String(gh.state || "").toUpperCase() === "OPEN",
-    headCommitSha: gh.headRefOid || undefined,
+    headCommitSha,
+    // This rollup belongs to the queried headRefOid. The authoritative
+    // required-matrix definition is not exposed here, so live auto-merge still
+    // fails closed unless another trusted source supplies it.
+    ciCommitSha: headCommitSha,
     reviewApproved: gh.reviewDecision === "APPROVED",
     // gh doesn't expose branch-protection satisfaction or pending in-app
     // approvals here; leave them undefined → fail-closed unless a --checks-file
@@ -145,6 +168,7 @@ export function mapGhPrToSignals(gh = {}) {
       name: c.name || c.context,
       // check runs use `conclusion`; legacy statuses use `state`.
       state: c.conclusion || c.state || c.status,
+      commitSha: headCommitSha,
     })),
   };
 }
@@ -473,35 +497,40 @@ export function registerSessionCommand(program) {
     .option("-n, --limit <n>", "Max messages to show")
     .option("--json", "Output as JSON")
     .action(async (id, options) => {
+      let ctx = null;
       try {
-        const ctx = await bootstrap({ verbose: program.opts().verbose });
         let sess = null;
 
         // Try JSONL first if enabled
-        if (feature("JSONL_SESSION") && sessionExists(id)) {
-          const events = readEvents(id);
-          const startEvent = events.find((e) => e.type === "session_start");
-          const msgs = rebuildMessages(id);
+        const jsonlId = feature("JSONL_SESSION") ? resolveSessionId(id) : null;
+        if (jsonlId) {
+          const metadata = getJsonlSessionMetadata(jsonlId);
+          const msgs = rebuildMessages(jsonlId);
           sess = {
-            id,
-            title: startEvent?.data?.title || "Untitled",
-            provider: startEvent?.data?.provider || "",
-            model: startEvent?.data?.model || "",
+            id: jsonlId,
+            title: metadata?.title || "Untitled",
+            provider: metadata?.provider || "",
+            model: metadata?.model || "",
             message_count: msgs.length,
             messages: msgs,
             _store: "jsonl",
           };
         }
 
-        // Fallback to DB
-        if (!sess && ctx.db) {
+        // Version-0 DB adapter is loaded only when the canonical transcript is
+        // absent, keeping the JSONL hot path independent from native SQLite.
+        if (!sess) {
+          ctx = await bootstrap({ verbose: program.opts().verbose });
+        }
+        if (!sess && ctx?.db) {
           const db = ctx.db.getDatabase();
           sess = getSession(db, id);
         }
 
         if (!sess) {
           logger.error(`Session not found: ${id}`);
-          process.exit(1);
+          process.exitCode = 1;
+          return;
         }
 
         // PR/session linking: surface PRs this session created/touched.
@@ -509,7 +538,7 @@ export function registerSessionCommand(program) {
           const { getPrLinks } = await import("../lib/pr-link-ledger.js");
           const prLinks = getPrLinks(sess.id);
           if (prLinks.length > 0) sess.prLinks = prLinks;
-        } catch (_err) {
+        } catch {
           // PR decoration is cosmetic
         }
 
@@ -553,11 +582,11 @@ export function registerSessionCommand(program) {
             logger.log("");
           }
         }
-
-        await shutdown();
       } catch (err) {
         logger.error(`Failed: ${err.message}`);
-        process.exit(1);
+        process.exitCode = 1;
+      } finally {
+        if (ctx) await shutdown();
       }
     });
 
@@ -573,7 +602,7 @@ export function registerSessionCommand(program) {
     .option("--pr <number>", "Which linked PR to assess (default: newest)")
     .option(
       "--checks-file <path>",
-      "JSON file of PR signals {branch,prNumber,hasOpenPr,branchProtectionSatisfied,reviewApproved,pendingApprovals,requiredChecks,checks} — bypasses gh",
+      "JSON PR signals including exact head/CI commits, full required matrix, checks and side-effect adjudication — bypasses gh",
     )
     .option("--enable", "Consider auto-merge eligibility (default: off)")
     .option("--json", "Output as machine-readable JSON")
@@ -659,13 +688,14 @@ export function registerSessionCommand(program) {
       "Resume even when the transcript hash chain is broken (context is untrusted)",
     )
     .action(async (id, options) => {
+      let ctx = null;
       try {
-        const ctx = await bootstrap({ verbose: program.opts().verbose });
         let sess = null;
 
         // No id → shared interactive picker (TTY + >1) or most-recent fallback
         // (single / non-TTY / Ctrl-C). Same helper as `cc agent --resume`.
         if (!id) {
+          ctx = await bootstrap({ verbose: program.opts().verbose });
           const { pickRecentSession } =
             await import("../lib/session-picker.js");
           const picked = await pickRecentSession(ctx);
@@ -673,57 +703,64 @@ export function registerSessionCommand(program) {
             logger.error(
               "No saved sessions to resume. Use 'chat' or 'agent' to create one.",
             );
-            process.exit(1);
+            process.exitCode = 1;
+            return;
           }
           id = picked.id;
         }
 
         // Try JSONL first
-        if (feature("JSONL_SESSION") && sessionExists(id)) {
+        const jsonlId = feature("JSONL_SESSION") ? resolveSessionId(id) : null;
+        if (jsonlId) {
           // Tamper gate: a broken hash chain means the transcript was edited
           // outside the store — never silently rebuild it as trusted context.
           const { verifySession } =
             await import("../harness/jsonl-session-store.js");
-          const trust = verifySession(id);
+          const trust = verifySession(jsonlId);
           if (trust.status === "tampered") {
             if (!options.allowTampered) {
               logger.error(
-                `Session ${id} transcript failed integrity verification: ${trust.reason}` +
+                `Session ${jsonlId} transcript failed integrity verification: ${trust.reason}` +
                   (trust.firstInvalidLine
                     ? ` (line ${trust.firstInvalidLine})`
                     : ""),
               );
               logger.error(
                 "Refusing to resume tampered context. Inspect it read-only with " +
-                  `'cc session show ${id}' / 'cc session verify ${id}', or pass --allow-tampered to override.`,
+                  `'cc session show ${jsonlId}' / 'cc session verify ${jsonlId}', or pass --allow-tampered to override.`,
               );
-              process.exit(1);
+              process.exitCode = 1;
+              return;
             }
             logger.warn(
               `⚠ Resuming a TAMPERED transcript (${trust.reason}) — treat restored context as untrusted.`,
             );
           }
-          const events = readEvents(id);
-          const startEvent = events.find((e) => e.type === "session_start");
+          const metadata = getJsonlSessionMetadata(jsonlId);
           sess = {
-            id,
-            title: startEvent?.data?.title || "Untitled",
-            provider: startEvent?.data?.provider || "",
-            model: startEvent?.data?.model || "",
-            messages: rebuildMessages(id),
+            id: jsonlId,
+            title: metadata?.title || "Untitled",
+            provider: metadata?.provider || "",
+            model: metadata?.model || "",
+            messages: rebuildMessages(jsonlId),
           };
           sess.message_count = sess.messages.length;
         }
 
-        // Fallback to DB
-        if (!sess && ctx.db) {
+        // Version-0 DB adapter is loaded only when the canonical transcript is
+        // absent (or the picker required the combined legacy view).
+        if (!sess && !ctx) {
+          ctx = await bootstrap({ verbose: program.opts().verbose });
+        }
+        if (!sess && ctx?.db) {
           const db = ctx.db.getDatabase();
           sess = getSession(db, id);
         }
 
         if (!sess) {
           logger.error(`Session not found: ${id}`);
-          process.exit(1);
+          process.exitCode = 1;
+          return;
         }
 
         logger.info(
@@ -741,7 +778,9 @@ export function registerSessionCommand(program) {
         });
       } catch (err) {
         logger.error(`Failed: ${err.message}`);
-        process.exit(1);
+        process.exitCode = 1;
+      } finally {
+        if (ctx) await shutdown();
       }
     });
 
@@ -749,7 +788,7 @@ export function registerSessionCommand(program) {
   session
     .command("export")
     .description(
-      "Export a session as Markdown (chat-DB session, or JSONL agent session fallback)",
+      "Export a session as Markdown (canonical JSONL transcript, then legacy DB fallback)",
     )
     .argument(
       "<id>",
@@ -761,12 +800,25 @@ export function registerSessionCommand(program) {
       "Do NOT redact detected secrets from the exported transcript (default: redact)",
     )
     .action(async (id, options) => {
+      let bootstrapped = false;
       try {
         let markdown = null;
-        let bootstrapped = false;
 
-        // Primary source: chat-DB sessions (legacy behaviour, unchanged).
-        if (id !== "last") {
+        // Canonical content source: append-only JSONL event log. The legacy DB
+        // is consulted only when no matching transcript exists.
+        const store = await import("../harness/jsonl-session-store.js");
+        const sid =
+          id === "last" ? store.getLastSessionId() : store.resolveSessionId(id);
+        if (sid) {
+          const { renderAgentSessionMarkdown } =
+            await import("../lib/agent-session-export.js");
+          markdown = renderAgentSessionMarkdown(sid, store.readEvents(sid), {
+            exportedAt: new Date().toISOString(),
+          });
+        }
+
+        // Version-0 chat DB adapter: read-only migration compatibility.
+        if (!markdown && id !== "last") {
           try {
             const ctx = await bootstrap({ verbose: program.opts().verbose });
             bootstrapped = true;
@@ -779,23 +831,10 @@ export function registerSessionCommand(program) {
           }
         }
 
-        // Fallback: JSONL agent sessions (`cc agent --resume` store) —
-        // Claude-Code /export parity for agent transcripts.
-        if (!markdown) {
-          const store = await import("../harness/jsonl-session-store.js");
-          const sid = id === "last" ? store.getLastSessionId() : id;
-          if (sid && store.sessionExists(sid)) {
-            const { renderAgentSessionMarkdown } =
-              await import("../lib/agent-session-export.js");
-            markdown = renderAgentSessionMarkdown(sid, store.readEvents(sid), {
-              exportedAt: new Date().toISOString(),
-            });
-          }
-        }
-
         if (!markdown) {
           logger.error(`Session not found: ${id}`);
-          process.exit(1);
+          process.exitCode = 1;
+          return;
         }
 
         // §8.1 export gate: a transcript can carry provider tokens, JWTs,
@@ -818,11 +857,11 @@ export function registerSessionCommand(program) {
         } else {
           console.log(markdown);
         }
-
-        if (bootstrapped) await shutdown();
       } catch (err) {
         logger.error(`Failed: ${err.message}`);
-        process.exit(1);
+        process.exitCode = 1;
+      } finally {
+        if (bootstrapped) await shutdown();
       }
     });
 
@@ -841,40 +880,81 @@ export function registerSessionCommand(program) {
         const store = await import("../harness/jsonl-session-store.js");
         const q = String(query).toLowerCase();
         const limit = Number(options.limit) || 20;
-        const sessions = store.listJsonlSessions({
-          limit: Number(options.sessions) || 200,
-        });
-        const matches = [];
-        for (const s of sessions) {
-          if (matches.length >= limit) break;
-          for (const ev of store.readEvents(s.id)) {
+        let source = "sqlite-index";
+        let indexDiagnostic = null;
+        let matches = [];
+        let indexDb = null;
+        try {
+          const sessionIndex = await import("../harness/session-index.js");
+          indexDb = sessionIndex.openIndex();
+          sessionIndex.syncIndex(indexDb);
+          matches = sessionIndex
+            .searchSessions(indexDb, query, { limit })
+            .map((hit) => ({
+              session: hit.id,
+              title: hit.title,
+              role: "session",
+              when: hit.updated_at || "",
+              preview: hit.snippet || hit.title || "",
+            }));
+        } catch (error) {
+          // Native SQLite is optional in development/source installs. The
+          // bounded streaming fallback preserves functionality and identifies
+          // itself in JSON output instead of silently pretending it was indexed.
+          source = "stream-fallback";
+          indexDiagnostic = error?.message || String(error);
+          const sessions = store.listJsonlSessions({
+            limit: Number(options.sessions) || 200,
+          });
+          for (const s of sessions) {
             if (matches.length >= limit) break;
-            if (ev.type !== "user_message" && ev.type !== "assistant_message")
-              continue;
-            const text =
-              typeof ev.data?.content === "string"
-                ? ev.data.content
-                : JSON.stringify(ev.data?.content || "");
-            const idx = text.toLowerCase().indexOf(q);
-            if (idx === -1) continue;
-            const from = Math.max(0, idx - 30);
-            matches.push({
-              session: s.id,
-              title: s.title,
-              role: ev.type === "user_message" ? "user" : "assistant",
-              // toIsoSafe (not a bare truthy guard): an invalid-but-truthy
-              // timestamp on a corrupt event would otherwise throw RangeError
-              // and crash the whole search.
-              when: store.toIsoSafe(ev.timestamp),
-              preview: text
-                .slice(from, idx + q.length + 50)
-                .replace(/\s+/g, " ")
-                .trim(),
-            });
+            for (const ev of store.readEvents(s.id)) {
+              if (matches.length >= limit) break;
+              if (
+                ev.type !== "user_message" &&
+                ev.type !== "assistant_message"
+              ) {
+                continue;
+              }
+              const text =
+                typeof ev.data?.content === "string"
+                  ? ev.data.content
+                  : JSON.stringify(ev.data?.content || "");
+              const at = text.toLowerCase().indexOf(q);
+              if (at === -1) continue;
+              const from = Math.max(0, at - 30);
+              matches.push({
+                session: s.id,
+                title: s.title,
+                role: ev.type === "user_message" ? "user" : "assistant",
+                when: store.toIsoSafe(ev.timestamp),
+                preview: text
+                  .slice(from, at + q.length + 50)
+                  .replace(/\s+/g, " ")
+                  .trim(),
+              });
+            }
+          }
+        } finally {
+          try {
+            indexDb?.close();
+          } catch {
+            /* derived index close is best-effort */
           }
         }
         if (options.json) {
-          console.log(JSON.stringify({ query, matches }, null, 2));
+          console.log(
+            JSON.stringify(
+              {
+                query,
+                source,
+                matches,
+                ...(indexDiagnostic ? { indexDiagnostic } : {}),
+              },
+              null,
+              2,
+            ),
+          );
           return;
         }
         if (!matches.length) {
@@ -906,37 +986,53 @@ export function registerSessionCommand(program) {
     .argument("<id>", "Session ID")
     .option("--force", "Skip confirmation")
     .action(async (id, options) => {
+      let ctx = null;
       try {
-        const ctx = await bootstrap({ verbose: program.opts().verbose });
-        if (!ctx.db) {
-          logger.error("Database not available");
-          process.exit(1);
+        const jsonlId = resolveSessionId(id);
+        let db = null;
+        try {
+          ctx = await bootstrap({ verbose: program.opts().verbose });
+          db = ctx.db?.getDatabase() || null;
+        } catch (error) {
+          if (!jsonlId) throw error;
         }
-        const db = ctx.db.getDatabase();
+        const dbSession = !jsonlId && db ? getSession(db, id) : null;
+        const targetId = jsonlId || dbSession?.id || id;
+
+        if (!jsonlId && !dbSession) {
+          logger.error(`Session not found: ${id}`);
+          process.exitCode = 1;
+          return;
+        }
 
         if (!options.force) {
           const { confirm } = await import("@inquirer/prompts");
           const ok = await confirm({
-            message: `Delete session "${id}"?`,
+            message: `Delete session "${targetId}"?`,
           });
           if (!ok) {
             logger.info("Cancelled");
-            await shutdown();
             return;
           }
         }
 
-        const ok = deleteSession(db, id);
-        if (ok) {
+        const jsonlDeleted = jsonlId ? deleteJsonlSession(jsonlId) : false;
+        // Remove an exact-id legacy duplicate as part of the same semantic
+        // delete so it cannot reappear after the canonical transcript is gone.
+        const dbDeleted = db
+          ? deleteSession(db, jsonlId || dbSession?.id || id)
+          : false;
+        if (jsonlDeleted || dbDeleted) {
           logger.success("Session deleted");
         } else {
           logger.error(`Session not found: ${id}`);
+          process.exitCode = 1;
         }
-
-        await shutdown();
       } catch (err) {
         logger.error(`Failed: ${err.message}`);
-        process.exit(1);
+        process.exitCode = 1;
+      } finally {
+        if (ctx) await shutdown();
       }
     });
 
@@ -949,13 +1045,26 @@ export function registerSessionCommand(program) {
     .argument("<title...>", "New title")
     .option("--json", "Output as JSON")
     .action(async (id, title, options) => {
+      let ctx = null;
       try {
-        const { renameSession } =
-          await import("../harness/jsonl-session-store.js");
-        const result = renameSession(
-          id,
+        const normalized = String(
           Array.isArray(title) ? title.join(" ") : title,
-        );
+        ).trim();
+        if (!normalized) throw new Error("A non-empty title is required");
+        const jsonlId = resolveSessionId(id);
+        let result;
+        if (jsonlId) {
+          const { renameSession } =
+            await import("../harness/jsonl-session-store.js");
+          result = renameSession(jsonlId, normalized);
+        } else {
+          ctx = await bootstrap({ verbose: program.opts().verbose });
+          const db = ctx.db?.getDatabase();
+          const legacy = db ? getSession(db, id) : null;
+          if (!legacy) throw new Error(`Session not found: ${id}`);
+          updateSession(db, legacy.id, { title: normalized.slice(0, 200) });
+          result = { id: legacy.id, title: normalized.slice(0, 200) };
+        }
         if (options.json) {
           console.log(JSON.stringify(result, null, 2));
           return;
@@ -965,6 +1074,8 @@ export function registerSessionCommand(program) {
       } catch (err) {
         logger.error(`Failed: ${err.message}`);
         process.exitCode = 1;
+      } finally {
+        if (ctx) await shutdown();
       }
     });
 
@@ -1173,6 +1284,45 @@ export function registerSessionCommand(program) {
   // list/search without scanning every transcript, and can mirror sessions to a
   // configured off-box target (fs/http). The index is a derived cache: safe to
   // delete and rebuild from the JSONL at any time.
+  session
+    .command("repair")
+    .description(
+      "Diagnose and repair one crash-partial final transcript record only",
+    )
+    .argument("<id>", "Session ID to repair")
+    .option("--dry-run", "Report the repair without changing the transcript")
+    .option("--json", "Output as JSON")
+    .action(async (id, options) => {
+      try {
+        const store = await import("../harness/jsonl-session-store.js");
+        const result = store.repairSession(id, {
+          dryRun: Boolean(options.dryRun),
+        });
+        if (options.json) {
+          console.log(JSON.stringify(result, null, 2));
+        } else {
+          const label = result.healthy
+            ? chalk.green("healthy")
+            : chalk.yellow(options.dryRun ? "repair-needed" : "attention");
+          logger.log(`${label} ${result.sessionId} (${result.status})`);
+          if (result.action && result.action !== "none") {
+            const prefix = options.dryRun ? "would " : "";
+            logger.log(
+              `  ${prefix}${result.action}` +
+                (result.discardedBytes
+                  ? ` (${result.discardedBytes} partial bytes)`
+                  : ""),
+            );
+          }
+          if (result.reason) logger.log(`  ${chalk.gray(result.reason)}`);
+        }
+        if (!result.healthy) process.exitCode = 1;
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exitCode = 1;
+      }
+    });
+
   session
     .command("index")
     .description(

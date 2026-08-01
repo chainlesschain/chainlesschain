@@ -86,6 +86,7 @@ import {
   appendLlmRetryCompact as jsonlAppendLlmRetryCompact,
   appendEvent as jsonlAppendEvent,
   readEvents as jsonlReadEvents,
+  findLatestEvent as jsonlFindLatestEvent,
   rebuildMessages as jsonlRebuildMessages,
   sessionExists as jsonlSessionExists,
 } from "../harness/jsonl-session-store.js";
@@ -100,6 +101,11 @@ import {
   loadSideEffectLedger,
   persistSideEffectLedger,
 } from "../lib/side-effect-ledger-store.js";
+import {
+  createSessionMcpLedgerSink,
+  formatMcpLedgerRecoveryNotice,
+  reduceMcpLedgerEvents,
+} from "../lib/mcp-call-ledger-store.js";
 import { operationIdempotencyKey } from "../lib/idempotency.js";
 import { TurnBindingLog, createTurnBindingFeed } from "../lib/turn-binding.js";
 import { TURN_BINDING_EVENT } from "../lib/turn-binding-store.js";
@@ -1232,6 +1238,27 @@ async function runAgentHeadlessStreamInWorkspace(options = {}, deps = {}) {
   // prior history is rebuilt into the conversation and every new turn is
   // appended, so a later run with the same id picks up where this one left
   // off. Anonymous runs (no id) stay persistence-free, exactly as before.
+  const storeReadEvents = deps.readEvents || jsonlReadEvents;
+  const hasInjectedSessionStore =
+    typeof deps.sessionExists === "function" ||
+    typeof deps.rebuildMessages === "function" ||
+    typeof deps.appendEvent === "function";
+  const storeFindLatestEvent =
+    deps.findLatestEvent ||
+    (deps.readEvents
+      ? (sessionId, type, predicate = null) => {
+          const events = storeReadEvents(sessionId) || [];
+          for (let index = events.length - 1; index >= 0; index -= 1) {
+            const event = events[index];
+            if (type != null && event?.type !== type) continue;
+            if (typeof predicate === "function" && !predicate(event)) continue;
+            return event;
+          }
+          return null;
+        }
+      : hasInjectedSessionStore
+        ? () => null
+        : jsonlFindLatestEvent);
   const store = {
     sessionExists: deps.sessionExists || jsonlSessionExists,
     startSession: deps.startSession || jsonlStartSession,
@@ -1239,16 +1266,26 @@ async function runAgentHeadlessStreamInWorkspace(options = {}, deps = {}) {
     appendAssistantMessage:
       deps.appendAssistantMessage || jsonlAppendAssistantMessage,
     appendToolCallCompact:
-      deps.appendToolCallCompact || jsonlAppendToolCallCompact,
+      deps.appendToolCallCompact ||
+      (hasInjectedSessionStore ? () => true : jsonlAppendToolCallCompact),
     appendLlmRetryCompact:
-      deps.appendLlmRetryCompact || jsonlAppendLlmRetryCompact,
-    appendEvent: deps.appendEvent || jsonlAppendEvent,
-    readEvents: deps.readEvents || jsonlReadEvents,
+      deps.appendLlmRetryCompact ||
+      (hasInjectedSessionStore ? () => true : jsonlAppendLlmRetryCompact),
+    appendEvent:
+      deps.appendEvent ||
+      (hasInjectedSessionStore ? () => true : jsonlAppendEvent),
+    readEvents: storeReadEvents,
+    findLatestEvent: storeFindLatestEvent,
     rebuildMessages: deps.rebuildMessages || jsonlRebuildMessages,
   };
   // --ephemeral forces persistence OFF even with an explicit session id (the
   // id is kept for event correlation only; nothing is written or replayed).
   const persist = Boolean(options.sessionId) && options.ephemeral !== true;
+  const mcpLedgerSink = persist
+    ? createSessionMcpLedgerSink(sessionId, {
+        appendEvent: store.appendEvent,
+      })
+    : null;
 
   // ── P0-2: crash-safe side-effect ledger — the stream twin of the
   // single-prompt runner (headless-runner.js) and the WS bridge
@@ -1344,17 +1381,13 @@ async function runAgentHeadlessStreamInWorkspace(options = {}, deps = {}) {
   };
   if (persist) {
     try {
-      const priorEvents = store.readEvents(sessionId) || [];
-      for (let index = priorEvents.length - 1; index >= 0; index--) {
-        const event = priorEvents[index];
-        if (
-          event?.type === TURN_BINDING_EVENT &&
-          event.data &&
-          typeof event.data === "object"
-        ) {
-          turnBindingLog = TurnBindingLog.fromJSON(event.data);
-          break;
-        }
+      const event = store.findLatestEvent(
+        sessionId,
+        TURN_BINDING_EVENT,
+        (candidate) => candidate?.data && typeof candidate.data === "object",
+      );
+      if (event) {
+        turnBindingLog = TurnBindingLog.fromJSON(event.data);
       }
     } catch (error) {
       recordTurnBindingFailure(error, "read");
@@ -1721,6 +1754,7 @@ async function runAgentHeadlessStreamInWorkspace(options = {}, deps = {}) {
   // leads; persisted system turns are dropped, mirroring runAgentHeadless).
   let resumedMessages = 0;
   let sideEffectRecovery = null;
+  let mcpCallRecovery = null;
   if (persist) {
     try {
       if (store.sessionExists(sessionId)) {
@@ -1734,6 +1768,39 @@ async function runAgentHeadlessStreamInWorkspace(options = {}, deps = {}) {
         }
         if (sideEffectRecovery) {
           messages.push({ role: "system", content: sideEffectRecovery.notice });
+        }
+        try {
+          const recovery = reduceMcpLedgerEvents(
+            store.readEvents(sessionId) || [],
+          );
+          const notice = formatMcpLedgerRecoveryNotice(recovery);
+          if (notice) {
+            mcpCallRecovery = {
+              count: recovery.unsettled.length,
+              incidents: recovery.incidents.length,
+              items: recovery.unsettled.slice(0, 10).map((record) => ({
+                ledgerId: record.ledgerId,
+                server: record.serverName,
+                tool: record.toolName,
+                effect: record.effectContract?.effect || "unknown",
+              })),
+              notice,
+            };
+            messages.push({ role: "system", content: notice });
+          }
+        } catch (error) {
+          mcpCallRecovery = {
+            count: 0,
+            incidents: 1,
+            items: [],
+            notice:
+              "MCP recovery notice — the durable MCP call ledger could not be read. " +
+              `Do not execute or retry MCP tools until the transcript is inspected (${error?.code || "CC_MCP_LEDGER_EVENT_READ_FAILED"}).`,
+          };
+          messages.push({
+            role: "system",
+            content: mcpCallRecovery.notice,
+          });
         }
         const history = (store.rebuildMessages(sessionId) || []).filter(
           (m) => m && m.role !== "system",
@@ -1807,6 +1874,17 @@ async function runAgentHeadlessStreamInWorkspace(options = {}, deps = {}) {
       text: `⚠️ ${sideEffectRecovery.count} interrupted side-effect(s) need verification before replay (resume ${sessionId}).`,
       count: sideEffectRecovery.count,
       items: sideEffectRecovery.items,
+      session_id: sessionId,
+    });
+  }
+  if (mcpCallRecovery) {
+    emit({
+      type: "raw",
+      subtype: "mcp_call_recovery",
+      text: `⚠️ ${mcpCallRecovery.count} interrupted MCP call(s) and ${mcpCallRecovery.incidents} ledger incident(s) need inspection before replay (resume ${sessionId}).`,
+      count: mcpCallRecovery.count,
+      incidents: mcpCallRecovery.incidents,
+      items: mcpCallRecovery.items,
       session_id: sessionId,
     });
   }
@@ -2108,6 +2186,7 @@ async function runAgentHeadlessStreamInWorkspace(options = {}, deps = {}) {
     extraToolDefinitions: mcp?.extraToolDefinitions || undefined,
     externalToolExecutors: mcp?.externalToolExecutors || undefined,
     externalToolDescriptors: mcp?.externalToolDescriptors || undefined,
+    mcpLedgerSink,
     chatFn: deps.chatFn || options.chatFn || undefined,
     signal: options.signal || undefined,
     // --include-partial-messages: stream live assistant-text deltas as

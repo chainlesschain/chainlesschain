@@ -538,6 +538,12 @@ describe("WSSessionManager", () => {
                     },
                     required: ["city"],
                   },
+                  annotations: {
+                    readOnlyHint: true,
+                    destructiveHint: false,
+                    idempotentHint: true,
+                    openWorldHint: true,
+                  },
                 },
               ],
             },
@@ -578,8 +584,13 @@ describe("WSSessionManager", () => {
       expect(session.externalToolDescriptors).toMatchObject({
         mcp_weather_get_forecast: expect.objectContaining({
           source: "mcp:weather",
-          riskLevel: "low",
+          riskLevel: "medium",
           isReadOnly: true,
+          effectContract: expect.objectContaining({
+            declaredEffect: "read",
+            authorizedEffect: null,
+            sourceTrusted: true,
+          }),
         }),
       });
       expect(session.externalToolExecutors).toMatchObject({

@@ -7,6 +7,10 @@ import {
 import { createSessionRecord } from "../../runtime/contracts/session-record.js";
 import { loadSideEffectLedger } from "../../lib/side-effect-ledger-store.js";
 import { reconcileSideEffects } from "../../lib/side-effect-ledger.js";
+import {
+  formatMcpLedgerRecoveryNotice,
+  loadMcpLedgerRecovery,
+} from "../../lib/mcp-call-ledger-store.js";
 
 /**
  * P0-2: on a bridge/IDE resume, surface any irreversible tool that was in flight
@@ -14,9 +18,9 @@ import { reconcileSideEffects } from "../../lib/side-effect-ledger.js";
  * + short key + reason, never argument values) plus a human-readable notice, or
  * null when nothing needs verification. PURE apart from reading the ledger.
  */
-function buildResumeRecovery(sessionId) {
+function buildSideEffectResumeRecovery(sessionId, loadLedger) {
   try {
-    const ledger = loadSideEffectLedger(sessionId);
+    const ledger = loadLedger(sessionId);
     const plan = reconcileSideEffects(ledger);
     if (!plan.inspect.length) return null;
     const items = plan.plans
@@ -44,6 +48,70 @@ function buildResumeRecovery(sessionId) {
   } catch {
     return null;
   }
+}
+
+function buildMcpResumeRecovery(sessionId, loadRecovery, formatNotice) {
+  try {
+    const recovery = loadRecovery(sessionId);
+    const notice = formatNotice(recovery);
+    if (!notice) return null;
+    const unsettled = (recovery.unsettled || []).map((record) => ({
+      ledgerId: record.ledgerId,
+      serverName: record.serverName,
+      toolName: record.toolName,
+      effect: record.effectContract?.effect || "unknown",
+      status: "outcome_unknown",
+    }));
+    const incidents = (recovery.incidents || []).map((incident) => ({
+      code: incident.code,
+      ledgerId: incident.ledgerId || null,
+    }));
+    return {
+      count: unsettled.length + incidents.length,
+      unsettled,
+      incidents,
+      notice,
+    };
+  } catch (error) {
+    const incident = {
+      code: error?.code || "CC_MCP_LEDGER_EVENT_READ_FAILED",
+      ledgerId: null,
+    };
+    return {
+      count: 1,
+      unsettled: [],
+      incidents: [incident],
+      notice:
+        "MCP recovery notice — the durable MCP ledger could not be read. " +
+        "Do NOT automatically retry prior MCP actions; inspect the session " +
+        `transcript first (${incident.code}).`,
+    };
+  }
+}
+
+/**
+ * Build the de-identified recovery payload shared by the IDE envelope and the
+ * resumed model. Dependencies are injectable so fail-closed recovery can be
+ * tested without touching a user's durable session directory.
+ */
+export function buildResumeRecovery(sessionId, dependencies = {}) {
+  const sideEffects = buildSideEffectResumeRecovery(
+    sessionId,
+    dependencies.loadSideEffectLedger || loadSideEffectLedger,
+  );
+  const mcp = buildMcpResumeRecovery(
+    sessionId,
+    dependencies.loadMcpLedgerRecovery || loadMcpLedgerRecovery,
+    dependencies.formatMcpLedgerRecoveryNotice || formatMcpLedgerRecoveryNotice,
+  );
+  if (!sideEffects && !mcp) return null;
+
+  return {
+    count: (sideEffects?.count || 0) + (mcp?.count || 0),
+    items: sideEffects?.items || [],
+    ...(mcp ? { mcp } : {}),
+    notice: [sideEffects?.notice, mcp?.notice].filter(Boolean).join("\n\n"),
+  };
 }
 
 // Build a unified envelope for a solicited WS response. The bridge correlates

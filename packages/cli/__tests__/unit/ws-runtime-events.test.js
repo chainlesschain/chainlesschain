@@ -57,6 +57,7 @@ vi.mock("../../src/lib/compression-telemetry.js", () => ({
 
 import { RUNTIME_EVENTS } from "../../src/runtime/runtime-events.js";
 import {
+  buildResumeRecovery,
   handleSessionCreate,
   handleSessionResume,
   handleSessionMessage,
@@ -106,6 +107,71 @@ function createServer() {
     _session: session,
   };
 }
+
+describe("ws MCP recovery projection", () => {
+  it("surfaces unsettled MCP calls without retaining their arguments", () => {
+    const recovery = buildResumeRecovery("sess-mcp", {
+      loadSideEffectLedger: () => {
+        throw new Error("no side-effect ledger");
+      },
+      loadMcpLedgerRecovery: () => ({
+        unsettled: [
+          {
+            ledgerId: "mcp-1",
+            serverName: "github",
+            toolName: "create_issue",
+            status: "started",
+            effectContract: { effect: "write" },
+            inputDigest: "sha256:redacted",
+            secretArgument: "must-not-leak",
+          },
+        ],
+        incidents: [],
+      }),
+    });
+
+    expect(recovery).toMatchObject({
+      count: 1,
+      items: [],
+      mcp: {
+        unsettled: [
+          {
+            ledgerId: "mcp-1",
+            serverName: "github",
+            toolName: "create_issue",
+            effect: "write",
+            status: "outcome_unknown",
+          },
+        ],
+      },
+    });
+    expect(JSON.stringify(recovery)).not.toContain("must-not-leak");
+    expect(recovery.notice).toContain("Do NOT automatically retry");
+  });
+
+  it("turns an unreadable MCP ledger into a fail-closed incident", () => {
+    const error = Object.assign(new Error("corrupt transcript"), {
+      code: "CC_MCP_LEDGER_EVENT_READ_FAILED",
+    });
+    const recovery = buildResumeRecovery("sess-mcp", {
+      loadSideEffectLedger: () => {
+        throw new Error("no side-effect ledger");
+      },
+      loadMcpLedgerRecovery: () => {
+        throw error;
+      },
+    });
+
+    expect(recovery.mcp.incidents).toEqual([
+      {
+        code: "CC_MCP_LEDGER_EVENT_READ_FAILED",
+        ledgerId: null,
+      },
+    ]);
+    expect(recovery.notice).toContain("Do NOT automatically retry");
+    expect(recovery.notice).not.toContain("corrupt transcript");
+  });
+});
 
 describe("ws runtime event emission", () => {
   let server;

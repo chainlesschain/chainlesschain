@@ -47,6 +47,7 @@ import {
   appendCompactEvent as jsonlAppendCompactEvent,
   appendEvent as jsonlAppendEvent,
   readEvents as jsonlReadEvents,
+  findLatestEvent as jsonlFindLatestEvent,
   rebuildMessages as jsonlRebuildMessages,
   sessionExists as jsonlSessionExists,
   getLastSessionId as jsonlGetLastSessionId,
@@ -60,6 +61,11 @@ import {
 } from "../lib/side-effect-ledger.js";
 import { DiffReviewFollowUpTracker } from "../lib/diff-review-follow-up.js";
 import { SIDE_EFFECT_LEDGER_EVENT } from "../lib/side-effect-ledger-store.js";
+import {
+  createSessionMcpLedgerSink,
+  formatMcpLedgerRecoveryNotice,
+  reduceMcpLedgerEvents,
+} from "../lib/mcp-call-ledger-store.js";
 import { TurnBindingLog, createTurnBindingFeed } from "../lib/turn-binding.js";
 import { TURN_BINDING_EVENT } from "../lib/turn-binding-store.js";
 import { operationIdempotencyKey } from "../lib/idempotency.js";
@@ -519,6 +525,31 @@ async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
   }
   // Session persistence seam (file-based JSONL; DB-free, like the rest of
   // headless). Defaults to the real store; tests inject fakes.
+  const storeReadEvents = deps.readEvents || jsonlReadEvents;
+  const hasInjectedSessionStore =
+    typeof deps.sessionExists === "function" ||
+    typeof deps.rebuildMessages === "function" ||
+    typeof deps.appendEvent === "function";
+  const storeFindLatestEvent =
+    deps.findLatestEvent ||
+    (deps.readEvents
+      ? (sessionId, type, predicate = null) => {
+          const events = storeReadEvents(sessionId) || [];
+          const wanted = Array.isArray(type) ? new Set(type) : null;
+          for (let index = events.length - 1; index >= 0; index -= 1) {
+            const event = events[index];
+            const typeMatches = wanted
+              ? wanted.has(event?.type)
+              : type == null || event?.type === type;
+            if (!typeMatches) continue;
+            if (typeof predicate === "function" && !predicate(event)) continue;
+            return event;
+          }
+          return null;
+        }
+      : hasInjectedSessionStore
+        ? () => null
+        : jsonlFindLatestEvent);
   const store = {
     sessionExists: deps.sessionExists || jsonlSessionExists,
     rebuildMessages: deps.rebuildMessages || jsonlRebuildMessages,
@@ -528,14 +559,23 @@ async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
       deps.appendAssistantMessage || jsonlAppendAssistantMessage,
     appendTokenUsage: deps.appendTokenUsage || jsonlAppendTokenUsage,
     appendToolCallCompact:
-      deps.appendToolCallCompact || jsonlAppendToolCallCompact,
+      deps.appendToolCallCompact ||
+      (hasInjectedSessionStore ? () => true : jsonlAppendToolCallCompact),
     appendLlmRetryCompact:
-      deps.appendLlmRetryCompact || jsonlAppendLlmRetryCompact,
-    appendCompactEvent: deps.appendCompactEvent || jsonlAppendCompactEvent,
-    appendEvent: deps.appendEvent || jsonlAppendEvent,
-    readEvents: deps.readEvents || jsonlReadEvents,
+      deps.appendLlmRetryCompact ||
+      (hasInjectedSessionStore ? () => true : jsonlAppendLlmRetryCompact),
+    appendCompactEvent:
+      deps.appendCompactEvent ||
+      (hasInjectedSessionStore ? () => true : jsonlAppendCompactEvent),
+    appendEvent:
+      deps.appendEvent ||
+      (hasInjectedSessionStore ? () => true : jsonlAppendEvent),
+    readEvents: storeReadEvents,
+    findLatestEvent: storeFindLatestEvent,
     getLastSessionId: deps.getLastSessionId || jsonlGetLastSessionId,
-    verifySession: deps.verifySession || jsonlVerifySession,
+    verifySession:
+      deps.verifySession ||
+      (hasInjectedSessionStore ? () => null : jsonlVerifySession),
   };
   const isStream = outputFormat === "stream-json";
   const isJson = outputFormat === "json";
@@ -839,6 +879,7 @@ async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
   let sideEffectSeq = 0;
   let currentSideEffectOpId = null;
   let resumeSideEffectContext = null;
+  let resumeMcpCallContext = null;
   let resumeAsyncHookContext = null;
   const persistSideEffectLedger = () => {
     if (!persist) return;
@@ -876,18 +917,13 @@ async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
   let turnBindingLoadError = null;
   if (persist) {
     try {
-      const events = store.readEvents(sessionId) || [];
-      for (let i = events.length - 1; i >= 0; i--) {
-        const e = events[i];
-        if (
-          e &&
-          e.type === TURN_BINDING_EVENT &&
-          e.data &&
-          Array.isArray(e.data.turns)
-        ) {
-          turnBindingLog = TurnBindingLog.fromJSON(e.data);
-          break;
-        }
+      const event = store.findLatestEvent(
+        sessionId,
+        TURN_BINDING_EVENT,
+        (candidate) => Array.isArray(candidate?.data?.turns),
+      );
+      if (event) {
+        turnBindingLog = TurnBindingLog.fromJSON(event.data);
       }
     } catch (cause) {
       const error = new Error(
@@ -932,20 +968,15 @@ async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
   };
   if (persist) {
     try {
-      const events = store.readEvents(sessionId) || [];
-      for (let i = events.length - 1; i >= 0; i--) {
-        const e = events[i];
-        if (
-          e &&
-          e.type === SIDE_EFFECT_LEDGER_EVENT &&
-          e.data &&
-          Array.isArray(e.data.ops)
-        ) {
-          sideEffectLedger = SideEffectLedger.fromJSON(e.data, {
-            clock: deps.now || null,
-          });
-          break;
-        }
+      const event = store.findLatestEvent(
+        sessionId,
+        SIDE_EFFECT_LEDGER_EVENT,
+        (candidate) => Array.isArray(candidate?.data?.ops),
+      );
+      if (event) {
+        sideEffectLedger = SideEffectLedger.fromJSON(event.data, {
+          clock: deps.now || null,
+        });
       }
     } catch (cause) {
       const error = new Error(
@@ -991,6 +1022,37 @@ async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
         }
       } catch {
         resumeSideEffectContext = null;
+      }
+      // MCP calls have their own content-free started/settled ledger. A
+      // started-only record means the external server may have completed the
+      // operation before the process died, so replay must stop for inspection.
+      try {
+        const mcpRecovery = reduceMcpLedgerEvents(
+          store.readEvents(resumeId) || [],
+        );
+        resumeMcpCallContext = formatMcpLedgerRecoveryNotice(mcpRecovery);
+        if (resumeMcpCallContext) {
+          const risky = mcpRecovery.unsettled.filter(
+            (record) => record.effectContract?.effect !== "read",
+          ).length;
+          writeErr(
+            `⚠ ${mcpRecovery.unsettled.length} interrupted MCP call(s) and ${mcpRecovery.incidents.length} ledger incident(s) require inspection before replay (resume ${resumeId}).\n`,
+          );
+          if (risky > 0 || mcpRecovery.incidents.length > 0) {
+            _bgPhase.reportUncertainSideEffects(
+              risky + mcpRecovery.incidents.length,
+            );
+          }
+        }
+      } catch (error) {
+        resumeMcpCallContext =
+          "MCP recovery notice — the durable MCP call ledger could not be read. " +
+          "Do not execute or retry MCP tools until the session transcript has " +
+          `been inspected (${error?.code || "CC_MCP_LEDGER_EVENT_READ_FAILED"}).`;
+        writeErr(
+          `⚠ MCP ledger recovery failed closed for resume ${resumeId}; MCP calls require inspection.\n`,
+        );
+        _bgPhase.reportUncertainSideEffects(1);
       }
       // On resume, recover any async-hook REWAKE (a background check that opted
       // in and FAILED) that the previous run parked but died before draining —
@@ -1245,6 +1307,9 @@ async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
       : []),
     ...(resumeSideEffectContext
       ? [{ role: "system", content: resumeSideEffectContext }]
+      : []),
+    ...(resumeMcpCallContext
+      ? [{ role: "system", content: resumeMcpCallContext }]
       : []),
     ...(resumeAsyncHookContext
       ? [{ role: "system", content: resumeAsyncHookContext }]
@@ -1654,6 +1719,14 @@ async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
     extraToolDefinitions: mcp?.extraToolDefinitions || undefined,
     externalToolExecutors: mcp?.externalToolExecutors || undefined,
     externalToolDescriptors: mcp?.externalToolDescriptors || undefined,
+    // Persist every MCP started/settled record into this exact canonical
+    // session. Unknown/write/destructive prewrite failure then blocks before
+    // the external call; a settlement failure leaves a recoverable started row.
+    mcpLedgerSink: persist
+      ? createSessionMcpLedgerSink(sessionId, {
+          appendEvent: store.appendEvent,
+        })
+      : null,
     // chatFn passthrough lets tests drive the loop deterministically.
     chatFn: deps.chatFn || options.chatFn || undefined,
     signal: options.signal || undefined,
@@ -1927,15 +2000,10 @@ async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
       let restoredSnap = null;
       if (resumeId) {
         try {
-          const events = store.readEvents(resumeId) || [];
-          for (let i = events.length - 1; i >= 0; i--) {
-            const ev = events[i];
-            if (ev && ev.type === "goal_snapshot") {
-              const snap = ev.data;
-              if (snap && snap.state && snap.state.done !== true)
-                restoredSnap = snap;
-              break; // only the latest goal_snapshot matters
-            }
+          const event = store.findLatestEvent(resumeId, "goal_snapshot");
+          const snap = event?.data;
+          if (snap && snap.state && snap.state.done !== true) {
+            restoredSnap = snap;
           }
         } catch {
           restoredSnap = null; // unreadable transcript → start fresh

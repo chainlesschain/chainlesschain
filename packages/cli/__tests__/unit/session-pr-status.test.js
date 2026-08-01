@@ -78,10 +78,11 @@ describe("mapGhPrToSignals", () => {
     expect(s.hasOpenPr).toBe(true);
     expect(s.branch).toBe("feat/x");
     expect(s.headCommitSha).toBe("abc123");
+    expect(s.ciCommitSha).toBe("abc123");
     expect(s.reviewApproved).toBe(true);
     expect(s.checks).toEqual([
-      { name: "build", state: "SUCCESS" },
-      { name: "test", state: "IN_PROGRESS" },
+      { name: "build", state: "SUCCESS", commitSha: "abc123" },
+      { name: "test", state: "IN_PROGRESS", commitSha: "abc123" },
     ]);
     // Branch protection + pending approvals are NOT in gh json → undefined, so
     // the fail-closed policy denies unless a --checks-file asserts them.
@@ -95,6 +96,7 @@ describe("mapGhPrToSignals", () => {
 });
 
 describe("renderPrStatus (P1-4)", () => {
+  const head = "a".repeat(40);
   const ready = {
     branch: "feat/x",
     prNumber: 7,
@@ -103,7 +105,11 @@ describe("renderPrStatus (P1-4)", () => {
     reviewApproved: true,
     pendingApprovals: 0,
     requiredChecks: ["build"],
-    checks: [{ name: "build", state: "success" }],
+    requiredMatrixComplete: true,
+    headCommitSha: head,
+    ciCommitSha: head,
+    checks: [{ name: "build", state: "success", commitSha: head }],
+    sideEffects: [],
   };
 
   it("blocks auto-merge by default (off) even when everything else passes", async () => {
@@ -120,6 +126,12 @@ describe("renderPrStatus (P1-4)", () => {
     expect(r.autoMerge.allow).toBe(true);
     expect(r.lines.join(" ")).toMatch(/eligible/);
     expect(r.statusBar).toMatch(/merge:ready/);
+    expect(r).toMatchObject({
+      schema: "chainlesschain.session-pr-status",
+      version: 1,
+      headCommitSha: head,
+      ciCommitSha: head,
+    });
   });
 
   it("blocks when a required check is absent (fail-closed)", async () => {
@@ -135,11 +147,28 @@ describe("renderPrStatus (P1-4)", () => {
 
   it("blocks and marks the status bar when a check is failing", async () => {
     const r = await renderPrStatus(
-      { ...ready, checks: [{ name: "build", state: "failure" }] },
+      {
+        ...ready,
+        checks: [{ name: "build", state: "failure", commitSha: head }],
+      },
       { enabled: true },
     );
     expect(r.autoMerge.allow).toBe(false);
     expect(r.autoMerge.unmet).toContain("checks-failing");
     expect(r.statusBar).toMatch(/✗/);
+  });
+
+  it("reports stale CI and unknown side-effect state in JSON-ready output", async () => {
+    const stale = await renderPrStatus(
+      { ...ready, ciCommitSha: "b".repeat(40) },
+      { enabled: true },
+    );
+    expect(stale.autoMerge.unmet).toContain("ci-head-mismatch");
+
+    const unknown = await renderPrStatus(
+      { ...ready, sideEffects: undefined },
+      { enabled: true },
+    );
+    expect(unknown.autoMerge.unmet).toContain("side-effects-unverified");
   });
 });

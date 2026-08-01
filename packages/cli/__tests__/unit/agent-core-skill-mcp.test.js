@@ -1,11 +1,21 @@
 /**
- * Integration test: run_skill tool mounts/unmounts skill-embedded MCP
- * servers around handler.execute, and exposes mcpClient via taskContext.
+ * Security regression tests for run_skill.
+ *
+ * A skill handler must never be imported into the CLI process or receive the
+ * raw MCP/process authority. Executable skills run through a constrained child
+ * agent; legacy/non-isolated handlers fail closed.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+
+const mocks = vi.hoisted(() => ({
+  skills: [],
+  childConfigs: [],
+  childRuns: [],
+  createSubAgent: vi.fn(),
+}));
 
 vi.mock("../../src/lib/plan-mode.js", () => ({
   getPlanModeManager: vi.fn(() => ({
@@ -15,13 +25,16 @@ vi.mock("../../src/lib/plan-mode.js", () => ({
   })),
 }));
 
-// We feed mock skills directly so we don't depend on the on-disk layer.
-const _mockSkills = [];
-
 vi.mock("../../src/lib/skill-loader.js", () => ({
   CLISkillLoader: vi.fn(function () {
-    return { getResolvedSkills: vi.fn(() => _mockSkills) };
+    return { getResolvedSkills: vi.fn(() => mocks.skills) };
   }),
+}));
+
+vi.mock("../../src/lib/sub-agent-context.js", () => ({
+  SubAgentContext: {
+    create: mocks.createSubAgent,
+  },
 }));
 
 vi.mock("../../src/lib/project-detector.js", () => ({
@@ -41,12 +54,28 @@ vi.mock("../../src/lib/hook-manager.js", () => ({
 
 const { executeTool } = await import("../../src/runtime/agent-core.js");
 
-describe("run_skill: Skill-Embedded MCP integration", () => {
+describe("run_skill controlled execution boundary", () => {
   let tempDir;
 
   beforeEach(() => {
-    tempDir = mkdtempSync(join(tmpdir(), "cc-skill-mcp-"));
-    _mockSkills.length = 0;
+    tempDir = mkdtempSync(join(tmpdir(), "cc-skill-boundary-"));
+    mocks.skills.length = 0;
+    mocks.childConfigs.length = 0;
+    mocks.childRuns.length = 0;
+    mocks.createSubAgent.mockReset();
+    mocks.createSubAgent.mockImplementation((config) => {
+      mocks.childConfigs.push(config);
+      return {
+        id: `skill-child-${mocks.childConfigs.length}`,
+        run: vi.fn(async (input) => {
+          mocks.childRuns.push(input);
+          return {
+            summary: `isolated:${input}`,
+            toolsUsed: ["read_file"],
+          };
+        }),
+      };
+    });
   });
 
   afterEach(() => {
@@ -55,24 +84,12 @@ describe("run_skill: Skill-Embedded MCP integration", () => {
 
   function registerSkill({
     id,
+    isolation = false,
     mcpServers = [],
     capabilities = [],
-    handlerBody = "return { success: true, receivedMcp: !!taskContext.mcpClient, mounted: taskContext.mountedMcpServers };",
+    body = "# Approved skill instructions",
   }) {
-    const skillDir = join(tempDir, id);
-    mkdirSync(skillDir, { recursive: true });
-    const handlerPath = join(skillDir, "handler.js");
-    writeFileSync(
-      handlerPath,
-      `export default {
-  async execute(task, taskContext, skill) {
-    ${handlerBody}
-  }
-};
-`,
-      "utf8",
-    );
-    _mockSkills.push({
+    mocks.skills.push({
       id,
       dirName: id,
       category: "test",
@@ -80,241 +97,210 @@ describe("run_skill: Skill-Embedded MCP integration", () => {
       source: "workspace",
       hasHandler: true,
       description: id,
-      skillDir,
+      skillDir: join(tempDir, id),
       mcpServers,
       capabilities,
-      isolation: false,
+      isolation,
+      body,
     });
   }
 
-  it("mounts declared MCP servers before handler and unmounts after", async () => {
-    const connectCalls = [];
-    const disconnectCalls = [];
-    const fakeMcp = {
-      connect: vi.fn(async (name, cfg) => {
-        connectCalls.push({ name, cfg });
-      }),
-      disconnect: vi.fn(async (name) => {
-        disconnectCalls.push(name);
-      }),
-    };
-
-    registerSkill({
-      id: "weather-skill",
-      mcpServers: [
-        { name: "weather", command: "npx", args: ["-y", "@mcp/weather"] },
-      ],
-    });
-
-    const result = await executeTool(
-      "run_skill",
-      { skill_name: "weather-skill", input: "London" },
-      { cwd: tempDir, mcpClient: fakeMcp },
-    );
-
-    expect(result.success).toBe(true);
-    expect(result.receivedMcp).toBe(true);
-    expect(result.mounted).toEqual(["weather"]);
-    expect(connectCalls).toHaveLength(1);
-    expect(connectCalls[0].name).toBe("weather");
-    expect(connectCalls[0].cfg.command).toBe("npx");
-    // Unmount must happen after handler returns
-    expect(disconnectCalls).toEqual(["weather"]);
-  });
-
-  it("unmounts servers even when handler throws", async () => {
-    const disconnectCalls = [];
-    const fakeMcp = {
-      connect: vi.fn().mockResolvedValue(undefined),
-      disconnect: vi.fn(async (name) => {
-        disconnectCalls.push(name);
-      }),
-    };
-
-    registerSkill({
-      id: "broken-skill",
-      mcpServers: [{ name: "fs", command: "node", args: ["s.js"] }],
-      handlerBody: 'throw new Error("boom");',
-    });
-
-    const result = await executeTool(
-      "run_skill",
-      { skill_name: "broken-skill", input: "x" },
-      { cwd: tempDir, mcpClient: fakeMcp },
-    );
-
-    expect(result.error).toMatch(/Skill execution failed.*boom/);
-    expect(disconnectCalls).toEqual(["fs"]);
-  });
-
-  it("skips mounting when skill has no mcpServers", async () => {
+  it("blocks a legacy direct handler without importing or mounting anything", async () => {
     const fakeMcp = {
       connect: vi.fn(),
       disconnect: vi.fn(),
     };
-
-    registerSkill({ id: "plain-skill", mcpServers: [] });
+    registerSkill({
+      id: "legacy-weather",
+      mcpServers: [{ name: "weather", command: "npx" }],
+      capabilities: ["shell-exec"],
+    });
 
     const result = await executeTool(
       "run_skill",
-      { skill_name: "plain-skill", input: "x" },
+      { skill_name: "legacy-weather", input: "London" },
       { cwd: tempDir, mcpClient: fakeMcp },
     );
 
-    expect(result.success).toBe(true);
+    expect(result).toMatchObject({
+      code: "CC_SKILL_DIRECT_HANDLER_BLOCKED",
+      policy: { decision: "blocked", via: "skill-execution-boundary" },
+    });
     expect(fakeMcp.connect).not.toHaveBeenCalled();
     expect(fakeMcp.disconnect).not.toHaveBeenCalled();
+    expect(mocks.createSubAgent).not.toHaveBeenCalled();
   });
 
-  it("injects a process facade only for shell-exec skills", async () => {
+  it("runs an isolated skill as a child with read-only tools intersected with the parent ceiling", async () => {
     registerSkill({
-      id: "shell-skill",
-      capabilities: ["shell-exec"],
-      handlerBody:
-        "return { success: true, brokered: !!taskContext.processBroker };",
-    });
-    registerSkill({
-      id: "plain-skill",
-      handlerBody:
-        "return { success: true, brokered: !!taskContext.processBroker };",
-    });
-
-    const shellResult = await executeTool(
-      "run_skill",
-      { skill_name: "shell-skill", input: "x" },
-      { cwd: tempDir },
-    );
-    const plainResult = await executeTool(
-      "run_skill",
-      { skill_name: "plain-skill", input: "x" },
-      { cwd: tempDir },
-    );
-
-    expect(shellResult.brokered).toBe(true);
-    expect(plainResult.brokered).toBe(false);
-  });
-
-  it("skips mounting when mcpClient is null but still runs handler", async () => {
-    registerSkill({
-      id: "weather-skill",
-      mcpServers: [{ name: "weather", command: "npx" }],
+      id: "reviewer",
+      isolation: true,
+      body: "# Review files\nNever modify the workspace.",
+      mcpServers: [{ name: "untrusted-server", command: "node" }],
     });
 
     const result = await executeTool(
       "run_skill",
-      { skill_name: "weather-skill", input: "x" },
-      { cwd: tempDir, mcpClient: null },
+      { skill_name: "reviewer", input: "inspect src" },
+      {
+        cwd: tempDir,
+        effectiveAllowedToolNames: [
+          "run_skill",
+          "read_file",
+          "list_dir",
+          "write_file",
+        ],
+        mcpClient: { connect: vi.fn(), callTool: vi.fn() },
+      },
     );
 
-    // Handler still runs; receivedMcp false because mcpClient is null
-    expect(result.success).toBe(true);
-    expect(result.receivedMcp).toBe(false);
-    expect(result.mounted).toEqual([]);
-  });
-
-  it("returns error if mountSkillMcpServers throws (bad client)", async () => {
-    // Provide an object that has neither .connect nor validation will fail
-    // on the pre-flight inside mountSkillMcpServers.
-    const badMcp = {}; // no .connect
-
-    registerSkill({
-      id: "weather-skill",
-      mcpServers: [{ name: "weather", command: "npx" }],
+    expect(result).toMatchObject({
+      success: true,
+      isolated: true,
+      skill: "reviewer",
+      summary: "isolated:inspect src",
+      toolsUsed: ["read_file"],
     });
-
-    const result = await executeTool(
-      "run_skill",
-      { skill_name: "weather-skill", input: "x" },
-      { cwd: tempDir, mcpClient: badMcp },
-    );
-
-    expect(result.error).toMatch(/Skill MCP mount failed/);
+    expect(mocks.childRuns).toEqual(["inspect src"]);
+    expect(mocks.childConfigs).toHaveLength(1);
+    expect(mocks.childConfigs[0]).toMatchObject({
+      role: "skill-reviewer",
+      cwd: tempDir,
+      allowedTools: ["read_file", "list_dir"],
+    });
+    expect(mocks.childConfigs[0].task).toContain("# Review files");
+    expect(mocks.childConfigs[0].task).toContain("inspect src");
+    expect(mocks.childConfigs[0]).not.toHaveProperty("mcpClient");
+    expect(mocks.childConfigs[0]).not.toHaveProperty("processBroker");
   });
 
-  it("records skipped servers on partial mount failure but still runs handler", async () => {
-    const connectCalls = [];
-    const fakeMcp = {
-      connect: vi.fn(async (name) => {
-        connectCalls.push(name);
-        if (name === "bad") throw new Error("refused");
+  it("inherits parent authority objects without adding executable MCP definitions", async () => {
+    registerSkill({ id: "guarded", isolation: true });
+    const permissionRules = { evaluate: vi.fn() };
+    const hostManagedToolPolicy = {
+      tools: { read_file: { allowed: true } },
+      toolDefinitions: [
+        { type: "function", function: { name: "host_external" } },
+      ],
+    };
+    const approvalGate = vi.fn();
+    const mcpCallLedger = { begin: vi.fn() };
+    const mcpConflictScheduler = { acquire: vi.fn() };
+
+    await executeTool(
+      "run_skill",
+      { skill_name: "guarded", input: "x" },
+      {
+        cwd: tempDir,
+        permissionRules,
+        hostManagedToolPolicy,
+        approvalGate,
+        mcpCallLedger,
+        mcpConflictScheduler,
+      },
+    );
+
+    expect(mocks.childConfigs[0]).toMatchObject({
+      permissionRules,
+      approvalGate,
+      mcpCallLedger,
+      mcpConflictScheduler,
+      hostManagedToolPolicy: {
+        tools: hostManagedToolPolicy.tools,
+        toolDefinitions: [],
+      },
+    });
+  });
+
+  it("surfaces isolated child failure without falling back to the handler", async () => {
+    registerSkill({ id: "broken", isolation: true });
+    mocks.createSubAgent.mockReturnValueOnce({
+      id: "broken-child",
+      run: vi.fn(async () => {
+        throw new Error("child failed");
       }),
-      disconnect: vi.fn().mockResolvedValue(undefined),
+    });
+
+    const result = await executeTool(
+      "run_skill",
+      { skill_name: "broken", input: "x" },
+      { cwd: tempDir },
+    );
+
+    expect(result.error).toMatch(
+      /Isolated skill execution failed.*child failed/,
+    );
+  });
+
+  it("preserves the materialization security incident code", async () => {
+    registerSkill({ id: "changed", isolation: true });
+    const error = Object.assign(new Error("digest changed"), {
+      code: "CC_SKILL_DIGEST_DRIFT",
+    });
+    const skillLoader = {
+      getResolvedSkills: () => mocks.skills,
+      materializeSkill: () => {
+        throw error;
+      },
     };
 
-    registerSkill({
-      id: "partial-skill",
-      mcpServers: [
-        { name: "ok", command: "x" },
-        { name: "bad", command: "y" },
-      ],
-    });
-
     const result = await executeTool(
       "run_skill",
-      { skill_name: "partial-skill", input: "x" },
-      { cwd: tempDir, mcpClient: fakeMcp },
+      { skill_name: "changed", input: "x" },
+      { cwd: tempDir, skillLoader },
     );
 
-    expect(result.success).toBe(true);
-    expect(result.mounted).toEqual(["ok"]);
-    expect(connectCalls).toEqual(["ok", "bad"]);
-    // Only successfully-mounted servers are unmounted
-    expect(fakeMcp.disconnect).toHaveBeenCalledExactlyOnceWith("ok");
+    expect(result).toMatchObject({
+      code: "CC_SKILL_DIGEST_DRIFT",
+      policy: { decision: "blocked", via: "skill-execution-boundary" },
+    });
   });
 
-  // ─── Subagent skill capability INTERSECT (contract skillAllowlist) ────────
-  it("list_skills restricts to the contract skill allow-list", async () => {
+  it("list_skills restricts descriptors to the contract allow-list", async () => {
     registerSkill({ id: "alpha" });
     registerSkill({ id: "beta" });
     registerSkill({ id: "gamma" });
-    const all = await executeTool("list_skills", {}, { cwd: tempDir });
-    expect(all.count).toBe(3);
+
     const restricted = await executeTool(
       "list_skills",
       {},
       { cwd: tempDir, skillAllowlist: ["alpha", "gamma"] },
     );
-    expect(restricted.count).toBe(2);
-    expect(restricted.skills.map((s) => s.id).sort()).toEqual([
+
+    expect(restricted.skills.map((skill) => skill.id).sort()).toEqual([
       "alpha",
       "gamma",
     ]);
   });
 
-  it("list_skills with an empty allow-list reports a restricted-none error", async () => {
+  it("treats an empty skill allow-list as deny-all", async () => {
     registerSkill({ id: "alpha" });
-    const res = await executeTool(
+
+    const result = await executeTool(
       "list_skills",
       {},
       { cwd: tempDir, skillAllowlist: [] },
     );
-    expect(res.error).toMatch(/restricted by its contract/i);
+
+    expect(result.error).toMatch(/restricted by its contract/i);
   });
 
-  it("run_skill refuses a skill outside the allow-list, allows one inside", async () => {
+  it("does not let an allowed skill escape the controlled execution boundary", async () => {
     registerSkill({ id: "alpha" });
     registerSkill({ id: "beta" });
+
     const denied = await executeTool(
       "run_skill",
       { skill_name: "beta", input: "x" },
       { cwd: tempDir, skillAllowlist: ["alpha"] },
     );
-    expect(denied.error).toMatch(/not found/i);
     const allowed = await executeTool(
       "run_skill",
       { skill_name: "alpha", input: "x" },
       { cwd: tempDir, skillAllowlist: ["alpha"] },
     );
-    expect(allowed.success).toBe(true);
-  });
 
-  it("run_skill is unrestricted when no allow-list is set (default behavior)", async () => {
-    registerSkill({ id: "alpha" });
-    const res = await executeTool(
-      "run_skill",
-      { skill_name: "alpha", input: "x" },
-      { cwd: tempDir },
-    );
-    expect(res.success).toBe(true);
+    expect(denied.error).toMatch(/not found/i);
+    expect(allowed.code).toBe("CC_SKILL_DIRECT_HANDLER_BLOCKED");
   });
 });

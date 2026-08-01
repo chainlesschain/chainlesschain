@@ -11,6 +11,7 @@
 
 export {
   appendEvent,
+  appendEventIfHead,
   startSession,
   appendUserMessage,
   appendAssistantMessage,
@@ -21,10 +22,14 @@ export {
   appendToolResult,
   appendCompactEvent,
   readEvents,
+  findLatestEvent,
   rebuildMessages,
+  getJsonlSessionMetadata,
   listJsonlSessions,
   listSessionIds,
+  resolveSessionId,
   renameSession,
+  deleteJsonlSession,
   pruneJsonlSessions,
   forkSession,
   createBranchSession,
@@ -42,5 +47,6 @@ export {
   toIsoSafe,
   verifySession,
   verifyAllSessions,
+  repairSession,
   TRANSCRIPT_CHAIN_STATUS,
 } from "../harness/jsonl-session-store.js";

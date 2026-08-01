@@ -55,5 +55,6 @@ export {
   disposeSharedCodeIntel,
   emitToolHookLifecycle,
   emitToolBatchHookLifecycle,
+  buildSubAgentHandoffContext,
   _resetSubtreeInstructionLoaders,
 } from "../runtime/agent-core.js";

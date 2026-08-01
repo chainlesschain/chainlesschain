@@ -12,6 +12,7 @@
 import {
   appendEvent as storeAppendEvent,
   readEvents as storeReadEvents,
+  findLatestEvent as storeFindLatestEvent,
 } from "../harness/jsonl-session-store.js";
 import {
   SideEffectLedger,
@@ -24,14 +25,40 @@ export const SIDE_EFFECT_LEDGER_EVENT = "side_effect_ledger";
 export const _deps = {
   appendEvent: storeAppendEvent,
   readEvents: storeReadEvents,
+  findLatestEvent: storeFindLatestEvent,
 };
+
+function findLatestLedgerEvent(sessionId) {
+  const valid = (event) => Array.isArray(event?.data?.ops);
+  if (
+    typeof _deps.findLatestEvent === "function" &&
+    _deps.findLatestEvent !== storeFindLatestEvent
+  ) {
+    return _deps.findLatestEvent(sessionId, SIDE_EFFECT_LEDGER_EVENT, valid);
+  }
+  // Existing tests and embedders historically injected only readEvents.
+  if (_deps.readEvents !== storeReadEvents) {
+    const events = _deps.readEvents(sessionId) || [];
+    for (let index = events.length - 1; index >= 0; index -= 1) {
+      const event = events[index];
+      if (event?.type === SIDE_EFFECT_LEDGER_EVENT && valid(event))
+        return event;
+    }
+    return null;
+  }
+  return storeFindLatestEvent(sessionId, SIDE_EFFECT_LEDGER_EVENT, valid);
+}
 
 export class SideEffectLedgerPersistenceError extends Error {
   constructor(operation, sessionId, cause) {
-    const detail = cause?.message || String(cause || "unknown persistence error");
-    super(`Side-effect ledger ${operation} failed for ${sessionId}: ${detail}`, {
-      cause,
-    });
+    const detail =
+      cause?.message || String(cause || "unknown persistence error");
+    super(
+      `Side-effect ledger ${operation} failed for ${sessionId}: ${detail}`,
+      {
+        cause,
+      },
+    );
     this.name = "SideEffectLedgerPersistenceError";
     this.code =
       operation === "read"
@@ -91,9 +118,9 @@ export function persistSideEffectLedger(sessionId, ledger, opts = {}) {
  */
 export function loadSideEffectLedger(sessionId, opts = {}) {
   const failIfUnavailable = opts.failIfUnavailable !== false;
-  let events = [];
+  let event = null;
   try {
-    events = _deps.readEvents(sessionId) || [];
+    event = findLatestLedgerEvent(sessionId);
   } catch (error) {
     const fallback = persistenceFailure(
       "read",
@@ -103,25 +130,17 @@ export function loadSideEffectLedger(sessionId, opts = {}) {
     );
     if (fallback === false) return new SideEffectLedger(opts);
   }
-  for (let i = events.length - 1; i >= 0; i--) {
-    const e = events[i];
-    if (
-      e &&
-      e.type === SIDE_EFFECT_LEDGER_EVENT &&
-      e.data &&
-      Array.isArray(e.data.ops)
-    ) {
-      try {
-        return SideEffectLedger.fromJSON(e.data, opts);
-      } catch (error) {
-        const fallback = persistenceFailure(
-          "read",
-          sessionId || "<missing-session>",
-          error,
-          failIfUnavailable,
-        );
-        if (fallback === false) return new SideEffectLedger(opts);
-      }
+  if (event) {
+    try {
+      return SideEffectLedger.fromJSON(event.data, opts);
+    } catch (error) {
+      const fallback = persistenceFailure(
+        "read",
+        sessionId || "<missing-session>",
+        error,
+        failIfUnavailable,
+      );
+      if (fallback === false) return new SideEffectLedger(opts);
     }
   }
   return new SideEffectLedger(opts);

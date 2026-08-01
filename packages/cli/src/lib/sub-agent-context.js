@@ -183,6 +183,8 @@ export class SubAgentContext {
         ? options.externalToolExecutors
         : {};
     this._mcpClient = options.mcpClient || null;
+    this._mcpCallLedger = options.mcpCallLedger || null;
+    this._mcpConflictScheduler = options.mcpConflictScheduler || null;
 
     // Inherited settings hooks (Pre/PostToolUse) for this child loop. null =
     // no hooks (the spawn default). The spawn path passes the parent's hooks
@@ -423,6 +425,12 @@ export class SubAgentContext {
     }
     if (this._mcpClient) {
       options.mcpClient = this._mcpClient;
+    }
+    if (this._mcpCallLedger) {
+      options.mcpCallLedger = this._mcpCallLedger;
+    }
+    if (this._mcpConflictScheduler) {
+      options.mcpConflictScheduler = this._mcpConflictScheduler;
     }
     // Inherited Pre/PostToolUse hooks (spawn passes the parent's, filtered by
     // the contract's `hooks` allow-list). Only set when non-null so a plain

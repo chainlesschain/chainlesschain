@@ -27,6 +27,7 @@ describe("coding-agent managed tool policy", () => {
         name: DEFAULT_ALLOWED_MANAGED_TOOL_NAMES[0],
         enabled: 1,
         risk_level: 1,
+        is_read_only: true,
       }),
     ).toMatchObject({
       allowed: true,
@@ -34,6 +35,14 @@ describe("coding-agent managed tool policy", () => {
       riskLevel: "low",
       isReadOnly: true,
     });
+
+    expect(
+      resolveManagedToolPolicy({
+        name: DEFAULT_ALLOWED_MANAGED_TOOL_NAMES[0],
+        enabled: 1,
+        risk_level: 1,
+      }),
+    ).toMatchObject({ riskLevel: "low", isReadOnly: false });
 
     expect(
       resolveManagedToolPolicy(

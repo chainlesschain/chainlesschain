@@ -20,6 +20,7 @@
  * @module cowork-mcp-tools
  */
 import { validateMcpServerConfig } from "./skill-mcp.js";
+import { mcpEffectDescriptorFields } from "./mcp-effect-contract.js";
 
 export const _deps = {
   importMcpClient: async () => {
@@ -64,6 +65,10 @@ export function toAgentTool(serverName, tool) {
       source: "cowork-template-mcp",
       serverName,
       originalName: tool.name,
+      ...mcpEffectDescriptorFields(tool, {
+        sourceTrusted: false,
+        provenance: `cowork-template:${serverName}`,
+      }),
     },
     executor: {
       kind: "mcp",

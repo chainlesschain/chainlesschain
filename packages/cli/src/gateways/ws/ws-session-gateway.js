@@ -24,7 +24,6 @@ import {
   createTrustedMcpServerMap,
   resolveMcpServerPolicy,
   normalizeRiskLevel,
-  normalizeBoolean,
   selectHigherRiskLevel,
 } from "../../runtime/coding-agent-managed-tool-policy.cjs";
 import {
@@ -49,6 +48,7 @@ import {
   registerHostHooksV2Workspace,
   releaseRegisteredHostHooksV2Workspace,
 } from "../../lib/hooks-v2-workspace-context.js";
+import { mcpEffectDescriptorFields } from "../../lib/mcp-effect-contract.js";
 import {
   appendWsSessionStateEvent,
   createWsSessionState,
@@ -271,14 +271,15 @@ export class WSSessionManager {
             type: "object",
             properties: {},
           };
+        const effectFields = mcpEffectDescriptorFields(mcpTool, {
+          sourceTrusted: serverPolicy.trusted === true,
+          provenance: `desktop-mcp-registry:${serverName}`,
+        });
         const riskLevel = selectHigherRiskLevel(
           serverPolicy.securityLevel,
           normalizeRiskLevel(mcpTool?.risk_level, null),
+          effectFields.riskLevel,
         );
-        const isReadOnly =
-          normalizeBoolean(mcpTool?.isReadOnly, false) ||
-          normalizeBoolean(mcpTool?.is_read_only, false) ||
-          riskLevel === "low";
 
         let toolName = `mcp_${serverName}_${mcpTool?.name || "tool"}`;
         if (seenNames.has(toolName)) {
@@ -296,7 +297,7 @@ export class WSSessionManager {
           name: toolName,
           description: mcpTool?.description || `MCP tool from ${serverName}.`,
           inputSchema: parsedSchema,
-          isReadOnly,
+          ...effectFields,
           riskLevel,
           source: `mcp:${serverName}`,
           mcpMetadata: {

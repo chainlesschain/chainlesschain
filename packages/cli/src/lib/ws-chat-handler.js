@@ -19,6 +19,15 @@ export class WSChatHandler {
     this._processing = false;
   }
 
+  _recordSessionState(type, payload = {}) {
+    if (typeof this.session?._recordSessionStateEvent !== "function") return;
+    try {
+      this.session._recordSessionStateEvent(type, payload);
+    } catch (_err) {
+      // Optional recovery persistence must not break a live chat stream.
+    }
+  }
+
   /**
    * Handle a user message — stream the response.
    *
@@ -36,10 +45,16 @@ export class WSChatHandler {
     }
 
     this._processing = true;
+    let runRecorded = false;
 
     try {
       const { session } = this;
       session.messages.push({ role: "user", content: userMessage });
+      this._recordSessionState("run.started", {
+        requestId: requestId || null,
+        startedAt: new Date().toISOString(),
+      });
+      runRecorded = true;
 
       const options = {
         provider: session.provider,
@@ -78,6 +93,12 @@ export class WSChatHandler {
         message: err.message,
       });
     } finally {
+      if (runRecorded) {
+        this._recordSessionState("run.settled", {
+          requestId: requestId || null,
+          settledAt: new Date().toISOString(),
+        });
+      }
       this._processing = false;
     }
   }

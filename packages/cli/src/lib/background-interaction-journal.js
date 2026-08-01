@@ -11,6 +11,7 @@ import { createHash } from "node:crypto";
 import {
   appendEvent as storeAppendEvent,
   readEvents as storeReadEvents,
+  findLatestEvent as storeFindLatestEvent,
 } from "../harness/jsonl-session-store.js";
 import {
   normalizeInteractionBinding,
@@ -27,7 +28,40 @@ const TERMINAL_STATUSES = new Set(["resolved", "rejected", "cancelled"]);
 export const _deps = {
   appendEvent: storeAppendEvent,
   readEvents: storeReadEvents,
+  findLatestEvent: storeFindLatestEvent,
 };
+
+function findLatestJournalEvent(sessionId, backgroundAgentId) {
+  const valid = (event) => event?.data?.backgroundAgentId === backgroundAgentId;
+  if (
+    typeof _deps.findLatestEvent === "function" &&
+    _deps.findLatestEvent !== storeFindLatestEvent
+  ) {
+    return _deps.findLatestEvent(
+      sessionId,
+      BACKGROUND_INTERACTION_JOURNAL_EVENT,
+      valid,
+    );
+  }
+  if (_deps.readEvents !== storeReadEvents) {
+    const events = _deps.readEvents(sessionId) || [];
+    for (let index = events.length - 1; index >= 0; index -= 1) {
+      const event = events[index];
+      if (
+        event?.type === BACKGROUND_INTERACTION_JOURNAL_EVENT &&
+        valid(event)
+      ) {
+        return event;
+      }
+    }
+    return null;
+  }
+  return storeFindLatestEvent(
+    sessionId,
+    BACKGROUND_INTERACTION_JOURNAL_EVENT,
+    valid,
+  );
+}
 
 function journalError(message, code, details = {}) {
   const error = new Error(message);
@@ -316,15 +350,9 @@ export function loadBackgroundInteractionJournal(
     if (!sessionId || !backgroundAgentId) {
       throw new TypeError("sessionId and backgroundAgentId are required");
     }
-    const events = _deps.readEvents(sessionId) || [];
-    for (let index = events.length - 1; index >= 0; index--) {
-      const event = events[index];
-      if (
-        event?.type === BACKGROUND_INTERACTION_JOURNAL_EVENT &&
-        event.data?.backgroundAgentId === backgroundAgentId
-      ) {
-        return BackgroundInteractionJournal.fromJSON(event.data, options);
-      }
+    const event = findLatestJournalEvent(sessionId, backgroundAgentId);
+    if (event) {
+      return BackgroundInteractionJournal.fromJSON(event.data, options);
     }
     return new BackgroundInteractionJournal({
       backgroundAgentId,

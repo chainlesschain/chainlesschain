@@ -91,6 +91,7 @@ const {
   agentLoop,
   MAX_SUB_AGENT_DEPTH,
   MAX_SUB_AGENTS_PER_RUN,
+  buildSubAgentHandoffContext,
   tokenizeShellWords,
   _gitProcessDeps,
 } = await import("../../src/lib/agent-core.js");
@@ -2301,6 +2302,39 @@ describe("spawn_sub_agent nesting caps", () => {
 });
 
 describe("spawn_sub_agent auto-condensation", () => {
+  it("uses the semantic handoff schema instead of lossy recent-message slices", () => {
+    const context = buildSubAgentHandoffContext([
+      {
+        role: "user",
+        content: "Fix the checkout race without widening policy",
+      },
+      {
+        role: "assistant",
+        content:
+          "Decision: use revision CAS. Changed packages/cli/src/lib/store.js. Tests passed with vitest. Next step: verify replay.",
+      },
+    ]);
+
+    expect(context).toMatch(/^\[Structured parent handoff v1\]\n/);
+    const handoff = JSON.parse(context.slice(context.indexOf("{")).trim());
+    expect(Object.keys(handoff)).toEqual([
+      "objective",
+      "constraints",
+      "keyDecisions",
+      "changedFiles",
+      "tests",
+      "unresolvedSideEffects",
+      "checkpoints",
+      "blockers",
+      "nextSteps",
+    ]);
+    expect(handoff.objective).toContain("Fix the checkout race");
+    expect(handoff.keyDecisions).toHaveLength(1);
+    expect(handoff.changedFiles).toContain("packages/cli/src/lib/store.js");
+    expect(handoff.tests).toHaveLength(1);
+    expect(handoff.nextSteps).toHaveLength(1);
+  });
+
   it("auto-condenses parent messages when no explicit context provided", async () => {
     // Mock LLM to return a response
     globalThis.fetch = vi.fn().mockResolvedValue({

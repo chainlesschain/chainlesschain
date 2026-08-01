@@ -17,16 +17,19 @@
 import { describe, it, expect, vi } from "vitest";
 import { runAgentHeadlessStream } from "../../src/runtime/headless-stream.js";
 import { SideEffectLedger } from "../../src/lib/side-effect-ledger.js";
+import { MCP_CALL_LEDGER_EVENT } from "../../src/lib/mcp-call-ledger-store.js";
 
 function harness({ over = {}, options = {}, loop } = {}) {
   const lines = [];
   const seenTurns = [];
+  const seenLoopOptions = [];
   const agentLoop =
     loop ||
-    async function* (messages) {
+    async function* (messages, loopOptions) {
       seenTurns.push(
         messages.map((m) => ({ role: m.role, content: m.content })),
       );
+      seenLoopOptions.push(loopOptions);
       yield { type: "response-complete", content: "ok-reply" };
       yield { type: "run-ended", reason: "complete" };
     };
@@ -57,7 +60,7 @@ function harness({ over = {}, options = {}, loop } = {}) {
       .trimEnd()
       .split("\n")
       .map((l) => JSON.parse(l));
-  return { run, events, seenTurns };
+  return { run, events, seenTurns, seenLoopOptions };
 }
 
 /** A turn-capturing loop that also exercises one tool round-trip. */
@@ -79,6 +82,65 @@ function toolLoop(
 }
 
 describe("stream side-effect ledger — resume reconcile + recovery notice", () => {
+  it("surfaces started-only MCP calls and wires a durable session sink", async () => {
+    const mcpRecord = {
+      schemaVersion: 1,
+      ledgerId: "mcp-old-1",
+      sessionId: "chat-abc",
+      turnId: "old-turn",
+      toolName: "mcp__repo__publish",
+      serverName: "repo",
+      status: "started",
+      effectContract: { effect: "write" },
+    };
+    const appendEvent = vi.fn(() => true);
+    const h = harness({
+      options: { sessionId: "chat-abc" },
+      over: {
+        sessionExists: () => true,
+        readEvents: () => [
+          {
+            type: MCP_CALL_LEDGER_EVENT,
+            data: {
+              schemaVersion: 1,
+              phase: "started",
+              record: mcpRecord,
+            },
+          },
+        ],
+        rebuildMessages: () => [],
+        appendEvent,
+      },
+    });
+
+    await h.run();
+
+    expect(
+      h.events().find((event) => event.subtype === "mcp_call_recovery"),
+    ).toMatchObject({
+      count: 1,
+      incidents: 0,
+      items: [
+        {
+          ledgerId: "mcp-old-1",
+          server: "repo",
+          tool: "mcp__repo__publish",
+          effect: "write",
+        },
+      ],
+    });
+    expect(h.seenTurns[0][1].content).toContain("Do NOT automatically retry");
+    expect(h.seenLoopOptions[0].mcpLedgerSink).toBeTypeOf("function");
+    await h.seenLoopOptions[0].mcpLedgerSink(mcpRecord, {
+      phase: "started",
+    });
+    expect(appendEvent).toHaveBeenCalledWith(
+      "chat-abc",
+      MCP_CALL_LEDGER_EVENT,
+      expect.objectContaining({ phase: "started", record: mcpRecord }),
+    );
+  });
+
   it("resume with an interrupted (started) op emits the raw recovery line and the system note", async () => {
     const ledger = new SideEffectLedger();
     ledger
