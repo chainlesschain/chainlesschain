@@ -1,0 +1,344 @@
+/**
+ * Small integration controller for the REPL's prompt-side interaction tools.
+ * It keeps slash/key dispatch outside the large agent driver and exposes a
+ * narrow seam that readline, IDE hosts, and tests can share.
+ */
+import { buildSessionRecap, renderSessionRecap } from "./session-recap.js";
+import { PromptStash, runPromptStashCommand } from "./prompt-stash.js";
+import { editPromptInExternalEditor } from "./prompt-editor.js";
+import {
+  PromptSuggestionController,
+  renderPromptSuggestions,
+  resolvePromptSuggestionsEnabled,
+  runPromptSuggestionsCommand,
+} from "./prompt-suggestions.js";
+import {
+  matchReplKeybinding,
+  validateReplKeybindings,
+} from "./repl-keybindings.js";
+import {
+  detectClipboardImageCapability,
+  readClipboardImageChip,
+} from "./clipboard-image.js";
+import { layoutTerminalText } from "./terminal-layout.js";
+
+function commandArgs(line, command) {
+  const text = String(line || "");
+  if (text === command) return "";
+  return text.startsWith(`${command} `) ? text.slice(command.length + 1) : null;
+}
+
+function safeErrorText(value) {
+  return String(value || "Interaction failed")
+    .split(/\r?\n/)
+    .map((line) => line.replace(/[\p{Cc}\p{Cf}]+/gu, " ").trimEnd())
+    .join("\n");
+}
+
+export const PROMPT_INTERACTION_SLASH_COMMANDS = Object.freeze([
+  Object.freeze({
+    name: "/recap",
+    description: "Show a lightweight recap from the session index",
+  }),
+  Object.freeze({
+    name: "/stash",
+    description: "Stash/list/pop/clear draft prompts",
+  }),
+  Object.freeze({
+    name: "/editor",
+    description: "Edit a draft prompt in an external editor",
+  }),
+  Object.freeze({
+    name: "/suggestions",
+    description: "Control background prompt suggestions",
+  }),
+  Object.freeze({
+    name: "/paste-image",
+    description: "Attach a clipboard image when the terminal host supports it",
+  }),
+]);
+
+/** Register the interaction surface in the shared slash-command registry. */
+export function registerPromptInteractionCommands(registry, controller) {
+  if (typeof registry?.register !== "function") {
+    throw new TypeError("a slash command registry is required");
+  }
+  if (typeof controller?.handleSlash !== "function") {
+    throw new TypeError("a prompt interaction controller is required");
+  }
+  for (const command of PROMPT_INTERACTION_SLASH_COMMANDS) {
+    registry.register(command.name, {
+      description: command.description,
+      handler: (args) => {
+        const suffix = String(args || "").trim();
+        return controller.handleSlash(
+          `${command.name}${suffix ? ` ${suffix}` : ""}`,
+        );
+      },
+    });
+  }
+  return PROMPT_INTERACTION_SLASH_COMMANDS.map((command) => command.name);
+}
+
+export class PromptInteractionController {
+  constructor(options = {}) {
+    this.readline = options.readline || null;
+    this.write =
+      options.write || ((text) => process.stdout.write(String(text)));
+    this.writeError =
+      options.writeError || ((text) => process.stderr.write(String(text)));
+    this.refresh =
+      options.refresh ||
+      (() => {
+        this.readline?._refreshLine?.();
+      });
+    this.getSessionId =
+      typeof options.getSessionId === "function"
+        ? options.getSessionId
+        : () => options.sessionId || null;
+    this.screenReader = options.screenReader === true;
+    this.getColumns =
+      typeof options.getColumns === "function"
+        ? options.getColumns
+        : () => this.readline?.output?.columns || process.stdout.columns || 80;
+    this.stash = options.stash || new PromptStash(options.stashOptions);
+    this.editPrompt = options.editPrompt || editPromptInExternalEditor;
+    this.buildRecap = options.buildRecap || buildSessionRecap;
+    this.renderRecap = options.renderRecap || renderSessionRecap;
+    this.persistSuggestionEnabled = options.persistSuggestionEnabled;
+    this.clipboardBinding = options.clipboardBinding || null;
+    this.clipboardImageChips = [];
+
+    const validated = validateReplKeybindings(options.keybindings || {});
+    this.keybindingDiagnostics = validated.errors.slice();
+    this.keybindings = validated.valid
+      ? validated
+      : validateReplKeybindings({});
+
+    const enabled = resolvePromptSuggestionsEnabled({
+      config: options.config || {},
+      env: options.env || process.env,
+    });
+    this.suggestions =
+      options.suggestionController ||
+      new PromptSuggestionController({
+        enabled,
+        generate: options.generateSuggestions,
+        debounceMs: options.suggestionDebounceMs ?? 120,
+        onUpdate: (suggestions) => this._showSuggestionUpdate(suggestions),
+      });
+  }
+
+  _line() {
+    return String(this.readline?.line || "");
+  }
+
+  _replaceLine(value) {
+    if (!this.readline) return false;
+    const text = String(value ?? "");
+    this.readline.line = text;
+    this.readline.cursor = text.length;
+    this.refresh();
+    return true;
+  }
+
+  _print(message, { error = false, refresh = false } = {}) {
+    if (message) {
+      const rawContent = error ? safeErrorText(message) : String(message);
+      const content = layoutTerminalText(rawContent, {
+        columns: this.getColumns(),
+        screenReader: this.screenReader,
+      });
+      const output = `${content.replace(/\n?$/, "\n")}`;
+      (error ? this.writeError : this.write)(output);
+    }
+    if (refresh) this.refresh();
+  }
+
+  _showSuggestionUpdate(suggestions) {
+    if (this.screenReader || !suggestions.length) return;
+    this._print(`\n${renderPromptSuggestions(suggestions)}`, { refresh: true });
+  }
+
+  diagnostics() {
+    return {
+      keybindingErrors: this.keybindingDiagnostics.slice(),
+      clipboardImage: detectClipboardImageCapability(this.clipboardBinding),
+      suggestions: this.suggestions.status(),
+    };
+  }
+
+  /** Returns `{ handled }`; popped/edited prompts stay editable, never submit. */
+  async handleSlash(line) {
+    try {
+      return await this._handleSlash(line);
+    } catch (error) {
+      const message = `Prompt interaction failed: ${safeErrorText(error.message)}`;
+      this._print(message, { error: true });
+      return { handled: true, ok: false, action: "error", message };
+    }
+  }
+
+  async _handleSlash(line) {
+    const recapArgs = commandArgs(line, "/recap");
+    if (recapArgs !== null) {
+      const sessionId = recapArgs.trim() || this.getSessionId();
+      const recap = this.buildRecap(sessionId || "");
+      this._print(this.renderRecap(recap));
+      return { handled: true, action: "recap", recap };
+    }
+
+    const stashArgs = commandArgs(line, "/stash");
+    if (stashArgs !== null) {
+      const result = runPromptStashCommand(stashArgs, { stash: this.stash });
+      if (result.prompt != null) this._replaceLine(result.prompt);
+      this._print(result.message, { error: !result.ok });
+      return { handled: true, ...result };
+    }
+
+    let editorArgs = commandArgs(line, "/editor");
+    if (editorArgs === null) editorArgs = commandArgs(line, "/edit-prompt");
+    if (editorArgs !== null) {
+      const seed = editorArgs || this._line();
+      const result = this.editPrompt(seed);
+      if (result.ok) {
+        this._replaceLine(result.content);
+        this._print(
+          result.changed
+            ? "Edited prompt restored to the input buffer."
+            : "Editor closed; prompt was unchanged.",
+        );
+      } else {
+        this._print(result.reason, { error: true });
+      }
+      return { handled: true, action: "editor", ...result };
+    }
+
+    const suggestionArgs = commandArgs(line, "/suggestions");
+    if (suggestionArgs !== null) {
+      const result = runPromptSuggestionsCommand(suggestionArgs, {
+        controller: this.suggestions,
+        persistEnabled: this.persistSuggestionEnabled,
+        context: optionsContext(this.getSessionId()),
+      });
+      this._print(result.message, { error: !result.ok });
+      return { handled: true, ...result };
+    }
+
+    const imageArgs = commandArgs(line, "/paste-image");
+    if (imageArgs !== null) {
+      if (imageArgs.trim()) {
+        const result = {
+          ok: false,
+          reason: "Usage: /paste-image (the command takes no arguments)",
+        };
+        this._print(result.reason, { error: true });
+        return { handled: true, action: "paste-image", ...result };
+      }
+      const result = await readClipboardImageChip(this.clipboardBinding);
+      if (result.ok) {
+        this.clipboardImageChips.push(result.chip);
+        this._print(
+          `Image attached from clipboard (${result.mediaType}, ${result.bytes} bytes).`,
+        );
+      } else {
+        this._print(result.reason, { error: true });
+      }
+      return { handled: true, action: "paste-image", ...result };
+    }
+
+    return { handled: false };
+  }
+
+  /** Handle only declared custom chords. Returns true when consumed. */
+  handleKeypress(input, key) {
+    try {
+      return this._handleKeypress(input, key);
+    } catch (error) {
+      this._print(
+        `Prompt interaction failed: ${safeErrorText(error.message)}`,
+        {
+          error: true,
+          refresh: true,
+        },
+      );
+      return true;
+    }
+  }
+
+  _handleKeypress(input, key) {
+    const action = matchReplKeybinding(this.keybindings, input, key);
+    if (!action) return false;
+    if (action === "prompt.edit") {
+      const result = this.editPrompt(this._line());
+      if (result.ok) this._replaceLine(result.content);
+      else this._print(result.reason, { error: true, refresh: true });
+      return true;
+    }
+    if (action === "prompt.stash") {
+      const current = this._line();
+      if (!current.trim()) {
+        this._print("Nothing to stash.", { error: true, refresh: true });
+        return true;
+      }
+      const result = runPromptStashCommand("", {
+        stash: this.stash,
+        currentPrompt: current,
+      });
+      this._replaceLine("");
+      this._print(result.message, { refresh: true });
+      return true;
+    }
+    if (action === "prompt.pop") {
+      const result = runPromptStashCommand("pop", { stash: this.stash });
+      if (result.prompt != null) this._replaceLine(result.prompt);
+      this._print(result.message, { error: !result.ok, refresh: true });
+      return true;
+    }
+    if (action === "session.recap") {
+      const recap = this.buildRecap(this.getSessionId() || "");
+      this._print(this.renderRecap(recap), { refresh: true });
+      return true;
+    }
+    if (action === "suggestions.toggle") {
+      const enabled = !this.suggestions.status().enabled;
+      try {
+        this.persistSuggestionEnabled?.(enabled);
+      } catch (error) {
+        this._print(`Could not update prompt suggestions: ${error.message}`, {
+          error: true,
+          refresh: true,
+        });
+        return true;
+      }
+      this.suggestions.setEnabled(enabled);
+      this._print(`Prompt suggestions ${enabled ? "enabled" : "disabled"}.`, {
+        refresh: true,
+      });
+      return true;
+    }
+    return false;
+  }
+
+  scheduleSuggestions(context = {}) {
+    return this.suggestions.schedule({
+      ...context,
+      sessionId: context.sessionId || this.getSessionId(),
+    });
+  }
+
+  takeClipboardImageChips() {
+    const chips = this.clipboardImageChips.slice();
+    this.clipboardImageChips.length = 0;
+    return chips;
+  }
+
+  dispose() {
+    this.suggestions.dispose();
+    this.clipboardImageChips.length = 0;
+  }
+}
+
+function optionsContext(sessionId) {
+  return { sessionId: sessionId || null };
+}
