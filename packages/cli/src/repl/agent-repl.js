@@ -61,7 +61,7 @@ import {
   formatMcpLedgerRecoveryNotice,
   loadMcpLedgerRecovery,
 } from "../lib/mcp-call-ledger-store.js";
-import { createRecoveryGuardedMcpCallLedger } from "../lib/mcp-ledger-recovery-admission.js";
+import { createMcpHostRecoveryRuntime } from "../lib/mcp-host-recovery-runtime.js";
 import { CLISkillLoader } from "../lib/skill-loader.js";
 import { storeMemory, consolidateMemory } from "../lib/hierarchical-memory.js";
 import { CLIContextEngineering } from "../lib/cli-context-engineering.js";
@@ -618,6 +618,97 @@ export function commitPreparedReplJsonlResume(candidate, commit) {
   if (!candidate?.ok || typeof commit !== "function") return false;
   commit(candidate);
   return true;
+}
+
+/**
+ * Own the single recovery runtime for the active REPL session/client pair.
+ * Session switches are prepared without mutating the active runtime, then
+ * committed only after the transcript switch succeeds.
+ */
+export function createReplMcpHostRuntimeManager(dependencies = {}) {
+  const createRuntime =
+    dependencies.createMcpHostRecoveryRuntime || createMcpHostRecoveryRuntime;
+  const createLedgerSink =
+    dependencies.createSessionMcpLedgerSink || createSessionMcpLedgerSink;
+  const appendLedgerEvent =
+    dependencies.appendAuthorityEvent || appendAuthorityEvent;
+  const candidates = new WeakSet();
+  let current = null;
+
+  const prepare = ({
+    adhocMcp = null,
+    bundleMcpClient = null,
+    sessionId = null,
+    persistent = false,
+    recovery = null,
+    recoveryError = null,
+  } = {}) => {
+    const bundle = adhocMcp?.mcpClient
+      ? adhocMcp
+      : bundleMcpClient
+        ? { mcpClient: bundleMcpClient }
+        : null;
+    const rawClient = bundle?.mcpClient || null;
+    const persistLedger = Boolean(persistent && sessionId);
+
+    if (
+      current &&
+      current.rawClient === rawClient &&
+      current.sessionId === sessionId &&
+      current.persistent === persistLedger &&
+      current.recovery === recovery &&
+      current.recoveryError === recoveryError
+    ) {
+      return current;
+    }
+
+    const sink = persistLedger
+      ? createLedgerSink(sessionId, { appendEvent: appendLedgerEvent })
+      : null;
+    const runtime = createRuntime({
+      bundle,
+      rawClient,
+      sessionId,
+      sink,
+      recovery,
+      recoveryError,
+    });
+    const candidate = Object.freeze({
+      runtime,
+      rawClient,
+      hostMcp: bundle
+        ? Object.freeze({
+            ...bundle,
+            mcpClient: runtime.client,
+          })
+        : null,
+      sessionId,
+      persistent: persistLedger,
+      recovery,
+      recoveryError,
+    });
+    candidates.add(candidate);
+    return candidate;
+  };
+
+  const commit = (candidate) => {
+    if (!candidate || !candidates.has(candidate)) {
+      throw new TypeError("MCP host runtime candidate is invalid");
+    }
+    current = candidate;
+    return current;
+  };
+
+  return Object.freeze({
+    prepare,
+    commit,
+    activate(options) {
+      return commit(prepare(options));
+    },
+    get current() {
+      return current;
+    },
+  });
 }
 
 /**
@@ -1635,6 +1726,31 @@ async function startAgentReplInWorkspace(options = {}) {
   }
   _persistReplContextSources();
 
+  const _mcpHostRuntimeManager = createReplMcpHostRuntimeManager();
+  const _mcpRuntimeInputs = ({
+    targetSessionId = sessionId,
+    recovery = _mcpLedgerRecovery,
+    recoveryError = _mcpLedgerRecoveryError,
+  } = {}) => ({
+    adhocMcp: _adhocMcp,
+    bundleMcpClient: _bundleMcpClient,
+    sessionId: targetSessionId,
+    persistent: useJsonl && Boolean(targetSessionId),
+    recovery,
+    recoveryError,
+  });
+  const _activateMcpHostRuntime = () =>
+    _mcpHostRuntimeManager.activate(_mcpRuntimeInputs());
+  const _prepareMcpHostRuntime = (targetSessionId, mcpCandidate = {}) =>
+    _mcpHostRuntimeManager.prepare(
+      _mcpRuntimeInputs({
+        targetSessionId,
+        recovery: mcpCandidate.recovery ?? null,
+        recoveryError: mcpCandidate.recoveryError ?? null,
+      }),
+    );
+  const _getReplHostMcp = () => _activateMcpHostRuntime().hostMcp;
+
   // Seed connected MCP servers with the startup workspace roots when the session
   // began with extra `--add-dir` roots — otherwise `roots/list` would only ever
   // return the cwd until the first mid-session /add-dir. No-op (byte-unchanged)
@@ -1813,6 +1929,11 @@ async function startAgentReplInWorkspace(options = {}) {
       /* non-critical */
     }
   }
+
+  // Create the active session-scoped runtime only after startup recovery has
+  // been loaded. Subsequent turns reuse this controller and ledger so a
+  // settlement-failure latch cannot be cleared by starting another turn.
+  _activateMcpHostRuntime();
 
   // Advisor is independent from the main agent loop: it gets a redacted
   // transcript snapshot and ZERO tools. Compact call/outcome metadata shares
@@ -2094,12 +2215,13 @@ async function startAgentReplInWorkspace(options = {}) {
       }
     },
     getIdeOpenFiles: async () => {
-      const exec = _adhocMcp?.externalToolExecutors?.mcp__ide__getOpenEditors;
-      if (!exec || exec.kind !== "mcp" || !_adhocMcp?.mcpClient?.callTool) {
+      const hostMcp = _getReplHostMcp();
+      const exec = hostMcp?.externalToolExecutors?.mcp__ide__getOpenEditors;
+      if (!exec || exec.kind !== "mcp" || !hostMcp?.mcpClient?.callTool) {
         return [];
       }
       const { parseToolResultJson } = await import("../lib/ide-context.js");
-      const res = await _adhocMcp.mcpClient.callTool(
+      const res = await hostMcp.mcpClient.callTool(
         exec.serverName,
         exec.toolName,
         {},
@@ -4111,6 +4233,10 @@ async function startAgentReplInWorkspace(options = {}) {
             }
             const prepared = _prepareJsonlResumeCandidate(resumeId);
             if (!prepared.ok) throw prepared.error;
+            const preparedMcpRuntime = _prepareMcpHostRuntime(
+              prepared.sessionId,
+              prepared.mcp,
+            );
             const committed = commitPreparedReplJsonlResume(
               prepared,
               (candidate) => {
@@ -4136,6 +4262,7 @@ async function startAgentReplInWorkspace(options = {}) {
                 // context swap.
                 _checkpointMarks.length = 0;
                 _clearedConversation = null;
+                _mcpHostRuntimeManager.commit(preparedMcpRuntime);
               },
             );
             if (!committed) {
@@ -4155,6 +4282,10 @@ async function startAgentReplInWorkspace(options = {}) {
                 typeof existing.messages === "string"
                   ? JSON.parse(existing.messages)
                   : existing.messages;
+              const preparedMcpRuntime = _prepareMcpHostRuntime(existing.id, {
+                recovery: null,
+                recoveryError: null,
+              });
               messages.length = 1; // keep system prompt
               messages.push(...parsed.filter((m) => m.role !== "system"));
               _sanitizeRolesNextTurn =
@@ -4167,6 +4298,7 @@ async function startAgentReplInWorkspace(options = {}) {
               // Drop the prior session's checkpoint marks (see JSONL branch).
               _checkpointMarks.length = 0;
               _clearedConversation = null; // stash belongs to the swapped-out session
+              _mcpHostRuntimeManager.commit(preparedMcpRuntime);
               logger.info(
                 `Resumed session ${sessionId} (${parsed.length} messages)`,
               );
@@ -5098,7 +5230,7 @@ async function startAgentReplInWorkspace(options = {}) {
 
     // `/mcp` — overview of connected MCP servers' resources + prompts.
     if (trimmed === "/mcp" || trimmed.startsWith("/mcp ")) {
-      const mcpClient = _adhocMcp?.mcpClient || _bundleMcpClient;
+      const mcpClient = _getReplHostMcp()?.mcpClient;
       logger.log(renderMcpSurface(mcpClient));
       prompt();
       return;
@@ -5542,7 +5674,7 @@ async function startAgentReplInWorkspace(options = {}) {
       try {
         const expanded = await expandMcpPrompt(
           promptText,
-          _adhocMcp?.mcpClient || _bundleMcpClient,
+          _getReplHostMcp()?.mcpClient,
         );
         if (expanded != null) {
           promptText = expanded;
@@ -5765,11 +5897,12 @@ async function startAgentReplInWorkspace(options = {}) {
     try {
       const { buildIdePromptContext, expandIdeMentions } =
         await import("../lib/ide-context.js");
-      const ideCtx = await buildIdePromptContext(_adhocMcp);
+      const hostMcp = _getReplHostMcp();
+      const ideCtx = await buildIdePromptContext(hostMcp);
       if (ideCtx) userContent += `\n\n${ideCtx}`;
       // Explicit @selection / @diagnostics mentions (Claude-Code parity);
       // scan the user's original prompt, append the expansion ephemerally.
-      const mentioned = await expandIdeMentions(effectivePrompt, _adhocMcp);
+      const mentioned = await expandIdeMentions(effectivePrompt, hostMcp);
       for (const w of mentioned.warnings) {
         logger.info(chalk.yellow(`[@ide] ${w}`));
       }
@@ -6034,6 +6167,8 @@ async function startAgentReplInWorkspace(options = {}) {
           await import("../lib/async-hook-supervisor.js");
         _asyncHookSupervisor = new AsyncHookSupervisor({ persistStats: true });
       }
+      const activeMcpRuntime = _activateMcpHostRuntime();
+      const activeRawMcpClient = activeMcpRuntime.rawClient || undefined;
       const {
         content: response,
         usageEvents,
@@ -6138,20 +6273,14 @@ async function startAgentReplInWorkspace(options = {}) {
         interactiveApproval: true,
         // MCP: --mcp-config (ad-hoc) wins; bundle MCP is the fallback. The 3
         // tool channels expose --mcp-config servers' tools to the LLM directly.
-        mcpClient: _adhocMcp?.mcpClient || _bundleMcpClient || undefined,
+        mcpClient: activeRawMcpClient,
+        mcpHostClient: activeMcpRuntime.runtime.client,
         extraToolDefinitions: _adhocMcp?.extraToolDefinitions,
         externalToolExecutors: _adhocMcp?.externalToolExecutors,
         externalToolDescriptors: _adhocMcp?.externalToolDescriptors,
-        mcpCallLedger:
-          useJsonl && sessionId
-            ? createRecoveryGuardedMcpCallLedger({
-                sink: createSessionMcpLedgerSink(sessionId, {
-                  appendEvent: appendAuthorityEvent,
-                }),
-                recovery: _mcpLedgerRecovery,
-                recoveryError: _mcpLedgerRecoveryError,
-              })
-            : null,
+        mcpCallLedger: activeMcpRuntime.persistent
+          ? activeMcpRuntime.runtime.ledger
+          : null,
         chatFn: _fallbackChatFn,
       });
       _persistReplContextSources();

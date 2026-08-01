@@ -542,9 +542,212 @@ describe("agent-repl thin wrapper contracts", () => {
     expect(content).toContain(
       "_mcpLedgerRecoveryError = candidate?.recoveryError",
     );
-    expect(content).toContain("createRecoveryGuardedMcpCallLedger({");
-    expect(content).toContain("recovery: _mcpLedgerRecovery,");
-    expect(content).toContain("recoveryError: _mcpLedgerRecoveryError,");
+    expect(content).toContain("createReplMcpHostRuntimeManager()");
+    expect(content).toContain("recovery = _mcpLedgerRecovery");
+    expect(content).toContain("recoveryError = _mcpLedgerRecoveryError");
+    expect(content).toContain("mcpClient: activeRawMcpClient");
+    expect(content).toContain("mcpHostClient: activeMcpRuntime.runtime.client");
+    expect(content).toContain("? activeMcpRuntime.runtime.ledger");
+  });
+
+  it("routes auxiliary MCP and IDE calls through the guarded host client", () => {
+    const content = readFileSync(agentReplPath, "utf8");
+    expect(content).toContain("const hostMcp = _getReplHostMcp();");
+    expect(content).toContain("hostMcp.mcpClient.callTool(");
+    expect(content).toContain("buildIdePromptContext(hostMcp)");
+    expect(content).toContain("expandIdeMentions(effectivePrompt, hostMcp)");
+    expect(content).toContain("_getReplHostMcp()?.mcpClient");
+  });
+
+  it("switches the session runtime only after a resume candidate succeeds", () => {
+    const content = readFileSync(agentReplPath, "utf8");
+    const resumeAt = content.indexOf('sessionArg.startsWith("resume ")');
+    const rejectAt = content.indexOf(
+      "if (!prepared.ok) throw prepared.error;",
+      resumeAt,
+    );
+    const prepareAt = content.indexOf(
+      "const preparedMcpRuntime = _prepareMcpHostRuntime(",
+      rejectAt,
+    );
+    const sessionSwitchAt = content.indexOf(
+      "sessionId = candidate.sessionId;",
+      prepareAt,
+    );
+    const runtimeCommitAt = content.indexOf(
+      "_mcpHostRuntimeManager.commit(preparedMcpRuntime);",
+      sessionSwitchAt,
+    );
+
+    expect(resumeAt).toBeGreaterThan(-1);
+    expect(rejectAt).toBeGreaterThan(resumeAt);
+    expect(prepareAt).toBeGreaterThan(rejectAt);
+    expect(sessionSwitchAt).toBeGreaterThan(prepareAt);
+    expect(runtimeCommitAt).toBeGreaterThan(sessionSwitchAt);
+  });
+});
+
+describe("agent-repl MCP host runtime manager", () => {
+  it("reuses one controller and ledger so a settlement latch survives turns", async () => {
+    const { createReplMcpHostRuntimeManager } =
+      await import("../../src/repl/agent-repl.js");
+    const rawClient = { callTool: vi.fn() };
+    const guardedClient = { callTool: vi.fn() };
+    const controller = { settlementFailed: false };
+    const ledger = { id: "shared-ledger" };
+    const runtime = {
+      controller,
+      ledger,
+      client: guardedClient,
+      rawClient,
+    };
+    const sink = vi.fn();
+    const appendAuthorityEvent = vi.fn();
+    const createSessionMcpLedgerSink = vi.fn(() => sink);
+    const createMcpHostRecoveryRuntime = vi.fn(() => runtime);
+    const manager = createReplMcpHostRuntimeManager({
+      createMcpHostRecoveryRuntime,
+      createSessionMcpLedgerSink,
+      appendAuthorityEvent,
+    });
+    const recovery = Object.freeze({ unsettled: [], incidents: [] });
+    const adhocMcp = {
+      mcpClient: rawClient,
+      externalToolExecutors: { ide: { kind: "mcp" } },
+    };
+    const options = {
+      adhocMcp,
+      bundleMcpClient: { id: "unused-bundle" },
+      sessionId: "session-a",
+      persistent: true,
+      recovery,
+      recoveryError: null,
+    };
+
+    const first = manager.activate(options);
+    first.runtime.controller.settlementFailed = true;
+    const second = manager.activate(options);
+
+    expect(second).toBe(first);
+    expect(second.runtime.controller.settlementFailed).toBe(true);
+    expect(second.runtime.ledger).toBe(ledger);
+    expect(second.rawClient).toBe(rawClient);
+    expect(second.hostMcp.mcpClient).toBe(guardedClient);
+    expect(second.hostMcp.externalToolExecutors).toBe(
+      adhocMcp.externalToolExecutors,
+    );
+    expect(createSessionMcpLedgerSink).toHaveBeenCalledOnce();
+    expect(createSessionMcpLedgerSink).toHaveBeenCalledWith("session-a", {
+      appendEvent: appendAuthorityEvent,
+    });
+    expect(createMcpHostRecoveryRuntime).toHaveBeenCalledOnce();
+    expect(createMcpHostRecoveryRuntime).toHaveBeenCalledWith({
+      bundle: adhocMcp,
+      rawClient,
+      sessionId: "session-a",
+      sink,
+      recovery,
+      recoveryError: null,
+    });
+  });
+
+  it("prepares session switches without replacing the active runtime", async () => {
+    const { createReplMcpHostRuntimeManager } =
+      await import("../../src/repl/agent-repl.js");
+    let runtimeId = 0;
+    const manager = createReplMcpHostRuntimeManager({
+      createSessionMcpLedgerSink: vi.fn(() => vi.fn()),
+      createMcpHostRecoveryRuntime: vi.fn(({ rawClient }) => {
+        runtimeId += 1;
+        return {
+          controller: { runtimeId },
+          ledger: { runtimeId },
+          client: { runtimeId },
+          rawClient,
+        };
+      }),
+    });
+    const rawClient = { callTool: vi.fn() };
+    const oldRuntime = manager.activate({
+      adhocMcp: { mcpClient: rawClient },
+      sessionId: "old-session",
+      persistent: true,
+      recovery: { unsettled: [], incidents: [] },
+    });
+    const preparedRuntime = manager.prepare({
+      adhocMcp: { mcpClient: rawClient },
+      sessionId: "new-session",
+      persistent: true,
+      recovery: { unsettled: [], incidents: [] },
+    });
+
+    expect(preparedRuntime).not.toBe(oldRuntime);
+    expect(manager.current).toBe(oldRuntime);
+
+    // A failed resume never commits its prepared candidate.
+    expect(manager.current.runtime.controller).toBe(
+      oldRuntime.runtime.controller,
+    );
+
+    manager.commit(preparedRuntime);
+    expect(manager.current).toBe(preparedRuntime);
+    expect(manager.current.runtime.controller).not.toBe(
+      oldRuntime.runtime.controller,
+    );
+    expect(manager.current.runtime.ledger).not.toBe(oldRuntime.runtime.ledger);
+  });
+
+  it("prefers adhoc MCP, supports bundle fallback, and skips durable DB sinks", async () => {
+    const { createReplMcpHostRuntimeManager } =
+      await import("../../src/repl/agent-repl.js");
+    const createSessionMcpLedgerSink = vi.fn();
+    const createMcpHostRecoveryRuntime = vi.fn(({ rawClient }) => ({
+      controller: {},
+      ledger: {},
+      client: { guardedRawClient: rawClient },
+      rawClient,
+    }));
+    const manager = createReplMcpHostRuntimeManager({
+      createMcpHostRecoveryRuntime,
+      createSessionMcpLedgerSink,
+    });
+    const adhocClient = { id: "adhoc" };
+    const bundleClient = { id: "bundle" };
+    const adhocMcp = { mcpClient: adhocClient, connected: ["adhoc"] };
+
+    const adhocRuntime = manager.activate({
+      adhocMcp,
+      bundleMcpClient: bundleClient,
+      sessionId: "db-session",
+      persistent: false,
+    });
+    expect(adhocRuntime.rawClient).toBe(adhocClient);
+    expect(adhocRuntime.hostMcp.connected).toEqual(["adhoc"]);
+    expect(createMcpHostRecoveryRuntime).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        bundle: adhocMcp,
+        rawClient: adhocClient,
+        sink: null,
+      }),
+    );
+
+    const bundleRuntime = manager.activate({
+      bundleMcpClient: bundleClient,
+      sessionId: "other-db-session",
+      persistent: false,
+    });
+    expect(bundleRuntime.rawClient).toBe(bundleClient);
+    expect(bundleRuntime.hostMcp.mcpClient).toEqual({
+      guardedRawClient: bundleClient,
+    });
+    expect(createMcpHostRecoveryRuntime).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        bundle: { mcpClient: bundleClient },
+        rawClient: bundleClient,
+        sink: null,
+      }),
+    );
+    expect(createSessionMcpLedgerSink).not.toHaveBeenCalled();
   });
 });
 
