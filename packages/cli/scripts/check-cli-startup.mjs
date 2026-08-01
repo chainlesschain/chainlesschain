@@ -104,4 +104,3 @@ process.stdout.write(
   `${JSON.stringify({ schema: "chainlesschain.startup-slo.v1", report }, null, 2)}\n`,
 );
 if (failed) process.exitCode = 1;
-

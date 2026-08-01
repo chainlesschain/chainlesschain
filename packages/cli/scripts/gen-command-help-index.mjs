@@ -51,4 +51,3 @@ if (checkOnly) {
   writeFileSync(OUTPUT, output, "utf8");
   console.error(`Wrote help for ${Object.keys(commands).length} commands.`);
 }
-

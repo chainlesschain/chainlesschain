@@ -10,14 +10,21 @@
 
 ## 实施进展（2026-08-01）
 
-| 方案项                                             | 状态   | 落地结果                                                                                                                                                         |
-| -------------------------------------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| P1 `/btw` 临时旁路问题                             | 已完成 | `316f7497b4`：旁路问题不污染主会话历史与上下文                                                                                                                   |
-| P0 MCP `ws/wss` 与 scope                           | 已完成 | `392398a09d`：WebSocket transport、作用域与运行时契约落地                                                                                                        |
-| P0 签名更新与回滚链                                | 已完成 | `4d3a4ee788`：签名 manifest、健康检查与自动回滚链落地                                                                                                            |
-| P0 typed config、secret、文件权限与 Sandbox 默认值 | 已完成 | 版本化 schema、统一 redaction、`set-secret`、OS secret store、原子迁移、插件密钥事务、POSIX mode、Windows 当前用户 ACL、doctor 修复和 fail-closed sandbox 已落地 |
+| 方案项                                             | 状态             | 落地结果与验证证据                                                                                                                                                                   |
+| -------------------------------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| P0 lazy dispatch、单次执行与启动 SLO               | 已完成           | `c42820ab13`：phase-0 dispatch、生成式帮助、`OutputContext`、轻量 status 与启动基准落地；Windows 冷启动四项 p95 均满足仓库阈值                                                       |
+| P0 typed config、secret、文件权限与 Sandbox 默认值 | 已完成           | `a4d1c05133`：版本化 schema、统一 redaction、OS secret store、原子迁移、POSIX mode、Windows 当前用户 ACL、doctor 修复和 fail-closed sandbox；179 项目标测试通过                      |
+| P0 MCP `ws/wss` 与 scope                           | 已完成           | `392398a09d`：WebSocket transport、作用域与运行时契约落地                                                                                                                            |
+| P0 Session 事实源与可恢复 Agent runtime            | 已完成           | `ca4fe4ef73`、`199b2cb7c6`：Session 索引、增量持久化、WS 恢复、side-effect ledger、Skill/MCP/headless 恢复语义收敛；本轮分组回归 519 项通过                                          |
+| P0 exact-SHA 发布门禁与原生发行链                  | 已实现，待 CI    | `6d229d0df4`：三平台 workflow、精确 SHA gate、不可变 npm tarball、签名 manifest、安装器与包管理器清单落地；17 项发布测试及脚本/安装器静态检查通过，正式发布仍须 exact commit CI 全绿 |
+| P0 签名更新与回滚链                                | 已完成           | `4d3a4ee788`：签名 manifest、健康检查与自动回滚链落地                                                                                                                                |
+| P1 `/btw` 临时旁路与统一输出契约                   | 已完成           | `316f7497b4`、`c42820ab13`：旁路问题不污染主会话历史与上下文，quiet/verbose/json 统一经输出上下文收口                                                                                |
+| P1 后台 Agent 恢复配置与隔离                       | 已完成           | `34414b64f9`：持久化、去敏的 background launch profile、指纹与兼容性校验、外部凭据注入；68 项测试通过                                                                                |
+| P1 Plan/Todo/会话可靠性                            | 已完成           | `ece470137d`、`d28dd7d9fc`、`70306bd8ee`：Plan/Todo 持久化、revision 冲突保护和结构化 handoff 落地                                                                                   |
+| P2 Provider-neutral Advisor                        | 已完成           | `8e6e617373`：Advisor runtime、命令与 REPL 接口落地；83 项测试通过                                                                                                                   |
+| P2 交互输入、提示建议与 Session recap              | 已完成基础与接线 | `6845c4a6ac`、`ca4fe4ef73`：剪贴板图片、编辑器、stash、suggestions、快捷键、终端布局与 recap 模块及 REPL 接线；独立 UX 回归 49 项通过                                                |
 
-本轮安全批次已覆盖真实 Windows Unicode 路径及目录/文件 ACL 修复。Windows PowerShell ACL 的冷启动延迟仍列为后续 P2 性能优化，不影响当前安全语义与提交边界。
+本轮安全批次已覆盖真实 Windows Unicode 路径及目录/文件 ACL 修复。Windows PowerShell ACL 的冷启动延迟仍列为后续 P2 性能优化，不影响当前安全语义与提交边界。npm/原生发行物不得依据本地测试发布，必须以待发布精确提交上的 `CLI CI` 与 `CLI Strict Sandbox` 三平台矩阵为最终门禁。
 
 ## 1. 结论先行
 
