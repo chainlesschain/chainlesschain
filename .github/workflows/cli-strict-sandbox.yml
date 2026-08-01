@@ -3,6 +3,9 @@ name: CLI Strict Sandbox
 on:
   push:
     branches: [main]
+    tags:
+      - "v*"
+      - "cli-v*"
     paths:
       - "packages/cli/src/lib/process-execution-broker/**"
       - "packages/cli/scripts/build-windows-sandbox-helper.ps1"

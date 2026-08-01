@@ -1,0 +1,264 @@
+name: CLI Native Release
+
+on:
+  push:
+    tags:
+      - "cli-v*"
+
+permissions:
+  contents: read
+
+jobs:
+  exact-sha-gate:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.14.0"
+      - name: Verify required three-platform workflows for exact SHA
+        run: node packages/cli/scripts/verify-release-gates.mjs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          CC_RELEASE_GATE_OUTPUT: cli-native-release-gate.json
+          CC_RELEASE_GATE_WAIT_MS: "2700000"
+          CC_RELEASE_GATE_POLL_MS: "30000"
+      - uses: actions/upload-artifact@v6
+        with:
+          name: cli-native-release-gate-${{ github.sha }}
+          path: cli-native-release-gate.json
+          if-no-files-found: error
+          retention-days: 90
+
+  build:
+    needs: [exact-sha-gate]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: node20-linux-x64
+            file: chainlesschain-node20-linux-x64
+            platform_signature: sigstore-keyless
+          - os: ubuntu-latest
+            target: node20-linux-arm64
+            file: chainlesschain-node20-linux-arm64
+            platform_signature: sigstore-keyless
+          - os: windows-latest
+            target: node20-win-x64
+            file: chainlesschain-node20-win-x64.exe
+            platform_signature: authenticode+sigstore
+          - os: windows-latest
+            target: node20-win-arm64
+            file: chainlesschain-node20-win-arm64.exe
+            platform_signature: authenticode+sigstore
+          - os: macos-15
+            target: node20-macos-x64
+            file: chainlesschain-node20-macos-x64
+            platform_signature: codesign+sigstore
+          - os: macos-15
+            target: node20-macos-arm64
+            file: chainlesschain-node20-macos-arm64
+            platform_signature: codesign+sigstore
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      UPDATE_PUBLIC_KEY_B64: ${{ vars.CLI_UPDATE_ED25519_PUBLIC_KEY_B64 }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.14.0"
+      - name: Install workspace dependencies
+        run: npm install --legacy-peer-deps
+      - name: Materialize trusted update public key
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$UPDATE_PUBLIC_KEY_B64"
+          node -e 'require("fs").writeFileSync(process.argv[1], Buffer.from(process.env.UPDATE_PUBLIC_KEY_B64, "base64"))' "$RUNNER_TEMP/cli-update-public-key.pem"
+      - name: Build standalone CLI with trusted update key
+        shell: bash
+        run: |
+          set -euo pipefail
+          node packages/cli/bin/chainlesschain.js pack \
+            --cwd packages/cli \
+            --no-project \
+            --targets "${{ matrix.target }}" \
+            --output "native-dist/chainlesschain-${{ matrix.target }}" \
+            --update-manifest-url "https://github.com/${{ github.repository }}/releases/latest/download/chainlesschain-update.json" \
+            --update-public-key "$RUNNER_TEMP/cli-update-public-key.pem" \
+            --no-smoke-test
+
+      - name: Authenticode sign Windows executable
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          WINDOWS_CERT_B64: ${{ secrets.CLI_WINDOWS_SIGNING_CERT_PFX_B64 }}
+          WINDOWS_CERT_PASSWORD: ${{ secrets.CLI_WINDOWS_SIGNING_CERT_PASSWORD }}
+        run: |
+          if (-not $env:WINDOWS_CERT_B64) { throw "CLI_WINDOWS_SIGNING_CERT_PFX_B64 is required" }
+          $cert = Join-Path $env:RUNNER_TEMP "cli-signing.pfx"
+          [IO.File]::WriteAllBytes($cert, [Convert]::FromBase64String($env:WINDOWS_CERT_B64))
+          $signtool = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin" -Filter signtool.exe -Recurse |
+            Sort-Object FullName -Descending | Select-Object -First 1
+          if (-not $signtool) { throw "signtool.exe not found" }
+          & $signtool.FullName sign /fd SHA256 /td SHA256 /tr http://timestamp.digicert.com /f $cert /p $env:WINDOWS_CERT_PASSWORD "native-dist/${{ matrix.file }}"
+          & $signtool.FullName verify /pa /v "native-dist/${{ matrix.file }}"
+
+      - name: Code-sign macOS executable
+        if: runner.os == 'macOS'
+        shell: bash
+        env:
+          MAC_CERT_B64: ${{ secrets.CLI_MACOS_SIGNING_CERT_P12_B64 }}
+          MAC_CERT_PASSWORD: ${{ secrets.CLI_MACOS_SIGNING_CERT_PASSWORD }}
+          MAC_SIGNING_IDENTITY: ${{ secrets.CLI_MACOS_SIGNING_IDENTITY }}
+        run: |
+          set -euo pipefail
+          test -n "$MAC_CERT_B64"
+          test -n "$MAC_SIGNING_IDENTITY"
+          KEYCHAIN="$RUNNER_TEMP/cli-signing.keychain-db"
+          node -e 'require("fs").writeFileSync(process.argv[1], Buffer.from(process.env.MAC_CERT_B64, "base64"))' "$RUNNER_TEMP/cli-signing.p12"
+          security create-keychain -p temporary "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p temporary "$KEYCHAIN"
+          security import "$RUNNER_TEMP/cli-signing.p12" -k "$KEYCHAIN" -P "$MAC_CERT_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k temporary "$KEYCHAIN"
+          security list-keychains -d user -s "$KEYCHAIN" login.keychain-db
+          codesign --force --timestamp --options runtime --sign "$MAC_SIGNING_IDENTITY" "native-dist/${{ matrix.file }}"
+          codesign --verify --strict --verbose=2 "native-dist/${{ matrix.file }}"
+
+      - uses: sigstore/cosign-installer@v3
+      - name: Attach keyless Sigstore signature
+        shell: bash
+        run: |
+          set -euo pipefail
+          cosign sign-blob --yes \
+            --bundle "native-dist/${{ matrix.file }}.sigstore.json" \
+            "native-dist/${{ matrix.file }}"
+          node packages/cli/scripts/finalize-native-artifact.mjs \
+            "native-dist/${{ matrix.file }}" \
+            "${{ matrix.target }}" \
+            "native-dist/${{ matrix.file }}.sigstore.json" \
+            "${{ matrix.platform_signature }}"
+
+      - name: Smoke-test executable when target matches the runner
+        shell: bash
+        run: |
+          node --input-type=module - "${{ matrix.target }}" "native-dist/${{ matrix.file }}" <<'NODE'
+          import path from "node:path";
+          import { spawnSync } from "node:child_process";
+          const [target, file] = process.argv.slice(2);
+          const os = { linux: "linux", darwin: "macos", win32: "win" }[process.platform];
+          const arch = process.arch === "arm64" ? "arm64" : "x64";
+          if (target !== `node20-${os}-${arch}`) {
+            process.stdout.write(`cross target ${target}; host smoke test skipped\n`);
+            process.exit(0);
+          }
+          const result = spawnSync(path.resolve(file), ["--version"], {
+            encoding: "utf8",
+            stdio: "pipe",
+            windowsHide: true,
+          });
+          if (result.error || result.status !== 0) {
+            throw result.error || new Error(result.stderr || `exit ${result.status}`);
+          }
+          process.stdout.write(result.stdout);
+          NODE
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: cli-native-${{ matrix.target }}-${{ github.sha }}
+          path: native-dist/
+          if-no-files-found: error
+          retention-days: 90
+
+  publish:
+    needs: [exact-sha-gate, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      UPDATE_PRIVATE_KEY_B64: ${{ secrets.CLI_UPDATE_ED25519_PRIVATE_KEY_B64 }}
+      UPDATE_PUBLIC_KEY_B64: ${{ vars.CLI_UPDATE_ED25519_PUBLIC_KEY_B64 }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.14.0"
+      - uses: actions/download-artifact@v6
+        with:
+          pattern: cli-native-*-${{ github.sha }}
+          path: native-assets
+          merge-multiple: true
+      - uses: sigstore/cosign-installer@v3
+
+      - name: Create and sign aggregate update manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="${{ github.ref_name }}"
+          test -n "$TAG"
+          VERSION=$(node -p "require('./packages/cli/package.json').version")
+          test "$TAG" = "cli-v$VERSION"
+          test -n "$UPDATE_PRIVATE_KEY_B64"
+          test -n "$UPDATE_PUBLIC_KEY_B64"
+          test "$(find native-assets -name '*.pack-manifest.json' | wc -l)" -eq 6
+          test "$(find native-assets -name '*.sigstore.json' | wc -l)" -eq 6
+          BASE_URL="https://github.com/${{ github.repository }}/releases/download/$TAG"
+          npm sbom --package-lock-only --sbom-format cyclonedx > native-assets/chainlesschain-cli-sbom.cdx.json
+          SBOM_SHA256=$(sha256sum native-assets/chainlesschain-cli-sbom.cdx.json | cut -d' ' -f1)
+          CC_RELEASE_CHANNEL="stable" \
+          CC_RELEASE_NOTES_URL="https://github.com/${{ github.repository }}/releases/tag/$TAG" \
+          CC_RELEASE_SBOM_URL="$BASE_URL/chainlesschain-cli-sbom.cdx.json" \
+          CC_RELEASE_SBOM_SHA256="$SBOM_SHA256" \
+          CC_RELEASE_REQUIRED_TARGETS="node20-linux-x64,node20-linux-arm64,node20-win-x64,node20-win-arm64,node20-macos-x64,node20-macos-arm64" \
+          node packages/cli/scripts/create-native-release-manifest.mjs \
+            native-assets native-assets/chainlesschain-update.json "$BASE_URL"
+          node -e 'require("fs").writeFileSync(process.argv[1], Buffer.from(process.env.UPDATE_PRIVATE_KEY_B64, "base64"))' "$RUNNER_TEMP/cli-update-private.pem"
+          node -e 'require("fs").writeFileSync(process.argv[1], Buffer.from(process.env.UPDATE_PUBLIC_KEY_B64, "base64"))' "native-assets/cli-update-public-key.pem"
+          node packages/cli/scripts/sign-pack-update-manifest.mjs \
+            native-assets/chainlesschain-update.json "$RUNNER_TEMP/cli-update-private.pem" native-assets/cli-update-public-key.pem
+          cp packages/cli/install/install.sh native-assets/install.sh
+          cp packages/cli/install/install.ps1 native-assets/install.ps1
+          node packages/cli/scripts/generate-package-manager-manifests.mjs \
+            native-assets/chainlesschain-update.json native-assets
+          cosign sign-blob --yes \
+            --bundle native-assets/chainlesschain-update.json.sigstore.json \
+            native-assets/chainlesschain-update.json
+          for bootstrap in install.sh install.ps1 chainlesschain.rb ChainlessChain.ChainlessChainCLI.installer.yaml cli-update-public-key.pem chainlesschain-cli-sbom.cdx.json; do
+            cosign sign-blob --yes --bundle "native-assets/$bootstrap.sigstore.json" "native-assets/$bootstrap"
+          done
+          (cd native-assets && find . -maxdepth 1 -type f ! -name 'SHA256SUMS*' -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS)
+          cosign sign-blob --yes --bundle native-assets/SHA256SUMS.sigstore.json native-assets/SHA256SUMS
+
+      - name: Publish only after every platform and signature succeeds
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="${{ github.ref_name }}"
+          if git rev-parse -q --verify "$TAG^{commit}" >/dev/null; then
+            test "$(git rev-list -n 1 "$TAG")" = "${{ github.sha }}"
+          elif gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG exists but its tag was not checked out" >&2
+            exit 1
+          fi
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" --target "${{ github.sha }}" --draft --title "ChainlessChain CLI $TAG" --notes "Signed standalone CLI release for exact commit ${{ github.sha }}."
+          fi
+          gh release upload "$TAG" native-assets/* --clobber
+          gh release edit "$TAG" --draft=false

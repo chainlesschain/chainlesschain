@@ -3,6 +3,9 @@ name: CLI CI
 on:
   push:
     branches: [main]
+    tags:
+      - "v*"
+      - "cli-v*"
     paths:
       - "packages/cli/**"
       # 76+ vscode-ext-*.test.js suites in packages/cli/__tests__/unit import the
@@ -73,6 +76,12 @@ jobs:
       - name: Verify CLI --help
         working-directory: packages/cli
         run: node bin/chainlesschain.js --help
+      - name: Verify generated command help index
+        working-directory: packages/cli
+        run: npm run commands:help-index:check
+      - name: Verify CLI startup SLOs
+        working-directory: packages/cli
+        run: npm run startup:check
 
   # Phase 4a: validate `cc pack` end-to-end on Linux without running pkg.
   # Dry-run exercises precheck → web-panel → config-template → native-prebuilds

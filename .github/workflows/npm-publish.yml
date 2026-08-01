@@ -3,7 +3,7 @@ name: Publish to npm
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
   workflow_dispatch:
     inputs:
       version:
@@ -15,16 +15,10 @@ on:
         required: false
         type: boolean
         default: false
-      skip_tests:
-        description: "Skip tests before publishing (use when tests already passed in a prior run)"
-        required: false
-        type: boolean
-        default: false
 
 jobs:
   # Run tests before publishing
   test:
-    if: ${{ inputs.skip_tests != true && !(github.event_name == 'push' && startsWith(github.ref_name, 'v-npm-')) }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -88,13 +82,111 @@ jobs:
         # assertion is streamed. CI still runs the complete suite.
         run: npx vitest run --silent=passed-only
 
+  exact-sha-gate:
+    if: ${{ inputs.dry-run != true }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - name: Checkout exact release commit
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22.14.0"
+
+      - name: Verify CLI CI and CLI Strict Sandbox for exact SHA
+        run: node packages/cli/scripts/verify-release-gates.mjs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          CC_RELEASE_GATE_OUTPUT: cli-release-gate.json
+          CC_RELEASE_GATE_WAIT_MS: "2700000"
+          CC_RELEASE_GATE_POLL_MS: "30000"
+
+      - name: Upload exact-SHA gate attestation
+        uses: actions/upload-artifact@v6
+        with:
+          name: cli-release-gate-${{ github.sha }}
+          path: cli-release-gate.json
+          if-no-files-found: error
+          retention-days: 90
+
+  package-cli:
+    needs: [test, exact-sha-gate]
+    if: ${{ needs.test.result == 'success' && needs.exact-sha-gate.result == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact release commit
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22.14.0"
+
+      - name: Install workspace dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Resolve and pack immutable CLI tarball
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${{ inputs.version }}"
+          COMMITTED_VERSION=$(node -p "require('./packages/cli/package.json').version")
+          if [ -z "$VERSION" ]; then
+            VERSION="$COMMITTED_VERSION"
+          elif [ "$VERSION" != "$COMMITTED_VERSION" ]; then
+            echo "Requested version $VERSION differs from exact-SHA package version $COMMITTED_VERSION" >&2
+            exit 1
+          fi
+          mkdir -p release-artifacts
+          PACK_JSON=$(cd packages/cli && npm pack --json --pack-destination ../../release-artifacts)
+          TARBALL=$(node -e 'const x=JSON.parse(process.argv[1]); process.stdout.write(x[0].filename)' "$PACK_JSON")
+          TARBALL_PATH="release-artifacts/$TARBALL"
+          CC_RELEASE_VERSION="$VERSION" \
+          GITHUB_SHA="${{ github.sha }}" \
+          node packages/cli/scripts/npm-release-artifact.mjs create \
+            "$TARBALL_PATH" release-artifacts/chainlesschain-release.json
+          npm sbom --package-lock-only --sbom-format cyclonedx \
+            > release-artifacts/chainlesschain-sbom.cdx.json
+
+      - name: Upload immutable CLI release artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: chainlesschain-npm-${{ github.sha }}
+          path: release-artifacts/
+          if-no-files-found: error
+          retention-days: 90
+
+  dry-run:
+    if: ${{ inputs.dry-run == true }}
+    needs: [test]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.14.0"
+      - run: npm install --legacy-peer-deps
+      - name: Validate CLI package without publish credentials
+        working-directory: packages/cli
+        run: npm publish --dry-run
+
   # Publish all packages in dependency order.
   # NODE_AUTH_TOKEN is intentionally retained during the OIDC rollout. npm
   # prefers Trusted Publishing and falls back to this token if OIDC is not yet
   # configured for this workflow.
   publish:
-    needs: [test]
-    if: always() && (needs.test.result == 'success' || needs.test.result == 'skipped')
+    needs: [test, exact-sha-gate, package-cli]
+    if: ${{ inputs.dry-run != true && needs.test.result == 'success' && needs.exact-sha-gate.result == 'success' && needs.package-cli.result == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -120,6 +212,21 @@ jobs:
           npm install --legacy-peer-deps
           npm install @rollup/rollup-linux-x64-gnu --no-save --legacy-peer-deps || true
 
+      - name: Download exact verified CLI tarball
+        uses: actions/download-artifact@v6
+        with:
+          name: chainlesschain-npm-${{ github.sha }}
+          path: release-artifacts
+
+      - name: Verify immutable CLI tarball before publishing
+        shell: bash
+        run: |
+          set -euo pipefail
+          TARBALL=$(find release-artifacts -maxdepth 1 -name 'chainlesschain-*.tgz' -type f -print -quit)
+          test -n "$TARBALL"
+          node packages/cli/scripts/npm-release-artifact.mjs verify \
+            "$TARBALL" release-artifacts/chainlesschain-release.json
+
       - name: Resolve version
         id: version
         run: |
@@ -134,13 +241,8 @@ jobs:
       - name: Set publish command
         id: publish-cmd
         run: |
-          if [ "${{ inputs.dry-run }}" == "true" ]; then
-            echo "FLAGS=--dry-run" >> $GITHUB_OUTPUT
-            echo "Mode: DRY RUN"
-          else
-            echo "FLAGS=--provenance --access public" >> $GITHUB_OUTPUT
-            echo "Mode: LIVE PUBLISH"
-          fi
+          echo "FLAGS=--provenance --access public" >> $GITHUB_OUTPUT
+          echo "Mode: LIVE PUBLISH"
 
       # Publish order respects dependency chain:
       # 1. core-env (no deps)
@@ -314,22 +416,23 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: "Publish chainlesschain (CLI)"
-        working-directory: packages/cli
+        shell: bash
         run: |
-          VERSION="${{ steps.version.outputs.VERSION }}"
-
-          # Sync version if provided
-          if [ -n "${{ inputs.version }}" ]; then
-            npm version "$VERSION" --no-git-tag-version --allow-same-version
-          fi
-
-          PKG_VER=$(node -p "require('./package.json').version")
+          set -euo pipefail
+          TARBALL=$(find release-artifacts -maxdepth 1 -name 'chainlesschain-*.tgz' -type f -print -quit)
+          MANIFEST=release-artifacts/chainlesschain-release.json
+          node packages/cli/scripts/npm-release-artifact.mjs verify "$TARBALL" "$MANIFEST"
+          PKG_VER=$(node -e 'process.stdout.write(JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")).version)' "$MANIFEST")
           echo "target: chainlesschain@$PKG_VER"
-          if [ "${{ inputs.dry-run }}" != "true" ] && npm view "chainlesschain@$PKG_VER" version >/dev/null 2>&1; then
-            echo "Exact version already published, skipping"
+          if npm view "chainlesschain@$PKG_VER" version >/dev/null 2>&1; then
+            echo "Exact version already published; verifying registry bytes"
           else
-            npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
+            npm publish "$TARBALL" ${{ steps.publish-cmd.outputs.FLAGS }}
           fi
+          mkdir -p registry-verify
+          npm pack "chainlesschain@$PKG_VER" --pack-destination registry-verify >/dev/null
+          REGISTRY_TARBALL=$(find registry-verify -maxdepth 1 -name 'chainlesschain-*.tgz' -type f -print -quit)
+          node packages/cli/scripts/npm-release-artifact.mjs verify "$REGISTRY_TARBALL" "$MANIFEST"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
@@ -350,11 +453,9 @@ jobs:
           {
             echo "## Publish Summary"
             echo ""
-            if [ "${{ inputs.dry-run }}" == "true" ]; then
-              echo "**Mode: DRY RUN** (no packages were actually published)"
-            else
-              echo "**Mode: LIVE**"
-            fi
+            echo "**Mode: LIVE (exact-SHA gated, immutable CLI tarball)**"
+            echo "**Release SHA:** \`${{ github.sha }}\`"
+            echo "**CLI tarball SHA-256:** \`$(node -p "require('./release-artifacts/chainlesschain-release.json').sha256")\`"
             echo ""
             echo "| Package | Version |"
             echo "|---------|---------|"
