@@ -1,58 +1,11 @@
 #!/usr/bin/env node
 
-// FIRST: Patch child_process globally to route ALL spawn/exec through ProcessExecutionBroker (M1)
-// This must come BEFORE any other imports to ensure every subprocess is audited
-import "../src/lib/process-execution-broker/patch-child-process.js";
-
-// Ensure UTF-8 encoding on Windows to prevent Chinese character garbling (乱码)
-import { ensureUtf8 } from "../src/lib/ensure-utf8.js";
-ensureUtf8();
-
-// Initialize observability before command modules load so every completed span
-// can reach a standard OTel Collector. Export stays off unless the global flag
-// or an OTEL_EXPORTER_OTLP_* endpoint is present.
-import {
-  initObservability,
-  resolveOtlpEndpointFromArgv,
-} from "../src/lib/observability/index.js";
-const observability = initObservability({
-  endpoint: resolveOtlpEndpointFromArgv(process.argv),
-});
-
-// Force blocking stdio when piped, so process.exit() flushes the full output
-// before the process tears down. Without this, macOS (and occasionally Linux)
-// can drop tail bytes from large outputs like `chainlesschain --help` (~13KB
-// across 155 commands) when consumed via execSync/spawnSync `stdio: pipe`.
-// No-op on TTY — terminals are already line-buffered. Idiomatic for Node
-// CLIs (npm, yarn, eslint all do the equivalent).
-if (!process.stdout.isTTY && process.stdout._handle?.setBlocking) {
-  process.stdout._handle.setBlocking(true);
-}
-if (!process.stderr.isTTY && process.stderr._handle?.setBlocking) {
-  process.stderr._handle.setBlocking(true);
-}
-
-// Lazy dispatch: import only the ONE command's module instead of eagerly
-// loading all ~154 command modules (the ~2.7s cold-start cost). runCli falls
-// back to the full eager program for --help / no-args / unknown commands.
+// Keep the executable's static graph phase-0 only. runCli loads the process
+// broker, telemetry, Event Runtime and one selected command after it has ruled
+// out lightweight --version/help requests.
 import { runCli } from "../src/lazy-dispatch.js";
-import {
-  reportFatal,
-  installGlobalErrorHandlers,
-} from "../src/lib/fatal-handler.js";
 
-// Funnel rejections/exceptions that escape a command action (async event
-// handlers, detached tasks, third-party libs) through the same friendly
-// boundary as the top-level parse, instead of Node's default ugly-stack crash.
-installGlobalErrorHandlers(process, async (error) => {
-  await observability.shutdown().catch(() => {});
+runCli(process.argv).catch(async (error) => {
+  const { reportFatal } = await import("../src/lib/fatal-handler.js");
   reportFatal(error);
 });
-
-runCli(process.argv).then(
-  () => observability.shutdown().catch(() => {}),
-  async (error) => {
-    await observability.shutdown().catch(() => {});
-    reportFatal(error);
-  },
-);

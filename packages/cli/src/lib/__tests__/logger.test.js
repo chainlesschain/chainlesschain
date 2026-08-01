@@ -20,6 +20,7 @@ import {
   log,
   newline,
   logger,
+  setMachineReadable,
 } from "../logger.js";
 
 let logSpy;
@@ -30,11 +31,13 @@ beforeEach(() => {
   errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
   setQuiet(false);
   setVerbose(false);
+  setMachineReadable(false);
 });
 
 afterEach(() => {
   setQuiet(false);
   setVerbose(false);
+  setMachineReadable(false);
   vi.restoreAllMocks();
 });
 
@@ -85,12 +88,56 @@ describe("quiet mode", () => {
 });
 
 describe("verbose mode", () => {
-  it("emits verbose only after setVerbose(true)", () => {
+  it("emits verbose to stderr only after setVerbose(true)", () => {
     verbose("before");
-    expect(logSpy).not.toHaveBeenCalled();
+    expect(errSpy).not.toHaveBeenCalled();
     setVerbose(true);
     verbose("after");
+    expect(errSpy).toHaveBeenCalledTimes(1);
+    expect(logSpy).not.toHaveBeenCalled();
+  });
+
+  it("lets quiet take precedence when both flags are enabled", () => {
+    setVerbose(true);
+    setQuiet(true);
+    verbose("hidden diagnostic");
+    expect(errSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe("machine-readable mode", () => {
+  beforeEach(() => setMachineReadable(true));
+
+  it("keeps result payloads on stdout and moves presentation to stderr", () => {
+    info("progress");
+    success("done");
+    log('{"ok":true}');
+    newline();
+
     expect(logSpy).toHaveBeenCalledTimes(1);
+    expect(logSpy).toHaveBeenCalledWith('{"ok":true}');
+    expect(errSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not let quiet suppress an explicit machine payload", () => {
+    setQuiet(true);
+    info("progress");
+    log('{"ok":true}');
+
+    expect(logSpy).toHaveBeenCalledOnce();
+    expect(errSpy).not.toHaveBeenCalled();
+  });
+
+  it("emits warnings and errors as structured stderr records", () => {
+    warn("careful", { retry: false });
+    error("boom");
+
+    expect(JSON.parse(errSpy.mock.calls[0][0])).toEqual({
+      warning: { message: 'careful {"retry":false}' },
+    });
+    expect(JSON.parse(errSpy.mock.calls[1][0])).toEqual({
+      error: { message: "boom" },
+    });
   });
 });
 
@@ -106,6 +153,7 @@ describe("logger object", () => {
       "newline",
       "setVerbose",
       "setQuiet",
+      "setMachineReadable",
     ]) {
       expect(typeof logger[m]).toBe("function");
     }

@@ -1,9 +1,7 @@
 import chalk from "chalk";
 import logger from "../lib/logger.js";
-import { collectStatusReport } from "../runtime/diagnostics.js";
-import { getObservabilityRuntime } from "../lib/observability/index.js";
 
-export function collectOtlpStatus(runtime = getObservabilityRuntime()) {
+export function collectOtlpStatus(runtime = null) {
   return (
     runtime?.getStats?.() || {
       enabled: false,
@@ -31,11 +29,29 @@ export function registerStatusCommand(program) {
     .command("status")
     .description("Show status of ChainlessChain app and services")
     .option("--json", "Output as machine-readable JSON")
+    .option("--deep", "Include Docker Compose service inspection")
     .action(async (options) => {
       try {
-        const report = await collectStatusReport();
+        const report = options.deep
+          ? await (
+              await import("../runtime/diagnostics.js")
+            ).collectStatusReport({ deep: true })
+          : await (
+              await import("../runtime/status-diagnostics-lite.js")
+            ).collectQuickStatusReport();
+        let observabilityRuntime = null;
+        if (
+          program.opts().otlpEndpoint ||
+          process.env.OTEL_EXPORTER_OTLP_ENDPOINT ||
+          process.env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT ||
+          process.env.OTEL_EXPORTER_OTLP_METRICS_ENDPOINT
+        ) {
+          observabilityRuntime = (
+            await import("../lib/observability/index.js")
+          ).getObservabilityRuntime();
+        }
         report.observability = {
-          otlp: collectOtlpStatus(),
+          otlp: collectOtlpStatus(observabilityRuntime),
         };
 
         if (options.json) {

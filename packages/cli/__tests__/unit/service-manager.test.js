@@ -7,6 +7,7 @@ import {
   _deps,
   findComposeFile,
   getServiceStatus,
+  isExecutableOnPath,
   servicesDown,
   servicesLogs,
   servicesUp,
@@ -58,6 +59,20 @@ describe("service-manager", () => {
     writeFileSync(join(tempDir, "compose.yml"), "v2");
     const result = findComposeFile([tempDir]);
     expect(result).toBe(join(tempDir, "docker-compose.yml"));
+  });
+
+  it("performs a platform-aware PATH presence check without spawning", () => {
+    const access = vi.fn((candidate) => {
+      if (!candidate.endsWith("docker.EXE")) throw new Error("missing");
+    });
+    expect(
+      isExecutableOnPath("docker", {
+        env: { PATH: "C:\\one;C:\\two", PATHEXT: ".COM;.EXE" },
+        platform: "win32",
+        access,
+      }),
+    ).toBe(true);
+    expect(access).toHaveBeenCalled();
   });
 });
 

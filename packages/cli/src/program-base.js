@@ -9,9 +9,15 @@
  */
 import { Command } from "commander";
 import { VERSION } from "./constants.js";
+import {
+  bindOutputContext,
+  bindProgramOutputContext,
+  getOutputContext,
+} from "./lib/output-context.js";
 
 export function createBaseProgram() {
   const program = new Command();
+  const previousOutputContexts = new WeakMap();
   program
     .name("chainlesschain")
     .description(
@@ -30,5 +36,17 @@ export function createBaseProgram() {
       "--otlp-endpoint <endpoint>",
       "OTel Collector endpoint (protocol via OTEL_EXPORTER_OTLP_PROTOCOL; HTTP example: http://localhost:4318)",
     );
+
+  // Bind the output contract exactly once, after Commander has resolved both
+  // global and leaf-command flags but before any action can print. Registrars
+  // no longer need to remember to call logger.setQuiet/setVerbose themselves.
+  program.hook("preAction", (_thisCommand, actionCommand) => {
+    previousOutputContexts.set(actionCommand, getOutputContext());
+    bindProgramOutputContext(program, actionCommand);
+  });
+  program.hook("postAction", (_thisCommand, actionCommand) => {
+    bindOutputContext(previousOutputContexts.get(actionCommand));
+    previousOutputContexts.delete(actionCommand);
+  });
   return program;
 }

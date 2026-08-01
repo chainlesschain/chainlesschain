@@ -207,3 +207,11 @@ export function skillReauthorizationError(skill, cause) {
     { skillId: skill.id, cause },
   );
 }
+
+export function skillTrustRequiredError(skill) {
+  return securityError(
+    "CC_SKILL_TRUST_REQUIRED",
+    `Skill "${skill.id || "unknown"}" requires host authorization for its current source and content digest before first execution.`,
+    { skillId: skill.id },
+  );
+}

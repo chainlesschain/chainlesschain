@@ -12,6 +12,8 @@
  * Pure-ish: process bindings are injectable so this is unit-testable.
  */
 
+import { argvRequestsMachineReadableOutput } from "./output-context.js";
+
 export function reportFatal(
   err,
   {
@@ -36,6 +38,20 @@ export function reportFatal(
   }
   const verbose =
     argv.includes("--verbose") || Boolean(env.CC_DEBUG) || Boolean(env.DEBUG);
+  const machineReadable = argvRequestsMachineReadableOutput(argv);
+  if (machineReadable) {
+    const message = err && err.message ? err.message : String(err);
+    const payload = {
+      error: {
+        message,
+        code: err?.code || "CC_UNEXPECTED_ERROR",
+        ...(verbose && err?.stack ? { stack: err.stack } : {}),
+      },
+    };
+    stderr.write(`${JSON.stringify(payload)}\n`);
+    exit(1);
+    return;
+  }
   if (verbose && err && err.stack) {
     stderr.write(`${err.stack}\n`);
   } else {

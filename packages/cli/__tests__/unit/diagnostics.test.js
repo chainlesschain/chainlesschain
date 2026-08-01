@@ -163,6 +163,7 @@ describe("diagnostics.collectStatusReport", () => {
       },
     });
     expect(report.schema).toBe("chainlesschain.status.v1");
+    expect(report.probeMode).toBe("quick");
     expect(typeof report.version).toBe("string");
     expect(() => new Date(report.generatedAt).toISOString()).not.toThrow();
     expect(report.eventRuntime).toMatchObject({

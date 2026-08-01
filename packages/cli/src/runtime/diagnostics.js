@@ -23,6 +23,7 @@ import { getHomeDir, getConfigPath, getBinDir } from "../lib/paths.js";
 import {
   isDockerAvailable,
   isDockerComposeAvailable,
+  isExecutableOnPath,
   getServiceStatus,
   findComposeFile,
 } from "../lib/service-manager.js";
@@ -46,7 +47,7 @@ function readCachedLatest() {
 /**
  * Probe a TCP port. Resolves true if something is listening.
  */
-export function checkPort(port, host = "127.0.0.1", timeoutMs = 1000) {
+export function checkPort(port, host = "127.0.0.1", timeoutMs = 500) {
   return new Promise((resolve) => {
     const socket = createConnection({ port, host, timeout: timeoutMs });
     socket.on("connect", () => {
@@ -268,11 +269,13 @@ export async function collectDoctorReport() {
   });
 
   // Port scan
-  const ports = [];
-  for (const [name, port] of Object.entries(DEFAULT_PORTS)) {
-    const open = await checkPort(port);
-    ports.push({ name, port, open });
-  }
+  const ports = await Promise.all(
+    Object.entries(DEFAULT_PORTS).map(async ([name, port]) => ({
+      name,
+      port,
+      open: await checkPort(port),
+    })),
+  );
 
   // Disk (Node 22+ statfsSync)
   let disk = null;
@@ -429,6 +432,12 @@ export function collectEventRuntimeStatus({
 }
 
 export async function collectStatusReport(options = {}) {
+  const deep = options.deep === true;
+  const probeTimeoutMs = Number.isFinite(options.probeTimeoutMs)
+    ? Math.max(1, options.probeTimeoutMs)
+    : deep
+      ? 2000
+      : 500;
   let config = {};
   try {
     config = loadConfig();
@@ -459,7 +468,9 @@ export async function collectStatusReport(options = {}) {
     : { completed: false };
 
   // Docker services
-  const dockerAvailable = isDockerAvailable();
+  const dockerAvailable = deep
+    ? isDockerAvailable({ timeoutMs: probeTimeoutMs })
+    : isExecutableOnPath("docker");
   const docker = {
     available: dockerAvailable,
     composePath: null,
@@ -473,9 +484,14 @@ export async function collectStatusReport(options = {}) {
     const composePath = findComposeFile([process.cwd(), "backend/docker"]);
     if (!composePath) {
       docker.note = "docker-compose.yml not found";
+    } else if (!deep) {
+      docker.composePath = composePath;
+      docker.note = "Service details skipped (run with --deep)";
     } else {
       docker.composePath = composePath;
-      const raw = getServiceStatus(composePath);
+      const raw = getServiceStatus(composePath, {
+        timeoutMs: probeTimeoutMs,
+      });
       if (Array.isArray(raw)) {
         docker.services = raw.map((svc) => ({
           name: svc.Service || svc.Name || null,
@@ -490,14 +506,17 @@ export async function collectStatusReport(options = {}) {
   }
 
   // Ports
-  const ports = [];
-  for (const [name, port] of Object.entries(DEFAULT_PORTS)) {
-    const open = await checkPort(port);
-    ports.push({ name, port, open });
-  }
+  const ports = await Promise.all(
+    Object.entries(DEFAULT_PORTS).map(async ([name, port]) => ({
+      name,
+      port,
+      open: await checkPort(port, "127.0.0.1", probeTimeoutMs),
+    })),
+  );
 
   return {
     schema: "chainlesschain.status.v1",
+    probeMode: deep ? "deep" : "quick",
     version: VERSION,
     generatedAt: new Date().toISOString(),
     app,

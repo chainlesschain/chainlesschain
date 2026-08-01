@@ -9,7 +9,7 @@ npm install -g chainlesschain
 chainlesschain setup
 ```
 
-After installation, three equivalent commands are available:
+After installation, four equivalent commands are available:
 
 | Command          | Description                                                       |
 | ---------------- | ----------------------------------------------------------------- |
@@ -21,6 +21,12 @@ After installation, three equivalent commands are available:
 ```bash
 cc setup       # equivalent to: chainlesschain setup
 clchain start  # equivalent to: chainlesschain start
+
+# In a terminal, no subcommand starts the coding agent
+cc
+
+# Piped input runs one non-interactive agent turn
+git diff | cc
 ```
 
 ## Requirements
@@ -30,7 +36,7 @@ clchain start  # equivalent to: chainlesschain start
 
 ## Commands
 
-> **175 top-level commands** are registered (as of CLI v0.162.160). The sections below document the most-used ones with full options. For the complete, always-current list, run `chainlesschain --help` (or `cc --help`) — that output is the canonical source of truth.
+> **175 top-level compatibility commands** are registered. `cc --help` shows the curated coding-agent surface; run `cc help --all` for the complete manifest-generated list and `cc help <command>` for generated command-specific help.
 
 ### `chainlesschain setup`
 
@@ -68,6 +74,8 @@ Show status of the desktop app, Docker services, and port availability.
 
 ```bash
 chainlesschain status
+chainlesschain status --json            # Fast machine-readable snapshot
+chainlesschain status --deep            # Also inspect Docker Compose services
 ```
 
 ### `chainlesschain services <action>`
@@ -197,7 +205,7 @@ chainlesschain llm switch <name>        # Switch active provider
 Start an agentic AI session — the AI can read/write files, run shell commands, search the codebase, execute code (Python/Node.js/Bash with auto pip-install), and invoke 141 built-in skills.
 
 ```bash
-chainlesschain agent                    # Default: Ollama qwen2.5:7b
+chainlesschain agent                    # Explicit form; plain `cc` is equivalent in a TTY
 chainlesschain a --model llama3         # Short alias
 chainlesschain config set-secret llm.apiKey
 chainlesschain agent --provider openai  # Reads the stored credential
@@ -1270,9 +1278,10 @@ Every surface follows this shape — replace `aud-gov-` with the prefix from the
 
 ```bash
 chainlesschain --version   # Show version
-chainlesschain --help      # Show help
-chainlesschain --verbose   # Enable verbose output
-chainlesschain --quiet     # Suppress non-essential output
+chainlesschain --help      # Show the curated command surface
+chainlesschain help --all  # Show all compatibility commands
+chainlesschain --verbose status # Add diagnostics on stderr
+chainlesschain --quiet status   # Suppress non-error human output
 ```
 
 ## Configuration

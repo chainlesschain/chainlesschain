@@ -2,6 +2,9 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import logger from "./logger.js";
 import { executionBroker } from "./process-execution-broker/index.js";
+import { isExecutableOnPath } from "./executable-path.js";
+
+export { isExecutableOnPath } from "./executable-path.js";
 
 export const _deps = {
   execFileSync: (...args) => executionBroker.execFileSync(...args),
@@ -18,32 +21,49 @@ function syncDocker(command, args, options = {}, origin = "service:docker") {
   });
 }
 
-export function isDockerAvailable() {
+export function isDockerAvailable({ timeoutMs = 2000 } = {}) {
+  if (!isExecutableOnPath("docker")) return false;
   try {
-    syncDocker("docker", ["--version"], { stdio: "ignore" });
+    syncDocker("docker", ["--version"], {
+      stdio: "ignore",
+      timeout: timeoutMs,
+    });
     return true;
   } catch {
     return false;
   }
 }
 
-export function isDockerComposeAvailable() {
-  try {
-    syncDocker("docker", ["compose", "version"], { stdio: "ignore" });
-    return true;
-  } catch {
+export function isDockerComposeAvailable({ timeoutMs = 2000 } = {}) {
+  if (isExecutableOnPath("docker")) {
     try {
-      syncDocker("docker-compose", ["--version"], { stdio: "ignore" });
+      syncDocker("docker", ["compose", "version"], {
+        stdio: "ignore",
+        timeout: timeoutMs,
+      });
       return true;
     } catch {
-      return false;
+      // Fall through to the standalone executable.
     }
+  }
+  if (!isExecutableOnPath("docker-compose")) return false;
+  try {
+    syncDocker("docker-compose", ["--version"], {
+      stdio: "ignore",
+      timeout: timeoutMs,
+    });
+    return true;
+  } catch {
+    return false;
   }
 }
 
-export function getComposeInvocation() {
+export function getComposeInvocation({ timeoutMs = 2000 } = {}) {
   try {
-    syncDocker("docker", ["compose", "version"], { stdio: "ignore" });
+    syncDocker("docker", ["compose", "version"], {
+      stdio: "ignore",
+      timeout: timeoutMs,
+    });
     return { command: "docker", prefixArgs: ["compose"] };
   } catch {
     return { command: "docker-compose", prefixArgs: [] };
@@ -115,8 +135,8 @@ export function servicesPull(composePath) {
   return runCompose(invocation, ["-f", composePath, "pull"]);
 }
 
-export function getServiceStatus(composePath) {
-  const invocation = getComposeInvocation();
+export function getServiceStatus(composePath, { timeoutMs = 2000 } = {}) {
+  const invocation = getComposeInvocation({ timeoutMs });
   try {
     const output = syncDocker(
       invocation.command,
@@ -124,6 +144,7 @@ export function getServiceStatus(composePath) {
       {
         encoding: "utf-8",
         stdio: ["pipe", "pipe", "ignore"],
+        timeout: timeoutMs,
       },
       "service:compose-status",
     );

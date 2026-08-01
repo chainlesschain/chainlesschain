@@ -32,19 +32,49 @@ describe("CLI aliases integration", () => {
   });
 
   describe("--help output is consistent", () => {
-    it("shows all core commands", () => {
+    it("prints concise help for an empty non-interactive invocation", () => {
+      const result = runCli("");
+      expect(result).toContain("Usage: cc");
+      expect(result).toContain("Start ChainlessChain's coding agent");
+    });
+
+    it("shows the curated coding-agent command surface", () => {
       const result = runCli("--help");
-      expect(result).toContain("setup");
-      expect(result).toContain("start");
-      expect(result).toContain("stop");
-      expect(result).toContain("status");
-      expect(result).toContain("doctor");
-      expect(result).toContain("agent");
-      expect(result).toContain("chat");
+      for (const command of [
+        "agent",
+        "session",
+        "skill",
+        "mcp",
+        "plugin",
+        "config",
+        "auth",
+        "doctor",
+        "status",
+        "update",
+      ]) {
+        expect(result).toContain(command);
+      }
+      expect(result).toContain("cc help --all");
+    });
+
+    it("keeps the complete compatibility surface discoverable", () => {
+      const result = runCli("help --all");
+      for (const command of ["setup", "start", "stop", "chat", "agent"]) {
+        expect(result).toContain(command);
+      }
     });
   });
 
   describe("subcommands work through the shared entry point", () => {
+    it("applies quiet globally while preserving a requested JSON payload", () => {
+      expect(runCli("--quiet status")).toBe("");
+      const payload = JSON.parse(runCli("--quiet status --json"));
+      expect(payload).toMatchObject({
+        schema: "chainlesschain.status.v1",
+        probeMode: "quick",
+      });
+    });
+
     it("config list works", () => {
       const result = runCli("config list");
       expect(result).toContain("setupCompleted");

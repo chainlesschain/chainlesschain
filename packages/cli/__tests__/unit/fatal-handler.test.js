@@ -39,6 +39,22 @@ describe("reportFatal", () => {
     }
   });
 
+  it("emits a structured stderr error for machine-readable output", () => {
+    const stderr = fakeStderr();
+    const exit = vi.fn();
+    const err = Object.assign(new Error("boom"), { code: "E_BOOM" });
+    reportFatal(err, {
+      stderr,
+      exit,
+      argv: ["node", "cc", "probe", "--json"],
+      env: {},
+    });
+    expect(JSON.parse(stderr.out.join(""))).toEqual({
+      error: { message: "boom", code: "E_BOOM" },
+    });
+    expect(exit).toHaveBeenCalledWith(1);
+  });
+
   it("treats an inquirer ExitPromptError (Ctrl-C) as a clean cancel, exit 130", () => {
     const stderr = fakeStderr();
     const exit = vi.fn();
