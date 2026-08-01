@@ -6,10 +6,20 @@ const os = require("node:os");
 const path = require("node:path");
 const { afterEach, test } = require("node:test");
 const {
+  buildHostLaunchArgs,
   findDiagnosticLogs,
+  hostPhaseSignalPaths,
   parseArgs,
   resolveVsCodeHostVersion,
 } = require("./extension-host/run.cjs");
+const {
+  JOURNEY_PHASES,
+  PHASE_DOM_MARKERS,
+  assertJourneyArtifacts,
+  createFixtureCli,
+  readJourneyResult,
+  writeJsonSignal,
+} = require("./extension-host/cdp-journey.cjs");
 
 const temporaryRoots = [];
 
@@ -17,6 +27,15 @@ function temporaryRoot() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-vscode-host-runner-"));
   temporaryRoots.push(root);
   return root;
+}
+
+function writeJsonLines(filePath, records) {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  fs.writeFileSync(
+    filePath,
+    `${records.map((record) => JSON.stringify(record)).join("\n")}\n`,
+    "utf8",
+  );
 }
 
 afterEach(() => {
@@ -80,5 +99,190 @@ test("diagnostic discovery is limited to release-relevant host logs", () => {
   assert.deepEqual(
     findDiagnosticLogs(root).map((file) => path.basename(file)),
     ["ChainlessChain IDE.log", "exthost.log", "renderer.log"],
+  );
+});
+
+test("real-DOM host phase is loopback-only and keeps the fresh profile args", () => {
+  const root = temporaryRoot();
+  const profileArgs = [
+    `--extensions-dir=${path.join(root, "extensions")}`,
+    `--user-data-dir=${path.join(root, "user-data")}`,
+  ];
+  assert.deepEqual(
+    buildHostLaunchArgs({
+      workspaceDir: path.join(root, "workspace"),
+      profileArgs,
+      cdpPort: 43210,
+    }),
+    [
+      path.join(root, "workspace"),
+      ...profileArgs,
+      "--remote-debugging-port=43210",
+      "--remote-debugging-address=127.0.0.1",
+      "--disable-extension-update-checks",
+      "--disable-telemetry",
+      "--disable-crash-reporter",
+    ],
+  );
+  assert.throws(
+    () =>
+      buildHostLaunchArgs({
+        workspaceDir: root,
+        profileArgs,
+        cdpPort: 0,
+      }),
+    /invalid CDP port/,
+  );
+});
+
+test("host phase signals are phase-scoped and reject unknown phases", () => {
+  const root = temporaryRoot();
+  assert.deepEqual(hostPhaseSignalPaths(root, "restart"), {
+    readyFile: path.join(root, "restart-host-ready.json"),
+    resultFile: path.join(root, "restart-cdp-result.json"),
+  });
+  assert.throws(() => hostPhaseSignalPaths(root, "other"), /unknown host/);
+});
+
+test("fixture CLI wrappers are isolated and cannot overwrite an existing shim", () => {
+  const root = temporaryRoot();
+  const repoRoot = path.resolve(__dirname, "..", "..", "..");
+  const fixture = createFixtureCli(root, repoRoot);
+  assert.ok(fs.statSync(fixture.command).isFile());
+  assert.equal(path.dirname(fixture.command), fixture.binDir);
+  assert.equal(path.dirname(fixture.statePath), root);
+  assert.equal(path.dirname(fixture.tracePath), root);
+  assert.throws(() => createFixtureCli(root, repoRoot), /EEXIST|exist/i);
+});
+
+test("journey results are atomic, phase-bound, and fail closed", () => {
+  const root = temporaryRoot();
+  const resultFile = path.join(root, "initial-result.json");
+  writeJsonSignal(resultFile, { ok: true, phase: "initial" });
+  assert.deepEqual(readJourneyResult(resultFile, "initial"), {
+    ok: true,
+    phase: "initial",
+  });
+  assert.throws(
+    () => writeJsonSignal(resultFile, { ok: true, phase: "restart" }),
+    /refusing to overwrite/,
+  );
+  assert.throws(
+    () => readJourneyResult(resultFile, "restart"),
+    /restart failed/,
+  );
+});
+
+test("raw DOM and protocol evidence must prove every control and restart step", () => {
+  const root = temporaryRoot();
+  const artifactDir = path.join(root, "artifacts");
+  const fixtureTracePath = path.join(root, "fixture.jsonl");
+  const runtimeDir = path.join(root, "runtime");
+  const extensionsDir = path.join(root, "extensions");
+  const installedExtension = path.join(
+    extensionsDir,
+    "chainlesschain.chainlesschain-ide-0.37.37",
+  );
+  const workspaceDir = path.join(root, "workspace");
+  fs.mkdirSync(installedExtension, { recursive: true });
+  fs.mkdirSync(workspaceDir, { recursive: true });
+  const cdpRecords = [];
+  for (const [phase, steps] of Object.entries(JOURNEY_PHASES)) {
+    cdpRecords.push({
+      phase,
+      status: "target-found",
+      targetType: "iframe",
+      targetUrl: `vscode-webview://chainlesschain/${phase}`,
+    });
+    for (const step of steps) {
+      cdpRecords.push({ phase, step, status: "passed" });
+    }
+    fs.mkdirSync(artifactDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(artifactDir, `${phase}-dom.txt`),
+      PHASE_DOM_MARKERS[phase].join("\n"),
+      "utf8",
+    );
+    writeJsonSignal(path.join(runtimeDir, `${phase}-host-ready.json`), {
+      phase,
+      extensionPath: installedExtension,
+      workspaceDir,
+      readyAt: "2026-08-01T00:00:00.000Z",
+    });
+    writeJsonSignal(path.join(runtimeDir, `${phase}-cdp-result.json`), {
+      ok: true,
+      phase,
+      completedAt: "2026-08-01T00:01:00.000Z",
+    });
+  }
+  writeJsonLines(path.join(artifactDir, "cdp-journey.jsonl"), cdpRecords);
+  writeJsonLines(fixtureTracePath, [
+    { direction: "in", event: { type: "user", text: "journey:stream" } },
+    { direction: "in", event: { type: "user", text: "journey:stream" } },
+    { direction: "in", event: { type: "plan", action: "approve" } },
+    {
+      direction: "in",
+      event: { type: "user", text: "journey:permission" },
+    },
+    { direction: "in", event: { type: "approval", approve: true } },
+    { direction: "in", event: { type: "user", text: "journey:stop" } },
+    { direction: "in", event: { type: "interrupt" } },
+    { direction: "out", event: { type: "system", resumed_messages: 10 } },
+    { direction: "in", event: { type: "user", text: "journey:resume" } },
+  ]);
+
+  const evidence = assertJourneyArtifacts({
+    artifactDir,
+    fixtureTracePath,
+    runtimeDir,
+    extensionsDir,
+    workspaceDir,
+  });
+  assert.equal(evidence.domPaths.length, 2);
+
+  fs.writeFileSync(
+    path.join(artifactDir, "restart-dom.txt"),
+    "resumed previous conversation\n",
+    "utf8",
+  );
+  assert.throws(
+    () =>
+      assertJourneyArtifacts({
+        artifactDir,
+        fixtureTracePath,
+        runtimeDir,
+        extensionsDir,
+        workspaceDir,
+      }),
+    /fixture stream complete #6/,
+  );
+
+  fs.writeFileSync(
+    path.join(artifactDir, "restart-dom.txt"),
+    PHASE_DOM_MARKERS.restart.join("\n"),
+    "utf8",
+  );
+  const developmentExtension = path.join(root, "development-extension");
+  fs.mkdirSync(developmentExtension, { recursive: true });
+  fs.writeFileSync(
+    path.join(runtimeDir, "restart-host-ready.json"),
+    `${JSON.stringify({
+      phase: "restart",
+      extensionPath: developmentExtension,
+      workspaceDir,
+      readyAt: "2026-08-01T00:00:00.000Z",
+    })}\n`,
+    "utf8",
+  );
+  assert.throws(
+    () =>
+      assertJourneyArtifacts({
+        artifactDir,
+        fixtureTracePath,
+        runtimeDir,
+        extensionsDir,
+        workspaceDir,
+      }),
+    /installed extension/,
   );
 });

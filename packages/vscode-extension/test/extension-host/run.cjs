@@ -19,6 +19,13 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 const { pathToFileURL } = require("node:url");
+const {
+  assertJourneyArtifacts,
+  createFixtureCli,
+  readJourneyResult,
+  reserveLoopbackPort,
+  runCdpHostJourney,
+} = require("./cdp-journey.cjs");
 
 const EXTENSION_ID = "chainlesschain.chainlesschain-ide";
 const PACKAGE_ROOT = path.resolve(__dirname, "..", "..");
@@ -110,7 +117,7 @@ function makeFreshRunRoot(parent, vscodeVersion) {
   return fs.mkdtempSync(path.join(base, `chainlesschain-vscode-${slug}-`));
 }
 
-function writeWorkspace(workspaceDir) {
+function writeWorkspace(workspaceDir, fixtureCliCommand) {
   const vscodeDir = path.join(workspaceDir, ".vscode");
   fs.mkdirSync(vscodeDir, { recursive: true });
   fs.writeFileSync(
@@ -126,7 +133,7 @@ function writeWorkspace(workspaceDir) {
       {
         "chainlesschain.ide.enabled": true,
         "chainlesschain.cli.managed.enabled": false,
-        "chainlesschain.cli.path": "__chainlesschain_smoke_missing_cc__",
+        "chainlesschain.cli.path": fixtureCliCommand,
         "extensions.autoCheckUpdates": false,
         "extensions.autoUpdate": false,
         "telemetry.telemetryLevel": "off",
@@ -137,6 +144,100 @@ function writeWorkspace(workspaceDir) {
     )}\n`,
     "utf8",
   );
+}
+
+function hostPhaseSignalPaths(runtimeDir, phase) {
+  if (!/^(?:initial|restart)$/.test(phase)) {
+    throw new Error(`unknown host journey phase: ${phase}`);
+  }
+  return {
+    readyFile: path.join(runtimeDir, `${phase}-host-ready.json`),
+    resultFile: path.join(runtimeDir, `${phase}-cdp-result.json`),
+  };
+}
+
+function buildHostLaunchArgs({ workspaceDir, profileArgs, cdpPort }) {
+  if (!Number.isInteger(cdpPort) || cdpPort < 1 || cdpPort > 65_535) {
+    throw new Error(`invalid CDP port: ${cdpPort}`);
+  }
+  return [
+    workspaceDir,
+    ...profileArgs,
+    `--remote-debugging-port=${cdpPort}`,
+    "--remote-debugging-address=127.0.0.1",
+    "--disable-extension-update-checks",
+    "--disable-telemetry",
+    "--disable-crash-reporter",
+  ];
+}
+
+async function runRealDomPhase({
+  runTests,
+  vscodeExecutablePath,
+  workspaceDir,
+  profileArgs,
+  extensionsDir,
+  profileHome,
+  expectedVersion,
+  phase,
+  runtimeDir,
+  journeyArtifactDir,
+  fixture,
+}) {
+  const cdpPort = await reserveLoopbackPort();
+  const { readyFile, resultFile } = hostPhaseSignalPaths(runtimeDir, phase);
+  const abortController = new AbortController();
+  const cdpOutcome = runCdpHostJourney({
+    port: cdpPort,
+    readyFile,
+    resultFile,
+    phase,
+    artifactDir: journeyArtifactDir,
+    signal: abortController.signal,
+  }).then(
+    (value) => ({ value }),
+    (error) => ({ error }),
+  );
+
+  let hostError = null;
+  try {
+    await runTests({
+      vscodeExecutablePath,
+      extensionDevelopmentPath: path.join(__dirname, "driver"),
+      extensionTestsPath: path.join(__dirname, "driver", "smoke.cjs"),
+      launchArgs: buildHostLaunchArgs({
+        workspaceDir,
+        profileArgs,
+        cdpPort,
+      }),
+      extensionTestsEnv: {
+        HOME: profileHome,
+        USERPROFILE: profileHome,
+        CHAINLESSCHAIN_SMOKE_EXTENSIONS_DIR: extensionsDir,
+        CHAINLESSCHAIN_SMOKE_EXPECTED_VERSION: expectedVersion,
+        CHAINLESSCHAIN_SMOKE_WORKSPACE: workspaceDir,
+        CHAINLESSCHAIN_HOST_JOURNEY_PHASE: phase,
+        CHAINLESSCHAIN_HOST_READY_FILE: readyFile,
+        CHAINLESSCHAIN_HOST_RESULT_FILE: resultFile,
+        CC_UI_FIXTURE_STATE: fixture.statePath,
+        CC_UI_FIXTURE_TRACE: fixture.tracePath,
+      },
+    });
+  } catch (error) {
+    hostError = error;
+    abortController.abort(error);
+  }
+
+  const cdp = await cdpOutcome;
+  if (hostError && cdp.error && cdp.error.name !== "AbortError") {
+    throw new AggregateError(
+      [hostError, cdp.error],
+      `VS Code host and CDP journey failed during ${phase}`,
+    );
+  }
+  if (hostError) throw hostError;
+  if (cdp.error) throw cdp.error;
+  return readJourneyResult(resultFile, phase);
 }
 
 function assertInstalled(listOutput, version) {
@@ -273,6 +374,8 @@ async function main() {
   const extensionsDir = path.join(runRoot, "extensions");
   const profileHome = path.join(runRoot, "profile-home");
   const workspaceDir = path.join(runRoot, "workspace");
+  const journeyRuntimeDir = path.join(runRoot, "journey-runtime");
+  const journeyArtifactDir = path.join(runRoot, "journey-artifacts");
   const artifactDir = path.resolve(
     options.artifactDir || path.join(runRoot, "journey-evidence"),
   );
@@ -280,10 +383,20 @@ async function main() {
   const cliVersion = readJsonVersion(
     path.resolve(PACKAGE_ROOT, "..", "cli", "package.json"),
   );
-  for (const dir of [userDataDir, extensionsDir, profileHome, workspaceDir]) {
+  for (const dir of [
+    userDataDir,
+    extensionsDir,
+    profileHome,
+    workspaceDir,
+    journeyRuntimeDir,
+  ]) {
     fs.mkdirSync(dir, { recursive: true });
   }
-  writeWorkspace(workspaceDir);
+  const fixture = createFixtureCli(
+    runRoot,
+    path.resolve(PACKAGE_ROOT, "..", ".."),
+  );
+  writeWorkspace(workspaceDir, fixture.command);
 
   process.stdout.write(`[extension-host-smoke] fresh run root: ${runRoot}\n`);
 
@@ -322,49 +435,60 @@ async function main() {
       vscodeExecutablePath,
       options.vscodeVersion,
     );
-    await runTests({
-      vscodeExecutablePath,
-      extensionDevelopmentPath: path.join(__dirname, "driver"),
-      extensionTestsPath: path.join(__dirname, "driver", "smoke.cjs"),
-      launchArgs: [
+    for (const phase of ["initial", "restart"]) {
+      await runRealDomPhase({
+        runTests,
+        vscodeExecutablePath,
         workspaceDir,
-        ...profileArgs,
-        "--disable-extension-update-checks",
-        "--disable-telemetry",
-        "--disable-crash-reporter",
-      ],
-      extensionTestsEnv: {
-        HOME: profileHome,
-        USERPROFILE: profileHome,
-        CHAINLESSCHAIN_SMOKE_EXTENSIONS_DIR: extensionsDir,
-        CHAINLESSCHAIN_SMOKE_EXPECTED_VERSION: expectedVersion,
-        CHAINLESSCHAIN_SMOKE_WORKSPACE: workspaceDir,
-      },
+        profileArgs,
+        extensionsDir,
+        profileHome,
+        expectedVersion,
+        phase,
+        runtimeDir: journeyRuntimeDir,
+        journeyArtifactDir,
+        fixture,
+      });
+    }
+    assertJourneyArtifacts({
+      artifactDir: journeyArtifactDir,
+      fixtureTracePath: fixture.tracePath,
+      runtimeDir: journeyRuntimeDir,
+      extensionsDir,
+      workspaceDir,
     });
     journeyResult = "passed";
     process.stdout.write(
-      `[extension-host-smoke] PASS ${EXTENSION_ID}@${expectedVersion} on ${hostVersion || options.vscodeVersion}\n`,
+      `[extension-host-smoke] PASS ${EXTENSION_ID}@${expectedVersion} real-DOM control/restart journey on ${hostVersion || options.vscodeVersion}\n`,
     );
   } catch (error) {
     journeyError = error;
     dumpFailureDiagnostics(runRoot);
   } finally {
     const diagnosticLogs = findDiagnosticLogs(runRoot);
-    const sourceRoots =
-      diagnosticLogs.length > 0
-        ? diagnosticLogs
-        : journeyError
-          ? [path.join(runRoot, "__missing-host-diagnostics__")]
-          : [];
+    const sourceRoots = [];
+    if (fs.statSync(journeyArtifactDir, { throwIfNoEntry: false })) {
+      sourceRoots.push(journeyArtifactDir);
+    }
+    if (fs.statSync(journeyRuntimeDir, { throwIfNoEntry: false })) {
+      sourceRoots.push(journeyRuntimeDir);
+    }
+    if (fs.statSync(fixture.tracePath, { throwIfNoEntry: false })?.isFile()) {
+      sourceRoots.push(fixture.tracePath);
+    }
+    sourceRoots.push(...diagnosticLogs);
+    if (sourceRoots.length === 0 && journeyError) {
+      sourceRoots.push(path.join(runRoot, "__missing-host-diagnostics__"));
+    }
     try {
       const result = await writeJourneyEvidence({
         artifactDir,
-        journeyId: "vscode-extension-host-activation-bridge",
+        journeyId: "vscode-installed-vsix-real-dom-control-resume",
         host: "vscode",
         hostVersion: hostVersion || options.vscodeVersion,
         cliVersion,
         extensionVersion: expectedVersion,
-        transport: "local-ide-bridge",
+        transport: "local-ide-bridge+loopback-cdp",
         result: journeyResult,
         startedAt,
         finishedAt: new Date().toISOString(),
@@ -397,9 +521,12 @@ async function main() {
 }
 
 module.exports = {
+  buildHostLaunchArgs,
   findDiagnosticLogs,
+  hostPhaseSignalPaths,
   parseArgs,
   resolveVsCodeHostVersion,
+  runRealDomPhase,
 };
 
 if (require.main === module) {

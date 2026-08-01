@@ -110,11 +110,93 @@ function assertPortListening(port) {
   });
 }
 
+function writeSignal(filePath, value) {
+  const parent = path.dirname(filePath);
+  fs.mkdirSync(parent, { recursive: true, mode: 0o700 });
+  assert.equal(
+    fs.existsSync(filePath),
+    false,
+    `refusing to reuse stale journey signal ${filePath}`,
+  );
+  const temporary = path.join(
+    parent,
+    `.${path.basename(filePath)}.${process.pid}.${Date.now()}.tmp`,
+  );
+  fs.writeFileSync(temporary, `${JSON.stringify(value)}\n`, {
+    encoding: "utf8",
+    mode: 0o600,
+    flag: "wx",
+  });
+  fs.renameSync(temporary, filePath);
+}
+
+async function waitForJourneyResult(resultFile, phase, timeoutMs) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (fs.statSync(resultFile, { throwIfNoEntry: false })?.isFile()) {
+      let result;
+      try {
+        result = JSON.parse(fs.readFileSync(resultFile, "utf8"));
+      } catch (error) {
+        throw new Error(`CDP journey result is malformed: ${resultFile}`, {
+          cause: error,
+        });
+      }
+      assert.equal(result.phase, phase, "CDP journey phase mismatch");
+      assert.equal(
+        result.ok,
+        true,
+        `CDP journey failed: ${String(result.error || "unknown failure")}`,
+      );
+      return result;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error(
+    `CDP journey result did not appear within ${timeoutMs}ms: ${resultFile}`,
+  );
+}
+
+async function revealChatAndWaitForDomJourney({
+  phase,
+  readyFile,
+  resultFile,
+  extensionPath,
+  workspaceDir,
+}) {
+  assert.ok(phase, "missing CHAINLESSCHAIN_HOST_JOURNEY_PHASE");
+  assert.match(phase, /^(?:initial|restart)$/);
+  assert.ok(readyFile, "missing CHAINLESSCHAIN_HOST_READY_FILE");
+  assert.ok(resultFile, "missing CHAINLESSCHAIN_HOST_RESULT_FILE");
+  await withTimeout(
+    vscode.commands.executeCommand(
+      "workbench.view.extension.chainlesschainIde",
+    ),
+    15_000,
+    "ChainlessChain activity view reveal",
+  );
+  await withTimeout(
+    vscode.commands.executeCommand("chainlesschainIdeChat.focus"),
+    15_000,
+    "ChainlessChain chat webview focus",
+  );
+  writeSignal(readyFile, {
+    phase,
+    extensionPath: fs.realpathSync(extensionPath),
+    workspaceDir: fs.realpathSync(workspaceDir),
+    readyAt: new Date().toISOString(),
+  });
+  await waitForJourneyResult(resultFile, phase, 135_000);
+}
+
 async function run() {
   const extensionsDir = process.env.CHAINLESSCHAIN_SMOKE_EXTENSIONS_DIR;
   const expectedVersion = process.env.CHAINLESSCHAIN_SMOKE_EXPECTED_VERSION;
   const workspaceDir = process.env.CHAINLESSCHAIN_SMOKE_WORKSPACE;
   const profileHome = process.env.HOME || process.env.USERPROFILE;
+  const journeyPhase = process.env.CHAINLESSCHAIN_HOST_JOURNEY_PHASE;
+  const readyFile = process.env.CHAINLESSCHAIN_HOST_READY_FILE;
+  const resultFile = process.env.CHAINLESSCHAIN_HOST_RESULT_FILE;
   assert.ok(extensionsDir, "missing CHAINLESSCHAIN_SMOKE_EXTENSIONS_DIR");
   assert.ok(expectedVersion, "missing CHAINLESSCHAIN_SMOKE_EXPECTED_VERSION");
   assert.ok(workspaceDir, "missing CHAINLESSCHAIN_SMOKE_WORKSPACE");
@@ -162,9 +244,20 @@ async function run() {
   assert.match(lock.token, /^[a-f0-9]{64}$/, "bridge token is malformed");
   await assertPortListening(lock.port);
 
+  // Open the production-contributed view through VS Code's real workbench
+  // command. The external CDP peer then queries and clicks the actual Webview
+  // DOM; this driver exposes no production test command or extension internals.
+  await revealChatAndWaitForDomJourney({
+    phase: journeyPhase,
+    readyFile,
+    resultFile,
+    extensionPath: extension.extensionPath,
+    workspaceDir,
+  });
+
   console.log(
     `[extension-host-smoke] activated installed ${EXTENSION_ID}@${expectedVersion}; ` +
-      `${REQUIRED_COMMANDS.length} commands and bridge port verified`,
+      `${REQUIRED_COMMANDS.length} commands, bridge port, and ${journeyPhase} real-DOM phase verified`,
   );
 }
 
