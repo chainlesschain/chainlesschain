@@ -26,6 +26,8 @@
     "commands:manifest:check": "node scripts/gen-command-manifest.mjs --check",
     "commands:help-index": "node scripts/gen-command-help-index.mjs",
     "commands:help-index:check": "node scripts/gen-command-help-index.mjs --check",
+    "commands:completions": "node scripts/gen-shell-completions.mjs",
+    "commands:completions:check": "node scripts/gen-shell-completions.mjs --check",
     "startup:check": "node scripts/check-cli-startup.mjs",
     "docs:protocol": "node scripts/gen-protocol-doc.mjs --out ../../docs/cli/PROTOCOL_CAPABILITY_MANIFEST.generated.md",
     "docs:protocol:check": "node scripts/gen-protocol-doc.mjs --check ../../docs/cli/PROTOCOL_CAPABILITY_MANIFEST.generated.md",
@@ -39,7 +41,7 @@
     "runtime:e2e": "node scripts/test-runtime-e2e.cjs",
     "runtime:event-recovery": "node scripts/event-runtime-recovery-drill.mjs",
     "runtime:test": "npm run runtime:convergence && npm run runtime:e2e && npm run runtime:event-recovery",
-    "prepublishOnly": "npm run commands:manifest:check && npm run commands:help-index:check && npm run build:web-panel && npm run build:changelog"
+    "prepublishOnly": "npm run commands:manifest:check && npm run commands:help-index:check && npm run commands:completions:check && npm run build:web-panel && npm run build:changelog"
   },
   "engines": {
     "node": ">=22.12.0"
@@ -47,6 +49,7 @@
   "files": [
     "bin/",
     "src/",
+    "completions/",
     "scripts/postinstall.mjs",
     "scripts/build-windows-sandbox-helper.ps1",
     "README.md"

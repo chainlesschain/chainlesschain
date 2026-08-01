@@ -34,6 +34,28 @@ git diff | cc
 - **Node.js** >= 22.12.0
 - **Docker** (optional, for backend services)
 
+## Shell completion
+
+Completion files are generated from the same command manifest as `cc --help`
+and ship in the npm package under `completions/`:
+
+```bash
+# Bash
+source "$(npm root -g)/chainlesschain/completions/cc.bash"
+
+# Zsh
+fpath=("$(npm root -g)/chainlesschain/completions" $fpath)
+autoload -Uz compinit && compinit
+
+# Fish
+source (npm root -g)/chainlesschain/completions/cc.fish
+```
+
+```powershell
+# PowerShell
+. (Join-Path (npm root -g) "chainlesschain/completions/cc.ps1")
+```
+
 ## Commands
 
 > **175 top-level compatibility commands** are registered. `cc --help` shows the curated coding-agent surface; run `cc help --all` for the complete manifest-generated list and `cc help <command>` for generated command-specific help.

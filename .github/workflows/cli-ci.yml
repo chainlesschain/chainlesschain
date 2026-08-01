@@ -79,6 +79,9 @@ jobs:
       - name: Verify generated command help index
         working-directory: packages/cli
         run: npm run commands:help-index:check
+      - name: Verify generated shell completions
+        working-directory: packages/cli
+        run: npm run commands:completions:check
       - name: Verify CLI startup SLOs
         working-directory: packages/cli
         run: npm run startup:check
