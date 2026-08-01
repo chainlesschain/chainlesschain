@@ -7,11 +7,10 @@
  *                                        checkpoint event the resume path honors)
  *   cc compact <session-id> --dry-run    preview the reduction, write nothing
  *
- * Engine: the existing PromptCompressor (snip + dedup + collapse + truncate).
- * Runs OFFLINE and deterministic — no LLM summarization is wired here, so a
- * compaction never makes a network call and is reproducible. By default it
- * sizes its thresholds to the session's recorded model/provider context window;
- * override with --model/--provider or the hard --max-tokens/--max-messages.
+ * Engine: PromptCompressor with a bounded structured semantic handoff using the
+ * session's recorded provider. `--offline` explicitly selects deterministic
+ * extractive/count-based compaction. Provider failure degrades visibly to the
+ * bounded extractive handoff instead of silently discarding facts.
  *
  * After compaction the new history is appended as a JSONL `compact` event;
  * `rebuildMessages()` already rebuilds from the last such event, so a later
@@ -29,6 +28,7 @@ import {
   appendCompactEvent,
 } from "../harness/jsonl-session-store.js";
 import { PromptCompressor } from "../harness/prompt-compressor.js";
+import { chatWithTools } from "../runtime/agent-core.js";
 
 /** Build a compressor sized to the session (or explicit overrides). */
 function buildCompressor(options, recorded) {
@@ -38,19 +38,52 @@ function buildCompressor(options, recorded) {
     : undefined;
   if (maxTokens || maxMessages) {
     // Hard thresholds win — adaptive sizing is bypassed by the constructor.
-    return new PromptCompressor({ maxTokens, maxMessages });
+    return new PromptCompressor({
+      maxTokens,
+      maxMessages,
+      llmQuery: buildSemanticQuery(options, recorded),
+    });
   }
   const model = options.model || recorded.model || undefined;
   const provider = options.provider || recorded.provider || undefined;
   // model/provider → adaptive context-window thresholds; neither → defaults.
-  return new PromptCompressor({ model, provider });
+  return new PromptCompressor({
+    model,
+    provider,
+    llmQuery: buildSemanticQuery(options, { model, provider }),
+  });
+}
+
+function buildSemanticQuery(options, recorded) {
+  const provider = options.provider || recorded.provider || undefined;
+  const model = options.model || recorded.model || undefined;
+  if (options.offline || !provider) return null;
+  const baseUrl =
+    options.baseUrl ||
+    (provider === "ollama" ? "http://localhost:11434" : undefined);
+  return async (prompt) => {
+    const response = await chatWithTools([{ role: "user", content: prompt }], {
+      provider,
+      model,
+      baseUrl,
+      enabledToolNames: [],
+      extraToolDefinitions: [],
+      maxOutputTokens: 2048,
+    });
+    return {
+      summary: response?.message?.content || "",
+      usage: response?.usage || null,
+      provider,
+      model,
+    };
+  };
 }
 
 export function registerCompactCommand(program) {
   program
     .command("compact <session-id>")
     .description(
-      "Compact a stored session's history (offline; persists for --resume)",
+      "Compact a stored session into a structured handoff (persists for --resume)",
     )
     .option(
       "-m, --model <model>",
@@ -66,6 +99,11 @@ export function registerCompactCommand(program) {
       "Override the message-count threshold (skips adaptive)",
     )
     .option("--dry-run", "Preview the reduction without writing")
+    .option(
+      "--offline",
+      "Disable provider summarization and stay deterministic",
+    )
+    .option("--base-url <url>", "Provider base URL for semantic compaction")
     .option("--json", "Output as JSON")
     .action(async (sessionId, options) => {
       try {
@@ -133,6 +171,13 @@ export function registerCompactCommand(program) {
               ` (saved ${stats.saved}, ${stats.strategy})`,
           ),
         );
+        if (stats.degraded === true) {
+          logger.log(
+            chalk.yellow(
+              `  semantic summary degraded to ${stats.summaryMode}: ${stats.degradedReason}`,
+            ),
+          );
+        }
         if (options.dryRun) {
           logger.log(
             chalk.gray(`  re-run without --dry-run to persist the compaction`),

@@ -11,12 +11,103 @@
 
 import { createHash } from "node:crypto";
 import { feature, featureVariant } from "../lib/feature-flags.js";
+import {
+  buildExtractiveHandoff,
+  formatStructuredHandoff,
+  parseStructuredHandoff,
+  StructuredHandoffValidationError,
+  STRUCTURED_HANDOFF_FIELDS,
+} from "./structured-handoff.js";
+
+export * from "./structured-handoff.js";
 
 // Bounds for the fuzzy near-dup pass in _deduplicate (see there). Generous
 // enough that real near-dups are still caught; small enough that compaction of
 // a long, tool-heavy history stays sub-second instead of O(n²·content).
 const DEDUP_JACCARD_MAX_CHARS = 4000;
 const DEDUP_FUZZY_WINDOW = 100;
+export const SUMMARY_INPUT_DEFAULT_MAX_CHARS = 24000;
+export const SUMMARY_INPUT_HARD_MAX_CHARS = 32000;
+const SUMMARY_INPUT_MIN_CHARS = 1024;
+
+function boundedPositiveInteger(value, fallback, minimum, maximum) {
+  const number = Math.floor(Number(value));
+  if (!Number.isFinite(number) || number <= 0) return fallback;
+  return Math.min(Math.max(number, minimum), maximum);
+}
+
+function summaryEntry(message, index) {
+  const role = typeof message?.role === "string" ? message.role : "unknown";
+  return `[${index}] ${role}: ${getContent(message)
+    .replace(/\r\n?/g, "\n")
+    .trim()
+    .slice(0, 2000)}`;
+}
+
+/** Keep the earliest user objective plus as much recent context as fits. */
+function buildBoundedHistory(messages, maxChars) {
+  const entries = messages
+    .map((message, index) => ({
+      index,
+      role: message?.role,
+      text: summaryEntry(message, index),
+    }))
+    .filter((entry) => entry.text.trim());
+  const all = entries.map((entry) => entry.text).join("\n");
+  if (all.length <= maxChars) return all;
+
+  const firstUser = entries.find((entry) => entry.role === "user");
+  const selected = new Map();
+  let remaining = maxChars;
+  if (firstUser && remaining > 0) {
+    const objectiveBudget = Math.min(
+      firstUser.text.length,
+      Math.max(1, Math.floor(maxChars / 3)),
+    );
+    selected.set(firstUser.index, firstUser.text.slice(0, objectiveBudget));
+    remaining -= objectiveBudget;
+  }
+
+  for (let index = entries.length - 1; index >= 0 && remaining > 0; index--) {
+    const entry = entries[index];
+    if (selected.has(entry.index)) continue;
+    const separator = selected.size > 0 ? 1 : 0;
+    if (remaining <= separator) break;
+    const text = entry.text.slice(0, remaining - separator);
+    if (!text) break;
+    selected.set(entry.index, text);
+    remaining -= text.length + separator;
+  }
+
+  return [...selected.entries()]
+    .sort(([left], [right]) => left - right)
+    .map(([, text]) => text)
+    .join("\n")
+    .slice(0, maxChars);
+}
+
+function summaryPrompt(messages, maxChars) {
+  const schema = `{${STRUCTURED_HANDOFF_FIELDS.map((field) => `"${field}"`).join(",")}}`;
+  const instructions = [
+    "Create a durable conversation handoff from the history below.",
+    `Return exactly one strict JSON object with all keys in this order: ${schema}.`,
+    '"objective" must be a string; every other value must be an array of strings.',
+    "Preserve constraints, exact file paths, test evidence, unresolved external side effects, blockers, and actionable next steps. Do not use Markdown.",
+    "Conversation history:",
+  ].join("\n");
+  const historyBudget = Math.max(0, maxChars - instructions.length - 1);
+  const history = buildBoundedHistory(messages, historyBudget);
+  return `${instructions}\n${history}`.slice(0, maxChars);
+}
+
+function boundedFailureMessage(error) {
+  const message =
+    error instanceof Error ? error.message : String(error || "unknown error");
+  return message
+    .replace(/[\r\n]+/g, " ")
+    .trim()
+    .slice(0, 240);
+}
 
 export function estimateTokens(text) {
   if (!text) return 0;
@@ -186,7 +277,8 @@ export function sanitizeToolPairs(messages) {
         stage1.push({ ...m, tool_calls: kept });
       } else {
         // No surviving calls: keep the assistant text if any, else drop it.
-        const { tool_calls: _drop, ...rest } = m;
+        const rest = { ...m };
+        delete rest.tool_calls;
         if (rest.content && String(rest.content).trim()) stage1.push(rest);
       }
     } else {
@@ -232,6 +324,12 @@ export class PromptCompressor {
     }
     this.similarityThreshold = options.similarityThreshold || 0.9;
     this.llmQuery = options.llmQuery || null;
+    this.summaryInputMaxChars = boundedPositiveInteger(
+      options.summaryInputMaxChars,
+      SUMMARY_INPUT_DEFAULT_MAX_CHARS,
+      SUMMARY_INPUT_MIN_CHARS,
+      SUMMARY_INPUT_HARD_MAX_CHARS,
+    );
   }
 
   adaptToModel(model, provider) {
@@ -271,6 +369,7 @@ export class PromptCompressor {
     const originalTokens = estimateMessagesTokens(messages);
     let result = [...working];
     const applied = [];
+    let summaryStats = null;
 
     if (feature("CONTEXT_SNIP")) {
       const before = result.length;
@@ -290,19 +389,26 @@ export class PromptCompressor {
       if (result.length < before) applied.push("collapse");
     }
 
+    // Semantic handoff must run BEFORE destructive count-based truncation;
+    // otherwise long conversations commonly fall under maxTokens only because
+    // the facts we needed to summarize were already discarded.
+    const currentTokens = estimateMessagesTokens(result);
+    if (
+      this.llmQuery &&
+      (currentTokens > this.maxTokens || result.length > this.maxMessages) &&
+      result.length > 4
+    ) {
+      const summarized = await this._summarize(result);
+      result = summarized.messages;
+      summaryStats = summarized.stats;
+      if (summaryStats.summaryMode !== "none") {
+        applied.push("summarize");
+      }
+    }
+
     if (result.length > this.maxMessages) {
       result = this._truncate(result);
       applied.push("truncate");
-    }
-
-    const currentTokens = estimateMessagesTokens(result);
-    if (this.llmQuery && currentTokens > this.maxTokens && result.length > 4) {
-      try {
-        result = await this._summarize(result);
-        applied.push("summarize");
-      } catch (_err) {
-        // Summarization failed — continue with what we have
-      }
     }
 
     // Re-insert pinned facts verbatim (order preserved) right after the leading
@@ -330,6 +436,7 @@ export class PromptCompressor {
       compressedTokens,
       saved: originalTokens - compressedTokens,
       ratio: originalTokens > 0 ? compressedTokens / originalTokens : 1,
+      ...(summaryStats || {}),
     };
 
     const abVariant = getCompressionVariant();
@@ -417,24 +524,100 @@ export class PromptCompressor {
       (m) => m.role !== "system" && m !== last,
     );
 
-    if (toSummarize.length < 3) return messages;
+    if (toSummarize.length < 3) {
+      return {
+        messages,
+        stats: {
+          summaryMode: "none",
+          degraded: false,
+          degradedReason: null,
+          summaryInputChars: 0,
+          summaryInputLimit: this.summaryInputMaxChars,
+        },
+      };
+    }
 
-    const historyText = toSummarize
-      .map((m) => `${m.role}: ${getContent(m).slice(0, 500)}`)
-      .join("\n");
-
-    const summary = await this.llmQuery(
-      `Summarize this conversation history concisely, preserving key facts and decisions:\n\n${historyText}\n\nSummary:`,
-    );
-
-    if (!summary) return messages;
+    const prompt = summaryPrompt(toSummarize, this.summaryInputMaxChars);
+    let summary;
+    let summaryMode = "llm-structured";
+    let degraded = false;
+    let degradedReason = null;
+    let rawSummary;
+    let summaryUsage = null;
+    let summaryProvider = null;
+    let summaryModel = null;
+    try {
+      const queryResult = await this.llmQuery(prompt);
+      if (
+        queryResult &&
+        typeof queryResult === "object" &&
+        Object.prototype.hasOwnProperty.call(queryResult, "summary")
+      ) {
+        rawSummary = queryResult.summary;
+        const usage = queryResult.usage;
+        if (usage && typeof usage === "object") {
+          summaryUsage = {
+            inputTokens: Number(usage.input_tokens ?? usage.prompt_tokens) || 0,
+            outputTokens:
+              Number(usage.output_tokens ?? usage.completion_tokens) || 0,
+            cacheReadTokens:
+              Number(
+                usage.cache_read_input_tokens ?? usage.cache_read_tokens,
+              ) || 0,
+          };
+        }
+        summaryProvider = queryResult.provider || null;
+        summaryModel = queryResult.model || null;
+      } else {
+        rawSummary = queryResult;
+      }
+    } catch (error) {
+      degraded = true;
+      summaryMode = "extractive-fallback";
+      degradedReason = `llm_query_failed:${boundedFailureMessage(error)}`;
+    }
+    if (!degraded) {
+      try {
+        summary = parseStructuredHandoff(rawSummary);
+      } catch (error) {
+        degraded = true;
+        summaryMode = "extractive-fallback";
+        degradedReason =
+          error instanceof StructuredHandoffValidationError
+            ? `invalid_llm_summary:${error.code}`
+            : `invalid_llm_summary:normalization_error:${boundedFailureMessage(error)}`;
+      }
+    }
+    if (degraded) {
+      summary = buildExtractiveHandoff(toSummarize, {
+        maxFallbackSourceChars: Math.min(
+          this.summaryInputMaxChars,
+          SUMMARY_INPUT_DEFAULT_MAX_CHARS,
+        ),
+      });
+    }
 
     const result = [
       ...system,
-      { role: "system", content: `[Conversation Summary]\n${summary}` },
+      {
+        role: "system",
+        content: `[Conversation Summary]\n${formatStructuredHandoff(summary)}`,
+      },
     ];
     if (last) result.push(last);
-    return result;
+    return {
+      messages: result,
+      stats: {
+        summaryMode,
+        degraded,
+        degradedReason,
+        summaryInputChars: prompt.length,
+        summaryInputLimit: this.summaryInputMaxChars,
+        ...(summaryUsage ? { summaryUsage } : {}),
+        ...(summaryProvider ? { summaryProvider } : {}),
+        ...(summaryModel ? { summaryModel } : {}),
+      },
+    };
   }
 
   _snipCompact(messages) {
