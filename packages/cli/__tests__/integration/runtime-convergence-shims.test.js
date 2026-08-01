@@ -187,7 +187,10 @@ describe("Runtime Convergence: deprecated shim parity", () => {
 
       it("shim is a thin re-export (≤ 60 lines)", () => {
         const content = readFileSync(join(cliRoot, entry.shim), "utf8");
-        const lines = content.split("\n").length;
+        // A final newline terminates the last source line; it does not create
+        // another line of implementation. Ignore trailing line terminators so
+        // the guard behaves the same for LF and CRLF files.
+        const lines = content.trimEnd().split(/\r?\n/).length;
         // A pure re-export list grows one line per new canonical export
         // (prettier keeps one specifier per line). The guard exists to keep a
         // shim free of real LOGIC, not to cap the export count — a small margin

@@ -8,20 +8,21 @@
  * Plugins, in the CLI runtime, don't register bespoke tool names — they
  * install `SKILL.md` + `handler.js` bundles into the marketplace layer,
  * and those skills are then invoked uniformly through the builtin
- * `run_skill` dispatch path. The parity concern is therefore:
+ * `run_skill` dispatch path. Direct in-process handler execution is denied;
+ * handler-backed skills must opt into the controlled isolated-agent route.
+ * The parity concern for a legacy/direct plugin bundle is therefore:
  *
- *   "a skill whose presence is provided by the plugin path gets imported
- *    and executed correctly, its return value surfaces in tool-result,
- *    and handler errors become structured tool-result errors without
- *    crashing the loop."
+ *   "a skill whose presence is provided by the plugin path is discovered,
+ *    but its handler is never invoked, and the policy denial surfaces as a
+ *    deterministic structured tool-result without crashing the loop."
  *
  * The physical layout mirrors what `installPluginSkills` produces: a
  * directory with `SKILL.md` + `handler.js`. A minimal stub `skillLoader`
  * is injected via `options.skillLoader` — it returns a single resolved
  * skill pointing at that directory, which is exactly the shape
  * `CLISkillLoader.getResolvedSkills()` yields for marketplace skills.
- * The real `run_skill` executor then imports the handler from disk and
- * invokes it — no mocking of the executor path itself.
+ * The real `run_skill` executor reaches the production execution boundary;
+ * no mocking of the executor path itself is used.
  *
  * Plugin-manager DB mechanics (install/enable/remove) have dedicated
  * unit coverage in `__tests__/unit/plugin-manager.test.js` — this file
@@ -130,7 +131,7 @@ describe("Phase 7 parity: plugin-installed skill via run_skill", () => {
     }
   });
 
-  it("SUCCESS: plugin handler result surfaces verbatim in tool-result", async () => {
+  it("SUCCESS-HANDLER: direct plugin execution fails closed before invocation", async () => {
     const skillName = "plugin-greet";
     const skillDir = join(pluginRoot, skillName);
     writePluginSkill(skillDir, {
@@ -178,11 +179,15 @@ describe("Phase 7 parity: plugin-installed skill via run_skill", () => {
     expect(events[1].type).toBe("tool-result");
     expect(events[1].error).toBeNull();
     expect(events[1].result).toMatchObject({
-      success: true,
-      greeting: "hello, parity",
-      skillName,
-      workspace: workDir,
+      code: "CC_SKILL_DIRECT_HANDLER_BLOCKED",
+      policy: {
+        decision: "blocked",
+        via: "skill-execution-boundary",
+      },
     });
+    expect(events[1].result.error).toMatch(
+      /cannot execute handler\.js directly/i,
+    );
 
     expect(events[2]).toEqual({
       type: "response-complete",
@@ -192,7 +197,7 @@ describe("Phase 7 parity: plugin-installed skill via run_skill", () => {
     mock.assertDrained();
   });
 
-  it("HANDLER-ERROR: thrown exceptions become a structured tool-result error", async () => {
+  it("THROWING-HANDLER: plugin code is not executed before the denial", async () => {
     const skillName = "plugin-boom";
     const skillDir = join(pluginRoot, skillName);
     writePluginSkill(skillDir, {
@@ -226,13 +231,19 @@ describe("Phase 7 parity: plugin-installed skill via run_skill", () => {
     );
 
     expect(events[1].type).toBe("tool-result");
-    // run_skill catches handler exceptions → error object, not a throw,
-    // so the outer `error` field on the event stays null.
+    // The policy boundary runs before invoking handler.js, so the handler's
+    // own exception cannot replace the stable security error.
     expect(events[1].error).toBeNull();
-    expect(events[1].result.error).toMatch(
-      /Skill execution failed: intentional plugin failure/,
-    );
+    expect(events[1].result).toMatchObject({
+      code: "CC_SKILL_DIRECT_HANDLER_BLOCKED",
+      policy: {
+        decision: "blocked",
+        via: "skill-execution-boundary",
+      },
+    });
+    expect(events[1].result.error).not.toContain("intentional plugin failure");
     expect(events[2].content).toBe("failure noted");
+    mock.assertDrained();
   });
 
   it("NOT-FOUND: unknown skill name yields a 'not found' tool-result", async () => {
