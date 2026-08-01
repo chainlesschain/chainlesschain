@@ -12,6 +12,7 @@ import { executionBroker } from "../lib/process-execution-broker/index.js";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { EventEmitter } from "events";
 import { pathToFileURL } from "url";
+import WebSocket from "ws";
 import { safeJsonParse } from "../lib/safe-json.js";
 import { EventRuntimeProducer } from "../lib/event-runtime-producer.js";
 import { resolvePluginWorkspaceAuthority } from "../lib/plugin-runtime/sandbox-policy.js";
@@ -23,6 +24,7 @@ import { resolvePluginWorkspaceAuthority } from "../lib/plugin-runtime/sandbox-p
 export const _deps = {
   spawn: executionBroker.spawn.bind(executionBroker),
   fetch: (...args) => globalThis.fetch(...args),
+  WebSocket,
   // Backoff sleep seam (tests override with a no-op so retries don't wait).
   sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
 };
@@ -37,8 +39,24 @@ export const ServerState = {
   ERROR: "error",
 };
 
-/** Transport kinds that carry a URL (no stdio process). */
-const URL_TRANSPORTS = new Set(["http", "https", "sse", "ws", "wss"]);
+export const MCP_CONFIG_SCOPES = Object.freeze([
+  "local",
+  "project",
+  "user",
+  "managed",
+]);
+
+export function normalizeMcpConfigScope(scope = "user") {
+  const normalized = String(scope || "user")
+    .trim()
+    .toLowerCase();
+  if (!MCP_CONFIG_SCOPES.includes(normalized)) {
+    throw new Error(
+      `Invalid MCP scope "${scope}"; expected ${MCP_CONFIG_SCOPES.join(" | ")}`,
+    );
+  }
+  return normalized;
+}
 
 /**
  * Default per-call timeout for HTTP MCP requests, mirroring the 30s stdio
@@ -47,6 +65,8 @@ const URL_TRANSPORTS = new Set(["http", "https", "sse", "ws", "wss"]);
  * review) are exempt; override per server with `config.requestTimeoutMs`.
  */
 const HTTP_REQUEST_TIMEOUT_MS = 30000;
+const WEBSOCKET_CONNECT_TIMEOUT_MS = 10000;
+const WEBSOCKET_MAX_PAYLOAD_BYTES = 16 * 1024 * 1024;
 
 /**
  * Default per-call timeout for stdio MCP requests — the same 30s default as the
@@ -88,7 +108,7 @@ export function inferTransport(config) {
       ) {
         return proto;
       }
-    } catch (_e) {
+    } catch {
       // fall through to stdio
     }
   }
@@ -171,6 +191,21 @@ export function isHttpTransport(transportKind) {
   );
 }
 
+/** True for MCP's bidirectional JSON-RPC-over-WebSocket transports. */
+export function isWebSocketTransport(transportKind) {
+  return transportKind === "ws" || transportKind === "wss";
+}
+
+function mcpTransportError(code, message, details = {}) {
+  const error = new Error(message);
+  error.code = code;
+  error.transport = details.transport || null;
+  error.url = details.url || null;
+  if (details.status != null) error.status = details.status;
+  if (details.closeCode != null) error.closeCode = details.closeCode;
+  return error;
+}
+
 /**
  * Heuristic: does this error look like the server went away (vs. the tool
  * itself failing)? Used to gate reconnect-and-retry for servers that have a
@@ -183,7 +218,7 @@ export function isHttpTransport(transportKind) {
  */
 export function isLikelyConnectionError(err) {
   const msg = String((err && err.message) || err || "");
-  return /fetch failed|ECONNREFUSED|ECONNRESET|ETIMEDOUT|EPIPE|socket hang up|network error|HTTP 40[134]\b|not connected|not found|not available/i.test(
+  return /fetch failed|ECONNREFUSED|ECONNRESET|ETIMEDOUT|EPIPE|socket hang up|network error|WebSocket|HTTP 40[134]\b|not connected|not found|not available/i.test(
     msg,
   );
 }
@@ -327,7 +362,9 @@ export class MCPClient extends EventEmitter {
         `mcp-elicitation:${this._elicitationKey(serverName, requestId)}`,
         { response: normalized },
       );
-    } catch {}
+    } catch {
+      // Runtime inbox acknowledgement is advisory.
+    }
     return true;
   }
 
@@ -441,7 +478,9 @@ export class MCPClient extends EventEmitter {
               `mcp-elicitation:${key}`,
               { response },
             );
-          } catch {}
+          } catch {
+            // Runtime inbox acknowledgement is advisory.
+          }
           return response;
         }
       } catch (error) {
@@ -464,7 +503,9 @@ export class MCPClient extends EventEmitter {
           `mcp-elicitation:${key}`,
           { response: { action: "decline" } },
         );
-      } catch {}
+      } catch {
+        // Runtime inbox acknowledgement is advisory.
+      }
       this._settleUrlElicitation(request, { action: "decline" });
       this.emit("elicitation-deferred", {
         ...request,
@@ -485,7 +526,9 @@ export class MCPClient extends EventEmitter {
             "elicitation timeout",
             { retryDelayMs: 0, maxAttempts: 1 },
           );
-        } catch {}
+        } catch {
+          // Runtime inbox timeout reporting is advisory.
+        }
         resolve({ action: "cancel" });
       }, this._elicitationTimeoutMs);
       timeout.unref?.();
@@ -725,6 +768,7 @@ export class MCPClient extends EventEmitter {
       transportKind,
       state: ServerState.CONNECTING,
       process: null,
+      socket: null,
       httpUrl: null,
       httpHeaders: {},
       httpSessionId: null,
@@ -732,7 +776,9 @@ export class MCPClient extends EventEmitter {
       _httpMessageStream: null,
       tools: [],
       resources: [],
+      resourceTemplates: [],
       prompts: [],
+      resourceSubscriptions: new Set(),
       _pending: new Map(),
       _buffer: "",
       // Per-connection streaming decoders so a multi-byte UTF-8 character (e.g.
@@ -743,6 +789,23 @@ export class MCPClient extends EventEmitter {
       _stderrDecoder: new TextDecoder("utf-8"),
     };
 
+    const rejectPending = (error) => {
+      const cause =
+        error instanceof Error
+          ? error
+          : new Error(String(error || "MCP transport closed"));
+      for (const [, pending] of entry._pending) {
+        if (pending.timeout) clearTimeout(pending.timeout);
+        try {
+          pending.reject(cause);
+        } catch {
+          // already settled
+        }
+      }
+      entry._pending.clear();
+    };
+    entry._rejectPending = rejectPending;
+
     this.servers.set(name, entry);
 
     try {
@@ -752,6 +815,167 @@ export class MCPClient extends EventEmitter {
         }
         entry.httpUrl = config.url;
         entry.httpHeaders = { ...(config.headers || {}) };
+      } else if (isWebSocketTransport(transportKind)) {
+        if (!config.url) {
+          throw mcpTransportError(
+            "CC_MCP_WS_URL_REQUIRED",
+            `WebSocket transport requires a url (server "${name}")`,
+            { transport: transportKind },
+          );
+        }
+        let endpoint;
+        try {
+          endpoint = new URL(config.url);
+        } catch {
+          throw mcpTransportError(
+            "CC_MCP_WS_INVALID_URL",
+            `Invalid WebSocket URL for server "${name}": ${config.url}`,
+            { transport: transportKind, url: config.url },
+          );
+        }
+        if (endpoint.protocol !== `${transportKind}:`) {
+          throw mcpTransportError(
+            "CC_MCP_WS_SCHEME_MISMATCH",
+            `MCP transport "${transportKind}" requires a ${transportKind}:// URL (server "${name}")`,
+            { transport: transportKind, url: config.url },
+          );
+        }
+        if (endpoint.username || endpoint.password) {
+          throw mcpTransportError(
+            "CC_MCP_WS_URL_CREDENTIALS_FORBIDDEN",
+            `WebSocket credentials must use headers or OAuth (server "${name}")`,
+            { transport: transportKind, url: config.url },
+          );
+        }
+
+        const connectTimeoutMs = Number.isFinite(config.connectTimeoutMs)
+          ? Math.max(1, config.connectTimeoutMs)
+          : WEBSOCKET_CONNECT_TIMEOUT_MS;
+        const maxPayload = Number.isFinite(config.maxPayloadBytes)
+          ? Math.max(1024, config.maxPayloadBytes)
+          : WEBSOCKET_MAX_PAYLOAD_BYTES;
+        const Socket = _deps.WebSocket;
+        const socket = new Socket(config.url, {
+          headers: { ...(config.headers || {}) },
+          handshakeTimeout: connectTimeoutMs,
+          maxPayload,
+          followRedirects: config.followRedirects === true,
+          ...(transportKind === "wss" && config.rejectUnauthorized === false
+            ? { rejectUnauthorized: false }
+            : {}),
+        });
+        entry.socket = socket;
+
+        await new Promise((resolve, reject) => {
+          let settled = false;
+          const finish = (fn, value) => {
+            if (settled) return;
+            settled = true;
+            socket.off("open", onOpen);
+            socket.off("error", onError);
+            socket.off("unexpected-response", onUnexpectedResponse);
+            fn(value);
+          };
+          const onOpen = () => finish(resolve);
+          const onError = (cause) =>
+            finish(
+              reject,
+              mcpTransportError(
+                "CC_MCP_WS_CONNECT_FAILED",
+                `WebSocket connection failed for server "${name}": ${cause?.message || cause}`,
+                { transport: transportKind, url: config.url },
+              ),
+            );
+          const onUnexpectedResponse = (_request, response) =>
+            finish(
+              reject,
+              mcpTransportError(
+                "CC_MCP_WS_HANDSHAKE_REJECTED",
+                `WebSocket handshake failed for server "${name}": HTTP ${response?.statusCode || "unknown"}`,
+                {
+                  transport: transportKind,
+                  url: config.url,
+                  status: response?.statusCode,
+                },
+              ),
+            );
+          socket.once("open", onOpen);
+          socket.once("error", onError);
+          socket.once("unexpected-response", onUnexpectedResponse);
+        });
+
+        socket.on("message", (data, isBinary) => {
+          if (isBinary) {
+            const error = mcpTransportError(
+              "CC_MCP_WS_BINARY_MESSAGE",
+              `MCP server "${name}" sent a binary WebSocket message; JSON text is required`,
+              { transport: transportKind, url: config.url },
+            );
+            entry.state = ServerState.ERROR;
+            rejectPending(error);
+            this.emit("server-error", {
+              name,
+              error: error.message,
+              code: error.code,
+            });
+            socket.close(1003, "JSON text required");
+            return;
+          }
+          try {
+            const message = JSON.parse(String(data));
+            if (
+              !message ||
+              Array.isArray(message) ||
+              typeof message !== "object"
+            ) {
+              throw new Error("expected one JSON-RPC object");
+            }
+            this._handleMessage(name, message);
+          } catch (cause) {
+            const error = mcpTransportError(
+              "CC_MCP_WS_INVALID_MESSAGE",
+              `Invalid WebSocket JSON-RPC message: ${cause?.message || cause}`,
+              { transport: transportKind, url: config.url },
+            );
+            entry.state = ServerState.ERROR;
+            rejectPending(error);
+            this.emit("server-error", {
+              name,
+              code: error.code,
+              error: error.message,
+            });
+            socket.close(1007, "Invalid JSON-RPC message");
+          }
+        });
+        socket.on("close", (code, reason) => {
+          entry.state = ServerState.DISCONNECTED;
+          const suffix = reason?.length ? `: ${String(reason)}` : "";
+          const error = mcpTransportError(
+            "CC_MCP_WS_CLOSED",
+            `MCP WebSocket server "${name}" disconnected (code ${code})${suffix}`,
+            { transport: transportKind, url: config.url, closeCode: code },
+          );
+          rejectPending(error);
+          this.emit("server-disconnected", {
+            name,
+            code,
+            reason: String(reason || ""),
+          });
+        });
+        socket.on("error", (cause) => {
+          entry.state = ServerState.ERROR;
+          const error = mcpTransportError(
+            "CC_MCP_WS_ERROR",
+            `MCP WebSocket server "${name}" error: ${cause?.message || cause}`,
+            { transport: transportKind, url: config.url },
+          );
+          rejectPending(error);
+          this.emit("server-error", {
+            name,
+            error: error.message,
+            code: error.code,
+          });
+        });
       } else if (transportKind === "stdio") {
         if (!config.command) {
           throw new Error(
@@ -950,6 +1174,18 @@ export class MCPClient extends EventEmitter {
         // Server may not support resources
       }
 
+      // Resource templates are optional even when resources are supported.
+      try {
+        const templatesResult = await this._sendRequest(
+          name,
+          "resources/templates/list",
+          {},
+        );
+        entry.resourceTemplates = templatesResult?.resourceTemplates || [];
+      } catch {
+        // Server may not support resource templates.
+      }
+
       // Fetch available prompts (server-provided slash commands)
       try {
         const promptsResult = await this._sendRequest(name, "prompts/list", {});
@@ -975,6 +1211,7 @@ export class MCPClient extends EventEmitter {
         tools: entry.tools,
         toolsError: entry.toolsError,
         resources: entry.resources,
+        resourceTemplates: entry.resourceTemplates,
         prompts: entry.prompts,
         serverInfo: entry.serverInfo,
         instructions: entry.instructions,
@@ -999,6 +1236,14 @@ export class MCPClient extends EventEmitter {
           // teardown is best-effort — the connect error is what matters
         }
       }
+      if (entry.socket) {
+        try {
+          entry.socket.removeAllListeners();
+          entry.socket.terminate?.();
+        } catch {
+          // teardown is best-effort
+        }
+      }
       this.servers.delete(name);
       throw err;
     }
@@ -1020,6 +1265,20 @@ export class MCPClient extends EventEmitter {
     if (entry.process) {
       entry.process.kill();
     }
+    if (entry.socket) {
+      entry._rejectPending?.(
+        mcpTransportError(
+          "CC_MCP_WS_CLIENT_DISCONNECT",
+          `MCP WebSocket server "${name}" disconnected by client`,
+          { transport: entry.transportKind, url: entry.config?.url },
+        ),
+      );
+      try {
+        entry.socket.close(1000, "client disconnect");
+      } catch {
+        entry.socket.terminate?.();
+      }
+    }
     if (entry._httpMessageStream) {
       entry._httpMessageStream.stopped = true;
       entry._httpMessageStream.controller?.abort();
@@ -1038,7 +1297,7 @@ export class MCPClient extends EventEmitter {
               entry.protocolVersion || this._protocolVersion,
           },
         });
-      } catch (_e) {
+      } catch {
         // ignore — disconnect is best-effort
       }
     }
@@ -1070,6 +1329,7 @@ export class MCPClient extends EventEmitter {
         tools: entry.tools.length,
         toolsError: entry.toolsError || null,
         resources: entry.resources.length,
+        resourceTemplates: (entry.resourceTemplates || []).length,
         prompts: (entry.prompts || []).length,
         serverInfo: entry.serverInfo || {},
       });
@@ -1252,6 +1512,73 @@ export class MCPClient extends EventEmitter {
     return result;
   }
 
+  /** List optional URI templates advertised by one server or all servers. */
+  listResourceTemplates(serverName) {
+    if (serverName) {
+      const entry = this.servers.get(serverName);
+      if (!entry) throw new Error(`Server "${serverName}" not found`);
+      return (entry.resourceTemplates || []).map((template) => ({
+        ...template,
+        server: serverName,
+      }));
+    }
+    const all = [];
+    for (const [name, entry] of this.servers) {
+      for (const template of entry.resourceTemplates || []) {
+        all.push({ ...template, server: name });
+      }
+    }
+    return all;
+  }
+
+  /** Subscribe to change notifications for a concrete resource URI. */
+  async subscribeResource(serverName, uri) {
+    const entry = this.servers.get(serverName);
+    if (!entry) throw new Error(`Server "${serverName}" not found`);
+    await this._sendRequest(serverName, "resources/subscribe", { uri });
+    entry.resourceSubscriptions ||= new Set();
+    entry.resourceSubscriptions.add(String(uri));
+    return true;
+  }
+
+  /** Remove a previously established resource subscription. */
+  async unsubscribeResource(serverName, uri) {
+    const entry = this.servers.get(serverName);
+    if (!entry) throw new Error(`Server "${serverName}" not found`);
+    await this._sendRequest(serverName, "resources/unsubscribe", { uri });
+    entry.resourceSubscriptions?.delete(String(uri));
+    return true;
+  }
+
+  /** Set the optional server-to-client logging verbosity. */
+  async setLoggingLevel(serverName, level) {
+    const normalized = String(level || "").toLowerCase();
+    const levels = new Set([
+      "debug",
+      "info",
+      "notice",
+      "warning",
+      "error",
+      "critical",
+      "alert",
+      "emergency",
+    ]);
+    if (!levels.has(normalized)) {
+      throw new Error(`Invalid MCP logging level: ${level}`);
+    }
+    await this._sendRequest(serverName, "logging/setLevel", {
+      level: normalized,
+    });
+    return normalized;
+  }
+
+  /** Ask a server for optional argument/ref completion candidates. */
+  async complete(serverName, ref, argument, context = undefined) {
+    const params = { ref, argument };
+    if (context !== undefined) params.context = context;
+    return this._sendRequest(serverName, "completion/complete", params);
+  }
+
   /**
    * List prompts from a specific server or all servers. Each prompt is
    * annotated with its owning `server` (mirrors `listTools`).
@@ -1329,6 +1656,10 @@ export class MCPClient extends EventEmitter {
       return this._sendHttpRequest(serverName, method, params);
     }
 
+    if (entry.socket) {
+      return this._sendWebSocketRequest(serverName, method, params);
+    }
+
     return new Promise((resolve, reject) => {
       if (!entry.process) {
         return reject(new Error("Server not available"));
@@ -1376,6 +1707,54 @@ export class MCPClient extends EventEmitter {
     });
   }
 
+  _sendWebSocketRequest(serverName, method, params) {
+    const entry = this.servers.get(serverName);
+    if (!entry?.socket || entry.socket.readyState !== 1) {
+      return Promise.reject(
+        mcpTransportError(
+          "CC_MCP_WS_NOT_CONNECTED",
+          `MCP WebSocket server "${serverName}" is not connected`,
+          { transport: entry?.transportKind, url: entry?.config?.url },
+        ),
+      );
+    }
+
+    return new Promise((resolve, reject) => {
+      const id = this._nextId++;
+      const message = JSON.stringify({ jsonrpc: "2.0", id, method, params });
+      const longRunning = Boolean(entry.config?.longRunning);
+      const timeoutMs = Number.isFinite(entry.config?.requestTimeoutMs)
+        ? entry.config.requestTimeoutMs
+        : STDIO_REQUEST_TIMEOUT_MS;
+      let timeout = null;
+      if (!longRunning && timeoutMs > 0) {
+        timeout = setTimeout(() => {
+          entry._pending.delete(id);
+          reject(
+            mcpTransportError(
+              "CC_MCP_WS_REQUEST_TIMEOUT",
+              `Request timeout: ${method} (WebSocket, no response in ${timeoutMs}ms)`,
+              { transport: entry.transportKind, url: entry.config?.url },
+            ),
+          );
+        }, timeoutMs);
+      }
+      entry._pending.set(id, { resolve, reject, timeout });
+      entry.socket.send(message, (cause) => {
+        if (!cause) return;
+        if (timeout) clearTimeout(timeout);
+        entry._pending.delete(id);
+        reject(
+          mcpTransportError(
+            "CC_MCP_WS_SEND_FAILED",
+            `WebSocket send failed for ${method}: ${cause.message}`,
+            { transport: entry.transportKind, url: entry.config?.url },
+          ),
+        );
+      });
+    });
+  }
+
   _sendNotification(serverName, method, params) {
     const entry = this.servers.get(serverName);
     if (!entry) return;
@@ -1383,6 +1762,16 @@ export class MCPClient extends EventEmitter {
     if (entry.httpUrl) {
       // Fire-and-forget HTTP notification (no id, no response expected).
       this._sendHttpNotification(serverName, method, params);
+      return;
+    }
+
+    if (entry.socket) {
+      if (entry.socket.readyState === 1) {
+        entry.socket.send(
+          JSON.stringify({ jsonrpc: "2.0", method, params }),
+          () => {},
+        );
+      }
       return;
     }
 
@@ -1641,7 +2030,7 @@ export class MCPClient extends EventEmitter {
         body,
       });
       if (p && typeof p.catch === "function") p.catch(() => {});
-    } catch (_e) {
+    } catch {
       // ignore
     }
   }
@@ -1739,6 +2128,20 @@ export class MCPClient extends EventEmitter {
         this._refreshServerList(serverName, "tools");
       } else if (msg.method === "notifications/resources/list_changed") {
         this._refreshServerList(serverName, "resources");
+        this._refreshServerList(serverName, "resourceTemplates");
+      } else if (msg.method === "notifications/resources/updated") {
+        this.emit("resource-updated", {
+          server: serverName,
+          uri: msg.params?.uri || null,
+          params: msg.params || {},
+        });
+      } else if (msg.method === "notifications/message") {
+        this.emit("log-message", {
+          server: serverName,
+          level: msg.params?.level || "info",
+          logger: msg.params?.logger || null,
+          data: msg.params?.data,
+        });
       } else if (msg.method === "notifications/elicitation/complete") {
         this._handleElicitationComplete(serverName, msg.params || {});
       }
@@ -1770,10 +2173,19 @@ export class MCPClient extends EventEmitter {
       do {
         flags[`${kind}Dirty`] = false;
         try {
-          const method = kind === "tools" ? "tools/list" : "resources/list";
+          const method =
+            kind === "tools"
+              ? "tools/list"
+              : kind === "resourceTemplates"
+                ? "resources/templates/list"
+                : "resources/list";
           const result = await this._sendRequest(serverName, method, {});
           const list =
-            (kind === "tools" ? result?.tools : result?.resources) || [];
+            (kind === "tools"
+              ? result?.tools
+              : kind === "resourceTemplates"
+                ? result?.resourceTemplates
+                : result?.resources) || [];
           entry[kind] = list;
           if (kind === "tools") entry.toolsError = null;
           this.emit(`${kind}-changed`, {
@@ -1857,6 +2269,12 @@ export class MCPClient extends EventEmitter {
           name: serverName,
           error: cause?.message || String(cause),
         });
+      }
+      return;
+    }
+    if (entry.socket) {
+      if (entry.socket.readyState === 1) {
+        entry.socket.send(JSON.stringify(envelope), () => {});
       }
       return;
     }
@@ -2054,6 +2472,11 @@ export class MCPServerConfig {
         auto_connect INTEGER DEFAULT 0,
         url TEXT,
         transport TEXT DEFAULT 'stdio',
+        headers TEXT DEFAULT '{}',
+        config_scope TEXT DEFAULT 'user',
+        config_source TEXT,
+        project_path TEXT,
+        display_name TEXT,
         created_at TEXT DEFAULT (datetime('now')),
         updated_at TEXT DEFAULT (datetime('now'))
       )
@@ -2081,7 +2504,26 @@ export class MCPServerConfig {
           "ALTER TABLE mcp_servers ADD COLUMN transport TEXT DEFAULT 'stdio'",
         );
       }
-    } catch (_e) {
+      if (!cols.has("headers")) {
+        this.db.exec(
+          "ALTER TABLE mcp_servers ADD COLUMN headers TEXT DEFAULT '{}'",
+        );
+      }
+      if (!cols.has("config_scope")) {
+        this.db.exec(
+          "ALTER TABLE mcp_servers ADD COLUMN config_scope TEXT DEFAULT 'user'",
+        );
+      }
+      if (!cols.has("config_source")) {
+        this.db.exec("ALTER TABLE mcp_servers ADD COLUMN config_source TEXT");
+      }
+      if (!cols.has("project_path")) {
+        this.db.exec("ALTER TABLE mcp_servers ADD COLUMN project_path TEXT");
+      }
+      if (!cols.has("display_name")) {
+        this.db.exec("ALTER TABLE mcp_servers ADD COLUMN display_name TEXT");
+      }
+    } catch {
       // Best-effort; non-SQLite mocks silently skip.
     }
   }
@@ -2093,31 +2535,76 @@ export class MCPServerConfig {
     if (!url && !config.command) {
       throw new Error("MCP server config requires either command or url");
     }
+    const configScope = normalizeMcpConfigScope(config.configScope || "user");
+    if (configScope === "managed" && config.allowManagedWrite !== true) {
+      throw new Error(
+        "Managed MCP configuration is read-only; provision it through managed settings",
+      );
+    }
+    const projectPath =
+      configScope === "local" || configScope === "project"
+        ? String(config.projectPath || process.cwd())
+        : null;
+    const configSource =
+      config.configSource ||
+      (configScope === "managed"
+        ? "managed-settings"
+        : configScope === "user"
+          ? "user-database"
+          : `${configScope}:${projectPath}`);
+    // The legacy table uses `name` as its primary key. Encode workspace-bound
+    // identities in that key so `foo` can coexist at local/project/user scope
+    // while retaining the old key for user rows and backwards compatibility.
+    const storageName =
+      configScope === "user"
+        ? name
+        : `${configScope}:${Buffer.from(projectPath || "managed", "utf8").toString("base64url")}:${name}`;
     this.db
       .prepare(
-        "INSERT OR REPLACE INTO mcp_servers (name, command, args, env, auto_connect, url, transport, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))",
+        "INSERT OR REPLACE INTO mcp_servers (name, command, args, env, auto_connect, url, transport, headers, config_scope, config_source, project_path, display_name, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))",
       )
       .run(
-        name,
+        storageName,
         config.command || null,
         JSON.stringify(config.args || []),
         JSON.stringify(config.env || {}),
         config.autoConnect ? 1 : 0,
         url,
         transport,
+        JSON.stringify(config.headers || {}),
+        configScope,
+        configSource,
+        projectPath,
+        name,
       );
   }
 
-  remove(name) {
+  remove(name, options = {}) {
+    const current = this.get(name, options);
+    if (!current) return false;
+    if (
+      options.scope &&
+      current.configScope !== normalizeMcpConfigScope(options.scope)
+    ) {
+      return false;
+    }
+    if (
+      current.configScope === "managed" &&
+      options.allowManagedWrite !== true
+    ) {
+      throw new Error(
+        "Managed MCP configuration is read-only; change the managed settings source",
+      );
+    }
     const result = this.db
       .prepare("DELETE FROM mcp_servers WHERE name = ?")
-      .run(name);
+      .run(current._storageName || name);
     return result.changes > 0;
   }
 
   _rowToConfig(row) {
-    return {
-      name: row.name,
+    const config = {
+      name: row.display_name || row.name,
       command: row.command || null,
       // safeJsonParse, not bare JSON.parse: list()/getAutoConnect() map every
       // row through here, so one corrupt cell must not take down the whole
@@ -2128,28 +2615,95 @@ export class MCPServerConfig {
       url: row.url || null,
       transport:
         row.transport || (row.url ? inferTransport({ url: row.url }) : "stdio"),
+      headers: safeJsonParse(row.headers, {}),
+      configScope: normalizeMcpConfigScope(row.config_scope || "user"),
+      configSource:
+        row.config_source ||
+        (row.config_scope === "managed"
+          ? "managed-settings"
+          : "legacy-database"),
+      projectPath: row.project_path || null,
     };
+    Object.defineProperty(config, "_storageName", {
+      value: row.name,
+      enumerable: false,
+    });
+    return config;
   }
 
-  get(name) {
-    const row = this.db
-      .prepare("SELECT * FROM mcp_servers WHERE name = ?")
-      .get(name);
-    if (!row) return null;
-    return this._rowToConfig(row);
+  get(name, options = {}) {
+    return this.list(options).find((config) => config.name === name) || null;
   }
 
-  list() {
+  list(options = {}) {
     const rows = this.db
       .prepare("SELECT * FROM mcp_servers ORDER BY name")
       .all();
-    return rows.map((row) => this._rowToConfig(row));
+    const visible = rows
+      .map((row) => this._rowToConfig(row))
+      .filter((config) => this._isVisible(config, options));
+    return options.allScopes === true || options.scope
+      ? visible
+      : this._effectiveByName(visible);
   }
 
-  getAutoConnect() {
+  getAutoConnect(options = {}) {
     const rows = this.db
       .prepare("SELECT * FROM mcp_servers WHERE auto_connect = ? ORDER BY name")
       .all(1);
-    return rows.map((row) => this._rowToConfig(row));
+    const visible = rows
+      .map((row) => this._rowToConfig(row))
+      .filter((config) => this._isVisible(config, options));
+    return options.allScopes === true || options.scope
+      ? visible
+      : this._effectiveByName(visible);
+  }
+
+  _effectiveByName(configs) {
+    const priority = { managed: 4, local: 3, project: 2, user: 1 };
+    const selected = new Map();
+    for (const config of configs) {
+      const current = selected.get(config.name);
+      if (
+        !current ||
+        (priority[config.configScope] || 0) >
+          (priority[current.configScope] || 0)
+      ) {
+        selected.set(config.name, config);
+      }
+    }
+    return [...selected.values()].sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  _isVisible(config, options = {}) {
+    if (
+      options.scope &&
+      config.configScope !== normalizeMcpConfigScope(options.scope)
+    ) {
+      return false;
+    }
+    if (options.allScopes === true) return true;
+    if (config.configScope !== "local" && config.configScope !== "project") {
+      return true;
+    }
+    if (!config.projectPath) return false;
+    const cwd = String(options.cwd || process.cwd());
+    // Avoid importing path solely for an authority comparison: URL
+    // normalization gives stable case-insensitive file URLs on Windows and
+    // resolves dot segments on every supported platform.
+    try {
+      const normalizeAuthority = (value) => {
+        const href = pathToFileURL(value).href;
+        return process.platform === "win32" ? href.toLowerCase() : href;
+      };
+      const expected = normalizeAuthority(config.projectPath);
+      const actual = normalizeAuthority(cwd);
+      return (
+        actual === expected ||
+        actual.startsWith(`${expected.replace(/\/$/, "")}/`)
+      );
+    } catch {
+      return false;
+    }
   }
 }

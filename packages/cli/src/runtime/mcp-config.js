@@ -35,6 +35,7 @@ import {
 } from "../lib/jetbrains-bridge.js";
 import { collectPluginMcpServers } from "../lib/plugin-runtime/mcp.js";
 import { EventRuntimeStore } from "../lib/event-runtime-store.js";
+import { mcpEffectDescriptorFields } from "../lib/mcp-effect-contract.js";
 
 /**
  * Normalize a parsed config object into a `{ name: serverConfig }` map.
@@ -57,9 +58,29 @@ export function parseMcpServers(raw) {
       transport: cfg.transport,
       headers:
         cfg.headers && typeof cfg.headers === "object" ? cfg.headers : {},
+      ...(cfg.configScope ? { configScope: cfg.configScope } : {}),
+      ...(cfg.configSource ? { configSource: cfg.configSource } : {}),
     };
   }
   return out;
+}
+
+/** Load organization-provisioned MCP servers as the highest-precedence layer. */
+export async function loadManagedMcp(settings, deps = {}) {
+  const block = settings?.managedMcpServers || settings?.mcpServers;
+  if (!block || typeof block !== "object" || Array.isArray(block)) {
+    return deps.into || null;
+  }
+  const servers = parseMcpServers({ mcpServers: block });
+  for (const config of Object.values(servers)) {
+    config.configScope = "managed";
+    config.configSource = deps.managedFile || "managed-settings";
+  }
+  if (Object.keys(servers).length === 0) return deps.into || null;
+  (deps.writeErr || (() => {}))(
+    `  mcp: ${Object.keys(servers).length} managed server(s) from ${deps.managedFile || "managed settings"}\n`,
+  );
+  return setupMcpFromConfig(servers, deps);
 }
 
 function managedServerNames(value) {
@@ -319,6 +340,17 @@ export async function setupMcpFromConfig(servers, deps = {}) {
         // plugin-provided MCP tool from a user/project MCP server.
         source: cfg.pluginId ? `plugin:${cfg.pluginId}` : name,
         ...(cfg.pluginVersion ? { version: cfg.pluginVersion } : {}),
+        ...mcpEffectDescriptorFields(t, {
+          // This records source identity trust only. It does NOT authorize the
+          // server-declared effect for Plan mode or unattended execution.
+          sourceTrusted:
+            cfg.configScope === "managed" ||
+            Boolean(cfg.pluginId && cfg.pluginWorkspaceAuthority),
+          provenance:
+            cfg.configSource ||
+            cfg.pluginSource ||
+            (cfg.configScope ? `${cfg.configScope}:${name}` : `mcp:${name}`),
+        }),
       };
     }
   }
@@ -405,12 +437,44 @@ export function registerMcpResourceTools(result) {
     kind: "mcp-resource",
     category: "mcp",
     source: "mcp",
+    isReadOnly: true,
+    riskLevel: "low",
+    effectContract: {
+      version: 1,
+      declaredEffect: "read",
+      authorizedEffect: "read",
+      riskLevel: "low",
+      sourceTrusted: true,
+      provenance: "host:mcp-resource-wrapper",
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+    },
   };
   externalToolDescriptors.read_mcp_resource = {
     name: "read_mcp_resource",
     kind: "mcp-resource",
     category: "mcp",
     source: "mcp",
+    isReadOnly: true,
+    riskLevel: "low",
+    effectContract: {
+      version: 1,
+      declaredEffect: "read",
+      authorizedEffect: "read",
+      riskLevel: "low",
+      sourceTrusted: true,
+      provenance: "host:mcp-resource-wrapper",
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: true,
+      },
+    },
   };
 }
 
@@ -460,7 +524,8 @@ export async function loadRegisteredMcp(rawDb, deps = {}) {
       make = (db) => new MCPServerConfig(db);
     }
     const cfg = make(rawDb);
-    rows = deps.all ? cfg.list() : cfg.getAutoConnect();
+    const visibility = { cwd: deps.cwd || process.cwd() };
+    rows = deps.all ? cfg.list(visibility) : cfg.getAutoConnect(visibility);
   } catch {
     return deps.into || null; // registry unavailable — non-fatal
   }
@@ -768,6 +833,7 @@ export async function loadPluginMcp(opts = {}, deps = {}) {
  */
 export async function resolveAgentMcp(args = {}, deps = {}) {
   const doFile = deps.loadMcpConfig || loadMcpConfig;
+  const doManaged = deps.loadManagedMcp || loadManagedMcp;
   const doReg = deps.loadRegisteredMcp || loadRegisteredMcp;
   const doProject = deps.loadProjectMcp || loadProjectMcp;
   const doPlugin = deps.loadPluginMcp || loadPluginMcp;
@@ -784,23 +850,34 @@ export async function resolveAgentMcp(args = {}, deps = {}) {
   // Thread the agent session id down to setupMcpFromConfig so spawned stdio MCP
   // servers get CC_SESSION_ID / CLAUDE_CODE_SESSION_ID (Claude-Code parity).
   let mcpPolicy = deps.mcpPolicy || null;
+  let managedLoaded = {
+    settings: mcpPolicy,
+    file: args.managedSettingsFile || null,
+  };
   if (!mcpPolicy) {
     const { loadManagedSettings } = await import("../lib/settings-loader.cjs");
-    const loaded = loadManagedSettings({
+    managedLoaded = loadManagedSettings({
       env: args.env || process.env,
       managedSettingsFile: args.managedSettingsFile,
     });
-    mcpPolicy = loaded.settings;
+    mcpPolicy = managedLoaded.settings;
   }
   const fwd = {
     ...deps,
+    cwd: args.cwd || deps.cwd || process.cwd(),
     ...(args.sessionId != null ? { sessionId: args.sessionId } : {}),
     ...(eventRuntimeStore ? { eventRuntimeStore } : {}),
     mcpPolicy,
   };
-  let result = null;
+  let result = await doManaged(managedLoaded.settings, {
+    ...fwd,
+    managedFile: managedLoaded.file,
+  });
   if (args.mcpConfigPath) {
-    result = await doFile(args.mcpConfigPath, fwd); // fail-fast on bad file
+    result = await doFile(args.mcpConfigPath, {
+      ...fwd,
+      into: result || undefined,
+    }); // fail-fast on bad file
   }
   // --strict-mcp-config: use ONLY the explicit --mcp-config servers; ignore the
   // registered (cc mcp add) set and IDE-bridge auto-discovery so the run's MCP

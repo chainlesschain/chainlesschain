@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { MockDatabase } from "../helpers/mock-db.js";
 import {
   MCPClient,
@@ -559,9 +559,7 @@ describe("MCP Client", () => {
         return b.method === "tools/list";
       });
       expect(toolsCall.opts.headers["Mcp-Session-Id"]).toBe("sess-abc");
-      expect(toolsCall.opts.headers["MCP-Protocol-Version"]).toBe(
-        "2025-11-25",
-      );
+      expect(toolsCall.opts.headers["MCP-Protocol-Version"]).toBe("2025-11-25");
     });
 
     it("parses a text/event-stream response for a matching id", async () => {

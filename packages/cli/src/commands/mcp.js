@@ -12,7 +12,9 @@ import { bootstrap, shutdown } from "../runtime/bootstrap.js";
 import {
   MCPClient,
   MCPServerConfig,
+  MCP_CONFIG_SCOPES,
   inferTransport,
+  normalizeMcpConfigScope,
 } from "../harness/mcp-client.js";
 import {
   validateMcpServer,
@@ -25,6 +27,8 @@ import {
 import { parseJsonOption } from "../lib/parse-json-option.js";
 import { resolveMcpAuthTarget, isUrlLike } from "../lib/mcp-auth-target.js";
 import { notFoundWithSuggestion } from "../lib/suggest-name.js";
+import { findGitProjectRoot } from "../lib/project-root.cjs";
+import { redactConfigObject } from "../lib/config-redaction.js";
 import {
   CATALOG as REGISTRY_CATALOG,
   CATEGORIES as REGISTRY_CATEGORIES,
@@ -78,11 +82,13 @@ function getClient() {
 async function resolveAuthTargetUrl(program, target) {
   if (isUrlLike(target)) return resolveMcpAuthTarget(target).url;
   const ctx = await bootstrap({ verbose: program.opts().verbose });
+  const config = ctx.db ? new MCPServerConfig(ctx.db.getDatabase()) : null;
+  const rows = config
+    ? await effectiveMcpRows(config)
+    : await readManagedMcpRows();
   const lookup = (name) => {
     try {
-      return ctx.db
-        ? new MCPServerConfig(ctx.db.getDatabase()).get(name)
-        : null;
+      return rows.find((row) => row.name === name) || null;
     } catch {
       return null; // a lookup failure surfaces as "unknown server" below
     }
@@ -103,11 +109,16 @@ async function connectForQuery(program, serverName) {
   }
   const db = ctx.db.getDatabase();
   const config = new MCPServerConfig(db);
+  const projectFlag = String(process.env.CC_PROJECT_MCP || "").toLowerCase();
+  const visible = await effectiveMcpRows(config, {
+    includeProjectFile:
+      Boolean(serverName) || projectFlag === "1" || projectFlag === "true",
+  });
   let rows;
   if (serverName) {
-    const row = config.get(serverName);
+    const row = visible.find((entry) => entry.name === serverName);
     if (!row) {
-      const names = config.list().map((s) => s.name);
+      const names = visible.map((s) => s.name);
       logger.error(
         `${notFoundWithSuggestion(serverName, names, { noun: "Server" })}. Use 'mcp add' first.`,
       );
@@ -116,7 +127,7 @@ async function connectForQuery(program, serverName) {
     }
     rows = [row];
   } else {
-    rows = config.list();
+    rows = visible;
   }
   const client = new MCPClient();
   const connected = [];
@@ -154,6 +165,229 @@ function toPolicyServer(row) {
     url: row.url,
     modeCompatibility: row.modeCompatibility,
   };
+}
+
+export function diagnoseMcpTransportConfig(server = {}) {
+  const transport = inferTransport(server);
+  const supported = new Set(["stdio", "http", "https", "sse", "ws", "wss"]);
+  if (!supported.has(transport)) {
+    return {
+      ok: false,
+      code: "unsupported_transport",
+      transport,
+      message: `Unsupported MCP transport: ${transport}`,
+    };
+  }
+  if (transport === "stdio") {
+    return server.command
+      ? { ok: true, code: "ok", transport }
+      : {
+          ok: false,
+          code: "missing_command",
+          transport,
+          message: "stdio transport requires a command",
+        };
+  }
+  let endpoint;
+  try {
+    endpoint = new URL(String(server.url || ""));
+  } catch {
+    return {
+      ok: false,
+      code: "malformed_url",
+      transport,
+      message: `${transport} transport requires a valid URL`,
+    };
+  }
+  const expected =
+    transport === "sse"
+      ? new Set(["http:", "https:"])
+      : new Set([`${transport}:`]);
+  if (!expected.has(endpoint.protocol)) {
+    return {
+      ok: false,
+      code: "scheme_mismatch",
+      transport,
+      message: `Transport ${transport} is incompatible with URL scheme ${endpoint.protocol}`,
+    };
+  }
+  if (endpoint.username || endpoint.password) {
+    return {
+      ok: false,
+      code: "url_credentials_forbidden",
+      transport,
+      message:
+        "Credentials must be provided with headers/OAuth, not embedded in the URL",
+    };
+  }
+  return { ok: true, code: "ok", transport };
+}
+
+async function readManagedMcpRows() {
+  const { loadManagedSettings } = await import("../lib/settings-loader.cjs");
+  const loaded = loadManagedSettings({ env: process.env });
+  const block =
+    loaded.settings?.managedMcpServers || loaded.settings?.mcpServers || {};
+  if (!block || typeof block !== "object" || Array.isArray(block)) return [];
+  return Object.entries(block)
+    .filter(([, config]) => config && typeof config === "object")
+    .map(([name, config]) => ({
+      name,
+      command: config.command || null,
+      args: Array.isArray(config.args) ? config.args : [],
+      env: config.env && typeof config.env === "object" ? config.env : {},
+      url: config.url || null,
+      transport: inferTransport(config),
+      headers:
+        config.headers && typeof config.headers === "object"
+          ? config.headers
+          : {},
+      autoConnect: config.autoConnect !== false,
+      configScope: "managed",
+      configSource: loaded.file,
+      projectPath: null,
+    }));
+}
+
+function projectMcpLocation(cwd = process.cwd()) {
+  const root = findGitProjectRoot(cwd, { fs, path }) || path.resolve(cwd);
+  return { root, file: path.join(root, ".mcp.json") };
+}
+
+function readProjectMcpDocument(cwd = process.cwd()) {
+  const location = projectMcpLocation(cwd);
+  if (!fs.existsSync(location.file)) {
+    return { ...location, document: { mcpServers: {} } };
+  }
+  let document;
+  try {
+    document = JSON.parse(fs.readFileSync(location.file, "utf8"));
+  } catch (error) {
+    throw new Error(
+      `Cannot read project MCP config ${location.file}: ${error.message}`,
+    );
+  }
+  if (!document || typeof document !== "object" || Array.isArray(document)) {
+    throw new Error(
+      `Project MCP config must be a JSON object: ${location.file}`,
+    );
+  }
+  if (
+    document.mcpServers != null &&
+    (typeof document.mcpServers !== "object" ||
+      Array.isArray(document.mcpServers))
+  ) {
+    throw new Error(`mcpServers must be an object in ${location.file}`);
+  }
+  return {
+    ...location,
+    document: { ...document, mcpServers: { ...(document.mcpServers || {}) } },
+  };
+}
+
+export function readProjectMcpRows(cwd = process.cwd()) {
+  const { root, file, document } = readProjectMcpDocument(cwd);
+  return Object.entries(document.mcpServers)
+    .filter(([, config]) => config && typeof config === "object")
+    .map(([name, config]) => ({
+      name,
+      command: config.command || null,
+      args: Array.isArray(config.args) ? config.args : [],
+      env: config.env && typeof config.env === "object" ? config.env : {},
+      url: config.url || null,
+      transport: inferTransport(config),
+      headers:
+        config.headers && typeof config.headers === "object"
+          ? config.headers
+          : {},
+      autoConnect: true,
+      configScope: "project",
+      configSource: file,
+      projectPath: root,
+    }));
+}
+
+function writeProjectMcpDocument(file, document) {
+  const temporary = `${file}.${process.pid}.${Date.now()}.tmp`;
+  fs.writeFileSync(temporary, `${JSON.stringify(document, null, 2)}\n`, "utf8");
+  try {
+    fs.renameSync(temporary, file);
+  } catch (error) {
+    try {
+      fs.unlinkSync(temporary);
+    } catch {
+      // best-effort temporary-file cleanup
+    }
+    throw error;
+  }
+}
+
+export function writeProjectMcpServer(name, server, cwd = process.cwd()) {
+  const { file, document } = readProjectMcpDocument(cwd);
+  const config = {};
+  if (server.command) config.command = server.command;
+  if (server.args?.length) config.args = server.args;
+  if (server.env && Object.keys(server.env).length > 0) config.env = server.env;
+  if (server.url) config.url = server.url;
+  if (server.transport) config.transport = server.transport;
+  if (server.headers && Object.keys(server.headers).length > 0) {
+    config.headers = server.headers;
+  }
+  document.mcpServers[name] = config;
+  writeProjectMcpDocument(file, document);
+  return file;
+}
+
+export function removeProjectMcpServer(name, cwd = process.cwd()) {
+  const { file, document } = readProjectMcpDocument(cwd);
+  if (!Object.hasOwn(document.mcpServers, name)) return false;
+  delete document.mcpServers[name];
+  writeProjectMcpDocument(file, document);
+  return true;
+}
+
+function firstMcpRowByName(rows) {
+  const names = new Set();
+  return rows.filter((row) => {
+    if (names.has(row.name)) return false;
+    names.add(row.name);
+    return true;
+  });
+}
+
+async function effectiveMcpRows(config, options = {}) {
+  const scope = options.scope;
+  const cwd = options.cwd || process.cwd();
+  const project =
+    options.includeProjectFile === false || (scope && scope !== "project")
+      ? []
+      : readProjectMcpRows(cwd);
+  const stored =
+    scope === "managed"
+      ? []
+      : scope
+        ? config.list({ scope, cwd, allScopes: options.allScopes === true })
+        : options.allScopes === true
+          ? config.list({ allScopes: true })
+          : [
+              ...config.list({ scope: "local", cwd }),
+              ...config.list({ scope: "project", cwd }),
+              ...config.list({ scope: "user", cwd }),
+            ];
+  if (scope && scope !== "managed") {
+    const rows = scope === "project" ? [...project, ...stored] : stored;
+    return firstMcpRowByName(rows);
+  }
+  const managed = await readManagedMcpRows();
+  if (options.allScopes === true) return [...managed, ...project, ...stored];
+  const ordered = [
+    ...managed,
+    ...stored.filter((row) => row.configScope === "local"),
+    ...project,
+    ...stored.filter((row) => row.configScope === "project"),
+    ...stored.filter((row) => row.configScope === "user"),
+  ];
+  return firstMcpRowByName(ordered);
 }
 
 export function registerMcpCommand(program) {
@@ -406,9 +640,15 @@ export function registerMcpCommand(program) {
   // mcp servers — list configured servers
   mcp
     .command("servers")
+    .alias("list")
     .description("List configured MCP servers")
     .option("--json", "Output as JSON")
     .option("--mode <mode>", "Runtime mode (local | lan | hosted)")
+    .option(
+      "--scope <scope>",
+      `Configuration scope: ${MCP_CONFIG_SCOPES.join(" | ")}`,
+    )
+    .option("--all-scopes", "Include project-local entries outside cwd")
     .action(async (options) => {
       try {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
@@ -419,7 +659,13 @@ export function registerMcpCommand(program) {
 
         const db = ctx.db.getDatabase();
         const config = new MCPServerConfig(db);
-        const servers = config.list();
+        const scope = options.scope
+          ? normalizeMcpConfigScope(options.scope)
+          : undefined;
+        const servers = await effectiveMcpRows(config, {
+          scope,
+          allScopes: options.allScopes === true,
+        });
         const mode = resolveMode(options);
         const annotated = servers.map((s) => {
           const { allowed, reason, transport } = validateMcpServer(
@@ -440,7 +686,7 @@ export function registerMcpCommand(program) {
         });
 
         if (options.json) {
-          console.log(JSON.stringify(annotated, null, 2));
+          console.log(JSON.stringify(redactConfigObject(annotated), null, 2));
         } else if (servers.length === 0) {
           logger.info("No MCP servers configured. Use 'mcp add' to add one.");
         } else {
@@ -453,6 +699,9 @@ export function registerMcpCommand(program) {
               ? chalk.green(" [ok]")
               : chalk.yellow(` [blocked: ${s._reason}]`);
             logger.log(`  ${chalk.cyan(s.name)}${auto}${flag}`);
+            logger.log(
+              `    ${chalk.gray("Scope:")} ${s.configScope || "user"} ${chalk.gray(`(${s.configSource || "legacy-database"})`)}`,
+            );
             if (s.url) {
               logger.log(
                 `    ${chalk.gray("URL:")} ${s.url} ${chalk.gray(`[${s.transport || s._transport || "http"}]`)}`,
@@ -489,6 +738,11 @@ export function registerMcpCommand(program) {
     .option(
       "-t, --transport <kind>",
       "Transport kind: stdio | http | https | sse | ws | wss",
+    )
+    .option(
+      "--scope <scope>",
+      `Configuration scope: ${MCP_CONFIG_SCOPES.join(" | ")}`,
+      "user",
     )
     .option(
       "-H, --header <header...>",
@@ -540,17 +794,38 @@ export function registerMcpCommand(program) {
           }
         }
 
+        const configScope = normalizeMcpConfigScope(options.scope);
+        if (configScope === "managed") {
+          throw new Error(
+            "Managed MCP configuration is read-only; provision it through managed settings",
+          );
+        }
+        if (
+          configScope === "project" &&
+          Object.keys(headers).some((key) =>
+            /authorization|proxy-authorization|cookie|api[-_]?key|token|secret/i.test(
+              key,
+            ),
+          )
+        ) {
+          throw new Error(
+            "Project-scoped .mcp.json must not contain credential headers; use OAuth login or local/user scope",
+          );
+        }
+
         const transport =
           options.transport ||
           (options.url ? inferTransport({ url: options.url }) : "stdio");
 
-        if (options.url) {
-          try {
-            new URL(options.url);
-          } catch (_e) {
-            logger.error(`Invalid URL: ${options.url}`);
-            process.exit(1);
-          }
+        const transportDiagnostic = diagnoseMcpTransportConfig({
+          command: options.command,
+          url: options.url,
+          transport,
+        });
+        if (!transportDiagnostic.ok) {
+          throw new Error(
+            `${transportDiagnostic.code}: ${transportDiagnostic.message}`,
+          );
         }
 
         const mode = resolveMode(options);
@@ -570,7 +845,8 @@ export function registerMcpCommand(program) {
           );
         }
 
-        config.add(name, {
+        const workspaceRoot = projectMcpLocation(process.cwd()).root;
+        const storedConfig = {
           command: options.command || null,
           args,
           url: options.url || null,
@@ -578,7 +854,23 @@ export function registerMcpCommand(program) {
           env: {},
           autoConnect: !!options.autoConnect,
           headers: Object.keys(headers).length > 0 ? headers : undefined,
-        });
+          configScope,
+          projectPath: configScope === "local" ? workspaceRoot : null,
+        };
+        let configSource;
+        if (configScope === "project") {
+          configSource = writeProjectMcpServer(
+            name,
+            storedConfig,
+            process.cwd(),
+          );
+        } else {
+          config.add(name, storedConfig);
+          configSource =
+            configScope === "user"
+              ? "user-database"
+              : `${configScope}:${workspaceRoot}`;
+        }
 
         const payload = {
           name,
@@ -587,6 +879,8 @@ export function registerMcpCommand(program) {
           url: options.url || null,
           transport,
           autoConnect: !!options.autoConnect,
+          configScope,
+          configSource,
         };
 
         if (options.json) {
@@ -600,6 +894,11 @@ export function registerMcpCommand(program) {
           } else {
             logger.log(
               `  ${chalk.gray("Command:")} ${options.command} ${args.join(" ")}`,
+            );
+          }
+          if (configScope === "project") {
+            logger.log(
+              `  ${chalk.gray("Shared config:")} ${configSource} (run with --project-mcp after trust review)`,
             );
           }
         }
@@ -616,7 +915,11 @@ export function registerMcpCommand(program) {
     .command("remove")
     .description("Remove an MCP server configuration")
     .argument("<name>", "Server name")
-    .action(async (name) => {
+    .option(
+      "--scope <scope>",
+      `Configuration scope: ${MCP_CONFIG_SCOPES.join(" | ")}`,
+    )
+    .action(async (name, options) => {
       try {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
         if (!ctx.db) {
@@ -626,8 +929,42 @@ export function registerMcpCommand(program) {
 
         const db = ctx.db.getDatabase();
         const config = new MCPServerConfig(db);
-        const names = config.list().map((s) => s.name);
-        const removed = config.remove(name);
+        const scope = options.scope
+          ? normalizeMcpConfigScope(options.scope)
+          : undefined;
+        if (scope === "managed") {
+          throw new Error(
+            "Managed MCP configuration is read-only; change the managed settings source",
+          );
+        }
+        const projectFlag = String(
+          process.env.CC_PROJECT_MCP || "",
+        ).toLowerCase();
+        const visible = await effectiveMcpRows(config, {
+          scope,
+          includeProjectFile:
+            Boolean(name) ||
+            scope === "project" ||
+            projectFlag === "1" ||
+            projectFlag === "true",
+        });
+        const selected = visible.find((row) => row.name === name);
+        if (selected?.configScope === "managed") {
+          throw new Error(
+            "Managed MCP configuration is read-only; change the managed settings source",
+          );
+        }
+        const names = visible.map((s) => s.name);
+        const projectFile = projectMcpLocation(process.cwd()).file;
+        const removed =
+          selected?.configScope === "project" &&
+          path.resolve(selected.configSource || "") ===
+            path.resolve(projectFile)
+            ? removeProjectMcpServer(name, process.cwd())
+            : config.remove(name, {
+                scope: selected?.configScope || scope,
+                cwd: process.cwd(),
+              });
 
         if (removed) {
           logger.success(`MCP server "${name}" removed`);
@@ -643,6 +980,176 @@ export function registerMcpCommand(program) {
     });
 
   // mcp connect — connect to a server
+  mcp
+    .command("get")
+    .description("Show one MCP server configuration and its source")
+    .argument("<name>", "Server name")
+    .option(
+      "--scope <scope>",
+      `Configuration scope: ${MCP_CONFIG_SCOPES.join(" | ")}`,
+    )
+    .option("--json", "Output as JSON")
+    .action(async (name, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        if (!ctx.db) throw new Error("Database not available");
+        const config = new MCPServerConfig(ctx.db.getDatabase());
+        const scope = options.scope
+          ? normalizeMcpConfigScope(options.scope)
+          : undefined;
+        const visible = await effectiveMcpRows(config, { scope });
+        const server = visible.find((row) => row.name === name) || null;
+        if (!server) {
+          throw new Error(
+            notFoundWithSuggestion(
+              name,
+              visible.map((row) => row.name),
+              { noun: "Server" },
+            ),
+          );
+        }
+        if (options.json) {
+          console.log(JSON.stringify(redactConfigObject(server), null, 2));
+        } else {
+          logger.log(chalk.bold(server.name));
+          logger.log(`  Scope:     ${server.configScope}`);
+          logger.log(`  Source:    ${server.configSource}`);
+          logger.log(`  Transport: ${server.transport}`);
+          logger.log(
+            server.url
+              ? `  URL:       ${server.url}`
+              : `  Command:   ${server.command} ${(server.args || []).join(" ")}`,
+          );
+        }
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exitCode = 1;
+      }
+    });
+
+  mcp
+    .command("doctor")
+    .description("Validate MCP configuration and test transport handshakes")
+    .argument("[name]", "Optional server name")
+    .option(
+      "--scope <scope>",
+      `Configuration scope: ${MCP_CONFIG_SCOPES.join(" | ")}`,
+    )
+    .option("--timeout <ms>", "Connect/request timeout", "10000")
+    .option("--json", "Output structured diagnostics as JSON")
+    .action(async (name, options) => {
+      const diagnostics = [];
+      let client = null;
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        if (!ctx.db) throw new Error("Database not available");
+        const config = new MCPServerConfig(ctx.db.getDatabase());
+        const scope = options.scope
+          ? normalizeMcpConfigScope(options.scope)
+          : undefined;
+        const projectFlag = String(
+          process.env.CC_PROJECT_MCP || "",
+        ).toLowerCase();
+        const visible = await effectiveMcpRows(config, {
+          scope,
+          includeProjectFile:
+            Boolean(name) ||
+            scope === "project" ||
+            projectFlag === "1" ||
+            projectFlag === "true",
+        });
+        const rows = name
+          ? visible.filter((row) => row.name === name)
+          : visible;
+        if (name && rows.length === 0) {
+          throw new Error(
+            notFoundWithSuggestion(
+              name,
+              visible.map((row) => row.name),
+              { noun: "Server" },
+            ),
+          );
+        }
+        const timeoutMs = Math.max(
+          1,
+          Number.parseInt(options.timeout, 10) || 10000,
+        );
+        for (const row of rows) {
+          const staticCheck = diagnoseMcpTransportConfig(row);
+          const record = {
+            name: row.name,
+            scope: row.configScope,
+            source: row.configSource,
+            transport: staticCheck.transport,
+            ok: false,
+            code: staticCheck.code,
+            message: staticCheck.message || null,
+          };
+          if (!staticCheck.ok) {
+            diagnostics.push(record);
+            continue;
+          }
+          const policy = validateMcpServer(toPolicyServer(row), "local");
+          if (!policy.allowed) {
+            diagnostics.push({
+              ...record,
+              code: "policy_denied",
+              message: policy.reason,
+            });
+            continue;
+          }
+          client = new MCPClient();
+          try {
+            const connected = await client.connect(row.name, {
+              ...row,
+              connectTimeoutMs: timeoutMs,
+              requestTimeoutMs: timeoutMs,
+            });
+            diagnostics.push({
+              ...record,
+              ok: true,
+              code: "ok",
+              message: null,
+              tools: connected.tools?.length || 0,
+              resources: connected.resources?.length || 0,
+              prompts: connected.prompts?.length || 0,
+            });
+          } catch (error) {
+            diagnostics.push({
+              ...record,
+              code: error?.code || "connect_failed",
+              message: error?.message || String(error),
+              status: error?.status ?? null,
+              closeCode: error?.closeCode ?? null,
+            });
+          } finally {
+            await client.disconnectAll();
+            client = null;
+          }
+        }
+        if (options.json) {
+          console.log(JSON.stringify(diagnostics, null, 2));
+        } else if (diagnostics.length === 0) {
+          logger.info("No MCP servers configured in the selected scope.");
+        } else {
+          for (const row of diagnostics) {
+            const state = row.ok ? chalk.green("ok") : chalk.red(row.code);
+            logger.log(
+              `  ${chalk.cyan(row.name)} [${row.scope}/${row.transport}] ${state}`,
+            );
+            if (row.message) logger.log(`    ${chalk.gray(row.message)}`);
+          }
+        }
+        if (diagnostics.some((row) => !row.ok)) process.exitCode = 1;
+        await shutdown();
+      } catch (err) {
+        await client?.disconnectAll?.();
+        logger.error(`MCP doctor failed: ${err.message}`);
+        process.exitCode = 1;
+      }
+    });
+
   mcp
     .command("connect")
     .description("Connect to an MCP server")
@@ -660,10 +1167,13 @@ export function registerMcpCommand(program) {
 
         const db = ctx.db.getDatabase();
         const config = new MCPServerConfig(db);
-        const serverConfig = config.get(name);
+        const visible = await effectiveMcpRows(config, {
+          includeProjectFile: true,
+        });
+        const serverConfig = visible.find((row) => row.name === name) || null;
 
         if (!serverConfig) {
-          const names = config.list().map((s) => s.name);
+          const names = visible.map((s) => s.name);
           logger.error(
             `${notFoundWithSuggestion(name, names, { noun: "Server" })}. Use 'mcp add' first.`,
           );
