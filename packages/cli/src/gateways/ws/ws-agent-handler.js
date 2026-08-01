@@ -60,6 +60,16 @@ export class WSAgentHandler {
     this._approvalGateInit = Boolean(approvalGate);
   }
 
+  _recordSessionState(type, payload = {}) {
+    if (typeof this.session?._recordSessionStateEvent !== "function") return;
+    try {
+      this.session._recordSessionStateEvent(type, payload);
+    } catch (_err) {
+      // Recovery persistence is best-effort for the live turn. A persisted
+      // running marker is reconciled fail-closed when the session resumes.
+    }
+  }
+
   /** Resolve the session's approval gate (lazy, opt-in; null when disabled). */
   async _ensureApprovalGate() {
     if (this._approvalGateInit) return this._approvalGate;
@@ -95,12 +105,18 @@ export class WSAgentHandler {
     this._activeRequestId = requestId || null;
     let sideEffectLedger = null;
     let diffReviewFollowUps = null;
+    let runRecorded = false;
 
     try {
       const { session } = this;
 
       // Add user message
       session.messages.push({ role: "user", content: userMessage });
+      this._recordSessionState("run.started", {
+        requestId: requestId || null,
+        startedAt: new Date().toISOString(),
+      });
+      runRecorded = true;
 
       // Auto-select model based on task type — runnable-first: never switch
       // onto a provider with no usable key (you'd just 401). Keep the
@@ -169,6 +185,7 @@ export class WSAgentHandler {
       sideEffectLedger = loadSideEffectLedger(session.id);
       diffReviewFollowUps = new DiffReviewFollowUpTracker(sideEffectLedger);
       let currentSideEffectOpId = null;
+      let currentTodoWrite = null;
 
       const executeAgentTurn = async () => {
         for await (const event of agentLoop(session.messages, loopOptions)) {
@@ -189,6 +206,14 @@ export class WSAgentHandler {
                 display: formatToolArgs(event.tool, event.args),
               });
               currentSideEffectOpId = null;
+              currentTodoWrite =
+                event.tool === "todo_write" && Array.isArray(event.args?.todos)
+                  ? event.args.todos.map((todo) => ({
+                      id: todo.id,
+                      content: todo.content,
+                      status: todo.status,
+                    }))
+                  : null;
               {
                 const se = classifyToolSideEffect(event.tool, event.args);
                 if (se) {
@@ -219,6 +244,23 @@ export class WSAgentHandler {
                 result: event.result,
                 error: event.error,
               });
+              if (
+                event.tool === "todo_write" &&
+                currentTodoWrite &&
+                !event.error &&
+                !event.result?.error &&
+                event.result?.success === true &&
+                Number.isSafeInteger(event.result.revision)
+              ) {
+                this._recordSessionState("todo.snapshot", {
+                  todo: {
+                    sessionId: session.id,
+                    revision: event.result.revision,
+                    todos: currentTodoWrite,
+                  },
+                });
+              }
+              currentTodoWrite = null;
               if (currentSideEffectOpId) {
                 const err = event.error || event.result?.error || null;
                 if (event.result?._diffReviewAudit) {
@@ -311,6 +353,12 @@ export class WSAgentHandler {
         });
       }
     } finally {
+      if (runRecorded) {
+        this._recordSessionState("run.settled", {
+          requestId: requestId || null,
+          settledAt: new Date().toISOString(),
+        });
+      }
       this._processing = false;
       if (this._abortController === abortController) {
         this._abortController = null;
@@ -334,6 +382,12 @@ export class WSAgentHandler {
       this.interaction.rejectAllPending(reason);
     }
 
+    this._recordSessionState("run.interrupted", {
+      requestId: interruptedRequestId,
+      interruptedAt: new Date().toISOString(),
+      reason: "client_interrupt",
+    });
+
     return {
       sessionId: this.session?.id || null,
       interrupted: true,
@@ -343,12 +397,21 @@ export class WSAgentHandler {
   }
 
   destroy() {
+    const wasProcessing = this._processing;
+    const interruptedRequestId = this._activeRequestId || null;
     const reason = createAbortError("Session closed");
     if (this._abortController && !this._abortController.signal.aborted) {
       this._abortController.abort(reason);
     }
     if (typeof this.interaction?.rejectAllPending === "function") {
       this.interaction.rejectAllPending(reason);
+    }
+    if (wasProcessing) {
+      this._recordSessionState("run.interrupted", {
+        requestId: interruptedRequestId,
+        interruptedAt: new Date().toISOString(),
+        reason: "session_closed",
+      });
     }
   }
 

@@ -94,6 +94,18 @@ async function ensureSessionHandler(server, ws, session) {
   session.interaction = new WebSocketInteractionAdapter(ws, session.id, {
     enablePhase5Envelopes,
     envelopeBus: server.envelopeBus || null,
+    onPendingApprovalChange: ({ type, payload }) => {
+      if (
+        server.sessionManager &&
+        typeof server.sessionManager.recordSessionStateEvent === "function"
+      ) {
+        server.sessionManager.recordSessionStateEvent(
+          session.id,
+          type,
+          payload,
+        );
+      }
+    },
   });
 
   // Route MCP elicitation through the authenticated WS question channel. The
@@ -286,6 +298,10 @@ export async function handleSessionResume(server, id, ws, message) {
     messageCount: history.length,
     status: "resumed",
   });
+  const stateSnapshot =
+    typeof server.sessionManager.getSessionStateSnapshot === "function"
+      ? server.sessionManager.getSessionStateSnapshot(session.id)
+      : null;
 
   // P0-2: reconcile the crash-safe side-effect ledger. If a dangerous tool was
   // in flight when the prior worker died, warn the IDE client AND inject a
@@ -304,6 +320,7 @@ export async function handleSessionResume(server, id, ws, message) {
         historyCount: history.length,
         sessionType: session.type || null,
         record,
+        ...(stateSnapshot ? { stateSnapshot } : {}),
         ...(recovery ? { recovery } : {}),
       },
       { kind: "server", sessionId: session.id },
@@ -319,6 +336,7 @@ export async function handleSessionResume(server, id, ws, message) {
         sessionId: session.id,
         history,
         record,
+        ...(stateSnapshot ? { stateSnapshot } : {}),
         ...(recovery ? { recovery } : {}),
       },
       session.id,
@@ -546,15 +564,31 @@ export async function handleSessionInterrupt(server, id, ws, message) {
   }
 
   const handler = server.sessionHandlers.get(sessionId);
-  const result =
-    handler && typeof handler.interrupt === "function"
-      ? await handler.interrupt()
-      : {
-          sessionId,
-          interrupted: true,
-          wasProcessing: false,
-          interruptedRequestId: null,
-        };
+  const handlerCanInterrupt =
+    handler && typeof handler.interrupt === "function";
+  const result = handlerCanInterrupt
+    ? await handler.interrupt()
+    : {
+        sessionId,
+        interrupted: true,
+        wasProcessing: false,
+        interruptedRequestId: null,
+      };
+
+  if (
+    !handlerCanInterrupt &&
+    typeof server.sessionManager.recordSessionStateEvent === "function"
+  ) {
+    server.sessionManager.recordSessionStateEvent(
+      sessionId,
+      "run.interrupted",
+      {
+        requestId: result.interruptedRequestId,
+        interruptedAt: new Date().toISOString(),
+        reason: "client_interrupt",
+      },
+    );
+  }
 
   server._send(
     ws,

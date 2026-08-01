@@ -184,6 +184,47 @@ describe("WSAgentHandler", () => {
       });
     });
 
+    it("records run lifecycle and the committed TODO revision", async () => {
+      session._recordSessionStateEvent = vi.fn();
+      agentLoop.mockReturnValue(
+        fakeAgentLoop([
+          {
+            type: "tool-executing",
+            tool: "todo_write",
+            args: {
+              todos: [
+                { id: "todo-1", content: "Persist", status: "in_progress" },
+              ],
+            },
+          },
+          {
+            type: "tool-result",
+            tool: "todo_write",
+            result: { success: true, revision: 6 },
+          },
+        ]),
+      );
+
+      await handler.handleMessage("Track this", "req-state");
+
+      expect(session._recordSessionStateEvent.mock.calls).toEqual([
+        ["run.started", expect.objectContaining({ requestId: "req-state" })],
+        [
+          "todo.snapshot",
+          {
+            todo: {
+              sessionId: session.id,
+              revision: 6,
+              todos: [
+                { id: "todo-1", content: "Persist", status: "in_progress" },
+              ],
+            },
+          },
+        ],
+        ["run.settled", expect.objectContaining({ requestId: "req-state" })],
+      ]);
+    });
+
     it("passes host-managed tool policy into the agent loop", async () => {
       session.hostManagedToolPolicy = {
         tools: {

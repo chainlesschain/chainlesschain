@@ -49,6 +49,14 @@ import {
   registerHostHooksV2Workspace,
   releaseRegisteredHostHooksV2Workspace,
 } from "../../lib/hooks-v2-workspace-context.js";
+import {
+  appendWsSessionStateEvent,
+  createWsSessionState,
+  getWsSessionStateSnapshot,
+  hydrateWsSessionState,
+  recoverWsSessionState,
+  serializeWsSessionState,
+} from "./ws-session-state.js";
 
 function normalizeHostWorkspaceRoot(workspaceRoot) {
   if (
@@ -495,6 +503,7 @@ export class WSSessionManager {
       createdAt: new Date().toISOString(),
       lastActivity: new Date().toISOString(),
     };
+    this._bindSessionStateJournal(session, createWsSessionState());
     bindSessionHooksV2Workspace(
       session,
       hostAuthorizedBaseRoot
@@ -561,6 +570,20 @@ export class WSSessionManager {
         metadata,
       );
       const planManager = this._hydratePlanManager(metadata.planSnapshot);
+      const sessionStateJournal = hydrateWsSessionState(
+        metadata.sessionState,
+        Object.prototype.hasOwnProperty.call(metadata, "planSnapshot")
+          ? {
+              // Legacy/current metadata migration is pass-through only.
+              // PlanModeManager remains the sole owner of Plan hydration and
+              // persistence.
+              planSnapshot: metadata.planSnapshot,
+            }
+          : {},
+      );
+      const stateRecovery = recoverWsSessionState(sessionStateJournal, {
+        reason: "process_restart",
+      });
       const externalTools = this._buildSessionExternalTools();
       let contextEngine = null;
       let permanentMemory = null;
@@ -618,6 +641,7 @@ export class WSSessionManager {
         createdAt: dbSession.created_at,
         lastActivity: new Date().toISOString(),
       };
+      this._bindSessionStateJournal(session, sessionStateJournal);
       const recoveredHooksWorkspaceRoot =
         metadata.worktreeIsolation !== true &&
         normalizeHostWorkspaceRoot(baseProjectRoot) ===
@@ -630,6 +654,9 @@ export class WSSessionManager {
 
       this._bindPlanManagerPersistence(session);
       this.sessions.set(session.id, session);
+      if (stateRecovery.changed) {
+        this._persistSessionState(session.id);
+      }
       return session;
     } catch (_err) {
       return null;
@@ -1476,6 +1503,7 @@ export class WSSessionManager {
   }
 
   _serializeSessionMetadata(session) {
+    const sessionStateJournal = this._ensureSessionStateJournal(session);
     return {
       version: 1,
       sessionType: session.type || "agent",
@@ -1501,7 +1529,52 @@ export class WSSessionManager {
         ? session.patchHistory
         : [],
       taskGraph: this._serializeTaskGraph(session.taskGraph),
+      // Additive metadata field: old readers ignore it; new readers replay the
+      // contiguous event tail over the checkpoint before resuming a session.
+      sessionState: serializeWsSessionState(sessionStateJournal),
     };
+  }
+
+  _bindSessionStateJournal(session, journal) {
+    if (!session || typeof session !== "object") return;
+    Object.defineProperty(session, "_sessionStateJournal", {
+      value: journal || createWsSessionState(),
+      enumerable: false,
+      writable: true,
+      configurable: true,
+    });
+    Object.defineProperty(session, "_recordSessionStateEvent", {
+      value: (type, payload = {}) =>
+        this.recordSessionStateEvent(session.id, type, payload),
+      enumerable: false,
+      writable: false,
+      configurable: true,
+    });
+  }
+
+  _ensureSessionStateJournal(session) {
+    if (!session?._sessionStateJournal) {
+      this._bindSessionStateJournal(session, createWsSessionState());
+    }
+    return session._sessionStateJournal;
+  }
+
+  /** Record a recovery event and atomically persist it with session messages. */
+  recordSessionStateEvent(sessionId, type, payload = {}) {
+    const session = this.sessions.get(sessionId);
+    if (!session) return null;
+    const journal = this._ensureSessionStateJournal(session);
+    appendWsSessionStateEvent(journal, type, payload);
+    this._persistSessionState(sessionId);
+    return getWsSessionStateSnapshot(journal);
+  }
+
+  /** Detached snapshot suitable for an additive IDE resume payload. */
+  getSessionStateSnapshot(sessionId) {
+    const session = this.sessions.get(sessionId);
+    if (!session) return null;
+    const journal = this._ensureSessionStateJournal(session);
+    return getWsSessionStateSnapshot(journal);
   }
 
   _hydratePendingPatches(list) {

@@ -138,6 +138,21 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
     this.enablePhase5Envelopes = options.enablePhase5Envelopes === true;
     // Optional fan-out bus for hosted HTTP SSE subscribers.
     this.envelopeBus = options.envelopeBus || null;
+    // Optional persistence hook for approval lifecycle state. It is entirely
+    // internal and does not alter the question/session-answer wire protocol.
+    this.onPendingApprovalChange =
+      typeof options.onPendingApprovalChange === "function"
+        ? options.onPendingApprovalChange
+        : null;
+  }
+
+  _notifyPendingApproval(type, payload) {
+    if (!this.onPendingApprovalChange) return;
+    try {
+      this.onPendingApprovalChange({ type, payload });
+    } catch (_err) {
+      // Interaction transport remains usable if optional persistence fails.
+    }
   }
 
   /** Generate a unique request id */
@@ -162,6 +177,12 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
             return;
           }
           this._pending.delete(requestId);
+          if (pending.approvalRequest) {
+            this._notifyPendingApproval("approval.settled", {
+              requestId,
+              reason: "timeout",
+            });
+          }
           reject(new Error("Question timed out"));
         },
         options.timeoutMs || 5 * 60 * 1000,
@@ -169,11 +190,14 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
       // `kind` tags what KIND of response settles this request ("question" vs
       // "host-tool"). Checked in _resolvePending so a peer's session-answer can
       // never resolve a host-tool call with a plain string (or vice versa).
+      const approvalRequest =
+        message.approval && typeof message.approval === "object";
       this._pending.set(requestId, {
         resolve,
         reject,
         timeoutId,
         kind: options.kind || null,
+        approvalRequest,
         // Approval binding (authority §"权限来源"): when a permission gate raises
         // this request WITH a binding (tool_call_id + args + policy digest), an
         // *approve* answer must echo the SAME binding or it is a stale / mis-
@@ -182,6 +206,27 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
         binding: options.binding || null,
         bindingType: options.bindingType || null,
       });
+
+      if (approvalRequest) {
+        this._notifyPendingApproval("approval.requested", {
+          requestId,
+          status: "pending",
+          binding: typeof options.binding === "string" ? options.binding : null,
+          tool:
+            typeof message.approval.tool === "string"
+              ? message.approval.tool
+              : null,
+          risk:
+            typeof message.approval.risk === "string"
+              ? message.approval.risk
+              : null,
+          rule:
+            typeof message.approval.rule === "string"
+              ? message.approval.rule
+              : null,
+          requestedAt: new Date().toISOString(),
+        });
+      }
 
       this._sendWs({
         ...message,
@@ -408,6 +453,12 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
       if (pending.timeoutId) {
         clearTimeout(pending.timeoutId);
       }
+      if (pending.approvalRequest) {
+        this._notifyPendingApproval("approval.settled", {
+          requestId,
+          reason: error.code || "interrupted",
+        });
+      }
       pending.reject(error);
     }
   }
@@ -537,6 +588,17 @@ export class WebSocketInteractionAdapter extends InteractionAdapter {
     this._pending.delete(requestId);
     if (pending.timeoutId) {
       clearTimeout(pending.timeoutId);
+    }
+    if (pending.approvalRequest) {
+      const normalizedApproval =
+        effective === true ||
+        effective === "true" ||
+        effective === "yes" ||
+        effective === "y";
+      this._notifyPendingApproval("approval.settled", {
+        requestId,
+        reason: normalizedApproval ? "approved" : "denied",
+      });
     }
     pending.resolve(effective);
   }

@@ -560,6 +560,35 @@ describe("ws runtime event emission", () => {
     );
   });
 
+  it("session-resume adds the optional replayed state snapshot", async () => {
+    server.sessionManager.getSessionStateSnapshot = vi.fn(() => ({
+      schema: "chainlesschain.ws-session-state",
+      version: 1,
+      revision: 5,
+      todo: { revision: 3, todos: [] },
+      pendingApproval: null,
+      run: { status: "interrupted", requestId: "turn-1" },
+    }));
+
+    await handleSessionResume(server, "req-state", ws, {
+      sessionId: "sess-1",
+    });
+
+    expect(server._send).toHaveBeenCalledWith(
+      ws,
+      expect.objectContaining({
+        type: "session.resumed",
+        payload: expect.objectContaining({
+          stateSnapshot: expect.objectContaining({
+            revision: 5,
+            todo: { revision: 3, todos: [] },
+            run: expect.objectContaining({ status: "interrupted" }),
+          }),
+        }),
+      }),
+    );
+  });
+
   it("session-close handler emits command.response envelope", () => {
     handleSessionClose(server, "req-cl-env", ws, { sessionId: "sess-1" });
     expect(server._send).toHaveBeenCalledWith(
