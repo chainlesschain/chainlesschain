@@ -641,16 +641,23 @@ export function createRecoveryGuardedMcpClient({
 
   const methodCache = new Map();
   let wrappedClient;
-  wrappedClient = new Proxy(client, {
-    get(target, property) {
+  // Never proxy the raw client directly: a frozen, non-configurable callTool
+  // property would require the get trap to return the raw function byte-for-
+  // byte, defeating the guard (and otherwise throws a Proxy invariant error).
+  // An extensible facade lets reads/writes delegate to the raw instance while
+  // methods still execute with the raw `this` binding.
+  const facade = Object.create(Object.getPrototypeOf(client));
+  wrappedClient = new Proxy(facade, {
+    get(_facade, property) {
       if (property === "callTool") return callTool;
-      const value = Reflect.get(target, property, target);
+      const value = Reflect.get(client, property, client);
+      if (value === client) return wrappedClient;
       if (typeof value !== "function") return value;
       const cached = methodCache.get(property);
       if (cached?.source === value) return cached.wrapper;
       const wrapper = (...args) => {
-        const result = Reflect.apply(value, target, args);
-        if (result === target) return wrappedClient;
+        const result = Reflect.apply(value, client, args);
+        if (result === client) return wrappedClient;
         if (
           result !== null &&
           (typeof result === "object" || typeof result === "function")
@@ -663,7 +670,7 @@ export function createRecoveryGuardedMcpClient({
           }
           if (typeof then === "function") {
             return Promise.resolve(result).then((resolved) =>
-              resolved === target ? wrappedClient : resolved,
+              resolved === client ? wrappedClient : resolved,
             );
           }
         }
@@ -671,6 +678,70 @@ export function createRecoveryGuardedMcpClient({
       };
       methodCache.set(property, { source: value, wrapper });
       return wrapper;
+    },
+    set(_facade, property, value) {
+      if (property === "callTool") return false;
+      return Reflect.set(
+        client,
+        property,
+        value === wrappedClient ? client : value,
+        client,
+      );
+    },
+    has(_facade, property) {
+      return Reflect.has(client, property);
+    },
+    ownKeys() {
+      return Reflect.ownKeys(client);
+    },
+    getOwnPropertyDescriptor(_facade, property) {
+      const descriptor = Reflect.getOwnPropertyDescriptor(client, property);
+      if (!descriptor) return undefined;
+      if (property === "callTool") {
+        return {
+          configurable: true,
+          enumerable: descriptor.enumerable,
+          writable: false,
+          value: callTool,
+        };
+      }
+      if ("value" in descriptor) {
+        return {
+          configurable: true,
+          enumerable: descriptor.enumerable,
+          writable: descriptor.writable,
+          value: Reflect.get(wrappedClient, property, wrappedClient),
+        };
+      }
+      return {
+        configurable: true,
+        enumerable: descriptor.enumerable,
+        get: descriptor.get
+          ? () => Reflect.get(wrappedClient, property, wrappedClient)
+          : undefined,
+        set: descriptor.set
+          ? (value) =>
+              Reflect.set(wrappedClient, property, value, wrappedClient)
+          : undefined,
+      };
+    },
+    defineProperty(_facade, property, descriptor) {
+      // A non-configurable property on the raw object cannot be mirrored onto
+      // the facade without reintroducing the get-trap invariant above.
+      if (property === "callTool" || descriptor.configurable === false) {
+        return false;
+      }
+      return Reflect.defineProperty(client, property, descriptor);
+    },
+    deleteProperty(_facade, property) {
+      if (property === "callTool") return false;
+      return Reflect.deleteProperty(client, property);
+    },
+    getPrototypeOf() {
+      return Reflect.getPrototypeOf(client);
+    },
+    preventExtensions() {
+      return false;
     },
   });
   GUARDED_MCP_CLIENTS.set(wrappedClient, {

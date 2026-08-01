@@ -746,6 +746,84 @@ describe("MCP ledger recovery admission", () => {
     expect(rawCallTool).toHaveBeenCalledTimes(1);
   });
 
+  it("guards a frozen client with a non-configurable callTool", async () => {
+    const rawCallTool = vi.fn(async () => ({ ok: true }));
+    const rawClient = Object.freeze({
+      value: 9,
+      callTool: rawCallTool,
+      getValue() {
+        return this.value;
+      },
+      chain() {
+        return this;
+      },
+    });
+    const settle = vi.fn(async () => ({}));
+    const begin = vi.fn(async () => ({ ledgerId: "frozen", settle }));
+    const client = createRecoveryGuardedMcpClient({
+      client: rawClient,
+      ledger: { begin },
+      controller: createMcpRecoveryAdmissionController(),
+    });
+
+    expect(client.getValue()).toBe(9);
+    expect(client.chain()).toBe(client);
+    const callToolDescriptor = Object.getOwnPropertyDescriptor(
+      client,
+      "callTool",
+    );
+    expect(callToolDescriptor.value).toBe(client.callTool);
+    await expect(client.callTool("repo", "status", {})).resolves.toEqual({
+      ok: true,
+    });
+    expect(begin).toHaveBeenCalledTimes(1);
+    expect(settle).toHaveBeenCalledTimes(1);
+    expect(rawCallTool).toHaveBeenCalledTimes(1);
+  });
+
+  it("delegates common property reads, writes, setters, and reflection to the raw client", () => {
+    const rawClient = {
+      value: 1,
+      callTool: vi.fn(),
+      get current() {
+        return this.value;
+      },
+      set current(value) {
+        this.value = value;
+      },
+    };
+    rawClient.self = rawClient;
+    const originalCallTool = rawClient.callTool;
+    const client = createRecoveryGuardedMcpClient({
+      client: rawClient,
+      ledger: { begin: vi.fn() },
+      controller: createMcpRecoveryAdmissionController(),
+    });
+
+    expect(client.value).toBe(1);
+    expect(client.self).toBe(client);
+    client.value = 2;
+    expect(rawClient.value).toBe(2);
+    client.current = 3;
+    expect(rawClient.value).toBe(3);
+    client.added = "raw";
+    expect(rawClient.added).toBe("raw");
+    expect("value" in client).toBe(true);
+    expect(Object.keys(client)).toContain("value");
+    expect(Object.prototype.hasOwnProperty.call(client, "value")).toBe(true);
+    expect(Object.getOwnPropertyDescriptor(client, "callTool").value).toBe(
+      client.callTool,
+    );
+    expect(() => {
+      client.callTool = vi.fn();
+    }).toThrow(TypeError);
+    expect(rawClient.callTool).toBe(originalCallTool);
+    client.self = client;
+    expect(rawClient.self).toBe(rawClient);
+    delete client.added;
+    expect(Object.hasOwn(rawClient, "added")).toBe(false);
+  });
+
   it("keeps the recovery code diagnosable when agent-core blocks callTool", async () => {
     const callTool = vi.fn();
     const ledger = guardMcpLedgerForRecovery(

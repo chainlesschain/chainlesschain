@@ -5,15 +5,6 @@ import {
   createRecoveryGuardedMcpClient,
 } from "./mcp-ledger-recovery-admission.js";
 
-// These IDE bridge operations only observe editor state. This is host-owned
-// authority: server-supplied readOnlyHint metadata alone is never sufficient.
-const HOST_AUTHORIZED_IDE_READS = new Set([
-  "getSelection",
-  "getOpenEditors",
-  "getTerminalOutput",
-  "getDiagnostics",
-]);
-
 function findMcpToolName(bundle, serverName, toolName) {
   for (const [name, executor] of Object.entries(
     bundle?.externalToolExecutors || {},
@@ -29,18 +20,12 @@ function findMcpToolName(bundle, serverName, toolName) {
   return null;
 }
 
-/** Resolve a host-owned effect contract for auxiliary (non-model) MCP calls. */
+/**
+ * Resolve a conservative effect contract for auxiliary (non-model) MCP calls.
+ * Server/tool names and server-supplied read declarations are not host
+ * capabilities, so they can only make a call stricter (write/destructive).
+ */
 export function resolveHostMcpEffect(bundle, serverName, toolName) {
-  if (serverName === "ide" && HOST_AUTHORIZED_IDE_READS.has(toolName)) {
-    return {
-      effectContract: {
-        effect: McpEffect.READ,
-        trusted: true,
-        source: "host:ide-context",
-      },
-    };
-  }
-
   const name = findMcpToolName(bundle, serverName, toolName);
   const descriptor = name ? bundle?.externalToolDescriptors?.[name] : null;
   const declaredEffect = descriptor?.effectContract?.declaredEffect;
@@ -58,6 +43,42 @@ export function resolveHostMcpEffect(bundle, serverName, toolName) {
   };
 }
 
+function recoveryErrorCode(recoveryError) {
+  try {
+    return typeof recoveryError?.code === "string" && recoveryError.code
+      ? recoveryError.code
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Merge new verified evidence into an existing authority without lowering it. */
+function tightenRecoveryController(controller, recovery, recoveryError) {
+  if (!controller) {
+    return createMcpRecoveryAdmissionController(recovery, { recoveryError });
+  }
+  if (
+    typeof controller.latchUnsafe !== "function" ||
+    typeof controller.latchAll !== "function"
+  ) {
+    throw new TypeError("MCP recovery controller is invalid");
+  }
+
+  const incoming = createMcpRecoveryAdmissionController(recovery, {
+    recoveryError,
+  }).admission;
+  const reasonCode = incoming.reasonCode || recoveryErrorCode(recoveryError);
+  if (incoming.blockMode === "all") {
+    controller.latchAll(reasonCode);
+  } else if (incoming.blockMode === "unsafe") {
+    controller.latchUnsafe(reasonCode);
+  }
+  // A clean projection is deliberately a no-op here. Clearing a runtime latch
+  // requires the controller's explicit verified-replacement authority.
+  return controller;
+}
+
 /**
  * Assemble one session-scoped controller, durable ledger and host-call client.
  * Agent-core must receive rawClient + ledger; only auxiliary host calls receive
@@ -72,9 +93,11 @@ export function createMcpHostRecoveryRuntime({
   recoveryError = null,
   controller = null,
 } = {}) {
-  const admissionController =
-    controller ||
-    createMcpRecoveryAdmissionController(recovery, { recoveryError });
+  const admissionController = tightenRecoveryController(
+    controller,
+    recovery,
+    recoveryError,
+  );
   const ledger = createRecoveryGuardedMcpCallLedger({
     sink,
     controller: admissionController,
