@@ -327,11 +327,24 @@ class DeliveryWorkflowController {
 
   async load(statePath = this._statePath) {
     if (!String(statePath || "")) throw new Error("statePath is required");
-    const result = await this._project(String(statePath));
-    this._statePath = String(statePath);
-    this._projection = result.projection;
+    const requestedPath = String(statePath);
+    try {
+      const result = await this._project(requestedPath);
+      this._statePath = requestedPath;
+      this._projection = result.projection;
+      this._confirmation = null;
+      return this._projection;
+    } catch (error) {
+      this.invalidate(requestedPath);
+      throw error;
+    }
+  }
+
+  /** Retain the selected state path while removing every stale action. */
+  invalidate(statePath = this._statePath) {
+    this._statePath = statePath ? String(statePath) : null;
+    this._projection = null;
     this._confirmation = null;
-    return this._projection;
   }
 
   previewRequest(action) {
@@ -487,6 +500,9 @@ class DeliveryWorkflowController {
     this._busy = true;
     try {
       return await operation();
+    } catch (error) {
+      this.invalidate();
+      throw error;
     } finally {
       this._busy = false;
     }

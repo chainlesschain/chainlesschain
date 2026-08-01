@@ -4,6 +4,7 @@
  * every mutation is revision-gated and routed through a CLI command.
  */
 const { execFile } = require("child_process");
+const fs = require("node:fs");
 const { hardenedEnv } = require("../hardened-env");
 const { escapeCmdArgs } = require("../win-shell");
 const {
@@ -15,6 +16,11 @@ const {
   filterRows,
   renderWorkbenchHtml,
 } = require("../sessions-workbench.js");
+const {
+  ACTION_LABELS: DELIVERY_ACTION_LABELS,
+  DeliveryWorkflowController,
+  renderDeliveryHtml,
+} = require("../delivery-workflow.js");
 
 const REFRESH_MS = 15000;
 // Session/agent ids come back through webview messages — keep them argv-safe
@@ -24,6 +30,8 @@ let _rows = [];
 let _errors = [];
 let _query = "";
 let _hooks = {};
+let _deliveryController = null;
+let _deliveryError = "";
 let _snapshot = {
   connected: false,
   revision: null,
@@ -99,6 +107,9 @@ function projectionArgs(vscode) {
 }
 
 async function readProjection(vscode) {
+  if (typeof _hooks.readSessionProjection === "function") {
+    return _hooks.readSessionProjection();
+  }
   const result = await runCliJson(vscode, projectionArgs(vscode));
   return result.ok
     ? parseSessionProjection(result.raw)
@@ -108,6 +119,105 @@ async function readProjection(vscode) {
         rows: [],
         error: result.error || "cc session projection unavailable",
       };
+}
+
+function postDelivery() {
+  post({
+    type: "delivery",
+    html: renderDeliveryHtml(_deliveryController?.projection, {
+      statePath: _deliveryController?.statePath || "",
+      error: _deliveryError,
+    }),
+  });
+}
+
+function ensureDeliveryController(vscode) {
+  if (_deliveryController) return _deliveryController;
+  _deliveryController = new DeliveryWorkflowController({
+    runCli:
+      typeof _hooks.runDeliveryCli === "function"
+        ? _hooks.runDeliveryCli
+        : (args) => runCliJson(vscode, args, { timeoutMs: 30000 }),
+    readResultFile:
+      typeof _hooks.readDeliveryResultFile === "function"
+        ? _hooks.readDeliveryResultFile
+        : (file) => fs.promises.readFile(file, "utf8"),
+  });
+  return _deliveryController;
+}
+
+async function loadDelivery(vscode, statePath) {
+  try {
+    await ensureDeliveryController(vscode).load(statePath);
+    _deliveryError = "";
+  } catch (error) {
+    _deliveryError = `Delivery flow unavailable: ${error.message || error}`;
+  }
+  postDelivery();
+}
+
+async function selectDeliveryState(vscode) {
+  const picked = await vscode.window.showOpenDialog({
+    canSelectMany: false,
+    openLabel: "Load delivery flow",
+    title: "Select a CLI delivery-flow state snapshot",
+    filters: { "Delivery state": ["json"], "All files": ["*"] },
+  });
+  const statePath = picked?.[0]?.fsPath;
+  if (statePath) await loadDelivery(vscode, statePath);
+}
+
+async function requestDeliveryAction(vscode, action) {
+  const controller = ensureDeliveryController(vscode);
+  try {
+    const token = controller.previewRequest(String(action || ""));
+    const label = DELIVERY_ACTION_LABELS[token.action] || token.action;
+    const confirmed = await vscode.window.showWarningMessage(
+      `Request “${label}” for ${token.flowId} at revision ${token.expectedRevision}? This records a pending coordinator effect only; it does not run PR, CI, merge, or archive operations.`,
+      { modal: true },
+      "Request effect",
+    );
+    if (confirmed !== "Request effect") return;
+    const next = await controller.confirmRequest(token);
+    _deliveryError = "";
+    post({
+      type: "info",
+      text: `Pending delivery request recorded: ${next.pendingEffect.action}. Supply an exact effect-bound result JSON to settle it.`,
+    });
+  } catch (error) {
+    _deliveryError = `Delivery request rejected: ${error.message || error}`;
+  }
+  postDelivery();
+}
+
+async function settleDeliveryAction(vscode) {
+  const controller = ensureDeliveryController(vscode);
+  const picked = await vscode.window.showOpenDialog({
+    canSelectMany: false,
+    openLabel: "Preview result envelope",
+    title: "Select an effect-bound delivery action result JSON",
+    filters: { "Delivery result": ["json"], "All files": ["*"] },
+  });
+  const resultPath = picked?.[0]?.fsPath;
+  if (!resultPath) return;
+  try {
+    const token = await controller.previewSettlement(resultPath);
+    const confirmed = await vscode.window.showWarningMessage(
+      `Settle the pending ${token.action} request at revision ${token.expectedRevision} with effect ${token.expectedEffectId}? The CLI will re-check the state, effect ID, and unchanged result file before settling.`,
+      { modal: true },
+      "Settle exact effect",
+    );
+    if (confirmed !== "Settle exact effect") return;
+    const next = await controller.confirmSettlement(token);
+    _deliveryError = "";
+    post({
+      type: "info",
+      text: `Delivery effect settled by the CLI; flow is now ${next.status}/${next.phase}.`,
+    });
+  } catch (error) {
+    _deliveryError = `Delivery settlement rejected: ${error.message || error}`;
+  }
+  postDelivery();
 }
 
 /** Load the one CLI-owned projection; any failure clears stale actions. */
@@ -258,6 +368,10 @@ async function runAction(vscode, msg) {
 async function handleMessage(vscode, msg) {
   if (!msg || typeof msg !== "object") return;
   switch (msg.command) {
+    case "ready":
+      postRows();
+      postDelivery();
+      return;
     case "refresh":
       await loadData(vscode);
       return;
@@ -267,6 +381,20 @@ async function handleMessage(vscode, msg) {
       return;
     case "action":
       await runAction(vscode, msg);
+      return;
+    case "delivery-select":
+      await selectDeliveryState(vscode);
+      return;
+    case "delivery-refresh":
+      if (_deliveryController?.statePath) {
+        await loadDelivery(vscode, _deliveryController.statePath);
+      }
+      return;
+    case "delivery-request":
+      await requestDeliveryAction(vscode, msg.action);
+      return;
+    case "delivery-settle":
+      await settleDeliveryAction(vscode);
       return;
     default:
   }
@@ -286,6 +414,7 @@ function openSessionsWorkbench(vscode, hooks = {}) {
     { enableScripts: true, retainContextWhenHidden: true },
   );
   _panel.webview.html = renderPageHtml();
+  ensureDeliveryController(vscode);
   _panel.webview.onDidReceiveMessage((msg) => handleMessage(vscode, msg));
   _panel.onDidDispose(() => {
     if (_timer) {
@@ -296,6 +425,8 @@ function openSessionsWorkbench(vscode, hooks = {}) {
     _rows = [];
     _errors = [];
     _query = "";
+    _deliveryController = null;
+    _deliveryError = "";
     _snapshot = {
       connected: false,
       revision: null,
@@ -304,6 +435,7 @@ function openSessionsWorkbench(vscode, hooks = {}) {
     };
   });
   loadData(vscode);
+  postDelivery();
   _timer = setInterval(() => {
     if (_panel && _panel.visible) loadData(vscode);
   }, REFRESH_MS);
@@ -342,6 +474,18 @@ function renderPageHtml() {
           var(--vscode-widget-border,#555); border-radius:3px; padding:0 4px; }
   .muted { opacity:.55; }
   .warn { color: var(--vscode-editorWarning-foreground, orange); margin-bottom:6px; }
+  #delivery { border:1px solid var(--vscode-widget-border,#555); border-radius:5px; padding:10px; margin:0 0 12px; }
+  .delivery-head { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .delivery-controls, .delivery-actions { display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; }
+  .delivery-path { overflow-wrap:anywhere; margin:3px 0 7px; }
+  .delivery-stages { display:flex; flex-wrap:wrap; gap:5px; margin:8px 0; }
+  .delivery-stage { border:1px solid var(--vscode-widget-border,#555); border-radius:10px; padding:1px 7px; font-size:11px; }
+  .delivery-stage.done { color:#3fb950; }
+  .delivery-stage.current { color:var(--vscode-charts-blue,#3794ff); }
+  .delivery-stage.blocked { color:var(--vscode-errorForeground,#f85149); }
+  #delivery details { margin:7px 0; }
+  #delivery ul { margin:4px 0; padding-left:22px; }
+  #delivery code { overflow-wrap:anywhere; }
   button { background: var(--vscode-button-background); color: var(--vscode-button-foreground);
            border:none; padding:3px 10px; border-radius:4px; cursor:pointer; margin:0 4px 3px 0; }
   button:hover { background: var(--vscode-button-hoverBackground); }
@@ -356,6 +500,7 @@ function renderPageHtml() {
     <button id="refresh" class="sec">Refresh</button>
   </div>
   <div id="info"></div>
+  <section id="delivery">${renderDeliveryHtml(null)}</section>
   <div id="list"><p class="muted">Loading…</p></div>
 <script nonce="${n}">
   const vscode = acquireVsCodeApi();
@@ -373,11 +518,26 @@ function renderPageHtml() {
     }
     vscode.postMessage(msg);
   });
+  document.getElementById('delivery').addEventListener('click', (e)=>{
+    const action = e.target.closest('button[data-delivery-action]');
+    if (action) {
+      vscode.postMessage({command:'delivery-request', action:action.getAttribute('data-delivery-action')});
+      return;
+    }
+    const button = e.target.closest('button[data-delivery-command]');
+    if (!button) return;
+    const command = button.getAttribute('data-delivery-command');
+    if (command==='select') vscode.postMessage({command:'delivery-select'});
+    else if (command==='refresh') vscode.postMessage({command:'delivery-refresh'});
+    else if (command==='settle') vscode.postMessage({command:'delivery-settle'});
+  });
   window.addEventListener('message', (ev)=>{
     const m = ev.data || {};
     if (m.type==='rows') document.getElementById('list').innerHTML = m.html;
+    else if (m.type==='delivery') document.getElementById('delivery').innerHTML = m.html;
     else if (m.type==='info') document.getElementById('info').textContent = m.text || '';
   });
+  vscode.postMessage({command:'ready'});
 </script>
 </body>
 </html>`;

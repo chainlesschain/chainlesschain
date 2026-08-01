@@ -472,7 +472,7 @@
     "package": "npx --yes @vscode/vsce@3.9.2 package --no-dependencies",
     "sync:elicitation-schema": "node scripts/sync-elicitation-schema.mjs",
     "check:elicitation-schema": "node scripts/sync-elicitation-schema.mjs --check",
-    "test:unit": "node --test src/ide-capabilities.test.js test/delivery-workflow.test.cjs test/extension-host-runner.test.cjs test/ide-doctor.test.cjs test/ide-session-index.test.cjs test/lockfile-acl.test.cjs test/preview.test.cjs test/pr-status-view.test.cjs",
+    "test:unit": "node --test src/ide-capabilities.test.js test/delivery-workflow.test.cjs test/extension-host-runner.test.cjs test/ide-doctor.test.cjs test/ide-session-index.test.cjs test/lockfile-acl.test.cjs test/preview.test.cjs test/pr-status-view.test.cjs test/sessions-view-delivery.test.cjs",
     "test:extension-host": "node test/extension-host/run.cjs",
     "publish:ovsx": "npx --yes ovsx@1.0.2 publish --no-dependencies",
     "publish:vsce": "npx --yes @vscode/vsce@3.9.2 publish --no-dependencies"

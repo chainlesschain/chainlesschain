@@ -1,13 +1,18 @@
 package com.chainlesschain.ide.intellij;
 
 import com.chainlesschain.ide.AgentChatSession;
+import com.chainlesschain.ide.DeliveryWorkflow;
+import com.chainlesschain.ide.DeliveryWorkflowController;
 import com.chainlesschain.ide.SessionProjection;
 import com.chainlesschain.ide.SessionsWorkbench;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.fileChooser.FileChooser;
+import com.intellij.openapi.fileChooser.FileChooserDescriptor;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.Messages;
+import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowFactory;
 import com.intellij.ui.DocumentAdapter;
@@ -19,6 +24,7 @@ import com.intellij.ui.table.JBTable;
 import com.intellij.util.Alarm;
 import org.jetbrains.annotations.NotNull;
 
+import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -32,8 +38,12 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -48,6 +58,7 @@ public final class SessionsWorkbenchToolWindowFactory implements ToolWindowFacto
 
     private static final int REFRESH_MS = 15_000;
     private static final long CLI_TIMEOUT_MS = 15_000;
+    private static final long DELIVERY_CLI_TIMEOUT_MS = 30_000;
     private static final int LIST_LIMIT = 50;
 
     @Override
@@ -70,6 +81,13 @@ public final class SessionsWorkbenchToolWindowFactory implements ToolWindowFacto
         private final JLabel note = new JLabel(" ");
         private final Alarm alarm;
         private final AtomicBoolean inFlight = new AtomicBoolean(false);
+        private final AtomicBoolean deliveryInFlight = new AtomicBoolean(false);
+        private final DeliveryWorkflowController deliveryController;
+        private final JTextArea deliveryText = new JTextArea(7, 80);
+        private final JPanel deliveryActions =
+                new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
+        private final JButton deliverySelectBtn = new JButton("Select state…");
+        private final JButton deliveryRefreshBtn = new JButton("Refresh flow");
 
         private final JButton resumeBtn = new JButton("Dispatch");
         private final JButton attachBtn = new JButton(CcBundle.message("sessions.wb.attach"));
@@ -88,6 +106,11 @@ public final class SessionsWorkbenchToolWindowFactory implements ToolWindowFacto
             this.toolWindow = toolWindow;
             Disposable parent = toolWindow.getDisposable();
             this.alarm = new Alarm(Alarm.ThreadToUse.SWING_THREAD, parent);
+            this.deliveryController = new DeliveryWorkflowController(
+                    args -> AgentChatSession.runCapture(
+                            args, projectDirectory(), DELIVERY_CLI_TIMEOUT_MS),
+                    path -> Files.readString(
+                            Paths.get(path), StandardCharsets.UTF_8));
 
             JButton refreshBtn = new JButton(CcBundle.message("sessions.wb.refresh"));
             refreshBtn.addActionListener(ev -> load());
@@ -122,9 +145,33 @@ public final class SessionsWorkbenchToolWindowFactory implements ToolWindowFacto
             checkpointBtn.addActionListener(ev -> onCheckpoint());
             syncButtons();
 
+            JPanel deliveryPanel = new JPanel(new BorderLayout(6, 6));
+            deliveryPanel.setBorder(BorderFactory.createTitledBorder("Delivery flow"));
+            JPanel deliveryControls = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
+            deliveryControls.add(deliverySelectBtn);
+            deliveryControls.add(deliveryRefreshBtn);
+            deliverySelectBtn.addActionListener(ev -> onDeliverySelect());
+            deliveryRefreshBtn.addActionListener(ev -> {
+                String statePath = deliveryController.statePath();
+                if (statePath != null) loadDelivery(statePath);
+            });
+            deliveryText.setEditable(false);
+            deliveryText.setLineWrap(true);
+            deliveryText.setWrapStyleWord(true);
+            deliveryText.setFont(new Font(
+                    Font.MONOSPACED, Font.PLAIN, deliveryText.getFont().getSize()));
+            deliveryPanel.add(deliveryControls, BorderLayout.NORTH);
+            deliveryPanel.add(new JBScrollPane(deliveryText), BorderLayout.CENTER);
+            deliveryPanel.add(deliveryActions, BorderLayout.SOUTH);
+
+            JPanel center = new JPanel(new BorderLayout(6, 6));
+            center.add(deliveryPanel, BorderLayout.NORTH);
+            center.add(new JBScrollPane(table), BorderLayout.CENTER);
+
             root.add(top, BorderLayout.NORTH);
-            root.add(new JBScrollPane(table), BorderLayout.CENTER);
+            root.add(center, BorderLayout.CENTER);
             root.add(note, BorderLayout.SOUTH);
+            renderDelivery(null);
         }
 
         // -------------------------------------------------- refresh loop
@@ -136,7 +183,11 @@ public final class SessionsWorkbenchToolWindowFactory implements ToolWindowFacto
         private void tick() {
             // Only poll while the window is showing — a hidden workbench must
             // not keep spawning cc every 15s. The alarm dies with the window.
-            if (toolWindow.isVisible()) load();
+            if (toolWindow.isVisible()) {
+                load();
+                String deliveryPath = deliveryController.statePath();
+                if (deliveryPath != null) loadDelivery(deliveryPath);
+            }
             scheduleTick(REFRESH_MS);
         }
 
@@ -190,6 +241,170 @@ public final class SessionsWorkbenchToolWindowFactory implements ToolWindowFacto
         }
 
         // ------------------------------------------------------ selection
+
+        private File projectDirectory() {
+            return project.getBasePath() == null
+                    ? null : new File(project.getBasePath());
+        }
+
+        private void onDeliverySelect() {
+            String statePath = chooseDeliveryFile(
+                    "Select a CLI delivery-flow state snapshot",
+                    "The IDE reads the projection through cc artifacts delivery-project; "
+                            + "it does not mutate the selected JSON directly.");
+            if (statePath != null) loadDelivery(statePath);
+        }
+
+        private String chooseDeliveryFile(String title, String description) {
+            FileChooserDescriptor descriptor =
+                    new FileChooserDescriptor(true, false, false, false, false, false)
+                            .withTitle(title)
+                            .withDescription(description);
+            VirtualFile chosen = FileChooser.chooseFile(descriptor, project, null);
+            return chosen == null ? null : chosen.getPath();
+        }
+
+        private void loadDelivery(String statePath) {
+            if (statePath == null || !deliveryInFlight.compareAndSet(false, true)) return;
+            renderDelivery(null);
+            ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                String failure = null;
+                try {
+                    deliveryController.load(statePath);
+                } catch (Throwable error) {
+                    deliveryController.invalidate(statePath);
+                    failure = "Delivery flow unavailable: " + deliveryError(error);
+                }
+                final String message = failure;
+                ApplicationManager.getApplication().invokeLater(() -> {
+                    deliveryInFlight.set(false);
+                    renderDelivery(message);
+                });
+            });
+        }
+
+        private void onDeliveryRequest(String action) {
+            if (deliveryInFlight.get()) return;
+            final DeliveryWorkflowController.Confirmation token;
+            try {
+                token = deliveryController.previewRequest(action);
+            } catch (Throwable error) {
+                renderDelivery("Delivery request rejected: " + deliveryError(error));
+                return;
+            }
+            int confirmed = Messages.showYesNoDialog(
+                    project,
+                    "Request \"" + DeliveryWorkflow.actionLabel(token.action)
+                            + "\" for " + token.flowId + " at revision "
+                            + token.expectedRevision + "? This records a pending "
+                            + "coordinator effect only; it does not run PR, CI, merge, "
+                            + "or archive operations.",
+                    "Confirm Delivery Request",
+                    "Request effect", "Cancel", null);
+            if (confirmed != Messages.YES) return;
+            runDeliveryOperation(
+                    () -> deliveryController.confirmRequest(token),
+                    "Pending delivery request recorded: " + token.action);
+        }
+
+        private void onDeliverySettlement() {
+            if (deliveryInFlight.get()) return;
+            String resultPath = chooseDeliveryFile(
+                    "Select an effect-bound delivery result envelope",
+                    "The result JSON must name the exact pending effect. The CLI "
+                            + "re-checks the flow revision and state digest before settling.");
+            if (resultPath == null || !deliveryInFlight.compareAndSet(false, true)) return;
+            renderDelivery(null);
+            ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                DeliveryWorkflowController.Confirmation preview = null;
+                String failure = null;
+                try {
+                    preview = deliveryController.previewSettlement(resultPath);
+                } catch (Throwable error) {
+                    failure = "Delivery settlement rejected: " + deliveryError(error);
+                }
+                final DeliveryWorkflowController.Confirmation token = preview;
+                final String message = failure;
+                ApplicationManager.getApplication().invokeLater(() -> {
+                    deliveryInFlight.set(false);
+                    renderDelivery(message);
+                    if (token == null) return;
+                    int confirmed = Messages.showYesNoDialog(
+                            project,
+                            "Settle the pending " + token.action + " request at revision "
+                                    + token.expectedRevision + " with effect "
+                                    + token.expectedEffectId + "? The CLI will re-check the "
+                                    + "state, effect ID, and unchanged result before settling.",
+                            "Confirm Delivery Settlement",
+                            "Settle exact effect", "Cancel", null);
+                    if (confirmed == Messages.YES) {
+                        runDeliveryOperation(
+                                () -> deliveryController.confirmSettlement(token),
+                                "Delivery effect settled: " + token.action);
+                    }
+                });
+            });
+        }
+
+        private void runDeliveryOperation(
+                DeliveryOperation operation, String successMessage) {
+            if (!deliveryInFlight.compareAndSet(false, true)) return;
+            renderDelivery(null);
+            ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                String failure = null;
+                try {
+                    operation.run();
+                } catch (Throwable error) {
+                    deliveryController.invalidate(deliveryController.statePath());
+                    failure = "Delivery action rejected: " + deliveryError(error);
+                }
+                final String message = failure;
+                ApplicationManager.getApplication().invokeLater(() -> {
+                    deliveryInFlight.set(false);
+                    renderDelivery(message);
+                    note.setText(message == null ? successMessage : message);
+                });
+            });
+        }
+
+        private void renderDelivery(String error) {
+            boolean busy = deliveryInFlight.get();
+            String statePath = deliveryController.statePath();
+            Map<String, Object> current = deliveryController.projection();
+            String rendered = DeliveryWorkflow.render(current, statePath);
+            deliveryText.setText(error == null ? rendered : error + "\n\n" + rendered);
+            deliveryText.setCaretPosition(0);
+            deliverySelectBtn.setEnabled(!busy);
+            deliveryRefreshBtn.setEnabled(!busy && statePath != null);
+            deliveryActions.removeAll();
+            if (!busy && current != null) {
+                for (String action : DeliveryWorkflow.availableActions(current)) {
+                    JButton request = new JButton(
+                            "Request: " + DeliveryWorkflow.actionLabel(action));
+                    request.addActionListener(ev -> onDeliveryRequest(action));
+                    deliveryActions.add(request);
+                }
+                if (DeliveryWorkflow.pendingEffect(current) != null) {
+                    JButton settle = new JButton("Settle from result JSON…");
+                    settle.addActionListener(ev -> onDeliverySettlement());
+                    deliveryActions.add(settle);
+                }
+            }
+            deliveryActions.revalidate();
+            deliveryActions.repaint();
+        }
+
+        private static String deliveryError(Throwable error) {
+            String message = error == null || error.getMessage() == null
+                    ? String.valueOf(error) : error.getMessage();
+            message = message.replace('\r', ' ').replace('\n', ' ').trim();
+            return message.length() <= 400 ? message : message.substring(0, 400);
+        }
+
+        @FunctionalInterface
+        private interface DeliveryOperation {
+            void run() throws Exception;
+        }
 
         private SessionsWorkbench.Row selected() {
             int i = table.getSelectedRow();

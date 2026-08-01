@@ -177,6 +177,48 @@ test("revision and result/effect changes invalidate confirmations before step", 
   );
 });
 
+test("load and confirmation failures clear stale actions but retain the selected path", async () => {
+  const c = fixture.controllerCase;
+  let loadCalls = 0;
+  const loadController = new DeliveryWorkflowController({
+    runCli: async () => {
+      loadCalls += 1;
+      return loadCalls === 1
+        ? JSON.stringify(c.initial)
+        : { ok: false, error: "offline" };
+    },
+    readResultFile: async () => JSON.stringify(c.resultEnvelope),
+  });
+  await loadController.load(c.statePath);
+  assert.deepEqual(loadController.projection.availableActions, ["refresh_ci"]);
+  await assert.rejects(loadController.load(c.statePath), /offline/);
+  assert.equal(loadController.statePath, c.statePath);
+  assert.equal(loadController.projection, null);
+  assert.throws(
+    () => loadController.previewRequest("refresh_ci"),
+    /no delivery projection is loaded/,
+  );
+
+  let confirmCalls = 0;
+  const confirmController = new DeliveryWorkflowController({
+    runCli: async () => {
+      confirmCalls += 1;
+      return confirmCalls === 1
+        ? JSON.stringify(c.initial)
+        : { ok: false, error: "recheck unavailable" };
+    },
+    readResultFile: async () => JSON.stringify(c.resultEnvelope),
+  });
+  await confirmController.load(c.statePath);
+  const token = confirmController.previewRequest("refresh_ci");
+  await assert.rejects(
+    confirmController.confirmRequest(token),
+    /recheck unavailable/,
+  );
+  assert.equal(confirmController.statePath, c.statePath);
+  assert.equal(confirmController.projection, null);
+});
+
 test("builds legacy and CAS-bound CLI argv without any provider command", () => {
   assert.deepEqual(
     buildDeliveryStepArgs({

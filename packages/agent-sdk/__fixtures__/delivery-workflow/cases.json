@@ -82,6 +82,30 @@
         "pr": null,
         "evidence": null
       }
+    },
+    {
+      "name": "fractional-protocol-counters-fail-closed",
+      "valid": false,
+      "value": {
+        "schema": "chainlesschain.delivery-flow-projection",
+        "version": 1.5,
+        "valid": true,
+        "flowId": "delivery-fixture",
+        "revision": 7.5,
+        "stateDigest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "status": "active",
+        "phase": "ci",
+        "round": 1.5,
+        "maxRounds": 3.5,
+        "noProgressRounds": 0.5,
+        "maxNoProgressRounds": 1.5,
+        "availableActions": ["refresh_ci"],
+        "pendingEffect": null,
+        "stopReason": null,
+        "failures": [],
+        "pr": null,
+        "evidence": null
+      }
     }
   ],
   "actionCases": [
@@ -128,6 +152,19 @@
         "action": "force_merge",
         "payload": {}
       }
+    },
+    {
+      "name": "fractional-action-revision-fails-closed",
+      "valid": false,
+      "value": {
+        "schema": "chainlesschain.delivery-action",
+        "version": 1,
+        "flowId": "delivery-fixture",
+        "expectedRevision": 7.5,
+        "expectedStateDigest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "action": "refresh_ci",
+        "payload": {}
+      }
     }
   ],
   "resultCases": [
@@ -152,6 +189,16 @@
         "schema": "chainlesschain.delivery-action-result",
         "version": 1,
         "effectId": "sha256:abc123",
+        "result": {}
+      }
+    },
+    {
+      "name": "fractional-result-version-fails-closed",
+      "valid": false,
+      "value": {
+        "schema": "chainlesschain.delivery-action-result",
+        "version": 1.5,
+        "effectId": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
         "result": {}
       }
     }
