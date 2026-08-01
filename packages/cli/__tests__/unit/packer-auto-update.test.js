@@ -193,6 +193,7 @@ describe("runAutoUpdate", () => {
     expect(applyImpl).toHaveBeenCalledTimes(1);
     const applyArg = applyImpl.mock.calls[0][0];
     expect(applyArg.restart).toBe(true);
+    expect(applyArg.expectedSha256).toBe(FAKE_ARTIFACT.sha256);
   });
 
   it("--no-restart flips restart to false", async () => {

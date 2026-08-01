@@ -430,6 +430,7 @@ export function registerPackCommand(program) {
           const plan = await scheduleReplace({
             newExePath: dl.outputPath,
             targetExePath: targetExe,
+            expectedSha256: dl.sha256,
             restart: Boolean(opts.restart),
             verify: true,
           });
@@ -743,6 +744,7 @@ export async function runAutoUpdate({
     plan = await applyImpl({
       newExePath: dl.outputPath,
       targetExePath: targetExe,
+      expectedSha256: dl.sha256,
       restart,
       verify: true,
     });
