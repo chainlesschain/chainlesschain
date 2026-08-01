@@ -175,10 +175,10 @@ async installNpmDependencies(pluginPath)
 
 ---
 
-## async execCommand(command, args = [])
+## async execCommand(command, args = [], options =
 
 ```javascript
-async execCommand(command, args = [])
+async execCommand(command, args = [], options =
 ```
 
 * 执行命令

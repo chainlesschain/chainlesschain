@@ -31,6 +31,19 @@ ensureCacheDir()
 
 ---
 
+## resolveAttestedCachePath(cachePath,
+
+```javascript
+resolveAttestedCachePath(cachePath,
+```
+
+* Resolve a cache path only after proving that both its lexical path and,
+   * when present, its real path remain underneath the host-configured cache
+   * directory. This prevents legacy/remote-controlled DB values and symlinks
+   * from becoming read, copy, or unlink authority.
+
+---
+
 ## registerProtocolHandlers()
 
 ```javascript
