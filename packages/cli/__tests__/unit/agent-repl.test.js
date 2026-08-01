@@ -536,11 +536,151 @@ describe("agent-repl thin wrapper contracts", () => {
     const content = readFileSync(agentReplPath, "utf8");
     expect(content).toContain("let _mcpLedgerRecovery = null;");
     expect(content).toContain("let _mcpLedgerRecoveryError = null;");
-    expect(content).toContain("_mcpLedgerRecovery = recovery;");
-    expect(content).toContain("_mcpLedgerRecoveryError = error;");
+    expect(content).toContain("readReplMcpRecoveryCandidate(targetSessionId)");
+    expect(content).toContain("_commitMcpRecoveryCandidate");
+    expect(content).toContain("_mcpLedgerRecovery = candidate?.recovery");
+    expect(content).toContain(
+      "_mcpLedgerRecoveryError = candidate?.recoveryError",
+    );
     expect(content).toContain("createRecoveryGuardedMcpCallLedger({");
     expect(content).toContain("recovery: _mcpLedgerRecovery,");
     expect(content).toContain("recoveryError: _mcpLedgerRecoveryError,");
+  });
+});
+
+describe("agent-repl MCP recovery resume transaction", () => {
+  it("verifies MCP recovery before rebuild and blocks all when rebuild throws", async () => {
+    const { prepareReplJsonlResumeCandidate } =
+      await import("../../src/repl/agent-repl.js");
+    const { createRecoveryGuardedMcpCallLedger } =
+      await import("../../src/lib/mcp-ledger-recovery-admission.js");
+    const order = [];
+    const candidate = prepareReplJsonlResumeCandidate("target-session", {
+      loadMcpLedgerRecovery: () => {
+        order.push("verified-recovery");
+        return { records: [], unsettled: [], incidents: [] };
+      },
+      formatMcpLedgerRecoveryNotice: () => null,
+      rebuildMessages: () => {
+        order.push("rebuild");
+        throw new Error("history unavailable");
+      },
+    });
+
+    expect(order).toEqual(["verified-recovery", "rebuild"]);
+    expect(candidate).toMatchObject({
+      ok: false,
+      sessionId: "target-session",
+      mcp: {
+        recovery: null,
+        recoveryError: { code: "CC_REPL_SESSION_REBUILD_FAILED" },
+      },
+    });
+
+    const callTool = vi.fn();
+    const ledger = createRecoveryGuardedMcpCallLedger({
+      recovery: candidate.mcp.recovery,
+      recoveryError: candidate.mcp.recoveryError,
+    });
+    const attemptMcpCall = async () => {
+      await ledger.begin({
+        sessionId: "target-session",
+        serverName: "repo",
+        toolName: "mcp__repo__status",
+        input: {},
+        effectContract: { effect: "read" },
+      });
+      return callTool();
+    };
+    await expect(attemptMcpCall()).rejects.toMatchObject({
+      code: "CC_MCP_LEDGER_RECOVERY_BLOCKED",
+      blockMode: "all",
+    });
+    expect(callTool).not.toHaveBeenCalled();
+  });
+
+  it("keeps the old session state when target preparation fails", async () => {
+    const { commitPreparedReplJsonlResume, prepareReplJsonlResumeCandidate } =
+      await import("../../src/repl/agent-repl.js");
+    const oldRecovery = Object.freeze({
+      unsettled: [{ ledgerId: "old-write" }],
+      incidents: [],
+    });
+    const state = {
+      sessionId: "old-session",
+      messages: [{ role: "system", content: "old" }],
+      recovery: oldRecovery,
+      recoveryError: null,
+    };
+    const candidate = prepareReplJsonlResumeCandidate("target-session", {
+      loadMcpLedgerRecovery: () => ({
+        records: [],
+        unsettled: [],
+        incidents: [],
+      }),
+      formatMcpLedgerRecoveryNotice: () => null,
+      rebuildMessages: () => {
+        throw new Error("target rebuild failed");
+      },
+    });
+    const commit = vi.fn((prepared) => {
+      state.sessionId = prepared.sessionId;
+      state.messages = prepared.rebuiltMessages;
+      state.recovery = prepared.mcp.recovery;
+      state.recoveryError = prepared.mcp.recoveryError;
+    });
+
+    expect(commitPreparedReplJsonlResume(candidate, commit)).toBe(false);
+    expect(commit).not.toHaveBeenCalled();
+    expect(state).toEqual({
+      sessionId: "old-session",
+      messages: [{ role: "system", content: "old" }],
+      recovery: oldRecovery,
+      recoveryError: null,
+    });
+  });
+
+  it("commits an unreadable target only with an ALL-blocking recovery error", async () => {
+    const { commitPreparedReplJsonlResume, prepareReplJsonlResumeCandidate } =
+      await import("../../src/repl/agent-repl.js");
+    const { createRecoveryGuardedMcpCallLedger } =
+      await import("../../src/lib/mcp-ledger-recovery-admission.js");
+    const readError = Object.assign(new Error("unverified target"), {
+      code: "SESSION_TRANSCRIPT_UNVERIFIED",
+    });
+    const candidate = prepareReplJsonlResumeCandidate("target-session", {
+      loadMcpLedgerRecovery: () => {
+        throw readError;
+      },
+      rebuildMessages: () => [{ role: "user", content: "restored" }],
+    });
+    const state = { sessionId: "old-session", recoveryError: null };
+
+    expect(candidate.ok).toBe(true);
+    expect(
+      commitPreparedReplJsonlResume(candidate, (prepared) => {
+        state.sessionId = prepared.sessionId;
+        state.recoveryError = prepared.mcp.recoveryError;
+      }),
+    ).toBe(true);
+    expect(state).toMatchObject({
+      sessionId: "target-session",
+      recoveryError: { code: "SESSION_TRANSCRIPT_UNVERIFIED" },
+    });
+
+    const ledger = createRecoveryGuardedMcpCallLedger({
+      recovery: candidate.mcp.recovery,
+      recoveryError: state.recoveryError,
+    });
+    await expect(
+      ledger.begin({
+        sessionId: "target-session",
+        serverName: "repo",
+        toolName: "mcp__repo__status",
+        input: {},
+        effectContract: { effect: "read" },
+      }),
+    ).rejects.toMatchObject({ blockMode: "all" });
   });
 });
 

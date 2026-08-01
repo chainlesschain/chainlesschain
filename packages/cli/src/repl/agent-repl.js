@@ -497,6 +497,129 @@ export async function agentLoop(messages, options) {
   return { content: "", usageEvents };
 }
 
+function replMcpRecoveryError(error, fallbackCode) {
+  const cause = error instanceof Error ? error : new Error(String(error));
+  const wrapped = new Error(cause.message || "REPL session recovery failed", {
+    cause,
+  });
+  wrapped.code = cause.code || fallbackCode;
+  return wrapped;
+}
+
+function replMcpRecoveryFailureNotice(error, subject = "MCP call ledger") {
+  return (
+    `MCP recovery notice — the durable ${subject} could not be verified. ` +
+    "Do not execute or retry MCP tools until the session transcript has " +
+    `been inspected (${error?.code || "CC_MCP_LEDGER_EVENT_READ_FAILED"}).`
+  );
+}
+
+function failClosedReplMcpRecoveryCandidate(
+  sessionId,
+  error,
+  fallbackCode = "CC_MCP_LEDGER_EVENT_READ_FAILED",
+  subject = "MCP call ledger",
+) {
+  const recoveryError = replMcpRecoveryError(error, fallbackCode);
+  return Object.freeze({
+    sessionId,
+    recovery: null,
+    recoveryError,
+    notice: replMcpRecoveryFailureNotice(recoveryError, subject),
+  });
+}
+
+/**
+ * Read one target session's verified MCP recovery projection without mutating
+ * the active REPL. Callers commit the returned candidate only after the rest
+ * of a session switch (notably message rebuild) has succeeded.
+ */
+export function readReplMcpRecoveryCandidate(sessionId, dependencies = {}) {
+  const loadRecovery =
+    dependencies.loadMcpLedgerRecovery || loadMcpLedgerRecovery;
+  const formatNotice =
+    dependencies.formatMcpLedgerRecoveryNotice || formatMcpLedgerRecoveryNotice;
+  try {
+    const recovery = loadRecovery(sessionId);
+    if (
+      !recovery ||
+      !Array.isArray(recovery.unsettled) ||
+      !Array.isArray(recovery.incidents)
+    ) {
+      const error = new Error("MCP recovery projection is malformed");
+      error.code = "CC_MCP_LEDGER_RECOVERY_INVALID";
+      throw error;
+    }
+    let notice = formatNotice(recovery);
+    if (
+      !notice &&
+      (recovery.unsettled.length > 0 || recovery.incidents.length > 0)
+    ) {
+      notice =
+        "MCP recovery notice — interrupted MCP calls or ledger incidents " +
+        "require explicit inspection before replay.";
+    }
+    return Object.freeze({
+      sessionId,
+      recovery,
+      recoveryError: null,
+      notice: notice || null,
+    });
+  } catch (error) {
+    return failClosedReplMcpRecoveryCandidate(sessionId, error);
+  }
+}
+
+/**
+ * Prepare a JSONL resume transaction. Recovery authority is always read before
+ * tolerant history rebuilding. A rebuild failure carries an ALL-blocking MCP
+ * recovery error, but remains uncommitted so a failed session switch cannot
+ * overwrite the active session's authority state.
+ */
+export function prepareReplJsonlResumeCandidate(sessionId, dependencies = {}) {
+  const mcp =
+    dependencies.mcpRecoveryCandidate ||
+    readReplMcpRecoveryCandidate(sessionId, dependencies);
+  const rebuild = dependencies.rebuildMessages || rebuildMessages;
+  try {
+    const rebuiltMessages = rebuild(sessionId);
+    if (!Array.isArray(rebuiltMessages)) {
+      throw new TypeError("REPL session rebuild must return a message array");
+    }
+    return Object.freeze({
+      ok: true,
+      sessionId,
+      rebuiltMessages,
+      mcp,
+      error: null,
+    });
+  } catch (error) {
+    const resumeError = replMcpRecoveryError(
+      error,
+      "CC_REPL_SESSION_REBUILD_FAILED",
+    );
+    return Object.freeze({
+      ok: false,
+      sessionId,
+      rebuiltMessages: null,
+      mcp: failClosedReplMcpRecoveryCandidate(
+        sessionId,
+        mcp.recoveryError || resumeError,
+        mcp.recoveryError?.code || "CC_REPL_SESSION_REBUILD_FAILED",
+        "session transcript",
+      ),
+      error: resumeError,
+    });
+  }
+}
+
+/** Commit a fully prepared session switch; failed candidates are inert. */
+export function commitPreparedReplJsonlResume(candidate, commit) {
+  if (!candidate?.ok || typeof commit !== "function") return false;
+  commit(candidate);
+  return true;
+}
+
 /**
  * Start the agentic REPL
  */
@@ -1213,34 +1336,28 @@ async function startAgentReplInWorkspace(options = {}) {
   const messages = [{ role: "system", content: _replBaseSystem }];
   let _mcpLedgerRecovery = null;
   let _mcpLedgerRecoveryError = null;
-  const _injectMcpRecoveryNotice = (targetMessages, targetSessionId) => {
-    _mcpLedgerRecovery = null;
-    _mcpLedgerRecoveryError = null;
-    if (!useJsonl || !targetSessionId) return false;
-    try {
-      const recovery = loadMcpLedgerRecovery(targetSessionId);
-      _mcpLedgerRecovery = recovery;
-      const notice = formatMcpLedgerRecoveryNotice(recovery);
-      if (!notice) return false;
-      targetMessages.push({ role: "system", content: notice });
-      logger.warn(
-        `⚠ ${recovery.unsettled.length} interrupted MCP call(s) and ${recovery.incidents.length} ledger incident(s) require inspection before replay.`,
-      );
-      return true;
-    } catch (error) {
-      _mcpLedgerRecoveryError = error;
-      targetMessages.push({
-        role: "system",
-        content:
-          "MCP recovery notice — the durable MCP call ledger could not be read. " +
-          "Do not execute or retry MCP tools until the session transcript has " +
-          `been inspected (${error?.code || "CC_MCP_LEDGER_EVENT_READ_FAILED"}).`,
-      });
+  const _readMcpRecoveryCandidate = (targetSessionId) =>
+    readReplMcpRecoveryCandidate(targetSessionId);
+  const _prepareJsonlResumeCandidate = (targetSessionId) =>
+    prepareReplJsonlResumeCandidate(targetSessionId, {
+      mcpRecoveryCandidate: _readMcpRecoveryCandidate(targetSessionId),
+    });
+  const _commitMcpRecoveryCandidate = (targetMessages, candidate) => {
+    _mcpLedgerRecovery = candidate?.recovery || null;
+    _mcpLedgerRecoveryError = candidate?.recoveryError || null;
+    if (candidate?.notice) {
+      targetMessages.push({ role: "system", content: candidate.notice });
+    }
+    if (_mcpLedgerRecoveryError) {
       logger.warn(
         "⚠ MCP ledger recovery failed closed; inspect the transcript before using MCP tools.",
       );
-      return true;
+    } else if (candidate?.notice) {
+      logger.warn(
+        `⚠ ${candidate.recovery.unsettled.length} interrupted MCP call(s) and ${candidate.recovery.incidents.length} ledger incident(s) require inspection before replay.`,
+      );
     }
+    return Boolean(candidate?.notice);
   };
   // Resume-degenerate role sanitation (Claude Code 2.1.187 parity): a one-shot
   // flag armed when a resumed transcript ends with a bare `user` turn (the prior
@@ -1617,15 +1734,21 @@ async function startAgentReplInWorkspace(options = {}) {
         } catch (_err) {
           // verification is best-effort in the interactive path
         }
-        const rebuilt = rebuildMessages(sessionId);
-        _injectMcpRecoveryNotice(messages, sessionId);
-        if (rebuilt.length > 0) {
-          messages.push(...rebuilt.filter((m) => m.role !== "system"));
+        const prepared = _prepareJsonlResumeCandidate(sessionId);
+        _commitMcpRecoveryCandidate(messages, prepared.mcp);
+        if (!prepared.ok) {
+          logger.warn(
+            `⚠ Session history rebuild failed closed (${prepared.error.code}); MCP tools remain blocked.`,
+          );
+        } else if (prepared.rebuiltMessages.length > 0) {
+          messages.push(
+            ...prepared.rebuiltMessages.filter((m) => m.role !== "system"),
+          );
           // Arm the resume role-merge if the prior run left a dangling user turn.
           _sanitizeRolesNextTurn =
             messages[messages.length - 1]?.role === "user";
           logger.info(
-            `Resumed JSONL session ${sessionId} (${rebuilt.length} messages)`,
+            `Resumed JSONL session ${sessionId} (${prepared.rebuiltMessages.length} messages)`,
           );
         }
       } else if (db) {
@@ -1643,8 +1766,18 @@ async function startAgentReplInWorkspace(options = {}) {
           );
         }
       }
-    } catch (_err) {
-      // Non-critical
+    } catch (error) {
+      if (useJsonl) {
+        _commitMcpRecoveryCandidate(
+          messages,
+          failClosedReplMcpRecoveryCandidate(
+            sessionId,
+            error,
+            "CC_REPL_SESSION_REBUILD_FAILED",
+            "session transcript",
+          ),
+        );
+      }
     }
     // settings.json SessionResume hooks: a persisted transcript was just
     // replayed into this interactive session (distinct from SessionStart).
@@ -3976,26 +4109,44 @@ async function startAgentReplInWorkspace(options = {}) {
             } catch (_err) {
               // verification is best-effort in the interactive path
             }
-            const rebuilt = rebuildMessages(resumeId);
-            messages.length = 1; // keep system prompt
-            _injectMcpRecoveryNotice(messages, resumeId);
-            messages.push(...rebuilt.filter((m) => m.role !== "system"));
-            _sanitizeRolesNextTurn =
-              messages[messages.length - 1]?.role === "user";
-            sessionId = resumeId;
-            // The producer owns one immutable session id. Recreate it lazily
-            // on the next turn so bindings from the resumed conversation can
-            // never be appended to the previously active session.
-            _turnBindingProducer = null;
-            _turnBindingCriticalError = null;
-            // The prior session's checkpoint marks (turn-index → checkpoint id)
-            // no longer map to this swapped-in history; keeping them would make
-            // a later /rewind restore files from the WRONG session's snapshot.
-            // Same reset /clear does on a context swap.
-            _checkpointMarks.length = 0;
-            _clearedConversation = null; // stash belongs to the swapped-out session
+            const prepared = _prepareJsonlResumeCandidate(resumeId);
+            if (!prepared.ok) throw prepared.error;
+            const committed = commitPreparedReplJsonlResume(
+              prepared,
+              (candidate) => {
+                const rebuilt = candidate.rebuiltMessages.filter(
+                  (message) => message.role !== "system",
+                );
+                sessionId = candidate.sessionId;
+                messages.length = 1; // keep system prompt
+                _commitMcpRecoveryCandidate(messages, candidate.mcp);
+                messages.push(...rebuilt);
+                _sanitizeRolesNextTurn =
+                  messages[messages.length - 1]?.role === "user";
+                // The producer owns one immutable session id. Recreate it
+                // lazily on the next turn so bindings from the resumed
+                // conversation can never be appended to the previously active
+                // session.
+                _turnBindingProducer = null;
+                _turnBindingCriticalError = null;
+                // The prior session's checkpoint marks (turn-index →
+                // checkpoint id) no longer map to this swapped-in history;
+                // keeping them would make a later /rewind restore files from
+                // the WRONG session's snapshot. Same reset /clear does on a
+                // context swap.
+                _checkpointMarks.length = 0;
+                _clearedConversation = null;
+              },
+            );
+            if (!committed) {
+              const error = new Error(
+                "Prepared JSONL session resume was not committed",
+              );
+              error.code = "CC_REPL_SESSION_RESUME_NOT_COMMITTED";
+              throw error;
+            }
             logger.info(
-              `Resumed JSONL session ${sessionId} (${rebuilt.length} messages)`,
+              `Resumed JSONL session ${sessionId} (${prepared.rebuiltMessages.length} messages)`,
             );
           } else if (db) {
             const existing = getSession(db, resumeId);
