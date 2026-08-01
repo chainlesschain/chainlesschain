@@ -20,6 +20,7 @@ plugins {
 
 group = "com.chainlesschain"
 version = "0.4.76"
+val ideVersion = providers.gradleProperty("ideVersion").orElse("2024.2")
 
 repositories {
     mavenCentral()
@@ -31,21 +32,23 @@ repositories {
     }
 }
 
-// ── GUI smoke gate (gap #8) — UI test source set ────────────────────────────
-// Remote-Robot-based smoke tests live in src/uiTest/java, ISOLATED from the
+// ── Real-host UI journey source set ─────────────────────────────────────────
+// Remote-Robot-based journeys live in src/uiTest/java, ISOLATED from the
 // main/test source sets: they talk plain HTTP to a robot-server inside a
 // separately launched sandbox IDE (runIdeForUiTests), so they need neither
 // the IntelliJ SDK on their classpath nor any main output. Nothing here is
-// wired into `test`, `smokeTest`, `check` or `buildPlugin` — those stay
-// byte-for-byte unaffected. Nightly-only: see
-// .github/workflows/ide-jetbrains-ui-smoke.yml.
+// wired into `test`, `smokeTest`, `check` or `buildPlugin`; the release
+// workflow invokes the host driver separately across its declared OS/IDE
+// matrix and retains immutable evidence.
 val uiTestSourceSet: SourceSet = sourceSets.create("uiTest") {
     java.srcDir("src/uiTest/java")
 }
 
 dependencies {
     intellijPlatform {
-        intellijIdeaCommunity("2024.2")
+        // CI runs the real-host journey against both the minimum supported
+        // build (2024.2 / 242) and the current verified build (2025.2).
+        intellijIdeaCommunity(ideVersion.get())
         // Java PSI (PsiShortNamesCache etc.) for @-mention class/method symbols.
         // Compile-time only: plugin.xml does NOT depend on com.intellij.java, so the
         // plugin still loads on non-Java IDEs — the symbol lookup is try/catch-guarded
@@ -237,7 +240,7 @@ tasks.register<JavaExec>("smokeTest") {
     jvmArgs("-Dfile.encoding=UTF-8")
 }
 
-// ── GUI smoke gate (gap #8) — nightly-only Remote Robot tasks ───────────────
+// ── Real-host Remote Robot tasks ────────────────────────────────────────────
 // Framework decision (2026-07-11): the IntelliJ Platform Gradle Plugin 2.1.0
 // used here DOES ship `intellijPlatformTesting` + `robotServerPlugin()`, but
 // its `testIdeUi` task is an early Starter-framework integration (archive-
@@ -252,17 +255,18 @@ tasks.register<JavaExec>("smokeTest") {
 //   2. `./gradlew uiSmokeTest`       — runs src/uiTest/java against that IDE
 //      over HTTP; screenshots land in build/reports/ui-smoke/ on failure.
 //
-// NIGHTLY-ONLY: needs an IDE download + a display (xvfb on CI) — it is NOT
-// part of test/smokeTest/buildPlugin and never blocks a release. CI:
-// .github/workflows/ide-jetbrains-ui-smoke.yml (schedule + dispatch; a red
-// nightly stays red — no continue-on-error, per the cosmetic-green CI trap).
+// This remains separate from test/smokeTest/buildPlugin because it needs an
+// IDE download and a display. `.github/workflows/ide-extensions.yml` runs it
+// as a required release dependency on Windows/Linux/macOS against minimum and
+// current IDE versions; a failure retains logs/screenshots/protocol evidence.
 //
 // The registration is guarded: if the testing extension or the robot-server
 // dependency helper ever changes shape under a plugin upgrade, the failure is
-// downgraded to a warning so `buildPlugin` and every release path stay green.
+// downgraded to a configuration warning. The host driver still fails closed
+// when the registered launch task is absent.
 tasks.register<Test>("uiSmokeTest") {
     group = "verification"
-    description = "GUI smoke tests via Remote Robot (needs a runIdeForUiTests IDE up; nightly CI)"
+    description = "Deterministic chat/control journey via Remote Robot (needs runIdeForUiTests)"
     testClassesDirs = uiTestSourceSet.output.classesDirs
     classpath = uiTestSourceSet.runtimeClasspath
     useJUnitPlatform()
@@ -307,7 +311,7 @@ runCatching {
             doFirst {
                 val dir = uiTestProjectDir.get().asFile
                 dir.mkdirs()
-                dir.resolve("hello.txt").writeText("ChainlessChain UI smoke sandbox\n")
+                dir.resolve("hello.txt").writeText("ChainlessChain UI journey sandbox\n")
             }
             args(uiTestProjectDir.get().asFile.absolutePath)
         }
@@ -318,6 +322,6 @@ runCatching {
 }.onFailure {
     logger.warn(
         "ChainlessChain: runIdeForUiTests registration failed (${it.message}) — " +
-            "GUI smoke gate unavailable, but buildPlugin/test/smokeTest are unaffected."
+            "real-host journey unavailable; the host driver will fail closed."
     )
 }

@@ -5,13 +5,13 @@ JetBrains counterpart of the [VS Code extension](../vscode-extension/): it lets
 the ChainlessChain **`cc` agent CLI** read editor context and propose native
 diffs inside IntelliJ-platform IDEs (IDEA, PyCharm, WebStorm, …).
 
-**The CLI needs zero changes** — this plugin writes the *same* lockfile and
-speaks the *same* MCP protocol as the VS Code extension; only `ide` differs
+**The CLI needs zero changes** — this plugin writes the _same_ lockfile and
+speaks the _same_ MCP protocol as the VS Code extension; only `ide` differs
 (`"jetbrains"`).
 
 ## Automatic awareness (cc ≥ 0.162.39)
 
-With a current `cc` CLI the agent doesn't just *have* the bridge tools — it
+With a current `cc` CLI the agent doesn't just _have_ the bridge tools — it
 uses them on its own:
 
 - **Your selection rides along with every prompt** as an ephemeral
@@ -53,10 +53,10 @@ extension; the key never enters IDE settings.
 
 The code is split into two layers:
 
-| Layer | Package | IntelliJ SDK? | Verified |
-|-------|---------|---------------|----------|
-| Protocol core | `com.chainlesschain.ide` | **No — pure JDK** | ✅ compiled + interop-tested |
-| Editor glue | `com.chainlesschain.ide.intellij` | Yes | ⏳ build needs the SDK |
+| Layer         | Package                           | IntelliJ SDK?     | Verified                        |
+| ------------- | --------------------------------- | ----------------- | ------------------------------- |
+| Protocol core | `com.chainlesschain.ide`          | **No — pure JDK** | compiled + interop-tested       |
+| Editor glue   | `com.chainlesschain.ide.intellij` | Yes               | Gradle test/smoke/package gates |
 
 **Wire contract**: the protocol core implements Agent Protocol v1 as
 documented in [`packages/agent-sdk/docs/PROTOCOL.md`](../agent-sdk/docs/PROTOCOL.md)
@@ -71,8 +71,9 @@ surface. `AgentChatSession` / `ChatEvents` must track that document.
   tools/call) + bearer auth.
 - **`LockfileWriter`** — writes `~/.chainlesschain/ide/<port>.json` (0600/0700,
   `ide:"jetbrains"`), read by the CLI's Phase-0 discovery.
-- **`IdeTools` / `EditorFacade`** — the 4 tools (`getSelection`,
-  `getDiagnostics`, `getOpenEditors`, `openDiff`) against an editor facade.
+- **`IdeTools` / `EditorFacade`** — the editor bridge tools against an editor
+  facade; the complete tool-to-feature map is pinned by the generated public
+  capability contract below.
 - **`intellij.*`** — `IntellijEditorFacade` (Editor/PSI/Diff APIs),
   `IdeBridgeService` (lifecycle), `IdeBridgeStartup` (postStartupActivity),
   `IdeBridgeTerminalCustomizer` (env injection), `ShowStatusAction`.
@@ -92,9 +93,10 @@ java -cp "$OUT" com.chainlesschain.ide.InteropSmokeMain   # prints PORT=/TOKEN=/
 node interop-smoke.mjs <port> <token>                     # drives it with the CLI client
 ```
 
-Result: the CLI client lists all 4 tools, calls `getSelection`/`openDiff` and
-gets correct results, and a wrong bearer token is rejected — proving a non-Node
-editor server satisfies the protocol with no CLI change.
+Result: the core interop probe lists and calls its baseline tools (including
+`getSelection` and `openDiff`) and rejects an invalid bearer credential. The
+full registered capability surface is guarded separately by the generated
+manifest below.
 
 ## Building the plugin (needs the IntelliJ SDK)
 
@@ -103,15 +105,71 @@ editor server satisfies the protocol with no CLI change.
 ./gradlew runIde          # launch a sandbox IDE with the plugin
 ```
 
-The editor-glue layer (`com.chainlesschain.ide.intellij`) compiles only against
-the SDK, so it has not been built on the (SDK-less) dev box that produced the
-rest — it is code-complete, build-pending a JetBrains SDK environment, the same
-way the VS Code extension is runtime-pending an Extension Host.
+The editor-glue layer (`com.chainlesschain.ide.intellij`) compiles against the
+SDK downloaded by Gradle. Repository release gates run the unit/smoke suites,
+package the plugin, verify the archive, and run a deterministic production-path
+chat/control/resume journey in stock IntelliJ 2024.2 and 2025.2 across Windows,
+Linux, and macOS. Live-provider and remote-host journeys remain separate
+release-environment checks.
 
 ## Status
 
-- ✅ Protocol core (server/lockfile/tools/JSON) — compiled + cross-language
-  interop-tested against the CLI client.
-- ⏳ IntelliJ glue (facade/lifecycle/terminal) — code-complete, SDK build pending.
-- ⏳ `getDiagnostics` markup traversal + `LocalTerminalCustomizer` signature may
-  need tuning against the target platform version.
+- Protocol core (server/lockfile/tools/JSON): covered by unit and cross-language
+  interop tests against the CLI client.
+- IntelliJ glue (facade/lifecycle/actions): covered by Gradle build, smoke and
+  plugin-package verification gates.
+- Stock-IDE chat/control/resume is a required real-host matrix with immutable
+  evidence. Remote Development, Marketplace installation, live-provider, Diff,
+  and Preview journeys are not replaced by that deterministic test.
+
+<!-- chainlesschain-public-ide-capabilities:start -->
+
+## Public capability contract (generated)
+
+This summary is pinned to the repository's versioned, secret-free
+[`PUBLIC_IDE_CAPABILITY_MANIFEST.generated.json`](../../docs/cli/PUBLIC_IDE_CAPABILITY_MANIFEST.generated.json).
+The base IDE/Doctor contract requires `cc >= 0.162.47`; feature-specific sections below may require a newer CLI.
+
+- JetBrains actions: **33** registered entries
+- Doctor entries: `chainlesschain.ide.DiagnoseBridge`
+- Bridge capability schema: **v1** (19 mapped tools)
+- Drift check: `npm run ide:capabilities:check` from the repository root
+
+<details><summary>JetBrains actions</summary>
+
+- `chainlesschain.ide.ShowStatus`
+- `chainlesschain.ide.ShowActivity`
+- `chainlesschain.ide.OpenDashboard`
+- `chainlesschain.team.Monitor`
+- `chainlesschain.session.PrStatus`
+- `chainlesschain.bg.Agents`
+- `chainlesschain.remote.Control`
+- `chainlesschain.sessions.Workbench`
+- `chainlesschain.usage.Show`
+- `chainlesschain.artifacts.Browse`
+- `chainlesschain.policy.Viewer`
+- `chainlesschain.plugins.Manage`
+- `chainlesschain.worktree.Tasks`
+- `chainlesschain.chrome.Connector`
+- `chainlesschain.workspace.ScanAutoExec`
+- `chainlesschain.managedCli.Install`
+- `chainlesschain.managedCli.Rollback`
+- `chainlesschain.ide.DiagnoseBridge`
+- `chainlesschain.ide.ExportDiagnostics`
+- `chainlesschain.ide.RestartBridge`
+- `chainlesschain.cli.whatsNew`
+- `chainlesschain.ide.ConfigureLlm`
+- `chainlesschain.ide.ConfigureVisionModel`
+- `chainlesschain.chat.newConversation`
+- `chainlesschain.chat.reopenClosedConversation`
+- `chainlesschain.completion.trigger`
+- `chainlesschain.chat.explainSelection`
+- `chainlesschain.chat.refactorSelection`
+- `chainlesschain.chat.insertFileReference`
+- `chainlesschain.memory.init`
+- `chainlesschain.memory.files`
+- `chainlesschain.preview.start`
+- `chainlesschain.preview.stop`
+
+</details>
+<!-- chainlesschain-public-ide-capabilities:end -->

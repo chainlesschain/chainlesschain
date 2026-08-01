@@ -31,6 +31,8 @@
     "build:cli": "cd packages/cli && npm run build",
     "test:coding-agent:parity": "cd desktop-app-vue && npm run test:coding-agent:parity",
     "test:cli-team-soak": "node packages/cli/scripts/team-distributed-soak.mjs",
+    "ide:capabilities": "node packages/cli/scripts/gen-public-ide-capability-manifest.mjs",
+    "ide:capabilities:check": "node packages/cli/scripts/gen-public-ide-capability-manifest.mjs --check",
     "test": "cd packages/cli && npm test",
     "lint": "eslint . --ext .js,.vue,.ts",
     "validate:rules": "node scripts/validate-rules.js",

@@ -15,84 +15,124 @@ import java.nio.file.Paths;
 import java.time.Duration;
 
 /**
- * GUI smoke gate (gap #8) — the first Remote Robot smoke test. Drives a
- * sandbox IDE that was launched SEPARATELY with the robot-server plugin
- * ({@code ./gradlew runIdeForUiTests}, which also opens a throwaway sandbox
- * project) and talks to it over HTTP — no IntelliJ SDK on this classpath.
+ * Real-host chat/control journey driven through Remote Robot.
  *
- * Flow: connect (retry while the IDE cold-starts) → wait for the main IDE
- * frame → click the ChainlessChain tool-window stripe button → assert the
- * chat panel's conversation tab pane and composer controls exist. On any failure a full-screen
- * PNG is saved under {@code build/reports/ui-smoke/} for the CI artifact.
+ * <p>The IDE is launched separately with the production plugin and a
+ * deterministic stream-json peer placed at the front of PATH only for the
+ * sandbox process. No production test hook is involved: CLI resolution,
+ * process spawn, NDJSON transport, event mapping, Swing rendering, and control
+ * replies all use the normal plugin path.
  *
- * NIGHTLY-ONLY: this needs a downloaded IDE + a display (xvfb on CI) and is
- * deliberately NOT part of test/smokeTest/buildPlugin. It runs from
- * {@code .github/workflows/ide-jetbrains-ui-smoke.yml} (schedule +
- * workflow_dispatch); a red nightly stays red — no continue-on-error.
- *
- * Coverage expansion queue (see GLUE_TODO "GUI smoke gate"): first message,
- * diff accept / request changes, plan review, @mention, terminal, inline
- * completion, Remote QR.
+ * <p>The journey covers streaming, retry, plan approval, tool permission,
+ * interrupt escalation, child restart, and session resume. It is not
+ * live-provider evidence and does not claim Diff, Preview, remote transport,
+ * or plugin-lifecycle coverage; those remain separate P0 host journeys.
  */
 final class IdeUiSmokeTest {
 
     private static final String ROBOT_URL =
             System.getProperty("ui.robot.url", "http://127.0.0.1:8082");
-    /** The IDE may still be cold-starting when the suite begins. */
     private static final Duration CONNECT_BUDGET = Duration.ofMinutes(3);
-    /** First frame after opening the sandbox project (indexing etc.). */
     private static final Duration FRAME_BUDGET = Duration.ofMinutes(5);
     private static final Duration FIND_BUDGET = Duration.ofSeconds(45);
 
-    /** New-UI (2024.2 default) square stripe buttons carry the tool-window id
-     *  as accessible name; the classic UI uses StripeButton text. Match both. */
+    /** Match new-UI and classic-UI stripe buttons. */
     private static final String STRIPE_XPATH =
             "//div[(@class='SquareStripeButton' or @class='StripeButton')"
                     + " and (@text='ChainlessChain' or @tooltiptext='ChainlessChain'"
                     + " or @accessiblename='ChainlessChain')]";
 
     @Test
-    void chainlessChainToolWindowOpens() throws Exception {
+    void chainlessChainChatAndControlJourney() throws Exception {
         RemoteRobot robot = connectWithRetry();
         try {
-            // 1. Main IDE frame is up (runIdeForUiTests opened the sandbox
-            //    project; -Didea.trust.all.projects=true skips the trust modal).
             robot.find(ComponentFixture.class,
                     Locators.byXpath("//div[@class='IdeFrameImpl']"), FRAME_BUDGET);
 
-            // 2. Open the ChainlessChain tool window via its stripe button.
             ComponentFixture stripe = robot.find(ComponentFixture.class,
                     Locators.byXpath(STRIPE_XPATH), FIND_BUDGET);
             stripe.click();
 
-            // 3. The chat panel renders: ChatToolWindowFactory installs a
-            //    JBTabbedPane of conversation tabs as the tool-window content.
             robot.find(ComponentFixture.class,
                     Locators.byXpath("//div[@class='JBTabbedPane']"), FIND_BUDGET);
-
-            // The first useful interaction surface must be present as well;
-            // this catches a tool window that opens with only an empty shell.
-            robot.find(ComponentFixture.class,
+            ComponentFixture input = robot.find(ComponentFixture.class,
                     Locators.byXpath("//div[@class='JTextArea']"), FIND_BUDGET);
-            robot.find(ComponentFixture.class,
+            ComponentFixture transcript = robot.find(ComponentFixture.class,
+                    Locators.byXpath("//div[@class='JTextPane']"), FIND_BUDGET);
+            ComponentFixture send = robot.find(ComponentFixture.class,
                     Locators.byXpath("//div[@text='Send']"), FIND_BUDGET);
-            robot.find(ComponentFixture.class,
+            ComponentFixture stop = robot.find(ComponentFixture.class,
                     Locators.byXpath("//div[@text='Stop']"), FIND_BUDGET);
+
+            send(input, send, "journey:stream");
+            waitForTranscript(transcript, "fixture stream complete #1", FIND_BUDGET);
+            send(input, send, "/retry");
+            waitForTranscript(transcript, "fixture stream complete #2", FIND_BUDGET);
+
+            send(input, send, "journey:plan");
+            ComponentFixture planApprove = robot.find(ComponentFixture.class,
+                    Locators.byXpath("//div[@text='Approve']"), FIND_BUDGET);
+            planApprove.click();
+            waitForTranscript(transcript, "fixture plan approve #3", FIND_BUDGET);
+
+            send(input, send, "journey:permission");
+            ComponentFixture toolApprove = robot.find(ComponentFixture.class,
+                    Locators.byXpath("//div[@text='Approve']"), FIND_BUDGET);
+            toolApprove.click();
+            waitForTranscript(transcript, "fixture permission approved #4", FIND_BUDGET);
+
+            send(input, send, "journey:stop");
+            waitForTranscript(transcript, "fixture stop waiting #5", FIND_BUDGET);
+            stop.click();
+            stop.click();
+            waitForTranscript(
+                    transcript, "force-stopped the agent process", FIND_BUDGET);
+
+            send(input, send, "journey:resume");
+            waitForTranscript(
+                    transcript, "resumed previous conversation", FIND_BUDGET);
+            waitForTranscript(transcript, "fixture stream complete #6", FIND_BUDGET);
         } catch (Throwable t) {
-            saveScreenshot(robot, "tool-window-smoke");
+            saveScreenshot(robot, "chat-control-journey");
             throw t;
         }
     }
 
-    /**
-     * Connect to the robot server, retrying while the sandbox IDE starts.
-     *
-     * Do not use callJs as a liveness probe here. Remote Robot's response DTOs
-     * contain Throwable fields and are decoded by Gson; on strongly
-     * encapsulated JDKs that used to turn a simple readiness check into the
-     * JsonIOException/InaccessibleObjectException reported by CI, then hide the
-     * permanent client incompatibility behind three minutes of retries.
-     */
+    private static void send(
+            ComponentFixture input, ComponentFixture send, String text) {
+        input.runJs("component.setText(" + jsString(text) + ")");
+        send.click();
+    }
+
+    private static void waitForTranscript(
+            ComponentFixture transcript, String expected, Duration budget)
+            throws InterruptedException {
+        long deadline = System.nanoTime() + budget.toNanos();
+        String last = "";
+        while (System.nanoTime() < deadline) {
+            Object value = transcript.callJs("component.getText()");
+            last = value == null ? "" : String.valueOf(value);
+            if (last.contains(expected)) return;
+            Thread.sleep(250);
+        }
+        throw new AssertionError(
+                "transcript did not contain '" + expected + "' within "
+                        + budget.toSeconds() + "s; tail=" + tail(last, 1200));
+    }
+
+    private static String jsString(String value) {
+        return "\"" + value
+                .replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\r", "\\r")
+                .replace("\n", "\\n") + "\"";
+    }
+
+    private static String tail(String value, int max) {
+        if (value == null || value.length() <= max) return value;
+        return value.substring(value.length() - max);
+    }
+
     private static RemoteRobot connectWithRetry() throws InterruptedException {
         long deadline = System.nanoTime() + CONNECT_BUDGET.toNanos();
         IOException last = null;
@@ -106,11 +146,11 @@ final class IdeUiSmokeTest {
         }
         throw new IllegalStateException(
                 "robot server at " + ROBOT_URL + " did not come up within "
-                        + CONNECT_BUDGET.toSeconds() + "s — is runIdeForUiTests running?",
+                        + CONNECT_BUDGET.toSeconds()
+                        + "s - is runIdeForUiTests running?",
                 last);
     }
 
-    /** HTTP-only readiness probe: no Remote Robot/Gson serialization involved. */
     private static boolean robotServerIsReady() throws IOException {
         HttpURLConnection connection =
                 (HttpURLConnection) URI.create(ROBOT_URL).toURL().openConnection();
@@ -126,7 +166,6 @@ final class IdeUiSmokeTest {
         }
     }
 
-    /** Full-screen PNG into build/reports/ui-smoke/ (best-effort). */
     private static void saveScreenshot(RemoteRobot robot, String name) {
         try {
             Path dir = Paths.get("build", "reports", "ui-smoke");

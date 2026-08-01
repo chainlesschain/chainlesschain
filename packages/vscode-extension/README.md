@@ -247,3 +247,66 @@ npx @vscode/vsce package --no-dependencies   # produces a .vsix
 ```
 
 The extension has no runtime npm dependencies (pure Node + the VS Code API).
+
+<!-- chainlesschain-public-ide-capabilities:start -->
+
+## Public capability contract (generated)
+
+This summary is pinned to the repository's versioned, secret-free
+[`PUBLIC_IDE_CAPABILITY_MANIFEST.generated.json`](../../docs/cli/PUBLIC_IDE_CAPABILITY_MANIFEST.generated.json).
+The base IDE/Doctor contract requires `cc >= 0.162.47`; feature-specific sections below may require a newer CLI.
+
+- VS Code commands: **44** registered entries
+- Doctor entries: `chainlesschain.ide.doctor`, `chainlesschain.remote.doctor`
+- Bridge capability schema: **v1** (19 mapped tools)
+- Drift check: `npm run ide:capabilities:check` from the repository root
+
+<details><summary>VS Code commands</summary>
+
+- `chainlesschain.ide.showStatus`
+- `chainlesschain.ide.restart`
+- `chainlesschain.ide.openDashboard`
+- `chainlesschain.complete.trigger`
+- `chainlesschain.ide.doctor`
+- `chainlesschain.ide.exportDiagnostics`
+- `chainlesschain.team.monitor`
+- `chainlesschain.session.prStatus`
+- `chainlesschain.background.agents`
+- `chainlesschain.sessions.workbench`
+- `chainlesschain.remote.control`
+- `chainlesschain.usage.show`
+- `chainlesschain.plugins.manage`
+- `chainlesschain.worktree.tasks`
+- `chainlesschain.chrome.connector`
+- `chainlesschain.artifacts.show`
+- `chainlesschain.policy.show`
+- `chainlesschain.workspace.scanAutoExec`
+- `chainlesschain.remote.doctor`
+- `chainlesschain.lens.explain`
+- `chainlesschain.lens.refactor`
+- `chainlesschain.diff.accept`
+- `chainlesschain.diff.reject`
+- `chainlesschain.memory.init`
+- `chainlesschain.memory.files`
+- `chainlesschain.llm.configure`
+- `chainlesschain.llm.configureVision`
+- `chainlesschain.chat.insertReference`
+- `chainlesschain.chat.fixDiagnostics`
+- `chainlesschain.chat.explainSelection`
+- `chainlesschain.chat.refactorSelection`
+- `chainlesschain.chat.newConversation`
+- `chainlesschain.chat.reopenClosedSession`
+- `chainlesschain.plan.approve`
+- `chainlesschain.plan.requestChanges`
+- `chainlesschain.plan.regenerate`
+- `chainlesschain.plan.reject`
+- `chainlesschain.preview.start`
+- `chainlesschain.preview.stop`
+- `chainlesschain.cli.upgrade`
+- `chainlesschain.cli.checkUpdate`
+- `chainlesschain.cli.whatsNew`
+- `chainlesschain.cli.installManaged`
+- `chainlesschain.cli.rollbackManaged`
+
+</details>
+<!-- chainlesschain-public-ide-capabilities:end -->

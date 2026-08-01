@@ -4,8 +4,8 @@ name: IDE Extensions
 # Publishing to the marketplaces happens ONLY on a dedicated tag. A normal
 # push just builds + uploads.
 #
-#   tag ide-vscode-v*     -> publish the VS Code extension   (needs OVSX_PAT;
-#                                                             VSCE_PAT optional)
+#   tag ide-vscode-v*     -> publish the VS Code extension   (needs OVSX_PAT +
+#                                                             VSCE_PAT)
 #   tag ide-jetbrains-v*  -> publish the JetBrains plugin     (needs publish
 #                                                             token; signing
 #                                                             is recommended)
@@ -16,7 +16,18 @@ on:
     paths:
       - "packages/vscode-extension/**"
       - "packages/jetbrains-plugin/**"
+      - "desktop-app-vue/src/renderer/utils/keyboard-shortcuts.ts"
+      - "desktop-app-vue/src/renderer/components/common/CommandPalette.vue"
+      - "packages/cli/src/lib/capability-manifest.js"
+      - "packages/cli/src/lib/public-ide-capability-*.js"
+      - "packages/cli/src/command-manifest.json"
+      - "packages/cli/src/command-help-index.json"
+      - "packages/cli/scripts/gen-public-ide-capability-manifest.mjs"
+      - "docs/cli/PUBLIC_IDE_CAPABILITY_MANIFEST.generated.json"
+      - "package.json"
+      - "scripts/ide-journey-evidence.mjs"
       - "scripts/verify-ide-marketplace.mjs"
+      - "tests/fixtures/ide-roadmap/fake-stream-json-agent.mjs"
       - ".github/workflows/ide-extensions.yml"
     tags:
       - "ide-vscode-v*"
@@ -25,7 +36,18 @@ on:
     paths:
       - "packages/vscode-extension/**"
       - "packages/jetbrains-plugin/**"
+      - "desktop-app-vue/src/renderer/utils/keyboard-shortcuts.ts"
+      - "desktop-app-vue/src/renderer/components/common/CommandPalette.vue"
+      - "packages/cli/src/lib/capability-manifest.js"
+      - "packages/cli/src/lib/public-ide-capability-*.js"
+      - "packages/cli/src/command-manifest.json"
+      - "packages/cli/src/command-help-index.json"
+      - "packages/cli/scripts/gen-public-ide-capability-manifest.mjs"
+      - "docs/cli/PUBLIC_IDE_CAPABILITY_MANIFEST.generated.json"
+      - "package.json"
+      - "scripts/ide-journey-evidence.mjs"
       - "scripts/verify-ide-marketplace.mjs"
+      - "tests/fixtures/ide-roadmap/fake-stream-json-agent.mjs"
       - ".github/workflows/ide-extensions.yml"
   workflow_dispatch:
     inputs:
@@ -42,8 +64,21 @@ permissions:
   contents: read
 
 jobs:
+  capability-manifest:
+    name: Public IDE capability manifest (drift gate)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+      - name: Verify commands, actions, Doctor and CLI floor
+        run: node packages/cli/scripts/gen-public-ide-capability-manifest.mjs --check
+
   vscode-windows-smoke:
     name: VS Code extension (Windows host gate)
+    needs: capability-manifest
     runs-on: windows-latest
     timeout-minutes: 45
     defaults:
@@ -78,14 +113,69 @@ jobs:
         run: npm install --no-save --no-package-lock @vscode/test-electron@3.0.0
 
       - name: Extension Host smoke (Windows stable)
-        run: node test/extension-host/run.cjs --vsix chainlesschain-ide.vsix
+        run: >-
+          node test/extension-host/run.cjs --vsix chainlesschain-ide.vsix
+          --artifact-dir build/reports/extension-host/windows-stable
 
       - name: Extension Host smoke (Windows minimum 1.85.2)
-        run: node test/extension-host/run.cjs --vsix chainlesschain-ide.vsix --vscode-version 1.85.2
+        run: >-
+          node test/extension-host/run.cjs --vsix chainlesschain-ide.vsix
+          --vscode-version 1.85.2
+          --artifact-dir build/reports/extension-host/windows-minimum
+
+      - name: Upload Windows host journey evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: vscode-windows-host-evidence
+          path: packages/vscode-extension/build/reports/extension-host/
+          if-no-files-found: error
+
+  vscode-macos-smoke:
+    name: VS Code extension (macOS host gate)
+    needs: capability-manifest
+    runs-on: macos-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: packages/vscode-extension
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+      - name: Unit tests
+        run: npm run test:unit
+      - name: Package .vsix
+        run: |
+          node scripts/sync-elicitation-schema.mjs --check
+          npx --yes @vscode/vsce@3.9.2 package --no-dependencies --out chainlesschain-ide.vsix
+      - name: Verify .vsix metadata
+        run: |
+          node scripts/verify-vsix.selftest.mjs
+          node scripts/verify-vsix.mjs chainlesschain-ide.vsix
+      - name: Install Extension Host test runtime
+        run: npm install --no-save --no-package-lock @vscode/test-electron@3.0.0
+      - name: Extension Host smoke (macOS stable)
+        run: >-
+          node test/extension-host/run.cjs --vsix chainlesschain-ide.vsix
+          --artifact-dir build/reports/extension-host/macos-stable
+      - name: Extension Host smoke (macOS minimum 1.85.2)
+        run: >-
+          node test/extension-host/run.cjs --vsix chainlesschain-ide.vsix
+          --vscode-version 1.85.2
+          --artifact-dir build/reports/extension-host/macos-minimum
+      - name: Upload macOS host journey evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: vscode-macos-host-evidence
+          path: packages/vscode-extension/build/reports/extension-host/
+          if-no-files-found: error
 
   vscode:
     name: VS Code extension (package + publish)
-    needs: vscode-windows-smoke
+    needs: [vscode-windows-smoke, vscode-macos-smoke]
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -134,13 +224,29 @@ jobs:
       # fresh profile and verify activation, declared commands, and the local
       # IDE Bridge. This catches packaging/activation regressions that ZIP
       # metadata validation cannot detect.
-      - name: Extension Host smoke
+      - name: Extension Host smoke (Linux stable)
         run: |
           sudo apt-get update
           sudo apt-get install -y xvfb
           npm install --no-save --no-package-lock @vscode/test-electron@3.0.0
           xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" \
-            node test/extension-host/run.cjs --vsix chainlesschain-ide.vsix
+            node test/extension-host/run.cjs --vsix chainlesschain-ide.vsix \
+              --artifact-dir build/reports/extension-host/linux-stable
+
+      - name: Extension Host smoke (Linux minimum 1.85.2)
+        run: |
+          xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" \
+            node test/extension-host/run.cjs --vsix chainlesschain-ide.vsix \
+              --vscode-version 1.85.2 \
+              --artifact-dir build/reports/extension-host/linux-minimum
+
+      - name: Upload Linux host journey evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: vscode-linux-host-evidence
+          path: packages/vscode-extension/build/reports/extension-host/
+          if-no-files-found: error
 
       - name: Upload .vsix artifact
         uses: actions/upload-artifact@v6
@@ -186,13 +292,14 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
-      # Official VS Code Marketplace — optional; needs a VSCE_PAT secret (an
+      # Official VS Code Marketplace — required on a release tag; needs a
+      # VSCE_PAT secret (an
       # Azure DevOps PAT, org "All accessible organizations", scope
       # Marketplace→Manage; the org itself is free) + the `chainlesschain`
-      # publisher on marketplace.visualstudio.com/manage. On a release tag a
-      # missing secret skips gracefully so the Open VSX publish still counts;
-      # an explicit workflow_dispatch backfill fails loudly instead.
-      - name: Publish to VS Code Marketplace (optional)
+      # publisher on marketplace.visualstudio.com/manage. A release is not
+      # complete when this credential is missing: Open VSX cannot substitute
+      # for the stock VS Code gallery.
+      - name: Publish to VS Code Marketplace
         if: >-
           startsWith(github.ref, 'refs/tags/ide-vscode-v') ||
           (github.event_name == 'workflow_dispatch' && inputs.publish_vscode_marketplace)
@@ -200,18 +307,92 @@ jobs:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
         run: |
           if [ -z "$VSCE_PAT" ]; then
-            if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-              echo "::error::VSCE_PAT secret is not set — cannot publish to the official Marketplace."
-              exit 1
-            fi
-            echo "::notice::VSCE_PAT not set — skipping official Marketplace (Open VSX already published)."
-            exit 0
+            echo "::error::VSCE_PAT secret is not set — cannot publish to the official Marketplace."
+            exit 1
           fi
           npx --yes @vscode/vsce@3.9.2 verify-pat chainlesschain -p "$VSCE_PAT"
-          npx --yes @vscode/vsce@3.9.2 publish --no-dependencies --packagePath chainlesschain-ide.vsix -p "$VSCE_PAT"
+          npx --yes @vscode/vsce@3.9.2 publish --skip-duplicate --no-dependencies --packagePath chainlesschain-ide.vsix -p "$VSCE_PAT"
+
+      - name: Verify VS Code Marketplace listing and exact VSIX
+        if: >-
+          startsWith(github.ref, 'refs/tags/ide-vscode-v') ||
+          (github.event_name == 'workflow_dispatch' && inputs.publish_vscode_marketplace)
+        env:
+          CC_MARKETPLACE_VERIFY_ATTEMPTS: "30"
+          CC_MARKETPLACE_VERIFY_DELAY_MS: "20000"
+        run: |
+          set -euo pipefail
+          version="$(node -p "require('./package.json').version")"
+          result="$(node ../../scripts/verify-ide-marketplace.mjs vscode-marketplace "$version" --artifact chainlesschain-ide.vsix)"
+          echo "$result"
+          {
+            echo "### Microsoft VS Code Marketplace verification"
+            echo
+            echo '```json'
+            echo "$result"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  jetbrains-host-matrix:
+    name: JetBrains real host (${{ matrix.os }}, ${{ matrix.ide.version }})
+    needs: capability-manifest
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+        ide:
+          - version: "2024.2"
+            java: "17"
+          - version: "2025.2"
+            java: "21"
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: ${{ matrix.ide.java }}
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+      - name: Make gradlew executable
+        if: runner.os != 'Windows'
+        working-directory: packages/jetbrains-plugin
+        run: chmod +x ./gradlew
+      - name: Install Linux virtual display
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb
+      - name: Run deterministic chat/control/resume journey (Linux)
+        if: runner.os == 'Linux'
+        run: >-
+          xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24"
+          node packages/jetbrains-plugin/scripts/run-ui-host-journey.mjs
+          --ide-version ${{ matrix.ide.version }}
+          --artifact-dir packages/jetbrains-plugin/build/reports/ide-journey/${{ runner.os }}-${{ matrix.ide.version }}
+      - name: Run deterministic chat/control/resume journey (Windows/macOS)
+        if: runner.os != 'Linux'
+        run: >-
+          node packages/jetbrains-plugin/scripts/run-ui-host-journey.mjs
+          --ide-version ${{ matrix.ide.version }}
+          --artifact-dir packages/jetbrains-plugin/build/reports/ide-journey/${{ runner.os }}-${{ matrix.ide.version }}
+      - name: Upload host journey evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: jetbrains-${{ runner.os }}-${{ matrix.ide.version }}-host-evidence
+          path: |
+            packages/jetbrains-plugin/build/reports/ide-journey/
+            packages/jetbrains-plugin/build/reports/ui-host-driver/
+            packages/jetbrains-plugin/build/reports/ui-smoke/
+            packages/jetbrains-plugin/build/reports/tests/uiSmokeTest/
+          if-no-files-found: error
 
   jetbrains:
     name: JetBrains plugin (build + publish)
+    needs: [capability-manifest, jetbrains-host-matrix]
     runs-on: ubuntu-latest
     timeout-minutes: 120
     defaults:
@@ -223,6 +404,9 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
 
       - name: Make gradlew executable
         run: chmod +x ./gradlew
@@ -279,41 +463,6 @@ jobs:
 
       - name: Verify plugin compatibility
         run: ./gradlew verifyPlugin --no-daemon --stacktrace
-
-      # Release GUI gate: exercise the packaged plugin in a real sandbox IDE
-      # before uploading/publishing it. Keep this separate from headless
-      # tests because Remote Robot needs a display and the robot-server IDE.
-      - name: GUI smoke (Remote Robot, release gate)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y xvfb
-          nohup xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" \
-            ./gradlew runIdeForUiTests --no-daemon --stacktrace \
-            > /tmp/chainlesschain-runIdeForUiTests.log 2>&1 &
-          ide_pid=$!
-          cleanup() {
-            kill "$ide_pid" 2>/dev/null || true
-            sleep 3
-            pkill -f 'runIdeForUiTests' 2>/dev/null || true
-          }
-          trap cleanup EXIT
-          for attempt in $(seq 1 120); do
-            if curl -sf http://127.0.0.1:8082 >/dev/null 2>&1; then
-              break
-            fi
-            if ! kill -0 "$ide_pid" 2>/dev/null; then
-              echo "::error::sandbox IDE exited before Robot server became ready"
-              tail -n 200 /tmp/chainlesschain-runIdeForUiTests.log
-              exit 1
-            fi
-            sleep 10
-          done
-          if ! curl -sf http://127.0.0.1:8082 >/dev/null 2>&1; then
-            echo "::error::Robot server did not become ready within 20 minutes"
-            tail -n 200 /tmp/chainlesschain-runIdeForUiTests.log
-            exit 1
-          fi
-          ./gradlew uiSmokeTest --no-daemon --stacktrace
 
       - name: Upload plugin artifact
         uses: actions/upload-artifact@v6

@@ -3,14 +3,14 @@
 Maintenance + publish runbook for the two editor extensions that pair with the
 CLI IDE bridge (design `docs/design/modules/98_IDE桥接对标方案.md`, Phase 4):
 
-- **VS Code** — `packages/vscode-extension/` → Open VSX (`ovsx`), with the
-  official VS Code Marketplace (`vsce`) as an optional second channel
+- **VS Code** — `packages/vscode-extension/` → Open VSX (`ovsx`) and the
+  official VS Code Marketplace (`vsce`); both are required release channels
 - **JetBrains** — `packages/jetbrains-plugin/` → JetBrains Marketplace (`gradlew publishPlugin`)
 
 CI: `.github/workflows/ide-extensions.yml`. A normal push to `main` that touches
 either package **builds + uploads the artifact** (`.vsix` / plugin `.zip`).
-Publishing happens **only** on a dedicated tag. Missing required primary-channel
-credentials fail the tagged release.
+Publishing happens **only** on a dedicated tag. Missing credentials for any
+required release channel fail the tagged release.
 
 ## Version governance
 
@@ -44,13 +44,13 @@ GitHub tag workflow as the authoritative path:
 
 ## Publishing
 
-### VS Code — Open VSX (primary)
+### VS Code — Open VSX
 
 We publish to the **Open VSX Registry** (open-vsx.org), which serves Cursor /
-VSCodium / Gitpod / etc. The official VS Code Marketplace is **blocked** for us:
-publishing there needs an Azure DevOps org, which now requires an Azure
-subscription we don't have (see "Notes"). Open VSX needs only a GitHub login + a
-token — no Azure, no card.
+VSCodium / Gitpod / etc. Open VSX needs a GitHub login and token. The official
+VS Code Marketplace remains externally blocked until `VSCE_PAT` is provisioned,
+and the tag workflow now treats that blocker as a failed release instead of
+silently declaring the Open VSX-only half complete.
 
 - **Namespace**: `chainlesschain` (= the extension's `publisher`).
 - **Token**: sign in at open-vsx.org with GitHub → **sign the Eclipse Foundation
@@ -69,10 +69,13 @@ Release:
    `packages/vscode-extension/package.json` `version`.
 4. Create the immutable tag on the validated commit and push it to GitHub:
    `git tag ide-vscode-v0.2.2 && git push github ide-vscode-v0.2.2`.
-5. `ide-extensions.yml` rechecks tag/version equality, publishes to Open VSX,
-   and publishes to the official Marketplace **iff** `VSCE_PAT` is set.
-6. Verify the Open VSX JSON result in the job summary and the page
-   `https://open-vsx.org/extension/chainlesschain/chainlesschain-ide`.
+5. `ide-extensions.yml` rechecks tag/version equality and publishes the same
+   VSIX to Open VSX and the official Marketplace. Missing `OVSX_PAT` or
+   `VSCE_PAT` fails the release.
+6. Verify both JSON results in the job summary. Each verifier downloads the
+   public VSIX and compares its canonical content digest with the tagged-run
+   artifact; the official query also verifies publisher, name, exact version,
+   stable (not pre-release) status, and an HTTPS package asset.
 
 The Open VSX publish uses `--skip-duplicate`, so rerunning the same immutable
 tag after an interrupted run does not fail merely because that exact version
@@ -90,12 +93,14 @@ Break-glass local alternative (not followed by tag CI):
 one-time registry administration action, not something a release workflow
 should retry while ignoring errors.
 
-### VS Code — official Marketplace (optional, blocked)
+### VS Code — official Marketplace (required, externally blocked)
 
 Needs a `VSCE_PAT` from an Azure DevOps org. Publisher `chainlesschain` exists,
-but creating the DevOps org requires an Azure subscription → not done. If a
-subscription is ever added: create the org → PAT (All accessible organizations +
-Marketplace: Manage) → secret `VSCE_PAT`; the same tag then also publishes there.
+but creating the DevOps org requires an Azure subscription → not done. Before
+the next VS Code release tag: create the org → PAT (`All accessible
+organizations`, scope `Marketplace: Manage`) → secret `VSCE_PAT`. Until then
+the tag gate is expected to fail closed; Open VSX publication is not evidence
+of stock VS Code listing.
 
 ### JetBrains
 
