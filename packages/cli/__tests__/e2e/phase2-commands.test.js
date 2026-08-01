@@ -68,9 +68,9 @@ describe("E2E: Phase 2 commands", () => {
 
   // ── Main help includes Phase 2 commands ──
 
-  describe("main help includes Phase 2 commands", () => {
-    it("--help lists import, export, git", () => {
-      const result = run("--help");
+  describe("compatibility help includes Phase 2 commands", () => {
+    it("help --all lists import, export, git", () => {
+      const result = run("help --all");
       expect(result).toContain("import");
       expect(result).toContain("export");
       expect(result).toContain("git");
@@ -80,8 +80,8 @@ describe("E2E: Phase 2 commands", () => {
   // ── Updated command count ──
 
   describe("command count", () => {
-    it("--help lists all 25 commands (15 + 4 Phase1 + 3 Phase2 + 3 Phase3)", () => {
-      const result = run("--help");
+    it("help --all lists all 25 commands (15 + 4 Phase1 + 3 Phase2 + 3 Phase3)", () => {
+      const result = run("help --all");
       const expectedCommands = [
         // Original 15
         "setup",

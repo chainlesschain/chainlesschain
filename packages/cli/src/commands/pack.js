@@ -61,7 +61,6 @@ export function registerPackCommand(program) {
     .option(
       "-t, --targets <list>",
       "Comma-separated pkg targets (defaults to current host platform)",
-      defaultPkgTarget(),
     )
     .option("--ws-port <n>", "Default WS port baked into the artifact", "18800")
     .option(
@@ -160,7 +159,14 @@ export function registerPackCommand(program) {
     )
     .action(async (opts) => {
       try {
-        const result = await runPack(opts, { logger });
+        // Resolve the host-aware default at execution time. Supplying it as
+        // Commander's option default makes generated help platform-dependent,
+        // which causes the committed help index to drift across CI hosts.
+        const runOptions = {
+          ...opts,
+          targets: opts.targets || defaultPkgTarget(),
+        };
+        const result = await runPack(runOptions, { logger });
         if (opts.dryRun) {
           logger.log(
             chalk.green(

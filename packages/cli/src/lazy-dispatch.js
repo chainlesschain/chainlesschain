@@ -113,6 +113,16 @@ function helpRequest(argv, manifestData = manifest) {
   }
   const entry = findManifestEntry(commandName, manifestData);
   if (entry && args.some((token) => ROOT_HELP_FLAGS.has(token))) {
+    const commandIndex = args.indexOf(commandName);
+    const hasAdditionalPositional = args
+      .slice(commandIndex + 1)
+      .some((token) => !token.startsWith("-") && !ROOT_HELP_FLAGS.has(token));
+    // The generated index intentionally contains top-level command help only.
+    // A positional after the domain may be a nested command (or a command
+    // argument), so phase 0 must not replace its help with the parent page.
+    // Loading the one manifest registrar remains lazy while allowing Commander
+    // to resolve arbitrarily deep `cc <domain> <subcommand> --help` requests.
+    if (hasAdditionalPositional) return null;
     return {
       all: false,
       json: args.includes("--json"),
@@ -152,8 +162,9 @@ function rewriteHelpCommand(argv, commandName) {
   ];
 }
 
-function appendDefaultAgent(argv, prompt = null) {
-  const next = [...argv, "agent"];
+function appendDefaultCommand(argv, manifestData, prompt = null) {
+  const defaultCommand = manifestData?.surface?.defaultCommand || "agent";
+  const next = [...argv, defaultCommand];
   // Inline form keeps prompts beginning with '-' from being reinterpreted as
   // another option by Commander after stdin has already been consumed.
   if (prompt !== null) next.push(`--print=${prompt}`);
@@ -243,7 +254,7 @@ export async function prepareInvocation(
     if (stdin.isTTY && stdout.isTTY) {
       return {
         handled: false,
-        argv: appendDefaultAgent(argv),
+        argv: appendDefaultCommand(argv, manifestData),
         kind: "default-agent",
       };
     }
@@ -252,7 +263,7 @@ export async function prepareInvocation(
       if (piped.trim()) {
         return {
           handled: false,
-          argv: appendDefaultAgent(argv, piped),
+          argv: appendDefaultCommand(argv, manifestData, piped),
           kind: "default-agent-stdin",
         };
       }

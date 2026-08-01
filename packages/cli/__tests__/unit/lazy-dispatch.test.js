@@ -70,6 +70,32 @@ describe("command manifest ⇄ eager program (drift guard)", () => {
     }
   });
 
+  it("describes the generated stable and compatibility surfaces", () => {
+    expect(manifest.schema).toBe("chainlesschain.command-manifest.v2");
+    expect(manifest.surface).toMatchObject({
+      schema: "chainlesschain.command-surface.v1",
+      defaultCommand: "agent",
+    });
+
+    const groupedCore = manifest.surface.coreGroups
+      .flatMap((group) => group.commands)
+      .sort();
+    const taggedCore = manifest.commands
+      .filter((entry) => entry.visibility === "core")
+      .map((entry) => entry.name)
+      .sort();
+    expect(taggedCore).toEqual(groupedCore);
+
+    for (const entry of manifest.commands) {
+      expect(["stable", "compatibility"]).toContain(entry.stability);
+      expect(["core", "extended"]).toContain(entry.visibility);
+      expect(entry.category).toMatch(/^[a-z][a-z-]*$/);
+      expect(
+        entry.replacement === null || typeof entry.replacement === "string",
+      ).toBe(true);
+    }
+  });
+
   it("every manifest entry points at an importable module + register fn name", () => {
     for (const entry of manifest.commands) {
       expect(entry.module, `module for ${entry.name}`).toMatch(/^\.\/.+\.js$/);
@@ -206,8 +232,10 @@ describe("phase-0 invocation", () => {
     expect(document.commands).toContainEqual(
       expect.objectContaining({
         name: "agent",
+        stability: "stable",
         category: "code",
         visibility: "core",
+        replacement: null,
       }),
     );
 
@@ -291,6 +319,37 @@ describe("phase-0 invocation", () => {
     });
     expect(direct).toMatchObject({ handled: true, kind: "command-help" });
     expect(directOut.value()).toBe(helpOut.value());
+  });
+
+  it("defers nested command help to the domain registrar", async () => {
+    for (const args of [
+      ["cli-anything", "doctor", "--help"],
+      ["learning", "stats", "--help"],
+      ["evomap", "federation", "--help"],
+      ["dao", "propose", "--help"],
+      ["scim", "users", "list", "--help"],
+      ["hardening", "baseline", "--help"],
+      ["social", "contact", "--help"],
+      ["cowork", "debate", "--help"],
+      ["lowcode", "deploy", "--help"],
+      ["skill", "sync-cli", "--help"],
+      ["crosschain", "bridge", "--help"],
+      ["mtc", "federation", "--help"],
+      ["audit", "mtc", "--help"],
+      ["pair", "token", "--help"],
+    ]) {
+      const nestedOut = output();
+      const prepared = await prepareInvocation(argv(...args), {
+        stdin: { isTTY: false },
+        stdout: nestedOut.stream,
+      });
+      expect(prepared).toEqual({
+        handled: false,
+        argv: argv(...args),
+        kind: "command",
+      });
+      expect(nestedOut.value()).toBe("");
+    }
   });
 });
 

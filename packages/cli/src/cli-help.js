@@ -6,45 +6,42 @@
  * `cc --help` does not pay the full command graph's startup cost.
  */
 
-export const CORE_COMMAND_GROUPS = Object.freeze([
-  Object.freeze({
-    label: "Code",
-    commands: Object.freeze(["agent", "session", "skill"]),
-  }),
-  Object.freeze({
-    label: "Integrations",
-    commands: Object.freeze(["mcp", "plugin"]),
-  }),
-  Object.freeze({
-    label: "Configuration",
-    commands: Object.freeze(["config", "auth", "doctor", "status", "update"]),
-  }),
-]);
+import {
+  CORE_COMMAND_GROUPS,
+  DEFAULT_COMMAND,
+  describeCommandSurface,
+} from "./command-surface-policy.js";
 
-const CORE_COMMAND_NAMES = new Set(
-  CORE_COMMAND_GROUPS.flatMap((group) => group.commands),
-);
-const CORE_CATEGORY_BY_COMMAND = new Map(
-  CORE_COMMAND_GROUPS.flatMap((group) =>
-    group.commands.map((command) => [command, group.label.toLowerCase()]),
-  ),
-);
+export { CORE_COMMAND_GROUPS };
+
+function commandSurface(manifest) {
+  const groups = Array.isArray(manifest?.surface?.coreGroups)
+    ? manifest.surface.coreGroups
+    : CORE_COMMAND_GROUPS;
+  return {
+    defaultCommand: manifest?.surface?.defaultCommand || DEFAULT_COMMAND,
+    groups,
+  };
+}
 
 function normalizeEntry(entry) {
+  const fallback = describeCommandSurface(entry.name);
   return {
     name: entry.name,
     aliases: Array.isArray(entry.aliases) ? entry.aliases : [],
     summary: entry.summary || "",
-    category: CORE_CATEGORY_BY_COMMAND.get(entry.name) || "compatibility",
-    visibility: CORE_COMMAND_NAMES.has(entry.name) ? "core" : "extended",
+    stability: entry.stability || fallback.stability,
+    category: entry.category || fallback.category,
+    visibility: entry.visibility || fallback.visibility,
+    replacement: entry.replacement ?? fallback.replacement,
   };
 }
 
 export function listVisibleCommands(manifest, { all = false } = {}) {
   const commands = Array.isArray(manifest?.commands) ? manifest.commands : [];
   return commands
-    .filter((entry) => all || CORE_COMMAND_NAMES.has(entry.name))
     .map(normalizeEntry)
+    .filter((entry) => all || entry.visibility === "core")
     .sort((left, right) => left.name.localeCompare(right.name));
 }
 
@@ -65,12 +62,13 @@ function renderCommandLines(entries, indent = "  ") {
 }
 
 export function buildHelpDocument(manifest, { all = false } = {}) {
+  const commands = listVisibleCommands(manifest, { all });
   return {
     schema: "chainlesschain.help.v1",
     scope: all ? "all" : "core",
-    defaultCommand: "agent",
-    commandCount: listVisibleCommands(manifest, { all }).length,
-    commands: listVisibleCommands(manifest, { all }),
+    defaultCommand: commandSurface(manifest).defaultCommand,
+    commandCount: commands.length,
+    commands,
   };
 }
 
@@ -89,7 +87,7 @@ export function formatRootHelp(manifest, { all = false } = {}) {
     lines.push(...renderCommandLines(commands));
   } else {
     lines.push("Core commands:");
-    for (const group of CORE_COMMAND_GROUPS) {
+    for (const group of commandSurface(manifest).groups) {
       const entries = group.commands
         .map((name) => manifest.commands.find((entry) => entry.name === name))
         .filter(Boolean)

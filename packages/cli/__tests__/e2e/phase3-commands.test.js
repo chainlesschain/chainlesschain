@@ -84,9 +84,9 @@ describe("E2E: Phase 3 commands", () => {
 
   // ── Main help includes Phase 3 commands ──
 
-  describe("main help includes Phase 3 commands", () => {
-    it("--help lists mcp, browse, instinct", () => {
-      const result = run("--help");
+  describe("compatibility help includes Phase 3 commands", () => {
+    it("help --all lists mcp, browse, instinct", () => {
+      const result = run("help --all");
       expect(result).toContain("mcp");
       expect(result).toContain("browse");
       expect(result).toContain("instinct");
@@ -96,8 +96,8 @@ describe("E2E: Phase 3 commands", () => {
   // ── Updated command count ──
 
   describe("command count", () => {
-    it("--help lists all 25 commands", () => {
-      const result = run("--help");
+    it("help --all lists all 25 commands", () => {
+      const result = run("help --all");
       const expectedCommands = [
         // Original 15
         "setup",

@@ -101,9 +101,9 @@ describe("E2E: Phase 1 commands", () => {
 
   // ── Main help includes Phase 1 commands ──
 
-  describe("main help includes Phase 1 commands", () => {
-    it("--help lists search, tokens, memory, session", () => {
-      const result = run("--help");
+  describe("compatibility help includes Phase 1 commands", () => {
+    it("help --all lists search, tokens, memory, session", () => {
+      const result = run("help --all");
       expect(result).toContain("search");
       expect(result).toContain("tokens");
       expect(result).toContain("memory");
@@ -114,8 +114,8 @@ describe("E2E: Phase 1 commands", () => {
   // ── Updated command count ──
 
   describe("command count", () => {
-    it("--help lists all 25 commands (15 + 4 Phase1 + 3 Phase2 + 3 Phase3)", () => {
-      const result = run("--help");
+    it("help --all lists all 25 commands (15 + 4 Phase1 + 3 Phase2 + 3 Phase3)", () => {
+      const result = run("help --all");
       const expectedCommands = [
         // Original 15
         "setup",

@@ -49,8 +49,8 @@ describe("E2E: CLI-Anything Commands", () => {
   // ─── Help visibility ──────────────────────────────────────
 
   describe("help output", () => {
-    it("cli-anything is listed in main help", () => {
-      const result = run("--help");
+    it("cli-anything is listed in compatibility help", () => {
+      const result = run("help --all");
       expect(result).toContain("cli-anything");
     });
 

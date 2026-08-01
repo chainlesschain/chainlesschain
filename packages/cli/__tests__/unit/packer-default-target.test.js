@@ -8,7 +8,11 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { defaultPkgTarget } from "../../src/commands/pack.js";
+import { Command } from "commander";
+import {
+  defaultPkgTarget,
+  registerPackCommand,
+} from "../../src/commands/pack.js";
 
 describe("defaultPkgTarget", () => {
   const origPlatform = process.platform;
@@ -67,5 +71,22 @@ describe("defaultPkgTarget", () => {
   it("unknown arch falls back to node20-win-x64 (safe default)", () => {
     setPlatformArch("linux", "ppc64");
     expect(defaultPkgTarget()).toBe("node20-win-x64");
+  });
+
+  it("keeps generated help identical across host platforms", () => {
+    const helpFor = (platform, arch) => {
+      setPlatformArch(platform, arch);
+      const program = new Command().name("chainlesschain");
+      registerPackCommand(program);
+      return program.commands
+        .find((command) => command.name() === "pack")
+        .helpInformation();
+    };
+
+    const windowsHelp = helpFor("win32", "x64");
+    const linuxHelp = helpFor("linux", "x64");
+
+    expect(linuxHelp).toBe(windowsHelp);
+    expect(linuxHelp).not.toContain('default: "node20-');
   });
 });

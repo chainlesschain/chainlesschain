@@ -1,1231 +1,1953 @@
 {
   "_generated": "scripts/gen-command-manifest.mjs — do not edit by hand",
+  "schema": "chainlesschain.command-manifest.v2",
   "commandCount": 175,
+  "surface": {
+    "schema": "chainlesschain.command-surface.v1",
+    "defaultCommand": "agent",
+    "coreGroups": [
+      {
+        "id": "code",
+        "label": "Code",
+        "commands": ["agent", "session", "skill"]
+      },
+      {
+        "id": "integrations",
+        "label": "Integrations",
+        "commands": ["mcp", "plugin"]
+      },
+      {
+        "id": "configuration",
+        "label": "Configuration",
+        "commands": ["config", "auth", "doctor", "status", "update"]
+      }
+    ]
+  },
   "commands": [
     {
       "name": "a2a",
       "aliases": [],
       "module": "./commands/a2a.js",
       "register": "registerA2aCommand",
-      "summary": "A2A Protocol — agent-to-agent communication"
+      "summary": "A2A Protocol — agent-to-agent communication",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "activitypub",
       "aliases": ["ap"],
       "module": "./commands/activitypub.js",
       "register": "registerActivityPubCommand",
-      "summary": "ActivityPub C2S bridge — actors, outbox/inbox, Follow/Create/Like/Announce"
+      "summary": "ActivityPub C2S bridge — actors, outbox/inbox, Follow/Create/Like/Announce",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "agenda",
       "aliases": [],
       "module": "./commands/agenda.js",
       "register": "registerAgendaCommand",
-      "summary": "Fire agent-scheduled wakeups / crons / monitors (persisted by the `schedule` tool)"
+      "summary": "Fire agent-scheduled wakeups / crons / monitors (persisted by the `schedule` tool)",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "agent",
       "aliases": ["a"],
       "module": "./commands/agent.js",
       "register": "registerAgentCommand",
-      "summary": "Start an agentic AI session (reads/writes files, runs commands)"
+      "summary": "Start an agentic AI session (reads/writes files, runs commands)",
+      "stability": "stable",
+      "category": "code",
+      "visibility": "core",
+      "replacement": null
     },
     {
       "name": "agent-network",
       "aliases": ["anet"],
       "module": "./commands/agent-network.js",
       "register": "registerAgentNetworkCommand",
-      "summary": "Decentralized Agent Network (Phase 24) — DID / registry / credentials / task routing"
+      "summary": "Decentralized Agent Network (Phase 24) — DID / registry / credentials / task routing",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "agents",
       "aliases": [],
       "module": "./commands/agents.js",
       "register": "registerAgentsCommand",
-      "summary": "User-defined subagents (.claude/agents/*.md)"
+      "summary": "User-defined subagents (.claude/agents/*.md)",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "android",
       "aliases": [],
       "module": "./commands/android.js",
       "register": "registerAndroidCommand",
-      "summary": "Android-native bridge: ContentResolver / SAF / Accessibility / Shizuku / root (Plan A A7)"
+      "summary": "Android-native bridge: ContentResolver / SAF / Accessibility / Shizuku / root (Plan A A7)",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "artifacts",
       "aliases": ["artifact"],
       "module": "./commands/artifacts.js",
       "register": "registerArtifactsCommand",
-      "summary": "Browse agent-published deliverables (reports/patches/screenshots; see the publish_artifact tool)"
+      "summary": "Browse agent-published deliverables (reports/patches/screenshots; see the publish_artifact tool)",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "ask",
       "aliases": [],
       "module": "./commands/ask.js",
       "register": "registerAskCommand",
-      "summary": "Ask a question to the AI (single-shot)"
+      "summary": "Ask a question to the AI (single-shot)",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "attach",
       "aliases": [],
       "module": "./commands/background-session.js",
       "register": "registerBackgroundSessionCommands",
-      "summary": "Attach to a background agent — interactive when its session transport is available, log stream otherwise"
+      "summary": "Attach to a background agent — interactive when its session transport is available, log stream otherwise",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "audit",
       "aliases": [],
       "module": "./commands/audit.js",
       "register": "registerAuditCommand",
-      "summary": "Audit log — security event tracking and compliance"
+      "summary": "Audit log — security event tracking and compliance",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "auth",
       "aliases": [],
       "module": "./commands/auth.js",
       "register": "registerAuthCommand",
-      "summary": "RBAC permission management"
+      "summary": "RBAC permission management",
+      "stability": "stable",
+      "category": "configuration",
+      "visibility": "core",
+      "replacement": null
     },
     {
       "name": "auto",
       "aliases": [],
       "module": "./commands/automation.js",
       "register": "registerAutomationCommand",
-      "summary": "Workflow automation engine — 12 SaaS connectors + triggers (Phase 96)"
+      "summary": "Workflow automation engine — 12 SaaS connectors + triggers (Phase 96)",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "auto-mode",
       "aliases": ["automode"],
       "module": "./commands/auto-mode.js",
       "register": "registerAutoModeCommand",
-      "summary": "Inspect auto permission-mode defaults and effective config"
+      "summary": "Inspect auto permission-mode defaults and effective config",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "autoagent",
       "aliases": [],
       "module": "./commands/agent.js",
       "register": "registerAutoAgentV2Command",
-      "summary": "Autonomous agent V2 governance"
+      "summary": "Autonomous agent V2 governance",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "automation",
       "aliases": [],
       "module": "./commands/automation.js",
       "register": "registerAutomationCommand",
-      "summary": "Workflow automation engine — 12 SaaS connectors + triggers (Phase 96)"
+      "summary": "Workflow automation engine — 12 SaaS connectors + triggers (Phase 96)",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "batch",
       "aliases": [],
       "module": "./commands/batch.js",
       "register": "registerBatchCommand",
-      "summary": "Split a large change into independent units, run each in its own git worktree in parallel, and aggregate results"
+      "summary": "Split a large change into independent units, run each in its own git worktree in parallel, and aggregate results",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "bi",
       "aliases": [],
       "module": "./commands/bi.js",
       "register": "registerBiCommand",
-      "summary": "Business intelligence — queries, dashboards, reports, analytics"
+      "summary": "Business intelligence — queries, dashboards, reports, analytics",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "bm25",
       "aliases": [],
       "module": "./commands/bm25.js",
       "register": "registerBm25Command",
-      "summary": "BM25 Search V2 governance (in-memory, CLI v0.143.0)"
+      "summary": "BM25 Search V2 governance (in-memory, CLI v0.143.0)",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "browse",
       "aliases": [],
       "module": "./commands/browse.js",
       "register": "registerBrowseCommand",
-      "summary": "Headless browser automation and web scraping"
+      "summary": "Headless browser automation and web scraping",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "ccron",
       "aliases": [],
       "module": "./commands/ccron.js",
       "register": "registerCcronCommand",
-      "summary": "Cowork Cron V2 governance (in-memory, CLI v0.143.0)"
+      "summary": "Cowork Cron V2 governance (in-memory, CLI v0.143.0)",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "changelog",
       "aliases": ["whatsnew"],
       "module": "./commands/changelog.js",
       "register": "registerChangelogCommand",
-      "summary": "Show cc CLI version update notes (npm package changelog)"
+      "summary": "Show cc CLI version update notes (npm package changelog)",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "chat",
       "aliases": [],
       "module": "./commands/chat.js",
       "register": "registerChatCommand",
-      "summary": "Start an interactive AI chat session"
+      "summary": "Start an interactive AI chat session",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "checkpoint",
       "aliases": [],
       "module": "./commands/checkpoint.js",
       "register": "registerCheckpointCommand",
-      "summary": "Snapshot / rewind file state (git-plumbing, copy fallback)"
+      "summary": "Snapshot / rewind file state (git-plumbing, copy fallback)",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "cli-anything",
       "aliases": [],
       "module": "./commands/cli-anything.js",
       "register": "registerCliAnythingCommand",
-      "summary": "CLI-Anything — discover and register Agent-native CLI tools as skills"
+      "summary": "CLI-Anything — discover and register Agent-native CLI tools as skills",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "cloud",
       "aliases": [],
       "module": "./commands/cloud.js",
       "register": "registerCloudCommand",
-      "summary": "Self-hosted cloud handoff — offload a task to a private runner (bundle → run → reflow)"
+      "summary": "Self-hosted cloud handoff — offload a task to a private runner (bundle → run → reflow)",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "code-intel",
       "aliases": ["ci"],
       "module": "./commands/codeintel.js",
       "register": "registerCodeIntelCommand",
-      "summary": "Semantic code navigation via LSP (definition/references/symbols/diagnostics)"
+      "summary": "Semantic code navigation via LSP (definition/references/symbols/diagnostics)",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "codegen",
       "aliases": [],
       "module": "./commands/codegen.js",
       "register": "registerCodegenCommand",
-      "summary": "Code generation agent (Phase 86)"
+      "summary": "Code generation agent (Phase 86)",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "collab",
       "aliases": [],
       "module": "./commands/collab.js",
       "register": "registerCollabCommand",
-      "summary": "Collaboration governance — decisions, voting, autonomy levels, task assignment"
+      "summary": "Collaboration governance — decisions, voting, autonomy levels, task assignment",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "command",
       "aliases": ["cmd"],
       "module": "./commands/command.js",
       "register": "registerCommandCommand",
-      "summary": "User-defined slash-command macros (.claude/commands/*.md)"
+      "summary": "User-defined slash-command macros (.claude/commands/*.md)",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "compact",
       "aliases": [],
       "module": "./commands/compact.js",
       "register": "registerCompactCommand",
-      "summary": "Compact a stored session's history (offline; persists for --resume)"
+      "summary": "Compact a stored session into a structured handoff (persists for --resume)",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "complete",
       "aliases": [],
       "module": "./commands/complete.js",
       "register": "registerCompleteCommand",
-      "summary": "Inline code completion (FIM) for IDE ghost-text: reads {prefix,suffix,language} JSON on stdin, prints the code to insert."
+      "summary": "Inline code completion (FIM) for IDE ghost-text: reads {prefix,suffix,language} JSON on stdin, prints the code to insert.",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "compliance",
       "aliases": [],
       "module": "./commands/compliance.js",
       "register": "registerComplianceCommand",
-      "summary": "Compliance management — evidence, reports, scanning, policies"
+      "summary": "Compliance management — evidence, reports, scanning, policies",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "compt",
       "aliases": [],
       "module": "./commands/compt.js",
       "register": "registerComptCommand",
-      "summary": "Compression Telemetry V2 governance (in-memory, CLI v0.143.0)"
+      "summary": "Compression Telemetry V2 governance (in-memory, CLI v0.143.0)",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "config",
       "aliases": [],
       "module": "./commands/config.js",
       "register": "registerConfigCommand",
-      "summary": "Manage ChainlessChain configuration"
+      "summary": "Manage ChainlessChain configuration",
+      "stability": "stable",
+      "category": "configuration",
+      "visibility": "core",
+      "replacement": null
     },
     {
       "name": "consol",
       "aliases": [],
       "module": "./commands/consol.js",
       "register": "registerConsolCommand",
-      "summary": "Session Consolidator V2 governance (in-memory, CLI v0.134.0)"
+      "summary": "Session Consolidator V2 governance (in-memory, CLI v0.134.0)",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "context",
       "aliases": [],
       "module": "./commands/context.js",
       "register": "registerContextCommand",
-      "summary": "Context-window token breakdown for a session (Claude-Code /context parity)"
+      "summary": "Context-window token breakdown for a session (Claude-Code /context parity)",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "cost",
       "aliases": [],
       "module": "./commands/cost.js",
       "register": "registerCostCommand",
-      "summary": "Estimated $ cost from recorded token usage (per-session or global)"
+      "summary": "Estimated $ cost from recorded token usage (per-session or global)",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "cowork",
       "aliases": [],
       "module": "./commands/cowork.js",
       "register": "registerCoworkCommand",
-      "summary": "Multi-agent collaboration (debate review, A/B comparison, analysis)"
+      "summary": "Multi-agent collaboration (debate review, A/B comparison, analysis)",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "crosschain",
       "aliases": [],
       "module": "./commands/crosschain.js",
       "register": "registerCrossChainCommand",
-      "summary": "Cross-chain interoperability (Phase 89)"
+      "summary": "Cross-chain interoperability (Phase 89)",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "daemon",
       "aliases": [],
       "module": "./commands/background-session.js",
       "register": "registerBackgroundSessionCommands",
-      "summary": "Inspect and stop background agent supervisor sessions"
+      "summary": "Inspect and stop background agent supervisor sessions",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "dao",
       "aliases": [],
       "module": "./commands/dao.js",
       "register": "registerDaoCommand",
-      "summary": "DAO Governance v2 — proposals, voting, delegation, treasury"
+      "summary": "DAO Governance v2 — proposals, voting, delegation, treasury",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "db",
       "aliases": [],
       "module": "./commands/db.js",
       "register": "registerDbCommand",
-      "summary": "Database management"
+      "summary": "Database management",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "dbevo",
       "aliases": [],
       "module": "./commands/dbevo.js",
       "register": "registerDbEvoCommand",
-      "summary": "Database evolution & migration framework (Phase 80)"
+      "summary": "Database evolution & migration framework (Phase 80)",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "decrypt",
       "aliases": [],
       "module": "./commands/encrypt.js",
       "register": "registerEncryptCommand",
-      "summary": "Decrypt an encrypted file"
+      "summary": "Decrypt an encrypted file",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "dev",
       "aliases": [],
       "module": "./commands/dev.js",
       "register": "registerDevCommand",
-      "summary": "Autonomous developer — dev sessions, ADRs, code review, refactor catalog"
+      "summary": "Autonomous developer — dev sessions, ADRs, code review, refactor catalog",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "did",
       "aliases": [],
       "module": "./commands/did.js",
       "register": "registerDidCommand",
-      "summary": "Decentralized Identity (DID) management"
+      "summary": "Decentralized Identity (DID) management",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "did-v2",
       "aliases": ["didv2"],
       "module": "./commands/did-v2.js",
       "register": "registerDIDv2Command",
-      "summary": "Decentralized Identity 2.0 (Phase 55) — W3C DID v2.0 + VP + social recovery + roaming"
+      "summary": "Decentralized Identity 2.0 (Phase 55) — W3C DID v2.0 + VP + social recovery + roaming",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "dlp",
       "aliases": [],
       "module": "./commands/dlp.js",
       "register": "registerDlpCommand",
-      "summary": "Data Loss Prevention — scanning, incidents, policies"
+      "summary": "Data Loss Prevention — scanning, incidents, policies",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "doctor",
       "aliases": ["checkup"],
       "module": "./commands/doctor.js",
       "register": "registerDoctorCommand",
-      "summary": "Diagnose your ChainlessChain environment (alias: checkup)"
+      "summary": "Diagnose your ChainlessChain environment (alias: checkup)",
+      "stability": "stable",
+      "category": "configuration",
+      "visibility": "core",
+      "replacement": null
     },
     {
       "name": "economy",
       "aliases": [],
       "module": "./commands/economy.js",
       "register": "registerEconomyCommand",
-      "summary": "Agent economy — payments, channels, marketplace, NFTs"
+      "summary": "Agent economy — payments, channels, marketplace, NFTs",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "ecosystem",
       "aliases": ["eco"],
       "module": "./commands/plugin-ecosystem.js",
       "register": "registerPluginEcosystemCommand",
-      "summary": "Plugin Ecosystem 2.0 (Phase 64) — registry + deps + install + AI review + publish + revenue + recommend"
+      "summary": "Plugin Ecosystem 2.0 (Phase 64) — registry + deps + install + AI review + publish + revenue + recommend",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "encrypt",
       "aliases": [],
       "module": "./commands/encrypt.js",
       "register": "registerEncryptCommand",
-      "summary": "File encryption and database encryption management"
+      "summary": "File encryption and database encryption management",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "eval",
       "aliases": [],
       "module": "./commands/eval.js",
       "register": "registerEvalCommand",
-      "summary": "Run the reliability eval suite (self-checking coding tasks) and report the task-success rate"
+      "summary": "Run the reliability eval suite (self-checking coding tasks) and report the task-success rate",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "evolution",
       "aliases": [],
       "module": "./commands/evolution.js",
       "register": "registerEvolutionCommand",
-      "summary": "Self-evolving AI system — capabilities, learning, diagnosis"
+      "summary": "Self-evolving AI system — capabilities, learning, diagnosis",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "evomap",
       "aliases": [],
       "module": "./commands/evomap.js",
       "register": "registerEvoMapCommand",
-      "summary": "EvoMap — gene exchange protocol for agent capabilities"
+      "summary": "EvoMap — gene exchange protocol for agent capabilities",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "execbe",
       "aliases": [],
       "module": "./commands/agent.js",
       "register": "registerExecBackendV2Command",
-      "summary": "Execution backend V2 governance"
+      "summary": "Execution backend V2 governance",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "export",
       "aliases": [],
       "module": "./commands/export.js",
       "register": "registerExportCommand",
-      "summary": "Export knowledge base to external formats"
+      "summary": "Export knowledge base to external formats",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "federation",
       "aliases": [],
       "module": "./commands/federation.js",
       "register": "registerFederationCommand",
-      "summary": "Federation hardening system (Phase 58)"
+      "summary": "Federation hardening system (Phase 58)",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "fflag",
       "aliases": [],
       "module": "./commands/fflag.js",
       "register": "registerFflagCommand",
-      "summary": "Feature Flags V2 governance (in-memory, CLI v0.143.0)"
+      "summary": "Feature Flags V2 governance (in-memory, CLI v0.143.0)",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "fusion",
       "aliases": [],
       "module": "./commands/fusion.js",
       "register": "registerFusionCommand",
-      "summary": "Protocol fusion & AI social (Phase 72-73)"
+      "summary": "Protocol fusion & AI social (Phase 72-73)",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "git",
       "aliases": [],
       "module": "./commands/git.js",
       "register": "registerGitCommand",
-      "summary": "Git integration for knowledge base versioning"
+      "summary": "Git integration for knowledge base versioning",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "goal",
       "aliases": [],
       "module": "./commands/goal.js",
       "register": "registerGoalCommand",
-      "summary": "Cross-session persistent goals / OKRs"
+      "summary": "Cross-session persistent goals / OKRs",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "governance",
       "aliases": [],
       "module": "./commands/governance.js",
       "register": "registerGovernanceCommand",
-      "summary": "Community governance — proposals, voting, impact analysis, prediction"
+      "summary": "Community governance — proposals, voting, impact analysis, prediction",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "hardening",
       "aliases": [],
       "module": "./commands/hardening.js",
       "register": "registerHardeningCommand",
-      "summary": "Security hardening — baselines, audits, regression detection"
+      "summary": "Security hardening — baselines, audits, regression detection",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "hmemory",
       "aliases": [],
       "module": "./commands/hmemory.js",
       "register": "registerHmemoryCommand",
-      "summary": "Hierarchical Memory 2.0 — four-layer memory system"
+      "summary": "Hierarchical Memory 2.0 — four-layer memory system",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "hook",
       "aliases": [],
       "module": "./commands/hook.js",
       "register": "registerHookCommand",
-      "summary": "Lifecycle hook management"
+      "summary": "Lifecycle hook management",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "hub",
       "aliases": [],
       "module": "./commands/hub.js",
       "register": "registerHubCommand",
-      "summary": "Personal Data Hub — local vault + adapters + AnalysisEngine on this machine"
+      "summary": "Personal Data Hub — local vault + adapters + AnalysisEngine on this machine",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "ide",
       "aliases": [],
       "module": "./commands/ide.js",
       "register": "registerIdeCommand",
-      "summary": "Inspect IDE bridge discovery (editor MCP server auto-connect)"
+      "summary": "Inspect IDE bridge discovery (editor MCP server auto-connect)",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "import",
       "aliases": [],
       "module": "./commands/import.js",
       "register": "registerImportCommand",
-      "summary": "Import knowledge from external sources"
+      "summary": "Import knowledge from external sources",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "incentive",
       "aliases": [],
       "module": "./commands/incentive.js",
       "register": "registerIncentiveCommand",
-      "summary": "Token incentive — ledger accounts, transfers, contributions, leaderboard"
+      "summary": "Token incentive — ledger accounts, transfers, contributions, leaderboard",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "inference",
       "aliases": [],
       "module": "./commands/inference.js",
       "register": "registerInferenceCommand",
-      "summary": "Decentralized inference network (Phase 67)"
+      "summary": "Decentralized inference network (Phase 67)",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "infra",
       "aliases": [],
       "module": "./commands/infra.js",
       "register": "registerInfraCommand",
-      "summary": "Decentralized infrastructure (Phase 74-75)"
+      "summary": "Decentralized infrastructure (Phase 74-75)",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "init",
       "aliases": [],
       "module": "./commands/init.js",
       "register": "registerInitCommand",
-      "summary": "Inventory the current folder into a cc.md project-memory file (default); pass -t/--template to scaffold a .chainlesschain/ project instead"
+      "summary": "Inventory the current folder into a cc.md project-memory file (default); pass -t/--template to scaffold a .chainlesschain/ project instead",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "insights",
       "aliases": [],
       "module": "./commands/insights.js",
       "register": "registerInsightsCommand",
-      "summary": "Analyze a session: turns, tools, errors, duration, tokens + cost"
+      "summary": "Analyze a session: turns, tools, errors, duration, tokens + cost",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "instinct",
       "aliases": [],
       "module": "./commands/instinct.js",
       "register": "registerInstinctCommand",
-      "summary": "Instinct learning — learned user preferences"
+      "summary": "Instinct learning — learned user preferences",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "ipfs",
       "aliases": [],
       "module": "./commands/ipfs.js",
       "register": "registerIpfsCommand",
-      "summary": "IPFS decentralized storage (Phase 17)"
+      "summary": "IPFS decentralized storage (Phase 17)",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "itbudget",
       "aliases": [],
       "module": "./commands/itbudget.js",
       "register": "registerItBudgetCommand",
-      "summary": "Iteration Budget V2 governance"
+      "summary": "Iteration Budget V2 governance",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "kg",
       "aliases": [],
       "module": "./commands/kg.js",
       "register": "registerKgCommand",
-      "summary": "Knowledge graph — entities, relations, multi-hop reasoning, stats"
+      "summary": "Knowledge graph — entities, relations, multi-hop reasoning, stats",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "learning",
       "aliases": [],
       "module": "./commands/learning.js",
       "register": "registerLearningCommand",
-      "summary": "Autonomous learning loop — trajectories, reflection, skill synthesis"
+      "summary": "Autonomous learning loop — trajectories, reflection, skill synthesis",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "llm",
       "aliases": [],
       "module": "./commands/llm.js",
       "register": "registerLlmCommand",
-      "summary": "LLM provider management"
+      "summary": "LLM provider management",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "logs",
       "aliases": [],
       "module": "./commands/background-session.js",
       "register": "registerBackgroundSessionCommands",
-      "summary": "Print recent output from a background agent"
+      "summary": "Print recent output from a background agent",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "loop",
       "aliases": [],
       "module": "./commands/loop.js",
       "register": "registerLoopCommand",
-      "summary": "Repeatedly run an agent prompt or `-- <command>` on a fixed interval"
+      "summary": "Repeatedly run an agent prompt or `-- <command>` on a fixed interval",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "lowcode",
       "aliases": [],
       "module": "./commands/lowcode.js",
       "register": "registerLowcodeCommand",
-      "summary": "Low-code application platform"
+      "summary": "Low-code application platform",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "marketplace",
       "aliases": [],
       "module": "./commands/marketplace.js",
       "register": "registerMarketplaceCommand",
-      "summary": "Skill marketplace — publish skill services, record invocations, view stats"
+      "summary": "Skill marketplace — publish skill services, record invocations, view stats",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "matrix",
       "aliases": [],
       "module": "./commands/matrix.js",
       "register": "registerMatrixCommand",
-      "summary": "Matrix bridge — rooms, messaging, E2EE"
+      "summary": "Matrix bridge — rooms, messaging, E2EE",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "mcp",
       "aliases": [],
       "module": "./commands/mcp.js",
       "register": "registerMcpCommand",
-      "summary": "MCP server management and tool execution"
+      "summary": "MCP server management and tool execution",
+      "stability": "stable",
+      "category": "integrations",
+      "visibility": "core",
+      "replacement": null
     },
     {
       "name": "mcpscaf",
       "aliases": [],
       "module": "./commands/mcpscaf.js",
       "register": "registerMcpscafCommand",
-      "summary": "MCP Scaffold V2 governance"
+      "summary": "MCP Scaffold V2 governance",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "meminj",
       "aliases": [],
       "module": "./commands/meminj.js",
       "register": "registerMeminjCommand",
-      "summary": "Memory Injection V2 governance"
+      "summary": "Memory Injection V2 governance",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "memory",
       "aliases": [],
       "module": "./commands/memory.js",
       "register": "registerMemoryCommand",
-      "summary": "Persistent memory and daily notes"
+      "summary": "Persistent memory and daily notes",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "mtc",
       "aliases": [],
       "module": "./commands/mtc.js",
       "register": "registerMtcCommand",
-      "summary": "Merkle Tree Certificates — batch issuance & verification"
+      "summary": "Merkle Tree Certificates — batch issuance & verification",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "multimodal",
       "aliases": ["mm"],
       "module": "./commands/multimodal.js",
       "register": "registerMultimodalCommand",
-      "summary": "Multimodal collaboration (Phase 27)"
+      "summary": "Multimodal collaboration (Phase 27)",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "multisig",
       "aliases": [],
       "module": "./commands/multisig.js",
       "register": "registerMultisigCommand",
-      "summary": "M-of-N multi-signature proposals beyond MTC publisher_signature"
+      "summary": "M-of-N multi-signature proposals beyond MTC publisher_signature",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "nlprog",
       "aliases": [],
       "module": "./commands/nlprog.js",
       "register": "registerNlProgCommand",
-      "summary": "Natural language programming system (Phase 28)"
+      "summary": "Natural language programming system (Phase 28)",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "nostr",
       "aliases": [],
       "module": "./commands/nostr.js",
       "register": "registerNostrCommand",
-      "summary": "Nostr bridge — relays, events, keypairs, DID mapping"
+      "summary": "Nostr bridge — relays, events, keypairs, DID mapping",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "note",
       "aliases": [],
       "module": "./commands/note.js",
       "register": "registerNoteCommand",
-      "summary": "Note and knowledge base management"
+      "summary": "Note and knowledge base management",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "notification",
       "aliases": ["notif"],
       "module": "./commands/notification.js",
       "register": "registerNotificationCommand",
-      "summary": "Push notifications to paired mobile devices"
+      "summary": "Push notifications to paired mobile devices",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "ops",
       "aliases": [],
       "module": "./commands/ops.js",
       "register": "registerOpsCommand",
-      "summary": "Autonomous operations / AIOps"
+      "summary": "Autonomous operations / AIOps",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "orchestrate",
       "aliases": [],
       "module": "./commands/orchestrate.js",
       "register": "registerOrchestrateCommand",
-      "summary": "Orchestrate AI coding tasks: ChainlessChain → Claude Code/Codex agents → CI/CD → Notify"
+      "summary": "Orchestrate AI coding tasks: ChainlessChain → Claude Code/Codex agents → CI/CD → Notify",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "orchgov",
       "aliases": [],
       "module": "./commands/orchgov.js",
       "register": "registerOrchGovCommand",
-      "summary": "Orchestrator V2 governance"
+      "summary": "Orchestrator V2 governance",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "org",
       "aliases": [],
       "module": "./commands/org.js",
       "register": "registerOrgCommand",
-      "summary": "Organization, team, and approval management"
+      "summary": "Organization, team, and approval management",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "output-style",
       "aliases": ["output-styles"],
       "module": "./commands/output-style.js",
       "register": "registerOutputStyleCommand",
-      "summary": "List / show agent output-style personas"
+      "summary": "List / show agent output-style personas",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "p2p",
       "aliases": [],
       "module": "./commands/p2p.js",
       "register": "registerP2pCommand",
-      "summary": "Peer-to-peer messaging and device management"
+      "summary": "Peer-to-peer messaging and device management",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "pack",
       "aliases": [],
       "module": "./commands/pack.js",
       "register": "registerPackCommand",
-      "summary": "Bundle the current project environment into a standalone executable"
+      "summary": "Bundle the current project environment into a standalone executable",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "pair",
       "aliases": [],
       "module": "./commands/pair.js",
       "register": "registerPairCommand",
-      "summary": "LAN pairing utilities (preflight diagnostics + pairing token issuance)"
+      "summary": "LAN pairing utilities (preflight diagnostics + pairing token issuance)",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "pdfp",
       "aliases": [],
       "module": "./commands/pdfp.js",
       "register": "registerPdfpCommand",
-      "summary": "PDF Parser V2 governance (in-memory, CLI v0.143.0)"
+      "summary": "PDF Parser V2 governance (in-memory, CLI v0.143.0)",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "pdh",
       "aliases": [],
       "module": "./commands/pdh.js",
       "register": "registerPdhCommand",
-      "summary": "Inspect PDH bridge discovery (Android personal-data MCP server auto-connect)"
+      "summary": "Inspect PDH bridge discovery (Android personal-data MCP server auto-connect)",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "perception",
       "aliases": [],
       "module": "./commands/perception.js",
       "register": "registerPerceptionCommand",
-      "summary": "Multimodal perception engine (Phase 84)"
+      "summary": "Multimodal perception engine (Phase 84)",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "perf",
       "aliases": [],
       "module": "./commands/perf.js",
       "register": "registerPerfCommand",
-      "summary": "Performance monitoring & auto-tuning (Phase 22)"
+      "summary": "Performance monitoring & auto-tuning (Phase 22)",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "perm",
       "aliases": [],
       "module": "./commands/perm.js",
       "register": "registerPermCommand",
-      "summary": "Permission Engine V2 governance"
+      "summary": "Permission Engine V2 governance",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "permissions",
       "aliases": ["perms"],
       "module": "./commands/permissions.js",
       "register": "registerPermissionsCommand",
-      "summary": "Inspect / dry-run / edit .claude/settings.json permission rules"
+      "summary": "Inspect / dry-run / edit .claude/settings.json permission rules",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "permmem",
       "aliases": [],
       "module": "./commands/permmem.js",
       "register": "registerPermMemCommand",
-      "summary": "Permanent memory V2 — pin maturity + retention jobs"
+      "summary": "Permanent memory V2 — pin maturity + retention jobs",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "persona",
       "aliases": [],
       "module": "./commands/persona.js",
       "register": "registerPersonaCommand",
-      "summary": "Manage project AI persona configuration"
+      "summary": "Manage project AI persona configuration",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "pipeline",
       "aliases": ["pipe"],
       "module": "./commands/pipeline.js",
       "register": "registerPipelineCommand",
-      "summary": "Development Pipeline Orchestration (Phase 26) — 7-stage AI dev pipeline + gates + deploys"
+      "summary": "Development Pipeline Orchestration (Phase 26) — 7-stage AI dev pipeline + gates + deploys",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "planmode",
       "aliases": [],
       "module": "./commands/planmode.js",
       "register": "registerPlanModeCommand",
-      "summary": "Plan Mode V2 governance"
+      "summary": "Plan Mode V2 governance",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "plugin",
       "aliases": [],
       "module": "./commands/plugin.js",
       "register": "registerPluginCommand",
-      "summary": "Plugin and marketplace management"
+      "summary": "Plugin and marketplace management",
+      "stability": "stable",
+      "category": "integrations",
+      "visibility": "core",
+      "replacement": null
     },
     {
       "name": "pqc",
       "aliases": [],
       "module": "./commands/pqc.js",
       "register": "registerPqcCommand",
-      "summary": "Post-quantum cryptography — key management and migration"
+      "summary": "Post-quantum cryptography — key management and migration",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "privacy",
       "aliases": [],
       "module": "./commands/privacy.js",
       "register": "registerPrivacyCommand",
-      "summary": "Privacy computing (Phase 91)"
+      "summary": "Privacy computing (Phase 91)",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "project",
       "aliases": [],
       "module": "./commands/project.js",
       "register": "registerProjectCommand",
-      "summary": "Manage desktop projects (shared SQLite, syncs to mobile via Phase 3d)"
+      "summary": "Manage desktop projects (shared SQLite, syncs to mobile via Phase 3d)",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "promcomp",
       "aliases": [],
       "module": "./commands/promcomp.js",
       "register": "registerPromcompCommand",
-      "summary": "Prompt Compressor V2 governance (in-memory, CLI v0.143.0)"
+      "summary": "Prompt Compressor V2 governance (in-memory, CLI v0.143.0)",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "quantize",
       "aliases": [],
       "module": "./commands/quantization.js",
       "register": "registerQuantizationCommand",
-      "summary": "Model quantization system (Phase 20)"
+      "summary": "Model quantization system (Phase 20)",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "rcache",
       "aliases": [],
       "module": "./commands/rcache.js",
       "register": "registerRCacheCommand",
-      "summary": "Response cache V2 — profile maturity + refresh jobs"
+      "summary": "Response cache V2 — profile maturity + refresh jobs",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "recommend",
       "aliases": [],
       "module": "./commands/recommend.js",
       "register": "registerRecommendCommand",
-      "summary": "Smart content recommendation (Phase 48)"
+      "summary": "Smart content recommendation (Phase 48)",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "remote-control",
       "aliases": ["rc"],
       "module": "./commands/remote-control.js",
       "register": "registerRemoteControlCommand",
-      "summary": "Unified remote-control entry — pair mobile/web devices to drive this machine's agent sessions"
+      "summary": "Unified remote-control entry — pair mobile/web devices to drive this machine's agent sessions",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "reputation",
       "aliases": ["rep"],
       "module": "./commands/reputation.js",
       "register": "registerReputationCommand",
-      "summary": "Reputation optimizer — observations, decay, anomaly detection, Bayesian optimization"
+      "summary": "Reputation optimizer — observations, decay, anomaly detection, Bayesian optimization",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "review",
       "aliases": [],
       "module": "./commands/review.js",
       "register": "registerReviewCommand",
-      "summary": "Diff-first code review of your changes (Claude-Code /code-review parity)"
+      "summary": "Diff-first code review of your changes (Claude-Code /code-review parity)",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "router",
       "aliases": [],
       "module": "./commands/orchestrate.js",
       "register": "registerOrchestrateCommand",
-      "summary": "Agent router V2 governance"
+      "summary": "Agent router V2 governance",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "routine",
       "aliases": [],
       "module": "./commands/routine.js",
       "register": "registerRoutineCommand",
-      "summary": "Named scheduled/triggered agent tasks with run history (cron/once/webhook/github)"
+      "summary": "Named scheduled/triggered agent tasks with run history (cron/once/webhook/github)",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "runtime",
       "aliases": [],
       "module": "./commands/runtime.js",
       "register": "registerRuntimeCommand",
-      "summary": "Universal application runtime (Phase 63)"
+      "summary": "Universal application runtime (Phase 63)",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "sandbox",
       "aliases": [],
       "module": "./commands/sandbox.js",
       "register": "registerSandboxCommand",
-      "summary": "Security sandbox v2 — isolated agent execution environments"
+      "summary": "Security sandbox v2 — isolated agent execution environments",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "scim",
       "aliases": [],
       "module": "./commands/scim.js",
       "register": "registerScimCommand",
-      "summary": "SCIM provisioning — user management, connectors, sync"
+      "summary": "SCIM provisioning — user management, connectors, sync",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "search",
       "aliases": [],
       "module": "./commands/search.js",
       "register": "registerSearchCommand",
-      "summary": "Search knowledge base (BM25 + vector hybrid)"
+      "summary": "Search knowledge base (BM25 + vector hybrid)",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "serve",
       "aliases": [],
       "module": "./commands/serve.js",
       "register": "registerServeCommand",
-      "summary": "Start WebSocket server for remote CLI access"
+      "summary": "Start WebSocket server for remote CLI access",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "services",
       "aliases": [],
       "module": "./commands/services.js",
       "register": "registerServicesCommand",
-      "summary": "Manage Docker backend services"
+      "summary": "Manage Docker backend services",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "seshhook",
       "aliases": [],
       "module": "./commands/seshhook.js",
       "register": "registerSeshhookCommand",
-      "summary": "Session Hooks V2 governance"
+      "summary": "Session Hooks V2 governance",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "seshsearch",
       "aliases": [],
       "module": "./commands/seshsearch.js",
       "register": "registerSeshsearchCommand",
-      "summary": "Session Search V2 governance"
+      "summary": "Session Search V2 governance",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "seshtail",
       "aliases": [],
       "module": "./commands/seshtail.js",
       "register": "registerSeshtailCommand",
-      "summary": "Session Tail V2 governance"
+      "summary": "Session Tail V2 governance",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "seshu",
       "aliases": [],
       "module": "./commands/seshu.js",
       "register": "registerSeshuCommand",
-      "summary": "Session Usage V2 governance"
+      "summary": "Session Usage V2 governance",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "session",
       "aliases": [],
       "module": "./commands/session.js",
       "register": "registerSessionCommand",
-      "summary": "Conversation session management"
+      "summary": "Conversation session management",
+      "stability": "stable",
+      "category": "code",
+      "visibility": "core",
+      "replacement": null
     },
     {
       "name": "setup",
       "aliases": [],
       "module": "./commands/setup.js",
       "register": "registerSetupCommand",
-      "summary": "Interactive setup wizard for ChainlessChain"
+      "summary": "Interactive setup wizard for ChainlessChain",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "sganal",
       "aliases": [],
       "module": "./commands/sganal.js",
       "register": "registerSganalCommand",
-      "summary": "Social Graph Analytics V2 governance (in-memory, CLI v0.143.0)"
+      "summary": "Social Graph Analytics V2 governance (in-memory, CLI v0.143.0)",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "siem",
       "aliases": [],
       "module": "./commands/siem.js",
       "register": "registerSiemCommand",
-      "summary": "SIEM integration — log export to external targets"
+      "summary": "SIEM integration — log export to external targets",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "skill",
       "aliases": [],
       "module": "./commands/skill.js",
       "register": "registerSkillCommand",
-      "summary": "Manage and run AI skills (multi-layer: bundled + global + project)"
+      "summary": "Manage and run AI skills (multi-layer: bundled + global + project)",
+      "stability": "stable",
+      "category": "code",
+      "visibility": "core",
+      "replacement": null
     },
     {
       "name": "sla",
       "aliases": [],
       "module": "./commands/sla.js",
       "register": "registerSlaCommand",
-      "summary": "Cross-org SLA management — contracts, metrics, violations, compensation"
+      "summary": "Cross-org SLA management — contracts, metrics, violations, compensation",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "slotfill",
       "aliases": [],
       "module": "./commands/slotfill.js",
       "register": "registerSlotfillCommand",
-      "summary": "Slot Filler V2 governance"
+      "summary": "Slot Filler V2 governance",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "social",
       "aliases": [],
       "module": "./commands/social.js",
       "register": "registerSocialCommand",
-      "summary": "Social platform — contacts, friends, posts, chat"
+      "summary": "Social platform — contacts, friends, posts, chat",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "sso",
       "aliases": [],
       "module": "./commands/sso.js",
       "register": "registerSsoCommand",
-      "summary": "SSO enterprise authentication — SAML / OAuth2 / OIDC (Phase 14)"
+      "summary": "SSO enterprise authentication — SAML / OAuth2 / OIDC (Phase 14)",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "start",
       "aliases": [],
       "module": "./commands/start.js",
       "register": "registerStartCommand",
-      "summary": "Launch ChainlessChain desktop application"
+      "summary": "Launch ChainlessChain desktop application",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "status",
       "aliases": [],
       "module": "./commands/status.js",
       "register": "registerStatusCommand",
-      "summary": "Show status of ChainlessChain app and services"
+      "summary": "Show status of ChainlessChain app and services",
+      "stability": "stable",
+      "category": "configuration",
+      "visibility": "core",
+      "replacement": null
     },
     {
       "name": "statusline",
       "aliases": ["status-line"],
       "module": "./commands/statusline.js",
       "register": "registerStatuslineCommand",
-      "summary": "Preview / show the .claude/settings.json statusLine"
+      "summary": "Preview / show the .claude/settings.json statusLine",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "stop",
       "aliases": [],
       "module": "./commands/stop.js",
       "register": "registerStopCommand",
-      "summary": "Stop ChainlessChain"
+      "summary": "Stop ChainlessChain",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "stream",
       "aliases": [],
       "module": "./commands/stream.js",
       "register": "registerStreamCommand",
-      "summary": "Stream a single prompt through session-core StreamRouter (NDJSON on stdout)"
+      "summary": "Stream a single prompt through session-core StreamRouter (NDJSON on stdout)",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "stress",
       "aliases": [],
       "module": "./commands/stress.js",
       "register": "registerStressCommand",
-      "summary": "Federation stress testing — load simulation, bottleneck & capacity planning"
+      "summary": "Federation stress testing — load simulation, bottleneck & capacity planning",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "subagent",
       "aliases": [],
       "module": "./commands/agent.js",
       "register": "registerSubAgentV2Command",
-      "summary": "Sub-agent registry V2 governance"
+      "summary": "Sub-agent registry V2 governance",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "svccont",
       "aliases": [],
       "module": "./commands/svccont.js",
       "register": "registerSvcContCommand",
-      "summary": "Service Container V2 governance"
+      "summary": "Service Container V2 governance",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "sync",
       "aliases": [],
       "module": "./commands/sync.js",
       "register": "registerSyncCommand",
-      "summary": "File and knowledge synchronization"
+      "summary": "File and knowledge synchronization",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "team",
       "aliases": [],
       "module": "./commands/team.js",
       "register": "registerTeamCommand",
-      "summary": "Run a declared task graph across N teammates (exclusive leases + dependency DAG)"
+      "summary": "Run a declared task graph across N teammates (exclusive leases + dependency DAG)",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "tech",
       "aliases": [],
       "module": "./commands/tech.js",
       "register": "registerTechCommand",
-      "summary": "Tech Learning Engine — stack analysis, anti-pattern detection, practice store"
+      "summary": "Tech Learning Engine — stack analysis, anti-pattern detection, practice store",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "tenant",
       "aliases": [],
       "module": "./commands/tenant.js",
       "register": "registerTenantCommand",
-      "summary": "Multi-tenant SaaS — tenants, usage metering, subscriptions, quotas"
+      "summary": "Multi-tenant SaaS — tenants, usage metering, subscriptions, quotas",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "terminal-setup",
       "aliases": [],
       "module": "./commands/terminal-setup.js",
       "register": "registerTerminalSetupCommand",
-      "summary": "Bind Shift+Enter to a REPL newline (Claude-Code parity)"
+      "summary": "Bind Shift+Enter to a REPL newline (Claude-Code parity)",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "terraform",
       "aliases": [],
       "module": "./commands/terraform.js",
       "register": "registerTerraformCommand",
-      "summary": "Terraform IaC — workspace and run management"
+      "summary": "Terraform IaC — workspace and run management",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "tms",
       "aliases": [],
       "module": "./commands/tms.js",
       "register": "registerTmsCommand",
-      "summary": "Task Model Selector V2 governance"
+      "summary": "Task Model Selector V2 governance",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "todo",
       "aliases": [],
       "module": "./commands/agent.js",
       "register": "registerTodoV2Command",
-      "summary": "Todo manager V2 governance"
+      "summary": "Todo manager V2 governance",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "tokens",
       "aliases": [],
       "module": "./commands/tokens.js",
       "register": "registerTokensCommand",
-      "summary": "LLM token usage tracking and response cache"
+      "summary": "LLM token usage tracking and response cache",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "topiccls",
       "aliases": [],
       "module": "./commands/topiccls.js",
       "register": "registerTopicClsCommand",
-      "summary": "Topic Classifier V2 governance"
+      "summary": "Topic Classifier V2 governance",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "trust",
       "aliases": [],
       "module": "./commands/trust.js",
       "register": "registerTrustCommand",
-      "summary": "Trust & security (Phase 68-71)"
+      "summary": "Trust & security (Phase 68-71)",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "ui",
       "aliases": [],
       "module": "./commands/ui.js",
       "register": "registerUiCommand",
-      "summary": "Start a local web management UI (project or global mode)"
+      "summary": "Start a local web management UI (project or global mode)",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "update",
       "aliases": [],
       "module": "./commands/update.js",
       "register": "registerUpdateCommand",
-      "summary": "Check for and install updates"
+      "summary": "Check for and install updates",
+      "stability": "stable",
+      "category": "configuration",
+      "visibility": "core",
+      "replacement": null
     },
     {
       "name": "uprof",
       "aliases": [],
       "module": "./commands/uprof.js",
       "register": "registerUprofCommand",
-      "summary": "User Profile V2 governance"
+      "summary": "User Profile V2 governance",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "vcheck",
       "aliases": [],
       "module": "./commands/vcheck.js",
       "register": "registerVcheckCommand",
-      "summary": "Version Checker V2 governance (in-memory, CLI v0.143.0)"
+      "summary": "Version Checker V2 governance (in-memory, CLI v0.143.0)",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "video",
       "aliases": [],
       "module": "./commands/video.js",
       "register": "registerVideoCommand",
-      "summary": "Video editing agent — long footage + music → montage (CutClaw-inspired)"
+      "summary": "Video editing agent — long footage + music → montage (CutClaw-inspired)",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "wallet",
       "aliases": [],
       "module": "./commands/wallet.js",
       "register": "registerWalletCommand",
-      "summary": "Digital wallet and asset management"
+      "summary": "Digital wallet and asset management",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "webfetch",
       "aliases": [],
       "module": "./commands/webfetch.js",
       "register": "registerWebfetchCommand",
-      "summary": "Web Fetch V2 governance"
+      "summary": "Web Fetch V2 governance",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "workflow",
       "aliases": [],
       "module": "./commands/workflow.js",
       "register": "registerWorkflowCommand",
-      "summary": "Workflow engine — create, run, and manage DAG-based workflows"
+      "summary": "Workflow engine — create, run, and manage DAG-based workflows",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     },
     {
       "name": "zkp",
       "aliases": [],
       "module": "./commands/zkp.js",
       "register": "registerZkpCommand",
-      "summary": "Zero-knowledge proof engine — circuits, proofs, identity"
+      "summary": "Zero-knowledge proof engine — circuits, proofs, identity",
+      "stability": "compatibility",
+      "category": "compatibility",
+      "visibility": "extended",
+      "replacement": null
     }
   ]
 }

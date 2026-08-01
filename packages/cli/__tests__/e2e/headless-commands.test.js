@@ -154,9 +154,9 @@ describe("E2E: headless CLI commands", () => {
     });
   });
 
-  describe("main help includes all commands", () => {
-    it("--help lists all 29 commands", () => {
-      const result = run("--help");
+  describe("compatibility help includes all commands", () => {
+    it("help --all lists all 29 commands", () => {
+      const result = run("help --all");
       const expectedCommands = [
         "setup",
         "start",

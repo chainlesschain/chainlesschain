@@ -1,96 +1,98 @@
 #!/usr/bin/env node
 /**
  * Generate src/command-manifest.json — a static map of top-level command name
- * (and aliases) -> { module, register, summary } used by the lazy CLI
+ * (and aliases) -> routing data plus command-surface metadata used by the lazy CLI
  * dispatcher (src/lazy-dispatch.js) so a `cc <cmd>` invocation can import ONLY
  * that command's module instead of eagerly loading all ~154 command modules
  * (the ~2.7s cold-start cost; see memory cli_cold_start_bottleneck_hub_repl).
  *
- * Source of truth is src/index.js itself: we parse its `import { registerX }
- * from "./commands/x.js"` lines and its `registerX(program)` calls, then call
- * each register function against a throwaway Command to discover which
- * top-level command names + aliases it contributes. A drift-guard unit test
- * (lazy-dispatch.test.js) re-derives the eager program and fails CI if this
- * manifest ever falls out of sync, so a parse miss here surfaces as a red test
- * rather than a silently missing command.
+ * Since the phase-0 refactor, src/index.js consumes this manifest instead of
+ * statically importing every registrar. Existing `{ module, register }` pairs
+ * are therefore the routing source of truth; this script imports each unique
+ * pair, re-discovers its top-level commands and aliases, and refreshes all
+ * generated metadata. A new registrar must first be bootstrapped with one
+ * route entry, after which every command contributed by it is discovered.
  *
  * Run: node scripts/gen-command-manifest.mjs   (re-run when commands change)
+ * Check: node scripts/gen-command-manifest.mjs --check
  */
 import { Command } from "commander";
 import { readFileSync, writeFileSync } from "fs";
+import { format } from "prettier";
+import {
+  buildCommandSurfaceDescriptor,
+  COMMAND_MANIFEST_SCHEMA,
+  describeCommandSurface,
+} from "../src/command-surface-policy.js";
 
-const SRC_INDEX = new URL("../src/index.js", import.meta.url);
+const SRC_ROOT = new URL("../src/", import.meta.url);
 const OUT = new URL("../src/command-manifest.json", import.meta.url);
+const checkOnly = process.argv.includes("--check");
 
-const src = readFileSync(SRC_INDEX, "utf8");
-
-// 1. registerFn -> module path, from `import { ... } from "./commands/.."`.
-const fnToModule = {};
-const importRe = /import\s*\{([^}]*)\}\s*from\s*["']([^"']+)["']/g;
-let m;
-while ((m = importRe.exec(src))) {
-  const names = m[1]
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
-  for (const n of names) {
-    if (/^register/.test(n)) fnToModule[n] = m[2];
-  }
+const seedManifest = JSON.parse(readFileSync(OUT, "utf8"));
+if (
+  !Array.isArray(seedManifest.commands) ||
+  seedManifest.commands.length === 0
+) {
+  throw new Error(
+    "Refusing to regenerate from an empty command manifest; restore a routing seed first.",
+  );
 }
 
-// 2. Called register functions, in source order: `registerX(program`.
-const called = [];
-const seen = new Set();
-const callRe = /\b(register\w+)\s*\(\s*program\b/g;
-while ((m = callRe.exec(src))) {
-  if (!seen.has(m[1])) {
-    seen.add(m[1]);
-    called.push(m[1]);
-  }
-}
+const routes = [
+  ...new Map(
+    seedManifest.commands.map((entry) => [
+      `${entry.module}\0${entry.register}`,
+      { module: entry.module, register: entry.register },
+    ]),
+  ).values(),
+];
 
-// 3. Introspect each register fn against a throwaway program.
+// Introspect each routed registrar against a throwaway program.
 const entries = [];
-let skipped = 0;
-for (const fn of called) {
-  const mod = fnToModule[fn];
-  if (!mod) {
-    skipped++;
-    continue;
-  }
+const commandOwners = new Map();
+for (const route of routes) {
+  const { module: modulePath, register: registerName } = route;
   let imported;
   try {
-    imported = await import(new URL(mod, SRC_INDEX));
+    imported = await import(new URL(modulePath.replace(/^\.\//, ""), SRC_ROOT));
   } catch (e) {
-    console.error(`  ! import failed for ${mod} (${fn}): ${e.message}`);
-    skipped++;
-    continue;
+    throw new Error(
+      `Import failed for ${modulePath} (${registerName}): ${e.message}`,
+    );
   }
-  const regFn = imported[fn];
+  const regFn = imported[registerName];
   if (typeof regFn !== "function") {
-    skipped++;
-    continue;
+    throw new Error(
+      `Register function ${registerName} is missing from ${modulePath}`,
+    );
   }
   const probe = new Command();
   try {
     regFn(probe);
-  } catch {
-    // Some register fns may require extra args; the eager program supplies a
-    // bare (program) call, so anything that throws here also throws there and
-    // contributes nothing — safe to skip.
-    skipped++;
-    continue;
+  } catch (error) {
+    throw new Error(
+      `Registration failed for ${modulePath} (${registerName}): ${error.message}`,
+    );
   }
   for (const cmd of probe.commands) {
+    const existingOwner = commandOwners.get(cmd.name());
+    if (existingOwner) {
+      throw new Error(
+        `Duplicate top-level command ${cmd.name()} from ${existingOwner} and ${modulePath} (${registerName})`,
+      );
+    }
+    commandOwners.set(cmd.name(), `${modulePath} (${registerName})`);
     const aliases =
       typeof cmd.aliases === "function" ? cmd.aliases() : cmd._aliases || [];
     entries.push({
       name: cmd.name(),
       aliases,
-      module: mod,
-      register: fn,
+      module: modulePath,
+      register: registerName,
       summary:
         (typeof cmd.description === "function" ? cmd.description() : "") || "",
+      ...describeCommandSurface(cmd.name()),
     });
   }
 }
@@ -99,12 +101,25 @@ entries.sort((a, b) => a.name.localeCompare(b.name));
 
 const manifest = {
   _generated: "scripts/gen-command-manifest.mjs — do not edit by hand",
+  schema: COMMAND_MANIFEST_SCHEMA,
   commandCount: entries.length,
+  surface: buildCommandSurfaceDescriptor(),
   commands: entries,
 };
 
-writeFileSync(OUT, JSON.stringify(manifest, null, 2) + "\n", "utf8");
-console.error(
-  `Wrote ${entries.length} command entries to src/command-manifest.json ` +
-    `(${called.length} register fns scanned, ${skipped} skipped).`,
-);
+const output = await format(JSON.stringify(manifest), { parser: "json" });
+
+if (checkOnly) {
+  if (JSON.stringify(seedManifest) !== JSON.stringify(manifest)) {
+    console.error(
+      "Command manifest is stale. Run: node scripts/gen-command-manifest.mjs",
+    );
+    process.exitCode = 1;
+  }
+} else {
+  writeFileSync(OUT, output, "utf8");
+  console.error(
+    `Wrote ${entries.length} command entries to src/command-manifest.json ` +
+      `(${routes.length} routed register fns scanned).`,
+  );
+}
