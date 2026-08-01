@@ -620,7 +620,7 @@ describe("agent-repl context engineering integration", () => {
   });
 });
 
-describe("agent-repl /btw one-shot aside wiring", () => {
+describe("agent-repl /btw side-question wiring", () => {
   const agentReplPath = join(
     __dirname,
     "..",
@@ -634,14 +634,24 @@ describe("agent-repl /btw one-shot aside wiring", () => {
   it("imports the pure /btw helpers", () => {
     expect(content).toContain('from "./btw-command.js"');
     expect(content).toContain("parseBtwCommand");
+    expect(content).toContain("runBtwQuestion");
+    expect(content).toContain("parseNoteNextCommand");
     expect(content).toContain("buildAsideBlock");
     expect(content).toContain("applyAside");
   });
 
-  it("queues the aside on /btw and consumes it on send", () => {
+  it("runs /btw immediately and allows it alongside a main turn", () => {
+    expect(content).toContain("await runBtwSideQuestion(btw);");
+    expect(content).toContain("parseBtwCommand(input.trim())");
+    expect(content).toContain(
+      "void runBtwSideQuestion(concurrentBtw, { concurrent: true });",
+    );
+  });
+
+  it("queues /note-next guidance and consumes it on send", () => {
     expect(content).toContain("let pendingBtw = [];");
-    expect(content).toContain("const btw = parseBtwCommand(trimmed);");
-    expect(content).toContain("pendingBtw.push(btw.text);");
+    expect(content).toContain("const note = parseNoteNextCommand(trimmed);");
+    expect(content).toContain("pendingBtw.push(note.text);");
     // consumed (cleared) when the turn fires
     expect(content).toContain("pendingBtw = [];");
   });

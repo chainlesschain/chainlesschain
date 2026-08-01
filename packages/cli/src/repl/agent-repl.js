@@ -52,6 +52,7 @@ import {
   appendEvent,
   rebuildMessages,
   sessionExists,
+  forkSession,
 } from "../harness/jsonl-session-store.js";
 import { classifyStreamRetryReason } from "../lib/stream-retry.js";
 import { CLISkillLoader } from "../lib/skill-loader.js";
@@ -113,7 +114,13 @@ import { newCostStore, addUsage } from "./session-cost.js";
 import { extractPluginUsageAttribution } from "../lib/plugin-usage-attribution.js";
 import { formatManagedCheckpointEvent } from "../lib/managed-checkpoint-render.js";
 import { parseThinkCommand, parseEffortCommand } from "./think-command.js";
-import { parseBtwCommand, buildAsideBlock, applyAside } from "./btw-command.js";
+import {
+  parseBtwCommand,
+  parseNoteNextCommand,
+  runBtwQuestion,
+  buildAsideBlock,
+  applyAside,
+} from "./btw-command.js";
 import { shouldStreamLive } from "./stream-decision.js";
 import { emptyTurnNotice } from "./empty-turn-notice.js";
 import {
@@ -523,10 +530,9 @@ async function startAgentReplInWorkspace(options = {}) {
   // (--thinking-budget) is the companion legacy-model budget_tokens override.
   let thinking = options.thinking || null;
   const thinkingBudget = options.thinkingBudget || null;
-  // `/btw` one-shot asides: queued notes that ride ONLY the next turn (sent to
-  // the model, then stripped so they never persist or carry forward).
-  // `_btwRestore` holds the user message + its pre-aside content so we can undo
-  // the injection after the turn (or as a backstop at the next submit on throw).
+  // `/note-next` one-shot guidance rides ONLY the next main turn, then is
+  // stripped so it never persists or carries forward. `/btw` itself is an
+  // immediate independent side question handled below.
   let pendingBtw = [];
   let _btwRestore = null;
   // Current permission mode (strict|trusted|autopilot|auto), mirrored here so
@@ -1791,6 +1797,7 @@ async function startAgentReplInWorkspace(options = {}) {
           "/memory",
           "/microcompact",
           "/model",
+          "/note-next",
           "/output-style",
           "/permissions",
           "/plan",
@@ -2246,9 +2253,59 @@ async function startAgentReplInWorkspace(options = {}) {
 
   // Steering (Claude-Code parity): typing while a turn is running QUEUES the
   // line instead of racing a second concurrent turn; the queue drains FIFO
-  // when the current turn finishes.
+  // when the current turn finishes. `/btw` is the deliberate exception: its
+  // tool-free snapshot call may run concurrently without mutating main state.
   let _processingLine = false;
   const _pendingLines = [];
+
+  const runBtwSideQuestion = async (btw, { concurrent = false } = {}) => {
+    if (!btw || btw.error) {
+      const message = btw?.error || "usage: /btw [--fork] <question>";
+      if (concurrent) process.stderr.write(`\n${message}\n`);
+      else logger.info(message);
+      return { ok: false, error: message };
+    }
+    try {
+      const chatFn = createChatFn({ provider, model, baseUrl, apiKey });
+      const { answer } = await runBtwQuestion({
+        messages,
+        question: btw.text,
+        chatFn,
+        model,
+      });
+      let forkedId = null;
+      let forkNotice = "";
+      if (btw.fork) {
+        if (useJsonl && sessionId && sessionExists(sessionId)) {
+          forkedId = forkSession(sessionId);
+          if (forkedId) {
+            appendUserMessage(forkedId, btw.text);
+            appendAssistantMessage(forkedId, answer);
+            forkNotice = `\nForked side thread: ${forkedId}`;
+          }
+        }
+        if (!forkedId) {
+          forkNotice =
+            "\nSide answer was not persisted: the parent has no durable JSONL session.";
+        }
+      }
+      const block =
+        `┌─ btw${btw.fork ? " --fork" : ""}\n` +
+        `${answer || "(empty response)"}\n` +
+        `└─ ephemeral · no tools · parent history unchanged${forkNotice}`;
+      // A concurrent answer must not corrupt the main streamed stdout payload.
+      // stderr also keeps headless/JSON consumers isolated from the overlay.
+      if (concurrent) process.stderr.write(`\n${block}\n`);
+      else logger.log(`\n${block}\n`);
+      return { ok: true, answer, forkedId };
+    } catch (error) {
+      const message = `/btw failed: ${error.message}`;
+      if (concurrent) process.stderr.write(`\n${message}\n`);
+      else logger.error(message);
+      return { ok: false, error: message };
+    }
+  };
+
   // Multiline input (Claude-Code parity): a physical line ending in a
   // continuation backslash keeps the prompt open; `_mlBuffer` accumulates the
   // pieces and the whole block submits when a line does not continue.
@@ -2383,7 +2440,10 @@ async function startAgentReplInWorkspace(options = {}) {
         `  ${chalk.cyan("/effort")}     Reasoning effort (/effort low|medium|high|xhigh; Anthropic)`,
       );
       logger.log(
-        `  ${chalk.cyan("/btw")}        Queue a one-off aside for your next message (not saved to history)`,
+        `  ${chalk.cyan("/btw")}        Ask an immediate tool-free side question (/btw [--fork] <question>)`,
+      );
+      logger.log(
+        `  ${chalk.cyan("/note-next")}  Apply ephemeral guidance to the next main turn`,
       );
       logger.log(`  ${chalk.cyan("/clear")}      Clear conversation`);
       logger.log(
@@ -2922,22 +2982,30 @@ async function startAgentReplInWorkspace(options = {}) {
       }
     }
 
-    // `/btw <note>` — queue a one-shot aside (Claude-Code parity). It rides the
-    // NEXT message to the model, then is stripped so it never bloats history.
+    // `/btw` is an immediate, tool-free side question over a snapshot of the
+    // current context. It never mutates or persists into the parent history.
     {
       const btw = parseBtwCommand(trimmed);
       if (btw) {
-        if (btw.error) {
-          logger.info(btw.error);
-          prompt();
-          return;
+        await runBtwSideQuestion(btw);
+        prompt();
+        return;
+      }
+    }
+
+    // Preserve the previous next-turn guidance behavior under an honest name.
+    {
+      const note = parseNoteNextCommand(trimmed);
+      if (note) {
+        if (note.error) logger.info(note.error);
+        else {
+          pendingBtw.push(note.text);
+          logger.info(
+            chalk.gray(
+              `Next-turn note queued (${pendingBtw.length}); it will not be saved to history.`,
+            ),
+          );
         }
-        pendingBtw.push(btw.text);
-        logger.info(
-          chalk.gray(
-            `Aside noted (${pendingBtw.length}) — rides your next message only, not saved to history.`,
-          ),
-        );
         prompt();
         return;
       }
@@ -5200,7 +5268,7 @@ async function startAgentReplInWorkspace(options = {}) {
     }
 
     // Backstop: if the previous turn's agentLoop threw before the success-path
-    // restore ran, undo its /btw aside now so it never leaks into this turn's
+    // restore ran, undo its /note-next guidance so it never leaks into this turn's
     // history/model call. (Normal turns clear _btwRestore right after agentLoop.)
     if (_btwRestore) {
       _btwRestore.msg.content = _btwRestore.content;
@@ -5404,7 +5472,7 @@ async function startAgentReplInWorkspace(options = {}) {
       return;
     }
 
-    // Add user message (keep the object ref so a /btw aside can be injected for
+    // Add user message (keep the object ref so /note-next can be injected for
     // this turn's model call and then stripped before persistence).
     const _userMsg = { role: "user", content: _userMessageContent };
     messages.push(_userMsg);
@@ -5568,7 +5636,7 @@ async function startAgentReplInWorkspace(options = {}) {
           }
         : {};
       if (_streamLive) process.stdout.write("\n");
-      // Inject any queued /btw asides into THIS turn's user message just before
+      // Inject queued /note-next guidance into THIS turn just before
       // the model call. We remember the pre-aside content so it's restored right
       // after agentLoop returns — the aside steers this answer but is never
       // persisted (saveMessages/JSONL) or carried into later turns. Consumed on
@@ -5580,7 +5648,7 @@ async function startAgentReplInWorkspace(options = {}) {
           _btwRestore = { msg: _userMsg, content: _userMsg.content };
           _userMsg.content = applyAside(_userMsg.content, block);
           logger.verbose(
-            `[btw] applied ${pendingBtw.length} aside(s) to this turn`,
+            `[note-next] applied ${pendingBtw.length} note(s) to this turn`,
           );
         }
         pendingBtw = [];
@@ -5710,7 +5778,7 @@ async function startAgentReplInWorkspace(options = {}) {
       _persistReplContextSources();
       _turnAbort = null;
 
-      // Strip the one-shot /btw aside now the model has seen it — so it is never
+      // Strip one-shot /note-next guidance now the model has seen it so it is never
       // persisted (DB saveMessages below) or carried into the next turn.
       if (_btwRestore) {
         _btwRestore.msg.content = _btwRestore.content;
@@ -6011,6 +6079,15 @@ async function startAgentReplInWorkspace(options = {}) {
 
   rl.on("line", async (input) => {
     if (_processingLine) {
+      const concurrentBtw = _slashCommandsDisabled
+        ? null
+        : parseBtwCommand(input.trim());
+      if (concurrentBtw) {
+        // Intentionally do not await: the main turn keeps streaming while this
+        // independent, tool-free snapshot call runs alongside it.
+        void runBtwSideQuestion(concurrentBtw, { concurrent: true });
+        return;
+      }
       if (input.trim()) {
         _pendingLines.push(input);
         logger.log(
