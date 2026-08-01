@@ -132,7 +132,14 @@ export function prepareCoworkMcpRuntime(mcp, options = {}) {
   let bindingAllowed = false;
   let expectedHeadHash = null;
   try {
-    const verifiedEvents = _deps.readVerifiedSessionEvents(sessionId) || [];
+    const verifiedEvents = _deps.readVerifiedSessionEvents(sessionId);
+    if (!Array.isArray(verifiedEvents)) {
+      const invalid = new TypeError(
+        "Verified Cowork MCP events must be returned synchronously as an array",
+      );
+      invalid.code = "CC_MCP_LEDGER_VERIFIED_EVENTS_INVALID";
+      throw invalid;
+    }
     assertCoworkMcpSessionBinding(
       verifiedEvents,
       String(options.templateId || "free"),

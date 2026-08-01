@@ -476,6 +476,23 @@ describe("MCP call ledger session store", () => {
     );
   });
 
+  it.each([
+    ["null", () => null],
+    ["a Promise", () => Promise.resolve([])],
+    ["an object", () => ({ events: [] })],
+  ])(
+    "fails recovery closed when verified reading returns %s",
+    (_label, read) => {
+      expect(() =>
+        loadMcpLedgerRecovery("session-1", {
+          readVerifiedEvents: read,
+        }),
+      ).toThrow(
+        expect.objectContaining({ code: "CC_MCP_LEDGER_EVENT_READ_FAILED" }),
+      );
+    },
+  );
+
   it("binds recovery records to the requested session", () => {
     const crossSessionEvents = [event(record({ sessionId: "session-2" }))];
 

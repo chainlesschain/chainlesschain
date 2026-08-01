@@ -732,6 +732,44 @@ describe("cowork-task-runner", () => {
     );
   });
 
+  it.each([
+    ["null", () => null],
+    ["a Promise", () => Promise.resolve([])],
+  ])(
+    "blocks every MCP effect when verified session events return %s",
+    async (_label, readVerifiedSessionEvents) => {
+      _mockMount.mockResolvedValueOnce({
+        mcpClient: { callTool: vi.fn() },
+        mounted: ["reader"],
+        skipped: [],
+        extraToolDefinitions: [
+          { type: "function", function: { name: "read" } },
+        ],
+        externalToolDescriptors: {},
+        externalToolExecutors: {},
+        cleanup: _mockCleanup,
+      });
+      _deps.readVerifiedSessionEvents = vi.fn(readVerifiedSessionEvents);
+
+      await runCoworkTask({
+        templateId: "doc-convert",
+        userMessage: "read",
+        mcpSessionId: "cowork-invalid-events-session",
+      });
+
+      await expect(
+        _mockCreate.mock.calls[0][0].mcpCallLedger.begin({
+          toolName: "mcp__reader__read",
+          serverName: "reader",
+          effectContract: { effect: "read", trusted: true },
+        }),
+      ).rejects.toMatchObject({
+        code: "CC_COWORK_MCP_RECOVERY_BLOCKED",
+        blockMode: "all",
+      });
+    },
+  );
+
   it("does not rebind an MCP recovery session to a different template", async () => {
     _mockMount.mockResolvedValueOnce({
       mcpClient: { callTool: vi.fn() },

@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  MCP_RECOVERY_INVALID_CODE,
   classifyMcpRecoveryAdmission,
+  createRecoveryGuardedMcpCallLedger,
   guardMcpLedgerForRecovery,
 } from "../../src/lib/mcp-ledger-recovery-admission.js";
 import { executeTool } from "../../src/runtime/agent-core.js";
@@ -62,10 +64,178 @@ describe("MCP ledger recovery admission", () => {
     expect(classifyMcpRecoveryAdmission(null).blockMode).toBeNull();
   });
 
-  it("fails closed on a malformed explicit block mode", () => {
-    expect(
-      classifyMcpRecoveryAdmission({ blockMode: "unexpected" }).blockMode,
-    ).toBe("all");
+  it.each([
+    ["primitive", "invalid"],
+    ["array", []],
+    ["promise", Promise.resolve({ incidents: [], unsettled: [] })],
+    ["thenable", { then() {}, incidents: [], unsettled: [] }],
+    ["missing fields", {}],
+    ["missing incidents", { unsettled: [] }],
+    ["missing unsettled", { incidents: [] }],
+    ["null incidents", { incidents: null, unsettled: [] }],
+    ["object incidents", { incidents: {}, unsettled: [] }],
+    ["null unsettled", { incidents: [], unsettled: null }],
+    ["promise unsettled", { incidents: [], unsettled: Promise.resolve([]) }],
+    [
+      "invalid explicit block mode",
+      { incidents: [], unsettled: [], blockMode: "unexpected" },
+    ],
+  ])("fails closed on a malformed %s recovery", (_label, recovery) => {
+    expect(classifyMcpRecoveryAdmission(recovery)).toMatchObject({
+      blockMode: "all",
+      reasonCode: MCP_RECOVERY_INVALID_CODE,
+    });
+  });
+
+  it("fails closed when recovery property access throws", () => {
+    const recovery = Object.defineProperty({}, "incidents", {
+      get() {
+        throw new Error("untrusted projection");
+      },
+    });
+
+    expect(classifyMcpRecoveryAdmission(recovery)).toMatchObject({
+      blockMode: "all",
+      reasonCode: MCP_RECOVERY_INVALID_CODE,
+    });
+  });
+
+  it("rejects accessors without invoking a time-varying projection", () => {
+    let reads = 0;
+    const recovery = { unsettled: [] };
+    Object.defineProperty(recovery, "incidents", {
+      get() {
+        reads += 1;
+        return reads === 1 ? [{ code: "CORRUPT" }] : [];
+      },
+    });
+
+    expect(classifyMcpRecoveryAdmission(recovery)).toMatchObject({
+      blockMode: "all",
+      reasonCode: MCP_RECOVERY_INVALID_CODE,
+    });
+    expect(reads).toBe(0);
+  });
+
+  it.each([
+    [
+      "recovery object",
+      new Proxy(
+        { incidents: [{ code: "CORRUPT" }], unsettled: [] },
+        {
+          get(target, key, receiver) {
+            if (key === "incidents") return [];
+            return Reflect.get(target, key, receiver);
+          },
+        },
+      ),
+    ],
+    [
+      "incidents array",
+      {
+        incidents: new Proxy([{ code: "CORRUPT" }], {}),
+        unsettled: [],
+      },
+    ],
+    [
+      "unsettled array",
+      {
+        incidents: [],
+        unsettled: new Proxy([{ ledgerId: "pending" }], {}),
+      },
+    ],
+  ])("fails closed on a proxied %s", (_label, recovery) => {
+    expect(classifyMcpRecoveryAdmission(recovery)).toMatchObject({
+      blockMode: "all",
+      reasonCode: MCP_RECOVERY_INVALID_CODE,
+    });
+  });
+
+  it("rejects inherited projection fields and accessor block modes", () => {
+    const inherited = Object.create({ incidents: [], unsettled: [] });
+    const accessorMode = { incidents: [], unsettled: [] };
+    Object.defineProperty(accessorMode, "blockMode", {
+      get() {
+        return "unsafe";
+      },
+    });
+
+    for (const recovery of [inherited, accessorMode]) {
+      expect(classifyMcpRecoveryAdmission(recovery)).toMatchObject({
+        blockMode: "all",
+        reasonCode: MCP_RECOVERY_INVALID_CODE,
+      });
+    }
+  });
+
+  it("accepts ordinary mutable, frozen, and null-prototype projections", () => {
+    const projections = [
+      { incidents: [], unsettled: [] },
+      Object.freeze({
+        incidents: Object.freeze([]),
+        unsettled: Object.freeze([]),
+      }),
+      Object.assign(Object.create(null), { incidents: [], unsettled: [] }),
+    ];
+
+    for (const recovery of projections) {
+      expect(classifyMcpRecoveryAdmission(recovery)).toMatchObject({
+        blockMode: null,
+        incidents: 0,
+        unsettled: 0,
+        reasonCode: null,
+      });
+    }
+  });
+
+  it("uses the stable invalid-recovery code unless the caller overrides it", async () => {
+    const begin = vi.fn();
+    const malformed = { incidents: [], unsettled: null };
+    const guarded = guardMcpLedgerForRecovery({ begin }, malformed);
+    await expect(guarded.begin(call("read"))).rejects.toMatchObject({
+      code: MCP_RECOVERY_INVALID_CODE,
+      blockMode: "all",
+    });
+
+    const customGuard = guardMcpLedgerForRecovery({ begin }, malformed, {
+      code: "CC_COWORK_MCP_RECOVERY_BLOCKED",
+    });
+    await expect(customGuard.begin(call("read"))).rejects.toMatchObject({
+      code: "CC_COWORK_MCP_RECOVERY_BLOCKED",
+      blockMode: "all",
+    });
+    expect(begin).not.toHaveBeenCalled();
+  });
+
+  it("keeps an explicit factory block mode structurally valid", () => {
+    const guarded = createRecoveryGuardedMcpCallLedger({ blockMode: "all" });
+    expect(guarded.recoveryAdmission).toMatchObject({
+      blockMode: "all",
+      incidents: 0,
+      unsettled: 0,
+      reasonCode: null,
+    });
+  });
+
+  it("does not launder a proxied recovery through a factory block-mode override", async () => {
+    const recovery = new Proxy(
+      { incidents: [{ code: "CORRUPT" }], unsettled: [] },
+      {
+        get(target, key, receiver) {
+          if (key === "incidents") return [];
+          return Reflect.get(target, key, receiver);
+        },
+      },
+    );
+    const guarded = createRecoveryGuardedMcpCallLedger({
+      recovery,
+      blockMode: "unsafe",
+    });
+
+    await expect(guarded.begin(call("read"))).rejects.toMatchObject({
+      code: MCP_RECOVERY_INVALID_CODE,
+      blockMode: "all",
+    });
   });
 
   it("keeps the recovery code diagnosable when agent-core blocks callTool", async () => {

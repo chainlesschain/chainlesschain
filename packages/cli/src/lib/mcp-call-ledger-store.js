@@ -503,7 +503,15 @@ export function loadMcpLedgerRecovery(sessionId, options = {}) {
   const readVerifiedEvents =
     options.readVerifiedEvents || storeReadVerifiedEvents;
   try {
-    return reduceMcpLedgerEvents(readVerifiedEvents(sessionId) || [], {
+    const verifiedEvents = readVerifiedEvents(sessionId);
+    if (!Array.isArray(verifiedEvents)) {
+      const invalid = new TypeError(
+        "Verified MCP ledger events must be returned synchronously as an array",
+      );
+      invalid.code = "CC_MCP_LEDGER_VERIFIED_EVENTS_INVALID";
+      throw invalid;
+    }
+    return reduceMcpLedgerEvents(verifiedEvents, {
       sessionId,
     });
   } catch (cause) {
