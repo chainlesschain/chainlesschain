@@ -248,12 +248,15 @@ export function validatePublicIdeSurfaces({
     }
   }
   const desktopConsumer = read(repoRoot, desktop.registryConsumer);
-  if (
-    !desktopConsumer.includes("keyboardShortcuts") ||
-    !desktopConsumer.includes("getAllCommands()")
-  ) {
+  const consumesLegacyRegistry =
+    desktopConsumer.includes("keyboardShortcuts") &&
+    desktopConsumer.includes("getAllCommands()");
+  const consumesCanonicalRegistry =
+    desktopConsumer.includes("desktopCommandRegistry.list(") &&
+    desktopConsumer.includes("desktopCommandRegistry.execute(");
+  if (!consumesLegacyRegistry && !consumesCanonicalRegistry) {
     fail(
-      "Desktop CommandPalette no longer consumes the existing command registry",
+      "Desktop CommandPalette no longer consumes a declared command registry",
     );
   }
   for (const path of desktop.unconvergedSurfaces) requireFile(path);
