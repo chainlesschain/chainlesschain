@@ -1,0 +1,495 @@
+{
+  "schema": "cc-checkpoint-timeline-fixture/v1",
+  "input": {
+    "sessionId": "session-fixture",
+    "revision": "timeline-fixture-r1",
+    "turns": [
+      {
+        "turnId": "turn-1",
+        "conversationOffset": 2,
+        "fileCheckpointId": "cp-1",
+        "coverage": "full",
+        "excludedPaths": [],
+        "irreversibleSideEffects": [],
+        "warnings": [],
+        "managedCheckpoints": []
+      },
+      {
+        "turnId": "turn-2",
+        "conversationOffset": 5,
+        "fileCheckpointId": "cp-2",
+        "coverage": "partial",
+        "excludedPaths": ["vendor/cache"],
+        "irreversibleSideEffects": ["publish release"],
+        "managedCheckpoints": []
+      },
+      {
+        "turnId": "turn-3",
+        "conversationOffset": 8,
+        "fileCheckpointId": null,
+        "coverage": "none",
+        "excludedPaths": ["generated/"],
+        "irreversibleSideEffects": [],
+        "managedCheckpoints": []
+      }
+    ],
+    "checkpoints": [
+      {
+        "id": "cp-1",
+        "label": "before edit",
+        "createdAt": "2026-08-01T00:00:00.000Z",
+        "fileCount": 4
+      },
+      {
+        "id": "cp-2",
+        "label": "before publish",
+        "createdAt": "2026-08-01T00:01:00.000Z",
+        "fileCount": 5
+      },
+      {
+        "id": "cp-orphan",
+        "label": "manual",
+        "createdAt": "2026-08-01T00:02:00.000Z",
+        "fileCount": 5
+      }
+    ],
+    "markers": [
+      {
+        "kind": "commit",
+        "id": "commit:a1",
+        "turnId": "turn-1",
+        "referenceId": "a1",
+        "label": "feat: first",
+        "status": "committed",
+        "reversible": true,
+        "timestamp": "2026-08-01T00:00:10.000Z",
+        "metadata": {}
+      },
+      {
+        "kind": "verification",
+        "id": "verify:test",
+        "turnId": "turn-1",
+        "referenceId": "test",
+        "label": "vitest",
+        "status": "passed",
+        "reversible": true,
+        "timestamp": "2026-08-01T00:00:20.000Z",
+        "metadata": {}
+      },
+      {
+        "kind": "tool-side-effect",
+        "id": "side:publish",
+        "turnId": "turn-2",
+        "referenceId": "tool-2",
+        "label": "publish release",
+        "status": "committed",
+        "reversible": false,
+        "timestamp": "2026-08-01T00:01:10.000Z",
+        "metadata": {}
+      },
+      {
+        "kind": "artifact",
+        "id": "artifact:bundle",
+        "turnId": "turn-2",
+        "referenceId": "art-1",
+        "label": "bundle.zip",
+        "status": "published",
+        "reversible": false,
+        "timestamp": "2026-08-01T00:01:20.000Z",
+        "metadata": {}
+      }
+    ],
+    "messages": [
+      { "role": "system", "content": "system" },
+      { "role": "user", "content": "turn one" },
+      { "role": "assistant", "content": "reply one" },
+      { "role": "assistant", "content": "verification complete" },
+      { "role": "user", "content": "turn two" },
+      { "role": "assistant", "content": "reply two" },
+      { "role": "assistant", "content": "artifact published" },
+      { "role": "user", "content": "turn three" },
+      { "role": "assistant", "content": "reply three" }
+    ]
+  },
+  "projection": {
+    "schema": "cc-checkpoint-timeline/v1",
+    "version": 1,
+    "authority": "cli",
+    "actionSchema": "cc-checkpoint-timeline-action/v1",
+    "sessionId": "session-fixture",
+    "revision": "timeline-fixture-r1",
+    "entries": [
+      {
+        "turnId": "turn-1",
+        "coverage": "full",
+        "excludedPaths": [],
+        "irreversibleSideEffects": [],
+        "markers": [
+          { "kind": "checkpoint" },
+          { "kind": "commit" },
+          { "kind": "verification" }
+        ],
+        "actions": [
+          {
+            "action": "restore-code",
+            "enabled": true,
+            "submission": {
+              "schema": "cc-checkpoint-timeline-action/v1",
+              "version": 1,
+              "authority": "cli",
+              "revision": "timeline-fixture-r1",
+              "action": "restore-code",
+              "sessionId": "session-fixture",
+              "turnId": "turn-1",
+              "checkpointId": "cp-1",
+              "conversationOffset": 2
+            }
+          },
+          {
+            "action": "restore-conversation",
+            "enabled": true,
+            "submission": {
+              "schema": "cc-checkpoint-timeline-action/v1",
+              "version": 1,
+              "authority": "cli",
+              "revision": "timeline-fixture-r1",
+              "action": "restore-conversation",
+              "sessionId": "session-fixture",
+              "turnId": "turn-1",
+              "checkpointId": "cp-1",
+              "conversationOffset": 2
+            }
+          },
+          {
+            "action": "restore-both",
+            "enabled": true,
+            "submission": {
+              "schema": "cc-checkpoint-timeline-action/v1",
+              "version": 1,
+              "authority": "cli",
+              "revision": "timeline-fixture-r1",
+              "action": "restore-both",
+              "sessionId": "session-fixture",
+              "turnId": "turn-1",
+              "checkpointId": "cp-1",
+              "conversationOffset": 2
+            }
+          },
+          {
+            "action": "summary-from",
+            "enabled": true,
+            "submission": {
+              "schema": "cc-checkpoint-timeline-action/v1",
+              "version": 1,
+              "authority": "cli",
+              "revision": "timeline-fixture-r1",
+              "action": "summary-from",
+              "sessionId": "session-fixture",
+              "turnId": "turn-1",
+              "checkpointId": "cp-1",
+              "conversationOffset": 2
+            }
+          },
+          {
+            "action": "summary-to",
+            "enabled": true,
+            "submission": {
+              "schema": "cc-checkpoint-timeline-action/v1",
+              "version": 1,
+              "authority": "cli",
+              "revision": "timeline-fixture-r1",
+              "action": "summary-to",
+              "sessionId": "session-fixture",
+              "turnId": "turn-1",
+              "checkpointId": "cp-1",
+              "conversationOffset": 2
+            }
+          },
+          {
+            "action": "branch",
+            "enabled": true,
+            "submission": {
+              "schema": "cc-checkpoint-timeline-action/v1",
+              "version": 1,
+              "authority": "cli",
+              "revision": "timeline-fixture-r1",
+              "action": "branch",
+              "sessionId": "session-fixture",
+              "turnId": "turn-1",
+              "checkpointId": "cp-1",
+              "conversationOffset": 2
+            }
+          }
+        ]
+      },
+      {
+        "turnId": "turn-2",
+        "coverage": "partial",
+        "excludedPaths": ["vendor/cache"],
+        "irreversibleSideEffects": ["publish release", "bundle.zip"],
+        "warnings": [
+          "partial-coverage",
+          "excluded-paths",
+          "irreversible-side-effects"
+        ],
+        "markers": [
+          { "kind": "checkpoint" },
+          { "kind": "tool-side-effect" },
+          { "kind": "artifact" }
+        ],
+        "actions": [
+          {
+            "action": "restore-code",
+            "enabled": true,
+            "submission": {
+              "schema": "cc-checkpoint-timeline-action/v1",
+              "version": 1,
+              "authority": "cli",
+              "revision": "timeline-fixture-r1",
+              "action": "restore-code",
+              "sessionId": "session-fixture",
+              "turnId": "turn-2",
+              "checkpointId": "cp-2",
+              "conversationOffset": 5
+            }
+          },
+          {
+            "action": "restore-conversation",
+            "enabled": true,
+            "submission": {
+              "schema": "cc-checkpoint-timeline-action/v1",
+              "version": 1,
+              "authority": "cli",
+              "revision": "timeline-fixture-r1",
+              "action": "restore-conversation",
+              "sessionId": "session-fixture",
+              "turnId": "turn-2",
+              "checkpointId": "cp-2",
+              "conversationOffset": 5
+            }
+          },
+          {
+            "action": "restore-both",
+            "enabled": true,
+            "submission": {
+              "schema": "cc-checkpoint-timeline-action/v1",
+              "version": 1,
+              "authority": "cli",
+              "revision": "timeline-fixture-r1",
+              "action": "restore-both",
+              "sessionId": "session-fixture",
+              "turnId": "turn-2",
+              "checkpointId": "cp-2",
+              "conversationOffset": 5
+            }
+          },
+          {
+            "action": "summary-from",
+            "enabled": true,
+            "submission": {
+              "schema": "cc-checkpoint-timeline-action/v1",
+              "version": 1,
+              "authority": "cli",
+              "revision": "timeline-fixture-r1",
+              "action": "summary-from",
+              "sessionId": "session-fixture",
+              "turnId": "turn-2",
+              "checkpointId": "cp-2",
+              "conversationOffset": 5
+            }
+          },
+          {
+            "action": "summary-to",
+            "enabled": true,
+            "submission": {
+              "schema": "cc-checkpoint-timeline-action/v1",
+              "version": 1,
+              "authority": "cli",
+              "revision": "timeline-fixture-r1",
+              "action": "summary-to",
+              "sessionId": "session-fixture",
+              "turnId": "turn-2",
+              "checkpointId": "cp-2",
+              "conversationOffset": 5
+            }
+          },
+          {
+            "action": "branch",
+            "enabled": true,
+            "submission": {
+              "schema": "cc-checkpoint-timeline-action/v1",
+              "version": 1,
+              "authority": "cli",
+              "revision": "timeline-fixture-r1",
+              "action": "branch",
+              "sessionId": "session-fixture",
+              "turnId": "turn-2",
+              "checkpointId": "cp-2",
+              "conversationOffset": 5
+            }
+          }
+        ]
+      },
+      {
+        "turnId": "turn-3",
+        "coverage": "none",
+        "excludedPaths": ["generated/"],
+        "irreversibleSideEffects": [
+          "workspace mutation without a restorable checkpoint"
+        ],
+        "warnings": [
+          "no-restore-coverage",
+          "excluded-paths",
+          "irreversible-side-effects"
+        ],
+        "markers": [{ "kind": "tool-side-effect" }],
+        "actions": [
+          { "action": "restore-code", "enabled": false, "submission": null },
+          {
+            "action": "restore-conversation",
+            "enabled": true,
+            "submission": {
+              "schema": "cc-checkpoint-timeline-action/v1",
+              "version": 1,
+              "authority": "cli",
+              "revision": "timeline-fixture-r1",
+              "action": "restore-conversation",
+              "sessionId": "session-fixture",
+              "turnId": "turn-3",
+              "checkpointId": null,
+              "conversationOffset": 8
+            }
+          },
+          { "action": "restore-both", "enabled": false, "submission": null },
+          {
+            "action": "summary-from",
+            "enabled": true,
+            "submission": {
+              "schema": "cc-checkpoint-timeline-action/v1",
+              "version": 1,
+              "authority": "cli",
+              "revision": "timeline-fixture-r1",
+              "action": "summary-from",
+              "sessionId": "session-fixture",
+              "turnId": "turn-3",
+              "checkpointId": null,
+              "conversationOffset": 8
+            }
+          },
+          {
+            "action": "summary-to",
+            "enabled": true,
+            "submission": {
+              "schema": "cc-checkpoint-timeline-action/v1",
+              "version": 1,
+              "authority": "cli",
+              "revision": "timeline-fixture-r1",
+              "action": "summary-to",
+              "sessionId": "session-fixture",
+              "turnId": "turn-3",
+              "checkpointId": null,
+              "conversationOffset": 8
+            }
+          },
+          {
+            "action": "branch",
+            "enabled": true,
+            "submission": {
+              "schema": "cc-checkpoint-timeline-action/v1",
+              "version": 1,
+              "authority": "cli",
+              "revision": "timeline-fixture-r1",
+              "action": "branch",
+              "sessionId": "session-fixture",
+              "turnId": "turn-3",
+              "checkpointId": null,
+              "conversationOffset": 8
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "actionPreview": {
+    "schema": "cc-checkpoint-timeline-result/v1",
+    "version": 1,
+    "ok": true,
+    "mode": "preview",
+    "action": "restore-both",
+    "sessionId": "session-fixture",
+    "turnId": "turn-2",
+    "revision": "timeline-fixture-r1",
+    "coverage": "partial",
+    "excludedPaths": ["vendor/cache"],
+    "irreversibleSideEffects": ["publish release", "bundle.zip"],
+    "warnings": [
+      "partial-coverage",
+      "excluded-paths",
+      "irreversible-side-effects"
+    ],
+    "confirmationRequired": true,
+    "code": {
+      "checkpointId": "cp-2",
+      "modified": ["src/a.js"],
+      "added": [],
+      "deleted": ["old.js"]
+    },
+    "conversation": {
+      "beforeMessages": 9,
+      "afterMessages": 4,
+      "affectedMessages": 5
+    },
+    "branch": null
+  },
+  "hostProjection": {
+    "sessionId": "session-fixture",
+    "revision": "timeline-fixture-r1",
+    "entries": [
+      {
+        "turnId": "turn-1",
+        "coverage": "full",
+        "markerKinds": ["checkpoint", "commit", "verification"],
+        "enabledActions": [
+          "restore-code",
+          "restore-conversation",
+          "restore-both",
+          "summary-from",
+          "summary-to",
+          "branch"
+        ],
+        "excludedPaths": [],
+        "irreversibleSideEffects": []
+      },
+      {
+        "turnId": "turn-2",
+        "coverage": "partial",
+        "markerKinds": ["checkpoint", "tool-side-effect", "artifact"],
+        "enabledActions": [
+          "restore-code",
+          "restore-conversation",
+          "restore-both",
+          "summary-from",
+          "summary-to",
+          "branch"
+        ],
+        "excludedPaths": ["vendor/cache"],
+        "irreversibleSideEffects": ["publish release", "bundle.zip"]
+      },
+      {
+        "turnId": "turn-3",
+        "coverage": "none",
+        "markerKinds": ["tool-side-effect"],
+        "enabledActions": [
+          "restore-conversation",
+          "summary-from",
+          "summary-to",
+          "branch"
+        ],
+        "excludedPaths": ["generated/"],
+        "irreversibleSideEffects": [
+          "workspace mutation without a restorable checkpoint"
+        ]
+      }
+    ]
+  }
+}

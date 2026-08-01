@@ -4,27 +4,51 @@
 
 import {
   existsSync,
-  mkdirSync,
   appendFileSync,
   readFileSync,
   readdirSync,
   copyFileSync,
   rmSync,
+  openSync,
+  closeSync,
+  fstatSync,
+  readSync,
+  ftruncateSync,
 } from "node:fs";
 import { join, basename, resolve } from "node:path";
 import { createHash } from "node:crypto";
+import { TextDecoder } from "node:util";
 import { getHomeDir } from "../lib/paths.js";
+import { ensurePrivateDirectory, ensurePrivateFile } from "../lib/secure-fs.js";
 import {
   computeEventHash,
-  latestChainHash,
-  verifyTranscriptText,
   TRANSCRIPT_CHAIN_STATUS,
 } from "./transcript-integrity.js";
 import { withFileLock } from "../lib/with-file-lock.js";
+import {
+  iterateFileLinesSync,
+  iterateFileLinesReverseSync,
+} from "../lib/file-lines.js";
+import {
+  emptySessionMeta,
+  applyEventToSessionMeta,
+  listIndexedSessions,
+  publicSessionMeta,
+  readSessionMeta,
+  recordSessionDeleted,
+  recordSessionEvent,
+  recordSessionActivity,
+  replaceSessionMeta,
+} from "./session-list-index.js";
+
+let securedSessionsDir = null;
 
 function getSessionsDir() {
   const dir = join(getHomeDir(), "sessions");
-  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+  if (securedSessionsDir !== dir || !existsSync(dir)) {
+    ensurePrivateDirectory(dir);
+    securedSessionsDir = dir;
+  }
   return dir;
 }
 
@@ -61,40 +85,266 @@ export function appendTokenUsage(sessionId, usage) {
   appendEvent(sessionId, "token_usage", usage || {});
 }
 
-// Chain-tail cache: hash of the last chained record per session, so appends
-// stay O(1) instead of re-reading the file. Keyed per process — two processes
-// appending the SAME session concurrently could fork the chain (verify would
-// then flag it), but the store has always assumed a single writer per session.
-const _chainTailCache = new Map();
-
-function _resolveChainTail(sessionId, filePath) {
-  if (!existsSync(filePath)) {
-    // Missing file self-heals a stale cache entry (file deleted externally,
-    // or a test tearing down the sessions dir between cases).
-    _chainTailCache.set(sessionId, null);
-    return null;
+function inspectPhysicalTail(filePath, { dryRun = false } = {}) {
+  const result = {
+    action: "none",
+    changed: false,
+    discardedBytes: 0,
+    discardedRecords: 0,
+    fileSize: 0,
+  };
+  if (!existsSync(filePath)) return result;
+  const fd = openSync(filePath, "r+");
+  let normalizeNewline = false;
+  try {
+    const size = fstatSync(fd).size;
+    result.fileSize = size;
+    if (size > 0) {
+      const lastByte = Buffer.allocUnsafe(1);
+      readSync(fd, lastByte, 0, 1, size - 1);
+      if (lastByte[0] !== 0x0a) {
+        // Locate the beginning of the physical tail using bounded reverse IO.
+        let cursor = size;
+        let tailStart = 0;
+        let found = false;
+        const chunkSize = 64 * 1024;
+        while (cursor > 0 && !found) {
+          const length = Math.min(chunkSize, cursor);
+          cursor -= length;
+          const chunk = Buffer.allocUnsafe(length);
+          readSync(fd, chunk, 0, length, cursor);
+          const newline = chunk.lastIndexOf(0x0a);
+          if (newline >= 0) {
+            tailStart = cursor + newline + 1;
+            found = true;
+          }
+        }
+        const tail = Buffer.allocUnsafe(size - tailStart);
+        if (tail.length > 0) readSync(fd, tail, 0, tail.length, tailStart);
+        try {
+          const text = new TextDecoder("utf-8", { fatal: true }).decode(tail);
+          JSON.parse(text);
+          // A valid legacy/manual last record merely lacks its newline; retain
+          // it and normalize before appending the next chained event.
+          result.action = "normalize-newline";
+          result.changed = true;
+          normalizeNewline = !dryRun;
+        } catch {
+          // Crash tail: discard only the one incomplete physical record.
+          result.action = "discard-partial-record";
+          result.changed = true;
+          result.discardedBytes = size - tailStart;
+          result.discardedRecords = 1;
+          if (!dryRun) ftruncateSync(fd, tailStart);
+        }
+      }
+    }
+  } finally {
+    closeSync(fd);
   }
-  const cached = _chainTailCache.get(sessionId);
-  if (cached !== undefined) return cached;
-  const tail = latestChainHash(readFileSync(filePath, "utf-8"));
-  _chainTailCache.set(sessionId, tail);
-  return tail;
+  if (normalizeNewline) {
+    appendFileSync(filePath, "\n", { encoding: "utf8", mode: 0o600 });
+  }
+  if (!dryRun && result.changed) ensurePrivateFile(filePath);
+  return result;
+}
+
+/**
+ * Repair at most one crash-truncated physical tail and resolve the chain hash.
+ * This is called only while the transcript's cross-process lock is held, so a
+ * second writer can never reuse a stale in-process hash.
+ */
+function _resolveChainTail(filePath) {
+  if (!existsSync(filePath)) return { prevHash: null, recovery: null };
+  // Fast path: almost every append follows a newline-terminated record. Read
+  // that tail once and avoid opening the file a second time just to inspect its
+  // last byte. The slow repair path runs only for an unterminated crash tail.
+  const initial = iterateFileLinesReverseSync(filePath);
+  const first = initial.next();
+  if (!first.done && first.value.terminated) {
+    try {
+      let current = first;
+      while (!current.done) {
+        try {
+          const event = JSON.parse(current.value.line);
+          return {
+            prevHash: typeof event?.hash === "string" ? event.hash : null,
+            recovery: null,
+          };
+        } catch {
+          current = initial.next();
+        }
+      }
+      return { prevHash: null, recovery: null };
+    } finally {
+      initial.return?.();
+    }
+  }
+  initial.return?.();
+
+  const recovery = inspectPhysicalTail(filePath);
+  for (const { line } of iterateFileLinesReverseSync(filePath)) {
+    try {
+      const event = JSON.parse(line);
+      return {
+        prevHash: typeof event?.hash === "string" ? event.hash : null,
+        recovery: recovery.changed ? recovery : null,
+      };
+    } catch {
+      // A malformed historical line is verified separately; keep searching so
+      // this append never chains from arbitrary bytes.
+    }
+  }
+  return { prevHash: null, recovery: recovery.changed ? recovery : null };
+}
+
+function appendEventLocked(
+  sessionId,
+  type,
+  data,
+  { expectedHeadHash, compareHead = false } = {},
+) {
+  const filePath = sessionPath(sessionId);
+  return withFileLock(
+    filePath,
+    () => {
+      const existingMeta = readSessionMeta(getSessionsDir(), sessionId);
+      if (
+        !existsSync(filePath) &&
+        existingMeta?.deleted === true &&
+        type !== "session_start"
+      ) {
+        const error = new Error(`Session was deleted: ${sessionId}`);
+        error.code = "SESSION_DELETED";
+        throw error;
+      }
+      const { prevHash, recovery } = _resolveChainTail(filePath);
+      if (compareHead && prevHash !== (expectedHeadHash || null)) {
+        const error = new Error(
+          `Session revision changed for ${sessionId}; refresh the checkpoint timeline`,
+        );
+        error.code = "SESSION_REVISION_STALE";
+        error.expectedHeadHash = expectedHeadHash || null;
+        error.actualHeadHash = prevHash;
+        throw error;
+      }
+      const core = { type, timestamp: Date.now(), data };
+      const hash = computeEventHash(prevHash, core);
+      const event = { ...core, prevHash, hash };
+      const line = JSON.stringify(event) + "\n";
+      appendFileSync(filePath, line, { encoding: "utf8", mode: 0o600 });
+      ensurePrivateFile(filePath);
+      try {
+        recordSessionEvent(getSessionsDir(), sessionId, event, hash);
+      } catch {
+        // The metadata index is explicitly rebuildable. Never turn a committed
+        // transcript event into an apparent failure that a caller may retry.
+      }
+      return { hash, recovery };
+    },
+    {
+      failIfUnavailable: true,
+      timeoutMs: 30_000,
+      retryMs: 1,
+      maxRetryMs: 8,
+      retryJitterMs: 4,
+      yieldAfterReleaseMs: 2,
+    },
+  );
 }
 
 export function appendEvent(sessionId, type, data) {
-  const filePath = sessionPath(sessionId);
-  withFileLock(
-    filePath,
-    () => {
-      const prevHash = _resolveChainTail(sessionId, filePath);
-      const core = { type, timestamp: Date.now(), data };
-      const hash = computeEventHash(prevHash, core);
-      const line = JSON.stringify({ ...core, prevHash, hash }) + "\n";
-      appendFileSync(filePath, line, "utf-8");
-      _chainTailCache.set(sessionId, hash);
-    },
-    { failIfUnavailable: true },
-  );
+  return appendEventLocked(sessionId, type, data);
+}
+
+/**
+ * Compare-and-append for revisioned IDE actions. The head check and append run
+ * under the transcript's canonical writer lock, so a stale preview can never
+ * commit after another session writer advances the chain.
+ */
+export function appendEventIfHead(
+  sessionId,
+  type,
+  data,
+  expectedHeadHash = null,
+) {
+  return appendEventLocked(sessionId, type, data, {
+    expectedHeadHash,
+    compareHead: true,
+  });
+}
+
+function verifyTranscriptFile(filePath) {
+  const result = {
+    status: TRANSCRIPT_CHAIN_STATUS.EMPTY,
+    chainedEvents: 0,
+    legacyEvents: 0,
+    malformedLines: 0,
+    truncatedTail: false,
+    firstInvalidLine: null,
+    reason: null,
+  };
+  let lastHash = null;
+  let sawChain = false;
+  const tampered = (lineNo, reason) => ({
+    ...result,
+    status: TRANSCRIPT_CHAIN_STATUS.TAMPERED,
+    firstInvalidLine: lineNo,
+    reason,
+  });
+
+  for (const { line, lineNo, terminated } of iterateFileLinesSync(filePath)) {
+    let event;
+    try {
+      event = JSON.parse(line);
+    } catch {
+      result.malformedLines += 1;
+      if (!terminated) {
+        result.truncatedTail = true;
+        continue;
+      }
+      if (sawChain) {
+        return tampered(lineNo, "malformed line inside hash chain");
+      }
+      continue;
+    }
+
+    if (event && typeof event.hash === "string") {
+      const expectedPrev = sawChain ? lastHash : null;
+      if ((event.prevHash ?? null) !== expectedPrev) {
+        return tampered(
+          lineNo,
+          sawChain
+            ? "hash chain linkage broken (record deleted, inserted, or reordered)"
+            : "chain does not start at a genesis record (head records removed)",
+        );
+      }
+      if (computeEventHash(expectedPrev, event) !== event.hash) {
+        return tampered(lineNo, "event content does not match its hash");
+      }
+      sawChain = true;
+      lastHash = event.hash;
+      result.chainedEvents += 1;
+    } else {
+      if (sawChain) {
+        return tampered(
+          lineNo,
+          "unchained record after hash chain started (manual append or downgrade write)",
+        );
+      }
+      result.legacyEvents += 1;
+    }
+  }
+
+  if (result.chainedEvents > 0) {
+    result.status =
+      result.legacyEvents > 0
+        ? TRANSCRIPT_CHAIN_STATUS.PARTIAL
+        : TRANSCRIPT_CHAIN_STATUS.VERIFIED;
+  } else if (result.legacyEvents > 0 || result.malformedLines > 0) {
+    result.status = TRANSCRIPT_CHAIN_STATUS.LEGACY;
+  }
+  return result;
 }
 
 /**
@@ -112,7 +362,7 @@ export function verifySession(sessionId) {
   }
   return {
     sessionId,
-    ...verifyTranscriptText(readFileSync(filePath, "utf-8")),
+    ...verifyTranscriptFile(filePath),
   };
 }
 
@@ -125,6 +375,88 @@ export function verifyAllSessions(options = {}) {
     .map((file) => verifySession(basename(file, ".jsonl")));
 }
 
+/**
+ * Diagnose and repair only the final physical transcript record. Interior
+ * corruption and hash-chain tampering are never rewritten: repair may append a
+ * missing newline to one valid record or discard one crash-partial record.
+ */
+export function repairSession(sessionId, options = {}) {
+  const dryRun = options.dryRun === true;
+  if (isUnsafeSessionId(sessionId)) {
+    return {
+      sessionId,
+      dryRun,
+      changed: false,
+      healthy: false,
+      status: "invalid-id",
+      reason: "invalid session id",
+    };
+  }
+  const filePath = sessionPath(sessionId);
+  if (!existsSync(filePath)) {
+    return {
+      sessionId,
+      dryRun,
+      changed: false,
+      healthy: false,
+      status: "not-found",
+      reason: "session file not found",
+    };
+  }
+
+  const result = withFileLock(
+    filePath,
+    () => {
+      const before = verifyTranscriptFile(filePath);
+      const beforeValidation = validateJsonlSession(sessionId);
+      const repair = inspectPhysicalTail(filePath, { dryRun });
+      const after = dryRun ? null : verifyTranscriptFile(filePath);
+      const afterValidation = dryRun ? null : validateJsonlSession(sessionId);
+      const effective = after || before;
+      const effectiveValidation = afterValidation || beforeValidation;
+      const healthy =
+        effective.status !== TRANSCRIPT_CHAIN_STATUS.TAMPERED &&
+        !(dryRun
+          ? before.truncatedTail || repair.changed
+          : after.truncatedTail) &&
+        effectiveValidation.valid;
+      return {
+        sessionId,
+        dryRun,
+        changed: repair.changed,
+        wouldChange: dryRun && repair.changed,
+        action: repair.action,
+        discardedBytes: repair.discardedBytes,
+        discardedRecords: repair.discardedRecords,
+        healthy,
+        status: effective.status,
+        before,
+        after,
+        beforeValidation,
+        afterValidation,
+        reason:
+          effective.status === TRANSCRIPT_CHAIN_STATUS.TAMPERED
+            ? effective.reason || "transcript remains tampered"
+            : !effectiveValidation.valid
+              ? effectiveValidation.reason ||
+                "transcript remains structurally invalid"
+              : null,
+      };
+    },
+    { failIfUnavailable: true },
+  );
+
+  if (!dryRun && result.changed) {
+    try {
+      rebuildSessionMeta(sessionId);
+    } catch {
+      // Derived metadata is rebuilt lazily by list/search if this refresh loses
+      // a race or the index is unavailable.
+    }
+  }
+  return result;
+}
+
 /** All locally-stored session ids (the source of truth a mirror derives from). */
 export function listSessionIds() {
   const dir = getSessionsDir();
@@ -132,6 +464,20 @@ export function listSessionIds() {
   return readdirSync(dir)
     .filter((file) => file.endsWith(".jsonl"))
     .map((file) => basename(file, ".jsonl"));
+}
+
+/** Resolve an exact id or one unambiguous prefix without reading transcripts. */
+export function resolveSessionId(input) {
+  if (isUnsafeSessionId(input)) return null;
+  if (sessionExists(input)) return input;
+  const matches = listSessionIds().filter((id) => id.startsWith(input));
+  if (matches.length > 1) {
+    const error = new Error(`Ambiguous session id prefix: ${input}`);
+    error.code = "AMBIGUOUS_SESSION_ID";
+    error.matches = matches.slice(0, 20);
+    throw error;
+  }
+  return matches[0] || null;
 }
 
 export { TRANSCRIPT_CHAIN_STATUS };
@@ -247,19 +593,43 @@ export function readEvents(sessionId) {
   const filePath = sessionPath(sessionId);
   if (!existsSync(filePath)) return [];
 
-  const content = readFileSync(filePath, "utf-8");
   const events = [];
-
-  for (const line of content.split("\n")) {
-    if (!line.trim()) continue;
+  for (const { line } of iterateFileLinesSync(filePath)) {
     try {
       events.push(JSON.parse(line));
-    } catch (_e) {
+    } catch {
       // Skip malformed lines
     }
   }
 
   return events;
+}
+
+/**
+ * Return the newest event matching a type/predicate using bounded reverse IO.
+ * This is the recovery path for snapshots and ledgers: callers never need to
+ * materialize a multi-gigabyte transcript merely to inspect its latest state.
+ */
+export function findLatestEvent(sessionId, type, predicate = null) {
+  if (isUnsafeSessionId(sessionId)) return null;
+  const filePath = sessionPath(sessionId);
+  if (!existsSync(filePath)) return null;
+  const wanted = Array.isArray(type) ? new Set(type) : null;
+  for (const { line } of iterateFileLinesReverseSync(filePath)) {
+    let event;
+    try {
+      event = JSON.parse(line);
+    } catch {
+      continue;
+    }
+    const typeMatches = wanted
+      ? wanted.has(event?.type)
+      : type == null || event?.type === type;
+    if (!typeMatches) continue;
+    if (typeof predicate === "function" && !predicate(event)) continue;
+    return event;
+  }
+  return null;
 }
 
 /**
@@ -273,31 +643,31 @@ function isReplayableMessage(m) {
 }
 
 export function rebuildMessages(sessionId) {
-  const events = readEvents(sessionId);
-  const messages = [];
-  let lastCompactIndex = -1;
+  if (isUnsafeSessionId(sessionId)) return [];
+  const filePath = sessionPath(sessionId);
+  if (!existsSync(filePath)) return [];
 
-  // A `compact` event carries the pre-compaction snapshot in data.messages. A
-  // malformed compact line (type present but data null / messages not an array)
-  // must not crash the resume — skip it and look further back.
-  for (let i = events.length - 1; i >= 0; i--) {
-    const e = events[i];
-    if (e && e.type === "compact" && Array.isArray(e.data?.messages)) {
-      lastCompactIndex = i;
+  // Scan newest-first and stop at the latest valid compact checkpoint. Memory
+  // is therefore proportional to the active context suffix, not transcript
+  // size. Without a compact event the full conversation is necessarily the
+  // replay state, but the file itself is still never loaded as one giant string.
+  const suffix = [];
+  let checkpoint = [];
+  for (const { line } of iterateFileLinesReverseSync(filePath)) {
+    let event;
+    try {
+      event = JSON.parse(line);
+    } catch {
+      continue;
+    }
+    if (
+      (event?.type === "compact" ||
+        event?.type === "checkpoint_timeline_commit") &&
+      Array.isArray(event.data?.messages)
+    ) {
+      checkpoint = event.data.messages.filter(isReplayableMessage);
       break;
     }
-  }
-
-  if (lastCompactIndex >= 0) {
-    for (const m of events[lastCompactIndex].data.messages) {
-      if (isReplayableMessage(m)) messages.push(m);
-    }
-  }
-
-  const startIndex = lastCompactIndex >= 0 ? lastCompactIndex + 1 : 0;
-
-  for (let i = startIndex; i < events.length; i++) {
-    const event = events[i];
     if (
       event &&
       (event.type === "user_message" ||
@@ -305,11 +675,11 @@ export function rebuildMessages(sessionId) {
         event.type === "system") &&
       isReplayableMessage(event.data)
     ) {
-      messages.push(event.data);
+      suffix.push(event.data);
     }
   }
-
-  return messages;
+  suffix.reverse();
+  return [...checkpoint, ...suffix];
 }
 
 /** ISO string for a numeric ms timestamp, or "" when missing / non-finite /
@@ -325,51 +695,77 @@ export function toIsoSafe(ts) {
   return Number.isNaN(d.getTime()) ? "" : d.toISOString();
 }
 
+function rebuildSessionMeta(sessionId) {
+  const dir = getSessionsDir();
+  const filePath = sessionPath(sessionId);
+  if (!existsSync(filePath)) return null;
+  return withFileLock(
+    filePath,
+    () => {
+      let meta = emptySessionMeta(sessionId);
+      for (const { line } of iterateFileLinesSync(filePath)) {
+        try {
+          const event = JSON.parse(line);
+          meta = applyEventToSessionMeta(meta, event, event?.hash);
+        } catch {
+          // The validator/repair path reports malformed records. The index
+          // remains a best-effort projection over all intact events.
+        }
+      }
+      return replaceSessionMeta(dir, meta);
+    },
+    {
+      failIfUnavailable: true,
+      timeoutMs: 30_000,
+      retryMs: 1,
+      maxRetryMs: 8,
+      retryJitterMs: 4,
+    },
+  );
+}
+
+/** Read canonical session metadata without loading the transcript body. */
+export function getJsonlSessionMetadata(sessionId) {
+  if (isUnsafeSessionId(sessionId) || !sessionExists(sessionId)) return null;
+  const dir = getSessionsDir();
+  const meta = readSessionMeta(dir, sessionId) || rebuildSessionMeta(sessionId);
+  return meta ? publicSessionMeta(meta) : null;
+}
+
 export function listJsonlSessions(options = {}) {
   const dir = getSessionsDir();
   if (!existsSync(dir)) return [];
 
   const limit = options.limit || 20;
-  const files = readdirSync(dir)
-    .filter((f) => f.endsWith(".jsonl"))
-    .map((f) => {
-      const id = basename(f, ".jsonl");
-      const events = readEvents(id);
-      const startEvent = events.find((e) => e.type === "session_start");
-      const lastEvent = events[events.length - 1];
-      const messageCount = events.filter(
-        (e) => e.type === "user_message" || e.type === "assistant_message",
-      ).length;
-      // cc session rename appends session_rename events; the LAST one wins.
-      let renamedTitle = null;
-      for (const e of events) {
-        if (e.type === "session_rename" && e.data?.title) {
-          renamedTitle = e.data.title;
-        }
-      }
+  const sessionIds = listSessionIds();
+  let indexed = listIndexedSessions(dir, {
+    limit,
+    hasSession: (id) => sessionExists(id),
+  });
 
-      return {
-        id,
-        title: renamedTitle || startEvent?.data?.title || "Untitled",
-        provider: startEvent?.data?.provider || "",
-        model: startEvent?.data?.model || "",
-        message_count: messageCount,
-        created_at: toIsoSafe(startEvent?.timestamp),
-        updated_at: toIsoSafe(lastEvent?.timestamp),
-        _lastTs: lastEvent?.timestamp || 0,
-        _eventCount: events.length,
-      };
-    })
-    .sort((a, b) => {
-      // Primary: numeric timestamp descending
-      if (b._lastTs !== a._lastTs) return b._lastTs - a._lastTs;
-      // Tiebreak when ms collides: more events = more recent activity
-      return b._eventCount - a._eventCount;
-    })
-    .slice(0, limit)
-    .map(({ _lastTs, _eventCount, ...rest }) => rest);
-
-  return files;
+  // First use after upgrade (or a lost/corrupt rebuildable index): stream each
+  // legacy transcript once to seed its small sidecar and activity record.
+  const expected = Math.min(Math.max(0, Number(limit) || 0), sessionIds.length);
+  if (indexed.length < expected) {
+    const rebuilt = [];
+    for (const id of sessionIds) {
+      const meta = readSessionMeta(dir, id);
+      rebuilt.push(meta || rebuildSessionMeta(id));
+    }
+    // Directory enumeration order is not activity order. Re-append the rebuilt
+    // snapshots oldest-first so reverse journal reads preserve the transcript
+    // timestamps even on the first post-upgrade listing.
+    for (const meta of rebuilt
+      .filter(Boolean)
+      .sort((a, b) => (a.updated_at_ms || 0) - (b.updated_at_ms || 0))) {
+      recordSessionActivity(dir, meta);
+    }
+    indexed = listIndexedSessions(dir, {
+      limit,
+      hasSession: (id) => sessionExists(id),
+    });
+  }
+  return indexed;
 }
 
 /**
@@ -385,6 +781,41 @@ export function renameSession(sessionId, title) {
   if (!normalized) throw new Error("A non-empty title is required");
   appendEvent(sessionId, "session_rename", { title: normalized.slice(0, 200) });
   return { id: sessionId, title: normalized.slice(0, 200) };
+}
+
+/** Delete the canonical transcript under its writer lock and publish a
+ * rebuildable tombstone so an already-waiting stale writer cannot resurrect
+ * the session after the deletion commits. */
+export function deleteJsonlSession(sessionId) {
+  if (isUnsafeSessionId(sessionId)) return false;
+  const filePath = sessionPath(sessionId);
+  if (!existsSync(filePath)) return false;
+  return withFileLock(
+    filePath,
+    () => {
+      if (!existsSync(filePath)) return false;
+      rmSync(filePath, { force: true });
+      try {
+        recordSessionDeleted(getSessionsDir(), sessionId);
+      } catch (error) {
+        // writeMetaAtomic precedes the activity-journal append. If only the
+        // rebuildable journal lock/release failed, the durable sidecar still
+        // prevents a stale writer from resurrecting this deleted session.
+        if (readSessionMeta(getSessionsDir(), sessionId)?.deleted !== true) {
+          throw error;
+        }
+      }
+      return true;
+    },
+    {
+      failIfUnavailable: true,
+      timeoutMs: 30_000,
+      retryMs: 1,
+      maxRetryMs: 8,
+      retryJitterMs: 4,
+      yieldAfterReleaseMs: 2,
+    },
+  );
 }
 
 /**
@@ -419,9 +850,7 @@ export function pruneJsonlSessions(options = {}) {
       continue;
     }
     try {
-      rmSync(sessionPath(s.id), { force: true });
-      _chainTailCache.delete(s.id);
-      deleted.push(s.id);
+      if (deleteJsonlSession(s.id)) deleted.push(s.id);
     } catch {
       /* per-file failures never abort the sweep */
     }
@@ -443,8 +872,11 @@ export function forkSession(sourceId) {
 
   for (const event of events) {
     const line = JSON.stringify(event) + "\n";
-    appendFileSync(filePath, line, "utf-8");
+    appendFileSync(filePath, line, { encoding: "utf8", mode: 0o600 });
   }
+  ensurePrivateFile(filePath);
+
+  rebuildSessionMeta(newId);
 
   appendEvent(newId, "system", {
     role: "system",
@@ -618,30 +1050,31 @@ export function validateJsonlSession(sessionId) {
     };
   }
 
-  const lines = readFileSync(filePath, "utf-8").split("\n");
   let malformedLines = 0;
-  const events = [];
-
-  for (const line of lines) {
-    if (!line.trim()) continue;
+  let eventCount = 0;
+  let messageCount = 0;
+  let hasStartEvent = false;
+  for (const { line } of iterateFileLinesSync(filePath)) {
     try {
-      events.push(JSON.parse(line));
+      const event = JSON.parse(line);
+      eventCount += 1;
+      if (event?.type === "session_start") hasStartEvent = true;
+      if (
+        event?.type === "user_message" ||
+        event?.type === "assistant_message"
+      ) {
+        messageCount += 1;
+      }
     } catch {
       malformedLines++;
     }
   }
 
-  const hasStartEvent = events.some((event) => event.type === "session_start");
-  const messageCount = events.filter(
-    (event) =>
-      event.type === "user_message" || event.type === "assistant_message",
-  ).length;
-
   return {
     sessionId,
     valid: malformedLines === 0 && hasStartEvent,
     malformedLines,
-    eventCount: events.length,
+    eventCount,
     messageCount,
     hasStartEvent,
   };

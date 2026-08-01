@@ -18,6 +18,7 @@
 import {
   appendEvent as storeAppendEvent,
   readEvents as storeReadEvents,
+  findLatestEvent as storeFindLatestEvent,
 } from "../harness/jsonl-session-store.js";
 import {
   TurnBindingLog,
@@ -28,16 +29,42 @@ import {
 
 /** Event type carrying a full TurnBindingLog snapshot. */
 export const TURN_BINDING_EVENT = "turn_checkpoint_binding";
+export const TURN_BINDING_TIMELINE_EVENT = "checkpoint_timeline_commit";
 
 // Injected so tests can drive persistence without touching the real sessions dir.
 export const _deps = {
   appendEvent: storeAppendEvent,
   readEvents: storeReadEvents,
+  findLatestEvent: storeFindLatestEvent,
 };
+
+function findLatestBindingEvent(sessionId) {
+  const valid = (event) =>
+    Array.isArray(event?.data?.turns) ||
+    Array.isArray(event?.data?.binding?.turns);
+  const eventTypes = [TURN_BINDING_EVENT, TURN_BINDING_TIMELINE_EVENT];
+  if (
+    typeof _deps.findLatestEvent === "function" &&
+    _deps.findLatestEvent !== storeFindLatestEvent
+  ) {
+    return _deps.findLatestEvent(sessionId, eventTypes, valid);
+  }
+  // Preserve the original readEvents injection seam for tests and embedders.
+  if (_deps.readEvents !== storeReadEvents) {
+    const events = _deps.readEvents(sessionId) || [];
+    for (let index = events.length - 1; index >= 0; index -= 1) {
+      const event = events[index];
+      if (eventTypes.includes(event?.type) && valid(event)) return event;
+    }
+    return null;
+  }
+  return storeFindLatestEvent(sessionId, eventTypes, valid);
+}
 
 export class TurnBindingPersistenceError extends Error {
   constructor(operation, sessionId, cause) {
-    const detail = cause?.message || String(cause || "unknown persistence error");
+    const detail =
+      cause?.message || String(cause || "unknown persistence error");
     super(`Turn binding ${operation} failed for ${sessionId}: ${detail}`, {
       cause,
     });
@@ -103,9 +130,9 @@ export function persistTurnBinding(sessionId, log, opts = {}) {
  */
 export function loadTurnBindingLog(sessionId, opts = {}) {
   const failIfUnavailable = opts.failIfUnavailable !== false;
-  let events = [];
+  let event = null;
   try {
-    events = _deps.readEvents(sessionId) || [];
+    event = findLatestBindingEvent(sessionId);
   } catch (error) {
     const fallback = persistenceFailure(
       "read",
@@ -115,26 +142,17 @@ export function loadTurnBindingLog(sessionId, opts = {}) {
     );
     if (fallback === false) return new TurnBindingLog();
   }
-  // Newest snapshot wins — scan backwards for the first well-formed one.
-  for (let i = events.length - 1; i >= 0; i--) {
-    const e = events[i];
-    if (
-      e &&
-      e.type === TURN_BINDING_EVENT &&
-      e.data &&
-      Array.isArray(e.data.turns)
-    ) {
-      try {
-        return TurnBindingLog.fromJSON(e.data);
-      } catch (error) {
-        const fallback = persistenceFailure(
-          "read",
-          sessionId || "<missing-session>",
-          error,
-          failIfUnavailable,
-        );
-        if (fallback === false) return new TurnBindingLog();
-      }
+  if (event) {
+    try {
+      return TurnBindingLog.fromJSON(event.data?.binding || event.data);
+    } catch (error) {
+      const fallback = persistenceFailure(
+        "read",
+        sessionId || "<missing-session>",
+        error,
+        failIfUnavailable,
+      );
+      if (fallback === false) return new TurnBindingLog();
     }
   }
   return new TurnBindingLog();

@@ -2302,11 +2302,19 @@ class ChatViewProvider {
    * THIS conversation's checkpoints. No-op with a hint before the first turn.
    */
   async _rewind() {
-    const id = this._storedSessionId();
+    const conv = this._activeConv();
+    const id = conv?.sessionId || this._storedSessionId();
     if (!id) {
       this._post({
         kind: "info",
         text: "/rewind: send a message first — no session yet.",
+      });
+      return;
+    }
+    if (conv?.turnActive) {
+      this._post({
+        kind: "info",
+        text: "/rewind: stop the active turn before opening the checkpoint timeline.",
       });
       return;
     }
@@ -2319,6 +2327,30 @@ class ChatViewProvider {
         : {};
     const env = { ...process.env, ...bridgeEnv };
     const command = this._cliCommand();
+    const projected = await rewind.runCliJson({
+      command,
+      args: rewind.buildTimelineArgs(id),
+      cwd,
+      env,
+    });
+    const timeline = projected.ok
+      ? rewind.parseTimelineProjection(projected.data)
+      : null;
+    if (timeline) {
+      await this._runCheckpointTimeline({
+        conv,
+        id,
+        timeline,
+        rewind,
+        command,
+        cwd,
+        env,
+      });
+      return;
+    }
+
+    // Compatibility for an older installed CLI that predates `checkpoint
+    // timeline`. The canonical path above is always used when advertised.
     const listed = await rewind.runCliJson({
       command,
       args: rewind.buildListArgs(id),
@@ -2399,6 +2431,146 @@ class ChatViewProvider {
         text: `/rewind failed: ${restored.error || "unknown error"}`,
       });
     }
+  }
+
+  async _runCheckpointTimeline({
+    conv,
+    id,
+    timeline,
+    rewind,
+    command,
+    cwd,
+    env,
+  }) {
+    if (!timeline.entries.length) {
+      this._post({
+        kind: "info",
+        text: "/rewind: this session has no persisted timeline entries yet.",
+      });
+      return;
+    }
+    const generation = this._asyncToken(conv);
+    const pickedTurn = await this.vscode.window.showQuickPick(
+      timeline.entries.map(rewind.toTimelineQuickPickItem),
+      {
+        placeHolder:
+          "Checkpoint timeline — choose a turn (coverage and irreversible effects are shown)",
+      },
+    );
+    if (!pickedTurn) return;
+    const entry = timeline.entries.find(
+      (candidate) => candidate.turnId === pickedTurn.turnId,
+    );
+    if (!entry) return;
+    const pickedAction = await this.vscode.window.showQuickPick(
+      rewind.timelineActionItems(entry),
+      { placeHolder: `Action at ${entry.turnId}` },
+    );
+    if (!pickedAction?.submission) return;
+
+    const previewed = await rewind.runCliJson({
+      command,
+      args: rewind.buildTimelineActionArgs(pickedAction.submission, {
+        preview: true,
+        confirm: false,
+      }),
+      cwd,
+      env,
+    });
+    const preview = previewed.ok
+      ? rewind.parseTimelineActionResult(previewed.data)
+      : null;
+    if (!preview || !preview.ok) {
+      this._post({
+        kind: "error",
+        text: `/rewind preview failed: ${preview?.code || previewed.error || "unsupported response"}`,
+      });
+      return;
+    }
+    const previewText = rewind.formatTimelinePreview(preview);
+    if (previewText) {
+      try {
+        const doc = await this.vscode.workspace.openTextDocument({
+          content: previewText,
+          language: "markdown",
+        });
+        await this.vscode.window.showTextDocument(doc, { preview: true });
+      } catch {
+        /* modal confirmation below still gates the CLI write */
+      }
+    }
+    const risks = [
+      ...(preview.excludedPaths || []),
+      ...(preview.irreversibleSideEffects || []),
+    ];
+    const proceed = await this.vscode.window.showWarningMessage(
+      `${pickedAction.label} at ${entry.turnId}?` +
+        (risks.length
+          ? ` Review ${risks.length} excluded/irreversible item(s).`
+          : ""),
+      { modal: true },
+      "Confirm action",
+    );
+    if (proceed !== "Confirm action") {
+      this._post({
+        kind: "info",
+        text: "/rewind: cancelled — no changes made",
+      });
+      return;
+    }
+
+    // The preview belongs to one tab/session generation. A switch, restart or
+    // new turn invalidates it before CLI confirmation even gets a chance to do
+    // its own revision CAS.
+    if (
+      this._convs.get(conv.id) !== conv ||
+      conv.sessionId !== id ||
+      conv._asyncToken !== generation ||
+      conv.turnActive
+    ) {
+      this._post({
+        kind: "error",
+        text: "/rewind: timeline became stale in the panel; reopen it.",
+      });
+      return;
+    }
+    this._stopSession(conv);
+    const executed = await rewind.runCliJson({
+      command,
+      args: rewind.buildTimelineActionArgs(pickedAction.submission, {
+        preview: false,
+        confirm: true,
+      }),
+      cwd,
+      env,
+      timeoutMs: 60000,
+    });
+    const result = executed.ok
+      ? rewind.parseTimelineActionResult(executed.data)
+      : null;
+    if (!result || !result.ok) {
+      this._post({
+        kind: "error",
+        text: `/rewind failed: ${result?.code || executed.error || "unsupported response"}`,
+      });
+      return;
+    }
+
+    const branchId = result.result?.branch?.branchSessionId;
+    const changesConversation = [
+      "restore-conversation",
+      "restore-both",
+      "summary-from",
+      "summary-to",
+    ].includes(result.action);
+    if (branchId) this.resumeSessionId(branchId);
+    else if (changesConversation) this.resumeSessionId(id);
+    this._post({
+      kind: "info",
+      text:
+        `✓ ${pickedAction.label} completed at ${entry.turnId}` +
+        (branchId ? ` — branch ${branchId} is ready` : ""),
+    });
   }
 
   /**

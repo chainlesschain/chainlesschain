@@ -162,6 +162,12 @@ describe("ChatViewProvider._rewind", () => {
       ...rewind,
       _calls: [],
       runCliJson(opts) {
+        // Exercise the compatibility path as if an older installed CLI does
+        // not yet expose `checkpoint timeline`; canonical timeline flow has a
+        // dedicated orchestration suite.
+        if (opts.args?.[0] === "checkpoint" && opts.args?.[1] === "timeline") {
+          return Promise.resolve({ ok: false, error: "unsupported command" });
+        }
         this._calls.push(opts.args);
         return Promise.resolve(responses[i++]);
       },

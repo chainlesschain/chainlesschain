@@ -21,7 +21,31 @@
 
 import chalk from "chalk";
 import { resolve } from "path";
+import {
+  buildCheckpointTimeline,
+  projectCheckpointTimeline,
+} from "../lib/checkpoint-timeline.js";
+import {
+  CHECKPOINT_TIMELINE_AUDIT_EVENT,
+  CHECKPOINT_TIMELINE_INTENT_EVENT,
+  CHECKPOINT_TIMELINE_RESULT_SCHEMA,
+  CHECKPOINT_TIMELINE_RESULT_VERSION,
+  planCheckpointTimelineAction,
+  timelineActionError,
+  validateCheckpointTimelineSubmission,
+} from "../lib/checkpoint-timeline-authority.js";
 import { logger } from "../lib/logger.js";
+import {
+  loadTurnBindingLog,
+  TURN_BINDING_TIMELINE_EVENT,
+} from "../lib/turn-binding-store.js";
+import {
+  appendEvent,
+  appendEventIfHead,
+  createBranchSession,
+  findLatestEvent,
+  rebuildMessages,
+} from "../harness/jsonl-session-store.js";
 import { registerManagedCheckpointCommands } from "./checkpoint-managed.js";
 
 /** git-plumbing engine adapter (normalized interface). */
@@ -126,6 +150,48 @@ async function pickEngine(dir, session) {
   return copyEngine(cs, dir);
 }
 
+function loadTimelineContext(engine, sessionId) {
+  const binding = loadTurnBindingLog(sessionId);
+  const checkpoints = engine.list();
+  const headHash = findLatestEvent(sessionId, null)?.hash || null;
+  const timeline = buildCheckpointTimeline({
+    sessionId,
+    turns: binding,
+    checkpoints,
+    headHash,
+  });
+  return {
+    binding,
+    checkpoints,
+    headHash,
+    timeline,
+    messages: rebuildMessages(sessionId),
+  };
+}
+
+function printTimelineActionResult(result, asJson) {
+  if (asJson) {
+    console.log(JSON.stringify(result, null, 2));
+    return;
+  }
+  if (result?.ok === false) {
+    logger.error(
+      chalk.red(
+        `${result.code || "TIMELINE_ACTION_FAILED"}: ${result.error || "request rejected"}`,
+      ),
+    );
+    return;
+  }
+  logger.log(
+    chalk.green(
+      `${result.mode === "preview" ? "Preview" : "Completed"}: ${result.action} at ${result.turnId}`,
+    ),
+  );
+  for (const warning of result.warnings || []) {
+    logger.log(chalk.yellow(`  ${warning}`));
+  }
+}
+
 const tag = (engine) => chalk.dim(engine.kind === "git" ? "[git]" : "[copy]");
 
 export function registerCheckpointCommand(program) {
@@ -222,6 +288,227 @@ export function registerCheckpointCommand(program) {
         }
       } catch (err) {
         logger.error(chalk.red(`checkpoint list failed: ${err.message}`));
+        process.exitCode = 1;
+      }
+    });
+
+  cp.command("timeline")
+    .description(
+      "Project persisted turns, checkpoints, side effects, and rewind actions",
+    )
+    .option("-d, --dir <dir>", "Target directory", ".")
+    .option("-s, --session <id>", "Checkpoint/session binding", "default")
+    .option("--json", "Output the canonical versioned projection as JSON")
+    .action(async (options) => {
+      try {
+        const dir = resolve(options.dir);
+        const engine = await pickEngine(dir, options.session);
+        const { timeline } = loadTimelineContext(engine, options.session);
+        if (options.json) {
+          console.log(JSON.stringify(timeline, null, 2));
+          return;
+        }
+
+        const projection = projectCheckpointTimeline(timeline);
+        if (projection.entries.length === 0) {
+          logger.log(
+            chalk.gray(
+              timeline.unboundMarkers.length > 0
+                ? `${timeline.unboundMarkers.length} checkpoint/marker(s) are not bound to a persisted turn.`
+                : "No persisted checkpoint timeline for this session.",
+            ),
+          );
+          return;
+        }
+        for (const entry of projection.entries) {
+          const coverage =
+            entry.coverage === "full"
+              ? chalk.green(entry.coverage)
+              : entry.coverage === "partial"
+                ? chalk.yellow(entry.coverage)
+                : chalk.red(entry.coverage);
+          logger.log(
+            `${chalk.cyan(entry.turnId)}  ${coverage}  ` +
+              `${entry.markerKinds.join(", ") || "no markers"}  ` +
+              `${entry.enabledActions.join(", ") || "no actions"}`,
+          );
+          if (entry.excludedPaths.length > 0) {
+            logger.log(
+              chalk.yellow(`  excluded: ${entry.excludedPaths.join(", ")}`),
+            );
+          }
+          if (entry.irreversibleSideEffects.length > 0) {
+            logger.log(
+              chalk.red(
+                `  irreversible: ${entry.irreversibleSideEffects.join(", ")}`,
+              ),
+            );
+          }
+        }
+      } catch (err) {
+        logger.error(chalk.red(`checkpoint timeline failed: ${err.message}`));
+        process.exitCode = 1;
+      }
+    });
+
+  cp.command("action")
+    .description(
+      "Preview or commit a CLI-authored checkpoint timeline submission",
+    )
+    .requiredOption(
+      "--submission <json>",
+      "Exact action envelope embedded in checkpoint timeline --json",
+    )
+    .option("-d, --dir <dir>", "Target directory", ".")
+    .option("-s, --session <id>", "Checkpoint/session binding", "default")
+    .option("--preview", "Validate and preview without writing")
+    .option("--confirm", "Commit after an IDE/user confirmation")
+    .option("--json", "Output the versioned result as JSON")
+    .action(async (options) => {
+      let output;
+      try {
+        if (options.preview === options.confirm) {
+          const error = new Error(
+            "choose exactly one of --preview or --confirm",
+          );
+          error.code = "TIMELINE_CONFIRMATION_REQUIRED";
+          throw error;
+        }
+        if (String(options.submission).length > 16_384) {
+          const error = new Error("timeline submission is too large");
+          error.code = "TIMELINE_SUBMISSION_INVALID";
+          throw error;
+        }
+        let submission;
+        try {
+          submission = JSON.parse(options.submission);
+        } catch {
+          const error = new Error("timeline submission must be valid JSON");
+          error.code = "TIMELINE_SUBMISSION_INVALID";
+          throw error;
+        }
+
+        const dir = resolve(options.dir);
+        const engine = await pickEngine(dir, options.session);
+        const context = loadTimelineContext(engine, options.session);
+        const validation = validateCheckpointTimelineSubmission(
+          context.timeline,
+          submission,
+        );
+        if (!validation.ok) {
+          const error = new Error(
+            validation.code === "TIMELINE_STALE"
+              ? "checkpoint timeline is stale; refresh before retrying"
+              : "checkpoint timeline submission was rejected",
+          );
+          error.code = validation.code;
+          throw error;
+        }
+        let codePreview = null;
+        if (
+          submission.action === "restore-code" ||
+          submission.action === "restore-both"
+        ) {
+          codePreview = engine.status(submission.checkpointId);
+        }
+        const planned = planCheckpointTimelineAction({
+          timeline: context.timeline,
+          submission,
+          messages: context.messages,
+          codePreview,
+        });
+        if (!planned.ok) {
+          const error = new Error(
+            planned.code === "TIMELINE_STALE"
+              ? "checkpoint timeline is stale; refresh before retrying"
+              : "checkpoint timeline submission was rejected",
+          );
+          error.code = planned.code;
+          throw error;
+        }
+        if (options.preview) {
+          output = planned.preview;
+          printTimelineActionResult(output, options.json);
+          return;
+        }
+
+        // Claim the exact preview revision before any mutation. This CAS runs
+        // under the canonical transcript writer lock; another session writer
+        // advancing the head makes the submission stale before code/history is
+        // touched.
+        const intent = appendEventIfHead(
+          options.session,
+          CHECKPOINT_TIMELINE_INTENT_EVENT,
+          {
+            revision: context.timeline.revision,
+            action: submission.action,
+            turnId: submission.turnId,
+          },
+          context.headHash,
+        );
+        const result = {};
+
+        if (
+          submission.action === "restore-code" ||
+          submission.action === "restore-both"
+        ) {
+          result.code = engine.restore(submission.checkpointId);
+        }
+
+        if (planned.commit.branchPlan) {
+          result.branch = createBranchSession({
+            branchSessionId: planned.commit.branchPlan.branchSessionId,
+            parentSessionId: options.session,
+            parentTurnId: submission.turnId,
+            messages: planned.commit.messages,
+            meta: { title: `Branch of ${options.session}` },
+          });
+        } else if (planned.commit.messages) {
+          context.binding.pruneFromOffset(planned.commit.bindingPruneOffset);
+          const committed = appendEventIfHead(
+            options.session,
+            TURN_BINDING_TIMELINE_EVENT,
+            {
+              action: submission.action,
+              sourceRevision: context.timeline.revision,
+              turnId: submission.turnId,
+              messages: planned.commit.messages,
+              binding: context.binding.toJSON(),
+            },
+            intent.hash,
+          );
+          result.conversation = {
+            messages: planned.commit.messages.length,
+            commitHash: committed.hash,
+          };
+        }
+
+        appendEvent(options.session, CHECKPOINT_TIMELINE_AUDIT_EVENT, {
+          revision: context.timeline.revision,
+          action: submission.action,
+          turnId: submission.turnId,
+          status: "completed",
+          branchSessionId: result.branch?.branchSessionId || null,
+          safetyCheckpointId: result.code?.safetyId || null,
+        });
+        const nextContext = loadTimelineContext(engine, options.session);
+        output = {
+          schema: CHECKPOINT_TIMELINE_RESULT_SCHEMA,
+          version: CHECKPOINT_TIMELINE_RESULT_VERSION,
+          ok: true,
+          mode: "executed",
+          action: submission.action,
+          sessionId: options.session,
+          turnId: submission.turnId,
+          revision: context.timeline.revision,
+          nextRevision: nextContext.timeline.revision,
+          result,
+          warnings: planned.preview.warnings,
+        };
+        printTimelineActionResult(output, options.json);
+      } catch (error) {
+        output = timelineActionError(error);
+        printTimelineActionResult(output, options.json);
         process.exitCode = 1;
       }
     });

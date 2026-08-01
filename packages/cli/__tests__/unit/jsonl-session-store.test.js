@@ -5,6 +5,8 @@ import {
   existsSync,
   writeFileSync,
   readFileSync,
+  appendFileSync,
+  statSync,
 } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -26,9 +28,13 @@ const {
   appendCompactEvent,
   appendEvent,
   readEvents,
+  findLatestEvent,
   rebuildMessages,
+  getJsonlSessionMetadata,
   listJsonlSessions,
   renameSession,
+  deleteJsonlSession,
+  resolveSessionId,
   pruneJsonlSessions,
   forkSession,
   createBranchSession,
@@ -43,6 +49,7 @@ const {
   toIsoSafe,
   verifySession,
   verifyAllSessions,
+  repairSession,
 } = await import("../../src/lib/jsonl-session-store.js");
 
 describe("jsonl-session-store", () => {
@@ -135,6 +142,13 @@ describe("jsonl-session-store", () => {
       expect(events[0].data.provider).toBe("ollama");
       expect(events[0].timestamp).toBeGreaterThan(0);
     });
+
+    it("uses owner-only directory and transcript modes on POSIX", () => {
+      if (process.platform === "win32") return;
+      const id = startSession("private-session");
+      expect(statSync(sessionsDir).mode & 0o777).toBe(0o700);
+      expect(statSync(sessionPath(id)).mode & 0o777).toBe(0o600);
+    });
   });
 
   // ── append operations ─────────────────────────────────────────────
@@ -215,6 +229,33 @@ describe("jsonl-session-store", () => {
       expect(messages[1]).toEqual({ role: "assistant", content: "hi" });
     });
 
+    it("reads metadata and the latest snapshot without materializing all events", () => {
+      const id = startSession("metadata-latest", {
+        title: "Original",
+        provider: "provider-a",
+        model: "model-a",
+      });
+      appendEvent(id, "snapshot", { sequence: 1 });
+      appendUserMessage(id, "large-prefix");
+      appendEvent(id, "snapshot", { sequence: 2 });
+      renameSession(id, "Renamed");
+
+      expect(getJsonlSessionMetadata(id)).toMatchObject({
+        id,
+        title: "Renamed",
+        provider: "provider-a",
+        model: "model-a",
+        message_count: 1,
+      });
+      expect(findLatestEvent(id, "snapshot")?.data).toEqual({ sequence: 2 });
+      expect(
+        findLatestEvent(id, ["snapshot", "user_message"], (event) =>
+          String(event.data?.sequence || "").includes("1"),
+        )?.data,
+      ).toEqual({ sequence: 1 });
+      expect(findLatestEvent(id, "missing")).toBeNull();
+    });
+
     it("rebuilds from last compact event if present", () => {
       const id = startSession("s8");
       appendUserMessage(id, "old msg 1");
@@ -273,6 +314,40 @@ describe("jsonl-session-store", () => {
       expect(messages).toEqual([
         { role: "user", content: "hi" },
         { role: "assistant", content: "yo" },
+      ]);
+    });
+
+    it("restores from the newest compact checkpoint without retaining its large prefix", () => {
+      const id = "s-large-checkpoint";
+      const prefix = Array.from({ length: 4_000 }, (_, index) =>
+        JSON.stringify({
+          type: index % 2 ? "assistant_message" : "user_message",
+          timestamp: index + 1,
+          data: {
+            role: index % 2 ? "assistant" : "user",
+            content: `${index}:${"x".repeat(256)}`,
+          },
+        }),
+      );
+      const checkpoint = JSON.stringify({
+        type: "compact",
+        timestamp: 5_000,
+        data: { messages: [{ role: "system", content: "bounded summary" }] },
+      });
+      const suffix = JSON.stringify({
+        type: "user_message",
+        timestamp: 5_001,
+        data: { role: "user", content: "new turn" },
+      });
+      writeFileSync(
+        sessionPath(id),
+        `${prefix.join("\n")}\n${checkpoint}\n${suffix}\n`,
+        "utf8",
+      );
+
+      expect(rebuildMessages(id)).toEqual([
+        { role: "system", content: "bounded summary" },
+        { role: "user", content: "new turn" },
       ]);
     });
 
@@ -403,6 +478,33 @@ describe("jsonl-session-store", () => {
       expect(() => renameSession("rn-nope", "x")).toThrow(/not found/i);
       startSession("rn-2", { title: "T" });
       expect(() => renameSession("rn-2", "   ")).toThrow(/non-empty/i);
+    });
+  });
+
+  describe("canonical id resolution and deletion", () => {
+    it("resolves one prefix and rejects ambiguous prefixes", () => {
+      startSession("resolve-aaa");
+      expect(resolveSessionId("resolve-a")).toBe("resolve-aaa");
+      expect(resolveSessionId("resolve-aaa")).toBe("resolve-aaa");
+      startSession("resolve-aab");
+      expect(() => resolveSessionId("resolve-aa")).toThrow(/ambiguous/i);
+      expect(resolveSessionId("missing")).toBeNull();
+    });
+
+    it("tombstones deletion so stale non-start writers cannot resurrect it", () => {
+      startSession("delete-me", { title: "D" });
+      expect(deleteJsonlSession("delete-me")).toBe(true);
+      expect(sessionExists("delete-me")).toBe(false);
+      expect(() => appendUserMessage("delete-me", "late")).toThrowError(
+        expect.objectContaining({ code: "SESSION_DELETED" }),
+      );
+      expect(sessionExists("delete-me")).toBe(false);
+
+      // An explicit new session_start is the only operation allowed to reuse
+      // a tombstoned id, and starts a new genesis chain.
+      startSession("delete-me", { title: "Recreated" });
+      expect(verifySession("delete-me").status).toBe("verified");
+      expect(readEvents("delete-me")[0].prevHash).toBeNull();
     });
   });
 
@@ -841,6 +943,94 @@ describe("jsonl-session-store", () => {
       expect(ids).toContain("all-a");
       expect(ids).toContain("all-b");
       expect(results.every((r) => r.status === "verified")).toBe(true);
+    });
+
+    it("dry-runs then discards at most one crash-partial final record", () => {
+      const id = startSession("chain-repair", { title: "Repair" });
+      appendUserMessage(id, "kept");
+      const partial = '{"type":"assistant_message","timestamp":';
+      appendFileSync(sessionPath(id), partial, "utf8");
+
+      expect(verifySession(id).truncatedTail).toBe(true);
+      const beforeBytes = readFileSync(sessionPath(id));
+      const plan = repairSession(id, { dryRun: true });
+      expect(plan).toMatchObject({
+        healthy: false,
+        changed: true,
+        wouldChange: true,
+        action: "discard-partial-record",
+        discardedBytes: Buffer.byteLength(partial),
+        discardedRecords: 1,
+      });
+      expect(readFileSync(sessionPath(id))).toEqual(beforeBytes);
+
+      const repaired = repairSession(id);
+      expect(repaired).toMatchObject({
+        healthy: true,
+        changed: true,
+        action: "discard-partial-record",
+        discardedRecords: 1,
+        status: "verified",
+      });
+      expect(verifySession(id)).toMatchObject({
+        status: "verified",
+        truncatedTail: false,
+      });
+      expect(readEvents(id).map((event) => event.type)).toEqual([
+        "session_start",
+        "user_message",
+      ]);
+    });
+
+    it("normalizes a valid final record missing only its newline", () => {
+      const id = startSession("chain-newline", { title: "N" });
+      appendUserMessage(id, "last");
+      const bytes = readFileSync(sessionPath(id));
+      writeFileSync(sessionPath(id), bytes.subarray(0, bytes.length - 1));
+
+      const repaired = repairSession(id);
+      expect(repaired).toMatchObject({
+        healthy: true,
+        action: "normalize-newline",
+        discardedBytes: 0,
+        discardedRecords: 0,
+      });
+      expect(readFileSync(sessionPath(id), "utf8").endsWith("\n")).toBe(true);
+    });
+
+    it("never rewrites interior hash-chain tampering or claims success", () => {
+      const id = startSession("chain-repair-refuse", { title: "T" });
+      appendUserMessage(id, "original");
+      const raw = readFileSync(sessionPath(id), "utf8");
+      writeFileSync(sessionPath(id), raw.replace("original", "tampered"));
+
+      const before = readFileSync(sessionPath(id));
+      const result = repairSession(id);
+      expect(result).toMatchObject({
+        changed: false,
+        healthy: false,
+        status: "tampered",
+      });
+      expect(result.reason).toMatch(/hash|content/i);
+      expect(readFileSync(sessionPath(id))).toEqual(before);
+    });
+
+    it("auto-recovers one partial tail under the append lock", () => {
+      const id = startSession("chain-auto-recover", { title: "R" });
+      appendFileSync(sessionPath(id), "{crash", "utf8");
+      const result = appendEvent(id, "user_message", {
+        role: "user",
+        content: "after",
+      });
+      expect(result.recovery).toMatchObject({
+        action: "discard-partial-record",
+        discardedRecords: 1,
+      });
+      expect(verifySession(id).status).toBe("verified");
+      expect(readEvents(id).map((event) => event.type)).toEqual([
+        "session_start",
+        "user_message",
+      ]);
     });
 
     it("self-heals the chain-tail cache when the file is deleted externally", () => {

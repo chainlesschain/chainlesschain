@@ -115,6 +115,9 @@ final class ConversationView {
     // True while a send is being spawned/delivered off-EDT; further Enter presses
     // are ignored instead of double-sending the same composer text.
     private volatile boolean sendInFlight = false;
+    // True from a successfully submitted user turn through turn_end. Timeline
+    // restores are disabled while the live child may still mutate files/state.
+    private volatile boolean turnActive = false;
     // Set by dispose(): sendExecutor.shutdown() lets ALREADY-QUEUED tasks run,
     // and ensureSession() would happily spawn a fresh cc child for the dead
     // view — checked at the top of ensureSession and every queued task body.
@@ -243,6 +246,7 @@ final class ConversationView {
                 // stop (interrupt rides stdin, which a hung child never reads).
                 interruptRequested = null;
                 conv.session = null;
+                turnActive = false;
                 append("⏹ force-stopped the agent process — next message restarts it\n");
                 ApplicationManager.getApplication().executeOnPooledThread(s::stop);
                 return;
@@ -524,6 +528,7 @@ final class ConversationView {
                         append("⚠ failed to start `cc` (is the ChainlessChain CLI installed and on "
                                 + "PATH?): " + err + "\n");
                     } else if (ok) {
+                        turnActive = true;
                         if (!text.isEmpty()) lastSentPrompt = text; // for /retry
                         String tag = imgs.isEmpty() ? ""
                                 : (text.isEmpty() ? "" : " ") + "[📷 " + imgs.size() + "]";
@@ -880,8 +885,21 @@ final class ConversationView {
             append("ℹ /rewind: send a message first — no session yet.\n");
             return;
         }
+        if (sendInFlight || turnActive) {
+            append("ℹ /rewind: stop the active turn before opening the checkpoint timeline.\n");
+            return;
+        }
         final File cwd = project.getBasePath() != null ? new File(project.getBasePath()) : null;
         ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            String projected = AgentChatSession.runCapture(
+                    RewindCommands.buildTimelineArgs(sid), cwd, 30000);
+            final RewindCommands.TimelineProjection timeline =
+                    RewindCommands.parseTimelineProjection(projected);
+            if (timeline != null) {
+                SwingUtilities.invokeLater(() -> showCheckpointTimeline(sid, timeline, cwd));
+                return;
+            }
+            // Compatibility fallback for older installed CLIs.
             String out = AgentChatSession.runCapture(RewindCommands.buildListArgs(sid), cwd, 30000);
             final List<RewindCommands.Checkpoint> list = RewindCommands.parseCheckpointList(out);
             SwingUtilities.invokeLater(() -> {
@@ -905,6 +923,168 @@ final class ConversationView {
                         .showCenteredInCurrentWindow(project);
             });
         });
+    }
+
+    /** Two-stage native chooser: canonical turn projection, then CLI-enabled action. */
+    private void showCheckpointTimeline(String sid,
+            RewindCommands.TimelineProjection timeline, File cwd) {
+        if (timeline.entries.isEmpty()) {
+            append("ℹ /rewind: this session has no persisted timeline entries yet.\n");
+            return;
+        }
+        java.util.List<String> labels = new java.util.ArrayList<>();
+        for (RewindCommands.TimelineEntry entry : timeline.entries) {
+            labels.add(RewindCommands.timelineEntryLabel(entry));
+        }
+        JBPopupFactory.getInstance()
+                .createPopupChooserBuilder(labels)
+                .setTitle("Checkpoint timeline — choose a turn")
+                .setItemChosenCallback(label -> {
+                    int index = labels.indexOf(label);
+                    if (index >= 0) showTimelineActions(
+                            sid, timeline.entries.get(index), cwd);
+                })
+                .createPopup()
+                .showCenteredInCurrentWindow(project);
+    }
+
+    private void showTimelineActions(String sid,
+            RewindCommands.TimelineEntry entry, File cwd) {
+        java.util.List<String> labels = new java.util.ArrayList<>();
+        java.util.List<String> actions = new java.util.ArrayList<>();
+        for (String action : entry.enabledActions) {
+            if (entry.actionSubmission(action) == null) continue;
+            actions.add(action);
+            labels.add(RewindCommands.timelineActionLabel(action));
+        }
+        if (labels.isEmpty()) {
+            append("ℹ /rewind: no CLI-enabled actions for " + entry.turnId + ".\n");
+            return;
+        }
+        JBPopupFactory.getInstance()
+                .createPopupChooserBuilder(labels)
+                .setTitle("Action at " + entry.turnId)
+                .setItemChosenCallback(label -> {
+                    int index = labels.indexOf(label);
+                    if (index < 0) return;
+                    String action = actions.get(index);
+                    Map<String, Object> submission = entry.actionSubmission(action);
+                    previewTimelineAction(sid, entry, action, submission, cwd);
+                })
+                .createPopup()
+                .showCenteredInCurrentWindow(project);
+    }
+
+    private void previewTimelineAction(String sid,
+            RewindCommands.TimelineEntry entry, String action,
+            Map<String, Object> submission, File cwd) {
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            String raw = AgentChatSession.runCapture(
+                    RewindCommands.buildTimelineActionArgs(
+                            submission, true, false), cwd, 30000);
+            final Map<String, Object> preview =
+                    RewindCommands.parseTimelineActionResult(raw);
+            SwingUtilities.invokeLater(() -> {
+                if (preview == null || preview.get("ok") != Boolean.TRUE) {
+                    append("⚠ /rewind preview failed: "
+                            + timelineFailure(preview, raw) + "\n");
+                    return;
+                }
+                String body = RewindCommands.formatTimelinePreview(preview);
+                if (!confirmTimelineAction(
+                        RewindCommands.timelineActionLabel(action), body)) {
+                    append("ℹ /rewind: cancelled — no changes made\n");
+                    return;
+                }
+                if (!sid.equals(conv.sessionId) || sendInFlight || turnActive) {
+                    append("⚠ /rewind: timeline became stale in the panel; reopen it.\n");
+                    return;
+                }
+                AgentChatSession live = liveSession();
+                conv.session = null;
+                interruptRequested = null;
+                ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                    if (live != null) live.stop();
+                    String executedRaw = AgentChatSession.runCapture(
+                            RewindCommands.buildTimelineActionArgs(
+                                    submission, false, true), cwd, 60000);
+                    final Map<String, Object> executed =
+                            RewindCommands.parseTimelineActionResult(executedRaw);
+                    SwingUtilities.invokeLater(() -> finishTimelineAction(
+                            sid, entry, action, executed, executedRaw));
+                });
+            });
+        });
+    }
+
+    @SuppressWarnings("unchecked")
+    private void finishTimelineAction(String sid, RewindCommands.TimelineEntry entry,
+            String action, Map<String, Object> executed, String raw) {
+        if (executed == null || executed.get("ok") != Boolean.TRUE) {
+            append("⚠ /rewind failed: " + timelineFailure(executed, raw) + "\n");
+            return;
+        }
+        String branchId = null;
+        Object resultObject = executed.get("result");
+        if (resultObject instanceof Map) {
+            Object branchObject = ((Map<String, Object>) resultObject).get("branch");
+            if (branchObject instanceof Map) {
+                Object value = ((Map<String, Object>) branchObject).get("branchSessionId");
+                if (value instanceof String && !((String) value).isEmpty()) {
+                    branchId = (String) value;
+                }
+            }
+        }
+        boolean changesConversation = "restore-conversation".equals(action)
+                || "restore-both".equals(action)
+                || "summary-from".equals(action)
+                || "summary-to".equals(action);
+        if (branchId != null) {
+            conv.sessionId = branchId;
+            if (sessionIdSink != null) sessionIdSink.onSessionId(conv.id, branchId);
+            transcript.clear();
+            indexConversation("stopped");
+        } else if (changesConversation) {
+            conv.sessionId = sid;
+            transcript.clear();
+            indexConversation("stopped");
+        }
+        append("✓ " + RewindCommands.timelineActionLabel(action)
+                + " completed at " + entry.turnId
+                + (branchId != null ? " — branch " + branchId + " is ready" : "")
+                + "\n");
+    }
+
+    private String timelineFailure(Map<String, Object> result, String raw) {
+        if (result != null && result.get("code") != null) {
+            return String.valueOf(result.get("code"));
+        }
+        String value = raw == null ? "" : raw.trim();
+        return value.isEmpty() ? "unsupported response" : value;
+    }
+
+    /** Read-only preview with an explicit confirmation button. */
+    private boolean confirmTimelineAction(String actionLabel, String preview) {
+        JPanel panel = new JPanel(new BorderLayout(0, 6));
+        panel.add(new JLabel("<html><b>" + escapeHtml(actionLabel)
+                + "</b><br>The CLI will re-check the projection revision before writing.</html>"),
+                BorderLayout.NORTH);
+        JTextArea area = new JTextArea(preview == null || preview.isEmpty()
+                ? "(no preview details available)" : preview);
+        area.setEditable(false);
+        area.setFont(new java.awt.Font(java.awt.Font.MONOSPACED, java.awt.Font.PLAIN,
+                area.getFont().getSize()));
+        area.setCaretPosition(0);
+        JScrollPane scroll = new JScrollPane(area);
+        scroll.setPreferredSize(new java.awt.Dimension(680, 420));
+        panel.add(scroll, BorderLayout.CENTER);
+        com.intellij.openapi.ui.DialogBuilder builder =
+                new com.intellij.openapi.ui.DialogBuilder(project);
+        builder.setTitle("Checkpoint timeline preview");
+        builder.setCenterPanel(panel);
+        builder.addOkAction().setText("Confirm action");
+        builder.addCancelAction();
+        return builder.show() == com.intellij.openapi.ui.DialogWrapper.OK_EXIT_CODE;
     }
 
     /**
@@ -1400,6 +1580,7 @@ final class ConversationView {
             contextLabel.setText(" " + turnTokens.statusLine());
             contextLabel.setForeground(com.intellij.ui.JBColor.GRAY);
         } else if ("turn_end".equals(kind)) {
+            turnActive = false;
             indexConversation("completed");
             Object text = ui.get("text");
             // The final result text only arrives here when nothing streamed; run

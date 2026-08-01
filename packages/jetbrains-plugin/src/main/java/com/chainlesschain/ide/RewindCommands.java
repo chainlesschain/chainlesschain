@@ -2,8 +2,11 @@ package com.chainlesschain.ide;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Panel {@code /rewind} (checkpoint restore) — the Java twin of the VS Code
@@ -14,6 +17,22 @@ import java.util.Map;
  * the glue drives {@code AgentChatSession.runCapture} + a chooser around them.
  */
 public final class RewindCommands {
+
+    public static final String TIMELINE_SCHEMA = "cc-checkpoint-timeline/v1";
+    public static final int TIMELINE_VERSION = 1;
+    public static final String TIMELINE_ACTION_SCHEMA = "cc-checkpoint-timeline-action/v1";
+    public static final int TIMELINE_ACTION_VERSION = 1;
+    public static final String TIMELINE_RESULT_SCHEMA = "cc-checkpoint-timeline-result/v1";
+    public static final int TIMELINE_RESULT_VERSION = 1;
+    private static final int MAX_TIMELINE_ENTRIES = 1000;
+    private static final int MAX_TIMELINE_LIST = 256;
+    private static final Set<String> TIMELINE_COVERAGES = new HashSet<String>(Arrays.asList(
+            "full", "partial", "none"));
+    private static final Set<String> TIMELINE_MARKERS = new HashSet<String>(Arrays.asList(
+            "checkpoint", "commit", "tool-side-effect", "artifact", "verification"));
+    private static final Set<String> TIMELINE_ACTIONS = new HashSet<String>(Arrays.asList(
+            "restore-code", "restore-conversation", "restore-both",
+            "summary-from", "summary-to", "branch"));
 
     private RewindCommands() {}
 
@@ -29,6 +48,76 @@ public final class RewindCommands {
             this.createdAt = createdAt;
             this.label = label;
             this.fileCount = fileCount;
+        }
+    }
+
+    /** One bounded, display-ready row from the CLI-authored timeline. */
+    public static final class TimelineEntry {
+        public final String turnId;
+        public final String coverage;
+        public final List<String> markerKinds;
+        public final List<String> enabledActions;
+        public final List<String> excludedPaths;
+        public final List<String> irreversibleSideEffects;
+        private final Map<String, Map<String, Object>> submissions;
+
+        TimelineEntry(String turnId, String coverage, List<String> markerKinds,
+                List<String> enabledActions, List<String> excludedPaths,
+                List<String> irreversibleSideEffects,
+                Map<String, Map<String, Object>> submissions) {
+            this.turnId = turnId;
+            this.coverage = coverage;
+            this.markerKinds = markerKinds;
+            this.enabledActions = enabledActions;
+            this.excludedPaths = excludedPaths;
+            this.irreversibleSideEffects = irreversibleSideEffects;
+            this.submissions = submissions;
+        }
+
+        /** Exact CLI-authored envelope, copied so callers cannot mutate the projection. */
+        public Map<String, Object> actionSubmission(String action) {
+            return copyMap(submissions.get(action));
+        }
+    }
+
+    /** Versioned host projection; availability is never recomputed by the IDE. */
+    public static final class TimelineProjection {
+        public final String sessionId;
+        public final String revision;
+        public final List<TimelineEntry> entries;
+
+        TimelineProjection(String sessionId, String revision, List<TimelineEntry> entries) {
+            this.sessionId = sessionId;
+            this.revision = revision;
+            this.entries = entries;
+        }
+
+        /** Small shared shape consumed by renderers and cross-host fixtures. */
+        public Map<String, Object> hostProjection() {
+            Map<String, Object> root = new LinkedHashMap<String, Object>();
+            root.put("sessionId", sessionId);
+            root.put("revision", revision);
+            List<Object> rows = new ArrayList<Object>();
+            for (TimelineEntry entry : entries) {
+                Map<String, Object> row = new LinkedHashMap<String, Object>();
+                row.put("turnId", entry.turnId);
+                row.put("coverage", entry.coverage);
+                row.put("markerKinds", new ArrayList<String>(entry.markerKinds));
+                row.put("enabledActions", new ArrayList<String>(entry.enabledActions));
+                row.put("excludedPaths", new ArrayList<String>(entry.excludedPaths));
+                row.put("irreversibleSideEffects",
+                        new ArrayList<String>(entry.irreversibleSideEffects));
+                rows.add(row);
+            }
+            root.put("entries", rows);
+            return root;
+        }
+
+        public Map<String, Object> actionSubmission(String turnId, String action) {
+            for (TimelineEntry entry : entries) {
+                if (entry.turnId.equals(turnId)) return entry.actionSubmission(action);
+            }
+            return null;
         }
     }
 
@@ -59,6 +148,248 @@ public final class RewindCommands {
         return new ArrayList<String>(Arrays.asList(
                 "checkpoint", "show", id == null ? "" : id,
                 "--diff", "-s", orDefault(sessionId), "--json"));
+    }
+
+    /** Read-only canonical projection; the CLI remains the sole write authority. */
+    public static List<String> buildTimelineArgs(String sessionId) {
+        return new ArrayList<String>(Arrays.asList(
+                "checkpoint", "timeline", "-s", orDefault(sessionId), "--json"));
+    }
+
+    /** Parse the CLI timeline JSON, returning null for any unsupported root contract. */
+    public static TimelineProjection parseTimelineProjection(String stdout) {
+        Object parsed;
+        try {
+            parsed = MiniJson.parse(stdout == null ? "" : stdout.trim());
+        } catch (RuntimeException e) {
+            return null;
+        }
+        return parseTimelineProjection(parsed);
+    }
+
+    /** Object overload lets conformance tests consume one shared fixture without re-encoding it. */
+    @SuppressWarnings("unchecked")
+    public static TimelineProjection parseTimelineProjection(Object parsed) {
+        if (!(parsed instanceof Map)) return null;
+        Map<String, Object> root = (Map<String, Object>) parsed;
+        if (!TIMELINE_SCHEMA.equals(root.get("schema"))
+                || !numberEquals(root.get("version"), TIMELINE_VERSION)
+                || !"cli".equals(root.get("authority"))
+                || !TIMELINE_ACTION_SCHEMA.equals(root.get("actionSchema"))
+                || !(root.get("sessionId") instanceof String)
+                || ((String) root.get("sessionId")).isEmpty()
+                || !(root.get("revision") instanceof String)
+                || ((String) root.get("revision")).isEmpty()
+                || !(root.get("entries") instanceof List)
+                || ((List<?>) root.get("entries")).size() > MAX_TIMELINE_ENTRIES) {
+            return null;
+        }
+
+        String sessionId = (String) root.get("sessionId");
+        String revision = (String) root.get("revision");
+        List<TimelineEntry> entries = new ArrayList<TimelineEntry>();
+        for (Object rawEntry : (List<?>) root.get("entries")) {
+            if (!(rawEntry instanceof Map)) return null;
+            Map<String, Object> source = (Map<String, Object>) rawEntry;
+            if (!(source.get("turnId") instanceof String)
+                    || ((String) source.get("turnId")).isEmpty()
+                    || !TIMELINE_COVERAGES.contains(source.get("coverage"))
+                    || !(source.get("markers") instanceof List)
+                    || !(source.get("actions") instanceof List)) {
+                return null;
+            }
+            String turnId = (String) source.get("turnId");
+            List<String> markerKinds = new ArrayList<String>();
+            int markerCount = 0;
+            for (Object rawMarker : (List<?>) source.get("markers")) {
+                if (markerCount++ >= MAX_TIMELINE_LIST) break;
+                if (!(rawMarker instanceof Map)) continue;
+                Object kind = ((Map<?, ?>) rawMarker).get("kind");
+                if (kind instanceof String && TIMELINE_MARKERS.contains(kind)) {
+                    markerKinds.add((String) kind);
+                }
+            }
+
+            List<String> enabledActions = new ArrayList<String>();
+            Map<String, Map<String, Object>> submissions =
+                    new LinkedHashMap<String, Map<String, Object>>();
+            int actionCount = 0;
+            for (Object rawAction : (List<?>) source.get("actions")) {
+                if (actionCount++ >= MAX_TIMELINE_LIST) break;
+                if (!(rawAction instanceof Map)) continue;
+                Map<String, Object> candidate = (Map<String, Object>) rawAction;
+                Object actionObject = candidate.get("action");
+                if (!(actionObject instanceof String)
+                        || !TIMELINE_ACTIONS.contains(actionObject)) continue;
+                String action = (String) actionObject;
+                Map<String, Object> submission = candidate.get("enabled") == Boolean.TRUE
+                        ? validSubmission(candidate.get("submission"), sessionId,
+                                revision, turnId, action)
+                        : null;
+                if (submission != null) {
+                    enabledActions.add(action);
+                    submissions.put(action, submission);
+                }
+            }
+            entries.add(new TimelineEntry(
+                    turnId,
+                    (String) source.get("coverage"),
+                    markerKinds,
+                    enabledActions,
+                    boundedStrings(source.get("excludedPaths")),
+                    boundedStrings(source.get("irreversibleSideEffects")),
+                    submissions));
+        }
+        return new TimelineProjection(sessionId, revision, entries);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> validSubmission(Object raw, String sessionId,
+            String revision, String turnId, String action) {
+        if (!(raw instanceof Map)) return null;
+        Map<String, Object> submission = (Map<String, Object>) raw;
+        if (!TIMELINE_ACTION_SCHEMA.equals(submission.get("schema"))
+                || !numberEquals(submission.get("version"), TIMELINE_ACTION_VERSION)
+                || !"cli".equals(submission.get("authority"))
+                || !revision.equals(submission.get("revision"))
+                || !action.equals(submission.get("action"))
+                || !sessionId.equals(submission.get("sessionId"))
+                || !turnId.equals(submission.get("turnId"))) {
+            return null;
+        }
+        Object checkpointId = submission.get("checkpointId");
+        if (checkpointId != null && !(checkpointId instanceof String)) return null;
+        Object offset = submission.get("conversationOffset");
+        if (offset != null && (!isNonNegativeInteger(offset))) return null;
+        return copyMap(submission);
+    }
+
+    /** Serialize the exact embedded envelope for CLI preview/commit. */
+    public static List<String> buildTimelineActionArgs(Map<String, Object> submission,
+            boolean preview, boolean confirm) {
+        if (submission == null || preview == confirm
+                || !(submission.get("sessionId") instanceof String)) {
+            return new ArrayList<String>();
+        }
+        return new ArrayList<String>(Arrays.asList(
+                "checkpoint", "action", "-s", String.valueOf(submission.get("sessionId")),
+                "--submission", MiniJson.stringify(submission),
+                preview ? "--preview" : "--confirm", "--json"));
+    }
+
+    /** Native chooser label that makes coverage and marker kinds visible. */
+    public static String timelineEntryLabel(TimelineEntry entry) {
+        return entry.coverage + "  " + entry.turnId + "  "
+                + (entry.markerKinds.isEmpty() ? "no markers"
+                        : String.join(" · ", entry.markerKinds));
+    }
+
+    public static String timelineActionLabel(String action) {
+        if ("restore-code".equals(action)) return "Restore code";
+        if ("restore-conversation".equals(action)) return "Restore conversation";
+        if ("restore-both".equals(action)) return "Restore code + conversation";
+        if ("summary-from".equals(action)) return "Summarize from here";
+        if ("summary-to".equals(action)) return "Summarize up to here";
+        if ("branch".equals(action)) return "Branch from here";
+        return action;
+    }
+
+    /** Strict parser for preview/execution output; null on protocol drift. */
+    public static Map<String, Object> parseTimelineActionResult(String stdout) {
+        Object parsed;
+        try {
+            parsed = MiniJson.parse(stdout == null ? "" : stdout.trim());
+        } catch (RuntimeException e) {
+            return null;
+        }
+        if (!(parsed instanceof Map)) return null;
+        @SuppressWarnings("unchecked")
+        Map<String, Object> result = (Map<String, Object>) parsed;
+        if (!TIMELINE_RESULT_SCHEMA.equals(result.get("schema"))
+                || !numberEquals(result.get("version"), TIMELINE_RESULT_VERSION)
+                || !(result.get("ok") instanceof Boolean)) return null;
+        return copyMap(result);
+    }
+
+    /** Readable body for the preview dialog; warnings are never hidden. */
+    @SuppressWarnings("unchecked")
+    public static String formatTimelinePreview(Map<String, Object> result) {
+        if (result == null || result.get("ok") != Boolean.TRUE
+                || !"preview".equals(result.get("mode"))) return "";
+        StringBuilder out = new StringBuilder();
+        out.append("Checkpoint timeline action: ").append(result.get("action"));
+        out.append("\nTurn: ").append(result.get("turnId"));
+        out.append("\nCoverage: ").append(result.get("coverage"));
+        out.append("\nRevision: ").append(result.get("revision"));
+        Object code = result.get("code");
+        if (code instanceof Map) {
+            Map<String, Object> value = (Map<String, Object>) code;
+            out.append("\n\nCode checkpoint: ").append(value.get("checkpointId"));
+            appendPreviewList(out, "Modified", value.get("modified"));
+            appendPreviewList(out, "Added", value.get("added"));
+            appendPreviewList(out, "Deleted", value.get("deleted"));
+        }
+        Object conversation = result.get("conversation");
+        if (conversation instanceof Map) {
+            Map<String, Object> value = (Map<String, Object>) conversation;
+            out.append("\n\nConversation messages: ")
+                    .append(value.get("beforeMessages")).append(" → ")
+                    .append(value.get("afterMessages"));
+        }
+        Object branch = result.get("branch");
+        if (branch instanceof Map) {
+            out.append("\n\nBranch session: ")
+                    .append(((Map<String, Object>) branch).get("branchSessionId"));
+        }
+        appendPreviewList(out, "Excluded paths", result.get("excludedPaths"));
+        appendPreviewList(out, "Irreversible side effects",
+                result.get("irreversibleSideEffects"));
+        appendPreviewList(out, "Warnings", result.get("warnings"));
+        if (branch instanceof Map) {
+            appendPreviewList(out, "Branch warnings",
+                    ((Map<String, Object>) branch).get("warnings"));
+        }
+        return out.toString();
+    }
+
+    private static void appendPreviewList(StringBuilder out, String label, Object raw) {
+        if (!(raw instanceof List) || ((List<?>) raw).isEmpty()) return;
+        out.append("\n").append(label).append(": ");
+        List<String> values = new ArrayList<String>();
+        for (Object value : (List<?>) raw) values.add(String.valueOf(value));
+        out.append(String.join(", ", values));
+    }
+
+    private static boolean numberEquals(Object value, int expected) {
+        return value instanceof Number
+                && ((Number) value).doubleValue() == (double) expected;
+    }
+
+    private static boolean isNonNegativeInteger(Object value) {
+        if (!(value instanceof Number)) return false;
+        double number = ((Number) value).doubleValue();
+        return Double.isFinite(number) && number >= 0
+                && number <= 9007199254740991d && number == Math.floor(number);
+    }
+
+    private static List<String> boundedStrings(Object raw) {
+        List<String> out = new ArrayList<String>();
+        if (!(raw instanceof List)) return out;
+        Set<String> seen = new HashSet<String>();
+        int count = 0;
+        for (Object value : (List<?>) raw) {
+            if (count++ >= MAX_TIMELINE_LIST) break;
+            if (!(value instanceof String) || ((String) value).isEmpty()
+                    || !seen.add((String) value)) continue;
+            out.add((String) value);
+        }
+        return out;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> copyMap(Map<String, Object> source) {
+        if (source == null) return null;
+        return (Map<String, Object>) MiniJson.parse(MiniJson.stringify(source));
     }
 
     /**
