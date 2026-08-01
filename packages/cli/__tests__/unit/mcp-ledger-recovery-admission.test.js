@@ -265,7 +265,10 @@ describe("MCP ledger recovery admission", () => {
 
     controller.latchAll("CC_TEST_ALL");
     controller.latchUnsafe("CC_TEST_CANNOT_DOWNGRADE");
-    expect(controller.admission.blockMode).toBe("all");
+    expect(controller.admission).toMatchObject({
+      blockMode: "all",
+      reasonCode: "CC_TEST_ALL",
+    });
     await expect(guarded.begin(call("read"))).rejects.toMatchObject({
       blockMode: "all",
       effect: "read",
@@ -277,6 +280,34 @@ describe("MCP ledger recovery admission", () => {
       ledgerId: "dynamic",
     });
     expect(ledger.begin).toHaveBeenCalledTimes(3);
+  });
+
+  it("applies stricter recovery options to an authentic controller", async () => {
+    const recoveryError = Object.assign(new Error("unverified transcript"), {
+      code: "CC_TEST_RECOVERY_UNVERIFIED",
+    });
+    const controller = createMcpRecoveryAdmissionController();
+    const begin = vi.fn();
+    const guarded = guardMcpLedgerForRecovery({ begin }, controller, {
+      recoveryError,
+    });
+
+    await expect(guarded.begin(call("read"))).rejects.toMatchObject({
+      code: "CC_TEST_RECOVERY_UNVERIFIED",
+      blockMode: "all",
+    });
+    expect(begin).not.toHaveBeenCalled();
+
+    const requestedController = createMcpRecoveryAdmissionController();
+    const requested = createRecoveryGuardedMcpCallLedger({
+      controller: requestedController,
+      blockMode: "unsafe",
+    });
+    await expect(requested.begin(call("write"))).rejects.toMatchObject({
+      blockMode: "unsafe",
+      effect: "write",
+    });
+    expect(requestedController.admission.blockMode).toBe("unsafe");
   });
 
   it("latches invalid verified replacements to all until an explicit valid replacement", () => {
@@ -329,6 +360,56 @@ describe("MCP ledger recovery admission", () => {
     expect(controller.admission.blockMode).toBe("unsafe");
   });
 
+  it.each([
+    [
+      "throwing settlement accessor",
+      () => {
+        const ticket = { ledgerId: "accessor-ticket" };
+        Object.defineProperty(ticket, "settle", {
+          enumerable: true,
+          get() {
+            throw Object.assign(new Error("settle getter failed"), {
+              code: "CC_TEST_SETTLE_GETTER",
+            });
+          },
+        });
+        return ticket;
+      },
+      "CC_TEST_SETTLE_GETTER",
+    ],
+    [
+      "Proxy ticket",
+      () => new Proxy({ ledgerId: "proxy-ticket", settle: vi.fn() }, {}),
+      "CC_MCP_LEDGER_TICKET_INVALID",
+    ],
+    [
+      "inherited non-callable settlement accessor",
+      () => {
+        const prototype = Object.defineProperty({}, "settle", {
+          get() {
+            return null;
+          },
+        });
+        return Object.assign(Object.create(prototype), {
+          ledgerId: "inherited-accessor-ticket",
+        });
+      },
+      "CC_MCP_LEDGER_SETTLE_UNAVAILABLE",
+    ],
+  ])("latches unsafe before exposing a %s", async (_label, ticket, code) => {
+    const controller = createMcpRecoveryAdmissionController();
+    const guarded = guardMcpLedgerForRecovery(
+      { begin: vi.fn(async () => ticket()) },
+      controller,
+    );
+
+    await expect(guarded.begin(call("read"))).rejects.toMatchObject({ code });
+    expect(controller.admission).toMatchObject({
+      blockMode: "unsafe",
+      reasonCode: code,
+    });
+  });
+
   it("records raw host success, protocol errors, and thrown errors exactly once", async () => {
     const success = { content: [{ type: "text", text: "ok" }] };
     const protocolError = { isError: true, content: [] };
@@ -349,7 +430,7 @@ describe("MCP ledger recovery admission", () => {
       client: { callTool },
       ledger: { begin },
       controller,
-      resolveEffect: () => "read",
+      resolveEffect: () => ({ effect: "read", trusted: true }),
       sessionId: "session-host",
     });
 
@@ -410,7 +491,7 @@ describe("MCP ledger recovery admission", () => {
       ledger: { begin },
       controller,
       resolveEffect: (_server, toolName) =>
-        toolName === "status" ? "read" : undefined,
+        toolName === "status" ? { effect: "read", trusted: true } : undefined,
     });
 
     await expect(client.callTool("repo", "status", {})).resolves.toEqual({
@@ -428,6 +509,122 @@ describe("MCP ledger recovery admission", () => {
     expect(begin).toHaveBeenCalledTimes(1);
     expect(callTool).toHaveBeenCalledTimes(1);
     expect(settle).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not promote an untrusted read classification under unsafe recovery", async () => {
+    const callTool = vi.fn(async () => ({ ok: true }));
+    const begin = vi.fn();
+    const controller = createMcpRecoveryAdmissionController({
+      incidents: [],
+      unsettled: [{ ledgerId: "prior" }],
+    });
+    const client = createRecoveryGuardedMcpClient({
+      client: { callTool },
+      ledger: { begin },
+      controller,
+      resolveEffect: () => ({ effect: "read", trusted: false }),
+    });
+
+    await expect(
+      client.callTool("repo", "declared-read", {}),
+    ).rejects.toMatchObject({
+      blockMode: "unsafe",
+      effect: "unknown",
+    });
+    expect(begin).not.toHaveBeenCalled();
+    expect(callTool).not.toHaveBeenCalled();
+  });
+
+  it.each(["unknown", "write", "destructive"])(
+    "keeps a rejected %s host call outcome unknown and unsettled",
+    async (effect) => {
+      const transportError = Object.assign(new Error("socket reset"), {
+        code: "ECONNRESET",
+      });
+      const callTool = vi.fn().mockRejectedValue(transportError);
+      const settle = vi.fn();
+      const begin = vi.fn(async () => ({
+        ledgerId: `transport-${effect}`,
+        settle,
+      }));
+      const controller = createMcpRecoveryAdmissionController();
+      const client = createRecoveryGuardedMcpClient({
+        client: { callTool },
+        ledger: { begin },
+        controller,
+        resolveEffect: () => ({ effect, trusted: true }),
+      });
+
+      await expect(
+        client.callTool("repo", "publish", {}),
+      ).rejects.toMatchObject({
+        code: MCP_OUTCOME_UNKNOWN_CODE,
+        ledgerId: `transport-${effect}`,
+        effect,
+        phase: "call",
+        outcomeUnknown: true,
+        retryable: false,
+      });
+      expect(settle).not.toHaveBeenCalled();
+      expect(controller.admission).toMatchObject({
+        blockMode: "unsafe",
+        reasonCode: "ECONNRESET",
+      });
+      await expect(
+        client.callTool("repo", "publish", {}),
+      ).rejects.toMatchObject({
+        blockMode: "unsafe",
+        effect,
+      });
+      expect(begin).toHaveBeenCalledTimes(1);
+      expect(callTool).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it.each([
+    [
+      "throwing isError accessor",
+      () => {
+        const result = {};
+        Object.defineProperty(result, "isError", {
+          get() {
+            throw Object.assign(new Error("protocol getter failed"), {
+              code: "CC_TEST_RESULT_GETTER",
+            });
+          },
+        });
+        return result;
+      },
+      "CC_TEST_RESULT_GETTER",
+    ],
+    [
+      "Proxy result",
+      () => new Proxy({ isError: false }, {}),
+      "CC_MCP_PROTOCOL_RESULT_INVALID",
+    ],
+  ])("latches outcome unknown for a %s", async (_label, result, reasonCode) => {
+    const settle = vi.fn();
+    const controller = createMcpRecoveryAdmissionController();
+    const client = createRecoveryGuardedMcpClient({
+      client: { callTool: vi.fn(async () => result()) },
+      ledger: {
+        begin: vi.fn(async () => ({ ledgerId: "result-ticket", settle })),
+      },
+      controller,
+      resolveEffect: () => ({ effect: "read", trusted: true }),
+    });
+
+    await expect(client.callTool("repo", "status", {})).rejects.toMatchObject({
+      code: MCP_OUTCOME_UNKNOWN_CODE,
+      ledgerId: "result-ticket",
+      phase: "result",
+      outcomeUnknown: true,
+    });
+    expect(settle).not.toHaveBeenCalled();
+    expect(controller.admission).toMatchObject({
+      blockMode: "unsafe",
+      reasonCode,
+    });
   });
 
   it("throws a stable outcome-unknown error and latches unsafe on settle failure", async () => {
@@ -496,6 +693,57 @@ describe("MCP ledger recovery admission", () => {
     expect(client.on(listener)).toBe(client);
     expect(client.emit("event")).toBe(client);
     expect(listener).toHaveBeenCalledWith("event");
+  });
+
+  it("maps async client chaining back to the guarded client", async () => {
+    const rawCallTool = vi.fn(async () => ({ ok: true }));
+    const rawClient = {
+      callTool: rawCallTool,
+      async connect() {
+        return this;
+      },
+    };
+    const settle = vi.fn(async () => ({}));
+    const begin = vi.fn(async () => ({ ledgerId: "async-chain", settle }));
+    const controller = createMcpRecoveryAdmissionController();
+    const client = createRecoveryGuardedMcpClient({
+      client: rawClient,
+      ledger: { begin },
+      controller,
+    });
+
+    const connected = await client.connect();
+    expect(connected).toBe(client);
+    await expect(connected.callTool("repo", "status", {})).resolves.toEqual({
+      ok: true,
+    });
+    expect(begin).toHaveBeenCalledTimes(1);
+    expect(settle).toHaveBeenCalledTimes(1);
+    expect(rawCallTool).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns the same guard instead of double-accounting a wrapped client", async () => {
+    const rawCallTool = vi.fn(async () => ({ ok: true }));
+    const settle = vi.fn(async () => ({}));
+    const begin = vi.fn(async () => ({ ledgerId: "single", settle }));
+    const ledger = { begin };
+    const controller = createMcpRecoveryAdmissionController();
+    const first = createRecoveryGuardedMcpClient({
+      client: { callTool: rawCallTool },
+      ledger,
+      controller,
+    });
+    const second = createRecoveryGuardedMcpClient({
+      client: first,
+      ledger,
+      controller,
+    });
+
+    expect(second).toBe(first);
+    await second.callTool("repo", "status", {});
+    expect(begin).toHaveBeenCalledTimes(1);
+    expect(settle).toHaveBeenCalledTimes(1);
+    expect(rawCallTool).toHaveBeenCalledTimes(1);
   });
 
   it("keeps the recovery code diagnosable when agent-core blocks callTool", async () => {

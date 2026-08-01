@@ -15,6 +15,7 @@ export const MCP_OUTCOME_UNKNOWN_CODE = "CC_MCP_LEDGER_OUTCOME_UNKNOWN";
 
 const RECOVERY_CONTROLLERS = new WeakSet();
 const GUARDED_LEDGER_CONTROLLERS = new WeakMap();
+const GUARDED_MCP_CLIENTS = new WeakMap();
 
 function ownDataValue(record, key) {
   const descriptor = Object.getOwnPropertyDescriptor(record, key);
@@ -163,7 +164,9 @@ export function createMcpRecoveryAdmissionController(
     currentAdmission = Object.freeze({
       ...currentAdmission,
       blockMode,
-      reasonCode: currentAdmission.reasonCode || reasonCode || null,
+      // A stricter admission must explain the stricter condition. Preserve the
+      // old reason only when the escalation itself has no diagnosable cause.
+      reasonCode: reasonCode || currentAdmission.reasonCode || null,
     });
     return currentAdmission;
   };
@@ -218,26 +221,59 @@ export class McpLedgerRecoveryBlockedError extends Error {
 }
 
 export class McpCallOutcomeUnknownError extends Error {
-  constructor(ticket, settlementError, effect = McpEffect.UNKNOWN) {
+  constructor(
+    ticket,
+    settlementError,
+    effect = McpEffect.UNKNOWN,
+    options = {},
+  ) {
     super(
-      "MCP call outcome is unknown because its durable ledger settlement failed; do not retry automatically",
+      options.message ||
+        "MCP call outcome is unknown; do not retry automatically until durable recovery is adjudicated",
       settlementError ? { cause: settlementError } : undefined,
     );
     this.name = "McpCallOutcomeUnknownError";
     this.code = MCP_OUTCOME_UNKNOWN_CODE;
-    this.ledgerId = ticket?.ledgerId || settlementError?.ledgerId || null;
+    this.ledgerId =
+      safeProperty(ticket, "ledgerId") ||
+      safeProperty(settlementError, "ledgerId") ||
+      null;
     this.effect = effect;
-    this.phase = "settled";
+    this.phase = options.phase || "settled";
     this.outcomeUnknown = true;
     this.retryable = false;
   }
+}
+
+function safeProperty(value, property) {
+  try {
+    return value?.[property];
+  } catch {
+    return undefined;
+  }
+}
+
+function failureCode(error, fallback) {
+  const code = safeProperty(error, "code");
+  return typeof code === "string" && code ? code : fallback;
+}
+
+function outcomeUnknown(
+  controller,
+  ticket,
+  cause,
+  effect,
+  { phase = "settled", fallbackCode = "CC_MCP_LEDGER_SETTLE_FAILED" } = {},
+) {
+  controller?.latchUnsafe(failureCode(cause, fallbackCode));
+  return new McpCallOutcomeUnknownError(ticket, cause, effect, { phase });
 }
 
 async function settleWithRecoveryLatch(controller, operation) {
   try {
     return await operation();
   } catch (error) {
-    controller?.latchUnsafe(error?.code || "CC_MCP_LEDGER_SETTLE_FAILED");
+    controller?.latchUnsafe(failureCode(error, "CC_MCP_LEDGER_SETTLE_FAILED"));
     throw error;
   }
 }
@@ -251,36 +287,70 @@ function wrapLedgerTicketForRecovery(ticket, controller) {
     return ticket;
   }
 
-  const descriptors = Object.getOwnPropertyDescriptors(ticket);
-  for (const property of ["settle", "settleCall"]) {
-    let method;
-    try {
-      method = Reflect.get(ticket, property, ticket);
-    } catch {
-      method = null;
+  try {
+    if (isProxy(ticket)) {
+      const invalid = new TypeError("MCP ledger tickets cannot be Proxies");
+      invalid.code = "CC_MCP_LEDGER_TICKET_INVALID";
+      throw invalid;
     }
-    if (typeof method !== "function") continue;
-    descriptors[property] = {
-      configurable: false,
-      enumerable: descriptors[property]?.enumerable ?? true,
-      writable: false,
-      value: (...args) =>
-        settleWithRecoveryLatch(controller, () =>
-          Reflect.apply(method, ticket, args),
-        ),
-    };
+    const descriptors = Object.getOwnPropertyDescriptors(ticket);
+    for (const property of ["settle", "settleCall"]) {
+      const originalDescriptor = descriptors[property];
+      const method = Reflect.get(ticket, property, ticket);
+      if (typeof method === "function") {
+        descriptors[property] = {
+          configurable: false,
+          enumerable: originalDescriptor?.enumerable ?? true,
+          writable: false,
+          value: (...args) =>
+            settleWithRecoveryLatch(controller, () =>
+              Reflect.apply(method, ticket, args),
+            ),
+        };
+      } else if (property in ticket) {
+        const unavailable = new TypeError(
+          `MCP ledger ticket ${property} is not callable`,
+        );
+        unavailable.code = "CC_MCP_LEDGER_SETTLE_UNAVAILABLE";
+        throw unavailable;
+      }
+    }
+    // Ledger tickets are commonly frozen. Clone their descriptors so
+    // settlement can be wrapped without violating read-only invariants.
+    return Object.freeze(
+      Object.create(Object.getPrototypeOf(ticket), descriptors),
+    );
+  } catch (error) {
+    controller.latchUnsafe(failureCode(error, "CC_MCP_LEDGER_TICKET_INVALID"));
+    throw error;
   }
-  // Ledger tickets are commonly frozen. Clone their descriptors so settlement
-  // can be wrapped without violating Proxy invariants for read-only methods.
-  return Object.freeze(
-    Object.create(Object.getPrototypeOf(ticket), descriptors),
-  );
+}
+
+function constrainRecoveryController(controller, options = {}) {
+  const constraint = classifyMcpRecoveryAdmission(null, options);
+  if (constraint.blockMode === McpRecoveryBlockMode.ALL) {
+    controller.latchAll(
+      constraint.reasonCode ||
+        (options.recoveryError != null
+          ? failureCode(
+              options.recoveryError,
+              "CC_MCP_LEDGER_EVENT_READ_FAILED",
+            )
+          : null),
+    );
+  } else if (constraint.blockMode === McpRecoveryBlockMode.UNSAFE) {
+    controller.latchUnsafe(constraint.reasonCode);
+  }
+  return controller;
 }
 
 /** Wrap an MCP ledger with a fail-closed recovery admission gate. */
 export function guardMcpLedgerForRecovery(ledger, recovery, options = {}) {
-  if (!ledger || typeof ledger.begin !== "function") return ledger;
+  if (!ledger) return ledger;
+  const ledgerBegin = ledger.begin;
+  if (typeof ledgerBegin !== "function") return ledger;
   const controller = isRecoveryController(recovery) ? recovery : null;
+  if (controller) constrainRecoveryController(controller, options);
   if (controller && GUARDED_LEDGER_CONTROLLERS.get(ledger) === controller) {
     return ledger;
   }
@@ -303,7 +373,7 @@ export function guardMcpLedgerForRecovery(ledger, recovery, options = {}) {
     if (blocked) {
       throw new McpLedgerRecoveryBlockedError(effect, admission, options);
     }
-    const ticket = await Reflect.apply(ledger.begin, ledger, [call]);
+    const ticket = await Reflect.apply(ledgerBegin, ledger, [call]);
     return wrapLedgerTicketForRecovery(ticket, controller);
   };
 
@@ -316,18 +386,20 @@ export function guardMcpLedgerForRecovery(ledger, recovery, options = {}) {
     get: getAdmission,
   });
   for (const method of ["settle", "settleCall"]) {
-    if (typeof ledger[method] === "function") {
+    const ledgerMethod = ledger[method];
+    if (typeof ledgerMethod === "function") {
       guarded[method] = (...args) =>
         controller
           ? settleWithRecoveryLatch(controller, () =>
-              Reflect.apply(ledger[method], ledger, args),
+              Reflect.apply(ledgerMethod, ledger, args),
             )
-          : Reflect.apply(ledger[method], ledger, args);
+          : Reflect.apply(ledgerMethod, ledger, args);
     }
   }
   for (const method of ["get", "list"]) {
-    if (typeof ledger[method] === "function") {
-      guarded[method] = ledger[method].bind(ledger);
+    const ledgerMethod = ledger[method];
+    if (typeof ledgerMethod === "function") {
+      guarded[method] = ledgerMethod.bind(ledger);
     }
   }
   if (ledger.prewriteFailurePolicy) {
@@ -381,8 +453,17 @@ async function resolveHostEffectContract(
     resolved && typeof resolved === "object" && resolved.effectContract
       ? resolved.effectContract
       : resolved || {};
+  const normalizedContract = normalizeMcpEffectContract(contract);
+  const effectContract =
+    normalizedContract.effect === McpEffect.READ &&
+    normalizedContract.trusted !== true
+      ? normalizeMcpEffectContract({
+          ...normalizedContract,
+          effect: McpEffect.UNKNOWN,
+        })
+      : normalizedContract;
   return {
-    effectContract: normalizeMcpEffectContract(contract),
+    effectContract,
     resourceScopes:
       resolved && typeof resolved === "object"
         ? resolved.resourceScopes
@@ -438,6 +519,23 @@ export function createRecoveryGuardedMcpClient({
     throw new TypeError("MCP client effect resolver must be a function");
   }
 
+  const existingGuard = GUARDED_MCP_CLIENTS.get(client);
+  if (existingGuard) {
+    if (
+      existingGuard.ledger === ledger &&
+      existingGuard.controller === controller &&
+      existingGuard.resolveEffect === resolveEffect &&
+      existingGuard.sessionId === sessionId
+    ) {
+      return client;
+    }
+    const error = new TypeError(
+      "MCP client is already guarded by a different recovery authority",
+    );
+    error.code = "CC_MCP_CLIENT_ALREADY_GUARDED";
+    throw error;
+  }
+
   const admittedLedger = guardMcpLedgerForRecovery(ledger, controller);
   const rawCallTool = client.callTool;
   const callTool = async (serverName, toolName, input = {}, ...rest) => {
@@ -465,16 +563,26 @@ export function createRecoveryGuardedMcpClient({
         ...rest,
       ]);
     } catch (callError) {
+      if (effect.effectContract.effect !== McpEffect.READ) {
+        throw outcomeUnknown(
+          controller,
+          ticket,
+          callError,
+          effect.effectContract.effect,
+          {
+            phase: "call",
+            fallbackCode: "CC_MCP_TRANSPORT_OUTCOME_UNKNOWN",
+          },
+        );
+      }
       try {
         await settleHostCall(admittedLedger, ticket, {
           status: "failed",
           error: callError,
         });
       } catch (settlementError) {
-        controller.latchUnsafe(
-          settlementError?.code || "CC_MCP_LEDGER_SETTLE_FAILED",
-        );
-        throw new McpCallOutcomeUnknownError(
+        throw outcomeUnknown(
+          controller,
           ticket,
           settlementError,
           effect.effectContract.effect,
@@ -483,7 +591,30 @@ export function createRecoveryGuardedMcpClient({
       throw callError;
     }
 
-    const protocolError = result?.isError === true;
+    let protocolError;
+    try {
+      if (
+        result !== null &&
+        (typeof result === "object" || typeof result === "function") &&
+        isProxy(result)
+      ) {
+        const invalid = new TypeError("MCP result cannot be a Proxy");
+        invalid.code = "CC_MCP_PROTOCOL_RESULT_INVALID";
+        throw invalid;
+      }
+      protocolError = result?.isError === true;
+    } catch (inspectionError) {
+      throw outcomeUnknown(
+        controller,
+        ticket,
+        inspectionError,
+        effect.effectContract.effect,
+        {
+          phase: "result",
+          fallbackCode: "CC_MCP_PROTOCOL_RESULT_INVALID",
+        },
+      );
+    }
     try {
       const error = protocolError
         ? Object.assign(new Error("MCP server returned isError=true"), {
@@ -498,10 +629,8 @@ export function createRecoveryGuardedMcpClient({
           : { status: "completed", output: result },
       );
     } catch (settlementError) {
-      controller.latchUnsafe(
-        settlementError?.code || "CC_MCP_LEDGER_SETTLE_FAILED",
-      );
-      throw new McpCallOutcomeUnknownError(
+      throw outcomeUnknown(
+        controller,
         ticket,
         settlementError,
         effect.effectContract.effect,
@@ -521,11 +650,34 @@ export function createRecoveryGuardedMcpClient({
       if (cached?.source === value) return cached.wrapper;
       const wrapper = (...args) => {
         const result = Reflect.apply(value, target, args);
-        return result === target ? wrappedClient : result;
+        if (result === target) return wrappedClient;
+        if (
+          result !== null &&
+          (typeof result === "object" || typeof result === "function")
+        ) {
+          let then;
+          try {
+            then = Reflect.get(result, "then", result);
+          } catch (error) {
+            return Promise.reject(error);
+          }
+          if (typeof then === "function") {
+            return Promise.resolve(result).then((resolved) =>
+              resolved === target ? wrappedClient : resolved,
+            );
+          }
+        }
+        return result;
       };
       methodCache.set(property, { source: value, wrapper });
       return wrapper;
     },
+  });
+  GUARDED_MCP_CLIENTS.set(wrappedClient, {
+    ledger,
+    controller,
+    resolveEffect,
+    sessionId,
   });
   return wrappedClient;
 }
