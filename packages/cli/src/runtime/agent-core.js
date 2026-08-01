@@ -4729,14 +4729,31 @@ async function executeToolInner(
     case "todo_write": {
       try {
         const { writeTodos } = await import("../lib/todo-manager.js");
-        const result = writeTodos(sessionId, args.todos);
+        const result = writeTodos(sessionId, args.todos, {
+          ...(Number.isSafeInteger(args.expected_revision)
+            ? { expectedRevision: args.expected_revision }
+            : {}),
+        });
         if (!result.success) {
-          return attachDescriptor({ error: result.error });
+          return attachDescriptor({
+            error: result.error,
+            ...(result.code ? { code: result.code } : {}),
+            ...(Number.isSafeInteger(result.expectedRevision)
+              ? { expectedRevision: result.expectedRevision }
+              : {}),
+            ...(Number.isSafeInteger(result.actualRevision)
+              ? { actualRevision: result.actualRevision }
+              : {}),
+            ...(result.recoveryStrategy
+              ? { recoveryStrategy: result.recoveryStrategy }
+              : {}),
+          });
         }
         return attachDescriptor({
           success: true,
           count: result.count,
           summary: result.summary,
+          revision: result.revision,
         });
       } catch (err) {
         return attachDescriptor({ error: `todo_write failed: ${err.message}` });

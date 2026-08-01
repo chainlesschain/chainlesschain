@@ -1078,9 +1078,24 @@ describe("executeTool", () => {
 });
 
 describe("executeTool — web_fetch / todo_write / ask_user_question", () => {
+  let todoStateDir;
+  let previousDataDir;
+
   beforeEach(async () => {
+    todoStateDir = mkdtempSync(join(tmpdir(), "cc-agent-todos-"));
+    previousDataDir = process.env.CHAINLESSCHAIN_DATA_DIR;
+    process.env.CHAINLESSCHAIN_DATA_DIR = todoStateDir;
     const { resetAllStores } = await import("../../src/lib/todo-manager.js");
     resetAllStores();
+  });
+
+  afterEach(() => {
+    if (previousDataDir === undefined) {
+      delete process.env.CHAINLESSCHAIN_DATA_DIR;
+    } else {
+      process.env.CHAINLESSCHAIN_DATA_DIR = previousDataDir;
+    }
+    rmSync(todoStateDir, { recursive: true, force: true });
   });
 
   it("todo_write stores todos keyed by session", async () => {
@@ -1097,9 +1112,39 @@ describe("executeTool — web_fetch / todo_write / ask_user_question", () => {
     expect(result.success).toBe(true);
     expect(result.count).toBe(2);
     expect(result.summary.in_progress).toBe(1);
+    expect(result.revision).toBe(1);
 
     const { getTodos } = await import("../../src/lib/todo-manager.js");
     expect(getTodos("s-agent-1")).toHaveLength(2);
+  });
+
+  it("todo_write surfaces a stale revision conflict without overwriting", async () => {
+    const first = await executeTool(
+      "todo_write",
+      {
+        todos: [{ id: "a", content: "first", status: "pending" }],
+      },
+      { sessionId: "s-agent-cas" },
+    );
+    const stale = await executeTool(
+      "todo_write",
+      {
+        expected_revision: 0,
+        todos: [{ id: "a", content: "stale", status: "completed" }],
+      },
+      { sessionId: "s-agent-cas" },
+    );
+
+    expect(first.revision).toBe(1);
+    expect(stale).toMatchObject({
+      code: "TODO_REVISION_CONFLICT",
+      expectedRevision: 0,
+      actualRevision: 1,
+    });
+    const { getTodos } = await import("../../src/lib/todo-manager.js");
+    expect(getTodos("s-agent-cas")).toEqual([
+      { id: "a", content: "first", status: "pending" },
+    ]);
   });
 
   it("todo_write rejects invalid lists", async () => {

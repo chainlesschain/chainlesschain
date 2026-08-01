@@ -798,6 +798,12 @@ const CODING_AGENT_TOOL_CONTRACTS = Object.freeze([
             required: ["id", "content", "status"],
           },
         },
+        expected_revision: {
+          type: "integer",
+          minimum: 0,
+          description:
+            "Optional revision returned by the prior todo_write; stale revisions fail instead of overwriting another writer.",
+        },
       },
       required: ["todos"],
     },
