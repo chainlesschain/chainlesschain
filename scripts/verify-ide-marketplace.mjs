@@ -28,6 +28,10 @@ class MarketplaceFatalError extends Error {
   }
 }
 
+const VSCODE_MARKETPLACE_EXTENSION_ID = "chainlesschain.chainlesschain-ide";
+const VSCODE_MARKETPLACE_VSIX_ASSET =
+  "Microsoft.VisualStudio.Services.VSIXPackage";
+
 if (process.argv[2] === "--self-test") {
   await runSelfTest();
   process.exit(0);
@@ -56,16 +60,16 @@ for (let index = 4; index < process.argv.length; index += 1) {
 
 const retryAttempts = positiveInteger(
   process.env.CC_MARKETPLACE_VERIFY_ATTEMPTS,
-  channel === "open-vsx" ? 30 : 12,
+  channel === "open-vsx" || channel === "vscode-marketplace" ? 30 : 12,
 );
 const retryDelayMs = positiveInteger(
   process.env.CC_MARKETPLACE_VERIFY_DELAY_MS,
-  channel === "open-vsx" ? 20_000 : 10_000,
+  channel === "open-vsx" || channel === "vscode-marketplace" ? 20_000 : 10_000,
 );
 
-if (!["open-vsx", "jetbrains"].includes(channel)) {
+if (!["open-vsx", "vscode-marketplace", "jetbrains"].includes(channel)) {
   console.error(
-    "usage: node scripts/verify-ide-marketplace.mjs <open-vsx|jetbrains> <version> " +
+    "usage: node scripts/verify-ide-marketplace.mjs <open-vsx|vscode-marketplace|jetbrains> <version> " +
       "[--artifact <vsix-path>] [--allow-pending]",
   );
   process.exit(2);
@@ -79,8 +83,14 @@ if (allowPending && channel !== "jetbrains") {
   console.error("--allow-pending is supported only for JetBrains verification");
   process.exit(2);
 }
-if (artifactPath && channel !== "open-vsx") {
-  console.error("--artifact is supported only for Open VSX verification");
+if (
+  artifactPath &&
+  channel !== "open-vsx" &&
+  channel !== "vscode-marketplace"
+) {
+  console.error(
+    "--artifact is supported only for Open VSX or VS Code Marketplace verification",
+  );
   process.exit(2);
 }
 
@@ -95,7 +105,9 @@ const artifactContentSha256 = artifactBuffer
 const endpoint =
   channel === "open-vsx"
     ? "https://open-vsx.org/api/chainlesschain/chainlesschain-ide"
-    : "https://plugins.jetbrains.com/api/plugins/32208/updates";
+    : channel === "vscode-marketplace"
+      ? "https://marketplace.visualstudio.com/_apis/public/gallery/extensionquery?api-version=7.2-preview.1"
+      : "https://plugins.jetbrains.com/api/plugins/32208/updates";
 
 function positiveInteger(value, fallback) {
   const parsed = Number.parseInt(String(value || ""), 10);
@@ -109,6 +121,23 @@ function sleep(delayMs) {
 async function fetchJson(url, label) {
   const response = await fetch(url, {
     headers: { accept: "application/json" },
+    signal: AbortSignal.timeout(20_000),
+  });
+  if (!response.ok) {
+    throw new Error(`${label} returned HTTP ${response.status}`);
+  }
+  return response.json();
+}
+
+async function postJson(url, body, label) {
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      accept: "application/json;api-version=7.2-preview.1",
+      "content-type": "application/json",
+      "user-agent": "chainlesschain-marketplace-verifier/1",
+    },
+    body: JSON.stringify(body),
     signal: AbortSignal.timeout(20_000),
   });
   if (!response.ok) {
@@ -163,7 +192,152 @@ function canonicalZipContentSha256(buffer) {
   );
 }
 
+function vscodeMarketplaceQuery() {
+  return {
+    filters: [
+      {
+        criteria: [
+          {
+            // Gallery ExtensionQueryFilterType.ExtensionName.
+            filterType: 7,
+            value: VSCODE_MARKETPLACE_EXTENSION_ID,
+          },
+        ],
+        pageNumber: 1,
+        pageSize: 1,
+        sortBy: 0,
+        sortOrder: 0,
+      },
+    ],
+    assetTypes: [VSCODE_MARKETPLACE_VSIX_ASSET],
+    // IncludeVersions | IncludeFiles | IncludeVersionProperties. Files implies
+    // versions today, but all three remain explicit so stable/pre-release
+    // verification does not depend on undocumented response coupling.
+    flags: 19,
+  };
+}
+
+function classifyVsCodeMarketplacePayload(payload, expectedVersion) {
+  if (!Array.isArray(payload?.results)) {
+    throw new MarketplaceFatalError(
+      "VS Code Marketplace returned malformed query results",
+    );
+  }
+  const extensions = payload.results.flatMap((result) =>
+    Array.isArray(result?.extensions) ? result.extensions : [],
+  );
+  const extension = extensions.find(
+    (candidate) =>
+      String(candidate?.publisher?.publisherName || "").toLowerCase() ===
+        "chainlesschain" &&
+      String(candidate?.extensionName || "").toLowerCase() ===
+        "chainlesschain-ide",
+  );
+  if (!extension) {
+    throw new MarketplacePendingError(
+      `VS Code Marketplace has not exposed ${VSCODE_MARKETPLACE_EXTENSION_ID}@${expectedVersion}`,
+      { version: expectedVersion, reason: "extension-not-visible" },
+    );
+  }
+  if (!Array.isArray(extension.versions)) {
+    throw new MarketplaceFatalError(
+      "VS Code Marketplace extension metadata has no versions array",
+    );
+  }
+  const versionRecord = extension.versions.find(
+    (candidate) => candidate?.version === expectedVersion,
+  );
+  if (!versionRecord) {
+    throw new MarketplacePendingError(
+      `VS Code Marketplace has not exposed version ${expectedVersion}`,
+      { version: expectedVersion, reason: "version-not-visible" },
+    );
+  }
+  const properties = Array.isArray(versionRecord.properties)
+    ? versionRecord.properties
+    : [];
+  const preRelease = properties.some(
+    (property) =>
+      property?.key === "Microsoft.VisualStudio.Code.PreRelease" &&
+      String(property?.value).toLowerCase() === "true",
+  );
+  if (preRelease) {
+    throw new MarketplaceFatalError(
+      `VS Code Marketplace version ${expectedVersion} is pre-release, not the stock stable listing`,
+    );
+  }
+  const packageAsset = Array.isArray(versionRecord.files)
+    ? versionRecord.files.find(
+        (file) => file?.assetType === VSCODE_MARKETPLACE_VSIX_ASSET,
+      )
+    : null;
+  let downloadUrl;
+  try {
+    downloadUrl = new URL(packageAsset?.source);
+  } catch {
+    throw new MarketplaceFatalError(
+      `VS Code Marketplace version ${expectedVersion} has no valid VSIX package asset`,
+    );
+  }
+  if (downloadUrl.protocol !== "https:") {
+    throw new MarketplaceFatalError(
+      `VS Code Marketplace version ${expectedVersion} returned a non-HTTPS VSIX asset`,
+    );
+  }
+
+  return {
+    version: versionRecord.version,
+    publisher: extension.publisher.publisherName,
+    name: extension.extensionName,
+    preRelease,
+    downloadUrl: downloadUrl.href,
+    lastUpdated: versionRecord.lastUpdated || extension.lastUpdated || null,
+  };
+}
+
 async function inspectMarketplace() {
+  if (channel === "vscode-marketplace") {
+    const payload = await postJson(
+      endpoint,
+      vscodeMarketplaceQuery(),
+      "VS Code Marketplace gallery query",
+    );
+    const metadata = classifyVsCodeMarketplacePayload(payload, version);
+    let registryArchiveSha256 = null;
+    let registryContentSha256 = null;
+    if (artifactBuffer) {
+      const registryBuffer = await fetchBuffer(
+        metadata.downloadUrl,
+        "VS Code Marketplace VSIX download",
+      );
+      registryArchiveSha256 = createHash("sha256")
+        .update(registryBuffer)
+        .digest("hex");
+      registryContentSha256 = canonicalZipContentSha256(registryBuffer);
+      if (registryContentSha256 !== artifactContentSha256) {
+        throw new Error(
+          `VS Code Marketplace VSIX content mismatch: local=${artifactContentSha256}, registry=${registryContentSha256}`,
+        );
+      }
+    }
+    return {
+      status: "ready",
+      version: metadata.version,
+      publisher: metadata.publisher,
+      name: metadata.name,
+      preRelease: metadata.preRelease,
+      lastUpdated: metadata.lastUpdated,
+      downloadable: true,
+      ...(registryArchiveSha256
+        ? {
+            registryArchiveSha256,
+            localArchiveSha256: artifactArchiveSha256,
+            contentSha256: registryContentSha256,
+          }
+        : {}),
+    };
+  }
+
   const payload = await fetchJson(endpoint, `${channel} registry`);
 
   if (channel === "open-vsx") {
@@ -335,6 +509,67 @@ console.log(JSON.stringify({ channel, endpoint, ...record }));
 
 async function runSelfTest() {
   const assert = (await import("node:assert/strict")).default;
+
+  const vscodePayload = (overrides = {}) => ({
+    results: [
+      {
+        extensions: [
+          {
+            publisher: { publisherName: "chainlesschain" },
+            extensionName: "chainlesschain-ide",
+            lastUpdated: "2026-08-01T00:00:00Z",
+            versions: [
+              {
+                version: "1.2.3",
+                properties: [],
+                files: [
+                  {
+                    assetType: VSCODE_MARKETPLACE_VSIX_ASSET,
+                    source:
+                      "https://example.gallery.vsassets.io/extension.vsix",
+                  },
+                ],
+                ...overrides,
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  });
+
+  assert.deepEqual(classifyVsCodeMarketplacePayload(vscodePayload(), "1.2.3"), {
+    version: "1.2.3",
+    publisher: "chainlesschain",
+    name: "chainlesschain-ide",
+    preRelease: false,
+    downloadUrl: "https://example.gallery.vsassets.io/extension.vsix",
+    lastUpdated: "2026-08-01T00:00:00Z",
+  });
+  assert.throws(
+    () => classifyVsCodeMarketplacePayload({ results: [] }, "1.2.3"),
+    MarketplacePendingError,
+  );
+  assert.throws(
+    () =>
+      classifyVsCodeMarketplacePayload(
+        vscodePayload({
+          properties: [
+            {
+              key: "Microsoft.VisualStudio.Code.PreRelease",
+              value: "true",
+            },
+          ],
+        }),
+        "1.2.3",
+      ),
+    MarketplaceFatalError,
+  );
+  assert.throws(
+    () =>
+      classifyVsCodeMarketplacePayload(vscodePayload({ files: [] }), "1.2.3"),
+    MarketplaceFatalError,
+  );
 
   assert.deepEqual(
     classifyJetBrainsPayload(
