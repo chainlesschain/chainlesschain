@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "case": "s0-skill-mcp",
+  "skill": {
+    "source": "workspace",
+    "handlerDigestChanges": true,
+    "requestsRawProcessAndMcp": true
+  },
+  "mcp": {
+    "annotationTrusted": false,
+    "declaredEffect": "read",
+    "hostAuthorizedEffect": "unknown",
+    "sameResourceConcurrentCalls": 2
+  },
+  "expected": {
+    "skillReauthorizationRequired": true,
+    "directHandlerImports": 0,
+    "unknownEffectsSerialized": true,
+    "ledgerPrewriteRequired": true
+  }
+}

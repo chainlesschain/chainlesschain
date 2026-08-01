@@ -23,11 +23,13 @@ on:
       - "packages/cli/src/command-manifest.json"
       - "packages/cli/src/command-help-index.json"
       - "packages/cli/scripts/gen-public-ide-capability-manifest.mjs"
+      - "packages/cli/scripts/verify-ide-roadmap-fixtures.mjs"
+      - "packages/cli/__tests__/unit/verify-ide-roadmap-fixtures.test.js"
       - "docs/cli/PUBLIC_IDE_CAPABILITY_MANIFEST.generated.json"
       - "package.json"
       - "scripts/ide-journey-evidence.mjs"
       - "scripts/verify-ide-marketplace.mjs"
-      - "tests/fixtures/ide-roadmap/fake-stream-json-agent.mjs"
+      - "tests/fixtures/ide-roadmap/**"
       - ".github/workflows/ide-extensions.yml"
     tags:
       - "ide-vscode-v*"
@@ -43,11 +45,13 @@ on:
       - "packages/cli/src/command-manifest.json"
       - "packages/cli/src/command-help-index.json"
       - "packages/cli/scripts/gen-public-ide-capability-manifest.mjs"
+      - "packages/cli/scripts/verify-ide-roadmap-fixtures.mjs"
+      - "packages/cli/__tests__/unit/verify-ide-roadmap-fixtures.test.js"
       - "docs/cli/PUBLIC_IDE_CAPABILITY_MANIFEST.generated.json"
       - "package.json"
       - "scripts/ide-journey-evidence.mjs"
       - "scripts/verify-ide-marketplace.mjs"
-      - "tests/fixtures/ide-roadmap/fake-stream-json-agent.mjs"
+      - "tests/fixtures/ide-roadmap/**"
       - ".github/workflows/ide-extensions.yml"
   workflow_dispatch:
     inputs:
@@ -73,6 +77,8 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: "22.12.0"
+      - name: Verify IDE roadmap fixture contract
+        run: node packages/cli/scripts/verify-ide-roadmap-fixtures.mjs
       - name: Verify commands, actions, Doctor and CLI floor
         run: node packages/cli/scripts/gen-public-ide-capability-manifest.mjs --check
 

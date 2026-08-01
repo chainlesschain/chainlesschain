@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "case": "s0-plan-ceiling",
+  "policySources": [
+    "interactive-plan",
+    "settings-allow",
+    "host-allow",
+    "permission-rule",
+    "pre-tool-hook"
+  ],
+  "attempts": [
+    "write-file",
+    "mutating-shell",
+    "mutating-git",
+    "unknown-effect-mcp",
+    "direct-skill-handler"
+  ],
+  "expected": {
+    "mutationCount": 0,
+    "effectiveCapabilityMayOnlyNarrow": true
+  }
+}

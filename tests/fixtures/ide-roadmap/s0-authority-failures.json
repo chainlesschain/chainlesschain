@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "case": "s0-authority-failures",
+  "failures": [
+    "subagent-contract-parse",
+    "permission-enforcement",
+    "pre-tool-hook-spawn",
+    "pre-tool-hook-timeout",
+    "pre-tool-hook-malformed-output",
+    "settings-authority-partial-load"
+  ],
+  "expected": {
+    "capabilityEscalations": 0,
+    "authorityFailuresBlock": true,
+    "observeFailuresAreVisible": true
+  }
+}

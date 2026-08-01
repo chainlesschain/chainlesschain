@@ -1,0 +1,231 @@
+{
+  "schemaVersion": 1,
+  "manifestVersion": "1.1.0",
+  "baselineCommit": "eb0bc663b6eb794b1b62ba2bfc7a1267c699d25d",
+  "releaseEvidence": {
+    "commitSource": "git-head-at-run",
+    "requiredFields": [
+      "manifestVersion",
+      "releaseCommit",
+      "hostVersion",
+      "cliVersion",
+      "operatingSystem",
+      "transport",
+      "startedAt",
+      "finishedAt",
+      "result",
+      "artifactDigests"
+    ]
+  },
+  "cases": [
+    {
+      "id": "s0-plan-ceiling",
+      "priority": "P0-S",
+      "required": true,
+      "fixture": "tests/fixtures/ide-roadmap/s0-plan-ceiling.json",
+      "fixtureDigest": "sha256:7639d4ff73c59a6183b14fc2e6dd01bfc9af7d6bfbea795c152b891fca36cd55",
+      "seed": 2026080101,
+      "minimumIndependentRuns": 1,
+      "matrix": {
+        "hosts": ["cli"],
+        "operatingSystems": ["windows", "linux", "macos"],
+        "transports": ["local"]
+      },
+      "expectedOutcome": {
+        "mutationCount": 0,
+        "capabilityEscalationCount": 0
+      },
+      "testFiles": [
+        "packages/cli/__tests__/unit/agent-core-plan-hard-ceiling.test.js",
+        "packages/cli/__tests__/unit/agent-core-tool-capability-fence.test.js",
+        "packages/cli/__tests__/unit/agent-core-plan-lock.test.js"
+      ],
+      "requiredArtifacts": [
+        "redacted-event-replay",
+        "policy-decisions",
+        "exact-commit"
+      ]
+    },
+    {
+      "id": "s0-authority-failures",
+      "priority": "P0-S",
+      "required": true,
+      "fixture": "tests/fixtures/ide-roadmap/s0-authority-failures.json",
+      "fixtureDigest": "sha256:41de4d8171e9798dab6c9bd8bf06cf31d02f834b811be3399d93a32124d5ffa4",
+      "seed": 2026080102,
+      "minimumIndependentRuns": 1,
+      "matrix": {
+        "hosts": ["cli"],
+        "operatingSystems": ["windows", "linux", "macos"],
+        "transports": ["local"]
+      },
+      "expectedOutcome": {
+        "authorityFailuresBlock": true,
+        "observeFailuresAreVisible": true
+      },
+      "testFiles": [
+        "packages/cli/__tests__/unit/agent-core-hooks.test.js",
+        "packages/cli/__tests__/unit/hook-runner.test.js",
+        "packages/cli/__tests__/unit/sub-agent-authority-inheritance.test.js"
+      ],
+      "requiredArtifacts": [
+        "redacted-event-replay",
+        "hook-incidents",
+        "exact-commit"
+      ]
+    },
+    {
+      "id": "s0-skill-mcp",
+      "priority": "P0-S",
+      "required": true,
+      "fixture": "tests/fixtures/ide-roadmap/s0-skill-mcp.json",
+      "fixtureDigest": "sha256:732dd6c56e4ff8cbf1ccf50725041cdc6c1d760bc01af445440d4497dcc0c302",
+      "seed": 2026080103,
+      "minimumIndependentRuns": 1,
+      "matrix": {
+        "hosts": ["cli"],
+        "operatingSystems": ["windows", "linux", "macos"],
+        "transports": ["local", "stdio-mcp"]
+      },
+      "expectedOutcome": {
+        "directHandlerImports": 0,
+        "unknownEffectsSerialized": true,
+        "unsettledCallsHaveLedgerRecords": true
+      },
+      "testFiles": [
+        "packages/cli/__tests__/unit/skill-execution-identity.test.js",
+        "packages/cli/__tests__/unit/agent-core-skill-mcp.test.js",
+        "packages/cli/__tests__/unit/mcp-call-ledger.test.js",
+        "packages/cli/__tests__/unit/mcp-call-ledger-store.test.js",
+        "packages/cli/__tests__/unit/mcp-conflict-scheduler.test.js",
+        "packages/cli/__tests__/unit/headless-runner-mcp-ledger.test.js",
+        "packages/cli/__tests__/unit/headless-stream-side-effects.test.js",
+        "packages/cli/__tests__/unit/ws-agent-handler.test.js",
+        "packages/cli/__tests__/unit/ws-runtime-events.test.js"
+      ],
+      "requiredArtifacts": [
+        "skill-identity-digest",
+        "mcp-ledger",
+        "exact-commit"
+      ]
+    },
+    {
+      "id": "s0-subtree-preflight",
+      "priority": "P0-S",
+      "required": true,
+      "fixture": "tests/fixtures/ide-roadmap/s0-subtree-preflight.json",
+      "fixtureDigest": "sha256:f67af92d9da505217099a0ad6d87d3df94636d535159f0c4f9318cd30dba7222",
+      "seed": 2026080104,
+      "minimumIndependentRuns": 1,
+      "matrix": {
+        "hosts": ["cli"],
+        "operatingSystems": ["windows", "linux", "macos"],
+        "transports": ["local"]
+      },
+      "expectedOutcome": {
+        "effectsBeforeInstructionDelivery": 0,
+        "crossSessionInjectionLeakCount": 0
+      },
+      "testFiles": [
+        "packages/cli/__tests__/unit/agent-core-subtree-instructions.test.js",
+        "packages/cli/__tests__/unit/project-instructions-subtree.test.js"
+      ],
+      "requiredArtifacts": [
+        "instruction-batch",
+        "mutation-preflight",
+        "exact-commit"
+      ]
+    },
+    {
+      "id": "s0-persistence-replay",
+      "priority": "P0-S",
+      "required": true,
+      "fixture": "tests/fixtures/ide-roadmap/s0-persistence-replay.json",
+      "fixtureDigest": "sha256:828a38d348278beaa100932fffbf7667f85ddba0275900c7f434f035faff8803",
+      "seed": 2026080105,
+      "minimumIndependentRuns": 100,
+      "matrix": {
+        "hosts": ["cli", "vscode", "jetbrains"],
+        "operatingSystems": ["windows", "linux", "macos"],
+        "transports": ["local", "websocket"]
+      },
+      "expectedOutcome": {
+        "stateConsistencyRate": 1,
+        "capabilityWideningCount": 0,
+        "wrongApprovalBindingCount": 0
+      },
+      "testFiles": [
+        "packages/cli/__tests__/unit/plan-mode-persistence.test.js",
+        "packages/cli/__tests__/unit/todo-manager.test.js",
+        "packages/cli/__tests__/unit/ws-session-state.test.js"
+      ],
+      "requiredArtifacts": [
+        "state-snapshot",
+        "event-replay",
+        "kill-point",
+        "exact-commit"
+      ]
+    },
+    {
+      "id": "s0-semantic-handoff",
+      "priority": "P0-S",
+      "required": true,
+      "fixture": "tests/fixtures/ide-roadmap/s0-semantic-handoff.json",
+      "fixtureDigest": "sha256:db872cfb2c910e7b699632afbcf81b7ddeb510829f6c1b229c29cb256fab85e2",
+      "seed": 2026080106,
+      "minimumIndependentRuns": 100,
+      "matrix": {
+        "hosts": ["cli"],
+        "operatingSystems": ["windows", "linux", "macos"],
+        "transports": ["local-provider", "offline-fallback"]
+      },
+      "expectedOutcome": {
+        "frozenFactRetentionRate": 1,
+        "silentLossCount": 0,
+        "degradedFailuresVisible": true
+      },
+      "testFiles": [
+        "packages/cli/__tests__/unit/prompt-compressor-structured-handoff.test.js",
+        "packages/cli/__tests__/unit/agent-core-autocompact.test.js"
+      ],
+      "requiredArtifacts": [
+        "structured-summary",
+        "provider-usage",
+        "degraded-reason",
+        "exact-commit"
+      ]
+    },
+    {
+      "id": "p0-host-evidence",
+      "priority": "P0",
+      "required": true,
+      "fixture": "tests/fixtures/ide-roadmap/p0-host-evidence.json",
+      "fixtureDigest": "sha256:a7e941be524939e839116e031af101227074750c31236f46dd21a04a32e7cd94",
+      "seed": 2026080107,
+      "minimumIndependentRuns": 100,
+      "matrix": {
+        "hosts": ["vscode", "jetbrains"],
+        "operatingSystems": ["windows", "linux", "macos"],
+        "transports": ["local-ide-bridge", "remote"]
+      },
+      "expectedOutcome": {
+        "missingRequiredArtifactsFail": true,
+        "credentialLeakCount": 0,
+        "wrongCommitBindingCount": 0,
+        "evidenceReplacementCount": 0
+      },
+      "testFiles": [
+        "packages/cli/__tests__/unit/ide-journey-evidence.test.js",
+        "packages/cli/__tests__/unit/jetbrains-ui-host-journey.test.js",
+        "packages/vscode-extension/test/extension-host-runner.test.cjs"
+      ],
+      "requiredArtifacts": [
+        "exact-commit",
+        "host-environment",
+        "redacted-diagnostics",
+        "artifact-digests",
+        "journey-evidence"
+      ]
+    }
+  ]
+}

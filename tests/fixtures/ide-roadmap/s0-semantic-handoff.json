@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "case": "s0-semantic-handoff",
+  "frozenFacts": {
+    "objective": "Close the authority boundary without losing resumability.",
+    "constraints": ["Plan cannot mutate", "Managed deny cannot be widened"],
+    "keyDecisions": [
+      "Use revision CAS",
+      "Use a host-owned MCP effect contract"
+    ],
+    "changedFiles": ["packages/cli/src/runtime/agent-core.js"],
+    "tests": ["security matrix passed"],
+    "unresolvedSideEffects": ["Marketplace publication is external"],
+    "checkpoints": ["checkpoint-s0"],
+    "blockers": ["host release credentials unavailable"],
+    "nextSteps": ["run exact-commit host matrix"]
+  },
+  "expected": {
+    "retainedFactRate": 1,
+    "silentLossCount": 0,
+    "invalidProviderOutputIsDegraded": true,
+    "subagentsUseSameSchema": true
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "case": "s0-persistence-replay",
+  "killPoints": [
+    "before-temp-write",
+    "after-temp-fsync",
+    "before-rename",
+    "after-rename-before-response",
+    "while-awaiting-approval",
+    "while-plan-item-executing",
+    "while-websocket-disconnected"
+  ],
+  "expected": {
+    "planTodoRevisionConsistent": true,
+    "executionLockMayNotWiden": true,
+    "pendingApprovalFailsClosed": true,
+    "crashedRunBecomesInterrupted": true,
+    "evidenceLineagePreserved": true
+  }
+}
