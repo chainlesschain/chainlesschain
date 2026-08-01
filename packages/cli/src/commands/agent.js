@@ -17,9 +17,11 @@ import {
 import { resolveImages, resolveVisionLlm } from "../lib/image-input.js";
 import { loadConfig } from "../lib/config-manager.js";
 import {
-  normalizeAgentSandbox,
+  normalizeAgentSandboxMode,
   assertSandboxAvailable,
+  enforceSandboxFailClosed,
 } from "../lib/agent-sandbox.js";
+import { appendSecurityAuditEvent } from "../lib/security-audit.js";
 
 /**
  * Resolve + validate `--add-dir` values into absolute, existing, de-duped
@@ -80,6 +82,12 @@ export function resolveFallbackModels(flagValue, llm = {}) {
   const configured =
     llm && llm.fallbackModels != null ? llm.fallbackModels : llm?.fallbackModel;
   return normalizeFallbackModels(configured);
+}
+
+export function containsApiKeyArgument(argv = process.argv) {
+  return argv.some(
+    (value) => value === "--api-key" || String(value).startsWith("--api-key="),
+  );
 }
 
 /**
@@ -219,6 +227,10 @@ export function registerAgentCommand(program) {
     .option(
       "--sandbox [image]",
       "Run shell commands in an ephemeral Docker sandbox (network disabled by default)",
+    )
+    .option(
+      "--sandbox-mode <mode>",
+      "Sandbox posture: off | workspace-write | strict (explicit isolation modes fail closed)",
     )
     .option("--sandbox-network", "Allow network access inside --sandbox")
     .option(
@@ -466,7 +478,7 @@ export function registerAgentCommand(program) {
         options.apiKey = process.env.CC_API_KEY;
       } else if (
         options.apiKey &&
-        process.argv.includes("--api-key") &&
+        containsApiKeyArgument(process.argv) &&
         !process.env.VITEST &&
         !process.env.VITEST_WORKER_ID
       ) {
@@ -491,6 +503,7 @@ export function registerAgentCommand(program) {
       // 2.1.169 parity): flip every customization kill-switch BEFORE anything
       // loads. Permission rules stay active. --bare (CC_BARE) is safe mode
       // PLUS skills, plugins and MCP/IDE/PDH/JetBrains auto-connect off.
+      let safeIsolationRequested = options.permissionMode === "auto";
       {
         const {
           applySafeMode,
@@ -499,6 +512,7 @@ export function registerAgentCommand(program) {
           bareModeRequested,
         } = await import("../lib/safe-mode.js");
         if (bareModeRequested(options)) {
+          safeIsolationRequested = true;
           const applied = applyBareMode();
           // Ambient auto-connects off; an EXPLICIT --ide/--pdh/--jetbrains
           // (or --mcp-config, handled downstream) still wins — bare kills
@@ -511,6 +525,7 @@ export function registerAgentCommand(program) {
             `bare mode: hooks/skills/plugins/memory/MCP-auto-connect disabled (${applied.join(", ")}) — permission rules stay active.\n`,
           );
         } else if (safeModeRequested(options)) {
+          safeIsolationRequested = true;
           const applied = applySafeMode();
           process.stderr.write(
             `safe mode: customizations disabled (${applied.join(", ")}) — permission rules stay active.\n`,
@@ -791,6 +806,7 @@ export function registerAgentCommand(program) {
       // interactive, which all read options.model) picks it up; env vars are
       // set on the process so the agent loop + child tools inherit them.
       let settingsSandbox = null;
+      let managedSettingsSandbox = null;
       try {
         const { loadSettingsConfig } =
           await import("../lib/settings-loader.cjs");
@@ -813,8 +829,52 @@ export function registerAgentCommand(program) {
         }
         if (!options.model && sc.model) options.model = sc.model;
         settingsSandbox = sc.sandbox || null;
-      } catch {
-        // settings overrides are best-effort 鈥?never block the run
+        managedSettingsSandbox = sc.managedSandbox || null;
+      } catch (error) {
+        if (error?.code === "CC_MANAGED_SETTINGS_INVALID") {
+          process.stderr.write(`Error: ${error.message}\n`);
+          await _finishWorktree();
+          process.exit(6);
+        }
+        // User/project settings overrides remain best-effort. Organization
+        // managed settings are handled above and may never fail open.
+      }
+
+      let resolvedAgentSandbox;
+      try {
+        resolvedAgentSandbox = normalizeAgentSandboxMode(
+          options.sandboxMode,
+          options.sandbox,
+          {
+            cwd: process.cwd(),
+            network: options.sandboxNetwork === true,
+            settings: settingsSandbox,
+            managedSettings: managedSettingsSandbox,
+          },
+        );
+        if (safeIsolationRequested && resolvedAgentSandbox) {
+          resolvedAgentSandbox = enforceSandboxFailClosed(
+            resolvedAgentSandbox,
+            options.permissionMode === "auto" ? "auto" : "safe",
+          );
+        }
+        assertSandboxAvailable(resolvedAgentSandbox);
+        if (options.sandboxMode === "off") {
+          appendSecurityAuditEvent("sandbox_mode_off", {
+            details: {
+              command: "agent",
+              permissionMode: options.permissionMode || "default",
+              isolation: "policy-only",
+            },
+          });
+          process.stderr.write(
+            "Warning: sandbox mode is explicitly off; shell commands use policy checks without OS isolation.\n",
+          );
+        }
+      } catch (err) {
+        process.stderr.write(`Error: ${err.message}\n`);
+        await _finishWorktree();
+        process.exit(6);
       }
 
       // Extra workspace roots (--add-dir) 鈥?shared by headless + interactive.
@@ -1014,6 +1074,7 @@ export function registerAgentCommand(program) {
             allowedTools: parseToolList(options.allowedTools),
             disallowedTools: parseToolList(options.disallowedTools),
             additionalDirectories,
+            sandbox: resolvedAgentSandbox,
             maxTurns: options.maxTurns
               ? parseInt(options.maxTurns, 10)
               : undefined,
@@ -1179,20 +1240,6 @@ export function registerAgentCommand(program) {
           }
           return;
         }
-        const agentSandbox = normalizeAgentSandbox(options.sandbox, {
-          cwd: process.cwd(),
-          network: options.sandboxNetwork === true,
-          settings: settingsSandbox,
-        });
-        // Strict sandbox mode: failIfUnavailable refuses to START when the
-        // configured engine can't run — no silent per-command degradation.
-        try {
-          assertSandboxAvailable(agentSandbox);
-        } catch (err) {
-          process.stderr.write(`Error: ${err.message}\n`);
-          await _finishWorktree();
-          process.exit(6); // config error (see lib/exit-codes.cjs)
-        }
         // Resume requested onto a session with no headless (JSONL) transcript?
         // Warn instead of silently starting empty 鈥?headless resume rebuilds
         // from the JSONL store only (DB-only sessions are not replayable here).
@@ -1246,7 +1293,7 @@ export function registerAgentCommand(program) {
           allowedTools: parseToolList(options.allowedTools),
           disallowedTools: parseToolList(options.disallowedTools),
           additionalDirectories,
-          sandbox: agentSandbox,
+          sandbox: resolvedAgentSandbox,
           autoCheckpoint,
           managedCheckpoint: options.managedCheckpoint === true,
           managedCheckpointStateDir: options.managedCheckpointState || null,
@@ -1420,18 +1467,6 @@ export function registerAgentCommand(program) {
 
       // Strict sandbox mode also guards the interactive session: refuse to
       // start when failIfUnavailable is set and the engine can't run.
-      const interactiveSandbox = normalizeAgentSandbox(options.sandbox, {
-        cwd: process.cwd(),
-        network: options.sandboxNetwork === true,
-        settings: settingsSandbox,
-      });
-      try {
-        assertSandboxAvailable(interactiveSandbox);
-      } catch (err) {
-        process.stderr.write(`Error: ${err.message}\n`);
-        process.exit(6); // config error (see lib/exit-codes.cjs)
-      }
-
       const runtime = createAgentRuntimeFactory().createAgentRuntime({
         model: options.model,
         thinking,
@@ -1453,7 +1488,7 @@ export function registerAgentCommand(program) {
         parkOnExit: options.parkOnExit, // false when --no-park-on-exit
         bundlePath: options.bundle || null,
         additionalDirectories,
-        sandbox: interactiveSandbox,
+        sandbox: resolvedAgentSandbox,
         autoCheckpoint,
         managedCheckpoint: options.managedCheckpoint === true,
         managedCheckpointStateDir: options.managedCheckpointState || null,

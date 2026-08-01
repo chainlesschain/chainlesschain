@@ -27,11 +27,7 @@ import {
   validateOptions,
   redactSensitiveOptions,
 } from "./capabilities.js";
-import {
-  createSecretStore,
-  isSecretRef,
-  secretRef,
-} from "../secret-store.js";
+import { createSecretStore, isSecretRef, secretRef } from "../secret-store.js";
 import { withFileLock } from "../with-file-lock.js";
 
 export const _deps = {
@@ -91,6 +87,69 @@ function withOptionStoreLock(p, body) {
   return _deps.withFileLock(p, body, { failIfUnavailable: true });
 }
 
+function hashSecretNamespace(value, length = 64) {
+  return crypto
+    .createHash("sha256")
+    .update(String(value))
+    .digest("hex")
+    .slice(0, length);
+}
+
+function normalizedStoreIdentity(storePath) {
+  const resolved = path.resolve(String(storePath));
+  return process.platform === "win32" ? resolved.toLowerCase() : resolved;
+}
+
+function pluginSecretRefPrefix(storePath, name, key) {
+  const storeNamespace = hashSecretNamespace(
+    normalizedStoreIdentity(storePath),
+    24,
+  );
+  const optionNamespace = hashSecretNamespace(
+    JSON.stringify([String(name), String(key)]),
+  );
+  return `plugin-options/${storeNamespace}/${optionNamespace}/`;
+}
+
+function createPluginSecretRef(storePath, name, key) {
+  return `${pluginSecretRefPrefix(storePath, name, key)}${crypto.randomUUID()}`;
+}
+
+function isOwnedPluginSecretRef(ref, storePath, name, key) {
+  if (typeof ref !== "string") return false;
+  return (
+    ref === `${name}/${key}` ||
+    ref.startsWith(pluginSecretRefPrefix(storePath, name, key))
+  );
+}
+
+function collectSecretRefs(value, refs = new Set()) {
+  if (isSecretRef(value)) {
+    refs.add(value.__cc_secret_ref);
+    return refs;
+  }
+  if (Array.isArray(value)) {
+    for (const entry of value) collectSecretRefs(entry, refs);
+    return refs;
+  }
+  if (value && typeof value === "object") {
+    for (const child of Object.values(value)) collectSecretRefs(child, refs);
+  }
+  return refs;
+}
+
+function deleteSecretRefsBestEffort(store, refs) {
+  if (!store || typeof store.delete !== "function") return;
+  for (const ref of refs) {
+    try {
+      store.delete(ref);
+    } catch {
+      // Metadata is authoritative. A stale keychain entry is preferable to
+      // rolling back a successfully committed plugin option document.
+    }
+  }
+}
+
 /** Load a plugin's option VALUES at the given scope (`user` | `project`). */
 export function loadPluginOptionValues(
   name,
@@ -121,6 +180,101 @@ export function loadPluginOptionValues(
   return out;
 }
 
+function persistPluginOptionValuesLocked(
+  p,
+  name,
+  values,
+  scope,
+  { store, schema, secretStore, touchedKeys = null },
+) {
+  const previous =
+    store[name] &&
+    typeof store[name] === "object" &&
+    !Array.isArray(store[name])
+      ? store[name]
+      : {};
+  const input = values && typeof values === "object" ? values : {};
+  const persisted = { ...input };
+  const normalized = schema || {};
+  let secrets = null;
+  const getSecrets = () => {
+    if (!secrets) secrets = (secretStore || _deps.secretStore)();
+    return secrets;
+  };
+  const rejectedSensitive = [];
+  const stagedSecretRefs = [];
+  const replacedSecretRefs = new Set();
+  try {
+    for (const [key, desc] of Object.entries(normalized)) {
+      if (!desc?.sensitive) continue;
+      const hasInput = Object.prototype.hasOwnProperty.call(input, key);
+      const previousRef = isSecretRef(previous[key])
+        ? previous[key].__cc_secret_ref
+        : null;
+
+      // Project files are shareable and must never retain a sensitive value.
+      // This gate also sanitizes an existing invalid value during an unrelated
+      // patch, so patching cannot accidentally preserve project-scope secrets.
+      if (scope === "project") {
+        if (hasInput) {
+          delete persisted[key];
+          rejectedSensitive.push(key);
+        }
+        continue;
+      }
+
+      // A patch leaves untouched secret references byte-for-byte. Only keys in
+      // the patch participate in the secret-store transaction.
+      if (touchedKeys && !touchedKeys.has(key)) continue;
+
+      if (!hasInput || input[key] == null || input[key] === "") {
+        delete persisted[key];
+      } else {
+        // Every write gets a new immutable reference. Namespaces are hashes of
+        // the option-store path and the unambiguous [plugin, key] tuple, so
+        // names containing '/' cannot collide with another plugin/key pair.
+        const ref = createPluginSecretRef(p, name, key);
+        stagedSecretRefs.push(ref);
+        getSecrets().set(ref, input[key]);
+        persisted[key] = secretRef(ref);
+      }
+
+      if (previousRef && isOwnedPluginSecretRef(previousRef, p, name, key)) {
+        replacedSecretRefs.add(previousRef);
+      }
+    }
+    if (rejectedSensitive.length > 0) {
+      persisted.__cc_rejected_sensitive = [
+        ...new Set(rejectedSensitive),
+      ].sort();
+    } else if (
+      Object.prototype.hasOwnProperty.call(persisted, "__cc_rejected_sensitive")
+    ) {
+      delete persisted.__cc_rejected_sensitive;
+    }
+    store[name] = persisted;
+    writeJsonObject(p, store);
+  } catch (error) {
+    // The old metadata is still authoritative. Remove every newly staged
+    // value so a failed JSON save cannot leak an orphaned credential.
+    deleteSecretRefsBestEffort(secrets, stagedSecretRefs);
+    throw error;
+  }
+
+  const activeSecretRefs = collectSecretRefs(store);
+  const staleSecretRefs = [...replacedSecretRefs].filter(
+    (ref) => !activeSecretRefs.has(ref),
+  );
+  if (staleSecretRefs.length > 0) {
+    try {
+      deleteSecretRefsBestEffort(getSecrets(), staleSecretRefs);
+    } catch {
+      // The JSON commit succeeded; unavailable cleanup must not undo it.
+    }
+  }
+  return { name, scope, path: p };
+}
+
 /** Persist a plugin's option VALUES at a scope (replaces the plugin's entry). */
 export function setPluginOptionValues(
   name,
@@ -132,55 +286,46 @@ export function setPluginOptionValues(
     scope === "project" ? _deps.projectStorePath(cwd) : _deps.userStorePath();
   return withOptionStoreLock(p, () => {
     const store = readJsonObject(p, { failIfUnavailable: true });
-    const input = values && typeof values === "object" ? values : {};
-    const persisted = { ...input };
-    const normalized = schema || {};
-    let secrets = null;
-    const getSecrets = () => {
-      if (!secrets) secrets = (secretStore || _deps.secretStore)();
-      return secrets;
-    };
-    const rejectedSensitive = [];
-    for (const [key, desc] of Object.entries(normalized)) {
-      if (
-        !desc?.sensitive ||
-        !Object.prototype.hasOwnProperty.call(input, key)
-      ) {
-        continue;
-      }
-      // Project files are shareable and must never receive a sensitive value.
-      if (scope === "project") {
-        delete persisted[key];
-        rejectedSensitive.push(key);
-        continue;
-      }
-      if (input[key] == null || input[key] === "") {
-        delete persisted[key];
-        try {
-          getSecrets().delete(`${name}/${key}`);
-        } catch {
-          // Missing secrets already behave as absent on read.
-        }
-        continue;
-      }
-      getSecrets().set(`${name}/${key}`, input[key]);
-      persisted[key] = secretRef(`${name}/${key}`);
-    }
-    if (rejectedSensitive.length > 0) {
-      persisted.__cc_rejected_sensitive = [
-        ...new Set(rejectedSensitive),
-      ].sort();
-    } else if (
-      Object.prototype.hasOwnProperty.call(
-        persisted,
-        "__cc_rejected_sensitive",
-      )
-    ) {
-      delete persisted.__cc_rejected_sensitive;
-    }
-    store[name] = persisted;
-    writeJsonObject(p, store);
-    return { name, scope, path: p };
+    return persistPluginOptionValuesLocked(p, name, values, scope, {
+      store,
+      schema,
+      secretStore,
+    });
+  });
+}
+
+/**
+ * Merge option updates under the same lock used for the durable JSON commit.
+ * This is the command-safe API: callers never perform a lock-free read/modify/
+ * write cycle that could overwrite a concurrent writer's unrelated keys.
+ */
+export function patchPluginOptionValues(
+  name,
+  updates,
+  scope,
+  { cwd, schema, secretStore } = {},
+) {
+  const p =
+    scope === "project" ? _deps.projectStorePath(cwd) : _deps.userStorePath();
+  return withOptionStoreLock(p, () => {
+    const store = readJsonObject(p, { failIfUnavailable: true });
+    const previous =
+      store[name] &&
+      typeof store[name] === "object" &&
+      !Array.isArray(store[name])
+        ? store[name]
+        : {};
+    const patch =
+      updates && typeof updates === "object" && !Array.isArray(updates)
+        ? updates
+        : {};
+    const values = { ...previous, ...patch };
+    return persistPluginOptionValuesLocked(p, name, values, scope, {
+      store,
+      schema,
+      secretStore,
+      touchedKeys: new Set(Object.keys(patch)),
+    });
   });
 }
 

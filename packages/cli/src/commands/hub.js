@@ -3475,7 +3475,7 @@ export function registerHubCommand(program) {
         "      Separate key/account for the hub? set an object instead:\n" +
         "        cc config set hub.llm.provider volcengine\n" +
         "        cc config set hub.llm.model doubao-seed-2-1-pro-260628\n" +
-        "        cc config set hub.llm.apiKeyEnv MY_HUB_KEY   (or hub.llm.apiKey <key>)\n" +
+        "        cc config set hub.llm.apiKeyEnv MY_HUB_KEY   (or: cc config set-secret hub.llm.apiKey)\n" +
         "  • Ephemeral: CC_HUB_LLM=config|<provider> cc hub ask … --accept-non-local\n" +
         "      (a one-off override still needs an explicit egress flag).",
     )

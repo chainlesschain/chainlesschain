@@ -59,7 +59,7 @@ describe("config-keys", () => {
     expect(by("llm.model").current).toBe("qwen");
     expect(by("cli.theme").current).toBe("mono");
     // secret present → masked, never leaked
-    expect(by("llm.apiKey").current).toBe("****");
+    expect(by("llm.apiKey").current).toBe("[REDACTED]");
     expect(JSON.stringify(described)).not.toContain("sk-supersecret");
     // unset key → undefined current
     expect(by("enterprise.tenantId").current).toBeUndefined();

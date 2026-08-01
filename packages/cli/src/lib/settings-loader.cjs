@@ -294,13 +294,22 @@ function addRule({ cwd = process.cwd(), kind, rule, scope = "project" } = {}) {
  * model / env vars for a run without editing .chainlesschain/config.json.
  *
  * @param {object} [opts] { cwd, settingsFile, onWarn }
- * @returns {{ model: string|null, env: Record<string,string>, files: string[] }}
+ * @returns {{
+ *   model: string|null,
+ *   modelSource: string|null,
+ *   env: Record<string,string>,
+ *   envSources: Record<string,string>,
+ *   files: string[]
+ * }}
  */
 function loadSettingsConfig(opts = {}) {
   const cwd = opts.cwd || process.cwd();
   let model = null;
+  let modelSource = null;
   const env = {};
+  const envSources = {};
   let sandbox = null;
+  let managedSandbox = null;
   const files = [];
   for (const file of settingsPaths(cwd, opts.settingsFile)) {
     const data = readSettingsFile(file, { onWarn: opts.onWarn });
@@ -308,12 +317,14 @@ function loadSettingsConfig(opts = {}) {
     let contributed = false;
     if (typeof data.model === "string" && data.model.trim()) {
       model = data.model.trim();
+      modelSource = file;
       contributed = true;
     }
     if (data.env && typeof data.env === "object" && !Array.isArray(data.env)) {
       for (const [k, v] of Object.entries(data.env)) {
         if (typeof v === "string") {
           env[k] = v;
+          envSources[k] = file;
           contributed = true;
         }
       }
@@ -334,12 +345,14 @@ function loadSettingsConfig(opts = {}) {
     let contributed = false;
     if (typeof data.model === "string" && data.model.trim()) {
       model = data.model.trim();
+      modelSource = managed.file;
       contributed = true;
     }
     if (data.env && typeof data.env === "object" && !Array.isArray(data.env)) {
       for (const [k, v] of Object.entries(data.env)) {
         if (typeof v === "string") {
           env[k] = v;
+          envSources[k] = managed.file;
           contributed = true;
         }
       }
@@ -349,12 +362,22 @@ function loadSettingsConfig(opts = {}) {
       typeof data.sandbox === "object" &&
       !Array.isArray(data.sandbox)
     ) {
+      managedSandbox = JSON.parse(JSON.stringify(data.sandbox));
       sandbox = mergeSandboxSettings(sandbox, data.sandbox);
       contributed = true;
     }
     if (contributed) files.push(managed.file);
   }
-  return { model, env, sandbox, files };
+  return {
+    model,
+    modelSource,
+    env,
+    envSources,
+    sandbox,
+    managedSandbox,
+    files,
+    managedFile: managed.settings ? managed.file : null,
+  };
 }
 
 function mergeSandboxSettings(base, overlay) {

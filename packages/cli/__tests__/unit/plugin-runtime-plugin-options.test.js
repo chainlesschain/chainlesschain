@@ -8,6 +8,7 @@ import {
   resolvePluginOptions,
   loadPluginOptionValues,
   setPluginOptionValues,
+  patchPluginOptionValues,
   getResolvedPluginOptions,
   _deps,
 } from "../../src/lib/plugin-runtime/plugin-options.js";
@@ -137,18 +138,95 @@ describe("plugin-options store (injected IO)", () => {
       schema,
     });
     expect(userMem._).not.toContain("secret-value");
-    expect(JSON.parse(userMem._).p1.apiKey).toEqual({
-      __cc_secret_ref: "p1/apiKey",
-    });
+    expect(JSON.parse(userMem._).p1.apiKey.__cc_secret_ref).toMatch(
+      /^plugin-options\/[a-f0-9]{24}\/[a-f0-9]{64}\/[0-9a-f-]{36}$/,
+    );
     expect(loadPluginOptionValues("p1", "user", { schema })).toEqual({
       apiKey: "secret-value",
     });
   });
 
-  it("drops sensitive project values before persistence", () => {
-    setPluginOptionValues("p1", { apiKey: "project-leak", retries: 2 }, "project", {
-      schema,
+  it("uses a fresh immutable reference and removes the replaced secret after commit", () => {
+    setPluginOptionValues("p1", { apiKey: "first" }, "user", { schema });
+    const firstRef = JSON.parse(userMem._).p1.apiKey.__cc_secret_ref;
+
+    setPluginOptionValues("p1", { apiKey: "second" }, "user", { schema });
+    const secondRef = JSON.parse(userMem._).p1.apiKey.__cc_secret_ref;
+
+    expect(secondRef).not.toBe(firstRef);
+    expect(secrets.has(firstRef)).toBe(false);
+    expect(secrets.get(secondRef)).toBe("second");
+  });
+
+  it("rolls back a newly staged secret when the JSON commit fails", () => {
+    setPluginOptionValues("p1", { apiKey: "first" }, "user", { schema });
+    const committedJson = userMem._;
+    const firstRef = JSON.parse(committedJson).p1.apiKey.__cc_secret_ref;
+    _deps.renameSync = () => {
+      throw new Error("simulated atomic rename failure");
+    };
+
+    expect(() =>
+      setPluginOptionValues("p1", { apiKey: "second" }, "user", { schema }),
+    ).toThrow(/atomic rename failure/i);
+    expect(userMem._).toBe(committedJson);
+    expect([...secrets.entries()]).toEqual([[firstRef, "first"]]);
+  });
+
+  it("separates plugin/key tuples that shared the legacy slash reference", () => {
+    const leftSchema = normalizeOptionsSchema({
+      c: { type: "string", sensitive: true },
     });
+    const rightSchema = normalizeOptionsSchema({
+      "b/c": { type: "string", sensitive: true },
+    });
+
+    setPluginOptionValues("a/b", { c: "left" }, "user", {
+      schema: leftSchema,
+    });
+    setPluginOptionValues("a", { "b/c": "right" }, "user", {
+      schema: rightSchema,
+    });
+    const document = JSON.parse(userMem._);
+    const leftRef = document["a/b"].c.__cc_secret_ref;
+    const rightRef = document.a["b/c"].__cc_secret_ref;
+
+    expect(leftRef).not.toBe(rightRef);
+    expect(leftRef).not.toBe("a/b/c");
+    expect(rightRef).not.toBe("a/b/c");
+    expect(secrets.get(leftRef)).toBe("left");
+    expect(secrets.get(rightRef)).toBe("right");
+  });
+
+  it("does not delete a shared legacy reference still used by another plugin", () => {
+    const leftSchema = normalizeOptionsSchema({
+      c: { type: "string", sensitive: true },
+    });
+    userMem._ = JSON.stringify({
+      "a/b": { c: { __cc_secret_ref: "a/b/c" } },
+      a: { "b/c": { __cc_secret_ref: "a/b/c" } },
+    });
+    secrets.set("a/b/c", "legacy-shared");
+
+    setPluginOptionValues("a/b", { c: "replacement" }, "user", {
+      schema: leftSchema,
+    });
+
+    expect(secrets.get("a/b/c")).toBe("legacy-shared");
+    expect(JSON.parse(userMem._).a["b/c"]).toEqual({
+      __cc_secret_ref: "a/b/c",
+    });
+  });
+
+  it("drops sensitive project values before persistence", () => {
+    setPluginOptionValues(
+      "p1",
+      { apiKey: "project-leak", retries: 2 },
+      "project",
+      {
+        schema,
+      },
+    );
     expect(JSON.parse(projMem._).p1).toEqual({
       retries: 2,
       __cc_rejected_sensitive: ["apiKey"],
@@ -159,12 +237,7 @@ describe("plugin-options store (injected IO)", () => {
   it("fails closed without overwriting corrupt credential metadata", () => {
     userMem._ = "{broken";
     expect(() =>
-      setPluginOptionValues(
-        "p1",
-        { apiKey: "new-secret" },
-        "user",
-        { schema },
-      ),
+      setPluginOptionValues("p1", { apiKey: "new-secret" }, "user", { schema }),
     ).toThrow(/option store/i);
     expect(userMem._).toBe("{broken");
     expect(secrets.size).toBe(0);
@@ -177,5 +250,57 @@ describe("plugin-options store (injected IO)", () => {
       expect.any(Function),
       expect.objectContaining({ failIfUnavailable: true }),
     );
+  });
+
+  it("reads and patches only after acquiring the lock, preserving a concurrent update", () => {
+    userMem._ = JSON.stringify({ p1: { retries: 1 } });
+    let lockHeld = false;
+    const readFileSync = _deps.readFileSync;
+    _deps.readFileSync = (p) => {
+      expect(lockHeld).toBe(true);
+      return readFileSync(p);
+    };
+    _deps.withFileLock = vi.fn((_target, body) => {
+      // Model another writer committing while this caller was waiting for the
+      // lock. A lock-internal read must observe and preserve both of its keys.
+      userMem._ = JSON.stringify({
+        p1: { retries: 9, userOnly: "concurrent" },
+      });
+      lockHeld = true;
+      try {
+        return body({ locked: true });
+      } finally {
+        lockHeld = false;
+      }
+    });
+
+    patchPluginOptionValues(
+      "p1",
+      { endpoint: "https://patched.example" },
+      "user",
+      {
+        schema,
+      },
+    );
+
+    expect(JSON.parse(userMem._).p1).toEqual({
+      retries: 9,
+      userOnly: "concurrent",
+      endpoint: "https://patched.example",
+    });
+  });
+
+  it("patches a non-secret key without rotating an untouched secret reference", () => {
+    setPluginOptionValues("p1", { apiKey: "secret", retries: 1 }, "user", {
+      schema,
+    });
+    const ref = JSON.parse(userMem._).p1.apiKey.__cc_secret_ref;
+
+    patchPluginOptionValues("p1", { retries: 2 }, "user", { schema });
+
+    expect(JSON.parse(userMem._).p1.apiKey.__cc_secret_ref).toBe(ref);
+    expect(JSON.parse(userMem._).p1.retries).toBe(2);
+    expect(secrets.get(ref)).toBe("secret");
+    expect(secrets.size).toBe(1);
   });
 });

@@ -6,10 +6,32 @@
  *   2. runAgentHeadless end-to-end — a `/config` prompt returns early (no LLM,
  *      no bootstrap) and emits the right shape for text / json / stream-json.
  */
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import os from "os";
 import fs from "fs";
 import path from "path";
+
+// Owner-only ACL behavior has dedicated injected cross-platform coverage in
+// config-security.test.js. Keep this headless command test focused on routing
+// and persistence without launching PowerShell for every temporary home on
+// Windows (which also makes parallel test workers contend on ACL mutation).
+vi.mock("../../src/lib/secure-fs.js", async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    ensurePrivateDirectory: (target) => {
+      fs.mkdirSync(target, { recursive: true, mode: 0o700 });
+      if (process.platform !== "win32") fs.chmodSync(target, 0o700);
+      return target;
+    },
+    ensurePrivateFile: (target) => {
+      if (process.platform !== "win32" && fs.existsSync(target)) {
+        fs.chmodSync(target, 0o600);
+      }
+      return target;
+    },
+  };
+});
 import {
   isHeadlessConfigCommand,
   runConfigDirective,
@@ -78,15 +100,17 @@ describe("runConfigDirective (pure, fake config manager)", () => {
     });
   });
 
-  it("masks secrets on set and get", () => {
+  it("rejects secret setting and masks an existing secret on get", () => {
     const cm = makeCm();
     const set = runConfigDirective("/config llm.apiKey=sk-ant-secret-9999", {
       configManager: cm,
     });
-    expect(set.text).toBe("set llm.apiKey = set (…9999)");
-    expect(set.text).not.toContain("secret");
+    expect(set.isError).toBe(true);
+    expect(set.text).toContain("set-secret llm.apiKey");
+    expect(set.text).not.toContain("sk-ant-secret-9999");
+    cm.setConfigValue("llm.apiKey", "sk-ant-secret-9999");
     const get = runConfigDirective("/config llm.apiKey", { configManager: cm });
-    expect(get.text).toBe("llm.apiKey = set (…9999)");
+    expect(get.text).toBe("llm.apiKey = set (hidden)");
   });
 
   it("shows the full summary for bare /config", () => {

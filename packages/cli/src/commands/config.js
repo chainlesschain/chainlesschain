@@ -1,18 +1,43 @@
 import chalk from "chalk";
+import { existsSync } from "node:fs";
 import {
   loadConfig,
   getConfigValue,
   setConfigValue,
   resetConfig,
   saveConfig,
+  loadUserConfig,
+  setSecretConfigValue,
+  backupConfigForMigration,
+  withConfigLock,
 } from "../lib/config-manager.js";
-import { getConfigPath } from "../lib/paths.js";
+import { getConfigPath, getHomeDir } from "../lib/paths.js";
 import logger from "../lib/logger.js";
 import { listFeatures, setFeature, getFlagInfo } from "../lib/feature-flags.js";
 import { executionBroker } from "../lib/process-execution-broker/index.js";
+import {
+  CONFIG_SCHEMA_VERSION,
+  getConfigDescriptor,
+  getConfigDescriptors,
+  getConfigJsonSchema,
+  isSecretConfigKey,
+  migrateConfigDocument,
+  validateConfigDocument,
+} from "../lib/config-schema.js";
+import {
+  CONFIG_REDACTED,
+  redactConfigObject,
+  redactConfigValue,
+} from "../lib/config-redaction.js";
+import {
+  ensurePrivateDirectory,
+  inspectPrivatePaths,
+  repairPrivatePaths,
+} from "../lib/secure-fs.js";
 
 export const _deps = {
   spawnSync: (...args) => executionBroker.spawnSync(...args),
+  platform: () => process.platform,
 };
 
 /** Parse the conventional $EDITOR string without invoking a shell. */
@@ -79,6 +104,287 @@ export function openConfigEditor(editor, configPath, deps = _deps) {
   });
 }
 
+export async function readSecretInput(options = {}) {
+  const stdin = options.stdin || process.stdin;
+  if (stdin.isTTY) {
+    const askPassword =
+      options.askPassword || (await import("../lib/prompts.js")).askPassword;
+    return String(await askPassword(options.message || "Secret value:"));
+  }
+  let value = "";
+  stdin.setEncoding?.("utf8");
+  for await (const chunk of stdin) value += chunk;
+  // Drop only line endings introduced by piping/Enter. Spaces may be part of
+  // the credential and must not be silently changed.
+  return value.replace(/[\r\n]+$/, "");
+}
+
+function getNested(obj, key) {
+  let current = obj;
+  for (const part of String(key).split(".")) {
+    if (current == null || typeof current !== "object") return undefined;
+    current = current[part];
+  }
+  return current;
+}
+
+function hasNested(obj, key) {
+  let current = obj;
+  for (const part of String(key).split(".")) {
+    if (
+      current == null ||
+      typeof current !== "object" ||
+      !Object.prototype.hasOwnProperty.call(current, part)
+    ) {
+      return false;
+    }
+    current = current[part];
+  }
+  return true;
+}
+
+function setNested(obj, key, value) {
+  const parts = String(key).split(".");
+  let current = obj;
+  for (let index = 0; index < parts.length - 1; index += 1) {
+    current = current[parts[index]] ||= {};
+  }
+  current[parts.at(-1)] = value;
+}
+
+function recordUserProvenance(value, prefix, provenance, source) {
+  if (prefix) {
+    provenance[prefix] = {
+      source,
+      layer: "user",
+      overridden: [],
+      locked: false,
+    };
+  }
+  if (!value || typeof value !== "object" || Array.isArray(value)) return;
+  for (const [name, child] of Object.entries(value)) {
+    recordUserProvenance(
+      child,
+      prefix ? `${prefix}.${name}` : name,
+      provenance,
+      source,
+    );
+  }
+}
+
+/** Inspect, and optionally repair, the owner-only config storage contract. */
+export function checkConfigStoragePermissions(options = {}) {
+  const home = options.home || getHomeDir();
+  const configPath = options.configPath || getConfigPath();
+  const platform = options.platform || _deps.platform();
+  const secureOptions = { platform, ...(options.secureOptions || {}) };
+  const pathExists =
+    options.existsSync || secureOptions.deps?.fs?.existsSync || existsSync;
+
+  const definitions = [
+    { name: "home", target: home, kind: "directory" },
+    { name: "config", target: configPath, kind: "file" },
+  ];
+  const results = new Map();
+  const existing = [];
+  for (const definition of definitions) {
+    let exists = false;
+    try {
+      exists = pathExists(definition.target);
+    } catch (error) {
+      results.set(definition.name, {
+        ok: false,
+        exists: false,
+        platform,
+        error: error.message,
+      });
+      continue;
+    }
+    if (!exists && options.fix && definition.kind === "directory") {
+      try {
+        ensurePrivateDirectory(definition.target, {
+          ...secureOptions,
+          failIfUnavailable: true,
+        });
+        results.set(definition.name, { ok: true, exists: true, platform });
+      } catch (error) {
+        results.set(definition.name, {
+          ok: false,
+          exists: false,
+          platform,
+          error: error.message,
+        });
+      }
+      continue;
+    }
+    if (!exists) {
+      results.set(definition.name, { ok: false, exists: false, platform });
+      continue;
+    }
+    existing.push(definition);
+  }
+
+  if (existing.length > 0) {
+    const targets = existing.map((entry) => entry.target);
+    let inspected;
+    try {
+      inspected = options.fix
+        ? repairPrivatePaths(targets, secureOptions)
+        : inspectPrivatePaths(targets, secureOptions);
+    } catch (error) {
+      // A batch repair may partially succeed. Read back every target so the
+      // report reflects durable post-fix state rather than a generic failure.
+      inspected = inspectPrivatePaths(targets, secureOptions).map((entry) => ({
+        ...entry,
+        ...(entry.ok ? {} : { error: entry.error || error.message }),
+      }));
+    }
+    for (let index = 0; index < existing.length; index += 1) {
+      results.set(existing[index].name, inspected[index]);
+    }
+  }
+
+  return {
+    home: results.get("home"),
+    config: results.get("config"),
+  };
+}
+
+/** Secure config.json for an editor without parsing or rewriting it. */
+export function prepareConfigForEdit(options = {}) {
+  const configPath = options.configPath || getConfigPath();
+  const pathExists = options.existsSync || existsSync;
+  if (pathExists(configPath)) {
+    const checkPermissions =
+      options.checkPermissions || checkConfigStoragePermissions;
+    const permissions = checkPermissions({
+      fix: true,
+      configPath,
+      ...(options.home ? { home: options.home } : {}),
+    });
+    if (!permissions.home.ok || !permissions.config.ok) {
+      throw new Error("Could not secure config.json before editing");
+    }
+  } else {
+    const load = options.loadConfig || loadConfig;
+    const save = options.saveConfig || saveConfig;
+    save(load());
+  }
+  return configPath;
+}
+
+const PROVIDER_KEY_ENV = Object.freeze({
+  anthropic: "ANTHROPIC_API_KEY",
+  openai: "OPENAI_API_KEY",
+  volcengine: "VOLCENGINE_API_KEY",
+  deepseek: "DEEPSEEK_API_KEY",
+  dashscope: "DASHSCOPE_API_KEY",
+  gemini: "GEMINI_API_KEY",
+  kimi: "MOONSHOT_API_KEY",
+  minimax: "MINIMAX_API_KEY",
+  mistral: "MISTRAL_API_KEY",
+});
+
+/** Resolve the config layers used by CLI agent startup, with provenance. */
+export async function resolveEffectiveConfig(options = {}) {
+  const env = options.env || process.env;
+  const cwd = options.cwd || process.cwd();
+  const raw = loadUserConfig();
+  const config = loadConfig({ resolveSecrets: false });
+  const provenance = {};
+  let settingsLayer = {
+    files: [],
+    managedFile: null,
+    environmentVariables: [],
+    sandbox: null,
+  };
+  let settingsEnv = {};
+  let settingsEnvSources = {};
+  recordUserProvenance(raw, "", provenance, getConfigPath());
+  for (const entry of getConfigDescriptors()) {
+    if (!hasNested(raw, entry.key) && entry.default !== undefined) {
+      provenance[entry.key] = {
+        source: "built-in default",
+        layer: "default",
+        overridden: [],
+        locked: false,
+      };
+    }
+  }
+
+  try {
+    const imported = await import("../lib/settings-loader.cjs");
+    const settings = imported.default || imported;
+    const loaded = settings.loadSettingsConfig({ cwd, env });
+    settingsEnv = loaded.env || {};
+    settingsEnvSources = loaded.envSources || {};
+    settingsLayer = {
+      files: loaded.files || [],
+      managedFile: loaded.managedFile || null,
+      environmentVariables: Object.keys(settingsEnv).sort(),
+      sandbox: redactConfigObject(loaded.sandbox),
+    };
+    if (loaded.model) {
+      const previous = provenance["llm.model"]?.source;
+      setNested(config, "llm.model", loaded.model);
+      const modelSource =
+        loaded.modelSource || loaded.files.at(-1) || "settings";
+      provenance["llm.model"] = {
+        source: modelSource,
+        layer:
+          loaded.managedFile && modelSource === loaded.managedFile
+            ? "managed"
+            : "settings",
+        overridden: previous ? [previous] : [],
+        locked: Boolean(
+          loaded.managedFile && modelSource === loaded.managedFile,
+        ),
+      };
+    }
+  } catch (error) {
+    provenance.$settings = {
+      source: "settings",
+      layer: "error",
+      overridden: [],
+      locked: false,
+      error: error.message,
+    };
+  }
+
+  const provider = config?.llm?.provider;
+  const effectiveEnv = { ...env, ...settingsEnv };
+  const envName = effectiveEnv.CC_API_KEY
+    ? "CC_API_KEY"
+    : PROVIDER_KEY_ENV[String(provider || "").toLowerCase()];
+  if (envName && effectiveEnv[envName]) {
+    const previous = provenance["llm.apiKey"]?.source;
+    const settingsSource = settingsEnvSources[envName];
+    setNested(config, "llm.apiKey", CONFIG_REDACTED);
+    provenance["llm.apiKey"] = {
+      source: settingsSource
+        ? `${settingsSource}:env.${envName}`
+        : `environment:${envName}`,
+      layer:
+        settingsSource && settingsSource === settingsLayer.managedFile
+          ? "managed"
+          : settingsSource
+            ? "settings-environment"
+            : "environment",
+      overridden: previous ? [previous] : [],
+      locked: Boolean(
+        settingsSource && settingsSource === settingsLayer.managedFile,
+      ),
+    };
+  }
+
+  return {
+    schemaVersion: CONFIG_SCHEMA_VERSION,
+    config: redactConfigObject(config),
+    provenance,
+    settings: settingsLayer,
+  };
+}
+
 export function registerConfigCommand(program) {
   const cmd = program
     .command("config")
@@ -87,8 +393,13 @@ export function registerConfigCommand(program) {
   cmd
     .command("list")
     .description("Show all configuration values")
-    .action(() => {
-      const config = loadConfig();
+    .option("--json", "Output redacted JSON")
+    .action((options) => {
+      const config = redactConfigObject(loadConfig({ resolveSecrets: false }));
+      if (options.json) {
+        console.log(JSON.stringify(config, null, 2));
+        return;
+      }
       logger.log(chalk.bold(`\n  Config: ${getConfigPath()}\n`));
       printConfig(config, "  ");
       logger.newline();
@@ -130,16 +441,21 @@ export function registerConfigCommand(program) {
     .command("get")
     .description("Get a configuration value")
     .argument("<key>", "Config key (dot-notation, e.g. llm.provider)")
-    .action((key) => {
-      const value = getConfigValue(key);
+    .option("--json", "Output a redacted JSON envelope")
+    .action((key, options) => {
+      const value = getConfigValue(key, { resolveSecrets: false });
       if (value === undefined) {
         logger.error(`Key not found: ${key}`);
-        process.exit(1);
+        process.exitCode = 1;
+        return;
       }
-      if (typeof value === "object") {
-        logger.log(JSON.stringify(value, null, 2));
+      const redacted = redactConfigValue(key, value);
+      if (options.json) {
+        console.log(JSON.stringify({ key, value: redacted }, null, 2));
+      } else if (typeof redacted === "object") {
+        logger.log(JSON.stringify(redacted, null, 2));
       } else {
-        logger.log(String(value));
+        logger.log(String(redacted));
       }
     });
 
@@ -148,9 +464,22 @@ export function registerConfigCommand(program) {
     .description("Set a configuration value")
     .argument("<key>", "Config key (dot-notation)")
     .argument("<value>", "Value to set")
-    .action(async (key, value) => {
-      setConfigValue(key, value);
-      logger.success(`Set ${key} = ${value}`);
+    .option(
+      "--allow-unknown",
+      "Allow an unregistered key for extension development",
+    )
+    .action(async (key, value, options) => {
+      if (isSecretConfigKey(key)) {
+        logger.error(
+          `Refusing a secret in argv for ${key}. Pipe it to "cc config set-secret ${key}" or use its hidden TTY prompt.`,
+        );
+        process.exitCode = 1;
+        return;
+      }
+      setConfigValue(key, value, {
+        allowUnknown: options.allowUnknown === true,
+      });
+      logger.success(`Set ${key}`);
       // Claude-Code parity: if the user just pinned a retired/deprecated model
       // id (llm.model / llm.visionModel / llm.fallbackModel), warn now — at pin
       // time — rather than only when a later run fails. stderr-only, vitest-safe.
@@ -170,10 +499,172 @@ export function registerConfigCommand(program) {
     });
 
   cmd
+    .command("set-secret")
+    .description("Set a secret from a hidden TTY prompt or stdin (never argv)")
+    .argument("<key>", "Schema-declared secret key")
+    .option(
+      "--storage <mode>",
+      "Storage: auto (OS store then 0600 fallback), keychain, or file",
+      "auto",
+    )
+    .action(async (key, options) => {
+      if (!isSecretConfigKey(key)) {
+        logger.error(`${key} is not a registered secret key`);
+        process.exitCode = 1;
+        return;
+      }
+      const value = await readSecretInput({
+        message: `Secret value for ${key}:`,
+      });
+      if (!value) {
+        logger.error("Secret input was empty; configuration was not changed");
+        process.exitCode = 1;
+        return;
+      }
+      const result = setSecretConfigValue(key, value, {
+        storage: options.storage,
+      });
+      logger.success(
+        `Set ${key} (${result.storage === "keychain" ? result.backend : "owner-only config file"})`,
+      );
+    });
+
+  cmd
+    .command("schema")
+    .description("Print the versioned JSON Schema for config.json")
+    .option("--json", "Output JSON (default)")
+    .action(() => {
+      console.log(JSON.stringify(getConfigJsonSchema(), null, 2));
+    });
+
+  cmd
+    .command("validate")
+    .description("Validate config.json types, keys and filesystem permissions")
+    .option("--fix", "Apply safe migrations and owner-only permissions")
+    .option("--allow-unknown", "Permit extension-development keys")
+    .option("--json", "Output JSON")
+    .action((options) => {
+      const permissions = checkConfigStoragePermissions({
+        fix: options.fix === true,
+      });
+      const inspectAndMaybeMigrate = () => {
+        const raw = loadUserConfig({ failIfUnavailable: true });
+        const migrated = migrateConfigDocument(raw);
+        const validation = validateConfigDocument(
+          options.fix ? migrated.config : raw,
+          { allowUnknown: options.allowUnknown === true },
+        );
+        if (options.fix && migrated.migrations.length && validation.valid) {
+          backupConfigForMigration(
+            `.before-schema-v${CONFIG_SCHEMA_VERSION.split(".")[0]}`,
+            { applyWindowsAcl: true, failIfUnavailable: true },
+          );
+          saveConfig(migrated.config);
+        }
+        return { migrated, validation };
+      };
+      // Re-read, migrate, back up and save under one cross-process lock. A
+      // concurrent `config set` can therefore never be overwritten by a stale
+      // pre-migration snapshot.
+      const { migrated, validation } = options.fix
+        ? withConfigLock(inspectAndMaybeMigrate)
+        : inspectAndMaybeMigrate();
+      const ok =
+        validation.valid &&
+        permissions.home.ok &&
+        (!permissions.config.exists || permissions.config.ok);
+      const result = {
+        ok,
+        ...validation,
+        migrations: migrated.migrations,
+        permissions,
+      };
+      if (options.json) {
+        console.log(JSON.stringify(result, null, 2));
+      } else if (ok) {
+        logger.success(
+          `Configuration is valid (schema ${CONFIG_SCHEMA_VERSION})`,
+        );
+      } else {
+        for (const issue of validation.issues) logger.error(issue.message);
+        if (!permissions.home.ok) logger.error("Config home is not owner-only");
+        if (permissions.config.exists && !permissions.config.ok) {
+          logger.error("config.json is not owner-only");
+        }
+      }
+      if (!ok) process.exitCode = 1;
+    });
+
+  cmd
+    .command("effective")
+    .description("Show the redacted effective configuration and provenance")
+    .option("--json", "Output JSON")
+    .action(async (options) => {
+      const result = await resolveEffectiveConfig();
+      if (options.json) {
+        console.log(JSON.stringify(result, null, 2));
+        return;
+      }
+      logger.log(
+        chalk.bold(`\n  Effective config (schema ${result.schemaVersion})\n`),
+      );
+      printConfig(result.config, "  ");
+      logger.newline();
+    });
+
+  cmd
+    .command("explain")
+    .description("Explain a key's type, redacted value, source and policy lock")
+    .argument("<key>", "Known config key")
+    .option("--json", "Output JSON")
+    .action(async (key, options) => {
+      const entry = getConfigDescriptor(key);
+      if (!entry) {
+        logger.error(`Unknown configuration key: ${key}`);
+        process.exitCode = 1;
+        return;
+      }
+      const effective = await resolveEffectiveConfig();
+      const result = {
+        schemaVersion: CONFIG_SCHEMA_VERSION,
+        key,
+        type: entry.type,
+        secret: entry.secret === true || isSecretConfigKey(key),
+        scope: entry.scope,
+        managedLock: entry.managedLock,
+        deprecated: entry.deprecated === true,
+        migration: entry.migration || null,
+        value: redactConfigValue(key, getNested(effective.config, key)),
+        provenance: effective.provenance[key] || {
+          source: "unset",
+          layer: "unset",
+          overridden: [],
+          locked: false,
+        },
+      };
+      if (options.json) {
+        console.log(JSON.stringify(result, null, 2));
+        return;
+      }
+      logger.log(`${chalk.cyan(key)} = ${String(result.value ?? "(unset)")}`);
+      logger.log(
+        `  type: ${Array.isArray(result.type) ? result.type.join(" | ") : result.type}`,
+      );
+      logger.log(`  source: ${result.provenance.source}`);
+      logger.log(
+        `  policy lock: ${result.provenance.locked ? "managed" : "not locked"}`,
+      );
+      if (result.migration)
+        logger.warn(`  deprecated; migrate to ${result.migration}`);
+    });
+
+  cmd
     .command("edit")
     .description("Open config file in default editor")
     .action(async () => {
-      const configPath = getConfigPath();
+      // Existing malformed JSON must reach the editor byte-for-byte; this only
+      // repairs owner-only permissions. A missing file is created atomically.
+      const configPath = prepareConfigForEdit();
       const editor =
         process.env.EDITOR ||
         process.env.VISUAL ||
@@ -314,18 +805,13 @@ export function registerConfigCommand(program) {
     });
 }
 
-function printConfig(obj, indent = "") {
+export function printConfig(obj, indent = "") {
   for (const [key, value] of Object.entries(obj)) {
     if (value && typeof value === "object" && !Array.isArray(value)) {
       logger.log(`${indent}${chalk.cyan(key)}:`);
       printConfig(value, indent + "  ");
     } else {
-      const displayValue =
-        value === null
-          ? chalk.gray("null")
-          : key.toLowerCase().includes("key") && value
-            ? chalk.yellow("****")
-            : String(value);
+      const displayValue = value === null ? chalk.gray("null") : String(value);
       logger.log(`${indent}${chalk.cyan(key)}: ${displayValue}`);
     }
   }

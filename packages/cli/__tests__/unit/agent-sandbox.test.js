@@ -3,14 +3,17 @@ import {
   DEFAULT_SANDBOX_IMAGE,
   _deps,
   assertSandboxAvailable,
+  enforceSandboxFailClosed,
   executeSandboxedShell,
   isolationLevel,
   normalizeAgentSandbox,
+  normalizeAgentSandboxMode,
   normalizeSandboxPolicy,
   probeSandboxAvailability,
   sandboxSummary,
 } from "../../src/lib/agent-sandbox.js";
 import { executeTool } from "../../src/runtime/agent-core.js";
+import { containsApiKeyArgument } from "../../src/commands/agent.js";
 
 const originalSpawnSync = _deps.spawnSync;
 afterEach(() => {
@@ -18,6 +21,18 @@ afterEach(() => {
 });
 
 describe("agent sandbox", () => {
+  it("detects both supported API-key argv spellings for deprecation warnings", () => {
+    expect(containsApiKeyArgument(["node", "cc", "--api-key", "secret"])).toBe(
+      true,
+    );
+    expect(containsApiKeyArgument(["node", "cc", "--api-key=secret"])).toBe(
+      true,
+    );
+    expect(containsApiKeyArgument(["node", "cc", "--api-key-helper=x"])).toBe(
+      false,
+    );
+  });
+
   it("is opt-in and defaults to network isolation", () => {
     expect(normalizeAgentSandbox(undefined)).toBeNull();
     const sandbox = normalizeAgentSandbox(true, { cwd: "." });
@@ -39,6 +54,78 @@ describe("agent sandbox", () => {
     expect(sandbox.policy.failIfUnavailable).toBe(true);
     expect(sandbox.policy.denyRead[0]).toMatch(/\.secrets$/);
     expect(sandbox.policy.allowedDomains).toEqual(["registry.npmjs.org"]);
+  });
+
+  it("turns hard sandbox policy into fail-closed default isolation", () => {
+    for (const settings of [
+      { requireSandbox: true },
+      { allowUnsandboxedCommands: false },
+    ]) {
+      const sandbox = normalizeAgentSandbox(undefined, { cwd: ".", settings });
+      expect(sandbox).not.toBeNull();
+      expect(sandbox.policy).toMatchObject({
+        failIfUnavailable: true,
+        allowUnsandboxedCommands: false,
+      });
+      expect(() =>
+        normalizeAgentSandbox(false, { cwd: ".", settings }),
+      ).toThrow(/prohibited/);
+    }
+  });
+
+  it("does not let a CLI flag override managed network isolation", () => {
+    const sandbox = normalizeAgentSandboxMode(undefined, true, {
+      network: true,
+      settings: { enabled: true, network: false },
+      managedSettings: { enabled: true, network: false },
+    });
+    expect(sandbox.network).toBe(false);
+  });
+
+  it("clamps an enabled sandbox for safe/auto runs", () => {
+    const sandbox = enforceSandboxFailClosed(
+      normalizeAgentSandbox(true),
+      "auto",
+    );
+    expect(sandbox.failClosedReason).toBe("auto");
+    expect(sandbox.policy).toMatchObject({
+      allowUnsandboxedCommands: false,
+      failIfUnavailable: true,
+    });
+  });
+
+  it("maps explicit sandbox modes to fail-closed policies", () => {
+    expect(normalizeAgentSandboxMode("off", true)).toBeNull();
+    const workspace = normalizeAgentSandboxMode("workspace-write", true, {
+      network: true,
+    });
+    expect(workspace).toMatchObject({ mode: "workspace-write", network: true });
+    expect(workspace.policy).toMatchObject({
+      failIfUnavailable: true,
+      allowUnsandboxedCommands: false,
+    });
+    const strict = normalizeAgentSandboxMode("strict", true, {
+      network: true,
+    });
+    expect(strict).toMatchObject({ mode: "strict", network: false });
+    expect(strict.policy.failIfUnavailable).toBe(true);
+  });
+
+  it("rejects invalid modes and a policy-prohibited off mode", () => {
+    expect(() => normalizeAgentSandboxMode("maybe", true)).toThrow(
+      /Invalid sandbox mode/,
+    );
+    expect(() =>
+      normalizeAgentSandboxMode("off", true, {
+        settings: { allowUnsandboxedCommands: false },
+      }),
+    ).toThrow(/prohibited/);
+    expect(() =>
+      normalizeAgentSandboxMode("off", true, {
+        settings: { enabled: true, allowUnsandboxedCommands: true },
+        managedSettings: { enabled: true },
+      }),
+    ).toThrow(/prohibited/);
   });
 
   it("normalizes and de-duplicates policy entries", () => {
@@ -124,10 +211,10 @@ describe("agent sandbox", () => {
       }),
     );
     expect(result.failedToStart).toBe(true);
-    expect(result.stderr).toMatch(/requires a configured sandbox proxy/i);
+    expect(result.stderr).toMatch(/no non-bypassable backend enforcement/i);
   });
 
-  it("ENFORCES the domain policy through an egress proxy instead of refusing (docker)", () => {
+  it("does not mistake Docker proxy env for domain enforcement", () => {
     _deps.spawnSync = vi.fn(() => ({ status: 0, stdout: "ok\n", stderr: "" }));
     const sandbox = normalizeAgentSandbox(true, {
       network: true,
@@ -136,20 +223,12 @@ describe("agent sandbox", () => {
     const result = executeSandboxedShell("npm view chalk version", sandbox, {
       egressProxy: { port: 54321 },
     });
-    // No longer refuses — it ran, with proxy egress wired in.
-    expect(result.failedToStart).toBeUndefined();
-    expect(result.exitCode).toBe(0);
-    const [, args] = _deps.spawnSync.mock.calls[0];
-    const joined = args.join(" ");
-    // Container reaches the host proxy via host.docker.internal.
-    expect(joined).toContain("--add-host host.docker.internal:host-gateway");
-    expect(joined).toContain("HTTP_PROXY=http://host.docker.internal:54321");
-    expect(joined).toContain("HTTPS_PROXY=http://host.docker.internal:54321");
-    // network is NOT "none" here (egress is filtered, not cut).
-    expect(args).not.toContain("none");
+    expect(result.failedToStart).toBe(true);
+    expect(result.stderr).toMatch(/no non-bypassable backend enforcement/i);
+    expect(_deps.spawnSync).not.toHaveBeenCalled();
   });
 
-  it("wires the egress proxy env into a bubblewrap run (127.0.0.1 shared net)", () => {
+  it("does not mistake bubblewrap proxy env for domain enforcement", () => {
     _deps.spawnSync = vi.fn(() => ({ status: 0, stdout: "ok\n", stderr: "" }));
     const sandbox = normalizeAgentSandbox(true, {
       cwd: process.cwd(),
@@ -162,11 +241,9 @@ describe("agent sandbox", () => {
     const result = executeSandboxedShell("npm test", sandbox, {
       egressProxy: { port: 45678 },
     });
-    expect(result.failedToStart).toBeUndefined();
-    const [, args, opts] = _deps.spawnSync.mock.calls[0];
-    expect(args).toContain("--share-net");
-    expect(opts.env.HTTP_PROXY).toBe("http://127.0.0.1:45678");
-    expect(opts.env.HTTPS_PROXY).toBe("http://127.0.0.1:45678");
+    expect(result.failedToStart).toBe(true);
+    expect(result.stderr).toMatch(/no non-bypassable backend enforcement/i);
+    expect(_deps.spawnSync).not.toHaveBeenCalled();
   });
 
   it("builds a bubblewrap invocation with a read-only host and writable workspace", () => {

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
 describe("paths", () => {
   const originalChainlesschainHome = process.env.CHAINLESSCHAIN_HOME;
@@ -24,9 +24,33 @@ describe("paths", () => {
   });
 
   it("getHomeDir honors CHAINLESSCHAIN_HOME", async () => {
-    process.env.CHAINLESSCHAIN_HOME = join("custom", "chainlesschain-home");
+    process.env.CHAINLESSCHAIN_HOME = join(
+      homedir(),
+      "custom",
+      "chainlesschain-home",
+    );
     const { getHomeDir } = await import("../../src/lib/paths.js");
-    expect(getHomeDir()).toBe(join("custom", "chainlesschain-home"));
+    expect(getHomeDir()).toBe(join(homedir(), "custom", "chainlesschain-home"));
+  });
+
+  it("rejects a relative CHAINLESSCHAIN_HOME", async () => {
+    process.env.CHAINLESSCHAIN_HOME = "..";
+    const { getHomeDir } = await import("../../src/lib/paths.js");
+    expect(() => getHomeDir()).toThrow(/must be an absolute path/i);
+  });
+
+  it("rejects an explicit home at the workspace or one of its ancestors", async () => {
+    const { getHomeDir } = await import("../../src/lib/paths.js");
+    for (const unsafe of [
+      process.cwd(),
+      dirname(process.cwd()),
+      `\\\\?\\${process.cwd()}`,
+    ]) {
+      process.env.CHAINLESSCHAIN_HOME = unsafe;
+      expect(() => getHomeDir(), unsafe).toThrow(
+        /current working directory|device namespace/i,
+      );
+    }
   });
 
   it("getBinDir returns ~/.chainlesschain/bin", async () => {
@@ -70,5 +94,37 @@ describe("paths", () => {
     const { getElectronUserDataDir } = await import("../../src/lib/paths.js");
     const dir = getElectronUserDataDir();
     expect(dir).toContain("chainlesschain-desktop-vue");
+  });
+
+  it("refuses filesystem, drive, UNC-share, and user-home roots", async () => {
+    const { assertSafePrivateDirectoryPath } =
+      await import("../../src/lib/paths.js");
+    for (const unsafe of [
+      "/",
+      "C:\\",
+      "C:",
+      "\\\\server\\share\\",
+      "\\\\?\\C:\\",
+      "\\\\?\\C:\\private",
+      "\\\\?\\UNC\\server\\share\\",
+      "\\\\?\\UNC\\server\\share\\private",
+      "\\\\?\\UNC\\server\\share\\child\\..",
+      "\\\\?\\GLOBALROOT\\Device\\HarddiskVolumeShadowCopy1\\",
+      "\\\\.\\PhysicalDrive0",
+      homedir(),
+      ".",
+      "..",
+      "../..",
+      "C:.",
+      "C:child\\..",
+      "C:..",
+    ]) {
+      expect(() => assertSafePrivateDirectoryPath(unsafe), unsafe).toThrow(
+        /Refusing/,
+      );
+    }
+    expect(() =>
+      assertSafePrivateDirectoryPath(join(homedir(), ".chainlesschain")),
+    ).not.toThrow();
   });
 });

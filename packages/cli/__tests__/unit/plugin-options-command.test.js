@@ -49,6 +49,7 @@ function makeSource(name, optionsSchema) {
 
 const SCHEMA = {
   endpoint: { type: "string", default: "https://api.example.com" },
+  retries: { type: "number", default: 3 },
   apiKey: { type: "string", sensitive: true },
 };
 
@@ -56,7 +57,11 @@ beforeEach(() => {
   cwd = fs.mkdtempSync(path.join(os.tmpdir(), "cc-opt-cwd-"));
   srcRoot = fs.mkdtempSync(path.join(os.tmpdir(), "cc-opt-src-"));
   storeDir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-opt-store-"));
-  orig = { u: optDeps.userStorePath, p: optDeps.projectStorePath, s: optDeps.secretStore };
+  orig = {
+    u: optDeps.userStorePath,
+    p: optDeps.projectStorePath,
+    s: optDeps.secretStore,
+  };
   secretValues = new Map();
   optDeps.userStorePath = () => path.join(storeDir, "user.json");
   optDeps.projectStorePath = () => path.join(storeDir, "project.json");
@@ -97,32 +102,42 @@ describe("cc plugin options", () => {
     expect(out.droppedFromProject).toEqual([]);
   });
 
-  it("stores a user-scope value and reports it redacted with user source", async () => {
+  it("stores non-sensitive user options through the patch path", async () => {
     await run(
       "options",
       "optplug",
       "--set",
-      "apiKey=s3cr3t",
+      "endpoint=https://custom.example",
       "--scope",
       "user",
     );
+    await run("options", "optplug", "--set", "retries=7", "--scope", "user");
     const out = JSON.parse(await run("options", "optplug", "--json"));
-    expect(out.options.apiKey).toBe("***"); // redacted for display
-    expect(out.sources.apiKey).toBe("user");
+    expect(out.options.endpoint).toBe("https://custom.example");
+    expect(out.options.retries).toBe(7);
+    expect(out.sources.endpoint).toBe("user");
+    expect(out.sources.retries).toBe("user");
   });
 
-  it("drops a sensitive value set at project scope (gate)", async () => {
-    await run(
-      "options",
-      "optplug",
-      "--set",
-      "apiKey=leak",
-      "--scope",
-      "project",
-    );
-    const out = JSON.parse(await run("options", "optplug", "--json"));
-    expect(out.options.apiKey).toBeUndefined();
-    expect(out.droppedFromProject).toContain("apiKey");
+  it("rejects sensitive argv values at every scope without echoing or persisting them", async () => {
+    const secret = "must-not-appear-in-output";
+    for (const scope of ["user", "project"]) {
+      await run(
+        "options",
+        "optplug",
+        "--set",
+        `apiKey=${secret}`,
+        "--scope",
+        scope,
+      );
+      expect(process.exitCode).toBe(1);
+      const errors = errSpy.mock.calls.flat().join("\n");
+      expect(errors).toMatch(/sensitive option "apiKey".*command-line/i);
+      expect(errors).not.toContain(secret);
+    }
+    expect(secretValues.size).toBe(0);
+    expect(fs.existsSync(path.join(storeDir, "user.json"))).toBe(false);
+    expect(fs.existsSync(path.join(storeDir, "project.json"))).toBe(false);
   });
 
   it("errors on malformed --set and unknown plugin", async () => {

@@ -16,6 +16,7 @@ import {
   renderConfigGet,
   renderConfigSet,
   renderConfigSummary,
+  isSecretConfigKey,
 } from "../repl/config-summary.js";
 
 /** Does this headless prompt start with the `/config` slash command? */
@@ -48,11 +49,21 @@ export function runConfigDirective(prompt, deps = {}) {
     };
   }
   if (cmd.action === "set") {
-    cm.setConfigValue(cmd.key, cmd.value);
-    return {
-      text: renderConfigSet(cmd.key, cm.getConfigValue(cmd.key)),
-      isError: false,
-    };
+    if (isSecretConfigKey(cmd.key)) {
+      return {
+        text: `/config: ${cmd.key} is secret; use cc config set-secret ${cmd.key}`,
+        isError: true,
+      };
+    }
+    try {
+      cm.setConfigValue(cmd.key, cmd.value);
+      return {
+        text: renderConfigSet(cmd.key, cm.getConfigValue(cmd.key)),
+        isError: false,
+      };
+    } catch (error) {
+      return { text: `/config: ${error.message}`, isError: true };
+    }
   }
   // show
   return {

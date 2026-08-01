@@ -41,9 +41,13 @@ describe("loadSettingsConfig", () => {
   it("returns empty defaults when no settings files exist", () => {
     expect(loadSettingsConfig({ cwd: CWD })).toEqual({
       model: null,
+      modelSource: null,
       env: {},
+      envSources: {},
       sandbox: null,
+      managedSandbox: null,
       files: [],
+      managedFile: null,
     });
   });
 
@@ -54,7 +58,9 @@ describe("loadSettingsConfig", () => {
     });
     const r = loadSettingsConfig({ cwd: CWD });
     expect(r.model).toBe("claude-sonnet-4-6");
+    expect(r.modelSource).toBe(projFile);
     expect(r.env).toEqual({ OLLAMA_HOST: "http://x:11434" });
+    expect(r.envSources.OLLAMA_HOST).toBe(projFile);
     expect(r.files).toEqual([projFile]);
   });
 
@@ -74,10 +80,15 @@ describe("loadSettingsConfig", () => {
   });
 
   it("managed settings override explicit user-controlled config", () => {
-    setFile(overrideFile, { model: "user-model", env: { REGION: "user" } });
+    setFile(overrideFile, {
+      model: "user-model",
+      env: { REGION: "user" },
+      sandbox: { enabled: false },
+    });
     setFile(managedFile, {
       model: "managed-model",
       env: { REGION: "managed", AUDIT: "1" },
+      sandbox: { enabled: true, allowUnsandboxedCommands: false },
     });
     const r = loadSettingsConfig({
       cwd: CWD,
@@ -85,7 +96,17 @@ describe("loadSettingsConfig", () => {
       managedSettingsFile: managedFile,
     });
     expect(r.model).toBe("managed-model");
+    expect(r.modelSource).toBe(managedFile);
     expect(r.env).toEqual({ REGION: "managed", AUDIT: "1" });
+    expect(r.envSources.REGION).toBe(managedFile);
+    expect(r.managedSandbox).toEqual({
+      enabled: true,
+      allowUnsandboxedCommands: false,
+    });
+    expect(r.sandbox).toMatchObject({
+      enabled: true,
+      allowUnsandboxedCommands: false,
+    });
     expect(r.files.at(-1)).toBe(managedFile);
   });
 

@@ -1,11 +1,49 @@
 import { homedir } from "node:os";
-import { join } from "node:path";
-import { mkdirSync, existsSync } from "node:fs";
+import { isAbsolute, join, relative, resolve } from "node:path";
 import { CONFIG_DIR_NAME } from "../constants.js";
 import { getPlatform } from "./platform.js";
+import {
+  assertSafeOwnerOnlyPath,
+  ensurePrivateDirectory,
+  repairPrivatePaths,
+} from "./secure-fs.js";
 
 export function getHomeDir() {
-  return process.env.CHAINLESSCHAIN_HOME || join(homedir(), CONFIG_DIR_NAME);
+  const configured = process.env.CHAINLESSCHAIN_HOME;
+  if (configured) {
+    const windowsLiteral = configured.replaceAll("/", "\\");
+    if (
+      windowsLiteral.startsWith("\\\\?\\") ||
+      windowsLiteral.startsWith("\\\\.\\")
+    ) {
+      const error = new Error(
+        "CHAINLESSCHAIN_HOME must not use a Windows device namespace",
+      );
+      error.code = "CONFIG_HOME_UNSAFE";
+      throw error;
+    }
+    if (!isAbsolute(configured)) {
+      const error = new Error(
+        "CHAINLESSCHAIN_HOME must be an absolute path for owner-only storage",
+      );
+      error.code = "CONFIG_HOME_UNSAFE";
+      throw error;
+    }
+    const resolvedHome = resolve(configured);
+    const relativeCwd = relative(resolvedHome, resolve(process.cwd()));
+    if (
+      relativeCwd === "" ||
+      (!relativeCwd.startsWith("..") && !isAbsolute(relativeCwd))
+    ) {
+      const error = new Error(
+        "CHAINLESSCHAIN_HOME must not be the current working directory or one of its ancestors",
+      );
+      error.code = "CONFIG_HOME_UNSAFE";
+      throw error;
+    }
+    return configured;
+  }
+  return join(homedir(), CONFIG_DIR_NAME);
 }
 
 export function getBinDir() {
@@ -57,16 +95,27 @@ export function getElectronUserDataDir() {
   }
 }
 
+/** Refuse broad roots before owner-only chmod/DACL repair can mutate them. */
+export function assertSafePrivateDirectoryPath(dirPath) {
+  return assertSafeOwnerOnlyPath(dirPath);
+}
+
 export function ensureDir(dirPath) {
-  if (!existsSync(dirPath)) {
-    mkdirSync(dirPath, { recursive: true });
-  }
-  return dirPath;
+  assertSafePrivateDirectoryPath(dirPath);
+  return ensurePrivateDirectory(dirPath, {
+    applyWindowsAcl: true,
+    failIfUnavailable: true,
+  });
 }
 
 export function ensureHomeDir() {
+  const homePath = getHomeDir();
+  assertSafePrivateDirectoryPath(homePath);
+  const home = ensurePrivateDirectory(homePath, {
+    applyWindowsAcl: true,
+    failIfUnavailable: true,
+  });
   const dirs = [
-    getHomeDir(),
     getBinDir(),
     getStatePath(),
     getServicesDir(),
@@ -74,7 +123,13 @@ export function ensureHomeDir() {
     getCacheDir(),
   ];
   for (const dir of dirs) {
-    ensureDir(dir);
+    ensurePrivateDirectory(dir, { applyWindowsAcl: false });
   }
-  return getHomeDir();
+  if (getPlatform() === "win32") {
+    // Existing directories may predate the protected home ACL and retain broad
+    // explicit permissions. Repair all protected children in one PowerShell
+    // batch rather than paying one process startup per directory.
+    repairPrivatePaths(dirs, { platform: "win32" });
+  }
+  return home;
 }

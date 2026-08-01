@@ -107,7 +107,10 @@ export function registerDoctorCommand(program) {
         return;
       }
 
-      const sections = await collectCheckupSections({ cwd: process.cwd() });
+      const sections = await collectCheckupSections({
+        cwd: process.cwd(),
+        verifyWindowsAcl: true,
+      });
       const fixResults = options.fix ? await runCheckupFixes(sections) : null;
 
       const checkupErrs = sections

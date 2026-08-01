@@ -1369,10 +1369,10 @@ export function registerPluginCommand(program) {
       }
     });
 
-  // plugin options — view a plugin's resolved typed options, or set values at a
-  // scope. The security-critical rule: a SENSITIVE option can never be set from
-  // PROJECT scope (a checked-in file must not inject secrets) — such values are
-  // dropped + warned; use `--scope user`.
+  // plugin options — view a plugin's resolved typed options, or set
+  // non-sensitive values at a scope. Sensitive values are rejected on this
+  // argv-based surface because process arguments and shell history are not a
+  // credential transport.
   plugin
     .command("options <name>")
     .description(
@@ -1381,7 +1381,7 @@ export function registerPluginCommand(program) {
     .option("--scope <scope>", "Scope for --set (user|project)", "user")
     .option(
       "--set <pair>",
-      "Set an option value (key=value); repeatable",
+      "Set a non-sensitive option value (key=value); repeatable",
       (v, acc) => {
         acc.push(v);
         return acc;
@@ -1413,20 +1413,28 @@ export function registerPluginCommand(program) {
       // --set: persist values at the requested scope (then fall through to show).
       if (options.set && options.set.length) {
         const scope = options.scope === "project" ? "project" : "user";
-        const current = optsMod.loadPluginOptionValues(name, scope, {
-          cwd: process.cwd(),
-          schema,
-        });
+        const updates = Object.create(null);
         for (const pair of options.set) {
           const eq = pair.indexOf("=");
           if (eq <= 0) {
-            logger.error(`Invalid --set "${pair}" (expected key=value)`);
+            logger.error("Invalid --set value (expected key=value)");
             process.exitCode = 1;
             return;
           }
-          current[pair.slice(0, eq)] = pair.slice(eq + 1);
+          const key = pair.slice(0, eq);
+          const descriptor = Object.prototype.hasOwnProperty.call(schema, key)
+            ? schema[key]
+            : null;
+          if (descriptor?.sensitive) {
+            logger.error(
+              `Sensitive option "${key}" cannot be supplied via --set because command-line arguments are observable`,
+            );
+            process.exitCode = 1;
+            return;
+          }
+          updates[key] = pair.slice(eq + 1);
         }
-        optsMod.setPluginOptionValues(name, current, scope, {
+        optsMod.patchPluginOptionValues(name, updates, scope, {
           cwd: process.cwd(),
           schema,
         });

@@ -21,10 +21,13 @@ import {
   readdirSync,
   readFileSync,
   statSync,
+  lstatSync,
+  chmodSync,
   rmSync,
 } from "node:fs";
 import { join, basename } from "node:path";
 import { getHomeDir, getConfigPath } from "./paths.js";
+import { inspectPrivatePaths, repairPrivatePaths } from "./secure-fs.js";
 import executionBroker from "./process-execution-broker/index.js";
 import {
   languageIdForFile,
@@ -58,10 +61,13 @@ export const _deps = {
   readdirSync,
   readFileSync,
   statSync,
+  lstatSync,
+  chmodSync,
   rmSync,
   execFileSync: (...args) => executionBroker.execFileSync(...args),
   spawnSync: (...args) => executionBroker.spawnSync(...args),
   now: () => Date.now(),
+  platform: () => process.platform,
 };
 
 function check(id, name, level, detail = "", fix = null) {
@@ -72,6 +78,97 @@ function check(id, name, level, detail = "", fix = null) {
 
 function failedCheck(id, name, err) {
   return check(id, name, CHECK_LEVELS.ERR, `check failed: ${err.message}`);
+}
+
+function privateStoragePaths(deps, options = {}) {
+  const home = getHomeDir();
+  const sessions = join(home, "sessions");
+  const audit = join(home, "audit");
+  const configPath = getConfigPath();
+  const protectedDirectories = [
+    join(home, "bin"),
+    join(home, "state"),
+    join(home, "services"),
+    join(home, "logs"),
+    join(home, "cache"),
+    sessions,
+    audit,
+  ];
+  let homeExists = false;
+  try {
+    homeExists = deps.existsSync(home);
+  } catch {
+    return { paths: [], truncated: [] };
+  }
+  if (!homeExists) return { paths: [], truncated: [] };
+  try {
+    // If the trust root itself is redirected, even apparently regular child
+    // paths resolve outside CLI storage. Report only the root and never walk it.
+    if (deps.lstatSync(home).isSymbolicLink()) {
+      return { paths: [home], truncated: [] };
+    }
+  } catch {
+    return { paths: [home], truncated: [] };
+  }
+  const paths = [home, configPath, ...protectedDirectories].filter((target) => {
+    try {
+      return deps.existsSync(target);
+    } catch {
+      return false;
+    }
+  });
+  try {
+    for (const entry of deps.readdirSync(home)) {
+      // Migration/corruption/legacy backups may still contain plaintext API
+      // keys, so every direct config.json.* sibling is private storage too.
+      if (basename(entry) === entry && /^config\.json\./.test(entry)) {
+        paths.push(join(home, entry));
+      }
+    }
+  } catch {
+    // Home itself remains in the inspection result; failed enumeration must not
+    // make doctor traverse an alternative path or follow a link.
+  }
+  const truncated = [];
+  for (const directory of [sessions, audit]) {
+    if (!deps.existsSync(directory)) continue;
+    // Never enumerate through a symlink/junction: a later repair would see
+    // regular-looking children and could change ACLs outside CLI storage.
+    try {
+      if (deps.lstatSync(directory).isSymbolicLink()) continue;
+    } catch {
+      // Keep the directory itself in the inspection list so doctor reports the
+      // failed stat; only child enumeration is skipped.
+      continue;
+    }
+    const entries = deps.readdirSync(directory);
+    const limit = options.entryLimit ?? 1000;
+    for (const file of entries.slice(0, limit)) {
+      paths.push(join(directory, file));
+    }
+    if (entries.length > limit) {
+      truncated.push({
+        directory,
+        scanned: limit,
+        total: entries.length,
+      });
+    }
+  }
+  return { paths: [...new Set(paths)], truncated };
+}
+
+function secureFsOptions(deps) {
+  return {
+    deps: {
+      fs: {
+        existsSync: deps.existsSync,
+        lstatSync: deps.lstatSync,
+        chmodSync: deps.chmodSync,
+      },
+      spawnSync: deps.spawnSync,
+      platform: deps.platform,
+    },
+  };
 }
 
 // ── config load chain ──────────────────────────────────────────────────────
@@ -123,6 +220,75 @@ async function configSection(opts, deps) {
     }
   } catch (err) {
     checks.push(failedCheck("config-json", "config.json", err));
+  }
+
+  try {
+    const storage = privateStoragePaths(deps);
+    if (deps.platform() === "win32" && opts.verifyWindowsAcl !== true) {
+      checks.push(
+        check(
+          "private-storage-permissions",
+          "Config and session permissions",
+          CHECK_LEVELS.INFO,
+          "Windows owner-only ACL check deferred to live `cc doctor` / `cc config validate`",
+        ),
+      );
+    } else {
+      const inspected = inspectPrivatePaths(
+        storage.paths,
+        secureFsOptions(deps),
+      );
+      const insecure = inspected.filter(
+        (result) => !result.ok && result.exists !== false,
+      );
+      if (insecure.length === 0) {
+        checks.push(
+          check(
+            "private-storage-permissions",
+            "Config and session permissions",
+            storage.truncated.length > 0 ? CHECK_LEVELS.WARN : CHECK_LEVELS.OK,
+            `${storage.paths.length} path(s) owner-only${
+              storage.truncated.length > 0
+                ? `; partial scan (${storage.truncated.map((entry) => `${entry.scanned}/${entry.total} in ${entry.directory}`).join(", ")})`
+                : ""
+            }`,
+            storage.truncated.length > 0
+              ? {
+                  id: "repair-private-storage",
+                  safe: true,
+                  description:
+                    "scan and restrict all config and session storage to the current user",
+                }
+              : undefined,
+          ),
+        );
+      } else {
+        checks.push(
+          check(
+            "private-storage-permissions",
+            "Config and session permissions",
+            CHECK_LEVELS.ERR,
+            `${insecure.length} path(s) are not owner-only${
+              storage.truncated.length > 0 ? "; scan was partial" : ""
+            }`,
+            {
+              id: "repair-private-storage",
+              safe: true,
+              description:
+                "restrict config and session storage to the current user",
+            },
+          ),
+        );
+      }
+    }
+  } catch (err) {
+    checks.push(
+      failedCheck(
+        "private-storage-permissions",
+        "Config and session permissions",
+        err,
+      ),
+    );
   }
 
   // settings.json layers (permission rules / hooks) — every existing layer
@@ -1079,8 +1245,7 @@ async function executionSection(opts, deps) {
  */
 export async function collectCheckupSections(opts = {}) {
   const deps = { ..._deps, ...(opts.deps || {}) };
-  const sections = [];
-  for (const build of [
+  const builders = [
     configSection,
     providerSection,
     mcpSection,
@@ -1092,18 +1257,23 @@ export async function collectCheckupSections(opts = {}) {
     worktreeSection,
     runtimeSection,
     executionSection,
-  ]) {
-    try {
-      sections.push(await build(opts, deps));
-    } catch (err) {
-      sections.push({
-        id: build.name.replace(/Section$/, ""),
-        title: build.name,
-        checks: [failedCheck(build.name, build.name, err)],
-      });
-    }
-  }
-  return sections;
+  ];
+  // Sections are read-only and independent. Keeping their cold dynamic imports
+  // concurrent avoids a multi-second first `cc doctor` on Windows while
+  // Promise.all preserves the stable display order above.
+  return Promise.all(
+    builders.map(async (build) => {
+      try {
+        return await build(opts, deps);
+      } catch (err) {
+        return {
+          id: build.name.replace(/Section$/, ""),
+          title: build.name,
+          checks: [failedCheck(build.name, build.name, err)],
+        };
+      }
+    }),
+  );
 }
 
 /**
@@ -1159,6 +1329,21 @@ export async function runCheckupFixes(sections, opts = {}) {
           id: fix.id,
           applied: true,
           detail: "pruned stale worktree entries",
+        });
+      } else if (fix.id === "repair-private-storage") {
+        // The diagnostic scan is capped to keep ordinary `doctor` latency
+        // bounded. An explicit --fix must not repeatedly repair only the first
+        // page and leave later session/audit files insecure.
+        const storage = privateStoragePaths(deps, {
+          entryLimit: Number.POSITIVE_INFINITY,
+        });
+        repairPrivatePaths(storage.paths, secureFsOptions(deps));
+        results.push({
+          id: fix.id,
+          applied: true,
+          detail: `secured ${storage.paths.length} config/session path(s)${
+            storage.truncated.length > 0 ? " (partial inventory)" : ""
+          }`,
         });
       } else {
         results.push({

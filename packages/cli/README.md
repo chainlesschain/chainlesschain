@@ -91,7 +91,9 @@ Manage configuration.
 chainlesschain config list              # Show all config values
 chainlesschain config get llm.provider  # Get a specific value
 chainlesschain config set llm.provider openai
-chainlesschain config set llm.apiKey sk-...
+chainlesschain config set-secret llm.apiKey  # Hidden prompt; secret never enters argv
+chainlesschain config validate          # Validate schema + private permissions
+chainlesschain config explain llm.model # Show effective source / policy lock
 chainlesschain config edit              # Open in $EDITOR
 chainlesschain config reset             # Reset to defaults
 ```
@@ -160,7 +162,7 @@ Start an interactive AI chat session with streaming output.
 ```bash
 chainlesschain chat                     # Default: Ollama qwen2.5:7b
 chainlesschain chat --model llama3      # Use different model
-chainlesschain chat --provider openai --api-key sk-...
+chainlesschain chat --provider openai  # Reads the stored credential
 chainlesschain chat --agent             # Agentic mode (can read/write files)
 ```
 
@@ -184,7 +186,7 @@ LLM provider management.
 chainlesschain llm models               # List installed Ollama models
 chainlesschain llm models --json        # JSON output
 chainlesschain llm test                 # Test Ollama connectivity
-chainlesschain llm test --provider openai --api-key sk-...
+chainlesschain llm test --provider openai  # Reads the stored credential
 chainlesschain llm providers            # List 10 built-in LLM providers
 chainlesschain llm add-provider <name>  # Add custom provider
 chainlesschain llm switch <name>        # Switch active provider
@@ -197,7 +199,8 @@ Start an agentic AI session — the AI can read/write files, run shell commands,
 ```bash
 chainlesschain agent                    # Default: Ollama qwen2.5:7b
 chainlesschain a --model llama3         # Short alias
-chainlesschain agent --provider openai --api-key sk-...
+chainlesschain config set-secret llm.apiKey
+chainlesschain agent --provider openai  # Reads the stored credential
 ```
 
 Built-in tools (19): `read_file`, `write_file`, `edit_file`, `edit_file_hashed`, `notebook_edit`, `run_shell`, `check_shell`, `git`, `search_files`, `list_dir`, `run_skill`, `list_skills`, `run_code`, `spawn_sub_agent`, `web_fetch`, `web_search`, `todo_write`, `ask_user_question`, `search_sessions`
@@ -1566,7 +1569,7 @@ Stream a single prompt through the session-core StreamRouter, emitting NDJSON ev
 ```bash
 chainlesschain stream "Summarize this repo"                # NDJSON events
 chainlesschain stream "Hello" --text                       # Concatenated final text only
-chainlesschain stream "Hi" --provider openai --model gpt-4o --api-key sk-...
+chainlesschain stream "Hi" --provider openai --model gpt-4o  # Reads the stored credential
 ```
 
 Options: `--model`, `--provider` (default `ollama`), `--base-url`, `--api-key`, `--text`.

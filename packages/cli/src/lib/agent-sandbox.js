@@ -5,6 +5,11 @@ import { proxyEnv } from "./sandbox-egress-proxy.js";
 import executionBroker from "./process-execution-broker/index.js";
 
 export const DEFAULT_SANDBOX_IMAGE = "node:22-bookworm-slim";
+export const AGENT_SANDBOX_MODES = Object.freeze([
+  "off",
+  "workspace-write",
+  "strict",
+]);
 export const _deps = {
   spawnSync: (...args) => executionBroker.spawnSync(...args),
 };
@@ -82,8 +87,7 @@ function pathIsWithin(candidate, root) {
 }
 
 function normalizeWorkspaceRoots(entries, cwd) {
-  const roots =
-    Array.isArray(entries) && entries.length > 0 ? entries : [cwd];
+  const roots = Array.isArray(entries) && entries.length > 0 ? entries : [cwd];
   return stringList(roots).map((entry) => path.resolve(cwd, entry));
 }
 
@@ -142,9 +146,7 @@ export function resolveSandboxPolicyPath(
       ? normalizedPolicy.allowWrite
       : normalizedPolicy.allowRead;
   const policyDenies =
-    access === "write"
-      ? normalizedPolicy.denyWrite
-      : normalizedPolicy.denyRead;
+    access === "write" ? normalizedPolicy.denyWrite : normalizedPolicy.denyRead;
   const allowedInputs = [
     ...normalizeWorkspaceRoots(workspaceRoots, resolvedCwd),
     ...resolvePolicyPaths(policyAllows, resolvedCwd),
@@ -208,18 +210,112 @@ export function normalizeSandboxPolicy(settings = {}, cwd = process.cwd()) {
 
 export function normalizeAgentSandbox(value, options = {}) {
   const settings = options.settings || {};
-  if (!value && settings.enabled !== true) return null;
-  if (value === false || settings.enabled === false) return null;
+  const policyRequiresSandbox =
+    settings.requireSandbox === true ||
+    settings.allowUnsandboxedCommands === false;
+  if (!value && settings.enabled !== true && !policyRequiresSandbox)
+    return null;
+  if (value === false || settings.enabled === false) {
+    if (policyRequiresSandbox) {
+      const error = new Error(
+        "Sandbox disablement is prohibited by effective sandbox policy",
+      );
+      error.code = "CONFIG_SANDBOX_OFF_PROHIBITED";
+      throw error;
+    }
+    return null;
+  }
+  const effectiveSettings = policyRequiresSandbox
+    ? {
+        ...settings,
+        enabled: true,
+        failIfUnavailable: true,
+        allowUnsandboxedCommands: false,
+      }
+    : settings;
+  const managedNetworkDisabled = options.managedSettings?.network === false;
   const image =
     typeof value === "string" && value.trim() && value !== "true"
       ? value.trim()
       : DEFAULT_SANDBOX_IMAGE;
   return {
-    engine: settings.engine || "docker",
-    image: settings.image || image,
+    engine: effectiveSettings.engine || "docker",
+    image: effectiveSettings.image || image,
     cwd: path.resolve(options.cwd || process.cwd()),
-    network: options.network === true || settings.network === true,
-    policy: normalizeSandboxPolicy(settings, options.cwd || process.cwd()),
+    network: managedNetworkDisabled
+      ? false
+      : options.network === true || effectiveSettings.network === true,
+    policy: normalizeSandboxPolicy(
+      effectiveSettings,
+      options.cwd || process.cwd(),
+    ),
+  };
+}
+
+/**
+ * Resolve the explicit public sandbox posture. Both isolation modes fail
+ * closed when the selected engine is unavailable; `strict` additionally
+ * forbids per-command unsandboxed escape hatches and network access.
+ */
+export function normalizeAgentSandboxMode(mode, value, options = {}) {
+  if (mode == null || mode === "") {
+    return normalizeAgentSandbox(value, options);
+  }
+  if (!AGENT_SANDBOX_MODES.includes(mode)) {
+    const error = new Error(
+      `Invalid sandbox mode "${mode}"; expected off, workspace-write, or strict`,
+    );
+    error.code = "CONFIG_SANDBOX_MODE_INVALID";
+    throw error;
+  }
+  const settings = { ...(options.settings || {}) };
+  if (mode === "off") {
+    const managedSettings = options.managedSettings || {};
+    if (
+      managedSettings.enabled === true ||
+      managedSettings.requireSandbox === true ||
+      managedSettings.allowUnsandboxedCommands === false ||
+      settings.requireSandbox === true ||
+      settings.allowUnsandboxedCommands === false
+    ) {
+      const error = new Error(
+        "Sandbox mode off is prohibited by managed/effective sandbox policy",
+      );
+      error.code = "CONFIG_SANDBOX_OFF_PROHIBITED";
+      throw error;
+    }
+    return null;
+  }
+  settings.enabled = true;
+  settings.failIfUnavailable = true;
+  settings.allowUnsandboxedCommands = false;
+  if (mode === "strict") {
+    settings.network = false;
+  }
+  const sandbox = normalizeAgentSandbox(value || true, {
+    ...options,
+    network: mode === "strict" ? false : options.network,
+    settings,
+  });
+  sandbox.mode = mode;
+  return sandbox;
+}
+
+/**
+ * Clamp an already-enabled sandbox to fail closed for safety-oriented run
+ * modes. This never turns isolation on implicitly; it only prevents a selected
+ * sandbox from degrading to bare host execution when its engine is missing.
+ */
+export function enforceSandboxFailClosed(sandbox, reason = "safe") {
+  if (!sandbox) return null;
+  return {
+    ...sandbox,
+    failClosedReason: reason,
+    policy: {
+      ...(sandbox.policy || {}),
+      allowUnsandboxedCommands: false,
+      failIfUnavailable: true,
+    },
   };
 }
 
@@ -229,21 +325,19 @@ export function executeSandboxedShell(command, sandbox, options = {}) {
   }
   const hostCwd = path.resolve(options.cwd || sandbox.cwd);
   const policy = sandbox.policy || normalizeSandboxPolicy({}, hostCwd);
-  // An egress proxy (see sandbox-egress-proxy.js) ENFORCES the domain allow/deny
-  // policy: the caller starts it and passes `{ env }` here, and the sandboxed
-  // process routes its HTTP(S) traffic through it. Without a proxy, a
-  // domain-restricted network request has no enforcement point, so we refuse
-  // rather than grant unrestricted access.
+  // Proxy environment variables are advisory: a child can clear them or open a
+  // raw socket. Until a backend can enforce egress below the process layer,
+  // domain-restricted networking must fail closed instead of granting the
+  // sandbox an unrestricted network namespace.
   const egress = options.egressProxy || null;
   if (
     (policy.allowedDomains.length || policy.deniedDomains.length) &&
-    sandbox.network &&
-    !egress
+    sandbox.network
   ) {
     return {
       stdout: "",
       stderr:
-        "Domain-restricted sandbox networking requires a configured sandbox proxy; refusing unrestricted network access",
+        "Domain-restricted sandbox networking has no non-bypassable backend enforcement; refusing unrestricted network access",
       exitCode: 1,
       failedToStart: true,
     };
@@ -272,10 +366,8 @@ export function executeSandboxedShell(command, sandbox, options = {}) {
   if (process.platform !== "win32" && process.getuid && process.getgid) {
     args.push("--user", `${process.getuid()}:${process.getgid()}`);
   }
-  // Route egress through the host proxy so the domain policy is enforced. The
-  // container reaches the host proxy via host.docker.internal (mapped to the
-  // gateway on Linux via host-gateway); the caller builds `egress.env` with that
-  // hostname (proxyEnv(port, "host.docker.internal")).
+  // Proxy variables remain useful for unrestricted networking, but are not a
+  // security boundary. Domain-restricted requests have already failed closed.
   if (egress && egress.port && sandbox.network) {
     args.push("--add-host", "host.docker.internal:host-gateway");
     const penv = proxyEnv(egress.port, "host.docker.internal");
@@ -348,8 +440,8 @@ function executeBubblewrapShell(command, sandbox, options, hostCwd, policy) {
   for (const target of policy.denyWrite) args.push("--ro-bind", target, target);
   for (const target of policy.denyRead) args.push("--tmpfs", target);
   args.push("--", "sh", "-lc", String(command || ""));
-  // bwrap `--share-net` shares the host network namespace, so the egress proxy
-  // is reachable at 127.0.0.1 directly — merge its env into the child's.
+  // bwrap `--share-net` shares the host network namespace. Proxy variables are
+  // convenience only; domain-restricted requests have already failed closed.
   const egress = options.egressProxy || null;
   const bwrapEnv =
     egress && egress.port && sandbox.network
@@ -459,7 +551,7 @@ export function assertSandboxAvailable(sandbox, deps = _deps) {
 
 export function sandboxSummary(sandbox) {
   if (!sandbox) return null;
-  return {
+  const summary = {
     engine: sandbox.engine,
     image: sandbox.image,
     isolationLevel: isolationLevel(sandbox),
@@ -474,4 +566,6 @@ export function sandboxSummary(sandbox) {
       failIfUnavailable: sandbox.policy?.failIfUnavailable === true,
     },
   };
+  if (sandbox.mode) summary.mode = sandbox.mode;
+  return summary;
 }

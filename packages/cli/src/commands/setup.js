@@ -8,7 +8,10 @@ import {
   VERSION,
 } from "../constants.js";
 import { ensureHomeDir, getConfigPath } from "../lib/paths.js";
-import { loadConfig, saveConfig } from "../lib/config-manager.js";
+import {
+  setSecretConfigValue,
+  updateConfigAtomically,
+} from "../lib/config-manager.js";
 import {
   isDockerAvailable,
   isDockerComposeAvailable,
@@ -42,6 +45,14 @@ export function registerSetupCommand(program) {
         process.exit(1);
       }
     });
+}
+
+export function assertRequiredProviderCredential(providerInfo, apiKey) {
+  if (providerInfo?.requiresApiKey && (apiKey === null || apiKey === "")) {
+    const error = new Error("An API key is required for the selected provider");
+    error.code = "SETUP_API_KEY_REQUIRED";
+    throw error;
+  }
 }
 
 async function runSetup(options) {
@@ -102,6 +113,9 @@ async function runSetup(options) {
 
   if (providerInfo.requiresApiKey) {
     apiKey = await askPassword(`Enter ${providerInfo.name} API key:`);
+    // Abort before changing provider/baseUrl so an old provider's credential
+    // can never be paired with and sent to a newly selected endpoint.
+    assertRequiredProviderCredential(providerInfo, apiKey);
   }
 
   if (provider === "custom" || providerInfo.isProxy) {
@@ -143,15 +157,27 @@ async function runSetup(options) {
   }
 
   // Step 7: Save config
-  const config = loadConfig();
-  config.setupCompleted = true;
-  config.completedAt = new Date().toISOString();
-  config.edition = edition;
-  config.llm.provider = provider;
-  config.llm.apiKey = apiKey;
-  config.llm.baseUrl = baseUrl;
-  config.llm.model = model;
-  saveConfig(config);
+  const applySetupValues = (config) => {
+    config.setupCompleted = true;
+    config.completedAt = new Date().toISOString();
+    config.edition = edition;
+    config.llm.provider = provider;
+    config.llm.baseUrl = baseUrl;
+    config.llm.model = model;
+  };
+  if (apiKey) {
+    // The provider settings, keychain write and config pointer switch form one
+    // locked transaction. A failed key write/save leaves the prior config and
+    // prior secret reference active.
+    setSecretConfigValue("llm.apiKey", apiKey, {
+      storage: "auto",
+      configMutator: applySetupValues,
+    });
+  } else {
+    // Preserve any existing secret reference when the selected provider needs
+    // no new key; never clear a usable credential before another write.
+    updateConfigAtomically(applySetupValues);
+  }
   logger.success("Configuration saved");
 
   // Step 8: Docker services

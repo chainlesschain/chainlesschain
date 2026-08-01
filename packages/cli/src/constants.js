@@ -166,6 +166,17 @@ export const DEFAULT_CONFIG = {
     channel: "stable",
     autoCheck: true,
   },
+  cli: {
+    promptSuggestions: true,
+    keybindings: {},
+  },
+  voice: {
+    backends: {},
+    allowCloud: false,
+  },
+  advisor: {
+    enabled: false,
+  },
 };
 
 export const MIN_NODE_VERSION = "22.12.0";

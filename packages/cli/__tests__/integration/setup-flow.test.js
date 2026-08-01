@@ -1,5 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { mkdtempSync, readFileSync, rmSync, existsSync } from "node:fs";
+import {
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  existsSync,
+  mkdirSync,
+} from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 
@@ -22,6 +28,19 @@ describe("setup flow (integration)", () => {
       ensureHomeDir: () => tempDir,
       ensureDir: (d) => d,
     }));
+    // ACL behavior is covered by config-security.test.js. Keep this integration
+    // focused on setup/config transactions in restricted Windows test runners.
+    vi.doMock("../../src/lib/secure-fs.js", async (importOriginal) => {
+      const actual = await importOriginal();
+      return {
+        ...actual,
+        ensurePrivateDirectory: (target) => {
+          mkdirSync(target, { recursive: true, mode: 0o700 });
+          return target;
+        },
+        ensurePrivateFile: (target) => target,
+      };
+    });
   });
 
   afterEach(() => {
@@ -53,12 +72,12 @@ describe("setup flow (integration)", () => {
     expect(loaded.llm.provider).toBe("ollama");
   });
 
-  it("setConfigValue then getConfigValue for nested keys", async () => {
-    const { setConfigValue, getConfigValue } =
+  it("sets typed values and routes secrets through secure input storage", async () => {
+    const { setConfigValue, setSecretConfigValue, getConfigValue } =
       await import("../../src/lib/config-manager.js");
 
     setConfigValue("llm.provider", "openai");
-    setConfigValue("llm.apiKey", "sk-test-key");
+    setSecretConfigValue("llm.apiKey", "sk-test-key", { storage: "file" });
     setConfigValue("edition", "enterprise");
 
     expect(getConfigValue("llm.provider")).toBe("openai");
@@ -77,5 +96,17 @@ describe("setup flow (integration)", () => {
     const config = loadConfig();
     expect(config.setupCompleted).toBe(false);
     expect(config.edition).toBe("personal");
+  });
+
+  it("refuses an empty credential before a required-provider switch", async () => {
+    const { assertRequiredProviderCredential } =
+      await import("../../src/commands/setup.js");
+
+    expect(() =>
+      assertRequiredProviderCredential({ requiresApiKey: true }, ""),
+    ).toThrow(/API key is required/);
+    expect(() =>
+      assertRequiredProviderCredential({ requiresApiKey: false }, null),
+    ).not.toThrow();
   });
 });

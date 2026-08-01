@@ -6,6 +6,8 @@ import {
   CHECK_LEVELS,
 } from "../../src/lib/doctor-checkup.js";
 import { _deps as registryDeps } from "../../src/lib/lsp/lsp-server-registry.js";
+import { getConfigPath, getHomeDir } from "../../src/lib/paths.js";
+import { join } from "node:path";
 
 /** Dir-agnostic fake fs deps: nothing exists except what the test opts into. */
 function fakeDeps(overrides = {}) {
@@ -72,6 +74,230 @@ describe("doctor-checkup", () => {
     expect(config.checks.some((c) => c.id === "config-corrupted-backup")).toBe(
       true,
     );
+  });
+
+  it("discovers and repairs legacy config.json backup siblings", async () => {
+    const home = getHomeDir();
+    const backup = `${getConfigPath()}.bak-20260101`;
+    const modes = new Map([
+      [home, 0o700],
+      [backup, 0o644],
+    ]);
+    const deps = fakeDeps({
+      platform: () => "linux",
+      existsSync: (target) => modes.has(String(target)),
+      readdirSync: (target) =>
+        String(target) === home ? ["config.json.bak-20260101"] : [],
+      lstatSync: (target) => ({
+        mode: modes.get(String(target)),
+        uid: typeof process.getuid === "function" ? process.getuid() : 0,
+        isDirectory: () => String(target) === home,
+        isSymbolicLink: () => false,
+      }),
+      chmodSync: (target, mode) => modes.set(String(target), mode),
+    });
+
+    const sections = await collectCheckupSections({ deps });
+    const permissionCheck = sections
+      .find((section) => section.id === "config")
+      .checks.find((entry) => entry.id === "private-storage-permissions");
+    expect(permissionCheck.fix).toMatchObject({
+      id: "repair-private-storage",
+      safe: true,
+    });
+    await runCheckupFixes(sections, { deps });
+    expect(modes.get(backup)).toBe(0o600);
+  });
+
+  it("detects and safely repairs legacy private-storage modes", async () => {
+    const home = getHomeDir();
+    const configPath = getConfigPath();
+    const modes = new Map([
+      [home, 0o755],
+      [configPath, 0o644],
+    ]);
+    const deps = fakeDeps({
+      platform: () => "linux",
+      existsSync: (target) => modes.has(String(target)),
+      lstatSync: (target) => ({
+        mode: modes.get(String(target)),
+        uid: typeof process.getuid === "function" ? process.getuid() : 0,
+        isDirectory: () => String(target) === home,
+        isSymbolicLink: () => false,
+      }),
+      chmodSync: (target, mode) => modes.set(String(target), mode),
+    });
+    const sections = await collectCheckupSections({ deps });
+    const permissionCheck = sections
+      .find((section) => section.id === "config")
+      .checks.find((check) => check.id === "private-storage-permissions");
+    expect(permissionCheck).toMatchObject({
+      level: CHECK_LEVELS.ERR,
+      fix: { id: "repair-private-storage", safe: true },
+    });
+
+    const results = await runCheckupFixes(sections, { deps });
+    expect(results).toContainEqual(
+      expect.objectContaining({ id: "repair-private-storage", applied: true }),
+    );
+    expect(modes.get(home)).toBe(0o700);
+    expect(modes.get(configPath)).toBe(0o600);
+  });
+
+  it("batch-checks and repairs protected Windows storage children", async () => {
+    const home = getHomeDir();
+    const configPath = getConfigPath();
+    const sessions = join(home, "sessions");
+    const sessionFile = join(sessions, "unsafe.jsonl");
+    const existing = new Set([home, configPath, sessions, sessionFile]);
+    const powershellCalls = [];
+    const deps = fakeDeps({
+      platform: () => "win32",
+      existsSync: (target) => existing.has(String(target)),
+      readFileSync: () => "{}",
+      readdirSync: (target) =>
+        String(target) === sessions ? ["unsafe.jsonl"] : [],
+      lstatSync: () => ({ isSymbolicLink: () => false }),
+      spawnSync: (file, args, options) => {
+        if (file !== "powershell.exe") {
+          return { status: 0, stdout: "", stderr: "" };
+        }
+        const request = JSON.parse(options.input);
+        powershellCalls.push({ args, request });
+        const repairing = request.operation === "repair";
+        const details = request.targets.map((target) => ({
+          target,
+          exists: true,
+          ok: repairing || target !== sessionFile,
+          protected: repairing || target !== sessionFile,
+          aceCount: repairing || target !== sessionFile ? 1 : 2,
+        }));
+        return {
+          status: repairing ? 0 : 4,
+          stdout: JSON.stringify(details),
+          stderr: "",
+        };
+      },
+    });
+
+    const sections = await collectCheckupSections({
+      deps,
+      verifyWindowsAcl: true,
+    });
+    const permissionCheck = sections
+      .find((section) => section.id === "config")
+      .checks.find((entry) => entry.id === "private-storage-permissions");
+    expect(permissionCheck).toMatchObject({
+      level: CHECK_LEVELS.ERR,
+      fix: { id: "repair-private-storage", safe: true },
+    });
+    expect(powershellCalls).toHaveLength(1);
+    expect(powershellCalls[0].request.targets).toContain(sessionFile);
+
+    const results = await runCheckupFixes(sections, { deps });
+    expect(results).toContainEqual(
+      expect.objectContaining({ id: "repair-private-storage", applied: true }),
+    );
+    expect(powershellCalls).toHaveLength(2);
+    expect(powershellCalls[1].request.operation).toBe("repair");
+  });
+
+  it("never enumerates children through a private-storage symlink", async () => {
+    const home = getHomeDir();
+    const sessions = join(home, "sessions");
+    const readdirSync = vi.fn((target) => {
+      if (String(target) === home) return [];
+      throw new Error("must not enumerate a linked directory");
+    });
+    const deps = fakeDeps({
+      platform: () => "linux",
+      existsSync: (target) => [home, sessions].includes(String(target)),
+      readdirSync,
+      lstatSync: (target) => ({
+        mode: String(target) === home ? 0o700 : 0o777,
+        uid: typeof process.getuid === "function" ? process.getuid() : 0,
+        isDirectory: () => true,
+        isSymbolicLink: () => String(target) === sessions,
+      }),
+      chmodSync: vi.fn(),
+    });
+    const sections = await collectCheckupSections({ deps });
+    const permissionCheck = sections
+      .find((section) => section.id === "config")
+      .checks.find((entry) => entry.id === "private-storage-permissions");
+    expect(permissionCheck.level).toBe(CHECK_LEVELS.ERR);
+    expect(readdirSync).not.toHaveBeenCalledWith(sessions);
+  });
+
+  it("never discovers descendants through a linked CLI home", async () => {
+    const home = getHomeDir();
+    const readdirSync = vi.fn(() => {
+      throw new Error("must not enumerate a linked home");
+    });
+    const deps = fakeDeps({
+      platform: () => "linux",
+      existsSync: (target) => String(target) === home,
+      readdirSync,
+      lstatSync: (target) => ({
+        mode: 0o777,
+        uid: typeof process.getuid === "function" ? process.getuid() : 0,
+        isDirectory: () => true,
+        isSymbolicLink: () => String(target) === home,
+      }),
+      chmodSync: vi.fn(),
+    });
+    const sections = await collectCheckupSections({ deps });
+    const permissionCheck = sections
+      .find((section) => section.id === "config")
+      .checks.find((entry) => entry.id === "private-storage-permissions");
+    expect(permissionCheck.level).toBe(CHECK_LEVELS.ERR);
+    expect(
+      readdirSync.mock.calls.some(([target]) =>
+        String(target).startsWith(home),
+      ),
+    ).toBe(false);
+  });
+
+  it("marks capped scans partial but repairs the full explicit inventory", async () => {
+    const home = getHomeDir();
+    const sessions = join(home, "sessions");
+    const entries = Array.from(
+      { length: 1001 },
+      (_, index) => `session-${String(index).padStart(4, "0")}.jsonl`,
+    );
+    const modes = new Map([
+      [home, 0o700],
+      [sessions, 0o700],
+      ...entries.map((entry, index) => [
+        join(sessions, entry),
+        index === 1000 ? 0o644 : 0o600,
+      ]),
+    ]);
+    const deps = fakeDeps({
+      platform: () => "linux",
+      existsSync: (target) => modes.has(String(target)),
+      readdirSync: (target) => (String(target) === sessions ? entries : []),
+      lstatSync: (target) => ({
+        mode: modes.get(String(target)),
+        uid: typeof process.getuid === "function" ? process.getuid() : 0,
+        isDirectory: () => [home, sessions].includes(String(target)),
+        isSymbolicLink: () => false,
+      }),
+      chmodSync: (target, mode) => modes.set(String(target), mode),
+    });
+
+    const sections = await collectCheckupSections({ deps });
+    const permissionCheck = sections
+      .find((section) => section.id === "config")
+      .checks.find((entry) => entry.id === "private-storage-permissions");
+    expect(permissionCheck).toMatchObject({
+      level: CHECK_LEVELS.WARN,
+      fix: { id: "repair-private-storage", safe: true },
+    });
+    expect(permissionCheck.detail).toMatch(/partial scan/);
+
+    await runCheckupFixes(sections, { deps });
+    expect(modes.get(join(sessions, entries[1000]))).toBe(0o600);
   });
 
   it("flags an invalid settings layer as err", async () => {

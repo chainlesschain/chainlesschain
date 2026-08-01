@@ -24,6 +24,15 @@
       "reason": "exit-zero evaluation has no ambient process fallback and fails closed unless its caller injects the broker-backed runner.",
       "owner": "cli-runtime",
       "reviewedAt": "2026-07-26"
+    },
+    {
+      "id": "secure-fs-windows-acl-boundary",
+      "disposition": "audited-exemption",
+      "path": "packages/cli/src/lib/secure-fs.js",
+      "match": "deps\\.spawnSync\\(",
+      "reason": "Owner-only Windows storage must be established below paths/config and therefore cannot import the broker without a bootstrap cycle; the boundary invokes only a fixed PowerShell ACL program, disables profiles and interactivity, hides the window, bounds runtime, and passes single targets as literal argv or batches as UTF-8 JSON over stdin.",
+      "owner": "cli-security",
+      "reviewedAt": "2026-08-01"
     }
   ]
 }

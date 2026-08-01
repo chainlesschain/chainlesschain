@@ -14,11 +14,11 @@ import {
 } from "../../src/repl/config-summary.js";
 
 describe("maskSecret", () => {
-  it("reports not set / set with last 4 only", () => {
+  it("reports presence without retaining a secret suffix", () => {
     expect(maskSecret(undefined)).toBe("not set");
     expect(maskSecret("")).toBe("not set");
     expect(maskSecret("abcd")).toBe("set (hidden)");
-    expect(maskSecret("sk-supersecretkey-1234")).toBe("set (…1234)");
+    expect(maskSecret("sk-supersecretkey-1234")).toBe("set (hidden)");
   });
 });
 
@@ -40,7 +40,7 @@ describe("renderConfigSummary", () => {
     expect(out).toContain("provider: anthropic");
     expect(out).toContain("model:    claude-opus");
     expect(out).toContain("baseUrl:  https://api.anthropic.com");
-    expect(out).toContain("apiKey:   set (…4XYZ)"); // last 4 of the secret
+    expect(out).toContain("apiKey:   set (hidden)");
     expect(out).toContain("config file: /home/u/.chainlesschain/config.json");
     // The invariant: the secret is not anywhere in the output.
     expect(out).not.toContain(SECRET);
@@ -49,7 +49,7 @@ describe("renderConfigSummary", () => {
 
   it("handles an empty / unconfigured config", () => {
     const out = renderConfigSummary(null);
-    expect(out).toContain("provider: (unset → defaults to ollama)");
+    expect(out).toContain("provider: (unset; defaults to ollama)");
     expect(out).toContain("model:    (unset)");
     expect(out).toContain("apiKey:   not set");
   });
@@ -66,7 +66,7 @@ describe("renderConfigSummary", () => {
     expect(out).toContain("vision:   doubao-vision");
     expect(out).toContain("webSearch:");
     expect(out).toContain("provider: tavily");
-    expect(out).toContain("apiKey:   set (…9999)");
+    expect(out).toContain("apiKey:   set (hidden)");
     expect(out).not.toContain("tvly-secret-9999");
   });
 
@@ -183,13 +183,13 @@ describe("renderConfigHelp", () => {
 describe("renderConfigGet / renderConfigSet (secret-safe)", () => {
   it("masks secret values on read and write", () => {
     expect(renderConfigGet("llm.apiKey", "sk-ant-verysecret-4XYZ")).toBe(
-      "llm.apiKey = set (…4XYZ)",
+      "llm.apiKey = set (hidden)",
     );
     expect(
       renderConfigGet("llm.apiKey", "sk-ant-verysecret-4XYZ"),
     ).not.toContain("verysecret");
     expect(renderConfigSet("webSearch.apiKey", "tvly-secret-9999")).toBe(
-      "set webSearch.apiKey = set (…9999)",
+      "set webSearch.apiKey = set (hidden)",
     );
   });
   it("shows non-secret values plainly, JSON-stringifying objects", () => {
