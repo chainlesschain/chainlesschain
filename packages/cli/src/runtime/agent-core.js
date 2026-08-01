@@ -2101,6 +2101,19 @@ export async function executeTool(name, args, context = {}) {
     };
   }
 
+  // Subtree rules are an authority input, so the first file mutation in a
+  // subtree must observe them before any PreToolUse hook or filesystem effect.
+  // Discovery+read commits the complete source/target batch atomically; this
+  // call is intentionally deferred once and succeeds only on an explicit retry.
+  if (GUARDED_FILE_MUTATION_TOOLS.has(name)) {
+    const instructionPreflight = await _preflightMutationSubtreeInstructions(
+      fileMutationPaths(name, args),
+      cwd,
+      context.subtreeInstructionScope || context.sessionId || "__legacy__",
+    );
+    if (instructionPreflight) return instructionPreflight;
+  }
+
   // PreToolUse hooks. DB hooks (cc hook add) stay observe-only — a failure
   // never blocks. settings.json hooks (context.settingsHooks) are decision-
   // capable: a `block` (exit 2 / {decision:block}) stops the tool here, an
@@ -2205,6 +2218,8 @@ export async function executeTool(name, args, context = {}) {
       externalToolDescriptors: context.externalToolDescriptors || null,
       externalToolExecutors: context.externalToolExecutors || null,
       mcpClient: context.mcpClient || null,
+      subtreeInstructionScope:
+        context.subtreeInstructionScope || context.sessionId || "__legacy__",
       shellPolicyOverrides: context.shellPolicyOverrides || null,
       approvalGate: context.approvalGate || null,
       shellConfirm: context.shellConfirm || null,
@@ -2898,15 +2913,20 @@ export async function _withPostEditDiagnostics(
 // NOT loaded up front — they cost tokens for subtrees a run may never touch.
 // When a tool first ACCESSES a path inside such a subtree, we inject that
 // subtree's directory instructions into the tool result (the SAME channel as
-// newDiagnostics), exactly once per subtree per process. A stateful
-// SubtreeInstructionLoader per root remembers what it already injected so a
+// newDiagnostics), exactly once per subtree per agent session. A stateful
+// SubtreeInstructionLoader per root/session remembers what it already injected so a
 // second access to the same subtree is a no-op. Disable with
 // CC_SUBTREE_INSTRUCTIONS=0. Common case (no cc.md below cwd) → zero cost.
-const _subtreeLoaderPool = new Map(); // root -> SubtreeInstructionLoader
+const _subtreeLoaderPool = new Map(); // root -> Map<session scope, loader>
 
-async function _getSubtreeLoader(cwd) {
+async function _getSubtreeLoader(cwd, sessionScope = "__legacy__") {
   const root = path.resolve(cwd || process.cwd());
-  let loader = _subtreeLoaderPool.get(root);
+  let scopedLoaders = _subtreeLoaderPool.get(root);
+  if (!scopedLoaders) {
+    scopedLoaders = new Map();
+    _subtreeLoaderPool.set(root, scopedLoaders);
+  }
+  let loader = scopedLoaders.get(sessionScope);
   if (!loader) {
     const { SubtreeInstructionLoader } =
       await import("../lib/project-instructions.js");
@@ -2925,7 +2945,7 @@ async function _getSubtreeLoader(cwd) {
       baseDir: root,
       instructionExcludes,
     });
-    _subtreeLoaderPool.set(root, loader);
+    scopedLoaders.set(sessionScope, loader);
   }
   return loader;
 }
@@ -2940,15 +2960,28 @@ export function _resetSubtreeInstructionLoaders() {
  * with their (capped) content read for inline injection — or null when the
  * subtree has no NEW cc.md/CLAUDE.md/AGENTS.md (the common case → zero cost).
  */
-async function _subtreeInstructionsFor(accessedPath, cwd) {
+async function _prepareSubtreeInstructions(
+  accessedPaths,
+  cwd,
+  sessionScope = "__legacy__",
+) {
   if (process.env.CC_SUBTREE_INSTRUCTIONS === "0") return null;
   try {
-    const loader = await _getSubtreeLoader(cwd);
-    const fresh = loader.onAccess(accessedPath);
+    const loader = await _getSubtreeLoader(cwd, sessionScope);
+    const discovered = new Map();
+    for (const accessedPath of Array.isArray(accessedPaths)
+      ? accessedPaths
+      : [accessedPaths]) {
+      for (const candidate of loader.discover(accessedPath)) {
+        discovered.set(candidate.identity, candidate);
+      }
+    }
+    const fresh = [...discovered.values()];
     if (!fresh || !fresh.length) return null;
     const { DEFAULT_MAX_FILE_BYTES } =
       await import("../lib/project-instructions.js");
     const out = [];
+    const errors = [];
     for (const f of fresh) {
       try {
         const buf = fs.readFileSync(f.path);
@@ -2962,23 +2995,84 @@ async function _subtreeInstructionsFor(accessedPath, cwd) {
           content,
           ...(truncated ? { truncated: true } : {}),
         });
-      } catch {
-        // discovered file vanished before we could read it — skip it
+      } catch (err) {
+        errors.push({ path: f.path, message: err.message });
       }
     }
-    return out.length ? out : null;
-  } catch {
-    return null; // fail-open: never break a tool because injection errored
+    // Commit only after every candidate in the source/target batch has been
+    // read. Any failure leaves the entire batch discoverable for a retry.
+    if (!errors.length) loader.commit(fresh);
+    return out.length || errors.length ? { instructions: out, errors } : null;
+  } catch (err) {
+    // Paths outside cwd are handled by the normal path/sandbox authority and
+    // have no cwd-subtree rules. Other failures remain visible to mutation
+    // preflight so they cannot silently widen authority.
+    if (err?.code === "ERR_SUBTREE_INSTRUCTION_BOUNDARY") return null;
+    return {
+      instructions: [],
+      errors: [{ path: null, message: err?.message || String(err) }],
+    };
   }
+}
+
+async function _subtreeInstructionsFor(accessedPath, cwd, sessionScope) {
+  const prepared = await _prepareSubtreeInstructions(
+    accessedPath,
+    cwd,
+    sessionScope,
+  );
+  return prepared?.instructions?.length ? prepared.instructions : null;
+}
+
+async function _preflightMutationSubtreeInstructions(
+  accessedPaths,
+  cwd,
+  sessionScope,
+) {
+  const prepared = await _prepareSubtreeInstructions(
+    accessedPaths,
+    cwd,
+    sessionScope,
+  );
+  if (!prepared) return null;
+  if (prepared.errors?.length) {
+    return {
+      error:
+        "[Subtree Instructions] Mutation blocked because applicable instructions could not be loaded. No mutation was performed.",
+      policy: { decision: "blocked", via: "subtree-instructions" },
+      instructionLoadErrors: prepared.errors,
+      mutationPerformed: false,
+      ...(prepared.instructions?.length
+        ? { subtreeInstructions: prepared.instructions }
+        : {}),
+    };
+  }
+  if (!prepared.instructions?.length) return null;
+  return {
+    error:
+      "[Subtree Instructions] Mutation deferred before its first effect. Review these authoritative subtree rules, then retry the tool call.",
+    policy: { decision: "deferred", via: "subtree-instructions" },
+    subtreeInstructions: prepared.instructions,
+    mutationPerformed: false,
+  };
 }
 
 /**
  * Attach freshly-discovered subtree instructions to a SUCCESSFUL tool result
  * (no-op on an error result or when the subtree has nothing new).
  */
-async function _withSubtreeInstructions(result, accessedPath, cwd) {
+async function _withSubtreeInstructions(
+  result,
+  accessedPath,
+  cwd,
+  sessionScope,
+) {
   if (result && result.error) return result;
-  const subtreeInstructions = await _subtreeInstructionsFor(accessedPath, cwd);
+  const subtreeInstructions = await _subtreeInstructionsFor(
+    accessedPath,
+    cwd,
+    sessionScope,
+  );
   return subtreeInstructions ? { ...result, subtreeInstructions } : result;
 }
 
@@ -3052,6 +3146,7 @@ async function executeToolInner(
     externalToolExecutors,
     extraToolDefinitions = null,
     mcpClient,
+    subtreeInstructionScope = "__legacy__",
     memoryDb = null,
     permanentMemory = null,
     subAgentContract = null,
@@ -3195,6 +3290,7 @@ async function executeToolInner(
             },
             filePath,
             cwd,
+            subtreeInstructionScope,
           ),
         );
       }
@@ -3207,6 +3303,7 @@ async function executeToolInner(
           },
           filePath,
           cwd,
+          subtreeInstructionScope,
         ),
       );
     }
@@ -3237,6 +3334,7 @@ async function executeToolInner(
           ),
           filePath,
           cwd,
+          subtreeInstructionScope,
         ),
       );
     }
@@ -3318,6 +3416,7 @@ async function executeToolInner(
           ),
           targetPath,
           cwd,
+          subtreeInstructionScope,
         ),
       );
     }
@@ -3418,6 +3517,7 @@ async function executeToolInner(
           ),
           filePath,
           cwd,
+          subtreeInstructionScope,
         ),
       );
     }
@@ -3483,6 +3583,7 @@ async function executeToolInner(
           ),
           filePath,
           cwd,
+          subtreeInstructionScope,
         ),
       );
     }
@@ -5218,6 +5319,7 @@ async function executeToolInner(
           },
           dirPath,
           cwd,
+          subtreeInstructionScope,
         ),
       );
     }
@@ -8425,6 +8527,11 @@ export async function* agentLoop(messages, options) {
     // contract's mcpServers allow-list). Otherwise consumed only at agentLoop.
     extraToolDefinitions: options.extraToolDefinitions || null,
     mcpClient: options.mcpClient || null,
+    // A loop-local identity prevents one session's lazy instruction commits
+    // from suppressing first-access delivery in another session at the same cwd.
+    // Hosts may inject a stable identity across resumed turns.
+    subtreeInstructionScope:
+      options.subtreeInstructionScope || options.sessionId || Symbol(runId),
     // Parent memory source — a spawn can inherit the parent's hierarchical
     // memory DB into the child ONLY when the resolved contract grants memory
     // (context:fork from a memory-bearing parent, or explicit memory:true).

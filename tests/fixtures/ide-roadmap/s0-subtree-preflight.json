@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "case": "s0-subtree-preflight",
+  "tree": ["AGENTS.md", "packages/AGENTS.md", "packages/cli/AGENTS.md"],
+  "firstOperations": ["write", "edit", "delete", "move", "notebook-edit"],
+  "expected": {
+    "effectsBeforeInstructionDelivery": 0,
+    "sessionInjectionIsIsolated": true,
+    "atomicInstructionBatch": true
+  }
+}

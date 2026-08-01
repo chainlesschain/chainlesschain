@@ -10,6 +10,7 @@ import path from "path";
 import {
   resolveSubtreeInstructions,
   SubtreeInstructionLoader,
+  SubtreeInstructionBoundaryError,
 } from "../../src/lib/project-instructions.js";
 
 let root;
@@ -117,6 +118,104 @@ describe("resolveSubtreeInstructions", () => {
 });
 
 describe("SubtreeInstructionLoader", () => {
+  it("discovers without marking files loaded", () => {
+    const doc = write("packages/web/cc.md", "web");
+    const loader = new SubtreeInstructionLoader({
+      repoRoot: root,
+      baseDir: root,
+    });
+
+    const first = loader.discover("packages/web/src/a.js");
+    expect(first.map((f) => f.path)).toEqual([doc]);
+    const expectedIdentity =
+      path.sep === "\\" ? path.resolve(doc).toLowerCase() : path.resolve(doc);
+    expect(first[0].identity).toBe(expectedIdentity);
+    expect(loader.loadedFiles()).toEqual([]);
+    expect(loader.discover("packages/web/src/b.js")).toEqual(first);
+  });
+
+  it("does not discover a file again after it is committed", () => {
+    const doc = write("packages/web/cc.md", "web");
+    const loader = new SubtreeInstructionLoader({
+      repoRoot: root,
+      baseDir: root,
+    });
+
+    const discovered = loader.discover("packages/web/src/a.js");
+    expect(loader.commit(discovered)).toBe(1);
+    expect(loader.discover("packages/web/src/b.js")).toEqual([]);
+    expect(loader.loadedFiles()).toEqual([doc]);
+    expect(loader.markLoaded(discovered)).toBe(0);
+  });
+
+  it("retries a discovery when reading fails and the caller does not commit", () => {
+    const doc = write("packages/web/cc.md", "web");
+    const loader = new SubtreeInstructionLoader({
+      repoRoot: root,
+      baseDir: root,
+    });
+    let attempts = 0;
+    const readAndParse = (candidate) => {
+      attempts++;
+      if (attempts === 1) throw new Error("transient read failure");
+      return fs.readFileSync(candidate.path, "utf-8");
+    };
+
+    const first = loader.discover("packages/web/src/a.js");
+    expect(() => readAndParse(first[0])).toThrow("transient read failure");
+    // No commit after the failed read: the same stable candidate must retry.
+    const retry = loader.discover("packages/web/src/a.js");
+    expect(retry).toEqual(first);
+    expect(readAndParse(retry[0])).toBe("web");
+    loader.commit(retry);
+    expect(loader.discover("packages/web/src/a.js")).toEqual([]);
+    expect(loader.loadedFiles()).toEqual([doc]);
+  });
+
+  it("discovers nested rules shallowest-first for a merged batch", () => {
+    const packagesDoc = write("packages/cc.md", "packages");
+    const webDoc = write("packages/web/CLAUDE.md", "web");
+    const deepDoc = write("packages/web/deep/AGENTS.md", "deep");
+    const loader = new SubtreeInstructionLoader({
+      repoRoot: root,
+      baseDir: root,
+    });
+
+    const source = loader.discover("packages/web/src/source.js");
+    const target = loader.discover("packages/web/deep/target.js");
+    expect(source.map((f) => f.path)).toEqual([packagesDoc, webDoc]);
+    expect(target.map((f) => f.path)).toEqual([packagesDoc, webDoc, deepDoc]);
+    const merged = [
+      ...new Map(
+        [...source, ...target].map((candidate) => [
+          candidate.identity,
+          candidate,
+        ]),
+      ).values(),
+    ];
+    expect(merged.map((f) => f.path)).toEqual([packagesDoc, webDoc, deepDoc]);
+    expect(loader.commit(merged)).toBe(3);
+  });
+
+  it("fails closed with an explicit error when discovery leaves the project", () => {
+    const loader = new SubtreeInstructionLoader({
+      repoRoot: root,
+      baseDir: root,
+    });
+    const outside = path.join(os.tmpdir(), "elsewhere", "x.js");
+
+    expect(() => loader.discover(outside)).toThrow(
+      SubtreeInstructionBoundaryError,
+    );
+    try {
+      loader.discover(outside);
+    } catch (error) {
+      expect(error.code).toBe("ERR_SUBTREE_INSTRUCTION_BOUNDARY");
+    }
+    expect(loader.loadedFiles()).toEqual([]);
+    // The legacy convenience remains fail-open for current callers.
+    expect(loader.onAccess(outside)).toEqual([]);
+  });
   it("injects a subtree once — a second access to it is a no-op", () => {
     write("packages/web/cc.md", "web");
     const loader = new SubtreeInstructionLoader({

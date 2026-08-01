@@ -52,7 +52,8 @@ export const LOCAL_FILE_NAMES = ["cc.local.md", "CLAUDE.local.md"];
  * path RELATIVE to the project root, with forward slashes:
  *   - a bare name (`node_modules`, `dist`) matches that segment ANYWHERE;
  *   - a slashed prefix (`packages/legacy`) matches that dir and everything under;
- *   - a glob (`**​/generated/**`, `vendor/*`) matches via `*`/`**`/`?`.
+ *   - a glob (`**` followed by `/generated/**`, or `vendor/*`) matches via
+ *     `*`/`**`/`?`.
  */
 export function normalizeInstructionExcludes(list) {
   if (!Array.isArray(list)) return [];
@@ -534,15 +535,30 @@ export function resolveSubtreeInstructions(opts = {}) {
   // Subtree instructions apply only to DESCENDANTS of baseDir (ancestors were
   // loaded at startup). Reject a target that escapes baseDir or the repo.
   const relFromBase = path.relative(baseDir, target);
-  if (
-    !relFromBase ||
-    relFromBase.startsWith("..") ||
-    path.isAbsolute(relFromBase)
-  ) {
+  if (pathEscapesBoundary(path, relFromBase)) {
+    if (opts.strictBoundary) {
+      throw new SubtreeInstructionBoundaryError({
+        repoRoot,
+        baseDir,
+        targetPath: target,
+      });
+    }
     return [];
   }
   const relFromRoot = path.relative(repoRoot, target);
-  if (relFromRoot.startsWith("..") || path.isAbsolute(relFromRoot)) return [];
+  if (pathEscapesBoundary(path, relFromRoot)) {
+    if (opts.strictBoundary) {
+      throw new SubtreeInstructionBoundaryError({
+        repoRoot,
+        baseDir,
+        targetPath: target,
+      });
+    }
+    return [];
+  }
+  // A path directly in baseDir has no lazy subtree instructions. This is a
+  // valid no-op, not a boundary violation.
+  if (!relFromBase) return [];
 
   // Directories strictly between baseDir (exclusive) and target (inclusive).
   const dirs = [];
@@ -573,43 +589,163 @@ export function resolveSubtreeInstructions(opts = {}) {
 }
 
 /**
- * Stateful companion to `resolveSubtreeInstructions`: tracks which subtree
- * directories have already been injected across a session so a second access to
- * the same subtree is a no-op. `onAccess(path)` returns ONLY the freshly
- * discovered files. Fail-open (any error → []).
+ * Explicit error used by the strict, stateful discovery API. The legacy pure
+ * resolver and `onAccess()` remain fail-open for compatibility, while batching
+ * callers can distinguish an empty discovery from a rejected path traversal.
+ */
+export class SubtreeInstructionBoundaryError extends Error {
+  constructor({ repoRoot, baseDir, targetPath }) {
+    super(
+      `subtree instruction target is outside the allowed project boundary: ${targetPath}`,
+    );
+    this.name = "SubtreeInstructionBoundaryError";
+    this.code = "ERR_SUBTREE_INSTRUCTION_BOUNDARY";
+    this.repoRoot = repoRoot;
+    this.baseDir = baseDir;
+    this.targetPath = targetPath;
+  }
+}
+
+function subtreeInstructionIdentity(path, filePath) {
+  const absolute = path.resolve(filePath);
+  // Windows paths are case-insensitive. Normalising case makes discoveries for
+  // source + target paths safe to merge by identity even if callers use
+  // different drive-letter/path casing.
+  return path.sep === "\\" ? absolute.toLowerCase() : absolute;
+}
+
+function pathEscapesBoundary(path, relativePath) {
+  return (
+    relativePath === ".." ||
+    relativePath.startsWith(`..${path.sep}`) ||
+    path.isAbsolute(relativePath)
+  );
+}
+
+/**
+ * Stateful companion to `resolveSubtreeInstructions`. `discover(path)` returns
+ * uncommitted candidates carrying stable identities; `commit()` / `markLoaded()`
+ * acknowledge only candidates that the caller successfully read and parsed.
+ * `onAccess()` retains the previous fail-open convenience behavior.
  */
 export class SubtreeInstructionLoader {
   constructor(opts = {}) {
     const path = opts.deps?.path || pathDefault;
     this._opts = opts;
-    this._loadedDirs = new Set();
-    this._loadedFiles = new Set(
-      (opts.alreadyLoaded || []).map((p) => path.resolve(p)),
-    );
+    this._path = path;
+    this._loadedFiles = new Map();
+    for (const filePath of opts.alreadyLoaded || []) {
+      const absolute = path.resolve(filePath);
+      this._loadedFiles.set(
+        subtreeInstructionIdentity(path, absolute),
+        absolute,
+      );
+    }
   }
 
-  /** @returns {Array<{path:string, scope:"project", dir:string}>} newly injected */
+  /**
+   * Discover every applicable instruction file not yet committed. Discovery is
+   * intentionally repeatable and does not mutate loaded state.
+   *
+   * @returns {Array<{path:string, scope:"project", dir:string, identity:string}>}
+   * @throws {SubtreeInstructionBoundaryError} when targetPath escapes base/repo
+   */
+  discover(targetPath) {
+    const found = resolveSubtreeInstructions({
+      ...this._opts,
+      accessedPath: targetPath,
+      alreadyLoaded: [],
+      strictBoundary: true,
+    });
+    return found
+      .map((candidate) => ({
+        ...candidate,
+        identity: subtreeInstructionIdentity(this._path, candidate.path),
+      }))
+      .filter((candidate) => !this._loadedFiles.has(candidate.identity));
+  }
+
+  /**
+   * Mark successfully read/parsed/injected discoveries as loaded. Callers may
+   * pass one candidate or a source+target batch deduped by `identity`.
+   *
+   * @returns {number} number of newly committed instruction files
+   */
+  commit(discoveries) {
+    const batch = Array.isArray(discoveries) ? discoveries : [discoveries];
+    const validated = new Map();
+    for (const candidate of batch) {
+      const candidatePath =
+        typeof candidate === "string"
+          ? candidate
+          : candidate?.path || candidate?.identity;
+      if (typeof candidatePath !== "string") continue;
+      const absolute = this._path.resolve(candidatePath);
+      const identity = subtreeInstructionIdentity(this._path, absolute);
+      if (
+        typeof candidate !== "string" &&
+        candidate.identity &&
+        candidate.identity !== identity
+      ) {
+        throw new TypeError(
+          `subtree instruction identity does not match its path: ${candidate.identity}`,
+        );
+      }
+
+      // A caller may commit a source+target batch assembled across discover()
+      // calls. Recheck its lexical boundary before mutating loaded state.
+      const repoRoot = this._path.resolve(
+        this._opts.repoRoot || this._opts.baseDir || process.cwd(),
+      );
+      const baseDir = this._path.resolve(this._opts.baseDir || repoRoot);
+      const relativeToBase = this._path.relative(baseDir, absolute);
+      const relativeToRoot = this._path.relative(repoRoot, absolute);
+      if (
+        pathEscapesBoundary(this._path, relativeToBase) ||
+        pathEscapesBoundary(this._path, relativeToRoot)
+      ) {
+        throw new SubtreeInstructionBoundaryError({
+          repoRoot,
+          baseDir,
+          targetPath: absolute,
+        });
+      }
+      validated.set(identity, absolute);
+    }
+
+    // Validate the complete source+target batch before mutating loaded state.
+    let committed = 0;
+    for (const [identity, absolute] of validated) {
+      if (!this._loadedFiles.has(identity)) {
+        this._loadedFiles.set(identity, absolute);
+        committed++;
+      }
+    }
+    return committed;
+  }
+
+  /** Alias for callers that prefer acknowledgement terminology. */
+  markLoaded(discoveries) {
+    return this.commit(discoveries);
+  }
+
+  /**
+   * Legacy discover+commit convenience. New read/parse callers should use the
+   * two phases directly so a transient failure remains retryable.
+   */
   onAccess(accessedPath) {
     try {
-      const found = resolveSubtreeInstructions({
-        ...this._opts,
-        accessedPath,
-        alreadyLoaded: this._loadedFiles,
-      });
-      const fresh = found.filter((f) => !this._loadedDirs.has(f.dir));
-      for (const f of fresh) {
-        this._loadedDirs.add(f.dir);
-        this._loadedFiles.add(f.path);
-      }
-      return fresh;
+      const found = this.discover(accessedPath);
+      this.commit(found);
+      return found;
     } catch {
       return [];
     }
   }
 
-  /** Absolute paths injected so far (startup set + every onAccess discovery). */
+  /** Absolute paths injected so far (startup set + every committed discovery). */
   loadedFiles() {
-    return [...this._loadedFiles];
+    return [...this._loadedFiles.values()];
   }
 }
 
