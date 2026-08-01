@@ -341,7 +341,11 @@ export class CLISkillLoader {
   constructor({
     contextLedger = contextSourceLedger,
     reauthorizeSkill = null,
-    trustedExecutionSources = ["bundled", "cli-bundled", "managed"],
+    // Only package-owned, immutable-at-install sources are trusted by
+    // default. The historical "managed" layer is actually the user-writable
+    // <userData>/skills directory (and `skill add --global` writes there), so
+    // treating it as enterprise-managed would bypass first-use digest consent.
+    trustedExecutionSources = ["bundled", "cli-bundled"],
   } = {}) {
     if (reauthorizeSkill !== null && typeof reauthorizeSkill !== "function") {
       throw new TypeError("reauthorizeSkill must be a function or null");
@@ -360,6 +364,137 @@ export class CLISkillLoader {
       bodyCacheMisses: 0,
       bodyLoads: new Map(),
     };
+  }
+
+  _skillReauthorizationRequest(
+    skill,
+    snapshot,
+    context,
+    { firstUseAuthorization, contentChanged, previouslyAuthorizedDigest },
+  ) {
+    return Object.freeze({
+      skill: Object.freeze({
+        id: skill.id,
+        source: skill.source,
+        skillDir: skill.skillDir,
+      }),
+      identityDigest: snapshot.identityDigest,
+      reason:
+        firstUseAuthorization && !contentChanged
+          ? "first-use"
+          : firstUseAuthorization
+            ? "first-use-content-drift"
+            : "content-drift",
+      previousDigest:
+        previouslyAuthorizedDigest ||
+        (contentChanged
+          ? skill.executionIdentity?.contentDigest || null
+          : null),
+      discoveredDigest: skill.executionIdentity?.contentDigest || null,
+      currentDigest: snapshot.contentDigest,
+      componentDigests: Object.freeze({ ...snapshot.componentDigests }),
+      loadedBecause: context.loadedBecause || "explicit",
+      sessionId: context.sessionId || null,
+      turnId: context.turnId || null,
+    });
+  }
+
+  _throwSkillAuthorizationDenial(
+    skill,
+    snapshot,
+    { firstUseAuthorization, contentChanged },
+  ) {
+    if (firstUseAuthorization && !contentChanged) {
+      throw skillTrustRequiredError(skill);
+    }
+    throw skillDigestDriftError(
+      skill,
+      skill.executionIdentity?.contentDigest || null,
+      snapshot.contentDigest,
+    );
+  }
+
+  /**
+   * Await an execution-digest decision without weakening the synchronous
+   * loader API. IDE/CLI hosts may provide an async `reauthorizeSkill` callback;
+   * callers without one remain fail-closed. The digest is checked again by
+   * materializeSkillForExecution after the await, closing the prompt-time race.
+   */
+  async _authorizeSkillExecutionDigest(skill, context = {}) {
+    const snapshot = captureSkillExecutionSnapshot({
+      skillDir: skill.skillDir,
+      skillId: skill.id,
+      source: skill.source,
+    });
+    const discovered = skill.executionIdentity;
+    if (
+      !discovered ||
+      discovered.identityDigest !== snapshot.identityDigest ||
+      discovered.handlerPresent !== snapshot.handlerPresent
+    ) {
+      throw skillIdentityChangedError(skill);
+    }
+
+    if (
+      isSkillExecutionContext(context) &&
+      skill.hasHandler === true &&
+      (skill.isolation !== true || context.loadedBecause !== "run_skill")
+    ) {
+      assertControlledSkillExecution(skill, context);
+    }
+
+    const contentChanged = discovered.contentDigest !== snapshot.contentDigest;
+    const executionRequiresTrust =
+      isSkillExecutionContext(context) &&
+      skill.hasHandler === true &&
+      !this._trustedExecutionSources.has(String(skill.source || ""));
+    const previouslyAuthorizedDigest = this._authorizedExecutionDigests.get(
+      snapshot.identityDigest,
+    );
+    const digestAuthorized =
+      previouslyAuthorizedDigest === snapshot.contentDigest;
+    const firstUseAuthorization = executionRequiresTrust && !digestAuthorized;
+    if ((!contentChanged && !firstUseAuthorization) || digestAuthorized) {
+      return executionIdentityMetadata(snapshot);
+    }
+    if (!this._reauthorizeSkill) {
+      this._throwSkillAuthorizationDenial(skill, snapshot, {
+        firstUseAuthorization,
+        contentChanged,
+      });
+    }
+
+    let decision;
+    try {
+      decision = await this._reauthorizeSkill(
+        this._skillReauthorizationRequest(skill, snapshot, context, {
+          firstUseAuthorization,
+          contentChanged,
+          previouslyAuthorizedDigest,
+        }),
+      );
+    } catch (cause) {
+      throw skillReauthorizationError(skill, cause);
+    }
+    if (decision !== true && decision?.authorized !== true) {
+      this._throwSkillAuthorizationDenial(skill, snapshot, {
+        firstUseAuthorization,
+        contentChanged,
+      });
+    }
+    this._authorizedExecutionDigests.set(
+      snapshot.identityDigest,
+      snapshot.contentDigest,
+    );
+    return executionIdentityMetadata(snapshot);
+  }
+
+  async materializeSkillForExecution(skill, context = {}) {
+    const executionContext = { ...context, forExecution: true };
+    await this._authorizeSkillExecutionDigest(skill, executionContext);
+    // Re-capture and re-check after a potentially human-blocking async prompt.
+    // materializeSkill recognizes only the exact digest authorized above.
+    return this.materializeSkill(skill, executionContext);
   }
 
   /**
@@ -613,10 +748,10 @@ export class CLISkillLoader {
     const previouslyAuthorizedDigest = this._authorizedExecutionDigests.get(
       snapshot.identityDigest,
     );
-    const firstUseAuthorization =
-      executionRequiresTrust &&
-      previouslyAuthorizedDigest !== snapshot.contentDigest;
-    if (contentChanged || firstUseAuthorization) {
+    const digestAuthorized =
+      previouslyAuthorizedDigest === snapshot.contentDigest;
+    const firstUseAuthorization = executionRequiresTrust && !digestAuthorized;
+    if ((contentChanged || firstUseAuthorization) && !digestAuthorized) {
       if (!this._reauthorizeSkill) {
         if (firstUseAuthorization && !contentChanged) {
           throw skillTrustRequiredError(skill);
@@ -630,36 +765,20 @@ export class CLISkillLoader {
       let decision;
       try {
         decision = this._reauthorizeSkill(
-          Object.freeze({
-            skill: Object.freeze({
-              id: skill.id,
-              source: skill.source,
-              skillDir: skill.skillDir,
-            }),
-            identityDigest: snapshot.identityDigest,
-            reason:
-              firstUseAuthorization && !contentChanged
-                ? "first-use"
-                : firstUseAuthorization
-                  ? "first-use-content-drift"
-                  : "content-drift",
-            previousDigest:
-              previouslyAuthorizedDigest ||
-              (contentChanged ? discovered.contentDigest : null),
-            discoveredDigest: discovered.contentDigest,
-            currentDigest: snapshot.contentDigest,
-            componentDigests: Object.freeze({
-              ...snapshot.componentDigests,
-            }),
-            loadedBecause: context.loadedBecause || "explicit",
-            sessionId: context.sessionId || null,
-            turnId: context.turnId || null,
+          this._skillReauthorizationRequest(skill, snapshot, context, {
+            firstUseAuthorization,
+            contentChanged,
+            previouslyAuthorizedDigest,
           }),
         );
       } catch (cause) {
         throw skillReauthorizationError(skill, cause);
       }
       if (decision && typeof decision.then === "function") {
+        // The synchronous API cannot await an IDE/CLI decision. Observe a
+        // possible rejection so fail-closed use does not create an unhandled
+        // promise; execution callers must use materializeSkillForExecution().
+        Promise.resolve(decision).catch(() => {});
         throw skillReauthorizationError(
           skill,
           new TypeError("reauthorizeSkill must return synchronously"),

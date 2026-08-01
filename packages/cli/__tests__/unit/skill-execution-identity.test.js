@@ -172,6 +172,54 @@ describe("Skill execution identity", () => {
     );
   });
 
+  it("awaits an async host reauthorization and rechecks the exact digest", async () => {
+    const fixture = createSkill({ isolation: true, body: "# Async approval" });
+    const reauthorizeSkill = vi.fn(async () => {
+      await Promise.resolve();
+      return { authorized: true };
+    });
+    const { loader, skill } = discover(fixture, { reauthorizeSkill });
+
+    const materialized = await loader.materializeSkillForExecution(skill, {
+      loadedBecause: "run_skill",
+      sessionId: "ide-session",
+      turnId: "turn-1",
+    });
+
+    expect(materialized.body).toContain("Async approval");
+    expect(reauthorizeSkill).toHaveBeenCalledWith(
+      expect.objectContaining({
+        reason: "first-use",
+        sessionId: "ide-session",
+        turnId: "turn-1",
+      }),
+    );
+    expect(materialized.executionAuthority.mode).toBe("controlled-agent-tools");
+  });
+
+  it("does not trust the user-writable managed/global layer by default", async () => {
+    const fixture = createSkill({ isolation: true, body: "# Global custom" });
+    const loader = new CLISkillLoader({ contextLedger: null });
+    const [skill] = loader._loadFromDir(fixture.root, "managed");
+
+    await expect(
+      loader.materializeSkillForExecution(skill, {
+        loadedBecause: "run_skill",
+      }),
+    ).rejects.toMatchObject({ code: "CC_SKILL_TRUST_REQUIRED" });
+  });
+
+  it("does not let the synchronous API accidentally accept an async decision", () => {
+    const fixture = createSkill({ isolation: true });
+    const { loader, skill } = discover(fixture, {
+      reauthorizeSkill: async () => true,
+    });
+
+    expect(() =>
+      loader.materializeSkill(skill, { loadedBecause: "run_skill" }),
+    ).toThrow(expect.objectContaining({ code: "CC_SKILL_REAUTHORIZE_FAILED" }));
+  });
+
   it("re-parses isolation after reauthorization and never reuses stale authority", () => {
     const fixture = createSkill({ isolation: true });
     const { loader, skill } = discover(fixture, {

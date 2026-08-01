@@ -48,6 +48,9 @@ import {
 } from "../lib/skill-loader.js";
 import { getElectronUserDataDir } from "../lib/paths.js";
 import { findProjectRoot } from "../lib/project-detector.js";
+import { loadConfig } from "../lib/config-manager.js";
+import { applyConfigLlmDefaults } from "../lib/llm-config-defaults.js";
+import { BUILT_IN_PROVIDERS } from "../lib/llm-providers.js";
 import {
   generateCliPacks,
   checkForUpdates,
@@ -70,7 +73,7 @@ function canRunOnPlatform(skill) {
   return skill.os.includes(process.platform);
 }
 
-const SKILL_TEMPLATE_MD = (name) => `---
+export const SKILL_TEMPLATE_MD = (name) => `---
 name: ${name}
 display-name: ${name}
 description: Custom skill — edit this description
@@ -79,11 +82,15 @@ category: custom
 tags: [custom]
 user-invocable: true
 handler: handler.js
+isolation: true
 ---
 
 # ${name}
 
-Describe what this skill does and how to use it.
+Describe the task this skill performs. These instructions are authoritative;
+the CLI executes them in an isolated child agent with a host-owned tool
+allow-list. The handler file is an identity marker and is never imported into
+the CLI process.
 
 ## Usage
 
@@ -92,29 +99,151 @@ chainlesschain skill run ${name} "your input"
 \`\`\`
 `;
 
-const SKILL_TEMPLATE_HANDLER = (name) => `/**
- * Handler for ${name} skill
+export const SKILL_TEMPLATE_HANDLER = (name) => `/**
+ * Execution identity marker for ${name}.
+ *
+ * ChainlessChain CLI deliberately never imports this module. Put executable
+ * behavior in SKILL.md instructions and use approved agent tools; a future
+ * restricted worker may consume this metadata without granting process-local
+ * authority.
  */
-
-const handler = {
-  async init(skill) {
-    // Optional initialization
-  },
-
-  async execute(task, context, skill) {
-    const input = task.input || task.params?.input || "";
-
-    // TODO: Implement skill logic
-    return {
-      success: true,
-      message: \`${name} executed successfully\`,
-      result: { input },
-    };
-  },
-};
-
-export default handler;
+export default Object.freeze({
+  skill: "${name}",
+  executionMode: "controlled-agent-tools",
+});
 `;
+
+export function createControlledSkillScaffold(name, targetDir, io = fs) {
+  io.mkdirSync(targetDir, { recursive: true });
+  io.writeFileSync(
+    path.join(targetDir, "SKILL.md"),
+    SKILL_TEMPLATE_MD(name),
+    "utf-8",
+  );
+  io.writeFileSync(
+    path.join(targetDir, "handler.js"),
+    SKILL_TEMPLATE_HANDLER(name),
+    "utf-8",
+  );
+  return { name, targetDir, isolation: true };
+}
+
+export function createCliSkillReauthorizer(options = {}) {
+  return async (request) => {
+    if (options.assumeYes === true) return { authorized: true };
+    const stdin = options.stdin || process.stdin;
+    const stdout = options.stdout || process.stdout;
+    if (stdin?.isTTY !== true || stdout?.isTTY !== true) return false;
+
+    const confirm =
+      options.confirm || (await import("@inquirer/prompts")).confirm;
+    const skillId = request?.skill?.id || "unknown";
+    const source = request?.skill?.source || "unknown";
+    const digest = String(request?.currentDigest || "").slice(0, 24);
+    const authorized = await confirm({
+      message:
+        `Authorize isolated skill "${skillId}" from ${source} ` +
+        `for this process (${digest || "digest unavailable"})?`,
+      default: false,
+    });
+    return { authorized: authorized === true };
+  };
+}
+
+export function resolveControlledSkillLlmOptions({
+  config = loadConfig(),
+  env = process.env,
+} = {}) {
+  const resolved = {};
+  // Match the existing command/cowork precedence: an explicit provider from
+  // the environment wins as a complete provider selection; otherwise the
+  // configured llm block supplies provider/model/baseUrl/apiKey.
+  if (!env.LLM_PROVIDER) {
+    applyConfigLlmDefaults(resolved, config?.llm || {});
+  }
+  const provider = resolved.provider || env.LLM_PROVIDER || "ollama";
+  const providerDefinition = BUILT_IN_PROVIDERS[provider];
+  return {
+    ...resolved,
+    provider,
+    model: resolved.model || env.LLM_MODEL || providerDefinition?.models?.[0],
+    baseUrl: resolved.baseUrl || providerDefinition?.baseUrl,
+  };
+}
+
+export async function runControlledSkill(options = {}) {
+  const {
+    name,
+    input = "",
+    cwd = process.cwd(),
+    loader,
+    executeTool = null,
+    llmOptions = null,
+  } = options;
+  if (
+    !loader ||
+    (typeof loader.getResolvedSkills !== "function" &&
+      typeof loader.loadAll !== "function")
+  ) {
+    throw new TypeError("runControlledSkill requires a CLISkillLoader");
+  }
+  const skills =
+    typeof loader.getResolvedSkills === "function"
+      ? loader.getResolvedSkills()
+      : loader.loadAll();
+  let skill = skills.find(
+    (candidate) => candidate.id === name || candidate.dirName === name,
+  );
+  if (!skill) {
+    return { error: `Skill not found: ${name}`, code: "CC_SKILL_NOT_FOUND" };
+  }
+  const executionContext = {
+    loadedBecause: "run_skill",
+    bodyIncluded: false,
+  };
+  if (typeof loader.materializeSkillForExecution === "function") {
+    skill = await loader.materializeSkillForExecution(skill, executionContext);
+  } else if (typeof loader.materializeSkill === "function") {
+    skill = loader.materializeSkill(skill, executionContext);
+  }
+  if (skill.isolation !== true) {
+    return {
+      error:
+        `Skill "${skill.id}" is not configured for controlled execution. ` +
+        "Add isolation: true before running it.",
+      code: "CC_SKILL_DIRECT_HANDLER_BLOCKED",
+    };
+  }
+  if (!canRunOnPlatform(skill)) {
+    return {
+      error: `Skill "${skill.id}" is not supported on ${process.platform}`,
+      code: "CC_SKILL_PLATFORM_UNSUPPORTED",
+    };
+  }
+  const dispatch =
+    executeTool || (await import("../runtime/agent-core.js")).executeTool;
+  const result = await dispatch(
+    "run_skill",
+    { skill_name: skill.id, input: String(input) },
+    {
+      cwd,
+      skillLoader: loader,
+      ...(llmOptions ? { llmOptions: { ...llmOptions } } : {}),
+    },
+  );
+  const nestedFailure = /^\s*Sub-agent failed:/i.test(
+    String(result?.summary || ""),
+  );
+  if (result?.error || nestedFailure) {
+    return {
+      ...result,
+      success: false,
+      code: result?.code || "CC_SKILL_CONTROLLED_RUN_FAILED",
+      error: result?.error || result.summary,
+    };
+  }
+  return result;
+}
 
 export function registerSkillCommand(program) {
   const skill = program
@@ -324,66 +453,42 @@ export function registerSkillCommand(program) {
     .argument("<name>", "Skill name")
     .argument("[input...]", "Input for the skill")
     .option("--json", "Output as JSON")
-    .action(async (name, _inputParts, options) => {
-      const skills = loader.loadAll();
-      let s = skills.find((sk) => sk.id === name || sk.dirName === name);
-
-      if (!s) {
-        logger.error(`Skill not found: ${name}`);
-        process.exit(1);
-      }
-
-      if (!s.hasHandler) {
-        logger.error(
-          `Skill "${s.id}" has no handler (documentation only). Cannot execute.`,
-        );
-        process.exit(1);
-      }
-
-      if (!canRunOnPlatform(s)) {
-        logger.error(`Skill "${s.id}" is not supported on ${process.platform}`);
-        process.exit(1);
-      }
-
+    .option("-y, --yes", "Authorize the current isolated skill digest")
+    .action(async (name, inputParts, options) => {
+      const runLoader = new CLISkillLoader({
+        reauthorizeSkill: createCliSkillReauthorizer({
+          assumeYes: options.yes === true,
+        }),
+      });
+      const llmOptions = resolveControlledSkillLlmOptions();
+      let result;
       try {
-        s = loader.materializeSkill(s, {
-          loadedBecause: "cli_skill_run",
-          bodyIncluded: false,
+        result = await runControlledSkill({
+          name,
+          input: inputParts.join(" "),
+          cwd: process.cwd(),
+          loader: runLoader,
+          llmOptions,
         });
       } catch (error) {
-        const failure = {
+        result = {
           success: false,
-          code: error.code || "CC_SKILL_MATERIALIZE_FAILED",
+          code: error.code || "CC_SKILL_CONTROLLED_RUN_FAILED",
           error: error.message,
         };
-        if (options.json) {
-          console.log(JSON.stringify(failure, null, 2));
-        } else {
-          logger.error(failure.error);
-        }
-        process.exit(1);
-        return;
       }
 
-      // Defense in depth: materializeSkill currently rejects this direct CLI
-      // transport before reaching here. Keep the command itself free of any
-      // dynamic handler import so an injected/custom loader cannot recreate the
-      // bypass. Handler-backed skills must run through the agent's controlled
-      // run_skill/isolation path, where every external call re-enters host tool
-      // policy. Until that route is available, fail closed.
-      const denial = {
-        success: false,
-        code: "CC_SKILL_DIRECT_HANDLER_BLOCKED",
-        error:
-          `Skill "${s.id}" cannot execute handler.js directly. ` +
-          "Run it through an isolated agent/tool route.",
-      };
       if (options.json) {
-        console.log(JSON.stringify(denial, null, 2));
+        console.log(JSON.stringify(result, null, 2));
+      } else if (result?.error) {
+        logger.error(result.error);
       } else {
-        logger.error(denial.error);
+        logger.success(result?.summary || "Skill completed");
+        if (Array.isArray(result?.toolsUsed) && result.toolsUsed.length > 0) {
+          logger.log(chalk.gray(`  tools: ${result.toolsUsed.join(", ")}`));
+        }
       }
-      process.exit(1);
+      if (result?.error) process.exitCode = 1;
     });
 
   // skill add — create a custom skill scaffold
@@ -418,17 +523,7 @@ export function registerSkillCommand(program) {
       }
 
       try {
-        fs.mkdirSync(targetDir, { recursive: true });
-        fs.writeFileSync(
-          path.join(targetDir, "SKILL.md"),
-          SKILL_TEMPLATE_MD(name),
-          "utf-8",
-        );
-        fs.writeFileSync(
-          path.join(targetDir, "handler.js"),
-          SKILL_TEMPLATE_HANDLER(name),
-          "utf-8",
-        );
+        createControlledSkillScaffold(name, targetDir);
 
         const scope = options.global ? "global" : "project";
         logger.success(`Created ${scope} skill: ${chalk.cyan(name)}`);
@@ -438,7 +533,9 @@ export function registerSkillCommand(program) {
         logger.log(
           `  ${chalk.gray("SKILL.md")}    — Skill metadata and documentation`,
         );
-        logger.log(`  ${chalk.gray("handler.js")}  — Skill execution logic`);
+        logger.log(
+          `  ${chalk.gray("handler.js")}  — controlled execution identity marker`,
+        );
         logger.log("");
         logger.log(
           `Edit these files, then run: ${chalk.cyan(`chainlesschain skill run ${name} "test input"`)}`,
