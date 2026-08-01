@@ -542,6 +542,28 @@ describe("executeTool — post-edit diagnostics wiring", () => {
     expect(mcp.calls[0].args.path).toBe(path.resolve(tmp, "out.js"));
   });
 
+  it("routes auxiliary diagnostics through the host-owned MCP client", async () => {
+    const hostMcp = fakeDiagMcp();
+    const rawCallTool = vi.fn(() => {
+      throw new Error("model dispatch client must not serve host diagnostics");
+    });
+
+    const res = await executeTool(
+      "write_file",
+      { path: "host.js", content: "const x = ;" },
+      {
+        cwd: tmp,
+        mcpClient: { callTool: rawCallTool },
+        mcpHostClient: hostMcp.mcpClient,
+        externalToolExecutors: hostMcp.externalToolExecutors,
+      },
+    );
+
+    expect(res.ideDiagnostics).toContain("Unexpected token");
+    expect(hostMcp.calls).toHaveLength(1);
+    expect(rawCallTool).not.toHaveBeenCalled();
+  });
+
   it("stays silent without an IDE bridge or on clean diagnostics", async () => {
     const clean = fakeDiagMcp({ diagnostics: [] });
     const res = await executeTool(

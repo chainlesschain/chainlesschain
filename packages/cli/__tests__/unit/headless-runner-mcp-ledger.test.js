@@ -160,6 +160,14 @@ describe("headless MCP ledger persistence and recovery", () => {
 
   it("fails recovery closed when the verified transcript reader rejects", async () => {
     const setup = harness([]);
+    const callTool = vi.fn(async () => ({ content: [] }));
+    setup.deps.resolveAgentMcp = async () => ({
+      mcpClient: { callTool, disconnectAll: vi.fn(async () => {}) },
+      connected: [],
+      extraToolDefinitions: [],
+      externalToolExecutors: {},
+      externalToolDescriptors: {},
+    });
     setup.deps.readVerifiedEvents = () => {
       const error = new Error("anchored transcript mismatch");
       error.code = "SESSION_TRANSCRIPT_UNVERIFIED";
@@ -190,6 +198,13 @@ describe("headless MCP ledger persistence and recovery", () => {
       effect: "read",
       blockMode: "all",
     });
+    await expect(
+      setup.captured.options.mcpHostClient.callTool("repo", "status", {}),
+    ).rejects.toMatchObject({
+      code: "CC_MCP_LEDGER_RECOVERY_BLOCKED",
+      blockMode: "all",
+    });
+    expect(callTool).not.toHaveBeenCalled();
     expect(setup.appendAuthorityEvent).not.toHaveBeenCalled();
   });
 

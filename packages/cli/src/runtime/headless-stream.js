@@ -108,7 +108,7 @@ import {
   formatMcpLedgerRecoveryNotice,
   loadMcpLedgerRecovery,
 } from "../lib/mcp-call-ledger-store.js";
-import { createRecoveryGuardedMcpCallLedger } from "../lib/mcp-ledger-recovery-admission.js";
+import { createMcpHostRecoveryRuntime } from "../lib/mcp-host-recovery-runtime.js";
 import { operationIdempotencyKey } from "../lib/idempotency.js";
 import { TurnBindingLog, createTurnBindingFeed } from "../lib/turn-binding.js";
 import { TURN_BINDING_EVENT } from "../lib/turn-binding-store.js";
@@ -1780,6 +1780,7 @@ async function runAgentHeadlessStreamInWorkspace(options = {}, deps = {}) {
   let mcpCallRecovery = null;
   let mcpLedgerRecovery = null;
   let mcpLedgerRecoveryError = null;
+  let mcpRecoveryVerified = !persist;
   if (persist) {
     try {
       if (store.sessionExists(sessionId)) {
@@ -1799,6 +1800,8 @@ async function runAgentHeadlessStreamInWorkspace(options = {}, deps = {}) {
             readVerifiedEvents: store.readVerifiedEvents,
           });
           mcpLedgerRecovery = recovery;
+          mcpLedgerRecoveryError = null;
+          mcpRecoveryVerified = true;
           const notice = formatMcpLedgerRecoveryNotice(recovery);
           if (notice) {
             mcpCallRecovery = {
@@ -1835,13 +1838,36 @@ async function runAgentHeadlessStreamInWorkspace(options = {}, deps = {}) {
         messages.push(...history);
         resumedMessages = history.length;
       } else {
+        // A positive non-existence check is the only no-history case that does
+        // not require a verified transcript read.
+        mcpRecoveryVerified = true;
+        mcpLedgerRecoveryError = null;
         store.startSession(sessionId, {
           title: "stream session",
           provider,
           model,
         });
       }
-    } catch {
+    } catch (error) {
+      if (!mcpRecoveryVerified && !mcpLedgerRecoveryError) {
+        const recoveryError =
+          error instanceof Error
+            ? error
+            : new Error(String(error || "MCP recovery was not verified"));
+        if (!recoveryError.code) {
+          recoveryError.code = "CC_MCP_LEDGER_EVENT_READ_FAILED";
+        }
+        mcpLedgerRecoveryError = recoveryError;
+        mcpCallRecovery = {
+          count: 0,
+          incidents: 1,
+          items: [],
+          notice:
+            "MCP recovery notice - durable MCP state could not be verified. " +
+            `Do not execute or retry MCP tools until the transcript is inspected (${recoveryError.code}).`,
+        };
+        messages.push({ role: "system", content: mcpCallRecovery.notice });
+      }
       // persistence is best-effort — never fail the stream over it
     }
   }
@@ -1993,6 +2019,17 @@ async function runAgentHeadlessStreamInWorkspace(options = {}, deps = {}) {
     }
   }
 
+  const mcpRecoveryRuntime = createMcpHostRecoveryRuntime({
+    bundle: mcp,
+    sessionId,
+    sink: mcpLedgerSink,
+    recovery: mcpLedgerRecovery,
+    recoveryError: mcpLedgerRecoveryError,
+  });
+  const hostMcp = mcp
+    ? { ...mcp, mcpClient: mcpRecoveryRuntime.client || mcp.mcpClient }
+    : null;
+
   // MCP servers may pause a tool flow with `elicitation/create`. Register the
   // handler only after MCP resolution so the client is initialized before use.
   // Reuse the structured Desktop/headless question channel, while preserving
@@ -2089,12 +2126,12 @@ async function runAgentHeadlessStreamInWorkspace(options = {}, deps = {}) {
   // workspace-root list to connected MCP servers when the stream session started
   // with extra roots. No --add-dir → workspaceRootDirs = [cwd] → no-op. Mirrors
   // the single-prompt runner + the REPL /add-dir path. Best-effort.
-  if (mcp?.mcpClient && additionalDirectories.length > 0) {
+  if (hostMcp?.mcpClient && additionalDirectories.length > 0) {
     try {
       const { notifyMcpRootsChanged, workspaceRootDirs } =
         await import("../repl/add-dir.js");
       notifyMcpRootsChanged(
-        [mcp.mcpClient],
+        [hostMcp.mcpClient],
         workspaceRootDirs(options.cwd || process.cwd(), additionalDirectories),
       );
     } catch {
@@ -2121,7 +2158,7 @@ async function runAgentHeadlessStreamInWorkspace(options = {}, deps = {}) {
     if (approvalGate && typeof approvalGate.setConfirmer === "function") {
       approvalGate.setConfirmer(
         makePermissionPromptConfirmer({
-          mcpClient: mcp.mcpClient,
+          mcpClient: hostMcp.mcpClient,
           server: ppt.server,
           tool: ppt.tool,
         }),
@@ -2210,16 +2247,11 @@ async function runAgentHeadlessStreamInWorkspace(options = {}, deps = {}) {
     prepareCall: goalPrepareCallFn,
     // --mcp-config wiring (tool defs + dispatch map + live client).
     mcpClient: mcp?.mcpClient || null,
+    mcpHostClient: mcpRecoveryRuntime.client || mcp?.mcpClient || null,
     extraToolDefinitions: mcp?.extraToolDefinitions || undefined,
     externalToolExecutors: mcp?.externalToolExecutors || undefined,
     externalToolDescriptors: mcp?.externalToolDescriptors || undefined,
-    mcpCallLedger: mcpLedgerSink
-      ? createRecoveryGuardedMcpCallLedger({
-          sink: mcpLedgerSink,
-          recovery: mcpLedgerRecovery,
-          recoveryError: mcpLedgerRecoveryError,
-        })
-      : null,
+    mcpCallLedger: mcpLedgerSink ? mcpRecoveryRuntime.ledger : null,
     chatFn: deps.chatFn || options.chatFn || undefined,
     signal: options.signal || undefined,
     // --include-partial-messages: stream live assistant-text deltas as
@@ -2840,11 +2872,11 @@ async function runAgentHeadlessStreamInWorkspace(options = {}, deps = {}) {
     try {
       const ideCtx = await (
         deps.buildIdePromptContext || buildIdePromptContext
-      )(mcp);
+      )(hostMcp);
       if (ideCtx) userContent += `\n\n${ideCtx}`;
       // Explicit @selection / @diagnostics mentions (Claude-Code parity);
       // scan the original user event text, append the expansion ephemerally.
-      const mentioned = await expandIdeMentions(parsed.text, mcp);
+      const mentioned = await expandIdeMentions(parsed.text, hostMcp);
       for (const w of mentioned.warnings) writeErr(`  @ide: ${w}\n`);
       if (mentioned.block) userContent += `\n\n${mentioned.block}`;
     } catch {

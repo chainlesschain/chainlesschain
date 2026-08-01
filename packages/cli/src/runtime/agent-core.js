@@ -1620,7 +1620,8 @@ async function tryIdeDiffApprovalForEdit(
 ) {
   if (!IDE_DIFF_EDIT_TOOLS.has(name)) return null;
   if (typeof context.permissionConfirm !== "function") return null; // interactive only
-  if (!context.mcpClient || !context.externalToolExecutors) return null;
+  const hostMcpClient = context.mcpHostClient || context.mcpClient;
+  if (!hostMcpClient || !context.externalToolExecutors) return null;
   try {
     const {
       ideDiffApprovalEnabled,
@@ -1630,7 +1631,7 @@ async function tryIdeDiffApprovalForEdit(
       summarizeUserAmendments,
     } = await import("../lib/ide-context.js");
     const mcpLike = {
-      mcpClient: context.mcpClient,
+      mcpClient: hostMcpClient,
       externalToolExecutors: context.externalToolExecutors,
     };
     if (!ideDiffApprovalEnabled() || !hasIdeOpenDiff(mcpLike)) return null;
@@ -2305,6 +2306,7 @@ export async function executeTool(name, args, context = {}) {
       externalToolDescriptors: context.externalToolDescriptors || null,
       externalToolExecutors: context.externalToolExecutors || null,
       mcpClient: context.mcpClient || null,
+      mcpHostClient: context.mcpHostClient || context.mcpClient || null,
       mcpCallLedger: context.mcpCallLedger || null,
       mcpConflictScheduler: context.mcpConflictScheduler || null,
       subtreeInstructionScope:
@@ -2508,7 +2510,7 @@ export async function executeTool(name, args, context = {}) {
     typeof toolResult === "object" &&
     !toolResult.error &&
     args?.path &&
-    context.mcpClient &&
+    (context.mcpHostClient || context.mcpClient) &&
     context.externalToolExecutors
   ) {
     try {
@@ -2516,7 +2518,7 @@ export async function executeTool(name, args, context = {}) {
         await import("../lib/ide-context.js");
       const diags = await collectIdeDiagnostics(
         {
-          mcpClient: context.mcpClient,
+          mcpClient: context.mcpHostClient || context.mcpClient,
           externalToolExecutors: context.externalToolExecutors,
         },
         path.resolve(cwd, args.path),
@@ -9071,6 +9073,7 @@ export async function* agentLoop(messages, options) {
     // contract's mcpServers allow-list). Otherwise consumed only at agentLoop.
     extraToolDefinitions: options.extraToolDefinitions || null,
     mcpClient: options.mcpClient || null,
+    mcpHostClient: options.mcpHostClient || options.mcpClient || null,
     mcpCallLedger,
     mcpConflictScheduler,
     // A loop-local identity prevents one session's lazy instruction commits

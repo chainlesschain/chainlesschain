@@ -68,7 +68,7 @@ import {
   formatMcpLedgerRecoveryNotice,
   loadMcpLedgerRecovery,
 } from "../lib/mcp-call-ledger-store.js";
-import { createRecoveryGuardedMcpCallLedger } from "../lib/mcp-ledger-recovery-admission.js";
+import { createMcpHostRecoveryRuntime } from "../lib/mcp-host-recovery-runtime.js";
 import { TurnBindingLog, createTurnBindingFeed } from "../lib/turn-binding.js";
 import { TURN_BINDING_EVENT } from "../lib/turn-binding-store.js";
 import { operationIdempotencyKey } from "../lib/idempotency.js";
@@ -1433,18 +1433,33 @@ async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
     }
   }
 
+  const mcpRecoveryRuntime = createMcpHostRecoveryRuntime({
+    bundle: mcp,
+    sessionId,
+    sink: persist
+      ? createSessionMcpLedgerSink(sessionId, {
+          appendEvent: store.appendAuthorityEvent,
+        })
+      : null,
+    recovery: resumeMcpRecovery,
+    recoveryError: resumeMcpRecoveryError,
+  });
+  const hostMcp = mcp
+    ? { ...mcp, mcpClient: mcpRecoveryRuntime.client || mcp.mcpClient }
+    : null;
+
   // Seed MCP roots for --add-dir (Claude-Code roots/list_changed parity): a
   // headless session started with extra workspace roots must advertise the FULL
   // root list to connected MCP servers, exactly like the REPL /add-dir path —
   // otherwise a server's roots/list only ever sees the cwd. Only meaningful when
   // extra roots exist (setRoots fires only when the list actually changes); no
   // --add-dir → workspaceRootDirs = [cwd] and this is a no-op. Best-effort.
-  if (mcp?.mcpClient && additionalDirectories.length > 0) {
+  if (hostMcp?.mcpClient && additionalDirectories.length > 0) {
     try {
       const { notifyMcpRootsChanged, workspaceRootDirs } =
         await import("../repl/add-dir.js");
       notifyMcpRootsChanged(
-        [mcp.mcpClient],
+        [hostMcp.mcpClient],
         workspaceRootDirs(options.cwd || process.cwd(), additionalDirectories),
       );
     } catch {
@@ -1462,7 +1477,7 @@ async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
       await import("../lib/ide-context.js");
     const last = messages[messages.length - 1];
     const ideCtx = await (deps.buildIdePromptContext || buildIdePromptContext)(
-      mcp,
+      hostMcp,
     );
     if (ideCtx) {
       last.content = appendTextToContent(last.content, ideCtx);
@@ -1471,7 +1486,7 @@ async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
     // (Claude-Code parity). Scan the ORIGINAL prompt so injected file-ref
     // blocks can't spoof a mention; append the expansion to the in-flight
     // message only (ephemeral, like the ambient block above).
-    const mentioned = await expandIdeMentions(prompt, mcp);
+    const mentioned = await expandIdeMentions(prompt, hostMcp);
     for (const w of mentioned.warnings) writeErr(`  @ide: ${w}\n`);
     if (mentioned.block) {
       last.content = appendTextToContent(last.content, mentioned.block);
@@ -1506,7 +1521,7 @@ async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
       approvalGate.setConfirmer(
         _bgPhase.wrapConfirmer(
           makePermissionPromptConfirmer({
-            mcpClient: mcp.mcpClient,
+            mcpClient: hostMcp.mcpClient,
             server: ppt.server,
             tool: ppt.tool,
             writeErr,
@@ -1742,21 +1757,14 @@ async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
       : {}),
     // --mcp-config wiring: tool defs for the LLM + dispatch map + live client.
     mcpClient: mcp?.mcpClient || null,
+    mcpHostClient: mcpRecoveryRuntime.client || mcp?.mcpClient || null,
     extraToolDefinitions: mcp?.extraToolDefinitions || undefined,
     externalToolExecutors: mcp?.externalToolExecutors || undefined,
     externalToolDescriptors: mcp?.externalToolDescriptors || undefined,
     // Persist every MCP started/settled record into this exact canonical
     // session. Unknown/write/destructive prewrite failure then blocks before
     // the external call; a settlement failure leaves a recoverable started row.
-    mcpCallLedger: persist
-      ? createRecoveryGuardedMcpCallLedger({
-          sink: createSessionMcpLedgerSink(sessionId, {
-            appendEvent: store.appendAuthorityEvent,
-          }),
-          recovery: resumeMcpRecovery,
-          recoveryError: resumeMcpRecoveryError,
-        })
-      : null,
+    mcpCallLedger: persist ? mcpRecoveryRuntime.ledger : null,
     // chatFn passthrough lets tests drive the loop deterministically.
     chatFn: deps.chatFn || options.chatFn || undefined,
     signal: options.signal || undefined,

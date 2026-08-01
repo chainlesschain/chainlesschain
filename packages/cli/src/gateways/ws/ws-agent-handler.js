@@ -33,7 +33,7 @@ import {
 } from "../../lib/hooks-v2-workspace-context.js";
 import { createWsApprovalGate } from "./ws-approval-gate.js";
 import { createSessionMcpLedgerSink } from "../../lib/mcp-call-ledger-store.js";
-import { createRecoveryGuardedMcpCallLedger } from "../../lib/mcp-ledger-recovery-admission.js";
+import { createMcpHostRecoveryRuntime } from "../../lib/mcp-host-recovery-runtime.js";
 
 export class WSAgentHandler {
   /**
@@ -60,6 +60,37 @@ export class WSAgentHandler {
     // injected): approvalGate stays null and loopOptions are byte-identical.
     this._approvalGate = approvalGate || null;
     this._approvalGateInit = Boolean(approvalGate);
+    this._mcpRecoveryRuntime = null;
+    this._mcpRecoveryRevision = null;
+    this._mcpRecoveryClient = null;
+  }
+
+  _ensureMcpRecoveryRuntime() {
+    const { session } = this;
+    const revision = Number(session.mcpLedgerRecoveryRevision || 0);
+    const rawClient = session.mcpClient || null;
+    if (!this._mcpRecoveryRuntime || this._mcpRecoveryClient !== rawClient) {
+      this._mcpRecoveryRuntime = createMcpHostRecoveryRuntime({
+        bundle: {
+          mcpClient: rawClient,
+          externalToolDescriptors: session.externalToolDescriptors || {},
+          externalToolExecutors: session.externalToolExecutors || {},
+        },
+        rawClient,
+        sessionId: session.id,
+        sink: createSessionMcpLedgerSink(session.id),
+        recovery: session.mcpLedgerRecovery || null,
+        controller: this._mcpRecoveryRuntime?.controller || null,
+      });
+      this._mcpRecoveryClient = rawClient;
+      this._mcpRecoveryRevision = revision;
+    } else if (this._mcpRecoveryRevision !== revision) {
+      this._mcpRecoveryRuntime.controller.replaceVerifiedRecovery(
+        session.mcpLedgerRecovery || { incidents: [], unsettled: [] },
+      );
+      this._mcpRecoveryRevision = revision;
+    }
+    return this._mcpRecoveryRuntime;
   }
 
   _recordSessionState(type, payload = {}) {
@@ -152,6 +183,7 @@ export class WSAgentHandler {
         interaction: this.interaction,
         db: this.db,
       });
+      const mcpRecoveryRuntime = this._ensureMcpRecoveryRuntime();
 
       // Run agent loop
       const loopOptions = {
@@ -170,13 +202,11 @@ export class WSAgentHandler {
         externalToolDescriptors: session.externalToolDescriptors || {},
         externalToolExecutors: session.externalToolExecutors || {},
         mcpClient: session.mcpClient || null,
+        mcpHostClient: mcpRecoveryRuntime.client || session.mcpClient || null,
         // MCP calls must use the same durable prewrite/settlement contract as
         // headless and REPL sessions. For unknown/write/destructive effects a
         // failed prewrite blocks the network call inside agent-core.
-        mcpCallLedger: createRecoveryGuardedMcpCallLedger({
-          sink: createSessionMcpLedgerSink(session.id),
-          recovery: session.mcpLedgerRecovery || null,
-        }),
+        mcpCallLedger: mcpRecoveryRuntime.ledger,
         shellPolicyOverrides: session.shellPolicyOverrides || null,
         slotFiller,
         interaction: this.interaction,

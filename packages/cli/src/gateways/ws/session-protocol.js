@@ -53,19 +53,34 @@ function buildSideEffectResumeRecovery(sessionId, loadLedger) {
 function buildMcpResumeRecovery(sessionId, loadRecovery, formatNotice) {
   try {
     const recovery = loadRecovery(sessionId);
-    const notice = formatNotice(recovery);
-    if (!notice) return null;
-    const unsettled = (recovery.unsettled || []).map((record) => ({
+    if (
+      !recovery ||
+      !Array.isArray(recovery.unsettled) ||
+      !Array.isArray(recovery.incidents)
+    ) {
+      const invalid = new TypeError(
+        "MCP recovery must contain unsettled and incidents arrays",
+      );
+      invalid.code = "CC_MCP_LEDGER_RECOVERY_INVALID";
+      throw invalid;
+    }
+    const unsettled = recovery.unsettled.map((record) => ({
       ledgerId: record.ledgerId,
       serverName: record.serverName,
       toolName: record.toolName,
       effect: record.effectContract?.effect || "unknown",
       status: "outcome_unknown",
     }));
-    const incidents = (recovery.incidents || []).map((incident) => ({
+    const incidents = recovery.incidents.map((incident) => ({
       code: incident.code,
       ledgerId: incident.ledgerId || null,
     }));
+    const requiresInspection = unsettled.length > 0 || incidents.length > 0;
+    const notice = requiresInspection
+      ? formatNotice(recovery) ||
+        "MCP recovery notice — durable MCP state requires inspection. Do NOT " +
+          "automatically retry prior MCP actions until recovery is adjudicated."
+      : null;
     return {
       count: unsettled.length + incidents.length,
       unsettled,
@@ -378,8 +393,15 @@ export async function handleSessionResume(server, id, ws, message) {
     session.id,
     server.resumeRecoveryDependencies || {},
   );
-  session.mcpLedgerRecovery = recovery?.mcp || null;
-  if (recovery && Array.isArray(session.messages)) {
+  session.mcpLedgerRecovery = recovery?.mcp || {
+    count: 0,
+    unsettled: [],
+    incidents: [],
+    notice: null,
+  };
+  session.mcpLedgerRecoveryRevision =
+    Number(session.mcpLedgerRecoveryRevision || 0) + 1;
+  if (recovery?.notice && Array.isArray(session.messages)) {
     session.messages.push({ role: "system", content: recovery.notice });
   }
 

@@ -205,6 +205,12 @@ describe("WS bridge side-effect resume", () => {
       effect: "read",
       blockMode: "all",
     });
+    await expect(
+      loopOptions.mcpHostClient.callTool("repo", "status", {}),
+    ).rejects.toMatchObject({
+      code: "CC_MCP_LEDGER_RECOVERY_BLOCKED",
+      blockMode: "all",
+    });
     expect(session.mcpClient.callTool).not.toHaveBeenCalled();
   });
 

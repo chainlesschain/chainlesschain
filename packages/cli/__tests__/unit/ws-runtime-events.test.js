@@ -149,6 +149,52 @@ describe("ws MCP recovery projection", () => {
     expect(recovery.notice).toContain("Do NOT automatically retry");
   });
 
+  it("retains MCP authority state when a custom formatter returns no notice", () => {
+    const recovery = buildResumeRecovery("sess-mcp", {
+      loadSideEffectLedger: () => {
+        throw new Error("no side-effect ledger");
+      },
+      loadMcpLedgerRecovery: () => ({
+        unsettled: [
+          {
+            ledgerId: "mcp-formatter-null",
+            serverName: "github",
+            toolName: "create_issue",
+            effectContract: { effect: "write" },
+          },
+        ],
+        incidents: [],
+      }),
+      formatMcpLedgerRecoveryNotice: () => null,
+    });
+
+    expect(recovery.mcp.unsettled).toHaveLength(1);
+    expect(recovery.notice).toContain("requires inspection");
+  });
+
+  it.each([
+    { incidents: {}, unsettled: [] },
+    { incidents: [], unsettled: null },
+    Promise.resolve({ incidents: [], unsettled: [] }),
+  ])(
+    "turns malformed MCP recovery into a fail-closed incident",
+    (malformed) => {
+      const recovery = buildResumeRecovery("sess-mcp", {
+        loadSideEffectLedger: () => {
+          throw new Error("no side-effect ledger");
+        },
+        loadMcpLedgerRecovery: () => malformed,
+      });
+
+      expect(recovery.mcp.incidents).toEqual([
+        {
+          code: "CC_MCP_LEDGER_RECOVERY_INVALID",
+          ledgerId: null,
+        },
+      ]);
+    },
+  );
+
   it("turns an unreadable MCP ledger into a fail-closed incident", () => {
     const error = Object.assign(new Error("corrupt transcript"), {
       code: "CC_MCP_LEDGER_EVENT_READ_FAILED",

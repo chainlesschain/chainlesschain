@@ -3,7 +3,7 @@
  * (session-wide spend cap) in the streaming-input headless runner.
  * agentLoop / bootstrap / stdin are injected.
  */
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { runAgentHeadlessStream } from "../../src/runtime/headless-stream.js";
 
 const baseDeps = (over = {}) => {
@@ -197,6 +197,65 @@ describe("runAgentHeadlessStream MCP recovery authority", () => {
       blockMode: "all",
     });
     expect(appendCalls).toBe(0);
+  });
+
+  it("fails closed when session discovery fails before verified recovery", async () => {
+    let capturedOptions = null;
+    const callTool = vi.fn(async () => ({ content: [] }));
+    const deps = baseDeps({
+      agentLoop: async function* (_messages, loopOptions) {
+        capturedOptions = loopOptions;
+        yield { type: "response-complete", content: "done" };
+        yield { type: "run-ended", reason: "complete" };
+      },
+      input: input({ text: "continue" }),
+      resolveAgentMcp: async () => ({
+        mcpClient: { callTool, disconnectAll: vi.fn(async () => {}) },
+        connected: [],
+        extraToolDefinitions: [],
+        externalToolExecutors: {},
+        externalToolDescriptors: {},
+      }),
+      sessionExists: () => {
+        throw new Error("session index unavailable");
+      },
+      appendUserMessage: () => {},
+      appendAssistantMessage: () => {},
+      appendAuthorityEvent: () => true,
+      loadSideEffectLedger: () => null,
+    });
+
+    await runAgentHeadlessStream(
+      { expandFileRefs: false, sessionId: "unknown-session" },
+      deps,
+    );
+
+    expect(parse(deps._lines)).toContainEqual(
+      expect.objectContaining({
+        type: "raw",
+        subtype: "mcp_call_recovery",
+        incidents: 1,
+      }),
+    );
+    await expect(
+      capturedOptions.mcpCallLedger.begin({
+        sessionId: "unknown-session",
+        toolName: "mcp__repo__read",
+        serverName: "repo",
+        input: {},
+        effectContract: { effect: "read" },
+      }),
+    ).rejects.toMatchObject({
+      code: "CC_MCP_LEDGER_RECOVERY_BLOCKED",
+      blockMode: "all",
+    });
+    await expect(
+      capturedOptions.mcpHostClient.callTool("repo", "status", {}),
+    ).rejects.toMatchObject({
+      code: "CC_MCP_LEDGER_RECOVERY_BLOCKED",
+      blockMode: "all",
+    });
+    expect(callTool).not.toHaveBeenCalled();
   });
 });
 
