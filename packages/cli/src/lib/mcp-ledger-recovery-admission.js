@@ -251,26 +251,30 @@ function wrapLedgerTicketForRecovery(ticket, controller) {
     return ticket;
   }
 
-  const methodCache = new Map();
-  return new Proxy(ticket, {
-    get(target, property) {
-      const value = Reflect.get(target, property, target);
-      if (
-        (property !== "settle" && property !== "settleCall") ||
-        typeof value !== "function"
-      ) {
-        return value;
-      }
-      const cached = methodCache.get(property);
-      if (cached?.source === value) return cached.wrapper;
-      const wrapper = (...args) =>
+  const descriptors = Object.getOwnPropertyDescriptors(ticket);
+  for (const property of ["settle", "settleCall"]) {
+    let method;
+    try {
+      method = Reflect.get(ticket, property, ticket);
+    } catch {
+      method = null;
+    }
+    if (typeof method !== "function") continue;
+    descriptors[property] = {
+      configurable: false,
+      enumerable: descriptors[property]?.enumerable ?? true,
+      writable: false,
+      value: (...args) =>
         settleWithRecoveryLatch(controller, () =>
-          Reflect.apply(value, target, args),
-        );
-      methodCache.set(property, { source: value, wrapper });
-      return wrapper;
-    },
-  });
+          Reflect.apply(method, ticket, args),
+        ),
+    };
+  }
+  // Ledger tickets are commonly frozen. Clone their descriptors so settlement
+  // can be wrapped without violating Proxy invariants for read-only methods.
+  return Object.freeze(
+    Object.create(Object.getPrototypeOf(ticket), descriptors),
+  );
 }
 
 /** Wrap an MCP ledger with a fail-closed recovery admission gate. */
