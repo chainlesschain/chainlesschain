@@ -76,6 +76,16 @@ describe("sub-agent-context", () => {
       expect(tools.length).toBeGreaterThan(0);
     });
 
+    it("treats an empty allowlist as deny-all", () => {
+      const ctx = SubAgentContext.create({
+        role: "test",
+        task: "task",
+        allowedTools: [],
+      });
+      expect(ctx.allowedTools).toEqual([]);
+      expect(ctx._getFilteredTools()).toEqual([]);
+    });
+
     it("filters tools based on whitelist", () => {
       const ctx = SubAgentContext.create({
         role: "test",

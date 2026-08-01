@@ -14,13 +14,140 @@
  * through the existing hook-runner (which applies the project-hook trust model).
  */
 
+import crypto from "node:crypto";
 import fs from "fs";
+import path from "node:path";
 import { discoverPlugins } from "./scopes.js";
 import { partitionByTrust, warnUntrustedOnce } from "./trust.js";
 import { componentCapabilityDenial } from "./capabilities.js";
 import { mergePluginSandboxPolicies } from "./sandbox-policy.js";
 
-export const _deps = { readFileSync: fs.readFileSync };
+export const _deps = {
+  discoverPlugins,
+  readFileSync: fs.readFileSync,
+};
+
+function sha256Content(content) {
+  return crypto.createHash("sha256").update(String(content)).digest("hex");
+}
+
+function pluginAuthorityError({
+  code,
+  error,
+  plugin = null,
+  sourceFile = null,
+  digest = null,
+  stage,
+}) {
+  return Object.freeze({
+    code,
+    kind: "plugin",
+    authorityBearing: true,
+    pluginId: plugin?.name || null,
+    pluginVersion: plugin?.version || null,
+    sourceFile:
+      typeof sourceFile === "string" && sourceFile
+        ? path.resolve(sourceFile)
+        : null,
+    digest: typeof digest === "string" && digest ? digest : null,
+    stage,
+    message: error?.message || String(error || code),
+  });
+}
+
+function normalizedAuthorityErrors(errors) {
+  return Object.freeze(
+    (Array.isArray(errors) ? errors : []).map((entry) =>
+      Object.freeze({ ...(entry || {}) }),
+    ),
+  );
+}
+
+function attachAuthorityErrors(target, errors) {
+  Object.defineProperty(target, "_authorityErrors", {
+    value: normalizedAuthorityErrors(errors),
+    enumerable: false,
+    writable: false,
+    configurable: false,
+  });
+  return target;
+}
+
+function attachPluginAuthoritySource(target, { sourceFile, digest }) {
+  Object.defineProperty(target, "authoritySource", {
+    value: Object.freeze({
+      kind: "plugin",
+      sourceFile: path.resolve(sourceFile),
+      digest,
+    }),
+    enumerable: true,
+    writable: false,
+    configurable: false,
+  });
+  return target;
+}
+
+function loadPluginHookSource(plugin, component, authorityErrors) {
+  const sourceFile = component.absPath
+    ? component.absPath
+    : component.inline
+      ? plugin.manifest?.manifestPath
+      : null;
+  if (!sourceFile) {
+    authorityErrors.push(
+      pluginAuthorityError({
+        code: "CC_PLUGIN_HOOK_READ_FAILED",
+        error: new Error("plugin hook source is missing"),
+        plugin,
+        sourceFile: plugin.manifest?.manifestPath || null,
+        stage: "read",
+      }),
+    );
+    return null;
+  }
+
+  let raw;
+  try {
+    raw = _deps.readFileSync(sourceFile, "utf8");
+  } catch (error) {
+    authorityErrors.push(
+      pluginAuthorityError({
+        code: "CC_PLUGIN_HOOK_READ_FAILED",
+        error,
+        plugin,
+        sourceFile,
+        stage: "read",
+      }),
+    );
+    return null;
+  }
+
+  const digest = sha256Content(raw);
+  try {
+    const parsed = JSON.parse(raw);
+    return {
+      parsed: component.inline
+        ? parsed && typeof parsed === "object"
+          ? parsed.hooks
+          : null
+        : parsed,
+      sourceFile,
+      digest,
+    };
+  } catch (error) {
+    authorityErrors.push(
+      pluginAuthorityError({
+        code: "CC_PLUGIN_HOOK_PARSE_FAILED",
+        error,
+        plugin,
+        sourceFile,
+        digest,
+        stage: "parse",
+      }),
+    );
+    return null;
+  }
+}
 
 // One-time stderr notice when a plugin's hooks are refused at the COMPONENT
 // level because the plugin opted into the capability model but did not declare
@@ -71,11 +198,20 @@ function normalizeHookMap(parsed) {
  * @returns {Record<string, Array>} event name → concatenated hook entries
  */
 export function collectPluginHooks(opts = {}) {
+  const merged = {};
+  const authorityErrors = [];
   let plugins = [];
   try {
-    plugins = discoverPlugins({ cwd: opts.cwd, scopes: opts.scopes });
-  } catch {
-    return {};
+    plugins = _deps.discoverPlugins({ cwd: opts.cwd, scopes: opts.scopes });
+  } catch (error) {
+    authorityErrors.push(
+      pluginAuthorityError({
+        code: "CC_PLUGIN_HOOK_DISCOVERY_FAILED",
+        error,
+        stage: "discover",
+      }),
+    );
+    return attachAuthorityErrors(merged, authorityErrors);
   }
   // A hook runs a shell command — gate it behind trust so a cloned repo's
   // project plugin can't run commands the moment the agent starts.
@@ -84,7 +220,6 @@ export function collectPluginHooks(opts = {}) {
     skipped.filter((p) => p.manifest?.components?.hooks).map((p) => p.name),
     "hooks",
   );
-  const merged = {};
   const denied = [];
   for (const p of trusted) {
     if (!p.manifest || p.manifest.ok !== true) continue;
@@ -98,75 +233,92 @@ export function collectPluginHooks(opts = {}) {
       denied.push({ name: p.name, reason: denial.reason });
       continue;
     }
-    let parsed;
-    if (h.absPath) {
-      try {
-        parsed = JSON.parse(_deps.readFileSync(h.absPath, "utf8"));
-      } catch {
-        continue;
-      }
-    } else if (h.inline) {
-      // Hooks declared inline in plugin.json — the normalized component keeps
-      // only counts, so re-read the raw manifest for the actual entries (same
-      // approach as the MCP collector). Without this, inline hooks never fire.
-      try {
-        const raw = JSON.parse(
-          _deps.readFileSync(p.manifest.manifestPath, "utf8"),
-        );
-        parsed = raw && typeof raw === "object" ? raw.hooks : null;
-      } catch {
-        continue;
-      }
-    } else {
-      continue;
-    }
-    const map = normalizeHookMap(parsed);
+    // Inline declarations are re-read from the manifest because discovery's
+    // normalized component retains only counts. Both source forms bind every
+    // executable hook to the exact bytes that authorized it.
+    const source = loadPluginHookSource(p, h, authorityErrors);
+    if (!source) continue;
+    const map = normalizeHookMap(source.parsed);
     for (const [event, entries] of Object.entries(map)) {
       if (!Array.isArray(entries)) continue;
-      const tagged = entries.map((group) => {
-        if (!group || typeof group !== "object" || !Array.isArray(group.hooks)) return group;
-        let groupSandboxPolicy;
-        try {
-          groupSandboxPolicy = mergePluginSandboxPolicies(
-            p.manifest.sandboxPolicy,
-            group.sandboxPolicy,
-          );
-        } catch {
-          return null;
-        }
-        const { sandboxPolicy: _rawGroupPolicy, ...groupConfig } = group;
-        return {
-          ...groupConfig,
-          hooks: group.hooks
-            .map((hook) => {
-              if (!hook || typeof hook !== "object") return hook;
-              let sandboxPolicy;
-              try {
-                sandboxPolicy = mergePluginSandboxPolicies(
-                  groupSandboxPolicy,
-                  hook.sandboxPolicy,
+      const tagged = entries
+        .map((group) => {
+          if (
+            !group ||
+            typeof group !== "object" ||
+            !Array.isArray(group.hooks)
+          ) {
+            return group;
+          }
+          let groupSandboxPolicy;
+          try {
+            groupSandboxPolicy = mergePluginSandboxPolicies(
+              p.manifest.sandboxPolicy,
+              group.sandboxPolicy,
+            );
+          } catch (error) {
+            authorityErrors.push(
+              pluginAuthorityError({
+                code: "CC_PLUGIN_HOOK_SANDBOX_INVALID",
+                error,
+                plugin: p,
+                sourceFile: source.sourceFile,
+                digest: source.digest,
+                stage: "sandbox-policy",
+              }),
+            );
+            return null;
+          }
+          const groupConfig = { ...group };
+          delete groupConfig.sandboxPolicy;
+          return {
+            ...groupConfig,
+            hooks: group.hooks
+              .map((hook) => {
+                if (!hook || typeof hook !== "object") return hook;
+                let sandboxPolicy;
+                try {
+                  sandboxPolicy = mergePluginSandboxPolicies(
+                    groupSandboxPolicy,
+                    hook.sandboxPolicy,
+                  );
+                } catch (error) {
+                  authorityErrors.push(
+                    pluginAuthorityError({
+                      code: "CC_PLUGIN_HOOK_SANDBOX_INVALID",
+                      error,
+                      plugin: p,
+                      sourceFile: source.sourceFile,
+                      digest: source.digest,
+                      stage: "sandbox-policy",
+                    }),
+                  );
+                  return null;
+                }
+                const hookConfig = { ...hook };
+                delete hookConfig.sandboxPolicy;
+                delete hookConfig.authoritySource;
+                return attachPluginAuthoritySource(
+                  {
+                    ...hookConfig,
+                    ...(sandboxPolicy ? { sandboxPolicy } : {}),
+                    origin: "plugin:hook",
+                    pluginId: p.name,
+                    pluginVersion: p.version || null,
+                    pluginSource: p.manifest?.manifestPath || null,
+                  },
+                  source,
                 );
-              } catch {
-                return null;
-              }
-              const { sandboxPolicy: _rawHookPolicy, ...hookConfig } = hook;
-              return {
-                ...hookConfig,
-                ...(sandboxPolicy ? { sandboxPolicy } : {}),
-                origin: "plugin:hook",
-                pluginId: p.name,
-                pluginVersion: p.version || null,
-                pluginSource: p.manifest?.manifestPath || null,
-              };
-            })
-            .filter(Boolean),
-        };
-      }).filter(Boolean);
+              })
+              .filter(Boolean),
+          };
+        })
+        .filter(Boolean);
       merged[event] = (merged[event] || []).concat(tagged);
     }
   }
   warnHookCapabilityDeniedOnce(denied);
-  return merged;
+  return attachAuthorityErrors(merged, authorityErrors);
 }
 
 /**
@@ -179,7 +331,10 @@ export function collectPluginHooks(opts = {}) {
 export function mergePluginHooks(settingsHooks, opts = {}) {
   const plugin = collectPluginHooks(opts);
   const events = Object.keys(plugin);
-  if (events.length === 0) return settingsHooks;
+  const pluginAuthorityErrors = plugin._authorityErrors || [];
+  if (events.length === 0 && pluginAuthorityErrors.length === 0) {
+    return settingsHooks;
+  }
   const out =
     settingsHooks && typeof settingsHooks === "object"
       ? { ...settingsHooks }
@@ -189,5 +344,8 @@ export function mergePluginHooks(settingsHooks, opts = {}) {
       plugin[event],
     );
   }
-  return out;
+  return attachAuthorityErrors(out, [
+    ...(settingsHooks?._authorityErrors || []),
+    ...pluginAuthorityErrors,
+  ]);
 }

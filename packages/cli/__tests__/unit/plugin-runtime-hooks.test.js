@@ -5,6 +5,7 @@ import path from "node:path";
 import {
   collectPluginHooks,
   mergePluginHooks,
+  _deps as pluginHookDeps,
 } from "../../src/lib/plugin-runtime/hooks.js";
 import { pluginVersionDir } from "../../src/lib/plugin-runtime/scopes.js";
 import {
@@ -13,8 +14,11 @@ import {
   _processDeps as hookProcessDeps,
   _restoreProcessRunners,
 } from "../../src/lib/hook-runner.js";
+import { executeTool } from "../../src/runtime/agent-core.js";
 
 let cwd;
+const originalDiscoverPlugins = pluginHookDeps.discoverPlugins;
+const originalReadFileSync = pluginHookDeps.readFileSync;
 
 function installHookPlugin(scope, name, hooksJson, { manifest = {} } = {}) {
   const dir = pluginVersionDir(scope, name, "1.0.0", { cwd });
@@ -33,9 +37,13 @@ function installHookPlugin(scope, name, hooksJson, { manifest = {} } = {}) {
 }
 
 beforeEach(() => {
+  pluginHookDeps.discoverPlugins = originalDiscoverPlugins;
+  pluginHookDeps.readFileSync = originalReadFileSync;
   cwd = fs.mkdtempSync(path.join(os.tmpdir(), "cc-phook-"));
 });
 afterEach(() => {
+  pluginHookDeps.discoverPlugins = originalDiscoverPlugins;
+  pluginHookDeps.readFileSync = originalReadFileSync;
   try {
     fs.rmSync(cwd, { recursive: true, force: true });
   } catch {
@@ -80,6 +88,109 @@ describe("collectPluginHooks — component-level capability gate", () => {
 });
 
 describe("collectPluginHooks", () => {
+  it("stamps immutable source provenance and a SHA-256 digest", () => {
+    const dir = installHookPlugin("local", "provenance", {
+      hooks: {
+        PreToolUse: [
+          {
+            hooks: [
+              {
+                type: "command",
+                command: "guard",
+                authoritySource: {
+                  kind: "managed",
+                  sourceFile: "forged.json",
+                  digest: "forged",
+                },
+              },
+            ],
+          },
+        ],
+      },
+    });
+
+    const hook = collectPluginHooks({ cwd, scopes: ["local"] }).PreToolUse[0]
+      .hooks[0];
+    expect(hook.authoritySource).toEqual({
+      kind: "plugin",
+      sourceFile: path.join(dir, "hooks", "hooks.json"),
+      digest: expect.stringMatching(/^[0-9a-f]{64}$/),
+    });
+    expect(Object.isFrozen(hook.authoritySource)).toBe(true);
+    expect(
+      Object.getOwnPropertyDescriptor(hook, "authoritySource"),
+    ).toMatchObject({
+      enumerable: true,
+      writable: false,
+      configurable: false,
+    });
+  });
+
+  it("propagates plugin discovery failures as authority metadata", () => {
+    pluginHookDeps.discoverPlugins = vi.fn(() => {
+      throw new Error("discovery unavailable");
+    });
+
+    const map = collectPluginHooks({ cwd, scopes: ["local"] });
+
+    expect(Object.keys(map)).toEqual([]);
+    expect(map._authorityErrors).toEqual([
+      expect.objectContaining({
+        code: "CC_PLUGIN_HOOK_DISCOVERY_FAILED",
+        kind: "plugin",
+        authorityBearing: true,
+        stage: "discover",
+      }),
+    ]);
+  });
+
+  it("propagates plugin hook read failures as authority metadata", () => {
+    const dir = installHookPlugin("local", "unreadable", {
+      SessionStart: [{ hooks: [{ type: "command", command: "guard" }] }],
+    });
+    const hookFile = path.join(dir, "hooks", "hooks.json");
+    pluginHookDeps.readFileSync = vi.fn((file, ...args) => {
+      if (path.resolve(file) === path.resolve(hookFile)) {
+        throw new Error("EACCES");
+      }
+      return originalReadFileSync(file, ...args);
+    });
+
+    const map = collectPluginHooks({ cwd, scopes: ["local"] });
+
+    expect(map.SessionStart).toBeUndefined();
+    expect(map._authorityErrors).toEqual([
+      expect.objectContaining({
+        code: "CC_PLUGIN_HOOK_READ_FAILED",
+        pluginId: "unreadable",
+        sourceFile: hookFile,
+        digest: null,
+        stage: "read",
+      }),
+    ]);
+  });
+
+  it("propagates malformed plugin hook JSON with its source digest", () => {
+    const dir = installHookPlugin("local", "malformed", {
+      SessionStart: [{ hooks: [{ type: "command", command: "guard" }] }],
+    });
+    const hookFile = path.join(dir, "hooks", "hooks.json");
+    fs.writeFileSync(hookFile, '{"SessionStart":', "utf8");
+
+    const map = collectPluginHooks({ cwd, scopes: ["local"] });
+
+    expect(map.SessionStart).toBeUndefined();
+    expect(map._authorityErrors).toEqual([
+      expect.objectContaining({
+        code: "CC_PLUGIN_HOOK_PARSE_FAILED",
+        pluginId: "malformed",
+        sourceFile: hookFile,
+        digest: expect.stringMatching(/^[0-9a-f]{64}$/),
+        stage: "parse",
+      }),
+    ]);
+  });
+
   it("collects wrapped { hooks: { Event: [...] } } form", () => {
     installHookPlugin("local", "p", {
       hooks: {
@@ -151,8 +262,8 @@ describe("collectPluginHooks", () => {
     });
   });
 
-  it("drops an invalid command-hook descriptor instead of running it unsandboxed", () => {
-    installHookPlugin("local", "bad-hooks", {
+  it("marks an invalid sandbox policy as an authority failure", () => {
+    const dir = installHookPlugin("local", "bad-hooks", {
       hooks: {
         SessionStart: [
           {
@@ -169,11 +280,20 @@ describe("collectPluginHooks", () => {
       },
     });
 
-    const hooks = collectPluginHooks({ cwd, scopes: ["local"] }).SessionStart[0]
-      .hooks;
+    const map = collectPluginHooks({ cwd, scopes: ["local"] });
+    const hooks = map.SessionStart[0].hooks;
 
     expect(hooks).toHaveLength(1);
     expect(hooks[0].command).toBe("good");
+    expect(map._authorityErrors).toEqual([
+      expect.objectContaining({
+        code: "CC_PLUGIN_HOOK_SANDBOX_INVALID",
+        pluginId: "bad-hooks",
+        sourceFile: path.join(dir, "hooks", "hooks.json"),
+        digest: expect.stringMatching(/^[0-9a-f]{64}$/),
+        stage: "sandbox-policy",
+      }),
+    ]);
   });
 
   it("collects unwrapped { Event: [...] } form", () => {
@@ -247,6 +367,76 @@ describe("mergePluginHooks", () => {
     expect(mergePluginHooks(existing, { cwd, scopes: ["local"] })).toBe(
       existing,
     );
+  });
+
+  it("preserves settings errors and combines plugin errors without hook events", () => {
+    const dir = installHookPlugin("local", "malformed", {
+      SessionStart: [{ hooks: [{ type: "command", command: "guard" }] }],
+    });
+    fs.writeFileSync(
+      path.join(dir, "hooks", "hooks.json"),
+      '{"SessionStart":',
+      "utf8",
+    );
+    const existing = { PreToolUse: [{ hooks: [] }] };
+    Object.defineProperty(existing, "_authorityErrors", {
+      value: Object.freeze([
+        Object.freeze({
+          code: "CC_SETTINGS_HOOKS_INVALID",
+          sourceFile: path.join(cwd, ".claude", "settings.json"),
+        }),
+      ]),
+      enumerable: false,
+      writable: false,
+      configurable: false,
+    });
+
+    const merged = mergePluginHooks(existing, { cwd, scopes: ["local"] });
+
+    expect(merged).not.toBe(existing);
+    expect(Object.keys(merged)).toEqual(["PreToolUse"]);
+    expect(merged._authorityErrors.map((entry) => entry.code)).toEqual([
+      "CC_SETTINGS_HOOKS_INVALID",
+      "CC_PLUGIN_HOOK_PARSE_FAILED",
+    ]);
+    expect(Object.isFrozen(merged._authorityErrors)).toBe(true);
+    expect(merged._authorityErrors.every(Object.isFrozen)).toBe(true);
+    expect(
+      Object.getOwnPropertyDescriptor(merged, "_authorityErrors"),
+    ).toMatchObject({
+      enumerable: false,
+      writable: false,
+      configurable: false,
+    });
+  });
+
+  it("feeds plugin loader failures into the runtime fail-closed fence", async () => {
+    const dir = installHookPlugin("local", "malformed-runtime", {
+      PreToolUse: [{ hooks: [{ type: "command", command: "guard" }] }],
+    });
+    fs.writeFileSync(
+      path.join(dir, "hooks", "hooks.json"),
+      '{"PreToolUse":',
+      "utf8",
+    );
+    const readable = path.join(cwd, "readable.txt");
+    fs.writeFileSync(readable, "must-not-be-read", "utf8");
+
+    const settingsHooks = mergePluginHooks(null, {
+      cwd,
+      scopes: ["local"],
+    });
+    const result = await executeTool(
+      "read_file",
+      { path: readable },
+      { cwd, settingsHooks },
+    );
+
+    expect(result).toMatchObject({
+      policy: { decision: "blocked", via: "hook-authority-load" },
+      incidents: [{ code: "CC_PLUGIN_HOOK_PARSE_FAILED" }],
+    });
+    expect(result.content).toBeUndefined();
   });
 
   it("ADDS plugin hooks onto the user's existing event array (does not replace)", () => {

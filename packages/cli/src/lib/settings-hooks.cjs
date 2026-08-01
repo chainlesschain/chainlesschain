@@ -78,17 +78,53 @@ function settingsFiles(cwd, explicitFile) {
   return list;
 }
 
-function readJson(file, onWarn) {
+function sha256Content(content) {
+  return crypto
+    .createHash("sha256")
+    .update(Buffer.isBuffer(content) ? content : String(content))
+    .digest("hex");
+}
+
+function readJsonRecord(
+  file,
+  onWarn,
+  { kind = "settings", errors = null } = {},
+) {
+  if (!_deps.fs.existsSync(file)) return null;
+  let raw = null;
   try {
-    if (!_deps.fs.existsSync(file)) return null;
-    const parsed = JSON.parse(_deps.fs.readFileSync(file, "utf-8"));
-    return parsed && typeof parsed === "object" ? parsed : null;
+    raw = _deps.fs.readFileSync(file, "utf-8");
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      throw new TypeError("settings root must be a JSON object");
+    }
+    return {
+      data: parsed,
+      digest: sha256Content(raw),
+      sourceFile: path.resolve(file),
+    };
   } catch (err) {
     const msg = `hooks: ignoring malformed ${file} (${err.message})`;
+    const record = Object.freeze({
+      code:
+        kind === "managed"
+          ? "CC_MANAGED_SETTINGS_INVALID"
+          : "CC_SETTINGS_HOOKS_INVALID",
+      kind,
+      sourceFile: path.resolve(file),
+      digest: raw == null ? null : sha256Content(raw),
+      authorityBearing: true,
+      message: msg,
+    });
+    if (Array.isArray(errors)) errors.push(record);
     if (typeof onWarn === "function") onWarn(msg);
     else process.stderr.write(msg + "\n");
-    return null; // fail-open
+    return null;
   }
+}
+
+function readJson(file, onWarn) {
+  return readJsonRecord(file, onWarn)?.data || null;
 }
 
 function managedSettingsFile(env = process.env) {
@@ -100,7 +136,31 @@ function managedSettingsFile(env = process.env) {
   return "/etc/chainlesschain/managed-settings.json";
 }
 
-function appendHookBlock(merged, data) {
+function attachAuthoritySource(target, source) {
+  if (!source) return target;
+  const authoritySource = Object.freeze({
+    kind:
+      source.kind === "managed"
+        ? "managed"
+        : source.kind === "plugin"
+          ? "plugin"
+          : "settings",
+    sourceFile:
+      typeof source.sourceFile === "string" && source.sourceFile
+        ? path.resolve(source.sourceFile)
+        : null,
+    digest: String(source.digest || ""),
+  });
+  Object.defineProperty(target, "authoritySource", {
+    value: authoritySource,
+    enumerable: true,
+    writable: false,
+    configurable: false,
+  });
+  return target;
+}
+
+function appendHookBlock(merged, data, authoritySource) {
   const block =
     data && data.hooks && typeof data.hooks === "object" ? data.hooks : null;
   if (!block) return false;
@@ -109,9 +169,9 @@ function appendHookBlock(merged, data) {
     if (!Array.isArray(groups)) continue;
     for (const g of groups) {
       if (!g || typeof g !== "object" || !Array.isArray(g.hooks)) continue;
-      const cmds = g.hooks.filter(
-        (h) => h && h.type === "command" && h.command,
-      );
+      const cmds = g.hooks
+        .filter((h) => h && h.type === "command" && h.command)
+        .map((h) => attachAuthoritySource({ ...h }, authoritySource));
       if (cmds.length === 0) continue;
       if (!merged[event]) merged[event] = [];
       merged[event].push({ matcher: g.matcher ?? null, hooks: cmds });
@@ -123,7 +183,7 @@ function appendHookBlock(merged, data) {
 
 /**
  * Load + concatenate the `hooks` blocks across the hierarchy.
- * @returns {{ hooks: Record<string, Array<{matcher:string|null, hooks:Array<{type,command,timeout}>}>>, files:string[] }}
+ * @returns {{ hooks: Record<string, Array<{matcher:string|null, hooks:Array<{type,command,timeout,authoritySource?}>}>>, files:string[], authorityErrors?:Array<object> }}
  */
 function loadHooks({
   cwd = process.cwd(),
@@ -133,15 +193,23 @@ function loadHooks({
 } = {}) {
   const merged = {};
   const files = [];
+  const authorityErrors = [];
   const managedFile = managedSettingsFile(env);
   let managed = null;
+  let managedRecord = null;
   if (_deps.fs.existsSync(managedFile)) {
-    managed = readJson(managedFile, onWarn);
-    if (!managed) {
+    const managedErrors = [];
+    managedRecord = readJsonRecord(managedFile, onWarn, {
+      kind: "managed",
+      errors: managedErrors,
+    });
+    managed = managedRecord?.data || null;
+    if (!managedRecord) {
       const error = new Error(
         `managed settings are unreadable or malformed: ${managedFile}`,
       );
       error.code = "CC_MANAGED_SETTINGS_INVALID";
+      if (managedErrors[0]) error.authorityError = managedErrors[0];
       throw error;
     }
   }
@@ -160,17 +228,64 @@ function loadHooks({
     const resolved = path.resolve(file);
     if (seenPaths.has(resolved)) continue;
     seenPaths.add(resolved);
-    const data = readJson(file, onWarn);
-    const contributed = appendHookBlock(merged, data);
+    const record = readJsonRecord(file, onWarn, {
+      kind: "settings",
+      errors: authorityErrors,
+    });
+    const contributed = record
+      ? appendHookBlock(merged, record.data, {
+          kind: "settings",
+          sourceFile: record.sourceFile,
+          digest: record.digest,
+        })
+      : false;
     if (contributed) files.push(file);
   }
-  if (managed && appendHookBlock(merged, managed)) files.push(managedFile);
+  if (
+    managedRecord &&
+    appendHookBlock(merged, managed, {
+      kind: "managed",
+      sourceFile: managedRecord.sourceFile,
+      digest: managedRecord.digest,
+    })
+  ) {
+    files.push(managedFile);
+  }
   const result = { hooks: merged, files };
+  if (authorityErrors.length > 0) {
+    result.authorityErrors = authorityErrors;
+  }
   if (managed) {
     result.managed = managed;
     result.managedFile = managedFile;
   }
   return result;
+}
+
+/**
+ * Preserve loader failures across plugin-hook merging without making them look
+ * like a hook event. The runtime consumes this non-enumerable, immutable host
+ * metadata and blocks tool execution rather than running a partial authority
+ * set. Returns an object even when there are no valid hooks but errors exist.
+ */
+function attachAuthorityErrors(hooks, errors) {
+  const target = hooks && typeof hooks === "object" ? hooks : {};
+  const normalized = Array.isArray(errors)
+    ? errors.map((entry) =>
+        Object.freeze({
+          sourceFile: entry?.sourceFile || entry?.file || null,
+          code: entry?.code || "CC_HOOK_AUTHORITY_INVALID",
+          message: entry?.message || null,
+        }),
+      )
+    : [];
+  Object.defineProperty(target, "_authorityErrors", {
+    value: Object.freeze(normalized),
+    enumerable: false,
+    writable: false,
+    configurable: false,
+  });
+  return target;
 }
 
 /**
@@ -224,7 +339,7 @@ function umbrellaFor(tool) {
  * `event` is stamped on each hook so a supervisor can key runs by (event+cmd).
  *
  * @returns {Array<{command:string, timeout?:number, event:string,
- *                  async:boolean, asyncRewake:boolean}>}
+ *                  async:boolean, asyncRewake:boolean, authoritySource?:object}>}
  */
 function collectHooks(hooksBlock, event, toolName) {
   const groups = (hooksBlock && hooksBlock[event]) || [];
@@ -245,8 +360,8 @@ function collectHooks(hooksBlock, event, toolName) {
   for (const g of groups) {
     const fn = compileMatcher(g.matcher);
     if (fn(umbrella) || (raw && fn(raw)) || (mcpServer && fn(mcpServer))) {
-      for (const h of g.hooks)
-        out.push({
+      for (const h of g.hooks) {
+        const collected = {
           command: h.command,
           timeout: h.timeout,
           event,
@@ -260,16 +375,16 @@ function collectHooks(hooksBlock, event, toolName) {
           ...(h.environmentAllowlist != null
             ? { environmentAllowlist: h.environmentAllowlist }
             : {}),
-          ...(h.envAllowlist != null
-            ? { envAllowlist: h.envAllowlist }
-            : {}),
+          ...(h.envAllowlist != null ? { envAllowlist: h.envAllowlist } : {}),
           ...(h.sandboxPolicy !== undefined
             ? { sandboxPolicy: h.sandboxPolicy }
             : {}),
           ...(h.requiredBoundaries !== undefined
             ? { requiredBoundaries: h.requiredBoundaries }
             : {}),
-        });
+        };
+        out.push(attachAuthoritySource(collected, h.authoritySource));
+      }
     }
   }
   return out;
@@ -413,6 +528,7 @@ function projectHookTrustNotice({ cwd = process.cwd(), settingsFile } = {}) {
 
 module.exports = {
   loadHooks,
+  attachAuthorityErrors,
   projectHookTrustNotice,
   collectHooks,
   compileMatcher,

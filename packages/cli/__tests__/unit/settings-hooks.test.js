@@ -9,7 +9,8 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import sh from "../../src/lib/settings-hooks.cjs";
 
-const { loadHooks, collectHooks, HOOK_EVENTS, _deps } = sh;
+const { loadHooks, attachAuthorityErrors, collectHooks, HOOK_EVENTS, _deps } =
+  sh;
 const isWin = process.platform === "win32";
 const HOME = isWin ? "C:\\home\\u" : "/home/u";
 const CWD = isWin ? "C:\\proj" : "/proj";
@@ -55,6 +56,42 @@ describe("loadHooks — hierarchy concatenation", () => {
     expect(contributed).toEqual([userFile, projFile, localFile]);
   });
 
+  it("stamps non-forgeable settings provenance and preserves it when collected", () => {
+    setFile(projFile, {
+      hooks: {
+        PreToolUse: [
+          {
+            matcher: "Bash",
+            hooks: [
+              {
+                type: "command",
+                command: "guard.sh",
+                authoritySource: {
+                  kind: "managed",
+                  sourceFile: "forged.json",
+                  digest: "forged",
+                },
+              },
+            ],
+          },
+        ],
+      },
+    });
+
+    const { hooks } = loadHooks({ cwd: CWD });
+    const loaded = hooks.PreToolUse[0].hooks[0];
+    expect(loaded.authoritySource).toEqual({
+      kind: "settings",
+      sourceFile: projFile,
+      digest: expect.stringMatching(/^[0-9a-f]{64}$/),
+    });
+    expect(Object.isFrozen(loaded.authoritySource)).toBe(true);
+
+    const collected = collectHooks(hooks, "PreToolUse", "run_shell")[0];
+    expect(collected.authoritySource).toEqual(loaded.authoritySource);
+    expect(Object.isFrozen(collected.authoritySource)).toBe(true);
+  });
+
   it("dedups the same physical file (explicit --settings aliasing an auto-loaded path)", () => {
     setFile(projFile, {
       hooks: { PreToolUse: [cmdGroup("Bash", "guard.sh")] },
@@ -88,9 +125,21 @@ describe("loadHooks — hierarchy concatenation", () => {
   it("fails open (skips) a malformed settings file", () => {
     files[projFile] = "{ not json";
     let warned = "";
-    const { hooks } = loadHooks({ cwd: CWD, onWarn: (m) => (warned = m) });
+    const { hooks, authorityErrors } = loadHooks({
+      cwd: CWD,
+      onWarn: (m) => (warned = m),
+    });
     expect(hooks).toEqual({});
     expect(warned).toMatch(/malformed/);
+    expect(authorityErrors).toEqual([
+      expect.objectContaining({
+        code: "CC_SETTINGS_HOOKS_INVALID",
+        kind: "settings",
+        sourceFile: projFile,
+        authorityBearing: true,
+        digest: expect.stringMatching(/^[0-9a-f]{64}$/),
+      }),
+    ]);
   });
 
   it("returns empty when no settings files exist", () => {
@@ -112,6 +161,15 @@ describe("loadHooks — managed policy", () => {
       "p.sh",
       "managed.sh",
     ]);
+    expect(result.hooks.PreToolUse[0].hooks[0].authoritySource).toMatchObject({
+      kind: "settings",
+      sourceFile: projFile,
+    });
+    expect(result.hooks.PreToolUse[1].hooks[0].authoritySource).toMatchObject({
+      kind: "managed",
+      sourceFile: managedFile,
+      digest: expect.stringMatching(/^[0-9a-f]{64}$/),
+    });
     expect(result.managedFile).toBe(managedFile);
   });
 
@@ -200,17 +258,17 @@ describe("collectHooks — matcher resolution", () => {
       ],
     };
 
-    expect(collectHooks(configured, "PreToolUse", "run_shell")[0]).toMatchObject(
-      {
-        command: "guard.sh",
-        shell: "powershell",
-        sandboxPolicy: {
-          profile: "strict",
-          requiredBoundaries: ["filesystem"],
-        },
-        requiredBoundaries: ["network"],
+    expect(
+      collectHooks(configured, "PreToolUse", "run_shell")[0],
+    ).toMatchObject({
+      command: "guard.sh",
+      shell: "powershell",
+      sandboxPolicy: {
+        profile: "strict",
+        requiredBoundaries: ["filesystem"],
       },
-    );
+      requiredBoundaries: ["network"],
+    });
   });
 
   it("pipe matcher matches either alternative (Edit|Write)", () => {
@@ -334,5 +392,27 @@ describe("Notification event", () => {
     expect(collectHooks(b, "Notification", "").map((h) => h.command)).toEqual([
       "notify.sh",
     ]);
+  });
+});
+
+describe("authority error runtime metadata", () => {
+  it("is immutable and non-enumerable so it cannot become a hook event", () => {
+    const hooks = { PreToolUse: [] };
+    const attached = attachAuthorityErrors(hooks, [
+      { sourceFile: projFile, code: "CC_HOOK_SETTINGS_INVALID" },
+    ]);
+
+    expect(attached).toBe(hooks);
+    expect(Object.keys(attached)).toEqual(["PreToolUse"]);
+    expect(attached._authorityErrors).toEqual([
+      { sourceFile: projFile, code: "CC_HOOK_SETTINGS_INVALID", message: null },
+    ]);
+    expect(
+      Object.getOwnPropertyDescriptor(attached, "_authorityErrors"),
+    ).toMatchObject({
+      enumerable: false,
+      writable: false,
+      configurable: false,
+    });
   });
 });

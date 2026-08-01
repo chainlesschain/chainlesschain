@@ -726,6 +726,130 @@ describe("runHooks — mergeStrict (strictest-wins, all hooks run)", () => {
   });
 });
 
+describe("runHooks — failClosed authority mode", () => {
+  it("keeps execution failures fail-open by default", () => {
+    stub({ status: null, error: new Error("ENOENT") });
+    const result = runHooks(
+      [{ command: "missing.sh" }],
+      {},
+      { mergeStrict: true },
+    );
+
+    expect(result).toMatchObject({ decision: "continue" });
+    expect(result.results[0]).toMatchObject({ nonBlockingError: true });
+  });
+
+  it("turns an invalid authority sandbox contract into a block", () => {
+    const result = runHooks(
+      [{ command: "guard.sh", sandboxPolicy: "invalid" }],
+      {},
+      { failClosed: true },
+    );
+
+    expect(result).toMatchObject({ decision: "block", hook: "guard.sh" });
+    expect(result.results[0]).toMatchObject({
+      decision: "block",
+      sandboxDenied: true,
+    });
+  });
+
+  it("accepts authorityBearing as the semantic fail-closed option", () => {
+    stub({ status: null, error: new Error("ENOENT") });
+    const result = runHooks(
+      [{ command: "guard.sh" }],
+      {},
+      { authorityBearing: true },
+    );
+
+    expect(result).toMatchObject({ decision: "block", hook: "guard.sh" });
+    expect(result.results[0]).toMatchObject({ authorityFailure: true });
+  });
+
+  it("turns an invalid parallel authority sandbox contract into a block", async () => {
+    const result = await runHooksParallel(
+      [{ command: "guard.sh", requiredBoundaries: "network" }],
+      {},
+      { failClosed: true },
+    );
+
+    expect(result).toMatchObject({ decision: "block", hook: "guard.sh" });
+    expect(result.results[0]).toMatchObject({
+      decision: "block",
+      sandboxDenied: true,
+    });
+  });
+
+  it.each([
+    ["spawn failure", { status: null, error: new Error("ENOENT") }],
+    ["timeout", { status: null, error: new Error("timed out") }],
+    ["non-contract exit", { status: 17, stderr: "unexpected exit" }],
+    ["malformed decision", { status: 0, stdout: '{"decision":"block"' }],
+    ["unsupported decision", { status: 0, stdout: '{"decision":"maybe"}' }],
+  ])("blocks an authority hook on %s", (_label, outcome) => {
+    stub(outcome);
+    const result = runHooks(
+      [{ command: "guard.sh" }],
+      {},
+      { failClosed: true },
+    );
+
+    expect(result).toMatchObject({
+      decision: "block",
+      hook: "guard.sh",
+    });
+    expect(result.reason).toMatch(/authority-bearing hook failed closed/i);
+    expect(result.results[0]).toMatchObject({
+      decision: "block",
+      authorityFailure: true,
+      originalDecision: "continue",
+    });
+  });
+
+  it("implies strict merge so an earlier ask cannot mask a later failure", () => {
+    const outcomes = [
+      { status: 0, stdout: '{"decision":"ask"}' },
+      { status: null, error: new Error("ENOENT") },
+    ];
+    let index = 0;
+    _deps.spawnSync = vi.fn(() => ({
+      stdout: "",
+      stderr: "",
+      ...outcomes[index++],
+    }));
+
+    const result = runHooks(
+      [{ command: "asker.sh" }, { command: "missing.sh" }],
+      {},
+      { failClosed: true },
+    );
+
+    expect(result.decision).toBe("block");
+    expect(result.hook).toBe("missing.sh");
+    expect(_deps.spawnSync).toHaveBeenCalledTimes(2);
+  });
+
+  it("blocks when the command circuit breaker is open", () => {
+    stub({ status: 1, stderr: "flaky" });
+    for (let i = 0; i < 3; i++) {
+      runHooks([{ command: "flaky.sh" }], {}, { failClosed: true });
+    }
+    const spawnsBefore = calls.length;
+
+    const result = runHooks(
+      [{ command: "flaky.sh" }],
+      {},
+      { failClosed: true },
+    );
+
+    expect(result.decision).toBe("block");
+    expect(result.results[0]).toMatchObject({
+      breakerOpen: true,
+      authorityFailure: true,
+    });
+    expect(calls).toHaveLength(spawnsBefore);
+  });
+});
+
 describe("hook circuit breaker (gap 2026-07-11: consecutive-failure trip)", () => {
   it("trips after 3 consecutive non-blocking failures and skips within cooldown", () => {
     stub({ status: 1, stderr: "flaky" });

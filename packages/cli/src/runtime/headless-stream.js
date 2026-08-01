@@ -1067,12 +1067,19 @@ async function runAgentHeadlessStreamInWorkspace(options = {}, deps = {}) {
   let settingsHooks = options.settingsHooks || null;
   if (!settingsHooks) {
     try {
-      const { loadHooks, projectHookTrustNotice } =
+      const { loadHooks, projectHookTrustNotice, attachAuthorityErrors } =
         await import("../lib/settings-hooks.cjs");
       const loaded = loadHooks({ cwd, settingsFile: options.settingsFile });
+      const { mergePluginHooks } =
+        await import("../lib/plugin-runtime/hooks.js");
+      const effectiveHooks = mergePluginHooks(
+        attachAuthorityErrors(loaded.hooks, loaded.authorityErrors),
+        { cwd },
+      );
       settingsHooks =
-        loaded.hooks && Object.keys(loaded.hooks).length > 0
-          ? loaded.hooks
+        Object.keys(effectiveHooks).length > 0 ||
+        effectiveHooks._authorityErrors.length > 0
+          ? effectiveHooks
           : null;
       // First-run trust notice for an untrusted/cloned repo's shell-running
       // hooks (Claude-Code 2.1.195 parity). stderr keeps the NDJSON stdout clean.
@@ -1085,8 +1092,17 @@ async function runAgentHeadlessStreamInWorkspace(options = {}, deps = {}) {
       } catch {
         /* trust notice is best-effort */
       }
-    } catch {
-      settingsHooks = null; // fail-open
+    } catch (error) {
+      settingsHooks = {};
+      Object.defineProperty(settingsHooks, "_authorityErrors", {
+        value: Object.freeze([
+          Object.freeze({
+            sourceFile: null,
+            code: error?.code || "CC_HOOK_AUTHORITY_LOAD_FAILED",
+          }),
+        ]),
+        enumerable: false,
+      });
     }
   }
 

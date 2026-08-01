@@ -4,7 +4,7 @@
  * Verifies the seam added in Phase 2:
  *   deny  → hard block before any execution;
  *   ask   → confirmer decides (false blocks, true proceeds);
- *   allow → short-circuits the plan-mode block;
+ *   allow → never widens the plan-mode capability ceiling;
  *   allow → still respects the hard shell-policy denylist (never re-enables an
  *           unsafe command);
  *   no rules → behaviour unchanged (read proceeds, plan-mode still blocks).
@@ -89,7 +89,7 @@ describe("ask", () => {
 });
 
 describe("allow", () => {
-  it("short-circuits the plan-mode block", async () => {
+  it("does not widen the plan-mode capability ceiling", async () => {
     const out = path.join(tmp, "written.txt");
     // Baseline: plan mode blocks write_file with no rule.
     const blocked = await executeTool(
@@ -100,8 +100,8 @@ describe("allow", () => {
     expect(blocked.error).toMatch(/\[Plan Mode\]/);
     expect(fs.existsSync(out)).toBe(false);
 
-    // With an allow rule the same call goes through.
-    const ok = await executeTool(
+    // An allow rule removes prompts outside Plan Mode, but cannot add write.
+    const stillBlocked = await executeTool(
       "write_file",
       { path: out, content: "x" },
       {
@@ -110,8 +110,12 @@ describe("allow", () => {
         permissionRules: { allow: ["Write"] },
       },
     );
-    expect(ok.error).toBeUndefined();
-    expect(fs.readFileSync(out, "utf-8")).toBe("x");
+    expect(stillBlocked.error).toMatch(/\[Plan Mode\]/);
+    expect(stillBlocked.policy).toMatchObject({
+      decision: "blocked",
+      via: "plan-mode",
+    });
+    expect(fs.existsSync(out)).toBe(false);
   });
 
   it("never re-enables a hard shell-policy denial", async () => {
@@ -142,7 +146,9 @@ describe("no rules (default behaviour unchanged)", () => {
 });
 
 describe("host policy vs settings precedence (most-restrictive-wins)", () => {
-  const hostDeny = { tools: { read_file: { allowed: false, reason: "not synced" } } };
+  const hostDeny = {
+    tools: { read_file: { allowed: false, reason: "not synced" } },
+  };
   const hostAllow = { tools: { read_file: { allowed: true } } };
 
   it("a settings allow does NOT relax a host deny", async () => {

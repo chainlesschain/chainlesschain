@@ -419,16 +419,20 @@ async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
   let settingsHooks = options.settingsHooks || null;
   if (!settingsHooks) {
     try {
-      const { loadHooks, projectHookTrustNotice } =
+      const { loadHooks, projectHookTrustNotice, attachAuthorityErrors } =
         await import("../lib/settings-hooks.cjs");
       const loaded = loadHooks({ cwd, settingsFile: options.settingsFile });
       // Fold in installed plugins' hooks/hooks.json (Phase 3.3c) — plugins ADD
       // to the user's settings hooks, never replace them.
       const { mergePluginHooks } =
         await import("../lib/plugin-runtime/hooks.js");
-      const effectiveHooks = mergePluginHooks(loaded.hooks, { cwd });
+      const effectiveHooks = mergePluginHooks(
+        attachAuthorityErrors(loaded.hooks, loaded.authorityErrors),
+        { cwd },
+      );
       settingsHooks =
-        effectiveHooks && Object.keys(effectiveHooks).length > 0
+        Object.keys(effectiveHooks).length > 0 ||
+        effectiveHooks._authorityErrors.length > 0
           ? effectiveHooks
           : null;
       // First-run trust notice for an untrusted/cloned repo's shell-running
@@ -442,8 +446,17 @@ async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
       } catch {
         /* trust notice is best-effort */
       }
-    } catch {
-      settingsHooks = null; // fail-open
+    } catch (error) {
+      settingsHooks = {};
+      Object.defineProperty(settingsHooks, "_authorityErrors", {
+        value: Object.freeze([
+          Object.freeze({
+            sourceFile: null,
+            code: error?.code || "CC_HOOK_AUTHORITY_LOAD_FAILED",
+          }),
+        ]),
+        enumerable: false,
+      });
     }
   }
 

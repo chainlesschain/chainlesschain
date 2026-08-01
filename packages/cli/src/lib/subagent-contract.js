@@ -72,6 +72,100 @@ export const SUBAGENT_EFFORT_LEVELS = Object.freeze([
 ]);
 const EFFORT_SYNONYMS = Object.freeze({ med: "medium", max: "xhigh" });
 
+function contractValidationError(field, message) {
+  const error = new Error(
+    `invalid subagent contract field "${field}": ${message}`,
+  );
+  error.code = "CC_SUBAGENT_CONTRACT_INVALID";
+  return error;
+}
+
+/**
+ * Strict validation for authority-bearing declarations at the spawn boundary.
+ * The legacy normalizer remains permissive for read/display callers, but a
+ * malformed explicit field must never silently become "unspecified" and widen
+ * a live child session.
+ */
+export function assertValidSubagentContract(raw = {}) {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    throw contractValidationError("contract", "expected an object");
+  }
+  if (
+    raw.permissionMode != null &&
+    !SUBAGENT_PERMISSION_MODES.includes(raw.permissionMode)
+  ) {
+    throw contractValidationError(
+      "permissionMode",
+      `expected one of ${SUBAGENT_PERMISSION_MODES.join(", ")}`,
+    );
+  }
+  if (raw.context != null && !SUBAGENT_CONTEXT_MODES.includes(raw.context)) {
+    throw contractValidationError(
+      "context",
+      `expected one of ${SUBAGENT_CONTEXT_MODES.join(", ")}`,
+    );
+  }
+  for (const field of ["skills", "mcpServers", "hooks"]) {
+    const value = raw[field];
+    if (value == null) continue;
+    if (
+      typeof value !== "string" &&
+      !(
+        Array.isArray(value) &&
+        value.every((entry) => typeof entry === "string")
+      )
+    ) {
+      throw contractValidationError(field, "expected a string or string array");
+    }
+  }
+  for (const field of ["tools", "disallowedTools"]) {
+    const value = raw[field];
+    if (
+      value != null &&
+      !(
+        Array.isArray(value) &&
+        value.every((entry) => typeof entry === "string")
+      )
+    ) {
+      throw contractValidationError(field, "expected a string array");
+    }
+  }
+  for (const field of ["memory", "background"]) {
+    if (raw[field] != null && toBool(raw[field]) == null) {
+      throw contractValidationError(field, "expected a boolean value");
+    }
+  }
+  if (raw.effort != null) {
+    const effort = String(raw.effort).trim().toLowerCase();
+    const canonical = EFFORT_SYNONYMS[effort] || effort;
+    if (!SUBAGENT_EFFORT_LEVELS.includes(canonical)) {
+      throw contractValidationError(
+        "effort",
+        `expected one of ${SUBAGENT_EFFORT_LEVELS.join(", ")}`,
+      );
+    }
+  }
+  for (const field of ["maxDepth", "maxChildren"]) {
+    if (raw[field] != null && toPosInt(raw[field]) == null) {
+      throw contractValidationError(field, "expected a positive integer");
+    }
+  }
+  if (raw.budget != null) {
+    if (typeof raw.budget !== "object" || Array.isArray(raw.budget)) {
+      throw contractValidationError("budget", "expected an object");
+    }
+    for (const field of ["tokens", "cost", "costUsd", "time", "timeMs"]) {
+      if (raw.budget[field] != null && toPosNum(raw.budget[field]) == null) {
+        throw contractValidationError(
+          `budget.${field}`,
+          "expected a positive number",
+        );
+      }
+    }
+  }
+  return raw;
+}
+
 // ─── small pure helpers ─────────────────────────────────────────────────────
 
 function toBool(v) {

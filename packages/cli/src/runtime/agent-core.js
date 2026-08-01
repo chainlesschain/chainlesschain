@@ -119,8 +119,7 @@ const { isDangerousGitCommand, isReadOnlyGitCommand, normalizeGitCommand } =
 const { evaluateShellCommandPolicy } = sharedShellPolicy;
 const { evaluatePermissionRules } = sharedPermissionRules;
 const { collectHooks, umbrellaFor } = sharedSettingsHooks;
-const { runHooks: runCommandHooks, runHooksParallel: runCommandHooksParallel } =
-  sharedHookRunner;
+const { runHooks: runCommandHooks } = sharedHookRunner;
 const {
   runObserveHooks,
   aggregateContext,
@@ -636,19 +635,6 @@ function _resolveShellTimeout(raw) {
 }
 
 /**
- * Opt-in: run ALL matching decision hooks and take the STRICTEST outcome
- * (block > ask > allow > continue) instead of the default in-order first-wins
- * short-circuit — so an earlier hook's `ask` can no longer mask a later hook's
- * `block`. Default off = byte-identical short-circuit behavior. Flipping the
- * default is a product decision (all matching hooks then run every time, which
- * changes hook-execution volume + side effects).
- */
-function _hookStrictMergeEnabled() {
-  const v = process.env.CC_HOOK_STRICT_MERGE;
-  return v === "1" || v === "true";
-}
-
-/**
  * Run settings.json `PreToolUse` hooks (decision-capable). DB hooks are handled
  * separately + stay observe-only. A `block` decision stops the tool; an `ask`
  * routes to the confirmer (headless without one falls closed). spawnSync is
@@ -677,18 +663,18 @@ async function runSettingsPreToolUseHooks(name, args, context, cwd) {
       parentId: context.hookParentId || null,
     },
   );
-  // Strict merge (opt-in) runs ALL matching hooks and takes the strictest
-  // decision. This path is async so the hooks run in TRUE PARALLEL
-  // (runHooksParallel) — wall-clock is the slowest hook, not their sum — while
-  // still yielding the same strictest outcome. Default path is the sync in-order
-  // short-circuit runner (byte-identical).
-  const outcome = _hookStrictMergeEnabled()
-    ? await runCommandHooksParallel(matched, payload, {
-        cwd,
-        event: "PreToolUse",
-        broker,
-      })
-    : runCommandHooks(matched, payload, { cwd, event: "PreToolUse", broker });
+  // Run every matching authority-bearing hook in configured order, then merge
+  // the outcomes with block > ask > allow > continue. Sequential execution
+  // preserves the documented hook side-effect order while preventing an early
+  // ask/allow from masking a later block. Environment variables cannot weaken
+  // this permission boundary.
+  const outcome = runCommandHooks(matched, payload, {
+    cwd,
+    event: "PreToolUse",
+    mergeStrict: true,
+    failClosed: true,
+    broker,
+  });
   if (outcome.decision === "block") {
     return { blocked: true, reason: outcome.reason, hook: outcome.hook };
   }
@@ -742,6 +728,10 @@ async function runSettingsPreToolUseHooks(name, args, context, cwd) {
  * @returns {{decision:("allow"|"deny"|null), reason?:string, hook?:string}}
  */
 function runSettingsPermissionRequestHooks(name, args, context, cwd, reason) {
+  // Command hooks are arbitrary processes. Until a host-enforced read-only
+  // hook sandbox exists, no command hook may execute inside the planning-only
+  // capability fence (even when the underlying tool is read-only).
+  if (context.planReadOnlyFenceActive === true) return { decision: null };
   const matched = collectHooks(
     context.settingsHooks,
     "PermissionRequest",
@@ -768,7 +758,8 @@ function runSettingsPermissionRequestHooks(name, args, context, cwd, reason) {
   const outcome = runCommandHooks(matched, payload, {
     cwd,
     event: "PermissionRequest",
-    mergeStrict: _hookStrictMergeEnabled(),
+    mergeStrict: true,
+    failClosed: true,
     broker,
   });
   // Precedence: deny > ask > allow > defer. The runner normalizes deny/block →
@@ -895,16 +886,20 @@ export function getAgentToolDefinitions({
   names = null,
   disabledTools = [],
   extraTools = [],
+  exactToolNames = false,
 } = {}) {
-  const allowedNames =
-    Array.isArray(names) && names.length > 0 ? new Set(names) : null;
-  const disabledNames = new Set(
-    Array.isArray(disabledTools) ? disabledTools : [],
-  );
+  // `names` historically selects a built-in tool preset while independently
+  // contributed host/MCP tools remain visible. Preserve that top-level behavior
+  // for a non-empty preset, but let authority-bearing child contexts opt into an
+  // exact all-tool ceiling. An explicit empty array is always deny-all.
+  const allowedNames = Array.isArray(names) ? new Set(names) : null;
   const extraToolNames = new Set(
     (Array.isArray(extraTools) ? extraTools : [])
       .map((tool) => tool?.function?.name)
       .filter(Boolean),
+  );
+  const disabledNames = new Set(
+    Array.isArray(disabledTools) ? disabledTools : [],
   );
   const allTools = mergeToolDefinitions(
     AGENT_TOOLS,
@@ -914,7 +909,11 @@ export function getAgentToolDefinitions({
   return allTools.filter((tool) => {
     const name = tool?.function?.name;
     if (!name) return false;
-    if (allowedNames && !allowedNames.has(name) && !extraToolNames.has(name)) {
+    const unlistedExtraAllowed =
+      allowedNames?.size > 0 &&
+      exactToolNames !== true &&
+      extraToolNames.has(name);
+    if (allowedNames && !allowedNames.has(name) && !unlistedExtraAllowed) {
       return false;
     }
     if (disabledNames.has(name)) return false;
@@ -1722,6 +1721,19 @@ export async function executeTool(name, args, context = {}) {
   const skillLoader = context.skillLoader || _defaultSkillLoader;
   const cwd = context.cwd || process.cwd();
   const planManager = context.planManager || getPlanModeManager();
+  // The provider receives a filtered tool schema, but an untrusted/buggy model
+  // can still emit an arbitrary tool_call. Enforce the exact same immutable
+  // capability set again at execution time; null/absent preserves direct-call
+  // compatibility, while [] is an explicit deny-all ceiling.
+  if (
+    Array.isArray(context.effectiveAllowedToolNames) &&
+    !context.effectiveAllowedToolNames.includes(name)
+  ) {
+    return {
+      error: `[Tool Capability] Tool "${name}" is outside this run's effective tool set.`,
+      policy: { decision: "blocked", via: "effective-tool-set" },
+    };
+  }
   const localToolDescriptor =
     context.externalToolDescriptors &&
     typeof context.externalToolDescriptors === "object"
@@ -1789,11 +1801,60 @@ export async function executeTool(name, args, context = {}) {
   const workspacePathDenial = guardAgentFileToolPaths(name, args, context, cwd);
   if (workspacePathDenial) return workspacePathDenial;
 
+  // A malformed settings source may have hidden a deny/ask hook. Runtime
+  // loaders attach these parse failures as host-owned metadata; executing with
+  // a partial authority set would be strictly wider than the configured path.
+  const hookAuthorityErrors = context.settingsHooks?._authorityErrors;
+  if (Array.isArray(hookAuthorityErrors) && hookAuthorityErrors.length > 0) {
+    return {
+      error:
+        "[Hook Authority] Tool execution blocked because one or more hook policy sources could not be parsed.",
+      policy: { decision: "blocked", via: "hook-authority-load" },
+      incidents: hookAuthorityErrors.map((entry) => ({
+        sourceFile: entry?.sourceFile || entry?.file || null,
+        code: entry?.code || "CC_HOOK_AUTHORITY_INVALID",
+      })),
+    };
+  }
+
   const toolContext = createToolContext({
     toolName: runtimeDescriptor?.name || name,
     cwd,
     metadata: { descriptor: runtimeDescriptor },
   });
+  const observeHookIncidents = [];
+  const recordObserveHookIncident = (event, source, error) => {
+    const incident = Object.freeze({
+      code: "CC_HOOK_OBSERVER_DEGRADED",
+      event,
+      source,
+      degraded: true,
+      reason: String(error?.message || error || "hook observer failed")
+        .replace(/\s+/g, " ")
+        .slice(0, 240),
+    });
+    observeHookIncidents.push(incident);
+    try {
+      emitHooksV2Event("HookFailure", {
+        schema_version: 1,
+        session_id: context.sessionId || null,
+        turn_id: context.turnId || null,
+        tool_use_id: context.toolCallId || null,
+        tool_name: name,
+        hook_event_name: event,
+        hook_source: source,
+        incident_code: incident.code,
+      });
+    } catch {
+      // Incident delivery must never turn an observe-only failure into a new
+      // authority decision or hide the original tool outcome.
+    }
+    try {
+      context.onHookIncident?.(incident);
+    } catch {
+      // Optional observer only.
+    }
+  };
 
   // Persona toolsDisabled guard
   const persona = _loadProjectPersona(cwd);
@@ -1815,10 +1876,10 @@ export async function executeTool(name, args, context = {}) {
   //   3. settings `ask`   → confirm (headless w/o confirmer falls closed).
   //                         Reached only after BOTH denies clear, so a denied
   //                         tool never wastes a confirmation round-trip.
-  //   4. settings `allow` → pre-authorize (ruleAllowed): short-circuit the
-  //                         plan-mode block + run_shell ApprovalGate. The hard
-  //                         shell-policy denylist still applies — allow never
-  //                         re-enables an unsafe `rm -rf /`.
+  //   4. settings `allow` → pre-authorize interactive gates OUTSIDE the
+  //                         plan-mode hard ceiling. It can never add a tool to
+  //                         the planning/approved capability set. The hard
+  //                         shell-policy denylist also still applies.
   // No matching rule + no host policy → every existing layer runs unchanged
   // (default behaviour is byte-for-byte).
   const settingsVerdict = context.permissionRules
@@ -1849,18 +1910,10 @@ export async function executeTool(name, args, context = {}) {
     toolPolicies && typeof toolPolicies === "object"
       ? toolPolicies[name]
       : null;
-  const isExternalHostTool =
-    hostToolPolicy && !STATIC_AGENT_TOOL_NAMES.has(name);
-  const isExternalLocalTool =
-    localToolDescriptor && !STATIC_AGENT_TOOL_NAMES.has(name);
   const hostPolicyAllowsReadOnlyGit =
     name === "git" &&
     hostToolPolicy?.planModeBehavior === "readonly-conditional" &&
     isReadOnlyGitCommand(args.command);
-  const localReadOnlyAllowedInPlanMode =
-    isExternalLocalTool &&
-    planManager.isActive() &&
-    localToolDescriptor?.isReadOnly === true;
 
   // 2. host deny (a settings `allow` does not relax this)
   if (
@@ -1875,6 +1928,51 @@ export async function executeTool(name, args, context = {}) {
         requiresPlanApproval: hostToolPolicy.requiresPlanApproval === true,
         requiresConfirmation: hostToolPolicy.requiresConfirmation === true,
         riskLevel: hostToolPolicy.riskLevel || null,
+      },
+    };
+  }
+
+  // Plan mode is a capability ceiling, not another prompt/approval source.
+  // Evaluate it before settings `ask`, sensitive-file confirmation, and every
+  // other interactive gate so no `allow` or confirmed `ask` can widen the
+  // planning tool set. Read-only git remains a built-in conditional capability.
+  // External tools remain blocked until a host-owned, per-tool effect authority
+  // exists; server annotations/descriptors cannot self-authorize Plan access.
+  const executionLockActive = planManager.executionLock != null;
+  const planReadOnlyFenceActive =
+    planManager.isActive() && !executionLockActive;
+  const externalToolBlockedDuringPlanning =
+    planReadOnlyFenceActive && !STATIC_AGENT_TOOL_NAMES.has(name);
+  context = { ...context, planReadOnlyFenceActive };
+  if (
+    planManager.isActive() &&
+    !(name === "git" && isReadOnlyGitCommand(args.command)) &&
+    (externalToolBlockedDuringPlanning || !planManager.isToolAllowed(name))
+  ) {
+    if (!executionLockActive) {
+      planManager.addPlanItem({
+        title: `${name}: ${formatToolArgs(name, args)}`,
+        tool: name,
+        params: args,
+        estimatedImpact:
+          name === "run_shell" ||
+          name === "run_code" ||
+          name === "git" ||
+          localToolDescriptor?.riskLevel === "high"
+            ? "high"
+            : GUARDED_FILE_MUTATION_TOOLS.has(name) ||
+                localToolDescriptor?.riskLevel === "medium"
+              ? "medium"
+              : "low",
+      });
+    }
+    return {
+      error: executionLockActive
+        ? `[Plan Execution Lock] Tool "${name}" was not in the approved tool set. Request a plan revision before using it.`
+        : `[Plan Mode] Tool "${name}" is blocked during planning. It has been added to the plan. Use /plan approve to execute.`,
+      policy: {
+        decision: "blocked",
+        via: executionLockActive ? "plan-execution-lock" : "plan-mode",
       },
     };
   }
@@ -2062,45 +2160,6 @@ export async function executeTool(name, args, context = {}) {
     }
   }
 
-  // Plan mode: settings/host allow rules may help exploration, but they cannot
-  // widen the immutable tool set issued when the user approved the plan.
-  const executionLockActive = planManager.executionLock != null;
-  if (
-    planManager.isActive() &&
-    (!ruleAllowed || executionLockActive) &&
-    !(name === "git" && isReadOnlyGitCommand(args.command)) &&
-    !planManager.isToolAllowed(name) &&
-    !(
-      !executionLockActive &&
-      isExternalHostTool &&
-      hostToolPolicy?.allowed === true
-    ) &&
-    !(!executionLockActive && localReadOnlyAllowedInPlanMode)
-  ) {
-    if (!executionLockActive) {
-      planManager.addPlanItem({
-        title: `${name}: ${formatToolArgs(name, args)}`,
-        tool: name,
-        params: args,
-        estimatedImpact:
-          name === "run_shell" ||
-          name === "run_code" ||
-          name === "git" ||
-          localToolDescriptor?.riskLevel === "high"
-            ? "high"
-            : GUARDED_FILE_MUTATION_TOOLS.has(name) ||
-                localToolDescriptor?.riskLevel === "medium"
-              ? "medium"
-              : "low",
-      });
-    }
-    return {
-      error: executionLockActive
-        ? `[Plan Execution Lock] Tool "${name}" was not in the approved tool set. Request a plan revision before using it.`
-        : `[Plan Mode] Tool "${name}" is blocked during planning. It has been added to the plan. Use /plan approve to execute.`,
-    };
-  }
-
   // Subtree rules are an authority input, so the first file mutation in a
   // subtree must observe them before any PreToolUse hook or filesystem effect.
   // Discovery+read commits the complete source/target batch atomically; this
@@ -2119,77 +2178,79 @@ export async function executeTool(name, args, context = {}) {
   // capable: a `block` (exit 2 / {decision:block}) stops the tool here, an
   // `ask` routes to the confirmer. Runs after permission resolution so a
   // settings deny / host deny short-circuits before any hook process spawns.
-  const hooksV2Pre = await executeHooksV2Event(
-    "PreToolUse",
-    {
-      schema_version: 1,
-      session_id: context.sessionId || null,
-      turn_id: context.turnId || null,
-      tool_use_id: context.toolCallId || null,
-      tool_name: name,
-      input_keys:
-        args && typeof args === "object" ? Object.keys(args).sort() : [],
-      cwd,
-    },
-    { failClosed: true },
-  );
-  if (hooksV2Pre.blocked || hooksV2Pre.decision === "block") {
-    return {
-      error: `[Hook v2] PreToolUse blocked "${name}".`,
-      policy: { decision: "block", via: "hooks-v2" },
-    };
-  }
-  if (hooksV2Pre.requiresApproval || hooksV2Pre.decision === "ask") {
-    const confirm = context.permissionConfirm || context.shellConfirm || null;
-    const approved =
-      typeof confirm === "function"
-        ? await confirm({
-            tool: name,
-            args,
-            reason: "Hooks v2 PreToolUse requested confirmation",
-            source: "hooks-v2",
-          })
-        : false;
-    if (!approved) {
-      emitHooksV2Event("PermissionDenied", {
+  if (!planReadOnlyFenceActive) {
+    const hooksV2Pre = await executeHooksV2Event(
+      "PreToolUse",
+      {
         schema_version: 1,
         session_id: context.sessionId || null,
         turn_id: context.turnId || null,
         tool_use_id: context.toolCallId || null,
         tool_name: name,
-        source: "hooks-v2",
-      });
+        input_keys:
+          args && typeof args === "object" ? Object.keys(args).sort() : [],
+        cwd,
+      },
+      { failClosed: true },
+    );
+    if (hooksV2Pre.blocked || hooksV2Pre.decision === "block") {
       return {
-        error: `[Hook v2] PreToolUse confirmation denied for "${name}".`,
-        policy: { decision: "deny", via: "hooks-v2" },
+        error: `[Hook v2] PreToolUse blocked "${name}".`,
+        policy: { decision: "block", via: "hooks-v2" },
       };
     }
-  }
-  if (hookDb) {
-    try {
-      await executeHooks(hookDb, HookEvents.PreToolUse, {
-        tool: name,
-        args,
-        timestamp: new Date().toISOString(),
-        descriptor: runtimeDescriptor,
-        context: toolContext,
-      });
-    } catch (_err) {
-      // Hook failure should not block tool execution
+    if (hooksV2Pre.requiresApproval || hooksV2Pre.decision === "ask") {
+      const confirm = context.permissionConfirm || context.shellConfirm || null;
+      const approved =
+        typeof confirm === "function"
+          ? await confirm({
+              tool: name,
+              args,
+              reason: "Hooks v2 PreToolUse requested confirmation",
+              source: "hooks-v2",
+            })
+          : false;
+      if (!approved) {
+        emitHooksV2Event("PermissionDenied", {
+          schema_version: 1,
+          session_id: context.sessionId || null,
+          turn_id: context.turnId || null,
+          tool_use_id: context.toolCallId || null,
+          tool_name: name,
+          source: "hooks-v2",
+        });
+        return {
+          error: `[Hook v2] PreToolUse confirmation denied for "${name}".`,
+          policy: { decision: "deny", via: "hooks-v2" },
+        };
+      }
     }
-  }
-  if (context.settingsHooks) {
-    const pre = await runSettingsPreToolUseHooks(name, args, context, cwd);
-    // A hook `ask` resolved by the IDE diff review: accepted → the IDE
-    // already wrote the file, return the synthetic result and skip the tool;
-    // rejected → the ide-diff deny shape (via:"ide-diff", not via:"hook").
-    if (pre.ideApplied) return pre.ideApplied;
-    if (pre.blocked) {
-      if (pre.ideResult) return pre.ideResult;
-      return {
-        error: `[Hook] PreToolUse blocked "${name}"${pre.reason ? ": " + pre.reason : ""}`,
-        policy: { decision: "block", via: "hook", hook: pre.hook || null },
-      };
+    if (hookDb) {
+      try {
+        await executeHooks(hookDb, HookEvents.PreToolUse, {
+          tool: name,
+          args,
+          timestamp: new Date().toISOString(),
+          descriptor: runtimeDescriptor,
+          context: toolContext,
+        });
+      } catch (error) {
+        recordObserveHookIncident("PreToolUse", "database", error);
+      }
+    }
+    if (context.settingsHooks) {
+      const pre = await runSettingsPreToolUseHooks(name, args, context, cwd);
+      // A hook `ask` resolved by the IDE diff review: accepted → the IDE
+      // already wrote the file, return the synthetic result and skip the tool;
+      // rejected → the ide-diff deny shape (via:"ide-diff", not via:"hook").
+      if (pre.ideApplied) return pre.ideApplied;
+      if (pre.blocked) {
+        if (pre.ideResult) return pre.ideResult;
+        return {
+          error: `[Hook] PreToolUse blocked "${name}"${pre.reason ? ": " + pre.reason : ""}`,
+          policy: { decision: "block", via: "hook", hook: pre.hook || null },
+        };
+      }
     }
   }
 
@@ -2214,6 +2275,9 @@ export async function executeTool(name, args, context = {}) {
       // 用量归因: shared per-run sink for child-loop (sub-agent / isolated
       // skill) token usage, drained by agentLoop as attributed events.
       subAgentUsageSink: context.subAgentUsageSink || null,
+      planManager,
+      permissionRules: context.permissionRules || null,
+      effectiveAllowedToolNames: context.effectiveAllowedToolNames ?? null,
       hostManagedToolPolicy: context.hostManagedToolPolicy || null,
       externalToolDescriptors: context.externalToolDescriptors || null,
       externalToolExecutors: context.externalToolExecutors || null,
@@ -2245,15 +2309,15 @@ export async function executeTool(name, args, context = {}) {
       managedCheckpoint: context.managedCheckpoint === true,
     });
   } catch (err) {
-    if (hookDb) {
+    if (hookDb && !planReadOnlyFenceActive) {
       try {
         await executeHooks(hookDb, HookEvents.ToolError, {
           tool: name,
           args,
           error: err.message,
         });
-      } catch (_err) {
-        // Non-critical
+      } catch (error) {
+        recordObserveHookIncident("ToolError", "database", error);
       }
     }
     throw err;
@@ -2276,7 +2340,7 @@ export async function executeTool(name, args, context = {}) {
   }
 
   // PostToolUse hook
-  if (hookDb) {
+  if (hookDb && !planReadOnlyFenceActive) {
     try {
       await executeHooks(hookDb, HookEvents.PostToolUse, {
         tool: name,
@@ -2288,13 +2352,18 @@ export async function executeTool(name, args, context = {}) {
         descriptor: runtimeDescriptor,
         context: toolContext,
       });
-    } catch (_err) {
-      // Non-critical
+    } catch (error) {
+      recordObserveHookIncident("PostToolUse", "database", error);
     }
   }
   // settings.json PostToolUse hooks: can't un-run the tool, but a `block`
   // reason is attached as `hookFeedback` to be surfaced back to the model.
-  if (context.settingsHooks && toolResult && typeof toolResult === "object") {
+  if (
+    !planReadOnlyFenceActive &&
+    context.settingsHooks &&
+    toolResult &&
+    typeof toolResult === "object"
+  ) {
     try {
       const matched = collectHooks(context.settingsHooks, "PostToolUse", name);
       if (matched && matched.length > 0) {
@@ -2329,6 +2398,20 @@ export async function executeTool(name, args, context = {}) {
             event: "PostToolUse",
             broker,
           });
+          for (const hookResult of outcome.results || []) {
+            if (
+              hookResult?.nonBlockingError === true ||
+              hookResult?.breakerOpen === true ||
+              hookResult?.malformedDecision === true ||
+              hookResult?.unsupportedDecision === true
+            ) {
+              recordObserveHookIncident(
+                "PostToolUse",
+                "settings-command",
+                hookResult.reason || hookResult.error || "hook command failed",
+              );
+            }
+          }
           if (outcome.decision === "block" && outcome.reason) {
             toolResult.hookFeedback = outcome.reason;
           }
@@ -2339,8 +2422,8 @@ export async function executeTool(name, args, context = {}) {
           context.hookSupervisor.dispatch(asyncHooks, payload, { cwd, broker });
         }
       }
-    } catch (_err) {
-      // PostToolUse hooks are best-effort
+    } catch (error) {
+      recordObserveHookIncident("PostToolUse", "settings-command", error);
     }
   }
 
@@ -2381,8 +2464,8 @@ export async function executeTool(name, args, context = {}) {
           ? `${toolResult.hookFeedback}\n${outcome.reason}`
           : outcome.reason;
       }
-    } catch (_err) {
-      // SubagentStop hooks are best-effort
+    } catch (error) {
+      recordObserveHookIncident("SubagentStop", "settings-command", error);
     }
   }
 
@@ -2418,6 +2501,14 @@ export async function executeTool(name, args, context = {}) {
     } catch (_err) {
       // diagnostics feedback is optional polish — never fail the tool
     }
+  }
+
+  if (
+    observeHookIncidents.length > 0 &&
+    toolResult &&
+    typeof toolResult === "object"
+  ) {
+    toolResult.hookIncidents = observeHookIncidents;
   }
 
   return toolResult;
@@ -3141,6 +3232,9 @@ async function executeToolInner(
     sessionId,
     turnId,
     toolCallId,
+    planManager = null,
+    permissionRules = null,
+    effectiveAllowedToolNames = null,
     hostManagedToolPolicy,
     externalToolDescriptors,
     externalToolExecutors,
@@ -4547,6 +4641,18 @@ async function executeToolInner(
           subAgentBudget,
           subAgentContract,
           settingsHooks,
+          // Immutable parent execution authority. The child may only tighten
+          // these boundaries; it never reconstructs a fresh default policy.
+          planManager,
+          permissionRules,
+          effectiveAllowedToolNames,
+          hostManagedToolPolicy,
+          sandbox,
+          additionalDirectories,
+          approvalGate,
+          shellPolicyOverrides,
+          classifyAllShell,
+          unattendedActionPolicy,
           // Parent trace for the child's hook envelopes (parent_id).
           hookTraceId,
           // Parent MCP plumbing — a spawn can inherit these into the child,
@@ -5362,6 +5468,15 @@ async function executeToolInner(
       // Check if skill requests isolation (via SKILL.md frontmatter)
       const skillIsolation = match.isolation === true;
       if (skillIsolation) {
+        const isolatedSkillTools = [
+          "read_file",
+          "search_files",
+          "list_dir",
+        ].filter(
+          (toolName) =>
+            !Array.isArray(effectiveAllowedToolNames) ||
+            effectiveAllowedToolNames.includes(toolName),
+        );
         // 用量归因: an isolated skill runs as a child loop whose real token
         // usage would otherwise be invisible — forward it into the parent
         // run's sink tagged origin:"skill" so `cc session usage --by skill`
@@ -5374,10 +5489,28 @@ async function executeToolInner(
         const subCtx = SubAgentContext.create({
           role: `skill-${args.skill_name}`,
           task: `Execute the "${args.skill_name}" skill with input: ${(args.input || "").substring(0, 200)}`,
-          allowedTools: ["read_file", "search_files", "list_dir"],
+          allowedTools: isolatedSkillTools,
           hookParentTraceId: hookTraceId || null,
           toolAdmission,
           cwd,
+          ...(permissionRules ? { permissionRules } : {}),
+          ...(hostManagedToolPolicy
+            ? {
+                hostManagedToolPolicy: {
+                  ...hostManagedToolPolicy,
+                  toolDefinitions: [],
+                },
+              }
+            : {}),
+          ...(planManager ? { planManager } : {}),
+          ...(sandbox ? { sandbox } : {}),
+          ...(Array.isArray(additionalDirectories)
+            ? { additionalDirectories: [...additionalDirectories] }
+            : {}),
+          ...(approvalGate ? { approvalGate } : {}),
+          ...(shellPolicyOverrides ? { shellPolicyOverrides } : {}),
+          ...(classifyAllShell ? { classifyAllShell: true } : {}),
+          ...(unattendedActionPolicy ? { unattendedActionPolicy } : {}),
           onUsage: skillUsageSink
             ? (u) => {
                 try {
@@ -6320,8 +6453,10 @@ async function _executeSpawnSubAgent(args, ctx) {
         hardChildrenCap: ctx.subAgentBudget?.max ?? MAX_SUB_AGENTS_PER_RUN,
       });
       if (!recur.ok) return { error: `spawn_sub_agent: ${recur.reason}` };
-    } catch {
-      /* contract module unavailable — hard caps above still apply */
+    } catch (err) {
+      return {
+        error: `spawn_sub_agent: parent contract enforcement failed closed (${err.message}).`,
+      };
     }
   }
   // Breadth cap: a shared counter (one object for the whole tree) bounds the
@@ -6428,8 +6563,12 @@ async function _executeSpawnSubAgent(args, ctx) {
   // = byte-identical.
   let permModeDriven = false;
   try {
-    const { resolveSubagentContract, normalizeSubagentContract } =
-      await import("../lib/subagent-contract.js");
+    const {
+      resolveSubagentContract,
+      normalizeSubagentContract,
+      assertValidSubagentContract,
+    } = await import("../lib/subagent-contract.js");
+    assertValidSubagentContract(args);
     const spawnContract = normalizeSubagentContract(args);
     explicitContext = spawnContract.context ?? mdContract?.context ?? null;
     effectiveContract = resolveSubagentContract({
@@ -6459,12 +6598,10 @@ async function _executeSpawnSubAgent(args, ctx) {
     // into inheriting the corresponding parent capabilities.
     mcpAllow = effectiveContract.mcpServers ?? null;
     hookAllow = effectiveContract.hooks ?? null;
-  } catch {
-    effectiveContract = null; // contract resolution is best-effort
-    skillAllowlist = null;
-    mcpAllow = []; // inherit no MCP / hooks when resolution fails
-    hookAllow = [];
-    permModeDriven = false; // no gate when resolution fails
+  } catch (err) {
+    return {
+      error: `spawn_sub_agent: authority contract resolution failed closed (${err.message}).`,
+    };
   }
 
   // Filter the parent loop's live MCP plumbing + settings hooks down to what the
@@ -6485,9 +6622,10 @@ async function _executeSpawnSubAgent(args, ctx) {
       mcpAllow,
     );
     inheritedHooks = filterInheritedHooks(ctx.settingsHooks || null, hookAllow);
-  } catch {
-    inheritedMcp = null; // inheritance is best-effort; never break the spawn
-    inheritedHooks = null;
+  } catch (err) {
+    return {
+      error: `spawn_sub_agent: capability inheritance failed closed (${err.message}).`,
+    };
   }
 
   // Memory INHERITANCE (contract `memory` boolean, tighten-only across depth):
@@ -6514,8 +6652,10 @@ async function _executeSpawnSubAgent(args, ctx) {
         available: isGitRepo(ctx.cwd),
       });
       if (!iso.ok) return { error: `spawn_sub_agent: ${iso.reason}` };
-    } catch {
-      /* helper unavailable — sub-agent-context.js still fails closed at run() */
+    } catch (err) {
+      return {
+        error: `spawn_sub_agent: isolation enforcement failed closed (${err.message}).`,
+      };
     }
   }
 
@@ -6532,8 +6672,10 @@ async function _executeSpawnSubAgent(args, ctx) {
           error: `Unknown sub-agent profile: "${profileName}". Valid: explorer|executor|design`,
         };
       }
-    } catch (_err) {
-      // profile module optional — proceed without
+    } catch (err) {
+      return {
+        error: `spawn_sub_agent: requested profile resolution failed closed (${err.message}).`,
+      };
     }
   }
 
@@ -6553,6 +6695,16 @@ async function _executeSpawnSubAgent(args, ctx) {
       ? allowedTools
       : listCodingAgentToolNames();
     allowedTools = base.filter((t) => !deny.has(t));
+  }
+
+  // A child can never regain a tool omitted from the parent's effective schema.
+  // `[]` remains deny-all all the way into the child's execution-time fence.
+  if (Array.isArray(ctx.effectiveAllowedToolNames)) {
+    const parentCeiling = new Set(ctx.effectiveAllowedToolNames);
+    const requested = Array.isArray(allowedTools)
+      ? allowedTools
+      : [...parentCeiling];
+    allowedTools = requested.filter((tool) => parentCeiling.has(tool));
   }
 
   // permissionMode enforcement into the child gate. Reuses the runner's own
@@ -6603,8 +6755,10 @@ async function _executeSpawnSubAgent(args, ctx) {
           defaultPolicy: perm.sessionPolicy,
         });
       }
-    } catch {
-      // Enforcement is best-effort — never break the spawn.
+    } catch (err) {
+      return {
+        error: `spawn_sub_agent: permission-mode enforcement failed closed (${err.message}).`,
+      };
     }
   }
 
@@ -6659,8 +6813,10 @@ async function _executeSpawnSubAgent(args, ctx) {
           ? `${resolvedContext}\n---\n${injected}`
           : injected;
       }
-    } catch (_err) {
-      // SubagentStart hooks are best-effort — never break the spawn.
+    } catch (err) {
+      return {
+        error: `spawn_sub_agent: SubagentStart authority hook failed closed (${err.message}).`,
+      };
     }
   }
 
@@ -6728,10 +6884,22 @@ async function _executeSpawnSubAgent(args, ctx) {
       if (sparse) wtOpts.sparsePaths = sparse;
       if (symlink != null) wtOpts.symlinkDirectories = symlink;
       if (Object.keys(wtOpts).length) subWorktreeOptions = wtOpts;
-    } catch {
-      subWorktreeOptions = null; // best-effort → full checkout on any error
+    } catch (err) {
+      return {
+        error: `spawn_sub_agent: worktree scope resolution failed closed (${err.message}).`,
+      };
     }
   }
+
+  // Preserve host deny/policy metadata, but do not implicitly inherit hosted
+  // external definitions. MCP/host capabilities enter the child only through
+  // the explicit contract-filtered plumbing above.
+  const childHostManagedToolPolicy = ctx.hostManagedToolPolicy
+    ? { ...ctx.hostManagedToolPolicy, toolDefinitions: [] }
+    : null;
+  // A parent gate is already an authority ceiling. Prefer it over a newly
+  // derived child gate so an explicit child mode can never relax the parent.
+  const effectiveChildApprovalGate = ctx.approvalGate || childApprovalGate;
 
   const subCtx = SubAgentContext.create({
     role,
@@ -6741,7 +6909,7 @@ async function _executeSpawnSubAgent(args, ctx) {
     // and THIS run's id as parent_id on every settings-hook payload it fires.
     hookParentTraceId: ctx.hookTraceId || null,
     inheritedContext: resolvedContext,
-    allowedTools: allowedTools || null,
+    allowedTools: allowedTools ?? null,
     cwd: ctx.cwd,
     profile: profile || null,
     llmOptions: subLlmOptions,
@@ -6798,7 +6966,27 @@ async function _executeSpawnSubAgent(args, ctx) {
     // permissionMode ApprovalGate (2026-07-13): a dedicated confirmer-less gate
     // seeded with the mode's tier gates the child's run_shell / browser_act;
     // absent (ungated) for a plain default spawn = byte-identical.
-    ...(childApprovalGate ? { approvalGate: childApprovalGate } : {}),
+    ...(effectiveChildApprovalGate
+      ? { approvalGate: effectiveChildApprovalGate }
+      : {}),
+    // Parent execution authority is inherited as a tighten-only bundle and is
+    // re-enforced by the child's executeTool path on every provider tool call.
+    ...(ctx.permissionRules ? { permissionRules: ctx.permissionRules } : {}),
+    ...(childHostManagedToolPolicy
+      ? { hostManagedToolPolicy: childHostManagedToolPolicy }
+      : {}),
+    ...(ctx.planManager ? { planManager: ctx.planManager } : {}),
+    ...(ctx.sandbox ? { sandbox: ctx.sandbox } : {}),
+    ...(Array.isArray(ctx.additionalDirectories)
+      ? { additionalDirectories: [...ctx.additionalDirectories] }
+      : {}),
+    ...(ctx.shellPolicyOverrides
+      ? { shellPolicyOverrides: ctx.shellPolicyOverrides }
+      : {}),
+    ...(ctx.classifyAllShell ? { classifyAllShell: true } : {}),
+    ...(ctx.unattendedActionPolicy
+      ? { unattendedActionPolicy: ctx.unattendedActionPolicy }
+      : {}),
     ...(ctx.toolAdmission ? { toolAdmission: ctx.toolAdmission } : {}),
   });
   subCtxRef = subCtx;
@@ -6879,7 +7067,7 @@ async function _executeSpawnSubAgent(args, ctx) {
     emit("sub-agent.started", {
       task: subCtx.task,
       background: true,
-      allowedTools: allowedTools || null,
+      allowedTools: allowedTools ?? null,
       maxIterations: subCtx.maxIterations,
       createdAt: subCtx.createdAt,
     });
@@ -6956,7 +7144,7 @@ async function _executeSpawnSubAgent(args, ctx) {
 
     emit("sub-agent.started", {
       task: subCtx.task,
-      allowedTools: allowedTools || null,
+      allowedTools: allowedTools ?? null,
       maxIterations: subCtx.maxIterations,
       createdAt: subCtx.createdAt,
     });
@@ -7026,6 +7214,26 @@ async function _executeSpawnSubAgent(args, ctx) {
 
 // ─── LLM chat with tools ─────────────────────────────────────────────────
 
+function getEffectiveToolDefinitions(options = {}) {
+  const persona = _loadProjectPersona(options.cwd);
+  // Merge every deny source before both schema projection and execution-time
+  // enforcement. Keeping this in one helper prevents those two fences from
+  // drifting apart.
+  const mergedDisabledTools = [
+    ...(Array.isArray(persona?.toolsDisabled) ? persona.toolsDisabled : []),
+    ...(Array.isArray(options.disabledTools) ? options.disabledTools : []),
+  ];
+  return getAgentToolDefinitions({
+    names: options.enabledToolNames,
+    disabledTools: mergedDisabledTools,
+    exactToolNames: options.exactToolNames === true,
+    extraTools: [
+      ...(options.hostManagedToolPolicy?.toolDefinitions || []),
+      ...(options.extraToolDefinitions || []),
+    ],
+  });
+}
+
 /**
  * Send a chat completion request with tool definitions.
  * Supports 8 providers: ollama, anthropic, openai, deepseek, dashscope, gemini, mistral, volcengine
@@ -7044,22 +7252,7 @@ export async function chatWithTools(rawMessages, options) {
     signal,
   } = options;
 
-  const persona = _loadProjectPersona(options.cwd);
-  // Merge the project-persona deny-list with any caller-supplied deny-list
-  // (e.g. headless `--disallowed-tools`). Without this merge the caller's
-  // deny-list is silently dropped and the tool stays callable.
-  const mergedDisabledTools = [
-    ...(Array.isArray(persona?.toolsDisabled) ? persona.toolsDisabled : []),
-    ...(Array.isArray(options.disabledTools) ? options.disabledTools : []),
-  ];
-  const tools = getAgentToolDefinitions({
-    names: options.enabledToolNames,
-    disabledTools: mergedDisabledTools,
-    extraTools: [
-      ...(options.hostManagedToolPolicy?.toolDefinitions || []),
-      ...(options.extraToolDefinitions || []),
-    ],
-  });
+  const tools = getEffectiveToolDefinitions(options);
 
   const lastUserMsg = [...rawMessages].reverse().find((m) => m.role === "user");
   const messages = ce
@@ -8492,6 +8685,10 @@ export async function* agentLoop(messages, options) {
     options.runId ||
     `run-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
+  const effectiveAllowedToolNames = Object.freeze(
+    getEffectiveToolDefinitions(options).map((tool) => tool.function.name),
+  );
+
   const toolContext = {
     hookDb: options.hookDb || null,
     skillLoader: options.skillLoader || _defaultSkillLoader,
@@ -8506,6 +8703,7 @@ export async function* agentLoop(messages, options) {
     // unrestricted; [] = none; a list restricts run_skill/list_skills to those
     // ids/dirNames. Set by the spawn path from the resolved subagent contract.
     skillAllowlist: options.skillAllowlist ?? null,
+    effectiveAllowedToolNames,
     cwd: options.cwd || process.cwd(),
     planManager: options.planManager || null,
     sessionId: options.sessionId || null,

@@ -914,16 +914,18 @@ async function startAgentReplInWorkspace(options = {}) {
   // PostToolUse). The interactive _permissionConfirm above doubles as the
   // confirmer for a hook `ask` decision.
   try {
-    const { loadHooks, projectHookTrustNotice } =
+    const { loadHooks, projectHookTrustNotice, attachAuthorityErrors } =
       await import("../lib/settings-hooks.cjs");
     const loaded = loadHooks({ cwd: process.cwd() });
     // Fold in installed plugins' hooks/hooks.json (Phase 3.3c).
     const { mergePluginHooks } = await import("../lib/plugin-runtime/hooks.js");
-    const effectiveHooks = mergePluginHooks(loaded.hooks, {
-      cwd: process.cwd(),
-    });
+    const effectiveHooks = mergePluginHooks(
+      attachAuthorityErrors(loaded.hooks, loaded.authorityErrors),
+      { cwd: process.cwd() },
+    );
     _settingsHooks =
-      effectiveHooks && Object.keys(effectiveHooks).length > 0
+      Object.keys(effectiveHooks).length > 0 ||
+      effectiveHooks._authorityErrors.length > 0
         ? effectiveHooks
         : null;
     // First-run trust notice for an untrusted/cloned repo's shell-running
@@ -935,7 +937,16 @@ async function startAgentReplInWorkspace(options = {}) {
       /* trust notice is best-effort */
     }
   } catch (_err) {
-    _settingsHooks = null;
+    _settingsHooks = {};
+    Object.defineProperty(_settingsHooks, "_authorityErrors", {
+      value: Object.freeze([
+        Object.freeze({
+          sourceFile: null,
+          code: _err?.code || "CC_HOOK_AUTHORITY_LOAD_FAILED",
+        }),
+      ]),
+      enumerable: false,
+    });
   }
 
   // Start installed plugins' background monitors (Phase 3.3i). Trust-gated
@@ -3924,15 +3935,30 @@ async function startAgentReplInWorkspace(options = {}) {
 
         // Re-merge plugin hooks onto the user's settings hooks (live session).
         try {
-          const { loadHooks } = await import("../lib/settings-hooks.cjs");
+          const { loadHooks, attachAuthorityErrors } =
+            await import("../lib/settings-hooks.cjs");
           const { mergePluginHooks } =
             await import("../lib/plugin-runtime/hooks.js");
-          const base = loadHooks({ cwd }).hooks;
-          const merged = mergePluginHooks(base, { cwd });
+          const loaded = loadHooks({ cwd });
+          const merged = mergePluginHooks(
+            attachAuthorityErrors(loaded.hooks, loaded.authorityErrors),
+            { cwd },
+          );
           _settingsHooks =
-            merged && Object.keys(merged).length > 0 ? merged : null;
-        } catch {
-          /* hooks re-merge is best-effort */
+            Object.keys(merged).length > 0 || merged._authorityErrors.length > 0
+              ? merged
+              : null;
+        } catch (error) {
+          _settingsHooks = {};
+          Object.defineProperty(_settingsHooks, "_authorityErrors", {
+            value: Object.freeze([
+              Object.freeze({
+                sourceFile: null,
+                code: error?.code || "CC_HOOK_AUTHORITY_LOAD_FAILED",
+              }),
+            ]),
+            enumerable: false,
+          });
         }
 
         // settings.json ConfigChange hooks (Claude-Code parity): the live

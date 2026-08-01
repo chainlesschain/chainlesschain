@@ -181,6 +181,24 @@ describe("agent tool registry compatibility", () => {
     );
   });
 
+  it("preserves an explicit deny-all allowlist for built-in and external tools", () => {
+    const filtered = getAgentToolDefinitions({
+      names: [],
+      extraTools: [
+        {
+          type: "function",
+          function: {
+            name: "mcp_weather_get_forecast",
+            description: "Get a weather forecast",
+            parameters: { type: "object", properties: {} },
+          },
+        },
+      ],
+    });
+
+    expect(filtered).toEqual([]);
+  });
+
   it("returns matching descriptors for filtered tool definitions", () => {
     const descriptors = getAgentToolDescriptors({
       names: ["read_file", "list_dir"],

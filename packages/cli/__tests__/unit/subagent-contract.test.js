@@ -12,6 +12,7 @@ import {
   permissionRank,
   tightenPermissionMode,
   normalizeSubagentContract,
+  assertValidSubagentContract,
   resolveSubagentContract,
   capBudget,
   enforceRecursionLimits,
@@ -127,6 +128,27 @@ describe("normalizeSubagentContract", () => {
       expect(normalizeSubagentContract({ effort: e }).effort).toBe(e);
     }
     expect(normalizeSubagentContract({ effort: "med" }).effort).toBe("medium");
+  });
+});
+
+describe("assertValidSubagentContract", () => {
+  it("rejects malformed authority fields instead of dropping them", () => {
+    expect(() =>
+      assertValidSubagentContract({ skills: { unexpected: true } }),
+    ).toThrow(/invalid subagent contract field "skills"/);
+    expect(() =>
+      assertValidSubagentContract({ permissionMode: "root" }),
+    ).toThrow(/permissionMode/);
+    expect(() =>
+      assertValidSubagentContract({ budget: { tokens: -1 } }),
+    ).toThrow(/budget\.tokens/);
+  });
+
+  it("accepts an explicit empty capability set", () => {
+    expect(assertValidSubagentContract({ skills: [], hooks: [] })).toEqual({
+      skills: [],
+      hooks: [],
+    });
   });
 });
 

@@ -164,9 +164,20 @@ function tryParseDecision(stdout) {
     if (firstLine && firstLine[0] === "{") obj = tryJson(firstLine);
   }
   if (obj === undefined || obj === null || typeof obj !== "object") return null;
+  if (Array.isArray(obj)) {
+    return {
+      decision: HOOK_DECISIONS.CONTINUE,
+      reason: "hook decision payload must be a JSON object",
+      unsupportedDecision: true,
+    };
+  }
   // PreToolUse-specific permission decision
   const hso = obj.hookSpecificOutput;
-  if (hso && hso.permissionDecision) {
+  if (
+    hso &&
+    typeof hso === "object" &&
+    Object.prototype.hasOwnProperty.call(hso, "permissionDecision")
+  ) {
     const pd = String(hso.permissionDecision).toLowerCase();
     const decision =
       pd === "deny"
@@ -176,10 +187,17 @@ function tryParseDecision(stdout) {
           : pd === "allow"
             ? HOOK_DECISIONS.ALLOW
             : HOOK_DECISIONS.CONTINUE;
-    return { decision, reason: hso.permissionDecisionReason || null };
+    const supported = pd === "deny" || pd === "ask" || pd === "allow";
+    return {
+      decision,
+      reason: supported
+        ? hso.permissionDecisionReason || null
+        : `unsupported hook permissionDecision: ${pd || "<empty>"}`,
+      ...(supported ? {} : { unsupportedDecision: true }),
+    };
   }
   // Generic decision field
-  if (obj.decision) {
+  if (Object.prototype.hasOwnProperty.call(obj, "decision")) {
     const d = String(obj.decision).toLowerCase();
     const decision =
       d === "block" || d === "deny"
@@ -189,19 +207,77 @@ function tryParseDecision(stdout) {
           : d === "ask"
             ? HOOK_DECISIONS.ASK
             : HOOK_DECISIONS.CONTINUE;
-    return { decision, reason: obj.reason || null };
+    const supported =
+      d === "block" ||
+      d === "deny" ||
+      d === "approve" ||
+      d === "allow" ||
+      d === "ask" ||
+      d === "continue";
+    return {
+      decision,
+      reason: supported
+        ? obj.reason || null
+        : `unsupported hook decision: ${d || "<empty>"}`,
+      ...(supported ? {} : { unsupportedDecision: true }),
+    };
   }
   // continue:false → stop/block
-  if (obj.continue === false) {
-    return {
-      decision: HOOK_DECISIONS.BLOCK,
-      reason: obj.stopReason || obj.reason || "hook requested stop",
-    };
+  if (Object.prototype.hasOwnProperty.call(obj, "continue")) {
+    if (obj.continue === false) {
+      return {
+        decision: HOOK_DECISIONS.BLOCK,
+        reason: obj.stopReason || obj.reason || "hook requested stop",
+      };
+    }
+    if (obj.continue !== true) {
+      return {
+        decision: HOOK_DECISIONS.CONTINUE,
+        reason: "hook continue field must be boolean",
+        unsupportedDecision: true,
+      };
+    }
   }
   return {
     decision: HOOK_DECISIONS.CONTINUE,
     reason: null,
     additionalContext: obj.additionalContext || null,
+  };
+}
+
+/**
+ * Upgrade an execution/protocol failure to a blocking authority decision.
+ * Direct command-hook calls and observe/Post aggregation retain their historic
+ * fail-open behavior; runHooks callers opt in with `{ failClosed: true }`.
+ * Keeping this conversion at the aggregation boundary also preserves the
+ * underlying nonBlockingError/breaker/protocol flags for audit telemetry.
+ */
+function failClosedAuthorityResult(result) {
+  const supportedDecision =
+    result && Object.values(HOOK_DECISIONS).includes(result.decision);
+  const authorityFailure =
+    !supportedDecision ||
+    result.nonBlockingError === true ||
+    result.breakerOpen === true ||
+    result.malformedDecision === true ||
+    result.unsupportedDecision === true;
+
+  if (!authorityFailure || result?.decision === HOOK_DECISIONS.BLOCK) {
+    return result;
+  }
+
+  const detail =
+    result?.reason ||
+    result?.error ||
+    (!supportedDecision
+      ? "hook returned an invalid decision result"
+      : "hook authority evaluation failed");
+  return {
+    ...(result || {}),
+    decision: HOOK_DECISIONS.BLOCK,
+    reason: `authority-bearing hook failed closed: ${detail}`,
+    authorityFailure: true,
+    originalDecision: supportedDecision ? result.decision : null,
   };
 }
 
@@ -676,6 +752,12 @@ async function _runCommandHookInnerAsync(command, input = {}, opts = {}) {
  * This closes the safety gap where an earlier hook's `ask` masks a LATER hook's
  * `block` (the short-circuit path returns `ask` and never runs the blocker).
  * Claude-Code parity: all matching hooks contribute to the merged decision.
+ *
+ * `opts.failClosed: true` (or its semantic alias `authorityBearing: true`)
+ * marks an authority-bearing decision path. It implies strict merge and
+ * upgrades spawn/timeout/breaker/protocol failures to BLOCK. The default
+ * remains fail-open for observe/Post hooks.
+ *
  * spawnSync is synchronous so execution is sequential — but the MERGE is
  * order-independent, so the outcome matches a parallel run.
  *
@@ -684,25 +766,32 @@ async function _runCommandHookInnerAsync(command, input = {}, opts = {}) {
 function runHooks(commandHooks, input = {}, opts = {}) {
   const results = [];
   const hooks = commandHooks || [];
+  const failClosed = opts.failClosed === true || opts.authorityBearing === true;
   const runOne = (h) => {
-    const sandboxPolicy = resolveHookSandboxPolicy(h, opts);
-    return runCommandHook(h.command, input, {
-      ...opts,
-      ...(sandboxPolicy ? { sandboxPolicy } : {}),
-      broker: opts.broker,
-      origin: h.origin,
-      pluginId: h.pluginId,
-      pluginVersion: h.pluginVersion,
-      pluginSource: h.pluginSource,
-      timeout: h.timeout != null ? h.timeout * 1000 : opts.timeout,
-      environmentAllowlist: h.environmentAllowlist || h.envAllowlist,
-      // per-hook shell selection (P1 #8): `{ "type":"command", "command":…,
-      // "shell":"powershell" }` in the settings hook entry
-      shell: h.shell != null ? h.shell : opts.shell,
-    });
+    try {
+      const sandboxPolicy = resolveHookSandboxPolicy(h, opts);
+      const result = runCommandHook(h.command, input, {
+        ...opts,
+        ...(sandboxPolicy ? { sandboxPolicy } : {}),
+        broker: opts.broker,
+        origin: h.origin,
+        pluginId: h.pluginId,
+        pluginVersion: h.pluginVersion,
+        pluginSource: h.pluginSource,
+        timeout: h.timeout != null ? h.timeout * 1000 : opts.timeout,
+        environmentAllowlist: h.environmentAllowlist || h.envAllowlist,
+        // per-hook shell selection (P1 #8): `{ "type":"command", "command":…,
+        // "shell":"powershell" }` in the settings hook entry
+        shell: h.shell != null ? h.shell : opts.shell,
+      });
+      return failClosed ? failClosedAuthorityResult(result) : result;
+    } catch (error) {
+      if (!failClosed) throw error;
+      return failClosedAuthorityResult(hookSpawnFailure(error));
+    }
   };
 
-  if (opts.mergeStrict) {
+  if (opts.mergeStrict || failClosed) {
     const decisions = [];
     for (const h of hooks) {
       const r = runOne(h);
@@ -752,21 +841,33 @@ function runHooks(commandHooks, input = {}, opts = {}) {
  */
 async function runHooksParallel(commandHooks, input = {}, opts = {}) {
   const hooks = commandHooks || [];
+  const failClosed = opts.failClosed === true || opts.authorityBearing === true;
   const settled = await Promise.all(
     hooks.map((h) => {
-      const sandboxPolicy = resolveHookSandboxPolicy(h, opts);
-      return runCommandHookAsync(h.command, input, {
-        ...opts,
-        ...(sandboxPolicy ? { sandboxPolicy } : {}),
-        broker: opts.broker,
-        origin: h.origin,
-        pluginId: h.pluginId,
-        pluginVersion: h.pluginVersion,
-        pluginSource: h.pluginSource,
-        timeout: h.timeout != null ? h.timeout * 1000 : opts.timeout,
-        environmentAllowlist: h.environmentAllowlist || h.envAllowlist,
-        shell: h.shell != null ? h.shell : opts.shell,
-      }).then((r) => ({ h, r }));
+      try {
+        const sandboxPolicy = resolveHookSandboxPolicy(h, opts);
+        return runCommandHookAsync(h.command, input, {
+          ...opts,
+          ...(sandboxPolicy ? { sandboxPolicy } : {}),
+          broker: opts.broker,
+          origin: h.origin,
+          pluginId: h.pluginId,
+          pluginVersion: h.pluginVersion,
+          pluginSource: h.pluginSource,
+          timeout: h.timeout != null ? h.timeout * 1000 : opts.timeout,
+          environmentAllowlist: h.environmentAllowlist || h.envAllowlist,
+          shell: h.shell != null ? h.shell : opts.shell,
+        }).then((r) => ({
+          h,
+          r: failClosed ? failClosedAuthorityResult(r) : r,
+        }));
+      } catch (error) {
+        if (!failClosed) throw error;
+        return Promise.resolve({
+          h,
+          r: failClosedAuthorityResult(hookSpawnFailure(error)),
+        });
+      }
     }),
   );
   const results = settled.map(({ h, r }) => ({ command: h.command, ...r }));

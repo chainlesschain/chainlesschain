@@ -74,7 +74,7 @@ export class SubAgentContext {
     this.iterationBudget = options.iterationBudget || null; // shared budget from parent
     this.tokenBudget = options.tokenBudget || null;
     this.inheritedContext = options.inheritedContext || null;
-    this.allowedTools = options.allowedTools || null; // null = all
+    this.allowedTools = options.allowedTools ?? null; // null = all; [] = none
     this.depth = options.depth || 1; // nesting level (parent main loop = 0)
     // Shared run-wide TOTAL-sub-agent counter (one object across the whole tree)
     // so this sub-agent's own spawns draw from the same breadth pool.
@@ -199,6 +199,22 @@ export class SubAgentContext {
     // mode's tier) for the strict/trusted tiers so run_shell/browser_act are
     // gated headlessly (CONFIRM→no-confirmer→DENY).
     this._approvalGate = options.approvalGate || null;
+
+    // Parent execution authority. These values are applied AFTER any internal
+    // loop options so a child/worktree path can tighten but never replace the
+    // parent's policy, Plan lock, workspace sandbox, or unattended boundary.
+    this._parentAuthority = Object.freeze({
+      permissionRules: options.permissionRules || null,
+      hostManagedToolPolicy: options.hostManagedToolPolicy || null,
+      planManager: options.planManager || null,
+      sandbox: options.sandbox || null,
+      additionalDirectories: Array.isArray(options.additionalDirectories)
+        ? Object.freeze([...options.additionalDirectories])
+        : null,
+      shellPolicyOverrides: options.shellPolicyOverrides || null,
+      classifyAllShell: options.classifyAllShell === true,
+      unattendedActionPolicy: options.unattendedActionPolicy || null,
+    });
 
     // Build isolated system prompt
     const basePrompt = buildSystemPrompt(this.cwd);
@@ -332,7 +348,7 @@ export class SubAgentContext {
       // computed via _getFilteredTools() but never handed to agentLoop, so a
       // sub-agent's `tools`/frontmatter allowlist was silently ignored at the
       // LLM surface. agentLoop consumes NAMES via enabledToolNames.
-      ...(Array.isArray(this.allowedTools) && this.allowedTools.length > 0
+      ...(Array.isArray(this.allowedTools)
         ? { enabledToolNames: this.allowedTools }
         : {}),
       contextEngine: this.contextEngine,
@@ -353,6 +369,35 @@ export class SubAgentContext {
         : {}),
       ...loopOptions,
     };
+    // Re-apply tighten-only capability fields after loopOptions. In particular,
+    // [] must survive as deny-all and cannot be replaced by a worktree/direct
+    // runner override.
+    if (Array.isArray(this.allowedTools)) {
+      options.enabledToolNames = [...this.allowedTools];
+      options.exactToolNames = true;
+    }
+    options.subAgentContract = this.subAgentContract;
+    options.toolAdmission = this.toolAdmission;
+    options.skillAllowlist = this.skillAllowlist;
+    const authority = this._parentAuthority;
+    if (authority.permissionRules) {
+      options.permissionRules = authority.permissionRules;
+    }
+    if (authority.hostManagedToolPolicy) {
+      options.hostManagedToolPolicy = authority.hostManagedToolPolicy;
+    }
+    if (authority.planManager) options.planManager = authority.planManager;
+    if (authority.sandbox) options.sandbox = authority.sandbox;
+    if (authority.additionalDirectories) {
+      options.additionalDirectories = [...authority.additionalDirectories];
+    }
+    if (authority.shellPolicyOverrides) {
+      options.shellPolicyOverrides = authority.shellPolicyOverrides;
+    }
+    if (authority.classifyAllShell) options.classifyAllShell = true;
+    if (authority.unattendedActionPolicy) {
+      options.unattendedActionPolicy = authority.unattendedActionPolicy;
+    }
     if (this.iterationBudget) {
       options.iterationBudget = this.iterationBudget;
     }
@@ -590,7 +635,7 @@ export class SubAgentContext {
    * @returns {Array} Filtered AGENT_TOOLS
    */
   _getFilteredTools() {
-    if (!this.allowedTools || this.allowedTools.length === 0) {
+    if (this.allowedTools === null) {
       return AGENT_TOOLS;
     }
     return AGENT_TOOLS.filter((t) =>
@@ -638,10 +683,8 @@ export class SubAgentContext {
       parentTraceId: this._hookParentTraceId || null,
       checkpointIds: [...this._checkpointIds],
       toolUseIds: [...this._toolUseIds],
-      worktreeId:
-        worktree?.branch || this._worktreeBranch || null,
-      worktreePath:
-        worktree?.path || this._worktreePath || null,
+      worktreeId: worktree?.branch || this._worktreeBranch || null,
+      worktreePath: worktree?.path || this._worktreePath || null,
     };
   }
 

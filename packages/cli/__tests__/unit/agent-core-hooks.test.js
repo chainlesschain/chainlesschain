@@ -115,6 +115,31 @@ describe("PostToolUse feedback", () => {
     expect(res.error).toBeUndefined();
     expect(res.hookFeedback).toBe("reformat needed");
   });
+
+  it("fails open visibly when an observe-only PostToolUse hook cannot spawn", async () => {
+    const onHookIncident = vi.fn();
+    const res = await executeTool(
+      "read_file",
+      { path: file },
+      {
+        cwd: tmp,
+        settingsHooks: post("cc-definitely-missing-post-hook-7f5c2"),
+        onHookIncident,
+      },
+    );
+
+    expect(res.error).toBeUndefined();
+    expect(res.content).toBe("hello");
+    expect(res.hookIncidents).toEqual([
+      expect.objectContaining({
+        code: "CC_HOOK_OBSERVER_DEGRADED",
+        event: "PostToolUse",
+        source: "settings-command",
+        degraded: true,
+      }),
+    ]);
+    expect(onHookIncident).toHaveBeenCalledWith(res.hookIncidents[0]);
+  });
 });
 
 describe("Hooks v2 real tool lifecycle producers", () => {
@@ -173,10 +198,7 @@ describe("Hooks v2 real tool lifecycle producers", () => {
         error_code: "ENOENT",
       }),
     );
-    expect(emit).not.toHaveBeenCalledWith(
-      "FileChanged",
-      expect.anything(),
-    );
+    expect(emit).not.toHaveBeenCalledWith("FileChanged", expect.anything());
   });
 
   it("emits one PostToolBatch aggregate with bounded identity fields", () => {
@@ -565,24 +587,37 @@ describe("PreToolUse strictest-merge (CC_HOOK_STRICT_MERGE)", () => {
     delete process.env.CC_HOOK_STRICT_MERGE;
   });
 
-  it("default: an earlier ask MASKS a later block (short-circuit)", async () => {
+  it("default: a later block WINS over an earlier ask", async () => {
     const res = await executeTool(
       "read_file",
       { path: file },
       { cwd: tmp, settingsHooks: twoPre(HOOK_ASK, HOOK_BLOCK_TAGGED) },
     );
-    // Headless has no confirmer, so the ask still falls closed (blocked) — but
-    // the LATER block hook never ran, so its tag is absent.
-    expect(res.error).toBeDefined();
-    expect(res.error).not.toContain("STRICT_BLOCKED");
+    expect(res.error).toContain("STRICT_BLOCKED");
+    expect(res.policy).toMatchObject({ decision: "block", via: "hook" });
   });
 
-  it("CC_HOOK_STRICT_MERGE=1: a later block WINS over an earlier ask", async () => {
-    process.env.CC_HOOK_STRICT_MERGE = "1";
+  it("CC_HOOK_STRICT_MERGE=0 cannot weaken the authority boundary", async () => {
+    process.env.CC_HOOK_STRICT_MERGE = "0";
     const res = await executeTool(
       "read_file",
       { path: file },
       { cwd: tmp, settingsHooks: twoPre(HOOK_ASK, HOOK_BLOCK_TAGGED) },
+    );
+    expect(res.error).toContain("STRICT_BLOCKED");
+    expect(res.policy).toMatchObject({ decision: "block", via: "hook" });
+  });
+
+  it("managed policy also ignores an attempted strict-merge downgrade", async () => {
+    process.env.CC_HOOK_STRICT_MERGE = "0";
+    const res = await executeTool(
+      "read_file",
+      { path: file },
+      {
+        cwd: tmp,
+        settingsHooks: twoPre(HOOK_ASK, HOOK_BLOCK_TAGGED),
+        hostManagedToolPolicy: { tools: {} },
+      },
     );
     expect(res.error).toContain("STRICT_BLOCKED");
     expect(res.policy).toMatchObject({ decision: "block", via: "hook" });
@@ -666,5 +701,46 @@ describe("hook envelope tracing (P2 trace_id/parent_id)", () => {
     expect(payload.trace_id).toMatch(/^run-/);
     expect("parent_id" in payload).toBe(false);
     expect(payload.event_id).toMatch(/^evt_/);
+  });
+});
+
+describe("authority-bearing hook failures", () => {
+  it("fails closed when a PreToolUse hook cannot spawn", async () => {
+    const res = await executeTool(
+      "read_file",
+      { path: file },
+      {
+        cwd: tmp,
+        settingsHooks: pre("cc-definitely-missing-hook-command-7f5c2"),
+      },
+    );
+
+    expect(res.error).toMatch(/\[Hook\] PreToolUse blocked/);
+    expect(res.policy).toMatchObject({ decision: "block", via: "hook" });
+  });
+
+  it("blocks tools when a hook authority source was only partially loaded", async () => {
+    const settingsHooks = {};
+    Object.defineProperty(settingsHooks, "_authorityErrors", {
+      value: Object.freeze([
+        Object.freeze({
+          sourceFile: path.join(tmp, ".claude", "settings.json"),
+          code: "CC_HOOK_SETTINGS_INVALID",
+        }),
+      ]),
+      enumerable: false,
+    });
+
+    const res = await executeTool(
+      "read_file",
+      { path: file },
+      { cwd: tmp, settingsHooks },
+    );
+
+    expect(res).toMatchObject({
+      policy: { decision: "blocked", via: "hook-authority-load" },
+      incidents: [{ code: "CC_HOOK_SETTINGS_INVALID" }],
+    });
+    expect(res.content).toBeUndefined();
   });
 });
