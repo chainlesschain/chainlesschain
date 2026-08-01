@@ -5695,6 +5695,25 @@ async function executeToolInner(
         skillSubRef = subCtx;
         try {
           const result = await subCtx.run(args.input);
+          const resolvedFailure =
+            subCtx.status === "failed" ||
+            result?.success === false ||
+            Boolean(result?.error);
+          if (resolvedFailure) {
+            const failureDetail =
+              result?.error?.message ||
+              result?.error ||
+              result?.summary ||
+              `child status ${subCtx.status || "failed"}`;
+            return attachDescriptor({
+              success: false,
+              isolated: true,
+              skill: args.skill_name,
+              code: result?.code || "CC_SKILL_ISOLATED_EXECUTION_FAILED",
+              error: `Isolated skill execution failed: ${failureDetail}`,
+              ...(result?.summary ? { summary: result.summary } : {}),
+            });
+          }
           return attachDescriptor({
             success: true,
             isolated: true,
@@ -5704,6 +5723,10 @@ async function executeToolInner(
           });
         } catch (err) {
           return attachDescriptor({
+            success: false,
+            isolated: true,
+            skill: args.skill_name,
+            code: err?.code || "CC_SKILL_ISOLATED_EXECUTION_FAILED",
             error: `Isolated skill execution failed: ${err.message}`,
           });
         }
@@ -6706,9 +6729,20 @@ async function _executeSpawnSubAgent(args, ctx) {
     role,
     task,
     context: inheritedContext,
+    contextMode,
     tools: explicitTools,
     profile: profileName,
   } = args;
+  // Compatibility bridge for callers that used the original overloaded
+  // `context: fresh|fork` authority spelling. An explicit `contextMode` always
+  // wins and makes `context` unambiguously prompt text.
+  const legacyContextMode =
+    contextMode == null &&
+    (inheritedContext === "fresh" || inheritedContext === "fork")
+      ? inheritedContext
+      : null;
+  if (legacyContextMode) inheritedContext = null;
+  const requestedContextMode = contextMode ?? legacyContextMode;
   // Extended sub-agent contract (gap 2026-07-11 P1): per-spawn deny-list,
   // iteration cap and worktree isolation — spawn args win over the agent
   // file's frontmatter defaults.
@@ -6775,7 +6809,7 @@ async function _executeSpawnSubAgent(args, ctx) {
   // effort, context inheritance); this child's contract becomes the ceiling for
   // ITS own nested spawns (threaded via SubAgentContext.subAgentContract).
   let effectiveContract = null;
-  let explicitContext = null;
+  let explicitContextMode = null;
   let skillAllowlist = null;
   // MCP-server + hook allow-lists for child INHERITANCE. Default `[]` = inherit
   // NONE, which equals today's behavior (a spawned child gets zero MCP tools /
@@ -6795,9 +6829,18 @@ async function _executeSpawnSubAgent(args, ctx) {
       normalizeSubagentContract,
       assertValidSubagentContract,
     } = await import("../lib/subagent-contract.js");
-    assertValidSubagentContract(args);
-    const spawnContract = normalizeSubagentContract(args);
-    explicitContext = spawnContract.context ?? mdContract?.context ?? null;
+    // `context` predates the authority contract and remains arbitrary prompt
+    // text except for the narrow legacy spelling handled above. Map the
+    // separate contextMode field onto the contract's canonical `context` key.
+    const authorityArgs = { ...args };
+    delete authorityArgs.context;
+    delete authorityArgs.contextMode;
+    if (requestedContextMode != null) {
+      authorityArgs.context = requestedContextMode;
+    }
+    assertValidSubagentContract(authorityArgs);
+    const spawnContract = normalizeSubagentContract(authorityArgs);
+    explicitContextMode = spawnContract.context ?? mdContract?.context ?? null;
     effectiveContract = resolveSubagentContract({
       parent: ctx.subAgentContract || {},
       definition: mdContract,
@@ -6817,7 +6860,7 @@ async function _executeSpawnSubAgent(args, ctx) {
     const skillsDriven =
       spawnContract.skills != null ||
       mdContract?.skills != null ||
-      explicitContext != null;
+      explicitContextMode != null;
     skillAllowlist = skillsDriven ? (effectiveContract.skills ?? null) : null;
     // MCP/hooks work the OTHER way from skills: their pre-inheritance default is
     // "none", so the silent-`fresh`→[] resolution IS the safe current behavior —
@@ -6990,13 +7033,12 @@ async function _executeSpawnSubAgent(args, ctx) {
   }
 
   // Build a structured parent handoff if the caller did not provide explicit
-  // context. An explicit `context: fresh` suppresses inheritance entirely.
-  // An explicit `context: fresh` contract suppresses this inheritance (the
+  // An explicit `contextMode: fresh` contract suppresses this inheritance (the
   // child starts clean); `fork` / unset keep deterministic auto-inheritance.
   let resolvedContext = inheritedContext || null;
   if (
     !resolvedContext &&
-    explicitContext !== "fresh" &&
+    explicitContextMode !== "fresh" &&
     Array.isArray(ctx.parentMessages)
   ) {
     resolvedContext = buildSubAgentHandoffContext(ctx.parentMessages);

@@ -632,7 +632,13 @@ const CODING_AGENT_TOOL_CONTRACTS = Object.freeze([
         context: {
           type: "string",
           description:
-            "Optional condensed context from the parent agent to pass to the sub-agent",
+            'Optional condensed prompt context text from the parent agent. When contextMode is omitted, the exact legacy values "fresh" and "fork" still select the matching authority mode for backward compatibility; use contextMode to keep those strings unambiguously as prompt data.',
+        },
+        contextMode: {
+          type: "string",
+          enum: ["fresh", "fork"],
+          description:
+            'Authority inheritance mode. "fresh" withholds automatic parent context and inherited MCP/hooks/capabilities; "fork" permits inheritance within the parent ceiling. Defaults to fresh authority while retaining deterministic prompt handoff behavior.',
         },
         tools: {
           type: "array",

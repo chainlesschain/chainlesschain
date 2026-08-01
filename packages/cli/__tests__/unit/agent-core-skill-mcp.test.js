@@ -255,6 +255,44 @@ describe("run_skill controlled execution boundary", () => {
     expect(result.error).toMatch(
       /Isolated skill execution failed.*child failed/,
     );
+    expect(result).toMatchObject({
+      success: false,
+      isolated: true,
+      skill: "broken",
+      code: "CC_SKILL_ISOLATED_EXECUTION_FAILED",
+    });
+  });
+
+  it("does not wrap a resolved failed child result as success", async () => {
+    registerSkill({ id: "resolved-broken", isolation: true });
+    const child = {
+      id: "resolved-broken-child",
+      status: "active",
+      run: vi.fn(async () => {
+        child.status = "failed";
+        return {
+          summary: "Sub-agent failed: provider disconnected",
+          artifacts: [],
+          toolsUsed: [],
+        };
+      }),
+    };
+    mocks.createSubAgent.mockReturnValueOnce(child);
+
+    const result = await executeTool(
+      "run_skill",
+      { skill_name: "resolved-broken", input: "x" },
+      { cwd: tempDir },
+    );
+
+    expect(result).toMatchObject({
+      success: false,
+      isolated: true,
+      skill: "resolved-broken",
+      code: "CC_SKILL_ISOLATED_EXECUTION_FAILED",
+      summary: "Sub-agent failed: provider disconnected",
+    });
+    expect(result.error).toContain("provider disconnected");
   });
 
   it("preserves the materialization security incident code", async () => {

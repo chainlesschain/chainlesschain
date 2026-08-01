@@ -82,7 +82,12 @@ describe("Integration: Sub-Agent Isolation", () => {
       expect(tool.function.parameters.properties).toHaveProperty("role");
       expect(tool.function.parameters.properties).toHaveProperty("task");
       expect(tool.function.parameters.properties).toHaveProperty("context");
+      expect(tool.function.parameters.properties).toHaveProperty("contextMode");
       expect(tool.function.parameters.properties).toHaveProperty("tools");
+      expect(tool.function.parameters.properties.contextMode.enum).toEqual([
+        "fresh",
+        "fork",
+      ]);
       // Only `task` is schema-required. `role` is conditionally required
       // (unless `agent` is given) and enforced at execution time, not in the
       // JSON schema — see spawn_sub_agent delegation (commit c2b7f52ed).
@@ -363,8 +368,8 @@ describe("Integration: Sub-Agent Isolation", () => {
       expect(opts.settingsHooks).toBeUndefined();
     });
 
-    it("inherits ALL parent MCP tools on context:fork", async () => {
-      const opts = await spawnAndCapture({ context: "fork" }, parentMcp);
+    it("inherits ALL parent MCP tools on contextMode:fork", async () => {
+      const opts = await spawnAndCapture({ contextMode: "fork" }, parentMcp);
       expect(Object.keys(opts.externalToolDescriptors).sort()).toEqual([
         "mcp__fs__read",
         "mcp__github__create_issue",
@@ -384,11 +389,36 @@ describe("Integration: Sub-Agent Isolation", () => {
       );
     });
 
-    it("inherits parent hooks on context:fork", async () => {
+    it("inherits parent hooks on contextMode:fork", async () => {
       const opts = await spawnAndCapture(
-        { context: "fork" },
+        { contextMode: "fork" },
         { settingsHooks: parentHooks },
       );
+      expect(opts.settingsHooks).toEqual(parentHooks);
+    });
+
+    it("keeps arbitrary context text separate from fresh authority", async () => {
+      const opts = await spawnAndCapture(
+        { context: "fork", contextMode: "fresh" },
+        { ...parentMcp, settingsHooks: parentHooks },
+      );
+      expect(opts.inheritedContext).toBe("fork");
+      expect(opts.subAgentContract.context).toBe("fresh");
+      expect(opts.externalToolDescriptors).toBeUndefined();
+      expect(opts.settingsHooks).toBeUndefined();
+    });
+
+    it("preserves legacy context:fork as authority when contextMode is absent", async () => {
+      const opts = await spawnAndCapture(
+        { context: "fork" },
+        { ...parentMcp, settingsHooks: parentHooks },
+      );
+      expect(opts.inheritedContext).toBeNull();
+      expect(opts.subAgentContract.context).toBe("fork");
+      expect(Object.keys(opts.externalToolDescriptors).sort()).toEqual([
+        "mcp__fs__read",
+        "mcp__github__create_issue",
+      ]);
       expect(opts.settingsHooks).toEqual(parentHooks);
     });
 
@@ -459,11 +489,11 @@ describe("Integration: Sub-Agent Isolation", () => {
       expect(opts.db).toBeUndefined();
     });
 
-    it("does NOT grant memory on a top-level context:fork (parent ceiling lacks memory)", async () => {
+    it("does NOT grant memory on a top-level contextMode:fork (parent ceiling lacks memory)", async () => {
       // fork inherits the parent CONTRACT's memory, which is unset at top level,
       // so a bare fork must not silently hand the child the memory db.
       const opts = await spawnAndCapture(
-        { context: "fork" },
+        { contextMode: "fork" },
         { memoryDb: parentDb },
       );
       expect(opts.memoryEnabled).toBe(false);
