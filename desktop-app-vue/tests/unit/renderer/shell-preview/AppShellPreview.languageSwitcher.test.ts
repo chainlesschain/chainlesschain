@@ -57,6 +57,11 @@ describe("AppShellPreview · language switcher in topbar", () => {
           LanguageSwitcher: {
             template: '<div class="language-switcher-stub" />',
           },
+          CommandPalette: {
+            props: ["open"],
+            template:
+              '<div class="command-palette-stub" :data-open="String(open)" />',
+          },
           PlusOutlined: true,
           DownOutlined: true,
           FolderOpenOutlined: true,
@@ -74,6 +79,14 @@ describe("AppShellPreview · language switcher in topbar", () => {
     const topbarActions = wrapper.find(".cb-shell__topbar-actions");
     expect(topbarActions.exists()).toBe(true);
     expect(topbarActions.find(".language-switcher-stub").exists()).toBe(true);
+
+    const palette = wrapper.find(".command-palette-stub");
+    expect(palette.attributes("data-open")).toBe("false");
+    window.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "K", ctrlKey: true }),
+    );
+    await flushPromises();
+    expect(palette.attributes("data-open")).toBe("true");
 
     wrapper.unmount();
   });

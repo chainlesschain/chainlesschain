@@ -56,3 +56,7 @@ export function dispatchSlash(
 export function listRegisteredHandlers(): string[] {
   return Array.from(handlers.keys());
 }
+
+export function hasSlashHandler(id: string | null | undefined): boolean {
+  return typeof id === "string" && id.length > 0 && handlers.has(id);
+}

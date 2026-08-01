@@ -42,7 +42,9 @@
             :class="[
               'result-item',
               activeIndex === item._flatIndex ? 'active' : '',
+              item.enabled ? '' : 'disabled',
             ]"
+            :aria-disabled="!item.enabled"
             @click="execute(item)"
             @mouseenter="activeIndex = item._flatIndex"
           >
@@ -62,80 +64,70 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref, watch } from "vue";
+import {
+  computed,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  watch,
+} from "vue";
 import { SearchOutlined } from "@ant-design/icons-vue";
-import { storeToRefs } from "pinia";
-import { useExtensionRegistryStore } from "../stores/extensionRegistry";
+import { message } from "ant-design-vue";
+import {
+  desktopCommandRegistry,
+  type DesktopCommandSurface,
+} from "../commands/desktop-command-registry";
 
 interface Props {
   open: boolean;
+  surface?: DesktopCommandSurface;
 }
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+  surface: "v2",
+});
 const emit = defineEmits<{
   (e: "update:open", v: boolean): void;
 }>();
 
-const registry = useExtensionRegistryStore();
-const { slashCommands, spaces } = storeToRefs(registry);
-
 const query = ref("");
 const activeIndex = ref(0);
 const inputRef = ref<any>(null);
+const registryVersion = ref(0);
+let unsubscribeRegistry: (() => void) | null = null;
 
 interface PaletteItem {
   id: string;
   label: string;
   hint?: string;
   group: string;
-  execute: () => void;
+  enabled: boolean;
+  disabledReason?: string;
+  keywords: readonly string[];
   _flatIndex: number;
 }
 
-const systemActions: Omit<PaletteItem, "_flatIndex">[] = [
-  {
-    id: "sys:new-session",
-    label: "新会话",
-    group: "系统",
-    execute: () => console.debug("[Palette] new session"),
-  },
-  {
-    id: "sys:toggle-artifact",
-    label: "切换 Artifact 面板",
-    group: "系统",
-    execute: () => console.debug("[Palette] toggle artifact"),
-  },
-];
-
 const groupedResults = computed(() => {
+  void registryVersion.value;
   const q = query.value.toLowerCase().trim();
-
-  const spaceItems: Omit<PaletteItem, "_flatIndex">[] = spaces.value.map(
-    (s) => ({
-      id: `space:${s.id}`,
-      label: s.name,
-      hint: "切换空间",
-      group: "空间",
-      execute: () => console.debug("[Palette] switch space", s.id),
-    }),
-  );
-
-  const slashItems: Omit<PaletteItem, "_flatIndex">[] = slashCommands.value.map(
-    (c) => ({
-      id: `slash:${c.id}`,
-      label: `/${c.trigger}`,
-      hint: c.description,
-      group: "命令",
-      execute: () => console.debug("[Palette] run slash", c.trigger),
-    }),
-  );
-
-  const all = [...systemActions, ...spaceItems, ...slashItems];
+  const all: Omit<PaletteItem, "_flatIndex">[] = desktopCommandRegistry
+    .list(props.surface)
+    .map((command) => ({
+      id: command.id,
+      label: command.title,
+      hint: command.disabledReason || command.shortcut || command.description,
+      group: command.category,
+      enabled: command.enabled,
+      disabledReason: command.disabledReason,
+      keywords: command.keywords,
+    }));
   const filtered = q
     ? all.filter(
         (x) =>
           x.label.toLowerCase().includes(q) ||
-          (x.hint || "").toLowerCase().includes(q),
+          (x.hint || "").toLowerCase().includes(q) ||
+          x.keywords.some((keyword) => keyword.toLowerCase().includes(q)),
       )
     : all;
 
@@ -178,8 +170,18 @@ function handleKeydown(e: KeyboardEvent) {
   }
 }
 
-function execute(item: PaletteItem) {
-  item.execute();
+async function execute(item: PaletteItem) {
+  if (!item.enabled) {
+    message.warning(item.disabledReason || "当前界面暂不支持此命令");
+    return;
+  }
+  const result = await desktopCommandRegistry.execute(item.id, props.surface, {
+    source: "palette",
+  });
+  if (!result.ok) {
+    message.warning(result.reason || "命令执行失败");
+    return;
+  }
   close();
 }
 
@@ -199,6 +201,17 @@ watch(
     }
   },
 );
+
+onMounted(() => {
+  unsubscribeRegistry = desktopCommandRegistry.subscribe(() => {
+    registryVersion.value += 1;
+  });
+});
+
+onBeforeUnmount(() => {
+  unsubscribeRegistry?.();
+  unsubscribeRegistry = null;
+});
 </script>
 
 <style>
@@ -253,6 +266,11 @@ watch(
 .result-item.active,
 .result-item:hover {
   background: #f0f5ff;
+}
+
+.result-item.disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
 }
 
 .item-label {

@@ -21,20 +21,21 @@
           @keydown.up.prevent="selectPrevious"
           @keydown.enter.prevent="executeSelected"
           @keydown.esc="close"
-        >
+        />
         <span class="search-hint">Esc 关闭</span>
       </div>
 
       <!-- 命令列表 -->
-      <div
-        ref="commandList"
-        class="command-list"
-      >
+      <div ref="commandList" class="command-list">
         <div
           v-for="(command, index) in filteredCommands"
           :key="command.key"
           class="command-item"
-          :class="{ active: index === selectedIndex }"
+          :class="{
+            active: index === selectedIndex,
+            disabled: !command.enabled,
+          }"
+          :aria-disabled="!command.enabled"
           @click="executeCommand(command)"
           @mouseenter="selectedIndex = index"
         >
@@ -42,12 +43,9 @@
             <div class="command-description">
               {{ command.description }}
             </div>
-            <div
-              v-if="command.scope !== 'global'"
-              class="command-scope"
-            >
+            <div v-if="command.scope" class="command-scope">
               <TagOutlined />
-              {{ command.scope }}
+              {{ command.disabledReason || command.scope }}
             </div>
           </div>
           <div class="command-shortcut">
@@ -56,17 +54,10 @@
         </div>
 
         <!-- 空状态 -->
-        <div
-          v-if="filteredCommands.length === 0"
-          class="empty-state"
-        >
+        <div v-if="filteredCommands.length === 0" class="empty-state">
           <InboxOutlined class="empty-icon" />
-          <div class="empty-text">
-            没有找到匹配的命令
-          </div>
-          <div class="empty-hint">
-            试试其他关键词
-          </div>
+          <div class="empty-text">没有找到匹配的命令</div>
+          <div class="empty-hint">试试其他关键词</div>
         </div>
       </div>
 
@@ -89,6 +80,7 @@
 import { logger } from "@/utils/logger";
 
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from "vue";
+import { message } from "ant-design-vue";
 import {
   SearchOutlined,
   TagOutlined,
@@ -99,6 +91,7 @@ import {
   CloseOutlined,
 } from "@ant-design/icons-vue";
 import keyboardShortcuts from "@/utils/keyboard-shortcuts";
+import { desktopCommandRegistry } from "@/commands/desktop-command-registry";
 
 const visible = ref(false);
 const searchQuery = ref("");
@@ -106,6 +99,19 @@ const selectedIndex = ref(0);
 const searchInput = ref(null);
 const commandList = ref(null);
 const allCommands = ref([]);
+let unregisterRegistryListener = null;
+
+const refreshCommands = () => {
+  allCommands.value = desktopCommandRegistry.list("legacy").map((command) => ({
+    key: command.id,
+    description: command.title,
+    scope: command.category,
+    keyDisplay: command.shortcut || "",
+    keywords: command.keywords,
+    enabled: command.enabled,
+    disabledReason: command.disabledReason,
+  }));
+};
 
 // 过滤后的命令列表
 const filteredCommands = computed(() => {
@@ -119,7 +125,8 @@ const filteredCommands = computed(() => {
     return (
       command.description.toLowerCase().includes(query) ||
       command.keyDisplay.toLowerCase().includes(query) ||
-      command.scope.toLowerCase().includes(query)
+      command.scope.toLowerCase().includes(query) ||
+      command.keywords.some((keyword) => keyword.toLowerCase().includes(query))
     );
   });
 });
@@ -151,7 +158,7 @@ const show = () => {
   visible.value = true;
   searchQuery.value = "";
   selectedIndex.value = 0;
-  allCommands.value = keyboardShortcuts.getAllCommands();
+  refreshCommands();
 
   // 聚焦搜索框
   nextTick(() => {
@@ -202,9 +209,19 @@ const executeSelected = () => {
 /**
  * 执行命令
  */
-const executeCommand = (command) => {
+const executeCommand = async (command) => {
+  if (!command.enabled) {
+    message.warning(command.disabledReason || "当前界面暂不支持此命令");
+    return;
+  }
   try {
-    command.handler();
+    const result = await desktopCommandRegistry.execute(command.key, "legacy", {
+      source: "palette",
+    });
+    if (!result.ok) {
+      message.warning(result.reason || "命令执行失败");
+      return;
+    }
     close();
   } catch (error) {
     logger.error("[CommandPalette] Execute error:", error);
@@ -219,17 +236,24 @@ const handleShowEvent = () => {
 };
 
 const handleHideEvent = () => {
-  close();
+  visible.value = false;
 };
 
 onMounted(() => {
   window.addEventListener("show-command-palette", handleShowEvent);
   window.addEventListener("hide-command-palette", handleHideEvent);
+  unregisterRegistryListener = desktopCommandRegistry.subscribe(() => {
+    if (visible.value) {
+      refreshCommands();
+    }
+  });
 });
 
 onUnmounted(() => {
   window.removeEventListener("show-command-palette", handleShowEvent);
   window.removeEventListener("hide-command-palette", handleHideEvent);
+  unregisterRegistryListener?.();
+  unregisterRegistryListener = null;
 });
 
 // 暴露方法
@@ -301,6 +325,11 @@ defineExpose({
 .command-item:hover,
 .command-item.active {
   background-color: #f5f5f5;
+}
+
+.command-item.disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
 }
 
 .command-info {

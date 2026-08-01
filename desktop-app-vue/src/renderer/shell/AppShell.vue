@@ -263,11 +263,17 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref } from "vue";
+import { onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { useExtensionRegistryStore } from "../stores/extensionRegistry";
 import { useArtifactStore } from "../stores/artifacts";
+import { desktopCommandRegistry } from "../commands/desktop-command-registry";
+import { registerCoreDesktopCommands } from "../commands/core-desktop-commands";
 import { applyBrandTheme, clearBrandTheme } from "./theme-applier";
-import { registerSlashHandler } from "./slash-dispatch";
+import {
+  dispatchSlash,
+  hasSlashHandler,
+  registerSlashHandler,
+} from "./slash-dispatch";
 import "./widgets";
 import ShellSidebar from "./ShellSidebar.vue";
 import ConversationStream from "./ConversationStream.vue";
@@ -469,6 +475,13 @@ function closeArtifact() {
   artifactStore.close();
 }
 
+function toggleArtifact() {
+  artifactOpen.value = !artifactOpen.value;
+  if (!artifactOpen.value) {
+    artifactStore.close();
+  }
+}
+
 function handleKeydown(e: KeyboardEvent) {
   const isMod = e.ctrlKey || e.metaKey;
   if (isMod && (e.key === "k" || e.key === "K")) {
@@ -542,6 +555,132 @@ let unregisterIdentityLinkingHandler: (() => void) | null = null;
 let unregisterTerminalHandler: (() => void) | null = null;
 let unregisterDbPerformanceHandler: (() => void) | null = null;
 let unregisterLlmPerformanceHandler: (() => void) | null = null;
+const commandUnregisters: Array<() => void> = [];
+let contributionCommandUnregisters: Array<() => void> = [];
+
+function clearContributionCommands() {
+  for (const unregister of contributionCommandUnregisters.reverse()) {
+    unregister();
+  }
+  contributionCommandUnregisters = [];
+}
+
+function pluginPermissionAuthorizer(pluginId: string) {
+  return async (requiredPermissions: readonly string[]) => {
+    if (requiredPermissions.length === 0) {
+      return true;
+    }
+    const pluginApi = (
+      window as unknown as {
+        electronAPI?: {
+          plugin?: {
+            getPermissions?: (id: string) => Promise<{
+              success?: boolean;
+              error?: string;
+              permissions?: Array<{ permission: string; granted: boolean }>;
+            }>;
+          };
+        };
+      }
+    ).electronAPI?.plugin;
+    if (!pluginApi?.getPermissions) {
+      return { allowed: false, reason: "无法读取插件权限" };
+    }
+    const result = await pluginApi.getPermissions(pluginId);
+    if (result?.success === false) {
+      return {
+        allowed: false,
+        reason: result.error || "插件权限校验失败",
+      };
+    }
+    const granted = new Set(
+      (result?.permissions ?? [])
+        .filter((permission) => permission.granted)
+        .map((permission) => permission.permission),
+    );
+    const missing = requiredPermissions.filter(
+      (permission) => !granted.has(permission),
+    );
+    return missing.length === 0
+      ? true
+      : {
+          allowed: false,
+          reason: `缺少插件权限：${missing.join("、")}`,
+        };
+  };
+}
+
+function syncContributionCommands() {
+  clearContributionCommands();
+
+  for (const space of registry.spaces) {
+    const handlerId = `space:select:${space.id}`;
+    contributionCommandUnregisters.push(
+      desktopCommandRegistry.register({
+        id: `desktop.space.${space.id}`,
+        title: space.name,
+        description: space.description || "切换空间",
+        category: "空间",
+        surfaces: ["v2"],
+        keywords: [space.name, space.description || "", "空间"],
+        requiredPermissions: space.permissions,
+        authorize: pluginPermissionAuthorizer(space.pluginId),
+        availability: () => ({
+          enabled: hasSlashHandler(handlerId),
+          reason: hasSlashHandler(handlerId)
+            ? undefined
+            : "该空间未注册可执行 handler",
+        }),
+        telemetryEvent: "desktop.command.select_space",
+        handler: () => {
+          if (
+            !dispatchSlash(handlerId, {
+              trigger: "palette:select-space",
+              args: space.id,
+            })
+          ) {
+            throw new Error("空间 handler 当前不可用");
+          }
+        },
+      }),
+    );
+  }
+
+  for (const command of registry.slashCommands) {
+    const handlerId = command.handler;
+    const trigger = command.trigger.replace(/^\//, "");
+    contributionCommandUnregisters.push(
+      desktopCommandRegistry.register({
+        id: `desktop.slash.${command.id}`,
+        title: `/${trigger}`,
+        description: command.description,
+        category: "命令",
+        surfaces: ["v2"],
+        keywords: [trigger, command.description, command.pluginId],
+        requiredPermissions: command.requirePermissions,
+        authorize: pluginPermissionAuthorizer(command.pluginId),
+        availability: () => ({
+          enabled: hasSlashHandler(handlerId),
+          reason: hasSlashHandler(handlerId)
+            ? undefined
+            : "该命令未注册可执行 handler",
+        }),
+        telemetryEvent: "desktop.command.run_slash",
+        handler: () => {
+          if (!dispatchSlash(handlerId, { trigger, args: "" })) {
+            throw new Error("命令 handler 当前不可用");
+          }
+        },
+      }),
+    );
+  }
+}
+
+watch(
+  () => [registry.spaces, registry.slashCommands],
+  syncContributionCommands,
+  { deep: true },
+);
 
 onMounted(async () => {
   window.addEventListener("keydown", handleKeydown);
@@ -957,7 +1096,62 @@ onMounted(async () => {
       llmPerformancePanelOpen.value = true;
     },
   );
+  commandUnregisters.push(
+    registerCoreDesktopCommands({
+      surface: "v2",
+      newSession: {
+        availability: () => ({
+          enabled: hasSlashHandler("builtin:openAIChatPanel"),
+          reason: "AI 会话入口当前不可用",
+        }),
+        run: () => {
+          if (
+            !dispatchSlash("builtin:openAIChatPanel", {
+              trigger: "palette:new-session",
+              args: "",
+            })
+          ) {
+            throw new Error("AI 会话入口当前不可用");
+          }
+        },
+      },
+      toggleArtifact: { run: toggleArtifact },
+      openSettings: {
+        availability: () => ({
+          enabled: hasSlashHandler("builtin:openSettingsPanel"),
+          reason: "设置入口当前不可用",
+        }),
+        run: () => {
+          if (
+            !dispatchSlash("builtin:openSettingsPanel", {
+              trigger: "palette:settings",
+              args: "",
+            })
+          ) {
+            throw new Error("设置入口当前不可用");
+          }
+        },
+      },
+      chooseProject: {
+        availability: () => ({
+          enabled: hasSlashHandler("builtin:openProjectsPanel"),
+          reason: "项目入口当前不可用",
+        }),
+        run: () => {
+          if (
+            !dispatchSlash("builtin:openProjectsPanel", {
+              trigger: "palette:projects",
+              args: "",
+            })
+          ) {
+            throw new Error("项目入口当前不可用");
+          }
+        },
+      },
+    }),
+  );
   await registry.refreshAll();
+  syncContributionCommands();
   appliedThemeVars = applyBrandTheme(registry.brandTheme);
   artifactStore.seedIfEmpty();
 });
@@ -965,6 +1159,11 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   window.removeEventListener("keydown", handleKeydown);
   clearBrandTheme(appliedThemeVars);
+  clearContributionCommands();
+  for (const unregister of commandUnregisters.reverse()) {
+    unregister();
+  }
+  commandUnregisters.length = 0;
   unregisterAdminHandler?.();
   unregisterAdminHandler = null;
   unregisterPromptsHandler?.();

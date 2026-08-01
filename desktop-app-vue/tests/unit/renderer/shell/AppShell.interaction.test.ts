@@ -14,6 +14,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { mount, flushPromises } from "@vue/test-utils";
 import { setActivePinia, createPinia } from "pinia";
 import AppShell from "@/shell/AppShell.vue";
+import { desktopCommandRegistry } from "@/commands/desktop-command-registry";
 
 function stubPluginAPI() {
   const api = {
@@ -185,5 +186,30 @@ describe("AppShell · interaction integration", () => {
 
     expect(wrapper.find(".admin-console-modal").exists()).toBe(true);
     wrapper.unmount();
+  });
+
+  it("共享命令注册表执行真实 Artifact handler", async () => {
+    const wrapper = await mountShell();
+    expect(wrapper.find("artifact-panel-stub").exists()).toBe(false);
+    expect(
+      desktopCommandRegistry
+        .list("v2")
+        .find((command) => command.id === "desktop.toggle-artifact"),
+    ).toMatchObject({ enabled: true, title: "切换 Artifact 面板" });
+
+    await expect(
+      desktopCommandRegistry.execute("desktop.toggle-artifact", "v2", {
+        source: "test",
+      }),
+    ).resolves.toMatchObject({ ok: true });
+    await flushPromises();
+
+    expect(wrapper.find("artifact-panel-stub").exists()).toBe(true);
+    wrapper.unmount();
+    expect(
+      desktopCommandRegistry
+        .list("v2")
+        .some((command) => command.id === "desktop.toggle-artifact"),
+    ).toBe(false);
   });
 });

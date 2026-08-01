@@ -3,8 +3,9 @@
  * 提供统一的键盘快捷键管理，支持作用域、禁用/启用、命令面板等
  */
 
-import { logger } from '@/utils/logger';
-import type { Router } from 'vue-router';
+import { logger } from "@/utils/logger";
+import { desktopCommandRegistry } from "@/commands/desktop-command-registry";
+import type { Router } from "vue-router";
 
 // ==================== 类型定义 ====================
 
@@ -286,7 +287,9 @@ class KeyboardShortcuts {
    * 格式化快捷键用于显示
    */
   formatKeyForDisplay(key: string): string {
-    const isMac = typeof navigator !== 'undefined' && navigator.platform.toUpperCase().indexOf("MAC") >= 0;
+    const isMac =
+      typeof navigator !== "undefined" &&
+      navigator.platform.toUpperCase().indexOf("MAC") >= 0;
 
     if (isMac) {
       return key.replace("Ctrl", "⌘").replace("Alt", "⌥").replace("Shift", "⇧");
@@ -495,82 +498,426 @@ keyboardShortcuts.registerMultiple([
 /**
  * 注册菜单导航命令
  */
-export function registerMenuCommands(router: Router): void {
+export function registerMenuCommands(router: Router): () => void {
   const menuCommands: MenuCommandConfig[] = [
-    { key: "menu-project-categories", path: "/projects/categories", title: "项目分类", scope: "navigation", icon: "AppstoreOutlined" },
-    { key: "menu-projects", path: "/projects", title: "我的项目", scope: "navigation", icon: "FolderOpenOutlined", shortcut: "Alt+1" },
-    { key: "menu-project-list-management", path: "/projects/management", title: "项目列表管理", scope: "navigation", icon: "TableOutlined" },
-    { key: "menu-workspace-management", path: "/projects/workspace", title: "工作区管理", scope: "navigation", icon: "ApartmentOutlined" },
-    { key: "menu-template-management", path: "/template-management", title: "模板管理", scope: "navigation", icon: "TagsOutlined" },
-    { key: "menu-project-market", path: "/projects/market", title: "项目市场", scope: "navigation", icon: "ShopOutlined" },
-    { key: "menu-project-collaboration", path: "/projects/collaboration", title: "协作项目", scope: "navigation", icon: "TeamOutlined" },
-    { key: "menu-project-archived", path: "/projects/archived", title: "已归档项目", scope: "navigation", icon: "InboxOutlined" },
-    { key: "menu-home", path: "/", title: "知识首页", scope: "navigation", icon: "HomeOutlined" },
-    { key: "menu-knowledge-list", path: "/knowledge/list", title: "我的知识", scope: "navigation", icon: "FileTextOutlined", shortcut: "Alt+2" },
-    { key: "menu-knowledge-graph", path: "/knowledge/graph", title: "知识图谱", scope: "navigation", icon: "NodeIndexOutlined" },
-    { key: "menu-file-import", path: "/file-import", title: "文件导入", scope: "navigation", icon: "CloudUploadOutlined" },
-    { key: "menu-image-upload", path: "/image-upload", title: "图片上传", scope: "navigation", icon: "FileImageOutlined" },
-    { key: "menu-audio-import", path: "/audio/import", title: "音频导入", scope: "navigation", icon: "SoundOutlined" },
-    { key: "menu-multimedia-demo", path: "/multimedia/demo", title: "多媒体处理", scope: "navigation", icon: "VideoCameraOutlined" },
-    { key: "menu-prompt-templates", path: "/prompt-templates", title: "提示词模板", scope: "navigation", icon: "TagsOutlined" },
-    { key: "menu-ai-chat", path: "/ai/chat", title: "AI对话", scope: "navigation", icon: "RobotOutlined", shortcut: "Alt+3" },
-    { key: "menu-knowledge-store", path: "/knowledge-store", title: "知识付费", scope: "navigation", icon: "ShopOutlined" },
-    { key: "menu-my-purchases", path: "/my-purchases", title: "我的购买", scope: "navigation", icon: "ShoppingCartOutlined" },
-    { key: "menu-did", path: "/did", title: "DID身份", scope: "navigation", icon: "IdcardOutlined", shortcut: "Alt+4" },
-    { key: "menu-credentials", path: "/credentials", title: "可验证凭证", scope: "navigation", icon: "SafetyCertificateOutlined" },
-    { key: "menu-contacts", path: "/contacts", title: "联系人", scope: "navigation", icon: "TeamOutlined" },
-    { key: "menu-friends", path: "/friends", title: "好友管理", scope: "navigation", icon: "UserOutlined" },
-    { key: "menu-posts", path: "/posts", title: "动态广场", scope: "navigation", icon: "CommentOutlined" },
-    { key: "menu-p2p-messaging", path: "/p2p-messaging", title: "P2P加密消息", scope: "navigation", icon: "MessageOutlined" },
-    { key: "menu-trading", path: "/trading", title: "交易中心", scope: "navigation", icon: "DashboardOutlined", shortcut: "Alt+5" },
-    { key: "menu-marketplace", path: "/marketplace", title: "交易市场", scope: "navigation", icon: "ShopOutlined" },
-    { key: "menu-contracts", path: "/contracts", title: "智能合约", scope: "navigation", icon: "AuditOutlined" },
-    { key: "menu-credit-score", path: "/credit-score", title: "信用评分", scope: "navigation", icon: "StarOutlined" },
-    { key: "menu-wallet", path: "/wallet", title: "钱包管理", scope: "navigation", icon: "WalletOutlined" },
-    { key: "menu-bridge", path: "/bridge", title: "跨链桥", scope: "navigation", icon: "SwapOutlined" },
-    { key: "menu-webide", path: "/webide", title: "Web IDE", scope: "navigation", icon: "CodeOutlined", shortcut: "Alt+6" },
-    { key: "menu-design-editor", path: "/design/new", title: "设计编辑器", scope: "navigation", icon: "BgColorsOutlined" },
-    { key: "menu-rss-feeds", path: "/rss/feeds", title: "RSS订阅", scope: "navigation", icon: "ReadOutlined" },
-    { key: "menu-email-accounts", path: "/email/accounts", title: "邮件管理", scope: "navigation", icon: "MailOutlined" },
-    { key: "menu-organizations", path: "/organizations", title: "组织管理", scope: "navigation", icon: "ApartmentOutlined", shortcut: "Alt+7" },
-    { key: "menu-enterprise-dashboard", path: "/enterprise/dashboard", title: "企业仪表板", scope: "navigation", icon: "DashboardOutlined" },
-    { key: "menu-permission-management", path: "/permissions", title: "权限管理", scope: "navigation", icon: "SafetyCertificateOutlined" },
-    { key: "menu-system-settings", path: "/settings/system", title: "系统配置", scope: "navigation", icon: "SettingOutlined", shortcut: "Alt+8" },
-    { key: "menu-settings", path: "/settings", title: "通用设置", scope: "navigation", icon: "SettingOutlined" },
-    { key: "menu-plugin-management", path: "/settings/plugins", title: "插件管理", scope: "navigation", icon: "AppstoreOutlined" },
-    { key: "menu-plugin-marketplace", path: "/plugins/marketplace", title: "插件市场", scope: "navigation", icon: "ShopOutlined" },
-    { key: "menu-plugin-publisher", path: "/plugins/publisher", title: "插件发布", scope: "navigation", icon: "CloudUploadOutlined" },
-    { key: "menu-skill-management", path: "/settings/skills", title: "技能管理", scope: "navigation", icon: "ThunderboltOutlined" },
-    { key: "menu-tool-management", path: "/settings/tools", title: "工具管理", scope: "navigation", icon: "ToolOutlined" },
-    { key: "menu-llm-settings", path: "/settings", title: "LLM配置", scope: "navigation", icon: "ApiOutlined", query: { tab: "llm" } },
-    { key: "menu-rag-settings", path: "/settings", title: "RAG配置", scope: "navigation", icon: "DatabaseOutlined", query: { tab: "rag" } },
-    { key: "menu-git-settings", path: "/settings", title: "Git同步", scope: "navigation", icon: "SyncOutlined", query: { tab: "git" } },
-    { key: "menu-sync-conflicts", path: "/sync/conflicts", title: "同步冲突管理", scope: "navigation", icon: "ExclamationCircleOutlined" },
-    { key: "menu-ukey-settings", path: "/settings", title: "UKey安全", scope: "navigation", icon: "SafetyOutlined", query: { tab: "ukey" } },
-    { key: "menu-database-performance", path: "/database/performance", title: "数据库性能监控", scope: "navigation", icon: "DashboardOutlined" },
+    {
+      key: "menu-project-categories",
+      path: "/projects/categories",
+      title: "项目分类",
+      scope: "navigation",
+      icon: "AppstoreOutlined",
+    },
+    {
+      key: "menu-projects",
+      path: "/projects",
+      title: "我的项目",
+      scope: "navigation",
+      icon: "FolderOpenOutlined",
+      shortcut: "Alt+1",
+    },
+    {
+      key: "menu-project-list-management",
+      path: "/projects/management",
+      title: "项目列表管理",
+      scope: "navigation",
+      icon: "TableOutlined",
+    },
+    {
+      key: "menu-workspace-management",
+      path: "/projects/workspace",
+      title: "工作区管理",
+      scope: "navigation",
+      icon: "ApartmentOutlined",
+    },
+    {
+      key: "menu-template-management",
+      path: "/template-management",
+      title: "模板管理",
+      scope: "navigation",
+      icon: "TagsOutlined",
+    },
+    {
+      key: "menu-project-market",
+      path: "/projects/market",
+      title: "项目市场",
+      scope: "navigation",
+      icon: "ShopOutlined",
+    },
+    {
+      key: "menu-project-collaboration",
+      path: "/projects/collaboration",
+      title: "协作项目",
+      scope: "navigation",
+      icon: "TeamOutlined",
+    },
+    {
+      key: "menu-project-archived",
+      path: "/projects/archived",
+      title: "已归档项目",
+      scope: "navigation",
+      icon: "InboxOutlined",
+    },
+    {
+      key: "menu-home",
+      path: "/",
+      title: "知识首页",
+      scope: "navigation",
+      icon: "HomeOutlined",
+    },
+    {
+      key: "menu-knowledge-list",
+      path: "/knowledge/list",
+      title: "我的知识",
+      scope: "navigation",
+      icon: "FileTextOutlined",
+      shortcut: "Alt+2",
+    },
+    {
+      key: "menu-knowledge-graph",
+      path: "/knowledge/graph",
+      title: "知识图谱",
+      scope: "navigation",
+      icon: "NodeIndexOutlined",
+    },
+    {
+      key: "menu-file-import",
+      path: "/file-import",
+      title: "文件导入",
+      scope: "navigation",
+      icon: "CloudUploadOutlined",
+    },
+    {
+      key: "menu-image-upload",
+      path: "/image-upload",
+      title: "图片上传",
+      scope: "navigation",
+      icon: "FileImageOutlined",
+    },
+    {
+      key: "menu-audio-import",
+      path: "/audio/import",
+      title: "音频导入",
+      scope: "navigation",
+      icon: "SoundOutlined",
+    },
+    {
+      key: "menu-multimedia-demo",
+      path: "/multimedia/demo",
+      title: "多媒体处理",
+      scope: "navigation",
+      icon: "VideoCameraOutlined",
+    },
+    {
+      key: "menu-prompt-templates",
+      path: "/prompt-templates",
+      title: "提示词模板",
+      scope: "navigation",
+      icon: "TagsOutlined",
+    },
+    {
+      key: "menu-ai-chat",
+      path: "/ai/chat",
+      title: "AI对话",
+      scope: "navigation",
+      icon: "RobotOutlined",
+      shortcut: "Alt+3",
+    },
+    {
+      key: "menu-knowledge-store",
+      path: "/knowledge-store",
+      title: "知识付费",
+      scope: "navigation",
+      icon: "ShopOutlined",
+    },
+    {
+      key: "menu-my-purchases",
+      path: "/my-purchases",
+      title: "我的购买",
+      scope: "navigation",
+      icon: "ShoppingCartOutlined",
+    },
+    {
+      key: "menu-did",
+      path: "/did",
+      title: "DID身份",
+      scope: "navigation",
+      icon: "IdcardOutlined",
+      shortcut: "Alt+4",
+    },
+    {
+      key: "menu-credentials",
+      path: "/credentials",
+      title: "可验证凭证",
+      scope: "navigation",
+      icon: "SafetyCertificateOutlined",
+    },
+    {
+      key: "menu-contacts",
+      path: "/contacts",
+      title: "联系人",
+      scope: "navigation",
+      icon: "TeamOutlined",
+    },
+    {
+      key: "menu-friends",
+      path: "/friends",
+      title: "好友管理",
+      scope: "navigation",
+      icon: "UserOutlined",
+    },
+    {
+      key: "menu-posts",
+      path: "/posts",
+      title: "动态广场",
+      scope: "navigation",
+      icon: "CommentOutlined",
+    },
+    {
+      key: "menu-p2p-messaging",
+      path: "/p2p-messaging",
+      title: "P2P加密消息",
+      scope: "navigation",
+      icon: "MessageOutlined",
+    },
+    {
+      key: "menu-trading",
+      path: "/trading",
+      title: "交易中心",
+      scope: "navigation",
+      icon: "DashboardOutlined",
+      shortcut: "Alt+5",
+    },
+    {
+      key: "menu-marketplace",
+      path: "/marketplace",
+      title: "交易市场",
+      scope: "navigation",
+      icon: "ShopOutlined",
+    },
+    {
+      key: "menu-contracts",
+      path: "/contracts",
+      title: "智能合约",
+      scope: "navigation",
+      icon: "AuditOutlined",
+    },
+    {
+      key: "menu-credit-score",
+      path: "/credit-score",
+      title: "信用评分",
+      scope: "navigation",
+      icon: "StarOutlined",
+    },
+    {
+      key: "menu-wallet",
+      path: "/wallet",
+      title: "钱包管理",
+      scope: "navigation",
+      icon: "WalletOutlined",
+    },
+    {
+      key: "menu-bridge",
+      path: "/bridge",
+      title: "跨链桥",
+      scope: "navigation",
+      icon: "SwapOutlined",
+    },
+    {
+      key: "menu-webide",
+      path: "/webide",
+      title: "Web IDE",
+      scope: "navigation",
+      icon: "CodeOutlined",
+      shortcut: "Alt+6",
+    },
+    {
+      key: "menu-design-editor",
+      path: "/design/new",
+      title: "设计编辑器",
+      scope: "navigation",
+      icon: "BgColorsOutlined",
+    },
+    {
+      key: "menu-rss-feeds",
+      path: "/rss/feeds",
+      title: "RSS订阅",
+      scope: "navigation",
+      icon: "ReadOutlined",
+    },
+    {
+      key: "menu-email-accounts",
+      path: "/email/accounts",
+      title: "邮件管理",
+      scope: "navigation",
+      icon: "MailOutlined",
+    },
+    {
+      key: "menu-organizations",
+      path: "/organizations",
+      title: "组织管理",
+      scope: "navigation",
+      icon: "ApartmentOutlined",
+      shortcut: "Alt+7",
+    },
+    {
+      key: "menu-enterprise-dashboard",
+      path: "/enterprise/dashboard",
+      title: "企业仪表板",
+      scope: "navigation",
+      icon: "DashboardOutlined",
+    },
+    {
+      key: "menu-permission-management",
+      path: "/permissions",
+      title: "权限管理",
+      scope: "navigation",
+      icon: "SafetyCertificateOutlined",
+    },
+    {
+      key: "menu-system-settings",
+      path: "/settings/system",
+      title: "系统配置",
+      scope: "navigation",
+      icon: "SettingOutlined",
+      shortcut: "Alt+8",
+    },
+    {
+      key: "menu-settings",
+      path: "/settings",
+      title: "通用设置",
+      scope: "navigation",
+      icon: "SettingOutlined",
+    },
+    {
+      key: "menu-plugin-management",
+      path: "/settings/plugins",
+      title: "插件管理",
+      scope: "navigation",
+      icon: "AppstoreOutlined",
+    },
+    {
+      key: "menu-plugin-marketplace",
+      path: "/plugins/marketplace",
+      title: "插件市场",
+      scope: "navigation",
+      icon: "ShopOutlined",
+    },
+    {
+      key: "menu-plugin-publisher",
+      path: "/plugins/publisher",
+      title: "插件发布",
+      scope: "navigation",
+      icon: "CloudUploadOutlined",
+    },
+    {
+      key: "menu-skill-management",
+      path: "/settings/skills",
+      title: "技能管理",
+      scope: "navigation",
+      icon: "ThunderboltOutlined",
+    },
+    {
+      key: "menu-tool-management",
+      path: "/settings/tools",
+      title: "工具管理",
+      scope: "navigation",
+      icon: "ToolOutlined",
+    },
+    {
+      key: "menu-llm-settings",
+      path: "/settings",
+      title: "LLM配置",
+      scope: "navigation",
+      icon: "ApiOutlined",
+      query: { tab: "llm" },
+    },
+    {
+      key: "menu-rag-settings",
+      path: "/settings",
+      title: "RAG配置",
+      scope: "navigation",
+      icon: "DatabaseOutlined",
+      query: { tab: "rag" },
+    },
+    {
+      key: "menu-git-settings",
+      path: "/settings",
+      title: "Git同步",
+      scope: "navigation",
+      icon: "SyncOutlined",
+      query: { tab: "git" },
+    },
+    {
+      key: "menu-sync-conflicts",
+      path: "/sync/conflicts",
+      title: "同步冲突管理",
+      scope: "navigation",
+      icon: "ExclamationCircleOutlined",
+    },
+    {
+      key: "menu-ukey-settings",
+      path: "/settings",
+      title: "UKey安全",
+      scope: "navigation",
+      icon: "SafetyOutlined",
+      query: { tab: "ukey" },
+    },
+    {
+      key: "menu-database-performance",
+      path: "/database/performance",
+      title: "数据库性能监控",
+      scope: "navigation",
+      icon: "DashboardOutlined",
+    },
   ];
 
+  const unregisterCommands: Array<() => void> = [];
+  const registeredShortcutKeys: string[] = [];
+
   menuCommands.forEach((menu) => {
+    const navigate = () => {
+      if (menu.query) {
+        router.push({ path: menu.path, query: menu.query });
+      } else {
+        router.push(menu.path);
+      }
+    };
+    const shortcutKey = menu.shortcut || menu.key;
     keyboardShortcuts.register({
-      key: menu.shortcut || menu.key,
+      key: shortcutKey,
       description: `打开 ${menu.title}`,
       scope: menu.scope,
       preventDefault: true,
-      handler: () => {
-        if (router) {
-          if (menu.query) {
-            router.push({ path: menu.path, query: menu.query });
-          } else {
-            router.push(menu.path);
-          }
-        }
-      },
+      handler: navigate,
     });
+    registeredShortcutKeys.push(shortcutKey);
+    unregisterCommands.push(
+      desktopCommandRegistry.register({
+        id: `desktop.legacy.navigation.${menu.key}`,
+        title: `打开 ${menu.title}`,
+        description: menu.path,
+        category: "导航",
+        surfaces: ["legacy"],
+        shortcut: menu.shortcut,
+        keywords: [menu.title, menu.path, menu.scope],
+        telemetryEvent: "desktop.command.navigate",
+        handler: navigate,
+      }),
+    );
   });
 
   logger.info(
     `[KeyboardShortcuts] Registered ${menuCommands.length} menu commands`,
   );
+
+  return () => {
+    for (const unregister of unregisterCommands.reverse()) {
+      unregister();
+    }
+    for (const shortcutKey of registeredShortcutKeys) {
+      keyboardShortcuts.unregister(shortcutKey);
+    }
+  };
 }
 
 export default keyboardShortcuts;

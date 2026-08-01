@@ -305,6 +305,8 @@
         <component :is="activeWidget.component" v-if="activeWidget" />
       </ArtifactDrawer>
 
+      <CommandPalette v-model:open="paletteOpen" surface="v6-preview" />
+
       <a-modal
         :open="projectPickerOpen"
         title="选择项目"
@@ -448,9 +450,11 @@ import {
   type PreviewStepStatus,
 } from "../stores/conversation-preview";
 import { registerSlashHandler } from "../shell/slash-dispatch";
+import { registerCoreDesktopCommands } from "../commands/core-desktop-commands";
 import ConversationList from "./ConversationList.vue";
 import DecentralEntries from "./DecentralEntries.vue";
 import ArtifactDrawer from "./ArtifactDrawer.vue";
+import CommandPalette from "../shell/CommandPalette.vue";
 import LanguageSwitcher from "../components/LanguageSwitcher.vue";
 import MobileBridgeStatus from "../components/layout/MobileBridgeStatus.vue";
 import ToolInvocationCard from "./components/ToolInvocationCard.vue";
@@ -566,6 +570,7 @@ const topbarTitle = computed(() => {
 });
 
 const artifactOpen = ref(false);
+const paletteOpen = ref(false);
 const activeEntryId = ref<DecentralEntryId | null>(null);
 const selectedFileId = ref<string | null>(null);
 const fileArtifact = ref<{ title: string; content: string } | null>(null);
@@ -880,9 +885,7 @@ async function syncModelLabelFromConfig() {
   }
   try {
     const config = (await llm.getConfig()) as
-      | Record<string, unknown>
-      | null
-      | undefined;
+      Record<string, unknown> | null | undefined;
     if (!config || typeof config !== "object") {
       return;
     }
@@ -988,6 +991,14 @@ function toggleArtifact() {
   artifactOpen.value = !artifactOpen.value;
 }
 
+function onGlobalKeydown(event: KeyboardEvent) {
+  const isMod = event.ctrlKey || event.metaKey;
+  if (isMod && (event.key === "k" || event.key === "K")) {
+    event.preventDefault();
+    paletteOpen.value = !paletteOpen.value;
+  }
+}
+
 // Phase 1.6 quick-entry: hard-flip put web-shell as the default but the
 // frameless titleBarStyle="hidden" hid the application menu so the
 // CmdOrCtrl+Shift+B accelerator was the only way back. This in-window
@@ -1060,6 +1071,7 @@ watch(
 );
 
 onMounted(async () => {
+  window.addEventListener("keydown", onGlobalKeydown);
   theme.restore();
   conversationStore.restore();
   // Fire-and-forget: lets the sidebar resolve real project names for any
@@ -1087,10 +1099,20 @@ onMounted(async () => {
       }),
     );
   }
+  unregisters.push(
+    registerCoreDesktopCommands({
+      surface: "v6-preview",
+      newSession: { run: newConversation },
+      toggleArtifact: { run: toggleArtifact },
+      openSettings: { run: openSettings },
+      chooseProject: { run: openProjectPicker },
+    }),
+  );
   syncModelLabelFromConfig();
 });
 
 onBeforeUnmount(() => {
+  window.removeEventListener("keydown", onGlobalKeydown);
   for (const off of unregisters) {
     off();
   }

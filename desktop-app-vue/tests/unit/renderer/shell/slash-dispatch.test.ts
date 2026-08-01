@@ -8,6 +8,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import {
   registerSlashHandler,
   dispatchSlash,
+  hasSlashHandler,
   listRegisteredHandlers,
 } from "@/shell/slash-dispatch";
 
@@ -33,6 +34,7 @@ describe("shell/slash-dispatch", () => {
   it("未注册的 handler dispatchSlash 返回 false", () => {
     const ok = dispatchSlash("t:missing", { trigger: "x", args: "" });
     expect(ok).toBe(false);
+    expect(hasSlashHandler("t:missing")).toBe(false);
   });
 
   it("handlerId 为空时 dispatchSlash 返回 false", () => {
@@ -86,5 +88,6 @@ describe("shell/slash-dispatch", () => {
     const ids = listRegisteredHandlers();
     expect(ids).toContain("t:a");
     expect(ids).toContain("t:b");
+    expect(hasSlashHandler("t:a")).toBe(true);
   });
 });

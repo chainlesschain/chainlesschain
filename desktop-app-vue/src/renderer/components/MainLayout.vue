@@ -1292,6 +1292,8 @@ const showCommandPalette = () => {
   commandPaletteRef.value?.show();
 };
 
+let unregisterMenuPaletteCommands = null;
+
 /**
  * 监听快捷键事件
  */
@@ -1402,7 +1404,7 @@ onMounted(async () => {
   store.initMenuData();
 
   // 注册菜单命令
-  registerMenuCommands(router);
+  unregisterMenuPaletteCommands = registerMenuCommands(router);
 
   // 加载社交数据
   try {
@@ -1422,6 +1424,8 @@ onMounted(async () => {
 onUnmounted(() => {
   // 移除快捷键监听
   window.removeEventListener("keydown", handleKeyboardShortcut);
+  unregisterMenuPaletteCommands?.();
+  unregisterMenuPaletteCommands = null;
 });
 </script>
 
