@@ -241,7 +241,25 @@ jobs:
           test "$(find native-assets -name '*.pack-manifest.json' | wc -l)" -eq 6
           test "$(find native-assets -name '*.sigstore.json' | wc -l)" -eq 6
           BASE_URL="https://github.com/${{ github.repository }}/releases/download/$TAG"
+          PUBLISHED_AT=$(git show -s --format=%cI "${{ github.sha }}")
           npm sbom --package-lock-only --sbom-format cyclonedx > native-assets/chainlesschain-cli-sbom.cdx.json
+          # npm's CycloneDX writer emits a wall-clock timestamp and random UUID.
+          # Bind both to the exact commit before hashing so an exact-SHA rebuild
+          # can reproduce the same SBOM identity instead of looking malicious.
+          node --input-type=module - native-assets/chainlesschain-cli-sbom.cdx.json "${{ github.sha }}" "$PUBLISHED_AT" <<'NODE'
+          import fs from "node:fs";
+          const [file, commit, publishedAt] = process.argv.slice(2);
+          const sbom = JSON.parse(fs.readFileSync(file, "utf8"));
+          const uuid = Buffer.from(commit.slice(0, 32), "hex");
+          if (uuid.length !== 16) throw new Error("release SHA cannot derive SBOM UUID");
+          uuid[6] = (uuid[6] & 0x0f) | 0x50;
+          uuid[8] = (uuid[8] & 0x3f) | 0x80;
+          const hex = uuid.toString("hex");
+          sbom.serialNumber = `urn:uuid:${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+          sbom.metadata ||= {};
+          sbom.metadata.timestamp = publishedAt;
+          fs.writeFileSync(file, `${JSON.stringify(sbom, null, 2)}\n`, "utf8");
+          NODE
           SBOM_SHA256=$(sha256sum native-assets/chainlesschain-cli-sbom.cdx.json | cut -d' ' -f1)
           CC_RELEASE_CHANNEL="stable" \
           CC_RELEASE_NOTES_URL="https://github.com/${{ github.repository }}/releases/tag/$TAG" \
@@ -250,6 +268,16 @@ jobs:
           CC_RELEASE_REQUIRED_TARGETS="node20-linux-x64,node20-linux-arm64,node20-win-x64,node20-win-arm64,node20-macos-x64,node20-macos-arm64" \
           node packages/cli/scripts/create-native-release-manifest.mjs \
             native-assets native-assets/chainlesschain-update.json "$BASE_URL"
+          # Make an exact-commit rebuild capable of producing the same signed
+          # manifest identity. Wall-clock time would make every safe retry look
+          # like a same-version replacement even when every artifact is equal.
+          node --input-type=module - native-assets/chainlesschain-update.json "$PUBLISHED_AT" <<'NODE'
+          import fs from "node:fs";
+          const [file, publishedAt] = process.argv.slice(2);
+          const manifest = JSON.parse(fs.readFileSync(file, "utf8"));
+          manifest.latest.publishedAt = publishedAt;
+          fs.writeFileSync(file, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+          NODE
           node -e 'require("fs").writeFileSync(process.argv[1], Buffer.from(process.env.UPDATE_PRIVATE_KEY_B64, "base64"))' "$RUNNER_TEMP/cli-update-private.pem"
           node -e 'require("fs").writeFileSync(process.argv[1], Buffer.from(process.env.UPDATE_PUBLIC_KEY_B64, "base64"))' "native-assets/cli-update-public-key.pem"
           node packages/cli/scripts/sign-pack-update-manifest.mjs \
@@ -278,10 +306,52 @@ jobs:
             echo "Release $TAG exists but its tag was not checked out" >&2
             exit 1
           fi
-          if ! gh release view "$TAG" >/dev/null 2>&1; then
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            # A versioned release is immutable. Before doing ANY upload for an
+            # existing tag, authenticate its complete manifest and require an
+            # exact same-version identity. Never repair/replace individual
+            # versioned assets in place: a partial release needs a new version
+            # (or explicit operator removal while it is still a draft).
+            VERSIONED_DIR="$RUNNER_TEMP/cli-versioned-existing"
+            VERSIONED_ASSET_DIR="$VERSIONED_DIR/assets"
+            mkdir -p "$VERSIONED_ASSET_DIR"
+            ASSETS=$(gh release view "$TAG" --json assets --jq '.assets[].name')
+            HAS_MANIFEST=$(printf '%s\n' "$ASSETS" | grep -cx 'chainlesschain-update.json' || true)
+            HAS_BUNDLE=$(printf '%s\n' "$ASSETS" | grep -cx 'chainlesschain-update.json.sigstore.json' || true)
+            if [ "$HAS_MANIFEST" -ne 1 ] || [ "$HAS_BUNDLE" -ne 1 ]; then
+              echo "Existing versioned release lacks one complete signed manifest pair; refusing in-place repair" >&2
+              exit 1
+            fi
+            gh release download "$TAG" --dir "$VERSIONED_ASSET_DIR"
+            cosign verify-blob \
+              --bundle "$VERSIONED_ASSET_DIR/chainlesschain-update.json.sigstore.json" \
+              --certificate-identity-regexp '^https://github.com/${{ github.repository }}/.github/workflows/cli-native-release.yml@refs/tags/cli-v' \
+              --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' \
+              "$VERSIONED_ASSET_DIR/chainlesschain-update.json" >/dev/null
+            VERSIONED_RESULT=$(node packages/cli/scripts/verify-stable-channel-promotion.mjs \
+              "$VERSIONED_ASSET_DIR/chainlesschain-update.json" \
+              native-assets/chainlesschain-update.json)
+            printf '%s\n' "$VERSIONED_RESULT"
+            node -e 'const result=JSON.parse(process.argv[1]); if(result.action!=="idempotent") throw new Error(`existing versioned release is not an exact replay: ${result.action}`)' "$VERSIONED_RESULT"
+            find native-assets -maxdepth 1 -type f -printf '%f\n' | LC_ALL=C sort > "$VERSIONED_DIR/expected-assets.txt"
+            printf '%s\n' "$ASSETS" | sed '/^$/d' | LC_ALL=C sort > "$VERSIONED_DIR/existing-assets.txt"
+            if ! cmp -s "$VERSIONED_DIR/expected-assets.txt" "$VERSIONED_DIR/existing-assets.txt"; then
+              echo "Existing versioned release asset set is incomplete or contains unexpected assets" >&2
+              diff -u "$VERSIONED_DIR/expected-assets.txt" "$VERSIONED_DIR/existing-assets.txt" >&2 || true
+              exit 1
+            fi
+            while IFS= read -r asset; do
+              if ! cmp -s "native-assets/$asset" "$VERSIONED_ASSET_DIR/$asset"; then
+                echo "Existing versioned asset bytes differ: $asset" >&2
+                exit 1
+              fi
+            done < "$VERSIONED_DIR/expected-assets.txt"
+            echo "Versioned release $TAG is already complete and immutable; no upload needed."
+          else
             gh release create "$TAG" --target "${{ github.sha }}" --draft --latest=false --title "ChainlessChain CLI $TAG" --notes "Signed standalone CLI release for exact commit ${{ github.sha }}."
+            # Deliberately no overwrite flag: versioned asset names are write-once.
+            gh release upload "$TAG" native-assets/*
           fi
-          gh release upload "$TAG" native-assets/* --clobber
           gh release edit "$TAG" --draft=false --latest=false
 
       - name: Promote signed manifest to isolated stable channel
@@ -290,30 +360,43 @@ jobs:
           set -euo pipefail
           CHANNEL_TAG="cli-stable"
           CHANNEL_DIR="$RUNNER_TEMP/cli-stable-existing"
-          mkdir -p "$CHANNEL_DIR"
+          CHANNEL_ASSET_DIR="$CHANNEL_DIR/assets"
+          mkdir -p "$CHANNEL_ASSET_DIR"
+          ASSETS=""
+          HAS_MANIFEST=0
+          HAS_BUNDLE=0
+          PROMOTION_ACTION="initialize"
           if gh release view "$CHANNEL_TAG" >/dev/null 2>&1; then
             ASSETS=$(gh release view "$CHANNEL_TAG" --json assets --jq '.assets[].name')
             HAS_MANIFEST=$(printf '%s\n' "$ASSETS" | grep -cx 'chainlesschain-update.json' || true)
             HAS_BUNDLE=$(printf '%s\n' "$ASSETS" | grep -cx 'chainlesschain-update.json.sigstore.json' || true)
-            if [ "$HAS_MANIFEST" -ne "$HAS_BUNDLE" ]; then
-              echo "Stable channel has only one half of the signed manifest pair" >&2
+            # The recovery protocol publishes the bundle first and the
+            # manifest last, so bundle-only is an expected fail-closed state
+            # after interruption. Manifest-only can never be produced by this
+            # workflow and therefore requires operator investigation.
+            if [ "$HAS_MANIFEST" -eq 1 ] && [ "$HAS_BUNDLE" -ne 1 ]; then
+              echo "Stable channel has a manifest without its signature bundle" >&2
               exit 1
             fi
-            if [ "$HAS_MANIFEST" -eq 1 ]; then
-              gh release download "$CHANNEL_TAG" --dir "$CHANNEL_DIR" \
-                --pattern 'chainlesschain-update.json' \
-                --pattern 'chainlesschain-update.json.sigstore.json'
+            if [ "$HAS_MANIFEST" -eq 1 ] && [ "$HAS_BUNDLE" -eq 1 ]; then
+              gh release download "$CHANNEL_TAG" --dir "$CHANNEL_ASSET_DIR"
               cosign verify-blob \
-                --bundle "$CHANNEL_DIR/chainlesschain-update.json.sigstore.json" \
+                --bundle "$CHANNEL_ASSET_DIR/chainlesschain-update.json.sigstore.json" \
                 --certificate-identity-regexp '^https://github.com/${{ github.repository }}/.github/workflows/cli-native-release.yml@refs/tags/cli-v' \
                 --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' \
-                "$CHANNEL_DIR/chainlesschain-update.json" >/dev/null
-              node packages/cli/scripts/verify-stable-channel-promotion.mjs \
-                "$CHANNEL_DIR/chainlesschain-update.json" \
-                native-assets/chainlesschain-update.json
+                "$CHANNEL_ASSET_DIR/chainlesschain-update.json" >/dev/null
+              PROMOTION_RESULT=$(node packages/cli/scripts/verify-stable-channel-promotion.mjs \
+                "$CHANNEL_ASSET_DIR/chainlesschain-update.json" \
+                native-assets/chainlesschain-update.json)
+              printf '%s\n' "$PROMOTION_RESULT"
+              PROMOTION_ACTION=$(node -e 'process.stdout.write(JSON.parse(process.argv[1]).action)' "$PROMOTION_RESULT")
             else
-              node packages/cli/scripts/verify-stable-channel-promotion.mjs \
-                - native-assets/chainlesschain-update.json
+              # No active manifest means clients fail closed with 404. This is
+              # either an empty channel or a recoverable interrupted promotion;
+              # all partial assets are purged below before retrying.
+              PROMOTION_RESULT=$(node packages/cli/scripts/verify-stable-channel-promotion.mjs \
+                - native-assets/chainlesschain-update.json)
+              printf '%s\n' "$PROMOTION_RESULT"
             fi
           else
             gh release create "$CHANNEL_TAG" --target "${{ github.sha }}" \
@@ -322,11 +405,49 @@ jobs:
             node packages/cli/scripts/verify-stable-channel-promotion.mjs \
               - native-assets/chainlesschain-update.json
           fi
+          if [ "$PROMOTION_ACTION" = "idempotent" ]; then
+            : > "$CHANNEL_DIR/expected-assets.txt"
+            for asset in install.sh install.ps1 chainlesschain.rb ChainlessChain.ChainlessChainCLI.installer.yaml cli-update-public-key.pem chainlesschain-cli-sbom.cdx.json chainlesschain-update.json; do
+              printf '%s\n%s\n' "$asset" "$asset.sigstore.json" >> "$CHANNEL_DIR/expected-assets.txt"
+            done
+            LC_ALL=C sort -o "$CHANNEL_DIR/expected-assets.txt" "$CHANNEL_DIR/expected-assets.txt"
+            printf '%s\n' "$ASSETS" | sed '/^$/d' | LC_ALL=C sort > "$CHANNEL_DIR/existing-assets.txt"
+            if ! cmp -s "$CHANNEL_DIR/expected-assets.txt" "$CHANNEL_DIR/existing-assets.txt"; then
+              echo "Stable channel asset set differs from the exact idempotent candidate" >&2
+              diff -u "$CHANNEL_DIR/expected-assets.txt" "$CHANNEL_DIR/existing-assets.txt" >&2 || true
+              exit 1
+            fi
+            while IFS= read -r asset; do
+              if ! cmp -s "native-assets/$asset" "$CHANNEL_ASSET_DIR/$asset"; then
+                echo "Stable channel asset bytes differ from the exact idempotent candidate: $asset" >&2
+                exit 1
+              fi
+            done < "$CHANNEL_DIR/expected-assets.txt"
+            echo "Stable channel already has the exact signed manifest identity; no rolling assets changed."
+            exit 0
+          fi
           gh release edit "$CHANNEL_TAG" --latest=false
+
+          # GitHub release assets cannot be swapped atomically. Make the
+          # transition fail-closed and retryable: remove the active manifest
+          # first, purge every old/partial rolling asset, upload auxiliary
+          # pairs without clobber, then activate with bundle-first/manifest-last.
+          # Any interruption leaves the fixed manifest URL absent (or a lone
+          # bundle), never an old manifest mixed with new auxiliary assets.
+          if [ "$HAS_MANIFEST" -eq 1 ]; then
+            gh release delete-asset "$CHANNEL_TAG" chainlesschain-update.json --yes
+          fi
+          while IFS= read -r asset; do
+            [ -n "$asset" ] || continue
+            [ "$asset" = "chainlesschain-update.json" ] && continue
+            gh release delete-asset "$CHANNEL_TAG" "$asset" --yes
+          done <<EOF
+          $ASSETS
+          EOF
           for asset in install.sh install.ps1 chainlesschain.rb ChainlessChain.ChainlessChainCLI.installer.yaml cli-update-public-key.pem chainlesschain-cli-sbom.cdx.json; do
-            gh release upload "$CHANNEL_TAG" "native-assets/$asset" "native-assets/$asset.sigstore.json" --clobber
+            gh release upload "$CHANNEL_TAG" "native-assets/$asset" "native-assets/$asset.sigstore.json"
           done
           gh release upload "$CHANNEL_TAG" \
-            native-assets/chainlesschain-update.json.sigstore.json --clobber
+            native-assets/chainlesschain-update.json.sigstore.json
           gh release upload "$CHANNEL_TAG" \
-            native-assets/chainlesschain-update.json --clobber
+            native-assets/chainlesschain-update.json

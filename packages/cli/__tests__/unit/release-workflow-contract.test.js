@@ -62,12 +62,63 @@ describe("CLI release workflow contracts", () => {
       /publish:\s*\n\s*needs: \[release-readiness, exact-sha-gate, build\]/,
     );
     expect(text).toContain("verify-stable-channel-promotion.mjs");
+    expect(text).toContain("PUBLISHED_AT=$(git show -s --format=%cI");
+    expect(text).toContain("sbom.metadata.timestamp = publishedAt");
+    expect(text).toContain("sbom.serialNumber = `urn:uuid:");
     expect(text).toContain(
       'gh release edit "$TAG" --draft=false --latest=false',
     );
-    expect(text).toContain("Stable channel has only one half");
+    expect(text).not.toContain("--clobber");
+
+    const versionedStart = text.indexOf(
+      "- name: Publish only after every platform and signature succeeds",
+    );
+    const stableStart = text.indexOf(
+      "- name: Promote signed manifest to isolated stable channel",
+    );
+    const versioned = text.slice(versionedStart, stableStart);
+    const stable = text.slice(stableStart);
+
+    expect(versioned).toContain(
+      "Existing versioned release lacks one complete signed manifest pair",
+    );
+    expect(versioned).toContain("cosign verify-blob");
+    expect(versioned).toContain('result.action!=="idempotent"');
+    expect(versioned).toContain(
+      'cmp -s "native-assets/$asset" "$VERSIONED_ASSET_DIR/$asset"',
+    );
+    expect(versioned.indexOf("gh release download")).toBeLessThan(
+      versioned.indexOf('cmp -s "native-assets/$asset"'),
+    );
+    expect(versioned.indexOf("cosign verify-blob")).toBeLessThan(
+      versioned.indexOf("verify-stable-channel-promotion.mjs"),
+    );
     expect(
-      text.lastIndexOf("chainlesschain-update.json.sigstore.json --clobber"),
-    ).toBeLessThan(text.lastIndexOf("chainlesschain-update.json --clobber"));
+      versioned.indexOf("verify-stable-channel-promotion.mjs"),
+    ).toBeLessThan(versioned.indexOf('gh release upload "$TAG"'));
+
+    expect(stable).toContain(
+      "Stable channel has a manifest without its signature bundle",
+    );
+    expect(stable).toContain(
+      'gh release delete-asset "$CHANNEL_TAG" chainlesschain-update.json --yes',
+    );
+    expect(stable).toContain('PROMOTION_ACTION" = "idempotent"');
+    expect(stable).toContain(
+      'cmp -s "native-assets/$asset" "$CHANNEL_ASSET_DIR/$asset"',
+    );
+    expect(stable.indexOf("cosign verify-blob")).toBeLessThan(
+      stable.indexOf('cmp -s "native-assets/$asset"'),
+    );
+    expect(stable.indexOf("verify-stable-channel-promotion.mjs")).toBeLessThan(
+      stable.indexOf('gh release upload "$CHANNEL_TAG"'),
+    );
+    expect(
+      stable.lastIndexOf(
+        "native-assets/chainlesschain-update.json.sigstore.json",
+      ),
+    ).toBeLessThan(
+      stable.lastIndexOf("native-assets/chainlesschain-update.json"),
+    );
   });
 });
