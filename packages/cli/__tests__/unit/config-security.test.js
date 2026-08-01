@@ -420,6 +420,71 @@ describe("owner-only filesystem helpers", () => {
     ).toBe(0o700);
   });
 
+  it("accepts only the root-owned canonical macOS /var system alias", () => {
+    let mode = 0o755;
+    const target = "/var/folders/cc-private";
+    const fs = {
+      existsSync: () => true,
+      mkdirSync: () => {},
+      chmodSync: (_path, next) => {
+        mode = next;
+      },
+      realpathSync: (candidate) =>
+        candidate === "/var" ? "/private/var" : candidate,
+      lstatSync: (candidate) => {
+        if (candidate === "/var") {
+          return {
+            mode: 0o120755,
+            uid: 0,
+            isDirectory: () => false,
+            isSymbolicLink: () => true,
+          };
+        }
+        if (candidate === "/private/var") {
+          return {
+            mode: 0o40755,
+            uid: 0,
+            isDirectory: () => true,
+            isSymbolicLink: () => false,
+          };
+        }
+        return {
+          mode,
+          uid: typeof process.getuid === "function" ? process.getuid() : 501,
+          isDirectory: () => true,
+          isSymbolicLink: () => false,
+        };
+      },
+    };
+
+    expect(
+      ensurePrivateDirectory(target, {
+        platform: "darwin",
+        deps: { fs, platform: () => "darwin" },
+      }),
+    ).toBe(target);
+    expect(mode).toBe(0o700);
+  });
+
+  it("keeps rejecting a user-owned alias even when it is named /var", () => {
+    const fs = {
+      lstatSync: (candidate) => ({
+        mode: candidate === "/var" ? 0o120755 : 0o40755,
+        uid: 501,
+        isDirectory: () => candidate !== "/var",
+        isSymbolicLink: () => candidate === "/var",
+      }),
+      realpathSync: () => "/private/var",
+    };
+
+    expect(() =>
+      repairPrivatePath("/var/folders/attacker/state.json", {
+        platform: "darwin",
+        deps: { fs, platform: () => "darwin" },
+      }),
+    ).toThrow(/symbolic link or junction/i);
+  });
+
   it("uses read-back verification for Windows owner-only ACLs", () => {
     const fs = fakeFs(0, true);
     const spawnSync = () => ({
@@ -467,6 +532,9 @@ describe("owner-only filesystem helpers", () => {
     const [, args, options] = spawnSync.mock.calls[0];
     expect(args.join(" ")).toMatch(/ReparsePoint/);
     expect(args.join(" ")).toMatch(/AreAccessRulesProtected/);
+    expect(args.join(" ")).toContain("$identity.Owner");
+    expect(args.join(" ")).toContain("$security.SetOwner($sid)");
+    expect(args.join(" ")).toMatch(/\$owner\.Value -ne \$tokenOwner\.Value/);
     expect(args).not.toContain(targets[0]);
     expect(JSON.parse(options.input)).toEqual({
       operation: "inspect",

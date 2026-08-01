@@ -69,16 +69,61 @@ export function assertSafeOwnerOnlyPath(target) {
   return target;
 }
 
-function assertNoLinkTraversal(target, deps = fs, checkedPaths = null) {
-  const absolute = resolve(String(target));
-  const root = parse(absolute).root;
+const TRUSTED_DARWIN_SYSTEM_ALIASES = new Map([["/var", "/private/var"]]);
+
+/**
+ * macOS exposes its real temporary-directory tree through the root-owned
+ * `/var -> private/var` compatibility alias. Rejecting that immutable system
+ * alias makes every `os.tmpdir()`-backed session fail, while accepting generic
+ * links would re-open the chmod/DACL traversal attack this guard prevents.
+ *
+ * Keep the exception deliberately narrow: exact alias, exact canonical target,
+ * root ownership on both entries, and a non-writable canonical directory.
+ */
+function isTrustedDarwinSystemAlias(current, entry, deps, platform) {
+  if (platform !== "darwin") return false;
+  const expected = TRUSTED_DARWIN_SYSTEM_ALIASES.get(current);
+  if (!expected || Number(entry?.uid) !== 0) return false;
+  try {
+    const canonical = deps.realpathSync(current);
+    if (!samePath(canonical, expected)) return false;
+    const target = deps.lstatSync(canonical);
+    const targetMode = Number(target.mode);
+    return (
+      !target.isSymbolicLink() &&
+      target.isDirectory() &&
+      Number(target.uid) === 0 &&
+      Number.isInteger(targetMode) &&
+      (targetMode & 0o022) === 0
+    );
+  } catch {
+    return false;
+  }
+}
+
+function assertNoLinkTraversal(
+  target,
+  deps = fs,
+  checkedPaths = null,
+  platform = process.platform,
+) {
+  // Dependency-injected cross-platform tests must walk the target platform's
+  // path grammar, not the host running Vitest (for example `/var` on Windows).
+  const pathApi =
+    platform === "win32"
+      ? win32
+      : platform === "darwin" || platform === "linux"
+        ? posix
+        : { resolve, parse };
+  const absolute = pathApi.resolve(String(target));
+  const root = pathApi.parse(absolute).root;
   const segments = absolute
     .slice(root.length)
     .split(/[\\/]+/)
     .filter(Boolean);
   let current = root;
   for (const segment of segments) {
-    current = resolve(current, segment);
+    current = pathApi.resolve(current, segment);
     const cacheKey =
       process.platform === "win32" ? current.toLowerCase() : current;
     if (checkedPaths?.has(cacheKey)) continue;
@@ -89,7 +134,10 @@ function assertNoLinkTraversal(target, deps = fs, checkedPaths = null) {
       if (error?.code === "ENOENT") break;
       throw error;
     }
-    if (entry.isSymbolicLink()) {
+    if (
+      entry.isSymbolicLink() &&
+      !isTrustedDarwinSystemAlias(current, entry, deps, platform)
+    ) {
       const error = new Error(
         `Refusing owner-only permission changes through a symbolic link or junction: ${current}`,
       );
@@ -111,6 +159,7 @@ $sections =
   [System.Security.AccessControl.AccessControlSections]::Owner
 $identity = [System.Security.Principal.WindowsIdentity]::GetCurrent()
 $sid = $identity.User
+$tokenOwner = $identity.Owner
 
 function Assert-CcNoReparseTraversal([string]$path) {
   $cursor = [System.IO.Path]::GetFullPath($path)
@@ -142,7 +191,15 @@ function Write-CcOwnerOnlyAcl($item, [string]$path) {
   $security = Read-CcAcl $path
   $owner = $security.GetOwner([System.Security.Principal.SecurityIdentifier])
   if ($owner.Value -ne $sid.Value) {
-    throw "owner-only ACL repair refuses a path owned by another identity: $path"
+    # Elevated/service tokens can create files whose owner is the token's
+    # default owner group (for example BUILTIN\Administrators on hosted CI),
+    # even though the token user created the object. Only that exact token-owned
+    # case may converge to the narrower user SID; every unrelated owner remains
+    # fail-closed.
+    if ($null -eq $tokenOwner -or $owner.Value -ne $tokenOwner.Value) {
+      throw "owner-only ACL repair refuses a path owned by another identity: $path"
+    }
+    $security.SetOwner($sid)
   }
   $security.SetAccessRuleProtection($true, $false)
   $existingRules = @($security.GetAccessRules($true, $false, [System.Security.Principal.SecurityIdentifier]))
@@ -217,6 +274,7 @@ if ($ownerOnly) {
   ownerOnly = [bool]$ownerOnly
   ownerSid = $owner
   currentSid = $sid.Value
+  tokenOwnerSid = if ($null -eq $tokenOwner) { $null } else { $tokenOwner.Value }
   protected = [bool]$acl.AreAccessRulesProtected
   aceCount = $rules.Count
 } | ConvertTo-Json -Compress
@@ -233,6 +291,7 @@ $sections =
   [System.Security.AccessControl.AccessControlSections]::Owner
 $identity = [System.Security.Principal.WindowsIdentity]::GetCurrent()
 $sid = $identity.User
+$tokenOwner = $identity.Owner
 $request = [Console]::In.ReadToEnd() | ConvertFrom-Json
 $operation = [string]$request.operation
 $targets = @($request.targets)
@@ -300,7 +359,10 @@ function Write-CcOwnerOnlyAcl($item, [string]$path) {
   $security = Read-CcAcl $path
   $owner = $security.GetOwner([System.Security.Principal.SecurityIdentifier])
   if ($owner.Value -ne $sid.Value) {
-    throw "owner-only ACL repair refuses a path owned by another identity: $path"
+    if ($null -eq $tokenOwner -or $owner.Value -ne $tokenOwner.Value) {
+      throw "owner-only ACL repair refuses a path owned by another identity: $path"
+    }
+    $security.SetOwner($sid)
   }
   $security.SetAccessRuleProtection($true, $false)
   $existingRules = @($security.GetAccessRules($true, $false, [System.Security.Principal.SecurityIdentifier]))
@@ -382,6 +444,7 @@ $results = foreach ($target in $targets) {
       ok = [bool]$ownerOnly
       ownerSid = $owner
       currentSid = $sid.Value
+      tokenOwnerSid = if ($null -eq $tokenOwner) { $null } else { $tokenOwner.Value }
       protected = [bool]$acl.AreAccessRulesProtected
       aceCount = $rules.Count
       error = if ($ownerOnly) { $null } else { 'path is not owner-only' }
@@ -563,7 +626,12 @@ export function repairPrivatePaths(targets, options = {}) {
   // prevents a linked trust root from failing only after a descendant changed.
   for (const target of uniqueTargets) {
     assertSafeOwnerOnlyPath(target);
-    assertNoLinkTraversal(target, deps.fs, checkedPaths);
+    assertNoLinkTraversal(
+      target,
+      deps.fs,
+      checkedPaths,
+      options.platform || deps.platform(),
+    );
   }
   if ((options.platform || deps.platform()) === "win32") {
     const results = [];
@@ -645,7 +713,12 @@ export function inspectPrivatePath(target, options = {}) {
 export function repairPrivatePath(target, options = {}) {
   assertSafeOwnerOnlyPath(target);
   const deps = { ..._deps, ...(options.deps || {}) };
-  assertNoLinkTraversal(target, deps.fs);
+  assertNoLinkTraversal(
+    target,
+    deps.fs,
+    null,
+    options.platform || deps.platform(),
+  );
   return repairPrivatePathAfterPreflight(target, options, deps);
 }
 
@@ -676,7 +749,12 @@ function repairPrivatePathAfterPreflight(target, options, deps) {
 export function ensurePrivateDirectory(target, options = {}) {
   assertSafeOwnerOnlyPath(target);
   const deps = { ..._deps, ...(options.deps || {}) };
-  assertNoLinkTraversal(target, deps.fs);
+  assertNoLinkTraversal(
+    target,
+    deps.fs,
+    null,
+    options.platform || deps.platform(),
+  );
   const existed = deps.fs.existsSync(target);
   if (existed) {
     const existing = deps.fs.lstatSync(target);
@@ -710,7 +788,12 @@ export function ensurePrivateDirectory(target, options = {}) {
 export function ensurePrivateFile(target, options = {}) {
   assertSafeOwnerOnlyPath(target);
   const deps = { ..._deps, ...(options.deps || {}) };
-  assertNoLinkTraversal(target, deps.fs);
+  assertNoLinkTraversal(
+    target,
+    deps.fs,
+    null,
+    options.platform || deps.platform(),
+  );
   if (!deps.fs.existsSync(target)) return target;
   const existing = deps.fs.lstatSync(target);
   if (existing.isSymbolicLink()) {

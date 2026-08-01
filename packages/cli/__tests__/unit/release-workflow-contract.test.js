@@ -54,5 +54,20 @@ describe("CLI release workflow contracts", () => {
     expect(text).toContain("CLI_UPDATE_ED25519_PRIVATE_KEY_B64");
     expect(text).toContain('test "$TAG" = "cli-v$VERSION"');
     expect(text).toContain('test "$(git rev-list -n 1 "$TAG")"');
+    expect(text).not.toContain("releases/latest");
+    expect(text).toContain("releases/download/cli-stable");
+    expect(text).toContain("group: cli-native-release-stable");
+    expect(text).toContain("blocked-pending-native-host-matrix");
+    expect(text).toMatch(
+      /publish:\s*\n\s*needs: \[release-readiness, exact-sha-gate, build\]/,
+    );
+    expect(text).toContain("verify-stable-channel-promotion.mjs");
+    expect(text).toContain(
+      'gh release edit "$TAG" --draft=false --latest=false',
+    );
+    expect(text).toContain("Stable channel has only one half");
+    expect(
+      text.lastIndexOf("chainlesschain-update.json.sigstore.json --clobber"),
+    ).toBeLessThan(text.lastIndexOf("chainlesschain-update.json --clobber"));
   });
 });

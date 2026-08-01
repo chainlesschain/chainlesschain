@@ -51,7 +51,11 @@ function seed(id) {
 function runExport(args) {
   return spawnSync(process.execPath, [CLI_BIN, "session", "export", ...args], {
     env: t.env(),
-    cwd: t.home,
+    // Owner-only storage deliberately rejects CHAINLESSCHAIN_HOME when it is
+    // the cwd (or an ancestor): chmod-ing it could mutate a whole workspace.
+    // Execute beside the isolated home so the E2E exercises the real safety
+    // contract instead of asking production code to weaken it for a fixture.
+    cwd: path.dirname(t.home),
     encoding: "utf-8",
   });
 }

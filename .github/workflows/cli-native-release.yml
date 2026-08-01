@@ -8,7 +8,28 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: cli-native-release-stable
+  cancel-in-progress: false
+
+env:
+  # Keep tag-triggered publication fail-closed until native ARM execution,
+  # macOS notarization/Gatekeeper, installer recovery and updater crash tests
+  # have produced exact-commit evidence on this workflow.
+  CLI_NATIVE_RELEASE_IMPLEMENTATION_STATUS: blocked-pending-native-host-matrix
+
 jobs:
+  release-readiness:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require completed native host release evidence
+        shell: bash
+        run: |
+          if [ "$CLI_NATIVE_RELEASE_IMPLEMENTATION_STATUS" != "ready" ]; then
+            echo "Native CLI publication is blocked pending ARM execution, macOS notarization and transactional updater evidence." >&2
+            exit 1
+          fi
+
   exact-sha-gate:
     runs-on: ubuntu-latest
     permissions:
@@ -95,7 +116,7 @@ jobs:
             --no-project \
             --targets "${{ matrix.target }}" \
             --output "native-dist/chainlesschain-${{ matrix.target }}" \
-            --update-manifest-url "https://github.com/${{ github.repository }}/releases/latest/download/chainlesschain-update.json" \
+            --update-manifest-url "https://github.com/${{ github.repository }}/releases/download/cli-stable/chainlesschain-update.json" \
             --update-public-key "$RUNNER_TEMP/cli-update-public-key.pem" \
             --no-smoke-test
 
@@ -183,7 +204,7 @@ jobs:
           retention-days: 90
 
   publish:
-    needs: [exact-sha-gate, build]
+    needs: [release-readiness, exact-sha-gate, build]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -258,7 +279,54 @@ jobs:
             exit 1
           fi
           if ! gh release view "$TAG" >/dev/null 2>&1; then
-            gh release create "$TAG" --target "${{ github.sha }}" --draft --title "ChainlessChain CLI $TAG" --notes "Signed standalone CLI release for exact commit ${{ github.sha }}."
+            gh release create "$TAG" --target "${{ github.sha }}" --draft --latest=false --title "ChainlessChain CLI $TAG" --notes "Signed standalone CLI release for exact commit ${{ github.sha }}."
           fi
           gh release upload "$TAG" native-assets/* --clobber
-          gh release edit "$TAG" --draft=false
+          gh release edit "$TAG" --draft=false --latest=false
+
+      - name: Promote signed manifest to isolated stable channel
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHANNEL_TAG="cli-stable"
+          CHANNEL_DIR="$RUNNER_TEMP/cli-stable-existing"
+          mkdir -p "$CHANNEL_DIR"
+          if gh release view "$CHANNEL_TAG" >/dev/null 2>&1; then
+            ASSETS=$(gh release view "$CHANNEL_TAG" --json assets --jq '.assets[].name')
+            HAS_MANIFEST=$(printf '%s\n' "$ASSETS" | grep -cx 'chainlesschain-update.json' || true)
+            HAS_BUNDLE=$(printf '%s\n' "$ASSETS" | grep -cx 'chainlesschain-update.json.sigstore.json' || true)
+            if [ "$HAS_MANIFEST" -ne "$HAS_BUNDLE" ]; then
+              echo "Stable channel has only one half of the signed manifest pair" >&2
+              exit 1
+            fi
+            if [ "$HAS_MANIFEST" -eq 1 ]; then
+              gh release download "$CHANNEL_TAG" --dir "$CHANNEL_DIR" \
+                --pattern 'chainlesschain-update.json' \
+                --pattern 'chainlesschain-update.json.sigstore.json'
+              cosign verify-blob \
+                --bundle "$CHANNEL_DIR/chainlesschain-update.json.sigstore.json" \
+                --certificate-identity-regexp '^https://github.com/${{ github.repository }}/.github/workflows/cli-native-release.yml@refs/tags/cli-v' \
+                --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' \
+                "$CHANNEL_DIR/chainlesschain-update.json" >/dev/null
+              node packages/cli/scripts/verify-stable-channel-promotion.mjs \
+                "$CHANNEL_DIR/chainlesschain-update.json" \
+                native-assets/chainlesschain-update.json
+            else
+              node packages/cli/scripts/verify-stable-channel-promotion.mjs \
+                - native-assets/chainlesschain-update.json
+            fi
+          else
+            gh release create "$CHANNEL_TAG" --target "${{ github.sha }}" \
+              --latest=false --title "ChainlessChain CLI stable channel" \
+              --notes "Rolling pointer to the latest verified cli-v* manifest. Versioned binaries remain immutable."
+            node packages/cli/scripts/verify-stable-channel-promotion.mjs \
+              - native-assets/chainlesschain-update.json
+          fi
+          gh release edit "$CHANNEL_TAG" --latest=false
+          for asset in install.sh install.ps1 chainlesschain.rb ChainlessChain.ChainlessChainCLI.installer.yaml cli-update-public-key.pem chainlesschain-cli-sbom.cdx.json; do
+            gh release upload "$CHANNEL_TAG" "native-assets/$asset" "native-assets/$asset.sigstore.json" --clobber
+          done
+          gh release upload "$CHANNEL_TAG" \
+            native-assets/chainlesschain-update.json.sigstore.json --clobber
+          gh release upload "$CHANNEL_TAG" \
+            native-assets/chainlesschain-update.json --clobber
