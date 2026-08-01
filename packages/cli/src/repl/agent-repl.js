@@ -61,6 +61,7 @@ import {
   formatMcpLedgerRecoveryNotice,
   loadMcpLedgerRecovery,
 } from "../lib/mcp-call-ledger-store.js";
+import { createRecoveryGuardedMcpCallLedger } from "../lib/mcp-ledger-recovery-admission.js";
 import { CLISkillLoader } from "../lib/skill-loader.js";
 import { storeMemory, consolidateMemory } from "../lib/hierarchical-memory.js";
 import { CLIContextEngineering } from "../lib/cli-context-engineering.js";
@@ -1210,10 +1211,15 @@ async function startAgentReplInWorkspace(options = {}) {
   let _replBaseSystem = _buildReplBaseSystem();
   let _activeOutputStyle = null; // { name, body }
   const messages = [{ role: "system", content: _replBaseSystem }];
+  let _mcpLedgerRecovery = null;
+  let _mcpLedgerRecoveryError = null;
   const _injectMcpRecoveryNotice = (targetMessages, targetSessionId) => {
+    _mcpLedgerRecovery = null;
+    _mcpLedgerRecoveryError = null;
     if (!useJsonl || !targetSessionId) return false;
     try {
       const recovery = loadMcpLedgerRecovery(targetSessionId);
+      _mcpLedgerRecovery = recovery;
       const notice = formatMcpLedgerRecoveryNotice(recovery);
       if (!notice) return false;
       targetMessages.push({ role: "system", content: notice });
@@ -1222,6 +1228,7 @@ async function startAgentReplInWorkspace(options = {}) {
       );
       return true;
     } catch (error) {
+      _mcpLedgerRecoveryError = error;
       targetMessages.push({
         role: "system",
         content:
@@ -1611,8 +1618,8 @@ async function startAgentReplInWorkspace(options = {}) {
           // verification is best-effort in the interactive path
         }
         const rebuilt = rebuildMessages(sessionId);
+        _injectMcpRecoveryNotice(messages, sessionId);
         if (rebuilt.length > 0) {
-          _injectMcpRecoveryNotice(messages, sessionId);
           messages.push(...rebuilt.filter((m) => m.role !== "system"));
           // Arm the resume role-merge if the prior run left a dangling user turn.
           _sanitizeRolesNextTurn =
@@ -4002,6 +4009,8 @@ async function startAgentReplInWorkspace(options = {}) {
               _sanitizeRolesNextTurn =
                 messages[messages.length - 1]?.role === "user";
               sessionId = existing.id;
+              _mcpLedgerRecovery = null;
+              _mcpLedgerRecoveryError = null;
               _turnBindingProducer = null;
               _turnBindingCriticalError = null;
               // Drop the prior session's checkpoint marks (see JSONL branch).
@@ -5982,10 +5991,14 @@ async function startAgentReplInWorkspace(options = {}) {
         extraToolDefinitions: _adhocMcp?.extraToolDefinitions,
         externalToolExecutors: _adhocMcp?.externalToolExecutors,
         externalToolDescriptors: _adhocMcp?.externalToolDescriptors,
-        mcpLedgerSink:
+        mcpCallLedger:
           useJsonl && sessionId
-            ? createSessionMcpLedgerSink(sessionId, {
-                appendEvent: appendAuthorityEvent,
+            ? createRecoveryGuardedMcpCallLedger({
+                sink: createSessionMcpLedgerSink(sessionId, {
+                  appendEvent: appendAuthorityEvent,
+                }),
+                recovery: _mcpLedgerRecovery,
+                recoveryError: _mcpLedgerRecoveryError,
               })
             : null,
         chatFn: _fallbackChatFn,

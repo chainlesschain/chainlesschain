@@ -152,6 +152,62 @@ describe("WS bridge side-effect resume", () => {
     ).toBe(false);
   });
 
+  it("binds an unreadable MCP recovery ledger to the resumed handler and blocks callTool", async () => {
+    const session = makeSession();
+    session.mcpClient = { callTool: vi.fn() };
+    const interaction = { emit: vi.fn(), rejectAllPending: vi.fn() };
+    const handler = new WSAgentHandler({ session, interaction, db: null });
+    const readError = Object.assign(new Error("unverified transcript"), {
+      code: "SESSION_TRANSCRIPT_UNVERIFIED",
+    });
+    const server = {
+      sessionManager: { resumeSession: () => session },
+      sessionHandlers: new Map([[session.id, handler]]),
+      resumeRecoveryDependencies: {
+        loadSideEffectLedger: () => {
+          throw new Error("no side-effect ledger");
+        },
+        loadMcpLedgerRecovery: () => {
+          throw readError;
+        },
+      },
+      emit: vi.fn(),
+      _send: vi.fn(),
+    };
+
+    await handleSessionResume(
+      server,
+      "req-resume",
+      {},
+      {
+        sessionId: session.id,
+      },
+    );
+    expect(session.mcpLedgerRecovery.incidents).toEqual([
+      { code: "SESSION_TRANSCRIPT_UNVERIFIED", ledgerId: null },
+    ]);
+
+    agentLoop.mockReturnValue(
+      fakeLoop([{ type: "response-complete", content: "blocked" }]),
+    );
+    await handler.handleMessage("retry status", "req-turn");
+    const loopOptions = agentLoop.mock.calls.at(-1)[1];
+    await expect(
+      loopOptions.mcpCallLedger.begin({
+        sessionId: session.id,
+        toolName: "mcp__repo__status",
+        serverName: "repo",
+        input: {},
+        effectContract: { effect: "read" },
+      }),
+    ).rejects.toMatchObject({
+      code: "CC_MCP_LEDGER_RECOVERY_BLOCKED",
+      effect: "read",
+      blockMode: "all",
+    });
+    expect(session.mcpClient.callTool).not.toHaveBeenCalled();
+  });
+
   it("fails closed before a dangerous tool when the ledger write is unavailable", async () => {
     const session = makeSession();
     const interaction = { emit: vi.fn(), rejectAllPending: vi.fn() };

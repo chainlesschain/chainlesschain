@@ -33,6 +33,7 @@ import {
 } from "../../lib/hooks-v2-workspace-context.js";
 import { createWsApprovalGate } from "./ws-approval-gate.js";
 import { createSessionMcpLedgerSink } from "../../lib/mcp-call-ledger-store.js";
+import { createRecoveryGuardedMcpCallLedger } from "../../lib/mcp-ledger-recovery-admission.js";
 
 export class WSAgentHandler {
   /**
@@ -172,7 +173,10 @@ export class WSAgentHandler {
         // MCP calls must use the same durable prewrite/settlement contract as
         // headless and REPL sessions. For unknown/write/destructive effects a
         // failed prewrite blocks the network call inside agent-core.
-        mcpLedgerSink: createSessionMcpLedgerSink(session.id),
+        mcpCallLedger: createRecoveryGuardedMcpCallLedger({
+          sink: createSessionMcpLedgerSink(session.id),
+          recovery: session.mcpLedgerRecovery || null,
+        }),
         shellPolicyOverrides: session.shellPolicyOverrides || null,
         slotFiller,
         interaction: this.interaction,

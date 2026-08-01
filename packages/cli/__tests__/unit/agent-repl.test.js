@@ -531,6 +531,17 @@ describe("agent-repl thin wrapper contracts", () => {
       "return { content: event.content, usageEvents, thinking: event.thinking }",
     );
   });
+
+  it("threads unreadable and unsettled resume state into the shared MCP recovery guard", () => {
+    const content = readFileSync(agentReplPath, "utf8");
+    expect(content).toContain("let _mcpLedgerRecovery = null;");
+    expect(content).toContain("let _mcpLedgerRecoveryError = null;");
+    expect(content).toContain("_mcpLedgerRecovery = recovery;");
+    expect(content).toContain("_mcpLedgerRecoveryError = error;");
+    expect(content).toContain("createRecoveryGuardedMcpCallLedger({");
+    expect(content).toContain("recovery: _mcpLedgerRecovery,");
+    expect(content).toContain("recoveryError: _mcpLedgerRecoveryError,");
+  });
 });
 
 describe("agent-repl resume role-alternation wiring (2.1.187 parity)", () => {

@@ -84,7 +84,7 @@ function toolLoop(
 }
 
 describe("stream side-effect ledger — resume reconcile + recovery notice", () => {
-  it("surfaces started-only MCP calls and wires a durable session sink", async () => {
+  it("surfaces started-only MCP calls and blocks unsafe replay before the durable sink", async () => {
     const mcpRecord = {
       schemaVersion: 1,
       ledgerId: "mcp-old-1",
@@ -143,14 +143,41 @@ describe("stream side-effect ledger — resume reconcile + recovery notice", () 
       ],
     });
     expect(h.seenTurns[0][1].content).toContain("Do NOT automatically retry");
-    expect(h.seenLoopOptions[0].mcpLedgerSink).toBeTypeOf("function");
-    await h.seenLoopOptions[0].mcpLedgerSink(mcpRecord, {
-      phase: "started",
+    const ledger = h.seenLoopOptions[0].mcpCallLedger;
+    expect(ledger.begin).toBeTypeOf("function");
+    await expect(
+      ledger.begin({
+        sessionId: "chat-abc",
+        turnId: "new-turn",
+        toolName: "mcp__repo__publish",
+        serverName: "repo",
+        input: { issue: 1 },
+        effectContract: { effect: "write" },
+      }),
+    ).rejects.toMatchObject({
+      code: "CC_MCP_LEDGER_RECOVERY_BLOCKED",
+      blockMode: "unsafe",
+    });
+    expect(appendAuthorityEvent).not.toHaveBeenCalled();
+
+    await ledger.begin({
+      sessionId: "chat-abc",
+      turnId: "read-turn",
+      toolName: "mcp__repo__get_status",
+      serverName: "repo",
+      input: {},
+      effectContract: { effect: "read" },
     });
     expect(appendAuthorityEvent).toHaveBeenCalledWith(
       "chat-abc",
       MCP_CALL_LEDGER_EVENT,
-      expect.objectContaining({ phase: "started", record: mcpRecord }),
+      expect.objectContaining({
+        phase: "started",
+        record: expect.objectContaining({
+          toolName: "mcp__repo__get_status",
+          prewritePersistence: "pending",
+        }),
+      }),
     );
   });
 

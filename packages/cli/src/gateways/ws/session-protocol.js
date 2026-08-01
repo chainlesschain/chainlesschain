@@ -374,7 +374,11 @@ export async function handleSessionResume(server, id, ws, message) {
   // P0-2: reconcile the crash-safe side-effect ledger. If a dangerous tool was
   // in flight when the prior worker died, warn the IDE client AND inject a
   // system note so the resumed model does not silently replay it.
-  const recovery = buildResumeRecovery(session.id);
+  const recovery = buildResumeRecovery(
+    session.id,
+    server.resumeRecoveryDependencies || {},
+  );
+  session.mcpLedgerRecovery = recovery?.mcp || null;
   if (recovery && Array.isArray(session.messages)) {
     session.messages.push({ role: "system", content: recovery.notice });
   }

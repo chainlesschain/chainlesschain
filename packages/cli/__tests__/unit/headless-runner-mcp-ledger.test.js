@@ -84,7 +84,7 @@ const systemText = (messages) =>
     .join("\n");
 
 describe("headless MCP ledger persistence and recovery", () => {
-  it("injects a fail-closed notice for a started-only call and wires the same session sink", async () => {
+  it("injects a recovery notice and blocks unsafe replay before the same session sink", async () => {
     const setup = harness([ledgerEvent(ledgerRecord())]);
 
     await runAgentHeadless(
@@ -98,21 +98,42 @@ describe("headless MCP ledger persistence and recovery", () => {
     expect(systemText(setup.captured.messages)).toContain(
       "repo/mcp__repo__publish",
     );
-    expect(setup.captured.options.mcpLedgerSink).toBeTypeOf("function");
+    const ledger = setup.captured.options.mcpCallLedger;
+    expect(ledger.begin).toBeTypeOf("function");
+    await expect(
+      ledger.begin({
+        sessionId: "sid",
+        turnId: "new-write",
+        toolName: "mcp__repo__publish",
+        serverName: "repo",
+        input: { release: 1 },
+        effectContract: { effect: "write" },
+      }),
+    ).rejects.toMatchObject({
+      code: "CC_MCP_LEDGER_RECOVERY_BLOCKED",
+      blockMode: "unsafe",
+    });
+    expect(setup.appendAuthorityEvent).not.toHaveBeenCalled();
 
-    const next = { ...ledgerRecord(), ledgerId: "mcp-new-1" };
-    await setup.captured.options.mcpLedgerSink(next, { phase: "started" });
+    await ledger.begin({
+      sessionId: "sid",
+      turnId: "new-read",
+      toolName: "mcp__repo__status",
+      serverName: "repo",
+      input: {},
+      effectContract: { effect: "read" },
+    });
     expect(setup.appendAuthorityEvent).toHaveBeenCalledWith(
       "sid",
       MCP_CALL_LEDGER_EVENT,
       expect.objectContaining({
         phase: "started",
         record: expect.objectContaining({
-          ledgerId: next.ledgerId,
+          toolName: "mcp__repo__status",
           effectContract: expect.objectContaining({
             schemaVersion: 1,
-            effect: "write",
-            sideEffecting: true,
+            effect: "read",
+            readOnly: true,
           }),
         }),
       }),
@@ -156,6 +177,20 @@ describe("headless MCP ledger persistence and recovery", () => {
     expect(systemText(setup.captured.messages)).toContain(
       "CC_MCP_LEDGER_EVENT_READ_FAILED",
     );
+    await expect(
+      setup.captured.options.mcpCallLedger.begin({
+        sessionId: "sid",
+        toolName: "mcp__repo__status",
+        serverName: "repo",
+        input: {},
+        effectContract: { effect: "read" },
+      }),
+    ).rejects.toMatchObject({
+      code: "CC_MCP_LEDGER_RECOVERY_BLOCKED",
+      effect: "read",
+      blockMode: "all",
+    });
+    expect(setup.appendAuthorityEvent).not.toHaveBeenCalled();
   });
 
   it("does not treat an injected ordinary append as an authority sink", async () => {
@@ -168,9 +203,13 @@ describe("headless MCP ledger persistence and recovery", () => {
     );
 
     await expect(
-      setup.captured.options.mcpLedgerSink(ledgerRecord(), {
-        phase: "started",
+      setup.captured.options.mcpCallLedger.begin({
+        sessionId: "sid",
+        toolName: "mcp__repo__publish",
+        serverName: "repo",
+        input: {},
+        effectContract: { effect: "write" },
       }),
-    ).rejects.toMatchObject({ code: "CC_MCP_LEDGER_EVENT_PERSIST_FAILED" });
+    ).rejects.toMatchObject({ code: "CC_MCP_LEDGER_PREWRITE_FAILED" });
   });
 });

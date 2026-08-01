@@ -327,7 +327,9 @@ describe("WSAgentHandler", () => {
         session.messages,
         expect.objectContaining({
           sessionId: session.id,
-          mcpLedgerSink: expect.any(Function),
+          mcpCallLedger: expect.objectContaining({
+            begin: expect.any(Function),
+          }),
         }),
       );
     });

@@ -108,6 +108,7 @@ import {
   formatMcpLedgerRecoveryNotice,
   loadMcpLedgerRecovery,
 } from "../lib/mcp-call-ledger-store.js";
+import { createRecoveryGuardedMcpCallLedger } from "../lib/mcp-ledger-recovery-admission.js";
 import { operationIdempotencyKey } from "../lib/idempotency.js";
 import { TurnBindingLog, createTurnBindingFeed } from "../lib/turn-binding.js";
 import { TURN_BINDING_EVENT } from "../lib/turn-binding-store.js";
@@ -1777,6 +1778,8 @@ async function runAgentHeadlessStreamInWorkspace(options = {}, deps = {}) {
   let resumedMessages = 0;
   let sideEffectRecovery = null;
   let mcpCallRecovery = null;
+  let mcpLedgerRecovery = null;
+  let mcpLedgerRecoveryError = null;
   if (persist) {
     try {
       if (store.sessionExists(sessionId)) {
@@ -1795,6 +1798,7 @@ async function runAgentHeadlessStreamInWorkspace(options = {}, deps = {}) {
           const recovery = loadMcpLedgerRecovery(sessionId, {
             readVerifiedEvents: store.readVerifiedEvents,
           });
+          mcpLedgerRecovery = recovery;
           const notice = formatMcpLedgerRecoveryNotice(recovery);
           if (notice) {
             mcpCallRecovery = {
@@ -1811,6 +1815,7 @@ async function runAgentHeadlessStreamInWorkspace(options = {}, deps = {}) {
             messages.push({ role: "system", content: notice });
           }
         } catch (error) {
+          mcpLedgerRecoveryError = error;
           mcpCallRecovery = {
             count: 0,
             incidents: 1,
@@ -2208,7 +2213,13 @@ async function runAgentHeadlessStreamInWorkspace(options = {}, deps = {}) {
     extraToolDefinitions: mcp?.extraToolDefinitions || undefined,
     externalToolExecutors: mcp?.externalToolExecutors || undefined,
     externalToolDescriptors: mcp?.externalToolDescriptors || undefined,
-    mcpLedgerSink,
+    mcpCallLedger: mcpLedgerSink
+      ? createRecoveryGuardedMcpCallLedger({
+          sink: mcpLedgerSink,
+          recovery: mcpLedgerRecovery,
+          recoveryError: mcpLedgerRecoveryError,
+        })
+      : null,
     chatFn: deps.chatFn || options.chatFn || undefined,
     signal: options.signal || undefined,
     // --include-partial-messages: stream live assistant-text deltas as

@@ -5905,7 +5905,10 @@ async function executeToolInner(
               policy: {
                 decision: "blocked",
                 via: "mcp-ledger-prewrite",
+                code: err?.code || null,
                 ledgerId: err?.ledgerId || null,
+                effect: err?.effect || null,
+                blockMode: err?.blockMode || null,
               },
             });
           }

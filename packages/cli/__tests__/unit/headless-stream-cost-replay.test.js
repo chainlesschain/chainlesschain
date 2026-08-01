@@ -144,8 +144,11 @@ describe("runAgentHeadlessStream MCP recovery authority", () => {
   it("surfaces a fail-closed recovery incident when verified reading fails", async () => {
     const error = new Error("anchored transcript mismatch");
     error.code = "SESSION_TRANSCRIPT_UNVERIFIED";
+    let capturedOptions = null;
+    let appendCalls = 0;
     const deps = baseDeps({
-      agentLoop: async function* () {
+      agentLoop: async function* (_messages, loopOptions) {
+        capturedOptions = loopOptions;
         yield { type: "response-complete", content: "done" };
         yield { type: "run-ended", reason: "complete" };
       },
@@ -159,7 +162,10 @@ describe("runAgentHeadlessStream MCP recovery authority", () => {
       appendUserMessage: () => {},
       appendAssistantMessage: () => {},
       appendEvent: () => true,
-      appendAuthorityEvent: () => true,
+      appendAuthorityEvent: () => {
+        appendCalls += 1;
+        return true;
+      },
       loadSideEffectLedger: () => null,
     });
 
@@ -177,6 +183,20 @@ describe("runAgentHeadlessStream MCP recovery authority", () => {
         session_id: "durable-session",
       }),
     );
+    await expect(
+      capturedOptions.mcpCallLedger.begin({
+        sessionId: "durable-session",
+        toolName: "mcp__repo__read",
+        serverName: "repo",
+        input: {},
+        effectContract: { effect: "read" },
+      }),
+    ).rejects.toMatchObject({
+      code: "CC_MCP_LEDGER_RECOVERY_BLOCKED",
+      effect: "read",
+      blockMode: "all",
+    });
+    expect(appendCalls).toBe(0);
   });
 });
 

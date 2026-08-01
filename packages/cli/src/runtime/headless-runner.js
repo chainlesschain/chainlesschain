@@ -68,6 +68,7 @@ import {
   formatMcpLedgerRecoveryNotice,
   loadMcpLedgerRecovery,
 } from "../lib/mcp-call-ledger-store.js";
+import { createRecoveryGuardedMcpCallLedger } from "../lib/mcp-ledger-recovery-admission.js";
 import { TurnBindingLog, createTurnBindingFeed } from "../lib/turn-binding.js";
 import { TURN_BINDING_EVENT } from "../lib/turn-binding-store.js";
 import { operationIdempotencyKey } from "../lib/idempotency.js";
@@ -901,6 +902,8 @@ async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
   let currentSideEffectOpId = null;
   let resumeSideEffectContext = null;
   let resumeMcpCallContext = null;
+  let resumeMcpRecovery = null;
+  let resumeMcpRecoveryError = null;
   let resumeAsyncHookContext = null;
   const persistSideEffectLedger = () => {
     if (!persist) return;
@@ -1051,6 +1054,7 @@ async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
         const mcpRecovery = loadMcpLedgerRecovery(resumeId, {
           readVerifiedEvents: store.readVerifiedEvents,
         });
+        resumeMcpRecovery = mcpRecovery;
         resumeMcpCallContext = formatMcpLedgerRecoveryNotice(mcpRecovery);
         if (resumeMcpCallContext) {
           const risky = mcpRecovery.unsettled.filter(
@@ -1066,6 +1070,7 @@ async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
           }
         }
       } catch (error) {
+        resumeMcpRecoveryError = error;
         resumeMcpCallContext =
           "MCP recovery notice — the durable MCP call ledger could not be read. " +
           "Do not execute or retry MCP tools until the session transcript has " +
@@ -1743,9 +1748,13 @@ async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
     // Persist every MCP started/settled record into this exact canonical
     // session. Unknown/write/destructive prewrite failure then blocks before
     // the external call; a settlement failure leaves a recoverable started row.
-    mcpLedgerSink: persist
-      ? createSessionMcpLedgerSink(sessionId, {
-          appendEvent: store.appendAuthorityEvent,
+    mcpCallLedger: persist
+      ? createRecoveryGuardedMcpCallLedger({
+          sink: createSessionMcpLedgerSink(sessionId, {
+            appendEvent: store.appendAuthorityEvent,
+          }),
+          recovery: resumeMcpRecovery,
+          recoveryError: resumeMcpRecoveryError,
         })
       : null,
     // chatFn passthrough lets tests drive the loop deterministically.

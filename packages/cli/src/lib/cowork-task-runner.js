@@ -14,11 +14,8 @@ import { SubAgentContext } from "./sub-agent-context.js";
 import { getTemplate, setUserTemplates } from "./cowork-task-templates.js";
 import { mountTemplateMcpTools } from "./cowork-mcp-tools.js";
 import { listUserTemplates } from "./cowork-template-marketplace.js";
-import {
-  createMcpCallLedger,
-  McpEffect,
-  normalizeMcpEffectContract,
-} from "./mcp-call-ledger.js";
+import { createMcpCallLedger, McpEffect } from "./mcp-call-ledger.js";
+import { guardMcpLedgerForRecovery } from "./mcp-ledger-recovery-admission.js";
 import {
   createSessionMcpLedgerSink,
   formatMcpLedgerRecoveryNotice,
@@ -82,29 +79,6 @@ function publicMcpRecoveryState(recovery, blockMode, readErrorCode = null) {
     unsettled: Object.freeze(unsettled),
     incidents: Object.freeze(incidents),
   });
-}
-
-function guardMcpLedgerForRecovery(ledger, recoveryState) {
-  if (!ledger || !recoveryState?.blockMode) return ledger;
-  const begin = async (call = {}) => {
-    const effect = normalizeMcpEffectContract(
-      call.effectContract || call.effect || {},
-    ).effect;
-    const blocked =
-      recoveryState.blockMode === "all" ||
-      (recoveryState.blockMode === "unsafe" && effect !== McpEffect.READ);
-    if (blocked) {
-      const error = new Error(
-        `Cowork MCP ${effect} call blocked until durable recovery incidents are explicitly adjudicated`,
-      );
-      error.code = "CC_COWORK_MCP_RECOVERY_BLOCKED";
-      error.effect = effect;
-      error.blockMode = recoveryState.blockMode;
-      throw error;
-    }
-    return ledger.begin(call);
-  };
-  return Object.freeze({ begin, beginCall: begin });
 }
 
 function assertCoworkMcpSessionBinding(events, templateId) {
@@ -216,6 +190,7 @@ export function prepareCoworkMcpRuntime(mcp, options = {}) {
     ledger: guardMcpLedgerForRecovery(
       createMcpCallLedger({ sink }),
       recoveryState,
+      { code: "CC_COWORK_MCP_RECOVERY_BLOCKED" },
     ),
   };
 }
