@@ -1,0 +1,378 @@
+{
+  "schema": "chainlesschain.delivery-host-fixtures",
+  "version": 1,
+  "projectionCases": [
+    {
+      "name": "ci-refresh-is-the-only-action",
+      "valid": true,
+      "value": {
+        "schema": "chainlesschain.delivery-flow-projection",
+        "version": 1,
+        "valid": true,
+        "flowId": "delivery-fixture",
+        "revision": 7,
+        "stateDigest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "status": "active",
+        "phase": "ci",
+        "round": 1,
+        "maxRounds": 3,
+        "noProgressRounds": 0,
+        "maxNoProgressRounds": 1,
+        "availableActions": ["refresh_ci"],
+        "pendingEffect": null,
+        "stopReason": null,
+        "failures": [],
+        "pr": {
+          "number": 42,
+          "headCommitSha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "ciCommitSha": null,
+          "mergeAllowed": false
+        },
+        "evidence": null
+      }
+    },
+    {
+      "name": "pending-effect-has-no-replay-action",
+      "valid": true,
+      "value": {
+        "schema": "chainlesschain.delivery-flow-projection",
+        "version": 1,
+        "valid": true,
+        "flowId": "delivery-fixture",
+        "revision": 8,
+        "stateDigest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "status": "active",
+        "phase": "ci",
+        "round": 1,
+        "maxRounds": 3,
+        "noProgressRounds": 0,
+        "maxNoProgressRounds": 1,
+        "availableActions": [],
+        "pendingEffect": {
+          "id": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "action": "refresh_ci",
+          "requestedAt": "2026-08-01T00:00:00.000Z"
+        },
+        "stopReason": null,
+        "failures": [],
+        "pr": null,
+        "evidence": null
+      }
+    },
+    {
+      "name": "unknown-host-action-fails-closed",
+      "valid": false,
+      "value": {
+        "schema": "chainlesschain.delivery-flow-projection",
+        "version": 1,
+        "valid": true,
+        "flowId": "delivery-fixture",
+        "revision": 9,
+        "stateDigest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "status": "active",
+        "phase": "merge",
+        "round": 1,
+        "maxRounds": 3,
+        "noProgressRounds": 0,
+        "maxNoProgressRounds": 1,
+        "availableActions": ["force_push_and_merge"],
+        "pendingEffect": null,
+        "stopReason": null,
+        "failures": [],
+        "pr": null,
+        "evidence": null
+      }
+    }
+  ],
+  "actionCases": [
+    {
+      "name": "exact-state-bound-refresh",
+      "valid": true,
+      "value": {
+        "schema": "chainlesschain.delivery-action",
+        "version": 1,
+        "flowId": "delivery-fixture",
+        "expectedRevision": 7,
+        "expectedStateDigest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "action": "refresh_ci",
+        "payload": {
+          "flowId": "delivery-fixture",
+          "revision": 7,
+          "commitSha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "diffDigest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        }
+      }
+    },
+    {
+      "name": "abbreviated-state-digest-fails-closed",
+      "valid": false,
+      "value": {
+        "schema": "chainlesschain.delivery-action",
+        "version": 1,
+        "flowId": "delivery-fixture",
+        "expectedRevision": 7,
+        "expectedStateDigest": "sha256:abc123",
+        "action": "refresh_ci",
+        "payload": {}
+      }
+    },
+    {
+      "name": "unknown-action-fails-closed",
+      "valid": false,
+      "value": {
+        "schema": "chainlesschain.delivery-action",
+        "version": 1,
+        "flowId": "delivery-fixture",
+        "expectedRevision": 7,
+        "expectedStateDigest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "action": "force_merge",
+        "payload": {}
+      }
+    }
+  ],
+  "resultCases": [
+    {
+      "name": "effect-bound-ci-result",
+      "valid": true,
+      "value": {
+        "schema": "chainlesschain.delivery-action-result",
+        "version": 1,
+        "effectId": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "result": {
+          "headCommitSha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "ciCommitSha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sideEffects": []
+        }
+      }
+    },
+    {
+      "name": "abbreviated-effect-id-fails-closed",
+      "valid": false,
+      "value": {
+        "schema": "chainlesschain.delivery-action-result",
+        "version": 1,
+        "effectId": "sha256:abc123",
+        "result": {}
+      }
+    }
+  ],
+  "uiCases": [
+    {
+      "name": "reviewable-failure-and-immutable-evidence",
+      "value": {
+        "schema": "chainlesschain.delivery-flow-projection",
+        "version": 1,
+        "valid": true,
+        "flowId": "delivery-ui-fixture",
+        "revision": 12,
+        "stateDigest": "sha256:1212121212121212121212121212121212121212121212121212121212121212",
+        "status": "active",
+        "phase": "merge",
+        "round": 2,
+        "maxRounds": 3,
+        "noProgressRounds": 1,
+        "maxNoProgressRounds": 2,
+        "availableActions": ["merge"],
+        "pendingEffect": null,
+        "stopReason": null,
+        "failures": [
+          {
+            "id": "review-1",
+            "source": "review",
+            "gateId": null,
+            "test": "rejects unsafe fallback",
+            "file": "src/delivery.js",
+            "line": 37,
+            "hunk": "@@ -31,7 +31,9 @@",
+            "turnId": "turn-9",
+            "toolCallId": "tool-4",
+            "message": "fallback bypasses the gate"
+          }
+        ],
+        "pr": {
+          "number": 42,
+          "headCommitSha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "ciCommitSha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "mergeAllowed": true
+        },
+        "evidence": {
+          "recordDigest": "sha256:abababababababababababababababababababababababababababababababab",
+          "ready": true,
+          "artifactId": "delivery-evidence-42"
+        }
+      },
+      "contains": [
+        "Gates",
+        "Preview",
+        "Review",
+        "PR / CI",
+        "Merge",
+        "Archive",
+        "round 2/3",
+        "no progress 1/2",
+        "src/delivery.js:37",
+        "@@ -31,7 +31,9 @@",
+        "turn-9",
+        "tool-4",
+        "sha256:abababababababababababababababababababababababababababababababab",
+        "delivery-evidence-42"
+      ]
+    }
+  ],
+  "controllerCase": {
+    "statePath": "flow.json",
+    "resultPath": "ci-result.json",
+    "initial": {
+      "schema": "chainlesschain.delivery-flow-command-result",
+      "version": 1,
+      "state": { "opaque": "initial" },
+      "projection": {
+        "schema": "chainlesschain.delivery-flow-projection",
+        "version": 1,
+        "valid": true,
+        "flowId": "delivery-fixture",
+        "revision": 7,
+        "stateDigest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "status": "active",
+        "phase": "ci",
+        "round": 1,
+        "maxRounds": 3,
+        "noProgressRounds": 0,
+        "maxNoProgressRounds": 1,
+        "availableActions": ["refresh_ci"],
+        "pendingEffect": null,
+        "stopReason": null,
+        "failures": [],
+        "pr": {
+          "number": 42,
+          "headCommitSha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "ciCommitSha": null,
+          "mergeAllowed": false
+        },
+        "evidence": null
+      }
+    },
+    "requested": {
+      "schema": "chainlesschain.delivery-flow-command-result",
+      "version": 1,
+      "state": { "opaque": "pending" },
+      "projection": {
+        "schema": "chainlesschain.delivery-flow-projection",
+        "version": 1,
+        "valid": true,
+        "flowId": "delivery-fixture",
+        "revision": 8,
+        "stateDigest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "status": "active",
+        "phase": "ci",
+        "round": 1,
+        "maxRounds": 3,
+        "noProgressRounds": 0,
+        "maxNoProgressRounds": 1,
+        "availableActions": [],
+        "pendingEffect": {
+          "id": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "action": "refresh_ci",
+          "requestedAt": "2026-08-01T00:00:00.000Z"
+        },
+        "stopReason": null,
+        "failures": [],
+        "pr": null,
+        "evidence": null
+      }
+    },
+    "settled": {
+      "schema": "chainlesschain.delivery-flow-command-result",
+      "version": 1,
+      "state": { "opaque": "settled" },
+      "projection": {
+        "schema": "chainlesschain.delivery-flow-projection",
+        "version": 1,
+        "valid": true,
+        "flowId": "delivery-fixture",
+        "revision": 9,
+        "stateDigest": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+        "status": "active",
+        "phase": "evidence",
+        "round": 1,
+        "maxRounds": 3,
+        "noProgressRounds": 0,
+        "maxNoProgressRounds": 1,
+        "availableActions": ["publish_evidence"],
+        "pendingEffect": null,
+        "stopReason": null,
+        "failures": [],
+        "pr": {
+          "number": 42,
+          "headCommitSha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "ciCommitSha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "mergeAllowed": false
+        },
+        "evidence": null
+      }
+    },
+    "stale": {
+      "schema": "chainlesschain.delivery-flow-command-result",
+      "version": 1,
+      "state": { "opaque": "stale" },
+      "projection": {
+        "schema": "chainlesschain.delivery-flow-projection",
+        "version": 1,
+        "valid": true,
+        "flowId": "delivery-fixture",
+        "revision": 8,
+        "stateDigest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+        "status": "active",
+        "phase": "ci",
+        "round": 1,
+        "maxRounds": 3,
+        "noProgressRounds": 0,
+        "maxNoProgressRounds": 1,
+        "availableActions": ["refresh_ci"],
+        "pendingEffect": null,
+        "stopReason": null,
+        "failures": [],
+        "pr": null,
+        "evidence": null
+      }
+    },
+    "resultEnvelope": {
+      "schema": "chainlesschain.delivery-action-result",
+      "version": 1,
+      "effectId": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "result": {
+        "headCommitSha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "ciCommitSha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "sideEffects": []
+      }
+    },
+    "expectedRequestArgs": [
+      "artifacts",
+      "delivery-step",
+      "flow.json",
+      "--action",
+      "refresh_ci",
+      "--expected-revision",
+      "7",
+      "--expected-state-digest",
+      "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "--write-state",
+      "--json"
+    ],
+    "expectedSettleArgs": [
+      "artifacts",
+      "delivery-step",
+      "flow.json",
+      "--result-file",
+      "ci-result.json",
+      "--expected-revision",
+      "8",
+      "--expected-state-digest",
+      "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "--expected-effect-id",
+      "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "--write-state",
+      "--json"
+    ]
+  }
+}

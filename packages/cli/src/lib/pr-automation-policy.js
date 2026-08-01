@@ -26,6 +26,18 @@ export const CHECK_STATE = Object.freeze({
   ERROR: "error",
 });
 
+/** Terminal outcomes prove that a side effect no longer needs adjudication. */
+export const SETTLED_SIDE_EFFECT_STATES = Object.freeze([
+  "committed",
+  "failed",
+  "no_effect",
+  "not_applicable",
+  "rejected",
+  "rolled_back",
+  "settled",
+  "verified",
+]);
+
 const CHECK_ALIASES = new Map([
   ["passed", CHECK_STATE.PASSED],
   ["pass", CHECK_STATE.PASSED],
@@ -48,6 +60,8 @@ const CHECK_ALIASES = new Map([
   ["timed_out", CHECK_STATE.ERROR],
   ["action_required", CHECK_STATE.ERROR],
 ]);
+
+const EXACT_COMMIT_RE = /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/i;
 
 /** Normalize any provider's check conclusion/status to a canonical state. */
 export function normalizeCheckState(value) {
@@ -91,6 +105,31 @@ export function summarizeChecks(checks = []) {
     anyFailed: failed > 0,
     allPassed: list.length > 0 && failed === 0 && pending === 0,
     byName,
+  };
+}
+
+/**
+ * Summarize side effects without guessing. A missing ledger is different from
+ * an explicitly empty ledger: only the latter proves that there are no side
+ * effects to adjudicate.
+ */
+export function summarizeSideEffects(sideEffects) {
+  if (!Array.isArray(sideEffects)) {
+    return { verified: false, total: 0, unresolved: ["ledger-unavailable"] };
+  }
+  const settled = new Set(SETTLED_SIDE_EFFECT_STATES);
+  const unresolved = [];
+  sideEffects.forEach((effect, index) => {
+    const id = String(effect?.id || effect?.operationId || index);
+    const state = String(effect?.status || effect?.state || "")
+      .trim()
+      .toLowerCase();
+    if (!settled.has(state)) unresolved.push(id);
+  });
+  return {
+    verified: true,
+    total: sideEffects.length,
+    unresolved,
   };
 }
 
@@ -152,20 +191,10 @@ export function autoFixDecision(params = {}) {
 }
 
 /**
- * Decide whether a PR may be auto-merged. Fail-closed and exhaustive: every
- * unmet requirement is collected, and merge is allowed ONLY when the list is
- * empty. Auto-merge is off unless `enabled === true`.
- *
- * @param {object} params
- * @param {boolean} params.enabled                  auto-merge explicitly turned on
- * @param {boolean} params.hasOpenPr                a real PR exists (no direct-to-branch)
- * @param {boolean} params.branchProtectionSatisfied
- * @param {boolean} params.reviewApproved
- * @param {number}  params.pendingApprovals         permission approvals still waiting
- * @param {string[]} params.requiredChecks          names that must be present AND passed
- * @param {Array}   params.checks                   observed checks (summarizeChecks input)
- * @param {string}  [params.targetBranch]
- * @returns {{allow:boolean, reason:string, unmet:string[]}}
+ * Backward-compatible decision used by the existing session PR status view.
+ * The resumable delivery workflow uses `strictAutoMergeDecision` below, whose
+ * evidence contract additionally binds every required check to an exact head
+ * commit and requires an explicit side-effect ledger.
  */
 export function autoMergeDecision(params = {}) {
   const unmet = [];
@@ -182,8 +211,6 @@ export function autoMergeDecision(params = {}) {
   if (summary.anyFailed) unmet.push("checks-failing");
   if (summary.pending > 0) unmet.push("checks-pending");
 
-  // Every REQUIRED check must be present and passed — a required check that
-  // never ran is a block, not a pass.
   const required = Array.isArray(params.requiredChecks)
     ? params.requiredChecks
     : [];
@@ -192,6 +219,117 @@ export function autoMergeDecision(params = {}) {
     if (state !== CHECK_STATE.PASSED && state !== CHECK_STATE.NEUTRAL) {
       unmet.push(`required-check-missing:${name}`);
     }
+  }
+
+  return {
+    allow: unmet.length === 0,
+    reason: unmet.length === 0 ? "ok" : unmet[0],
+    unmet,
+  };
+}
+
+/**
+ * Decide whether a delivery workflow may request a PR merge. Fail-closed and
+ * exhaustive: every unmet requirement is collected, and merge is allowed ONLY
+ * when the complete, exact-commit evidence contract is satisfied.
+ *
+ * @param {object} params
+ * @param {boolean} params.enabled                  auto-merge explicitly turned on
+ * @param {boolean} params.hasOpenPr                a real PR exists (no direct-to-branch)
+ * @param {boolean} params.branchProtectionSatisfied
+ * @param {boolean} params.reviewApproved
+ * @param {number}  params.pendingApprovals         permission approvals still waiting
+ * @param {string[]} params.requiredChecks          names that must be present AND passed
+ * @param {boolean} params.requiredMatrixComplete   list is the authoritative full matrix
+ * @param {Array}   params.checks                   observed checks (summarizeChecks input)
+ * @param {string}  params.headCommitSha            exact PR head
+ * @param {string}  params.ciCommitSha              commit assessed by CI
+ * @param {Array}   params.sideEffects               explicit adjudication ledger (may be empty)
+ * @param {string}  [params.targetBranch]
+ * @returns {{allow:boolean, reason:string, unmet:string[]}}
+ */
+export function strictAutoMergeDecision(params = {}) {
+  const unmet = [];
+
+  if (params.enabled !== true) unmet.push("auto-merge-disabled");
+  if (params.hasOpenPr !== true) unmet.push("no-open-pr");
+  if (params.branchProtectionSatisfied !== true) {
+    unmet.push("branch-protection-unsatisfied");
+  }
+  if (params.reviewApproved !== true) unmet.push("review-not-approved");
+  const pendingApprovals = Number(params.pendingApprovals);
+  if (!Number.isInteger(pendingApprovals) || pendingApprovals < 0) {
+    unmet.push("pending-approvals-unverified");
+  } else if (pendingApprovals > 0) {
+    unmet.push("pending-approvals");
+  }
+
+  const headCommitSha = String(params.headCommitSha || "").trim();
+  const ciCommitSha = String(params.ciCommitSha || "").trim();
+  if (
+    !EXACT_COMMIT_RE.test(headCommitSha) ||
+    !EXACT_COMMIT_RE.test(ciCommitSha)
+  ) {
+    unmet.push("commit-sha-unverifiable");
+  } else if (headCommitSha !== ciCommitSha) {
+    unmet.push("ci-head-mismatch");
+  }
+
+  const summary = summarizeChecks(params.checks);
+  if (summary.anyFailed) unmet.push("checks-failing");
+  if (summary.pending > 0) unmet.push("checks-pending");
+
+  // Every REQUIRED check must be present and passed — a required check that
+  // never ran is a block, not a pass.
+  const required = Array.isArray(params.requiredChecks)
+    ? params.requiredChecks.map((name) => String(name || "").trim())
+    : [];
+  if (params.requiredMatrixComplete !== true) {
+    unmet.push("required-matrix-unverified");
+  }
+  if (required.length === 0 || required.some((name) => !name)) {
+    unmet.push("required-checks-unverified");
+  }
+  if (new Set(required).size !== required.length) {
+    unmet.push("required-checks-ambiguous");
+  }
+  for (const name of required) {
+    const matches = (Array.isArray(params.checks) ? params.checks : []).filter(
+      (check) => String(check?.name || "") === name,
+    );
+    if (matches.length === 0) {
+      unmet.push(`required-check-missing:${name}`);
+      continue;
+    }
+    if (matches.length > 1) {
+      unmet.push(`required-check-ambiguous:${name}`);
+      continue;
+    }
+    const check = matches[0];
+    const state =
+      normalizeCheckState(check?.state) ??
+      normalizeCheckState(check?.conclusion) ??
+      normalizeCheckState(check?.status);
+    if (state !== CHECK_STATE.PASSED) {
+      unmet.push(`required-check-not-passed:${name}`);
+    }
+    const checkCommitSha = String(check?.commitSha || "").trim();
+    if (
+      !EXACT_COMMIT_RE.test(checkCommitSha) ||
+      !EXACT_COMMIT_RE.test(headCommitSha)
+    ) {
+      unmet.push(`required-check-commit-unverifiable:${name}`);
+    } else if (checkCommitSha !== headCommitSha) {
+      unmet.push(`required-check-stale:${name}`);
+    }
+  }
+
+  const sideEffects = summarizeSideEffects(params.sideEffects);
+  if (!sideEffects.verified) {
+    unmet.push("side-effects-unverified");
+  }
+  for (const id of sideEffects.unresolved) {
+    if (sideEffects.verified) unmet.push(`side-effect-unresolved:${id}`);
   }
 
   return {

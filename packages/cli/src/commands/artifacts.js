@@ -12,7 +12,28 @@
  */
 
 import chalk from "chalk";
-import { ArtifactStore } from "../lib/artifact-store.js";
+import fs from "node:fs";
+import { randomUUID } from "node:crypto";
+import {
+  ArtifactStore,
+  publicArtifactMetadata,
+} from "../lib/artifact-store.js";
+import {
+  assessDeliveryEvidence,
+  createDeliveryEvidenceRecord,
+  DELIVERY_EVIDENCE_SCHEMA,
+  verifyDeliveryEvidenceRecord,
+} from "../lib/delivery-evidence.js";
+import { selectImpactedGates } from "../lib/impacted-gate-selector.js";
+import {
+  createDeliveryFlow,
+  projectDeliveryFlow,
+  requestDeliveryAction,
+  restoreDeliveryFlow,
+  settleDeliveryAction,
+  validateDeliveryActionResult,
+} from "../lib/delivery-coordinator.js";
+import { withFileLock } from "../lib/with-file-lock.js";
 
 export function registerArtifactsCommand(program) {
   const cmd = program
@@ -66,6 +87,78 @@ export function registerArtifactsCommand(program) {
     .action((options) => {
       process.exitCode = runArtifactsClean(options);
     });
+
+  cmd
+    .command("select-gates <input>")
+    .description(
+      "Select impacted required gates from an analyzer JSON file (unknowns fall back to the full suite)",
+    )
+    .option("--json", "Machine-readable JSON output")
+    .action((input, options) => {
+      process.exitCode = runArtifactsSelectGates(input, options);
+    });
+
+  cmd
+    .command("delivery-evidence <input>")
+    .description(
+      "Validate and archive a versioned delivery-evidence JSON record (does not create or merge a PR)",
+    )
+    .option("--session <id>", "Bind the artifact to an agent session")
+    .option("--ttl-days <days>", "Artifact retention in days")
+    .option("--json", "Machine-readable JSON output")
+    .action((input, options) => {
+      process.exitCode = runArtifactsDeliveryEvidence(input, options);
+    });
+
+  cmd
+    .command("delivery-init <input>")
+    .description(
+      "Create a resumable delivery-flow snapshot from JSON (no external actions)",
+    )
+    .option("--json", "Machine-readable JSON output")
+    .action((input, options) => {
+      process.exitCode = runArtifactsDeliveryInit(input, options);
+    });
+
+  cmd
+    .command("delivery-step <state>")
+    .description(
+      "Request or settle one explicit delivery action without invoking an external adapter",
+    )
+    .option("--action <action>", "Action to request when no effect is pending")
+    .option("--payload-file <path>", "Optional action payload JSON")
+    .option(
+      "--result-file <path>",
+      "Versioned effect-bound external/fake result envelope to settle",
+    )
+    .option(
+      "--expected-revision <revision>",
+      "Fail closed unless the snapshot still has this revision",
+    )
+    .option(
+      "--expected-state-digest <digest>",
+      "Fail closed unless the snapshot still has this sha256 digest",
+    )
+    .option(
+      "--expected-effect-id <effectId>",
+      "Fail closed unless this exact effect is still pending",
+    )
+    .option(
+      "--write-state",
+      "Atomically persist the CLI-produced next snapshot under a strict lock",
+    )
+    .option("--json", "Machine-readable JSON output")
+    .action((state, options) => {
+      process.exitCode = runArtifactsDeliveryStep(state, options);
+    });
+
+  cmd
+    .command("delivery-project <state>")
+    .description("Validate and project a delivery snapshot for IDE consumption")
+    .option("--json", "Machine-readable JSON output")
+    .action((state, options) => {
+      process.exitCode = runArtifactsDeliveryProject(state, options);
+    });
 }
 
 export function runArtifactsList(options = {}, deps = {}) {
@@ -108,7 +201,11 @@ export function runArtifactsShow(id, options = {}, deps = {}) {
     console.error(chalk.red(`No artifact with id "${id}".`));
     return 1;
   }
-  const payload = { ...entry, storedPath: store.storedPath(entry) };
+  const payload = {
+    ...entry,
+    storedPath: store.storedPath(entry),
+    integrity: store.verifyIntegrity(entry),
+  };
   if (options.json) {
     console.log(JSON.stringify(payload, null, 2));
     return 0;
@@ -158,4 +255,305 @@ export function runArtifactsClean(options = {}, deps = {}) {
       : chalk.dim("Nothing expired."),
   );
   return 0;
+}
+
+function readJsonFile(inputPath, deps = {}) {
+  const readFileSync = deps.readFileSync || fs.readFileSync;
+  return JSON.parse(readFileSync(inputPath, "utf-8"));
+}
+
+export function runArtifactsSelectGates(inputPath, options = {}, deps = {}) {
+  try {
+    const selection = selectImpactedGates(readJsonFile(inputPath, deps));
+    if (options.json) {
+      console.log(JSON.stringify(selection, null, 2));
+    } else {
+      console.log(
+        selection.mode === "blocked"
+          ? chalk.red(`Gate selection blocked: ${selection.reason}`)
+          : chalk.green(
+              `Gate selection: ${selection.mode} (${selection.selectedGateIds.join(", ")})`,
+            ),
+      );
+      if (selection.fallback) {
+        console.log(
+          chalk.yellow(`Full required-suite fallback: ${selection.reason}`),
+        );
+      }
+    }
+    return selection.decision === "blocked" ? 1 : 0;
+  } catch (error) {
+    const payload = {
+      schema: "chainlesschain.impacted-gate-selection-error",
+      version: 1,
+      error: error.message,
+    };
+    if (options.json) console.error(JSON.stringify(payload));
+    else console.error(chalk.red(`Gate selection failed: ${error.message}`));
+    return 1;
+  }
+}
+
+export function runArtifactsDeliveryEvidence(
+  inputPath,
+  options = {},
+  deps = {},
+) {
+  const store = deps.store || new ArtifactStore();
+  try {
+    const input = readJsonFile(inputPath, deps);
+    const record =
+      input?.schema === DELIVERY_EVIDENCE_SCHEMA
+        ? input
+        : createDeliveryEvidenceRecord(input, { now: deps.now });
+    const verification = verifyDeliveryEvidenceRecord(record);
+    const readiness = assessDeliveryEvidence(record);
+    const recordJson = `${JSON.stringify(record, null, 2)}\n`;
+    const digestSuffix = String(record.recordDigest || "unverified")
+      .replace(/^sha256:/, "")
+      .slice(0, 16);
+    const entry = store.publishData({
+      data: recordJson,
+      fileName: `delivery-evidence-v1-${digestSuffix}.json`,
+      title: `Delivery evidence ${digestSuffix}`,
+      kind: "data",
+      mime: "application/json",
+      sessionId: options.session || null,
+      ttlDays: options.ttlDays,
+      immutable: true,
+      recordDigest: record.recordDigest || null,
+    });
+    const payload = {
+      schema: "chainlesschain.delivery-evidence-command-result",
+      version: 1,
+      archived: true,
+      artifact: publicArtifactMetadata(entry),
+      artifactIntegrity: store.verifyIntegrity(entry),
+      verification,
+      readiness,
+      record,
+    };
+    if (options.json) {
+      console.log(JSON.stringify(payload, null, 2));
+    } else {
+      console.log(
+        readiness.ready
+          ? chalk.green(`Delivery evidence ready: ${entry.id}`)
+          : chalk.yellow(
+              `Delivery evidence archived but blocked: ${readiness.reason}`,
+            ),
+      );
+      console.log(chalk.dim(store.storedPath(entry)));
+    }
+    return readiness.ready ? 0 : 1;
+  } catch (error) {
+    const payload = {
+      schema: "chainlesschain.delivery-evidence-command-error",
+      version: 1,
+      archived: false,
+      error: error.message,
+    };
+    if (options.json) console.error(JSON.stringify(payload));
+    else console.error(chalk.red(`Delivery evidence failed: ${error.message}`));
+    return 1;
+  }
+}
+
+function deliveryCommandPayload(state) {
+  return {
+    schema: "chainlesschain.delivery-flow-command-result",
+    version: 1,
+    state,
+    projection: projectDeliveryFlow(state),
+  };
+}
+
+function printDeliveryCommandPayload(payload, options) {
+  if (options.json) {
+    console.log(JSON.stringify(payload, null, 2));
+    return;
+  }
+  const projection = payload.projection;
+  console.log(
+    `${chalk.cyan(projection.flowId || "invalid")}  ${projection.status || "invalid"}/${projection.phase || "unknown"}  revision=${projection.revision ?? "?"}`,
+  );
+  if (projection.pendingEffect) {
+    console.log(
+      chalk.yellow(
+        `Pending explicit effect: ${projection.pendingEffect.action} (${projection.pendingEffect.id})`,
+      ),
+    );
+  }
+  if (projection.stopReason) {
+    console.log(chalk.yellow(`Stop reason: ${projection.stopReason}`));
+  }
+}
+
+export function runArtifactsDeliveryInit(inputPath, options = {}, deps = {}) {
+  try {
+    const config = readJsonFile(inputPath, deps);
+    const state = createDeliveryFlow(config, { now: deps.now });
+    const payload = deliveryCommandPayload(state);
+    printDeliveryCommandPayload(payload, options);
+    return state.status === "blocked" ? 1 : 0;
+  } catch (error) {
+    const payload = {
+      schema: "chainlesschain.delivery-flow-command-error",
+      version: 1,
+      error: error.message,
+    };
+    if (options.json) console.error(JSON.stringify(payload));
+    else
+      console.error(chalk.red(`Delivery flow init failed: ${error.message}`));
+    return 1;
+  }
+}
+
+export function runArtifactsDeliveryStep(statePath, options = {}, deps = {}) {
+  try {
+    const step = () => {
+      let state = restoreDeliveryFlow(readJsonFile(statePath, deps));
+      assertDeliveryStepExpectation(state, options);
+      if (state.pendingEffect) {
+        if (options.action && options.action !== state.pendingEffect.action) {
+          throw new Error(
+            `snapshot already has pending ${state.pendingEffect.action}; it cannot request ${options.action}`,
+          );
+        }
+        if (!options.resultFile) {
+          throw new Error(
+            "snapshot has a pending effect; provide --result-file to settle it explicitly",
+          );
+        }
+      } else {
+        if (!options.action) {
+          throw new Error("--action is required when no effect is pending");
+        }
+        if (options.expectedEffectId) {
+          throw new Error(
+            "expected effectId but snapshot has no pending effect",
+          );
+        }
+        const actionPayload = options.payloadFile
+          ? readJsonFile(options.payloadFile, deps)
+          : {};
+        state = requestDeliveryAction(state, options.action, actionPayload, {
+          now: deps.now,
+        });
+      }
+      if (options.resultFile) {
+        const envelope = readJsonFile(options.resultFile, deps);
+        const validation = validateDeliveryActionResult(envelope);
+        if (!validation.valid) {
+          throw new Error(`invalid action result: ${validation.reason}`);
+        }
+        if (envelope.effectId !== state.pendingEffect.id) {
+          throw new Error(
+            "action result effectId does not match pending effect",
+          );
+        }
+        state = settleDeliveryAction(
+          state,
+          state.pendingEffect.id,
+          envelope.result,
+          { now: deps.now },
+        );
+      }
+      if (options.writeState) writeDeliveryState(statePath, state, deps);
+      return state;
+    };
+    const state = options.writeState
+      ? (deps.withFileLock || withFileLock)(statePath, step, {
+          failIfUnavailable: true,
+        })
+      : step();
+    const payload = deliveryCommandPayload(state);
+    printDeliveryCommandPayload(payload, options);
+    return 0;
+  } catch (error) {
+    const payload = {
+      schema: "chainlesschain.delivery-flow-command-error",
+      version: 1,
+      error: error.message,
+    };
+    if (options.json) console.error(JSON.stringify(payload));
+    else
+      console.error(chalk.red(`Delivery flow step failed: ${error.message}`));
+    return 1;
+  }
+}
+
+function assertDeliveryStepExpectation(state, options) {
+  if (options.expectedRevision != null) {
+    const expected = Number(options.expectedRevision);
+    if (!Number.isInteger(expected) || expected < 0) {
+      throw new Error("expected revision must be a non-negative integer");
+    }
+    if (state.revision !== expected) {
+      throw new Error(
+        `stale delivery revision: expected ${expected}, found ${state.revision}`,
+      );
+    }
+  }
+  if (
+    options.expectedStateDigest &&
+    state.stateDigest !== String(options.expectedStateDigest)
+  ) {
+    throw new Error("stale delivery state digest");
+  }
+  if (options.expectedEffectId) {
+    if (!state.pendingEffect) {
+      throw new Error("expected effectId but snapshot has no pending effect");
+    }
+    if (state.pendingEffect.id !== String(options.expectedEffectId)) {
+      throw new Error("stale delivery effectId");
+    }
+  }
+}
+
+function writeDeliveryState(statePath, state, deps = {}) {
+  const writeFileSync = deps.writeFileSync || fs.writeFileSync;
+  const renameSync = deps.renameSync || fs.renameSync;
+  const rmSync = deps.rmSync || fs.rmSync;
+  const temporary = `${statePath}.${process.pid}.${randomUUID()}.tmp`;
+  try {
+    writeFileSync(temporary, `${JSON.stringify(state, null, 2)}\n`, {
+      encoding: "utf8",
+      mode: 0o600,
+      flag: "wx",
+    });
+    renameSync(temporary, statePath);
+  } catch (error) {
+    try {
+      rmSync(temporary, { force: true });
+    } catch {
+      // Preserve the authoritative write error.
+    }
+    throw error;
+  }
+}
+
+export function runArtifactsDeliveryProject(
+  statePath,
+  options = {},
+  deps = {},
+) {
+  try {
+    const state = restoreDeliveryFlow(readJsonFile(statePath, deps));
+    const payload = deliveryCommandPayload(state);
+    printDeliveryCommandPayload(payload, options);
+    return 0;
+  } catch (error) {
+    const payload = {
+      schema: "chainlesschain.delivery-flow-command-error",
+      version: 1,
+      error: error.message,
+    };
+    if (options.json) console.error(JSON.stringify(payload));
+    else
+      console.error(
+        chalk.red(`Delivery flow projection failed: ${error.message}`),
+      );
+    return 1;
+  }
 }

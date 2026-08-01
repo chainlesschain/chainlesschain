@@ -10,8 +10,10 @@ import {
   normalizeCheckState,
   summarizeChecks,
   autoFixDecision,
-  autoMergeDecision,
+  autoMergeDecision as legacyAutoMergeDecision,
+  strictAutoMergeDecision as autoMergeDecision,
   describePrStatusBar,
+  summarizeSideEffects,
 } from "../../src/lib/pr-automation-policy.js";
 
 describe("normalizeCheckState / summarizeChecks", () => {
@@ -100,6 +102,7 @@ describe("autoFixDecision", () => {
 });
 
 describe("autoMergeDecision — fail closed", () => {
+  const head = "a".repeat(40);
   const ready = {
     enabled: true,
     hasOpenPr: true,
@@ -107,7 +110,11 @@ describe("autoMergeDecision — fail closed", () => {
     reviewApproved: true,
     pendingApprovals: 0,
     requiredChecks: ["ci"],
-    checks: [{ name: "ci", conclusion: "success" }],
+    requiredMatrixComplete: true,
+    headCommitSha: head,
+    ciCommitSha: head,
+    checks: [{ name: "ci", conclusion: "success", commitSha: head }],
+    sideEffects: [],
   };
 
   it("allows merge only when every requirement is met", () => {
@@ -146,13 +153,13 @@ describe("autoMergeDecision — fail closed", () => {
     expect(
       autoMergeDecision({
         ...ready,
-        checks: [{ name: "ci", conclusion: "failure" }],
+        checks: [{ name: "ci", conclusion: "failure", commitSha: head }],
       }).unmet,
     ).toContain("checks-failing");
     expect(
       autoMergeDecision({
         ...ready,
-        checks: [{ name: "ci", conclusion: "queued" }],
+        checks: [{ name: "ci", conclusion: "queued", commitSha: head }],
       }).unmet,
     ).toContain("checks-pending");
   });
@@ -161,10 +168,69 @@ describe("autoMergeDecision — fail closed", () => {
     const d = autoMergeDecision({
       ...ready,
       requiredChecks: ["ci", "security"],
-      checks: [{ name: "ci", conclusion: "success" }], // security missing
+      checks: [{ name: "ci", conclusion: "success", commitSha: head }], // security missing
     });
     expect(d.allow).toBe(false);
     expect(d.unmet).toContain("required-check-missing:security");
+  });
+
+  it("binds CI and every required matrix cell to the exact PR head", () => {
+    expect(
+      autoMergeDecision({ ...ready, ciCommitSha: "b".repeat(40) }).unmet,
+    ).toContain("ci-head-mismatch");
+    expect(
+      autoMergeDecision({
+        ...ready,
+        checks: [
+          {
+            name: "ci",
+            conclusion: "success",
+            commitSha: "b".repeat(40),
+          },
+        ],
+      }).unmet,
+    ).toContain("required-check-stale:ci");
+  });
+
+  it("rejects abbreviated commit coordinates as unverifiable", () => {
+    expect(
+      autoMergeDecision({
+        ...ready,
+        headCommitSha: "abc123",
+        ciCommitSha: "abc123",
+        checks: [{ name: "ci", conclusion: "success", commitSha: "abc123" }],
+      }).unmet,
+    ).toContain("commit-sha-unverifiable");
+  });
+
+  it("requires an authoritative non-empty required matrix", () => {
+    expect(
+      autoMergeDecision({ ...ready, requiredMatrixComplete: undefined }).unmet,
+    ).toContain("required-matrix-unverified");
+    expect(autoMergeDecision({ ...ready, requiredChecks: [] }).unmet).toContain(
+      "required-checks-unverified",
+    );
+  });
+
+  it("requires an explicit ledger with every side effect adjudicated", () => {
+    expect(
+      autoMergeDecision({ ...ready, sideEffects: undefined }).unmet,
+    ).toContain("side-effects-unverified");
+    expect(
+      autoMergeDecision({
+        ...ready,
+        sideEffects: [{ id: "deploy-1", status: "unknown" }],
+      }).unmet,
+    ).toContain("side-effect-unresolved:deploy-1");
+    expect(
+      summarizeSideEffects([{ id: "deploy-1", status: "rolled_back" }]),
+    ).toMatchObject({ verified: true, unresolved: [] });
+  });
+
+  it("does not treat a missing pending-approval count as zero", () => {
+    expect(
+      autoMergeDecision({ ...ready, pendingApprovals: undefined }).unmet,
+    ).toContain("pending-approvals-unverified");
   });
 
   it("collects EVERY unmet requirement (exhaustive, not first-fail)", () => {
@@ -178,6 +244,22 @@ describe("autoMergeDecision — fail closed", () => {
       checks: [],
     });
     expect(d.unmet.length).toBeGreaterThanOrEqual(5);
+  });
+});
+
+describe("legacy autoMergeDecision compatibility", () => {
+  it("keeps the existing session status consumer compatible until migrated", () => {
+    expect(
+      legacyAutoMergeDecision({
+        enabled: true,
+        hasOpenPr: true,
+        branchProtectionSatisfied: true,
+        reviewApproved: true,
+        pendingApprovals: 0,
+        requiredChecks: ["ci"],
+        checks: [{ name: "ci", conclusion: "success" }],
+      }),
+    ).toMatchObject({ allow: true, reason: "ok", unmet: [] });
   });
 });
 
