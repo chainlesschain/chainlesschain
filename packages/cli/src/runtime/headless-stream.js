@@ -17,6 +17,7 @@
  */
 
 import { randomUUID } from "node:crypto";
+import { isProxy } from "node:util/types";
 import {
   approvalBindingDigest,
   verifyApprovalBinding,
@@ -119,6 +120,35 @@ import {
   parseSessionSlashCommandEvent,
 } from "./session-slash-commands.js";
 import { extractPluginUsageAttribution } from "../lib/plugin-usage-attribution.js";
+
+function invalidMcpRecoveryTransaction(capability, expected) {
+  const error = new TypeError(
+    `${capability} must ${expected} synchronously during MCP recovery`,
+  );
+  error.code = "CC_MCP_LEDGER_RECOVERY_TRANSACTION_INVALID";
+  return error;
+}
+
+function requireSynchronousRecoveryResult(value, capability) {
+  if (
+    value === null ||
+    value === undefined ||
+    (typeof value !== "object" && typeof value !== "function")
+  ) {
+    return value;
+  }
+  if (isProxy(value)) {
+    throw invalidMcpRecoveryTransaction(capability, "return a non-Proxy value");
+  }
+  if (typeof value.then === "function") {
+    // The async result is never authority, but a rejected Promise still needs
+    // an observer so rejecting it fail-closed does not leak an unhandled
+    // rejection into the host process.
+    void Promise.resolve(value).catch(() => {});
+    throw invalidMcpRecoveryTransaction(capability, "complete");
+  }
+  return value;
+}
 
 /**
  * Resolve the streaming-delta coalesce window (ms). Adjacent partial-message
@@ -1783,7 +1813,17 @@ async function runAgentHeadlessStreamInWorkspace(options = {}, deps = {}) {
   let mcpRecoveryVerified = !persist;
   if (persist) {
     try {
-      if (store.sessionExists(sessionId)) {
+      const existingSession = requireSynchronousRecoveryResult(
+        store.sessionExists(sessionId),
+        "sessionExists",
+      );
+      if (typeof existingSession !== "boolean") {
+        throw invalidMcpRecoveryTransaction(
+          "sessionExists",
+          "return a boolean",
+        );
+      }
+      if (existingSession) {
         // P0-2: reconcile the crash-safe ledger on resume (parity with
         // runAgentHeadless + the WS bridge). The verify-before-replay system
         // note goes BEFORE the replayed history — the same slot the
@@ -1795,13 +1835,17 @@ async function runAgentHeadlessStreamInWorkspace(options = {}, deps = {}) {
         if (sideEffectRecovery) {
           messages.push({ role: "system", content: sideEffectRecovery.notice });
         }
+        let mcpReadVerified = false;
         try {
           const recovery = loadMcpLedgerRecovery(sessionId, {
-            readVerifiedEvents: store.readVerifiedEvents,
+            readVerifiedEvents: (...args) =>
+              requireSynchronousRecoveryResult(
+                store.readVerifiedEvents(...args),
+                "readVerifiedEvents",
+              ),
           });
           mcpLedgerRecovery = recovery;
           mcpLedgerRecoveryError = null;
-          mcpRecoveryVerified = true;
           const notice = formatMcpLedgerRecoveryNotice(recovery);
           if (notice) {
             mcpCallRecovery = {
@@ -1817,6 +1861,7 @@ async function runAgentHeadlessStreamInWorkspace(options = {}, deps = {}) {
             };
             messages.push({ role: "system", content: notice });
           }
+          mcpReadVerified = true;
         } catch (error) {
           mcpLedgerRecoveryError = error;
           mcpCallRecovery = {
@@ -1832,21 +1877,37 @@ async function runAgentHeadlessStreamInWorkspace(options = {}, deps = {}) {
             content: mcpCallRecovery.notice,
           });
         }
-        const history = (store.rebuildMessages(sessionId) || []).filter(
-          (m) => m && m.role !== "system",
+        const rebuiltMessages = requireSynchronousRecoveryResult(
+          store.rebuildMessages(sessionId),
+          "rebuildMessages",
         );
+        if (!Array.isArray(rebuiltMessages)) {
+          throw invalidMcpRecoveryTransaction(
+            "rebuildMessages",
+            "return an array",
+          );
+        }
+        const history = rebuiltMessages.filter((m) => m && m.role !== "system");
         messages.push(...history);
         resumedMessages = history.length;
+        // Recovery authority becomes clean only after both the verified MCP
+        // transcript read and the complete replay rebuild have succeeded.
+        mcpRecoveryVerified = mcpReadVerified;
       } else {
         // A positive non-existence check is the only no-history case that does
-        // not require a verified transcript read.
-        mcpRecoveryVerified = true;
+        // not require a verified transcript read. The session creation itself
+        // is still part of the recovery transaction and must finish
+        // synchronously before clean authority is granted.
+        requireSynchronousRecoveryResult(
+          store.startSession(sessionId, {
+            title: "stream session",
+            provider,
+            model,
+          }),
+          "startSession",
+        );
         mcpLedgerRecoveryError = null;
-        store.startSession(sessionId, {
-          title: "stream session",
-          provider,
-          model,
-        });
+        mcpRecoveryVerified = true;
       }
     } catch (error) {
       if (!mcpRecoveryVerified && !mcpLedgerRecoveryError) {

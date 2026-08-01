@@ -189,7 +189,7 @@ describe("runAgentHeadlessStream MCP recovery authority", () => {
         toolName: "mcp__repo__read",
         serverName: "repo",
         input: {},
-        effectContract: { effect: "read" },
+        effectContract: { effect: "read", trusted: true },
       }),
     ).rejects.toMatchObject({
       code: "CC_MCP_LEDGER_RECOVERY_BLOCKED",
@@ -255,6 +255,169 @@ describe("runAgentHeadlessStream MCP recovery authority", () => {
       code: "CC_MCP_LEDGER_RECOVERY_BLOCKED",
       blockMode: "all",
     });
+    expect(callTool).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    {
+      name: "sessionExists throws",
+      store: {
+        sessionExists: () => {
+          throw new Error("session index unavailable");
+        },
+      },
+    },
+    {
+      name: "sessionExists returns a rejected Promise",
+      store: {
+        sessionExists: () => Promise.reject(new Error("async discovery")),
+      },
+    },
+    {
+      name: "readVerifiedEvents throws",
+      store: {
+        readVerifiedEvents: () => {
+          throw new Error("verified transcript unavailable");
+        },
+      },
+    },
+    {
+      name: "readVerifiedEvents returns a rejected Promise",
+      store: {
+        readVerifiedEvents: () =>
+          Promise.reject(new Error("async verified transcript")),
+      },
+    },
+    {
+      name: "rebuildMessages throws",
+      store: {
+        rebuildMessages: () => {
+          throw new Error("replay unavailable");
+        },
+      },
+    },
+    {
+      name: "rebuildMessages returns a rejected Promise",
+      store: {
+        rebuildMessages: () => Promise.reject(new Error("async replay")),
+      },
+    },
+    {
+      name: "rebuildMessages returns a non-array",
+      store: { rebuildMessages: () => ({}) },
+    },
+    {
+      name: "rebuildMessages returns a Proxy array",
+      store: { rebuildMessages: () => new Proxy([], {}) },
+    },
+    {
+      name: "a rebuilt message getter throws",
+      store: {
+        rebuildMessages: () => [
+          Object.defineProperty({}, "role", {
+            get() {
+              throw new Error("message role unavailable");
+            },
+          }),
+        ],
+      },
+    },
+    {
+      name: "a rebuilt message Proxy throws",
+      store: {
+        rebuildMessages: () => [
+          new Proxy(
+            {},
+            {
+              get() {
+                throw new Error("message unavailable");
+              },
+            },
+          ),
+        ],
+      },
+    },
+    {
+      name: "startSession throws",
+      store: {
+        sessionExists: () => false,
+        startSession: () => {
+          throw new Error("session creation unavailable");
+        },
+      },
+    },
+    {
+      name: "startSession returns a rejected Promise",
+      store: {
+        sessionExists: () => false,
+        startSession: () => Promise.reject(new Error("async session creation")),
+      },
+    },
+  ])("fails both MCP routes closed when $name", async ({ store }) => {
+    let capturedOptions = null;
+    let appendCalls = 0;
+    const callTool = vi.fn(async () => ({ content: [] }));
+    const deps = baseDeps({
+      agentLoop: async function* (_messages, loopOptions) {
+        capturedOptions = loopOptions;
+        yield { type: "response-complete", content: "done" };
+        yield { type: "run-ended", reason: "complete" };
+      },
+      input: input({ text: "continue" }),
+      resolveAgentMcp: async () => ({
+        mcpClient: { callTool, disconnectAll: vi.fn(async () => {}) },
+        connected: [],
+        extraToolDefinitions: [],
+        externalToolExecutors: {},
+        externalToolDescriptors: {},
+      }),
+      sessionExists: () => true,
+      startSession: () => "durable-session",
+      rebuildMessages: () => [],
+      readEvents: () => [],
+      readVerifiedEvents: () => [],
+      appendUserMessage: () => {},
+      appendAssistantMessage: () => {},
+      appendEvent: () => true,
+      appendAuthorityEvent: () => {
+        appendCalls += 1;
+        return true;
+      },
+      loadSideEffectLedger: () => null,
+      ...store,
+    });
+
+    await runAgentHeadlessStream(
+      { expandFileRefs: false, sessionId: "durable-session" },
+      deps,
+    );
+
+    expect(parse(deps._lines)).toContainEqual(
+      expect.objectContaining({
+        type: "raw",
+        subtype: "mcp_call_recovery",
+        incidents: 1,
+      }),
+    );
+    await expect(
+      capturedOptions.mcpCallLedger.begin({
+        sessionId: "durable-session",
+        toolName: "mcp__repo__read",
+        serverName: "repo",
+        input: {},
+        effectContract: { effect: "read" },
+      }),
+    ).rejects.toMatchObject({
+      code: "CC_MCP_LEDGER_RECOVERY_BLOCKED",
+      blockMode: "all",
+    });
+    await expect(
+      capturedOptions.mcpHostClient.callTool("repo", "status", {}),
+    ).rejects.toMatchObject({
+      code: "CC_MCP_LEDGER_RECOVERY_BLOCKED",
+      blockMode: "all",
+    });
+    expect(appendCalls).toBe(0);
     expect(callTool).not.toHaveBeenCalled();
   });
 });
