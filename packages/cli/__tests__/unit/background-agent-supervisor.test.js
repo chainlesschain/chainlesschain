@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  mkdirSync,
   mkdtempSync,
   readdirSync,
   readFileSync,
@@ -237,10 +238,33 @@ describe("background agent supervisor", () => {
       cwd: process.cwd(),
       sessionId: "session-test",
       title: "work",
+      followUpArgv: [
+        "agent",
+        "--api-key",
+        "secret",
+        "--session",
+        "session-test",
+      ],
     });
     expect(state.status).toBe("running");
     expect(state.pid).toBe(43210);
-    expect(readBackgroundAgentState(state.id)).not.toHaveProperty("argv");
+    const persistedState = readBackgroundAgentState(state.id);
+    expect(persistedState).not.toHaveProperty("argv");
+    expect(persistedState.launchProfile).toMatchObject({
+      version: 1,
+      credentials: { apiKey: "external" },
+    });
+    expect(persistedState.configFingerprint).toMatch(/^[a-f0-9]{64}$/);
+    const persistedJson = readdirSync(dir)
+      .filter((name) => name.endsWith(".json"))
+      .map((name) => readFileSync(join(dir, name), "utf8"))
+      .join("\n");
+    expect(persistedJson).not.toContain("secret");
+    const jobName = readdirSync(dir).find((name) => name.includes(".job."));
+    const job = JSON.parse(readFileSync(join(dir, jobName), "utf8"));
+    expect(job.argv).toEqual(["agent", "-p", "work"]);
+    expect(job.followUpArgv).toEqual(["agent", "--session", "session-test"]);
+    expect(_deps.spawn.mock.calls[0][2].env.CC_API_KEY).toBe("secret");
     expect(_deps.spawn.mock.calls[0][2]).toMatchObject({
       detached: true,
       stdio: ["ignore", expect.any(Number), expect.any(Number)],
@@ -252,6 +276,54 @@ describe("background agent supervisor", () => {
     expect(_deps.spawn.mock.calls[0][2].stdio[1]).toBe(
       _deps.spawn.mock.calls[0][2].stdio[2],
     );
+  });
+
+  it("persists only an external marker for an inherited CC_API_KEY", () => {
+    const previous = process.env.CC_API_KEY;
+    process.env.CC_API_KEY = "environment-api-secret";
+    try {
+      _deps.spawn = vi.fn(() => ({ pid: 43210, unref: vi.fn() }));
+      const state = launchBackgroundAgent({
+        argv: ["agent", "-p", "safe task"],
+        cwd: process.cwd(),
+        sessionId: "session-env-key",
+        title: "safe task",
+      });
+      expect(state.launchProfile.credentials.apiKey).toBe("external");
+      const persistedJson = readdirSync(dir)
+        .filter((name) => name.endsWith(".json"))
+        .map((name) => readFileSync(join(dir, name), "utf8"))
+        .join("\n");
+      expect(persistedJson).not.toContain("environment-api-secret");
+      // No copied env object is needed: Node's default spawn semantics inherit
+      // the current environment without serializing it into the job file.
+      expect(_deps.spawn.mock.calls[0][2]).not.toHaveProperty("env");
+    } finally {
+      if (previous === undefined) delete process.env.CC_API_KEY;
+      else process.env.CC_API_KEY = previous;
+    }
+  });
+
+  it("stale state writers cannot drop the immutable launch profile", () => {
+    _deps.spawn = vi.fn(() => ({ pid: 43210, unref: vi.fn() }));
+    const launched = launchBackgroundAgent({
+      argv: ["agent", "task", "--model", "pinned-model"],
+      cwd: process.cwd(),
+      sessionId: "session-profile-merge",
+      title: "profile merge",
+    });
+    writeBackgroundAgentState({
+      id: launched.id,
+      sessionId: launched.sessionId,
+      title: launched.title,
+      status: "running",
+      startedAt: launched.startedAt,
+      heartbeatAt: Date.now(),
+    });
+
+    const persisted = readBackgroundAgentState(launched.id);
+    expect(persisted.launchProfile.llm.model).toBe("pinned-model");
+    expect(persisted.configFingerprint).toBe(launched.configFingerprint);
   });
 
   it("lists sessions newest first and filters terminal states", () => {
@@ -529,6 +601,195 @@ describe("background agent supervisor", () => {
       "continue the work",
     ]);
     expect(job.followUpArgv).toEqual(["agent", "--session", "sess-42"]);
+  });
+
+  it("resumeBackgroundAgent rebuilds the persisted provider and policy profile", () => {
+    const settings = join(dir, "settings.json");
+    const mcp = join(dir, "mcp.json");
+    const bundle = join(dir, "bundle");
+    writeFileSync(settings, "{}\n");
+    writeFileSync(mcp, '{"mcpServers":{}}\n');
+    mkdirSync(bundle);
+    writeFileSync(join(bundle, "AGENTS.md"), "profile fixture\n");
+    _deps.spawn = vi.fn(() => ({ pid: 777, unref: vi.fn() }));
+
+    const original = launchBackgroundAgent({
+      argv: [
+        "agent",
+        "initial task must not persist in the profile",
+        "--provider",
+        "openai",
+        "--model",
+        "gpt-profile",
+        "--allowed-tools",
+        "read_file,run_shell",
+        "--disallowed-tools",
+        "delete_file",
+        "--permission-mode",
+        "plan",
+        "--sandbox-mode",
+        "strict",
+        "--mcp-config",
+        mcp,
+        "--strict-mcp-config",
+        "--settings",
+        settings,
+        "--bundle",
+        bundle,
+        "--max-turns",
+        "7",
+        "--max-budget-usd",
+        "1.5",
+      ],
+      cwd: dir,
+      sessionId: "sess-profile",
+      title: "profile launch",
+      governance: {
+        permissionMode: "plan",
+        resourceBudget: { maxTurns: 7, maxCostUsd: 1.5 },
+      },
+    });
+    writeBackgroundAgentState({
+      ...readBackgroundAgentState(original.id),
+      status: "completed",
+      endedAt: Date.now(),
+      exitCode: 0,
+    });
+
+    const resumed = resumeBackgroundAgent(original.id, "continue safely");
+    const jobFile = _deps.spawn.mock.calls.at(-1)[1][1];
+    const job = JSON.parse(readFileSync(jobFile, "utf8"));
+    expect(job.argv).toEqual(
+      expect.arrayContaining([
+        "--provider",
+        "openai",
+        "--model",
+        "gpt-profile",
+        "--allowed-tools",
+        "read_file,run_shell",
+        "--disallowed-tools",
+        "delete_file",
+        "--permission-mode",
+        "plan",
+        "--sandbox-mode",
+        "strict",
+        "--mcp-config",
+        mcp,
+        "--settings",
+        settings,
+        "--bundle",
+        bundle,
+        "--max-turns",
+        "7",
+        "--max-budget-usd",
+        "1.5",
+        "--session",
+        "sess-profile",
+        "-p",
+        "continue safely",
+      ]),
+    );
+    expect(JSON.stringify(job)).not.toContain(
+      "initial task must not persist in the profile",
+    );
+    expect(resumed.id).not.toBe(original.id);
+    expect(resumed.launchProfile.llm).toMatchObject({
+      provider: "openai",
+      model: "gpt-profile",
+    });
+    expect(resumed.configFingerprint).toBe(original.configFingerprint);
+  });
+
+  it("resumeBackgroundAgent rejects model/profile drift unless explicitly overridden", () => {
+    _deps.spawn = vi.fn(() => ({ pid: 777, unref: vi.fn() }));
+    const original = launchBackgroundAgent({
+      argv: [
+        "agent",
+        "task",
+        "--model",
+        "model-one",
+        "--permission-mode",
+        "manual",
+      ],
+      cwd: dir,
+      sessionId: "sess-drift",
+      title: "drift launch",
+    });
+    writeBackgroundAgentState({
+      ...readBackgroundAgentState(original.id),
+      status: "completed",
+      endedAt: Date.now(),
+      exitCode: 0,
+    });
+    const override = structuredClone(original.launchProfile);
+    override.llm.model = "model-two";
+    override.permission.dangerousBypass = true;
+
+    expect(() =>
+      resumeBackgroundAgent(original.id, "continue", {
+        launchProfileOverride: override,
+      }),
+    ).toThrow(/model-changed.*permission-bypass-enabled/);
+
+    const resumed = resumeBackgroundAgent(original.id, "continue", {
+      launchProfileOverride: override,
+      allowIncompatibleProfile: true,
+    });
+    expect(resumed.launchProfile.llm.model).toBe("model-two");
+    expect(resumed.launchProfile.permission.dangerousBypass).toBe(true);
+    expect(resumed.governance.permissionMode).toBe("manual");
+    const jobFile = _deps.spawn.mock.calls.at(-1)[1][1];
+    const job = JSON.parse(readFileSync(jobFile, "utf8"));
+    expect(job.argv).toEqual(
+      expect.arrayContaining([
+        "--model",
+        "model-two",
+        "--allow-dangerous-bypass",
+      ]),
+    );
+  });
+
+  it("resumeBackgroundAgent requires an external replacement for a redacted API key", () => {
+    const previous = process.env.CC_API_KEY;
+    delete process.env.CC_API_KEY;
+    try {
+      _deps.spawn = vi.fn(() => ({ pid: 777, unref: vi.fn() }));
+      const original = launchBackgroundAgent({
+        argv: [
+          "agent",
+          "task",
+          "--model",
+          "model-one",
+          "--api-key",
+          "launch-secret",
+        ],
+        cwd: dir,
+        sessionId: "sess-redacted-key",
+        title: "key launch",
+      });
+      writeBackgroundAgentState({
+        ...readBackgroundAgentState(original.id),
+        status: "completed",
+        endedAt: Date.now(),
+        exitCode: 0,
+      });
+
+      expect(() => resumeBackgroundAgent(original.id, "continue")).toThrow(
+        /external-api-key-unavailable/,
+      );
+      const resumed = resumeBackgroundAgent(original.id, "continue", {
+        apiKey: "resume-secret",
+      });
+      expect(resumed.launchProfile.credentials.apiKey).toBe("external");
+      const jobFile = _deps.spawn.mock.calls.at(-1)[1][1];
+      expect(readFileSync(jobFile, "utf8")).not.toContain("resume-secret");
+      expect(_deps.spawn.mock.calls.at(-1)[2].env.CC_API_KEY).toBe(
+        "resume-secret",
+      );
+    } finally {
+      if (previous === undefined) delete process.env.CC_API_KEY;
+      else process.env.CC_API_KEY = previous;
+    }
   });
 
   it("resumeBackgroundAgent refuses running sessions and empty prompts", () => {

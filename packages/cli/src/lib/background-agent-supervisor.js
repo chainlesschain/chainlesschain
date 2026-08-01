@@ -22,6 +22,16 @@ import {
 } from "./agent-worktree.js";
 import { rejectPendingBackgroundInteractions } from "./background-interaction-journal.js";
 import executionBroker from "./process-execution-broker/index.js";
+import {
+  assessBackgroundLaunchProfileCompatibility,
+  buildArgvFromBackgroundLaunchProfile,
+  captureBackgroundLaunchProfile,
+  fingerprintBackgroundLaunchProfile,
+  normalizeBackgroundLaunchProfile,
+  refreshBackgroundLaunchProfileSources,
+  stripBackgroundLaunchSecrets,
+  verifyBackgroundLaunchProfileSources,
+} from "./background-launch-profile.js";
 
 export const DEFAULT_HEARTBEAT_INTERVAL_MS = 5000;
 export const DEFAULT_HEARTBEAT_STALE_MS = 120000;
@@ -364,10 +374,40 @@ export function writeBackgroundAgentState(state) {
         branch: current.branch,
       };
     }
+    // The launch profile is immutable same-id identity. A heartbeat/finalize
+    // writer holding an older snapshot must never drop it and silently turn a
+    // profile-aware record back into legacy minimal-resume semantics.
+    if (current.launchProfile) {
+      next = {
+        ...next,
+        launchProfile: current.launchProfile,
+        configFingerprint: current.configFingerprint,
+      };
+    }
   }
-  const tmp = `${target}.${process.pid}.tmp`;
+  // Multiple async state writers can run in one process; a pid-only temporary
+  // name lets them overwrite each other's staging file. A unique suffix keeps
+  // each atomic replacement independent. Windows scanners/readers can also
+  // hold the destination for a few milliseconds, so retry only that bounded
+  // transient class rather than surfacing a spurious EPERM background failure.
+  const tmp = `${target}.${process.pid}.${randomBytes(4).toString("hex")}.tmp`;
   writeFileSync(tmp, JSON.stringify(next, null, 2), { mode: 0o600 });
-  renameSync(tmp, target);
+  for (let attempt = 0; ; attempt++) {
+    try {
+      renameSync(tmp, target);
+      break;
+    } catch (error) {
+      if (
+        process.platform !== "win32" ||
+        !new Set(["EPERM", "EACCES", "EBUSY"]).has(error?.code) ||
+        attempt >= 5
+      ) {
+        rmSync(tmp, { force: true });
+        throw error;
+      }
+      sleepSyncMs(5 * (attempt + 1));
+    }
+  }
   return next;
 }
 
@@ -860,13 +900,23 @@ function persistedWorktree(state) {
 }
 
 /**
- * Continue a finished/crashed background session as a NEW background session
- * on the same conversation (`cc daemon resume <id> <prompt>`). The original
- * launch argv is intentionally NOT persisted (it may carry secrets), so the
- * resume runs a minimal `agent --session <sid> -p <prompt>` — model/provider
- * come from config defaults, and the headless runner replays the JSONL
- * transcript for the session id.
+ * Continue a finished/crashed run as a NEW background agent on the same
+ * conversation. Versioned records rebuild their secret-free launch profile;
+ * legacy records retain the old minimal argv behavior. Callers must explicitly
+ * opt in before an incompatible profile override can change the run envelope.
  */
+function incompatibleLaunchProfileError(id, reasons) {
+  const normalized = Array.isArray(reasons) ? reasons.filter(Boolean) : [];
+  const error = new Error(
+    `Background agent ${id} launch profile is incompatible: ${
+      normalized.join(", ") || "unknown profile mismatch"
+    }. Refusing to resume without an explicit compatibility override.`,
+  );
+  error.code = "BACKGROUND_LAUNCH_PROFILE_INCOMPATIBLE";
+  error.reasons = normalized;
+  return error;
+}
+
 export function resumeBackgroundAgent(id, prompt, options = {}) {
   const state = effectiveBackgroundAgentState(readBackgroundAgentState(id), {
     now: options.now,
@@ -893,7 +943,88 @@ export function resumeBackgroundAgent(id, prompt, options = {}) {
       `Background agent ${id} is bound to worktree "${worktree.worktreePath}" and cannot resume in a different cwd`,
     );
   }
-  const argv = ["agent", "--session", state.sessionId, "-p", text];
+  let launchProfile = null;
+  if (state.launchProfile) {
+    let persisted;
+    try {
+      persisted = normalizeBackgroundLaunchProfile(state.launchProfile);
+    } catch (error) {
+      throw incompatibleLaunchProfileError(id, [
+        `invalid-profile:${error.message}`,
+      ]);
+    }
+    const actualFingerprint = fingerprintBackgroundLaunchProfile(persisted);
+    const storedFingerprint =
+      state.configFingerprint || state.launchProfileFingerprint || null;
+    const explicitReplacement =
+      options.launchProfileOverride &&
+      options.allowIncompatibleProfile === true;
+    if (storedFingerprint !== actualFingerprint && !explicitReplacement) {
+      throw incompatibleLaunchProfileError(id, [
+        storedFingerprint
+          ? "profile-fingerprint-mismatch"
+          : "profile-fingerprint-missing",
+      ]);
+    }
+
+    if (options.launchProfileOverride) {
+      let proposed;
+      try {
+        proposed = normalizeBackgroundLaunchProfile(
+          options.launchProfileOverride,
+        );
+      } catch (error) {
+        throw incompatibleLaunchProfileError(id, [
+          `invalid-profile-override:${error.message}`,
+        ]);
+      }
+      const compatibility = assessBackgroundLaunchProfileCompatibility(
+        persisted,
+        proposed,
+      );
+      if (
+        !compatibility.compatible &&
+        options.allowIncompatibleProfile !== true
+      ) {
+        throw incompatibleLaunchProfileError(id, compatibility.reasons);
+      }
+      launchProfile = proposed;
+    } else {
+      launchProfile = persisted;
+    }
+
+    const sourceCheck = verifyBackgroundLaunchProfileSources(launchProfile);
+    if (!sourceCheck.valid && options.allowIncompatibleProfile !== true) {
+      throw incompatibleLaunchProfileError(id, sourceCheck.issues);
+    }
+    if (!sourceCheck.valid) {
+      launchProfile = refreshBackgroundLaunchProfileSources(launchProfile);
+    }
+    if (
+      launchProfile.credentials.apiKey === "external" &&
+      !options.apiKey &&
+      !process.env.CC_API_KEY
+    ) {
+      throw incompatibleLaunchProfileError(id, [
+        "external-api-key-unavailable",
+      ]);
+    }
+  } else if (options.launchProfileOverride) {
+    // Explicit profiles can migrate legacy records, which have no prior
+    // launch envelope to compare against.
+    launchProfile = normalizeBackgroundLaunchProfile(
+      options.launchProfileOverride,
+    );
+  }
+
+  const followUpArgv = launchProfile
+    ? [
+        ...buildArgvFromBackgroundLaunchProfile(launchProfile),
+        "--session",
+        state.sessionId,
+      ]
+    : ["agent", "--session", state.sessionId];
+  const argv = [...followUpArgv, "-p", text];
   return launchBackgroundAgent({
     argv,
     // Worktree sessions fail closed: never fall back to process.cwd(), which
@@ -902,9 +1033,19 @@ export function resumeBackgroundAgent(id, prompt, options = {}) {
     sessionId: state.sessionId,
     title: options.title || state.title || text.slice(0, 100),
     cliEntry: options.cliEntry,
-    followUpArgv: ["agent", "--session", state.sessionId],
+    followUpArgv,
     worktree,
-    governance: state.governance,
+    governance: launchProfile
+      ? {
+          permissionMode: launchProfile.permission.mode,
+          resourceBudget: {
+            maxTurns: launchProfile.budget.maxTurns,
+            maxCostUsd: launchProfile.budget.maxCostUsd,
+          },
+        }
+      : state.governance,
+    launchProfile,
+    apiKey: options.apiKey,
   });
 }
 
@@ -944,6 +1085,8 @@ export function launchBackgroundAgent({
   followUpArgv,
   worktree,
   governance,
+  launchProfile,
+  apiKey,
 }) {
   assertUsableCwd(cwd);
   const worktreeState = normalizeBackgroundWorktree(worktree, cwd);
@@ -952,6 +1095,28 @@ export function launchBackgroundAgent({
     id,
     sessionId,
   });
+  const initialSecrets = stripBackgroundLaunchSecrets(argv);
+  const followUpSecrets = stripBackgroundLaunchSecrets(followUpArgv);
+  const forwardedApiKey =
+    apiKey || initialSecrets.apiKey || followUpSecrets.apiKey || null;
+  const runtimeApiKey = forwardedApiKey || process.env.CC_API_KEY || null;
+  let launchProfileState = launchProfile
+    ? normalizeBackgroundLaunchProfile(launchProfile)
+    : captureBackgroundLaunchProfile({
+        argv,
+        cwd,
+        worktree: worktreeState,
+        governance: governanceState,
+      });
+  if (runtimeApiKey && launchProfileState.credentials.apiKey !== "external") {
+    launchProfileState = normalizeBackgroundLaunchProfile({
+      ...launchProfileState,
+      credentials: { apiKey: "external" },
+      omitted: [...launchProfileState.omitted, "apiKey"],
+    });
+  }
+  const configFingerprint =
+    fingerprintBackgroundLaunchProfile(launchProfileState);
   const dir = backgroundAgentsDir();
   const jobFile = join(dir, `${id}.job.${process.pid}.json`);
   const worker = fileURLToPath(
@@ -959,7 +1124,7 @@ export function launchBackgroundAgent({
   );
   const job = {
     id,
-    argv,
+    argv: initialSecrets.argv,
     cwd,
     sessionId,
     title: title || "Background agent",
@@ -969,7 +1134,9 @@ export function launchBackgroundAgent({
     governance: governanceState,
     // Present = interactive attach can start follow-up turns; absent = the
     // transport rejects prompts (log-only session).
-    ...(Array.isArray(followUpArgv) ? { followUpArgv } : {}),
+    ...(Array.isArray(followUpArgv)
+      ? { followUpArgv: followUpSecrets.argv }
+      : {}),
   };
   writeFileSync(jobFile, JSON.stringify(job), { mode: 0o600 });
   // Write the initial state BEFORE spawning so the worker's own merges (the
@@ -992,6 +1159,8 @@ export function launchBackgroundAgent({
     logFile: job.logFile,
     ...(worktreeState || {}),
     governance: governanceState,
+    launchProfile: launchProfileState,
+    configFingerprint,
   };
   writeBackgroundAgentState(state);
   let child;
@@ -1007,6 +1176,9 @@ export function launchBackgroundAgent({
       detached: true,
       stdio: ["ignore", workerLogFd, workerLogFd],
       windowsHide: true,
+      ...(forwardedApiKey
+        ? { env: { ...process.env, CC_API_KEY: forwardedApiKey } }
+        : {}),
       origin: "background-agent:worker",
       policy: "allow",
       scope: "background-agent",
