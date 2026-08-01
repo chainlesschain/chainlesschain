@@ -8,11 +8,13 @@
  */
 
 import { describe, it, expect } from "vitest";
+import crypto from "node:crypto";
 import {
   checkPackUpdate,
   parseAndCompare,
   PackUpdateError,
 } from "../../src/lib/packer/pack-update-checker.js";
+import { signPackUpdateManifest } from "../../src/lib/packer/pack-update-signature.js";
 
 const FAKE_URL = "https://example.test/manifest.json";
 
@@ -122,6 +124,15 @@ describe("parseAndCompare (pure)", () => {
     }
   });
 
+  it("rejects a manifest requiring a newer updater schema", () => {
+    expect(() =>
+      parseAndCompare(
+        { ...VALID_MANIFEST, minimumUpdaterSchema: 2 },
+        { currentVersion: "0.156.0" },
+      ),
+    ).toThrow(/requires updater schema 2/);
+  });
+
   it("rejects when latest.cliVersion is missing", () => {
     const m = { schema: 1, latest: {} };
     expect(() => parseAndCompare(m, { currentVersion: "0.156.0" })).toThrow(
@@ -154,6 +165,32 @@ describe("parseAndCompare (pure)", () => {
 });
 
 describe("checkPackUpdate (with injected fetch)", () => {
+  it("requires and verifies a signed manifest when a trusted key is configured", async () => {
+    const { privateKey, publicKey } = crypto.generateKeyPairSync("ed25519");
+    const signed = signPackUpdateManifest(VALID_MANIFEST, privateKey);
+    await expect(
+      checkPackUpdate({
+        manifestUrl: FAKE_URL,
+        currentVersion: "0.156.6",
+        target: "node20-win-x64",
+        fetchImpl: fakeFetchOK(signed),
+        trustedPublicKey: publicKey,
+      }),
+    ).resolves.toMatchObject({ latestVersion: "0.157.0" });
+
+    await expect(
+      checkPackUpdate({
+        manifestUrl: FAKE_URL,
+        currentVersion: "0.156.6",
+        fetchImpl: fakeFetchOK({
+          ...signed,
+          latest: { ...signed.latest, cliVersion: "9.9.9" },
+        }),
+        trustedPublicKey: publicKey,
+      }),
+    ).rejects.toMatchObject({ code: "SIGNATURE_INVALID" });
+  });
+
   it("fetches the manifest URL and returns the parsed result", async () => {
     const r = await checkPackUpdate({
       manifestUrl: FAKE_URL,

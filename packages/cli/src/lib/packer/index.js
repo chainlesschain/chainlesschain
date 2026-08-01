@@ -216,6 +216,9 @@ export async function runPack(cliOpts, deps = {}) {
     projectEntry: cliOpts.entry || null,
     forceRefreshOnLaunch: Boolean(cliOpts.forceRefreshOnLaunch),
     updateManifestUrl: cliOpts.updateManifestUrl || null,
+    updatePublicKey: cliOpts.updatePublicKey
+      ? fs.readFileSync(path.resolve(cliOpts.updatePublicKey), "utf8")
+      : null,
   });
   steps.push({
     phase: "pkg-config",

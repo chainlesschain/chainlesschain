@@ -154,6 +154,10 @@ export function registerPackCommand(program) {
       "--update-manifest-url <url>",
       "OTA manifest URL to bake into the artifact (enables `cc pack check-update`)",
     )
+    .option(
+      "--update-public-key <path>",
+      "Trusted Ed25519 public key PEM to bake in for signed update manifests",
+    )
     .action(async (opts) => {
       try {
         const result = await runPack(opts, { logger });
@@ -421,6 +425,7 @@ export function registerPackCommand(program) {
             newExePath: dl.outputPath,
             targetExePath: targetExe,
             restart: Boolean(opts.restart),
+            verify: true,
           });
           if (opts.json) {
             logger.log(JSON.stringify({ applied: true, ...plan }, null, 2));
@@ -733,6 +738,7 @@ export async function runAutoUpdate({
       newExePath: dl.outputPath,
       targetExePath: targetExe,
       restart,
+      verify: true,
     });
   } catch (err) {
     const code = err instanceof ApplyError ? err.code : "UNKNOWN";

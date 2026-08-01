@@ -25,6 +25,7 @@
  */
 
 import semver from "semver";
+import { verifyPackUpdateManifest } from "./pack-update-signature.js";
 
 const SUPPORTED_SCHEMA = 1;
 const DEFAULT_TIMEOUT_MS = 10_000;
@@ -56,6 +57,11 @@ export async function checkPackUpdate(ctx) {
     target,
     timeoutMs = DEFAULT_TIMEOUT_MS,
     fetchImpl = fetch,
+    trustedPublicKey = process.env.CC_PACK_UPDATE_PUBLIC_KEY ||
+      (typeof globalThis.BAKED === "object" &&
+        globalThis.BAKED?.updatePublicKey) ||
+      null,
+    requireSignature = Boolean(trustedPublicKey),
   } = ctx;
 
   if (!manifestUrl || typeof manifestUrl !== "string") {
@@ -103,6 +109,25 @@ export async function checkPackUpdate(ctx) {
     );
   }
 
+  if (requireSignature && !trustedPublicKey) {
+    throw new PackUpdateError(
+      "a trusted update public key is required but unavailable",
+      "SIGNATURE_KEY_MISSING",
+    );
+  }
+  if (trustedPublicKey) {
+    try {
+      verifyPackUpdateManifest(manifest, trustedPublicKey);
+    } catch (error) {
+      throw new PackUpdateError(error.message, "SIGNATURE_INVALID");
+    }
+  } else if (requireSignature) {
+    throw new PackUpdateError(
+      "pack update manifest is unsigned",
+      "SIGNATURE_INVALID",
+    );
+  }
+
   return parseAndCompare(manifest, { currentVersion, target });
 }
 
@@ -124,6 +149,15 @@ export function parseAndCompare(manifest, ctx) {
   if (manifest.schema !== SUPPORTED_SCHEMA) {
     throw new PackUpdateError(
       `unsupported manifest schema ${manifest.schema} (expected ${SUPPORTED_SCHEMA})`,
+      "SCHEMA_MISMATCH",
+    );
+  }
+  if (
+    Number.isInteger(manifest.minimumUpdaterSchema) &&
+    manifest.minimumUpdaterSchema > SUPPORTED_SCHEMA
+  ) {
+    throw new PackUpdateError(
+      `update requires updater schema ${manifest.minimumUpdaterSchema} (supported ${SUPPORTED_SCHEMA})`,
       "SCHEMA_MISMATCH",
     );
   }

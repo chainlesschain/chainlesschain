@@ -54,6 +54,7 @@ import path from "node:path";
  * @param {string|null} [ctx.updateManifestUrl] Phase 5a OTA manifest URL;
  *                                            baked into BAKED.updateManifestUrl
  *                                            and surfaced via `cc pack check-update`
+ * @param {string|null} [ctx.updatePublicKey] trusted Ed25519 public key PEM
  * @returns {{ pkgConfigDir: string, pkgConfigFile: string, entryScript: string, projectMeta: object|null }}
  */
 export function generatePkgConfig(ctx) {
@@ -71,6 +72,7 @@ export function generatePkgConfig(ctx) {
     projectEntry,
     forceRefreshOnLaunch = false,
     updateManifestUrl = null,
+    updatePublicKey = null,
   } = ctx;
 
   const bakedTokenMode =
@@ -150,6 +152,10 @@ export function generatePkgConfig(ctx) {
     updateManifestUrl:
       typeof updateManifestUrl === "string" && updateManifestUrl
         ? updateManifestUrl
+        : null,
+    updatePublicKey:
+      typeof updatePublicKey === "string" && updatePublicKey
+        ? updatePublicKey
         : null,
     ...(projectBaked || {}),
   };

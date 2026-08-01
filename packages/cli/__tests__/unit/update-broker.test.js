@@ -106,12 +106,12 @@ describe("CLI self-update process broker boundary", () => {
     expect(_deps.spawnSync).toHaveBeenCalledOnce();
   });
 
-  it("preserves the existing best-effort success when verification fails", async () => {
+  it("fails closed when post-install verification cannot run", async () => {
     _deps.spawnSync = vi
       .fn()
       .mockReturnValueOnce({ status: 0, stdout: "", stderr: "" })
       .mockReturnValueOnce({ status: 1, stdout: "", stderr: "missing" });
 
-    await expect(selfUpdateCli("9.9.7")).resolves.toBe(true);
+    await expect(selfUpdateCli("9.9.7")).resolves.toBe(false);
   });
 });

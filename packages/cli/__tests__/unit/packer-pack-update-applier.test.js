@@ -21,6 +21,7 @@ import os from "node:os";
 import path from "node:path";
 import {
   scheduleReplace,
+  rollbackLastKnownGood,
   writeWindowsSidecar,
   ApplyError,
   _deps,
@@ -46,6 +47,37 @@ describe("scheduleReplace – argument guards", () => {
         targetExePath: "/bin/x",
       }),
     ).rejects.toMatchObject({ code: "NEW_EXE_MISSING" });
+  });
+});
+
+describe("rollbackLastKnownGood", () => {
+  it("restores through staging without overwriting the previous backup", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-rollback-"));
+    const target = path.join(dir, "chainlesschain");
+    const backup = `${target}.previous`;
+    fs.writeFileSync(target, "bad-new-version");
+    fs.writeFileSync(backup, "known-good-version");
+    try {
+      const result = await rollbackLastKnownGood({
+        targetExePath: target,
+        platform: "posix",
+        verify: true,
+        verifyImpl: () => ({ status: 0, stdout: "1.0.0" }),
+      });
+      expect(result.action).toBe("replace-in-place");
+      expect(fs.readFileSync(target, "utf8")).toBe("known-good-version");
+      expect(fs.readFileSync(backup, "utf8")).toBe("known-good-version");
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("fails clearly when no backup exists", async () => {
+    await expect(
+      rollbackLastKnownGood({
+        targetExePath: "Z:\\missing\\chainlesschain.exe",
+      }),
+    ).rejects.toMatchObject({ code: "BACKUP_MISSING" });
   });
 });
 
@@ -173,6 +205,20 @@ describe("scheduleReplace – POSIX branch", () => {
       expect(mode & 0o100).toBe(0o100); // owner exec
     }
   });
+
+  it("restores the last-known-good binary when post-switch verification fails", async () => {
+    await expect(
+      scheduleReplace({
+        newExePath: newExe,
+        targetExePath: target,
+        platform: "posix",
+        verify: true,
+        verifyImpl: () => ({ status: 1, stderr: "broken executable" }),
+      }),
+    ).rejects.toMatchObject({ code: "UPDATE_VERIFY_FAILED" });
+    expect(fs.readFileSync(target, "utf8")).toBe("old-payload");
+    expect(fs.readFileSync(`${target}.previous`, "utf8")).toBe("old-payload");
+  });
 });
 
 describe("scheduleReplace – Windows branch (sidecar cmd)", () => {
@@ -273,6 +319,9 @@ describe("writeWindowsSidecar (cmd body)", () => {
     expect(body).toContain('set TARGET_EXE="C:\\Users\\u\\app.exe"');
     expect(body).toContain("tasklist");
     expect(body).toContain("move /Y %NEW_EXE% %TARGET_EXE%");
+    expect(body).toContain("set BACKUP_EXE=");
+    expect(body).toContain("copy /Y %TARGET_EXE% %BACKUP_EXE%");
+    expect(body).toContain("verification failed, rolling back");
     expect(body).toContain("REM restart not requested");
     expect(body).toContain('del "%~f0"');
   });

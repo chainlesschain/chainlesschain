@@ -31,6 +31,7 @@ import executionBroker from "../process-execution-broker/index.js";
 
 export const _deps = {
   spawn: (...args) => executionBroker.spawn(...args),
+  spawnSync: (...args) => executionBroker.spawnSync(...args),
 };
 
 /**
@@ -60,6 +61,9 @@ export async function scheduleReplace(ctx) {
     platform = process.platform === "win32" ? "win32" : "posix",
     parentPid = process.pid,
     spawnImpl = _deps.spawn,
+    verify = false,
+    verifyImpl = _deps.spawnSync,
+    createBackup = true,
   } = ctx;
 
   if (!newExePath || typeof newExePath !== "string") {
@@ -82,6 +86,7 @@ export async function scheduleReplace(ctx) {
       targetExePath,
       newExePath,
       sidecarPath: null,
+      backupPath: targetExePath + ".previous",
       restartRequested: Boolean(restart),
     };
   }
@@ -92,6 +97,8 @@ export async function scheduleReplace(ctx) {
       targetExePath,
       parentPid,
       restart: Boolean(restart),
+      verify: Boolean(verify),
+      createBackup: Boolean(createBackup),
     });
     // Detach so the sidecar survives our process exit. `windowsHide: true`
     // keeps the cmd window from flashing — the replace itself is silent.
@@ -112,8 +119,25 @@ export async function scheduleReplace(ctx) {
       targetExePath,
       newExePath,
       sidecarPath,
+      backupPath: targetExePath + ".previous",
       restartRequested: Boolean(restart),
     };
+  }
+
+  // POSIX: retain a last-known-good copy before the atomic switch. This copy
+  // deliberately survives success so an operator can recover after a later
+  // startup-only failure that the immediate smoke probe cannot observe.
+  const backupPath = targetExePath + ".previous";
+  if (createBackup && fs.existsSync(targetExePath)) {
+    try {
+      fs.copyFileSync(targetExePath, backupPath);
+      fs.chmodSync(backupPath, fs.statSync(targetExePath).mode);
+    } catch (err) {
+      throw new ApplyError(
+        `could not create last-known-good backup: ${err.message}`,
+        "BACKUP_FAILED",
+      );
+    }
   }
 
   // POSIX: atomic rename works even if targetExePath is the running exe.
@@ -127,6 +151,39 @@ export async function scheduleReplace(ctx) {
     fs.renameSync(newExePath, targetExePath);
   } catch (err) {
     throw new ApplyError(`rename failed: ${err.message}`, "RENAME_FAILED");
+  }
+
+  if (verify) {
+    let verification;
+    try {
+      verification = verifyImpl(targetExePath, ["--version"], {
+        encoding: "utf8",
+        stdio: "pipe",
+        origin: "packer:update-verify",
+        scope: "pack-update",
+        policy: "allow",
+        shell: false,
+      });
+    } catch (error) {
+      verification = { status: 1, error };
+    }
+    if (verification?.error || verification?.status !== 0) {
+      const failedPath = `${targetExePath}.failed-${Date.now()}`;
+      try {
+        fs.renameSync(targetExePath, failedPath);
+        if (fs.existsSync(backupPath))
+          fs.copyFileSync(backupPath, targetExePath);
+      } catch (rollbackError) {
+        throw new ApplyError(
+          `new binary verification failed and rollback failed: ${rollbackError.message}`,
+          "ROLLBACK_FAILED",
+        );
+      }
+      throw new ApplyError(
+        `new binary verification failed; restored ${backupPath}`,
+        "UPDATE_VERIFY_FAILED",
+      );
+    }
   }
 
   if (restart) {
@@ -147,6 +204,7 @@ export async function scheduleReplace(ctx) {
     targetExePath,
     newExePath,
     sidecarPath: null,
+    backupPath,
     restartRequested: Boolean(restart),
   };
 }
@@ -164,7 +222,14 @@ export async function scheduleReplace(ctx) {
  * @returns {string} absolute path to the generated .cmd (lives in os.tmpdir())
  */
 export function writeWindowsSidecar(ctx) {
-  const { newExePath, targetExePath, parentPid, restart } = ctx;
+  const {
+    newExePath,
+    targetExePath,
+    parentPid,
+    restart,
+    verify = true,
+    createBackup = true,
+  } = ctx;
 
   // `%TEMP%` is writable, survives across Explorer double-click launches, and
   // gets auto-cleaned by Windows eventually. The unique name prevents two
@@ -182,6 +247,7 @@ export function writeWindowsSidecar(ctx) {
     `set PARENT_PID=${parentPid}`,
     `set NEW_EXE="${newExePath}"`,
     `set TARGET_EXE="${targetExePath}"`,
+    `set BACKUP_EXE="${targetExePath}.previous"`,
     "set /a ATTEMPTS=0",
     ":waitloop",
     'tasklist /FI "PID eq %PARENT_PID%" 2>NUL | find /I "%PARENT_PID%" >NUL',
@@ -192,10 +258,28 @@ export function writeWindowsSidecar(ctx) {
     "timeout /T 1 /NOBREAK >NUL",
     "goto waitloop",
     ":doreplace",
+    ...(createBackup
+      ? [
+          "if exist %TARGET_EXE% copy /Y %TARGET_EXE% %BACKUP_EXE% >NUL",
+          "if errorlevel 1 (",
+          "  echo cc-pack-apply: backup failed & exit /b 1",
+          ")",
+        ]
+      : ["REM preserve existing last-known-good backup"]),
     "move /Y %NEW_EXE% %TARGET_EXE% >NUL",
     "if errorlevel 1 (",
     "  echo cc-pack-apply: move failed & exit /b 1",
     ")",
+    ...(verify
+      ? [
+          "%TARGET_EXE% --version >NUL 2>&1",
+          "if errorlevel 1 (",
+          "  echo cc-pack-apply: verification failed, rolling back",
+          "  if exist %BACKUP_EXE% copy /Y %BACKUP_EXE% %TARGET_EXE% >NUL",
+          "  exit /b 1",
+          ")",
+        ]
+      : ["REM post-replace verification disabled"]),
     restart ? 'start "" %TARGET_EXE%' : "REM restart not requested",
     // Self-delete — best effort. Leaving the .cmd in %TEMP% is harmless if
     // this fails; Windows will reap it on the next disk-cleanup cycle.
@@ -204,6 +288,49 @@ export function writeWindowsSidecar(ctx) {
 
   fs.writeFileSync(sidecarPath, cmd, { encoding: "utf-8" });
   return sidecarPath;
+}
+
+/**
+ * Restore `<target>.previous` through the same verified staging/switch path as
+ * a forward update. The backup itself is never overwritten during rollback.
+ */
+export async function rollbackLastKnownGood(ctx) {
+  const targetExePath = ctx?.targetExePath;
+  if (!targetExePath || typeof targetExePath !== "string") {
+    throw new ApplyError("targetExePath is required", "NO_TARGET_EXE");
+  }
+  const backupPath = ctx.backupPath || `${targetExePath}.previous`;
+  if (!fs.existsSync(backupPath)) {
+    throw new ApplyError(
+      `last-known-good backup does not exist: ${backupPath}`,
+      "BACKUP_MISSING",
+    );
+  }
+  const stagingPath = `${targetExePath}.rollback-${Date.now()}`;
+  try {
+    fs.copyFileSync(backupPath, stagingPath);
+  } catch (error) {
+    throw new ApplyError(
+      `could not stage last-known-good backup: ${error.message}`,
+      "ROLLBACK_STAGE_FAILED",
+    );
+  }
+  try {
+    return await scheduleReplace({
+      ...ctx,
+      newExePath: stagingPath,
+      targetExePath,
+      createBackup: false,
+      verify: ctx.verify !== false,
+    });
+  } catch (error) {
+    try {
+      if (fs.existsSync(stagingPath)) fs.unlinkSync(stagingPath);
+    } catch {
+      // best-effort staging cleanup
+    }
+    throw error;
+  }
 }
 
 export class ApplyError extends Error {

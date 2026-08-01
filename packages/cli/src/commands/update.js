@@ -7,6 +7,10 @@ import { askConfirm } from "../lib/prompts.js";
 import logger from "../lib/logger.js";
 import { executionBroker } from "../lib/process-execution-broker/index.js";
 import { resolveNpmInvocation } from "../lib/npm-invocation.js";
+import {
+  rollbackLastKnownGood,
+  ApplyError,
+} from "../lib/packer/pack-update-applier.js";
 
 export const _deps = {
   platform: process.platform,
@@ -106,12 +110,17 @@ export async function selfUpdateCli(targetVersion) {
         `CLI update ran but version is still ${newVersion}. Please run manually:\n  npm install -g chainlesschain@${targetVersion}`,
       );
       return false;
-    } catch (_verifyErr) {
-      // Cannot verify, assume success
-      logger.success(`CLI updated to v${targetVersion}`);
-      return true;
+    } catch (verifyErr) {
+      // Installation success is not update success. A stale shim on PATH, a
+      // broken executable, or a policy-denied verification spawn must never be
+      // reported as a verified update.
+      logger.warn(
+        `CLI package installation completed, but the installed version could not be verified: ${verifyErr?.message || "unknown verification error"}. ` +
+          `Please verify or reinstall manually:\n  npm install -g chainlesschain@${targetVersion}`,
+      );
+      return false;
     }
-  } catch (_err) {
+  } catch {
     // npm global install may fail due to permissions; guide the user
     logger.warn(
       `CLI self-update failed. Please run manually:\n  npm install -g chainlesschain@${targetVersion}`,
@@ -121,7 +130,7 @@ export async function selfUpdateCli(targetVersion) {
 }
 
 export function registerUpdateCommand(program) {
-  program
+  const update = program
     .command("update")
     .description("Check for and install updates")
     .option("--check", "Only check for updates (do not download)")
@@ -233,6 +242,59 @@ export function registerUpdateCommand(program) {
         }
         logger.error(`Update failed: ${err.message}`);
         process.exit(1);
+      }
+    });
+
+  update
+    .command("rollback")
+    .description("Restore the last-known-good signed native CLI binary")
+    .option(
+      "--target-exe <path>",
+      "Native executable to restore (required outside a packed CLI)",
+    )
+    .option("--restart", "Restart the restored CLI after switching")
+    .option("--yes", "Skip confirmation")
+    .option("--json", "Output the rollback plan as JSON")
+    .action(async (options) => {
+      const targetExePath =
+        options.targetExe || (process.pkg ? process.execPath : null);
+      if (!targetExePath) {
+        logger.error(
+          "Rollback is for signed native installations. Provide --target-exe explicitly when invoking it from npm.",
+        );
+        process.exitCode = 2;
+        return;
+      }
+      if (!options.yes) {
+        const accepted = await askConfirm(
+          `Restore ${targetExePath}.previous over ${targetExePath}?`,
+          false,
+        );
+        if (!accepted) {
+          logger.info("Rollback cancelled");
+          return;
+        }
+      }
+      try {
+        const plan = await rollbackLastKnownGood({
+          targetExePath,
+          restart: Boolean(options.restart),
+          verify: true,
+        });
+        if (options.json) logger.log(JSON.stringify(plan, null, 2));
+        else
+          logger.success(`Rollback scheduled from ${targetExePath}.previous`);
+        if (plan.action === "sidecar-cmd") {
+          setTimeout(() => process.exit(0), 500).unref?.();
+        }
+      } catch (error) {
+        const code = error instanceof ApplyError ? error.code : "UNKNOWN";
+        if (options.json) {
+          logger.log(JSON.stringify({ error: error.message, code }));
+        } else {
+          logger.error(`Rollback failed [${code}]: ${error.message}`);
+        }
+        process.exitCode = 1;
       }
     });
 }
