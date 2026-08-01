@@ -535,6 +535,10 @@ async function startAgentReplInWorkspace(options = {}) {
   // immediate independent side question handled below.
   let pendingBtw = [];
   let _btwRestore = null;
+  // Provider-neutral, tool-free Advisor/Critic. Initialized lazily after the
+  // durable session and resumed transcript are available; null means the
+  // optional surface could not be initialized. Default is off via config.
+  let _advisorRuntime = null;
   // Current permission mode (strict|trusted|autopilot|auto), mirrored here so
   // Shift+Tab can cycle it and `/permissions <tier>` can set it. Kept in sync
   // with _approvalGate.setSessionPolicy below. "auto" rides the trusted gate
@@ -1614,6 +1618,45 @@ async function startAgentReplInWorkspace(options = {}) {
     }
   }
 
+  // Advisor is independent from the main agent loop: it gets a redacted
+  // transcript snapshot and ZERO tools. Compact call/outcome metadata shares
+  // the session hash chain, while advice text itself is never persisted.
+  try {
+    const { createConfiguredAdvisorRuntime } =
+      await import("../lib/advisor-runtime.js");
+    const advisorOverrides = {};
+    if (options.advisorEnabled !== undefined) {
+      advisorOverrides.enabled = options.advisorEnabled === true;
+    }
+    _advisorRuntime = await createConfiguredAdvisorRuntime({
+      cwd: process.cwd(),
+      settingsFile: options.settingsFile || null,
+      managedSettingsFile: options.managedSettingsFile || null,
+      mainProvider: provider,
+      mainModel: model,
+      baseUrl,
+      apiKey,
+      overrides: advisorOverrides,
+      onEvent: (event) => {
+        if (!useJsonl || !sessionId) return;
+        try {
+          appendEvent(sessionId, event.type, event.data);
+        } catch {
+          // Advisor observability is best-effort and cannot fail a main turn.
+        }
+      },
+    });
+    // A resumed transcript may contain old tool results. Mark them observed so
+    // the first new turn cannot trigger an Advisor call for historical work.
+    _advisorRuntime.primeMessages(messages);
+  } catch (error) {
+    if (error?.code === "CC_MANAGED_SETTINGS_INVALID") throw error;
+    _advisorRuntime = null;
+    if (options.advisorEnabled === true) {
+      logger.warn(`Advisor unavailable: ${error.message}`);
+    }
+  }
+
   // Vim mode (Claude-Code `/vim` parity): opt-in modal line editing. `_vim`
   // holds the NORMAL-mode engine state while normal mode is active (readline's
   // own key handling is suspended then); it is null in INSERT mode (readline
@@ -1783,6 +1826,7 @@ async function startAgentReplInWorkspace(options = {}) {
       : [
           "/add-dir",
           "/agents",
+          "/advisor",
           "/auto",
           "/btw",
           "/cd",
@@ -2454,6 +2498,9 @@ async function startAgentReplInWorkspace(options = {}) {
         `  ${chalk.cyan("/btw")}        Ask an immediate tool-free side question (/btw [--fork] <question>)`,
       );
       logger.log(
+        `  ${chalk.cyan("/advisor")}    Independent tool-free critic (/advisor on|off|once [focus]|status)`,
+      );
+      logger.log(
         `  ${chalk.cyan("/note-next")}  Apply ephemeral guidance to the next main turn`,
       );
       logger.log(`  ${chalk.cyan("/clear")}      Clear conversation`);
@@ -2999,6 +3046,28 @@ async function startAgentReplInWorkspace(options = {}) {
       const btw = parseBtwCommand(trimmed);
       if (btw) {
         await runBtwSideQuestion(btw);
+        prompt();
+        return;
+      }
+    }
+
+    // `/advisor`: session-local enable/disable, one forced review, or status.
+    // One-shot advice is queued as an ephemeral prepareCall suffix, requiring
+    // the main agent to validate it locally on its next model/tool turn.
+    {
+      const { parseAdvisorCommand, executeAdvisorCommand } =
+        await import("./advisor-command.js");
+      const advisorCommand = parseAdvisorCommand(trimmed);
+      if (advisorCommand) {
+        const result = await executeAdvisorCommand(advisorCommand, {
+          runtime: _advisorRuntime,
+          messages,
+          signal: _turnAbort?.signal || null,
+        });
+        if (result?.output) logger.log(result.output);
+        if (result?.guidance) {
+          _advisorRuntime?.queueGuidance(result.guidance);
+        }
         prompt();
         return;
       }
@@ -4606,6 +4675,31 @@ async function startAgentReplInWorkspace(options = {}) {
             "Plan has no items yet. Let the AI analyze the task first.",
           );
         } else {
+          // Review this immutable plan version before approval. Advisor output
+          // cannot block or approve the plan and grants no extra authority; its
+          // local-verification checklist is queued for the next main turn.
+          if (_advisorRuntime?.status().enabled) {
+            try {
+              const result = await _advisorRuntime.reviewPlan(
+                {
+                  id: planManager.currentPlan.id,
+                  title: planManager.currentPlan.title,
+                  description: planManager.currentPlan.description,
+                  summary: planManager.generatePlanSummary(),
+                },
+                { messages, signal: _turnAbort?.signal || null },
+              );
+              if (result.ok) {
+                const { renderAdvisorAdvice } =
+                  await import("./advisor-command.js");
+                logger.log(renderAdvisorAdvice(result));
+              } else if (result.effect !== "disabled") {
+                logger.warn(result.error);
+              }
+            } catch (error) {
+              logger.warn(`Advisor plan review skipped: ${error.message}`);
+            }
+          }
           planManager.approvePlan();
           logger.success(
             `Plan approved! ${planManager.currentPlan.items.length} items ready for execution.`,
@@ -5638,6 +5732,28 @@ async function startAgentReplInWorkspace(options = {}) {
         /* goal binding is best-effort — fall back to defaultPrepareCall */
       }
       _turnAbort = new AbortController();
+      if (_advisorRuntime) {
+        _advisorRuntime.beginTurn(
+          `${sessionId || "ephemeral"}:${_turnCount + 1}`,
+        );
+        prepareCall = _advisorRuntime.createPrepareCall({
+          messages,
+          basePrepareCall: prepareCall,
+          subject: promptText,
+          signal: _turnAbort.signal,
+          onAdvice: async (result) => {
+            if (!result.ok) {
+              if (result.effect !== "disabled") {
+                process.stderr.write(`  Advisor: ${result.error}\n`);
+              }
+              return;
+            }
+            const { renderAdvisorAdvice } =
+              await import("./advisor-command.js");
+            process.stderr.write(`\n${renderAdvisorAdvice(result)}\n`);
+          },
+        });
+      }
       // Live streaming hooks: write the answer token-by-token, and stream the
       // reasoning dimmed before it. Skipped (left undefined) in replay mode.
       let _liveStreamed = false;

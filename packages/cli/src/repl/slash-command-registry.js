@@ -56,6 +56,28 @@ export class SlashCommandRegistry {
     // All Claude Code parity commands
     const commands = [
       [
+        "/advisor",
+        "Independent tool-free critic (on|off|once|status)",
+        async (args, { write, advisor, messages }) => {
+          if (!advisor) {
+            write("Advisor runtime is unavailable.");
+            return;
+          }
+          const { parseAdvisorCommand, executeAdvisorCommand } =
+            await import("./advisor-command.js");
+          const suffix = String(args || "").trim();
+          const parsed = parseAdvisorCommand(
+            `/advisor${suffix ? ` ${suffix}` : ""}`,
+          );
+          const result = await executeAdvisorCommand(parsed, {
+            runtime: advisor,
+            messages,
+          });
+          if (result?.guidance) advisor.queueGuidance(result.guidance);
+          write(result?.output || "Advisor command did not run.");
+        },
+      ],
+      [
         "/bug",
         "Submit a bug report",
         (args, { write }) => {
