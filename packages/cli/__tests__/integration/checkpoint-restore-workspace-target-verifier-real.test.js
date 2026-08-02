@@ -74,17 +74,12 @@ describe.sequential(
   "CheckpointRestoreWorkspaceTargetVerifier real engines",
   () => {
     let testRoot;
-    let previousHome;
 
     beforeEach(() => {
       testRoot = mkdtempSync(join(tmpdir(), "cc-restore-target-real-"));
-      previousHome = process.env.CHAINLESSCHAIN_HOME;
-      process.env.CHAINLESSCHAIN_HOME = join(testRoot, "private-home");
     });
 
     afterEach(() => {
-      if (previousHome === undefined) delete process.env.CHAINLESSCHAIN_HOME;
-      else process.env.CHAINLESSCHAIN_HOME = previousHome;
       rmSync(testRoot, { recursive: true, force: true });
     });
 
@@ -136,17 +131,20 @@ describe.sequential(
 
     it("verifies and then rejects drift through the real copy diff planner", () => {
       const workspaceRoot = join(testRoot, "copy-workspace");
+      const checkpointRoot = join(testRoot, "copy-checkpoints");
       const operationId = "restore_target_real_copy";
       mkdirSync(workspaceRoot, { recursive: true });
       writeFileSync(join(workspaceRoot, "target.txt"), "checkpoint\n", "utf8");
 
       const checkpoint = createCopyCheckpoint(["target.txt"], {
         cwd: workspaceRoot,
+        root: checkpointRoot,
         label: "real-verifier",
       });
       const checkpointIdentity = computeCheckpointIdentity(checkpoint);
       const status = diffCopyCheckpoint(checkpoint.id, {
         cwd: workspaceRoot,
+        root: checkpointRoot,
         expectedIdentity: checkpointIdentity,
       });
       const expected = expectedAuthority({
@@ -159,7 +157,13 @@ describe.sequential(
           checkpointIdentity,
         },
       });
-      const verifier = new CheckpointRestoreWorkspaceTargetVerifier();
+      const verifier = new CheckpointRestoreWorkspaceTargetVerifier({
+        copyDiffCheckpoint: (checkpointId, options) =>
+          diffCopyCheckpoint(checkpointId, {
+            ...options,
+            root: checkpointRoot,
+          }),
+      });
       const input = request(operationId, workspaceRoot, expected);
 
       expect(verifier.verify(input)).toMatchObject({
