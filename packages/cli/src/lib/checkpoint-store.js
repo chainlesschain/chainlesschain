@@ -28,6 +28,11 @@ export const _deps = {
 };
 
 const REF_NS = "refs/cc-checkpoints";
+// Publishing a checkpoint is an optimistic ref transaction. A busy session can
+// move between the id/tip scan and the transaction, so retry from a fresh tip
+// and rebuild the shadow commit. Keep the bound finite: a permanently locked
+// or externally churned namespace must fail instead of spinning forever.
+const MAX_REF_PUBLISH_ATTEMPTS = 16;
 // Deterministic identity for shadow commits so `git commit-tree` never trips on
 // a missing user.name / user.email config.
 const CHECKPOINT_IDENTITY = Object.freeze({
@@ -132,6 +137,50 @@ function sanitizeSession(session) {
 
 function sessionPrefix(session) {
   return `${REF_NS}/${sanitizeSession(session)}`;
+}
+
+function readRef(root, ref) {
+  try {
+    return (
+      git(["rev-parse", "--verify", "--quiet", ref], { cwd: root }) || null
+    );
+  } catch {
+    return null;
+  }
+}
+
+function isRefTransactionConflict(error) {
+  return /(?:cannot lock ref|unable to create .*\.lock|reference already exists|is at .* but expected)/i.test(
+    String(error?.message || error || ""),
+  );
+}
+
+/**
+ * Atomically publish an immutable checkpoint id and advance the session tip.
+ *
+ * `checkpointRef` uses the all-zero old oid, so an id observed as free can
+ * never overwrite a concurrently published checkpoint. `_tip` is updated with
+ * the exact oid observed before `commit-tree`; the two updates share one Git
+ * ref transaction. Consequently `_tip` is the head of a linear, atomically
+ * published session chain, and every successful commit has the previous tip as
+ * its parent. A transaction conflict publishes neither ref.
+ */
+function publishCheckpointRefs(
+  root,
+  { checkpointRef, tipRef, commit, expectedTip },
+) {
+  // Git accepts an all-zero old oid as "this ref must not exist". Match the
+  // repository's object format (SHA-1 or SHA-256) via the new commit length.
+  const zeroOid = "0".repeat(commit.length);
+  const input = [
+    "start",
+    `update ${checkpointRef} ${commit} ${zeroOid}`,
+    `update ${tipRef} ${commit} ${expectedTip || zeroOid}`,
+    "prepare",
+    "commit",
+    "",
+  ].join("\n");
+  git(["update-ref", "--stdin"], { cwd: root, input });
 }
 
 // Monotonic per-process counter so two temp-index paths minted in the same
@@ -268,43 +317,56 @@ export function createCheckpoint(cwd = process.cwd(), opts = {}) {
       }
     }
 
-    // Chain onto the prior tip (or HEAD) so checkpoints form a readable history.
-    let parent = null;
-    try {
-      parent = git(
-        ["rev-parse", "--verify", "--quiet", `${sessionPrefix(session)}/_tip`],
-        {
-          cwd: root,
-        },
-      );
-    } catch {
-      /* no tip yet */
-    }
-    if (!parent) {
+    const message = `cc-checkpoint${label ? `: ${label}` : ""}\n`;
+    const prefix = sessionPrefix(session);
+    const tipRef = `${prefix}/_tip`;
+    let published = null;
+    let lastConflict = null;
+
+    for (let attempt = 1; attempt <= MAX_REF_PUBLISH_ATTEMPTS; attempt += 1) {
+      // Chain onto the exact prior tip (or HEAD for the first checkpoint). Both
+      // the id and tip are CAS-published below. If another creator wins first,
+      // rebuild on its new tip so the session history remains linear.
+      const expectedTip = readRef(root, tipRef);
+      let parent = expectedTip;
+      if (!parent) parent = readRef(root, "HEAD");
+
+      const commitArgs = ["commit-tree", tree];
+      if (parent) commitArgs.push("-p", parent);
+      const commit = git(commitArgs, {
+        cwd: root,
+        input: message,
+        env: { ...env, ...CHECKPOINT_IDENTITY },
+      });
+      const id = nextId(root, session);
+      const ref = `${prefix}/${id}`;
+
       try {
-        parent = git(["rev-parse", "--verify", "--quiet", "HEAD"], {
-          cwd: root,
+        publishCheckpointRefs(root, {
+          checkpointRef: ref,
+          tipRef,
+          commit,
+          expectedTip,
         });
-      } catch {
-        /* fresh repo, root commit */
+        published = { id, ref, commit, parent };
+        break;
+      } catch (error) {
+        if (!isRefTransactionConflict(error)) throw error;
+        lastConflict = error;
       }
     }
 
-    const message = `cc-checkpoint${label ? `: ${label}` : ""}\n`;
-    const commitArgs = ["commit-tree", tree];
-    if (parent) commitArgs.push("-p", parent);
-    const commit = git(commitArgs, {
-      cwd: root,
-      input: message,
-      env: { ...env, ...CHECKPOINT_IDENTITY },
-    });
+    if (!published) {
+      const error = new Error(
+        `Checkpoint refs changed during ${MAX_REF_PUBLISH_ATTEMPTS} publish attempts`,
+        lastConflict ? { cause: lastConflict } : undefined,
+      );
+      error.code = "CHECKPOINT_REF_CONFLICT";
+      error.attempts = MAX_REF_PUBLISH_ATTEMPTS;
+      throw error;
+    }
 
-    const id = nextId(root, session);
-    const ref = `${sessionPrefix(session)}/${id}`;
-    git(["update-ref", ref, commit], { cwd: root });
-    git(["update-ref", `${sessionPrefix(session)}/_tip`, commit], {
-      cwd: root,
-    });
+    const { id, ref, commit, parent } = published;
 
     // File count in the snapshot (cheap, informative).
     let files = 0;
@@ -700,6 +762,8 @@ export function clearCheckpoints(cwd = process.cwd(), opts = {}) {
 // Exposed for unit tests / advanced callers.
 export const _internals = {
   git,
+  MAX_REF_PUBLISH_ATTEMPTS,
+  publishCheckpointRefs,
   repoRoot,
   sanitizeSession,
   snapshotTree,

@@ -163,6 +163,103 @@ describe("checkpoint-store (git engine)", () => {
     expect(resolveCheckpoint(repo, c1.id)).toBe(c1.commit);
   });
 
+  it("retries a concurrent id/tip publication without overwriting its checkpoint", () => {
+    const session = "race";
+    const prefix = `refs/cc-checkpoints/${session}`;
+    const base = createCheckpoint(repo, { session, label: "base" });
+    writeFileSync(join(repo, "a.txt"), "outer-change\n", "utf8");
+
+    const originalSpawnSync = _deps.spawnSync;
+    let firstAttemptInput = "";
+    let competing = null;
+    let injected = false;
+    _deps.spawnSync = (command, args, options) => {
+      if (
+        !injected &&
+        command === "git" &&
+        args?.[0] === "update-ref" &&
+        args?.[1] === "--stdin" &&
+        options?.input?.includes(`update ${prefix}/cp0002 `)
+      ) {
+        // Publish a complete competing checkpoint after the outer call scanned
+        // cp0002 and the old tip, but before its ref transaction executes.
+        // The outer transaction must lose both CAS checks, preserve this ref,
+        // then rebuild its commit on the competing tip under a new id.
+        injected = true;
+        firstAttemptInput = options.input;
+        competing = createCheckpoint(repo, {
+          session,
+          label: "concurrent-winner",
+        });
+      }
+      return originalSpawnSync(command, args, options);
+    };
+
+    let created;
+    try {
+      created = createCheckpoint(repo, { session, label: "outer-retry" });
+    } finally {
+      _deps.spawnSync = originalSpawnSync;
+    }
+
+    expect(injected).toBe(true);
+    expect(competing.id).toBe("cp0002");
+    expect(created.id).toBe("cp0003");
+    expect(git(repo, "rev-parse", competing.ref)).toBe(competing.commit);
+    expect(git(repo, "rev-parse", `${prefix}/_tip`)).toBe(created.commit);
+    expect(git(repo, "rev-parse", `${created.commit}^`)).toBe(competing.commit);
+
+    const zeroOid = "0".repeat(base.commit.length);
+    expect(firstAttemptInput).toMatch(
+      new RegExp(`update ${prefix}/cp0002 [a-f0-9]+ ${zeroOid}\\n`),
+    );
+    expect(firstAttemptInput).toMatch(
+      new RegExp(`update ${prefix}/_tip [a-f0-9]+ ${base.commit}\\n`),
+    );
+    expect(listCheckpoints(repo, { session }).map((row) => row.id)).toEqual([
+      "cp0003",
+      "cp0002",
+      "cp0001",
+    ]);
+  });
+
+  it("bounds repeated checkpoint ref transaction conflicts", () => {
+    const originalSpawnSync = _deps.spawnSync;
+    let attempts = 0;
+    _deps.spawnSync = (command, args, options) => {
+      if (
+        command === "git" &&
+        args?.[0] === "update-ref" &&
+        args?.[1] === "--stdin"
+      ) {
+        attempts += 1;
+        return {
+          status: 1,
+          stdout: "",
+          stderr:
+            "fatal: prepare: cannot lock ref 'refs/cc-checkpoints/busy/cp0001': reference already exists",
+        };
+      }
+      return originalSpawnSync(command, args, options);
+    };
+
+    let thrown = null;
+    try {
+      createCheckpoint(repo, { session: "busy", label: "bounded" });
+    } catch (error) {
+      thrown = error;
+    } finally {
+      _deps.spawnSync = originalSpawnSync;
+    }
+
+    expect(thrown).toMatchObject({
+      code: "CHECKPOINT_REF_CONFLICT",
+      attempts: _internals.MAX_REF_PUBLISH_ATTEMPTS,
+    });
+    expect(attempts).toBe(_internals.MAX_REF_PUBLISH_ATTEMPTS);
+    expect(listCheckpoints(repo, { session: "busy" })).toHaveLength(0);
+  });
+
   it("rewind restores modified files and takes a safety checkpoint", () => {
     const cp = createCheckpoint(repo, { label: "clean" });
     writeFileSync(join(repo, "a.txt"), "alpha-MUTATED\n", "utf8");
