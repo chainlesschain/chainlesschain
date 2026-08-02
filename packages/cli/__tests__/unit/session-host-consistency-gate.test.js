@@ -171,26 +171,67 @@ describe("cli session-host consistency gate", () => {
       schema: "cc-cli-session-host-consistency-result/v1",
       status: "passed",
       platform: process.platform,
-      proofScope: "same-process-host-adapter-conformance",
+      proofScope: "host-adapter-conformance-plus-ws-request-claim-fencing",
       scenarios: {
         verifiedHostAgreement: {
           pass: true,
           adapterScope: [
+            "repl",
             "headless",
-            "background",
+            "backgroundAttach",
             "websocket",
             "rebuiltAdapter",
           ],
           messageCount: 2,
           contentFreeControlPlane: true,
           staleHostHistoryReplaced: true,
+          hostSystemPromptPreserved: true,
+          websocketRestartRoundTrip: true,
           terminalState: {
             mcpCalls: { started: 1, outcomeUnknown: 1, total: 1 },
           },
         },
+        wsAtomicTurns: {
+          pass: true,
+          atomicEventCount: 4,
+          claimEventCount: 7,
+          failedSettlementCount: 2,
+          projectedMessageCount: 8,
+          modelThrowDidNotPersist: true,
+          emptyResponseDidNotPersist: true,
+          appendFailureDidNotPersist: true,
+          sameRequestExactlyOnce: true,
+          casRetried: true,
+          concurrentHandlersSerialized: true,
+          roleAlternatingAfterRestart: true,
+          contentFreeRuntimeBus: true,
+        },
+        wsCrossProcessClaim: {
+          pass: true,
+          modelCalls: 1,
+          toolCalls: 1,
+          durableClaimCount: 1,
+          durableSettlementCount: 1,
+          competingHandlerReturnedPending: true,
+          crashedClaimStayedPending: true,
+          crashedClaimWasNotTakenOver: true,
+          newRequestIdAllowed: true,
+        },
+        wsModelPeriodTamper: {
+          pass: true,
+          modelCalls: 1,
+          forgedSettlementRejected: true,
+          forgedResponseNotReturned: true,
+          retryModelCalls: 0,
+          tamperedRetryRefused: true,
+        },
         tamperRefusal: {
           pass: true,
           errorCode: "CC_SESSION_HOST_SNAPSHOT_UNVERIFIED",
+          replRefusedBeforeCommit: true,
+          headlessRefusedBeforeSideEffects: true,
+          streamRefusedBeforeSideEffects: true,
+          configWritePrevented: true,
           backgroundRefused: true,
           websocketRefusedBeforeResume: true,
           contentFreeFailureEvidence: true,
@@ -204,9 +245,11 @@ describe("cli session-host consistency gate", () => {
     expect(result.limitations).toEqual(
       expect.arrayContaining([
         expect.stringMatching(/same-process/i),
-        expect.stringMatching(/cross-process head lease/i),
+        expect.stringMatching(/general cross-process session lease/i),
         expect.stringMatching(/anti-rollback/i),
         expect.stringMatching(/bounded-resume-IO/i),
+        expect.stringMatching(/1GB cold-process.*RSS/i),
+        expect.stringMatching(/O\(N\).*writer lock/i),
       ]),
     );
     for (const marker of [
@@ -214,13 +257,22 @@ describe("cli session-host consistency gate", () => {
       "SESSION_HOST_USER_SECRET",
       "SESSION_HOST_ASSISTANT_SECRET",
       "SESSION_HOST_STALE_SECRET",
+      "SESSION_HOST_SYSTEM_SECRET",
+      "SESSION_HOST_RESTART_SYSTEM_SECRET",
+      "SESSION_HOST_WS_USER_SECRET",
+      "SESSION_HOST_WS_ASSISTANT_SECRET",
       "SESSION_HOST_TAMPER_ORIGINAL",
       "SESSION_HOST_TAMPER_FORGED",
       "SESSION_HOST_TAMPER_STALE",
+      "WS_ATOMIC_",
+      "WS_CROSS_PROCESS_",
+      "WS_CLAIM_CRASH_",
+      "WS_MODEL_TAMPER_",
+      "SESSION_HOST_STREAM_TAMPER_INPUT",
     ]) {
       expect(raw).not.toContain(marker);
     }
-  }, 30_000);
+  }, 60_000);
 
   it("fails before host scenarios when exact-SHA provenance mismatches", async () => {
     const output = join(temporaryDirectory(), "provenance-failure.json");

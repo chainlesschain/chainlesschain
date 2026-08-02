@@ -8,6 +8,31 @@
 import { describe, it, expect, vi } from "vitest";
 import { runAgentHeadlessStream } from "../../src/runtime/headless-stream.js";
 
+function verifiedResume(messages, sessionId) {
+  return {
+    snapshot: {
+      schema: "chainlesschain.session-host-snapshot/v1",
+      schemaVersion: 1,
+      sessionId,
+      verified: true,
+      revision: `sha256:${"a".repeat(64)}`,
+    },
+    messages,
+    recovery: {
+      sessionId,
+      records: [],
+      unsettled: [],
+      incidents: [],
+      adjudications: [],
+      replayDenied: [],
+      verified: true,
+      headHash: "b".repeat(64),
+      recoveryDigest: `sha256:${"c".repeat(64)}`,
+      remediation: null,
+    },
+  };
+}
+
 function harness({ over = {}, options = {} } = {}) {
   const lines = [];
   const calls = {
@@ -86,7 +111,7 @@ describe("stream persistence + resume", () => {
       options: { sessionId: "chat-abc" },
       over: {
         sessionExists: () => true,
-        rebuildMessages: () => prior,
+        readSessionHostResumeState: () => verifiedResume(prior, "chat-abc"),
       },
     });
     await h.run();
@@ -111,7 +136,7 @@ describe("stream persistence + resume", () => {
     expect(h.calls.assistants).toEqual(["ok-reply"]);
   });
 
-  it("a broken store never fails the stream", async () => {
+  it("a broken resume store refuses the stream before the model", async () => {
     const boom = () => {
       throw new Error("disk full");
     };
@@ -125,8 +150,13 @@ describe("stream persistence + resume", () => {
       },
     });
     const outcome = await h.run();
-    expect(outcome.exitCode).toBe(0);
+    expect(outcome.exitCode).toBe(1);
     const result = h.events().find((e) => e.type === "result");
-    expect(result.is_error).toBe(false);
+    expect(result).toMatchObject({
+      is_error: true,
+      subtype: "error_session_resume",
+      code: "CC_SESSION_HOST_SNAPSHOT_UNVERIFIED",
+    });
+    expect(h.seenTurns).toHaveLength(0);
   });
 });

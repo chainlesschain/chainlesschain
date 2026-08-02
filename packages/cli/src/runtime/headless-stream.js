@@ -89,10 +89,14 @@ import {
   appendAuthorityEvent as jsonlAppendAuthorityEvent,
   readEvents as jsonlReadEvents,
   readVerifiedEvents as jsonlReadVerifiedEvents,
+  readVerifiedProjection as jsonlReadVerifiedProjection,
   findLatestEvent as jsonlFindLatestEvent,
-  rebuildMessages as jsonlRebuildMessages,
   sessionExists as jsonlSessionExists,
 } from "../harness/jsonl-session-store.js";
+import {
+  isVerifiedSessionHostSnapshot,
+  readSessionHostResumeState,
+} from "../lib/session-host-snapshot.js";
 import { classifyStreamRetryReason } from "../lib/stream-retry.js";
 import {
   SideEffectLedger,
@@ -107,7 +111,6 @@ import {
 import {
   createSessionMcpLedgerSink,
   formatMcpLedgerRecoveryNotice,
-  loadMcpLedgerRecovery,
 } from "../lib/mcp-call-ledger-store.js";
 import { createMcpHostRecoveryRuntime } from "../lib/mcp-host-recovery-runtime.js";
 import { operationIdempotencyKey } from "../lib/idempotency.js";
@@ -1053,6 +1056,168 @@ async function runAgentHeadlessStreamInWorkspace(options = {}, deps = {}) {
   const provider = options.provider || "ollama";
   const baseUrl = options.baseUrl || "http://localhost:11434";
   const apiKey = options.apiKey || null;
+  const writeOut = deps.writeOut || ((s) => process.stdout.write(s));
+  const writeErr = deps.writeErr || ((s) => process.stderr.write(s));
+  if (!deps.writeOut && !deps.writeErr) installPipeSafety();
+
+  const sessionId =
+    options.sessionId || `headless-stream-${Date.now()}-${process.pid}`;
+  const persist = Boolean(options.sessionId) && options.ephemeral !== true;
+  const traceId = resolveTraceId(options, process.env, deps);
+  const fieldGate = {
+    seq: true,
+    trace_id: true,
+    tool_use_id: true,
+    permission_decision: true,
+  };
+  const streamCoalescer =
+    deps.streamCoalescer ||
+    createStreamCoalescer({
+      writeOut,
+      coalesceMs: resolveStreamCoalesceMs(options, process.env),
+      traceId,
+      fieldGate,
+    });
+  const emit = streamCoalescer.emit;
+
+  const hasInjectedSessionStore =
+    typeof deps.sessionExists === "function" ||
+    typeof deps.rebuildMessages === "function" ||
+    typeof deps.appendEvent === "function" ||
+    typeof deps.appendAuthorityEvent === "function" ||
+    typeof deps.readVerifiedEvents === "function" ||
+    typeof deps.readVerifiedProjection === "function";
+  const unavailableAuthorityCapability = (operation) => () => {
+    const error = new Error(
+      `Injected session store must provide ${operation} for MCP authority`,
+    );
+    error.code = "SESSION_AUTHORITY_CAPABILITY_UNAVAILABLE";
+    throw error;
+  };
+
+  // A persisted stream resume is an authority boundary, not best-effort chat
+  // history. Resolve it before config/settings, Setup hooks, bootstrap, MCP,
+  // model or tool access. The canonical reader folds active messages and MCP
+  // recovery from one verified, anchored transcript sample under the writer
+  // lock; a damaged or asynchronous seam refuses the entire host session.
+  let canonicalResume = null;
+  let canonicalResumeMessages = null;
+  let canonicalMcpCallRecovery = null;
+  if (persist) {
+    const readResumeState =
+      deps.readSessionHostResumeState || readSessionHostResumeState;
+    const readVerifiedEvents =
+      deps.readVerifiedEvents ||
+      (hasInjectedSessionStore
+        ? unavailableAuthorityCapability("readVerifiedEvents")
+        : jsonlReadVerifiedEvents);
+    const readVerifiedProjection =
+      typeof deps.readVerifiedProjection === "function"
+        ? deps.readVerifiedProjection
+        : !hasInjectedSessionStore
+          ? jsonlReadVerifiedProjection
+          : null;
+    const resumeDependencies = {
+      sessionExists: deps.sessionExists || jsonlSessionExists,
+      readVerifiedEvents: (...args) =>
+        requireSynchronousRecoveryResult(
+          readVerifiedEvents(...args),
+          "readVerifiedEvents",
+        ),
+      ...(readVerifiedProjection
+        ? {
+            readVerifiedProjection: (...args) =>
+              requireSynchronousRecoveryResult(
+                readVerifiedProjection(...args),
+                "readVerifiedProjection",
+              ),
+          }
+        : {}),
+    };
+    try {
+      const existingSession = requireSynchronousRecoveryResult(
+        resumeDependencies.sessionExists(sessionId),
+        "sessionExists",
+      );
+      if (typeof existingSession !== "boolean") {
+        throw invalidMcpRecoveryTransaction(
+          "sessionExists",
+          "return a boolean",
+        );
+      }
+      canonicalResume = existingSession
+        ? requireSynchronousRecoveryResult(
+            readResumeState(sessionId, {
+              ...resumeDependencies,
+              sessionExists: () => true,
+            }),
+            "readSessionHostResumeState",
+          )
+        : null;
+      if (canonicalResume !== null) {
+        if (
+          isProxy(canonicalResume) ||
+          !isVerifiedSessionHostSnapshot(canonicalResume.snapshot) ||
+          !Array.isArray(canonicalResume.messages) ||
+          isProxy(canonicalResume.messages) ||
+          !canonicalResume.recovery ||
+          typeof canonicalResume.recovery !== "object" ||
+          isProxy(canonicalResume.recovery) ||
+          !Array.isArray(canonicalResume.recovery.unsettled) ||
+          isProxy(canonicalResume.recovery.unsettled) ||
+          !Array.isArray(canonicalResume.recovery.incidents) ||
+          isProxy(canonicalResume.recovery.incidents)
+        ) {
+          throw invalidMcpRecoveryTransaction(
+            "readSessionHostResumeState",
+            "return one verified session-host projection",
+          );
+        }
+        if (
+          !canonicalResume.messages.every(
+            (message) =>
+              message &&
+              !isProxy(message) &&
+              ["system", "user", "assistant", "tool"].includes(message.role),
+          )
+        ) {
+          throw invalidMcpRecoveryTransaction(
+            "readSessionHostResumeState",
+            "return plain replay messages with supported roles",
+          );
+        }
+        canonicalResumeMessages = [...canonicalResume.messages];
+        const notice = formatMcpLedgerRecoveryNotice(canonicalResume.recovery);
+        if (notice) {
+          canonicalMcpCallRecovery = {
+            count: canonicalResume.recovery.unsettled.length,
+            incidents: canonicalResume.recovery.incidents.length,
+            items: canonicalResume.recovery.unsettled
+              .slice(0, 10)
+              .map((record) => ({
+                ledgerId: record.ledgerId,
+                server: record.serverName,
+                tool: record.toolName,
+                effect: record.effectContract?.effect || "unknown",
+              })),
+            notice,
+          };
+        }
+      }
+    } catch {
+      const code = "CC_SESSION_HOST_SNAPSHOT_UNVERIFIED";
+      emit({
+        type: "result",
+        subtype: "error_session_resume",
+        is_error: true,
+        code,
+        error: "Canonical stream session could not be verified",
+        session_id: sessionId,
+      });
+      writeErr(`${code}: canonical stream resume was refused\n`);
+      return { exitCode: 1, turns: 0 };
+    }
+  }
   // Vision model (config.llm.visionModel) — image turns switch to it for that
   // turn only (resolveVisionLlm falls back to the default when unset), so a
   // pasted/typed image is read by a vision-capable model even though the
@@ -1169,44 +1334,6 @@ async function runAgentHeadlessStreamInWorkspace(options = {}, deps = {}) {
   const doExpand = deps.expandFileRefs || expandFileRefsAsync;
   const runSessionSlashCommand =
     deps.executeSessionSlashCommand || executeSessionSlashCommand;
-  const writeOut = deps.writeOut || ((s) => process.stdout.write(s));
-  const writeErr = deps.writeErr || ((s) => process.stderr.write(s));
-  // Guard the real stdout/stderr against a downstream `| head` closing the pipe
-  // (unhandled async EPIPE → crash). Only when we own the streams (no injected
-  // seams = production, not tests). Idempotent; shared with the -p runner.
-  if (!deps.writeOut && !deps.writeErr) {
-    installPipeSafety();
-  }
-  // Run-scoped cross-event trace id (additive protocol-v1, docs/PROTOCOL.md
-  // §1.2.1): one id stamped on EVERY stdout line so a consumer can correlate
-  // the whole run across Webview → Bridge → CLI logs, transcripts and
-  // diagnostic bundles. The IDE bridge may thread its own id through
-  // `--trace-id` / options.traceId / CC_TRACE_ID; otherwise a per-process id
-  // is minted (unique even when two runs resume the same session_id).
-  const traceId = resolveTraceId(options, process.env, deps);
-  // Live field-gate for the capability handshake (docs/PROTOCOL.md §1.3): a
-  // client `hello` narrowing the wire features flips these to suppress the
-  // additive fields it can't parse. All true by default = current behavior
-  // byte-for-byte; the coalescer reads it per line.
-  const fieldGate = {
-    seq: true,
-    trace_id: true,
-    tool_use_id: true,
-    permission_decision: true,
-  };
-  // Batch consecutive partial-message text/thinking deltas into one stream_event
-  // line (Claude-Code 2.1.191 streaming-CPU optimization). `emit` flushes any
-  // pending deltas before writing a non-delta line, so ordering is preserved;
-  // CC_STREAM_COALESCE_MS=0 restores the per-token emit behavior.
-  const streamCoalescer =
-    deps.streamCoalescer ||
-    createStreamCoalescer({
-      writeOut,
-      coalesceMs: resolveStreamCoalesceMs(options, process.env),
-      traceId,
-      fieldGate,
-    });
-  const emit = streamCoalescer.emit;
 
   const getApprovalGate =
     deps.getApprovalGate ||
@@ -1236,9 +1363,6 @@ async function runAgentHeadlessStreamInWorkspace(options = {}, deps = {}) {
   } catch {
     // DB optional — static-prompt fallback.
   }
-
-  const sessionId =
-    options.sessionId || `headless-stream-${Date.now()}-${process.pid}`;
 
   const setupHooks = await executeLifecycleHooks(
     "Setup",
@@ -1273,19 +1397,6 @@ async function runAgentHeadlessStreamInWorkspace(options = {}, deps = {}) {
   // appended, so a later run with the same id picks up where this one left
   // off. Anonymous runs (no id) stay persistence-free, exactly as before.
   const storeReadEvents = deps.readEvents || jsonlReadEvents;
-  const hasInjectedSessionStore =
-    typeof deps.sessionExists === "function" ||
-    typeof deps.rebuildMessages === "function" ||
-    typeof deps.appendEvent === "function" ||
-    typeof deps.appendAuthorityEvent === "function" ||
-    typeof deps.readVerifiedEvents === "function";
-  const unavailableAuthorityCapability = (operation) => () => {
-    const error = new Error(
-      `Injected session store must provide ${operation} for MCP authority`,
-    );
-    error.code = "SESSION_AUTHORITY_CAPABILITY_UNAVAILABLE";
-    throw error;
-  };
   const storeFindLatestEvent =
     deps.findLatestEvent ||
     (deps.readEvents
@@ -1328,12 +1439,11 @@ async function runAgentHeadlessStreamInWorkspace(options = {}, deps = {}) {
       (hasInjectedSessionStore
         ? unavailableAuthorityCapability("readVerifiedEvents")
         : jsonlReadVerifiedEvents),
+    readVerifiedProjection:
+      deps.readVerifiedProjection ||
+      (hasInjectedSessionStore ? null : jsonlReadVerifiedProjection),
     findLatestEvent: storeFindLatestEvent,
-    rebuildMessages: deps.rebuildMessages || jsonlRebuildMessages,
   };
-  // --ephemeral forces persistence OFF even with an explicit session id (the
-  // id is kept for event correlation only; nothing is written or replayed).
-  const persist = Boolean(options.sessionId) && options.ephemeral !== true;
   const mcpLedgerSink = persist
     ? createSessionMcpLedgerSink(sessionId, {
         appendEvent: store.appendAuthorityEvent,
@@ -1810,94 +1920,29 @@ async function runAgentHeadlessStreamInWorkspace(options = {}, deps = {}) {
   let mcpCallRecovery = null;
   let mcpLedgerRecovery = null;
   let mcpLedgerRecoveryError = null;
-  let mcpRecoveryVerified = !persist;
   if (persist) {
-    try {
-      const existingSession = requireSynchronousRecoveryResult(
-        store.sessionExists(sessionId),
-        "sessionExists",
-      );
-      if (typeof existingSession !== "boolean") {
-        throw invalidMcpRecoveryTransaction(
-          "sessionExists",
-          "return a boolean",
-        );
+    if (canonicalResume) {
+      // The history and MCP authority below came from the same verified head.
+      // No second pathname read is allowed between verification and replay.
+      if (sideEffectLedger) {
+        sideEffectRecovery = buildSideEffectRecovery(sideEffectLedger);
       }
-      if (existingSession) {
-        // P0-2: reconcile the crash-safe ledger on resume (parity with
-        // runAgentHeadless + the WS bridge). The verify-before-replay system
-        // note goes BEFORE the replayed history — the same slot the
-        // single-prompt runner uses — which also keeps the trailing-role
-        // resume-degeneracy check below intact.
-        if (sideEffectLedger) {
-          sideEffectRecovery = buildSideEffectRecovery(sideEffectLedger);
-        }
-        if (sideEffectRecovery) {
-          messages.push({ role: "system", content: sideEffectRecovery.notice });
-        }
-        let mcpReadVerified = false;
-        try {
-          const recovery = loadMcpLedgerRecovery(sessionId, {
-            readVerifiedEvents: (...args) =>
-              requireSynchronousRecoveryResult(
-                store.readVerifiedEvents(...args),
-                "readVerifiedEvents",
-              ),
-          });
-          mcpLedgerRecovery = recovery;
-          mcpLedgerRecoveryError = null;
-          const notice = formatMcpLedgerRecoveryNotice(recovery);
-          if (notice) {
-            mcpCallRecovery = {
-              count: recovery.unsettled.length,
-              incidents: recovery.incidents.length,
-              items: recovery.unsettled.slice(0, 10).map((record) => ({
-                ledgerId: record.ledgerId,
-                server: record.serverName,
-                tool: record.toolName,
-                effect: record.effectContract?.effect || "unknown",
-              })),
-              notice,
-            };
-            messages.push({ role: "system", content: notice });
-          }
-          mcpReadVerified = true;
-        } catch (error) {
-          mcpLedgerRecoveryError = error;
-          mcpCallRecovery = {
-            count: 0,
-            incidents: 1,
-            items: [],
-            notice:
-              "MCP recovery notice — the durable MCP call ledger could not be read. " +
-              `Do not execute or retry MCP tools until the transcript is inspected (${error?.code || "CC_MCP_LEDGER_EVENT_READ_FAILED"}).`,
-          };
-          messages.push({
-            role: "system",
-            content: mcpCallRecovery.notice,
-          });
-        }
-        const rebuiltMessages = requireSynchronousRecoveryResult(
-          store.rebuildMessages(sessionId),
-          "rebuildMessages",
-        );
-        if (!Array.isArray(rebuiltMessages)) {
-          throw invalidMcpRecoveryTransaction(
-            "rebuildMessages",
-            "return an array",
-          );
-        }
-        const history = rebuiltMessages.filter((m) => m && m.role !== "system");
-        messages.push(...history);
-        resumedMessages = history.length;
-        // Recovery authority becomes clean only after both the verified MCP
-        // transcript read and the complete replay rebuild have succeeded.
-        mcpRecoveryVerified = mcpReadVerified;
-      } else {
-        // A positive non-existence check is the only no-history case that does
-        // not require a verified transcript read. The session creation itself
-        // is still part of the recovery transaction and must finish
-        // synchronously before clean authority is granted.
+      if (sideEffectRecovery) {
+        messages.push({ role: "system", content: sideEffectRecovery.notice });
+      }
+      mcpLedgerRecovery = canonicalResume.recovery;
+      mcpCallRecovery = canonicalMcpCallRecovery;
+      if (mcpCallRecovery) {
+        messages.push({ role: "system", content: mcpCallRecovery.notice });
+      }
+      messages.push(...canonicalResumeMessages);
+      // Preserve the existing public counter semantics: control-plane stream
+      // metadata counts conversational turns, never private system context.
+      resumedMessages = canonicalResumeMessages.filter(
+        (message) => message.role !== "system",
+      ).length;
+    } else {
+      try {
         requireSynchronousRecoveryResult(
           store.startSession(sessionId, {
             title: "stream session",
@@ -1906,30 +1951,19 @@ async function runAgentHeadlessStreamInWorkspace(options = {}, deps = {}) {
           }),
           "startSession",
         );
-        mcpLedgerRecoveryError = null;
-        mcpRecoveryVerified = true;
+      } catch {
+        const code = "CC_SESSION_PERSISTENCE_START_FAILED";
+        emit({
+          type: "result",
+          subtype: "error_session_persistence",
+          is_error: true,
+          code,
+          error: "Canonical stream session could not be created",
+          session_id: sessionId,
+        });
+        writeErr(`${code}: canonical stream session creation was refused\n`);
+        return { exitCode: 1, turns: 0 };
       }
-    } catch (error) {
-      if (!mcpRecoveryVerified && !mcpLedgerRecoveryError) {
-        const recoveryError =
-          error instanceof Error
-            ? error
-            : new Error(String(error || "MCP recovery was not verified"));
-        if (!recoveryError.code) {
-          recoveryError.code = "CC_MCP_LEDGER_EVENT_READ_FAILED";
-        }
-        mcpLedgerRecoveryError = recoveryError;
-        mcpCallRecovery = {
-          count: 0,
-          incidents: 1,
-          items: [],
-          notice:
-            "MCP recovery notice - durable MCP state could not be verified. " +
-            `Do not execute or retry MCP tools until the transcript is inspected (${recoveryError.code}).`,
-        };
-        messages.push({ role: "system", content: mcpCallRecovery.notice });
-      }
-      // persistence is best-effort — never fail the stream over it
     }
   }
 
@@ -2276,6 +2310,7 @@ async function runAgentHeadlessStreamInWorkspace(options = {}, deps = {}) {
     cwd,
     additionalDirectories,
     sessionId,
+    sessionHostSnapshot: canonicalResume?.snapshot || null,
     // Auto-checkpoint (Claude-Code parity): snapshot the work tree before each
     // mutating tool so a stream consumer (e.g. the IDE chat panel) can rewind.
     // Keyed by this run's sessionId — agent-core falls back to it — so the panel

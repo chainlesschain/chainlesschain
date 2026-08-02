@@ -34,6 +34,36 @@ import {
 import { createWsApprovalGate } from "./ws-approval-gate.js";
 import { createSessionMcpLedgerSink } from "../../lib/mcp-call-ledger-store.js";
 import { createMcpHostRecoveryRuntime } from "../../lib/mcp-host-recovery-runtime.js";
+import {
+  claimWsTurnIfHead,
+  computeWsTurnInputDigest,
+  createWsTurnClaimId,
+  normalizeWsTurnRequestId,
+  readVerifiedWsTurnState,
+  settleWsTurnClaim,
+} from "../../harness/jsonl-session-store.js";
+
+const CANONICAL_WS_TURN_QUEUES = new Map();
+const CANONICAL_WS_CLAIM_CAS_ATTEMPTS = 4;
+
+function runCanonicalWsTurnExclusive(sessionId, task) {
+  const previous = CANONICAL_WS_TURN_QUEUES.get(sessionId) || Promise.resolve();
+  let release;
+  const barrier = new Promise((resolve) => {
+    release = resolve;
+  });
+  const tail = previous.catch(() => undefined).then(() => barrier);
+  CANONICAL_WS_TURN_QUEUES.set(sessionId, tail);
+  return previous
+    .catch(() => undefined)
+    .then(task)
+    .finally(() => {
+      release();
+      if (CANONICAL_WS_TURN_QUEUES.get(sessionId) === tail) {
+        CANONICAL_WS_TURN_QUEUES.delete(sessionId);
+      }
+    });
+}
 
 export class WSAgentHandler {
   /**
@@ -42,7 +72,14 @@ export class WSAgentHandler {
    * @param {import("../../lib/interaction-adapter.js").WebSocketInteractionAdapter} options.interaction
    * @param {object} [options.db]
    */
-  constructor({ session, interaction, db, approvalGate }) {
+  constructor({
+    session,
+    interaction,
+    db,
+    approvalGate,
+    agentLoop: runAgentLoop,
+    canonicalSessionStore,
+  }) {
     this.session = session;
     this.interaction = interaction;
     this.db = db || null;
@@ -63,6 +100,243 @@ export class WSAgentHandler {
     this._mcpRecoveryRuntime = null;
     this._mcpRecoveryRevision = null;
     this._mcpRecoveryClient = null;
+    this._agentLoop = runAgentLoop || agentLoop;
+    this._canonicalSessionStore = {
+      claimWsTurnIfHead,
+      computeWsTurnInputDigest,
+      createWsTurnClaimId,
+      normalizeWsTurnRequestId,
+      readVerifiedWsTurnState,
+      settleWsTurnClaim,
+      ...(canonicalSessionStore || {}),
+    };
+    const explicitHostPrefix = Array.isArray(
+      session?._canonicalHostSystemPrefix,
+    )
+      ? session._canonicalHostSystemPrefix
+      : null;
+    const hostSystemPrefix = explicitHostPrefix || [];
+    if (!explicitHostPrefix) {
+      for (const message of Array.isArray(session?.messages)
+        ? session.messages
+        : []) {
+        if (message?.role !== "system") break;
+        hostSystemPrefix.push(Object.freeze({ ...message }));
+      }
+    }
+    this._canonicalHostSystemPrefix = explicitHostPrefix
+      ? explicitHostPrefix
+      : Object.freeze(hostSystemPrefix);
+  }
+
+  _applyCanonicalMessages(messages) {
+    const canonicalMessages = Array.isArray(messages) ? messages : [];
+    this.session.messages = [
+      ...this._canonicalHostSystemPrefix,
+      ...canonicalMessages,
+    ];
+
+    // Resume recovery notices are host-owned runtime context rather than
+    // canonical transcript content. Preserve the current notice separately,
+    // after the leading system block, on every authoritative refresh.
+    const recoveryNotice = this.session._resumeRecoveryNoticeMessage || null;
+    if (recoveryNotice) {
+      let insertionIndex = 0;
+      while (this.session.messages[insertionIndex]?.role === "system") {
+        insertionIndex += 1;
+      }
+      this.session.messages.splice(insertionIndex, 0, recoveryNotice);
+    }
+    return this.session.messages;
+  }
+
+  _canonicalTurnFromAuthority(state, requestId, userMessage, inputDigest) {
+    const status = state?.status || (state?.turn ? "completed" : "none");
+    this._applyCanonicalMessages(state?.messages || []);
+    if (status === "completed" && state.turn) {
+      return {
+        requestId,
+        userMessage,
+        inputDigest,
+        status,
+        settled: true,
+        replayed: true,
+        response: state.turn.assistant.content,
+      };
+    }
+    if (status === "failed") {
+      return {
+        requestId,
+        userMessage,
+        inputDigest,
+        status,
+        settled: true,
+        replayed: true,
+        failureCode: state.settlement?.failure?.code || "CC_WS_TURN_FAILED",
+      };
+    }
+    if (status === "pending") {
+      return {
+        requestId,
+        userMessage,
+        inputDigest,
+        status,
+        settled: false,
+        pending: true,
+        replayed: true,
+      };
+    }
+    return null;
+  }
+
+  _claimCanonicalTurn(userMessage, requestId) {
+    const inputDigest =
+      this._canonicalSessionStore.computeWsTurnInputDigest(userMessage);
+    let state = this._canonicalSessionStore.readVerifiedWsTurnState(
+      this.session.id,
+      requestId,
+      { inputDigest },
+    );
+    let terminal = this._canonicalTurnFromAuthority(
+      state,
+      requestId,
+      userMessage,
+      inputDigest,
+    );
+    if (terminal) return terminal;
+
+    const opaqueClaimId = this._canonicalSessionStore.createWsTurnClaimId();
+    let lastConflict = null;
+    for (
+      let attempt = 1;
+      attempt <= CANONICAL_WS_CLAIM_CAS_ATTEMPTS;
+      attempt++
+    ) {
+      try {
+        const claimed = this._canonicalSessionStore.claimWsTurnIfHead(
+          this.session.id,
+          { requestId, user: userMessage, inputDigest, opaqueClaimId },
+          state.headHash,
+        );
+        if (!claimed?.acquired) {
+          terminal = this._canonicalTurnFromAuthority(
+            claimed,
+            requestId,
+            userMessage,
+            inputDigest,
+          );
+          if (terminal) return terminal;
+          throw Object.assign(
+            new Error("Canonical WebSocket request claim was not acquired"),
+            { code: "CC_WS_TURN_CLAIM_NOT_ACQUIRED" },
+          );
+        }
+        this._applyCanonicalMessages(claimed.messages);
+        const baseMessages = [...this.session.messages];
+        this.session.messages.push({ role: "user", content: userMessage });
+        return {
+          requestId,
+          userMessage,
+          inputDigest,
+          opaqueClaimId,
+          status: "pending",
+          claimAcquired: true,
+          settled: false,
+          settlementAttempted: false,
+          failureSettlementAttempted: false,
+          replayed: false,
+          response: null,
+          baseMessages,
+        };
+      } catch (error) {
+        if (error?.code !== "SESSION_REVISION_STALE") throw error;
+        lastConflict = error;
+        state = this._canonicalSessionStore.readVerifiedWsTurnState(
+          this.session.id,
+          requestId,
+          { inputDigest },
+        );
+        terminal = this._canonicalTurnFromAuthority(
+          state,
+          requestId,
+          userMessage,
+          inputDigest,
+        );
+        if (terminal) return terminal;
+      }
+    }
+    const error = new Error(
+      "Canonical WebSocket claim could not settle after revision conflicts",
+      { cause: lastConflict },
+    );
+    error.code = "CC_WS_TURN_CLAIM_CAS_RETRY_EXHAUSTED";
+    throw error;
+  }
+
+  _settleCanonicalSuccess(turn, assistantContent) {
+    if (typeof assistantContent !== "string" || !assistantContent.trim()) {
+      const error = new Error(
+        "Canonical WebSocket turn produced no assistant response",
+      );
+      error.code = "CC_WS_EMPTY_ASSISTANT_RESPONSE";
+      throw error;
+    }
+    turn.settlementAttempted = true;
+    const settled = this._canonicalSessionStore.settleWsTurnClaim(
+      this.session.id,
+      {
+        requestId: turn.requestId,
+        inputDigest: turn.inputDigest,
+        opaqueClaimId: turn.opaqueClaimId,
+        outcome: "completed",
+        user: turn.userMessage,
+        assistant: assistantContent,
+      },
+    );
+    if (settled?.status !== "completed" || !settled.turn) {
+      const error = new Error("Canonical WebSocket success was not settled");
+      error.code = "CC_WS_TURN_SETTLEMENT_UNKNOWN";
+      error.commitState = "unknown";
+      throw error;
+    }
+    this._applyCanonicalMessages(settled.messages);
+    turn.settled = true;
+    turn.status = "completed";
+    turn.response = settled.turn.assistant.content;
+    turn.replayed = settled.deduplicated === true;
+    return { content: turn.response, replayed: turn.replayed };
+  }
+
+  _settleCanonicalFailure(turn, failureCode) {
+    if (
+      !turn?.claimAcquired ||
+      turn.settled ||
+      turn.settlementAttempted ||
+      turn.failureSettlementAttempted
+    ) {
+      return false;
+    }
+    turn.failureSettlementAttempted = true;
+    const settled = this._canonicalSessionStore.settleWsTurnClaim(
+      this.session.id,
+      {
+        requestId: turn.requestId,
+        inputDigest: turn.inputDigest,
+        opaqueClaimId: turn.opaqueClaimId,
+        outcome: "failed",
+        failureCode,
+      },
+    );
+    if (settled?.status !== "failed") {
+      const error = new Error("Canonical WebSocket failure was not settled");
+      error.code = "CC_WS_TURN_SETTLEMENT_UNKNOWN";
+      error.commitState = "unknown";
+      throw error;
+    }
+    turn.settled = true;
+    turn.status = "failed";
+    this._applyCanonicalMessages(settled.messages);
+    return true;
   }
 
   _ensureMcpRecoveryRuntime() {
@@ -164,6 +438,27 @@ export class WSAgentHandler {
    * @param {string} [requestId] - id from ws message for response correlation
    */
   async handleMessage(userMessage, requestId) {
+    if (this.session?.canonicalJsonlSession === true) {
+      let canonicalRequestId;
+      try {
+        canonicalRequestId =
+          this._canonicalSessionStore.normalizeWsTurnRequestId(requestId);
+      } catch (error) {
+        this.interaction.emit("error", {
+          requestId: null,
+          code: error?.code || "CC_WS_REQUEST_ID_INVALID",
+          message: error?.message || "WebSocket request id is invalid",
+        });
+        return;
+      }
+      return runCanonicalWsTurnExclusive(this.session.id, () =>
+        this._handleMessage(userMessage, canonicalRequestId),
+      );
+    }
+    return this._handleMessage(userMessage, requestId);
+  }
+
+  async _handleMessage(userMessage, requestId) {
     if (this._processing) {
       this.interaction.emit("error", {
         requestId,
@@ -180,12 +475,42 @@ export class WSAgentHandler {
     let sideEffectLedger = null;
     let diffReviewFollowUps = null;
     let runRecorded = false;
+    let canonicalTurn = null;
 
     try {
       const { session } = this;
 
-      // Add user message
-      session.messages.push({ role: "user", content: userMessage });
+      if (session.canonicalJsonlSession === true) {
+        canonicalTurn = this._claimCanonicalTurn(userMessage, requestId);
+        if (canonicalTurn.status === "completed") {
+          this.interaction.emit("response-complete", {
+            requestId,
+            content: canonicalTurn.response,
+            replayed: true,
+          });
+          return;
+        }
+        if (canonicalTurn.status === "failed") {
+          this.interaction.emit("error", {
+            requestId,
+            code: canonicalTurn.failureCode,
+            message: "WebSocket request previously settled as failed",
+            replayed: true,
+          });
+          return;
+        }
+        if (canonicalTurn.pending) {
+          this.interaction.emit("response-pending", {
+            requestId,
+            status: "pending",
+            code: "CC_WS_TURN_PENDING",
+            remediation: "adjudicate_or_use_new_request_id",
+          });
+          return;
+        }
+      } else {
+        session.messages.push({ role: "user", content: userMessage });
+      }
       this._recordSessionState("run.started", {
         requestId: requestId || null,
         startedAt: new Date().toISOString(),
@@ -268,7 +593,10 @@ export class WSAgentHandler {
       let currentTodoWrite = null;
 
       const executeAgentTurn = async () => {
-        for await (const event of agentLoop(session.messages, loopOptions)) {
+        for await (const event of this._agentLoop(
+          session.messages,
+          loopOptions,
+        )) {
           switch (event.type) {
             case "slot-filling":
               this.interaction.emit("slot-filling", {
@@ -362,16 +690,28 @@ export class WSAgentHandler {
               break;
 
             case "response-complete":
-              if (event.content) {
-                session.messages.push({
-                  role: "assistant",
+              if (session.canonicalJsonlSession === true) {
+                const settled = this._settleCanonicalSuccess(
+                  canonicalTurn,
+                  event.content,
+                );
+                this.interaction.emit("response-complete", {
+                  requestId,
+                  content: settled.content,
+                  replayed: settled.replayed,
+                });
+              } else {
+                if (event.content) {
+                  session.messages.push({
+                    role: "assistant",
+                    content: event.content,
+                  });
+                }
+                this.interaction.emit("response-complete", {
+                  requestId,
                   content: event.content,
                 });
               }
-              this.interaction.emit("response-complete", {
-                requestId,
-                content: event.content,
-              });
               break;
           }
         }
@@ -395,6 +735,13 @@ export class WSAgentHandler {
       } else {
         await runAgentTurn();
       }
+      if (session.canonicalJsonlSession === true && !canonicalTurn?.settled) {
+        const error = new Error(
+          "Canonical WebSocket turn completed without an assistant response",
+        );
+        error.code = "CC_WS_EMPTY_ASSISTANT_RESPONSE";
+        throw error;
+      }
       if (
         diffReviewFollowUps.complete(sideEffectLedger, {
           status: "completed-without-reproposal",
@@ -406,6 +753,40 @@ export class WSAgentHandler {
       // Update last activity
       session.lastActivity = new Date().toISOString();
     } catch (err) {
+      let surfacedError = err;
+      if (
+        canonicalTurn?.claimAcquired &&
+        !canonicalTurn.settled &&
+        !canonicalTurn.settlementAttempted
+      ) {
+        const failureCode = isAbortError(err)
+          ? "CC_WS_TURN_INTERRUPTED"
+          : err?.code === "CC_WS_EMPTY_ASSISTANT_RESPONSE"
+            ? "CC_WS_EMPTY_ASSISTANT_RESPONSE"
+            : "CC_WS_TURN_FAILED";
+        try {
+          this._settleCanonicalFailure(canonicalTurn, failureCode);
+        } catch (settlementError) {
+          surfacedError = new Error(
+            "WebSocket turn settlement is outcome-unknown; explicit adjudication or a new request id is required",
+            { cause: settlementError },
+          );
+          surfacedError.code = "CC_WS_TURN_SETTLEMENT_UNKNOWN";
+        }
+      } else if (
+        canonicalTurn?.claimAcquired &&
+        canonicalTurn.settlementAttempted &&
+        !canonicalTurn.settled
+      ) {
+        surfacedError = new Error(
+          "WebSocket turn settlement is outcome-unknown; explicit adjudication or a new request id is required",
+          { cause: err },
+        );
+        surfacedError.code = "CC_WS_TURN_SETTLEMENT_UNKNOWN";
+      }
+      if (canonicalTurn?.baseMessages && canonicalTurn.status !== "completed") {
+        this.session.messages = [...canonicalTurn.baseMessages];
+      }
       if (
         sideEffectLedger &&
         diffReviewFollowUps?.complete(sideEffectLedger, {
@@ -421,18 +802,21 @@ export class WSAgentHandler {
 
       this.interaction.emit("error", {
         requestId,
-        code: "AGENT_ERROR",
-        message: err.message,
+        code: surfacedError?.code || "AGENT_ERROR",
+        message: surfacedError.message,
       });
 
       // Record error in context engine
       if (this.session.contextEngine) {
         this.session.contextEngine.recordError({
           step: "ws-agent-loop",
-          message: err.message,
+          message: surfacedError.message,
         });
       }
     } finally {
+      if (canonicalTurn?.baseMessages && canonicalTurn.status !== "completed") {
+        this.session.messages = [...canonicalTurn.baseMessages];
+      }
       if (runRecorded) {
         this._recordSessionState("run.settled", {
           requestId: requestId || null,

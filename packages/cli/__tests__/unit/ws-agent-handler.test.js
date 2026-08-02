@@ -528,6 +528,431 @@ describe("WSAgentHandler", () => {
     });
   });
 
+  describe("canonical JSONL turns", () => {
+    const INPUT_DIGEST = `sha256:${"a".repeat(64)}`;
+
+    function canonicalState(overrides = {}) {
+      return {
+        headHash: "head-1",
+        eventCount: 1,
+        status: "none",
+        inputDigest: INPUT_DIGEST,
+        messages: [
+          { role: "user", content: "previous question" },
+          { role: "assistant", content: "previous answer" },
+        ],
+        turn: null,
+        ...overrides,
+      };
+    }
+
+    function canonicalStore(overrides = {}) {
+      const readState = overrides.readState || canonicalState();
+      const store = {
+        computeWsTurnInputDigest: vi.fn(() => INPUT_DIGEST),
+        createWsTurnClaimId: vi.fn(() => "claim-test-owner"),
+        readVerifiedWsTurnState: vi.fn(() => readState),
+        claimWsTurnIfHead: vi.fn(() => ({
+          ...canonicalState(),
+          status: "pending",
+          acquired: true,
+          claim: {
+            requestId: "req",
+            inputDigest: INPUT_DIGEST,
+            opaqueClaimId: "claim-test-owner",
+          },
+        })),
+        settleWsTurnClaim: vi.fn((_sessionId, settlement) => {
+          if (settlement.outcome === "failed") {
+            return {
+              ...canonicalState(),
+              status: "failed",
+              settlement: {
+                outcome: "failed",
+                failure: { code: settlement.failureCode },
+              },
+            };
+          }
+          const turn = {
+            outcome: "completed",
+            user: { role: "user", content: settlement.user },
+            assistant: { role: "assistant", content: settlement.assistant },
+          };
+          return {
+            ...canonicalState(),
+            status: "completed",
+            turn,
+            settlement: turn,
+            messages: [...canonicalState().messages, turn.user, turn.assistant],
+            deduplicated: false,
+          };
+        }),
+        ...overrides.store,
+      };
+      return store;
+    }
+
+    it.each([
+      [
+        "model throw",
+        () => {
+          throw new Error("model failed");
+        },
+        "AGENT_ERROR",
+      ],
+      [
+        "empty completion",
+        () => fakeAgentLoop([]),
+        "CC_WS_EMPTY_ASSISTANT_RESPONSE",
+      ],
+    ])(
+      "does not append or retain a staged user after %s",
+      async (_name, loop, code) => {
+        const store = canonicalStore();
+        const canonicalSession = createMockSession({
+          canonicalJsonlSession: true,
+        });
+        const canonicalInteraction = createMockInteraction();
+        const canonicalHandler = new WSAgentHandler({
+          session: canonicalSession,
+          interaction: canonicalInteraction,
+          db: null,
+          agentLoop: vi.fn(loop),
+          canonicalSessionStore: store,
+        });
+
+        await canonicalHandler.handleMessage(
+          "must not persist",
+          "req-failed-1",
+        );
+
+        expect(store.claimWsTurnIfHead).toHaveBeenCalledTimes(1);
+        expect(store.settleWsTurnClaim).toHaveBeenCalledTimes(1);
+        expect(store.settleWsTurnClaim).toHaveBeenCalledWith(
+          "test-session-1",
+          expect.objectContaining({ outcome: "failed" }),
+        );
+        expect(canonicalSession.messages).toEqual([
+          { role: "system", content: "You are helpful." },
+          { role: "user", content: "previous question" },
+          { role: "assistant", content: "previous answer" },
+        ]);
+        expect(canonicalInteraction.emit).toHaveBeenCalledWith(
+          "error",
+          expect.objectContaining({ requestId: "req-failed-1", code }),
+        );
+      },
+    );
+
+    it("replays an already-settled request without invoking the model", async () => {
+      const loop = vi.fn();
+      const canonicalSession = createMockSession({
+        canonicalJsonlSession: true,
+      });
+      const canonicalInteraction = createMockInteraction();
+      const settledState = canonicalState({
+        status: "completed",
+        messages: [
+          { role: "user", content: "same question" },
+          { role: "assistant", content: "durable answer" },
+        ],
+        turn: {
+          requestId: "req-replay-1",
+          user: { role: "user", content: "same question" },
+          assistant: { role: "assistant", content: "durable answer" },
+        },
+      });
+      const store = canonicalStore({ readState: settledState });
+      const canonicalHandler = new WSAgentHandler({
+        session: canonicalSession,
+        interaction: canonicalInteraction,
+        db: null,
+        agentLoop: loop,
+        canonicalSessionStore: store,
+      });
+
+      await canonicalHandler.handleMessage("same question", "req-replay-1");
+
+      expect(loop).not.toHaveBeenCalled();
+      expect(store.claimWsTurnIfHead).not.toHaveBeenCalled();
+      expect(canonicalInteraction.emit).toHaveBeenCalledWith(
+        "response-complete",
+        {
+          requestId: "req-replay-1",
+          content: "durable answer",
+          replayed: true,
+        },
+      );
+    });
+
+    it("preserves leading host recovery notices across canonical refresh", async () => {
+      const canonicalSession = createMockSession({
+        canonicalJsonlSession: true,
+        messages: [
+          { role: "system", content: "You are helpful." },
+          {
+            role: "system",
+            content:
+              "Recovery notice: inspect prior side effects before replay.",
+          },
+          { role: "user", content: "stale host history" },
+        ],
+      });
+      const canonicalInteraction = createMockInteraction();
+      const store = canonicalStore();
+      let modelMessages = null;
+      const canonicalHandler = new WSAgentHandler({
+        session: canonicalSession,
+        interaction: canonicalInteraction,
+        db: null,
+        agentLoop: async function* (messages) {
+          modelMessages = messages.map((message) => ({ ...message }));
+          yield { type: "response-complete", content: "safe answer" };
+        },
+        canonicalSessionStore: store,
+      });
+
+      await canonicalHandler.handleMessage("new question", "req-recovery-1");
+
+      expect(modelMessages.slice(0, 2)).toEqual([
+        { role: "system", content: "You are helpful." },
+        {
+          role: "system",
+          content: "Recovery notice: inspect prior side effects before replay.",
+        },
+      ]);
+      expect(modelMessages).not.toContainEqual({
+        role: "user",
+        content: "stale host history",
+      });
+    });
+
+    it("uses the original durable response when settlement deduplicates", async () => {
+      const canonicalSession = createMockSession({
+        canonicalJsonlSession: true,
+      });
+      const canonicalInteraction = createMockInteraction();
+      const store = canonicalStore({
+        store: {
+          settleWsTurnClaim: vi.fn((_sessionId, settlement) => {
+            const turn = {
+              outcome: "completed",
+              user: { role: "user", content: settlement.user },
+              assistant: {
+                role: "assistant",
+                content: "original durable answer",
+              },
+            };
+            return {
+              ...canonicalState(),
+              status: "completed",
+              turn,
+              settlement: turn,
+              messages: [
+                ...canonicalState().messages,
+                turn.user,
+                turn.assistant,
+              ],
+              deduplicated: true,
+            };
+          }),
+        },
+      });
+      const canonicalHandler = new WSAgentHandler({
+        session: canonicalSession,
+        interaction: canonicalInteraction,
+        db: null,
+        agentLoop: vi.fn(() =>
+          fakeAgentLoop([
+            { type: "response-complete", content: "racing answer" },
+          ]),
+        ),
+        canonicalSessionStore: store,
+      });
+
+      await canonicalHandler.handleMessage("same question", "req-race-1");
+
+      expect(store.claimWsTurnIfHead).toHaveBeenCalledTimes(1);
+      expect(store.settleWsTurnClaim).toHaveBeenCalledTimes(1);
+      expect(canonicalSession.messages.at(-1)).toEqual({
+        role: "assistant",
+        content: "original durable answer",
+      });
+      expect(canonicalInteraction.emit).toHaveBeenCalledWith(
+        "response-complete",
+        {
+          requestId: "req-race-1",
+          content: "original durable answer",
+          replayed: true,
+        },
+      );
+    });
+
+    it("preserves a canonical system summary exactly once across claim and settlement refresh", async () => {
+      const hostPrompt = "WS_FRESH_HOST_SYSTEM_PRIVATE_10f6c4";
+      const summary = "WS_CANONICAL_SUMMARY_PRIVATE_c4701a";
+      const durableMessages = [
+        { role: "system", content: summary },
+        { role: "user", content: "previous question" },
+        { role: "assistant", content: "previous answer" },
+      ];
+      const hostMessage = Object.freeze({
+        role: "system",
+        content: hostPrompt,
+      });
+      const canonicalSession = createMockSession({
+        canonicalJsonlSession: true,
+        messages: [hostMessage, ...durableMessages],
+      });
+      Object.defineProperty(canonicalSession, "_canonicalHostSystemPrefix", {
+        value: Object.freeze([hostMessage]),
+      });
+      const claimedState = {
+        ...canonicalState({ messages: durableMessages }),
+        status: "pending",
+        acquired: true,
+        claim: {
+          requestId: "req-summary-1",
+          inputDigest: INPUT_DIGEST,
+          opaqueClaimId: "claim-test-owner",
+        },
+      };
+      const store = canonicalStore({
+        readState: canonicalState({ messages: durableMessages }),
+        store: {
+          claimWsTurnIfHead: vi.fn(() => claimedState),
+          settleWsTurnClaim: vi.fn((_sessionId, settlement) => {
+            const turn = {
+              outcome: "completed",
+              user: { role: "user", content: settlement.user },
+              assistant: { role: "assistant", content: settlement.assistant },
+            };
+            return {
+              ...canonicalState({ messages: durableMessages }),
+              status: "completed",
+              turn,
+              settlement: turn,
+              messages: [...durableMessages, turn.user, turn.assistant],
+              deduplicated: false,
+            };
+          }),
+        },
+      });
+      const modelInputs = [];
+      const canonicalInteraction = createMockInteraction();
+      const canonicalHandler = new WSAgentHandler({
+        session: canonicalSession,
+        interaction: canonicalInteraction,
+        db: null,
+        agentLoop: vi.fn((messages) => {
+          modelInputs.push(structuredClone(messages));
+          return fakeAgentLoop([
+            { type: "response-complete", content: "current answer" },
+            { type: "run-ended", reason: "complete" },
+          ]);
+        }),
+        canonicalSessionStore: store,
+      });
+
+      await canonicalHandler.handleMessage("current question", "req-summary-1");
+
+      expect(modelInputs).toHaveLength(1);
+      expect(modelInputs[0][0]).toEqual({
+        role: "system",
+        content: hostPrompt,
+      });
+      expect(
+        modelInputs[0].filter((message) => message.content === summary),
+      ).toHaveLength(1);
+      expect(
+        canonicalSession.messages.filter(
+          (message) => message.content === summary,
+        ),
+      ).toHaveLength(1);
+      expect(canonicalSession.messages[0]?.content).toBe(hostPrompt);
+      expect(
+        JSON.stringify(canonicalInteraction.emit.mock.calls),
+      ).not.toContain(summary);
+    });
+
+    it("returns pending without invoking model or tools when another claim owns the request", async () => {
+      const loop = vi.fn();
+      const store = canonicalStore({
+        readState: canonicalState({
+          status: "pending",
+          claim: {
+            requestId: "req-pending-1",
+            inputDigest: INPUT_DIGEST,
+            opaqueClaimId: "claim-other-owner",
+          },
+        }),
+      });
+      const canonicalInteraction = createMockInteraction();
+      const canonicalHandler = new WSAgentHandler({
+        session: createMockSession({ canonicalJsonlSession: true }),
+        interaction: canonicalInteraction,
+        db: null,
+        agentLoop: loop,
+        canonicalSessionStore: store,
+      });
+
+      await canonicalHandler.handleMessage("same question", "req-pending-1");
+
+      expect(loop).not.toHaveBeenCalled();
+      expect(store.claimWsTurnIfHead).not.toHaveBeenCalled();
+      expect(store.settleWsTurnClaim).not.toHaveBeenCalled();
+      expect(canonicalInteraction.emit).toHaveBeenCalledWith(
+        "response-pending",
+        {
+          requestId: "req-pending-1",
+          status: "pending",
+          code: "CC_WS_TURN_PENDING",
+          remediation: "adjudicate_or_use_new_request_id",
+        },
+      );
+    });
+
+    it("never retries an outcome-unknown success settlement", async () => {
+      const store = canonicalStore({
+        store: {
+          settleWsTurnClaim: vi.fn(() => {
+            const error = new Error("synthetic append uncertainty");
+            error.commitState = "unknown";
+            throw error;
+          }),
+        },
+      });
+      const canonicalInteraction = createMockInteraction();
+      const canonicalSession = createMockSession({
+        canonicalJsonlSession: true,
+      });
+      const canonicalHandler = new WSAgentHandler({
+        session: canonicalSession,
+        interaction: canonicalInteraction,
+        db: null,
+        agentLoop: vi.fn(() =>
+          fakeAgentLoop([{ type: "response-complete", content: "answer" }]),
+        ),
+        canonicalSessionStore: store,
+      });
+
+      await canonicalHandler.handleMessage("question", "req-unknown-1");
+
+      expect(store.settleWsTurnClaim).toHaveBeenCalledTimes(1);
+      expect(canonicalInteraction.emit).toHaveBeenCalledWith(
+        "error",
+        expect.objectContaining({
+          requestId: "req-unknown-1",
+          code: "CC_WS_TURN_SETTLEMENT_UNKNOWN",
+        }),
+      );
+      expect(canonicalSession.messages).toEqual([
+        { role: "system", content: "You are helpful." },
+        ...canonicalState().messages,
+      ]);
+    });
+  });
+
   describe("handleSlashCommand", () => {
     it("/model shows current model when no arg", async () => {
       await handler.handleSlashCommand("/model", "req-1");

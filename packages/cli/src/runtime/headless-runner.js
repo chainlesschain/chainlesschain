@@ -376,6 +376,80 @@ async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
     );
   }
 
+  const isStream = outputFormat === "stream-json";
+  const isJson = outputFormat === "json";
+  const isText = outputFormat === "text";
+  const writeOut = deps.writeOut || ((s) => process.stdout.write(s));
+  const writeErr = deps.writeErr || ((s) => process.stderr.write(s));
+  if (!deps.writeOut && !deps.writeErr) installPipeSafety();
+
+  const hasInjectedSessionStore =
+    typeof deps.sessionExists === "function" ||
+    typeof deps.rebuildMessages === "function" ||
+    typeof deps.appendEvent === "function" ||
+    typeof deps.appendAuthorityEvent === "function" ||
+    typeof deps.readVerifiedEvents === "function";
+  const { sessionId, resumeId, persist } = resolveHeadlessSession(
+    options,
+    { getLastSessionId: deps.getLastSessionId || jsonlGetLastSessionId },
+    `headless-${Date.now()}-${process.pid}`,
+  );
+
+  const emitHeadlessError = (resultMsg) => {
+    if (isStream) {
+      writeOut(
+        JSON.stringify({
+          type: "result",
+          subtype: "error",
+          is_error: true,
+          error: resultMsg,
+        }) + "\n",
+      );
+    } else if (isJson) {
+      writeOut(
+        JSON.stringify(
+          buildResultEnvelope({
+            subtype: "error",
+            isError: true,
+            result: resultMsg,
+            sessionId,
+            toolCalls: [],
+            usage: {},
+            numTurns: 0,
+            durationMs: 0,
+          }),
+        ) + "\n",
+      );
+    }
+  };
+
+  // Resume authority is the first host boundary after argument validation.
+  // In particular this precedes /config writes, slash-macro bang expansion,
+  // settings/plugin loading, bootstrap, model access, hooks, MCP and tools.
+  const canReadCanonicalResume =
+    !hasInjectedSessionStore || typeof deps.readVerifiedEvents === "function";
+  const canonicalResume =
+    resumeId && canReadCanonicalResume
+      ? readSessionHostResumeState(resumeId, {
+          sessionExists: deps.sessionExists || jsonlSessionExists,
+          readVerifiedEvents:
+            deps.readVerifiedEvents || jsonlReadVerifiedEvents,
+        })
+      : null;
+  if (canonicalResume && !canonicalResume.snapshot.verified) {
+    const message =
+      "CC_SESSION_HOST_SNAPSHOT_UNVERIFIED: canonical JSONL session is not " +
+      "fully verified; resume was refused";
+    emitHeadlessError(message);
+    writeErr(`${message}\n`);
+    return {
+      exitCode: 1,
+      result: message,
+      isError: true,
+      sessionSnapshot: canonicalResume.snapshot,
+    };
+  }
+
   // `let` (not const): a custom-command macro's `model:` frontmatter may
   // override it below (when the user passed no explicit --model), mirroring
   // `cc command run`.
@@ -517,25 +591,9 @@ async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
       const m = await import("../lib/session-core-singletons.js");
       return m.getApprovalGate();
     });
-  // stdout carries the machine-consumable payload; stderr carries the human
-  // trace so `cc agent -p ... > out.txt` keeps `out.txt` clean.
-  const writeOut = deps.writeOut || ((s) => process.stdout.write(s));
-  const writeErr = deps.writeErr || ((s) => process.stderr.write(s));
-  // Only when we own the real stdout/stderr (no injected seams = production,
-  // not tests): guard against a downstream `| head` closing the pipe, which
-  // would otherwise crash with an unhandled EPIPE. Idempotent across calls.
-  if (!deps.writeOut && !deps.writeErr) {
-    installPipeSafety();
-  }
   // Session persistence seam (file-based JSONL; DB-free, like the rest of
   // headless). Defaults to the real store; tests inject fakes.
   const storeReadEvents = deps.readEvents || jsonlReadEvents;
-  const hasInjectedSessionStore =
-    typeof deps.sessionExists === "function" ||
-    typeof deps.rebuildMessages === "function" ||
-    typeof deps.appendEvent === "function" ||
-    typeof deps.appendAuthorityEvent === "function" ||
-    typeof deps.readVerifiedEvents === "function";
   const unavailableAuthorityCapability = (operation) => () => {
     const error = new Error(
       `Injected session store must provide ${operation} for MCP authority`,
@@ -600,10 +658,6 @@ async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
       deps.verifySession ||
       (hasInjectedSessionStore ? () => null : jsonlVerifySession),
   };
-  const isStream = outputFormat === "stream-json";
-  const isJson = outputFormat === "json";
-  const isText = outputFormat === "text";
-
   // ── Headless `/config` directive (Claude-Code 2.1.181: /config in -p mode) ──
   // A leading `/config …` prompt is a one-shot config get/set/show, not a task
   // for the LLM — handled before bootstrap/session/model so it never spends a
@@ -648,71 +702,8 @@ async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
     return { exitCode: isError ? 1 : 0, result: text, isError };
   }
 
-  // Resolve and verify resume authority before prompt expansion. Slash-command
-  // macros may execute bang substitutions, so a damaged transcript must stop
-  // before that host seam as well as before hooks, model and tools.
-  const { sessionId, resumeId, persist } = resolveHeadlessSession(
-    options,
-    store,
-    `headless-${Date.now()}-${process.pid}`,
-  );
   if (options.continueSession === true && !resumeId && isText) {
     writeErr("No previous session to continue; starting a new one.\n");
-  }
-
-  // Machine-readable modes must always end with a terminal result envelope,
-  // including failures that happen before system/init or the main loop.
-  const emitHeadlessError = (resultMsg) => {
-    if (isStream) {
-      writeOut(
-        JSON.stringify({
-          type: "result",
-          subtype: "error",
-          is_error: true,
-          error: resultMsg,
-        }) + "\n",
-      );
-    } else if (isJson) {
-      writeOut(
-        JSON.stringify(
-          buildResultEnvelope({
-            subtype: "error",
-            isError: true,
-            result: resultMsg,
-            sessionId,
-            toolCalls: [],
-            usage: {},
-            numTurns: 0,
-            durationMs: 0,
-          }),
-        ) + "\n",
-      );
-    }
-  };
-
-  // Take history and MCP authority from one verified event sample. A present
-  // but unverified transcript is not a new conversation and cannot fall back.
-  const canReadCanonicalResume =
-    !hasInjectedSessionStore || typeof deps.readVerifiedEvents === "function";
-  const canonicalResume =
-    resumeId && canReadCanonicalResume
-      ? readSessionHostResumeState(resumeId, {
-          sessionExists: store.sessionExists,
-          readVerifiedEvents: store.readVerifiedEvents,
-        })
-      : null;
-  if (canonicalResume && !canonicalResume.snapshot.verified) {
-    const message =
-      "CC_SESSION_HOST_SNAPSHOT_UNVERIFIED: canonical JSONL session is not " +
-      "fully verified; resume was refused";
-    emitHeadlessError(message);
-    writeErr(`${message}\n`);
-    return {
-      exitCode: 1,
-      result: message,
-      isError: true,
-      sessionSnapshot: canonicalResume.snapshot,
-    };
   }
 
   // ── Custom slash-command macros (Claude-Code parity: a .claude/commands/*
@@ -847,14 +838,12 @@ async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
   }
   userContent = expansion.prompt;
 
-  // Load prior conversation when resuming an existing session. The fresh
-  // system prompt always leads; we drop any persisted system turns so it is
-  // never duplicated.
+  // Load prior conversation when resuming an existing session. The fresh host
+  // system prompt always leads; all system turns from the same verified
+  // canonical sample follow it (including compact checkpoint summaries).
   let history = [];
   if (canonicalResume) {
-    history = canonicalResume.messages.filter(
-      (message) => message && message.role !== "system",
-    );
+    history = canonicalResume.messages.filter(Boolean);
   } else if (resumeId && store.sessionExists(resumeId)) {
     // Compatibility gate for injected stores without a verified event reader.
     // Real JSONL resumes were handled above and never reach this branch. A

@@ -23,6 +23,32 @@ const noopStore = {
   appendAssistantMessage: () => {},
 };
 
+function verifiedResume(messages, sessionId) {
+  const headHash = "a".repeat(64);
+  return {
+    snapshot: {
+      schema: "chainlesschain.session-host-snapshot/v1",
+      schemaVersion: 1,
+      sessionId,
+      verified: true,
+      revision: `sha256:${"b".repeat(64)}`,
+    },
+    messages,
+    recovery: {
+      sessionId,
+      records: [],
+      unsettled: [],
+      incidents: [],
+      adjudications: [],
+      replayDenied: [],
+      verified: true,
+      headHash,
+      recoveryDigest: `sha256:${"c".repeat(64)}`,
+      remediation: null,
+    },
+  };
+}
+
 /** Provider payloads must always alternate non-system roles. */
 function noConsecutiveSameRole(msgs) {
   for (let i = 1; i < msgs.length; i++) {
@@ -37,7 +63,7 @@ function noConsecutiveSameRole(msgs) {
   return true;
 }
 
-async function runResume(history, liveText) {
+async function runResume(history, liveText, output = []) {
   const captured = [];
   const agentLoop = async function* (messages) {
     captured.push(messages.map((m) => ({ role: m.role, content: m.content })));
@@ -52,12 +78,13 @@ async function runResume(history, liveText) {
     {
       bootstrap: async () => ({ db: null }),
       getApprovalGate: async () => null,
-      writeOut: () => {},
+      writeOut: (value) => output.push(String(value)),
       writeErr: () => {},
       agentLoop,
       input: input(),
       sessionExists: () => true,
-      rebuildMessages: () => history,
+      readSessionHostResumeState: () =>
+        verifiedResume(history, "resume-roles-test"),
       ...noopStore,
     },
   );
@@ -107,17 +134,17 @@ describe("stream resume role sanitation", () => {
     // SECOND live turn re-sends consecutive users → "roles must alternate".
     const captured = [];
     const agentLoop = async function* (messages) {
-      captured.push(messages.map((m) => ({ role: m.role, content: m.content })));
+      captured.push(
+        messages.map((m) => ({ role: m.role, content: m.content })),
+      );
       yield { type: "response-complete", content: "reply" };
       yield { type: "run-ended", reason: "complete" };
     };
     async function* input() {
-      yield (
-        [
-          JSON.stringify({ type: "user", text: "continue please" }),
-          JSON.stringify({ type: "user", text: "and again" }),
-        ].join("\n") + "\n"
-      );
+      yield [
+        JSON.stringify({ type: "user", text: "continue please" }),
+        JSON.stringify({ type: "user", text: "and again" }),
+      ].join("\n") + "\n";
     }
     await runAgentHeadlessStream(
       { expandFileRefs: false, sessionId: "resume-roles-multiturn" },
@@ -129,7 +156,11 @@ describe("stream resume role sanitation", () => {
         agentLoop,
         input: input(),
         sessionExists: () => true,
-        rebuildMessages: () => [{ role: "user", content: "original task" }],
+        readSessionHostResumeState: () =>
+          verifiedResume(
+            [{ role: "user", content: "original task" }],
+            "resume-roles-multiturn",
+          ),
         ...noopStore,
       },
     );
@@ -144,10 +175,35 @@ describe("stream resume role sanitation", () => {
     expect(t1users[0].content).toContain("original task");
     expect(t1users[0].content).toContain("continue please");
     // Turn 2 saw clean user/assistant/user.
-    expect(captured[1].filter((m) => m.role !== "system").map((m) => m.role)).toEqual([
-      "user",
-      "assistant",
-      "user",
-    ]);
+    expect(
+      captured[1].filter((m) => m.role !== "system").map((m) => m.role),
+    ).toEqual(["user", "assistant", "user"]);
+  });
+
+  it("round-trips verified canonical system summaries only to model input", async () => {
+    const summary = "STREAM_CANONICAL_SUMMARY_PRIVATE_0c13da";
+    const output = [];
+    const captured = await runResume(
+      [
+        { role: "system", content: summary },
+        { role: "user", content: "earlier question" },
+        { role: "assistant", content: "earlier answer" },
+      ],
+      "follow up",
+      output,
+    );
+
+    expect(captured).toHaveLength(1);
+    const payload = captured[0];
+    expect(payload[0]?.role).toBe("system");
+    expect(payload[0]?.content).not.toBe(summary);
+    expect(
+      payload.filter((message) => message?.content === summary),
+    ).toHaveLength(1);
+    expect(
+      payload.findIndex((message) => message?.content === summary),
+    ).toBeGreaterThan(0);
+    expect(noConsecutiveSameRole(payload)).toBe(true);
+    expect(output.join("\n")).not.toContain(summary);
   });
 });

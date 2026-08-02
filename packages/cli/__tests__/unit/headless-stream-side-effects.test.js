@@ -20,6 +20,31 @@ import { executeTool } from "../../src/runtime/agent-core.js";
 import { SideEffectLedger } from "../../src/lib/side-effect-ledger.js";
 import { MCP_CALL_LEDGER_EVENT } from "../../src/lib/mcp-call-ledger-store.js";
 
+function verifiedResume(messages, sessionId = "chat-abc") {
+  return {
+    snapshot: {
+      schema: "chainlesschain.session-host-snapshot/v1",
+      schemaVersion: 1,
+      sessionId,
+      verified: true,
+      revision: `sha256:${"a".repeat(64)}`,
+    },
+    messages,
+    recovery: {
+      sessionId,
+      records: [],
+      unsettled: [],
+      incidents: [],
+      adjudications: [],
+      replayDenied: [],
+      verified: true,
+      headHash: "b".repeat(64),
+      recoveryDigest: `sha256:${"c".repeat(64)}`,
+      remediation: null,
+    },
+  };
+}
+
 function harness({ over = {}, options = {}, loop } = {}) {
   const lines = [];
   const seenTurns = [];
@@ -247,10 +272,11 @@ describe("stream side-effect ledger — resume reconcile + recovery notice", () 
       options: { sessionId: "chat-abc" },
       over: {
         sessionExists: () => true,
-        rebuildMessages: () => [
-          { role: "user", content: "earlier question" },
-          { role: "assistant", content: "earlier answer" },
-        ],
+        readSessionHostResumeState: () =>
+          verifiedResume([
+            { role: "user", content: "earlier question" },
+            { role: "assistant", content: "earlier answer" },
+          ]),
         loadSideEffectLedger,
         persistSideEffectLedger: vi.fn(),
       },
@@ -297,10 +323,11 @@ describe("stream side-effect ledger — resume reconcile + recovery notice", () 
       options: { sessionId: "chat-abc" },
       over: {
         sessionExists: () => true,
-        rebuildMessages: () => [
-          { role: "user", content: "earlier question" },
-          { role: "assistant", content: "earlier answer" },
-        ],
+        readSessionHostResumeState: () =>
+          verifiedResume([
+            { role: "user", content: "earlier question" },
+            { role: "assistant", content: "earlier answer" },
+          ]),
         loadSideEffectLedger: () => ledger,
         persistSideEffectLedger: vi.fn(),
       },
@@ -330,7 +357,8 @@ describe("stream side-effect ledger — resume reconcile + recovery notice", () 
       options: { sessionId: "chat-abc" },
       over: {
         sessionExists: () => true,
-        rebuildMessages: () => [{ role: "user", content: "q" }],
+        readSessionHostResumeState: () =>
+          verifiedResume([{ role: "user", content: "q" }]),
         loadSideEffectLedger: () => {
           throw new Error("disk full");
         },

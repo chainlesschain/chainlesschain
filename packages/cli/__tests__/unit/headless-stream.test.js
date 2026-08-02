@@ -17,6 +17,31 @@ import { TurnBindingLog } from "../../src/lib/turn-binding.js";
 import { TURN_BINDING_EVENT } from "../../src/lib/turn-binding-store.js";
 import { currentHostHooksV2WorkspaceRoot } from "../../src/lib/hooks-v2-workspace-context.js";
 
+function verifiedResume(messages, sessionId) {
+  return {
+    snapshot: {
+      schema: "chainlesschain.session-host-snapshot/v1",
+      schemaVersion: 1,
+      sessionId,
+      verified: true,
+      revision: `sha256:${"a".repeat(64)}`,
+    },
+    messages,
+    recovery: {
+      sessionId,
+      records: [],
+      unsettled: [],
+      incidents: [],
+      adjudications: [],
+      replayDenied: [],
+      verified: true,
+      headHash: "b".repeat(64),
+      recoveryDigest: `sha256:${"c".repeat(64)}`,
+      remediation: null,
+    },
+  };
+}
+
 describe("parseInputEvent", () => {
   it("returns null for blank lines", () => {
     expect(parseInputEvent("")).toBeNull();
@@ -275,7 +300,12 @@ describe("runAgentHeadlessStream", () => {
       input: input({ type: "user", text: "go" }),
     });
     await runAgentHeadlessStream(
-      { expandFileRefs: false, autoCheckpoint: true, sessionId: "sess-x" },
+      {
+        expandFileRefs: false,
+        autoCheckpoint: true,
+        sessionId: "sess-x",
+        ephemeral: true,
+      },
       deps,
     );
     expect(captured[0].autoCheckpoint).toBe(true);
@@ -848,7 +878,8 @@ describe("runAgentHeadlessStream — custom slash-command macros (panel parity)"
       },
       input: input({ type: "user", text: "one" }),
       sessionExists: () => true,
-      rebuildMessages: () => [],
+      readSessionHostResumeState: () =>
+        verifiedResume([], "stream-binding-session"),
       readEvents: () => {
         throw new Error("binding transcript unreadable");
       },

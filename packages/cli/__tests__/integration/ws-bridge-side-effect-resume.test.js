@@ -113,6 +113,9 @@ describe("WS bridge side-effect resume", () => {
       (m) => m.role === "system" && /Recovery notice/.test(String(m.content)),
     );
     expect(sysNote).toBeTruthy();
+    expect(session.messages.indexOf(sysNote)).toBeLessThan(
+      session.messages.findIndex((message) => message.role !== "system"),
+    );
 
     // The runtime SESSION_RESUME event also carries the structured descriptor.
     expect(JSON.stringify(server.emit.mock.calls)).toMatch(/git-push/);
@@ -411,8 +414,8 @@ describe("WS bridge side-effect resume", () => {
       "error",
       expect.objectContaining({
         requestId: "req-1",
-        code: "AGENT_ERROR",
-        message: expect.stringMatching(/ledger lock unavailable/),
+        code: "SIDE_EFFECT_LEDGER_PERSIST_FAILED",
+        message: expect.stringMatching(/ledger.*lock unavailable/i),
       }),
     );
   });

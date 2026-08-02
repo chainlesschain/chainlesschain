@@ -32,6 +32,53 @@ const MCP_RECOVERY_REMEDIATIONS = new Set([
   "adjudicate_started_calls",
   "exact_replay_denied",
 ]);
+const RESUME_RECOVERY_NOTICE = Symbol("cc.resume-recovery-notice");
+
+function captureCanonicalHostSystemPrefix(session) {
+  if (Array.isArray(session?._canonicalHostSystemPrefix)) {
+    return session._canonicalHostSystemPrefix;
+  }
+  const prefix = [];
+  for (const message of Array.isArray(session?.messages)
+    ? session.messages
+    : []) {
+    if (message?.role !== "system") break;
+    prefix.push(Object.freeze({ ...message }));
+  }
+  const frozenPrefix = Object.freeze(prefix);
+  Object.defineProperty(session, "_canonicalHostSystemPrefix", {
+    configurable: true,
+    value: frozenPrefix,
+  });
+  return frozenPrefix;
+}
+
+function replaceResumeRecoveryNotice(session, notice) {
+  const previous = session?._resumeRecoveryNoticeMessage || null;
+  const messages = (
+    Array.isArray(session?.messages) ? session.messages : []
+  ).filter(
+    (message) =>
+      message !== previous && message?.[RESUME_RECOVERY_NOTICE] !== true,
+  );
+  let insertionIndex = 0;
+  while (messages[insertionIndex]?.role === "system") insertionIndex += 1;
+
+  let recoveryMessage = null;
+  if (typeof notice === "string" && notice.trim()) {
+    recoveryMessage = { role: "system", content: notice };
+    Object.defineProperty(recoveryMessage, RESUME_RECOVERY_NOTICE, {
+      value: true,
+    });
+    messages.splice(insertionIndex, 0, recoveryMessage);
+  }
+  session.messages = messages;
+  Object.defineProperty(session, "_resumeRecoveryNoticeMessage", {
+    configurable: true,
+    writable: true,
+    value: recoveryMessage,
+  });
+}
 
 function recoveryErrorCode(error, fallbackCode) {
   try {
@@ -638,7 +685,17 @@ export async function handleSessionResume(server, id, ws, message) {
   // transcript keeps the legacy WS-store compatibility path.
   const sessionSnapshot = canonicalResume?.snapshot || null;
   if (canonicalResume) {
-    session.messages = [...canonicalResume.messages];
+    // Capture the fresh host-owned prefix exactly once. Canonical refreshes
+    // later in the WS handler must never rescan a message array that already
+    // contains a durable compact-summary system turn, or the summary would be
+    // mistaken for host context and duplicated after each claim/settlement.
+    const hostSystemPrefix = captureCanonicalHostSystemPrefix(session);
+    session.messages = [...hostSystemPrefix, ...canonicalResume.messages];
+    session.canonicalJsonlSession = true;
+    session.sessionHostSnapshot = sessionSnapshot;
+  } else {
+    session.canonicalJsonlSession = false;
+    session.sessionHostSnapshot = null;
   }
 
   // P0-2: reconcile the crash-safe side-effect ledger. If a dangerous tool was
@@ -660,9 +717,7 @@ export async function handleSessionResume(server, id, ws, message) {
   };
   session.mcpLedgerRecoveryRevision =
     Number(session.mcpLedgerRecoveryRevision || 0) + 1;
-  if (recovery?.notice && Array.isArray(session.messages)) {
-    session.messages.push({ role: "system", content: recovery.notice });
-  }
+  replaceResumeRecoveryNotice(session, recovery?.notice || null);
 
   // Recovery authority must be attached before a handler is created/refreshed
   // or history is exposed. Otherwise an existing clean controller can admit a
@@ -699,9 +754,7 @@ export async function handleSessionResume(server, id, ws, message) {
           .filter(Boolean)
           .join("\n\n"),
       });
-      if (Array.isArray(session.messages)) {
-        session.messages.push({ role: "system", content: failedMcp.notice });
-      }
+      replaceResumeRecoveryNotice(session, recovery.notice);
     }
   }
 
