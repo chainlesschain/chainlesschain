@@ -253,6 +253,105 @@ function assertWorkspaceBinding(
   }
 }
 
+function checkpointRestoreHookError(name, reason) {
+  const error = new Error(`${name} ${reason}`);
+  error.code = "CHECKPOINT_RESTORE_HOOK_INVALID";
+  error.hook = name;
+  return error;
+}
+
+function assertSynchronousRestoreHook(name, hook) {
+  if (hook == null) return;
+  if (
+    typeof hook !== "function" ||
+    hook.constructor?.name === "AsyncFunction"
+  ) {
+    throw checkpointRestoreHookError(name, "must be a synchronous function");
+  }
+}
+
+function callSynchronousRestoreHook(name, hook, payload) {
+  if (hook == null) return;
+  const result = hook(Object.freeze(payload));
+  if (
+    result != null &&
+    (typeof result === "object" || typeof result === "function") &&
+    typeof result.then === "function"
+  ) {
+    throw checkpointRestoreHookError(
+      name,
+      "must not return a promise or thenable",
+    );
+  }
+}
+
+function checkpointSafetyStaleError(safety, reason, actualIdentity = null) {
+  const error = new Error(
+    `Checkpoint safety state changed before restore: ${safety.id}`,
+  );
+  error.code = "CHECKPOINT_SAFETY_STALE";
+  error.checkpointId = safety.id;
+  error.reason = reason;
+  error.expectedIdentity = `git:${safety.commit}`;
+  error.actualIdentity = actualIdentity;
+  return error;
+}
+
+function assertDurableSafetyCheckpoint(root, safety, expectedTree) {
+  const actualCommit = readRef(root, safety.ref);
+  if (actualCommit !== safety.commit) {
+    throw checkpointSafetyStaleError(
+      safety,
+      "ref-identity-changed",
+      actualCommit ? `git:${actualCommit}` : null,
+    );
+  }
+
+  let actualTree = null;
+  try {
+    actualTree = git(["rev-parse", `${actualCommit}^{tree}`], { cwd: root });
+  } catch {
+    throw checkpointSafetyStaleError(
+      safety,
+      "commit-unavailable",
+      `git:${actualCommit}`,
+    );
+  }
+  if (safety.tree !== expectedTree || actualTree !== expectedTree) {
+    throw checkpointSafetyStaleError(
+      safety,
+      "prestate-tree-mismatch",
+      `git:${actualCommit}`,
+    );
+  }
+}
+
+function assertRestoreWorkspacePrestate(
+  root,
+  dir,
+  idOrRef,
+  expectedWorkspaceBinding,
+  { targetCommit, targetTree },
+) {
+  const observedTree = snapshotTree(root, dir);
+  if (
+    `git-tree:${observedTree}` === expectedWorkspaceBinding.prestateIdentity
+  ) {
+    return;
+  }
+  const actualWorkspaceBinding = buildWorkspaceBinding(root, dir, {
+    targetCommit,
+    targetTree,
+    currentTree: observedTree,
+  });
+  throw workspaceBindingStaleError(
+    idOrRef,
+    expectedWorkspaceBinding,
+    actualWorkspaceBinding,
+    "mismatch:prestateIdentity",
+  );
+}
+
 /**
  * Ref-safe session segment. Beyond the charset filter, enforce git's per-
  * component ref rules so a legit-looking name never makes every checkpoint op
@@ -673,10 +772,21 @@ export function statusAgainst(cwd = process.cwd(), idOrRef, opts = {}) {
  * (unless dryRun / skipSafety).
  *
  * @param {object} [opts]
- *   { session, dryRun, skipSafety, now, expectedWorkspaceBinding }
- * @returns {{ restored, dryRun, target, safetyId, modified, deleted, recreated }}
+ *   { session, dryRun, skipSafety, now, expectedWorkspaceBinding,
+ *     onSafetyReady, onMutationStarted, onWorkspaceApplied }
+ * @returns {{ restored, dryRun, target, safetyId, safetyIdentity,
+ *   safetyPlanIdentity?:string|null, safetyCoverage?:string,
+ *   modified, deleted, recreated }}
  */
 export function rewindTo(cwd = process.cwd(), idOrRef, opts = {}) {
+  for (const hookName of [
+    "onSafetyReady",
+    "onMutationStarted",
+    "onWorkspaceApplied",
+  ]) {
+    assertSynchronousRestoreHook(hookName, opts[hookName]);
+  }
+
   const root = repoRoot(cwd);
   const dir = gitDir(root);
   const session = sanitizeSession(opts.session);
@@ -695,17 +805,18 @@ export function rewindTo(cwd = process.cwd(), idOrRef, opts = {}) {
   const modified = diffNames(root, targetTree, currentTree, "M");
   const added = diffNames(root, targetTree, currentTree, "A"); // → delete
   const recreated = diffNames(root, targetTree, currentTree, "D"); // → recreate
+  const mutationCount = modified.length + added.length + recreated.length;
+  const workspaceBinding = buildWorkspaceBinding(root, dir, {
+    targetCommit,
+    targetTree,
+    currentTree,
+  });
 
   if (Object.hasOwn(opts, "expectedWorkspaceBinding")) {
-    const actualWorkspaceBinding = buildWorkspaceBinding(root, dir, {
-      targetCommit,
-      targetTree,
-      currentTree,
-    });
     assertWorkspaceBinding(
       idOrRef,
       opts.expectedWorkspaceBinding,
-      actualWorkspaceBinding,
+      workspaceBinding,
     );
   }
 
@@ -725,8 +836,9 @@ export function rewindTo(cwd = process.cwd(), idOrRef, opts = {}) {
   // Safety net — snapshot the current state so this rewind is undoable.
   let safetyId = null;
   let safetyIdentity = null;
+  let safety = null;
   if (!opts.skipSafety) {
-    const safety = createCheckpoint(root, {
+    safety = createCheckpoint(root, {
       session,
       label: `auto: before rewind to ${idOrRef}`,
       now: opts.now,
@@ -735,11 +847,106 @@ export function rewindTo(cwd = process.cwd(), idOrRef, opts = {}) {
     safetyIdentity = `git:${safety.commit}`;
   }
 
+  const checkpointIdentity = `git:${targetCommit}`;
+  const safetyPlanIdentity = workspaceBinding.writePlanIdentity;
+  let restorePhase = "safety-ready";
   try {
+    if (safety) {
+      assertDurableSafetyCheckpoint(root, safety, currentTree);
+    }
+
+    // A zero-diff restore has no safety-ready or mutation-started boundary, but
+    // it still has a verified workspace-applied settlement. Keep the historical
+    // safety-checkpoint return behaviour and report that direct no-op boundary
+    // without running checkout-index over an already-settled tree.
+    if (mutationCount === 0) {
+      restorePhase = "workspace-applied";
+      callSynchronousRestoreHook(
+        "onWorkspaceApplied",
+        opts.onWorkspaceApplied,
+        {
+          checkpointId: idOrRef,
+          checkpointIdentity,
+          safetyId,
+          safetyIdentity,
+          safetyCoverage: safety ? "full" : "none",
+          safetyPlanIdentity: safety ? safetyPlanIdentity : null,
+          mutationCount: 0,
+          appliedCount: 0,
+          poststateIdentity: `git-tree:${currentTree}`,
+        },
+      );
+      if (opts.onWorkspaceApplied) {
+        if (safety) {
+          assertDurableSafetyCheckpoint(root, safety, currentTree);
+        }
+        assertRestoreWorkspacePrestate(root, dir, idOrRef, workspaceBinding, {
+          targetCommit,
+          targetTree,
+        });
+      }
+      return {
+        restored: true,
+        dryRun: false,
+        target: targetCommit,
+        safetyId,
+        safetyIdentity,
+        safetyPlanIdentity: safety ? safetyPlanIdentity : null,
+        safetyCoverage: "checkpoint",
+        modified: 0,
+        deleted: 0,
+        recreated: 0,
+      };
+    }
+
+    if (safety) {
+      callSynchronousRestoreHook("onSafetyReady", opts.onSafetyReady, {
+        checkpointId: idOrRef,
+        checkpointIdentity,
+        safetyId,
+        safetyIdentity,
+        safetyCoverage: "full",
+        safetyPlanIdentity,
+        mutationCount,
+      });
+      // Hooks are extension points. They may not invalidate the durable undo
+      // ref or change the exact workspace state that the write plan covers.
+      assertDurableSafetyCheckpoint(root, safety, currentTree);
+      assertRestoreWorkspacePrestate(root, dir, idOrRef, workspaceBinding, {
+        targetCommit,
+        targetTree,
+      });
+    }
+
     const tmpIndex = tempIndexPath(dir);
     const env = { GIT_INDEX_FILE: tmpIndex };
     try {
       git(["read-tree", targetTree], { cwd: root, env });
+
+      callSynchronousRestoreHook("onMutationStarted", opts.onMutationStarted, {
+        checkpointId: idOrRef,
+        checkpointIdentity,
+        safetyId,
+        safetyIdentity,
+        safetyCoverage: safety ? "full" : "none",
+        safetyPlanIdentity: safety ? safetyPlanIdentity : null,
+        mutationCount,
+      });
+      if (opts.onMutationStarted) {
+        // The durable consumer has now recorded the mutation boundary. Treat
+        // any subsequent uncertainty conservatively even though the checks
+        // below still precede the first checkout-index write.
+        restorePhase = "workspace-mutation";
+      }
+      if (safety) {
+        assertDurableSafetyCheckpoint(root, safety, currentTree);
+      }
+      assertRestoreWorkspacePrestate(root, dir, idOrRef, workspaceBinding, {
+        targetCommit,
+        targetTree,
+      });
+
+      restorePhase = "workspace-mutation";
       git(["checkout-index", "-a", "-f"], { cwd: root, env });
     } finally {
       rmQuiet(tmpIndex);
@@ -769,12 +976,47 @@ export function rewindTo(cwd = process.cwd(), idOrRef, opts = {}) {
       ];
       throw error;
     }
+
+    restorePhase = "workspace-applied";
+    callSynchronousRestoreHook("onWorkspaceApplied", opts.onWorkspaceApplied, {
+      checkpointId: idOrRef,
+      checkpointIdentity,
+      safetyId,
+      safetyIdentity,
+      safetyCoverage: safety ? "full" : "none",
+      safetyPlanIdentity: safety ? safetyPlanIdentity : null,
+      mutationCount,
+      appliedCount: mutationCount,
+      poststateIdentity: `git-tree:${settledTree}`,
+    });
+
+    // Do not return a successful restore if the completion hook invalidated
+    // either the recovery ref or the just-verified poststate.
+    if (opts.onWorkspaceApplied) {
+      if (safety) {
+        assertDurableSafetyCheckpoint(root, safety, currentTree);
+      }
+      const postHookTree = snapshotTree(root, dir);
+      if (postHookTree !== targetTree) {
+        const error = new Error(
+          `Checkpoint restore did not remain at the target tree: ${idOrRef}`,
+        );
+        error.code = "CHECKPOINT_RESTORE_INCOMPLETE";
+        error.residualPaths = [
+          ...diffNames(root, targetTree, postHookTree, "M"),
+          ...diffNames(root, targetTree, postHookTree, "A"),
+          ...diffNames(root, targetTree, postHookTree, "D"),
+        ];
+        throw error;
+      }
+    }
   } catch (error) {
     if (error && typeof error === "object") {
       error.safetyId = safetyId;
       error.safetyIdentity = safetyIdentity;
+      error.safetyPlanIdentity = safety ? safetyPlanIdentity : null;
       error.safetyCoverage = "checkpoint";
-      error.restorePhase = "workspace-mutation";
+      error.restorePhase = restorePhase;
     }
     throw error;
   }
@@ -785,6 +1027,7 @@ export function rewindTo(cwd = process.cwd(), idOrRef, opts = {}) {
     target: targetCommit,
     safetyId,
     safetyIdentity,
+    safetyPlanIdentity: safety ? safetyPlanIdentity : null,
     safetyCoverage: "checkpoint",
     modified: modified.length,
     deleted: added.length,

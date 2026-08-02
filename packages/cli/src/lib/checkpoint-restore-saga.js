@@ -157,7 +157,12 @@ const TRANSITIONS = new Map([
   ["prepared", new Set(["intent_committed", "aborted", "recovery_required"])],
   [
     "intent_committed",
-    new Set(["safety_ready", "aborted", "recovery_required"]),
+    new Set([
+      "safety_ready",
+      "workspace_applied",
+      "aborted",
+      "recovery_required",
+    ]),
   ],
   [
     "safety_ready",
@@ -191,11 +196,13 @@ const EVIDENCE_RULES = Object.freeze({
   workspaceRoot: Object.freeze({ type: "path", max: 4096 }),
   workspaceIdentity: Object.freeze({ type: "hash" }),
   workspaceBinding: Object.freeze({ type: "text", max: 1024 }),
+  confirmationDigest: Object.freeze({ type: "hash" }),
   restoreKind: Object.freeze({
     type: "enum",
     values: Object.freeze(["copy", "git", "timeline"]),
   }),
   checkpointId: Object.freeze({ type: "text", max: 256 }),
+  checkpointIdentity: Object.freeze({ type: "text", max: 1024 }),
   sessionId: Object.freeze({ type: "text", max: 256 }),
   timelineEntryId: Object.freeze({ type: "text", max: 256 }),
   safetyId: Object.freeze({ type: "text", max: 256 }),
@@ -211,6 +218,7 @@ const EVIDENCE_RULES = Object.freeze({
   poststateDigest: Object.freeze({ type: "hash" }),
   resultDigest: Object.freeze({ type: "hash" }),
   sessionCommitDigest: Object.freeze({ type: "hash" }),
+  intentCommitDigest: Object.freeze({ type: "hash" }),
   reason: Object.freeze({ type: "text", max: 2048 }),
   errorCode: Object.freeze({ type: "text", max: 128 }),
   recoveryAction: Object.freeze({ type: "text", max: 128 }),
@@ -221,6 +229,7 @@ const EVIDENCE_RULES = Object.freeze({
 
 const REQUIRED_EVIDENCE_BY_PHASE = Object.freeze({
   prepared: Object.freeze(["prestateDigest", "targetCount"]),
+  intent_committed: Object.freeze(["intentCommitDigest"]),
   safety_ready: Object.freeze([
     "safetyId",
     "safetyIdentity",
@@ -2189,6 +2198,23 @@ export class CheckpointRestoreSagaStore {
       }
     }
     if (event.phase === "workspace_applied") {
+      const previous = events.at(-1);
+      if (previous?.phase === "intent_committed") {
+        const prepared = [...events]
+          .reverse()
+          .find((entry) => entry.phase === "prepared");
+        if (
+          !prepared ||
+          prepared.evidence.targetCount !== 0 ||
+          event.evidence.appliedCount !== 0
+        ) {
+          throw sagaError(
+            errorCode,
+            "workspace_applied may bypass mutation only for an exact zero-target restore",
+          );
+        }
+        return;
+      }
       const mutation = [...events]
         .reverse()
         .find((entry) => entry.phase === "mutation_started");

@@ -254,7 +254,11 @@ describe("CheckpointRestoreSagaStore", () => {
     const operationId = "restore_normal_1";
     let saga = testFixture.store.create({
       operationId,
-      evidence: { restoreKind: "copy", checkpointId: "checkpoint-1" },
+      evidence: {
+        restoreKind: "copy",
+        checkpointId: "checkpoint-1",
+        confirmationDigest: `sha256:${"0".repeat(64)}`,
+      },
     });
 
     expect(saga.phase).toBe("created");
@@ -262,6 +266,9 @@ describe("CheckpointRestoreSagaStore", () => {
     expect(saga.workspaceRoot).toBe(testFixture.workspaceRoot);
     expect(saga.events[0].prevHash).toBeNull();
     expect(saga.events[0].hash).toMatch(/^sha256:[a-f0-9]{64}$/);
+    expect(saga.events[0].evidence.confirmationDigest).toBe(
+      `sha256:${"0".repeat(64)}`,
+    );
 
     const transitions = [
       [
@@ -272,7 +279,13 @@ describe("CheckpointRestoreSagaStore", () => {
         "prepared",
         { prestateDigest: `sha256:${"1".repeat(64)}`, targetCount: 2 },
       ],
-      ["intent_committed", { sessionId: "session-1" }],
+      [
+        "intent_committed",
+        {
+          sessionId: "session-1",
+          intentCommitDigest: `sha256:${"9".repeat(64)}`,
+        },
+      ],
       [
         "safety_ready",
         {
@@ -336,8 +349,20 @@ describe("CheckpointRestoreSagaStore", () => {
     expect(() => advance(testFixture.store, saga, "intent_committed")).toThrow(
       errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.INVALID_EVIDENCE),
     );
+    expect(() =>
+      advance(testFixture.store, saga, "intent_committed", {
+        sessionId: "strict-session",
+      }),
+    ).toThrow(errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.INVALID_EVIDENCE));
+    expect(() =>
+      advance(testFixture.store, saga, "intent_committed", {
+        sessionId: "strict-session",
+        intentCommitDigest: "sha256:not-a-digest",
+      }),
+    ).toThrow(errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.INVALID_EVIDENCE));
     saga = advance(testFixture.store, saga, "intent_committed", {
       sessionId: "strict-session",
+      intentCommitDigest: `sha256:${"9".repeat(64)}`,
     });
     expect(() => advance(testFixture.store, saga, "safety_ready")).toThrow(
       errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.INVALID_EVIDENCE),
@@ -395,6 +420,7 @@ describe("CheckpointRestoreSagaStore", () => {
     });
     partial = advance(partialFixture.store, partial, "intent_committed", {
       sessionId: "partial-session",
+      intentCommitDigest: `sha256:${"9".repeat(64)}`,
     });
     partial = advance(partialFixture.store, partial, "safety_ready", {
       safetyId: "partial-safety",
@@ -407,6 +433,130 @@ describe("CheckpointRestoreSagaStore", () => {
         targetCount: 1,
       }),
     ).toThrow(errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.INVALID_EVIDENCE));
+  });
+
+  it("settles an exact zero-target restore without safety or mutation events", () => {
+    const testFixture = fixture();
+    const operationId = "zero_target_restore";
+    let saga = testFixture.store.create({ operationId });
+    saga = advance(testFixture.store, saga, "locked", {
+      workspaceLockOwner: workspaceLockOwner(testFixture, operationId),
+    });
+    saga = advance(testFixture.store, saga, "prepared", {
+      prestateDigest: `sha256:${"1".repeat(64)}`,
+      targetCount: 0,
+    });
+    saga = advance(testFixture.store, saga, "intent_committed", {
+      sessionId: "zero-target-session",
+      intentCommitDigest: `sha256:${"2".repeat(64)}`,
+    });
+
+    expect(() =>
+      advance(testFixture.store, saga, "workspace_applied", {
+        appliedCount: 1,
+        poststateDigest: `sha256:${"3".repeat(64)}`,
+      }),
+    ).toThrow(errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.INVALID_EVIDENCE));
+
+    saga = advance(testFixture.store, saga, "workspace_applied", {
+      appliedCount: 0,
+      poststateDigest: `sha256:${"3".repeat(64)}`,
+    });
+    saga = advance(testFixture.store, saga, "session_committed", {
+      sessionCommitDigest: `sha256:${"4".repeat(64)}`,
+    });
+    saga = advance(testFixture.store, saga, "completed", {
+      resultDigest: `sha256:${"5".repeat(64)}`,
+    });
+
+    expect(saga.terminal).toBe(true);
+    expect(eventFiles(testFixture, operationId)).toEqual([
+      "000001-created.json",
+      "000002-locked.json",
+      "000003-prepared.json",
+      "000004-intent_committed.json",
+      "000005-workspace_applied.json",
+      "000006-session_committed.json",
+      "000007-completed.json",
+    ]);
+  });
+
+  it("does not let a nonzero restore bypass full safety and mutation", () => {
+    const testFixture = fixture();
+    const operationId = "nonzero_safety_bypass";
+    let saga = testFixture.store.create({ operationId });
+    saga = advance(testFixture.store, saga, "locked", {
+      workspaceLockOwner: workspaceLockOwner(testFixture, operationId),
+    });
+    saga = advance(testFixture.store, saga, "prepared", {
+      prestateDigest: `sha256:${"1".repeat(64)}`,
+      targetCount: 1,
+    });
+    saga = advance(testFixture.store, saga, "intent_committed", {
+      sessionId: "nonzero-session",
+      intentCommitDigest: `sha256:${"2".repeat(64)}`,
+    });
+
+    expect(() =>
+      advance(testFixture.store, saga, "workspace_applied", {
+        appliedCount: 1,
+        poststateDigest: `sha256:${"3".repeat(64)}`,
+      }),
+    ).toThrow(errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.INVALID_EVIDENCE));
+    expect(testFixture.store.load(operationId).phase).toBe("intent_committed");
+    expect(eventFiles(testFixture, operationId)).toHaveLength(4);
+  });
+
+  it("rejects a rehashed nonzero restore that bypasses safety during replay", () => {
+    const testFixture = fixture();
+    const operationId = "replay_nonzero_safety_bypass";
+    let saga = testFixture.store.create({ operationId });
+    saga = advance(testFixture.store, saga, "locked", {
+      workspaceLockOwner: workspaceLockOwner(testFixture, operationId),
+    });
+    saga = advance(testFixture.store, saga, "prepared", {
+      prestateDigest: `sha256:${"1".repeat(64)}`,
+      targetCount: 0,
+    });
+    saga = advance(testFixture.store, saga, "intent_committed", {
+      sessionId: "replay-session",
+      intentCommitDigest: `sha256:${"2".repeat(64)}`,
+    });
+    advance(testFixture.store, saga, "workspace_applied", {
+      appliedCount: 0,
+      poststateDigest: `sha256:${"3".repeat(64)}`,
+    });
+
+    const directory = operationDirectory(testFixture, operationId);
+    const preparedPath = path.join(directory, "000003-prepared.json");
+    const intentPath = path.join(directory, "000004-intent_committed.json");
+    const appliedPath = path.join(directory, "000005-workspace_applied.json");
+    const prepared = JSON.parse(fs.readFileSync(preparedPath, "utf8"));
+    const intent = JSON.parse(fs.readFileSync(intentPath, "utf8"));
+    const applied = JSON.parse(fs.readFileSync(appliedPath, "utf8"));
+    prepared.evidence.targetCount = 1;
+    prepared.hash = recomputeEventHash(prepared);
+    intent.prevHash = prepared.hash;
+    intent.hash = recomputeEventHash(intent);
+    applied.prevHash = intent.hash;
+    applied.evidence.appliedCount = 1;
+    applied.hash = recomputeEventHash(applied);
+    for (const [filePath, event] of [
+      [preparedPath, prepared],
+      [intentPath, intent],
+      [appliedPath, applied],
+    ]) {
+      fs.writeFileSync(filePath, `${JSON.stringify(event)}\n`, { mode: 0o600 });
+    }
+    const head = readHead(testFixture, operationId);
+    head.prevHash = intent.hash;
+    head.eventHash = applied.hash;
+    head.anchorHash = recomputeHeadAnchor(head);
+    writeHead(testFixture, operationId, head);
+
+    expect(() => testFixture.store.load(operationId)).toThrow(
+      errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.CORRUPT),
+    );
   });
 
   it("settles every published event behind an exact self-hashed HEAD", () => {
@@ -701,7 +851,7 @@ describe("CheckpointRestoreSagaStore", () => {
     );
   });
 
-  it("rejects a rehashed event that omits required mutation evidence", () => {
+  it("rejects rehashed events that omit required phase evidence", () => {
     const testFixture = fixture();
     const operationId = "phase_required_replay";
     let saga = testFixture.store.create({ operationId });
@@ -728,6 +878,41 @@ describe("CheckpointRestoreSagaStore", () => {
     writeHead(testFixture, operationId, head);
 
     expect(() => testFixture.store.load(operationId)).toThrow(
+      errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.CORRUPT),
+    );
+
+    const intentFixture = fixture();
+    const intentOperationId = "intent_digest_replay";
+    let intentSaga = intentFixture.store.create({
+      operationId: intentOperationId,
+    });
+    intentSaga = advance(intentFixture.store, intentSaga, "locked", {
+      workspaceLockOwner: workspaceLockOwner(intentFixture, intentOperationId),
+    });
+    intentSaga = advance(intentFixture.store, intentSaga, "prepared", {
+      prestateDigest: `sha256:${"2".repeat(64)}`,
+      targetCount: 0,
+    });
+    advance(intentFixture.store, intentSaga, "intent_committed", {
+      sessionId: "intent-replay-session",
+      intentCommitDigest: `sha256:${"3".repeat(64)}`,
+    });
+    const intentPath = path.join(
+      operationDirectory(intentFixture, intentOperationId),
+      "000004-intent_committed.json",
+    );
+    const intent = JSON.parse(fs.readFileSync(intentPath, "utf8"));
+    delete intent.evidence.intentCommitDigest;
+    intent.hash = recomputeEventHash(intent);
+    fs.writeFileSync(intentPath, `${JSON.stringify(intent)}\n`, {
+      mode: 0o600,
+    });
+    const intentHead = readHead(intentFixture, intentOperationId);
+    intentHead.eventHash = intent.hash;
+    intentHead.anchorHash = recomputeHeadAnchor(intentHead);
+    writeHead(intentFixture, intentOperationId, intentHead);
+
+    expect(() => intentFixture.store.load(intentOperationId)).toThrow(
       errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.CORRUPT),
     );
   });
@@ -1007,9 +1192,16 @@ describe("CheckpointRestoreSagaStore", () => {
           .readdirSync(newDirectory)
           .map((name) => path.join(newDirectory, name)),
       ];
+      const finalInspection = inspectPrivatePaths(finalAuthorityPaths, {
+        platform: "win32",
+      });
       expect(
-        inspectPrivatePaths(finalAuthorityPaths, { platform: "win32" }).every(
-          (result) => result.ok === true,
+        finalInspection.every(
+          (result) =>
+            result.ok === true &&
+            result.details?.ownerSid === result.details?.currentSid &&
+            (result.details?.isDirectory !== true ||
+              result.details?.protected === true),
         ),
       ).toBe(true);
     },
@@ -2177,8 +2369,19 @@ describe("CheckpointRestoreSagaStore", () => {
         evidence: { reason: "x".repeat(2049) },
       }),
     ).toThrow(errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.INVALID_EVIDENCE));
+    expect(() =>
+      testFixture.store.create({
+        operationId: "invalid_confirmation_digest",
+        evidence: { confirmationDigest: "sha256:not-a-digest" },
+      }),
+    ).toThrow(errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.INVALID_EVIDENCE));
     expect(
       fs.existsSync(path.join(testFixture.stateDir, "unknown_evidence")),
+    ).toBe(false);
+    expect(
+      fs.existsSync(
+        path.join(testFixture.stateDir, "invalid_confirmation_digest"),
+      ),
     ).toBe(false);
   });
 

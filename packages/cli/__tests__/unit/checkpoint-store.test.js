@@ -277,6 +277,280 @@ describe("checkpoint-store (git engine)", () => {
     expect(readFileSync(join(repo, "a.txt"), "utf8")).toBe("alpha-MUTATED\n");
   });
 
+  it("emits durable restore evidence at the three synchronous boundaries", () => {
+    const cp = createCheckpoint(repo, { label: "hook-target" });
+    writeFileSync(join(repo, "a.txt"), "alpha-hook-dirty\n", "utf8");
+    const preview = statusAgainst(repo, cp.id);
+    const events = [];
+    let checkoutStarted = false;
+    const originalSpawnSync = _deps.spawnSync;
+    _deps.spawnSync = (command, args, options) => {
+      if (command === "git" && args?.[0] === "checkout-index") {
+        checkoutStarted = true;
+      }
+      return originalSpawnSync(command, args, options);
+    };
+
+    let result;
+    try {
+      result = rewindTo(repo, cp.id, {
+        expectedIdentity: `git:${cp.commit}`,
+        expectedWorkspaceBinding: preview.workspaceBinding,
+        onSafetyReady: (evidence) => {
+          expect(Object.isFrozen(evidence)).toBe(true);
+          expect(checkoutStarted).toBe(false);
+          expect(readFileSync(join(repo, "a.txt"), "utf8")).toBe(
+            "alpha-hook-dirty\n",
+          );
+          expect(resolveCheckpoint(repo, evidence.safetyId)).toBe(
+            evidence.safetyIdentity.slice("git:".length),
+          );
+          events.push(["safety", evidence]);
+        },
+        onMutationStarted: (evidence) => {
+          expect(Object.isFrozen(evidence)).toBe(true);
+          expect(checkoutStarted).toBe(false);
+          expect(readFileSync(join(repo, "a.txt"), "utf8")).toBe(
+            "alpha-hook-dirty\n",
+          );
+          events.push(["mutation", evidence]);
+        },
+        onWorkspaceApplied: (evidence) => {
+          expect(Object.isFrozen(evidence)).toBe(true);
+          expect(checkoutStarted).toBe(true);
+          expect(readFileSync(join(repo, "a.txt"), "utf8")).toBe("alpha-1\n");
+          events.push(["applied", evidence]);
+        },
+      });
+    } finally {
+      _deps.spawnSync = originalSpawnSync;
+    }
+
+    expect(events.map(([name]) => name)).toEqual([
+      "safety",
+      "mutation",
+      "applied",
+    ]);
+    const [, safetyEvidence] = events[0];
+    expect(safetyEvidence).toMatchObject({
+      checkpointId: cp.id,
+      checkpointIdentity: `git:${cp.commit}`,
+      safetyId: expect.any(String),
+      safetyIdentity: expect.stringMatching(
+        /^git:(?:[a-f0-9]{40}|[a-f0-9]{64})$/,
+      ),
+      safetyCoverage: "full",
+      safetyPlanIdentity: preview.workspaceBinding.writePlanIdentity,
+      mutationCount: 1,
+    });
+    expect(events[1][1]).toMatchObject({
+      safetyId: safetyEvidence.safetyId,
+      safetyIdentity: safetyEvidence.safetyIdentity,
+      safetyCoverage: "full",
+      safetyPlanIdentity: preview.workspaceBinding.writePlanIdentity,
+      mutationCount: 1,
+    });
+    expect(events[2][1]).toMatchObject({
+      safetyId: safetyEvidence.safetyId,
+      safetyIdentity: safetyEvidence.safetyIdentity,
+      safetyCoverage: "full",
+      safetyPlanIdentity: preview.workspaceBinding.writePlanIdentity,
+      mutationCount: 1,
+      appliedCount: 1,
+      poststateIdentity: preview.workspaceBinding.targetPoststateIdentity,
+    });
+    expect(result).toMatchObject({
+      restored: true,
+      safetyPlanIdentity: preview.workspaceBinding.writePlanIdentity,
+      safetyCoverage: "checkpoint",
+    });
+  }, 20_000);
+
+  it.each(["onSafetyReady", "onMutationStarted", "onWorkspaceApplied"])(
+    "rejects async %s before any workspace write",
+    (hookName) => {
+      const cp = createCheckpoint(repo, { label: `async-${hookName}` });
+      writeFileSync(join(repo, "a.txt"), "alpha-async-hook\n", "utf8");
+      const checkpointCount = listCheckpoints(repo).length;
+
+      expect(() =>
+        rewindTo(repo, cp.id, {
+          [hookName]: async () => {},
+        }),
+      ).toThrow(
+        expect.objectContaining({
+          code: "CHECKPOINT_RESTORE_HOOK_INVALID",
+          hook: hookName,
+        }),
+      );
+      expect(readFileSync(join(repo, "a.txt"), "utf8")).toBe(
+        "alpha-async-hook\n",
+      );
+      expect(listCheckpoints(repo)).toHaveLength(checkpointCount);
+    },
+    20_000,
+  );
+
+  it.each([
+    ["onSafetyReady", "alpha-thenable-hook\n", "safety-ready"],
+    ["onMutationStarted", "alpha-thenable-hook\n", "safety-ready"],
+    ["onWorkspaceApplied", "alpha-1\n", "workspace-applied"],
+  ])(
+    "rejects a thenable returned by %s",
+    (hookName, expectedContent, expectedPhase) => {
+      const cp = createCheckpoint(repo, { label: `thenable-${hookName}` });
+      writeFileSync(join(repo, "a.txt"), "alpha-thenable-hook\n", "utf8");
+
+      expect(() =>
+        rewindTo(repo, cp.id, {
+          [hookName]: () => ({ then: () => {} }),
+        }),
+      ).toThrow(
+        expect.objectContaining({
+          code: "CHECKPOINT_RESTORE_HOOK_INVALID",
+          hook: hookName,
+          restorePhase: expectedPhase,
+        }),
+      );
+      expect(readFileSync(join(repo, "a.txt"), "utf8")).toBe(expectedContent);
+    },
+    20_000,
+  );
+
+  it.each([
+    ["onSafetyReady", "safety-ready"],
+    ["onMutationStarted", "workspace-mutation"],
+  ])(
+    "revalidates the exact safety ref after %s",
+    (hookName, restorePhase) => {
+      const cp = createCheckpoint(repo, { label: `safety-ref-${hookName}` });
+      writeFileSync(join(repo, "a.txt"), "alpha-safety-ref-dirty\n", "utf8");
+      let checkoutWrites = 0;
+      const originalSpawnSync = _deps.spawnSync;
+      _deps.spawnSync = (command, args, options) => {
+        if (command === "git" && args?.[0] === "checkout-index") {
+          checkoutWrites += 1;
+        }
+        return originalSpawnSync(command, args, options);
+      };
+
+      let thrown = null;
+      try {
+        rewindTo(repo, cp.id, {
+          [hookName]: ({ safetyId }) => {
+            git(
+              repo,
+              "update-ref",
+              `refs/cc-checkpoints/default/${safetyId}`,
+              cp.commit,
+            );
+          },
+        });
+      } catch (error) {
+        thrown = error;
+      } finally {
+        _deps.spawnSync = originalSpawnSync;
+      }
+
+      expect(thrown).toMatchObject({
+        code: "CHECKPOINT_SAFETY_STALE",
+        reason: "ref-identity-changed",
+        restorePhase,
+      });
+      expect(checkoutWrites).toBe(0);
+      expect(readFileSync(join(repo, "a.txt"), "utf8")).toBe(
+        "alpha-safety-ref-dirty\n",
+      );
+    },
+    20_000,
+  );
+
+  it("revalidates workspace prestate after onMutationStarted", () => {
+    const cp = createCheckpoint(repo, { label: "mutation-prestate-target" });
+    writeFileSync(join(repo, "a.txt"), "alpha-planned-prestate\n", "utf8");
+    let checkoutWrites = 0;
+    const originalSpawnSync = _deps.spawnSync;
+    _deps.spawnSync = (command, args, options) => {
+      if (command === "git" && args?.[0] === "checkout-index") {
+        checkoutWrites += 1;
+      }
+      return originalSpawnSync(command, args, options);
+    };
+
+    let thrown = null;
+    try {
+      rewindTo(repo, cp.id, {
+        onMutationStarted: () => {
+          writeFileSync(join(repo, "a.txt"), "alpha-hook-drift\n", "utf8");
+        },
+      });
+    } catch (error) {
+      thrown = error;
+    } finally {
+      _deps.spawnSync = originalSpawnSync;
+    }
+
+    expect(thrown).toMatchObject({
+      code: "CHECKPOINT_WORKSPACE_STALE",
+      reason: "mismatch:prestateIdentity",
+      restorePhase: "workspace-mutation",
+    });
+    expect(checkoutWrites).toBe(0);
+    expect(readFileSync(join(repo, "a.txt"), "utf8")).toBe(
+      "alpha-hook-drift\n",
+    );
+  }, 20_000);
+
+  it("emits only workspace-applied and does not write for a zero-diff rewind", () => {
+    const cp = createCheckpoint(repo, { label: "already-settled" });
+    const preview = statusAgainst(repo, cp.id);
+    const hooks = {
+      onSafetyReady: vi.fn(),
+      onMutationStarted: vi.fn(),
+      onWorkspaceApplied: vi.fn(),
+    };
+    let checkoutWrites = 0;
+    const originalSpawnSync = _deps.spawnSync;
+    _deps.spawnSync = (command, args, options) => {
+      if (command === "git" && args?.[0] === "checkout-index") {
+        checkoutWrites += 1;
+      }
+      return originalSpawnSync(command, args, options);
+    };
+
+    let result;
+    try {
+      result = rewindTo(repo, cp.id, hooks);
+    } finally {
+      _deps.spawnSync = originalSpawnSync;
+    }
+
+    expect(result).toMatchObject({
+      restored: true,
+      safetyId: expect.any(String),
+      safetyPlanIdentity: preview.workspaceBinding.writePlanIdentity,
+      safetyCoverage: "checkpoint",
+      modified: 0,
+      deleted: 0,
+      recreated: 0,
+    });
+    expect(checkoutWrites).toBe(0);
+    expect(hooks.onSafetyReady).not.toHaveBeenCalled();
+    expect(hooks.onMutationStarted).not.toHaveBeenCalled();
+    expect(hooks.onWorkspaceApplied).toHaveBeenCalledOnce();
+    expect(hooks.onWorkspaceApplied).toHaveBeenCalledWith({
+      checkpointId: cp.id,
+      checkpointIdentity: `git:${cp.commit}`,
+      safetyId: result.safetyId,
+      safetyIdentity: result.safetyIdentity,
+      safetyCoverage: "full",
+      safetyPlanIdentity: preview.workspaceBinding.writePlanIdentity,
+      mutationCount: 0,
+      appliedCount: 0,
+      poststateIdentity: preview.workspaceBinding.targetPoststateIdentity,
+    });
+  }, 20_000);
+
   it("rewind deletes files created after the checkpoint", () => {
     const cp = createCheckpoint(repo, { label: "base" });
     writeFileSync(join(repo, "new-file.txt"), "added later\n", "utf8");

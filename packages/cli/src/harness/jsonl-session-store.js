@@ -742,6 +742,7 @@ function encodeEventMessageProvenance(type, data) {
 const SESSION_AUTHORITY_RECOVERY_TEXT_LIMITS = Object.freeze({
   safetyId: 512,
   safetyIdentity: 512,
+  safetyPlanIdentity: 1024,
   safetyCoverage: 64,
   restorePhase: 64,
   branchSessionId: 512,

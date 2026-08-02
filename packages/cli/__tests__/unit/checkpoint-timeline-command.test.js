@@ -27,6 +27,12 @@ const state = vi.hoisted(() => ({
   workspaceLockActive: false,
   onWorkspaceLockWait: null,
   workspaceLockError: null,
+  retainedWorkspaceLocks: [],
+  sagas: [],
+  restoreTargetCount: 1,
+  failSagaArchive: false,
+  failSagaAdvancePhase: null,
+  failPostCommitReload: false,
 }));
 
 vi.mock("../../src/lib/turn-binding-store.js", () => ({
@@ -43,7 +49,21 @@ vi.mock("../../src/lib/turn-binding-store.js", () => ({
 }));
 
 vi.mock("../../src/harness/jsonl-session-store.js", () => ({
-  findLatestEvent: () => ({ hash: state.headHash }),
+  findLatestEvent: () => {
+    if (
+      state.failPostCommitReload &&
+      state.conditional.some(
+        (event) =>
+          event.type === "checkpoint_timeline_action" &&
+          event.data?.status === "completed",
+      )
+    ) {
+      const error = new Error("injected post-commit timeline reload failure");
+      error.code = "INJECTED_POST_COMMIT_RELOAD_FAILURE";
+      throw error;
+    }
+    return { hash: state.headHash };
+  },
   readVerifiedMessages: () => state.messages.map((message) => ({ ...message })),
   withSessionAuthorityTransaction: (_sessionId, expected, task) => {
     state.events.push("session:acquire");
@@ -66,6 +86,7 @@ vi.mock("../../src/harness/jsonl-session-store.js", () => ({
             for (const field of [
               "safetyId",
               "safetyIdentity",
+              "safetyPlanIdentity",
               "safetyCoverage",
               "restorePhase",
               "branchSessionId",
@@ -134,6 +155,13 @@ vi.mock("../../src/harness/jsonl-session-store.js", () => ({
           error.transactionRecoveryEvidence = retainedRecovery;
           throw error;
         }
+        if (
+          transaction.events.some(
+            (event) => typeof event.data?.operationId === "string",
+          )
+        ) {
+          state.events.push("session:settled");
+        }
         return callbackResult;
       } catch (operationError) {
         if (!settlementUnknown) throw operationError;
@@ -170,7 +198,13 @@ vi.mock("../../src/lib/checkpoint-store.js", () => ({
       identity: options?.expectedIdentity || null,
     });
     return {
-      modified: ["src/a.js"],
+      modified:
+        state.restoreTargetCount > 0
+          ? Array.from(
+              { length: state.restoreTargetCount },
+              (_, index) => `src/${String.fromCharCode(97 + index)}.js`,
+            )
+          : [],
       added: [],
       deleted: [],
       workspaceBinding: {
@@ -187,6 +221,17 @@ vi.mock("../../src/lib/checkpoint-store.js", () => ({
   },
   rewindTo: (_dir, checkpointId, options) => {
     state.events.push("restore");
+    if (state.restoreTargetCount > 0) {
+      options?.onSafetyReady?.({
+        safetyId: "safety-1",
+        safetyIdentity: `git:${"d".repeat(40)}`,
+        safetyPlanIdentity: `sha256:${"7".repeat(64)}`,
+        safetyCoverage: "full",
+      });
+      options?.onMutationStarted?.({
+        mutationCount: state.restoreTargetCount,
+      });
+    }
     state.onRestore?.();
     state.restores.push(checkpointId);
     state.restoreIdentities.push({
@@ -194,12 +239,18 @@ vi.mock("../../src/lib/checkpoint-store.js", () => ({
       identity: options?.expectedIdentity || null,
     });
     state.restoreBindings.push(options?.expectedWorkspaceBinding || null);
+    options?.onWorkspaceApplied?.({
+      mutationCount: state.restoreTargetCount,
+      appliedCount: state.restoreTargetCount,
+      poststateIdentity: `git-tree:${"3".repeat(40)}`,
+    });
     return {
-      modified: 1,
+      modified: state.restoreTargetCount,
       recreated: 0,
       deleted: 0,
       safetyId: "safety-1",
       safetyIdentity: `git:${"d".repeat(40)}`,
+      safetyPlanIdentity: `sha256:${"7".repeat(64)}`,
       safetyCoverage: "checkpoint",
     };
   },
@@ -214,7 +265,13 @@ vi.mock("../../src/lib/file-checkpoint.js", () => ({
       identity: options?.expectedIdentity || null,
     });
     return {
-      modified: ["src/a.js"],
+      modified:
+        state.restoreTargetCount > 0
+          ? Array.from(
+              { length: state.restoreTargetCount },
+              (_, index) => `src/${String.fromCharCode(97 + index)}.js`,
+            )
+          : [],
       unchanged: [],
       deleted: [],
       workspaceBinding: {
@@ -231,6 +288,17 @@ vi.mock("../../src/lib/file-checkpoint.js", () => ({
   },
   restoreCheckpoint: (checkpointId, options) => {
     state.events.push("restore");
+    if (state.restoreTargetCount > 0) {
+      options?.onSafetyReady?.({
+        safetyId: "safety-copy-1",
+        safetyIdentity: `sha256:${"e".repeat(64)}`,
+        safetyPlanIdentity: `sha256:${"8".repeat(64)}`,
+        safetyCoverage: "full",
+      });
+      options?.onMutationStarted?.({
+        mutationCount: state.restoreTargetCount,
+      });
+    }
     state.onRestore?.();
     state.restores.push(checkpointId);
     state.restoreIdentities.push({
@@ -238,12 +306,29 @@ vi.mock("../../src/lib/file-checkpoint.js", () => ({
       identity: options?.expectedIdentity || null,
     });
     state.restoreBindings.push(options?.expectedWorkspaceBinding || null);
+    const restoredPaths = Array.from(
+      { length: state.restoreTargetCount },
+      (_, index) => `src/${String.fromCharCode(97 + index)}.js`,
+    );
+    options?.onWorkspaceApplied?.({
+      restored: restoredPaths,
+      createdPaths: [],
+      deletedPaths: [],
+      safetyId: state.restoreTargetCount > 0 ? "safety-copy-1" : null,
+      safetyIdentity:
+        state.restoreTargetCount > 0 ? `sha256:${"e".repeat(64)}` : null,
+      safetyPlanIdentity:
+        state.restoreTargetCount > 0 ? `sha256:${"8".repeat(64)}` : null,
+    });
     return {
-      restored: ["src/a.js"],
+      restored: restoredPaths,
       unchanged: [],
       missingBlob: [],
-      safetyId: "safety-copy-1",
-      safetyIdentity: `sha256:${"e".repeat(64)}`,
+      safetyId: state.restoreTargetCount > 0 ? "safety-copy-1" : null,
+      safetyIdentity:
+        state.restoreTargetCount > 0 ? `sha256:${"e".repeat(64)}` : null,
+      safetyPlanIdentity:
+        state.restoreTargetCount > 0 ? `sha256:${"8".repeat(64)}` : null,
       safetyCoverage: "full",
       createdPaths: [],
     };
@@ -253,15 +338,115 @@ vi.mock("../../src/lib/file-checkpoint.js", () => ({
 const { registerCheckpointCommand } =
   await import("../../src/commands/checkpoint.js");
 
+function createTestSagaStore({ workspaceRoot }) {
+  const record = {
+    workspaceRoot,
+    operationId: null,
+    events: [],
+    archived: false,
+  };
+  state.sagas.push(record);
+  const snapshot = () => {
+    const latest = record.events.at(-1);
+    return {
+      operationId: record.operationId,
+      workspaceRoot,
+      seq: latest.seq,
+      headHash: latest.hash,
+      phase: latest.phase,
+      terminal: ["completed", "aborted", "rolled_back"].includes(latest.phase),
+      pending: !["completed", "aborted", "rolled_back"].includes(latest.phase),
+      events: record.events.map((event) => ({
+        ...event,
+        evidence: { ...event.evidence },
+      })),
+    };
+  };
+  return {
+    create({ operationId, evidence }) {
+      record.operationId = operationId;
+      record.events.push({
+        seq: 1,
+        phase: "created",
+        prevHash: null,
+        hash: `sha256:${"1".repeat(64)}`,
+        evidence: { ...evidence },
+      });
+      return snapshot();
+    },
+    load(operationId) {
+      if (operationId !== record.operationId) throw new Error("missing saga");
+      return snapshot();
+    },
+    advance(operationId, { expectedSeq, expectedHash, phase, evidence }) {
+      const current = snapshot();
+      if (
+        operationId !== record.operationId ||
+        expectedSeq !== current.seq ||
+        expectedHash !== current.headHash
+      ) {
+        const error = new Error("injected saga conflict");
+        error.code = "CHECKPOINT_RESTORE_SAGA_CONFLICT";
+        throw error;
+      }
+      const seq = current.seq + 1;
+      record.events.push({
+        seq,
+        phase,
+        prevHash: current.headHash,
+        hash: `sha256:${String(seq % 16).repeat(64)}`,
+        evidence: { ...evidence },
+      });
+      if (state.failSagaAdvancePhase === phase) {
+        const error = new Error("injected committed saga response loss");
+        error.code = "CHECKPOINT_RESTORE_SAGA_WRITE_FAILED";
+        error.commitState = "head_commit_unknown";
+        throw error;
+      }
+      if (phase === "session_committed" || phase === "completed") {
+        state.events.push(`saga:${phase}`);
+      }
+      return snapshot();
+    },
+    archiveTerminal(operationId, { expectedSeq, expectedHash }) {
+      if (state.failSagaArchive) {
+        const error = new Error("injected saga archive failure");
+        error.code = "CHECKPOINT_RESTORE_SAGA_WRITE_FAILED";
+        throw error;
+      }
+      const current = snapshot();
+      if (
+        operationId !== record.operationId ||
+        expectedSeq !== current.seq ||
+        expectedHash !== current.headHash ||
+        !current.terminal
+      ) {
+        throw new Error("injected saga archive conflict");
+      }
+      record.archived = true;
+      return { archived: true };
+    },
+  };
+}
+
 function withTestWorkspaceLock(options, callback) {
   state.onWorkspaceLockWait?.();
   if (state.workspaceLockError) throw state.workspaceLockError;
   state.workspaceLocks.push({ ...options });
   state.events.push("workspace:acquire");
   state.workspaceLockActive = true;
+  let retained = false;
   const lease = {
     canonicalWorkspaceRoot: options.workspaceRoot,
-    owner: { operationId: options.operationId },
+    owner: {
+      identityPolicy: "pid-only-fail-closed",
+      pid: 12345,
+      purpose: "checkpoint-restore",
+      startedAt: 1_785_700_000_000,
+      token: "unit-test-owner-token-0001",
+      transactionId: options.operationId,
+      workspaceRoot: options.workspaceRoot,
+    },
     assertOwned: () => {
       if (!state.workspaceLockActive) {
         const error = new Error("workspace lock ownership lost");
@@ -269,12 +454,24 @@ function withTestWorkspaceLock(options, callback) {
         throw error;
       }
     },
+    retainForRecovery: (reason) => {
+      retained = true;
+      state.retainedWorkspaceLocks.push({
+        operationId: options.operationId,
+        reason,
+      });
+      const error = new Error("workspace lock retained for recovery");
+      error.code = "WORKSPACE_TRANSACTION_RECOVERY_REQUIRED";
+      error.operationId = options.operationId;
+      error.workspaceLockRetained = true;
+      throw error;
+    },
   };
   try {
     return callback(lease);
   } finally {
     state.workspaceLockActive = false;
-    state.events.push("workspace:release");
+    state.events.push(retained ? "workspace:retain" : "workspace:release");
   }
 }
 
@@ -282,6 +479,7 @@ async function invoke(args) {
   const program = new Command();
   registerCheckpointCommand(program, {
     withWorkspaceLockSync: withTestWorkspaceLock,
+    createCheckpointRestoreSagaStore: createTestSagaStore,
   });
   const output = vi.spyOn(console, "log").mockImplementation(() => {});
   try {
@@ -354,6 +552,12 @@ describe("checkpoint timeline CLI command authority", () => {
     state.workspaceLockActive = false;
     state.onWorkspaceLockWait = null;
     state.workspaceLockError = null;
+    state.retainedWorkspaceLocks = [];
+    state.sagas = [];
+    state.restoreTargetCount = 1;
+    state.failSagaArchive = false;
+    state.failSagaAdvancePhase = null;
+    state.failPostCommitReload = false;
     process.exitCode = undefined;
   });
 
@@ -442,6 +646,7 @@ describe("checkpoint timeline CLI command authority", () => {
       ok: true,
       mode: "executed",
       action: "restore-both",
+      operationId: expect.stringMatching(/^checkpoint-restore-/),
       result: {
         code: { safetyId: "safety-1" },
         conversation: { messages: 1 },
@@ -472,11 +677,46 @@ describe("checkpoint timeline CLI command authority", () => {
     expect(state.audit).toEqual([
       expect.objectContaining({ type: "checkpoint_timeline_action" }),
     ]);
+    expect(state.sagas).toHaveLength(1);
+    expect(state.sagas[0].operationId).toBe(executed.operationId);
+    expect(state.sagas[0].archived).toBe(true);
+    expect(state.workspaceLocks[0].operationId).toBe(executed.operationId);
+    expect(state.sagas[0].events.map((event) => event.phase)).toEqual([
+      "created",
+      "locked",
+      "prepared",
+      "intent_committed",
+      "safety_ready",
+      "mutation_started",
+      "workspace_applied",
+      "session_committed",
+      "completed",
+    ]);
+    expect(state.sagas[0].events[0].evidence).toMatchObject({
+      restoreKind: "git",
+      checkpointId: "cp-1",
+      checkpointIdentity: `git:${"a".repeat(40)}`,
+    });
+    expect(state.sagas[0].events[2].evidence).toMatchObject({
+      targetCount: 1,
+    });
+    expect(state.sagas[0].events[4].evidence).toMatchObject({
+      safetyCoverage: "full",
+      safetyPlanIdentity: `sha256:${"7".repeat(64)}`,
+    });
+    expect(state.conditional.map((event) => event.data.operationId)).toEqual([
+      executed.operationId,
+      executed.operationId,
+      executed.operationId,
+    ]);
     expect(state.events).toEqual([
       "workspace:acquire",
       "session:acquire",
       "intent",
       "restore",
+      "session:settled",
+      "saga:session_committed",
+      "saga:completed",
       "workspace:release",
     ]);
   });
@@ -513,6 +753,149 @@ describe("checkpoint timeline CLI command authority", () => {
     expect(state.workspaceLocks).toEqual([]);
     expect(state.restores).toEqual([]);
     expect(state.events).toEqual(["session:acquire", "intent"]);
+  });
+
+  it("completes a zero-target restore without inventing safety or mutation evidence", async () => {
+    state.restoreTargetCount = 0;
+    const timeline = await invoke([
+      "checkpoint",
+      "timeline",
+      "-s",
+      "s1",
+      "--json",
+    ]);
+    const submission = timeline.entries[0].actions.find(
+      (action) => action.action === "restore-both",
+    ).submission;
+    const confirmation = await previewConfirmation(submission);
+
+    const executed = await invoke([
+      "checkpoint",
+      "action",
+      "-s",
+      "s1",
+      "--submission",
+      JSON.stringify(confirmation),
+      "--confirm",
+      "--json",
+    ]);
+
+    expect(executed.ok).toBe(true);
+    expect(state.sagas[0].events.map((event) => event.phase)).toEqual([
+      "created",
+      "locked",
+      "prepared",
+      "intent_committed",
+      "workspace_applied",
+      "session_committed",
+      "completed",
+    ]);
+    expect(state.sagas[0].events[2].evidence.targetCount).toBe(0);
+    expect(state.sagas[0].events[4].evidence.appliedCount).toBe(0);
+  });
+
+  it("reports terminal saga archive failure as a warning after a successful restore", async () => {
+    state.failSagaArchive = true;
+    const timeline = await invoke([
+      "checkpoint",
+      "timeline",
+      "-s",
+      "s1",
+      "--json",
+    ]);
+    const submission = timeline.entries[0].actions.find(
+      (action) => action.action === "restore-code",
+    ).submission;
+    const confirmation = await previewConfirmation(submission);
+
+    const executed = await invoke([
+      "checkpoint",
+      "action",
+      "-s",
+      "s1",
+      "--submission",
+      JSON.stringify(confirmation),
+      "--confirm",
+      "--json",
+    ]);
+
+    expect(executed).toMatchObject({ ok: true, action: "restore-code" });
+    expect(executed.warnings).toEqual([
+      expect.stringContaining("saga archive is pending"),
+    ]);
+    expect(state.sagas[0].events.at(-1).phase).toBe("completed");
+    expect(state.sagas[0].archived).toBe(false);
+  });
+
+  it("reconciles a committed saga response loss without replaying the restore", async () => {
+    state.failSagaAdvancePhase = "completed";
+    const timeline = await invoke([
+      "checkpoint",
+      "timeline",
+      "-s",
+      "s1",
+      "--json",
+    ]);
+    const submission = timeline.entries[0].actions.find(
+      (action) => action.action === "restore-code",
+    ).submission;
+    const confirmation = await previewConfirmation(submission);
+
+    const executed = await invoke([
+      "checkpoint",
+      "action",
+      "-s",
+      "s1",
+      "--submission",
+      JSON.stringify(confirmation),
+      "--confirm",
+      "--json",
+    ]);
+
+    expect(executed.ok).toBe(true);
+    expect(state.restores).toEqual(["cp-1"]);
+    expect(
+      state.sagas[0].events.filter((event) => event.phase === "completed"),
+    ).toHaveLength(1);
+    expect(state.sagas[0].archived).toBe(true);
+  });
+
+  it("keeps a committed restore successful when only post-commit timeline reload fails", async () => {
+    const timeline = await invoke([
+      "checkpoint",
+      "timeline",
+      "-s",
+      "s1",
+      "--json",
+    ]);
+    const submission = timeline.entries[0].actions.find(
+      (action) => action.action === "restore-code",
+    ).submission;
+    const confirmation = await previewConfirmation(submission);
+    state.failPostCommitReload = true;
+
+    const executed = await invoke([
+      "checkpoint",
+      "action",
+      "-s",
+      "s1",
+      "--submission",
+      JSON.stringify(confirmation),
+      "--confirm",
+      "--json",
+    ]);
+
+    expect(executed).toMatchObject({
+      ok: true,
+      action: "restore-code",
+      nextRevision: null,
+      operationId: expect.stringMatching(/^checkpoint-restore-/),
+    });
+    expect(executed.warnings).toEqual([
+      expect.stringContaining("next timeline revision could not be reloaded"),
+    ]);
+    expect(state.restores).toEqual(["cp-1"]);
+    expect(state.sagas[0]).toMatchObject({ archived: true });
   });
 
   it("requires a preview-issued confirmation before any code status or write", async () => {
@@ -584,6 +967,12 @@ describe("checkpoint timeline CLI command authority", () => {
     expect(state.conditional).toEqual([]);
     expect(state.restores).toEqual([]);
     expect(state.events).toEqual(["workspace:acquire", "workspace:release"]);
+    expect(state.sagas[0].events.map((event) => event.phase)).toEqual([
+      "created",
+      "locked",
+      "aborted",
+    ]);
+    expect(state.sagas[0].archived).toBe(true);
   });
 
   it.each([
@@ -603,6 +992,7 @@ describe("checkpoint timeline CLI command authority", () => {
     const confirmation = await previewConfirmation(submission);
     const lockError = new Error("injected workspace lock failure");
     lockError.code = code;
+    lockError.ownerTransactionId = "checkpoint-restore-incumbent";
     state.workspaceLockError = lockError;
 
     const rejected = await invoke([
@@ -616,11 +1006,20 @@ describe("checkpoint timeline CLI command authority", () => {
       "--json",
     ]);
 
-    expect(rejected).toMatchObject({ ok: false, code });
+    expect(rejected).toMatchObject({
+      ok: false,
+      code,
+      blockingOperationId: "checkpoint-restore-incumbent",
+    });
     expect(state.transactions).toEqual([]);
     expect(state.conditional).toEqual([]);
     expect(state.restores).toEqual([]);
     expect(state.events).toEqual([]);
+    expect(state.sagas[0].events.map((event) => event.phase)).toEqual([
+      "created",
+      "aborted",
+    ]);
+    expect(state.sagas[0].archived).toBe(true);
   });
 
   it("keeps the writer transaction active across code restore and conversation commit", async () => {
@@ -662,7 +1061,7 @@ describe("checkpoint timeline CLI command authority", () => {
     ]);
   });
 
-  it("records a terminal failed audit without committing conversation after restore throws", async () => {
+  it("records a failed audit and retains recovery authority after restore mutation throws", async () => {
     const timeline = await invoke([
       "checkpoint",
       "timeline",
@@ -696,7 +1095,11 @@ describe("checkpoint timeline CLI command authority", () => {
 
     expect(rejected).toMatchObject({
       ok: false,
-      code: "INJECTED_RESTORE_FAILURE",
+      code: "WORKSPACE_TRANSACTION_RECOVERY_REQUIRED",
+      operationFailureCode: "INJECTED_RESTORE_FAILURE",
+      sagaPhase: "recovery_required",
+      recoveryRequired: true,
+      workspaceLockRetained: true,
     });
     expect(state.transactionActive).toBe(false);
     expect(state.conditional.map((event) => event.type)).toEqual([
@@ -712,6 +1115,7 @@ describe("checkpoint timeline CLI command authority", () => {
       safetyCoverage: "checkpoint",
     });
     expect(state.restores).toEqual([]);
+    expect(state.retainedWorkspaceLocks).toHaveLength(1);
   });
 
   it("retains the safety snapshot when conversation commit fails after restore", async () => {
@@ -740,12 +1144,17 @@ describe("checkpoint timeline CLI command authority", () => {
 
     expect(rejected).toMatchObject({
       ok: false,
-      code: "INJECTED_CONVERSATION_APPEND_FAILURE",
+      code: "WORKSPACE_TRANSACTION_RECOVERY_REQUIRED",
+      operationFailureCode: "INJECTED_CONVERSATION_APPEND_FAILURE",
       auditFailureCode: "SESSION_AUTHORITY_TRANSACTION_POISONED",
       restorePhase: "workspace-applied",
       safetyCheckpointId: "safety-1",
       safetyCheckpointIdentity: `git:${"d".repeat(40)}`,
+      safetyPlanIdentity: `sha256:${"7".repeat(64)}`,
       safetyCoverage: "checkpoint",
+      sagaPhase: "recovery_required",
+      recoveryRequired: true,
+      workspaceLockRetained: true,
     });
     expect(state.restores).toEqual(["cp-1"]);
     expect(state.conditional.map((event) => event.type)).toEqual([
@@ -780,7 +1189,7 @@ describe("checkpoint timeline CLI command authority", () => {
 
     expect(rejected).toMatchObject({
       ok: false,
-      code: "SESSION_INDEX_ANCHOR_FAILED",
+      code: "WORKSPACE_TRANSACTION_RECOVERY_REQUIRED",
       commitState: "unknown",
       operationFailureCode: "SESSION_INDEX_ANCHOR_FAILED",
       auditFailureCode: "SESSION_AUTHORITY_TRANSACTION_POISONED",
@@ -788,6 +1197,9 @@ describe("checkpoint timeline CLI command authority", () => {
       safetyCheckpointId: "safety-1",
       safetyCheckpointIdentity: `git:${"d".repeat(40)}`,
       safetyCoverage: "checkpoint",
+      sagaPhase: "recovery_required",
+      recoveryRequired: true,
+      workspaceLockRetained: true,
     });
     expect(state.conditional.map((event) => event.type)).toEqual([
       "checkpoint_timeline_action_intent",
@@ -823,14 +1235,17 @@ describe("checkpoint timeline CLI command authority", () => {
 
     expect(rejected).toMatchObject({
       ok: false,
-      code: "SESSION_INDEX_ANCHOR_FAILED",
+      code: "WORKSPACE_TRANSACTION_RECOVERY_REQUIRED",
       commitState: "unknown",
-      operationFailureCode: null,
+      operationFailureCode: "SESSION_INDEX_ANCHOR_FAILED",
       auditFailureCode: null,
       restorePhase: "workspace-applied",
       safetyCheckpointId: "safety-1",
       safetyCheckpointIdentity: `git:${"d".repeat(40)}`,
       safetyCoverage: "checkpoint",
+      sagaPhase: "recovery_required",
+      recoveryRequired: true,
+      workspaceLockRetained: true,
     });
     expect(state.restores).toEqual(["cp-1"]);
     expect(state.conditional.map((event) => event.type)).toEqual([
@@ -914,7 +1329,7 @@ describe("checkpoint timeline CLI command authority", () => {
 
     expect(rejected).toMatchObject({
       ok: false,
-      code: "SESSION_INDEX_ANCHOR_FAILED",
+      code: "WORKSPACE_TRANSACTION_RECOVERY_REQUIRED",
       commitState: "unknown",
       operationFailureCode: "INJECTED_RESTORE_FAILURE",
       auditFailureCode: "SESSION_INDEX_ANCHOR_FAILED",
@@ -922,6 +1337,9 @@ describe("checkpoint timeline CLI command authority", () => {
       safetyCheckpointId: "safety-unknown-1",
       safetyCheckpointIdentity: `git:${"f".repeat(40)}`,
       safetyCoverage: "checkpoint",
+      sagaPhase: "recovery_required",
+      recoveryRequired: true,
+      workspaceLockRetained: true,
     });
     expect(state.conditional.map((event) => event.type)).toEqual([
       "checkpoint_timeline_action_intent",

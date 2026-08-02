@@ -20,7 +20,7 @@
  */
 
 import chalk from "chalk";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { resolve } from "path";
 import {
   buildCheckpointTimeline,
@@ -49,7 +49,109 @@ import {
   withSessionAuthorityTransaction,
 } from "../harness/jsonl-session-store.js";
 import { withWorkspaceLockSync as withCanonicalWorkspaceLockSync } from "../lib/process-execution-broker/workspace-transaction.js";
+import {
+  CheckpointRestoreSagaStore,
+  computeCheckpointRestoreWorkspaceLockOwnerDigest,
+} from "../lib/checkpoint-restore-saga.js";
 import { registerManagedCheckpointCommands } from "./checkpoint-managed.js";
+
+function stableCheckpointRestoreValue(value) {
+  if (value === undefined) return "null";
+  if (
+    value === null ||
+    typeof value === "string" ||
+    typeof value === "boolean"
+  ) {
+    return JSON.stringify(value);
+  }
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return JSON.stringify(value);
+  }
+  if (Array.isArray(value)) {
+    return `[${value.map((entry) => stableCheckpointRestoreValue(entry)).join(",")}]`;
+  }
+  if (value && typeof value === "object") {
+    return `{${Object.keys(value)
+      .sort()
+      .map(
+        (key) =>
+          `${JSON.stringify(key)}:${stableCheckpointRestoreValue(value[key])}`,
+      )
+      .join(",")}}`;
+  }
+  throw new TypeError("checkpoint restore evidence is not canonical JSON");
+}
+
+function checkpointRestoreDigest(domain, value) {
+  return `sha256:${createHash("sha256")
+    .update(`${domain}\0${stableCheckpointRestoreValue(value)}`)
+    .digest("hex")}`;
+}
+
+function boundedCheckpointRestoreText(value, fallback, maximum = 2_048) {
+  let sanitized = "";
+  for (const character of String(value || fallback)) {
+    const code = character.charCodeAt(0);
+    sanitized += code < 32 || code === 127 ? " " : character;
+  }
+  const normalized = sanitized.trim();
+  return (normalized || fallback).slice(0, maximum);
+}
+
+function checkpointRestoreErrorCode(error) {
+  return boundedCheckpointRestoreText(
+    error?.code,
+    "CHECKPOINT_RESTORE_FAILED",
+    128,
+  );
+}
+
+function checkpointRestoreCommitUnknown(error) {
+  const seen = new Set();
+  let current = error;
+  for (let depth = 0; current && depth < 8; depth += 1) {
+    if (seen.has(current)) break;
+    seen.add(current);
+    if (/unknown/i.test(String(current.commitState || ""))) return true;
+    current =
+      current.transactionError ||
+      current.checkpointRestoreCause ||
+      current.cause ||
+      null;
+  }
+  return false;
+}
+
+function checkpointRestorePhaseNeedsRecovery(phase) {
+  return new Set([
+    "mutation_started",
+    "workspace_applied",
+    "session_committed",
+    "recovery_required",
+    "recovery_started",
+  ]).has(phase);
+}
+
+function checkpointRestoreTargetCount(planned) {
+  const total = planned?.preview?.code?.summary?.total;
+  if (!Number.isSafeInteger(total) || total < 0) {
+    const error = new Error("checkpoint restore target count is unavailable");
+    error.code = "TIMELINE_WORKSPACE_BINDING_INVALID";
+    throw error;
+  }
+  return total;
+}
+
+function checkpointRestoreStateDigest(planned, state) {
+  return checkpointRestoreDigest(`cc-checkpoint-restore-${state}-v1`, {
+    engine: planned.workspaceBinding?.engine || null,
+    scopeIdentity: planned.workspaceBinding?.scopeIdentity || null,
+    stateIdentity:
+      state === "prestate"
+        ? planned.workspaceBinding?.prestateIdentity || null
+        : planned.workspaceBinding?.targetPoststateIdentity || null,
+  });
+}
 
 /** git-plumbing engine adapter (normalized interface). */
 function gitEngine(gs, dir, session) {
@@ -94,6 +196,9 @@ function gitEngine(gs, dir, session) {
         dryRun: o?.dryRun,
         expectedIdentity: o?.expectedIdentity,
         expectedWorkspaceBinding: o?.expectedWorkspaceBinding,
+        onSafetyReady: o?.onSafetyReady,
+        onMutationStarted: o?.onMutationStarted,
+        onWorkspaceApplied: o?.onWorkspaceApplied,
       });
       return {
         dryRun: !!r.dryRun,
@@ -103,6 +208,7 @@ function gitEngine(gs, dir, session) {
         deleted: r.deleted,
         safetyId: r.safetyId,
         safetyIdentity: r.safetyIdentity,
+        safetyPlanIdentity: r.safetyPlanIdentity,
         safetyCoverage: r.safetyCoverage,
       };
     },
@@ -164,6 +270,9 @@ function copyEngine(cs, dir) {
         dryRun: o?.dryRun,
         expectedIdentity: o?.expectedIdentity,
         expectedWorkspaceBinding: o?.expectedWorkspaceBinding,
+        onSafetyReady: o?.onSafetyReady,
+        onMutationStarted: o?.onMutationStarted,
+        onWorkspaceApplied: o?.onWorkspaceApplied,
       });
       return {
         dryRun: !!r.dryRun,
@@ -172,8 +281,10 @@ function copyEngine(cs, dir) {
         missingBlob: r.missingBlob,
         safetyId: r.safetyId,
         safetyIdentity: r.safetyIdentity,
+        safetyPlanIdentity: r.safetyPlanIdentity,
         safetyCoverage: r.safetyCoverage,
         createdPaths: r.createdPaths,
+        deletedPaths: r.deletedPaths,
       };
     },
     remove: (id) => cs.deleteCheckpoint(id),
@@ -274,6 +385,12 @@ function restoreWorkspaceStaleError() {
 export function registerCheckpointCommand(program, dependencies = {}) {
   const withWorkspaceLockSync =
     dependencies.withWorkspaceLockSync || withCanonicalWorkspaceLockSync;
+  const createCheckpointRestoreSagaStore =
+    dependencies.createCheckpointRestoreSagaStore ||
+    ((options) => new CheckpointRestoreSagaStore(options));
+  const workspaceLockOwnerDigest =
+    dependencies.computeCheckpointRestoreWorkspaceLockOwnerDigest ||
+    computeCheckpointRestoreWorkspaceLockOwnerDigest;
   const cp = program
     .command("checkpoint")
     .description("Snapshot / rewind file state (git-plumbing, copy fallback)");
@@ -523,6 +640,7 @@ export function registerCheckpointCommand(program, dependencies = {}) {
           return {
             submission: authoritativeSubmission,
             planned: authoritativePlan,
+            codePreview,
           };
         };
 
@@ -552,19 +670,185 @@ export function registerCheckpointCommand(program, dependencies = {}) {
         }
 
         let checkpointIdentity = submission.checkpointIdentity || null;
+        let restoreOperationId = null;
+        let restoreSagaStore = null;
+        let restoreSaga = null;
+        let durableSessionCommitHash = null;
+        let restoreSagaArchiveWarning = null;
+        let workspaceRestoreCallbackEntered = false;
+
+        const attachRestoreSagaDiagnostics = (error) => {
+          if (!error || typeof error !== "object" || !restoreOperationId)
+            return;
+          error.checkpointRestoreOperationId ||= restoreOperationId;
+          error.checkpointRestoreSagaPhase ||= restoreSaga?.phase || null;
+          error.checkpointRestoreSagaSeq ||= restoreSaga?.seq || null;
+          error.checkpointRestoreSagaHeadHash ||= restoreSaga?.headHash || null;
+        };
+
+        const loadRestoreSaga = () => {
+          if (!restoreSagaStore || !restoreOperationId) return null;
+          restoreSaga = restoreSagaStore.load(restoreOperationId);
+          return restoreSaga;
+        };
+
+        const advanceRestoreSaga = (phase, evidence) => {
+          const prior = restoreSaga || loadRestoreSaga();
+          try {
+            restoreSaga = restoreSagaStore.advance(restoreOperationId, {
+              expectedSeq: prior.seq,
+              expectedHash: prior.headHash,
+              phase,
+              evidence,
+            });
+            return restoreSaga;
+          } catch (error) {
+            // An event or HEAD rename can become durable before its syscall
+            // reports failure. Reconcile the exact intended next event once;
+            // never blind-retry a CAS append.
+            try {
+              const observed = loadRestoreSaga();
+              const latest = observed?.events?.at(-1);
+              if (
+                observed?.seq === prior.seq + 1 &&
+                observed?.phase === phase &&
+                latest?.prevHash === prior.headHash &&
+                stableCheckpointRestoreValue(latest.evidence) ===
+                  stableCheckpointRestoreValue(evidence)
+              ) {
+                return observed;
+              }
+            } catch (loadError) {
+              error.checkpointRestoreSagaLoadError = loadError;
+            }
+            attachRestoreSagaDiagnostics(error);
+            throw error;
+          }
+        };
+
+        const settleRestoreSagaFailure = (operationError, workspaceLease) => {
+          if (!restoreSagaStore || !restoreOperationId) throw operationError;
+          let sagaLoadFailed = false;
+          try {
+            loadRestoreSaga();
+          } catch (loadError) {
+            sagaLoadFailed = true;
+            if (operationError && typeof operationError === "object") {
+              operationError.checkpointRestoreSagaLoadError = loadError;
+            }
+          }
+
+          let recoveryRequired =
+            sagaLoadFailed ||
+            checkpointRestoreCommitUnknown(operationError) ||
+            checkpointRestorePhaseNeedsRecovery(restoreSaga?.phase) ||
+            ["workspace-mutation", "workspace-applied"].includes(
+              operationError?.restorePhase,
+            );
+
+          if (
+            !recoveryRequired &&
+            restoreSaga?.pending &&
+            !["recovery_required", "recovery_started"].includes(
+              restoreSaga.phase,
+            )
+          ) {
+            try {
+              advanceRestoreSaga("aborted", {
+                reason: boundedCheckpointRestoreText(
+                  operationError?.message,
+                  "checkpoint restore stopped before workspace mutation",
+                ),
+              });
+            } catch (abortError) {
+              recoveryRequired = true;
+              if (operationError && typeof operationError === "object") {
+                operationError.checkpointRestoreSagaError = abortError;
+              }
+            }
+          }
+
+          if (recoveryRequired && !sagaLoadFailed) {
+            try {
+              if (
+                restoreSaga?.pending &&
+                restoreSaga.phase !== "recovery_required"
+              ) {
+                advanceRestoreSaga("recovery_required", {
+                  reason: boundedCheckpointRestoreText(
+                    operationError?.message,
+                    "checkpoint restore outcome requires recovery",
+                  ),
+                  errorCode: checkpointRestoreErrorCode(operationError),
+                });
+              }
+            } catch (recoveryError) {
+              if (operationError && typeof operationError === "object") {
+                operationError.checkpointRestoreSagaError = recoveryError;
+              }
+            }
+          }
+
+          attachRestoreSagaDiagnostics(operationError);
+          if (operationError && typeof operationError === "object") {
+            operationError.checkpointRestoreRecoveryRequired = recoveryRequired;
+          }
+          if (!recoveryRequired && restoreSaga?.terminal) {
+            try {
+              restoreSagaStore.archiveTerminal(restoreOperationId, {
+                expectedSeq: restoreSaga.seq,
+                expectedHash: restoreSaga.headHash,
+              });
+            } catch (archiveError) {
+              if (operationError && typeof operationError === "object") {
+                operationError.checkpointRestoreSagaArchiveError = archiveError;
+              }
+            }
+          }
+          if (recoveryRequired && workspaceLease) {
+            try {
+              workspaceLease.retainForRecovery(
+                boundedCheckpointRestoreText(
+                  `${checkpointRestoreErrorCode(operationError)}: ${operationError?.message || "restore outcome unknown"}`,
+                  "checkpoint restore outcome unknown",
+                  512,
+                ),
+              );
+            } catch (retentionError) {
+              if (retentionError && typeof retentionError === "object") {
+                retentionError.checkpointRestoreCause = operationError;
+                retentionError.checkpointRestoreOperationId =
+                  restoreOperationId;
+                retentionError.checkpointRestoreSagaPhase =
+                  restoreSaga?.phase || null;
+                retentionError.checkpointRestoreSagaSeq =
+                  restoreSaga?.seq || null;
+                retentionError.checkpointRestoreSagaHeadHash =
+                  restoreSaga?.headHash || null;
+                retentionError.checkpointRestoreRecoveryRequired = true;
+              }
+              throw retentionError;
+            }
+            throw operationError;
+          }
+          throw operationError;
+        };
 
         // The workspace lifetime lock is always the outer authority. The
         // session writer is acquired only after the locked workspace prestate
         // and preview confirmation have been revalidated.
-        const executeUnderSessionAuthority = (workspaceLease = null) =>
-          withSessionAuthorityTransaction(
+        const executeUnderSessionAuthority = (workspaceLease = null) => {
+          const transactionResult = withSessionAuthorityTransaction(
             options.session,
             context.headHash,
             (transaction) => {
               workspaceLease?.assertOwned();
-              transaction.appendAuthorityEvent(
+              const intent = transaction.appendAuthorityEvent(
                 CHECKPOINT_TIMELINE_INTENT_EVENT,
                 {
+                  ...(restoreOperationId
+                    ? { operationId: restoreOperationId }
+                    : {}),
                   revision: context.timeline.revision,
                   action: submission.action,
                   turnId: submission.turnId,
@@ -583,29 +867,81 @@ export function registerCheckpointCommand(program, dependencies = {}) {
                     planned.preview.confirmationSubmission.digest,
                 },
               );
-              const transactionResult = {};
+              if (restoreSagaStore) {
+                advanceRestoreSaga("intent_committed", {
+                  sessionId: options.session,
+                  timelineEntryId: submission.turnId,
+                  intentCommitDigest: checkpointRestoreDigest(
+                    "cc-checkpoint-restore-intent-commit-v1",
+                    intent.hash,
+                  ),
+                });
+              }
+              const result = {};
               try {
                 if (isCodeRestoreAction(submission.action)) {
                   workspaceLease?.assertOwned();
-                  transactionResult.code = engine.restore(
-                    submission.checkpointId,
-                    {
-                      expectedIdentity: checkpointIdentity,
-                      expectedWorkspaceBinding: planned.workspaceBinding,
+                  const targetCount = checkpointRestoreTargetCount(planned);
+                  result.code = engine.restore(submission.checkpointId, {
+                    expectedIdentity: checkpointIdentity,
+                    expectedWorkspaceBinding: planned.workspaceBinding,
+                    onSafetyReady: (evidence) => {
+                      workspaceLease?.assertOwned();
+                      advanceRestoreSaga("safety_ready", {
+                        safetyId: evidence.safetyId,
+                        safetyIdentity: evidence.safetyIdentity,
+                        safetyPlanIdentity: evidence.safetyPlanIdentity,
+                        safetyCoverage: evidence.safetyCoverage,
+                      });
+                      workspaceLease?.assertOwned();
                     },
-                  );
+                    onMutationStarted: (evidence) => {
+                      workspaceLease?.assertOwned();
+                      advanceRestoreSaga("mutation_started", {
+                        targetCount: evidence.mutationCount,
+                      });
+                      workspaceLease?.assertOwned();
+                    },
+                    onWorkspaceApplied: (evidence) => {
+                      workspaceLease?.assertOwned();
+                      const appliedCount = Number.isSafeInteger(
+                        evidence.appliedCount,
+                      )
+                        ? evidence.appliedCount
+                        : Array.isArray(evidence.restored)
+                          ? evidence.restored.length
+                          : targetCount;
+                      advanceRestoreSaga("workspace_applied", {
+                        appliedCount,
+                        poststateDigest: checkpointRestoreStateDigest(
+                          planned,
+                          "poststate",
+                        ),
+                      });
+                      workspaceLease?.assertOwned();
+                    },
+                  });
+                  if (restoreSaga?.phase !== "workspace_applied") {
+                    const error = new Error(
+                      "checkpoint restore engine omitted its durable workspace boundary",
+                    );
+                    error.code = "CHECKPOINT_RESTORE_BOUNDARY_MISSING";
+                    error.restorePhase = "workspace-applied";
+                    throw error;
+                  }
                   transaction.retainRecoveryEvidence({
-                    safetyId: transactionResult.code?.safetyId,
-                    safetyIdentity: transactionResult.code?.safetyIdentity,
-                    safetyCoverage: transactionResult.code?.safetyCoverage,
+                    safetyId: result.code?.safetyId,
+                    safetyIdentity: result.code?.safetyIdentity,
+                    safetyPlanIdentity: result.code?.safetyPlanIdentity,
+                    safetyCoverage: result.code?.safetyCoverage,
                     restorePhase: "workspace-applied",
-                    createdPaths: transactionResult.code?.createdPaths,
+                    createdPaths: result.code?.createdPaths,
                   });
                   workspaceLease?.assertOwned();
                 }
 
                 if (planned.commit.branchPlan) {
-                  transactionResult.branch = createBranchSession({
+                  result.branch = createBranchSession({
                     branchSessionId: planned.commit.branchPlan.branchSessionId,
                     parentSessionId: options.session,
                     parentTurnId: submission.turnId,
@@ -614,7 +950,7 @@ export function registerCheckpointCommand(program, dependencies = {}) {
                   });
                   transaction.retainRecoveryEvidence({
                     branchSessionId:
-                      transactionResult.branch?.branchSessionId ||
+                      result.branch?.branchSessionId ||
                       planned.commit.branchPlan.branchSessionId,
                   });
                 } else if (planned.commit.messages) {
@@ -624,6 +960,9 @@ export function registerCheckpointCommand(program, dependencies = {}) {
                   const committed = transaction.appendAuthorityEvent(
                     TURN_BINDING_TIMELINE_EVENT,
                     {
+                      ...(restoreOperationId
+                        ? { operationId: restoreOperationId }
+                        : {}),
                       action: submission.action,
                       sourceRevision: context.timeline.revision,
                       turnId: submission.turnId,
@@ -631,16 +970,19 @@ export function registerCheckpointCommand(program, dependencies = {}) {
                       binding: context.binding.toJSON(),
                     },
                   );
-                  transactionResult.conversation = {
+                  result.conversation = {
                     messages: planned.commit.messages.length,
                     commitHash: committed.hash,
                   };
                 }
 
                 workspaceLease?.assertOwned();
-                transaction.appendAuthorityEvent(
+                const completedAudit = transaction.appendAuthorityEvent(
                   CHECKPOINT_TIMELINE_AUDIT_EVENT,
                   {
+                    ...(restoreOperationId
+                      ? { operationId: restoreOperationId }
+                      : {}),
                     revision: context.timeline.revision,
                     action: submission.action,
                     turnId: submission.turnId,
@@ -658,35 +1000,34 @@ export function registerCheckpointCommand(program, dependencies = {}) {
                     confirmationDigest:
                       planned.preview.confirmationSubmission.digest,
                     status: "completed",
-                    branchSessionId:
-                      transactionResult.branch?.branchSessionId || null,
-                    safetyCheckpointId:
-                      transactionResult.code?.safetyId || null,
+                    branchSessionId: result.branch?.branchSessionId || null,
+                    safetyCheckpointId: result.code?.safetyId || null,
                     safetyCheckpointIdentity:
-                      transactionResult.code?.safetyIdentity || null,
-                    safetyCoverage:
-                      transactionResult.code?.safetyCoverage || null,
+                      result.code?.safetyIdentity || null,
+                    safetyPlanIdentity: result.code?.safetyPlanIdentity || null,
+                    safetyCoverage: result.code?.safetyCoverage || null,
                   },
                 );
+                durableSessionCommitHash = completedAudit.hash;
               } catch (error) {
                 if (error && typeof error === "object") {
-                  error.safetyId ||= transactionResult.code?.safetyId || null;
-                  error.safetyIdentity ||=
-                    transactionResult.code?.safetyIdentity || null;
-                  error.safetyCoverage ||=
-                    transactionResult.code?.safetyCoverage || null;
-                  if (transactionResult.code && !error.restorePhase) {
+                  error.safetyId ||= result.code?.safetyId || null;
+                  error.safetyIdentity ||= result.code?.safetyIdentity || null;
+                  error.safetyPlanIdentity ||=
+                    result.code?.safetyPlanIdentity || null;
+                  error.safetyCoverage ||= result.code?.safetyCoverage || null;
+                  if (result.code && !error.restorePhase) {
                     error.restorePhase = "workspace-applied";
                   }
                   if (!Array.isArray(error.createdPaths)) {
                     error.createdPaths = Array.isArray(
-                      transactionResult.code?.createdPaths,
+                      result.code?.createdPaths,
                     )
-                      ? [...transactionResult.code.createdPaths]
+                      ? [...result.code.createdPaths]
                       : [];
                   }
                   error.branchSessionId ||=
-                    transactionResult.branch?.branchSessionId ||
+                    result.branch?.branchSessionId ||
                     planned.commit.branchPlan?.branchSessionId ||
                     null;
                 }
@@ -694,6 +1035,9 @@ export function registerCheckpointCommand(program, dependencies = {}) {
                   transaction.appendAuthorityEvent(
                     CHECKPOINT_TIMELINE_AUDIT_EVENT,
                     {
+                      ...(restoreOperationId
+                        ? { operationId: restoreOperationId }
+                        : {}),
                       revision: context.timeline.revision,
                       action: submission.action,
                       turnId: submission.turnId,
@@ -712,26 +1056,26 @@ export function registerCheckpointCommand(program, dependencies = {}) {
                       confirmationDigest:
                         planned.preview.confirmationSubmission.digest,
                       status: "failed",
-                      failureCode: String(
-                        error?.code || "CHECKPOINT_TIMELINE_ACTION_FAILED",
-                      ).slice(0, 128),
+                      failureCode: checkpointRestoreErrorCode(error),
                       workspaceState: isCodeRestoreAction(submission.action)
                         ? "unknown"
                         : "unchanged",
                       branchSessionId:
-                        transactionResult.branch?.branchSessionId ||
+                        result.branch?.branchSessionId ||
                         planned.commit.branchPlan?.branchSessionId ||
                         null,
                       safetyCheckpointId:
-                        transactionResult.code?.safetyId ||
-                        error?.safetyId ||
-                        null,
+                        result.code?.safetyId || error?.safetyId || null,
                       safetyCheckpointIdentity:
-                        transactionResult.code?.safetyIdentity ||
+                        result.code?.safetyIdentity ||
                         error?.safetyIdentity ||
                         null,
+                      safetyPlanIdentity:
+                        result.code?.safetyPlanIdentity ||
+                        error?.safetyPlanIdentity ||
+                        null,
                       safetyCoverage:
-                        transactionResult.code?.safetyCoverage ||
+                        result.code?.safetyCoverage ||
                         error?.safetyCoverage ||
                         null,
                       createdPaths: Array.isArray(error?.createdPaths)
@@ -750,9 +1094,40 @@ export function registerCheckpointCommand(program, dependencies = {}) {
                 }
                 throw error;
               }
-              return transactionResult;
+              return result;
             },
           );
+
+          if (restoreSagaStore) {
+            workspaceLease?.assertOwned();
+            if (!durableSessionCommitHash) {
+              const error = new Error(
+                "checkpoint restore session settlement hash is unavailable",
+              );
+              error.code = "CHECKPOINT_RESTORE_SESSION_BOUNDARY_MISSING";
+              error.commitState = "unknown";
+              throw error;
+            }
+            advanceRestoreSaga("session_committed", {
+              sessionCommitDigest: checkpointRestoreDigest(
+                "cc-checkpoint-restore-session-commit-v1",
+                durableSessionCommitHash,
+              ),
+            });
+            advanceRestoreSaga("completed", {
+              resultDigest: checkpointRestoreDigest(
+                "cc-checkpoint-restore-result-v1",
+                {
+                  operationId: restoreOperationId,
+                  sessionCommitHash: durableSessionCommitHash,
+                  result: transactionResult,
+                },
+              ),
+            });
+            workspaceLease?.assertOwned();
+          }
+          return transactionResult;
+        };
 
         let result;
         if (isCodeRestoreAction(submission.action)) {
@@ -762,56 +1137,123 @@ export function registerCheckpointCommand(program, dependencies = {}) {
               "checkpoint restore scope is unavailable; preview again",
             );
           }
-          result = withWorkspaceLockSync(
-            {
-              workspaceRoot,
-              operationId: `checkpoint-restore-${randomUUID()}`,
-              purpose: "checkpoint-restore",
+          restoreOperationId = `checkpoint-restore-${randomUUID()}`;
+          restoreSagaStore = createCheckpointRestoreSagaStore({
+            workspaceRoot,
+          });
+          restoreSaga = restoreSagaStore.create({
+            operationId: restoreOperationId,
+            evidence: {
+              restoreKind: engine.kind,
+              checkpointId: submission.checkpointId,
+              checkpointIdentity,
+              sessionId: options.session,
+              timelineEntryId: submission.turnId,
+              workspaceBinding:
+                planned.workspaceBinding?.writePlanIdentity ||
+                planned.preview.confirmationSubmission.digest,
+              confirmationDigest: planned.preview.confirmationSubmission.digest,
+              actorPid: process.pid,
             },
-            (workspaceLease) => {
-              workspaceLease.assertOwned();
+          });
+          try {
+            result = withWorkspaceLockSync(
+              {
+                workspaceRoot,
+                operationId: restoreOperationId,
+                purpose: "checkpoint-restore",
+              },
+              (workspaceLease) => {
+                workspaceRestoreCallbackEntered = true;
+                try {
+                  workspaceLease.assertOwned();
+                  advanceRestoreSaga("locked", {
+                    workspaceLockOwner: workspaceLease.owner,
+                    lockOwnerDigest: workspaceLockOwnerDigest(
+                      workspaceLease.owner,
+                    ),
+                  });
 
-              // Both the session head and the full workspace write plan can
-              // change while this process waits for the workspace lock. Reload
-              // and recompute both authorities only after exclusive ownership.
-              const lockedContext = loadTimelineContext(
-                engine,
-                options.session,
-              );
-              const lockedAction = planForContext(lockedContext);
-              if (
-                !checkpointTimelineConfirmationsMatch(
-                  lockedAction.planned.preview.confirmationSubmission,
-                  submittedEnvelope,
-                )
-              ) {
-                throw workspaceStaleError(
-                  "workspace or checkpoint timeline changed while waiting for the restore lock; preview again",
-                );
-              }
-              if (
-                !workspaceRootsMatch(
-                  lockedAction.planned.workspaceBinding?.workspaceRoot,
-                  workspaceLease.canonicalWorkspaceRoot,
-                )
-              ) {
-                throw workspaceStaleError(
-                  "checkpoint restore scope changed while waiting for the restore lock; preview again",
-                );
-              }
+                  // Both the session head and the full workspace write plan can
+                  // change while this process waits for the workspace lock.
+                  const lockedContext = loadTimelineContext(
+                    engine,
+                    options.session,
+                  );
+                  const lockedAction = planForContext(lockedContext);
+                  if (
+                    !checkpointTimelineConfirmationsMatch(
+                      lockedAction.planned.preview.confirmationSubmission,
+                      submittedEnvelope,
+                    )
+                  ) {
+                    throw workspaceStaleError(
+                      "workspace or checkpoint timeline changed while waiting for the restore lock; preview again",
+                    );
+                  }
+                  if (
+                    !workspaceRootsMatch(
+                      lockedAction.planned.workspaceBinding?.workspaceRoot,
+                      workspaceLease.canonicalWorkspaceRoot,
+                    )
+                  ) {
+                    throw workspaceStaleError(
+                      "checkpoint restore scope changed while waiting for the restore lock; preview again",
+                    );
+                  }
 
-              context = lockedContext;
-              submission = lockedAction.submission;
-              planned = lockedAction.planned;
-              checkpointIdentity = submission.checkpointIdentity || null;
-              workspaceLease.assertOwned();
-              return executeUnderSessionAuthority(workspaceLease);
-            },
-          );
+                  context = lockedContext;
+                  submission = lockedAction.submission;
+                  planned = lockedAction.planned;
+                  checkpointIdentity = submission.checkpointIdentity || null;
+                  advanceRestoreSaga("prepared", {
+                    prestateDigest: checkpointRestoreStateDigest(
+                      planned,
+                      "prestate",
+                    ),
+                    targetCount: checkpointRestoreTargetCount(planned),
+                    workspaceBinding:
+                      planned.workspaceBinding?.writePlanIdentity ||
+                      planned.preview.confirmationSubmission.digest,
+                  });
+                  workspaceLease.assertOwned();
+                  return executeUnderSessionAuthority(workspaceLease);
+                } catch (error) {
+                  return settleRestoreSagaFailure(error, workspaceLease);
+                }
+              },
+            );
+          } catch (error) {
+            if (workspaceRestoreCallbackEntered) throw error;
+            settleRestoreSagaFailure(error, null);
+          }
+          try {
+            restoreSagaStore.archiveTerminal(restoreOperationId, {
+              expectedSeq: restoreSaga.seq,
+              expectedHash: restoreSaga.headHash,
+            });
+          } catch (archiveError) {
+            restoreSagaArchiveWarning = boundedCheckpointRestoreText(
+              `restore completed, but its saga archive is pending: ${archiveError?.code || archiveError?.message || "archive failed"}`,
+              "restore completed, but its saga archive is pending",
+              512,
+            );
+          }
         } else {
           result = executeUnderSessionAuthority();
         }
-        const nextContext = loadTimelineContext(engine, options.session);
+        let nextContext = null;
+        let nextContextWarning = null;
+        try {
+          nextContext = loadTimelineContext(engine, options.session);
+        } catch (reloadError) {
+          if (restoreSaga?.phase !== "completed") throw reloadError;
+          nextContextWarning = boundedCheckpointRestoreText(
+            `restore completed, but the next timeline revision could not be reloaded: ${reloadError?.code || reloadError?.message || "reload failed"}`,
+            "restore completed, but the next timeline revision could not be reloaded",
+            512,
+          );
+        }
         output = {
           schema: CHECKPOINT_TIMELINE_RESULT_SCHEMA,
           version: CHECKPOINT_TIMELINE_RESULT_VERSION,
@@ -821,9 +1263,14 @@ export function registerCheckpointCommand(program, dependencies = {}) {
           sessionId: options.session,
           turnId: submission.turnId,
           revision: context.timeline.revision,
-          nextRevision: nextContext.timeline.revision,
+          nextRevision: nextContext?.timeline?.revision || null,
+          ...(restoreOperationId ? { operationId: restoreOperationId } : {}),
           result,
-          warnings: planned.preview.warnings,
+          warnings: [
+            ...planned.preview.warnings,
+            ...(restoreSagaArchiveWarning ? [restoreSagaArchiveWarning] : []),
+            ...(nextContextWarning ? [nextContextWarning] : []),
+          ],
         };
         printTimelineActionResult(output, options.json);
       } catch (error) {

@@ -439,13 +439,25 @@ export function planCheckpointTimelineAction({
 }
 
 export function timelineActionError(error) {
-  const operationError = error?.transactionError || null;
-  const recoveryError = operationError || error;
+  const checkpointRestoreError =
+    error?.checkpointRestoreCause ||
+    error?.cause?.checkpointRestoreCause ||
+    null;
+  const operationError = checkpointRestoreError
+    ? checkpointRestoreError.transactionError || checkpointRestoreError
+    : error?.transactionError || null;
+  const recoveryError = operationError || checkpointRestoreError || error;
+  const sagaError = checkpointRestoreError || error;
+  const retainedRecoveryCandidate =
+    error?.transactionRecoveryEvidence ||
+    checkpointRestoreError?.transactionRecoveryEvidence ||
+    checkpointRestoreError?.transactionError?.transactionRecoveryEvidence ||
+    null;
   const retainedRecovery =
-    error?.transactionRecoveryEvidence &&
-    typeof error.transactionRecoveryEvidence === "object" &&
-    !Array.isArray(error.transactionRecoveryEvidence)
-      ? error.transactionRecoveryEvidence
+    retainedRecoveryCandidate &&
+    typeof retainedRecoveryCandidate === "object" &&
+    !Array.isArray(retainedRecoveryCandidate)
+      ? retainedRecoveryCandidate
       : null;
   const auditError =
     operationError?.checkpointAuditError || error?.checkpointAuditError || null;
@@ -465,7 +477,11 @@ export function timelineActionError(error) {
           ? "TIMELINE_WORKSPACE_STALE"
           : error?.code || "TIMELINE_ACTION_FAILED",
     error: error?.message || String(error || "timeline action failed"),
-    commitState: error?.commitState || null,
+    commitState:
+      error?.commitState ||
+      checkpointRestoreError?.commitState ||
+      operationError?.commitState ||
+      null,
     operationFailureCode: operationError?.code || null,
     auditFailureCode: auditError?.code || null,
     restorePhase:
@@ -476,10 +492,29 @@ export function timelineActionError(error) {
       recoveryError?.safetyIdentity || retainedRecovery?.safetyIdentity || null,
     safetyCoverage:
       recoveryError?.safetyCoverage || retainedRecovery?.safetyCoverage || null,
+    safetyPlanIdentity:
+      recoveryError?.safetyPlanIdentity ||
+      retainedRecovery?.safetyPlanIdentity ||
+      null,
     branchSessionId:
       recoveryError?.branchSessionId ||
       retainedRecovery?.branchSessionId ||
       null,
     createdPaths: createdPaths.slice(0, 256),
+    operationId:
+      sagaError?.checkpointRestoreOperationId || error?.operationId || null,
+    blockingOperationId:
+      error?.ownerTransactionId ||
+      error?.retainedOwner?.transactionId ||
+      error?.priorOwner?.transactionId ||
+      null,
+    sagaPhase: sagaError?.checkpointRestoreSagaPhase || null,
+    sagaSeq: sagaError?.checkpointRestoreSagaSeq || null,
+    sagaHeadHash: sagaError?.checkpointRestoreSagaHeadHash || null,
+    recoveryRequired: Boolean(
+      sagaError?.checkpointRestoreRecoveryRequired ||
+      error?.workspaceLockRetained,
+    ),
+    workspaceLockRetained: error?.workspaceLockRetained === true,
   };
 }
