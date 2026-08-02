@@ -364,7 +364,7 @@ describe("checkpoint-store (git engine)", () => {
       safetyPlanIdentity: preview.workspaceBinding.writePlanIdentity,
       safetyCoverage: "checkpoint",
     });
-  }, 20_000);
+  });
 
   it.each(["onSafetyReady", "onMutationStarted", "onWorkspaceApplied"])(
     "rejects async %s before any workspace write",
@@ -388,7 +388,6 @@ describe("checkpoint-store (git engine)", () => {
       );
       expect(listCheckpoints(repo)).toHaveLength(checkpointCount);
     },
-    20_000,
   );
 
   it.each([
@@ -414,56 +413,51 @@ describe("checkpoint-store (git engine)", () => {
       );
       expect(readFileSync(join(repo, "a.txt"), "utf8")).toBe(expectedContent);
     },
-    20_000,
   );
 
   it.each([
     ["onSafetyReady", "safety-ready"],
     ["onMutationStarted", "workspace-mutation"],
-  ])(
-    "revalidates the exact safety ref after %s",
-    (hookName, restorePhase) => {
-      const cp = createCheckpoint(repo, { label: `safety-ref-${hookName}` });
-      writeFileSync(join(repo, "a.txt"), "alpha-safety-ref-dirty\n", "utf8");
-      let checkoutWrites = 0;
-      const originalSpawnSync = _deps.spawnSync;
-      _deps.spawnSync = (command, args, options) => {
-        if (command === "git" && args?.[0] === "checkout-index") {
-          checkoutWrites += 1;
-        }
-        return originalSpawnSync(command, args, options);
-      };
-
-      let thrown = null;
-      try {
-        rewindTo(repo, cp.id, {
-          [hookName]: ({ safetyId }) => {
-            git(
-              repo,
-              "update-ref",
-              `refs/cc-checkpoints/default/${safetyId}`,
-              cp.commit,
-            );
-          },
-        });
-      } catch (error) {
-        thrown = error;
-      } finally {
-        _deps.spawnSync = originalSpawnSync;
+  ])("revalidates the exact safety ref after %s", (hookName, restorePhase) => {
+    const cp = createCheckpoint(repo, { label: `safety-ref-${hookName}` });
+    writeFileSync(join(repo, "a.txt"), "alpha-safety-ref-dirty\n", "utf8");
+    let checkoutWrites = 0;
+    const originalSpawnSync = _deps.spawnSync;
+    _deps.spawnSync = (command, args, options) => {
+      if (command === "git" && args?.[0] === "checkout-index") {
+        checkoutWrites += 1;
       }
+      return originalSpawnSync(command, args, options);
+    };
 
-      expect(thrown).toMatchObject({
-        code: "CHECKPOINT_SAFETY_STALE",
-        reason: "ref-identity-changed",
-        restorePhase,
+    let thrown = null;
+    try {
+      rewindTo(repo, cp.id, {
+        [hookName]: ({ safetyId }) => {
+          git(
+            repo,
+            "update-ref",
+            `refs/cc-checkpoints/default/${safetyId}`,
+            cp.commit,
+          );
+        },
       });
-      expect(checkoutWrites).toBe(0);
-      expect(readFileSync(join(repo, "a.txt"), "utf8")).toBe(
-        "alpha-safety-ref-dirty\n",
-      );
-    },
-    20_000,
-  );
+    } catch (error) {
+      thrown = error;
+    } finally {
+      _deps.spawnSync = originalSpawnSync;
+    }
+
+    expect(thrown).toMatchObject({
+      code: "CHECKPOINT_SAFETY_STALE",
+      reason: "ref-identity-changed",
+      restorePhase,
+    });
+    expect(checkoutWrites).toBe(0);
+    expect(readFileSync(join(repo, "a.txt"), "utf8")).toBe(
+      "alpha-safety-ref-dirty\n",
+    );
+  });
 
   it("revalidates workspace prestate after onMutationStarted", () => {
     const cp = createCheckpoint(repo, { label: "mutation-prestate-target" });
@@ -499,7 +493,7 @@ describe("checkpoint-store (git engine)", () => {
     expect(readFileSync(join(repo, "a.txt"), "utf8")).toBe(
       "alpha-hook-drift\n",
     );
-  }, 20_000);
+  });
 
   it("emits only workspace-applied and does not write for a zero-diff rewind", () => {
     const cp = createCheckpoint(repo, { label: "already-settled" });
@@ -549,7 +543,7 @@ describe("checkpoint-store (git engine)", () => {
       appliedCount: 0,
       poststateIdentity: preview.workspaceBinding.targetPoststateIdentity,
     });
-  }, 20_000);
+  });
 
   it("rewind deletes files created after the checkpoint", () => {
     const cp = createCheckpoint(repo, { label: "base" });
