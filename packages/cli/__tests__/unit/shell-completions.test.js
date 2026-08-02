@@ -58,7 +58,7 @@ describe("generated shell completions", () => {
     expect(quotedTokens(fishWords ?? "")).toEqual(expectedTokens);
 
     const powershellWords = completion("cc.ps1").match(
-      /\$ChainlessChainCommands = @\(\n([\s\S]*?)\n\)/,
+      /\$ChainlessChainCommands = @\(\r?\n([\s\S]*?)\r?\n\)/,
     )?.[1];
     expect(quotedTokens(powershellWords ?? "")).toEqual(expectedTokens);
   });

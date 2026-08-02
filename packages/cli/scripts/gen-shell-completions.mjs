@@ -137,7 +137,8 @@ ${[...namespaceTokens]
 end
 `;
 
-const powershell = `${generatedHeader("#")}using namespace System.Management.Automation
+const powershell =
+  `${generatedHeader("#")}using namespace System.Management.Automation
 
 $ChainlessChainCommands = @(
 ${tokens.map((token) => `  '${token}'`).join("\n")}
@@ -172,7 +173,7 @@ $ChainlessChainCompleter = {
 }.GetNewClosure()
 
 Register-ArgumentCompleter -Native -CommandName cc,chainlesschain,clc,clchain -ScriptBlock $ChainlessChainCompleter
-`;
+`.replaceAll("\n", "\r\n");
 
 const outputs = new Map([
   ["cc.bash", bash],
