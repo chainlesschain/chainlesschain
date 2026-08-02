@@ -536,7 +536,8 @@ describe("agent-repl thin wrapper contracts", () => {
     const content = readFileSync(agentReplPath, "utf8");
     expect(content).toContain("let _mcpLedgerRecovery = null;");
     expect(content).toContain("let _mcpLedgerRecoveryError = null;");
-    expect(content).toContain("readReplMcpRecoveryCandidate(targetSessionId)");
+    expect(content).toContain("readSessionHostResumeState");
+    expect(content).toContain("const prepared = _startupJsonlResume;");
     expect(content).toContain("_commitMcpRecoveryCandidate");
     expect(content).toContain("_mcpLedgerRecovery = preparedCommit.recovery");
     expect(content).toContain(
@@ -852,26 +853,124 @@ function verifiedReplRecovery(sessionId, overrides = {}) {
   };
 }
 
+function verifiedReplResumeState(sessionId, overrides = {}) {
+  const recovery =
+    overrides.recovery || verifiedReplRecovery(sessionId, overrides);
+  return {
+    snapshot: {
+      schema: "chainlesschain.session-host-snapshot/v1",
+      schemaVersion: 1,
+      sessionId,
+      verified: true,
+      revision: `sha256:${"c".repeat(64)}`,
+      head: {
+        hash: recovery.headHash,
+        eventCount: 1,
+      },
+      recoveryAuthority: {
+        recoveryDigest: recovery.recoveryDigest,
+      },
+    },
+    messages: overrides.messages || [{ role: "user", content: "restored" }],
+    recovery,
+  };
+}
+
+describe("agent-repl startup resume admission", () => {
+  it("adopts a verified canonical session before reading feature config", async () => {
+    const { prepareReplStartupResume } =
+      await import("../../src/repl/agent-repl.js");
+    const order = [];
+    const readFeature = vi.fn(() => {
+      order.push("feature");
+      return false;
+    });
+
+    const prepared = prepareReplStartupResume("target-session", {
+      readSessionHostResumeState: () => {
+        order.push("verified-state");
+        return verifiedReplResumeState("target-session");
+      },
+      formatMcpLedgerRecoveryNotice: () => null,
+      feature: readFeature,
+    });
+
+    expect(prepared).toMatchObject({
+      useJsonl: true,
+      candidate: { ok: true, sessionId: "target-session" },
+    });
+    expect(order).toEqual(["verified-state"]);
+    expect(readFeature).not.toHaveBeenCalled();
+  });
+
+  it("refuses a present unverified canonical session before config access", async () => {
+    const { prepareReplStartupResume } =
+      await import("../../src/repl/agent-repl.js");
+    const readFeature = vi.fn(() => false);
+
+    const prepared = prepareReplStartupResume("target-session", {
+      readSessionHostResumeState: () => ({
+        snapshot: {
+          schema: "chainlesschain.session-host-snapshot/v1",
+          schemaVersion: 1,
+          sessionId: "target-session",
+          verified: false,
+        },
+        messages: null,
+        recovery: null,
+      }),
+      feature: readFeature,
+    });
+
+    expect(prepared).toMatchObject({
+      useJsonl: true,
+      candidate: {
+        ok: false,
+        error: { code: "CC_SESSION_HOST_SNAPSHOT_UNVERIFIED" },
+      },
+    });
+    expect(readFeature).not.toHaveBeenCalled();
+  });
+
+  it("reads feature config only after canonical absence is established", async () => {
+    const { prepareReplStartupResume } =
+      await import("../../src/repl/agent-repl.js");
+    const order = [];
+
+    const prepared = prepareReplStartupResume("legacy-session", {
+      readSessionHostResumeState: () => {
+        order.push("verified-state");
+        return null;
+      },
+      feature: (name) => {
+        order.push(`feature:${name}`);
+        return false;
+      },
+    });
+
+    expect(prepared).toEqual({ useJsonl: false, candidate: null });
+    expect(order).toEqual(["verified-state", "feature:JSONL_SESSION"]);
+  });
+});
+
 describe("agent-repl MCP recovery resume transaction", () => {
-  it("verifies MCP recovery before rebuild and blocks all when rebuild throws", async () => {
+  it("reads one verified state and blocks all when its messages are unsafe", async () => {
     const { prepareReplJsonlResumeCandidate } =
       await import("../../src/repl/agent-repl.js");
     const { createRecoveryGuardedMcpCallLedger } =
       await import("../../src/lib/mcp-ledger-recovery-admission.js");
     const order = [];
     const candidate = prepareReplJsonlResumeCandidate("target-session", {
-      loadMcpLedgerRecovery: () => {
-        order.push("verified-recovery");
-        return verifiedReplRecovery("target-session");
+      readSessionHostResumeState: () => {
+        order.push("verified-state");
+        return verifiedReplResumeState("target-session", {
+          messages: new Proxy([], {}),
+        });
       },
       formatMcpLedgerRecoveryNotice: () => null,
-      rebuildMessages: () => {
-        order.push("rebuild");
-        throw new Error("history unavailable");
-      },
     });
 
-    expect(order).toEqual(["verified-recovery", "rebuild"]);
+    expect(order).toEqual(["verified-state"]);
     expect(candidate).toMatchObject({
       ok: false,
       sessionId: "target-session",
@@ -917,10 +1016,10 @@ describe("agent-repl MCP recovery resume transaction", () => {
       recoveryError: null,
     };
     const candidate = prepareReplJsonlResumeCandidate("target-session", {
-      loadMcpLedgerRecovery: () => verifiedReplRecovery("target-session"),
-      formatMcpLedgerRecoveryNotice: () => null,
-      rebuildMessages: () => {
-        throw new Error("target rebuild failed");
+      readSessionHostResumeState: () => {
+        const error = new Error("target rebuild failed");
+        error.code = "CC_REPL_SESSION_REBUILD_FAILED";
+        throw error;
       },
     });
     const commit = vi.fn((prepared) => {
@@ -940,7 +1039,7 @@ describe("agent-repl MCP recovery resume transaction", () => {
     });
   });
 
-  it("commits an unreadable target only with an ALL-blocking recovery error", async () => {
+  it("refuses an unreadable target before commit with ALL-blocking authority", async () => {
     const { commitPreparedReplJsonlResume, prepareReplJsonlResumeCandidate } =
       await import("../../src/repl/agent-repl.js");
     const { createRecoveryGuardedMcpCallLedger } =
@@ -949,28 +1048,27 @@ describe("agent-repl MCP recovery resume transaction", () => {
       code: "SESSION_TRANSCRIPT_UNVERIFIED",
     });
     const candidate = prepareReplJsonlResumeCandidate("target-session", {
-      loadMcpLedgerRecovery: () => {
+      readSessionHostResumeState: () => {
         throw readError;
       },
-      rebuildMessages: () => [{ role: "user", content: "restored" }],
     });
     const state = { sessionId: "old-session", recoveryError: null };
 
-    expect(candidate.ok).toBe(true);
+    expect(candidate.ok).toBe(false);
     expect(
       commitPreparedReplJsonlResume(candidate, (prepared) => {
         state.sessionId = prepared.sessionId;
         state.recoveryError = prepared.mcp.recoveryError;
       }),
-    ).toBe(true);
-    expect(state).toMatchObject({
-      sessionId: "target-session",
-      recoveryError: { code: "SESSION_TRANSCRIPT_UNVERIFIED" },
+    ).toBe(false);
+    expect(state).toEqual({
+      sessionId: "old-session",
+      recoveryError: null,
     });
 
     const ledger = createRecoveryGuardedMcpCallLedger({
       recovery: candidate.mcp.recovery,
-      recoveryError: state.recoveryError,
+      recoveryError: candidate.mcp.recoveryError,
     });
     await expect(
       ledger.begin({
@@ -1339,15 +1437,15 @@ describe("agent-repl MCP recovery resume transaction", () => {
       },
     });
     accessorMessages.length = 1;
-    const prepare = (rebuildMessages) =>
+    const prepare = (messages) =>
       prepareReplJsonlResumeCandidate("target-session", {
-        loadMcpLedgerRecovery: () => verifiedReplRecovery("target-session"),
+        readSessionHostResumeState: () =>
+          verifiedReplResumeState("target-session", { messages }),
         formatMcpLedgerRecoveryNotice: () => null,
-        rebuildMessages,
       });
 
-    const proxyCandidate = prepare(() => new Proxy([], {}));
-    const accessorCandidate = prepare(() => accessorMessages);
+    const proxyCandidate = prepare(new Proxy([], {}));
+    const accessorCandidate = prepare(accessorMessages);
 
     expect(getterCalls).toBe(0);
     for (const candidate of [proxyCandidate, accessorCandidate]) {
@@ -1361,27 +1459,28 @@ describe("agent-repl MCP recovery resume transaction", () => {
     }
   });
 
-  it("turns a forged injected clean candidate into ALL-blocking authority", async () => {
+  it("turns mismatched single-sample authority into ALL-blocking refusal", async () => {
     const { prepareReplJsonlResumeCandidate } =
       await import("../../src/repl/agent-repl.js");
     const { createRecoveryGuardedMcpCallLedger } =
       await import("../../src/lib/mcp-ledger-recovery-admission.js");
-    const forged = Object.freeze({
-      sessionId: "target-session",
-      recovery: verifiedReplRecovery("target-session"),
-      recoveryError: null,
-      notice: null,
+    const mismatchedRecovery = verifiedReplRecovery("target-session", {
+      recoveryDigest: `sha256:${"d".repeat(64)}`,
     });
+    const mismatchedState = verifiedReplResumeState("target-session", {
+      recovery: mismatchedRecovery,
+    });
+    mismatchedState.snapshot.recoveryAuthority.recoveryDigest =
+      VERIFIED_RECOVERY_DIGEST;
     const candidate = prepareReplJsonlResumeCandidate("target-session", {
-      mcpRecoveryCandidate: forged,
-      rebuildMessages: () => [{ role: "user", content: "restored" }],
+      readSessionHostResumeState: () => mismatchedState,
     });
 
-    expect(candidate.ok).toBe(true);
+    expect(candidate.ok).toBe(false);
     expect(candidate.mcp).toMatchObject({
       recovery: null,
       recoveryError: {
-        code: "CC_REPL_MCP_RECOVERY_CANDIDATE_INVALID",
+        code: "CC_REPL_SESSION_AUTHORITY_MISMATCH",
       },
     });
     const ledger = createRecoveryGuardedMcpCallLedger({
@@ -1427,12 +1526,14 @@ describe("agent-repl MCP recovery resume transaction", () => {
         prepareReplJsonlResumeCandidate,
       } = await import("../../src/repl/agent-repl.js");
       const jsonlCandidate = prepareReplJsonlResumeCandidate("target-session", {
-        loadMcpLedgerRecovery: () => verifiedReplRecovery("target-session"),
+        readSessionHostResumeState: () =>
+          verifiedReplResumeState("target-session", {
+            messages: [
+              { role: "system", content: "target system" },
+              { role: "user", content: "target user" },
+            ],
+          }),
         formatMcpLedgerRecoveryNotice: () => "target recovery notice",
-        rebuildMessages: () => [
-          { role: "system", content: "target system" },
-          { role: "user", content: "target user" },
-        ],
       });
       const oldSystem = Object.freeze({ role: "system", content: "old" });
       const oldMessage = Object.freeze({ role: "user", content: "old user" });
@@ -1564,10 +1665,14 @@ describe("agent-repl MCP recovery resume transaction", () => {
       }),
     };
     const resumeCandidate = prepareReplJsonlResumeCandidate("target-session", {
-      loadMcpLedgerRecovery: () =>
-        verifiedReplRecovery("target-session", { replayDenied: [deny] }),
+      readSessionHostResumeState: () =>
+        verifiedReplResumeState("target-session", {
+          recovery: verifiedReplRecovery("target-session", {
+            replayDenied: [deny],
+          }),
+          messages: [{ role: "user", content: "target history" }],
+        }),
       formatMcpLedgerRecoveryNotice: () => null,
-      rebuildMessages: () => [{ role: "user", content: "target history" }],
     });
     const oldRawCall = vi.fn(async () => ({ content: [] }));
     const rawCall = vi.fn(async () => ({ content: [] }));

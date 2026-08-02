@@ -52,7 +52,6 @@ import {
   appendLlmRetryCompact,
   appendEvent,
   appendAuthorityEvent,
-  rebuildMessages,
   sessionExists,
   forkSession,
 } from "../harness/jsonl-session-store.js";
@@ -63,6 +62,10 @@ import {
   loadMcpLedgerRecovery,
 } from "../lib/mcp-call-ledger-store.js";
 import { createMcpHostRecoveryRuntime } from "../lib/mcp-host-recovery-runtime.js";
+import {
+  isVerifiedSessionHostSnapshot,
+  readSessionHostResumeState,
+} from "../lib/session-host-snapshot.js";
 import {
   MCP_RECOVERY_INVALID_CODE,
   classifyMcpRecoveryAdmission,
@@ -1032,13 +1035,26 @@ export function readReplMcpRecoveryCandidate(sessionId, dependencies = {}) {
       "formatMcpLedgerRecoveryNotice",
       formatMcpLedgerRecoveryNotice,
     );
-    const recovery = strictReplMcpRecoverySnapshot(
+    return createReplMcpRecoveryCandidate(
+      sessionId,
       synchronousReplRecoveryValue(
         loadRecovery(sessionId),
         "MCP recovery loader result",
       ),
-      sessionId,
+      formatNotice,
     );
+  } catch (error) {
+    return failClosedReplMcpRecoveryCandidate(sessionId, error);
+  }
+}
+
+function createReplMcpRecoveryCandidate(
+  sessionId,
+  recoveryValue,
+  formatNotice = formatMcpLedgerRecoveryNotice,
+) {
+  try {
+    const recovery = strictReplMcpRecoverySnapshot(recoveryValue, sessionId);
     let notice = synchronousReplRecoveryValue(
       formatNotice(recovery),
       "MCP recovery formatter result",
@@ -1066,41 +1082,6 @@ export function readReplMcpRecoveryCandidate(sessionId, dependencies = {}) {
     });
   } catch (error) {
     return failClosedReplMcpRecoveryCandidate(sessionId, error);
-  }
-}
-
-function resolveReplMcpRecoveryCandidate(sessionId, dependencies) {
-  try {
-    if (
-      dependencies &&
-      (typeof dependencies !== "object" || isProxy(dependencies))
-    ) {
-      throw invalidReplRecovery("REPL recovery dependencies are invalid");
-    }
-    const descriptor = dependencies
-      ? Object.getOwnPropertyDescriptor(dependencies, "mcpRecoveryCandidate")
-      : null;
-    if (!descriptor) {
-      return readReplMcpRecoveryCandidate(sessionId, dependencies);
-    }
-    if (
-      !("value" in descriptor) ||
-      !descriptor.value ||
-      !REPL_MCP_RECOVERY_CANDIDATES.has(descriptor.value) ||
-      descriptor.value.sessionId !== sessionId
-    ) {
-      throw invalidReplRecovery(
-        "Injected MCP recovery candidate is not an authorized capability",
-        "CC_REPL_MCP_RECOVERY_CANDIDATE_INVALID",
-      );
-    }
-    return descriptor.value;
-  } catch (error) {
-    return failClosedReplMcpRecoveryCandidate(
-      sessionId,
-      error,
-      "CC_REPL_MCP_RECOVERY_CANDIDATE_INVALID",
-    );
   }
 }
 
@@ -1181,21 +1162,105 @@ function snapshotReplMessages(messages) {
   }
 }
 
+function failedReplJsonlResumeCandidate(sessionId, error, sessionSnapshot) {
+  const resumeError = replMcpRecoveryError(
+    error,
+    error?.code || "CC_SESSION_HOST_SNAPSHOT_UNVERIFIED",
+  );
+  return brandedFrozenCandidate(REPL_JSONL_RESUME_CANDIDATES, {
+    ok: false,
+    sessionId,
+    rebuiltMessages: null,
+    replayMessages: null,
+    sessionSnapshot: sessionSnapshot || null,
+    mcp: failClosedReplMcpRecoveryCandidate(
+      sessionId,
+      resumeError,
+      resumeError.code,
+      "session transcript",
+    ),
+    error: resumeError,
+  });
+}
+
 /**
- * Prepare a JSONL resume transaction. Recovery authority is always read before
- * tolerant history rebuilding. A rebuild failure carries an ALL-blocking MCP
- * recovery error, but remains uncommitted so a failed session switch cannot
- * overwrite the active session's authority state.
+ * Prepare a JSONL resume transaction from exactly one fully verified sample.
+ * Messages, the public snapshot, and MCP recovery authority are derived by the
+ * shared reader from that same event array. A present-but-invalid transcript is
+ * an inert structured refusal and cannot be committed into the active REPL.
  */
 export function prepareReplJsonlResumeCandidate(sessionId, dependencies = {}) {
-  const mcp = resolveReplMcpRecoveryCandidate(sessionId, dependencies);
+  let sessionSnapshot = null;
   try {
-    const rebuild = dependencyDataFunction(
+    const readResumeState = dependencyDataFunction(
       dependencies,
-      "rebuildMessages",
-      rebuildMessages,
+      "readSessionHostResumeState",
+      readSessionHostResumeState,
     );
-    const rebuiltMessages = snapshotReplMessages(rebuild(sessionId));
+    const formatNotice = dependencyDataFunction(
+      dependencies,
+      "formatMcpLedgerRecoveryNotice",
+      formatMcpLedgerRecoveryNotice,
+    );
+    const state = synchronousReplRecoveryValue(
+      readResumeState(sessionId),
+      "REPL session host resume state",
+    );
+    if (state == null) {
+      const error = new Error(`Session not found: ${sessionId}`);
+      error.code = "CC_REPL_SESSION_NOT_FOUND";
+      throw error;
+    }
+    const stateDescriptors = plainDataDescriptors(
+      state,
+      "REPL session host resume state",
+    );
+    sessionSnapshot = snapshotReplMessageValue(
+      dataDescriptorValue(
+        stateDescriptors,
+        "snapshot",
+        "REPL session host resume state",
+      ),
+      "REPL session host snapshot",
+    );
+    if (
+      !isVerifiedSessionHostSnapshot(sessionSnapshot) ||
+      sessionSnapshot.sessionId !== sessionId
+    ) {
+      const error = new Error(
+        "Canonical JSONL session is not fully verified; resume was refused",
+      );
+      error.code = "CC_SESSION_HOST_SNAPSHOT_UNVERIFIED";
+      throw error;
+    }
+    const rebuiltMessages = snapshotReplMessages(
+      dataDescriptorValue(
+        stateDescriptors,
+        "messages",
+        "REPL session host resume state",
+      ),
+    );
+    const mcp = createReplMcpRecoveryCandidate(
+      sessionId,
+      dataDescriptorValue(
+        stateDescriptors,
+        "recovery",
+        "REPL session host resume state",
+      ),
+      formatNotice,
+    );
+    if (
+      mcp.recoveryError ||
+      mcp.recovery.headHash !== sessionSnapshot.head.hash ||
+      mcp.recovery.recoveryDigest !==
+        sessionSnapshot.recoveryAuthority.recoveryDigest
+    ) {
+      const error = new Error(
+        "Canonical JSONL messages and MCP recovery authority do not share one head",
+      );
+      error.code = "CC_REPL_SESSION_AUTHORITY_MISMATCH";
+      throw error;
+    }
     const replayMessages = Object.freeze(
       rebuiltMessages.filter((message) => message.role !== "system"),
     );
@@ -1204,28 +1269,37 @@ export function prepareReplJsonlResumeCandidate(sessionId, dependencies = {}) {
       sessionId,
       rebuiltMessages,
       replayMessages,
+      sessionSnapshot,
       mcp,
       error: null,
     });
   } catch (error) {
-    const resumeError = replMcpRecoveryError(
-      error,
-      "CC_REPL_SESSION_REBUILD_FAILED",
-    );
-    return brandedFrozenCandidate(REPL_JSONL_RESUME_CANDIDATES, {
-      ok: false,
-      sessionId,
-      rebuiltMessages: null,
-      replayMessages: null,
-      mcp: failClosedReplMcpRecoveryCandidate(
-        sessionId,
-        mcp.recoveryError || resumeError,
-        mcp.recoveryError?.code || "CC_REPL_SESSION_REBUILD_FAILED",
-        "session transcript",
-      ),
-      error: resumeError,
-    });
+    return failedReplJsonlResumeCandidate(sessionId, error, sessionSnapshot);
   }
+}
+
+/**
+ * Resolve startup storage only after a requested canonical JSONL session has
+ * been sampled and verified. A present canonical session is authoritative;
+ * feature/config reads are reserved for new sessions or the legacy DB
+ * fallback when no JSONL transcript exists.
+ */
+export function prepareReplStartupResume(sessionId, dependencies = {}) {
+  if (sessionId) {
+    const candidate = prepareReplJsonlResumeCandidate(sessionId, dependencies);
+    if (candidate.ok) {
+      return Object.freeze({ useJsonl: true, candidate });
+    }
+    if (candidate.error?.code !== "CC_REPL_SESSION_NOT_FOUND") {
+      return Object.freeze({ useJsonl: true, candidate });
+    }
+  }
+
+  const readFeature = dependencyDataFunction(dependencies, "feature", feature);
+  return Object.freeze({
+    useJsonl: Boolean(readFeature("JSONL_SESSION")),
+    candidate: null,
+  });
 }
 
 function commitPreparedReplResume(prepared, commit, rollback) {
@@ -1471,6 +1545,28 @@ async function startAgentReplInWorkspace(options = {}) {
     }
     process.exit(0);
   });
+  const { useJsonl, candidate: _startupJsonlResume } = prepareReplStartupResume(
+    options.sessionId,
+  );
+  if (_startupJsonlResume && !_startupJsonlResume.ok) {
+    const refusal = Object.freeze({
+      started: false,
+      exitCode: 1,
+      code:
+        _startupJsonlResume.error?.code ||
+        "CC_SESSION_HOST_SNAPSHOT_UNVERIFIED",
+      sessionId: options.sessionId,
+      sessionSnapshot: _startupJsonlResume.sessionSnapshot || null,
+    });
+    logger.error(
+      JSON.stringify({
+        type: "session.resume.refused",
+        ...refusal,
+      }),
+    );
+    process.exitCode = 1;
+    return refusal;
+  }
   let model = options.model || "qwen2.5:7b";
   let provider = options.provider || "ollama";
   // Extended thinking (Anthropic; opt-in via --think/--ultrathink). Carried from
@@ -1591,7 +1687,7 @@ async function startAgentReplInWorkspace(options = {}) {
   // Bootstrap runtime (best-effort, DB not required)
   let db = null;
   let contextEngine = null;
-  let sessionId = null;
+  let sessionId = _startupJsonlResume?.sessionId || null;
 
   try {
     const ctx = await bootstrap({ verbose: false });
@@ -1981,19 +2077,10 @@ async function startAgentReplInWorkspace(options = {}) {
     _pluginSettingsRestore = null;
   }
 
-  // Resume existing session or create new one
-  const useJsonl = feature("JSONL_SESSION");
-
-  if (useJsonl && options.sessionId) {
-    // JSONL resume: check if session file exists
-    try {
-      if (sessionExists(options.sessionId)) {
-        sessionId = options.sessionId;
-      }
-    } catch (_err) {
-      // Non-critical
-    }
-  } else if (db && options.sessionId) {
+  // Resume existing session or create new one. JSONL resumes were admitted
+  // before bootstrap/config/plugin/hook initialization and use that exact
+  // verified sample below; do not re-read the transcript here.
+  if (!useJsonl && db && options.sessionId) {
     try {
       const existing = getSession(db, options.sessionId);
       if (existing && existing.messages) {
@@ -2155,12 +2242,8 @@ async function startAgentReplInWorkspace(options = {}) {
   const messages = [{ role: "system", content: _replBaseSystem }];
   let _mcpLedgerRecovery = null;
   let _mcpLedgerRecoveryError = null;
-  const _readMcpRecoveryCandidate = (targetSessionId) =>
-    readReplMcpRecoveryCandidate(targetSessionId);
   const _prepareJsonlResumeCandidate = (targetSessionId) =>
-    prepareReplJsonlResumeCandidate(targetSessionId, {
-      mcpRecoveryCandidate: _readMcpRecoveryCandidate(targetSessionId),
-    });
+    prepareReplJsonlResumeCandidate(targetSessionId);
   const _prepareMcpRecoveryCommit = (candidate) => {
     const authorized =
       candidate && REPL_MCP_RECOVERY_CANDIDATES.has(candidate)
@@ -2642,32 +2725,21 @@ async function startAgentReplInWorkspace(options = {}) {
     }
   }
 
+  let _startupResumeCommitted = false;
   // Load resumed session messages
   if (options.sessionId && sessionId) {
     try {
       if (useJsonl) {
-        // Interactive tamper warning: a broken hash chain means the transcript
-        // was edited outside the store — resume proceeds (the user is present)
-        // but the restored context is flagged untrusted.
-        try {
-          const { verifySession } =
-            await import("../harness/jsonl-session-store.js");
-          const trust = verifySession(sessionId);
-          if (trust.status === "tampered") {
-            logger.warn(
-              `⚠ Transcript integrity check FAILED (${trust.reason}) — restored context is untrusted. Run 'cc session verify ${sessionId}'.`,
-            );
-          }
-        } catch (_err) {
-          // verification is best-effort in the interactive path
-        }
-        const prepared = _prepareJsonlResumeCandidate(sessionId);
-        _commitMcpRecoveryCandidate(messages, prepared.mcp);
-        if (!prepared.ok) {
-          logger.warn(
-            `⚠ Session history rebuild failed closed (${prepared.error.code}); MCP tools remain blocked.`,
+        const prepared = _startupJsonlResume;
+        if (!prepared?.ok) {
+          const error = new Error(
+            "Startup JSONL resume lost its verified admission capability",
           );
-        } else if (prepared.rebuiltMessages.length > 0) {
+          error.code = "CC_REPL_SESSION_RESUME_NOT_PREPARED";
+          throw error;
+        }
+        _commitMcpRecoveryCandidate(messages, prepared.mcp);
+        if (prepared.rebuiltMessages.length > 0) {
           messages.push(
             ...prepared.rebuiltMessages.filter((m) => m.role !== "system"),
           );
@@ -2678,6 +2750,7 @@ async function startAgentReplInWorkspace(options = {}) {
             `Resumed JSONL session ${sessionId} (${prepared.rebuiltMessages.length} messages)`,
           );
         }
+        _startupResumeCommitted = true;
       } else if (db) {
         const existing = getSession(db, sessionId);
         if (existing && existing.messages) {
@@ -2691,6 +2764,7 @@ async function startAgentReplInWorkspace(options = {}) {
           logger.info(
             `Resumed session ${sessionId} (${parsed.length} messages)`,
           );
+          _startupResumeCommitted = true;
         }
       }
     } catch (error) {
@@ -2709,7 +2783,7 @@ async function startAgentReplInWorkspace(options = {}) {
     // settings.json SessionResume hooks: a persisted transcript was just
     // replayed into this interactive session (distinct from SessionStart).
     // Observe-only, best-effort — never blocks entering the REPL.
-    if (_settingsHooks && messages.some((m) => m.role !== "system")) {
+    if (_settingsHooks && _startupResumeCommitted) {
       try {
         const { runObserveHooks } =
           await import("../lib/settings-hook-events.js");
@@ -5029,19 +5103,7 @@ async function startAgentReplInWorkspace(options = {}) {
       if (sessionArg.startsWith("resume ")) {
         const resumeId = sessionArg.slice(7).trim();
         try {
-          if (useJsonl && sessionExists(resumeId)) {
-            try {
-              const { verifySession } =
-                await import("../harness/jsonl-session-store.js");
-              const trust = verifySession(resumeId);
-              if (trust.status === "tampered") {
-                logger.warn(
-                  `⚠ Transcript integrity check FAILED (${trust.reason}) — restored context is untrusted. Run 'cc session verify ${resumeId}'.`,
-                );
-              }
-            } catch (_err) {
-              // verification is best-effort in the interactive path
-            }
+          if (useJsonl) {
             const prepared = _prepareJsonlResumeCandidate(resumeId);
             if (!prepared.ok) throw prepared.error;
             const preparedMcpRuntime = _prepareMcpHostRuntime(
@@ -5114,7 +5176,14 @@ async function startAgentReplInWorkspace(options = {}) {
             logger.info("No session store available");
           }
         } catch (err) {
-          logger.error(`Resume failed: ${err.message}`);
+          logger.error(
+            JSON.stringify({
+              type: "session.resume.refused",
+              code: err?.code || "CC_REPL_SESSION_RESUME_FAILED",
+              sessionId: resumeId,
+              message: err?.message || "Session resume failed",
+            }),
+          );
         }
       } else {
         logger.info(`Session ID: ${sessionId || "none"}`);
