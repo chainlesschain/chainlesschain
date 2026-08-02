@@ -46,6 +46,10 @@ export class TeamRunner {
     // Team-wide token/USD/time/task budget (null → unbounded). Consulted before
     // every claim; folded after every settled task.
     this.budget = opts.budget || null;
+    // Optional process/session-wide authority shared with non-team sub-agents,
+    // tools and background work. TeamBudget remains the team-specific pricing
+    // and reservation facade; this budget owns global concurrency + cascade.
+    this.sessionBudget = opts.sessionBudget || null;
     this.budgetForTask =
       typeof opts.budgetForTask === "function" ? opts.budgetForTask : null;
     // Directed/broadcast messaging between teammates (null → disabled).
@@ -338,6 +342,7 @@ export class TeamRunner {
         armWallTimer();
       }
     }
+    this.sessionBudget?.start?.();
     const workers = [];
     const workerCount = Math.min(
       this.teammates,
@@ -372,9 +377,11 @@ export class TeamRunner {
       requestedTeammates: this.teammates,
       activeTeammates: workerCount,
       budgetStopped: this._budgetStopped,
-      budgetReason: this.budget
-        ? this.budget.reason()
-        : this._registryBudgetReason,
+      budgetReason:
+        this.budget?.reason?.() ||
+        this.sessionBudget?.reason?.() ||
+        this._registryBudgetReason,
+      sessionBudgetStatus: this.sessionBudget?.status?.() || null,
       members: this.members(),
       messages: this.mailbox ? this.mailbox.size() : 0,
       mailboxStatus: this.mailbox?.status?.() || null,
@@ -393,6 +400,15 @@ export class TeamRunner {
     for (;;) {
       if (this._fatalError) {
         this._setState(holder, "shutdown", { reason: "fatal-error" });
+        return;
+      }
+      if (this.sessionBudget?.signal?.aborted) {
+        const reason = this.sessionBudget.reason?.() || "session-aborted";
+        if (!this._budgetStopped) {
+          this._budgetStopped = true;
+          this._emit("run:budget-exhausted", { reason });
+        }
+        this._setState(holder, "shutdown", { reason });
         return;
       }
       if (this._executions + this._reservedExecutions >= this.maxTasks) {
@@ -490,8 +506,74 @@ export class TeamRunner {
         });
         return;
       }
+      let sessionWork;
+      try {
+        sessionWork = this._reserveSessionWork(key, acq.lease);
+      } catch (error) {
+        this.registry.release(key, {
+          holder,
+          leaseId: acq.lease.leaseId,
+        });
+        if (budgetReservation.id) {
+          this.budget?.releaseReservation?.(budgetReservation.id);
+        }
+        this._setFatal(error, {
+          phase: "session-budget-acquire",
+          key,
+          holder,
+        });
+        this._setState(holder, "shutdown", { reason: "fatal-error" });
+        return;
+      }
+      if (!sessionWork.ok) {
+        this.registry.release(key, {
+          holder,
+          leaseId: acq.lease.leaseId,
+        });
+        if (budgetReservation.id) {
+          this.budget?.releaseReservation?.(budgetReservation.id);
+        }
+        if (sessionWork.retryable) {
+          this._setState(holder, "idle");
+          // The occupied global slot may belong to a background task outside
+          // this runner, so no TeamRunner progress event is guaranteed.
+          await this._tick();
+          continue;
+        }
+        if (!this._budgetStopped) {
+          this._budgetStopped = true;
+          this._emit("run:budget-exhausted", {
+            reason: sessionWork.reason,
+          });
+        }
+        this._setState(holder, "shutdown", {
+          reason: sessionWork.reason,
+        });
+        return;
+      }
       this._reservedExecutions++;
-      const claim = this._beginClaim(holder, key, acq.lease, budgetReservation);
+      let claim;
+      try {
+        claim = this._beginClaim(
+          holder,
+          key,
+          acq.lease,
+          budgetReservation,
+          sessionWork,
+        );
+      } catch (error) {
+        this._reservedExecutions = Math.max(0, this._reservedExecutions - 1);
+        this.registry.release(key, {
+          holder,
+          leaseId: acq.lease.leaseId,
+        });
+        if (budgetReservation.id) {
+          this.budget?.releaseReservation?.(budgetReservation.id);
+        }
+        this._setFatal(error, { phase: "session-budget-bind", key, holder });
+        this._setState(holder, "shutdown", { reason: "fatal-error" });
+        return;
+      }
       if (!this._acquireScope(holder, key)) {
         this._abandonClaim(holder, key, claim);
         if (this._fatalError) {
@@ -524,20 +606,24 @@ export class TeamRunner {
       // Preserve an explicit human interruption so `_execute` can settle it
       // fail-closed for adjudication instead of silently abandoning it.
       const preparedBudgetReason = this.budget?.reason?.();
+      const preparedSessionReason = this.sessionBudget?.signal?.aborted
+        ? this.sessionBudget.reason?.() || "session-aborted"
+        : null;
       if (
         !claim.interruption &&
         !claim.coordinatorAbort &&
-        preparedBudgetReason === "max-wall-ms"
+        (preparedBudgetReason === "max-wall-ms" || preparedSessionReason)
       ) {
+        const reason = preparedSessionReason || preparedBudgetReason;
         if (!this._budgetStopped) {
           this._budgetStopped = true;
           this._emit("run:budget-exhausted", {
-            reason: preparedBudgetReason,
+            reason,
           });
         }
         this._abandonClaim(holder, key, claim);
         this._setState(holder, "shutdown", {
-          reason: preparedBudgetReason,
+          reason,
         });
         return;
       }
@@ -602,7 +688,22 @@ export class TeamRunner {
     };
   }
 
-  _beginClaim(holder, key, lease, budgetReservation = null) {
+  _reserveSessionWork(key, lease) {
+    if (!this.sessionBudget?.acquireWork) return { ok: true, release: null };
+    return this.sessionBudget.acquireWork({
+      id: `team-task:${lease?.leaseId || key}`,
+      kind: "team-task",
+      depth: 1,
+    });
+  }
+
+  _beginClaim(
+    holder,
+    key,
+    lease,
+    budgetReservation = null,
+    sessionWork = null,
+  ) {
     const claim = {
       holder,
       key,
@@ -614,6 +715,11 @@ export class TeamRunner {
       abortController: new AbortController(),
       budgetReservation,
       budgetSettled: false,
+      sessionWork,
+      sessionBudgetSettled: false,
+      sessionBudgetUsageHandledByExecutor: false,
+      sessionBudgetView: null,
+      unregisterSessionAbortable: null,
       interruption: null,
       coordinatorAbort: null,
     };
@@ -623,6 +729,29 @@ export class TeamRunner {
     this._activeKeys.add(key);
     this._claimControllers.add(claim.abortController);
     this._claimsByKey.set(key, claim);
+    if (this.sessionBudget?.registerAbortable && sessionWork?.id) {
+      try {
+        claim.unregisterSessionAbortable = this.sessionBudget.registerAbortable(
+          `team-claim:${sessionWork.id}`,
+          (reason) => {
+            if (!claim.abortController.signal.aborted) {
+              claim.abortController.abort(reason);
+            }
+          },
+        );
+      } catch (error) {
+        this._activeKeys.delete(key);
+        this._claimControllers.delete(claim.abortController);
+        this._claimsByKey.delete(key);
+        try {
+          sessionWork.release?.();
+        } catch {
+          // Preserve the registration failure as the authoritative cause. A
+          // conforming SessionResourceBudget release is idempotent/nonthrowing.
+        }
+        throw error;
+      }
+    }
     const effectiveTtl =
       this.ttlMs > 0 ? this.ttlMs : this.registry.defaultTtlMs || 60000;
     const every = Math.max(
@@ -753,6 +882,84 @@ export class TeamRunner {
     if (this._claimsByKey.get(claim.key) === claim) {
       this._claimsByKey.delete(claim.key);
     }
+    try {
+      claim.unregisterSessionAbortable?.();
+    } catch {
+      // The session budget may already have delivered and cleared the callback.
+    }
+    claim.unregisterSessionAbortable = null;
+    try {
+      claim.sessionWork?.release?.();
+    } catch {
+      // Session work leases are idempotent.
+    }
+    claim.sessionWork = null;
+    claim.sessionBudgetView = null;
+  }
+
+  _sessionBudgetForClaim(claim) {
+    if (!this.sessionBudget || !claim) return this.sessionBudget;
+    if (claim.sessionBudgetView) return claim.sessionBudgetView;
+    const authority = this.sessionBudget;
+    const methods = new Map();
+    claim.sessionBudgetView = new Proxy(authority, {
+      get(target, property) {
+        const value = Reflect.get(target, property, target);
+        if (typeof value !== "function") return value;
+        if (methods.has(property)) return methods.get(property);
+        const method =
+          property === "recordUsage"
+            ? (...args) => {
+                // Usage charged through the inherited authority is already in
+                // the global ledger. Remember that ownership so the task's
+                // returned aggregate is not charged a second time.
+                claim.sessionBudgetUsageHandledByExecutor = true;
+                return value.apply(target, args);
+              }
+            : value.bind(target);
+        methods.set(property, method);
+        return method;
+      },
+      set(target, property, value) {
+        return Reflect.set(target, property, value, target);
+      },
+    });
+    return claim.sessionBudgetView;
+  }
+
+  _recordSessionUsage(claim, source) {
+    if (!this.sessionBudget || claim.sessionBudgetSettled) return;
+    claim.sessionBudgetSettled = true;
+    if (claim.sessionBudgetUsageHandledByExecutor) return;
+    this.sessionBudget.recordUsage({
+      usage: source?.usage || null,
+      usageRecords: source?.usageRecords || null,
+      provider: source?.provider,
+      model: source?.model,
+    });
+  }
+
+  _sessionBudgetFailure(executionResult = null) {
+    const sharedReason = this.sessionBudget?.signal?.reason;
+    // Never attach per-task usage to the shared AbortSignal reason: every
+    // sibling observes that same Error object and would then re-record the
+    // triggering task's usage as its own failure.
+    const failure = new Error(
+      sharedReason?.message ||
+        `Session budget exhausted: ${this.sessionBudget?.reason?.() || "session-aborted"}`,
+      sharedReason instanceof Error ? { cause: sharedReason } : undefined,
+    );
+    failure.code = sharedReason?.code || "ERR_SESSION_RESOURCE_BUDGET";
+    failure.budgetReason =
+      sharedReason?.budgetReason || this.sessionBudget?.reason?.();
+    failure.retryable = false;
+    if (executionResult && typeof executionResult === "object") {
+      failure.usage = executionResult.usage || null;
+      failure.usageRecords = executionResult.usageRecords || null;
+      failure.provider = executionResult.provider;
+      failure.model = executionResult.model;
+    }
+    return failure;
   }
 
   _interruptionError(claim, executionResult = null) {
@@ -947,6 +1154,15 @@ export class TeamRunner {
       if (claim.interruption) {
         throw this._interruptionError(claim);
       }
+      if (claim.coordinatorAbort) {
+        throw claim.coordinatorAbort;
+      }
+      // Synchronous observers above (`onEvent`, mailbox, tracing) may abort the
+      // shared authority after the worker's post-beforeTask check. This is the
+      // final fail-closed fence immediately before executor side effects.
+      if (this.sessionBudget?.signal?.aborted) {
+        throw this._sessionBudgetFailure();
+      }
       const result = await this.runTask({
         key,
         task,
@@ -957,6 +1173,7 @@ export class TeamRunner {
         mailbox: this.mailbox,
         budget: this.budget,
         budgetReservation: claim.budgetReservation,
+        sessionBudget: this._sessionBudgetForClaim(claim),
         signal: claim.abortController.signal,
       });
       // The executor may ignore AbortSignal or finish concurrently with an IDE
@@ -967,6 +1184,10 @@ export class TeamRunner {
       }
       if (claim.coordinatorAbort) {
         throw claim.coordinatorAbort;
+      }
+      this._recordSessionUsage(claim, result);
+      if (this.sessionBudget?.signal?.aborted) {
+        throw this._sessionBudgetFailure(result);
       }
       // Executors are allowed to return after observing (or even ignoring) an
       // aborted signal. Re-read the authoritative budget before recording or
@@ -1074,6 +1295,7 @@ export class TeamRunner {
         );
         claim.budgetSettled = true;
       }
+      this._recordSessionUsage(claim, failure);
       const outcome = this.registry.fail(key, {
         holder,
         leaseId: claim.leaseId,
