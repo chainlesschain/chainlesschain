@@ -71,8 +71,10 @@ describe("MCPClient HTTP per-call timeout", () => {
 
   it("times out a hung request on a normal (non-longRunning) server", async () => {
     // fetch never resolves but honours abort → the timeout must reject it.
-    mod._deps.fetch = (url, opts) =>
-      new Promise((_resolve, reject) => {
+    const calls = [];
+    mod._deps.fetch = (url, opts) => {
+      calls.push({ url, opts, message: JSON.parse(opts.body) });
+      return new Promise((_resolve, reject) => {
         if (opts.signal) {
           opts.signal.addEventListener("abort", () => {
             const e = new Error("aborted");
@@ -81,6 +83,7 @@ describe("MCPClient HTTP per-call timeout", () => {
           });
         }
       });
+    };
 
     await expect(
       client.connect("srv", {
@@ -88,13 +91,70 @@ describe("MCPClient HTTP per-call timeout", () => {
         requestTimeoutMs: 40, // tiny so the test is fast
       }),
     ).rejects.toThrow(/timeout/i);
+    expect(
+      calls.some(({ message }) => message.method === "notifications/cancelled"),
+    ).toBe(false);
   });
 
-  it("attaches an abort signal for normal servers", async () => {
+  it("aborts a timed-out request and sends one independent cancellation", async () => {
+    const calls = [];
+    mod._deps.fetch = (url, opts) => {
+      const message = JSON.parse(opts.body);
+      calls.push({ url, opts, message });
+      if (message.method === "notifications/cancelled") {
+        return Promise.reject(new Error("cancellation delivery failed"));
+      }
+      if (message.method === "tools/call") {
+        return new Promise((_resolve, reject) => {
+          opts.signal.addEventListener("abort", () => {
+            const error = new Error("aborted");
+            error.name = "AbortError";
+            reject(error);
+          });
+        });
+      }
+      if (message.id === undefined) return makeResponse({ body: "" });
+      return makeResponse({
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: message.id,
+          result: handshakeResult(message.method),
+        }),
+      });
+    };
+
+    await client.connect("srv", {
+      url: "https://api.example.com/mcp",
+      requestTimeoutMs: 30,
+    });
+    await expect(client.callTool("srv", "doit", {})).rejects.toThrow(
+      "Request timeout: tools/call (HTTP, no response in 30ms)",
+    );
+
+    const request = calls.find(
+      ({ message }) => message.method === "tools/call",
+    );
+    const cancellations = calls.filter(
+      ({ message }) => message.method === "notifications/cancelled",
+    );
+    expect(cancellations).toHaveLength(1);
+    expect(cancellations[0].message.params).toEqual({
+      requestId: request.message.id,
+      reason: "Request timeout: tools/call (HTTP, no response in 30ms)",
+    });
+    expect(cancellations[0].opts.signal).toBeUndefined();
+  });
+
+  it("attaches an abort signal and does not cancel completed requests", async () => {
     const calls = [];
     mod._deps.fetch = recordingFetch(calls);
 
-    await client.connect("srv", { url: "https://api.example.com/mcp" });
+    await client.connect("srv", {
+      url: "https://api.example.com/mcp",
+      requestTimeoutMs: 30,
+    });
+    await client.callTool("srv", "doit", {});
+    await new Promise((resolve) => setTimeout(resolve, 45));
 
     const requestCalls = calls.filter((c) => {
       const b = JSON.parse(c.opts.body);
@@ -104,6 +164,11 @@ describe("MCPClient HTTP per-call timeout", () => {
     for (const c of requestCalls) {
       expect(c.opts.signal).toBeDefined();
     }
+    expect(
+      calls.some(
+        (c) => JSON.parse(c.opts.body).method === "notifications/cancelled",
+      ),
+    ).toBe(false);
   });
 
   it("does NOT attach a signal for longRunning servers (openDiff exemption)", async () => {

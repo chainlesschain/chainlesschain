@@ -1691,8 +1691,15 @@ export class MCPClient extends EventEmitter {
       let timeout = null;
       if (!longRunning && timeoutMs > 0) {
         timeout = setTimeout(() => {
-          entry._pending.delete(id);
-          reject(new Error(`Request timeout: ${method}`));
+          if (!entry._pending.delete(id)) return;
+          const timeoutError = new Error(`Request timeout: ${method}`);
+          this._sendTimeoutCancellation(
+            serverName,
+            method,
+            id,
+            timeoutError.message,
+          );
+          reject(timeoutError);
         }, timeoutMs);
         entry._pending.get(id).timeout = timeout;
       }
@@ -1729,14 +1736,19 @@ export class MCPClient extends EventEmitter {
       let timeout = null;
       if (!longRunning && timeoutMs > 0) {
         timeout = setTimeout(() => {
-          entry._pending.delete(id);
-          reject(
-            mcpTransportError(
-              "CC_MCP_WS_REQUEST_TIMEOUT",
-              `Request timeout: ${method} (WebSocket, no response in ${timeoutMs}ms)`,
-              { transport: entry.transportKind, url: entry.config?.url },
-            ),
+          if (!entry._pending.delete(id)) return;
+          const timeoutError = mcpTransportError(
+            "CC_MCP_WS_REQUEST_TIMEOUT",
+            `Request timeout: ${method} (WebSocket, no response in ${timeoutMs}ms)`,
+            { transport: entry.transportKind, url: entry.config?.url },
           );
+          this._sendTimeoutCancellation(
+            serverName,
+            method,
+            id,
+            timeoutError.message,
+          );
+          reject(timeoutError);
         }, timeoutMs);
       }
       entry._pending.set(id, { resolve, reject, timeout });
@@ -1753,6 +1765,20 @@ export class MCPClient extends EventEmitter {
         );
       });
     });
+  }
+
+  _sendTimeoutCancellation(serverName, method, requestId, reason) {
+    // The initialize handshake establishes the protocol/session needed for
+    // later notifications, so it cannot itself be cancelled safely.
+    if (method === "initialize") return;
+    try {
+      this._sendNotification(serverName, "notifications/cancelled", {
+        requestId,
+        reason,
+      });
+    } catch {
+      // Cancellation is best-effort and must never replace the timeout error.
+    }
   }
 
   _sendNotification(serverName, method, params) {
@@ -1928,13 +1954,17 @@ export class MCPClient extends EventEmitter {
       : HTTP_REQUEST_TIMEOUT_MS;
     let controller = null;
     let timer = null;
+    const timeoutMessage = `Request timeout: ${method} (HTTP, no response in ${timeoutMs}ms)`;
     if (
       !longRunning &&
       timeoutMs > 0 &&
       typeof AbortController === "function"
     ) {
       controller = new AbortController();
-      timer = setTimeout(() => controller.abort(), timeoutMs);
+      timer = setTimeout(() => {
+        controller.abort();
+        this._sendTimeoutCancellation(serverName, method, id, timeoutMessage);
+      }, timeoutMs);
     }
 
     try {
@@ -1998,9 +2028,7 @@ export class MCPClient extends EventEmitter {
       return envelope.result;
     } catch (err) {
       if (controller && controller.signal.aborted) {
-        throw new Error(
-          `Request timeout: ${method} (HTTP, no response in ${timeoutMs}ms)`,
-        );
+        throw new Error(timeoutMessage);
       }
       throw err;
     } finally {

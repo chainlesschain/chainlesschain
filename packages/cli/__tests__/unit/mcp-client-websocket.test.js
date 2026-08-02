@@ -106,6 +106,7 @@ describe("MCPClient WebSocket transport contract", () => {
     await expect(
       client.callTool("fixture", "echo", { text: "hello" }),
     ).resolves.toEqual({ content: [{ type: "text", text: "hello" }] });
+    expect(notifications).not.toContain("notifications/cancelled");
     await client.disconnectAll();
   });
 
@@ -162,9 +163,24 @@ describe("MCPClient WebSocket transport contract", () => {
   });
 
   it("times out an unanswered request with a structured diagnostic", async () => {
-    const { url } = await startMcpWebSocket((_socket, message) =>
-      message.method === "tools/call" ? true : false,
-    );
+    let requestId = null;
+    const cancellations = [];
+    let resolveCancellation;
+    const cancellationReceived = new Promise((resolve) => {
+      resolveCancellation = resolve;
+    });
+    const { url } = await startMcpWebSocket((_socket, message) => {
+      if (message.method === "tools/call") {
+        requestId = message.id;
+        return true;
+      }
+      if (message.method === "notifications/cancelled") {
+        cancellations.push(message);
+        resolveCancellation(message);
+        return true;
+      }
+      return false;
+    });
     const client = new MCPClient();
     await client.connect("silent", {
       transport: "ws",
@@ -178,6 +194,21 @@ describe("MCPClient WebSocket transport contract", () => {
       url,
     });
     expect(client.servers.get("silent")._pending.size).toBe(0);
+    const cancellation = await Promise.race([
+      cancellationReceived,
+      new Promise((_, reject) =>
+        setTimeout(
+          () => reject(new Error("cancellation notification not received")),
+          1000,
+        ),
+      ),
+    ]);
+    expect(cancellation.params).toEqual({
+      requestId,
+      reason: "Request timeout: tools/call (WebSocket, no response in 25ms)",
+    });
+    await new Promise((resolve) => setTimeout(resolve, 40));
+    expect(cancellations).toHaveLength(1);
     await client.disconnectAll();
   });
 });

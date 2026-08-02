@@ -39,6 +39,8 @@ function makeFakeProc() {
   const proc = new EventEmitter();
   proc.stdout = new EventEmitter();
   proc.stderr = new EventEmitter();
+  proc.messages = [];
+  proc.ignoredMethods = new Set();
   proc.killed = false;
   proc.kill = () => {
     proc.killed = true;
@@ -48,6 +50,8 @@ function makeFakeProc() {
       let msg;
       try {
         msg = JSON.parse(String(data).trim());
+        proc.messages.push(msg);
+        if (proc.ignoredMethods.has(msg.method)) return true;
       } catch {
         return true;
       }
@@ -93,9 +97,80 @@ describe("MCPClient stdio per-call timeout (config parity with HTTP)", () => {
       requestTimeoutMs: 40, // tiny so the test is fast
     });
 
-    await expect(client.callTool("srv", "doit", {})).rejects.toThrow(
-      /Request timeout/i,
+    const callPromise = client.callTool("srv", "doit", {});
+    await expect(callPromise).rejects.toThrow(/Request timeout/i);
+
+    const request = proc.messages.find((msg) => msg.method === "tools/call");
+    const cancellations = proc.messages.filter(
+      (msg) => msg.method === "notifications/cancelled",
     );
+    expect(cancellations).toEqual([
+      {
+        jsonrpc: "2.0",
+        method: "notifications/cancelled",
+        params: {
+          requestId: request.id,
+          reason: "Request timeout: tools/call",
+        },
+      },
+    ]);
+
+    proc.stdout.emit(
+      "data",
+      Buffer.from(
+        JSON.stringify({
+          jsonrpc: "2.0",
+          id: request.id,
+          result: { late: true },
+        }) + "\n",
+      ),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    await expect(callPromise).rejects.toThrow("Request timeout: tools/call");
+    expect(client.servers.get("srv")._pending.size).toBe(0);
+    expect(
+      proc.messages.filter((msg) => msg.method === "notifications/cancelled"),
+    ).toHaveLength(1);
+  });
+
+  it("does not cancel a timed-out initialize handshake", async () => {
+    proc.ignoredMethods.add("initialize");
+
+    await expect(
+      client.connect("srv", {
+        command: "fake-mcp",
+        requestTimeoutMs: 30,
+      }),
+    ).rejects.toThrow("Request timeout: initialize");
+    expect(
+      proc.messages.some((msg) => msg.method === "notifications/cancelled"),
+    ).toBe(false);
+  });
+
+  it("does not cancel a request whose response arrives before its timeout", async () => {
+    await client.connect("srv", {
+      command: "fake-mcp",
+      requestTimeoutMs: 30,
+    });
+
+    const callPromise = client.callTool("srv", "doit", {});
+    const request = proc.messages.find((msg) => msg.method === "tools/call");
+    proc.stdout.emit(
+      "data",
+      Buffer.from(
+        JSON.stringify({
+          jsonrpc: "2.0",
+          id: request.id,
+          result: { ok: true },
+        }) + "\n",
+      ),
+    );
+
+    await expect(callPromise).resolves.toEqual({ ok: true });
+    await new Promise((resolve) => setTimeout(resolve, 45));
+    expect(
+      proc.messages.some((msg) => msg.method === "notifications/cancelled"),
+    ).toBe(false);
   });
 
   it("arms a timeout timer by default (regression guard for the 30s default)", async () => {
