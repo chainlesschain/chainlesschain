@@ -12,6 +12,11 @@
  * digest immediately before mutation.
  */
 
+import {
+  CHECKPOINT_RESTORE_SAGA_PHASES,
+  CHECKPOINT_RESTORE_SAGA_TERMINAL_PHASES,
+} from "./checkpoint-restore-saga.js";
+
 export const CHECKPOINT_RESTORE_RECOVERY_PROJECTION_SCHEMA =
   "chainlesschain.checkpoint-restore-recovery-projection";
 export const CHECKPOINT_RESTORE_RECOVERY_LIST_SCHEMA =
@@ -23,27 +28,27 @@ const HASH_PATTERN = /^sha256:[a-f0-9]{64}$/;
 const OPERATION_ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,127}$/;
 const SAFE_ERROR_CODE_PATTERN = /^[A-Z][A-Z0-9_]{0,127}$/;
 
-const PHASES = new Set([
-  "created",
-  "locked",
-  "prepared",
-  "intent_committed",
-  "safety_ready",
-  "mutation_started",
-  "workspace_applied",
-  "session_committed",
-  "completed",
-  "aborted",
-  "rolled_back",
-  "recovery_required",
-  "recovery_started",
-]);
+const PHASES = new Set(CHECKPOINT_RESTORE_SAGA_PHASES);
 const RECOVERY_PHASES = new Set(["recovery_required", "recovery_started"]);
-const TERMINAL_PHASES = new Set(["completed", "aborted", "rolled_back"]);
-const MUTATED_BASE_PHASES = new Set([
+const TERMINAL_PHASES = new Set(CHECKPOINT_RESTORE_SAGA_TERMINAL_PHASES);
+const WORKSPACE_ROLLBACK_CANDIDATE_BASE_PHASES = new Set([
   "mutation_started",
+  "rollback_prepared",
+  "rollback_started",
+]);
+const WORKSPACE_ROLLBACK_SETTLED_BASE_PHASES = new Set([
+  "workspace_rolled_back",
+  "session_rollback_committed",
+]);
+const POST_APPLY_BASE_PHASES = new Set([
   "workspace_applied",
   "session_committed",
+]);
+const ROLLBACK_BINDING_BASE_PHASES = new Set([
+  "rollback_prepared",
+  "rollback_started",
+  "workspace_rolled_back",
+  "session_rollback_committed",
 ]);
 const ABORT_CANDIDATE_BASE_PHASES = new Set([
   "created",
@@ -199,6 +204,185 @@ function optionalCount(value) {
   return Number.isSafeInteger(value) && value >= 0 ? value : null;
 }
 
+function boundedEvidenceText(value, maximum) {
+  if (
+    typeof value !== "string" ||
+    value.length === 0 ||
+    value.length > maximum ||
+    value.trim() !== value
+  ) {
+    return false;
+  }
+  for (let index = 0; index < value.length; index += 1) {
+    const code = value.charCodeAt(index);
+    if (code < 32 || code === 127) return false;
+  }
+  return true;
+}
+
+function strictConsistentEvidence(events, key, validator) {
+  let projected = null;
+  let present = false;
+  for (const event of events) {
+    if (!Object.hasOwn(event.evidence, key)) continue;
+    const value = event.evidence[key];
+    if (!validator(value) || (present && value !== projected)) {
+      throw new TypeError(`checkpoint restore rollback ${key} is invalid`);
+    }
+    projected = value;
+    present = true;
+  }
+  return present ? projected : null;
+}
+
+function projectRollbackEvidence(events, basePhase, hasSessionAuthority) {
+  const empty = () =>
+    Object.freeze({
+      phase: null,
+      recoveryRequestId: null,
+      rollbackPrestateDigest: null,
+      rollbackPlanIdentity: null,
+      originalMutationTargetCount: null,
+      targetCount: null,
+      rolledBackCount: null,
+      rollbackStateDigest: null,
+      resultDigest: null,
+      sessionRollbackCommitDigest: null,
+    });
+  const recoveryStarts = events.filter(
+    (event) =>
+      event.phase === "recovery_started" &&
+      Object.hasOwn(event.evidence, "recoveryRequestId"),
+  );
+  for (const event of recoveryStarts) {
+    if (!boundedEvidenceText(event.evidence.recoveryRequestId, 256)) {
+      throw new TypeError(
+        "checkpoint restore rollback recoveryRequestId is invalid",
+      );
+    }
+  }
+  const recoveryRequestId = recoveryStarts.at(-1)?.evidence.recoveryRequestId;
+  if (recoveryRequestId === undefined) {
+    if (ROLLBACK_BINDING_BASE_PHASES.has(basePhase)) {
+      throw new TypeError(
+        "checkpoint restore rollback recoveryRequestId is missing",
+      );
+    }
+    return empty();
+  }
+
+  const rollbackEvents = events.filter(
+    (event) => event.evidence.recoveryRequestId === recoveryRequestId,
+  );
+  const phaseRank = new Map([
+    ["recovery_started", 0],
+    ["rollback_prepared", 1],
+    ["rollback_started", 2],
+    ["workspace_rolled_back", 3],
+    ["session_rollback_committed", 4],
+    ["rolled_back", 5],
+  ]);
+  let requestPhase = "recovery_started";
+  for (const event of rollbackEvents) {
+    if (
+      phaseRank.has(event.phase) &&
+      phaseRank.get(event.phase) > phaseRank.get(requestPhase)
+    ) {
+      requestPhase = event.phase;
+    }
+  }
+  const rollback = {
+    phase: requestPhase,
+    recoveryRequestId: strictConsistentEvidence(
+      rollbackEvents,
+      "recoveryRequestId",
+      (value) => boundedEvidenceText(value, 256),
+    ),
+    rollbackPrestateDigest: strictConsistentEvidence(
+      rollbackEvents,
+      "rollbackPrestateDigest",
+      (value) => typeof value === "string" && HASH_PATTERN.test(value),
+    ),
+    rollbackPlanIdentity: strictConsistentEvidence(
+      rollbackEvents,
+      "rollbackPlanIdentity",
+      (value) => typeof value === "string" && HASH_PATTERN.test(value),
+    ),
+    originalMutationTargetCount: strictConsistentEvidence(
+      rollbackEvents,
+      "originalMutationTargetCount",
+      (value) => Number.isSafeInteger(value) && value >= 0,
+    ),
+    targetCount: strictConsistentEvidence(
+      rollbackEvents,
+      "targetCount",
+      (value) => Number.isSafeInteger(value) && value >= 0,
+    ),
+    rolledBackCount: strictConsistentEvidence(
+      rollbackEvents,
+      "rolledBackCount",
+      (value) => Number.isSafeInteger(value) && value >= 0,
+    ),
+    rollbackStateDigest: strictConsistentEvidence(
+      rollbackEvents,
+      "rollbackStateDigest",
+      (value) => typeof value === "string" && HASH_PATTERN.test(value),
+    ),
+    resultDigest: strictConsistentEvidence(
+      rollbackEvents,
+      "resultDigest",
+      (value) => typeof value === "string" && HASH_PATTERN.test(value),
+    ),
+    sessionRollbackCommitDigest: strictConsistentEvidence(
+      rollbackEvents,
+      "sessionRollbackCommitDigest",
+      (value) => typeof value === "string" && HASH_PATTERN.test(value),
+    ),
+  };
+  const bindingComplete = [
+    "recoveryRequestId",
+    "rollbackPrestateDigest",
+    "rollbackPlanIdentity",
+    "originalMutationTargetCount",
+    "targetCount",
+  ].every((field) => rollback[field] !== null);
+  const workspaceSettlementComplete = [
+    "rolledBackCount",
+    "rollbackStateDigest",
+    "resultDigest",
+  ].every((field) => rollback[field] !== null);
+  const bindingRequired = [
+    "rollback_prepared",
+    "rollback_started",
+    "workspace_rolled_back",
+    "session_rollback_committed",
+    "rolled_back",
+  ].includes(requestPhase);
+  const workspaceSettlementRequired = [
+    "workspace_rolled_back",
+    "session_rollback_committed",
+    "rolled_back",
+  ].includes(requestPhase);
+  if (
+    (bindingRequired && !bindingComplete) ||
+    (workspaceSettlementRequired && !workspaceSettlementComplete) ||
+    ((requestPhase === "session_rollback_committed" ||
+      (requestPhase === "rolled_back" && hasSessionAuthority)) &&
+      rollback.sessionRollbackCommitDigest === null) ||
+    (rollback.originalMutationTargetCount !== null &&
+      rollback.targetCount !== null &&
+      rollback.targetCount > rollback.originalMutationTargetCount) ||
+    (rollback.rolledBackCount !== null &&
+      (rollback.targetCount === null ||
+        rollback.rolledBackCount !== rollback.targetCount))
+  ) {
+    throw new TypeError(
+      "checkpoint restore rollback evidence is incomplete or inconsistent",
+    );
+  }
+  return Object.freeze(rollback);
+}
+
 function safeErrorCode(value) {
   return typeof value === "string" && SAFE_ERROR_CODE_PATTERN.test(value)
     ? value
@@ -216,6 +400,24 @@ function recoveryBasePhase(events) {
     }
   }
   return basePhase;
+}
+
+function recoveryStatus({ phase, basePhase, terminal, hasSessionAuthority }) {
+  if (terminal) return "terminal";
+  if (["rollback_prepared", "rollback_started"].includes(basePhase)) {
+    return "rollback_in_progress";
+  }
+  if (basePhase === "workspace_rolled_back") {
+    return hasSessionAuthority
+      ? "workspace_rolled_back_pending_session"
+      : "workspace_rolled_back_pending_terminal";
+  }
+  if (basePhase === "session_rollback_committed") {
+    return "session_rollback_pending_terminal";
+  }
+  if (phase === "recovery_required") return "recovery_required";
+  if (phase === "recovery_started") return "recovery_in_progress";
+  return "pending";
 }
 
 function action({ candidate, eligible, blockers, prerequisites }) {
@@ -334,21 +536,29 @@ function deriveActionEligibility({
     }
   }
 
-  const mutationBoundaryReached = MUTATED_BASE_PHASES.has(basePhase);
+  const workspaceRollbackPhase =
+    WORKSPACE_ROLLBACK_CANDIDATE_BASE_PHASES.has(basePhase);
+  const workspaceRollbackSettled =
+    WORKSPACE_ROLLBACK_SETTLED_BASE_PHASES.has(basePhase);
+  const postApplySettlement = POST_APPLY_BASE_PHASES.has(basePhase);
   const rollbackCandidate =
     pending &&
     knownBasePhase &&
     clean &&
-    mutationBoundaryReached &&
+    workspaceRollbackPhase &&
     hasFullSafety;
   const rollbackBlockers = [];
   if (!pending) rollbackBlockers.push("saga_is_terminal");
   if (!knownBasePhase) rollbackBlockers.push("base_phase_unknown");
   if (!clean) rollbackBlockers.push("saga_has_orphan_temporary_files");
-  if (pending && knownBasePhase && !mutationBoundaryReached) {
+  if (pending && knownBasePhase && workspaceRollbackSettled) {
+    rollbackBlockers.push("workspace_rollback_already_settled");
+  } else if (pending && knownBasePhase && postApplySettlement) {
+    rollbackBlockers.push("workspace_rollback_not_partial_mutation");
+  } else if (pending && knownBasePhase && !workspaceRollbackPhase) {
     rollbackBlockers.push("workspace_mutation_not_proven");
   }
-  if (pending && mutationBoundaryReached && !hasFullSafety) {
+  if (pending && workspaceRollbackPhase && !hasFullSafety) {
     rollbackBlockers.push("full_safety_evidence_missing");
   }
   if (rollbackCandidate) {
@@ -468,6 +678,11 @@ export function projectCheckpointRestoreRecovery(input) {
     safetyId !== null &&
     safetyIdentity !== null &&
     safetyPlanIdentity !== null;
+  const rollback = projectRollbackEvidence(
+    events,
+    basePhase,
+    hasSessionAuthority,
+  );
   const actionEligibility = deriveActionEligibility({
     phase: saga.phase,
     basePhase,
@@ -484,13 +699,12 @@ export function projectCheckpointRestoreRecovery(input) {
     operationId: saga.operationId,
     phase: saga.phase,
     basePhase,
-    status: saga.terminal
-      ? "terminal"
-      : saga.phase === "recovery_required"
-        ? "recovery_required"
-        : saga.phase === "recovery_started"
-          ? "recovery_in_progress"
-          : "pending",
+    status: recoveryStatus({
+      phase: saga.phase,
+      basePhase,
+      terminal: saga.terminal,
+      hasSessionAuthority,
+    }),
     pending: saga.pending,
     terminal: saga.terminal,
     seq: saga.seq,
@@ -536,6 +750,7 @@ export function projectCheckpointRestoreRecovery(input) {
       planIdentity: safetyPlanIdentity,
       complete: hasFullSafety,
     }),
+    rollback,
     authority: Object.freeze({
       workspaceOwnerEvidencePresent,
       workspaceOwnerDigestPresent: workspaceLockOwnerDigest !== null,

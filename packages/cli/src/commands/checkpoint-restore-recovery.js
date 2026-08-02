@@ -11,6 +11,7 @@
 import { realpathSync } from "node:fs";
 import path from "node:path";
 import {
+  CHECKPOINT_RESTORE_SAGA_PHASES,
   CheckpointRestoreSagaStore,
   computeCheckpointRestoreWorkspaceLockOwnerDigest,
 } from "../lib/checkpoint-restore-saga.js";
@@ -58,21 +59,7 @@ export const CHECKPOINT_RESTORE_RECOVERY_CLI_ERROR_CODES = Object.freeze({
 const HASH_PATTERN = /^sha256:[a-f0-9]{64}$/;
 const OPERATION_ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,127}$/;
 const ERROR_CODE_PATTERN = /^[A-Z][A-Z0-9_]{0,127}$/;
-const PHASES = new Set([
-  "created",
-  "locked",
-  "prepared",
-  "intent_committed",
-  "safety_ready",
-  "mutation_started",
-  "workspace_applied",
-  "session_committed",
-  "completed",
-  "aborted",
-  "rolled_back",
-  "recovery_required",
-  "recovery_started",
-]);
+const PHASES = new Set(CHECKPOINT_RESTORE_SAGA_PHASES);
 const CONTROLLER_ABORT_PHASES = new Set(["created", "locked"]);
 const CONTROLLER_RESUME_PHASES = new Set([
   "workspace_applied",
@@ -542,10 +529,15 @@ function deriveCommandActions(projection, authority) {
 
   const deferred = (name) => {
     const candidate = projection?.actionEligibility?.[name]?.candidate === true;
+    const projectedBlockers = Array.isArray(
+      projection?.actionEligibility?.[name]?.blockers,
+    )
+      ? projection.actionEligibility[name].blockers
+      : [];
     return commandAction({
       candidate,
       eligible: false,
-      blockers: ["action_not_implemented"],
+      blockers: candidate ? ["action_not_implemented"] : projectedBlockers,
       prerequisites: candidate
         ? projection.actionEligibility[name].prerequisites || []
         : [],
@@ -712,8 +704,12 @@ function humanList(result) {
     lines.push("  (no verified pending operations in this page)");
   }
   for (const item of result.items || []) {
+    const requestId = item.rollback?.recoveryRequestId || "(none)";
     lines.push(
-      `  ${item.operationId}  phase=${item.phase} base=${item.basePhase || "unknown"} seq=${item.seq}`,
+      `  ${item.operationId}  status=${item.status} phase=${item.phase} base=${item.basePhase || "unknown"} request=${requestId}`,
+    );
+    lines.push(
+      `    fence: seq=${item.fence?.expectedSeq ?? "unknown"} head=${item.fence?.expectedHash || "unknown"}`,
     );
     lines.push(
       `    abort=${actionLabel(item.actionEligibility?.abort)}; ` +
@@ -742,6 +738,7 @@ function humanPreview(preview) {
     `Checkpoint restore recovery: ${recovery.operationId}`,
     `  status: ${recovery.status}`,
     `  phase: ${recovery.phase} (base ${recovery.basePhase || "unknown"})`,
+    `  rollback request: ${recovery.rollback?.recoveryRequestId || "(none)"}`,
     `  saga fence: seq=${preview.mutationFence.expectedSeq} head=${preview.mutationFence.expectedHash}`,
     `  live owner: ${preview.liveAuthority.state}`,
     `  expected owner digest: ${ownerFence}`,

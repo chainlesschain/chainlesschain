@@ -97,6 +97,30 @@ function recoveryRequiredSaga(operationId = "restore_recovery_1") {
   ]);
 }
 
+function rollbackBinding(recoveryRequestId = "rollback-request-7") {
+  return {
+    recoveryAction: "rollback-partial-mutation",
+    recoveryRequestId,
+    safetyId: "safety-7",
+    safetyIdentity: "immutable-safety-7",
+    safetyPlanIdentity: "immutable-plan-7",
+    safetyCoverage: "full",
+    rollbackPrestateDigest: digest(70),
+    rollbackPlanIdentity: digest(71),
+    originalMutationTargetCount: 2,
+    targetCount: 1,
+  };
+}
+
+function rollbackSettlement(recoveryRequestId = "rollback-request-7") {
+  return {
+    ...rollbackBinding(recoveryRequestId),
+    rolledBackCount: 1,
+    rollbackStateDigest: digest(72),
+    resultDigest: digest(73),
+  };
+}
+
 function listedPage(items, overrides = {}) {
   const page = [...items];
   page.diagnostics = overrides.diagnostics || [];
@@ -137,6 +161,18 @@ describe("checkpoint restore recovery read model", () => {
       },
       progress: { targetCount: 2, appliedCount: null },
       safety: { coverage: "full", complete: true },
+      rollback: {
+        phase: null,
+        recoveryRequestId: null,
+        rollbackPrestateDigest: null,
+        rollbackPlanIdentity: null,
+        originalMutationTargetCount: null,
+        targetCount: null,
+        rolledBackCount: null,
+        rollbackStateDigest: null,
+        resultDigest: null,
+        sessionRollbackCommitDigest: null,
+      },
       authority: {
         workspaceOwnerEvidencePresent: true,
         workspaceOwnerDigestPresent: true,
@@ -474,6 +510,309 @@ describe("checkpoint restore recovery read model", () => {
       eligible: false,
       blockers: ["workspace_mutation_not_proven"],
     });
+  });
+
+  it("separates workspace rollback candidates from post-workspace settlement", () => {
+    const operationId = "restore_rollback_boundaries";
+    const recovery = recoveryRequiredSaga(operationId);
+    const owner = recovery.events[1].evidence.workspaceLockOwner;
+    const requestId = "rollback-request-7";
+    const events = [
+      ...recovery.events,
+      event(operationId, recovery.events.length + 1, "recovery_started", {
+        workspaceLockOwner: owner,
+        lockOwnerDigest: OWNER_DIGEST,
+        recoveryAction: "rollback-partial-mutation",
+        recoveryRequestId: requestId,
+      }),
+    ];
+    const boundaries = [
+      {
+        phase: "rollback_prepared",
+        evidence: rollbackBinding(requestId),
+        status: "rollback_in_progress",
+        rollbackCandidate: true,
+      },
+      {
+        phase: "rollback_started",
+        evidence: rollbackBinding(requestId),
+        status: "rollback_in_progress",
+        rollbackCandidate: true,
+      },
+      {
+        phase: "workspace_rolled_back",
+        evidence: rollbackSettlement(requestId),
+        status: "workspace_rolled_back_pending_session",
+        rollbackCandidate: false,
+      },
+      {
+        phase: "session_rollback_committed",
+        evidence: {
+          ...rollbackSettlement(requestId),
+          sessionRollbackCommitDigest: digest(74),
+        },
+        status: "session_rollback_pending_terminal",
+        rollbackCandidate: false,
+      },
+    ];
+
+    for (const boundary of boundaries) {
+      events.push(
+        event(
+          operationId,
+          events.length + 1,
+          boundary.phase,
+          boundary.evidence,
+        ),
+      );
+      const projection = projectCheckpointRestoreRecovery(saga([...events]));
+
+      expect(projection).toMatchObject({
+        phase: boundary.phase,
+        basePhase: boundary.phase,
+        status: boundary.status,
+        pending: true,
+        terminal: false,
+        progress: { targetCount: 1 },
+        rollback: {
+          phase: boundary.phase,
+          recoveryRequestId: requestId,
+          rollbackPrestateDigest: digest(70),
+          rollbackPlanIdentity: digest(71),
+          originalMutationTargetCount: 2,
+          targetCount: 1,
+        },
+        actionEligibility: {
+          rollback: {
+            candidate: boundary.rollbackCandidate,
+            eligible: false,
+          },
+          resume: { candidate: true, eligible: false },
+        },
+      });
+      if (boundary.rollbackCandidate) {
+        expect(projection.actionEligibility.rollback.blockers).toEqual(
+          expect.arrayContaining([
+            "workspace_owner_status_unverified",
+            "workspace_state_unverified",
+            "safety_checkpoint_unverified",
+            "session_state_unverified",
+          ]),
+        );
+      } else {
+        expect(projection.actionEligibility.rollback.blockers).toEqual([
+          "workspace_rollback_already_settled",
+        ]);
+      }
+    }
+
+    const settled = projectCheckpointRestoreRecovery(saga(events));
+    expect(settled.rollback).toEqual({
+      phase: "session_rollback_committed",
+      recoveryRequestId: requestId,
+      rollbackPrestateDigest: digest(70),
+      rollbackPlanIdentity: digest(71),
+      originalMutationTargetCount: 2,
+      targetCount: 1,
+      rolledBackCount: 1,
+      rollbackStateDigest: digest(72),
+      resultDigest: digest(73),
+      sessionRollbackCommitDigest: digest(74),
+    });
+    expect(JSON.stringify(settled)).not.toContain(OWNER_TOKEN);
+    expect(JSON.stringify(settled)).not.toContain(WORKSPACE_ROOT);
+  });
+
+  it("projects only the latest recovery request when a new cycle replans rollback", () => {
+    const operationId = "restore_rollback_replan";
+    const recovery = recoveryRequiredSaga(operationId);
+    const owner = recovery.events[1].evidence.workspaceLockOwner;
+    const requestOne = "rollback-request-one";
+    const requestTwo = "rollback-request-two";
+    const events = [
+      ...recovery.events,
+      event(operationId, 8, "recovery_started", {
+        workspaceLockOwner: owner,
+        lockOwnerDigest: OWNER_DIGEST,
+        recoveryAction: "rollback-partial-mutation",
+        recoveryRequestId: requestOne,
+      }),
+      event(operationId, 9, "rollback_prepared", {
+        ...rollbackBinding(requestOne),
+        rollbackPlanIdentity: digest(80),
+        targetCount: 1,
+      }),
+      event(operationId, 10, "recovery_required", {
+        errorCode: "CHECKPOINT_RESTORE_ROLLBACK_REPLAN_REQUIRED",
+        reason: "replan under a fresh recovery request",
+      }),
+      event(operationId, 11, "recovery_started", {
+        workspaceLockOwner: owner,
+        lockOwnerDigest: OWNER_DIGEST,
+        recoveryAction: "rollback-partial-mutation",
+        recoveryRequestId: requestTwo,
+      }),
+    ];
+
+    const started = projectCheckpointRestoreRecovery(saga(events));
+    expect(started).toMatchObject({
+      phase: "recovery_started",
+      basePhase: "rollback_prepared",
+      status: "rollback_in_progress",
+      rollback: {
+        phase: "recovery_started",
+        recoveryRequestId: requestTwo,
+        rollbackPrestateDigest: null,
+        rollbackPlanIdentity: null,
+        originalMutationTargetCount: null,
+        targetCount: null,
+      },
+    });
+
+    const replanned = projectCheckpointRestoreRecovery(
+      saga([
+        ...events,
+        event(operationId, 12, "rollback_prepared", {
+          ...rollbackBinding(requestTwo),
+          rollbackPrestateDigest: digest(81),
+          rollbackPlanIdentity: digest(82),
+          targetCount: 2,
+        }),
+      ]),
+    );
+    expect(replanned.rollback).toMatchObject({
+      phase: "rollback_prepared",
+      recoveryRequestId: requestTwo,
+      rollbackPrestateDigest: digest(81),
+      rollbackPlanIdentity: digest(82),
+      originalMutationTargetCount: 2,
+      targetCount: 2,
+    });
+  });
+
+  it("retains one request's prepared authority across settlement retry", () => {
+    const operationId = "restore_rollback_same_request_retry";
+    const recovery = recoveryRequiredSaga(operationId);
+    const owner = recovery.events[1].evidence.workspaceLockOwner;
+    const requestId = "rollback-request-stable";
+    const events = [
+      ...recovery.events,
+      event(operationId, 8, "recovery_started", {
+        workspaceLockOwner: owner,
+        lockOwnerDigest: OWNER_DIGEST,
+        recoveryAction: "rollback-partial-mutation",
+        recoveryRequestId: requestId,
+      }),
+      event(operationId, 9, "rollback_prepared", rollbackBinding(requestId)),
+      event(operationId, 10, "recovery_required", {
+        errorCode: "CHECKPOINT_RESTORE_ROLLBACK_RESPONSE_UNKNOWN",
+        reason: "retry the same immutable request",
+      }),
+      event(operationId, 11, "recovery_started", {
+        workspaceLockOwner: owner,
+        lockOwnerDigest: OWNER_DIGEST,
+        recoveryAction: "rollback-partial-mutation",
+        recoveryRequestId: requestId,
+      }),
+      event(
+        operationId,
+        12,
+        "workspace_rolled_back",
+        rollbackSettlement(requestId),
+      ),
+    ];
+
+    const projection = projectCheckpointRestoreRecovery(saga(events));
+
+    expect(projection).toMatchObject({
+      phase: "workspace_rolled_back",
+      status: "workspace_rolled_back_pending_session",
+      rollback: {
+        phase: "workspace_rolled_back",
+        recoveryRequestId: requestId,
+        rollbackPlanIdentity: digest(71),
+        rolledBackCount: 1,
+        rollbackStateDigest: digest(72),
+        resultDigest: digest(73),
+      },
+      actionEligibility: {
+        rollback: {
+          candidate: false,
+          blockers: ["workspace_rollback_already_settled"],
+        },
+        resume: { candidate: true, eligible: false },
+      },
+    });
+  });
+
+  it.each([
+    ["rollbackPrestateDigest", "not-a-hash"],
+    ["rollbackPlanIdentity", digest(71).toUpperCase()],
+    ["originalMutationTargetCount", -1],
+    ["targetCount", 1.5],
+  ])("rejects malformed rollback evidence field %s", (field, value) => {
+    const operationId = `restore_invalid_${field}`;
+    const recovery = recoveryRequiredSaga(operationId);
+    const owner = recovery.events[1].evidence.workspaceLockOwner;
+    const requestId = "rollback-request-invalid";
+    const events = [
+      ...recovery.events,
+      event(operationId, 8, "recovery_started", {
+        workspaceLockOwner: owner,
+        lockOwnerDigest: OWNER_DIGEST,
+        recoveryAction: "rollback-partial-mutation",
+        recoveryRequestId: requestId,
+      }),
+      event(operationId, 9, "rollback_prepared", {
+        ...rollbackBinding(requestId),
+        [field]: value,
+      }),
+    ];
+
+    expect(() => projectCheckpointRestoreRecovery(saga(events))).toThrow(
+      new RegExp(field),
+    );
+  });
+
+  it("rejects request drift and count-inconsistent rollback settlement", () => {
+    const operationId = "restore_invalid_rollback_settlement";
+    const recovery = recoveryRequiredSaga(operationId);
+    const owner = recovery.events[1].evidence.workspaceLockOwner;
+    const requestId = "rollback-request-consistent";
+    const base = [
+      ...recovery.events,
+      event(operationId, 8, "recovery_started", {
+        workspaceLockOwner: owner,
+        lockOwnerDigest: OWNER_DIGEST,
+        recoveryAction: "rollback-partial-mutation",
+        recoveryRequestId: requestId,
+      }),
+      event(operationId, 9, "rollback_prepared", rollbackBinding(requestId)),
+    ];
+
+    expect(() =>
+      projectCheckpointRestoreRecovery(
+        saga([
+          ...base,
+          event(operationId, 10, "rollback_started", {
+            ...rollbackBinding(requestId),
+            rollbackPlanIdentity: digest(99),
+          }),
+        ]),
+      ),
+    ).toThrow(/rollbackPlanIdentity/);
+
+    expect(() =>
+      projectCheckpointRestoreRecovery(
+        saga([
+          ...base,
+          event(operationId, 10, "workspace_rolled_back", {
+            ...rollbackSettlement(requestId),
+            rolledBackCount: 0,
+          }),
+        ]),
+      ),
+    ).toThrow(/incomplete or inconsistent/);
   });
 
   it("fails closed on malformed store projections and pagination", () => {
