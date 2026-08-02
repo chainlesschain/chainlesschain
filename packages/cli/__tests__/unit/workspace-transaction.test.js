@@ -1,13 +1,15 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { createHash } from "node:crypto";
 import {
   WORKSPACE_TRANSACTION_COVERAGE,
   WORKSPACE_TRANSACTION_ERROR,
   WORKSPACE_TRANSACTION_STATE,
   WorkspaceTransactionManager,
   digestWorkspaceEvidence,
+  withWorkspaceLockSync,
 } from "../../src/lib/process-execution-broker/workspace-transaction.js";
 
 const roots = [];
@@ -73,10 +75,268 @@ function begin(input, overrides = {}) {
   });
 }
 
+function workspaceLockOptions(input, overrides = {}) {
+  let now = 1_000;
+  let sequence = 0;
+  return {
+    workspaceRoot: input.workspaceRoot,
+    operationId: "checkpoint-operation",
+    purpose: "checkpoint-restore",
+    timeoutMs: 50,
+    retryMs: 10,
+    lockDir: path.join(input.root, "locks"),
+    allowNonCanonicalLockDirForTests: true,
+    _now: () => now,
+    _sleep: (milliseconds) => {
+      now += milliseconds;
+    },
+    _isProcessAlive: () => true,
+    _ownerToken: () =>
+      `20000000-0000-4000-8000-${String(++sequence).padStart(12, "0")}`,
+    ...overrides,
+  };
+}
+
+function workspaceLockEntries(input) {
+  const lockDir = path.join(input.root, "locks");
+  return fs.existsSync(lockDir) ? fs.readdirSync(lockDir).sort() : [];
+}
+
+function workspaceOwnerPath(input) {
+  const entries = workspaceLockEntries(input).filter(
+    (name) => name !== "coordination.lock",
+  );
+  expect(entries).toHaveLength(1);
+  return path.join(input.root, "locks", entries[0], "owner.json");
+}
+
+function workspaceLockName(workspaceRoot) {
+  const resolved = path.resolve(workspaceRoot);
+  const key = process.platform === "win32" ? resolved.toLowerCase() : resolved;
+  return createHash("sha256").update(Buffer.from(key, "utf8")).digest("hex");
+}
+
 afterEach(() => {
   for (const root of roots.splice(0)) {
     fs.rmSync(root, { recursive: true, force: true });
   }
+});
+
+describe("withWorkspaceLockSync", () => {
+  it("holds a canonical lifetime lease and releases after success or callback failure", () => {
+    const input = fixture();
+    let observedLease = null;
+
+    expect(
+      withWorkspaceLockSync(workspaceLockOptions(input), (lease) => {
+        observedLease = lease;
+        expect(lease.canonicalWorkspaceRoot).toBe(
+          fs.realpathSync.native(input.workspaceRoot),
+        );
+        expect(lease.owner).toMatchObject({
+          transactionId: "checkpoint-operation",
+          purpose: "checkpoint-restore",
+          workspaceRoot: lease.canonicalWorkspaceRoot,
+        });
+        expect(Object.isFrozen(lease)).toBe(true);
+        expect(Object.isFrozen(lease.owner)).toBe(true);
+        expect(lease.assertOwned()).toBe(true);
+        expect(workspaceLockEntries(input)).toHaveLength(1);
+        return "completed";
+      }),
+    ).toBe("completed");
+    expect(observedLease.assertOwned).toThrow(
+      expect.objectContaining({
+        code: WORKSPACE_TRANSACTION_ERROR.LOCK_OWNERSHIP_LOST,
+      }),
+    );
+    expect(workspaceLockEntries(input)).toEqual([]);
+
+    const callbackError = new Error("callback failed");
+    let thrown = null;
+    try {
+      withWorkspaceLockSync(
+        workspaceLockOptions(input, { operationId: "callback-failure" }),
+        () => {
+          throw callbackError;
+        },
+      );
+    } catch (error) {
+      thrown = error;
+    }
+    expect(thrown).toBe(callbackError);
+    expect(workspaceLockEntries(input)).toEqual([]);
+  });
+
+  it("rejects async callbacks and arbitrary thenables without reporting success", () => {
+    const input = fixture();
+    let asyncRan = false;
+
+    expect(() =>
+      withWorkspaceLockSync(workspaceLockOptions(input), async () => {
+        asyncRan = true;
+      }),
+    ).toThrow(
+      expect.objectContaining({
+        code: WORKSPACE_TRANSACTION_ERROR.INVALID_ARGUMENT,
+      }),
+    );
+    expect(asyncRan).toBe(false);
+    expect(workspaceLockEntries(input)).toEqual([]);
+
+    let thenableReturned = false;
+    expect(() =>
+      withWorkspaceLockSync(
+        workspaceLockOptions(input, { operationId: "thenable-result" }),
+        () => {
+          thenableReturned = true;
+          return { then() {} };
+        },
+      ),
+    ).toThrow(
+      expect.objectContaining({
+        code: WORKSPACE_TRANSACTION_ERROR.INVALID_ARGUMENT,
+      }),
+    );
+    expect(thenableReturned).toBe(true);
+    expect(workspaceLockEntries(input)).toEqual([]);
+  });
+
+  it("times out on a live overlapping manager lease without holding coordination", () => {
+    const input = fixture();
+    const transaction = begin(input, { id: "wcp-live-owner" });
+    let now = 2_000;
+    let slept = 0;
+
+    expect(() =>
+      withWorkspaceLockSync(
+        workspaceLockOptions(input, {
+          workspaceRoot: path.join(input.workspaceRoot, "src"),
+          operationId: "overlap-contender",
+          timeoutMs: 25,
+          retryMs: 10,
+          _now: () => now,
+          _sleep: (milliseconds) => {
+            now += milliseconds;
+            slept += milliseconds;
+          },
+        }),
+        () => "unreachable",
+      ),
+    ).toThrow(
+      expect.objectContaining({
+        code: WORKSPACE_TRANSACTION_ERROR.WORKSPACE_LOCK_TIMEOUT,
+        ownerOperationId: transaction.id,
+        ownerWorkspaceRoot: fs.realpathSync.native(input.workspaceRoot),
+      }),
+    );
+    expect(slept).toBe(25);
+    expect(workspaceLockEntries(input)).toHaveLength(1);
+    transaction.rollback();
+    expect(workspaceLockEntries(input)).toEqual([]);
+  });
+
+  it("fails closed for dead or corrupt owners without reclaiming them", () => {
+    const input = fixture();
+    const transaction = begin(input, { id: "wcp-recovery-owner" });
+    const ownerPath = workspaceOwnerPath(input);
+    const originalOwner = fs.readFileSync(ownerPath, "utf8");
+
+    expect(() =>
+      withWorkspaceLockSync(
+        workspaceLockOptions(input, {
+          operationId: "dead-owner-contender",
+          _isProcessAlive: () => false,
+        }),
+        () => "unreachable",
+      ),
+    ).toThrow(
+      expect.objectContaining({
+        code: WORKSPACE_TRANSACTION_ERROR.RECOVERY_REQUIRED,
+        ownerTransactionId: transaction.id,
+      }),
+    );
+    expect(fs.readFileSync(ownerPath, "utf8")).toBe(originalOwner);
+
+    fs.writeFileSync(ownerPath, "{corrupt", { mode: 0o600 });
+    expect(() =>
+      withWorkspaceLockSync(
+        workspaceLockOptions(input, {
+          operationId: "corrupt-owner-contender",
+        }),
+        () => "unreachable",
+      ),
+    ).toThrow(
+      expect.objectContaining({
+        code: WORKSPACE_TRANSACTION_ERROR.LOCK_CORRUPT,
+      }),
+    );
+    expect(fs.readFileSync(ownerPath, "utf8")).toBe("{corrupt");
+
+    fs.writeFileSync(ownerPath, originalOwner, { mode: 0o600 });
+    transaction.rollback();
+  });
+
+  it("surfaces exact ownership loss even when the callback also throws", () => {
+    const input = fixture();
+    const callbackError = new Error("body failed after ownership loss");
+    let thrown = null;
+
+    try {
+      withWorkspaceLockSync(
+        workspaceLockOptions(input, { operationId: "ownership-loss" }),
+        () => {
+          const ownerPath = workspaceOwnerPath(input);
+          const owner = JSON.parse(fs.readFileSync(ownerPath, "utf8"));
+          owner.token = "90000000-0000-4000-8000-999999999999";
+          fs.writeFileSync(ownerPath, JSON.stringify(owner), { mode: 0o600 });
+          throw callbackError;
+        },
+      );
+    } catch (error) {
+      thrown = error;
+    }
+    expect(thrown).toMatchObject({
+      code: WORKSPACE_TRANSACTION_ERROR.LOCK_OWNERSHIP_LOST,
+      callbackError,
+    });
+  });
+
+  it("rejects filesystem roots and workspace aliases before lock creation", () => {
+    const input = fixture();
+    expect(() =>
+      withWorkspaceLockSync(
+        workspaceLockOptions(input, {
+          workspaceRoot: path.parse(input.workspaceRoot).root,
+        }),
+        () => "unreachable",
+      ),
+    ).toThrow(
+      expect.objectContaining({
+        code: WORKSPACE_TRANSACTION_ERROR.INVALID_PATH,
+      }),
+    );
+
+    const alias = path.join(input.root, "workspace-alias");
+    fs.symlinkSync(
+      input.workspaceRoot,
+      alias,
+      process.platform === "win32" ? "junction" : "dir",
+    );
+    expect(() =>
+      withWorkspaceLockSync(
+        workspaceLockOptions(input, { workspaceRoot: alias }),
+        () => "unreachable",
+      ),
+    ).toThrow(
+      expect.objectContaining({
+        code: expect.stringMatching(
+          /WORKSPACE_TRANSACTION_(?:UNSAFE_ENTRY|PATH_ESCAPE)/,
+        ),
+      }),
+    );
+    expect(workspaceLockEntries(input)).toEqual([]);
+  });
 });
 
 describe("WorkspaceTransactionManager", () => {
@@ -395,6 +655,140 @@ describe("WorkspaceTransactionManager", () => {
         "utf8",
       ),
     ).toBe("before\n");
+  });
+
+  it("holds registry coordination across the dead-owner reclaim window", () => {
+    const input = fixture();
+    const first = manager(input, { isProcessAlive: () => true });
+    const transaction = first.begin({
+      id: "wcp-parent-recovery-window",
+      runId: "parent-recovery-run",
+      taskKey: "parent-recovery-task",
+      workspaceRoot: input.workspaceRoot,
+      coverageTarget: WORKSPACE_TRANSACTION_COVERAGE.FULL,
+      writerIsolation: "exclusive-workspace",
+    });
+    transaction.markRunning();
+    fs.writeFileSync(
+      path.join(input.workspaceRoot, "src", "before.txt"),
+      "crashed-parent-write\n",
+      "utf8",
+    );
+
+    const parentLockDir = path.dirname(workspaceOwnerPath(input));
+    const nativeRmSync = fs.rmSync.bind(fs);
+    let reclaimWindowEntered = false;
+    let childCallbackRan = false;
+    let childError = null;
+    let childNow = 5_000;
+    const rm = vi.spyOn(fs, "rmSync").mockImplementation((target, options) => {
+      const result = nativeRmSync(target, options);
+      if (
+        !reclaimWindowEntered &&
+        path.resolve(String(target)) === path.resolve(parentLockDir) &&
+        options?.recursive === true
+      ) {
+        reclaimWindowEntered = true;
+        try {
+          withWorkspaceLockSync(
+            workspaceLockOptions(input, {
+              workspaceRoot: path.join(input.workspaceRoot, "src"),
+              operationId: "child-during-parent-recovery",
+              timeoutMs: 10,
+              retryMs: 5,
+              _now: () => childNow,
+              _sleep: (milliseconds) => {
+                childNow += milliseconds;
+              },
+            }),
+            () => {
+              childCallbackRan = true;
+            },
+          );
+        } catch (error) {
+          childError = error;
+        }
+      }
+      return result;
+    });
+
+    let result;
+    try {
+      result = manager(input, {
+        isProcessAlive: () => false,
+      }).recoverPending({ workspaceRoot: input.workspaceRoot });
+    } finally {
+      rm.mockRestore();
+    }
+
+    expect(reclaimWindowEntered).toBe(true);
+    expect(childCallbackRan).toBe(false);
+    expect(childError).toMatchObject({
+      code: WORKSPACE_TRANSACTION_ERROR.WORKSPACE_LOCK_TIMEOUT,
+    });
+    expect(result).toEqual([
+      expect.objectContaining({
+        id: transaction.id,
+        status: "rolled_back",
+      }),
+    ]);
+    expect(
+      fs.readFileSync(
+        path.join(input.workspaceRoot, "src", "before.txt"),
+        "utf8",
+      ),
+    ).toBe("before\n");
+    expect(workspaceLockEntries(input)).toEqual([]);
+  });
+
+  it("does not reclaim an overlapping dead checkpoint owner during recovery", () => {
+    const input = fixture();
+    const transaction = begin(input, {
+      id: "wcp-recovery-with-dead-checkpoint",
+    });
+    transaction.markRunning();
+    const childWorkspaceRoot = fs.realpathSync.native(
+      path.join(input.workspaceRoot, "src"),
+    );
+    const checkpointLockDir = path.join(
+      input.root,
+      "locks",
+      workspaceLockName(childWorkspaceRoot),
+    );
+    const checkpointOwner = {
+      pid: 2_147_483_646,
+      startedAt: 1,
+      token: "70000000-0000-4000-8000-000000000001",
+      transactionId: "dead-checkpoint-owner",
+      workspaceRoot: childWorkspaceRoot,
+      purpose: "checkpoint-restore",
+      identityPolicy: "pid-only-fail-closed",
+    };
+    fs.mkdirSync(checkpointLockDir, { mode: 0o700 });
+    fs.writeFileSync(
+      path.join(checkpointLockDir, "owner.json"),
+      JSON.stringify(checkpointOwner),
+      { mode: 0o600 },
+    );
+
+    const result = manager(input, {
+      isProcessAlive: () => false,
+    }).recoverPending({ workspaceRoot: input.workspaceRoot });
+    expect(result).toEqual([
+      expect.objectContaining({
+        id: transaction.id,
+        status: "rollback_failed",
+        code: WORKSPACE_TRANSACTION_ERROR.RECOVERY_REQUIRED,
+      }),
+    ]);
+    expect(
+      JSON.parse(
+        fs.readFileSync(path.join(checkpointLockDir, "owner.json"), "utf8"),
+      ),
+    ).toEqual(checkpointOwner);
+
+    fs.rmSync(checkpointLockDir, { recursive: true, force: true });
+    transaction.rollback();
   });
 
   it("uses deterministic canonical evidence digests", () => {

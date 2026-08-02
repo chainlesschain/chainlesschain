@@ -20,6 +20,7 @@
  */
 
 import chalk from "chalk";
+import { randomUUID } from "node:crypto";
 import { resolve } from "path";
 import {
   buildCheckpointTimeline,
@@ -47,6 +48,7 @@ import {
   readVerifiedMessages,
   withSessionAuthorityTransaction,
 } from "../harness/jsonl-session-store.js";
+import { withWorkspaceLockSync as withCanonicalWorkspaceLockSync } from "../lib/process-execution-broker/workspace-transaction.js";
 import { registerManagedCheckpointCommands } from "./checkpoint-managed.js";
 
 /** git-plumbing engine adapter (normalized interface). */
@@ -235,7 +237,43 @@ function printTimelineActionResult(result, asJson) {
 
 const tag = (engine) => chalk.dim(engine.kind === "git" ? "[git]" : "[copy]");
 
-export function registerCheckpointCommand(program) {
+function isCodeRestoreAction(action) {
+  return action === "restore-code" || action === "restore-both";
+}
+
+function workspaceBindingMatches(left, right) {
+  return checkpointTimelineConfirmationsMatch(left, right);
+}
+
+function workspaceRootKey(value) {
+  if (typeof value !== "string" || value.length === 0) return null;
+  const key = resolve(value);
+  return process.platform === "win32" ? key.toLowerCase() : key;
+}
+
+function workspaceRootsMatch(left, right) {
+  const leftKey = workspaceRootKey(left);
+  const rightKey = workspaceRootKey(right);
+  return leftKey !== null && leftKey === rightKey;
+}
+
+function workspaceStaleError(message = "workspace changed; preview again") {
+  const error = new Error(message);
+  error.code = "TIMELINE_WORKSPACE_STALE";
+  return error;
+}
+
+function restoreWorkspaceStaleError() {
+  const error = new Error(
+    "workspace changed before the restore lock was acquired; retry the restore",
+  );
+  error.code = "CHECKPOINT_WORKSPACE_STALE";
+  return error;
+}
+
+export function registerCheckpointCommand(program, dependencies = {}) {
+  const withWorkspaceLockSync =
+    dependencies.withWorkspaceLockSync || withCanonicalWorkspaceLockSync;
   const cp = program
     .command("checkpoint")
     .description("Snapshot / rewind file state (git-plumbing, copy fallback)");
@@ -431,59 +469,65 @@ export function registerCheckpointCommand(program) {
 
         const dir = resolve(options.dir);
         const engine = await pickEngine(dir, options.session);
-        const context = loadTimelineContext(engine, options.session);
-        const validation = options.preview
-          ? validateCheckpointTimelineSubmission(
-              context.timeline,
-              submittedEnvelope,
-            )
-          : validateCheckpointTimelineConfirmationSubmission(
-              context.timeline,
-              submittedEnvelope,
-            );
-        if (!validation.ok) {
-          const error = new Error(
-            validation.code === "TIMELINE_STALE"
-              ? "checkpoint timeline is stale; refresh before retrying"
-              : "checkpoint timeline submission was rejected",
-          );
-          error.code = validation.code;
-          throw error;
-        }
-        const submission = validation.submission;
-        let codePreview = null;
-        const checkpointIdentity = submission.checkpointIdentity || null;
-        if (
-          submission.action === "restore-code" ||
-          submission.action === "restore-both"
-        ) {
-          if (!checkpointIdentity) {
+        const planForContext = (authoritativeContext) => {
+          const validation = options.preview
+            ? validateCheckpointTimelineSubmission(
+                authoritativeContext.timeline,
+                submittedEnvelope,
+              )
+            : validateCheckpointTimelineConfirmationSubmission(
+                authoritativeContext.timeline,
+                submittedEnvelope,
+              );
+          if (!validation.ok) {
             const error = new Error(
-              "checkpoint immutable identity is unavailable; refresh or recreate it",
+              validation.code === "TIMELINE_STALE"
+                ? "checkpoint timeline is stale; refresh before retrying"
+                : "checkpoint timeline submission was rejected",
             );
-            error.code = "TIMELINE_CHECKPOINT_IDENTITY_INVALID";
+            error.code = validation.code;
             throw error;
           }
-          codePreview = engine.status(submission.checkpointId, {
-            expectedIdentity: checkpointIdentity,
-            includeWorkspaceBinding: true,
+          const authoritativeSubmission = validation.submission;
+          const checkpointIdentity =
+            authoritativeSubmission.checkpointIdentity || null;
+          let codePreview = null;
+          if (isCodeRestoreAction(authoritativeSubmission.action)) {
+            if (!checkpointIdentity) {
+              const error = new Error(
+                "checkpoint immutable identity is unavailable; refresh or recreate it",
+              );
+              error.code = "TIMELINE_CHECKPOINT_IDENTITY_INVALID";
+              throw error;
+            }
+            codePreview = engine.status(authoritativeSubmission.checkpointId, {
+              expectedIdentity: checkpointIdentity,
+              includeWorkspaceBinding: true,
+            });
+          }
+          const authoritativePlan = planCheckpointTimelineAction({
+            timeline: authoritativeContext.timeline,
+            submission: authoritativeSubmission,
+            messages: authoritativeContext.messages,
+            codePreview,
           });
-        }
-        const planned = planCheckpointTimelineAction({
-          timeline: context.timeline,
-          submission,
-          messages: context.messages,
-          codePreview,
-        });
-        if (!planned.ok) {
-          const error = new Error(
-            planned.code === "TIMELINE_STALE"
-              ? "checkpoint timeline is stale; refresh before retrying"
-              : "checkpoint timeline submission was rejected",
-          );
-          error.code = planned.code;
-          throw error;
-        }
+          if (!authoritativePlan.ok) {
+            const error = new Error(
+              authoritativePlan.code === "TIMELINE_STALE"
+                ? "checkpoint timeline is stale; refresh before retrying"
+                : "checkpoint timeline submission was rejected",
+            );
+            error.code = authoritativePlan.code;
+            throw error;
+          }
+          return {
+            submission: authoritativeSubmission,
+            planned: authoritativePlan,
+          };
+        };
+
+        let context = loadTimelineContext(engine, options.session);
+        let { submission, planned } = planForContext(context);
         if (options.preview) {
           output = planned.preview;
           printTimelineActionResult(output, options.json);
@@ -497,101 +541,29 @@ export function registerCheckpointCommand(program) {
           )
         ) {
           const error = new Error(
-            submission.action === "restore-code" ||
-              submission.action === "restore-both"
+            isCodeRestoreAction(submission.action)
               ? "workspace changed after checkpoint preview; preview again"
               : "timeline confirmation no longer matches the current plan",
           );
-          error.code =
-            submission.action === "restore-code" ||
-            submission.action === "restore-both"
-              ? "TIMELINE_WORKSPACE_STALE"
-              : "TIMELINE_CONFIRMATION_INVALID";
+          error.code = isCodeRestoreAction(submission.action)
+            ? "TIMELINE_WORKSPACE_STALE"
+            : "TIMELINE_CONFIRMATION_INVALID";
           throw error;
         }
 
-        // Keep the canonical writer lock from the exact-head claim through the
-        // external code restore and the conversation commit. A concurrent
-        // session writer can no longer win a second CAS after files changed and
-        // leave restore-both partially applied.
-        const result = withSessionAuthorityTransaction(
-          options.session,
-          context.headHash,
-          (transaction) => {
-            transaction.appendAuthorityEvent(CHECKPOINT_TIMELINE_INTENT_EVENT, {
-              revision: context.timeline.revision,
-              action: submission.action,
-              turnId: submission.turnId,
-              checkpointId: submission.checkpointId || null,
-              checkpointIdentity,
-              workspaceDir: dir,
-              workspaceScopeIdentity:
-                planned.workspaceBinding?.scopeIdentity || null,
-              workspacePrestateIdentity:
-                planned.workspaceBinding?.prestateIdentity || null,
-              workspaceWritePlanIdentity:
-                planned.workspaceBinding?.writePlanIdentity || null,
-              workspaceTargetPoststateIdentity:
-                planned.workspaceBinding?.targetPoststateIdentity || null,
-              confirmationDigest: planned.preview.confirmationSubmission.digest,
-            });
-            const transactionResult = {};
-            try {
-              if (
-                submission.action === "restore-code" ||
-                submission.action === "restore-both"
-              ) {
-                transactionResult.code = engine.restore(
-                  submission.checkpointId,
-                  {
-                    expectedIdentity: checkpointIdentity,
-                    expectedWorkspaceBinding: planned.workspaceBinding,
-                  },
-                );
-                transaction.retainRecoveryEvidence({
-                  safetyId: transactionResult.code?.safetyId,
-                  safetyIdentity: transactionResult.code?.safetyIdentity,
-                  safetyCoverage: transactionResult.code?.safetyCoverage,
-                  restorePhase: "workspace-applied",
-                  createdPaths: transactionResult.code?.createdPaths,
-                });
-              }
+        let checkpointIdentity = submission.checkpointIdentity || null;
 
-              if (planned.commit.branchPlan) {
-                transactionResult.branch = createBranchSession({
-                  branchSessionId: planned.commit.branchPlan.branchSessionId,
-                  parentSessionId: options.session,
-                  parentTurnId: submission.turnId,
-                  messages: planned.commit.messages,
-                  meta: { title: `Branch of ${options.session}` },
-                });
-                transaction.retainRecoveryEvidence({
-                  branchSessionId:
-                    transactionResult.branch?.branchSessionId ||
-                    planned.commit.branchPlan.branchSessionId,
-                });
-              } else if (planned.commit.messages) {
-                context.binding.pruneFromOffset(
-                  planned.commit.bindingPruneOffset,
-                );
-                const committed = transaction.appendAuthorityEvent(
-                  TURN_BINDING_TIMELINE_EVENT,
-                  {
-                    action: submission.action,
-                    sourceRevision: context.timeline.revision,
-                    turnId: submission.turnId,
-                    messages: planned.commit.messages,
-                    binding: context.binding.toJSON(),
-                  },
-                );
-                transactionResult.conversation = {
-                  messages: planned.commit.messages.length,
-                  commitHash: committed.hash,
-                };
-              }
-
+        // The workspace lifetime lock is always the outer authority. The
+        // session writer is acquired only after the locked workspace prestate
+        // and preview confirmation have been revalidated.
+        const executeUnderSessionAuthority = (workspaceLease = null) =>
+          withSessionAuthorityTransaction(
+            options.session,
+            context.headHash,
+            (transaction) => {
+              workspaceLease?.assertOwned();
               transaction.appendAuthorityEvent(
-                CHECKPOINT_TIMELINE_AUDIT_EVENT,
+                CHECKPOINT_TIMELINE_INTENT_EVENT,
                 {
                   revision: context.timeline.revision,
                   action: submission.action,
@@ -609,39 +581,63 @@ export function registerCheckpointCommand(program) {
                     planned.workspaceBinding?.targetPoststateIdentity || null,
                   confirmationDigest:
                     planned.preview.confirmationSubmission.digest,
-                  status: "completed",
-                  branchSessionId:
-                    transactionResult.branch?.branchSessionId || null,
-                  safetyCheckpointId: transactionResult.code?.safetyId || null,
-                  safetyCheckpointIdentity:
-                    transactionResult.code?.safetyIdentity || null,
-                  safetyCoverage:
-                    transactionResult.code?.safetyCoverage || null,
                 },
               );
-            } catch (error) {
-              if (error && typeof error === "object") {
-                error.safetyId ||= transactionResult.code?.safetyId || null;
-                error.safetyIdentity ||=
-                  transactionResult.code?.safetyIdentity || null;
-                error.safetyCoverage ||=
-                  transactionResult.code?.safetyCoverage || null;
-                if (transactionResult.code && !error.restorePhase) {
-                  error.restorePhase = "workspace-applied";
-                }
-                if (!Array.isArray(error.createdPaths)) {
-                  error.createdPaths = Array.isArray(
-                    transactionResult.code?.createdPaths,
-                  )
-                    ? [...transactionResult.code.createdPaths]
-                    : [];
-                }
-                error.branchSessionId ||=
-                  transactionResult.branch?.branchSessionId ||
-                  planned.commit.branchPlan?.branchSessionId ||
-                  null;
-              }
+              const transactionResult = {};
               try {
+                if (isCodeRestoreAction(submission.action)) {
+                  workspaceLease?.assertOwned();
+                  transactionResult.code = engine.restore(
+                    submission.checkpointId,
+                    {
+                      expectedIdentity: checkpointIdentity,
+                      expectedWorkspaceBinding: planned.workspaceBinding,
+                    },
+                  );
+                  transaction.retainRecoveryEvidence({
+                    safetyId: transactionResult.code?.safetyId,
+                    safetyIdentity: transactionResult.code?.safetyIdentity,
+                    safetyCoverage: transactionResult.code?.safetyCoverage,
+                    restorePhase: "workspace-applied",
+                    createdPaths: transactionResult.code?.createdPaths,
+                  });
+                  workspaceLease?.assertOwned();
+                }
+
+                if (planned.commit.branchPlan) {
+                  transactionResult.branch = createBranchSession({
+                    branchSessionId: planned.commit.branchPlan.branchSessionId,
+                    parentSessionId: options.session,
+                    parentTurnId: submission.turnId,
+                    messages: planned.commit.messages,
+                    meta: { title: `Branch of ${options.session}` },
+                  });
+                  transaction.retainRecoveryEvidence({
+                    branchSessionId:
+                      transactionResult.branch?.branchSessionId ||
+                      planned.commit.branchPlan.branchSessionId,
+                  });
+                } else if (planned.commit.messages) {
+                  context.binding.pruneFromOffset(
+                    planned.commit.bindingPruneOffset,
+                  );
+                  const committed = transaction.appendAuthorityEvent(
+                    TURN_BINDING_TIMELINE_EVENT,
+                    {
+                      action: submission.action,
+                      sourceRevision: context.timeline.revision,
+                      turnId: submission.turnId,
+                      messages: planned.commit.messages,
+                      binding: context.binding.toJSON(),
+                    },
+                  );
+                  transactionResult.conversation = {
+                    messages: planned.commit.messages.length,
+                    commitHash: committed.hash,
+                  };
+                }
+
+                workspaceLease?.assertOwned();
                 transaction.appendAuthorityEvent(
                   CHECKPOINT_TIMELINE_AUDIT_EVENT,
                   {
@@ -661,50 +657,160 @@ export function registerCheckpointCommand(program) {
                       planned.workspaceBinding?.targetPoststateIdentity || null,
                     confirmationDigest:
                       planned.preview.confirmationSubmission.digest,
-                    status: "failed",
-                    failureCode: String(
-                      error?.code || "CHECKPOINT_TIMELINE_ACTION_FAILED",
-                    ).slice(0, 128),
-                    workspaceState:
-                      submission.action === "restore-code" ||
-                      submission.action === "restore-both"
-                        ? "unknown"
-                        : "unchanged",
+                    status: "completed",
                     branchSessionId:
-                      transactionResult.branch?.branchSessionId ||
-                      planned.commit.branchPlan?.branchSessionId ||
-                      null,
+                      transactionResult.branch?.branchSessionId || null,
                     safetyCheckpointId:
-                      transactionResult.code?.safetyId ||
-                      error?.safetyId ||
-                      null,
+                      transactionResult.code?.safetyId || null,
                     safetyCheckpointIdentity:
-                      transactionResult.code?.safetyIdentity ||
-                      error?.safetyIdentity ||
-                      null,
+                      transactionResult.code?.safetyIdentity || null,
                     safetyCoverage:
-                      transactionResult.code?.safetyCoverage ||
-                      error?.safetyCoverage ||
-                      null,
-                    createdPaths: Array.isArray(error?.createdPaths)
-                      ? error.createdPaths.slice(0, 256)
-                      : [],
+                      transactionResult.code?.safetyCoverage || null,
                   },
                 );
-              } catch (auditError) {
-                // An authority append can fail after bytes reach the transcript.
-                // Retain the first operation error as the transaction's nested
-                // diagnosis and let a poisoned writer/final settlement report
-                // commitState=unknown instead of appending from a stale head.
+              } catch (error) {
                 if (error && typeof error === "object") {
-                  error.checkpointAuditError = auditError;
+                  error.safetyId ||= transactionResult.code?.safetyId || null;
+                  error.safetyIdentity ||=
+                    transactionResult.code?.safetyIdentity || null;
+                  error.safetyCoverage ||=
+                    transactionResult.code?.safetyCoverage || null;
+                  if (transactionResult.code && !error.restorePhase) {
+                    error.restorePhase = "workspace-applied";
+                  }
+                  if (!Array.isArray(error.createdPaths)) {
+                    error.createdPaths = Array.isArray(
+                      transactionResult.code?.createdPaths,
+                    )
+                      ? [...transactionResult.code.createdPaths]
+                      : [];
+                  }
+                  error.branchSessionId ||=
+                    transactionResult.branch?.branchSessionId ||
+                    planned.commit.branchPlan?.branchSessionId ||
+                    null;
                 }
+                try {
+                  transaction.appendAuthorityEvent(
+                    CHECKPOINT_TIMELINE_AUDIT_EVENT,
+                    {
+                      revision: context.timeline.revision,
+                      action: submission.action,
+                      turnId: submission.turnId,
+                      checkpointId: submission.checkpointId || null,
+                      checkpointIdentity,
+                      workspaceDir: dir,
+                      workspaceScopeIdentity:
+                        planned.workspaceBinding?.scopeIdentity || null,
+                      workspacePrestateIdentity:
+                        planned.workspaceBinding?.prestateIdentity || null,
+                      workspaceWritePlanIdentity:
+                        planned.workspaceBinding?.writePlanIdentity || null,
+                      workspaceTargetPoststateIdentity:
+                        planned.workspaceBinding?.targetPoststateIdentity ||
+                        null,
+                      confirmationDigest:
+                        planned.preview.confirmationSubmission.digest,
+                      status: "failed",
+                      failureCode: String(
+                        error?.code || "CHECKPOINT_TIMELINE_ACTION_FAILED",
+                      ).slice(0, 128),
+                      workspaceState: isCodeRestoreAction(submission.action)
+                        ? "unknown"
+                        : "unchanged",
+                      branchSessionId:
+                        transactionResult.branch?.branchSessionId ||
+                        planned.commit.branchPlan?.branchSessionId ||
+                        null,
+                      safetyCheckpointId:
+                        transactionResult.code?.safetyId ||
+                        error?.safetyId ||
+                        null,
+                      safetyCheckpointIdentity:
+                        transactionResult.code?.safetyIdentity ||
+                        error?.safetyIdentity ||
+                        null,
+                      safetyCoverage:
+                        transactionResult.code?.safetyCoverage ||
+                        error?.safetyCoverage ||
+                        null,
+                      createdPaths: Array.isArray(error?.createdPaths)
+                        ? error.createdPaths.slice(0, 256)
+                        : [],
+                    },
+                  );
+                } catch (auditError) {
+                  // An authority append can fail after bytes reach the transcript.
+                  // Retain the first operation error as the transaction's nested
+                  // diagnosis and let a poisoned writer/final settlement report
+                  // commitState=unknown instead of appending from a stale head.
+                  if (error && typeof error === "object") {
+                    error.checkpointAuditError = auditError;
+                  }
+                }
+                throw error;
               }
-              throw error;
-            }
-            return transactionResult;
-          },
-        );
+              return transactionResult;
+            },
+          );
+
+        let result;
+        if (isCodeRestoreAction(submission.action)) {
+          const workspaceRoot = planned.workspaceBinding?.workspaceRoot;
+          if (!workspaceRoot) {
+            throw workspaceStaleError(
+              "checkpoint restore scope is unavailable; preview again",
+            );
+          }
+          result = withWorkspaceLockSync(
+            {
+              workspaceRoot,
+              operationId: `checkpoint-restore-${randomUUID()}`,
+              purpose: "checkpoint-restore",
+            },
+            (workspaceLease) => {
+              workspaceLease.assertOwned();
+
+              // Both the session head and the full workspace write plan can
+              // change while this process waits for the workspace lock. Reload
+              // and recompute both authorities only after exclusive ownership.
+              const lockedContext = loadTimelineContext(
+                engine,
+                options.session,
+              );
+              const lockedAction = planForContext(lockedContext);
+              if (
+                !checkpointTimelineConfirmationsMatch(
+                  lockedAction.planned.preview.confirmationSubmission,
+                  submittedEnvelope,
+                )
+              ) {
+                throw workspaceStaleError(
+                  "workspace or checkpoint timeline changed while waiting for the restore lock; preview again",
+                );
+              }
+              if (
+                !workspaceRootsMatch(
+                  lockedAction.planned.workspaceBinding?.workspaceRoot,
+                  workspaceLease.canonicalWorkspaceRoot,
+                )
+              ) {
+                throw workspaceStaleError(
+                  "checkpoint restore scope changed while waiting for the restore lock; preview again",
+                );
+              }
+
+              context = lockedContext;
+              submission = lockedAction.submission;
+              planned = lockedAction.planned;
+              checkpointIdentity = submission.checkpointIdentity || null;
+              workspaceLease.assertOwned();
+              return executeUnderSessionAuthority(workspaceLease);
+            },
+          );
+        } else {
+          result = executeUnderSessionAuthority();
+        }
         const nextContext = loadTimelineContext(engine, options.session);
         output = {
           schema: CHECKPOINT_TIMELINE_RESULT_SCHEMA,
@@ -844,9 +950,39 @@ export function registerCheckpointCommand(program) {
           }
         }
 
-        const r = engine.restore(id, {
-          expectedWorkspaceBinding: restorePreview.workspaceBinding,
-        });
+        const workspaceRoot = restorePreview.workspaceBinding?.workspaceRoot;
+        if (!workspaceRoot) throw restoreWorkspaceStaleError();
+        const r = withWorkspaceLockSync(
+          {
+            workspaceRoot,
+            operationId: `checkpoint-restore-${randomUUID()}`,
+            purpose: "checkpoint-restore",
+          },
+          (workspaceLease) => {
+            workspaceLease.assertOwned();
+            const lockedPreview = engine.status(id, {
+              includeWorkspaceBinding: true,
+            });
+            if (
+              !workspaceBindingMatches(
+                lockedPreview.workspaceBinding,
+                restorePreview.workspaceBinding,
+              ) ||
+              !workspaceRootsMatch(
+                lockedPreview.workspaceBinding?.workspaceRoot,
+                workspaceLease.canonicalWorkspaceRoot,
+              )
+            ) {
+              throw restoreWorkspaceStaleError();
+            }
+            workspaceLease.assertOwned();
+            const restored = engine.restore(id, {
+              expectedWorkspaceBinding: lockedPreview.workspaceBinding,
+            });
+            workspaceLease.assertOwned();
+            return restored;
+          },
+        );
         if (options.json) {
           console.log(JSON.stringify(r, null, 2));
           return;

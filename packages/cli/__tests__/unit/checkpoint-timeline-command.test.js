@@ -22,6 +22,11 @@ const state = vi.hoisted(() => ({
   failConversationAppend: false,
   failCompletedAudit: false,
   failFinalSettlement: false,
+  events: [],
+  workspaceLocks: [],
+  workspaceLockActive: false,
+  onWorkspaceLockWait: null,
+  workspaceLockError: null,
 }));
 
 vi.mock("../../src/lib/turn-binding-store.js", () => ({
@@ -41,6 +46,7 @@ vi.mock("../../src/harness/jsonl-session-store.js", () => ({
   findLatestEvent: () => ({ hash: state.headHash }),
   readVerifiedMessages: () => state.messages.map((message) => ({ ...message })),
   withSessionAuthorityTransaction: (_sessionId, expected, task) => {
+    state.events.push("session:acquire");
     if (expected !== state.headHash) {
       const error = new Error("stale");
       error.code = "SESSION_REVISION_STALE";
@@ -94,6 +100,9 @@ vi.mock("../../src/harness/jsonl-session-store.js", () => ({
               throw error;
             }
             const event = { type, data, expected: state.headHash };
+            if (type === "checkpoint_timeline_action_intent") {
+              state.events.push("intent");
+            }
             transaction.events.push(event);
             state.conditional.push(event);
             state.headHash = `${type}-${state.conditional.length}`;
@@ -177,6 +186,7 @@ vi.mock("../../src/lib/checkpoint-store.js", () => ({
     };
   },
   rewindTo: (_dir, checkpointId, options) => {
+    state.events.push("restore");
     state.onRestore?.();
     state.restores.push(checkpointId);
     state.restoreIdentities.push({
@@ -220,6 +230,7 @@ vi.mock("../../src/lib/file-checkpoint.js", () => ({
     };
   },
   restoreCheckpoint: (checkpointId, options) => {
+    state.events.push("restore");
     state.onRestore?.();
     state.restores.push(checkpointId);
     state.restoreIdentities.push({
@@ -242,9 +253,36 @@ vi.mock("../../src/lib/file-checkpoint.js", () => ({
 const { registerCheckpointCommand } =
   await import("../../src/commands/checkpoint.js");
 
+function withTestWorkspaceLock(options, callback) {
+  state.onWorkspaceLockWait?.();
+  if (state.workspaceLockError) throw state.workspaceLockError;
+  state.workspaceLocks.push({ ...options });
+  state.events.push("workspace:acquire");
+  state.workspaceLockActive = true;
+  const lease = {
+    canonicalWorkspaceRoot: options.workspaceRoot,
+    owner: { operationId: options.operationId },
+    assertOwned: () => {
+      if (!state.workspaceLockActive) {
+        const error = new Error("workspace lock ownership lost");
+        error.code = "LOCK_OWNERSHIP_LOST";
+        throw error;
+      }
+    },
+  };
+  try {
+    return callback(lease);
+  } finally {
+    state.workspaceLockActive = false;
+    state.events.push("workspace:release");
+  }
+}
+
 async function invoke(args) {
   const program = new Command();
-  registerCheckpointCommand(program);
+  registerCheckpointCommand(program, {
+    withWorkspaceLockSync: withTestWorkspaceLock,
+  });
   const output = vi.spyOn(console, "log").mockImplementation(() => {});
   try {
     await program.parseAsync(args, { from: "user" });
@@ -311,10 +349,18 @@ describe("checkpoint timeline CLI command authority", () => {
     state.failConversationAppend = false;
     state.failCompletedAudit = false;
     state.failFinalSettlement = false;
+    state.events = [];
+    state.workspaceLocks = [];
+    state.workspaceLockActive = false;
+    state.onWorkspaceLockWait = null;
+    state.workspaceLockError = null;
     process.exitCode = undefined;
   });
 
   it("binds even a forced direct restore to an immediate full-state preflight", async () => {
+    state.onRestore = () => {
+      expect(state.workspaceLockActive).toBe(true);
+    };
     const restored = await invoke([
       "checkpoint",
       "restore",
@@ -326,13 +372,27 @@ describe("checkpoint timeline CLI command authority", () => {
     ]);
 
     expect(restored).toMatchObject({ safetyId: "safety-1" });
-    expect(state.statusIdentities).toEqual([{ engine: "git", identity: null }]);
+    expect(state.statusIdentities).toEqual([
+      { engine: "git", identity: null },
+      { engine: "git", identity: null },
+    ]);
     expect(state.restoreBindings).toHaveLength(1);
     expect(state.restoreBindings[0]).toMatchObject({
       schema: "cc-checkpoint-workspace-binding/v1",
       engine: "git",
       workspaceRoot: "C:/workspace",
     });
+    expect(state.workspaceLocks).toEqual([
+      expect.objectContaining({
+        workspaceRoot: "C:/workspace",
+        purpose: "checkpoint-restore",
+      }),
+    ]);
+    expect(state.events).toEqual([
+      "workspace:acquire",
+      "restore",
+      "workspace:release",
+    ]);
   });
 
   it("previews read-only, then CAS-claims and commits restore-both", async () => {
@@ -391,6 +451,7 @@ describe("checkpoint timeline CLI command authority", () => {
     expect(state.statusIdentities).toEqual([
       { engine: "git", identity: `git:${"a".repeat(40)}` },
       { engine: "git", identity: `git:${"a".repeat(40)}` },
+      { engine: "git", identity: `git:${"a".repeat(40)}` },
     ]);
     expect(state.restoreIdentities).toEqual([
       { engine: "git", identity: `git:${"a".repeat(40)}` },
@@ -411,6 +472,47 @@ describe("checkpoint timeline CLI command authority", () => {
     expect(state.audit).toEqual([
       expect.objectContaining({ type: "checkpoint_timeline_action" }),
     ]);
+    expect(state.events).toEqual([
+      "workspace:acquire",
+      "session:acquire",
+      "intent",
+      "restore",
+      "workspace:release",
+    ]);
+  });
+
+  it("keeps conversation-only confirmation workspace-null and skips the workspace lock", async () => {
+    const timeline = await invoke([
+      "checkpoint",
+      "timeline",
+      "-s",
+      "s1",
+      "--json",
+    ]);
+    const submission = timeline.entries[0].actions.find(
+      (action) => action.action === "restore-conversation",
+    ).submission;
+    const confirmation = await previewConfirmation(submission);
+    expect(confirmation.workspace).toBeNull();
+
+    const executed = await invoke([
+      "checkpoint",
+      "action",
+      "-s",
+      "s1",
+      "--submission",
+      JSON.stringify(confirmation),
+      "--confirm",
+      "--json",
+    ]);
+
+    expect(executed).toMatchObject({
+      ok: true,
+      action: "restore-conversation",
+    });
+    expect(state.workspaceLocks).toEqual([]);
+    expect(state.restores).toEqual([]);
+    expect(state.events).toEqual(["session:acquire", "intent"]);
   });
 
   it("requires a preview-issued confirmation before any code status or write", async () => {
@@ -445,7 +547,7 @@ describe("checkpoint timeline CLI command authority", () => {
     expect(state.restores).toEqual([]);
   });
 
-  it("rejects workspace drift after preview before intent or restore", async () => {
+  it("rejects workspace drift while waiting for the lock before intent or restore", async () => {
     const timeline = await invoke([
       "checkpoint",
       "timeline",
@@ -457,7 +559,9 @@ describe("checkpoint timeline CLI command authority", () => {
       (action) => action.action === "restore-both",
     ).submission;
     const confirmation = await previewConfirmation(submission);
-    state.workspaceNonce = "6".repeat(64);
+    state.onWorkspaceLockWait = () => {
+      state.workspaceNonce = "6".repeat(64);
+    };
 
     const rejected = await invoke([
       "checkpoint",
@@ -474,10 +578,49 @@ describe("checkpoint timeline CLI command authority", () => {
       ok: false,
       code: "TIMELINE_WORKSPACE_STALE",
     });
-    expect(state.statusIdentities).toHaveLength(2);
+    expect(state.statusIdentities).toHaveLength(3);
+    expect(state.workspaceLocks).toHaveLength(1);
     expect(state.transactions).toEqual([]);
     expect(state.conditional).toEqual([]);
     expect(state.restores).toEqual([]);
+    expect(state.events).toEqual(["workspace:acquire", "workspace:release"]);
+  });
+
+  it.each([
+    "WORKSPACE_LOCK_TIMEOUT",
+    "WORKSPACE_TRANSACTION_RECOVERY_REQUIRED",
+  ])("fails closed on %s before session intent or restore", async (code) => {
+    const timeline = await invoke([
+      "checkpoint",
+      "timeline",
+      "-s",
+      "s1",
+      "--json",
+    ]);
+    const submission = timeline.entries[0].actions.find(
+      (action) => action.action === "restore-code",
+    ).submission;
+    const confirmation = await previewConfirmation(submission);
+    const lockError = new Error("injected workspace lock failure");
+    lockError.code = code;
+    state.workspaceLockError = lockError;
+
+    const rejected = await invoke([
+      "checkpoint",
+      "action",
+      "-s",
+      "s1",
+      "--submission",
+      JSON.stringify(confirmation),
+      "--confirm",
+      "--json",
+    ]);
+
+    expect(rejected).toMatchObject({ ok: false, code });
+    expect(state.transactions).toEqual([]);
+    expect(state.conditional).toEqual([]);
+    expect(state.restores).toEqual([]);
+    expect(state.events).toEqual([]);
   });
 
   it("keeps the writer transaction active across code restore and conversation commit", async () => {
@@ -492,6 +635,7 @@ describe("checkpoint timeline CLI command authority", () => {
       (action) => action.action === "restore-both",
     ).submission;
     state.onRestore = () => {
+      expect(state.workspaceLockActive).toBe(true);
       expect(state.transactionActive).toBe(true);
       expect(state.conditional.map((event) => event.type)).toEqual([
         "checkpoint_timeline_action_intent",
@@ -845,6 +989,7 @@ describe("checkpoint timeline CLI command authority", () => {
 
     expect(executed.ok).toBe(true);
     expect(state.statusIdentities).toEqual([
+      { engine: "copy", identity: expectedIdentity },
       { engine: "copy", identity: expectedIdentity },
       { engine: "copy", identity: expectedIdentity },
     ]);
