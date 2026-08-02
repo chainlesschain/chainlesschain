@@ -552,7 +552,10 @@ E2E retry-pass 应记为 flake，而不是普通 pass；超过阈值阻断发布
 | `c4f86903cc` | `30746466079` failure   | 无同 SHA 完成证据     | 无同 SHA 完成证据              | **NO-GO** |
 | `43bc6d1a39` | `30748505309` cancelled | 无同 SHA 完成证据     | 无同 SHA 完成证据              | **NO-GO** |
 | `60dbe9861c` | `30748579626` cancelled | `30748579537` success | `30748579499` success          | **NO-GO** |
+| `7ce62ab756` | `30749148369` cancelled | 无同 SHA 完成证据     | 无同 SHA 完成证据              | **NO-GO** |
 | `00905ff90c` | `30749292414` cancelled | 无同 SHA 完成证据     | 无同 SHA 完成证据              | **NO-GO** |
+| `b81b84b9f9` | `30749410076` cancelled | 无同 SHA 完成证据     | `30749409955` success          | **NO-GO** |
+| `b02c88b019` | `30749596847` queued    | 无同 SHA 完成证据     | 无同 SHA 完成证据              | **NO-GO** |
 
 当前没有任何待发布 exact SHA 同时取得完整 `CLI CI` 与 `CLI Strict Sandbox` 成功。queued、in-progress、cancelled、failure、部分矩阵、组件门成功、本地测试或旧 SHA 结果均不构成发布授权；文档提交后的新 SHA 也必须重新运行完整双门。
 
@@ -584,6 +587,15 @@ E2E retry-pass 应记为 flake，而不是普通 pass；超过阈值阻断发布
 - `60dbe9861c` 在 canonical transcript writer lock 内完成 exact-head 校验、intent、外部 restore、conversation commit 与 terminal audit；callback 返回后 writer 即撤权，不确定 append 会毒化 transaction，并在返回前结算 transcript/sidecar。它关闭的是同一 session 正常与可捕获失败路径中的交错写入窗口，不是 general session/workspace lease。
 - Git checkpoint 使用 `git:<commit SHA>`、copy fallback 使用 `sha256:<canonical manifest digest>` 作为不可变 target identity；identity 直接进入 restore-code/restore-both action submission，VS Code code restore 强制校验，超过 4096 条的历史目标也直接绑定。Git ref 重定向、copy manifest 替换以及 copy blob 缺失/损坏均在工作区写入前 fail closed。
 - 已覆盖的 restore 结果与操作层可捕获失败会携带 safety ID、不可变 safety identity、coverage、phase 与 created-path evidence；copy 无法为恢复前不存在的路径建立 tombstone 时显式标记为 `partial`，Git/copy 在上报 completed 前复核实际状态。Git plumbing 过滤父进程 secret，并只允许白名单内部环境覆盖与确定性 `GIT_AUTHOR_*`/`GIT_COMMITTER_*` 身份。
-- 本地定向证据为 checkpoint 8 文件 189/189、credential-agent 1 文件 12/12；Node 语法、Prettier、ESLint 与 `git diff --check` 通过。Host Consistency 在脏工作树上通过，但 `trackedWorktreeDirty=true`、`gateSourcePathsExact=false`，仅是组件/工作树证据。最终只读审计结论为新增 P0=0；窄范围 writer fence/target pin 可成立，但发现的 P1 已登记如下，不得把本节解读为完整 failure-evidence 闭包。
-- 已登记且仍未关闭的 P1：preview/confirmation 未绑定 workspace pre-state 或 diff digest；不同 session 可在同一 workspace 竞争；没有 durable prepared/applied/recovery saga，hard kill 后 intent 尚不足以恢复；callback 已成功但最终 full verification/anchor settlement 单独失败时，error 尚未保留局部 transaction result 中的 safety evidence；copy safety 对恢复前不存在文件没有 tombstone；`createdPaths` 当前可能包含计划创建但失败前尚未实际写入的后续路径，审计证据会过报；Git checkpoint/safety ref 的 `nextId` + `update-ref` 尚无 zero-old CAS/retry，并发时 ref 仍可能被覆盖。还没有 general execution/session/workspace lease，也未关闭 O(N)、anti-rollback、真实 1 GiB、fsync/断电与 remote host 验收。
+- 本地定向证据为 checkpoint 8 文件 189/189、credential-agent 1 文件 12/12；Node 语法、Prettier、ESLint 与 `git diff --check` 通过。Host Consistency 在脏工作树上通过，但 `trackedWorktreeDirty=true`、`gateSourcePathsExact=false`，仅是组件/工作树证据。最终只读审计结论为新增 P0=0；窄范围 writer fence/target pin 可成立，但当时发现的 P1 必须结合下一节 follow-up 判断，不得把本节解读为完整 failure-evidence 闭包。
+- `60dbe9861c` 审计时登记的 P1 包括：callback 已成功但最终 settlement 单独失败时 safety/branch 输出丢失；copy `createdPaths` 过报计划但尚未实际创建的路径；Git checkpoint/safety ref 缺少 zero-old CAS/retry。这三项已分别由 `b81b84b9f9`、`7ce62ab756`、`b02c88b019` 修复。仍未关闭的是 workspace pre-state/diff digest、跨 session workspace 竞争、durable prepared/applied/recovery saga、copy safety tombstone 与 general lease 等跨资源边界。
 - 该 SHA 的 Strict Sandbox `30748579537` 与 Host Consistency `30748579499` 已成功，但 CLI CI `30748579626` 被后续提交取消。取消前 Ubuntu unit4 已证明原 5 个 POSIX fixture failure 消失，并暴露 `backup publication TERM` 1 个残余；macOS/Windows unit4 未形成终态。cancelled run 与部分门成功均不构成发布授权；`60dbe9861c` 仍为 **release NO-GO**。
+
+### 14.8 Checkpoint failure evidence 与 ref publication 后续收口
+
+- `7ce62ab756` 将 copy restore 的 `createdPaths` 从“恢复前计划写且缺失”的全集改为每个 `atomicWriteFileSync` 成功返回后登记；多条缺失路径且第二条写入失败时只报告第一条实际创建路径。单文件 17/17、扩大只读复核 2 文件 26/26，Node 语法、Prettier、ESLint 与 `git diff --check` 通过；窄范围审计为新增 P0=0、P1=0。
+- `b81b84b9f9` 为 session authority transaction 增加显式、白名单、限长并冻结的 recovery evidence；restore/branch 在外部副作用成功后登记 safety identity/coverage、created paths 与 branch session ID。callback 与 completed audit 均成功、最终 transcript/sidecar settlement 单独失败时仍输出这些恢复线索并标记 `commitState=unknown`，任意 callback result 与未知字段不会复制到 error/JSON。3 个定向文件 115/115，语法、Prettier、ESLint 与 exact diff-check 通过；独立审计为新增 P0=0、P1=0。
+- `b02c88b019` 使用同一 `git update-ref --stdin` transaction 原子发布不可覆盖的 `cpNNNN` ref 与基于已观察 old OID 的 `_tip`；冲突会重读 tip、重建以 winner 为 parent 的 shadow commit、重新分配 ID，最多 16 次后以 `CHECKPOINT_REF_CONFLICT` fail closed。真实 Git 套件 35/35；确定性竞争验证 winner 不被覆盖、重试得到 `cp0003` 且 parent 指向 `cp0002`；独立 SHA-256 仓库验证 64 位 zero OID 与父链线性。语法、Prettier、ESLint、diff-check 通过，窄范围审计为新增 P0=0、P1=0。
+- 仍未关闭的 P1：preview/confirmation 尚未绑定 workspace pre-state 或 diff digest；不同 session 仍可同时改同一 workspace；没有 durable prepared/applied/recovery saga，hard kill/fsync 后 intent 不足以确定恢复；copy safety 对恢复前不存在文件仍无 tombstone；`clearCheckpoints` 与 create 的既有跨操作竞争可在发布后删除 `_tip`。这批修复也不是 general execution/session/workspace lease，不能外推为 restore-both 跨资源原子事务。
+- 非阻断 P2：Git ref 冲突识别依赖英文 stderr，本地化 Git 可能少一次 retry 但仍 fail closed；尚缺仅 `_tip` stale 的独立回归与 transaction verbs 最低 Git 版本探测。普通 hash-chain O(N)、独立 anti-rollback、真实 1 GiB、断电、remote host 与长期 soak 仍待产品级验收。
+- 截至 **2026-08-02 21:17 +08:00**，`7ce62ab756` 的 CLI CI `30749148369` cancelled；`b81b84b9f9` 的 Host Consistency `30749409955` success，但 CLI CI `30749410076` cancelled，且无同 SHA Strict 完成证据；`b02c88b019` 的 CLI CI `30749596847` queued，且无同 SHA Strict/Host 完成证据。三者均为 **release NO-GO**。
