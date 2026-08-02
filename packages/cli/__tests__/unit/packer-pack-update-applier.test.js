@@ -1337,6 +1337,9 @@ describe("writeWindowsSidecar (cmd body)", () => {
       }),
     );
     tmpFiles.push(p);
+    expect(path.dirname(p).toLowerCase()).toBe(
+      fs.realpathSync.native(path.resolve(os.tmpdir())).toLowerCase(),
+    );
     const body = fs.readFileSync(p, "utf-8");
     expect(body).toContain("@echo off");
     expect(body).toContain('set "PARENT_PID=7777"');
@@ -1376,6 +1379,16 @@ describe("writeWindowsSidecar (cmd body)", () => {
     ).toBe(true);
     expect(
       decodedPowerShell.some((script) => script.includes("WaitForExit(5000)")),
+    ).toBe(true);
+    const rawTempLiteral = `'${path
+      .resolve(os.tmpdir())
+      .replaceAll("'", "''")}'`;
+    expect(
+      decodedPowerShell.some(
+        (script) =>
+          script.includes("[IO.File]::GetAttributes") &&
+          script.includes(rawTempLiteral),
+      ),
     ).toBe(true);
     expect(body).toContain('move /Y "%RESULT_TEMP%" "%RESULT_FILE%"');
     const readyWrite = body.indexOf('> "%READY_TEMP%" echo ');
@@ -1439,6 +1452,123 @@ describe("writeWindowsSidecar (cmd body)", () => {
       ),
     ).toThrowError(expect.objectContaining({ code: "UNSAFE_WINDOWS_PATH" }));
   });
+
+  it.runIf(process.platform === "win32")(
+    "accepts an 8.3 TEMP alias while publishing through its canonical root",
+    () => {
+      const root = fs.mkdtempSync(
+        path.join(CANONICAL_TEMP_ROOT, "cc-sidecar-alias-"),
+      );
+      const longTempRoot = path.join(root, "readiness-sidecar-directory");
+      const shortTempRoot = path.join(root, "READIN~1");
+      fs.mkdirSync(longTempRoot);
+      const originalTmpdir = _deps.tmpdir;
+      let sidecarPath = null;
+      try {
+        // 8.3 name creation can be disabled per-volume. GitHub's Windows
+        // runner (the regression host) enables it and exposes RUNNER~1.
+        if (!fs.existsSync(shortTempRoot)) return;
+        expect(fs.realpathSync.native(shortTempRoot).toLowerCase()).toBe(
+          longTempRoot.toLowerCase(),
+        );
+        _deps.tmpdir = () => shortTempRoot;
+        sidecarPath = writeWindowsSidecar(
+          sidecarFixture({
+            newExePath: "C:\\fixture\\new.exe",
+            targetExePath: "C:\\fixture\\current.exe",
+          }),
+        );
+
+        expect(path.dirname(sidecarPath).toLowerCase()).toBe(
+          longTempRoot.toLowerCase(),
+        );
+        const body = fs.readFileSync(sidecarPath, "utf8");
+        const reparseScripts = [
+          ...body.matchAll(/-EncodedCommand ([A-Za-z0-9+/=]+)/g),
+        ]
+          .map(([, encoded]) =>
+            Buffer.from(encoded, "base64").toString("utf16le"),
+          )
+          .filter((script) => script.includes("[IO.File]::GetAttributes"));
+        expect(
+          reparseScripts.some((script) => script.includes(shortTempRoot)),
+        ).toBe(true);
+      } finally {
+        _deps.tmpdir = originalTmpdir;
+        if (sidecarPath) {
+          try {
+            fs.unlinkSync(sidecarPath);
+          } catch {
+            /* best effort */
+          }
+        }
+        fs.rmSync(root, { recursive: true, force: true });
+      }
+    },
+  );
+
+  it.runIf(process.platform === "win32")(
+    "rejects a reparse point retained from the raw TEMP spelling",
+    () => {
+      const root = fs.mkdtempSync(
+        path.join(CANONICAL_TEMP_ROOT, "cc-sidecar-temp-link-"),
+      );
+      const realParent = path.join(root, "real-parent");
+      const linkedParent = path.join(root, "linked-parent");
+      const realTempRoot = path.join(realParent, "temp-root");
+      const linkedTempRoot = path.join(linkedParent, "temp-root");
+      const appDir = path.join(root, "app");
+      fs.mkdirSync(realTempRoot, { recursive: true });
+      fs.mkdirSync(appDir);
+      try {
+        // The leaf itself is a normal directory; only an ancestor is a
+        // junction. That exercises the raw ancestor list retained after
+        // realpath canonicalization rather than the cheap leaf lstat guard.
+        fs.symlinkSync(realParent, linkedParent, "junction");
+      } catch (error) {
+        fs.rmSync(root, { recursive: true, force: true });
+        if (["EPERM", "EACCES", "ENOTSUP"].includes(error?.code)) return;
+        throw error;
+      }
+
+      const newExePath = path.join(appDir, "current.exe.new");
+      const targetExePath = path.join(appDir, "current.exe");
+      const lockPath = `${targetExePath}.update.lock`;
+      fs.writeFileSync(newExePath, "new-version");
+      fs.writeFileSync(targetExePath, "old-version");
+      const context = sidecarFixture({
+        newExePath,
+        targetExePath,
+        lockPath,
+        verify: false,
+      });
+      fs.writeFileSync(lockPath, context.lockToken);
+
+      const originalTmpdir = _deps.tmpdir;
+      let sidecarPath = null;
+      try {
+        _deps.tmpdir = () => linkedTempRoot;
+        sidecarPath = writeWindowsSidecar(context);
+        expect(path.dirname(sidecarPath).toLowerCase()).toBe(
+          realTempRoot.toLowerCase(),
+        );
+
+        const run = nodeSpawnSync("cmd.exe", ["/d", "/c", sidecarPath], {
+          encoding: "utf8",
+          timeout: 30_000,
+        });
+        expect(run.status, run.stderr || run.stdout).toBe(1);
+        expect(fs.readFileSync(targetExePath, "utf8")).toBe("old-version");
+        expect(fs.readFileSync(newExePath, "utf8")).toBe("new-version");
+        expect(fs.readFileSync(lockPath, "utf8")).toBe(context.lockToken);
+        expect(fs.existsSync(`${sidecarPath}.ready`)).toBe(false);
+      } finally {
+        _deps.tmpdir = originalTmpdir;
+        fs.rmSync(root, { recursive: true, force: true });
+      }
+    },
+    30_000,
+  );
 
   it.runIf(process.platform === "win32")(
     "commits the canonical binary and alias with lineage/result persistence",

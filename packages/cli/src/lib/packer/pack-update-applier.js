@@ -42,6 +42,7 @@ export const _deps = {
   // only after path, ownership and digest validation has completed.
   spawn: (...args) => nativeSpawn(...args),
   spawnSync: (...args) => executionBroker.spawnSync(...args),
+  tmpdir: () => os.tmpdir(),
 };
 
 export async function scheduleReplace(ctx = {}) {
@@ -688,7 +689,36 @@ export function writeWindowsSidecar(ctx) {
     .createHash("sha256")
     .update(lockToken, "utf8")
     .digest("hex");
-  const sidecarPath = path.join(os.tmpdir(), `cc-pack-apply-${suffix}.cmd`);
+  // GitHub's Windows runners expose TEMP through an 8.3 alias such as
+  // C:\Users\RUNNER~1\..., while realpath/ancestor validation returns the
+  // corresponding long pathname. Publish and validate the marker through the
+  // canonical root so that a harmless DOS alias is not mistaken for a reparse
+  // redirect. Keep the original root in the sidecar's reparse preflight below:
+  // canonicalization must never erase evidence of a junction in TEMP.
+  const rawTempRoot = path.resolve(_deps.tmpdir());
+  let sidecarTempRoot;
+  try {
+    const rawTempStat = fs.lstatSync(rawTempRoot);
+    if (rawTempStat.isSymbolicLink() || !rawTempStat.isDirectory()) {
+      throw new Error("temporary root must be a real directory");
+    }
+    sidecarTempRoot = fs.realpathSync.native(rawTempRoot);
+  } catch (error) {
+    throw new ApplyError(
+      `could not bind the Windows sidecar temporary root: ${error.message}`,
+      "UNSAFE_WINDOWS_PATH",
+    );
+  }
+  const sidecarPath = path.join(sidecarTempRoot, `cc-pack-apply-${suffix}.cmd`);
+  try {
+    assertStateSafeRegularFile(sidecarPath, {
+      label: "Windows update sidecar",
+      allowMissingLeaf: true,
+      platform: process.platform,
+    });
+  } catch (error) {
+    throw new ApplyError(error.message, "UNSAFE_WINDOWS_PATH");
+  }
   const readyPath = `${sidecarPath}.ready`;
   const readyTempPath = `${readyPath}.tmp-${suffix}`;
   const parentProbePath = `${sidecarPath}.parent`;
@@ -710,6 +740,11 @@ export function writeWindowsSidecar(ctx) {
 
   const allPaths = {
     windowsSystemRoot,
+    // This is intentionally distinct from sidecarPath's canonical parent.
+    // buildWindowsReparseChecks expands every ancestor, so the trusted
+    // PowerShell preflight rejects a junction/redirector in the original TEMP
+    // spelling before READY_FILE is published and lock ownership transfers.
+    rawTempRoot,
     sidecarPath,
     readyPath,
     readyTempPath,
