@@ -456,6 +456,50 @@ describe("CheckpointRestoreSagaStore", () => {
     ).toThrow(errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.INVALID_EVIDENCE));
   });
 
+  it("supports an explicit operation-local intent without claiming session authority", () => {
+    const testFixture = fixture();
+    const operationId = "direct_operation_intent";
+    let saga = testFixture.store.create({
+      operationId,
+      evidence: {
+        restoreKind: "git",
+        restoreSurface: "direct",
+        checkpointNamespace: "team-checkpoints",
+        checkpointId: "checkpoint-direct",
+      },
+    });
+    saga = advance(testFixture.store, saga, "locked", {
+      workspaceLockOwner: workspaceLockOwner(testFixture, operationId),
+    });
+    saga = advance(testFixture.store, saga, "prepared", {
+      prestateDigest: `sha256:${"1".repeat(64)}`,
+      targetCount: 0,
+    });
+
+    expect(() =>
+      advance(testFixture.store, saga, "intent_committed", {
+        intentAuthority: "session",
+        intentCommitDigest: `sha256:${"2".repeat(64)}`,
+      }),
+    ).toThrow(errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.INVALID_EVIDENCE));
+    expect(() =>
+      advance(testFixture.store, saga, "intent_committed", {
+        intentAuthority: "operation",
+        sessionId: "not-a-session-binding",
+        intentCommitDigest: `sha256:${"2".repeat(64)}`,
+      }),
+    ).toThrow(errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.INVALID_EVIDENCE));
+
+    saga = advance(testFixture.store, saga, "intent_committed", {
+      intentAuthority: "operation",
+      intentCommitDigest: `sha256:${"2".repeat(64)}`,
+    });
+    expect(saga.events.at(-1).evidence).toEqual({
+      intentAuthority: "operation",
+      intentCommitDigest: `sha256:${"2".repeat(64)}`,
+    });
+  });
+
   it("settles an exact zero-target restore without safety or mutation events", () => {
     const testFixture = fixture();
     const operationId = "zero_target_restore";

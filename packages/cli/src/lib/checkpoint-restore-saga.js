@@ -201,6 +201,15 @@ const EVIDENCE_RULES = Object.freeze({
     type: "enum",
     values: Object.freeze(["copy", "git", "timeline"]),
   }),
+  restoreSurface: Object.freeze({
+    type: "enum",
+    values: Object.freeze(["direct", "timeline"]),
+  }),
+  intentAuthority: Object.freeze({
+    type: "enum",
+    values: Object.freeze(["operation", "session"]),
+  }),
+  checkpointNamespace: Object.freeze({ type: "text", max: 256 }),
   checkpointId: Object.freeze({ type: "text", max: 256 }),
   checkpointIdentity: Object.freeze({ type: "text", max: 1024 }),
   sessionId: Object.freeze({ type: "text", max: 256 }),
@@ -2132,15 +2141,29 @@ export class CheckpointRestoreSagaStore {
         `${phase} requires durable evidence: ${missing.join(", ")}`,
       );
     }
-    if (
-      phase === "intent_committed" &&
-      !Object.hasOwn(evidence, "sessionId") &&
-      !Object.hasOwn(evidence, "timelineEntryId")
-    ) {
-      throw sagaError(
-        errorCode,
-        "intent_committed requires a sessionId or timelineEntryId",
-      );
+    if (phase === "intent_committed") {
+      const hasSessionBinding =
+        Object.hasOwn(evidence, "sessionId") ||
+        Object.hasOwn(evidence, "timelineEntryId");
+      const intentAuthority = evidence.intentAuthority;
+      if (!hasSessionBinding && intentAuthority !== "operation") {
+        throw sagaError(
+          errorCode,
+          "intent_committed requires session authority or an explicit operation-local authority",
+        );
+      }
+      if (intentAuthority === "session" && !hasSessionBinding) {
+        throw sagaError(
+          errorCode,
+          "session intent authority requires a sessionId or timelineEntryId",
+        );
+      }
+      if (intentAuthority === "operation" && hasSessionBinding) {
+        throw sagaError(
+          errorCode,
+          "operation-local intent authority cannot claim a session binding",
+        );
+      }
     }
     if (
       (ownerRequired && (!owner || !ownerDigest)) ||
