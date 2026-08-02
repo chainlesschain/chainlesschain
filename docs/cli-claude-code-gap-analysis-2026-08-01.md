@@ -623,3 +623,10 @@ E2E retry-pass 应记为 flake，而不是普通 pass；超过阈值阻断发布
 - crash recovery 的 dead-owner reclaim 现于同一个 canonical `coordination.lock` 临界区内完成 exact observed-owner CAS、liveness 复核、全 registry overlap 扫描以及 reclaim+acquire；只忽略待回收的 exact transaction owner。确定性竞态回归在 parent lock 的 `rm → mkdir` 窗口注入 child helper，child 得到 `WORKSPACE_LOCK_TIMEOUT`；另一个 overlapping dead checkpoint owner 会保持原样并返回 `RECOVERY_REQUIRED`，不会被 transaction recovery 自动接管。
 - 最终组合回归为 6 files、**83 passed / 1 个既有平台 skip**，其中包含真实 multiprocess 与 Process Broker 互操作；Prettier、ESLint、4 个文件的 Node `--check` 和 `git diff --check` 全部通过。独立安全复核结论为本增量无剩余新增 P0/P1，可以提交。
 - 本增量关闭的是活进程/跨 session/跨 process 的协作式 workspace 竞争，以及既有 transaction recovery 的 registry reclaim 窗口；它不把 hard kill 后的多阶段 restore 升级为原子事务。durable `prepared → intent → safety → mutation → applied → session_committed → completed` saga、copy 原先不存在路径的 durable tombstone、fsync/断电和 crash fixture 仍待完成，因此 `af2df894a8` 仍是 **release NO-GO**。
+
+### 14.12 Copy checkpoint hard-kill safety 与 Windows identity 收口
+
+- `4ddb5c9c98` 将 Windows Server 2025 / Node 22.12 / libuv 1.49/1.50 的可信 path↔fd device 投影兼容合入主线；path↔path 与 fd↔fd 仍保持完整身份字段精确比较，兼容仅在受信 volume/share-root authority 下生效。该提交同时把 copy restore 的写入、删除、tombstone、stage reservation、namespace 与 safety arm 绑定为不可替换的私有恢复证据。
+- 被删除或覆盖的 workspace predecessor 现明确采用 `non-authoritative-trash/v1`：rename 前必须由私有 arm 绑定并两次复核内容与对象身份，rename 后 trash 永不作为恢复输入，也不进入私有 authority chain。trash 被篡改或删除不会阻断由 safety blob/tombstone 驱动的完整恢复；若 successor 在校验窗口出现，restore fail closed 且不会 unlink successor。
+- 真实 Windows 回归将原目标显式授予 `Everyone:F`，在 target→trash rename 后强杀子进程，再由全新进程确认 trash 仍为非私有、篡改 trash，并只凭私有 safety evidence 完成恢复。冻结哈希下的组合回归为 **78 passed / 1 个平台条件 skip**；Node `--check`、ESLint、Prettier 与 `git diff --check` 全部通过，独立终审为 P0=0、P1=0、P2=0。
+- 该提交只关闭 copy checkpoint identity、tombstone 与 rename 后 ACL crash window，不等于多资源 restore-both 已具备 durable saga。`4ddb5c9c98` 的 `CLI CI` run `30760248218` 已触发但截至 **2026-08-03 02:04 +08:00** 尚无完整终态，也没有同 SHA 的最终 `CLI Strict Sandbox` 全矩阵证据；因此候选版本仍为 **release NO-GO**。
