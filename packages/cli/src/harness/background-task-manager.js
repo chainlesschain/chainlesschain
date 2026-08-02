@@ -299,6 +299,11 @@ export class BackgroundTaskManager extends EventEmitter {
     if (task.status !== TaskStatus.PENDING) {
       throw new Error(`Task ${taskId} is not pending (status: ${task.status})`);
     }
+    if (this._runningCount() >= this.maxConcurrent) {
+      throw new Error(
+        `Max concurrent tasks reached (${this.maxConcurrent}). Wait for a task to finish.`,
+      );
+    }
 
     const sandboxPolicy = this._resolvePinnedSandboxPolicy(task.cwd);
     const pinnedBoundaries = task.sandboxRequiredBoundaries;
@@ -406,7 +411,6 @@ export class BackgroundTaskManager extends EventEmitter {
     });
 
     child.on("exit", (code) => {
-      this._clearKillTimer(taskId);
       if (task.status === TaskStatus.RUNNING) {
         if (code === 0) {
           this._complete(
@@ -424,13 +428,12 @@ export class BackgroundTaskManager extends EventEmitter {
           );
         }
       }
-      this.processes.delete(taskId);
+      this._settleProcessOwnership(taskId, child);
     });
 
     child.on("error", (err) => {
-      this._clearKillTimer(taskId);
       this._complete(taskId, TaskStatus.FAILED, null, err.message);
-      this.processes.delete(taskId);
+      this._settleProcessOwnership(taskId, child);
     });
 
     if (this.sessionBudget) {
@@ -610,6 +613,15 @@ export class BackgroundTaskManager extends EventEmitter {
     }
   }
 
+  _settleProcessOwnership(taskId, child = null) {
+    const ownedChild = this.processes.get(taskId);
+    if (child && ownedChild && ownedChild !== child) return false;
+    if (ownedChild) this.processes.delete(taskId);
+    this._clearKillTimer(taskId);
+    this._releaseBudget(taskId);
+    return Boolean(ownedChild);
+  }
+
   cleanup(maxAge = 3600000) {
     const cutoff = Date.now() - maxAge;
     let removed = 0;
@@ -644,12 +656,11 @@ export class BackgroundTaskManager extends EventEmitter {
       this._clearKillTimer(id);
     }
     this.tasks.clear();
-    this.processes.clear();
     for (const taskId of [...this._killTimers.keys()]) {
       this._clearKillTimer(taskId);
     }
     for (const taskId of [...this._budgetLeases.keys()]) {
-      this._releaseBudget(taskId);
+      if (!this.processes.has(taskId)) this._releaseBudget(taskId);
     }
   }
 
@@ -672,16 +683,15 @@ export class BackgroundTaskManager extends EventEmitter {
     task.outputSummary = this._buildOutputSummary({ result, error, status });
     this._recordHistory(task, "completed", { status, result, error });
     this._persistTask(task, "completed");
-    this._releaseBudget(taskId);
+    // Logical settlement can arrive over IPC before the worker and its tool
+    // descendants have physically exited. Keep the work lease and abort hook
+    // until exit/error proves that process ownership has ended.
+    if (!this.processes.has(taskId)) this._releaseBudget(taskId);
     this.emit("task:complete", task);
   }
 
   _runningCount() {
-    let count = 0;
-    for (const task of this.tasks.values()) {
-      if (task.status === TaskStatus.RUNNING) count++;
-    }
-    return count;
+    return this.processes.size;
   }
 
   _persistTask(task, eventType = "snapshot", meta = {}) {

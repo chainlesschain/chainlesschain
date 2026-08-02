@@ -478,7 +478,7 @@ describe("BackgroundTaskManager", () => {
       expect(_deps.spawn).not.toHaveBeenCalled();
     });
 
-    it("releases its lease when abortable registration and tree kill both fail", () => {
+    it("holds its lease until exit when abortable registration and tree kill both fail", () => {
       const release = vi.fn();
       const sessionBudget = {
         acquireWork: vi.fn(() => ({ ok: true, release })),
@@ -503,7 +503,8 @@ describe("BackgroundTaskManager", () => {
         status: TaskStatus.FAILED,
         error: "abort registration failed",
       });
-      expect(release).toHaveBeenCalledOnce();
+      expect(release).not.toHaveBeenCalled();
+      expect(manager._budgetLeases.size).toBe(1);
       // The still-live child remains owned until its exit/error event so a
       // later destroy can retry termination rather than orphaning it.
       expect(manager.processes.get(task.id)).toBe(child);
@@ -511,6 +512,9 @@ describe("BackgroundTaskManager", () => {
       _deps.killProcessTree = vi.fn(() => true);
       child.exitCode = 1;
       child.emit("exit", 1);
+      expect(release).toHaveBeenCalledOnce();
+      expect(manager._budgetLeases.size).toBe(0);
+      expect(manager.processes.size).toBe(0);
     });
 
     it("settles once and ignores late message/error/exit events", () => {
@@ -533,6 +537,14 @@ describe("BackgroundTaskManager", () => {
       const task = manager.run({ command: "echo" });
 
       child.emit("message", { type: "result", data: "done" });
+      expect(task.status).toBe(TaskStatus.COMPLETED);
+      expect(completed).toHaveBeenCalledOnce();
+      expect(unregister).not.toHaveBeenCalled();
+      expect(release).not.toHaveBeenCalled();
+      expect(manager.processes.get(task.id)).toBe(child);
+      expect(manager._budgetAbortCleanup.size).toBe(1);
+      expect(manager._budgetLeases.size).toBe(1);
+
       child.emit("message", {
         type: "error",
         error: "late error",
@@ -654,7 +666,7 @@ describe("BackgroundTaskManager", () => {
       expect(manager.list()).toHaveLength(0);
     });
 
-    it("force-kills a live process tree before clearing its ownership maps", () => {
+    it("force-kills a live tree but retains ownership until exit confirms it", () => {
       const child = new EventEmitter();
       child.pid = 6611;
       child.exitCode = null;
@@ -668,8 +680,12 @@ describe("BackgroundTaskManager", () => {
       expect(_deps.killProcessTree).toHaveBeenCalledWith(child, "SIGTERM");
       expect(_deps.killProcessTree).toHaveBeenCalledWith(child, "SIGKILL");
       expect(manager.get(task.id)).toBeNull();
-      expect(manager.processes.size).toBe(0);
+      expect(manager.processes.get(task.id)).toBe(child);
       expect(manager._killTimers.size).toBe(0);
+
+      child.exitCode = 1;
+      child.emit("exit", 1);
+      expect(manager.processes.size).toBe(0);
     });
   });
 
