@@ -20,7 +20,14 @@ export const SESSION_BUDGET_SIDECAR_VERSION = 1;
 
 const DEFAULT_REGISTRY = new Map();
 const MAX_SIDECAR_BYTES = 1024 * 1024;
+const MAX_IN_FLIGHT_RESOURCES = 1024;
 const USAGE_UNKNOWN_SUFFIX = ".usage-unknown.json";
+const OPAQUE_AUTHORITY_ID_PATTERNS = Object.freeze({
+  work: /^work-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+  tool: /^tool-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+  usage:
+    /^usage-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+});
 
 function isRecord(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
@@ -40,6 +47,64 @@ function runtimeError(operation, filePath, cause, code = null) {
   return error;
 }
 
+function hasTypedOpaqueAuthorityIds(inFlight) {
+  return (
+    inFlight.work.every(
+      (entry) =>
+        typeof entry?.id === "string" &&
+        (OPAQUE_AUTHORITY_ID_PATTERNS.work.test(entry.id) ||
+          OPAQUE_AUTHORITY_ID_PATTERNS.usage.test(entry.id)),
+    ) &&
+    inFlight.tools.every(
+      (entry) =>
+        typeof entry?.id === "string" &&
+        OPAQUE_AUTHORITY_ID_PATTERNS.tool.test(entry.id),
+    )
+  );
+}
+
+function canonicalizeSnapshot(snapshot, filePath, operation = "snapshot") {
+  if (
+    !isRecord(snapshot?.inFlight) ||
+    !Array.isArray(snapshot.inFlight.work) ||
+    !Array.isArray(snapshot.inFlight.tools) ||
+    snapshot.inFlight.work.length + snapshot.inFlight.tools.length >
+      MAX_IN_FLIGHT_RESOURCES
+  ) {
+    throw runtimeError(
+      operation,
+      filePath,
+      new TypeError(
+        `in-flight resource count exceeds ${MAX_IN_FLIGHT_RESOURCES}`,
+      ),
+      "ERR_SESSION_BUDGET_IN_FLIGHT_LIMIT",
+    );
+  }
+  if (!hasTypedOpaqueAuthorityIds(snapshot.inFlight)) {
+    throw runtimeError(
+      operation,
+      filePath,
+      new TypeError("in-flight authority ids must be typed opaque ids"),
+      "ERR_SESSION_BUDGET_NON_OPAQUE_AUTHORITY",
+    );
+  }
+  let canonical;
+  try {
+    canonical = normalizeSessionResourceBudgetSnapshot(snapshot);
+  } catch (cause) {
+    throw runtimeError(operation, filePath, cause);
+  }
+  if (!hasTypedOpaqueAuthorityIds(canonical.inFlight)) {
+    throw runtimeError(
+      operation,
+      filePath,
+      new TypeError("in-flight authority ids must be typed opaque ids"),
+      "ERR_SESSION_BUDGET_NON_OPAQUE_AUTHORITY",
+    );
+  }
+  return canonical;
+}
+
 function validateRecord(value, sessionId, filePath) {
   if (
     !isRecord(value) ||
@@ -55,12 +120,7 @@ function validateRecord(value, sessionId, filePath) {
       new TypeError("invalid sidecar envelope"),
     );
   }
-  let snapshot;
-  try {
-    snapshot = normalizeSessionResourceBudgetSnapshot(value.snapshot);
-  } catch (cause) {
-    throw runtimeError("corrupt", filePath, cause);
-  }
+  const snapshot = canonicalizeSnapshot(value.snapshot, filePath, "corrupt");
   const writerPid = Number(value.writer?.pid);
   return {
     version: SESSION_BUDGET_SIDECAR_VERSION,
@@ -127,8 +187,9 @@ function sameUsageUnknownMarkerIdentity(left, right) {
 }
 
 function mergeUsageUnknownSnapshot(baseSnapshot, markerSnapshot, filePath) {
-  const base = normalizeSessionResourceBudgetSnapshot(baseSnapshot);
-  const markerEntries = usageSettlementEntries(markerSnapshot);
+  const base = canonicalizeSnapshot(baseSnapshot, filePath, "corrupt");
+  const marker = canonicalizeSnapshot(markerSnapshot, filePath, "corrupt");
+  const markerEntries = usageSettlementEntries(marker);
   if (markerEntries.length === 0) {
     throw runtimeError(
       "corrupt",
@@ -147,14 +208,28 @@ function mergeUsageUnknownSnapshot(baseSnapshot, markerSnapshot, filePath) {
       );
     }
     work.set(entry.id, { ...entry });
+    if (work.size + base.inFlight.tools.length > MAX_IN_FLIGHT_RESOURCES) {
+      throw runtimeError(
+        "corrupt",
+        filePath,
+        new TypeError(
+          `in-flight resource count exceeds ${MAX_IN_FLIGHT_RESOURCES}`,
+        ),
+        "ERR_SESSION_BUDGET_IN_FLIGHT_LIMIT",
+      );
+    }
   }
-  return normalizeSessionResourceBudgetSnapshot({
-    ...base,
-    inFlight: {
-      work: [...work.values()],
-      tools: base.inFlight.tools,
+  return canonicalizeSnapshot(
+    {
+      ...base,
+      inFlight: {
+        work: [...work.values()],
+        tools: base.inFlight.tools,
+      },
     },
-  });
+    filePath,
+    "corrupt",
+  );
 }
 
 function sameIdentity(left, right) {
@@ -193,7 +268,14 @@ function ensurePrivateOwnership(filePath, stat, kind) {
   }
 }
 
-function openVerifiedParent(filePath, fileSystem) {
+function openVerifiedParent(
+  filePath,
+  fileSystem,
+  {
+    platform = process.platform,
+    allowUnsupportedPlatformForTests = false,
+  } = {},
+) {
   const directory = path.dirname(filePath);
   let before;
   try {
@@ -205,7 +287,8 @@ function openVerifiedParent(filePath, fileSystem) {
   }
 
   let descriptor = null;
-  if (process.platform !== "win32") {
+  let descriptorRoot = null;
+  if (platform === "linux") {
     try {
       const flags =
         fs.constants.O_RDONLY |
@@ -216,6 +299,11 @@ function openVerifiedParent(filePath, fileSystem) {
       ensurePrivateOwnership(directory, opened, "directory");
       if (!sameIdentity(before, opened)) {
         throw new Error("parent directory identity changed during open");
+      }
+      descriptorRoot = `/proc/self/fd/${descriptor}`;
+      const projected = fileSystem.statSync(descriptorRoot);
+      if (!sameIdentity(opened, projected)) {
+        throw new Error("could not bind parent directory through its dirfd");
       }
     } catch (cause) {
       if (descriptor !== null) {
@@ -231,6 +319,26 @@ function openVerifiedParent(filePath, fileSystem) {
   }
 
   return {
+    resolve(childPath) {
+      const resolved = path.resolve(childPath);
+      if (path.dirname(resolved) !== path.resolve(directory)) {
+        throw runtimeError(
+          "path",
+          childPath,
+          new Error("sidecar child escaped its verified parent"),
+        );
+      }
+      if (descriptorRoot !== null) {
+        return path.posix.join(descriptorRoot, path.basename(resolved));
+      }
+      if (allowUnsupportedPlatformForTests) return resolved;
+      throw runtimeError(
+        "unsupported",
+        childPath,
+        new Error(`durable sidecars are unsupported on ${platform}`),
+        "ERR_SESSION_BUDGET_DURABLE_STORE_UNSUPPORTED",
+      );
+    },
     verify() {
       let current;
       try {
@@ -250,6 +358,9 @@ function openVerifiedParent(filePath, fileSystem) {
         throw runtimeError("read", directory, cause);
       }
     },
+    sync() {
+      if (descriptor !== null) fileSystem.fsyncSync(descriptor);
+    },
     close() {
       if (descriptor !== null) {
         fileSystem.closeSync(descriptor);
@@ -259,10 +370,10 @@ function openVerifiedParent(filePath, fileSystem) {
   };
 }
 
-function readRecordAt(filePath, sessionId, fileSystem = fs) {
+function readRecordAt(filePath, sessionId, fileSystem = fs, ioOptions = {}) {
   let parent;
   try {
-    parent = openVerifiedParent(filePath, fileSystem);
+    parent = openVerifiedParent(filePath, fileSystem, ioOptions);
   } catch (error) {
     if (error?.cause?.code === "ENOENT") return null;
     throw error;
@@ -270,9 +381,10 @@ function readRecordAt(filePath, sessionId, fileSystem = fs) {
   let descriptor = null;
   let serialized;
   try {
+    const physicalPath = parent.resolve(filePath);
     let before;
     try {
-      before = fileSystem.lstatSync(filePath);
+      before = fileSystem.lstatSync(physicalPath);
     } catch (cause) {
       if (cause?.code === "ENOENT") {
         parent.verify();
@@ -282,7 +394,7 @@ function readRecordAt(filePath, sessionId, fileSystem = fs) {
     }
     ensurePrivateOwnership(filePath, before, "file");
     const flags = fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW || 0);
-    descriptor = fileSystem.openSync(filePath, flags);
+    descriptor = fileSystem.openSync(physicalPath, flags);
     const opened = fileSystem.fstatSync(descriptor);
     ensurePrivateOwnership(filePath, opened, "file");
     if (!sameIdentity(before, opened)) {
@@ -291,14 +403,20 @@ function readRecordAt(filePath, sessionId, fileSystem = fs) {
     if (opened.size > MAX_SIDECAR_BYTES) {
       throw new Error("sidecar exceeds maximum size");
     }
-    const pathAfterOpen = fileSystem.lstatSync(filePath);
+    const pathAfterOpen = fileSystem.lstatSync(physicalPath);
     ensurePrivateOwnership(filePath, pathAfterOpen, "file");
     if (!sameIdentity(opened, pathAfterOpen)) {
       throw new Error("sidecar path changed after open");
     }
     serialized = fileSystem.readFileSync(descriptor, "utf8");
     const openedAfterRead = fileSystem.fstatSync(descriptor);
-    const pathAfterRead = fileSystem.lstatSync(filePath);
+    if (
+      openedAfterRead.size > MAX_SIDECAR_BYTES ||
+      Buffer.byteLength(serialized, "utf8") > MAX_SIDECAR_BYTES
+    ) {
+      throw new Error("sidecar exceeds maximum UTF-8 byte size");
+    }
+    const pathAfterRead = fileSystem.lstatSync(physicalPath);
     ensurePrivateOwnership(filePath, pathAfterRead, "file");
     if (
       !sameIdentity(opened, openedAfterRead) ||
@@ -328,45 +446,50 @@ function readRecordAt(filePath, sessionId, fileSystem = fs) {
   }
 }
 
-function writeRecordAt(filePath, value, fileSystem = fs) {
+function writeRecordAt(filePath, value, fileSystem = fs, ioOptions = {}) {
+  let serialized;
+  try {
+    serialized = `${JSON.stringify(value, null, 2)}\n`;
+  } catch (cause) {
+    throw runtimeError("write", filePath, cause);
+  }
+  if (Buffer.byteLength(serialized, "utf8") > MAX_SIDECAR_BYTES) {
+    throw runtimeError(
+      "write",
+      filePath,
+      new Error("sidecar exceeds maximum UTF-8 byte size"),
+      "ERR_SESSION_BUDGET_SIDECAR_TOO_LARGE",
+    );
+  }
   const directory = path.dirname(filePath);
-  const parent = openVerifiedParent(filePath, fileSystem);
+  const parent = openVerifiedParent(filePath, fileSystem, ioOptions);
   const temporary = path.join(
     directory,
     `.${path.basename(filePath)}.${process.pid}.${crypto.randomUUID()}.tmp`,
   );
+  const physicalTemporary = parent.resolve(temporary);
+  const physicalFilePath = parent.resolve(filePath);
   let descriptor = null;
   let renamed = false;
   let temporaryIdentity = null;
   try {
-    descriptor = fileSystem.openSync(temporary, "wx", 0o600);
-    fileSystem.writeFileSync(
-      descriptor,
-      `${JSON.stringify(value, null, 2)}\n`,
-      "utf8",
-    );
+    descriptor = fileSystem.openSync(physicalTemporary, "wx", 0o600);
+    fileSystem.writeFileSync(descriptor, serialized, "utf8");
     fileSystem.fsyncSync(descriptor);
     temporaryIdentity = fileSystem.fstatSync(descriptor);
     ensurePrivateOwnership(temporary, temporaryIdentity, "file");
     fileSystem.closeSync(descriptor);
     descriptor = null;
-    fileSystem.renameSync(temporary, filePath);
+    fileSystem.renameSync(physicalTemporary, physicalFilePath);
     renamed = true;
-    const committed = fileSystem.lstatSync(filePath);
+    const committed = fileSystem.lstatSync(physicalFilePath);
     ensurePrivateOwnership(filePath, committed, "file");
     if (!sameIdentity(temporaryIdentity, committed)) {
       throw new Error("committed sidecar identity mismatch");
     }
     parent.verify();
 
-    if (process.platform !== "win32") {
-      const directoryDescriptor = fileSystem.openSync(directory, "r");
-      try {
-        fileSystem.fsyncSync(directoryDescriptor);
-      } finally {
-        fileSystem.closeSync(directoryDescriptor);
-      }
-    }
+    parent.sync();
     parent.verify();
   } catch (cause) {
     if (descriptor !== null) {
@@ -378,7 +501,7 @@ function writeRecordAt(filePath, value, fileSystem = fs) {
     }
     if (!renamed) {
       try {
-        fileSystem.unlinkSync(temporary);
+        fileSystem.unlinkSync(physicalTemporary);
       } catch {
         // Best-effort orphan cleanup only.
       }
@@ -400,12 +523,34 @@ export class SessionBudgetSidecarStore {
     lock = withFileLock,
     lockOptions = {},
     now = () => Date.now(),
+    platform = process.platform,
+    allowUnsupportedPlatformForTests = false,
   } = {}) {
     this._resolvePath = resolvePath;
     this._fs = fileSystem;
     this._lock = lock;
     this._lockOptions = lockOptions;
     this._now = now;
+    this._platform = String(platform);
+    this._allowUnsupportedPlatformForTests =
+      allowUnsupportedPlatformForTests === true;
+    this._ioOptions = {
+      platform: this._platform,
+      allowUnsupportedPlatformForTests: this._allowUnsupportedPlatformForTests,
+    };
+  }
+
+  _assertSupported(filePath) {
+    if (this._platform !== "linux" && !this._allowUnsupportedPlatformForTests) {
+      throw runtimeError(
+        "unsupported",
+        filePath,
+        new Error(
+          `durable session budget sidecars require Linux dirfd-relative I/O; ${this._platform} is unsupported`,
+        ),
+        "ERR_SESSION_BUDGET_DURABLE_STORE_UNSUPPORTED",
+      );
+    }
   }
 
   pathForSession(sessionId) {
@@ -419,6 +564,7 @@ export class SessionBudgetSidecarStore {
   read(sessionId) {
     const id = String(sessionId);
     const filePath = this.pathForSession(id);
+    this._assertSupported(filePath);
     const markerPath = this.usageUnknownPathForSession(id);
     try {
       this._fs.lstatSync(path.dirname(filePath));
@@ -429,8 +575,8 @@ export class SessionBudgetSidecarStore {
     return this._lock(
       filePath,
       () => {
-        const current = readRecordAt(filePath, id, this._fs);
-        const marker = readRecordAt(markerPath, id, this._fs);
+        const current = readRecordAt(filePath, id, this._fs, this._ioOptions);
+        const marker = readRecordAt(markerPath, id, this._fs, this._ioOptions);
         if (!marker) return current;
         const snapshot = mergeUsageUnknownSnapshot(
           current?.snapshot ?? marker.snapshot,
@@ -481,6 +627,7 @@ export class SessionBudgetSidecarStore {
   ) {
     const id = String(sessionId);
     const filePath = this.pathForSession(id);
+    this._assertSupported(filePath);
     if (
       expectedRevision !== null &&
       (!Number.isSafeInteger(expectedRevision) || expectedRevision < 1)
@@ -494,12 +641,11 @@ export class SessionBudgetSidecarStore {
         "ERR_SESSION_BUDGET_UNSAFE_REVISION",
       );
     }
-    let canonicalSnapshot;
-    try {
-      canonicalSnapshot = normalizeSessionResourceBudgetSnapshot(snapshot);
-    } catch (cause) {
-      throw runtimeError("snapshot", filePath, cause);
-    }
+    const canonicalSnapshot = canonicalizeSnapshot(
+      snapshot,
+      filePath,
+      "snapshot",
+    );
     const expectedMarker = resolveUsageUnknown
       ? normalizeUsageUnknownMarkerIdentity(
           expectedUsageUnknownMarker,
@@ -518,11 +664,12 @@ export class SessionBudgetSidecarStore {
     const result = this._lock(
       filePath,
       () => {
-        const current = readRecordAt(filePath, id, this._fs);
+        const current = readRecordAt(filePath, id, this._fs, this._ioOptions);
         const marker = readRecordAt(
           this.usageUnknownPathForSession(id),
           id,
           this._fs,
+          this._ioOptions,
         );
         const actualMarker = usageUnknownMarkerIdentity(marker);
         const clean = usageSettlementEntries(canonicalSnapshot).length === 0;
@@ -589,7 +736,7 @@ export class SessionBudgetSidecarStore {
           writer: { pid: process.pid },
           snapshot: canonicalSnapshot,
         };
-        writeRecordAt(filePath, record, this._fs);
+        writeRecordAt(filePath, record, this._fs, this._ioOptions);
         if (resolveUsageUnknown) {
           this._clearUsageUnknownLocked(id, expectedMarker);
         }
@@ -612,13 +759,13 @@ export class SessionBudgetSidecarStore {
   markUsageUnknown(sessionId, snapshot) {
     const id = String(sessionId);
     const filePath = this.pathForSession(id);
+    this._assertSupported(filePath);
     const markerPath = this.usageUnknownPathForSession(id);
-    let canonicalSnapshot;
-    try {
-      canonicalSnapshot = normalizeSessionResourceBudgetSnapshot(snapshot);
-    } catch (cause) {
-      throw runtimeError("snapshot", markerPath, cause);
-    }
+    const canonicalSnapshot = canonicalizeSnapshot(
+      snapshot,
+      markerPath,
+      "snapshot",
+    );
     if (usageSettlementEntries(canonicalSnapshot).length === 0) {
       throw runtimeError(
         "marker",
@@ -638,7 +785,7 @@ export class SessionBudgetSidecarStore {
     return this._lock(
       filePath,
       () => {
-        const current = readRecordAt(markerPath, id, this._fs);
+        const current = readRecordAt(markerPath, id, this._fs, this._ioOptions);
         if (current?.revision === Number.MAX_SAFE_INTEGER) {
           throw runtimeError(
             "revision",
@@ -663,8 +810,13 @@ export class SessionBudgetSidecarStore {
           writer: { pid: process.pid },
           snapshot: merged,
         };
-        writeRecordAt(markerPath, record, this._fs);
-        const committed = readRecordAt(markerPath, id, this._fs);
+        writeRecordAt(markerPath, record, this._fs, this._ioOptions);
+        const committed = readRecordAt(
+          markerPath,
+          id,
+          this._fs,
+          this._ioOptions,
+        );
         const usageUnknownMarker = usageUnknownMarkerIdentity(committed);
         if (current) {
           // Preserve the newly reported settlement, but do not let a runtime
@@ -691,6 +843,7 @@ export class SessionBudgetSidecarStore {
   clearUsageUnknown(sessionId, { expectedUsageUnknownMarker = null } = {}) {
     const id = String(sessionId);
     const filePath = this.pathForSession(id);
+    this._assertSupported(filePath);
     const markerPath = this.usageUnknownPathForSession(id);
     const expectedMarker = normalizeUsageUnknownMarkerIdentity(
       expectedUsageUnknownMarker,
@@ -711,7 +864,7 @@ export class SessionBudgetSidecarStore {
   _clearUsageUnknownLocked(sessionId, expectedUsageUnknownMarker) {
     const id = String(sessionId);
     const markerPath = this.usageUnknownPathForSession(id);
-    const marker = readRecordAt(markerPath, id, this._fs);
+    const marker = readRecordAt(markerPath, id, this._fs, this._ioOptions);
     const actualMarker = usageUnknownMarkerIdentity(marker);
     if (
       !sameUsageUnknownMarkerIdentity(expectedUsageUnknownMarker, actualMarker)
@@ -723,30 +876,22 @@ export class SessionBudgetSidecarStore {
         "ERR_SESSION_BUDGET_MARKER_CONFLICT",
       );
     }
-    const parent = openVerifiedParent(markerPath, this._fs);
+    const parent = openVerifiedParent(markerPath, this._fs, this._ioOptions);
     const tombstone = `${markerPath}.${process.pid}.${crypto.randomUUID()}.clear`;
+    const physicalMarkerPath = parent.resolve(markerPath);
+    const physicalTombstone = parent.resolve(tombstone);
     try {
-      const before = this._fs.lstatSync(markerPath);
+      const before = this._fs.lstatSync(physicalMarkerPath);
       ensurePrivateOwnership(markerPath, before, "file");
-      this._fs.renameSync(markerPath, tombstone);
-      const moved = this._fs.lstatSync(tombstone);
+      this._fs.renameSync(physicalMarkerPath, physicalTombstone);
+      const moved = this._fs.lstatSync(physicalTombstone);
       ensurePrivateOwnership(tombstone, moved, "file");
       if (!sameIdentity(before, moved)) {
         throw new Error("usage-unknown marker identity changed during clear");
       }
-      this._fs.unlinkSync(tombstone);
+      this._fs.unlinkSync(physicalTombstone);
       parent.verify();
-      if (process.platform !== "win32") {
-        const directoryDescriptor = this._fs.openSync(
-          path.dirname(markerPath),
-          "r",
-        );
-        try {
-          this._fs.fsyncSync(directoryDescriptor);
-        } finally {
-          this._fs.closeSync(directoryDescriptor);
-        }
-      }
+      parent.sync();
       parent.verify();
       return true;
     } catch (cause) {
@@ -789,14 +934,20 @@ class SharedSessionBudgetRuntime {
   onBudgetEvent(event) {
     for (const observer of this.observers) {
       try {
-        observer(event);
+        const pending = observer(event);
+        void Promise.resolve(pending).catch(() => {});
       } catch {
         // Observability never weakens the budget authority.
       }
     }
   }
 
+  assertMutationAllowed() {
+    this.budget._assertAuthorityMutationAllowed?.();
+  }
+
   _persistTransaction(write) {
+    this.assertMutationAllowed();
     if (this.persistenceError) throw this.persistenceError;
     if (this._persisting) {
       const error = runtimeError(
@@ -846,6 +997,7 @@ class SharedSessionBudgetRuntime {
   }
 
   persist() {
+    this.assertMutationAllowed();
     return this.persistSnapshot(this.budget.snapshot());
   }
 
@@ -979,6 +1131,7 @@ class SharedSessionBudgetRuntime {
     let closed = false;
     return new SessionBudgetRuntimeHandle(this, () => {
       if (closed) return false;
+      this.assertMutationAllowed();
       closed = true;
       unlinkSignal();
       unobserve();
@@ -987,6 +1140,7 @@ class SharedSessionBudgetRuntime {
   }
 
   release() {
+    this.assertMutationAllowed();
     if (this.references <= 0) return false;
     this.references -= 1;
     if (this.references > 0) return true;

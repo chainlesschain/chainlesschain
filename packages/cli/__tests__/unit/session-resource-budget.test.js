@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  normalizeSessionResourceBudgetSnapshot,
   SessionBudgetError,
   SessionResourceBudget,
 } from "../../src/lib/session-resource-budget.js";
@@ -547,10 +548,22 @@ describe("SessionResourceBudget snapshot and recovery", () => {
       { maxConcurrent: 2, maxSpawns: 4, maxToolMs: 1000 },
       sourceClock,
     ).budget;
-    source.acquireWork({ id: "child-live", kind: "sub-agent", depth: 2 });
-    source.beginTool({ id: "tool-live", kind: "run_shell" });
+    const workLease = source.acquireWork({
+      id: "child-live",
+      kind: "sub-agent",
+      depth: 2,
+    });
+    const toolLease = source.beginTool({
+      id: "tool-live",
+      kind: "run_shell",
+    });
     sourceClock.advance(25);
     const snapshot = source.snapshot();
+    expect(Object.getOwnPropertySymbols(snapshot)).toEqual([]);
+    expect(snapshot.inFlight.work[0].id).toBe(workLease.authorityId);
+    expect(snapshot.inFlight.tools[0].id).toBe(toolLease.authorityId);
+    expect(JSON.stringify(snapshot)).not.toContain("child-live");
+    expect(JSON.stringify(snapshot)).not.toContain("tool-live");
     source.dispose();
 
     const resumedClock = new ManualClock(5000);
@@ -573,14 +586,22 @@ describe("SessionResourceBudget snapshot and recovery", () => {
       reason: "recovery-required",
     });
     expect(
-      resumed.adjudicateRecovery({ abandoned: ["child-live"] }),
+      resumed.adjudicateRecovery({
+        abandoned: ["tool-live", "child-live"],
+      }),
+    ).toMatchObject({
+      ok: false,
+      reason: "recovery-adjudication-incomplete",
+    });
+    expect(
+      resumed.adjudicateRecovery({ abandoned: [workLease.authorityId] }),
     ).toMatchObject({
       ok: false,
       reason: "recovery-adjudication-incomplete",
     });
     expect(
       resumed.adjudicateRecovery({
-        abandoned: ["tool-live", "child-live"],
+        abandoned: [toolLease.authorityId, workLease.authorityId],
       }),
     ).toMatchObject({ ok: true });
     expect(resumed.acquireWork({ id: "new", depth: 1 })).toMatchObject({
@@ -616,16 +637,32 @@ describe("SessionResourceBudget snapshot and recovery", () => {
     );
   });
 
-  it("rejects a dirty snapshot that aliases one work and tool id", () => {
+  it("rejects business labels in normalized and restored in-flight state", () => {
+    const source = makeBudget({ maxConcurrent: 2 }).budget;
+    source.acquireWork({ id: "private-business-label", depth: 1 });
+    const forged = source.snapshot();
+    source.dispose();
+    forged.inFlight.work[0].id = "secret-business-label";
+
+    expect(() => normalizeSessionResourceBudgetSnapshot(forged)).toThrow(
+      /invalid session budget in-flight entry: work/,
+    );
+    expect(() => SessionResourceBudget.restore(forged)).toThrow(
+      /invalid session budget in-flight entry: work/,
+    );
+    expect(forged.inFlight.work[0].id).toBe("secret-business-label");
+  });
+
+  it("rejects a work authority id in tool recovery state", () => {
     const source = makeBudget({ maxConcurrent: 2 }).budget;
     source.acquireWork({ id: "work-live", depth: 1 });
     source.beginTool({ id: "tool-live" });
     const snapshot = source.snapshot();
     source.dispose();
-    snapshot.inFlight.tools[0].id = "work-live";
+    snapshot.inFlight.tools[0].id = snapshot.inFlight.work[0].id;
 
     expect(() => SessionResourceBudget.restore(snapshot)).toThrow(
-      /duplicate session budget in-flight id across work and tools/,
+      /invalid session budget in-flight entry: tools/,
     );
   });
 });

@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { randomUUID } from "node:crypto";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   openSessionBudget,
@@ -10,6 +11,33 @@ import {
 import { SessionResourceBudget } from "../../src/lib/session-resource-budget.js";
 
 const temporaryDirectories = [];
+
+async function flushObservationEvents() {
+  await Promise.resolve();
+  await Promise.resolve();
+}
+
+function captureError(callback) {
+  try {
+    callback();
+  } catch (error) {
+    return error;
+  }
+  throw new Error("expected callback to throw");
+}
+
+function snapshotWithWorkEntries(ids, { kind = "work", depth = 0 } = {}) {
+  const budget = new SessionResourceBudget();
+  const snapshot = budget.snapshot();
+  budget.dispose();
+  snapshot.inFlight.work = ids.map((id) => ({
+    id,
+    kind,
+    depth,
+    elapsedMs: 0,
+  }));
+  return snapshot;
+}
 
 function makeStore() {
   const directory = fs.mkdtempSync(
@@ -21,6 +49,7 @@ function makeStore() {
     store: new SessionBudgetSidecarStore({
       resolvePath: (sessionId) =>
         path.join(directory, `${sessionId}.budget.json`),
+      allowUnsupportedPlatformForTests: true,
     }),
   };
 }
@@ -106,13 +135,12 @@ describe("session budget runtime", () => {
       registry: new Map(),
       limits: { maxSpawns: 5 },
     });
-    expect(
-      crashed.budget.acquireWork({
-        id: "background:pid-7",
-        kind: "background",
-        depth: 1,
-      }).ok,
-    ).toBe(true);
+    const crashedLease = crashed.budget.acquireWork({
+      id: "background:pid-7",
+      kind: "background",
+      depth: 1,
+    });
+    expect(crashedLease.ok).toBe(true);
     // Closing the runtime models process teardown without falsely settling the
     // still-live resource; the persisted snapshot must remain dirty.
     crashed.close();
@@ -132,16 +160,26 @@ describe("session budget runtime", () => {
       registry: new Map(),
     });
     expect(resumed.budget.pendingRecovery()).toEqual([
-      expect.objectContaining({ id: "background:pid-7" }),
+      expect.objectContaining({ id: crashedLease.authorityId }),
     ]);
+    expect(JSON.stringify(store.read("dirty"))).not.toContain(
+      "background:pid-7",
+    );
     expect(
       resumed.budget.acquireWork({ id: "new-work", depth: 1 }),
     ).toMatchObject({ ok: false, reason: "recovery-required" });
-    expect(resumed.budget.adjudicateRecovery({ abandoned: [] })).toMatchObject({
+    expect(
+      resumed.budget.adjudicateRecovery({
+        abandoned: ["background:pid-7"],
+      }),
+    ).toMatchObject({
       ok: false,
+      reason: "recovery-adjudication-incomplete",
     });
     expect(
-      resumed.budget.adjudicateRecovery({ abandoned: ["background:pid-7"] }),
+      resumed.budget.adjudicateRecovery({
+        abandoned: [crashedLease.authorityId],
+      }),
     ).toMatchObject({ ok: true });
     expect(resumed.budget.acquireWork({ id: "new-work", depth: 1 }).ok).toBe(
       true,
@@ -229,9 +267,9 @@ describe("session budget runtime", () => {
     },
   ])(
     "keeps $name locally and durably unknown after a stale CAS",
-    ({ id, begin, finish, expected }) => {
+    ({ name, id, begin, finish, expected }) => {
       const { store } = makeStore();
-      const sessionId = `terminal-${id}`;
+      const sessionId = `terminal-${name.replaceAll(" ", "-")}-${randomUUID()}`;
       const first = openSessionBudget(sessionId, {
         store,
         registry: new Map(),
@@ -248,14 +286,19 @@ describe("session budget runtime", () => {
         aborted: true,
         reason: "persistence-failed",
       });
-      expect(first.budget.snapshot().inFlight).toEqual(expected(id));
-      expect(store.read(sessionId).snapshot.inFlight).toEqual(expected(id));
+      expect(first.budget.snapshot().inFlight).toEqual(
+        expected(lease.authorityId),
+      );
+      expect(store.read(sessionId).snapshot.inFlight).toEqual(
+        expected(lease.authorityId),
+      );
+      expect(JSON.stringify(store.read(sessionId))).not.toContain(id);
       expect(() => first.close()).toThrow(/expected revision/);
       competing.close();
     },
   );
 
-  it("rejects an authority mutation synchronously when persistence throws", () => {
+  it("rejects an authority mutation synchronously when persistence throws", async () => {
     const { store } = makeStore();
     let rejectWrites = false;
     const failingStore = {
@@ -295,6 +338,7 @@ describe("session budget runtime", () => {
     });
     expect(stopped).toEqual(["stopped"]);
     expect(store.read("persistence-throw")).toEqual(durableBefore);
+    await flushObservationEvents();
     expect(events).toContain("budget:authority-persistence-failed");
     expect(() => handle.close()).toThrow(/durability unavailable/);
   });
@@ -383,24 +427,33 @@ describe("session budget runtime", () => {
     handle.close();
   });
 
-  it("denies observer re-entry while usage settlement is pending", () => {
+  it("rejects authority mutation from a deferred observation callback", async () => {
     const { store } = makeStore();
     let handle = null;
-    const reentrantAdmissions = [];
+    const reentrantErrors = [];
+    const observedEvents = [];
     handle = openSessionBudget("usage-observer", {
       store,
       registry: new Map(),
       limits: { maxTurns: 3, maxSpawns: 3 },
       onEvent: (event) => {
         if (event.type !== "budget:usage-settlement-started") return;
-        reentrantAdmissions.push(
-          handle.budget.consumeTurn({ id: "observer-turn" }),
-          handle.budget.acquireWork({
-            id: "observer-work",
-            kind: "sub-agent",
-            depth: 1,
-          }),
-        );
+        observedEvents.push(event);
+        for (const mutate of [
+          () => handle.budget.consumeTurn({ id: "observer-turn" }),
+          () =>
+            handle.budget.acquireWork({
+              id: "observer-work",
+              kind: "sub-agent",
+              depth: 1,
+            }),
+        ]) {
+          try {
+            mutate();
+          } catch (error) {
+            reentrantErrors.push(error);
+          }
+        }
       },
     });
 
@@ -409,17 +462,15 @@ describe("session budget runtime", () => {
       model: "local",
       usage: { input_tokens: 2, output_tokens: 1 },
     });
+    await flushObservationEvents();
 
-    expect(reentrantAdmissions).toEqual([
-      expect.objectContaining({
-        ok: false,
-        reason: "usage-settlement-pending",
-      }),
-      expect.objectContaining({
-        ok: false,
-        reason: "usage-settlement-pending",
-      }),
+    expect(reentrantErrors).toHaveLength(2);
+    expect(reentrantErrors).toEqual([
+      expect.objectContaining({ budgetReason: "notification-reentrancy" }),
+      expect.objectContaining({ budgetReason: "notification-reentrancy" }),
     ]);
+    expect(observedEvents[0]).not.toHaveProperty("authorityId");
+    expect(observedEvents[0]).not.toHaveProperty("id");
     expect(handle.budget.status()).toMatchObject({
       tokens: 3,
       turns: 0,
@@ -430,6 +481,268 @@ describe("session budget runtime", () => {
       fs.existsSync(store.usageUnknownPathForSession("usage-observer")),
     ).toBe(false);
     handle.close();
+  });
+
+  it("keeps work observers read-only before direct and await continuations", async () => {
+    const { store } = makeStore();
+    let handle = null;
+    let phase = "direct";
+    let knownAuthorityId = null;
+    const observed = [];
+    const errors = [];
+    handle = openSessionBudget("work-observer-ordering", {
+      store,
+      registry: new Map(),
+      limits: { maxSpawns: 4, maxConcurrent: 4 },
+      onEvent: (event) => {
+        if (event.type !== "budget:work-acquired") return;
+        observed.push({ phase, event, knownAuthorityId });
+        for (const mutate of [
+          () => handle.budget.releaseWork(knownAuthorityId || event.id),
+          () => handle.close(),
+        ]) {
+          try {
+            mutate();
+          } catch (error) {
+            errors.push(error);
+          }
+        }
+      },
+    });
+
+    const direct = handle.budget.acquireWork({
+      id: "direct-business-label",
+      depth: 1,
+    });
+    knownAuthorityId = direct.authorityId;
+    await flushObservationEvents();
+
+    expect(observed[0]).toMatchObject({
+      phase: "direct",
+      knownAuthorityId: direct.authorityId,
+    });
+    expect(handle.budget.status().active).toBe(1);
+    expect(direct.release()).toBe(true);
+
+    phase = "await";
+    knownAuthorityId = null;
+    const awaited = await Promise.resolve(
+      handle.budget.acquireWork({
+        id: "await-business-label",
+        depth: 1,
+      }),
+    );
+    knownAuthorityId = awaited.authorityId;
+    await flushObservationEvents();
+
+    expect(observed[1]).toMatchObject({
+      phase: "await",
+      knownAuthorityId: null,
+    });
+    expect(errors).toHaveLength(4);
+    expect(errors).toEqual(
+      Array.from({ length: 4 }, () =>
+        expect.objectContaining({
+          budgetReason: "notification-reentrancy",
+        }),
+      ),
+    );
+    for (const { event } of observed) {
+      expect(event).toHaveProperty("eventId");
+      expect(event).not.toHaveProperty("authorityId");
+      expect(event.id).not.toMatch(/^(?:work|tool|usage)-[0-9a-f-]{36}$/);
+    }
+    expect(handle.budget.status().active).toBe(1);
+    expect(awaited.release()).toBe(true);
+    handle.close();
+  });
+
+  it("keeps await and timer descendants of an observer permanently read-only", async () => {
+    const { store } = makeStore();
+    const sessionId = "async-observer-context";
+    let handle = null;
+    let lease = null;
+    let resolveObserver;
+    let rejectObserver;
+    const observerDone = new Promise((resolve, reject) => {
+      resolveObserver = resolve;
+      rejectObserver = reject;
+    });
+    let resolveObserverReady;
+    const observerReady = new Promise((resolve) => {
+      resolveObserverReady = resolve;
+    });
+    let resumeObserver;
+    const observerResume = new Promise((resolve) => {
+      resumeObserver = resolve;
+    });
+    const attempts = [];
+    const attempt = (stage, mutate) => {
+      try {
+        mutate();
+        attempts.push({ stage, error: null });
+      } catch (error) {
+        attempts.push({ stage, error });
+      }
+    };
+
+    handle = openSessionBudget(sessionId, {
+      store,
+      registry: new Map(),
+      limits: { maxSpawns: 2, maxConcurrent: 2 },
+      onEvent: async (event) => {
+        if (event.type !== "budget:work-acquired") return;
+        try {
+          await Promise.resolve();
+          attempt("await-release", () => lease.release());
+          resolveObserverReady();
+          await observerResume;
+          await new Promise((resolve) => {
+            setTimeout(() => {
+              attempt("timer-release", () =>
+                handle.budget.releaseWork(lease.authorityId),
+              );
+              resolve();
+            }, 0);
+          });
+          attempt("post-timer-persist", () => handle.persist());
+          attempt("post-timer-close", () => handle.close());
+          resolveObserver();
+        } catch (error) {
+          rejectObserver(error);
+        }
+      },
+    });
+    lease = handle.budget.acquireWork({
+      id: "async-observer-business-label",
+      depth: 1,
+    });
+    const revisionBeforeObserver = store.read(sessionId).revision;
+
+    await observerReady;
+    const externalPersistRevision = handle.persist();
+    expect(externalPersistRevision).toBeGreaterThan(revisionBeforeObserver);
+    resumeObserver();
+    await observerDone;
+
+    expect(attempts.map(({ stage }) => stage)).toEqual([
+      "await-release",
+      "timer-release",
+      "post-timer-persist",
+      "post-timer-close",
+    ]);
+    for (const { error } of attempts) {
+      expect(error).toMatchObject({
+        budgetReason: "notification-reentrancy",
+      });
+    }
+    expect(handle.budget.status().active).toBe(1);
+    expect(store.read(sessionId).revision).toBe(externalPersistRevision);
+
+    // These continuations were registered outside the observer context.
+    // Normal runtime persistence and lease ownership remain usable.
+    expect(lease.release()).toBe(true);
+    expect(store.read(sessionId).snapshot.inFlight.work).toEqual([]);
+    expect(handle.persist()).toBeGreaterThan(externalPersistRevision);
+    expect(handle.close()).toBe(true);
+  });
+
+  it("keeps observer thenable getters and assimilation jobs read-only", async () => {
+    const { store } = makeStore();
+    const sessionId = "observer-thenable-context";
+    let handle = null;
+    let lease = null;
+    let mode = "getter";
+    const attempts = [];
+    const attemptAllMutations = (prefix) => {
+      for (const [operation, mutate] of [
+        ["release", () => lease.release()],
+        ["persist", () => handle.persist()],
+        ["close", () => handle.close()],
+      ]) {
+        try {
+          mutate();
+          attempts.push({ stage: `${prefix}-${operation}`, error: null });
+        } catch (error) {
+          attempts.push({ stage: `${prefix}-${operation}`, error });
+        }
+      }
+    };
+    let resolveThenMethod;
+    const thenMethodDone = new Promise((resolve) => {
+      resolveThenMethod = resolve;
+    });
+
+    handle = openSessionBudget(sessionId, {
+      store,
+      registry: new Map(),
+      limits: { maxSpawns: 3, maxConcurrent: 2 },
+      onEvent: (event) => {
+        if (event.type !== "budget:work-acquired") return undefined;
+        if (mode === "getter") {
+          return Object.defineProperty({}, "then", {
+            get() {
+              attemptAllMutations("getter");
+              throw new Error("observer then getter failed");
+            },
+          });
+        }
+        return {
+          then(_resolve, reject) {
+            attemptAllMutations("method");
+            reject(new Error("observer then method rejected"));
+            resolveThenMethod();
+          },
+        };
+      },
+    });
+
+    lease = handle.budget.acquireWork({
+      id: "then-getter-business-label",
+      depth: 1,
+    });
+    const getterRevision = store.read(sessionId).revision;
+    await flushObservationEvents();
+
+    expect(attempts.map(({ stage }) => stage)).toEqual([
+      "getter-release",
+      "getter-persist",
+      "getter-close",
+    ]);
+    expect(store.read(sessionId).revision).toBe(getterRevision);
+    expect(handle.budget.status().active).toBe(1);
+    expect(lease.release()).toBe(true);
+
+    mode = "method";
+    lease = handle.budget.acquireWork({
+      id: "then-method-business-label",
+      depth: 1,
+    });
+    const methodRevision = store.read(sessionId).revision;
+    await thenMethodDone;
+    await flushObservationEvents();
+
+    expect(attempts.map(({ stage }) => stage)).toEqual([
+      "getter-release",
+      "getter-persist",
+      "getter-close",
+      "method-release",
+      "method-persist",
+      "method-close",
+    ]);
+    for (const { error } of attempts) {
+      expect(error).toMatchObject({
+        budgetReason: "notification-reentrancy",
+      });
+    }
+    expect(store.read(sessionId).revision).toBe(methodRevision);
+    expect(handle.budget.status()).toMatchObject({
+      active: 1,
+      aborted: false,
+    });
+    expect(lease.release()).toBe(true);
+    expect(handle.persist()).toBeGreaterThan(methodRevision);
+    expect(handle.close()).toBe(true);
   });
 
   it("treats maxCostUsd as a tighten-only alias of maxUsd", () => {
@@ -482,6 +795,91 @@ describe("session budget runtime", () => {
       }),
     ).toThrow(/positive safe integer/);
     expect(store.read("revision").revision).toBe(Number.MAX_SAFE_INTEGER);
+  });
+
+  it("rejects excessive in-flight state and marker unions without revision drift", () => {
+    const { store } = makeStore();
+    const clean = snapshotWithWorkEntries([]);
+    const sessionId = "in-flight-cap";
+    const baseline = store.write(sessionId, clean);
+    const excessive = snapshotWithWorkEntries(
+      Array.from({ length: 1025 }, () => `work-${randomUUID()}`),
+    );
+
+    const countError = captureError(() =>
+      store.write(sessionId, excessive, {
+        expectedRevision: baseline.revision,
+      }),
+    );
+    expect(countError).toMatchObject({
+      code: "ERR_SESSION_BUDGET_IN_FLIGHT_LIMIT",
+    });
+    expect(countError.message).toContain(
+      "in-flight resource count exceeds 1024",
+    );
+    expect(store.read(sessionId).revision).toBe(baseline.revision);
+
+    const markerSessionId = "marker-union-cap";
+    const firstMarker = snapshotWithWorkEntries(
+      Array.from({ length: 600 }, () => `usage-${randomUUID()}`),
+      { kind: "usage-settlement" },
+    );
+    const disjointMarker = snapshotWithWorkEntries(
+      Array.from({ length: 600 }, () => `usage-${randomUUID()}`),
+      { kind: "usage-settlement" },
+    );
+    store.markUsageUnknown(markerSessionId, firstMarker);
+    const markerPath = store.usageUnknownPathForSession(markerSessionId);
+    const markerBefore = fs.readFileSync(markerPath, "utf8");
+
+    const unionError = captureError(() =>
+      store.markUsageUnknown(markerSessionId, disjointMarker),
+    );
+    expect(unionError).toMatchObject({
+      code: "ERR_SESSION_BUDGET_IN_FLIGHT_LIMIT",
+    });
+    expect(unionError.message).toContain(
+      "in-flight resource count exceeds 1024",
+    );
+    expect(fs.readFileSync(markerPath, "utf8")).toBe(markerBefore);
+    expect(JSON.parse(markerBefore).revision).toBe(1);
+  });
+
+  it("applies the UTF-8 envelope limit to main and marker writes", () => {
+    const directory = fs.mkdtempSync(
+      path.join(os.tmpdir(), "cc-session-budget-byte-cap-"),
+    );
+    temporaryDirectories.push(directory);
+    const filePath = path.join(directory, "unicode.budget.json");
+    const store = new SessionBudgetSidecarStore({
+      resolvePath: () => filePath,
+      allowUnsupportedPlatformForTests: true,
+    });
+    const oversizedSessionId = "界".repeat(350_000);
+    const clean = snapshotWithWorkEntries([]);
+
+    const mainError = captureError(() =>
+      store.write(oversizedSessionId, clean),
+    );
+    expect(mainError).toMatchObject({
+      code: "ERR_SESSION_BUDGET_SIDECAR_TOO_LARGE",
+    });
+    expect(mainError.message).toContain("maximum UTF-8 byte size");
+    expect(fs.existsSync(filePath)).toBe(false);
+
+    const pendingUsage = snapshotWithWorkEntries([`usage-${randomUUID()}`], {
+      kind: "usage-settlement",
+    });
+    const markerError = captureError(() =>
+      store.markUsageUnknown(oversizedSessionId, pendingUsage),
+    );
+    expect(markerError).toMatchObject({
+      code: "ERR_SESSION_BUDGET_SIDECAR_TOO_LARGE",
+    });
+    expect(markerError.message).toContain("maximum UTF-8 byte size");
+    expect(
+      fs.existsSync(store.usageUnknownPathForSession(oversizedSessionId)),
+    ).toBe(false);
   });
 
   it("keeps a durable dirty intent when final usage persistence fails", () => {
@@ -557,7 +955,7 @@ describe("session budget runtime", () => {
             const result = fs.renameSync(source, destination);
             if (
               injectAfterRename &&
-              path.resolve(destination) === path.resolve(filePath)
+              path.basename(destination) === path.basename(filePath)
             ) {
               injectAfterRename = false;
               failNextCommittedStat = true;
@@ -569,7 +967,7 @@ describe("session budget runtime", () => {
           return (candidate, ...args) => {
             if (
               failNextCommittedStat &&
-              path.resolve(candidate) === path.resolve(filePath)
+              path.basename(candidate) === path.basename(filePath)
             ) {
               failNextCommittedStat = false;
               const error = new Error("post-rename verification failure");
@@ -586,6 +984,7 @@ describe("session budget runtime", () => {
     const store = new SessionBudgetSidecarStore({
       resolvePath: () => filePath,
       fileSystem: faultFs,
+      allowUnsupportedPlatformForTests: true,
     });
     const faultingRuntimeStore = {
       pathForSession: (id) => store.pathForSession(id),
@@ -734,6 +1133,8 @@ describe("session budget runtime", () => {
     const { store } = makeStore();
     const sessionId = "usage-marker-observation-race";
     const clean = new SessionResourceBudget().snapshot();
+    const usageX = `usage-${randomUUID()}`;
+    const usageY = `usage-${randomUUID()}`;
     const unknownUsage = (id) => ({
       ...structuredClone(clean),
       inFlight: {
@@ -749,36 +1150,36 @@ describe("session budget runtime", () => {
       },
     });
 
-    store.write(sessionId, unknownUsage("usage-x"));
-    store.markUsageUnknown(sessionId, unknownUsage("usage-x"));
+    store.write(sessionId, unknownUsage(usageX));
+    store.markUsageUnknown(sessionId, unknownUsage(usageX));
     const recovering = openSessionBudget(sessionId, {
       store,
       registry: new Map(),
     });
     expect(
       recovering.budget.pendingRecovery().map((entry) => entry.id),
-    ).toEqual(["usage-x"]);
+    ).toEqual([usageX]);
     const observedMainRevision = store.read(sessionId).revision;
 
     // A stale writer reports a second provider charge after the recovery host
     // captured marker X. The append itself is durable, but the writer fails
     // closed instead of authorizing either host to finalize an unseen union.
     expect(() =>
-      store.markUsageUnknown(sessionId, unknownUsage("usage-y")),
+      store.markUsageUnknown(sessionId, unknownUsage(usageY)),
     ).toThrow(/marker changed after it was observed/);
     expect(
       store
         .read(sessionId)
         .snapshot.inFlight.work.map((entry) => entry.id)
         .sort(),
-    ).toEqual(["usage-x", "usage-y"]);
+    ).toEqual([usageX, usageY].sort());
 
     expect(() =>
-      recovering.budget.adjudicateRecovery({ abandoned: ["usage-x"] }),
+      recovering.budget.adjudicateRecovery({ abandoned: [usageX] }),
     ).toThrow(/marker changed after it was observed/);
     expect(
       recovering.budget.pendingRecovery().map((entry) => entry.id),
-    ).toEqual(["usage-x"]);
+    ).toEqual([usageX]);
     const preserved = store.read(sessionId);
     expect(preserved.revision).toBe(observedMainRevision);
     expect(fs.existsSync(store.usageUnknownPathForSession(sessionId))).toBe(
@@ -786,7 +1187,7 @@ describe("session budget runtime", () => {
     );
     expect(
       preserved.snapshot.inFlight.work.map((entry) => entry.id).sort(),
-    ).toEqual(["usage-x", "usage-y"]);
+    ).toEqual([usageX, usageY].sort());
     expect(() => recovering.close()).toThrow(
       /marker changed after it was observed/,
     );
@@ -800,7 +1201,7 @@ describe("session budget runtime", () => {
         .pendingRecovery()
         .map((entry) => entry.id)
         .sort(),
-    ).toEqual(["usage-x", "usage-y"]);
+    ).toEqual([usageX, usageY].sort());
     resumed.close();
   });
 
@@ -831,6 +1232,95 @@ describe("session budget runtime", () => {
     expect(new Set(settlementIds).size).toBe(2);
   });
 
+  it("fails closed for Windows durable stores without a test override", () => {
+    const directory = fs.mkdtempSync(
+      path.join(os.tmpdir(), "cc-session-budget-win-unsupported-"),
+    );
+    temporaryDirectories.push(directory);
+    const filePath = path.join(directory, "unsupported.budget.json");
+    const store = new SessionBudgetSidecarStore({
+      resolvePath: () => filePath,
+      platform: "win32",
+    });
+
+    const readError = captureError(() => store.read("unsupported"));
+    expect(readError).toMatchObject({
+      code: "ERR_SESSION_BUDGET_DURABLE_STORE_UNSUPPORTED",
+    });
+    const writeError = captureError(() =>
+      store.write("unsupported", snapshotWithWorkEntries([])),
+    );
+    expect(writeError).toMatchObject({
+      code: "ERR_SESSION_BUDGET_DURABLE_STORE_UNSUPPORTED",
+    });
+    expect(fs.existsSync(filePath)).toBe(false);
+  });
+
+  it.skipIf(process.platform !== "linux")(
+    "binds child writes to a dirfd when the parent path is swapped",
+    () => {
+      const root = fs.mkdtempSync(
+        path.join(os.tmpdir(), "cc-session-budget-parent-swap-"),
+      );
+      temporaryDirectories.push(root);
+      const stateDirectory = path.join(root, "state");
+      const displacedDirectory = path.join(root, "displaced-state");
+      const attackerDirectory = path.join(root, "attacker-state");
+      fs.mkdirSync(stateDirectory, { mode: 0o700 });
+      const filePath = path.join(stateDirectory, "parent-swap.budget.json");
+      let swapped = false;
+      const swappingFs = new Proxy(fs, {
+        get(target, property) {
+          if (property === "openSync") {
+            return (candidate, ...args) => {
+              if (
+                !swapped &&
+                String(candidate).startsWith("/proc/self/fd/") &&
+                path.basename(String(candidate)).endsWith(".tmp")
+              ) {
+                fs.renameSync(stateDirectory, displacedDirectory);
+                fs.mkdirSync(attackerDirectory, { mode: 0o700 });
+                fs.symlinkSync(attackerDirectory, stateDirectory, "dir");
+                swapped = true;
+              }
+              return fs.openSync(candidate, ...args);
+            };
+          }
+          const value = Reflect.get(target, property);
+          return typeof value === "function" ? value.bind(target) : value;
+        },
+      });
+      const store = new SessionBudgetSidecarStore({
+        resolvePath: () => filePath,
+        fileSystem: swappingFs,
+      });
+
+      try {
+        expect(() =>
+          store.write("parent-swap", snapshotWithWorkEntries([])),
+        ).toThrow(/parent directory|regular non-symlink directory/);
+        expect(swapped).toBe(true);
+        expect(
+          fs.existsSync(path.join(attackerDirectory, path.basename(filePath))),
+        ).toBe(false);
+      } finally {
+        try {
+          if (fs.lstatSync(stateDirectory).isSymbolicLink()) {
+            fs.unlinkSync(stateDirectory);
+          }
+        } catch {
+          // The exact test path may already have been restored.
+        }
+        if (
+          fs.existsSync(displacedDirectory) &&
+          !fs.existsSync(stateDirectory)
+        ) {
+          fs.renameSync(displacedDirectory, stateDirectory);
+        }
+      }
+    },
+  );
+
   it.skipIf(process.platform === "win32")(
     "detects a symlink swap between lstat and descriptor open",
     () => {
@@ -849,7 +1339,7 @@ describe("session budget runtime", () => {
             return (candidate, ...args) => {
               if (
                 !swapped &&
-                path.resolve(candidate) === path.resolve(filePath)
+                path.basename(candidate) === path.basename(filePath)
               ) {
                 swapped = true;
                 fs.renameSync(filePath, displaced);
@@ -865,6 +1355,7 @@ describe("session budget runtime", () => {
       const guarded = new SessionBudgetSidecarStore({
         resolvePath: () => filePath,
         fileSystem: swappingFs,
+        allowUnsupportedPlatformForTests: true,
       });
 
       expect(() => guarded.read("swap")).toThrow(/Session budget read failed/);
@@ -887,10 +1378,64 @@ describe("session budget runtime", () => {
     },
   );
 
+  it("uses opaque authority ids and never persists caller business labels", () => {
+    const { store } = makeStore();
+    const sessionId = "opaque-authority-audit";
+    const businessLabel = "customer-secret-reference";
+    const handle = openSessionBudget(sessionId, {
+      store,
+      registry: new Map(),
+      limits: { maxSpawns: 2, maxConcurrent: 2 },
+    });
+    const lease = handle.budget.acquireWork({
+      id: businessLabel,
+      kind: "background",
+      depth: 1,
+    });
+
+    expect(lease).toMatchObject({
+      ok: true,
+      id: businessLabel,
+    });
+    expect(lease.authorityId).toMatch(
+      /^work-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+    );
+    const durable = store.read(sessionId);
+    expect(durable.snapshot.inFlight.work).toEqual([
+      expect.objectContaining({ id: lease.authorityId }),
+    ]);
+    expect(JSON.stringify(durable)).not.toContain(businessLabel);
+
+    expect(handle.budget.releaseWork(businessLabel)).toBe(false);
+    expect(store.read(sessionId).revision).toBe(durable.revision);
+
+    const durableBeforeForgery = structuredClone(durable);
+    const smuggled = structuredClone(durable.snapshot);
+    smuggled.inFlight.work[0].id = "secret-business-label";
+    const smugglingError = captureError(() =>
+      store.write(sessionId, smuggled, {
+        expectedRevision: durable.revision,
+      }),
+    );
+    expect(smugglingError).toMatchObject({
+      code: "ERR_SESSION_BUDGET_NON_OPAQUE_AUTHORITY",
+    });
+    expect(store.read(sessionId)).toEqual(durableBeforeForgery);
+    expect(handle.status().persistenceRevision).toBe(durable.revision);
+
+    expect(handle.budget.releaseWork(lease.authorityId)).toBe(true);
+    expect(store.read(sessionId).snapshot.inFlight.work).toEqual([]);
+    handle.close();
+  });
+
   it("canonicalizes and deep-copies snapshots without secret smuggling", () => {
     const { store } = makeStore();
     const source = new SessionResourceBudget({ maxTurns: 3 });
-    source.acquireWork({ id: "original-work", kind: "sub-agent", depth: 1 });
+    const lease = source.acquireWork({
+      id: "original-work",
+      kind: "sub-agent",
+      depth: 1,
+    });
     const snapshot = source.snapshot();
     snapshot.secret = "TOP-SECRET";
     snapshot.limits.secret = "TOP-SECRET";
@@ -908,7 +1453,8 @@ describe("session budget runtime", () => {
     const stored = store.read("canonical");
 
     expect(stored.snapshot.totals.turns).toBe(0);
-    expect(stored.snapshot.inFlight.work[0].id).toBe("original-work");
+    expect(stored.snapshot.inFlight.work[0].id).toBe(lease.authorityId);
+    expect(JSON.stringify(stored)).not.toContain("original-work");
     expect(JSON.stringify(stored)).not.toContain("TOP-SECRET");
     expect(stored.snapshot.state.abort).toEqual({
       reason: "session-aborted",
@@ -932,13 +1478,12 @@ describe("session budget runtime", () => {
     expect(() => source.beginTool({ id: `tool-${"x".repeat(200)}` })).toThrow(
       /invalid session budget tool id/,
     );
-    expect(
-      source.acquireWork({
-        id: "bounded-work",
-        kind: "api-key=TOP-SECRET",
-        depth: 1,
-      }).ok,
-    ).toBe(true);
+    const lease = source.acquireWork({
+      id: "bounded-work",
+      kind: "api-key=TOP-SECRET",
+      depth: 1,
+    });
+    expect(lease.ok).toBe(true);
     source.abort(new Error("TOP-SECRET"), {
       reason: "unsafe-TOP-SECRET",
     });
@@ -946,9 +1491,10 @@ describe("session budget runtime", () => {
     store.write("bounded-metadata", source.snapshot());
     const stored = store.read("bounded-metadata");
     expect(stored.snapshot.inFlight.work[0]).toMatchObject({
-      id: "bounded-work",
+      id: lease.authorityId,
       kind: "work",
     });
+    expect(JSON.stringify(stored)).not.toContain("bounded-work");
     expect(stored.snapshot.state.abort).toEqual({
       reason: "session-aborted",
       message: "Session resource budget stopped: session-aborted",

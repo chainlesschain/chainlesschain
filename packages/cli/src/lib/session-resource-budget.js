@@ -14,6 +14,7 @@
  * existing resumable TeamBudget contract.
  */
 
+import { AsyncLocalStorage } from "node:async_hooks";
 import { randomUUID } from "node:crypto";
 import { CostBudget } from "./cost-budget.js";
 
@@ -55,6 +56,13 @@ const USAGE_TOKEN_FIELDS = Object.freeze([
 
 const MAX_TIMER_DELAY = 2_147_483_647;
 const RESOURCE_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:@-]{0,159}$/;
+const OPAQUE_AUTHORITY_ID_PATTERNS = Object.freeze({
+  work: /^work-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+  tool: /^tool-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+  usage:
+    /^usage-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+});
+const OBSERVER_INVOCATION_CONTEXT = new AsyncLocalStorage();
 const PERSISTED_WORK_KINDS = new Set([
   "work",
   "spawn",
@@ -172,10 +180,15 @@ function validateResourceList(value, field) {
   }
   const seen = new Set();
   return value.map((entry) => {
+    const validAuthorityId =
+      typeof entry?.id === "string" &&
+      (field === "tools"
+        ? OPAQUE_AUTHORITY_ID_PATTERNS.tool.test(entry.id)
+        : OPAQUE_AUTHORITY_ID_PATTERNS.work.test(entry.id) ||
+          OPAQUE_AUTHORITY_ID_PATTERNS.usage.test(entry.id));
     if (
       !isRecord(entry) ||
-      typeof entry.id !== "string" ||
-      !RESOURCE_ID_PATTERN.test(entry.id) ||
+      !validAuthorityId ||
       typeof entry.kind !== "string" ||
       (field === "tools"
         ? entry.kind !== "tool"
@@ -359,6 +372,7 @@ export class SessionResourceBudget {
     signal = null,
     onEvent = null,
     onAuthorityChange = null,
+    queueObservation = (callback) => queueMicrotask(callback),
   } = {}) {
     this._now = typeof now === "function" ? now : () => Number(now);
     this._setTimer = setTimer;
@@ -366,7 +380,13 @@ export class SessionResourceBudget {
     this._onEvent = typeof onEvent === "function" ? onEvent : null;
     this._onAuthorityChange =
       typeof onAuthorityChange === "function" ? onAuthorityChange : null;
+    this._queueObservation =
+      typeof queueObservation === "function"
+        ? queueObservation
+        : (callback) => queueMicrotask(callback);
     this._eventSeq = 0;
+    this._eventQueue = [];
+    this._eventDrainScheduled = false;
 
     const normalizedLimits = normalizeLimitOverrides({
       maxConcurrent,
@@ -400,7 +420,10 @@ export class SessionResourceBudget {
     this._toolMs = 0;
     this._activeWork = new Map();
     this._activeTools = new Map();
+    this._activeWorkLabels = new Map();
+    this._activeToolLabels = new Map();
     this._pendingUsage = new Map();
+    this._issuedAuthorityIds = new Set();
     this._abortables = new Map();
     this._recoveryUnknown = new Map();
     this._deadlineTimer = null;
@@ -448,6 +471,7 @@ export class SessionResourceBudget {
    * caller can still reduce the remaining envelope.
    */
   tightenLimits(overrides = {}) {
+    this._assertAuthorityMutationAllowed();
     const requested = normalizeLimitOverrides(overrides);
     const next = {};
     for (const field of LIMIT_FIELDS) {
@@ -478,6 +502,7 @@ export class SessionResourceBudget {
   }
 
   start(now = this._now()) {
+    this._assertAuthorityMutationAllowed();
     if (this._startedAt === null) {
       this._startedAt = now;
       this._authorityChanged(
@@ -496,16 +521,64 @@ export class SessionResourceBudget {
 
   _emit(type, detail) {
     if (!this._onEvent) return;
+    this._eventQueue.push({
+      type,
+      eventId: `event-${randomUUID()}`,
+      sequence: ++this._eventSeq,
+      at: this._now(),
+      ...detail,
+    });
+    if (this._eventDrainScheduled) return;
+    this._eventDrainScheduled = true;
     try {
-      this._onEvent({
-        type,
-        sequence: ++this._eventSeq,
-        at: this._now(),
-        ...detail,
+      this._queueObservation(() => {
+        this._eventDrainScheduled = false;
+        const events = this._eventQueue.splice(0);
+        for (const event of events) {
+          try {
+            OBSERVER_INVOCATION_CONTEXT.run(
+              Object.freeze({ eventId: event.eventId }),
+              () => {
+                const pending = this._onEvent?.(event);
+                void Promise.resolve(pending).catch(() => {});
+              },
+            );
+          } catch {
+            // Observability is never part of the resource authority.
+          }
+        }
       });
     } catch {
-      // Observability is never part of the resource authority.
+      // A broken observation scheduler may drop diagnostics, but it must never
+      // fall back to synchronous callbacks inside an authority method.
+      this._eventQueue.length = 0;
+      this._eventDrainScheduled = false;
     }
+  }
+
+  _assertAuthorityMutationAllowed() {
+    if (OBSERVER_INVOCATION_CONTEXT.getStore()) {
+      throw new SessionBudgetError(
+        "notification-reentrancy",
+        "Session budget authority cannot mutate from an observation context",
+      );
+    }
+  }
+
+  _nextAuthorityId(resourceType) {
+    const pattern = OPAQUE_AUTHORITY_ID_PATTERNS[resourceType];
+    if (!pattern) throw new TypeError("invalid session budget authority type");
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      const authorityId = `${resourceType}-${randomUUID()}`;
+      if (
+        pattern.test(authorityId) &&
+        !this._issuedAuthorityIds.has(authorityId)
+      ) {
+        this._issuedAuthorityIds.add(authorityId);
+        return authorityId;
+      }
+    }
+    throw new Error("could not allocate unique session budget authority id");
   }
 
   _authorityChanged(type, detail, { rollback = null } = {}) {
@@ -608,6 +681,7 @@ export class SessionResourceBudget {
   }
 
   consumeTurn({ id = null } = {}) {
+    this._assertAuthorityMutationAllowed();
     try {
       this.start();
     } catch (error) {
@@ -650,6 +724,7 @@ export class SessionResourceBudget {
   }
 
   acquireWork({ id, kind = "spawn", depth = 1 } = {}) {
+    this._assertAuthorityMutationAllowed();
     const key = String(id || "");
     if (!key) throw new TypeError("session budget work id is required");
     if (!RESOURCE_ID_PATTERN.test(key)) {
@@ -665,10 +740,10 @@ export class SessionResourceBudget {
     } catch (error) {
       return this._persistenceAdmissionFailure(error, { id: key });
     }
-    if (this._activeWork.has(key)) {
+    if (this._activeWorkLabels.has(key)) {
       return this._admissionFailure("duplicate-work-id", { id: key });
     }
-    if (this._activeTools.has(key)) {
+    if (this._activeToolLabels.has(key)) {
       return this._admissionFailure("duplicate-resource-id", { id: key });
     }
     if (this.signal.aborted) {
@@ -698,14 +773,17 @@ export class SessionResourceBudget {
       return this._admissionFailure("max-spawns", { id: key });
     }
 
+    const authorityId = this._nextAuthorityId("work");
     const entry = {
-      id: key,
+      id: authorityId,
+      label: key,
       kind: normalizedKind,
       depth: normalizedDepth,
       startedAt: this._now(),
     };
     const previousSpawns = this.spawns;
-    this._activeWork.set(key, entry);
+    this._activeWork.set(authorityId, entry);
+    this._activeWorkLabels.set(key, authorityId);
     this.spawns = previousSpawns + 1;
     try {
       this._authorityChanged(
@@ -719,7 +797,8 @@ export class SessionResourceBudget {
         },
         {
           rollback: () => {
-            this._activeWork.delete(key);
+            this._activeWork.delete(authorityId);
+            this._activeWorkLabels.delete(key);
             this.spawns = previousSpawns;
           },
         },
@@ -730,12 +809,14 @@ export class SessionResourceBudget {
     let released = false;
     const release = () => {
       if (released) return false;
-      released = true;
-      return this.releaseWork(key);
+      const didRelease = this.releaseWork(authorityId);
+      if (didRelease) released = true;
+      return didRelease;
     };
     return {
       ok: true,
       id: key,
+      authorityId,
       kind: normalizedKind,
       depth: normalizedDepth,
       release,
@@ -743,20 +824,23 @@ export class SessionResourceBudget {
   }
 
   releaseWork(id) {
+    this._assertAuthorityMutationAllowed();
     const key = String(id || "");
     const entry = this._activeWork.get(key);
     if (!entry) return false;
     this._activeWork.delete(key);
+    this._activeWorkLabels.delete(entry.label);
     this._authorityChanged(
       "budget:work-released",
       {
-        id: key,
+        id: entry.label,
         kind: entry.kind,
         active: this._activeWork.size,
       },
       {
         rollback: () => {
           this._activeWork.set(key, entry);
+          this._activeWorkLabels.set(entry.label, key);
         },
       },
     );
@@ -764,6 +848,7 @@ export class SessionResourceBudget {
   }
 
   beginTool({ id, kind = "tool" } = {}) {
+    this._assertAuthorityMutationAllowed();
     const key = String(id || "");
     if (!key) throw new TypeError("session budget tool id is required");
     if (!RESOURCE_ID_PATTERN.test(key)) {
@@ -778,10 +863,10 @@ export class SessionResourceBudget {
     } catch (error) {
       return this._persistenceAdmissionFailure(error, { id: key });
     }
-    if (this._activeTools.has(key)) {
+    if (this._activeToolLabels.has(key)) {
       return this._admissionFailure("duplicate-tool-id", { id: key });
     }
-    if (this._activeWork.has(key)) {
+    if (this._activeWorkLabels.has(key)) {
       return this._admissionFailure("duplicate-resource-id", { id: key });
     }
     if (this.signal.aborted) {
@@ -800,12 +885,15 @@ export class SessionResourceBudget {
       this._abortFor("max-tool-ms");
       return this._admissionFailure("max-tool-ms", { id: key });
     }
-    this._activeTools.set(key, {
-      id: key,
+    const authorityId = this._nextAuthorityId("tool");
+    this._activeTools.set(authorityId, {
+      id: authorityId,
+      label: key,
       kind: normalizedKind,
       depth: null,
       startedAt: now,
     });
+    this._activeToolLabels.set(key, authorityId);
     try {
       this._authorityChanged(
         "budget:tool-started",
@@ -816,7 +904,8 @@ export class SessionResourceBudget {
         },
         {
           rollback: () => {
-            this._activeTools.delete(key);
+            this._activeTools.delete(authorityId);
+            this._activeToolLabels.delete(key);
           },
         },
       );
@@ -827,23 +916,26 @@ export class SessionResourceBudget {
     let ended = false;
     const end = () => {
       if (ended) return false;
-      ended = true;
-      return this.endTool(key);
+      const didEnd = this.endTool(authorityId);
+      if (didEnd) ended = true;
+      return didEnd;
     };
-    return { ok: true, id: key, kind: normalizedKind, end };
+    return { ok: true, id: key, authorityId, kind: normalizedKind, end };
   }
 
   endTool(id, now = this._now()) {
+    this._assertAuthorityMutationAllowed();
     const key = String(id || "");
     const entry = this._activeTools.get(key);
     if (!entry) return false;
     const previousToolMs = this._toolMs;
     this._activeTools.delete(key);
+    this._activeToolLabels.delete(entry.label);
     this._toolMs += Math.max(0, now - entry.startedAt);
     this._authorityChanged(
       "budget:tool-ended",
       {
-        id: key,
+        id: entry.label,
         kind: entry.kind,
         toolMs: this._toolMs,
         active: this._activeTools.size,
@@ -851,6 +943,7 @@ export class SessionResourceBudget {
       {
         rollback: () => {
           this._activeTools.set(key, entry);
+          this._activeToolLabels.set(entry.label, key);
           this._toolMs = previousToolMs;
         },
       },
@@ -862,6 +955,7 @@ export class SessionResourceBudget {
   }
 
   recordUsage({ usage = null, usageRecords = null, provider, model } = {}) {
+    this._assertAuthorityMutationAllowed();
     this.start();
     if (this._pendingUsage.size > 0) {
       throw new SessionBudgetError("usage-settlement-pending");
@@ -943,7 +1037,7 @@ export class SessionResourceBudget {
       startedAt: this._now(),
     });
     this._authorityChanged("budget:usage-settlement-started", {
-      id: settlementId,
+      pendingUsage: this._pendingUsage.size,
     });
     this.tokens = nextTokens;
 
@@ -984,14 +1078,11 @@ export class SessionResourceBudget {
   }
 
   _nextUsageSettlementId() {
-    // Process-local counters collide when two hosts settle usage in the same
-    // millisecond. A collision would collapse two independent unknown-usage
-    // markers into one map entry, so settlement identities must be globally
-    // unique across cooperating processes.
-    return `usage-${randomUUID()}`;
+    return this._nextAuthorityId("usage");
   }
 
   registerAbortable(id, stop) {
+    this._assertAuthorityMutationAllowed();
     const key = String(id || "");
     if (!key) throw new TypeError("session budget abortable id is required");
     if (this._abortables.has(key)) {
@@ -1022,6 +1113,7 @@ export class SessionResourceBudget {
     });
     let registered = true;
     return () => {
+      this._assertAuthorityMutationAllowed();
       if (!registered) return false;
       registered = false;
       const deleted = this._abortables.delete(key);
@@ -1043,6 +1135,7 @@ export class SessionResourceBudget {
     reason = "session-aborted",
     { reason: reasonCode = null, skipAuthorityChange = false } = {},
   ) {
+    this._assertAuthorityMutationAllowed();
     if (this._abortState) return false;
     const error = safeReason(reason);
     const code = String(
@@ -1131,6 +1224,7 @@ export class SessionResourceBudget {
   }
 
   adjudicateRecovery({ abandoned = [] } = {}) {
+    this._assertAuthorityMutationAllowed();
     if (!Array.isArray(abandoned)) {
       throw new TypeError(
         "session budget abandoned recovery ids must be an array",
@@ -1153,7 +1247,7 @@ export class SessionResourceBudget {
     this._authorityChanged(
       "budget:recovery-adjudicated",
       {
-        abandoned: [...supplied].sort(),
+        abandonedCount: supplied.size,
       },
       {
         rollback: () => {
@@ -1254,6 +1348,7 @@ export class SessionResourceBudget {
       signal = null,
       onEvent = null,
       onAuthorityChange = null,
+      queueObservation = (callback) => queueMicrotask(callback),
       recoverUnsettled = "require-adjudication",
     } = {},
   ) {
@@ -1282,6 +1377,7 @@ export class SessionResourceBudget {
       signal,
       onEvent,
       onAuthorityChange,
+      queueObservation,
     });
     budget.spawns = normalized.totals.spawns;
     budget.turns = normalized.totals.turns;
@@ -1296,12 +1392,14 @@ export class SessionResourceBudget {
 
     if (recoverUnsettled === "require-adjudication") {
       for (const entry of normalized.inFlight.work) {
+        budget._issuedAuthorityIds.add(entry.id);
         budget._recoveryUnknown.set(entry.id, {
           ...entry,
           resourceType: "work",
         });
       }
       for (const entry of normalized.inFlight.tools) {
+        budget._issuedAuthorityIds.add(entry.id);
         budget._recoveryUnknown.set(entry.id, {
           ...entry,
           resourceType: "tool",
@@ -1327,6 +1425,7 @@ export class SessionResourceBudget {
   }
 
   dispose() {
+    this._assertAuthorityMutationAllowed();
     this._clearDeadline();
     if (this._externalSignal && this._externalAbortListener) {
       this._externalSignal.removeEventListener?.(
