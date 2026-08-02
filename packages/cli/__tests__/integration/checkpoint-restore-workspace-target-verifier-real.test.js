@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import {
   mkdirSync,
   mkdtempSync,
+  realpathSync,
   readFileSync,
   rmSync,
   writeFileSync,
@@ -76,7 +77,9 @@ describe.sequential(
     let testRoot;
 
     beforeEach(() => {
-      testRoot = mkdtempSync(join(tmpdir(), "cc-restore-target-real-"));
+      testRoot = realpathSync.native(
+        mkdtempSync(join(tmpdir(), "cc-restore-target-real-")),
+      );
     });
 
     afterEach(() => {
