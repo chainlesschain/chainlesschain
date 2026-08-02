@@ -659,21 +659,49 @@ describe("file-checkpoint store", () => {
   });
 
   it.runIf(process.platform === "win32")(
-    "batches a no-hook single-file restore into three Windows ACL calls",
+    "secures every authority arm temp before its atomic publish",
     () => {
       const m = mk("acl-batch-count");
       writeFileSync(join(work, "a.txt"), "CHANGED-A", "utf8");
+      const nativeRename = fs.renameSync.bind(fs);
+      const publishedArmTemps = [];
+      const rename = vi
+        .spyOn(fs, "renameSync")
+        .mockImplementation((source, destination) => {
+          if (
+            resolve(destination).startsWith(`${resolve(root)}\\`) &&
+            resolve(destination).includes("\\.restore-safety-arms\\")
+          ) {
+            const resolvedSource = resolve(source);
+            expect(
+              privateAuthorityCalls.repairs.some((targets) =>
+                targets.includes(resolvedSource),
+              ),
+            ).toBe(true);
+            publishedArmTemps.push(resolvedSource);
+          }
+          return nativeRename(source, destination);
+        });
 
-      const restored = restoreCheckpoint(m.id, {
-        root,
-        expectedIdentity: computeCheckpointIdentity(m),
-      });
+      let restored;
+      try {
+        restored = restoreCheckpoint(m.id, {
+          root,
+          expectedIdentity: computeCheckpointIdentity(m),
+        });
+      } finally {
+        rename.mockRestore();
+      }
 
       expect(restored.safetyCoverage).toBe("full");
-      expect(privateAuthorityCalls.repairs).toHaveLength(2);
+      expect(publishedArmTemps.length).toBeGreaterThan(0);
       expect(privateAuthorityCalls.inspections).toHaveLength(1);
       expect(privateAuthorityCalls.repairs[0]).toEqual([resolve(root)]);
-      expect(privateAuthorityCalls.repairs[1]).toContain(resolve(root));
+      expect(
+        privateAuthorityCalls.repairs.some((targets) =>
+          targets.includes(resolve(root)),
+        ),
+      ).toBe(true);
       expect(privateAuthorityCalls.inspections[0]).toContain(resolve(root));
     },
   );
@@ -1307,7 +1335,7 @@ describe("file-checkpoint store", () => {
       const script = `
         import fs from "node:fs";
         import { spawnSync } from "node:child_process";
-        const { createCheckpoint, computeCheckpointIdentity, restoreCheckpoint } = await import(${JSON.stringify(fileCheckpointUrl)});
+        const { createCheckpoint, computeCheckpointIdentity, getCheckpoint, restoreCheckpoint } = await import(${JSON.stringify(fileCheckpointUrl)});
         const { inspectPrivatePaths } = await import(${JSON.stringify(secureFsUrl)});
         const [work, root] = process.argv.slice(1);
         const a = work + "\\\\a.txt";
@@ -1325,7 +1353,15 @@ describe("file-checkpoint store", () => {
           outcome = { ok: false, code: error?.code || null, message: error?.message || String(error), safetyCoverage: error?.safetyCoverage || null };
         }
         const after = inspectPrivatePaths([root])[0];
-        console.log("ACL_RESULT:" + JSON.stringify({ grantStatus: grant.status, grantError: grant.error?.message || null, after, outcome, content: fs.readFileSync(a, "utf8") }));
+        let armInspections = [];
+        if (outcome.ok) {
+          const safety = getCheckpoint(outcome.safetyId, { root });
+          const armDir = root + "\\\\" + safety.id + "\\\\.restore-safety-arms";
+          armInspections = inspectPrivatePaths(
+            fs.readdirSync(armDir).map((name) => armDir + "\\\\" + name),
+          );
+        }
+        console.log("ACL_RESULT:" + JSON.stringify({ grantStatus: grant.status, grantError: grant.error?.message || null, after, armInspections, outcome, content: fs.readFileSync(a, "utf8") }));
       `;
       const child = spawnSync(
         process.execPath,
@@ -1352,6 +1388,19 @@ describe("file-checkpoint store", () => {
         safetyId: expect.any(String),
       });
       expect(result.after).toMatchObject({ exists: true, ok: true });
+      expect(result.armInspections.length).toBeGreaterThan(0);
+      for (const inspection of result.armInspections) {
+        expect(inspection).toMatchObject({
+          exists: true,
+          ok: true,
+          details: {
+            ownerSid: expect.any(String),
+            currentSid: expect.any(String),
+            protected: true,
+          },
+        });
+        expect(inspection.details.ownerSid).toBe(inspection.details.currentSid);
+      }
       expect(result.content).toBe("ORIGINAL-A");
     },
     200_000,

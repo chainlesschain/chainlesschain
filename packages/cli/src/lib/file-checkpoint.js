@@ -2450,7 +2450,24 @@ function writeRestoreSafetyArm(safety, root, armFields) {
   atomicWriteFileSync(armPath, JSON.stringify(arm, null, 2), {
     durable: true,
     mode: 0o600,
-    beforeRename: () => {
+    beforeRename: ({ stagingIdentity, tmp }) => {
+      // A private parent DACL does not guarantee that a file created by an
+      // elevated Windows token is owned by the token user: hosted runners can
+      // assign BUILTIN\Administrators as the default owner. Repair and verify
+      // the unique temp while it is still non-authoritative, then make sure
+      // the repair did not replace the reserved filesystem object. Publishing
+      // first and repairing armPath afterwards would leave a hard-kill window
+      // containing a non-private recovery authority.
+      ensurePrivateAuthorityFiles([tmp]);
+      const privateStagingIdentity = createdFileIdentity(
+        fs.lstatSync(tmp, { bigint: true }),
+      );
+      if (!compareCanonical(stagingIdentity, privateStagingIdentity)) {
+        throw invalidSafetyPlan(
+          current,
+          `arm staging identity changed while securing ${arm.kind}:${arm.rel}`,
+        );
+      }
       const latest = getCheckpoint(safety.id, { root });
       if (!latest) {
         throw checkpointWorkspaceError(
@@ -2468,9 +2485,9 @@ function writeRestoreSafetyArm(safety, root, armFields) {
       }
     },
   });
-  // armDir is already private and the atomic writer uses mode 0600. The
-  // caller's mandatory full-state check batches this arm with the rest of the
-  // authority chain before any workspace rename can consume it.
+  // The published arm inherits the already-verified ACL and owner of its temp.
+  // The caller's mandatory full-state check still batches the final path with
+  // the rest of the authority chain before any workspace rename consumes it.
 }
 
 function armRestoreSafetyTombstone(safety, root, rel, stagingIdentity) {
