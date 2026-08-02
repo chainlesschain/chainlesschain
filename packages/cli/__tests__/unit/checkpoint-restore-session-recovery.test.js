@@ -1,12 +1,22 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
 import {
+  CHECKPOINT_RESTORE_PARTIAL_ROLLBACK_ACTION,
+  CHECKPOINT_RESTORE_PARTIAL_ROLLBACK_OUTCOME,
+  CHECKPOINT_RESTORE_RECOVERY_RESOLUTION_SCHEMA,
+  CHECKPOINT_RESTORE_ROLLBACK_CONVERSATION_DISPOSITION,
   CHECKPOINT_RESTORE_SESSION_RECONCILIATION,
   CHECKPOINT_RESTORE_SESSION_RECOVERY_SCHEMA,
+  CHECKPOINT_RESTORE_SESSION_RESOLUTION_ERROR_CODES,
+  appendCheckpointRestoreRecoveryResolution,
+  buildCheckpointRestoreRecoveryResolution,
+  computeCheckpointRestoreSessionRollbackCommitDigest,
   createCheckpointRestoreSessionRecoveryReader,
   readCheckpointRestoreSessionRecovery,
+  reconcileCheckpointRestoreRecoveryResolutionProjection,
 } from "../../src/lib/checkpoint-restore-session-recovery.js";
 import {
+  CHECKPOINT_RESTORE_RECOVERY_RESOLUTION_EVENT,
   CHECKPOINT_TIMELINE_AUDIT_EVENT,
   CHECKPOINT_TIMELINE_INTENT_EVENT,
 } from "../../src/lib/checkpoint-timeline-authority.js";
@@ -88,6 +98,46 @@ function audit(status, action = "restore-code", overrides = {}) {
         : {}),
       ...overrides,
     },
+  };
+}
+
+function resolutionInput(action = "restore-code", overrides = {}) {
+  const expected = authority(action);
+  const intentEventHash = overrides.intentEventHash || rawHash(1);
+  return {
+    operationId: OPERATION_ID,
+    recoveryRequestId: "rollback-request-7",
+    action,
+    recoveryAction: CHECKPOINT_RESTORE_PARTIAL_ROLLBACK_ACTION,
+    outcome: CHECKPOINT_RESTORE_PARTIAL_ROLLBACK_OUTCOME,
+    intentEventHash,
+    intentCommitDigest: commitDigest(
+      "cc-checkpoint-restore-intent-commit-v1",
+      intentEventHash,
+    ),
+    failedAuditEventHash: null,
+    conversationDisposition:
+      CHECKPOINT_RESTORE_ROLLBACK_CONVERSATION_DISPOSITION,
+    checkpointId: expected.checkpointId,
+    checkpointIdentity: expected.checkpointIdentity,
+    workspaceScopeIdentity: expected.workspaceScopeIdentity,
+    workspaceWritePlanIdentity: expected.workspaceWritePlanIdentity,
+    safetyId: "safety-7",
+    safetyIdentity: digest(20),
+    safetyPlanIdentity: digest(21),
+    rollbackPlanIdentity: digest(22),
+    rollbackStateDigest: digest(23),
+    sagaWorkspaceRolledBackHash: digest(24),
+    ...overrides,
+  };
+}
+
+function resolution(action = "restore-code", overrides = {}) {
+  return {
+    type: CHECKPOINT_RESTORE_RECOVERY_RESOLUTION_EVENT,
+    data: buildCheckpointRestoreRecoveryResolution(
+      resolutionInput(action, overrides),
+    ),
   };
 }
 
@@ -351,6 +401,102 @@ describe("checkpoint restore verified session recovery", () => {
     });
   });
 
+  it("classifies one exact intent-only rollback resolution as rolled-back", () => {
+    const events = chain([
+      intent("restore-code"),
+      resolution("restore-code"),
+      unrelated("later unrelated activity"),
+    ]);
+    const sessionRollbackCommitDigest =
+      computeCheckpointRestoreSessionRollbackCommitDigest(events[1].hash);
+
+    const result = readTimeline(events, {
+      expectedSessionRollbackCommitDigest: sessionRollbackCommitDigest,
+    });
+
+    expect(result).toMatchObject({
+      classification: CHECKPOINT_RESTORE_SESSION_RECONCILIATION.ROLLED_BACK,
+      failClosed: false,
+      issues: [],
+      transcript: {
+        headHash: events[2].hash,
+        eventCount: 3,
+        operationEventCount: 2,
+        operationTailHash: events[1].hash,
+        eventsAfterOperationTail: 1,
+      },
+      audit: { completed: null, failed: null },
+      resolution: {
+        index: 2,
+        eventHash: events[1].hash,
+        prevHash: events[0].hash,
+        sessionRollbackCommitDigest,
+        data: {
+          schema: CHECKPOINT_RESTORE_RECOVERY_RESOLUTION_SCHEMA,
+          version: 1,
+          operationId: OPERATION_ID,
+          recoveryRequestId: "rollback-request-7",
+          recoveryAction: CHECKPOINT_RESTORE_PARTIAL_ROLLBACK_ACTION,
+          outcome: CHECKPOINT_RESTORE_PARTIAL_ROLLBACK_OUTCOME,
+          conversationDisposition:
+            CHECKPOINT_RESTORE_ROLLBACK_CONVERSATION_DISPOSITION,
+          sagaWorkspaceRolledBackHash: digest(24),
+        },
+      },
+    });
+    expect(result.requiredEvidence).toContain(
+      "verified_session_rollback_commit_digest",
+    );
+    expect(Object.isFrozen(result.resolution)).toBe(true);
+    expect(Object.isFrozen(result.resolution.data)).toBe(true);
+  });
+
+  it("accepts one failed audit followed by its exact restore-both rollback resolution", () => {
+    const events = chain([
+      intent("restore-both"),
+      audit("failed", "restore-both"),
+      resolution("restore-both", { failedAuditEventHash: rawHash(2) }),
+    ]);
+
+    const result = readTimeline(events);
+
+    expect(result).toMatchObject({
+      classification: CHECKPOINT_RESTORE_SESSION_RECONCILIATION.ROLLED_BACK,
+      failClosed: false,
+      transcript: {
+        operationEventCount: 3,
+        operationTailHash: events[2].hash,
+        eventsAfterOperationTail: 0,
+      },
+      conversationCommit: null,
+      audit: {
+        completed: null,
+        failed: { eventHash: events[1].hash },
+      },
+      resolution: {
+        eventHash: events[2].hash,
+        data: {
+          action: "restore-both",
+          failedAuditEventHash: events[1].hash,
+        },
+      },
+    });
+  });
+
+  it("fails closed when the expected rollback commit digest disagrees", () => {
+    const result = readTimeline(
+      chain([intent("restore-code"), resolution("restore-code")]),
+      { expectedSessionRollbackCommitDigest: digest(999) },
+    );
+
+    expect(result).toMatchObject({
+      classification:
+        CHECKPOINT_RESTORE_SESSION_RECONCILIATION.CONFLICT_UNKNOWN,
+      failClosed: true,
+    });
+    expect(result.issues).toContain("session_rollback_commit_digest_mismatch");
+  });
+
   it.each([
     [
       "duplicate intents",
@@ -386,7 +532,7 @@ describe("checkpoint restore verified session recovery", () => {
       [
         intent("restore-code"),
         {
-          type: "checkpoint_restore_recovery_resolution",
+          type: "checkpoint_restore_future_event",
           data: { operationId: OPERATION_ID },
         },
       ],
@@ -405,6 +551,101 @@ describe("checkpoint restore verified session recovery", () => {
       "manual_adjudication",
       "verified_transcript_repair_or_authority_restoration",
     ]);
+  });
+
+  it.each([
+    [
+      "malformed resolution schema",
+      [
+        intent("restore-code"),
+        {
+          type: CHECKPOINT_RESTORE_RECOVERY_RESOLUTION_EVENT,
+          data: {
+            ...buildCheckpointRestoreRecoveryResolution(resolutionInput()),
+            version: 2,
+          },
+        },
+      ],
+      "resolution_shape_invalid",
+    ],
+    [
+      "duplicate resolutions",
+      [
+        intent("restore-code"),
+        resolution("restore-code"),
+        resolution("restore-code"),
+      ],
+      "duplicate_recovery_resolution",
+    ],
+    [
+      "resolution before intent",
+      [
+        resolution("restore-code", { intentEventHash: rawHash(2) }),
+        intent("restore-code"),
+      ],
+      "resolution_before_intent",
+    ],
+    [
+      "failed audit hash mismatch",
+      [
+        intent("restore-code"),
+        audit("failed", "restore-code"),
+        resolution("restore-code"),
+      ],
+      "resolution_failed_audit_mismatch",
+    ],
+    [
+      "intent authority mismatch",
+      [
+        intent("restore-code"),
+        resolution("restore-code", { checkpointId: "checkpoint-other" }),
+      ],
+      "resolution_intent_mismatch",
+    ],
+    [
+      "conversation commit",
+      [
+        intent("restore-both"),
+        conversationCommit("restore-both"),
+        resolution("restore-both"),
+      ],
+      "resolution_after_conversation_commit",
+    ],
+    [
+      "failed audit conversation side effect",
+      [
+        intent("restore-both"),
+        audit("failed", "restore-both", { branchSessionId: "branch-7" }),
+        resolution("restore-both", { failedAuditEventHash: rawHash(2) }),
+      ],
+      "rollback_resolution_has_conversation_side_effect",
+    ],
+    [
+      "completed audit",
+      [
+        intent("restore-code"),
+        audit("completed", "restore-code"),
+        resolution("restore-code"),
+      ],
+      "resolution_after_completed_audit",
+    ],
+    [
+      "operation event after resolution",
+      [
+        intent("restore-code"),
+        resolution("restore-code"),
+        audit("failed", "restore-code"),
+      ],
+      "resolution_not_operation_tail",
+    ],
+  ])("fails closed for rollback %s", (_label, specifications, issue) => {
+    const result = readTimeline(chain(specifications));
+
+    expect(result.classification).toBe(
+      CHECKPOINT_RESTORE_SESSION_RECONCILIATION.CONFLICT_UNKNOWN,
+    );
+    expect(result.failClosed).toBe(true);
+    expect(result.issues).toContain(issue);
   });
 
   it("fails closed when intent, commit, audit, or saga evidence disagree", () => {
@@ -540,6 +781,320 @@ describe("checkpoint restore verified session recovery", () => {
     expect(result).not.toHaveProperty("events");
     expect(serialized.length).toBeLessThan(5_000);
     expect(serialized).not.toContain("unrelated-3999");
+  });
+
+  it("builds one strict immutable rollback resolution envelope", () => {
+    const input = resolutionInput();
+
+    const built = buildCheckpointRestoreRecoveryResolution(input);
+
+    expect(built).toEqual({
+      schema: CHECKPOINT_RESTORE_RECOVERY_RESOLUTION_SCHEMA,
+      version: 1,
+      ...input,
+    });
+    expect(Object.isFrozen(built)).toBe(true);
+    expect(
+      buildCheckpointRestoreRecoveryResolution({
+        ...input,
+        recoveryRequestId: "x".repeat(256),
+      }).recoveryRequestId,
+    ).toHaveLength(256);
+    expect(
+      buildCheckpointRestoreRecoveryResolution({
+        ...input,
+        recoveryRequestId: "rollback request 7",
+      }).recoveryRequestId,
+    ).toBe("rollback request 7");
+    expect(() =>
+      buildCheckpointRestoreRecoveryResolution({ ...input, unknown: true }),
+    ).toThrow(
+      expect.objectContaining({
+        code: CHECKPOINT_RESTORE_SESSION_RESOLUTION_ERROR_CODES.INVALID_ARGUMENT,
+      }),
+    );
+    expect(() =>
+      buildCheckpointRestoreRecoveryResolution({
+        ...input,
+        intentCommitDigest: digest(999),
+      }),
+    ).toThrow(
+      expect.objectContaining({
+        code: CHECKPOINT_RESTORE_SESSION_RESOLUTION_ERROR_CODES.INVALID_ARGUMENT,
+      }),
+    );
+    expect(() =>
+      buildCheckpointRestoreRecoveryResolution({
+        ...input,
+        recoveryRequestId: "x".repeat(257),
+      }),
+    ).toThrow(
+      expect.objectContaining({
+        code: CHECKPOINT_RESTORE_SESSION_RESOLUTION_ERROR_CODES.INVALID_ARGUMENT,
+      }),
+    );
+  });
+
+  it.each([
+    ["empty", ""],
+    ["all whitespace", "   "],
+    ["leading whitespace", " rollback-request-7"],
+    ["trailing whitespace", "rollback-request-7 "],
+    ["control character", "rollback\nrequest-7"],
+    ["NUL", "rollback\0request-7"],
+    ["overlong", "x".repeat(257)],
+  ])(
+    "rejects a %s recovery request id in the builder and fold",
+    (_label, recoveryRequestId) => {
+      const input = resolutionInput("restore-code", { recoveryRequestId });
+      expect(() => buildCheckpointRestoreRecoveryResolution(input)).toThrow(
+        expect.objectContaining({
+          code: CHECKPOINT_RESTORE_SESSION_RESOLUTION_ERROR_CODES.INVALID_ARGUMENT,
+        }),
+      );
+
+      const valid = buildCheckpointRestoreRecoveryResolution(resolutionInput());
+      const result = readTimeline(
+        chain([
+          intent("restore-code"),
+          {
+            type: CHECKPOINT_RESTORE_RECOVERY_RESOLUTION_EVENT,
+            data: { ...valid, recoveryRequestId },
+          },
+        ]),
+      );
+      expect(result).toMatchObject({
+        classification:
+          CHECKPOINT_RESTORE_SESSION_RECONCILIATION.CONFLICT_UNKNOWN,
+        failClosed: true,
+      });
+      expect(result.issues).toContain("resolution_shape_invalid");
+    },
+  );
+
+  it("appends one resolution through an exact synchronous transaction head", () => {
+    const expectedHeadHash = rawHash(1);
+    const eventHash = rawHash(2);
+    let currentHeadHash = expectedHeadHash;
+    const transaction = {
+      currentHeadHash: vi.fn(() => currentHeadHash),
+      appendAuthorityEvent: vi.fn((type, data) => {
+        const event = {
+          type,
+          timestamp: 1_780_000_000_001,
+          data,
+          prevHash: currentHeadHash,
+          hash: eventHash,
+        };
+        currentHeadHash = eventHash;
+        return { hash: eventHash, event };
+      }),
+    };
+    const input = resolutionInput();
+
+    const result = appendCheckpointRestoreRecoveryResolution(
+      transaction,
+      input,
+      { expectedHeadHash },
+    );
+
+    expect(transaction.appendAuthorityEvent).toHaveBeenCalledWith(
+      CHECKPOINT_RESTORE_RECOVERY_RESOLUTION_EVENT,
+      buildCheckpointRestoreRecoveryResolution(input),
+    );
+    expect(result).toEqual({
+      eventHash,
+      prevHash: expectedHeadHash,
+      sessionRollbackCommitDigest: commitDigest(
+        "cc-checkpoint-restore-session-rollback-commit-v1",
+        eventHash,
+      ),
+      resolution: buildCheckpointRestoreRecoveryResolution(input),
+    });
+    expect(Object.isFrozen(result)).toBe(true);
+  });
+
+  it("refuses a stale transaction head before attempting an append", () => {
+    const transaction = {
+      currentHeadHash: vi.fn(() => rawHash(9)),
+      appendAuthorityEvent: vi.fn(),
+    };
+
+    expect(() =>
+      appendCheckpointRestoreRecoveryResolution(
+        transaction,
+        resolutionInput(),
+        { expectedHeadHash: rawHash(1) },
+      ),
+    ).toThrow(
+      expect.objectContaining({
+        code: CHECKPOINT_RESTORE_SESSION_RESOLUTION_ERROR_CODES.HEAD_CONFLICT,
+      }),
+    );
+    expect(transaction.appendAuthorityEvent).not.toHaveBeenCalled();
+  });
+
+  it("fails closed when a transaction append is asynchronous", () => {
+    const transaction = {
+      currentHeadHash: vi.fn(() => rawHash(1)),
+      appendAuthorityEvent: vi.fn(() => Promise.resolve({})),
+    };
+
+    expect(() =>
+      appendCheckpointRestoreRecoveryResolution(
+        transaction,
+        resolutionInput(),
+        { expectedHeadHash: rawHash(1) },
+      ),
+    ).toThrow(
+      expect.objectContaining({
+        code: CHECKPOINT_RESTORE_SESSION_RESOLUTION_ERROR_CODES.ASYNC_UNSUPPORTED,
+        commitState: "unknown",
+      }),
+    );
+  });
+
+  it("projects exact reconciliation evidence when append response is lost", () => {
+    const intentEventHash = rawHash(70);
+    const input = resolutionInput("restore-code", { intentEventHash });
+    let appendedSpecification = null;
+    const responseLoss = new Error("simulated response loss");
+    responseLoss.code = "SESSION_INDEX_ANCHOR_FAILED";
+    responseLoss.commitState = "not-committed";
+    const transaction = {
+      currentHeadHash: vi.fn(() => intentEventHash),
+      appendAuthorityEvent: vi.fn((type, data) => {
+        appendedSpecification = { type, data };
+        throw responseLoss;
+      }),
+    };
+
+    expect(() =>
+      appendCheckpointRestoreRecoveryResolution(transaction, input, {
+        expectedHeadHash: intentEventHash,
+      }),
+    ).toThrow(responseLoss);
+    expect(responseLoss).toMatchObject({
+      code: "SESSION_INDEX_ANCHOR_FAILED",
+      commitState: "unknown",
+    });
+    expect(transaction.appendAuthorityEvent).toHaveBeenCalledTimes(1);
+
+    const events = chain([intent("restore-code"), appendedSpecification], 70);
+    const result = readTimeline(events);
+    expect(result).toMatchObject({
+      classification: CHECKPOINT_RESTORE_SESSION_RECONCILIATION.ROLLED_BACK,
+      resolution: {
+        eventHash: events[1].hash,
+        prevHash: intentEventHash,
+        sessionRollbackCommitDigest:
+          computeCheckpointRestoreSessionRollbackCommitDigest(events[1].hash),
+        data: buildCheckpointRestoreRecoveryResolution(input),
+      },
+    });
+    const reconciled = reconcileCheckpointRestoreRecoveryResolutionProjection(
+      result,
+      input,
+      {
+        expectedHeadHash: intentEventHash,
+        expectedSessionId: SESSION_ID,
+      },
+    );
+    expect(reconciled).toMatchObject({
+      eventHash: events[1].hash,
+      prevHash: intentEventHash,
+      sessionRollbackCommitDigest:
+        computeCheckpointRestoreSessionRollbackCommitDigest(events[1].hash),
+      resolution: { recoveryRequestId: "rollback-request-7" },
+      reconciledFromError: true,
+    });
+    expect(
+      reconcileCheckpointRestoreRecoveryResolutionProjection(
+        result,
+        { ...input, recoveryRequestId: "different-request" },
+        { expectedHeadHash: intentEventHash, expectedSessionId: SESSION_ID },
+      ),
+    ).toBeNull();
+    expect(
+      reconcileCheckpointRestoreRecoveryResolutionProjection(result, input, {
+        expectedHeadHash: rawHash(99),
+        expectedSessionId: SESSION_ID,
+      }),
+    ).toBeNull();
+  });
+
+  it("requires and reconciles only the exact timeline session", () => {
+    const intentEventHash = rawHash(80);
+    const input = resolutionInput("restore-code", { intentEventHash });
+    const result = readTimeline(
+      chain(
+        [
+          intent("restore-code"),
+          resolution("restore-code", { intentEventHash }),
+        ],
+        80,
+      ),
+    );
+
+    expect(() =>
+      reconcileCheckpointRestoreRecoveryResolutionProjection(result, input, {
+        expectedHeadHash: intentEventHash,
+      }),
+    ).toThrow(
+      expect.objectContaining({
+        code: CHECKPOINT_RESTORE_SESSION_RESOLUTION_ERROR_CODES.INVALID_ARGUMENT,
+      }),
+    );
+    expect(
+      reconcileCheckpointRestoreRecoveryResolutionProjection(result, input, {
+        expectedHeadHash: intentEventHash,
+        expectedSessionId: "session-other",
+      }),
+    ).toBeNull();
+    for (const projection of [
+      { ...result, sessionId: undefined },
+      { ...result, sessionId: "session-other" },
+      { ...result, restoreSurface: "direct" },
+    ]) {
+      expect(
+        reconcileCheckpointRestoreRecoveryResolutionProjection(
+          projection,
+          input,
+          {
+            expectedHeadHash: intentEventHash,
+            expectedSessionId: SESSION_ID,
+          },
+        ),
+      ).toBeNull();
+    }
+  });
+
+  it("labels an untagged synchronous append response loss as unknown", () => {
+    const responseLoss = new Error("simulated untagged response loss");
+    const transaction = {
+      currentHeadHash: vi.fn(() => rawHash(1)),
+      appendAuthorityEvent: vi.fn(() => {
+        throw responseLoss;
+      }),
+    };
+
+    let thrown = null;
+    try {
+      appendCheckpointRestoreRecoveryResolution(
+        transaction,
+        resolutionInput(),
+        { expectedHeadHash: rawHash(1) },
+      );
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(thrown).toMatchObject({
+      code: CHECKPOINT_RESTORE_SESSION_RESOLUTION_ERROR_CODES.APPEND_UNVERIFIED,
+      commitState: "unknown",
+    });
+    expect(thrown.cause).toBe(responseLoss);
+    expect(transaction.appendAuthorityEvent).toHaveBeenCalledTimes(1);
   });
 
   it("provides a reusable injected reader without adding write capability", () => {

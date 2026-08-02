@@ -34,6 +34,8 @@ export const CHECKPOINT_WORKSPACE_BINDING_VERSION = 1;
 export const CHECKPOINT_TIMELINE_INTENT_EVENT =
   "checkpoint_timeline_action_intent";
 export const CHECKPOINT_TIMELINE_AUDIT_EVENT = "checkpoint_timeline_action";
+export const CHECKPOINT_RESTORE_RECOVERY_RESOLUTION_EVENT =
+  "checkpoint_restore_recovery_resolution";
 
 function canonical(value) {
   if (value == null || typeof value !== "object") return value;
