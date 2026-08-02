@@ -2,6 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { Command } from "commander";
 import { MockDatabase } from "../helpers/mock-db.js";
 import {
   MCPServerConfig,
@@ -11,8 +12,36 @@ import {
   diagnoseMcpTransportConfig,
   readProjectMcpRows,
   removeProjectMcpServer,
+  registerMcpCommand,
   writeProjectMcpServer,
 } from "../../src/commands/mcp.js";
+
+function parseMcpAddOptions(argv = []) {
+  const program = new Command();
+  registerMcpCommand(program);
+  const mcp = program.commands.find((command) => command.name() === "mcp");
+  const add = mcp.commands.find((command) => command.name() === "add");
+  add.parseOptions(["example", "--command", "node", ...argv]);
+  return add.opts();
+}
+
+describe("cc mcp add scope default", () => {
+  it("uses local scope when --scope is omitted", () => {
+    expect(parseMcpAddOptions().scope).toBe("local");
+  });
+
+  it("honours an explicit user scope", () => {
+    expect(parseMcpAddOptions(["--scope", "user"]).scope).toBe("user");
+  });
+
+  it("keeps the programmatic and legacy default at user scope", () => {
+    expect(normalizeMcpConfigScope()).toBe("user");
+
+    const config = new MCPServerConfig(new MockDatabase());
+    config.add("legacy", { command: "node" });
+    expect(config.get("legacy", { allScopes: true }).configScope).toBe("user");
+  });
+});
 
 describe("MCP configuration scopes", () => {
   it("validates the four public scopes", () => {

@@ -742,7 +742,7 @@ export function registerMcpCommand(program) {
     .option(
       "--scope <scope>",
       `Configuration scope: ${MCP_CONFIG_SCOPES.join(" | ")}`,
-      "user",
+      "local",
     )
     .option(
       "-H, --header <header...>",
