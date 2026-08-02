@@ -44,6 +44,26 @@ function Assert-RegularFileOrMissing {
   }
 }
 
+function Get-Sha256File {
+  param([Parameter(Mandatory = $true)][string]$LiteralPath)
+  $Stream = $null
+  $Hasher = $null
+  try {
+    $Stream = [IO.File]::Open(
+      $LiteralPath,
+      [IO.FileMode]::Open,
+      [IO.FileAccess]::Read,
+      [IO.FileShare]::Read
+    )
+    $Hasher = [Security.Cryptography.SHA256]::Create()
+    $HashBytes = $Hasher.ComputeHash($Stream)
+    return [BitConverter]::ToString($HashBytes).Replace("-", "").ToLowerInvariant()
+  } finally {
+    if ($null -ne $Hasher) { $Hasher.Dispose() }
+    if ($null -ne $Stream) { $Stream.Dispose() }
+  }
+}
+
 function Sync-FileToDisk {
   param([Parameter(Mandatory = $true)][string]$LiteralPath)
   $Stream = [IO.File]::Open(
@@ -238,7 +258,7 @@ try {
   Invoke-WebRequest $Entry.url -OutFile $Artifact
   Invoke-WebRequest $Entry.signature -OutFile $ArtifactBundle
   $ExpectedHash = ([string]$Entry.sha256).ToLowerInvariant()
-  $ActualHash = (Get-FileHash -Algorithm SHA256 $Artifact).Hash.ToLowerInvariant()
+  $ActualHash = Get-Sha256File $Artifact
   if ($ActualHash -ne $ExpectedHash) { throw "Artifact SHA-256 mismatch" }
   & cosign verify-blob --bundle $ArtifactBundle --certificate-identity-regexp $Identity --certificate-oidc-issuer "https://token.actions.githubusercontent.com" $Artifact | Out-Null
   if ($LASTEXITCODE -ne 0) { throw "Artifact signature verification failed" }
@@ -311,24 +331,24 @@ try {
   # the binary instead of treating it as a document in a pipeline.
   $CandidatePath = Join-Path $InstallDir (".chainlesschain.new-" + [guid]::NewGuid().ToString("N") + ".exe")
   [IO.File]::Copy($Artifact, $CandidatePath, $false)
-  if ((Get-FileHash -Algorithm SHA256 $CandidatePath).Hash.ToLowerInvariant() -ne $ExpectedHash) {
+  if ((Get-Sha256File $CandidatePath) -ne $ExpectedHash) {
     throw "Same-filesystem staging copy failed SHA-256 verification"
   }
   Sync-FileToDisk $CandidatePath
-  if ((Get-FileHash -Algorithm SHA256 $CandidatePath).Hash.ToLowerInvariant() -ne $ExpectedHash) {
+  if ((Get-Sha256File $CandidatePath) -ne $ExpectedHash) {
     throw "Same-filesystem candidate changed before pre-install startup check"
   }
   Invoke-BinaryStartupCheck $CandidatePath
 
   $AliasCandidatePath = Join-Path $InstallDir (".cc.new-" + [guid]::NewGuid().ToString("N") + ".exe")
   [IO.File]::Copy($CandidatePath, $AliasCandidatePath, $false)
-  if ((Get-FileHash -Algorithm SHA256 $AliasCandidatePath).Hash.ToLowerInvariant() -ne $ExpectedHash) {
+  if ((Get-Sha256File $AliasCandidatePath) -ne $ExpectedHash) {
     throw "Alias staging copy failed SHA-256 verification"
   }
   Sync-FileToDisk $AliasCandidatePath
 
-  $TargetBeforeHash = if ($HadTarget) { (Get-FileHash -Algorithm SHA256 $TargetPath).Hash.ToLowerInvariant() } else { $null }
-  $AliasBeforeHash = if ($HadAlias) { (Get-FileHash -Algorithm SHA256 $AliasPath).Hash.ToLowerInvariant() } else { $null }
+  $TargetBeforeHash = if ($HadTarget) { Get-Sha256File $TargetPath } else { $null }
+  $AliasBeforeHash = if ($HadAlias) { Get-Sha256File $AliasPath } else { $null }
   $Swapped = $false
   $AliasSwapped = $false
   $Committed = $false
@@ -342,16 +362,16 @@ try {
     Assert-RegularFileOrMissing $LineagePath "Native update lineage"
     Assert-RegularFileOrMissing $ResultPath "Native update result"
     Assert-RegularFileOrMissing $LastResultPath "Last consumed native update result"
-    if ($HadTarget -and (Get-FileHash -Algorithm SHA256 $TargetPath).Hash.ToLowerInvariant() -ne $TargetBeforeHash) {
+    if ($HadTarget -and (Get-Sha256File $TargetPath) -ne $TargetBeforeHash) {
       throw "Install target changed while the transaction was staged"
     }
-    if ($HadAlias -and (Get-FileHash -Algorithm SHA256 $AliasPath).Hash.ToLowerInvariant() -ne $AliasBeforeHash) {
+    if ($HadAlias -and (Get-Sha256File $AliasPath) -ne $AliasBeforeHash) {
       throw "CLI alias changed while the transaction was staged"
     }
-    if ((Get-FileHash -Algorithm SHA256 $CandidatePath).Hash.ToLowerInvariant() -ne $ExpectedHash) {
+    if ((Get-Sha256File $CandidatePath) -ne $ExpectedHash) {
       throw "Canonical candidate changed before commit"
     }
-    if ((Get-FileHash -Algorithm SHA256 $AliasCandidatePath).Hash.ToLowerInvariant() -ne $ExpectedHash) {
+    if ((Get-Sha256File $AliasCandidatePath) -ne $ExpectedHash) {
       throw "CLI alias candidate changed before commit"
     }
     if ($HadTarget) {
@@ -376,15 +396,15 @@ try {
     }
     $AliasCandidatePath = $null
     $AliasSwapped = $true
-    if ((Get-FileHash -Algorithm SHA256 $TargetPath).Hash.ToLowerInvariant() -ne $ExpectedHash -or
-        (Get-FileHash -Algorithm SHA256 $AliasPath).Hash.ToLowerInvariant() -ne $ExpectedHash) {
+    if ((Get-Sha256File $TargetPath) -ne $ExpectedHash -or
+        (Get-Sha256File $AliasPath) -ne $ExpectedHash) {
       throw "Canonical/alias hash parity verification failed"
     }
-    if ((Get-FileHash -Algorithm SHA256 $TargetPath).Hash.ToLowerInvariant() -ne $ExpectedHash) {
+    if ((Get-Sha256File $TargetPath) -ne $ExpectedHash) {
       throw "Canonical target changed before startup check"
     }
     Invoke-BinaryStartupCheck $TargetPath
-    if ((Get-FileHash -Algorithm SHA256 $AliasPath).Hash.ToLowerInvariant() -ne $ExpectedHash) {
+    if ((Get-Sha256File $AliasPath) -ne $ExpectedHash) {
       throw "CLI alias changed before startup check"
     }
     Invoke-BinaryStartupCheck $AliasPath
@@ -400,18 +420,18 @@ try {
         try {
           if ($HadAlias) {
             if (-not [IO.File]::Exists($AliasBackupPath)) { throw "CLI alias backup disappeared" }
-            if ((Get-FileHash -Algorithm SHA256 $AliasBackupPath).Hash.ToLowerInvariant() -ne $AliasBeforeHash) {
+            if ((Get-Sha256File $AliasBackupPath) -ne $AliasBeforeHash) {
               throw "CLI alias backup changed before rollback"
             }
             $AliasRollbackPath = Join-Path $InstallDir (".cc.rollback-" + [guid]::NewGuid().ToString("N") + ".exe")
             [IO.File]::Copy($AliasBackupPath, $AliasRollbackPath, $false)
-            if ((Get-FileHash -Algorithm SHA256 $AliasRollbackPath).Hash.ToLowerInvariant() -ne $AliasBeforeHash) {
+            if ((Get-Sha256File $AliasRollbackPath) -ne $AliasBeforeHash) {
               throw "CLI alias rollback staging failed SHA-256 verification"
             }
             $FailedAliasPath = "$AliasPath.failed-$([guid]::NewGuid().ToString('N'))"
             [IO.File]::Replace($AliasRollbackPath, $AliasPath, $FailedAliasPath, $true)
             $AliasRollbackPath = $null
-            if ((Get-FileHash -Algorithm SHA256 $AliasPath).Hash.ToLowerInvariant() -ne $AliasBeforeHash) {
+            if ((Get-Sha256File $AliasPath) -ne $AliasBeforeHash) {
               throw "Restored CLI alias failed SHA-256 verification"
             }
           } elseif ([IO.File]::Exists($AliasPath)) {
@@ -428,12 +448,12 @@ try {
           if (-not [IO.File]::Exists($BackupPath)) {
             throw "Last-known-good backup disappeared"
           }
-          if ((Get-FileHash -Algorithm SHA256 $BackupPath).Hash.ToLowerInvariant() -ne $TargetBeforeHash) {
+          if ((Get-Sha256File $BackupPath) -ne $TargetBeforeHash) {
             throw "Last-known-good backup changed before rollback"
           }
           $RollbackTempPath = Join-Path $InstallDir (".chainlesschain.rollback-" + [guid]::NewGuid().ToString("N"))
           [IO.File]::Copy($BackupPath, $RollbackTempPath, $false)
-          if ((Get-FileHash -Algorithm SHA256 $RollbackTempPath).Hash.ToLowerInvariant() -ne $TargetBeforeHash) {
+          if ((Get-Sha256File $RollbackTempPath) -ne $TargetBeforeHash) {
             throw "Rollback staging copy failed SHA-256 verification"
           }
           Sync-FileToDisk $RollbackTempPath
@@ -441,7 +461,7 @@ try {
           [IO.File]::Replace($RollbackTempPath, $TargetPath, $FailedPath, $true)
           $RollbackTempPath = $null
           Sync-FileToDisk $TargetPath
-          if ((Get-FileHash -Algorithm SHA256 $TargetPath).Hash.ToLowerInvariant() -ne $TargetBeforeHash) {
+          if ((Get-Sha256File $TargetPath) -ne $TargetBeforeHash) {
             throw "Restored install target failed SHA-256 verification"
           }
           Write-NativeUpdateLineage $LineagePath $TransactionId "rolled-back" $TargetBeforeHash $TargetBeforeHash
