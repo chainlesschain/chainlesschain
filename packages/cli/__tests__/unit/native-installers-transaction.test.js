@@ -619,8 +619,8 @@ helper_argv = sys.argv[1:]
 source = sys.stdin.read()
 claim_needle = "        rename_noreplace(public_path, tombstone_path)"
 publish_needle = "        rename_noreplace(stage_path, public_path)"
-retire_replace_needle = "            retire_bound_name(current, tombstone_path)"
-retire_delete_needle = "        retire_bound_name(current, tombstone_path)"
+retire_replace_needle = "\\n            retire_bound_name(current, tombstone_path)\\n"
+retire_delete_needle = "\\n        retire_bound_name(current, tombstone_path)\\n"
 publication_needle = "        verify(replacement, public_path)\\n    else:"
 cleanup_needle = "try:\\n    if lexists(tombstone_path):"
 native_linux_needle = "    if sys.platform.startswith('linux'):"
@@ -736,13 +736,17 @@ publish_injection = r'''        race = os.environ.get('CC_TEST_MUTATION_RACE', '
             os.kill(os.getppid(), signal.SIGKILL)'''
 source = source.replace(publish_needle, publish_injection, 1)
 
-retire_replace_injection = r'''            if os.environ.get('CC_TEST_MUTATION_RACE', 'none') == 'retire-replace':
+retire_replace_injection = r'''
+            if os.environ.get('CC_TEST_MUTATION_RACE', 'none') == 'retire-replace':
                 inject_path_successor(tombstone_path, current_kind)
-            retire_bound_name(current, tombstone_path)'''
+            retire_bound_name(current, tombstone_path)
+'''
 source = source.replace(retire_replace_needle, retire_replace_injection, 1)
-retire_delete_injection = r'''        if os.environ.get('CC_TEST_MUTATION_RACE', 'none') == 'retire-delete':
+retire_delete_injection = r'''
+        if os.environ.get('CC_TEST_MUTATION_RACE', 'none') == 'retire-delete':
             inject_path_successor(tombstone_path, current_kind)
-        retire_bound_name(current, tombstone_path)'''
+        retire_bound_name(current, tombstone_path)
+'''
 source = source.replace(retire_delete_needle, retire_delete_injection, 1)
 
 publication_injection = r'''        verify(replacement, public_path)
@@ -1168,6 +1172,9 @@ describe("native installer transaction contracts", () => {
     expect(source).toContain(
       "startup_fd = os.open(candidate_path, os.O_RDONLY | nofollow)",
     );
+    expect(source).toContain("if sys.platform != 'darwin':");
+    expect(source).toContain("[descriptor_path, '--version']");
+    expect(source).not.toContain("[candidate_path, '--version']");
     expect(source).toContain("pass_fds=(startup_fd,)");
     expect(source).not.toContain(
       'mktemp "$INSTALL_DIR/.chainlesschain.new.XXXXXX"',
@@ -2658,6 +2665,7 @@ describe("native installer transaction contracts", () => {
       fs.writeFileSync(aliasPath, "known-good-alias");
 
       const command = [
+        `Import-Module Microsoft.PowerShell.Utility -ErrorAction Stop`,
         `$env:CC_CLI_RELEASE_BASE_URL = 'https://fixture/base'`,
         `$env:CC_CLI_INSTALL_DIR = ${psQuote(targetDir)}`,
         `function cosign { $global:LASTEXITCODE = 0 }`,
@@ -2745,6 +2753,7 @@ describe("native installer transaction contracts", () => {
       fs.writeFileSync(lineagePath, '{"schema":"stale"}');
 
       const command = [
+        `Import-Module Microsoft.PowerShell.Utility -ErrorAction Stop`,
         `$env:CC_CLI_RELEASE_BASE_URL = 'https://fixture/base'`,
         `$env:CC_CLI_INSTALL_DIR = ${psQuote(targetDir)}`,
         `function cosign { $global:LASTEXITCODE = 0 }`,

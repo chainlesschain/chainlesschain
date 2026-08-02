@@ -368,24 +368,34 @@ try:
     if not handoff_stable:
         raise RuntimeError('candidate identity changed during read-only fd handoff')
 
-    descriptor_path = f'/proc/self/fd/{startup_fd}'
-    if not os.path.exists(descriptor_path):
-        descriptor_path = f'/dev/fd/{startup_fd}'
-    if not os.path.exists(descriptor_path):
-        raise RuntimeError('fd-bound candidate execution is unavailable')
     os.close(candidate_fd)
     candidate_fd = -1
-    result = subprocess.run(
-        [descriptor_path, '--version'],
-        stdin=subprocess.DEVNULL,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-        timeout=30,
-        check=False,
-        pass_fds=(startup_fd,),
-    )
-    if result.returncode != 0:
-        raise RuntimeError('verified candidate failed its fd-bound startup check')
+
+    # Darwin exposes readable /dev/fd names but rejects executing them with
+    # EACCES and does not provide a supported fexecve/execveat equivalent.
+    # Path existence is therefore not an execution-capability probe there.
+    # Never fall back to candidate_path: doing so would reopen a same-UID
+    # pathname race after the inode was bound. The signed-manifest SHA, fd-bound
+    # materialization, mode/inode handoff, and final fd/path revalidation below
+    # remain mandatory; only the unsupported fd-bound --version preflight is
+    # omitted on Darwin.
+    if sys.platform != 'darwin':
+        descriptor_path = f'/proc/self/fd/{startup_fd}'
+        if not os.path.exists(descriptor_path):
+            descriptor_path = f'/dev/fd/{startup_fd}'
+        if not os.path.exists(descriptor_path):
+            raise RuntimeError('fd-bound candidate execution is unavailable')
+        result = subprocess.run(
+            [descriptor_path, '--version'],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            timeout=30,
+            check=False,
+            pass_fds=(startup_fd,),
+        )
+        if result.returncode != 0:
+            raise RuntimeError('verified candidate failed its fd-bound startup check')
 
     candidate_after = os.fstat(startup_fd)
     candidate_path_after = os.lstat(candidate_path)
