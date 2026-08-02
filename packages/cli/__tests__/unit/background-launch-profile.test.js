@@ -24,7 +24,7 @@ let dir;
 let previousHome;
 
 beforeEach(() => {
-  dir = realpathSync(mkdtempSync(join(tmpdir(), "cc-bg-profile-")));
+  dir = realpathSync.native(mkdtempSync(join(tmpdir(), "cc-bg-profile-")));
   previousHome = process.env.CHAINLESSCHAIN_HOME;
   process.env.CHAINLESSCHAIN_HOME = join(dir, "home");
   mkdirSync(process.env.CHAINLESSCHAIN_HOME, { recursive: true });
