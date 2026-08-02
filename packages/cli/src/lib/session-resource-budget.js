@@ -45,6 +45,13 @@ const CONTINUOUS_REASONS = new Set([
   "max-tool-ms",
 ]);
 
+const USAGE_TOKEN_FIELDS = Object.freeze([
+  "input_tokens",
+  "output_tokens",
+  "cache_read_input_tokens",
+  "cache_creation_input_tokens",
+]);
+
 const MAX_TIMER_DELAY = 2_147_483_647;
 
 function isRecord(value) {
@@ -85,30 +92,29 @@ function normalizeNonNegativeNumber(field, raw) {
   return value;
 }
 
-function usageTokenCount(usage) {
-  if (usage == null) return 0;
+function normalizeUsageTokens(usage) {
+  const fields = Object.fromEntries(
+    USAGE_TOKEN_FIELDS.map((field) => [field, 0]),
+  );
+  if (usage == null) return { fields, total: 0 };
   if (!isRecord(usage)) {
     throw new TypeError("invalid session budget usage");
   }
   let total = 0;
-  for (const field of [
-    "input_tokens",
-    "output_tokens",
-    "cache_read_input_tokens",
-    "cache_creation_input_tokens",
-  ]) {
+  for (const field of USAGE_TOKEN_FIELDS) {
     const raw = usage[field];
     if (raw === undefined || raw === null) continue;
     const value = Number(raw);
     if (!Number.isSafeInteger(value) || value < 0) {
       throw new TypeError(`invalid session budget usage: ${field}`);
     }
+    fields[field] = value;
     total += value;
     if (!Number.isSafeInteger(total)) {
       throw new TypeError("session budget token total exceeds safe integer");
     }
   }
-  return total;
+  return { fields, total };
 }
 
 function safeReason(reason, fallback = "session-aborted") {
@@ -590,27 +596,48 @@ export class SessionResourceBudget {
         throw new TypeError("invalid session budget usage records");
       }
       if (Array.isArray(usageRecords) && usageRecords.length > 0) {
+        const detailedFields = Object.fromEntries(
+          USAGE_TOKEN_FIELDS.map((field) => [field, 0]),
+        );
+        let detailedTokenCount = 0;
         pricedRecords = usageRecords.map((record, index) => {
           if (!isRecord(record) || !isRecord(record.usage)) {
             throw new TypeError(
               `invalid session budget usage record at index ${index}`,
             );
           }
-          return { record, tokens: usageTokenCount(record.usage) };
-        });
-        tokenCount = usageTokenCount(usage);
-        if (usage == null) {
-          for (const entry of pricedRecords) {
-            tokenCount += entry.tokens;
-            if (!Number.isSafeInteger(tokenCount)) {
+          const normalized = normalizeUsageTokens(record.usage);
+          for (const field of USAGE_TOKEN_FIELDS) {
+            detailedFields[field] += normalized.fields[field];
+            if (!Number.isSafeInteger(detailedFields[field])) {
               throw new TypeError(
-                "session budget token total exceeds safe integer",
+                `session budget usage record aggregate exceeds safe integer: ${field}`,
               );
             }
           }
+          detailedTokenCount += normalized.total;
+          if (!Number.isSafeInteger(detailedTokenCount)) {
+            throw new TypeError(
+              "session budget token total exceeds safe integer",
+            );
+          }
+          return { record, tokens: normalized.total };
+        });
+        if (usage != null) {
+          const aggregate = normalizeUsageTokens(usage);
+          for (const field of USAGE_TOKEN_FIELDS) {
+            if (aggregate.fields[field] !== detailedFields[field]) {
+              throw new TypeError(
+                `session budget usage records do not match aggregate usage: ${field}`,
+              );
+            }
+          }
+          tokenCount = aggregate.total;
+        } else {
+          tokenCount = detailedTokenCount;
         }
       } else {
-        tokenCount = usageTokenCount(usage);
+        tokenCount = normalizeUsageTokens(usage).total;
         pricedRecords =
           usage == null
             ? []
@@ -623,14 +650,15 @@ export class SessionResourceBudget {
       this.abort(error, { reason: "invalid-usage" });
       throw error;
     }
-    this.tokens += tokenCount;
-    if (!Number.isSafeInteger(this.tokens)) {
+    const nextTokens = this.tokens + tokenCount;
+    if (!Number.isSafeInteger(nextTokens)) {
       const error = new TypeError(
         "session budget token total exceeds safe integer",
       );
       this.abort(error, { reason: "invalid-usage" });
       throw error;
     }
+    this.tokens = nextTokens;
 
     try {
       for (const { record, tokens: recordTokens } of pricedRecords) {

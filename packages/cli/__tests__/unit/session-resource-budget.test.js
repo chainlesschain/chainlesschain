@@ -270,6 +270,202 @@ describe("SessionResourceBudget continuous enforcement", () => {
     });
     budget.dispose();
   });
+
+  it("rejects aggregate/detail mismatches without changing settled totals", () => {
+    const { budget } = makeBudget({ maxUsd: 100 });
+    budget.recordUsage({
+      provider: "anthropic",
+      model: "claude-3-5-sonnet-20241022",
+      usage: { input_tokens: 2, output_tokens: 1 },
+    });
+    const totalsBefore = budget.snapshot().totals;
+    const costBefore = {
+      spentUsd: budget.cost.spentUsd,
+      priced: budget.cost.priced,
+      sawUnpriced: budget.cost.sawUnpriced,
+      sawFree: budget.cost.sawFree,
+    };
+
+    expect(() =>
+      budget.recordUsage({
+        usage: { input_tokens: 4, output_tokens: 2 },
+        usageRecords: [
+          {
+            provider: "anthropic",
+            model: "claude-3-5-sonnet-20241022",
+            usage: { input_tokens: 3, output_tokens: 2 },
+          },
+        ],
+      }),
+    ).toThrow(
+      /session budget usage records do not match aggregate usage: input_tokens/,
+    );
+    expect(budget.status().reason).toBe("invalid-usage");
+    expect(budget.snapshot().totals).toEqual(totalsBefore);
+    expect({
+      spentUsd: budget.cost.spentUsd,
+      priced: budget.cost.priced,
+      sawUnpriced: budget.cost.sawUnpriced,
+      sawFree: budget.cost.sawFree,
+    }).toEqual(costBefore);
+    budget.dispose();
+  });
+
+  it("checks cache fields independently even when the grand total matches", () => {
+    const { budget } = makeBudget({ maxUsd: 100 });
+
+    expect(() =>
+      budget.recordUsage({
+        usage: {
+          input_tokens: 0,
+          output_tokens: 0,
+          cache_read_input_tokens: 4,
+          cache_creation_input_tokens: 1,
+        },
+        usageRecords: [
+          {
+            provider: "anthropic",
+            model: "claude-3-5-sonnet-20241022",
+            usage: {
+              input_tokens: 0,
+              output_tokens: 0,
+              cache_read_input_tokens: 1,
+              cache_creation_input_tokens: 4,
+            },
+          },
+        ],
+      }),
+    ).toThrow(/do not match aggregate usage: cache_read_input_tokens/);
+    expect(budget.status()).toMatchObject({
+      reason: "invalid-usage",
+      tokens: 0,
+      spentUsd: 0,
+    });
+    budget.dispose();
+  });
+
+  it("rejects unsafe detailed sums while accepting explicit zero totals", () => {
+    const overflow = makeBudget({ maxUsd: 100 }).budget;
+    expect(() =>
+      overflow.recordUsage({
+        usageRecords: [
+          {
+            usage: { input_tokens: Number.MAX_SAFE_INTEGER },
+          },
+          { usage: { input_tokens: 1 } },
+        ],
+      }),
+    ).toThrow(/aggregate exceeds safe integer: input_tokens/);
+    expect(overflow.status()).toMatchObject({
+      reason: "invalid-usage",
+      tokens: 0,
+      spentUsd: 0,
+    });
+    overflow.dispose();
+
+    const zero = makeBudget({ maxUsd: 100 }).budget;
+    expect(
+      zero.recordUsage({
+        usage: {
+          input_tokens: 0,
+          output_tokens: 0,
+          cache_read_input_tokens: 0,
+          cache_creation_input_tokens: 0,
+        },
+        usageRecords: [
+          {
+            provider: "anthropic",
+            model: "claude-3-5-sonnet-20241022",
+            usage: {
+              input_tokens: 0,
+              output_tokens: 0,
+              cache_read_input_tokens: 0,
+              cache_creation_input_tokens: 0,
+            },
+          },
+        ],
+      }),
+    ).toMatchObject({ aborted: false, tokens: 0, spentUsd: 0 });
+    zero.dispose();
+  });
+
+  it("uses detailed totals when aggregate usage is absent", () => {
+    const { budget } = makeBudget({ maxUsd: 100 });
+    budget.recordUsage({
+      usageRecords: [
+        {
+          provider: "anthropic",
+          model: "claude-3-5-sonnet-20241022",
+          usage: {
+            input_tokens: 2,
+            output_tokens: 1,
+            cache_read_input_tokens: 3,
+            cache_creation_input_tokens: 4,
+          },
+        },
+        {
+          provider: "anthropic",
+          model: "claude-3-5-sonnet-20241022",
+          usage: {
+            input_tokens: 5,
+            output_tokens: 6,
+            cache_read_input_tokens: 7,
+            cache_creation_input_tokens: 8,
+          },
+        },
+      ],
+    });
+
+    expect(budget.status()).toMatchObject({
+      aborted: false,
+      tokens: 36,
+      unpricedUsage: false,
+    });
+    expect(budget.cost.spentUsd).toBeGreaterThan(0);
+    budget.dispose();
+  });
+
+  it("prices records whose aggregate usage matches every token field", () => {
+    const { budget } = makeBudget({ maxUsd: 100 });
+    budget.recordUsage({
+      usage: {
+        input_tokens: 7,
+        output_tokens: 7,
+        cache_read_input_tokens: 10,
+        cache_creation_input_tokens: 12,
+      },
+      usageRecords: [
+        {
+          provider: "anthropic",
+          model: "claude-3-5-sonnet-20241022",
+          usage: {
+            input_tokens: 2,
+            output_tokens: 1,
+            cache_read_input_tokens: 3,
+            cache_creation_input_tokens: 4,
+          },
+        },
+        {
+          provider: "anthropic",
+          model: "claude-3-5-sonnet-20241022",
+          usage: {
+            input_tokens: 5,
+            output_tokens: 6,
+            cache_read_input_tokens: 7,
+            cache_creation_input_tokens: 8,
+          },
+        },
+      ],
+    });
+
+    expect(budget.status()).toMatchObject({
+      aborted: false,
+      tokens: 36,
+      unpricedUsage: false,
+    });
+    expect(budget.cost.spentUsd).toBeGreaterThan(0);
+    budget.dispose();
+  });
 });
 
 describe("SessionResourceBudget snapshot and recovery", () => {
