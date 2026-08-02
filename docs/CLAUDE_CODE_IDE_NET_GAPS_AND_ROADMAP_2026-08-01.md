@@ -708,4 +708,12 @@ release gate 已完成。
 - `4bb6e25fe4` 修正 POSIX fixture 精确注入、Darwin fd 启动预检兼容与 PowerShell fixture 初始化；CLI CI `30739539943` 将 Ubuntu/macOS native failures 分别从 40/39 项降为相同 5 项，但 Windows 仍有 2 项 `Get-FileHash` 失败，并保留当时 48 项 packer 身份误判，因此整门失败。
 - `755ee07926` 以可信 volume/share-root、parent handle 与二次 pathname descriptor 关闭 Windows libuv 1.49/1.50 跨 API `dev` 投影误判，同时继续严格绑定句柄 `dev+ino` 与变更字段；Node 22.12 和 22.22 下的 packer 相关矩阵均为 87/87。该 SHA 的 CLI CI `30742304070` 被后续提交取消，不能作为发布证据。
 - `d14a4eb8eb` 将 MCP adjudication 改为单次 verified projection，并让 Cowork binding 与 ledger 在同一 verified scan 中折叠；factory finish identity、accepted count/head 与不安全同步对象均 fail closed。独立复验 5 文件 204/204。它移除了这两个入口对完整 event 数组的强制 materialization，但 ledger/replay-deny authority 仍可能增长，hash-chain 认证仍为 O(N)，1 GiB 冷进程 P95/RSS 目标仍未验收。
-- `d14a4eb8eb` 的 Strict `30742425145` 与 Host Consistency `30742425143` 已成功，CLI CI `30742425229` 仍在运行。当前仍为 **release NO-GO**；原生事务的 5 个 POSIX 与 2 个 PowerShell 残余正在独立修复，最终待发布 SHA 必须重新满足完整双门。
+- `d14a4eb8eb` 的 Strict `30742425145` 与 Host Consistency `30742425143` 已成功，但 CLI CI `30742425229` 最终 cancelled。当前仍为 **release NO-GO**；原生事务的 5 个 POSIX 与 2 个 PowerShell 残余正在独立修复，最终待发布 SHA 必须重新满足完整双门。
+
+### 2026-08-02 Durable replay 与 fork 发布事务
+
+- `741ffebff8` 将 compact 绑定到同一 verified projection 与完整 canonical replay 指纹；REPL 自动/退出 compact 在 concurrent turn 改变持久消息时拒绝 stale write。其 CLI CI `30742928259` cancelled，故只构成本地/组件实现证据。
+- `9a780a0c84` 关闭 `9cadcaf4d6` 之后审计发现的 forged wire provenance、深层 Proxy/accessor、runtime clone、WS recovery notice、structured handoff 与 `SUMMARY_TO` 晋升缺口。durable system 只有在 hash chain + sidecar anchor 验证后才恢复进程内 authority；REPL、Headless、WS、checkpoint、branch/fork 使用同一 canonical projection。
+- branch 采用 deterministic plan、completion digest、strict-prefix crash recovery 与 anti-anchor-downgrade；fork 以 `(sourceId, requestId)` 绑定唯一 successor，并把首次 source revision 写入 hash-protected、provider 侧剥离的 `_cc_fork_authority`。未完成 copy/lineage 只存在于非枚举 `.fork.pending`，验证后才同目录原子发布；`--fork-session` 默认生成独立 request ID，`--fork-request-id` 支持稳定 unknown-commit retry。
+- 最终本地矩阵为 14 files、626/626，完整 Host Consistency gate passed；四个真实 `exit(91)` 窗口均在 list 介入与 source advance 后恢复到单一 verified successor。两路独立终审为 P0=0、P1=0。该 gate 明示 `trackedWorktreeDirty=true`、`gateSourcePathsExact=false`，不得外推为 exact-SHA artifact。
+- 截至 **2026-08-02 19:21 +08:00**，`9a780a0c84` 的 CLI CI `30745539604` 与 Host Consistency `30745539474` queued，Strict Sandbox `30745539476` running；状态仍为 **release NO-GO**。O(N) chain verification、独立 anti-rollback anchor、general cross-process lease、checkpoint restore-both partial apply、pending GC/quarantine、真实 1 GiB 冷进程 P95/RSS、fsync/断电、remote host 与最终 exact-SHA 双门仍待关闭。

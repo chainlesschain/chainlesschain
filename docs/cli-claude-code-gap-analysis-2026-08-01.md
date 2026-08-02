@@ -531,19 +531,21 @@ E2E retry-pass 应记为 flake，而不是普通 pass；超过阈值阻断发布
 
 ### 14.4 Exact-SHA CI 与发布判定
 
-| Exact SHA    | `CLI CI`                  | `CLI Strict Sandbox`  | `CLI Session Host Consistency` | Release   |
-| ------------ | ------------------------- | --------------------- | ------------------------------ | --------- |
-| `9cbe020b08` | `30732462105` cancelled   | `30732462022` success | `30732462034` success          | **NO-GO** |
-| `213c3ae7c5` | `30733555516` cancelled   | `30733555412` success | `30733555422` success          | **NO-GO** |
-| `fa3aa32801` | `30734282599` failure     | 无同 SHA 成功证据     | `30734282464` success          | **NO-GO** |
-| `73ad3b7378` | `30737250661` cancelled   | 无同 SHA 成功证据     | `30737250601` success          | **NO-GO** |
-| `13e0f074b3` | `30737581680` cancelled   | `30737581562` success | `30737581567` success          | **NO-GO** |
-| `1354be776a` | `30737890854` cancelled   | 无同 SHA 完成证据     | 无同 SHA 完成证据              | **NO-GO** |
-| `5c9f05494a` | `30738312745` cancelled   | `30738312596` success | `30738312610` success          | **NO-GO** |
-| `9cadcaf4d6` | `30738491468` failure     | `30738576056` success | `30738491365` success          | **NO-GO** |
-| `4bb6e25fe4` | `30739539943` failure     | 无同 SHA 完成证据     | 无同 SHA 完成证据              | **NO-GO** |
-| `755ee07926` | `30742304070` cancelled   | 无同 SHA 完成证据     | 无同 SHA 完成证据              | **NO-GO** |
-| `d14a4eb8eb` | `30742425229` in progress | `30742425145` success | `30742425143` success          | **NO-GO** |
+| Exact SHA    | `CLI CI`                | `CLI Strict Sandbox`  | `CLI Session Host Consistency` | Release   |
+| ------------ | ----------------------- | --------------------- | ------------------------------ | --------- |
+| `9cbe020b08` | `30732462105` cancelled | `30732462022` success | `30732462034` success          | **NO-GO** |
+| `213c3ae7c5` | `30733555516` cancelled | `30733555412` success | `30733555422` success          | **NO-GO** |
+| `fa3aa32801` | `30734282599` failure   | 无同 SHA 成功证据     | `30734282464` success          | **NO-GO** |
+| `73ad3b7378` | `30737250661` cancelled | 无同 SHA 成功证据     | `30737250601` success          | **NO-GO** |
+| `13e0f074b3` | `30737581680` cancelled | `30737581562` success | `30737581567` success          | **NO-GO** |
+| `1354be776a` | `30737890854` cancelled | 无同 SHA 完成证据     | 无同 SHA 完成证据              | **NO-GO** |
+| `5c9f05494a` | `30738312745` cancelled | `30738312596` success | `30738312610` success          | **NO-GO** |
+| `9cadcaf4d6` | `30738491468` failure   | `30738576056` success | `30738491365` success          | **NO-GO** |
+| `4bb6e25fe4` | `30739539943` failure   | 无同 SHA 完成证据     | 无同 SHA 完成证据              | **NO-GO** |
+| `755ee07926` | `30742304070` cancelled | 无同 SHA 完成证据     | 无同 SHA 完成证据              | **NO-GO** |
+| `d14a4eb8eb` | `30742425229` cancelled | `30742425145` success | `30742425143` success          | **NO-GO** |
+| `741ffebff8` | `30742928259` cancelled | 无同 SHA 完成证据     | 无同 SHA 完成证据              | **NO-GO** |
+| `9a780a0c84` | `30745539604` queued    | `30745539476` running | `30745539474` queued           | **NO-GO** |
 
 当前没有任何待发布 exact SHA 同时取得完整 `CLI CI` 与 `CLI Strict Sandbox` 成功。queued、in-progress、cancelled、failure、部分矩阵、组件门成功、本地测试或旧 SHA 结果均不构成发布授权；文档提交后的新 SHA 也必须重新运行完整双门。
 
@@ -553,4 +555,14 @@ E2E retry-pass 应记为 flake，而不是普通 pass；超过阈值阻断发布
 - `4bb6e25fe4` 修正 POSIX fixture 的精确注入、Darwin fd 启动预检兼容与 PowerShell fixture 模块初始化。它把 Ubuntu native failures 从 40 项降到 5 项、macOS 从 39 项降到相同 5 项；Windows 仍有 2 项 `Get-FileHash` 命令可见性失败，另有当时尚未修复的 48 项 packer 文件身份误判。该 SHA 的 CLI CI 因此失败。
 - `755ee07926` 为 packer 的稳定哈希、下载 partial、恢复快照、清理和两类更新锁建立可信 volume/share-root + parent handle authority；只在 Windows libuv 1.49/1.50 下桥接已知的 pathname `dev` 投影差异，打开句柄之间仍严格比较 BigInt `dev+ino`。Node 22.12/libuv 1.49.1 与 Node 22.22/libuv 1.51.0 的相关 3 文件均为 87/87；该 SHA 的 CLI CI 被后续提交取消，不能据本地结果宣称矩阵关闭。
 - `d14a4eb8eb` 让默认 MCP recovery adjudication 使用单次 verified projection，并让 Cowork session binding 与 MCP ledger 在同一遍 verified scan 中折叠；projection factory/finish identity、accepted count、verified head、Promise/thenable/Proxy/accessor/toJSON 与 legacy reader 均 fail closed。独立复验的 5 个相关测试文件共 204/204；它去除了这两个恢复入口对完整 event 数组的强制 materialization，但 reducer authority 仍随唯一 ledger/replay-deny 状态增长，普通 hash-chain 认证仍为 O(N)，不能据此宣称 1 GiB 冷恢复或固定 RSS 目标已完成。
-- `d14a4eb8eb` 的 Host Consistency 与 Strict Sandbox 已成功，CLI CI 仍未结束；原生事务仍在处理前述 5 个 POSIX 与 2 个 PowerShell 残余。最终发布判定继续要求同一待发布 SHA 的完整 `CLI CI` 与 `CLI Strict Sandbox` 全配置 OS 同时成功。
+- `d14a4eb8eb` 的 Host Consistency 与 Strict Sandbox 已成功，但 CLI CI `30742425229` 最终 cancelled；原生事务仍在处理前述 5 个 POSIX 与 2 个 PowerShell 残余。最终发布判定继续要求同一待发布 SHA 的完整 `CLI CI` 与 `CLI Strict Sandbox` 全配置 OS 同时成功。
+
+### 14.6 Durable replay、branch/fork 与宿主投影事务增量
+
+- `9cadcaf4d6` 只能视为 durable system provenance 的中间提交，不能再引用为完整恢复安全闭包。后续独立审计发现 forged wire tag、深层 Proxy/accessor/cycle、runtime provenance 克隆转移、WS recovery notice 与结构化 handoff/SUMMARY_TO 等边界仍可能错误晋升或阻断持久化；这些缺口由 `9a780a0c84` 统一收口。
+- `741ffebff8` 让手工 compact 从一个 verified projection 同时取得 head、messages、provider 与 model，并以完整 canonical replay 指纹执行 compare-and-append；REPL 自动/退出 compact 也跟踪精确已持久化投影。并发新 turn 导致消息不匹配时会明确拒绝 stale compact，不再只依赖旧 head 或覆盖新消息。该 SHA 的 CLI CI `30742928259` cancelled，不能作为发布授权。
+- `9a780a0c84` 将 durable system authority 固定为进程内 WeakMap 能力；持久 wire tag 只有在 transcript hash chain 与 sidecar head/count 同时验证后才能恢复。严格 JSON 克隆拒绝 Proxy、accessor、symbol、cycle、稀疏数组、非有限数字和超限图，且不会执行 getter/trap。REPL、Headless、WS、structured handoff、checkpoint `SUMMARY_TO`、branch 与 fork 共用 canonical projection；WS DB 只镜像显式 host prefix 与非 system conversation，不持久化 recovery/host scaffolding。
+- branch 创建使用确定性完整计划、`session_branch_complete` input digest 与 exact-prefix 恢复；旧 sidecar 只有在它是当前计划前缀的严格祖先时才允许前推，高水位回滚或同计数异 hash 均 fail closed。fork 以 `(sourceId, requestId)` 绑定唯一 successor，把首次选定的 source head/count 写入 hash-protected `_cc_fork_authority`，provider 投影会剥离该字段；copy/lineage 在非枚举的确定性 `.fork.pending` 中完成，经 authority、hash chain 与 source ancestry 校验后同目录原子 rename 发布。`--fork-session` 默认每次生成独立请求键，`--fork-request-id` 为 unknown-commit 重试提供稳定入口；`/btw --fork` 继续使用独立 UUID。
+- 最终本地验证：14 个核心测试文件 **626/626**；`CLI Session Host Consistency` 完整 gate passed，`branchForkProvenance` 同时证明 source-advance retry stable、independent fork distinct、unanchored fork refused、无遗留 successor；25 个目标文件的 Node 语法、Prettier 与 `git diff --check` 通过。四个真实子进程 `exit(91)` 窗口（copy、lineage、publish、meta）均在 crash 后先执行 session list、再推进 source、最后同 requestId 重试，最终只有一个 verified successor，pending 不会被提前列出或生成 meta。两路最终独立只读审计均为 P0=0、P1=0。
+- 上述 gate 在提交前脏工作树运行，结果中的 `trackedWorktreeDirty=true`、`gateSourcePathsExact=false` 明确表示它是组件/工作树证据，不是 `9a780a0c84` 的 exact-SHA CI artifact。截至 **2026-08-02 19:21 +08:00**，该 SHA 的 CLI CI `30745539604` 与 Host Consistency `30745539474` queued，Strict Sandbox `30745539476` running，因此仍为 **release NO-GO**。
+- 未关闭边界：普通 hash-chain 验证和部分 authority 折叠仍为 O(N)；sidecar 不是独立 anti-rollback anchor；没有 general cross-process session lease；checkpoint `restore --both` 在代码已恢复、conversation CAS 随后冲突时仍可能形成显式 partial apply（会拒绝覆盖对话，但不是跨资源原子事务）；异常 pending/持续 Windows rename 失败尚无自动 GC/quarantine；真实冷进程 1 GiB P95/RSS、fsync/断电、remote host、长期 soak 与同一最终 SHA 的完整双门仍待验收。
