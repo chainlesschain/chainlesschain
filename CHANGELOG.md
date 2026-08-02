@@ -7,6 +7,65 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — cc CLI 0.162.190: durable sessions, MCP recovery, and checkpoint safety
+
+> `chainlesschain` **0.162.189 → 0.162.190** (release candidate,
+> 2026-08-03). CLI-only release metadata; `@chainlesschain/personal-data-hub`
+> remains **0.4.57** and `@chainlesschain/agent-sdk` remains **0.1.7**.
+
+- **Safer configuration defaults**: for CLI config writes, schema-declared
+  secrets are refused by `config set` and must use `config set-secret` through
+  hidden TTY/stdin and OS-store or owner-only fallback paths. Explicit
+  `workspace-write` / `strict` isolation and managed-required sandbox policies
+  fail closed when unavailable. `mcp add` now defaults to local scope; both
+  human and JSON `status` use bounded quick probes, while full Docker Compose
+  detail requires `--deep`.
+- **MCP transports and uncertain-outcome recovery**: scoped WebSocket MCP,
+  trusted dynamic headers, timeout notifications, and durable recovery records
+  cover REPL, stream, Cowork/host, and WebSocket paths through shared verified
+  recovery authority. Ambiguous MCP outcomes require verification or
+  adjudication instead of blind replay.
+- **Canonical sessions and resource budgets**: covered REPL, stream,
+  WebSocket, and headless paths use verified transcript projections,
+  transactional summary/compaction state, and reject stale or corrupt resume
+  authority. A persistent session-budget foundation plus background/Team
+  adapters adds fenced token/USD/wall-clock accounting and cleanup; it is not
+  yet a universal cross-host budget authority.
+- **Agent workflow controls**: durable plan/todo state with revision and
+  authority ceilings, controlled skill subagents, background launch profiles,
+  semantic handoff, ephemeral side questions, manifest-driven help, and
+  deterministic shell completions improve Claude Code-style daily workflows.
+  CLI-owned canonical session/checkpoint/delivery projections are consumed by
+  VS Code and JetBrains while mutations stay CLI-authoritative; this CLI-only
+  metadata bump does not bump either IDE package.
+- **Signed native update recovery**: immutable release identity, signed updater
+  rollback chains, atomic download replacement, and portable recovery/cleanup
+  paths add fail-closed activation, rollback, and recovery fences for stale,
+  replaced, or partial payloads.
+- **Checkpoint restore durability**: canonical workspace prestate binding,
+  lifetime locks, immutable Git/copy target identity, copy tombstones and
+  owner-private safety arms feed a hash-chained CAS restore saga shared by
+  direct and timeline restores. A real Git/copy test covers the narrow
+  post-completion, pre-lock-release kill window.
+- **Conservative recovery CLI**: `cc checkpoint recovery`
+  `list/show/abort/resume/release` derives mutation authority from the current
+  live owner digest or verified owner absence plus exact seq/head fences.
+  `resume` is intentionally limited to a verified timeline already-completed
+  session settlement whose current Git/copy workspace poststate re-verifies;
+  it never replays workspace or conversation mutation.
+- **Rollback v2 protocol foundation**: crash-safe rollback phase boundaries and
+  a transaction-fenced `checkpoint_restore_recovery_resolution` event bind
+  workspace settlement to session settlement in both directions. The
+  production rollback controller and real cross-store mutation-phase
+  kill/restart journey are not wired; public rollback remains read-only, so
+  general rollback and checkpoint recovery GA must not be inferred.
+- **Release status**: not published. The exact version/changelog commit must
+  pass `CLI CI` and `CLI Strict Sandbox` on Ubuntu, Windows, and macOS, plus
+  affected `Session Host Consistency`, `CLI Background Interaction E2E`, and
+  checkpoint recovery gates and immutable npm tarball verification, before tag
+  `v-npm-0-162-190` or npm publication is allowed. Local, older-SHA, and partial
+  results are supplementary only.
+
 ### Added — cc CLI 0.162.189: managed rollback and distributed Agent Teams closure
 
 > `chainlesschain` **0.162.188 → 0.162.189** (2026-07-31).
