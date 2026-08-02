@@ -53,6 +53,10 @@ import {
   CheckpointRestoreSagaStore,
   computeCheckpointRestoreWorkspaceLockOwnerDigest,
 } from "../lib/checkpoint-restore-saga.js";
+import {
+  computeCheckpointRestoreDigest,
+  runCheckpointRestoreOperation,
+} from "../lib/checkpoint-restore-orchestrator.js";
 import { registerManagedCheckpointCommands } from "./checkpoint-managed.js";
 
 function stableCheckpointRestoreValue(value) {
@@ -195,8 +199,10 @@ function gitEngine(gs, dir, session) {
       const r = gs.rewindTo(dir, id, {
         session,
         dryRun: o?.dryRun,
+        skipSafety: o?.skipSafety,
         expectedIdentity: o?.expectedIdentity,
         expectedWorkspaceBinding: o?.expectedWorkspaceBinding,
+        expectedSafetyPlanIdentity: o?.expectedSafetyPlanIdentity,
         onSafetyReady: o?.onSafetyReady,
         onMutationStarted: o?.onMutationStarted,
         onWorkspaceApplied: o?.onWorkspaceApplied,
@@ -254,6 +260,7 @@ function copyEngine(cs, dir) {
       const d = cs.diffCheckpoint(id, {
         cwd: dir,
         expectedIdentity: o?.expectedIdentity,
+        expectedSafetyPlanIdentity: o?.expectedSafetyPlanIdentity,
       });
       return {
         checkpointIdentity: d.checkpointIdentity,
@@ -270,8 +277,10 @@ function copyEngine(cs, dir) {
       const r = cs.restoreCheckpoint(id, {
         cwd: dir,
         dryRun: o?.dryRun,
+        skipSafety: o?.skipSafety,
         expectedIdentity: o?.expectedIdentity,
         expectedWorkspaceBinding: o?.expectedWorkspaceBinding,
+        expectedSafetyPlanIdentity: o?.expectedSafetyPlanIdentity,
         onSafetyReady: o?.onSafetyReady,
         onMutationStarted: o?.onMutationStarted,
         onWorkspaceApplied: o?.onWorkspaceApplied,
@@ -354,10 +363,6 @@ function isCodeRestoreAction(action) {
   return action === "restore-code" || action === "restore-both";
 }
 
-function workspaceBindingMatches(left, right) {
-  return checkpointTimelineConfirmationsMatch(left, right);
-}
-
 function workspaceRootKey(value) {
   if (typeof value !== "string" || value.length === 0) return null;
   const key = resolve(value);
@@ -376,12 +381,72 @@ function workspaceStaleError(message = "workspace changed; preview again") {
   return error;
 }
 
-function restoreWorkspaceStaleError() {
-  const error = new Error(
-    "workspace changed before the restore lock was acquired; retry the restore",
-  );
+function restoreWorkspaceStaleError(
+  message = "workspace changed before the restore lock was acquired; retry the restore",
+) {
+  const error = new Error(message);
   error.code = "CHECKPOINT_WORKSPACE_STALE";
   return error;
+}
+
+function directRestoreTargetCount(preview) {
+  const groups = [preview?.modified, preview?.added, preview?.deleted];
+  if (groups.some((group) => !Array.isArray(group))) {
+    throw restoreWorkspaceStaleError(
+      "checkpoint restore target count is unavailable; retry the restore",
+    );
+  }
+  const total = groups.reduce((sum, group) => sum + group.length, 0);
+  if (!Number.isSafeInteger(total)) {
+    throw restoreWorkspaceStaleError(
+      "checkpoint restore target count is invalid; retry the restore",
+    );
+  }
+  return total;
+}
+
+function directRestorePlan({
+  engine,
+  checkpointId,
+  checkpointNamespace,
+  preview,
+  authorization,
+}) {
+  const checkpointIdentity = preview?.checkpointIdentity;
+  const workspaceBinding = preview?.workspaceBinding;
+  const workspaceRoot = workspaceBinding?.workspaceRoot;
+  if (
+    typeof checkpointIdentity !== "string" ||
+    checkpointIdentity.length === 0 ||
+    !workspaceRoot
+  ) {
+    throw restoreWorkspaceStaleError(
+      "checkpoint immutable identity or workspace scope is unavailable; retry the restore",
+    );
+  }
+  const targetCount = directRestoreTargetCount(preview);
+  return {
+    restoreKind: engine.kind,
+    restoreSurface: "direct",
+    checkpointId,
+    checkpointIdentity,
+    checkpointNamespace,
+    workspaceRoot,
+    workspaceBinding,
+    targetCount,
+    confirmationDigest: computeCheckpointRestoreDigest(
+      "cc-checkpoint-restore-direct-confirmation-v1",
+      {
+        authorization,
+        restoreKind: engine.kind,
+        checkpointId,
+        checkpointIdentity,
+        checkpointNamespace,
+        workspaceBinding,
+        targetCount,
+      },
+    ),
+  };
 }
 
 export function registerCheckpointCommand(program, dependencies = {}) {
@@ -393,6 +458,8 @@ export function registerCheckpointCommand(program, dependencies = {}) {
   const workspaceLockOwnerDigest =
     dependencies.computeCheckpointRestoreWorkspaceLockOwnerDigest ||
     computeCheckpointRestoreWorkspaceLockOwnerDigest;
+  const runCheckpointRestore =
+    dependencies.runCheckpointRestoreOperation || runCheckpointRestoreOperation;
   const cp = program
     .command("checkpoint")
     .description("Snapshot / rewind file state (git-plumbing, copy fallback)");
@@ -1399,41 +1466,50 @@ export function registerCheckpointCommand(program, dependencies = {}) {
           }
         }
 
-        const workspaceRoot = restorePreview.workspaceBinding?.workspaceRoot;
-        if (!workspaceRoot) throw restoreWorkspaceStaleError();
-        const r = withWorkspaceLockSync(
-          {
-            workspaceRoot,
-            operationId: `checkpoint-restore-${randomUUID()}`,
-            purpose: "checkpoint-restore",
-          },
-          (workspaceLease) => {
-            workspaceLease.assertOwned();
+        const authorization = options.force ? "force" : "interactive";
+        const initialPlan = directRestorePlan({
+          engine,
+          checkpointId: id,
+          checkpointNamespace: options.session,
+          preview: restorePreview,
+          authorization,
+        });
+        const execution = runCheckpointRestore({
+          plan: initialPlan,
+          revalidate: () => {
             const lockedPreview = engine.status(id, {
+              expectedIdentity: initialPlan.checkpointIdentity,
               includeWorkspaceBinding: true,
             });
-            if (
-              !workspaceBindingMatches(
-                lockedPreview.workspaceBinding,
-                restorePreview.workspaceBinding,
-              ) ||
-              !workspaceRootsMatch(
-                lockedPreview.workspaceBinding?.workspaceRoot,
-                workspaceLease.canonicalWorkspaceRoot,
-              )
-            ) {
-              throw restoreWorkspaceStaleError();
-            }
-            workspaceLease.assertOwned();
-            const restored = engine.restore(id, {
-              expectedWorkspaceBinding: lockedPreview.workspaceBinding,
+            return directRestorePlan({
+              engine,
+              checkpointId: id,
+              checkpointNamespace: options.session,
+              preview: lockedPreview,
+              authorization,
             });
-            workspaceLease.assertOwned();
-            return restored;
           },
-        );
+          restore: ({ expectedIdentity, expectedWorkspaceBinding, hooks }) =>
+            engine.restore(id, {
+              expectedIdentity,
+              expectedWorkspaceBinding,
+              ...hooks,
+            }),
+          dependencies: {
+            withWorkspaceLockSync,
+            createSagaStore: createCheckpointRestoreSagaStore,
+            computeWorkspaceLockOwnerDigest: workspaceLockOwnerDigest,
+          },
+        });
+        const r = execution.result;
+        const directOutput = {
+          ...r,
+          operationId: execution.operationId,
+          phase: execution.saga.phase,
+          warnings: execution.warnings,
+        };
         if (options.json) {
-          console.log(JSON.stringify(r, null, 2));
+          console.log(JSON.stringify(directOutput, null, 2));
           return;
         }
         logger.log(
@@ -1459,8 +1535,43 @@ export function registerCheckpointCommand(program, dependencies = {}) {
             chalk.red(`  missing blobs (skipped): ${r.missingBlob.join(", ")}`),
           );
         }
+        logger.log(
+          chalk.gray(
+            `  restore operation: ${execution.operationId} (${execution.saga.phase})`,
+          ),
+        );
+        for (const warning of execution.warnings) {
+          logger.log(chalk.yellow(`  ${warning}`));
+        }
       } catch (err) {
-        logger.error(chalk.red(`checkpoint restore failed: ${err.message}`));
+        if (options.json) {
+          console.log(
+            JSON.stringify(
+              {
+                ok: false,
+                code: err?.code || "CHECKPOINT_RESTORE_FAILED",
+                error: err?.message || String(err),
+                operationId:
+                  err?.checkpointRestoreOperationId || err?.operationId || null,
+                phase: err?.checkpointRestoreSagaPhase || null,
+                blockingOperationId:
+                  err?.ownerTransactionId ||
+                  err?.retainedOwner?.transactionId ||
+                  err?.priorOwner?.transactionId ||
+                  null,
+                recoveryRequired: Boolean(
+                  err?.checkpointRestoreRecoveryRequired ||
+                  err?.workspaceLockRetained,
+                ),
+                workspaceLockRetained: err?.workspaceLockRetained === true,
+              },
+              null,
+              2,
+            ),
+          );
+        } else {
+          logger.error(chalk.red(`checkpoint restore failed: ${err.message}`));
+        }
         process.exitCode = 1;
       }
     });

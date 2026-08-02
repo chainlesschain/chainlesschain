@@ -992,9 +992,11 @@ describe("file-checkpoint store", () => {
         lifecycle.push(`${operation}:${rel}`);
         expect(readFileSync(target, "utf8")).toBe("ORIGINAL-A");
       },
-      onWorkspaceApplied: ({ createdPaths }) => {
+      onWorkspaceApplied: ({ createdPaths, mutationCount, appliedCount }) => {
         lifecycle.push("workspace-applied");
         expect(createdPaths).toEqual(["a.txt"]);
+        expect(mutationCount).toBe(1);
+        expect(appliedCount).toBe(1);
       },
     });
     expect(lifecycle).toEqual(["write:a.txt", "workspace-applied"]);

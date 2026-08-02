@@ -3760,6 +3760,8 @@ export function restoreCheckpoint(id, opts = {}) {
       safetyId: safety?.id || null,
       safetyIdentity: safety?.identity || null,
       safetyPlanIdentity: finalEvidence?.planIdentity || null,
+      mutationCount,
+      appliedCount: mutationCount,
     });
     const returnState =
       activeSafety && opts.onWorkspaceApplied

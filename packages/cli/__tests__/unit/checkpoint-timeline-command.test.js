@@ -199,6 +199,7 @@ vi.mock("../../src/lib/checkpoint-store.js", () => ({
       identity: options?.expectedIdentity || null,
     });
     return {
+      checkpointIdentity: `git:${state.checkpoints[0].commit}`,
       modified:
         state.restoreTargetCount > 0
           ? Array.from(
@@ -246,6 +247,7 @@ vi.mock("../../src/lib/checkpoint-store.js", () => ({
       poststateIdentity: `git-tree:${"3".repeat(40)}`,
     });
     return {
+      dryRun: !!options?.dryRun,
       modified: state.restoreTargetCount,
       recreated: 0,
       deleted: 0,
@@ -266,6 +268,7 @@ vi.mock("../../src/lib/file-checkpoint.js", () => ({
       identity: options?.expectedIdentity || null,
     });
     return {
+      checkpointIdentity: state.checkpoints[0].identity,
       modified:
         state.restoreTargetCount > 0
           ? Array.from(
@@ -315,6 +318,8 @@ vi.mock("../../src/lib/file-checkpoint.js", () => ({
       restored: restoredPaths,
       createdPaths: [],
       deletedPaths: [],
+      mutationCount: state.restoreTargetCount,
+      appliedCount: state.restoreTargetCount,
       safetyId: state.restoreTargetCount > 0 ? "safety-copy-1" : null,
       safetyIdentity:
         state.restoreTargetCount > 0 ? `sha256:${"e".repeat(64)}` : null,
@@ -322,6 +327,7 @@ vi.mock("../../src/lib/file-checkpoint.js", () => ({
         state.restoreTargetCount > 0 ? `sha256:${"8".repeat(64)}` : null,
     });
     return {
+      dryRun: !!options?.dryRun,
       restored: restoredPaths,
       unchanged: [],
       missingBlob: [],
@@ -576,10 +582,18 @@ describe("checkpoint timeline CLI command authority", () => {
       "--json",
     ]);
 
-    expect(restored).toMatchObject({ safetyId: "safety-1" });
+    expect(restored).toMatchObject({
+      safetyId: "safety-1",
+      operationId: expect.stringMatching(/^checkpoint-restore-/),
+      phase: "completed",
+      warnings: [],
+    });
     expect(state.statusIdentities).toEqual([
       { engine: "git", identity: null },
-      { engine: "git", identity: null },
+      { engine: "git", identity: `git:${"a".repeat(40)}` },
+    ]);
+    expect(state.restoreIdentities).toEqual([
+      { engine: "git", identity: `git:${"a".repeat(40)}` },
     ]);
     expect(state.restoreBindings).toHaveLength(1);
     expect(state.restoreBindings[0]).toMatchObject({
@@ -596,8 +610,134 @@ describe("checkpoint timeline CLI command authority", () => {
     expect(state.events).toEqual([
       "workspace:acquire",
       "restore",
+      "saga:completed",
       "workspace:release",
     ]);
+    expect(state.transactions).toEqual([]);
+    expect(state.conditional).toEqual([]);
+    expect(state.sagas[0].events.map((event) => event.phase)).toEqual([
+      "created",
+      "locked",
+      "prepared",
+      "intent_committed",
+      "safety_ready",
+      "mutation_started",
+      "workspace_applied",
+      "completed",
+    ]);
+    expect(state.sagas[0].events[0].evidence).toMatchObject({
+      restoreSurface: "direct",
+      checkpointNamespace: "s1",
+      checkpointIdentity: `git:${"a".repeat(40)}`,
+    });
+    expect(state.sagas[0].events[3].evidence).toMatchObject({
+      intentAuthority: "operation",
+    });
+    expect(state.sagas[0].archived).toBe(true);
+  });
+
+  it("keeps a direct dry-run read-only without creating a saga or workspace lock", async () => {
+    const previewed = await invoke([
+      "checkpoint",
+      "restore",
+      "cp-1",
+      "-s",
+      "s1",
+      "--dry-run",
+      "--json",
+    ]);
+
+    expect(previewed).toMatchObject({ dryRun: true, restoredCount: 1 });
+    expect(state.sagas).toEqual([]);
+    expect(state.workspaceLocks).toEqual([]);
+    expect(state.transactions).toEqual([]);
+    expect(state.statusIdentities).toEqual([]);
+  });
+
+  it("binds a direct copy restore to the immutable manifest without session authority", async () => {
+    state.gitAvailable = false;
+    const expectedIdentity = `sha256:${"c".repeat(64)}`;
+    const restored = await invoke([
+      "checkpoint",
+      "restore",
+      "cp-1",
+      "-s",
+      "copy-namespace",
+      "--force",
+      "--json",
+    ]);
+
+    expect(restored).toMatchObject({
+      phase: "completed",
+      operationId: expect.stringMatching(/^checkpoint-restore-/),
+    });
+    expect(state.statusIdentities).toEqual([
+      { engine: "copy", identity: null },
+      { engine: "copy", identity: expectedIdentity },
+    ]);
+    expect(state.restoreIdentities).toEqual([
+      { engine: "copy", identity: expectedIdentity },
+    ]);
+    expect(state.transactions).toEqual([]);
+    expect(state.sagas[0].events[0].evidence).toMatchObject({
+      restoreKind: "copy",
+      restoreSurface: "direct",
+      checkpointNamespace: "copy-namespace",
+      checkpointIdentity: expectedIdentity,
+    });
+  });
+
+  it("reports a direct terminal saga archive failure as a warning", async () => {
+    state.failSagaArchive = true;
+    const restored = await invoke([
+      "checkpoint",
+      "restore",
+      "cp-1",
+      "-s",
+      "s1",
+      "--force",
+      "--json",
+    ]);
+
+    expect(restored).toMatchObject({
+      phase: "completed",
+      operationId: expect.stringMatching(/^checkpoint-restore-/),
+      warnings: [expect.stringContaining("saga archive is pending")],
+    });
+    expect(state.sagas[0].events.at(-1).phase).toBe("completed");
+    expect(state.sagas[0].archived).toBe(false);
+    expect(state.events.at(-1)).toBe("workspace:release");
+  });
+
+  it("aborts a direct restore when its locked target count changes", async () => {
+    state.onWorkspaceLockWait = () => {
+      state.restoreTargetCount = 2;
+    };
+    const rejected = await invoke([
+      "checkpoint",
+      "restore",
+      "cp-1",
+      "-s",
+      "s1",
+      "--force",
+      "--json",
+    ]);
+
+    expect(rejected).toMatchObject({
+      ok: false,
+      code: "CHECKPOINT_WORKSPACE_STALE",
+      operationId: expect.stringMatching(/^checkpoint-restore-/),
+      phase: "aborted",
+      recoveryRequired: false,
+    });
+    expect(state.restores).toEqual([]);
+    expect(state.sagas[0].events.map((event) => event.phase)).toEqual([
+      "created",
+      "locked",
+      "aborted",
+    ]);
+    expect(state.sagas[0].archived).toBe(true);
+    expect(state.events.at(-1)).toBe("workspace:release");
   });
 
   it("previews read-only, then CAS-claims and commits restore-both", async () => {
