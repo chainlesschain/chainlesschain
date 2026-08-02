@@ -612,6 +612,14 @@ E2E retry-pass 应记为 flake，而不是普通 pass；超过阈值阻断发布
 ### 14.10 下一 CLI 版本判定
 
 - npm registry 当前 `latest` 与仓库 package version 都是 `0.162.189`，registry 的该版本绑定 `gitHead=2607af0dadeb951583139942e5f2add3e95e1208`；同一版本不可重复发布。
-- 从该 npm gitHead 到 `f22322edb1`，`packages/cli` 已累计 **121 个提交、350 个文件变化、94,663 行新增/3,650 行删除**。变更规模足以准备一个 patch release，建议候选版本为 **`0.162.190`**，而不是继续堆积到下一次大批量发布。
-- 但截至 **2026-08-02 22:31 +08:00**，`f22322edb1` 的 `CLI CI` run `30752225902` 与 Host Consistency run `30752225804` 仍为 queued，且没有同 SHA 的 `CLI Strict Sandbox` 完成证据；已知 checkpoint workspace lifetime lock、durable saga/tombstone 等 P1 也尚未关闭。因此结论是：**值得准备 `0.162.190`，现在不要发布**。
+- 从该 npm gitHead 到 `af2df894a8`，`packages/cli` 已累计 **122 个提交、352 个文件变化、95,885 行新增/3,716 行删除**。变更规模足以准备一个 patch release，建议候选版本为 **`0.162.190`**，而不是继续堆积到下一次大批量发布。
+- 截至 **2026-08-02 23:08 +08:00**，`af2df894a8` 的 `CLI CI` run `30753644056` 与 `CLI Strict Sandbox` run `30753643956` 均为 queued，Host Consistency run `30753643953` 为 in progress。checkpoint workspace lifetime lock 已由下节增量关闭，但 durable restore saga/copy tombstone 等 hard-kill P1 仍未关闭。因此结论仍是：**值得准备 `0.162.190`，现在不要发布**。
 - 推荐顺序：先提交并验证剩余 P1；再创建唯一版本提交将 CLI bump 到 `0.162.190`；对该精确版本 SHA 运行 `CLI CI` 与 `CLI Strict Sandbox` 的 Ubuntu 24.04、macOS 15、Windows 全矩阵；全部成功后再执行 npm dry-run/tarball digest 校验与正式 publish。任何 queued、cancelled、failure、旧 SHA 或局部成功都不能授权发布。
+
+### 14.11 Checkpoint canonical workspace lifetime lock 增量
+
+- `af2df894a8` 让 checkpoint restore 与 `WorkspaceTransactionManager` 共用同一 canonical workspace lock authority。锁根固定在生产 authority，workspace 必须解析为真实非文件系统根目录；大小写/alias、symlink/junction、parent/child overlap、活 owner 超时、dead/corrupt owner 和 ownership tamper 均 fail closed。公共 helper 只接受同步 callback，并在成功、异常和所有权丢失路径上验证并释放 exact owner。
+- timeline restore 的顺序现为 `workspace → session`：取得 workspace lease 后重新加载 session authority 与 code status、重算并精确比较 preview confirmation/workspace binding，再写 intent、执行 restore、提交 conversation/audit 与 settlement；direct restore（包括 `--force`）也在同一 lease 内执行第二次完整 preflight。conversation-only action 不获取 workspace lock。
+- crash recovery 的 dead-owner reclaim 现于同一个 canonical `coordination.lock` 临界区内完成 exact observed-owner CAS、liveness 复核、全 registry overlap 扫描以及 reclaim+acquire；只忽略待回收的 exact transaction owner。确定性竞态回归在 parent lock 的 `rm → mkdir` 窗口注入 child helper，child 得到 `WORKSPACE_LOCK_TIMEOUT`；另一个 overlapping dead checkpoint owner 会保持原样并返回 `RECOVERY_REQUIRED`，不会被 transaction recovery 自动接管。
+- 最终组合回归为 6 files、**83 passed / 1 个既有平台 skip**，其中包含真实 multiprocess 与 Process Broker 互操作；Prettier、ESLint、4 个文件的 Node `--check` 和 `git diff --check` 全部通过。独立安全复核结论为本增量无剩余新增 P0/P1，可以提交。
+- 本增量关闭的是活进程/跨 session/跨 process 的协作式 workspace 竞争，以及既有 transaction recovery 的 registry reclaim 窗口；它不把 hard kill 后的多阶段 restore 升级为原子事务。durable `prepared → intent → safety → mutation → applied → session_committed → completed` saga、copy 原先不存在路径的 durable tombstone、fsync/断电和 crash fixture 仍待完成，因此 `af2df894a8` 仍是 **release NO-GO**。
