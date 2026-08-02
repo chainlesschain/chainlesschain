@@ -22,9 +22,44 @@ import { EventEmitter } from "node:events";
 import { getHomeDir } from "../lib/paths.js";
 import executionBroker from "../lib/process-execution-broker/index.js";
 
+function defaultKillProcessTree(child, signal = "SIGTERM") {
+  // `child.killed` only means Node successfully delivered an earlier signal;
+  // the process may still be alive and must remain eligible for escalation.
+  if (!child || child.exitCode !== null) return false;
+  try {
+    if (_deps.platform === "win32" && child.pid) {
+      const result = executionBroker.spawnSync(
+        "taskkill",
+        ["/PID", String(child.pid), "/T", "/F"],
+        {
+          windowsHide: true,
+          encoding: "utf8",
+          origin: "background-task:process-tree-kill",
+          policy: "allow",
+          scope: "background-task",
+        },
+      );
+      if (!result?.error && result?.status === 0) return true;
+      return child.kill(signal) !== false;
+    }
+    if (child.pid) {
+      try {
+        process.kill(-child.pid, signal);
+        return true;
+      } catch {
+        return child.kill(signal) !== false;
+      }
+    }
+    return child.kill(signal) !== false;
+  } catch {
+    return false;
+  }
+}
+
 export const _deps = {
   spawn: executionBroker.spawn.bind(executionBroker),
   platform: process.platform,
+  killProcessTree: defaultKillProcessTree,
 };
 
 function getTasksDir() {
@@ -181,8 +216,23 @@ export class BackgroundTaskManager extends EventEmitter {
       ? resolve(options.policyCwd || process.cwd())
       : null;
     this._resolveSandboxPolicy = resolveSandboxPolicy;
+    this.sessionBudget = options.sessionBudget || null;
+    if (
+      this.sessionBudget !== null &&
+      (typeof this.sessionBudget.acquireWork !== "function" ||
+        typeof this.sessionBudget.registerAbortable !== "function")
+    ) {
+      throw new TypeError("sessionBudget must be a SessionResourceBudget");
+    }
+    this.killGraceMs =
+      Number.isFinite(options.killGraceMs) && options.killGraceMs >= 0
+        ? options.killGraceMs
+        : 2000;
     this.tasks = new Map();
     this.processes = new Map();
+    this._budgetLeases = new Map();
+    this._budgetAbortCleanup = new Map();
+    this._killTimers = new Map();
     this._checkInterval = null;
     this._createSeq = 0;
     if (options.recoverOnStart) {
@@ -229,6 +279,8 @@ export class BackgroundTaskManager extends EventEmitter {
       sandboxRequiredBoundaries: sandboxPolicy
         ? [...sandboxPolicy.requiredBoundaries].sort()
         : null,
+      depth:
+        Number.isSafeInteger(spec.depth) && spec.depth >= 0 ? spec.depth : 1,
       _seq: ++this._createSeq,
     };
 
@@ -277,6 +329,22 @@ export class BackgroundTaskManager extends EventEmitter {
       }
     }
 
+    const budgetLease = this.sessionBudget?.acquireWork({
+      id: `background-task:${taskId}`,
+      kind: "background-task",
+      depth: task.depth ?? 1,
+    });
+    if (budgetLease && !budgetLease.ok) {
+      const error = new Error(
+        `Background task blocked by session budget: ${budgetLease.reason}`,
+      );
+      error.code = "ERR_SESSION_RESOURCE_BUDGET";
+      error.budgetReason = budgetLease.reason;
+      error.retryable = budgetLease.retryable === true;
+      throw error;
+    }
+    if (budgetLease) this._budgetLeases.set(taskId, budgetLease);
+
     task.status = TaskStatus.RUNNING;
     task.startedAt = Date.now();
     task.lastHeartbeat = Date.now();
@@ -288,33 +356,43 @@ export class BackgroundTaskManager extends EventEmitter {
       import.meta.dirname || ".",
       "background-task-worker.js",
     );
-    const child = _deps.spawn(
-      process.execPath,
-      [
-        ...(sandboxPolicy ? [] : process.execArgv),
-        workerPath,
-        task.command,
-        task.cwd,
-        task.type,
-        task.sandboxWorkspaceCwd || "",
-        JSON.stringify(task.sandboxRequiredBoundaries || []),
-      ],
-      {
-        cwd: task.cwd,
-        stdio: ["pipe", "pipe", "pipe", "ipc"],
-        env: sandboxPolicy
-          ? strongWorkerEnvironment(taskId)
-          : { ...process.env, CC_TASK_ID: taskId },
-        origin: "background-task:worker",
-        policy: "allow",
-        scope: "background-task",
-        shell: false,
-      },
-    );
+    let child;
+    try {
+      child = _deps.spawn(
+        process.execPath,
+        [
+          ...(sandboxPolicy ? [] : process.execArgv),
+          workerPath,
+          task.command,
+          task.cwd,
+          task.type,
+          task.sandboxWorkspaceCwd || "",
+          JSON.stringify(task.sandboxRequiredBoundaries || []),
+        ],
+        {
+          cwd: task.cwd,
+          stdio: ["pipe", "pipe", "pipe", "ipc"],
+          env: sandboxPolicy
+            ? strongWorkerEnvironment(taskId)
+            : { ...process.env, CC_TASK_ID: taskId },
+          origin: "background-task:worker",
+          policy: "allow",
+          scope: "background-task",
+          shell: false,
+          // POSIX group ownership lets cancellation kill the worker and every
+          // shell/tool descendant with one negative-pid signal.
+          detached: _deps.platform !== "win32",
+        },
+      );
+    } catch (error) {
+      this._complete(taskId, TaskStatus.FAILED, null, error.message);
+      throw error;
+    }
 
     this.processes.set(taskId, child);
 
     child.on("message", (msg) => {
+      if (task.status !== TaskStatus.RUNNING) return;
       if (msg.type === "heartbeat") {
         task.lastHeartbeat = Date.now();
       } else if (msg.type === "result") {
@@ -328,6 +406,7 @@ export class BackgroundTaskManager extends EventEmitter {
     });
 
     child.on("exit", (code) => {
+      this._clearKillTimer(taskId);
       if (task.status === TaskStatus.RUNNING) {
         if (code === 0) {
           this._complete(
@@ -349,9 +428,31 @@ export class BackgroundTaskManager extends EventEmitter {
     });
 
     child.on("error", (err) => {
+      this._clearKillTimer(taskId);
       this._complete(taskId, TaskStatus.FAILED, null, err.message);
       this.processes.delete(taskId);
     });
+
+    if (this.sessionBudget) {
+      try {
+        const unregister = this.sessionBudget.registerAbortable(
+          `background-task:${taskId}`,
+          (reason) => this._stopForBudget(taskId, reason),
+        );
+        this._budgetAbortCleanup.set(taskId, unregister);
+      } catch (error) {
+        // Registration happens after spawn, so settlement and lease release
+        // must still run even if an injected/host kill adapter itself throws.
+        try {
+          _deps.killProcessTree(child, "SIGKILL");
+        } catch {
+          // Keep the live child in `processes` so destroy()/its eventual event
+          // retains ownership and can retry instead of orphaning it.
+        }
+        this._complete(taskId, TaskStatus.FAILED, null, error.message);
+        throw error;
+      }
+    }
 
     this._persistTask(task, "started");
     this._ensureHeartbeatChecker();
@@ -435,16 +536,20 @@ export class BackgroundTaskManager extends EventEmitter {
   stop(taskId) {
     const child = this.processes.get(taskId);
     if (child) {
-      child.kill("SIGTERM");
+      this._clearKillTimer(taskId);
+      _deps.killProcessTree(child, "SIGTERM");
       // Escalate to SIGKILL only if SIGTERM didn't take. unref() + clear-on-exit
       // so a prompt exit (or process shutdown right after stop) isn't held open
       // for the full grace period by this timer.
       const killTimer = setTimeout(() => {
-        if (child.exitCode === null) child.kill("SIGKILL");
-      }, 2000);
+        if (child.exitCode === null) {
+          _deps.killProcessTree(child, "SIGKILL");
+        }
+      }, this.killGraceMs);
       if (killTimer && typeof killTimer.unref === "function") killTimer.unref();
+      this._killTimers.set(taskId, killTimer);
       if (typeof child.once === "function") {
-        child.once("exit", () => clearTimeout(killTimer));
+        child.once("exit", () => this._clearKillTimer(taskId));
       }
     }
     const task = this.tasks.get(taskId);
@@ -452,6 +557,57 @@ export class BackgroundTaskManager extends EventEmitter {
       this._recordHistory(task, "stop-requested", { requestedBy: "user" });
     }
     this._complete(taskId, TaskStatus.FAILED, null, "Stopped by user");
+  }
+
+  _stopForBudget(taskId, reason) {
+    const child = this.processes.get(taskId);
+    if (child) {
+      this._clearKillTimer(taskId);
+      _deps.killProcessTree(child, "SIGTERM");
+      const killTimer = setTimeout(() => {
+        if (child.exitCode === null) {
+          _deps.killProcessTree(child, "SIGKILL");
+        }
+      }, this.killGraceMs);
+      killTimer?.unref?.();
+      this._killTimers.set(taskId, killTimer);
+      child.once?.("exit", () => this._clearKillTimer(taskId));
+    }
+    const budgetReason =
+      reason?.budgetReason || reason?.message || "session-budget";
+    const task = this.tasks.get(taskId);
+    if (task) {
+      this._recordHistory(task, "budget-stop-requested", { budgetReason });
+    }
+    this._complete(
+      taskId,
+      TaskStatus.FAILED,
+      null,
+      `Session budget exhausted: ${budgetReason}`,
+    );
+  }
+
+  _clearKillTimer(taskId) {
+    const timer = this._killTimers.get(taskId);
+    if (timer) clearTimeout(timer);
+    this._killTimers.delete(taskId);
+  }
+
+  _releaseBudget(taskId) {
+    const unregister = this._budgetAbortCleanup.get(taskId);
+    this._budgetAbortCleanup.delete(taskId);
+    try {
+      unregister?.();
+    } catch {
+      // Budget cancellation has already been delivered.
+    }
+    const lease = this._budgetLeases.get(taskId);
+    this._budgetLeases.delete(taskId);
+    try {
+      lease?.release?.();
+    } catch {
+      // Work leases are idempotent and must not hide task settlement.
+    }
   }
 
   cleanup(maxAge = 3600000) {
@@ -478,16 +634,36 @@ export class BackgroundTaskManager extends EventEmitter {
       clearInterval(this._checkInterval);
       this._checkInterval = null;
     }
-    for (const [id] of this.processes) {
+    for (const [id, child] of this.processes) {
       this.stop(id);
+      // destroy() has no future owner that can wait for the grace timer. Force
+      // the detached group/tree down before clearing process accountability.
+      if (child.exitCode === null) {
+        _deps.killProcessTree(child, "SIGKILL");
+      }
+      this._clearKillTimer(id);
     }
     this.tasks.clear();
     this.processes.clear();
+    for (const taskId of [...this._killTimers.keys()]) {
+      this._clearKillTimer(taskId);
+    }
+    for (const taskId of [...this._budgetLeases.keys()]) {
+      this._releaseBudget(taskId);
+    }
   }
 
   _complete(taskId, status, result, error) {
     const task = this.tasks.get(taskId);
     if (!task) return;
+    if (
+      task.completedAt !== null &&
+      [TaskStatus.COMPLETED, TaskStatus.FAILED, TaskStatus.TIMEOUT].includes(
+        task.status,
+      )
+    ) {
+      return;
+    }
 
     task.status = status;
     task.completedAt = Date.now();
@@ -496,6 +672,7 @@ export class BackgroundTaskManager extends EventEmitter {
     task.outputSummary = this._buildOutputSummary({ result, error, status });
     this._recordHistory(task, "completed", { status, result, error });
     this._persistTask(task, "completed");
+    this._releaseBudget(taskId);
     this.emit("task:complete", task);
   }
 
@@ -736,8 +913,9 @@ export class BackgroundTaskManager extends EventEmitter {
             this._complete(id, TaskStatus.TIMEOUT, null, "Heartbeat timeout");
             const child = this.processes.get(id);
             if (child) {
-              child.kill("SIGKILL");
-              this.processes.delete(id);
+              _deps.killProcessTree(child, "SIGKILL");
+              // Retain ownership until exit/error confirms the child is gone;
+              // destroy() can otherwise retry a failed host termination.
             }
           }
         }

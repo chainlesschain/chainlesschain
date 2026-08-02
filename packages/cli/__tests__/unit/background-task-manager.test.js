@@ -22,6 +22,7 @@ const { _deps, BackgroundTaskManager, TaskStatus } =
   await import("../../src/lib/background-task-manager.js");
 const originalSpawn = _deps.spawn;
 const originalPlatform = _deps.platform;
+const originalKillProcessTree = _deps.killProcessTree;
 
 function createPinnedPolicy(...requiredBoundaries) {
   return Object.freeze({
@@ -45,6 +46,7 @@ describe("BackgroundTaskManager", () => {
     manager.destroy();
     _deps.spawn = originalSpawn;
     _deps.platform = originalPlatform;
+    _deps.killProcessTree = originalKillProcessTree;
     if (existsSync(testDir)) {
       rmSync(testDir, { recursive: true, force: true });
     }
@@ -475,6 +477,127 @@ describe("BackgroundTaskManager", () => {
       expect(manager.processes.size).toBe(0);
       expect(_deps.spawn).not.toHaveBeenCalled();
     });
+
+    it("releases its lease when abortable registration and tree kill both fail", () => {
+      const release = vi.fn();
+      const sessionBudget = {
+        acquireWork: vi.fn(() => ({ ok: true, release })),
+        registerAbortable: vi.fn(() => {
+          throw new Error("abort registration failed");
+        }),
+      };
+      manager.destroy();
+      manager = new BackgroundTaskManager({ sessionBudget });
+      const child = new EventEmitter();
+      child.pid = 4401;
+      child.exitCode = null;
+      child.kill = vi.fn();
+      _deps.spawn = vi.fn(() => child);
+      _deps.killProcessTree = vi.fn(() => {
+        throw new Error("tree kill failed");
+      });
+      const task = manager.create({ command: "echo" });
+
+      expect(() => manager.start(task.id)).toThrow("abort registration failed");
+      expect(task).toMatchObject({
+        status: TaskStatus.FAILED,
+        error: "abort registration failed",
+      });
+      expect(release).toHaveBeenCalledOnce();
+      // The still-live child remains owned until its exit/error event so a
+      // later destroy can retry termination rather than orphaning it.
+      expect(manager.processes.get(task.id)).toBe(child);
+
+      _deps.killProcessTree = vi.fn(() => true);
+      child.exitCode = 1;
+      child.emit("exit", 1);
+    });
+
+    it("settles once and ignores late message/error/exit events", () => {
+      const release = vi.fn();
+      const unregister = vi.fn();
+      const sessionBudget = {
+        acquireWork: vi.fn(() => ({ ok: true, release })),
+        registerAbortable: vi.fn(() => unregister),
+      };
+      manager.destroy();
+      manager = new BackgroundTaskManager({ sessionBudget });
+      const child = new EventEmitter();
+      child.pid = 4402;
+      child.exitCode = null;
+      child.kill = vi.fn();
+      _deps.spawn = vi.fn(() => child);
+      _deps.killProcessTree = vi.fn(() => true);
+      const completed = vi.fn();
+      manager.on("task:complete", completed);
+      const task = manager.run({ command: "echo" });
+
+      child.emit("message", { type: "result", data: "done" });
+      child.emit("message", {
+        type: "error",
+        error: "late error",
+        code: "LATE",
+        sandboxReason: "late_reason",
+        sandboxFailClosed: true,
+      });
+      child.emit("error", new Error("late process error"));
+      child.exitCode = 1;
+      child.emit("exit", 1);
+
+      expect(task).toMatchObject({
+        status: TaskStatus.COMPLETED,
+        result: "done",
+        error: null,
+      });
+      expect(task).not.toHaveProperty("errorCode");
+      expect(completed).toHaveBeenCalledOnce();
+      expect(unregister).toHaveBeenCalledOnce();
+      expect(release).toHaveBeenCalledOnce();
+      expect(manager.processes.size).toBe(0);
+      expect(manager._killTimers.size).toBe(0);
+      expect(manager._budgetAbortCleanup.size).toBe(0);
+      expect(manager._budgetLeases.size).toBe(0);
+    });
+  });
+
+  describe("process-tree termination", () => {
+    it("allows SIGKILL escalation after an earlier signal marked child.killed", () => {
+      const processKill = vi.spyOn(process, "kill").mockReturnValue(true);
+      const child = {
+        pid: 5512,
+        exitCode: null,
+        killed: true,
+        kill: vi.fn(),
+      };
+
+      expect(originalKillProcessTree(child, "SIGKILL")).toBe(true);
+      expect(processKill).toHaveBeenCalledWith(-5512, "SIGKILL");
+      expect(child.kill).not.toHaveBeenCalled();
+
+      processKill.mockRestore();
+    });
+
+    it("replaces a prior escalation timer when stop is requested twice", () => {
+      vi.useFakeTimers();
+      const child = new EventEmitter();
+      child.pid = 5513;
+      child.exitCode = null;
+      child.kill = vi.fn();
+      _deps.spawn = vi.fn(() => child);
+      _deps.killProcessTree = vi.fn(() => true);
+      manager.killGraceMs = 100;
+      const task = manager.run({ command: "echo" });
+
+      manager.stop(task.id);
+      manager.stop(task.id);
+      vi.advanceTimersByTime(100);
+
+      expect(_deps.killProcessTree).toHaveBeenCalledTimes(3);
+      expect(_deps.killProcessTree).toHaveBeenLastCalledWith(child, "SIGKILL");
+      child.exitCode = 1;
+      child.emit("exit", 1);
+      vi.useRealTimers();
+    });
   });
 
   // ── stop ──────────────────────────────────────────────────────────
@@ -529,6 +652,24 @@ describe("BackgroundTaskManager", () => {
       manager.create({ command: "echo 2" });
       manager.destroy();
       expect(manager.list()).toHaveLength(0);
+    });
+
+    it("force-kills a live process tree before clearing its ownership maps", () => {
+      const child = new EventEmitter();
+      child.pid = 6611;
+      child.exitCode = null;
+      child.kill = vi.fn();
+      _deps.spawn = vi.fn(() => child);
+      _deps.killProcessTree = vi.fn(() => true);
+      const task = manager.run({ command: "long-running" });
+
+      manager.destroy();
+
+      expect(_deps.killProcessTree).toHaveBeenCalledWith(child, "SIGTERM");
+      expect(_deps.killProcessTree).toHaveBeenCalledWith(child, "SIGKILL");
+      expect(manager.get(task.id)).toBeNull();
+      expect(manager.processes.size).toBe(0);
+      expect(manager._killTimers.size).toBe(0);
     });
   });
 

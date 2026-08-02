@@ -182,6 +182,10 @@ export class SubAgentRegistry {
   forceCompleteAll(sessionId) {
     for (const [id, subCtx] of this._active) {
       if (!sessionId || subCtx.parentId === sessionId) {
+        // Trip the live loop's AbortSignal before recording a terminal result.
+        // forceComplete() alone only changed bookkeeping, so a provider/tool
+        // call could continue after the session had supposedly closed.
+        subCtx.abort?.("session-closed");
         subCtx.forceComplete("session-closed");
         this.complete(id, subCtx.result);
       }
@@ -215,6 +219,7 @@ export class SubAgentRegistry {
     const cutoff = Date.now() - maxAgeMs;
     for (const [id, subCtx] of this._active) {
       if (new Date(subCtx.createdAt).getTime() < cutoff) {
+        subCtx.abort?.("timeout");
         subCtx.forceComplete("timeout");
         this.complete(id, subCtx.result);
       }

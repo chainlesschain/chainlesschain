@@ -145,6 +145,31 @@ describe("sub-agent-registry", () => {
       expect(registry.getActive()).toHaveLength(1);
       expect(registry.getActive()[0].id).toBe("sub-y");
     });
+
+    it("signals abort before publishing a forced terminal result", () => {
+      const calls = [];
+      const sub = createMockSubCtx({
+        id: "sub-order",
+        abort(reason) {
+          calls.push(`abort:${reason}`);
+          return true;
+        },
+        forceComplete(reason) {
+          calls.push(`complete:${reason}`);
+          this.status = "completed";
+          this.completedAt = new Date().toISOString();
+          this.result = { summary: reason };
+        },
+      });
+      registry.register(sub);
+
+      registry.forceCompleteAll();
+
+      expect(calls).toEqual([
+        "abort:session-closed",
+        "complete:session-closed",
+      ]);
+    });
   });
 
   // ─── Precise single-agent cancel ─────────────────────────
@@ -277,6 +302,30 @@ describe("sub-agent-registry", () => {
       registry.register(recent);
       registry.cleanup(600000);
       expect(registry.getActive()).toHaveLength(1);
+    });
+
+    it("signals timeout abort before archiving a stale live agent", () => {
+      const calls = [];
+      const old = createMockSubCtx({
+        id: "sub-old-order",
+        createdAt: new Date(Date.now() - 999999).toISOString(),
+        abort(reason) {
+          calls.push(`abort:${reason}`);
+          return true;
+        },
+        forceComplete(reason) {
+          calls.push(`complete:${reason}`);
+          this.status = "completed";
+          this.completedAt = new Date().toISOString();
+          this.result = { summary: reason };
+        },
+      });
+      registry.register(old);
+
+      registry.cleanup(1000);
+
+      expect(calls).toEqual(["abort:timeout", "complete:timeout"]);
+      expect(registry.getActive()).toHaveLength(0);
     });
   });
 
