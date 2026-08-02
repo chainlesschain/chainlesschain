@@ -17,7 +17,7 @@ import {
   ftruncateSync,
 } from "node:fs";
 import { join, basename, resolve } from "node:path";
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { TextDecoder } from "node:util";
 import { getHomeDir } from "../lib/paths.js";
 import { ensurePrivateDirectory, ensurePrivateFile } from "../lib/secure-fs.js";
@@ -52,6 +52,385 @@ let securedSessionsDirIdentity = null;
 export const _sessionScaleFaultHooks = Object.seal({
   afterTranscriptAppend: null,
 });
+
+export const WS_TURN_EVENT = "ws_turn";
+export const WS_TURN_CLAIM_EVENT = "ws_turn_claim";
+export const WS_TURN_SCHEMA_VERSION = 1;
+export const WS_TURN_REQUEST_ID_MAX_BYTES = 128;
+const WS_TURN_CONTENT_MAX_BYTES = 4 * 1024 * 1024;
+const WS_TURN_REQUEST_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:@-]*$/;
+const WS_TURN_INPUT_DIGEST_PATTERN = /^sha256:[0-9a-f]{64}$/;
+const WS_TURN_CLAIM_ID_PATTERN = /^claim-[0-9a-f-]{36}$/;
+const WS_TURN_FAILURE_CODE_PATTERN = /^[A-Z][A-Z0-9_]{0,63}$/;
+
+function wsTurnError(message, code) {
+  const error = new Error(message);
+  error.code = code;
+  return error;
+}
+
+function hasExactKeys(value, expectedKeys) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const actual = Object.keys(value).sort();
+  const expected = [...expectedKeys].sort();
+  return (
+    actual.length === expected.length &&
+    actual.every((key, index) => key === expected[index])
+  );
+}
+
+export function normalizeWsTurnRequestId(value) {
+  if (typeof value !== "string") {
+    throw wsTurnError(
+      "Canonical WebSocket turns require a string request id",
+      "CC_WS_REQUEST_ID_REQUIRED",
+    );
+  }
+  const canonical = value.normalize("NFC");
+  if (
+    canonical !== value ||
+    !WS_TURN_REQUEST_ID_PATTERN.test(canonical) ||
+    Buffer.byteLength(canonical, "utf8") > WS_TURN_REQUEST_ID_MAX_BYTES
+  ) {
+    throw wsTurnError(
+      "WebSocket request id is not bounded canonical ASCII",
+      "CC_WS_REQUEST_ID_INVALID",
+    );
+  }
+  return canonical;
+}
+
+function normalizeWsTurnContent(value, role) {
+  if (
+    typeof value !== "string" ||
+    (role === "assistant" && value.trim().length === 0)
+  ) {
+    throw wsTurnError(
+      `Canonical WebSocket ${role} content is invalid`,
+      role === "assistant"
+        ? "CC_WS_EMPTY_ASSISTANT_RESPONSE"
+        : "CC_WS_USER_MESSAGE_INVALID",
+    );
+  }
+  if (Buffer.byteLength(value, "utf8") > WS_TURN_CONTENT_MAX_BYTES) {
+    throw wsTurnError(
+      `Canonical WebSocket ${role} content exceeds the durable event limit`,
+      "CC_WS_TURN_CONTENT_TOO_LARGE",
+    );
+  }
+  return value;
+}
+
+function normalizeWsTurnInputDigest(value) {
+  if (typeof value !== "string" || !WS_TURN_INPUT_DIGEST_PATTERN.test(value)) {
+    throw wsTurnError(
+      "Canonical WebSocket turn input digest is invalid",
+      "CC_WS_TURN_INPUT_DIGEST_INVALID",
+    );
+  }
+  return value;
+}
+
+function normalizeWsTurnClaimId(value) {
+  if (typeof value !== "string" || !WS_TURN_CLAIM_ID_PATTERN.test(value)) {
+    throw wsTurnError(
+      "Canonical WebSocket turn claim id is invalid",
+      "CC_WS_TURN_CLAIM_ID_INVALID",
+    );
+  }
+  return value;
+}
+
+function normalizeWsTurnFailureCode(value) {
+  if (typeof value !== "string" || !WS_TURN_FAILURE_CODE_PATTERN.test(value)) {
+    throw wsTurnError(
+      "Canonical WebSocket turn failure code is invalid",
+      "CC_WS_TURN_FAILURE_CODE_INVALID",
+    );
+  }
+  return value;
+}
+
+export function createWsTurnClaimId() {
+  return `claim-${randomUUID()}`;
+}
+
+export function computeWsTurnInputDigest(user) {
+  const content = normalizeWsTurnContent(user, "user");
+  return `sha256:${createHash("sha256").update(content).digest("hex")}`;
+}
+
+function canonicalWsTurnClaimData({ requestId, inputDigest, opaqueClaimId }) {
+  return Object.freeze({
+    schemaVersion: WS_TURN_SCHEMA_VERSION,
+    requestId: normalizeWsTurnRequestId(requestId),
+    inputDigest: normalizeWsTurnInputDigest(inputDigest),
+    opaqueClaimId: normalizeWsTurnClaimId(opaqueClaimId),
+  });
+}
+
+function canonicalWsTurnCompletedData({
+  requestId,
+  inputDigest = null,
+  opaqueClaimId = null,
+  user,
+  assistant,
+}) {
+  const normalizedUser = normalizeWsTurnContent(user, "user");
+  const hasClaimAuthority = inputDigest != null || opaqueClaimId != null;
+  const data = {
+    schemaVersion: WS_TURN_SCHEMA_VERSION,
+    requestId: normalizeWsTurnRequestId(requestId),
+    outcome: "completed",
+    user: Object.freeze({
+      role: "user",
+      content: normalizedUser,
+    }),
+    assistant: Object.freeze({
+      role: "assistant",
+      content: normalizeWsTurnContent(assistant, "assistant"),
+    }),
+  };
+  if (hasClaimAuthority) {
+    data.inputDigest = normalizeWsTurnInputDigest(inputDigest);
+    data.opaqueClaimId = normalizeWsTurnClaimId(opaqueClaimId);
+    if (data.inputDigest !== computeWsTurnInputDigest(normalizedUser)) {
+      throw wsTurnError(
+        "WebSocket turn settlement input does not match its durable claim",
+        "CC_WS_TURN_INPUT_DIGEST_MISMATCH",
+      );
+    }
+  }
+  return Object.freeze(data);
+}
+
+function canonicalWsTurnFailedData({
+  requestId,
+  inputDigest,
+  opaqueClaimId,
+  failureCode,
+}) {
+  return Object.freeze({
+    schemaVersion: WS_TURN_SCHEMA_VERSION,
+    requestId: normalizeWsTurnRequestId(requestId),
+    inputDigest: normalizeWsTurnInputDigest(inputDigest),
+    opaqueClaimId: normalizeWsTurnClaimId(opaqueClaimId),
+    outcome: "failed",
+    failure: Object.freeze({ code: normalizeWsTurnFailureCode(failureCode) }),
+  });
+}
+
+export function projectWsTurnClaim(event) {
+  if (event?.type !== WS_TURN_CLAIM_EVENT) return null;
+  try {
+    if (
+      !hasExactKeys(event.data, [
+        "schemaVersion",
+        "requestId",
+        "inputDigest",
+        "opaqueClaimId",
+      ])
+    ) {
+      return null;
+    }
+    const data = canonicalWsTurnClaimData(event.data || {});
+    if (event.data?.schemaVersion !== WS_TURN_SCHEMA_VERSION) return null;
+    return Object.freeze({
+      ...data,
+      eventHash: typeof event.hash === "string" ? event.hash : null,
+    });
+  } catch {
+    return null;
+  }
+}
+
+export function projectWsTurnSettlement(event) {
+  if (event?.type !== WS_TURN_EVENT) return null;
+  try {
+    if (event.data?.outcome === "failed") {
+      if (
+        !hasExactKeys(event.data, [
+          "schemaVersion",
+          "requestId",
+          "inputDigest",
+          "opaqueClaimId",
+          "outcome",
+          "failure",
+        ]) ||
+        !hasExactKeys(event.data?.failure, ["code"])
+      ) {
+        return null;
+      }
+      const data = canonicalWsTurnFailedData({
+        requestId: event.data?.requestId,
+        inputDigest: event.data?.inputDigest,
+        opaqueClaimId: event.data?.opaqueClaimId,
+        failureCode: event.data?.failure?.code,
+      });
+      if (event.data?.schemaVersion !== WS_TURN_SCHEMA_VERSION) return null;
+      return Object.freeze({
+        ...data,
+        eventHash: typeof event.hash === "string" ? event.hash : null,
+      });
+    }
+    const claimedSettlement =
+      event.data?.inputDigest != null || event.data?.opaqueClaimId != null;
+    if (
+      !hasExactKeys(
+        event.data,
+        claimedSettlement
+          ? [
+              "schemaVersion",
+              "requestId",
+              "inputDigest",
+              "opaqueClaimId",
+              "outcome",
+              "user",
+              "assistant",
+            ]
+          : ["schemaVersion", "requestId", "outcome", "user", "assistant"],
+      ) ||
+      !hasExactKeys(event.data?.user, ["role", "content"]) ||
+      !hasExactKeys(event.data?.assistant, ["role", "content"])
+    ) {
+      return null;
+    }
+    const data = canonicalWsTurnCompletedData({
+      requestId: event.data?.requestId,
+      inputDigest: event.data?.inputDigest,
+      opaqueClaimId: event.data?.opaqueClaimId,
+      user: event.data?.user?.content,
+      assistant: event.data?.assistant?.content,
+    });
+    if (
+      event.data?.schemaVersion !== WS_TURN_SCHEMA_VERSION ||
+      event.data?.outcome !== "completed" ||
+      event.data?.user?.role !== "user" ||
+      event.data?.assistant?.role !== "assistant"
+    ) {
+      return null;
+    }
+    return Object.freeze({
+      ...data,
+      eventHash: typeof event.hash === "string" ? event.hash : null,
+    });
+  } catch {
+    return null;
+  }
+}
+
+export function projectWsTurnMessages(event) {
+  const settlement = projectWsTurnSettlement(event);
+  return settlement?.outcome === "completed" ? settlement : null;
+}
+
+function wsTurnAuthorityError(message, code = "CC_WS_TURN_AUTHORITY_INVALID") {
+  return wsTurnError(message, code);
+}
+
+export function createWsTurnLifecycleReducer({
+  requestId,
+  inputDigest = null,
+} = {}) {
+  const canonicalRequestId = normalizeWsTurnRequestId(requestId);
+  const expectedInputDigest =
+    inputDigest == null ? null : normalizeWsTurnInputDigest(inputDigest);
+  let claim = null;
+  let settlement = null;
+
+  return {
+    accept(event) {
+      if (
+        event?.type !== WS_TURN_CLAIM_EVENT &&
+        event?.type !== WS_TURN_EVENT
+      ) {
+        return;
+      }
+      if (event?.data?.requestId !== canonicalRequestId) return;
+
+      if (event.type === WS_TURN_CLAIM_EVENT) {
+        const projected = projectWsTurnClaim(event);
+        if (!projected?.eventHash) {
+          throw wsTurnAuthorityError(
+            "WebSocket request claim is malformed or unchained",
+          );
+        }
+        if (claim || settlement) {
+          throw wsTurnAuthorityError(
+            "WebSocket request has duplicate or out-of-order claim authority",
+            "CC_WS_TURN_CLAIM_DUPLICATE",
+          );
+        }
+        claim = projected;
+        return;
+      }
+
+      const projected = projectWsTurnSettlement(event);
+      if (!projected?.eventHash) {
+        throw wsTurnAuthorityError(
+          "WebSocket request settlement is malformed or unchained",
+        );
+      }
+      if (settlement) {
+        throw wsTurnAuthorityError(
+          "WebSocket request has multiple durable settlements",
+          "CC_WS_TURN_IDEMPOTENCY_DUPLICATE",
+        );
+      }
+      const claimedSettlement = projected.opaqueClaimId != null;
+      if (claimedSettlement) {
+        if (
+          !claim ||
+          claim.opaqueClaimId !== projected.opaqueClaimId ||
+          claim.inputDigest !== projected.inputDigest
+        ) {
+          throw wsTurnAuthorityError(
+            "WebSocket request settlement does not match its preceding claim",
+            "CC_WS_TURN_CLAIM_MISMATCH",
+          );
+        }
+      } else if (claim) {
+        throw wsTurnAuthorityError(
+          "Claimed WebSocket request used a legacy unfenced settlement",
+          "CC_WS_TURN_CLAIM_MISMATCH",
+        );
+      }
+      settlement = projected;
+    },
+    finish(authority = {}) {
+      const durableInputDigest =
+        claim?.inputDigest ||
+        settlement?.inputDigest ||
+        (settlement?.outcome === "completed"
+          ? computeWsTurnInputDigest(settlement.user.content)
+          : null);
+      if (
+        expectedInputDigest &&
+        durableInputDigest &&
+        expectedInputDigest !== durableInputDigest
+      ) {
+        throw wsTurnAuthorityError(
+          "WebSocket request id was already claimed with different input",
+          "CC_WS_REQUEST_ID_CONFLICT",
+        );
+      }
+      const status = settlement?.outcome || (claim ? "pending" : "none");
+      return Object.freeze({
+        requestId: canonicalRequestId,
+        inputDigest: durableInputDigest || expectedInputDigest,
+        status,
+        claim,
+        settlement,
+        turn: settlement?.outcome === "completed" ? settlement : null,
+        headHash:
+          typeof authority.headHash === "string" ? authority.headHash : null,
+        eventCount: Number.isSafeInteger(authority.eventCount)
+          ? authority.eventCount
+          : 0,
+      });
+    },
+  };
+}
 
 function runSessionScaleFaultHook(name, payload) {
   if (process.env.CC_SESSION_SCALE_FAULT_INJECTION !== "1") return;
@@ -233,6 +612,98 @@ function _resolveChainTail(filePath) {
   return { prevHash: null, recovery: recovery.changed ? recovery : null };
 }
 
+function readVerifiedWsAuthorityLocked(
+  sessionId,
+  filePath,
+  requestId,
+  inputDigest,
+) {
+  const reducer = createWsTurnLifecycleReducer({ requestId, inputDigest });
+  const verification = verifyTranscriptFile(filePath, {
+    onVerifiedEvent: (event) => reducer.accept(event),
+  });
+  assertVerifiedTranscriptAnchor(sessionId, verification);
+  const authority = Object.freeze({
+    headHash: verification.lastHash,
+    eventCount: verification.chainedEvents,
+  });
+  return Object.freeze({
+    authority,
+    state: reducer.finish(authority),
+    messages: Object.freeze([...rebuildMessagesFromFile(filePath)]),
+  });
+}
+
+function appendVerifiedWsAuthorityEventLocked(
+  sessionId,
+  filePath,
+  type,
+  data,
+  previousHeadHash,
+) {
+  const core = { type, timestamp: Date.now(), data };
+  const hash = computeEventHash(previousHeadHash, core);
+  const event = { ...core, prevHash: previousHeadHash, hash };
+  appendFileSync(filePath, `${JSON.stringify(event)}\n`, {
+    encoding: "utf8",
+    mode: 0o600,
+  });
+  ensurePrivateFile(filePath);
+  runSessionScaleFaultHook("afterTranscriptAppend", {
+    sessionId,
+    type,
+    event,
+    filePath,
+  });
+  try {
+    recordSessionEvent(getSessionsDir(), sessionId, event, hash);
+  } catch (cause) {
+    const error = new Error(
+      `Session authority anchor could not be persisted: ${sessionId}`,
+      { cause },
+    );
+    error.code = "SESSION_INDEX_ANCHOR_FAILED";
+    error.sessionId = sessionId;
+    error.commitState = "unknown";
+    throw error;
+  }
+  const verification = verifyTranscriptFile(filePath);
+  try {
+    assertVerifiedTranscriptAnchor(sessionId, verification);
+  } catch (cause) {
+    const error = new Error(
+      `Session authority settlement could not be verified: ${sessionId}`,
+      { cause },
+    );
+    error.code = "SESSION_INDEX_ANCHOR_FAILED";
+    error.sessionId = sessionId;
+    error.commitState = "unknown";
+    throw error;
+  }
+  if (verification.lastHash !== hash || event.prevHash !== previousHeadHash) {
+    const error = new Error(
+      `Session authority settlement head is not durable: ${sessionId}`,
+    );
+    error.code = "SESSION_INDEX_ANCHOR_FAILED";
+    error.sessionId = sessionId;
+    error.commitState = "unknown";
+    throw error;
+  }
+  return Object.freeze({ hash, event });
+}
+
+function withVerifiedWsTurnLock(sessionId, task) {
+  const filePath = sessionPath(sessionId);
+  return withFileLock(filePath, () => task(filePath), {
+    failIfUnavailable: true,
+    timeoutMs: 30_000,
+    retryMs: 1,
+    maxRetryMs: 8,
+    retryJitterMs: 4,
+    yieldAfterReleaseMs: 2,
+  });
+}
+
 function appendEventLocked(
   sessionId,
   type,
@@ -368,7 +839,12 @@ export function appendAuthorityEventIfHead(
   });
 }
 
-function verifyTranscriptFile(filePath) {
+function verifyTranscriptFile(filePath, options = {}) {
+  const onVerifiedEvent =
+    typeof options.onVerifiedEvent === "function"
+      ? options.onVerifiedEvent
+      : null;
+  const ioMetrics = options.ioMetrics ?? null;
   const result = {
     status: TRANSCRIPT_CHAIN_STATUS.EMPTY,
     chainedEvents: 0,
@@ -388,7 +864,9 @@ function verifyTranscriptFile(filePath) {
     reason,
   });
 
-  for (const { line, lineNo, terminated } of iterateFileLinesSync(filePath)) {
+  for (const { line, lineNo, terminated } of iterateFileLinesSync(filePath, {
+    ioMetrics,
+  })) {
     let event;
     try {
       event = JSON.parse(line);
@@ -421,6 +899,7 @@ function verifyTranscriptFile(filePath) {
       lastHash = event.hash;
       result.lastHash = lastHash;
       result.chainedEvents += 1;
+      onVerifiedEvent?.(event);
     } else {
       if (sawChain) {
         return tampered(
@@ -649,6 +1128,233 @@ export function appendAssistantMessage(sessionId, content) {
   appendEvent(sessionId, "assistant_message", { role: "assistant", content });
 }
 
+function wsTurnLifecycleResult(snapshot, overrides = {}) {
+  return Object.freeze({
+    ...snapshot.state,
+    messages: snapshot.messages,
+    ...overrides,
+  });
+}
+
+/**
+ * Claim one canonical WebSocket request before any model/tool execution.
+ * Full chain verification, metadata-anchor validation, expected-head CAS and
+ * claim append all execute under the cross-process transcript writer lock.
+ */
+export function claimWsTurnIfHead(
+  sessionId,
+  { requestId, user, inputDigest, opaqueClaimId },
+  expectedHeadHash = null,
+) {
+  const normalizedUser = normalizeWsTurnContent(user, "user");
+  const computedDigest = computeWsTurnInputDigest(normalizedUser);
+  const canonicalDigest = normalizeWsTurnInputDigest(
+    inputDigest || computedDigest,
+  );
+  if (canonicalDigest !== computedDigest) {
+    throw wsTurnAuthorityError(
+      "WebSocket request input does not match its proposed claim digest",
+      "CC_WS_TURN_INPUT_DIGEST_MISMATCH",
+    );
+  }
+  const data = canonicalWsTurnClaimData({
+    requestId,
+    inputDigest: canonicalDigest,
+    opaqueClaimId,
+  });
+
+  return withVerifiedWsTurnLock(sessionId, (filePath) => {
+    const snapshot = readVerifiedWsAuthorityLocked(
+      sessionId,
+      filePath,
+      data.requestId,
+      data.inputDigest,
+    );
+    if (snapshot.state.status !== "none") {
+      return wsTurnLifecycleResult(snapshot, {
+        acquired: false,
+        deduplicated: true,
+      });
+    }
+    if (snapshot.authority.headHash !== (expectedHeadHash || null)) {
+      const error = new Error(
+        `Session revision changed for ${sessionId}; refresh the canonical turn authority`,
+      );
+      error.code = "SESSION_REVISION_STALE";
+      error.expectedHeadHash = expectedHeadHash || null;
+      error.actualHeadHash = snapshot.authority.headHash;
+      throw error;
+    }
+    const appended = appendVerifiedWsAuthorityEventLocked(
+      sessionId,
+      filePath,
+      WS_TURN_CLAIM_EVENT,
+      data,
+      snapshot.authority.headHash,
+    );
+    const claim = projectWsTurnClaim(appended.event);
+    return Object.freeze({
+      ...snapshot.state,
+      status: "pending",
+      claim,
+      headHash: appended.hash,
+      eventCount: snapshot.authority.eventCount + 1,
+      messages: snapshot.messages,
+      acquired: true,
+      deduplicated: false,
+    });
+  });
+}
+
+/** Settle only the exact durable claim that fenced model/tool execution. */
+export function settleWsTurnClaim(
+  sessionId,
+  {
+    requestId,
+    inputDigest,
+    opaqueClaimId,
+    outcome,
+    user,
+    assistant,
+    failureCode = "CC_WS_TURN_FAILED",
+  },
+) {
+  const identity = canonicalWsTurnClaimData({
+    requestId,
+    inputDigest,
+    opaqueClaimId,
+  });
+  const data =
+    outcome === "completed"
+      ? canonicalWsTurnCompletedData({
+          ...identity,
+          user,
+          assistant,
+        })
+      : outcome === "failed"
+        ? canonicalWsTurnFailedData({
+            ...identity,
+            failureCode,
+          })
+        : (() => {
+            throw wsTurnAuthorityError(
+              "WebSocket turn settlement outcome is invalid",
+              "CC_WS_TURN_OUTCOME_INVALID",
+            );
+          })();
+
+  return withVerifiedWsTurnLock(sessionId, (filePath) => {
+    const snapshot = readVerifiedWsAuthorityLocked(
+      sessionId,
+      filePath,
+      identity.requestId,
+      identity.inputDigest,
+    );
+    if (snapshot.state.settlement) {
+      if (snapshot.state.settlement.opaqueClaimId !== identity.opaqueClaimId) {
+        throw wsTurnAuthorityError(
+          "WebSocket request is settled by a different durable claim",
+          "CC_WS_TURN_CLAIM_NOT_OWNER",
+        );
+      }
+      return wsTurnLifecycleResult(snapshot, {
+        acquired: false,
+        deduplicated: true,
+      });
+    }
+    if (
+      snapshot.state.status !== "pending" ||
+      snapshot.state.claim?.opaqueClaimId !== identity.opaqueClaimId
+    ) {
+      throw wsTurnAuthorityError(
+        "WebSocket request has no matching pending claim to settle",
+        "CC_WS_TURN_CLAIM_NOT_OWNER",
+      );
+    }
+    const appended = appendVerifiedWsAuthorityEventLocked(
+      sessionId,
+      filePath,
+      WS_TURN_EVENT,
+      data,
+      snapshot.authority.headHash,
+    );
+    const settlement = projectWsTurnSettlement(appended.event);
+    return Object.freeze({
+      ...snapshot.state,
+      status: settlement.outcome,
+      settlement,
+      turn: settlement.outcome === "completed" ? settlement : null,
+      headHash: appended.hash,
+      eventCount: snapshot.authority.eventCount + 1,
+      messages:
+        settlement.outcome === "completed"
+          ? Object.freeze([
+              ...snapshot.messages,
+              settlement.user,
+              settlement.assistant,
+            ])
+          : snapshot.messages,
+      acquired: false,
+      deduplicated: false,
+    });
+  });
+}
+
+/**
+ * Compatibility-only atomic settlement for callers that already hold a full
+ * response. Canonical WS handlers must use claimWsTurnIfHead() first.
+ */
+export function appendWsTurnIfHead(
+  sessionId,
+  { requestId, user, assistant },
+  expectedHeadHash = null,
+) {
+  const data = canonicalWsTurnCompletedData({ requestId, user, assistant });
+  const inputDigest = computeWsTurnInputDigest(data.user.content);
+  return withVerifiedWsTurnLock(sessionId, (filePath) => {
+    const snapshot = readVerifiedWsAuthorityLocked(
+      sessionId,
+      filePath,
+      data.requestId,
+      inputDigest,
+    );
+    if (snapshot.state.status === "completed") {
+      return Object.freeze({
+        ...snapshot.state.turn,
+        hash: snapshot.state.turn.eventHash,
+        deduplicated: true,
+      });
+    }
+    if (snapshot.state.status !== "none") {
+      throw wsTurnAuthorityError(
+        "WebSocket request already has claimed lifecycle authority",
+        "CC_WS_TURN_CLAIM_REQUIRED",
+      );
+    }
+    if (snapshot.authority.headHash !== (expectedHeadHash || null)) {
+      const error = new Error(
+        `Session revision changed for ${sessionId}; refresh the checkpoint timeline`,
+      );
+      error.code = "SESSION_REVISION_STALE";
+      error.expectedHeadHash = expectedHeadHash || null;
+      error.actualHeadHash = snapshot.authority.headHash;
+      throw error;
+    }
+    const appended = appendVerifiedWsAuthorityEventLocked(
+      sessionId,
+      filePath,
+      WS_TURN_EVENT,
+      data,
+      snapshot.authority.headHash,
+    );
+    return Object.freeze({
+      ...projectWsTurnMessages(appended.event),
+      hash: appended.hash,
+      deduplicated: false,
+    });
+  });
+}
+
 export function appendToolCall(sessionId, toolName, args) {
   appendEvent(sessionId, "tool_call", { tool: toolName, args });
 }
@@ -750,21 +1456,57 @@ export function readEvents(sessionId) {
   return events;
 }
 
+function unverifiedTranscriptError(sessionId, verification) {
+  const error = new Error(
+    `session transcript is not fully verified and anchored (${verification.status})`,
+  );
+  error.code = "SESSION_TRANSCRIPT_UNVERIFIED";
+  error.sessionId = sessionId;
+  error.verification = verification;
+  return error;
+}
+
+function assertVerifiedTranscriptAnchor(sessionId, verification) {
+  const meta = readSessionMeta(getSessionsDir(), sessionId);
+  const trustedStatus =
+    verification.status === TRANSCRIPT_CHAIN_STATUS.VERIFIED;
+  const anchoredHead =
+    meta?.deleted !== true &&
+    meta?.last_hash === verification.lastHash &&
+    Number(meta?.event_count) === verification.chainedEvents;
+  if (
+    !trustedStatus ||
+    !anchoredHead ||
+    verification.malformedLines > 0 ||
+    verification.truncatedTail
+  ) {
+    throw unverifiedTranscriptError(sessionId, verification);
+  }
+}
+
 /**
- * Read authority-bearing events only from a fully verified transcript.
+ * Fold a fully verified transcript into a caller-owned projection.
  *
- * `readEvents()` is intentionally tolerant for user-facing history recovery:
- * it skips malformed records and accepts legacy transcripts. That behavior is
- * unsafe for replay ledgers, where a removed `started` record or forged
- * `settled` record can turn an outcome-unknown side effect into an apparent
- * success. This variant takes the canonical writer lock, verifies the complete
- * hash chain against the independently persisted session-index head/count,
- * and parses the same locked file before returning any event. The sidecar is
- * a crash/tail-truncation anchor, not a defense against an attacker who can
- * rewrite both transcript and index; stronger adversaries require an external
- * signed/HMAC anchor.
+ * The projection factory and its `accept(event)` / `finish(authority)` methods
+ * execute while the canonical writer lock is held. Hash-chain verification,
+ * event reduction, and the independently persisted head/count check share one
+ * forward transcript pass. `finish()` may call `authority.readMessages()` to
+ * recover only the active context with bounded reverse IO (latest compact
+ * checkpoint plus its suffix).
+ *
+ * This removes the mandatory all-event array from resume projections. It does
+ * not make verification IO sublinear: authenticating a plain chained JSONL
+ * transcript remains O(N), and the local sidecar is not an anti-rollback
+ * anchor or a cross-process lease.
  */
-export function readVerifiedEvents(sessionId) {
+export function readVerifiedProjection(
+  sessionId,
+  createProjection,
+  options = {},
+) {
+  if (typeof createProjection !== "function") {
+    throw new TypeError("Verified transcript projection factory is required");
+  }
   if (isUnsafeSessionId(sessionId)) {
     const error = new Error(
       `unsafe session id: ${String(sessionId).slice(0, 60)}`,
@@ -778,45 +1520,40 @@ export function readVerifiedEvents(sessionId) {
   return withFileLock(
     filePath,
     () => {
-      if (!existsSync(filePath)) return [];
-      const verification = verifyTranscriptFile(filePath);
-      const meta = readSessionMeta(getSessionsDir(), sessionId);
-      const trustedStatus =
-        verification.status === TRANSCRIPT_CHAIN_STATUS.VERIFIED;
-      const anchoredHead =
-        meta?.deleted !== true &&
-        meta?.last_hash === verification.lastHash &&
-        Number(meta?.event_count) === verification.chainedEvents;
+      const projection = createProjection();
       if (
-        !trustedStatus ||
-        !anchoredHead ||
-        verification.malformedLines > 0 ||
-        verification.truncatedTail
+        !projection ||
+        typeof projection.accept !== "function" ||
+        typeof projection.finish !== "function"
       ) {
-        const error = new Error(
-          `session transcript is not fully verified and anchored (${verification.status})`,
+        throw new TypeError(
+          "Verified transcript projection must provide accept() and finish()",
         );
-        error.code = "SESSION_TRANSCRIPT_UNVERIFIED";
-        error.sessionId = sessionId;
-        error.verification = verification;
-        throw error;
       }
-
-      const events = [];
-      for (const { line } of iterateFileLinesSync(filePath)) {
-        try {
-          events.push(JSON.parse(line));
-        } catch (cause) {
-          const error = new Error(
-            "session transcript changed or became malformed while locked",
-            { cause },
-          );
-          error.code = "SESSION_TRANSCRIPT_UNVERIFIED";
-          error.sessionId = sessionId;
-          throw error;
-        }
+      if (!existsSync(filePath)) {
+        return projection.finish(
+          Object.freeze({
+            headHash: null,
+            eventCount: 0,
+            readMessages: () => [],
+          }),
+        );
       }
-      return events;
+      const verification = verifyTranscriptFile(filePath, {
+        ioMetrics: options.ioMetrics,
+        onVerifiedEvent: (event) => projection.accept(event),
+      });
+      assertVerifiedTranscriptAnchor(sessionId, verification);
+      return projection.finish(
+        Object.freeze({
+          headHash: verification.lastHash,
+          eventCount: verification.chainedEvents,
+          readMessages: () =>
+            rebuildMessagesFromFile(filePath, {
+              ioMetrics: options.messageIoMetrics,
+            }),
+        }),
+      );
     },
     {
       failIfUnavailable: true,
@@ -826,6 +1563,61 @@ export function readVerifiedEvents(sessionId) {
       retryJitterMs: 4,
       yieldAfterReleaseMs: 2,
     },
+  );
+}
+
+/**
+ * Compatibility reader for consumers that still require the complete event
+ * array. New resume projections should use `readVerifiedProjection()` so their
+ * heap is bounded by active context plus reducer authority state.
+ */
+export function readVerifiedEvents(sessionId) {
+  return readVerifiedProjection(sessionId, () => {
+    const events = [];
+    return {
+      accept(event) {
+        events.push(event);
+      },
+      finish() {
+        return events;
+      },
+    };
+  });
+}
+
+/**
+ * Read the verified head, active messages, and (when present) one durable
+ * WebSocket request settlement from the same locked transcript sample.
+ * Tracking only the requested id keeps idempotency lookup heap-bounded.
+ */
+export function readVerifiedWsTurnState(sessionId, requestId, options = {}) {
+  const canonicalRequestId = normalizeWsTurnRequestId(requestId);
+  const inputDigest =
+    options.inputDigest == null
+      ? null
+      : normalizeWsTurnInputDigest(options.inputDigest);
+  return readVerifiedProjection(
+    sessionId,
+    () => {
+      const reducer = createWsTurnLifecycleReducer({
+        requestId: canonicalRequestId,
+        inputDigest,
+      });
+      return {
+        accept(event) {
+          reducer.accept(event);
+        },
+        finish(authority) {
+          const state = reducer.finish(authority);
+          return Object.freeze({
+            sessionId,
+            ...state,
+            messages: Object.freeze([...authority.readMessages()]),
+          });
+        },
+      };
+    },
+    options,
   );
 }
 
@@ -866,12 +1658,8 @@ function isReplayableMessage(m) {
   return Boolean(m) && typeof m === "object" && typeof m.role === "string";
 }
 
-export function rebuildMessages(sessionId, options = {}) {
-  if (isUnsafeSessionId(sessionId)) return [];
-  const filePath = sessionPath(sessionId);
-  if (!existsSync(filePath)) return [];
+function rebuildMessagesFromFile(filePath, options = {}) {
   const ioMetrics = options?.ioMetrics ?? null;
-
   // Scan newest-first and stop at the latest valid compact checkpoint. Memory
   // is therefore proportional to the active context suffix, not transcript
   // size. Without a compact event the full conversation is necessarily the
@@ -901,10 +1689,24 @@ export function rebuildMessages(sessionId, options = {}) {
       isReplayableMessage(event.data)
     ) {
       suffix.push(event.data);
+    } else if (event?.type === WS_TURN_EVENT) {
+      const turn = projectWsTurnMessages(event);
+      if (turn) {
+        // The file is scanned newest-first. Push the pair in reverse so the
+        // final suffix.reverse() restores user → assistant atomically.
+        suffix.push(turn.assistant, turn.user);
+      }
     }
   }
   suffix.reverse();
   return [...checkpoint, ...suffix];
+}
+
+export function rebuildMessages(sessionId, options = {}) {
+  if (isUnsafeSessionId(sessionId)) return [];
+  const filePath = sessionPath(sessionId);
+  if (!existsSync(filePath)) return [];
+  return rebuildMessagesFromFile(filePath, options);
 }
 
 /** ISO string for a numeric ms timestamp, or "" when missing / non-finite /
@@ -1280,6 +2082,8 @@ export function validateJsonlSession(sessionId) {
   let malformedLines = 0;
   let eventCount = 0;
   let messageCount = 0;
+  let invalidWsTurns = 0;
+  let invalidWsClaims = 0;
   let hasStartEvent = false;
   for (const { line } of iterateFileLinesSync(filePath)) {
     try {
@@ -1291,6 +2095,15 @@ export function validateJsonlSession(sessionId) {
         event?.type === "assistant_message"
       ) {
         messageCount += 1;
+      } else if (event?.type === WS_TURN_EVENT) {
+        const settlement = projectWsTurnSettlement(event);
+        if (!settlement) invalidWsTurns += 1;
+        else if (settlement.outcome === "completed") messageCount += 2;
+      } else if (
+        event?.type === WS_TURN_CLAIM_EVENT &&
+        !projectWsTurnClaim(event)
+      ) {
+        invalidWsClaims += 1;
       }
     } catch {
       malformedLines++;
@@ -1299,8 +2112,14 @@ export function validateJsonlSession(sessionId) {
 
   return {
     sessionId,
-    valid: malformedLines === 0 && hasStartEvent,
+    valid:
+      malformedLines === 0 &&
+      invalidWsTurns === 0 &&
+      invalidWsClaims === 0 &&
+      hasStartEvent,
     malformedLines,
+    invalidWsTurns,
+    invalidWsClaims,
     eventCount,
     messageCount,
     hasStartEvent,

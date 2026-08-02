@@ -11,10 +11,15 @@
 
 import { createHash } from "node:crypto";
 import {
+  projectWsTurnMessages,
   readVerifiedEvents as storeReadVerifiedEvents,
+  readVerifiedProjection as storeReadVerifiedProjection,
   sessionExists as storeSessionExists,
 } from "../harness/jsonl-session-store.js";
-import { reduceMcpLedgerEvents } from "./mcp-call-ledger-store.js";
+import {
+  createMcpLedgerEventReducer,
+  reduceMcpLedgerEvents,
+} from "./mcp-call-ledger-store.js";
 import { publicMcpRecoveryAuthority } from "./mcp-recovery-adjudication.js";
 
 export const SESSION_HOST_SNAPSHOT_SCHEMA =
@@ -70,6 +75,9 @@ function replayMessagesFromVerifiedEvents(events) {
       isReplayableMessage(event.data)
     ) {
       suffix.push(event.data);
+    } else if (event?.type === "ws_turn") {
+      const turn = projectWsTurnMessages(event);
+      if (turn) suffix.push(turn.assistant, turn.user);
     }
   }
   suffix.reverse();
@@ -89,7 +97,11 @@ function messageProjection(messages) {
   );
 }
 
-function titleProjection(events) {
+function titleProjectionFromValue(title) {
+  return Object.freeze({ bytes: payloadBytes(title), digest: digest(title) });
+}
+
+function titleFromEvents(events) {
   let title = "Untitled";
   for (const event of events) {
     if (event?.type === "session_start" && event.data?.title) {
@@ -98,7 +110,7 @@ function titleProjection(events) {
       title = String(event.data.title);
     }
   }
-  return Object.freeze({ bytes: payloadBytes(title), digest: digest(title) });
+  return title;
 }
 
 function terminalProjection(recovery, authority, lastEvent) {
@@ -172,6 +184,45 @@ export function projectFailedSessionHostSnapshot(
  * come from that host adapter, while events contribute only canonical title,
  * head and event-count metadata.
  */
+function projectSessionHostProjection({
+  sessionId,
+  title,
+  headHash,
+  eventCount,
+  lastEventType,
+  messages,
+  recovery,
+}) {
+  if (!Array.isArray(messages) || !recovery) {
+    throw new TypeError("Host observation is missing messages or recovery");
+  }
+  if (
+    typeof headHash !== "string" ||
+    !Number.isSafeInteger(eventCount) ||
+    eventCount < 1
+  ) {
+    throw new TypeError("Verified session head hash is missing");
+  }
+  const authority = publicMcpRecoveryAuthority(sessionId, recovery);
+  if (authority.headHash !== headHash) {
+    throw new TypeError("Host recovery authority does not match the head");
+  }
+  const content = {
+    schema: SESSION_HOST_SNAPSHOT_SCHEMA,
+    schemaVersion: SESSION_HOST_SNAPSHOT_VERSION,
+    sessionId,
+    verified: true,
+    title: titleProjectionFromValue(title),
+    head: Object.freeze({ hash: headHash, eventCount }),
+    messages: messageProjection(messages),
+    recoveryAuthority: authority,
+    terminalState: terminalProjection(recovery, authority, {
+      type: lastEventType,
+    }),
+  };
+  return Object.freeze({ ...content, revision: digest(content) });
+}
+
 export function projectSessionHostObservation({
   sessionId,
   events,
@@ -181,29 +232,19 @@ export function projectSessionHostObservation({
   if (!Array.isArray(events) || events.length === 0) {
     throw new TypeError("Verified session events must be a non-empty array");
   }
-  if (!Array.isArray(messages) || !recovery) {
-    throw new TypeError("Host observation is missing messages or recovery");
-  }
   const lastEvent = events.at(-1);
   if (typeof lastEvent?.hash !== "string") {
     throw new TypeError("Verified session head hash is missing");
   }
-  const authority = publicMcpRecoveryAuthority(sessionId, recovery);
-  if (authority.headHash !== lastEvent.hash) {
-    throw new TypeError("Host recovery authority does not match the head");
-  }
-  const content = {
-    schema: SESSION_HOST_SNAPSHOT_SCHEMA,
-    schemaVersion: SESSION_HOST_SNAPSHOT_VERSION,
+  return projectSessionHostProjection({
     sessionId,
-    verified: true,
-    title: titleProjection(events),
-    head: Object.freeze({ hash: lastEvent.hash, eventCount: events.length }),
-    messages: messageProjection(messages),
-    recoveryAuthority: authority,
-    terminalState: terminalProjection(recovery, authority, lastEvent),
-  };
-  return Object.freeze({ ...content, revision: digest(content) });
+    title: titleFromEvents(events),
+    headHash: lastEvent.hash,
+    eventCount: events.length,
+    lastEventType: lastEvent.type,
+    messages,
+    recovery,
+  });
 }
 
 /** Build a content-free snapshot from one already-verified, stable event set. */
@@ -225,6 +266,53 @@ export function projectVerifiedSessionHostSnapshot(sessionId, events) {
   });
 }
 
+function createStreamingSessionHostProjection(sessionId) {
+  let title = "Untitled";
+  let lastEventType = null;
+  const mcpReducer = createMcpLedgerEventReducer({
+    sessionId,
+    verified: true,
+  });
+
+  return {
+    accept(event) {
+      if (event?.type === "session_start" && event.data?.title) {
+        title = String(event.data.title);
+      } else if (event?.type === "session_rename" && event.data?.title) {
+        title = String(event.data.title);
+      }
+      lastEventType = typeof event?.type === "string" ? event.type : null;
+      mcpReducer.accept(event);
+    },
+    finish({ headHash, eventCount, readMessages }) {
+      if (typeof readMessages !== "function") {
+        throw new TypeError("Verified resume message reader is missing");
+      }
+      const recoveredMessages = readMessages();
+      if (!Array.isArray(recoveredMessages)) {
+        throw new TypeError("Verified resume messages must be an array");
+      }
+      const messages = Object.freeze(
+        recoveredMessages.filter(isReplayableMessage).map((message) => message),
+      );
+      const recovery = mcpReducer.finish();
+      return Object.freeze({
+        snapshot: projectSessionHostProjection({
+          sessionId,
+          title,
+          headHash,
+          eventCount,
+          lastEventType,
+          messages,
+          recovery,
+        }),
+        messages,
+        recovery,
+      });
+    },
+  };
+}
+
 /**
  * Read one real JSONL session for a host resume/attach boundary.
  *
@@ -234,10 +322,21 @@ export function projectVerifiedSessionHostSnapshot(sessionId, events) {
  */
 export function readSessionHostResumeState(sessionId, dependencies = {}) {
   const exists = dependencies.sessionExists || storeSessionExists;
+  const hasCustomLegacyReader =
+    typeof dependencies.readVerifiedEvents === "function" &&
+    dependencies.readVerifiedEvents !== storeReadVerifiedEvents;
+  const readVerifiedProjection =
+    dependencies.readVerifiedProjection ||
+    (hasCustomLegacyReader ? null : storeReadVerifiedProjection);
   const readVerifiedEvents =
     dependencies.readVerifiedEvents || storeReadVerifiedEvents;
   try {
     if (!exists(sessionId)) return null;
+    if (typeof readVerifiedProjection === "function") {
+      return readVerifiedProjection(sessionId, () =>
+        createStreamingSessionHostProjection(sessionId),
+      );
+    }
     return projectVerifiedSessionHostSnapshot(
       sessionId,
       readVerifiedEvents(sessionId),

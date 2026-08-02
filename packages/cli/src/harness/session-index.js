@@ -136,6 +136,29 @@ function summarizeSessionFile(id, filePath) {
           used += bounded.length;
         }
       }
+    } else if (
+      event.type === "ws_turn" &&
+      event.data?.schemaVersion === 1 &&
+      event.data?.outcome === "completed" &&
+      event.data?.user?.role === "user" &&
+      event.data?.assistant?.role === "assistant"
+    ) {
+      messageCount += 2;
+      for (const message of [event.data?.user, event.data?.assistant]) {
+        if (used >= CONTENT_CAP) break;
+        const content = message?.content;
+        const text =
+          typeof content === "string"
+            ? content
+            : content == null
+              ? ""
+              : JSON.stringify(content);
+        if (text) {
+          const bounded = text.slice(0, CONTENT_CAP - used);
+          parts.push(bounded);
+          used += bounded.length;
+        }
+      }
     }
     if (typeof event.hash === "string") chainHash = event.hash;
   }

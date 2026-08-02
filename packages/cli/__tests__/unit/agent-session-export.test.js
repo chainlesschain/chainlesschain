@@ -14,7 +14,11 @@ function ev(type, data, ts = T0) {
 describe("renderAgentSessionMarkdown", () => {
   it("renders header meta, turns, tool blocks, compact note and totals", () => {
     const events = [
-      ev("session_start", { title: "fix bug", provider: "ollama", model: "qwen3" }),
+      ev("session_start", {
+        title: "fix bug",
+        provider: "ollama",
+        model: "qwen3",
+      }),
       ev("user_message", { role: "user", content: "fix the bug" }),
       ev("tool_call", { tool: "read_file", args: { path: "a.js" } }),
       ev("tool_result", { tool: "read_file", result: "const x = 1;" }),
@@ -66,5 +70,23 @@ describe("renderAgentSessionMarkdown", () => {
     const md = renderAgentSessionMarkdown("empty", []);
     expect(md).toContain("# Agent Session empty");
     expect(md).toContain("0 user / 0 assistant turns");
+  });
+
+  it("renders one atomic WebSocket turn as an alternating user/assistant pair", () => {
+    const md = renderAgentSessionMarkdown("ws", [
+      ev("ws_turn", {
+        schemaVersion: 1,
+        requestId: "req-export-1",
+        outcome: "completed",
+        user: { role: "user", content: "atomic question" },
+        assistant: { role: "assistant", content: "atomic answer" },
+      }),
+    ]);
+
+    expect(md.indexOf("atomic question")).toBeLessThan(
+      md.indexOf("atomic answer"),
+    );
+    expect(md).toContain("1 user / 1 assistant turns");
+    expect(md).not.toContain("req-export-1");
   });
 });

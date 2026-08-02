@@ -27,9 +27,16 @@ const {
   appendToolResult,
   appendCompactEvent,
   appendEvent,
+  appendWsTurnIfHead,
+  claimWsTurnIfHead,
+  settleWsTurnClaim,
   appendAuthorityEvent,
   readEvents,
   readVerifiedEvents,
+  readVerifiedWsTurnState,
+  computeWsTurnInputDigest,
+  createWsTurnClaimId,
+  normalizeWsTurnRequestId,
   findLatestEvent,
   rebuildMessages,
   getJsonlSessionMetadata,
@@ -55,6 +62,8 @@ const {
 } = await import("../../src/lib/jsonl-session-store.js");
 const { computeEventHash } =
   await import("../../src/harness/transcript-integrity.js");
+const { readVerifiedProjection } =
+  await import("../../src/harness/jsonl-session-store.js");
 
 describe("jsonl-session-store", () => {
   beforeEach(() => {
@@ -197,6 +206,375 @@ describe("jsonl-session-store", () => {
 
   // ── readEvents ────────────────────────────────────────────────────
 
+  describe("atomic WebSocket turns", () => {
+    it("claims before execution and settles only the fenced owner", () => {
+      const id = startSession("ws-claimed-success", { title: "Claimed" });
+      const expectedHead = readEvents(id).at(-1).hash;
+      const user = "claimed question";
+      const inputDigest = computeWsTurnInputDigest(user);
+      const opaqueClaimId = createWsTurnClaimId();
+
+      const claimed = claimWsTurnIfHead(
+        id,
+        { requestId: "req-claimed-1", user, inputDigest, opaqueClaimId },
+        expectedHead,
+      );
+
+      expect(claimed).toMatchObject({
+        status: "pending",
+        acquired: true,
+        claim: { requestId: "req-claimed-1", inputDigest, opaqueClaimId },
+        messages: [],
+      });
+      expect(readEvents(id).map((event) => event.type)).toEqual([
+        "session_start",
+        "ws_turn_claim",
+      ]);
+      const claimEvent = readEvents(id).at(-1);
+      expect(Object.keys(claimEvent.data).sort()).toEqual([
+        "inputDigest",
+        "opaqueClaimId",
+        "requestId",
+        "schemaVersion",
+      ]);
+      expect(readFileSync(sessionPath(id), "utf8")).not.toContain(user);
+      expect(getJsonlSessionMetadata(id)).toMatchObject({ message_count: 0 });
+
+      const competingClaim = claimWsTurnIfHead(
+        id,
+        {
+          requestId: "req-claimed-1",
+          user,
+          inputDigest,
+          opaqueClaimId: createWsTurnClaimId(),
+        },
+        expectedHead,
+      );
+      expect(competingClaim).toMatchObject({
+        status: "pending",
+        acquired: false,
+        deduplicated: true,
+        claim: { opaqueClaimId },
+      });
+      expect(readEvents(id)).toHaveLength(2);
+
+      expect(() =>
+        settleWsTurnClaim(id, {
+          requestId: "req-claimed-1",
+          inputDigest,
+          opaqueClaimId: createWsTurnClaimId(),
+          outcome: "completed",
+          user,
+          assistant: "not owner",
+        }),
+      ).toThrow(
+        expect.objectContaining({ code: "CC_WS_TURN_CLAIM_NOT_OWNER" }),
+      );
+
+      const settled = settleWsTurnClaim(id, {
+        requestId: "req-claimed-1",
+        inputDigest,
+        opaqueClaimId,
+        outcome: "completed",
+        user,
+        assistant: "claimed answer",
+      });
+      expect(settled).toMatchObject({
+        status: "completed",
+        deduplicated: false,
+        turn: { assistant: { content: "claimed answer" } },
+        messages: [
+          { role: "user", content: user },
+          { role: "assistant", content: "claimed answer" },
+        ],
+      });
+      expect(readEvents(id).map((event) => event.type)).toEqual([
+        "session_start",
+        "ws_turn_claim",
+        "ws_turn",
+      ]);
+      expect(
+        readVerifiedWsTurnState(id, "req-claimed-1", { inputDigest }),
+      ).toMatchObject({ status: "completed", turn: settled.turn });
+      expect(getJsonlSessionMetadata(id)).toMatchObject({ message_count: 2 });
+    });
+
+    it("durably settles model failure without persisting failed input history", () => {
+      const id = startSession("ws-claimed-failure");
+      const user = "failed claimed input";
+      const inputDigest = computeWsTurnInputDigest(user);
+      const opaqueClaimId = createWsTurnClaimId();
+      claimWsTurnIfHead(
+        id,
+        { requestId: "req-failed-1", user, inputDigest, opaqueClaimId },
+        readEvents(id).at(-1).hash,
+      );
+
+      const failed = settleWsTurnClaim(id, {
+        requestId: "req-failed-1",
+        inputDigest,
+        opaqueClaimId,
+        outcome: "failed",
+        failureCode: "CC_WS_TURN_FAILED",
+      });
+
+      expect(failed).toMatchObject({
+        status: "failed",
+        settlement: { failure: { code: "CC_WS_TURN_FAILED" } },
+        messages: [],
+      });
+      expect(rebuildMessages(id)).toEqual([]);
+      expect(readFileSync(sessionPath(id), "utf8")).not.toContain(user);
+      expect(
+        readVerifiedWsTurnState(id, "req-failed-1", { inputDigest }),
+      ).toMatchObject({ status: "failed", turn: null });
+      expect(validateJsonlSession(id)).toMatchObject({
+        valid: true,
+        eventCount: 3,
+        messageCount: 0,
+        invalidWsClaims: 0,
+        invalidWsTurns: 0,
+      });
+    });
+
+    it("rejects a forged same-request settlement injected after the claim", () => {
+      const id = startSession("ws-claimed-forged-settlement");
+      const user = "claimed input before tamper";
+      const inputDigest = computeWsTurnInputDigest(user);
+      const opaqueClaimId = createWsTurnClaimId();
+      claimWsTurnIfHead(
+        id,
+        { requestId: "req-claim-tamper-1", user, inputDigest, opaqueClaimId },
+        readEvents(id).at(-1).hash,
+      );
+      const forgedHash = "e".repeat(64);
+      appendFileSync(
+        sessionPath(id),
+        `${JSON.stringify({
+          type: "ws_turn",
+          timestamp: Date.now(),
+          data: {
+            schemaVersion: 1,
+            requestId: "req-claim-tamper-1",
+            inputDigest,
+            opaqueClaimId,
+            outcome: "completed",
+            user: { role: "user", content: user },
+            assistant: { role: "assistant", content: "forged answer" },
+          },
+          prevHash: "0".repeat(64),
+          hash: forgedHash,
+        })}\n`,
+        "utf8",
+      );
+      const metaFile = join(sessionsDir, `${id}.meta.json`);
+      const meta = JSON.parse(readFileSync(metaFile, "utf8"));
+      writeFileSync(
+        metaFile,
+        `${JSON.stringify({
+          ...meta,
+          event_count: meta.event_count + 1,
+          last_hash: forgedHash,
+        })}\n`,
+        "utf8",
+      );
+
+      expect(() =>
+        settleWsTurnClaim(id, {
+          requestId: "req-claim-tamper-1",
+          inputDigest,
+          opaqueClaimId,
+          outcome: "completed",
+          user,
+          assistant: "legitimate answer",
+        }),
+      ).toThrow(
+        expect.objectContaining({ code: "SESSION_TRANSCRIPT_UNVERIFIED" }),
+      );
+    });
+
+    it("commits one user/assistant pair and projects it through every store view", () => {
+      const id = startSession("ws-atomic", { title: "Atomic" });
+      const expectedHead = readEvents(id).at(-1).hash;
+
+      const appended = appendWsTurnIfHead(
+        id,
+        {
+          requestId: "req.atomic-1",
+          user: "question",
+          assistant: "answer",
+        },
+        expectedHead,
+      );
+
+      expect(appended).toMatchObject({
+        requestId: "req.atomic-1",
+        outcome: "completed",
+        deduplicated: false,
+        user: { role: "user", content: "question" },
+        assistant: { role: "assistant", content: "answer" },
+      });
+      expect(readEvents(id).map((event) => event.type)).toEqual([
+        "session_start",
+        "ws_turn",
+      ]);
+      expect(rebuildMessages(id)).toEqual([
+        { role: "user", content: "question" },
+        { role: "assistant", content: "answer" },
+      ]);
+      expect(readVerifiedWsTurnState(id, "req.atomic-1")).toMatchObject({
+        headHash: appended.hash,
+        eventCount: 2,
+        messages: [
+          { role: "user", content: "question" },
+          { role: "assistant", content: "answer" },
+        ],
+        turn: {
+          requestId: "req.atomic-1",
+          assistant: { content: "answer" },
+        },
+      });
+      expect(getJsonlSessionMetadata(id)).toMatchObject({ message_count: 2 });
+      expect(validateJsonlSession(id)).toMatchObject({
+        valid: true,
+        eventCount: 2,
+        messageCount: 2,
+        invalidWsTurns: 0,
+      });
+    });
+
+    it("deduplicates a durable request before stale-head rejection", () => {
+      const id = startSession("ws-idempotent");
+      const initialHead = readEvents(id).at(-1).hash;
+      const first = appendWsTurnIfHead(
+        id,
+        { requestId: "req-retry-1", user: "same", assistant: "original" },
+        initialHead,
+      );
+
+      const retry = appendWsTurnIfHead(
+        id,
+        { requestId: "req-retry-1", user: "same", assistant: "replacement" },
+        initialHead,
+      );
+
+      expect(retry).toMatchObject({
+        hash: first.hash,
+        deduplicated: true,
+        assistant: { content: "original" },
+      });
+      expect(
+        readEvents(id).filter((event) => event.type === "ws_turn"),
+      ).toHaveLength(1);
+      expect(() =>
+        appendWsTurnIfHead(
+          id,
+          { requestId: "req-retry-1", user: "different", assistant: "x" },
+          first.hash,
+        ),
+      ).toThrow(expect.objectContaining({ code: "CC_WS_REQUEST_ID_CONFLICT" }));
+      expect(() =>
+        appendWsTurnIfHead(
+          id,
+          { requestId: "req-new-2", user: "new", assistant: "new answer" },
+          initialHead,
+        ),
+      ).toThrow(expect.objectContaining({ code: "SESSION_REVISION_STALE" }));
+    });
+
+    it("refuses to deduplicate a request whose sidecar anchor is stale", () => {
+      const id = startSession("ws-idempotent-stale-anchor");
+      const initialHead = readEvents(id).at(-1).hash;
+      appendWsTurnIfHead(
+        id,
+        { requestId: "req-stale-1", user: "same", assistant: "original" },
+        initialHead,
+      );
+      const metaFile = join(sessionsDir, `${id}.meta.json`);
+      const meta = JSON.parse(readFileSync(metaFile, "utf8"));
+      writeFileSync(
+        metaFile,
+        `${JSON.stringify({ ...meta, event_count: meta.event_count - 1 })}\n`,
+        "utf8",
+      );
+
+      expect(() =>
+        appendWsTurnIfHead(
+          id,
+          { requestId: "req-stale-1", user: "same", assistant: "retry" },
+          initialHead,
+        ),
+      ).toThrow(
+        expect.objectContaining({ code: "SESSION_TRANSCRIPT_UNVERIFIED" }),
+      );
+    });
+
+    it("refuses a forged request settlement even when the sidecar names its head", () => {
+      const id = startSession("ws-idempotent-forged-chain");
+      const initialHead = readEvents(id).at(-1).hash;
+      const forgedHash = "f".repeat(64);
+      appendFileSync(
+        sessionPath(id),
+        `${JSON.stringify({
+          type: "ws_turn",
+          timestamp: Date.now(),
+          data: {
+            schemaVersion: 1,
+            requestId: "req-forged-1",
+            outcome: "completed",
+            user: { role: "user", content: "same" },
+            assistant: { role: "assistant", content: "forged" },
+          },
+          prevHash: "0".repeat(64),
+          hash: forgedHash,
+        })}\n`,
+        "utf8",
+      );
+      const metaFile = join(sessionsDir, `${id}.meta.json`);
+      const meta = JSON.parse(readFileSync(metaFile, "utf8"));
+      writeFileSync(
+        metaFile,
+        `${JSON.stringify({
+          ...meta,
+          event_count: meta.event_count + 1,
+          last_hash: forgedHash,
+        })}\n`,
+        "utf8",
+      );
+
+      expect(() =>
+        appendWsTurnIfHead(
+          id,
+          { requestId: "req-forged-1", user: "same", assistant: "real" },
+          initialHead,
+        ),
+      ).toThrow(
+        expect.objectContaining({ code: "SESSION_TRANSCRIPT_UNVERIFIED" }),
+      );
+    });
+
+    it("rejects missing, non-canonical, and oversized request ids", () => {
+      expect(normalizeWsTurnRequestId("safe_1:@-.")).toBe("safe_1:@-.");
+      for (const invalid of [
+        undefined,
+        "",
+        "has space",
+        "unicode-é",
+        "line\nbreak",
+        "x".repeat(129),
+      ]) {
+        expect(() => normalizeWsTurnRequestId(invalid)).toThrow(
+          expect.objectContaining({
+            code:
+              invalid === undefined
+                ? "CC_WS_REQUEST_ID_REQUIRED"
+                : "CC_WS_REQUEST_ID_INVALID",
+          }),
+        );
+      }
+    });
+  });
+
   describe("readEvents", () => {
     it("returns empty array for non-existent session", () => {
       expect(readEvents("nonexistent")).toEqual([]);
@@ -274,6 +652,128 @@ describe("jsonl-session-store", () => {
       ).toThrow(
         expect.objectContaining({ code: "SESSION_INDEX_ANCHOR_FAILED" }),
       );
+    });
+
+    it("folds the verified chain once and refuses a stale sidecar before finish", () => {
+      const id = startSession("streaming-stale-sidecar", {
+        title: "verified",
+      });
+      appendUserMessage(id, "one pass");
+      const ioMetrics = {};
+      const finish = vi.fn(({ headHash, eventCount }) => ({
+        headHash,
+        eventCount,
+      }));
+      const projection = readVerifiedProjection(
+        id,
+        () => ({ accept: vi.fn(), finish }),
+        { ioMetrics },
+      );
+
+      expect(projection).toMatchObject({ eventCount: 2 });
+      expect(ioMetrics.bytesRead).toBe(statSync(sessionPath(id)).size);
+      expect(finish).toHaveBeenCalledTimes(1);
+
+      const metaFile = join(sessionsDir, `${id}.meta.json`);
+      const meta = JSON.parse(readFileSync(metaFile, "utf8"));
+      writeFileSync(
+        metaFile,
+        `${JSON.stringify({ ...meta, event_count: meta.event_count - 1 })}\n`,
+        "utf8",
+      );
+      const staleFinish = vi.fn();
+      expect(() =>
+        readVerifiedProjection(id, () => ({
+          accept() {},
+          finish: staleFinish,
+        })),
+      ).toThrow(
+        expect.objectContaining({ code: "SESSION_TRANSCRIPT_UNVERIFIED" }),
+      );
+      expect(staleFinish).not.toHaveBeenCalled();
+    });
+
+    it("keeps resume heap to the compact checkpoint and suffix", () => {
+      const id = startSession("streaming-large-prefix", { title: "large" });
+      const events = [];
+      let previousHash = null;
+      const add = (core) => {
+        const hash = computeEventHash(previousHash, core);
+        const chained = { ...core, prevHash: previousHash, hash };
+        previousHash = hash;
+        events.push(chained);
+      };
+      add({
+        type: "session_start",
+        timestamp: 1,
+        data: { title: "large" },
+      });
+      for (let index = 0; index < 4_000; index += 1) {
+        add({
+          type: index % 2 ? "assistant_message" : "user_message",
+          timestamp: index + 2,
+          data: {
+            role: index % 2 ? "assistant" : "user",
+            content: `${index}:${"x".repeat(256)}`,
+          },
+        });
+      }
+      add({
+        type: "compact",
+        timestamp: 5_000,
+        data: {
+          messages: [{ role: "system", content: "bounded summary" }],
+        },
+      });
+      add({
+        type: "user_message",
+        timestamp: 5_001,
+        data: { role: "user", content: "small suffix" },
+      });
+      const file = sessionPath(id);
+      writeFileSync(
+        file,
+        `${events.map((item) => JSON.stringify(item)).join("\n")}\n`,
+        "utf8",
+      );
+      const metaFile = join(sessionsDir, `${id}.meta.json`);
+      const meta = JSON.parse(readFileSync(metaFile, "utf8"));
+      writeFileSync(
+        metaFile,
+        `${JSON.stringify({
+          ...meta,
+          event_count: events.length,
+          last_hash: previousHash,
+        })}\n`,
+        "utf8",
+      );
+
+      const ioMetrics = {};
+      const messageIoMetrics = {};
+      let accepted = 0;
+      const result = readVerifiedProjection(
+        id,
+        () => ({
+          accept() {
+            accepted += 1;
+          },
+          finish({ eventCount, readMessages }) {
+            return { eventCount, messages: readMessages() };
+          },
+        }),
+        { ioMetrics, messageIoMetrics },
+      );
+
+      expect(result).toEqual({
+        eventCount: events.length,
+        messages: [
+          { role: "system", content: "bounded summary" },
+          { role: "user", content: "small suffix" },
+        ],
+      });
+      expect(accepted).toBe(events.length);
+      expect(ioMetrics.bytesRead).toBe(statSync(file).size);
+      expect(messageIoMetrics.bytesRead).toBeLessThan(statSync(file).size / 4);
     });
   });
 

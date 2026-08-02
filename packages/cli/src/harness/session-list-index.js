@@ -93,6 +93,14 @@ export function applyEventToSessionMeta(meta, event, lastHash) {
     event?.type === "assistant_message"
   ) {
     next.message_count = Math.max(0, Number(next.message_count) || 0) + 1;
+  } else if (
+    event?.type === "ws_turn" &&
+    event.data?.schemaVersion === 1 &&
+    event.data?.outcome === "completed" &&
+    event.data?.user?.role === "user" &&
+    event.data?.assistant?.role === "assistant"
+  ) {
+    next.message_count = Math.max(0, Number(next.message_count) || 0) + 2;
   }
   next.last_hash = typeof lastHash === "string" ? lastHash : null;
   return next;

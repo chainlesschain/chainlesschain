@@ -7,6 +7,7 @@
  * Pure function over the event list (see jsonl-session-store.js appendEvent):
  *   { type, timestamp, data }
  *   types: session_start{title,provider,model} · user_message · assistant_message
+ *          · ws_turn{requestId,user,assistant,outcome}
  *          · system · tool_call{tool,args} · tool_result{tool,result}
  *          · compact(stats) · token_usage{...}
  */
@@ -75,6 +76,25 @@ export function renderAgentSessionMarkdown(sessionId, events, opts = {}) {
         L.push("");
         L.push(asText(ev.data?.content));
         L.push("");
+        break;
+      case "ws_turn":
+        if (
+          ev.data?.schemaVersion === 1 &&
+          ev.data?.outcome === "completed" &&
+          ev.data?.user?.role === "user" &&
+          ev.data?.assistant?.role === "assistant"
+        ) {
+          users += 1;
+          assistants += 1;
+          L.push("## 👤 User");
+          L.push("");
+          L.push(asText(ev.data.user.content));
+          L.push("");
+          L.push("## 🤖 Assistant");
+          L.push("");
+          L.push(asText(ev.data.assistant.content));
+          L.push("");
+        }
         break;
       case "system":
         L.push("## ⚙ System");

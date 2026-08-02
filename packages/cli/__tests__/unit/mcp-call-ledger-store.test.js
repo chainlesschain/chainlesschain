@@ -6,6 +6,7 @@ import {
 } from "../../src/lib/mcp-call-ledger.js";
 import {
   MCP_CALL_LEDGER_EVENT,
+  createMcpLedgerEventReducer,
   createSessionMcpLedgerSink,
   formatMcpLedgerRecoveryNotice,
   loadMcpLedgerRecovery,
@@ -47,6 +48,16 @@ function event(value, phase = "started") {
     type: MCP_CALL_LEDGER_EVENT,
     data: { schemaVersion: 1, phase, record: value },
   };
+}
+
+function chained(events) {
+  let previousHash = null;
+  return events.map((item, index) => {
+    const hash = (index + 1).toString(16).padStart(64, "0");
+    const linked = { ...item, prevHash: previousHash, hash };
+    previousHash = hash;
+    return linked;
+  });
 }
 
 describe("MCP call ledger session store", () => {
@@ -341,6 +352,52 @@ describe("MCP call ledger session store", () => {
     expect(recovery.unsettled).toEqual([]);
     expect(recovery.records[0].status).toBe(McpCallStatus.COMPLETED);
     expect(recovery.incidents).toEqual([]);
+  });
+
+  it("keeps incremental and batch recovery projections equivalent", () => {
+    const events = chained([
+      { type: "session_start", data: { title: "streamed" } },
+      event(record()),
+      { type: "assistant_message", data: { role: "assistant" } },
+      event(record({ status: McpCallStatus.COMPLETED }), "settled"),
+      { type: MCP_CALL_LEDGER_EVENT, data: { malformed: true } },
+    ]);
+    const options = { sessionId: "session-1", verified: true };
+    const incremental = createMcpLedgerEventReducer(options);
+    for (const item of events) incremental.accept(item);
+
+    expect(incremental.finish()).toEqual(
+      reduceMcpLedgerEvents(events, options),
+    );
+  });
+
+  it("loads through an injected verified projection without an event array", () => {
+    const events = chained([
+      { type: "session_start", data: { title: "streamed" } },
+      event(record()),
+    ]);
+    const readVerifiedEvents = vi.fn(() => {
+      throw new Error("legacy array reader must not run");
+    });
+    const readVerifiedProjection = vi.fn((_sessionId, createProjection) => {
+      const projection = createProjection();
+      for (const item of events) projection.accept(item);
+      return projection.finish({
+        headHash: events.at(-1).hash,
+        eventCount: events.length,
+        readMessages: () => [],
+      });
+    });
+
+    const recovery = loadMcpLedgerRecovery("session-1", {
+      readVerifiedEvents,
+      readVerifiedProjection,
+    });
+
+    expect(recovery.unsettled).toHaveLength(1);
+    expect(recovery.headHash).toBe(events.at(-1).hash);
+    expect(readVerifiedProjection).toHaveBeenCalledTimes(1);
+    expect(readVerifiedEvents).not.toHaveBeenCalled();
   });
 
   it("rejects phase/status mismatches before persistence and during replay", async () => {

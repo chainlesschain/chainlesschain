@@ -10,6 +10,7 @@
 import {
   appendAuthorityEvent as storeAppendAuthorityEvent,
   readVerifiedEvents as storeReadVerifiedEvents,
+  readVerifiedProjection as storeReadVerifiedProjection,
 } from "../harness/jsonl-session-store.js";
 import {
   canonicalizeMcpNetworkScopes,
@@ -560,10 +561,12 @@ export function createSessionMcpLedgerSink(sessionId, options = {}) {
 }
 
 /**
- * Fold transcript events into the latest record per ledger id. Malformed MCP
- * ledger events are incidents, not silently skipped authority facts.
+ * Create an incremental MCP authority reducer. Every transcript event must be
+ * passed to `accept()` in canonical order so verified prefix linkage remains
+ * part of the projection. The retained heap is the active MCP authority state,
+ * not the complete transcript.
  */
-export function reduceMcpLedgerEvents(events, options = {}) {
+export function createMcpLedgerEventReducer(options = {}) {
   const records = new Map();
   const incidents = [];
   const adjudications = new Map();
@@ -572,13 +575,12 @@ export function reduceMcpLedgerEvents(events, options = {}) {
   const targetSessionId =
     typeof options.sessionId === "string" ? options.sessionId : null;
   const verified = options.verified === true;
-  const sourceEvents = Array.isArray(events) ? events : [];
   const addIncident = (code, ledgerId = null) => {
     incidents.push(Object.freeze({ code, ledgerId }));
   };
   let prefixHeadHash = null;
 
-  for (const event of sourceEvents) {
+  const accept = (event) => {
     const priorHeadHash = prefixHeadHash;
     const eventHeadHash = RAW_AUTHORITY_HASH.test(String(event?.hash || ""))
       ? event.hash
@@ -588,21 +590,21 @@ export function reduceMcpLedgerEvents(events, options = {}) {
     prefixHeadHash = eventHeadHash;
     if (verified && !prefixLinked) {
       addIncident("CC_MCP_RECOVERY_AUTHORITY_PREFIX_INVALID");
-      continue;
+      return;
     }
 
     if (event?.type === MCP_CALL_RECOVERY_ADJUDICATION_EVENT) {
       const adjudication = canonicalAdjudication(event.data);
       if (!adjudication) {
         addIncident("CC_MCP_RECOVERY_ADJUDICATION_CORRUPT");
-        continue;
+        return;
       }
       if (!verified) {
         addIncident(
           "CC_MCP_RECOVERY_ADJUDICATION_UNVERIFIED",
           adjudication.ledgerId,
         );
-        continue;
+        return;
       }
       if (
         targetSessionId === null ||
@@ -614,14 +616,14 @@ export function reduceMcpLedgerEvents(events, options = {}) {
           "CC_MCP_RECOVERY_ADJUDICATION_HEAD_MISMATCH",
           adjudication.ledgerId,
         );
-        continue;
+        return;
       }
       if (incidents.length > 0) {
         addIncident(
           "CC_MCP_RECOVERY_ADJUDICATION_INCIDENTS_PRESENT",
           adjudication.ledgerId,
         );
-        continue;
+        return;
       }
 
       const currentSnapshots = [...records.values()];
@@ -645,7 +647,7 @@ export function reduceMcpLedgerEvents(events, options = {}) {
           "CC_MCP_RECOVERY_ADJUDICATION_DIGEST_MISMATCH",
           adjudication.ledgerId,
         );
-        continue;
+        return;
       }
 
       const target = records.get(adjudication.ledgerId);
@@ -659,7 +661,7 @@ export function reduceMcpLedgerEvents(events, options = {}) {
           "CC_MCP_RECOVERY_ADJUDICATION_TARGET_INVALID",
           adjudication.ledgerId,
         );
-        continue;
+        return;
       }
 
       adjudications.set(adjudication.ledgerId, adjudication);
@@ -670,10 +672,10 @@ export function reduceMcpLedgerEvents(events, options = {}) {
           if (!replayDenied.has(key)) replayDenied.set(key, deny);
         }
       }
-      continue;
+      return;
     }
 
-    if (event?.type !== MCP_CALL_LEDGER_EVENT) continue;
+    if (event?.type !== MCP_CALL_LEDGER_EVENT) return;
     const envelope = event.data;
     const record = canonicalRecord(envelope?.record);
     if (
@@ -682,38 +684,38 @@ export function reduceMcpLedgerEvents(events, options = {}) {
       !phaseMatchesRecord(envelope?.phase, record)
     ) {
       addIncident("CC_MCP_LEDGER_EVENT_CORRUPT", record?.ledgerId || null);
-      continue;
+      return;
     }
 
     if (targetSessionId !== null && record.sessionId !== targetSessionId) {
       addIncident("CC_MCP_LEDGER_SESSION_MISMATCH", record.ledgerId);
-      continue;
+      return;
     }
 
     if (adjudications.has(record.ledgerId)) {
       addIncident("CC_MCP_LEDGER_ADJUDICATED_REWRITTEN", record.ledgerId);
-      continue;
+      return;
     }
 
     if (
       exactReplayKeysFromRecord(record).some((key) => replayDenied.has(key))
     ) {
       addIncident("CC_MCP_LEDGER_EXACT_REPLAY_RECORDED", record.ledgerId);
-      continue;
+      return;
     }
 
     const previous = records.get(record.ledgerId);
     if (previous && TERMINAL.has(previous.status)) {
       addIncident("CC_MCP_LEDGER_TERMINAL_REWRITTEN", record.ledgerId);
-      continue;
+      return;
     }
     if (previous && record.status === McpCallStatus.STARTED) {
       addIncident("CC_MCP_LEDGER_DUPLICATE_START", record.ledgerId);
-      continue;
+      return;
     }
     if (!previous && record.status !== McpCallStatus.STARTED) {
       addIncident("CC_MCP_LEDGER_START_MISSING", record.ledgerId);
-      continue;
+      return;
     }
     if (
       previous &&
@@ -721,47 +723,80 @@ export function reduceMcpLedgerEvents(events, options = {}) {
       !immutableRecordMatches(previous, record)
     ) {
       addIncident("CC_MCP_LEDGER_RECORD_MISMATCH", record.ledgerId);
-      continue;
+      return;
     }
     records.set(record.ledgerId, Object.freeze({ ...record }));
-  }
-
-  const snapshots = [...records.values()];
-  const unsettled = snapshots.filter(
-    (record) =>
-      record.status === McpCallStatus.STARTED &&
-      !adjudications.has(record.ledgerId),
-  );
-  const denied = [...replayDenied.values()];
-  const recovery = {
-    sessionId: targetSessionId,
-    records: Object.freeze(snapshots),
-    unsettled: Object.freeze(unsettled),
-    incidents: Object.freeze(incidents),
-    adjudications: Object.freeze([...adjudications.values()]),
-    replayDenied: Object.freeze(denied),
-    verified,
-    headHash: prefixHeadHash,
   };
-  const remediation =
-    incidents.length > 0
-      ? "inspect_transcript"
-      : unsettled.length > 0
-        ? "adjudicate_started_calls"
-        : denied.length > 0
-          ? "exact_replay_denied"
-          : null;
-  return Object.freeze({
-    ...recovery,
-    recoveryDigest: computeMcpRecoveryDigest(recovery),
-    remediation,
-  });
+
+  const finish = () => {
+    const snapshots = [...records.values()];
+    const unsettled = snapshots.filter(
+      (record) =>
+        record.status === McpCallStatus.STARTED &&
+        !adjudications.has(record.ledgerId),
+    );
+    const denied = [...replayDenied.values()];
+    const recovery = {
+      sessionId: targetSessionId,
+      records: Object.freeze(snapshots),
+      unsettled: Object.freeze(unsettled),
+      incidents: Object.freeze(incidents),
+      adjudications: Object.freeze([...adjudications.values()]),
+      replayDenied: Object.freeze(denied),
+      verified,
+      headHash: prefixHeadHash,
+    };
+    const remediation =
+      incidents.length > 0
+        ? "inspect_transcript"
+        : unsettled.length > 0
+          ? "adjudicate_started_calls"
+          : denied.length > 0
+            ? "exact_replay_denied"
+            : null;
+    return Object.freeze({
+      ...recovery,
+      recoveryDigest: computeMcpRecoveryDigest(recovery),
+      remediation,
+    });
+  };
+
+  return Object.freeze({ accept, finish });
+}
+
+/**
+ * Batch compatibility wrapper around the incremental authority reducer.
+ */
+export function reduceMcpLedgerEvents(events, options = {}) {
+  const reducer = createMcpLedgerEventReducer(options);
+  for (const event of Array.isArray(events) ? events : []) {
+    reducer.accept(event);
+  }
+  return reducer.finish();
 }
 
 export function loadMcpLedgerRecovery(sessionId, options = {}) {
+  const hasCustomLegacyReader =
+    typeof options.readVerifiedEvents === "function" &&
+    options.readVerifiedEvents !== storeReadVerifiedEvents;
+  const readVerifiedProjection =
+    options.readVerifiedProjection ||
+    (hasCustomLegacyReader ? null : storeReadVerifiedProjection);
   const readVerifiedEvents =
     options.readVerifiedEvents || storeReadVerifiedEvents;
   try {
+    if (typeof readVerifiedProjection === "function") {
+      return readVerifiedProjection(sessionId, () => {
+        const reducer = createMcpLedgerEventReducer({
+          sessionId,
+          verified: true,
+        });
+        return {
+          accept: reducer.accept,
+          finish: reducer.finish,
+        };
+      });
+    }
     const verifiedEvents = readVerifiedEvents(sessionId);
     if (!Array.isArray(verifiedEvents)) {
       const invalid = new TypeError(
