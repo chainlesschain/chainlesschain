@@ -469,6 +469,16 @@ describe("managed checkpoint agent integration", () => {
       { value: "external" },
       {
         mcpClient: { callTool },
+        extraToolDefinitions: [
+          {
+            type: "function",
+            function: {
+              name: toolName,
+              description: "External writer",
+              parameters: { type: "object", properties: {} },
+            },
+          },
+        ],
         externalToolDescriptors: {
           [toolName]: {
             name: toolName,

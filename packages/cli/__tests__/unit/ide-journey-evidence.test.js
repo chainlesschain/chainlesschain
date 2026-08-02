@@ -161,6 +161,7 @@ describe("IDE journey evidence", () => {
       journeyId: "incomplete",
       host: "jetbrains",
       result: "passed",
+      releaseCommit: "not-a-commit",
       execFileSync: () => "not-a-commit",
     });
 

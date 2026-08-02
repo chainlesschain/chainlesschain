@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -18,7 +24,7 @@ let dir;
 let previousHome;
 
 beforeEach(() => {
-  dir = mkdtempSync(join(tmpdir(), "cc-bg-profile-"));
+  dir = realpathSync(mkdtempSync(join(tmpdir(), "cc-bg-profile-")));
   previousHome = process.env.CHAINLESSCHAIN_HOME;
   process.env.CHAINLESSCHAIN_HOME = join(dir, "home");
   mkdirSync(process.env.CHAINLESSCHAIN_HOME, { recursive: true });
