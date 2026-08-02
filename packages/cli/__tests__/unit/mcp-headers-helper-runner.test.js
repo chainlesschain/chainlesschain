@@ -1,5 +1,5 @@
 import { EventEmitter } from "node:events";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { PassThrough } from "node:stream";
@@ -21,7 +21,9 @@ afterEach(() => {
 });
 
 function workspace() {
-  const root = mkdtempSync(path.join(os.tmpdir(), "cc-mcp-helper-runner-"));
+  const root = realpathSync.native(
+    mkdtempSync(path.join(os.tmpdir(), "cc-mcp-helper-runner-")),
+  );
   roots.push(root);
   return root;
 }

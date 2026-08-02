@@ -18,7 +18,9 @@ export {
   normalizeMcpConfigScope,
   normalizeMcpElicitationRequest,
   isHttpTransport,
+  redactMcpUrl,
   isLikelyConnectionError,
+  isMcpAuthenticationError,
   isTransientMcpError,
   _deps,
 } from "../harness/mcp-client.js";

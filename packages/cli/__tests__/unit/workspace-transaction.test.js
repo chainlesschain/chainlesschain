@@ -15,8 +15,8 @@ import {
 const roots = [];
 
 function fixture({ git = false } = {}) {
-  const root = fs.mkdtempSync(
-    path.join(os.tmpdir(), "cc-workspace-transaction-"),
+  const root = fs.realpathSync.native(
+    fs.mkdtempSync(path.join(os.tmpdir(), "cc-workspace-transaction-")),
   );
   roots.push(root);
   const workspaceRoot = path.join(root, "workspace");
