@@ -191,7 +191,12 @@ describe("file-checkpoint store", () => {
   beforeEach(() => {
     privateAuthorityCalls.inspections.length = 0;
     privateAuthorityCalls.repairs.length = 0;
-    const base = mkdtempSync(join(tmpdir(), "cp-test-"));
+    // macOS commonly exposes /var as /private/var, while hosted Windows
+    // runners may expose an 8.3 TEMP alias. The production readers correctly
+    // reject aliased authority roots, so keep the fixture on its canonical
+    // path instead of turning the first identity test into a suite-wide
+    // manifest-read cascade.
+    const base = realpathSync.native(mkdtempSync(join(tmpdir(), "cp-test-")));
     work = join(base, "work");
     root = join(base, "store");
     mkdirSync(work, { recursive: true });
