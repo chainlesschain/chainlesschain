@@ -494,7 +494,6 @@ exec(compile(source, '<materialize-candidate>', 'exec'), {'__name__': '__main__'
     recoveryPointerFaultBootstrap,
     `import errno
 import os
-import signal
 import sys
 
 helper_argv = sys.argv[1:]
@@ -516,13 +515,13 @@ if os.environ.get('CC_TEST_TAMPER_RECOVERY_POINTER_DURING_RETIRE', '0') == '1':
         rename_noreplace(state_path, retired_path)"""
     source = source.replace(needle, replacement, 1)
 if os.environ.get('CC_TEST_TERMINATE_DURING_RECOVERY_RETIREMENT', '0') == '1':
-    needle = "                    flush=True,\n                )"
+    needle = "                    flush=True,\\n                )"
     if source.count(needle) != 1:
         raise SystemExit('could not inject recovery-retirement termination')
     replacement = needle + """
                 with open(os.environ['CC_TEST_RECOVERY_RETIREMENT_TERMINATED_SENTINEL'], 'wb'):
                     pass
-                os.kill(os.getppid(), signal.SIGTERM)"""
+                os.kill(os.getppid(), __import__('signal').SIGTERM)"""
     source = source.replace(needle, replacement, 1)
 if os.environ.get('CC_TEST_REPLACE_RECOVERY_FALLBACK_SOURCE', '0') == '1':
     linux_needle = "    if sys.platform.startswith('linux'):"
@@ -611,7 +610,6 @@ exec(compile(source, '<write-lineage>', 'exec'), {'__name__': '__main__'})
   fs.writeFileSync(
     mutationFaultBootstrap,
     `import os
-import signal
 import stat
 import sys
 
@@ -726,6 +724,11 @@ publish_injection = r'''        race = os.environ.get('CC_TEST_MUTATION_RACE', '
                 os.close(descriptor)
             with open(os.environ['CC_TEST_MUTATION_RACE_SENTINEL'], 'wb'):
                 pass
+        if (
+            os.environ.get('CC_TEST_FAIL_LINEAGE_RESTORE', '0') == '1'
+            and '.lineage-claimed-' in tombstone_path
+        ):
+            raise OSError(5, 'injected fd-bound lineage restore failure')
         rename_noreplace(stage_path, public_path)
         if (
             os.environ.get('CC_TEST_KILL_AFTER_TARGET_REPLACE', '0') == '1'
@@ -733,7 +736,7 @@ publish_injection = r'''        race = os.environ.get('CC_TEST_MUTATION_RACE', '
         ):
             with open(os.environ['CC_TEST_TARGET_REPLACED_SENTINEL'], 'wb'):
                 pass
-            os.kill(os.getppid(), signal.SIGKILL)'''
+            os.kill(os.getppid(), __import__('signal').SIGKILL)'''
 source = source.replace(publish_needle, publish_injection, 1)
 
 retire_replace_injection = r'''
@@ -759,7 +762,7 @@ publication_injection = r'''        verify(replacement, public_path)
         if publication_selected:
             with open(os.environ['CC_TEST_PUBLICATION_TERMINATED_SENTINEL'], 'wb'):
                 pass
-            os.kill(os.getppid(), signal.SIGTERM)
+            os.kill(os.getppid(), __import__('signal').SIGTERM)
     else:'''
 source = source.replace(publication_needle, publication_injection, 1)
 
@@ -965,13 +968,6 @@ exec "$REAL_RM" "$@"
     fakeBin,
     "mv",
     `#!/usr/bin/env sh
-if [ "\${CC_TEST_FAIL_LINEAGE_RESTORE:-0}" = "1" ]; then
-  for candidate in "$@"; do
-    case "$candidate" in
-      */.chainlesschain.lineage-restore-*) exit 95 ;;
-    esac
-  done
-fi
 if [ "\${CC_TEST_KILL_AFTER_TARGET_REPLACE:-0}" = "1" ]; then
   previous=""
   destination=""
@@ -1536,8 +1532,19 @@ describe("native installer transaction contracts", () => {
       );
       const names = fs.readdirSync(fixture.targetDir);
       expect(
-        names.some((name) => name.startsWith(".chainlesschain.backup-prior-")),
-      ).toBe(false);
+        names.filter(
+          (name) =>
+            name.startsWith(".chainlesschain.backup-prior-") &&
+            !name.includes(".cleanup-"),
+        ),
+      ).toHaveLength(0);
+      expect(
+        names.some(
+          (name) =>
+            name.startsWith(".chainlesschain.backup-prior-") &&
+            name.includes(".cleanup-"),
+        ),
+      ).toBe(true);
       expect(
         names.some((name) => name.startsWith(".chainlesschain.lineage-prior-")),
       ).toBe(true);
