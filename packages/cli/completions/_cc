@@ -1,5 +1,5 @@
 # Generated from src/command-manifest.json; do not edit.
-# manifest-sha256: 47fe89af21d9fdb364b30c4004c34611366f887dbab05d782f1e6055c5c7392f
+# manifest-sha256: e989e4e22dc918cc8f60a1857957f9e4cfdfd4ced4ca6ab8f956156e441ba528
 #compdef cc chainlesschain clc clchain
 
 _chainlesschain() {
@@ -94,6 +94,7 @@ _chainlesschain() {
       'ipfs' \
       'itbudget' \
       'kg' \
+      'lab' \
       'learning' \
       'llm' \
       'logs' \
@@ -199,6 +200,10 @@ _chainlesschain() {
       'whatsnew' \
       'workflow' \
       'zkp'
+  elif (( CURRENT == 3 )); then
+    case "$words[2]" in
+      'lab') compadd -- 'dao' 'evomap' ;;
+    esac
   fi
 }
 compdef _chainlesschain cc chainlesschain clc clchain

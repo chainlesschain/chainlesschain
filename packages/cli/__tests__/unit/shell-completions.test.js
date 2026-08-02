@@ -10,12 +10,13 @@ const manifestPath = path.join(packageRoot, "src", "command-manifest.json");
 const manifestText = fs.readFileSync(manifestPath, "utf8");
 const manifest = JSON.parse(manifestText);
 const expectedTokens = [
-  ...new Set(
-    manifest.commands.flatMap((entry) => [
+  ...new Set([
+    ...manifest.commands.flatMap((entry) => [
       entry.name,
       ...(Array.isArray(entry.aliases) ? entry.aliases : []),
     ]),
-  ),
+    ...(manifest.surface?.namespaces || []).map((namespace) => namespace.name),
+  ]),
 ].sort((left, right) => left.localeCompare(right));
 const expectedSha256 = crypto
   .createHash("sha256")
@@ -47,7 +48,7 @@ describe("generated shell completions", () => {
     expect(bashWords?.split(" ")).toEqual(expectedTokens);
 
     const zshBody = completion("_cc").match(
-      /compadd -- \\\n([\s\S]*?)\n\s{2}fi/,
+      /compadd -- \\\n([\s\S]*?)\n\s{2}elif/,
     )?.[1];
     expect(quotedTokens(zshBody ?? "")).toEqual(expectedTokens);
 
@@ -60,6 +61,31 @@ describe("generated shell completions", () => {
       /\$ChainlessChainCommands = @\(\n([\s\S]*?)\n\)/,
     )?.[1];
     expect(quotedTokens(powershellWords ?? "")).toEqual(expectedTokens);
+  });
+
+  it("completes manifest-defined compatibility namespace children", () => {
+    const namespace = manifest.surface.namespaces.find(
+      (candidate) => candidate.name === "lab",
+    );
+    expect(namespace.commands).toEqual(["dao", "evomap"]);
+
+    for (const name of ["cc.bash", "_cc", "cc.fish", "cc.ps1"]) {
+      const text = completion(name);
+      expect(text).toContain("lab");
+      expect(text).toContain("dao");
+      expect(text).toContain("evomap");
+    }
+    expect(completion("cc.bash")).toContain(
+      "'lab') COMPREPLY=( $(compgen -W 'dao evomap'",
+    );
+    expect(completion("_cc")).toContain("'lab') compadd -- 'dao' 'evomap'");
+    expect(completion("cc.fish")).toContain(
+      "__chainlesschain_needs_lab_command",
+    );
+    expect(completion("cc.ps1")).toContain("'lab' = @('dao', 'evomap')");
+    expect(completion("cc.ps1")).toContain(
+      "$elements.Count -eq 2 -and [String]::IsNullOrEmpty($wordToComplete)",
+    );
   });
 
   it("ships the generated files and checks drift in CI and prepublish", () => {

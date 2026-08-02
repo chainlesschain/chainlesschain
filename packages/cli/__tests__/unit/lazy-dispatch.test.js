@@ -71,10 +71,16 @@ describe("command manifest ⇄ eager program (drift guard)", () => {
   });
 
   it("describes the generated stable and compatibility surfaces", () => {
-    expect(manifest.schema).toBe("chainlesschain.command-manifest.v2");
+    expect(manifest.schema).toBe("chainlesschain.command-manifest.v3");
     expect(manifest.surface).toMatchObject({
-      schema: "chainlesschain.command-surface.v1",
+      schema: "chainlesschain.command-surface.v2",
       defaultCommand: "agent",
+      topLevelGrowth: {
+        baselineCommandCount: 175,
+        registeredCommandCount: 175,
+        recommendedTopLevelCommandCount: 174,
+        netGrowth: 0,
+      },
     });
 
     const groupedCore = manifest.surface.coreGroups
@@ -93,6 +99,14 @@ describe("command manifest ⇄ eager program (drift guard)", () => {
       expect(
         entry.replacement === null || typeof entry.replacement === "string",
       ).toBe(true);
+      expect(["active", "deprecated"]).toContain(entry.lifecycle?.state);
+      if (entry.lifecycle?.state === "deprecated") {
+        expect(entry.replacement).toMatch(/^lab [a-z0-9-]+$/);
+        expect(entry.lifecycle).toMatchObject({
+          minimumReleaseCycles: 2,
+          releaseCycle: "minor",
+        });
+      }
     }
   });
 
@@ -236,6 +250,7 @@ describe("phase-0 invocation", () => {
         category: "code",
         visibility: "core",
         replacement: null,
+        lifecycle: { state: "active" },
       }),
     );
 
@@ -342,6 +357,7 @@ describe("phase-0 invocation", () => {
       const prepared = await prepareInvocation(argv(...args), {
         stdin: { isTTY: false },
         stdout: nestedOut.stream,
+        stderr: output().stream,
       });
       expect(prepared).toEqual({
         handled: false,

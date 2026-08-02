@@ -8,7 +8,12 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { pathToFileURL, fileURLToPath } from "node:url";
-import { buildHelpDocument, formatRootHelp } from "./cli-help.js";
+import {
+  buildHelpDocument,
+  buildNamespaceHelpDocument,
+  formatNamespaceHelp,
+  formatRootHelp,
+} from "./cli-help.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const manifest = JSON.parse(
@@ -20,8 +25,31 @@ const packageMetadata = JSON.parse(
 
 const ROOT_HELP_FLAGS = new Set(["--help", "-h"]);
 const ROOT_VERSION_FLAGS = new Set(["--version", "-v", "-V"]);
-const GLOBAL_BOOLEAN_FLAGS = new Set(["--verbose", "--quiet"]);
-const GLOBAL_VALUE_FLAGS = new Set(["--otlp-endpoint", "--jsii-runtime"]);
+const HELP_CONTROL_FLAGS = new Set(["--all", "-a", "--json"]);
+
+/**
+ * Dependency-free mirror of program-base.js' Commander root options. Tests
+ * compare names and arity against createBaseProgram(), so phase 0 cannot
+ * silently widen this allowlist or drift from phase 1.
+ */
+export const PHASE_ZERO_GLOBAL_OPTION_SCHEMA = Object.freeze([
+  Object.freeze({ flag: "--verbose", arity: 0 }),
+  Object.freeze({ flag: "--quiet", arity: 0 }),
+  Object.freeze({
+    flag: "--jsii-runtime",
+    arity: 1,
+    allowedValues: Object.freeze(["native", "quickjs"]),
+  }),
+  Object.freeze({
+    flag: "--otlp-endpoint",
+    arity: 1,
+    allowedProtocols: Object.freeze(["http:", "https:"]),
+  }),
+]);
+
+const GLOBAL_OPTION_BY_FLAG = new Map(
+  PHASE_ZERO_GLOBAL_OPTION_SCHEMA.map((option) => [option.flag, option]),
+);
 
 function writeLine(stream, value) {
   stream.write(`${value}\n`);
@@ -34,6 +62,289 @@ function findManifestEntry(commandName, manifestData = manifest) {
       (entry) =>
         entry.name === commandName || entry.aliases?.includes(commandName),
     ) || null
+  );
+}
+
+function validateGlobalOptionValue(option, value) {
+  if (typeof value !== "string" || value.length === 0) {
+    return `Global option '${option.flag}' requires a value`;
+  }
+  if (option.allowedValues && !option.allowedValues.includes(value)) {
+    return (
+      `Global option '${option.flag}' must be one of: ` +
+      option.allowedValues.join(", ")
+    );
+  }
+  if (option.allowedProtocols) {
+    let parsed;
+    try {
+      parsed = new URL(value);
+    } catch {
+      return `Global option '${option.flag}' requires an absolute http(s) URL`;
+    }
+    if (
+      !option.allowedProtocols.includes(parsed.protocol) ||
+      !parsed.hostname
+    ) {
+      return `Global option '${option.flag}' requires an absolute http(s) URL`;
+    }
+  }
+  return null;
+}
+
+function consumeGlobalOption(argv, index) {
+  const token = argv[index];
+  const equalsIndex = token.indexOf("=");
+  const flag = equalsIndex < 0 ? token : token.slice(0, equalsIndex);
+  const option = GLOBAL_OPTION_BY_FLAG.get(flag);
+  if (!option) return null;
+
+  if (option.arity === 0) {
+    return {
+      nextIndex: index + 1,
+      error:
+        equalsIndex < 0
+          ? null
+          : `Global option '${option.flag}' does not accept a value`,
+    };
+  }
+
+  if (equalsIndex >= 0) {
+    return {
+      nextIndex: index + 1,
+      error: validateGlobalOptionValue(option, token.slice(equalsIndex + 1)),
+    };
+  }
+
+  const value = argv[index + 1];
+  if (typeof value !== "string" || value.startsWith("-")) {
+    return {
+      nextIndex: index + 1,
+      error: `Global option '${option.flag}' requires a value`,
+    };
+  }
+  return {
+    nextIndex: index + 2,
+    error: validateGlobalOptionValue(option, value),
+  };
+}
+
+function scanLeadingCommand(argv = []) {
+  let firstError = null;
+  for (let index = 2; index < argv.length;) {
+    const token = argv[index];
+    if (token === "--") return { location: null, error: firstError };
+    if (ROOT_HELP_FLAGS.has(token) || ROOT_VERSION_FLAGS.has(token)) {
+      return { location: null, error: firstError };
+    }
+    const globalOption = consumeGlobalOption(argv, index);
+    if (globalOption) {
+      firstError ||= globalOption.error;
+      index = globalOption.nextIndex;
+      continue;
+    }
+    if (token.startsWith("-")) {
+      firstError ||= `Unknown global option '${token}'`;
+      index++;
+      continue;
+    }
+    return { location: { index, token }, error: firstError };
+  }
+  return { location: null, error: firstError };
+}
+
+function findCommandTokenLocation(argv = []) {
+  return scanLeadingCommand(argv).location;
+}
+
+function commandNamespace(manifestData, name) {
+  return (manifestData?.surface?.namespaces || []).find(
+    (candidate) => candidate.name === name,
+  );
+}
+
+function findHelpSubjectLocation(argv, helpIndex) {
+  let firstError = null;
+  for (let index = helpIndex + 1; index < argv.length;) {
+    const token = argv[index];
+    if (token === "--") return { location: null, error: firstError };
+    if (
+      HELP_CONTROL_FLAGS.has(token) ||
+      ROOT_HELP_FLAGS.has(token) ||
+      ROOT_VERSION_FLAGS.has(token)
+    ) {
+      index++;
+      continue;
+    }
+    const globalOption = consumeGlobalOption(argv, index);
+    if (globalOption) {
+      firstError ||= globalOption.error;
+      index = globalOption.nextIndex;
+      continue;
+    }
+    if (token.startsWith("-")) {
+      firstError ||= `Unknown global option '${token}'`;
+      index++;
+      continue;
+    }
+    return { location: { index, token }, error: firstError };
+  }
+  return { location: null, error: firstError };
+}
+
+function namespaceEntry(manifestData, namespace, target) {
+  if (!namespace?.commands?.includes(target)) return null;
+  const entry = findManifestEntry(target, manifestData);
+  if (!entry || entry.replacement !== `${namespace.name} ${entry.name}`) {
+    return null;
+  }
+  return entry;
+}
+
+function scanNamespaceTarget(
+  argv,
+  namespaceIndex,
+  { helpInvocation = false } = {},
+) {
+  for (let index = namespaceIndex + 1; index < argv.length;) {
+    const token = argv[index];
+    if (token === "--") {
+      return {
+        error: "'--' may only appear after a lab command target",
+      };
+    }
+    if (ROOT_HELP_FLAGS.has(token)) return { help: true };
+    if (ROOT_VERSION_FLAGS.has(token)) return { version: true };
+    if (HELP_CONTROL_FLAGS.has(token)) {
+      if (helpInvocation) {
+        index++;
+        continue;
+      }
+      return {
+        error: `Option '${token}' must follow a lab command target`,
+      };
+    }
+    const globalOption = consumeGlobalOption(argv, index);
+    if (globalOption) {
+      if (globalOption.error) return { error: globalOption.error };
+      index = globalOption.nextIndex;
+      continue;
+    }
+    if (token.startsWith("-")) {
+      return { error: `Unknown option '${token}' before lab command target` };
+    }
+    return { index, target: token };
+  }
+  return { help: true };
+}
+
+function rewriteNamespaceArgv(argv, namespaceIndex, targetIndex, target) {
+  return [
+    ...argv.slice(0, namespaceIndex),
+    ...argv.slice(namespaceIndex + 1, targetIndex),
+    target,
+    ...argv.slice(targetIndex + 1),
+  ];
+}
+
+function namespaceError(message) {
+  return {
+    kind: "namespace-error",
+    message: `${message}. Run 'cc lab --help' for available commands.`,
+  };
+}
+
+/**
+ * Resolve virtual compatibility namespaces before Commander is imported.
+ * Rewrites only argv; the selected legacy manifest entry and registrar remain
+ * the sole route that can execute the action.
+ */
+export function resolveCommandLifecycleInvocation(
+  argv,
+  manifestData = manifest,
+) {
+  const leading = scanLeadingCommand(argv);
+  const location = leading.location;
+  const args = argv.slice(2);
+  const endOfOptions = args.indexOf("--");
+  if (!location) {
+    if (endOfOptions >= 0 && args[endOfOptions + 1] === "lab") {
+      return namespaceError("The lab namespace must appear before '--'");
+    }
+    return { kind: "passthrough", argv };
+  }
+
+  if (location.token === "help") {
+    const subjectScan = findHelpSubjectLocation(argv, location.index);
+    const subject = subjectScan.location;
+    if (!subject) return { kind: "passthrough", argv };
+    const namespaceIndex = subject.index;
+    const namespace = commandNamespace(manifestData, subject.token);
+    if (!namespace) return { kind: "passthrough", argv };
+    if (leading.error || subjectScan.error) {
+      return namespaceError(leading.error || subjectScan.error);
+    }
+    const target = scanNamespaceTarget(argv, namespaceIndex, {
+      helpInvocation: true,
+    });
+    if (target.error) return namespaceError(target.error);
+    if (target.help || target.version) {
+      return {
+        kind: "namespace-help",
+        namespace,
+        json: args.includes("--json"),
+      };
+    }
+    const entry = namespaceEntry(manifestData, namespace, target.target);
+    if (!entry) {
+      return namespaceError(
+        `Unknown ${namespace.name} command '${target.target}'`,
+      );
+    }
+    return {
+      kind: "namespace-rewrite",
+      namespace,
+      entry,
+      argv: rewriteNamespaceArgv(
+        argv,
+        namespaceIndex,
+        target.index,
+        entry.name,
+      ),
+    };
+  }
+
+  const namespace = commandNamespace(manifestData, location.token);
+  if (!namespace) return { kind: "passthrough", argv };
+  if (leading.error) return namespaceError(leading.error);
+  const target = scanNamespaceTarget(argv, location.index);
+  if (target.error) return namespaceError(target.error);
+  if (target.version) return { kind: "namespace-version", namespace };
+  if (target.help) {
+    return { kind: "namespace-help", namespace, json: args.includes("--json") };
+  }
+  const entry = namespaceEntry(manifestData, namespace, target.target);
+  if (!entry) {
+    return namespaceError(
+      `Unknown ${namespace.name} command '${target.target}'`,
+    );
+  }
+  return {
+    kind: "namespace-rewrite",
+    namespace,
+    entry,
+    argv: rewriteNamespaceArgv(argv, location.index, target.index, entry.name),
+  };
+}
+
+export function formatCommandDeprecationWarning(entry, invokedName) {
+  const lifecycle = entry?.lifecycle;
+  if (lifecycle?.state !== "deprecated" || !entry.replacement) return null;
+  return (
+    `Deprecated command 'cc ${invokedName}' (since ${lifecycle.deprecatedSince}); ` +
+    `use 'cc ${entry.replacement}'. Removal will not occur before ` +
+    `${lifecycle.removalNotBefore} (${lifecycle.minimumReleaseCycles} ` +
+    `${lifecycle.releaseCycle} release cycles).`
   );
 }
 
@@ -54,45 +365,14 @@ function readCommandHelp(entry) {
 
 /** Return the first top-level command token in a process argv array. */
 export function resolveCommandToken(argv = []) {
-  const args = Array.isArray(argv) ? argv.slice(2) : [];
-  for (let index = 0; index < args.length; index++) {
-    const token = args[index];
-    if (token === "--") return null;
-    if (GLOBAL_BOOLEAN_FLAGS.has(token)) continue;
-    if (GLOBAL_VALUE_FLAGS.has(token)) {
-      index++;
-      continue;
-    }
-    if (
-      token.startsWith("--otlp-endpoint=") ||
-      token.startsWith("--jsii-runtime=")
-    ) {
-      continue;
-    }
-    if (ROOT_HELP_FLAGS.has(token) || ROOT_VERSION_FLAGS.has(token))
-      return null;
-    if (!token.startsWith("-")) return token;
-  }
-  return null;
+  return findCommandTokenLocation(argv)?.token || null;
 }
 
 function hasOnlyGlobalOptions(argv = []) {
-  const args = argv.slice(2);
-  for (let index = 0; index < args.length; index++) {
-    const token = args[index];
-    if (GLOBAL_BOOLEAN_FLAGS.has(token)) continue;
-    if (GLOBAL_VALUE_FLAGS.has(token)) {
-      if (index + 1 >= args.length) return false;
-      index++;
-      continue;
-    }
-    if (
-      token.startsWith("--otlp-endpoint=") ||
-      token.startsWith("--jsii-runtime=")
-    ) {
-      continue;
-    }
-    return false;
+  for (let index = 2; index < argv.length;) {
+    const globalOption = consumeGlobalOption(argv, index);
+    if (!globalOption || globalOption.error) return false;
+    index = globalOption.nextIndex;
   }
   return true;
 }
@@ -103,7 +383,9 @@ function helpRequest(argv, manifestData = manifest) {
   if (commandName === "help") {
     const helpIndex = args.indexOf("help");
     const rest = args.slice(helpIndex + 1);
-    const requestedCommand = rest.find((token) => !token.startsWith("-"));
+    const subjectScan = findHelpSubjectLocation(argv, helpIndex + 2);
+    if (subjectScan.error) return null;
+    const requestedCommand = subjectScan.location?.token;
     return {
       all: rest.includes("--all") || rest.includes("-a"),
       json: rest.includes("--json"),
@@ -193,13 +475,52 @@ export async function prepareInvocation(
   {
     stdin = process.stdin,
     stdout = process.stdout,
+    stderr = process.stderr,
     manifestData = manifest,
     version = packageMetadata.version,
     readStdin = readInput,
   } = {},
 ) {
+  const lifecycleInvocation = resolveCommandLifecycleInvocation(
+    argv,
+    manifestData,
+  );
+  if (lifecycleInvocation.kind === "namespace-error") {
+    writeLine(stderr, lifecycleInvocation.message);
+    return { handled: true, kind: "namespace-error", exitCode: 1 };
+  }
+  if (lifecycleInvocation.kind === "namespace-version") {
+    writeLine(stdout, version);
+    return { handled: true, kind: "version" };
+  }
+  if (lifecycleInvocation.kind === "namespace-help") {
+    if (lifecycleInvocation.json) {
+      writeLine(
+        stdout,
+        JSON.stringify(
+          buildNamespaceHelpDocument(
+            manifestData,
+            lifecycleInvocation.namespace.name,
+          ),
+        ),
+      );
+    } else {
+      stdout.write(
+        formatNamespaceHelp(manifestData, lifecycleInvocation.namespace.name),
+      );
+    }
+    return { handled: true, kind: "namespace-help" };
+  }
+
+  argv = lifecycleInvocation.argv;
   const args = argv.slice(2);
   const commandName = resolveCommandToken(argv);
+
+  if (lifecycleInvocation.kind !== "namespace-rewrite") {
+    const invokedEntry = findManifestEntry(commandName, manifestData);
+    const warning = formatCommandDeprecationWarning(invokedEntry, commandName);
+    if (warning) writeLine(stderr, warning);
+  }
 
   if (
     commandName === null &&
@@ -211,6 +532,17 @@ export async function prepareInvocation(
 
   const help = helpRequest(argv, manifestData);
   if (help) {
+    if (
+      lifecycleInvocation.kind !== "namespace-rewrite" &&
+      commandName === "help" &&
+      help.entry
+    ) {
+      const warning = formatCommandDeprecationWarning(
+        help.entry,
+        help.requestedCommand,
+      );
+      if (warning) writeLine(stderr, warning);
+    }
     if (help.requestedCommand) {
       if (!help.entry) return { handled: false, argv, kind: "unknown-help" };
       if (help.json) {
@@ -436,7 +768,16 @@ async function withInvocationOutputContext(argv, task) {
 
 export async function runCli(argv, options = {}) {
   const prepared = await prepareInvocation(argv, options);
-  if (prepared.handled) return;
+  if (prepared.handled) {
+    if (prepared.exitCode) {
+      if (typeof options.setExitCode === "function") {
+        options.setExitCode(prepared.exitCode);
+      } else {
+        process.exitCode = prepared.exitCode;
+      }
+    }
+    return;
+  }
 
   const dispatchArgv = prepared.argv;
   return withInvocationOutputContext(dispatchArgv, async () => {

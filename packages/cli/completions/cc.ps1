@@ -1,5 +1,5 @@
 # Generated from src/command-manifest.json; do not edit.
-# manifest-sha256: 47fe89af21d9fdb364b30c4004c34611366f887dbab05d782f1e6055c5c7392f
+# manifest-sha256: e989e4e22dc918cc8f60a1857957f9e4cfdfd4ced4ca6ab8f956156e441ba528
 using namespace System.Management.Automation
 
 $ChainlessChainCommands = @(
@@ -92,6 +92,7 @@ $ChainlessChainCommands = @(
   'ipfs'
   'itbudget'
   'kg'
+  'lab'
   'learning'
   'llm'
   'logs'
@@ -199,10 +200,23 @@ $ChainlessChainCommands = @(
   'zkp'
 )
 
+$ChainlessChainNamespaceCommands = @{
+  'lab' = @('dao', 'evomap')
+}
+
 $ChainlessChainCompleter = {
   param($wordToComplete, $commandAst, $cursorPosition)
-  if ($commandAst.CommandElements.Count -gt 2) { return }
-  foreach ($candidate in $ChainlessChainCommands) {
+  $elements = @($commandAst.CommandElements | ForEach-Object { $_.Extent.Text })
+  if ($elements.Count -eq 2 -and [String]::IsNullOrEmpty($wordToComplete) -and $ChainlessChainNamespaceCommands.ContainsKey($elements[1])) {
+    $candidates = $ChainlessChainNamespaceCommands[$elements[1]]
+  } elseif ($elements.Count -le 2) {
+    $candidates = $ChainlessChainCommands
+  } elseif ($elements.Count -eq 3 -and $ChainlessChainNamespaceCommands.ContainsKey($elements[1])) {
+    $candidates = $ChainlessChainNamespaceCommands[$elements[1]]
+  } else {
+    return
+  }
+  foreach ($candidate in $candidates) {
     if ($candidate.StartsWith($wordToComplete, [StringComparison]::OrdinalIgnoreCase)) {
       [CompletionResult]::new($candidate, $candidate, 'ParameterValue', $candidate)
     }

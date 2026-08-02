@@ -76,6 +76,9 @@ jobs:
       - name: Verify CLI --help
         working-directory: packages/cli
         run: node bin/chainlesschain.js --help
+      - name: Verify command surface and top-level growth gate
+        working-directory: packages/cli
+        run: npm run commands:manifest:check
       - name: Verify generated command help index
         working-directory: packages/cli
         run: npm run commands:help-index:check

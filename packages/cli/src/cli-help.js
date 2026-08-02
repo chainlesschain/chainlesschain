@@ -34,7 +34,26 @@ function normalizeEntry(entry) {
     category: entry.category || fallback.category,
     visibility: entry.visibility || fallback.visibility,
     replacement: entry.replacement ?? fallback.replacement,
+    lifecycle: entry.lifecycle || fallback.lifecycle,
   };
+}
+
+export function listCommandNamespaces(manifest) {
+  const namespaces = Array.isArray(manifest?.surface?.namespaces)
+    ? manifest.surface.namespaces
+    : [];
+  return namespaces
+    .map((namespace) => ({
+      name: namespace.name,
+      summary: namespace.summary || "",
+      visibility: namespace.visibility || "extended",
+      commands: (Array.isArray(namespace.commands) ? namespace.commands : [])
+        .map((name) => manifest.commands.find((entry) => entry.name === name))
+        .filter(Boolean)
+        .map(normalizeEntry)
+        .sort((left, right) => left.name.localeCompare(right.name)),
+    }))
+    .sort((left, right) => left.name.localeCompare(right.name));
 }
 
 export function listVisibleCommands(manifest, { all = false } = {}) {
@@ -57,7 +76,11 @@ function renderCommandLines(entries, indent = "  ") {
   );
   return entries.map((entry) => {
     const label = commandLabel(entry).padEnd(width);
-    return `${indent}${label}  ${entry.summary}`.trimEnd();
+    const lifecycle =
+      entry.lifecycle?.state === "deprecated"
+        ? ` [deprecated; use cc ${entry.replacement}]`
+        : "";
+    return `${indent}${label}  ${entry.summary}${lifecycle}`.trimEnd();
   });
 }
 
@@ -69,7 +92,38 @@ export function buildHelpDocument(manifest, { all = false } = {}) {
     defaultCommand: commandSurface(manifest).defaultCommand,
     commandCount: commands.length,
     commands,
+    namespaces: all ? listCommandNamespaces(manifest) : [],
   };
+}
+
+export function buildNamespaceHelpDocument(manifest, namespaceName) {
+  const namespace = listCommandNamespaces(manifest).find(
+    (candidate) => candidate.name === namespaceName,
+  );
+  if (!namespace) return null;
+  return {
+    schema: "chainlesschain.namespace-help.v1",
+    name: namespace.name,
+    summary: namespace.summary,
+    commandCount: namespace.commands.length,
+    commands: namespace.commands,
+  };
+}
+
+export function formatNamespaceHelp(manifest, namespaceName) {
+  const namespace = buildNamespaceHelpDocument(manifest, namespaceName);
+  if (!namespace) return null;
+  const lines = [
+    `Usage: cc ${namespace.name} <command> [args...]`,
+    "",
+    namespace.summary,
+    "",
+    "Commands:",
+    ...renderCommandLines(namespace.commands),
+    "",
+    `Run \`cc ${namespace.name} <command> --help\` for command-specific help.`,
+  ];
+  return `${lines.join("\n")}\n`;
 }
 
 export function formatRootHelp(manifest, { all = false } = {}) {
@@ -85,6 +139,13 @@ export function formatRootHelp(manifest, { all = false } = {}) {
     const commands = listVisibleCommands(manifest, { all: true });
     lines.push(`All compatibility commands (${commands.length}):`);
     lines.push(...renderCommandLines(commands));
+    for (const namespace of listCommandNamespaces(manifest)) {
+      lines.push(
+        "",
+        `Compatibility namespace: ${namespace.name}`,
+        `  ${namespace.summary}`,
+      );
+    }
   } else {
     lines.push("Core commands:");
     for (const group of commandSurface(manifest).groups) {
