@@ -1,0 +1,1112 @@
+/**
+ * Process-local sharing and a revisioned sidecar for SessionResourceBudget.
+ *
+ * Callers in one CLI process can reuse the same budget object. Cooperating
+ * processes detect stale writes through a file lock and revision CAS. This
+ * sidecar is not a machine-wide authority or an anti-rollback mechanism.
+ */
+
+import crypto from "node:crypto";
+import fs from "node:fs";
+import path from "node:path";
+import { sessionPath } from "../harness/jsonl-session-store.js";
+import {
+  normalizeSessionResourceBudgetSnapshot,
+  SessionResourceBudget,
+} from "./session-resource-budget.js";
+import { withFileLock } from "./with-file-lock.js";
+
+export const SESSION_BUDGET_SIDECAR_VERSION = 1;
+
+const DEFAULT_REGISTRY = new Map();
+const MAX_SIDECAR_BYTES = 1024 * 1024;
+const USAGE_UNKNOWN_SUFFIX = ".usage-unknown.json";
+
+function isRecord(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const proto = Object.getPrototypeOf(value);
+  return proto === Object.prototype || proto === null;
+}
+
+function runtimeError(operation, filePath, cause, code = null) {
+  const detail = cause?.message || String(cause || "unknown error");
+  const error = new Error(
+    `Session budget ${operation} failed (${filePath}): ${detail}`,
+    { cause },
+  );
+  error.name = "SessionBudgetPersistenceError";
+  error.code = code || `ERR_SESSION_BUDGET_${operation.toUpperCase()}`;
+  error.filePath = filePath;
+  return error;
+}
+
+function validateRecord(value, sessionId, filePath) {
+  if (
+    !isRecord(value) ||
+    value.version !== SESSION_BUDGET_SIDECAR_VERSION ||
+    value.sessionId !== sessionId ||
+    !Number.isSafeInteger(value.revision) ||
+    value.revision < 1 ||
+    !isRecord(value.snapshot)
+  ) {
+    throw runtimeError(
+      "corrupt",
+      filePath,
+      new TypeError("invalid sidecar envelope"),
+    );
+  }
+  let snapshot;
+  try {
+    snapshot = normalizeSessionResourceBudgetSnapshot(value.snapshot);
+  } catch (cause) {
+    throw runtimeError("corrupt", filePath, cause);
+  }
+  const writerPid = Number(value.writer?.pid);
+  return {
+    version: SESSION_BUDGET_SIDECAR_VERSION,
+    sessionId,
+    revision: value.revision,
+    storedAt: typeof value.storedAt === "string" ? value.storedAt : null,
+    writer:
+      Number.isSafeInteger(writerPid) && writerPid > 0
+        ? { pid: writerPid }
+        : null,
+    snapshot,
+  };
+}
+
+function usageSettlementEntries(snapshot) {
+  return snapshot.inFlight.work.filter(
+    (entry) => entry.kind === "usage-settlement",
+  );
+}
+
+function usageUnknownMarkerIdentity(record) {
+  if (!record) return null;
+  const digest = crypto
+    .createHash("sha256")
+    .update(
+      JSON.stringify({
+        version: record.version,
+        sessionId: record.sessionId,
+        revision: record.revision,
+        storedAt: record.storedAt,
+        writer: record.writer,
+        snapshot: record.snapshot,
+      }),
+    )
+    .digest("hex");
+  return { revision: record.revision, digest };
+}
+
+function normalizeUsageUnknownMarkerIdentity(value, filePath) {
+  if (
+    !isRecord(value) ||
+    !Number.isSafeInteger(value.revision) ||
+    value.revision < 1 ||
+    typeof value.digest !== "string" ||
+    !/^[a-f0-9]{64}$/.test(value.digest)
+  ) {
+    throw runtimeError(
+      "marker",
+      filePath,
+      new TypeError("invalid usage-unknown marker identity"),
+      "ERR_SESSION_BUDGET_MARKER_IDENTITY",
+    );
+  }
+  return { revision: value.revision, digest: value.digest };
+}
+
+function sameUsageUnknownMarkerIdentity(left, right) {
+  return Boolean(
+    left &&
+    right &&
+    left.revision === right.revision &&
+    left.digest === right.digest,
+  );
+}
+
+function mergeUsageUnknownSnapshot(baseSnapshot, markerSnapshot, filePath) {
+  const base = normalizeSessionResourceBudgetSnapshot(baseSnapshot);
+  const markerEntries = usageSettlementEntries(markerSnapshot);
+  if (markerEntries.length === 0) {
+    throw runtimeError(
+      "corrupt",
+      filePath,
+      new TypeError("usage-unknown marker has no pending settlement"),
+    );
+  }
+  const work = new Map(base.inFlight.work.map((entry) => [entry.id, entry]));
+  for (const entry of markerEntries) {
+    const existing = work.get(entry.id);
+    if (existing && JSON.stringify(existing) !== JSON.stringify(entry)) {
+      throw runtimeError(
+        "corrupt",
+        filePath,
+        new TypeError("conflicting usage-unknown settlement identity"),
+      );
+    }
+    work.set(entry.id, { ...entry });
+  }
+  return normalizeSessionResourceBudgetSnapshot({
+    ...base,
+    inFlight: {
+      work: [...work.values()],
+      tools: base.inFlight.tools,
+    },
+  });
+}
+
+function sameIdentity(left, right) {
+  return Boolean(
+    left && right && left.dev === right.dev && left.ino === right.ino,
+  );
+}
+
+function ensurePrivateOwnership(filePath, stat, kind) {
+  const predicate = kind === "directory" ? stat.isDirectory : stat.isFile;
+  if (
+    typeof predicate !== "function" ||
+    !predicate.call(stat) ||
+    stat.isSymbolicLink?.()
+  ) {
+    throw runtimeError(
+      "read",
+      filePath,
+      new Error(`${kind} must be a regular non-symlink ${kind}`),
+    );
+  }
+  if (process.platform !== "win32" && (stat.mode & 0o077) !== 0) {
+    throw runtimeError(
+      "read",
+      filePath,
+      new Error(`${kind} permissions must not grant group/other access`),
+    );
+  }
+  if (
+    process.platform !== "win32" &&
+    typeof process.getuid === "function" &&
+    Number.isInteger(stat.uid) &&
+    stat.uid !== process.getuid()
+  ) {
+    throw runtimeError("read", filePath, new Error(`${kind} owner mismatch`));
+  }
+}
+
+function openVerifiedParent(filePath, fileSystem) {
+  const directory = path.dirname(filePath);
+  let before;
+  try {
+    before = fileSystem.lstatSync(directory);
+    ensurePrivateOwnership(directory, before, "directory");
+  } catch (cause) {
+    if (cause?.name === "SessionBudgetPersistenceError") throw cause;
+    throw runtimeError("read", directory, cause);
+  }
+
+  let descriptor = null;
+  if (process.platform !== "win32") {
+    try {
+      const flags =
+        fs.constants.O_RDONLY |
+        (fs.constants.O_DIRECTORY || 0) |
+        (fs.constants.O_NOFOLLOW || 0);
+      descriptor = fileSystem.openSync(directory, flags);
+      const opened = fileSystem.fstatSync(descriptor);
+      ensurePrivateOwnership(directory, opened, "directory");
+      if (!sameIdentity(before, opened)) {
+        throw new Error("parent directory identity changed during open");
+      }
+    } catch (cause) {
+      if (descriptor !== null) {
+        try {
+          fileSystem.closeSync(descriptor);
+        } catch {
+          // Preserve the identity failure.
+        }
+      }
+      if (cause?.name === "SessionBudgetPersistenceError") throw cause;
+      throw runtimeError("read", directory, cause);
+    }
+  }
+
+  return {
+    verify() {
+      let current;
+      try {
+        current = fileSystem.lstatSync(directory);
+        ensurePrivateOwnership(directory, current, "directory");
+        if (!sameIdentity(before, current)) {
+          throw new Error("parent directory identity changed");
+        }
+        if (descriptor !== null) {
+          const opened = fileSystem.fstatSync(descriptor);
+          if (!sameIdentity(before, opened)) {
+            throw new Error("opened parent directory identity changed");
+          }
+        }
+      } catch (cause) {
+        if (cause?.name === "SessionBudgetPersistenceError") throw cause;
+        throw runtimeError("read", directory, cause);
+      }
+    },
+    close() {
+      if (descriptor !== null) {
+        fileSystem.closeSync(descriptor);
+        descriptor = null;
+      }
+    },
+  };
+}
+
+function readRecordAt(filePath, sessionId, fileSystem = fs) {
+  let parent;
+  try {
+    parent = openVerifiedParent(filePath, fileSystem);
+  } catch (error) {
+    if (error?.cause?.code === "ENOENT") return null;
+    throw error;
+  }
+  let descriptor = null;
+  let serialized;
+  try {
+    let before;
+    try {
+      before = fileSystem.lstatSync(filePath);
+    } catch (cause) {
+      if (cause?.code === "ENOENT") {
+        parent.verify();
+        return null;
+      }
+      throw cause;
+    }
+    ensurePrivateOwnership(filePath, before, "file");
+    const flags = fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW || 0);
+    descriptor = fileSystem.openSync(filePath, flags);
+    const opened = fileSystem.fstatSync(descriptor);
+    ensurePrivateOwnership(filePath, opened, "file");
+    if (!sameIdentity(before, opened)) {
+      throw new Error("sidecar identity changed during open");
+    }
+    if (opened.size > MAX_SIDECAR_BYTES) {
+      throw new Error("sidecar exceeds maximum size");
+    }
+    const pathAfterOpen = fileSystem.lstatSync(filePath);
+    ensurePrivateOwnership(filePath, pathAfterOpen, "file");
+    if (!sameIdentity(opened, pathAfterOpen)) {
+      throw new Error("sidecar path changed after open");
+    }
+    serialized = fileSystem.readFileSync(descriptor, "utf8");
+    const openedAfterRead = fileSystem.fstatSync(descriptor);
+    const pathAfterRead = fileSystem.lstatSync(filePath);
+    ensurePrivateOwnership(filePath, pathAfterRead, "file");
+    if (
+      !sameIdentity(opened, openedAfterRead) ||
+      !sameIdentity(opened, pathAfterRead)
+    ) {
+      throw new Error("sidecar identity changed during read");
+    }
+    parent.verify();
+  } catch (cause) {
+    if (cause?.name === "SessionBudgetPersistenceError") throw cause;
+    throw runtimeError("read", filePath, cause);
+  } finally {
+    if (descriptor !== null) {
+      try {
+        fileSystem.closeSync(descriptor);
+      } catch {
+        // The read/identity result remains authoritative.
+      }
+    }
+    parent.close();
+  }
+  try {
+    return validateRecord(JSON.parse(serialized), sessionId, filePath);
+  } catch (cause) {
+    if (cause?.name === "SessionBudgetPersistenceError") throw cause;
+    throw runtimeError("corrupt", filePath, cause);
+  }
+}
+
+function writeRecordAt(filePath, value, fileSystem = fs) {
+  const directory = path.dirname(filePath);
+  const parent = openVerifiedParent(filePath, fileSystem);
+  const temporary = path.join(
+    directory,
+    `.${path.basename(filePath)}.${process.pid}.${crypto.randomUUID()}.tmp`,
+  );
+  let descriptor = null;
+  let renamed = false;
+  let temporaryIdentity = null;
+  try {
+    descriptor = fileSystem.openSync(temporary, "wx", 0o600);
+    fileSystem.writeFileSync(
+      descriptor,
+      `${JSON.stringify(value, null, 2)}\n`,
+      "utf8",
+    );
+    fileSystem.fsyncSync(descriptor);
+    temporaryIdentity = fileSystem.fstatSync(descriptor);
+    ensurePrivateOwnership(temporary, temporaryIdentity, "file");
+    fileSystem.closeSync(descriptor);
+    descriptor = null;
+    fileSystem.renameSync(temporary, filePath);
+    renamed = true;
+    const committed = fileSystem.lstatSync(filePath);
+    ensurePrivateOwnership(filePath, committed, "file");
+    if (!sameIdentity(temporaryIdentity, committed)) {
+      throw new Error("committed sidecar identity mismatch");
+    }
+    parent.verify();
+
+    if (process.platform !== "win32") {
+      const directoryDescriptor = fileSystem.openSync(directory, "r");
+      try {
+        fileSystem.fsyncSync(directoryDescriptor);
+      } finally {
+        fileSystem.closeSync(directoryDescriptor);
+      }
+    }
+    parent.verify();
+  } catch (cause) {
+    if (descriptor !== null) {
+      try {
+        fileSystem.closeSync(descriptor);
+      } catch {
+        // Preserve the original write failure.
+      }
+    }
+    if (!renamed) {
+      try {
+        fileSystem.unlinkSync(temporary);
+      } catch {
+        // Best-effort orphan cleanup only.
+      }
+    }
+    throw runtimeError("write", filePath, cause);
+  } finally {
+    parent.close();
+  }
+}
+
+export function sessionBudgetPath(sessionId) {
+  return `${sessionPath(sessionId)}.budget.json`;
+}
+
+export class SessionBudgetSidecarStore {
+  constructor({
+    resolvePath = sessionBudgetPath,
+    fileSystem = fs,
+    lock = withFileLock,
+    lockOptions = {},
+    now = () => Date.now(),
+  } = {}) {
+    this._resolvePath = resolvePath;
+    this._fs = fileSystem;
+    this._lock = lock;
+    this._lockOptions = lockOptions;
+    this._now = now;
+  }
+
+  pathForSession(sessionId) {
+    return this._resolvePath(String(sessionId));
+  }
+
+  usageUnknownPathForSession(sessionId) {
+    return `${this.pathForSession(sessionId)}${USAGE_UNKNOWN_SUFFIX}`;
+  }
+
+  read(sessionId) {
+    const id = String(sessionId);
+    const filePath = this.pathForSession(id);
+    const markerPath = this.usageUnknownPathForSession(id);
+    try {
+      this._fs.lstatSync(path.dirname(filePath));
+    } catch (cause) {
+      if (cause?.code === "ENOENT") return null;
+      throw runtimeError("read", path.dirname(filePath), cause);
+    }
+    return this._lock(
+      filePath,
+      () => {
+        const current = readRecordAt(filePath, id, this._fs);
+        const marker = readRecordAt(markerPath, id, this._fs);
+        if (!marker) return current;
+        const snapshot = mergeUsageUnknownSnapshot(
+          current?.snapshot ?? marker.snapshot,
+          marker.snapshot,
+          markerPath,
+        );
+        return {
+          ...(current || marker),
+          // A marker can survive the first canonical intent write. In that
+          // case the main sidecar is absent and its CAS authority is null.
+          revision: current?.revision ?? null,
+          snapshot,
+          usageUnknown: true,
+          usageUnknownMarker: usageUnknownMarkerIdentity(marker),
+        };
+      },
+      {
+        timeoutMs: 2000,
+        staleMs: 30_000,
+        failIfUnavailable: true,
+        ...this._lockOptions,
+      },
+    );
+  }
+
+  write(sessionId, snapshot, { expectedRevision = null } = {}) {
+    return this._write(sessionId, snapshot, { expectedRevision });
+  }
+
+  finalizeUsageUnknown(
+    sessionId,
+    snapshot,
+    { expectedRevision = null, expectedUsageUnknownMarker = null } = {},
+  ) {
+    return this._write(
+      sessionId,
+      snapshot,
+      { expectedRevision },
+      { resolveUsageUnknown: true, expectedUsageUnknownMarker },
+    );
+  }
+
+  _write(
+    sessionId,
+    snapshot,
+    { expectedRevision = null } = {},
+    { resolveUsageUnknown = false, expectedUsageUnknownMarker = null } = {},
+  ) {
+    const id = String(sessionId);
+    const filePath = this.pathForSession(id);
+    if (
+      expectedRevision !== null &&
+      (!Number.isSafeInteger(expectedRevision) || expectedRevision < 1)
+    ) {
+      throw runtimeError(
+        "revision",
+        filePath,
+        new TypeError(
+          "expected revision must be null or a positive safe integer",
+        ),
+        "ERR_SESSION_BUDGET_UNSAFE_REVISION",
+      );
+    }
+    let canonicalSnapshot;
+    try {
+      canonicalSnapshot = normalizeSessionResourceBudgetSnapshot(snapshot);
+    } catch (cause) {
+      throw runtimeError("snapshot", filePath, cause);
+    }
+    const expectedMarker = resolveUsageUnknown
+      ? normalizeUsageUnknownMarkerIdentity(
+          expectedUsageUnknownMarker,
+          this.usageUnknownPathForSession(id),
+        )
+      : null;
+    try {
+      this._fs.mkdirSync(path.dirname(filePath), {
+        recursive: true,
+        mode: 0o700,
+      });
+    } catch (cause) {
+      throw runtimeError("prepare", filePath, cause);
+    }
+
+    const result = this._lock(
+      filePath,
+      () => {
+        const current = readRecordAt(filePath, id, this._fs);
+        const marker = readRecordAt(
+          this.usageUnknownPathForSession(id),
+          id,
+          this._fs,
+        );
+        const actualMarker = usageUnknownMarkerIdentity(marker);
+        const clean = usageSettlementEntries(canonicalSnapshot).length === 0;
+        if (marker && clean && !resolveUsageUnknown) {
+          throw runtimeError(
+            "recovery",
+            filePath,
+            new Error("unknown usage must be adjudicated before a clean write"),
+            "ERR_SESSION_BUDGET_RECOVERY_REQUIRED",
+          );
+        }
+        if (resolveUsageUnknown && !marker) {
+          throw runtimeError(
+            "recovery",
+            filePath,
+            new Error("usage-unknown marker is required for finalization"),
+            "ERR_SESSION_BUDGET_RECOVERY_REQUIRED",
+          );
+        }
+        if (
+          resolveUsageUnknown &&
+          !sameUsageUnknownMarkerIdentity(expectedMarker, actualMarker)
+        ) {
+          throw runtimeError(
+            "conflict",
+            this.usageUnknownPathForSession(id),
+            new Error("usage-unknown marker changed after it was observed"),
+            "ERR_SESSION_BUDGET_MARKER_CONFLICT",
+          );
+        }
+        if (resolveUsageUnknown && !clean) {
+          throw runtimeError(
+            "recovery",
+            filePath,
+            new Error("usage finalization snapshot must be clean"),
+            "ERR_SESSION_BUDGET_RECOVERY_REQUIRED",
+          );
+        }
+        const actualRevision = current?.revision ?? null;
+        if (actualRevision !== expectedRevision) {
+          throw runtimeError(
+            "conflict",
+            filePath,
+            new Error(
+              `expected revision ${String(expectedRevision)}, found ${String(actualRevision)}`,
+            ),
+            "ERR_SESSION_BUDGET_CONFLICT",
+          );
+        }
+        if (actualRevision === Number.MAX_SAFE_INTEGER) {
+          throw runtimeError(
+            "revision",
+            filePath,
+            new Error("sidecar revision is exhausted"),
+            "ERR_SESSION_BUDGET_UNSAFE_REVISION",
+          );
+        }
+        const revision = (actualRevision || 0) + 1;
+        const record = {
+          version: SESSION_BUDGET_SIDECAR_VERSION,
+          sessionId: id,
+          revision,
+          storedAt: new Date(this._now()).toISOString(),
+          writer: { pid: process.pid },
+          snapshot: canonicalSnapshot,
+        };
+        writeRecordAt(filePath, record, this._fs);
+        if (resolveUsageUnknown) {
+          this._clearUsageUnknownLocked(id, expectedMarker);
+        }
+        return {
+          revision,
+          filePath,
+          ...(resolveUsageUnknown ? { usageUnknownMarker: null } : {}),
+        };
+      },
+      {
+        timeoutMs: 2000,
+        staleMs: 30_000,
+        failIfUnavailable: true,
+        ...this._lockOptions,
+      },
+    );
+    return result;
+  }
+
+  markUsageUnknown(sessionId, snapshot) {
+    const id = String(sessionId);
+    const filePath = this.pathForSession(id);
+    const markerPath = this.usageUnknownPathForSession(id);
+    let canonicalSnapshot;
+    try {
+      canonicalSnapshot = normalizeSessionResourceBudgetSnapshot(snapshot);
+    } catch (cause) {
+      throw runtimeError("snapshot", markerPath, cause);
+    }
+    if (usageSettlementEntries(canonicalSnapshot).length === 0) {
+      throw runtimeError(
+        "marker",
+        markerPath,
+        new TypeError("usage-unknown marker requires a pending settlement"),
+      );
+    }
+    try {
+      this._fs.mkdirSync(path.dirname(markerPath), {
+        recursive: true,
+        mode: 0o700,
+      });
+    } catch (cause) {
+      throw runtimeError("prepare", markerPath, cause);
+    }
+
+    return this._lock(
+      filePath,
+      () => {
+        const current = readRecordAt(markerPath, id, this._fs);
+        if (current?.revision === Number.MAX_SAFE_INTEGER) {
+          throw runtimeError(
+            "revision",
+            markerPath,
+            new Error("usage-unknown marker revision is exhausted"),
+            "ERR_SESSION_BUDGET_UNSAFE_REVISION",
+          );
+        }
+        const merged = current
+          ? mergeUsageUnknownSnapshot(
+              canonicalSnapshot,
+              current.snapshot,
+              markerPath,
+            )
+          : canonicalSnapshot;
+        const revision = (current?.revision || 0) + 1;
+        const record = {
+          version: SESSION_BUDGET_SIDECAR_VERSION,
+          sessionId: id,
+          revision,
+          storedAt: new Date(this._now()).toISOString(),
+          writer: { pid: process.pid },
+          snapshot: merged,
+        };
+        writeRecordAt(markerPath, record, this._fs);
+        const committed = readRecordAt(markerPath, id, this._fs);
+        const usageUnknownMarker = usageUnknownMarkerIdentity(committed);
+        if (current) {
+          // Preserve the newly reported settlement, but do not let a runtime
+          // that did not observe the prior marker later finalize both. The
+          // caller fails closed and a fresh recovery host must see the union.
+          throw runtimeError(
+            "conflict",
+            markerPath,
+            new Error("usage-unknown marker changed after it was observed"),
+            "ERR_SESSION_BUDGET_MARKER_CONFLICT",
+          );
+        }
+        return { revision, filePath: markerPath, usageUnknownMarker };
+      },
+      {
+        timeoutMs: 2000,
+        staleMs: 30_000,
+        failIfUnavailable: true,
+        ...this._lockOptions,
+      },
+    );
+  }
+
+  clearUsageUnknown(sessionId, { expectedUsageUnknownMarker = null } = {}) {
+    const id = String(sessionId);
+    const filePath = this.pathForSession(id);
+    const markerPath = this.usageUnknownPathForSession(id);
+    const expectedMarker = normalizeUsageUnknownMarkerIdentity(
+      expectedUsageUnknownMarker,
+      markerPath,
+    );
+    return this._lock(
+      filePath,
+      () => this._clearUsageUnknownLocked(id, expectedMarker),
+      {
+        timeoutMs: 2000,
+        staleMs: 30_000,
+        failIfUnavailable: true,
+        ...this._lockOptions,
+      },
+    );
+  }
+
+  _clearUsageUnknownLocked(sessionId, expectedUsageUnknownMarker) {
+    const id = String(sessionId);
+    const markerPath = this.usageUnknownPathForSession(id);
+    const marker = readRecordAt(markerPath, id, this._fs);
+    const actualMarker = usageUnknownMarkerIdentity(marker);
+    if (
+      !sameUsageUnknownMarkerIdentity(expectedUsageUnknownMarker, actualMarker)
+    ) {
+      throw runtimeError(
+        "conflict",
+        markerPath,
+        new Error("usage-unknown marker changed before clear"),
+        "ERR_SESSION_BUDGET_MARKER_CONFLICT",
+      );
+    }
+    const parent = openVerifiedParent(markerPath, this._fs);
+    const tombstone = `${markerPath}.${process.pid}.${crypto.randomUUID()}.clear`;
+    try {
+      const before = this._fs.lstatSync(markerPath);
+      ensurePrivateOwnership(markerPath, before, "file");
+      this._fs.renameSync(markerPath, tombstone);
+      const moved = this._fs.lstatSync(tombstone);
+      ensurePrivateOwnership(tombstone, moved, "file");
+      if (!sameIdentity(before, moved)) {
+        throw new Error("usage-unknown marker identity changed during clear");
+      }
+      this._fs.unlinkSync(tombstone);
+      parent.verify();
+      if (process.platform !== "win32") {
+        const directoryDescriptor = this._fs.openSync(
+          path.dirname(markerPath),
+          "r",
+        );
+        try {
+          this._fs.fsyncSync(directoryDescriptor);
+        } finally {
+          this._fs.closeSync(directoryDescriptor);
+        }
+      }
+      parent.verify();
+      return true;
+    } catch (cause) {
+      throw runtimeError("clear", markerPath, cause);
+    } finally {
+      parent.close();
+    }
+  }
+}
+
+class SharedSessionBudgetRuntime {
+  constructor({
+    sessionId,
+    key,
+    store,
+    budget,
+    revision,
+    usageUnknownMarker,
+    registry,
+  }) {
+    this.sessionId = sessionId;
+    this.key = key;
+    this.store = store;
+    this.budget = budget;
+    this.revision = revision;
+    this.usageUnknownMarker = usageUnknownMarker || null;
+    this.registry = registry;
+    this.references = 0;
+    this.observers = new Set();
+    this.persistenceError = null;
+    this._persisting = false;
+  }
+
+  observe(callback) {
+    if (typeof callback !== "function") return () => false;
+    this.observers.add(callback);
+    return () => this.observers.delete(callback);
+  }
+
+  onBudgetEvent(event) {
+    for (const observer of this.observers) {
+      try {
+        observer(event);
+      } catch {
+        // Observability never weakens the budget authority.
+      }
+    }
+  }
+
+  _persistTransaction(write) {
+    if (this.persistenceError) throw this.persistenceError;
+    if (this._persisting) {
+      const error = runtimeError(
+        "reentrant",
+        this.store.pathForSession(this.sessionId),
+        new Error("authority persistence cannot re-enter"),
+        "ERR_SESSION_BUDGET_REENTRANT_PERSISTENCE",
+      );
+      this.persistenceError = error;
+      throw error;
+    }
+    this._persisting = true;
+    try {
+      const result = write();
+      if (this.persistenceError) throw this.persistenceError;
+      if (!Number.isSafeInteger(result?.revision) || result.revision < 1) {
+        throw runtimeError(
+          "write",
+          this.store.pathForSession(this.sessionId),
+          new TypeError("store returned an invalid revision"),
+        );
+      }
+      this.revision = result.revision;
+      if (Object.hasOwn(result, "usageUnknownMarker")) {
+        this.usageUnknownMarker = result.usageUnknownMarker
+          ? normalizeUsageUnknownMarkerIdentity(
+              result.usageUnknownMarker,
+              this.store.pathForSession(this.sessionId),
+            )
+          : null;
+      }
+      return this.revision;
+    } catch (error) {
+      this.persistenceError = error;
+      throw error;
+    } finally {
+      this._persisting = false;
+    }
+  }
+
+  persistSnapshot(snapshot) {
+    return this._persistTransaction(() =>
+      this.store.write(this.sessionId, snapshot, {
+        expectedRevision: this.revision,
+      }),
+    );
+  }
+
+  persist() {
+    return this.persistSnapshot(this.budget.snapshot());
+  }
+
+  persistAuthority(change) {
+    if (change.type === "budget:usage-settlement-started") {
+      return this._persistTransaction(() => {
+        if (typeof this.store.markUsageUnknown !== "function") {
+          throw runtimeError(
+            "marker",
+            this.store.pathForSession(this.sessionId),
+            new Error("store cannot persist unknown usage intent"),
+            "ERR_SESSION_BUDGET_MARKER_UNAVAILABLE",
+          );
+        }
+        const marker = this.store.markUsageUnknown(
+          this.sessionId,
+          change.snapshot,
+        );
+        const usageUnknownMarker = normalizeUsageUnknownMarkerIdentity(
+          marker?.usageUnknownMarker,
+          this.store.pathForSession(this.sessionId),
+        );
+        const result = this.store.write(this.sessionId, change.snapshot, {
+          expectedRevision: this.revision,
+        });
+        return {
+          ...result,
+          usageUnknownMarker,
+        };
+      });
+    }
+
+    if (change.type === "budget:usage-recorded") {
+      return this._persistTransaction(() => {
+        if (typeof this.store.finalizeUsageUnknown !== "function") {
+          throw runtimeError(
+            "finalize",
+            this.store.pathForSession(this.sessionId),
+            new Error("store cannot durably finalize unknown usage"),
+            "ERR_SESSION_BUDGET_MARKER_UNAVAILABLE",
+          );
+        }
+        return this.store.finalizeUsageUnknown(
+          this.sessionId,
+          change.snapshot,
+          {
+            expectedRevision: this.revision,
+            expectedUsageUnknownMarker: this.usageUnknownMarker,
+          },
+        );
+      });
+    }
+
+    if (change.type === "budget:recovery-adjudicated") {
+      return this._persistTransaction(() => {
+        if (this.usageUnknownMarker) {
+          if (typeof this.store.finalizeUsageUnknown !== "function") {
+            throw runtimeError(
+              "finalize",
+              this.store.pathForSession(this.sessionId),
+              new Error("store cannot durably adjudicate unknown usage"),
+              "ERR_SESSION_BUDGET_MARKER_UNAVAILABLE",
+            );
+          }
+          return this.store.finalizeUsageUnknown(
+            this.sessionId,
+            change.snapshot,
+            {
+              expectedRevision: this.revision,
+              expectedUsageUnknownMarker: this.usageUnknownMarker,
+            },
+          );
+        }
+        return this.store.write(this.sessionId, change.snapshot, {
+          expectedRevision: this.revision,
+        });
+      });
+    }
+
+    return this.persistSnapshot(change.snapshot);
+  }
+
+  retain({ limits = {}, onEvent = null, signal = null } = {}) {
+    this.budget.tightenLimits?.(limits);
+    let unlinkSignal = () => {};
+    let signalFailure = null;
+    let retaining = true;
+    if (signal) {
+      const abort = () => {
+        try {
+          this.budget.abort(signal.reason || "host-aborted", {
+            reason: "host-aborted",
+          });
+        } catch (error) {
+          signalFailure = error;
+          // Once a handle exists, the budget has already failed closed and its
+          // status exposes the durable error. Do not turn a later EventTarget
+          // callback into an uncaught process exception.
+          if (!retaining) return;
+        }
+      };
+      if (signal.aborted) abort();
+      else {
+        unlinkSignal = () => {
+          try {
+            signal.removeEventListener?.("abort", abort);
+          } catch {
+            // Listener cleanup must not retain the shared runtime forever.
+          }
+        };
+        try {
+          signal.addEventListener?.("abort", abort, { once: true });
+        } catch (error) {
+          // A custom EventTarget may register and then throw. Best-effort
+          // unlink closes that leak before openSessionBudget unwinds.
+          unlinkSignal();
+          throw error;
+        }
+        // Custom signals need not provide the browser's atomic add/check
+        // behavior. Close the narrow race before retaining process state.
+        if (signal.aborted) abort();
+      }
+    }
+    retaining = false;
+    if (signalFailure) {
+      unlinkSignal();
+      throw signalFailure;
+    }
+    const unobserve = this.observe(onEvent);
+    this.references += 1;
+    let closed = false;
+    return new SessionBudgetRuntimeHandle(this, () => {
+      if (closed) return false;
+      closed = true;
+      unlinkSignal();
+      unobserve();
+      return this.release();
+    });
+  }
+
+  release() {
+    if (this.references <= 0) return false;
+    this.references -= 1;
+    if (this.references > 0) return true;
+    let failure = null;
+    try {
+      this.persist();
+    } catch (error) {
+      failure = error;
+    } finally {
+      this.budget.dispose();
+      if (this.registry.get(this.key) === this) this.registry.delete(this.key);
+    }
+    if (failure) throw failure;
+    return true;
+  }
+}
+
+export class SessionBudgetRuntimeHandle {
+  constructor(runtime, close) {
+    this.sessionId = runtime.sessionId;
+    this.budget = runtime.budget;
+    this.filePath = runtime.store.pathForSession(runtime.sessionId);
+    this._runtime = runtime;
+    this._close = close;
+  }
+
+  persist() {
+    return this._runtime.persist();
+  }
+
+  status() {
+    return {
+      ...this.budget.status(),
+      persistenceRevision: this._runtime.revision,
+      persistenceError: this._runtime.persistenceError?.message || null,
+    };
+  }
+
+  close() {
+    return this._close();
+  }
+}
+
+function registryKey(store, sessionId) {
+  const filePath = path.resolve(store.pathForSession(sessionId));
+  return process.platform === "win32" ? filePath.toLowerCase() : filePath;
+}
+
+/**
+ * Open (or reuse) one process-local budget instance for a logical session.
+ * Restored dirty snapshots remain blocked until the caller explicitly invokes
+ * `budget.adjudicateRecovery({ abandoned: exactIds })`.
+ */
+export function openSessionBudget(
+  sessionId,
+  {
+    limits = {},
+    table = undefined,
+    signal = null,
+    onEvent = null,
+    recoverUnsettled = "require-adjudication",
+    store = new SessionBudgetSidecarStore(),
+    registry = DEFAULT_REGISTRY,
+    now = () => Date.now(),
+    setTimer = (fn, delay) => setTimeout(fn, delay),
+    clearTimer = (timer) => clearTimeout(timer),
+  } = {},
+) {
+  const id = String(sessionId || "");
+  if (recoverUnsettled !== "require-adjudication") {
+    throw new TypeError(
+      "session budget runtime requires explicit recovery adjudication",
+    );
+  }
+  // sessionBudgetPath/sessionPath performs the canonical segment validation.
+  const key = registryKey(store, id);
+  const existing = registry.get(key);
+  if (existing) return existing.retain({ limits, onEvent, signal });
+
+  const stored = store.read(id);
+  let runtime = null;
+  const dispatch = (event) => runtime?.onBudgetEvent(event);
+  const persistAuthority = (change) => runtime?.persistAuthority(change);
+  const common = {
+    table,
+    now,
+    setTimer,
+    clearTimer,
+    onEvent: dispatch,
+    onAuthorityChange: persistAuthority,
+  };
+  const budget = stored
+    ? SessionResourceBudget.restore(stored.snapshot, {
+        ...common,
+        overrides: limits,
+        recoverUnsettled: "require-adjudication",
+      })
+    : new SessionResourceBudget({ ...limits, ...common });
+  runtime = new SharedSessionBudgetRuntime({
+    sessionId: id,
+    key,
+    store,
+    budget,
+    revision: stored?.revision ?? null,
+    usageUnknownMarker: stored?.usageUnknownMarker ?? null,
+    registry,
+  });
+  registry.set(key, runtime);
+  try {
+    // Persist creation, restore/tightening and an exact clean/dirty snapshot
+    // before returning a handle.
+    runtime.persist();
+    return runtime.retain({ onEvent, signal });
+  } catch (error) {
+    registry.delete(key);
+    budget.dispose();
+    throw error;
+  }
+}
+
+export function sessionBudgetRuntimeCount(registry = DEFAULT_REGISTRY) {
+  return registry.size;
+}
