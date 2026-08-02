@@ -3,11 +3,13 @@
  */
 
 import {
+  constants as fsConstants,
   existsSync,
   appendFileSync,
   readFileSync,
   readdirSync,
   copyFileSync,
+  renameSync,
   rmSync,
   openSync,
   closeSync,
@@ -27,10 +29,13 @@ import {
 } from "./transcript-integrity.js";
 import { withFileLock } from "../lib/with-file-lock.js";
 import {
-  decodePersistedMessage,
+  decodeVerifiedPersistedMessage,
   DURABLE_SYSTEM_MESSAGE_KINDS,
   encodePersistedMessage,
   markDurableSystemMessage,
+  projectCanonicalResumeMessages,
+  sanitizePersistedMessage,
+  SESSION_FORK_AUTHORITY_FIELD,
 } from "../lib/session-message-provenance.js";
 import {
   iterateFileLinesSync,
@@ -57,6 +62,10 @@ let securedSessionsDirIdentity = null;
 // keeps production behavior and ordinary tests on the exact same append path.
 export const _sessionScaleFaultHooks = Object.seal({
   afterTranscriptAppend: null,
+  afterForkCopy: null,
+  afterForkLineage: null,
+  afterForkPublish: null,
+  afterForkMeta: null,
 });
 
 export const WS_TURN_EVENT = "ws_turn";
@@ -636,7 +645,7 @@ function readVerifiedWsAuthorityLocked(
   return Object.freeze({
     authority,
     state: reducer.finish(authority),
-    messages: Object.freeze([...rebuildMessagesFromFile(filePath)]),
+    messages: Object.freeze([...rebuildVerifiedMessagesFromFile(filePath)]),
   });
 }
 
@@ -1463,6 +1472,49 @@ export function appendCompactEvent(sessionId, stats) {
   appendEvent(sessionId, "compact", stats);
 }
 
+function canonicalReplayFingerprint(messages) {
+  return JSON.stringify(
+    projectCanonicalResumeMessages(messages, { strict: true }).map(
+      encodePersistedMessage,
+    ),
+  );
+}
+
+/**
+ * Persist a compact checkpoint only while the verified active replay still
+ * equals the caller's last known projection. Head-only CAS is insufficient for
+ * a long-lived REPL: it could sample a newer head that already contains turns
+ * absent from its local context and then accidentally hide those turns.
+ */
+export function appendCompactEventIfMessagesMatch(
+  sessionId,
+  stats,
+  expectedMessages,
+) {
+  const expectedFingerprint = canonicalReplayFingerprint(expectedMessages);
+  const persistedData = encodeEventMessageProvenance("compact", stats);
+  return withVerifiedWsTurnLock(sessionId, (filePath) => {
+    const verification = verifyTranscriptFile(filePath);
+    assertVerifiedTranscriptAnchor(sessionId, verification);
+    const actualMessages = rebuildVerifiedMessagesFromFile(filePath);
+    if (canonicalReplayFingerprint(actualMessages) !== expectedFingerprint) {
+      const error = new Error(
+        `Session messages changed for ${sessionId}; refresh before compacting`,
+      );
+      error.code = "SESSION_REVISION_STALE";
+      error.actualHeadHash = verification.lastHash;
+      throw error;
+    }
+    return appendVerifiedWsAuthorityEventLocked(
+      sessionId,
+      filePath,
+      "compact",
+      persistedData,
+      verification.lastHash,
+    );
+  });
+}
+
 export function readEvents(sessionId) {
   if (isUnsafeSessionId(sessionId)) return []; // traversal id → treat as empty
   const filePath = sessionPath(sessionId);
@@ -1573,7 +1625,7 @@ export function readVerifiedProjection(
           headHash: verification.lastHash,
           eventCount: verification.chainedEvents,
           readMessages: () =>
-            rebuildMessagesFromFile(filePath, {
+            rebuildVerifiedMessagesFromFile(filePath, {
               ioMetrics: options.messageIoMetrics,
             }),
         }),
@@ -1607,6 +1659,24 @@ export function readVerifiedEvents(sessionId) {
       },
     };
   });
+}
+
+/**
+ * Read the active context only after transcript and sidecar-anchor validation.
+ * Unlike the compatibility `rebuildMessages()` reader, this is allowed to
+ * restore hash-covered durable system-message provenance.
+ */
+export function readVerifiedMessages(sessionId, options = {}) {
+  return readVerifiedProjection(
+    sessionId,
+    () => ({
+      accept() {},
+      finish(authority) {
+        return Object.freeze([...authority.readMessages()]);
+      },
+    }),
+    options,
+  );
 }
 
 /**
@@ -1682,7 +1752,11 @@ function isReplayableMessage(m) {
   return Boolean(m) && typeof m === "object" && typeof m.role === "string";
 }
 
-function rebuildMessagesFromFile(filePath, options = {}) {
+function rebuildMessagesFromFile(
+  filePath,
+  options = {},
+  decodeMessage = sanitizePersistedMessage,
+) {
   const ioMetrics = options?.ioMetrics ?? null;
   // Scan newest-first and stop at the latest valid compact checkpoint. Memory
   // is therefore proportional to the active context suffix, not transcript
@@ -1703,7 +1777,7 @@ function rebuildMessagesFromFile(filePath, options = {}) {
       Array.isArray(event.data?.messages)
     ) {
       checkpoint = event.data.messages
-        .map(decodePersistedMessage)
+        .map(decodeMessage)
         .filter(isReplayableMessage);
       break;
     }
@@ -1714,7 +1788,7 @@ function rebuildMessagesFromFile(filePath, options = {}) {
         event.type === "system") &&
       isReplayableMessage(event.data)
     ) {
-      suffix.push(decodePersistedMessage(event.data));
+      suffix.push(decodeMessage(event.data));
     } else if (event?.type === WS_TURN_EVENT) {
       const turn = projectWsTurnMessages(event);
       if (turn) {
@@ -1726,6 +1800,14 @@ function rebuildMessagesFromFile(filePath, options = {}) {
   }
   suffix.reverse();
   return [...checkpoint, ...suffix];
+}
+
+function rebuildVerifiedMessagesFromFile(filePath, options = {}) {
+  return rebuildMessagesFromFile(
+    filePath,
+    options,
+    decodeVerifiedPersistedMessage,
+  );
 }
 
 export function rebuildMessages(sessionId, options = {}) {
@@ -1918,34 +2000,405 @@ export function pruneJsonlSessions(options = {}) {
   };
 }
 
-export function forkSession(sourceId) {
-  const events = readEvents(sourceId);
-  if (events.length === 0) return null;
-
-  const newId = `session-${Date.now()}-${createHash("sha256").update(Math.random().toString()).digest("hex").slice(0, 6)}`;
-  const filePath = sessionPath(newId);
-
-  for (const event of events) {
-    const line = JSON.stringify(event) + "\n";
-    appendFileSync(filePath, line, { encoding: "utf8", mode: 0o600 });
+function compareFilePrefix(candidatePath, fullPath) {
+  const candidateFd = openSync(candidatePath, "r");
+  const fullFd = openSync(fullPath, "r");
+  try {
+    const candidateSize = fstatSync(candidateFd).size;
+    const fullSize = fstatSync(fullFd).size;
+    if (candidateSize > fullSize) {
+      return { matches: false, candidateSize, fullSize };
+    }
+    const candidateBuffer = Buffer.allocUnsafe(64 * 1024);
+    const fullBuffer = Buffer.allocUnsafe(64 * 1024);
+    let offset = 0;
+    while (offset < candidateSize) {
+      const length = Math.min(candidateBuffer.length, candidateSize - offset);
+      const candidateRead = readSync(
+        candidateFd,
+        candidateBuffer,
+        0,
+        length,
+        offset,
+      );
+      const fullRead = readSync(fullFd, fullBuffer, 0, length, offset);
+      if (
+        candidateRead !== length ||
+        fullRead !== length ||
+        !candidateBuffer
+          .subarray(0, length)
+          .equals(fullBuffer.subarray(0, length))
+      ) {
+        return { matches: false, candidateSize, fullSize };
+      }
+      offset += length;
+    }
+    return { matches: true, candidateSize, fullSize };
+  } finally {
+    closeSync(candidateFd);
+    closeSync(fullFd);
   }
-  ensurePrivateFile(filePath);
+}
 
-  rebuildSessionMeta(newId);
+const SESSION_FORK_AUTHORITY_SCHEMA =
+  "chainlesschain.session-fork-authority/v1";
 
-  appendEvent(newId, "system", {
-    role: "system",
-    content: `[Forked from session ${sourceId}]`,
-  });
+function normalizeForkRequestId(options) {
+  const requestId = options?.requestId ?? "default";
+  if (
+    typeof requestId !== "string" ||
+    requestId.length === 0 ||
+    Buffer.byteLength(requestId, "utf8") > 256
+  ) {
+    throw new TypeError(
+      "fork requestId must be a non-empty string <= 256 bytes",
+    );
+  }
+  return requestId;
+}
 
-  return newId;
+/**
+ * Copy one verified source revision into an idempotent successor. The target is
+ * bound to (sourceId, requestId), while its lineage record commits the source
+ * revision selected by the first completed attempt. Callers that intentionally
+ * need separate forks must pass separate requestId values.
+ */
+export function forkSession(sourceId, options = {}) {
+  if (isUnsafeSessionId(sourceId)) return null;
+  const requestId = normalizeForkRequestId(options);
+  const sourcePath = sessionPath(sourceId);
+  if (!existsSync(sourcePath)) return null;
+
+  return withFileLock(
+    sourcePath,
+    () => {
+      if (!existsSync(sourcePath)) return null;
+      const sourceVerification = verifyTranscriptFile(sourcePath);
+      assertVerifiedTranscriptAnchor(sourceId, sourceVerification);
+      const forkIdentity = JSON.stringify({
+        schemaVersion: 1,
+        sourceSessionId: sourceId,
+        requestId,
+      });
+      const forkDigest = createHash("sha256")
+        .update(forkIdentity, "utf8")
+        .digest("hex");
+      const requestDigest = `sha256:${forkDigest}`;
+      const newId = `session-fork-${forkDigest.slice(0, 32)}`;
+      const filePath = sessionPath(newId);
+      const sessionsDir = getSessionsDir();
+      const pendingPath = join(sessionsDir, `${newId}.fork.pending`);
+      const persistedData = encodeEventMessageProvenance(
+        "system",
+        markDurableSystemMessage(
+          {
+            role: "system",
+            content: `[Forked from session ${sourceId}]`,
+          },
+          DURABLE_SYSTEM_MESSAGE_KINDS.FORK_LINEAGE,
+        ),
+      );
+
+      return withFileLock(
+        filePath,
+        () => {
+          let targetMeta = readSessionMeta(sessionsDir, newId);
+          const finalExists = existsSync(filePath);
+          const pendingExists = existsSync(pendingPath);
+          if (finalExists && pendingExists) {
+            throw unverifiedTranscriptError(
+              newId,
+              verifyTranscriptFile(filePath),
+            );
+          }
+          if (!finalExists && targetMeta !== null) {
+            throw unverifiedTranscriptError(newId, {
+              status: "not-found",
+              chainedEvents: 0,
+              malformedLines: 0,
+              truncatedTail: false,
+              lastHash: null,
+            });
+          }
+          let workingPath = finalExists ? filePath : pendingPath;
+          if (!finalExists && !pendingExists) {
+            if (targetMeta !== null) {
+              throw unverifiedTranscriptError(newId, {
+                status: "not-found",
+                chainedEvents: 0,
+                malformedLines: 0,
+                truncatedTail: false,
+                lastHash: null,
+              });
+            }
+            copyFileSync(sourcePath, workingPath, fsConstants.COPYFILE_EXCL);
+            ensurePrivateFile(workingPath);
+            runSessionScaleFaultHook("afterForkCopy", {
+              sourceId,
+              sessionId: newId,
+              filePath: workingPath,
+            });
+          } else {
+            const prefix = compareFilePrefix(workingPath, sourcePath);
+            if (prefix.matches && prefix.candidateSize < prefix.fullSize) {
+              if (targetMeta !== null) {
+                throw unverifiedTranscriptError(
+                  newId,
+                  verifyTranscriptFile(workingPath),
+                );
+              }
+              // copyFileSync can leave an exact byte prefix after a hard exit.
+              // The deterministic target lock and prefix proof make replacing
+              // only that unpublished target safe and crash-resumable.
+              rmSync(workingPath, { force: true });
+              copyFileSync(sourcePath, workingPath, fsConstants.COPYFILE_EXCL);
+              ensurePrivateFile(workingPath);
+              runSessionScaleFaultHook("afterForkCopy", {
+                sourceId,
+                sessionId: newId,
+                filePath: workingPath,
+              });
+            }
+          }
+
+          const inspectTarget = () => {
+            let sourceBoundaryHash = null;
+            let lineageEvent = null;
+            let lineageEventIndex = null;
+            let lineageAuthority = null;
+            let matchingLineageEvents = 0;
+            let eventIndex = 0;
+            const verification = verifyTranscriptFile(workingPath, {
+              onVerifiedEvent(event) {
+                eventIndex += 1;
+                if (eventIndex === sourceVerification.chainedEvents) {
+                  sourceBoundaryHash = event.hash;
+                }
+                const authority = event?.data?.[SESSION_FORK_AUTHORITY_FIELD];
+                if (
+                  event?.type === "system" &&
+                  authority?.schema === SESSION_FORK_AUTHORITY_SCHEMA &&
+                  authority?.requestDigest === requestDigest &&
+                  authority?.sourceSessionId === sourceId
+                ) {
+                  matchingLineageEvents += 1;
+                  lineageEvent = event;
+                  lineageEventIndex = eventIndex;
+                  lineageAuthority = authority;
+                }
+              },
+            });
+            return {
+              verification,
+              sourceBoundaryHash,
+              lineageEvent,
+              lineageEventIndex,
+              lineageAuthority,
+              matchingLineageEvents,
+            };
+          };
+
+          let target = inspectTarget();
+          if (
+            target.sourceBoundaryHash === sourceVerification.lastHash &&
+            target.verification.chainedEvents ===
+              sourceVerification.chainedEvents &&
+            target.verification.truncatedTail &&
+            targetMeta === null
+          ) {
+            // A hard exit can cut the one lineage append. Discard only that
+            // unanchored physical tail, then prove the copied source again.
+            inspectPhysicalTail(workingPath);
+            target = inspectTarget();
+          }
+
+          const cleanTarget =
+            target.verification.status === TRANSCRIPT_CHAIN_STATUS.VERIFIED &&
+            target.verification.malformedLines === 0 &&
+            !target.verification.truncatedTail;
+          const exactSourceCopy =
+            cleanTarget &&
+            target.sourceBoundaryHash === sourceVerification.lastHash &&
+            target.verification.chainedEvents ===
+              sourceVerification.chainedEvents;
+
+          if (exactSourceCopy) {
+            if (targetMeta !== null) {
+              throw unverifiedTranscriptError(newId, target.verification);
+            }
+            const { prevHash } = _resolveChainTail(workingPath);
+            if (prevHash !== sourceVerification.lastHash) {
+              const error = new Error(
+                `Fork source changed while copying: ${sourceId}`,
+              );
+              error.code = "SESSION_REVISION_STALE";
+              throw error;
+            }
+            const forkAuthority = {
+              schema: SESSION_FORK_AUTHORITY_SCHEMA,
+              requestDigest,
+              sourceSessionId: sourceId,
+              sourceHeadHash: sourceVerification.lastHash,
+              sourceEventCount: sourceVerification.chainedEvents,
+            };
+            const core = {
+              type: "system",
+              timestamp: Date.now(),
+              data: {
+                ...persistedData,
+                [SESSION_FORK_AUTHORITY_FIELD]: forkAuthority,
+              },
+            };
+            const hash = computeEventHash(prevHash, core);
+            appendFileSync(
+              workingPath,
+              `${JSON.stringify({ ...core, prevHash, hash })}\n`,
+              { encoding: "utf8", mode: 0o600 },
+            );
+            ensurePrivateFile(workingPath);
+            runSessionScaleFaultHook("afterForkLineage", {
+              sourceId,
+              sessionId: newId,
+              filePath: workingPath,
+              event: { ...core, prevHash, hash },
+            });
+            target = inspectTarget();
+            targetMeta = readSessionMeta(sessionsDir, newId);
+          }
+
+          const authority = target.lineageAuthority;
+          const authorityEventCount = Number(authority?.sourceEventCount);
+          const creationEventCount = authorityEventCount + 1;
+          const expectedAuthority = {
+            schema: SESSION_FORK_AUTHORITY_SCHEMA,
+            requestDigest,
+            sourceSessionId: sourceId,
+            sourceHeadHash: authority?.sourceHeadHash,
+            sourceEventCount: authorityEventCount,
+          };
+          const lineageMatches =
+            target.matchingLineageEvents === 1 &&
+            target.lineageEvent?.type === "system" &&
+            Number.isSafeInteger(authorityEventCount) &&
+            authorityEventCount > 0 &&
+            typeof authority?.sourceHeadHash === "string" &&
+            target.lineageEventIndex === creationEventCount &&
+            target.lineageEvent?.prevHash === authority.sourceHeadHash &&
+            JSON.stringify(target.lineageEvent?.data) ===
+              JSON.stringify({
+                ...persistedData,
+                [SESSION_FORK_AUTHORITY_FIELD]: expectedAuthority,
+              });
+          if (
+            target.verification.status !== TRANSCRIPT_CHAIN_STATUS.VERIFIED ||
+            target.verification.chainedEvents < creationEventCount ||
+            !lineageMatches ||
+            target.verification.malformedLines > 0 ||
+            target.verification.truncatedTail
+          ) {
+            throw unverifiedTranscriptError(newId, target.verification);
+          }
+
+          const anchorMatchesTarget =
+            targetMeta?.deleted !== true &&
+            targetMeta?.last_hash === target.verification.lastHash &&
+            Number(targetMeta?.event_count) ===
+              target.verification.chainedEvents;
+          if (anchorMatchesTarget) {
+            const activity = readLatestSessionActivity(sessionsDir, newId);
+            if (
+              activity?.deleted === true ||
+              activity?.last_hash !== targetMeta.last_hash ||
+              Number(activity?.event_count) !== Number(targetMeta.event_count)
+            ) {
+              recordSessionActivity(sessionsDir, targetMeta);
+            }
+            return newId;
+          }
+
+          // A completed or progressed successor with a non-matching anchor is a
+          // rollback/conflict, never a crash prefix that this request may bless.
+          if (
+            targetMeta !== null ||
+            target.verification.chainedEvents > creationEventCount
+          ) {
+            throw unverifiedTranscriptError(newId, target.verification);
+          }
+
+          let sourceAuthorityHash = null;
+          if (authorityEventCount === sourceVerification.chainedEvents) {
+            sourceAuthorityHash = sourceVerification.lastHash;
+          } else if (authorityEventCount < sourceVerification.chainedEvents) {
+            let index = 0;
+            const authorityVerification = verifyTranscriptFile(sourcePath, {
+              onVerifiedEvent(event) {
+                index += 1;
+                if (index === authorityEventCount) {
+                  sourceAuthorityHash = event.hash;
+                }
+              },
+            });
+            assertVerifiedTranscriptAnchor(sourceId, authorityVerification);
+          }
+          if (sourceAuthorityHash !== authority.sourceHeadHash) {
+            const error = new Error(
+              `Fork source revision no longer contains the claimed authority: ${sourceId}`,
+            );
+            error.code = "SESSION_REVISION_STALE";
+            throw error;
+          }
+
+          if (workingPath === pendingPath) {
+            if (existsSync(filePath)) {
+              throw unverifiedTranscriptError(
+                newId,
+                verifyTranscriptFile(filePath),
+              );
+            }
+            renameSync(pendingPath, filePath);
+            workingPath = filePath;
+            ensurePrivateFile(workingPath);
+            runSessionScaleFaultHook("afterForkPublish", {
+              sourceId,
+              sessionId: newId,
+              filePath: workingPath,
+            });
+          }
+
+          rebuildSessionMetaUnlocked(sessionsDir, newId, filePath);
+          runSessionScaleFaultHook("afterForkMeta", {
+            sourceId,
+            sessionId: newId,
+            filePath,
+          });
+          assertVerifiedTranscriptAnchor(newId, target.verification);
+          return newId;
+        },
+        {
+          failIfUnavailable: true,
+          timeoutMs: 30_000,
+          retryMs: 1,
+          maxRetryMs: 8,
+          retryJitterMs: 4,
+        },
+      );
+    },
+    {
+      failIfUnavailable: true,
+      timeoutMs: 30_000,
+      retryMs: 1,
+      maxRetryMs: 8,
+      retryJitterMs: 4,
+      yieldAfterReleaseMs: 2,
+    },
+  );
 }
 
 /**
  * Create an independent BRANCH session ("从这里分支" — P0-3's fourth restore
  * action) that keeps a parent's conversation up to a chosen turn and diverges
- * from there. Unlike forkSession() (whole-session copy, random id, no lineage),
- * this writes ONLY the caller-supplied pre-branch messages under a deterministic
+ * from there. Unlike forkSession() (a whole-session copy with revision-scoped
+ * request identity), this writes ONLY the caller-supplied pre-branch messages
  * id (see deriveBranchSessionId) and records parent lineage — so the origin
  * session is never touched (preservesParent) and a replayed branch request
  * resolves to the SAME file instead of a duplicate (idempotent).
@@ -1970,35 +2423,214 @@ export function createBranchSession({
       `unsafe branch session id: ${String(branchSessionId).slice(0, 60)}`,
     );
   }
-  // Idempotent: a replayed branch request resolves to the existing branch
-  // rather than doubling it (matches deriveBranchId's determinism).
-  if (existsSync(sessionPath(branchSessionId))) {
-    return { branchSessionId, created: false, messages: 0 };
+  // Validate and clone the complete message projection before creating the
+  // deterministic branch file. A validation failure must leave no partial
+  // session that would make a later, valid retry look idempotently complete.
+  const canonicalMessages = projectCanonicalResumeMessages(messages, {
+    strict: true,
+  });
+  if (
+    (parentSessionId !== null && typeof parentSessionId !== "string") ||
+    (parentTurnId !== null && typeof parentTurnId !== "string")
+  ) {
+    throw new TypeError("Branch lineage ids must be strings or null");
   }
-
-  startSession(branchSessionId, {
-    title: meta.title || `Branch of ${parentSessionId ?? "session"}`,
-    provider: meta.provider || "",
-    model: meta.model || "",
-  });
-  appendEvent(branchSessionId, "session_branch", {
-    parentSessionId: parentSessionId == null ? null : String(parentSessionId),
-    parentTurnId: parentTurnId == null ? null : String(parentTurnId),
-  });
-
+  const branchParentSessionId = parentSessionId;
+  const branchParentTurnId = parentTurnId;
+  const cleanMeta = sanitizePersistedMessage(meta);
+  if (!cleanMeta || typeof cleanMeta !== "object") {
+    throw new TypeError("Branch metadata must contain JSON-safe data");
+  }
+  const startData = {
+    title:
+      typeof cleanMeta.title === "string" && cleanMeta.title
+        ? cleanMeta.title
+        : `Branch of ${branchParentSessionId ?? "session"}`,
+    provider: typeof cleanMeta.provider === "string" ? cleanMeta.provider : "",
+    model: typeof cleanMeta.model === "string" ? cleanMeta.model : "",
+  };
+  const plannedEvents = [
+    { type: "session_start", data: startData },
+    {
+      type: "session_branch",
+      data: {
+        parentSessionId: branchParentSessionId,
+        parentTurnId: branchParentTurnId,
+      },
+    },
+  ];
   let count = 0;
-  for (const m of Array.isArray(messages) ? messages : []) {
-    if (!m || m.role == null) continue;
+  for (const m of canonicalMessages) {
     if (m.role === "user") {
-      appendUserMessage(branchSessionId, m.content);
+      plannedEvents.push({
+        type: "user_message",
+        data: { role: "user", content: m.content },
+      });
       count += 1;
     } else if (m.role === "assistant") {
-      appendAssistantMessage(branchSessionId, m.content);
+      plannedEvents.push({
+        type: "assistant_message",
+        data: { role: "assistant", content: m.content },
+      });
+      count += 1;
+    } else if (m.role === "system") {
+      plannedEvents.push({
+        type: "system",
+        data: encodePersistedMessage(m),
+      });
       count += 1;
     }
-    // system prompt + tool scaffolding are re-established on resume; skip here.
+    // Host prompts and tool scaffolding are re-established on resume. The
+    // canonical projection above retains only explicitly durable systems.
   }
-  return { branchSessionId, created: true, messages: count };
+  const inputDigest = `sha256:${createHash("sha256")
+    .update(JSON.stringify(plannedEvents), "utf8")
+    .digest("hex")}`;
+  plannedEvents.push({
+    type: "session_branch_complete",
+    data: {
+      schemaVersion: 1,
+      inputDigest,
+      messageCount: count,
+    },
+  });
+
+  const filePath = sessionPath(branchSessionId);
+  const sessionsDir = getSessionsDir();
+  return withFileLock(
+    filePath,
+    () => {
+      if (existsSync(filePath)) inspectPhysicalTail(filePath);
+      let verification = existsSync(filePath)
+        ? verifyTranscriptFile(filePath)
+        : {
+            status: TRANSCRIPT_CHAIN_STATUS.EMPTY,
+            chainedEvents: 0,
+            malformedLines: 0,
+            truncatedTail: false,
+            lastHash: null,
+          };
+      if (
+        verification.status !== TRANSCRIPT_CHAIN_STATUS.EMPTY &&
+        verification.status !== TRANSCRIPT_CHAIN_STATUS.VERIFIED
+      ) {
+        throw unverifiedTranscriptError(branchSessionId, verification);
+      }
+      const existingEvents = existsSync(filePath)
+        ? readEvents(branchSessionId)
+        : [];
+      const prefixMatches = existingEvents
+        .slice(0, Math.min(existingEvents.length, plannedEvents.length))
+        .every(
+          (event, index) =>
+            event.type === plannedEvents[index].type &&
+            JSON.stringify(event.data) ===
+              JSON.stringify(plannedEvents[index].data),
+        );
+      if (!prefixMatches) {
+        const error = new Error(
+          `Branch session conflicts with its deterministic input: ${branchSessionId}`,
+        );
+        error.code = "SESSION_BRANCH_CONFLICT";
+        throw error;
+      }
+
+      // Once the exact completion marker is anchored, later branch turns are
+      // outside the idempotent creation transaction. A replay resolves to that
+      // progressed branch, but an unanchored suffix is never re-blessed.
+      if (existingEvents.length > plannedEvents.length) {
+        assertVerifiedTranscriptAnchor(branchSessionId, verification);
+        return { branchSessionId, created: false, messages: 0 };
+      }
+
+      // A crashed writer can leave a hash-valid planned prefix ahead of its
+      // sidecar. Only advance an existing anchor along that exact prefix. Never
+      // lower or replace a higher/different anchor: doing so would legitimize a
+      // truncated deterministic branch and permanently discard later turns.
+      const anchoredMeta = readSessionMeta(sessionsDir, branchSessionId);
+      const anchoredCount = Number(anchoredMeta?.event_count);
+      const anchorMatchesCurrent =
+        anchoredMeta?.deleted !== true &&
+        anchoredMeta?.last_hash === verification.lastHash &&
+        anchoredCount === verification.chainedEvents;
+      const anchorIsStrictPriorPrefix =
+        anchoredMeta?.deleted !== true &&
+        Number.isSafeInteger(anchoredCount) &&
+        anchoredCount >= 0 &&
+        anchoredCount < verification.chainedEvents &&
+        verification.chainedEvents === existingEvents.length &&
+        (anchoredCount === 0
+          ? anchoredMeta?.last_hash === null
+          : existingEvents[anchoredCount - 1]?.hash ===
+            anchoredMeta?.last_hash);
+      if (
+        anchoredMeta !== null &&
+        !anchorMatchesCurrent &&
+        !anchorIsStrictPriorPrefix
+      ) {
+        throw unverifiedTranscriptError(branchSessionId, verification);
+      }
+      if (existsSync(filePath) && !anchorMatchesCurrent) {
+        rebuildSessionMetaUnlocked(sessionsDir, branchSessionId, filePath);
+      }
+      if (existingEvents.length > 0) {
+        assertVerifiedTranscriptAnchor(branchSessionId, verification);
+      }
+      if (existingEvents.length === plannedEvents.length) {
+        return { branchSessionId, created: false, messages: 0 };
+      }
+
+      let prevHash = verification.lastHash;
+      for (
+        let index = existingEvents.length;
+        index < plannedEvents.length;
+        index += 1
+      ) {
+        const planned = plannedEvents[index];
+        const core = {
+          type: planned.type,
+          timestamp: Date.now(),
+          data: planned.data,
+        };
+        const hash = computeEventHash(prevHash, core);
+        const event = { ...core, prevHash, hash };
+        appendFileSync(filePath, `${JSON.stringify(event)}\n`, {
+          encoding: "utf8",
+          mode: 0o600,
+        });
+        ensurePrivateFile(filePath);
+        runSessionScaleFaultHook("afterTranscriptAppend", {
+          sessionId: branchSessionId,
+          type: planned.type,
+          event,
+          filePath,
+        });
+        prevHash = hash;
+      }
+
+      verification = verifyTranscriptFile(filePath);
+      if (
+        verification.status !== TRANSCRIPT_CHAIN_STATUS.VERIFIED ||
+        verification.chainedEvents !== plannedEvents.length ||
+        verification.lastHash !== prevHash ||
+        verification.malformedLines > 0 ||
+        verification.truncatedTail
+      ) {
+        throw unverifiedTranscriptError(branchSessionId, verification);
+      }
+      rebuildSessionMetaUnlocked(sessionsDir, branchSessionId, filePath);
+      assertVerifiedTranscriptAnchor(branchSessionId, verification);
+      return { branchSessionId, created: true, messages: count };
+    },
+    {
+      failIfUnavailable: true,
+      timeoutMs: 30_000,
+      retryMs: 1,
+      maxRetryMs: 8,
+      retryJitterMs: 4,
+      yieldAfterReleaseMs: 2,
+    },
+  );
 }
 
 export function sessionExists(sessionId) {

@@ -12,6 +12,87 @@ import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import {
+  DURABLE_SYSTEM_MESSAGE_KINDS,
+  getDurableSystemMessageProvenance,
+  markDurableSystemMessage,
+  SESSION_MESSAGE_PROVENANCE_FIELD,
+  SESSION_MESSAGE_PROVENANCE_SCHEMA,
+} from "../../src/lib/session-message-provenance.js";
+
+describe("REPL compact persistence fencing", () => {
+  it("tracks the known replay and advances it only after a matched compact", async () => {
+    const { createReplCompactPersistence } =
+      await import("../../src/repl/agent-repl.js");
+    const durable = markDurableSystemMessage(
+      { role: "system", content: "known durable facts" },
+      DURABLE_SYSTEM_MESSAGE_KINDS.COMPACT_SUMMARY,
+    );
+    const appendCompactEventIfMessagesMatch = vi.fn(() => ({
+      hash: "a".repeat(64),
+    }));
+    const controller = createReplCompactPersistence(
+      [
+        { role: "system", content: "old host prompt" },
+        durable,
+        { role: "user", content: "known question" },
+      ],
+      { appendCompactEventIfMessagesMatch },
+    );
+    controller.record({ role: "assistant", content: "known answer" });
+    const nextSummary = markDurableSystemMessage(
+      { role: "system", content: "new durable facts" },
+      DURABLE_SYSTEM_MESSAGE_KINDS.COMPACT_SUMMARY,
+    );
+
+    controller.persist("session-1", {
+      strategy: "auto",
+      messages: [{ role: "system", content: "fresh host" }, nextSummary],
+    });
+
+    const expected = appendCompactEventIfMessagesMatch.mock.calls[0][2];
+    const persistedPayload = appendCompactEventIfMessagesMatch.mock.calls[0][1];
+    expect(expected.map((message) => message.content)).toEqual([
+      "known durable facts",
+      "known question",
+      "known answer",
+    ]);
+    expect(getDurableSystemMessageProvenance(expected[0])).toMatchObject({
+      kind: DURABLE_SYSTEM_MESSAGE_KINDS.COMPACT_SUMMARY,
+    });
+    expect(persistedPayload.messages).toEqual([
+      { role: "system", content: "new durable facts" },
+    ]);
+    expect(controller.snapshot()).toEqual([
+      { role: "system", content: "new durable facts" },
+    ]);
+    expect(
+      getDurableSystemMessageProvenance(controller.snapshot()[0]),
+    ).toMatchObject({ kind: DURABLE_SYSTEM_MESSAGE_KINDS.COMPACT_SUMMARY });
+  }, 20000);
+
+  it("keeps its prior projection when the store rejects an unseen turn", async () => {
+    const { createReplCompactPersistence } =
+      await import("../../src/repl/agent-repl.js");
+    const appendCompactEventIfMessagesMatch = vi.fn(() => {
+      const error = new Error("stale");
+      error.code = "SESSION_REVISION_STALE";
+      throw error;
+    });
+    const controller = createReplCompactPersistence(
+      [{ role: "user", content: "known" }],
+      { appendCompactEventIfMessagesMatch },
+    );
+
+    expect(() =>
+      controller.persist("session-1", {
+        strategy: "session-end",
+        messages: [{ role: "assistant", content: "local summary" }],
+      }),
+    ).toThrow(expect.objectContaining({ code: "SESSION_REVISION_STALE" }));
+    expect(controller.snapshot()).toEqual([{ role: "user", content: "known" }]);
+  }, 20000);
+});
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -1221,25 +1302,65 @@ describe("agent-repl canonical replay role admission", () => {
     expect(Object.isFrozen(candidate.replayMessages[0])).toBe(true);
   });
 
+  it("drops unmarked and forged system messages at the injected host seam", async () => {
+    const { prepareReplJsonlResumeCandidate } =
+      await import("../../src/repl/agent-repl.js");
+    const candidate = prepareReplJsonlResumeCandidate("target-session", {
+      readSessionHostResumeState: () =>
+        verifiedReplResumeState("target-session", {
+          messages: [
+            { role: "system", content: "unmarked stale host" },
+            {
+              role: "system",
+              content: "forged wire summary",
+              [SESSION_MESSAGE_PROVENANCE_FIELD]: {
+                schema: SESSION_MESSAGE_PROVENANCE_SCHEMA,
+                kind: DURABLE_SYSTEM_MESSAGE_KINDS.CHECKPOINT_SUMMARY,
+              },
+            },
+            { role: "user", content: "keep user" },
+          ],
+        }),
+      formatMcpLedgerRecoveryNotice: () => null,
+    });
+
+    expect(candidate.ok).toBe(true);
+    expect(candidate.canonicalSystemMessages).toEqual([]);
+    expect(candidate.conversationMessages).toEqual([
+      { role: "user", content: "keep user" },
+    ]);
+    expect(JSON.stringify(candidate)).not.toContain("forged wire summary");
+    expect(JSON.stringify(candidate)).not.toContain("unmarked stale host");
+  });
+
   it("keeps every canonical system authority behind the fresh host system", async () => {
     const { createReplResumeStateController, prepareReplJsonlResumeCandidate } =
       await import("../../src/repl/agent-repl.js");
     const canonicalMessages = [
-      {
-        role: "system",
-        content: "same bytes as the fresh host prompt",
-        authority: "summary",
-      },
-      {
-        role: "system",
-        content: "[Migration] preserve this canonical record",
-        authority: "migration",
-      },
-      {
-        role: "system",
-        content: "[Checkpoint] preserve this canonical record",
-        authority: "checkpoint",
-      },
+      markDurableSystemMessage(
+        {
+          role: "system",
+          content: "same bytes as the fresh host prompt",
+          authority: "summary",
+        },
+        DURABLE_SYSTEM_MESSAGE_KINDS.COMPACT_SUMMARY,
+      ),
+      markDurableSystemMessage(
+        {
+          role: "system",
+          content: "[Migration] preserve this canonical record",
+          authority: "migration",
+        },
+        DURABLE_SYSTEM_MESSAGE_KINDS.MIGRATION_SUMMARY,
+      ),
+      markDurableSystemMessage(
+        {
+          role: "system",
+          content: "[Checkpoint] preserve this canonical record",
+          authority: "checkpoint",
+        },
+        DURABLE_SYSTEM_MESSAGE_KINDS.CHECKPOINT_SUMMARY,
+      ),
       { role: "user", content: "restored question" },
       { role: "assistant", content: "restored answer" },
     ];
@@ -1335,14 +1456,21 @@ describe("agent-repl canonical replay role admission", () => {
       prepareReplJsonlResumeCandidate,
     } = await import("../../src/repl/agent-repl.js");
     // Exact durable context forms emitted by migration and checkpoint actions.
-    const migrationMarker = {
-      role: "system",
-      content: "[Migrated Summary]\nlegacy facts",
-    };
-    const checkpointMarker = {
-      role: "system",
-      content: "[Conversation Summary: summary-from turn-1]\ncheckpoint facts",
-    };
+    const migrationMarker = markDurableSystemMessage(
+      {
+        role: "system",
+        content: "[Migrated Summary]\nlegacy facts",
+      },
+      DURABLE_SYSTEM_MESSAGE_KINDS.MIGRATION_SUMMARY,
+    );
+    const checkpointMarker = markDurableSystemMessage(
+      {
+        role: "system",
+        content:
+          "[Conversation Summary: summary-from turn-1]\ncheckpoint facts",
+      },
+      DURABLE_SYSTEM_MESSAGE_KINDS.CHECKPOINT_SUMMARY,
+    );
     const candidate = prepareReplJsonlResumeCandidate("target-session", {
       readSessionHostResumeState: () =>
         verifiedReplResumeState("target-session", {
@@ -1469,7 +1597,10 @@ describe("agent-repl canonical replay role admission", () => {
         readSessionHostResumeState: () =>
           verifiedReplResumeState(sessionId, {
             messages: [
-              { role: "system", content: canonicalContent },
+              markDurableSystemMessage(
+                { role: "system", content: canonicalContent },
+                DURABLE_SYSTEM_MESSAGE_KINDS.CHECKPOINT_SUMMARY,
+              ),
               { role: "user", content: userContent },
             ],
           }),
@@ -2474,7 +2605,10 @@ describe("agent-repl MCP recovery resume transaction", () => {
         readSessionHostResumeState: () =>
           verifiedReplResumeState("target-session", {
             messages: [
-              { role: "system", content: "target system" },
+              markDurableSystemMessage(
+                { role: "system", content: "target system" },
+                DURABLE_SYSTEM_MESSAGE_KINDS.CHECKPOINT_SUMMARY,
+              ),
               { role: "user", content: "target user" },
             ],
           }),

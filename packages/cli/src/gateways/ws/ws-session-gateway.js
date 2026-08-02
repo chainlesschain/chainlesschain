@@ -50,6 +50,10 @@ import {
 } from "../../lib/hooks-v2-workspace-context.js";
 import { mcpEffectDescriptorFields } from "../../lib/mcp-effect-contract.js";
 import {
+  sanitizePersistedMessages,
+  sanitizePersistedNonSystemMessages,
+} from "../../lib/session-message-provenance.js";
+import {
   appendWsSessionStateEvent,
   createWsSessionState,
   getWsSessionStateSnapshot,
@@ -71,6 +75,23 @@ function normalizeHostWorkspaceRoot(workspaceRoot) {
   } catch {
     return null;
   }
+}
+
+function normalizeCanonicalHostSystemPrefix(messages) {
+  const clean = sanitizePersistedMessages(messages, { strict: true });
+  if (clean.some((message) => message.role !== "system")) {
+    throw new TypeError("Canonical WS host prefix must contain only systems");
+  }
+  return Object.freeze(clean.map((message) => Object.freeze(message)));
+}
+
+function bindCanonicalHostSystemPrefix(session, messages) {
+  const prefix = normalizeCanonicalHostSystemPrefix(messages);
+  Object.defineProperty(session, "_canonicalHostSystemPrefix", {
+    configurable: true,
+    value: prefix,
+  });
+  return prefix;
 }
 
 function bindSessionHooksV2Workspace(
@@ -504,6 +525,7 @@ export class WSSessionManager {
       createdAt: new Date().toISOString(),
       lastActivity: new Date().toISOString(),
     };
+    bindCanonicalHostSystemPrefix(session, messages);
     this._bindSessionStateJournal(session, createWsSessionState());
     bindSessionHooksV2Workspace(
       session,
@@ -642,6 +664,12 @@ export class WSSessionManager {
         createdAt: dbSession.created_at,
         lastActivity: new Date().toISOString(),
       };
+      if (Array.isArray(metadata.canonicalHostSystemPrefix)) {
+        bindCanonicalHostSystemPrefix(
+          session,
+          metadata.canonicalHostSystemPrefix,
+        );
+      }
       this._bindSessionStateJournal(session, sessionStateJournal);
       const recoveredHooksWorkspaceRoot =
         metadata.worktreeIsolation !== true &&
@@ -1441,21 +1469,7 @@ export class WSSessionManager {
    * Persist current messages for a session.
    */
   persistMessages(sessionId) {
-    const session = this.sessions.get(sessionId);
-    if (!session || !this.db) return;
-
-    try {
-      dbSaveMessages(
-        this.db,
-        sessionId,
-        session.messages,
-        this._serializeSessionMetadata(session),
-      );
-    } catch (_err) {
-      // Non-critical
-    }
-
-    session.lastActivity = new Date().toISOString();
+    this._persistSessionState(sessionId);
   }
 
   _prepareSessionWorkspace(projectRoot, sessionId, options = {}) {
@@ -1490,10 +1504,24 @@ export class WSSessionManager {
     if (!session || !this.db) return;
 
     try {
+      let persistedMessages = session.messages;
+      if (
+        session.canonicalJsonlSession === true &&
+        Array.isArray(session._canonicalHostSystemPrefix)
+      ) {
+        const hostPrefix = normalizeCanonicalHostSystemPrefix(
+          session._canonicalHostSystemPrefix,
+        );
+        const conversation = sanitizePersistedNonSystemMessages(
+          session.messages,
+          { strict: true },
+        );
+        persistedMessages = [...hostPrefix, ...conversation];
+      }
       dbSaveMessages(
         this.db,
         sessionId,
-        session.messages,
+        persistedMessages,
         this._serializeSessionMetadata(session),
       );
     } catch (_err) {
@@ -1518,6 +1546,11 @@ export class WSSessionManager {
       baseUrl: session.baseUrl || null,
       hostManagedToolPolicy: session.hostManagedToolPolicy || null,
       enabledToolNames: session.enabledToolNames || [],
+      canonicalHostSystemPrefix: Array.isArray(
+        session._canonicalHostSystemPrefix,
+      )
+        ? normalizeCanonicalHostSystemPrefix(session._canonicalHostSystemPrefix)
+        : null,
       worktreeIsolation: session.worktreeIsolation === true,
       worktree: session.worktree || null,
       planSnapshot: this._serializePlanManager(session.planManager),

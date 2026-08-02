@@ -17,6 +17,7 @@ import {
   classifyMcpRecoveryAdmission,
 } from "../../lib/mcp-ledger-recovery-admission.js";
 import { readSessionHostResumeState } from "../../lib/session-host-snapshot.js";
+import { sanitizePersistedMessages } from "../../lib/session-message-provenance.js";
 
 const PAYLOAD_DIGEST = /^sha256:[0-9a-f]{64}$/;
 const RAW_AUTHORITY_HASH = /^[0-9a-f]{64}$/;
@@ -36,14 +37,26 @@ const RESUME_RECOVERY_NOTICE = Symbol("cc.resume-recovery-notice");
 
 function captureCanonicalHostSystemPrefix(session) {
   if (Array.isArray(session?._canonicalHostSystemPrefix)) {
-    return session._canonicalHostSystemPrefix;
+    const explicit = sanitizePersistedMessages(
+      session._canonicalHostSystemPrefix,
+      { strict: true },
+    );
+    if (explicit.some((message) => message.role !== "system")) {
+      throw new TypeError("Canonical WS host prefix is invalid");
+    }
+    return Object.freeze(explicit.map((message) => Object.freeze(message)));
   }
+  const persisted = sanitizePersistedMessages(session?.messages || [], {
+    strict: true,
+  });
+  const firstMessage = persisted[0] || null;
   const prefix = [];
-  for (const message of Array.isArray(session?.messages)
-    ? session.messages
-    : []) {
-    if (message?.role !== "system") break;
-    prefix.push(Object.freeze({ ...message }));
+  if (firstMessage?.role === "system") {
+    // A WS session is created with exactly one host-owned system prompt. Any
+    // later leading systems may be canonical summaries or recovery notices
+    // serialized by the DB compatibility mirror; they must not be promoted
+    // into the host prefix after a process restart.
+    prefix.push(Object.freeze(firstMessage));
   }
   const frozenPrefix = Object.freeze(prefix);
   Object.defineProperty(session, "_canonicalHostSystemPrefix", {
@@ -689,7 +702,22 @@ export async function handleSessionResume(server, id, ws, message) {
     // later in the WS handler must never rescan a message array that already
     // contains a durable compact-summary system turn, or the summary would be
     // mistaken for host context and duplicated after each claim/settlement.
-    const hostSystemPrefix = captureCanonicalHostSystemPrefix(session);
+    let hostSystemPrefix;
+    try {
+      hostSystemPrefix = captureCanonicalHostSystemPrefix(session);
+    } catch {
+      server._send(
+        ws,
+        envelopeError(
+          id,
+          "CC_SESSION_HOST_PREFIX_INVALID",
+          "Canonical WS host system prefix is invalid; resume was refused",
+          sessionId,
+          { sessionSnapshot },
+        ),
+      );
+      return;
+    }
     session.messages = [...hostSystemPrefix, ...canonicalResume.messages];
     session.canonicalJsonlSession = true;
     session.sessionHostSnapshot = sessionSnapshot;

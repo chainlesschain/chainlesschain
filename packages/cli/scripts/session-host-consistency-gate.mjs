@@ -42,8 +42,13 @@ import {
 import { projectSessionHostObservation } from "../src/lib/session-host-snapshot.js";
 import {
   DURABLE_SYSTEM_MESSAGE_KINDS,
+  getDurableSystemMessageProvenance,
   markDurableSystemMessage,
+  projectCanonicalResumeMessages,
+  SESSION_MESSAGE_PROVENANCE_FIELD,
+  SESSION_MESSAGE_PROVENANCE_SCHEMA,
 } from "../src/lib/session-message-provenance.js";
+import { computeEventHash } from "../src/harness/transcript-integrity.js";
 import {
   commitPreparedReplJsonlResume,
   prepareReplJsonlResumeCandidate,
@@ -68,6 +73,7 @@ const GATE_SOURCE_PATHS = [
   "packages/cli/package.json",
   "packages/cli/src/harness/jsonl-session-store.js",
   "packages/cli/src/harness/prompt-compressor.js",
+  "packages/cli/src/harness/structured-handoff.js",
   "packages/cli/src/harness/session-index.js",
   "packages/cli/src/harness/session-list-index.js",
   "packages/cli/src/harness/transcript-integrity.js",
@@ -81,21 +87,32 @@ const GATE_SOURCE_PATHS = [
   "packages/cli/src/lib/mcp-call-ledger.js",
   "packages/cli/src/lib/mcp-call-ledger-store.js",
   "packages/cli/src/lib/mcp-recovery-adjudication.js",
+  "packages/cli/src/lib/cowork-task-runner.js",
   "packages/cli/src/lib/background-session-transport.js",
   "packages/cli/src/commands/background-session.js",
+  "packages/cli/src/commands/checkpoint.js",
+  "packages/cli/src/commands/compact.js",
   "packages/cli/src/repl/agent-repl.js",
+  "packages/cli/src/runtime/agent-core.js",
   "packages/cli/src/runtime/headless-runner.js",
   "packages/cli/src/runtime/headless-stream.js",
   "packages/cli/src/gateways/ws/session-protocol.js",
   "packages/cli/src/gateways/ws/ws-agent-handler.js",
+  "packages/cli/src/gateways/ws/ws-session-gateway.js",
   "packages/cli/scripts/session-host-consistency-gate.mjs",
   "packages/cli/__tests__/fixtures/session-host-ws-claim-race-worker.mjs",
   "packages/cli/__tests__/unit/jsonl-session-store.test.js",
   "packages/cli/__tests__/unit/prompt-compressor.test.js",
   "packages/cli/__tests__/unit/prompt-compressor-structured-handoff.test.js",
   "packages/cli/__tests__/unit/checkpoint-timeline-authority.test.js",
+  "packages/cli/__tests__/unit/agent-core.test.js",
+  "packages/cli/__tests__/unit/cowork-task-runner.test.js",
+  "packages/cli/__tests__/unit/mcp-recovery-adjudication.test.js",
+  "packages/cli/__tests__/unit/checkpoint-timeline-command.test.js",
+  "packages/cli/__tests__/unit/compact-command.test.js",
   "packages/cli/__tests__/unit/ws-agent-handler.test.js",
   "packages/cli/__tests__/unit/ws-runtime-events.test.js",
+  "packages/cli/__tests__/unit/ws-session-manager.test.js",
   "packages/cli/__tests__/unit/agent-session-export.test.js",
   "packages/cli/__tests__/unit/agent-repl.test.js",
   "packages/cli/__tests__/unit/mcp-call-ledger-store.test.js",
@@ -243,7 +260,12 @@ function publicSnapshot(snapshot) {
   return JSON.parse(JSON.stringify(snapshot));
 }
 
-function createWsHarness(sessionId, staleMessage, systemPrompt) {
+function createWsHarness(
+  sessionId,
+  staleMessage,
+  systemPrompt,
+  staleDbSystemMessages = [],
+) {
   const sent = [];
   const emitted = [];
   let resumeCalls = 0;
@@ -255,6 +277,10 @@ function createWsHarness(sessionId, staleMessage, systemPrompt) {
     projectRoot: process.cwd(),
     messages: [
       { role: "system", content: systemPrompt },
+      ...staleDbSystemMessages.map((content) => ({
+        role: "system",
+        content,
+      })),
       { role: "user", content: staleMessage },
     ],
   };
@@ -443,6 +469,7 @@ async function runVerifiedHostScenario(store, home) {
     restartSystem: "SESSION_HOST_RESTART_SYSTEM_SECRET_20baf1",
     wsUser: "SESSION_HOST_WS_USER_SECRET_30ebc2",
     wsAssistant: "SESSION_HOST_WS_ASSISTANT_SECRET_3aebbf",
+    dbRecovery: "SESSION_HOST_DB_RECOVERY_SECRET_f7da91",
   };
 
   store.startSession(sessionId, {
@@ -520,7 +547,10 @@ async function runVerifiedHostScenario(store, home) {
 
   // Exercise the actual WebSocket resume seam.  Raw history belongs only to
   // its authenticated direct response; runtime-bus evidence stays content-free.
-  const wsHarness = createWsHarness(sessionId, secrets.stale, secrets.system);
+  const wsHarness = createWsHarness(sessionId, secrets.stale, secrets.system, [
+    secrets.compactSummary,
+    secrets.dbRecovery,
+  ]);
   await handleSessionResume(
     wsHarness.server,
     "host-consistency-resume",
@@ -564,6 +594,12 @@ async function runVerifiedHostScenario(store, home) {
     "WebSocket private resume state lost or duplicated the canonical system summary",
   );
   assert(
+    !wsHarness.session.messages.some(
+      (message) => message?.content === secrets.dbRecovery,
+    ),
+    "WebSocket promoted a stale DB recovery system into the host prefix",
+  );
+  assert(
     !JSON.stringify(wsResponse.payload.history).includes(
       secrets.compactSummary,
     ),
@@ -576,7 +612,7 @@ async function runVerifiedHostScenario(store, home) {
   const rebuiltSnapshot = projectSessionHostObservation({
     sessionId,
     events,
-    messages: store.rebuildMessages(sessionId),
+    messages: store.readVerifiedMessages(sessionId),
     recovery: loadMcpLedgerRecovery(sessionId),
   });
 
@@ -648,6 +684,7 @@ async function runVerifiedHostScenario(store, home) {
     sessionId,
     secrets.stale,
     secrets.restartSystem,
+    [secrets.compactSummary, secrets.dbRecovery],
   );
   await handleSessionResume(
     restartHarness.server,
@@ -667,6 +704,12 @@ async function runVerifiedHostScenario(store, home) {
       (message) => message?.content === secrets.compactSummary,
     ).length === 1,
     "restart resume lost or duplicated the canonical system summary",
+  );
+  assert(
+    !restartHarness.session.messages.some(
+      (message) => message?.content === secrets.dbRecovery,
+    ),
+    "restart resume promoted a stale DB recovery system into the host prefix",
   );
   assert(
     !JSON.stringify(restartResponse.payload.history).includes(
@@ -729,6 +772,159 @@ async function runVerifiedHostScenario(store, home) {
     canonicalSystemSummaryPreserved: true,
     canonicalSystemSummaryContentFree: true,
     websocketRestartRoundTrip: true,
+    websocketLegacyDbSystemPrefixSanitized: true,
+  };
+}
+
+function runBranchForkProvenanceScenario(store, home) {
+  process.env.CHAINLESSCHAIN_HOME = home;
+  const parentSessionId = "session-host-provenance-parent";
+  const durableContent = "BRANCH_FORK_DURABLE_PRIVATE_0ca913";
+  const staleHostContent = "BRANCH_FORK_STALE_HOST_PRIVATE_7b4f2a";
+  const branchInjection = "BRANCH_FORK_UNMARKED_PRIVATE_6d83e1";
+
+  store.startSession(parentSessionId, {
+    title: "branch/fork provenance fixture",
+    provider: "host-consistency",
+    model: "fixture",
+  });
+  store.appendCompactEvent(parentSessionId, {
+    strategy: "branch-fork-provenance-fixture",
+    messages: [
+      { role: "system", content: staleHostContent },
+      markDurableSystemMessage(
+        { role: "system", content: durableContent },
+        DURABLE_SYSTEM_MESSAGE_KINDS.COMPACT_SUMMARY,
+      ),
+      { role: "user", content: "branch/fork user" },
+      { role: "assistant", content: "branch/fork assistant" },
+    ],
+  });
+
+  const parentMessages = store.readVerifiedMessages(parentSessionId);
+  const forkSessionId = store.forkSession(parentSessionId);
+  assert(typeof forkSessionId === "string", "fork did not create a session");
+  store.appendUserMessage(
+    parentSessionId,
+    "source advanced after fork publication",
+  );
+  assert(
+    store.forkSession(parentSessionId) === forkSessionId,
+    "fork exact retry after source advancement created a duplicate successor",
+  );
+  const independentForkSessionId = store.forkSession(parentSessionId, {
+    requestId: "host-consistency-independent-fork",
+  });
+  assert(
+    independentForkSessionId !== forkSessionId,
+    "independent fork intent reused the prior successor",
+  );
+  const forkMessages = store.readVerifiedMessages(forkSessionId);
+  const forkKinds = forkMessages
+    .map((message) => getDurableSystemMessageProvenance(message)?.kind || null)
+    .filter(Boolean)
+    .sort();
+  assert(
+    forkKinds.includes(DURABLE_SYSTEM_MESSAGE_KINDS.COMPACT_SUMMARY) &&
+      forkKinds.includes(DURABLE_SYSTEM_MESSAGE_KINDS.FORK_LINEAGE),
+    "fork did not retain verified summary and lineage provenance",
+  );
+  const forkCanonical = projectCanonicalResumeMessages(forkMessages, {
+    strict: true,
+  });
+  assert(
+    !forkCanonical.some((message) => message.content === staleHostContent),
+    "fork canonical projection retained an unmarked host system",
+  );
+
+  const branchSessionId = "session-host-provenance-branch";
+  const branch = store.createBranchSession({
+    branchSessionId,
+    parentSessionId,
+    parentTurnId: "turn-1",
+    messages: [...parentMessages, { role: "system", content: branchInjection }],
+  });
+  assert(branch.created === true, "branch did not create a session");
+  const branchMessages = store.readVerifiedMessages(branchSessionId);
+  const branchKinds = branchMessages
+    .map((message) => getDurableSystemMessageProvenance(message)?.kind || null)
+    .filter(Boolean);
+  assert(
+    branchKinds.filter(
+      (kind) => kind === DURABLE_SYSTEM_MESSAGE_KINDS.COMPACT_SUMMARY,
+    ).length === 1,
+    "branch lost or duplicated durable summary provenance",
+  );
+  assert(
+    !branchMessages.some(
+      (message) =>
+        message.content === staleHostContent ||
+        message.content === branchInjection,
+    ),
+    "branch retained an unmarked system message",
+  );
+
+  const unanchoredSessionId = "session-host-provenance-unanchored";
+  store.startSession(unanchoredSessionId, {
+    title: "unanchored fork refusal fixture",
+    provider: "host-consistency",
+    model: "fixture",
+  });
+  store.appendEvent(unanchoredSessionId, "system", {
+    role: "system",
+    content: "ordinary unmarked system",
+  });
+  const forgedEvents = store.readEvents(unanchoredSessionId);
+  const forgedSystem = forgedEvents.at(-1);
+  forgedSystem.data[SESSION_MESSAGE_PROVENANCE_FIELD] = {
+    schema: SESSION_MESSAGE_PROVENANCE_SCHEMA,
+    kind: DURABLE_SYSTEM_MESSAGE_KINDS.COMPACT_SUMMARY,
+  };
+  forgedSystem.hash = computeEventHash(forgedSystem.prevHash, forgedSystem);
+  writeFileSync(
+    store.sessionPath(unanchoredSessionId),
+    `${forgedEvents.map((event) => JSON.stringify(event)).join("\n")}\n`,
+    "utf8",
+  );
+  assert(
+    store.verifySession(unanchoredSessionId).status === "verified",
+    "hostile fork fixture is not hash-valid",
+  );
+  const sessionsBeforeRefusal = store
+    .listJsonlSessions({ limit: 100 })
+    .map((session) => session.id)
+    .sort();
+  let forkRefusalCode = null;
+  try {
+    store.forkSession(unanchoredSessionId);
+  } catch (error) {
+    forkRefusalCode = error?.code || null;
+  }
+  assert(
+    forkRefusalCode === "SESSION_TRANSCRIPT_UNVERIFIED",
+    "fork re-anchored a hash-valid source whose sidecar no longer matched",
+  );
+  const sessionsAfterRefusal = store
+    .listJsonlSessions({ limit: 100 })
+    .map((session) => session.id)
+    .sort();
+  assert(
+    JSON.stringify(sessionsAfterRefusal) ===
+      JSON.stringify(sessionsBeforeRefusal),
+    "refused fork left a successor session behind",
+  );
+
+  return {
+    pass: true,
+    forkDurableKinds: forkKinds,
+    forkCanonicalMessageCount: forkCanonical.length,
+    sourceAdvanceRetryStable: true,
+    independentForkDistinct: true,
+    branchMessageCount: branchMessages.length,
+    branchDurableSummaryCount: 1,
+    unmarkedSystemsDropped: true,
+    unanchoredForkRefused: true,
+    refusedForkLeftNoSuccessor: true,
   };
 }
 
@@ -1591,6 +1787,9 @@ export async function runSessionHostConsistencyGate() {
 
     await runScenario("verifiedHostAgreement", () =>
       runVerifiedHostScenario(store, join(root, "verified-home")),
+    );
+    await runScenario("branchForkProvenance", () =>
+      runBranchForkProvenanceScenario(store, join(root, "branch-fork-home")),
     );
     await runScenario("wsAtomicTurns", () =>
       runWsAtomicTurnScenario(store, join(root, "ws-atomic-home")),

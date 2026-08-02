@@ -21,7 +21,11 @@ import {
   reduceMcpLedgerEvents,
 } from "./mcp-call-ledger-store.js";
 import { publicMcpRecoveryAuthority } from "./mcp-recovery-adjudication.js";
-import { projectCanonicalResumeMessages } from "./session-message-provenance.js";
+import {
+  projectCanonicalResumeMessages,
+  sanitizePersistedMessage,
+  sanitizePersistedMessages,
+} from "./session-message-provenance.js";
 
 export const SESSION_HOST_SNAPSHOT_SCHEMA =
   "chainlesschain.session-host-snapshot/v1";
@@ -83,7 +87,9 @@ function replayMessagesFromVerifiedEvents(events) {
   }
   suffix.reverse();
   return Object.freeze(
-    projectCanonicalResumeMessages([...checkpoint, ...suffix]),
+    projectCanonicalResumeMessages([...checkpoint, ...suffix], {
+      strict: true,
+    }),
   );
 }
 
@@ -114,6 +120,15 @@ function titleFromEvents(events) {
     }
   }
   return title;
+}
+
+function validatePlainSessionEvents(events) {
+  // Validate the complete nested graph without invoking accessors/Proxy traps,
+  // then retain the original in-process objects so an already-established
+  // runtime WeakMap provenance capability is not lost on the trusted legacy
+  // adapter seam.
+  sanitizePersistedMessages(events, { strict: true });
+  return events;
 }
 
 function terminalProjection(recovery, authority, lastEvent) {
@@ -199,7 +214,9 @@ function projectSessionHostProjection({
   if (!Array.isArray(messages) || !recovery) {
     throw new TypeError("Host observation is missing messages or recovery");
   }
-  const canonicalMessages = projectCanonicalResumeMessages(messages);
+  const canonicalMessages = projectCanonicalResumeMessages(messages, {
+    strict: true,
+  });
   if (
     typeof headHash !== "string" ||
     !Number.isSafeInteger(eventCount) ||
@@ -233,18 +250,19 @@ export function projectSessionHostObservation({
   messages,
   recovery,
 }) {
-  if (!Array.isArray(events) || events.length === 0) {
+  const safeEvents = validatePlainSessionEvents(events);
+  if (safeEvents.length === 0) {
     throw new TypeError("Verified session events must be a non-empty array");
   }
-  const lastEvent = events.at(-1);
+  const lastEvent = safeEvents.at(-1);
   if (typeof lastEvent?.hash !== "string") {
     throw new TypeError("Verified session head hash is missing");
   }
   return projectSessionHostProjection({
     sessionId,
-    title: titleFromEvents(events),
+    title: titleFromEvents(safeEvents),
     headHash: lastEvent.hash,
-    eventCount: events.length,
+    eventCount: safeEvents.length,
     lastEventType: lastEvent.type,
     messages,
     recovery,
@@ -253,15 +271,16 @@ export function projectSessionHostObservation({
 
 /** Build a content-free snapshot from one already-verified, stable event set. */
 export function projectVerifiedSessionHostSnapshot(sessionId, events) {
-  const messages = replayMessagesFromVerifiedEvents(events);
-  const recovery = reduceMcpLedgerEvents(events, {
+  const safeEvents = validatePlainSessionEvents(events);
+  const messages = replayMessagesFromVerifiedEvents(safeEvents);
+  const recovery = reduceMcpLedgerEvents(safeEvents, {
     sessionId,
     verified: true,
   });
   return Object.freeze({
     snapshot: projectSessionHostObservation({
       sessionId,
-      events,
+      events: safeEvents,
       messages,
       recovery,
     }),
@@ -280,13 +299,18 @@ function createStreamingSessionHostProjection(sessionId) {
 
   return {
     accept(event) {
-      if (event?.type === "session_start" && event.data?.title) {
-        title = String(event.data.title);
-      } else if (event?.type === "session_rename" && event.data?.title) {
-        title = String(event.data.title);
+      const safeEvent = sanitizePersistedMessage(event);
+      if (!safeEvent || typeof safeEvent !== "object") {
+        throw new TypeError("Verified session event must be plain JSON data");
       }
-      lastEventType = typeof event?.type === "string" ? event.type : null;
-      mcpReducer.accept(event);
+      if (safeEvent.type === "session_start" && safeEvent.data?.title) {
+        title = String(safeEvent.data.title);
+      } else if (safeEvent.type === "session_rename" && safeEvent.data?.title) {
+        title = String(safeEvent.data.title);
+      }
+      lastEventType =
+        typeof safeEvent.type === "string" ? safeEvent.type : null;
+      mcpReducer.accept(safeEvent);
     },
     finish({ headHash, eventCount, readMessages }) {
       if (typeof readMessages !== "function") {
@@ -297,9 +321,7 @@ function createStreamingSessionHostProjection(sessionId) {
         throw new TypeError("Verified resume messages must be an array");
       }
       const messages = Object.freeze(
-        projectCanonicalResumeMessages(
-          recoveredMessages.filter(isReplayableMessage),
-        ),
+        projectCanonicalResumeMessages(recoveredMessages, { strict: true }),
       );
       const recovery = mcpReducer.finish();
       return Object.freeze({

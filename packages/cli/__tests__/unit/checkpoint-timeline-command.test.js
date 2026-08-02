@@ -26,8 +26,8 @@ vi.mock("../../src/lib/turn-binding-store.js", () => ({
 
 vi.mock("../../src/harness/jsonl-session-store.js", () => ({
   findLatestEvent: () => ({ hash: state.headHash }),
-  rebuildMessages: () => state.messages.map((message) => ({ ...message })),
-  appendEventIfHead: (_sessionId, type, data, expected) => {
+  readVerifiedMessages: () => state.messages.map((message) => ({ ...message })),
+  appendAuthorityEventIfHead: (_sessionId, type, data, expected) => {
     if (expected !== state.headHash) {
       const error = new Error("stale");
       error.code = "SESSION_REVISION_STALE";

@@ -40,11 +40,11 @@ import {
   TURN_BINDING_TIMELINE_EVENT,
 } from "../lib/turn-binding-store.js";
 import {
+  appendAuthorityEventIfHead,
   appendEvent,
-  appendEventIfHead,
   createBranchSession,
   findLatestEvent,
-  rebuildMessages,
+  readVerifiedMessages,
 } from "../harness/jsonl-session-store.js";
 import { registerManagedCheckpointCommands } from "./checkpoint-managed.js";
 
@@ -165,7 +165,7 @@ function loadTimelineContext(engine, sessionId) {
     checkpoints,
     headHash,
     timeline,
-    messages: rebuildMessages(sessionId),
+    messages: readVerifiedMessages(sessionId),
   };
 }
 
@@ -436,7 +436,7 @@ export function registerCheckpointCommand(program) {
         // under the canonical transcript writer lock; another session writer
         // advancing the head makes the submission stale before code/history is
         // touched.
-        const intent = appendEventIfHead(
+        const intent = appendAuthorityEventIfHead(
           options.session,
           CHECKPOINT_TIMELINE_INTENT_EVENT,
           {
@@ -465,7 +465,7 @@ export function registerCheckpointCommand(program) {
           });
         } else if (planned.commit.messages) {
           context.binding.pruneFromOffset(planned.commit.bindingPruneOffset);
-          const committed = appendEventIfHead(
+          const committed = appendAuthorityEventIfHead(
             options.session,
             TURN_BINDING_TIMELINE_EVENT,
             {

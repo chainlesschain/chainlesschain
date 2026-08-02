@@ -16,7 +16,9 @@ import {
 } from "../harness/structured-handoff.js";
 import {
   DURABLE_SYSTEM_MESSAGE_KINDS,
+  getDurableSystemMessageProvenance,
   markDurableSystemMessage,
+  projectCanonicalResumeMessages,
 } from "./session-message-provenance.js";
 
 export const CHECKPOINT_TIMELINE_RESULT_SCHEMA =
@@ -202,9 +204,28 @@ export function planCheckpointTimelineAction({
       return { ok: false, code: "TIMELINE_CONVERSATION_ANCHOR_STALE" };
     }
     const systemCount = messages[0]?.role === "system" ? 1 : 0;
-    const selected = messages.slice(systemCount, nextAnchor);
+    const prefix = messages.slice(systemCount, nextAnchor);
+    let canonicalPrefix;
+    try {
+      canonicalPrefix = projectCanonicalResumeMessages(prefix, {
+        strict: true,
+      });
+    } catch {
+      return { ok: false, code: "TIMELINE_CONVERSATION_INVALID" };
+    }
+    const durableSystems = canonicalPrefix.filter((message) =>
+      Boolean(getDurableSystemMessageProvenance(message)),
+    );
+    // The first system is the current host-owned prompt and stays in place.
+    // Other systems survive the rewrite only with runtime provenance. An
+    // unmarked verified event must neither survive nor be quoted into the new
+    // durable summary, otherwise SUMMARY_TO would bless it on persistence.
+    const selected = canonicalPrefix.filter(
+      (message) => message.role !== "system",
+    );
     commit.messages = [
       ...messages.slice(0, systemCount),
+      ...durableSystems,
       summaryMessage(selected, action, entry.turnId),
       ...messages.slice(nextAnchor),
     ];

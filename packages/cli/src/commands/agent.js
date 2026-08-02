@@ -163,6 +163,10 @@ export function registerAgentCommand(program) {
       "When resuming, branch into a NEW session id and leave the original untouched (claude --fork-session parity)",
     )
     .option(
+      "--fork-request-id <key>",
+      "Stable idempotency key for --fork-session retries (omit for a new fork each invocation)",
+    )
+    .option(
       "--add-dir <dir>",
       "Extra working directory the agent may read/search/edit (repeatable)",
       (val, prev) => (prev || []).concat([val]),
@@ -749,7 +753,11 @@ export function registerAgentCommand(program) {
         const { applyForkSession } =
           await import("../runtime/headless-runner.js");
         const fork = applyForkSession(
-          { forkSession: true, sessionId: options.session },
+          {
+            forkSession: true,
+            sessionId: options.session,
+            forkRequestId: options.forkRequestId,
+          },
           store,
         );
         if (fork.missing) {

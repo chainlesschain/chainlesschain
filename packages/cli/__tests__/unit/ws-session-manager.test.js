@@ -339,6 +339,14 @@ describe("WSSessionManager", () => {
       expect(result.sessionId).toMatch(/^ws-session-/);
     });
 
+    it("binds the original host system prompt as an explicit persistence prefix", () => {
+      const { sessionId } = manager.createSession();
+      const session = manager.getSession(sessionId);
+
+      expect(session._canonicalHostSystemPrefix).toEqual([session.messages[0]]);
+      expect(Object.keys(session)).not.toContain("_canonicalHostSystemPrefix");
+    });
+
     it("creates agent type by default", () => {
       const { sessionId } = manager.createSession();
       const session = manager.getSession(sessionId);
@@ -740,6 +748,37 @@ describe("WSSessionManager", () => {
       expect(dbGetSession).toHaveBeenCalledWith(mockDb, "db-session-123");
     });
 
+    it("restores the explicit host prefix without adopting stale durable systems", () => {
+      dbGetSession.mockReturnValue({
+        id: "canonical-db-session",
+        provider: "openai",
+        model: "gpt-4",
+        messages: JSON.stringify([
+          { role: "system", content: "host prompt" },
+          { role: "system", content: "stale compact summary" },
+          { role: "system", content: "stale recovery notice" },
+          { role: "user", content: "question" },
+        ]),
+        metadata: JSON.stringify({
+          sessionType: "agent",
+          canonicalHostSystemPrefix: [
+            { role: "system", content: "host prompt" },
+          ],
+        }),
+        created_at: "2026-01-01T00:00:00Z",
+      });
+
+      const session = manager.resumeSession("canonical-db-session");
+
+      expect(session._canonicalHostSystemPrefix).toEqual([
+        { role: "system", content: "host prompt" },
+      ]);
+      expect(session._canonicalHostSystemPrefix).not.toContainEqual({
+        role: "system",
+        content: "stale compact summary",
+      });
+    });
+
     it("rebinds a non-isolated DB session only to the current host root", () => {
       const trustedRoot = fs.realpathSync.native(process.cwd());
       const m = new WSSessionManager({
@@ -981,6 +1020,43 @@ describe("WSSessionManager", () => {
     it("does nothing for unknown session", () => {
       manager.persistMessages("ghost");
       expect(dbSaveMessages).not.toHaveBeenCalled();
+    });
+
+    it("mirrors canonical sessions without durable or recovery system messages", () => {
+      const { sessionId } = manager.createSession();
+      const session = manager.getSession(sessionId);
+      const hostPrompt = session.messages[0];
+      session.canonicalJsonlSession = true;
+      const recoveryNotice = {
+        role: "system",
+        content: "recovery notice",
+      };
+      Object.defineProperty(recoveryNotice, Symbol("resume-recovery-notice"), {
+        value: true,
+        enumerable: false,
+      });
+      session.messages = [
+        hostPrompt,
+        { role: "system", content: "durable compact summary" },
+        recoveryNotice,
+        { role: "user", content: "question" },
+        { role: "assistant", content: "answer" },
+      ];
+
+      manager.persistMessages(sessionId);
+
+      expect(dbSaveMessages).toHaveBeenCalledWith(
+        mockDb,
+        sessionId,
+        [
+          hostPrompt,
+          { role: "user", content: "question" },
+          { role: "assistant", content: "answer" },
+        ],
+        expect.objectContaining({
+          canonicalHostSystemPrefix: [hostPrompt],
+        }),
+      );
     });
   });
 

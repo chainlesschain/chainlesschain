@@ -22,6 +22,7 @@ import chalk from "chalk";
 import fs from "fs";
 import os from "os";
 import path from "path";
+import { randomUUID } from "node:crypto";
 import { isPromise, isProxy } from "node:util/types";
 import { logger } from "../lib/logger.js";
 import { getPlanModeManager, PlanState } from "../lib/plan-mode.js";
@@ -46,7 +47,7 @@ import {
   startSession as jsonlStartSession,
   appendUserMessage,
   appendAssistantMessage,
-  appendCompactEvent,
+  appendCompactEventIfMessagesMatch,
   appendTokenUsage,
   appendToolCallCompact,
   appendLlmRetryCompact,
@@ -67,6 +68,10 @@ import {
   isVerifiedSessionHostSnapshot,
   readSessionHostResumeState,
 } from "../lib/session-host-snapshot.js";
+import {
+  preserveDurableSystemMessageProvenance,
+  projectCanonicalResumeMessages,
+} from "../lib/session-message-provenance.js";
 import {
   MCP_RECOVERY_INVALID_CODE,
   classifyMcpRecoveryAdmission,
@@ -1173,7 +1178,7 @@ function snapshotReplMessages(messages) {
             "CC_REPL_SESSION_REBUILD_FAILED",
           );
         }
-        return snapshot;
+        return preserveDurableSystemMessageProvenance(message, snapshot);
       },
     );
   } catch (cause) {
@@ -1184,6 +1189,63 @@ function snapshotReplMessages(messages) {
     error.cause = cause;
     throw error;
   }
+}
+
+function canonicalPersistentReplMessages(messages) {
+  return snapshotReplMessages(
+    projectCanonicalResumeMessages(snapshotReplMessages(messages), {
+      strict: true,
+    }),
+  );
+}
+
+/**
+ * Track the exact replay projection this REPL has persisted. Compact writes
+ * compare it with the store's verified active messages under one lock, so a
+ * second host's unseen turn can never be hidden by a local auto/session-end
+ * checkpoint.
+ */
+export function createReplCompactPersistence(
+  initialMessages = [],
+  dependencies = {},
+) {
+  const appendCompact = dependencyDataFunction(
+    dependencies,
+    "appendCompactEventIfMessagesMatch",
+    appendCompactEventIfMessagesMatch,
+  );
+  let persistedMessages = canonicalPersistentReplMessages(initialMessages);
+  const replace = (messages) => {
+    persistedMessages = canonicalPersistentReplMessages(messages);
+    return persistedMessages;
+  };
+  return Object.freeze({
+    record(message) {
+      const projected = canonicalPersistentReplMessages([message]);
+      if (projected.length !== 1) {
+        throw new TypeError("Persisted REPL message is not canonical");
+      }
+      persistedMessages = Object.freeze([...persistedMessages, projected[0]]);
+      return projected[0];
+    },
+    replace,
+    persist(sessionId, payload) {
+      const canonicalMessages = canonicalPersistentReplMessages(
+        payload?.messages || [],
+      );
+      const canonicalPayload = { ...payload, messages: canonicalMessages };
+      const result = appendCompact(
+        sessionId,
+        canonicalPayload,
+        persistedMessages,
+      );
+      replace(canonicalMessages);
+      return result;
+    },
+    snapshot() {
+      return snapshotReplMessages(persistedMessages);
+    },
+  });
 }
 
 function validateRawReplReplayMessages(rebuiltMessages) {
@@ -1490,12 +1552,19 @@ export function prepareReplJsonlResumeCandidate(sessionId, dependencies = {}) {
       error.code = "CC_SESSION_HOST_SNAPSHOT_UNVERIFIED";
       throw error;
     }
-    const rebuiltMessages = snapshotReplMessages(
+    const rawRebuiltMessages = snapshotReplMessages(
       dataDescriptorValue(
         stateDescriptors,
         "messages",
         "REPL session host resume state",
       ),
+    );
+    // The injected host seam may supply plain persisted fields. Only the
+    // runtime-only provenance already established by the verified store is
+    // canonical; unmarked host prompts and forged wire tags are removed before
+    // REPL normalization or any side effect.
+    const rebuiltMessages = snapshotReplMessages(
+      projectCanonicalResumeMessages(rawRebuiltMessages),
     );
     const normalizedReplay = normalizeReplReplayMessages(rebuiltMessages);
     const mcp = createReplMcpRecoveryCandidate(
@@ -2138,6 +2207,9 @@ async function startAgentReplInWorkspace(options = {}, startupAdmission) {
   let db = null;
   let contextEngine = null;
   let sessionId = _startupJsonlResume?.sessionId || null;
+  const _replCompactPersistence = createReplCompactPersistence(
+    _startupJsonlResume?.ok ? _startupJsonlResume.rebuiltMessages : [],
+  );
 
   try {
     const ctx = await bootstrap({ verbose: false });
@@ -3994,7 +4066,9 @@ async function startAgentReplInWorkspace(options = {}, startupAdmission) {
       let forkNotice = "";
       if (btw.fork) {
         if (useJsonl && sessionId && sessionExists(sessionId)) {
-          forkedId = forkSession(sessionId);
+          forkedId = forkSession(sessionId, {
+            requestId: `btw-${randomUUID()}`,
+          });
           if (forkedId) {
             appendUserMessage(forkedId, btw.text);
             appendAssistantMessage(forkedId, answer);
@@ -5595,6 +5669,7 @@ async function startAgentReplInWorkspace(options = {}, startupAdmission) {
               error.code = "CC_REPL_SESSION_RESUME_NOT_COMMITTED";
               throw error;
             }
+            _replCompactPersistence.replace(prepared.rebuiltMessages);
           } else if (db) {
             const existing = getSession(db, resumeId);
             if (existing && existing.messages) {
@@ -7799,8 +7874,16 @@ async function startAgentReplInWorkspace(options = {}, startupAdmission) {
           if (useJsonl) {
             // Append incremental events (user + assistant)
             appendUserMessage(sessionId, effectivePrompt);
+            _replCompactPersistence.record({
+              role: "user",
+              content: effectivePrompt,
+            });
             if (effectiveResponse) {
               appendAssistantMessage(sessionId, effectiveResponse);
+              _replCompactPersistence.record({
+                role: "assistant",
+                content: effectiveResponse,
+              });
             }
           } else if (db) {
             saveMessages(db, sessionId, messages);
@@ -7842,7 +7925,7 @@ async function startAgentReplInWorkspace(options = {}, startupAdmission) {
             }
             // Write compact checkpoint to JSONL for crash recovery
             if (useJsonl && sessionId) {
-              appendCompactEvent(sessionId, {
+              _replCompactPersistence.persist(sessionId, {
                 ...stats,
                 messages: compacted,
               });
@@ -8003,7 +8086,7 @@ async function startAgentReplInWorkspace(options = {}, startupAdmission) {
         if (useJsonl) {
           _persistReplContextSources();
           // JSONL: write final compact snapshot for fast rebuild
-          appendCompactEvent(sessionId, {
+          _replCompactPersistence.persist(sessionId, {
             strategy: "session-end",
             messages,
           });
@@ -8011,7 +8094,7 @@ async function startAgentReplInWorkspace(options = {}, startupAdmission) {
           saveMessages(db, sessionId, messages);
         }
       } catch (_e) {
-        // Non-critical
+        logger.warn(`Session-end compact not persisted: ${_e.message}`);
       }
     }
     // Auto-summarize session into permanent memory

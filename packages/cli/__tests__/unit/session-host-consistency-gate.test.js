@@ -189,9 +189,20 @@ describe("cli session-host consistency gate", () => {
           canonicalSystemSummaryPreserved: true,
           canonicalSystemSummaryContentFree: true,
           websocketRestartRoundTrip: true,
+          websocketLegacyDbSystemPrefixSanitized: true,
           terminalState: {
             mcpCalls: { started: 1, outcomeUnknown: 1, total: 1 },
           },
+        },
+        branchForkProvenance: {
+          pass: true,
+          forkDurableKinds: ["compact-summary", "fork-lineage"],
+          forkCanonicalMessageCount: 4,
+          branchMessageCount: 3,
+          branchDurableSummaryCount: 1,
+          unmarkedSystemsDropped: true,
+          unanchoredForkRefused: true,
+          refusedForkLeftNoSuccessor: true,
         },
         wsAtomicTurns: {
           pass: true,

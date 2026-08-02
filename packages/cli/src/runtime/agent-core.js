@@ -112,6 +112,7 @@ import {
   buildExtractiveHandoff,
   formatStructuredHandoff,
 } from "../harness/structured-handoff.js";
+import { projectCanonicalResumeMessages } from "../lib/session-message-provenance.js";
 
 export { formatProviderHttpError };
 
@@ -6892,7 +6893,8 @@ function* _drainSubAgentUsage(sink) {
  */
 export function buildSubAgentHandoffContext(messages) {
   if (!Array.isArray(messages)) return null;
-  const hasContent = messages.some((message) => {
+  const canonicalMessages = projectCanonicalResumeMessages(messages);
+  const hasContent = canonicalMessages.some((message) => {
     if (!message || !["user", "assistant", "tool"].includes(message.role)) {
       return false;
     }
@@ -6903,7 +6905,7 @@ export function buildSubAgentHandoffContext(messages) {
   });
   if (!hasContent) return null;
 
-  const handoff = buildExtractiveHandoff(messages, {
+  const handoff = buildExtractiveHandoff(canonicalMessages, {
     maxContentChars: 6000,
     maxItemsPerField: 6,
     maxItemChars: 500,

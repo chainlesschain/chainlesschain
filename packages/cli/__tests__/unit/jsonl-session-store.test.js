@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import {
   mkdirSync,
+  readdirSync,
   rmSync,
   existsSync,
   writeFileSync,
@@ -26,11 +27,14 @@ const {
   appendToolCall,
   appendToolResult,
   appendCompactEvent,
+  appendCompactEventIfMessagesMatch,
   appendEvent,
   appendWsTurnIfHead,
   claimWsTurnIfHead,
   settleWsTurnClaim,
   appendAuthorityEvent,
+  appendAuthorityEventIfHead,
+  _sessionScaleFaultHooks,
   readEvents,
   readVerifiedEvents,
   readVerifiedWsTurnState,
@@ -68,8 +72,19 @@ const {
   DURABLE_SYSTEM_MESSAGE_KINDS,
   getDurableSystemMessageProvenance,
   markDurableSystemMessage,
+  SESSION_FORK_AUTHORITY_FIELD,
   SESSION_MESSAGE_PROVENANCE_FIELD,
+  SESSION_MESSAGE_PROVENANCE_SCHEMA,
 } = await import("../../src/lib/session-message-provenance.js");
+
+function readVerifiedMessages(sessionId) {
+  return readVerifiedProjection(sessionId, () => ({
+    accept() {},
+    finish(authority) {
+      return authority.readMessages();
+    },
+  }));
+}
 
 describe("jsonl-session-store", () => {
   beforeEach(() => {
@@ -699,6 +714,88 @@ describe("jsonl-session-store", () => {
       expect(staleFinish).not.toHaveBeenCalled();
     });
 
+    it("refuses a stale compact CAS without hiding a concurrent turn", () => {
+      const id = startSession("compact-stale-cas", { title: "verified" });
+      appendUserMessage(id, "before compact");
+      const source = readVerifiedProjection(id, () => ({
+        accept() {},
+        finish(authority) {
+          return {
+            headHash: authority.headHash,
+            messages: authority.readMessages(),
+          };
+        },
+      }));
+
+      appendUserMessage(id, "concurrent turn");
+
+      expect(() =>
+        appendAuthorityEventIfHead(
+          id,
+          "compact",
+          {
+            messages: [{ role: "assistant", content: "stale compact result" }],
+          },
+          source.headHash,
+        ),
+      ).toThrow(expect.objectContaining({ code: "SESSION_REVISION_STALE" }));
+      expect(readEvents(id).some((event) => event.type === "compact")).toBe(
+        false,
+      );
+      expect(readVerifiedMessages(id)).toEqual([
+        { role: "user", content: "before compact" },
+        { role: "user", content: "concurrent turn" },
+      ]);
+      expect(verifySession(id).status).toBe("verified");
+    });
+
+    it("matches active replay under lock before accepting a REPL compact", () => {
+      const id = startSession("repl-compact-message-cas", {
+        title: "verified",
+      });
+      appendUserMessage(id, "known turn");
+      const expected = readVerifiedMessages(id);
+
+      appendUserMessage(id, "concurrent turn");
+      expect(() =>
+        appendCompactEventIfMessagesMatch(
+          id,
+          {
+            strategy: "auto",
+            messages: [
+              markDurableSystemMessage(
+                { role: "system", content: "stale summary" },
+                DURABLE_SYSTEM_MESSAGE_KINDS.COMPACT_SUMMARY,
+              ),
+            ],
+          },
+          expected,
+        ),
+      ).toThrow(expect.objectContaining({ code: "SESSION_REVISION_STALE" }));
+      expect(readVerifiedMessages(id)).toEqual([
+        { role: "user", content: "known turn" },
+        { role: "user", content: "concurrent turn" },
+      ]);
+
+      const current = readVerifiedMessages(id);
+      const summary = markDurableSystemMessage(
+        { role: "system", content: "current summary" },
+        DURABLE_SYSTEM_MESSAGE_KINDS.COMPACT_SUMMARY,
+      );
+      const appended = appendCompactEventIfMessagesMatch(
+        id,
+        { strategy: "auto", messages: [summary] },
+        current,
+      );
+      expect(appended.hash).toMatch(/^[a-f0-9]{64}$/);
+      const resumed = readVerifiedMessages(id);
+      expect(resumed).toEqual([{ role: "system", content: "current summary" }]);
+      expect(getDurableSystemMessageProvenance(resumed[0])).toMatchObject({
+        kind: DURABLE_SYSTEM_MESSAGE_KINDS.COMPACT_SUMMARY,
+      });
+      expect(verifySession(id).status).toBe("verified");
+    });
+
     it("keeps resume heap to the compact checkpoint and suffix", () => {
       const id = startSession("streaming-large-prefix", { title: "large" });
       const events = [];
@@ -870,7 +967,9 @@ describe("jsonl-session-store", () => {
         { role: "user", content: "active question" },
       ]);
       expect(getDurableSystemMessageProvenance(rebuilt[0])).toBeNull();
-      expect(getDurableSystemMessageProvenance(rebuilt[1])).toMatchObject({
+      expect(getDurableSystemMessageProvenance(rebuilt[1])).toBeNull();
+      const verified = readVerifiedMessages(id);
+      expect(getDurableSystemMessageProvenance(verified[1])).toMatchObject({
         kind: DURABLE_SYSTEM_MESSAGE_KINDS.COMPACT_SUMMARY,
       });
       expect(JSON.stringify(rebuilt)).not.toContain(
@@ -901,12 +1000,102 @@ describe("jsonl-session-store", () => {
       expect(verifySession(id).status).toBe("verified");
 
       const rebuilt = rebuildMessages(id);
-      expect(getDurableSystemMessageProvenance(rebuilt[1])).toMatchObject({
+      expect(getDurableSystemMessageProvenance(rebuilt[1])).toBeNull();
+      const verified = readVerifiedMessages(id);
+      expect(getDurableSystemMessageProvenance(verified[1])).toMatchObject({
         kind: DURABLE_SYSTEM_MESSAGE_KINDS.CHECKPOINT_SUMMARY,
       });
       expect(JSON.stringify(rebuilt)).not.toContain(
         SESSION_MESSAGE_PROVENANCE_FIELD,
       );
+    });
+
+    it("preserves summary provenance through REPL apply, persist, and a second resume", async () => {
+      const id = startSession("repl-provenance-two-hop");
+      appendCompactEvent(id, {
+        strategy: "fixture",
+        messages: [
+          { role: "system", content: "old host prompt" },
+          markDurableSystemMessage(
+            { role: "system", content: "two-hop durable facts" },
+            DURABLE_SYSTEM_MESSAGE_KINDS.COMPACT_SUMMARY,
+          ),
+          { role: "user", content: "restored question" },
+        ],
+      });
+
+      const {
+        createReplResumeStateController,
+        prepareReplJsonlResumeCandidate,
+      } = await import("../../src/repl/agent-repl.js");
+      const first = prepareReplJsonlResumeCandidate(id);
+      expect(first.ok).toBe(true);
+      expect(first.canonicalSystemMessages).toEqual([
+        { role: "system", content: "two-hop durable facts" },
+      ]);
+
+      const runtimeManager = {
+        current: Object.freeze({ id: "old-runtime" }),
+        commit(next) {
+          this.current = next;
+        },
+      };
+      const bindings = {
+        sessionId: "old-session",
+        messages: [{ role: "system", content: "fresh host prompt" }],
+        recovery: null,
+        recoveryError: null,
+        sanitizeRolesNextTurn: false,
+        turnBindingProducer: null,
+        turnBindingCriticalError: null,
+        checkpointMarks: [],
+        clearedConversation: null,
+        runtimeManager,
+        applyMcpRecoveryCommit: vi.fn(),
+        logMcpRecoveryCommit: vi.fn(),
+        logger: { info: vi.fn() },
+      };
+      const controller = createReplResumeStateController(bindings);
+      const hostSystemMessages = controller.registerHostSystemMessages();
+      controller.apply({
+        sessionId: id,
+        hostSystemMessages,
+        canonicalSystemMessages: first.canonicalSystemMessages,
+        conversationMessages: first.conversationMessages,
+        mcpCommit: first.mcp,
+        mcpRuntime: Object.freeze({ id: "target-runtime" }),
+        sanitizeRolesNextTurn: true,
+        logMessage: "resumed",
+      });
+
+      const appliedSummary = bindings.messages.find(
+        (message) => message.content === "two-hop durable facts",
+      );
+      expect(getDurableSystemMessageProvenance(appliedSummary)).toMatchObject({
+        kind: DURABLE_SYSTEM_MESSAGE_KINDS.COMPACT_SUMMARY,
+      });
+
+      appendCompactEvent(id, {
+        strategy: "session-end",
+        messages: bindings.messages,
+      });
+      const persistedSummary = readEvents(id)
+        .at(-1)
+        .data.messages.find(
+          (message) => message.content === "two-hop durable facts",
+        );
+      expect(persistedSummary[SESSION_MESSAGE_PROVENANCE_FIELD]).toMatchObject({
+        kind: DURABLE_SYSTEM_MESSAGE_KINDS.COMPACT_SUMMARY,
+      });
+      expect(verifySession(id).status).toBe("verified");
+
+      const second = prepareReplJsonlResumeCandidate(id);
+      expect(second.ok).toBe(true);
+      expect(second.canonicalSystemMessages).toEqual([
+        { role: "system", content: "two-hop durable facts" },
+      ]);
+      expect(JSON.stringify(second)).not.toContain("old host prompt");
+      expect(JSON.stringify(second)).not.toContain("fresh host prompt");
     });
 
     it("returns empty for non-existent session", () => {
@@ -1222,10 +1411,188 @@ describe("jsonl-session-store", () => {
       expect(events.length).toBe(4);
       expect(events[3].type).toBe("system");
       expect(events[3].data.content).toContain("Forked from");
+      expect(events[3].data).toHaveProperty(SESSION_FORK_AUTHORITY_FIELD);
+      const lineage = readVerifiedMessages(forkedId).at(-1);
+      expect(lineage).not.toHaveProperty(SESSION_FORK_AUTHORITY_FIELD);
+      expect(getDurableSystemMessageProvenance(lineage)).toMatchObject({
+        kind: DURABLE_SYSTEM_MESSAGE_KINDS.FORK_LINEAGE,
+      });
+    });
+
+    it("deduplicates an exact request and permits an explicit distinct intent", () => {
+      const id = startSession("fork-idempotent", { title: "Original" });
+      appendUserMessage(id, "q1");
+
+      const first = forkSession(id);
+      const retry = forkSession(id);
+      expect(retry).toBe(first);
+
+      appendUserMessage(first, "fork progressed");
+      const progressedEvents = readEvents(first).length;
+      expect(forkSession(id)).toBe(first);
+      expect(readEvents(first)).toHaveLength(progressedEvents);
+
+      appendUserMessage(id, "source progressed after unknown commit");
+      expect(forkSession(id)).toBe(first);
+      expect(readEvents(first)).toHaveLength(progressedEvents);
+
+      const distinct = forkSession(id, { requestId: "second-intent" });
+      expect(distinct).not.toBe(first);
+      expect(readVerifiedMessages(first).at(-1).content).toContain(
+        "fork progressed",
+      );
+      expect(readVerifiedMessages(distinct).at(-1).content).toContain(
+        "Forked from",
+      );
+    });
+
+    it("refuses to lower a progressed fork anchor to its creation prefix", () => {
+      const sourceId = startSession("fork-anchor-rollback", {
+        title: "Original",
+      });
+      appendUserMessage(sourceId, "source turn");
+      const forkedId = forkSession(sourceId);
+      appendUserMessage(forkedId, "later fork turn");
+
+      const filePath = sessionPath(forkedId);
+      const metaPath = join(sessionsDir, `${forkedId}.meta.json`);
+      const committedMeta = readFileSync(metaPath, "utf8");
+      const lines = readFileSync(filePath, "utf8").trimEnd().split(/\r?\n/);
+      expect(lines).toHaveLength(4);
+      writeFileSync(filePath, `${lines.slice(0, 3).join("\n")}\n`, "utf8");
+
+      expect(() => forkSession(sourceId)).toThrow(
+        expect.objectContaining({ code: "SESSION_TRANSCRIPT_UNVERIFIED" }),
+      );
+      expect(readFileSync(metaPath, "utf8")).toBe(committedMeta);
+      expect(readEvents(forkedId)).toHaveLength(3);
+      expect(() => readVerifiedMessages(forkedId)).toThrow(
+        expect.objectContaining({ code: "SESSION_TRANSCRIPT_UNVERIFIED" }),
+      );
+    });
+
+    it("recovers the same successor across every fork publication crash window", () => {
+      const hookNames = [
+        "afterForkCopy",
+        "afterForkLineage",
+        "afterForkPublish",
+        "afterForkMeta",
+      ];
+      process.env.CC_SESSION_SCALE_FAULT_INJECTION = "1";
+      try {
+        for (const [index, hookName] of hookNames.entries()) {
+          const sourceId = `fork-crash-${index}`;
+          startSession(sourceId, { title: "Crash source" });
+          appendUserMessage(sourceId, "durable source turn");
+          const before = new Set(
+            readdirSync(sessionsDir).filter(
+              (name) =>
+                name.endsWith(".jsonl") || name.endsWith(".fork.pending"),
+            ),
+          );
+          let injected = false;
+          _sessionScaleFaultHooks[hookName] = () => {
+            if (!injected) {
+              injected = true;
+              throw new Error(`fork crash fixture: ${hookName}`);
+            }
+          };
+
+          expect(() =>
+            forkSession(sourceId, { requestId: "stable-request" }),
+          ).toThrow(`fork crash fixture: ${hookName}`);
+          _sessionScaleFaultHooks[hookName] = null;
+
+          const crashArtifacts = readdirSync(sessionsDir).filter(
+            (name) =>
+              (name.endsWith(".jsonl") || name.endsWith(".fork.pending")) &&
+              !before.has(name),
+          );
+          expect(crashArtifacts).toHaveLength(1);
+          const expectedId = crashArtifacts[0].replace(
+            /(?:\.jsonl|\.fork\.pending)$/,
+            "",
+          );
+          if (hookName === "afterForkCopy") {
+            expect(
+              listJsonlSessions({ limit: 100 }).some(
+                (session) => session.id === expectedId,
+              ),
+            ).toBe(false);
+            expect(
+              existsSync(join(sessionsDir, `${expectedId}.meta.json`)),
+            ).toBe(false);
+          }
+          appendUserMessage(
+            sourceId,
+            `source advanced after ${hookName} unknown commit`,
+          );
+          const recovered = forkSession(sourceId, {
+            requestId: "stable-request",
+          });
+          const replay = forkSession(sourceId, {
+            requestId: "stable-request",
+          });
+
+          expect(recovered).toBe(expectedId);
+          expect(replay).toBe(recovered);
+          expect(verifySession(recovered).status).toBe("verified");
+          expect(readVerifiedMessages(recovered).at(-1).content).toContain(
+            `Forked from session ${sourceId}`,
+          );
+          expect(
+            readdirSync(sessionsDir).filter(
+              (name) => name.endsWith(".jsonl") && !before.has(name),
+            ),
+          ).toEqual([`${expectedId}.jsonl`]);
+          expect(
+            existsSync(join(sessionsDir, `${expectedId}.fork.pending`)),
+          ).toBe(false);
+        }
+      } finally {
+        for (const hookName of hookNames) {
+          _sessionScaleFaultHooks[hookName] = null;
+        }
+        delete process.env.CC_SESSION_SCALE_FAULT_INJECTION;
+      }
     });
 
     it("returns null for non-existent session", () => {
       expect(forkSession("nope")).toBeNull();
+    });
+
+    it("refuses to re-anchor a hash-valid source whose sidecar no longer matches", () => {
+      const id = startSession("fork-anchor-mismatch", { title: "Original" });
+      appendEvent(id, "system", {
+        role: "system",
+        content: "ordinary source system",
+      });
+      const events = readEvents(id);
+      const forged = events.at(-1);
+      forged.data[SESSION_MESSAGE_PROVENANCE_FIELD] = {
+        schema: SESSION_MESSAGE_PROVENANCE_SCHEMA,
+        kind: DURABLE_SYSTEM_MESSAGE_KINDS.COMPACT_SUMMARY,
+      };
+      forged.hash = computeEventHash(forged.prevHash, forged);
+      writeFileSync(
+        sessionPath(id),
+        `${events.map((event) => JSON.stringify(event)).join("\n")}\n`,
+        "utf8",
+      );
+      expect(verifySession(id).status).toBe("verified");
+      const before = readdirSync(sessionsDir)
+        .filter((name) => name.endsWith(".jsonl"))
+        .sort();
+
+      expect(() => forkSession(id)).toThrow(
+        expect.objectContaining({ code: "SESSION_TRANSCRIPT_UNVERIFIED" }),
+      );
+
+      expect(
+        readdirSync(sessionsDir)
+          .filter((name) => name.endsWith(".jsonl"))
+          .sort(),
+      ).toEqual(before);
     });
   });
 
@@ -1260,6 +1627,10 @@ describe("jsonl-session-store", () => {
       expect(events.filter((e) => e.type === "assistant_message").length).toBe(
         1,
       );
+      expect(events.at(-1)).toMatchObject({
+        type: "session_branch_complete",
+        data: { schemaVersion: 1, messageCount: 2 },
+      });
     });
 
     it("does NOT touch the parent session (preservesParent)", () => {
@@ -1289,6 +1660,162 @@ describe("jsonl-session-store", () => {
       });
       expect(second).toMatchObject({ created: false, messages: 0 });
       expect(readEvents("p-b-dup").length).toBe(eventsAfterFirst);
+
+      appendUserMessage("p-b-dup", "branch progressed");
+      const progressedEvents = readEvents("p-b-dup").length;
+      const third = createBranchSession({
+        branchSessionId: "p-b-dup",
+        parentSessionId: "p",
+        messages: [{ role: "user", content: "one" }],
+      });
+      expect(third).toMatchObject({ created: false, messages: 0 });
+      expect(readEvents("p-b-dup").length).toBe(progressedEvents);
+    });
+
+    it("refuses to lower a progressed branch anchor to a truncated creation prefix", () => {
+      const branchSessionId = "p-b-anchor-rollback";
+      const branchInput = {
+        branchSessionId,
+        parentSessionId: "p",
+        messages: [{ role: "user", content: "seed" }],
+      };
+      createBranchSession(branchInput);
+      appendUserMessage(branchSessionId, "later durable turn");
+
+      const filePath = sessionPath(branchSessionId);
+      const metaPath = join(sessionsDir, `${branchSessionId}.meta.json`);
+      const committedMeta = readFileSync(metaPath, "utf8");
+      const lines = readFileSync(filePath, "utf8").trimEnd().split(/\r?\n/);
+      expect(lines).toHaveLength(5);
+      writeFileSync(filePath, `${lines.slice(0, 4).join("\n")}\n`, "utf8");
+
+      expect(() => readVerifiedMessages(branchSessionId)).toThrow(
+        expect.objectContaining({ code: "SESSION_TRANSCRIPT_UNVERIFIED" }),
+      );
+      expect(() => createBranchSession(branchInput)).toThrow(
+        expect.objectContaining({ code: "SESSION_TRANSCRIPT_UNVERIFIED" }),
+      );
+
+      expect(readFileSync(metaPath, "utf8")).toBe(committedMeta);
+      expect(readEvents(branchSessionId)).toHaveLength(4);
+      expect(() => readVerifiedMessages(branchSessionId)).toThrow(
+        expect.objectContaining({ code: "SESSION_TRANSCRIPT_UNVERIFIED" }),
+      );
+    });
+
+    it("leaves no branch when message validation fails and permits a valid retry", () => {
+      const branchSessionId = "p-b-validation-retry";
+
+      expect(() =>
+        createBranchSession({
+          branchSessionId,
+          parentSessionId: "p",
+          messages: [{ role: "user", content: () => "invalid" }],
+        }),
+      ).toThrow(/JSON-safe data/);
+      expect(sessionExists(branchSessionId)).toBe(false);
+
+      const retry = createBranchSession({
+        branchSessionId,
+        parentSessionId: "p",
+        messages: [{ role: "user", content: "valid retry" }],
+      });
+      expect(retry).toMatchObject({ created: true, messages: 1 });
+      expect(readEvents(branchSessionId).map((event) => event.type)).toEqual([
+        "session_start",
+        "session_branch",
+        "user_message",
+        "session_branch_complete",
+      ]);
+    });
+
+    it("resumes an exact crash prefix and publishes completion before idempotent success", () => {
+      const branchSessionId = "p-b-crash-retry";
+      let injected = false;
+      process.env.CC_SESSION_SCALE_FAULT_INJECTION = "1";
+      _sessionScaleFaultHooks.afterTranscriptAppend = ({ type }) => {
+        if (!injected && type === "user_message") {
+          injected = true;
+          throw new Error("branch crash fixture");
+        }
+      };
+      try {
+        expect(() =>
+          createBranchSession({
+            branchSessionId,
+            parentSessionId: "p",
+            parentTurnId: "turn-1",
+            messages: [
+              { role: "user", content: "one" },
+              { role: "assistant", content: "two" },
+            ],
+          }),
+        ).toThrow(/branch crash fixture/);
+        expect(readEvents(branchSessionId).map((event) => event.type)).toEqual([
+          "session_start",
+          "session_branch",
+          "user_message",
+        ]);
+        expect(() => readVerifiedMessages(branchSessionId)).toThrow(
+          expect.objectContaining({ code: "SESSION_TRANSCRIPT_UNVERIFIED" }),
+        );
+
+        _sessionScaleFaultHooks.afterTranscriptAppend = null;
+        delete process.env.CC_SESSION_SCALE_FAULT_INJECTION;
+        const recovered = createBranchSession({
+          branchSessionId,
+          parentSessionId: "p",
+          parentTurnId: "turn-1",
+          messages: [
+            { role: "user", content: "one" },
+            { role: "assistant", content: "two" },
+          ],
+        });
+        expect(recovered).toMatchObject({ created: true, messages: 2 });
+        expect(readEvents(branchSessionId).map((event) => event.type)).toEqual([
+          "session_start",
+          "session_branch",
+          "user_message",
+          "assistant_message",
+          "session_branch_complete",
+        ]);
+        expect(readVerifiedMessages(branchSessionId)).toEqual([
+          { role: "user", content: "one" },
+          { role: "assistant", content: "two" },
+        ]);
+        expect(verifySession(branchSessionId).status).toBe("verified");
+
+        const duplicate = createBranchSession({
+          branchSessionId,
+          parentSessionId: "p",
+          parentTurnId: "turn-1",
+          messages: [
+            { role: "user", content: "one" },
+            { role: "assistant", content: "two" },
+          ],
+        });
+        expect(duplicate).toMatchObject({ created: false, messages: 0 });
+      } finally {
+        _sessionScaleFaultHooks.afterTranscriptAppend = null;
+        delete process.env.CC_SESSION_SCALE_FAULT_INJECTION;
+      }
+    });
+
+    it("rejects a completed deterministic branch with different input", () => {
+      const branchSessionId = "p-b-conflict";
+      createBranchSession({
+        branchSessionId,
+        parentSessionId: "p",
+        messages: [{ role: "user", content: "original" }],
+      });
+
+      expect(() =>
+        createBranchSession({
+          branchSessionId,
+          parentSessionId: "p",
+          messages: [{ role: "user", content: "different" }],
+        }),
+      ).toThrow(expect.objectContaining({ code: "SESSION_BRANCH_CONFLICT" }));
     });
 
     it("rejects a traversal branch id", () => {
@@ -1372,7 +1899,11 @@ describe("jsonl-session-store", () => {
       const summary = rebuilt.find((message) =>
         String(message.content).startsWith("[Migrated Summary]"),
       );
-      expect(getDurableSystemMessageProvenance(summary)).toMatchObject({
+      expect(getDurableSystemMessageProvenance(summary)).toBeNull();
+      const verifiedSummary = readVerifiedMessages("legacy-summary").find(
+        (message) => String(message.content).startsWith("[Migrated Summary]"),
+      );
+      expect(getDurableSystemMessageProvenance(verifiedSummary)).toMatchObject({
         kind: DURABLE_SYSTEM_MESSAGE_KINDS.MIGRATION_SUMMARY,
       });
       expect(JSON.stringify(summary)).not.toContain(

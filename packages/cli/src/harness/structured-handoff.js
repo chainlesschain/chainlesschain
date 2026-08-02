@@ -3,6 +3,8 @@
  * parent-to-child agent context. The field order is part of the wire format.
  */
 
+import { projectCanonicalResumeMessages } from "../lib/session-message-provenance.js";
+
 export const STRUCTURED_HANDOFF_FIELDS = Object.freeze([
   "objective",
   "constraints",
@@ -147,7 +149,12 @@ export function formatStructuredHandoff(value) {
 }
 
 function selectBoundedSources(messages, maxChars) {
-  const entries = (Array.isArray(messages) ? messages : [])
+  // A structured handoff can later become durable system context. Never let a
+  // merely verified (or wire-tag-forged) system message gain that authority by
+  // being quoted into a new handoff. Only the runtime WeakMap capability is
+  // admitted; ordinary user/assistant/tool conversation remains eligible.
+  const canonicalSources = projectCanonicalResumeMessages(messages);
+  const entries = canonicalSources
     .map((message, index) => ({
       index,
       role: typeof message?.role === "string" ? message.role : "unknown",

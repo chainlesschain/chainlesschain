@@ -22,6 +22,7 @@
  *  - bypassPermissions                   → AUTOPILOT (everything allowed)
  */
 
+import { randomUUID } from "node:crypto";
 import { bootstrap } from "./bootstrap.js";
 import {
   buildSystemPrompt,
@@ -306,7 +307,7 @@ export function resolveHeadlessSession(options = {}, store = {}, fallbackId) {
  * apart from the injected store's side effect; both `sessionExists`/`forkSession`
  * are injection seams so this is unit-testable without disk.
  *
- * @param {{forkSession?:boolean, sessionId?:string|null}} opts
+ * @param {{forkSession?:boolean, sessionId?:string|null, forkRequestId?:string}} opts
  * @param {{sessionExists?:Function, forkSession?:Function}} store
  * @returns {{ sessionId:string|null, forkedFrom:string|null, missing:boolean }}
  */
@@ -317,8 +318,14 @@ export function applyForkSession(opts = {}, store = {}) {
   if (typeof store.sessionExists === "function" && !store.sessionExists(id)) {
     return { sessionId: id, forkedFrom: null, missing: true };
   }
+  const requestId =
+    typeof opts.forkRequestId === "string" && opts.forkRequestId.length > 0
+      ? opts.forkRequestId
+      : `cli-${randomUUID()}`;
   const newId =
-    typeof store.forkSession === "function" ? store.forkSession(id) : null;
+    typeof store.forkSession === "function"
+      ? store.forkSession(id, { requestId })
+      : null;
   if (!newId) return { sessionId: id, forkedFrom: null, missing: false };
   return { sessionId: newId, forkedFrom: id, missing: false };
 }

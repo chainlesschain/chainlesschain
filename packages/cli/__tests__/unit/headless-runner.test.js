@@ -945,6 +945,39 @@ describe("applyForkSession — --fork-session", () => {
     });
   });
 
+  it("uses distinct request identities by default and preserves an explicit retry key", () => {
+    const requestIds = [];
+    const recordingStore = {
+      sessionExists: () => true,
+      forkSession: (_id, { requestId }) => {
+        requestIds.push(requestId);
+        return `fork-${requestId}`;
+      },
+    };
+
+    const first = applyForkSession(
+      { forkSession: true, sessionId: "src" },
+      recordingStore,
+    );
+    const second = applyForkSession(
+      { forkSession: true, sessionId: "src" },
+      recordingStore,
+    );
+    const retry = applyForkSession(
+      {
+        forkSession: true,
+        sessionId: "src",
+        forkRequestId: "stable-retry",
+      },
+      recordingStore,
+    );
+
+    expect(first.sessionId).not.toBe(second.sessionId);
+    expect(requestIds[0]).not.toBe(requestIds[1]);
+    expect(retry.sessionId).toBe("fork-stable-retry");
+    expect(requestIds[2]).toBe("stable-retry");
+  });
+
   it("reports missing when the source has no transcript", () => {
     const r = applyForkSession(
       { forkSession: true, sessionId: "ghost" },
