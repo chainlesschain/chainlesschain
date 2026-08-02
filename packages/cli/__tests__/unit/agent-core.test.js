@@ -12,6 +12,7 @@ import {
   CODING_AGENT_MVP_TOOL_NAMES,
   getCodingAgentFunctionToolDefinitions,
 } from "../../src/runtime/coding-agent-contract.js";
+import { SessionResourceBudget } from "../../src/lib/session-resource-budget.js";
 
 // Mock plan-mode, skill-loader, hook-manager, project-detector before importing agent-core
 vi.mock("../../src/lib/plan-mode.js", () => ({
@@ -2293,6 +2294,23 @@ describe("spawn_sub_agent nesting caps", () => {
       { cwd: "/tmp", parentMessages: [], subAgentBudget: budget },
     );
     expect(budget.spawned).toBe(1);
+  });
+
+  it("forwards a supplied session budget into the spawned child", async () => {
+    const sessionBudget = new SessionResourceBudget({ maxDepth: 0 });
+    const result = await executeTool(
+      "spawn_sub_agent",
+      { role: "x", task: "y" },
+      { cwd: "/tmp", parentMessages: [], sessionBudget },
+    );
+
+    expect(result).toMatchObject({
+      code: "ERR_SESSION_RESOURCE_BUDGET",
+      budgetReason: "max-depth",
+    });
+    expect(result.error).toMatch(/blocked by session budget: max-depth/i);
+    expect(sessionBudget.status()).toMatchObject({ spawns: 0, active: 0 });
+    sessionBudget.dispose();
   });
 
   it("default breadth ceiling is generous but finite", () => {

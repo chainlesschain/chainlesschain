@@ -2329,6 +2329,7 @@ export async function executeTool(name, args, context = {}) {
       settingsVerdict,
       subAgentDepth: context.subAgentDepth || 0,
       subAgentBudget: context.subAgentBudget || null,
+      sessionBudget: context.sessionBudget || null,
       // Effective contract of THIS loop (parent ceiling for a nested spawn) +
       // the MCP tool definitions this loop exposes (inheritable by a spawn).
       subAgentContract: context.subAgentContract || null,
@@ -3455,6 +3456,7 @@ async function executeToolInner(
     settingsVerdict = null,
     subAgentDepth = 0,
     subAgentBudget = null,
+    sessionBudget = null,
     interactiveApproval = false,
     settingsHooks = null,
     signal = null,
@@ -4839,6 +4841,7 @@ async function executeToolInner(
           llmOptions,
           subAgentDepth,
           subAgentBudget,
+          sessionBudget,
           subAgentContract,
           settingsHooks,
           // Immutable parent execution authority. The child may only tighten
@@ -5728,6 +5731,7 @@ async function executeToolInner(
           toolAdmission,
           cwd,
           llmOptions: llmOptions || null,
+          ...(sessionBudget ? { sessionBudget } : {}),
           ...(permissionRules ? { permissionRules } : {}),
           ...(hostManagedToolPolicy
             ? {
@@ -7410,6 +7414,7 @@ async function _executeSpawnSubAgent(args, ctx) {
     // Same shared counter object so the child's own spawns draw from the run's
     // single total-sub-agent pool (breadth cap spans the whole tree).
     subAgentBudget: ctx.subAgentBudget || null,
+    ...(ctx.sessionBudget ? { sessionBudget: ctx.sessionBudget } : {}),
     onUsage,
     // Extended contract (gap 2026-07-11): per-agent iteration cap + opt-in
     // worktree isolation. undefined keeps the profile/flag defaults intact.
@@ -7655,6 +7660,24 @@ async function _executeSpawnSubAgent(args, ctx) {
       } catch (_err) {
         // Non-critical
       }
+    }
+
+    if (result?.budgetReason) {
+      emit("sub-agent.failed", {
+        status: subCtx.status,
+        error: result.summary,
+        budgetReason: result.budgetReason,
+        completedAt: subCtx.completedAt,
+      });
+      return {
+        error: result.summary,
+        code: "ERR_SESSION_RESOURCE_BUDGET",
+        budgetReason: result.budgetReason,
+        subAgentId: subCtx.id,
+        role: subCtx.role,
+        parentSessionId,
+        childBinding: subCtx.recoveryBinding(result),
+      };
     }
 
     emit("sub-agent.completed", {
@@ -9361,6 +9384,10 @@ export async function* agentLoop(messages, options) {
       spawned: 0,
       max: MAX_SUB_AGENTS_PER_RUN,
     },
+    // Optional local adapter for a host-created SessionResourceBudget. The
+    // CLI root does not create one yet; when supplied, every nested child sees
+    // the same object and cannot reset concurrency/spawn/depth totals.
+    sessionBudget: options.sessionBudget || null,
     // This loop's EFFECTIVE subagent contract (set when this loop IS a spawned
     // sub-agent). Threaded so a nested spawn_sub_agent sees it as the parent
     // ceiling (tighten-only). null at the top level (no ceiling).

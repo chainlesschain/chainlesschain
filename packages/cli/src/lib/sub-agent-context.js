@@ -44,6 +44,7 @@ export class SubAgentContext {
    * @param {string[]} [options.allowedTools] - Tool whitelist (null = all tools)
    * @param {number} [options.maxIterations] - Iteration limit (fallback if no budget)
    * @param {import('./iteration-budget.js').IterationBudget} [options.iterationBudget] - Shared iteration budget (takes priority over maxIterations)
+   * @param {import('./session-resource-budget.js').SessionResourceBudget} [options.sessionBudget] - Shared session-wide resource authority
    * @param {number} [options.tokenBudget] - Optional token budget
    * @param {object} [options.db] - Database instance (memory recall source)
    * @param {object} [options.permanentMemory] - Permanent memory instance
@@ -72,6 +73,7 @@ export class SubAgentContext {
       this._profile?.maxIterations ||
       DEFAULT_MAX_ITERATIONS;
     this.iterationBudget = options.iterationBudget || null; // shared budget from parent
+    this.sessionBudget = options.sessionBudget || null;
     this.tokenBudget = options.tokenBudget || null;
     this.inheritedContext = options.inheritedContext || null;
     this.allowedTools = options.allowedTools ?? null; // null = all; [] = none
@@ -163,7 +165,12 @@ export class SubAgentContext {
     // registry's `cancel(id)`), independent of any external signal.
     this._signal = options.signal || null;
     this._abortController = new AbortController();
+    this._runAbortController = null;
+    this._abortLinkCleanup = [];
     this._cancelReason = null;
+    this._sessionBudgetLease = null;
+    this._unregisterSessionAbortable = null;
+    this._running = false;
 
     // Optional MCP / external tool plumbing. These are forwarded into the
     // agentLoop options so MCP-backed tools (e.g. from a cowork template's
@@ -249,28 +256,139 @@ export class SubAgentContext {
       );
     }
 
-    // If worktree isolation is enabled, wrap execution in isolated worktree.
-    if (this._useWorktree) {
-      if (isGitRepo(this._repoDir)) {
-        return this._runInWorktree(userPrompt, loopOptions);
-      }
-      // FAIL CLOSED: isolation was explicitly requested but this is not a git
-      // repo. Never silently fall back to the parent checkout — refuse.
+    const admission = this._acquireSessionBudget();
+    if (!admission.ok) {
       this.status = "failed";
       this.completedAt = new Date().toISOString();
       this.result = {
-        summary:
-          "Worktree isolation was requested but the working directory is not a git repository — refusing to run in the parent checkout.",
+        summary: `Sub-agent blocked by session budget: ${admission.reason}`,
         artifacts: [],
         tokenCount: this._tokenCount,
         toolsUsed: [...new Set(this._toolsUsed)],
         iterationCount: this._iterationCount,
-        isolationError: true,
+        budgetReason: admission.reason,
       };
       return this.result;
     }
 
-    return this._runCore(userPrompt, loopOptions);
+    this._running = true;
+    try {
+      this._activateAbortLinks(loopOptions.signal || null);
+
+      // If worktree isolation is enabled, wrap execution in isolated worktree.
+      if (this._useWorktree) {
+        if (isGitRepo(this._repoDir)) {
+          return await this._runInWorktree(userPrompt, loopOptions);
+        }
+        // FAIL CLOSED: isolation was explicitly requested but this is not a git
+        // repo. Never silently fall back to the parent checkout — refuse.
+        this.status = "failed";
+        this.completedAt = new Date().toISOString();
+        this.result = {
+          summary:
+            "Worktree isolation was requested but the working directory is not a git repository — refusing to run in the parent checkout.",
+          artifacts: [],
+          tokenCount: this._tokenCount,
+          toolsUsed: [...new Set(this._toolsUsed)],
+          iterationCount: this._iterationCount,
+          isolationError: true,
+        };
+        return this.result;
+      }
+
+      return await this._runCore(userPrompt, loopOptions);
+    } finally {
+      this._running = false;
+      this._deactivateAbortLinks();
+      this._releaseSessionBudget();
+    }
+  }
+
+  _acquireSessionBudget() {
+    if (!this.sessionBudget?.acquireWork) return { ok: true };
+    const lease = this.sessionBudget.acquireWork({
+      id: this.id,
+      kind: "sub-agent",
+      depth: this.depth,
+    });
+    if (!lease.ok) return lease;
+    this._sessionBudgetLease = lease;
+    try {
+      this._unregisterSessionAbortable =
+        this.sessionBudget.registerAbortable?.(
+          `sub-agent:${this.id}`,
+          (reason) =>
+            this.abort(
+              reason?.budgetReason || reason?.message || "session-budget",
+            ),
+        ) || null;
+    } catch (error) {
+      lease.release();
+      this._sessionBudgetLease = null;
+      throw error;
+    }
+    return lease;
+  }
+
+  _releaseSessionBudget() {
+    try {
+      this._unregisterSessionAbortable?.();
+    } catch {
+      // Session cancellation remains authoritative if observer cleanup fails.
+    }
+    this._unregisterSessionAbortable = null;
+    try {
+      this._sessionBudgetLease?.release?.();
+    } catch {
+      // A released/aborted budget lease is idempotent.
+    }
+    this._sessionBudgetLease = null;
+  }
+
+  _activateAbortLinks(extraSignal = null) {
+    this._deactivateAbortLinks();
+    this._runAbortController = new AbortController();
+    const signals = [
+      this._signal,
+      this._abortController.signal,
+      this.sessionBudget?.signal || null,
+      extraSignal,
+    ].filter(Boolean);
+    for (const source of signals) {
+      const propagate = () => {
+        if (!this._cancelReason) {
+          this._cancelReason =
+            source.reason?.budgetReason ||
+            source.reason?.message ||
+            "cancelled";
+        }
+        if (!this._runAbortController.signal.aborted) {
+          try {
+            this._runAbortController.abort(source.reason);
+          } catch {
+            this._runAbortController.abort();
+          }
+        }
+      };
+      if (source.aborted) propagate();
+      else {
+        source.addEventListener?.("abort", propagate, { once: true });
+        this._abortLinkCleanup.push(() =>
+          source.removeEventListener?.("abort", propagate),
+        );
+      }
+    }
+  }
+
+  _deactivateAbortLinks() {
+    for (const cleanup of this._abortLinkCleanup.splice(0)) {
+      try {
+        cleanup();
+      } catch {
+        // Abort-listener removal is best-effort cleanup only.
+      }
+    }
+    this._runAbortController = null;
   }
 
   /**
@@ -360,6 +478,7 @@ export class SubAgentContext {
       // Shared total-sub-agent counter so a nested spawn_sub_agent draws from
       // (and is bounded by) the run's single breadth pool.
       subAgentBudget: this.subAgentBudget,
+      sessionBudget: this.sessionBudget,
       // This context's effective contract = the ceiling for its nested spawns.
       subAgentContract: this.subAgentContract,
       toolAdmission: this.toolAdmission,
@@ -379,6 +498,10 @@ export class SubAgentContext {
       options.exactToolNames = true;
     }
     options.subAgentContract = this.subAgentContract;
+    options.sessionBudget = this.sessionBudget;
+    if (this._runAbortController) {
+      options.signal = this._runAbortController.signal;
+    }
     options.toolAdmission = this.toolAdmission;
     options.skillAllowlist = this.skillAllowlist;
     const authority = this._parentAuthority;
@@ -473,19 +596,31 @@ export class SubAgentContext {
           }
         }
 
-        if (event.type === "token-usage" && this._onUsage) {
-          // Forward real usage to the spawner. A nested child's event already
-          // carries its own attribution frame — preserve it (deepest wins).
-          try {
-            this._onUsage({
+        if (event.type === "token-usage") {
+          // Attributed usage was already charged by the nested child sharing
+          // this same authority. Only direct usage is folded here, otherwise a
+          // child-of-child would be counted once at every ancestor level.
+          if (!event.attribution && this.sessionBudget?.recordUsage) {
+            this.sessionBudget.recordUsage({
               provider: event.provider || null,
               model: event.model || null,
               usage: event.usage || null,
-              ...(event.source ? { source: event.source } : {}),
-              attribution: event.attribution || null,
             });
-          } catch (_e) {
-            // Usage forwarding is best-effort — never break the child loop
+          }
+          if (this._onUsage) {
+            // Forward real usage to the spawner. A nested child's event already
+            // carries its own attribution frame — preserve it (deepest wins).
+            try {
+              this._onUsage({
+                provider: event.provider || null,
+                model: event.model || null,
+                usage: event.usage || null,
+                ...(event.source ? { source: event.source } : {}),
+                attribution: event.attribution || null,
+              });
+            } catch (_e) {
+              // Usage forwarding is best-effort — never break the child loop
+            }
           }
         }
 
@@ -553,6 +688,13 @@ export class SubAgentContext {
         }
       }
     } catch (err) {
+      if (this.isAborted()) {
+        this.forceComplete(this._cancelReason || "cancelled", {
+          partialContent: lastContent,
+          artifacts,
+        });
+        return this.result;
+      }
       this.status = "failed";
       this.completedAt = new Date().toISOString();
       // Return partial work to the parent instead of discarding it: the
@@ -579,6 +721,13 @@ export class SubAgentContext {
     // whatever was streamed so far — the parent agent would then mistake a
     // truncated/cancelled run for a clean one.
     if (this.status !== "active") {
+      return this.result;
+    }
+    if (this.isAborted()) {
+      this.forceComplete(this._cancelReason || "cancelled", {
+        partialContent: lastContent,
+        artifacts,
+      });
       return this.result;
     }
 
@@ -705,7 +854,10 @@ export class SubAgentContext {
    */
   isAborted() {
     return Boolean(
-      this._signal?.aborted || this._abortController.signal.aborted,
+      this._signal?.aborted ||
+      this._abortController.signal.aborted ||
+      this._runAbortController?.signal.aborted ||
+      this.sessionBudget?.signal?.aborted,
     );
   }
 
@@ -720,7 +872,11 @@ export class SubAgentContext {
       return false;
     }
     this._cancelReason = reason;
-    this._abortController.abort();
+    try {
+      this._abortController.abort(reason);
+    } catch {
+      this._abortController.abort();
+    }
     return true;
   }
 
