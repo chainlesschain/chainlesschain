@@ -1646,6 +1646,77 @@ describe("session budget runtime", () => {
     expect(sessionBudgetRuntimeCount(registry)).toBe(0);
   });
 
+  it("uses BigInt identity and limits Windows device projection bridging to affected libuv", () => {
+    const directory = fs.mkdtempSync(
+      path.join(os.tmpdir(), "cc-session-budget-zero-device-"),
+    );
+    temporaryDirectories.push(directory);
+    const filePath = path.join(directory, "zero-device.budget.json");
+    const identityCalls = [];
+    const withDevice = (stat, dev) =>
+      new Proxy(stat, {
+        get(target, property) {
+          if (property === "dev") return dev;
+          const value = Reflect.get(target, property, target);
+          return typeof value === "function" ? value.bind(target) : value;
+        },
+      });
+    const projectedFs = new Proxy(fs, {
+      get(target, property) {
+        if (property === "lstatSync") {
+          return (candidate, options) => {
+            expect(options).toEqual({ bigint: true });
+            identityCalls.push({ method: property, bigint: true });
+            return withDevice(fs.lstatSync(candidate, options), 0n);
+          };
+        }
+        if (property === "fstatSync") {
+          return (descriptor, options) => {
+            expect(options).toEqual({ bigint: true });
+            identityCalls.push({ method: property, bigint: true });
+            return withDevice(fs.fstatSync(descriptor, options), 73n);
+          };
+        }
+        if (property === "statSync") {
+          return (candidate, options) => {
+            expect(options).toEqual({ bigint: true });
+            identityCalls.push({ method: property, bigint: true });
+            return withDevice(fs.statSync(candidate, options), 0n);
+          };
+        }
+        const value = Reflect.get(target, property);
+        return typeof value === "function" ? value.bind(target) : value;
+      },
+    });
+    const snapshot = snapshotWithWorkEntries([]);
+    const affected = new SessionBudgetSidecarStore({
+      resolvePath: () => filePath,
+      fileSystem: projectedFs,
+      platform: "win32",
+      uvVersion: "1.49.1",
+      allowUnsupportedPlatformForTests: true,
+    });
+
+    expect(affected.write("zero-device", snapshot)).toMatchObject({
+      revision: 1,
+    });
+    expect(affected.read("zero-device")).toMatchObject({ revision: 1 });
+    expect(identityCalls.length).toBeGreaterThan(10);
+    expect(identityCalls.every((entry) => entry.bigint)).toBe(true);
+
+    const fixedRuntimePath = path.join(directory, "fixed-uv.budget.json");
+    const fixedRuntime = new SessionBudgetSidecarStore({
+      resolvePath: () => fixedRuntimePath,
+      fileSystem: projectedFs,
+      platform: "win32",
+      uvVersion: "1.51.0",
+      allowUnsupportedPlatformForTests: true,
+    });
+    expect(() => fixedRuntime.write("fixed-uv", snapshot)).toThrow(
+      /parent directory identity changed during open/,
+    );
+  });
+
   it("writes a private atomic sidecar and refuses corrupt state", () => {
     const { directory, store } = makeStore();
     const handle = openSessionBudget("private", {

@@ -14,6 +14,11 @@ import {
   normalizeSessionResourceBudgetSnapshot,
   SessionResourceBudget,
 } from "./session-resource-budget.js";
+import {
+  sameFileStatIdentity,
+  samePathHandleDirectoryIdentity,
+  samePathHandleFileIdentity,
+} from "./secure-file-identity.js";
 import { withFileLock } from "./with-file-lock.js";
 
 export const SESSION_BUDGET_SIDECAR_VERSION = 1;
@@ -22,6 +27,7 @@ const DEFAULT_REGISTRY = new Map();
 const MAX_SIDECAR_BYTES = 1024 * 1024;
 const MAX_IN_FLIGHT_RESOURCES = 1024;
 const USAGE_UNKNOWN_SUFFIX = ".usage-unknown.json";
+const BIGINT_STAT_OPTIONS = Object.freeze({ bigint: true });
 const OPAQUE_AUTHORITY_ID_PATTERNS = Object.freeze({
   work: /^work-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
   tool: /^tool-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
@@ -232,9 +238,82 @@ function mergeUsageUnknownSnapshot(baseSnapshot, markerSnapshot, filePath) {
   );
 }
 
+function hasPreciseIdentity(stat) {
+  if (!stat) return false;
+  if (typeof stat.dev === "bigint" && typeof stat.ino === "bigint") {
+    return stat.dev >= 0n && stat.ino > 0n;
+  }
+  return (
+    Number.isSafeInteger(stat.dev) &&
+    stat.dev >= 0 &&
+    Number.isSafeInteger(stat.ino) &&
+    stat.ino > 0
+  );
+}
+
 function sameIdentity(left, right) {
   return Boolean(
-    left && right && left.dev === right.dev && left.ino === right.ino,
+    hasPreciseIdentity(left) &&
+    hasPreciseIdentity(right) &&
+    typeof left.dev === typeof right.dev &&
+    typeof left.ino === typeof right.ino &&
+    left.dev === right.dev &&
+    left.ino === right.ino,
+  );
+}
+
+function sameOpenedIdentity(left, right) {
+  return Boolean(
+    hasPreciseIdentity(left) &&
+    hasPreciseIdentity(right) &&
+    sameFileStatIdentity(left, right),
+  );
+}
+
+function samePathHandleIdentity(pathStat, handleStat, expectedDevice, runtime) {
+  return Boolean(
+    hasPreciseIdentity(pathStat) &&
+    hasPreciseIdentity(handleStat) &&
+    samePathHandleFileIdentity(pathStat, handleStat, expectedDevice, runtime),
+  );
+}
+
+function samePathHandleParentIdentity(
+  pathStat,
+  handleStat,
+  expectedDevice,
+  runtime,
+) {
+  return Boolean(
+    hasPreciseIdentity(pathStat) &&
+    hasPreciseIdentity(handleStat) &&
+    samePathHandleDirectoryIdentity(
+      pathStat,
+      handleStat,
+      expectedDevice,
+      runtime,
+    ),
+  );
+}
+
+function lstatIdentity(fileSystem, target) {
+  return fileSystem.lstatSync(target, BIGINT_STAT_OPTIONS);
+}
+
+function statIdentity(fileSystem, target) {
+  return fileSystem.statSync(target, BIGINT_STAT_OPTIONS);
+}
+
+function fstatIdentity(fileSystem, descriptor) {
+  return fileSystem.fstatSync(descriptor, BIGINT_STAT_OPTIONS);
+}
+
+function statSizeExceedsLimit(stat, limit) {
+  if (typeof stat?.size === "bigint") {
+    return stat.size < 0n || stat.size > BigInt(limit);
+  }
+  return (
+    !Number.isSafeInteger(stat?.size) || stat.size < 0 || stat.size > limit
   );
 }
 
@@ -251,7 +330,11 @@ function ensurePrivateOwnership(filePath, stat, kind) {
       new Error(`${kind} must be a regular non-symlink ${kind}`),
     );
   }
-  if (process.platform !== "win32" && (stat.mode & 0o077) !== 0) {
+  const insecureMode =
+    typeof stat.mode === "bigint"
+      ? (stat.mode & 0o077n) !== 0n
+      : !Number.isSafeInteger(stat.mode) || (stat.mode & 0o077) !== 0;
+  if (process.platform !== "win32" && insecureMode) {
     throw runtimeError(
       "read",
       filePath,
@@ -261,8 +344,9 @@ function ensurePrivateOwnership(filePath, stat, kind) {
   if (
     process.platform !== "win32" &&
     typeof process.getuid === "function" &&
-    Number.isInteger(stat.uid) &&
-    stat.uid !== process.getuid()
+    (typeof stat.uid === "bigint"
+      ? stat.uid !== BigInt(process.getuid())
+      : !Number.isSafeInteger(stat.uid) || stat.uid !== process.getuid())
   ) {
     throw runtimeError("read", filePath, new Error(`${kind} owner mismatch`));
   }
@@ -273,42 +357,84 @@ function openVerifiedParent(
   fileSystem,
   {
     platform = process.platform,
+    uvVersion = process.versions.uv,
     allowUnsupportedPlatformForTests = false,
   } = {},
 ) {
   const directory = path.dirname(filePath);
+  const runtime = { platform, uvVersion };
   let before;
   try {
-    before = fileSystem.lstatSync(directory);
+    before = lstatIdentity(fileSystem, directory);
     ensurePrivateOwnership(directory, before, "directory");
   } catch (cause) {
     if (cause?.name === "SessionBudgetPersistenceError") throw cause;
     throw runtimeError("read", directory, cause);
   }
 
+  let authorityDescriptor = null;
   let descriptor = null;
   let descriptorRoot = null;
-  if (platform === "linux") {
+  let trustedDevice = before.dev;
+  if (
+    platform === "linux" ||
+    (platform === "win32" && allowUnsupportedPlatformForTests)
+  ) {
     try {
       const flags =
         fs.constants.O_RDONLY |
-        (fs.constants.O_DIRECTORY || 0) |
+        (platform === "linux" ? fs.constants.O_DIRECTORY || 0 : 0) |
         (fs.constants.O_NOFOLLOW || 0);
+      if (platform === "win32") {
+        const authorityPath = path.parse(path.resolve(directory)).root;
+        authorityDescriptor = fileSystem.openSync(
+          authorityPath,
+          fs.constants.O_RDONLY,
+        );
+        const authority = fstatIdentity(fileSystem, authorityDescriptor);
+        if (
+          !authority.isDirectory() ||
+          !hasPreciseIdentity(authority) ||
+          authority.dev === 0n
+        ) {
+          throw new Error("parent volume identity is unavailable");
+        }
+        trustedDevice = authority.dev;
+      }
       descriptor = fileSystem.openSync(directory, flags);
-      const opened = fileSystem.fstatSync(descriptor);
+      const opened = fstatIdentity(fileSystem, descriptor);
       ensurePrivateOwnership(directory, opened, "directory");
-      if (!sameIdentity(before, opened)) {
+      if (
+        !samePathHandleParentIdentity(before, opened, trustedDevice, runtime)
+      ) {
         throw new Error("parent directory identity changed during open");
       }
-      descriptorRoot = `/proc/self/fd/${descriptor}`;
-      const projected = fileSystem.statSync(descriptorRoot);
-      if (!sameIdentity(opened, projected)) {
-        throw new Error("could not bind parent directory through its dirfd");
+      trustedDevice = opened.dev;
+      if (platform === "linux") {
+        descriptorRoot = `/proc/self/fd/${descriptor}`;
+        const projected = statIdentity(fileSystem, descriptorRoot);
+        if (
+          !samePathHandleParentIdentity(
+            projected,
+            opened,
+            trustedDevice,
+            runtime,
+          )
+        ) {
+          throw new Error("could not bind parent directory through its dirfd");
+        }
       }
     } catch (cause) {
       if (descriptor !== null) {
         try {
           fileSystem.closeSync(descriptor);
+        } catch {
+          // Preserve the identity failure.
+        }
+      }
+      if (authorityDescriptor !== null) {
+        try {
+          fileSystem.closeSync(authorityDescriptor);
         } catch {
           // Preserve the identity failure.
         }
@@ -342,16 +468,22 @@ function openVerifiedParent(
     verify() {
       let current;
       try {
-        current = fileSystem.lstatSync(directory);
+        current = lstatIdentity(fileSystem, directory);
         ensurePrivateOwnership(directory, current, "directory");
-        if (!sameIdentity(before, current)) {
-          throw new Error("parent directory identity changed");
-        }
         if (descriptor !== null) {
-          const opened = fileSystem.fstatSync(descriptor);
-          if (!sameIdentity(before, opened)) {
+          const opened = fstatIdentity(fileSystem, descriptor);
+          if (
+            !samePathHandleParentIdentity(
+              current,
+              opened,
+              trustedDevice,
+              runtime,
+            )
+          ) {
             throw new Error("opened parent directory identity changed");
           }
+        } else if (!sameIdentity(before, current)) {
+          throw new Error("parent directory identity changed");
         }
       } catch (cause) {
         if (cause?.name === "SessionBudgetPersistenceError") throw cause;
@@ -359,12 +491,23 @@ function openVerifiedParent(
       }
     },
     sync() {
-      if (descriptor !== null) fileSystem.fsyncSync(descriptor);
+      if (descriptor !== null && platform === "linux") {
+        fileSystem.fsyncSync(descriptor);
+      }
     },
+    trustedDevice,
+    runtime,
     close() {
-      if (descriptor !== null) {
-        fileSystem.closeSync(descriptor);
-        descriptor = null;
+      try {
+        if (descriptor !== null) {
+          fileSystem.closeSync(descriptor);
+          descriptor = null;
+        }
+      } finally {
+        if (authorityDescriptor !== null) {
+          fileSystem.closeSync(authorityDescriptor);
+          authorityDescriptor = null;
+        }
       }
     },
   };
@@ -384,7 +527,7 @@ function readRecordAt(filePath, sessionId, fileSystem = fs, ioOptions = {}) {
     const physicalPath = parent.resolve(filePath);
     let before;
     try {
-      before = fileSystem.lstatSync(physicalPath);
+      before = lstatIdentity(fileSystem, physicalPath);
     } catch (cause) {
       if (cause?.code === "ENOENT") {
         parent.verify();
@@ -395,32 +538,51 @@ function readRecordAt(filePath, sessionId, fileSystem = fs, ioOptions = {}) {
     ensurePrivateOwnership(filePath, before, "file");
     const flags = fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW || 0);
     descriptor = fileSystem.openSync(physicalPath, flags);
-    const opened = fileSystem.fstatSync(descriptor);
+    const opened = fstatIdentity(fileSystem, descriptor);
     ensurePrivateOwnership(filePath, opened, "file");
-    if (!sameIdentity(before, opened)) {
+    if (
+      !samePathHandleIdentity(
+        before,
+        opened,
+        parent.trustedDevice,
+        parent.runtime,
+      )
+    ) {
       throw new Error("sidecar identity changed during open");
     }
-    if (opened.size > MAX_SIDECAR_BYTES) {
+    if (statSizeExceedsLimit(opened, MAX_SIDECAR_BYTES)) {
       throw new Error("sidecar exceeds maximum size");
     }
-    const pathAfterOpen = fileSystem.lstatSync(physicalPath);
+    const pathAfterOpen = lstatIdentity(fileSystem, physicalPath);
     ensurePrivateOwnership(filePath, pathAfterOpen, "file");
-    if (!sameIdentity(opened, pathAfterOpen)) {
+    if (
+      !samePathHandleIdentity(
+        pathAfterOpen,
+        opened,
+        parent.trustedDevice,
+        parent.runtime,
+      )
+    ) {
       throw new Error("sidecar path changed after open");
     }
     serialized = fileSystem.readFileSync(descriptor, "utf8");
-    const openedAfterRead = fileSystem.fstatSync(descriptor);
+    const openedAfterRead = fstatIdentity(fileSystem, descriptor);
     if (
-      openedAfterRead.size > MAX_SIDECAR_BYTES ||
+      statSizeExceedsLimit(openedAfterRead, MAX_SIDECAR_BYTES) ||
       Buffer.byteLength(serialized, "utf8") > MAX_SIDECAR_BYTES
     ) {
       throw new Error("sidecar exceeds maximum UTF-8 byte size");
     }
-    const pathAfterRead = fileSystem.lstatSync(physicalPath);
+    const pathAfterRead = lstatIdentity(fileSystem, physicalPath);
     ensurePrivateOwnership(filePath, pathAfterRead, "file");
     if (
-      !sameIdentity(opened, openedAfterRead) ||
-      !sameIdentity(opened, pathAfterRead)
+      !sameOpenedIdentity(opened, openedAfterRead) ||
+      !samePathHandleIdentity(
+        pathAfterRead,
+        openedAfterRead,
+        parent.trustedDevice,
+        parent.runtime,
+      )
     ) {
       throw new Error("sidecar identity changed during read");
     }
@@ -472,19 +634,34 @@ function writeRecordAt(filePath, value, fileSystem = fs, ioOptions = {}) {
   let descriptor = null;
   let renamed = false;
   let temporaryIdentity = null;
+  let temporaryPathIdentity = null;
   try {
     descriptor = fileSystem.openSync(physicalTemporary, "wx", 0o600);
     fileSystem.writeFileSync(descriptor, serialized, "utf8");
     fileSystem.fsyncSync(descriptor);
-    temporaryIdentity = fileSystem.fstatSync(descriptor);
+    temporaryIdentity = fstatIdentity(fileSystem, descriptor);
     ensurePrivateOwnership(temporary, temporaryIdentity, "file");
+    temporaryPathIdentity = lstatIdentity(fileSystem, physicalTemporary);
+    ensurePrivateOwnership(temporary, temporaryPathIdentity, "file");
+    if (
+      !samePathHandleIdentity(
+        temporaryPathIdentity,
+        temporaryIdentity,
+        parent.trustedDevice,
+        parent.runtime,
+      )
+    ) {
+      throw new Error("temporary sidecar identity changed before commit");
+    }
     fileSystem.closeSync(descriptor);
     descriptor = null;
     fileSystem.renameSync(physicalTemporary, physicalFilePath);
     renamed = true;
-    const committed = fileSystem.lstatSync(physicalFilePath);
+    const committed = lstatIdentity(fileSystem, physicalFilePath);
     ensurePrivateOwnership(filePath, committed, "file");
-    if (!sameIdentity(temporaryIdentity, committed)) {
+    // Rename may legitimately change ctime. Both samples come from the path
+    // API, so exact BigInt dev+ino continuity is the stable commit identity.
+    if (!sameIdentity(temporaryPathIdentity, committed)) {
       throw new Error("committed sidecar identity mismatch");
     }
     parent.verify();
@@ -524,6 +701,7 @@ export class SessionBudgetSidecarStore {
     lockOptions = {},
     now = () => Date.now(),
     platform = process.platform,
+    uvVersion = process.versions.uv,
     allowUnsupportedPlatformForTests = false,
   } = {}) {
     this._resolvePath = resolvePath;
@@ -536,6 +714,7 @@ export class SessionBudgetSidecarStore {
       allowUnsupportedPlatformForTests === true;
     this._ioOptions = {
       platform: this._platform,
+      uvVersion: String(uvVersion || ""),
       allowUnsupportedPlatformForTests: this._allowUnsupportedPlatformForTests,
     };
   }
@@ -567,7 +746,7 @@ export class SessionBudgetSidecarStore {
     this._assertSupported(filePath);
     const markerPath = this.usageUnknownPathForSession(id);
     try {
-      this._fs.lstatSync(path.dirname(filePath));
+      lstatIdentity(this._fs, path.dirname(filePath));
     } catch (cause) {
       if (cause?.code === "ENOENT") return null;
       throw runtimeError("read", path.dirname(filePath), cause);
@@ -881,10 +1060,10 @@ export class SessionBudgetSidecarStore {
     const physicalMarkerPath = parent.resolve(markerPath);
     const physicalTombstone = parent.resolve(tombstone);
     try {
-      const before = this._fs.lstatSync(physicalMarkerPath);
+      const before = lstatIdentity(this._fs, physicalMarkerPath);
       ensurePrivateOwnership(markerPath, before, "file");
       this._fs.renameSync(physicalMarkerPath, physicalTombstone);
-      const moved = this._fs.lstatSync(physicalTombstone);
+      const moved = lstatIdentity(this._fs, physicalTombstone);
       ensurePrivateOwnership(tombstone, moved, "file");
       if (!sameIdentity(before, moved)) {
         throw new Error("usage-unknown marker identity changed during clear");
