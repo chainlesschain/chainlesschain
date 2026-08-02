@@ -7,6 +7,7 @@ import {
   readFileSync,
   existsSync,
   mkdirSync,
+  realpathSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -321,6 +322,115 @@ describe("checkpoint-store (git engine)", () => {
     expect(s.modified).toContain("a.txt");
     expect(s.added).toContain("d.txt");
     expect(s.deleted).toContain("b.txt");
+  });
+
+  it("returns a stable full-tree workspace binding from repo subdirectories", () => {
+    const cp = createCheckpoint(repo, { label: "bound" });
+    writeFileSync(join(repo, "a.txt"), "alpha-bound-dirty\n", "utf8");
+    const nested = join(repo, "nested", "deeper");
+    mkdirSync(nested, { recursive: true });
+
+    const fromRoot = statusAgainst(repo, cp.id);
+    const repeated = statusAgainst(repo, cp.id);
+    const fromNested = statusAgainst(nested, cp.id);
+
+    expect(repeated.workspaceBinding).toEqual(fromRoot.workspaceBinding);
+    expect(fromNested.workspaceBinding).toEqual(fromRoot.workspaceBinding);
+    expect(fromRoot.workspaceBinding).toEqual({
+      schema: "cc-checkpoint-workspace-binding/v1",
+      version: 1,
+      engine: "git",
+      workspaceRoot: realpathSync.native(repo),
+      scopeIdentity: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+      prestateIdentity: expect.stringMatching(
+        /^git-tree:(?:[a-f0-9]{40}|[a-f0-9]{64})$/,
+      ),
+      writePlanIdentity: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+      targetPoststateIdentity: `git-tree:${git(repo, "rev-parse", `${cp.commit}^{tree}`)}`,
+    });
+
+    const restored = rewindTo(nested, cp.id, {
+      expectedWorkspaceBinding: fromNested.workspaceBinding,
+      skipSafety: true,
+    });
+    expect(restored.restored).toBe(true);
+    expect(readFileSync(join(repo, "a.txt"), "utf8")).toBe("alpha-1\n");
+  });
+
+  it("rejects same-classification workspace drift before safety or restore writes", () => {
+    const cp = createCheckpoint(repo, { label: "prestate" });
+    writeFileSync(join(repo, "a.txt"), "alpha-preview-state\n", "utf8");
+    const preview = statusAgainst(repo, cp.id);
+    writeFileSync(join(repo, "a.txt"), "alpha-confirm-state\n", "utf8");
+    const drifted = statusAgainst(repo, cp.id);
+    expect(drifted.modified).toEqual(preview.modified);
+    expect(drifted.added).toEqual(preview.added);
+    expect(drifted.deleted).toEqual(preview.deleted);
+    expect(drifted.workspaceBinding.prestateIdentity).not.toBe(
+      preview.workspaceBinding.prestateIdentity,
+    );
+
+    const originalSpawnSync = _deps.spawnSync;
+    let safetyPublishes = 0;
+    let restoreWrites = 0;
+    _deps.spawnSync = (command, args, options) => {
+      if (
+        command === "git" &&
+        args?.[0] === "update-ref" &&
+        args?.[1] === "--stdin"
+      ) {
+        safetyPublishes += 1;
+      }
+      if (command === "git" && args?.[0] === "checkout-index") {
+        restoreWrites += 1;
+      }
+      return originalSpawnSync(command, args, options);
+    };
+
+    let thrown = null;
+    try {
+      rewindTo(repo, cp.id, {
+        expectedIdentity: `git:${cp.commit}`,
+        expectedWorkspaceBinding: preview.workspaceBinding,
+      });
+    } catch (error) {
+      thrown = error;
+    } finally {
+      _deps.spawnSync = originalSpawnSync;
+    }
+
+    expect(thrown).toMatchObject({
+      code: "CHECKPOINT_WORKSPACE_STALE",
+      reason: "mismatch:prestateIdentity",
+    });
+    expect(safetyPublishes).toBe(0);
+    expect(restoreWrites).toBe(0);
+    expect(readFileSync(join(repo, "a.txt"), "utf8")).toBe(
+      "alpha-confirm-state\n",
+    );
+    expect(listCheckpoints(repo)).toHaveLength(1);
+  });
+
+  it("fails closed on a malformed expected workspace binding", () => {
+    const cp = createCheckpoint(repo, { label: "invalid-binding" });
+    writeFileSync(join(repo, "a.txt"), "alpha-still-dirty\n", "utf8");
+    const binding = statusAgainst(repo, cp.id).workspaceBinding;
+    const countBefore = listCheckpoints(repo).length;
+
+    expect(() =>
+      rewindTo(repo, cp.id, {
+        expectedWorkspaceBinding: { ...binding, unexpected: true },
+      }),
+    ).toThrow(
+      expect.objectContaining({
+        code: "CHECKPOINT_WORKSPACE_STALE",
+        reason: "invalid-expected-binding",
+      }),
+    );
+    expect(readFileSync(join(repo, "a.txt"), "utf8")).toBe(
+      "alpha-still-dirty\n",
+    );
+    expect(listCheckpoints(repo)).toHaveLength(countBefore);
   });
 
   it("rejects a retargeted checkpoint ref before status or restore writes", () => {

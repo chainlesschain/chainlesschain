@@ -2487,6 +2487,7 @@ class ChatViewProvider {
       });
       return;
     }
+    const confirmationSubmission = preview.confirmationSubmission;
     const previewText = rewind.formatTimelinePreview(preview);
     if (previewText) {
       try {
@@ -2537,7 +2538,7 @@ class ChatViewProvider {
     this._stopSession(conv);
     const executed = await rewind.runCliJson({
       command,
-      args: rewind.buildTimelineActionArgs(pickedAction.submission, {
+      args: rewind.buildTimelineActionArgs(confirmationSubmission, {
         preview: false,
         confirm: true,
       }),

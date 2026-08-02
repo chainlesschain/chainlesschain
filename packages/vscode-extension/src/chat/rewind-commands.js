@@ -15,6 +15,10 @@ const TIMELINE_ACTION_SCHEMA = "cc-checkpoint-timeline-action/v1";
 const TIMELINE_ACTION_VERSION = 1;
 const TIMELINE_RESULT_SCHEMA = "cc-checkpoint-timeline-result/v1";
 const TIMELINE_RESULT_VERSION = 1;
+const TIMELINE_CONFIRMATION_SCHEMA = "cc-checkpoint-timeline-confirmation/v1";
+const TIMELINE_CONFIRMATION_VERSION = 1;
+const WORKSPACE_BINDING_SCHEMA = "cc-checkpoint-workspace-binding/v1";
+const WORKSPACE_BINDING_VERSION = 1;
 const TIMELINE_COVERAGES = new Set(["full", "partial", "none"]);
 const TIMELINE_MARKERS = new Set([
   "checkpoint",
@@ -141,6 +145,103 @@ function validTimelineSubmission(submission, root, turnId, action) {
   return JSON.parse(JSON.stringify(submission));
 }
 
+function validWorkspaceBinding(value) {
+  if (
+    !value ||
+    typeof value !== "object" ||
+    Array.isArray(value) ||
+    value.schema !== WORKSPACE_BINDING_SCHEMA ||
+    value.version !== WORKSPACE_BINDING_VERSION ||
+    !["git", "copy"].includes(value.engine) ||
+    !/^sha256:[a-f0-9]{64}$/.test(value.scopeIdentity || "") ||
+    !/^sha256:[a-f0-9]{64}$/.test(value.writePlanIdentity || "")
+  ) {
+    return null;
+  }
+  const statePattern =
+    value.engine === "git"
+      ? /^git-tree:(?:[a-f0-9]{40}|[a-f0-9]{64})$/
+      : /^sha256:[a-f0-9]{64}$/;
+  if (
+    !statePattern.test(value.prestateIdentity || "") ||
+    !statePattern.test(value.targetPoststateIdentity || "")
+  ) {
+    return null;
+  }
+  const keys = Object.keys(value).sort();
+  if (
+    JSON.stringify(keys) !==
+    JSON.stringify(
+      [
+        "engine",
+        "prestateIdentity",
+        "schema",
+        "scopeIdentity",
+        "targetPoststateIdentity",
+        "version",
+        "writePlanIdentity",
+      ].sort(),
+    )
+  ) {
+    return null;
+  }
+  return JSON.parse(JSON.stringify(value));
+}
+
+function validTimelineConfirmation(value, preview = null) {
+  if (
+    !value ||
+    typeof value !== "object" ||
+    Array.isArray(value) ||
+    value.schema !== TIMELINE_CONFIRMATION_SCHEMA ||
+    value.version !== TIMELINE_CONFIRMATION_VERSION ||
+    value.authority !== "cli" ||
+    !/^sha256:[a-f0-9]{64}$/.test(value.digest || "") ||
+    !value.submission ||
+    typeof value.submission !== "object" ||
+    Array.isArray(value.submission)
+  ) {
+    return null;
+  }
+  const keys = Object.keys(value).sort();
+  if (
+    JSON.stringify(keys) !==
+    JSON.stringify(
+      [
+        "authority",
+        "digest",
+        "schema",
+        "submission",
+        "version",
+        "workspace",
+      ].sort(),
+    )
+  ) {
+    return null;
+  }
+  const action = value.submission.action;
+  const needsWorkspace = action === "restore-code" || action === "restore-both";
+  const workspace = value.workspace
+    ? validWorkspaceBinding(value.workspace)
+    : null;
+  if (
+    (needsWorkspace && !workspace) ||
+    (!needsWorkspace && value.workspace !== null)
+  ) {
+    return null;
+  }
+  if (
+    preview &&
+    (value.submission.sessionId !== preview.sessionId ||
+      value.submission.revision !== preview.revision ||
+      value.submission.turnId !== preview.turnId ||
+      value.submission.action !== preview.action)
+  ) {
+    return null;
+  }
+  return JSON.parse(JSON.stringify(value));
+}
+
 /**
  * Parse the versioned CLI projection fail-closed. Availability is never
  * recomputed in the IDE: only CLI-enabled actions with an exact embedded
@@ -265,11 +366,14 @@ function timelineActionSubmission(data, turnId, action) {
 
 /** Serialize an exact CLI-authored envelope; no authority fields are added. */
 function buildTimelineActionArgs(submission, { preview, confirm } = {}) {
+  const sessionId = preview
+    ? submission?.sessionId
+    : validTimelineConfirmation(submission)?.submission?.sessionId;
   if (
     !submission ||
     typeof submission !== "object" ||
     Array.isArray(submission) ||
-    typeof submission.sessionId !== "string" ||
+    typeof sessionId !== "string" ||
     preview === confirm
   ) {
     return [];
@@ -278,7 +382,7 @@ function buildTimelineActionArgs(submission, { preview, confirm } = {}) {
     "checkpoint",
     "action",
     "-s",
-    submission.sessionId,
+    sessionId,
     "--submission",
     JSON.stringify(submission),
     preview ? "--preview" : "--confirm",
@@ -337,7 +441,16 @@ function parseTimelineActionResult(data) {
   ) {
     return null;
   }
-  return JSON.parse(JSON.stringify(data));
+  const result = JSON.parse(JSON.stringify(data));
+  if (result.ok && result.mode === "preview") {
+    const confirmation = validTimelineConfirmation(
+      result.confirmationSubmission,
+      result,
+    );
+    if (!confirmation) return null;
+    result.confirmationSubmission = confirmation;
+  }
+  return result;
 }
 
 /** Readable preview for a document/modal; all warnings remain visible. */
@@ -480,6 +593,8 @@ module.exports = {
   TIMELINE_ACTION_VERSION,
   TIMELINE_RESULT_SCHEMA,
   TIMELINE_RESULT_VERSION,
+  TIMELINE_CONFIRMATION_SCHEMA,
+  TIMELINE_CONFIRMATION_VERSION,
   buildListArgs,
   buildRestoreArgs,
   buildShowDiffArgs,
@@ -491,6 +606,7 @@ module.exports = {
   toTimelineQuickPickItem,
   timelineActionItems,
   parseTimelineActionResult,
+  validTimelineConfirmation,
   formatTimelinePreview,
   formatDiffPreview,
   runCliJson,

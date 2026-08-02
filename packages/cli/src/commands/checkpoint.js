@@ -30,8 +30,10 @@ import {
   CHECKPOINT_TIMELINE_INTENT_EVENT,
   CHECKPOINT_TIMELINE_RESULT_SCHEMA,
   CHECKPOINT_TIMELINE_RESULT_VERSION,
+  checkpointTimelineConfirmationsMatch,
   planCheckpointTimelineAction,
   timelineActionError,
+  validateCheckpointTimelineConfirmationSubmission,
   validateCheckpointTimelineSubmission,
 } from "../lib/checkpoint-timeline-authority.js";
 import { logger } from "../lib/logger.js";
@@ -69,17 +71,27 @@ function gitEngine(gs, dir, session) {
         identity: r.commit ? `git:${r.commit}` : null,
       })),
     show: (id) => gs.showCheckpoint(dir, id, { session }),
-    status: (id, o) =>
-      gs.statusAgainst(dir, id, {
+    status: (id, o) => {
+      const status = gs.statusAgainst(dir, id, {
         session,
         expectedIdentity: o?.expectedIdentity,
-      }),
+      });
+      return {
+        modified: status.modified,
+        added: status.added,
+        deleted: status.deleted,
+        ...(o?.includeWorkspaceBinding
+          ? { workspaceBinding: status.workspaceBinding }
+          : {}),
+      };
+    },
     diffText: (id, o) => gs.diffCheckpoint(dir, id, { session, stat: o?.stat }),
     restore: (id, o) => {
       const r = gs.rewindTo(dir, id, {
         session,
         dryRun: o?.dryRun,
         expectedIdentity: o?.expectedIdentity,
+        expectedWorkspaceBinding: o?.expectedWorkspaceBinding,
       });
       return {
         dryRun: !!r.dryRun,
@@ -131,9 +143,17 @@ function copyEngine(cs, dir) {
     },
     status: (id, o) => {
       const d = cs.diffCheckpoint(id, {
+        cwd: dir,
         expectedIdentity: o?.expectedIdentity,
       });
-      return { modified: d.modified, added: [], deleted: d.deleted };
+      return {
+        modified: d.modified,
+        added: [],
+        deleted: d.deleted,
+        ...(o?.includeWorkspaceBinding
+          ? { workspaceBinding: d.workspaceBinding }
+          : {}),
+      };
     },
     diffText: () => null, // copy engine has no raw patch — caller uses status()
     restore: (id, o) => {
@@ -141,6 +161,7 @@ function copyEngine(cs, dir) {
         cwd: dir,
         dryRun: o?.dryRun,
         expectedIdentity: o?.expectedIdentity,
+        expectedWorkspaceBinding: o?.expectedWorkspaceBinding,
       });
       return {
         dryRun: !!r.dryRun,
@@ -399,9 +420,9 @@ export function registerCheckpointCommand(program) {
           error.code = "TIMELINE_SUBMISSION_INVALID";
           throw error;
         }
-        let submission;
+        let submittedEnvelope;
         try {
-          submission = JSON.parse(options.submission);
+          submittedEnvelope = JSON.parse(options.submission);
         } catch {
           const error = new Error("timeline submission must be valid JSON");
           error.code = "TIMELINE_SUBMISSION_INVALID";
@@ -411,10 +432,15 @@ export function registerCheckpointCommand(program) {
         const dir = resolve(options.dir);
         const engine = await pickEngine(dir, options.session);
         const context = loadTimelineContext(engine, options.session);
-        const validation = validateCheckpointTimelineSubmission(
-          context.timeline,
-          submission,
-        );
+        const validation = options.preview
+          ? validateCheckpointTimelineSubmission(
+              context.timeline,
+              submittedEnvelope,
+            )
+          : validateCheckpointTimelineConfirmationSubmission(
+              context.timeline,
+              submittedEnvelope,
+            );
         if (!validation.ok) {
           const error = new Error(
             validation.code === "TIMELINE_STALE"
@@ -424,6 +450,7 @@ export function registerCheckpointCommand(program) {
           error.code = validation.code;
           throw error;
         }
+        const submission = validation.submission;
         let codePreview = null;
         const checkpointIdentity = submission.checkpointIdentity || null;
         if (
@@ -439,6 +466,7 @@ export function registerCheckpointCommand(program) {
           }
           codePreview = engine.status(submission.checkpointId, {
             expectedIdentity: checkpointIdentity,
+            includeWorkspaceBinding: true,
           });
         }
         const planned = planCheckpointTimelineAction({
@@ -462,6 +490,26 @@ export function registerCheckpointCommand(program) {
           return;
         }
 
+        if (
+          !checkpointTimelineConfirmationsMatch(
+            planned.preview.confirmationSubmission,
+            submittedEnvelope,
+          )
+        ) {
+          const error = new Error(
+            submission.action === "restore-code" ||
+              submission.action === "restore-both"
+              ? "workspace changed after checkpoint preview; preview again"
+              : "timeline confirmation no longer matches the current plan",
+          );
+          error.code =
+            submission.action === "restore-code" ||
+            submission.action === "restore-both"
+              ? "TIMELINE_WORKSPACE_STALE"
+              : "TIMELINE_CONFIRMATION_INVALID";
+          throw error;
+        }
+
         // Keep the canonical writer lock from the exact-head claim through the
         // external code restore and the conversation commit. A concurrent
         // session writer can no longer win a second CAS after files changed and
@@ -477,6 +525,15 @@ export function registerCheckpointCommand(program) {
               checkpointId: submission.checkpointId || null,
               checkpointIdentity,
               workspaceDir: dir,
+              workspaceScopeIdentity:
+                planned.workspaceBinding?.scopeIdentity || null,
+              workspacePrestateIdentity:
+                planned.workspaceBinding?.prestateIdentity || null,
+              workspaceWritePlanIdentity:
+                planned.workspaceBinding?.writePlanIdentity || null,
+              workspaceTargetPoststateIdentity:
+                planned.workspaceBinding?.targetPoststateIdentity || null,
+              confirmationDigest: planned.preview.confirmationSubmission.digest,
             });
             const transactionResult = {};
             try {
@@ -486,7 +543,10 @@ export function registerCheckpointCommand(program) {
               ) {
                 transactionResult.code = engine.restore(
                   submission.checkpointId,
-                  { expectedIdentity: checkpointIdentity },
+                  {
+                    expectedIdentity: checkpointIdentity,
+                    expectedWorkspaceBinding: planned.workspaceBinding,
+                  },
                 );
                 transaction.retainRecoveryEvidence({
                   safetyId: transactionResult.code?.safetyId,
@@ -539,6 +599,16 @@ export function registerCheckpointCommand(program) {
                   checkpointId: submission.checkpointId || null,
                   checkpointIdentity,
                   workspaceDir: dir,
+                  workspaceScopeIdentity:
+                    planned.workspaceBinding?.scopeIdentity || null,
+                  workspacePrestateIdentity:
+                    planned.workspaceBinding?.prestateIdentity || null,
+                  workspaceWritePlanIdentity:
+                    planned.workspaceBinding?.writePlanIdentity || null,
+                  workspaceTargetPoststateIdentity:
+                    planned.workspaceBinding?.targetPoststateIdentity || null,
+                  confirmationDigest:
+                    planned.preview.confirmationSubmission.digest,
                   status: "completed",
                   branchSessionId:
                     transactionResult.branch?.branchSessionId || null,
@@ -581,6 +651,16 @@ export function registerCheckpointCommand(program) {
                     checkpointId: submission.checkpointId || null,
                     checkpointIdentity,
                     workspaceDir: dir,
+                    workspaceScopeIdentity:
+                      planned.workspaceBinding?.scopeIdentity || null,
+                    workspacePrestateIdentity:
+                      planned.workspaceBinding?.prestateIdentity || null,
+                    workspaceWritePlanIdentity:
+                      planned.workspaceBinding?.writePlanIdentity || null,
+                    workspaceTargetPoststateIdentity:
+                      planned.workspaceBinding?.targetPoststateIdentity || null,
+                    confirmationDigest:
+                      planned.preview.confirmationSubmission.digest,
                     status: "failed",
                     failureCode: String(
                       error?.code || "CHECKPOINT_TIMELINE_ACTION_FAILED",
@@ -731,12 +811,18 @@ export function registerCheckpointCommand(program) {
           return;
         }
 
-        // Destructive: overwrites current files. Require --force when not a TTY;
-        // prompt when interactive.
+        // Destructive: bind the exact workspace state that is displayed (or
+        // immediately preflighted for --force), then require the engine to
+        // observe the same full state before safety creation or file writes.
+        // Require --force when not a TTY; prompt when interactive.
+        const restorePreview = engine.status(id, {
+          includeWorkspaceBinding: true,
+        });
         if (!options.force) {
-          const d = engine.status(id);
           const willChange =
-            d.modified.length + d.deleted.length + (d.added?.length || 0);
+            restorePreview.modified.length +
+            restorePreview.deleted.length +
+            (restorePreview.added?.length || 0);
           if (process.stdin.isTTY) {
             const { confirm } = await import("@inquirer/prompts");
             const ok = await confirm({
@@ -758,7 +844,9 @@ export function registerCheckpointCommand(program) {
           }
         }
 
-        const r = engine.restore(id);
+        const r = engine.restore(id, {
+          expectedWorkspaceBinding: restorePreview.workspaceBinding,
+        });
         if (options.json) {
           console.log(JSON.stringify(r, null, 2));
           return;

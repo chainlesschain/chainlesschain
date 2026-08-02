@@ -8,9 +8,12 @@ import {
   existsSync,
   mkdirSync,
   readdirSync,
+  realpathSync,
+  renameSync,
+  symlinkSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, parse } from "node:path";
 import {
   createCheckpoint,
   getCheckpoint,
@@ -106,6 +109,256 @@ describe("file-checkpoint store", () => {
     expect(d.deleted).toEqual(["b.txt"]);
     expect(d.unchanged).toEqual([]);
   });
+
+  it("binds the complete copy-checkpoint scope and prestate to the workspace", () => {
+    const m = mk("workspace-binding");
+    const expectedIdentity = computeCheckpointIdentity(m);
+    writeFileSync(join(work, "a.txt"), "CHANGED-A", "utf-8");
+    rmSync(join(work, "b.txt"));
+
+    const first = diffCheckpoint(m.id, {
+      root,
+      cwd: work,
+      expectedIdentity,
+    });
+    const second = diffCheckpoint(m.id, {
+      root,
+      cwd: work,
+      expectedIdentity,
+    });
+
+    expect(first).toMatchObject({
+      modified: ["a.txt"],
+      deleted: ["b.txt"],
+      unchanged: [],
+      workspaceBinding: {
+        schema: "cc-checkpoint-workspace-binding/v1",
+        version: 1,
+        engine: "copy",
+        workspaceRoot: realpathSync.native(work),
+        scopeIdentity: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+        prestateIdentity: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+        writePlanIdentity: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+        targetPoststateIdentity: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+      },
+    });
+    expect(second.workspaceBinding).toEqual(first.workspaceBinding);
+
+    const restored = restoreCheckpoint(m.id, {
+      root,
+      cwd: work,
+      expectedIdentity,
+      expectedWorkspaceBinding: first.workspaceBinding,
+      skipSafety: true,
+    });
+    expect(restored.restored.sort()).toEqual(["a.txt", "b.txt"]);
+  });
+
+  it("rejects a timeline checkpoint whose manifest cwd differs", () => {
+    const m = mk("cwd-mismatch");
+    const other = join(work, "..", "other-workspace");
+    mkdirSync(other, { recursive: true });
+
+    expect(() =>
+      diffCheckpoint(m.id, {
+        root,
+        cwd: other,
+        expectedIdentity: computeCheckpointIdentity(m),
+      }),
+    ).toThrow(
+      expect.objectContaining({ code: "CHECKPOINT_WORKSPACE_SCOPE_INVALID" }),
+    );
+  });
+
+  it("rejects the active platform filesystem root as a copy workspace", () => {
+    const m = mk("filesystem-root");
+    const filesystemRoot = parse(realpathSync.native(work)).root;
+    const replaced = {
+      ...m,
+      cwd: filesystemRoot,
+      files: m.files.map((file) => ({
+        ...file,
+        abs: join(filesystemRoot, file.rel),
+      })),
+    };
+    writeFileSync(
+      join(root, `${m.id}.json`),
+      JSON.stringify(replaced, null, 2),
+      "utf-8",
+    );
+
+    expect(() =>
+      diffCheckpoint(m.id, {
+        root,
+        cwd: filesystemRoot,
+        expectedIdentity: computeCheckpointIdentity(replaced),
+      }),
+    ).toThrow(
+      expect.objectContaining({ code: "CHECKPOINT_WORKSPACE_SCOPE_INVALID" }),
+    );
+  });
+
+  it.each([
+    [
+      "parent traversal",
+      (manifest) => ({
+        ...manifest,
+        files: [
+          {
+            ...manifest.files[0],
+            rel: "../outside.txt",
+            abs: join(work, "..", "outside.txt"),
+          },
+        ],
+        fileCount: 1,
+      }),
+    ],
+    [
+      "abs/rel disagreement",
+      (manifest) => ({
+        ...manifest,
+        files: [
+          {
+            ...manifest.files[0],
+            abs: join(work, "b.txt"),
+          },
+        ],
+        fileCount: 1,
+      }),
+    ],
+    [
+      "duplicate target alias",
+      (manifest) => ({
+        ...manifest,
+        files: [manifest.files[0], { ...manifest.files[0] }],
+        fileCount: 2,
+      }),
+    ],
+    [
+      "a mismatched manifest id",
+      (manifest) => ({ ...manifest, id: "../escaped-store" }),
+    ],
+  ])("rejects an untrusted manifest with %s", (_label, mutate) => {
+    const m = mk("untrusted-manifest");
+    const replaced = mutate(m);
+    writeFileSync(
+      join(root, `${m.id}.json`),
+      JSON.stringify(replaced, null, 2),
+      "utf-8",
+    );
+
+    expect(() =>
+      diffCheckpoint(m.id, {
+        root,
+        cwd: work,
+        expectedIdentity: computeCheckpointIdentity(replaced),
+      }),
+    ).toThrow(
+      expect.objectContaining({ code: "CHECKPOINT_WORKSPACE_SCOPE_INVALID" }),
+    );
+  });
+
+  it("rejects a target whose existing parent becomes a filesystem alias", () => {
+    mkdirSync(join(work, "nested"), { recursive: true });
+    writeFileSync(join(work, "nested", "c.txt"), "ORIGINAL-C", "utf-8");
+    const m = createCheckpoint(["nested/c.txt"], { cwd: work, root });
+    const moved = join(work, "..", "nested-real");
+    renameSync(join(work, "nested"), moved);
+    symlinkSync(
+      moved,
+      join(work, "nested"),
+      process.platform === "win32" ? "junction" : "dir",
+    );
+
+    expect(() =>
+      diffCheckpoint(m.id, {
+        root,
+        cwd: work,
+        expectedIdentity: computeCheckpointIdentity(m),
+      }),
+    ).toThrow(
+      expect.objectContaining({ code: "CHECKPOINT_WORKSPACE_SCOPE_INVALID" }),
+    );
+  });
+
+  it("preflights every checkpoint blob before returning a workspace binding", () => {
+    const m = mk("binding-blob-preflight");
+    writeFileSync(join(root, m.id, m.files[1].sha256), "CORRUPT-BLOB", "utf-8");
+
+    expect(() =>
+      diffCheckpoint(m.id, {
+        root,
+        cwd: work,
+        expectedIdentity: computeCheckpointIdentity(m),
+      }),
+    ).toThrow(expect.objectContaining({ code: "CHECKPOINT_BLOB_CORRUPT" }));
+  });
+
+  it("rejects modified-to-another-modified drift before safety or writes", () => {
+    const m = mk("modified-drift");
+    const expectedIdentity = computeCheckpointIdentity(m);
+    writeFileSync(join(work, "a.txt"), "MODIFIED-ONE", "utf-8");
+    const preview = diffCheckpoint(m.id, {
+      root,
+      cwd: work,
+      expectedIdentity,
+    });
+    writeFileSync(join(work, "a.txt"), "MODIFIED-TWO", "utf-8");
+
+    expect(() =>
+      restoreCheckpoint(m.id, {
+        root,
+        cwd: work,
+        expectedIdentity,
+        expectedWorkspaceBinding: preview.workspaceBinding,
+      }),
+    ).toThrow(expect.objectContaining({ code: "CHECKPOINT_WORKSPACE_STALE" }));
+    expect(readFileSync(join(work, "a.txt"), "utf-8")).toBe("MODIFIED-TWO");
+    expect(readFileSync(join(work, "b.txt"), "utf-8")).toBe("ORIGINAL-B");
+    expect(listCheckpoints({ root })).toHaveLength(1);
+  });
+
+  it.each([
+    [
+      "missing to present",
+      () => rmSync(join(work, "a.txt")),
+      () => writeFileSync(join(work, "a.txt"), "NEW-A", "utf-8"),
+      () => expect(readFileSync(join(work, "a.txt"), "utf-8")).toBe("NEW-A"),
+    ],
+    [
+      "present to missing",
+      () => {},
+      () => rmSync(join(work, "a.txt")),
+      () => expect(existsSync(join(work, "a.txt"))).toBe(false),
+    ],
+  ])(
+    "rejects %s drift before safety or writes",
+    (_label, arrangePreview, drift, assertUnchanged) => {
+      const m = mk("presence-drift");
+      const expectedIdentity = computeCheckpointIdentity(m);
+      arrangePreview();
+      const preview = diffCheckpoint(m.id, {
+        root,
+        cwd: work,
+        expectedIdentity,
+      });
+      drift();
+
+      expect(() =>
+        restoreCheckpoint(m.id, {
+          root,
+          cwd: work,
+          expectedIdentity,
+          expectedWorkspaceBinding: preview.workspaceBinding,
+        }),
+      ).toThrow(
+        expect.objectContaining({ code: "CHECKPOINT_WORKSPACE_STALE" }),
+      );
+      assertUnchanged();
+      expect(readFileSync(join(work, "b.txt"), "utf-8")).toBe("ORIGINAL-B");
+      expect(listCheckpoints({ root })).toHaveLength(1);
+    },
+  );
 
   it("restore rolls files back to snapshot content", () => {
     const m = mk();

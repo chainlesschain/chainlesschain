@@ -61,12 +61,19 @@ describe("VS Code checkpoint timeline projection", () => {
     ]);
     expect(JSON.parse(args[5])).toEqual(submission);
     expect(args).toContain("--preview");
+    const confirmation = fixture.actionPreview.confirmationSubmission;
+    const confirmArgs = rewind.buildTimelineActionArgs(confirmation, {
+      preview: false,
+      confirm: true,
+    });
+    expect(confirmArgs).toContain("--confirm");
+    expect(JSON.parse(confirmArgs[5])).toEqual(confirmation);
     expect(
       rewind.buildTimelineActionArgs(submission, {
         preview: false,
         confirm: true,
       }),
-    ).toContain("--confirm");
+    ).toEqual([]);
   });
 
   it("fails closed for unsupported roots and strips tampered enabled envelopes", () => {
@@ -112,6 +119,15 @@ describe("VS Code checkpoint timeline projection", () => {
     expect(rewind.parseTimelineActionResult(fixture.actionPreview)).toEqual(
       fixture.actionPreview,
     );
+    expect(
+      rewind.parseTimelineActionResult({
+        ...fixture.actionPreview,
+        confirmationSubmission: {
+          ...fixture.actionPreview.confirmationSubmission,
+          digest: "sha256:not-a-digest",
+        },
+      }),
+    ).toBeNull();
     const text = rewind.formatTimelinePreview(fixture.actionPreview);
     expect(text).toContain("restore-both");
     expect(text).toContain("partial");

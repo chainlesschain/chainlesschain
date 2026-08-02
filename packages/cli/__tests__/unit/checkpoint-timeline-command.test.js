@@ -14,8 +14,10 @@ const state = vi.hoisted(() => ({
   transactionActive: false,
   onRestore: null,
   gitAvailable: true,
+  workspaceNonce: "1".repeat(64),
   statusIdentities: [],
   restoreIdentities: [],
+  restoreBindings: [],
   failFailedAudit: false,
   failConversationAppend: false,
   failCompletedAudit: false,
@@ -158,7 +160,21 @@ vi.mock("../../src/lib/checkpoint-store.js", () => ({
       engine: "git",
       identity: options?.expectedIdentity || null,
     });
-    return { modified: ["src/a.js"], added: [], deleted: [] };
+    return {
+      modified: ["src/a.js"],
+      added: [],
+      deleted: [],
+      workspaceBinding: {
+        schema: "cc-checkpoint-workspace-binding/v1",
+        version: 1,
+        engine: "git",
+        workspaceRoot: "C:/workspace",
+        scopeIdentity: `sha256:${"2".repeat(64)}`,
+        prestateIdentity: `git-tree:${state.workspaceNonce.slice(0, 40)}`,
+        writePlanIdentity: `sha256:${state.workspaceNonce}`,
+        targetPoststateIdentity: `git-tree:${"3".repeat(40)}`,
+      },
+    };
   },
   rewindTo: (_dir, checkpointId, options) => {
     state.onRestore?.();
@@ -167,6 +183,7 @@ vi.mock("../../src/lib/checkpoint-store.js", () => ({
       engine: "git",
       identity: options?.expectedIdentity || null,
     });
+    state.restoreBindings.push(options?.expectedWorkspaceBinding || null);
     return {
       modified: 1,
       recreated: 0,
@@ -186,7 +203,21 @@ vi.mock("../../src/lib/file-checkpoint.js", () => ({
       engine: "copy",
       identity: options?.expectedIdentity || null,
     });
-    return { modified: ["src/a.js"], unchanged: [], deleted: [] };
+    return {
+      modified: ["src/a.js"],
+      unchanged: [],
+      deleted: [],
+      workspaceBinding: {
+        schema: "cc-checkpoint-workspace-binding/v1",
+        version: 1,
+        engine: "copy",
+        workspaceRoot: "C:/workspace",
+        scopeIdentity: `sha256:${"4".repeat(64)}`,
+        prestateIdentity: `sha256:${state.workspaceNonce}`,
+        writePlanIdentity: `sha256:${state.workspaceNonce}`,
+        targetPoststateIdentity: `sha256:${"5".repeat(64)}`,
+      },
+    };
   },
   restoreCheckpoint: (checkpointId, options) => {
     state.onRestore?.();
@@ -195,6 +226,7 @@ vi.mock("../../src/lib/file-checkpoint.js", () => ({
       engine: "copy",
       identity: options?.expectedIdentity || null,
     });
+    state.restoreBindings.push(options?.expectedWorkspaceBinding || null);
     return {
       restored: ["src/a.js"],
       unchanged: [],
@@ -220,6 +252,21 @@ async function invoke(args) {
   } finally {
     output.mockRestore();
   }
+}
+
+async function previewConfirmation(submission, sessionId = "s1") {
+  const preview = await invoke([
+    "checkpoint",
+    "action",
+    "-s",
+    sessionId,
+    "--submission",
+    JSON.stringify(submission),
+    "--preview",
+    "--json",
+  ]);
+  expect(preview).toMatchObject({ ok: true, mode: "preview" });
+  return preview.confirmationSubmission;
 }
 
 describe("checkpoint timeline CLI command authority", () => {
@@ -256,13 +303,36 @@ describe("checkpoint timeline CLI command authority", () => {
     state.transactionActive = false;
     state.onRestore = null;
     state.gitAvailable = true;
+    state.workspaceNonce = "1".repeat(64);
     state.statusIdentities = [];
     state.restoreIdentities = [];
+    state.restoreBindings = [];
     state.failFailedAudit = false;
     state.failConversationAppend = false;
     state.failCompletedAudit = false;
     state.failFinalSettlement = false;
     process.exitCode = undefined;
+  });
+
+  it("binds even a forced direct restore to an immediate full-state preflight", async () => {
+    const restored = await invoke([
+      "checkpoint",
+      "restore",
+      "cp-1",
+      "-s",
+      "s1",
+      "--force",
+      "--json",
+    ]);
+
+    expect(restored).toMatchObject({ safetyId: "safety-1" });
+    expect(state.statusIdentities).toEqual([{ engine: "git", identity: null }]);
+    expect(state.restoreBindings).toHaveLength(1);
+    expect(state.restoreBindings[0]).toMatchObject({
+      schema: "cc-checkpoint-workspace-binding/v1",
+      engine: "git",
+      workspaceRoot: "C:/workspace",
+    });
   });
 
   it("previews read-only, then CAS-claims and commits restore-both", async () => {
@@ -296,6 +366,7 @@ describe("checkpoint timeline CLI command authority", () => {
     });
     expect(state.conditional).toEqual([]);
     expect(state.restores).toEqual([]);
+    const confirmation = JSON.stringify(preview.confirmationSubmission);
 
     const executed = await invoke([
       "checkpoint",
@@ -303,7 +374,7 @@ describe("checkpoint timeline CLI command authority", () => {
       "-s",
       "s1",
       "--submission",
-      encoded,
+      confirmation,
       "--confirm",
       "--json",
     ]);
@@ -324,6 +395,11 @@ describe("checkpoint timeline CLI command authority", () => {
     expect(state.restoreIdentities).toEqual([
       { engine: "git", identity: `git:${"a".repeat(40)}` },
     ]);
+    expect(state.restoreBindings[0]).toMatchObject({
+      engine: "git",
+      workspaceRoot: "C:/workspace",
+      prestateIdentity: `git-tree:${"1".repeat(40)}`,
+    });
     expect(state.conditional.map((event) => event.type)).toEqual([
       "checkpoint_timeline_action_intent",
       "checkpoint_timeline_commit",
@@ -335,6 +411,73 @@ describe("checkpoint timeline CLI command authority", () => {
     expect(state.audit).toEqual([
       expect.objectContaining({ type: "checkpoint_timeline_action" }),
     ]);
+  });
+
+  it("requires a preview-issued confirmation before any code status or write", async () => {
+    const timeline = await invoke([
+      "checkpoint",
+      "timeline",
+      "-s",
+      "s1",
+      "--json",
+    ]);
+    const submission = timeline.entries[0].actions.find(
+      (action) => action.action === "restore-code",
+    ).submission;
+
+    const rejected = await invoke([
+      "checkpoint",
+      "action",
+      "-s",
+      "s1",
+      "--submission",
+      JSON.stringify(submission),
+      "--confirm",
+      "--json",
+    ]);
+
+    expect(rejected).toMatchObject({
+      ok: false,
+      code: "TIMELINE_PREVIEW_REQUIRED",
+    });
+    expect(state.statusIdentities).toEqual([]);
+    expect(state.transactions).toEqual([]);
+    expect(state.restores).toEqual([]);
+  });
+
+  it("rejects workspace drift after preview before intent or restore", async () => {
+    const timeline = await invoke([
+      "checkpoint",
+      "timeline",
+      "-s",
+      "s1",
+      "--json",
+    ]);
+    const submission = timeline.entries[0].actions.find(
+      (action) => action.action === "restore-both",
+    ).submission;
+    const confirmation = await previewConfirmation(submission);
+    state.workspaceNonce = "6".repeat(64);
+
+    const rejected = await invoke([
+      "checkpoint",
+      "action",
+      "-s",
+      "s1",
+      "--submission",
+      JSON.stringify(confirmation),
+      "--confirm",
+      "--json",
+    ]);
+
+    expect(rejected).toMatchObject({
+      ok: false,
+      code: "TIMELINE_WORKSPACE_STALE",
+    });
+    expect(state.statusIdentities).toHaveLength(2);
+    expect(state.transactions).toEqual([]);
+    expect(state.conditional).toEqual([]);
+    expect(state.restores).toEqual([]);
   });
 
   it("keeps the writer transaction active across code restore and conversation commit", async () => {
@@ -361,7 +504,7 @@ describe("checkpoint timeline CLI command authority", () => {
       "-s",
       "s1",
       "--submission",
-      JSON.stringify(submission),
+      JSON.stringify(await previewConfirmation(submission)),
       "--confirm",
       "--json",
     ]);
@@ -402,7 +545,7 @@ describe("checkpoint timeline CLI command authority", () => {
       "-s",
       "s1",
       "--submission",
-      JSON.stringify(submission),
+      JSON.stringify(await previewConfirmation(submission)),
       "--confirm",
       "--json",
     ]);
@@ -446,7 +589,7 @@ describe("checkpoint timeline CLI command authority", () => {
       "-s",
       "s1",
       "--submission",
-      JSON.stringify(submission),
+      JSON.stringify(await previewConfirmation(submission)),
       "--confirm",
       "--json",
     ]);
@@ -486,7 +629,7 @@ describe("checkpoint timeline CLI command authority", () => {
       "-s",
       "s1",
       "--submission",
-      JSON.stringify(submission),
+      JSON.stringify(await previewConfirmation(submission)),
       "--confirm",
       "--json",
     ]);
@@ -529,7 +672,7 @@ describe("checkpoint timeline CLI command authority", () => {
       "-s",
       "s1",
       "--submission",
-      JSON.stringify(submission),
+      JSON.stringify(await previewConfirmation(submission)),
       "--confirm",
       "--json",
     ]);
@@ -573,7 +716,7 @@ describe("checkpoint timeline CLI command authority", () => {
       "-s",
       "s1",
       "--submission",
-      JSON.stringify(submission),
+      JSON.stringify(await previewConfirmation(submission)),
       "--confirm",
       "--json",
     ]);
@@ -620,7 +763,7 @@ describe("checkpoint timeline CLI command authority", () => {
       "-s",
       "s1",
       "--submission",
-      JSON.stringify(submission),
+      JSON.stringify(await previewConfirmation(submission)),
       "--confirm",
       "--json",
     ]);
@@ -654,6 +797,7 @@ describe("checkpoint timeline CLI command authority", () => {
     const submission = timeline.entries[0].actions.find(
       (action) => action.action === "restore-code",
     ).submission;
+    const confirmation = await previewConfirmation(submission);
     state.checkpoints[0].commit = "b".repeat(40);
 
     const rejected = await invoke([
@@ -662,13 +806,13 @@ describe("checkpoint timeline CLI command authority", () => {
       "-s",
       "s1",
       "--submission",
-      JSON.stringify(submission),
+      JSON.stringify(confirmation),
       "--confirm",
       "--json",
     ]);
 
     expect(rejected).toMatchObject({ ok: false, code: "TIMELINE_STALE" });
-    expect(state.statusIdentities).toEqual([]);
+    expect(state.statusIdentities).toHaveLength(1);
     expect(state.restores).toEqual([]);
   });
 
@@ -686,6 +830,7 @@ describe("checkpoint timeline CLI command authority", () => {
       (action) => action.action === "restore-both",
     ).submission;
     expect(submission.checkpointIdentity).toBe(expectedIdentity);
+    const confirmation = await previewConfirmation(submission);
 
     const executed = await invoke([
       "checkpoint",
@@ -693,13 +838,14 @@ describe("checkpoint timeline CLI command authority", () => {
       "-s",
       "s1",
       "--submission",
-      JSON.stringify(submission),
+      JSON.stringify(confirmation),
       "--confirm",
       "--json",
     ]);
 
     expect(executed.ok).toBe(true);
     expect(state.statusIdentities).toEqual([
+      { engine: "copy", identity: expectedIdentity },
       { engine: "copy", identity: expectedIdentity },
     ]);
     expect(state.restoreIdentities).toEqual([

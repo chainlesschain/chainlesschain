@@ -103,7 +103,9 @@ describe("ChatView canonical checkpoint timeline", () => {
     expect(calls[1]).toContain("--preview");
     expect(calls[2]).toContain("--confirm");
     expect(JSON.parse(calls[1][5])).toEqual(actionPick.submission);
-    expect(JSON.parse(calls[2][5])).toEqual(actionPick.submission);
+    expect(JSON.parse(calls[2][5])).toEqual(
+      fixture.actionPreview.confirmationSubmission,
+    );
     expect(shownDocs[0]).toMatchObject({ language: "markdown" });
     expect(shownDocs[0].content).toContain("bundle.zip");
     expect(posted).toContainEqual({ kind: "reset" });

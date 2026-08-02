@@ -439,14 +439,48 @@
       "checkpointId": "cp-2",
       "modified": ["src/a.js"],
       "added": [],
-      "deleted": ["old.js"]
+      "deleted": ["old.js"],
+      "summary": {
+        "modified": 1,
+        "added": 0,
+        "deleted": 1,
+        "total": 2,
+        "truncated": false
+      }
     },
     "conversation": {
       "beforeMessages": 9,
       "afterMessages": 4,
       "affectedMessages": 5
     },
-    "branch": null
+    "branch": null,
+    "confirmationSubmission": {
+      "schema": "cc-checkpoint-timeline-confirmation/v1",
+      "version": 1,
+      "authority": "cli",
+      "submission": {
+        "action": "restore-both",
+        "authority": "cli",
+        "checkpointId": "cp-2",
+        "checkpointIdentity": "git:2222222222222222222222222222222222222222",
+        "conversationOffset": 5,
+        "revision": "timeline-fixture-r1",
+        "schema": "cc-checkpoint-timeline-action/v1",
+        "sessionId": "session-fixture",
+        "turnId": "turn-2",
+        "version": 1
+      },
+      "workspace": {
+        "schema": "cc-checkpoint-workspace-binding/v1",
+        "version": 1,
+        "engine": "git",
+        "scopeIdentity": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "prestateIdentity": "git-tree:2222222222222222222222222222222222222222",
+        "writePlanIdentity": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "targetPoststateIdentity": "git-tree:4444444444444444444444444444444444444444"
+      },
+      "digest": "sha256:634861d4194f1a6929374a7ae87aade4813fa5c50ea5358d99a0bc0f4b326cc3"
+    }
   },
   "hostProjection": {
     "sessionId": "session-fixture",

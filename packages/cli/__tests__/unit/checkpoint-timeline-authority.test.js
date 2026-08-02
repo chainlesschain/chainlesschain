@@ -3,7 +3,10 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { buildCheckpointTimeline } from "../../src/lib/checkpoint-timeline.js";
 import {
+  buildCheckpointTimelineConfirmationSubmission,
+  checkpointTimelineConfirmationsMatch,
   planCheckpointTimelineAction,
+  validateCheckpointTimelineConfirmationSubmission,
   validateCheckpointTimelineSubmission,
 } from "../../src/lib/checkpoint-timeline-authority.js";
 import {
@@ -36,6 +39,17 @@ function submission(timeline, turnId, action) {
     .actions.find((candidate) => candidate.action === action).submission;
 }
 
+const gitWorkspaceBinding = Object.freeze({
+  schema: "cc-checkpoint-workspace-binding/v1",
+  version: 1,
+  engine: "git",
+  workspaceRoot: "/private/workspace",
+  scopeIdentity: `sha256:${"1".repeat(64)}`,
+  prestateIdentity: `git-tree:${"2".repeat(40)}`,
+  writePlanIdentity: `sha256:${"3".repeat(64)}`,
+  targetPoststateIdentity: `git-tree:${"4".repeat(40)}`,
+});
+
 describe("checkpoint timeline CLI authority", () => {
   it("builds the shared restore-both preview with honest risk details", () => {
     const timeline = builtTimeline();
@@ -47,6 +61,7 @@ describe("checkpoint timeline CLI authority", () => {
         modified: [{ rel: "src/a.js" }],
         added: [],
         deleted: ["old.js"],
+        workspaceBinding: gitWorkspaceBinding,
       },
     });
 
@@ -72,6 +87,10 @@ describe("checkpoint timeline CLI authority", () => {
           timeline,
           submission: submission(timeline, "turn-2", action),
           messages: fixture.input.messages,
+          codePreview:
+            action === "restore-code" || action === "restore-both"
+              ? { workspaceBinding: gitWorkspaceBinding }
+              : null,
         }),
       ]),
     );
@@ -214,6 +233,51 @@ describe("checkpoint timeline CLI authority", () => {
       ok: false,
       code: "TIMELINE_CONVERSATION_ANCHOR_STALE",
     });
+  });
+
+  it("issues a digest-bound confirmation and rejects workspace-binding drift", () => {
+    const timeline = builtTimeline();
+    const actionSubmission = submission(timeline, "turn-2", "restore-code");
+    const planned = planCheckpointTimelineAction({
+      timeline,
+      submission: actionSubmission,
+      messages: fixture.input.messages,
+      codePreview: {
+        modified: ["src/a.js"],
+        workspaceBinding: gitWorkspaceBinding,
+      },
+    });
+
+    expect(planned.ok).toBe(true);
+    expect(planned.preview.confirmationSubmission.workspace).not.toHaveProperty(
+      "workspaceRoot",
+    );
+    expect(
+      validateCheckpointTimelineConfirmationSubmission(
+        timeline,
+        planned.preview.confirmationSubmission,
+      ),
+    ).toMatchObject({ ok: true, submission: actionSubmission });
+
+    const drifted = buildCheckpointTimelineConfirmationSubmission(
+      actionSubmission,
+      {
+        ...gitWorkspaceBinding,
+        prestateIdentity: `git-tree:${"5".repeat(40)}`,
+      },
+    );
+    expect(
+      checkpointTimelineConfirmationsMatch(
+        planned.preview.confirmationSubmission,
+        drifted,
+      ),
+    ).toBe(false);
+    expect(
+      validateCheckpointTimelineConfirmationSubmission(timeline, {
+        ...planned.preview.confirmationSubmission,
+        digest: `sha256:${"0".repeat(64)}`,
+      }),
+    ).toMatchObject({ ok: false, code: "TIMELINE_CONFIRMATION_INVALID" });
   });
 
   it("binds a referenced checkpoint identity beyond the bounded marker projection", () => {

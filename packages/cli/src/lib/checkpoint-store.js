@@ -18,7 +18,8 @@
  * is. When it is not, callers should fall back / report unavailable.
  */
 
-import { rmSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { realpathSync, rmSync } from "node:fs";
 import path from "node:path";
 import executionBroker from "./process-execution-broker/index.js";
 import { credentialAgent } from "./process-execution-broker/credential-agent.js";
@@ -33,6 +34,17 @@ const REF_NS = "refs/cc-checkpoints";
 // and rebuild the shadow commit. Keep the bound finite: a permanently locked
 // or externally churned namespace must fail instead of spinning forever.
 const MAX_REF_PUBLISH_ATTEMPTS = 16;
+const WORKSPACE_BINDING_SCHEMA = "cc-checkpoint-workspace-binding/v1";
+const WORKSPACE_BINDING_KEYS = Object.freeze([
+  "engine",
+  "prestateIdentity",
+  "schema",
+  "scopeIdentity",
+  "targetPoststateIdentity",
+  "version",
+  "workspaceRoot",
+  "writePlanIdentity",
+]);
 // Deterministic identity for shadow commits so `git commit-tree` never trips on
 // a missing user.name / user.email config.
 const CHECKPOINT_IDENTITY = Object.freeze({
@@ -117,6 +129,128 @@ function repoRoot(cwd) {
 /** Absolute .git dir, where temp index files live. */
 function gitDir(root) {
   return path.resolve(root, git(["rev-parse", "--git-dir"], { cwd: root }));
+}
+
+function canonicalPath(target) {
+  return path.normalize(realpathSync.native(path.resolve(target)));
+}
+
+function pathIdentity(target) {
+  const canonical = canonicalPath(target);
+  return process.platform === "win32" ? canonical.toLowerCase() : canonical;
+}
+
+function sha256Identity(value) {
+  return `sha256:${createHash("sha256").update(value, "utf8").digest("hex")}`;
+}
+
+function commonGitDir(root) {
+  return path.resolve(
+    root,
+    git(["rev-parse", "--git-common-dir"], { cwd: root }),
+  );
+}
+
+function buildWorkspaceBinding(
+  root,
+  dir,
+  { targetCommit, targetTree, currentTree },
+) {
+  const workspaceRoot = canonicalPath(root);
+  const scopeIdentity = sha256Identity(
+    JSON.stringify({
+      schema: "cc-checkpoint-git-scope/v1",
+      workspaceRoot: pathIdentity(workspaceRoot),
+      gitDir: pathIdentity(dir),
+      gitCommonDir: pathIdentity(commonGitDir(root)),
+    }),
+  );
+  const writePlanIdentity = sha256Identity(
+    JSON.stringify({
+      schema: "cc-checkpoint-git-write-plan/v1",
+      checkpointCommit: targetCommit,
+      targetTree,
+      currentTree,
+      scopeIdentity,
+    }),
+  );
+  return {
+    schema: WORKSPACE_BINDING_SCHEMA,
+    version: 1,
+    engine: "git",
+    workspaceRoot,
+    scopeIdentity,
+    prestateIdentity: `git-tree:${currentTree}`,
+    writePlanIdentity,
+    targetPoststateIdentity: `git-tree:${targetTree}`,
+  };
+}
+
+function validWorkspaceBinding(binding) {
+  if (!binding || typeof binding !== "object" || Array.isArray(binding)) {
+    return false;
+  }
+  const keys = Object.keys(binding).sort();
+  if (
+    keys.length !== WORKSPACE_BINDING_KEYS.length ||
+    keys.some((key, index) => key !== WORKSPACE_BINDING_KEYS[index])
+  ) {
+    return false;
+  }
+  const gitTreeIdentity = /^git-tree:(?:[a-f0-9]{40}|[a-f0-9]{64})$/;
+  return (
+    binding.schema === WORKSPACE_BINDING_SCHEMA &&
+    binding.version === 1 &&
+    binding.engine === "git" &&
+    typeof binding.workspaceRoot === "string" &&
+    path.isAbsolute(binding.workspaceRoot) &&
+    /^sha256:[a-f0-9]{64}$/.test(binding.scopeIdentity) &&
+    gitTreeIdentity.test(binding.prestateIdentity) &&
+    /^sha256:[a-f0-9]{64}$/.test(binding.writePlanIdentity) &&
+    gitTreeIdentity.test(binding.targetPoststateIdentity)
+  );
+}
+
+function workspaceBindingStaleError(
+  idOrRef,
+  expectedWorkspaceBinding,
+  actualWorkspaceBinding,
+  reason,
+) {
+  const error = new Error(
+    `Checkpoint workspace changed before restore: ${idOrRef}`,
+  );
+  error.code = "CHECKPOINT_WORKSPACE_STALE";
+  error.checkpointId = idOrRef;
+  error.reason = reason;
+  error.expectedWorkspaceBinding = expectedWorkspaceBinding;
+  error.actualWorkspaceBinding = actualWorkspaceBinding;
+  return error;
+}
+
+function assertWorkspaceBinding(
+  idOrRef,
+  expectedWorkspaceBinding,
+  actualWorkspaceBinding,
+) {
+  if (!validWorkspaceBinding(expectedWorkspaceBinding)) {
+    throw workspaceBindingStaleError(
+      idOrRef,
+      expectedWorkspaceBinding,
+      actualWorkspaceBinding,
+      "invalid-expected-binding",
+    );
+  }
+  for (const key of WORKSPACE_BINDING_KEYS) {
+    if (expectedWorkspaceBinding[key] !== actualWorkspaceBinding[key]) {
+      throw workspaceBindingStaleError(
+        idOrRef,
+        expectedWorkspaceBinding,
+        actualWorkspaceBinding,
+        `mismatch:${key}`,
+      );
+    }
+  }
 }
 
 /**
@@ -526,6 +660,11 @@ export function statusAgainst(cwd = process.cwd(), idOrRef, opts = {}) {
     modified: diffNames(root, targetTree, currentTree, "M"),
     added: diffNames(root, targetTree, currentTree, "A"),
     deleted: diffNames(root, targetTree, currentTree, "D"),
+    workspaceBinding: buildWorkspaceBinding(root, dir, {
+      targetCommit: commit,
+      targetTree,
+      currentTree,
+    }),
   };
 }
 
@@ -533,7 +672,8 @@ export function statusAgainst(cwd = process.cwd(), idOrRef, opts = {}) {
  * Restore the working tree to a checkpoint. Creates a safety checkpoint first
  * (unless dryRun / skipSafety).
  *
- * @param {object} [opts] { session, dryRun, skipSafety, now }
+ * @param {object} [opts]
+ *   { session, dryRun, skipSafety, now, expectedWorkspaceBinding }
  * @returns {{ restored, dryRun, target, safetyId, modified, deleted, recreated }}
  */
 export function rewindTo(cwd = process.cwd(), idOrRef, opts = {}) {
@@ -555,6 +695,19 @@ export function rewindTo(cwd = process.cwd(), idOrRef, opts = {}) {
   const modified = diffNames(root, targetTree, currentTree, "M");
   const added = diffNames(root, targetTree, currentTree, "A"); // → delete
   const recreated = diffNames(root, targetTree, currentTree, "D"); // → recreate
+
+  if (Object.hasOwn(opts, "expectedWorkspaceBinding")) {
+    const actualWorkspaceBinding = buildWorkspaceBinding(root, dir, {
+      targetCommit,
+      targetTree,
+      currentTree,
+    });
+    assertWorkspaceBinding(
+      idOrRef,
+      opts.expectedWorkspaceBinding,
+      actualWorkspaceBinding,
+    );
+  }
 
   if (opts.dryRun) {
     return {
