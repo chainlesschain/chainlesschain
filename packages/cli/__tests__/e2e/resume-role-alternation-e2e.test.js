@@ -15,9 +15,8 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { spawn } from "node:child_process";
 import http from "node:http";
-import fs from "node:fs";
-import path from "node:path";
 import { testHome, freePort, CLI_BIN } from "./_helpers/cli-e2e.js";
+import { appendEvent } from "../../src/harness/jsonl-session-store.js";
 
 const t = testHome("resume-roles");
 let llmServer;
@@ -36,28 +35,25 @@ function firstConsecutiveRole(messages) {
 
 /** Seed a JSONL session whose run produced NO assistant response. */
 function seedNoResponseSession(id) {
-  // CHAINLESSCHAIN_HOME points at the config directory itself; the default
-  // value happens to be ~/.chainlesschain, but an override is not nested again.
-  const dir = path.join(t.home, "sessions");
-  fs.mkdirSync(dir, { recursive: true });
-  const lines = [
-    {
-      type: "session_start",
-      timestamp: Date.now(),
-      data: { title: "seed", provider: "ollama", model: "test" },
-    },
-    {
-      type: "user_message",
-      timestamp: Date.now(),
-      data: { role: "user", content: "original task" },
-    },
+  // Seed through the canonical writer so resume sees both a verified hash
+  // chain and its independently persisted metadata anchor.
+  const previousHome = process.env.CHAINLESSCHAIN_HOME;
+  process.env.CHAINLESSCHAIN_HOME = t.home;
+  try {
+    appendEvent(id, "session_start", {
+      title: "seed",
+      provider: "ollama",
+      model: "test",
+    });
+    appendEvent(id, "user_message", {
+      role: "user",
+      content: "original task",
+    });
     // NOTE: intentionally NO assistant_message — the original run never replied.
-  ];
-  fs.writeFileSync(
-    path.join(dir, `${id}.jsonl`),
-    lines.map((l) => JSON.stringify(l)).join("\n") + "\n",
-    "utf-8",
-  );
+  } finally {
+    if (previousHome === undefined) delete process.env.CHAINLESSCHAIN_HOME;
+    else process.env.CHAINLESSCHAIN_HOME = previousHome;
+  }
 }
 
 beforeAll(async () => {
@@ -147,10 +143,10 @@ function runResume(sessionId) {
 describe("cc agent --resume after a no-response run (2.1.187 parity)", () => {
   it("resumes successfully and never sends consecutive same-role turns", async () => {
     seedNoResponseSession("sid-noresp");
-    const { status, stdout, requests } = await runResume("sid-noresp");
+    const { status, stdout, stderr, requests } = await runResume("sid-noresp");
 
     // The run succeeded — a strict provider did NOT reject the payload.
-    expect(status).toBe(0);
+    expect(status, stderr || stdout).toBe(0);
     expect(stdout).toContain("resumed-ok-e2e");
     expect(sawConsecutiveRole).toBeNull();
 
