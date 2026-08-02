@@ -568,6 +568,43 @@ describe("checkpoint restore orchestrator", () => {
     expect(harness.archived).toBe(false);
   });
 
+  it("retains a transcript intent even when the saga intent boundary did not commit", () => {
+    const harness = createHarness();
+    const plan = restorePlan(harness, { restoreSurface: "timeline" });
+
+    expect(() =>
+      runCheckpointRestoreOperation({
+        operationId: "checkpoint-restore-transcript-intent-only",
+        plan,
+        revalidate: () => plan,
+        restore: successfulRestore(harness),
+        withSessionAuthority() {
+          const error = new Error(
+            "session intent committed before saga intent failed",
+          );
+          error.code = "SESSION_INTENT_SAGA_BOUNDARY_FAILED";
+          error.checkpointRestoreSessionIntentCommitted = true;
+          throw error;
+        },
+        dependencies: harness.dependencies,
+      }),
+    ).toThrow(
+      expect.objectContaining({
+        code: "WORKSPACE_TRANSACTION_RECOVERY_REQUIRED",
+        checkpointRestoreSagaPhase: "recovery_required",
+        checkpointRestoreRecoveryRequired: true,
+      }),
+    );
+    expect(harness.phases).toEqual([
+      "created",
+      "locked",
+      "prepared",
+      "recovery_required",
+    ]);
+    expect(harness.retained).toBe(true);
+    expect(harness.archived).toBe(false);
+  });
+
   it("retains a durable session intent after pre-mutation safety is ready", () => {
     const harness = createHarness();
     const plan = restorePlan(harness, { restoreSurface: "timeline" });

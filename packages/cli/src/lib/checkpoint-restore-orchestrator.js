@@ -516,6 +516,7 @@ export function runCheckpointRestoreOperation(options = {}) {
     let recoveryRequired =
       sagaLoadFailed ||
       commitStateUnknown(operationError) ||
+      operationError.checkpointRestoreSessionIntentCommitted === true ||
       operationError.checkpointRestoreSessionSettled === true ||
       hasPendingSessionIntent(saga) ||
       RECOVERY_PHASES.has(saga?.phase) ||
