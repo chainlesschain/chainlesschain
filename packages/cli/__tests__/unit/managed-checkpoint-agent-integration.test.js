@@ -85,7 +85,12 @@ describe("managed checkpoint agent integration", () => {
     await disposeSharedCodeIntel();
     await drainBackgroundShells();
     for (const target of cleanup.splice(0)) {
-      rmSync(target, { recursive: true, force: true });
+      rmSync(target, {
+        recursive: true,
+        force: true,
+        maxRetries: 20,
+        retryDelay: 50,
+      });
     }
   });
 
