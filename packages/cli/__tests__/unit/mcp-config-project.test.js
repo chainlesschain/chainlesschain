@@ -68,6 +68,11 @@ describe("loadProjectMcp", () => {
     expect(res).toBeTruthy();
     expect(res.connected.map((c) => c.server)).toContain("rooty");
     expect(res.mcpClient.connects.map((c) => c.name)).toEqual(["rooty"]);
+    expect(res.mcpClient.connects[0].cfg).toMatchObject({
+      configScope: "project",
+      configSource: path.join(root, ".mcp.json"),
+      projectPath: root,
+    });
   });
 
   it("a cwd-local .mcp.json overrides the root on a name clash (closest wins)", async () => {

@@ -40,7 +40,10 @@ describe("resolveAgentMcp --strict-mcp-config", () => {
       d,
     );
     expect(d.loadMcpConfig).toHaveBeenCalledTimes(1);
-    expect(d.loadRegisteredMcp).toHaveBeenCalledTimes(1);
+    expect(d.loadRegisteredMcp).toHaveBeenCalledTimes(3);
+    expect(
+      d.loadRegisteredMcp.mock.calls.map(([, options]) => options.scope),
+    ).toEqual(["local", "project", "user"]);
     expect(d.loadProjectMcp).toHaveBeenCalledTimes(1);
     expect(d.loadIdeMcp).toHaveBeenCalledTimes(1);
   });
@@ -51,7 +54,7 @@ describe("resolveAgentMcp --strict-mcp-config", () => {
       { mcpConfigPath: "/x.json", db: {}, ide: true, projectMcp: false },
       d,
     );
-    expect(d.loadRegisteredMcp).toHaveBeenCalledTimes(1);
+    expect(d.loadRegisteredMcp).toHaveBeenCalledTimes(3);
     expect(d.loadProjectMcp).not.toHaveBeenCalled();
     expect(d.loadIdeMcp).toHaveBeenCalledTimes(1);
   });

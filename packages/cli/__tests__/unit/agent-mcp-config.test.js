@@ -833,7 +833,15 @@ describe("loadRegisteredMcp", () => {
         createClient: () => client,
         makeServerConfig: () => ({
           getAutoConnect: () => [
-            { name: "weather", command: "x", args: [], env: {} },
+            {
+              name: "weather",
+              command: "x",
+              args: [],
+              env: {},
+              configScope: "local",
+              configSource: "local:C:/repo",
+              projectPath: "C:/repo",
+            },
           ],
           list: () => [],
         }),
@@ -843,6 +851,30 @@ describe("loadRegisteredMcp", () => {
     expect(res.externalToolExecutors["mcp__weather__t"]).toMatchObject({
       kind: "mcp",
       serverName: "weather",
+    });
+    expect(client.servers.get("weather")).toMatchObject({
+      configScope: "local",
+      configSource: "local:C:/repo",
+      projectPath: "C:/repo",
+    });
+    expect(
+      res.externalToolDescriptors["mcp__weather__t"].effectContract.provenance,
+    ).toBe("local:C:/repo");
+  });
+
+  it("forwards an explicit scope to the persistent config query", async () => {
+    const getAutoConnect = vi.fn(() => []);
+    await loadRegisteredMcp(
+      {},
+      {
+        scope: "project",
+        cwd: "C:/repo/packages/app",
+        makeServerConfig: () => ({ getAutoConnect }),
+      },
+    );
+    expect(getAutoConnect).toHaveBeenCalledWith({
+      cwd: "C:/repo/packages/app",
+      scope: "project",
     });
   });
 
@@ -966,6 +998,94 @@ describe("resolveAgentMcp", () => {
     );
     expect(res.connected).toMatchObject([{ server: "dup", tools: 1 }]); // connected once
     expect(client.servers.get("dup").command).toBe("adhoc");
+  });
+
+  it("keeps runtime precedence aligned with local > project > user", async () => {
+    const client = regClient();
+    const rowsByScope = {
+      local: [
+        {
+          name: "local-wins",
+          command: "LOCAL",
+          configScope: "local",
+          configSource: "local:C:/repo",
+          projectPath: "C:/repo",
+        },
+      ],
+      project: [
+        {
+          name: "db-project-wins",
+          command: "DB_PROJECT",
+          configScope: "project",
+          configSource: "project:C:/repo",
+          projectPath: "C:/repo",
+        },
+      ],
+      user: [
+        {
+          name: "local-wins",
+          command: "USER_SHADOW_LOCAL",
+          configScope: "user",
+          configSource: "user-database",
+        },
+        {
+          name: "file-project-wins",
+          command: "USER_SHADOW_PROJECT",
+          configScope: "user",
+          configSource: "user-database",
+        },
+        {
+          name: "db-project-wins",
+          command: "USER_SHADOW_DB_PROJECT",
+          configScope: "user",
+          configSource: "user-database",
+        },
+        {
+          name: "user-only",
+          command: "USER",
+          configScope: "user",
+          configSource: "user-database",
+        },
+      ],
+    };
+    const getAutoConnect = vi.fn(({ scope }) => rowsByScope[scope] || []);
+
+    await resolveAgentMcp(
+      { db: {}, projectMcp: true },
+      {
+        ...noAutoDetectDeps,
+        mcpPolicy: {},
+        createClient: () => client,
+        makeServerConfig: () => ({ getAutoConnect }),
+        loadProjectMcp: async (_opts, deps) =>
+          setupMcpFromConfig(
+            {
+              "local-wins": {
+                command: "PROJECT_SHADOW_LOCAL",
+                configScope: "project",
+                configSource: "C:/repo/.mcp.json",
+              },
+              "file-project-wins": {
+                command: "PROJECT",
+                configScope: "project",
+                configSource: "C:/repo/.mcp.json",
+              },
+            },
+            deps,
+          ),
+        loadPluginMcp: async (_opts, deps) => deps.into || null,
+      },
+    );
+
+    expect(getAutoConnect.mock.calls.map(([query]) => query.scope)).toEqual([
+      "local",
+      "project",
+      "user",
+    ]);
+    expect(client.servers.get("local-wins").command).toBe("LOCAL");
+    expect(client.servers.get("file-project-wins").command).toBe("PROJECT");
+    expect(client.servers.get("db-project-wins").command).toBe("DB_PROJECT");
+    expect(client.servers.get("user-only").command).toBe("USER");
   });
 
   it("includeRegistered:false skips the registry (file only)", async () => {

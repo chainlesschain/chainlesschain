@@ -525,6 +525,7 @@ export async function loadRegisteredMcp(rawDb, deps = {}) {
     }
     const cfg = make(rawDb);
     const visibility = { cwd: deps.cwd || process.cwd() };
+    if (deps.scope) visibility.scope = deps.scope;
     rows = deps.all ? cfg.list(visibility) : cfg.getAutoConnect(visibility);
   } catch {
     return deps.into || null; // registry unavailable — non-fatal
@@ -539,6 +540,9 @@ export async function loadRegisteredMcp(rawDb, deps = {}) {
       url: r.url,
       transport: r.transport,
       headers: r.headers,
+      configScope: r.configScope,
+      configSource: r.configSource,
+      projectPath: r.projectPath,
     };
   }
   if (Object.keys(servers).length === 0) return deps.into || null;
@@ -769,6 +773,11 @@ export async function loadProjectMcp(opts = {}, deps = {}) {
     }
     const parsed = parseMcpServers(raw);
     if (Object.keys(parsed).length > 0) {
+      for (const config of Object.values(parsed)) {
+        config.configScope = "project";
+        config.configSource = file;
+        config.projectPath = path.dirname(file);
+      }
       Object.assign(servers, parsed); // later file (cwd) overrides earlier (root)
       seenFiles.push(file);
     }
@@ -885,24 +894,36 @@ export async function resolveAgentMcp(args = {}, deps = {}) {
   if (args.strict) {
     return result;
   }
-  if (args.includeRegistered !== false && args.db) {
+  const loadRegisteredScope = async (scope) => {
+    if (args.includeRegistered === false || !args.db) return;
     result = await doReg(args.db, {
       ...fwd,
       all: args.allRegistered === true,
+      scope,
       into: result || undefined,
     });
-  }
-  // Project-scoped `.mcp.json` (Claude-Code parity). After --mcp-config +
-  // registered (those win on a name clash), before IDE auto-discovery. Skipped
-  // under --strict-mcp-config (returned above). OPT-IN: loadProjectMcp is a
-  // no-op unless --project-mcp / CC_PROJECT_MCP=1 is set (default-off — a
-  // checked-in .mcp.json can spawn commands). `projectMcp:false` hard-skips it.
+  };
+  // Runtime precedence must match `cc mcp list/get`: managed and explicit
+  // --mcp-config entries are already connected above, then local > project >
+  // user. Split the registered rows around the trusted project-file layer so
+  // a user row cannot silently shadow a same-name project server at runtime.
+  await loadRegisteredScope("local");
+  // Project-scoped `.mcp.json` (Claude-Code parity). After --mcp-config and
+  // registered local scope (those win on a name clash), before registered
+  // project/user scopes and IDE auto-discovery. Skipped under
+  // --strict-mcp-config (returned above). OPT-IN: loadProjectMcp is a no-op
+  // unless --project-mcp / CC_PROJECT_MCP=1 is set (default-off — a checked-in
+  // .mcp.json can spawn commands). `projectMcp:false` hard-skips it.
   if (args.projectMcp !== false) {
     result = await doProject(
       { cwd: args.cwd, env: args.env || process.env },
       { ...fwd, into: result || undefined },
     );
   }
+  // Older databases may still contain project-scoped rows. They share the
+  // project tier but yield to the canonical `.mcp.json` source loaded above.
+  await loadRegisteredScope("project");
+  await loadRegisteredScope("user");
   // Installed-plugin `.mcp.json` servers (Claude-Code parity). Loads by default
   // (no opt-in flag): unlike a project `.mcp.json`, a plugin only contributes
   // when it is installed AND trusted (trust-gated inside collectPluginMcpServers)

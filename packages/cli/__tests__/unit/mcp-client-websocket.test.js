@@ -6,6 +6,7 @@ import {
   inferTransport,
   isWebSocketTransport,
 } from "../../src/harness/mcp-client.js";
+import { loadMcpConfig } from "../../src/runtime/mcp-config.js";
 
 const servers = new Set();
 
@@ -108,6 +109,27 @@ describe("MCPClient WebSocket transport contract", () => {
     await client.disconnectAll();
   });
 
+  it("connects an official type=ws config through the runtime loader", async () => {
+    const { url } = await startMcpWebSocket();
+    const loaded = await loadMcpConfig("fixture.json", {
+      readFile: () =>
+        JSON.stringify({
+          mcpServers: {
+            events: { type: "ws", url },
+          },
+        }),
+    });
+
+    expect(loaded.connected).toEqual([
+      { server: "events", tools: 1, resources: 0, prompts: 0 },
+    ]);
+    expect(loaded.mcpClient.servers.get("events")).toMatchObject({
+      transportKind: "ws",
+      state: ServerState.CONNECTED,
+    });
+    await loaded.mcpClient.disconnectAll();
+  });
+
   it("rejects a transport/URL scheme mismatch before opening a socket", async () => {
     const client = new MCPClient();
     await expect(
@@ -137,5 +159,25 @@ describe("MCPClient WebSocket transport contract", () => {
       code: "CC_MCP_WS_CLOSED",
       closeCode: 1011,
     });
+  });
+
+  it("times out an unanswered request with a structured diagnostic", async () => {
+    const { url } = await startMcpWebSocket((_socket, message) =>
+      message.method === "tools/call" ? true : false,
+    );
+    const client = new MCPClient();
+    await client.connect("silent", {
+      transport: "ws",
+      url,
+      requestTimeoutMs: 25,
+    });
+
+    await expect(client.callTool("silent", "echo", {})).rejects.toMatchObject({
+      code: "CC_MCP_WS_REQUEST_TIMEOUT",
+      transport: "ws",
+      url,
+    });
+    expect(client.servers.get("silent")._pending.size).toBe(0);
+    await client.disconnectAll();
   });
 });
