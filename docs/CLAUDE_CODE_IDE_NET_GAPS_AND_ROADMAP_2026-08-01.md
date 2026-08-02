@@ -678,5 +678,12 @@ artifact。
 - `38ab06cfdd` 至 `223c0f505c` 把 malformed recovery、运行时 latch、Host `callTool`、WS projection/refresh、REPL session switch、roots-only client 与 Stream resume 收敛到共享 fail-closed authority；模型发起的 MCP 调用仍使用 raw client + 同一 durable ledger，避免重复记账。
 - `1c572b213f` 使用独立 `mcp_call_recovery_adjudication` event、verified head/recovery digest 与单次 CAS 表达人工事实确认；`confirmed_applied` 保留 exact replay deny，`confirmed_not_applied` 只解除恢复不确定性，二者都不伪造机器 `completed`、`failed` 或 `settled`。
 - 裁决要求 TTY 内键入包含 `HOST STOPPED` 的完整 challenge，但仓库尚无跨进程 lease/revision 撤销；这是“既有宿主已停止并保持停止”的操作性前置条件。裁决后的 authority 仅在 restart/resume 后采用；若旧宿主仍活跃，必须先停止并复核 transcript，不能宣称即时全局生效。
-- `223c0f505c` 的 Strict Sandbox run `30715641925` 与 `b6a2c096ea` 的 run `30716039185` 三 OS 全绿，但没有更晚待发布 exact SHA 上同时成功的完整 `CLI CI` + `CLI Strict Sandbox`。
-- `8990999771` 的最终本地冻结矩阵为 142/142，旧的中间矩阵证据已撤销；`a1c9eed07e` 又关闭下载目标替换恢复缺口。原生 installer/OTA 仍缺 durable intent/phase journal 或 generation pointer、真实强杀/断电、Linux/macOS、ARM64 与签名矩阵；`8990999771` 的 CLI CI run `30716233638` 已失败，不能据此宣称 release-ready。
+- `925a49fb7b` 让 MCP admission、ledger identity 与 transport 共用同一个深冻结 JSON wire snapshot，并在网络调用前拒绝 Proxy/accessor/thenable 等歧义输入；公开 recovery effect 严格限制为四个枚举。非持久 REPL、headless 和 ephemeral stream 也始终使用 host guarded ledger，第一次不安全 `outcome_unknown` 后的第二次调用会在 prewrite 阶段阻断。提交前核心矩阵 132/132、REPL MCP 子集 32/32 通过，独立复审无剩余高/中 blocker。
+- `223c0f505c` 的 Strict Sandbox run `30715641925`、`b6a2c096ea` 的 run `30716039185` 和 `5df2e1bdac` 的 run `30724810078` 均在三 OS 全绿；`5df2e1bdac` 已覆盖完整 MCP recovery/adjudication 生产与测试矩阵。它们仍只能授权各自 SHA，当前没有更晚待发布 exact SHA 上同时成功的完整 `CLI CI` + `CLI Strict Sandbox`。
+- `8990999771` 的最终本地冻结矩阵为 142/142，旧的中间矩阵证据已撤销；`a1c9eed07e` 又关闭下载目标替换恢复缺口。`dc69dbb62d` 进一步让 fresh-install 的 post-replace lineage 失败可回滚，并用同目录原子 rename 恢复 upgrade 的旧 lineage；本地相邻矩阵 146 passed、7 个 POSIX 动态用例在 Windows 跳过。原生 installer/OTA 仍缺 durable intent/phase journal 或 generation pointer、真实强杀/断电、Linux/macOS、ARM64 与签名矩阵；`8990999771` 的 CLI CI run `30716233638` 已失败，不能据此宣称 release-ready。
+
+### 2026-08-02 Session scale 证据边界
+
+- `b5c50bb513` 已提交独立 `CLI Session Scale` 组件门、session index/repair 加固与 exact-SHA artifact；本地定向测试 79 passed、1 skipped，Windows 默认 smoke 通过。formal run `30724908237` 以完整 `b5c50bb51368a849d649fb8d27bd790d46217c20` 作为 checkout 输入，Ubuntu、Windows、macOS 三个 job 全部成功并上传 exact-SHA artifact；该证据只授权该提交及组件门范围，最终 release SHA 仍须重跑。
+- 当前 1 GiB/P95 指标仅测热进程 `rebuildMessages()` 的 checkpoint 后缀读取。真实 headless 入口仍先全量 `verifySession()`；Stream/MCP 入口还会通过 `readVerifiedEvents()` 全链校验并整体 materialize 事件。因此 P0-5 的“真实入口恢复 `< 2s` / RSS `< 100MB` / 无全量载入”和 REPL/headless/IDE/background 跨入口一致性仍为未完成。
+- 下一步不是放宽门槛，而是增加可验证 checkpoint/分段 anchor、增量 MCP ledger projection，以及冷进程真实入口矩阵。现有真实 SIGKILL 仅覆盖两个 append pipeline 边界；人工 exhaustive prefix、sidecar repair 和同 head 元数据检查均不得外推为任意 taskkill/断电、fsync durability 或任意 metadata corruption 已恢复。
