@@ -1,3 +1,12 @@
+import {
+  mkdirSync,
+  mkdtempSync,
+  realpathSync,
+  rmSync,
+  symlinkSync,
+} from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { Command } from "commander";
 import { describe, expect, it, vi } from "vitest";
 import {
@@ -7,6 +16,10 @@ import {
   previewCheckpointRestoreRecoveryAuthority,
   registerCheckpointRestoreRecoveryCommands,
 } from "../../src/commands/checkpoint-restore-recovery.js";
+import {
+  CHECKPOINT_RESTORE_ALREADY_COMPLETED_ACTION,
+  CHECKPOINT_RESTORE_ALREADY_COMPLETED_ERROR_CODES,
+} from "../../src/lib/checkpoint-restore-already-completed-controller.js";
 
 const HEAD_HASH = `sha256:${"a".repeat(64)}`;
 const RECORDED_OWNER_DIGEST = `sha256:${"b".repeat(64)}`;
@@ -32,6 +45,7 @@ function recoveryProjection({
   seq = 2,
   terminal = false,
   clean = true,
+  restore = {},
 } = {}) {
   return {
     schema: "chainlesschain.checkpoint-restore-recovery-projection",
@@ -53,8 +67,14 @@ function recoveryProjection({
     },
     restore: {
       kind: "git",
+      surface: "timeline",
+      intentAuthority: "session",
+      checkpointNamespace: "session-1",
       checkpointId: "checkpoint-1",
+      checkpointIdentity: `git:${"1".repeat(40)}`,
       sessionId: "session-1",
+      timelineEntryId: "turn-1",
+      ...restore,
     },
     progress: { targetCount: 1, appliedCount: null },
     safety: { coverage: null, complete: false },
@@ -122,6 +142,12 @@ function mutationResult(actionName, operationId, overrides = {}) {
     archived: true,
     alreadyArchived: false,
     reconciledFromError: false,
+    ...(actionName === CHECKPOINT_RESTORE_ALREADY_COMPLETED_ACTION
+      ? {
+          sessionCommitDigest: `sha256:${"1".repeat(64)}`,
+          resultDigest: `sha256:${"2".repeat(64)}`,
+        }
+      : {}),
     warning: null,
     ...overrides,
   };
@@ -140,12 +166,23 @@ function harness({ projection, list, owner } = {}) {
     abort: vi.fn((operationId) => mutationResult("abort", operationId)),
     release: vi.fn((operationId) => mutationResult("release", operationId)),
   };
+  const sessionRecoveryReader = { read: vi.fn() };
+  const workspaceTargetVerifier = { verify: vi.fn() };
+  const alreadyCompletedController = {
+    resume: vi.fn((operationId) =>
+      mutationResult(CHECKPOINT_RESTORE_ALREADY_COMPLETED_ACTION, operationId),
+    ),
+  };
   const observedOwner = owner === undefined ? workspaceOwner() : owner;
   const dependencies = {
     resolveWorkspaceRoot: vi.fn(() => WORKSPACE_ROOT),
+    canonicalizeWorkspaceRoot: vi.fn((value) => value),
     createStore: vi.fn(() => store),
     createRecoveryReader: vi.fn(() => reader),
     createRecoveryController: vi.fn(() => controller),
+    createSessionRecoveryReader: vi.fn(() => sessionRecoveryReader),
+    createWorkspaceTargetVerifier: vi.fn(() => workspaceTargetVerifier),
+    createAlreadyCompletedController: vi.fn(() => alreadyCompletedController),
     inspectWorkspaceLockOwnerSync: vi.fn(() => observedOwner),
     computeWorkspaceLockOwnerDigest: vi.fn(() => LIVE_OWNER_DIGEST),
     workspaceLockOptions: { lockDir: "C:\\private\\checkpoint-locks" },
@@ -160,6 +197,9 @@ function harness({ projection, list, owner } = {}) {
     store,
     reader,
     controller,
+    sessionRecoveryReader,
+    workspaceTargetVerifier,
+    alreadyCompletedController,
     observedOwner,
     dependencies,
   };
@@ -182,7 +222,7 @@ async function parse(testHarness, args) {
 }
 
 describe("checkpoint restore recovery command surface", () => {
-  it("registers only list/show/abort/release and documents deferred actions", () => {
+  it("registers verified resume while keeping rollback read-only", () => {
     const testHarness = harness();
     const { recovery } = commandProgram(testHarness);
 
@@ -190,10 +230,11 @@ describe("checkpoint restore recovery command surface", () => {
       "abort",
       "list",
       "release",
+      "resume",
       "show",
     ]);
     expect(recovery.helpInformation()).toMatch(
-      /Resume\s+and rollback are read-only candidates only/,
+      /resume\s+only an already-completed timeline restore/i,
     );
   });
 
@@ -264,7 +305,7 @@ describe("checkpoint restore recovery command surface", () => {
     expect(serialized).not.toContain('"workspaceLockOwner"');
   });
 
-  it("renders resume and rollback as non-executable in human output", async () => {
+  it("renders unsupported resume and deferred rollback in human output", async () => {
     const mutationProjection = recoveryProjection({
       phase: "recovery_required",
       basePhase: "mutation_started",
@@ -275,11 +316,362 @@ describe("checkpoint restore recovery command surface", () => {
     await parse(testHarness, ["show", "restore_cli_1"]);
 
     expect(testHarness.stdout[0]).toContain(
-      "resume: candidate only (not executable: action_not_implemented)",
+      "resume: candidate only (not executable: controller_phase_not_supported)",
     );
     expect(testHarness.stdout[0]).toContain(
       "rollback: candidate only (not executable: action_not_implemented)",
     );
+  });
+
+  it("projects resume as executable only for retained timeline/session authority", async () => {
+    const projection = recoveryProjection({
+      phase: "recovery_required",
+      basePhase: "workspace_applied",
+      seq: 7,
+    });
+    const testHarness = harness({ projection });
+
+    await parse(testHarness, ["show", "restore_cli_1", "--json"]);
+
+    expect(JSON.parse(testHarness.stdout[0])).toMatchObject({
+      mutationFence: {
+        expectedSeq: 7,
+        expectedHash: HEAD_HASH,
+        expectedOwnerDigest: LIVE_OWNER_DIGEST,
+      },
+      actions: {
+        resume: {
+          candidate: true,
+          eligible: true,
+          blockers: [],
+          prerequisites: [
+            "exact_mutation_fence",
+            "verified_session_already_completed",
+            "verified_workspace_target_state",
+            "controller_compare_and_swap",
+          ],
+        },
+      },
+    });
+  });
+
+  it("canonicalizes a workspace symlink before creating recovery authority", async () => {
+    const temporaryRoot = mkdtempSync(
+      path.join(os.tmpdir(), "cc-recovery-command-alias-"),
+    );
+    const canonicalDirectory = path.join(temporaryRoot, "workspace");
+    const aliasDirectory = path.join(temporaryRoot, "workspace-alias");
+    mkdirSync(canonicalDirectory);
+    symlinkSync(
+      canonicalDirectory,
+      aliasDirectory,
+      process.platform === "win32" ? "junction" : "dir",
+    );
+    const canonicalRoot = realpathSync.native(canonicalDirectory);
+    const projection = recoveryProjection({
+      phase: "recovery_required",
+      basePhase: "workspace_applied",
+      seq: 7,
+    });
+    const testHarness = harness({ projection });
+    testHarness.dependencies.resolveWorkspaceRoot.mockReturnValue(
+      aliasDirectory,
+    );
+    delete testHarness.dependencies.canonicalizeWorkspaceRoot;
+
+    try {
+      await parse(testHarness, [
+        "resume",
+        "restore_cli_1",
+        "--dir",
+        aliasDirectory,
+        "--expected-seq",
+        "7",
+        "--expected-head-hash",
+        HEAD_HASH,
+        "--expected-owner-digest",
+        LIVE_OWNER_DIGEST,
+        "--yes",
+        "--json",
+      ]);
+
+      expect(
+        testHarness.dependencies.resolveWorkspaceRoot,
+      ).toHaveBeenCalledWith(aliasDirectory);
+      expect(testHarness.dependencies.createStore).toHaveBeenCalledWith({
+        workspaceRoot: canonicalRoot,
+      });
+      expect(
+        testHarness.dependencies.createSessionRecoveryReader,
+      ).toHaveBeenCalledWith({ workspaceRoot: canonicalRoot });
+      expect(
+        testHarness.dependencies.createWorkspaceTargetVerifier,
+      ).toHaveBeenCalledWith({ workspaceRoot: canonicalRoot });
+      expect(
+        testHarness.dependencies.createAlreadyCompletedController,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({ workspaceRoot: canonicalRoot }),
+      );
+      expect(
+        testHarness.dependencies.inspectWorkspaceLockOwnerSync,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({ workspaceRoot: canonicalRoot }),
+      );
+      expect(testHarness.alreadyCompletedController.resume).toHaveBeenCalled();
+    } finally {
+      rmSync(temporaryRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("returns a stable safe error when the workspace cannot be canonicalized", async () => {
+    const temporaryRoot = mkdtempSync(
+      path.join(os.tmpdir(), "cc-recovery-command-missing-"),
+    );
+    const missingWorkspace = path.join(temporaryRoot, "missing-workspace");
+    const testHarness = harness();
+    testHarness.dependencies.resolveWorkspaceRoot.mockReturnValue(
+      missingWorkspace,
+    );
+    delete testHarness.dependencies.canonicalizeWorkspaceRoot;
+
+    try {
+      await parse(testHarness, [
+        "show",
+        "restore_cli_1",
+        "--dir",
+        missingWorkspace,
+        "--json",
+      ]);
+
+      expect(testHarness.dependencies.createStore).not.toHaveBeenCalled();
+      const serialized = testHarness.stderr[0];
+      expect(JSON.parse(serialized)).toMatchObject({
+        error: {
+          code: CHECKPOINT_RESTORE_RECOVERY_CLI_ERROR_CODES.WORKSPACE_UNAVAILABLE,
+          message:
+            "The recovery workspace does not exist or cannot be resolved safely.",
+        },
+        exitCode: CHECKPOINT_RESTORE_RECOVERY_CLI_EXIT_CODES.NOT_EXECUTABLE,
+      });
+      expect(serialized).not.toContain(missingWorkspace);
+    } finally {
+      rmSync(temporaryRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("requires --yes before opening resume authority", async () => {
+    const projection = recoveryProjection({
+      phase: "recovery_required",
+      basePhase: "workspace_applied",
+      seq: 7,
+    });
+    const testHarness = harness({ projection });
+
+    await parse(testHarness, [
+      "resume",
+      "restore_cli_1",
+      "--expected-seq",
+      "7",
+      "--expected-head-hash",
+      HEAD_HASH,
+      "--expected-owner-digest",
+      LIVE_OWNER_DIGEST,
+      "--json",
+    ]);
+
+    expect(
+      testHarness.alreadyCompletedController.resume,
+    ).not.toHaveBeenCalled();
+    expect(testHarness.dependencies.createStore).not.toHaveBeenCalled();
+    expect(
+      testHarness.dependencies.createSessionRecoveryReader,
+    ).not.toHaveBeenCalled();
+    expect(JSON.parse(testHarness.stderr[0])).toMatchObject({
+      error: {
+        code: CHECKPOINT_RESTORE_RECOVERY_CLI_ERROR_CODES.CONFIRMATION_REQUIRED,
+      },
+      exitCode: CHECKPOINT_RESTORE_RECOVERY_CLI_EXIT_CODES.INVALID_USAGE,
+    });
+  });
+
+  it("resumes through the already-completed controller with the exact preview fence", async () => {
+    const projection = recoveryProjection({
+      phase: "recovery_required",
+      basePhase: "session_committed",
+      seq: 7,
+    });
+    const testHarness = harness({ projection });
+
+    await parse(testHarness, [
+      "resume",
+      "restore_cli_1",
+      "--expected-seq",
+      "7",
+      "--expected-head-hash",
+      HEAD_HASH,
+      "--expected-owner-digest",
+      LIVE_OWNER_DIGEST,
+      "--yes",
+      "--json",
+    ]);
+
+    expect(testHarness.alreadyCompletedController.resume).toHaveBeenCalledWith(
+      "restore_cli_1",
+      {
+        expectedSeq: 7,
+        expectedHash: HEAD_HASH,
+        expectedOwnerDigest: LIVE_OWNER_DIGEST,
+      },
+    );
+    expect(
+      testHarness.dependencies.createSessionRecoveryReader,
+    ).toHaveBeenCalledWith({ workspaceRoot: WORKSPACE_ROOT });
+    expect(
+      testHarness.dependencies.createWorkspaceTargetVerifier,
+    ).toHaveBeenCalledWith({ workspaceRoot: WORKSPACE_ROOT });
+    expect(
+      testHarness.dependencies.createAlreadyCompletedController,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        workspaceRoot: WORKSPACE_ROOT,
+        store: testHarness.store,
+        sessionRecoveryReader: testHarness.sessionRecoveryReader,
+        inspectWorkspaceLockOwnerSync:
+          testHarness.dependencies.inspectWorkspaceLockOwnerSync,
+        computeWorkspaceLockOwnerDigest:
+          testHarness.dependencies.computeWorkspaceLockOwnerDigest,
+        workspaceLockOptions: {
+          lockDir: "C:\\private\\checkpoint-locks",
+        },
+        verifyWorkspaceTarget: expect.any(Function),
+      }),
+    );
+    const controllerOptions =
+      testHarness.dependencies.createAlreadyCompletedController.mock
+        .calls[0][0];
+    const verifierRequest = { operationId: "restore_cli_1" };
+    controllerOptions.verifyWorkspaceTarget(verifierRequest);
+    expect(testHarness.workspaceTargetVerifier.verify).toHaveBeenCalledWith(
+      verifierRequest,
+    );
+    expect(JSON.parse(testHarness.stdout[0])).toMatchObject({
+      ok: true,
+      action: "resume",
+      recoveryAction: CHECKPOINT_RESTORE_ALREADY_COMPLETED_ACTION,
+      operationId: "restore_cli_1",
+      phase: "completed",
+      sessionCommitDigest: `sha256:${"1".repeat(64)}`,
+      resultDigest: `sha256:${"2".repeat(64)}`,
+    });
+  });
+
+  it("keeps the human command contract at resume without exposing the internal action as the verb", async () => {
+    const projection = recoveryProjection({
+      phase: "recovery_required",
+      basePhase: "workspace_applied",
+      seq: 7,
+    });
+    const testHarness = harness({ projection });
+
+    await parse(testHarness, [
+      "resume",
+      "restore_cli_1",
+      "--expected-seq",
+      "7",
+      "--expected-head-hash",
+      HEAD_HASH,
+      "--expected-owner-digest",
+      LIVE_OWNER_DIGEST,
+      "--yes",
+    ]);
+
+    expect(testHarness.stdout[0]).toContain(
+      "Checkpoint restore resume completed: restore_cli_1",
+    );
+    expect(testHarness.stdout[0]).not.toContain(
+      CHECKPOINT_RESTORE_ALREADY_COMPLETED_ACTION,
+    );
+  });
+
+  it("rejects direct restore authority before invoking resume", async () => {
+    const projection = recoveryProjection({
+      phase: "recovery_required",
+      basePhase: "workspace_applied",
+      seq: 7,
+      restore: {
+        surface: "direct",
+        intentAuthority: "operation",
+        sessionId: null,
+        timelineEntryId: null,
+      },
+    });
+    const testHarness = harness({ projection });
+
+    await parse(testHarness, [
+      "resume",
+      "restore_cli_1",
+      "--expected-seq",
+      "7",
+      "--expected-head-hash",
+      HEAD_HASH,
+      "--expected-owner-digest",
+      LIVE_OWNER_DIGEST,
+      "--yes",
+      "--json",
+    ]);
+
+    expect(
+      testHarness.alreadyCompletedController.resume,
+    ).not.toHaveBeenCalled();
+    expect(testHarness.sessionRecoveryReader.read).not.toHaveBeenCalled();
+    expect(JSON.parse(testHarness.stderr[0])).toMatchObject({
+      error: {
+        code: CHECKPOINT_RESTORE_RECOVERY_CLI_ERROR_CODES.ACTION_NOT_ELIGIBLE,
+      },
+      exitCode: CHECKPOINT_RESTORE_RECOVERY_CLI_EXIT_CODES.NOT_EXECUTABLE,
+    });
+  });
+
+  it("preserves stable JSON errors without leaking controller diagnostics", async () => {
+    const projection = recoveryProjection({
+      phase: "recovery_required",
+      basePhase: "workspace_applied",
+      seq: 7,
+    });
+    const testHarness = harness({ projection });
+    testHarness.alreadyCompletedController.resume.mockImplementation(() => {
+      const error = new Error(RAW_REASON);
+      error.code =
+        CHECKPOINT_RESTORE_ALREADY_COMPLETED_ERROR_CODES.SESSION_CONFLICT;
+      error.workspaceRoot = WORKSPACE_ROOT;
+      throw error;
+    });
+
+    await parse(testHarness, [
+      "resume",
+      "restore_cli_1",
+      "--expected-seq",
+      "7",
+      "--expected-head-hash",
+      HEAD_HASH,
+      "--expected-owner-digest",
+      LIVE_OWNER_DIGEST,
+      "--yes",
+      "--json",
+    ]);
+
+    const serialized = testHarness.stderr[0];
+    expect(JSON.parse(serialized)).toMatchObject({
+      error: {
+        code: CHECKPOINT_RESTORE_ALREADY_COMPLETED_ERROR_CODES.SESSION_CONFLICT,
+        message:
+          "The session transcript does not prove one exact completed restore settlement.",
+      },
+      exitCode: CHECKPOINT_RESTORE_RECOVERY_CLI_EXIT_CODES.NOT_EXECUTABLE,
+    });
+    expect(serialized).not.toContain(RAW_REASON);
+    expect(serialized).not.toContain(WORKSPACE_ROOT);
+    expect(serialized).not.toContain(OWNER_TOKEN);
   });
 
   it("requires --yes before opening any mutation authority", async () => {

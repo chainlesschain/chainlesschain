@@ -3,21 +3,29 @@
  *
  * The command layer keeps read projections and mutation authority separate:
  * saga evidence supplies the exact sequence/head, while the canonical
- * workspace lock is inspected immediately before show/abort/release to derive
- * a live owner digest (or verified absence). The complete owner is never
- * returned or printed.
+ * workspace lock is inspected immediately before show/abort/resume/release to
+ * derive a live owner digest (or verified absence). The complete owner is
+ * never returned or printed.
  */
 
+import { realpathSync } from "node:fs";
 import path from "node:path";
 import {
   CheckpointRestoreSagaStore,
   computeCheckpointRestoreWorkspaceLockOwnerDigest,
 } from "../lib/checkpoint-restore-saga.js";
+import { readVerifiedProjection } from "../harness/jsonl-session-store.js";
 import {
   createCheckpointRestoreRecoveryReader,
   MAX_CHECKPOINT_RESTORE_RECOVERY_LIST_LIMIT,
 } from "../lib/checkpoint-restore-recovery.js";
 import { CheckpointRestoreRecoveryController } from "../lib/checkpoint-restore-recovery-controller.js";
+import {
+  CHECKPOINT_RESTORE_ALREADY_COMPLETED_ACTION,
+  CheckpointRestoreAlreadyCompletedController,
+} from "../lib/checkpoint-restore-already-completed-controller.js";
+import { createCheckpointRestoreSessionRecoveryReader } from "../lib/checkpoint-restore-session-recovery.js";
+import { CheckpointRestoreWorkspaceTargetVerifier } from "../lib/checkpoint-restore-workspace-target-verifier.js";
 import { inspectWorkspaceLockOwnerSync } from "../lib/process-execution-broker/workspace-transaction.js";
 
 export const CHECKPOINT_RESTORE_RECOVERY_COMMAND_PREVIEW_SCHEMA =
@@ -42,6 +50,8 @@ export const CHECKPOINT_RESTORE_RECOVERY_CLI_ERROR_CODES = Object.freeze({
   FENCE_MISMATCH: "CHECKPOINT_RESTORE_RECOVERY_CLI_FENCE_MISMATCH",
   ACTION_NOT_ELIGIBLE: "CHECKPOINT_RESTORE_RECOVERY_CLI_ACTION_NOT_ELIGIBLE",
   INVALID_DEPENDENCY: "CHECKPOINT_RESTORE_RECOVERY_CLI_INVALID_DEPENDENCY",
+  WORKSPACE_UNAVAILABLE:
+    "CHECKPOINT_RESTORE_RECOVERY_CLI_WORKSPACE_UNAVAILABLE",
   FAILED: "CHECKPOINT_RESTORE_RECOVERY_CLI_FAILED",
 });
 
@@ -64,6 +74,10 @@ const PHASES = new Set([
   "recovery_started",
 ]);
 const CONTROLLER_ABORT_PHASES = new Set(["created", "locked"]);
+const CONTROLLER_RESUME_PHASES = new Set([
+  "workspace_applied",
+  "session_committed",
+]);
 const CHECKPOINT_RESTORE_PURPOSE = "checkpoint-restore";
 
 const PUBLIC_ERROR_MESSAGES = Object.freeze({
@@ -77,6 +91,8 @@ const PUBLIC_ERROR_MESSAGES = Object.freeze({
     "This recovery action is not executable from the verified current state.",
   CHECKPOINT_RESTORE_RECOVERY_CLI_INVALID_DEPENDENCY:
     "Recovery authority could not be projected safely.",
+  CHECKPOINT_RESTORE_RECOVERY_CLI_WORKSPACE_UNAVAILABLE:
+    "The recovery workspace does not exist or cannot be resolved safely.",
   CHECKPOINT_RESTORE_RECOVERY_CLI_FAILED:
     "Checkpoint restore recovery failed without changing the requested authority.",
   CHECKPOINT_RESTORE_RECOVERY_INVALID_ARGUMENT:
@@ -87,6 +103,24 @@ const PUBLIC_ERROR_MESSAGES = Object.freeze({
     "The requested action is not allowed from the verified recovery phase.",
   CHECKPOINT_RESTORE_RECOVERY_OWNER_CONFLICT:
     "The live workspace recovery owner could not be matched exactly.",
+  CHECKPOINT_RESTORE_ALREADY_COMPLETED_INVALID_ARGUMENT:
+    "Recovery arguments are invalid; refresh the read-only preview and retry.",
+  CHECKPOINT_RESTORE_ALREADY_COMPLETED_SAGA_CONFLICT:
+    "The checkpoint restore saga changed; run recovery show again.",
+  CHECKPOINT_RESTORE_ALREADY_COMPLETED_ACTION_NOT_ALLOWED:
+    "Resume is limited to a verified timeline restore already completed in session authority.",
+  CHECKPOINT_RESTORE_ALREADY_COMPLETED_OWNER_CONFLICT:
+    "The live workspace recovery owner could not be matched exactly.",
+  CHECKPOINT_RESTORE_ALREADY_COMPLETED_SESSION_CONFLICT:
+    "The session transcript does not prove one exact completed restore settlement.",
+  CHECKPOINT_RESTORE_ALREADY_COMPLETED_WORKSPACE_CONFLICT:
+    "The workspace does not match the exact restored checkpoint target.",
+  CHECKPOINT_RESTORE_ALREADY_COMPLETED_ASYNC_UNSUPPORTED:
+    "Recovery verification must complete synchronously under workspace authority.",
+  CHECKPOINT_RESTORE_WORKSPACE_TARGET_INVALID_ARGUMENT:
+    "Workspace target verification authority is invalid.",
+  CHECKPOINT_RESTORE_WORKSPACE_TARGET_CONFLICT:
+    "The workspace does not match the exact restored checkpoint target.",
   CHECKPOINT_RESTORE_SAGA_NOT_FOUND:
     "The requested checkpoint restore recovery operation was not found.",
   CHECKPOINT_RESTORE_SAGA_CONFLICT:
@@ -211,6 +245,9 @@ function normalizeDependencies(dependencies = {}) {
   return Object.freeze({
     resolveWorkspaceRoot:
       dependencies.resolveWorkspaceRoot || ((value) => path.resolve(value)),
+    canonicalizeWorkspaceRoot:
+      dependencies.canonicalizeWorkspaceRoot ||
+      ((value) => realpathSync.native(value)),
     createStore:
       dependencies.createStore ||
       ((options) => new CheckpointRestoreSagaStore(options)),
@@ -220,6 +257,18 @@ function normalizeDependencies(dependencies = {}) {
     createRecoveryController:
       dependencies.createRecoveryController ||
       ((options) => new CheckpointRestoreRecoveryController(options)),
+    createSessionRecoveryReader:
+      dependencies.createSessionRecoveryReader ||
+      (() =>
+        createCheckpointRestoreSessionRecoveryReader({
+          readVerifiedProjection,
+        })),
+    createWorkspaceTargetVerifier:
+      dependencies.createWorkspaceTargetVerifier ||
+      (() => new CheckpointRestoreWorkspaceTargetVerifier()),
+    createAlreadyCompletedController:
+      dependencies.createAlreadyCompletedController ||
+      ((options) => new CheckpointRestoreAlreadyCompletedController(options)),
     inspectWorkspaceLockOwnerSync:
       dependencies.inspectWorkspaceLockOwnerSync ||
       inspectWorkspaceLockOwnerSync,
@@ -238,8 +287,30 @@ function normalizeDependencies(dependencies = {}) {
   });
 }
 
-function openContext(runtime, directory, { mutation = false } = {}) {
-  const workspaceRoot = runtime.resolveWorkspaceRoot(directory || ".");
+function openContext(
+  runtime,
+  directory,
+  { mutation = false, alreadyCompletedResume = false } = {},
+) {
+  const resolvedWorkspaceRoot = runtime.resolveWorkspaceRoot(directory || ".");
+  if (
+    typeof resolvedWorkspaceRoot !== "string" ||
+    resolvedWorkspaceRoot.length === 0
+  ) {
+    throw cliError(
+      CHECKPOINT_RESTORE_RECOVERY_CLI_ERROR_CODES.INVALID_DEPENDENCY,
+      CHECKPOINT_RESTORE_RECOVERY_CLI_EXIT_CODES.FAILURE,
+    );
+  }
+  let workspaceRoot;
+  try {
+    workspaceRoot = runtime.canonicalizeWorkspaceRoot(resolvedWorkspaceRoot);
+  } catch {
+    throw cliError(
+      CHECKPOINT_RESTORE_RECOVERY_CLI_ERROR_CODES.WORKSPACE_UNAVAILABLE,
+      CHECKPOINT_RESTORE_RECOVERY_CLI_EXIT_CODES.NOT_EXECUTABLE,
+    );
+  }
   if (typeof workspaceRoot !== "string" || workspaceRoot.length === 0) {
     throw cliError(
       CHECKPOINT_RESTORE_RECOVERY_CLI_ERROR_CODES.INVALID_DEPENDENCY,
@@ -278,7 +349,52 @@ function openContext(runtime, directory, { mutation = false } = {}) {
       );
     }
   }
-  return Object.freeze({ workspaceRoot, store, reader, controller });
+  let alreadyCompletedController = null;
+  if (alreadyCompletedResume) {
+    const sessionRecoveryReader = runtime.createSessionRecoveryReader({
+      workspaceRoot,
+    });
+    const workspaceTargetVerifier = runtime.createWorkspaceTargetVerifier({
+      workspaceRoot,
+    });
+    if (
+      !sessionRecoveryReader ||
+      typeof sessionRecoveryReader.read !== "function" ||
+      !workspaceTargetVerifier ||
+      typeof workspaceTargetVerifier.verify !== "function"
+    ) {
+      throw cliError(
+        CHECKPOINT_RESTORE_RECOVERY_CLI_ERROR_CODES.INVALID_DEPENDENCY,
+        CHECKPOINT_RESTORE_RECOVERY_CLI_EXIT_CODES.FAILURE,
+      );
+    }
+    alreadyCompletedController = runtime.createAlreadyCompletedController({
+      workspaceRoot,
+      store,
+      sessionRecoveryReader,
+      verifyWorkspaceTarget: (request) =>
+        workspaceTargetVerifier.verify(request),
+      inspectWorkspaceLockOwnerSync: runtime.inspectWorkspaceLockOwnerSync,
+      computeWorkspaceLockOwnerDigest: runtime.computeWorkspaceLockOwnerDigest,
+      workspaceLockOptions: runtime.workspaceLockOptions,
+    });
+    if (
+      !alreadyCompletedController ||
+      typeof alreadyCompletedController.resume !== "function"
+    ) {
+      throw cliError(
+        CHECKPOINT_RESTORE_RECOVERY_CLI_ERROR_CODES.INVALID_DEPENDENCY,
+        CHECKPOINT_RESTORE_RECOVERY_CLI_EXIT_CODES.FAILURE,
+      );
+    }
+  }
+  return Object.freeze({
+    workspaceRoot,
+    store,
+    reader,
+    controller,
+    alreadyCompletedController,
+  });
 }
 
 function previewLiveAuthority(runtime, { workspaceRoot, operationId }) {
@@ -389,6 +505,41 @@ function deriveCommandActions(projection, authority) {
   if (!terminal) releaseBlockers.push("saga_is_not_terminal");
   if (!clean) releaseBlockers.push("saga_integrity_not_clean");
 
+  const resumeCandidate =
+    projection?.actionEligibility?.resume?.candidate === true;
+  const resumePhaseSupported = CONTROLLER_RESUME_PHASES.has(basePhase);
+  const restoreKind = projection?.restore?.kind;
+  const timelineAuthority =
+    projection?.restore?.surface === "timeline" &&
+    projection?.restore?.intentAuthority === "session" &&
+    typeof projection?.restore?.sessionId === "string" &&
+    typeof projection?.restore?.timelineEntryId === "string" &&
+    ["git", "copy"].includes(restoreKind) &&
+    typeof projection?.restore?.checkpointId === "string" &&
+    typeof projection?.restore?.checkpointIdentity === "string" &&
+    (restoreKind !== "git" ||
+      typeof projection?.restore?.checkpointNamespace === "string");
+  const resumeEligible =
+    pending &&
+    clean &&
+    resumeCandidate &&
+    resumePhaseSupported &&
+    timelineAuthority &&
+    retainedTakeover;
+  const resumeBlockers = [];
+  if (!pending) resumeBlockers.push("saga_is_terminal");
+  if (!clean) resumeBlockers.push("saga_integrity_not_clean");
+  if (!resumeCandidate) resumeBlockers.push("resume_not_a_safe_candidate");
+  if (resumeCandidate && !resumePhaseSupported) {
+    resumeBlockers.push("controller_phase_not_supported");
+  }
+  if (resumeCandidate && !timelineAuthority) {
+    resumeBlockers.push("verified_timeline_session_authority_required");
+  }
+  if (resumeCandidate && authority.state !== "retained") {
+    resumeBlockers.push("retained_workspace_owner_required");
+  }
+
   const deferred = (name) => {
     const candidate = projection?.actionEligibility?.[name]?.candidate === true;
     return commandAction({
@@ -410,7 +561,19 @@ function deriveCommandActions(projection, authority) {
         ? ["exact_mutation_fence", "controller_compare_and_swap"]
         : [],
     }),
-    resume: deferred("resume"),
+    resume: commandAction({
+      candidate: resumeCandidate,
+      eligible: resumeEligible,
+      blockers: resumeBlockers,
+      prerequisites: resumeCandidate
+        ? [
+            "exact_mutation_fence",
+            "verified_session_already_completed",
+            "verified_workspace_target_state",
+            "controller_compare_and_swap",
+          ]
+        : [],
+    }),
     rollback: deferred("rollback"),
     release: commandAction({
       candidate: releaseCandidate,
@@ -482,6 +645,8 @@ function mutationFence(options, preview) {
 }
 
 function safeMutationResult(result, actionName, operationId) {
+  const alreadyCompletedResume =
+    actionName === CHECKPOINT_RESTORE_ALREADY_COMPLETED_ACTION;
   if (
     !isPlainObject(result) ||
     result.ok !== true ||
@@ -491,7 +656,10 @@ function safeMutationResult(result, actionName, operationId) {
     !Number.isSafeInteger(result.seq) ||
     result.seq < 1 ||
     typeof result.headHash !== "string" ||
-    !HASH_PATTERN.test(result.headHash)
+    !HASH_PATTERN.test(result.headHash) ||
+    (alreadyCompletedResume &&
+      (!HASH_PATTERN.test(String(result.sessionCommitDigest || "")) ||
+        !HASH_PATTERN.test(String(result.resultDigest || ""))))
   ) {
     throw cliError(
       CHECKPOINT_RESTORE_RECOVERY_CLI_ERROR_CODES.INVALID_DEPENDENCY,
@@ -502,7 +670,10 @@ function safeMutationResult(result, actionName, operationId) {
     schema: CHECKPOINT_RESTORE_RECOVERY_COMMAND_RESULT_SCHEMA,
     version: CHECKPOINT_RESTORE_RECOVERY_COMMAND_VERSION,
     ok: true,
-    action: actionName,
+    action: alreadyCompletedResume ? "resume" : actionName,
+    ...(alreadyCompletedResume
+      ? { recoveryAction: CHECKPOINT_RESTORE_ALREADY_COMPLETED_ACTION }
+      : {}),
     operationId,
     phase: result.phase,
     seq: result.seq,
@@ -510,6 +681,12 @@ function safeMutationResult(result, actionName, operationId) {
     archived: result.archived === true,
     alreadyArchived: result.alreadyArchived === true,
     reconciledFromError: result.reconciledFromError === true,
+    ...(alreadyCompletedResume
+      ? {
+          sessionCommitDigest: result.sessionCommitDigest,
+          resultDigest: result.resultDigest,
+        }
+      : {}),
     warning: result.warning
       ? Object.freeze({
           code: safeErrorCode(
@@ -690,6 +867,43 @@ export function createCheckpointRestoreRecoveryCommandHandlers(
       });
     },
 
+    resume(operationId, options = {}) {
+      return run(options, () => {
+        if (options.yes !== true) {
+          throw cliError(
+            CHECKPOINT_RESTORE_RECOVERY_CLI_ERROR_CODES.CONFIRMATION_REQUIRED,
+            CHECKPOINT_RESTORE_RECOVERY_CLI_EXIT_CODES.INVALID_USAGE,
+          );
+        }
+        const safeOperationId = assertOperationId(operationId);
+        const context = openContext(runtime, options.dir, {
+          alreadyCompletedResume: true,
+        });
+        const preview = commandPreview(runtime, context, safeOperationId);
+        if (preview.actions.resume.eligible !== true) {
+          throw cliError(
+            CHECKPOINT_RESTORE_RECOVERY_CLI_ERROR_CODES.ACTION_NOT_ELIGIBLE,
+            CHECKPOINT_RESTORE_RECOVERY_CLI_EXIT_CODES.NOT_EXECUTABLE,
+          );
+        }
+        const fence = mutationFence(options, preview);
+        const result = context.alreadyCompletedController.resume(
+          safeOperationId,
+          fence,
+        );
+        return emitSuccess(
+          runtime,
+          options,
+          safeMutationResult(
+            result,
+            CHECKPOINT_RESTORE_ALREADY_COMPLETED_ACTION,
+            safeOperationId,
+          ),
+          humanMutation,
+        );
+      });
+    },
+
     release(operationId, options = {}) {
       return run(options, () => {
         if (options.yes !== true) {
@@ -720,7 +934,7 @@ export function createCheckpointRestoreRecoveryCommandHandlers(
   });
 }
 
-/** Register `checkpoint recovery list/show/abort/release`. */
+/** Register `checkpoint recovery list/show/abort/resume/release`. */
 export function registerCheckpointRestoreRecoveryCommands(
   checkpointCommand,
   dependencies = {},
@@ -735,11 +949,11 @@ export function registerCheckpointRestoreRecoveryCommands(
   const recovery = checkpointCommand
     .command("recovery")
     .description(
-      "Inspect and conservatively settle durable checkpoint restore recovery; Resume and rollback are read-only candidates only",
+      "Inspect and conservatively settle durable checkpoint restore recovery; resume only an already-completed timeline restore",
     )
     .addHelpText(
       "after",
-      "\nResume and rollback are read-only candidates only; this command never executes them.\n",
+      "\nResume only reconciles a verified already-completed timeline restore; rollback remains read-only.\n",
     );
 
   recovery
@@ -784,6 +998,16 @@ export function registerCheckpointRestoreRecoveryCommands(
   )
     .argument("<operation-id>", "Checkpoint restore operationId")
     .action((operationId, options) => handlers.abort(operationId, options));
+
+  addMutationOptions(
+    recovery
+      .command("resume")
+      .description(
+        "Complete only a verified timeline restore already settled in the session",
+      ),
+  )
+    .argument("<operation-id>", "Checkpoint restore operationId")
+    .action((operationId, options) => handlers.resume(operationId, options));
 
   addMutationOptions(
     recovery

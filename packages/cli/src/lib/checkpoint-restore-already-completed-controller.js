@@ -258,6 +258,8 @@ function timelineSagaAuthority(saga, workspaceRoot, platform) {
     !samePath(createdEvidence.workspaceRoot, workspaceRoot, platform) ||
     typeof createdEvidence.checkpointId !== "string" ||
     typeof createdEvidence.checkpointIdentity !== "string" ||
+    (createdEvidence.restoreKind === "git" &&
+      typeof createdEvidence.checkpointNamespace !== "string") ||
     !DIGEST_PATTERN.test(String(createdEvidence.workspaceBinding || "")) ||
     !DIGEST_PATTERN.test(String(createdEvidence.confirmationDigest || "")) ||
     !DIGEST_PATTERN.test(String(prepared.evidence?.prestateDigest || "")) ||
@@ -290,6 +292,7 @@ function timelineSagaAuthority(saga, workspaceRoot, platform) {
     timelineEntryId,
     checkpointId: createdEvidence.checkpointId,
     checkpointIdentity: createdEvidence.checkpointIdentity,
+    checkpointNamespace: createdEvidence.checkpointNamespace || null,
     workspaceBinding: createdEvidence.workspaceBinding,
     confirmationDigest: createdEvidence.confirmationDigest,
     prestateDigest: prepared.evidence.prestateDigest,
@@ -420,6 +423,7 @@ function validateWorkspaceProjection(
     projection.exact !== true ||
     projection.operationId !== operationId ||
     projection.restoreKind !== authority.restoreKind ||
+    projection.checkpointNamespace !== authority.checkpointNamespace ||
     projection.checkpointId !== authority.checkpointId ||
     projection.checkpointIdentity !== authority.checkpointIdentity ||
     projection.workspaceScopeIdentity !==
@@ -441,6 +445,7 @@ function validateWorkspaceProjection(
     exact: true,
     operationId,
     restoreKind: authority.restoreKind,
+    checkpointNamespace: authority.checkpointNamespace,
     checkpointId: authority.checkpointId,
     checkpointIdentity: authority.checkpointIdentity,
     workspaceScopeIdentity: projection.workspaceScopeIdentity,
@@ -789,6 +794,7 @@ export class CheckpointRestoreAlreadyCompletedController {
               restoreKind: previewAuthority.restoreKind,
               checkpointId: previewAuthority.checkpointId,
               checkpointIdentity: previewAuthority.checkpointIdentity,
+              checkpointNamespace: previewAuthority.checkpointNamespace,
               workspaceScopeIdentity:
                 sessionIntentAuthority.workspaceScopeIdentity,
               workspaceTargetPoststateIdentity:
