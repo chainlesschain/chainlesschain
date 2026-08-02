@@ -21,14 +21,20 @@ function samePath(left, right, caseInsensitive = false) {
 }
 
 /** Guard every ACL/chmod repair entry point, not just paths.js callers. */
-export function assertSafeOwnerOnlyPath(target) {
+export function assertSafeOwnerOnlyPath(target, platform = process.platform) {
   const value = String(target || "").trim();
   if (!value) throw new Error("Owner-only storage path must not be empty");
-  const native = resolve(value);
-  const nativeRoot = parse(native).root;
+  const pathApi =
+    platform === "win32"
+      ? win32
+      : platform === "darwin" || platform === "linux"
+        ? posix
+        : { isAbsolute: isNativeAbsolute, parse, resolve };
+  const native = pathApi.resolve(value);
+  const nativeRoot = pathApi.parse(native).root;
   const posixPath = posix.isAbsolute(value) ? posix.normalize(value) : null;
   const windowsPath = win32.isAbsolute(value) ? win32.normalize(value) : null;
-  const isAbsolute = isNativeAbsolute(value);
+  const isAbsolute = pathApi.isAbsolute(value);
   const windowsLiteral = value.replaceAll("/", "\\");
   const normalizedWindowsLiteral = String(windowsPath || windowsLiteral);
   const extendedWindowsRoot =
@@ -39,7 +45,7 @@ export function assertSafeOwnerOnlyPath(target) {
     normalizedWindowsLower.startsWith("\\\\?\\") ||
     normalizedWindowsLower.startsWith("\\\\.\\");
   const isRoot =
-    samePath(native, nativeRoot, process.platform === "win32") ||
+    samePath(native, nativeRoot, platform === "win32") ||
     (posixPath !== null && samePath(posixPath, posix.parse(posixPath).root)) ||
     (windowsPath !== null &&
       samePath(windowsPath, win32.parse(windowsPath).root, true)) ||
@@ -53,10 +59,10 @@ export function assertSafeOwnerOnlyPath(target) {
     error.code = "CONFIG_HOME_UNSAFE";
     throw error;
   }
-  const caseInsensitive = ["win32", "darwin"].includes(process.platform);
+  const caseInsensitive = ["win32", "darwin"].includes(platform);
   const protectedLocation = samePath(
     native,
-    resolve(homedir()),
+    pathApi.resolve(homedir()),
     caseInsensitive,
   );
   if (protectedLocation || !isAbsolute) {
@@ -625,7 +631,7 @@ export function repairPrivatePaths(targets, options = {}) {
   // Complete every path-safety check before starting a batched mutation. This
   // prevents a linked trust root from failing only after a descendant changed.
   for (const target of uniqueTargets) {
-    assertSafeOwnerOnlyPath(target);
+    assertSafeOwnerOnlyPath(target, options.platform || deps.platform());
     assertNoLinkTraversal(
       target,
       deps.fs,
@@ -711,8 +717,8 @@ export function inspectPrivatePath(target, options = {}) {
 }
 
 export function repairPrivatePath(target, options = {}) {
-  assertSafeOwnerOnlyPath(target);
   const deps = { ..._deps, ...(options.deps || {}) };
+  assertSafeOwnerOnlyPath(target, options.platform || deps.platform());
   assertNoLinkTraversal(
     target,
     deps.fs,
@@ -747,8 +753,8 @@ function repairPrivatePathAfterPreflight(target, options, deps) {
 }
 
 export function ensurePrivateDirectory(target, options = {}) {
-  assertSafeOwnerOnlyPath(target);
   const deps = { ..._deps, ...(options.deps || {}) };
+  assertSafeOwnerOnlyPath(target, options.platform || deps.platform());
   assertNoLinkTraversal(
     target,
     deps.fs,
@@ -786,8 +792,8 @@ export function ensurePrivateDirectory(target, options = {}) {
 }
 
 export function ensurePrivateFile(target, options = {}) {
-  assertSafeOwnerOnlyPath(target);
   const deps = { ..._deps, ...(options.deps || {}) };
+  assertSafeOwnerOnlyPath(target, options.platform || deps.platform());
   assertNoLinkTraversal(
     target,
     deps.fs,

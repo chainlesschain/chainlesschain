@@ -10,6 +10,7 @@
  */
 
 export {
+  _sessionScaleFaultHooks,
   appendEvent,
   appendEventIfHead,
   appendAuthorityEvent,

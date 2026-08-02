@@ -12,6 +12,7 @@ import {
   openSync,
   closeSync,
   fstatSync,
+  lstatSync,
   readSync,
   ftruncateSync,
 } from "node:fs";
@@ -43,6 +44,7 @@ import {
 } from "./session-list-index.js";
 
 let securedSessionsDir = null;
+let securedSessionsDirIdentity = null;
 
 // Deterministic process-crash injection for the independent session-scale
 // gate. The hooks are inert unless the dedicated child process opts in; this
@@ -59,9 +61,28 @@ function runSessionScaleFaultHook(name, payload) {
 
 function getSessionsDir() {
   const dir = join(getHomeDir(), "sessions");
-  if (securedSessionsDir !== dir || !existsSync(dir)) {
+  let current = null;
+  try {
+    current = lstatSync(dir);
+  } catch {
+    // The owner-only helper below creates a missing directory and surfaces any
+    // other unsafe filesystem state with its canonical error.
+  }
+  const currentIdentity = current ? `${current.dev}:${current.ino}` : null;
+  const unsafePosixMode =
+    process.platform !== "win32" &&
+    current !== null &&
+    (current.mode & 0o777) !== 0o700;
+  if (
+    securedSessionsDir !== dir ||
+    currentIdentity === null ||
+    currentIdentity !== securedSessionsDirIdentity ||
+    unsafePosixMode
+  ) {
     ensurePrivateDirectory(dir);
     securedSessionsDir = dir;
+    const secured = lstatSync(dir);
+    securedSessionsDirIdentity = `${secured.dev}:${secured.ino}`;
   }
   return dir;
 }
