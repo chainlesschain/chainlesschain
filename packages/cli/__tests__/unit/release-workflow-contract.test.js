@@ -80,6 +80,48 @@ describe("CLI release workflow contracts", () => {
     }
   });
 
+  it("runs the session resource budget authority in the strict gate", () => {
+    const text = workflow("cli-strict-sandbox.yml");
+    const jobsStart = text.indexOf("\njobs:");
+    expect(jobsStart).toBeGreaterThan(0);
+    const triggers = text.slice(0, jobsStart);
+    const jobs = text.slice(jobsStart);
+    const pullRequestStart = triggers.indexOf("\n  pull_request:");
+    const dispatchStart = triggers.indexOf("\n  workflow_dispatch:");
+    expect(pullRequestStart).toBeGreaterThan(0);
+    expect(dispatchStart).toBeGreaterThan(pullRequestStart);
+    const pushTriggers = triggers.slice(0, pullRequestStart);
+    const pullRequestTriggers = triggers.slice(pullRequestStart, dispatchStart);
+
+    for (const source of [
+      "packages/cli/src/lib/session-resource-budget.js",
+      "packages/cli/src/lib/cost-budget.js",
+      "packages/cli/src/lib/llm-pricing.js",
+      "packages/cli/src/lib/sub-agent-context.js",
+      "packages/cli/src/lib/sub-agent-registry.js",
+      "packages/cli/src/lib/agent-team/team-runner.js",
+      "packages/cli/src/harness/background-task-manager.js",
+      "packages/cli/src/runtime/agent-core.js",
+    ]) {
+      expect(pushTriggers).toContain(`- "${source}"`);
+      expect(pullRequestTriggers).toContain(`- "${source}"`);
+    }
+
+    for (const testFile of [
+      "__tests__/unit/session-resource-budget.test.js",
+      "__tests__/unit/sub-agent-session-budget.test.js",
+      "__tests__/unit/background-task-manager.test.js",
+      "__tests__/unit/background-task-session-budget.test.js",
+      "__tests__/unit/sub-agent-registry.test.js",
+      "__tests__/unit/team-runner-session-budget.test.js",
+      "__tests__/unit/agent-core.test.js",
+    ]) {
+      expect(pushTriggers).toContain(`packages/cli/${testFile}`);
+      expect(pullRequestTriggers).toContain(`packages/cli/${testFile}`);
+      expect(jobs).toContain(testFile);
+    }
+  });
+
   it("requires all six signed native targets before publishing", () => {
     const text = workflow("cli-native-release.yml");
     for (const target of [
