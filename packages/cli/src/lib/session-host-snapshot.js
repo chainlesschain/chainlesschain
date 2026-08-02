@@ -21,6 +21,7 @@ import {
   reduceMcpLedgerEvents,
 } from "./mcp-call-ledger-store.js";
 import { publicMcpRecoveryAuthority } from "./mcp-recovery-adjudication.js";
+import { projectCanonicalResumeMessages } from "./session-message-provenance.js";
 
 export const SESSION_HOST_SNAPSHOT_SCHEMA =
   "chainlesschain.session-host-snapshot/v1";
@@ -81,7 +82,9 @@ function replayMessagesFromVerifiedEvents(events) {
     }
   }
   suffix.reverse();
-  return Object.freeze([...checkpoint, ...suffix].map((message) => message));
+  return Object.freeze(
+    projectCanonicalResumeMessages([...checkpoint, ...suffix]),
+  );
 }
 
 function messageProjection(messages) {
@@ -196,6 +199,7 @@ function projectSessionHostProjection({
   if (!Array.isArray(messages) || !recovery) {
     throw new TypeError("Host observation is missing messages or recovery");
   }
+  const canonicalMessages = projectCanonicalResumeMessages(messages);
   if (
     typeof headHash !== "string" ||
     !Number.isSafeInteger(eventCount) ||
@@ -214,7 +218,7 @@ function projectSessionHostProjection({
     verified: true,
     title: titleProjectionFromValue(title),
     head: Object.freeze({ hash: headHash, eventCount }),
-    messages: messageProjection(messages),
+    messages: messageProjection(canonicalMessages),
     recoveryAuthority: authority,
     terminalState: terminalProjection(recovery, authority, {
       type: lastEventType,
@@ -293,7 +297,9 @@ function createStreamingSessionHostProjection(sessionId) {
         throw new TypeError("Verified resume messages must be an array");
       }
       const messages = Object.freeze(
-        recoveredMessages.filter(isReplayableMessage).map((message) => message),
+        projectCanonicalResumeMessages(
+          recoveredMessages.filter(isReplayableMessage),
+        ),
       );
       const recovery = mcpReducer.finish();
       return Object.freeze({

@@ -16,6 +16,10 @@
  */
 import { describe, it, expect } from "vitest";
 import { runAgentHeadlessStream } from "../../src/runtime/headless-stream.js";
+import {
+  DURABLE_SYSTEM_MESSAGE_KINDS,
+  markDurableSystemMessage,
+} from "../../src/lib/session-message-provenance.js";
 
 const noopStore = {
   startSession: () => {},
@@ -185,7 +189,10 @@ describe("stream resume role sanitation", () => {
     const output = [];
     const captured = await runResume(
       [
-        { role: "system", content: summary },
+        markDurableSystemMessage(
+          { role: "system", content: summary },
+          DURABLE_SYSTEM_MESSAGE_KINDS.COMPACT_SUMMARY,
+        ),
         { role: "user", content: "earlier question" },
         { role: "assistant", content: "earlier answer" },
       ],

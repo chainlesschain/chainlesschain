@@ -2,6 +2,11 @@ import { describe, expect, it, vi } from "vitest";
 
 import { computeEventHash } from "../../src/harness/transcript-integrity.js";
 import { readSessionHostResumeState } from "../../src/lib/session-host-snapshot.js";
+import {
+  DURABLE_SYSTEM_MESSAGE_KINDS,
+  encodePersistedMessage,
+  markDurableSystemMessage,
+} from "../../src/lib/session-message-provenance.js";
 
 function chainedEvents(cores) {
   let previousHash = null;
@@ -18,8 +23,13 @@ describe("session host streaming resume", () => {
     const legacyReader = vi.fn(() => {
       throw new Error("legacy all-event reader must not run");
     });
-    const readMessages = vi.fn(() => [
+    const summary = markDurableSystemMessage(
       { role: "system", content: "bounded summary" },
+      DURABLE_SYSTEM_MESSAGE_KINDS.COMPACT_SUMMARY,
+    );
+    const readMessages = vi.fn(() => [
+      { role: "system", content: "stale host prompt" },
+      summary,
       { role: "user", content: "small suffix" },
     ]);
     const readVerifiedProjection = vi.fn((_sessionId, createProjection) => {
@@ -75,9 +85,11 @@ describe("session host streaming resume", () => {
     });
 
     expect(state.messages).toEqual([
-      { role: "system", content: "bounded summary" },
+      summary,
       { role: "user", content: "small suffix" },
     ]);
+    expect(JSON.stringify(state.messages)).not.toContain("_cc_replay");
+    expect(JSON.stringify(state.messages)).not.toContain("stale host prompt");
     expect(state.snapshot).toMatchObject({
       verified: true,
       head: { eventCount: 20_003 },
@@ -92,6 +104,12 @@ describe("session host streaming resume", () => {
   });
 
   it("retains the legacy verified-event injection fallback", () => {
+    const summary = encodePersistedMessage(
+      markDurableSystemMessage(
+        { role: "system", content: "checkpoint facts" },
+        DURABLE_SYSTEM_MESSAGE_KINDS.CHECKPOINT_SUMMARY,
+      ),
+    );
     const events = chainedEvents([
       {
         type: "session_start",
@@ -99,9 +117,15 @@ describe("session host streaming resume", () => {
         data: { title: "legacy injected" },
       },
       {
-        type: "user_message",
+        type: "compact",
         timestamp: 2,
-        data: { role: "user", content: "legacy message" },
+        data: {
+          messages: [
+            { role: "system", content: "legacy stale prompt" },
+            summary,
+            { role: "user", content: "legacy message" },
+          ],
+        },
       },
     ]);
     const readVerifiedEvents = vi.fn(() => events);
@@ -113,8 +137,11 @@ describe("session host streaming resume", () => {
 
     expect(readVerifiedEvents).toHaveBeenCalledWith("legacy-session");
     expect(state.messages).toEqual([
+      { role: "system", content: "checkpoint facts" },
       { role: "user", content: "legacy message" },
     ]);
+    expect(JSON.stringify(state.messages)).not.toContain("_cc_replay");
+    expect(JSON.stringify(state.messages)).not.toContain("legacy stale prompt");
     expect(state.snapshot.head).toEqual({
       hash: events.at(-1).hash,
       eventCount: events.length,

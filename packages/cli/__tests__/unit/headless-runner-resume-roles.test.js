@@ -1,5 +1,9 @@
 import { describe, it, expect, vi } from "vitest";
 import { runAgentHeadless } from "../../src/runtime/headless-runner.js";
+import {
+  DURABLE_SYSTEM_MESSAGE_KINDS,
+  markDurableSystemMessage,
+} from "../../src/lib/session-message-provenance.js";
 
 /**
  * Claude Code 2.1.187 parity: `--resume` must not fail when the ORIGINAL run
@@ -131,10 +135,13 @@ describe("headless-runner — resume role alternation (2.1.187)", () => {
     expect(seq).toEqual(["user", "assistant", "user"]);
   });
 
-  it("round-trips every verified canonical system message only to model input", async () => {
+  it("round-trips a verified durable system summary only to model input", async () => {
     const summary = "HEADLESS_CANONICAL_SUMMARY_PRIVATE_f742b1";
     const { captured, deps } = makeCanonicalResumeDeps([
-      { role: "system", content: summary },
+      markDurableSystemMessage(
+        { role: "system", content: summary },
+        DURABLE_SYSTEM_MESSAGE_KINDS.COMPACT_SUMMARY,
+      ),
       { role: "user", content: "earlier question" },
       { role: "assistant", content: "earlier answer" },
     ]);

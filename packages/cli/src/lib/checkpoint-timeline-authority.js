@@ -14,6 +14,10 @@ import {
   buildExtractiveHandoff,
   formatStructuredHandoff,
 } from "../harness/structured-handoff.js";
+import {
+  DURABLE_SYSTEM_MESSAGE_KINDS,
+  markDurableSystemMessage,
+} from "./session-message-provenance.js";
 
 export const CHECKPOINT_TIMELINE_RESULT_SCHEMA =
   "cc-checkpoint-timeline-result/v1";
@@ -91,12 +95,15 @@ function summaryMessage(messages, action, turnId) {
   const handoff = buildExtractiveHandoff(messages, {
     maxFallbackSourceChars: 24_000,
   });
-  return {
-    role: "system",
-    content:
-      `[Conversation Summary: ${action} ${turnId}]\n` +
-      formatStructuredHandoff(handoff),
-  };
+  return markDurableSystemMessage(
+    {
+      role: "system",
+      content:
+        `[Conversation Summary: ${action} ${turnId}]\n` +
+        formatStructuredHandoff(handoff),
+    },
+    DURABLE_SYSTEM_MESSAGE_KINDS.CHECKPOINT_SUMMARY,
+  );
 }
 
 function codePreviewShape(value, checkpointId) {

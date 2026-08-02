@@ -12,6 +12,10 @@
 import { createHash } from "node:crypto";
 import { feature, featureVariant } from "../lib/feature-flags.js";
 import {
+  DURABLE_SYSTEM_MESSAGE_KINDS,
+  markDurableSystemMessage,
+} from "../lib/session-message-provenance.js";
+import {
   buildExtractiveHandoff,
   formatStructuredHandoff,
   parseStructuredHandoff,
@@ -604,10 +608,13 @@ export class PromptCompressor {
 
     const result = [
       ...system,
-      {
-        role: "system",
-        content: `[Conversation Summary]\n${formatStructuredHandoff(summary)}`,
-      },
+      markDurableSystemMessage(
+        {
+          role: "system",
+          content: `[Conversation Summary]\n${formatStructuredHandoff(summary)}`,
+        },
+        DURABLE_SYSTEM_MESSAGE_KINDS.COMPACT_SUMMARY,
+      ),
     ];
     if (last) result.push(last);
     return {
@@ -703,10 +710,15 @@ export class PromptCompressor {
             .filter(Boolean);
           const uniqueTools = [...new Set(toolNames)];
 
-          result.push({
-            role: "system",
-            content: `[Collapsed ${toolGroup.length} tool messages: ${uniqueTools.join(", ")}]`,
-          });
+          result.push(
+            markDurableSystemMessage(
+              {
+                role: "system",
+                content: `[Collapsed ${toolGroup.length} tool messages: ${uniqueTools.join(", ")}]`,
+              },
+              DURABLE_SYSTEM_MESSAGE_KINDS.COMPACT_TOOL_COLLAPSE,
+            ),
+          );
           i = j;
           continue;
         }

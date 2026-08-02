@@ -41,6 +41,10 @@ import {
 } from "../src/lib/mcp-call-ledger-store.js";
 import { projectSessionHostObservation } from "../src/lib/session-host-snapshot.js";
 import {
+  DURABLE_SYSTEM_MESSAGE_KINDS,
+  markDurableSystemMessage,
+} from "../src/lib/session-message-provenance.js";
+import {
   commitPreparedReplJsonlResume,
   prepareReplJsonlResumeCandidate,
 } from "../src/repl/agent-repl.js";
@@ -63,11 +67,14 @@ const GATE_SOURCE_PATHS = [
   "package-lock.json",
   "packages/cli/package.json",
   "packages/cli/src/harness/jsonl-session-store.js",
+  "packages/cli/src/harness/prompt-compressor.js",
   "packages/cli/src/harness/session-index.js",
   "packages/cli/src/harness/session-list-index.js",
   "packages/cli/src/harness/transcript-integrity.js",
   "packages/cli/src/lib/jsonl-session-store.js",
   "packages/cli/src/lib/session-host-snapshot.js",
+  "packages/cli/src/lib/session-message-provenance.js",
+  "packages/cli/src/lib/checkpoint-timeline-authority.js",
   "packages/cli/src/lib/agent-session-export.js",
   "packages/cli/src/lib/session-budget-runtime.js",
   "packages/cli/src/lib/session-resource-budget.js",
@@ -84,6 +91,9 @@ const GATE_SOURCE_PATHS = [
   "packages/cli/scripts/session-host-consistency-gate.mjs",
   "packages/cli/__tests__/fixtures/session-host-ws-claim-race-worker.mjs",
   "packages/cli/__tests__/unit/jsonl-session-store.test.js",
+  "packages/cli/__tests__/unit/prompt-compressor.test.js",
+  "packages/cli/__tests__/unit/prompt-compressor-structured-handoff.test.js",
+  "packages/cli/__tests__/unit/checkpoint-timeline-authority.test.js",
   "packages/cli/__tests__/unit/ws-agent-handler.test.js",
   "packages/cli/__tests__/unit/ws-runtime-events.test.js",
   "packages/cli/__tests__/unit/agent-session-export.test.js",
@@ -99,6 +109,7 @@ const GATE_SOURCE_PATHS = [
   "packages/cli/__tests__/integration/ws-bridge-side-effect-resume.test.js",
   "packages/cli/__tests__/unit/remote-session-protocol.test.js",
   "packages/cli/__tests__/unit/session-host-streaming-resume.test.js",
+  "packages/cli/__tests__/unit/session-message-provenance.test.js",
   "packages/cli/__tests__/unit/session-index.test.js",
   "packages/cli/__tests__/unit/session-list-index.test.js",
   "packages/cli/__tests__/unit/session-host-consistency-gate.test.js",
@@ -444,7 +455,11 @@ async function runVerifiedHostScenario(store, home) {
   store.appendCompactEvent(sessionId, {
     strategy: "host-consistency-fixture",
     messages: [
-      { role: "system", content: secrets.compactSummary },
+      { role: "system", content: secrets.stale },
+      markDurableSystemMessage(
+        { role: "system", content: secrets.compactSummary },
+        DURABLE_SYSTEM_MESSAGE_KINDS.COMPACT_SUMMARY,
+      ),
       { role: "user", content: secrets.user },
       { role: "assistant", content: secrets.assistant },
     ],

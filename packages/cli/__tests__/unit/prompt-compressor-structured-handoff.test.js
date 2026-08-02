@@ -7,6 +7,10 @@ import {
   StructuredHandoffValidationError,
   STRUCTURED_HANDOFF_FIELDS,
 } from "../../src/harness/prompt-compressor.js";
+import {
+  DURABLE_SYSTEM_MESSAGE_KINDS,
+  getDurableSystemMessageProvenance,
+} from "../../src/lib/session-message-provenance.js";
 
 function validHandoff() {
   return {
@@ -128,6 +132,10 @@ describe("structured handoff protocol", () => {
     const summaryMessage = messages.find((message) =>
       String(message.content).startsWith("[Conversation Summary]"),
     );
+    expect(getDurableSystemMessageProvenance(summaryMessage)).toMatchObject({
+      kind: DURABLE_SYSTEM_MESSAGE_KINDS.COMPACT_SUMMARY,
+    });
+    expect(JSON.stringify(summaryMessage)).not.toContain("_cc_replay");
     expect(
       parseStructuredHandoff(
         summaryMessage.content.slice("[Conversation Summary]".length),

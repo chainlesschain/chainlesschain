@@ -6,6 +6,10 @@ import {
   planCheckpointTimelineAction,
   validateCheckpointTimelineSubmission,
 } from "../../src/lib/checkpoint-timeline-authority.js";
+import {
+  DURABLE_SYSTEM_MESSAGE_KINDS,
+  getDurableSystemMessageProvenance,
+} from "../../src/lib/session-message-provenance.js";
 
 const fixture = JSON.parse(
   readFileSync(
@@ -77,6 +81,13 @@ describe("checkpoint timeline CLI authority", () => {
     expect(plans["summary-from"].commit.messages.at(-1).content).toContain(
       "Conversation Summary",
     );
+    expect(
+      getDurableSystemMessageProvenance(
+        plans["summary-from"].commit.messages.at(-1),
+      ),
+    ).toMatchObject({
+      kind: DURABLE_SYSTEM_MESSAGE_KINDS.CHECKPOINT_SUMMARY,
+    });
     expect(plans["summary-to"].commit.bindingPruneOffset).toBe(0);
     expect(plans.branch.commit.branchPlan).toMatchObject({
       parentSessionId: "session-fixture",

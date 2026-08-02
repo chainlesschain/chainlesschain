@@ -27,6 +27,12 @@ import {
 } from "./transcript-integrity.js";
 import { withFileLock } from "../lib/with-file-lock.js";
 import {
+  decodePersistedMessage,
+  DURABLE_SYSTEM_MESSAGE_KINDS,
+  encodePersistedMessage,
+  markDurableSystemMessage,
+} from "../lib/session-message-provenance.js";
+import {
   iterateFileLinesSync,
   iterateFileLinesReverseSync,
 } from "../lib/file-lines.js";
@@ -704,6 +710,23 @@ function withVerifiedWsTurnLock(sessionId, task) {
   });
 }
 
+function encodeEventMessageProvenance(type, data) {
+  if (
+    (type === "compact" || type === "checkpoint_timeline_commit") &&
+    data &&
+    typeof data === "object" &&
+    !Array.isArray(data) &&
+    Array.isArray(data.messages)
+  ) {
+    return {
+      ...data,
+      messages: data.messages.map(encodePersistedMessage),
+    };
+  }
+  if (type === "system") return encodePersistedMessage(data);
+  return data;
+}
+
 function appendEventLocked(
   sessionId,
   type,
@@ -734,7 +757,8 @@ function appendEventLocked(
         error.actualHeadHash = prevHash;
         throw error;
       }
-      const core = { type, timestamp: Date.now(), data };
+      const persistedData = encodeEventMessageProvenance(type, data);
+      const core = { type, timestamp: Date.now(), data: persistedData };
       const hash = computeEventHash(prevHash, core);
       const event = { ...core, prevHash, hash };
       const line = JSON.stringify(event) + "\n";
@@ -1678,7 +1702,9 @@ function rebuildMessagesFromFile(filePath, options = {}) {
         event?.type === "checkpoint_timeline_commit") &&
       Array.isArray(event.data?.messages)
     ) {
-      checkpoint = event.data.messages.filter(isReplayableMessage);
+      checkpoint = event.data.messages
+        .map(decodePersistedMessage)
+        .filter(isReplayableMessage);
       break;
     }
     if (
@@ -1688,7 +1714,7 @@ function rebuildMessagesFromFile(filePath, options = {}) {
         event.type === "system") &&
       isReplayableMessage(event.data)
     ) {
-      suffix.push(event.data);
+      suffix.push(decodePersistedMessage(event.data));
     } else if (event?.type === WS_TURN_EVENT) {
       const turn = projectWsTurnMessages(event);
       if (turn) {
@@ -2188,10 +2214,17 @@ function performLegacySessionMigration(sourcePath, options) {
       appendLegacyMessage(sessionId, message);
     }
     if (legacy.summary) {
-      appendEvent(sessionId, "system", {
-        role: "system",
-        content: `[Migrated Summary]\n${legacy.summary}`,
-      });
+      appendEvent(
+        sessionId,
+        "system",
+        markDurableSystemMessage(
+          {
+            role: "system",
+            content: `[Migrated Summary]\n${legacy.summary}`,
+          },
+          DURABLE_SYSTEM_MESSAGE_KINDS.MIGRATION_SUMMARY,
+        ),
+      );
     }
 
     const validation = validateJsonlSession(sessionId);

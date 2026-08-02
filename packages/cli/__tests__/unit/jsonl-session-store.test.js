@@ -64,6 +64,12 @@ const { computeEventHash } =
   await import("../../src/harness/transcript-integrity.js");
 const { readVerifiedProjection } =
   await import("../../src/harness/jsonl-session-store.js");
+const {
+  DURABLE_SYSTEM_MESSAGE_KINDS,
+  getDurableSystemMessageProvenance,
+  markDurableSystemMessage,
+  SESSION_MESSAGE_PROVENANCE_FIELD,
+} = await import("../../src/lib/session-message-provenance.js");
 
 describe("jsonl-session-store", () => {
   beforeEach(() => {
@@ -835,6 +841,74 @@ describe("jsonl-session-store", () => {
       expect(messages[2].content).toBe("new resp");
     });
 
+    it("persists durable summary provenance but strips its wire tag on rebuild", () => {
+      const id = startSession("s8-provenance");
+      const summary = markDurableSystemMessage(
+        { role: "system", content: "canonical compact facts" },
+        DURABLE_SYSTEM_MESSAGE_KINDS.COMPACT_SUMMARY,
+      );
+      appendCompactEvent(id, {
+        messages: [
+          { role: "system", content: "stale host prompt" },
+          summary,
+          { role: "user", content: "active question" },
+        ],
+      });
+
+      const compact = readEvents(id).find((event) => event.type === "compact");
+      expect(
+        compact.data.messages[1][SESSION_MESSAGE_PROVENANCE_FIELD],
+      ).toMatchObject({ kind: DURABLE_SYSTEM_MESSAGE_KINDS.COMPACT_SUMMARY });
+      expect(
+        compact.data.messages[0][SESSION_MESSAGE_PROVENANCE_FIELD],
+      ).toBeUndefined();
+
+      const rebuilt = rebuildMessages(id);
+      expect(rebuilt).toEqual([
+        { role: "system", content: "stale host prompt" },
+        { role: "system", content: "canonical compact facts" },
+        { role: "user", content: "active question" },
+      ]);
+      expect(getDurableSystemMessageProvenance(rebuilt[0])).toBeNull();
+      expect(getDurableSystemMessageProvenance(rebuilt[1])).toMatchObject({
+        kind: DURABLE_SYSTEM_MESSAGE_KINDS.COMPACT_SUMMARY,
+      });
+      expect(JSON.stringify(rebuilt)).not.toContain(
+        SESSION_MESSAGE_PROVENANCE_FIELD,
+      );
+    });
+
+    it("encodes checkpoint timeline summary provenance before hashing", () => {
+      const id = startSession("checkpoint-provenance");
+      appendEvent(id, "checkpoint_timeline_commit", {
+        messages: [
+          { role: "system", content: "stale checkpoint host" },
+          markDurableSystemMessage(
+            { role: "system", content: "checkpoint handoff" },
+            DURABLE_SYSTEM_MESSAGE_KINDS.CHECKPOINT_SUMMARY,
+          ),
+          { role: "user", content: "surviving turn" },
+        ],
+      });
+
+      const event = readEvents(id).at(-1);
+      expect(event.type).toBe("checkpoint_timeline_commit");
+      expect(
+        event.data.messages[1][SESSION_MESSAGE_PROVENANCE_FIELD],
+      ).toMatchObject({
+        kind: DURABLE_SYSTEM_MESSAGE_KINDS.CHECKPOINT_SUMMARY,
+      });
+      expect(verifySession(id).status).toBe("verified");
+
+      const rebuilt = rebuildMessages(id);
+      expect(getDurableSystemMessageProvenance(rebuilt[1])).toMatchObject({
+        kind: DURABLE_SYSTEM_MESSAGE_KINDS.CHECKPOINT_SUMMARY,
+      });
+      expect(JSON.stringify(rebuilt)).not.toContain(
+        SESSION_MESSAGE_PROVENANCE_FIELD,
+      );
+    });
+
     it("returns empty for non-existent session", () => {
       expect(rebuildMessages("nope")).toEqual([]);
     });
@@ -1279,6 +1353,31 @@ describe("jsonl-session-store", () => {
       expect(result.migrated).toBe(true);
       expect(sessionExists("legacy-session")).toBe(true);
       expect(rebuildMessages("legacy-session")).toHaveLength(2);
+    });
+
+    it("marks a migrated summary as durable replay context", () => {
+      const legacyPath = join(sessionsDir, "legacy-summary.json");
+      writeFileSync(
+        legacyPath,
+        JSON.stringify({
+          id: "legacy-summary",
+          summary: "retain this migration handoff",
+          messages: [{ role: "user", content: "hello" }],
+        }),
+        "utf-8",
+      );
+
+      expect(migrateLegacySessionFile(legacyPath).migrated).toBe(true);
+      const rebuilt = rebuildMessages("legacy-summary");
+      const summary = rebuilt.find((message) =>
+        String(message.content).startsWith("[Migrated Summary]"),
+      );
+      expect(getDurableSystemMessageProvenance(summary)).toMatchObject({
+        kind: DURABLE_SYSTEM_MESSAGE_KINDS.MIGRATION_SUMMARY,
+      });
+      expect(JSON.stringify(summary)).not.toContain(
+        SESSION_MESSAGE_PROVENANCE_FIELD,
+      );
     });
 
     it("migrates a legacy session that contains system + tool messages", () => {

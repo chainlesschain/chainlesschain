@@ -8,6 +8,8 @@ vi.mock("../../src/lib/feature-flags.js", () => ({
 
 const { PromptCompressor, estimateTokens, estimateMessagesTokens } =
   await import("../../src/lib/prompt-compressor.js");
+const { DURABLE_SYSTEM_MESSAGE_KINDS, getDurableSystemMessageProvenance } =
+  await import("../../src/lib/session-message-provenance.js");
 
 // ── Helpers ─────────────────────────────────────────────────────────────
 
@@ -364,7 +366,13 @@ describe("PromptCompressor", () => {
       const { messages, stats } = await compressor.compress(msgs);
       expect(messages.length).toBeLessThan(msgs.length);
       expect(stats.strategy).toContain("collapse");
-      expect(messages.some((m) => m.content.includes("[Collapsed"))).toBe(true);
+      const collapsed = messages.find((message) =>
+        message.content.includes("[Collapsed"),
+      );
+      expect(collapsed).toBeDefined();
+      expect(getDurableSystemMessageProvenance(collapsed)).toMatchObject({
+        kind: DURABLE_SYSTEM_MESSAGE_KINDS.COMPACT_TOOL_COLLAPSE,
+      });
     });
 
     it("does nothing when flag disabled", async () => {
