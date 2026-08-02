@@ -649,6 +649,75 @@ describe("cowork-task-runner", () => {
     expect(fakeClient.callTool).not.toHaveBeenCalled();
   });
 
+  it.each(["unknown", "write"])(
+    "latches unsafe after a %s settlement failure while trusted reads remain admissible",
+    async (effect) => {
+      _deps.appendSessionEvent = vi.fn((_sessionId, _type, data) => {
+        if (data.phase === "settled") {
+          throw new Error("settlement store unavailable");
+        }
+        return true;
+      });
+      const runtime = prepareCoworkMcpRuntime(
+        {
+          mcpClient: { callTool: vi.fn() },
+          extraToolDefinitions: [
+            { type: "function", function: { name: "mcp__repo__publish" } },
+          ],
+        },
+        {
+          mcpSessionId: `cowork-${effect}-settlement`,
+          templateId: "doc-convert",
+        },
+      );
+
+      const ticket = await runtime.ledger.begin({
+        sessionId: runtime.sessionId,
+        serverName: "repo",
+        toolName: "publish",
+        input: { release: 1 },
+        effectContract: { effect },
+      });
+      await expect(
+        ticket.settle({ status: "completed", output: { ok: true } }),
+      ).rejects.toMatchObject({
+        code: "CC_MCP_LEDGER_SETTLE_FAILED",
+      });
+      expect(runtime.ledger.recoveryAdmission).toMatchObject({
+        blockMode: "unsafe",
+        reasonCode: "CC_MCP_LEDGER_SETTLE_FAILED",
+      });
+
+      await expect(
+        runtime.ledger.begin({
+          sessionId: runtime.sessionId,
+          serverName: "repo",
+          toolName: "publish",
+          input: { release: 2 },
+          effectContract: { effect },
+        }),
+      ).rejects.toMatchObject({
+        code: "CC_COWORK_MCP_RECOVERY_BLOCKED",
+        blockMode: "unsafe",
+      });
+
+      await expect(
+        runtime.ledger.begin({
+          sessionId: runtime.sessionId,
+          serverName: "repo",
+          toolName: "status",
+          input: { release: 2 },
+          effectContract: { effect: "read", trusted: true },
+        }),
+      ).resolves.toMatchObject({
+        record: {
+          effectContract: { effect: "read", trusted: true },
+          status: "started",
+        },
+      });
+    },
+  );
+
   it("injects prior unsettled MCP recovery into the Cowork child authority", async () => {
     const onProgress = vi.fn();
     const toolName = "mcp__publisher__publish";

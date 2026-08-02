@@ -15,7 +15,10 @@ import { getTemplate, setUserTemplates } from "./cowork-task-templates.js";
 import { mountTemplateMcpTools } from "./cowork-mcp-tools.js";
 import { listUserTemplates } from "./cowork-template-marketplace.js";
 import { createMcpCallLedger, McpEffect } from "./mcp-call-ledger.js";
-import { guardMcpLedgerForRecovery } from "./mcp-ledger-recovery-admission.js";
+import {
+  createMcpRecoveryAdmissionController,
+  guardMcpLedgerForRecovery,
+} from "./mcp-ledger-recovery-admission.js";
 import {
   createSessionMcpLedgerSink,
   formatMcpLedgerRecoveryNotice,
@@ -215,6 +218,8 @@ export function prepareCoworkMcpRuntime(mcp, options = {}) {
   const sink = createSessionMcpLedgerSink(sessionId, {
     appendEvent: _deps.appendSessionEvent,
   });
+  const recoveryController =
+    createMcpRecoveryAdmissionController(recoveryState);
   return {
     sessionId,
     recoveryNotice,
@@ -223,7 +228,7 @@ export function prepareCoworkMcpRuntime(mcp, options = {}) {
     expectedHeadHash,
     ledger: guardMcpLedgerForRecovery(
       createMcpCallLedger({ sink }),
-      recoveryState,
+      recoveryController,
       { code: "CC_COWORK_MCP_RECOVERY_BLOCKED" },
     ),
   };
