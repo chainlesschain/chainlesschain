@@ -66,6 +66,220 @@ function writeShellTool(directory, name, source) {
   return filePath;
 }
 
+const wslDistribution = process.env.CC_TEST_WSL_DISTRO || "Ubuntu";
+
+function windowsPathToWsl(filePath) {
+  const normalized = path.resolve(filePath).replaceAll("\\", "/");
+  const match = /^([A-Za-z]):(\/.*)$/.exec(normalized);
+  if (!match) {
+    throw new Error(`cannot map path into WSL: ${filePath}`);
+  }
+  return `/mnt/${match[1].toLowerCase()}${match[2]}`;
+}
+
+function wslSupportsOrphanRaceFixtures() {
+  if (process.platform !== "win32") return false;
+  const probe = spawnSync(
+    "wsl.exe",
+    [
+      "-d",
+      wslDistribution,
+      "--",
+      "/bin/sh",
+      "-c",
+      "test -x /bin/bash && test -x /bin/dash && command -v python3 >/dev/null",
+    ],
+    { encoding: "utf8", timeout: 15_000 },
+  );
+  return probe.status === 0;
+}
+
+const hasWslOrphanRaceFixture = wslSupportsOrphanRaceFixtures();
+
+function runWslOrphanRaceFixture({ posixShell, orphanState }) {
+  const root = fs.mkdtempSync(path.join(fixtureTempRoot, "cc-sh-install-tx-"));
+  temporaryDirectories.push(root);
+  const fixtureDir = path.join(root, "fixtures");
+  const fakeBin = path.join(root, "fake-bin");
+  const targetDir = path.join(root, "bin");
+  fs.mkdirSync(fixtureDir, { recursive: true });
+  fs.mkdirSync(fakeBin, { recursive: true });
+  fs.mkdirSync(targetDir, { recursive: true });
+
+  const artifactPath = path.join(fixtureDir, "artifact");
+  const artifactCopy = spawnSync(
+    "wsl.exe",
+    [
+      "-d",
+      wslDistribution,
+      "--",
+      "cp",
+      "/bin/true",
+      windowsPathToWsl(artifactPath),
+    ],
+    { encoding: "utf8", timeout: 15_000 },
+  );
+  expect(artifactCopy.status, artifactCopy.stderr || artifactCopy.stdout).toBe(
+    0,
+  );
+  const artifactSha256 = sha256File(artifactPath);
+  const manifestPath = path.join(fixtureDir, "manifest.json");
+  const bundlePath = path.join(fixtureDir, "bundle.json");
+  fs.writeFileSync(
+    manifestPath,
+    JSON.stringify({
+      latest: {
+        artifacts: [
+          {
+            target: "node20-linux-x64",
+            url: "https://fixture/artifact",
+            sha256: artifactSha256,
+            signature: "https://fixture/artifact.sigstore.json",
+          },
+        ],
+      },
+    }),
+  );
+  fs.writeFileSync(bundlePath, "{}");
+
+  writeShellTool(
+    fakeBin,
+    "uname",
+    `#!/usr/bin/env sh
+if [ "\${1:-}" = "-s" ]; then echo Linux; else echo x86_64; fi
+`,
+  );
+  writeShellTool(
+    fakeBin,
+    "cosign",
+    `#!/usr/bin/env sh
+exit 0
+`,
+  );
+  writeShellTool(
+    fakeBin,
+    "curl",
+    `#!/usr/bin/env sh
+url=""
+output=""
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    -o) output=$2; shift 2 ;;
+    -*) shift ;;
+    *) url=$1; shift ;;
+  esac
+done
+case "$url" in
+  */chainlesschain-update.json.sigstore.json) source_path=$FIXTURE_BUNDLE ;;
+  */chainlesschain-update.json) source_path=$FIXTURE_MANIFEST ;;
+  https://fixture/artifact.sigstore.json) source_path=$FIXTURE_BUNDLE ;;
+  https://fixture/artifact) source_path=$FIXTURE_ARTIFACT ;;
+  *) echo "unexpected fixture URL: $url" >&2; exit 80 ;;
+esac
+cp "$source_path" "$output"
+`,
+  );
+
+  const mutationRaceSentinel = path.join(root, "mutation-race-injected");
+  const orphanRetentionFaultBootstrap = path.join(
+    root,
+    "orphan-retention-fault-bootstrap.py",
+  );
+  fs.writeFileSync(
+    orphanRetentionFaultBootstrap,
+    `import sys
+
+helper_argv = sys.argv[1:]
+source = sys.stdin.read()
+needle = "    before = os.fstat(fd)"
+if source.count(needle) != 1:
+    raise SystemExit('could not instrument fd-bound orphan retention helper')
+injection = r'''    race = os.environ.get('CC_TEST_MUTATION_RACE', 'none')
+    successor_path = orphan_path + '.same-uid-successor'
+    payload = (
+        b'successor-orphan-backup-must-survive'
+        if race == 'orphan-backup'
+        else b'successor-orphan-lineage-must-survive'
+    )
+    descriptor = os.open(
+        successor_path,
+        os.O_CREAT | os.O_EXCL | os.O_WRONLY,
+        stat.S_IMODE(os.fstat(fd).st_mode),
+    )
+    try:
+        os.write(descriptor, payload)
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+    os.replace(successor_path, orphan_path)
+    with open(os.environ['CC_TEST_MUTATION_RACE_SENTINEL'], 'wb'):
+        pass
+    before = os.fstat(fd)'''
+source = source.replace(needle, injection, 1)
+sys.argv = helper_argv
+exec(compile(source, '<retain-regular-orphan>', 'exec'), {'__name__': '__main__'})
+`,
+  );
+  writeShellTool(
+    fakeBin,
+    "python3",
+    `#!/usr/bin/env sh
+if [ "\${1:-}" = "-" ] && [ "\${2:-}" = "retain-regular-orphan" ]; then
+  exec /usr/bin/python3 "$CC_TEST_ORPHAN_RETENTION_FAULT_BOOTSTRAP" "$@"
+fi
+exec /usr/bin/python3 "$@"
+`,
+  );
+
+  const targetPath = path.join(targetDir, "chainlesschain");
+  const backupPath = `${targetPath}.previous`;
+  const lineagePath = `${targetPath}.update-lineage.json`;
+  const orphanPath = orphanState === "backup" ? backupPath : lineagePath;
+  fs.writeFileSync(orphanPath, `orphan-${orphanState}-must-survive`);
+  const orphanStat = fs.lstatSync(orphanPath, { bigint: true });
+
+  const wslRoot = windowsPathToWsl(root);
+  const wslTargetDir = windowsPathToWsl(targetDir);
+  const environment = [
+    `TMPDIR=${wslRoot}`,
+    `PATH=${windowsPathToWsl(fakeBin)}:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin`,
+    `FIXTURE_MANIFEST=${windowsPathToWsl(manifestPath)}`,
+    `FIXTURE_BUNDLE=${windowsPathToWsl(bundlePath)}`,
+    `FIXTURE_ARTIFACT=${windowsPathToWsl(artifactPath)}`,
+    "CC_CLI_RELEASE_BASE_URL=https://fixture/base",
+    `CC_CLI_INSTALL_DIR=${wslTargetDir}`,
+    `CC_TEST_MUTATION_RACE=orphan-${orphanState}`,
+    `CC_TEST_MUTATION_RACE_SENTINEL=${windowsPathToWsl(mutationRaceSentinel)}`,
+    `CC_TEST_ORPHAN_RETENTION_FAULT_BOOTSTRAP=${windowsPathToWsl(orphanRetentionFaultBootstrap)}`,
+  ];
+  const run = spawnSync(
+    "wsl.exe",
+    [
+      "-d",
+      wslDistribution,
+      "--",
+      "env",
+      ...environment,
+      posixShell,
+      windowsPathToWsl(shPath),
+    ],
+    { encoding: "utf8", timeout: 90_000 },
+  );
+
+  return {
+    root,
+    targetDir,
+    targetPath,
+    prestate: {
+      orphanPath,
+      orphanDev: orphanStat.dev,
+      orphanIno: orphanStat.ino,
+    },
+    mutationRaceSentinel,
+    run,
+  };
+}
+
 function runPosixInstallerFixture({
   existing = false,
   targetOnly = false,
@@ -86,6 +300,10 @@ function runPosixInstallerFixture({
   terminateDuringRecoveryRetirement = false,
   failRecoveryStateCreate = false,
   replaceRecoveryFallbackSource = false,
+  replaceCandidateDuringMaterialization = false,
+  replaceStagingBeforeCleanup = false,
+  orphanState = "none",
+  posixShell: requestedPosixShell = null,
 } = {}) {
   const root = fs.mkdtempSync(path.join(fixtureTempRoot, "cc-sh-install-tx-"));
   temporaryDirectories.push(root);
@@ -158,6 +376,7 @@ cp "$source_path" "$output"
   );
 
   const posixShell =
+    requestedPosixShell ||
     process.env.CC_TEST_POSIX_SHELL ||
     (process.platform === "win32" ? "bash" : "/bin/sh");
   const toolLookup = spawnSync(
@@ -193,35 +412,78 @@ cp "$source_path" "$output"
     root,
     "recovery-fallback-source-replaced",
   );
+  const lockEvidenceReplacedSentinel = path.join(
+    root,
+    "lock-evidence-replaced",
+  );
+  const candidateReplacedSentinel = path.join(root, "candidate-replaced");
+  const stagingReplacedSentinel = path.join(root, "staging-replaced");
+  const candidateVictimPath = path.join(root, "candidate-victim");
+  fs.writeFileSync(candidateVictimPath, "candidate-victim-must-survive");
+  fs.chmodSync(candidateVictimPath, 0o640);
   const successorLockValue = "successor-lock-must-survive";
   const releaseFaultBootstrap = path.join(root, "release-fault-bootstrap.py");
   fs.writeFileSync(
     releaseFaultBootstrap,
     `import errno
+import os
 import sys
 
 fault = sys.argv[1]
 helper_argv = sys.argv[2:]
 source = sys.stdin.read()
-injections = {
-    'unlink-held': "    os.unlink(held_path)\\n",
-    'fsync-release-dir': "    durability_barrier('unlinked-release-dir', release_dir)\\n",
-    'rmdir-release': "    os.rmdir(release_dir)\\n",
-    'fsync-release-parent': "    durability_barrier('removed-release-dir-parent', install_dir)\\n",
-    'unlink-anchor': "        os.unlink(anchor_path)\\n",
-    'fsync-anchor-parent-final': "        durability_barrier('anchor-removed-parent', install_dir)\\n",
-}
-needle = injections.get(fault)
-if needle is None or source.count(needle) != 1:
-    raise SystemExit(f'could not inject release-lock fault: {fault}')
-indent = needle[:len(needle) - len(needle.lstrip())]
-source = source.replace(
-    needle,
-    indent + f"raise OSError(errno.EIO, 'injected {fault} failure')\\n",
-    1,
-)
+if fault in ('replace-held', 'replace-anchor'):
+    needle = "    released = True"
+    if source.count(needle) != 1:
+        raise SystemExit(f'could not inject release-lock replacement: {fault}')
+    replacement = """    replacement_fault = os.environ['CC_TEST_LOCK_RELEASE_FAULT']
+    replacement_target = held_path if replacement_fault == 'replace-held' else anchor_path
+    successor_path = replacement_target + '.successor'
+    with open(successor_path, 'wb') as successor:
+        successor.write((replacement_fault + '-successor-must-survive').encode('utf-8'))
+        successor.flush()
+        os.fsync(successor.fileno())
+    os.replace(successor_path, replacement_target)
+    with open(os.environ['CC_TEST_LOCK_EVIDENCE_REPLACED_SENTINEL'], 'wb'):
+        pass
+    released = True"""
+    source = source.replace(needle, replacement, 1)
+else:
+    needle = "    durability_barrier('renamed-parent', install_dir)\\n"
+    if fault != 'fsync-renamed-parent' or source.count(needle) != 1:
+        raise SystemExit(f'could not inject release-lock fault: {fault}')
+    source = source.replace(
+        needle,
+        "    raise OSError(errno.EIO, 'injected fsync-renamed-parent failure')\\n",
+        1,
+    )
 sys.argv = helper_argv
 exec(compile(source, '<release-lock>', 'exec'), {'__name__': '__main__'})
+`,
+  );
+  const candidateFaultBootstrap = path.join(
+    root,
+    "candidate-fault-bootstrap.py",
+  );
+  fs.writeFileSync(
+    candidateFaultBootstrap,
+    `import os
+import sys
+
+helper_argv = sys.argv[1:]
+source = sys.stdin.read()
+needle = "    candidate_fd = os.open(candidate_path, flags, 0o600)"
+if source.count(needle) != 1:
+    raise SystemExit('could not inject candidate pathname replacement')
+replacement = needle + """
+    successor_path = candidate_path + '.same-uid-successor'
+    os.symlink(os.environ['CC_TEST_CANDIDATE_VICTIM_PATH'], successor_path)
+    os.replace(successor_path, candidate_path)
+    with open(os.environ['CC_TEST_CANDIDATE_REPLACED_SENTINEL'], 'wb'):
+        pass"""
+source = source.replace(needle, replacement, 1)
+sys.argv = helper_argv
+exec(compile(source, '<materialize-candidate>', 'exec'), {'__name__': '__main__'})
 `,
   );
   const recoveryPointerFaultBootstrap = path.join(
@@ -518,6 +780,46 @@ sys.argv = helper_argv
 exec(compile(source, '<mutate-public-path>', 'exec'), {'__name__': '__main__'})
 `,
   );
+  const orphanRetentionFaultBootstrap = path.join(
+    root,
+    "orphan-retention-fault-bootstrap.py",
+  );
+  fs.writeFileSync(
+    orphanRetentionFaultBootstrap,
+    `import sys
+
+helper_argv = sys.argv[1:]
+source = sys.stdin.read()
+needle = "    before = os.fstat(fd)"
+if source.count(needle) != 1:
+    raise SystemExit('could not instrument fd-bound orphan retention helper')
+injection = r'''    race = os.environ.get('CC_TEST_MUTATION_RACE', 'none')
+    if race in ('orphan-backup', 'orphan-lineage'):
+        successor_path = orphan_path + '.same-uid-successor'
+        payload = (
+            b'successor-orphan-backup-must-survive'
+            if race == 'orphan-backup'
+            else b'successor-orphan-lineage-must-survive'
+        )
+        descriptor = os.open(
+            successor_path,
+            os.O_CREAT | os.O_EXCL | os.O_WRONLY,
+            stat.S_IMODE(os.fstat(fd).st_mode),
+        )
+        try:
+            os.write(descriptor, payload)
+            os.fsync(descriptor)
+        finally:
+            os.close(descriptor)
+        os.replace(successor_path, orphan_path)
+        with open(os.environ['CC_TEST_MUTATION_RACE_SENTINEL'], 'wb'):
+            pass
+    before = os.fstat(fd)'''
+source = source.replace(needle, injection, 1)
+sys.argv = helper_argv
+exec(compile(source, '<retain-regular-orphan>', 'exec'), {'__name__': '__main__'})
+`,
+  );
   writeShellTool(
     fakeBin,
     "python3",
@@ -591,6 +893,27 @@ if [ "\${1:-}" = "-" ] && [ "\${CC_TEST_FAIL_RECOVERY_STATE_CREATE:-0}" = "1" ];
   case "\${2:-}" in
     */.chainlesschain.recovery-*.json)
       exec "$REAL_PYTHON" "$CC_TEST_RECOVERY_STATE_CREATE_FAULT_BOOTSTRAP" "$@"
+      ;;
+  esac
+fi
+if [ "\${1:-}" = "-" ] && [ "\${2:-}" = "materialize-candidate" ] && [ "\${CC_TEST_REPLACE_CANDIDATE_DURING_MATERIALIZATION:-0}" = "1" ]; then
+  exec "$REAL_PYTHON" "$CC_TEST_CANDIDATE_FAULT_BOOTSTRAP" "$@"
+fi
+if [ "\${1:-}" = "-" ] && [ "\${2:-}" = "materialize-candidate" ] && [ "\${CC_TEST_REPLACE_STAGING_BEFORE_CLEANUP:-0}" = "1" ]; then
+  "$REAL_PYTHON" "$@"
+  status=$?
+  [ "$status" -eq 0 ] || exit "$status"
+  staging_path=\${3%/*}
+  "$REAL_MV" "$staging_path" "$staging_path.original"
+  mkdir "$staging_path"
+  printf '%s' 'staging-successor-must-survive' > "$staging_path/successor.txt"
+  : > "$CC_TEST_STAGING_REPLACED_SENTINEL"
+  exit 98
+fi
+if [ "\${1:-}" = "-" ] && [ "\${2:-}" = "retain-regular-orphan" ]; then
+  case "\${CC_TEST_MUTATION_RACE:-none}" in
+    orphan-backup|orphan-lineage)
+      exec "$REAL_PYTHON" "$CC_TEST_ORPHAN_RETENTION_FAULT_BOOTSTRAP" "$@"
       ;;
   esac
 fi
@@ -694,6 +1017,18 @@ exec "$REAL_MV" "$@"
       rawLineage: targetOnly ? null : rawLineage,
       aliasTarget: targetOnly ? null : fs.readlinkSync(aliasPath),
     };
+  } else if (orphanState !== "none") {
+    const orphanPath = orphanState === "backup" ? backupPath : lineagePath;
+    const orphanBytes = Buffer.from(`orphan-${orphanState}-must-survive`);
+    fs.writeFileSync(orphanPath, orphanBytes);
+    fs.chmodSync(orphanPath, 0o640);
+    const orphanStat = fs.lstatSync(orphanPath, { bigint: true });
+    prestate = {
+      orphanPath,
+      orphanBytes,
+      orphanDev: orphanStat.dev,
+      orphanIno: orphanStat.ino,
+    };
   }
 
   const run = spawnSync(posixShell, [shPath], {
@@ -733,6 +1068,11 @@ exec "$REAL_MV" "$@"
       CC_TEST_REPLACE_RECOVERY_FALLBACK_SOURCE: replaceRecoveryFallbackSource
         ? "1"
         : "0",
+      CC_TEST_REPLACE_CANDIDATE_DURING_MATERIALIZATION:
+        replaceCandidateDuringMaterialization ? "1" : "0",
+      CC_TEST_REPLACE_STAGING_BEFORE_CLEANUP: replaceStagingBeforeCleanup
+        ? "1"
+        : "0",
       CC_TEST_LINEAGE_FAILED_SENTINEL: lineageFailedSentinel,
       CC_TEST_CANONICAL_INSTALL_DIR: fs.realpathSync(targetDir),
       CC_TEST_TARGET_DIR: targetDir,
@@ -748,9 +1088,15 @@ exec "$REAL_MV" "$@"
         recoveryStateCreateFailedSentinel,
       CC_TEST_RECOVERY_FALLBACK_SOURCE_REPLACED_SENTINEL:
         recoveryFallbackSourceReplacedSentinel,
+      CC_TEST_LOCK_EVIDENCE_REPLACED_SENTINEL: lockEvidenceReplacedSentinel,
+      CC_TEST_CANDIDATE_REPLACED_SENTINEL: candidateReplacedSentinel,
+      CC_TEST_STAGING_REPLACED_SENTINEL: stagingReplacedSentinel,
+      CC_TEST_CANDIDATE_VICTIM_PATH: candidateVictimPath,
       CC_TEST_TARGET_PATH: targetPath,
       CC_TEST_SUCCESSOR_LOCK_VALUE: successorLockValue,
       CC_TEST_RELEASE_FAULT_BOOTSTRAP: releaseFaultBootstrap,
+      CC_TEST_CANDIDATE_FAULT_BOOTSTRAP: candidateFaultBootstrap,
+      CC_TEST_ORPHAN_RETENTION_FAULT_BOOTSTRAP: orphanRetentionFaultBootstrap,
       CC_TEST_RECOVERY_POINTER_FAULT_BOOTSTRAP: recoveryPointerFaultBootstrap,
       CC_TEST_RECOVERY_STATE_CREATE_FAULT_BOOTSTRAP:
         recoveryStateCreateFaultBootstrap,
@@ -785,6 +1131,10 @@ exec "$REAL_MV" "$@"
     recoveryRetirementTerminatedSentinel,
     recoveryStateCreateFailedSentinel,
     recoveryFallbackSourceReplacedSentinel,
+    lockEvidenceReplacedSentinel,
+    candidateReplacedSentinel,
+    stagingReplacedSentinel,
+    candidateVictimPath,
     successorLockValue,
     prestate,
     run,
@@ -808,9 +1158,22 @@ describe("native installer transaction contracts", () => {
     expect(source).toContain(
       "re.fullmatch(r'[a-z0-9]+(?:-[a-z0-9]+)*', value['status'])",
     );
+    expect(source).toContain("materialize_candidate() {");
     expect(source).toContain(
+      'CANDIDATE_PATH="$INSTALL_DIR/.chainlesschain.new.$TRANSACTION_ID"',
+    );
+    expect(source).toContain("candidate_fd = os.open(candidate_path, flags");
+    expect(source).toContain("os.fchmod(candidate_fd, 0o755)");
+    expect(source).toContain("hash_fd(candidate_fd)");
+    expect(source).toContain(
+      "startup_fd = os.open(candidate_path, os.O_RDONLY | nofollow)",
+    );
+    expect(source).toContain("pass_fds=(startup_fd,)");
+    expect(source).not.toContain(
       'mktemp "$INSTALL_DIR/.chainlesschain.new.XXXXXX"',
     );
+    expect(source).not.toContain('cp "$ARTIFACT" "$CANDIDATE_PATH"');
+    expect(source).not.toContain('chmod 755 "$CANDIDATE_PATH"');
     expect(source).toContain("mutate_public_path() {");
     expect(source).toContain("renameat2");
     expect(source).toContain("renamex_np");
@@ -831,7 +1194,11 @@ describe("native installer transaction contracts", () => {
     expect(source).toContain(
       "os.link(source, destination, follow_symlinks=False)",
     );
-    expect(source.match(/fallback_errors = \{/g)).toHaveLength(2);
+    expect(source.match(/fallback_errors = \{/g)).toHaveLength(3);
+    expect(source).not.toContain("os.unlink(");
+    expect(source).not.toContain("os.rmdir(");
+    expect(source).not.toContain("rm -f");
+    expect(source).not.toContain("rm -rf");
     expect(source).toContain(
       'TARGET_CLAIM_PATH="$INSTALL_DIR/.chainlesschain.target-publish-claimed-$TRANSACTION_ID"',
     );
@@ -849,6 +1216,30 @@ describe("native installer transaction contracts", () => {
       'TARGET_CLAIM_PATH="$INSTALL_DIR/.chainlesschain.target-claimed-$TRANSACTION_ID"',
     );
     expect(source).toContain(".orphaned-$TRANSACTION_ID");
+    expect(source).toContain("quarantine_regular_orphan() {");
+    const orphanQuarantineStart = source.indexOf(
+      "quarantine_regular_orphan() {",
+    );
+    const orphanQuarantineEnd = source.indexOf(
+      "create_alias_restore_candidate() {",
+      orphanQuarantineStart,
+    );
+    const orphanQuarantineSource = source.slice(
+      orphanQuarantineStart,
+      orphanQuarantineEnd,
+    );
+    expect(orphanQuarantineSource).toContain('"retain-regular-orphan"');
+    expect(orphanQuarantineSource).toContain(
+      "cannot be atomically quarantined by verified identity",
+    );
+    expect(orphanQuarantineSource).not.toContain("mutate_public_path");
+    expect(orphanQuarantineSource).not.toContain("rename_noreplace");
+    expect(source).not.toContain(
+      'mv "$BACKUP_PATH" "$BACKUP_PATH.orphaned-$TRANSACTION_ID"',
+    );
+    expect(source).not.toContain(
+      'mv "$LINEAGE_PATH" "$LINEAGE_PATH.orphaned-$TRANSACTION_ID"',
+    );
     expect(source).toContain('RESULT_PATH="$TARGET_PATH.update-result.json"');
     expect(source).toContain("chainlesschain.native-update-result.v1");
     expect(source).toContain('PRIOR_BACKUP_PATH=""');
@@ -900,10 +1291,10 @@ describe("native installer transaction contracts", () => {
     expect(source).toContain(
       "def restore_owned_without_overwrite(source_path):",
     );
-    expect(source).toContain("durability_barrier('unlinked-release-dir'");
-    expect(source).toContain("durability_barrier('removed-release-dir-parent'");
-    expect(source).toContain("durability_barrier('anchor-removed-parent'");
-    expect(source).toContain("os.rename(lock_path, held_path)");
+    expect(source).toContain("rename_noreplace(lock_path, held_path)");
+    expect(source).toContain("durability_barrier('renamed-release-dir'");
+    expect(source).toContain("durability_barrier('renamed-parent'");
+    expect(source).toContain("retained lock release evidence changed");
     expect(source).toContain(
       "refusing to delete a successor native update lock",
     );
@@ -1720,6 +2111,138 @@ describe("native installer transaction contracts", () => {
     120_000,
   );
 
+  it.runIf(process.platform !== "win32")(
+    "POSIX candidate materialization never writes through a same-uid symlink replacement",
+    () => {
+      const fixture = runPosixInstallerFixture({
+        existing: true,
+        lineageFailure: "none",
+        replaceCandidateDuringMaterialization: true,
+      });
+
+      expect(
+        fixture.run.status,
+        fixture.run.stderr || fixture.run.stdout,
+      ).not.toBe(0);
+      expect(pathLexists(fixture.candidateReplacedSentinel)).toBe(true);
+      expect(fs.readFileSync(fixture.candidateVictimPath, "utf8")).toBe(
+        "candidate-victim-must-survive",
+      );
+      expect(fs.statSync(fixture.candidateVictimPath).mode & 0o777).toBe(0o640);
+      const candidateName = fs
+        .readdirSync(fixture.targetDir)
+        .find((name) => name.startsWith(".chainlesschain.new."));
+      expect(candidateName).toBeDefined();
+      const candidatePath = path.join(fixture.targetDir, candidateName);
+      expect(fs.lstatSync(candidatePath).isSymbolicLink()).toBe(true);
+      expect(fs.readlinkSync(candidatePath)).toBe(fixture.candidateVictimPath);
+      expect(fs.readFileSync(fixture.targetPath)).toEqual(
+        fixture.prestate.targetBytes,
+      );
+      expect(pathLexists(`${fixture.targetPath}.update.lock`)).toBe(false);
+      expect(fixture.run.stderr).toContain("cleanup-pending/degraded");
+    },
+    120_000,
+  );
+
+  it.runIf(process.platform !== "win32")(
+    "POSIX cleanup retains a replacement network-staging directory instead of recursively deleting it",
+    () => {
+      const fixture = runPosixInstallerFixture({
+        existing: true,
+        lineageFailure: "none",
+        replaceStagingBeforeCleanup: true,
+      });
+
+      expect(
+        fixture.run.status,
+        fixture.run.stderr || fixture.run.stdout,
+      ).not.toBe(0);
+      expect(pathLexists(fixture.stagingReplacedSentinel)).toBe(true);
+      const stagingName = fs
+        .readdirSync(fixture.root)
+        .find(
+          (name) =>
+            name.startsWith("chainlesschain-install.") &&
+            pathLexists(path.join(fixture.root, name, "successor.txt")),
+        );
+      expect(stagingName).toBeDefined();
+      expect(
+        fs.readFileSync(
+          path.join(fixture.root, stagingName, "successor.txt"),
+          "utf8",
+        ),
+      ).toBe("staging-successor-must-survive");
+      expect(fs.readFileSync(fixture.targetPath)).toEqual(
+        fixture.prestate.targetBytes,
+      );
+      expect(pathLexists(`${fixture.targetPath}.update.lock`)).toBe(false);
+      expect(fixture.run.stderr).toContain("cleanup-pending/degraded");
+    },
+    120_000,
+  );
+
+  const orphanRaceShells =
+    process.platform === "win32"
+      ? hasWslOrphanRaceFixture
+        ? [
+            { posixShell: "/bin/bash", viaWsl: true },
+            { posixShell: "/bin/dash", viaWsl: true },
+          ]
+        : []
+      : ["/bin/bash", "/bin/dash"]
+          .filter((shell) => fs.existsSync(shell))
+          .map((posixShell) => ({ posixShell, viaWsl: false }));
+  for (const shellFixture of orphanRaceShells) {
+    const { posixShell, viaWsl } = shellFixture;
+    for (const orphanKind of ["backup", "lineage"]) {
+      const shellName = path.basename(posixShell);
+      it(`POSIX/WSL ${shellName} ${orphanKind} quarantine retains a same-uid successor at the public name`, () => {
+        const fixture = viaWsl
+          ? runWslOrphanRaceFixture({
+              posixShell,
+              orphanState: orphanKind,
+            })
+          : runPosixInstallerFixture({
+              lineageFailure: "none",
+              orphanState: orphanKind,
+              mutationRace: `orphan-${orphanKind}`,
+              posixShell,
+            });
+
+        expect(
+          fixture.run.status,
+          fixture.run.stderr || fixture.run.stdout,
+        ).not.toBe(0);
+        expect(pathLexists(fixture.mutationRaceSentinel)).toBe(true);
+        expect(pathLexists(fixture.targetPath)).toBe(false);
+        expect(fs.readFileSync(fixture.prestate.orphanPath, "utf8")).toBe(
+          `successor-orphan-${orphanKind}-must-survive`,
+        );
+        const successorStat = fs.lstatSync(fixture.prestate.orphanPath, {
+          bigint: true,
+        });
+        expect([successorStat.dev, successorStat.ino]).not.toEqual([
+          fixture.prestate.orphanDev,
+          fixture.prestate.orphanIno,
+        ]);
+        expect(
+          fs
+            .readdirSync(fixture.targetDir)
+            .some((name) => name.includes(".orphaned-")),
+        ).toBe(false);
+        expect(pathLexists(`${fixture.targetPath}.update.lock`)).toBe(true);
+        expect(fixture.run.stderr).toContain(
+          `orphaned ${
+            orphanKind === "backup"
+              ? "last-known-good backup"
+              : "native update lineage"
+          } quarantine failed closed`,
+        );
+      }, 120_000);
+    }
+  }
+
   for (const publicationPhase of ["target", "backup", "alias"]) {
     it.runIf(process.platform !== "win32")(
       `POSIX ${publicationPhase} publication TERM rolls the complete transaction back`,
@@ -1944,47 +2467,45 @@ describe("native installer transaction contracts", () => {
     120_000,
   );
 
-  for (const lockReleaseFault of [
-    "unlink-held",
-    "fsync-release-dir",
-    "rmdir-release",
-    "fsync-release-parent",
-    "unlink-anchor",
-  ]) {
+  for (const lockReleaseFault of ["replace-held", "replace-anchor"]) {
     it.runIf(process.platform !== "win32")(
-      `POSIX ${lockReleaseFault} lock-release failure retains owned recovery evidence`,
+      `POSIX ${lockReleaseFault} successor survives conservative lock release`,
       () => {
         const fixture = runPosixInstallerFixture({
           existing: true,
           lineageFailure: "none",
           lockReleaseFault,
         });
-        const lockPath = `${fixture.targetPath}.update.lock`;
         const names = fs.readdirSync(fixture.targetDir);
 
         expect(
           fixture.run.status,
           fixture.run.stderr || fixture.run.stdout,
         ).not.toBe(0);
-        expect(fs.lstatSync(lockPath).isFile()).toBe(true);
-        expect(fs.readFileSync(lockPath).length).toBeGreaterThan(0);
-        expect(
-          names.some((name) => name.startsWith(".chainlesschain.lock-anchor-")),
-        ).toBe(true);
-        if (lockReleaseFault === "fsync-release-parent") {
-          expect(
-            names.some((name) =>
-              name.startsWith(".chainlesschain.lock-release-"),
-            ),
-          ).toBe(false);
-        } else if (lockReleaseFault !== "unlink-anchor") {
-          expect(
-            names.some((name) =>
-              name.startsWith(".chainlesschain.lock-release-"),
-            ),
-          ).toBe(true);
-        }
-        expect(fixture.run.stderr).toContain(
+        expect(pathLexists(fixture.lockEvidenceReplacedSentinel)).toBe(true);
+        expect(pathLexists(`${fixture.targetPath}.update.lock`)).toBe(false);
+        const anchorName = names.find((name) =>
+          name.startsWith(".chainlesschain.lock-anchor-"),
+        );
+        const releaseName = names.find((name) =>
+          name.startsWith(".chainlesschain.lock-release-"),
+        );
+        expect(anchorName).toBeDefined();
+        expect(releaseName).toBeDefined();
+        const anchorPath = path.join(fixture.targetDir, anchorName);
+        const heldPath = path.join(
+          fixture.targetDir,
+          releaseName,
+          "owned.lock",
+        );
+        expect(pathLexists(heldPath)).toBe(true);
+        const replacedPath =
+          lockReleaseFault === "replace-held" ? heldPath : anchorPath;
+        expect(fs.readFileSync(replacedPath, "utf8")).toBe(
+          `${lockReleaseFault}-successor-must-survive`,
+        );
+        expect(fixture.run.stderr).toContain("cleanup-pending/degraded");
+        expect(fixture.run.stderr).not.toContain(
           "native update lock release failed",
         );
       },
@@ -1993,12 +2514,12 @@ describe("native installer transaction contracts", () => {
   }
 
   it.runIf(process.platform !== "win32")(
-    "POSIX final lock-anchor directory fsync failure is reported instead of claiming durable release",
+    "POSIX lock release durability failure restores the public lock without deleting private evidence",
     () => {
       const fixture = runPosixInstallerFixture({
         existing: true,
         lineageFailure: "none",
-        lockReleaseFault: "fsync-anchor-parent-final",
+        lockReleaseFault: "fsync-renamed-parent",
       });
       const names = fs.readdirSync(fixture.targetDir);
 
@@ -2007,14 +2528,13 @@ describe("native installer transaction contracts", () => {
         fixture.run.stderr || fixture.run.stdout,
       ).not.toBe(0);
       expect(sha256File(fixture.targetPath)).toBe(fixture.artifactSha256);
-      expect(pathLexists(`${fixture.targetPath}.update.lock`)).toBe(false);
+      expect(pathLexists(`${fixture.targetPath}.update.lock`)).toBe(true);
       expect(
-        names.some(
-          (name) =>
-            name.startsWith(".chainlesschain.lock-anchor-") ||
-            name.startsWith(".chainlesschain.lock-release-"),
-        ),
-      ).toBe(false);
+        names.some((name) => name.startsWith(".chainlesschain.lock-anchor-")),
+      ).toBe(true);
+      expect(
+        names.some((name) => name.startsWith(".chainlesschain.lock-release-")),
+      ).toBe(true);
       expect(fixture.run.stderr).toContain("native update lock release failed");
     },
     120_000,

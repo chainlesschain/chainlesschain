@@ -52,6 +52,8 @@ TARGET_CLAIM_PATH=""
 BACKUP_CLAIM_PATH=""
 LINEAGE_CLAIM_PATH=""
 ALIAS_CLAIM_PATH=""
+BACKUP_ORPHAN_PATH=""
+LINEAGE_ORPHAN_PATH=""
 RECOVERY_STATE_PATH=""
 RECOVERY_RETIRED_PATH=""
 RECOVERY_RETIRED_SHA256=""
@@ -117,8 +119,6 @@ cleanup() {
       echo "incomplete install transaction could not be rolled back" >&2
     fi
   fi
-  cleanup_failed=0
-  cleanup_removed=0
   if [ "$PRESERVE_RECOVERY" -eq 0 ] && [ -n "$RECOVERY_STATE_PATH" ] && { [ -e "$RECOVERY_STATE_PATH" ] || [ -L "$RECOVERY_STATE_PATH" ]; }; then
     if ! discard_transaction_snapshots; then
       [ "$status" -ne 0 ] || status=1
@@ -142,21 +142,9 @@ cleanup() {
       "$ALIAS_RESTORE_PATH"
     do
       if [ -n "$cleanup_path" ] && { [ -e "$cleanup_path" ] || [ -L "$cleanup_path" ]; }; then
-        if rm -f "$cleanup_path"; then
-          cleanup_removed=1
-        else
-          cleanup_failed=1
-        fi
+        record_retained_evidence "$cleanup_path"
       fi
     done
-    if [ "$cleanup_failed" -eq 0 ] && [ "$cleanup_removed" -eq 1 ] && [ -d "$INSTALL_DIR" ]; then
-      fsync_dir "$INSTALL_DIR" || cleanup_failed=1
-    fi
-    if [ "$cleanup_failed" -ne 0 ]; then
-      PRESERVE_RECOVERY=1
-      [ "$status" -ne 0 ] || status=1
-      echo "native install transaction cleanup was not durable" >&2
-    fi
   fi
   # Snapshot creation can fail before the durable recovery-state pointer is
   # published. At that point no public commit has happened, so these are only
@@ -172,27 +160,9 @@ cleanup() {
       "$PRIOR_ALIAS_PATH"
     do
       if [ -n "$cleanup_path" ] && { [ -e "$cleanup_path" ] || [ -L "$cleanup_path" ]; }; then
-        if rm -f "$cleanup_path"; then
-          cleanup_removed=1
-        else
-          cleanup_failed=1
-        fi
+        record_retained_evidence "$cleanup_path"
       fi
     done
-    if [ "$cleanup_failed" -eq 0 ] && [ "$cleanup_removed" -eq 1 ] && [ -d "$INSTALL_DIR" ]; then
-      fsync_dir "$INSTALL_DIR" || cleanup_failed=1
-    fi
-    if [ "$cleanup_failed" -ne 0 ]; then
-      PRESERVE_RECOVERY=1
-      [ "$status" -ne 0 ] || status=1
-      echo "native install staging cleanup was not durable" >&2
-    fi
-  fi
-  if [ "$CLEANUP_PENDING" -eq 1 ]; then
-    echo "native transaction is cleanup-pending/degraded; fd-bound tombstones were retained instead of unlinked" >&2
-    if [ -n "$RETAINED_EVIDENCE_PATHS" ]; then
-      printf '%s\n' "$RETAINED_EVIDENCE_PATHS" >&2
-    fi
   fi
   if [ "$PRESERVE_RECOVERY" -eq 1 ]; then
     if [ "$RECOVERY_RETIRED" -eq 1 ] || { [ -n "$RECOVERY_RETIRED_PATH" ] && { [ -e "$RECOVERY_RETIRED_PATH" ] || [ -L "$RECOVERY_RETIRED_PATH" ]; }; }; then
@@ -216,6 +186,8 @@ cleanup() {
       "$BACKUP_CLAIM_PATH" \
       "$LINEAGE_CLAIM_PATH" \
       "$ALIAS_CLAIM_PATH" \
+      "$BACKUP_ORPHAN_PATH" \
+      "$LINEAGE_ORPHAN_PATH" \
       "$RECOVERY_STATE_PATH" \
       "$RECOVERY_RETIRED_PATH" \
       "$RECOVERY_DELETE_PATH" \
@@ -249,7 +221,15 @@ cleanup() {
       fi
     fi
   fi
-  [ -n "$STAGING" ] && rm -rf "$STAGING"
+  if [ -n "$STAGING" ] && { [ -e "$STAGING" ] || [ -L "$STAGING" ]; }; then
+    record_retained_evidence "$STAGING"
+  fi
+  if [ "$CLEANUP_PENDING" -eq 1 ]; then
+    echo "native transaction is cleanup-pending/degraded; private transaction names were retained instead of deleted by pathname" >&2
+    if [ -n "$RETAINED_EVIDENCE_PATHS" ]; then
+      printf '%s\n' "$RETAINED_EVIDENCE_PATHS" >&2
+    fi
+  fi
   exit "$status"
 }
 trap cleanup 0
@@ -305,22 +285,146 @@ print(h.hexdigest())
 PY
 }
 
-startup_check() {
-  python3 - "$1" <<'PY'
-import subprocess, sys
+materialize_candidate() {
+  python3 - "materialize-candidate" "$1" "$2" "$3" <<'PY'
+import hashlib, os, stat, subprocess, sys
+
+marker, source_path, candidate_path, expected_sha = sys.argv[1:]
+if marker != 'materialize-candidate':
+    raise SystemExit('invalid candidate materialization invocation')
+
+nofollow = getattr(os, 'O_NOFOLLOW', 0)
+source_fd = os.open(source_path, os.O_RDONLY | nofollow)
+candidate_fd = -1
+startup_fd = -1
+
+def hash_fd(fd):
+    os.lseek(fd, 0, os.SEEK_SET)
+    digest = hashlib.sha256()
+    while True:
+        block = os.read(fd, 1024 * 1024)
+        if not block:
+            return digest.hexdigest()
+        digest.update(block)
 
 try:
+    source_before = os.fstat(source_fd)
+    source_path_before = os.lstat(source_path)
+    if (
+        not stat.S_ISREG(source_before.st_mode)
+        or not stat.S_ISREG(source_path_before.st_mode)
+        or (source_before.st_dev, source_before.st_ino) != (source_path_before.st_dev, source_path_before.st_ino)
+    ):
+        raise RuntimeError('verified artifact source changed before materialization')
+
+    flags = os.O_CREAT | os.O_EXCL | os.O_RDWR | nofollow
+    candidate_fd = os.open(candidate_path, flags, 0o600)
+    candidate_created = os.fstat(candidate_fd)
+    if not stat.S_ISREG(candidate_created.st_mode) or (candidate_created.st_dev == 0 and candidate_created.st_ino == 0):
+        raise RuntimeError('candidate has no stable regular-file identity')
+
+    source_digest = hashlib.sha256()
+    while True:
+        block = os.read(source_fd, 1024 * 1024)
+        if not block:
+            break
+        source_digest.update(block)
+        view = memoryview(block)
+        while view:
+            written = os.write(candidate_fd, view)
+            view = view[written:]
+    if source_digest.hexdigest() != expected_sha:
+        raise RuntimeError('verified artifact changed while it was copied')
+
+    os.fchmod(candidate_fd, 0o755)
+    os.fsync(candidate_fd)
+    if hash_fd(candidate_fd) != expected_sha:
+        raise RuntimeError('candidate changed after same-fd materialization')
+
+    # Linux rejects executing an inode while any process holds it open for
+    # writing (ETXTBSY). Bind a read-only descriptor through the no-follow
+    # public name, prove that it is the exact inode just materialized, and only
+    # then close the writable descriptor. All writes, chmod, fsync, hashing,
+    # and the handoff identity check above remain bound to candidate_fd.
+    candidate_materialized = os.fstat(candidate_fd)
+    startup_fd = os.open(candidate_path, os.O_RDONLY | nofollow)
+    startup_bound = os.fstat(startup_fd)
+    candidate_path_bound = os.lstat(candidate_path)
+    handoff_stable = (
+        stat.S_ISREG(candidate_materialized.st_mode)
+        and stat.S_ISREG(startup_bound.st_mode)
+        and stat.S_ISREG(candidate_path_bound.st_mode)
+        and (candidate_created.st_dev, candidate_created.st_ino)
+            == (candidate_materialized.st_dev, candidate_materialized.st_ino)
+        and (candidate_materialized.st_dev, candidate_materialized.st_ino)
+            == (startup_bound.st_dev, startup_bound.st_ino)
+        and (startup_bound.st_dev, startup_bound.st_ino)
+            == (candidate_path_bound.st_dev, candidate_path_bound.st_ino)
+        and stat.S_IMODE(candidate_materialized.st_mode) == 0o755
+        and candidate_materialized.st_size == startup_bound.st_size == candidate_path_bound.st_size
+        and candidate_materialized.st_mtime_ns == startup_bound.st_mtime_ns == candidate_path_bound.st_mtime_ns
+        and candidate_materialized.st_ctime_ns == startup_bound.st_ctime_ns == candidate_path_bound.st_ctime_ns
+    )
+    if not handoff_stable:
+        raise RuntimeError('candidate identity changed during read-only fd handoff')
+
+    descriptor_path = f'/proc/self/fd/{startup_fd}'
+    if not os.path.exists(descriptor_path):
+        descriptor_path = f'/dev/fd/{startup_fd}'
+    if not os.path.exists(descriptor_path):
+        raise RuntimeError('fd-bound candidate execution is unavailable')
+    os.close(candidate_fd)
+    candidate_fd = -1
     result = subprocess.run(
-        [sys.argv[1], '--version'],
+        [descriptor_path, '--version'],
         stdin=subprocess.DEVNULL,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
         timeout=30,
         check=False,
+        pass_fds=(startup_fd,),
     )
-except (OSError, subprocess.TimeoutExpired):
-    raise SystemExit(1)
-raise SystemExit(result.returncode)
+    if result.returncode != 0:
+        raise RuntimeError('verified candidate failed its fd-bound startup check')
+
+    candidate_after = os.fstat(startup_fd)
+    candidate_path_after = os.lstat(candidate_path)
+    source_after = os.fstat(source_fd)
+    source_path_after = os.lstat(source_path)
+    candidate_sha = hash_fd(startup_fd)
+    source_stable = (
+        stat.S_ISREG(source_after.st_mode)
+        and stat.S_ISREG(source_path_after.st_mode)
+        and (source_before.st_dev, source_before.st_ino) == (source_after.st_dev, source_after.st_ino)
+        and (source_after.st_dev, source_after.st_ino) == (source_path_after.st_dev, source_path_after.st_ino)
+        and source_before.st_size == source_after.st_size == source_path_after.st_size
+        and source_before.st_mtime_ns == source_after.st_mtime_ns == source_path_after.st_mtime_ns
+        and source_before.st_ctime_ns == source_after.st_ctime_ns == source_path_after.st_ctime_ns
+    )
+    candidate_stable = (
+        stat.S_ISREG(candidate_after.st_mode)
+        and stat.S_ISREG(candidate_path_after.st_mode)
+        and (candidate_created.st_dev, candidate_created.st_ino) == (candidate_materialized.st_dev, candidate_materialized.st_ino)
+        and (candidate_materialized.st_dev, candidate_materialized.st_ino) == (startup_bound.st_dev, startup_bound.st_ino)
+        and (startup_bound.st_dev, startup_bound.st_ino) == (candidate_after.st_dev, candidate_after.st_ino)
+        and (candidate_after.st_dev, candidate_after.st_ino) == (candidate_path_after.st_dev, candidate_path_after.st_ino)
+        and stat.S_IMODE(candidate_after.st_mode) == 0o755
+        and candidate_after.st_size == candidate_path_after.st_size
+        and candidate_after.st_mtime_ns == candidate_path_after.st_mtime_ns
+        and candidate_after.st_ctime_ns == candidate_path_after.st_ctime_ns
+    )
+    if not source_stable or not candidate_stable or candidate_sha != expected_sha:
+        raise RuntimeError('candidate identity changed during fd-bound validation')
+    print(
+        f'{candidate_after.st_dev}:{candidate_after.st_ino}:{candidate_after.st_mode} {candidate_sha}',
+        flush=True,
+    )
+finally:
+    if candidate_fd >= 0:
+        os.close(candidate_fd)
+    if startup_fd >= 0:
+        os.close(startup_fd)
+    os.close(source_fd)
 PY
 }
 
@@ -402,7 +506,7 @@ release_update_lock() {
   LOCK_RELEASE_DIR="$INSTALL_DIR/.chainlesschain.lock-release-$TRANSACTION_ID"
   LOCK_ANCHOR_PATH="$INSTALL_DIR/.chainlesschain.lock-anchor-$TRANSACTION_ID"
   python3 - "release-lock" "$LOCK_PATH" "$LOCK_TOKEN" "$LOCK_IDENTITY" "$LOCK_RELEASE_DIR" "$LOCK_ANCHOR_PATH" "$INSTALL_DIR" <<'PY'
-import errno, os, stat, sys
+import ctypes, errno, os, stat, sys
 
 marker, lock_path, token, expected_identity, release_dir, anchor_path, install_dir = sys.argv[1:]
 if marker != 'release-lock':
@@ -434,6 +538,70 @@ def lexists(path):
         return True
     except FileNotFoundError:
         return False
+
+def rename_noreplace(source, destination):
+    libc = ctypes.CDLL(None, use_errno=True)
+    source_bytes = os.fsencode(source)
+    destination_bytes = os.fsencode(destination)
+    result = -1
+    error_number = errno.ENOTSUP
+    if sys.platform.startswith('linux'):
+        function = getattr(libc, 'renameat2', None)
+        if function is not None:
+            function.argtypes = [ctypes.c_int, ctypes.c_char_p, ctypes.c_int, ctypes.c_char_p, ctypes.c_uint]
+            function.restype = ctypes.c_int
+            result = function(-100, source_bytes, -100, destination_bytes, 1)
+            error_number = ctypes.get_errno()
+    elif sys.platform == 'darwin':
+        function = getattr(libc, 'renamex_np', None)
+        if function is not None:
+            function.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_uint]
+            function.restype = ctypes.c_int
+            result = function(source_bytes, destination_bytes, 0x00000004)
+            error_number = ctypes.get_errno()
+    if result == 0:
+        return
+    fallback_errors = {
+        errno.EINVAL,
+        errno.ENOSYS,
+        getattr(errno, 'ENOTSUP', errno.EINVAL),
+        getattr(errno, 'EOPNOTSUPP', errno.EINVAL),
+    }
+    if error_number not in fallback_errors:
+        raise OSError(error_number, os.strerror(error_number), destination)
+
+    # Without atomic no-overwrite rename, retain both hard-link names and fail
+    # closed. There is no conditional unlink-by-inode for retiring the public
+    # lock without risking deletion of a same-name successor.
+    source_value = os.lstat(source)
+    if not stat.S_ISREG(source_value.st_mode):
+        raise OSError(errno.EINVAL, 'lock release fallback requires a regular file')
+    held_fd = os.open(source, os.O_RDONLY | getattr(os, 'O_NOFOLLOW', 0))
+    try:
+        held_value = os.fstat(held_fd)
+        if (held_value.st_dev, held_value.st_ino) != (source_value.st_dev, source_value.st_ino):
+            raise RuntimeError('public lock changed before fallback anchoring')
+        os.link(source, destination, follow_symlinks=False)
+        source_now = os.lstat(source)
+        destination_now = os.lstat(destination)
+        held_now = os.fstat(held_fd)
+        identities = {
+            (held_value.st_dev, held_value.st_ino),
+            (held_now.st_dev, held_now.st_ino),
+            (source_now.st_dev, source_now.st_ino),
+            (destination_now.st_dev, destination_now.st_ino),
+        }
+        if len(identities) != 1:
+            raise RuntimeError('lock release fallback changed identity')
+        durability_barrier('fallback-held-dir', release_dir)
+        durability_barrier('fallback-parent', install_dir)
+        raise OSError(
+            errno.ENOTSUP,
+            'atomic no-overwrite lock release is unavailable; retained dual-name evidence',
+            destination,
+        )
+    finally:
+        os.close(held_fd)
 
 def read_lock(path):
     flags = os.O_RDONLY | getattr(os, 'O_NOFOLLOW', 0)
@@ -504,10 +672,8 @@ def restore_owned_without_overwrite(source_path):
 if lexists(release_dir) or lexists(anchor_path):
     raise SystemExit('lock release recovery path already exists')
 
-# Keep a stable hard-link anchor until every rename, directory fsync, held-link
-# unlink, tombstone rmdir, and parent fsync has succeeded. Thus every failure
-# before the final anchor unlink can restore the owned public lock without
-# touching a successor.
+# Keep a stable hard-link anchor permanently as transaction evidence. POSIX
+# cannot safely unlink this private name after pathname validation.
 os.link(lock_path, anchor_path, follow_symlinks=False)
 if not expected_lock(anchor_path):
     raise SystemExit('native update lock changed before release anchoring')
@@ -516,33 +682,21 @@ os.mkdir(release_dir, 0o700)
 durability_barrier('release-dir-parent', install_dir)
 
 held_path = os.path.join(release_dir, 'owned.lock')
+released = False
 try:
-    # Rename first and validate the moved inode afterwards. If a successor won
-    # the race, restore it without overwriting any newer public lock and retain
-    # both the tombstone and our original anchor as evidence.
-    os.rename(lock_path, held_path)
+    # Atomically remove only the exact public name into an absent private name.
+    # The held file, anchor, and containing directory are never path-deleted.
+    rename_noreplace(lock_path, held_path)
     if not expected_lock(held_path):
         link_without_overwrite(held_path)
         raise SystemExit('refusing to delete a successor native update lock')
     durability_barrier('renamed-release-dir', release_dir)
     durability_barrier('renamed-parent', install_dir)
-    os.unlink(held_path)
-    durability_barrier('unlinked-release-dir', release_dir)
-    os.rmdir(release_dir)
-    durability_barrier('removed-release-dir-parent', install_dir)
-    try:
-        # This is deliberately the final fallible operation. The parent was
-        # already synchronized with no public lock and no tombstone directory;
-        # a crash may conservatively resurrect this private anchor, never grant
-        # two owners. An unlink failure restores the public lock and is reported.
-        os.unlink(anchor_path)
-        durability_barrier('anchor-removed-parent', install_dir)
-    except OSError:
-        if lexists(anchor_path):
-            restore_owned_without_overwrite(anchor_path)
-        raise
+    if not expected_lock(held_path) or not expected_lock(anchor_path):
+        raise SystemExit('retained lock release evidence changed')
+    released = True
 finally:
-    if lexists(held_path):
+    if not released and lexists(held_path):
         try:
             if expected_lock(held_path):
                 restore_owned_without_overwrite(held_path)
@@ -550,7 +704,7 @@ finally:
                 link_without_overwrite(held_path)
         except OSError:
             pass
-    elif lexists(anchor_path):
+    elif not released and lexists(anchor_path):
         try:
             restore_owned_without_overwrite(anchor_path)
         except OSError:
@@ -558,8 +712,8 @@ finally:
 PY
   release_status=$?
   if [ "$release_status" -eq 0 ]; then
-    LOCK_RELEASE_DIR=""
-    LOCK_ANCHOR_PATH=""
+    record_retained_evidence "$LOCK_RELEASE_DIR"
+    record_retained_evidence "$LOCK_ANCHOR_PATH"
   fi
   return "$release_status"
 }
@@ -1232,6 +1386,70 @@ finally:
 PY
   record_retained_evidence "$mutation_tombstone_path"
   return "$mutation_status"
+}
+
+quarantine_regular_orphan() {
+  orphan_public_path=$1
+  orphan_tombstone_path=$2
+  orphan_label=$3
+  orphan_sha=$(sha256_file "$orphan_public_path") || return 1
+  orphan_identity=$(file_identity "$orphan_public_path") || return 1
+  regular_file_matches "$orphan_public_path" "$orphan_sha" "$orphan_identity" || return 1
+  assert_lock_owned || return 1
+  orphan_retention_status=0
+  python3 - \
+    "retain-regular-orphan" \
+    "$orphan_public_path" \
+    "$orphan_sha" \
+    "$orphan_identity" <<'PY' || orphan_retention_status=$?
+import hashlib, os, stat, sys
+
+marker, orphan_path, expected_digest, expected_identity = sys.argv[1:]
+if marker != 'retain-regular-orphan':
+    raise SystemExit('invalid orphan-retention invocation')
+
+flags = os.O_RDONLY | getattr(os, 'O_NOFOLLOW', 0)
+fd = os.open(orphan_path, flags)
+try:
+    before = os.fstat(fd)
+    path_before = os.lstat(orphan_path)
+    digest = hashlib.sha256()
+    while True:
+        block = os.read(fd, 1024 * 1024)
+        if not block:
+            break
+        digest.update(block)
+    after = os.fstat(fd)
+    path_after = os.lstat(orphan_path)
+    identity = f'{after.st_dev}:{after.st_ino}:{after.st_mode}'
+    stable = (
+        stat.S_ISREG(before.st_mode)
+        and stat.S_ISREG(path_before.st_mode)
+        and stat.S_ISREG(after.st_mode)
+        and stat.S_ISREG(path_after.st_mode)
+        and before.st_nlink > 0
+        and not (before.st_dev == 0 and before.st_ino == 0)
+        and (before.st_dev, before.st_ino) == (path_before.st_dev, path_before.st_ino)
+        and (before.st_dev, before.st_ino) == (after.st_dev, after.st_ino)
+        and (after.st_dev, after.st_ino) == (path_after.st_dev, path_after.st_ino)
+        and before.st_size == after.st_size == path_after.st_size
+        and before.st_mtime_ns == after.st_mtime_ns == path_after.st_mtime_ns
+        and before.st_ctime_ns == after.st_ctime_ns == path_after.st_ctime_ns
+    )
+    if not stable or digest.hexdigest() != expected_digest or identity != expected_identity:
+        raise SystemExit('orphan public path changed while it was fd-bound')
+finally:
+    os.close(fd)
+
+# POSIX has no rename-if-path-still-resolves-to-this-fd operation. Even after
+# the checks above, a same-uid process can replace orphan_path before a
+# pathname rename. Retain the public name and force manual adjudication.
+raise SystemExit(75)
+PY
+  record_retained_evidence "$orphan_public_path"
+  echo "$orphan_label retained at $orphan_public_path; the public name cannot be atomically quarantined by verified identity" >&2
+  [ "$orphan_retention_status" -ne 0 ] || return 1
+  return 1
 }
 
 create_alias_restore_candidate() {
@@ -2109,28 +2327,33 @@ fi
 
 if [ ! -f "$TARGET_PATH" ]; then
   if [ -f "$BACKUP_PATH" ]; then
-    assert_lock_owned || die "native update lock ownership was lost before backup quarantine"
-    mv "$BACKUP_PATH" "$BACKUP_PATH.orphaned-$TRANSACTION_ID"
+    BACKUP_ORPHAN_PATH="$BACKUP_PATH.orphaned-$TRANSACTION_ID"
+    quarantine_regular_orphan "$BACKUP_PATH" "$BACKUP_ORPHAN_PATH" "orphaned last-known-good backup" || {
+      PRESERVE_RECOVERY=1
+      die "orphaned last-known-good backup quarantine failed closed"
+    }
   fi
   if [ -f "$LINEAGE_PATH" ]; then
-    assert_lock_owned || die "native update lock ownership was lost before lineage quarantine"
-    mv "$LINEAGE_PATH" "$LINEAGE_PATH.orphaned-$TRANSACTION_ID"
+    LINEAGE_ORPHAN_PATH="$LINEAGE_PATH.orphaned-$TRANSACTION_ID"
+    quarantine_regular_orphan "$LINEAGE_PATH" "$LINEAGE_ORPHAN_PATH" "orphaned native update lineage" || {
+      PRESERVE_RECOVERY=1
+      die "orphaned native update lineage quarantine failed closed"
+    }
   fi
   fsync_dir "$INSTALL_DIR"
 fi
-CANDIDATE_PATH=$(mktemp "$INSTALL_DIR/.chainlesschain.new.XXXXXX")
-cp "$ARTIFACT" "$CANDIDATE_PATH"
-chmod 755 "$CANDIDATE_PATH"
-if [ "$(sha256_file "$CANDIDATE_PATH")" != "$ARTIFACT_SHA256" ]; then
-  die "same-filesystem staging copy failed SHA-256 verification"
+CANDIDATE_PATH="$INSTALL_DIR/.chainlesschain.new.$TRANSACTION_ID"
+[ ! -e "$CANDIDATE_PATH" ] && [ ! -L "$CANDIDATE_PATH" ] || die "candidate path already exists"
+candidate_metadata=""
+if candidate_metadata=$(materialize_candidate "$ARTIFACT" "$CANDIDATE_PATH" "$ARTIFACT_SHA256"); then
+  :
+else
+  die "same-filesystem candidate materialization failed closed"
 fi
-fsync_file "$CANDIDATE_PATH"
-if [ "$(sha256_file "$CANDIDATE_PATH")" != "$ARTIFACT_SHA256" ]; then
-  die "same-filesystem candidate changed before pre-install startup check"
-fi
-if ! startup_check "$CANDIDATE_PATH"; then
-  die "verified artifact failed its pre-install startup check"
-fi
+[ -n "$candidate_metadata" ] && [ "${candidate_metadata#* }" != "$candidate_metadata" ] || die "candidate materialization returned invalid metadata"
+CANDIDATE_IDENTITY=${candidate_metadata%% *}
+candidate_sha=${candidate_metadata#* }
+[ "$candidate_sha" = "$ARTIFACT_SHA256" ] || die "candidate materialization returned the wrong SHA-256"
 
 # Preserve the exact pre-transaction rollback generation. Hard-linking the
 # regular state files keeps their inode, mode, and bytes available even after
@@ -2226,10 +2449,6 @@ if [ "$HAD_ALIAS" -eq 1 ]; then
 elif [ -e "$ALIAS_PATH" ] || [ -L "$ALIAS_PATH" ]; then
   die "CLI alias appeared while the transaction was staged"
 fi
-if [ "$(sha256_file "$CANDIDATE_PATH")" != "$ARTIFACT_SHA256" ]; then
-  die "same-filesystem candidate changed before commit"
-fi
-CANDIDATE_IDENTITY=$(file_identity "$CANDIDATE_PATH")
 regular_file_matches "$CANDIDATE_PATH" "$ARTIFACT_SHA256" "$CANDIDATE_IDENTITY" || die "same-filesystem candidate identity changed before commit"
 INSTALLED_TARGET_IDENTITY=$CANDIDATE_IDENTITY
 # Both paths are siblings, so this is the sole atomic commit point.
@@ -2269,17 +2488,9 @@ if [ "$(sha256_file "$TARGET_PATH")" != "$ARTIFACT_SHA256" ]; then
   die "installed target changed at the commit boundary"
 fi
 regular_file_matches "$TARGET_PATH" "$ARTIFACT_SHA256" "$INSTALLED_TARGET_IDENTITY" || die "installed target identity was unstable at the commit boundary"
-if ! startup_check "$TARGET_PATH"; then
-  echo "installed binary failed verification; rolling back" >&2
-  if ! rollback_install; then
-    die "installed binary failed verification and rollback also failed"
-  fi
-  SWAPPED=0
-  die "installed binary failed verification; the previous version was restored"
-fi
 
 # Publish the pending backup only after the canonical candidate has passed its
-# post-commit startup check. Before this point any failure restores from the
+# fd-bound startup check. Before this point any failure restores from the
 # transaction-local snapshot and leaves the previous lineage generation alone.
 if [ "$HAD_TARGET" -eq 1 ]; then
   assert_regular_file_or_missing "$BACKUP_PATH" "last-known-good backup"
