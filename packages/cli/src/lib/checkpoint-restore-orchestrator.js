@@ -129,6 +129,15 @@ function commitStateUnknown(error) {
   return false;
 }
 
+function hasPendingSessionIntent(saga) {
+  if (!saga?.pending || !Array.isArray(saga.events)) return false;
+  return saga.events.some(
+    (event) =>
+      event?.phase === "intent_committed" &&
+      event?.evidence?.intentAuthority === "session",
+  );
+}
+
 function pathKey(value, platform) {
   if (typeof value !== "string" || value.length === 0) return null;
   const resolved = path.resolve(value);
@@ -508,6 +517,7 @@ export function runCheckpointRestoreOperation(options = {}) {
       sagaLoadFailed ||
       commitStateUnknown(operationError) ||
       operationError.checkpointRestoreSessionSettled === true ||
+      hasPendingSessionIntent(saga) ||
       RECOVERY_PHASES.has(saga?.phase) ||
       operationError.restorePhase === "workspace-mutation" ||
       operationError.restorePhase === "workspace-applied";

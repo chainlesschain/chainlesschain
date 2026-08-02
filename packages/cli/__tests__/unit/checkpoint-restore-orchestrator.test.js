@@ -522,6 +522,97 @@ describe("checkpoint restore orchestrator", () => {
     expect(harness.retained).toBe(true);
   });
 
+  it("retains a durable session intent when its adapter throws a known error", () => {
+    const harness = createHarness();
+    const plan = restorePlan(harness, { restoreSurface: "timeline" });
+    let caught;
+    try {
+      runCheckpointRestoreOperation({
+        operationId: "checkpoint-restore-session-known-failure",
+        plan,
+        revalidate: () => plan,
+        restore: successfulRestore(harness),
+        withSessionAuthority({ commitIntent }) {
+          commitIntent(HASH("8"));
+          const error = new Error(
+            "session adapter failed after durable intent",
+          );
+          error.code = "SESSION_ADAPTER_FAILED";
+          throw error;
+        },
+        dependencies: harness.dependencies,
+      });
+    } catch (error) {
+      caught = error;
+    }
+
+    expect(caught).toMatchObject({
+      code: "WORKSPACE_TRANSACTION_RECOVERY_REQUIRED",
+      checkpointRestoreOperationId: "checkpoint-restore-session-known-failure",
+      checkpointRestoreSagaPhase: "recovery_required",
+      checkpointRestoreRecoveryRequired: true,
+      workspaceLockRetained: true,
+    });
+    expect(caught.checkpointRestoreCause).toMatchObject({
+      code: "SESSION_ADAPTER_FAILED",
+      checkpointRestoreRecoveryRequired: true,
+    });
+    expect(harness.phases).toEqual([
+      "created",
+      "locked",
+      "prepared",
+      "intent_committed",
+      "recovery_required",
+    ]);
+    expect(harness.retained).toBe(true);
+    expect(harness.archived).toBe(false);
+  });
+
+  it("retains a durable session intent after pre-mutation safety is ready", () => {
+    const harness = createHarness();
+    const plan = restorePlan(harness, { restoreSurface: "timeline" });
+
+    expect(() =>
+      runCheckpointRestoreOperation({
+        operationId: "checkpoint-restore-session-safety-failure",
+        plan,
+        revalidate: () => plan,
+        restore({ hooks }) {
+          hooks.onSafetyReady({
+            safetyId: "safety-session",
+            safetyIdentity: `git:${"b".repeat(40)}`,
+            safetyPlanIdentity: HASH("3"),
+            safetyCoverage: "full",
+          });
+          const error = new Error("restore stopped after safety became ready");
+          error.code = "SESSION_SAFETY_READY_FAILURE";
+          throw error;
+        },
+        withSessionAuthority({ commitIntent, restoreWorkspace }) {
+          commitIntent(HASH("8"));
+          return restoreWorkspace();
+        },
+        dependencies: harness.dependencies,
+      }),
+    ).toThrow(
+      expect.objectContaining({
+        code: "WORKSPACE_TRANSACTION_RECOVERY_REQUIRED",
+        checkpointRestoreSagaPhase: "recovery_required",
+        checkpointRestoreRecoveryRequired: true,
+      }),
+    );
+    expect(harness.phases).toEqual([
+      "created",
+      "locked",
+      "prepared",
+      "intent_committed",
+      "safety_ready",
+      "recovery_required",
+    ]);
+    expect(harness.retained).toBe(true);
+    expect(harness.archived).toBe(false);
+  });
+
   it("retains a settled session intent when its adapter omits workspace restore", () => {
     const harness = createHarness();
     const plan = restorePlan(harness, { restoreSurface: "timeline" });
