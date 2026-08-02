@@ -39,16 +39,26 @@ CANDIDATE_IDENTITY=""
 BACKUP_TEMP_PATH=""
 ROLLBACK_TEMP_PATH=""
 ALIAS_TEMP_PATH=""
+INSTALLED_ALIAS_ANCHOR_PATH=""
 PRIOR_TARGET_PATH=""
 PRIOR_BACKUP_PATH=""
 PRIOR_LINEAGE_PATH=""
 PRIOR_ALIAS_PATH=""
 BACKUP_RESTORE_PATH=""
 LINEAGE_RESTORE_PATH=""
+LINEAGE_TEMP_PATH=""
 ALIAS_RESTORE_PATH=""
+TARGET_CLAIM_PATH=""
+BACKUP_CLAIM_PATH=""
+LINEAGE_CLAIM_PATH=""
+ALIAS_CLAIM_PATH=""
 RECOVERY_STATE_PATH=""
 RECOVERY_RETIRED_PATH=""
+RECOVERY_RETIRED_SHA256=""
+RECOVERY_RETIRED_IDENTITY=""
+RECOVERY_DELETE_PATH=""
 RECOVERY_RETIRED=0
+RECOVERY_RETIREMENT_GUARD=0
 HAD_TARGET=0
 HAD_BACKUP=0
 HAD_LINEAGE=0
@@ -59,6 +69,8 @@ BACKUP_COMMITTED=0
 ALIAS_COMMITTED=0
 LINEAGE_COMMIT_STARTED=0
 PRESERVE_RECOVERY=0
+CLEANUP_PENDING=0
+RETAINED_EVIDENCE_PATHS=""
 TRANSACTION_ID=""
 OLD_TARGET_SHA256=""
 OLD_TARGET_IDENTITY=""
@@ -74,11 +86,29 @@ OLD_ALIAS_IDENTITY=""
 CANONICAL_ALIAS_TARGET_SHA256=""
 INSTALLED_ALIAS_IDENTITY=""
 
+record_retained_evidence() {
+  retained_evidence_path=$1
+  [ -n "$retained_evidence_path" ] || return 0
+  if [ -e "$retained_evidence_path" ] || [ -L "$retained_evidence_path" ]; then
+    CLEANUP_PENDING=1
+    if [ -z "$RETAINED_EVIDENCE_PATHS" ]; then
+      RETAINED_EVIDENCE_PATHS=$retained_evidence_path
+    else
+      RETAINED_EVIDENCE_PATHS="$RETAINED_EVIDENCE_PATHS
+$retained_evidence_path"
+    fi
+  fi
+}
+
 cleanup() {
   status=$?
   set +e
   trap - 0 HUP INT TERM
-  if [ "$SWAPPED" -eq 1 ] && [ "$COMMITTED" -eq 0 ]; then
+  if [ "$RECOVERY_RETIREMENT_GUARD" -eq 1 ] || \
+    { [ -n "$RECOVERY_RETIRED_PATH" ] && { [ -e "$RECOVERY_RETIRED_PATH" ] || [ -L "$RECOVERY_RETIRED_PATH" ]; }; }; then
+    PRESERVE_RECOVERY=1
+  fi
+  if [ "$SWAPPED" -eq 1 ] && [ "$COMMITTED" -eq 0 ] && [ "$PRESERVE_RECOVERY" -eq 0 ]; then
     if rollback_install; then
       SWAPPED=0
       echo "incomplete install transaction was rolled back" >&2
@@ -91,9 +121,13 @@ cleanup() {
   cleanup_removed=0
   if [ "$PRESERVE_RECOVERY" -eq 0 ] && [ -n "$RECOVERY_STATE_PATH" ] && { [ -e "$RECOVERY_STATE_PATH" ] || [ -L "$RECOVERY_STATE_PATH" ]; }; then
     if ! discard_transaction_snapshots; then
-      PRESERVE_RECOVERY=1
       [ "$status" -ne 0 ] || status=1
-      echo "native recovery-set retirement or cleanup failed" >&2
+      if [ "$CLEANUP_PENDING" -eq 1 ] && [ "$RECOVERY_RETIREMENT_GUARD" -eq 0 ]; then
+        echo "native recovery-set cleanup is pending; retained tombstones require later garbage collection" >&2
+      else
+        PRESERVE_RECOVERY=1
+        echo "native recovery-set retirement or cleanup failed" >&2
+      fi
     fi
   fi
   if [ "$PRESERVE_RECOVERY" -eq 0 ]; then
@@ -101,8 +135,10 @@ cleanup() {
       "$CANDIDATE_PATH" \
       "$ROLLBACK_TEMP_PATH" \
       "$ALIAS_TEMP_PATH" \
+      "$INSTALLED_ALIAS_ANCHOR_PATH" \
       "$BACKUP_RESTORE_PATH" \
       "$LINEAGE_RESTORE_PATH" \
+      "$LINEAGE_TEMP_PATH" \
       "$ALIAS_RESTORE_PATH"
     do
       if [ -n "$cleanup_path" ] && { [ -e "$cleanup_path" ] || [ -L "$cleanup_path" ]; }; then
@@ -152,6 +188,12 @@ cleanup() {
       echo "native install staging cleanup was not durable" >&2
     fi
   fi
+  if [ "$CLEANUP_PENDING" -eq 1 ]; then
+    echo "native transaction is cleanup-pending/degraded; fd-bound tombstones were retained instead of unlinked" >&2
+    if [ -n "$RETAINED_EVIDENCE_PATHS" ]; then
+      printf '%s\n' "$RETAINED_EVIDENCE_PATHS" >&2
+    fi
+  fi
   if [ "$PRESERVE_RECOVERY" -eq 1 ]; then
     if [ "$RECOVERY_RETIRED" -eq 1 ] || { [ -n "$RECOVERY_RETIRED_PATH" ] && { [ -e "$RECOVERY_RETIRED_PATH" ] || [ -L "$RECOVERY_RETIRED_PATH" ]; }; }; then
       echo "retired recovery-set cleanup is incomplete; remaining artifacts may be partial" >&2
@@ -161,15 +203,22 @@ cleanup() {
       "$BACKUP_TEMP_PATH" \
       "$ROLLBACK_TEMP_PATH" \
       "$ALIAS_TEMP_PATH" \
+      "$INSTALLED_ALIAS_ANCHOR_PATH" \
       "$PRIOR_TARGET_PATH" \
       "$PRIOR_BACKUP_PATH" \
       "$PRIOR_LINEAGE_PATH" \
       "$PRIOR_ALIAS_PATH" \
       "$BACKUP_RESTORE_PATH" \
       "$LINEAGE_RESTORE_PATH" \
+      "$LINEAGE_TEMP_PATH" \
       "$ALIAS_RESTORE_PATH" \
+      "$TARGET_CLAIM_PATH" \
+      "$BACKUP_CLAIM_PATH" \
+      "$LINEAGE_CLAIM_PATH" \
+      "$ALIAS_CLAIM_PATH" \
       "$RECOVERY_STATE_PATH" \
       "$RECOVERY_RETIRED_PATH" \
+      "$RECOVERY_DELETE_PATH" \
       "$LOCK_RELEASE_DIR" \
       "$LOCK_ANCHOR_PATH"
     do
@@ -519,12 +568,12 @@ write_lineage() {
   current_sha=$1
   previous_sha=$2
   operation=$3
-  python3 - "write-lineage" "$LINEAGE_PATH" "$TRANSACTION_ID" "$operation" "$current_sha" "$previous_sha" <<'PY'
-import errno, hashlib, json, os, stat, sys, tempfile
-marker, lineage_path, transaction_id, operation, current_sha, previous_sha = sys.argv[1:]
+  python3 - "write-lineage" "$LINEAGE_TEMP_PATH" "$TRANSACTION_ID" "$operation" "$current_sha" "$previous_sha" <<'PY'
+import errno, hashlib, json, os, stat, sys
+marker, staging, transaction_id, operation, current_sha, previous_sha = sys.argv[1:]
 if marker != 'write-lineage':
     raise SystemExit('invalid lineage writer invocation')
-directory = os.path.dirname(lineage_path)
+directory = os.path.dirname(staging)
 payload = {
     'schema': 'chainlesschain.native-update-lineage.v1',
     'transactionId': transaction_id,
@@ -534,7 +583,8 @@ payload = {
     'updatedAt': __import__('datetime').datetime.now(__import__('datetime').timezone.utc).isoformat().replace('+00:00', 'Z'),
 }
 payload_bytes = (json.dumps(payload, separators=(',', ':')) + '\n').encode('utf-8')
-fd, staging = tempfile.mkstemp(prefix='.chainlesschain.lineage.', dir=directory)
+flags = os.O_CREAT | os.O_EXCL | os.O_WRONLY | getattr(os, 'O_NOFOLLOW', 0)
+fd = os.open(staging, flags, 0o600)
 held_fd = -1
 try:
     with os.fdopen(fd, 'wb') as stream:
@@ -546,20 +596,18 @@ try:
     held_before = os.fstat(held_fd)
     if not stat.S_ISREG(held_before.st_mode) or (held_before.st_dev == 0 and held_before.st_ino == 0):
         raise SystemExit('lineage staging file has no stable identity')
-    os.replace(staging, lineage_path)
-    published = os.lstat(lineage_path)
+    staged = os.lstat(staging)
     held_after = os.fstat(held_fd)
     if (
-        not stat.S_ISREG(published.st_mode)
+        not stat.S_ISREG(staged.st_mode)
         or (held_before.st_dev, held_before.st_ino) != (held_after.st_dev, held_after.st_ino)
-        or (held_after.st_dev, held_after.st_ino) != (published.st_dev, published.st_ino)
+        or (held_after.st_dev, held_after.st_ino) != (staged.st_dev, staged.st_ino)
         or held_before.st_size != held_after.st_size
         or held_after.st_size != len(payload_bytes)
     ):
-        raise SystemExit('published lineage changed at the commit boundary')
-    # Emit exact rollback metadata before the directory barrier. If that barrier
-    # fails after os.replace(), the caller can still distinguish this generation
-    # from an identically-shaped successor and fail closed during rollback.
+        raise SystemExit('staged lineage changed before publication')
+    # Emit exact metadata before the directory barrier. The shell publishes this
+    # fd-bound staging inode through mutate_public_path only after the barrier.
     print(
         f'{held_after.st_dev}:{held_after.st_ino}:{held_after.st_mode} '
         f'{hashlib.sha256(payload_bytes).hexdigest()}',
@@ -580,12 +628,6 @@ try:
                 raise
     finally:
         os.close(dir_fd)
-except BaseException:
-    try:
-        os.unlink(staging)
-    except FileNotFoundError:
-        pass
-    raise
 finally:
     if fd >= 0:
         os.close(fd)
@@ -598,6 +640,8 @@ commit_lineage() {
   lineage_current_sha=$1
   lineage_previous_sha=$2
   lineage_operation=$3
+  LINEAGE_TEMP_PATH="$INSTALL_DIR/.chainlesschain.staged-$TRANSACTION_ID.update-lineage.json"
+  [ ! -e "$LINEAGE_TEMP_PATH" ] && [ ! -L "$LINEAGE_TEMP_PATH" ] || return 1
   lineage_metadata=""
   lineage_status=0
   if lineage_metadata=$(write_lineage "$lineage_current_sha" "$lineage_previous_sha" "$lineage_operation"); then
@@ -611,6 +655,40 @@ commit_lineage() {
   fi
   [ "$lineage_status" -eq 0 ] || return "$lineage_status"
   [ -n "$INSTALLED_LINEAGE_IDENTITY" ] && [ -n "$INSTALLED_LINEAGE_SHA256" ] || return 1
+  LINEAGE_CLAIM_PATH="$INSTALL_DIR/.chainlesschain.lineage-publish-claimed-$TRANSACTION_ID"
+  if [ "$HAD_LINEAGE" -eq 1 ]; then
+    if ! mutate_public_path \
+      replace \
+      "$LINEAGE_PATH" \
+      "$LINEAGE_TEMP_PATH" \
+      "$LINEAGE_CLAIM_PATH" \
+      regular \
+      "$OLD_LINEAGE_SHA256" \
+      "$OLD_LINEAGE_IDENTITY" \
+      regular \
+      "$INSTALLED_LINEAGE_SHA256" \
+      "$INSTALLED_LINEAGE_IDENTITY"; then
+      PRESERVE_RECOVERY=1
+      return 1
+    fi
+  else
+    if ! mutate_public_path \
+      replace \
+      "$LINEAGE_PATH" \
+      "$LINEAGE_TEMP_PATH" \
+      "$LINEAGE_CLAIM_PATH" \
+      absent \
+      "" \
+      "" \
+      regular \
+      "$INSTALLED_LINEAGE_SHA256" \
+      "$INSTALLED_LINEAGE_IDENTITY"; then
+      PRESERVE_RECOVERY=1
+      return 1
+    fi
+  fi
+  LINEAGE_TEMP_PATH=""
+  LINEAGE_CLAIM_PATH=""
   lineage_matches_transaction "$lineage_current_sha" "$lineage_previous_sha" "$INSTALLED_LINEAGE_IDENTITY" "$INSTALLED_LINEAGE_SHA256"
 }
 
@@ -749,8 +827,22 @@ stable = (
 )
 if not stable:
     raise SystemExit('CLI alias changed while it was being snapshotted')
-os.symlink(target, snapshot)
-if os.readlink(snapshot) != target:
+# Keep a second hard link to the symlink inode. Besides preserving the raw
+# target for recovery, this pins the inode until the transaction retires the
+# snapshot, so unlink-and-recreate cannot masquerade as the same alias through
+# immediate inode-number reuse.
+os.link(source, snapshot, follow_symlinks=False)
+source_pinned = os.lstat(source)
+snapshot_pinned = os.lstat(snapshot)
+if (
+    not stat.S_ISLNK(source_pinned.st_mode)
+    or not stat.S_ISLNK(snapshot_pinned.st_mode)
+    or (source_pinned.st_dev, source_pinned.st_ino) != (snapshot_pinned.st_dev, snapshot_pinned.st_ino)
+    or source_pinned.st_nlink < 2
+    or snapshot_pinned.st_nlink < 2
+    or os.readlink(source) != target
+    or os.readlink(snapshot) != target
+):
     raise SystemExit('CLI alias recovery snapshot changed during creation')
 print(hashlib.sha256(os.fsencode(target)).hexdigest())
 PY
@@ -821,6 +913,327 @@ raise SystemExit(
 PY
 }
 
+mutate_public_path() {
+  mutation_action=$1
+  mutation_public_path=$2
+  mutation_stage_path=$3
+  mutation_tombstone_path=$4
+  mutation_current_kind=$5
+  mutation_current_digest=$6
+  mutation_current_identity=$7
+  mutation_replacement_kind=$8
+  mutation_replacement_digest=$9
+  shift 9
+  mutation_replacement_identity=$1
+  mutation_status=0
+  python3 - \
+    "mutate-public-path" \
+    "$mutation_action" \
+    "$mutation_public_path" \
+    "$mutation_stage_path" \
+    "$mutation_tombstone_path" \
+    "$INSTALL_DIR" \
+    "$mutation_current_kind" \
+    "$mutation_current_digest" \
+    "$mutation_current_identity" \
+    "$mutation_replacement_kind" \
+    "$mutation_replacement_digest" \
+    "$mutation_replacement_identity" <<'PY' || mutation_status=$?
+import ctypes, errno, hashlib, os, stat, sys
+
+(
+    marker,
+    action,
+    public_path,
+    stage_path,
+    tombstone_path,
+    directory,
+    current_kind,
+    current_digest,
+    current_identity,
+    replacement_kind,
+    replacement_digest,
+    replacement_identity,
+) = sys.argv[1:]
+if marker != 'mutate-public-path' or action not in ('replace', 'delete'):
+    raise SystemExit('invalid public-path mutation invocation')
+if current_kind not in ('absent', 'regular', 'symlink'):
+    raise SystemExit('invalid current public-path kind')
+if replacement_kind not in ('absent', 'regular', 'symlink'):
+    raise SystemExit('invalid replacement public-path kind')
+if action == 'replace' and replacement_kind == 'absent':
+    raise SystemExit('replacement metadata is required')
+if action == 'delete' and replacement_kind != 'absent':
+    raise SystemExit('delete must not provide replacement metadata')
+
+unsupported_fsync = {
+    errno.EBADF,
+    errno.EINVAL,
+    getattr(errno, 'ENOTSUP', errno.EINVAL),
+    getattr(errno, 'EOPNOTSUPP', errno.EINVAL),
+}
+
+def lexists(path):
+    try:
+        os.lstat(path)
+        return True
+    except FileNotFoundError:
+        return False
+
+def barrier():
+    fd = os.open(directory, os.O_RDONLY)
+    try:
+        try:
+            os.fsync(fd)
+        except OSError as error:
+            if error.errno not in unsupported_fsync:
+                raise
+    finally:
+        os.close(fd)
+
+def rename_noreplace(source, destination):
+    libc = ctypes.CDLL(None, use_errno=True)
+    source_bytes = os.fsencode(source)
+    destination_bytes = os.fsencode(destination)
+    result = -1
+    error_number = errno.ENOTSUP
+    if sys.platform.startswith('linux'):
+        function = getattr(libc, 'renameat2', None)
+        if function is not None:
+            function.argtypes = [ctypes.c_int, ctypes.c_char_p, ctypes.c_int, ctypes.c_char_p, ctypes.c_uint]
+            function.restype = ctypes.c_int
+            result = function(-100, source_bytes, -100, destination_bytes, 1)
+            error_number = ctypes.get_errno()
+    elif sys.platform == 'darwin':
+        function = getattr(libc, 'renamex_np', None)
+        if function is not None:
+            function.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_uint]
+            function.restype = ctypes.c_int
+            result = function(source_bytes, destination_bytes, 0x00000004)
+            error_number = ctypes.get_errno()
+    if result == 0:
+        return
+    fallback_errors = {
+        errno.EINVAL,
+        errno.ENOSYS,
+        getattr(errno, 'ENOTSUP', errno.EINVAL),
+        getattr(errno, 'EOPNOTSUPP', errno.EINVAL),
+    }
+    if error_number not in fallback_errors:
+        raise OSError(error_number, os.strerror(error_number), destination)
+
+    # Some otherwise POSIX filesystems (notably WSL1/DrvFS) reject
+    # RENAME_NOREPLACE. A no-follow hard link is still useful as a durable
+    # no-overwrite claim, but POSIX has no portable unlink-by-handle primitive.
+    # Retain both names and fail closed instead of validating one pathname and
+    # then risking deletion of a successor installed before unlink().
+    source_value = os.lstat(source)
+    if stat.S_ISREG(source_value.st_mode):
+        held_fd = os.open(source, os.O_RDONLY | getattr(os, 'O_NOFOLLOW', 0))
+    elif stat.S_ISLNK(source_value.st_mode):
+        if hasattr(os, 'O_PATH'):
+            held_fd = os.open(source, os.O_PATH | getattr(os, 'O_NOFOLLOW', 0))
+        elif hasattr(os, 'O_SYMLINK'):
+            held_fd = os.open(source, os.O_RDONLY | os.O_SYMLINK)
+        else:
+            raise OSError(errno.ENOTSUP, 'an fd-bindable symlink link fallback is required')
+    else:
+        raise OSError(errno.EINVAL, 'link fallback only supports regular files and symlinks')
+    try:
+        held_value = os.fstat(held_fd)
+        if (held_value.st_dev, held_value.st_ino) != (source_value.st_dev, source_value.st_ino):
+            raise RuntimeError('source changed before no-overwrite link claim')
+        os.link(source, destination, follow_symlinks=False)
+        destination_value = os.lstat(destination)
+        source_now = os.lstat(source)
+        held_now = os.fstat(held_fd)
+        identities = {
+            (held_value.st_dev, held_value.st_ino),
+            (held_now.st_dev, held_now.st_ino),
+            (source_now.st_dev, source_now.st_ino),
+            (destination_value.st_dev, destination_value.st_ino),
+        }
+        if len(identities) != 1:
+            raise RuntimeError('no-overwrite link claim changed identity')
+        barrier()
+        source_final = os.lstat(source)
+        held_final = os.fstat(held_fd)
+        if (source_final.st_dev, source_final.st_ino) != (held_final.st_dev, held_final.st_ino):
+            raise RuntimeError('source successor appeared before link-claim retirement')
+        raise OSError(
+            errno.ENOTSUP,
+            'no-overwrite hard-link claim retained because source cannot be retired by handle',
+            source,
+        )
+    finally:
+        os.close(held_fd)
+
+def read_regular(fd):
+    os.lseek(fd, 0, os.SEEK_SET)
+    digest = hashlib.sha256()
+    while True:
+        block = os.read(fd, 1024 * 1024)
+        if not block:
+            return digest.hexdigest()
+        digest.update(block)
+
+def open_symlink(path):
+    if hasattr(os, 'O_PATH'):
+        return os.open(path, os.O_PATH | getattr(os, 'O_NOFOLLOW', 0))
+    if hasattr(os, 'O_SYMLINK'):
+        return os.open(path, os.O_RDONLY | os.O_SYMLINK)
+    raise OSError(errno.ENOTSUP, 'an fd-bindable symlink open primitive is required')
+
+def bind(path, kind, expected_digest, expected_identity):
+    if kind == 'regular':
+        fd = os.open(path, os.O_RDONLY | getattr(os, 'O_NOFOLLOW', 0))
+    elif kind == 'symlink':
+        fd = open_symlink(path)
+    else:
+        raise AssertionError('cannot bind an absent path')
+    try:
+        before = os.fstat(fd)
+        path_before = os.lstat(path)
+        if kind == 'regular':
+            digest = read_regular(fd)
+        else:
+            digest = hashlib.sha256(os.fsencode(os.readlink(path))).hexdigest()
+        after = os.fstat(fd)
+        path_after = os.lstat(path)
+        expected_mode = stat.S_ISREG if kind == 'regular' else stat.S_ISLNK
+        identity = f'{after.st_dev}:{after.st_ino}:{after.st_mode}'
+        stable = (
+            expected_mode(before.st_mode)
+            and expected_mode(path_before.st_mode)
+            and expected_mode(after.st_mode)
+            and expected_mode(path_after.st_mode)
+            and before.st_nlink > 0
+            and not (before.st_dev == 0 and before.st_ino == 0)
+            and (before.st_dev, before.st_ino) == (path_before.st_dev, path_before.st_ino)
+            and (before.st_dev, before.st_ino) == (after.st_dev, after.st_ino)
+            and (after.st_dev, after.st_ino) == (path_after.st_dev, path_after.st_ino)
+            and before.st_size == after.st_size == path_after.st_size
+            and before.st_mtime_ns == after.st_mtime_ns == path_after.st_mtime_ns
+            and before.st_ctime_ns == after.st_ctime_ns == path_after.st_ctime_ns
+        )
+        if not stable or digest != expected_digest or identity != expected_identity:
+            raise RuntimeError(f'{kind} path changed before it could be occupied')
+        return {'fd': fd, 'kind': kind, 'digest': digest, 'identity': identity}
+    except BaseException:
+        os.close(fd)
+        raise
+
+def verify(bound, path):
+    value = os.fstat(bound['fd'])
+    path_value = os.lstat(path)
+    if bound['kind'] == 'regular':
+        kind_matches = stat.S_ISREG(value.st_mode) and stat.S_ISREG(path_value.st_mode)
+        digest = read_regular(bound['fd'])
+    else:
+        kind_matches = stat.S_ISLNK(value.st_mode) and stat.S_ISLNK(path_value.st_mode)
+        digest = hashlib.sha256(os.fsencode(os.readlink(path))).hexdigest()
+    identity = f'{value.st_dev}:{value.st_ino}:{value.st_mode}'
+    if (
+        not kind_matches
+        or value.st_nlink <= 0
+        or identity != bound['identity']
+        or (value.st_dev, value.st_ino) != (path_value.st_dev, path_value.st_ino)
+        or digest != bound['digest']
+    ):
+        raise RuntimeError('occupied path no longer resolves to its bound object')
+
+def retire_bound_name(bound, path):
+    # POSIX has no conditional unlink-by-inode. Keep this fd-validated private
+    # name as durable evidence; deleting it by pathname after verification
+    # could delete a same-name successor installed in the following instant.
+    verify(bound, path)
+    barrier()
+    verify(bound, path)
+    return path
+
+current = None
+replacement = None
+claimed = False
+published = False
+try:
+    if lexists(tombstone_path):
+        raise FileExistsError(errno.EEXIST, 'transaction tombstone already exists', tombstone_path)
+    if current_kind == 'absent':
+        if lexists(public_path):
+            raise FileExistsError(errno.EEXIST, 'public path appeared before publication', public_path)
+    else:
+        current = bind(public_path, current_kind, current_digest, current_identity)
+    if action == 'replace':
+        replacement = bind(stage_path, replacement_kind, replacement_digest, replacement_identity)
+
+    if current is not None:
+        rename_noreplace(public_path, tombstone_path)
+        claimed = True
+        try:
+            verify(current, tombstone_path)
+        except BaseException:
+            if not lexists(public_path):
+                try:
+                    rename_noreplace(tombstone_path, public_path)
+                    claimed = False
+                    barrier()
+                except OSError:
+                    pass
+            raise
+        barrier()
+        verify(current, tombstone_path)
+        if lexists(public_path):
+            raise FileExistsError(errno.EEXIST, 'successor appeared after public path occupation', public_path)
+
+    if action == 'replace':
+        rename_noreplace(stage_path, public_path)
+        published = True
+        verify(replacement, public_path)
+        barrier()
+        verify(replacement, public_path)
+        if current is not None:
+            retire_bound_name(current, tombstone_path)
+        verify(replacement, public_path)
+    else:
+        if lexists(public_path):
+            raise FileExistsError(errno.EEXIST, 'successor appeared before deletion retirement', public_path)
+        retire_bound_name(current, tombstone_path)
+        if lexists(public_path):
+            raise FileExistsError(errno.EEXIST, 'successor appeared while deletion was retired', public_path)
+except BaseException:
+    # Before publication, restore only the exact fd-bound object and never
+    # overwrite a successor. After publication, reverse only if both public and
+    # tombstone names still resolve to the held descriptors.
+    try:
+        can_restore_current = current is None or (claimed and lexists(tombstone_path))
+        if published and replacement is not None and can_restore_current and lexists(public_path):
+            verify(replacement, public_path)
+            if current is not None:
+                verify(current, tombstone_path)
+            if not lexists(stage_path):
+                rename_noreplace(public_path, stage_path)
+                published = False
+                verify(replacement, stage_path)
+        if claimed and current is not None and lexists(tombstone_path):
+            verify(current, tombstone_path)
+            if not lexists(public_path):
+                rename_noreplace(tombstone_path, public_path)
+                claimed = False
+                verify(current, public_path)
+        barrier()
+    except BaseException:
+        pass
+    raise
+finally:
+    if current is not None:
+        os.close(current['fd'])
+    if replacement is not None:
+        os.close(replacement['fd'])
+PY
+  record_retained_evidence "$mutation_tombstone_path"
+  return "$mutation_status"
+}
+
 create_alias_restore_candidate() {
   python3 - "$1" "$2" "$3" <<'PY'
 import hashlib, os, stat, sys
@@ -851,7 +1264,8 @@ create_recovery_state() {
     "$OLD_LINEAGE_SHA256" \
     "$OLD_LINEAGE_IDENTITY" \
     "$PRIOR_ALIAS_PATH" \
-    "$OLD_ALIAS_TARGET_SHA256" <<'PY'
+    "$OLD_ALIAS_TARGET_SHA256" \
+    "$OLD_ALIAS_IDENTITY" <<'PY'
 import json, os, sys
 
 (
@@ -868,6 +1282,7 @@ import json, os, sys
     old_lineage_identity,
     prior_alias_path,
     old_alias_target_sha,
+    old_alias_identity,
 ) = sys.argv[1:]
 payload = {
     'schema': 'chainlesschain.native-install-recovery.v1',
@@ -891,6 +1306,7 @@ payload = {
         'priorAlias': {
             'path': prior_alias_path or None,
             'targetSha256': old_alias_target_sha or None,
+            'identity': old_alias_identity or None,
         },
     },
 }
@@ -903,10 +1319,9 @@ try:
         stream.flush()
         os.fsync(stream.fileno())
 except BaseException:
-    try:
-        os.unlink(state_path)
-    except FileNotFoundError:
-        pass
+    # The public pointer name may have been replaced while this fd was being
+    # written. Never unlink by pathname on failure; cleanup will retain the
+    # pointer, snapshots, and update lock for manual adjudication.
     raise
 PY
   fsync_dir "$INSTALL_DIR"
@@ -931,8 +1346,9 @@ process_recovery_state() {
     "$OLD_LINEAGE_SHA256" \
     "$OLD_LINEAGE_IDENTITY" \
     "$PRIOR_ALIAS_PATH" \
-    "$OLD_ALIAS_TARGET_SHA256" <<'PY'
-import errno, hashlib, json, os, stat, sys
+    "$OLD_ALIAS_TARGET_SHA256" \
+    "$OLD_ALIAS_IDENTITY" <<'PY'
+import ctypes, errno, hashlib, json, os, stat, sys
 
 (
     marker,
@@ -952,6 +1368,7 @@ import errno, hashlib, json, os, stat, sys
     old_lineage_identity,
     prior_alias_path,
     old_alias_target_sha,
+    old_alias_identity,
 ) = sys.argv[1:]
 if marker != 'recovery-state' or action not in ('validate', 'retire'):
     raise SystemExit('invalid recovery-state invocation')
@@ -973,6 +1390,70 @@ def recovery_barrier(label, path):
                 raise
     finally:
         os.close(fd)
+
+def rename_noreplace(source, destination):
+    libc = ctypes.CDLL(None, use_errno=True)
+    source_bytes = os.fsencode(source)
+    destination_bytes = os.fsencode(destination)
+    result = -1
+    error_number = errno.ENOTSUP
+    if sys.platform.startswith('linux'):
+        function = getattr(libc, 'renameat2', None)
+        if function is not None:
+            function.argtypes = [ctypes.c_int, ctypes.c_char_p, ctypes.c_int, ctypes.c_char_p, ctypes.c_uint]
+            function.restype = ctypes.c_int
+            result = function(-100, source_bytes, -100, destination_bytes, 1)
+            error_number = ctypes.get_errno()
+    elif sys.platform == 'darwin':
+        function = getattr(libc, 'renamex_np', None)
+        if function is not None:
+            function.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_uint]
+            function.restype = ctypes.c_int
+            result = function(source_bytes, destination_bytes, 0x00000004)
+            error_number = ctypes.get_errno()
+    if result == 0:
+        return
+    fallback_errors = {
+        errno.EINVAL,
+        errno.ENOSYS,
+        getattr(errno, 'ENOTSUP', errno.EINVAL),
+        getattr(errno, 'EOPNOTSUPP', errno.EINVAL),
+    }
+    if error_number not in fallback_errors:
+        raise OSError(error_number, os.strerror(error_number), destination)
+
+    source_value = os.lstat(source)
+    if not stat.S_ISREG(source_value.st_mode):
+        raise OSError(errno.EINVAL, 'recovery pointer link fallback requires a regular file')
+    held_fd = os.open(source, os.O_RDONLY | getattr(os, 'O_NOFOLLOW', 0))
+    try:
+        held_value = os.fstat(held_fd)
+        if (held_value.st_dev, held_value.st_ino) != (source_value.st_dev, source_value.st_ino):
+            raise RuntimeError('recovery pointer changed before link claim')
+        os.link(source, destination, follow_symlinks=False)
+        source_now = os.lstat(source)
+        destination_now = os.lstat(destination)
+        held_now = os.fstat(held_fd)
+        identities = {
+            (held_value.st_dev, held_value.st_ino),
+            (held_now.st_dev, held_now.st_ino),
+            (source_now.st_dev, source_now.st_ino),
+            (destination_now.st_dev, destination_now.st_ino),
+        }
+        if len(identities) != 1:
+            raise RuntimeError('recovery pointer link claim changed identity')
+        recovery_barrier('recovery-link-claimed', directory)
+        source_final = os.lstat(source)
+        held_final = os.fstat(held_fd)
+        if (source_final.st_dev, source_final.st_ino) != (held_final.st_dev, held_final.st_ino):
+            raise RuntimeError('recovery pointer successor appeared before link retirement')
+        raise OSError(
+            errno.ENOTSUP,
+            'recovery hard-link claim retained because active pointer cannot be retired by handle',
+            source,
+        )
+    finally:
+        os.close(held_fd)
 
 def read_fd(fd):
     os.lseek(fd, 0, os.SEEK_SET)
@@ -1033,6 +1514,7 @@ expected = {
         'priorAlias': {
             'path': prior_alias_path or None,
             'targetSha256': old_alias_target_sha or None,
+            'identity': old_alias_identity or None,
         },
     },
 }
@@ -1071,52 +1553,66 @@ try:
         alias_before = os.lstat(alias['path'])
         target = os.readlink(alias['path'])
         alias_after = os.lstat(alias['path'])
+        alias_identity = f'{alias_after.st_dev}:{alias_after.st_ino}:{alias_after.st_mode}'
         if (
             not stat.S_ISLNK(alias_before.st_mode)
             or not stat.S_ISLNK(alias_after.st_mode)
             or (alias_before.st_dev, alias_before.st_ino) != (alias_after.st_dev, alias_after.st_ino)
             or hashlib.sha256(os.fsencode(target)).hexdigest() != alias['targetSha256']
+            or alias_identity != alias['identity']
         ):
             raise SystemExit('priorAlias recovery target changed')
 
     if action == 'retire':
-        # The same O_NOFOLLOW descriptor stays open across validation and
-        # publication. The no-replace hard link must resolve to this exact inode
-        # and canonical byte stream before any active pointer is unlinked.
-        os.link(state_path, retired_path, follow_symlinks=False)
+        # Atomically occupy the active public name into a no-overwrite private
+        # tombstone. The original O_NOFOLLOW descriptor remains open, so a
+        # same-name successor can never be mistaken for or deleted with it.
+        rename_noreplace(state_path, retired_path)
         retired_fd = os.open(retired_path, state_flags)
         try:
             retired_value = os.fstat(retired_fd)
             retired_path_value = os.lstat(retired_path)
             retired_bytes = read_fd(retired_fd)
-            active_now = os.lstat(state_path)
             fd_now = os.fstat(state_fd)
             same_pointer = (
                 (state_before.st_dev, state_before.st_ino) == (fd_now.st_dev, fd_now.st_ino)
-                and (fd_now.st_dev, fd_now.st_ino) == (active_now.st_dev, active_now.st_ino)
                 and (fd_now.st_dev, fd_now.st_ino) == (retired_value.st_dev, retired_value.st_ino)
                 and (retired_value.st_dev, retired_value.st_ino) == (retired_path_value.st_dev, retired_path_value.st_ino)
                 and retired_bytes == state_bytes == expected_bytes
             )
             if not same_pointer:
+                try:
+                    os.lstat(state_path)
+                except FileNotFoundError:
+                    try:
+                        rename_noreplace(retired_path, state_path)
+                    except OSError:
+                        pass
                 raise SystemExit('retired recovery-state pointer changed identity or content')
             recovery_barrier('retired-published', directory)
-            active_now = os.lstat(state_path)
             retired_now = os.lstat(retired_path)
             fd_now = os.fstat(state_fd)
             retired_fd_now = os.fstat(retired_fd)
             active_bytes_now = read_fd(state_fd)
             retired_bytes_now = read_fd(retired_fd)
             if (
-                (active_now.st_dev, active_now.st_ino) != (fd_now.st_dev, fd_now.st_ino)
+                (state_before.st_dev, state_before.st_ino) != (fd_now.st_dev, fd_now.st_ino)
                 or (retired_now.st_dev, retired_now.st_ino) != (retired_fd_now.st_dev, retired_fd_now.st_ino)
                 or (fd_now.st_dev, fd_now.st_ino) != (retired_fd_now.st_dev, retired_fd_now.st_ino)
                 or active_bytes_now != expected_bytes
                 or retired_bytes_now != expected_bytes
             ):
-                raise SystemExit('active or retired recovery-state pointer changed before retirement')
-            os.unlink(state_path)
-            recovery_barrier('active-removed', directory)
+                raise SystemExit('retired recovery-state tombstone changed before retirement')
+            try:
+                os.lstat(state_path)
+            except FileNotFoundError:
+                print(
+                    f'{retired_fd_now.st_dev}:{retired_fd_now.st_ino}:{retired_fd_now.st_mode} '
+                    f'{hashlib.sha256(retired_bytes_now).hexdigest()}',
+                    flush=True,
+                )
+            else:
+                raise SystemExit('active recovery-state successor appeared during retirement')
         finally:
             os.close(retired_fd)
 finally:
@@ -1124,52 +1620,129 @@ finally:
 PY
 }
 
+discard_regular_artifact() {
+  artifact_path=$1
+  artifact_sha=$2
+  artifact_identity=$3
+  [ -n "$artifact_path" ] || return 0
+  RECOVERY_DELETE_PATH="$artifact_path.cleanup-$TRANSACTION_ID"
+  assert_lock_owned || return 1
+  mutate_public_path \
+    delete \
+    "$artifact_path" \
+    "" \
+    "$RECOVERY_DELETE_PATH" \
+    regular \
+    "$artifact_sha" \
+    "$artifact_identity" \
+    absent \
+    "" \
+    "" || return 1
+  RECOVERY_DELETE_PATH=""
+}
+
+discard_symlink_artifact() {
+  artifact_path=$1
+  artifact_target_sha=$2
+  artifact_identity=$3
+  [ -n "$artifact_path" ] || return 0
+  alias_matches_identity "$artifact_path" "$artifact_target_sha" "$artifact_identity" || return 1
+  RECOVERY_DELETE_PATH="$artifact_path.cleanup-$TRANSACTION_ID"
+  assert_lock_owned || return 1
+  mutate_public_path \
+    delete \
+    "$artifact_path" \
+    "" \
+    "$RECOVERY_DELETE_PATH" \
+    symlink \
+    "$artifact_target_sha" \
+    "$artifact_identity" \
+    absent \
+    "" \
+    "" || return 1
+  RECOVERY_DELETE_PATH=""
+}
+
 discard_transaction_snapshots() {
   if [ -z "$PRIOR_TARGET_PATH" ] && [ -z "$PRIOR_BACKUP_PATH" ] && [ -z "$PRIOR_LINEAGE_PATH" ] && [ -z "$PRIOR_ALIAS_PATH" ]; then
-    if [ -n "$BACKUP_TEMP_PATH" ] && { [ -e "$BACKUP_TEMP_PATH" ] || [ -L "$BACKUP_TEMP_PATH" ]; }; then
-      assert_lock_owned || return 1
-      rm -f "$BACKUP_TEMP_PATH" || return 1
-      fsync_dir "$INSTALL_DIR" || return 1
+    if [ -n "$BACKUP_TEMP_PATH" ]; then
+      discard_regular_artifact "$BACKUP_TEMP_PATH" "$OLD_TARGET_SHA256" "$OLD_TARGET_IDENTITY" || return 1
+      BACKUP_TEMP_PATH=""
     fi
-    BACKUP_TEMP_PATH=""
+    if [ -n "$INSTALLED_ALIAS_ANCHOR_PATH" ]; then
+      discard_symlink_artifact "$INSTALLED_ALIAS_ANCHOR_PATH" "$CANONICAL_ALIAS_TARGET_SHA256" "$INSTALLED_ALIAS_IDENTITY" || return 1
+      INSTALLED_ALIAS_ANCHOR_PATH=""
+    fi
     RECOVERY_STATE_PATH=""
     RECOVERY_RETIRED_PATH=""
+    RECOVERY_RETIRED_SHA256=""
+    RECOVERY_RETIRED_IDENTITY=""
     RECOVERY_RETIRED=0
-    return 0
+    RECOVERY_RETIREMENT_GUARD=0
+    [ "$CLEANUP_PENDING" -eq 0 ]
+    return $?
   fi
   [ -n "$RECOVERY_STATE_PATH" ] || return 1
   [ -n "$RECOVERY_RETIRED_PATH" ] || return 1
   assert_lock_owned || return 1
-  process_recovery_state retire || return 1
-  RECOVERY_RETIRED=1
-  removed=0
-  for snapshot_path in \
-    "$BACKUP_TEMP_PATH" \
-    "$PRIOR_TARGET_PATH" \
-    "$PRIOR_BACKUP_PATH" \
-    "$PRIOR_LINEAGE_PATH" \
-    "$PRIOR_ALIAS_PATH"
-  do
-    [ -n "$snapshot_path" ] || continue
-    { [ -e "$snapshot_path" ] || [ -L "$snapshot_path" ]; } || return 1
-    assert_lock_owned || return 1
-    rm -f "$snapshot_path" || return 1
-    removed=1
-  done
-  if [ "$removed" -eq 1 ]; then
-    fsync_dir "$INSTALL_DIR" || return 1
+  RECOVERY_RETIREMENT_GUARD=1
+  recovery_retired_metadata=""
+  if recovery_retired_metadata=$(process_recovery_state retire); then
+    :
+  else
+    return 1
   fi
-  assert_lock_owned || return 1
-  rm -f "$RECOVERY_RETIRED_PATH" || return 1
-  fsync_dir "$INSTALL_DIR" || return 1
-  BACKUP_TEMP_PATH=""
-  PRIOR_TARGET_PATH=""
-  PRIOR_BACKUP_PATH=""
-  PRIOR_LINEAGE_PATH=""
-  PRIOR_ALIAS_PATH=""
+  [ -n "$recovery_retired_metadata" ] && [ "${recovery_retired_metadata#* }" != "$recovery_retired_metadata" ] || return 1
+  RECOVERY_RETIRED_IDENTITY=${recovery_retired_metadata%% *}
+  RECOVERY_RETIRED_SHA256=${recovery_retired_metadata#* }
   RECOVERY_STATE_PATH=""
+  RECOVERY_RETIRED=1
+
+  if [ -n "$BACKUP_TEMP_PATH" ]; then
+    discard_regular_artifact "$BACKUP_TEMP_PATH" "$OLD_TARGET_SHA256" "$OLD_TARGET_IDENTITY" || return 1
+    BACKUP_TEMP_PATH=""
+  fi
+  if [ -n "$PRIOR_TARGET_PATH" ]; then
+    discard_regular_artifact "$PRIOR_TARGET_PATH" "$OLD_TARGET_SHA256" "$OLD_TARGET_IDENTITY" || return 1
+    PRIOR_TARGET_PATH=""
+  fi
+  if [ -n "$PRIOR_BACKUP_PATH" ]; then
+    discard_regular_artifact "$PRIOR_BACKUP_PATH" "$OLD_BACKUP_SHA256" "$OLD_BACKUP_IDENTITY" || return 1
+    PRIOR_BACKUP_PATH=""
+  fi
+  if [ -n "$PRIOR_LINEAGE_PATH" ]; then
+    discard_regular_artifact "$PRIOR_LINEAGE_PATH" "$OLD_LINEAGE_SHA256" "$OLD_LINEAGE_IDENTITY" || return 1
+    PRIOR_LINEAGE_PATH=""
+  fi
+  if [ -n "$PRIOR_ALIAS_PATH" ]; then
+    discard_symlink_artifact "$PRIOR_ALIAS_PATH" "$OLD_ALIAS_TARGET_SHA256" "$OLD_ALIAS_IDENTITY" || return 1
+    PRIOR_ALIAS_PATH=""
+  fi
+  if [ -n "$INSTALLED_ALIAS_ANCHOR_PATH" ]; then
+    discard_symlink_artifact "$INSTALLED_ALIAS_ANCHOR_PATH" "$CANONICAL_ALIAS_TARGET_SHA256" "$INSTALLED_ALIAS_IDENTITY" || return 1
+    INSTALLED_ALIAS_ANCHOR_PATH=""
+  fi
+
+  assert_lock_owned || return 1
+  RECOVERY_DELETE_PATH="$RECOVERY_RETIRED_PATH.cleanup-$TRANSACTION_ID"
+  mutate_public_path \
+    delete \
+    "$RECOVERY_RETIRED_PATH" \
+    "" \
+    "$RECOVERY_DELETE_PATH" \
+    regular \
+    "$RECOVERY_RETIRED_SHA256" \
+    "$RECOVERY_RETIRED_IDENTITY" \
+    absent \
+    "" \
+    "" || return 1
+  RECOVERY_DELETE_PATH=""
   RECOVERY_RETIRED_PATH=""
+  RECOVERY_RETIRED_SHA256=""
+  RECOVERY_RETIRED_IDENTITY=""
   RECOVERY_RETIRED=0
+  RECOVERY_RETIREMENT_GUARD=0
+  [ "$CLEANUP_PENDING" -eq 0 ]
 }
 
 validate_rollback_public_state() {
@@ -1217,15 +1790,39 @@ rollback_install() {
     [ ! -e "$ROLLBACK_TEMP_PATH" ] && [ ! -L "$ROLLBACK_TEMP_PATH" ] || return 1
     ln "$PRIOR_TARGET_PATH" "$ROLLBACK_TEMP_PATH" || return 1
     regular_file_matches "$ROLLBACK_TEMP_PATH" "$OLD_TARGET_SHA256" "$OLD_TARGET_IDENTITY" || return 1
+    TARGET_CLAIM_PATH="$INSTALL_DIR/.chainlesschain.target-claimed-$TRANSACTION_ID"
     assert_lock_owned || return 1
     regular_file_matches "$TARGET_PATH" "$ARTIFACT_SHA256" "$INSTALLED_TARGET_IDENTITY" || return 1
-    mv -f "$ROLLBACK_TEMP_PATH" "$TARGET_PATH" || return 1
+    mutate_public_path \
+      replace \
+      "$TARGET_PATH" \
+      "$ROLLBACK_TEMP_PATH" \
+      "$TARGET_CLAIM_PATH" \
+      regular \
+      "$ARTIFACT_SHA256" \
+      "$INSTALLED_TARGET_IDENTITY" \
+      regular \
+      "$OLD_TARGET_SHA256" \
+      "$OLD_TARGET_IDENTITY" || return 1
     ROLLBACK_TEMP_PATH=""
+    TARGET_CLAIM_PATH=""
     regular_file_matches "$TARGET_PATH" "$OLD_TARGET_SHA256" "$OLD_TARGET_IDENTITY" || return 1
   else
+    TARGET_CLAIM_PATH="$INSTALL_DIR/.chainlesschain.target-claimed-$TRANSACTION_ID"
     assert_lock_owned || return 1
     regular_file_matches "$TARGET_PATH" "$ARTIFACT_SHA256" "$INSTALLED_TARGET_IDENTITY" || return 1
-    rm -f "$TARGET_PATH" || return 1
+    mutate_public_path \
+      delete \
+      "$TARGET_PATH" \
+      "" \
+      "$TARGET_CLAIM_PATH" \
+      regular \
+      "$ARTIFACT_SHA256" \
+      "$INSTALLED_TARGET_IDENTITY" \
+      absent \
+      "" \
+      "" || return 1
+    TARGET_CLAIM_PATH=""
     [ ! -e "$TARGET_PATH" ] && [ ! -L "$TARGET_PATH" ] || return 1
   fi
 
@@ -1237,15 +1834,39 @@ rollback_install() {
       [ ! -e "$BACKUP_RESTORE_PATH" ] && [ ! -L "$BACKUP_RESTORE_PATH" ] || return 1
       ln "$PRIOR_BACKUP_PATH" "$BACKUP_RESTORE_PATH" || return 1
       regular_file_matches "$BACKUP_RESTORE_PATH" "$OLD_BACKUP_SHA256" "$OLD_BACKUP_IDENTITY" || return 1
+      BACKUP_CLAIM_PATH="$INSTALL_DIR/.chainlesschain.backup-claimed-$TRANSACTION_ID"
       assert_lock_owned || return 1
       regular_file_matches "$BACKUP_PATH" "$OLD_TARGET_SHA256" "$OLD_TARGET_IDENTITY" || return 1
-      mv -f "$BACKUP_RESTORE_PATH" "$BACKUP_PATH" || return 1
+      mutate_public_path \
+        replace \
+        "$BACKUP_PATH" \
+        "$BACKUP_RESTORE_PATH" \
+        "$BACKUP_CLAIM_PATH" \
+        regular \
+        "$OLD_TARGET_SHA256" \
+        "$OLD_TARGET_IDENTITY" \
+        regular \
+        "$OLD_BACKUP_SHA256" \
+        "$OLD_BACKUP_IDENTITY" || return 1
       BACKUP_RESTORE_PATH=""
+      BACKUP_CLAIM_PATH=""
       regular_file_matches "$BACKUP_PATH" "$OLD_BACKUP_SHA256" "$OLD_BACKUP_IDENTITY" || return 1
     else
+      BACKUP_CLAIM_PATH="$INSTALL_DIR/.chainlesschain.backup-claimed-$TRANSACTION_ID"
       assert_lock_owned || return 1
       regular_file_matches "$BACKUP_PATH" "$OLD_TARGET_SHA256" "$OLD_TARGET_IDENTITY" || return 1
-      rm -f "$BACKUP_PATH" || return 1
+      mutate_public_path \
+        delete \
+        "$BACKUP_PATH" \
+        "" \
+        "$BACKUP_CLAIM_PATH" \
+        regular \
+        "$OLD_TARGET_SHA256" \
+        "$OLD_TARGET_IDENTITY" \
+        absent \
+        "" \
+        "" || return 1
+      BACKUP_CLAIM_PATH=""
       [ ! -e "$BACKUP_PATH" ] && [ ! -L "$BACKUP_PATH" ] || return 1
     fi
 
@@ -1274,12 +1895,24 @@ rollback_install() {
         [ ! -e "$LINEAGE_RESTORE_PATH" ] && [ ! -L "$LINEAGE_RESTORE_PATH" ] || return 1
         ln "$PRIOR_LINEAGE_PATH" "$LINEAGE_RESTORE_PATH" || return 1
         regular_file_matches "$LINEAGE_RESTORE_PATH" "$OLD_LINEAGE_SHA256" "$OLD_LINEAGE_IDENTITY" || return 1
+        LINEAGE_CLAIM_PATH="$INSTALL_DIR/.chainlesschain.lineage-claimed-$TRANSACTION_ID"
         assert_lock_owned || return 1
         lineage_matches_transaction "$ARTIFACT_SHA256" "$lineage_previous_sha" "$INSTALLED_LINEAGE_IDENTITY" "$INSTALLED_LINEAGE_SHA256" || return 1
-        # mv(1) maps to rename(2) for these same-directory paths, so the old
-        # public lineage remains continuously present if replacement fails.
-        mv -f "$LINEAGE_RESTORE_PATH" "$LINEAGE_PATH" || return 1
+        # Occupy the current public lineage without overwrite before publishing
+        # the exact fd-bound prior generation from its same-directory stage.
+        mutate_public_path \
+          replace \
+          "$LINEAGE_PATH" \
+          "$LINEAGE_RESTORE_PATH" \
+          "$LINEAGE_CLAIM_PATH" \
+          regular \
+          "$INSTALLED_LINEAGE_SHA256" \
+          "$INSTALLED_LINEAGE_IDENTITY" \
+          regular \
+          "$OLD_LINEAGE_SHA256" \
+          "$OLD_LINEAGE_IDENTITY" || return 1
         LINEAGE_RESTORE_PATH=""
+        LINEAGE_CLAIM_PATH=""
         regular_file_matches "$LINEAGE_PATH" "$OLD_LINEAGE_SHA256" "$OLD_LINEAGE_IDENTITY" || return 1
       fi
     else
@@ -1290,8 +1923,20 @@ rollback_install() {
           lineage_previous_sha=$OLD_TARGET_SHA256
         fi
         lineage_matches_transaction "$ARTIFACT_SHA256" "$lineage_previous_sha" "$INSTALLED_LINEAGE_IDENTITY" "$INSTALLED_LINEAGE_SHA256" || return 1
+        LINEAGE_CLAIM_PATH="$INSTALL_DIR/.chainlesschain.lineage-claimed-$TRANSACTION_ID"
         assert_lock_owned || return 1
-        rm -f "$LINEAGE_PATH" || return 1
+        mutate_public_path \
+          delete \
+          "$LINEAGE_PATH" \
+          "" \
+          "$LINEAGE_CLAIM_PATH" \
+          regular \
+          "$INSTALLED_LINEAGE_SHA256" \
+          "$INSTALLED_LINEAGE_IDENTITY" \
+          absent \
+          "" \
+          "" || return 1
+        LINEAGE_CLAIM_PATH=""
       fi
       [ ! -e "$LINEAGE_PATH" ] && [ ! -L "$LINEAGE_PATH" ] || return 1
     fi
@@ -1302,21 +1947,46 @@ rollback_install() {
     if [ "$HAD_ALIAS" -eq 1 ]; then
       [ -n "$PRIOR_ALIAS_PATH" ] || return 1
       [ -n "$OLD_ALIAS_TARGET_SHA256" ] || return 1
-      alias_matches_hash "$PRIOR_ALIAS_PATH" "$OLD_ALIAS_TARGET_SHA256" || return 1
+      alias_matches_identity "$PRIOR_ALIAS_PATH" "$OLD_ALIAS_TARGET_SHA256" "$OLD_ALIAS_IDENTITY" || return 1
       ALIAS_RESTORE_PATH="$INSTALL_DIR/.cc.restore-$TRANSACTION_ID"
       [ ! -e "$ALIAS_RESTORE_PATH" ] && [ ! -L "$ALIAS_RESTORE_PATH" ] || return 1
       create_alias_restore_candidate "$PRIOR_ALIAS_PATH" "$ALIAS_RESTORE_PATH" "$OLD_ALIAS_TARGET_SHA256" || return 1
       alias_matches_hash "$ALIAS_RESTORE_PATH" "$OLD_ALIAS_TARGET_SHA256" || return 1
+      alias_restore_identity=$(symlink_identity "$ALIAS_RESTORE_PATH") || return 1
+      ALIAS_CLAIM_PATH="$INSTALL_DIR/.cc.claimed-$TRANSACTION_ID"
       assert_lock_owned || return 1
       alias_matches_identity "$ALIAS_PATH" "$CANONICAL_ALIAS_TARGET_SHA256" "$INSTALLED_ALIAS_IDENTITY" || return 1
-      mv -f "$ALIAS_RESTORE_PATH" "$ALIAS_PATH" || return 1
+      mutate_public_path \
+        replace \
+        "$ALIAS_PATH" \
+        "$ALIAS_RESTORE_PATH" \
+        "$ALIAS_CLAIM_PATH" \
+        symlink \
+        "$CANONICAL_ALIAS_TARGET_SHA256" \
+        "$INSTALLED_ALIAS_IDENTITY" \
+        symlink \
+        "$OLD_ALIAS_TARGET_SHA256" \
+        "$alias_restore_identity" || return 1
       ALIAS_RESTORE_PATH=""
+      ALIAS_CLAIM_PATH=""
       alias_matches_hash "$ALIAS_PATH" "$OLD_ALIAS_TARGET_SHA256" || return 1
     else
+      ALIAS_CLAIM_PATH="$INSTALL_DIR/.cc.claimed-$TRANSACTION_ID"
       alias_matches_identity "$ALIAS_PATH" "$CANONICAL_ALIAS_TARGET_SHA256" "$INSTALLED_ALIAS_IDENTITY" || return 1
       assert_lock_owned || return 1
       alias_matches_identity "$ALIAS_PATH" "$CANONICAL_ALIAS_TARGET_SHA256" "$INSTALLED_ALIAS_IDENTITY" || return 1
-      rm -f "$ALIAS_PATH" || return 1
+      mutate_public_path \
+        delete \
+        "$ALIAS_PATH" \
+        "" \
+        "$ALIAS_CLAIM_PATH" \
+        symlink \
+        "$CANONICAL_ALIAS_TARGET_SHA256" \
+        "$INSTALLED_ALIAS_IDENTITY" \
+        absent \
+        "" \
+        "" || return 1
+      ALIAS_CLAIM_PATH=""
       [ ! -e "$ALIAS_PATH" ] && [ ! -L "$ALIAS_PATH" ] || return 1
     fi
     ALIAS_COMMITTED=0
@@ -1484,12 +2154,12 @@ if [ -f "$LINEAGE_PATH" ]; then
 fi
 if [ -L "$ALIAS_PATH" ]; then
   HAD_ALIAS=1
-  OLD_ALIAS_IDENTITY=$(symlink_identity "$ALIAS_PATH")
   PRIOR_ALIAS_PATH="$INSTALL_DIR/.cc.prior-$TRANSACTION_ID"
   [ ! -e "$PRIOR_ALIAS_PATH" ] && [ ! -L "$PRIOR_ALIAS_PATH" ] || die "alias recovery snapshot path already exists"
   OLD_ALIAS_TARGET_SHA256=$(snapshot_alias "$ALIAS_PATH" "$PRIOR_ALIAS_PATH")
+  OLD_ALIAS_IDENTITY=$(symlink_identity "$PRIOR_ALIAS_PATH")
   alias_matches_identity "$ALIAS_PATH" "$OLD_ALIAS_TARGET_SHA256" "$OLD_ALIAS_IDENTITY" || die "CLI alias changed during recovery snapshot creation"
-  alias_matches_hash "$PRIOR_ALIAS_PATH" "$OLD_ALIAS_TARGET_SHA256" || die "alias recovery snapshot changed during creation"
+  alias_matches_identity "$PRIOR_ALIAS_PATH" "$OLD_ALIAS_TARGET_SHA256" "$OLD_ALIAS_IDENTITY" || die "alias recovery snapshot changed during creation"
 elif [ -e "$ALIAS_PATH" ]; then
   die "CLI alias must remain a symlink or absent: $ALIAS_PATH"
 fi
@@ -1548,7 +2218,7 @@ elif [ -e "$LINEAGE_PATH" ] || [ -L "$LINEAGE_PATH" ]; then
 fi
 if [ "$HAD_ALIAS" -eq 1 ]; then
   alias_matches_identity "$ALIAS_PATH" "$OLD_ALIAS_TARGET_SHA256" "$OLD_ALIAS_IDENTITY" || die "CLI alias changed while the transaction was staged"
-  alias_matches_hash "$PRIOR_ALIAS_PATH" "$OLD_ALIAS_TARGET_SHA256" || die "alias recovery snapshot changed while the transaction was staged"
+  alias_matches_identity "$PRIOR_ALIAS_PATH" "$OLD_ALIAS_TARGET_SHA256" "$OLD_ALIAS_IDENTITY" || die "alias recovery snapshot changed while the transaction was staged"
 elif [ -e "$ALIAS_PATH" ] || [ -L "$ALIAS_PATH" ]; then
   die "CLI alias appeared while the transaction was staged"
 fi
@@ -1559,10 +2229,36 @@ CANDIDATE_IDENTITY=$(file_identity "$CANDIDATE_PATH")
 regular_file_matches "$CANDIDATE_PATH" "$ARTIFACT_SHA256" "$CANDIDATE_IDENTITY" || die "same-filesystem candidate identity changed before commit"
 INSTALLED_TARGET_IDENTITY=$CANDIDATE_IDENTITY
 # Both paths are siblings, so this is the sole atomic commit point.
+TARGET_CLAIM_PATH="$INSTALL_DIR/.chainlesschain.target-publish-claimed-$TRANSACTION_ID"
 assert_lock_owned || die "native update lock ownership was lost before target commit"
-mv -f "$CANDIDATE_PATH" "$TARGET_PATH"
-CANDIDATE_PATH=""
 SWAPPED=1
+if [ "$HAD_TARGET" -eq 1 ]; then
+  mutate_public_path \
+    replace \
+    "$TARGET_PATH" \
+    "$CANDIDATE_PATH" \
+    "$TARGET_CLAIM_PATH" \
+    regular \
+    "$OLD_TARGET_SHA256" \
+    "$OLD_TARGET_IDENTITY" \
+    regular \
+    "$ARTIFACT_SHA256" \
+    "$INSTALLED_TARGET_IDENTITY" || { PRESERVE_RECOVERY=1; die "install target publication failed closed"; }
+else
+  mutate_public_path \
+    replace \
+    "$TARGET_PATH" \
+    "$CANDIDATE_PATH" \
+    "$TARGET_CLAIM_PATH" \
+    absent \
+    "" \
+    "" \
+    regular \
+    "$ARTIFACT_SHA256" \
+    "$INSTALLED_TARGET_IDENTITY" || { PRESERVE_RECOVERY=1; die "install target publication failed closed"; }
+fi
+CANDIDATE_PATH=""
+TARGET_CLAIM_PATH=""
 fsync_dir "$INSTALL_DIR"
 
 if [ "$(sha256_file "$TARGET_PATH")" != "$ARTIFACT_SHA256" ]; then
@@ -1592,28 +2288,84 @@ if [ "$HAD_TARGET" -eq 1 ]; then
   elif [ -e "$BACKUP_PATH" ] || [ -L "$BACKUP_PATH" ]; then
     die "last-known-good backup appeared before backup commit"
   fi
+  BACKUP_CLAIM_PATH="$INSTALL_DIR/.chainlesschain.backup-publish-claimed-$TRANSACTION_ID"
   assert_lock_owned || die "native update lock ownership was lost before backup commit"
-  mv -f "$BACKUP_TEMP_PATH" "$BACKUP_PATH"
-  BACKUP_TEMP_PATH=""
   BACKUP_COMMITTED=1
+  if [ "$HAD_BACKUP" -eq 1 ]; then
+    mutate_public_path \
+      replace \
+      "$BACKUP_PATH" \
+      "$BACKUP_TEMP_PATH" \
+      "$BACKUP_CLAIM_PATH" \
+      regular \
+      "$OLD_BACKUP_SHA256" \
+      "$OLD_BACKUP_IDENTITY" \
+      regular \
+      "$OLD_TARGET_SHA256" \
+      "$OLD_TARGET_IDENTITY" || { PRESERVE_RECOVERY=1; die "last-known-good backup publication failed closed"; }
+  else
+    mutate_public_path \
+      replace \
+      "$BACKUP_PATH" \
+      "$BACKUP_TEMP_PATH" \
+      "$BACKUP_CLAIM_PATH" \
+      absent \
+      "" \
+      "" \
+      regular \
+      "$OLD_TARGET_SHA256" \
+      "$OLD_TARGET_IDENTITY" || { PRESERVE_RECOVERY=1; die "last-known-good backup publication failed closed"; }
+  fi
+  BACKUP_TEMP_PATH=""
+  BACKUP_CLAIM_PATH=""
   fsync_dir "$INSTALL_DIR"
 fi
 
 ALIAS_TEMP_PATH="$INSTALL_DIR/.cc.link-$TRANSACTION_ID"
 [ ! -e "$ALIAS_TEMP_PATH" ] && [ ! -L "$ALIAS_TEMP_PATH" ] || die "alias staging path already exists"
 ln -s chainlesschain "$ALIAS_TEMP_PATH"
+INSTALLED_ALIAS_ANCHOR_PATH="$INSTALL_DIR/.cc.identity-$TRANSACTION_ID"
+[ ! -e "$INSTALLED_ALIAS_ANCHOR_PATH" ] && [ ! -L "$INSTALLED_ALIAS_ANCHOR_PATH" ] || die "alias identity anchor path already exists"
+INSTALLED_ALIAS_TARGET_SHA256=$(snapshot_alias "$ALIAS_TEMP_PATH" "$INSTALLED_ALIAS_ANCHOR_PATH")
+[ "$INSTALLED_ALIAS_TARGET_SHA256" = "$CANONICAL_ALIAS_TARGET_SHA256" ] || die "CLI alias identity anchor changed during creation"
 INSTALLED_ALIAS_IDENTITY=$(symlink_identity "$ALIAS_TEMP_PATH")
 alias_matches_identity "$ALIAS_TEMP_PATH" "$CANONICAL_ALIAS_TARGET_SHA256" "$INSTALLED_ALIAS_IDENTITY" || die "CLI alias staging path changed before commit"
 if [ "$HAD_ALIAS" -eq 1 ]; then
   alias_matches_identity "$ALIAS_PATH" "$OLD_ALIAS_TARGET_SHA256" "$OLD_ALIAS_IDENTITY" || die "CLI alias changed before alias commit"
-  alias_matches_hash "$PRIOR_ALIAS_PATH" "$OLD_ALIAS_TARGET_SHA256" || die "alias recovery snapshot changed before alias commit"
+  alias_matches_identity "$PRIOR_ALIAS_PATH" "$OLD_ALIAS_TARGET_SHA256" "$OLD_ALIAS_IDENTITY" || die "alias recovery snapshot changed before alias commit"
 elif [ -e "$ALIAS_PATH" ] || [ -L "$ALIAS_PATH" ]; then
   die "CLI alias appeared before alias commit"
 fi
 assert_lock_owned || die "native update lock ownership was lost before alias commit"
-mv -f "$ALIAS_TEMP_PATH" "$ALIAS_PATH"
-ALIAS_TEMP_PATH=""
+ALIAS_CLAIM_PATH="$INSTALL_DIR/.cc.publish-claimed-$TRANSACTION_ID"
 ALIAS_COMMITTED=1
+if [ "$HAD_ALIAS" -eq 1 ]; then
+  mutate_public_path \
+    replace \
+    "$ALIAS_PATH" \
+    "$ALIAS_TEMP_PATH" \
+    "$ALIAS_CLAIM_PATH" \
+    symlink \
+    "$OLD_ALIAS_TARGET_SHA256" \
+    "$OLD_ALIAS_IDENTITY" \
+    symlink \
+    "$CANONICAL_ALIAS_TARGET_SHA256" \
+    "$INSTALLED_ALIAS_IDENTITY" || { PRESERVE_RECOVERY=1; die "CLI alias publication failed closed"; }
+else
+  mutate_public_path \
+    replace \
+    "$ALIAS_PATH" \
+    "$ALIAS_TEMP_PATH" \
+    "$ALIAS_CLAIM_PATH" \
+    absent \
+    "" \
+    "" \
+    symlink \
+    "$CANONICAL_ALIAS_TARGET_SHA256" \
+    "$INSTALLED_ALIAS_IDENTITY" || { PRESERVE_RECOVERY=1; die "CLI alias publication failed closed"; }
+fi
+ALIAS_TEMP_PATH=""
+ALIAS_CLAIM_PATH=""
 alias_matches_identity "$ALIAS_PATH" "$CANONICAL_ALIAS_TARGET_SHA256" "$INSTALLED_ALIAS_IDENTITY" || die "CLI alias changed at the commit boundary"
 fsync_dir "$INSTALL_DIR"
 LINEAGE_COMMIT_STARTED=1
@@ -1630,7 +2382,10 @@ else
 fi
 COMMITTED=1
 if ! discard_transaction_snapshots; then
+  if [ "$CLEANUP_PENDING" -eq 1 ] && [ "$RECOVERY_RETIREMENT_GUARD" -eq 0 ]; then
+    die "install committed in cleanup-pending/degraded state; fd-bound tombstones were retained for later garbage collection"
+  fi
   PRESERVE_RECOVERY=1
-  die "install committed but prior-generation cleanup failed; the native update lock was retained"
+  die "install committed but recovery retirement failed; evidence and the native update lock were retained"
 fi
 echo "Installed ChainlessChain CLI at $TARGET_PATH"
