@@ -17,6 +17,8 @@ import {
   DownloadError,
 } from "../../src/lib/packer/pack-update-downloader.js";
 
+const CANONICAL_TEMP_ROOT = fs.realpathSync.native(os.tmpdir());
+
 function sha256Hex(buf) {
   return crypto.createHash("sha256").update(buf).digest("hex");
 }
@@ -108,7 +110,7 @@ describe("downloadAndVerify", () => {
   let tmpDir;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-dl-"));
+    tmpDir = fs.mkdtempSync(path.join(CANONICAL_TEMP_ROOT, "cc-dl-"));
   });
 
   afterEach(() => {

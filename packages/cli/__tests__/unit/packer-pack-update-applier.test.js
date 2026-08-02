@@ -38,6 +38,7 @@ import {
 
 const FIXTURE_TRANSACTION_ID = "00000000-0000-4000-8000-000000000001";
 const FIXTURE_LOCK_TOKEN = `999999:${FIXTURE_TRANSACTION_ID}`;
+const CANONICAL_TEMP_ROOT = fs.realpathSync.native(os.tmpdir());
 
 function sha256(value) {
   return crypto.createHash("sha256").update(value).digest("hex");
@@ -148,8 +149,12 @@ describe("scheduleReplace – argument guards", () => {
   });
 
   it("requires the verified staging file to be a target sibling", async () => {
-    const firstDir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-stage-a-"));
-    const secondDir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-stage-b-"));
+    const firstDir = fs.mkdtempSync(
+      path.join(CANONICAL_TEMP_ROOT, "cc-stage-a-"),
+    );
+    const secondDir = fs.mkdtempSync(
+      path.join(CANONICAL_TEMP_ROOT, "cc-stage-b-"),
+    );
     const newExe = path.join(firstDir, "new.exe");
     fs.writeFileSync(newExe, "new");
     try {
@@ -168,7 +173,7 @@ describe("scheduleReplace – argument guards", () => {
   });
 
   it("requires an explicit lowercase downloader-bound SHA-256", async () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-apply-sha-"));
+    const dir = fs.mkdtempSync(path.join(CANONICAL_TEMP_ROOT, "cc-apply-sha-"));
     const newExe = path.join(dir, "new.exe");
     const target = path.join(dir, "current.exe");
     fs.writeFileSync(newExe, "new");
@@ -187,7 +192,9 @@ describe("scheduleReplace – argument guards", () => {
   });
 
   it("does not treat an arbitrary standalone cc.exe as a managed alias", async () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-unmanaged-alias-"));
+    const dir = fs.mkdtempSync(
+      path.join(CANONICAL_TEMP_ROOT, "cc-unmanaged-alias-"),
+    );
     const newExe = path.join(dir, "new.exe");
     const alias = path.join(dir, "cc.exe");
     fs.writeFileSync(newExe, "new");
@@ -211,7 +218,7 @@ describe("scheduleReplace – argument guards", () => {
 
 describe("rollbackLastKnownGood", () => {
   it("restores through staging without overwriting the previous backup", async () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-rollback-"));
+    const dir = fs.mkdtempSync(path.join(CANONICAL_TEMP_ROOT, "cc-rollback-"));
     const target = path.join(dir, "chainlesschain");
     const backup = `${target}.previous`;
     fs.writeFileSync(target, "bad-new-version");
@@ -241,7 +248,9 @@ describe("rollbackLastKnownGood", () => {
   });
 
   it("restores the pre-rescue target when the rescued binary fails verification", async () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-rescue-fail-"));
+    const dir = fs.mkdtempSync(
+      path.join(CANONICAL_TEMP_ROOT, "cc-rescue-fail-"),
+    );
     const target = path.join(dir, "chainlesschain");
     const backup = `${target}.previous`;
     fs.writeFileSync(target, "current-version");
@@ -269,7 +278,9 @@ describe("rollbackLastKnownGood", () => {
   });
 
   it("refuses a stale lineage that does not describe the active target", async () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-rescue-stale-"));
+    const dir = fs.mkdtempSync(
+      path.join(CANONICAL_TEMP_ROOT, "cc-rescue-stale-"),
+    );
     const target = path.join(dir, "chainlesschain");
     const backup = `${target}.previous`;
     fs.writeFileSync(target, "lineage-current");
@@ -288,7 +299,9 @@ describe("rollbackLastKnownGood", () => {
   });
 
   it("preserves an independent pre-rescue snapshot if restoration itself fails", async () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-rescue-preserve-"));
+    const dir = fs.mkdtempSync(
+      path.join(CANONICAL_TEMP_ROOT, "cc-rescue-preserve-"),
+    );
     const target = path.join(dir, "chainlesschain");
     const backup = `${target}.previous`;
     fs.writeFileSync(target, "current-version");
@@ -342,7 +355,9 @@ describe("rollbackLastKnownGood", () => {
   });
 
   it("passes the readiness handshake through a Windows rescue transaction", async () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-rescue-win-ready-"));
+    const dir = fs.mkdtempSync(
+      path.join(CANONICAL_TEMP_ROOT, "cc-rescue-win-ready-"),
+    );
     const target = path.join(dir, "current.exe");
     const backup = `${target}.previous`;
     let sidecarPath = null;
@@ -394,7 +409,7 @@ describe("scheduleReplace – dryRun", () => {
   let target;
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-apply-"));
+    tmpDir = fs.mkdtempSync(path.join(CANONICAL_TEMP_ROOT, "cc-apply-"));
     newExe = path.join(tmpDir, "new.exe");
     target = path.join(tmpDir, "current.exe");
     fs.writeFileSync(newExe, "new-bytes", "utf-8");
@@ -451,7 +466,7 @@ describe("scheduleReplace – POSIX branch", () => {
   };
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-apply-posix-"));
+    tmpDir = fs.mkdtempSync(path.join(CANONICAL_TEMP_ROOT, "cc-apply-posix-"));
     newExe = path.join(tmpDir, "new.exe");
     target = path.join(tmpDir, "current.exe");
     fs.writeFileSync(newExe, "new-payload", "utf-8");
@@ -1011,7 +1026,7 @@ describe("scheduleReplace – Windows branch (sidecar cmd)", () => {
   };
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-apply-win-"));
+    tmpDir = fs.mkdtempSync(path.join(CANONICAL_TEMP_ROOT, "cc-apply-win-"));
     newExe = path.join(tmpDir, "new.exe");
     target = path.join(tmpDir, "current.exe");
     fs.writeFileSync(newExe, "new-bytes", "utf-8");
@@ -1163,7 +1178,7 @@ describe("scheduleReplace – Windows branch (sidecar cmd)", () => {
   it("releases the lock and removes the sidecar when spawn throws", async () => {
     const before = new Set(
       fs
-        .readdirSync(os.tmpdir())
+        .readdirSync(CANONICAL_TEMP_ROOT)
         .filter((name) => name.startsWith("cc-pack-apply-")),
     );
     await expect(
@@ -1180,7 +1195,7 @@ describe("scheduleReplace – Windows branch (sidecar cmd)", () => {
     ).rejects.toMatchObject({ code: "SIDECAR_SPAWN_FAILED" });
     expect(fs.existsSync(`${target}.update.lock`)).toBe(false);
     const after = fs
-      .readdirSync(os.tmpdir())
+      .readdirSync(CANONICAL_TEMP_ROOT)
       .filter((name) => name.startsWith("cc-pack-apply-"));
     expect(after.filter((name) => !before.has(name))).toEqual([]);
   });
@@ -1228,7 +1243,9 @@ describe("scheduleReplace – Windows branch (sidecar cmd)", () => {
   it.runIf(process.platform === "win32")(
     "transfers the real lock only after a sidecar readiness handshake",
     () => {
-      const dir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-ready-e2e-"));
+      const dir = fs.mkdtempSync(
+        path.join(CANONICAL_TEMP_ROOT, "cc-ready-e2e-"),
+      );
       const stagedPath = path.join(dir, "current.exe.new");
       const targetPath = path.join(dir, "current.exe");
       const planPath = path.join(dir, "plan.json");
@@ -1411,7 +1428,9 @@ describe("writeWindowsSidecar (cmd body)", () => {
   it.runIf(process.platform === "win32")(
     "commits the canonical binary and alias with lineage/result persistence",
     () => {
-      const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-sidecar-e2e-"));
+      const root = fs.mkdtempSync(
+        path.join(CANONICAL_TEMP_ROOT, "cc-sidecar-e2e-"),
+      );
       const dir = path.join(root, "\u539f\u751f\u66f4\u65b0");
       fs.mkdirSync(dir);
       const newExePath = path.join(dir, "chainlesschain.exe.new");
@@ -1480,7 +1499,9 @@ describe("writeWindowsSidecar (cmd body)", () => {
   it.runIf(process.platform === "win32")(
     "rolls the canonical binary and alias back after verification fails",
     () => {
-      const dir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-sidecar-fail-"));
+      const dir = fs.mkdtempSync(
+        path.join(CANONICAL_TEMP_ROOT, "cc-sidecar-fail-"),
+      );
       const newExePath = path.join(dir, "chainlesschain.exe.new");
       const targetExePath = path.join(dir, "chainlesschain.exe");
       const aliasPath = path.join(dir, "cc.exe");
@@ -1541,7 +1562,9 @@ describe("writeWindowsSidecar (cmd body)", () => {
   it.runIf(process.platform === "win32")(
     "does not mutate or release a lock after sidecar ownership is replaced",
     () => {
-      const dir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-sidecar-lock-"));
+      const dir = fs.mkdtempSync(
+        path.join(CANONICAL_TEMP_ROOT, "cc-sidecar-lock-"),
+      );
       const newExePath = path.join(dir, "chainlesschain.exe.new");
       const targetExePath = path.join(dir, "chainlesschain.exe");
       const lockPath = `${targetExePath}.update.lock`;
@@ -1583,7 +1606,9 @@ describe("writeWindowsSidecar (cmd body)", () => {
   it.runIf(process.platform === "win32")(
     "rejects a candidate mutated after scheduling and before sidecar commit",
     () => {
-      const dir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-sidecar-sha-"));
+      const dir = fs.mkdtempSync(
+        path.join(CANONICAL_TEMP_ROOT, "cc-sidecar-sha-"),
+      );
       const newExePath = path.join(dir, "chainlesschain.exe.new");
       const targetExePath = path.join(dir, "chainlesschain.exe");
       const lockPath = `${targetExePath}.update.lock`;
@@ -1629,7 +1654,9 @@ describe("writeWindowsSidecar (cmd body)", () => {
   it.runIf(process.platform === "win32")(
     "fails closed when a sidecar path ancestor is a junction",
     () => {
-      const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-sidecar-link-"));
+      const root = fs.mkdtempSync(
+        path.join(CANONICAL_TEMP_ROOT, "cc-sidecar-link-"),
+      );
       const realDir = path.join(root, "real");
       const linkedDir = path.join(root, "linked");
       fs.mkdirSync(realDir);
@@ -1691,7 +1718,9 @@ describe("writeWindowsSidecar (cmd body)", () => {
 
 describe("native sidecar result reporting", () => {
   it("atomically consumes a valid pending result and retains diagnostics", () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-update-result-"));
+    const dir = fs.mkdtempSync(
+      path.join(CANONICAL_TEMP_ROOT, "cc-update-result-"),
+    );
     const targetExePath = path.join(dir, "chainlesschain.exe");
     const resultPath = `${targetExePath}.update-result.json`;
     const lastResultPath = `${targetExePath}.update-result.last.json`;
@@ -1726,7 +1755,9 @@ describe("native sidecar result reporting", () => {
   });
 
   it("reports and archives a detached sidecar failure", () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-update-failed-"));
+    const dir = fs.mkdtempSync(
+      path.join(CANONICAL_TEMP_ROOT, "cc-update-failed-"),
+    );
     const targetExePath = path.join(dir, "chainlesschain.exe");
     const resultPath = `${targetExePath}.update-result.json`;
     const lastResultPath = `${targetExePath}.update-result.last.json`;
@@ -1761,7 +1792,9 @@ describe("native sidecar result reporting", () => {
   });
 
   it("leaves an invalid result pending and reports that it could not be consumed", () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-update-invalid-"));
+    const dir = fs.mkdtempSync(
+      path.join(CANONICAL_TEMP_ROOT, "cc-update-invalid-"),
+    );
     const targetExePath = path.join(dir, "chainlesschain.exe");
     const resultPath = `${targetExePath}.update-result.json`;
     const stderr = { write: vi.fn() };
