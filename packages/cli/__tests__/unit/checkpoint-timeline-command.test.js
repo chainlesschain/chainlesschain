@@ -33,7 +33,9 @@ const state = vi.hoisted(() => ({
   restoreTargetCount: 1,
   failSagaArchive: false,
   failSagaAdvancePhase: null,
+  failSagaAdvanceBeforePhase: null,
   failPostCommitReload: false,
+  restoreOrchestratorCalls: [],
 }));
 
 vi.mock("../../src/lib/turn-binding-store.js", () => ({
@@ -342,6 +344,8 @@ vi.mock("../../src/lib/file-checkpoint.js", () => ({
   },
 }));
 
+const { runCheckpointRestoreOperation: runSharedCheckpointRestoreOperation } =
+  await import("../../src/lib/checkpoint-restore-orchestrator.js");
 const { registerCheckpointCommand } =
   await import("../../src/commands/checkpoint.js");
 
@@ -394,6 +398,11 @@ function createTestSagaStore({ workspaceRoot }) {
       ) {
         const error = new Error("injected saga conflict");
         error.code = "CHECKPOINT_RESTORE_SAGA_CONFLICT";
+        throw error;
+      }
+      if (state.failSagaAdvanceBeforePhase === phase) {
+        const error = new Error("injected saga intent CAS failure");
+        error.code = "INJECTED_SAGA_INTENT_CAS_FAILURE";
         throw error;
       }
       const seq = current.seq + 1;
@@ -487,6 +496,15 @@ async function invoke(args) {
   registerCheckpointCommand(program, {
     withWorkspaceLockSync: withTestWorkspaceLock,
     createCheckpointRestoreSagaStore: createTestSagaStore,
+    runCheckpointRestoreOperation: (options) => {
+      state.restoreOrchestratorCalls.push({
+        plan: options.plan,
+        revalidate: typeof options.revalidate,
+        restore: typeof options.restore,
+        withSessionAuthority: typeof options.withSessionAuthority,
+      });
+      return runSharedCheckpointRestoreOperation(options);
+    },
   });
   const output = vi.spyOn(console, "log").mockImplementation(() => {});
   try {
@@ -564,7 +582,9 @@ describe("checkpoint timeline CLI command authority", () => {
     state.restoreTargetCount = 1;
     state.failSagaArchive = false;
     state.failSagaAdvancePhase = null;
+    state.failSagaAdvanceBeforePhase = null;
     state.failPostCommitReload = false;
+    state.restoreOrchestratorCalls = [];
     process.exitCode = undefined;
   });
 
@@ -793,6 +813,23 @@ describe("checkpoint timeline CLI command authority", () => {
         conversation: { messages: 1 },
       },
     });
+    expect(state.restoreOrchestratorCalls).toEqual([
+      {
+        plan: expect.objectContaining({
+          restoreKind: "git",
+          restoreSurface: "timeline",
+          checkpointId: "cp-1",
+          checkpointIdentity: `git:${"a".repeat(40)}`,
+          sessionId: "s1",
+          timelineEntryId: "turn-1",
+          workspaceRoot: state.workspaceRoot,
+          targetCount: 1,
+        }),
+        revalidate: "function",
+        restore: "function",
+        withSessionAuthority: "function",
+      },
+    ]);
     expect(state.restores).toEqual(["cp-1"]);
     expect(state.statusIdentities).toEqual([
       { engine: "git", identity: `git:${"a".repeat(40)}` },
@@ -1200,6 +1237,57 @@ describe("checkpoint timeline CLI command authority", () => {
       "checkpoint_timeline_commit",
       "checkpoint_timeline_action",
     ]);
+  });
+
+  it("retains recovery authority when the saga intent CAS fails after transcript intent", async () => {
+    const timeline = await invoke([
+      "checkpoint",
+      "timeline",
+      "-s",
+      "s1",
+      "--json",
+    ]);
+    const submission = timeline.entries[0].actions.find(
+      (action) => action.action === "restore-code",
+    ).submission;
+    state.failSagaAdvanceBeforePhase = "intent_committed";
+
+    const rejected = await invoke([
+      "checkpoint",
+      "action",
+      "-s",
+      "s1",
+      "--submission",
+      JSON.stringify(await previewConfirmation(submission)),
+      "--confirm",
+      "--json",
+    ]);
+
+    expect(rejected).toMatchObject({
+      ok: false,
+      code: "WORKSPACE_TRANSACTION_RECOVERY_REQUIRED",
+      operationFailureCode: "INJECTED_SAGA_INTENT_CAS_FAILURE",
+      sagaPhase: "recovery_required",
+      recoveryRequired: true,
+      workspaceLockRetained: true,
+    });
+    expect(state.restores).toEqual([]);
+    expect(state.conditional.map((event) => event.type)).toEqual([
+      "checkpoint_timeline_action_intent",
+      "checkpoint_timeline_action",
+    ]);
+    expect(state.audit.at(-1).data).toMatchObject({
+      status: "failed",
+      failureCode: "INJECTED_SAGA_INTENT_CAS_FAILURE",
+      workspaceState: "unknown",
+    });
+    expect(state.sagas[0].events.map((event) => event.phase)).toEqual([
+      "created",
+      "locked",
+      "prepared",
+      "recovery_required",
+    ]);
+    expect(state.retainedWorkspaceLocks).toHaveLength(1);
   });
 
   it("records a failed audit and retains recovery authority after restore mutation throws", async () => {
