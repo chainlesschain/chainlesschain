@@ -2097,7 +2097,14 @@ rollback_install() {
       BACKUP_CLAIM_PATH=""
       [ ! -e "$BACKUP_PATH" ] && [ ! -L "$BACKUP_PATH" ] || return 1
     fi
-
+    # Publication consumes BACKUP_TEMP_PATH by moving its exact inode to the
+    # public backup name. A signal can arrive after that durable publication but
+    # before the caller clears the shell variable. Once the backup rollback has
+    # completed and validated the prior public generation above, the old staging
+    # pathname is stale. Clear it here so snapshot retirement does not treat its
+    # expected absence as lost recovery evidence. Do not delete by that pathname:
+    # a same-name successor may already exist.
+    BACKUP_TEMP_PATH=""
   fi
 
   # The lineage writer uses an atomic replace, but a signal or write-helper

@@ -2285,6 +2285,12 @@ describe("native installer transaction contracts", () => {
           fixture.prestate.aliasTarget,
         );
         expect(pathLexists(`${fixture.targetPath}.update.lock`)).toBe(false);
+        expect(fixture.run.stderr).toContain(
+          "incomplete install transaction was rolled back",
+        );
+        expect(fixture.run.stderr).not.toContain(
+          "incomplete install transaction could not be rolled back",
+        );
       },
       120_000,
     );
