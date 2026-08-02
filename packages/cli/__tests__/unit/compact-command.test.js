@@ -17,14 +17,28 @@ vi.mock("../../src/lib/logger.js", () => ({
     warn: vi.fn(),
   },
 }));
-vi.mock("../../src/harness/jsonl-session-store.js", () => ({
-  sessionExists: vi.fn(() => true),
-  readEvents: vi.fn(() => [
+vi.mock("../../src/harness/jsonl-session-store.js", () => {
+  const readEvents = vi.fn(() => [
     { type: "session_start", data: { model: "", provider: "" } },
-  ]),
-  rebuildMessages: vi.fn(() => []),
-  appendCompactEvent: vi.fn(),
-}));
+  ]);
+  const readVerifiedMessages = vi.fn(() => []);
+  return {
+    sessionExists: vi.fn(() => true),
+    readEvents,
+    readVerifiedMessages,
+    readVerifiedProjection: vi.fn((_sessionId, createProjection) => {
+      const projection = createProjection();
+      const events = readEvents();
+      for (const event of events) projection.accept(event);
+      return projection.finish({
+        headHash: "head-1",
+        eventCount: events.length,
+        readMessages: () => readVerifiedMessages(),
+      });
+    }),
+    appendAuthorityEventIfHead: vi.fn(() => ({ hash: "head-2" })),
+  };
+});
 
 const store = await import("../../src/harness/jsonl-session-store.js");
 const { logger } = await import("../../src/lib/logger.js");
@@ -58,25 +72,31 @@ describe("cc compact", () => {
     store.readEvents.mockReturnValue([
       { type: "session_start", data: { model: "", provider: "" } },
     ]);
-    store.rebuildMessages.mockReturnValue([]);
+    store.readVerifiedMessages.mockReturnValue([]);
+    store.appendAuthorityEventIfHead.mockImplementation(() => ({
+      hash: "head-2",
+    }));
   });
 
   it("errors with exit code 1 when the session does not exist", async () => {
     store.sessionExists.mockReturnValue(false);
     await runCompact(["nope"]);
     expect(process.exitCode).toBe(1);
-    expect(store.appendCompactEvent).not.toHaveBeenCalled();
+    expect(store.appendAuthorityEventIfHead).not.toHaveBeenCalled();
     expect(logger.error).toHaveBeenCalledWith(
       expect.stringContaining("no such session"),
     );
   });
 
   it("compacts and persists a long session", async () => {
-    store.rebuildMessages.mockReturnValue(manyMessages(40));
+    store.readVerifiedMessages.mockReturnValue(manyMessages(40));
     await runCompact(["sess-1"]);
-    expect(store.appendCompactEvent).toHaveBeenCalledTimes(1);
-    const [sid, payload] = store.appendCompactEvent.mock.calls[0];
+    expect(store.appendAuthorityEventIfHead).toHaveBeenCalledTimes(1);
+    const [sid, type, payload, expectedHead] =
+      store.appendAuthorityEventIfHead.mock.calls[0];
     expect(sid).toBe("sess-1");
+    expect(type).toBe("compact");
+    expect(expectedHead).toBe("head-1");
     // The persisted compact event carries the shortened message array...
     expect(payload.messages.length).toBeLessThan(41);
     // ...and the stats the resume path / `cc cost` can read.
@@ -86,21 +106,21 @@ describe("cc compact", () => {
   });
 
   it("does NOT write anything in --dry-run mode", async () => {
-    store.rebuildMessages.mockReturnValue(manyMessages(40));
+    store.readVerifiedMessages.mockReturnValue(manyMessages(40));
     await runCompact(["sess-1", "--dry-run"]);
-    expect(store.appendCompactEvent).not.toHaveBeenCalled();
+    expect(store.appendAuthorityEventIfHead).not.toHaveBeenCalled();
     expect(logger.log).toHaveBeenCalledWith(
       expect.stringContaining("Would compact"),
     );
   });
 
   it("reports nothing-to-compact for a short session and writes nothing", async () => {
-    store.rebuildMessages.mockReturnValue([
+    store.readVerifiedMessages.mockReturnValue([
       { role: "user", content: "hi" },
       { role: "assistant", content: "hello" },
     ]);
     await runCompact(["sess-1"]);
-    expect(store.appendCompactEvent).not.toHaveBeenCalled();
+    expect(store.appendAuthorityEventIfHead).not.toHaveBeenCalled();
     expect(logger.log).toHaveBeenCalledWith(
       expect.stringContaining("Nothing to compact"),
     );
@@ -108,7 +128,7 @@ describe("cc compact", () => {
   });
 
   it("emits JSON when --json is passed", async () => {
-    store.rebuildMessages.mockReturnValue(manyMessages(40));
+    store.readVerifiedMessages.mockReturnValue(manyMessages(40));
     const spy = vi.spyOn(console, "log").mockImplementation(() => {});
     await runCompact(["sess-1", "--json"]);
     const printed = spy.mock.calls.map((c) => c[0]).join("\n");
@@ -117,5 +137,22 @@ describe("cc compact", () => {
     expect(parsed.sessionId).toBe("sess-1");
     expect(parsed.dryRun).toBe(false);
     expect(parsed.stats.saved).toBeGreaterThan(0);
+  });
+
+  it("rejects a stale compact snapshot instead of overwriting a concurrent turn", async () => {
+    store.readVerifiedMessages.mockReturnValue(manyMessages(40));
+    store.appendAuthorityEventIfHead.mockImplementationOnce(() => {
+      const error = new Error("stale");
+      error.code = "SESSION_REVISION_STALE";
+      throw error;
+    });
+
+    await runCompact(["sess-1"]);
+
+    expect(store.appendAuthorityEventIfHead).toHaveBeenCalledTimes(1);
+    expect(process.exitCode).toBe(1);
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.stringContaining("session changed while compacting; retry"),
+    );
   });
 });

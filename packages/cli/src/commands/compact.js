@@ -12,9 +12,9 @@
  * extractive/count-based compaction. Provider failure degrades visibly to the
  * bounded extractive handoff instead of silently discarding facts.
  *
- * After compaction the new history is appended as a JSONL `compact` event;
- * `rebuildMessages()` already rebuilds from the last such event, so a later
- * `cc agent --resume <id>` picks up the shortened history automatically.
+ * After compaction the new history is appended as a revision-checked JSONL
+ * `compact` event; verified resume rebuilds from the last such event, so a
+ * later `cc agent --resume <id>` picks up the shortened history automatically.
  * Distinct from `cc checkpoint` (file state) and `cc workflow checkpoint`
  * (execution state).
  */
@@ -22,10 +22,9 @@
 import chalk from "chalk";
 import { logger } from "../lib/logger.js";
 import {
+  appendAuthorityEventIfHead,
+  readVerifiedProjection,
   sessionExists,
-  readEvents,
-  rebuildMessages,
-  appendCompactEvent,
 } from "../harness/jsonl-session-store.js";
 import { PromptCompressor } from "../harness/prompt-compressor.js";
 import { chatWithTools } from "../runtime/agent-core.js";
@@ -79,6 +78,35 @@ function buildSemanticQuery(options, recorded) {
   };
 }
 
+function readCompactSource(sessionId) {
+  return readVerifiedProjection(sessionId, () => {
+    let recorded = Object.freeze({ model: "", provider: "" });
+    let sawSessionStart = false;
+    return {
+      accept(event) {
+        if (!sawSessionStart && event?.type === "session_start") {
+          sawSessionStart = true;
+          recorded = Object.freeze({
+            model:
+              typeof event.data?.model === "string" ? event.data.model : "",
+            provider:
+              typeof event.data?.provider === "string"
+                ? event.data.provider
+                : "",
+          });
+        }
+      },
+      finish(authority) {
+        return Object.freeze({
+          headHash: authority.headHash,
+          messages: Object.freeze([...authority.readMessages()]),
+          recorded,
+        });
+      },
+    };
+  });
+}
+
 export function registerCompactCommand(program) {
   program
     .command("compact <session-id>")
@@ -114,15 +142,9 @@ export function registerCompactCommand(program) {
           return;
         }
 
-        const events = readEvents(sessionId);
-        const start = events.find((e) => e.type === "session_start");
-        const recorded = {
-          model: start?.data?.model || "",
-          provider: start?.data?.provider || "",
-        };
-
-        const messages = rebuildMessages(sessionId);
-        const compressor = buildCompressor(options, recorded);
+        const source = readCompactSource(sessionId);
+        const messages = source.messages;
+        const compressor = buildCompressor(options, source.recorded);
         const { messages: compacted, stats } =
           await compressor.compress(messages);
 
@@ -144,7 +166,12 @@ export function registerCompactCommand(program) {
         }
 
         if (!options.dryRun) {
-          appendCompactEvent(sessionId, { ...stats, messages: compacted });
+          appendAuthorityEventIfHead(
+            sessionId,
+            "compact",
+            { ...stats, messages: compacted },
+            source.headHash,
+          );
         }
 
         if (options.json) {
@@ -188,7 +215,11 @@ export function registerCompactCommand(program) {
           );
         }
       } catch (err) {
-        logger.error(chalk.red(`compact failed: ${err.message}`));
+        const reason =
+          err?.code === "SESSION_REVISION_STALE"
+            ? "session changed while compacting; retry"
+            : err.message;
+        logger.error(chalk.red(`compact failed: ${reason}`));
         process.exitCode = 1;
       }
     });
