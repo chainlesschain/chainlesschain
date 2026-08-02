@@ -16,11 +16,25 @@ import {
   MCP_CALL_LEDGER_PROTOCOL_LIMITS,
   normalizeMcpLedgerProtocolText,
   sha256PayloadDigest,
+  snapshotMcpJsonRpcInput,
 } from "./mcp-call-ledger.js";
 
 const PAYLOAD_DIGEST = /^sha256:[0-9a-f]{64}$/;
 const RAW_AUTHORITY_HASH = /^[0-9a-f]{64}$/;
 const MAX_REASON_LENGTH = 4096;
+const MCP_EFFECTS = new Set(["read", "unknown", "write", "destructive"]);
+const MCP_RECOVERY_REMEDIATIONS = new Set([
+  "inspect_transcript",
+  "adjudicate_started_calls",
+  "exact_replay_denied",
+]);
+const PUBLIC_REPLAY_DENY_FIELDS = new Set([
+  "ledgerId",
+  "serverName",
+  "toolName",
+  "inputBytes",
+  "replayDigest",
+]);
 
 export class McpRecoveryAdjudicationError extends Error {
   constructor(code, message, options = {}) {
@@ -94,7 +108,16 @@ export function readMcpRecoveryAuthority(sessionId, dependencies = {}) {
     dependencies.readVerifiedEvents || storeReadVerifiedEvents;
   let events;
   try {
-    events = readVerifiedEvents(sessionId);
+    events = snapshotMcpJsonRpcInput(readVerifiedEvents(sessionId));
+    if (!Array.isArray(events)) {
+      throw new TypeError(
+        "Verified MCP recovery events must be a synchronous array",
+      );
+    }
+    return reduceMcpLedgerEvents(events, {
+      sessionId,
+      verified: true,
+    });
   } catch (cause) {
     throw new McpRecoveryAdjudicationError(
       "CC_MCP_RECOVERY_ADJUDICATION_UNVERIFIED",
@@ -102,75 +125,143 @@ export function readMcpRecoveryAuthority(sessionId, dependencies = {}) {
       { sessionId, cause },
     );
   }
-  if (!Array.isArray(events)) {
-    throw new McpRecoveryAdjudicationError(
-      "CC_MCP_RECOVERY_ADJUDICATION_UNVERIFIED",
-      "Verified MCP recovery events must be a synchronous array",
-      { sessionId },
-    );
-  }
-  return reduceMcpLedgerEvents(events, {
-    sessionId,
-    verified: true,
-  });
 }
 
 export function publicMcpRecoveryAuthority(sessionId, recovery) {
-  const unsettled = Array.isArray(recovery?.unsettled)
-    ? recovery.unsettled.map((record) =>
-        Object.freeze({
-          ledgerId: record.ledgerId,
-          serverName: record.serverName,
-          toolName: record.toolName,
-          effect: record.effectContract?.effect || "unknown",
-          status: "outcome_unknown",
-        }),
-      )
-    : [];
-  const incidents = Array.isArray(recovery?.incidents)
-    ? recovery.incidents.map((incident) =>
-        Object.freeze({
-          code: incident.code,
-          ledgerId: incident.ledgerId || null,
-        }),
-      )
-    : [];
-  const replayDenied = Array.isArray(recovery?.replayDenied)
-    ? recovery.replayDenied.map((entry) =>
-        Object.freeze({
-          ledgerId: entry.ledgerId,
-          serverName: entry.serverName,
-          toolName: entry.toolName,
-          inputBytes: entry.inputBytes,
-          replayDigest: entry.replayDigest,
-        }),
-      )
-    : [];
-  const adjudications = Array.isArray(recovery?.adjudications)
-    ? recovery.adjudications.map((entry) =>
-        Object.freeze({
-          requestId: entry.requestId,
-          ledgerId: entry.ledgerId,
-          decision: entry.decision,
-          authority: entry.authority,
-          confirmation: entry.confirmation,
-          reasonDigest: entry.reasonDigest,
-        }),
-      )
-    : [];
+  let snapshot;
+  try {
+    snapshot = snapshotMcpJsonRpcInput(recovery);
+  } catch (cause) {
+    throw new McpRecoveryAdjudicationError(
+      "CC_MCP_RECOVERY_ADJUDICATION_UNVERIFIED",
+      "MCP recovery authority is not strict synchronous plain data",
+      { sessionId, cause },
+    );
+  }
+  const canonicalSessionId = canonicalIdentifier(sessionId);
+  if (
+    !canonicalSessionId ||
+    !snapshot ||
+    Array.isArray(snapshot) ||
+    snapshot.verified !== true ||
+    snapshot.sessionId !== canonicalSessionId ||
+    !Array.isArray(snapshot.unsettled) ||
+    !Array.isArray(snapshot.incidents) ||
+    !Array.isArray(snapshot.adjudications) ||
+    !Array.isArray(snapshot.replayDenied) ||
+    (snapshot.headHash !== null &&
+      !RAW_AUTHORITY_HASH.test(String(snapshot.headHash || ""))) ||
+    !PAYLOAD_DIGEST.test(String(snapshot.recoveryDigest || "")) ||
+    (snapshot.remediation !== null &&
+      !MCP_RECOVERY_REMEDIATIONS.has(snapshot.remediation))
+  ) {
+    throw new McpRecoveryAdjudicationError(
+      "CC_MCP_RECOVERY_ADJUDICATION_UNVERIFIED",
+      "MCP recovery authority projection is malformed",
+      { sessionId: canonicalSessionId || null },
+    );
+  }
+
+  const invalidProjection = () => {
+    throw new McpRecoveryAdjudicationError(
+      "CC_MCP_RECOVERY_ADJUDICATION_UNVERIFIED",
+      "MCP recovery authority contains malformed public fields",
+      { sessionId: canonicalSessionId },
+    );
+  };
+  const unsettled = snapshot.unsettled.map((record) => {
+    const ledgerId = canonicalLedgerId(record?.ledgerId);
+    const serverName = canonicalIdentifier(record?.serverName);
+    const toolName = canonicalIdentifier(record?.toolName);
+    const effect = record?.effectContract?.effect;
+    if (
+      !ledgerId ||
+      !serverName ||
+      !toolName ||
+      !MCP_EFFECTS.has(effect) ||
+      record?.status !== "started"
+    ) {
+      return invalidProjection();
+    }
+    return Object.freeze({
+      ledgerId,
+      serverName,
+      toolName,
+      effect,
+      status: "outcome_unknown",
+    });
+  });
+  const incidents = snapshot.incidents.map((incident) => {
+    const code = canonicalIdentifier(incident?.code);
+    const ledgerId =
+      incident?.ledgerId === null
+        ? null
+        : canonicalLedgerId(incident?.ledgerId);
+    if (!code || (incident?.ledgerId !== null && !ledgerId)) {
+      return invalidProjection();
+    }
+    return Object.freeze({ code, ledgerId });
+  });
+  const replayDenied = snapshot.replayDenied.map((entry) => {
+    const fields = Object.keys(entry || {});
+    const ledgerId = canonicalLedgerId(entry?.ledgerId);
+    const serverName = canonicalIdentifier(entry?.serverName);
+    const toolName = canonicalIdentifier(entry?.toolName);
+    if (
+      fields.length !== PUBLIC_REPLAY_DENY_FIELDS.size ||
+      fields.some((field) => !PUBLIC_REPLAY_DENY_FIELDS.has(field)) ||
+      !ledgerId ||
+      !serverName ||
+      !toolName ||
+      !Number.isSafeInteger(entry?.inputBytes) ||
+      entry.inputBytes < 0 ||
+      !PAYLOAD_DIGEST.test(String(entry?.replayDigest || ""))
+    ) {
+      return invalidProjection();
+    }
+    return Object.freeze({
+      ledgerId,
+      serverName,
+      toolName,
+      inputBytes: entry.inputBytes,
+      replayDigest: entry.replayDigest,
+    });
+  });
+  const adjudications = snapshot.adjudications.map((entry) => {
+    const requestId = canonicalIdentifier(entry?.requestId);
+    const ledgerId = canonicalLedgerId(entry?.ledgerId);
+    if (
+      !requestId ||
+      !ledgerId ||
+      !Object.values(McpCallRecoveryDecision).includes(entry?.decision) ||
+      entry?.authority !== MCP_CALL_RECOVERY_AUTHORITY ||
+      entry?.confirmation !== MCP_CALL_RECOVERY_CONFIRMATION ||
+      !PAYLOAD_DIGEST.test(String(entry?.reasonDigest || ""))
+    ) {
+      return invalidProjection();
+    }
+    return Object.freeze({
+      requestId,
+      ledgerId,
+      decision: entry.decision,
+      authority: entry.authority,
+      confirmation: entry.confirmation,
+      reasonDigest: entry.reasonDigest,
+    });
+  });
   return Object.freeze({
     schemaVersion: 1,
-    sessionId,
-    verified: recovery?.verified === true,
-    headHash: recovery?.headHash || null,
-    recoveryDigest: recovery?.recoveryDigest || null,
+    sessionId: canonicalSessionId,
+    verified: true,
+    headHash: snapshot.headHash,
+    recoveryDigest: snapshot.recoveryDigest,
     blockMode:
       incidents.length > 0 ? "all" : unsettled.length > 0 ? "unsafe" : null,
     unsettled: Object.freeze(unsettled),
     incidents: Object.freeze(incidents),
     adjudications: Object.freeze(adjudications),
     replayDenied: Object.freeze(replayDenied),
-    remediation: recovery?.remediation || null,
+    remediation: snapshot.remediation,
   });
 }
 
@@ -207,11 +298,21 @@ export function buildMcpRecoveryAdjudicationChallenge({
  * CAS. A stale comparison is returned to the caller and is never retried.
  */
 export async function adjudicateMcpRecovery(request, dependencies = {}) {
-  const sessionId = canonicalIdentifier(request?.sessionId);
-  const ledgerId = canonicalLedgerId(request?.ledgerId);
+  let safeRequest;
+  try {
+    safeRequest = snapshotMcpJsonRpcInput(request);
+  } catch (cause) {
+    throw new McpRecoveryAdjudicationError(
+      "CC_MCP_RECOVERY_ADJUDICATION_INPUT_INVALID",
+      "MCP recovery adjudication request must be strict plain data",
+      { cause },
+    );
+  }
+  const sessionId = canonicalIdentifier(safeRequest?.sessionId);
+  const ledgerId = canonicalLedgerId(safeRequest?.ledgerId);
   const context = {
     sessionId,
-    ledgerId: ledgerId || request?.ledgerId || null,
+    ledgerId: ledgerId || null,
   };
   if (!sessionId || !ledgerId) {
     throw new McpRecoveryAdjudicationError(
@@ -220,20 +321,20 @@ export async function adjudicateMcpRecovery(request, dependencies = {}) {
       context,
     );
   }
-  const decision = requireDecision(request.decision, context);
+  const decision = requireDecision(safeRequest.decision, context);
   const expectedHeadHash = requireDigest(
-    request.expectedHeadHash,
+    safeRequest.expectedHeadHash,
     "expectedHeadHash",
     RAW_AUTHORITY_HASH,
     context,
   );
   const expectedRecoveryDigest = requireDigest(
-    request.expectedRecoveryDigest,
+    safeRequest.expectedRecoveryDigest,
     "expectedRecoveryDigest",
     PAYLOAD_DIGEST,
     context,
   );
-  const reason = requireReason(request.reason, context);
+  const reason = requireReason(safeRequest.reason, context);
   const recovery = readMcpRecoveryAuthority(sessionId, dependencies);
 
   if (
@@ -267,7 +368,7 @@ export async function adjudicateMcpRecovery(request, dependencies = {}) {
   const reasonDigest = sha256PayloadDigest(reason);
   const randomUUID = dependencies.randomUUID || nodeRandomUUID;
   const requestId = canonicalIdentifier(
-    request.requestId || `mcp-recovery-${randomUUID()}`,
+    safeRequest.requestId || `mcp-recovery-${randomUUID()}`,
   );
   if (!requestId) {
     throw new McpRecoveryAdjudicationError(
@@ -292,11 +393,13 @@ export async function adjudicateMcpRecovery(request, dependencies = {}) {
     dependencies.appendAuthorityEventIfHead || storeAppendAuthorityEventIfHead;
   let appended;
   try {
-    appended = await appendAuthorityEventIfHead(
-      sessionId,
-      MCP_CALL_RECOVERY_ADJUDICATION_EVENT,
-      data,
-      recovery.headHash,
+    appended = snapshotMcpJsonRpcInput(
+      await appendAuthorityEventIfHead(
+        sessionId,
+        MCP_CALL_RECOVERY_ADJUDICATION_EVENT,
+        data,
+        recovery.headHash,
+      ),
     );
   } catch (cause) {
     if (cause?.code === "SESSION_REVISION_STALE") {
@@ -330,10 +433,11 @@ export async function adjudicateMcpRecovery(request, dependencies = {}) {
     headHash: appended.hash,
     expectedRecoveryDigest: recovery.recoveryDigest,
     reasonDigest,
-    replayDigests:
+    replayDigests: Object.freeze(
       decision === McpCallRecoveryDecision.CONFIRMED_APPLIED
         ? deriveMcpExactReplayDenies(target).map((deny) => deny.replayDigest)
         : [],
+    ),
     replayDenied: decision === McpCallRecoveryDecision.CONFIRMED_APPLIED,
     runtimeReloadRequired: true,
     remediation: "restart_or_resume_before_mcp_calls",

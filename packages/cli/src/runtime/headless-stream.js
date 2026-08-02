@@ -2312,7 +2312,9 @@ async function runAgentHeadlessStreamInWorkspace(options = {}, deps = {}) {
     extraToolDefinitions: mcp?.extraToolDefinitions || undefined,
     externalToolExecutors: mcp?.externalToolExecutors || undefined,
     externalToolDescriptors: mcp?.externalToolDescriptors || undefined,
-    mcpCallLedger: mcpLedgerSink ? mcpRecoveryRuntime.ledger : null,
+    // A null sink disables durable writes, not recovery admission. Retain the
+    // guarded ledger so outcome-unknown calls cannot be retried in-process.
+    mcpCallLedger: mcpRecoveryRuntime.ledger,
     chatFn: deps.chatFn || options.chatFn || undefined,
     signal: options.signal || undefined,
     // --include-partial-messages: stream live assistant-text deltas as

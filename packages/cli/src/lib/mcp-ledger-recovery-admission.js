@@ -6,6 +6,7 @@ import {
   createMcpCallLedger,
   normalizeMcpLedgerProtocolText,
   normalizeMcpEffectContract,
+  snapshotMcpJsonRpcInput,
   summarizeMcpPayload,
 } from "./mcp-call-ledger.js";
 
@@ -123,6 +124,45 @@ function replayDenyAuthorityKey(value) {
   return JSON.stringify([value?.ledgerId || null, replayDenyKey(value)]);
 }
 
+function invalidMcpCallInput(reason) {
+  const error = new TypeError(
+    `MCP call input is not strict immutable JSON data (${reason})`,
+  );
+  error.code = "CC_MCP_WIRE_INPUT_INVALID";
+  return error;
+}
+
+function snapshotMcpAdmissionCall(call = {}) {
+  if (!isPlainDataObject(call)) throw invalidMcpCallInput("call-envelope");
+  if (Object.getOwnPropertySymbols(call).length > 0) {
+    throw invalidMcpCallInput("symbol-key");
+  }
+  const descriptors = Object.getOwnPropertyDescriptors(call);
+  const snapshot = {};
+  for (const key of Object.keys(descriptors)) {
+    const descriptor = descriptors[key];
+    if (!("value" in descriptor)) throw invalidMcpCallInput("accessor");
+    if (!descriptor.enumerable) throw invalidMcpCallInput("hidden-property");
+    if (key === "input") continue;
+    Object.defineProperty(snapshot, key, {
+      configurable: false,
+      enumerable: true,
+      writable: false,
+      value: descriptor.value,
+    });
+  }
+  const inputDescriptor = descriptors.input;
+  Object.defineProperty(snapshot, "input", {
+    configurable: false,
+    enumerable: true,
+    writable: false,
+    value: snapshotMcpJsonRpcInput(
+      inputDescriptor ? inputDescriptor.value : {},
+    ),
+  });
+  return Object.freeze(snapshot);
+}
+
 function replayIdentityForCall(call = {}) {
   const serverName = normalizeMcpLedgerProtocolText(
     call.serverName || call.server,
@@ -136,9 +176,9 @@ function replayIdentityForCall(call = {}) {
   );
   if (!serverName || !toolNameValue) return null;
   const toolName = toolNameValue;
-  const input = Object.prototype.hasOwnProperty.call(call, "input")
-    ? call.input
-    : {};
+  const input = snapshotMcpJsonRpcInput(
+    Object.prototype.hasOwnProperty.call(call, "input") ? call.input : {},
+  );
   const summary = summarizeMcpPayload(input);
   return Object.freeze({
     serverName,
@@ -591,16 +631,23 @@ export function guardMcpLedgerForRecovery(ledger, recovery, options = {}) {
       : findReplayDeny(staticProjection.replayDenied, call);
 
   const begin = async (call = {}) => {
+    const callSnapshot = snapshotMcpAdmissionCall(call);
     const admission = getAdmission();
     const normalizedEffect = normalizeMcpEffectContract(
-      call.effectContract || call.effect || {},
+      snapshotMcpJsonRpcInput(
+        callSnapshot.effectContract || callSnapshot.effect || {},
+      ),
     );
+    const ledgerCall = Object.freeze({
+      ...callSnapshot,
+      effectContract: normalizedEffect,
+    });
     const effect =
       normalizedEffect.effect === McpEffect.READ &&
       normalizedEffect.trusted !== true
         ? McpEffect.UNKNOWN
         : normalizedEffect.effect;
-    const deny = getReplayDeny(call);
+    const deny = getReplayDeny(ledgerCall);
     if (deny) {
       throw new McpExactReplayDeniedError(effect, deny);
     }
@@ -611,7 +658,7 @@ export function guardMcpLedgerForRecovery(ledger, recovery, options = {}) {
     if (blocked) {
       throw new McpLedgerRecoveryBlockedError(effect, admission, options);
     }
-    const ticket = await Reflect.apply(ledgerBegin, ledger, [call]);
+    const ticket = await Reflect.apply(ledgerBegin, ledger, [ledgerCall]);
     return wrapLedgerTicketForRecovery(ticket, controller);
   };
 
@@ -800,18 +847,21 @@ export function createRecoveryGuardedMcpClient({
   const admittedLedger = guardMcpLedgerForRecovery(ledger, controller);
   const rawCallTool = client.callTool;
   const callTool = async (serverName, toolName, input = {}, ...rest) => {
+    // Snapshot before the first await. Admission, durable identity and the raw
+    // transport all receive this exact deeply-frozen JSON value.
+    const inputSnapshot = snapshotMcpJsonRpcInput(input);
     const effect = await resolveHostEffectContract(
       resolveEffect,
       client,
       serverName,
       toolName,
-      input,
+      inputSnapshot,
     );
     const ticket = await admittedLedger.begin({
       sessionId,
       serverName,
       toolName,
-      input,
+      input: inputSnapshot,
       ...effect,
     });
 
@@ -820,7 +870,7 @@ export function createRecoveryGuardedMcpClient({
       result = await Reflect.apply(rawCallTool, client, [
         serverName,
         toolName,
-        input,
+        inputSnapshot,
         ...rest,
       ]);
     } catch (callError) {

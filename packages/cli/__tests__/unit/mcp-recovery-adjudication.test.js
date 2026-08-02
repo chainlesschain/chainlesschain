@@ -12,6 +12,7 @@ import {
 } from "../../src/lib/mcp-call-ledger-store.js";
 import {
   adjudicateMcpRecovery,
+  publicMcpRecoveryAuthority,
   readMcpRecoveryAuthority,
 } from "../../src/lib/mcp-recovery-adjudication.js";
 
@@ -407,6 +408,100 @@ describe("MCP recovery adjudication authority", () => {
     for (const variant of variants) {
       expect(computeMcpRecoveryDigest(variant)).not.toBe(baseline);
     }
+  });
+
+  it("projects only frozen content-free MCP recovery authority", () => {
+    const recovery = reduceMcpLedgerEvents([startedEvent()], {
+      sessionId: "session-1",
+      verified: true,
+    });
+    const projected = publicMcpRecoveryAuthority("session-1", recovery);
+
+    expect(projected).toMatchObject({
+      verified: true,
+      blockMode: "unsafe",
+      unsettled: [
+        {
+          ledgerId: "mcp-ledger-1",
+          serverName: "repo",
+          toolName: "mcp__repo__publish",
+          status: "outcome_unknown",
+        },
+      ],
+    });
+    expect(Object.isFrozen(projected)).toBe(true);
+    expect(Object.isFrozen(projected.unsettled)).toBe(true);
+    expect(Object.isFrozen(projected.unsettled[0])).toBe(true);
+    expect(JSON.stringify(projected)).not.toContain("inputDigest");
+    expect(JSON.stringify(projected)).not.toContain("effectContract");
+  });
+
+  it("never launders asynchronous or object-valued authority into a clean projection", () => {
+    const recovery = reduceMcpLedgerEvents([startedEvent()], {
+      sessionId: "session-1",
+      verified: true,
+    });
+    const toJSON = vi.fn(() => "PRIVATE_RECOVERY_CONTENT");
+    const poisoned = {
+      ...recovery,
+      unsettled: [
+        {
+          ...recovery.unsettled[0],
+          toolName: { toJSON },
+        },
+      ],
+    };
+
+    for (const candidate of [
+      Promise.resolve(recovery),
+      { ...recovery, then: vi.fn() },
+      poisoned,
+      new Proxy(recovery, {
+        get() {
+          throw new Error("must-not-read-proxy");
+        },
+      }),
+    ]) {
+      expect(() =>
+        publicMcpRecoveryAuthority("session-1", candidate),
+      ).toThrowError(
+        expect.objectContaining({
+          code: "CC_MCP_RECOVERY_ADJUDICATION_UNVERIFIED",
+        }),
+      );
+    }
+    expect(toJSON).not.toHaveBeenCalled();
+  });
+
+  it("rejects Proxy or accessor verified-event containers without invoking them", () => {
+    let eventReads = 0;
+    const accessorEvent = { ...startedEvent() };
+    Object.defineProperty(accessorEvent, "type", {
+      enumerable: true,
+      get() {
+        eventReads += 1;
+        return MCP_CALL_LEDGER_EVENT;
+      },
+    });
+    const proxyEvents = new Proxy([startedEvent()], {
+      get() {
+        eventReads += 1;
+        throw new Error("must-not-read-proxy-array");
+      },
+    });
+
+    for (const events of [[accessorEvent], proxyEvents]) {
+      expect(() =>
+        readMcpRecoveryAuthority("session-1", {
+          readVerifiedEvents: () => events,
+        }),
+      ).toThrowError(
+        expect.objectContaining({
+          code: "CC_MCP_RECOVERY_ADJUDICATION_UNVERIFIED",
+        }),
+      );
+    }
+    expect(eventReads).toBe(0);
   });
 
   it("appends one exact-key authority event under the verified head CAS", async () => {

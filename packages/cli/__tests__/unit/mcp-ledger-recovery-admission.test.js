@@ -773,6 +773,82 @@ describe("MCP ledger recovery admission", () => {
     );
   });
 
+  it("rejects wire-equivalent ambiguous inputs before an exact replay can execute", async () => {
+    const deniedInput = { release: 7 };
+    const callTool = vi.fn(async () => ({ content: [] }));
+    const begin = vi.fn(async () => ({
+      ledgerId: "must-not-start",
+      settle: vi.fn(),
+    }));
+    const controller = createMcpRecoveryAdmissionController({
+      incidents: [],
+      unsettled: [],
+      replayDenied: [replayDeny(deniedInput)],
+    });
+    const client = createRecoveryGuardedMcpClient({
+      client: { callTool },
+      ledger: { begin },
+      controller,
+      sessionId: "session-wire-replay",
+    });
+    const toJSON = vi.fn(() => ({ release: 7 }));
+    const variants = [
+      { release: 7, ignored: undefined },
+      { release: 7, toJSON },
+      new Proxy(
+        { release: 7 },
+        {
+          get() {
+            throw new Error("proxy must not be inspected");
+          },
+        },
+      ),
+      Object.assign(new Array(1), {}),
+      { then: vi.fn() },
+    ];
+    expect(JSON.stringify(variants[0])).toBe(JSON.stringify(deniedInput));
+    expect(JSON.stringify(variants[1])).toBe(JSON.stringify(deniedInput));
+
+    for (const input of variants) {
+      await expect(
+        client.callTool("repo", "publish", input),
+      ).rejects.toMatchObject({
+        code: "CC_MCP_WIRE_INPUT_INVALID",
+      });
+    }
+    expect(toJSON).toHaveBeenCalledTimes(1);
+    expect(begin).not.toHaveBeenCalled();
+    expect(callTool).not.toHaveBeenCalled();
+  });
+
+  it("uses one immutable input snapshot for host admission, ledger, and send", async () => {
+    const settle = vi.fn(async () => ({}));
+    const begin = vi.fn(async () => ({ ledgerId: "host-snapshot", settle }));
+    const callTool = vi.fn(async () => ({ content: [] }));
+    const resolveEffect = vi.fn(() => ({ effect: "read", trusted: true }));
+    const client = createRecoveryGuardedMcpClient({
+      client: { callTool },
+      ledger: { begin },
+      controller: createMcpRecoveryAdmissionController(),
+      resolveEffect,
+      sessionId: "session-wire-snapshot",
+    });
+    const original = { nested: { release: 7 } };
+
+    const pending = client.callTool("repo", "status", original);
+    original.nested.release = 8;
+    await pending;
+
+    const ledgerInput = begin.mock.calls[0][0].input;
+    const resolverInput = resolveEffect.mock.calls[0][2];
+    const sentInput = callTool.mock.calls[0][2];
+    expect(ledgerInput).toBe(resolverInput);
+    expect(sentInput).toBe(ledgerInput);
+    expect(sentInput).toEqual({ nested: { release: 7 } });
+    expect(Object.isFrozen(sentInput)).toBe(true);
+    expect(Object.isFrozen(sentInput.nested)).toBe(true);
+  });
+
   it("blocks unknown host calls under unsafe and every host call under all", async () => {
     const callTool = vi.fn(async () => ({ ok: true }));
     const settle = vi.fn(async () => ({}));

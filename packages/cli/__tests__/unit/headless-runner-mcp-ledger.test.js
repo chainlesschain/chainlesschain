@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { runAgentHeadless } from "../../src/runtime/headless-runner.js";
+import { executeTool } from "../../src/runtime/agent-core.js";
 import { MCP_CALL_LEDGER_EVENT } from "../../src/lib/mcp-call-ledger-store.js";
 
 const HEAD_1 = "1".repeat(64);
@@ -232,5 +233,71 @@ describe("headless MCP ledger persistence and recovery", () => {
         effectContract: { effect: "write" },
       }),
     ).rejects.toMatchObject({ code: "CC_MCP_LEDGER_PREWRITE_FAILED" });
+  });
+
+  it("keeps non-persistent runs on the guarded ledger after outcome unknown", async () => {
+    const setup = harness([]);
+    const callTool = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("transport outcome unknown"))
+      .mockResolvedValue({ content: [] });
+    const toolName = "mcp__repo__publish";
+    setup.deps.resolveAgentMcp = async () => ({
+      mcpClient: { callTool, disconnectAll: vi.fn(async () => {}) },
+      connected: ["repo"],
+      extraToolDefinitions: [],
+      externalToolExecutors: {
+        [toolName]: {
+          kind: "mcp",
+          serverName: "repo",
+          toolName: "publish",
+        },
+      },
+      externalToolDescriptors: {
+        [toolName]: {
+          name: toolName,
+          kind: "mcp",
+          category: "mcp",
+          source: "mcp:repo",
+          effectContract: { declaredEffect: "write" },
+        },
+      },
+    });
+
+    await runAgentHeadless(
+      {
+        prompt: "publish",
+        outputFormat: "json",
+        persistSession: false,
+      },
+      setup.deps,
+    );
+
+    expect(
+      setup.captured.options.mcpCallLedger?.recoveryAdmission,
+    ).toBeDefined();
+    const first = await executeTool(
+      toolName,
+      { release: 1 },
+      setup.captured.options,
+    );
+    expect(first).toMatchObject({
+      code: "CC_MCP_LEDGER_OUTCOME_UNKNOWN",
+      outcomeUnknown: true,
+      retryable: false,
+    });
+
+    const retry = await executeTool(
+      toolName,
+      { release: 2 },
+      setup.captured.options,
+    );
+    expect(retry).toMatchObject({
+      policy: {
+        code: "CC_MCP_TRANSPORT_OUTCOME_UNKNOWN",
+        blockMode: "unsafe",
+      },
+    });
+    expect(callTool).toHaveBeenCalledOnce();
   });
 });

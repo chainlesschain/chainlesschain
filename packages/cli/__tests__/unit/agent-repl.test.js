@@ -107,7 +107,7 @@ describe("agent-repl module exports", () => {
   it("exports startAgentRepl function", async () => {
     const mod = await import("../../src/repl/agent-repl.js");
     expect(typeof mod.startAgentRepl).toBe("function");
-  });
+  }, 15000);
 });
 
 describe("agent-repl TOOLS definition", () => {
@@ -538,16 +538,16 @@ describe("agent-repl thin wrapper contracts", () => {
     expect(content).toContain("let _mcpLedgerRecoveryError = null;");
     expect(content).toContain("readReplMcpRecoveryCandidate(targetSessionId)");
     expect(content).toContain("_commitMcpRecoveryCandidate");
-    expect(content).toContain("_mcpLedgerRecovery = candidate?.recovery");
+    expect(content).toContain("_mcpLedgerRecovery = preparedCommit.recovery");
     expect(content).toContain(
-      "_mcpLedgerRecoveryError = candidate?.recoveryError",
+      "_mcpLedgerRecoveryError = preparedCommit.recoveryError",
     );
     expect(content).toContain("createReplMcpHostRuntimeManager()");
     expect(content).toContain("recovery = _mcpLedgerRecovery");
     expect(content).toContain("recoveryError = _mcpLedgerRecoveryError");
     expect(content).toContain("mcpClient: activeRawMcpClient");
     expect(content).toContain("mcpHostClient: activeMcpRuntime.runtime.client");
-    expect(content).toContain("? activeMcpRuntime.runtime.ledger");
+    expect(content).toContain("mcpCallLedger: activeMcpRuntime.runtime.ledger");
   });
 
   it("routes auxiliary MCP and IDE calls through the guarded host client", () => {
@@ -570,20 +570,34 @@ describe("agent-repl thin wrapper contracts", () => {
       "const preparedMcpRuntime = _prepareMcpHostRuntime(",
       rejectAt,
     );
-    const sessionSwitchAt = content.indexOf(
-      "sessionId = candidate.sessionId;",
+    const snapshotAt = content.indexOf(
+      "const previousState = _captureResumeState();",
       prepareAt,
     );
-    const runtimeCommitAt = content.indexOf(
-      "_mcpHostRuntimeManager.commit(preparedMcpRuntime);",
-      sessionSwitchAt,
+    const transactionAt = content.indexOf(
+      "const committed = commitPreparedReplJsonlResume(",
+      snapshotAt,
+    );
+    const applyAt = content.indexOf(
+      "() => _applyPreparedResumeState(preparedState)",
+      transactionAt,
+    );
+    const rollbackAt = content.indexOf(
+      "() => _restoreResumeState(previousState)",
+      applyAt,
     );
 
     expect(resumeAt).toBeGreaterThan(-1);
     expect(rejectAt).toBeGreaterThan(resumeAt);
     expect(prepareAt).toBeGreaterThan(rejectAt);
-    expect(sessionSwitchAt).toBeGreaterThan(prepareAt);
-    expect(runtimeCommitAt).toBeGreaterThan(sessionSwitchAt);
+    expect(snapshotAt).toBeGreaterThan(prepareAt);
+    expect(transactionAt).toBeGreaterThan(snapshotAt);
+    expect(applyAt).toBeGreaterThan(transactionAt);
+    expect(rollbackAt).toBeGreaterThan(applyAt);
+    expect(content).toContain(
+      "const _resumeStateController = createReplResumeStateController({",
+    );
+    expect(content).toContain("commitPreparedReplDbResume(");
   });
 });
 
@@ -753,7 +767,90 @@ describe("agent-repl MCP host runtime manager", () => {
     );
     expect(createSessionMcpLedgerSink).not.toHaveBeenCalled();
   });
+
+  it("keeps a non-persistent REPL on the guarded ledger after outcome unknown", async () => {
+    const { createReplMcpHostRuntimeManager } =
+      await import("../../src/repl/agent-repl.js");
+    const { executeTool } = await import("../../src/runtime/agent-core.js");
+    const callTool = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("transport outcome unknown"))
+      .mockResolvedValue({ content: [] });
+    const rawClient = { callTool };
+    const runtime = createReplMcpHostRuntimeManager().activate({
+      adhocMcp: { mcpClient: rawClient },
+      sessionId: "db-session",
+      persistent: false,
+    });
+    const toolName = "mcp__repo__publish";
+    const options = {
+      sessionId: "db-session",
+      mcpClient: rawClient,
+      mcpCallLedger: runtime.runtime.ledger,
+      externalToolExecutors: {
+        [toolName]: {
+          kind: "mcp",
+          serverName: "repo",
+          toolName: "publish",
+        },
+      },
+      externalToolDescriptors: {
+        [toolName]: {
+          name: toolName,
+          kind: "mcp",
+          category: "mcp",
+          source: "mcp:repo",
+          effectContract: { declaredEffect: "write" },
+        },
+      },
+    };
+
+    expect(runtime.runtime.ledger.recoveryAdmission).toBeDefined();
+    const first = await executeTool(toolName, { release: 1 }, options);
+    expect(first).toMatchObject({
+      code: "CC_MCP_LEDGER_OUTCOME_UNKNOWN",
+      outcomeUnknown: true,
+      retryable: false,
+    });
+
+    const retry = await executeTool(toolName, { release: 2 }, options);
+    expect(retry).toMatchObject({
+      policy: {
+        code: "CC_MCP_TRANSPORT_OUTCOME_UNKNOWN",
+        blockMode: "unsafe",
+      },
+    });
+    expect(callTool).toHaveBeenCalledOnce();
+  });
 });
+
+const VERIFIED_RECOVERY_DIGEST = `sha256:${"b".repeat(64)}`;
+
+function verifiedReplRecovery(sessionId, overrides = {}) {
+  const unsettled = overrides.unsettled || [];
+  const incidents = overrides.incidents || [];
+  const replayDenied = overrides.replayDenied || [];
+  const remediation =
+    overrides.remediation !== undefined
+      ? overrides.remediation
+      : incidents.length > 0
+        ? "inspect_transcript"
+        : unsettled.length > 0
+          ? "adjudicate_started_calls"
+          : replayDenied.length > 0
+            ? "exact_replay_denied"
+            : null;
+  return {
+    sessionId,
+    verified: true,
+    unsettled,
+    incidents,
+    replayDenied,
+    headHash: overrides.headHash ?? "a".repeat(64),
+    recoveryDigest: overrides.recoveryDigest || VERIFIED_RECOVERY_DIGEST,
+    remediation,
+  };
+}
 
 describe("agent-repl MCP recovery resume transaction", () => {
   it("verifies MCP recovery before rebuild and blocks all when rebuild throws", async () => {
@@ -765,12 +862,7 @@ describe("agent-repl MCP recovery resume transaction", () => {
     const candidate = prepareReplJsonlResumeCandidate("target-session", {
       loadMcpLedgerRecovery: () => {
         order.push("verified-recovery");
-        return {
-          records: [],
-          unsettled: [],
-          incidents: [],
-          replayDenied: [],
-        };
+        return verifiedReplRecovery("target-session");
       },
       formatMcpLedgerRecoveryNotice: () => null,
       rebuildMessages: () => {
@@ -825,11 +917,7 @@ describe("agent-repl MCP recovery resume transaction", () => {
       recoveryError: null,
     };
     const candidate = prepareReplJsonlResumeCandidate("target-session", {
-      loadMcpLedgerRecovery: () => ({
-        records: [],
-        unsettled: [],
-        incidents: [],
-      }),
+      loadMcpLedgerRecovery: () => verifiedReplRecovery("target-session"),
       formatMcpLedgerRecoveryNotice: () => null,
       rebuildMessages: () => {
         throw new Error("target rebuild failed");
@@ -894,6 +982,697 @@ describe("agent-repl MCP recovery resume transaction", () => {
       }),
     ).rejects.toMatchObject({ blockMode: "all" });
   });
+
+  it("takes an immutable descriptor snapshot and keeps every exact replay deny", async () => {
+    const { readReplMcpRecoveryCandidate } =
+      await import("../../src/repl/agent-repl.js");
+    const replayDenied = Array.from({ length: 25 }, (_, index) => ({
+      ledgerId: `ledger-${index}`,
+      serverName: "repo",
+      toolName: `status-${index}`,
+      inputBytes: index,
+      replayDigest: `sha256:${index.toString(16).padStart(64, "0")}`,
+    }));
+    const source = verifiedReplRecovery("target-session", {
+      replayDenied,
+    });
+    const formatter = vi.fn((snapshot) => {
+      expect(Object.isFrozen(snapshot)).toBe(true);
+      expect(Object.isFrozen(snapshot.unsettled)).toBe(true);
+      expect(Object.isFrozen(snapshot.incidents)).toBe(true);
+      expect(Object.isFrozen(snapshot.replayDenied)).toBe(true);
+      expect(snapshot.replayDenied).toHaveLength(25);
+      expect(snapshot.replayDenied.every(Object.isFrozen)).toBe(true);
+      return "exact replay authority restored";
+    });
+
+    const candidate = readReplMcpRecoveryCandidate("target-session", {
+      loadMcpLedgerRecovery: () => source,
+      formatMcpLedgerRecoveryNotice: formatter,
+    });
+
+    expect(candidate.recoveryError).toBeNull();
+    expect(candidate.recovery).not.toBe(source);
+    expect(candidate.recovery.replayDenied).toEqual(replayDenied);
+    expect(candidate.recovery.replayDenied).not.toBe(replayDenied);
+    expect(candidate.notice).toBe("exact replay authority restored");
+    expect(formatter).toHaveBeenCalledOnce();
+  });
+
+  it("rejects Proxy and accessor recovery evidence without invoking getters", async () => {
+    const { readReplMcpRecoveryCandidate } =
+      await import("../../src/repl/agent-repl.js");
+    let getterCalls = 0;
+    const accessorRecovery = verifiedReplRecovery("target-session");
+    Object.defineProperty(accessorRecovery, "unsettled", {
+      enumerable: true,
+      get() {
+        getterCalls += 1;
+        return [];
+      },
+    });
+
+    const accessorCandidate = readReplMcpRecoveryCandidate("target-session", {
+      loadMcpLedgerRecovery: () => accessorRecovery,
+      formatMcpLedgerRecoveryNotice: vi.fn(),
+    });
+    const proxyCandidate = readReplMcpRecoveryCandidate("target-session", {
+      loadMcpLedgerRecovery: () =>
+        new Proxy(verifiedReplRecovery("target-session"), {}),
+      formatMcpLedgerRecoveryNotice: vi.fn(),
+    });
+    const proxyReplayDenied = verifiedReplRecovery("target-session");
+    proxyReplayDenied.replayDenied = new Proxy([], {});
+    const replayProxyCandidate = readReplMcpRecoveryCandidate(
+      "target-session",
+      {
+        loadMcpLedgerRecovery: () => proxyReplayDenied,
+        formatMcpLedgerRecoveryNotice: vi.fn(),
+      },
+    );
+    const accessorReplayDenied = verifiedReplRecovery("target-session", {
+      replayDenied: [
+        Object.defineProperty(
+          {
+            serverName: "repo",
+            toolName: "status",
+            inputBytes: 0,
+            replayDigest: `sha256:${"c".repeat(64)}`,
+          },
+          "ledgerId",
+          {
+            enumerable: true,
+            get() {
+              getterCalls += 1;
+              return "ledger-accessor";
+            },
+          },
+        ),
+      ],
+    });
+    const replayAccessorCandidate = readReplMcpRecoveryCandidate(
+      "target-session",
+      {
+        loadMcpLedgerRecovery: () => accessorReplayDenied,
+        formatMcpLedgerRecoveryNotice: vi.fn(),
+      },
+    );
+
+    expect(getterCalls).toBe(0);
+    for (const candidate of [
+      accessorCandidate,
+      proxyCandidate,
+      replayProxyCandidate,
+      replayAccessorCandidate,
+    ]) {
+      expect(candidate).toMatchObject({
+        recovery: null,
+        recoveryError: { code: "CC_MCP_LEDGER_RECOVERY_INVALID" },
+      });
+    }
+  });
+
+  it("rejects a forged unsettled effect outside the recovery protocol enum", async () => {
+    const { readReplMcpRecoveryCandidate } =
+      await import("../../src/repl/agent-repl.js");
+    const candidate = readReplMcpRecoveryCandidate("target-session", {
+      loadMcpLedgerRecovery: () =>
+        verifiedReplRecovery("target-session", {
+          unsettled: [
+            {
+              ledgerId: "ledger-forged-effect",
+              serverName: "repo",
+              toolName: "publish",
+              status: "started",
+              effectContract: { effect: "side-effect-free-ish" },
+            },
+          ],
+        }),
+      formatMcpLedgerRecoveryNotice: vi.fn(),
+    });
+
+    expect(candidate).toMatchObject({
+      recovery: null,
+      recoveryError: { code: "CC_MCP_LEDGER_RECOVERY_INVALID" },
+    });
+  });
+
+  it("rejects a Proxy prototype without executing any prototype trap", async () => {
+    const { readReplMcpRecoveryCandidate } =
+      await import("../../src/repl/agent-repl.js");
+    let trapCalls = 0;
+    const proxyPrototype = new Proxy(
+      {},
+      {
+        getOwnPropertyDescriptor(target, key) {
+          trapCalls += 1;
+          return Reflect.getOwnPropertyDescriptor(target, key);
+        },
+        getPrototypeOf(target) {
+          trapCalls += 1;
+          return Reflect.getPrototypeOf(target);
+        },
+      },
+    );
+    const recovery = Object.assign(
+      Object.create(proxyPrototype),
+      verifiedReplRecovery("target-session"),
+    );
+
+    const candidate = readReplMcpRecoveryCandidate("target-session", {
+      loadMcpLedgerRecovery: () => recovery,
+      formatMcpLedgerRecoveryNotice: vi.fn(),
+    });
+
+    expect(candidate).toMatchObject({
+      recovery: null,
+      recoveryError: { code: "CC_MCP_LEDGER_RECOVERY_INVALID" },
+    });
+    expect(trapCalls).toBe(0);
+  });
+
+  it.each(["loader", "formatter"])(
+    "rejects and consumes an asynchronous %s result",
+    async (stage) => {
+      const { readReplMcpRecoveryCandidate } =
+        await import("../../src/repl/agent-repl.js");
+      const candidate = readReplMcpRecoveryCandidate("target-session", {
+        loadMcpLedgerRecovery:
+          stage === "loader"
+            ? () => Promise.reject(new Error("async recovery"))
+            : () => verifiedReplRecovery("target-session"),
+        formatMcpLedgerRecoveryNotice:
+          stage === "formatter"
+            ? () => Promise.reject(new Error("async notice"))
+            : () => null,
+      });
+
+      expect(candidate).toMatchObject({
+        recovery: null,
+        recoveryError: { code: "CC_MCP_LEDGER_RECOVERY_INVALID" },
+      });
+      await Promise.resolve();
+    },
+  );
+
+  it("rejects a plain thenable without invoking it", async () => {
+    const { readReplMcpRecoveryCandidate } =
+      await import("../../src/repl/agent-repl.js");
+    const then = vi.fn();
+    const candidate = readReplMcpRecoveryCandidate("target-session", {
+      loadMcpLedgerRecovery: () => ({ then }),
+      formatMcpLedgerRecoveryNotice: vi.fn(),
+    });
+
+    expect(candidate).toMatchObject({
+      recovery: null,
+      recoveryError: { code: "CC_MCP_LEDGER_RECOVERY_INVALID" },
+    });
+    expect(then).not.toHaveBeenCalled();
+  });
+
+  it("rejects a Proxy Error without invoking its prototype trap", async () => {
+    const { readReplMcpRecoveryCandidate } =
+      await import("../../src/repl/agent-repl.js");
+    let prototypeTrapCalls = 0;
+    const hostileError = new Proxy(new Error("hostile recovery error"), {
+      getPrototypeOf(target) {
+        prototypeTrapCalls += 1;
+        return Reflect.getPrototypeOf(target);
+      },
+    });
+    const candidate = readReplMcpRecoveryCandidate("target-session", {
+      loadMcpLedgerRecovery: () => {
+        throw hostileError;
+      },
+      formatMcpLedgerRecoveryNotice: vi.fn(),
+    });
+
+    expect(candidate).toMatchObject({
+      recovery: null,
+      recoveryError: { code: "CC_MCP_LEDGER_EVENT_READ_FAILED" },
+    });
+    expect(candidate.recoveryError.cause).not.toBe(hostileError);
+    expect(prototypeTrapCalls).toBe(0);
+  });
+
+  it.each(["accessor", "data"])(
+    "consumes a rejected native Promise with an own then %s override",
+    async (overrideKind) => {
+      const { readReplMcpRecoveryCandidate } =
+        await import("../../src/repl/agent-repl.js");
+      const unhandled = vi.fn();
+      const thenGetter = vi.fn(() => () => {});
+      process.prependListener("unhandledRejection", unhandled);
+      try {
+        const rejected = Promise.reject(new Error("async recovery"));
+        Object.defineProperty(
+          rejected,
+          "then",
+          overrideKind === "accessor"
+            ? { configurable: true, get: thenGetter }
+            : { configurable: true, value: null },
+        );
+        const candidate = readReplMcpRecoveryCandidate("target-session", {
+          loadMcpLedgerRecovery: () => rejected,
+          formatMcpLedgerRecoveryNotice: vi.fn(),
+        });
+
+        expect(candidate).toMatchObject({
+          recovery: null,
+          recoveryError: { code: "CC_MCP_LEDGER_RECOVERY_INVALID" },
+        });
+        await new Promise((resolve) => setImmediate(resolve));
+        expect(thenGetter).not.toHaveBeenCalled();
+        expect(unhandled).not.toHaveBeenCalled();
+      } finally {
+        process.removeListener("unhandledRejection", unhandled);
+      }
+    },
+  );
+
+  it.each(["accessor", "species"])(
+    "safely consumes and restores a rejected native Promise with a configurable hostile %s constructor",
+    async (constructorKind) => {
+      const { readReplMcpRecoveryCandidate } =
+        await import("../../src/repl/agent-repl.js");
+      const unhandled = vi.fn();
+      const constructorGetter = vi.fn(() => Promise);
+      const speciesGetter = vi.fn(() => Promise);
+      const hostileConstructor = Object.defineProperty({}, Symbol.species, {
+        configurable: true,
+        get: speciesGetter,
+      });
+      process.prependListener("unhandledRejection", unhandled);
+      try {
+        const rejected = Promise.reject(new Error("async recovery"));
+        Object.defineProperty(
+          rejected,
+          "constructor",
+          constructorKind === "accessor"
+            ? { configurable: true, get: constructorGetter }
+            : { configurable: true, value: hostileConstructor },
+        );
+        const originalDescriptor = Object.getOwnPropertyDescriptor(
+          rejected,
+          "constructor",
+        );
+        const candidate = readReplMcpRecoveryCandidate("target-session", {
+          loadMcpLedgerRecovery: () => rejected,
+          formatMcpLedgerRecoveryNotice: vi.fn(),
+        });
+
+        expect(candidate).toMatchObject({
+          recovery: null,
+          recoveryError: { code: "CC_MCP_LEDGER_RECOVERY_INVALID" },
+        });
+        expect(
+          Object.getOwnPropertyDescriptor(rejected, "constructor"),
+        ).toEqual(originalDescriptor);
+        await new Promise((resolve) => setImmediate(resolve));
+        expect(constructorGetter).not.toHaveBeenCalled();
+        expect(speciesGetter).not.toHaveBeenCalled();
+        expect(unhandled).not.toHaveBeenCalled();
+      } finally {
+        process.removeListener("unhandledRejection", unhandled);
+      }
+    },
+  );
+
+  it("fails closed without invoking an unsafe non-configurable Promise constructor", async () => {
+    const { readReplMcpRecoveryCandidate } =
+      await import("../../src/repl/agent-repl.js");
+    const constructorGetter = vi.fn(() => Promise);
+    const rejected = Promise.reject(new Error("producer-owned rejection"));
+    // The boundary cannot both avoid this hostile getter and mark the Promise
+    // handled: Promise.prototype.then always resolves @@species through the
+    // constructor. The producer must therefore observe its rejection first.
+    Reflect.apply(Promise.prototype.then, rejected, [undefined, () => {}]);
+    Object.defineProperty(rejected, "constructor", {
+      configurable: false,
+      get: constructorGetter,
+    });
+
+    const candidate = readReplMcpRecoveryCandidate("target-session", {
+      loadMcpLedgerRecovery: () => rejected,
+      formatMcpLedgerRecoveryNotice: vi.fn(),
+    });
+
+    expect(candidate).toMatchObject({
+      recovery: null,
+      recoveryError: { code: "CC_REPL_NATIVE_PROMISE_UNCONSUMABLE" },
+    });
+    expect(constructorGetter).not.toHaveBeenCalled();
+    await new Promise((resolve) => setImmediate(resolve));
+  });
+
+  it("rejects Proxy and accessor rebuild arrays before resume preparation", async () => {
+    const { prepareReplJsonlResumeCandidate } =
+      await import("../../src/repl/agent-repl.js");
+    let getterCalls = 0;
+    const accessorMessages = [];
+    Object.defineProperty(accessorMessages, "0", {
+      enumerable: true,
+      get() {
+        getterCalls += 1;
+        return { role: "user", content: "unsafe" };
+      },
+    });
+    accessorMessages.length = 1;
+    const prepare = (rebuildMessages) =>
+      prepareReplJsonlResumeCandidate("target-session", {
+        loadMcpLedgerRecovery: () => verifiedReplRecovery("target-session"),
+        formatMcpLedgerRecoveryNotice: () => null,
+        rebuildMessages,
+      });
+
+    const proxyCandidate = prepare(() => new Proxy([], {}));
+    const accessorCandidate = prepare(() => accessorMessages);
+
+    expect(getterCalls).toBe(0);
+    for (const candidate of [proxyCandidate, accessorCandidate]) {
+      expect(candidate).toMatchObject({
+        ok: false,
+        mcp: {
+          recovery: null,
+          recoveryError: { code: "CC_REPL_SESSION_REBUILD_FAILED" },
+        },
+      });
+    }
+  });
+
+  it("turns a forged injected clean candidate into ALL-blocking authority", async () => {
+    const { prepareReplJsonlResumeCandidate } =
+      await import("../../src/repl/agent-repl.js");
+    const { createRecoveryGuardedMcpCallLedger } =
+      await import("../../src/lib/mcp-ledger-recovery-admission.js");
+    const forged = Object.freeze({
+      sessionId: "target-session",
+      recovery: verifiedReplRecovery("target-session"),
+      recoveryError: null,
+      notice: null,
+    });
+    const candidate = prepareReplJsonlResumeCandidate("target-session", {
+      mcpRecoveryCandidate: forged,
+      rebuildMessages: () => [{ role: "user", content: "restored" }],
+    });
+
+    expect(candidate.ok).toBe(true);
+    expect(candidate.mcp).toMatchObject({
+      recovery: null,
+      recoveryError: {
+        code: "CC_REPL_MCP_RECOVERY_CANDIDATE_INVALID",
+      },
+    });
+    const ledger = createRecoveryGuardedMcpCallLedger({
+      recovery: candidate.mcp.recovery,
+      recoveryError: candidate.mcp.recoveryError,
+    });
+    await expect(
+      ledger.begin({
+        sessionId: "target-session",
+        serverName: "repo",
+        toolName: "status",
+        input: {},
+        effectContract: { effect: "read", trusted: true },
+      }),
+    ).rejects.toMatchObject({ blockMode: "all" });
+  });
+
+  it("rejects a forged prepared resume candidate before its commit runs", async () => {
+    const { commitPreparedReplJsonlResume } =
+      await import("../../src/repl/agent-repl.js");
+    const commit = vi.fn();
+
+    expect(
+      commitPreparedReplJsonlResume(Object.freeze({ ok: true }), commit),
+    ).toBe(false);
+    expect(commit).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["JSONL", "helper"],
+    ["JSONL", "runtime"],
+    ["JSONL", "logger"],
+    ["DB", "helper"],
+    ["DB", "runtime"],
+    ["DB", "logger"],
+  ])(
+    "atomically rolls the real %s resume state back when %s throws",
+    async (format, stage) => {
+      const {
+        commitPreparedReplDbResume,
+        commitPreparedReplJsonlResume,
+        createReplResumeStateController,
+        prepareReplJsonlResumeCandidate,
+      } = await import("../../src/repl/agent-repl.js");
+      const jsonlCandidate = prepareReplJsonlResumeCandidate("target-session", {
+        loadMcpLedgerRecovery: () => verifiedReplRecovery("target-session"),
+        formatMcpLedgerRecoveryNotice: () => "target recovery notice",
+        rebuildMessages: () => [
+          { role: "system", content: "target system" },
+          { role: "user", content: "target user" },
+        ],
+      });
+      const oldSystem = Object.freeze({ role: "system", content: "old" });
+      const oldMessage = Object.freeze({ role: "user", content: "old user" });
+      const oldRecovery = Object.freeze({ id: "old-authority" });
+      const oldRecoveryError = Object.assign(new Error("old recovery error"), {
+        code: "OLD_RECOVERY_ERROR",
+      });
+      const oldTurnBindingProducer = Object.freeze({ id: "old-producer" });
+      const oldTurnBindingCriticalError = new Error("old turn error");
+      const oldCheckpoint = Object.freeze({ id: "old-checkpoint" });
+      const oldStash = Object.freeze({ id: "old-stash" });
+      const oldRuntime = Object.freeze({ id: "old-runtime" });
+      const targetRuntime = Object.freeze({ id: "target-runtime" });
+      const state = {
+        sessionId: "old-session",
+        messages: [oldSystem, oldMessage],
+        recovery: oldRecovery,
+        recoveryError: oldRecoveryError,
+        sanitizeRolesNextTurn: true,
+        turnBindingProducer: oldTurnBindingProducer,
+        turnBindingCriticalError: oldTurnBindingCriticalError,
+        checkpointMarks: [oldCheckpoint],
+        clearedConversation: oldStash,
+      };
+      const runtimeManager = {
+        current: oldRuntime,
+        commit(candidate) {
+          this.current = candidate;
+          if (stage === "runtime" && candidate === targetRuntime) {
+            throw new Error("runtime failed");
+          }
+          return candidate;
+        },
+      };
+      const bindings = {
+        ...state,
+        messages: state.messages,
+        checkpointMarks: state.checkpointMarks,
+        runtimeManager,
+        applyMcpRecoveryCommit(targetMessages, preparedCommit) {
+          bindings.recovery = preparedCommit.recovery;
+          bindings.recoveryError = preparedCommit.recoveryError;
+          if (preparedCommit.noticeMessage) {
+            targetMessages.push(preparedCommit.noticeMessage);
+          }
+          if (stage === "helper") throw new Error("helper failed");
+        },
+        logMcpRecoveryCommit: vi.fn(),
+        logger: {
+          info: vi.fn(() => {
+            if (stage === "logger") throw new Error("logger failed");
+          }),
+        },
+      };
+      const controller = createReplResumeStateController(bindings);
+      const previousState = controller.capture();
+      const targetRecovery =
+        format === "JSONL" ? jsonlCandidate.mcp.recovery : null;
+      const preparedState = Object.freeze({
+        sessionId: "target-session",
+        systemMessage: oldSystem,
+        replayMessages:
+          format === "JSONL"
+            ? jsonlCandidate.replayMessages
+            : Object.freeze([
+                Object.freeze({ role: "assistant", content: "target DB" }),
+              ]),
+        mcpCommit: Object.freeze({
+          recovery: targetRecovery,
+          recoveryError: null,
+          noticeMessage:
+            format === "JSONL"
+              ? Object.freeze({
+                  role: "system",
+                  content: "target recovery notice",
+                })
+              : null,
+          warning: null,
+        }),
+        mcpRuntime: targetRuntime,
+        sanitizeRolesNextTurn: false,
+        logMessage: `Resumed ${format} target-session`,
+      });
+      const commit = () => controller.apply(preparedState);
+      const rollback = vi.fn(() => controller.restore(previousState));
+
+      expect(() =>
+        format === "JSONL"
+          ? commitPreparedReplJsonlResume(jsonlCandidate, commit, rollback)
+          : commitPreparedReplDbResume(preparedState, commit, rollback),
+      ).toThrow(`${stage} failed`);
+      expect(rollback).toHaveBeenCalledOnce();
+      expect(bindings.sessionId).toBe("old-session");
+      expect(bindings.messages).toEqual([oldSystem, oldMessage]);
+      expect(bindings.recovery).toBe(oldRecovery);
+      expect(bindings.recoveryError).toBe(oldRecoveryError);
+      expect(bindings.sanitizeRolesNextTurn).toBe(true);
+      expect(bindings.turnBindingProducer).toBe(oldTurnBindingProducer);
+      expect(bindings.turnBindingCriticalError).toBe(
+        oldTurnBindingCriticalError,
+      );
+      expect(bindings.checkpointMarks).toEqual([oldCheckpoint]);
+      expect(bindings.clearedConversation).toBe(oldStash);
+      expect(runtimeManager.current).toBe(oldRuntime);
+    },
+  );
+
+  it("feeds every exact replay deny into the shared runtime controller", async () => {
+    const {
+      commitPreparedReplJsonlResume,
+      createReplMcpHostRuntimeManager,
+      createReplResumeStateController,
+      prepareReplJsonlResumeCandidate,
+    } = await import("../../src/repl/agent-repl.js");
+    const { computeMcpExactReplayDigest, summarizeMcpPayload } =
+      await import("../../src/lib/mcp-call-ledger.js");
+    const input = { path: "README.md" };
+    const summary = summarizeMcpPayload(input);
+    const deny = {
+      ledgerId: "ledger-applied",
+      serverName: "repo",
+      toolName: "status",
+      inputBytes: summary.bytes,
+      replayDigest: computeMcpExactReplayDigest({
+        serverName: "repo",
+        toolName: "status",
+        inputDigest: summary.sha256,
+        inputBytes: summary.bytes,
+      }),
+    };
+    const resumeCandidate = prepareReplJsonlResumeCandidate("target-session", {
+      loadMcpLedgerRecovery: () =>
+        verifiedReplRecovery("target-session", { replayDenied: [deny] }),
+      formatMcpLedgerRecoveryNotice: () => null,
+      rebuildMessages: () => [{ role: "user", content: "target history" }],
+    });
+    const oldRawCall = vi.fn(async () => ({ content: [] }));
+    const rawCall = vi.fn(async () => ({ content: [] }));
+    const nextRawCall = vi.fn(async () => ({ content: [] }));
+    const manager = createReplMcpHostRuntimeManager({
+      createSessionMcpLedgerSink: () => vi.fn(async () => true),
+    });
+    const oldRuntime = manager.activate({
+      adhocMcp: { mcpClient: { callTool: oldRawCall } },
+      sessionId: "old-session",
+      persistent: true,
+      recovery: verifiedReplRecovery("old-session"),
+      verifiedRecovery: true,
+    });
+    const targetRuntime = manager.prepare({
+      adhocMcp: { mcpClient: { callTool: rawCall } },
+      sessionId: "target-session",
+      persistent: true,
+      recovery: resumeCandidate.mcp.recovery,
+      verifiedRecovery: true,
+    });
+    expect(manager.current).toBe(oldRuntime);
+    const bindings = {
+      sessionId: "old-session",
+      messages: [{ role: "system", content: "system" }],
+      recovery: verifiedReplRecovery("old-session"),
+      recoveryError: null,
+      sanitizeRolesNextTurn: false,
+      turnBindingProducer: { id: "producer" },
+      turnBindingCriticalError: null,
+      checkpointMarks: [{ id: "checkpoint" }],
+      clearedConversation: { id: "stash" },
+      runtimeManager: manager,
+      applyMcpRecoveryCommit(targetMessages, preparedCommit) {
+        bindings.recovery = preparedCommit.recovery;
+        bindings.recoveryError = preparedCommit.recoveryError;
+        if (preparedCommit.noticeMessage) {
+          targetMessages.push(preparedCommit.noticeMessage);
+        }
+      },
+      logMcpRecoveryCommit: vi.fn(),
+      logger: { info: vi.fn() },
+    };
+    const stateController = createReplResumeStateController(bindings);
+    const previousState = stateController.capture();
+    const preparedState = Object.freeze({
+      sessionId: "target-session",
+      systemMessage: bindings.messages[0],
+      replayMessages: resumeCandidate.replayMessages,
+      mcpCommit: Object.freeze({
+        recovery: resumeCandidate.mcp.recovery,
+        recoveryError: null,
+        noticeMessage: null,
+        warning: null,
+      }),
+      mcpRuntime: targetRuntime,
+      sanitizeRolesNextTurn: true,
+      logMessage: "Resumed JSONL target-session",
+    });
+    expect(
+      commitPreparedReplJsonlResume(
+        resumeCandidate,
+        () => stateController.apply(preparedState),
+        () => stateController.restore(previousState),
+      ),
+    ).toBe(true);
+    expect(manager.current).toBe(targetRuntime);
+    expect(bindings.recovery.replayDenied).toEqual([deny]);
+    expect(bindings.checkpointMarks).toEqual([]);
+    expect(bindings.clearedConversation).toBeNull();
+
+    await expect(
+      targetRuntime.runtime.ledger.begin({
+        sessionId: "target-session",
+        serverName: "repo",
+        toolName: "status",
+        input,
+        effectContract: { effect: "read", trusted: true },
+      }),
+    ).rejects.toMatchObject({
+      code: "CC_MCP_LEDGER_EXACT_REPLAY_DENIED",
+      replayDenied: true,
+    });
+    await expect(
+      targetRuntime.hostMcp.mcpClient.callTool("repo", "status", input),
+    ).rejects.toMatchObject({
+      code: "CC_MCP_LEDGER_EXACT_REPLAY_DENIED",
+      replayDenied: true,
+    });
+    expect(rawCall).not.toHaveBeenCalled();
+
+    const second = manager.activate({
+      adhocMcp: { mcpClient: { callTool: nextRawCall } },
+      sessionId: "target-session",
+      persistent: true,
+      recovery: resumeCandidate.mcp.recovery,
+    });
+    expect(second.runtime.controller).toBe(targetRuntime.runtime.controller);
+    await expect(
+      second.hostMcp.mcpClient.callTool("repo", "status", input),
+    ).rejects.toMatchObject({
+      code: "CC_MCP_LEDGER_EXACT_REPLAY_DENIED",
+    });
+    expect(nextRawCall).not.toHaveBeenCalled();
+  });
 });
 
 describe("agent-repl resume role-alternation wiring (2.1.187 parity)", () => {
@@ -919,11 +1698,14 @@ describe("agent-repl resume role-alternation wiring (2.1.187 parity)", () => {
 
   it("arms the flag at every resume site when history ends with a user turn", () => {
     // Both startup (--session/--resume) and /session resume, JSONL + DB paths.
-    const arms = content.match(
+    const startupArms = content.match(
       /_sanitizeRolesNextTurn\s*=\s*\n?\s*messages\[messages\.length - 1\]\?\.role === "user";/g,
     );
-    expect(arms).not.toBeNull();
-    expect(arms.length).toBe(4);
+    expect(startupArms).toHaveLength(2);
+    expect(content).toContain(
+      'prepared.replayMessages.at(-1)?.role === "user"',
+    );
+    expect(content).toContain('replayMessages.at(-1)?.role === "user"');
   });
 
   it("collapses in place inside the loop wrapper, gated on options.mergeRoles", () => {

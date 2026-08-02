@@ -1764,7 +1764,9 @@ async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
     // Persist every MCP started/settled record into this exact canonical
     // session. Unknown/write/destructive prewrite failure then blocks before
     // the external call; a settlement failure leaves a recoverable started row.
-    mcpCallLedger: persist ? mcpRecoveryRuntime.ledger : null,
+    // Keep the guarded in-memory ledger when persistence is disabled so an
+    // outcome-unknown call still latches UNSAFE for the rest of this process.
+    mcpCallLedger: mcpRecoveryRuntime.ledger,
     // chatFn passthrough lets tests drive the loop deterministically.
     chatFn: deps.chatFn || options.chatFn || undefined,
     signal: options.signal || undefined,

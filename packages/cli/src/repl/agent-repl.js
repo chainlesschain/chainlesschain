@@ -22,6 +22,7 @@ import chalk from "chalk";
 import fs from "fs";
 import os from "os";
 import path from "path";
+import { isPromise, isProxy } from "node:util/types";
 import { logger } from "../lib/logger.js";
 import { getPlanModeManager, PlanState } from "../lib/plan-mode.js";
 import { createVimState, feedNormalKey } from "../lib/repl-vim.js";
@@ -62,6 +63,10 @@ import {
   loadMcpLedgerRecovery,
 } from "../lib/mcp-call-ledger-store.js";
 import { createMcpHostRecoveryRuntime } from "../lib/mcp-host-recovery-runtime.js";
+import {
+  MCP_RECOVERY_INVALID_CODE,
+  classifyMcpRecoveryAdmission,
+} from "../lib/mcp-ledger-recovery-admission.js";
 import { CLISkillLoader } from "../lib/skill-loader.js";
 import { storeMemory, consolidateMemory } from "../lib/hierarchical-memory.js";
 import { CLIContextEngineering } from "../lib/cli-context-engineering.js";
@@ -497,13 +502,494 @@ export async function agentLoop(messages, options) {
   return { content: "", usageEvents };
 }
 
+const REPL_MCP_RECOVERY_CANDIDATES = new WeakSet();
+const REPL_JSONL_RESUME_CANDIDATES = new WeakSet();
+const REPL_NATIVE_PROMISE = Promise;
+const REPL_NATIVE_PROMISE_PROTOTYPE = Promise.prototype;
+const REPL_NATIVE_PROMISE_THEN = Promise.prototype.then;
+const REPL_NATIVE_PROMISE_CONSTRUCTOR_DESCRIPTOR = Object.freeze({
+  ...Object.getOwnPropertyDescriptor(Promise.prototype, "constructor"),
+});
+const REPL_NATIVE_PROMISE_SPECIES_DESCRIPTOR = Object.freeze({
+  ...Object.getOwnPropertyDescriptor(Promise, Symbol.species),
+});
+const REPL_SAFE_PROMISE_CONSTRUCTOR = Object.freeze(
+  Object.defineProperty(Object.create(null), Symbol.species, {
+    configurable: false,
+    enumerable: false,
+    writable: false,
+    value: null,
+  }),
+);
+const REPL_NATIVE_PROMISE_REJECTION_HANDLER = () => {};
+const REPL_PAYLOAD_DIGEST = /^sha256:[0-9a-f]{64}$/;
+const REPL_AUTHORITY_HASH = /^[0-9a-f]{64}$/;
+const REPL_MCP_EFFECTS = new Set(["read", "unknown", "write", "destructive"]);
+const REPL_REPLAY_DENY_FIELDS = new Set([
+  "ledgerId",
+  "serverName",
+  "toolName",
+  "inputBytes",
+  "replayDigest",
+]);
+const REPL_MCP_REMEDIATIONS = new Set([
+  "inspect_transcript",
+  "adjudicate_started_calls",
+  "exact_replay_denied",
+]);
+
+function invalidReplRecovery(message, code = MCP_RECOVERY_INVALID_CODE) {
+  const error = new TypeError(message);
+  error.code = code;
+  return error;
+}
+
+function brandedFrozenCandidate(brand, value) {
+  const candidate = Object.freeze(value);
+  brand.add(candidate);
+  return candidate;
+}
+
+function safeRecoveryErrorValue(error, key, fallback) {
+  try {
+    if (error && !isProxy(error)) {
+      const descriptor = Object.getOwnPropertyDescriptor(error, key);
+      if (descriptor && "value" in descriptor) return descriptor.value;
+    }
+  } catch {
+    // Malformed errors are diagnostic input, never recovery authority.
+  }
+  return fallback;
+}
+
 function replMcpRecoveryError(error, fallbackCode) {
-  const cause = error instanceof Error ? error : new Error(String(error));
-  const wrapped = new Error(cause.message || "REPL session recovery failed", {
-    cause,
-  });
-  wrapped.code = cause.code || fallbackCode;
+  const message = safeRecoveryErrorValue(
+    error,
+    "message",
+    "REPL session recovery failed",
+  );
+  let cause = new Error("REPL session recovery failed");
+  try {
+    if (!isProxy(error) && error instanceof Error) cause = error;
+  } catch {
+    // Keep the inert fallback cause for hostile diagnostic objects.
+  }
+  const wrapped = new Error(
+    typeof message === "string" && message
+      ? message
+      : "REPL session recovery failed",
+    { cause },
+  );
+  const code = safeRecoveryErrorValue(error, "code", fallbackCode);
+  wrapped.code = typeof code === "string" && code ? code : fallbackCode;
   return wrapped;
+}
+
+function samePropertyDescriptor(actual, expected) {
+  if (!actual || !expected) return actual === expected;
+  if (
+    actual.configurable !== expected.configurable ||
+    actual.enumerable !== expected.enumerable
+  ) {
+    return false;
+  }
+  if ("value" in expected) {
+    return (
+      "value" in actual &&
+      actual.value === expected.value &&
+      actual.writable === expected.writable
+    );
+  }
+  return (
+    !("value" in actual) &&
+    actual.get === expected.get &&
+    actual.set === expected.set
+  );
+}
+
+function unconsumableNativePromise(subject) {
+  return invalidReplRecovery(
+    `${subject} is a native Promise with an unsafe non-configurable constructor; ` +
+      "its producer must observe the rejection",
+    "CC_REPL_NATIVE_PROMISE_UNCONSUMABLE",
+  );
+}
+
+function consumeNativeReplPromise(value, subject) {
+  const prototype = Object.getPrototypeOf(value);
+  if (isProxy(prototype)) throw unconsumableNativePromise(subject);
+
+  const constructorDescriptor = Object.getOwnPropertyDescriptor(
+    value,
+    "constructor",
+  );
+  const intrinsicSpeciesIntact = samePropertyDescriptor(
+    Object.getOwnPropertyDescriptor(REPL_NATIVE_PROMISE, Symbol.species),
+    REPL_NATIVE_PROMISE_SPECIES_DESCRIPTOR,
+  );
+  const inheritedIntrinsicConstructor =
+    !constructorDescriptor &&
+    prototype === REPL_NATIVE_PROMISE_PROTOTYPE &&
+    samePropertyDescriptor(
+      Object.getOwnPropertyDescriptor(
+        REPL_NATIVE_PROMISE_PROTOTYPE,
+        "constructor",
+      ),
+      REPL_NATIVE_PROMISE_CONSTRUCTOR_DESCRIPTOR,
+    ) &&
+    intrinsicSpeciesIntact;
+  const ownIntrinsicConstructor =
+    constructorDescriptor &&
+    "value" in constructorDescriptor &&
+    (constructorDescriptor.value === undefined ||
+      (constructorDescriptor.value === REPL_NATIVE_PROMISE &&
+        intrinsicSpeciesIntact));
+
+  if (inheritedIntrinsicConstructor || ownIntrinsicConstructor) {
+    Reflect.apply(REPL_NATIVE_PROMISE_THEN, value, [
+      undefined,
+      REPL_NATIVE_PROMISE_REJECTION_HANDLER,
+    ]);
+    return;
+  }
+
+  const canShadow = constructorDescriptor
+    ? constructorDescriptor.configurable === true
+    : Object.isExtensible(value);
+  if (!canShadow) {
+    // Promise.prototype.then necessarily performs SpeciesConstructor, which
+    // would execute this hostile constructor/accessor. ECMAScript exposes no
+    // separate hook-free operation that marks a rejection handled. Fail closed
+    // without pretending the Promise was consumed; the producer must have
+    // attached its own rejection observer before returning this invalid value.
+    throw unconsumableNativePromise(subject);
+  }
+
+  Object.defineProperty(value, "constructor", {
+    configurable: true,
+    enumerable: constructorDescriptor?.enumerable ?? false,
+    writable: false,
+    value: REPL_SAFE_PROMISE_CONSTRUCTOR,
+  });
+  try {
+    Reflect.apply(REPL_NATIVE_PROMISE_THEN, value, [
+      undefined,
+      REPL_NATIVE_PROMISE_REJECTION_HANDLER,
+    ]);
+  } finally {
+    if (constructorDescriptor) {
+      Object.defineProperty(value, "constructor", constructorDescriptor);
+    } else {
+      Reflect.deleteProperty(value, "constructor");
+    }
+  }
+}
+
+function synchronousReplRecoveryValue(value, subject) {
+  if (
+    value === null ||
+    value === undefined ||
+    (typeof value !== "object" && typeof value !== "function")
+  ) {
+    return value;
+  }
+  if (isProxy(value)) {
+    throw invalidReplRecovery(`${subject} must not be a Proxy`);
+  }
+
+  // Consume a genuine Promise before inspecting any user-controlled `then`
+  // descriptor. A Promise can shadow `then` with an accessor or data property;
+  // reading that descriptor first would leave an already-rejected Promise
+  // unobserved even though the recovery boundary correctly rejected it.
+  if (isPromise(value)) {
+    consumeNativeReplPromise(value, subject);
+    throw invalidReplRecovery(`${subject} must be returned synchronously`);
+  }
+
+  let prototype = value;
+  while (prototype) {
+    // An ordinary object can hide a Proxy in its prototype chain. Check every
+    // level before reflection so no getOwnPropertyDescriptor/getPrototypeOf
+    // trap is executed while rejecting untrusted recovery evidence.
+    if (isProxy(prototype)) {
+      throw invalidReplRecovery(`${subject} must not inherit from a Proxy`);
+    }
+    const thenDescriptor = Object.getOwnPropertyDescriptor(prototype, "then");
+    if (thenDescriptor) {
+      if (!("value" in thenDescriptor)) {
+        throw invalidReplRecovery(`${subject}.then must not be an accessor`);
+      }
+      if (typeof thenDescriptor.value === "function") {
+        // Never invoke an arbitrary user-supplied thenable capability.
+        throw invalidReplRecovery(`${subject} must be returned synchronously`);
+      }
+      break;
+    }
+    prototype = Object.getPrototypeOf(prototype);
+  }
+  return value;
+}
+
+function plainDataDescriptors(value, subject) {
+  synchronousReplRecoveryValue(value, subject);
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw invalidReplRecovery(`${subject} must be a plain data object`);
+  }
+  const prototype = Object.getPrototypeOf(value);
+  if (prototype !== Object.prototype && prototype !== null) {
+    throw invalidReplRecovery(`${subject} must have a plain prototype`);
+  }
+  const descriptors = Object.getOwnPropertyDescriptors(value);
+  for (const key of Reflect.ownKeys(descriptors)) {
+    if (typeof key === "symbol" || !("value" in descriptors[key])) {
+      throw invalidReplRecovery(`${subject} contains an accessor or symbol`);
+    }
+  }
+  return descriptors;
+}
+
+function dataDescriptorValue(
+  descriptors,
+  key,
+  subject,
+  { required = true, fallback = null } = {},
+) {
+  const descriptor = descriptors[key];
+  if (!descriptor) {
+    if (!required) return fallback;
+    throw invalidReplRecovery(`${subject}.${key} is missing`);
+  }
+  if (!("value" in descriptor)) {
+    throw invalidReplRecovery(`${subject}.${key} must be a data property`);
+  }
+  return descriptor.value;
+}
+
+function snapshotDataArray(value, subject, mapper) {
+  synchronousReplRecoveryValue(value, subject);
+  if (!Array.isArray(value) || isProxy(value)) {
+    throw invalidReplRecovery(`${subject} must be a non-Proxy array`);
+  }
+  const descriptors = Object.getOwnPropertyDescriptors(value);
+  for (const key of Reflect.ownKeys(descriptors)) {
+    if (typeof key === "symbol" || !("value" in descriptors[key])) {
+      throw invalidReplRecovery(`${subject} contains an accessor or symbol`);
+    }
+  }
+  const length = descriptors.length?.value;
+  if (!Number.isSafeInteger(length) || length < 0) {
+    throw invalidReplRecovery(`${subject}.length is invalid`);
+  }
+  const snapshots = [];
+  for (let index = 0; index < length; index += 1) {
+    const descriptor = descriptors[String(index)];
+    if (!descriptor || !("value" in descriptor)) {
+      throw invalidReplRecovery(`${subject}[${index}] is not plain data`);
+    }
+    snapshots.push(mapper(descriptor.value, index));
+  }
+  return Object.freeze(snapshots);
+}
+
+function requiredRecoveryString(value, subject, { nullable = false } = {}) {
+  if (value === null && nullable) return null;
+  if (typeof value !== "string" || (!nullable && !value)) {
+    throw invalidReplRecovery(`${subject} must be a string`);
+  }
+  return value;
+}
+
+function snapshotReplMcpRecord(record, index) {
+  const subject = `MCP recovery unsettled[${index}]`;
+  const descriptors = plainDataDescriptors(record, subject);
+  const effectContract = dataDescriptorValue(
+    descriptors,
+    "effectContract",
+    subject,
+  );
+  const effectDescriptors = plainDataDescriptors(
+    effectContract,
+    `${subject}.effectContract`,
+  );
+  const effect = requiredRecoveryString(
+    dataDescriptorValue(
+      effectDescriptors,
+      "effect",
+      `${subject}.effectContract`,
+    ),
+    `${subject}.effectContract.effect`,
+  );
+  if (!REPL_MCP_EFFECTS.has(effect)) {
+    throw invalidReplRecovery(`${subject}.effectContract.effect is invalid`);
+  }
+  return Object.freeze({
+    ledgerId: requiredRecoveryString(
+      dataDescriptorValue(descriptors, "ledgerId", subject),
+      `${subject}.ledgerId`,
+    ),
+    serverName: requiredRecoveryString(
+      dataDescriptorValue(descriptors, "serverName", subject),
+      `${subject}.serverName`,
+    ),
+    toolName: requiredRecoveryString(
+      dataDescriptorValue(descriptors, "toolName", subject),
+      `${subject}.toolName`,
+    ),
+    effectContract: Object.freeze({ effect }),
+  });
+}
+
+function snapshotReplMcpIncident(incident, index) {
+  const subject = `MCP recovery incidents[${index}]`;
+  const descriptors = plainDataDescriptors(incident, subject);
+  return Object.freeze({
+    code: requiredRecoveryString(
+      dataDescriptorValue(descriptors, "code", subject),
+      `${subject}.code`,
+    ),
+    ledgerId: requiredRecoveryString(
+      dataDescriptorValue(descriptors, "ledgerId", subject, {
+        required: false,
+        fallback: null,
+      }),
+      `${subject}.ledgerId`,
+      { nullable: true },
+    ),
+  });
+}
+
+function snapshotReplReplayDeny(entry, index) {
+  const subject = `MCP recovery replayDenied[${index}]`;
+  const descriptors = plainDataDescriptors(entry, subject);
+  const fields = Object.keys(descriptors);
+  if (
+    fields.length !== REPL_REPLAY_DENY_FIELDS.size ||
+    fields.some((field) => !REPL_REPLAY_DENY_FIELDS.has(field))
+  ) {
+    throw invalidReplRecovery(`${subject} has an invalid exact schema`);
+  }
+  const snapshot = Object.freeze({
+    ledgerId: requiredRecoveryString(
+      dataDescriptorValue(descriptors, "ledgerId", subject),
+      `${subject}.ledgerId`,
+    ),
+    serverName: requiredRecoveryString(
+      dataDescriptorValue(descriptors, "serverName", subject),
+      `${subject}.serverName`,
+    ),
+    toolName: requiredRecoveryString(
+      dataDescriptorValue(descriptors, "toolName", subject),
+      `${subject}.toolName`,
+    ),
+    inputBytes: dataDescriptorValue(descriptors, "inputBytes", subject),
+    replayDigest: requiredRecoveryString(
+      dataDescriptorValue(descriptors, "replayDigest", subject),
+      `${subject}.replayDigest`,
+    ),
+  });
+  if (
+    !Number.isInteger(snapshot.inputBytes) ||
+    snapshot.inputBytes < 0 ||
+    !REPL_PAYLOAD_DIGEST.test(snapshot.replayDigest)
+  ) {
+    throw invalidReplRecovery(`${subject} has an invalid exact identity`);
+  }
+  return snapshot;
+}
+
+function strictReplMcpRecoverySnapshot(recovery, sessionId) {
+  const descriptors = plainDataDescriptors(recovery, "MCP recovery");
+  const recoverySessionId = requiredRecoveryString(
+    dataDescriptorValue(descriptors, "sessionId", "MCP recovery"),
+    "MCP recovery.sessionId",
+  );
+  if (recoverySessionId !== sessionId) {
+    throw invalidReplRecovery("MCP recovery session does not match the target");
+  }
+  if (dataDescriptorValue(descriptors, "verified", "MCP recovery") !== true) {
+    throw invalidReplRecovery("MCP recovery was not verified");
+  }
+  const unsettled = snapshotDataArray(
+    dataDescriptorValue(descriptors, "unsettled", "MCP recovery"),
+    "MCP recovery.unsettled",
+    snapshotReplMcpRecord,
+  );
+  const incidents = snapshotDataArray(
+    dataDescriptorValue(descriptors, "incidents", "MCP recovery"),
+    "MCP recovery.incidents",
+    snapshotReplMcpIncident,
+  );
+  // Exact-replay denies are authority, not presentation samples. Preserve and
+  // freeze every entry: truncation would silently re-enable a denied call.
+  const replayDenied = snapshotDataArray(
+    dataDescriptorValue(descriptors, "replayDenied", "MCP recovery"),
+    "MCP recovery.replayDenied",
+    snapshotReplReplayDeny,
+  );
+  const headHash = requiredRecoveryString(
+    dataDescriptorValue(descriptors, "headHash", "MCP recovery"),
+    "MCP recovery.headHash",
+    { nullable: true },
+  );
+  const recoveryDigest = requiredRecoveryString(
+    dataDescriptorValue(descriptors, "recoveryDigest", "MCP recovery"),
+    "MCP recovery.recoveryDigest",
+  );
+  const remediation = requiredRecoveryString(
+    dataDescriptorValue(descriptors, "remediation", "MCP recovery"),
+    "MCP recovery.remediation",
+    { nullable: true },
+  );
+  if (
+    (headHash !== null && !REPL_AUTHORITY_HASH.test(headHash)) ||
+    !REPL_PAYLOAD_DIGEST.test(recoveryDigest) ||
+    (remediation !== null && !REPL_MCP_REMEDIATIONS.has(remediation))
+  ) {
+    throw invalidReplRecovery("MCP recovery authority metadata is invalid");
+  }
+  const expectedRemediation =
+    incidents.length > 0
+      ? "inspect_transcript"
+      : unsettled.length > 0
+        ? "adjudicate_started_calls"
+        : replayDenied.length > 0
+          ? "exact_replay_denied"
+          : null;
+  if (remediation !== expectedRemediation) {
+    throw invalidReplRecovery("MCP recovery remediation is inconsistent");
+  }
+
+  const snapshot = Object.freeze({
+    sessionId: recoverySessionId,
+    verified: true,
+    unsettled,
+    incidents,
+    replayDenied,
+    headHash,
+    recoveryDigest,
+    remediation,
+  });
+  const admission = classifyMcpRecoveryAdmission(snapshot);
+  if (admission.reasonCode) {
+    throw invalidReplRecovery(
+      "MCP recovery projection is malformed",
+      admission.reasonCode,
+    );
+  }
+  return snapshot;
+}
+
+function dependencyDataFunction(dependencies, key, fallback) {
+  if (dependencies == null) return fallback;
+  if (typeof dependencies !== "object" || isProxy(dependencies)) {
+    throw invalidReplRecovery("REPL recovery dependencies are invalid");
+  }
+  const descriptor = Object.getOwnPropertyDescriptor(dependencies, key);
+  if (!descriptor) return fallback;
+  if (!("value" in descriptor) || typeof descriptor.value !== "function") {
+    throw invalidReplRecovery(`REPL recovery dependency ${key} is invalid`);
+  }
+  return descriptor.value;
 }
 
 function replMcpRecoveryFailureNotice(error, subject = "MCP call ledger") {
@@ -521,7 +1007,7 @@ function failClosedReplMcpRecoveryCandidate(
   subject = "MCP call ledger",
 ) {
   const recoveryError = replMcpRecoveryError(error, fallbackCode);
-  return Object.freeze({
+  return brandedFrozenCandidate(REPL_MCP_RECOVERY_CANDIDATES, {
     sessionId,
     recovery: null,
     recoveryError,
@@ -535,31 +1021,44 @@ function failClosedReplMcpRecoveryCandidate(
  * of a session switch (notably message rebuild) has succeeded.
  */
 export function readReplMcpRecoveryCandidate(sessionId, dependencies = {}) {
-  const loadRecovery =
-    dependencies.loadMcpLedgerRecovery || loadMcpLedgerRecovery;
-  const formatNotice =
-    dependencies.formatMcpLedgerRecoveryNotice || formatMcpLedgerRecoveryNotice;
   try {
-    const recovery = loadRecovery(sessionId);
-    if (
-      !recovery ||
-      !Array.isArray(recovery.unsettled) ||
-      !Array.isArray(recovery.incidents)
-    ) {
-      const error = new Error("MCP recovery projection is malformed");
-      error.code = "CC_MCP_LEDGER_RECOVERY_INVALID";
-      throw error;
+    const loadRecovery = dependencyDataFunction(
+      dependencies,
+      "loadMcpLedgerRecovery",
+      loadMcpLedgerRecovery,
+    );
+    const formatNotice = dependencyDataFunction(
+      dependencies,
+      "formatMcpLedgerRecoveryNotice",
+      formatMcpLedgerRecoveryNotice,
+    );
+    const recovery = strictReplMcpRecoverySnapshot(
+      synchronousReplRecoveryValue(
+        loadRecovery(sessionId),
+        "MCP recovery loader result",
+      ),
+      sessionId,
+    );
+    let notice = synchronousReplRecoveryValue(
+      formatNotice(recovery),
+      "MCP recovery formatter result",
+    );
+    if (notice !== null && typeof notice !== "string") {
+      throw invalidReplRecovery(
+        "MCP recovery formatter must return a string or null",
+      );
     }
-    let notice = formatNotice(recovery);
     if (
       !notice &&
-      (recovery.unsettled.length > 0 || recovery.incidents.length > 0)
+      (recovery.unsettled.length > 0 ||
+        recovery.incidents.length > 0 ||
+        recovery.replayDenied.length > 0)
     ) {
       notice =
-        "MCP recovery notice — interrupted MCP calls or ledger incidents " +
-        "require explicit inspection before replay.";
+        "MCP recovery notice — interrupted MCP calls, ledger incidents, " +
+        "or exact replay denies require explicit inspection before replay.";
     }
-    return Object.freeze({
+    return brandedFrozenCandidate(REPL_MCP_RECOVERY_CANDIDATES, {
       sessionId,
       recovery,
       recoveryError: null,
@@ -570,6 +1069,118 @@ export function readReplMcpRecoveryCandidate(sessionId, dependencies = {}) {
   }
 }
 
+function resolveReplMcpRecoveryCandidate(sessionId, dependencies) {
+  try {
+    if (
+      dependencies &&
+      (typeof dependencies !== "object" || isProxy(dependencies))
+    ) {
+      throw invalidReplRecovery("REPL recovery dependencies are invalid");
+    }
+    const descriptor = dependencies
+      ? Object.getOwnPropertyDescriptor(dependencies, "mcpRecoveryCandidate")
+      : null;
+    if (!descriptor) {
+      return readReplMcpRecoveryCandidate(sessionId, dependencies);
+    }
+    if (
+      !("value" in descriptor) ||
+      !descriptor.value ||
+      !REPL_MCP_RECOVERY_CANDIDATES.has(descriptor.value) ||
+      descriptor.value.sessionId !== sessionId
+    ) {
+      throw invalidReplRecovery(
+        "Injected MCP recovery candidate is not an authorized capability",
+        "CC_REPL_MCP_RECOVERY_CANDIDATE_INVALID",
+      );
+    }
+    return descriptor.value;
+  } catch (error) {
+    return failClosedReplMcpRecoveryCandidate(
+      sessionId,
+      error,
+      "CC_REPL_MCP_RECOVERY_CANDIDATE_INVALID",
+    );
+  }
+}
+
+function snapshotReplMessageValue(value, subject, ancestors = new WeakSet()) {
+  if (
+    value === null ||
+    value === undefined ||
+    typeof value === "string" ||
+    typeof value === "boolean" ||
+    (typeof value === "number" && Number.isFinite(value))
+  ) {
+    return value;
+  }
+  if (!value || typeof value !== "object" || isProxy(value)) {
+    throw invalidReplRecovery(
+      `${subject} contains a non-serializable value`,
+      "CC_REPL_SESSION_REBUILD_FAILED",
+    );
+  }
+  if (ancestors.has(value)) {
+    throw invalidReplRecovery(
+      `${subject} contains a cycle`,
+      "CC_REPL_SESSION_REBUILD_FAILED",
+    );
+  }
+  ancestors.add(value);
+  try {
+    if (Array.isArray(value)) {
+      return snapshotDataArray(value, subject, (item, index) =>
+        snapshotReplMessageValue(item, `${subject}[${index}]`, ancestors),
+      );
+    }
+    const descriptors = plainDataDescriptors(value, subject);
+    const snapshot = {};
+    for (const key of Object.keys(descriptors)) {
+      snapshot[key] = snapshotReplMessageValue(
+        descriptors[key].value,
+        `${subject}.${key}`,
+        ancestors,
+      );
+    }
+    return Object.freeze(snapshot);
+  } finally {
+    ancestors.delete(value);
+  }
+}
+
+function snapshotReplMessages(messages) {
+  try {
+    return snapshotDataArray(
+      messages,
+      "REPL session rebuild",
+      (message, index) => {
+        const snapshot = snapshotReplMessageValue(
+          message,
+          `REPL session rebuild[${index}]`,
+        );
+        if (
+          !snapshot ||
+          Array.isArray(snapshot) ||
+          typeof snapshot.role !== "string"
+        ) {
+          throw invalidReplRecovery(
+            `REPL session rebuild[${index}] is not a message`,
+            "CC_REPL_SESSION_REBUILD_FAILED",
+          );
+        }
+        return snapshot;
+      },
+    );
+  } catch (cause) {
+    const error = invalidReplRecovery(
+      safeRecoveryErrorValue(cause, "message", "REPL session rebuild failed"),
+      "CC_REPL_SESSION_REBUILD_FAILED",
+    );
+    error.cause = cause;
+    throw error;
+  }
+}
+
 /**
  * Prepare a JSONL resume transaction. Recovery authority is always read before
  * tolerant history rebuilding. A rebuild failure carries an ALL-blocking MCP
@@ -577,19 +1188,22 @@ export function readReplMcpRecoveryCandidate(sessionId, dependencies = {}) {
  * overwrite the active session's authority state.
  */
 export function prepareReplJsonlResumeCandidate(sessionId, dependencies = {}) {
-  const mcp =
-    dependencies.mcpRecoveryCandidate ||
-    readReplMcpRecoveryCandidate(sessionId, dependencies);
-  const rebuild = dependencies.rebuildMessages || rebuildMessages;
+  const mcp = resolveReplMcpRecoveryCandidate(sessionId, dependencies);
   try {
-    const rebuiltMessages = rebuild(sessionId);
-    if (!Array.isArray(rebuiltMessages)) {
-      throw new TypeError("REPL session rebuild must return a message array");
-    }
-    return Object.freeze({
+    const rebuild = dependencyDataFunction(
+      dependencies,
+      "rebuildMessages",
+      rebuildMessages,
+    );
+    const rebuiltMessages = snapshotReplMessages(rebuild(sessionId));
+    const replayMessages = Object.freeze(
+      rebuiltMessages.filter((message) => message.role !== "system"),
+    );
+    return brandedFrozenCandidate(REPL_JSONL_RESUME_CANDIDATES, {
       ok: true,
       sessionId,
       rebuiltMessages,
+      replayMessages,
       mcp,
       error: null,
     });
@@ -598,10 +1212,11 @@ export function prepareReplJsonlResumeCandidate(sessionId, dependencies = {}) {
       error,
       "CC_REPL_SESSION_REBUILD_FAILED",
     );
-    return Object.freeze({
+    return brandedFrozenCandidate(REPL_JSONL_RESUME_CANDIDATES, {
       ok: false,
       sessionId,
       rebuiltMessages: null,
+      replayMessages: null,
       mcp: failClosedReplMcpRecoveryCandidate(
         sessionId,
         mcp.recoveryError || resumeError,
@@ -613,11 +1228,116 @@ export function prepareReplJsonlResumeCandidate(sessionId, dependencies = {}) {
   }
 }
 
-/** Commit a fully prepared session switch; failed candidates are inert. */
-export function commitPreparedReplJsonlResume(candidate, commit) {
-  if (!candidate?.ok || typeof commit !== "function") return false;
-  commit(candidate);
-  return true;
+function commitPreparedReplResume(prepared, commit, rollback) {
+  if (!prepared || typeof commit !== "function") return false;
+  try {
+    commit(prepared);
+    return true;
+  } catch (commitError) {
+    if (typeof rollback === "function") {
+      try {
+        rollback(prepared, commitError);
+      } catch (rollbackError) {
+        const error = new AggregateError(
+          [commitError, rollbackError],
+          "REPL session resume and rollback both failed",
+        );
+        error.code = "CC_REPL_SESSION_RESUME_ROLLBACK_FAILED";
+        throw error;
+      }
+    }
+    throw commitError;
+  }
+}
+
+/** Commit a fully prepared JSONL switch; forged/failed candidates are inert. */
+export function commitPreparedReplJsonlResume(candidate, commit, rollback) {
+  if (
+    !candidate ||
+    !REPL_JSONL_RESUME_CANDIDATES.has(candidate) ||
+    !candidate.ok
+  ) {
+    return false;
+  }
+  return commitPreparedReplResume(candidate, commit, rollback);
+}
+
+/** Commit the already parsed and snapshotted legacy-DB resume state. */
+export function commitPreparedReplDbResume(preparedState, commit, rollback) {
+  return commitPreparedReplResume(preparedState, commit, rollback);
+}
+
+/**
+ * Own the exact mutable state switched by the interactive `/session resume`
+ * command. Both JSONL and legacy-DB paths use this controller, which also gives
+ * tests a behavioral seam for failures at each real apply stage.
+ */
+export function createReplResumeStateController(bindings) {
+  const snapshots = new WeakSet();
+  const replaceArray = (target, values) => {
+    target.length = 0;
+    for (const value of values) target.push(value);
+  };
+
+  const capture = () => {
+    const mcpRuntime = bindings.runtimeManager.current;
+    if (!mcpRuntime) {
+      const error = new Error("Active MCP recovery runtime is unavailable");
+      error.code = "CC_REPL_MCP_RUNTIME_UNAVAILABLE";
+      throw error;
+    }
+    const snapshot = Object.freeze({
+      sessionId: bindings.sessionId,
+      messages: Object.freeze(bindings.messages.slice()),
+      recovery: bindings.recovery,
+      recoveryError: bindings.recoveryError,
+      sanitizeRolesNextTurn: bindings.sanitizeRolesNextTurn,
+      turnBindingProducer: bindings.turnBindingProducer,
+      turnBindingCriticalError: bindings.turnBindingCriticalError,
+      checkpointMarks: Object.freeze(bindings.checkpointMarks.slice()),
+      clearedConversation: bindings.clearedConversation,
+      mcpRuntime,
+    });
+    snapshots.add(snapshot);
+    return snapshot;
+  };
+
+  const restore = (snapshot) => {
+    if (!snapshot || !snapshots.has(snapshot)) {
+      throw new TypeError("REPL resume snapshot is invalid");
+    }
+    bindings.sessionId = snapshot.sessionId;
+    replaceArray(bindings.messages, snapshot.messages);
+    bindings.recovery = snapshot.recovery;
+    bindings.recoveryError = snapshot.recoveryError;
+    bindings.sanitizeRolesNextTurn = snapshot.sanitizeRolesNextTurn;
+    bindings.turnBindingProducer = snapshot.turnBindingProducer;
+    bindings.turnBindingCriticalError = snapshot.turnBindingCriticalError;
+    replaceArray(bindings.checkpointMarks, snapshot.checkpointMarks);
+    bindings.clearedConversation = snapshot.clearedConversation;
+    if (bindings.runtimeManager.current !== snapshot.mcpRuntime) {
+      bindings.runtimeManager.commit(snapshot.mcpRuntime);
+    }
+  };
+
+  const apply = (preparedState) => {
+    bindings.sessionId = preparedState.sessionId;
+    replaceArray(bindings.messages, [preparedState.systemMessage]);
+    bindings.applyMcpRecoveryCommit(bindings.messages, preparedState.mcpCommit);
+    for (const message of preparedState.replayMessages) {
+      bindings.messages.push(message);
+    }
+    bindings.sanitizeRolesNextTurn = preparedState.sanitizeRolesNextTurn;
+    bindings.turnBindingProducer = null;
+    bindings.turnBindingCriticalError = null;
+    bindings.checkpointMarks.length = 0;
+    bindings.clearedConversation = null;
+    bindings.runtimeManager.commit(preparedState.mcpRuntime);
+    bindings.logMcpRecoveryCommit(preparedState.mcpCommit);
+    bindings.logger.info(preparedState.logMessage);
+  };
+
+  return Object.freeze({ capture, restore, apply });
 }
 
 /**
@@ -642,6 +1362,7 @@ export function createReplMcpHostRuntimeManager(dependencies = {}) {
     persistent = false,
     recovery = null,
     recoveryError = null,
+    verifiedRecovery = false,
   } = {}) => {
     const bundle = adhocMcp?.mcpClient
       ? adhocMcp
@@ -652,6 +1373,7 @@ export function createReplMcpHostRuntimeManager(dependencies = {}) {
     const persistLedger = Boolean(persistent && sessionId);
 
     if (
+      !verifiedRecovery &&
       current &&
       current.rawClient === rawClient &&
       current.sessionId === sessionId &&
@@ -665,6 +1387,10 @@ export function createReplMcpHostRuntimeManager(dependencies = {}) {
     const sink = persistLedger
       ? createLedgerSink(sessionId, { appendEvent: appendLedgerEvent })
       : null;
+    const sharedController =
+      !verifiedRecovery && current?.sessionId === sessionId
+        ? current.runtime.controller
+        : null;
     const runtime = createRuntime({
       bundle,
       rawClient,
@@ -672,6 +1398,7 @@ export function createReplMcpHostRuntimeManager(dependencies = {}) {
       sink,
       recovery,
       recoveryError,
+      ...(sharedController ? { controller: sharedController } : {}),
     });
     const candidate = Object.freeze({
       runtime,
@@ -686,6 +1413,7 @@ export function createReplMcpHostRuntimeManager(dependencies = {}) {
       persistent: persistLedger,
       recovery,
       recoveryError,
+      verifiedRecovery: Boolean(verifiedRecovery),
     });
     candidates.add(candidate);
     return candidate;
@@ -1433,22 +2161,51 @@ async function startAgentReplInWorkspace(options = {}) {
     prepareReplJsonlResumeCandidate(targetSessionId, {
       mcpRecoveryCandidate: _readMcpRecoveryCandidate(targetSessionId),
     });
+  const _prepareMcpRecoveryCommit = (candidate) => {
+    const authorized =
+      candidate && REPL_MCP_RECOVERY_CANDIDATES.has(candidate)
+        ? candidate
+        : failClosedReplMcpRecoveryCandidate(
+            sessionId,
+            invalidReplRecovery(
+              "MCP recovery candidate capability is invalid",
+              "CC_REPL_MCP_RECOVERY_CANDIDATE_INVALID",
+            ),
+            "CC_REPL_MCP_RECOVERY_CANDIDATE_INVALID",
+          );
+    const recovery = authorized.recovery;
+    const recoveryError = authorized.recoveryError;
+    const noticeMessage = authorized.notice
+      ? Object.freeze({ role: "system", content: authorized.notice })
+      : null;
+    const warning = recoveryError
+      ? "⚠ MCP ledger recovery failed closed; inspect the transcript before using MCP tools."
+      : authorized.notice
+        ? `⚠ ${recovery.unsettled.length} interrupted MCP call(s), ${recovery.incidents.length} ledger incident(s), and ${recovery.replayDenied.length} exact replay deny/denies require inspection before replay.`
+        : null;
+    return Object.freeze({
+      recovery,
+      recoveryError,
+      noticeMessage,
+      warning,
+    });
+  };
+  const _applyMcpRecoveryCommit = (targetMessages, preparedCommit) => {
+    _mcpLedgerRecovery = preparedCommit.recovery;
+    _mcpLedgerRecoveryError = preparedCommit.recoveryError;
+    if (preparedCommit.noticeMessage) {
+      targetMessages.push(preparedCommit.noticeMessage);
+    }
+    return Boolean(preparedCommit.noticeMessage);
+  };
+  const _logMcpRecoveryCommit = (preparedCommit) => {
+    if (preparedCommit.warning) logger.warn(preparedCommit.warning);
+  };
   const _commitMcpRecoveryCandidate = (targetMessages, candidate) => {
-    _mcpLedgerRecovery = candidate?.recovery || null;
-    _mcpLedgerRecoveryError = candidate?.recoveryError || null;
-    if (candidate?.notice) {
-      targetMessages.push({ role: "system", content: candidate.notice });
-    }
-    if (_mcpLedgerRecoveryError) {
-      logger.warn(
-        "⚠ MCP ledger recovery failed closed; inspect the transcript before using MCP tools.",
-      );
-    } else if (candidate?.notice) {
-      logger.warn(
-        `⚠ ${candidate.recovery.unsettled.length} interrupted MCP call(s) and ${candidate.recovery.incidents.length} ledger incident(s) require inspection before replay.`,
-      );
-    }
-    return Boolean(candidate?.notice);
+    const preparedCommit = _prepareMcpRecoveryCommit(candidate);
+    const addedNotice = _applyMcpRecoveryCommit(targetMessages, preparedCommit);
+    _logMcpRecoveryCommit(preparedCommit);
+    return addedNotice;
   };
   // Resume-degenerate role sanitation (Claude Code 2.1.187 parity): a one-shot
   // flag armed when a resumed transcript ends with a bare `user` turn (the prior
@@ -1742,14 +2499,68 @@ async function startAgentReplInWorkspace(options = {}) {
   const _activateMcpHostRuntime = () =>
     _mcpHostRuntimeManager.activate(_mcpRuntimeInputs());
   const _prepareMcpHostRuntime = (targetSessionId, mcpCandidate = {}) =>
-    _mcpHostRuntimeManager.prepare(
-      _mcpRuntimeInputs({
+    _mcpHostRuntimeManager.prepare({
+      ..._mcpRuntimeInputs({
         targetSessionId,
         recovery: mcpCandidate.recovery ?? null,
         recoveryError: mcpCandidate.recoveryError ?? null,
       }),
-    );
+      verifiedRecovery: true,
+    });
   const _getReplHostMcp = () => _activateMcpHostRuntime().hostMcp;
+  const _resumeStateController = createReplResumeStateController({
+    get sessionId() {
+      return sessionId;
+    },
+    set sessionId(value) {
+      sessionId = value;
+    },
+    messages,
+    get recovery() {
+      return _mcpLedgerRecovery;
+    },
+    set recovery(value) {
+      _mcpLedgerRecovery = value;
+    },
+    get recoveryError() {
+      return _mcpLedgerRecoveryError;
+    },
+    set recoveryError(value) {
+      _mcpLedgerRecoveryError = value;
+    },
+    get sanitizeRolesNextTurn() {
+      return _sanitizeRolesNextTurn;
+    },
+    set sanitizeRolesNextTurn(value) {
+      _sanitizeRolesNextTurn = value;
+    },
+    get turnBindingProducer() {
+      return _turnBindingProducer;
+    },
+    set turnBindingProducer(value) {
+      _turnBindingProducer = value;
+    },
+    get turnBindingCriticalError() {
+      return _turnBindingCriticalError;
+    },
+    set turnBindingCriticalError(value) {
+      _turnBindingCriticalError = value;
+    },
+    checkpointMarks: _checkpointMarks,
+    get clearedConversation() {
+      return _clearedConversation;
+    },
+    set clearedConversation(value) {
+      _clearedConversation = value;
+    },
+    runtimeManager: _mcpHostRuntimeManager,
+    applyMcpRecoveryCommit: _applyMcpRecoveryCommit,
+    logMcpRecoveryCommit: _logMcpRecoveryCommit,
+    logger,
+  });
+  const _captureResumeState = _resumeStateController.capture;
+  const _restoreResumeState = _resumeStateController.restore;
+  const _applyPreparedResumeState = _resumeStateController.apply;
 
   // Seed connected MCP servers with the startup workspace roots when the session
   // began with extra `--add-dir` roots — otherwise `roots/list` would only ever
@@ -4237,33 +5048,22 @@ async function startAgentReplInWorkspace(options = {}) {
               prepared.sessionId,
               prepared.mcp,
             );
+            const preparedMcpCommit = _prepareMcpRecoveryCommit(prepared.mcp);
+            const previousState = _captureResumeState();
+            const preparedState = Object.freeze({
+              sessionId: prepared.sessionId,
+              systemMessage: messages[0],
+              replayMessages: prepared.replayMessages,
+              mcpCommit: preparedMcpCommit,
+              mcpRuntime: preparedMcpRuntime,
+              sanitizeRolesNextTurn:
+                prepared.replayMessages.at(-1)?.role === "user",
+              logMessage: `Resumed JSONL session ${prepared.sessionId} (${prepared.rebuiltMessages.length} messages)`,
+            });
             const committed = commitPreparedReplJsonlResume(
               prepared,
-              (candidate) => {
-                const rebuilt = candidate.rebuiltMessages.filter(
-                  (message) => message.role !== "system",
-                );
-                sessionId = candidate.sessionId;
-                messages.length = 1; // keep system prompt
-                _commitMcpRecoveryCandidate(messages, candidate.mcp);
-                messages.push(...rebuilt);
-                _sanitizeRolesNextTurn =
-                  messages[messages.length - 1]?.role === "user";
-                // The producer owns one immutable session id. Recreate it
-                // lazily on the next turn so bindings from the resumed
-                // conversation can never be appended to the previously active
-                // session.
-                _turnBindingProducer = null;
-                _turnBindingCriticalError = null;
-                // The prior session's checkpoint marks (turn-index →
-                // checkpoint id) no longer map to this swapped-in history;
-                // keeping them would make a later /rewind restore files from
-                // the WRONG session's snapshot. Same reset /clear does on a
-                // context swap.
-                _checkpointMarks.length = 0;
-                _clearedConversation = null;
-                _mcpHostRuntimeManager.commit(preparedMcpRuntime);
-              },
+              () => _applyPreparedResumeState(preparedState),
+              () => _restoreResumeState(previousState),
             );
             if (!committed) {
               const error = new Error(
@@ -4272,9 +5072,6 @@ async function startAgentReplInWorkspace(options = {}) {
               error.code = "CC_REPL_SESSION_RESUME_NOT_COMMITTED";
               throw error;
             }
-            logger.info(
-              `Resumed JSONL session ${sessionId} (${prepared.rebuiltMessages.length} messages)`,
-            );
           } else if (db) {
             const existing = getSession(db, resumeId);
             if (existing && existing.messages) {
@@ -4282,25 +5079,33 @@ async function startAgentReplInWorkspace(options = {}) {
                 typeof existing.messages === "string"
                   ? JSON.parse(existing.messages)
                   : existing.messages;
+              const rebuiltMessages = snapshotReplMessages(parsed);
+              const replayMessages = Object.freeze(
+                rebuiltMessages.filter((message) => message.role !== "system"),
+              );
               const preparedMcpRuntime = _prepareMcpHostRuntime(existing.id, {
                 recovery: null,
                 recoveryError: null,
               });
-              messages.length = 1; // keep system prompt
-              messages.push(...parsed.filter((m) => m.role !== "system"));
-              _sanitizeRolesNextTurn =
-                messages[messages.length - 1]?.role === "user";
-              sessionId = existing.id;
-              _mcpLedgerRecovery = null;
-              _mcpLedgerRecoveryError = null;
-              _turnBindingProducer = null;
-              _turnBindingCriticalError = null;
-              // Drop the prior session's checkpoint marks (see JSONL branch).
-              _checkpointMarks.length = 0;
-              _clearedConversation = null; // stash belongs to the swapped-out session
-              _mcpHostRuntimeManager.commit(preparedMcpRuntime);
-              logger.info(
-                `Resumed session ${sessionId} (${parsed.length} messages)`,
+              const previousState = _captureResumeState();
+              const preparedState = Object.freeze({
+                sessionId: existing.id,
+                systemMessage: messages[0],
+                replayMessages,
+                mcpCommit: Object.freeze({
+                  recovery: null,
+                  recoveryError: null,
+                  noticeMessage: null,
+                  warning: null,
+                }),
+                mcpRuntime: preparedMcpRuntime,
+                sanitizeRolesNextTurn: replayMessages.at(-1)?.role === "user",
+                logMessage: `Resumed session ${existing.id} (${rebuiltMessages.length} messages)`,
+              });
+              commitPreparedReplDbResume(
+                preparedState,
+                () => _applyPreparedResumeState(preparedState),
+                () => _restoreResumeState(previousState),
               );
             } else {
               logger.info(`Session not found: ${resumeId}`);
@@ -6278,9 +7083,10 @@ async function startAgentReplInWorkspace(options = {}) {
         extraToolDefinitions: _adhocMcp?.extraToolDefinitions,
         externalToolExecutors: _adhocMcp?.externalToolExecutors,
         externalToolDescriptors: _adhocMcp?.externalToolDescriptors,
-        mcpCallLedger: activeMcpRuntime.persistent
-          ? activeMcpRuntime.runtime.ledger
-          : null,
+        // The recovery controller is required even when this legacy/ephemeral
+        // session has no durable sink. Otherwise an outcome-unknown call could
+        // be retried in the same process after agent-core creates a plain ledger.
+        mcpCallLedger: activeMcpRuntime.runtime.ledger,
         chatFn: _fallbackChatFn,
       });
       _persistReplContextSources();

@@ -1,4 +1,5 @@
 import { createHash, randomUUID as nodeRandomUUID } from "node:crypto";
+import { isProxy } from "node:util/types";
 
 export const MCP_CALL_LEDGER_SCHEMA_VERSION = 1;
 
@@ -66,6 +67,113 @@ const TERMINAL_STATUSES = new Set([
   McpCallStatus.CANCELLED,
 ]);
 const FAILURE_ACTIONS = new Set(Object.values(LedgerFailureAction));
+const MCP_WIRE_INPUT_SNAPSHOTS = new WeakSet();
+
+export const MCP_WIRE_INPUT_INVALID_CODE = "CC_MCP_WIRE_INPUT_INVALID";
+
+function invalidWireInput(reason) {
+  const error = new TypeError(
+    `MCP input must be unambiguous immutable JSON data (${reason})`,
+  );
+  error.code = MCP_WIRE_INPUT_INVALID_CODE;
+  return error;
+}
+
+function snapshotMcpJsonValue(value, stack) {
+  if (value === null) return null;
+  const type = typeof value;
+  if (type === "string" || type === "boolean") return value;
+  if (type === "number") {
+    if (!Number.isFinite(value)) throw invalidWireInput("non-finite-number");
+    return value;
+  }
+  if (type === "undefined") throw invalidWireInput("undefined");
+  if (type === "function") throw invalidWireInput("function");
+  if (type === "symbol") throw invalidWireInput("symbol");
+  if (type === "bigint") throw invalidWireInput("bigint");
+  if (type !== "object") throw invalidWireInput("unsupported-type");
+
+  if (isProxy(value)) throw invalidWireInput("proxy");
+  if (MCP_WIRE_INPUT_SNAPSHOTS.has(value)) return value;
+  if (stack.has(value)) throw invalidWireInput("circular-reference");
+
+  const prototype = Object.getPrototypeOf(value);
+  const isArray = Array.isArray(value);
+  if (
+    (!isArray && prototype !== Object.prototype && prototype !== null) ||
+    (isArray && prototype !== Array.prototype)
+  ) {
+    throw invalidWireInput("non-plain-object");
+  }
+
+  const descriptors = Object.getOwnPropertyDescriptors(value);
+  if (Object.getOwnPropertySymbols(value).length > 0) {
+    throw invalidWireInput("symbol-key");
+  }
+
+  stack.add(value);
+  try {
+    if (isArray) {
+      const lengthDescriptor = descriptors.length;
+      const length = lengthDescriptor?.value;
+      if (!Number.isSafeInteger(length) || length < 0) {
+        throw invalidWireInput("array-length");
+      }
+      const keys = Object.keys(descriptors).filter((key) => key !== "length");
+      if (keys.length !== length) throw invalidWireInput("sparse-array");
+      const snapshot = new Array(length);
+      for (let index = 0; index < length; index += 1) {
+        const descriptor = descriptors[String(index)];
+        if (!descriptor || !("value" in descriptor)) {
+          throw invalidWireInput("sparse-or-accessor-array");
+        }
+        snapshot[index] = snapshotMcpJsonValue(descriptor.value, stack);
+      }
+      MCP_WIRE_INPUT_SNAPSHOTS.add(snapshot);
+      return Object.freeze(snapshot);
+    }
+
+    const snapshot = {};
+    for (const key of Object.keys(descriptors).sort()) {
+      const descriptor = descriptors[key];
+      if (!("value" in descriptor)) throw invalidWireInput("accessor");
+      if (!descriptor.enumerable) throw invalidWireInput("hidden-property");
+      if (key === "toJSON") throw invalidWireInput("toJSON");
+      Object.defineProperty(snapshot, key, {
+        configurable: false,
+        enumerable: true,
+        writable: false,
+        value: snapshotMcpJsonValue(descriptor.value, stack),
+      });
+    }
+    MCP_WIRE_INPUT_SNAPSHOTS.add(snapshot);
+    return Object.freeze(snapshot);
+  } finally {
+    stack.delete(value);
+  }
+}
+
+/**
+ * Capture the exact JSON-compatible value used for MCP admission, durable
+ * ledger identity and transport. Ambiguous JavaScript values are rejected
+ * before a network call instead of being hashed differently from their JSON
+ * wire representation.
+ */
+export function snapshotMcpJsonRpcInput(value) {
+  return snapshotMcpJsonValue(value, new Set());
+}
+
+export function isMcpJsonRpcInputSnapshot(value) {
+  return (
+    value === null ||
+    typeof value === "string" ||
+    typeof value === "boolean" ||
+    (typeof value === "number" && Number.isFinite(value)) ||
+    ((typeof value === "object" || typeof value === "function") &&
+      value !== null &&
+      MCP_WIRE_INPUT_SNAPSHOTS.has(value))
+  );
+}
 
 function canonicalStringify(value, stack = new Set()) {
   if (value === null) return "null";
@@ -441,9 +549,10 @@ export class McpCallLedger {
     const effectContract = normalizeMcpEffectContract(
       call.effectContract || call.effect || {},
     );
-    const input = summarizeMcpPayload(
+    const inputSnapshot = snapshotMcpJsonRpcInput(
       Object.prototype.hasOwnProperty.call(call, "input") ? call.input : {},
     );
+    const input = summarizeMcpPayload(inputSnapshot);
     const prewritePolicy =
       this.prewriteFailurePolicy[effectContract.effect] ||
       LedgerFailureAction.FAIL_CLOSED;
@@ -521,6 +630,7 @@ export class McpCallLedger {
       ledgerId,
       prewritePersisted,
       prewritePolicy,
+      inputSnapshot,
       record: frozenSnapshot(record),
       settle(outcome = {}) {
         return ledger.settle(ledgerId, outcome);

@@ -18,6 +18,7 @@ import fs from "fs";
 import path from "path";
 import broker from "../lib/process-execution-broker/index.js";
 import os from "os";
+import { isProxy } from "node:util/types";
 import sharedCodingAgentPolicy from "./coding-agent-policy.cjs";
 import sharedShellPolicy from "./coding-agent-shell-policy.cjs";
 import sharedPermissionRules from "../lib/permission-rules.cjs";
@@ -94,7 +95,15 @@ import {
   beginManagedToolCheckpoint,
   settleManagedToolCheckpoint,
 } from "../lib/managed-tool-checkpoint.js";
-import { createMcpCallLedger } from "../lib/mcp-call-ledger.js";
+import {
+  createMcpCallLedger,
+  McpEffect,
+  snapshotMcpJsonRpcInput,
+} from "../lib/mcp-call-ledger.js";
+import {
+  MCP_OUTCOME_UNKNOWN_CODE,
+  markMcpLedgerOutcomeUnknown,
+} from "../lib/mcp-ledger-recovery-admission.js";
 import {
   createHostOwnedMcpEffectContract,
   createMcpConflictScheduler,
@@ -3338,6 +3347,77 @@ function mcpLedgerScopes(args) {
   return { resourceScopes, networkScopes };
 }
 
+const MCP_TRANSPORT_OUTCOME_UNKNOWN_CODE = "CC_MCP_TRANSPORT_OUTCOME_UNKNOWN";
+const MCP_PROTOCOL_RESULT_INVALID_CODE = "CC_MCP_PROTOCOL_RESULT_INVALID";
+const MCP_RESULT_PROJECTION_FAILED_CODE = "CC_MCP_RESULT_PROJECTION_FAILED";
+
+function safeMcpProperty(value, property) {
+  try {
+    return value?.[property];
+  } catch {
+    return undefined;
+  }
+}
+
+function safeMcpErrorMessage(error) {
+  const message = safeMcpProperty(error, "message");
+  if (typeof message === "string" && message) return message;
+  try {
+    return String(error || "unknown error");
+  } catch {
+    return "unknown error";
+  }
+}
+
+function safeMcpErrorCode(error, fallback) {
+  const code = safeMcpProperty(error, "code");
+  return typeof code === "string" && code ? code : fallback;
+}
+
+function invalidMcpProtocolResult(cause) {
+  const error = new TypeError("MCP result could not be inspected safely", {
+    cause,
+  });
+  error.code = MCP_PROTOCOL_RESULT_INVALID_CODE;
+  return error;
+}
+
+function mcpTransportOutcomeIsUnsafe(effectContract) {
+  return !(
+    effectContract?.effect === McpEffect.READ &&
+    effectContract?.trusted === true
+  );
+}
+
+function mcpOutcomeUnknownPayload(
+  ledger,
+  ticket,
+  { phase, reasonCode = MCP_OUTCOME_UNKNOWN_CODE } = {},
+) {
+  const stableReasonCode =
+    typeof reasonCode === "string" && reasonCode
+      ? reasonCode
+      : MCP_OUTCOME_UNKNOWN_CODE;
+  try {
+    markMcpLedgerOutcomeUnknown(ledger, stableReasonCode);
+  } catch {
+    // The public result must remain deterministic even for a hostile ledger.
+  }
+  return {
+    error:
+      "MCP tool may have completed, but its outcome is unknown; do not retry automatically until durable recovery is adjudicated.",
+    code: MCP_OUTCOME_UNKNOWN_CODE,
+    status: "outcome_unknown",
+    outcomeUnknown: true,
+    retryable: false,
+    mcpLedgerId: safeMcpProperty(ticket, "ledgerId") || null,
+    mcpLedgerIncident: {
+      phase: phase || "settled",
+      code: stableReasonCode,
+    },
+  };
+}
+
 async function executeToolInner(
   name,
   args,
@@ -5858,7 +5938,22 @@ async function executeToolInner(
           return attachDescriptor(deferredGate);
         }
 
-        const schedulerScopes = mcpLedgerScopes(args || {});
+        let mcpWireInput;
+        try {
+          mcpWireInput = snapshotMcpJsonRpcInput(args || {});
+        } catch (error) {
+          return attachDescriptor({
+            error:
+              "MCP tool blocked because its input is not strict immutable JSON data",
+            policy: {
+              decision: "blocked",
+              via: "mcp-wire-input",
+              code: safeMcpErrorCode(error, "CC_MCP_WIRE_INPUT_INVALID"),
+            },
+          });
+        }
+
+        const schedulerScopes = mcpLedgerScopes(mcpWireInput);
         const ledgerEffectContract = mcpLedgerEffectContract(
           localToolDescriptor,
           hostToolPolicy,
@@ -5897,7 +5992,7 @@ async function executeToolInner(
               turnId,
               toolName: localToolExecutor.toolName,
               serverName: localToolExecutor.serverName,
-              input: args || {},
+              input: mcpWireInput,
               effectContract: ledgerEffectContract,
               ...schedulerScopes,
             });
@@ -5915,63 +6010,191 @@ async function executeToolInner(
             });
           }
 
-          try {
-            const result = await mcpClient.callTool(
-              localToolExecutor.serverName,
-              localToolExecutor.toolName,
-              args || {},
-            );
-            const protocolError = result?.isError === true;
-            try {
-              await ledgerTicket.settle(
-                protocolError
-                  ? {
-                      status: "failed",
-                      output: result,
-                      error: new Error("MCP server returned isError=true"),
-                    }
-                  : { status: "completed", output: result },
+          const transportFailure = async (callError) => {
+            if (mcpTransportOutcomeIsUnsafe(ledgerEffectContract)) {
+              return attachDescriptor(
+                mcpOutcomeUnknownPayload(ledger, ledgerTicket, {
+                  phase: "call",
+                  reasonCode: MCP_TRANSPORT_OUTCOME_UNKNOWN_CODE,
+                }),
               );
-            } catch (ledgerError) {
-              return attachDescriptor({
-                error:
-                  "MCP tool may have completed, but its ledger settlement failed; do not retry automatically.",
-                mcpLedgerId: ledgerTicket.ledgerId,
-                mcpLedgerIncident: {
-                  phase: "settled",
-                  code: ledgerError?.code || "CC_MCP_LEDGER_SETTLE_FAILED",
-                },
-              });
             }
-            if (result && typeof result === "object") {
-              return attachDescriptor({
-                ...result,
-                mcpLedgerId: ledgerTicket.ledgerId,
-              });
-            }
-            return attachDescriptor({
-              result,
-              mcpLedgerId: ledgerTicket.ledgerId,
-            });
-          } catch (err) {
             try {
               await ledgerTicket.settle({
-                status: signal?.aborted ? "cancelled" : "failed",
-                error: err,
+                status: "failed",
+                error: callError,
               });
             } catch (ledgerError) {
-              return attachDescriptor({
-                error: `MCP tool execution failed (${err.message}) and ledger settlement also failed; do not retry automatically.`,
-                mcpLedgerId: ledgerTicket.ledgerId,
-                mcpLedgerIncident: {
+              return attachDescriptor(
+                mcpOutcomeUnknownPayload(ledger, ledgerTicket, {
                   phase: "settled",
-                  code: ledgerError?.code || "CC_MCP_LEDGER_SETTLE_FAILED",
-                },
-              });
+                  reasonCode: safeMcpErrorCode(
+                    ledgerError,
+                    "CC_MCP_LEDGER_SETTLE_FAILED",
+                  ),
+                }),
+              );
             }
             return attachDescriptor({
-              error: `MCP tool execution failed: ${err.message}`,
-              mcpLedgerId: ledgerTicket.ledgerId,
+              error: `MCP tool execution failed: ${safeMcpErrorMessage(callError)}`,
+              mcpLedgerId: safeMcpProperty(ledgerTicket, "ledgerId") || null,
+            });
+          };
+
+          let pendingResult;
+          try {
+            pendingResult = Reflect.apply(mcpClient.callTool, mcpClient, [
+              localToolExecutor.serverName,
+              localToolExecutor.toolName,
+              mcpWireInput,
+            ]);
+          } catch (callError) {
+            return await transportFailure(callError);
+          }
+
+          let result;
+          if (
+            pendingResult !== null &&
+            (typeof pendingResult === "object" ||
+              typeof pendingResult === "function")
+          ) {
+            if (isProxy(pendingResult)) {
+              return attachDescriptor(
+                mcpOutcomeUnknownPayload(ledger, ledgerTicket, {
+                  phase: "result",
+                  reasonCode: MCP_PROTOCOL_RESULT_INVALID_CODE,
+                }),
+              );
+            }
+
+            let nativePromise;
+            try {
+              nativePromise = pendingResult instanceof Promise;
+            } catch (inspectionError) {
+              return attachDescriptor(
+                mcpOutcomeUnknownPayload(ledger, ledgerTicket, {
+                  phase: "result",
+                  reasonCode: safeMcpErrorCode(
+                    invalidMcpProtocolResult(inspectionError),
+                    MCP_PROTOCOL_RESULT_INVALID_CODE,
+                  ),
+                }),
+              );
+            }
+
+            if (nativePromise) {
+              try {
+                result = await pendingResult;
+              } catch (callError) {
+                return await transportFailure(callError);
+              }
+            } else {
+              let then;
+              try {
+                then = Reflect.get(pendingResult, "then", pendingResult);
+              } catch (inspectionError) {
+                return attachDescriptor(
+                  mcpOutcomeUnknownPayload(ledger, ledgerTicket, {
+                    phase: "result",
+                    reasonCode: safeMcpErrorCode(
+                      invalidMcpProtocolResult(inspectionError),
+                      MCP_PROTOCOL_RESULT_INVALID_CODE,
+                    ),
+                  }),
+                );
+              }
+              if (typeof then === "function") {
+                try {
+                  result = await new Promise((resolve, reject) => {
+                    try {
+                      Reflect.apply(then, pendingResult, [resolve, reject]);
+                    } catch (thenError) {
+                      reject(thenError);
+                    }
+                  });
+                } catch (thenError) {
+                  return attachDescriptor(
+                    mcpOutcomeUnknownPayload(ledger, ledgerTicket, {
+                      phase: "result",
+                      reasonCode: safeMcpErrorCode(
+                        invalidMcpProtocolResult(thenError),
+                        MCP_PROTOCOL_RESULT_INVALID_CODE,
+                      ),
+                    }),
+                  );
+                }
+              } else {
+                result = pendingResult;
+              }
+            }
+          } else {
+            result = pendingResult;
+          }
+
+          let protocolError;
+          try {
+            if (
+              result !== null &&
+              (typeof result === "object" || typeof result === "function") &&
+              isProxy(result)
+            ) {
+              throw invalidMcpProtocolResult();
+            }
+            protocolError = result?.isError === true;
+          } catch (inspectionError) {
+            return attachDescriptor(
+              mcpOutcomeUnknownPayload(ledger, ledgerTicket, {
+                phase: "result",
+                reasonCode: safeMcpErrorCode(
+                  invalidMcpProtocolResult(inspectionError),
+                  MCP_PROTOCOL_RESULT_INVALID_CODE,
+                ),
+              }),
+            );
+          }
+
+          try {
+            await ledgerTicket.settle(
+              protocolError
+                ? {
+                    status: "failed",
+                    output: result,
+                    error: new Error("MCP server returned isError=true"),
+                  }
+                : { status: "completed", output: result },
+            );
+          } catch (ledgerError) {
+            return attachDescriptor(
+              mcpOutcomeUnknownPayload(ledger, ledgerTicket, {
+                phase: "settled",
+                reasonCode: safeMcpErrorCode(
+                  ledgerError,
+                  "CC_MCP_LEDGER_SETTLE_FAILED",
+                ),
+              }),
+            );
+          }
+
+          const mcpLedgerId = safeMcpProperty(ledgerTicket, "ledgerId") || null;
+          try {
+            if (result && typeof result === "object") {
+              return attachDescriptor({ ...result, mcpLedgerId });
+            }
+            return attachDescriptor({ result, mcpLedgerId });
+          } catch (projectionError) {
+            return attachDescriptor({
+              error:
+                "MCP tool completed, but its result could not be projected safely; do not retry automatically.",
+              code: MCP_RESULT_PROJECTION_FAILED_CODE,
+              retryable: false,
+              mcpLedgerId,
+              mcpLedgerIncident: {
+                phase: "result",
+                code: safeMcpErrorCode(
+                  projectionError,
+                  MCP_RESULT_PROJECTION_FAILED_CODE,
+                ),
+              },
             });
           }
         } finally {

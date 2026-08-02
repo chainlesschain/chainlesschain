@@ -16,6 +16,7 @@
  */
 import { describe, it, expect, vi } from "vitest";
 import { runAgentHeadlessStream } from "../../src/runtime/headless-stream.js";
+import { executeTool } from "../../src/runtime/agent-core.js";
 import { SideEffectLedger } from "../../src/lib/side-effect-ledger.js";
 import { MCP_CALL_LEDGER_EVENT } from "../../src/lib/mcp-call-ledger-store.js";
 
@@ -84,6 +85,59 @@ function toolLoop(
 }
 
 describe("stream side-effect ledger — resume reconcile + recovery notice", () => {
+  it("keeps ephemeral streams on the guarded ledger after outcome unknown", async () => {
+    const callTool = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("transport outcome unknown"))
+      .mockResolvedValue({ content: [] });
+    const toolName = "mcp__repo__publish";
+    const h = harness({
+      over: {
+        resolveAgentMcp: async () => ({
+          mcpClient: { callTool, disconnectAll: vi.fn(async () => {}) },
+          connected: ["repo"],
+          extraToolDefinitions: [],
+          externalToolExecutors: {
+            [toolName]: {
+              kind: "mcp",
+              serverName: "repo",
+              toolName: "publish",
+            },
+          },
+          externalToolDescriptors: {
+            [toolName]: {
+              name: toolName,
+              kind: "mcp",
+              category: "mcp",
+              source: "mcp:repo",
+              effectContract: { declaredEffect: "write" },
+            },
+          },
+        }),
+      },
+    });
+
+    await h.run();
+
+    const loopOptions = h.seenLoopOptions[0];
+    expect(loopOptions.mcpCallLedger?.recoveryAdmission).toBeDefined();
+    const first = await executeTool(toolName, { release: 1 }, loopOptions);
+    expect(first).toMatchObject({
+      code: "CC_MCP_LEDGER_OUTCOME_UNKNOWN",
+      outcomeUnknown: true,
+      retryable: false,
+    });
+
+    const retry = await executeTool(toolName, { release: 2 }, loopOptions);
+    expect(retry).toMatchObject({
+      policy: {
+        code: "CC_MCP_TRANSPORT_OUTCOME_UNKNOWN",
+        blockMode: "unsafe",
+      },
+    });
+    expect(callTool).toHaveBeenCalledOnce();
+  });
+
   it("surfaces started-only MCP calls and blocks unsafe replay before the durable sink", async () => {
     const mcpRecord = {
       schemaVersion: 1,
@@ -114,6 +168,8 @@ describe("stream side-effect ledger — resume reconcile + recovery notice", () 
         readVerifiedEvents: () => [
           {
             type: MCP_CALL_LEDGER_EVENT,
+            prevHash: null,
+            hash: "1".repeat(64),
             data: {
               schemaVersion: 1,
               phase: "started",
@@ -166,7 +222,7 @@ describe("stream side-effect ledger — resume reconcile + recovery notice", () 
       toolName: "mcp__repo__get_status",
       serverName: "repo",
       input: {},
-      effectContract: { effect: "read" },
+      effectContract: { effect: "read", trusted: true },
     });
     expect(appendAuthorityEvent).toHaveBeenCalledWith(
       "chat-abc",

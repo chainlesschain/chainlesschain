@@ -5,7 +5,9 @@ import {
   MCP_CALL_LEDGER_PROTOCOL_LIMITS,
   McpCallLedger,
   McpEffect,
+  isMcpJsonRpcInputSnapshot,
   sha256PayloadDigest,
+  snapshotMcpJsonRpcInput,
 } from "../../src/lib/mcp-call-ledger.js";
 
 function clock(...values) {
@@ -410,5 +412,67 @@ describe("McpCallLedger", () => {
     expect(sha256PayloadDigest({ a: 1, b: 2 })).toBe(
       sha256PayloadDigest({ b: 2, a: 1 }),
     );
+  });
+
+  it("creates one deeply frozen canonical MCP wire snapshot", async () => {
+    const source = { z: [{ b: 2, a: 1 }], a: true };
+    const snapshot = snapshotMcpJsonRpcInput(source);
+
+    expect(JSON.stringify(snapshot)).toBe('{"a":true,"z":[{"a":1,"b":2}]}');
+    expect(Object.isFrozen(snapshot)).toBe(true);
+    expect(Object.isFrozen(snapshot.z)).toBe(true);
+    expect(Object.isFrozen(snapshot.z[0])).toBe(true);
+    expect(isMcpJsonRpcInputSnapshot(snapshot)).toBe(true);
+    expect(snapshotMcpJsonRpcInput(snapshot)).toBe(snapshot);
+
+    const ledger = createMcpCallLedger();
+    const ticket = await ledger.begin({
+      toolName: "publish",
+      serverName: "repo",
+      input: snapshot,
+      effectContract: { effect: "write" },
+    });
+    expect(ticket.inputSnapshot).toBe(snapshot);
+  });
+
+  it("rejects ambiguous JavaScript values without invoking their hooks", () => {
+    let accessorReads = 0;
+    const accessor = {};
+    Object.defineProperty(accessor, "secret", {
+      enumerable: true,
+      get() {
+        accessorReads += 1;
+        return "must-not-run";
+      },
+    });
+    const toJSON = vi.fn(() => ({ release: 7 }));
+    const customJson = { release: 7, toJSON };
+    const thenable = { then: vi.fn() };
+    const sparse = new Array(1);
+    const proxy = new Proxy(
+      { release: 7 },
+      {
+        get() {
+          throw new Error("must-not-read-proxy");
+        },
+      },
+    );
+
+    for (const input of [
+      accessor,
+      customJson,
+      thenable,
+      sparse,
+      proxy,
+      { release: 7, ignored: undefined },
+      { value: Number.NaN },
+    ]) {
+      expect(() => snapshotMcpJsonRpcInput(input)).toThrowError(
+        expect.objectContaining({ code: "CC_MCP_WIRE_INPUT_INVALID" }),
+      );
+    }
+    expect(accessorReads).toBe(0);
+    expect(toJSON).not.toHaveBeenCalled();
+    expect(thenable.then).not.toHaveBeenCalled();
   });
 });

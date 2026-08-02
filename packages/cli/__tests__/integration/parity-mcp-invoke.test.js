@@ -10,7 +10,7 @@
  *   - SUCCESS: mcpClient.callTool is invoked with (serverName, toolName,
  *     args) and its return value is surfaced in the tool-result event
  *   - ERROR: mcpClient.callTool rejects → error is serialized into
- *     `result.error` with an `MCP tool execution failed:` prefix
+ *     an outcome-unknown result that cannot be retried automatically
  *   - UNAVAILABLE: mcpClient is null → executor falls through to an
  *     `MCP client is unavailable` error WITHOUT crashing the loop
  */
@@ -161,7 +161,7 @@ describe("Phase 7 parity: MCP tool invocation", () => {
     mock.assertDrained();
   });
 
-  it("ERROR: mcpClient.callTool rejection becomes a structured tool-result error", async () => {
+  it("ERROR: an untrusted call rejection becomes outcome-unknown", async () => {
     const mcpClient = {
       callTool: vi.fn().mockRejectedValue(new Error("upstream 503")),
     };
@@ -175,12 +175,21 @@ describe("Phase 7 parity: MCP tool invocation", () => {
     );
 
     expect(events[1].type).toBe("tool-result");
-    // `executeToolInner` catches the rejection and returns { error }
-    // (not throwing) so the loop's outer error field stays null.
+    // `executeToolInner` contains the rejection in the result payload. Because
+    // this tool has no trusted read-only contract, the transport could have
+    // completed its side effect before rejecting and must not be retried.
     expect(events[1].error).toBeNull();
-    expect(events[1].result.error).toMatch(
-      /MCP tool execution failed: upstream 503/,
-    );
+    expect(events[1].result).toMatchObject({
+      code: "CC_MCP_LEDGER_OUTCOME_UNKNOWN",
+      status: "outcome_unknown",
+      outcomeUnknown: true,
+      retryable: false,
+      mcpLedgerIncident: {
+        phase: "call",
+        code: "CC_MCP_TRANSPORT_OUTCOME_UNKNOWN",
+      },
+    });
+    expect(events[1].result.error).not.toContain("upstream 503");
     expect(events[2].content).toBe("failure handled");
     expect(mcpClient.callTool).toHaveBeenCalledTimes(1);
   });
