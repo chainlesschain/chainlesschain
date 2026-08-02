@@ -395,6 +395,7 @@ describe("file-checkpoint store", () => {
     });
 
     expect(first).toMatchObject({
+      checkpointIdentity: expectedIdentity,
       modified: ["a.txt"],
       deleted: ["b.txt"],
       unchanged: [],

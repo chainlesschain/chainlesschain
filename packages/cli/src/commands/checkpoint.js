@@ -181,6 +181,7 @@ function gitEngine(gs, dir, session) {
         expectedIdentity: o?.expectedIdentity,
       });
       return {
+        checkpointIdentity: status.checkpointIdentity,
         modified: status.modified,
         added: status.added,
         deleted: status.deleted,
@@ -255,6 +256,7 @@ function copyEngine(cs, dir) {
         expectedIdentity: o?.expectedIdentity,
       });
       return {
+        checkpointIdentity: d.checkpointIdentity,
         modified: d.modified,
         added: [],
         deleted: d.deleted,

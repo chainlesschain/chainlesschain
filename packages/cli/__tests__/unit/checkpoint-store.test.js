@@ -609,6 +609,7 @@ describe("checkpoint-store (git engine)", () => {
     const fromNested = statusAgainst(nested, cp.id);
 
     expect(repeated.workspaceBinding).toEqual(fromRoot.workspaceBinding);
+    expect(fromRoot.checkpointIdentity).toBe(`git:${cp.commit}`);
     expect(fromNested.workspaceBinding).toEqual(fromRoot.workspaceBinding);
     expect(fromRoot.workspaceBinding).toEqual({
       schema: "cc-checkpoint-workspace-binding/v1",

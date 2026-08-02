@@ -739,7 +739,7 @@ function resolveExpectedCheckpoint(root, idOrRef, session, expectedIdentity) {
 /**
  * Compute what differs between a checkpoint and the current working tree.
  *
- * @returns {{ modified:string[], added:string[], deleted:string[] }}
+ * @returns {{ checkpointIdentity:string, modified:string[], added:string[], deleted:string[] }}
  *   added   = exists now, not in the checkpoint (a rewind would delete it)
  *   deleted = in the checkpoint, gone now (a rewind would recreate it)
  */
@@ -756,6 +756,7 @@ export function statusAgainst(cwd = process.cwd(), idOrRef, opts = {}) {
   const targetTree = git(["rev-parse", `${commit}^{tree}`], { cwd: root });
   const currentTree = snapshotTree(root, dir);
   return {
+    checkpointIdentity: `git:${commit}`,
     modified: diffNames(root, targetTree, currentTree, "M"),
     added: diffNames(root, targetTree, currentTree, "A"),
     deleted: diffNames(root, targetTree, currentTree, "D"),

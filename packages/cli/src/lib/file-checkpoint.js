@@ -2037,7 +2037,7 @@ export function listCheckpoints(opts = {}) {
 
 /**
  * Compare the current on-disk state against a checkpoint.
- * @returns {{ id, modified:[], unchanged:[], deleted:[] }}
+ * @returns {{ id, checkpointIdentity:string, modified:[], unchanged:[], deleted:[] }}
  *   modified = content differs; deleted = file is gone now.
  */
 export function diffCheckpoint(id, opts = {}) {
@@ -2086,6 +2086,7 @@ export function diffCheckpoint(id, opts = {}) {
     }
     return {
       id,
+      checkpointIdentity,
       modified,
       unchanged,
       deleted,
@@ -2104,7 +2105,7 @@ export function diffCheckpoint(id, opts = {}) {
     if (cur === f.sha256) unchanged.push(f.rel);
     else modified.push(f.rel);
   }
-  return { id, modified, unchanged, deleted };
+  return { id, checkpointIdentity, modified, unchanged, deleted };
 }
 
 function createRestoreSafetyCheckpoint({
