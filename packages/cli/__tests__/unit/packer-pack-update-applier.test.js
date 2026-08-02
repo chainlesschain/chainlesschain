@@ -1378,6 +1378,12 @@ describe("writeWindowsSidecar (cmd body)", () => {
       decodedPowerShell.some((script) => script.includes("WaitForExit(5000)")),
     ).toBe(true);
     expect(body).toContain('move /Y "%RESULT_TEMP%" "%RESULT_FILE%"');
+    const readyWrite = body.indexOf('> "%READY_TEMP%" echo ');
+    const readyPublish = body.indexOf('move /Y "%READY_TEMP%" "%READY_FILE%"');
+    expect(readyWrite).toBeGreaterThan(-1);
+    expect(readyPublish).toBeGreaterThan(readyWrite);
+    expect(body).not.toContain('> "%READY_FILE%" echo ');
+    expect(body).toContain('del /F /Q "%READY_TEMP%"');
     expect(body).toContain('del /F /Q "%LOCK_FILE%"');
     expect(body).toContain('if "%HAD_TARGET%"=="0" goto removefreshcanonical');
     expect(body).toContain(':removefreshcanonical\r\ndel /F /Q "%TARGET_EXE%"');

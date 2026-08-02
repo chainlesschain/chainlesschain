@@ -690,6 +690,7 @@ export function writeWindowsSidecar(ctx) {
     .digest("hex");
   const sidecarPath = path.join(os.tmpdir(), `cc-pack-apply-${suffix}.cmd`);
   const readyPath = `${sidecarPath}.ready`;
+  const readyTempPath = `${readyPath}.tmp-${suffix}`;
   const parentProbePath = `${sidecarPath}.parent`;
   const backupTempPath = `${backupPath}.tmp-${suffix}`;
   const currentTempPath = `${targetExePath}.rescue-current-${suffix}`;
@@ -711,6 +712,7 @@ export function writeWindowsSidecar(ctx) {
     windowsSystemRoot,
     sidecarPath,
     readyPath,
+    readyTempPath,
     parentProbePath,
     newExePath,
     targetExePath,
@@ -789,6 +791,7 @@ export function writeWindowsSidecar(ctx) {
     `set "RESULT_FILE=${resultPath}"`,
     `set "RESULT_TEMP=${resultTempPath}"`,
     `set "READY_FILE=${readyPath}"`,
+    `set "READY_TEMP=${readyTempPath}"`,
     `set "PARENT_PROBE=${parentProbePath}"`,
     `set "EXPECTED_SHA=${expectedSha}"`,
     `set "TARGET_BEFORE_SHA=${targetBeforeSha256 || ""}"`,
@@ -814,7 +817,12 @@ export function writeWindowsSidecar(ctx) {
     "if errorlevel 1 goto locklost",
     'if not exist "%CC_SYSTEM_ROOT%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" goto safetycheckfailed',
     ...reparseChecks,
-    `> "%READY_FILE%" echo ${transactionId}`,
+    // Redirection creates/truncates its target before echo writes the token.
+    // Publish through a same-directory rename so the parent can never observe
+    // a zero-length or partially written readiness marker.
+    `> "%READY_TEMP%" echo ${transactionId}`,
+    "if errorlevel 1 goto readyfailed",
+    'move /Y "%READY_TEMP%" "%READY_FILE%" >NUL 2>&1',
     "if errorlevel 1 goto readyfailed",
     "set /a ATTEMPTS=0",
     ":waitloop",
@@ -1062,6 +1070,7 @@ export function writeWindowsSidecar(ctx) {
     'if "%ROLLBACK_OK%"=="1" if "%MANAGE_ALIAS%"=="1" del /F /Q "%ALIAS_BACKUP%" >NUL 2>&1',
     'if "%ROLLBACK_OK%"=="1" if "%MANAGE_ALIAS%"=="1" del /F /Q "%ALIAS_ROLLBACK%" >NUL 2>&1',
     'del /F /Q "%LINEAGE_TEMP%" >NUL 2>&1',
+    'del /F /Q "%READY_TEMP%" >NUL 2>&1',
     'del /F /Q "%READY_FILE%" >NUL 2>&1',
     'del /F /Q "%PARENT_PROBE%" >NUL 2>&1',
     'if "%WRITE_RESULT%"=="0" goto releaselock',
