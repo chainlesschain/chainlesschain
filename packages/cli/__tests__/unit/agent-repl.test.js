@@ -951,6 +951,719 @@ describe("agent-repl startup resume admission", () => {
     expect(prepared).toEqual({ useJsonl: false, candidate: null });
     expect(order).toEqual(["verified-state", "feature:JSONL_SESSION"]);
   });
+
+  it("does not let a thrown own NOT_FOUND code forge canonical absence", async () => {
+    const { prepareReplStartupResume, runReplStartupBoundary } =
+      await import("../../src/repl/agent-repl.js");
+    const hostile = Object.assign(new Error("reader failed"), {
+      code: "CC_REPL_SESSION_NOT_FOUND",
+    });
+    const readFeature = vi.fn(() => false);
+
+    const prepared = prepareReplStartupResume("target-session", {
+      readSessionHostResumeState: () => {
+        throw hostile;
+      },
+      feature: readFeature,
+    });
+
+    expect(prepared).toMatchObject({
+      useJsonl: true,
+      candidate: {
+        ok: false,
+        error: { code: "CC_REPL_SESSION_NOT_FOUND" },
+      },
+    });
+    expect(readFeature).not.toHaveBeenCalled();
+
+    const refuseReplStartupResume = vi.fn(() => "refused");
+    const cwd = vi.fn();
+    const runWithHostHooksV2Workspace = vi.fn();
+    const startAgentReplInWorkspace = vi.fn();
+    await expect(
+      runReplStartupBoundary(
+        { sessionId: "target-session" },
+        {
+          prepareReplStartupResume: () => prepared,
+          refuseReplStartupResume,
+          cwd,
+          runWithHostHooksV2Workspace,
+          startAgentReplInWorkspace,
+        },
+      ),
+    ).resolves.toBe("refused");
+    expect(refuseReplStartupResume).toHaveBeenCalledOnce();
+    expect(cwd).not.toHaveBeenCalled();
+    expect(runWithHostHooksV2Workspace).not.toHaveBeenCalled();
+    expect(startAgentReplInWorkspace).not.toHaveBeenCalled();
+  });
+
+  it("requires exact null rather than undefined for canonical absence", async () => {
+    const { prepareReplStartupResume } =
+      await import("../../src/repl/agent-repl.js");
+    const readFeature = vi.fn(() => false);
+
+    const prepared = prepareReplStartupResume("target-session", {
+      readSessionHostResumeState: () => undefined,
+      feature: readFeature,
+    });
+
+    expect(prepared).toMatchObject({
+      useJsonl: true,
+      candidate: { ok: false },
+    });
+    expect(readFeature).not.toHaveBeenCalled();
+  });
+
+  it("refuses invalid canonical roles before every host startup side effect", async () => {
+    const { prepareReplStartupResume, runReplStartupBoundary } =
+      await import("../../src/repl/agent-repl.js");
+    const order = [];
+    const feature = vi.fn(() => {
+      order.push("config");
+      return true;
+    });
+    const formatMcpLedgerRecoveryNotice = vi.fn(() => {
+      order.push("mcp-recovery-format");
+      return null;
+    });
+    const enterWorkspace = vi.fn((_cwd, callback) => {
+      order.push("hooks-workspace");
+      return callback();
+    });
+    const startWorkspace = vi.fn(() => {
+      order.push(
+        "pipe",
+        "bootstrap",
+        "settings",
+        "plugins",
+        "hooks",
+        "mcp",
+        "model",
+        "tool",
+      );
+    });
+
+    const result = await runReplStartupBoundary(
+      { sessionId: "target-session" },
+      {
+        prepareReplStartupResume: (sessionId) =>
+          prepareReplStartupResume(sessionId, {
+            readSessionHostResumeState: () => {
+              order.push("verified-state");
+              return verifiedReplResumeState(sessionId, {
+                messages: [{ role: "developer", content: "not canonical" }],
+              });
+            },
+            formatMcpLedgerRecoveryNotice,
+            feature,
+          }),
+        refuseReplStartupResume: (_options, candidate) => {
+          order.push("refusal");
+          return Object.freeze({
+            started: false,
+            code: candidate.error.code,
+          });
+        },
+        cwd: vi.fn(() => "C:\\trusted"),
+        runWithHostHooksV2Workspace: enterWorkspace,
+        startAgentReplInWorkspace: startWorkspace,
+      },
+    );
+
+    expect(result).toEqual({
+      started: false,
+      code: "CC_REPL_SESSION_ROLE_INVALID",
+    });
+    expect(order).toEqual(["verified-state", "refusal"]);
+    expect(feature).not.toHaveBeenCalled();
+    expect(formatMcpLedgerRecoveryNotice).not.toHaveBeenCalled();
+    expect(enterWorkspace).not.toHaveBeenCalled();
+    expect(startWorkspace).not.toHaveBeenCalled();
+  });
+
+  it("passes one frozen verified sample across the successful host boundary", async () => {
+    const { prepareReplStartupResume, runReplStartupBoundary } =
+      await import("../../src/repl/agent-repl.js");
+    const order = [];
+    let admitted;
+    let received;
+
+    const result = await runReplStartupBoundary(
+      { sessionId: "target-session" },
+      {
+        prepareReplStartupResume: (sessionId) => {
+          order.push("admit");
+          admitted = prepareReplStartupResume(sessionId, {
+            readSessionHostResumeState: () => {
+              order.push("verified-state");
+              return verifiedReplResumeState(sessionId);
+            },
+            formatMcpLedgerRecoveryNotice: () => null,
+            feature: vi.fn(),
+          });
+          return admitted;
+        },
+        cwd: () => {
+          order.push("cwd");
+          return "C:\\trusted";
+        },
+        runWithHostHooksV2Workspace: (_cwd, callback) => {
+          order.push("hooks-workspace");
+          return callback();
+        },
+        startAgentReplInWorkspace: (_options, startupAdmission) => {
+          order.push("workspace-start");
+          received = startupAdmission;
+          return "started";
+        },
+      },
+    );
+
+    expect(result).toBe("started");
+    expect(received).toBe(admitted);
+    expect(Object.isFrozen(received)).toBe(true);
+    expect(Object.isFrozen(received.candidate)).toBe(true);
+    expect(order).toEqual([
+      "admit",
+      "verified-state",
+      "cwd",
+      "hooks-workspace",
+      "workspace-start",
+    ]);
+  });
+
+  it.each([
+    "../escape",
+    "x".repeat(129),
+    "control\ncharacter",
+    "noncanonical-e\u0301",
+    "NUL",
+    "alternate:data",
+    "trailing.",
+  ])(
+    "rejects unsafe resume id %j without probing storage or config",
+    async (id) => {
+      const { prepareReplStartupResume } =
+        await import("../../src/repl/agent-repl.js");
+      const readState = vi.fn();
+      const readFeature = vi.fn();
+
+      const prepared = prepareReplStartupResume(id, {
+        readSessionHostResumeState: readState,
+        feature: readFeature,
+      });
+
+      expect(prepared).toMatchObject({
+        useJsonl: true,
+        candidate: {
+          ok: false,
+          error: { code: "CC_REPL_SESSION_ID_INVALID" },
+        },
+      });
+      expect(readState).not.toHaveBeenCalled();
+      expect(readFeature).not.toHaveBeenCalled();
+    },
+  );
+
+  it("does not execute a hostile error.code getter while refusing resume", async () => {
+    const { prepareReplStartupResume } =
+      await import("../../src/repl/agent-repl.js");
+    const codeGetter = vi.fn(() => "CC_REPL_SESSION_NOT_FOUND");
+    const hostile = new Error("hostile reader failure");
+    Object.defineProperty(hostile, "code", {
+      configurable: true,
+      get: codeGetter,
+    });
+    const readFeature = vi.fn();
+
+    const prepared = prepareReplStartupResume("target-session", {
+      readSessionHostResumeState: () => {
+        throw hostile;
+      },
+      feature: readFeature,
+    });
+
+    expect(prepared).toMatchObject({
+      useJsonl: true,
+      candidate: {
+        ok: false,
+        error: { code: "CC_SESSION_HOST_SNAPSHOT_UNVERIFIED" },
+      },
+    });
+    expect(codeGetter).not.toHaveBeenCalled();
+    expect(readFeature).not.toHaveBeenCalled();
+  });
+});
+
+describe("agent-repl canonical replay role admission", () => {
+  it("deterministically normalizes same-role runs across the full history", async () => {
+    const { prepareReplJsonlResumeCandidate } =
+      await import("../../src/repl/agent-repl.js");
+    const candidate = prepareReplJsonlResumeCandidate("target-session", {
+      readSessionHostResumeState: () =>
+        verifiedReplResumeState("target-session", {
+          messages: [
+            { role: "user", content: "first" },
+            { role: "user", content: "second" },
+            { role: "assistant", content: "answer" },
+          ],
+        }),
+      formatMcpLedgerRecoveryNotice: () => null,
+    });
+
+    expect(candidate.ok).toBe(true);
+    expect(candidate.replayMessages).toEqual([
+      { role: "user", content: "first\n\nsecond" },
+      { role: "assistant", content: "answer" },
+    ]);
+    expect(Object.isFrozen(candidate.replayMessages)).toBe(true);
+    expect(Object.isFrozen(candidate.replayMessages[0])).toBe(true);
+  });
+
+  it("keeps every canonical system authority behind the fresh host system", async () => {
+    const { createReplResumeStateController, prepareReplJsonlResumeCandidate } =
+      await import("../../src/repl/agent-repl.js");
+    const canonicalMessages = [
+      {
+        role: "system",
+        content: "same bytes as the fresh host prompt",
+        authority: "summary",
+      },
+      {
+        role: "system",
+        content: "[Migration] preserve this canonical record",
+        authority: "migration",
+      },
+      {
+        role: "system",
+        content: "[Fork] preserve this canonical record",
+        authority: "fork",
+      },
+      { role: "user", content: "restored question" },
+      { role: "assistant", content: "restored answer" },
+    ];
+    const candidate = prepareReplJsonlResumeCandidate("target-session", {
+      readSessionHostResumeState: () =>
+        verifiedReplResumeState("target-session", {
+          messages: canonicalMessages,
+        }),
+      formatMcpLedgerRecoveryNotice: () => null,
+    });
+    expect(candidate.ok).toBe(true);
+    expect(candidate.replayMessages).toEqual(canonicalMessages);
+    expect(candidate.canonicalSystemMessages).toEqual(
+      canonicalMessages.slice(0, 3),
+    );
+    expect(candidate.conversationMessages).toEqual(canonicalMessages.slice(3));
+
+    const freshHostSystem = Object.freeze({
+      role: "system",
+      content: "same bytes as the fresh host prompt",
+    });
+    const oldRuntime = Object.freeze({ id: "old-runtime" });
+    const targetRuntime = Object.freeze({ id: "target-runtime" });
+    const runtimeManager = {
+      current: oldRuntime,
+      commit(nextRuntime) {
+        this.current = nextRuntime;
+      },
+    };
+    const bindings = {
+      sessionId: "old-session",
+      messages: [{ role: "system", content: "old host" }],
+      recovery: null,
+      recoveryError: null,
+      sanitizeRolesNextTurn: false,
+      turnBindingProducer: null,
+      turnBindingCriticalError: null,
+      checkpointMarks: [],
+      clearedConversation: null,
+      runtimeManager,
+      applyMcpRecoveryCommit: vi.fn(),
+      logMcpRecoveryCommit: vi.fn(),
+      logger: { info: vi.fn() },
+    };
+    const controller = createReplResumeStateController(bindings);
+    controller.apply({
+      sessionId: "target-session",
+      systemMessage: freshHostSystem,
+      canonicalSystemMessages: candidate.canonicalSystemMessages,
+      conversationMessages: candidate.conversationMessages,
+      mcpCommit: candidate.mcp,
+      mcpRuntime: targetRuntime,
+      sanitizeRolesNextTurn: false,
+      logMessage: "resumed",
+    });
+
+    expect(bindings.messages).toEqual([freshHostSystem, ...canonicalMessages]);
+    expect(bindings.messages[0]).toBe(freshHostSystem);
+    expect(bindings.messages.slice(1, 4)).toEqual(
+      canonicalMessages.slice(0, 3),
+    );
+  });
+
+  it("moves real trailing migration and fork markers behind the fresh host before a live turn", async () => {
+    const {
+      agentLoop,
+      createReplResumeStateController,
+      prepareReplJsonlResumeCandidate,
+    } = await import("../../src/repl/agent-repl.js");
+    // Exact marker forms emitted by legacy migration and forkSession().
+    const migrationMarker = {
+      role: "system",
+      content: "[Migrated Summary]\nlegacy facts",
+    };
+    const forkMarker = {
+      role: "system",
+      content: "[Forked from session source-session]",
+    };
+    const candidate = prepareReplJsonlResumeCandidate("target-session", {
+      readSessionHostResumeState: () =>
+        verifiedReplResumeState("target-session", {
+          messages: [
+            { role: "assistant", content: "prior answer" },
+            { role: "user", content: "dangling restored turn" },
+            migrationMarker,
+            forkMarker,
+          ],
+        }),
+      formatMcpLedgerRecoveryNotice: () => null,
+    });
+
+    expect(candidate.ok).toBe(true);
+    expect(candidate.canonicalSystemMessages).toEqual([
+      migrationMarker,
+      forkMarker,
+    ]);
+    expect(candidate.conversationMessages).toEqual([
+      { role: "assistant", content: "prior answer" },
+      { role: "user", content: "dangling restored turn" },
+    ]);
+
+    const freshHostSystem = Object.freeze({
+      role: "system",
+      content: "fresh host authority",
+    });
+    const oldRuntime = Object.freeze({ id: "old-runtime" });
+    const targetRuntime = Object.freeze({ id: "target-runtime" });
+    const runtimeManager = {
+      current: oldRuntime,
+      commit(nextRuntime) {
+        this.current = nextRuntime;
+      },
+    };
+    const bindings = {
+      sessionId: "old-session",
+      messages: [{ role: "system", content: "old host" }],
+      recovery: null,
+      recoveryError: null,
+      sanitizeRolesNextTurn: false,
+      turnBindingProducer: null,
+      turnBindingCriticalError: null,
+      checkpointMarks: [],
+      clearedConversation: null,
+      runtimeManager,
+      applyMcpRecoveryCommit: vi.fn(),
+      logMcpRecoveryCommit: vi.fn(),
+      logger: { info: vi.fn() },
+    };
+    const controller = createReplResumeStateController(bindings);
+    controller.apply({
+      sessionId: "target-session",
+      systemMessage: freshHostSystem,
+      canonicalSystemMessages: candidate.canonicalSystemMessages,
+      conversationMessages: candidate.conversationMessages,
+      mcpCommit: candidate.mcp,
+      mcpRuntime: targetRuntime,
+      sanitizeRolesNextTurn: true,
+      logMessage: "resumed",
+    });
+    bindings.messages.push({ role: "user", content: "live prompt" });
+
+    let modelInput;
+    const _coreLoop = async function* (activeMessages) {
+      modelInput = activeMessages.map((message) => ({ ...message }));
+      yield {
+        type: "response-complete",
+        content: "model answer",
+        thinking: null,
+      };
+    };
+    const writes = [];
+    const writeSpy = vi
+      .spyOn(process.stdout, "write")
+      .mockImplementation((chunk) => {
+        writes.push(String(chunk));
+        return true;
+      });
+    let result;
+    try {
+      result = await agentLoop(bindings.messages, {
+        mergeRoles: true,
+        _coreLoop,
+      });
+    } finally {
+      writeSpy.mockRestore();
+    }
+
+    expect(modelInput[0]).toEqual(freshHostSystem);
+    expect(modelInput.slice(1, 3)).toEqual([migrationMarker, forkMarker]);
+    expect(
+      modelInput.filter(
+        (message) => message.content === migrationMarker.content,
+      ),
+    ).toHaveLength(1);
+    expect(
+      modelInput.filter((message) => message.content === forkMarker.content),
+    ).toHaveLength(1);
+    const conversation = modelInput.filter(
+      (message) => message.role !== "system",
+    );
+    expect(conversation).toEqual([
+      { role: "assistant", content: "prior answer" },
+      {
+        role: "user",
+        content: "dangling restored turn\n\nlive prompt",
+      },
+    ]);
+    expect(conversation[1].content).not.toContain("[Migrated Summary]");
+    expect(conversation[1].content).not.toContain("[Forked from session");
+    expect(result.content).toBe("model answer");
+    expect(writes.join("")).toBe("");
+  });
+
+  it("accepts a real PromptCompressor assistant-first compact without changing authority", async () => {
+    const { PromptCompressor } =
+      await import("../../src/harness/prompt-compressor.js");
+    const { prepareReplJsonlResumeCandidate } =
+      await import("../../src/repl/agent-repl.js");
+    const compressor = new PromptCompressor({
+      maxMessages: 2,
+      maxTokens: 100_000,
+      similarityThreshold: 1,
+    });
+    const source = [
+      { role: "user", content: "objective alpha" },
+      { role: "assistant", content: "answer beta" },
+      { role: "user", content: "middle gamma" },
+      { role: "assistant", content: "recent delta" },
+      { role: "user", content: "latest epsilon" },
+    ];
+    const compact = await compressor.compress(source);
+    expect(compact.stats.strategy).toContain("truncate");
+    expect(compact.messages.map((message) => message.role)).toEqual([
+      "assistant",
+      "user",
+    ]);
+
+    const candidate = prepareReplJsonlResumeCandidate("target-session", {
+      readSessionHostResumeState: () =>
+        verifiedReplResumeState("target-session", {
+          messages: compact.messages,
+        }),
+      formatMcpLedgerRecoveryNotice: () => null,
+    });
+
+    expect(candidate.ok).toBe(true);
+    expect(candidate.replayMessages).toEqual(compact.messages);
+    expect(candidate.replayMessages[0].role).toBe("assistant");
+  });
+
+  it("accepts one completely paired multi-tool exchange", async () => {
+    const { prepareReplJsonlResumeCandidate } =
+      await import("../../src/repl/agent-repl.js");
+    const messages = [
+      { role: "user", content: "inspect" },
+      {
+        role: "assistant",
+        content: "",
+        tool_calls: [{ id: "call-a" }, { id: "call-b" }],
+      },
+      { role: "tool", tool_call_id: "call-a", content: "a" },
+      { role: "tool", tool_call_id: "call-b", content: "b" },
+      { role: "assistant", content: "done" },
+    ];
+    const candidate = prepareReplJsonlResumeCandidate("target-session", {
+      readSessionHostResumeState: () =>
+        verifiedReplResumeState("target-session", { messages }),
+      formatMcpLedgerRecoveryNotice: () => null,
+    });
+
+    expect(candidate.ok).toBe(true);
+    expect(candidate.replayMessages).toEqual(messages);
+  });
+
+  it("allows a fallback tool-call id to be reused after each batch settles", async () => {
+    const { prepareReplJsonlResumeCandidate } =
+      await import("../../src/repl/agent-repl.js");
+    const messages = [
+      { role: "user", content: "inspect" },
+      {
+        role: "assistant",
+        content: "",
+        tool_calls: [{ id: "call_search" }],
+      },
+      { role: "tool", tool_call_id: "call_search", content: "first" },
+      { role: "assistant", content: "first round done" },
+      { role: "user", content: "inspect again" },
+      {
+        role: "assistant",
+        content: "",
+        tool_calls: [{ id: "call_search" }],
+      },
+      { role: "tool", tool_call_id: "call_search", content: "second" },
+      { role: "assistant", content: "second round done" },
+    ];
+    const candidate = prepareReplJsonlResumeCandidate("target-session", {
+      readSessionHostResumeState: () =>
+        verifiedReplResumeState("target-session", { messages }),
+      formatMcpLedgerRecoveryNotice: () => null,
+    });
+
+    expect(candidate.ok).toBe(true);
+    expect(candidate.replayMessages).toEqual(messages);
+  });
+
+  it.each([
+    {
+      name: "orphan tool result",
+      code: "CC_REPL_SESSION_TOOL_PAIR_INVALID",
+      messages: [
+        { role: "user", content: "inspect" },
+        { role: "tool", tool_call_id: "missing", content: "result" },
+      ],
+    },
+    {
+      name: "missing tool result",
+      code: "CC_REPL_SESSION_TOOL_PAIR_INVALID",
+      messages: [
+        { role: "user", content: "inspect" },
+        {
+          role: "assistant",
+          content: "",
+          tool_calls: [{ id: "call-a" }],
+        },
+      ],
+    },
+    {
+      name: "duplicate tool call id",
+      code: "CC_REPL_SESSION_TOOL_PAIR_INVALID",
+      messages: [
+        { role: "user", content: "inspect" },
+        {
+          role: "assistant",
+          content: "",
+          tool_calls: [{ id: "same" }, { id: "same" }],
+        },
+      ],
+    },
+    {
+      name: "wrong-role tool calls hidden behind a same-user merge",
+      code: "CC_REPL_SESSION_TOOL_PAIR_INVALID",
+      messages: [
+        { role: "user", content: "first" },
+        {
+          role: "user",
+          content: "second",
+          tool_calls: [{ id: "forged" }],
+        },
+      ],
+    },
+    {
+      name: "wrong-role tool result id hidden behind a same-assistant merge",
+      code: "CC_REPL_SESSION_TOOL_PAIR_INVALID",
+      messages: [
+        { role: "user", content: "inspect" },
+        { role: "assistant", content: "first" },
+        {
+          role: "assistant",
+          content: "second",
+          tool_call_id: "forged",
+        },
+      ],
+    },
+    {
+      name: "invalid tool-call shape hidden behind a same-assistant merge",
+      code: "CC_REPL_SESSION_TOOL_PAIR_INVALID",
+      messages: [
+        { role: "user", content: "inspect" },
+        { role: "assistant", content: "first" },
+        {
+          role: "assistant",
+          content: "second",
+          tool_calls: { id: "not-an-array" },
+        },
+      ],
+    },
+    {
+      name: "non-object tool-call entry",
+      code: "CC_REPL_SESSION_TOOL_PAIR_INVALID",
+      messages: [
+        { role: "user", content: "inspect" },
+        {
+          role: "assistant",
+          content: "",
+          tool_calls: ["not-an-object"],
+        },
+      ],
+    },
+    {
+      name: "extra authority metadata on a same-user run",
+      code: "CC_REPL_SESSION_ROLE_ALTERNATION_INVALID",
+      messages: [
+        { role: "user", content: "first" },
+        {
+          role: "user",
+          content: "second",
+          authority: "must-not-be-merged-away",
+        },
+      ],
+    },
+  ])("refuses $name", async ({ code, messages }) => {
+    const { prepareReplJsonlResumeCandidate } =
+      await import("../../src/repl/agent-repl.js");
+    const formatMcpLedgerRecoveryNotice = vi.fn();
+    const candidate = prepareReplJsonlResumeCandidate("target-session", {
+      readSessionHostResumeState: () =>
+        verifiedReplResumeState("target-session", { messages }),
+      formatMcpLedgerRecoveryNotice,
+    });
+
+    expect(candidate).toMatchObject({
+      ok: false,
+      error: { code },
+      mcp: { recovery: null, recoveryError: { code } },
+    });
+    expect(formatMcpLedgerRecoveryNotice).not.toHaveBeenCalled();
+  });
+
+  it("rejects an accessor authority field before a same-role merge without invoking it", async () => {
+    const { prepareReplJsonlResumeCandidate } =
+      await import("../../src/repl/agent-repl.js");
+    const toolCallsGetter = vi.fn(() => [{ id: "forged" }]);
+    const hostileUser = { role: "user", content: "second" };
+    Object.defineProperty(hostileUser, "tool_calls", {
+      enumerable: true,
+      get: toolCallsGetter,
+    });
+    const formatMcpLedgerRecoveryNotice = vi.fn();
+
+    const candidate = prepareReplJsonlResumeCandidate("target-session", {
+      readSessionHostResumeState: () =>
+        verifiedReplResumeState("target-session", {
+          messages: [{ role: "user", content: "first" }, hostileUser],
+        }),
+      formatMcpLedgerRecoveryNotice,
+    });
+
+    expect(candidate).toMatchObject({
+      ok: false,
+      error: { code: "CC_REPL_SESSION_REBUILD_FAILED" },
+    });
+    expect(toolCallsGetter).not.toHaveBeenCalled();
+    expect(formatMcpLedgerRecoveryNotice).not.toHaveBeenCalled();
+  });
 });
 
 describe("agent-repl MCP recovery resume transaction", () => {
@@ -1595,9 +2308,13 @@ describe("agent-repl MCP recovery resume transaction", () => {
       const preparedState = Object.freeze({
         sessionId: "target-session",
         systemMessage: oldSystem,
-        replayMessages:
+        canonicalSystemMessages:
           format === "JSONL"
-            ? jsonlCandidate.replayMessages
+            ? jsonlCandidate.canonicalSystemMessages
+            : Object.freeze([]),
+        conversationMessages:
+          format === "JSONL"
+            ? jsonlCandidate.conversationMessages
             : Object.freeze([
                 Object.freeze({ role: "assistant", content: "target DB" }),
               ]),
@@ -1721,7 +2438,8 @@ describe("agent-repl MCP recovery resume transaction", () => {
     const preparedState = Object.freeze({
       sessionId: "target-session",
       systemMessage: bindings.messages[0],
-      replayMessages: resumeCandidate.replayMessages,
+      canonicalSystemMessages: resumeCandidate.canonicalSystemMessages,
+      conversationMessages: resumeCandidate.conversationMessages,
       mcpCommit: Object.freeze({
         recovery: resumeCandidate.mcp.recovery,
         recoveryError: null,
@@ -1791,10 +2509,14 @@ describe("agent-repl resume role-alternation wiring (2.1.187 parity)", () => {
   );
   const content = readFileSync(agentReplPath, "utf8");
 
-  it("imports the in-place collapse helper", () => {
+  it("uses the shared merge primitive behind a strict local tail boundary", () => {
     expect(content).toContain(
-      'import { collapseConsecutiveMessagesInPlace } from "../runtime/message-roles.js"',
+      'import { mergeConsecutiveMessages } from "../runtime/message-roles.js";',
     );
+    expect(content).toContain(
+      "collapseValidatedPlainReplTailInPlace(messages)",
+    );
+    expect(content).toContain("validateRawReplReplayMessages(rawSnapshot)");
   });
 
   it("declares the one-shot sanitation flag, default off", () => {
@@ -1803,19 +2525,52 @@ describe("agent-repl resume role-alternation wiring (2.1.187 parity)", () => {
 
   it("arms the flag at every resume site when history ends with a user turn", () => {
     // Both startup (--session/--resume) and /session resume, JSONL + DB paths.
-    const startupArms = content.match(
+    const legacyPhysicalTailArms = content.match(
       /_sanitizeRolesNextTurn\s*=\s*\n?\s*messages\[messages\.length - 1\]\?\.role === "user";/g,
     );
-    expect(startupArms).toHaveLength(2);
-    expect(content).toContain(
-      'prepared.replayMessages.at(-1)?.role === "user"',
+    const canonicalConversationArms = content.match(
+      /prepared\.conversationMessages\.at\(-1\)\?\.role === "user"/g,
     );
+    expect(legacyPhysicalTailArms).toHaveLength(1);
+    expect(canonicalConversationArms).toHaveLength(2);
     expect(content).toContain('replayMessages.at(-1)?.role === "user"');
   });
 
   it("collapses in place inside the loop wrapper, gated on options.mergeRoles", () => {
     expect(content).toContain("if (options.mergeRoles) {");
-    expect(content).toContain("collapseConsecutiveMessagesInPlace(messages);");
+    expect(content).toContain(
+      "collapseValidatedPlainReplTailInPlace(messages);",
+    );
+  });
+
+  it("does not fold a resumed tail carrying extra authority metadata", async () => {
+    const { agentLoop } = await import("../../src/repl/agent-repl.js");
+    const messages = [
+      { role: "system", content: "fresh host" },
+      {
+        role: "user",
+        content: "dangling restored turn",
+        authority: "canonical-user",
+      },
+      { role: "user", content: "new prompt" },
+    ];
+    let observedMessages;
+    const _coreLoop = async function* (activeMessages) {
+      observedMessages = activeMessages.map((message) => ({ ...message }));
+      yield { type: "response-complete", content: "ok", thinking: null };
+    };
+
+    await agentLoop(messages, { mergeRoles: true, _coreLoop });
+
+    expect(observedMessages).toEqual(messages);
+    expect(observedMessages.slice(-2)).toEqual([
+      {
+        role: "user",
+        content: "dangling restored turn",
+        authority: "canonical-user",
+      },
+      { role: "user", content: "new prompt" },
+    ]);
   });
 
   it("consumes the flag once at the model call and threads mergeRoles through", () => {

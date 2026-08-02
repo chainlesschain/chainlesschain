@@ -52,6 +52,7 @@ import {
   appendLlmRetryCompact,
   appendEvent,
   appendAuthorityEvent,
+  isUnsafeSessionId,
   sessionExists,
   forkSession,
 } from "../harness/jsonl-session-store.js";
@@ -103,7 +104,7 @@ import {
 import { HookEvents } from "../lib/hook-manager.js";
 import { IterationBudget } from "../lib/iteration-budget.js";
 import { resolveAgentMcp } from "../runtime/mcp-config.js";
-import { collapseConsecutiveMessagesInPlace } from "../runtime/message-roles.js";
+import { mergeConsecutiveMessages } from "../runtime/message-roles.js";
 import {
   AGENT_TOOLS,
   buildSystemPrompt,
@@ -319,11 +320,11 @@ export async function agentLoop(messages, options) {
   // IN PLACE: `coreAgentLoop` mutates this same array (appending assistant/tool
   // turns), and the REPL reuses it across turns, so folding a copy would leave
   // the degenerate `[user, user]` pair in the persistent history and re-break
-  // the next turn. Safe in place because the gated turn is still tool-free (a
-  // resumed transcript holds only user/assistant/system) and the helper never
-  // folds `tool` turns regardless.
+  // the next turn. The tail helper validates the complete raw transcript first
+  // and folds only an exact plain `{role, content}` pair, so recovery authority
+  // can never disappear during this live one-shot normalization.
   if (options.mergeRoles) {
-    collapseConsecutiveMessagesInPlace(messages);
+    collapseValidatedPlainReplTailInPlace(messages);
   }
   const usageEvents = [];
   // Visible cross-vendor fallback notice: a silent switch from the configured
@@ -507,6 +508,7 @@ export async function agentLoop(messages, options) {
 
 const REPL_MCP_RECOVERY_CANDIDATES = new WeakSet();
 const REPL_JSONL_RESUME_CANDIDATES = new WeakSet();
+const REPL_JSONL_RESUME_ABSENCE_CANDIDATES = new WeakSet();
 const REPL_NATIVE_PROMISE = Promise;
 const REPL_NATIVE_PROMISE_PROTOTYPE = Promise.prototype;
 const REPL_NATIVE_PROMISE_THEN = Promise.prototype.then;
@@ -527,6 +529,11 @@ const REPL_SAFE_PROMISE_CONSTRUCTOR = Object.freeze(
 const REPL_NATIVE_PROMISE_REJECTION_HANDLER = () => {};
 const REPL_PAYLOAD_DIGEST = /^sha256:[0-9a-f]{64}$/;
 const REPL_AUTHORITY_HASH = /^[0-9a-f]{64}$/;
+const REPL_RESUME_SESSION_ID_MAX_BYTES = 128;
+const REPL_RESUME_SESSION_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._@-]*$/;
+const REPL_WINDOWS_DEVICE_NAME =
+  /^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i;
+const REPL_RESUME_ROLES = new Set(["system", "user", "assistant", "tool"]);
 const REPL_MCP_EFFECTS = new Set(["read", "unknown", "write", "destructive"]);
 const REPL_REPLAY_DENY_FIELDS = new Set([
   "ledgerId",
@@ -545,6 +552,23 @@ function invalidReplRecovery(message, code = MCP_RECOVERY_INVALID_CODE) {
   const error = new TypeError(message);
   error.code = code;
   return error;
+}
+
+function validateReplResumeSessionId(sessionId) {
+  if (
+    isUnsafeSessionId(sessionId) ||
+    Buffer.byteLength(sessionId, "utf8") > REPL_RESUME_SESSION_ID_MAX_BYTES ||
+    !REPL_RESUME_SESSION_ID_PATTERN.test(sessionId) ||
+    REPL_WINDOWS_DEVICE_NAME.test(sessionId) ||
+    sessionId.endsWith(".") ||
+    sessionId.normalize("NFC") !== sessionId
+  ) {
+    throw invalidReplRecovery(
+      "REPL resume session id is invalid",
+      "CC_REPL_SESSION_ID_INVALID",
+    );
+  }
+  return sessionId;
 }
 
 function brandedFrozenCandidate(brand, value) {
@@ -1162,16 +1186,244 @@ function snapshotReplMessages(messages) {
   }
 }
 
+function validateRawReplReplayMessages(rebuiltMessages) {
+  for (let index = 0; index < rebuiltMessages.length; index += 1) {
+    const message = rebuiltMessages[index];
+    if (!REPL_RESUME_ROLES.has(message.role)) {
+      throw invalidReplRecovery(
+        `REPL session message[${index}] has an unsupported role`,
+        "CC_REPL_SESSION_ROLE_INVALID",
+      );
+    }
+
+    const hasToolCalls = Object.prototype.hasOwnProperty.call(
+      message,
+      "tool_calls",
+    );
+    const hasToolCallId = Object.prototype.hasOwnProperty.call(
+      message,
+      "tool_call_id",
+    );
+    if (message.role !== "assistant" && hasToolCalls) {
+      throw invalidReplRecovery(
+        `REPL session message[${index}] carries tool calls on the wrong role`,
+        "CC_REPL_SESSION_TOOL_PAIR_INVALID",
+      );
+    }
+    if (message.role !== "tool" && hasToolCallId) {
+      throw invalidReplRecovery(
+        `REPL session message[${index}] carries a tool result id on the wrong role`,
+        "CC_REPL_SESSION_TOOL_PAIR_INVALID",
+      );
+    }
+
+    if (message.role === "tool") {
+      if (
+        !hasToolCallId ||
+        typeof message.tool_call_id !== "string" ||
+        message.tool_call_id.length === 0
+      ) {
+        throw invalidReplRecovery(
+          `REPL session tool result[${index}] has an invalid call id`,
+          "CC_REPL_SESSION_TOOL_PAIR_INVALID",
+        );
+      }
+      continue;
+    }
+
+    if (message.role !== "assistant" || !hasToolCalls) continue;
+    if (!Array.isArray(message.tool_calls)) {
+      throw invalidReplRecovery(
+        `REPL session assistant message[${index}] has invalid tool calls`,
+        "CC_REPL_SESSION_TOOL_PAIR_INVALID",
+      );
+    }
+    const batchToolCallIds = new Set();
+    for (const toolCall of message.tool_calls) {
+      const toolCallId =
+        toolCall && typeof toolCall === "object" && !Array.isArray(toolCall)
+          ? toolCall.id
+          : null;
+      if (
+        typeof toolCallId !== "string" ||
+        toolCallId.length === 0 ||
+        batchToolCallIds.has(toolCallId)
+      ) {
+        throw invalidReplRecovery(
+          `REPL session assistant message[${index}] has ambiguous tool call ids`,
+          "CC_REPL_SESSION_TOOL_PAIR_INVALID",
+        );
+      }
+      batchToolCallIds.add(toolCallId);
+    }
+  }
+}
+
+function isPlainReplMergeMessage(message) {
+  if (message.role !== "user" && message.role !== "assistant") return false;
+  const keys = Object.keys(message);
+  return (
+    Object.prototype.hasOwnProperty.call(message, "content") &&
+    keys.every((key) => key === "role" || key === "content")
+  );
+}
+
+function mergePlainReplRoleRuns(rebuiltMessages) {
+  const mergedMessages = [];
+  for (const message of rebuiltMessages) {
+    const previous = mergedMessages.at(-1);
+    if (
+      previous &&
+      previous.role === message.role &&
+      isPlainReplMergeMessage(previous) &&
+      isPlainReplMergeMessage(message)
+    ) {
+      // The shared role helper is safe only after raw authority validation and
+      // only for exact {role, content} records. This prevents a later record's
+      // tool/identity authority from disappearing behind object spread.
+      mergedMessages[mergedMessages.length - 1] = mergeConsecutiveMessages([
+        previous,
+        message,
+      ])[0];
+    } else {
+      mergedMessages.push(message);
+    }
+  }
+  return snapshotReplMessages(mergedMessages);
+}
+
+function collapseValidatedPlainReplTailInPlace(messages) {
+  const rawSnapshot = snapshotReplMessages(messages);
+  validateRawReplReplayMessages(rawSnapshot);
+  const previous = rawSnapshot.at(-2);
+  const current = rawSnapshot.at(-1);
+  if (
+    !previous ||
+    previous.role !== current?.role ||
+    !isPlainReplMergeMessage(previous) ||
+    !isPlainReplMergeMessage(current)
+  ) {
+    return false;
+  }
+  const merged = mergeConsecutiveMessages([previous, current]);
+  if (merged.length !== 1) return false;
+  messages.splice(messages.length - 2, 2, merged[0]);
+  return true;
+}
+
+function normalizeReplReplayMessages(rebuiltMessages) {
+  // Validate the immutable raw snapshot before any normalization. In
+  // particular, never let a same-role merge hide malformed tool authority.
+  validateRawReplReplayMessages(rebuiltMessages);
+
+  // Stable-partition verified canonical systems ahead of conversation. Their
+  // relative order is preserved exactly, without inspecting content. This
+  // keeps a trailing migration/fork marker from separating a dangling user
+  // turn from the next live user turn after providers extract system prompts.
+  const canonicalSystemMessages = snapshotReplMessages(
+    rebuiltMessages.filter((message) => message.role === "system"),
+  );
+  const conversationMessages = mergePlainReplRoleRuns(
+    rebuiltMessages.filter((message) => message.role !== "system"),
+  );
+  let phase = "expect-initial-conversation-message";
+  let pendingToolCallIds = null;
+
+  for (let index = 0; index < conversationMessages.length; index += 1) {
+    const message = conversationMessages[index];
+    const hasToolCalls = Object.prototype.hasOwnProperty.call(
+      message,
+      "tool_calls",
+    );
+
+    if (message.role === "tool") {
+      const toolCallId = message.tool_call_id;
+      if (phase !== "expect-tools" || !pendingToolCallIds?.delete(toolCallId)) {
+        throw invalidReplRecovery(
+          `REPL session tool result[${index}] has no matching pending call`,
+          "CC_REPL_SESSION_TOOL_PAIR_INVALID",
+        );
+      }
+      if (pendingToolCallIds.size === 0) {
+        pendingToolCallIds = null;
+        phase = "expect-assistant-after-tools";
+      }
+      continue;
+    }
+
+    if (message.role === "user") {
+      if (
+        phase !== "expect-user" &&
+        phase !== "expect-initial-conversation-message"
+      ) {
+        throw invalidReplRecovery(
+          `REPL session user message[${index}] breaks role alternation`,
+          "CC_REPL_SESSION_ROLE_ALTERNATION_INVALID",
+        );
+      }
+      phase = "expect-assistant";
+      continue;
+    }
+
+    if (
+      phase !== "expect-assistant" &&
+      phase !== "expect-assistant-after-tools" &&
+      phase !== "expect-initial-conversation-message"
+    ) {
+      throw invalidReplRecovery(
+        `REPL session assistant message[${index}] breaks role alternation`,
+        "CC_REPL_SESSION_ROLE_ALTERNATION_INVALID",
+      );
+    }
+
+    const toolCalls = hasToolCalls ? message.tool_calls : [];
+    if (toolCalls.length === 0) {
+      phase = "expect-user";
+      continue;
+    }
+
+    // IDs are unique only within this pending assistant batch. A later, fully
+    // settled fallback round may legitimately reuse a deterministic ID such as
+    // call_<toolName>.
+    pendingToolCallIds = new Set(toolCalls.map((toolCall) => toolCall.id));
+    phase = "expect-tools";
+  }
+
+  if (phase === "expect-tools" || phase === "expect-assistant-after-tools") {
+    throw invalidReplRecovery(
+      "REPL session ends with an incomplete tool call/result exchange",
+      "CC_REPL_SESSION_TOOL_PAIR_INVALID",
+    );
+  }
+  return Object.freeze({
+    canonicalSystemMessages,
+    conversationMessages,
+    replayMessages: Object.freeze([
+      ...canonicalSystemMessages,
+      ...conversationMessages,
+    ]),
+  });
+}
+
 function failedReplJsonlResumeCandidate(sessionId, error, sessionSnapshot) {
+  const observedCode = safeRecoveryErrorValue(
+    error,
+    "code",
+    "CC_SESSION_HOST_SNAPSHOT_UNVERIFIED",
+  );
   const resumeError = replMcpRecoveryError(
     error,
-    error?.code || "CC_SESSION_HOST_SNAPSHOT_UNVERIFIED",
+    typeof observedCode === "string" && observedCode
+      ? observedCode
+      : "CC_SESSION_HOST_SNAPSHOT_UNVERIFIED",
   );
   return brandedFrozenCandidate(REPL_JSONL_RESUME_CANDIDATES, {
     ok: false,
     sessionId,
     rebuiltMessages: null,
     replayMessages: null,
+    canonicalSystemMessages: null,
+    conversationMessages: null,
     sessionSnapshot: sessionSnapshot || null,
     mcp: failClosedReplMcpRecoveryCandidate(
       sessionId,
@@ -1183,6 +1435,14 @@ function failedReplJsonlResumeCandidate(sessionId, error, sessionSnapshot) {
   });
 }
 
+function absentReplJsonlResumeCandidate(sessionId) {
+  const error = new Error(`Session not found: ${sessionId}`);
+  error.code = "CC_REPL_SESSION_NOT_FOUND";
+  const candidate = failedReplJsonlResumeCandidate(sessionId, error, null);
+  REPL_JSONL_RESUME_ABSENCE_CANDIDATES.add(candidate);
+  return candidate;
+}
+
 /**
  * Prepare a JSONL resume transaction from exactly one fully verified sample.
  * Messages, the public snapshot, and MCP recovery authority are derived by the
@@ -1192,6 +1452,7 @@ function failedReplJsonlResumeCandidate(sessionId, error, sessionSnapshot) {
 export function prepareReplJsonlResumeCandidate(sessionId, dependencies = {}) {
   let sessionSnapshot = null;
   try {
+    validateReplResumeSessionId(sessionId);
     const readResumeState = dependencyDataFunction(
       dependencies,
       "readSessionHostResumeState",
@@ -1206,11 +1467,7 @@ export function prepareReplJsonlResumeCandidate(sessionId, dependencies = {}) {
       readResumeState(sessionId),
       "REPL session host resume state",
     );
-    if (state == null) {
-      const error = new Error(`Session not found: ${sessionId}`);
-      error.code = "CC_REPL_SESSION_NOT_FOUND";
-      throw error;
-    }
+    if (state === null) return absentReplJsonlResumeCandidate(sessionId);
     const stateDescriptors = plainDataDescriptors(
       state,
       "REPL session host resume state",
@@ -1240,6 +1497,7 @@ export function prepareReplJsonlResumeCandidate(sessionId, dependencies = {}) {
         "REPL session host resume state",
       ),
     );
+    const normalizedReplay = normalizeReplReplayMessages(rebuiltMessages);
     const mcp = createReplMcpRecoveryCandidate(
       sessionId,
       dataDescriptorValue(
@@ -1261,14 +1519,13 @@ export function prepareReplJsonlResumeCandidate(sessionId, dependencies = {}) {
       error.code = "CC_REPL_SESSION_AUTHORITY_MISMATCH";
       throw error;
     }
-    const replayMessages = Object.freeze(
-      rebuiltMessages.filter((message) => message.role !== "system"),
-    );
     return brandedFrozenCandidate(REPL_JSONL_RESUME_CANDIDATES, {
       ok: true,
       sessionId,
       rebuiltMessages,
-      replayMessages,
+      replayMessages: normalizedReplay.replayMessages,
+      canonicalSystemMessages: normalizedReplay.canonicalSystemMessages,
+      conversationMessages: normalizedReplay.conversationMessages,
       sessionSnapshot,
       mcp,
       error: null,
@@ -1285,12 +1542,12 @@ export function prepareReplJsonlResumeCandidate(sessionId, dependencies = {}) {
  * fallback when no JSONL transcript exists.
  */
 export function prepareReplStartupResume(sessionId, dependencies = {}) {
-  if (sessionId) {
+  if (sessionId !== null && sessionId !== undefined) {
     const candidate = prepareReplJsonlResumeCandidate(sessionId, dependencies);
     if (candidate.ok) {
       return Object.freeze({ useJsonl: true, candidate });
     }
-    if (candidate.error?.code !== "CC_REPL_SESSION_NOT_FOUND") {
+    if (!REPL_JSONL_RESUME_ABSENCE_CANDIDATES.has(candidate)) {
       return Object.freeze({ useJsonl: true, candidate });
     }
   }
@@ -1300,6 +1557,61 @@ export function prepareReplStartupResume(sessionId, dependencies = {}) {
     useJsonl: Boolean(readFeature("JSONL_SESSION")),
     candidate: null,
   });
+}
+
+function assertReplStartupAdmission(value) {
+  synchronousReplRecoveryValue(value, "REPL startup admission");
+  const descriptors = plainDataDescriptors(value, "REPL startup admission");
+  const useJsonl = dataDescriptorValue(
+    descriptors,
+    "useJsonl",
+    "REPL startup admission",
+  );
+  const candidate = dataDescriptorValue(
+    descriptors,
+    "candidate",
+    "REPL startup admission",
+  );
+  if (
+    typeof useJsonl !== "boolean" ||
+    !Object.isFrozen(value) ||
+    (candidate !== null &&
+      (!REPL_JSONL_RESUME_CANDIDATES.has(candidate) ||
+        !Object.isFrozen(candidate))) ||
+    (candidate !== null && useJsonl !== true)
+  ) {
+    throw invalidReplRecovery(
+      "REPL startup admission capability is invalid",
+      "CC_REPL_STARTUP_ADMISSION_INVALID",
+    );
+  }
+  return value;
+}
+
+function refuseReplStartupResume(options, candidate) {
+  const observedCode = safeRecoveryErrorValue(
+    candidate?.error,
+    "code",
+    "CC_SESSION_HOST_SNAPSHOT_UNVERIFIED",
+  );
+  const refusal = Object.freeze({
+    started: false,
+    exitCode: 1,
+    code:
+      typeof observedCode === "string" && observedCode
+        ? observedCode
+        : "CC_SESSION_HOST_SNAPSHOT_UNVERIFIED",
+    sessionId: options.sessionId,
+    sessionSnapshot: candidate?.sessionSnapshot || null,
+  });
+  logger.error(
+    JSON.stringify({
+      type: "session.resume.refused",
+      ...refusal,
+    }),
+  );
+  process.exitCode = 1;
+  return refusal;
 }
 
 function commitPreparedReplResume(prepared, commit, rollback) {
@@ -1397,8 +1709,11 @@ export function createReplResumeStateController(bindings) {
   const apply = (preparedState) => {
     bindings.sessionId = preparedState.sessionId;
     replaceArray(bindings.messages, [preparedState.systemMessage]);
+    for (const message of preparedState.canonicalSystemMessages) {
+      bindings.messages.push(message);
+    }
     bindings.applyMcpRecoveryCommit(bindings.messages, preparedState.mcpCommit);
-    for (const message of preparedState.replayMessages) {
+    for (const message of preparedState.conversationMessages) {
       bindings.messages.push(message);
     }
     bindings.sanitizeRolesNextTurn = preparedState.sanitizeRolesNextTurn;
@@ -1514,16 +1829,85 @@ export function createReplMcpHostRuntimeManager(dependencies = {}) {
 }
 
 /**
- * Start the agentic REPL
+ * Execute the startup boundary with explicit host-owned dependencies. Exported
+ * for behavior tests; callers cannot obtain the private workspace starter, and
+ * the public startAgentRepl() below always supplies the real fixed bindings.
  */
-export async function startAgentRepl(options = {}) {
-  const trustedWorkspaceRoot = process.cwd();
-  return runWithHostHooksV2Workspace(trustedWorkspaceRoot, () =>
-    startAgentReplInWorkspace(options),
+export async function runReplStartupBoundary(options, startupDependencies) {
+  const prepareStartup = dependencyDataFunction(
+    startupDependencies,
+    "prepareReplStartupResume",
+    null,
+  );
+  if (typeof prepareStartup !== "function") {
+    throw invalidReplRecovery(
+      "REPL startup admission dependency is missing",
+      "CC_REPL_STARTUP_DEPENDENCY_INVALID",
+    );
+  }
+  const startupAdmission = assertReplStartupAdmission(
+    synchronousReplRecoveryValue(
+      prepareStartup(options.sessionId),
+      "REPL startup admission",
+    ),
+  );
+  const startupCandidate = startupAdmission.candidate;
+  if (startupCandidate && !startupCandidate.ok) {
+    const refuseStartup = dependencyDataFunction(
+      startupDependencies,
+      "refuseReplStartupResume",
+      null,
+    );
+    if (typeof refuseStartup !== "function") {
+      throw invalidReplRecovery(
+        "REPL startup refusal dependency is missing",
+        "CC_REPL_STARTUP_DEPENDENCY_INVALID",
+      );
+    }
+    return refuseStartup(options, startupCandidate);
+  }
+
+  // Only a frozen, branded admission capability may cross into workspace,
+  // pipe, config, plugin, hook, MCP, model, or tool initialization.
+  const readCwd = dependencyDataFunction(startupDependencies, "cwd", null);
+  const enterWorkspace = dependencyDataFunction(
+    startupDependencies,
+    "runWithHostHooksV2Workspace",
+    null,
+  );
+  const startWorkspace = dependencyDataFunction(
+    startupDependencies,
+    "startAgentReplInWorkspace",
+    null,
+  );
+  if (
+    typeof readCwd !== "function" ||
+    typeof enterWorkspace !== "function" ||
+    typeof startWorkspace !== "function"
+  ) {
+    throw invalidReplRecovery(
+      "REPL host startup dependency is missing",
+      "CC_REPL_STARTUP_DEPENDENCY_INVALID",
+    );
+  }
+  const trustedWorkspaceRoot = readCwd();
+  return enterWorkspace(trustedWorkspaceRoot, () =>
+    startWorkspace(options, startupAdmission),
   );
 }
 
-async function startAgentReplInWorkspace(options = {}) {
+/** Start the agentic REPL with non-overridable production bindings. */
+export async function startAgentRepl(options = {}) {
+  return runReplStartupBoundary(options, {
+    prepareReplStartupResume,
+    refuseReplStartupResume,
+    cwd: () => process.cwd(),
+    runWithHostHooksV2Workspace,
+    startAgentReplInWorkspace,
+  });
+}
+
+async function startAgentReplInWorkspace(options = {}, startupAdmission) {
   // EPIPE guard: if the REPL's stdout is piped and the consumer closes (e.g.
   // `cc agent | head`), the async stream `error` would otherwise crash the
   // process. Route a broken pipe into the REPL's own graceful shutdown (the
@@ -1545,28 +1929,7 @@ async function startAgentReplInWorkspace(options = {}) {
     }
     process.exit(0);
   });
-  const { useJsonl, candidate: _startupJsonlResume } = prepareReplStartupResume(
-    options.sessionId,
-  );
-  if (_startupJsonlResume && !_startupJsonlResume.ok) {
-    const refusal = Object.freeze({
-      started: false,
-      exitCode: 1,
-      code:
-        _startupJsonlResume.error?.code ||
-        "CC_SESSION_HOST_SNAPSHOT_UNVERIFIED",
-      sessionId: options.sessionId,
-      sessionSnapshot: _startupJsonlResume.sessionSnapshot || null,
-    });
-    logger.error(
-      JSON.stringify({
-        type: "session.resume.refused",
-        ...refusal,
-      }),
-    );
-    process.exitCode = 1;
-    return refusal;
-  }
+  const { useJsonl, candidate: _startupJsonlResume } = startupAdmission;
   let model = options.model || "qwen2.5:7b";
   let provider = options.provider || "ollama";
   // Extended thinking (Anthropic; opt-in via --think/--ultrathink). Carried from
@@ -2738,14 +3101,13 @@ async function startAgentReplInWorkspace(options = {}) {
           error.code = "CC_REPL_SESSION_RESUME_NOT_PREPARED";
           throw error;
         }
+        messages.push(...prepared.canonicalSystemMessages);
         _commitMcpRecoveryCandidate(messages, prepared.mcp);
-        if (prepared.rebuiltMessages.length > 0) {
-          messages.push(
-            ...prepared.rebuiltMessages.filter((m) => m.role !== "system"),
-          );
+        if (prepared.replayMessages.length > 0) {
+          messages.push(...prepared.conversationMessages);
           // Arm the resume role-merge if the prior run left a dangling user turn.
           _sanitizeRolesNextTurn =
-            messages[messages.length - 1]?.role === "user";
+            prepared.conversationMessages.at(-1)?.role === "user";
           logger.info(
             `Resumed JSONL session ${sessionId} (${prepared.rebuiltMessages.length} messages)`,
           );
@@ -5115,11 +5477,12 @@ async function startAgentReplInWorkspace(options = {}) {
             const preparedState = Object.freeze({
               sessionId: prepared.sessionId,
               systemMessage: messages[0],
-              replayMessages: prepared.replayMessages,
+              canonicalSystemMessages: prepared.canonicalSystemMessages,
+              conversationMessages: prepared.conversationMessages,
               mcpCommit: preparedMcpCommit,
               mcpRuntime: preparedMcpRuntime,
               sanitizeRolesNextTurn:
-                prepared.replayMessages.at(-1)?.role === "user",
+                prepared.conversationMessages.at(-1)?.role === "user",
               logMessage: `Resumed JSONL session ${prepared.sessionId} (${prepared.rebuiltMessages.length} messages)`,
             });
             const committed = commitPreparedReplJsonlResume(
@@ -5153,7 +5516,8 @@ async function startAgentReplInWorkspace(options = {}) {
               const preparedState = Object.freeze({
                 sessionId: existing.id,
                 systemMessage: messages[0],
-                replayMessages,
+                canonicalSystemMessages: Object.freeze([]),
+                conversationMessages: replayMessages,
                 mcpCommit: Object.freeze({
                   recovery: null,
                   recoveryError: null,
