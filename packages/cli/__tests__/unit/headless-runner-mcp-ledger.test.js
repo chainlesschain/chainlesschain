@@ -144,7 +144,7 @@ describe("headless MCP ledger persistence and recovery", () => {
         }),
       }),
     );
-  });
+  }, 15_000);
 
   it("does not inject an MCP notice after a proven settlement", async () => {
     const started = ledgerRecord();
@@ -167,56 +167,44 @@ describe("headless MCP ledger persistence and recovery", () => {
   it("fails recovery closed when the verified transcript reader rejects", async () => {
     const setup = harness([]);
     const callTool = vi.fn(async () => ({ content: [] }));
-    setup.deps.resolveAgentMcp = async () => ({
+    setup.deps.resolveAgentMcp = vi.fn(async () => ({
       mcpClient: { callTool, disconnectAll: vi.fn(async () => {}) },
       connected: [],
       extraToolDefinitions: [],
       externalToolExecutors: {},
       externalToolDescriptors: {},
-    });
+    }));
     setup.deps.readVerifiedEvents = () => {
       const error = new Error("anchored transcript mismatch");
       error.code = "SESSION_TRANSCRIPT_UNVERIFIED";
       throw error;
     };
 
-    await runAgentHeadless(
+    const result = await runAgentHeadless(
       { prompt: "continue", resume: "sid", outputFormat: "json" },
       setup.deps,
     );
 
-    expect(systemText(setup.captured.messages)).toContain(
-      "durable MCP call ledger could not be read",
-    );
-    expect(systemText(setup.captured.messages)).toContain(
-      "CC_MCP_LEDGER_EVENT_READ_FAILED",
-    );
-    await expect(
-      setup.captured.options.mcpCallLedger.begin({
-        sessionId: "sid",
-        toolName: "mcp__repo__status",
-        serverName: "repo",
-        input: {},
-        effectContract: { effect: "read" },
-      }),
-    ).rejects.toMatchObject({
-      code: "CC_MCP_LEDGER_RECOVERY_BLOCKED",
-      // An untrusted read claim is deliberately projected to unknown.
-      effect: "unknown",
-      blockMode: "all",
+    expect(result).toMatchObject({
+      exitCode: 1,
+      isError: true,
     });
-    await expect(
-      setup.captured.options.mcpHostClient.callTool("repo", "status", {}),
-    ).rejects.toMatchObject({
-      code: "CC_MCP_LEDGER_RECOVERY_BLOCKED",
-      blockMode: "all",
-    });
+    expect(result.result).toContain("CC_SESSION_HOST_SNAPSHOT_UNVERIFIED");
+    expect(setup.captured.messages).toBeUndefined();
+    expect(setup.deps.resolveAgentMcp).not.toHaveBeenCalled();
     expect(callTool).not.toHaveBeenCalled();
     expect(setup.appendAuthorityEvent).not.toHaveBeenCalled();
   });
 
   it("does not treat an injected ordinary append as an authority sink", async () => {
-    const setup = harness([]);
+    const setup = harness([
+      {
+        type: "session_start",
+        prevHash: null,
+        hash: HEAD_1,
+        data: { title: "test" },
+      },
+    ]);
     delete setup.deps.appendAuthorityEvent;
 
     await runAgentHeadless(

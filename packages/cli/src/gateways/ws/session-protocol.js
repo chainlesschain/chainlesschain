@@ -16,6 +16,7 @@ import {
   MCP_RECOVERY_INVALID_CODE,
   classifyMcpRecoveryAdmission,
 } from "../../lib/mcp-ledger-recovery-admission.js";
+import { readSessionHostResumeState } from "../../lib/session-host-snapshot.js";
 
 const PAYLOAD_DIGEST = /^sha256:[0-9a-f]{64}$/;
 const RAW_AUTHORITY_HASH = /^[0-9a-f]{64}$/;
@@ -390,10 +391,10 @@ function envelopeResponse(type, id, payload, sessionId) {
   });
 }
 
-function envelopeError(id, code, message, sessionId) {
+function envelopeError(id, code, message, sessionId, details = {}) {
   return createCodingAgentEvent(
     CODING_AGENT_EVENT_TYPES.ERROR,
-    { code, message },
+    { ...details, code, message },
     {
       requestId: id,
       sessionId: sessionId || null,
@@ -602,6 +603,20 @@ export async function handleSessionResume(server, id, ws, message) {
   }
 
   const { sessionId } = message;
+  const canonicalResume = readSessionHostResumeState(sessionId);
+  if (canonicalResume && !canonicalResume.snapshot.verified) {
+    server._send(
+      ws,
+      envelopeError(
+        id,
+        "CC_SESSION_HOST_SNAPSHOT_UNVERIFIED",
+        "Canonical JSONL session is not verified; resume was refused",
+        sessionId,
+        { sessionSnapshot: canonicalResume.snapshot },
+      ),
+    );
+    return;
+  }
   const session = server.sessionManager.resumeSession(sessionId);
 
   if (!session) {
@@ -617,13 +632,25 @@ export async function handleSessionResume(server, id, ws, message) {
     return;
   }
 
+  // A JSONL transcript is the cross-host fact source. A fully verified one
+  // replaces a stale DB/WS copy. The damaged case returned above before the
+  // manager or agent handler could be resumed; only a genuinely absent JSONL
+  // transcript keeps the legacy WS-store compatibility path.
+  const sessionSnapshot = canonicalResume?.snapshot || null;
+  if (canonicalResume) {
+    session.messages = [...canonicalResume.messages];
+  }
+
   // P0-2: reconcile the crash-safe side-effect ledger. If a dangerous tool was
   // in flight when the prior worker died, warn the IDE client AND inject a
   // system note so the resumed model does not silently replay it.
-  let recovery = buildResumeRecovery(
-    session.id,
-    server.resumeRecoveryDependencies || {},
-  );
+  const recoveryDependencies = {
+    ...(server.resumeRecoveryDependencies || {}),
+  };
+  if (canonicalResume?.recovery) {
+    recoveryDependencies.loadMcpLedgerRecovery = () => canonicalResume.recovery;
+  }
+  let recovery = buildResumeRecovery(session.id, recoveryDependencies);
   session.mcpLedgerRecovery = recovery?.mcp || {
     count: 0,
     unsettled: [],
@@ -686,6 +713,10 @@ export async function handleSessionResume(server, id, ws, message) {
     messageCount: history.length,
     status: "resumed",
   });
+  // Runtime-bus subscribers receive control-plane continuity metadata, not
+  // transcript content. The direct resume response below still carries the
+  // requested history to the authenticated IDE client.
+  const runtimeRecord = { ...record, history: [] };
   const stateSnapshot =
     typeof server.sessionManager.getSessionStateSnapshot === "function"
       ? server.sessionManager.getSessionStateSnapshot(session.id)
@@ -699,9 +730,10 @@ export async function handleSessionResume(server, id, ws, message) {
         sessionId: session.id,
         historyCount: history.length,
         sessionType: session.type || null,
-        record,
+        record: runtimeRecord,
         ...(stateSnapshot ? { stateSnapshot } : {}),
         ...(recovery ? { recovery } : {}),
+        ...(sessionSnapshot ? { sessionSnapshot } : {}),
       },
       { kind: "server", sessionId: session.id },
     ),
@@ -718,6 +750,7 @@ export async function handleSessionResume(server, id, ws, message) {
         record,
         ...(stateSnapshot ? { stateSnapshot } : {}),
         ...(recovery ? { recovery } : {}),
+        ...(sessionSnapshot ? { sessionSnapshot } : {}),
       },
       session.id,
     ),

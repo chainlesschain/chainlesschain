@@ -69,6 +69,7 @@ import {
   loadMcpLedgerRecovery,
 } from "../lib/mcp-call-ledger-store.js";
 import { createMcpHostRecoveryRuntime } from "../lib/mcp-host-recovery-runtime.js";
+import { readSessionHostResumeState } from "../lib/session-host-snapshot.js";
 import { TurnBindingLog, createTurnBindingFeed } from "../lib/turn-binding.js";
 import { TURN_BINDING_EVENT } from "../lib/turn-binding-store.js";
 import { operationIdempotencyKey } from "../lib/idempotency.js";
@@ -351,7 +352,7 @@ export function applyForkSession(opts = {}, store = {}) {
  * @param {boolean} [options.expandFileRefs=true] Expand `@path` file references
  *                                             in the prompt into context blocks.
  * @param {object} [deps]                       Injection seam for tests.
- * @returns {Promise<{ exitCode:number, result:string, isError:boolean }>}
+ * @returns {Promise<{ exitCode:number, result:string, isError:boolean, sessionSnapshot?:object }>}
  */
 export async function runAgentHeadless(options = {}, deps = {}) {
   const trustedWorkspaceRoot = options.cwd || process.cwd();
@@ -647,6 +648,73 @@ async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
     return { exitCode: isError ? 1 : 0, result: text, isError };
   }
 
+  // Resolve and verify resume authority before prompt expansion. Slash-command
+  // macros may execute bang substitutions, so a damaged transcript must stop
+  // before that host seam as well as before hooks, model and tools.
+  const { sessionId, resumeId, persist } = resolveHeadlessSession(
+    options,
+    store,
+    `headless-${Date.now()}-${process.pid}`,
+  );
+  if (options.continueSession === true && !resumeId && isText) {
+    writeErr("No previous session to continue; starting a new one.\n");
+  }
+
+  // Machine-readable modes must always end with a terminal result envelope,
+  // including failures that happen before system/init or the main loop.
+  const emitHeadlessError = (resultMsg) => {
+    if (isStream) {
+      writeOut(
+        JSON.stringify({
+          type: "result",
+          subtype: "error",
+          is_error: true,
+          error: resultMsg,
+        }) + "\n",
+      );
+    } else if (isJson) {
+      writeOut(
+        JSON.stringify(
+          buildResultEnvelope({
+            subtype: "error",
+            isError: true,
+            result: resultMsg,
+            sessionId,
+            toolCalls: [],
+            usage: {},
+            numTurns: 0,
+            durationMs: 0,
+          }),
+        ) + "\n",
+      );
+    }
+  };
+
+  // Take history and MCP authority from one verified event sample. A present
+  // but unverified transcript is not a new conversation and cannot fall back.
+  const canReadCanonicalResume =
+    !hasInjectedSessionStore || typeof deps.readVerifiedEvents === "function";
+  const canonicalResume =
+    resumeId && canReadCanonicalResume
+      ? readSessionHostResumeState(resumeId, {
+          sessionExists: store.sessionExists,
+          readVerifiedEvents: store.readVerifiedEvents,
+        })
+      : null;
+  if (canonicalResume && !canonicalResume.snapshot.verified) {
+    const message =
+      "CC_SESSION_HOST_SNAPSHOT_UNVERIFIED: canonical JSONL session is not " +
+      "fully verified; resume was refused";
+    emitHeadlessError(message);
+    writeErr(`${message}\n`);
+    return {
+      exitCode: 1,
+      result: message,
+      isError: true,
+      sessionSnapshot: canonicalResume.snapshot,
+    };
+  }
+
   // ── Custom slash-command macros (Claude-Code parity: a .claude/commands/*
   // command runs in `-p` mode too, not just the interactive REPL). A leading
   // `/name …` that resolves to a user/project command is expanded into its
@@ -737,50 +805,6 @@ async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
     // Continue without DB — static-prompt fallback.
   }
 
-  // ── Resolve session continuity (--resume / --continue) ─────────────────
-  const { sessionId, resumeId, persist } = resolveHeadlessSession(
-    options,
-    store,
-    `headless-${Date.now()}-${process.pid}`,
-  );
-  if (options.continueSession === true && !resumeId && isText) {
-    writeErr("No previous session to continue; starting a new one.\n");
-  }
-
-  // Machine-readable modes (`--output-format json` / `stream-json`) must ALWAYS
-  // end with a terminal result envelope — a consumer parsing stdout otherwise
-  // gets nothing and can't tell success from failure. Several setup-phase error
-  // paths below early-return BEFORE the main loop's try/catch envelope (and
-  // before `system/init`), so route them through this so stdout is never empty.
-  // No-op in text mode (those paths already writeErr a human message).
-  const emitHeadlessError = (resultMsg) => {
-    if (isStream) {
-      writeOut(
-        JSON.stringify({
-          type: "result",
-          subtype: "error",
-          is_error: true,
-          error: resultMsg,
-        }) + "\n",
-      );
-    } else if (isJson) {
-      writeOut(
-        JSON.stringify(
-          buildResultEnvelope({
-            subtype: "error",
-            isError: true,
-            result: resultMsg,
-            sessionId,
-            toolCalls: [],
-            usage: {},
-            numTurns: 0,
-            durationMs: 0,
-          }),
-        ) + "\n",
-      );
-    }
-  };
-
   const setupHooks = await executeLifecycleHooks(
     "Setup",
     {
@@ -827,11 +851,17 @@ async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
   // system prompt always leads; we drop any persisted system turns so it is
   // never duplicated.
   let history = [];
-  if (resumeId && store.sessionExists(resumeId)) {
-    // Tamper gate: a broken transcript hash chain means the file was edited
+  if (canonicalResume) {
+    history = canonicalResume.messages.filter(
+      (message) => message && message.role !== "system",
+    );
+  } else if (resumeId && store.sessionExists(resumeId)) {
+    // Compatibility gate for injected stores without a verified event reader.
+    // Real JSONL resumes were handled above and never reach this branch. A
+    // broken transcript hash chain means the file was edited
     // outside the store. Headless runs fail closed — a tampered transcript is
     // never silently rebuilt into trusted model context. Escape hatch:
-    // CC_ALLOW_TAMPERED_RESUME=1 resumes with a stderr warning.
+    // CC_ALLOW_TAMPERED_RESUME=1 is retained only for this injected-store path.
     let trust = null;
     try {
       trust = store.verifySession(resumeId);
@@ -1051,9 +1081,11 @@ async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
       // started-only record means the external server may have completed the
       // operation before the process died, so replay must stop for inspection.
       try {
-        const mcpRecovery = loadMcpLedgerRecovery(resumeId, {
-          readVerifiedEvents: store.readVerifiedEvents,
-        });
+        const mcpRecovery =
+          canonicalResume?.recovery ||
+          loadMcpLedgerRecovery(resumeId, {
+            readVerifiedEvents: store.readVerifiedEvents,
+          });
         resumeMcpRecovery = mcpRecovery;
         resumeMcpCallContext = formatMcpLedgerRecoveryNotice(mcpRecovery);
         if (resumeMcpCallContext) {
@@ -1692,6 +1724,9 @@ async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
     additionalDirectories,
     sandbox: options.sandbox || null,
     sessionId,
+    // Content-free continuity metadata from the same verified sample used for
+    // replay history and MCP recovery authority.
+    sessionHostSnapshot: canonicalResume?.snapshot || null,
     // Auto-pin (default ON since 2026-07-07): pin the original task through
     // compaction. Precedence: --auto-pin flag > CC_AUTO_PIN ("1"/"0") >
     // config context.autoPin > default on. Falsy → agent-core passes no pin

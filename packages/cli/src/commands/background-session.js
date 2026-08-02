@@ -7,6 +7,7 @@ import {
   listCollaborationRuns,
   projectCollaborationTasks,
 } from "../lib/collaboration-run-store.js";
+import { readSessionHostResumeState } from "../lib/session-host-snapshot.js";
 import executionBroker from "../lib/process-execution-broker/index.js";
 
 function formatAge(ms) {
@@ -170,6 +171,14 @@ export function readLogFromOffset(file, offset) {
     };
   }
   return { text: text.slice(offset), offset: text.length };
+}
+
+/** Content-free JSONL authority exposed at the real background attach seam. */
+export function readBackgroundAttachSessionSnapshot(state, dependencies = {}) {
+  if (!state?.sessionId) return null;
+  return (
+    readSessionHostResumeState(state.sessionId, dependencies)?.snapshot || null
+  );
 }
 
 async function followBackgroundAgent(id, options = {}) {
@@ -355,7 +364,36 @@ export async function interactiveAttach(id, state, options = {}) {
         closed = true;
       },
     });
-  } catch {
+    // Read authority only after the authenticated transport handshake. This
+    // binds attach to both the live worker and its canonical JSONL transcript.
+    const sessionSnapshot = readBackgroundAttachSessionSnapshot(state);
+    if (sessionSnapshot) {
+      if (typeof options.onSessionSnapshot === "function") {
+        await options.onSessionSnapshot(sessionSnapshot);
+      }
+      logger.log(
+        chalk.gray(
+          `Session ${sessionSnapshot.sessionId} revision=${sessionSnapshot.revision} ` +
+            `head=${sessionSnapshot.head.hash || "unverified"} ` +
+            `messages=${sessionSnapshot.messages.length}`,
+        ),
+      );
+      if (!sessionSnapshot.verified) {
+        try {
+          conn.close();
+        } catch {
+          /* peer already closed */
+        }
+        const error = new Error(
+          "Background attach refused an unverified canonical JSONL session",
+        );
+        error.code = "CC_SESSION_HOST_SNAPSHOT_UNVERIFIED";
+        error.sessionSnapshot = sessionSnapshot;
+        throw error;
+      }
+    }
+  } catch (error) {
+    if (error?.code === "CC_SESSION_HOST_SNAPSHOT_UNVERIFIED") throw error;
     return false; // transport gone (worker finalizing/finalized) — fall back
   }
 
@@ -382,8 +420,8 @@ export async function interactiveAttach(id, state, options = {}) {
 
   const readline = await import("node:readline");
   const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
+    input: options.input || process.stdin,
+    output: options.output || process.stdout,
   });
   rl.on("line", (line) => {
     const text = line.trim();

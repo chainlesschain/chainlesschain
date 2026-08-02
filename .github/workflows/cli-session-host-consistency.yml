@@ -1,0 +1,105 @@
+name: CLI Session Host Consistency
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/cli-session-host-consistency.yml"
+      - ".github/actions/setup-node-deps/action.yml"
+      - "package.json"
+      - "package-lock.json"
+      - "packages/cli/package.json"
+      - "packages/cli/src/harness/jsonl-session-store.js"
+      - "packages/cli/src/harness/session-list-index.js"
+      - "packages/cli/src/harness/transcript-integrity.js"
+      - "packages/cli/src/lib/session-host-snapshot.js"
+      - "packages/cli/src/lib/mcp-call-ledger*.js"
+      - "packages/cli/src/lib/mcp-recovery-adjudication.js"
+      - "packages/cli/src/lib/background-session-transport.js"
+      - "packages/cli/src/commands/background-session.js"
+      - "packages/cli/src/repl/agent-repl.js"
+      - "packages/cli/src/runtime/headless-runner.js"
+      - "packages/cli/src/gateways/ws/session-protocol.js"
+      - "packages/cli/scripts/session-host-consistency-gate.mjs"
+      - "packages/cli/__tests__/unit/session-host-consistency-gate.test.js"
+      - "packages/cli/__tests__/unit/headless-runner-mcp-ledger.test.js"
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/cli-session-host-consistency.yml"
+      - ".github/actions/setup-node-deps/action.yml"
+      - "package.json"
+      - "package-lock.json"
+      - "packages/cli/package.json"
+      - "packages/cli/src/harness/jsonl-session-store.js"
+      - "packages/cli/src/harness/session-list-index.js"
+      - "packages/cli/src/harness/transcript-integrity.js"
+      - "packages/cli/src/lib/session-host-snapshot.js"
+      - "packages/cli/src/lib/mcp-call-ledger*.js"
+      - "packages/cli/src/lib/mcp-recovery-adjudication.js"
+      - "packages/cli/src/lib/background-session-transport.js"
+      - "packages/cli/src/commands/background-session.js"
+      - "packages/cli/src/repl/agent-repl.js"
+      - "packages/cli/src/runtime/headless-runner.js"
+      - "packages/cli/src/gateways/ws/session-protocol.js"
+      - "packages/cli/scripts/session-host-consistency-gate.mjs"
+      - "packages/cli/__tests__/unit/session-host-consistency-gate.test.js"
+      - "packages/cli/__tests__/unit/headless-runner-mcp-ledger.test.js"
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: "Exact full commit SHA to test (blank uses selected ref)"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  session-host-consistency:
+    name: "session host consistency (${{ matrix.os }})"
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    env:
+      CC_SESSION_HOST_CONSISTENCY_EXPECTED_SHA: ${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Checkout exact session-host commit
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+
+      - uses: ./.github/actions/setup-node-deps
+
+      - name: Verify exact checkout
+        shell: bash
+        run: |
+          [[ "$CC_SESSION_HOST_CONSISTENCY_EXPECTED_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$CC_SESSION_HOST_CONSISTENCY_EXPECTED_SHA"
+
+      - name: Run cross-host JSONL consistency gate
+        env:
+          CC_SESSION_HOST_CONSISTENCY_OUTPUT: ${{ runner.temp }}/cli-session-host-consistency.json
+        run: npm run test:cli-session-host-consistency
+
+      - name: Upload exact-SHA host consistency evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: cli-session-host-consistency-${{ matrix.os }}-${{ env.CC_SESSION_HOST_CONSISTENCY_EXPECTED_SHA }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/cli-session-host-consistency.json
+          if-no-files-found: error
+          retention-days: 30
