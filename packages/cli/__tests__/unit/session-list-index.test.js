@@ -5,7 +5,9 @@ import { tmpdir } from "node:os";
 import {
   emptySessionMeta,
   listIndexedSessions,
+  readLatestSessionActivity,
   readSessionMeta,
+  recordSessionActivity,
   recordSessionDeleted,
   recordSessionEvent,
   replaceSessionMeta,
@@ -102,5 +104,33 @@ describe("rebuildable session listing index", () => {
     expect(listIndexedSessions(dir, { hasSession: () => true })[0].title).toBe(
       "okay",
     );
+  });
+
+  it("isolates a crash-partial journal tail before the next activity record", () => {
+    const dir = temporaryDirectory();
+    replaceSessionMeta(dir, {
+      ...emptySessionMeta("s1"),
+      title: "before crash",
+      event_count: 1,
+      last_hash: "h1",
+      updated_at_ms: 1,
+    });
+    appendFileSync(sessionIndexPath(dir), '{"schema":2,"id":"s1"', "utf8");
+    recordSessionActivity(dir, {
+      ...emptySessionMeta("s1"),
+      title: "after crash",
+      event_count: 2,
+      last_hash: "h2",
+      updated_at_ms: 2,
+    });
+
+    expect(readLatestSessionActivity(dir, "s1")).toMatchObject({
+      title: "after crash",
+      event_count: 2,
+      last_hash: "h2",
+    });
+    expect(
+      listIndexedSessions(dir, { hasSession: () => true })[0],
+    ).toMatchObject({ title: "after crash" });
   });
 });

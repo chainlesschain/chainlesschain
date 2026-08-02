@@ -53,6 +53,8 @@ const {
   verifyAllSessions,
   repairSession,
 } = await import("../../src/lib/jsonl-session-store.js");
+const { computeEventHash } =
+  await import("../../src/harness/transcript-integrity.js");
 
 describe("jsonl-session-store", () => {
   beforeEach(() => {
@@ -1055,6 +1057,49 @@ describe("jsonl-session-store", () => {
         discardedRecords: 0,
       });
       expect(readFileSync(sessionPath(id), "utf8").endsWith("\n")).toBe(true);
+    });
+
+    it("rebuilds stale derived indexes after a complete record survives a crash", () => {
+      const id = startSession("chain-index-crash", { title: "Before" });
+      const previous = readEvents(id).at(-1).hash;
+      const core = {
+        type: "user_message",
+        timestamp: Date.now(),
+        data: { role: "user", content: "committed before crash" },
+      };
+      appendFileSync(
+        sessionPath(id),
+        `${JSON.stringify({
+          ...core,
+          prevHash: previous,
+          hash: computeEventHash(previous, core),
+        })}\n`,
+        "utf8",
+      );
+
+      expect(() => readVerifiedEvents(id)).toThrow(
+        expect.objectContaining({ code: "SESSION_TRANSCRIPT_UNVERIFIED" }),
+      );
+      expect(repairSession(id, { dryRun: true })).toMatchObject({
+        healthy: false,
+        changed: false,
+        physicalChanged: false,
+        wouldChange: true,
+        action: "rebuild-index",
+        physicalAction: "none",
+        indexAction: "rebuild-index",
+        indexRepairRequired: true,
+      });
+      expect(repairSession(id)).toMatchObject({
+        healthy: true,
+        changed: true,
+        physicalChanged: false,
+        indexChanged: true,
+        indexRebuilt: true,
+        indexAction: "rebuild-index",
+      });
+      expect(readVerifiedEvents(id)).toHaveLength(2);
+      expect(getJsonlSessionMetadata(id)).toMatchObject({ message_count: 1 });
     });
 
     it("never rewrites interior hash-chain tampering or claims success", () => {

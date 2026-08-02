@@ -20,6 +20,19 @@ import { ensurePrivateFile } from "../lib/secure-fs.js";
 export const SESSION_INDEX_SCHEMA = 2;
 export const SESSION_INDEX_FILE = ".sessions-index-v2.ndjson";
 
+// Used only by an opted-in child in the independent session-scale crash gate.
+// Keeping the injection immediately around the production sidecar/journal
+// boundary makes that gate deterministic without replacing either write.
+export const _sessionScaleFaultHooks = Object.seal({
+  afterMetaSnapshot: null,
+});
+
+function runSessionScaleFaultHook(name, payload) {
+  if (process.env.CC_SESSION_SCALE_FAULT_INJECTION !== "1") return;
+  const hook = _sessionScaleFaultHooks[name];
+  if (typeof hook === "function") hook(payload);
+}
+
 export function sessionMetaPath(dir, sessionId) {
   return join(dir, `${sessionId}.meta.json`);
 }
@@ -101,11 +114,12 @@ function appendActivity(dir, meta) {
   const filePath = sessionIndexPath(dir);
   // One compact line is emitted through one O_APPEND write. The journal is a
   // disposable ordering hint (the per-session sidecar and transcript remain
-  // authoritative), so a process crash can at worst leave one malformed tail,
-  // which the reverse reader skips and the next list rebuild repairs. Avoiding
-  // a second global directory lock keeps concurrent transcript appends from
-  // serializing on derived metadata.
-  appendFileSync(filePath, `${JSON.stringify(meta)}\n`, {
+  // authoritative). Prefixing the record with a newline isolates any
+  // crash-partial physical tail before publishing the next valid snapshot;
+  // reverse readers already skip the resulting empty lines. Avoiding a second
+  // global directory lock keeps concurrent transcript appends from serializing
+  // on derived metadata.
+  appendFileSync(filePath, `\n${JSON.stringify(meta)}\n`, {
     encoding: "utf8",
     mode: 0o600,
   });
@@ -119,6 +133,12 @@ export function recordSessionEvent(dir, sessionId, event, lastHash) {
   current.id = sessionId;
   const next = applyEventToSessionMeta(current, event, lastHash);
   writeMetaSnapshot(dir, next);
+  runSessionScaleFaultHook("afterMetaSnapshot", {
+    dir,
+    sessionId,
+    event,
+    meta: next,
+  });
   appendActivity(dir, next);
   return next;
 }
@@ -148,6 +168,23 @@ export function recordSessionDeleted(dir, sessionId, timestamp = Date.now()) {
   writeMetaSnapshot(dir, tombstone);
   appendActivity(dir, tombstone);
   return tombstone;
+}
+
+/** Newest journal snapshot for one session, or null if none survived. */
+export function readLatestSessionActivity(dir, sessionId) {
+  const filePath = sessionIndexPath(dir);
+  if (!existsSync(filePath) || typeof sessionId !== "string") return null;
+  for (const { line } of iterateFileLinesReverseSync(filePath)) {
+    try {
+      const meta = JSON.parse(line);
+      if (meta?.schema === SESSION_INDEX_SCHEMA && meta.id === sessionId) {
+        return meta;
+      }
+    } catch {
+      // A crash-partial tail is not an activity snapshot.
+    }
+  }
+  return null;
 }
 
 function iso(value) {

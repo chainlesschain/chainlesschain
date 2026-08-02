@@ -34,6 +34,7 @@ import {
   applyEventToSessionMeta,
   listIndexedSessions,
   publicSessionMeta,
+  readLatestSessionActivity,
   readSessionMeta,
   recordSessionDeleted,
   recordSessionEvent,
@@ -42,6 +43,19 @@ import {
 } from "./session-list-index.js";
 
 let securedSessionsDir = null;
+
+// Deterministic process-crash injection for the independent session-scale
+// gate. The hooks are inert unless the dedicated child process opts in; this
+// keeps production behavior and ordinary tests on the exact same append path.
+export const _sessionScaleFaultHooks = Object.seal({
+  afterTranscriptAppend: null,
+});
+
+function runSessionScaleFaultHook(name, payload) {
+  if (process.env.CC_SESSION_SCALE_FAULT_INJECTION !== "1") return;
+  const hook = _sessionScaleFaultHooks[name];
+  if (typeof hook === "function") hook(payload);
+}
 
 function getSessionsDir() {
   const dir = join(getHomeDir(), "sessions");
@@ -234,6 +248,12 @@ function appendEventLocked(
       const line = JSON.stringify(event) + "\n";
       appendFileSync(filePath, line, { encoding: "utf8", mode: 0o600 });
       ensurePrivateFile(filePath);
+      runSessionScaleFaultHook("afterTranscriptAppend", {
+        sessionId,
+        type,
+        event,
+        filePath,
+      });
       try {
         recordSessionEvent(getSessionsDir(), sessionId, event, hash);
       } catch (cause) {
@@ -430,10 +450,21 @@ export function verifyAllSessions(options = {}) {
     .map((file) => verifySession(basename(file, ".jsonl")));
 }
 
+function indexedProjectionMatchesTranscript(meta, verification, validation) {
+  return (
+    verification.status === TRANSCRIPT_CHAIN_STATUS.VERIFIED &&
+    validation.valid === true &&
+    meta?.deleted !== true &&
+    Number(meta?.event_count) === validation.eventCount &&
+    (meta?.last_hash ?? null) === (verification.lastHash ?? null)
+  );
+}
+
 /**
- * Diagnose and repair only the final physical transcript record. Interior
- * corruption and hash-chain tampering are never rewritten: repair may append a
- * missing newline to one valid record or discard one crash-partial record.
+ * Diagnose and repair the final physical transcript record plus its rebuildable
+ * metadata projection. Interior corruption and hash-chain tampering are never
+ * rewritten: repair may append a missing newline, discard one crash-partial
+ * record, or rebuild a stale sidecar/activity index from a healthy transcript.
  */
 export function repairSession(sessionId, options = {}) {
   const dryRun = options.dryRun === true;
@@ -462,6 +493,7 @@ export function repairSession(sessionId, options = {}) {
   const result = withFileLock(
     filePath,
     () => {
+      const dir = getSessionsDir();
       const before = verifyTranscriptFile(filePath);
       const beforeValidation = validateJsonlSession(sessionId);
       const repair = inspectPhysicalTail(filePath, { dryRun });
@@ -469,21 +501,62 @@ export function repairSession(sessionId, options = {}) {
       const afterValidation = dryRun ? null : validateJsonlSession(sessionId);
       const effective = after || before;
       const effectiveValidation = afterValidation || beforeValidation;
-      const healthy =
+      const transcriptHealthy =
         effective.status !== TRANSCRIPT_CHAIN_STATUS.TAMPERED &&
         !(dryRun
           ? before.truncatedTail || repair.changed
           : after.truncatedTail) &&
         effectiveValidation.valid;
+      const currentMeta = readSessionMeta(dir, sessionId);
+      const currentActivity = readLatestSessionActivity(dir, sessionId);
+      const indexRepairRequired =
+        transcriptHealthy &&
+        (!indexedProjectionMatchesTranscript(
+          currentMeta,
+          effective,
+          effectiveValidation,
+        ) ||
+          !indexedProjectionMatchesTranscript(
+            currentActivity,
+            effective,
+            effectiveValidation,
+          ));
+      let indexRebuilt = false;
+      let indexRepairError = null;
+      if (!dryRun && indexRepairRequired) {
+        try {
+          rebuildSessionMetaUnlocked(dir, sessionId, filePath);
+          indexRebuilt = true;
+        } catch (cause) {
+          indexRepairError = {
+            code: cause?.code || null,
+            message: String(cause?.message || cause),
+          };
+        }
+      }
+      const healthy = dryRun
+        ? transcriptHealthy && !repair.changed && !indexRepairRequired
+        : transcriptHealthy && (!indexRepairRequired || indexRebuilt);
       return {
         sessionId,
         dryRun,
-        changed: repair.changed,
-        wouldChange: dryRun && repair.changed,
-        action: repair.action,
+        changed: repair.changed || indexRebuilt,
+        physicalChanged: repair.changed,
+        indexChanged: indexRebuilt,
+        wouldChange: dryRun && (repair.changed || indexRepairRequired),
+        action:
+          repair.action === "none" && indexRepairRequired
+            ? "rebuild-index"
+            : repair.action,
+        physicalAction: repair.action,
+        indexAction: indexRepairRequired ? "rebuild-index" : "none",
+        indexRepairRequired,
+        indexRebuilt,
+        indexRepairError,
         discardedBytes: repair.discardedBytes,
         discardedRecords: repair.discardedRecords,
         healthy,
+        transcriptHealthy,
         status: effective.status,
         before,
         after,
@@ -495,20 +568,16 @@ export function repairSession(sessionId, options = {}) {
             : !effectiveValidation.valid
               ? effectiveValidation.reason ||
                 "transcript remains structurally invalid"
-              : null,
+              : indexRepairError
+                ? `session metadata index rebuild failed: ${indexRepairError.message}`
+                : indexRepairRequired && dryRun
+                  ? "session metadata index requires rebuild"
+                  : null,
       };
     },
     { failIfUnavailable: true },
   );
 
-  if (!dryRun && result.changed) {
-    try {
-      rebuildSessionMeta(sessionId);
-    } catch {
-      // Derived metadata is rebuilt lazily by list/search if this refresh loses
-      // a race or the index is unavailable.
-    }
-  }
   return result;
 }
 
@@ -776,10 +845,11 @@ function isReplayableMessage(m) {
   return Boolean(m) && typeof m === "object" && typeof m.role === "string";
 }
 
-export function rebuildMessages(sessionId) {
+export function rebuildMessages(sessionId, options = {}) {
   if (isUnsafeSessionId(sessionId)) return [];
   const filePath = sessionPath(sessionId);
   if (!existsSync(filePath)) return [];
+  const ioMetrics = options?.ioMetrics ?? null;
 
   // Scan newest-first and stop at the latest valid compact checkpoint. Memory
   // is therefore proportional to the active context suffix, not transcript
@@ -787,7 +857,7 @@ export function rebuildMessages(sessionId) {
   // replay state, but the file itself is still never loaded as one giant string.
   const suffix = [];
   let checkpoint = [];
-  for (const { line } of iterateFileLinesReverseSync(filePath)) {
+  for (const { line } of iterateFileLinesReverseSync(filePath, { ioMetrics })) {
     let event;
     try {
       event = JSON.parse(line);
@@ -829,25 +899,27 @@ export function toIsoSafe(ts) {
   return Number.isNaN(d.getTime()) ? "" : d.toISOString();
 }
 
+function rebuildSessionMetaUnlocked(dir, sessionId, filePath) {
+  let meta = emptySessionMeta(sessionId);
+  for (const { line } of iterateFileLinesSync(filePath)) {
+    try {
+      const event = JSON.parse(line);
+      meta = applyEventToSessionMeta(meta, event, event?.hash);
+    } catch {
+      // The validator/repair path reports malformed records. The index remains
+      // a best-effort projection over all intact events.
+    }
+  }
+  return replaceSessionMeta(dir, meta);
+}
+
 function rebuildSessionMeta(sessionId) {
   const dir = getSessionsDir();
   const filePath = sessionPath(sessionId);
   if (!existsSync(filePath)) return null;
   return withFileLock(
     filePath,
-    () => {
-      let meta = emptySessionMeta(sessionId);
-      for (const { line } of iterateFileLinesSync(filePath)) {
-        try {
-          const event = JSON.parse(line);
-          meta = applyEventToSessionMeta(meta, event, event?.hash);
-        } catch {
-          // The validator/repair path reports malformed records. The index
-          // remains a best-effort projection over all intact events.
-        }
-      }
-      return replaceSessionMeta(dir, meta);
-    },
+    () => rebuildSessionMetaUnlocked(dir, sessionId, filePath),
     {
       failIfUnavailable: true,
       timeoutMs: 30_000,

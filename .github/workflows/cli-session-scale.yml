@@ -1,0 +1,85 @@
+name: CLI Session Scale
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/cli-session-scale.yml"
+      - ".github/actions/setup-node-deps/action.yml"
+      - "package.json"
+      - "package-lock.json"
+      - "packages/cli/src/harness/jsonl-session-store.js"
+      - "packages/cli/src/harness/session-list-index.js"
+      - "packages/cli/src/harness/transcript-integrity.js"
+      - "packages/cli/src/lib/file-lines.js"
+      - "packages/cli/src/lib/paths.js"
+      - "packages/cli/src/lib/secure-fs.js"
+      - "packages/cli/src/lib/with-file-lock.js"
+      - "packages/cli/scripts/session-scale-gate.mjs"
+      - "packages/cli/__tests__/fixtures/session-concurrency-writer.mjs"
+      - "packages/cli/__tests__/fixtures/session-scale-*.mjs"
+      - "packages/cli/__tests__/unit/jsonl-session-store.test.js"
+      - "packages/cli/__tests__/unit/session-list-index.test.js"
+      - "packages/cli/__tests__/unit/session-*scale*.test.js"
+  schedule:
+    - cron: "41 4 * * 2"
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: "Exact full commit SHA to test (blank uses selected ref)"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  session-scale:
+    name: "session scale (${{ matrix.os }}, ${{ github.event_name == 'pull_request' && 'smoke' || 'formal' }})"
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 180
+    env:
+      CC_SESSION_SCALE_MODE: ${{ github.event_name == 'pull_request' && 'smoke' || 'formal' }}
+      CC_SESSION_SCALE_EXPECTED_SHA: ${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
+      # P0-5 uses one explicit threshold profile on all three platforms. Formal
+      # mode also enforces its documented minima internally, so workflow input
+      # or environment drift cannot silently shrink the matrix or loosen SLOs.
+      CC_SESSION_SCALE_LIST_P95_MS: "200"
+      CC_SESSION_SCALE_LIST_RSS_MB: "100"
+      CC_SESSION_SCALE_RESUME_P95_MS: "2000"
+      CC_SESSION_SCALE_RESUME_RSS_MB: "100"
+      CC_SESSION_SCALE_RESUME_MAX_IO_BYTES: "1048576"
+    steps:
+      - name: Checkout exact session-scale commit
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+
+      - uses: ./.github/actions/setup-node-deps
+
+      - name: Run canonical session scale gate
+        env:
+          CC_SESSION_SCALE_OUTPUT: ${{ runner.temp }}/cli-session-scale-result.json
+        run: npm run test:cli-session-scale
+
+      - name: Upload exact-SHA session scale evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: cli-session-scale-${{ matrix.os }}-${{ env.CC_SESSION_SCALE_EXPECTED_SHA }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/cli-session-scale-result.json
+          if-no-files-found: error
+          retention-days: 30

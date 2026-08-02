@@ -3,6 +3,13 @@ import { StringDecoder } from "node:string_decoder";
 
 const DEFAULT_CHUNK_SIZE = 64 * 1024;
 
+function recordRead(ioMetrics, bytes) {
+  if (!ioMetrics || typeof ioMetrics !== "object") return;
+  ioMetrics.readCalls = Math.max(0, Number(ioMetrics.readCalls) || 0) + 1;
+  ioMetrics.bytesRead =
+    Math.max(0, Number(ioMetrics.bytesRead) || 0) + Math.max(0, bytes || 0);
+}
+
 /**
  * Stream UTF-8 lines from a file without loading the whole file. The final
  * unterminated fragment is yielded with `terminated:false`, which lets callers
@@ -10,7 +17,11 @@ const DEFAULT_CHUNK_SIZE = 64 * 1024;
  */
 export function* iterateFileLinesSync(
   filePath,
-  { chunkSize = DEFAULT_CHUNK_SIZE, includeEmpty = false } = {},
+  {
+    chunkSize = DEFAULT_CHUNK_SIZE,
+    includeEmpty = false,
+    ioMetrics = null,
+  } = {},
 ) {
   const fd = openSync(filePath, "r");
   const decoder = new StringDecoder("utf8");
@@ -21,6 +32,7 @@ export function* iterateFileLinesSync(
     for (;;) {
       const bytes = readSync(fd, buffer, 0, buffer.length, null);
       if (bytes === 0) break;
+      recordRead(ioMetrics, bytes);
       pending += decoder.write(buffer.subarray(0, bytes));
       let newline;
       while ((newline = pending.indexOf("\n")) >= 0) {
@@ -52,14 +64,19 @@ export function* iterateFileLinesSync(
  */
 export function* iterateFileLinesReverseSync(
   filePath,
-  { chunkSize = DEFAULT_CHUNK_SIZE, includeEmpty = false } = {},
+  {
+    chunkSize = DEFAULT_CHUNK_SIZE,
+    includeEmpty = false,
+    ioMetrics = null,
+  } = {},
 ) {
   const fd = openSync(filePath, "r");
   const size = fstatSync(fd).size;
   let endsWithNewline = false;
   if (size > 0) {
     const last = Buffer.allocUnsafe(1);
-    readSync(fd, last, 0, 1, size - 1);
+    const bytes = readSync(fd, last, 0, 1, size - 1);
+    recordRead(ioMetrics, bytes);
     endsWithNewline = last[0] === 0x0a;
   }
   let position = size;
@@ -70,7 +87,8 @@ export function* iterateFileLinesReverseSync(
       const length = Math.min(Math.max(1024, chunkSize), position);
       position -= length;
       const chunk = Buffer.allocUnsafe(length);
-      readSync(fd, chunk, 0, length, position);
+      const bytes = readSync(fd, chunk, 0, length, position);
+      recordRead(ioMetrics, bytes);
       const combined = Buffer.concat([chunk, carry]);
       let end = combined.length;
       for (let index = combined.length - 1; index >= 0; index -= 1) {
