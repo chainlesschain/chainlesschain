@@ -5,11 +5,13 @@ import { describe, expect, it, vi } from "vitest";
 import {
   dispatchManifestEntry,
   formatCommandDeprecationWarning,
+  PHASE_ZERO_GLOBAL_OPTION_SCHEMA,
   prepareInvocation,
   resolveCommandLifecycleInvocation,
   runCli,
 } from "../../src/lazy-dispatch.js";
 import { validateCommandSurface } from "../../src/command-surface-policy.js";
+import { createBaseProgram } from "../../src/program-base.js";
 
 const packageRoot = path.resolve(import.meta.dirname, "../..");
 const repositoryRoot = path.resolve(packageRoot, "../..");
@@ -27,6 +29,31 @@ function output(isTTY = false) {
 }
 
 describe("command lifecycle policy", () => {
+  it("mirrors the real Commander global option allowlist and arity", () => {
+    const phaseOneOptions = createBaseProgram()
+      .options.filter((option) => option.long !== "--version")
+      .map((option) => ({
+        flag: option.long,
+        arity: option.required ? 1 : 0,
+      }))
+      .sort((left, right) => left.flag.localeCompare(right.flag));
+    const phaseZeroOptions = PHASE_ZERO_GLOBAL_OPTION_SCHEMA.map(
+      ({ flag, arity }) => ({ flag, arity }),
+    ).sort((left, right) => left.flag.localeCompare(right.flag));
+
+    expect(phaseZeroOptions).toEqual(phaseOneOptions);
+    expect(
+      PHASE_ZERO_GLOBAL_OPTION_SCHEMA.find(
+        (option) => option.flag === "--jsii-runtime",
+      ).allowedValues,
+    ).toEqual(["native", "quickjs"]);
+    expect(
+      PHASE_ZERO_GLOBAL_OPTION_SCHEMA.find(
+        (option) => option.flag === "--otlp-endpoint",
+      ).allowedProtocols,
+    ).toEqual(["http:", "https:"]);
+  });
+
   it("keeps the actual canonical top-level graph at 175 with net growth zero", () => {
     expect(manifest.commandCount).toBe(175);
     expect(manifest.surface.topLevelGrowth).toEqual({
@@ -295,6 +322,119 @@ describe("phase-0 compatibility namespace", () => {
         "dao",
       )}\n`,
     );
+  });
+
+  it("normalizes help controls before and after the lab target", async () => {
+    const invoke = async (args) => {
+      const stdout = output();
+      const stderr = output();
+      const result = await prepareInvocation(argv(...args), {
+        manifestData: manifest,
+        stdin: { isTTY: false },
+        stdout: stdout.stream,
+        stderr: stderr.stream,
+      });
+      return { result, stdout: stdout.value(), stderr: stderr.value() };
+    };
+
+    const jsonBefore = await invoke(["help", "lab", "--json", "dao"]);
+    const jsonAfter = await invoke(["help", "lab", "dao", "--json"]);
+    expect(jsonBefore).toEqual(jsonAfter);
+    expect(jsonBefore.result).toMatchObject({
+      handled: true,
+      kind: "command-help-json",
+    });
+    expect(JSON.parse(jsonBefore.stdout)).toMatchObject({
+      schema: "chainlesschain.command-help.v1",
+      command: { name: "dao", replacement: "lab dao" },
+    });
+    expect(jsonBefore.stderr).toBe("");
+
+    const allBefore = await invoke(["help", "lab", "--all", "dao"]);
+    const allAfter = await invoke(["help", "lab", "dao", "--all"]);
+    expect(allBefore).toEqual(allAfter);
+    expect(allBefore.result).toMatchObject({
+      handled: true,
+      kind: "command-help",
+    });
+    expect(allBefore.stdout).toContain("Usage: chainlesschain dao");
+    expect(allBefore.stderr).toBe("");
+  });
+
+  it("fails closed on malformed global options around the namespace", async () => {
+    const cases = [
+      {
+        args: ["--bogus", "lab", "dao"],
+        message: "Unknown global option '--bogus'",
+      },
+      {
+        args: ["--verbose=yes", "lab", "dao"],
+        message: "Global option '--verbose' does not accept a value",
+      },
+      {
+        args: ["--jsii-runtime", "wasm", "lab", "dao"],
+        message: "must be one of: native, quickjs",
+      },
+      {
+        args: ["--jsii-runtime=wasm", "lab", "dao"],
+        message: "must be one of: native, quickjs",
+      },
+      {
+        args: ["--otlp-endpoint", "localhost:4318", "lab", "dao"],
+        message: "requires an absolute http(s) URL",
+      },
+      {
+        args: ["--otlp-endpoint=ftp://collector.test", "lab", "dao"],
+        message: "requires an absolute http(s) URL",
+      },
+      {
+        args: ["--otlp-endpoint=", "lab", "dao"],
+        message: "requires a value",
+      },
+      {
+        args: ["lab", "--otlp-endpoint", "--verbose", "dao"],
+        message: "Global option '--otlp-endpoint' requires a value",
+      },
+      {
+        args: ["lab", "--jsii-runtime", "wasm", "dao"],
+        message: "must be one of: native, quickjs",
+      },
+      {
+        args: ["help", "--bogus", "lab", "dao"],
+        message: "Unknown global option '--bogus'",
+      },
+      {
+        args: ["help", "--otlp-endpoint", "--verbose", "lab", "dao"],
+        message: "Global option '--otlp-endpoint' requires a value",
+      },
+    ];
+
+    for (const fixture of cases) {
+      const stdout = output();
+      const stderr = output();
+      const loadFullProgram = vi.fn();
+      const exitCodes = [];
+      await runCli(argv(...fixture.args), {
+        manifestData: manifest,
+        stdin: { isTTY: false },
+        stdout: stdout.stream,
+        stderr: stderr.stream,
+        loadFullProgram,
+        setExitCode: (code) => exitCodes.push(code),
+      });
+      expect(stdout.value(), JSON.stringify(fixture.args)).toBe("");
+      expect(stderr.value(), JSON.stringify(fixture.args)).toContain(
+        fixture.message,
+      );
+      expect(stderr.value(), JSON.stringify(fixture.args)).toContain(
+        "Run 'cc lab --help'",
+      );
+      expect(
+        loadFullProgram,
+        JSON.stringify(fixture.args),
+      ).not.toHaveBeenCalled();
+      expect(exitCodes, JSON.stringify(fixture.args)).toEqual([1]);
+    }
   });
 
   it("reports unknown and misplaced lab targets entirely in phase 0", async () => {
