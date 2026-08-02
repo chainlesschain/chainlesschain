@@ -556,6 +556,7 @@ E2E retry-pass 应记为 flake，而不是普通 pass；超过阈值阻断发布
 | `00905ff90c` | `30749292414` cancelled | 无同 SHA 完成证据     | 无同 SHA 完成证据              | **NO-GO** |
 | `b81b84b9f9` | `30749410076` cancelled | 无同 SHA 完成证据     | `30749409955` success          | **NO-GO** |
 | `b02c88b019` | `30749596847` queued    | 无同 SHA 完成证据     | 无同 SHA 完成证据              | **NO-GO** |
+| `f22322edb1` | `30752225902` queued    | 无同 SHA 完成证据     | `30752225804` queued           | **NO-GO** |
 
 当前没有任何待发布 exact SHA 同时取得完整 `CLI CI` 与 `CLI Strict Sandbox` 成功。queued、in-progress、cancelled、failure、部分矩阵、组件门成功、本地测试或旧 SHA 结果均不构成发布授权；文档提交后的新 SHA 也必须重新运行完整双门。
 
@@ -599,3 +600,18 @@ E2E retry-pass 应记为 flake，而不是普通 pass；超过阈值阻断发布
 - 仍未关闭的 P1：preview/confirmation 尚未绑定 workspace pre-state 或 diff digest；不同 session 仍可同时改同一 workspace；没有 durable prepared/applied/recovery saga，hard kill/fsync 后 intent 不足以确定恢复；copy safety 对恢复前不存在文件仍无 tombstone；`clearCheckpoints` 与 create 的既有跨操作竞争可在发布后删除 `_tip`。这批修复也不是 general execution/session/workspace lease，不能外推为 restore-both 跨资源原子事务。
 - 非阻断 P2：Git ref 冲突识别依赖英文 stderr，本地化 Git 可能少一次 retry 但仍 fail closed；尚缺仅 `_tip` stale 的独立回归与 transaction verbs 最低 Git 版本探测。普通 hash-chain O(N)、独立 anti-rollback、真实 1 GiB、断电、remote host 与长期 soak 仍待产品级验收。
 - 截至 **2026-08-02 21:17 +08:00**，`7ce62ab756` 的 CLI CI `30749148369` cancelled；`b81b84b9f9` 的 Host Consistency `30749409955` success，但 CLI CI `30749410076` cancelled，且无同 SHA Strict 完成证据；`b02c88b019` 的 CLI CI `30749596847` queued，且无同 SHA Strict/Host 完成证据。三者均为 **release NO-GO**。
+
+### 14.9 Checkpoint workspace pre-state binding 增量
+
+- `f22322edb1` 新增 `cc-checkpoint-workspace-binding/v1` 与 digest-bound `cc-checkpoint-timeline-confirmation/v1`。Git binding 覆盖 canonical repository scope、当前完整 tree、target tree 与确定性 write plan；copy binding 覆盖 canonical workspace、全部目标和 parent state、present/absent、content/stat identity、checkpoint target 与 write plan。preview 的展示列表即使截断，confirmation digest 仍覆盖完整 opaque identity。
+- 原始 action 不能直接作为 `--confirm` 输入；CLI 只接受 preview 签发的精确 confirmation。public envelope 不泄露绝对 `workspaceRoot`，内部 full binding 仍传入 engine。VS Code 使用 `preview.confirmationSubmission`，conversation-only action 明确使用 `workspace: null`。
+- Git/copy engine 在 safety checkpoint、Git ref 或工作区写入前重新计算并严格比较 binding；copy fallback 还在目标/blob 处理前拒绝文件系统根目录、cwd/abs/rel 不一致、遍历/重复别名、symlink/junction parent、非普通目标及损坏 blob。直接 restore（含 `--force`）也由即时 preflight binding 约束。
+- 正确加载 `packages/cli/vitest.config.js` 的最终定向回归为 6 files、**96/96**；Prettier、ESLint、Node `--check` 与 `git diff --check` 全部通过。此前从仓库根运行导致的 5 秒超时没有加载 CLI 的 90 秒 test timeout，只是错误测试入口，不是产品失败。最终独立只读复核为新增 P0=0、P1=0。
+- 本增量只关闭“preview/confirm 未绑定完整 workspace pre-state”的缺口。最终 confirm→intent→restore check/write 窗口仍需要 canonical workspace lifetime lock；锁顺序必须为 `workspace → session`，在锁内重载 authority、重算 binding，并保持到 restore、conversation 与 terminal audit 完成。hard kill 恢复还需要 durable prepared/applied/recovery saga，copy 对原先不存在文件需要 durable tombstone。因此目前仍是 **release NO-GO**，不能写成 restore-both 原子完成。
+
+### 14.10 下一 CLI 版本判定
+
+- npm registry 当前 `latest` 与仓库 package version 都是 `0.162.189`，registry 的该版本绑定 `gitHead=2607af0dadeb951583139942e5f2add3e95e1208`；同一版本不可重复发布。
+- 从该 npm gitHead 到 `f22322edb1`，`packages/cli` 已累计 **121 个提交、350 个文件变化、94,663 行新增/3,650 行删除**。变更规模足以准备一个 patch release，建议候选版本为 **`0.162.190`**，而不是继续堆积到下一次大批量发布。
+- 但截至 **2026-08-02 22:31 +08:00**，`f22322edb1` 的 `CLI CI` run `30752225902` 与 Host Consistency run `30752225804` 仍为 queued，且没有同 SHA 的 `CLI Strict Sandbox` 完成证据；已知 checkpoint workspace lifetime lock、durable saga/tombstone 等 P1 也尚未关闭。因此结论是：**值得准备 `0.162.190`，现在不要发布**。
+- 推荐顺序：先提交并验证剩余 P1；再创建唯一版本提交将 CLI bump 到 `0.162.190`；对该精确版本 SHA 运行 `CLI CI` 与 `CLI Strict Sandbox` 的 Ubuntu 24.04、macOS 15、Windows 全矩阵；全部成功后再执行 npm dry-run/tarball digest 校验与正式 publish。任何 queued、cancelled、failure、旧 SHA 或局部成功都不能授权发布。
