@@ -60,6 +60,7 @@ describe("CLI release workflow contracts", () => {
     }
 
     for (const testFile of [
+      "__tests__/unit/mcp-call-ledger.test.js",
       "__tests__/unit/mcp-call-ledger-store.test.js",
       "__tests__/unit/mcp-host-recovery-runtime.test.js",
       "__tests__/unit/mcp-ledger-recovery-admission.test.js",
@@ -72,6 +73,7 @@ describe("CLI release workflow contracts", () => {
       "__tests__/unit/cowork-task-runner.test.js",
       "__tests__/unit/ws-runtime-events.test.js",
       "__tests__/integration/ws-bridge-side-effect-resume.test.js",
+      "__tests__/integration/parity-mcp-invoke.test.js",
     ]) {
       expect(triggers).toContain(`packages/cli/${testFile}`);
       expect(jobs).toContain(testFile);

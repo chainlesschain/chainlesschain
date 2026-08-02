@@ -69,6 +69,7 @@ on:
       - "packages/cli/__tests__/unit/ws-agent-handler.test.js"
       - "packages/cli/__tests__/unit/ws-session-manager.test.js"
       - "packages/cli/__tests__/unit/mcp-client-sandbox-policy.test.js"
+      - "packages/cli/__tests__/unit/mcp-call-ledger.test.js"
       - "packages/cli/__tests__/unit/mcp-call-ledger-store.test.js"
       - "packages/cli/__tests__/unit/mcp-host-recovery-runtime.test.js"
       - "packages/cli/__tests__/unit/mcp-ledger-recovery-admission.test.js"
@@ -81,6 +82,7 @@ on:
       - "packages/cli/__tests__/unit/cowork-task-runner.test.js"
       - "packages/cli/__tests__/unit/ws-runtime-events.test.js"
       - "packages/cli/__tests__/integration/ws-bridge-side-effect-resume.test.js"
+      - "packages/cli/__tests__/integration/parity-mcp-invoke.test.js"
       - "packages/cli/__tests__/unit/plugin-monitor-supervisor.test.js"
       - "packages/cli/__tests__/unit/plugin-runtime-mcp.test.js"
       - "packages/cli/__tests__/unit/plugin-runtime-monitors.test.js"
@@ -167,6 +169,7 @@ on:
       - "packages/cli/__tests__/unit/ws-agent-handler.test.js"
       - "packages/cli/__tests__/unit/ws-session-manager.test.js"
       - "packages/cli/__tests__/unit/mcp-client-sandbox-policy.test.js"
+      - "packages/cli/__tests__/unit/mcp-call-ledger.test.js"
       - "packages/cli/__tests__/unit/mcp-call-ledger-store.test.js"
       - "packages/cli/__tests__/unit/mcp-host-recovery-runtime.test.js"
       - "packages/cli/__tests__/unit/mcp-ledger-recovery-admission.test.js"
@@ -179,6 +182,7 @@ on:
       - "packages/cli/__tests__/unit/cowork-task-runner.test.js"
       - "packages/cli/__tests__/unit/ws-runtime-events.test.js"
       - "packages/cli/__tests__/integration/ws-bridge-side-effect-resume.test.js"
+      - "packages/cli/__tests__/integration/parity-mcp-invoke.test.js"
       - "packages/cli/__tests__/unit/plugin-monitor-supervisor.test.js"
       - "packages/cli/__tests__/unit/plugin-runtime-mcp.test.js"
       - "packages/cli/__tests__/unit/plugin-runtime-monitors.test.js"
@@ -307,6 +311,7 @@ jobs:
           __tests__/unit/ws-agent-handler.test.js
           __tests__/unit/ws-session-manager.test.js
           __tests__/unit/mcp-client-sandbox-policy.test.js
+          __tests__/unit/mcp-call-ledger.test.js
           __tests__/unit/mcp-call-ledger-store.test.js
           __tests__/unit/mcp-host-recovery-runtime.test.js
           __tests__/unit/mcp-ledger-recovery-admission.test.js
@@ -319,6 +324,7 @@ jobs:
           __tests__/unit/cowork-task-runner.test.js
           __tests__/unit/ws-runtime-events.test.js
           __tests__/integration/ws-bridge-side-effect-resume.test.js
+          __tests__/integration/parity-mcp-invoke.test.js
           __tests__/unit/plugin-monitor-supervisor.test.js
           __tests__/unit/plugin-runtime-mcp.test.js
           __tests__/unit/plugin-runtime-monitors.test.js
