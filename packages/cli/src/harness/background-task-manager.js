@@ -691,7 +691,16 @@ export class BackgroundTaskManager extends EventEmitter {
   }
 
   _runningCount() {
-    return this.processes.size;
+    // A task can be known to be running before/without a local child-process
+    // entry (for example a restored task or an alternate executor), while a
+    // logically settled task must continue occupying capacity until its owned
+    // worker actually exits. Count the union so neither case can bypass the
+    // concurrency ceiling, and avoid double-counting ordinary local workers.
+    const activeTaskIds = new Set(this.processes.keys());
+    for (const task of this.tasks.values()) {
+      if (task.status === TaskStatus.RUNNING) activeTaskIds.add(task.id);
+    }
+    return activeTaskIds.size;
   }
 
   _persistTask(task, eventType = "snapshot", meta = {}) {
