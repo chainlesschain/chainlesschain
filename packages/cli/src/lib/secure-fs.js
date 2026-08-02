@@ -107,6 +107,55 @@ function isTrustedDarwinSystemAlias(current, entry, deps, platform) {
   }
 }
 
+function readWindowsDirectoryEntry(target, deps) {
+  if (typeof deps.readdirSync !== "function") return null;
+  const parent = win32.dirname(target);
+  if (!parent || samePath(parent, target, true)) return null;
+  let entries;
+  try {
+    entries = deps.readdirSync(parent, { withFileTypes: true });
+  } catch {
+    return null;
+  }
+  if (!Array.isArray(entries)) return null;
+  const name = win32.basename(target);
+  const matches = entries.filter(
+    (candidate) => String(candidate?.name || "") === name,
+  );
+  if (matches.length !== 1) return null;
+  const [entry] = matches;
+  if (
+    typeof entry.isSymbolicLink !== "function" ||
+    typeof entry.isDirectory !== "function" ||
+    typeof entry.isFile !== "function"
+  ) {
+    return null;
+  }
+  try {
+    const isSymbolicLink = Boolean(entry.isSymbolicLink());
+    const isDirectory = Boolean(entry.isDirectory());
+    const isFile = Boolean(entry.isFile());
+    if (!isSymbolicLink && isDirectory === isFile) return null;
+    return {
+      exists: true,
+      isDirectory,
+      isFile,
+      isSymbolicLink,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function windowsUnreliablePathStatError(target, cause) {
+  const error = new Error(
+    `Windows path metadata could not reliably classify an existing path: ${target}`,
+    cause ? { cause } : undefined,
+  );
+  error.code = "WINDOWS_PATH_STAT_UNRELIABLE";
+  return error;
+}
+
 function assertNoLinkTraversal(
   target,
   deps = fs,
@@ -137,6 +186,24 @@ function assertNoLinkTraversal(
     try {
       entry = deps.lstatSync(current);
     } catch (error) {
+      if (
+        platform === "win32" &&
+        ["ENOENT", "EPERM", "EACCES"].includes(error?.code)
+      ) {
+        const directoryEntry = readWindowsDirectoryEntry(current, deps);
+        if (directoryEntry) {
+          if (directoryEntry.isSymbolicLink) {
+            const unsafe = new Error(
+              `Refusing owner-only permission changes through a symbolic link or junction: ${current}`,
+            );
+            unsafe.code = "CONFIG_HOME_UNSAFE";
+            throw unsafe;
+          }
+          checkedPaths?.add(cacheKey);
+          continue;
+        }
+        throw windowsUnreliablePathStatError(current, error);
+      }
       if (error?.code === "ENOENT") break;
       throw error;
     }
@@ -278,6 +345,7 @@ if ($ownerOnly) {
 }
 [pscustomobject]@{
   ownerOnly = [bool]$ownerOnly
+  isDirectory = [bool]$item.PSIsContainer
   ownerSid = $owner
   currentSid = $sid.Value
   tokenOwnerSid = if ($null -eq $tokenOwner) { $null } else { $tokenOwner.Value }
@@ -301,8 +369,12 @@ $tokenOwner = $identity.Owner
 $request = [Console]::In.ReadToEnd() | ConvertFrom-Json
 $operation = [string]$request.operation
 $targets = @($request.targets)
-if ($operation -ne 'inspect' -and $operation -ne 'repair') {
+$expectedKind = [string]$request.expectedKind
+if ($operation -ne 'inspect' -and $operation -ne 'repair' -and $operation -ne 'preflight') {
   throw "unsupported ACL batch operation: $operation"
+}
+if ($expectedKind -ne '' -and $expectedKind -ne 'file' -and $expectedKind -ne 'directory') {
+  throw "unsupported expected path kind: $expectedKind"
 }
 
 function Assert-CcNoReparseTraversal([string]$path) {
@@ -324,17 +396,28 @@ function Assert-CcNoReparseTraversal([string]$path) {
 # A repair is all-or-nothing with respect to path safety. Preflight every
 # existing target before the first SetAccessControl call so a junction root
 # cannot fail after a regular-looking descendant has already been modified.
-if ($operation -eq 'repair') {
+if ($operation -eq 'repair' -or $operation -eq 'preflight') {
   $preflightFailures = @()
   foreach ($target in $targets) {
     try {
       Assert-CcNoReparseTraversal $target
       $candidate = Get-Item -LiteralPath $target -Force
+      $kindMismatch =
+        ($expectedKind -eq 'file' -and $candidate.PSIsContainer) -or
+        ($expectedKind -eq 'directory' -and -not $candidate.PSIsContainer)
+      if ($kindMismatch) {
+        $preflightFailures += [pscustomobject]@{
+          target = [string]$target
+          error = "expected $expectedKind but found $(if ($candidate.PSIsContainer) { 'directory' } else { 'file' })"
+          errorCode = 'EXPECTED_KIND_MISMATCH'
+        }
+      }
     } catch {
       if ($_.CategoryInfo.Category -ne [System.Management.Automation.ErrorCategory]::ObjectNotFound) {
         $preflightFailures += [pscustomobject]@{
           target = [string]$target
           error = $_.Exception.Message
+          errorCode = 'PATH_PREFLIGHT_FAILED'
         }
       }
     }
@@ -345,12 +428,36 @@ if ($operation -eq 'repair') {
       [pscustomobject]@{
         target = [string]$_
         exists = [bool](Test-Path -LiteralPath $_)
+        isDirectory = $null
         ok = $false
         error = "ACL batch preflight failed at $($firstFailure.target): $($firstFailure.error)"
+        errorCode = $firstFailure.errorCode
       }
     })
     [Console]::Write((ConvertTo-Json -InputObject $output -Compress -Depth 4))
     exit 4
+  }
+  if ($operation -eq 'preflight') {
+    $output = @($targets | ForEach-Object {
+      $preflightTarget = [string]$_
+      $nativeItem = $null
+      try {
+        $nativeItem = Get-Item -LiteralPath $preflightTarget -Force
+      } catch {
+        if ($_.CategoryInfo.Category -ne [System.Management.Automation.ErrorCategory]::ObjectNotFound) {
+          throw
+        }
+      }
+      [pscustomobject]@{
+        target = $preflightTarget
+        exists = [bool]($null -ne $nativeItem)
+        isDirectory = if ($null -eq $nativeItem) { $null } else { [bool]$nativeItem.PSIsContainer }
+        ok = $true
+        error = $null
+      }
+    })
+    [Console]::Write((ConvertTo-Json -InputObject $output -Compress -Depth 4))
+    exit 0
   }
 }
 
@@ -406,6 +513,20 @@ $results = foreach ($target in $targets) {
   try {
     Assert-CcNoReparseTraversal $target
     $item = Get-Item -LiteralPath $target -Force
+    $kindMismatch =
+      ($expectedKind -eq 'file' -and $item.PSIsContainer) -or
+      ($expectedKind -eq 'directory' -and -not $item.PSIsContainer)
+    if ($kindMismatch) {
+      [pscustomobject]@{
+        target = [string]$target
+        exists = $true
+        isDirectory = [bool]$item.PSIsContainer
+        ok = $false
+        error = "expected $expectedKind but found $(if ($item.PSIsContainer) { 'directory' } else { 'file' })"
+        errorCode = 'EXPECTED_KIND_MISMATCH'
+      }
+      continue
+    }
     if ($operation -eq 'repair') {
       Write-CcOwnerOnlyAcl $item $target
     }
@@ -447,6 +568,7 @@ $results = foreach ($target in $targets) {
     [pscustomobject]@{
       target = [string]$target
       exists = $true
+      isDirectory = [bool]$item.PSIsContainer
       ok = [bool]$ownerOnly
       ownerSid = $owner
       currentSid = $sid.Value
@@ -454,13 +576,16 @@ $results = foreach ($target in $targets) {
       protected = [bool]$acl.AreAccessRulesProtected
       aceCount = $rules.Count
       error = if ($ownerOnly) { $null } else { 'path is not owner-only' }
+      errorCode = $null
     }
   } catch {
     [pscustomobject]@{
       target = [string]$target
       exists = [bool](($null -ne $item) -or (Test-Path -LiteralPath $target))
+      isDirectory = $null
       ok = $false
       error = $_.Exception.Message
+      errorCode = 'PATH_OPERATION_FAILED'
     }
   }
 }
@@ -529,7 +654,7 @@ function windowsAcl(target, operation, deps) {
   return { ok: true, platform: "win32", details };
 }
 
-function windowsAclBatch(targets, operation, deps) {
+function windowsAclBatch(targets, operation, deps, expectedKind = null) {
   if (targets.length === 0) return [];
   const result = deps.spawnSync(
     "powershell.exe",
@@ -544,7 +669,11 @@ function windowsAclBatch(targets, operation, deps) {
     ],
     {
       encoding: "utf8",
-      input: JSON.stringify({ operation, targets }),
+      input: JSON.stringify({
+        operation,
+        targets,
+        ...(expectedKind ? { expectedKind } : {}),
+      }),
       windowsHide: true,
       timeout: 30000,
       maxBuffer: 4 * 1024 * 1024,
@@ -586,6 +715,7 @@ function windowsAclBatch(targets, operation, deps) {
       ok: entry?.ok === true,
       platform: "win32",
       details: entry || null,
+      ...(entry?.errorCode ? { errorCode: entry.errorCode } : {}),
       ...(entry?.ok === true
         ? {}
         : {
@@ -596,6 +726,112 @@ function windowsAclBatch(targets, operation, deps) {
           }),
     };
   });
+}
+
+function isWindowsPathStatUnreliable(error, platform) {
+  return (
+    platform === "win32" &&
+    (error?.code === "EPERM" ||
+      error?.code === "EACCES" ||
+      error?.code === "ENOENT" ||
+      error?.code === "WINDOWS_PATH_STAT_UNRELIABLE")
+  );
+}
+
+function preflightWindowsPaths(targets, deps) {
+  const results = [];
+  for (
+    let offset = 0;
+    offset < targets.length;
+    offset += WINDOWS_ACL_BATCH_SIZE
+  ) {
+    results.push(
+      ...windowsAclBatch(
+        targets.slice(offset, offset + WINDOWS_ACL_BATCH_SIZE),
+        "preflight",
+        deps,
+      ),
+    );
+  }
+  const failed = results.find((entry) => entry.ok !== true);
+  if (failed) {
+    const error = new Error(
+      `Could not verify Windows path ancestors for ${failed.target}: ${failed.error || "native preflight failed"}`,
+    );
+    error.code = "CONFIG_HOME_UNSAFE";
+    throw error;
+  }
+  return results;
+}
+
+function privatePathEntryFromNativeEvidence(target, nativeResult) {
+  if (!nativeResult || !samePath(nativeResult.target, target, true)) {
+    const unsafe = new Error(
+      `Native Windows path evidence did not match requested target: ${target}`,
+    );
+    unsafe.code = "CONFIG_HOME_UNSAFE";
+    throw unsafe;
+  }
+  if (nativeResult.exists === false) {
+    return { exists: false, entry: null };
+  }
+  const isDirectory = nativeResult.details?.isDirectory;
+  if (typeof isDirectory !== "boolean") {
+    const unsafe = new Error(
+      `Could not classify Windows path type after native preflight: ${target}`,
+    );
+    unsafe.code = "CONFIG_HOME_UNSAFE";
+    throw unsafe;
+  }
+  return {
+    exists: true,
+    entry: {
+      isDirectory: () => isDirectory,
+      isSymbolicLink: () => false,
+    },
+  };
+}
+
+function readPrivatePathEntry(target, deps, platform, nativeEvidence = null) {
+  if (platform === "win32" && nativeEvidence) {
+    return privatePathEntryFromNativeEvidence(target, nativeEvidence);
+  }
+  try {
+    return { exists: true, entry: deps.fs.lstatSync(target) };
+  } catch (error) {
+    if (platform !== "win32") {
+      if (error?.code === "ENOENT") return { exists: false, entry: null };
+      throw error;
+    }
+    if (!isWindowsPathStatUnreliable(error, platform)) throw error;
+    const directoryEntry = readWindowsDirectoryEntry(target, deps.fs);
+    if (directoryEntry) {
+      return {
+        exists: true,
+        entry: {
+          isDirectory: () => directoryEntry.isDirectory,
+          isSymbolicLink: () => directoryEntry.isSymbolicLink,
+        },
+      };
+    }
+    const [nativeResult] = preflightWindowsPaths([String(target)], deps);
+    return privatePathEntryFromNativeEvidence(target, nativeResult);
+  }
+}
+
+function assertNoLinkTraversalWithWindowsFallback(
+  target,
+  deps,
+  checkedPaths,
+  platform,
+) {
+  try {
+    assertNoLinkTraversal(target, deps.fs, checkedPaths, platform);
+    return null;
+  } catch (error) {
+    if (!isWindowsPathStatUnreliable(error, platform)) throw error;
+    return preflightWindowsPaths([String(target)], deps)[0];
+  }
 }
 
 export function inspectPrivatePaths(targets, options = {}) {
@@ -627,19 +863,27 @@ export function inspectPrivatePaths(targets, options = {}) {
 export function repairPrivatePaths(targets, options = {}) {
   const uniqueTargets = [...new Set((targets || []).map(String))];
   const deps = { ..._deps, ...(options.deps || {}) };
+  const platform = options.platform || deps.platform();
   const checkedPaths = new Set();
+  let nativeWindowsPreflightRequired = false;
   // Complete every path-safety check before starting a batched mutation. This
   // prevents a linked trust root from failing only after a descendant changed.
   for (const target of uniqueTargets) {
-    assertSafeOwnerOnlyPath(target, options.platform || deps.platform());
-    assertNoLinkTraversal(
-      target,
-      deps.fs,
-      checkedPaths,
-      options.platform || deps.platform(),
-    );
+    assertSafeOwnerOnlyPath(target, platform);
   }
-  if ((options.platform || deps.platform()) === "win32") {
+  for (const target of uniqueTargets) {
+    try {
+      assertNoLinkTraversal(target, deps.fs, checkedPaths, platform);
+    } catch (error) {
+      if (!isWindowsPathStatUnreliable(error, platform)) throw error;
+      nativeWindowsPreflightRequired = true;
+      break;
+    }
+  }
+  if (nativeWindowsPreflightRequired) {
+    preflightWindowsPaths(uniqueTargets, deps);
+  }
+  if (platform === "win32") {
     const results = [];
     for (
       let offset = 0;
@@ -688,6 +932,10 @@ export function repairPrivatePaths(targets, options = {}) {
 
 export function inspectPrivatePath(target, options = {}) {
   const deps = { ..._deps, ...(options.deps || {}) };
+  const platform = options.platform || deps.platform();
+  if (platform === "win32") {
+    return windowsAclBatch([String(target)], "inspect", deps)[0];
+  }
   let stat;
   try {
     stat = deps.fs.lstatSync(target);
@@ -696,9 +944,6 @@ export function inspectPrivatePath(target, options = {}) {
   }
   if (stat.isSymbolicLink()) {
     return { ok: false, exists: true, error: "symbolic links are not allowed" };
-  }
-  if ((options.platform || deps.platform()) === "win32") {
-    return { exists: true, ...windowsAcl(target, "inspect", deps) };
   }
   const expected = stat.isDirectory()
     ? PRIVATE_DIRECTORY_MODE
@@ -718,29 +963,25 @@ export function inspectPrivatePath(target, options = {}) {
 
 export function repairPrivatePath(target, options = {}) {
   const deps = { ..._deps, ...(options.deps || {}) };
-  assertSafeOwnerOnlyPath(target, options.platform || deps.platform());
-  assertNoLinkTraversal(
-    target,
-    deps.fs,
-    null,
-    options.platform || deps.platform(),
-  );
+  const platform = options.platform || deps.platform();
+  assertSafeOwnerOnlyPath(target, platform);
+  assertNoLinkTraversalWithWindowsFallback(target, deps, null, platform);
   return repairPrivatePathAfterPreflight(target, options, deps);
 }
 
 function repairPrivatePathAfterPreflight(target, options, deps) {
-  const stat = deps.fs.lstatSync(target);
-  if (stat.isSymbolicLink()) {
-    throw new Error(
-      `Refusing to change permissions through a symbolic link: ${target}`,
-    );
-  }
   if ((options.platform || deps.platform()) === "win32") {
     const result = windowsAcl(target, "repair", deps);
     if (!result.ok)
       throw new Error(result.error || "owner-only ACL repair failed");
     if (!options.deps) securedWindowsPaths.add(target);
     return result;
+  }
+  const stat = deps.fs.lstatSync(target);
+  if (stat.isSymbolicLink()) {
+    throw new Error(
+      `Refusing to change permissions through a symbolic link: ${target}`,
+    );
   }
   deps.fs.chmodSync(
     target,
@@ -754,22 +995,34 @@ function repairPrivatePathAfterPreflight(target, options, deps) {
 
 export function ensurePrivateDirectory(target, options = {}) {
   const deps = { ..._deps, ...(options.deps || {}) };
-  assertSafeOwnerOnlyPath(target, options.platform || deps.platform());
-  assertNoLinkTraversal(
+  const platform = options.platform || deps.platform();
+  assertSafeOwnerOnlyPath(target, platform);
+  const nativeEvidence = assertNoLinkTraversalWithWindowsFallback(
     target,
-    deps.fs,
+    deps,
     null,
-    options.platform || deps.platform(),
+    platform,
   );
-  const existed = deps.fs.existsSync(target);
+  let existed = deps.fs.existsSync(target);
   if (existed) {
-    const existing = deps.fs.lstatSync(target);
-    if (existing.isSymbolicLink()) {
+    const pathEntry = readPrivatePathEntry(
+      target,
+      deps,
+      platform,
+      nativeEvidence,
+    );
+    existed = pathEntry.exists;
+    const existing = pathEntry.entry;
+    if (existed && existing.isSymbolicLink()) {
       throw new Error(
         `Refusing owner-only directory through a symbolic link: ${target}`,
       );
     }
-    if (typeof existing.isDirectory === "function" && !existing.isDirectory()) {
+    if (
+      existed &&
+      typeof existing.isDirectory === "function" &&
+      !existing.isDirectory()
+    ) {
       throw new Error(`Expected a directory for owner-only storage: ${target}`);
     }
   }
@@ -793,15 +1046,22 @@ export function ensurePrivateDirectory(target, options = {}) {
 
 export function ensurePrivateFile(target, options = {}) {
   const deps = { ..._deps, ...(options.deps || {}) };
-  assertSafeOwnerOnlyPath(target, options.platform || deps.platform());
-  assertNoLinkTraversal(
+  const platform = options.platform || deps.platform();
+  assertSafeOwnerOnlyPath(target, platform);
+  const nativeEvidence = assertNoLinkTraversalWithWindowsFallback(
     target,
-    deps.fs,
+    deps,
     null,
-    options.platform || deps.platform(),
+    platform,
   );
-  if (!deps.fs.existsSync(target)) return target;
-  const existing = deps.fs.lstatSync(target);
+  const pathEntry = readPrivatePathEntry(
+    target,
+    deps,
+    platform,
+    nativeEvidence,
+  );
+  if (!pathEntry.exists) return target;
+  const existing = pathEntry.entry;
   if (existing.isSymbolicLink()) {
     throw new Error(
       `Refusing owner-only file through a symbolic link: ${target}`,
@@ -810,13 +1070,20 @@ export function ensurePrivateFile(target, options = {}) {
   if (typeof existing.isDirectory === "function" && existing.isDirectory()) {
     throw new Error(`Expected a file for owner-only storage: ${target}`);
   }
-  if ((options.platform || deps.platform()) !== "win32") {
+  if (platform !== "win32") {
     deps.fs.chmodSync(target, PRIVATE_FILE_MODE);
-  } else if (options.applyWindowsAcl === true) {
-    const result = repairWindowsAclOnce(target, deps, options);
-    if (!result.ok && options.failIfUnavailable) {
+  } else if (
+    options.applyWindowsAcl === true &&
+    (options.deps || !securedWindowsPaths.has(target))
+  ) {
+    const [result] = windowsAclBatch([String(target)], "repair", deps, "file");
+    if (result.errorCode === "EXPECTED_KIND_MISMATCH") {
+      throw new Error(`Expected a file for owner-only storage: ${target}`);
+    }
+    if (!result.ok && result.exists !== false && options.failIfUnavailable) {
       throw new Error(result.error || `Could not secure ${target}`);
     }
+    if (result.ok && !options.deps) securedWindowsPaths.add(target);
   }
   return target;
 }

@@ -1,5 +1,11 @@
 import { describe, it, expect, vi } from "vitest";
-import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import {
+  existsSync,
+  mkdtempSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DEFAULT_CONFIG } from "../../src/constants.js";
@@ -21,6 +27,7 @@ import {
 } from "../../src/lib/config-redaction.js";
 import {
   ensurePrivateDirectory,
+  ensurePrivateFile,
   inspectPrivatePath,
   inspectPrivatePaths,
   repairPrivatePath,
@@ -494,18 +501,34 @@ describe("owner-only filesystem helpers", () => {
   });
 
   it("uses read-back verification for Windows owner-only ACLs", () => {
-    const fs = fakeFs(0, true);
-    const spawnSync = () => ({
-      status: 0,
-      stdout: JSON.stringify({ ownerOnly: true, aceCount: 1 }),
-      stderr: "",
-    });
+    const fs = {
+      lstatSync: vi.fn(() => {
+        throw Object.assign(new Error("target denied"), { code: "EPERM" });
+      }),
+    };
+    const spawnSync = (_file, _args, options) => {
+      const request = JSON.parse(options.input);
+      return {
+        status: 0,
+        stdout: JSON.stringify(
+          request.targets.map((target) => ({
+            target,
+            exists: true,
+            isDirectory: true,
+            ok: true,
+            aceCount: 1,
+          })),
+        ),
+        stderr: "",
+      };
+    };
     expect(
       inspectPrivatePath("C:\\private", {
         platform: "win32",
         deps: { fs, spawnSync, platform: () => "win32" },
       }),
     ).toMatchObject({ ok: true, platform: "win32" });
+    expect(fs.lstatSync).not.toHaveBeenCalled();
   });
 
   it("checks multiple Windows ACLs in one fixed-script process", () => {
@@ -637,6 +660,65 @@ describe("owner-only filesystem helpers", () => {
     30000,
   );
 
+  it.runIf(process.platform === "win32")(
+    "rejects a real junction when JS ancestor inspection is unavailable",
+    () => {
+      const directory = mkdtempSync(join(tmpdir(), "cc-acl-fallback-"));
+      const outside = mkdtempSync(join(tmpdir(), "cc-acl-outside-"));
+      const junction = join(directory, "linked");
+      const target = join(junction, "new-state");
+      symlinkSync(outside, junction, "junction");
+      try {
+        const deniedFs = {
+          lstatSync: () => {
+            throw Object.assign(new Error("ancestor denied"), {
+              code: "EPERM",
+            });
+          },
+        };
+        expect(() =>
+          ensurePrivateDirectory(target, {
+            platform: "win32",
+            applyWindowsAcl: true,
+            failIfUnavailable: true,
+            deps: { fs: deniedFs, platform: () => "win32" },
+          }),
+        ).toThrow(/Could not verify Windows path ancestors/);
+        expect(existsSync(target)).toBe(false);
+      } finally {
+        rmSync(directory, { recursive: true, force: true });
+        rmSync(outside, { recursive: true, force: true });
+      }
+    },
+    30000,
+  );
+
+  it.runIf(process.platform === "win32")(
+    "checks the expected file kind again inside the native repair",
+    () => {
+      const directory = mkdtempSync(join(tmpdir(), "cc-acl-kind-"));
+      const fs = {
+        lstatSync: () => ({
+          isDirectory: () => false,
+          isSymbolicLink: () => false,
+        }),
+      };
+      try {
+        expect(() =>
+          ensurePrivateFile(directory, {
+            platform: "win32",
+            applyWindowsAcl: true,
+            failIfUnavailable: false,
+            deps: { fs, platform: () => "win32" },
+          }),
+        ).toThrow(/Expected a file/);
+      } finally {
+        rmSync(directory, { recursive: true, force: true });
+      }
+    },
+    30000,
+  );
+
   it("repairs an existing Windows directory when ACL application is explicit", () => {
     const fs = fakeFs(0, true);
     const spawnSync = vi.fn(() => ({
@@ -684,5 +766,484 @@ describe("owner-only filesystem helpers", () => {
       }),
     ).toThrow(/symbolic link or junction/i);
     expect(spawnSync).not.toHaveBeenCalled();
+  });
+
+  it("uses the fixed Windows reparse preflight when Node denies ancestor lstat", () => {
+    const targets = ["C:\\Users\\owner\\AppData\\Local\\state"];
+    const fs = {
+      lstatSync: (target) => {
+        if (target === "C:\\Users\\owner") {
+          throw Object.assign(new Error("ancestor denied"), { code: "EPERM" });
+        }
+        return { isSymbolicLink: () => false };
+      },
+    };
+    const spawnSync = vi.fn((_file, _args, options) => {
+      const request = JSON.parse(options.input);
+      return {
+        status: 0,
+        stdout: JSON.stringify(
+          request.targets.map((target) => ({
+            target,
+            exists: true,
+            ok: true,
+          })),
+        ),
+        stderr: "",
+      };
+    });
+
+    expect(
+      repairPrivatePaths(targets, {
+        platform: "win32",
+        deps: { fs, spawnSync, platform: () => "win32" },
+      }),
+    ).toEqual([expect.objectContaining({ target: targets[0], ok: true })]);
+    expect(
+      spawnSync.mock.calls.map((call) => JSON.parse(call[2].input).operation),
+    ).toEqual(["preflight", "repair"]);
+    expect(spawnSync.mock.calls[0][1].join(" ")).toMatch(/ReparsePoint/);
+  });
+
+  it("uses exact Windows directory entries when ancestor lstat is unreliable", () => {
+    const target = "C:\\Users\\owner\\AppData\\Local\\state";
+    const fs = {
+      lstatSync: (candidate) => {
+        if (candidate === "C:\\Users\\owner") {
+          throw Object.assign(new Error("ancestor missing"), {
+            code: "ENOENT",
+          });
+        }
+        return { isSymbolicLink: () => false };
+      },
+      readdirSync: (parent, options) => {
+        expect(parent).toBe("C:\\Users");
+        expect(options).toEqual({ withFileTypes: true });
+        return [
+          {
+            name: "owner",
+            isDirectory: () => true,
+            isFile: () => false,
+            isSymbolicLink: () => false,
+          },
+        ];
+      },
+    };
+    const spawnSync = vi.fn((_file, _args, options) => {
+      const request = JSON.parse(options.input);
+      return {
+        status: 0,
+        stdout: JSON.stringify(
+          request.targets.map((candidate) => ({
+            target: candidate,
+            exists: true,
+            ok: true,
+          })),
+        ),
+        stderr: "",
+      };
+    });
+
+    expect(
+      repairPrivatePaths([target], {
+        platform: "win32",
+        deps: { fs, spawnSync, platform: () => "win32" },
+      }),
+    ).toEqual([expect.objectContaining({ target, ok: true })]);
+    expect(
+      spawnSync.mock.calls.map((call) => JSON.parse(call[2].input).operation),
+    ).toEqual(["repair"]);
+  });
+
+  it.each([
+    [
+      "case-folded",
+      {
+        name: "Owner",
+        isDirectory: () => true,
+        isFile: () => false,
+        isSymbolicLink: () => false,
+      },
+    ],
+    [
+      "unknown-type",
+      {
+        name: "owner",
+        isDirectory: () => false,
+        isFile: () => false,
+        isSymbolicLink: () => false,
+      },
+    ],
+  ])("routes a %s Windows dirent to native preflight", (_label, entry) => {
+    const target = "C:\\Users\\owner\\AppData\\Local\\state";
+    const fs = {
+      lstatSync: (candidate) => {
+        if (candidate === "C:\\Users\\owner") {
+          throw Object.assign(new Error("ancestor denied"), { code: "EPERM" });
+        }
+        return { isSymbolicLink: () => false };
+      },
+      readdirSync: () => [entry],
+    };
+    const spawnSync = vi.fn((_file, _args, options) => ({
+      status: 4,
+      stdout: JSON.stringify(
+        JSON.parse(options.input).targets.map((candidate) => ({
+          target: candidate,
+          exists: true,
+          ok: false,
+          error: "native proof unavailable",
+        })),
+      ),
+      stderr: "",
+    }));
+
+    expect(() =>
+      repairPrivatePaths([target], {
+        platform: "win32",
+        deps: { fs, spawnSync, platform: () => "win32" },
+      }),
+    ).toThrow(/Could not verify Windows path ancestors/);
+    expect(spawnSync).toHaveBeenCalledOnce();
+  });
+
+  it("repairs a Windows target natively after target lstat becomes unreliable", () => {
+    const target = "C:\\Users\\owner\\AppData\\Local\\state.json";
+    const fs = {
+      lstatSync: (candidate) => {
+        if (candidate === target) {
+          throw Object.assign(new Error("target denied"), { code: "EPERM" });
+        }
+        return { isSymbolicLink: () => false };
+      },
+    };
+    const spawnSync = vi.fn((_file, args, options) => {
+      if (options.input) {
+        const request = JSON.parse(options.input);
+        return {
+          status: 0,
+          stdout: JSON.stringify(
+            request.targets.map((candidate) => ({
+              target: candidate,
+              exists: true,
+              isDirectory: false,
+              ok: true,
+            })),
+          ),
+          stderr: "",
+        };
+      }
+      expect(args.at(-1)).toBe("repair");
+      return {
+        status: 0,
+        stdout: JSON.stringify({
+          ownerOnly: true,
+          isDirectory: false,
+          aceCount: 1,
+        }),
+        stderr: "",
+      };
+    });
+
+    expect(
+      repairPrivatePath(target, {
+        platform: "win32",
+        deps: { fs, spawnSync, platform: () => "win32" },
+      }),
+    ).toMatchObject({ ok: true, platform: "win32" });
+    expect(
+      spawnSync.mock.calls.map((call) =>
+        call[2].input ? JSON.parse(call[2].input).operation : call[1].at(-1),
+      ),
+    ).toEqual(["preflight", "repair"]);
+  });
+
+  it("secures an existing Windows file despite target exists/lstat false negatives", () => {
+    const target = "C:\\Users\\owner\\AppData\\Local\\state.json";
+    const parent = "C:\\Users\\owner\\AppData\\Local";
+    const fs = {
+      existsSync: vi.fn(() => false),
+      lstatSync: (candidate) => {
+        if (candidate === target) {
+          throw Object.assign(new Error("target missing"), { code: "ENOENT" });
+        }
+        return { isSymbolicLink: () => false };
+      },
+      readdirSync: (candidate, options) => {
+        expect(candidate).toBe(parent);
+        expect(options).toEqual({ withFileTypes: true });
+        return [
+          {
+            name: "state.json",
+            isDirectory: () => false,
+            isFile: () => true,
+            isSymbolicLink: () => false,
+          },
+        ];
+      },
+    };
+    const spawnSync = vi.fn((_file, _args, options) => {
+      const request = JSON.parse(options.input);
+      expect(request).toEqual({
+        operation: "repair",
+        targets: [target],
+        expectedKind: "file",
+      });
+      return {
+        status: 0,
+        stdout: JSON.stringify([
+          {
+            target,
+            exists: true,
+            isDirectory: false,
+            ok: true,
+          },
+        ]),
+        stderr: "",
+      };
+    });
+
+    expect(
+      ensurePrivateFile(target, {
+        platform: "win32",
+        applyWindowsAcl: true,
+        failIfUnavailable: true,
+        deps: { fs, spawnSync, platform: () => "win32" },
+      }),
+    ).toBe(target);
+    expect(fs.existsSync).not.toHaveBeenCalled();
+    expect(spawnSync).toHaveBeenCalledOnce();
+  });
+
+  it("fails a native file-kind race even when ACL failures are optional", () => {
+    const target = "C:\\private\\state.json";
+    const fs = {
+      lstatSync: () => ({
+        isDirectory: () => false,
+        isSymbolicLink: () => false,
+      }),
+    };
+    const spawnSync = vi.fn((_file, _args, options) => {
+      expect(JSON.parse(options.input).expectedKind).toBe("file");
+      return {
+        status: 4,
+        stdout: JSON.stringify([
+          {
+            target,
+            exists: true,
+            isDirectory: true,
+            ok: false,
+            error: "expected file but found directory",
+            errorCode: "EXPECTED_KIND_MISMATCH",
+          },
+        ]),
+        stderr: "",
+      };
+    });
+
+    expect(() =>
+      ensurePrivateFile(target, {
+        platform: "win32",
+        applyWindowsAcl: true,
+        failIfUnavailable: false,
+        deps: { fs, spawnSync, platform: () => "win32" },
+      }),
+    ).toThrow(/Expected a file/);
+    expect(spawnSync).toHaveBeenCalledOnce();
+  });
+
+  it("rejects a directory when Windows target lstat cannot classify it", () => {
+    const target = "C:\\Users\\owner\\AppData\\Local\\state.json";
+    const fs = {
+      lstatSync: (candidate) => {
+        if (candidate === target) {
+          throw Object.assign(new Error("target denied"), { code: "EPERM" });
+        }
+        return { isSymbolicLink: () => false };
+      },
+      readdirSync: () => [
+        {
+          name: "state.json",
+          isDirectory: () => true,
+          isFile: () => false,
+          isSymbolicLink: () => false,
+        },
+      ],
+    };
+    const spawnSync = vi.fn();
+
+    expect(() =>
+      ensurePrivateFile(target, {
+        platform: "win32",
+        applyWindowsAcl: true,
+        deps: { fs, spawnSync, platform: () => "win32" },
+      }),
+    ).toThrow(/Expected a file/);
+    expect(spawnSync).not.toHaveBeenCalled();
+  });
+
+  it("preflights an unclassified Windows ENOENT before creating a directory", () => {
+    const target = "C:\\Users\\owner\\AppData\\Local\\state";
+    const missing = "C:\\Users\\owner";
+    const events = [];
+    const fs = {
+      lstatSync: (candidate) => {
+        if (candidate === missing) {
+          throw Object.assign(new Error("ancestor missing"), {
+            code: "ENOENT",
+          });
+        }
+        return { isSymbolicLink: () => false };
+      },
+      existsSync: () => false,
+      mkdirSync: () => events.push("mkdir"),
+    };
+    const spawnSync = vi.fn((_file, _args, options) => {
+      events.push("preflight");
+      const request = JSON.parse(options.input);
+      return {
+        status: 0,
+        stdout: JSON.stringify(
+          request.targets.map((candidate) => ({
+            target: candidate,
+            exists: false,
+            ok: true,
+          })),
+        ),
+        stderr: "",
+      };
+    });
+
+    expect(
+      ensurePrivateDirectory(target, {
+        platform: "win32",
+        applyWindowsAcl: false,
+        deps: { fs, spawnSync, platform: () => "win32" },
+      }),
+    ).toBe(target);
+    expect(events).toEqual(["preflight", "mkdir"]);
+    expect(spawnSync).toHaveBeenCalledOnce();
+  });
+
+  it("fails closed when parent directory entries cannot classify an ENOENT", () => {
+    const target = "C:\\Users\\owner\\AppData\\Local\\state";
+    const fs = {
+      lstatSync: (candidate) => {
+        if (candidate === "C:\\Users\\owner") {
+          throw Object.assign(new Error("ancestor missing"), {
+            code: "ENOENT",
+          });
+        }
+        return { isSymbolicLink: () => false };
+      },
+      readdirSync: () => {
+        throw Object.assign(new Error("parent denied"), { code: "EACCES" });
+      },
+    };
+    const spawnSync = vi.fn((_file, _args, options) => ({
+      status: 4,
+      stdout: JSON.stringify(
+        JSON.parse(options.input).targets.map((candidate) => ({
+          target: candidate,
+          exists: true,
+          ok: false,
+          error: "reparse point denied",
+        })),
+      ),
+      stderr: "",
+    }));
+
+    expect(() =>
+      repairPrivatePaths([target], {
+        platform: "win32",
+        deps: { fs, spawnSync, platform: () => "win32" },
+      }),
+    ).toThrow(/Could not verify Windows path ancestors/);
+    expect(spawnSync).toHaveBeenCalledOnce();
+  });
+
+  it("fails closed when the Windows ancestor fallback cannot prove safety", () => {
+    const target = "C:\\Users\\owner\\AppData\\Local\\state";
+    const fs = {
+      lstatSync: (candidate) => {
+        if (candidate === "C:\\Users\\owner") {
+          throw Object.assign(new Error("ancestor denied"), { code: "EPERM" });
+        }
+        return { isSymbolicLink: () => false };
+      },
+    };
+    const spawnSync = vi.fn((_file, _args, options) => ({
+      status: 4,
+      stdout: JSON.stringify(
+        JSON.parse(options.input).targets.map((candidate) => ({
+          target: candidate,
+          exists: true,
+          ok: false,
+          error: "reparse point denied",
+        })),
+      ),
+      stderr: "",
+    }));
+
+    expect(() =>
+      repairPrivatePaths([target], {
+        platform: "win32",
+        deps: { fs, spawnSync, platform: () => "win32" },
+      }),
+    ).toThrow(/Could not verify Windows path ancestors/);
+    expect(spawnSync).toHaveBeenCalledOnce();
+  });
+
+  it("preflights a single Windows directory before ACL repair on ancestor EPERM", () => {
+    const target = "C:\\Users\\owner\\AppData\\Local\\state";
+    const fs = {
+      existsSync: () => true,
+      mkdirSync: () => {},
+      lstatSync: (candidate) => {
+        if (candidate === "C:\\Users\\owner") {
+          throw Object.assign(new Error("ancestor denied"), { code: "EPERM" });
+        }
+        return {
+          isDirectory: () => true,
+          isSymbolicLink: () => false,
+        };
+      },
+    };
+    const spawnSync = vi.fn((_file, _args, options) => {
+      if (options.input) {
+        const request = JSON.parse(options.input);
+        return {
+          status: 0,
+          stdout: JSON.stringify(
+            request.targets.map((candidate) => ({
+              target: candidate,
+              exists: true,
+              isDirectory: true,
+              ok: true,
+            })),
+          ),
+          stderr: "",
+        };
+      }
+      return {
+        status: 0,
+        stdout: JSON.stringify({ ownerOnly: true, aceCount: 1 }),
+        stderr: "",
+      };
+    });
+
+    expect(
+      ensurePrivateDirectory(target, {
+        platform: "win32",
+        applyWindowsAcl: true,
+        failIfUnavailable: true,
+        deps: { fs, spawnSync, platform: () => "win32" },
+      }),
+    ).toBe(target);
+    expect(JSON.parse(spawnSync.mock.calls[0][2].input)).toEqual({
+      operation: "preflight",
+      targets: [target],
+    });
+    expect(spawnSync).toHaveBeenCalledTimes(2);
   });
 });
