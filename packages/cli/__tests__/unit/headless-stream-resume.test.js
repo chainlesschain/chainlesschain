@@ -79,7 +79,7 @@ function harness({ over = {}, options = {} } = {}) {
       .trimEnd()
       .split("\n")
       .map((l) => JSON.parse(l));
-  return { run, events, calls, seenTurns };
+  return { run, events, output: () => lines.join(""), calls, seenTurns };
 }
 
 describe("stream persistence + resume", () => {
@@ -102,8 +102,9 @@ describe("stream persistence + resume", () => {
   });
 
   it("resuming an existing session replays history into the conversation", async () => {
+    const summary = "STREAM_CANONICAL_SUMMARY_PRIVATE_247d9a";
     const prior = [
-      { role: "system", content: "stale system prompt — must be dropped" },
+      { role: "system", content: summary },
       { role: "user", content: "earlier question" },
       { role: "assistant", content: "earlier answer" },
     ];
@@ -115,20 +116,33 @@ describe("stream persistence + resume", () => {
       },
     });
     await h.run();
-    // init reports the resumed count (system turns dropped)
+    // Public control-plane metadata counts conversational turns, not private
+    // canonical system context.
     const init = h.events().find((e) => e.subtype === "init");
     expect(init.resumed_messages).toBe(2);
     expect(init.session_id).toBe("chat-abc");
-    // the agent's first turn sees: fresh system + history + the new user msg
-    const roles = h.seenTurns[0].map((m) => m.role);
-    expect(roles).toEqual(["system", "user", "assistant", "user"]);
-    expect(h.seenTurns[0][1].content).toBe("earlier question");
-    expect(h.seenTurns[0][3].content).toBe("hello there");
+
+    // The model sees the fresh host system first and the verified canonical
+    // summary exactly once after it, followed by the ordered conversation.
+    const turn = h.seenTurns[0];
+    expect(turn[0]?.role).toBe("system");
+    expect(turn[0]?.content).not.toBe(summary);
+    const summaryIndexes = turn.flatMap((message, index) =>
+      message.content === summary ? [index] : [],
+    );
+    expect(summaryIndexes).toHaveLength(1);
+    expect(summaryIndexes[0]).toBeGreaterThan(0);
     expect(
-      h.seenTurns[0].filter(
-        (m) => m.role === "system" && /stale/.test(m.content),
-      ),
-    ).toHaveLength(0);
+      turn
+        .filter((message) => message.role !== "system")
+        .map((message) => [message.role, message.content]),
+    ).toEqual([
+      ["user", "earlier question"],
+      ["assistant", "earlier answer"],
+      ["user", "hello there"],
+    ]);
+    expect(h.output()).not.toContain(summary);
+
     // resuming an EXISTING session must not re-create it
     expect(h.calls.started).toHaveLength(0);
     // ...but new turns still persist

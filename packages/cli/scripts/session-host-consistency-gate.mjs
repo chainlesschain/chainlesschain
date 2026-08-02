@@ -85,12 +85,14 @@ const GATE_SOURCE_PATHS = [
   "packages/cli/__tests__/fixtures/session-host-ws-claim-race-worker.mjs",
   "packages/cli/__tests__/unit/jsonl-session-store.test.js",
   "packages/cli/__tests__/unit/ws-agent-handler.test.js",
+  "packages/cli/__tests__/unit/ws-runtime-events.test.js",
   "packages/cli/__tests__/unit/agent-session-export.test.js",
   "packages/cli/__tests__/unit/agent-repl.test.js",
   "packages/cli/__tests__/unit/mcp-call-ledger-store.test.js",
   "packages/cli/__tests__/unit/headless-runner-mcp-ledger.test.js",
   "packages/cli/__tests__/unit/headless-stream.test.js",
   "packages/cli/__tests__/unit/headless-stream-cost-replay.test.js",
+  "packages/cli/__tests__/unit/headless-runner-resume-roles.test.js",
   "packages/cli/__tests__/unit/headless-stream-resume.test.js",
   "packages/cli/__tests__/unit/headless-stream-resume-roles.test.js",
   "packages/cli/__tests__/unit/headless-stream-side-effects.test.js",
@@ -547,7 +549,9 @@ async function runVerifiedHostScenario(store, home) {
     "WebSocket private resume state lost or duplicated the canonical system summary",
   );
   assert(
-    !JSON.stringify(wsResponse.payload.history).includes(secrets.compactSummary),
+    !JSON.stringify(wsResponse.payload.history).includes(
+      secrets.compactSummary,
+    ),
     "WebSocket direct history exposed canonical system context",
   );
 

@@ -182,10 +182,12 @@ describe("cli session-host consistency gate", () => {
             "websocket",
             "rebuiltAdapter",
           ],
-          messageCount: 2,
+          messageCount: 3,
           contentFreeControlPlane: true,
           staleHostHistoryReplaced: true,
           hostSystemPromptPreserved: true,
+          canonicalSystemSummaryPreserved: true,
+          canonicalSystemSummaryContentFree: true,
           websocketRestartRoundTrip: true,
           terminalState: {
             mcpCalls: { started: 1, outcomeUnknown: 1, total: 1 },
@@ -256,6 +258,7 @@ describe("cli session-host consistency gate", () => {
       "SESSION_HOST_TITLE_SECRET",
       "SESSION_HOST_USER_SECRET",
       "SESSION_HOST_ASSISTANT_SECRET",
+      "SESSION_HOST_COMPACT_SUMMARY_SECRET",
       "SESSION_HOST_STALE_SECRET",
       "SESSION_HOST_SYSTEM_SECRET",
       "SESSION_HOST_RESTART_SYSTEM_SECRET",
@@ -293,6 +296,7 @@ describe("cli session-host consistency gate", () => {
   it("declares a three-platform exact-SHA artifact workflow", () => {
     expect(existsSync(WORKFLOW)).toBe(true);
     const workflow = readFileSync(WORKFLOW, "utf8");
+    const gateScript = readFileSync(GATE_SCRIPT, "utf8");
     expect(workflow).toContain("workflow_dispatch:");
     expect(workflow).toContain(
       "os: [ubuntu-latest, windows-latest, macos-latest]",
@@ -306,5 +310,13 @@ describe("cli session-host consistency gate", () => {
     expect(workflow).toContain(
       "${{ runner.temp }}/cli-session-host-consistency.json",
     );
+    for (const sourcePath of [
+      "packages/cli/__tests__/unit/ws-runtime-events.test.js",
+      "packages/cli/__tests__/integration/ws-bridge-side-effect-resume.test.js",
+      "packages/cli/__tests__/unit/headless-runner-resume-roles.test.js",
+    ]) {
+      expect(workflow.split(sourcePath)).toHaveLength(3);
+      expect(gateScript.split(sourcePath)).toHaveLength(2);
+    }
   });
 });

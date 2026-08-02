@@ -29,13 +29,13 @@ function capturingLoop(captured) {
 
 /** Deps that stub the JSONL store so a resumed history can be injected. */
 function makeResumeDeps(history) {
-  const captured = {};
+  const captured = { output: [] };
   return {
     captured,
     deps: {
       bootstrap: async () => ({ db: null }),
       getApprovalGate: async () => fakeGate(),
-      writeOut: () => {},
+      writeOut: (value) => captured.output.push(String(value)),
       writeErr: () => {},
       agentLoop: capturingLoop(captured),
       // session store seams
@@ -49,6 +49,27 @@ function makeResumeDeps(history) {
       getLastSessionId: () => "sid",
     },
   };
+}
+
+function makeCanonicalResumeDeps(messages) {
+  const fixture = makeResumeDeps([]);
+  fixture.deps.readVerifiedEvents = () => [
+    {
+      type: "session_start",
+      timestamp: 1,
+      data: { title: "canonical resume" },
+      prevHash: null,
+      hash: "a".repeat(64),
+    },
+    {
+      type: "compact",
+      timestamp: 2,
+      data: { messages },
+      prevHash: "a".repeat(64),
+      hash: "b".repeat(64),
+    },
+  ];
+  return fixture;
 }
 
 const roles = (messages) =>
@@ -108,5 +129,30 @@ describe("headless-runner — resume role alternation (2.1.187)", () => {
     }
     // u3 + u4 merge into the final user turn.
     expect(seq).toEqual(["user", "assistant", "user"]);
+  });
+
+  it("round-trips every verified canonical system message only to model input", async () => {
+    const summary = "HEADLESS_CANONICAL_SUMMARY_PRIVATE_f742b1";
+    const { captured, deps } = makeCanonicalResumeDeps([
+      { role: "system", content: summary },
+      { role: "user", content: "earlier question" },
+      { role: "assistant", content: "earlier answer" },
+    ]);
+
+    await runAgentHeadless(
+      { prompt: "follow up", resume: "sid", outputFormat: "json" },
+      deps,
+    );
+
+    expect(captured.messages[0]?.role).toBe("system");
+    expect(captured.messages[0]?.content).not.toBe(summary);
+    expect(
+      captured.messages.filter((message) => message?.content === summary),
+    ).toHaveLength(1);
+    expect(
+      captured.messages.findIndex((message) => message?.content === summary),
+    ).toBeGreaterThan(0);
+    expect(roles(captured.messages)).toEqual(["user", "assistant", "user"]);
+    expect(captured.output.join("\n")).not.toContain(summary);
   });
 });
