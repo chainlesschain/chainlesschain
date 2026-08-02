@@ -122,10 +122,10 @@ describe("E2E: Agent v0.42.0 Enhancements", () => {
 
     it("sets Anthropic max_tokens with an 8192 baseline", () => {
       coreContent = coreContent || readFileSync(agentCorePath, "utf8");
-      // Matches both the flat and model-aware (anthropicMaxTokens || 8192)
-      // forms; the 8192 baseline is the invariant under test.
-      expect(coreContent).toMatch(
-        /max_tokens:\s*(?:anthropicMaxTokens \|\| )?8192/,
+      // The model-aware branch may cap an explicit maxOutputTokens value, but
+      // both branches must retain 8192 as the fallback baseline.
+      expect(coreContent.match(/anthropicMaxTokens \|\| 8192/g)).toHaveLength(
+        2,
       );
     });
   });

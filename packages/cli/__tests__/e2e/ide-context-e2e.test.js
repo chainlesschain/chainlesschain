@@ -135,7 +135,10 @@ function runAgent(extraEnv = {}) {
           CHAINLESSCHAIN_IDE_TOKEN: TOKEN,
           ...extraEnv,
         }),
-        cwd: t.home,
+        // Keep the workspace separate from CHAINLESSCHAIN_HOME. Production
+        // intentionally rejects config-home == cwd (or an ancestor) so an ACL
+        // repair can never target the user's working tree.
+        cwd: t.workspace,
         stdio: ["ignore", "pipe", "pipe"],
       },
     );
@@ -157,7 +160,7 @@ function runAgent(extraEnv = {}) {
 describe("cc agent -p + fake IDE + capturing LLM (full chain)", () => {
   it("delivers <ide-context> (live selection) inside the user turn", async () => {
     const { r, requests } = await runAgent();
-    expect(r.status).toBe(0);
+    expect(r.status, r.stderr || r.stdout).toBe(0);
     expect(r.stdout).toContain("e2e-done");
 
     const chat = requests.filter((c) => c.url.includes("/api/chat"));
@@ -180,7 +183,7 @@ describe("cc agent -p + fake IDE + capturing LLM (full chain)", () => {
 
   it("CC_IDE_CONTEXT=0 keeps the IDE tools but drops the auto-context", async () => {
     const { r, requests } = await runAgent({ CC_IDE_CONTEXT: "0" });
-    expect(r.status).toBe(0);
+    expect(r.status, r.stderr || r.stdout).toBe(0);
 
     const chat = requests.filter((c) => c.url.includes("/api/chat"));
     expect(chat.length).toBeGreaterThan(0);
