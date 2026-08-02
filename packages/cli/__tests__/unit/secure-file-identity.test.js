@@ -291,6 +291,48 @@ describe("secure file identity", () => {
   );
 
   it.skipIf(process.platform !== "win32")(
+    "rejects a parent handle outside the independently anchored volume device",
+    () => {
+      const canonicalRoot = path.parse(path.resolve(process.cwd())).root;
+      const filePath = path.join(canonicalRoot, "state.json");
+      const before = directoryStat({ dev: "987654321", ino: "4000" });
+      const volumeRoot = directoryStat({ dev: "77", ino: "3000" });
+      const openedParent = directoryStat({ dev: "88", ino: "4000" });
+      const descriptors = [101, 102];
+      const closed = [];
+      let callbackCalled = false;
+      const realpathSync = () => canonicalRoot;
+      realpathSync.native = realpathSync;
+      const runtimeFs = {
+        constants: fs.constants,
+        realpathSync,
+        lstatSync: () => before,
+        openSync: () => descriptors.shift(),
+        fstatSync: (descriptor) =>
+          descriptor === 101 ? volumeRoot : openedParent,
+        closeSync: (descriptor) => closed.push(descriptor),
+      };
+
+      expect(() =>
+        withTrustedFileParentSync(
+          runtimeFs,
+          filePath,
+          () => {
+            callbackCalled = true;
+          },
+          { runtime: NODE_22_12_WINDOWS },
+        ),
+      ).toThrow(
+        expect.objectContaining({
+          code: SECURE_FILE_IDENTITY_ERROR.PARENT_RACE,
+        }),
+      );
+      expect(callbackCalled).toBe(false);
+      expect(closed).toEqual([102, 101]);
+    },
+  );
+
+  it.skipIf(process.platform !== "win32")(
     "anchors an extended Windows UNC parent to its canonical share root",
     () => {
       const canonicalParent = "\\\\?\\UNC\\server\\share\\team";
