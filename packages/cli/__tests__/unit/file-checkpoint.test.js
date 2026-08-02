@@ -191,6 +191,47 @@ describe("file-checkpoint store", () => {
     expect(readFileSync(join(work, "b.txt"), "utf-8")).toBe("CHANGED-B");
   });
 
+  it("reports only missing paths whose atomic restore write completed", () => {
+    const m = mk("partial-created-paths");
+    const expectedIdentity = computeCheckpointIdentity(m);
+    rmSync(join(work, "a.txt"));
+    rmSync(join(work, "b.txt"));
+    const blockedTarget = join(work, "b.txt");
+    const renameSync = fs.renameSync.bind(fs);
+    const rename = vi
+      .spyOn(fs, "renameSync")
+      .mockImplementation((source, target) => {
+        if (String(target) === blockedTarget) {
+          const error = new Error(
+            "injected second-created-file rename failure",
+          );
+          error.code = "INJECTED_RESTORE_WRITE_FAILURE";
+          throw error;
+        }
+        return renameSync(source, target);
+      });
+
+    let thrown = null;
+    try {
+      restoreCheckpoint(m.id, { root, expectedIdentity });
+    } catch (error) {
+      thrown = error;
+    } finally {
+      rename.mockRestore();
+    }
+
+    expect(thrown).toMatchObject({
+      code: "INJECTED_RESTORE_WRITE_FAILURE",
+      restorePhase: "workspace-mutation",
+      safetyId: null,
+      safetyIdentity: null,
+      safetyCoverage: "partial",
+      createdPaths: ["a.txt"],
+    });
+    expect(readFileSync(join(work, "a.txt"), "utf-8")).toBe("ORIGINAL-A");
+    expect(existsSync(join(work, "b.txt"))).toBe(false);
+  });
+
   it("delete removes manifest + blobs", () => {
     const m = mk();
     expect(deleteCheckpoint(m.id, { root })).toBe(true);

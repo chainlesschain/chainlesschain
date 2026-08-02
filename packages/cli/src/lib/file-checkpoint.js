@@ -370,9 +370,7 @@ export function restoreCheckpoint(id, opts = {}) {
   let safetyId = null;
   let safetyIdentity = null;
   let safetyCoverage = "full";
-  const createdPaths = toWrite
-    .filter((w) => !fs.existsSync(w.abs))
-    .map((w) => w.rel);
+  const createdPaths = [];
   if (!opts.skipSafety) {
     const existing = toWrite
       .filter((w) => fs.existsSync(w.abs))
@@ -391,8 +389,10 @@ export function restoreCheckpoint(id, opts = {}) {
 
   try {
     for (const w of toWrite) {
+      const pathWasMissing = !fs.existsSync(w.abs);
       ensureDir(path.dirname(w.abs));
       atomicWriteFileSync(w.abs, w.blob);
+      if (pathWasMissing) createdPaths.push(w.rel);
       restored.push(w.rel);
     }
     const residualPaths = m.files
