@@ -816,6 +816,13 @@ describe("native installer transaction contracts", () => {
     expect(source).toContain("def retire_bound_name(bound, path):");
     expect(source).not.toContain("os.unlink(tombstone_path)");
     expect(source).not.toContain("os.unlink(source)");
+    const retireBoundStart = source.indexOf(
+      "def retire_bound_name(bound, path):",
+    );
+    const retireBoundEnd = source.indexOf("current = None", retireBoundStart);
+    const retireBoundSource = source.slice(retireBoundStart, retireBoundEnd);
+    expect(retireBoundSource).not.toContain("os.unlink(");
+    expect(retireBoundSource).toContain("return path");
     expect(source).toContain('CLEANUP_PENDING=0');
     expect(source).toContain('record_retained_evidence() {');
     expect(source).toContain('RETAINED_EVIDENCE_PATHS=""');
