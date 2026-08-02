@@ -23,6 +23,240 @@ function psQuote(value) {
   return `'${String(value).replaceAll("'", "''")}'`;
 }
 
+function sha256File(filePath) {
+  return crypto
+    .createHash("sha256")
+    .update(fs.readFileSync(filePath))
+    .digest("hex");
+}
+
+function writeShellTool(directory, name, source) {
+  const filePath = path.join(directory, name);
+  fs.writeFileSync(filePath, source.replaceAll("\r\n", "\n"));
+  fs.chmodSync(filePath, 0o755);
+  return filePath;
+}
+
+function runPosixInstallerFixture({
+  existing = false,
+  lineageFailure = "before",
+  failBackupRestore = false,
+  failLineageRestore = false,
+  failSnapshotCleanup = false,
+  failRollbackFsync = false,
+} = {}) {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-sh-install-tx-"));
+  temporaryDirectories.push(root);
+  const fixtureDir = path.join(root, "fixtures");
+  const fakeBin = path.join(root, "fake-bin");
+  const targetDir = path.join(root, "bin");
+  fs.mkdirSync(fixtureDir, { recursive: true });
+  fs.mkdirSync(fakeBin, { recursive: true });
+  fs.mkdirSync(targetDir, { recursive: true });
+
+  const artifactPath = path.join(fixtureDir, "artifact");
+  fs.copyFileSync(process.execPath, artifactPath);
+  fs.chmodSync(artifactPath, 0o755);
+  const artifactSha256 = sha256File(artifactPath);
+  const manifestPath = path.join(fixtureDir, "manifest.json");
+  const bundlePath = path.join(fixtureDir, "bundle.json");
+  fs.writeFileSync(
+    manifestPath,
+    JSON.stringify({
+      latest: {
+        artifacts: [
+          {
+            target: "node20-linux-x64",
+            url: "https://fixture/artifact",
+            sha256: artifactSha256,
+            signature: "https://fixture/artifact.sigstore.json",
+          },
+        ],
+      },
+    }),
+  );
+  fs.writeFileSync(bundlePath, "{}");
+
+  writeShellTool(
+    fakeBin,
+    "uname",
+    `#!/usr/bin/env sh
+if [ "\${1:-}" = "-s" ]; then echo Linux; else echo x86_64; fi
+`,
+  );
+  writeShellTool(
+    fakeBin,
+    "cosign",
+    `#!/usr/bin/env sh
+exit 0
+`,
+  );
+  writeShellTool(
+    fakeBin,
+    "curl",
+    `#!/usr/bin/env sh
+url=""
+output=""
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    -o) output=$2; shift 2 ;;
+    -*) shift ;;
+    *) url=$1; shift ;;
+  esac
+done
+case "$url" in
+  */chainlesschain-update.json.sigstore.json) source_path=$FIXTURE_BUNDLE ;;
+  */chainlesschain-update.json) source_path=$FIXTURE_MANIFEST ;;
+  https://fixture/artifact.sigstore.json) source_path=$FIXTURE_BUNDLE ;;
+  https://fixture/artifact) source_path=$FIXTURE_ARTIFACT ;;
+  *) echo "unexpected fixture URL: $url" >&2; exit 80 ;;
+esac
+cp "$source_path" "$output"
+`,
+  );
+
+  const toolLookup = spawnSync(
+    "bash",
+    ["-lc", "command -v python3; command -v ln; command -v rm; command -v mv"],
+    { encoding: "utf8" },
+  );
+  expect(toolLookup.status, toolLookup.stderr).toBe(0);
+  const [realPython, realLn, realRm, realMv] = toolLookup.stdout
+    .trim()
+    .split(/\r?\n/);
+  const lineageFailedSentinel = path.join(root, "lineage-write-failed");
+  writeShellTool(
+    fakeBin,
+    "python3",
+    `#!/usr/bin/env sh
+if [ "\${1:-}" = "-" ] && [ "$#" -eq 6 ] && [ "\${4:-}" = "install" ]; then
+  case "\${2:-}" in
+    *.update-lineage.json)
+      if [ "\${CC_TEST_FAIL_LINEAGE_WRITE:-0}" = "before" ]; then
+        : > "$CC_TEST_LINEAGE_FAILED_SENTINEL"
+        exit 91
+      fi
+      if [ "\${CC_TEST_FAIL_LINEAGE_WRITE:-0}" = "after" ]; then
+        "$REAL_PYTHON" "$@"
+        status=$?
+        [ "$status" -eq 0 ] || exit "$status"
+        : > "$CC_TEST_LINEAGE_FAILED_SENTINEL"
+        exit 91
+      fi
+      ;;
+  esac
+fi
+if [ "\${CC_TEST_FAIL_ROLLBACK_FSYNC:-0}" = "1" ] && [ -f "$CC_TEST_LINEAGE_FAILED_SENTINEL" ] && [ "\${1:-}" = "-" ] && [ "\${2:-}" = "$CC_TEST_CANONICAL_INSTALL_DIR" ]; then
+  exit 92
+fi
+exec "$REAL_PYTHON" "$@"
+`,
+  );
+  writeShellTool(
+    fakeBin,
+    "ln",
+    `#!/usr/bin/env sh
+if [ "\${CC_TEST_FAIL_BACKUP_RESTORE:-0}" = "1" ]; then
+  for candidate in "$@"; do
+    case "$candidate" in
+      */.chainlesschain.backup-restore-*) exit 93 ;;
+    esac
+  done
+fi
+exec "$REAL_LN" "$@"
+`,
+  );
+  writeShellTool(
+    fakeBin,
+    "rm",
+    `#!/usr/bin/env sh
+if [ "\${CC_TEST_FAIL_SNAPSHOT_CLEANUP:-0}" = "1" ]; then
+  for candidate in "$@"; do
+    case "$candidate" in
+      */.chainlesschain.backup-prior-*) exit 94 ;;
+    esac
+  done
+fi
+exec "$REAL_RM" "$@"
+`,
+  );
+  writeShellTool(
+    fakeBin,
+    "mv",
+    `#!/usr/bin/env sh
+if [ "\${CC_TEST_FAIL_LINEAGE_RESTORE:-0}" = "1" ]; then
+  for candidate in "$@"; do
+    case "$candidate" in
+      */.chainlesschain.lineage-restore-*) exit 95 ;;
+    esac
+  done
+fi
+exec "$REAL_MV" "$@"
+`,
+  );
+
+  const targetPath = path.join(targetDir, "chainlesschain");
+  const backupPath = `${targetPath}.previous`;
+  const lineagePath = `${targetPath}.update-lineage.json`;
+  const aliasPath = path.join(targetDir, "cc");
+  let prestate = null;
+  if (existing) {
+    const rawLineage = ` { "schema" : "legacy-lineage", "opaque" : true } \n`;
+    fs.writeFileSync(targetPath, "current-known-good");
+    fs.chmodSync(targetPath, 0o755);
+    fs.writeFileSync(backupPath, "older-known-good");
+    fs.chmodSync(backupPath, 0o640);
+    fs.writeFileSync(lineagePath, rawLineage);
+    fs.symlinkSync("legacy-chainlesschain", aliasPath);
+    const backupStat = fs.statSync(backupPath, { bigint: true });
+    prestate = {
+      targetBytes: fs.readFileSync(targetPath),
+      backupBytes: fs.readFileSync(backupPath),
+      backupDev: backupStat.dev,
+      backupIno: backupStat.ino,
+      backupMode: backupStat.mode,
+      rawLineage,
+      aliasTarget: fs.readlinkSync(aliasPath),
+    };
+  }
+
+  const run = spawnSync("bash", [shPath], {
+    encoding: "utf8",
+    timeout: 90_000,
+    env: {
+      ...process.env,
+      PATH: `${fakeBin}${path.delimiter}${process.env.PATH || ""}`,
+      REAL_PYTHON: realPython,
+      REAL_LN: realLn,
+      REAL_RM: realRm,
+      REAL_MV: realMv,
+      FIXTURE_MANIFEST: manifestPath,
+      FIXTURE_BUNDLE: bundlePath,
+      FIXTURE_ARTIFACT: artifactPath,
+      CC_CLI_RELEASE_BASE_URL: "https://fixture/base",
+      CC_CLI_INSTALL_DIR: targetDir,
+      CC_TEST_FAIL_LINEAGE_WRITE: lineageFailure,
+      CC_TEST_FAIL_BACKUP_RESTORE: failBackupRestore ? "1" : "0",
+      CC_TEST_FAIL_LINEAGE_RESTORE: failLineageRestore ? "1" : "0",
+      CC_TEST_FAIL_SNAPSHOT_CLEANUP: failSnapshotCleanup ? "1" : "0",
+      CC_TEST_FAIL_ROLLBACK_FSYNC: failRollbackFsync ? "1" : "0",
+      CC_TEST_LINEAGE_FAILED_SENTINEL: lineageFailedSentinel,
+      CC_TEST_CANONICAL_INSTALL_DIR: fs.realpathSync(targetDir),
+    },
+  });
+  return {
+    root,
+    targetDir,
+    targetPath,
+    backupPath,
+    lineagePath,
+    aliasPath,
+    artifactSha256,
+    prestate,
+    run,
+  };
+}
+
 describe("native installer transaction contracts", () => {
   it("POSIX installer uses a locked same-filesystem commit and persistent rollback copy", () => {
     const source = fs.readFileSync(shPath, "utf8");
@@ -55,6 +289,15 @@ describe("native installer transaction contracts", () => {
     expect(source).toContain(".orphaned-$TRANSACTION_ID");
     expect(source).toContain('RESULT_PATH="$TARGET_PATH.update-result.json"');
     expect(source).toContain("chainlesschain.native-update-result.v1");
+    expect(source).toContain('PRIOR_BACKUP_PATH=""');
+    expect(source).toContain('ln "$BACKUP_PATH" "$PRIOR_BACKUP_PATH"');
+    expect(source).toContain('ln "$LINEAGE_PATH" "$PRIOR_LINEAGE_PATH"');
+    expect(source).toContain(
+      'snapshot_alias "$ALIAS_PATH" "$PRIOR_ALIAS_PATH"',
+    );
+    expect(source).toContain("ALIAS_COMMITTED=1");
+    expect(source).toContain("LINEAGE_COMMIT_STARTED=1");
+    expect(source).toContain("discard_transaction_snapshots");
     expect(source).toContain(
       "native update lock retained for manual recovery at $LOCK_PATH",
     );
@@ -80,7 +323,247 @@ describe("native installer transaction contracts", () => {
         'assert_lock_owned || die "native update lock ownership was lost before alias commit"',
       ),
     ).toBeLessThan(source.indexOf('mv -f "$ALIAS_TEMP_PATH" "$ALIAS_PATH"'));
+    const priorLineageRestoreStart = source.indexOf(
+      'if [ "$HAD_LINEAGE" -eq 1 ]; then',
+      source.indexOf("rollback_install()"),
+    );
+    const absentLineageRestoreStart = source.indexOf(
+      "    else",
+      priorLineageRestoreStart,
+    );
+    const priorLineageRestore = source.slice(
+      priorLineageRestoreStart,
+      absentLineageRestoreStart,
+    );
+    expect(priorLineageRestore).toContain(
+      'mv -f "$LINEAGE_RESTORE_PATH" "$LINEAGE_PATH"',
+    );
+    expect(priorLineageRestore).not.toContain('rm -f "$LINEAGE_PATH"');
   });
+
+  it.runIf(process.platform !== "win32")(
+    "POSIX lineage failure restores the prior backup generation, raw lineage, and alias target",
+    () => {
+      const fixture = runPosixInstallerFixture({
+        existing: true,
+        lineageFailure: "after",
+      });
+      const { run, prestate } = fixture;
+
+      expect(run.status, run.stderr || run.stdout).not.toBe(0);
+      expect(fs.readFileSync(fixture.targetPath)).toEqual(prestate.targetBytes);
+      expect(fs.readFileSync(fixture.backupPath)).toEqual(prestate.backupBytes);
+      const restoredBackup = fs.statSync(fixture.backupPath, { bigint: true });
+      expect(restoredBackup.dev).toBe(prestate.backupDev);
+      expect(restoredBackup.ino).toBe(prestate.backupIno);
+      expect(restoredBackup.mode).toBe(prestate.backupMode);
+      expect(fs.readFileSync(fixture.lineagePath, "utf8")).toBe(
+        prestate.rawLineage,
+      );
+      expect(fs.readlinkSync(fixture.aliasPath)).toBe(prestate.aliasTarget);
+      expect(fs.existsSync(`${fixture.targetPath}.update.lock`)).toBe(false);
+      expect(
+        fs
+          .readdirSync(fixture.targetDir)
+          .filter((name) => name.startsWith(".chainlesschain.")),
+      ).toEqual([]);
+    },
+    120_000,
+  );
+
+  it.runIf(process.platform !== "win32")(
+    "POSIX fresh install clears lineage when the writer fails after atomic replacement",
+    () => {
+      const fixture = runPosixInstallerFixture({ lineageFailure: "after" });
+
+      expect(
+        fixture.run.status,
+        fixture.run.stderr || fixture.run.stdout,
+      ).not.toBe(0);
+      expect(fs.existsSync(fixture.targetPath)).toBe(false);
+      expect(fs.existsSync(fixture.aliasPath)).toBe(false);
+      expect(fs.existsSync(fixture.lineagePath)).toBe(false);
+      expect(fs.existsSync(`${fixture.targetPath}.update.lock`)).toBe(false);
+      expect(
+        fs
+          .readdirSync(fixture.targetDir)
+          .filter((name) => name.startsWith(".chainlesschain.")),
+      ).toEqual([]);
+    },
+    120_000,
+  );
+
+  it.runIf(process.platform !== "win32")(
+    "POSIX failed lineage restore keeps a valid public lineage until atomic replacement succeeds",
+    () => {
+      const fixture = runPosixInstallerFixture({
+        existing: true,
+        lineageFailure: "after",
+        failLineageRestore: true,
+      });
+
+      expect(
+        fixture.run.status,
+        fixture.run.stderr || fixture.run.stdout,
+      ).not.toBe(0);
+      expect(fs.existsSync(fixture.lineagePath)).toBe(true);
+      expect(fs.readFileSync(fixture.lineagePath, "utf8")).not.toBe(
+        fixture.prestate.rawLineage,
+      );
+      expect(
+        JSON.parse(fs.readFileSync(fixture.lineagePath, "utf8")),
+      ).toMatchObject({
+        schema: "chainlesschain.native-update-lineage.v1",
+        operation: "install",
+        currentSha256: fixture.artifactSha256,
+        previousSha256: sha256File(fixture.targetPath),
+      });
+      const names = fs.readdirSync(fixture.targetDir);
+      expect(
+        names.some((name) =>
+          name.startsWith(".chainlesschain.lineage-restore-"),
+        ),
+      ).toBe(true);
+      expect(
+        names.some((name) => name.startsWith(".chainlesschain.lineage-prior-")),
+      ).toBe(true);
+      expect(fs.existsSync(`${fixture.targetPath}.update.lock`)).toBe(true);
+    },
+    120_000,
+  );
+
+  it.runIf(process.platform !== "win32")(
+    "POSIX fresh install removes the target and dangling alias after lineage failure",
+    () => {
+      const fixture = runPosixInstallerFixture();
+
+      expect(
+        fixture.run.status,
+        fixture.run.stderr || fixture.run.stdout,
+      ).not.toBe(0);
+      expect(fs.existsSync(fixture.targetPath)).toBe(false);
+      expect(fs.existsSync(fixture.aliasPath)).toBe(false);
+      expect(fs.lstatSync(fixture.targetDir).isDirectory()).toBe(true);
+      expect(fs.existsSync(`${fixture.targetPath}.update.lock`)).toBe(false);
+      expect(
+        fs
+          .readdirSync(fixture.targetDir)
+          .filter((name) => name.startsWith(".chainlesschain.")),
+      ).toEqual([]);
+    },
+    120_000,
+  );
+
+  it.runIf(process.platform !== "win32")(
+    "POSIX rollback failure preserves the prior generation snapshots and update lock",
+    () => {
+      const fixture = runPosixInstallerFixture({
+        existing: true,
+        failBackupRestore: true,
+      });
+
+      expect(
+        fixture.run.status,
+        fixture.run.stderr || fixture.run.stdout,
+      ).not.toBe(0);
+      expect(fs.readFileSync(fixture.targetPath)).toEqual(
+        fixture.prestate.targetBytes,
+      );
+      expect(fs.readFileSync(fixture.backupPath)).toEqual(
+        fixture.prestate.targetBytes,
+      );
+      const names = fs.readdirSync(fixture.targetDir);
+      const backupSnapshot = names.find((name) =>
+        name.startsWith(".chainlesschain.backup-prior-"),
+      );
+      expect(backupSnapshot).toBeDefined();
+      const backupSnapshotPath = path.join(fixture.targetDir, backupSnapshot);
+      expect(fs.readFileSync(backupSnapshotPath)).toEqual(
+        fixture.prestate.backupBytes,
+      );
+      const snapshotStat = fs.statSync(backupSnapshotPath, { bigint: true });
+      expect(snapshotStat.dev).toBe(fixture.prestate.backupDev);
+      expect(snapshotStat.ino).toBe(fixture.prestate.backupIno);
+      expect(snapshotStat.mode).toBe(fixture.prestate.backupMode);
+      expect(
+        names.some((name) => name.startsWith(".chainlesschain.lineage-prior-")),
+      ).toBe(true);
+      expect(names.some((name) => name.startsWith(".cc.prior-"))).toBe(true);
+      expect(fs.existsSync(`${fixture.targetPath}.update.lock`)).toBe(true);
+    },
+    120_000,
+  );
+
+  it.runIf(process.platform !== "win32")(
+    "POSIX recovery cleanup failure retains snapshots and the update lock",
+    () => {
+      const fixture = runPosixInstallerFixture({
+        existing: true,
+        failSnapshotCleanup: true,
+      });
+
+      expect(
+        fixture.run.status,
+        fixture.run.stderr || fixture.run.stdout,
+      ).not.toBe(0);
+      expect(fs.readFileSync(fixture.targetPath)).toEqual(
+        fixture.prestate.targetBytes,
+      );
+      expect(fs.readFileSync(fixture.backupPath)).toEqual(
+        fixture.prestate.backupBytes,
+      );
+      expect(fs.readFileSync(fixture.lineagePath, "utf8")).toBe(
+        fixture.prestate.rawLineage,
+      );
+      expect(fs.readlinkSync(fixture.aliasPath)).toBe(
+        fixture.prestate.aliasTarget,
+      );
+      const names = fs.readdirSync(fixture.targetDir);
+      expect(
+        names.some((name) => name.startsWith(".chainlesschain.backup-prior-")),
+      ).toBe(true);
+      expect(fs.existsSync(`${fixture.targetPath}.update.lock`)).toBe(true);
+    },
+    120_000,
+  );
+
+  it.runIf(process.platform !== "win32")(
+    "POSIX rollback fsync failure retains every recovery snapshot and the update lock",
+    () => {
+      const fixture = runPosixInstallerFixture({
+        existing: true,
+        failRollbackFsync: true,
+      });
+
+      expect(
+        fixture.run.status,
+        fixture.run.stderr || fixture.run.stdout,
+      ).not.toBe(0);
+      expect(fs.readFileSync(fixture.targetPath)).toEqual(
+        fixture.prestate.targetBytes,
+      );
+      expect(fs.readFileSync(fixture.backupPath)).toEqual(
+        fixture.prestate.backupBytes,
+      );
+      expect(fs.readFileSync(fixture.lineagePath, "utf8")).toBe(
+        fixture.prestate.rawLineage,
+      );
+      expect(fs.readlinkSync(fixture.aliasPath)).toBe(
+        fixture.prestate.aliasTarget,
+      );
+      const names = fs.readdirSync(fixture.targetDir);
+      expect(
+        names.filter(
+          (name) =>
+            name.startsWith(".chainlesschain.backup-prior-") ||
+            name.startsWith(".chainlesschain.lineage-prior-") ||
+            name.startsWith(".cc.prior-"),
+        ),
+      ).toHaveLength(3);
+      expect(fs.existsSync(`${fixture.targetPath}.update.lock`)).toBe(true);
+    },
+    120_000,
+  );
 
   it("PowerShell installer uses an exclusive handle, File.Replace, and catch-all rollback", () => {
     const source = fs.readFileSync(ps1Path, "utf8");
@@ -181,7 +664,14 @@ describe("native installer transaction contracts", () => {
       ].join("; ");
       const run = spawnSync(
         "powershell.exe",
-        ["-NoProfile", "-NonInteractive", "-Command", command],
+        [
+          "-NoProfile",
+          "-NonInteractive",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-Command",
+          command,
+        ],
         { encoding: "utf8", timeout: 60_000 },
       );
 
@@ -260,7 +750,14 @@ describe("native installer transaction contracts", () => {
       ].join("; ");
       const run = spawnSync(
         "powershell.exe",
-        ["-NoProfile", "-NonInteractive", "-Command", command],
+        [
+          "-NoProfile",
+          "-NonInteractive",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-Command",
+          command,
+        ],
         { encoding: "utf8", timeout: 60_000 },
       );
 

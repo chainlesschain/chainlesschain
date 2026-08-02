@@ -36,13 +36,28 @@ CANDIDATE_PATH=""
 BACKUP_TEMP_PATH=""
 ROLLBACK_TEMP_PATH=""
 ALIAS_TEMP_PATH=""
+PRIOR_BACKUP_PATH=""
+PRIOR_LINEAGE_PATH=""
+PRIOR_ALIAS_PATH=""
+BACKUP_RESTORE_PATH=""
+LINEAGE_RESTORE_PATH=""
+ALIAS_RESTORE_PATH=""
 HAD_TARGET=0
+HAD_BACKUP=0
+HAD_LINEAGE=0
+HAD_ALIAS=0
 SWAPPED=0
 COMMITTED=0
 BACKUP_COMMITTED=0
+ALIAS_COMMITTED=0
+LINEAGE_COMMIT_STARTED=0
 PRESERVE_RECOVERY=0
 TRANSACTION_ID=""
 OLD_TARGET_SHA256=""
+OLD_BACKUP_SHA256=""
+OLD_BACKUP_IDENTITY=""
+OLD_LINEAGE_SHA256=""
+OLD_LINEAGE_IDENTITY=""
 
 cleanup() {
   status=$?
@@ -57,15 +72,56 @@ cleanup() {
       echo "incomplete install transaction could not be rolled back" >&2
     fi
   fi
-  [ -n "$CANDIDATE_PATH" ] && rm -f "$CANDIDATE_PATH"
+  cleanup_failed=0
+  cleanup_removed=0
   if [ "$PRESERVE_RECOVERY" -eq 0 ]; then
-    [ -n "$BACKUP_TEMP_PATH" ] && rm -f "$BACKUP_TEMP_PATH"
-    [ -n "$ROLLBACK_TEMP_PATH" ] && rm -f "$ROLLBACK_TEMP_PATH"
-  else
-    [ -n "$BACKUP_TEMP_PATH" ] && echo "recovery snapshot preserved at $BACKUP_TEMP_PATH" >&2
-    [ -n "$ROLLBACK_TEMP_PATH" ] && echo "rollback candidate preserved at $ROLLBACK_TEMP_PATH" >&2
+    for cleanup_path in \
+      "$CANDIDATE_PATH" \
+      "$BACKUP_TEMP_PATH" \
+      "$ROLLBACK_TEMP_PATH" \
+      "$ALIAS_TEMP_PATH" \
+      "$PRIOR_BACKUP_PATH" \
+      "$PRIOR_LINEAGE_PATH" \
+      "$PRIOR_ALIAS_PATH" \
+      "$BACKUP_RESTORE_PATH" \
+      "$LINEAGE_RESTORE_PATH" \
+      "$ALIAS_RESTORE_PATH"
+    do
+      if [ -n "$cleanup_path" ] && { [ -e "$cleanup_path" ] || [ -L "$cleanup_path" ]; }; then
+        if rm -f "$cleanup_path"; then
+          cleanup_removed=1
+        else
+          cleanup_failed=1
+        fi
+      fi
+    done
+    if [ "$cleanup_failed" -eq 0 ] && [ "$cleanup_removed" -eq 1 ] && [ -d "$INSTALL_DIR" ]; then
+      fsync_dir "$INSTALL_DIR" || cleanup_failed=1
+    fi
+    if [ "$cleanup_failed" -ne 0 ]; then
+      PRESERVE_RECOVERY=1
+      [ "$status" -ne 0 ] || status=1
+      echo "native install transaction cleanup was not durable" >&2
+    fi
   fi
-  [ -n "$ALIAS_TEMP_PATH" ] && rm -f "$ALIAS_TEMP_PATH"
+  if [ "$PRESERVE_RECOVERY" -eq 1 ]; then
+    for recovery_path in \
+      "$CANDIDATE_PATH" \
+      "$BACKUP_TEMP_PATH" \
+      "$ROLLBACK_TEMP_PATH" \
+      "$ALIAS_TEMP_PATH" \
+      "$PRIOR_BACKUP_PATH" \
+      "$PRIOR_LINEAGE_PATH" \
+      "$PRIOR_ALIAS_PATH" \
+      "$BACKUP_RESTORE_PATH" \
+      "$LINEAGE_RESTORE_PATH" \
+      "$ALIAS_RESTORE_PATH"
+    do
+      if [ -n "$recovery_path" ] && { [ -e "$recovery_path" ] || [ -L "$recovery_path" ]; }; then
+        echo "recovery artifact preserved at $recovery_path" >&2
+      fi
+    done
+  fi
   if [ "$LOCK_HELD" -eq 1 ] && assert_lock_owned 2>/dev/null; then
     if [ "$PRESERVE_RECOVERY" -eq 1 ]; then
       echo "native update lock retained for manual recovery at $LOCK_PATH" >&2
@@ -263,6 +319,111 @@ except BaseException:
 PY
 }
 
+lineage_matches_transaction() {
+  expected_current_sha=$1
+  expected_previous_sha=$2
+  python3 - "$TRANSACTION_ID" "$LINEAGE_PATH" "$expected_current_sha" "$expected_previous_sha" <<'PY'
+import json, os, stat, sys
+
+transaction_id, lineage_path, expected_current_sha, expected_previous_sha = sys.argv[1:]
+flags = os.O_RDONLY | getattr(os, 'O_NOFOLLOW', 0)
+try:
+    fd = os.open(lineage_path, flags)
+except FileNotFoundError:
+    raise SystemExit(1)
+try:
+    value_stat = os.fstat(fd)
+    if not stat.S_ISREG(value_stat.st_mode):
+        raise SystemExit(1)
+    with os.fdopen(fd, 'r', encoding='utf-8') as stream:
+        fd = -1
+        value = json.load(stream)
+finally:
+    if fd >= 0:
+        os.close(fd)
+expected_previous = None if expected_previous_sha == 'null' else expected_previous_sha
+valid = (
+    isinstance(value, dict)
+    and value.get('schema') == 'chainlesschain.native-update-lineage.v1'
+    and value.get('transactionId') == transaction_id
+    and value.get('operation') == 'install'
+    and value.get('currentSha256') == expected_current_sha
+    and value.get('previousSha256') == expected_previous
+)
+raise SystemExit(0 if valid else 1)
+PY
+}
+
+file_identity() {
+  python3 - "$1" <<'PY'
+import os, stat, sys
+value = os.lstat(sys.argv[1])
+if not stat.S_ISREG(value.st_mode) or (value.st_dev == 0 and value.st_ino == 0):
+    raise SystemExit('regular file has no stable identity')
+print(f'{value.st_dev}:{value.st_ino}:{value.st_mode}')
+PY
+}
+
+snapshot_alias() {
+  python3 - "$1" "$2" <<'PY'
+import os, stat, sys
+source, snapshot = sys.argv[1:]
+value = os.lstat(source)
+if not stat.S_ISLNK(value.st_mode):
+    raise SystemExit('CLI alias changed before it could be snapshotted')
+os.symlink(os.readlink(source), snapshot)
+PY
+}
+
+alias_matches_snapshot() {
+  python3 - "$1" "$2" <<'PY'
+import os, stat, sys
+alias_path, snapshot_path = sys.argv[1:]
+try:
+    alias_stat = os.lstat(alias_path)
+    snapshot_stat = os.lstat(snapshot_path)
+except FileNotFoundError:
+    raise SystemExit(1)
+if not stat.S_ISLNK(alias_stat.st_mode) or not stat.S_ISLNK(snapshot_stat.st_mode):
+    raise SystemExit(1)
+raise SystemExit(0 if os.readlink(alias_path) == os.readlink(snapshot_path) else 1)
+PY
+}
+
+create_alias_restore_candidate() {
+  python3 - "$1" "$2" <<'PY'
+import os, stat, sys
+snapshot_path, restore_path = sys.argv[1:]
+value = os.lstat(snapshot_path)
+if not stat.S_ISLNK(value.st_mode):
+    raise SystemExit('CLI alias recovery snapshot is not a symlink')
+os.symlink(os.readlink(snapshot_path), restore_path)
+PY
+}
+
+discard_transaction_snapshots() {
+  removed=0
+  for snapshot_path in \
+    "$BACKUP_TEMP_PATH" \
+    "$PRIOR_BACKUP_PATH" \
+    "$PRIOR_LINEAGE_PATH" \
+    "$PRIOR_ALIAS_PATH"
+  do
+    [ -n "$snapshot_path" ] || continue
+    { [ -e "$snapshot_path" ] || [ -L "$snapshot_path" ]; } || return 1
+    assert_lock_owned || return 1
+    rm -f "$snapshot_path" || return 1
+    removed=1
+  done
+  if [ "$removed" -eq 1 ]; then
+    fsync_dir "$INSTALL_DIR" || return 1
+  fi
+  BACKUP_TEMP_PATH=""
+  PRIOR_BACKUP_PATH=""
+  PRIOR_LINEAGE_PATH=""
+  PRIOR_ALIAS_PATH=""
+}
+
 rollback_install() {
   assert_lock_owned || return 1
   if [ "$HAD_TARGET" -eq 1 ]; then
@@ -281,16 +442,108 @@ rollback_install() {
     mv -f "$ROLLBACK_TEMP_PATH" "$TARGET_PATH" || return 1
     ROLLBACK_TEMP_PATH=""
     [ "$(sha256_file "$TARGET_PATH")" = "$OLD_TARGET_SHA256" ] || return 1
-    if [ "$BACKUP_COMMITTED" -eq 1 ]; then
-      assert_lock_owned || return 1
-      write_lineage "$OLD_TARGET_SHA256" "$OLD_TARGET_SHA256" "rolled-back" || return 1
-    fi
   else
     [ ! -L "$TARGET_PATH" ] || return 1
     assert_lock_owned || return 1
     rm -f "$TARGET_PATH" || return 1
   fi
-  fsync_dir "$INSTALL_DIR"
+
+  if [ "$BACKUP_COMMITTED" -eq 1 ]; then
+    if [ "$HAD_BACKUP" -eq 1 ]; then
+      [ -n "$PRIOR_BACKUP_PATH" ] || return 1
+      [ -f "$PRIOR_BACKUP_PATH" ] && [ ! -L "$PRIOR_BACKUP_PATH" ] || return 1
+      [ "$(sha256_file "$PRIOR_BACKUP_PATH")" = "$OLD_BACKUP_SHA256" ] || return 1
+      [ "$(file_identity "$PRIOR_BACKUP_PATH")" = "$OLD_BACKUP_IDENTITY" ] || return 1
+      BACKUP_RESTORE_PATH="$INSTALL_DIR/.chainlesschain.backup-restore-$TRANSACTION_ID"
+      [ ! -e "$BACKUP_RESTORE_PATH" ] && [ ! -L "$BACKUP_RESTORE_PATH" ] || return 1
+      ln "$PRIOR_BACKUP_PATH" "$BACKUP_RESTORE_PATH" || return 1
+      [ "$(sha256_file "$BACKUP_RESTORE_PATH")" = "$OLD_BACKUP_SHA256" ] || return 1
+      [ "$(file_identity "$BACKUP_RESTORE_PATH")" = "$OLD_BACKUP_IDENTITY" ] || return 1
+      assert_lock_owned || return 1
+      mv -f "$BACKUP_RESTORE_PATH" "$BACKUP_PATH" || return 1
+      BACKUP_RESTORE_PATH=""
+      [ "$(sha256_file "$BACKUP_PATH")" = "$OLD_BACKUP_SHA256" ] || return 1
+      [ "$(file_identity "$BACKUP_PATH")" = "$OLD_BACKUP_IDENTITY" ] || return 1
+    else
+      assert_regular_file_or_missing "$BACKUP_PATH" "last-known-good backup" || return 1
+      assert_lock_owned || return 1
+      rm -f "$BACKUP_PATH" || return 1
+      [ ! -e "$BACKUP_PATH" ] && [ ! -L "$BACKUP_PATH" ] || return 1
+    fi
+
+  fi
+
+  # The lineage writer uses an atomic replace, but a signal or write-helper
+  # failure can arrive after that replace and before control returns here. Once
+  # a lineage commit has started, rollback must therefore restore its exact
+  # pre-transaction state independently of whether a backup was published.
+  if [ "$LINEAGE_COMMIT_STARTED" -eq 1 ]; then
+    if [ "$HAD_LINEAGE" -eq 1 ]; then
+      [ -n "$PRIOR_LINEAGE_PATH" ] || return 1
+      [ -f "$PRIOR_LINEAGE_PATH" ] && [ ! -L "$PRIOR_LINEAGE_PATH" ] || return 1
+      [ "$(sha256_file "$PRIOR_LINEAGE_PATH")" = "$OLD_LINEAGE_SHA256" ] || return 1
+      assert_regular_file_or_missing "$LINEAGE_PATH" "native update lineage" || return 1
+      [ "$(file_identity "$PRIOR_LINEAGE_PATH")" = "$OLD_LINEAGE_IDENTITY" ] || return 1
+      lineage_is_prior=0
+      if [ -f "$LINEAGE_PATH" ] && \
+        [ "$(sha256_file "$LINEAGE_PATH")" = "$OLD_LINEAGE_SHA256" ] && \
+        [ "$(file_identity "$LINEAGE_PATH")" = "$OLD_LINEAGE_IDENTITY" ]; then
+        lineage_is_prior=1
+      fi
+      if [ "$lineage_is_prior" -eq 0 ]; then
+        LINEAGE_RESTORE_PATH="$INSTALL_DIR/.chainlesschain.lineage-restore-$TRANSACTION_ID"
+        [ ! -e "$LINEAGE_RESTORE_PATH" ] && [ ! -L "$LINEAGE_RESTORE_PATH" ] || return 1
+        ln "$PRIOR_LINEAGE_PATH" "$LINEAGE_RESTORE_PATH" || return 1
+        [ "$(sha256_file "$LINEAGE_RESTORE_PATH")" = "$OLD_LINEAGE_SHA256" ] || return 1
+        [ "$(file_identity "$LINEAGE_RESTORE_PATH")" = "$OLD_LINEAGE_IDENTITY" ] || return 1
+        assert_lock_owned || return 1
+        # mv(1) maps to rename(2) for these same-directory paths, so the old
+        # public lineage remains continuously present if replacement fails.
+        mv -f "$LINEAGE_RESTORE_PATH" "$LINEAGE_PATH" || return 1
+        LINEAGE_RESTORE_PATH=""
+        [ "$(sha256_file "$LINEAGE_PATH")" = "$OLD_LINEAGE_SHA256" ] || return 1
+        [ "$(file_identity "$LINEAGE_PATH")" = "$OLD_LINEAGE_IDENTITY" ] || return 1
+      fi
+    else
+      assert_regular_file_or_missing "$LINEAGE_PATH" "native update lineage" || return 1
+      if [ -f "$LINEAGE_PATH" ]; then
+        lineage_previous_sha=null
+        if [ "$HAD_TARGET" -eq 1 ]; then
+          lineage_previous_sha=$OLD_TARGET_SHA256
+        fi
+        lineage_matches_transaction "$ARTIFACT_SHA256" "$lineage_previous_sha" || return 1
+        assert_lock_owned || return 1
+        rm -f "$LINEAGE_PATH" || return 1
+      fi
+      [ ! -e "$LINEAGE_PATH" ] && [ ! -L "$LINEAGE_PATH" ] || return 1
+    fi
+    LINEAGE_COMMIT_STARTED=0
+  fi
+
+  if [ "$ALIAS_COMMITTED" -eq 1 ]; then
+    if [ "$HAD_ALIAS" -eq 1 ]; then
+      [ -n "$PRIOR_ALIAS_PATH" ] || return 1
+      alias_matches_snapshot "$PRIOR_ALIAS_PATH" "$PRIOR_ALIAS_PATH" || return 1
+      ALIAS_RESTORE_PATH="$INSTALL_DIR/.cc.restore-$TRANSACTION_ID"
+      [ ! -e "$ALIAS_RESTORE_PATH" ] && [ ! -L "$ALIAS_RESTORE_PATH" ] || return 1
+      create_alias_restore_candidate "$PRIOR_ALIAS_PATH" "$ALIAS_RESTORE_PATH" || return 1
+      alias_matches_snapshot "$ALIAS_RESTORE_PATH" "$PRIOR_ALIAS_PATH" || return 1
+      assert_lock_owned || return 1
+      mv -f "$ALIAS_RESTORE_PATH" "$ALIAS_PATH" || return 1
+      ALIAS_RESTORE_PATH=""
+      alias_matches_snapshot "$ALIAS_PATH" "$PRIOR_ALIAS_PATH" || return 1
+    else
+      [ ! -L "$ALIAS_PATH" ] || {
+        assert_lock_owned || return 1
+        rm -f "$ALIAS_PATH" || return 1
+      }
+      [ ! -e "$ALIAS_PATH" ] && [ ! -L "$ALIAS_PATH" ] || return 1
+    fi
+    ALIAS_COMMITTED=0
+  fi
+
+  fsync_dir "$INSTALL_DIR" || return 1
+  discard_transaction_snapshots || return 1
 }
 
 STAGING=$(mktemp -d "${TMPDIR:-/tmp}/chainlesschain-install.XXXXXX")
@@ -424,6 +677,43 @@ if ! startup_check "$CANDIDATE_PATH"; then
   die "verified artifact failed its pre-install startup check"
 fi
 
+# Preserve the exact pre-transaction rollback generation. Hard-linking the
+# regular state files keeps their inode, mode, and bytes available even after
+# the public names are atomically replaced. The alias snapshot preserves the
+# raw symlink target without following it.
+if [ -f "$BACKUP_PATH" ]; then
+  HAD_BACKUP=1
+  OLD_BACKUP_SHA256=$(sha256_file "$BACKUP_PATH")
+  OLD_BACKUP_IDENTITY=$(file_identity "$BACKUP_PATH")
+  PRIOR_BACKUP_PATH="$INSTALL_DIR/.chainlesschain.backup-prior-$TRANSACTION_ID"
+  [ ! -e "$PRIOR_BACKUP_PATH" ] && [ ! -L "$PRIOR_BACKUP_PATH" ] || die "backup recovery snapshot path already exists"
+  ln "$BACKUP_PATH" "$PRIOR_BACKUP_PATH"
+  [ "$(sha256_file "$PRIOR_BACKUP_PATH")" = "$OLD_BACKUP_SHA256" ] || die "backup recovery snapshot failed SHA-256 verification"
+  [ "$(file_identity "$PRIOR_BACKUP_PATH")" = "$OLD_BACKUP_IDENTITY" ] || die "backup recovery snapshot lost file identity"
+fi
+if [ -f "$LINEAGE_PATH" ]; then
+  HAD_LINEAGE=1
+  OLD_LINEAGE_SHA256=$(sha256_file "$LINEAGE_PATH")
+  OLD_LINEAGE_IDENTITY=$(file_identity "$LINEAGE_PATH")
+  PRIOR_LINEAGE_PATH="$INSTALL_DIR/.chainlesschain.lineage-prior-$TRANSACTION_ID"
+  [ ! -e "$PRIOR_LINEAGE_PATH" ] && [ ! -L "$PRIOR_LINEAGE_PATH" ] || die "lineage recovery snapshot path already exists"
+  ln "$LINEAGE_PATH" "$PRIOR_LINEAGE_PATH"
+  [ "$(sha256_file "$PRIOR_LINEAGE_PATH")" = "$OLD_LINEAGE_SHA256" ] || die "lineage recovery snapshot failed SHA-256 verification"
+  [ "$(file_identity "$PRIOR_LINEAGE_PATH")" = "$OLD_LINEAGE_IDENTITY" ] || die "lineage recovery snapshot lost file identity"
+fi
+if [ -L "$ALIAS_PATH" ]; then
+  HAD_ALIAS=1
+  PRIOR_ALIAS_PATH="$INSTALL_DIR/.cc.prior-$TRANSACTION_ID"
+  [ ! -e "$PRIOR_ALIAS_PATH" ] && [ ! -L "$PRIOR_ALIAS_PATH" ] || die "alias recovery snapshot path already exists"
+  snapshot_alias "$ALIAS_PATH" "$PRIOR_ALIAS_PATH"
+  alias_matches_snapshot "$ALIAS_PATH" "$PRIOR_ALIAS_PATH" || die "alias recovery snapshot changed during creation"
+elif [ -e "$ALIAS_PATH" ]; then
+  die "CLI alias must remain a symlink or absent: $ALIAS_PATH"
+fi
+if [ "$HAD_BACKUP" -eq 1 ] || [ "$HAD_LINEAGE" -eq 1 ] || [ "$HAD_ALIAS" -eq 1 ]; then
+  fsync_dir "$INSTALL_DIR" || die "could not persist native recovery snapshots"
+fi
+
 if [ -f "$TARGET_PATH" ]; then
   HAD_TARGET=1
   OLD_TARGET_SHA256=$(sha256_file "$TARGET_PATH")
@@ -444,6 +734,26 @@ assert_regular_file_or_missing "$RESULT_PATH" "native update result"
 assert_regular_file_or_missing "$LAST_RESULT_PATH" "last consumed native update result"
 if [ "$HAD_TARGET" -eq 1 ] && [ "$(sha256_file "$TARGET_PATH")" != "$OLD_TARGET_SHA256" ]; then
   die "install target changed while the transaction was staged"
+fi
+if [ "$HAD_BACKUP" -eq 1 ]; then
+  [ -f "$BACKUP_PATH" ] && [ ! -L "$BACKUP_PATH" ] || die "last-known-good backup changed while the transaction was staged"
+  [ "$(sha256_file "$BACKUP_PATH")" = "$OLD_BACKUP_SHA256" ] || die "last-known-good backup changed while the transaction was staged"
+  [ "$(file_identity "$BACKUP_PATH")" = "$OLD_BACKUP_IDENTITY" ] || die "last-known-good backup identity changed while the transaction was staged"
+  [ "$(sha256_file "$PRIOR_BACKUP_PATH")" = "$OLD_BACKUP_SHA256" ] || die "backup recovery snapshot changed while the transaction was staged"
+elif [ -e "$BACKUP_PATH" ] || [ -L "$BACKUP_PATH" ]; then
+  die "last-known-good backup appeared while the transaction was staged"
+fi
+if [ "$HAD_LINEAGE" -eq 1 ]; then
+  [ -f "$LINEAGE_PATH" ] && [ ! -L "$LINEAGE_PATH" ] || die "native update lineage changed while the transaction was staged"
+  [ "$(sha256_file "$LINEAGE_PATH")" = "$OLD_LINEAGE_SHA256" ] || die "native update lineage changed while the transaction was staged"
+  [ "$(sha256_file "$PRIOR_LINEAGE_PATH")" = "$OLD_LINEAGE_SHA256" ] || die "lineage recovery snapshot changed while the transaction was staged"
+elif [ -e "$LINEAGE_PATH" ] || [ -L "$LINEAGE_PATH" ]; then
+  die "native update lineage appeared while the transaction was staged"
+fi
+if [ "$HAD_ALIAS" -eq 1 ]; then
+  alias_matches_snapshot "$ALIAS_PATH" "$PRIOR_ALIAS_PATH" || die "CLI alias changed while the transaction was staged"
+elif [ -e "$ALIAS_PATH" ] || [ -L "$ALIAS_PATH" ]; then
+  die "CLI alias appeared while the transaction was staged"
 fi
 if [ "$(sha256_file "$CANDIDATE_PATH")" != "$ARTIFACT_SHA256" ]; then
   die "same-filesystem candidate changed before commit"
@@ -472,6 +782,13 @@ fi
 # transaction-local snapshot and leaves the previous lineage generation alone.
 if [ "$HAD_TARGET" -eq 1 ]; then
   assert_regular_file_or_missing "$BACKUP_PATH" "last-known-good backup"
+  if [ "$HAD_BACKUP" -eq 1 ]; then
+    [ "$(sha256_file "$BACKUP_PATH")" = "$OLD_BACKUP_SHA256" ] || die "last-known-good backup changed before backup commit"
+    [ "$(file_identity "$BACKUP_PATH")" = "$OLD_BACKUP_IDENTITY" ] || die "last-known-good backup identity changed before backup commit"
+    [ "$(sha256_file "$PRIOR_BACKUP_PATH")" = "$OLD_BACKUP_SHA256" ] || die "backup recovery snapshot changed before backup commit"
+  elif [ -e "$BACKUP_PATH" ] || [ -L "$BACKUP_PATH" ]; then
+    die "last-known-good backup appeared before backup commit"
+  fi
   assert_lock_owned || die "native update lock ownership was lost before backup commit"
   mv -f "$BACKUP_TEMP_PATH" "$BACKUP_PATH"
   BACKUP_TEMP_PATH=""
@@ -482,10 +799,17 @@ fi
 ALIAS_TEMP_PATH="$INSTALL_DIR/.cc.link-$TRANSACTION_ID"
 [ ! -e "$ALIAS_TEMP_PATH" ] && [ ! -L "$ALIAS_TEMP_PATH" ] || die "alias staging path already exists"
 ln -s chainlesschain "$ALIAS_TEMP_PATH"
+if [ "$HAD_ALIAS" -eq 1 ]; then
+  alias_matches_snapshot "$ALIAS_PATH" "$PRIOR_ALIAS_PATH" || die "CLI alias changed before alias commit"
+elif [ -e "$ALIAS_PATH" ] || [ -L "$ALIAS_PATH" ]; then
+  die "CLI alias appeared before alias commit"
+fi
 assert_lock_owned || die "native update lock ownership was lost before alias commit"
 mv -f "$ALIAS_TEMP_PATH" "$ALIAS_PATH"
 ALIAS_TEMP_PATH=""
+ALIAS_COMMITTED=1
 fsync_dir "$INSTALL_DIR"
+LINEAGE_COMMIT_STARTED=1
 if [ "$HAD_TARGET" -eq 1 ]; then
   assert_lock_owned || die "native update lock ownership was lost before lineage commit"
   write_lineage "$ARTIFACT_SHA256" "$OLD_TARGET_SHA256" "install"
@@ -494,4 +818,8 @@ else
   write_lineage "$ARTIFACT_SHA256" "null" "install"
 fi
 COMMITTED=1
+if ! discard_transaction_snapshots; then
+  PRESERVE_RECOVERY=1
+  die "install committed but prior-generation cleanup failed; the native update lock was retained"
+fi
 echo "Installed ChainlessChain CLI at $TARGET_PATH"
