@@ -11,6 +11,11 @@ import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
 import {
+  hasPreciseFileIdentity,
+  pathMatchesOpenedFileIdentitySync,
+  sameOpenedFileIdentity,
+} from "./file-identity.js";
+import {
   assertSafeRegularFile as assertStateSafeRegularFile,
   assertSafePathAncestors,
 } from "./native-update-state.js";
@@ -417,27 +422,15 @@ async function awaitBeforeDeadline(
 
 function assertPathMatchesDescriptor(filePath, fd, label) {
   let descriptorStat;
-  let pathStat;
   try {
     descriptorStat = fs.fstatSync(fd, { bigint: true });
-    pathStat = fs.lstatSync(filePath, { bigint: true });
   } catch (error) {
     throw new DownloadError(
       `${label} identity could not be verified: ${error.message}`,
       "PARTIAL_REPLACED",
     );
   }
-  if (pathStat.isSymbolicLink() || !pathStat.isFile()) {
-    throw new DownloadError(
-      `${label} is no longer a regular file`,
-      "PARTIAL_REPLACED",
-    );
-  }
-  if (
-    descriptorStat.dev !== pathStat.dev ||
-    descriptorStat.ino !== pathStat.ino ||
-    (descriptorStat.ino === 0n && descriptorStat.dev === 0n)
-  ) {
+  if (!pathMatchesOpenedFileIdentitySync(filePath, descriptorStat)) {
     throw new DownloadError(
       `${label} pathname no longer identifies the verified file`,
       "PARTIAL_REPLACED",
@@ -448,14 +441,7 @@ function assertPathMatchesDescriptor(filePath, fd, label) {
 function removePathIfMatchesDescriptor(filePath, fd) {
   try {
     const descriptorStat = fs.fstatSync(fd, { bigint: true });
-    const pathStat = fs.lstatSync(filePath, { bigint: true });
-    if (
-      !pathStat.isSymbolicLink() &&
-      pathStat.isFile() &&
-      !(descriptorStat.ino === 0n && descriptorStat.dev === 0n) &&
-      descriptorStat.dev === pathStat.dev &&
-      descriptorStat.ino === pathStat.ino
-    ) {
+    if (pathMatchesOpenedFileIdentitySync(filePath, descriptorStat)) {
       fs.unlinkSync(filePath);
       return true;
     }
@@ -467,7 +453,7 @@ function removePathIfMatchesDescriptor(filePath, fd) {
 
 function snapshotDescriptorIdentity(fd) {
   const stat = fs.fstatSync(fd, { bigint: true });
-  if (!stat.isFile() || (stat.dev === 0n && stat.ino === 0n)) {
+  if (!stat.isFile() || !hasPreciseFileIdentity(stat)) {
     throw new DownloadError(
       "partial download descriptor has no stable file identity",
       "PARTIAL_REPLACED",
@@ -478,13 +464,7 @@ function snapshotDescriptorIdentity(fd) {
 
 function removePathIfMatchesIdentity(filePath, identity) {
   try {
-    const pathStat = fs.lstatSync(filePath, { bigint: true });
-    if (
-      !pathStat.isSymbolicLink() &&
-      pathStat.isFile() &&
-      pathStat.dev === identity.dev &&
-      pathStat.ino === identity.ino
-    ) {
+    if (pathMatchesOpenedFileIdentitySync(filePath, identity)) {
       fs.unlinkSync(filePath);
       return true;
     }
@@ -656,12 +636,7 @@ function sameSnapshotState(first, second) {
   return (
     first.isFile() &&
     second.isFile() &&
-    !(first.dev === 0n && first.ino === 0n) &&
-    first.dev === second.dev &&
-    first.ino === second.ino &&
-    first.size === second.size &&
-    first.mode === second.mode &&
-    first.mtimeNs === second.mtimeNs
+    sameOpenedFileIdentity(first, second, ["size", "mode", "mtimeNs"])
   );
 }
 
@@ -767,13 +742,7 @@ function assertPathMatchesSnapshot(filePath, snapshot, label) {
 function removePathIfMatchesSnapshot(filePath, snapshot) {
   try {
     assertPathMatchesSnapshot(filePath, snapshot, "output recovery artifact");
-    const stat = fs.lstatSync(filePath, { bigint: true });
-    if (
-      !stat.isSymbolicLink() &&
-      stat.isFile() &&
-      stat.dev === snapshot.dev &&
-      stat.ino === snapshot.ino
-    ) {
+    if (pathMatchesOpenedFileIdentitySync(filePath, snapshot)) {
       fs.unlinkSync(filePath);
       return true;
     }
@@ -874,35 +843,27 @@ function acquireLock(lockPath) {
 function assertDownloadLockOwned(lock) {
   try {
     const before = fs.fstatSync(lock.fd, { bigint: true });
-    const pathBefore = fs.lstatSync(lock.lockPath, { bigint: true });
+    const pathOwnedBefore = pathMatchesOpenedFileIdentitySync(
+      lock.lockPath,
+      before,
+      { stateFields: ["size", "mtimeNs", "ctimeNs"] },
+    );
     const expected = Buffer.from(lock.token, "utf8");
     const actual = Buffer.alloc(expected.length + 1);
     const bytesRead = fs.readSync(lock.fd, actual, 0, actual.length, 0);
     const after = fs.fstatSync(lock.fd, { bigint: true });
-    const pathAfter = fs.lstatSync(lock.lockPath, { bigint: true });
+    const pathOwnedAfter = pathMatchesOpenedFileIdentitySync(
+      lock.lockPath,
+      after,
+      { stateFields: ["size", "mtimeNs", "ctimeNs"] },
+    );
     const descriptorStable =
       before.isFile() &&
       after.isFile() &&
       before.nlink > 0n &&
       after.nlink > 0n &&
-      !(before.dev === 0n && before.ino === 0n) &&
-      before.dev === after.dev &&
-      before.ino === after.ino &&
-      before.size === after.size &&
-      before.mtimeNs === after.mtimeNs &&
-      before.ctimeNs === after.ctimeNs;
-    const pathStillOwned =
-      !pathBefore.isSymbolicLink() &&
-      pathBefore.isFile() &&
-      !pathAfter.isSymbolicLink() &&
-      pathAfter.isFile() &&
-      before.dev === pathBefore.dev &&
-      before.ino === pathBefore.ino &&
-      after.dev === pathAfter.dev &&
-      after.ino === pathAfter.ino &&
-      after.size === pathAfter.size &&
-      after.mtimeNs === pathAfter.mtimeNs &&
-      after.ctimeNs === pathAfter.ctimeNs;
+      sameOpenedFileIdentity(before, after, ["size", "mtimeNs", "ctimeNs"]);
+    const pathStillOwned = pathOwnedBefore && pathOwnedAfter;
     const tokenMatches =
       bytesRead === expected.length &&
       actual.subarray(0, bytesRead).equals(expected);

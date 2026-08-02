@@ -19,6 +19,10 @@ import crypto from "node:crypto";
 import { spawn as nativeSpawn } from "node:child_process";
 import executionBroker from "../process-execution-broker/index.js";
 import {
+  pathMatchesOpenedFileIdentitySync,
+  sameOpenedFileIdentity,
+} from "./file-identity.js";
+import {
   NATIVE_UPDATE_LINEAGE_SCHEMA,
   NATIVE_UPDATE_RESULT_SCHEMA,
   SHA256_HEX,
@@ -1595,21 +1599,11 @@ function stableSha256(filePath, label) {
       if (bytesRead > 0) hasher.update(buffer.subarray(0, bytesRead));
     } while (bytesRead > 0);
     const after = fs.fstatSync(fd, { bigint: true });
-    const pathStat = fs.lstatSync(filePath, { bigint: true });
     const identityChanged =
-      pathStat.isSymbolicLink() ||
-      !pathStat.isFile() ||
-      (before.ino === 0n && before.dev === 0n) ||
-      before.dev !== after.dev ||
-      before.ino !== after.ino ||
-      before.size !== after.size ||
-      before.mtimeNs !== after.mtimeNs ||
-      before.ctimeNs !== after.ctimeNs ||
-      after.dev !== pathStat.dev ||
-      after.ino !== pathStat.ino ||
-      after.size !== pathStat.size ||
-      after.mtimeNs !== pathStat.mtimeNs ||
-      after.ctimeNs !== pathStat.ctimeNs;
+      !sameOpenedFileIdentity(before, after, ["size", "mtimeNs", "ctimeNs"]) ||
+      !pathMatchesOpenedFileIdentitySync(filePath, after, {
+        stateFields: ["size", "mtimeNs", "ctimeNs"],
+      });
     if (identityChanged) {
       throw new ApplyError(
         `${label} changed while it was being verified`,
@@ -1844,35 +1838,27 @@ function assertUpdateLockOwned(lock) {
   }
   try {
     const before = fs.fstatSync(lock.fd, { bigint: true });
-    const pathBefore = fs.lstatSync(lock.lockPath, { bigint: true });
+    const pathOwnedBefore = pathMatchesOpenedFileIdentitySync(
+      lock.lockPath,
+      before,
+      { stateFields: ["size", "mtimeNs", "ctimeNs"] },
+    );
     const expected = Buffer.from(lock.token, "utf8");
     const actual = Buffer.alloc(expected.length + 1);
     const bytesRead = fs.readSync(lock.fd, actual, 0, actual.length, 0);
     const after = fs.fstatSync(lock.fd, { bigint: true });
-    const pathAfter = fs.lstatSync(lock.lockPath, { bigint: true });
+    const pathOwnedAfter = pathMatchesOpenedFileIdentitySync(
+      lock.lockPath,
+      after,
+      { stateFields: ["size", "mtimeNs", "ctimeNs"] },
+    );
     const descriptorStable =
       before.isFile() &&
       after.isFile() &&
       before.nlink > 0n &&
       after.nlink > 0n &&
-      !(before.dev === 0n && before.ino === 0n) &&
-      before.dev === after.dev &&
-      before.ino === after.ino &&
-      before.size === after.size &&
-      before.mtimeNs === after.mtimeNs &&
-      before.ctimeNs === after.ctimeNs;
-    const pathStillOwned =
-      !pathBefore.isSymbolicLink() &&
-      pathBefore.isFile() &&
-      !pathAfter.isSymbolicLink() &&
-      pathAfter.isFile() &&
-      before.dev === pathBefore.dev &&
-      before.ino === pathBefore.ino &&
-      after.dev === pathAfter.dev &&
-      after.ino === pathAfter.ino &&
-      after.size === pathAfter.size &&
-      after.mtimeNs === pathAfter.mtimeNs &&
-      after.ctimeNs === pathAfter.ctimeNs;
+      sameOpenedFileIdentity(before, after, ["size", "mtimeNs", "ctimeNs"]);
+    const pathStillOwned = pathOwnedBefore && pathOwnedAfter;
     const tokenMatches =
       bytesRead === expected.length &&
       actual.subarray(0, bytesRead).equals(expected);
