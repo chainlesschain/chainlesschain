@@ -488,6 +488,13 @@ export function registerCheckpointCommand(program) {
                   submission.checkpointId,
                   { expectedIdentity: checkpointIdentity },
                 );
+                transaction.retainRecoveryEvidence({
+                  safetyId: transactionResult.code?.safetyId,
+                  safetyIdentity: transactionResult.code?.safetyIdentity,
+                  safetyCoverage: transactionResult.code?.safetyCoverage,
+                  restorePhase: "workspace-applied",
+                  createdPaths: transactionResult.code?.createdPaths,
+                });
               }
 
               if (planned.commit.branchPlan) {
@@ -497,6 +504,11 @@ export function registerCheckpointCommand(program) {
                   parentTurnId: submission.turnId,
                   messages: planned.commit.messages,
                   meta: { title: `Branch of ${options.session}` },
+                });
+                transaction.retainRecoveryEvidence({
+                  branchSessionId:
+                    transactionResult.branch?.branchSessionId ||
+                    planned.commit.branchPlan.branchSessionId,
                 });
               } else if (planned.commit.messages) {
                 context.binding.pruneFromOffset(

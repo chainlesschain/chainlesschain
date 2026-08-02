@@ -274,8 +274,19 @@ export function planCheckpointTimelineAction({
 export function timelineActionError(error) {
   const operationError = error?.transactionError || null;
   const recoveryError = operationError || error;
+  const retainedRecovery =
+    error?.transactionRecoveryEvidence &&
+    typeof error.transactionRecoveryEvidence === "object" &&
+    !Array.isArray(error.transactionRecoveryEvidence)
+      ? error.transactionRecoveryEvidence
+      : null;
   const auditError =
     operationError?.checkpointAuditError || error?.checkpointAuditError || null;
+  const createdPaths = Array.isArray(recoveryError?.createdPaths)
+    ? recoveryError.createdPaths
+    : Array.isArray(retainedRecovery?.createdPaths)
+      ? retainedRecovery.createdPaths
+      : [];
   return {
     schema: CHECKPOINT_TIMELINE_RESULT_SCHEMA,
     version: CHECKPOINT_TIMELINE_RESULT_VERSION,
@@ -288,13 +299,18 @@ export function timelineActionError(error) {
     commitState: error?.commitState || null,
     operationFailureCode: operationError?.code || null,
     auditFailureCode: auditError?.code || null,
-    restorePhase: recoveryError?.restorePhase || null,
-    safetyCheckpointId: recoveryError?.safetyId || null,
-    safetyCheckpointIdentity: recoveryError?.safetyIdentity || null,
-    safetyCoverage: recoveryError?.safetyCoverage || null,
-    branchSessionId: recoveryError?.branchSessionId || null,
-    createdPaths: Array.isArray(recoveryError?.createdPaths)
-      ? recoveryError.createdPaths.slice(0, 256)
-      : [],
+    restorePhase:
+      recoveryError?.restorePhase || retainedRecovery?.restorePhase || null,
+    safetyCheckpointId:
+      recoveryError?.safetyId || retainedRecovery?.safetyId || null,
+    safetyCheckpointIdentity:
+      recoveryError?.safetyIdentity || retainedRecovery?.safetyIdentity || null,
+    safetyCoverage:
+      recoveryError?.safetyCoverage || retainedRecovery?.safetyCoverage || null,
+    branchSessionId:
+      recoveryError?.branchSessionId ||
+      retainedRecovery?.branchSessionId ||
+      null,
+    createdPaths: createdPaths.slice(0, 256),
   };
 }

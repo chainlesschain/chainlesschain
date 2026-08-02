@@ -946,6 +946,71 @@ describe("jsonl-session-store", () => {
       ]);
     });
 
+    it("retains only explicit recovery evidence when final settlement alone fails", () => {
+      const id = startSession("authority-transaction-final-settlement", {
+        title: "transaction",
+      });
+      const initialHead = readEvents(id).at(-1).hash;
+      const privateResult = "callback-result-must-not-leak";
+      const metaFile = join(sessionsDir, `${id}.meta.json`);
+      let thrown = null;
+
+      try {
+        withSessionAuthorityTransaction(id, initialHead, (transaction) => {
+          transaction.appendAuthorityEvent("transaction_complete", {
+            value: 1,
+          });
+          transaction.retainRecoveryEvidence({
+            safetyId: "safety-final-1",
+            safetyIdentity: `git:${"a".repeat(40)}`,
+            safetyCoverage: "checkpoint",
+            restorePhase: "workspace-applied",
+            branchSessionId: "session-final-branch",
+            createdPaths: ["src/new.js", 17],
+            arbitraryCallbackResult: privateResult,
+          });
+
+          // Every append has succeeded and updated the sidecar. Make only the
+          // transaction's final transcript/sidecar settlement check fail.
+          const meta = JSON.parse(readFileSync(metaFile, "utf8"));
+          writeFileSync(
+            metaFile,
+            `${JSON.stringify({ ...meta, event_count: 0 })}\n`,
+            "utf8",
+          );
+          return { privateResult };
+        });
+      } catch (error) {
+        thrown = error;
+      }
+
+      expect(thrown).toMatchObject({
+        code: "SESSION_INDEX_ANCHOR_FAILED",
+        commitState: "unknown",
+        transactionRecoveryEvidence: {
+          safetyId: "safety-final-1",
+          safetyIdentity: `git:${"a".repeat(40)}`,
+          safetyCoverage: "checkpoint",
+          restorePhase: "workspace-applied",
+          branchSessionId: "session-final-branch",
+          createdPaths: ["src/new.js"],
+        },
+      });
+      expect(thrown).not.toHaveProperty("transactionError");
+      expect(thrown.transactionRecoveryEvidence).not.toHaveProperty(
+        "arbitraryCallbackResult",
+      );
+      expect(JSON.stringify(thrown)).not.toContain(privateResult);
+      expect(Object.isFrozen(thrown.transactionRecoveryEvidence)).toBe(true);
+      expect(
+        Object.isFrozen(thrown.transactionRecoveryEvidence.createdPaths),
+      ).toBe(true);
+      expect(repairSession(id)).toMatchObject({
+        healthy: true,
+        indexChanged: true,
+      });
+    });
+
     it("revokes retained and thenable-returning transaction writers", () => {
       const id = startSession("authority-transaction-revoked", {
         title: "transaction",

@@ -739,6 +739,39 @@ function encodeEventMessageProvenance(type, data) {
   return data;
 }
 
+const SESSION_AUTHORITY_RECOVERY_TEXT_LIMITS = Object.freeze({
+  safetyId: 512,
+  safetyIdentity: 512,
+  safetyCoverage: 64,
+  restorePhase: 64,
+  branchSessionId: 512,
+});
+const SESSION_AUTHORITY_RECOVERY_CREATED_PATH_LIMIT = 256;
+const SESSION_AUTHORITY_RECOVERY_PATH_LENGTH_LIMIT = 4096;
+
+function sanitizeSessionAuthorityRecoveryEvidence(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const evidence = {};
+  for (const [field, limit] of Object.entries(
+    SESSION_AUTHORITY_RECOVERY_TEXT_LIMITS,
+  )) {
+    if (typeof value[field] === "string" && value[field].length > 0) {
+      evidence[field] = value[field].slice(0, limit);
+    }
+  }
+  if (Array.isArray(value.createdPaths)) {
+    evidence.createdPaths = Object.freeze(
+      value.createdPaths
+        .filter((item) => typeof item === "string")
+        .slice(0, SESSION_AUTHORITY_RECOVERY_CREATED_PATH_LIMIT)
+        .map((item) =>
+          item.slice(0, SESSION_AUTHORITY_RECOVERY_PATH_LENGTH_LIMIT),
+        ),
+    );
+  }
+  return Object.keys(evidence).length > 0 ? Object.freeze(evidence) : null;
+}
+
 function appendEventLocked(
   sessionId,
   type,
@@ -887,6 +920,10 @@ export function appendAuthorityEventIfHead(
  * chain. The callback must be synchronous; retaining the writer beyond the
  * lock lifetime would make the apparent transaction unsafe.
  *
+ * External mutations may register bounded, recovery-only evidence through the
+ * writer. It is attached only when final settlement is unverifiable; the
+ * callback's arbitrary return value is never copied into an error.
+ *
  * This is a transaction-scoped writer lease, not a general host/session lease
  * and not a filesystem power-loss transaction. Callers that coordinate an
  * external resource must still journal crash recovery for that resource.
@@ -949,9 +986,27 @@ export function withSessionAuthorityTransaction(
       let appendAttempts = 0;
       let writerActive = true;
       let writerPoisoned = false;
+      let transactionRecoveryEvidence = null;
       const writer = Object.freeze({
         initialHeadHash: currentHeadHash,
         currentHeadHash: () => currentHeadHash,
+        retainRecoveryEvidence(evidence) {
+          if (!writerActive) {
+            const error = new Error(
+              `Session authority transaction is already closed: ${sessionId}`,
+            );
+            error.code = "SESSION_AUTHORITY_TRANSACTION_CLOSED";
+            throw error;
+          }
+          const sanitized = sanitizeSessionAuthorityRecoveryEvidence(evidence);
+          if (sanitized) {
+            transactionRecoveryEvidence = Object.freeze({
+              ...(transactionRecoveryEvidence || {}),
+              ...sanitized,
+            });
+          }
+          return transactionRecoveryEvidence;
+        },
         appendAuthorityEvent(type, data) {
           if (!writerActive) {
             const error = new Error(
@@ -1034,6 +1089,11 @@ export function withSessionAuthorityTransaction(
           error.sessionId = sessionId;
           error.commitState = "unknown";
           if (bodyThrew) error.transactionError = bodyError;
+          if (transactionRecoveryEvidence) {
+            // Never attach the arbitrary callback result. Callers must opt in
+            // to this bounded recovery-only projection before settlement.
+            error.transactionRecoveryEvidence = transactionRecoveryEvidence;
+          }
           throw error;
         }
       }

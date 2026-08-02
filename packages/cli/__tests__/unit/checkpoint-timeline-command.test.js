@@ -9,6 +9,7 @@ const state = vi.hoisted(() => ({
   conditional: [],
   audit: [],
   restores: [],
+  branches: [],
   transactions: [],
   transactionActive: false,
   onRestore: null,
@@ -18,6 +19,7 @@ const state = vi.hoisted(() => ({
   failFailedAudit: false,
   failConversationAppend: false,
   failCompletedAudit: false,
+  failFinalSettlement: false,
 }));
 
 vi.mock("../../src/lib/turn-binding-store.js", () => ({
@@ -45,11 +47,34 @@ vi.mock("../../src/harness/jsonl-session-store.js", () => ({
     const transaction = { expected, events: [] };
     let writerPoisoned = false;
     let settlementUnknown = false;
+    let retainedRecovery = null;
     state.transactions.push(transaction);
     state.transactionActive = true;
     try {
       try {
-        return task({
+        const callbackResult = task({
+          retainRecoveryEvidence(evidence) {
+            const sanitized = {};
+            for (const field of [
+              "safetyId",
+              "safetyIdentity",
+              "safetyCoverage",
+              "restorePhase",
+              "branchSessionId",
+            ]) {
+              if (typeof evidence?.[field] === "string") {
+                sanitized[field] = evidence[field];
+              }
+            }
+            if (Array.isArray(evidence?.createdPaths)) {
+              sanitized.createdPaths = evidence.createdPaths.filter(
+                (item) => typeof item === "string",
+              );
+            }
+            retainedRecovery = { ...(retainedRecovery || {}), ...sanitized };
+            transaction.recoveryEvidence = retainedRecovery;
+            return retainedRecovery;
+          },
           appendAuthorityEvent(type, data) {
             if (writerPoisoned) {
               const error = new Error("injected poisoned writer");
@@ -91,6 +116,14 @@ vi.mock("../../src/harness/jsonl-session-store.js", () => ({
             return { hash: state.headHash };
           },
         });
+        if (state.failFinalSettlement) {
+          const error = new Error("injected final settlement failure");
+          error.code = "SESSION_INDEX_ANCHOR_FAILED";
+          error.commitState = "unknown";
+          error.transactionRecoveryEvidence = retainedRecovery;
+          throw error;
+        }
+        return callbackResult;
       } catch (operationError) {
         if (!settlementUnknown) throw operationError;
         const settlementError = new Error(
@@ -105,7 +138,15 @@ vi.mock("../../src/harness/jsonl-session-store.js", () => ({
       state.transactionActive = false;
     }
   },
-  createBranchSession: vi.fn(),
+  createBranchSession: (options) => {
+    const branch = {
+      branchSessionId: options.branchSessionId,
+      messages: options.messages.length,
+      created: true,
+    };
+    state.branches.push(branch);
+    return branch;
+  },
 }));
 
 vi.mock("../../src/lib/checkpoint-store.js", () => ({
@@ -210,6 +251,7 @@ describe("checkpoint timeline CLI command authority", () => {
     state.conditional = [];
     state.audit = [];
     state.restores = [];
+    state.branches = [];
     state.transactions = [];
     state.transactionActive = false;
     state.onRestore = null;
@@ -219,6 +261,7 @@ describe("checkpoint timeline CLI command authority", () => {
     state.failFailedAudit = false;
     state.failConversationAppend = false;
     state.failCompletedAudit = false;
+    state.failFinalSettlement = false;
     process.exitCode = undefined;
   });
 
@@ -465,6 +508,88 @@ describe("checkpoint timeline CLI command authority", () => {
       "checkpoint_timeline_action",
     ]);
     expect(state.audit).toEqual([]);
+  });
+
+  it("retains restore evidence when only final transaction settlement fails", async () => {
+    const timeline = await invoke([
+      "checkpoint",
+      "timeline",
+      "-s",
+      "s1",
+      "--json",
+    ]);
+    const submission = timeline.entries[0].actions.find(
+      (action) => action.action === "restore-both",
+    ).submission;
+    state.failFinalSettlement = true;
+
+    const rejected = await invoke([
+      "checkpoint",
+      "action",
+      "-s",
+      "s1",
+      "--submission",
+      JSON.stringify(submission),
+      "--confirm",
+      "--json",
+    ]);
+
+    expect(rejected).toMatchObject({
+      ok: false,
+      code: "SESSION_INDEX_ANCHOR_FAILED",
+      commitState: "unknown",
+      operationFailureCode: null,
+      auditFailureCode: null,
+      restorePhase: "workspace-applied",
+      safetyCheckpointId: "safety-1",
+      safetyCheckpointIdentity: `git:${"d".repeat(40)}`,
+      safetyCoverage: "checkpoint",
+    });
+    expect(state.restores).toEqual(["cp-1"]);
+    expect(state.conditional.map((event) => event.type)).toEqual([
+      "checkpoint_timeline_action_intent",
+      "checkpoint_timeline_commit",
+      "checkpoint_timeline_action",
+    ]);
+    expect(state.audit.at(-1).data.status).toBe("completed");
+  });
+
+  it("retains the created branch id when only final settlement fails", async () => {
+    const timeline = await invoke([
+      "checkpoint",
+      "timeline",
+      "-s",
+      "s1",
+      "--json",
+    ]);
+    const submission = timeline.entries[0].actions.find(
+      (action) => action.action === "branch",
+    ).submission;
+    state.failFinalSettlement = true;
+
+    const rejected = await invoke([
+      "checkpoint",
+      "action",
+      "-s",
+      "s1",
+      "--submission",
+      JSON.stringify(submission),
+      "--confirm",
+      "--json",
+    ]);
+
+    expect(state.branches).toHaveLength(1);
+    expect(rejected).toMatchObject({
+      ok: false,
+      code: "SESSION_INDEX_ANCHOR_FAILED",
+      commitState: "unknown",
+      operationFailureCode: null,
+      branchSessionId: state.branches[0].branchSessionId,
+    });
+    expect(state.audit.at(-1).data).toMatchObject({
+      status: "completed",
+      branchSessionId: state.branches[0].branchSessionId,
+    });
   });
 
   it("reports unknown settlement while retaining the failed restore diagnosis", async () => {
