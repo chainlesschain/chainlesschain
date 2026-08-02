@@ -1993,7 +1993,11 @@ rollback_install() {
   fi
 
   fsync_dir "$INSTALL_DIR" || return 1
-  discard_transaction_snapshots || return 1
+  if ! discard_transaction_snapshots; then
+    # Every public path is already restored and durably validated. Retained
+    # private tombstones make cleanup degraded, not the semantic rollback.
+    [ "$CLEANUP_PENDING" -eq 1 ] && [ "$RECOVERY_RETIREMENT_GUARD" -eq 0 ] || return 1
+  fi
 }
 
 STAGING=$(mktemp -d "${TMPDIR:-/tmp}/chainlesschain-install.XXXXXX")

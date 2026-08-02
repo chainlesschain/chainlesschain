@@ -536,34 +536,6 @@ if [ "\${1:-}" = "-" ] && [ "\${2:-}" = "write-lineage" ] && [ "$#" -eq 7 ] && [
         : > "$CC_TEST_LINEAGE_FAILED_SENTINEL"
         exit 91
       fi
-      if [ "\${CC_TEST_FAIL_LINEAGE_WRITE:-0}" = "after" ]; then
-        "$REAL_PYTHON" "$@"
-        status=$?
-        [ "$status" -eq 0 ] || exit "$status"
-        case "\${CC_TEST_REPLACE_PUBLIC_BEFORE_ROLLBACK:-none}" in
-          target)
-            cp "$CC_TEST_TARGET_DIR/chainlesschain" "$CC_TEST_TARGET_DIR/.successor-target"
-            chmod 755 "$CC_TEST_TARGET_DIR/.successor-target"
-            "$REAL_MV" -f "$CC_TEST_TARGET_DIR/.successor-target" "$CC_TEST_TARGET_DIR/chainlesschain"
-            ;;
-          backup)
-            cp "$CC_TEST_TARGET_DIR/chainlesschain.previous" "$CC_TEST_TARGET_DIR/.successor-backup"
-            chmod 755 "$CC_TEST_TARGET_DIR/.successor-backup"
-            "$REAL_MV" -f "$CC_TEST_TARGET_DIR/.successor-backup" "$CC_TEST_TARGET_DIR/chainlesschain.previous"
-            ;;
-          lineage)
-            cp "$CC_TEST_TARGET_DIR/chainlesschain.update-lineage.json" "$CC_TEST_TARGET_DIR/.successor-lineage"
-            chmod 600 "$CC_TEST_TARGET_DIR/.successor-lineage"
-            "$REAL_MV" -f "$CC_TEST_TARGET_DIR/.successor-lineage" "$CC_TEST_TARGET_DIR/chainlesschain.update-lineage.json"
-            ;;
-          alias)
-            "$REAL_RM" -f "$CC_TEST_TARGET_DIR/cc"
-            "$REAL_LN" -s chainlesschain "$CC_TEST_TARGET_DIR/cc"
-            ;;
-        esac
-        : > "$CC_TEST_LINEAGE_FAILED_SENTINEL"
-        exit 91
-      fi
       if [ "\${CC_TEST_FAIL_LINEAGE_DIR_FSYNC:-0}" = "1" ]; then
         "$REAL_PYTHON" "$CC_TEST_LINEAGE_FSYNC_FAULT_BOOTSTRAP" "$@"
         status=$?
@@ -572,6 +544,34 @@ if [ "\${1:-}" = "-" ] && [ "\${2:-}" = "write-lineage" ] && [ "$#" -eq 7 ] && [
       fi
       ;;
   esac
+fi
+if [ "\${CC_TEST_FAIL_LINEAGE_WRITE:-0}" = "after" ] && [ "\${1:-}" = "-" ] && [ "\${3:-}" = "$CC_TEST_TARGET_DIR/chainlesschain.update-lineage.json" ] && [ ! -f "$CC_TEST_LINEAGE_FAILED_SENTINEL" ]; then
+  "$REAL_PYTHON" "$@"
+  status=$?
+  [ "$status" -eq 0 ] || exit "$status"
+  case "\${CC_TEST_REPLACE_PUBLIC_BEFORE_ROLLBACK:-none}" in
+    target)
+      cp "$CC_TEST_TARGET_DIR/chainlesschain" "$CC_TEST_TARGET_DIR/.successor-target"
+      chmod 755 "$CC_TEST_TARGET_DIR/.successor-target"
+      "$REAL_MV" -f "$CC_TEST_TARGET_DIR/.successor-target" "$CC_TEST_TARGET_DIR/chainlesschain"
+      ;;
+    backup)
+      cp "$CC_TEST_TARGET_DIR/chainlesschain.previous" "$CC_TEST_TARGET_DIR/.successor-backup"
+      chmod 755 "$CC_TEST_TARGET_DIR/.successor-backup"
+      "$REAL_MV" -f "$CC_TEST_TARGET_DIR/.successor-backup" "$CC_TEST_TARGET_DIR/chainlesschain.previous"
+      ;;
+    lineage)
+      cp "$CC_TEST_TARGET_DIR/chainlesschain.update-lineage.json" "$CC_TEST_TARGET_DIR/.successor-lineage"
+      chmod 600 "$CC_TEST_TARGET_DIR/.successor-lineage"
+      "$REAL_MV" -f "$CC_TEST_TARGET_DIR/.successor-lineage" "$CC_TEST_TARGET_DIR/chainlesschain.update-lineage.json"
+      ;;
+    alias)
+      "$REAL_RM" -f "$CC_TEST_TARGET_DIR/cc"
+      "$REAL_LN" -s chainlesschain "$CC_TEST_TARGET_DIR/cc"
+      ;;
+  esac
+  : > "$CC_TEST_LINEAGE_FAILED_SENTINEL"
+  exit 91
 fi
 if [ "\${CC_TEST_FAIL_ROLLBACK_FSYNC:-0}" = "1" ] && [ -f "$CC_TEST_LINEAGE_FAILED_SENTINEL" ] && [ "\${1:-}" = "-" ] && [ "\${2:-}" = "$CC_TEST_CANONICAL_INSTALL_DIR" ]; then
   exit 92
@@ -730,8 +730,9 @@ exec "$REAL_MV" "$@"
       CC_TEST_TERMINATE_DURING_RECOVERY_RETIREMENT:
         terminateDuringRecoveryRetirement ? "1" : "0",
       CC_TEST_FAIL_RECOVERY_STATE_CREATE: failRecoveryStateCreate ? "1" : "0",
-      CC_TEST_REPLACE_RECOVERY_FALLBACK_SOURCE:
-        replaceRecoveryFallbackSource ? "1" : "0",
+      CC_TEST_REPLACE_RECOVERY_FALLBACK_SOURCE: replaceRecoveryFallbackSource
+        ? "1"
+        : "0",
       CC_TEST_LINEAGE_FAILED_SENTINEL: lineageFailedSentinel,
       CC_TEST_CANONICAL_INSTALL_DIR: fs.realpathSync(targetDir),
       CC_TEST_TARGET_DIR: targetDir,
@@ -823,8 +824,8 @@ describe("native installer transaction contracts", () => {
     const retireBoundSource = source.slice(retireBoundStart, retireBoundEnd);
     expect(retireBoundSource).not.toContain("os.unlink(");
     expect(retireBoundSource).toContain("return path");
-    expect(source).toContain('CLEANUP_PENDING=0');
-    expect(source).toContain('record_retained_evidence() {');
+    expect(source).toContain("CLEANUP_PENDING=0");
+    expect(source).toContain("record_retained_evidence() {");
     expect(source).toContain('RETAINED_EVIDENCE_PATHS=""');
     expect(source).toContain("notably WSL1/DrvFS");
     expect(source).toContain(
@@ -973,6 +974,12 @@ describe("native installer transaction contracts", () => {
       );
       expect(fs.readlinkSync(fixture.aliasPath)).toBe(prestate.aliasTarget);
       expect(fs.existsSync(`${fixture.targetPath}.update.lock`)).toBe(false);
+      expect(run.stderr).toContain(
+        "incomplete install transaction was rolled back",
+      );
+      expect(run.stderr).not.toContain(
+        "incomplete install transaction could not be rolled back",
+      );
       expect(
         fs
           .readdirSync(fixture.targetDir)
@@ -1451,9 +1458,9 @@ describe("native installer transaction contracts", () => {
         fixture.run.status,
         fixture.run.stderr || fixture.run.stdout,
       ).not.toBe(0);
-      expect(
-        pathLexists(fixture.recoveryFallbackSourceReplacedSentinel),
-      ).toBe(true);
+      expect(pathLexists(fixture.recoveryFallbackSourceReplacedSentinel)).toBe(
+        true,
+      );
       expect(sha256File(fixture.targetPath)).toBe(fixture.artifactSha256);
       expect(fs.readFileSync(fixture.backupPath)).toEqual(
         fixture.prestate.targetBytes,
@@ -1472,9 +1479,7 @@ describe("native installer transaction contracts", () => {
       expect(retiredName).toBeDefined();
       const activePath = path.join(fixture.targetDir, activeName);
       const retiredPath = path.join(fixture.targetDir, retiredName);
-      expect(fs.readFileSync(activePath)).toEqual(
-        fs.readFileSync(retiredPath),
-      );
+      expect(fs.readFileSync(activePath)).toEqual(fs.readFileSync(retiredPath));
       const activeStat = fs.lstatSync(activePath, { bigint: true });
       const retiredStat = fs.lstatSync(retiredPath, { bigint: true });
       expect([activeStat.dev, activeStat.ino]).not.toEqual([
