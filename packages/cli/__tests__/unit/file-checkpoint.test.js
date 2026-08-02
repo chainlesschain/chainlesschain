@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import fs from "node:fs";
+import { createHash } from "node:crypto";
+import { spawnSync } from "node:child_process";
 import {
   mkdtempSync,
   writeFileSync,
@@ -13,7 +15,71 @@ import {
   symlinkSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, parse } from "node:path";
+import { join, parse, resolve } from "node:path";
+
+const privateAuthorityCalls = vi.hoisted(() => ({
+  inspections: [],
+  repairs: [],
+}));
+
+// Starting PowerShell for every DACL assertion makes this unit suite take
+// several minutes on Windows. Keep the structural tests synchronous and fast;
+// the Windows ACL regression below runs the unmocked production modules in a
+// child process against a real Everyone:F grant.
+vi.mock("../../src/lib/secure-fs.js", async (importOriginal) => {
+  const actual = await importOriginal();
+  if (process.platform !== "win32") return actual;
+  const runtimeFs = (await import("node:fs")).default;
+  const inspect = (target) => {
+    try {
+      const stat = runtimeFs.lstatSync(target);
+      return {
+        target,
+        exists: true,
+        ok: !stat.isSymbolicLink(),
+        platform: "win32-unit-double",
+      };
+    } catch (error) {
+      return {
+        target,
+        exists: false,
+        ok: false,
+        platform: "win32-unit-double",
+        error: error.message,
+      };
+    }
+  };
+  return {
+    ...actual,
+    ensurePrivateDirectory(target) {
+      runtimeFs.mkdirSync(target, { recursive: true, mode: 0o700 });
+      const stat = runtimeFs.lstatSync(target);
+      if (stat.isSymbolicLink() || !stat.isDirectory()) {
+        throw new Error(`Expected owner-private directory: ${target}`);
+      }
+      return target;
+    },
+    inspectPrivatePaths(targets) {
+      const uniqueTargets = [...new Set((targets || []).map(String))];
+      privateAuthorityCalls.inspections.push(uniqueTargets);
+      return uniqueTargets.map(inspect);
+    },
+    repairPrivatePaths(targets) {
+      const uniqueTargets = [...new Set((targets || []).map(String))];
+      privateAuthorityCalls.repairs.push(uniqueTargets);
+      return uniqueTargets.map((target) => {
+        const result = inspect(target);
+        if (result.exists && !result.ok) {
+          throw new Error(`Refusing linked authority path: ${target}`);
+        }
+        return result.exists
+          ? { ...result, ok: true }
+          : { ...result, ok: true, skipped: true };
+      });
+    },
+  };
+});
+
 import {
   createCheckpoint,
   getCheckpoint,
@@ -23,13 +89,108 @@ import {
   deleteCheckpoint,
   computeCheckpointIdentity,
   SKIP_DIRS,
+  _fileCheckpointInternals,
 } from "../../src/lib/file-checkpoint.js";
+
+const AFFECTED_WINDOWS_UV_VERSIONS = Object.freeze(["1.49.1", "1.50.0"]);
+
+function filesystemObjectIdentity(stat) {
+  const ns = (field, fallback) =>
+    stat[field] != null
+      ? String(stat[field])
+      : String(Math.trunc(Number(stat[fallback] || 0) * 1_000_000));
+  return {
+    dev: String(stat.dev),
+    ino: String(stat.ino),
+    mode: String(stat.mode),
+    nlink: String(stat.nlink),
+    size: String(stat.size),
+    mtimeNs: ns("mtimeNs", "mtimeMs"),
+  };
+}
+
+function findRestoreArm(root, safetyId, predicate) {
+  const armDir = join(root, safetyId, ".restore-safety-arms");
+  for (const name of readdirSync(armDir)) {
+    const armPath = join(armDir, name);
+    const arm = JSON.parse(readFileSync(armPath, "utf8"));
+    if (predicate(arm)) return { arm, armPath };
+  }
+  throw new Error(`Restore arm was not found for ${safetyId}`);
+}
+
+function projectedStat(stat, overrides) {
+  return new Proxy(stat, {
+    get(target, property) {
+      if (Object.hasOwn(overrides, property)) return overrides[property];
+      const value = Reflect.get(target, property, target);
+      return typeof value === "function" ? value.bind(target) : value;
+    },
+  });
+}
+
+function pathKey(filePath) {
+  const canonical = resolve(String(filePath));
+  return process.platform === "win32" ? canonical.toLowerCase() : canonical;
+}
+
+function projectedFileIdentityOptions(
+  target,
+  {
+    uvVersion = "1.49.1",
+    pathDevice = 987654321n,
+    handleDevice = 77n,
+    pathOverrides = () => ({}),
+    handleOverrides = () => ({}),
+    parentDevice = String(handleDevice),
+  } = {},
+) {
+  const targetKey = pathKey(target);
+  const nativeLstatSync = fs.lstatSync.bind(fs);
+  const nativeFstatSync = fs.fstatSync.bind(fs);
+  let pathSample = 0;
+  let handleSample = 0;
+  const runtimeFs = {
+    ...fs,
+    constants: fs.constants,
+    realpathSync: fs.realpathSync,
+    lstatSync(filePath, options) {
+      const stat = nativeLstatSync(filePath, options);
+      if (pathKey(filePath) !== targetKey) return stat;
+      pathSample += 1;
+      return projectedStat(stat, {
+        dev: pathDevice,
+        ...pathOverrides(stat, pathSample),
+      });
+    },
+    fstatSync(descriptor, options) {
+      const stat = nativeFstatSync(descriptor, options);
+      handleSample += 1;
+      return projectedStat(stat, {
+        dev: handleDevice,
+        ...handleOverrides(stat, handleSample),
+      });
+    },
+  };
+  return {
+    runtimeFs,
+    runtime: { platform: "win32", uvVersion },
+    secureFileParent(_runtimeFs, filePath, callback) {
+      return callback({
+        canonicalPath: filePath,
+        parentDevice,
+      });
+    },
+  };
+}
 
 describe("file-checkpoint store", () => {
   let work; // the "project" dir holding files
   let root; // checkpoint store root
 
   beforeEach(() => {
+    privateAuthorityCalls.inspections.length = 0;
+    privateAuthorityCalls.repairs.length = 0;
     const base = mkdtempSync(join(tmpdir(), "cp-test-"));
     work = join(base, "work");
     root = join(base, "store");
@@ -43,6 +204,107 @@ describe("file-checkpoint store", () => {
 
   const mk = (label) =>
     createCheckpoint(["a.txt", "b.txt"], { cwd: work, root, label });
+
+  it.each(AFFECTED_WINDOWS_UV_VERSIONS)(
+    "accepts trusted cross-API device projections in all checkpoint readers on libuv %s",
+    (uvVersion) => {
+      const target = join(work, "a.txt");
+      const content = Buffer.from("ORIGINAL-A", "utf8");
+      const options = projectedFileIdentityOptions(target, { uvVersion });
+
+      expect(
+        _fileCheckpointInternals
+          .readBoundedPlainFile(target, content.length, options)
+          .equals(content),
+      ).toBe(true);
+
+      const inspected = _fileCheckpointInternals.inspectTarget(
+        work,
+        target,
+        "a.txt",
+        options,
+      );
+      expect(inspected.content.equals(content)).toBe(true);
+      expect(inspected.prestate.objectIdentity.dev).toBe("77");
+
+      const plannedIdentity =
+        _fileCheckpointInternals.inspectPlannedRegularFile(
+          { id: "projected-reader-test" },
+          target,
+          {
+            rel: "a.txt",
+            targetSha256: createHash("sha256").update(content).digest("hex"),
+            targetBytes: content.length,
+          },
+          options,
+        );
+      expect(plannedIdentity.dev).toBe("77");
+      expect(plannedIdentity.size).toBe(String(content.length));
+    },
+  );
+
+  it("rejects cross-API device projections outside the affected runtime", () => {
+    const target = join(work, "a.txt");
+    const options = projectedFileIdentityOptions(target, {
+      uvVersion: "1.51.0",
+    });
+
+    expect(() =>
+      _fileCheckpointInternals.readBoundedPlainFile(target, 64, options),
+    ).toThrow(/identity changed while opening/u);
+  });
+
+  it("keeps path and handle snapshots exact while bridging the device field", () => {
+    const target = join(work, "a.txt");
+    const pathDrift = projectedFileIdentityOptions(target, {
+      pathOverrides: (stat, sample) =>
+        sample === 3 ? { ctimeNs: stat.ctimeNs + 1n } : {},
+    });
+    const handleDrift = projectedFileIdentityOptions(target, {
+      handleOverrides: (stat, sample) =>
+        sample === 2 ? { ctimeNs: stat.ctimeNs + 1n } : {},
+    });
+
+    expect(() =>
+      _fileCheckpointInternals.readBoundedPlainFile(target, 64, pathDrift),
+    ).toThrow(/changed during read/u);
+    expect(() =>
+      _fileCheckpointInternals.readBoundedPlainFile(target, 64, handleDrift),
+    ).toThrow(/changed during read/u);
+  });
+
+  it.skipIf(process.platform !== "win32")(
+    "combines projected target lstat with the production trusted-parent authority",
+    () => {
+      const target = join(work, "a.txt");
+      const targetKey = pathKey(target);
+      const nativeLstatSync = fs.lstatSync.bind(fs);
+      const runtimeFs = {
+        ...fs,
+        constants: fs.constants,
+        realpathSync: fs.realpathSync,
+        lstatSync(filePath, options) {
+          const stat = nativeLstatSync(filePath, options);
+          return pathKey(filePath) === targetKey
+            ? projectedStat(stat, { dev: 0n })
+            : stat;
+        },
+      };
+
+      const inspected = _fileCheckpointInternals.inspectTarget(
+        work,
+        target,
+        "a.txt",
+        {
+          runtimeFs,
+          runtime: { platform: "win32", uvVersion: "1.49.1" },
+        },
+      );
+
+      expect(inspected.content.toString("utf8")).toBe("ORIGINAL-A");
+      expect(inspected.prestate.objectIdentity.dev).not.toBe("0");
+    },
+  );
 
   it("creates a checkpoint capturing file contents", () => {
     const m = mk("v1");
@@ -391,6 +653,26 @@ describe("file-checkpoint store", () => {
     expect(readFileSync(join(work, "a.txt"), "utf-8")).toBe("CHANGED-A");
   });
 
+  it.runIf(process.platform === "win32")(
+    "batches a no-hook single-file restore into three Windows ACL calls",
+    () => {
+      const m = mk("acl-batch-count");
+      writeFileSync(join(work, "a.txt"), "CHANGED-A", "utf8");
+
+      const restored = restoreCheckpoint(m.id, {
+        root,
+        expectedIdentity: computeCheckpointIdentity(m),
+      });
+
+      expect(restored.safetyCoverage).toBe("full");
+      expect(privateAuthorityCalls.repairs).toHaveLength(2);
+      expect(privateAuthorityCalls.inspections).toHaveLength(1);
+      expect(privateAuthorityCalls.repairs[0]).toEqual([resolve(root)]);
+      expect(privateAuthorityCalls.repairs[1]).toContain(resolve(root));
+      expect(privateAuthorityCalls.inspections[0]).toContain(resolve(root));
+    },
+  );
+
   it("attaches an immutable safety snapshot when a restore partially writes", () => {
     const m = mk("partial");
     const expectedIdentity = computeCheckpointIdentity(m);
@@ -423,7 +705,8 @@ describe("file-checkpoint store", () => {
       restorePhase: "workspace-mutation",
       safetyId: expect.any(String),
       safetyIdentity: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
-      safetyCoverage: "partial",
+      safetyPlanIdentity: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+      safetyCoverage: "full",
       createdPaths: ["a.txt"],
     });
     expect(readFileSync(join(work, "a.txt"), "utf-8")).toBe("ORIGINAL-A");
@@ -437,10 +720,7 @@ describe("file-checkpoint store", () => {
       expectedIdentity: thrown.safetyIdentity,
       skipSafety: true,
     });
-    // The copy safety checkpoint cannot encode a tombstone for a file that was
-    // absent before restore; diagnostics must call this partial, not promise a
-    // complete rollback.
-    expect(readFileSync(join(work, "a.txt"), "utf-8")).toBe("ORIGINAL-A");
+    expect(existsSync(join(work, "a.txt"))).toBe(false);
     expect(readFileSync(join(work, "b.txt"), "utf-8")).toBe("CHANGED-B");
   });
 
@@ -476,13 +756,929 @@ describe("file-checkpoint store", () => {
     expect(thrown).toMatchObject({
       code: "INJECTED_RESTORE_WRITE_FAILURE",
       restorePhase: "workspace-mutation",
-      safetyId: null,
-      safetyIdentity: null,
-      safetyCoverage: "partial",
+      safetyId: expect.any(String),
+      safetyIdentity: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+      safetyPlanIdentity: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+      safetyCoverage: "full",
       createdPaths: ["a.txt"],
     });
     expect(readFileSync(join(work, "a.txt"), "utf-8")).toBe("ORIGINAL-A");
     expect(existsSync(join(work, "b.txt"))).toBe(false);
+
+    restoreCheckpoint(thrown.safetyId, {
+      root,
+      expectedIdentity: thrown.safetyIdentity,
+      expectedSafetyPlanIdentity: thrown.safetyPlanIdentity,
+      skipSafety: true,
+    });
+    expect(existsSync(join(work, "a.txt"))).toBe(false);
+    expect(existsSync(join(work, "b.txt"))).toBe(false);
+  });
+
+  it("durably arms a stable safety plan before publish and recovers a post-rename crash", () => {
+    const m = mk("kill-after-publish");
+    const expectedIdentity = computeCheckpointIdentity(m);
+    const target = join(work, "a.txt");
+    rmSync(target);
+    const events = [];
+    let ready = null;
+    const renameSync = fs.renameSync.bind(fs);
+    const rename = vi
+      .spyOn(fs, "renameSync")
+      .mockImplementation((source, destination) => {
+        if (String(destination) === target) {
+          renameSync(source, destination);
+          const error = new Error("simulated kill after target rename");
+          error.code = "INJECTED_POST_RENAME_KILL";
+          throw error;
+        }
+        return renameSync(source, destination);
+      });
+
+    let thrown;
+    try {
+      restoreCheckpoint(m.id, {
+        root,
+        expectedIdentity,
+        onSafetyReady: (evidence) => {
+          events.push("safety-ready");
+          ready = evidence;
+          expect(existsSync(target)).toBe(false);
+        },
+        onMutationStarted: () => {
+          events.push("mutation-started");
+          expect(existsSync(target)).toBe(false);
+        },
+      });
+    } catch (error) {
+      thrown = error;
+    } finally {
+      rename.mockRestore();
+    }
+
+    expect(events).toEqual(["safety-ready", "mutation-started"]);
+    expect(thrown).toMatchObject({
+      code: "INJECTED_POST_RENAME_KILL",
+      safetyId: ready.safetyId,
+      safetyIdentity: ready.safetyIdentity,
+      safetyPlanIdentity: ready.safetyPlanIdentity,
+      safetyCoverage: "full",
+      createdPaths: ["a.txt"],
+      safetyEvidence: {
+        checkpointIdentity: ready.safetyIdentity,
+        planIdentity: ready.safetyPlanIdentity,
+        tombstones: [{ rel: "a.txt", state: "armed" }],
+      },
+    });
+    expect(
+      computeCheckpointIdentity(getCheckpoint(ready.safetyId, { root })),
+    ).toBe(ready.safetyIdentity);
+    expect(readFileSync(target, "utf8")).toBe("ORIGINAL-A");
+
+    restoreCheckpoint(ready.safetyId, {
+      root,
+      expectedIdentity: ready.safetyIdentity,
+      expectedSafetyPlanIdentity: ready.safetyPlanIdentity,
+      skipSafety: true,
+    });
+    expect(existsSync(target)).toBe(false);
+  });
+
+  it("keeps an armed tombstone recoverable when failure happens before target rename", () => {
+    const m = mk("kill-before-publish");
+    const target = join(work, "a.txt");
+    rmSync(target);
+    const renameSync = fs.renameSync.bind(fs);
+    const rename = vi
+      .spyOn(fs, "renameSync")
+      .mockImplementation((source, destination) => {
+        if (String(destination) === target) {
+          const error = new Error("simulated kill before target rename");
+          error.code = "INJECTED_PRE_RENAME_KILL";
+          throw error;
+        }
+        return renameSync(source, destination);
+      });
+
+    let thrown;
+    try {
+      restoreCheckpoint(m.id, {
+        root,
+        expectedIdentity: computeCheckpointIdentity(m),
+      });
+    } catch (error) {
+      thrown = error;
+    } finally {
+      rename.mockRestore();
+    }
+
+    expect(thrown).toMatchObject({
+      code: "INJECTED_PRE_RENAME_KILL",
+      safetyCoverage: "full",
+      createdPaths: [],
+      safetyEvidence: {
+        tombstones: [{ rel: "a.txt", state: "armed" }],
+      },
+    });
+    expect(existsSync(target)).toBe(false);
+    expect(() =>
+      restoreCheckpoint(thrown.safetyId, {
+        root,
+        expectedIdentity: thrown.safetyIdentity,
+        expectedSafetyPlanIdentity: thrown.safetyPlanIdentity,
+        skipSafety: true,
+      }),
+    ).not.toThrow();
+  });
+
+  it("fails closed when a planned stage is created but cannot be armed", () => {
+    const m = mk("stage-before-arm");
+    const target = join(work, "a.txt");
+    rmSync(target);
+    const writeFile = fs.writeFileSync.bind(fs);
+    const write = vi
+      .spyOn(fs, "writeFileSync")
+      .mockImplementation((file, data, options) => {
+        const result = writeFile(file, data, options);
+        if (String(file).endsWith(".forward.stage")) {
+          const error = new Error("simulated kill after stage create");
+          error.code = "INJECTED_STAGE_PRE_ARM_KILL";
+          throw error;
+        }
+        return result;
+      });
+
+    let thrown;
+    try {
+      restoreCheckpoint(m.id, {
+        root,
+        expectedIdentity: computeCheckpointIdentity(m),
+      });
+    } catch (error) {
+      thrown = error;
+    } finally {
+      write.mockRestore();
+    }
+
+    expect(thrown).toMatchObject({
+      code: "INJECTED_STAGE_PRE_ARM_KILL",
+      safetyCoverage: "unknown",
+      safetyEvidence: {
+        durable: false,
+        validationError: { code: "CHECKPOINT_RECOVERY_REQUIRED" },
+      },
+    });
+    expect(existsSync(target)).toBe(false);
+    const safety = getCheckpoint(thrown.safetyId, { root });
+    const stageRel = safety.restoreSafetyPlan.mutations[0].forwardStagingRel;
+    expect(existsSync(join(root, safety.id, stageRel))).toBe(true);
+    expect(() =>
+      restoreCheckpoint(safety.id, {
+        root,
+        expectedIdentity: thrown.safetyIdentity,
+        expectedSafetyPlanIdentity: thrown.safetyPlanIdentity,
+        skipSafety: true,
+      }),
+    ).toThrow(
+      expect.objectContaining({ code: "CHECKPOINT_RECOVERY_REQUIRED" }),
+    );
+    expect(existsSync(target)).toBe(false);
+  });
+
+  it("never deletes a same-content successor", () => {
+    const m = mk("successor");
+    const target = join(work, "a.txt");
+    const predecessor = join(work, "predecessor-a.txt");
+    const lifecycle = [];
+    rmSync(target);
+    const restored = restoreCheckpoint(m.id, {
+      root,
+      expectedIdentity: computeCheckpointIdentity(m),
+      onTargetPublished: ({ rel, operation }) => {
+        lifecycle.push(`${operation}:${rel}`);
+        expect(readFileSync(target, "utf8")).toBe("ORIGINAL-A");
+      },
+      onWorkspaceApplied: ({ createdPaths }) => {
+        lifecycle.push("workspace-applied");
+        expect(createdPaths).toEqual(["a.txt"]);
+      },
+    });
+    expect(lifecycle).toEqual(["write:a.txt", "workspace-applied"]);
+    renameSync(target, predecessor);
+    writeFileSync(target, "ORIGINAL-A", "utf8");
+
+    expect(() =>
+      restoreCheckpoint(restored.safetyId, {
+        root,
+        expectedIdentity: restored.safetyIdentity,
+        expectedSafetyPlanIdentity: restored.safetyPlanIdentity,
+        skipSafety: true,
+      }),
+    ).toThrow(
+      expect.objectContaining({
+        code: "CHECKPOINT_TOMBSTONE_IDENTITY_MISMATCH",
+        path: "a.txt",
+      }),
+    );
+    expect(readFileSync(target, "utf8")).toBe("ORIGINAL-A");
+    expect(readFileSync(predecessor, "utf8")).toBe("ORIGINAL-A");
+  });
+
+  it("quarantines but never unlinks a same-content successor injected at delete", () => {
+    const m = mk("successor-at-delete");
+    const target = join(work, "a.txt");
+    const predecessor = join(work, "predecessor-at-delete.txt");
+    rmSync(target);
+    const restored = restoreCheckpoint(m.id, {
+      root,
+      expectedIdentity: computeCheckpointIdentity(m),
+    });
+    const safety = getCheckpoint(restored.safetyId, { root });
+    const mutation = safety.restoreSafetyPlan.mutations.find(
+      (entry) => entry.rel === "a.txt",
+    );
+    const quarantine = join(root, safety.id, mutation.quarantineRel);
+    const renameFile = fs.renameSync.bind(fs);
+    const rename = vi
+      .spyOn(fs, "renameSync")
+      .mockImplementation((source, destination) => {
+        if (String(source) === target && String(destination) === quarantine) {
+          renameFile(target, predecessor);
+          writeFileSync(target, "ORIGINAL-A", "utf8");
+        }
+        return renameFile(source, destination);
+      });
+
+    try {
+      expect(() =>
+        restoreCheckpoint(restored.safetyId, {
+          root,
+          expectedIdentity: restored.safetyIdentity,
+          expectedSafetyPlanIdentity: restored.safetyPlanIdentity,
+          skipSafety: true,
+        }),
+      ).toThrow(
+        expect.objectContaining({
+          code: "CHECKPOINT_RECOVERY_REQUIRED",
+          quarantineRel: mutation.quarantineRel,
+        }),
+      );
+    } finally {
+      rename.mockRestore();
+    }
+
+    expect(existsSync(target)).toBe(false);
+    expect(readFileSync(predecessor, "utf8")).toBe("ORIGINAL-A");
+    expect(readFileSync(quarantine, "utf8")).toBe("ORIGINAL-A");
+  });
+
+  it("ignores changed non-authoritative trash after interruption", () => {
+    const m = mk("post-quarantine-rename");
+    const target = join(work, "a.txt");
+    rmSync(target);
+    const restored = restoreCheckpoint(m.id, {
+      root,
+      expectedIdentity: computeCheckpointIdentity(m),
+    });
+    const safety = getCheckpoint(restored.safetyId, { root });
+    const mutation = safety.restoreSafetyPlan.mutations.find(
+      (entry) => entry.rel === "a.txt",
+    );
+    const quarantine = join(root, safety.id, mutation.quarantineRel);
+    const renameFile = fs.renameSync.bind(fs);
+    const rename = vi
+      .spyOn(fs, "renameSync")
+      .mockImplementation((source, destination) => {
+        if (String(source) === target && String(destination) === quarantine) {
+          renameFile(source, destination);
+          const error = new Error("simulated kill after quarantine rename");
+          error.code = "INJECTED_POST_QUARANTINE_RENAME_KILL";
+          throw error;
+        }
+        return renameFile(source, destination);
+      });
+
+    let thrown;
+    try {
+      restoreCheckpoint(restored.safetyId, {
+        root,
+        expectedIdentity: restored.safetyIdentity,
+        expectedSafetyPlanIdentity: restored.safetyPlanIdentity,
+        skipSafety: true,
+      });
+    } catch (error) {
+      thrown = error;
+    } finally {
+      rename.mockRestore();
+    }
+
+    expect(thrown).toMatchObject({
+      code: "INJECTED_POST_QUARANTINE_RENAME_KILL",
+      safetyCoverage: "full",
+      safetyEvidence: {
+        durable: true,
+        quarantinePolicy: "non-authoritative-trash/v1",
+        mutations: [
+          expect.objectContaining({
+            rel: "a.txt",
+            quarantineRel: mutation.quarantineRel,
+            quarantineState: "untrusted-trash-present",
+          }),
+        ],
+      },
+    });
+    expect(existsSync(target)).toBe(false);
+    expect(readFileSync(quarantine, "utf8")).toBe("ORIGINAL-A");
+    writeFileSync(quarantine, "ATTACKER-CONTROLLED-TRASH", "utf8");
+
+    const recovered = restoreCheckpoint(restored.safetyId, {
+      root,
+      expectedIdentity: restored.safetyIdentity,
+      expectedSafetyPlanIdentity: restored.safetyPlanIdentity,
+      skipSafety: true,
+    });
+    expect(recovered.unchanged).toContain("a.txt");
+    expect(recovered.retainedQuarantines).toEqual([]);
+    expect(recovered.safetyEvidence).toMatchObject({
+      durable: true,
+      quarantinePolicy: "non-authoritative-trash/v1",
+    });
+    expect(existsSync(target)).toBe(false);
+    expect(readFileSync(quarantine, "utf8")).toBe("ATTACKER-CONTROLLED-TRASH");
+  });
+
+  it.each([
+    ["corrupt", () => Buffer.from("not-json")],
+    ["oversized", () => Buffer.alloc(70 * 1024, 0x61)],
+  ])("fails closed on a %s tombstone arm", (_label, replacement) => {
+    const m = mk("bad-arm");
+    const target = join(work, "a.txt");
+    rmSync(target);
+    const restored = restoreCheckpoint(m.id, {
+      root,
+      expectedIdentity: computeCheckpointIdentity(m),
+    });
+    const armDir = join(root, restored.safetyId, ".restore-safety-arms");
+    const armPath = join(
+      armDir,
+      readdirSync(armDir).find((name) => name.endsWith(".json")),
+    );
+    writeFileSync(armPath, replacement());
+    if (process.platform !== "win32") fs.chmodSync(armPath, 0o600);
+
+    expect(() =>
+      restoreCheckpoint(restored.safetyId, {
+        root,
+        expectedIdentity: restored.safetyIdentity,
+        expectedSafetyPlanIdentity: restored.safetyPlanIdentity,
+        skipSafety: true,
+      }),
+    ).toThrow(
+      expect.objectContaining({ code: "CHECKPOINT_SAFETY_PLAN_INVALID" }),
+    );
+    expect(readFileSync(target, "utf8")).toBe("ORIGINAL-A");
+  });
+
+  it.runIf(process.platform !== "win32")(
+    "fails closed on a symlinked tombstone arm",
+    () => {
+      const m = mk("symlink-arm");
+      const target = join(work, "a.txt");
+      rmSync(target);
+      const restored = restoreCheckpoint(m.id, {
+        root,
+        expectedIdentity: computeCheckpointIdentity(m),
+      });
+      const armDir = join(root, restored.safetyId, ".restore-safety-arms");
+      const armPath = join(
+        armDir,
+        readdirSync(armDir).find((name) => name.endsWith(".json")),
+      );
+      const outside = join(work, "outside-arm.json");
+      writeFileSync(outside, readFileSync(armPath));
+      rmSync(armPath);
+      symlinkSync(outside, armPath, "file");
+
+      expect(() =>
+        restoreCheckpoint(restored.safetyId, {
+          root,
+          expectedIdentity: restored.safetyIdentity,
+          expectedSafetyPlanIdentity: restored.safetyPlanIdentity,
+          skipSafety: true,
+        }),
+      ).toThrow(
+        expect.objectContaining({ code: "CHECKPOINT_SAFETY_PLAN_INVALID" }),
+      );
+      expect(readFileSync(target, "utf8")).toBe("ORIGINAL-A");
+    },
+  );
+
+  it("fails closed when a published create loses its tombstone arm", () => {
+    const m = mk("lost-monotonic-tombstone-arm");
+    const targetA = join(work, "a.txt");
+    const targetB = join(work, "b.txt");
+    rmSync(targetA);
+    rmSync(targetB);
+    let safetyId;
+    let thrown;
+
+    try {
+      restoreCheckpoint(m.id, {
+        root,
+        expectedIdentity: computeCheckpointIdentity(m),
+        onSafetyReady: (evidence) => {
+          safetyId = evidence.safetyId;
+        },
+        onTargetPublished: ({ index, rel }) => {
+          if (index !== 0) return;
+          expect(rel).toBe("a.txt");
+          const { armPath } = findRestoreArm(
+            root,
+            safetyId,
+            (arm) => arm.kind === "tombstone" && arm.rel === "a.txt",
+          );
+          rmSync(armPath);
+        },
+      });
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(thrown).toMatchObject({
+      code: "CHECKPOINT_RECOVERY_REQUIRED",
+      restorePhase: "workspace-mutation",
+      safetyCoverage: "unknown",
+      createdPaths: ["a.txt"],
+      safetyEvidence: {
+        durable: false,
+        validationError: { code: "CHECKPOINT_RECOVERY_REQUIRED" },
+      },
+    });
+    expect(readFileSync(targetA, "utf8")).toBe("ORIGINAL-A");
+    expect(existsSync(targetB)).toBe(false);
+  });
+
+  it("rejects a replacement namespace even when its arm is synchronously rewritten", () => {
+    const m = mk("replacement-namespace-and-arm");
+    const target = join(work, "a.txt");
+    writeFileSync(target, "CHANGED-A", "utf8");
+
+    expect(() =>
+      restoreCheckpoint(m.id, {
+        root,
+        expectedIdentity: computeCheckpointIdentity(m),
+        onMutationStarted: ({ safetyId }) => {
+          const safety = getCheckpoint(safetyId, { root });
+          const namespacePath = resolve(
+            root,
+            safetyId,
+            ...safety.restoreSafetyPlan.namespace.rel.split("/"),
+          );
+          renameSync(namespacePath, `${namespacePath}.predecessor`);
+          mkdirSync(namespacePath, { mode: 0o700 });
+          if (process.platform !== "win32") fs.chmodSync(namespacePath, 0o700);
+
+          const { arm, armPath } = findRestoreArm(
+            root,
+            safetyId,
+            (candidate) => candidate.kind === "namespace",
+          );
+          arm.objectIdentity = filesystemObjectIdentity(
+            fs.lstatSync(namespacePath, { bigint: true }),
+          );
+          writeFileSync(armPath, JSON.stringify(arm, null, 2), "utf8");
+          if (process.platform !== "win32") fs.chmodSync(armPath, 0o600);
+        },
+      }),
+    ).toThrow(
+      expect.objectContaining({
+        code: "CHECKPOINT_SAFETY_PLAN_INVALID",
+        safetyCoverage: "unknown",
+      }),
+    );
+    expect(readFileSync(target, "utf8")).toBe("CHANGED-A");
+    expect(readFileSync(join(work, "b.txt"), "utf8")).toBe("ORIGINAL-B");
+  });
+
+  it("revalidates complete workspace identity after onWorkspaceApplied", () => {
+    const m = mk("workspace-applied-successor");
+    const target = join(work, "a.txt");
+    const predecessor = join(work, "restored-a-predecessor.txt");
+    writeFileSync(target, "CHANGED-A", "utf8");
+    let thrown;
+
+    try {
+      restoreCheckpoint(m.id, {
+        root,
+        expectedIdentity: computeCheckpointIdentity(m),
+        onWorkspaceApplied: () => {
+          renameSync(target, predecessor);
+          writeFileSync(target, "ORIGINAL-A", "utf8");
+        },
+      });
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(thrown).toMatchObject({
+      code: "CHECKPOINT_RECOVERY_REQUIRED",
+      restorePhase: "workspace-applied",
+      safetyCoverage: "unknown",
+      createdPaths: [],
+    });
+    expect(readFileSync(target, "utf8")).toBe("ORIGINAL-A");
+    expect(readFileSync(predecessor, "utf8")).toBe("ORIGINAL-A");
+  });
+
+  it.runIf(process.platform === "win32")(
+    "repairs an Everyone:F safety root before reporting full coverage",
+    () => {
+      const fileCheckpointUrl = new URL(
+        "../../src/lib/file-checkpoint.js",
+        import.meta.url,
+      ).href;
+      const secureFsUrl = new URL("../../src/lib/secure-fs.js", import.meta.url)
+        .href;
+      const script = `
+        import fs from "node:fs";
+        import { spawnSync } from "node:child_process";
+        const { createCheckpoint, computeCheckpointIdentity, restoreCheckpoint } = await import(${JSON.stringify(fileCheckpointUrl)});
+        const { inspectPrivatePaths } = await import(${JSON.stringify(secureFsUrl)});
+        const [work, root] = process.argv.slice(1);
+        const a = work + "\\\\a.txt";
+        const b = work + "\\\\b.txt";
+        fs.writeFileSync(a, "ORIGINAL-A", "utf8");
+        fs.writeFileSync(b, "ORIGINAL-B", "utf8");
+        const checkpoint = createCheckpoint([a, b], { cwd: work, root });
+        fs.writeFileSync(a, "CHANGED-A", "utf8");
+        const grant = spawnSync("icacls.exe", [root, "/inheritance:e", "/grant", "*S-1-1-0:(OI)(CI)F"], { encoding: "utf8", windowsHide: true });
+        let outcome;
+        try {
+          const restored = restoreCheckpoint(checkpoint.id, { root, expectedIdentity: computeCheckpointIdentity(checkpoint) });
+          outcome = { ok: true, safetyCoverage: restored.safetyCoverage, safetyId: restored.safetyId };
+        } catch (error) {
+          outcome = { ok: false, code: error?.code || null, message: error?.message || String(error), safetyCoverage: error?.safetyCoverage || null };
+        }
+        const after = inspectPrivatePaths([root])[0];
+        console.log("ACL_RESULT:" + JSON.stringify({ grantStatus: grant.status, grantError: grant.error?.message || null, after, outcome, content: fs.readFileSync(a, "utf8") }));
+      `;
+      const child = spawnSync(
+        process.execPath,
+        ["--input-type=module", "-e", script, work, root],
+        {
+          cwd: resolve("."),
+          encoding: "utf8",
+          windowsHide: true,
+          timeout: 180_000,
+          maxBuffer: 4 * 1024 * 1024,
+        },
+      );
+      expect(child.error).toBeUndefined();
+      expect(child.status, child.stderr).toBe(0);
+      const marker = String(child.stdout)
+        .split(/\r?\n/u)
+        .find((line) => line.startsWith("ACL_RESULT:"));
+      expect(marker, child.stderr).toBeTruthy();
+      const result = JSON.parse(marker.slice("ACL_RESULT:".length));
+      expect(result.grantStatus, result.grantError).toBe(0);
+      expect(result.outcome).toMatchObject({
+        ok: true,
+        safetyCoverage: "full",
+        safetyId: expect.any(String),
+      });
+      expect(result.after).toMatchObject({ exists: true, ok: true });
+      expect(result.content).toBe("ORIGINAL-A");
+    },
+    200_000,
+  );
+
+  it.runIf(process.platform === "win32")(
+    "recovers in a fresh process after an Everyone:F target is hard-stopped post-rename",
+    () => {
+      const fileCheckpointUrl = new URL(
+        "../../src/lib/file-checkpoint.js",
+        import.meta.url,
+      ).href;
+      const secureFsUrl = new URL("../../src/lib/secure-fs.js", import.meta.url)
+        .href;
+      const setupScript = `
+        import fs from "node:fs";
+        import path from "node:path";
+        const { createCheckpoint, computeCheckpointIdentity, getCheckpoint, restoreCheckpoint } = await import(${JSON.stringify(fileCheckpointUrl)});
+        const [work, root] = process.argv.slice(1);
+        const target = path.join(work, "a.txt");
+        const other = path.join(work, "b.txt");
+        fs.writeFileSync(target, "ORIGINAL-A", "utf8");
+        fs.writeFileSync(other, "ORIGINAL-B", "utf8");
+        const source = createCheckpoint([target, other], { cwd: work, root });
+        fs.rmSync(target);
+        const restored = restoreCheckpoint(source.id, { root, expectedIdentity: computeCheckpointIdentity(source) });
+        const safety = getCheckpoint(restored.safetyId, { root });
+        const mutation = safety.restoreSafetyPlan.mutations.find((entry) => entry.rel === "a.txt");
+        console.log("SETUP_RESULT:" + JSON.stringify({
+          safetyId: restored.safetyId,
+          safetyIdentity: restored.safetyIdentity,
+          safetyPlanIdentity: restored.safetyPlanIdentity,
+          target,
+          trash: path.join(root, restored.safetyId, ...mutation.quarantineRel.split("/"))
+        }));
+      `;
+      const setup = spawnSync(
+        process.execPath,
+        ["--input-type=module", "-e", setupScript, work, root],
+        {
+          cwd: resolve("."),
+          encoding: "utf8",
+          windowsHide: true,
+          timeout: 120_000,
+          maxBuffer: 4 * 1024 * 1024,
+        },
+      );
+      expect(setup.error).toBeUndefined();
+      expect(setup.status, setup.stderr).toBe(0);
+      const setupMarker = String(setup.stdout)
+        .split(/\r?\n/u)
+        .find((line) => line.startsWith("SETUP_RESULT:"));
+      expect(setupMarker, setup.stderr).toBeTruthy();
+      const prepared = JSON.parse(setupMarker.slice("SETUP_RESULT:".length));
+
+      const grant = spawnSync(
+        "icacls.exe",
+        [prepared.target, "/inheritance:e", "/grant", "*S-1-1-0:F"],
+        { encoding: "utf8", windowsHide: true },
+      );
+      expect(grant.error).toBeUndefined();
+      expect(grant.status, grant.stderr).toBe(0);
+
+      const hardStopMarker = join(work, "..", "post-rename-hard-stop.marker");
+      const hardStopScript = `
+        import fs from "node:fs";
+        import path from "node:path";
+        const { restoreCheckpoint } = await import(${JSON.stringify(fileCheckpointUrl)});
+        const [root, safetyId, safetyIdentity, safetyPlanIdentity, target, trash, marker] = process.argv.slice(1);
+        const nativeRename = fs.renameSync.bind(fs);
+        fs.renameSync = (source, destination) => {
+          const result = nativeRename(source, destination);
+          if (path.resolve(source) === path.resolve(target) && path.resolve(destination) === path.resolve(trash)) {
+            fs.writeFileSync(marker, "renamed", { encoding: "utf8", flush: true });
+            process.kill(process.pid, "SIGKILL");
+            process.abort();
+          }
+          return result;
+        };
+        restoreCheckpoint(safetyId, { root, expectedIdentity: safetyIdentity, expectedSafetyPlanIdentity: safetyPlanIdentity, skipSafety: true });
+      `;
+      const hardStop = spawnSync(
+        process.execPath,
+        [
+          "--input-type=module",
+          "-e",
+          hardStopScript,
+          root,
+          prepared.safetyId,
+          prepared.safetyIdentity,
+          prepared.safetyPlanIdentity,
+          prepared.target,
+          prepared.trash,
+          hardStopMarker,
+        ],
+        {
+          cwd: resolve("."),
+          encoding: "utf8",
+          windowsHide: true,
+          timeout: 60_000,
+          maxBuffer: 4 * 1024 * 1024,
+        },
+      );
+      expect(hardStop.error).toBeUndefined();
+      expect(hardStop.status).not.toBe(0);
+      expect(existsSync(hardStopMarker)).toBe(true);
+      expect(existsSync(prepared.target)).toBe(false);
+      expect(existsSync(prepared.trash)).toBe(true);
+
+      const recoveryScript = `
+        import fs from "node:fs";
+        const { restoreCheckpoint } = await import(${JSON.stringify(fileCheckpointUrl)});
+        const { inspectPrivatePaths } = await import(${JSON.stringify(secureFsUrl)});
+        const [root, safetyId, safetyIdentity, safetyPlanIdentity, target, trash] = process.argv.slice(1);
+        const trashInspection = inspectPrivatePaths([trash])[0];
+        fs.writeFileSync(trash, "ATTACKER-CONTROLLED-TRASH", "utf8");
+        const recovered = restoreCheckpoint(safetyId, { root, expectedIdentity: safetyIdentity, expectedSafetyPlanIdentity: safetyPlanIdentity, skipSafety: true });
+        console.log("RECOVERY_RESULT:" + JSON.stringify({
+          trashInspection,
+          safetyCoverage: recovered.safetyCoverage,
+          safetyEvidence: recovered.safetyEvidence,
+          targetExists: fs.existsSync(target),
+          trashContent: fs.readFileSync(trash, "utf8")
+        }));
+      `;
+      const recovery = spawnSync(
+        process.execPath,
+        [
+          "--input-type=module",
+          "-e",
+          recoveryScript,
+          root,
+          prepared.safetyId,
+          prepared.safetyIdentity,
+          prepared.safetyPlanIdentity,
+          prepared.target,
+          prepared.trash,
+        ],
+        {
+          cwd: resolve("."),
+          encoding: "utf8",
+          windowsHide: true,
+          timeout: 120_000,
+          maxBuffer: 4 * 1024 * 1024,
+        },
+      );
+      expect(recovery.error).toBeUndefined();
+      expect(recovery.status, recovery.stderr).toBe(0);
+      const recoveryMarker = String(recovery.stdout)
+        .split(/\r?\n/u)
+        .find((line) => line.startsWith("RECOVERY_RESULT:"));
+      expect(recoveryMarker, recovery.stderr).toBeTruthy();
+      const result = JSON.parse(
+        recoveryMarker.slice("RECOVERY_RESULT:".length),
+      );
+      expect(result.trashInspection).toMatchObject({ exists: true, ok: false });
+      expect(result).toMatchObject({
+        safetyCoverage: "full",
+        safetyEvidence: {
+          durable: true,
+          quarantinePolicy: "non-authoritative-trash/v1",
+        },
+        targetExists: false,
+        trashContent: "ATTACKER-CONTROLLED-TRASH",
+      });
+    },
+    300_000,
+  );
+
+  it.each(["onSafetyReady", "onMutationStarted"])(
+    "%s failure leaves the workspace untouched",
+    (hookName) => {
+      const m = mk(`hook-${hookName}`);
+      const target = join(work, "a.txt");
+      rmSync(target);
+      const error = new Error(`blocked by ${hookName}`);
+      error.code = "INJECTED_HOOK_FAILURE";
+
+      expect(() =>
+        restoreCheckpoint(m.id, {
+          root,
+          expectedIdentity: computeCheckpointIdentity(m),
+          [hookName]: () => {
+            expect(existsSync(target)).toBe(false);
+            throw error;
+          },
+        }),
+      ).toThrow(
+        expect.objectContaining({
+          code: "INJECTED_HOOK_FAILURE",
+          restorePhase: "safety-ready",
+          safetyCoverage: "full",
+        }),
+      );
+      expect(existsSync(target)).toBe(false);
+    },
+  );
+
+  it("revalidates the durable manifest after onMutationStarted returns", () => {
+    const m = mk("mutation-hook-manifest-loss");
+    const target = join(work, "a.txt");
+    rmSync(target);
+
+    expect(() =>
+      restoreCheckpoint(m.id, {
+        root,
+        expectedIdentity: computeCheckpointIdentity(m),
+        onMutationStarted: ({ safetyId }) => {
+          rmSync(join(root, `${safetyId}.json`));
+        },
+      }),
+    ).toThrow(
+      expect.objectContaining({
+        code: "CHECKPOINT_RECOVERY_REQUIRED",
+        safetyCoverage: "unknown",
+      }),
+    );
+    expect(existsSync(target)).toBe(false);
+    expect(readFileSync(join(work, "b.txt"), "utf8")).toBe("ORIGINAL-B");
+  });
+
+  it("stops before the next target when onTargetPublished removes safety", () => {
+    const m = mk("published-hook-manifest-loss");
+    writeFileSync(join(work, "a.txt"), "CHANGED-A", "utf8");
+    writeFileSync(join(work, "b.txt"), "CHANGED-B", "utf8");
+    let safetyId;
+
+    expect(() =>
+      restoreCheckpoint(m.id, {
+        root,
+        expectedIdentity: computeCheckpointIdentity(m),
+        onSafetyReady: (evidence) => {
+          safetyId = evidence.safetyId;
+        },
+        onTargetPublished: ({ index }) => {
+          if (index === 0) rmSync(join(root, `${safetyId}.json`));
+        },
+      }),
+    ).toThrow(
+      expect.objectContaining({
+        code: "CHECKPOINT_RECOVERY_REQUIRED",
+        safetyCoverage: "unknown",
+        createdPaths: [],
+      }),
+    );
+    expect(readFileSync(join(work, "a.txt"), "utf8")).toBe("ORIGINAL-A");
+    expect(readFileSync(join(work, "b.txt"), "utf8")).toBe("CHANGED-B");
+  });
+
+  it("fails closed when the final onTargetPublished removes safety", () => {
+    const m = mk("final-published-hook-manifest-loss");
+    writeFileSync(join(work, "a.txt"), "CHANGED-A", "utf8");
+    let safetyId;
+
+    expect(() =>
+      restoreCheckpoint(m.id, {
+        root,
+        expectedIdentity: computeCheckpointIdentity(m),
+        onSafetyReady: (evidence) => {
+          safetyId = evidence.safetyId;
+        },
+        onTargetPublished: () => {
+          rmSync(join(root, `${safetyId}.json`));
+        },
+      }),
+    ).toThrow(
+      expect.objectContaining({
+        code: "CHECKPOINT_RECOVERY_REQUIRED",
+        safetyCoverage: "unknown",
+      }),
+    );
+    expect(readFileSync(join(work, "a.txt"), "utf8")).toBe("ORIGINAL-A");
+    expect(readFileSync(join(work, "b.txt"), "utf8")).toBe("ORIGINAL-B");
+  });
+
+  it.each([
+    ["async", async () => {}],
+    ["thenable", () => ({ then: () => {} })],
+  ])("rejects an %s safety hook before workspace writes", (_label, hook) => {
+    const m = mk("invalid-hook");
+    const target = join(work, "a.txt");
+    rmSync(target);
+    expect(() =>
+      restoreCheckpoint(m.id, {
+        root,
+        expectedIdentity: computeCheckpointIdentity(m),
+        onSafetyReady: hook,
+      }),
+    ).toThrow(
+      expect.objectContaining({ code: "CHECKPOINT_RESTORE_HOOK_INVALID" }),
+    );
+    expect(existsSync(target)).toBe(false);
+  });
+
+  it("fails closed instead of creating an untracked parent directory", () => {
+    mkdirSync(join(work, "nested"));
+    writeFileSync(join(work, "nested", "c.txt"), "ORIGINAL-C", "utf8");
+    const m = createCheckpoint(["nested/c.txt"], { cwd: work, root });
+    rmSync(join(work, "nested"), { recursive: true });
+
+    expect(() =>
+      restoreCheckpoint(m.id, {
+        root,
+        expectedIdentity: computeCheckpointIdentity(m),
+      }),
+    ).toThrow(
+      expect.objectContaining({
+        code: "CHECKPOINT_SAFETY_PARENT_CREATION_UNSUPPORTED",
+      }),
+    );
+    expect(existsSync(join(work, "nested"))).toBe(false);
+  });
+
+  it("rejects a checkpoint safety store that overlaps the workspace", () => {
+    const overlappingRoot = join(work, "checkpoint-store");
+    const m = createCheckpoint(["a.txt"], {
+      cwd: work,
+      root: overlappingRoot,
+    });
+    writeFileSync(join(work, "a.txt"), "CHANGED-A", "utf8");
+    const before = readdirSync(overlappingRoot).sort();
+
+    expect(() =>
+      restoreCheckpoint(m.id, {
+        root: overlappingRoot,
+        expectedIdentity: computeCheckpointIdentity(m),
+      }),
+    ).toThrow(
+      expect.objectContaining({ code: "CHECKPOINT_SAFETY_STORE_OVERLAP" }),
+    );
+    expect(readdirSync(overlappingRoot).sort()).toEqual(before);
+    expect(readFileSync(join(work, "a.txt"), "utf8")).toBe("CHANGED-A");
   });
 
   it("delete removes manifest + blobs", () => {
