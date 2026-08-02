@@ -58,6 +58,7 @@ import {
   runCheckpointRestoreOperation,
 } from "../lib/checkpoint-restore-orchestrator.js";
 import { registerManagedCheckpointCommands } from "./checkpoint-managed.js";
+import { registerCheckpointRestoreRecoveryCommands } from "./checkpoint-restore-recovery.js";
 
 function stableCheckpointRestoreValue(value) {
   if (value === undefined) return "null";
@@ -465,6 +466,10 @@ export function registerCheckpointCommand(program, dependencies = {}) {
     .description("Snapshot / rewind file state (git-plumbing, copy fallback)");
 
   registerManagedCheckpointCommands(cp);
+  registerCheckpointRestoreRecoveryCommands(
+    cp,
+    dependencies.checkpointRestoreRecovery,
+  );
 
   cp.command("create [paths...]")
     .description(
