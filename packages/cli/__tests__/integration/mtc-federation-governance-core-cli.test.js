@@ -365,7 +365,8 @@ describe("cc mtc federation governance — core (invite/vote/revoke/rotate/thres
         "--json",
       ]);
       expect(r.status).not.toBe(0);
-      expect(r.stderr || r.stdout).toMatch(/not joined as "ghost"/);
+      const failure = extractJson(r.stderr || r.stdout);
+      expect(failure.error?.message).toMatch(/not joined as "ghost"/);
     });
   });
 });
