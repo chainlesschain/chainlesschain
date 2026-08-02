@@ -23,6 +23,8 @@ function fakeDeps(overrides = {}) {
   };
 }
 
+const t = it.runIf(process.platform !== "win32");
+
 describe("doctor-checkup", () => {
   it("collects all layered sections without throwing", async () => {
     const sections = await collectCheckupSections({ deps: fakeDeps() });
@@ -76,7 +78,7 @@ describe("doctor-checkup", () => {
     );
   });
 
-  it("discovers and repairs legacy config.json backup siblings", async () => {
+  t("discovers and repairs legacy config.json backup siblings", async () => {
     const home = getHomeDir();
     const backup = `${getConfigPath()}.bak-20260101`;
     const modes = new Map([
@@ -109,7 +111,7 @@ describe("doctor-checkup", () => {
     expect(modes.get(backup)).toBe(0o600);
   });
 
-  it("detects and safely repairs legacy private-storage modes", async () => {
+  t("detects and safely repairs legacy private-storage modes", async () => {
     const home = getHomeDir();
     const configPath = getConfigPath();
     const modes = new Map([
@@ -138,7 +140,10 @@ describe("doctor-checkup", () => {
 
     const results = await runCheckupFixes(sections, { deps });
     expect(results).toContainEqual(
-      expect.objectContaining({ id: "repair-private-storage", applied: true }),
+      expect.objectContaining({
+        id: "repair-private-storage",
+        applied: true,
+      }),
     );
     expect(modes.get(home)).toBe(0o700);
     expect(modes.get(configPath)).toBe(0o600);
@@ -258,47 +263,50 @@ describe("doctor-checkup", () => {
     ).toBe(false);
   });
 
-  it("marks capped scans partial but repairs the full explicit inventory", async () => {
-    const home = getHomeDir();
-    const sessions = join(home, "sessions");
-    const entries = Array.from(
-      { length: 1001 },
-      (_, index) => `session-${String(index).padStart(4, "0")}.jsonl`,
-    );
-    const modes = new Map([
-      [home, 0o700],
-      [sessions, 0o700],
-      ...entries.map((entry, index) => [
-        join(sessions, entry),
-        index === 1000 ? 0o644 : 0o600,
-      ]),
-    ]);
-    const deps = fakeDeps({
-      platform: () => "linux",
-      existsSync: (target) => modes.has(String(target)),
-      readdirSync: (target) => (String(target) === sessions ? entries : []),
-      lstatSync: (target) => ({
-        mode: modes.get(String(target)),
-        uid: typeof process.getuid === "function" ? process.getuid() : 0,
-        isDirectory: () => [home, sessions].includes(String(target)),
-        isSymbolicLink: () => false,
-      }),
-      chmodSync: (target, mode) => modes.set(String(target), mode),
-    });
+  t(
+    "marks capped scans partial but repairs the full explicit inventory",
+    async () => {
+      const home = getHomeDir();
+      const sessions = join(home, "sessions");
+      const entries = Array.from(
+        { length: 1001 },
+        (_, index) => `session-${String(index).padStart(4, "0")}.jsonl`,
+      );
+      const modes = new Map([
+        [home, 0o700],
+        [sessions, 0o700],
+        ...entries.map((entry, index) => [
+          join(sessions, entry),
+          index === 1000 ? 0o644 : 0o600,
+        ]),
+      ]);
+      const deps = fakeDeps({
+        platform: () => "linux",
+        existsSync: (target) => modes.has(String(target)),
+        readdirSync: (target) => (String(target) === sessions ? entries : []),
+        lstatSync: (target) => ({
+          mode: modes.get(String(target)),
+          uid: typeof process.getuid === "function" ? process.getuid() : 0,
+          isDirectory: () => [home, sessions].includes(String(target)),
+          isSymbolicLink: () => false,
+        }),
+        chmodSync: (target, mode) => modes.set(String(target), mode),
+      });
 
-    const sections = await collectCheckupSections({ deps });
-    const permissionCheck = sections
-      .find((section) => section.id === "config")
-      .checks.find((entry) => entry.id === "private-storage-permissions");
-    expect(permissionCheck).toMatchObject({
-      level: CHECK_LEVELS.WARN,
-      fix: { id: "repair-private-storage", safe: true },
-    });
-    expect(permissionCheck.detail).toMatch(/partial scan/);
+      const sections = await collectCheckupSections({ deps });
+      const permissionCheck = sections
+        .find((section) => section.id === "config")
+        .checks.find((entry) => entry.id === "private-storage-permissions");
+      expect(permissionCheck).toMatchObject({
+        level: CHECK_LEVELS.WARN,
+        fix: { id: "repair-private-storage", safe: true },
+      });
+      expect(permissionCheck.detail).toMatch(/partial scan/);
 
-    await runCheckupFixes(sections, { deps });
-    expect(modes.get(join(sessions, entries[1000]))).toBe(0o600);
-  });
+      await runCheckupFixes(sections, { deps });
+      expect(modes.get(join(sessions, entries[1000]))).toBe(0o600);
+    },
+  );
 
   it("flags an invalid settings layer as err", async () => {
     const deps = fakeDeps({
