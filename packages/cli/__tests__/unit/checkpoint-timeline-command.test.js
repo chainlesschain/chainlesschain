@@ -14,6 +14,7 @@ const state = vi.hoisted(() => ({
   transactionActive: false,
   onRestore: null,
   gitAvailable: true,
+  workspaceRoot: process.cwd(),
   workspaceNonce: "1".repeat(64),
   statusIdentities: [],
   restoreIdentities: [],
@@ -211,7 +212,7 @@ vi.mock("../../src/lib/checkpoint-store.js", () => ({
         schema: "cc-checkpoint-workspace-binding/v1",
         version: 1,
         engine: "git",
-        workspaceRoot: "C:/workspace",
+        workspaceRoot: state.workspaceRoot,
         scopeIdentity: `sha256:${"2".repeat(64)}`,
         prestateIdentity: `git-tree:${state.workspaceNonce.slice(0, 40)}`,
         writePlanIdentity: `sha256:${state.workspaceNonce}`,
@@ -278,7 +279,7 @@ vi.mock("../../src/lib/file-checkpoint.js", () => ({
         schema: "cc-checkpoint-workspace-binding/v1",
         version: 1,
         engine: "copy",
-        workspaceRoot: "C:/workspace",
+        workspaceRoot: state.workspaceRoot,
         scopeIdentity: `sha256:${"4".repeat(64)}`,
         prestateIdentity: `sha256:${state.workspaceNonce}`,
         writePlanIdentity: `sha256:${state.workspaceNonce}`,
@@ -584,11 +585,11 @@ describe("checkpoint timeline CLI command authority", () => {
     expect(state.restoreBindings[0]).toMatchObject({
       schema: "cc-checkpoint-workspace-binding/v1",
       engine: "git",
-      workspaceRoot: "C:/workspace",
+      workspaceRoot: state.workspaceRoot,
     });
     expect(state.workspaceLocks).toEqual([
       expect.objectContaining({
-        workspaceRoot: "C:/workspace",
+        workspaceRoot: state.workspaceRoot,
         purpose: "checkpoint-restore",
       }),
     ]);
@@ -663,7 +664,7 @@ describe("checkpoint timeline CLI command authority", () => {
     ]);
     expect(state.restoreBindings[0]).toMatchObject({
       engine: "git",
-      workspaceRoot: "C:/workspace",
+      workspaceRoot: state.workspaceRoot,
       prestateIdentity: `git-tree:${"1".repeat(40)}`,
     });
     expect(state.conditional.map((event) => event.type)).toEqual([

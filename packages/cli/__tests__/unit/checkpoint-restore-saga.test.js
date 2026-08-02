@@ -168,6 +168,8 @@ function projectedAuthorityIdentityRuntime({
   const nativeFstatSync = fs.fstatSync.bind(fs);
   const nativeCloseSync = fs.closeSync.bind(fs);
   const eventDescriptors = new Set();
+  const lockOwnerDescriptors = new Set();
+  const lockOwnerDevice = 88n;
   let insideStableRead = false;
   let pathSample = 0;
   let handleSample = 0;
@@ -175,12 +177,23 @@ function projectedAuthorityIdentityRuntime({
     const basename = path.basename(String(target));
     return basename === "HEAD" || /^\d{6}-[a-z_]+\.json$/u.test(basename);
   };
+  const isStateLockOwnerPath = (target) => {
+    const ownerPath = String(target);
+    return (
+      !productionParent &&
+      path.basename(ownerPath) === "owner.json" &&
+      path.basename(path.dirname(path.dirname(ownerPath))) === ".locks"
+    );
+  };
   const runtimeFs = {
     ...fs,
     constants: fs.constants,
     realpathSync: fs.realpathSync,
     lstatSync(target, options) {
       const stat = nativeLstatSync(target, options);
+      if (isStateLockOwnerPath(target)) {
+        return projectedStat(stat, { dev: lockOwnerDevice });
+      }
       if (!isEventPath(target)) return stat;
       const sample = insideStableRead ? ++pathSample : 0;
       return projectedStat(stat, {
@@ -191,10 +204,14 @@ function projectedAuthorityIdentityRuntime({
     openSync(target, ...args) {
       const descriptor = nativeOpenSync(target, ...args);
       if (isEventPath(target)) eventDescriptors.add(descriptor);
+      if (isStateLockOwnerPath(target)) lockOwnerDescriptors.add(descriptor);
       return descriptor;
     },
     fstatSync(descriptor, options) {
       const stat = nativeFstatSync(descriptor, options);
+      if (lockOwnerDescriptors.has(descriptor)) {
+        return projectedStat(stat, { dev: lockOwnerDevice });
+      }
       if (!eventDescriptors.has(descriptor) || handleDevice == null) {
         return stat;
       }
@@ -212,6 +229,7 @@ function projectedAuthorityIdentityRuntime({
     },
     closeSync(descriptor) {
       eventDescriptors.delete(descriptor);
+      lockOwnerDescriptors.delete(descriptor);
       return nativeCloseSync(descriptor);
     },
   };
@@ -222,6 +240,7 @@ function projectedAuthorityIdentityRuntime({
   if (!productionParent) {
     identityOptions.secureFileParent = (_runtimeFs, filePath, callback) => {
       const projectedEvent = isEventPath(filePath);
+      const projectedLockOwner = isStateLockOwnerPath(filePath);
       insideStableRead = true;
       pathSample = 0;
       handleSample = 0;
@@ -231,7 +250,9 @@ function projectedAuthorityIdentityRuntime({
           canonicalPath: filePath,
           parentDevice: projectedEvent
             ? String(handleDevice)
-            : String(nativeDevice),
+            : projectedLockOwner
+              ? String(lockOwnerDevice)
+              : String(nativeDevice),
         });
       } finally {
         insideStableRead = false;
