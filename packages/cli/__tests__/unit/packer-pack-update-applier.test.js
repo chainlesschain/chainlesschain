@@ -1024,6 +1024,11 @@ describe("scheduleReplace – Windows branch (sidecar cmd)", () => {
     }
     return { unref: () => {}, kill: () => true };
   };
+  // These are synthetic Windows-sidecar tests. On macOS, os.tmpdir() can
+  // traverse an APFS firmlink that the production Windows reparse guard must
+  // reject, so this fixture verifies the transaction handshake independently.
+  const fakeWaitForReady = ({ readyPath, transactionId }) =>
+    fs.readFileSync(readyPath, "utf8").trim() === transactionId;
 
   beforeEach(() => {
     tmpDir = fs.mkdtempSync(path.join(CANONICAL_TEMP_ROOT, "cc-apply-win-"));
@@ -1053,6 +1058,7 @@ describe("scheduleReplace – Windows branch (sidecar cmd)", () => {
           targetExePath: target,
           platform: "win32",
           parentPid: 12345,
+          waitForReadyImpl: fakeWaitForReady,
         }),
       );
     } finally {
@@ -1099,6 +1105,7 @@ describe("scheduleReplace – Windows branch (sidecar cmd)", () => {
         platform: "win32",
         parentPid: 12345,
         spawnImpl: fakeSpawn,
+        waitForReadyImpl: fakeWaitForReady,
       }),
     );
     const secondNew = path.join(tmpDir, "second.exe");
@@ -1134,6 +1141,7 @@ describe("scheduleReplace – Windows branch (sidecar cmd)", () => {
         platform: "win32",
         parentPid: 12345,
         spawnImpl: fakeSpawn,
+        waitForReadyImpl: fakeWaitForReady,
       }),
     );
     try {
@@ -1161,6 +1169,7 @@ describe("scheduleReplace – Windows branch (sidecar cmd)", () => {
         platform: "win32",
         parentPid: 12345,
         spawnImpl: fakeSpawn,
+        waitForReadyImpl: fakeWaitForReady,
       }),
     );
 
