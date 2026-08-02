@@ -15,6 +15,7 @@ import {
 } from "../../src/runtime/headless-runner.js";
 import { GoalConditionEngine } from "../../src/lib/goal-condition-engine.js";
 import { currentHostHooksV2WorkspaceRoot } from "../../src/lib/hooks-v2-workspace-context.js";
+import { computeEventHash } from "../../src/harness/transcript-integrity.js";
 
 // installPipeSafety moved to pipe-safety.js (canonical tests in
 // pipe-safety.test.js); headless-runner re-exports it for back-compat.
@@ -59,6 +60,21 @@ const replyText = (content) =>
     message: { role: "assistant", content },
     usage: { input_tokens: 7, output_tokens: 3 },
   }));
+
+function verifiedEventChain(events) {
+  let previousHash = null;
+  return events.map((event, index) => {
+    const core = {
+      type: event.type,
+      timestamp: Number.isFinite(event.timestamp) ? event.timestamp : index + 1,
+      data: event.data ?? {},
+    };
+    const hash = computeEventHash(previousHash, core);
+    const chained = { ...core, prevHash: previousHash, hash };
+    previousHash = hash;
+    return chained;
+  });
+}
 
 describe("headless-runner — pure helpers", () => {
   it("parseToolList splits comma/space and trims", () => {
@@ -989,7 +1005,31 @@ describe("headless-runner — session resume + persistence", () => {
         // this fake faithful to the JSONL store contract so fail-closed
         // metadata persistence does not abort before the assistant message.
         readEvents: () => events.raw,
-        readVerifiedEvents: () => events.raw,
+        readVerifiedEvents: (id) =>
+          verifiedEventChain([
+            {
+              type: "session_start",
+              timestamp: 1,
+              data: { title: "test session" },
+            },
+            ...(existing[id] || []).map((message, index) => ({
+              type:
+                message.role === "assistant"
+                  ? "assistant_message"
+                  : message.role === "system"
+                    ? "system"
+                    : "user_message",
+              timestamp: index + 2,
+              data: message,
+            })),
+            ...events.raw
+              .filter((event) => event.id === id)
+              .map((event, index) => ({
+                type: event.type,
+                timestamp: index + (existing[id]?.length || 0) + 2,
+                data: event.data,
+              })),
+          ]),
         appendEvent: (id, type, data) => {
           events.raw.push({ id, type, data });
           return true;
@@ -1362,7 +1402,7 @@ describe("headless-runner — goal-condition cross-process resume", () => {
             (snapshots[id] = snapshots[id] || []).push(data);
         },
         readEvents: (id) => log[id] || [],
-        readVerifiedEvents: (id) => log[id] || [],
+        readVerifiedEvents: (id) => verifiedEventChain(log[id] || []),
         appendAuthorityEvent: (id, type, data) => {
           (log[id] = log[id] || []).push({ type, timestamp: 0, data });
           return true;
