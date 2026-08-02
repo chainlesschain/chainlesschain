@@ -28,9 +28,11 @@
 
 本轮安全批次已覆盖真实 Windows Unicode 路径及目录/文件 ACL 修复。Windows PowerShell ACL 的冷启动延迟仍列为后续 P2 性能优化，不影响当前安全语义与提交边界。`a72d75d153`、`223c0f505c`、`b6a2c096ea` 和 `5df2e1bdac` 各自已有三平台 `CLI Strict Sandbox` 成功证据；其中 `5df2e1bdac` 把完整 MCP recovery/adjudication 生产与测试边界纳入触发路径，run `30724810078` 在 Ubuntu 24.04、macOS 15、Windows 全绿。`925a49fb7b` 的 Strict Sandbox run `30725436007` 三 OS 全绿，但同提交的 `CLI CI` run `30725436119` 被取消；`963c6d46dd` 的 Strict run `30725805331` 三 OS 全绿，但其 `CLI CI` run `30725805407` 也被取消；`6b4570c80f` 的 Strict run `30727179738` 三 OS 全绿，而同 SHA 的 `CLI CI` run `30727179832` 已失败。`1cd36e4212` 的 Strict run `30728860734` 三 OS 均失败；`2e50772542` 修正注入 transcript 缺失 hash chain 的 fixture 后，本地 headless-runner 67/67，其 Strict run `30729294491` 在 Ubuntu 24.04、Windows、macOS 15 全绿，但同 SHA 的 `CLI CI` run `30729294557` 被取消。最新 `6a1ebaa188` 的 Strict run `30729639108` 也在三 OS 全绿，但同 SHA 的 `CLI CI` run `30729639052` 已因 resume role-alternation E2E 失败。这些结果只能授权对应精确 SHA 与对应门禁，不授权更晚 SHA，也不能替代同 SHA 的完整双门。npm/原生发行物不得依据本地测试、旧提交矩阵或仅成功生成的 artifact 发布，必须以待发布精确提交上的 `CLI CI` 与 `CLI Strict Sandbox` 全矩阵、签名/安装/升级/回滚和公开渠道回读全部通过为最终门禁。
 
-### 2026-08-02 原生事务最终本地复核
+### 2026-08-02 原生事务增量与当前证据边界
 
 `8990999771`、`a1c9eed07e`、`dc69dbb62d` 与 `ab17a76048` 已同步到 GitHub 和 Gitee；这只固定了提交边界，不表示发布验收完成。`8990999771` 冻结后的 8 文件定向矩阵最终为 142/142，相关 Node 语法、Prettier、ESLint、`bash -n`、PowerShell parser/import 与 diff-check 通过；此前的较小矩阵和单个 `cli-aliases` 超时属于中间快照。`a1c9eed07e` 随后完成下载目标替换事务：覆盖前保留旧 destination，提交后验证、目录持久化或恢复失败均 fail closed；锁丢失时停止写目标并保留可验证恢复副本。下载器定向测试 30/30、checker/downloader/applier/auto-update 相邻矩阵 122/122 通过，该批最终只读复审为 P0=0、P1=0。`dc69dbb62d` 再修复 POSIX lineage 回滚：fresh install 即使在 lineage 的 `os.replace` 成功后才报错也会清除本事务 lineage；upgrade 使用同目录原子 rename 恢复旧 lineage，不再先删除公共路径，恢复失败时保留可见 lineage、快照与锁。本地 8 文件相邻矩阵为 146 passed、7 个 POSIX 动态用例在 Windows 按平台条件跳过。`ab17a76048` 又把 `priorTarget` 硬链接快照纳入 durable recovery pointer，以同一 `O_NOFOLLOW` 描述符覆盖 validate→retire，重检 inode/content，并增加 final anchor 父目录 durability barrier、SIGKILL、同字节 inode 替换及最终 fsync 故障回归；Windows 定向为 6 passed、24 个 POSIX 用例按平台跳过，bash/sh/dash 语法检查通过。`6a1ebaa188` 的 macOS CI 中本文件 28 passed / 2 个 PowerShell 用例跳过，但 Ubuntu 的 alias 同内容新 inode successor 用例失败并发生 target 部分回滚；Linux blocker 正在修复，Windows exact-SHA native job 尚未形成结论。该 pointer 不等于完整 generation transaction。
+
+证据更正：`4145508010` 只是 retained tombstone cleanup 语义的中间提交，后续独立审计仍发现 lock、cleanup、orphan quarantine 与 candidate pathname race，不能作为安全闭包。`1354be776a` 才是本轮 successor-safe follow-up：单文件本地结果为 10 passed / 43 skipped，其中 10 个通过项包含 `wsl.exe` 下 bash/dash × backup/lineage 的 4 个真实动态用例；第六轮独立只读审计在该提交范围内为 P0=0、P1=0。它采用保守保留和 fail-closed，因此仍有人工处置 orphan、retained evidence 累积与常态 cleanup-degraded 等 P2，不等于完整 generation transaction 或 release-ready。
 
 尚未关闭的发布阻断为：
 
@@ -43,7 +45,7 @@
 
 `b5c50bb513` 已提交独立 `CLI Session Scale` 门禁、canonical session index/repair 加固和 exact-SHA artifact。仓库定向测试为 79 passed、1 skipped；Windows 默认 smoke 覆盖 3 个 writer 各 25 次并发 append、250 sessions、64 MiB transcript，以及 2 个原始写入进程和 2 个生产 append pipeline 的 SIGKILL 边界，全部通过。手工 formal run `30724908237` 以输入 `commit_sha=b5c50bb51368a849d649fb8d27bd790d46217c20` checkout 精确提交，Ubuntu、Windows、macOS 三个 formal job 全部成功并上传 exact-SHA artifact。该成功只证明本节所述组件门，不授权更晚提交，也不替代最终 release SHA 的重跑。
 
-该提交是**组件级规模与崩溃门基础**，尚未关闭 P0-5 的真实入口目标：1 GiB 指标只测热进程中的 `rebuildMessages()` 从最新 compact checkpoint 重建；真实 headless resume 在此之前仍全量执行 `verifySession()`，Stream/MCP resume 还会通过 `readVerifiedEvents()` 全链校验并把全部事件 materialize 到数组。因此当前不能宣称真实 REPL/headless/stream 恢复 p95 `< 2s`、RSS `< 100MB` 或“没有全量载入”。后续必须引入可验证 checkpoint/分段 anchor 和增量 MCP projection，并新增真实入口、冷进程、跨宿主一致性门禁。现有 repair 只以 `event_count`/`last_hash` 重建 sidecar/activity；同 head 的 title/message_count 等语义损坏不在已证明范围。真实生产 SIGKILL 只覆盖两个 append pipeline 边界，人工 exhaustive prefix 不等于任意写入点 taskkill、断电或 fsync durability 证明。
+`9cbe020b08` 已为覆盖到的 canonical resume 路径提交 forward verified projection、checkpoint 后缀消息重建和增量 MCP reducer；`213c3ae7c5` 又让 Headless/Stream 与 WS 的覆盖路径使用同一 verified sample，并加入 canonical WS request claim。因此不能继续笼统表述为“Stream/MCP 恢复必须整体 materialize 全部 event”。但是普通 hash-chained JSONL 仍需要 O(N) 前向认证，sidecar 不是独立 anti-rollback anchor；真实冷进程 1 GiB 恢复 p95 `< 2s`、RSS `< 100MB`、10k session、断电/fsync 与所有 legacy/create/IDE/background 入口一致性仍未完成。组件门、宿主一致性门和本地测试均不得外推为这些产品级验收已通过。
 
 ### 2026-08-02 MCP 调用边界后续加固
 
@@ -58,6 +60,12 @@
 `6a1ebaa188` 提交持久化 session budget runtime：unknown-usage intent 采用 marker-first，read 绑定 main revision 与 marker revision/SHA-256，所有 sidecar 操作共用 per-session 主锁，finalize 只清除精确观察到的 marker；后到 marker 会 durable merge 后冲突并保留证据。authority 持久化失败会回滚本地 release/end/usage/recovery 状态，custom signal cleanup 不再泄漏 runtime reference。独立扩大回归为 10 files、181 passed / 2 个 POSIX 用例在 Windows 跳过，三文件 Node 语法和 Prettier 通过。
 
 当前仍只是 **foundation、process-local runtime 与 cooperating-writer CAS**：生产 root 与全部 WS/REPL/headless/tool/token/turn 入口尚未统一接线；sidecar 不是 machine-wide authority，也没有独立 anti-rollback/transcript-head 绑定。host snapshot 仍缺跨进程 head lease/fencing，真实恢复仍有 O(N) 全量读取，精确竞态回归也不是 fork 进程证明。因此不得把本轮状态标记为“统一全会话预算”或“真实长会话完成”。`6a1ebaa188` 的 Strict run `30729639108` 三 OS 全绿，但同 SHA 的 `CLI CI` run `30729639052` 已失败，暴露 resume legacy fixture、Linux alias rollback、macOS synthetic Windows-sidecar 和 Windows 8.3 path fixture 问题；前两项 fixture 分别由 `b6e648a820`、`2f0182226c` 修复，安全语义相关的 Linux alias 与 macOS sidecar 仍在处理。在最终待发布 SHA 的 `CLI CI` 与 `CLI Strict Sandbox` 双门全绿之前不得发布。
+
+后续预算增量为：`2a85acb901`、`be86097be2` 加固持久预算 authority、persist-first final close、失败后的 durable dirty recovery 与旧 handle/lease 撤权；`73ad3b7378` 又绑定精确 budget sidecar 文件身份，本地单文件为 36 passed / 3 skipped。独立复审确认它在“私有目录 + `withFileLock` 协作写入者”边界内无 P0/P1，但非协作 same-UID 写入者仍可触发临时路径 cleanup、sidecar rename 覆盖和 usage-unknown marker retirement 的 successor 风险；这些在 machine-wide/hostile-writer 声明下仍是 P1 NO-GO。生产 root 和全部入口统一接线前，不得把该 foundation 升级为全机预算 authority。
+
+> **历史基线阅读说明**
+>
+> 以下第 1～13 节保留 2026-08-01 审计时的现状、方案与验收目标。正文中的“当前”“尚未”“下一步”均按该历史快照理解，不再直接代表仓库最新状态。2026-08-02 的组件实现、本地测试、独立审计、exact-SHA CI 与 release 判定，以文末“实施状态附录”为准。
 
 ## 1. 结论先行
 
@@ -496,3 +504,53 @@ E2E retry-pass 应记为 flake，而不是普通 pass；超过阈值阻断发布
 > **“把 `cc` 从一个拥有 175 个入口的综合命令集合，收敛成一个启动快、默认安全、会话可信、后台可控的 coding-agent runtime；长尾能力通过子域和插件保留。”**
 
 这条主线既能直接缩小与 Claude Code 的真实体验差距，也能保留 ChainlessChain 在多 Provider、去中心化、跨端、自动化和企业治理方面的差异化优势。
+
+## 14. 2026-08-02 实施状态附录：当前证据边界
+
+> 本附录覆盖第 1～13 节中的历史“当前状态”表述。组件实现、本地定向测试、独立审计和 exact-SHA CI 只授权各自明确范围；最终待发布 SHA 必须同时完成完整 `CLI CI` 与 `CLI Strict Sandbox` 全配置 OS 矩阵，并满足签名、安装、升级、回滚和公开渠道回读，否则一律为 **NO-GO**。
+
+### 14.1 Canonical Session 与宿主恢复
+
+- `63a67cc676` 只是 REPL canonical resume 提前校验的中间提交。后续独立审计发现 P1，不能引用该 SHA 或“REPL 87/87”宣称安全闭包。
+- `9cbe020b08` 提交 forward verified projection、sidecar head/count anchor、checkpoint 后缀消息重建、增量 MCP reducer、WS turn lifecycle projection 与 index/export 接线；`213c3ae7c5` 将覆盖到的 Headless/Stream 恢复收敛到同一 verified sample，并为 canonical WS resume request 加入跨进程 opaque claim。owner 崩溃后的 claim 保持 pending，不自动接管或重放；它不是 general cross-process session lease。
+- `3bf36193dc` 只恢复 JSONL compatibility export 完整性；`fa3aa32801` 补齐 canonical host consistency workflow 与测试覆盖，“close gate”不代表 release gate 已关闭。
+- `13e0f074b3` 加固 canonical absence/error provenance、resume id、role/tool authority 与 canonical system admission。关键定向 30 项和相邻 40 项共 70 passed，独立增量审计为 P0=0、P1=0。该审计登记的 inherited live-switch host-prefix 风险由 `5c9f05494a` 跟进；其本地新行为 4/4、相邻 35/35，独立审计在该提交范围为 P0=0、P1=0。
+- covered canonical path 已不再要求把全部 event materialize 成数组，但 hash-chain 身份认证仍为 O(N)，没有独立 anti-rollback anchor，也没有真实冷进程 1 GiB P95/RSS、fsync/断电、remote host 或全部 legacy/create 路径的完成证明。
+
+### 14.2 会话资源预算
+
+- `2a85acb901`、`be86097be2` 加固持久预算 sidecar、opaque authority、persist-first close、durable dirty recovery 与旧 handle/lease 撤权；`73ad3b7378` 进一步保持精确 budget 文件身份，本地单文件为 36 passed / 3 skipped。
+- `73ad3b7378` 的独立审计只在“私有目录 + cooperating writer”范围为 P0=0、P1=0。非协作 same-UID writer 下的临时路径 unlink、CAS 后 rename overwrite 和 marker retirement successor 仍是 machine-wide P1 NO-GO。
+- 这些提交不等于 machine-wide scheduler；生产 root、turn、token、tool、WS、REPL 与 Headless 入口尚未统一使用同一个 authority，sidecar 也不是独立 anti-rollback anchor。
+
+### 14.3 原生 installer/rollback
+
+- `4145508010` 是 retained tombstone cleanup 语义的中间提交，后续独立审计仍发现 P1，不得写成 installer 安全闭包。
+- `1354be776a` 对 transaction successor、orphan 与 retained evidence 采用保守保留和 fail-closed。单文件本地结果为 10 passed / 43 skipped，其中包含 `wsl.exe` 下 4 个 bash/dash 动态用例；第六轮独立审计在该提交范围为 P0=0、P1=0。
+- 剩余 P2 包括人工处置 orphan、retained evidence/cleanup-degraded 累积。完整 durable generation transaction、真实三 OS 强杀/断电、ARM64、签名/notarization/Authenticode 与公开资产回读仍未完成。
+
+### 14.4 Exact-SHA CI 与发布判定
+
+| Exact SHA    | `CLI CI`                  | `CLI Strict Sandbox`  | `CLI Session Host Consistency` | Release   |
+| ------------ | ------------------------- | --------------------- | ------------------------------ | --------- |
+| `9cbe020b08` | `30732462105` cancelled   | `30732462022` success | `30732462034` success          | **NO-GO** |
+| `213c3ae7c5` | `30733555516` cancelled   | `30733555412` success | `30733555422` success          | **NO-GO** |
+| `fa3aa32801` | `30734282599` failure     | 无同 SHA 成功证据     | `30734282464` success          | **NO-GO** |
+| `73ad3b7378` | `30737250661` cancelled   | 无同 SHA 成功证据     | `30737250601` success          | **NO-GO** |
+| `13e0f074b3` | `30737581680` cancelled   | `30737581562` success | `30737581567` success          | **NO-GO** |
+| `1354be776a` | `30737890854` cancelled   | 无同 SHA 完成证据     | 无同 SHA 完成证据              | **NO-GO** |
+| `5c9f05494a` | `30738312745` cancelled   | `30738312596` success | `30738312610` success          | **NO-GO** |
+| `9cadcaf4d6` | `30738491468` failure     | `30738576056` success | `30738491365` success          | **NO-GO** |
+| `4bb6e25fe4` | `30739539943` failure     | 无同 SHA 完成证据     | 无同 SHA 完成证据              | **NO-GO** |
+| `755ee07926` | `30742304070` cancelled   | 无同 SHA 完成证据     | 无同 SHA 完成证据              | **NO-GO** |
+| `d14a4eb8eb` | `30742425229` in progress | `30742425145` success | `30742425143` success          | **NO-GO** |
+
+当前没有任何待发布 exact SHA 同时取得完整 `CLI CI` 与 `CLI Strict Sandbox` 成功。queued、in-progress、cancelled、failure、部分矩阵、组件门成功、本地测试或旧 SHA 结果均不构成发布授权；文档提交后的新 SHA 也必须重新运行完整双门。
+
+### 14.5 后续已提交增量与剩余边界
+
+- `9cadcaf4d6` 保留摘要压缩后的 durable system provenance，避免 Stream、Headless 与恢复入口把可信宿主前缀降格为普通消息。该 SHA 的 Host Consistency 与 Strict Sandbox 三 OS 成功；CLI CI 中本切片目标测试通过，但整门仍因独立的 native installer 与 Windows packer 失败，故仍为 NO-GO。
+- `4bb6e25fe4` 修正 POSIX fixture 的精确注入、Darwin fd 启动预检兼容与 PowerShell fixture 模块初始化。它把 Ubuntu native failures 从 40 项降到 5 项、macOS 从 39 项降到相同 5 项；Windows 仍有 2 项 `Get-FileHash` 命令可见性失败，另有当时尚未修复的 48 项 packer 文件身份误判。该 SHA 的 CLI CI 因此失败。
+- `755ee07926` 为 packer 的稳定哈希、下载 partial、恢复快照、清理和两类更新锁建立可信 volume/share-root + parent handle authority；只在 Windows libuv 1.49/1.50 下桥接已知的 pathname `dev` 投影差异，打开句柄之间仍严格比较 BigInt `dev+ino`。Node 22.12/libuv 1.49.1 与 Node 22.22/libuv 1.51.0 的相关 3 文件均为 87/87；该 SHA 的 CLI CI 被后续提交取消，不能据本地结果宣称矩阵关闭。
+- `d14a4eb8eb` 让默认 MCP recovery adjudication 使用单次 verified projection，并让 Cowork session binding 与 MCP ledger 在同一遍 verified scan 中折叠；projection factory/finish identity、accepted count、verified head、Promise/thenable/Proxy/accessor/toJSON 与 legacy reader 均 fail closed。独立复验的 5 个相关测试文件共 204/204；它去除了这两个恢复入口对完整 event 数组的强制 materialization，但 reducer authority 仍随唯一 ledger/replay-deny 状态增长，普通 hash-chain 认证仍为 O(N)，不能据此宣称 1 GiB 冷恢复或固定 RSS 目标已完成。
+- `d14a4eb8eb` 的 Host Consistency 与 Strict Sandbox 已成功，CLI CI 仍未结束；原生事务仍在处理前述 5 个 POSIX 与 2 个 PowerShell 残余。最终发布判定继续要求同一待发布 SHA 的完整 `CLI CI` 与 `CLI Strict Sandbox` 全配置 OS 同时成功。
