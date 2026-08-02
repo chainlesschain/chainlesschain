@@ -35,6 +35,49 @@ describe("CLI release workflow contracts", () => {
     }
   });
 
+  it("runs the complete MCP recovery authority matrix in the strict gate", () => {
+    const text = workflow("cli-strict-sandbox.yml");
+    const jobsStart = text.indexOf("\njobs:");
+    expect(jobsStart).toBeGreaterThan(0);
+    const triggers = text.slice(0, jobsStart);
+    const jobs = text.slice(jobsStart);
+
+    for (const source of [
+      "packages/cli/src/lib/mcp-call-ledger-store.js",
+      "packages/cli/src/lib/mcp-call-ledger.js",
+      "packages/cli/src/lib/mcp-host-recovery-runtime.js",
+      "packages/cli/src/lib/mcp-ledger-recovery-admission.js",
+      "packages/cli/src/lib/mcp-recovery-adjudication.js",
+      "packages/cli/src/lib/cowork-task-runner.js",
+      "packages/cli/src/commands/session.js",
+      "packages/cli/src/commands/session-mcp-recovery.js",
+      "packages/cli/src/runtime/agent-core.js",
+      "packages/cli/src/repl/agent-repl.js",
+      "packages/cli/src/gateways/ws/session-protocol.js",
+      "packages/cli/src/gateways/ws/ws-agent-handler.js",
+    ]) {
+      expect(triggers).toContain(`- "${source}"`);
+    }
+
+    for (const testFile of [
+      "__tests__/unit/mcp-call-ledger-store.test.js",
+      "__tests__/unit/mcp-host-recovery-runtime.test.js",
+      "__tests__/unit/mcp-ledger-recovery-admission.test.js",
+      "__tests__/unit/mcp-recovery-adjudication.test.js",
+      "__tests__/unit/mcp-recovery-adjudication-store.test.js",
+      "__tests__/unit/session-mcp-recovery.test.js",
+      "__tests__/unit/agent-core-mcp-ledger.test.js",
+      "__tests__/unit/agent-repl.test.js",
+      "__tests__/unit/headless-runner-mcp-ledger.test.js",
+      "__tests__/unit/cowork-task-runner.test.js",
+      "__tests__/unit/ws-runtime-events.test.js",
+      "__tests__/integration/ws-bridge-side-effect-resume.test.js",
+    ]) {
+      expect(triggers).toContain(`packages/cli/${testFile}`);
+      expect(jobs).toContain(testFile);
+    }
+  });
+
   it("requires all six signed native targets before publishing", () => {
     const text = workflow("cli-native-release.yml");
     for (const target of [

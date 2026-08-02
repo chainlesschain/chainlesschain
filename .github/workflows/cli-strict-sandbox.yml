@@ -24,6 +24,9 @@ on:
       - "packages/cli/src/lib/mcp-host-recovery-runtime.js"
       - "packages/cli/src/lib/mcp-ledger-recovery-admission.js"
       - "packages/cli/src/lib/mcp-recovery-adjudication.js"
+      - "packages/cli/src/lib/cowork-task-runner.js"
+      - "packages/cli/src/commands/session.js"
+      - "packages/cli/src/commands/session-mcp-recovery.js"
       - "packages/cli/src/harness/mcp-client.js"
       - "packages/cli/src/harness/background-task-manager.js"
       - "packages/cli/src/harness/background-task-worker.js"
@@ -46,6 +49,7 @@ on:
       - "packages/cli/src/runtime/headless-stream.js"
       - "packages/cli/src/repl/agent-repl.js"
       - "packages/cli/src/gateways/ws/ws-agent-handler.js"
+      - "packages/cli/src/gateways/ws/session-protocol.js"
       - "packages/cli/src/gateways/ws/ws-session-gateway.js"
       - "packages/cli/src/gateways/terminal/PtyManager.js"
       - "packages/cli/src/lib/agent-sandbox.js"
@@ -69,6 +73,14 @@ on:
       - "packages/cli/__tests__/unit/mcp-host-recovery-runtime.test.js"
       - "packages/cli/__tests__/unit/mcp-ledger-recovery-admission.test.js"
       - "packages/cli/__tests__/unit/mcp-recovery-adjudication.test.js"
+      - "packages/cli/__tests__/unit/mcp-recovery-adjudication-store.test.js"
+      - "packages/cli/__tests__/unit/session-mcp-recovery.test.js"
+      - "packages/cli/__tests__/unit/agent-core-mcp-ledger.test.js"
+      - "packages/cli/__tests__/unit/agent-repl.test.js"
+      - "packages/cli/__tests__/unit/headless-runner-mcp-ledger.test.js"
+      - "packages/cli/__tests__/unit/cowork-task-runner.test.js"
+      - "packages/cli/__tests__/unit/ws-runtime-events.test.js"
+      - "packages/cli/__tests__/integration/ws-bridge-side-effect-resume.test.js"
       - "packages/cli/__tests__/unit/plugin-monitor-supervisor.test.js"
       - "packages/cli/__tests__/unit/plugin-runtime-mcp.test.js"
       - "packages/cli/__tests__/unit/plugin-runtime-monitors.test.js"
@@ -110,6 +122,9 @@ on:
       - "packages/cli/src/lib/mcp-host-recovery-runtime.js"
       - "packages/cli/src/lib/mcp-ledger-recovery-admission.js"
       - "packages/cli/src/lib/mcp-recovery-adjudication.js"
+      - "packages/cli/src/lib/cowork-task-runner.js"
+      - "packages/cli/src/commands/session.js"
+      - "packages/cli/src/commands/session-mcp-recovery.js"
       - "packages/cli/src/harness/mcp-client.js"
       - "packages/cli/src/harness/background-task-manager.js"
       - "packages/cli/src/harness/background-task-worker.js"
@@ -132,6 +147,7 @@ on:
       - "packages/cli/src/runtime/headless-stream.js"
       - "packages/cli/src/repl/agent-repl.js"
       - "packages/cli/src/gateways/ws/ws-agent-handler.js"
+      - "packages/cli/src/gateways/ws/session-protocol.js"
       - "packages/cli/src/gateways/ws/ws-session-gateway.js"
       - "packages/cli/src/gateways/terminal/PtyManager.js"
       - "packages/cli/src/lib/agent-sandbox.js"
@@ -155,6 +171,14 @@ on:
       - "packages/cli/__tests__/unit/mcp-host-recovery-runtime.test.js"
       - "packages/cli/__tests__/unit/mcp-ledger-recovery-admission.test.js"
       - "packages/cli/__tests__/unit/mcp-recovery-adjudication.test.js"
+      - "packages/cli/__tests__/unit/mcp-recovery-adjudication-store.test.js"
+      - "packages/cli/__tests__/unit/session-mcp-recovery.test.js"
+      - "packages/cli/__tests__/unit/agent-core-mcp-ledger.test.js"
+      - "packages/cli/__tests__/unit/agent-repl.test.js"
+      - "packages/cli/__tests__/unit/headless-runner-mcp-ledger.test.js"
+      - "packages/cli/__tests__/unit/cowork-task-runner.test.js"
+      - "packages/cli/__tests__/unit/ws-runtime-events.test.js"
+      - "packages/cli/__tests__/integration/ws-bridge-side-effect-resume.test.js"
       - "packages/cli/__tests__/unit/plugin-monitor-supervisor.test.js"
       - "packages/cli/__tests__/unit/plugin-runtime-mcp.test.js"
       - "packages/cli/__tests__/unit/plugin-runtime-monitors.test.js"
@@ -283,6 +307,18 @@ jobs:
           __tests__/unit/ws-agent-handler.test.js
           __tests__/unit/ws-session-manager.test.js
           __tests__/unit/mcp-client-sandbox-policy.test.js
+          __tests__/unit/mcp-call-ledger-store.test.js
+          __tests__/unit/mcp-host-recovery-runtime.test.js
+          __tests__/unit/mcp-ledger-recovery-admission.test.js
+          __tests__/unit/mcp-recovery-adjudication.test.js
+          __tests__/unit/mcp-recovery-adjudication-store.test.js
+          __tests__/unit/session-mcp-recovery.test.js
+          __tests__/unit/agent-core-mcp-ledger.test.js
+          __tests__/unit/agent-repl.test.js
+          __tests__/unit/headless-runner-mcp-ledger.test.js
+          __tests__/unit/cowork-task-runner.test.js
+          __tests__/unit/ws-runtime-events.test.js
+          __tests__/integration/ws-bridge-side-effect-resume.test.js
           __tests__/unit/plugin-monitor-supervisor.test.js
           __tests__/unit/plugin-runtime-mcp.test.js
           __tests__/unit/plugin-runtime-monitors.test.js
