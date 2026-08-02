@@ -154,10 +154,12 @@ export function withFileLock(targetPath, fn, opts = {}) {
   }
 
   let bodyError = null;
+  let bodyThrew = false;
   let result;
   try {
     result = fn({ locked: held });
   } catch (error) {
+    bodyThrew = true;
     bodyError = error;
   }
   let released = !held;
@@ -169,7 +171,7 @@ export function withFileLock(targetPath, fn, opts = {}) {
       releaseError = error;
     }
   }
-  if (bodyError) throw bodyError;
+  if (bodyThrew) throw bodyError;
   if (failIfUnavailable && !released) {
     const error =
       releaseError ||

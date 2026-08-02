@@ -9,6 +9,15 @@ const state = vi.hoisted(() => ({
   conditional: [],
   audit: [],
   restores: [],
+  transactions: [],
+  transactionActive: false,
+  onRestore: null,
+  gitAvailable: true,
+  statusIdentities: [],
+  restoreIdentities: [],
+  failFailedAudit: false,
+  failConversationAppend: false,
+  failCompletedAudit: false,
 }));
 
 vi.mock("../../src/lib/turn-binding-store.js", () => ({
@@ -27,36 +36,132 @@ vi.mock("../../src/lib/turn-binding-store.js", () => ({
 vi.mock("../../src/harness/jsonl-session-store.js", () => ({
   findLatestEvent: () => ({ hash: state.headHash }),
   readVerifiedMessages: () => state.messages.map((message) => ({ ...message })),
-  appendAuthorityEventIfHead: (_sessionId, type, data, expected) => {
+  withSessionAuthorityTransaction: (_sessionId, expected, task) => {
     if (expected !== state.headHash) {
       const error = new Error("stale");
       error.code = "SESSION_REVISION_STALE";
       throw error;
     }
-    state.conditional.push({ type, data, expected });
-    state.headHash = `${type}-${state.conditional.length}`;
-    return { hash: state.headHash };
-  },
-  appendEvent: (_sessionId, type, data) => {
-    state.audit.push({ type, data });
-    state.headHash = `${type}-audit`;
-    return { hash: state.headHash };
+    const transaction = { expected, events: [] };
+    let writerPoisoned = false;
+    let settlementUnknown = false;
+    state.transactions.push(transaction);
+    state.transactionActive = true;
+    try {
+      try {
+        return task({
+          appendAuthorityEvent(type, data) {
+            if (writerPoisoned) {
+              const error = new Error("injected poisoned writer");
+              error.code = "SESSION_AUTHORITY_TRANSACTION_POISONED";
+              error.commitState = "unknown";
+              throw error;
+            }
+            if (
+              state.failConversationAppend &&
+              type === "checkpoint_timeline_commit"
+            ) {
+              writerPoisoned = true;
+              const error = new Error("injected conversation append failure");
+              error.code = "INJECTED_CONVERSATION_APPEND_FAILURE";
+              throw error;
+            }
+            const event = { type, data, expected: state.headHash };
+            transaction.events.push(event);
+            state.conditional.push(event);
+            state.headHash = `${type}-${state.conditional.length}`;
+            if (
+              (state.failFailedAudit &&
+                type === "checkpoint_timeline_action" &&
+                data?.status === "failed") ||
+              (state.failCompletedAudit &&
+                type === "checkpoint_timeline_action" &&
+                data?.status === "completed")
+            ) {
+              writerPoisoned = true;
+              settlementUnknown = true;
+              const error = new Error("injected audit anchor failure");
+              error.code = "SESSION_INDEX_ANCHOR_FAILED";
+              error.commitState = "unknown";
+              throw error;
+            }
+            if (type === "checkpoint_timeline_action") {
+              state.audit.push({ type, data });
+            }
+            return { hash: state.headHash };
+          },
+        });
+      } catch (operationError) {
+        if (!settlementUnknown) throw operationError;
+        const settlementError = new Error(
+          "injected transaction settlement failure",
+        );
+        settlementError.code = "SESSION_INDEX_ANCHOR_FAILED";
+        settlementError.commitState = "unknown";
+        settlementError.transactionError = operationError;
+        throw settlementError;
+      }
+    } finally {
+      state.transactionActive = false;
+    }
   },
   createBranchSession: vi.fn(),
 }));
 
 vi.mock("../../src/lib/checkpoint-store.js", () => ({
-  isCheckpointAvailable: () => true,
+  isCheckpointAvailable: () => state.gitAvailable,
   listCheckpoints: () =>
     state.checkpoints.map((checkpoint) => ({ ...checkpoint })),
-  statusAgainst: () => ({ modified: ["src/a.js"], added: [], deleted: [] }),
-  rewindTo: (_dir, checkpointId) => {
+  statusAgainst: (_dir, _checkpointId, options) => {
+    state.statusIdentities.push({
+      engine: "git",
+      identity: options?.expectedIdentity || null,
+    });
+    return { modified: ["src/a.js"], added: [], deleted: [] };
+  },
+  rewindTo: (_dir, checkpointId, options) => {
+    state.onRestore?.();
     state.restores.push(checkpointId);
+    state.restoreIdentities.push({
+      engine: "git",
+      identity: options?.expectedIdentity || null,
+    });
     return {
       modified: 1,
       recreated: 0,
       deleted: 0,
       safetyId: "safety-1",
+      safetyIdentity: `git:${"d".repeat(40)}`,
+      safetyCoverage: "checkpoint",
+    };
+  },
+}));
+
+vi.mock("../../src/lib/file-checkpoint.js", () => ({
+  listCheckpoints: () =>
+    state.checkpoints.map((checkpoint) => ({ ...checkpoint })),
+  diffCheckpoint: (_checkpointId, options) => {
+    state.statusIdentities.push({
+      engine: "copy",
+      identity: options?.expectedIdentity || null,
+    });
+    return { modified: ["src/a.js"], unchanged: [], deleted: [] };
+  },
+  restoreCheckpoint: (checkpointId, options) => {
+    state.onRestore?.();
+    state.restores.push(checkpointId);
+    state.restoreIdentities.push({
+      engine: "copy",
+      identity: options?.expectedIdentity || null,
+    });
+    return {
+      restored: ["src/a.js"],
+      unchanged: [],
+      missingBlob: [],
+      safetyId: "safety-copy-1",
+      safetyIdentity: `sha256:${"e".repeat(64)}`,
+      safetyCoverage: "full",
+      createdPaths: [],
     };
   },
 }));
@@ -92,6 +197,8 @@ describe("checkpoint timeline CLI command authority", () => {
         label: "before edit",
         createdAt: "2026-08-01T00:00:00.000Z",
         fileCount: 1,
+        commit: "a".repeat(40),
+        identity: `sha256:${"c".repeat(64)}`,
       },
     ];
     state.messages = [
@@ -103,6 +210,15 @@ describe("checkpoint timeline CLI command authority", () => {
     state.conditional = [];
     state.audit = [];
     state.restores = [];
+    state.transactions = [];
+    state.transactionActive = false;
+    state.onRestore = null;
+    state.gitAvailable = true;
+    state.statusIdentities = [];
+    state.restoreIdentities = [];
+    state.failFailedAudit = false;
+    state.failConversationAppend = false;
+    state.failCompletedAudit = false;
     process.exitCode = undefined;
   });
 
@@ -158,12 +274,311 @@ describe("checkpoint timeline CLI command authority", () => {
       },
     });
     expect(state.restores).toEqual(["cp-1"]);
+    expect(state.statusIdentities).toEqual([
+      { engine: "git", identity: `git:${"a".repeat(40)}` },
+      { engine: "git", identity: `git:${"a".repeat(40)}` },
+    ]);
+    expect(state.restoreIdentities).toEqual([
+      { engine: "git", identity: `git:${"a".repeat(40)}` },
+    ]);
     expect(state.conditional.map((event) => event.type)).toEqual([
       "checkpoint_timeline_action_intent",
       "checkpoint_timeline_commit",
+      "checkpoint_timeline_action",
     ]);
+    expect(state.transactions).toHaveLength(1);
+    expect(state.transactions[0].expected).toBe("head-1");
+    expect(state.transactions[0].events).toHaveLength(3);
     expect(state.audit).toEqual([
       expect.objectContaining({ type: "checkpoint_timeline_action" }),
+    ]);
+  });
+
+  it("keeps the writer transaction active across code restore and conversation commit", async () => {
+    const timeline = await invoke([
+      "checkpoint",
+      "timeline",
+      "-s",
+      "s1",
+      "--json",
+    ]);
+    const submission = timeline.entries[0].actions.find(
+      (action) => action.action === "restore-both",
+    ).submission;
+    state.onRestore = () => {
+      expect(state.transactionActive).toBe(true);
+      expect(state.conditional.map((event) => event.type)).toEqual([
+        "checkpoint_timeline_action_intent",
+      ]);
+    };
+
+    const executed = await invoke([
+      "checkpoint",
+      "action",
+      "-s",
+      "s1",
+      "--submission",
+      JSON.stringify(submission),
+      "--confirm",
+      "--json",
+    ]);
+
+    expect(executed.ok).toBe(true);
+    expect(state.transactionActive).toBe(false);
+    expect(state.conditional.map((event) => event.type)).toEqual([
+      "checkpoint_timeline_action_intent",
+      "checkpoint_timeline_commit",
+      "checkpoint_timeline_action",
+    ]);
+  });
+
+  it("records a terminal failed audit without committing conversation after restore throws", async () => {
+    const timeline = await invoke([
+      "checkpoint",
+      "timeline",
+      "-s",
+      "s1",
+      "--json",
+    ]);
+    const submission = timeline.entries[0].actions.find(
+      (action) => action.action === "restore-both",
+    ).submission;
+    state.onRestore = () => {
+      const error = new Error("injected restore failure");
+      error.code = "INJECTED_RESTORE_FAILURE";
+      error.safetyId = "safety-partial-1";
+      error.safetyIdentity = `git:${"e".repeat(40)}`;
+      error.safetyCoverage = "checkpoint";
+      error.restorePhase = "workspace-mutation";
+      throw error;
+    };
+
+    const rejected = await invoke([
+      "checkpoint",
+      "action",
+      "-s",
+      "s1",
+      "--submission",
+      JSON.stringify(submission),
+      "--confirm",
+      "--json",
+    ]);
+
+    expect(rejected).toMatchObject({
+      ok: false,
+      code: "INJECTED_RESTORE_FAILURE",
+    });
+    expect(state.transactionActive).toBe(false);
+    expect(state.conditional.map((event) => event.type)).toEqual([
+      "checkpoint_timeline_action_intent",
+      "checkpoint_timeline_action",
+    ]);
+    expect(state.audit.at(-1).data).toMatchObject({
+      status: "failed",
+      failureCode: "INJECTED_RESTORE_FAILURE",
+      workspaceState: "unknown",
+      safetyCheckpointId: "safety-partial-1",
+      safetyCheckpointIdentity: `git:${"e".repeat(40)}`,
+      safetyCoverage: "checkpoint",
+    });
+    expect(state.restores).toEqual([]);
+  });
+
+  it("retains the safety snapshot when conversation commit fails after restore", async () => {
+    const timeline = await invoke([
+      "checkpoint",
+      "timeline",
+      "-s",
+      "s1",
+      "--json",
+    ]);
+    const submission = timeline.entries[0].actions.find(
+      (action) => action.action === "restore-both",
+    ).submission;
+    state.failConversationAppend = true;
+
+    const rejected = await invoke([
+      "checkpoint",
+      "action",
+      "-s",
+      "s1",
+      "--submission",
+      JSON.stringify(submission),
+      "--confirm",
+      "--json",
+    ]);
+
+    expect(rejected).toMatchObject({
+      ok: false,
+      code: "INJECTED_CONVERSATION_APPEND_FAILURE",
+      auditFailureCode: "SESSION_AUTHORITY_TRANSACTION_POISONED",
+      restorePhase: "workspace-applied",
+      safetyCheckpointId: "safety-1",
+      safetyCheckpointIdentity: `git:${"d".repeat(40)}`,
+      safetyCoverage: "checkpoint",
+    });
+    expect(state.restores).toEqual(["cp-1"]);
+    expect(state.conditional.map((event) => event.type)).toEqual([
+      "checkpoint_timeline_action_intent",
+    ]);
+    expect(state.audit).toEqual([]);
+  });
+
+  it("retains restore evidence when the completed audit settlement is unknown", async () => {
+    const timeline = await invoke([
+      "checkpoint",
+      "timeline",
+      "-s",
+      "s1",
+      "--json",
+    ]);
+    const submission = timeline.entries[0].actions.find(
+      (action) => action.action === "restore-both",
+    ).submission;
+    state.failCompletedAudit = true;
+
+    const rejected = await invoke([
+      "checkpoint",
+      "action",
+      "-s",
+      "s1",
+      "--submission",
+      JSON.stringify(submission),
+      "--confirm",
+      "--json",
+    ]);
+
+    expect(rejected).toMatchObject({
+      ok: false,
+      code: "SESSION_INDEX_ANCHOR_FAILED",
+      commitState: "unknown",
+      operationFailureCode: "SESSION_INDEX_ANCHOR_FAILED",
+      auditFailureCode: "SESSION_AUTHORITY_TRANSACTION_POISONED",
+      restorePhase: "workspace-applied",
+      safetyCheckpointId: "safety-1",
+      safetyCheckpointIdentity: `git:${"d".repeat(40)}`,
+      safetyCoverage: "checkpoint",
+    });
+    expect(state.conditional.map((event) => event.type)).toEqual([
+      "checkpoint_timeline_action_intent",
+      "checkpoint_timeline_commit",
+      "checkpoint_timeline_action",
+    ]);
+    expect(state.audit).toEqual([]);
+  });
+
+  it("reports unknown settlement while retaining the failed restore diagnosis", async () => {
+    const timeline = await invoke([
+      "checkpoint",
+      "timeline",
+      "-s",
+      "s1",
+      "--json",
+    ]);
+    const submission = timeline.entries[0].actions.find(
+      (action) => action.action === "restore-both",
+    ).submission;
+    state.onRestore = () => {
+      const error = new Error("injected restore failure");
+      error.code = "INJECTED_RESTORE_FAILURE";
+      error.safetyId = "safety-unknown-1";
+      error.safetyIdentity = `git:${"f".repeat(40)}`;
+      error.safetyCoverage = "checkpoint";
+      error.restorePhase = "workspace-mutation";
+      throw error;
+    };
+    state.failFailedAudit = true;
+
+    const rejected = await invoke([
+      "checkpoint",
+      "action",
+      "-s",
+      "s1",
+      "--submission",
+      JSON.stringify(submission),
+      "--confirm",
+      "--json",
+    ]);
+
+    expect(rejected).toMatchObject({
+      ok: false,
+      code: "SESSION_INDEX_ANCHOR_FAILED",
+      commitState: "unknown",
+      operationFailureCode: "INJECTED_RESTORE_FAILURE",
+      auditFailureCode: "SESSION_INDEX_ANCHOR_FAILED",
+      restorePhase: "workspace-mutation",
+      safetyCheckpointId: "safety-unknown-1",
+      safetyCheckpointIdentity: `git:${"f".repeat(40)}`,
+      safetyCoverage: "checkpoint",
+    });
+    expect(state.conditional.map((event) => event.type)).toEqual([
+      "checkpoint_timeline_action_intent",
+      "checkpoint_timeline_action",
+    ]);
+    expect(state.audit).toEqual([]);
+  });
+
+  it("rejects a submission when its immutable checkpoint target changes", async () => {
+    const timeline = await invoke([
+      "checkpoint",
+      "timeline",
+      "-s",
+      "s1",
+      "--json",
+    ]);
+    const submission = timeline.entries[0].actions.find(
+      (action) => action.action === "restore-code",
+    ).submission;
+    state.checkpoints[0].commit = "b".repeat(40);
+
+    const rejected = await invoke([
+      "checkpoint",
+      "action",
+      "-s",
+      "s1",
+      "--submission",
+      JSON.stringify(submission),
+      "--confirm",
+      "--json",
+    ]);
+
+    expect(rejected).toMatchObject({ ok: false, code: "TIMELINE_STALE" });
+    expect(state.statusIdentities).toEqual([]);
+    expect(state.restores).toEqual([]);
+  });
+
+  it("passes the copy fallback manifest identity through preview and restore", async () => {
+    state.gitAvailable = false;
+    const expectedIdentity = `sha256:${"c".repeat(64)}`;
+    const timeline = await invoke([
+      "checkpoint",
+      "timeline",
+      "-s",
+      "s1",
+      "--json",
+    ]);
+    const submission = timeline.entries[0].actions.find(
+      (action) => action.action === "restore-both",
+    ).submission;
+    expect(submission.checkpointIdentity).toBe(expectedIdentity);
+
+    const executed = await invoke([
+      "checkpoint",
+      "action",
+      "-s",
+      "s1",
+      "--submission",
+      JSON.stringify(submission),
+      "--confirm",
+      "--json",
+    ]);
+
+    expect(executed.ok).toBe(true);
+    expect(state.statusIdentities).toEqual([
+      { engine: "copy", identity: expectedIdentity },
+    ]);
+    expect(state.restoreIdentities).toEqual([
+      { engine: "copy", identity: expectedIdentity },
     ]);
   });
 

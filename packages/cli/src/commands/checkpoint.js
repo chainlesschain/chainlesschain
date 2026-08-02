@@ -40,11 +40,10 @@ import {
   TURN_BINDING_TIMELINE_EVENT,
 } from "../lib/turn-binding-store.js";
 import {
-  appendAuthorityEventIfHead,
-  appendEvent,
   createBranchSession,
   findLatestEvent,
   readVerifiedMessages,
+  withSessionAuthorityTransaction,
 } from "../harness/jsonl-session-store.js";
 import { registerManagedCheckpointCommands } from "./checkpoint-managed.js";
 
@@ -67,12 +66,21 @@ function gitEngine(gs, dir, session) {
         label: r.label,
         createdAt: r.createdAt,
         fileCount: null,
+        identity: r.commit ? `git:${r.commit}` : null,
       })),
     show: (id) => gs.showCheckpoint(dir, id, { session }),
-    status: (id) => gs.statusAgainst(dir, id, { session }),
+    status: (id, o) =>
+      gs.statusAgainst(dir, id, {
+        session,
+        expectedIdentity: o?.expectedIdentity,
+      }),
     diffText: (id, o) => gs.diffCheckpoint(dir, id, { session, stat: o?.stat }),
     restore: (id, o) => {
-      const r = gs.rewindTo(dir, id, { session, dryRun: o?.dryRun });
+      const r = gs.rewindTo(dir, id, {
+        session,
+        dryRun: o?.dryRun,
+        expectedIdentity: o?.expectedIdentity,
+      });
       return {
         dryRun: !!r.dryRun,
         restoredCount: r.modified + r.recreated,
@@ -80,6 +88,8 @@ function gitEngine(gs, dir, session) {
         recreated: r.recreated,
         deleted: r.deleted,
         safetyId: r.safetyId,
+        safetyIdentity: r.safetyIdentity,
+        safetyCoverage: r.safetyCoverage,
       };
     },
     remove: (id) => gs.deleteCheckpoint(dir, id, { session }),
@@ -106,6 +116,7 @@ function copyEngine(cs, dir) {
         label: c.label,
         createdAt: c.createdAt,
         fileCount: c.fileCount,
+        identity: c.identity || null,
       })),
     show: (id) => {
       const m = cs.getCheckpoint(id);
@@ -118,19 +129,28 @@ function copyEngine(cs, dir) {
         files: m.files.map((f) => ({ rel: f.rel, bytes: f.bytes })),
       };
     },
-    status: (id) => {
-      const d = cs.diffCheckpoint(id);
+    status: (id, o) => {
+      const d = cs.diffCheckpoint(id, {
+        expectedIdentity: o?.expectedIdentity,
+      });
       return { modified: d.modified, added: [], deleted: d.deleted };
     },
     diffText: () => null, // copy engine has no raw patch — caller uses status()
     restore: (id, o) => {
-      const r = cs.restoreCheckpoint(id, { cwd: dir, dryRun: o?.dryRun });
+      const r = cs.restoreCheckpoint(id, {
+        cwd: dir,
+        dryRun: o?.dryRun,
+        expectedIdentity: o?.expectedIdentity,
+      });
       return {
         dryRun: !!r.dryRun,
         restoredCount: r.restored.length,
         restored: r.restored,
         missingBlob: r.missingBlob,
         safetyId: r.safetyId,
+        safetyIdentity: r.safetyIdentity,
+        safetyCoverage: r.safetyCoverage,
+        createdPaths: r.createdPaths,
       };
     },
     remove: (id) => cs.deleteCheckpoint(id),
@@ -405,11 +425,21 @@ export function registerCheckpointCommand(program) {
           throw error;
         }
         let codePreview = null;
+        const checkpointIdentity = submission.checkpointIdentity || null;
         if (
           submission.action === "restore-code" ||
           submission.action === "restore-both"
         ) {
-          codePreview = engine.status(submission.checkpointId);
+          if (!checkpointIdentity) {
+            const error = new Error(
+              "checkpoint immutable identity is unavailable; refresh or recreate it",
+            );
+            error.code = "TIMELINE_CHECKPOINT_IDENTITY_INVALID";
+            throw error;
+          }
+          codePreview = engine.status(submission.checkpointId, {
+            expectedIdentity: checkpointIdentity,
+          });
         }
         const planned = planCheckpointTimelineAction({
           timeline: context.timeline,
@@ -432,65 +462,157 @@ export function registerCheckpointCommand(program) {
           return;
         }
 
-        // Claim the exact preview revision before any mutation. This CAS runs
-        // under the canonical transcript writer lock; another session writer
-        // advancing the head makes the submission stale before code/history is
-        // touched.
-        const intent = appendAuthorityEventIfHead(
+        // Keep the canonical writer lock from the exact-head claim through the
+        // external code restore and the conversation commit. A concurrent
+        // session writer can no longer win a second CAS after files changed and
+        // leave restore-both partially applied.
+        const result = withSessionAuthorityTransaction(
           options.session,
-          CHECKPOINT_TIMELINE_INTENT_EVENT,
-          {
-            revision: context.timeline.revision,
-            action: submission.action,
-            turnId: submission.turnId,
-          },
           context.headHash,
-        );
-        const result = {};
-
-        if (
-          submission.action === "restore-code" ||
-          submission.action === "restore-both"
-        ) {
-          result.code = engine.restore(submission.checkpointId);
-        }
-
-        if (planned.commit.branchPlan) {
-          result.branch = createBranchSession({
-            branchSessionId: planned.commit.branchPlan.branchSessionId,
-            parentSessionId: options.session,
-            parentTurnId: submission.turnId,
-            messages: planned.commit.messages,
-            meta: { title: `Branch of ${options.session}` },
-          });
-        } else if (planned.commit.messages) {
-          context.binding.pruneFromOffset(planned.commit.bindingPruneOffset);
-          const committed = appendAuthorityEventIfHead(
-            options.session,
-            TURN_BINDING_TIMELINE_EVENT,
-            {
+          (transaction) => {
+            transaction.appendAuthorityEvent(CHECKPOINT_TIMELINE_INTENT_EVENT, {
+              revision: context.timeline.revision,
               action: submission.action,
-              sourceRevision: context.timeline.revision,
               turnId: submission.turnId,
-              messages: planned.commit.messages,
-              binding: context.binding.toJSON(),
-            },
-            intent.hash,
-          );
-          result.conversation = {
-            messages: planned.commit.messages.length,
-            commitHash: committed.hash,
-          };
-        }
+              checkpointId: submission.checkpointId || null,
+              checkpointIdentity,
+              workspaceDir: dir,
+            });
+            const transactionResult = {};
+            try {
+              if (
+                submission.action === "restore-code" ||
+                submission.action === "restore-both"
+              ) {
+                transactionResult.code = engine.restore(
+                  submission.checkpointId,
+                  { expectedIdentity: checkpointIdentity },
+                );
+              }
 
-        appendEvent(options.session, CHECKPOINT_TIMELINE_AUDIT_EVENT, {
-          revision: context.timeline.revision,
-          action: submission.action,
-          turnId: submission.turnId,
-          status: "completed",
-          branchSessionId: result.branch?.branchSessionId || null,
-          safetyCheckpointId: result.code?.safetyId || null,
-        });
+              if (planned.commit.branchPlan) {
+                transactionResult.branch = createBranchSession({
+                  branchSessionId: planned.commit.branchPlan.branchSessionId,
+                  parentSessionId: options.session,
+                  parentTurnId: submission.turnId,
+                  messages: planned.commit.messages,
+                  meta: { title: `Branch of ${options.session}` },
+                });
+              } else if (planned.commit.messages) {
+                context.binding.pruneFromOffset(
+                  planned.commit.bindingPruneOffset,
+                );
+                const committed = transaction.appendAuthorityEvent(
+                  TURN_BINDING_TIMELINE_EVENT,
+                  {
+                    action: submission.action,
+                    sourceRevision: context.timeline.revision,
+                    turnId: submission.turnId,
+                    messages: planned.commit.messages,
+                    binding: context.binding.toJSON(),
+                  },
+                );
+                transactionResult.conversation = {
+                  messages: planned.commit.messages.length,
+                  commitHash: committed.hash,
+                };
+              }
+
+              transaction.appendAuthorityEvent(
+                CHECKPOINT_TIMELINE_AUDIT_EVENT,
+                {
+                  revision: context.timeline.revision,
+                  action: submission.action,
+                  turnId: submission.turnId,
+                  checkpointId: submission.checkpointId || null,
+                  checkpointIdentity,
+                  workspaceDir: dir,
+                  status: "completed",
+                  branchSessionId:
+                    transactionResult.branch?.branchSessionId || null,
+                  safetyCheckpointId: transactionResult.code?.safetyId || null,
+                  safetyCheckpointIdentity:
+                    transactionResult.code?.safetyIdentity || null,
+                  safetyCoverage:
+                    transactionResult.code?.safetyCoverage || null,
+                },
+              );
+            } catch (error) {
+              if (error && typeof error === "object") {
+                error.safetyId ||= transactionResult.code?.safetyId || null;
+                error.safetyIdentity ||=
+                  transactionResult.code?.safetyIdentity || null;
+                error.safetyCoverage ||=
+                  transactionResult.code?.safetyCoverage || null;
+                if (transactionResult.code && !error.restorePhase) {
+                  error.restorePhase = "workspace-applied";
+                }
+                if (!Array.isArray(error.createdPaths)) {
+                  error.createdPaths = Array.isArray(
+                    transactionResult.code?.createdPaths,
+                  )
+                    ? [...transactionResult.code.createdPaths]
+                    : [];
+                }
+                error.branchSessionId ||=
+                  transactionResult.branch?.branchSessionId ||
+                  planned.commit.branchPlan?.branchSessionId ||
+                  null;
+              }
+              try {
+                transaction.appendAuthorityEvent(
+                  CHECKPOINT_TIMELINE_AUDIT_EVENT,
+                  {
+                    revision: context.timeline.revision,
+                    action: submission.action,
+                    turnId: submission.turnId,
+                    checkpointId: submission.checkpointId || null,
+                    checkpointIdentity,
+                    workspaceDir: dir,
+                    status: "failed",
+                    failureCode: String(
+                      error?.code || "CHECKPOINT_TIMELINE_ACTION_FAILED",
+                    ).slice(0, 128),
+                    workspaceState:
+                      submission.action === "restore-code" ||
+                      submission.action === "restore-both"
+                        ? "unknown"
+                        : "unchanged",
+                    branchSessionId:
+                      transactionResult.branch?.branchSessionId ||
+                      planned.commit.branchPlan?.branchSessionId ||
+                      null,
+                    safetyCheckpointId:
+                      transactionResult.code?.safetyId ||
+                      error?.safetyId ||
+                      null,
+                    safetyCheckpointIdentity:
+                      transactionResult.code?.safetyIdentity ||
+                      error?.safetyIdentity ||
+                      null,
+                    safetyCoverage:
+                      transactionResult.code?.safetyCoverage ||
+                      error?.safetyCoverage ||
+                      null,
+                    createdPaths: Array.isArray(error?.createdPaths)
+                      ? error.createdPaths.slice(0, 256)
+                      : [],
+                  },
+                );
+              } catch (auditError) {
+                // An authority append can fail after bytes reach the transcript.
+                // Retain the first operation error as the transaction's nested
+                // diagnosis and let a poisoned writer/final settlement report
+                // commitState=unknown instead of appending from a stale head.
+                if (error && typeof error === "object") {
+                  error.checkpointAuditError = auditError;
+                }
+              }
+              throw error;
+            }
+            return transactionResult;
+          },
+        );
         const nextContext = loadTimelineContext(engine, options.session);
         output = {
           schema: CHECKPOINT_TIMELINE_RESULT_SCHEMA,

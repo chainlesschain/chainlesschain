@@ -117,6 +117,20 @@ function validTimelineSubmission(submission, root, turnId, action) {
   ) {
     return null;
   }
+  const needsCheckpointIdentity =
+    action === "restore-code" || action === "restore-both";
+  if (
+    (needsCheckpointIdentity &&
+      typeof submission.checkpointIdentity !== "string") ||
+    (submission.checkpointIdentity !== undefined &&
+      submission.checkpointIdentity !== null &&
+      (typeof submission.checkpointIdentity !== "string" ||
+        !/^(?:git:(?:[a-f0-9]{40}|[a-f0-9]{64})|sha256:[a-f0-9]{64})$/.test(
+          submission.checkpointIdentity,
+        )))
+  ) {
+    return null;
+  }
   if (
     submission.conversationOffset !== null &&
     (!Number.isSafeInteger(submission.conversationOffset) ||

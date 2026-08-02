@@ -85,6 +85,28 @@ describe("withFileLock", () => {
     expect(_fs.dirs.has("/s.json.lock")).toBe(false);
   });
 
+  it("does not swallow a falsy thrown value and still releases the lock", () => {
+    const _fs = fakeLockFs();
+    let completed = false;
+    try {
+      withFileLock(
+        "/falsy.json",
+        () => {
+          const throwValue = (value) => {
+            throw value;
+          };
+          throwValue(undefined);
+        },
+        { _fs },
+      );
+      completed = true;
+    } catch (error) {
+      expect(error).toBeUndefined();
+    }
+    expect(completed).toBe(false);
+    expect(_fs.dirs.has("/falsy.json.lock")).toBe(false);
+  });
+
   it("serializes: a second acquire while held proceeds unlocked (no deadlock)", () => {
     const _fs = fakeLockFs();
     let now = 1000;

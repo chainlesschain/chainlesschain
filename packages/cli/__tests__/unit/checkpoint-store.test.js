@@ -91,6 +91,32 @@ describe("checkpoint-store (git engine)", () => {
     }
   });
 
+  it("preserves non-secret git settings without forwarding provider secrets", () => {
+    const original = _deps.spawnSync;
+    const priorLfs = process.env.GIT_LFS_SKIP_SMUDGE;
+    const priorApiKey = process.env.OPENAI_API_KEY;
+    process.env.GIT_LFS_SKIP_SMUDGE = "1";
+    process.env.OPENAI_API_KEY = "checkpoint-test-secret";
+    _deps.spawnSync = vi.fn(() => ({
+      status: 0,
+      stdout: "true\n",
+      stderr: "",
+    }));
+
+    try {
+      expect(isCheckpointAvailable(repo)).toBe(true);
+      const options = _deps.spawnSync.mock.calls[0][2];
+      expect(options.env.GIT_LFS_SKIP_SMUDGE).toBe("1");
+      expect(options.env).not.toHaveProperty("OPENAI_API_KEY");
+    } finally {
+      _deps.spawnSync = original;
+      if (priorLfs === undefined) delete process.env.GIT_LFS_SKIP_SMUDGE;
+      else process.env.GIT_LFS_SKIP_SMUDGE = priorLfs;
+      if (priorApiKey === undefined) delete process.env.OPENAI_API_KEY;
+      else process.env.OPENAI_API_KEY = priorApiKey;
+    }
+  });
+
   it("creates a checkpoint as a shadow ref without touching index/working tree", () => {
     const before = git(repo, "status", "--porcelain");
     const cp = createCheckpoint(repo, { label: "first" });
@@ -101,6 +127,30 @@ describe("checkpoint-store (git engine)", () => {
     expect(git(repo, "status", "--porcelain")).toBe(before);
     // A shadow ref now exists.
     expect(git(repo, "rev-parse", cp.ref)).toBe(cp.commit);
+  });
+
+  it("creates shadow commits without relying on global git author config", () => {
+    const fresh = mkdtempSync(join(tmpdir(), "cc-cpstore-no-identity-"));
+    git(fresh, "init", "-q");
+    writeFileSync(join(fresh, "a.txt"), "fresh\n", "utf8");
+    const priorNoSystem = process.env.GIT_CONFIG_NOSYSTEM;
+    const priorGlobal = process.env.GIT_CONFIG_GLOBAL;
+    process.env.GIT_CONFIG_NOSYSTEM = "1";
+    process.env.GIT_CONFIG_GLOBAL = join(fresh, "missing-global-config");
+
+    try {
+      const checkpoint = createCheckpoint(fresh, { label: "root" });
+      expect(checkpoint.commit).toMatch(/^[a-f0-9]{40}$/);
+      expect(
+        git(fresh, "show", "-s", "--format=%an <%ae>", checkpoint.commit),
+      ).toBe("cc-checkpoint <checkpoint@chainlesschain.local>");
+    } finally {
+      if (priorNoSystem === undefined) delete process.env.GIT_CONFIG_NOSYSTEM;
+      else process.env.GIT_CONFIG_NOSYSTEM = priorNoSystem;
+      if (priorGlobal === undefined) delete process.env.GIT_CONFIG_GLOBAL;
+      else process.env.GIT_CONFIG_GLOBAL = priorGlobal;
+      rmSync(fresh, { recursive: true, force: true });
+    }
   });
 
   it("lists checkpoints newest-first and resolves ids", () => {
@@ -174,6 +224,70 @@ describe("checkpoint-store (git engine)", () => {
     expect(s.modified).toContain("a.txt");
     expect(s.added).toContain("d.txt");
     expect(s.deleted).toContain("b.txt");
+  });
+
+  it("rejects a retargeted checkpoint ref before status or restore writes", () => {
+    const original = createCheckpoint(repo, { label: "original-target" });
+    writeFileSync(join(repo, "a.txt"), "alpha-second-target\n", "utf8");
+    const replacement = createCheckpoint(repo, { label: "replacement" });
+    writeFileSync(join(repo, "a.txt"), "alpha-current-workspace\n", "utf8");
+    const expectedIdentity = `git:${original.commit}`;
+
+    expect(
+      statusAgainst(repo, original.id, { expectedIdentity }).modified,
+    ).toContain("a.txt");
+    git(repo, "update-ref", original.ref, replacement.commit);
+    const countBefore = listCheckpoints(repo).length;
+
+    expect(() =>
+      statusAgainst(repo, original.id, { expectedIdentity }),
+    ).toThrow(expect.objectContaining({ code: "CHECKPOINT_IDENTITY_STALE" }));
+    expect(() => rewindTo(repo, original.id, { expectedIdentity })).toThrow(
+      expect.objectContaining({ code: "CHECKPOINT_IDENTITY_STALE" }),
+    );
+    expect(readFileSync(join(repo, "a.txt"), "utf8")).toBe(
+      "alpha-current-workspace\n",
+    );
+    expect(listCheckpoints(repo)).toHaveLength(countBefore);
+  });
+
+  it("attaches the immutable safety checkpoint when git restore fails", () => {
+    const target = createCheckpoint(repo, { label: "target" });
+    writeFileSync(join(repo, "a.txt"), "alpha-dirty-before-failure\n", "utf8");
+    const originalSpawnSync = _deps.spawnSync;
+    _deps.spawnSync = (command, args, options) => {
+      if (command === "git" && args?.[0] === "checkout-index") {
+        return {
+          status: 1,
+          stdout: "",
+          stderr: "injected checkout-index failure",
+        };
+      }
+      return originalSpawnSync(command, args, options);
+    };
+
+    let thrown = null;
+    try {
+      rewindTo(repo, target.id, { expectedIdentity: `git:${target.commit}` });
+    } catch (error) {
+      thrown = error;
+    } finally {
+      _deps.spawnSync = originalSpawnSync;
+    }
+
+    expect(thrown).toMatchObject({
+      restorePhase: "workspace-mutation",
+      safetyId: expect.any(String),
+      safetyIdentity: expect.stringMatching(
+        /^git:(?:[a-f0-9]{40}|[a-f0-9]{64})$/,
+      ),
+    });
+    expect(resolveCheckpoint(repo, thrown.safetyId)).toBe(
+      thrown.safetyIdentity.slice("git:".length),
+    );
+    expect(readFileSync(join(repo, "a.txt"), "utf8")).toBe(
+      "alpha-dirty-before-failure\n",
+    );
   });
 
   it("diffCheckpoint returns a patch / stat against current state", () => {

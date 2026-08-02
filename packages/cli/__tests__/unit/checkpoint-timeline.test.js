@@ -115,6 +115,36 @@ describe("checkpoint timeline projection", () => {
     ).toMatchObject({ enabled: false, submission: null });
   });
 
+  it("does not advertise code restore when immutable checkpoint identity is missing", () => {
+    const timeline = buildCheckpointTimeline({
+      sessionId: "missing-identity",
+      turns: [
+        {
+          turnId: "turn-1",
+          conversationOffset: 2,
+          fileCheckpointId: "cp-1",
+          coverage: "full",
+        },
+      ],
+      checkpoints: [{ id: "cp-1", label: "legacy" }],
+    });
+
+    expect(
+      timeline.entries[0].actions.find(
+        (action) => action.action === "restore-code",
+      ),
+    ).toMatchObject({
+      enabled: false,
+      reason: "checkpoint-identity-unavailable",
+      submission: null,
+    });
+    expect(
+      timeline.entries[0].actions.find(
+        (action) => action.action === "restore-conversation",
+      ).enabled,
+    ).toBe(true);
+  });
+
   it("returns only the embedded CLI-authored action envelope and fails closed", () => {
     const timeline = buildCheckpointTimeline(fixture.input);
     const resolved = resolveCheckpointTimelineAction(

@@ -88,6 +88,13 @@ const ENV_ALLOWLIST = new Set([
   "VISUAL",
   "NODE_ENV",
   "NODE_OPTIONS",
+  // Deterministic local commit metadata is identity text, not an auth secret.
+  // The broad /AUTH/i detector would otherwise strip GIT_AUTHOR_* and break
+  // checkpoint commit-tree in repos without user.name/user.email.
+  "GIT_AUTHOR_NAME",
+  "GIT_AUTHOR_EMAIL",
+  "GIT_COMMITTER_NAME",
+  "GIT_COMMITTER_EMAIL",
   // These identify a run; they are not authentication credentials.
   "CC_SESSION_ID",
   "CLAUDE_CODE_SESSION_ID",

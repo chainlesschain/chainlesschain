@@ -11,6 +11,7 @@ import {
 } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { spawn } from "node:child_process";
 
 // Set up temp directory for sessions
 const testDir = join(tmpdir(), `cc-jsonl-test-${Date.now()}`);
@@ -34,6 +35,7 @@ const {
   settleWsTurnClaim,
   appendAuthorityEvent,
   appendAuthorityEventIfHead,
+  withSessionAuthorityTransaction,
   _sessionScaleFaultHooks,
   readEvents,
   readVerifiedEvents,
@@ -84,6 +86,31 @@ function readVerifiedMessages(sessionId) {
       return authority.readMessages();
     },
   }));
+}
+
+function sleepSync(milliseconds) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, milliseconds);
+}
+
+function waitForFileSync(filePath, timeoutMs = 10_000) {
+  const deadline = Date.now() + timeoutMs;
+  while (!existsSync(filePath) && Date.now() < deadline) sleepSync(10);
+  if (!existsSync(filePath)) {
+    throw new Error(`Timed out waiting for child marker: ${filePath}`);
+  }
+}
+
+function waitForChild(child) {
+  return new Promise((resolvePromise, rejectPromise) => {
+    let stderr = "";
+    child.stderr?.on("data", (chunk) => {
+      stderr += chunk.toString();
+    });
+    child.once("error", rejectPromise);
+    child.once("exit", (code, signal) =>
+      resolvePromise({ code, signal, stderr }),
+    );
+  });
 }
 
 describe("jsonl-session-store", () => {
@@ -673,6 +700,330 @@ describe("jsonl-session-store", () => {
       ).toThrow(
         expect.objectContaining({ code: "SESSION_INDEX_ANCHOR_FAILED" }),
       );
+    });
+
+    it("holds one cross-process writer lock across a multi-event authority transaction", async () => {
+      const id = startSession("authority-transaction-lock", {
+        title: "transaction",
+      });
+      const initialHead = readEvents(id).at(-1).hash;
+      const gate = join(testDir, "authority-transaction.go");
+      const attempted = join(testDir, "authority-transaction.attempted");
+      const completed = join(testDir, "authority-transaction.completed");
+      const storeUrl = new URL(
+        "../../src/harness/jsonl-session-store.js",
+        import.meta.url,
+      ).href;
+      const childScript = `
+          import { existsSync, writeFileSync } from "node:fs";
+          import { appendEvent } from ${JSON.stringify(storeUrl)};
+          const sleep = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+          while (!existsSync(${JSON.stringify(gate)})) sleep(10);
+          writeFileSync(${JSON.stringify(attempted)}, "attempted");
+          appendEvent(${JSON.stringify(id)}, "concurrent_writer", { value: 1 });
+          writeFileSync(${JSON.stringify(completed)}, "completed");
+        `;
+      const child = spawn(
+        process.execPath,
+        ["--input-type=module", "--eval", childScript],
+        {
+          cwd: process.cwd(),
+          env: { ...process.env, CHAINLESSCHAIN_HOME: testDir },
+          stdio: ["ignore", "ignore", "pipe"],
+          windowsHide: true,
+        },
+      );
+
+      const transactionResult = withSessionAuthorityTransaction(
+        id,
+        initialHead,
+        (transaction) => {
+          expect(existsSync(`${sessionPath(id)}.lock`)).toBe(true);
+          transaction.appendAuthorityEvent("transaction_intent", {
+            revision: initialHead,
+          });
+          writeFileSync(gate, "go");
+          waitForFileSync(attempted);
+          sleepSync(100);
+          expect(existsSync(completed)).toBe(false);
+          const committed = transaction.appendAuthorityEvent(
+            "transaction_commit",
+            { ok: true },
+          );
+          return { hash: committed.hash };
+        },
+      );
+
+      const childResult = await waitForChild(child);
+      expect(childResult).toMatchObject({ code: 0, signal: null });
+      expect(childResult.stderr).toBe("");
+      expect(existsSync(completed)).toBe(true);
+      expect(readEvents(id).map((event) => event.type)).toEqual([
+        "session_start",
+        "transaction_intent",
+        "transaction_commit",
+        "concurrent_writer",
+      ]);
+      expect(readEvents(id)[2].hash).toBe(transactionResult.hash);
+      expect(verifySession(id).status).toBe("verified");
+    }, 20_000);
+
+    it("rejects a stale or asynchronous authority transaction before mutation", () => {
+      const id = startSession("authority-transaction-stale", {
+        title: "transaction",
+      });
+      const initialHead = readEvents(id).at(-1).hash;
+      appendUserMessage(id, "advance");
+      const callback = vi.fn();
+
+      expect(() =>
+        withSessionAuthorityTransaction(id, initialHead, callback),
+      ).toThrow(expect.objectContaining({ code: "SESSION_REVISION_STALE" }));
+      expect(callback).not.toHaveBeenCalled();
+      expect(() =>
+        withSessionAuthorityTransaction(
+          id,
+          readEvents(id).at(-1).hash,
+          async () => null,
+        ),
+      ).toThrow(/must be synchronous/);
+      expect(readEvents(id).map((event) => event.type)).toEqual([
+        "session_start",
+        "user_message",
+      ]);
+
+      const missingId = startSession("authority-transaction-missing", {
+        title: "transaction",
+      });
+      const missingHead = readEvents(missingId).at(-1).hash;
+      rmSync(sessionPath(missingId));
+      expect(() =>
+        withSessionAuthorityTransaction(missingId, missingHead, vi.fn()),
+      ).toThrow(
+        expect.objectContaining({ code: "SESSION_TRANSCRIPT_UNVERIFIED" }),
+      );
+    });
+
+    it("poisons an uncertain writer instead of appending from a stale local head", () => {
+      const id = startSession("authority-transaction-poison", {
+        title: "transaction",
+      });
+      const initialHead = readEvents(id).at(-1).hash;
+      let poisonedError = null;
+      const previousFaultInjection =
+        process.env.CC_SESSION_SCALE_FAULT_INJECTION;
+      process.env.CC_SESSION_SCALE_FAULT_INJECTION = "1";
+      _sessionScaleFaultHooks.afterTranscriptAppend = ({ type }) => {
+        if (type === "transaction_uncertain") {
+          throw new Error("injected sidecar window");
+        }
+      };
+
+      try {
+        expect(() =>
+          withSessionAuthorityTransaction(id, initialHead, (transaction) => {
+            try {
+              transaction.appendAuthorityEvent("transaction_uncertain", {
+                value: 1,
+              });
+            } catch (error) {
+              try {
+                transaction.appendAuthorityEvent("must_not_append", {
+                  value: 2,
+                });
+              } catch (poisoned) {
+                poisonedError = poisoned;
+              }
+              throw error;
+            }
+          }),
+        ).toThrow(
+          expect.objectContaining({
+            code: "SESSION_INDEX_ANCHOR_FAILED",
+            commitState: "unknown",
+          }),
+        );
+      } finally {
+        _sessionScaleFaultHooks.afterTranscriptAppend = null;
+        if (previousFaultInjection === undefined) {
+          delete process.env.CC_SESSION_SCALE_FAULT_INJECTION;
+        } else {
+          process.env.CC_SESSION_SCALE_FAULT_INJECTION = previousFaultInjection;
+        }
+      }
+
+      expect(poisonedError).toMatchObject({
+        code: "SESSION_AUTHORITY_TRANSACTION_POISONED",
+        commitState: "unknown",
+      });
+      expect(readEvents(id).map((event) => event.type)).toEqual([
+        "session_start",
+        "transaction_uncertain",
+      ]);
+      expect(verifySession(id).status).toBe("verified");
+      expect(() => readVerifiedEvents(id)).toThrow(
+        expect.objectContaining({ code: "SESSION_TRANSCRIPT_UNVERIFIED" }),
+      );
+      expect(repairSession(id)).toMatchObject({
+        healthy: true,
+        indexChanged: true,
+      });
+      expect(readVerifiedEvents(id).map((event) => event.type)).toEqual([
+        "session_start",
+        "transaction_uncertain",
+      ]);
+    });
+
+    it("reports unknown settlement while retaining the original operation failure", () => {
+      const id = startSession("authority-transaction-nested-failure", {
+        title: "transaction",
+      });
+      const initialHead = readEvents(id).at(-1).hash;
+      const previousFaultInjection =
+        process.env.CC_SESSION_SCALE_FAULT_INJECTION;
+      process.env.CC_SESSION_SCALE_FAULT_INJECTION = "1";
+      _sessionScaleFaultHooks.afterTranscriptAppend = ({ type }) => {
+        if (type === "failed_audit") {
+          const error = new Error("injected failed-audit anchor window");
+          error.code = "SESSION_INDEX_ANCHOR_FAILED";
+          error.commitState = "unknown";
+          throw error;
+        }
+      };
+
+      let thrown = null;
+      try {
+        withSessionAuthorityTransaction(id, initialHead, (transaction) => {
+          transaction.appendAuthorityEvent("transaction_intent", {
+            value: 1,
+          });
+          const operationError = new Error("injected restore failure");
+          operationError.code = "INJECTED_RESTORE_FAILURE";
+          try {
+            transaction.appendAuthorityEvent("failed_audit", {
+              status: "failed",
+            });
+          } catch (auditError) {
+            operationError.checkpointAuditError = auditError;
+          }
+          throw operationError;
+        });
+      } catch (error) {
+        thrown = error;
+      } finally {
+        _sessionScaleFaultHooks.afterTranscriptAppend = null;
+        if (previousFaultInjection === undefined) {
+          delete process.env.CC_SESSION_SCALE_FAULT_INJECTION;
+        } else {
+          process.env.CC_SESSION_SCALE_FAULT_INJECTION = previousFaultInjection;
+        }
+      }
+
+      expect(thrown).toMatchObject({
+        code: "SESSION_INDEX_ANCHOR_FAILED",
+        commitState: "unknown",
+        transactionError: {
+          code: "INJECTED_RESTORE_FAILURE",
+          checkpointAuditError: {
+            code: "SESSION_INDEX_ANCHOR_FAILED",
+            commitState: "unknown",
+          },
+        },
+      });
+      expect(readEvents(id).map((event) => event.type)).toEqual([
+        "session_start",
+        "transaction_intent",
+        "failed_audit",
+      ]);
+      expect(() => readVerifiedEvents(id)).toThrow(
+        expect.objectContaining({ code: "SESSION_TRANSCRIPT_UNVERIFIED" }),
+      );
+      expect(repairSession(id)).toMatchObject({ healthy: true });
+      expect(readVerifiedEvents(id).map((event) => event.type)).toEqual([
+        "session_start",
+        "transaction_intent",
+        "failed_audit",
+      ]);
+    });
+
+    it("revokes retained and thenable-returning transaction writers", () => {
+      const id = startSession("authority-transaction-revoked", {
+        title: "transaction",
+      });
+      let retained = null;
+      const firstHead = readEvents(id).at(-1).hash;
+      withSessionAuthorityTransaction(id, firstHead, (transaction) => {
+        retained = transaction;
+        transaction.appendAuthorityEvent("transaction_complete", {
+          value: 1,
+        });
+      });
+
+      expect(() =>
+        retained.appendAuthorityEvent("late_append", { value: 2 }),
+      ).toThrow(
+        expect.objectContaining({
+          code: "SESSION_AUTHORITY_TRANSACTION_CLOSED",
+        }),
+      );
+
+      let thenableWriter = null;
+      const secondHead = readEvents(id).at(-1).hash;
+      expect(() =>
+        withSessionAuthorityTransaction(id, secondHead, (transaction) => {
+          thenableWriter = transaction;
+          return Promise.resolve("too late");
+        }),
+      ).toThrow(
+        expect.objectContaining({
+          code: "SESSION_AUTHORITY_TRANSACTION_ASYNC",
+        }),
+      );
+      expect(() =>
+        thenableWriter.appendAuthorityEvent("late_thenable_append", {
+          value: 3,
+        }),
+      ).toThrow(
+        expect.objectContaining({
+          code: "SESSION_AUTHORITY_TRANSACTION_CLOSED",
+        }),
+      );
+      expect(readEvents(id).map((event) => event.type)).toEqual([
+        "session_start",
+        "transaction_complete",
+      ]);
+      expect(verifySession(id).status).toBe("verified");
+    });
+
+    it("does not swallow a falsy value thrown by an authority transaction", () => {
+      const id = startSession("authority-transaction-falsy-throw", {
+        title: "transaction",
+      });
+      const initialHead = readEvents(id).at(-1).hash;
+      let completed = false;
+      try {
+        withSessionAuthorityTransaction(id, initialHead, (transaction) => {
+          transaction.appendAuthorityEvent("transaction_intent", {
+            value: 1,
+          });
+          const throwValue = (value) => {
+            throw value;
+          };
+          throwValue(undefined);
+        });
+        completed = true;
+      } catch (error) {
+        expect(error).toBeUndefined();
+      }
+      expect(completed).toBe(false);
+      expect(readEvents(id).map((event) => event.type)).toEqual([
+        "session_start",
+        "transaction_intent",
+      ]);
+      expect(readVerifiedEvents(id).map((event) => event.type)).toEqual([
+        "session_start",
+        "transaction_intent",
+      ]);
     });
 
     it("folds the verified chain once and refuses a stale sidecar before finish", () => {

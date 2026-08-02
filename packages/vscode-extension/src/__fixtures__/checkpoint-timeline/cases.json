@@ -38,19 +38,22 @@
         "id": "cp-1",
         "label": "before edit",
         "createdAt": "2026-08-01T00:00:00.000Z",
-        "fileCount": 4
+        "fileCount": 4,
+        "identity": "git:1111111111111111111111111111111111111111"
       },
       {
         "id": "cp-2",
         "label": "before publish",
         "createdAt": "2026-08-01T00:01:00.000Z",
-        "fileCount": 5
+        "fileCount": 5,
+        "identity": "git:2222222222222222222222222222222222222222"
       },
       {
         "id": "cp-orphan",
         "label": "manual",
         "createdAt": "2026-08-01T00:02:00.000Z",
-        "fileCount": 5
+        "fileCount": 5,
+        "identity": "git:3333333333333333333333333333333333333333"
       }
     ],
     "markers": [
@@ -142,6 +145,7 @@
               "sessionId": "session-fixture",
               "turnId": "turn-1",
               "checkpointId": "cp-1",
+              "checkpointIdentity": "git:1111111111111111111111111111111111111111",
               "conversationOffset": 2
             }
           },
@@ -172,6 +176,7 @@
               "sessionId": "session-fixture",
               "turnId": "turn-1",
               "checkpointId": "cp-1",
+              "checkpointIdentity": "git:1111111111111111111111111111111111111111",
               "conversationOffset": 2
             }
           },
@@ -250,6 +255,7 @@
               "sessionId": "session-fixture",
               "turnId": "turn-2",
               "checkpointId": "cp-2",
+              "checkpointIdentity": "git:2222222222222222222222222222222222222222",
               "conversationOffset": 5
             }
           },
@@ -280,6 +286,7 @@
               "sessionId": "session-fixture",
               "turnId": "turn-2",
               "checkpointId": "cp-2",
+              "checkpointIdentity": "git:2222222222222222222222222222222222222222",
               "conversationOffset": 5
             }
           },

@@ -655,6 +655,7 @@ function appendVerifiedWsAuthorityEventLocked(
   type,
   data,
   previousHeadHash,
+  { verifySettlement = true } = {},
 ) {
   const core = { type, timestamp: Date.now(), data };
   const hash = computeEventHash(previousHeadHash, core);
@@ -682,27 +683,29 @@ function appendVerifiedWsAuthorityEventLocked(
     error.commitState = "unknown";
     throw error;
   }
-  const verification = verifyTranscriptFile(filePath);
-  try {
-    assertVerifiedTranscriptAnchor(sessionId, verification);
-  } catch (cause) {
-    const error = new Error(
-      `Session authority settlement could not be verified: ${sessionId}`,
-      { cause },
-    );
-    error.code = "SESSION_INDEX_ANCHOR_FAILED";
-    error.sessionId = sessionId;
-    error.commitState = "unknown";
-    throw error;
-  }
-  if (verification.lastHash !== hash || event.prevHash !== previousHeadHash) {
-    const error = new Error(
-      `Session authority settlement head is not durable: ${sessionId}`,
-    );
-    error.code = "SESSION_INDEX_ANCHOR_FAILED";
-    error.sessionId = sessionId;
-    error.commitState = "unknown";
-    throw error;
+  if (verifySettlement) {
+    const verification = verifyTranscriptFile(filePath);
+    try {
+      assertVerifiedTranscriptAnchor(sessionId, verification);
+    } catch (cause) {
+      const error = new Error(
+        `Session authority settlement could not be verified: ${sessionId}`,
+        { cause },
+      );
+      error.code = "SESSION_INDEX_ANCHOR_FAILED";
+      error.sessionId = sessionId;
+      error.commitState = "unknown";
+      throw error;
+    }
+    if (verification.lastHash !== hash || event.prevHash !== previousHeadHash) {
+      const error = new Error(
+        `Session authority settlement head is not durable: ${sessionId}`,
+      );
+      error.code = "SESSION_INDEX_ANCHOR_FAILED";
+      error.sessionId = sessionId;
+      error.commitState = "unknown";
+      throw error;
+    }
   }
   return Object.freeze({ hash, event });
 }
@@ -870,6 +873,182 @@ export function appendAuthorityEventIfHead(
     compareHead: true,
     requireIndexAnchor: true,
   });
+}
+
+/**
+ * Run a synchronous authority transaction while holding the canonical
+ * transcript writer lock for its whole lifetime.
+ *
+ * A sequence of separate compare-and-appends leaves a gap between commits:
+ * callers may mutate an external resource after the first event, then lose the
+ * second CAS to another session writer. This primitive closes that gap. It
+ * validates the transcript + sidecar anchor and the caller's expected head
+ * before invoking `task`, then keeps every authority append on the same locked
+ * chain. The callback must be synchronous; retaining the writer beyond the
+ * lock lifetime would make the apparent transaction unsafe.
+ *
+ * This is a transaction-scoped writer lease, not a general host/session lease
+ * and not a filesystem power-loss transaction. Callers that coordinate an
+ * external resource must still journal crash recovery for that resource.
+ */
+export function withSessionAuthorityTransaction(
+  sessionId,
+  expectedHeadHash,
+  task,
+) {
+  if (typeof task !== "function") {
+    throw new TypeError("Session authority transaction callback is required");
+  }
+  if (task.constructor?.name === "AsyncFunction") {
+    throw new TypeError(
+      "Session authority transaction callback must be synchronous",
+    );
+  }
+
+  const filePath = sessionPath(sessionId);
+  return withFileLock(
+    filePath,
+    () => {
+      const existingMeta = readSessionMeta(getSessionsDir(), sessionId);
+      if (!existsSync(filePath) && existingMeta?.deleted === true) {
+        const error = new Error(`Session was deleted: ${sessionId}`);
+        error.code = "SESSION_DELETED";
+        throw error;
+      }
+      if (!existsSync(filePath) && existingMeta !== null) {
+        throw unverifiedTranscriptError(sessionId, {
+          status: "missing",
+          reason: "session sidecar exists without its transcript",
+          lastHash: null,
+          chainedEvents: 0,
+        });
+      }
+
+      let currentHeadHash = null;
+      if (existsSync(filePath)) {
+        // Normalize or discard only an incomplete physical tail before the
+        // verified sample. The existing sidecar already anchors the last
+        // complete event, so a crash tail never becomes transaction authority.
+        _resolveChainTail(filePath);
+        const verification = verifyTranscriptFile(filePath);
+        assertVerifiedTranscriptAnchor(sessionId, verification);
+        currentHeadHash = verification.lastHash;
+      }
+
+      const expected = expectedHeadHash || null;
+      if (currentHeadHash !== expected) {
+        const error = new Error(
+          `Session revision changed for ${sessionId}; refresh the checkpoint timeline`,
+        );
+        error.code = "SESSION_REVISION_STALE";
+        error.expectedHeadHash = expected;
+        error.actualHeadHash = currentHeadHash;
+        throw error;
+      }
+
+      let appendAttempts = 0;
+      let writerActive = true;
+      let writerPoisoned = false;
+      const writer = Object.freeze({
+        initialHeadHash: currentHeadHash,
+        currentHeadHash: () => currentHeadHash,
+        appendAuthorityEvent(type, data) {
+          if (!writerActive) {
+            const error = new Error(
+              `Session authority transaction is already closed: ${sessionId}`,
+            );
+            error.code = "SESSION_AUTHORITY_TRANSACTION_CLOSED";
+            throw error;
+          }
+          if (writerPoisoned) {
+            const error = new Error(
+              `Session authority transaction writer is poisoned: ${sessionId}`,
+            );
+            error.code = "SESSION_AUTHORITY_TRANSACTION_POISONED";
+            error.commitState = "unknown";
+            throw error;
+          }
+          const persistedData = encodeEventMessageProvenance(type, data);
+          appendAttempts += 1;
+          let appended;
+          try {
+            appended = appendVerifiedWsAuthorityEventLocked(
+              sessionId,
+              filePath,
+              type,
+              persistedData,
+              currentHeadHash,
+              { verifySettlement: false },
+            );
+          } catch (error) {
+            // Bytes may already have reached the transcript before a
+            // sidecar/activity failure. The actual head is then unknown, so a
+            // second append from this writer would risk forking the chain.
+            writerPoisoned = true;
+            if (error && !error.commitState) error.commitState = "unknown";
+            throw error;
+          }
+          currentHeadHash = appended.hash;
+          return appended;
+        },
+      });
+
+      let result;
+      let bodyError = null;
+      let bodyThrew = false;
+      try {
+        result = task(writer);
+        if (result && typeof result.then === "function") {
+          const error = new TypeError(
+            "Session authority transaction callback must be synchronous",
+          );
+          error.code = "SESSION_AUTHORITY_TRANSACTION_ASYNC";
+          error.commitState = "unknown";
+          throw error;
+        }
+      } catch (error) {
+        bodyThrew = true;
+        bodyError = error;
+      } finally {
+        // A callback can retain this object or return a Promise/thenable. Revoke
+        // it before settlement and before releasing the lock so no later
+        // microtask can append outside the transaction critical section.
+        writerActive = false;
+      }
+
+      if (appendAttempts > 0) {
+        try {
+          const verification = verifyTranscriptFile(filePath);
+          assertVerifiedTranscriptAnchor(sessionId, verification);
+          if (verification.lastHash !== currentHeadHash) {
+            throw new Error(
+              `Session authority settlement head is not durable: ${sessionId}`,
+            );
+          }
+        } catch (cause) {
+          const error = new Error(
+            `Session authority transaction could not be verified: ${sessionId}`,
+            { cause },
+          );
+          error.code = "SESSION_INDEX_ANCHOR_FAILED";
+          error.sessionId = sessionId;
+          error.commitState = "unknown";
+          if (bodyThrew) error.transactionError = bodyError;
+          throw error;
+        }
+      }
+      if (bodyThrew) throw bodyError;
+      return result;
+    },
+    {
+      failIfUnavailable: true,
+      timeoutMs: 30_000,
+      retryMs: 1,
+      maxRetryMs: 8,
+      retryJitterMs: 4,
+      yieldAfterReleaseMs: 2,
+    },
+  );
 }
 
 function verifyTranscriptFile(filePath, options = {}) {

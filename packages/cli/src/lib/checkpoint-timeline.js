@@ -148,6 +148,15 @@ function normalizeConversationOffset(value) {
   return Number.isSafeInteger(number) && number >= 0 ? number : null;
 }
 
+function normalizeCheckpointIdentity(value) {
+  const identity = boundedString(value, 256);
+  return /^(?:git:(?:[a-f0-9]{40}|[a-f0-9]{64})|sha256:[a-f0-9]{64})$/.test(
+    identity || "",
+  )
+    ? identity
+    : null;
+}
+
 function normalizeMarker(marker, index) {
   if (!marker || typeof marker !== "object" || !MARKERS.has(marker.kind)) {
     return null;
@@ -187,6 +196,8 @@ function checkpointMarker(checkpoint, turnId = null) {
   }
   const commit = boundedString(checkpoint.commit, 128);
   if (commit) metadata.commit = commit;
+  const identity = normalizeCheckpointIdentity(checkpoint.identity);
+  if (identity) metadata.identity = identity;
   return normalizeMarker(
     {
       kind: CHECKPOINT_TIMELINE_MARKERS.CHECKPOINT,
@@ -226,16 +237,30 @@ function dedupeMarkers(markers) {
   return out;
 }
 
-function actionAvailability(action, hasCheckpoint, hasConversation) {
+function actionAvailability(
+  action,
+  hasCheckpoint,
+  hasCheckpointIdentity,
+  hasConversation,
+) {
   if (action === CHECKPOINT_TIMELINE_ACTIONS.RESTORE_CODE) {
-    return hasCheckpoint
+    if (!hasCheckpoint) {
+      return { enabled: false, reason: "checkpoint-unavailable" };
+    }
+    return hasCheckpointIdentity
       ? { enabled: true, reason: null }
-      : { enabled: false, reason: "checkpoint-unavailable" };
+      : { enabled: false, reason: "checkpoint-identity-unavailable" };
   }
   if (action === CHECKPOINT_TIMELINE_ACTIONS.RESTORE_BOTH) {
-    return hasCheckpoint && hasConversation
+    if (!hasCheckpoint || !hasConversation) {
+      return {
+        enabled: false,
+        reason: "checkpoint-and-conversation-required",
+      };
+    }
+    return hasCheckpointIdentity
       ? { enabled: true, reason: null }
-      : { enabled: false, reason: "checkpoint-and-conversation-required" };
+      : { enabled: false, reason: "checkpoint-identity-unavailable" };
   }
   return hasConversation
     ? { enabled: true, reason: null }
@@ -247,14 +272,17 @@ function buildActions({
   revision,
   turnId,
   checkpointId,
+  checkpointIdentity,
   conversationOffset,
 }) {
   const hasCheckpoint = Boolean(checkpointId);
+  const hasCheckpointIdentity = Boolean(checkpointIdentity);
   const hasConversation = conversationOffset != null;
   return ACTION_ORDER.map((action) => {
     const availability = actionAvailability(
       action,
       hasCheckpoint,
+      hasCheckpointIdentity,
       hasConversation,
     );
     return {
@@ -271,6 +299,11 @@ function buildActions({
             sessionId,
             turnId,
             checkpointId: checkpointId || null,
+            ...((action === CHECKPOINT_TIMELINE_ACTIONS.RESTORE_CODE ||
+              action === CHECKPOINT_TIMELINE_ACTIONS.RESTORE_BOTH) &&
+            checkpointIdentity
+              ? { checkpointIdentity }
+              : {}),
             conversationOffset,
           }
         : null,
@@ -409,12 +442,30 @@ export function buildCheckpointTimeline({
   const turnList = (Array.isArray(sourceTurns) ? sourceTurns : [])
     .filter((turn) => turn && turn.turnId != null)
     .slice(0, MAX_TURNS);
-  const checkpointList = (Array.isArray(checkpoints) ? checkpoints : [])
-    .filter((checkpoint) => boundedString(checkpoint?.id, 512))
-    .slice(0, MAX_MARKERS);
-  const checkpointById = new Map(
-    checkpointList.map((checkpoint) => [String(checkpoint.id), checkpoint]),
+  const checkpointSource = (
+    Array.isArray(checkpoints) ? checkpoints : []
+  ).filter((checkpoint) => boundedString(checkpoint?.id, 512));
+  const checkpointList = checkpointSource.slice(0, MAX_MARKERS);
+  const referencedCheckpointIds = new Set(
+    turnList
+      .map((turn) => boundedString(turn?.fileCheckpointId, 512))
+      .filter(Boolean),
   );
+  const checkpointById = new Map();
+  // Keep the bounded projection, but also retain the exact rows referenced by
+  // the bounded turn list. Manual checkpoint history is intentionally
+  // unbounded, so a referenced target can sit beyond MAX_MARKERS and still
+  // needs its immutable identity embedded in the action envelope.
+  for (let index = 0; index < checkpointSource.length; index += 1) {
+    const checkpoint = checkpointSource[index];
+    const checkpointId = String(checkpoint.id);
+    if (
+      !checkpointById.has(checkpointId) &&
+      (index < MAX_MARKERS || referencedCheckpointIds.has(checkpointId))
+    ) {
+      checkpointById.set(checkpointId, checkpoint);
+    }
+  }
   const usedCheckpointIds = new Set();
 
   const normalizedMarkers = (Array.isArray(markers) ? markers : [])
@@ -447,6 +498,9 @@ export function buildCheckpointTimeline({
       turn.conversationOffset,
     );
     const checkpointId = boundedString(turn.fileCheckpointId, 512);
+    const checkpointIdentity = normalizeCheckpointIdentity(
+      checkpointById.get(checkpointId)?.identity,
+    );
     const coverage = normalizeCoverage(turn.coverage);
     const turnMarkers = [...(markerByTurn.get(turnId) || [])];
     if (checkpointId) {
@@ -503,6 +557,7 @@ export function buildCheckpointTimeline({
         revision: timelineRevision,
         turnId,
         checkpointId,
+        checkpointIdentity,
         conversationOffset,
       }),
     };

@@ -74,6 +74,42 @@ function sha256(buf) {
   return createHash("sha256").update(buf).digest("hex");
 }
 
+function canonicalValue(value) {
+  if (Array.isArray(value)) return value.map(canonicalValue);
+  if (value && typeof value === "object") {
+    const out = {};
+    for (const key of Object.keys(value).sort()) {
+      if (value[key] !== undefined) out[key] = canonicalValue(value[key]);
+    }
+    return out;
+  }
+  return value;
+}
+
+export function computeCheckpointIdentity(manifest) {
+  if (!manifest || typeof manifest !== "object" || Array.isArray(manifest)) {
+    throw new TypeError("checkpoint manifest is required");
+  }
+  return `sha256:${createHash("sha256")
+    .update(JSON.stringify(canonicalValue(manifest)), "utf8")
+    .digest("hex")}`;
+}
+
+function assertCheckpointIdentity(manifest, expectedIdentity) {
+  const actualIdentity = computeCheckpointIdentity(manifest);
+  if (expectedIdentity != null && expectedIdentity !== actualIdentity) {
+    const error = new Error(
+      `Checkpoint identity changed before restore: ${manifest.id}`,
+    );
+    error.code = "CHECKPOINT_IDENTITY_STALE";
+    error.checkpointId = manifest.id;
+    error.expectedIdentity = String(expectedIdentity);
+    error.actualIdentity = actualIdentity;
+    throw error;
+  }
+  return actualIdentity;
+}
+
 function newId() {
   // Date.now/random are fine here (plain CLI lib, not a resumable workflow).
   const rand = Math.random().toString(36).slice(2, 8);
@@ -231,6 +267,7 @@ export function listCheckpoints(opts = {}) {
         createdAt: m.createdAt,
         cwd: m.cwd,
         fileCount: m.fileCount,
+        identity: computeCheckpointIdentity(m),
       });
     }
   }
@@ -246,6 +283,7 @@ export function diffCheckpoint(id, opts = {}) {
   const root = opts.root || defaultRoot();
   const m = getCheckpoint(id, { root });
   if (!m) throw new Error(`no such checkpoint: ${id}`);
+  assertCheckpointIdentity(m, opts.expectedIdentity);
   const modified = [];
   const unchanged = [];
   const deleted = [];
@@ -274,6 +312,7 @@ export function restoreCheckpoint(id, opts = {}) {
   const root = opts.root || defaultRoot();
   const m = getCheckpoint(id, { root });
   if (!m) throw new Error(`no such checkpoint: ${id}`);
+  assertCheckpointIdentity(m, opts.expectedIdentity);
 
   const restored = [];
   const unchanged = [];
@@ -283,10 +322,28 @@ export function restoreCheckpoint(id, opts = {}) {
   for (const f of m.files) {
     const blobPath = path.join(root, id, f.sha256);
     if (!fs.existsSync(blobPath)) {
+      if (opts.expectedIdentity != null) {
+        const error = new Error(`checkpoint blob is missing: ${f.rel}`);
+        error.code = "CHECKPOINT_BLOB_MISSING";
+        error.checkpointId = id;
+        error.path = f.rel;
+        throw error;
+      }
       missingBlob.push(f.rel);
       continue;
     }
     const blob = fs.readFileSync(blobPath);
+    if (sha256(blob) !== f.sha256) {
+      if (opts.expectedIdentity != null) {
+        const error = new Error(`checkpoint blob is corrupt: ${f.rel}`);
+        error.code = "CHECKPOINT_BLOB_CORRUPT";
+        error.checkpointId = id;
+        error.path = f.rel;
+        throw error;
+      }
+      missingBlob.push(f.rel);
+      continue;
+    }
     const cur = fs.existsSync(f.abs) ? fs.readFileSync(f.abs) : null;
     if (cur && sha256(cur) === f.sha256) {
       unchanged.push(f.rel);
@@ -302,6 +359,7 @@ export function restoreCheckpoint(id, opts = {}) {
       unchanged,
       missingBlob,
       safetyId: null,
+      safetyIdentity: null,
       dryRun: true,
     };
   }
@@ -310,6 +368,11 @@ export function restoreCheckpoint(id, opts = {}) {
   // restore can itself be rewound. Only the files that actually change and
   // currently exist need protecting.
   let safetyId = null;
+  let safetyIdentity = null;
+  let safetyCoverage = "full";
+  const createdPaths = toWrite
+    .filter((w) => !fs.existsSync(w.abs))
+    .map((w) => w.rel);
   if (!opts.skipSafety) {
     const existing = toWrite
       .filter((w) => fs.existsSync(w.abs))
@@ -321,16 +384,53 @@ export function restoreCheckpoint(id, opts = {}) {
         label: `auto-before-restore-${id}`,
       });
       safetyId = safety.id;
+      safetyIdentity = computeCheckpointIdentity(safety);
     }
+    if (existing.length !== toWrite.length) safetyCoverage = "partial";
   }
 
-  for (const w of toWrite) {
-    ensureDir(path.dirname(w.abs));
-    atomicWriteFileSync(w.abs, w.blob);
-    restored.push(w.rel);
+  try {
+    for (const w of toWrite) {
+      ensureDir(path.dirname(w.abs));
+      atomicWriteFileSync(w.abs, w.blob);
+      restored.push(w.rel);
+    }
+    const residualPaths = m.files
+      .filter(
+        (file) =>
+          !fs.existsSync(file.abs) ||
+          sha256(fs.readFileSync(file.abs)) !== file.sha256,
+      )
+      .map((file) => file.rel);
+    if (residualPaths.length > 0) {
+      const error = new Error(
+        `Checkpoint restore did not settle at the target manifest: ${id}`,
+      );
+      error.code = "CHECKPOINT_RESTORE_INCOMPLETE";
+      error.residualPaths = residualPaths;
+      throw error;
+    }
+  } catch (error) {
+    if (error && typeof error === "object") {
+      error.safetyId = safetyId;
+      error.safetyIdentity = safetyIdentity;
+      error.safetyCoverage = safetyCoverage;
+      error.createdPaths = createdPaths;
+      error.restorePhase = "workspace-mutation";
+    }
+    throw error;
   }
 
-  return { id, restored, unchanged, missingBlob, safetyId };
+  return {
+    id,
+    restored,
+    unchanged,
+    missingBlob,
+    safetyId,
+    safetyIdentity,
+    safetyCoverage,
+    createdPaths,
+  };
 }
 
 /** Delete a checkpoint (manifest + blobs). Returns true if it existed. */

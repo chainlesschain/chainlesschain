@@ -21,6 +21,7 @@
 import { rmSync } from "node:fs";
 import path from "node:path";
 import executionBroker from "./process-execution-broker/index.js";
+import { credentialAgent } from "./process-execution-broker/credential-agent.js";
 
 export const _deps = {
   spawnSync: (...args) => executionBroker.spawnSync(...args),
@@ -35,6 +36,32 @@ const CHECKPOINT_IDENTITY = Object.freeze({
   GIT_COMMITTER_NAME: "cc-checkpoint",
   GIT_COMMITTER_EMAIL: "checkpoint@chainlesschain.local",
 });
+const INTERNAL_GIT_ENV_KEYS = new Set([
+  "GIT_INDEX_FILE",
+  "GIT_AUTHOR_NAME",
+  "GIT_AUTHOR_EMAIL",
+  "GIT_COMMITTER_NAME",
+  "GIT_COMMITTER_EMAIL",
+]);
+
+function checkpointGitEnvironment(overrides = null) {
+  const environment = {};
+  for (const [key, value] of Object.entries(process.env)) {
+    if (
+      !credentialAgent.isSensitiveKey(key) &&
+      !credentialAgent.isReservedAgentKey(key)
+    ) {
+      environment[key] = value;
+    }
+  }
+  for (const [key, value] of Object.entries(overrides || {})) {
+    if (!INTERNAL_GIT_ENV_KEYS.has(key)) {
+      throw new Error(`Unsupported checkpoint git environment key: ${key}`);
+    }
+    environment[key] = value;
+  }
+  return environment;
+}
 
 /**
  * Run git with an argv array (no shell → no quoting hazards). UTF-8 in/out.
@@ -55,7 +82,10 @@ function git(args, { cwd, env, input } = {}) {
     encoding: "utf-8",
     windowsHide: true,
     maxBuffer: 128 * 1024 * 1024,
-    env: env ? { ...process.env, ...env } : process.env,
+    // Local plumbing never needs provider/API credentials. Passing the whole
+    // parent environment would mint short-lived credential references on every
+    // git subprocess and can exhaust the Broker store during a long restore.
+    env: checkpointGitEnvironment(env),
   });
   if (res.error) throw res.error;
   if (res.status !== 0) {
@@ -390,6 +420,27 @@ export function resolveCheckpoint(cwd, idOrRef, opts = {}) {
   throw new Error(`Checkpoint not found: ${idOrRef}`);
 }
 
+function resolveExpectedCheckpoint(root, idOrRef, session, expectedIdentity) {
+  const resolved = resolveCheckpoint(root, idOrRef, { session });
+  if (expectedIdentity == null) return resolved;
+  const match = /^git:([a-f0-9]{40}|[a-f0-9]{64})$/.exec(
+    String(expectedIdentity),
+  );
+  if (!match || match[1] !== resolved) {
+    const error = new Error(
+      `Checkpoint identity changed before restore: ${idOrRef}`,
+    );
+    error.code = "CHECKPOINT_IDENTITY_STALE";
+    error.checkpointId = idOrRef;
+    error.expectedIdentity = String(expectedIdentity);
+    error.actualIdentity = `git:${resolved}`;
+    throw error;
+  }
+  // Use the captured immutable object even if the named ref changes after the
+  // comparison. Git object ids bind the exact commit/tree that was previewed.
+  return match[1];
+}
+
 /**
  * Compute what differs between a checkpoint and the current working tree.
  *
@@ -401,7 +452,12 @@ export function statusAgainst(cwd = process.cwd(), idOrRef, opts = {}) {
   const root = repoRoot(cwd);
   const dir = gitDir(root);
   const session = sanitizeSession(opts.session);
-  const commit = resolveCheckpoint(root, idOrRef, { session });
+  const commit = resolveExpectedCheckpoint(
+    root,
+    idOrRef,
+    session,
+    opts.expectedIdentity,
+  );
   const targetTree = git(["rev-parse", `${commit}^{tree}`], { cwd: root });
   const currentTree = snapshotTree(root, dir);
   return {
@@ -422,7 +478,12 @@ export function rewindTo(cwd = process.cwd(), idOrRef, opts = {}) {
   const root = repoRoot(cwd);
   const dir = gitDir(root);
   const session = sanitizeSession(opts.session);
-  const targetCommit = resolveCheckpoint(root, idOrRef, { session });
+  const targetCommit = resolveExpectedCheckpoint(
+    root,
+    idOrRef,
+    session,
+    opts.expectedIdentity,
+  );
   const targetTree = git(["rev-parse", `${targetCommit}^{tree}`], {
     cwd: root,
   });
@@ -439,6 +500,7 @@ export function rewindTo(cwd = process.cwd(), idOrRef, opts = {}) {
       dryRun: true,
       target: targetCommit,
       safetyId: null,
+      safetyIdentity: null,
       modified: modified.length,
       deleted: added.length,
       recreated: recreated.length,
@@ -447,34 +509,59 @@ export function rewindTo(cwd = process.cwd(), idOrRef, opts = {}) {
 
   // Safety net — snapshot the current state so this rewind is undoable.
   let safetyId = null;
+  let safetyIdentity = null;
   if (!opts.skipSafety) {
-    safetyId = createCheckpoint(root, {
+    const safety = createCheckpoint(root, {
       session,
       label: `auto: before rewind to ${idOrRef}`,
       now: opts.now,
-    }).id;
+    });
+    safetyId = safety.id;
+    safetyIdentity = `git:${safety.commit}`;
   }
 
-  // Write the target tree over the working tree via a temp index.
-  const tmpIndex = tempIndexPath(dir);
-  const env = { GIT_INDEX_FILE: tmpIndex };
   try {
-    git(["read-tree", targetTree], { cwd: root, env });
-    git(["checkout-index", "-a", "-f"], { cwd: root, env });
-  } finally {
-    rmQuiet(tmpIndex);
-  }
+    const tmpIndex = tempIndexPath(dir);
+    const env = { GIT_INDEX_FILE: tmpIndex };
+    try {
+      git(["read-tree", targetTree], { cwd: root, env });
+      git(["checkout-index", "-a", "-f"], { cwd: root, env });
+    } finally {
+      rmQuiet(tmpIndex);
+    }
 
-  // Remove files the target snapshot does not contain (created since). These
-  // paths come from git's tree diff (repo-relative, git rejects `..` in tree
-  // entries), but this is a force-delete over the user's working tree — guard
-  // each resolved path against the repo root before unlinking, as
-  // defense-in-depth, and keep it best-effort so one locked file can't abort
-  // the whole rewind.
-  for (const rel of added) {
-    const abs = path.resolve(root, rel);
-    if (!withinRoot(root, abs)) continue; // never delete outside the repo
-    rmQuiet(abs);
+    // Remove files the target snapshot does not contain (created since). These
+    // paths come from git's tree diff (repo-relative, git rejects `..` in tree
+    // entries), but this is a force-delete over the user's working tree — guard
+    // each resolved path against the repo root before unlinking, as
+    // defense-in-depth, and keep it best-effort so one locked file can't abort
+    // the whole rewind.
+    for (const rel of added) {
+      const abs = path.resolve(root, rel);
+      if (!withinRoot(root, abs)) continue; // never delete outside the repo
+      rmQuiet(abs);
+    }
+    const settledTree = snapshotTree(root, dir);
+    if (settledTree !== targetTree) {
+      const error = new Error(
+        `Checkpoint restore did not settle at the target tree: ${idOrRef}`,
+      );
+      error.code = "CHECKPOINT_RESTORE_INCOMPLETE";
+      error.residualPaths = [
+        ...diffNames(root, targetTree, settledTree, "M"),
+        ...diffNames(root, targetTree, settledTree, "A"),
+        ...diffNames(root, targetTree, settledTree, "D"),
+      ];
+      throw error;
+    }
+  } catch (error) {
+    if (error && typeof error === "object") {
+      error.safetyId = safetyId;
+      error.safetyIdentity = safetyIdentity;
+      error.safetyCoverage = "checkpoint";
+      error.restorePhase = "workspace-mutation";
+    }
+    throw error;
   }
 
   return {
@@ -482,6 +569,8 @@ export function rewindTo(cwd = process.cwd(), idOrRef, opts = {}) {
     dryRun: false,
     target: targetCommit,
     safetyId,
+    safetyIdentity,
+    safetyCoverage: "checkpoint",
     modified: modified.length,
     deleted: added.length,
     recreated: recreated.length,

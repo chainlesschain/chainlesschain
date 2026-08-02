@@ -68,6 +68,17 @@ export function validateCheckpointTimelineSubmission(timeline, submission) {
     submission.action,
   );
   if (!resolved.ok) return resolved;
+  const expectedCheckpointIdentity =
+    resolved.submission.checkpointIdentity || null;
+  const submittedCheckpointIdentity = submission.checkpointIdentity || null;
+  if (expectedCheckpointIdentity !== submittedCheckpointIdentity) {
+    return {
+      ok: false,
+      code: "TIMELINE_STALE",
+      expectedCheckpointIdentity,
+      submittedCheckpointIdentity,
+    };
+  }
   if (!sameEnvelope(resolved.submission, submission)) {
     return { ok: false, code: "TIMELINE_SUBMISSION_INVALID" };
   }
@@ -261,6 +272,10 @@ export function planCheckpointTimelineAction({
 }
 
 export function timelineActionError(error) {
+  const operationError = error?.transactionError || null;
+  const recoveryError = operationError || error;
+  const auditError =
+    operationError?.checkpointAuditError || error?.checkpointAuditError || null;
   return {
     schema: CHECKPOINT_TIMELINE_RESULT_SCHEMA,
     version: CHECKPOINT_TIMELINE_RESULT_VERSION,
@@ -270,5 +285,16 @@ export function timelineActionError(error) {
         ? "TIMELINE_STALE"
         : error?.code || "TIMELINE_ACTION_FAILED",
     error: error?.message || String(error || "timeline action failed"),
+    commitState: error?.commitState || null,
+    operationFailureCode: operationError?.code || null,
+    auditFailureCode: auditError?.code || null,
+    restorePhase: recoveryError?.restorePhase || null,
+    safetyCheckpointId: recoveryError?.safetyId || null,
+    safetyCheckpointIdentity: recoveryError?.safetyIdentity || null,
+    safetyCoverage: recoveryError?.safetyCoverage || null,
+    branchSessionId: recoveryError?.branchSessionId || null,
+    createdPaths: Array.isArray(recoveryError?.createdPaths)
+      ? recoveryError.createdPaths.slice(0, 256)
+      : [],
   };
 }

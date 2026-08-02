@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import fs from "node:fs";
 import {
   mkdtempSync,
   writeFileSync,
@@ -17,6 +18,7 @@ import {
   diffCheckpoint,
   restoreCheckpoint,
   deleteCheckpoint,
+  computeCheckpointIdentity,
   SKIP_DIRS,
 } from "../../src/lib/file-checkpoint.js";
 
@@ -46,7 +48,54 @@ describe("file-checkpoint store", () => {
     expect(m.files.map((f) => f.rel).sort()).toEqual(["a.txt", "b.txt"]);
     expect(getCheckpoint(m.id, { root })).toMatchObject({ id: m.id });
     expect(listCheckpoints({ root }).map((c) => c.id)).toContain(m.id);
+    expect(listCheckpoints({ root })[0].identity).toBe(
+      computeCheckpointIdentity(m),
+    );
   });
+
+  it("rejects a replaced manifest identity before diffing or writing", () => {
+    const m = mk("immutable");
+    const expectedIdentity = computeCheckpointIdentity(m);
+    writeFileSync(join(work, "a.txt"), "CHANGED-A", "utf-8");
+    writeFileSync(join(work, "b.txt"), "CHANGED-B", "utf-8");
+    writeFileSync(
+      join(root, `${m.id}.json`),
+      JSON.stringify({ ...m, label: "replaced" }, null, 2),
+      "utf-8",
+    );
+
+    expect(() => diffCheckpoint(m.id, { root, expectedIdentity })).toThrow(
+      expect.objectContaining({ code: "CHECKPOINT_IDENTITY_STALE" }),
+    );
+    expect(() => restoreCheckpoint(m.id, { root, expectedIdentity })).toThrow(
+      expect.objectContaining({ code: "CHECKPOINT_IDENTITY_STALE" }),
+    );
+    expect(readFileSync(join(work, "a.txt"), "utf-8")).toBe("CHANGED-A");
+    expect(readFileSync(join(work, "b.txt"), "utf-8")).toBe("CHANGED-B");
+  });
+
+  it.each([
+    ["missing", "CHECKPOINT_BLOB_MISSING"],
+    ["corrupt", "CHECKPOINT_BLOB_CORRUPT"],
+  ])(
+    "rejects a %s identity-bound blob before any workspace write",
+    (mode, code) => {
+      const m = mk(mode);
+      const expectedIdentity = computeCheckpointIdentity(m);
+      const blobPath = join(root, m.id, m.files[1].sha256);
+      if (mode === "missing") rmSync(blobPath);
+      else writeFileSync(blobPath, "CORRUPT-BLOB", "utf-8");
+      writeFileSync(join(work, "a.txt"), "CHANGED-A", "utf-8");
+      writeFileSync(join(work, "b.txt"), "CHANGED-B", "utf-8");
+
+      expect(() => restoreCheckpoint(m.id, { root, expectedIdentity })).toThrow(
+        expect.objectContaining({ code }),
+      );
+      expect(readFileSync(join(work, "a.txt"), "utf-8")).toBe("CHANGED-A");
+      expect(readFileSync(join(work, "b.txt"), "utf-8")).toBe("CHANGED-B");
+      expect(listCheckpoints({ root })).toHaveLength(1);
+    },
+  );
 
   it("diff reports modified / unchanged / deleted", () => {
     const m = mk();
@@ -89,6 +138,59 @@ describe("file-checkpoint store", () => {
     expect(readFileSync(join(work, "a.txt"), "utf-8")).toBe("CHANGED-A");
   });
 
+  it("attaches an immutable safety snapshot when a restore partially writes", () => {
+    const m = mk("partial");
+    const expectedIdentity = computeCheckpointIdentity(m);
+    rmSync(join(work, "a.txt"));
+    writeFileSync(join(work, "b.txt"), "CHANGED-B", "utf-8");
+    const blockedTarget = join(work, "b.txt");
+    const renameSync = fs.renameSync.bind(fs);
+    const rename = vi
+      .spyOn(fs, "renameSync")
+      .mockImplementation((source, target) => {
+        if (String(target) === blockedTarget) {
+          const error = new Error("injected second-file rename failure");
+          error.code = "INJECTED_RESTORE_WRITE_FAILURE";
+          throw error;
+        }
+        return renameSync(source, target);
+      });
+
+    let thrown = null;
+    try {
+      restoreCheckpoint(m.id, { root, expectedIdentity });
+    } catch (error) {
+      thrown = error;
+    } finally {
+      rename.mockRestore();
+    }
+
+    expect(thrown).toMatchObject({
+      code: "INJECTED_RESTORE_WRITE_FAILURE",
+      restorePhase: "workspace-mutation",
+      safetyId: expect.any(String),
+      safetyIdentity: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+      safetyCoverage: "partial",
+      createdPaths: ["a.txt"],
+    });
+    expect(readFileSync(join(work, "a.txt"), "utf-8")).toBe("ORIGINAL-A");
+    expect(readFileSync(join(work, "b.txt"), "utf-8")).toBe("CHANGED-B");
+    expect(
+      computeCheckpointIdentity(getCheckpoint(thrown.safetyId, { root })),
+    ).toBe(thrown.safetyIdentity);
+
+    restoreCheckpoint(thrown.safetyId, {
+      root,
+      expectedIdentity: thrown.safetyIdentity,
+      skipSafety: true,
+    });
+    // The copy safety checkpoint cannot encode a tombstone for a file that was
+    // absent before restore; diagnostics must call this partial, not promise a
+    // complete rollback.
+    expect(readFileSync(join(work, "a.txt"), "utf-8")).toBe("ORIGINAL-A");
+    expect(readFileSync(join(work, "b.txt"), "utf-8")).toBe("CHANGED-B");
+  });
+
   it("delete removes manifest + blobs", () => {
     const m = mk();
     expect(deleteCheckpoint(m.id, { root })).toBe(true);
@@ -112,7 +214,14 @@ describe("file-checkpoint store", () => {
   });
 
   it("rejects path-traversal checkpoint ids (no escape of the store)", () => {
-    for (const bad of ["../evil", "../../etc/passwd", "a/b", "a\\b", "..", "C:\\x"]) {
+    for (const bad of [
+      "../evil",
+      "../../etc/passwd",
+      "a/b",
+      "a\\b",
+      "..",
+      "C:\\x",
+    ]) {
       // create: explicit unsafe id is rejected before any blob is written.
       expect(() =>
         createCheckpoint(["a.txt"], { cwd: work, root, id: bad }),

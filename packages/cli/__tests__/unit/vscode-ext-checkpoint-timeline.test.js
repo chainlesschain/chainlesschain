@@ -82,6 +82,23 @@ describe("VS Code checkpoint timeline projection", () => {
     expect(
       rewind.projectTimeline(tampered).entries[0].enabledActions,
     ).not.toContain("restore-code");
+
+    const badIdentity = clone(fixture.projection);
+    badIdentity.entries[0].actions[0].submission.checkpointIdentity =
+      "git:not-an-object-id";
+    expect(
+      rewind.timelineActionSubmission(badIdentity, "turn-1", "restore-code"),
+    ).toBeNull();
+
+    const missingIdentity = clone(fixture.projection);
+    delete missingIdentity.entries[0].actions[0].submission.checkpointIdentity;
+    expect(
+      rewind.timelineActionSubmission(
+        missingIdentity,
+        "turn-1",
+        "restore-code",
+      ),
+    ).toBeNull();
   });
 
   it("builds visual rows and renders the shared CLI preview without hiding risks", () => {

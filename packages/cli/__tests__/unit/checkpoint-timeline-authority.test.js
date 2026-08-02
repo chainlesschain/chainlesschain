@@ -215,4 +215,44 @@ describe("checkpoint timeline CLI authority", () => {
       code: "TIMELINE_CONVERSATION_ANCHOR_STALE",
     });
   });
+
+  it("binds a referenced checkpoint identity beyond the bounded marker projection", () => {
+    const checkpoints = Array.from({ length: 4_097 }, (_, index) => ({
+      id: `cp-${index}`,
+      identity: `git:${"1".repeat(40)}`,
+    }));
+    checkpoints[4_096].identity = `git:${"a".repeat(40)}`;
+    const input = {
+      sessionId: "large-checkpoint-history",
+      headHash: "head-1",
+      turns: [
+        {
+          turnId: "turn-old",
+          conversationOffset: 2,
+          fileCheckpointId: "cp-4096",
+          coverage: "full",
+        },
+      ],
+      checkpoints,
+    };
+    const original = buildCheckpointTimeline(input);
+    const exact = submission(original, "turn-old", "restore-code");
+    expect(exact.checkpointIdentity).toBe(`git:${"a".repeat(40)}`);
+
+    const replaced = checkpoints.map((checkpoint) => ({ ...checkpoint }));
+    replaced[4_096].identity = `git:${"b".repeat(40)}`;
+    const current = buildCheckpointTimeline({
+      ...input,
+      checkpoints: replaced,
+    });
+    // The bounded revision intentionally excludes this historical row; the
+    // direct envelope binding must still reject the replaced target.
+    expect(current.revision).toBe(original.revision);
+    expect(validateCheckpointTimelineSubmission(current, exact)).toMatchObject({
+      ok: false,
+      code: "TIMELINE_STALE",
+      expectedCheckpointIdentity: `git:${"b".repeat(40)}`,
+      submittedCheckpointIdentity: `git:${"a".repeat(40)}`,
+    });
+  });
 });

@@ -22,6 +22,31 @@ function resolutionContext(agent, process, host = null) {
 }
 
 describe("CredentialAgent reference lifecycle", () => {
+  it("keeps deterministic git author metadata while filtering git auth secrets", () => {
+    const agent = new CredentialAgent({ env: {} });
+    const result = agent.applyWithReport({
+      file: "git",
+      origin: "test:git-identity",
+      env: {
+        GIT_AUTHOR_NAME: "cc-checkpoint",
+        GIT_AUTHOR_EMAIL: "checkpoint@chainlesschain.local",
+        GIT_COMMITTER_NAME: "cc-checkpoint",
+        GIT_COMMITTER_EMAIL: "checkpoint@chainlesschain.local",
+        GIT_AUTH_TOKEN: "must-not-reach-git",
+      },
+      args: ["commit-tree", "deadbeef"],
+    });
+
+    expect(result.spawnOptions.env).toMatchObject({
+      GIT_AUTHOR_NAME: "cc-checkpoint",
+      GIT_AUTHOR_EMAIL: "checkpoint@chainlesschain.local",
+      GIT_COMMITTER_NAME: "cc-checkpoint",
+      GIT_COMMITTER_EMAIL: "checkpoint@chainlesschain.local",
+    });
+    expect(result.spawnOptions.env).not.toHaveProperty("GIT_AUTH_TOKEN");
+    expect(result.report.envCount).toBe(1);
+  });
+
   it("keeps filtering fail-closed when CC_CRED_AGENT_DISABLE is set", () => {
     const secret = "disabled-mode-long-lived-secret";
     const agent = new CredentialAgent({
