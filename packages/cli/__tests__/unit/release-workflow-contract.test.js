@@ -25,6 +25,50 @@ describe("CLI release workflow contracts", () => {
       "differs from exact-SHA package version $COMMITTED_VERSION",
     );
     expect(text).toMatch(/dry-run:[\s\S]*permissions:\s*\n\s*contents: read/);
+
+    const packageJobStart = text.indexOf("  package-cli:");
+    const packageJob = text.slice(
+      packageJobStart,
+      text.indexOf("\n  dry-run:", packageJobStart),
+    );
+    const beforePack = packageJob.slice(
+      0,
+      packageJob.indexOf("npm pack --json"),
+    );
+    const packageCommands = beforePack
+      .split(/\r?\n/u)
+      .map((line) => line.trim())
+      .filter(Boolean);
+    const cliPackage = JSON.parse(
+      fs.readFileSync(
+        path.join(repositoryRoot, "packages", "cli", "package.json"),
+        "utf8",
+      ),
+    );
+    const prepublishCommands = cliPackage.scripts.prepublishOnly
+      .split(/\s*&&\s*/u)
+      .filter(Boolean);
+    expect(prepublishCommands).toContain("npm run build:web-panel");
+    for (const command of prepublishCommands) {
+      if (command === "npm run build:web-panel") continue;
+      expect(packageCommands).toContain(command);
+    }
+    expect(packageCommands).toContain("npm run build:web-panel:force");
+    expect(packageCommands).not.toContain("npm run build:web-panel");
+    expect(packageJob.indexOf("npm run build:web-panel:force")).toBeLessThan(
+      packageJob.indexOf("npm pack --json"),
+    );
+    expect(packageJob.indexOf("npm pack --json")).toBeLessThan(
+      packageJob.indexOf("npm-release-artifact.mjs create"),
+    );
+
+    const cliPublish = text.slice(
+      text.indexOf('- name: "Publish chainlesschain (CLI)"'),
+      text.indexOf("      - name: Publish summary"),
+    );
+    expect(cliPublish.indexOf("npm-release-artifact.mjs verify")).toBeLessThan(
+      cliPublish.indexOf('npm publish "$TARBALL"'),
+    );
   });
 
   it("runs both authoritative workflows for npm and native release tags", () => {

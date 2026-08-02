@@ -133,6 +133,18 @@ jobs:
       - name: Install workspace dependencies
         run: npm install --legacy-peer-deps
 
+      # npm pack does not run prepublishOnly. Build the generated payloads in
+      # this exact-SHA job so the immutable archive cannot inherit a tracked
+      # index.html whose Vite assets are absent from a clean checkout.
+      - name: Build CLI package assets before packing
+        working-directory: packages/cli
+        run: |
+          npm run commands:manifest:check
+          npm run commands:help-index:check
+          npm run commands:completions:check
+          npm run build:web-panel:force
+          npm run build:changelog
+
       - name: Resolve and pack immutable CLI tarball
         shell: bash
         run: |
