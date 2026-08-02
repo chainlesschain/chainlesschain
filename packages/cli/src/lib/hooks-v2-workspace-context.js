@@ -232,6 +232,16 @@ export function currentHostHooksV2WorkspaceBinding() {
   return verifyWorkspaceRecord(trustedWorkspaceStorage.getStore());
 }
 
+/** Resolve only the exact opaque binding object issued by this host process. */
+export function resolveHostHooksV2WorkspaceBinding(binding) {
+  if (!binding || typeof binding !== "object") return null;
+  const bindingId = binding.bindingId;
+  if (typeof bindingId !== "string") return null;
+  const record = registeredHostWorkspaces.get(bindingId);
+  if (!record || record.binding !== binding) return null;
+  return verifyWorkspaceRecord(record);
+}
+
 /**
  * Resolve an opaque durable binding only against roots registered by the
  * current host process. No persisted or event-supplied path is accepted.

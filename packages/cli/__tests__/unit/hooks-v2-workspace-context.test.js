@@ -8,6 +8,7 @@ import {
   currentHostHooksV2WorkspaceRoot,
   registerHostHooksV2Workspace,
   releaseRegisteredHostHooksV2Workspace,
+  resolveHostHooksV2WorkspaceBinding,
   resolveRegisteredHostHooksV2Workspace,
   runWithHostHooksV2Workspace,
 } from "../../src/lib/hooks-v2-workspace-context.js";
@@ -144,6 +145,8 @@ describe("Hooks v2 trusted host workspace context", () => {
     expect(resolveRegisteredHostHooksV2Workspace(binding.bindingId)).toBe(
       binding,
     );
+    expect(resolveHostHooksV2WorkspaceBinding(binding)).toBe(binding);
+    expect(resolveHostHooksV2WorkspaceBinding({ ...binding })).toBeNull();
     expect(resolveRegisteredHostHooksV2Workspace("0".repeat(64))).toBeNull();
     expect(resolveRegisteredHostHooksV2Workspace(root)).toBeNull();
   });

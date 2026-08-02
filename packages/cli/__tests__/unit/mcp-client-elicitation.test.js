@@ -20,6 +20,7 @@ function fakeProcess() {
       initialize: { serverInfo: {}, capabilities: {} },
       "tools/list": { tools: [] },
       "resources/list": { resources: [] },
+      "resources/templates/list": { resourceTemplates: [] },
       "prompts/list": { prompts: [] },
     };
     if (message.id !== undefined && results[message.method]) {

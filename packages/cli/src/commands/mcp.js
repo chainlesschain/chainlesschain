@@ -29,6 +29,16 @@ import { resolveMcpAuthTarget, isUrlLike } from "../lib/mcp-auth-target.js";
 import { notFoundWithSuggestion } from "../lib/suggest-name.js";
 import { findGitProjectRoot } from "../lib/project-root.cjs";
 import { redactConfigObject } from "../lib/config-redaction.js";
+import { registerHostHooksV2Workspace } from "../lib/hooks-v2-workspace-context.js";
+import {
+  localMcpHeadersHelperFingerprint,
+  recordLocalMcpHeadersHelperTrust,
+  revokeLocalMcpHeadersHelperTrust,
+} from "../lib/mcp-headers-helper-trust.js";
+import {
+  checkProjectMcpTrust,
+  issueProjectMcpWorkspaceAuthority,
+} from "../lib/project-mcp-trust.js";
 import {
   CATALOG as REGISTRY_CATALOG,
   CATEGORIES as REGISTRY_CATEGORIES,
@@ -68,8 +78,14 @@ export function isHeadlessEnv(env = process.env, platform = process.platform) {
 // Singleton MCP client for session reuse
 let mcpClient = null;
 
+function commandWorkspaceBinding() {
+  return registerHostHooksV2Workspace(projectMcpLocation(process.cwd()).root);
+}
+
 function getClient() {
-  if (!mcpClient) mcpClient = new MCPClient();
+  if (!mcpClient) {
+    mcpClient = new MCPClient({ workspaceBinding: commandWorkspaceBinding() });
+  }
   return mcpClient;
 }
 
@@ -129,7 +145,7 @@ async function connectForQuery(program, serverName) {
   } else {
     rows = visible;
   }
-  const client = new MCPClient();
+  const client = new MCPClient({ workspaceBinding: commandWorkspaceBinding() });
   const connected = [];
   for (const row of rows) {
     if (!row) continue;
@@ -223,6 +239,12 @@ export function diagnoseMcpTransportConfig(server = {}) {
   return { ok: true, code: "ok", transport };
 }
 
+function headersHelperField(value) {
+  return typeof value === "string" && value.trim()
+    ? { headersHelper: value }
+    : {};
+}
+
 async function readManagedMcpRows() {
   const { loadManagedSettings } = await import("../lib/settings-loader.cjs");
   const loaded = loadManagedSettings({ env: process.env });
@@ -242,6 +264,7 @@ async function readManagedMcpRows() {
         config.headers && typeof config.headers === "object"
           ? config.headers
           : {},
+      ...headersHelperField(config.headersHelper),
       autoConnect: config.autoConnect !== false,
       configScope: "managed",
       configSource: loaded.file,
@@ -259,9 +282,11 @@ function readProjectMcpDocument(cwd = process.cwd()) {
   if (!fs.existsSync(location.file)) {
     return { ...location, document: { mcpServers: {} } };
   }
+  let content;
   let document;
   try {
-    document = JSON.parse(fs.readFileSync(location.file, "utf8"));
+    content = fs.readFileSync(location.file, "utf8");
+    document = JSON.parse(content);
   } catch (error) {
     throw new Error(
       `Cannot read project MCP config ${location.file}: ${error.message}`,
@@ -281,30 +306,50 @@ function readProjectMcpDocument(cwd = process.cwd()) {
   }
   return {
     ...location,
+    content,
     document: { ...document, mcpServers: { ...(document.mcpServers || {}) } },
   };
 }
 
 export function readProjectMcpRows(cwd = process.cwd()) {
-  const { root, file, document } = readProjectMcpDocument(cwd);
+  const { root, file, content, document } = readProjectMcpDocument(cwd);
+  let trusted = false;
+  try {
+    trusted = checkProjectMcpTrust(file, content).status === "trusted";
+  } catch {
+    // Listing remains available, but execution authority fails closed below.
+  }
   return Object.entries(document.mcpServers)
     .filter(([, config]) => config && typeof config === "object")
-    .map(([name, config]) => ({
-      name,
-      command: config.command || null,
-      args: Array.isArray(config.args) ? config.args : [],
-      env: config.env && typeof config.env === "object" ? config.env : {},
-      url: config.url || null,
-      transport: inferTransport(config),
-      headers:
-        config.headers && typeof config.headers === "object"
-          ? config.headers
-          : {},
-      autoConnect: true,
-      configScope: "project",
-      configSource: file,
-      projectPath: root,
-    }));
+    .map(([name, config]) => {
+      const row = {
+        name,
+        command: config.command || null,
+        args: Array.isArray(config.args) ? config.args : [],
+        env: config.env && typeof config.env === "object" ? config.env : {},
+        url: config.url || null,
+        transport: inferTransport(config),
+        headers:
+          config.headers && typeof config.headers === "object"
+            ? config.headers
+            : {},
+        ...headersHelperField(config.headersHelper),
+        autoConnect: true,
+        configScope: "project",
+        configSource: file,
+        projectPath: root,
+      };
+      if (trusted && row.headersHelper) {
+        row.projectMcpWorkspaceAuthority = issueProjectMcpWorkspaceAuthority({
+          file,
+          content,
+          workspaceRoot: root,
+          serverName: name,
+          config: row,
+        });
+      }
+      return row;
+    });
 }
 
 function writeProjectMcpDocument(file, document) {
@@ -333,6 +378,7 @@ export function writeProjectMcpServer(name, server, cwd = process.cwd()) {
   if (server.headers && Object.keys(server.headers).length > 0) {
     config.headers = server.headers;
   }
+  Object.assign(config, headersHelperField(server.headersHelper));
   document.mcpServers[name] = config;
   writeProjectMcpDocument(file, document);
   return file;
@@ -711,6 +757,9 @@ export function registerMcpCommand(program) {
                 `    ${chalk.gray("Command:")} ${s.command} ${s.args.join(" ")}`,
               );
             }
+            if (s.headersHelper) {
+              logger.log(`    ${chalk.gray("Headers helper:")} configured`);
+            }
             logger.log(
               `    ${chalk.gray("Compatible:")} ${s._modeCompatibility.join(", ") || "(none)"}`,
             );
@@ -747,6 +796,10 @@ export function registerMcpCommand(program) {
     .option(
       "-H, --header <header...>",
       "HTTP header to include on requests (KEY=VALUE, repeatable)",
+    )
+    .option(
+      "--headers-helper <command>",
+      "Shell command that prints fresh HTTP headers as one JSON object",
     )
     .option("--auto-connect", "Auto-connect on startup")
     .option(
@@ -817,6 +870,12 @@ export function registerMcpCommand(program) {
           options.transport ||
           (options.url ? inferTransport({ url: options.url }) : "stdio");
 
+        if (options.headersHelper && !options.url) {
+          throw new Error(
+            "--headers-helper is only supported by HTTP, SSE, and WebSocket transports",
+          );
+        }
+
         const transportDiagnostic = diagnoseMcpTransportConfig({
           command: options.command,
           url: options.url,
@@ -846,6 +905,10 @@ export function registerMcpCommand(program) {
         }
 
         const workspaceRoot = projectMcpLocation(process.cwd()).root;
+        const previousLocal =
+          configScope === "local"
+            ? config.get(name, { scope: "local", cwd: workspaceRoot })
+            : null;
         const storedConfig = {
           command: options.command || null,
           args,
@@ -854,6 +917,7 @@ export function registerMcpCommand(program) {
           env: {},
           autoConnect: !!options.autoConnect,
           headers: Object.keys(headers).length > 0 ? headers : undefined,
+          ...headersHelperField(options.headersHelper),
           configScope,
           projectPath: configScope === "local" ? workspaceRoot : null,
         };
@@ -865,7 +929,25 @@ export function registerMcpCommand(program) {
             process.cwd(),
           );
         } else {
+          if (configScope === "local" && previousLocal?.headersHelper) {
+            revokeLocalMcpHeadersHelperTrust({
+              workspaceRoot,
+              serverName: name,
+              url: previousLocal.url,
+              transport: previousLocal.transport,
+              headersHelper: previousLocal.headersHelper,
+            });
+          }
           config.add(name, storedConfig);
+          if (configScope === "local" && storedConfig.headersHelper) {
+            recordLocalMcpHeadersHelperTrust({
+              workspaceRoot,
+              serverName: name,
+              url: storedConfig.url,
+              transport: storedConfig.transport,
+              headersHelper: storedConfig.headersHelper,
+            });
+          }
           configSource =
             configScope === "user"
               ? "user-database"
@@ -879,6 +961,9 @@ export function registerMcpCommand(program) {
           url: options.url || null,
           transport,
           autoConnect: !!options.autoConnect,
+          headersHelper: storedConfig.headersHelper
+            ? "<configured>"
+            : undefined,
           configScope,
           configSource,
         };
@@ -900,6 +985,9 @@ export function registerMcpCommand(program) {
             logger.log(
               `  ${chalk.gray("Shared config:")} ${configSource} (run with --project-mcp after trust review)`,
             );
+          }
+          if (storedConfig.headersHelper) {
+            logger.log(`  ${chalk.gray("Headers helper:")} configured`);
           }
         }
 
@@ -956,6 +1044,19 @@ export function registerMcpCommand(program) {
         }
         const names = visible.map((s) => s.name);
         const projectFile = projectMcpLocation(process.cwd()).file;
+        if (
+          selected?.configScope === "local" &&
+          selected.headersHelper &&
+          selected.projectPath
+        ) {
+          revokeLocalMcpHeadersHelperTrust({
+            workspaceRoot: selected.projectPath,
+            serverName: name,
+            url: selected.url,
+            transport: selected.transport,
+            headersHelper: selected.headersHelper,
+          });
+        }
         const removed =
           selected?.configScope === "project" &&
           path.resolve(selected.configSource || "") ===
@@ -1020,6 +1121,9 @@ export function registerMcpCommand(program) {
               ? `  URL:       ${server.url}`
               : `  Command:   ${server.command} ${(server.args || []).join(" ")}`,
           );
+          if (server.headersHelper) {
+            logger.log("  Headers helper: configured");
+          }
         }
         await shutdown();
       } catch (err) {
@@ -1099,7 +1203,9 @@ export function registerMcpCommand(program) {
             });
             continue;
           }
-          client = new MCPClient();
+          client = new MCPClient({
+            workspaceBinding: commandWorkspaceBinding(),
+          });
           try {
             const connected = await client.connect(row.name, {
               ...row,
@@ -1505,6 +1611,54 @@ export function registerMcpCommand(program) {
       } catch (err) {
         logger.error(`Get prompt failed: ${err.message}`);
         process.exit(1);
+      }
+    });
+
+  // mcp trust-helper — approve one exact workspace-local helper command
+  mcp
+    .command("trust-helper <name>")
+    .description(
+      "Trust the exact headers helper command for a workspace-local MCP server",
+    )
+    .option("--json", "Output as JSON")
+    .action(async (name, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        if (!ctx.db) throw new Error("Database not available");
+        const workspaceRoot = projectMcpLocation(process.cwd()).root;
+        const config = new MCPServerConfig(ctx.db.getDatabase()).get(name, {
+          scope: "local",
+          cwd: workspaceRoot,
+        });
+        if (!config?.headersHelper) {
+          throw new Error(
+            `No workspace-local MCP headers helper is configured for "${name}"`,
+          );
+        }
+        const spec = {
+          workspaceRoot,
+          serverName: name,
+          url: config.url,
+          transport: config.transport,
+          headersHelper: config.headersHelper,
+        };
+        const trusted = recordLocalMcpHeadersHelperTrust(spec);
+        const payload = {
+          name,
+          workspaceRoot,
+          trusted,
+          fingerprint: localMcpHeadersHelperFingerprint(spec).slice(0, 16),
+        };
+        if (options.json) console.log(JSON.stringify(payload, null, 2));
+        else {
+          logger.success(
+            `Trusted headers helper for "${name}" (${payload.fingerprint})`,
+          );
+        }
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exitCode = 1;
       }
     });
 

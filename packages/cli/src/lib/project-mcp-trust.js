@@ -14,6 +14,7 @@
  */
 
 import path from "node:path";
+import fs from "node:fs";
 import { createHash } from "node:crypto";
 import { getHomeDir } from "./paths.js";
 import { withFileLock } from "./with-file-lock.js";
@@ -23,6 +24,7 @@ import {
 } from "./durable-security-store.js";
 
 export const _deps = { withFileLock };
+const workspaceAuthorities = new WeakMap();
 
 function storePath(opts = {}) {
   return (
@@ -34,6 +36,71 @@ function storePath(opts = {}) {
 
 export function projectMcpFingerprint(content) {
   return createHash("sha256").update(String(content), "utf-8").digest("hex");
+}
+
+/**
+ * Issue an in-process authority only after the caller has verified the exact
+ * project file fingerprint. Plain config fields cannot forge this token.
+ */
+export function issueProjectMcpWorkspaceAuthority({
+  file,
+  content,
+  workspaceRoot,
+  serverName,
+  config = {},
+}) {
+  const canonicalFile = fs.realpathSync.native(path.resolve(file));
+  const canonicalRoot = fs.realpathSync.native(path.resolve(workspaceRoot));
+  const token = Object.freeze({});
+  workspaceAuthorities.set(
+    token,
+    Object.freeze({
+      file: canonicalFile,
+      fingerprint: projectMcpFingerprint(content),
+      workspaceRoot: canonicalRoot,
+      serverName: String(serverName || ""),
+      url: typeof config.url === "string" ? config.url : "",
+      transport: typeof config.transport === "string" ? config.transport : "",
+      headersHelper:
+        typeof config.headersHelper === "string" ? config.headersHelper : "",
+    }),
+  );
+  return token;
+}
+
+/** Resolve a collector-issued project authority against the exact config. */
+export function resolveProjectMcpWorkspaceAuthority(token, expected = {}) {
+  const record = workspaceAuthorities.get(token);
+  if (!record) return null;
+  let expectedFile;
+  try {
+    expectedFile = fs.realpathSync.native(
+      path.resolve(String(expected.configSource || "")),
+    );
+  } catch {
+    return null;
+  }
+  let currentFingerprint;
+  try {
+    currentFingerprint = projectMcpFingerprint(
+      fs.readFileSync(expectedFile, "utf8"),
+    );
+  } catch {
+    return null;
+  }
+  if (
+    record.file !== expectedFile ||
+    record.fingerprint !== currentFingerprint ||
+    record.serverName !== String(expected.serverName || "") ||
+    record.url !== (typeof expected.url === "string" ? expected.url : "") ||
+    record.transport !==
+      (typeof expected.transport === "string" ? expected.transport : "") ||
+    record.headersHelper !==
+      (typeof expected.headersHelper === "string" ? expected.headersHelper : "")
+  ) {
+    return null;
+  }
+  return record.workspaceRoot;
 }
 
 function readStore(opts) {

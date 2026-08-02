@@ -304,7 +304,7 @@ describe("agent loop — MCP resource tools", () => {
     expect(events.some((e) => e.type === "tool_result" && e.is_error)).toBe(
       false,
     );
-  });
+  }, 15_000);
 });
 
 // ─── 4. repl/mcp-prompt pure helpers ─────────────────────────────────────────

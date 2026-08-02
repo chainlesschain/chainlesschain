@@ -2308,6 +2308,33 @@ class ProcessExecutionBroker extends EventEmitter {
     }
   }
 
+  _normalizeAuditRedactArgIndexes(value, argCount) {
+    if (value === undefined) return new Set();
+    if (!Array.isArray(value)) {
+      throw new TypeError("auditRedactArgIndexes must be an array");
+    }
+    const indexes = new Set();
+    for (const index of value) {
+      if (!Number.isInteger(index) || index < 0 || index >= argCount) {
+        throw new TypeError("auditRedactArgIndexes contains an invalid index");
+      }
+      indexes.add(index);
+    }
+    return indexes;
+  }
+
+  _auditArgs(args, redactIndexes = new Set()) {
+    const sanitized = this._sanitizeAuditArgs(args);
+    for (const index of redactIndexes) {
+      sanitized[index] = "***REDACTED***";
+    }
+    return sanitized;
+  }
+
+  _stripAuditControlOptions(options) {
+    delete options.auditRedactArgIndexes;
+  }
+
   _applyCredentialBoundary(command, args, spawnOptions, origin) {
     const originalArgs = Array.isArray(args) ? [...args] : [];
     const originalEnv = spawnOptions.env || process.env;
@@ -2704,6 +2731,10 @@ class ProcessExecutionBroker extends EventEmitter {
     let decision = policy;
     if (isDangerous && policy !== "deny") decision = "deny";
     if (options.forceAllow) decision = "elevated";
+    const auditRedactArgIndexes = this._normalizeAuditRedactArgIndexes(
+      options.auditRedactArgIndexes,
+      Array.isArray(args) ? args.length : 0,
+    );
 
     const traceCtx = this._getTraceContext();
     const auditEntry = {
@@ -2712,7 +2743,7 @@ class ProcessExecutionBroker extends EventEmitter {
       origin,
       scope,
       command,
-      args: this._sanitizeAuditArgs(args),
+      args: this._auditArgs(args, auditRedactArgIndexes),
       cwd,
       startTime,
       permissionDecision: decision,
@@ -2781,6 +2812,7 @@ class ProcessExecutionBroker extends EventEmitter {
     this._stripSandboxControlOptions(spawnOpts);
     this._stripPluginControlOptions(spawnOpts);
     this._stripWorkspaceTransactionOptions(spawnOpts);
+    this._stripAuditControlOptions(spawnOpts);
     if (traceCtx) {
       spawnOpts.env = { ...(spawnOpts.env || process.env) };
       spawnOpts.env.TRACEPARENT = traceCtx.traceparent;
@@ -2802,7 +2834,7 @@ class ProcessExecutionBroker extends EventEmitter {
       );
       spawnOpts.env = credentialBoundary.env;
       args = credentialBoundary.args;
-      auditEntry.args = [...args];
+      auditEntry.args = this._auditArgs(args, auditRedactArgIndexes);
       this._recordCredentialReport(auditEntry, credentialBoundary.report);
       this._stripCredentialControlOptions(spawnOpts);
     }
@@ -2932,7 +2964,7 @@ class ProcessExecutionBroker extends EventEmitter {
       executionId,
       toolName: origin,
       command,
-      args,
+      args: [...auditEntry.args],
       cwd,
       pid: proc.pid,
       component: origin,
@@ -2993,6 +3025,10 @@ class ProcessExecutionBroker extends EventEmitter {
     let decision = policy;
     if (isDangerous && policy !== "deny") decision = "deny";
     if (options.forceAllow) decision = "elevated";
+    const auditRedactArgIndexes = this._normalizeAuditRedactArgIndexes(
+      options.auditRedactArgIndexes,
+      Array.isArray(args) ? args.length : 0,
+    );
 
     const traceCtx = this._getTraceContext();
     const auditEntry = {
@@ -3001,7 +3037,7 @@ class ProcessExecutionBroker extends EventEmitter {
       origin,
       scope,
       command,
-      args: this._sanitizeAuditArgs(args),
+      args: this._auditArgs(args, auditRedactArgIndexes),
       cwd,
       startTime,
       permissionDecision: decision,
@@ -3060,6 +3096,7 @@ class ProcessExecutionBroker extends EventEmitter {
     this._stripSandboxControlOptions(spawnOpts);
     this._stripPluginControlOptions(spawnOpts);
     this._stripWorkspaceTransactionOptions(spawnOpts);
+    this._stripAuditControlOptions(spawnOpts);
     if (traceCtx) {
       spawnOpts.env = { ...(spawnOpts.env || process.env) };
       spawnOpts.env.TRACEPARENT = traceCtx.traceparent;
@@ -3081,7 +3118,7 @@ class ProcessExecutionBroker extends EventEmitter {
       );
       spawnOpts.env = credentialBoundary.env;
       args = credentialBoundary.args;
-      auditEntry.args = [...args];
+      auditEntry.args = this._auditArgs(args, auditRedactArgIndexes);
       this._recordCredentialReport(auditEntry, credentialBoundary.report);
       this._stripCredentialControlOptions(spawnOpts);
     }
@@ -3182,13 +3219,17 @@ class ProcessExecutionBroker extends EventEmitter {
     const origin = options.origin || "terminal:pty";
     const scope = options.scope || "terminal";
     const policy = options.policy || "allow";
+    const auditRedactArgIndexes = this._normalizeAuditRedactArgIndexes(
+      options.auditRedactArgIndexes,
+      Array.isArray(args) ? args.length : 0,
+    );
     const auditEntry = {
       executionId,
       traceId: this._getTraceContext()?.traceId || null,
       origin,
       scope,
       command,
-      args: this._sanitizeAuditArgs(args),
+      args: this._auditArgs(args, auditRedactArgIndexes),
       cwd: options.cwd || process.cwd(),
       startTime,
       permissionDecision: policy,
@@ -3237,10 +3278,11 @@ class ProcessExecutionBroker extends EventEmitter {
       throw error;
     }
 
-    const spawnOptions = { ...options, args: [...auditEntry.args] };
+    const spawnOptions = { ...options, args: [...args] };
     this._stripSandboxControlOptions(spawnOptions);
     this._stripPluginControlOptions(spawnOptions);
     this._stripWorkspaceTransactionOptions(spawnOptions);
+    this._stripAuditControlOptions(spawnOptions);
     try {
       const terminalName =
         typeof options.name === "string" && options.name
@@ -3265,7 +3307,10 @@ class ProcessExecutionBroker extends EventEmitter {
         );
         spawnOptions.env = credentialBoundary.env;
         spawnOptions.args = credentialBoundary.args;
-        auditEntry.args = [...credentialBoundary.args];
+        auditEntry.args = this._auditArgs(
+          credentialBoundary.args,
+          auditRedactArgIndexes,
+        );
         this._recordCredentialReport(auditEntry, credentialBoundary.report);
         this._stripCredentialControlOptions(spawnOptions);
       }

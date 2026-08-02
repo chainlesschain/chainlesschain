@@ -4,8 +4,15 @@ import { redactSecrets } from "./secret-scan.js";
 import { isSecretRef } from "./secret-store.js";
 
 export const CONFIG_REDACTED = "[REDACTED]";
+export const CONFIG_CONFIGURED = "<configured>";
 
 export function redactConfigValue(key, value) {
+  const leaf = String(key || "")
+    .split(".")
+    .at(-1);
+  if (/^headersHelper$/i.test(leaf || "")) {
+    return value == null || value === "" ? value : CONFIG_CONFIGURED;
+  }
   if (isSecretConfigKey(key) || isSecretRef(value)) {
     return value == null || value === "" ? value : CONFIG_REDACTED;
   }

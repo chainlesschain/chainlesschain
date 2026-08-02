@@ -15,6 +15,7 @@ import {
   validateConfigDocument,
 } from "../../src/lib/config-schema.js";
 import {
+  CONFIG_CONFIGURED,
   CONFIG_REDACTED,
   redactConfigObject,
 } from "../../src/lib/config-redaction.js";
@@ -283,6 +284,13 @@ describe("schema-driven config redaction", () => {
     ]) {
       expect(isSecretConfigKey(key), key).toBe(true);
     }
+  });
+
+  it("never prints an MCP headers helper command", () => {
+    const command = "credential-helper --opaque-profile production";
+    const safe = redactConfigObject({ mcp: { headersHelper: command } });
+    expect(safe.mcp.headersHelper).toBe(CONFIG_CONFIGURED);
+    expect(JSON.stringify(safe)).not.toContain(command);
   });
 
   it("redacts invalid hostile paths without invoking __proto__ setters", () => {

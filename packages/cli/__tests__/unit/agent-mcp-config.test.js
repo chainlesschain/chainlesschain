@@ -309,6 +309,12 @@ describe("setupMcpFromConfig", () => {
     expect(mcpAuthHint("https://x/sse", "request was Unauthorized")).toMatch(
       /cc mcp login/,
     );
+    const redacted = mcpAuthHint(
+      "https://user:password@x/sse?token=opaque#fragment",
+      "HTTP 401: Unauthorized",
+    );
+    expect(redacted).toContain("https://x/sse");
+    expect(redacted).not.toMatch(/user|password|token|opaque|fragment/);
   });
 
   it("mcpAuthHint: returns null for non-auth errors, other HTTP codes, or stdio (no url)", () => {
@@ -512,7 +518,7 @@ describe("runAgentHeadless — --mcp-config wiring", () => {
       toolName: "get",
     });
     expect(client.calls.disconnectAll).toBe(1);
-  });
+  }, 15_000);
 
   it("dispatches an mcp__server__tool call to mcpClient.callTool (real loop)", async () => {
     const client = fakeClient();

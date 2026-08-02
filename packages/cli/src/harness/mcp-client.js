@@ -15,7 +15,13 @@ import { pathToFileURL } from "url";
 import WebSocket from "ws";
 import { safeJsonParse } from "../lib/safe-json.js";
 import { EventRuntimeProducer } from "../lib/event-runtime-producer.js";
+import { currentHostHooksV2WorkspaceBinding } from "../lib/hooks-v2-workspace-context.js";
 import { resolvePluginWorkspaceAuthority } from "../lib/plugin-runtime/sandbox-policy.js";
+import {
+  mergeMcpHeaders,
+  resolveMcpHeadersHelperContext,
+  runMcpHeadersHelper,
+} from "../lib/mcp-headers-helper.js";
 
 /**
  * Injectable dependencies — overridable from tests.
@@ -25,6 +31,8 @@ export const _deps = {
   spawn: executionBroker.spawn.bind(executionBroker),
   fetch: (...args) => globalThis.fetch(...args),
   WebSocket,
+  runMcpHeadersHelper,
+  resolveMcpHeadersHelperContext,
   // Backoff sleep seam (tests override with a no-op so retries don't wait).
   sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
 };
@@ -196,11 +204,24 @@ export function isWebSocketTransport(transportKind) {
   return transportKind === "ws" || transportKind === "wss";
 }
 
+export function redactMcpUrl(value) {
+  try {
+    const parsed = new URL(String(value));
+    parsed.username = "";
+    parsed.password = "";
+    parsed.search = "";
+    parsed.hash = "";
+    return parsed.toString();
+  } catch {
+    return "<invalid-url>";
+  }
+}
+
 function mcpTransportError(code, message, details = {}) {
   const error = new Error(message);
   error.code = code;
   error.transport = details.transport || null;
-  error.url = details.url || null;
+  error.url = details.url ? redactMcpUrl(details.url) : null;
   if (details.status != null) error.status = details.status;
   if (details.closeCode != null) error.closeCode = details.closeCode;
   return error;
@@ -220,6 +241,14 @@ export function isLikelyConnectionError(err) {
   const msg = String((err && err.message) || err || "");
   return /fetch failed|ECONNREFUSED|ECONNRESET|ETIMEDOUT|EPIPE|socket hang up|network error|WebSocket|HTTP 40[134]\b|not connected|not found|not available/i.test(
     msg,
+  );
+}
+
+export function isMcpAuthenticationError(err) {
+  return (
+    err?.status === 401 ||
+    err?.status === 403 ||
+    /\bHTTP\s*40[13]\b/i.test(String(err?.message || err || ""))
   );
 }
 
@@ -273,6 +302,8 @@ export class MCPClient extends EventEmitter {
     this._reconnecting = new Map(); // name → in-flight reconnect promise
     this._sessionId =
       options && options.sessionId != null ? String(options.sessionId) : null;
+    this._workspaceBinding =
+      options?.workspaceBinding || currentHostHooksV2WorkspaceBinding();
     // MCP roots capability (Claude-Code 2.1.203 parity): servers may ask the
     // client for its workspace roots (`roots/list`, a server→client request).
     // null = derive from process.cwd() at answer time.
@@ -750,6 +781,50 @@ export class MCPClient extends EventEmitter {
     else this._reconnectors.delete(name);
   }
 
+  async _connectionHeaders(name, config, transportKind) {
+    const staticHeaders = { ...(config?.headers || {}) };
+    if (!config?.headersHelper) return staticHeaders;
+    if (
+      !isHttpTransport(transportKind) &&
+      !isWebSocketTransport(transportKind)
+    ) {
+      const error = new Error(
+        `MCP headersHelper is only supported by HTTP, SSE, and WebSocket servers (server "${name}")`,
+      );
+      error.code = "CC_MCP_HEADERS_HELPER_TRANSPORT_INVALID";
+      throw error;
+    }
+    const context = _deps.resolveMcpHeadersHelperContext(
+      {
+        ...config,
+        serverName: name,
+      },
+      this._workspaceBinding
+        ? { currentWorkspaceBinding: () => this._workspaceBinding }
+        : undefined,
+    );
+    const dynamicHeaders = await _deps.runMcpHeadersHelper({
+      command: config.headersHelper,
+      cwd: context.cwd,
+      pluginRoot: context.pluginRoot,
+      execution: context.execution,
+      serverName: name,
+      serverUrl: config.url,
+    });
+    return mergeMcpHeaders(staticHeaders, dynamicHeaders);
+  }
+
+  async _refreshConnectionHeaders(name, entry) {
+    if (!entry?.config?.headersHelper) return entry?.httpHeaders || {};
+    const headers = await this._connectionHeaders(
+      name,
+      entry.config,
+      entry.transportKind,
+    );
+    entry.httpHeaders = headers;
+    return headers;
+  }
+
   /**
    * Connect to an MCP server. Routes to stdio or HTTP transport based on
    * `config.transport` / `config.url` (see `inferTransport`).
@@ -757,20 +832,29 @@ export class MCPClient extends EventEmitter {
    * @param {string} name - Server name
    * @param {object} config - { command?, args?, env?, url?, transport? }
    */
-  async connect(name, config) {
+  async connect(name, config, _authRetryUsed = false) {
     if (this.servers.has(name)) {
       throw new Error(`Server "${name}" already connected`);
     }
 
     const transportKind = inferTransport(config);
+    const sourceConfig = config;
+    const connectionHeaders = await this._connectionHeaders(
+      name,
+      sourceConfig,
+      transportKind,
+    );
+    config = { ...sourceConfig, headers: connectionHeaders };
     const entry = {
-      config,
+      // Keep the source config (static headers + helper command) so every
+      // reconnect can execute the helper afresh instead of reusing credentials.
+      config: sourceConfig,
       transportKind,
       state: ServerState.CONNECTING,
       process: null,
       socket: null,
       httpUrl: null,
-      httpHeaders: {},
+      httpHeaders: connectionHeaders,
       httpSessionId: null,
       protocolVersion: null,
       _httpMessageStream: null,
@@ -814,7 +898,7 @@ export class MCPClient extends EventEmitter {
           throw new Error(`HTTP transport requires a url (server "${name}")`);
         }
         entry.httpUrl = config.url;
-        entry.httpHeaders = { ...(config.headers || {}) };
+        entry.httpHeaders = connectionHeaders;
       } else if (isWebSocketTransport(transportKind)) {
         if (!config.url) {
           throw mcpTransportError(
@@ -829,7 +913,7 @@ export class MCPClient extends EventEmitter {
         } catch {
           throw mcpTransportError(
             "CC_MCP_WS_INVALID_URL",
-            `Invalid WebSocket URL for server "${name}": ${config.url}`,
+            `Invalid WebSocket URL for server "${name}": ${redactMcpUrl(config.url)}`,
             { transport: transportKind, url: config.url },
           );
         }
@@ -1239,12 +1323,26 @@ export class MCPClient extends EventEmitter {
       if (entry.socket) {
         try {
           entry.socket.removeAllListeners();
+          // ws emits an asynchronous error when terminate() races a rejected
+          // opening handshake. Keep a sink installed after removing the
+          // connection listeners so teardown cannot become an uncaught error.
+          entry.socket.on?.("error", () => {});
           entry.socket.terminate?.();
         } catch {
           // teardown is best-effort
         }
       }
       this.servers.delete(name);
+      if (
+        !_authRetryUsed &&
+        sourceConfig.headersHelper &&
+        isMcpAuthenticationError(err)
+      ) {
+        // A helper is intentionally uncached. One authentication rejection may
+        // mean its short-lived token expired between generation and initialize;
+        // execute it once more and retry the connection exactly once.
+        return this.connect(name, sourceConfig, true);
+      }
       throw err;
     }
   }
@@ -1377,12 +1475,20 @@ export class MCPClient extends EventEmitter {
         return this._callToolOnce(serverName, toolName, args);
       }
       if (
-        !this._reconnectors.has(serverName) ||
-        !isLikelyConnectionError(err)
+        !this._reconnectors.has(serverName) &&
+        !this.servers.get(serverName)?.config?.headersHelper
       ) {
         throw err;
       }
-      const reconnected = await this._tryReconnect(serverName);
+      if (!isLikelyConnectionError(err)) {
+        throw err;
+      }
+      const reconnected = await this._tryReconnect(serverName, {
+        // The high-level tool operation owns the one reconnect/retry budget.
+        // Its reconnect initialize must not recursively mint another auth
+        // retry when the refreshed credential is also rejected.
+        connectAuthRetryUsed: true,
+      });
       if (!reconnected) throw err;
       return await this._callToolOnce(serverName, toolName, args);
     }
@@ -1454,19 +1560,21 @@ export class MCPClient extends EventEmitter {
    * parallel — a double connect would throw "already connected").
    * Resolves true on success, false on any failure (original error wins).
    */
-  _tryReconnect(name) {
+  _tryReconnect(name, options = {}) {
     const inFlight = this._reconnecting.get(name);
     if (inFlight) return inFlight;
     const p = (async () => {
       try {
-        const fresh = await this._reconnectors.get(name)();
+        const currentConfig = this.servers.get(name)?.config || null;
+        const resolver = this._reconnectors.get(name);
+        const fresh = resolver ? await resolver() : currentConfig;
         if (!fresh) return false;
         try {
           await this.disconnect(name);
         } catch {
           // entry may already be gone — connect() below is what matters
         }
-        await this.connect(name, fresh);
+        await this.connect(name, fresh, options.connectAuthRetryUsed === true);
         this.emit("server-reconnected", { name, url: fresh.url || null });
         return true;
       } catch {
@@ -1835,6 +1943,7 @@ export class MCPClient extends EventEmitter {
       controller: null,
       lastEventId: null,
       retryMs: 1000,
+      authFailures: 0,
       wake: null,
       promise: null,
     };
@@ -1846,19 +1955,22 @@ export class MCPClient extends EventEmitter {
             typeof AbortController === "function"
               ? new AbortController()
               : null;
-          const headers = {
-            Accept: "text/event-stream",
-            ...(entry.httpHeaders || {}),
-            ...(entry.httpSessionId
-              ? { "Mcp-Session-Id": entry.httpSessionId }
-              : {}),
-            "MCP-Protocol-Version":
-              entry.protocolVersion || this._protocolVersion,
-            ...(stream.lastEventId
-              ? { "Last-Event-ID": stream.lastEventId }
-              : {}),
-          };
           try {
+            const resolvedHeaders = entry.config?.headersHelper
+              ? await this._refreshConnectionHeaders(serverName, entry)
+              : entry.httpHeaders || {};
+            const headers = {
+              Accept: "text/event-stream",
+              ...resolvedHeaders,
+              ...(entry.httpSessionId
+                ? { "Mcp-Session-Id": entry.httpSessionId }
+                : {}),
+              "MCP-Protocol-Version":
+                entry.protocolVersion || this._protocolVersion,
+              ...(stream.lastEventId
+                ? { "Last-Event-ID": stream.lastEventId }
+                : {}),
+            };
             const response = await _deps.fetch(entry.httpUrl, {
               method: "GET",
               headers,
@@ -1867,11 +1979,24 @@ export class MCPClient extends EventEmitter {
                 : {}),
             });
             if (response.status === 405) return;
+            if (response.status === 401 || response.status === 403) {
+              if (entry.config?.headersHelper && stream.authFailures === 0) {
+                stream.authFailures = 1;
+                continue;
+              }
+              this.emit("server-stream-error", {
+                name: serverName,
+                code: "CC_MCP_AUTH_RETRY_EXHAUSTED",
+                error: `MCP HTTP message stream authentication failed (HTTP ${response.status})`,
+              });
+              return;
+            }
             if (!response.ok) {
               throw new Error(
                 `MCP HTTP message stream returned ${response.status}`,
               );
             }
+            stream.authFailures = 0;
             const contentType = response.headers?.get
               ? String(response.headers.get("content-type") || "").toLowerCase()
               : "";
@@ -1890,6 +2015,9 @@ export class MCPClient extends EventEmitter {
               name: serverName,
               error: error?.message || String(error),
             });
+            if (String(error?.code || "").startsWith("CC_MCP_HEADERS_HELPER")) {
+              return;
+            }
           } finally {
             stream.controller = null;
           }
@@ -1986,18 +2114,37 @@ export class MCPClient extends EventEmitter {
       }
 
       if (!response.ok) {
-        const text =
-          typeof response.text === "function" ? await response.text() : "";
+        // Authentication bodies frequently echo token/debug material. When a
+        // dynamic helper is configured, any error body may reflect its opaque
+        // header values; structured HTTP status is sufficient and cannot leak
+        // freshly generated credentials into logs or exceptions.
+        const suppressBody =
+          Boolean(entry.config?.headersHelper) ||
+          response.status === 401 ||
+          response.status === 403;
+        const text = suppressBody
+          ? ""
+          : typeof response.text === "function"
+            ? await response.text()
+            : "";
         const detail = text ? `: ${text.slice(0, 200)}` : "";
         // 404 usually means a wrong/stale server URL — name it and point at the
         // MCP config (Claude-Code 2.1.191: "HTTP 404 errors now show the URL and
         // point to your MCP config") instead of a bare "HTTP 404".
         if (response.status === 404) {
           throw new Error(
-            `HTTP 404${detail} — ${entry.httpUrl} returned Not Found; check this server's "url" in your MCP config`,
+            `HTTP 404${detail} — ${redactMcpUrl(entry.httpUrl)} returned Not Found; check this server's "url" in your MCP config`,
           );
         }
-        throw new Error(`HTTP ${response.status}${detail}`);
+        throw mcpTransportError(
+          "CC_MCP_HTTP_STATUS",
+          `HTTP ${response.status}${detail}`,
+          {
+            transport: entry.transportKind,
+            url: entry.config?.url,
+            status: response.status,
+          },
+        );
       }
 
       const contentType = response.headers?.get
@@ -2501,6 +2648,7 @@ export class MCPServerConfig {
         url TEXT,
         transport TEXT DEFAULT 'stdio',
         headers TEXT DEFAULT '{}',
+        headers_helper TEXT,
         config_scope TEXT DEFAULT 'user',
         config_source TEXT,
         project_path TEXT,
@@ -2536,6 +2684,9 @@ export class MCPServerConfig {
         this.db.exec(
           "ALTER TABLE mcp_servers ADD COLUMN headers TEXT DEFAULT '{}'",
         );
+      }
+      if (!cols.has("headers_helper")) {
+        this.db.exec("ALTER TABLE mcp_servers ADD COLUMN headers_helper TEXT");
       }
       if (!cols.has("config_scope")) {
         this.db.exec(
@@ -2580,6 +2731,10 @@ export class MCPServerConfig {
         : configScope === "user"
           ? "user-database"
           : `${configScope}:${projectPath}`);
+    const headersHelper =
+      typeof config.headersHelper === "string" && config.headersHelper.trim()
+        ? config.headersHelper
+        : null;
     // The legacy table uses `name` as its primary key. Encode workspace-bound
     // identities in that key so `foo` can coexist at local/project/user scope
     // while retaining the old key for user rows and backwards compatibility.
@@ -2589,7 +2744,7 @@ export class MCPServerConfig {
         : `${configScope}:${Buffer.from(projectPath || "managed", "utf8").toString("base64url")}:${name}`;
     this.db
       .prepare(
-        "INSERT OR REPLACE INTO mcp_servers (name, command, args, env, auto_connect, url, transport, headers, config_scope, config_source, project_path, display_name, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))",
+        "INSERT OR REPLACE INTO mcp_servers (name, command, args, env, auto_connect, url, transport, headers, headers_helper, config_scope, config_source, project_path, display_name, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))",
       )
       .run(
         storageName,
@@ -2600,6 +2755,7 @@ export class MCPServerConfig {
         url,
         transport,
         JSON.stringify(config.headers || {}),
+        headersHelper,
         configScope,
         configSource,
         projectPath,
@@ -2644,6 +2800,9 @@ export class MCPServerConfig {
       transport:
         row.transport || (row.url ? inferTransport({ url: row.url }) : "stdio"),
       headers: safeJsonParse(row.headers, {}),
+      ...(typeof row.headers_helper === "string" && row.headers_helper.trim()
+        ? { headersHelper: row.headers_helper }
+        : {}),
       configScope: normalizeMcpConfigScope(row.config_scope || "user"),
       configSource:
         row.config_source ||

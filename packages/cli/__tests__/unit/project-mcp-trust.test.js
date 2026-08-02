@@ -4,7 +4,9 @@ import os from "node:os";
 import path from "node:path";
 import {
   checkProjectMcpTrust,
+  issueProjectMcpWorkspaceAuthority,
   recordProjectMcpTrust,
+  resolveProjectMcpWorkspaceAuthority,
   _deps,
 } from "../../src/lib/project-mcp-trust.js";
 import { loadProjectMcp } from "../../src/runtime/mcp-config.js";
@@ -75,6 +77,59 @@ describe("project MCP trust store", () => {
       recordProjectMcpTrust(projectFile, content, { storePath: store }),
     ).toThrow(unavailable);
     expect(fs.existsSync(store)).toBe(false);
+  });
+
+  it("issues an opaque authority bound to the exact helper config", () => {
+    const file = path.join(dir, ".mcp.json");
+    const projectContent = JSON.stringify({ mcpServers: {} });
+    fs.writeFileSync(file, projectContent, "utf8");
+    const config = {
+      url: "https://mcp.example.test/rpc",
+      transport: "https",
+      headersHelper: "credential-helper",
+    };
+    const authority = issueProjectMcpWorkspaceAuthority({
+      file,
+      content: projectContent,
+      workspaceRoot: dir,
+      serverName: "api",
+      config,
+    });
+
+    expect(
+      resolveProjectMcpWorkspaceAuthority(authority, {
+        configSource: file,
+        serverName: "api",
+        ...config,
+      }),
+    ).toBe(fs.realpathSync.native(dir));
+    expect(
+      resolveProjectMcpWorkspaceAuthority(authority, {
+        configSource: file,
+        serverName: "api",
+        ...config,
+        headersHelper: "changed-helper",
+      }),
+    ).toBeNull();
+    expect(
+      resolveProjectMcpWorkspaceAuthority(
+        {},
+        {
+          configSource: file,
+          serverName: "api",
+          ...config,
+        },
+      ),
+    ).toBeNull();
+
+    fs.writeFileSync(file, `${projectContent} `, "utf8");
+    expect(
+      resolveProjectMcpWorkspaceAuthority(authority, {
+        configSource: file,
+        serverName: "api",
+        ...config,
+      }),
+    ).toBeNull();
   });
 });
 

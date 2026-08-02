@@ -16,7 +16,7 @@
 
 import fs from "fs";
 import path from "path";
-import { MCPClient } from "../harness/mcp-client.js";
+import { MCPClient, redactMcpUrl } from "../harness/mcp-client.js";
 import { projectRootBase } from "../lib/project-root.cjs";
 import {
   discoverIdeServer,
@@ -36,6 +36,12 @@ import {
 import { collectPluginMcpServers } from "../lib/plugin-runtime/mcp.js";
 import { EventRuntimeStore } from "../lib/event-runtime-store.js";
 import { mcpEffectDescriptorFields } from "../lib/mcp-effect-contract.js";
+
+function headersHelperField(value) {
+  return typeof value === "string" && value.trim()
+    ? { headersHelper: value }
+    : {};
+}
 
 /**
  * Normalize a parsed config object into a `{ name: serverConfig }` map.
@@ -58,6 +64,7 @@ export function parseMcpServers(raw) {
       transport: cfg.transport,
       headers:
         cfg.headers && typeof cfg.headers === "object" ? cfg.headers : {},
+      ...headersHelperField(cfg.headersHelper),
       ...(cfg.configScope ? { configScope: cfg.configScope } : {}),
       ...(cfg.configSource ? { configSource: cfg.configSource } : {}),
     };
@@ -157,7 +164,8 @@ export function mcpAuthHint(url, errMessage) {
     /\bunauthor/i.test(m) ||
     /\bforbidden\b/i.test(m);
   if (!isAuth) return null;
-  return `    → "${url}" requires authentication; run: cc mcp login ${url}\n`;
+  const safeUrl = redactMcpUrl(url);
+  return `    → "${safeUrl}" requires authentication; run: cc mcp login ${safeUrl}\n`;
 }
 
 /**
@@ -540,6 +548,7 @@ export async function loadRegisteredMcp(rawDb, deps = {}) {
       url: r.url,
       transport: r.transport,
       headers: r.headers,
+      ...headersHelperField(r.headersHelper),
       configScope: r.configScope,
       configSource: r.configSource,
       projectPath: r.projectPath,
@@ -773,10 +782,27 @@ export async function loadProjectMcp(opts = {}, deps = {}) {
     }
     const parsed = parseMcpServers(raw);
     if (Object.keys(parsed).length > 0) {
-      for (const config of Object.values(parsed)) {
+      for (const [name, config] of Object.entries(parsed)) {
         config.configScope = "project";
         config.configSource = file;
         config.projectPath = path.dirname(file);
+        if (config.headersHelper) {
+          if (typeof trust.issueProjectMcpWorkspaceAuthority !== "function") {
+            writeErr(
+              `  mcp: SKIPPING project headersHelper "${name}" — project execution authority is unavailable.\n`,
+            );
+            delete parsed[name];
+            continue;
+          }
+          config.projectMcpWorkspaceAuthority =
+            trust.issueProjectMcpWorkspaceAuthority({
+              file,
+              content,
+              workspaceRoot: path.dirname(file),
+              serverName: name,
+              config,
+            });
+        }
       }
       Object.assign(servers, parsed); // later file (cwd) overrides earlier (root)
       seenFiles.push(file);
@@ -815,6 +841,16 @@ export async function loadPluginMcp(opts = {}, deps = {}) {
   } catch {
     return deps.into || null;
   }
+  servers = Object.fromEntries(
+    Object.entries(servers || {}).map(([name, config]) => {
+      if (!config || typeof config !== "object" || Array.isArray(config)) {
+        return [name, config];
+      }
+      const rest = { ...config };
+      delete rest.headersHelper;
+      return [name, { ...rest, ...headersHelperField(config.headersHelper) }];
+    }),
+  );
   const names = Object.keys(servers || {});
   if (names.length === 0) return deps.into || null;
   writeErr(

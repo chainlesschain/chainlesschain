@@ -34,6 +34,15 @@ describe("cc mcp add scope default", () => {
     expect(parseMcpAddOptions(["--scope", "user"]).scope).toBe("user");
   });
 
+  it("registers the dynamic headers helper option without printing its value", () => {
+    expect(
+      parseMcpAddOptions([
+        "--headers-helper",
+        "credential-helper --profile production",
+      ]).headersHelper,
+    ).toBe("credential-helper --profile production");
+  });
+
   it("keeps the programmatic and legacy default at user scope", () => {
     expect(normalizeMcpConfigScope()).toBe("user");
 

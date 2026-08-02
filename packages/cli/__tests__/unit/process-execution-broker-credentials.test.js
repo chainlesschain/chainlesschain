@@ -6,6 +6,7 @@ describe("ProcessExecutionBroker credential boundary", () => {
   let previousNative;
   let previousSandboxEnabled;
   let previousCredentialAgent;
+  let previousHooksEventSink;
   let nativeSpawn;
   let nativeSpawnSync;
 
@@ -13,6 +14,7 @@ describe("ProcessExecutionBroker credential boundary", () => {
     previousNative = executionBroker._native;
     previousSandboxEnabled = executionBroker._platformSandboxEnabled;
     previousCredentialAgent = executionBroker._credentialAgent;
+    previousHooksEventSink = executionBroker._hooksEventSink;
     nativeSpawn = vi.fn(() => {
       const child = new EventEmitter();
       child.pid = 4101;
@@ -35,6 +37,7 @@ describe("ProcessExecutionBroker credential boundary", () => {
     executionBroker._native = previousNative;
     executionBroker._platformSandboxEnabled = previousSandboxEnabled;
     executionBroker._credentialAgent = previousCredentialAgent;
+    executionBroker._setHooksEventSink(previousHooksEventSink);
     executionBroker.flushAuditLog();
   });
 
@@ -116,6 +119,31 @@ describe("ProcessExecutionBroker credential boundary", () => {
     const audit = executionBroker.getAuditLog(1)[0];
     expect(audit.args).toEqual(["--api-key=***REDACTED***"]);
     expect(JSON.stringify(audit)).not.toContain(secret);
+  });
+
+  it("keeps explicitly opaque argv out of audit while preserving launch argv", () => {
+    const opaqueCommand = "credential-helper --profile production";
+    const hooks = { emit: vi.fn() };
+    executionBroker._setHooksEventSink(hooks);
+
+    executionBroker.spawn("/bin/sh", ["-c", opaqueCommand], {
+      origin: "test:opaque-argv",
+      policy: "allow",
+      auditRedactArgIndexes: [1],
+    });
+
+    expect(nativeSpawn).toHaveBeenCalledOnce();
+    const [, args, options] = nativeSpawn.mock.calls[0];
+    expect(args).toEqual(["-c", opaqueCommand]);
+    expect(options).not.toHaveProperty("auditRedactArgIndexes");
+    const audit = executionBroker.getAuditLog(1)[0];
+    expect(audit.args).toEqual(["-c", "***REDACTED***"]);
+    expect(JSON.stringify(audit)).not.toContain(opaqueCommand);
+    expect(hooks.emit).toHaveBeenCalledWith(
+      "tool:start",
+      expect.objectContaining({ args: ["-c", "***REDACTED***"] }),
+    );
+    expect(JSON.stringify(hooks.emit.mock.calls)).not.toContain(opaqueCommand);
   });
 
   it("fails closed when credential filtering cannot be applied", () => {
