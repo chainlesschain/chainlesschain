@@ -16,7 +16,7 @@ import {
   agentLoop,
   _getSharedCodeIntel,
   disposeSharedCodeIntel,
-  killAllBackgroundShellTasks,
+  killAllBackgroundShellTasksSync,
   listBackgroundShellTasks,
 } from "../../src/runtime/agent-core.js";
 import { runAgentHeadless } from "../../src/runtime/headless-runner.js";
@@ -67,15 +67,41 @@ async function runLoop(cwd, stateDir, toolName, toolArgs, extra = {}) {
   return events;
 }
 
+const delay = (milliseconds) =>
+  new Promise((resolve) => setTimeout(resolve, milliseconds));
+const RETRIABLE_REMOVE_CODES = new Set(["EBUSY", "ENOTEMPTY", "EPERM"]);
+
 async function drainBackgroundShells() {
-  killAllBackgroundShellTasks();
+  killAllBackgroundShellTasksSync();
   for (let attempt = 0; attempt < 200; attempt += 1) {
     if (!listBackgroundShellTasks().some((task) => task.status === "running")) {
       return;
     }
-    killAllBackgroundShellTasks();
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await delay(20);
   }
+  throw new Error("background shell tasks did not terminate during teardown");
+}
+
+async function removeTempTarget(target) {
+  let lastError;
+  for (let attempt = 0; attempt < 200; attempt += 1) {
+    try {
+      rmSync(target, { recursive: true, force: true });
+      return;
+    } catch (error) {
+      if (!RETRIABLE_REMOVE_CODES.has(error?.code)) {
+        throw error;
+      }
+      lastError = error;
+      await delay(50);
+    }
+  }
+  const error = new Error(
+    `temporary test directory remained locked during teardown: ${target}`,
+    { cause: lastError },
+  );
+  error.code = "TEST_TEARDOWN_TIMEOUT";
+  throw error;
 }
 
 describe("managed checkpoint agent integration", () => {
@@ -85,12 +111,7 @@ describe("managed checkpoint agent integration", () => {
     await disposeSharedCodeIntel();
     await drainBackgroundShells();
     for (const target of cleanup.splice(0)) {
-      rmSync(target, {
-        recursive: true,
-        force: true,
-        maxRetries: 20,
-        retryDelay: 50,
-      });
+      await removeTempTarget(target);
     }
   });
 
