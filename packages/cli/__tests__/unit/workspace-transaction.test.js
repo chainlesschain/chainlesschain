@@ -9,7 +9,9 @@ import {
   WORKSPACE_TRANSACTION_STATE,
   WorkspaceTransactionManager,
   digestWorkspaceEvidence,
+  inspectWorkspaceLockOwnerSync,
   withWorkspaceLockSync,
+  withWorkspaceRecoveryLockSync,
 } from "../../src/lib/process-execution-broker/workspace-transaction.js";
 
 const roots = [];
@@ -77,7 +79,6 @@ function begin(input, overrides = {}) {
 
 function workspaceLockOptions(input, overrides = {}) {
   let now = 1_000;
-  let sequence = 0;
   return {
     workspaceRoot: input.workspaceRoot,
     operationId: "checkpoint-operation",
@@ -91,10 +92,15 @@ function workspaceLockOptions(input, overrides = {}) {
       now += milliseconds;
     },
     _isProcessAlive: () => true,
-    _ownerToken: () =>
-      `20000000-0000-4000-8000-${String(++sequence).padStart(12, "0")}`,
+    _ownerToken: ownerTokenSequence("20000000"),
     ...overrides,
   };
+}
+
+function ownerTokenSequence(prefix) {
+  let sequence = 0;
+  return () =>
+    `${prefix}-0000-4000-8000-${String(++sequence).padStart(12, "0")}`;
 }
 
 function workspaceLockEntries(input) {
@@ -114,6 +120,15 @@ function workspaceLockName(workspaceRoot) {
   const resolved = path.resolve(workspaceRoot);
   const key = process.platform === "win32" ? resolved.toLowerCase() : resolved;
   return createHash("sha256").update(Buffer.from(key, "utf8")).digest("hex");
+}
+
+function captureThrown(callback) {
+  try {
+    callback();
+  } catch (error) {
+    return error;
+  }
+  return null;
 }
 
 afterEach(() => {
@@ -336,6 +351,405 @@ describe("withWorkspaceLockSync", () => {
       }),
     );
     expect(workspaceLockEntries(input)).toEqual([]);
+  });
+
+  it("retains only an exact private recovery request and exposes a safe owner observation", () => {
+    const input = fixture();
+    expect(() =>
+      withWorkspaceLockSync(
+        workspaceLockOptions(input, {
+          operationId: "wrong-retention-purpose",
+          purpose: "workspace-transaction",
+        }),
+        (lease) => lease.retainForRecovery("not a checkpoint restore"),
+      ),
+    ).toThrow(
+      expect.objectContaining({
+        code: WORKSPACE_TRANSACTION_ERROR.INVALID_ARGUMENT,
+      }),
+    );
+    expect(workspaceLockEntries(input)).toEqual([]);
+
+    const caughtResult = withWorkspaceLockSync(
+      workspaceLockOptions(input, { operationId: "caught-retention" }),
+      (lease) => {
+        try {
+          lease.retainForRecovery("caught by callback");
+        } catch {
+          // A caught request is not allowed to retain the lock.
+        }
+        return "released";
+      },
+    );
+    expect(caughtResult).toBe("released");
+    expect(workspaceLockEntries(input)).toEqual([]);
+
+    const forged = Object.assign(new Error("forged recovery"), {
+      code: WORKSPACE_TRANSACTION_ERROR.RECOVERY_REQUIRED,
+    });
+    const forgedResult = captureThrown(() =>
+      withWorkspaceLockSync(
+        workspaceLockOptions(input, { operationId: "forged-retention" }),
+        (lease) => {
+          try {
+            lease.retainForRecovery("request that will be replaced");
+          } catch {
+            throw forged;
+          }
+        },
+      ),
+    );
+    expect(forgedResult).toBe(forged);
+    expect(workspaceLockEntries(input)).toEqual([]);
+
+    const thenableResult = captureThrown(() =>
+      withWorkspaceLockSync(
+        workspaceLockOptions(input, { operationId: "caught-thenable" }),
+        (lease) => {
+          try {
+            lease.retainForRecovery("thenable must not retain");
+          } catch {
+            return { then() {} };
+          }
+        },
+      ),
+    );
+    expect(thenableResult).toMatchObject({
+      code: WORKSPACE_TRANSACTION_ERROR.INVALID_ARGUMENT,
+    });
+    expect(workspaceLockEntries(input)).toEqual([]);
+
+    const operationId = "checkpoint-saga-retained";
+    const retained = captureThrown(() =>
+      withWorkspaceLockSync(
+        workspaceLockOptions(input, { operationId }),
+        (lease) => lease.retainForRecovery("mutation may be partial"),
+      ),
+    );
+    expect(retained).toMatchObject({
+      code: WORKSPACE_TRANSACTION_ERROR.RECOVERY_REQUIRED,
+      operationId,
+      retentionReason: "mutation may be partial",
+      workspaceLockRetained: true,
+      recoveryOfOperationId: operationId,
+      priorOwner: null,
+      retainedOwner: {
+        transactionId: operationId,
+        purpose: "checkpoint-restore",
+      },
+    });
+    expect(Object.isFrozen(retained.retainedOwner)).toBe(true);
+    expect(workspaceLockEntries(input)).toHaveLength(1);
+
+    const observed = inspectWorkspaceLockOwnerSync(
+      workspaceLockOptions(input, {
+        operationId,
+        purpose: "checkpoint-restore",
+      }),
+    );
+    expect(observed).toEqual(retained.retainedOwner);
+    expect(Object.isFrozen(observed)).toBe(true);
+    expect(
+      captureThrown(() =>
+        inspectWorkspaceLockOwnerSync(
+          workspaceLockOptions(input, {
+            operationId: "different-saga",
+            purpose: "checkpoint-restore",
+          }),
+        ),
+      ),
+    ).toMatchObject({
+      code: WORKSPACE_TRANSACTION_ERROR.RECOVERY_REQUIRED,
+      ownerOperationId: operationId,
+    });
+
+    let recoveryLease = null;
+    expect(
+      withWorkspaceRecoveryLockSync(
+        workspaceLockOptions(input, {
+          operationId,
+          purpose: "checkpoint-restore",
+          expectedOwner: observed,
+          _isProcessAlive: () => false,
+          _ownerToken: ownerTokenSequence("30000000"),
+        }),
+        (lease) => {
+          recoveryLease = lease;
+          expect(lease.priorOwner).toEqual(observed);
+          expect(lease.recoveryOfOperationId).toBe(operationId);
+          expect(lease.owner).toMatchObject({
+            transactionId: operationId,
+            purpose: "checkpoint-restore",
+          });
+          expect(lease.owner.token).not.toBe(observed.token);
+          expect(lease.assertOwned()).toBe(true);
+          return "recovered";
+        },
+      ),
+    ).toBe("recovered");
+    expect(recoveryLease.assertOwned).toThrow(
+      expect.objectContaining({
+        code: WORKSPACE_TRANSACTION_ERROR.LOCK_OWNERSHIP_LOST,
+      }),
+    );
+    expect(workspaceLockEntries(input)).toEqual([]);
+  });
+
+  it("recovery rejects async work and can itself retain an exact resumable owner", () => {
+    const input = fixture();
+    const operationId = "checkpoint-recovery-retained";
+    const initial = captureThrown(() =>
+      withWorkspaceLockSync(
+        workspaceLockOptions(input, { operationId }),
+        (lease) => lease.retainForRecovery("initial process crashed"),
+      ),
+    );
+    const initialOwner = initial.retainedOwner;
+
+    let asyncRan = false;
+    expect(() =>
+      withWorkspaceRecoveryLockSync(
+        workspaceLockOptions(input, {
+          operationId,
+          expectedOwner: initialOwner,
+          _isProcessAlive: () => false,
+        }),
+        async () => {
+          asyncRan = true;
+        },
+      ),
+    ).toThrow(
+      expect.objectContaining({
+        code: WORKSPACE_TRANSACTION_ERROR.INVALID_ARGUMENT,
+      }),
+    );
+    expect(asyncRan).toBe(false);
+    expect(
+      inspectWorkspaceLockOwnerSync(
+        workspaceLockOptions(input, { operationId }),
+      ),
+    ).toEqual(initialOwner);
+
+    const retainedAgain = captureThrown(() =>
+      withWorkspaceRecoveryLockSync(
+        workspaceLockOptions(input, {
+          operationId,
+          expectedOwner: initialOwner,
+          _isProcessAlive: () => false,
+          _ownerToken: ownerTokenSequence("40000000"),
+        }),
+        (lease) => lease.retainForRecovery("recovery process crashed"),
+      ),
+    );
+    expect(retainedAgain).toMatchObject({
+      code: WORKSPACE_TRANSACTION_ERROR.RECOVERY_REQUIRED,
+      operationId,
+      recoveryOfOperationId: operationId,
+      workspaceLockRetained: true,
+      priorOwner: initialOwner,
+      newOwner: {
+        transactionId: operationId,
+        purpose: "checkpoint-restore",
+      },
+    });
+    expect(retainedAgain.newOwner.token).not.toBe(initialOwner.token);
+    expect(
+      inspectWorkspaceLockOwnerSync(
+        workspaceLockOptions(input, { operationId }),
+      ),
+    ).toEqual(retainedAgain.newOwner);
+
+    const recoveryError = new Error("recovery callback failed");
+    expect(
+      captureThrown(() =>
+        withWorkspaceRecoveryLockSync(
+          workspaceLockOptions(input, {
+            operationId,
+            expectedOwner: retainedAgain.newOwner,
+            _isProcessAlive: () => false,
+            _ownerToken: ownerTokenSequence("50000000"),
+          }),
+          () => {
+            throw recoveryError;
+          },
+        ),
+      ),
+    ).toBe(recoveryError);
+    expect(workspaceLockEntries(input)).toEqual([]);
+  });
+
+  it("recovery fails closed on live, forged, or drifted exact owners", () => {
+    const input = fixture();
+    let activeError = null;
+    withWorkspaceLockSync(
+      workspaceLockOptions(input, { operationId: "active-checkpoint" }),
+      (lease) => {
+        activeError = captureThrown(() =>
+          withWorkspaceRecoveryLockSync(
+            workspaceLockOptions(input, {
+              operationId: lease.owner.transactionId,
+              expectedOwner: lease.owner,
+              _isProcessAlive: () => true,
+            }),
+            () => "unreachable",
+          ),
+        );
+      },
+    );
+    expect(activeError).toMatchObject({
+      code: WORKSPACE_TRANSACTION_ERROR.RECOVERY_REQUIRED,
+      ownerTransactionId: "active-checkpoint",
+    });
+    expect(workspaceLockEntries(input)).toEqual([]);
+
+    const operationId = "drifted-checkpoint";
+    const retained = captureThrown(() =>
+      withWorkspaceLockSync(
+        workspaceLockOptions(input, { operationId }),
+        (lease) => lease.retainForRecovery("await exact recovery"),
+      ),
+    );
+    const expectedOwner = retained.retainedOwner;
+    expect(() =>
+      withWorkspaceRecoveryLockSync(
+        workspaceLockOptions(input, {
+          operationId,
+          expectedOwner: { ...expectedOwner, purpose: "workspace-transaction" },
+          _isProcessAlive: () => false,
+        }),
+        () => "unreachable",
+      ),
+    ).toThrow(
+      expect.objectContaining({
+        code: WORKSPACE_TRANSACTION_ERROR.INVALID_ARGUMENT,
+      }),
+    );
+
+    const ownerPath = workspaceOwnerPath(input);
+    const driftedOwner = {
+      ...expectedOwner,
+      token: "60000000-0000-4000-8000-000000000001",
+    };
+    fs.writeFileSync(ownerPath, JSON.stringify(driftedOwner), { mode: 0o600 });
+    expect(() =>
+      withWorkspaceRecoveryLockSync(
+        workspaceLockOptions(input, {
+          operationId,
+          expectedOwner,
+          _isProcessAlive: () => false,
+        }),
+        () => "unreachable",
+      ),
+    ).toThrow(
+      expect.objectContaining({
+        code: WORKSPACE_TRANSACTION_ERROR.LOCK_CORRUPT,
+      }),
+    );
+    expect(JSON.parse(fs.readFileSync(ownerPath, "utf8"))).toEqual(
+      driftedOwner,
+    );
+
+    expect(
+      withWorkspaceRecoveryLockSync(
+        workspaceLockOptions(input, {
+          operationId,
+          expectedOwner: driftedOwner,
+          _isProcessAlive: () => false,
+          _ownerToken: ownerTokenSequence("61000000"),
+        }),
+        () => "cleaned",
+      ),
+    ).toBe("cleaned");
+    expect(workspaceLockEntries(input)).toEqual([]);
+  });
+
+  it("recovery refuses parent-child overlap without reclaiming either owner", () => {
+    const input = fixture();
+    const operationId = "parent-checkpoint-recovery";
+    const retained = captureThrown(() =>
+      withWorkspaceLockSync(
+        workspaceLockOptions(input, { operationId }),
+        (lease) => lease.retainForRecovery("parent requires recovery"),
+      ),
+    );
+    const parentOwner = retained.retainedOwner;
+    const childWorkspaceRoot = fs.realpathSync.native(
+      path.join(input.workspaceRoot, "src"),
+    );
+    const childLockDir = path.join(
+      input.root,
+      "locks",
+      workspaceLockName(childWorkspaceRoot),
+    );
+    const childOwner = {
+      pid: 2_147_483_645,
+      startedAt: 2,
+      token: "62000000-0000-4000-8000-000000000001",
+      transactionId: "child-checkpoint-recovery",
+      workspaceRoot: childWorkspaceRoot,
+      purpose: "checkpoint-restore",
+      identityPolicy: "pid-only-fail-closed",
+    };
+    fs.mkdirSync(childLockDir, { mode: 0o700 });
+    fs.writeFileSync(
+      path.join(childLockDir, "owner.json"),
+      JSON.stringify(childOwner),
+      { mode: 0o600 },
+    );
+
+    expect(() =>
+      withWorkspaceRecoveryLockSync(
+        workspaceLockOptions(input, {
+          operationId,
+          expectedOwner: parentOwner,
+          _isProcessAlive: () => false,
+        }),
+        () => "unreachable",
+      ),
+    ).toThrow(
+      expect.objectContaining({
+        code: WORKSPACE_TRANSACTION_ERROR.RECOVERY_REQUIRED,
+        ownerTransactionId: childOwner.transactionId,
+      }),
+    );
+    expect(
+      inspectWorkspaceLockOwnerSync(
+        workspaceLockOptions(input, { operationId }),
+      ),
+    ).toEqual(parentOwner);
+    expect(
+      JSON.parse(
+        fs.readFileSync(path.join(childLockDir, "owner.json"), "utf8"),
+      ),
+    ).toEqual(childOwner);
+
+    fs.rmSync(childLockDir, { recursive: true, force: true });
+    expect(
+      withWorkspaceRecoveryLockSync(
+        workspaceLockOptions(input, {
+          operationId,
+          expectedOwner: parentOwner,
+          _isProcessAlive: () => false,
+          _ownerToken: ownerTokenSequence("63000000"),
+        }),
+        () => "cleaned",
+      ),
+    ).toBe("cleaned");
+    expect(workspaceLockEntries(input)).toEqual([]);
+  });
+
+  it("inspection is read-only before lock publication", () => {
+    const input = fixture();
+    const lockDir = path.join(input.root, "not-created-locks");
+    expect(
+      inspectWorkspaceLockOwnerSync(
+        workspaceLockOptions(input, {
+          lockDir,
+          operationId: "created-before-locked",
+        }),
+      ),
+    ).toBeNull();
+    expect(fs.existsSync(lockDir)).toBe(false);
   });
 });
 

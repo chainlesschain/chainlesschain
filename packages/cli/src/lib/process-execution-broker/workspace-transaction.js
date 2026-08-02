@@ -89,6 +89,19 @@ export const DEFAULT_WORKSPACE_TRANSACTION_LIMITS = Object.freeze({
 });
 
 const SAFE_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,191}$/;
+const CHECKPOINT_RESTORE_LOCK_PURPOSE = "checkpoint-restore";
+const WORKSPACE_LOCK_OWNER_KEYS = Object.freeze([
+  "identityPolicy",
+  "pid",
+  "purpose",
+  "startedAt",
+  "token",
+  "transactionId",
+  "workspaceRoot",
+]);
+const WORKSPACE_LOCK_RETENTION_REQUEST = Symbol(
+  "workspace-lock-retention-request",
+);
 const TERMINAL_STATES = new Set([
   WORKSPACE_TRANSACTION_STATE.COMMITTED,
   WORKSPACE_TRANSACTION_STATE.ROLLED_BACK,
@@ -1339,7 +1352,11 @@ function workspaceLockClockValue(now) {
   return value;
 }
 
-function assertOwnedPrivateDirectory(dir, label) {
+function assertOwnedPrivateDirectory(
+  dir,
+  label,
+  { repairPermissions = true } = {},
+) {
   const entry = fs.lstatSync(dir);
   if (entry.isSymbolicLink() || !entry.isDirectory()) {
     throw codedError(
@@ -1360,7 +1377,7 @@ function assertOwnedPrivateDirectory(dir, label) {
     );
   }
   if (process.platform !== "win32") {
-    fs.chmodSync(dir, 0o700);
+    if (repairPermissions) fs.chmodSync(dir, 0o700);
     const secured = fs.lstatSync(dir);
     if ((Number(secured.mode) & 0o077) !== 0) {
       throw codedError(
@@ -1394,6 +1411,40 @@ function ownerIsValid(owner) {
         !owner.purpose.includes("\0"))) &&
     owner.identityPolicy === "pid-only-fail-closed"
   );
+}
+
+function hasExactWorkspaceLockOwnerShape(owner) {
+  return (
+    ownerIsValid(owner) &&
+    Object.keys(owner).sort().join("\0") ===
+      WORKSPACE_LOCK_OWNER_KEYS.join("\0")
+  );
+}
+
+function sameExactWorkspaceLockOwner(left, right) {
+  return (
+    hasExactWorkspaceLockOwnerShape(left) &&
+    hasExactWorkspaceLockOwnerShape(right) &&
+    canonicalWorkspaceEvidence(left) === canonicalWorkspaceEvidence(right)
+  );
+}
+
+function workspaceLockOwnerProjection(owner) {
+  if (!ownerIsValid(owner)) {
+    throw codedError(
+      WORKSPACE_TRANSACTION_ERROR.LOCK_CORRUPT,
+      "workspace lock owner cannot be projected safely",
+    );
+  }
+  return Object.freeze({
+    pid: owner.pid,
+    startedAt: owner.startedAt,
+    token: owner.token,
+    transactionId: owner.transactionId,
+    workspaceRoot: owner.workspaceRoot,
+    purpose: owner.purpose,
+    identityPolicy: owner.identityPolicy,
+  });
 }
 
 function readLockOwner(lockPath) {
@@ -1452,6 +1503,7 @@ class WorkspaceLifetimeLock {
       purpose = "workspace-transaction",
       reclaimDead = false,
       expectedDeadOwner = null,
+      requireExactExpectedDeadOwner = false,
     },
   ) {
     const normalizedTransactionId = normalizeId(transactionId);
@@ -1516,10 +1568,12 @@ class WorkspaceLifetimeLock {
             },
           );
         }
-        if (
-          !reclaimDead ||
-          (expectedDeadOwner && !sameOwner(expectedDeadOwner, incumbent))
-        ) {
+        const expectedDeadOwnerMatches = expectedDeadOwner
+          ? requireExactExpectedDeadOwner
+            ? sameExactWorkspaceLockOwner(expectedDeadOwner, incumbent)
+            : sameOwner(expectedDeadOwner, incumbent)
+          : true;
+        if (!reclaimDead || !expectedDeadOwnerMatches) {
           throw codedError(
             WORKSPACE_TRANSACTION_ERROR.RECOVERY_REQUIRED,
             `workspace has a crashed transaction requiring recovery: ${workspaceRoot}`,
@@ -1530,7 +1584,9 @@ class WorkspaceLifetimeLock {
             },
           );
         }
-        WorkspaceLifetimeLock._reclaim(lockPath, incumbent, isProcessAlive);
+        WorkspaceLifetimeLock._reclaim(lockPath, incumbent, isProcessAlive, {
+          requireExactOwner: requireExactExpectedDeadOwner,
+        });
       }
     }
     throw codedError(
@@ -1540,13 +1596,21 @@ class WorkspaceLifetimeLock {
     );
   }
 
-  static _reclaim(lockPath, observed, isProcessAlive) {
+  static _reclaim(
+    lockPath,
+    observed,
+    isProcessAlive,
+    { requireExactOwner = false } = {},
+  ) {
     const marker = path.join(lockPath, `.reclaim-${observed.token}`);
     atomicWrite(marker, `${canonicalWorkspaceEvidence(observed)}\n`, {
       maxBytes: 16 * 1024,
     });
     const current = readLockOwner(lockPath);
-    if (!sameOwner(current, observed) || isProcessAlive(observed.pid)) {
+    const ownerMatches = requireExactOwner
+      ? sameExactWorkspaceLockOwner(current, observed)
+      : sameOwner(current, observed);
+    if (!ownerMatches || isProcessAlive(observed.pid)) {
       try {
         fs.rmSync(marker, { force: true });
       } catch {
@@ -1609,7 +1673,7 @@ function assertNoOverlappingWorkspaceLock(
   lockDir,
   workspaceRoot,
   isProcessAlive,
-  { expectedIgnoredOwner = null } = {},
+  { expectedIgnoredOwner = null, requireExactIgnoredOwner = false } = {},
 ) {
   ensurePrivateDirectory(lockDir);
   const ignoredLockPath = expectedIgnoredOwner
@@ -1640,7 +1704,10 @@ function assertNoOverlappingWorkspaceLock(
       );
     }
     if (ignoredLockPath && samePath(candidate, ignoredLockPath)) {
-      if (!sameOwner(owner, expectedIgnoredOwner)) {
+      const ignoredOwnerMatches = requireExactIgnoredOwner
+        ? sameExactWorkspaceLockOwner(owner, expectedIgnoredOwner)
+        : sameOwner(owner, expectedIgnoredOwner);
+      if (!ignoredOwnerMatches) {
         throw codedError(
           WORKSPACE_TRANSACTION_ERROR.LOCK_CORRUPT,
           "workspace recovery lock owner changed during registry validation",
@@ -1710,10 +1777,44 @@ function ensureWorkspaceLockRoot(lockDir, workspaceRoot) {
   return canonicalLockDir;
 }
 
+function inspectWorkspaceLockRoot(lockDir, workspaceRoot) {
+  const { requestedLockDir } = preflightWorkspaceLockRoot(
+    lockDir,
+    workspaceRoot,
+  );
+  try {
+    fs.lstatSync(requestedLockDir);
+  } catch (cause) {
+    if (cause?.code === "ENOENT") return null;
+    throw codedError(
+      WORKSPACE_TRANSACTION_ERROR.INVALID_PATH,
+      `lock directory is unavailable: ${requestedLockDir}`,
+      { path: requestedLockDir },
+      cause,
+    );
+  }
+  const canonicalLockDir = assertSafeDirectory(
+    requestedLockDir,
+    "lock directory",
+  );
+  if (pathsOverlap(canonicalLockDir, workspaceRoot)) {
+    throw codedError(
+      WORKSPACE_TRANSACTION_ERROR.INVALID_PATH,
+      "workspace transaction lock directory must be disjoint from the workspace",
+      { workspaceRoot, lockDir: canonicalLockDir },
+    );
+  }
+  assertOwnedPrivateDirectory(canonicalLockDir, "lock directory", {
+    repairPermissions: false,
+  });
+  return canonicalLockDir;
+}
+
 function withWorkspaceRegistryCoordination(
   {
     lockDir,
     timeoutMs,
+    retryMs = DEFAULT_WORKSPACE_LOCK_RETRY_MS,
     now = () => Date.now(),
     sleep = workspaceLockSleepSync,
     isProcessAlive = processAlive,
@@ -1724,8 +1825,8 @@ function withWorkspaceRegistryCoordination(
   return withFileLock(path.join(lockDir, "coordination"), callback, {
     failIfUnavailable: true,
     timeoutMs,
-    retryMs: Math.min(DEFAULT_WORKSPACE_LOCK_RETRY_MS, timeoutMs),
-    maxRetryMs: Math.min(DEFAULT_WORKSPACE_LOCK_RETRY_MS, timeoutMs),
+    retryMs: Math.min(retryMs, timeoutMs),
+    maxRetryMs: Math.min(retryMs, timeoutMs),
     retryJitterMs: 0,
     _now: now,
     _sleep: sleep,
@@ -1794,14 +1895,27 @@ function acquireRecoveredWorkspaceLifetimeLock({
   workspaceRoot,
   operationId,
   expectedDeadOwner,
+  expectedPurpose = null,
+  acquiredPurpose = "workspace-transaction",
+  requireExactOwnerShape = false,
   isProcessAlive,
   now,
   ownerToken,
+  coordinationTimeoutMs = DEFAULT_WORKSPACE_LOCK_TIMEOUT_MS,
+  coordinationRetryMs = DEFAULT_WORKSPACE_LOCK_RETRY_MS,
+  coordinationNow = () => Date.now(),
+  coordinationSleep = workspaceLockSleepSync,
+  coordinationIsProcessAlive = processAlive,
+  coordinationOwnerToken = () => randomUUID(),
 }) {
   const canonicalLockDir = ensureWorkspaceLockRoot(lockDir, workspaceRoot);
   if (
     !ownerIsValid(expectedDeadOwner) ||
-    !samePath(expectedDeadOwner.workspaceRoot, workspaceRoot)
+    !samePath(expectedDeadOwner.workspaceRoot, workspaceRoot) ||
+    (expectedPurpose !== null &&
+      expectedDeadOwner.purpose !== expectedPurpose) ||
+    (requireExactOwnerShape &&
+      !hasExactWorkspaceLockOwnerShape(expectedDeadOwner))
   ) {
     throw codedError(
       WORKSPACE_TRANSACTION_ERROR.LOCK_CORRUPT,
@@ -1817,11 +1931,19 @@ function acquireRecoveredWorkspaceLifetimeLock({
   withWorkspaceRegistryCoordination(
     {
       lockDir: canonicalLockDir,
-      timeoutMs: DEFAULT_WORKSPACE_LOCK_TIMEOUT_MS,
+      timeoutMs: coordinationTimeoutMs,
+      retryMs: coordinationRetryMs,
+      now: coordinationNow,
+      sleep: coordinationSleep,
+      isProcessAlive: coordinationIsProcessAlive,
+      ownerToken: coordinationOwnerToken,
     },
     () => {
       const currentOwner = readLockOwner(lockPath);
-      if (!sameOwner(currentOwner, expectedDeadOwner)) {
+      const currentOwnerMatches = requireExactOwnerShape
+        ? sameExactWorkspaceLockOwner(currentOwner, expectedDeadOwner)
+        : sameOwner(currentOwner, expectedDeadOwner);
+      if (!currentOwnerMatches) {
         throw codedError(
           WORKSPACE_TRANSACTION_ERROR.LOCK_CORRUPT,
           "workspace recovery owner changed before exact reclaim",
@@ -1848,7 +1970,10 @@ function acquireRecoveredWorkspaceLifetimeLock({
         canonicalLockDir,
         workspaceRoot,
         isProcessAlive,
-        { expectedIgnoredOwner: currentOwner },
+        {
+          expectedIgnoredOwner: currentOwner,
+          requireExactIgnoredOwner: requireExactOwnerShape,
+        },
       );
       lock = WorkspaceLifetimeLock.acquire(
         canonicalLockDir,
@@ -1858,9 +1983,10 @@ function acquireRecoveredWorkspaceLifetimeLock({
           isProcessAlive,
           now,
           ownerToken,
-          purpose: "workspace-transaction",
+          purpose: acquiredPurpose,
           reclaimDead: true,
           expectedDeadOwner: currentOwner,
+          requireExactExpectedDeadOwner: requireExactOwnerShape,
         },
       );
     },
@@ -1934,7 +2060,7 @@ function isLiveWorkspaceLockConflict(error) {
 function asyncWorkspaceLockCallbackError(cause = null) {
   return codedError(
     WORKSPACE_TRANSACTION_ERROR.INVALID_ARGUMENT,
-    "withWorkspaceLockSync callback must complete synchronously and cannot return a thenable",
+    "workspace lock callback must complete synchronously and cannot return a thenable",
     {},
     cause,
   );
@@ -1942,6 +2068,188 @@ function asyncWorkspaceLockCallbackError(cause = null) {
 
 function isAsyncFunction(callback) {
   return Object.prototype.toString.call(callback) === "[object AsyncFunction]";
+}
+
+function assertSynchronousWorkspaceLockCallback(callback) {
+  if (typeof callback !== "function") {
+    throw codedError(
+      WORKSPACE_TRANSACTION_ERROR.INVALID_ARGUMENT,
+      "workspace lock callback must be a function",
+    );
+  }
+  if (isAsyncFunction(callback)) throw asyncWorkspaceLockCallbackError();
+}
+
+function assertNonThenableWorkspaceLockResult(result) {
+  if (
+    result === null ||
+    (typeof result !== "object" && typeof result !== "function")
+  ) {
+    return;
+  }
+  let then;
+  try {
+    then = result.then;
+  } catch (cause) {
+    throw asyncWorkspaceLockCallbackError(cause);
+  }
+  if (typeof then === "function") throw asyncWorkspaceLockCallbackError();
+}
+
+function runWorkspaceLockCallbackSync({
+  lock,
+  workspaceRoot,
+  operationId,
+  callback,
+  priorOwner = null,
+  recoveryOfOperationId = operationId,
+}) {
+  const publicOwner = workspaceLockOwnerProjection(lock.owner);
+  const publicPriorOwner = priorOwner
+    ? workspaceLockOwnerProjection(priorOwner)
+    : null;
+  let retentionRequest = null;
+  const lease = Object.freeze({
+    canonicalWorkspaceRoot: workspaceRoot,
+    owner: publicOwner,
+    priorOwner: publicPriorOwner,
+    recoveryOfOperationId,
+    assertOwned: () => lock.assertOwned(),
+    retainForRecovery: (reason) => {
+      lock.assertOwned();
+      if (lock.owner.purpose !== CHECKPOINT_RESTORE_LOCK_PURPOSE) {
+        throw codedError(
+          WORKSPACE_TRANSACTION_ERROR.INVALID_ARGUMENT,
+          "only checkpoint-restore locks can be retained for recovery",
+          { operationId, purpose: lock.owner.purpose },
+        );
+      }
+      if (retentionRequest) {
+        throw codedError(
+          WORKSPACE_TRANSACTION_ERROR.INVALID_ARGUMENT,
+          "workspace lock recovery retention was already requested",
+          { operationId },
+        );
+      }
+      const normalizedReason = normalizeBoundedText(
+        reason,
+        "workspace lock recovery reason",
+        512,
+      );
+      const request = {
+        error: null,
+        reason: normalizedReason,
+      };
+      const error = codedError(
+        WORKSPACE_TRANSACTION_ERROR.RECOVERY_REQUIRED,
+        "workspace lock retention requested for durable recovery",
+        {
+          workspaceRoot,
+          operationId,
+          retentionReason: normalizedReason,
+        },
+      );
+      request.error = error;
+      Object.defineProperty(error, WORKSPACE_LOCK_RETENTION_REQUEST, {
+        value: request,
+      });
+      retentionRequest = request;
+      throw error;
+    },
+  });
+  let result;
+  let callbackError;
+  let callbackThrew = false;
+  try {
+    result = callback(lease);
+    assertNonThenableWorkspaceLockResult(result);
+  } catch (error) {
+    callbackThrew = true;
+    callbackError = error;
+  }
+
+  const retentionQualified = !!(
+    callbackThrew &&
+    retentionRequest &&
+    callbackError === retentionRequest.error &&
+    callbackError?.code === WORKSPACE_TRANSACTION_ERROR.RECOVERY_REQUIRED &&
+    callbackError?.[WORKSPACE_LOCK_RETENTION_REQUEST] === retentionRequest
+  );
+  let releaseError = null;
+  if (retentionQualified) {
+    try {
+      lock.assertOwned();
+    } catch (error) {
+      releaseError = error;
+    }
+    if (!releaseError) {
+      const retainedOwner = workspaceLockOwnerProjection(lock.owner);
+      throw codedError(
+        WORKSPACE_TRANSACTION_ERROR.RECOVERY_REQUIRED,
+        "workspace lock was retained for durable recovery",
+        {
+          workspaceRoot,
+          operationId,
+          retentionReason: retentionRequest.reason,
+          workspaceLockRetained: true,
+          retainedOwner,
+          priorOwner: publicPriorOwner,
+          newOwner: retainedOwner,
+          recoveryOfOperationId,
+        },
+        callbackError,
+      );
+    }
+  }
+  if (!releaseError) {
+    try {
+      lock.release();
+    } catch (error) {
+      releaseError = error;
+    }
+  }
+  if (releaseError) {
+    if (callbackThrew) releaseError.callbackError = callbackError;
+    throw releaseError;
+  }
+  if (callbackThrew) throw callbackError;
+  return result;
+}
+
+function normalizeCheckpointRestorePurpose(value) {
+  const purpose = normalizeBoundedText(
+    value ?? CHECKPOINT_RESTORE_LOCK_PURPOSE,
+    "purpose",
+    128,
+  );
+  if (purpose !== CHECKPOINT_RESTORE_LOCK_PURPOSE) {
+    throw codedError(
+      WORKSPACE_TRANSACTION_ERROR.INVALID_ARGUMENT,
+      `workspace recovery only accepts purpose ${CHECKPOINT_RESTORE_LOCK_PURPOSE}`,
+      { purpose },
+    );
+  }
+  return purpose;
+}
+
+function normalizeExpectedCheckpointRestoreOwner(
+  value,
+  workspaceRoot,
+  operationId,
+) {
+  if (
+    !hasExactWorkspaceLockOwnerShape(value) ||
+    value.purpose !== CHECKPOINT_RESTORE_LOCK_PURPOSE ||
+    value.transactionId !== operationId ||
+    !samePath(value.workspaceRoot, workspaceRoot)
+  ) {
+    throw codedError(
+      WORKSPACE_TRANSACTION_ERROR.INVALID_ARGUMENT,
+      "expectedOwner must be the complete exact checkpoint-restore owner for this workspace and operation",
+      { workspaceRoot, operationId },
+    );
+  }
+  return workspaceLockOwnerProjection(value);
 }
 
 /**
@@ -1956,13 +2264,7 @@ export function withWorkspaceLockSync(options = {}, callback) {
       "workspace lock options must be an object",
     );
   }
-  if (typeof callback !== "function") {
-    throw codedError(
-      WORKSPACE_TRANSACTION_ERROR.INVALID_ARGUMENT,
-      "workspace lock callback must be a function",
-    );
-  }
-  if (isAsyncFunction(callback)) throw asyncWorkspaceLockCallbackError();
+  assertSynchronousWorkspaceLockCallback(callback);
 
   const workspaceRoot = assertCanonicalWorkspaceDirectory(
     options.workspaceRoot,
@@ -2049,46 +2351,166 @@ export function withWorkspaceLockSync(options = {}, callback) {
     }
   }
 
-  const publicOwner = Object.freeze(deepClone(lock.owner));
-  const lease = Object.freeze({
-    canonicalWorkspaceRoot: workspaceRoot,
-    owner: publicOwner,
-    assertOwned: () => lock.assertOwned(),
+  return runWorkspaceLockCallbackSync({
+    lock,
+    workspaceRoot,
+    operationId,
+    callback,
   });
-  let result;
-  let callbackError;
-  let callbackThrew = false;
-  try {
-    result = callback(lease);
-    if (
-      result !== null &&
-      (typeof result === "object" || typeof result === "function")
-    ) {
-      let then;
-      try {
-        then = result.then;
-      } catch (cause) {
-        throw asyncWorkspaceLockCallbackError(cause);
-      }
-      if (typeof then === "function") throw asyncWorkspaceLockCallbackError();
-    }
-  } catch (error) {
-    callbackThrew = true;
-    callbackError = error;
-  }
+}
 
-  let releaseError = null;
+/**
+ * Observe the exact checkpoint-restore owner for a known workspace and saga
+ * operation. This never scans for another owner and never creates or reclaims
+ * lock state; a later recovery takeover must still perform its own exact CAS.
+ */
+export function inspectWorkspaceLockOwnerSync(options = {}) {
+  if (!options || typeof options !== "object" || Array.isArray(options)) {
+    throw codedError(
+      WORKSPACE_TRANSACTION_ERROR.INVALID_ARGUMENT,
+      "workspace lock inspection options must be an object",
+    );
+  }
+  const workspaceRoot = assertCanonicalWorkspaceDirectory(
+    options.workspaceRoot,
+  );
+  const operationId = normalizeId(options.operationId, "operationId");
+  const purpose = normalizeCheckpointRestorePurpose(options.purpose);
+  const runtime = publicWorkspaceLockRuntime(options);
+  const lockDir = inspectWorkspaceLockRoot(runtime.lockDir, workspaceRoot);
+  if (!lockDir) return null;
+  const lockPath = path.join(lockDir, workspaceLockName(workspaceRoot));
+  let entry;
   try {
-    lock.release();
+    entry = fs.lstatSync(lockPath);
+  } catch (cause) {
+    if (cause?.code === "ENOENT") return null;
+    throw codedError(
+      WORKSPACE_TRANSACTION_ERROR.LOCK_CORRUPT,
+      "workspace lock cannot be inspected safely",
+      { workspaceRoot, operationId },
+      cause,
+    );
+  }
+  if (entry.isSymbolicLink() || !entry.isDirectory()) {
+    throw codedError(
+      WORKSPACE_TRANSACTION_ERROR.LOCK_CORRUPT,
+      "workspace lock must be a real directory",
+      { workspaceRoot, operationId, lockPath },
+    );
+  }
+  assertOwnedPrivateDirectory(lockPath, "workspace lock", {
+    repairPermissions: false,
+  });
+  const owner = readLockOwner(lockPath);
+  if (
+    !hasExactWorkspaceLockOwnerShape(owner) ||
+    !samePath(owner.workspaceRoot, workspaceRoot)
+  ) {
+    throw codedError(
+      WORKSPACE_TRANSACTION_ERROR.LOCK_CORRUPT,
+      "workspace lock has corrupt or non-canonical ownership",
+      { workspaceRoot, operationId },
+    );
+  }
+  if (owner.transactionId !== operationId || owner.purpose !== purpose) {
+    throw codedError(
+      WORKSPACE_TRANSACTION_ERROR.RECOVERY_REQUIRED,
+      "workspace is owned by a different durable operation",
+      {
+        workspaceRoot,
+        operationId,
+        purpose,
+        ownerOperationId: owner.transactionId,
+        ownerPurpose: owner.purpose,
+      },
+    );
+  }
+  return workspaceLockOwnerProjection(owner);
+}
+
+/**
+ * Replace one exact dead checkpoint-restore owner and hold the replacement for
+ * a synchronous recovery attempt. The saga operation id is deliberately
+ * stable across takeover; an independent recovery-attempt id belongs in the
+ * durable saga journal, not in the workspace lock identity.
+ */
+export function withWorkspaceRecoveryLockSync(options = {}, callback) {
+  if (!options || typeof options !== "object" || Array.isArray(options)) {
+    throw codedError(
+      WORKSPACE_TRANSACTION_ERROR.INVALID_ARGUMENT,
+      "workspace recovery lock options must be an object",
+    );
+  }
+  assertSynchronousWorkspaceLockCallback(callback);
+  const workspaceRoot = assertCanonicalWorkspaceDirectory(
+    options.workspaceRoot,
+  );
+  const operationId = normalizeId(options.operationId, "operationId");
+  const purpose = normalizeCheckpointRestorePurpose(options.purpose);
+  const expectedOwner = normalizeExpectedCheckpointRestoreOwner(
+    options.expectedOwner,
+    workspaceRoot,
+    operationId,
+  );
+  const timeoutMs = boundedWorkspaceLockDelay(
+    options.timeoutMs,
+    DEFAULT_WORKSPACE_LOCK_TIMEOUT_MS,
+    "timeoutMs",
+    MAX_WORKSPACE_LOCK_TIMEOUT_MS,
+  );
+  const retryMs = boundedWorkspaceLockDelay(
+    options.retryMs,
+    DEFAULT_WORKSPACE_LOCK_RETRY_MS,
+    "retryMs",
+    MAX_WORKSPACE_LOCK_RETRY_MS,
+  );
+  const runtime = publicWorkspaceLockRuntime(options);
+  let lock;
+  try {
+    lock = acquireRecoveredWorkspaceLifetimeLock({
+      lockDir: runtime.lockDir,
+      workspaceRoot,
+      operationId,
+      expectedDeadOwner: expectedOwner,
+      expectedPurpose: purpose,
+      acquiredPurpose: purpose,
+      requireExactOwnerShape: true,
+      isProcessAlive: runtime.isProcessAlive,
+      now: runtime.now,
+      ownerToken: runtime.ownerToken,
+      coordinationTimeoutMs: timeoutMs,
+      coordinationRetryMs: retryMs,
+      coordinationNow: runtime.now,
+      coordinationSleep: runtime.sleep,
+      coordinationIsProcessAlive: runtime.isProcessAlive,
+      coordinationOwnerToken: runtime.ownerToken,
+    });
   } catch (error) {
-    releaseError = error;
+    if (error?.code !== "STATE_LOCK_UNAVAILABLE") throw error;
+    if (error?.cause?.code === "STATE_LOCK_OWNER_CORRUPT") {
+      throw codedError(
+        WORKSPACE_TRANSACTION_ERROR.LOCK_CORRUPT,
+        "workspace recovery coordination ownership is corrupt",
+        { workspaceRoot, operationId },
+        error,
+      );
+    }
+    throw codedError(
+      WORKSPACE_TRANSACTION_ERROR.WORKSPACE_LOCK_TIMEOUT,
+      `timed out waiting for workspace recovery coordination: ${workspaceRoot}`,
+      { workspaceRoot, operationId, purpose, timeoutMs },
+      error,
+    );
   }
-  if (releaseError) {
-    if (callbackThrew) releaseError.callbackError = callbackError;
-    throw releaseError;
-  }
-  if (callbackThrew) throw callbackError;
-  return result;
+  return runWorkspaceLockCallbackSync({
+    lock,
+    workspaceRoot,
+    operationId,
+    callback,
+    priorOwner: expectedOwner,
+    recoveryOfOperationId: operationId,
+  });
 }
 
 function safeCurrentEntry(root, relative, expectedRootIdentity) {
