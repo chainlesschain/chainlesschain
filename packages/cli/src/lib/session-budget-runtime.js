@@ -1132,28 +1132,35 @@ class SharedSessionBudgetRuntime {
     return new SessionBudgetRuntimeHandle(this, () => {
       if (closed) return false;
       this.assertMutationAllowed();
+      const released = this.release();
+      // A failed final persist leaves this handle live and the runtime
+      // registered but poisoned. Only successful release may detach the
+      // handle's observer/signal capabilities.
       closed = true;
       unlinkSignal();
       unobserve();
-      return this.release();
+      return released;
     });
   }
 
   release() {
     this.assertMutationAllowed();
     if (this.references <= 0) return false;
-    this.references -= 1;
-    if (this.references > 0) return true;
-    let failure = null;
+    if (this.references > 1) {
+      this.references -= 1;
+      return true;
+    }
+
     try {
       this.persist();
     } catch (error) {
-      failure = error;
-    } finally {
-      this.budget.dispose();
-      if (this.registry.get(this.key) === this) this.registry.delete(this.key);
+      this.budget._failClosedAuthorityPersistence(error, "runtime-close");
+      throw error;
     }
-    if (failure) throw failure;
+
+    this.references = 0;
+    this.budget._revokeRuntimeAuthority();
+    if (this.registry.get(this.key) === this) this.registry.delete(this.key);
     return true;
   }
 }

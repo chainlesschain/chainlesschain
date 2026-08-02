@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   openSessionBudget,
   SessionBudgetSidecarStore,
@@ -126,6 +126,102 @@ describe("session budget runtime", () => {
       recoveryRequired: false,
     });
     resumed.close();
+  });
+
+  it("revokes stale handles and leases only after the final snapshot is durable", () => {
+    const { store } = makeStore();
+    const registry = new Map();
+    const handle = openSessionBudget("final-close-revoke", {
+      store,
+      registry,
+      limits: { maxSpawns: 2, maxConcurrent: 2 },
+    });
+    const staleBudget = handle.budget;
+    const lease = staleBudget.acquireWork({
+      id: "background-child",
+      kind: "background",
+      depth: 1,
+    });
+    const stop = vi.fn();
+    staleBudget.registerAbortable("background-child", stop);
+
+    expect(handle.close()).toBe(true);
+    expect(sessionBudgetRuntimeCount(registry)).toBe(0);
+    expect(stop).toHaveBeenCalledOnce();
+    expect(() => staleBudget.consumeTurn({ id: "stale-turn" })).toThrow(
+      expect.objectContaining({ budgetReason: "runtime-closed" }),
+    );
+    expect(() => lease.release()).toThrow(
+      expect.objectContaining({ budgetReason: "runtime-closed" }),
+    );
+    expect(() => handle.persist()).toThrow(
+      expect.objectContaining({ budgetReason: "runtime-closed" }),
+    );
+
+    const resumed = openSessionBudget("final-close-revoke", {
+      store,
+      registry,
+    });
+    expect(resumed.budget).not.toBe(staleBudget);
+    expect(resumed.budget.pendingRecovery()).toEqual([
+      expect.objectContaining({ id: lease.authorityId }),
+    ]);
+    expect(
+      resumed.budget.adjudicateRecovery({
+        abandoned: [lease.authorityId],
+      }),
+    ).toMatchObject({ ok: true });
+    resumed.close();
+  });
+
+  it("keeps a failed final close poisoned and registered without reopening an old revision", () => {
+    const { store } = makeStore();
+    const registry = new Map();
+    let rejectWrites = false;
+    const failingStore = {
+      pathForSession: (sessionId) => store.pathForSession(sessionId),
+      read: (sessionId) => store.read(sessionId),
+      write: (...args) => {
+        if (rejectWrites) throw new Error("close durability unavailable");
+        return store.write(...args);
+      },
+    };
+    const handle = openSessionBudget("final-close-failure", {
+      store: failingStore,
+      registry,
+      limits: { maxSpawns: 2, maxConcurrent: 2 },
+    });
+    const lease = handle.budget.acquireWork({
+      id: "active-child",
+      kind: "background",
+      depth: 1,
+    });
+    const stop = vi.fn();
+    handle.budget.registerAbortable("active-child", stop);
+    const durableBeforeClose = store.read("final-close-failure");
+    rejectWrites = true;
+
+    expect(() => handle.close()).toThrow(/close durability unavailable/);
+    expect(stop).toHaveBeenCalledOnce();
+    expect(sessionBudgetRuntimeCount(registry)).toBe(1);
+    expect(store.read("final-close-failure")).toEqual(durableBeforeClose);
+    expect(handle.budget.status()).toMatchObject({
+      aborted: true,
+      reason: "persistence-failed",
+      active: 1,
+    });
+    expect(() => lease.release()).toThrow(/close durability unavailable/);
+    expect(() => handle.budget.consumeTurn({ id: "stale-turn" })).toThrow(
+      /close durability unavailable/,
+    );
+    expect(() =>
+      openSessionBudget("final-close-failure", {
+        store: failingStore,
+        registry,
+      }),
+    ).toThrow(/close durability unavailable/);
+    expect(() => handle.close()).toThrow(/close durability unavailable/);
+    expect(sessionBudgetRuntimeCount(registry)).toBe(1);
   });
 
   it("blocks a dirty restore until every exact in-flight id is adjudicated", () => {

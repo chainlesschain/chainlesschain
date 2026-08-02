@@ -430,6 +430,7 @@ export class SessionResourceBudget {
     this._abortController = new AbortController();
     this._abortState = null;
     this._authorityFailure = null;
+    this._revocationError = null;
     this._externalSignal = signal || null;
     this._externalAbortListener = null;
 
@@ -563,6 +564,8 @@ export class SessionResourceBudget {
         "Session budget authority cannot mutate from an observation context",
       );
     }
+    if (this._revocationError) throw this._revocationError;
+    if (this._authorityFailure) throw this._authorityFailure;
   }
 
   _nextAuthorityId(resourceType) {
@@ -599,22 +602,62 @@ export class SessionResourceBudget {
             // defensive local rollback unexpectedly fails.
           }
         }
-        this._authorityFailure = error;
-        try {
-          this.abort(error, {
-            reason: "persistence-failed",
-            skipAuthorityChange: true,
-          });
-        } catch {
-          // The original persistence error remains the rejection authority.
-        }
-        this._emit("budget:authority-persistence-failed", {
-          authorityType: type,
-        });
+        this._failClosedAuthorityPersistence(error, type);
         throw error;
       }
     }
     this._emit(type, detail);
+  }
+
+  _failClosedAuthorityPersistence(error, authorityType = "runtime") {
+    const failure =
+      error instanceof Error
+        ? error
+        : new Error(String(error || "session budget persistence failed"));
+    if (this._authorityFailure) return this._authorityFailure;
+    this._authorityFailure = failure;
+    try {
+      this._abortUnchecked(failure, {
+        reason: "persistence-failed",
+        skipAuthorityChange: true,
+      });
+    } catch {
+      // The original persistence error remains the rejection authority.
+    }
+    this._emit("budget:authority-persistence-failed", { authorityType });
+    return failure;
+  }
+
+  _revokeRuntimeAuthority() {
+    if (this._revocationError) return false;
+    if (this._authorityFailure) throw this._authorityFailure;
+    const error = new SessionBudgetError(
+      "runtime-closed",
+      "Session resource budget runtime is closed",
+    );
+    // Install the fence before invoking cleanup callbacks so callback re-entry
+    // cannot mutate authority after the final durable snapshot was written.
+    this._revocationError = error;
+    this._abortUnchecked(error, {
+      reason: "runtime-closed",
+      skipAuthorityChange: true,
+    });
+    if (this._externalSignal && this._externalAbortListener) {
+      try {
+        this._externalSignal.removeEventListener?.(
+          "abort",
+          this._externalAbortListener,
+        );
+      } catch {
+        // Revocation is already installed; listener cleanup is best effort.
+      }
+    }
+    this._externalAbortListener = null;
+    this._emit("budget:runtime-revoked", {
+      activeWork: this._activeWork.size,
+      activeTools: this._activeTools.size,
+    });
+    return true;
   }
 
   _persistenceAdmissionFailure(error, extra = {}) {
@@ -1136,6 +1179,16 @@ export class SessionResourceBudget {
     { reason: reasonCode = null, skipAuthorityChange = false } = {},
   ) {
     this._assertAuthorityMutationAllowed();
+    return this._abortUnchecked(reason, {
+      reason: reasonCode,
+      skipAuthorityChange,
+    });
+  }
+
+  _abortUnchecked(
+    reason = "session-aborted",
+    { reason: reasonCode = null, skipAuthorityChange = false } = {},
+  ) {
     if (this._abortState) return false;
     const error = safeReason(reason);
     const code = String(
