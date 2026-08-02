@@ -7,6 +7,7 @@
  * every surviving `started` call as outcome-unknown; callers must inspect it
  * instead of automatically replaying the MCP operation.
  */
+import { isProxy } from "node:util/types";
 import {
   appendAuthorityEvent as storeAppendAuthorityEvent,
   readVerifiedEvents as storeReadVerifiedEvents,
@@ -25,6 +26,7 @@ import {
   normalizeMcpLedgerProtocolText,
   normalizeMcpEffectContract,
   sha256PayloadDigest,
+  snapshotMcpJsonRpcInput,
 } from "./mcp-call-ledger.js";
 
 export const MCP_CALL_LEDGER_EVENT = "mcp_call_ledger";
@@ -95,7 +97,33 @@ const ADJUDICATION_FIELDS = new Set([
   "confirmation",
   "reasonDigest",
 ]);
+const RECOVERY_PROJECTION_FIELDS = new Set([
+  "sessionId",
+  "records",
+  "unsettled",
+  "incidents",
+  "adjudications",
+  "replayDenied",
+  "verified",
+  "headHash",
+  "recoveryDigest",
+  "remediation",
+]);
+const RECOVERY_REMEDIATIONS = new Set([
+  "inspect_transcript",
+  "adjudicate_started_calls",
+  "exact_replay_denied",
+]);
 const RECOVERY_DIGEST_SCHEMA_VERSION = 1;
+
+export const MCP_LEDGER_RECOVERY_PROJECTION_INVALID_CODE =
+  "CC_MCP_LEDGER_RECOVERY_PROJECTION_INVALID";
+
+const VERIFIED_PROJECTION_AUTHORITY_FIELDS = new Set([
+  "headHash",
+  "eventCount",
+  "readMessages",
+]);
 
 export class McpCallLedgerStoreError extends Error {
   constructor(code, message, options = {}) {
@@ -494,6 +522,115 @@ function immutableRecordMatches(started, settled) {
   );
 }
 
+function invalidRecoveryProjection(reason, cause) {
+  const error = new TypeError(
+    `Verified MCP recovery projection is invalid (${reason})`,
+    cause ? { cause } : undefined,
+  );
+  error.code = MCP_LEDGER_RECOVERY_PROJECTION_INVALID_CODE;
+  return error;
+}
+
+/** Validate one canonical projection completion without invoking accessors. */
+export function assertMcpVerifiedProjectionAuthority(
+  authority,
+  { acceptedCount, headHash },
+) {
+  if (
+    !authority ||
+    typeof authority !== "object" ||
+    Array.isArray(authority) ||
+    isProxy(authority) ||
+    (Object.getPrototypeOf(authority) !== Object.prototype &&
+      Object.getPrototypeOf(authority) !== null) ||
+    Object.getOwnPropertySymbols(authority).length > 0
+  ) {
+    throw invalidRecoveryProjection("completion-authority-not-plain");
+  }
+  const descriptors = Object.getOwnPropertyDescriptors(authority);
+  const fields = Object.keys(descriptors);
+  if (
+    fields.length !== VERIFIED_PROJECTION_AUTHORITY_FIELDS.size ||
+    fields.some(
+      (field) =>
+        !VERIFIED_PROJECTION_AUTHORITY_FIELDS.has(field) ||
+        !("value" in descriptors[field]) ||
+        !descriptors[field].enumerable,
+    )
+  ) {
+    throw invalidRecoveryProjection("completion-authority-malformed");
+  }
+  const projectedHeadHash = descriptors.headHash.value;
+  const projectedEventCount = descriptors.eventCount.value;
+  if (
+    (projectedHeadHash !== null &&
+      (typeof projectedHeadHash !== "string" ||
+        !RAW_AUTHORITY_HASH.test(projectedHeadHash))) ||
+    !Number.isSafeInteger(projectedEventCount) ||
+    projectedEventCount < 0 ||
+    typeof descriptors.readMessages.value !== "function" ||
+    projectedEventCount !== acceptedCount ||
+    projectedHeadHash !== headHash
+  ) {
+    throw invalidRecoveryProjection("completion-authority-mismatch");
+  }
+  return Object.freeze({
+    headHash: projectedHeadHash,
+    eventCount: projectedEventCount,
+  });
+}
+
+/**
+ * Copy a recovery authority through the strict MCP JSON boundary before any
+ * caller consumes it. This rejects Promises/thenables, Proxies, accessors,
+ * toJSON hooks and malformed projections without invoking user getters.
+ */
+export function snapshotMcpLedgerRecoveryProjection(sessionId, recovery) {
+  let snapshot;
+  try {
+    snapshot = snapshotMcpJsonRpcInput(recovery);
+  } catch (cause) {
+    throw invalidRecoveryProjection("not-strict-synchronous-data", cause);
+  }
+
+  if (
+    !hasExactFields(snapshot, RECOVERY_PROJECTION_FIELDS) ||
+    snapshot.sessionId !== sessionId ||
+    snapshot.verified !== true ||
+    !Array.isArray(snapshot.records) ||
+    !Array.isArray(snapshot.unsettled) ||
+    !Array.isArray(snapshot.incidents) ||
+    !Array.isArray(snapshot.adjudications) ||
+    !Array.isArray(snapshot.replayDenied) ||
+    (snapshot.headHash !== null &&
+      (typeof snapshot.headHash !== "string" ||
+        !RAW_AUTHORITY_HASH.test(snapshot.headHash))) ||
+    typeof snapshot.recoveryDigest !== "string" ||
+    !PAYLOAD_DIGEST.test(snapshot.recoveryDigest) ||
+    (snapshot.remediation !== null &&
+      !RECOVERY_REMEDIATIONS.has(snapshot.remediation))
+  ) {
+    throw invalidRecoveryProjection("malformed-authority");
+  }
+
+  if (snapshot.recoveryDigest !== computeMcpRecoveryDigest(snapshot)) {
+    throw invalidRecoveryProjection("digest-mismatch");
+  }
+
+  const expectedRemediation =
+    snapshot.incidents.length > 0
+      ? "inspect_transcript"
+      : snapshot.unsettled.length > 0
+        ? "adjudicate_started_calls"
+        : snapshot.replayDenied.length > 0
+          ? "exact_replay_denied"
+          : null;
+  if (snapshot.remediation !== expectedRemediation) {
+    throw invalidRecoveryProjection("remediation-mismatch");
+  }
+  return snapshot;
+}
+
 /** Create the async sink accepted by `McpCallLedger`. */
 export function createSessionMcpLedgerSink(sessionId, options = {}) {
   const appendEvent = options.appendEvent || storeAppendAuthorityEvent;
@@ -776,28 +913,89 @@ export function reduceMcpLedgerEvents(events, options = {}) {
 }
 
 export function loadMcpLedgerRecovery(sessionId, options = {}) {
+  const hasInjectedProjection = Object.prototype.hasOwnProperty.call(
+    options,
+    "readVerifiedProjection",
+  );
+  const hasInjectedLegacyReader = Object.prototype.hasOwnProperty.call(
+    options,
+    "readVerifiedEvents",
+  );
+  if (
+    (hasInjectedProjection &&
+      typeof options.readVerifiedProjection !== "function") ||
+    (hasInjectedLegacyReader &&
+      typeof options.readVerifiedEvents !== "function")
+  ) {
+    throw new McpCallLedgerStoreError(
+      "CC_MCP_LEDGER_EVENT_READ_FAILED",
+      `MCP ledger recovery failed for ${sessionId}: verified reader is invalid`,
+      {
+        sessionId,
+        cause: invalidRecoveryProjection("reader-not-callable"),
+      },
+    );
+  }
   const hasCustomLegacyReader =
-    typeof options.readVerifiedEvents === "function" &&
+    hasInjectedLegacyReader &&
     options.readVerifiedEvents !== storeReadVerifiedEvents;
-  const readVerifiedProjection =
-    options.readVerifiedProjection ||
-    (hasCustomLegacyReader ? null : storeReadVerifiedProjection);
+  const readVerifiedProjection = hasInjectedProjection
+    ? options.readVerifiedProjection
+    : hasCustomLegacyReader
+      ? null
+      : storeReadVerifiedProjection;
   const readVerifiedEvents =
     options.readVerifiedEvents || storeReadVerifiedEvents;
   try {
     if (typeof readVerifiedProjection === "function") {
-      return readVerifiedProjection(sessionId, () => {
+      let projectionCreated = false;
+      let finishedProjection;
+      const returnedProjection = readVerifiedProjection(sessionId, () => {
+        if (projectionCreated) {
+          throw invalidRecoveryProjection("factory-reused");
+        }
+        projectionCreated = true;
+        let acceptedCount = 0;
+        let finished = false;
         const reducer = createMcpLedgerEventReducer({
           sessionId,
           verified: true,
         });
-        return {
-          accept: reducer.accept,
-          finish: reducer.finish,
-        };
+        return Object.freeze({
+          accept(event) {
+            if (finished) {
+              throw invalidRecoveryProjection("accept-after-finish");
+            }
+            acceptedCount += 1;
+            reducer.accept(event);
+          },
+          finish(authority) {
+            if (finished) {
+              throw invalidRecoveryProjection("finish-reused");
+            }
+            finished = true;
+            const recovery = reducer.finish();
+            assertMcpVerifiedProjectionAuthority(authority, {
+              acceptedCount,
+              headHash: recovery.headHash,
+            });
+            finishedProjection = recovery;
+            return recovery;
+          },
+        });
       });
+      if (
+        !projectionCreated ||
+        finishedProjection === undefined ||
+        returnedProjection !== finishedProjection
+      ) {
+        throw invalidRecoveryProjection("reader-bypassed-factory");
+      }
+      return snapshotMcpLedgerRecoveryProjection(sessionId, returnedProjection);
     }
-    const verifiedEvents = readVerifiedEvents(sessionId);
+    const verifiedEvents = snapshotMcpJsonRpcInput(
+      readVerifiedEvents(sessionId),
+    );
     if (!Array.isArray(verifiedEvents)) {
       const invalid = new TypeError(
         "Verified MCP ledger events must be returned synchronously as an array",
@@ -805,10 +1003,13 @@ export function loadMcpLedgerRecovery(sessionId, options = {}) {
       invalid.code = "CC_MCP_LEDGER_VERIFIED_EVENTS_INVALID";
       throw invalid;
     }
-    return reduceMcpLedgerEvents(verifiedEvents, {
+    return snapshotMcpLedgerRecoveryProjection(
       sessionId,
-      verified: true,
-    });
+      reduceMcpLedgerEvents(verifiedEvents, {
+        sessionId,
+        verified: true,
+      }),
+    );
   } catch (cause) {
     throw new McpCallLedgerStoreError(
       "CC_MCP_LEDGER_EVENT_READ_FAILED",

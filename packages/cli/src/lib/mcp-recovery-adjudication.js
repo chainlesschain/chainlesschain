@@ -1,8 +1,5 @@
 import { randomUUID as nodeRandomUUID } from "node:crypto";
-import {
-  appendAuthorityEventIfHead as storeAppendAuthorityEventIfHead,
-  readVerifiedEvents as storeReadVerifiedEvents,
-} from "../harness/jsonl-session-store.js";
+import { appendAuthorityEventIfHead as storeAppendAuthorityEventIfHead } from "../harness/jsonl-session-store.js";
 import {
   MCP_CALL_RECOVERY_ADJUDICATION_EVENT,
   MCP_CALL_RECOVERY_ADJUDICATION_SCHEMA_VERSION,
@@ -10,7 +7,7 @@ import {
   MCP_CALL_RECOVERY_CONFIRMATION,
   McpCallRecoveryDecision,
   deriveMcpExactReplayDenies,
-  reduceMcpLedgerEvents,
+  loadMcpLedgerRecovery,
 } from "./mcp-call-ledger-store.js";
 import {
   MCP_CALL_LEDGER_PROTOCOL_LIMITS,
@@ -104,19 +101,20 @@ function requireReason(value, options = {}) {
 }
 
 export function readMcpRecoveryAuthority(sessionId, dependencies = {}) {
-  const readVerifiedEvents =
-    dependencies.readVerifiedEvents || storeReadVerifiedEvents;
-  let events;
   try {
-    events = snapshotMcpJsonRpcInput(readVerifiedEvents(sessionId));
-    if (!Array.isArray(events)) {
-      throw new TypeError(
-        "Verified MCP recovery events must be a synchronous array",
-      );
-    }
-    return reduceMcpLedgerEvents(events, {
-      sessionId,
-      verified: true,
+    return loadMcpLedgerRecovery(sessionId, {
+      ...(Object.prototype.hasOwnProperty.call(
+        dependencies,
+        "readVerifiedProjection",
+      )
+        ? { readVerifiedProjection: dependencies.readVerifiedProjection }
+        : {}),
+      ...(Object.prototype.hasOwnProperty.call(
+        dependencies,
+        "readVerifiedEvents",
+      )
+        ? { readVerifiedEvents: dependencies.readVerifiedEvents }
+        : {}),
     });
   } catch (cause) {
     throw new McpRecoveryAdjudicationError(

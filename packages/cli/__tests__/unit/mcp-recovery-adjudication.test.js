@@ -504,6 +504,32 @@ describe("MCP recovery adjudication authority", () => {
     expect(eventReads).toBe(0);
   });
 
+  it("reads adjudication authority through one incremental verified projection", () => {
+    const started = startedEvent();
+    const readVerifiedEvents = vi.fn(() => {
+      throw new Error("legacy all-event reader must not run");
+    });
+    const readVerifiedProjection = vi.fn((_sessionId, createProjection) => {
+      const projection = createProjection();
+      projection.accept(started);
+      return projection.finish({
+        headHash: started.hash,
+        eventCount: 1,
+        readMessages: () => [],
+      });
+    });
+
+    const recovery = readMcpRecoveryAuthority("session-1", {
+      readVerifiedEvents,
+      readVerifiedProjection,
+    });
+
+    expect(recovery.unsettled).toHaveLength(1);
+    expect(recovery.headHash).toBe(HEAD_1);
+    expect(readVerifiedProjection).toHaveBeenCalledOnce();
+    expect(readVerifiedEvents).not.toHaveBeenCalled();
+  });
+
   it("appends one exact-key authority event under the verified head CAS", async () => {
     const started = startedEvent();
     const recovery = readMcpRecoveryAuthority("session-1", {

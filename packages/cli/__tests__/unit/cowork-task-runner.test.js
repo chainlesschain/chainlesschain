@@ -148,6 +148,7 @@ describe("cowork-task-runner", () => {
     _deps.appendSessionEvent = vi.fn(() => true);
     _deps.appendSessionEventIfHead = vi.fn(() => true);
     _deps.readVerifiedSessionEvents = vi.fn(() => []);
+    _deps.readVerifiedSessionProjection = null;
     _deps.randomUUID = vi.fn(() => "stable-cowork-session");
     _mockRun.mockResolvedValue({
       summary: "Task completed successfully",
@@ -838,6 +839,211 @@ describe("cowork-task-runner", () => {
     });
     expect(replay.error).toContain("explicitly adjudicated");
     expect(fakeClient.callTool).not.toHaveBeenCalled();
+  });
+
+  it("folds the Cowork binding and MCP ledger in one verified projection", () => {
+    const sessionId = "cowork-projected-session";
+    const events = [
+      {
+        type: "session_start",
+        prevHash: null,
+        hash: "a".repeat(64),
+        data: { title: "projected" },
+      },
+      {
+        type: "cowork_mcp_session",
+        prevHash: "a".repeat(64),
+        hash: "b".repeat(64),
+        data: {
+          schemaVersion: 1,
+          taskId: "prior-task",
+          templateId: "doc-convert",
+        },
+      },
+      {
+        type: MCP_CALL_LEDGER_EVENT,
+        prevHash: "b".repeat(64),
+        hash: "c".repeat(64),
+        data: {
+          schemaVersion: 1,
+          phase: "started",
+          record: {
+            schemaVersion: 1,
+            ledgerId: "mcp-projected-1",
+            sessionId,
+            turnId: "turn-1",
+            toolName: "publish",
+            serverName: "repo",
+            inputDigest: `sha256:${"a".repeat(64)}`,
+            inputBytes: 2,
+            effectContract: { effect: "write" },
+            resourceScopes: [],
+            networkScopes: [],
+            prewritePolicy: "fail-closed",
+            prewritePersistence: "pending",
+            status: "started",
+            startedAt: "2026-08-02T00:00:00.000Z",
+            settledAt: null,
+            outputSummary: null,
+            outputDigest: null,
+            errorSummary: null,
+          },
+        },
+      },
+    ];
+    const legacyReader = vi.fn(() => {
+      throw new Error("legacy all-event reader must not run");
+    });
+    _deps.readVerifiedSessionEvents = legacyReader;
+    _deps.readVerifiedSessionProjection = vi.fn(
+      (_requestedSessionId, createProjection) => {
+        const projection = createProjection();
+        for (const event of events) projection.accept(event);
+        return projection.finish({
+          headHash: events.at(-1).hash,
+          eventCount: events.length,
+          readMessages: () => [],
+        });
+      },
+    );
+
+    const runtime = prepareCoworkMcpRuntime(
+      {
+        mcpClient: { callTool: vi.fn() },
+        extraToolDefinitions: [
+          { type: "function", function: { name: "mcp__repo__publish" } },
+        ],
+      },
+      { mcpSessionId: sessionId, templateId: "doc-convert" },
+    );
+
+    expect(_deps.readVerifiedSessionProjection).toHaveBeenCalledOnce();
+    expect(legacyReader).not.toHaveBeenCalled();
+    expect(runtime.bindingAllowed).toBe(true);
+    expect(runtime.expectedHeadHash).toBe("c".repeat(64));
+    expect(runtime.recoveryState).toMatchObject({
+      blockMode: "unsafe",
+      headHash: "c".repeat(64),
+      unsettled: [expect.objectContaining({ ledgerId: "mcp-projected-1" })],
+    });
+  });
+
+  it("fails Cowork recovery closed on unsafe projection results", () => {
+    const sessionId = "cowork-invalid-projection";
+    const recovery = reduceMcpLedgerEvents([], {
+      sessionId,
+      verified: true,
+    });
+    const clean = {
+      schemaVersion: 1,
+      bindingAllowed: true,
+      expectedHeadHash: null,
+      recovery,
+    };
+    let accessorReads = 0;
+    const accessor = { ...clean };
+    Object.defineProperty(accessor, "expectedHeadHash", {
+      enumerable: true,
+      get() {
+        accessorReads += 1;
+        return null;
+      },
+    });
+    const thenable = { ...clean, then: vi.fn() };
+    const toJSON = { ...clean, toJSON: vi.fn(() => clean) };
+    const proxy = new Proxy(clean, {
+      get() {
+        accessorReads += 1;
+        throw new Error("must-not-read-cowork-proxy");
+      },
+    });
+
+    for (const result of [
+      clean,
+      Promise.resolve(clean),
+      thenable,
+      proxy,
+      accessor,
+      toJSON,
+      { ...clean, bindingAllowed: false },
+    ]) {
+      _deps.readVerifiedSessionProjection = vi.fn(() => result);
+      const runtime = prepareCoworkMcpRuntime(
+        {
+          mcpClient: { callTool: vi.fn() },
+          extraToolDefinitions: [
+            { type: "function", function: { name: "mcp__repo__publish" } },
+          ],
+        },
+        { mcpSessionId: sessionId, templateId: "doc-convert" },
+      );
+      expect(runtime.bindingAllowed).toBe(false);
+      expect(runtime.expectedHeadHash).toBeNull();
+      expect(runtime.recoveryState).toMatchObject({ blockMode: "all" });
+    }
+    expect(accessorReads).toBe(0);
+    expect(thenable.then).not.toHaveBeenCalled();
+    expect(toJSON.toJSON).not.toHaveBeenCalled();
+  });
+
+  it("binds Cowork projection completion to its accepted count and head", () => {
+    const event = {
+      type: "session_start",
+      prevHash: null,
+      hash: "a".repeat(64),
+      data: { title: "authority" },
+    };
+    let accessorReads = 0;
+    const nestedHeadProxy = new Proxy(
+      {},
+      {
+        get() {
+          accessorReads += 1;
+          throw new Error("must-not-coerce-cowork-head-proxy");
+        },
+      },
+    );
+    const accessorAuthority = {
+      headHash: event.hash,
+      readMessages: () => [],
+    };
+    Object.defineProperty(accessorAuthority, "eventCount", {
+      enumerable: true,
+      get() {
+        accessorReads += 1;
+        return 1;
+      },
+    });
+
+    for (const authority of [
+      { headHash: event.hash, eventCount: 2, readMessages: () => [] },
+      { headHash: "b".repeat(64), eventCount: 1, readMessages: () => [] },
+      { headHash: nestedHeadProxy, eventCount: 1, readMessages: () => [] },
+      accessorAuthority,
+    ]) {
+      _deps.readVerifiedSessionProjection = vi.fn(
+        (_sessionId, createProjection) => {
+          const projection = createProjection();
+          projection.accept(event);
+          return projection.finish(authority);
+        },
+      );
+      const runtime = prepareCoworkMcpRuntime(
+        {
+          mcpClient: { callTool: vi.fn() },
+          extraToolDefinitions: [
+            { type: "function", function: { name: "mcp__repo__publish" } },
+          ],
+        },
+        {
+          mcpSessionId: "cowork-invalid-completion",
+          templateId: "doc-convert",
+        },
+      );
+      expect(runtime.bindingAllowed).toBe(false);
+      expect(runtime.recoveryState).toMatchObject({ blockMode: "all" });
+    }
+    expect(accessorReads).toBe(0);
   });
 
   it("retains every exact replay deny in Cowork host authority", async () => {

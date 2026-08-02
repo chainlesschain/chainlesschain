@@ -14,21 +14,28 @@ import { SubAgentContext } from "./sub-agent-context.js";
 import { getTemplate, setUserTemplates } from "./cowork-task-templates.js";
 import { mountTemplateMcpTools } from "./cowork-mcp-tools.js";
 import { listUserTemplates } from "./cowork-template-marketplace.js";
-import { createMcpCallLedger, McpEffect } from "./mcp-call-ledger.js";
+import {
+  createMcpCallLedger,
+  McpEffect,
+  snapshotMcpJsonRpcInput,
+} from "./mcp-call-ledger.js";
 import {
   createMcpRecoveryAdmissionController,
   guardMcpLedgerForRecovery,
 } from "./mcp-ledger-recovery-admission.js";
 import {
+  assertMcpVerifiedProjectionAuthority,
   createSessionMcpLedgerSink,
+  createMcpLedgerEventReducer,
   formatMcpLedgerRecoveryNotice,
-  reduceMcpLedgerEvents,
+  snapshotMcpLedgerRecoveryProjection,
 } from "./mcp-call-ledger-store.js";
 import {
   appendAuthorityEvent as appendSessionEvent,
   appendAuthorityEventIfHead as appendSessionEventIfHead,
   isUnsafeSessionId,
   readVerifiedEvents as readVerifiedSessionEvents,
+  readVerifiedProjection as readVerifiedSessionProjection,
 } from "../harness/jsonl-session-store.js";
 
 // ─── Dependencies (overridable for testing) ──────────────────────────────────
@@ -41,6 +48,7 @@ export const _deps = {
   appendSessionEvent,
   appendSessionEventIfHead,
   readVerifiedSessionEvents,
+  readVerifiedSessionProjection,
   randomUUID,
 };
 
@@ -108,27 +116,176 @@ function publicMcpRecoveryState(recovery, blockMode, readErrorCode = null) {
   });
 }
 
-function assertCoworkMcpSessionBinding(events, templateId) {
-  for (const event of Array.isArray(events) ? events : []) {
-    if (event?.type !== "cowork_mcp_session") continue;
-    const binding = event.data;
-    if (
-      binding?.schemaVersion !== 1 ||
-      typeof binding.taskId !== "string" ||
-      typeof binding.templateId !== "string"
-    ) {
-      const error = new Error("Cowork MCP session binding is malformed");
-      error.code = "CC_COWORK_MCP_SESSION_BIND_INVALID";
-      throw error;
-    }
-    if (binding.templateId !== templateId) {
-      const error = new Error(
-        `Cowork MCP session is already bound to template ${binding.templateId}`,
-      );
-      error.code = "CC_COWORK_MCP_SESSION_BIND_CONFLICT";
-      throw error;
-    }
+function assertCoworkMcpSessionBindingEvent(event, templateId) {
+  if (event?.type !== "cowork_mcp_session") return;
+  const binding = event.data;
+  if (
+    binding?.schemaVersion !== 1 ||
+    typeof binding.taskId !== "string" ||
+    typeof binding.templateId !== "string"
+  ) {
+    const error = new Error("Cowork MCP session binding is malformed");
+    error.code = "CC_COWORK_MCP_SESSION_BIND_INVALID";
+    throw error;
   }
+  if (binding.templateId !== templateId) {
+    const error = new Error(
+      `Cowork MCP session is already bound to template ${binding.templateId}`,
+    );
+    error.code = "CC_COWORK_MCP_SESSION_BIND_CONFLICT";
+    throw error;
+  }
+}
+
+function createCoworkMcpRecoveryProjection(sessionId, templateId, onFinish) {
+  const ledger = createMcpLedgerEventReducer({
+    sessionId,
+    verified: true,
+  });
+  let acceptedCount = 0;
+  let finished = false;
+  return Object.freeze({
+    accept(event) {
+      if (finished) {
+        const error = new Error("Cowork MCP projection accepted after finish");
+        error.code = "CC_COWORK_MCP_RECOVERY_PROJECTION_INVALID";
+        throw error;
+      }
+      acceptedCount += 1;
+      assertCoworkMcpSessionBindingEvent(event, templateId);
+      ledger.accept(event);
+    },
+    finish(authority) {
+      if (finished) {
+        const error = new Error("Cowork MCP projection finished twice");
+        error.code = "CC_COWORK_MCP_RECOVERY_PROJECTION_INVALID";
+        throw error;
+      }
+      finished = true;
+      const recovery = ledger.finish();
+      assertMcpVerifiedProjectionAuthority(authority, {
+        acceptedCount,
+        headHash: recovery.headHash,
+      });
+      const projected = Object.freeze({
+        schemaVersion: 1,
+        bindingAllowed: true,
+        expectedHeadHash: recovery.headHash,
+        recovery,
+      });
+      onFinish(projected);
+      return projected;
+    },
+  });
+}
+
+function snapshotCoworkMcpRecoveryProjection(sessionId, value) {
+  const snapshot = snapshotMcpJsonRpcInput(value);
+  const fields = Object.keys(snapshot || {})
+    .sort()
+    .join(",");
+  if (
+    fields !== "bindingAllowed,expectedHeadHash,recovery,schemaVersion" ||
+    snapshot.schemaVersion !== 1 ||
+    snapshot.bindingAllowed !== true
+  ) {
+    const error = new TypeError("Cowork MCP recovery projection is malformed");
+    error.code = "CC_COWORK_MCP_RECOVERY_PROJECTION_INVALID";
+    throw error;
+  }
+  const recovery = snapshotMcpLedgerRecoveryProjection(
+    sessionId,
+    snapshot.recovery,
+  );
+  if (snapshot.expectedHeadHash !== recovery.headHash) {
+    const error = new TypeError(
+      "Cowork MCP recovery projection head is inconsistent",
+    );
+    error.code = "CC_COWORK_MCP_RECOVERY_PROJECTION_INVALID";
+    throw error;
+  }
+  return Object.freeze({ ...snapshot, recovery });
+}
+
+function readCoworkMcpRecoveryProjection(sessionId, templateId) {
+  const hasCustomLegacyReader =
+    typeof _deps.readVerifiedSessionEvents === "function" &&
+    _deps.readVerifiedSessionEvents !== readVerifiedSessionEvents;
+  const readProjection = _deps.readVerifiedSessionProjection;
+  if (
+    typeof readProjection === "function" &&
+    (readProjection !== readVerifiedSessionProjection || !hasCustomLegacyReader)
+  ) {
+    let projectionCreated = false;
+    let finishedProjection;
+    const returnedProjection = readProjection(sessionId, () => {
+      if (projectionCreated) {
+        const error = new Error("Cowork MCP projection factory was reused");
+        error.code = "CC_COWORK_MCP_RECOVERY_PROJECTION_INVALID";
+        throw error;
+      }
+      projectionCreated = true;
+      return createCoworkMcpRecoveryProjection(
+        sessionId,
+        templateId,
+        (value) => {
+          finishedProjection = value;
+        },
+      );
+    });
+    if (
+      !projectionCreated ||
+      finishedProjection === undefined ||
+      returnedProjection !== finishedProjection
+    ) {
+      const error = new Error(
+        "Cowork MCP projection reader bypassed its verified factory",
+      );
+      error.code = "CC_COWORK_MCP_RECOVERY_PROJECTION_INVALID";
+      throw error;
+    }
+    return snapshotCoworkMcpRecoveryProjection(sessionId, returnedProjection);
+  }
+  if (!hasCustomLegacyReader) {
+    const error = new TypeError(
+      "Verified Cowork MCP projection reader is unavailable",
+    );
+    error.code = "CC_COWORK_MCP_RECOVERY_PROJECTION_INVALID";
+    throw error;
+  }
+
+  const verifiedEvents = snapshotMcpJsonRpcInput(
+    _deps.readVerifiedSessionEvents(sessionId),
+  );
+  if (!Array.isArray(verifiedEvents)) {
+    const invalid = new TypeError(
+      "Verified Cowork MCP events must be returned synchronously as an array",
+    );
+    invalid.code = "CC_MCP_LEDGER_VERIFIED_EVENTS_INVALID";
+    throw invalid;
+  }
+  let finishedProjection;
+  const projection = createCoworkMcpRecoveryProjection(
+    sessionId,
+    templateId,
+    (value) => {
+      finishedProjection = value;
+    },
+  );
+  for (const event of verifiedEvents) projection.accept(event);
+  const returnedProjection = projection.finish(
+    Object.freeze({
+      headHash: verifiedEvents.at(-1)?.hash || null,
+      eventCount: verifiedEvents.length,
+      readMessages: () => [],
+    }),
+  );
+  if (returnedProjection !== finishedProjection) {
+    const error = new Error("Cowork MCP legacy projection did not finish");
+    error.code = "CC_COWORK_MCP_RECOVERY_PROJECTION_INVALID";
+    throw error;
+  }
+  return snapshotCoworkMcpRecoveryProjection(sessionId, returnedProjection);
 }
 
 /**
@@ -159,24 +316,13 @@ export function prepareCoworkMcpRuntime(mcp, options = {}) {
   let bindingAllowed = false;
   let expectedHeadHash = null;
   try {
-    const verifiedEvents = _deps.readVerifiedSessionEvents(sessionId);
-    if (!Array.isArray(verifiedEvents)) {
-      const invalid = new TypeError(
-        "Verified Cowork MCP events must be returned synchronously as an array",
-      );
-      invalid.code = "CC_MCP_LEDGER_VERIFIED_EVENTS_INVALID";
-      throw invalid;
-    }
-    assertCoworkMcpSessionBinding(
-      verifiedEvents,
+    const projected = readCoworkMcpRecoveryProjection(
+      sessionId,
       String(options.templateId || "free"),
     );
-    const recovery = reduceMcpLedgerEvents(verifiedEvents, {
-      sessionId,
-      verified: true,
-    });
-    expectedHeadHash = verifiedEvents.at(-1)?.hash || null;
-    bindingAllowed = true;
+    const recovery = projected.recovery;
+    expectedHeadHash = projected.expectedHeadHash;
+    bindingAllowed = projected.bindingAllowed;
     recoveryNotice = formatMcpLedgerRecoveryNotice(recovery);
     const blockMode =
       recovery.incidents.length > 0

@@ -37,8 +37,9 @@ function record(overrides = {}) {
     outputSummary: null,
     outputDigest: null,
     errorSummary: null,
-    settlementPersistence:
-      status === McpCallStatus.STARTED ? undefined : "pending",
+    ...(status === McpCallStatus.STARTED
+      ? {}
+      : { settlementPersistence: "pending" }),
     ...overrides,
   };
 }
@@ -398,6 +399,137 @@ describe("MCP call ledger session store", () => {
     expect(recovery.headHash).toBe(events.at(-1).hash);
     expect(readVerifiedProjection).toHaveBeenCalledTimes(1);
     expect(readVerifiedEvents).not.toHaveBeenCalled();
+  });
+
+  it("fails closed on unsafe or malformed verified projection results", () => {
+    const recovery = reduceMcpLedgerEvents(chained([event(record())]), {
+      sessionId: "session-1",
+      verified: true,
+    });
+    let accessorReads = 0;
+    const accessor = { ...recovery };
+    Object.defineProperty(accessor, "recoveryDigest", {
+      enumerable: true,
+      get() {
+        accessorReads += 1;
+        return recovery.recoveryDigest;
+      },
+    });
+    const thenable = { ...recovery, then: vi.fn() };
+    const toJSON = { ...recovery, toJSON: vi.fn(() => recovery) };
+    const proxy = new Proxy(recovery, {
+      get() {
+        accessorReads += 1;
+        throw new Error("must-not-read-projection-proxy");
+      },
+    });
+
+    for (const result of [
+      recovery,
+      Promise.resolve(recovery),
+      thenable,
+      proxy,
+      accessor,
+      toJSON,
+      { ...recovery, verified: false },
+    ]) {
+      expect(() =>
+        loadMcpLedgerRecovery("session-1", {
+          readVerifiedProjection: () => result,
+        }),
+      ).toThrow(
+        expect.objectContaining({ code: "CC_MCP_LEDGER_EVENT_READ_FAILED" }),
+      );
+    }
+    expect(accessorReads).toBe(0);
+    expect(thenable.then).not.toHaveBeenCalled();
+    expect(toJSON.toJSON).not.toHaveBeenCalled();
+  });
+
+  it("binds projection completion to the accepted count and verified head", () => {
+    const events = chained([event(record())]);
+    let accessorReads = 0;
+    const nestedHeadProxy = new Proxy(
+      {},
+      {
+        get() {
+          accessorReads += 1;
+          throw new Error("must-not-coerce-head-proxy");
+        },
+      },
+    );
+    const accessorAuthority = {
+      headHash: events[0].hash,
+      readMessages: () => [],
+    };
+    Object.defineProperty(accessorAuthority, "eventCount", {
+      enumerable: true,
+      get() {
+        accessorReads += 1;
+        return 1;
+      },
+    });
+
+    for (const authority of [
+      {
+        headHash: events[0].hash,
+        eventCount: 2,
+        readMessages: () => [],
+      },
+      {
+        headHash: "f".repeat(64),
+        eventCount: 1,
+        readMessages: () => [],
+      },
+      {
+        headHash: nestedHeadProxy,
+        eventCount: 1,
+        readMessages: () => [],
+      },
+      accessorAuthority,
+    ]) {
+      expect(() =>
+        loadMcpLedgerRecovery("session-1", {
+          readVerifiedProjection: (_sessionId, createProjection) => {
+            const projection = createProjection();
+            projection.accept(events[0]);
+            return projection.finish(authority);
+          },
+        }),
+      ).toThrow(
+        expect.objectContaining({ code: "CC_MCP_LEDGER_EVENT_READ_FAILED" }),
+      );
+    }
+    expect(accessorReads).toBe(0);
+  });
+
+  it("strictly snapshots an explicit legacy verified-event reader", () => {
+    let eventReads = 0;
+    const accessorEvent = chained([event(record())])[0];
+    Object.defineProperty(accessorEvent, "type", {
+      enumerable: true,
+      get() {
+        eventReads += 1;
+        return MCP_CALL_LEDGER_EVENT;
+      },
+    });
+    const proxyEvents = new Proxy(chained([event(record())]), {
+      get() {
+        eventReads += 1;
+        throw new Error("must-not-read-legacy-proxy");
+      },
+    });
+
+    for (const events of [[accessorEvent], proxyEvents]) {
+      expect(() =>
+        loadMcpLedgerRecovery("session-1", {
+          readVerifiedEvents: () => events,
+        }),
+      ).toThrow(
+        expect.objectContaining({ code: "CC_MCP_LEDGER_EVENT_READ_FAILED" }),
+      );
+    }
+    expect(eventReads).toBe(0);
   });
 
   it("rejects phase/status mismatches before persistence and during replay", async () => {
