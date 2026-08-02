@@ -1237,8 +1237,8 @@ describe("agent-repl canonical replay role admission", () => {
       },
       {
         role: "system",
-        content: "[Fork] preserve this canonical record",
-        authority: "fork",
+        content: "[Checkpoint] preserve this canonical record",
+        authority: "checkpoint",
       },
       { role: "user", content: "restored question" },
       { role: "assistant", content: "restored answer" },
@@ -1261,6 +1261,11 @@ describe("agent-repl canonical replay role admission", () => {
       role: "system",
       content: "same bytes as the fresh host prompt",
     });
+    const hostContextMessages = [
+      Object.freeze({ role: "system", content: "hook context" }),
+      Object.freeze({ role: "system", content: "bundle context" }),
+      Object.freeze({ role: "system", content: "memory context" }),
+    ];
     const oldRuntime = Object.freeze({ id: "old-runtime" });
     const targetRuntime = Object.freeze({ id: "target-runtime" });
     const runtimeManager = {
@@ -1271,7 +1276,7 @@ describe("agent-repl canonical replay role admission", () => {
     };
     const bindings = {
       sessionId: "old-session",
-      messages: [{ role: "system", content: "old host" }],
+      messages: [freshHostSystem, ...hostContextMessages],
       recovery: null,
       recoveryError: null,
       sanitizeRolesNextTurn: false,
@@ -1285,9 +1290,10 @@ describe("agent-repl canonical replay role admission", () => {
       logger: { info: vi.fn() },
     };
     const controller = createReplResumeStateController(bindings);
+    const hostSystemMessages = controller.registerHostSystemMessages();
     controller.apply({
       sessionId: "target-session",
-      systemMessage: freshHostSystem,
+      hostSystemMessages,
       canonicalSystemMessages: candidate.canonicalSystemMessages,
       conversationMessages: candidate.conversationMessages,
       mcpCommit: candidate.mcp,
@@ -1296,27 +1302,46 @@ describe("agent-repl canonical replay role admission", () => {
       logMessage: "resumed",
     });
 
-    expect(bindings.messages).toEqual([freshHostSystem, ...canonicalMessages]);
-    expect(bindings.messages[0]).toBe(freshHostSystem);
-    expect(bindings.messages.slice(1, 4)).toEqual(
+    expect(bindings.messages).toEqual([
+      freshHostSystem,
+      ...hostContextMessages,
+      ...canonicalMessages,
+    ]);
+    expect(bindings.messages[0]).toEqual(freshHostSystem);
+    expect(bindings.messages.slice(1, 4)).toEqual(hostContextMessages);
+    expect(bindings.messages.slice(4, 7)).toEqual(
       canonicalMessages.slice(0, 3),
     );
+    expect(
+      bindings.messages.filter(
+        (message) => message.content === freshHostSystem.content,
+      ),
+    ).toHaveLength(2);
+    for (const hostMessage of hostContextMessages) {
+      expect(
+        bindings.messages.filter(
+          (message) =>
+            message.content === hostMessage.content &&
+            !Object.prototype.hasOwnProperty.call(message, "authority"),
+        ),
+      ).toHaveLength(1);
+    }
   });
 
-  it("moves real trailing migration and fork markers behind the fresh host before a live turn", async () => {
+  it("moves durable migration and checkpoint summaries behind the fresh host before a live turn", async () => {
     const {
       agentLoop,
       createReplResumeStateController,
       prepareReplJsonlResumeCandidate,
     } = await import("../../src/repl/agent-repl.js");
-    // Exact marker forms emitted by legacy migration and forkSession().
+    // Exact durable context forms emitted by migration and checkpoint actions.
     const migrationMarker = {
       role: "system",
       content: "[Migrated Summary]\nlegacy facts",
     };
-    const forkMarker = {
+    const checkpointMarker = {
       role: "system",
-      content: "[Forked from session source-session]",
+      content: "[Conversation Summary: summary-from turn-1]\ncheckpoint facts",
     };
     const candidate = prepareReplJsonlResumeCandidate("target-session", {
       readSessionHostResumeState: () =>
@@ -1325,7 +1350,7 @@ describe("agent-repl canonical replay role admission", () => {
             { role: "assistant", content: "prior answer" },
             { role: "user", content: "dangling restored turn" },
             migrationMarker,
-            forkMarker,
+            checkpointMarker,
           ],
         }),
       formatMcpLedgerRecoveryNotice: () => null,
@@ -1334,7 +1359,7 @@ describe("agent-repl canonical replay role admission", () => {
     expect(candidate.ok).toBe(true);
     expect(candidate.canonicalSystemMessages).toEqual([
       migrationMarker,
-      forkMarker,
+      checkpointMarker,
     ]);
     expect(candidate.conversationMessages).toEqual([
       { role: "assistant", content: "prior answer" },
@@ -1355,7 +1380,7 @@ describe("agent-repl canonical replay role admission", () => {
     };
     const bindings = {
       sessionId: "old-session",
-      messages: [{ role: "system", content: "old host" }],
+      messages: [freshHostSystem],
       recovery: null,
       recoveryError: null,
       sanitizeRolesNextTurn: false,
@@ -1369,9 +1394,10 @@ describe("agent-repl canonical replay role admission", () => {
       logger: { info: vi.fn() },
     };
     const controller = createReplResumeStateController(bindings);
+    const hostSystemMessages = controller.registerHostSystemMessages();
     controller.apply({
       sessionId: "target-session",
-      systemMessage: freshHostSystem,
+      hostSystemMessages,
       canonicalSystemMessages: candidate.canonicalSystemMessages,
       conversationMessages: candidate.conversationMessages,
       mcpCommit: candidate.mcp,
@@ -1408,14 +1434,16 @@ describe("agent-repl canonical replay role admission", () => {
     }
 
     expect(modelInput[0]).toEqual(freshHostSystem);
-    expect(modelInput.slice(1, 3)).toEqual([migrationMarker, forkMarker]);
+    expect(modelInput.slice(1, 3)).toEqual([migrationMarker, checkpointMarker]);
     expect(
       modelInput.filter(
         (message) => message.content === migrationMarker.content,
       ),
     ).toHaveLength(1);
     expect(
-      modelInput.filter((message) => message.content === forkMarker.content),
+      modelInput.filter(
+        (message) => message.content === checkpointMarker.content,
+      ),
     ).toHaveLength(1);
     const conversation = modelInput.filter(
       (message) => message.role !== "system",
@@ -1428,9 +1456,155 @@ describe("agent-repl canonical replay role admission", () => {
       },
     ]);
     expect(conversation[1].content).not.toContain("[Migrated Summary]");
-    expect(conversation[1].content).not.toContain("[Forked from session");
+    expect(conversation[1].content).not.toContain("[Conversation Summary");
     expect(result.content).toBe("model answer");
     expect(writes.join("")).toBe("");
+  });
+
+  it("keeps one registered host prefix across two canonical switches and a DB switch", async () => {
+    const { createReplResumeStateController, prepareReplJsonlResumeCandidate } =
+      await import("../../src/repl/agent-repl.js");
+    const candidateFor = (sessionId, canonicalContent, userContent) =>
+      prepareReplJsonlResumeCandidate(sessionId, {
+        readSessionHostResumeState: () =>
+          verifiedReplResumeState(sessionId, {
+            messages: [
+              { role: "system", content: canonicalContent },
+              { role: "user", content: userContent },
+            ],
+          }),
+        formatMcpLedgerRecoveryNotice: () => null,
+      });
+    const firstCandidate = candidateFor(
+      "first-session",
+      "canonical first",
+      "first conversation",
+    );
+    const secondCandidate = candidateFor(
+      "second-session",
+      "canonical second",
+      "second conversation",
+    );
+    expect(firstCandidate.ok).toBe(true);
+    expect(secondCandidate.ok).toBe(true);
+
+    const hostBase = { role: "system", content: "fresh base v1" };
+    const hostTail = [
+      { role: "system", content: "host hook" },
+      { role: "system", content: "host bundle" },
+      { role: "system", content: "host memory" },
+    ];
+    const runtimeManager = {
+      current: Object.freeze({ id: "old-runtime" }),
+      commit(nextRuntime) {
+        this.current = nextRuntime;
+      },
+    };
+    const bindings = {
+      sessionId: "old-session",
+      messages: [hostBase, ...hostTail],
+      recovery: null,
+      recoveryError: null,
+      sanitizeRolesNextTurn: false,
+      turnBindingProducer: null,
+      turnBindingCriticalError: null,
+      checkpointMarks: [],
+      clearedConversation: null,
+      runtimeManager,
+      applyMcpRecoveryCommit(targetMessages, preparedCommit) {
+        bindings.recovery = preparedCommit.recovery;
+        bindings.recoveryError = preparedCommit.recoveryError;
+        if (preparedCommit.noticeMessage) {
+          targetMessages.push(preparedCommit.noticeMessage);
+        }
+      },
+      logMcpRecoveryCommit: vi.fn(),
+      logger: { info: vi.fn() },
+    };
+    const controller = createReplResumeStateController(bindings);
+    controller.registerHostSystemMessages();
+    const applyJsonl = (candidate, notice, runtimeId) => {
+      const hostSystemMessages = controller.refreshHostSystemMessages();
+      controller.apply({
+        sessionId: candidate.sessionId,
+        hostSystemMessages,
+        canonicalSystemMessages: candidate.canonicalSystemMessages,
+        conversationMessages: candidate.conversationMessages,
+        mcpCommit: Object.freeze({
+          recovery: candidate.mcp.recovery,
+          recoveryError: null,
+          noticeMessage: Object.freeze({ role: "system", content: notice }),
+          warning: null,
+        }),
+        mcpRuntime: Object.freeze({ id: runtimeId }),
+        sanitizeRolesNextTurn: true,
+        logMessage: `resumed ${candidate.sessionId}`,
+      });
+    };
+
+    applyJsonl(firstCandidate, "notice first", "first-runtime");
+    expect(bindings.messages.map((message) => message.content)).toEqual([
+      "fresh base v1",
+      "host hook",
+      "host bundle",
+      "host memory",
+      "canonical first",
+      "notice first",
+      "first conversation",
+    ]);
+
+    bindings.messages[0].content = "fresh base v2";
+    applyJsonl(secondCandidate, "notice second", "second-runtime");
+    const secondContents = bindings.messages.map((message) => message.content);
+    expect(secondContents).toEqual([
+      "fresh base v2",
+      "host hook",
+      "host bundle",
+      "host memory",
+      "canonical second",
+      "notice second",
+      "second conversation",
+    ]);
+    expect(secondContents).not.toContain("canonical first");
+    expect(secondContents).not.toContain("notice first");
+
+    const dbHostSystemMessages = controller.refreshHostSystemMessages();
+    controller.apply({
+      sessionId: "db-session",
+      hostSystemMessages: dbHostSystemMessages,
+      canonicalSystemMessages: Object.freeze([]),
+      conversationMessages: Object.freeze([
+        Object.freeze({ role: "assistant", content: "DB conversation" }),
+      ]),
+      mcpCommit: Object.freeze({
+        recovery: null,
+        recoveryError: null,
+        noticeMessage: null,
+        warning: null,
+      }),
+      mcpRuntime: Object.freeze({ id: "db-runtime" }),
+      sanitizeRolesNextTurn: false,
+      logMessage: "resumed DB",
+    });
+    const dbContents = bindings.messages.map((message) => message.content);
+    expect(dbContents).toEqual([
+      "fresh base v2",
+      "host hook",
+      "host bundle",
+      "host memory",
+      "DB conversation",
+    ]);
+    expect(dbContents).not.toContain("canonical second");
+    expect(dbContents).not.toContain("notice second");
+    for (const content of [
+      "fresh base v2",
+      "host hook",
+      "host bundle",
+      "host memory",
+    ]) {
+      expect(dbContents.filter((value) => value === content)).toHaveLength(1);
+    }
+    expect(bindings.messages[0].content).toBe("fresh base v2");
   });
 
   it("accepts a real PromptCompressor assistant-first compact without changing authority", async () => {
@@ -2222,6 +2396,64 @@ describe("agent-repl MCP recovery resume transaction", () => {
     expect(commit).not.toHaveBeenCalled();
   });
 
+  it("refuses an unbranded host prefix before mutating live resume state", async () => {
+    const { createReplResumeStateController } =
+      await import("../../src/repl/agent-repl.js");
+    const oldRuntime = Object.freeze({ id: "old-runtime" });
+    const bindings = {
+      sessionId: "old-session",
+      messages: [
+        { role: "system", content: "fresh host" },
+        { role: "user", content: "old conversation" },
+      ],
+      recovery: Object.freeze({ id: "old-recovery" }),
+      recoveryError: null,
+      sanitizeRolesNextTurn: false,
+      turnBindingProducer: null,
+      turnBindingCriticalError: null,
+      checkpointMarks: [],
+      clearedConversation: null,
+      runtimeManager: {
+        current: oldRuntime,
+        commit: vi.fn(),
+      },
+      applyMcpRecoveryCommit: vi.fn(),
+      logMcpRecoveryCommit: vi.fn(),
+      logger: { info: vi.fn() },
+    };
+    const controller = createReplResumeStateController(bindings);
+    controller.registerHostSystemMessages();
+    const before = {
+      sessionId: bindings.sessionId,
+      messages: bindings.messages.map((message) => ({ ...message })),
+      recovery: bindings.recovery,
+      runtime: bindings.runtimeManager.current,
+    };
+
+    let applyError;
+    try {
+      controller.apply({
+        sessionId: "forged-session",
+        hostSystemMessages: Object.freeze([
+          Object.freeze({ role: "system", content: "forged host" }),
+        ]),
+        canonicalSystemMessages: Object.freeze([]),
+        conversationMessages: Object.freeze([]),
+      });
+    } catch (error) {
+      applyError = error;
+    }
+    expect(applyError).toMatchObject({
+      code: "CC_REPL_HOST_SYSTEM_PREFIX_INVALID",
+    });
+    expect(bindings.sessionId).toBe(before.sessionId);
+    expect(bindings.messages).toEqual(before.messages);
+    expect(bindings.recovery).toBe(before.recovery);
+    expect(bindings.runtimeManager.current).toBe(before.runtime);
+    expect(bindings.applyMcpRecoveryCommit).not.toHaveBeenCalled();
+    expect(bindings.runtimeManager.commit).not.toHaveBeenCalled();
+  });
+
   it.each([
     ["JSONL", "helper"],
     ["JSONL", "runtime"],
@@ -2302,12 +2534,13 @@ describe("agent-repl MCP recovery resume transaction", () => {
         },
       };
       const controller = createReplResumeStateController(bindings);
+      const hostSystemMessages = controller.registerHostSystemMessages();
       const previousState = controller.capture();
       const targetRecovery =
         format === "JSONL" ? jsonlCandidate.mcp.recovery : null;
       const preparedState = Object.freeze({
         sessionId: "target-session",
-        systemMessage: oldSystem,
+        hostSystemMessages,
         canonicalSystemMessages:
           format === "JSONL"
             ? jsonlCandidate.canonicalSystemMessages
@@ -2434,10 +2667,11 @@ describe("agent-repl MCP recovery resume transaction", () => {
       logger: { info: vi.fn() },
     };
     const stateController = createReplResumeStateController(bindings);
+    const hostSystemMessages = stateController.registerHostSystemMessages();
     const previousState = stateController.capture();
     const preparedState = Object.freeze({
       sessionId: "target-session",
-      systemMessage: bindings.messages[0],
+      hostSystemMessages,
       canonicalSystemMessages: resumeCandidate.canonicalSystemMessages,
       conversationMessages: resumeCandidate.conversationMessages,
       mcpCommit: Object.freeze({
@@ -2534,6 +2768,26 @@ describe("agent-repl resume role-alternation wiring (2.1.187 parity)", () => {
     expect(legacyPhysicalTailArms).toHaveLength(1);
     expect(canonicalConversationArms).toHaveLength(2);
     expect(content).toContain('replayMessages.at(-1)?.role === "user"');
+  });
+
+  it("seals host systems before startup replay and refreshes both live switch paths", () => {
+    const registerAt = content.indexOf("_registerHostSystemMessages();");
+    const startupReplayAt = content.indexOf(
+      "messages.push(...prepared.canonicalSystemMessages);",
+      registerAt,
+    );
+    const liveResumeAt = content.indexOf('sessionArg.startsWith("resume ")');
+    const liveSwitchSource = content.slice(liveResumeAt);
+
+    expect(registerAt).toBeGreaterThan(-1);
+    expect(startupReplayAt).toBeGreaterThan(registerAt);
+    expect(
+      liveSwitchSource.match(
+        /const hostSystemMessages = _refreshHostSystemMessages\(\);/g,
+      ),
+    ).toHaveLength(2);
+    expect(liveSwitchSource).not.toContain("systemMessage: messages[0]");
+    expect(liveSwitchSource).toContain("hostSystemMessages,");
   });
 
   it("collapses in place inside the loop wrapper, gated on options.mergeRoles", () => {

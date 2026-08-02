@@ -1660,12 +1660,69 @@ export function commitPreparedReplDbResume(preparedState, commit, rollback) {
  */
 export function createReplResumeStateController(bindings) {
   const snapshots = new WeakSet();
+  const hostSystemMessagePrefixes = new WeakSet();
+  let registeredHostSystemMessages = null;
   const replaceArray = (target, values) => {
     target.length = 0;
     for (const value of values) target.push(value);
   };
+  const invalidHostPrefix = (message) =>
+    invalidReplRecovery(message, "CC_REPL_HOST_SYSTEM_PREFIX_INVALID");
+  const assertHostSystemMessages = (candidate) => {
+    if (
+      !candidate ||
+      !hostSystemMessagePrefixes.has(candidate) ||
+      !Array.isArray(candidate) ||
+      !Object.isFrozen(candidate) ||
+      candidate.length === 0 ||
+      candidate.some(
+        (message) =>
+          !message || message.role !== "system" || !Object.isFrozen(message),
+      )
+    ) {
+      throw invalidHostPrefix("REPL host system prefix capability is invalid");
+    }
+    return candidate;
+  };
+  const createHostSystemMessages = (sourceMessages) => {
+    const snapshot = snapshotReplMessages(sourceMessages);
+    const leadingSystems = [];
+    for (const message of snapshot) {
+      if (message.role !== "system") break;
+      leadingSystems.push(message);
+    }
+    if (leadingSystems.length === 0) {
+      throw invalidHostPrefix("REPL host system prefix is empty");
+    }
+    const capability = Object.freeze(leadingSystems);
+    hostSystemMessagePrefixes.add(capability);
+    return capability;
+  };
+  const registerHostSystemMessages = () => {
+    if (registeredHostSystemMessages !== null) {
+      throw invalidHostPrefix("REPL host system prefix is already registered");
+    }
+    registeredHostSystemMessages = createHostSystemMessages(bindings.messages);
+    return registeredHostSystemMessages;
+  };
+  const refreshHostSystemMessages = () => {
+    const registered = assertHostSystemMessages(registeredHostSystemMessages);
+    const currentBase = snapshotReplMessages([bindings.messages[0]])[0];
+    if (currentBase.role !== "system") {
+      throw invalidHostPrefix("REPL current host base system is invalid");
+    }
+    const capability = Object.freeze([currentBase, ...registered.slice(1)]);
+    hostSystemMessagePrefixes.add(capability);
+    registeredHostSystemMessages = capability;
+    return capability;
+  };
+  const materializeHostSystemMessages = (candidate) =>
+    assertHostSystemMessages(candidate).map((message) => ({ ...message }));
 
   const capture = () => {
+    const hostSystemMessages = assertHostSystemMessages(
+      registeredHostSystemMessages,
+    );
     const mcpRuntime = bindings.runtimeManager.current;
     if (!mcpRuntime) {
       const error = new Error("Active MCP recovery runtime is unavailable");
@@ -1682,6 +1739,7 @@ export function createReplResumeStateController(bindings) {
       turnBindingCriticalError: bindings.turnBindingCriticalError,
       checkpointMarks: Object.freeze(bindings.checkpointMarks.slice()),
       clearedConversation: bindings.clearedConversation,
+      hostSystemMessages,
       mcpRuntime,
     });
     snapshots.add(snapshot);
@@ -1701,19 +1759,42 @@ export function createReplResumeStateController(bindings) {
     bindings.turnBindingCriticalError = snapshot.turnBindingCriticalError;
     replaceArray(bindings.checkpointMarks, snapshot.checkpointMarks);
     bindings.clearedConversation = snapshot.clearedConversation;
+    registeredHostSystemMessages = assertHostSystemMessages(
+      snapshot.hostSystemMessages,
+    );
     if (bindings.runtimeManager.current !== snapshot.mcpRuntime) {
       bindings.runtimeManager.commit(snapshot.mcpRuntime);
     }
   };
 
   const apply = (preparedState) => {
+    const hostSystemMessages = assertHostSystemMessages(
+      preparedState.hostSystemMessages,
+    );
+    const activeHostSystemMessages =
+      materializeHostSystemMessages(hostSystemMessages);
+    const canonicalSystemMessages = snapshotReplMessages(
+      preparedState.canonicalSystemMessages,
+    );
+    const conversationMessages = snapshotReplMessages(
+      preparedState.conversationMessages,
+    );
+    if (
+      canonicalSystemMessages.some((message) => message.role !== "system") ||
+      conversationMessages.some((message) => message.role === "system")
+    ) {
+      throw invalidHostPrefix(
+        "REPL prepared resume message partition is invalid",
+      );
+    }
     bindings.sessionId = preparedState.sessionId;
-    replaceArray(bindings.messages, [preparedState.systemMessage]);
-    for (const message of preparedState.canonicalSystemMessages) {
+    replaceArray(bindings.messages, activeHostSystemMessages);
+    registeredHostSystemMessages = hostSystemMessages;
+    for (const message of canonicalSystemMessages) {
       bindings.messages.push(message);
     }
     bindings.applyMcpRecoveryCommit(bindings.messages, preparedState.mcpCommit);
-    for (const message of preparedState.conversationMessages) {
+    for (const message of conversationMessages) {
       bindings.messages.push(message);
     }
     bindings.sanitizeRolesNextTurn = preparedState.sanitizeRolesNextTurn;
@@ -1726,7 +1807,13 @@ export function createReplResumeStateController(bindings) {
     bindings.logger.info(preparedState.logMessage);
   };
 
-  return Object.freeze({ capture, restore, apply });
+  return Object.freeze({
+    capture,
+    restore,
+    apply,
+    registerHostSystemMessages,
+    refreshHostSystemMessages,
+  });
 }
 
 /**
@@ -3007,6 +3094,10 @@ async function startAgentReplInWorkspace(options = {}, startupAdmission) {
   const _captureResumeState = _resumeStateController.capture;
   const _restoreResumeState = _resumeStateController.restore;
   const _applyPreparedResumeState = _resumeStateController.apply;
+  const _registerHostSystemMessages =
+    _resumeStateController.registerHostSystemMessages;
+  const _refreshHostSystemMessages =
+    _resumeStateController.refreshHostSystemMessages;
 
   // Seed connected MCP servers with the startup workspace roots when the session
   // began with extra `--add-dir` roots — otherwise `roots/list` would only ever
@@ -3087,6 +3178,12 @@ async function startAgentReplInWorkspace(options = {}, startupAdmission) {
       // Non-critical — memory recall failure must not block REPL startup
     }
   }
+
+  // Seal the complete host-owned leading system prefix exactly once, after
+  // startup hooks, bundle context, and optional memory injection, but before
+  // any canonical/legacy replay is appended. Later live switches refresh only
+  // entry 0 from the active base prompt; they never re-scan old session systems.
+  _registerHostSystemMessages();
 
   let _startupResumeCommitted = false;
   // Load resumed session messages
@@ -5473,10 +5570,11 @@ async function startAgentReplInWorkspace(options = {}, startupAdmission) {
               prepared.mcp,
             );
             const preparedMcpCommit = _prepareMcpRecoveryCommit(prepared.mcp);
+            const hostSystemMessages = _refreshHostSystemMessages();
             const previousState = _captureResumeState();
             const preparedState = Object.freeze({
               sessionId: prepared.sessionId,
-              systemMessage: messages[0],
+              hostSystemMessages,
               canonicalSystemMessages: prepared.canonicalSystemMessages,
               conversationMessages: prepared.conversationMessages,
               mcpCommit: preparedMcpCommit,
@@ -5512,10 +5610,11 @@ async function startAgentReplInWorkspace(options = {}, startupAdmission) {
                 recovery: null,
                 recoveryError: null,
               });
+              const hostSystemMessages = _refreshHostSystemMessages();
               const previousState = _captureResumeState();
               const preparedState = Object.freeze({
                 sessionId: existing.id,
-                systemMessage: messages[0],
+                hostSystemMessages,
                 canonicalSystemMessages: Object.freeze([]),
                 conversationMessages: replayMessages,
                 mcpCommit: Object.freeze({
