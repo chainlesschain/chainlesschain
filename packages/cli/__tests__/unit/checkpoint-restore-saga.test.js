@@ -5,8 +5,10 @@ import { execFileSync, spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  CHECKPOINT_RESTORE_SAGA_SCHEMA,
   CHECKPOINT_RESTORE_SAGA_DURABILITY,
   CHECKPOINT_RESTORE_SAGA_ERROR_CODES,
+  CHECKPOINT_RESTORE_SAGA_VERSION,
   CheckpointRestoreSagaStore,
   MAX_CHECKPOINT_RESTORE_SAGA_EVENT_BYTES,
   computeCheckpointRestoreWorkspaceLockOwnerDigest,
@@ -91,6 +93,217 @@ function workspaceLockOwner(testFixture, operationId) {
   };
 }
 
+function peerStore(testFixture) {
+  return new CheckpointRestoreSagaStore({
+    workspaceRoot: testFixture.workspaceRoot,
+    stateDir: testFixture.baseStateDir,
+    secureDirectory,
+    secureAuthorityPaths,
+  });
+}
+
+function beginPartialMutationRecovery(
+  testFixture,
+  operationId,
+  {
+    originalMutationTargetCount = 10,
+    rollbackTargetCount = 3,
+    restoreSurface = "direct",
+    recoveryBasePhase = "mutation_started",
+    publishRecoveryStarted = true,
+  } = {},
+) {
+  const recoveryAction = "rollback-partial-mutation";
+  const rollbackBinding = {
+    recoveryAction,
+    recoveryRequestId: "rollback-recovery-request-1",
+    safetyId: "rollback-safety",
+    safetyIdentity: "copy:rollback-safety-identity",
+    safetyPlanIdentity: "sha256:rollback-safety-plan",
+    safetyCoverage: "full",
+    rollbackPrestateDigest: `sha256:${"5".repeat(64)}`,
+    rollbackPlanIdentity: `sha256:${"6".repeat(64)}`,
+    originalMutationTargetCount,
+    targetCount: rollbackTargetCount,
+  };
+  const rollbackSettlement = {
+    ...rollbackBinding,
+    rolledBackCount: rollbackTargetCount,
+    rollbackStateDigest: `sha256:${"7".repeat(64)}`,
+    resultDigest: `sha256:${"8".repeat(64)}`,
+  };
+  const sessionRollbackSettlement = {
+    ...rollbackSettlement,
+    sessionRollbackCommitDigest: `sha256:${"9".repeat(64)}`,
+  };
+  let saga = testFixture.store.create({
+    operationId,
+    evidence: {
+      restoreKind: "copy",
+      restoreSurface,
+      checkpointId: "partial-target",
+      checkpointIdentity: "copy:partial-target-identity",
+    },
+  });
+  saga = advance(testFixture.store, saga, "locked", {
+    workspaceLockOwner: workspaceLockOwner(testFixture, operationId),
+  });
+  saga = advance(testFixture.store, saga, "prepared", {
+    prestateDigest: `sha256:${"1".repeat(64)}`,
+    targetCount: originalMutationTargetCount,
+  });
+  saga = advance(testFixture.store, saga, "intent_committed", {
+    intentAuthority: restoreSurface === "timeline" ? "session" : "operation",
+    ...(restoreSurface === "timeline" ? { sessionId: "rollback-session" } : {}),
+    intentCommitDigest: `sha256:${"2".repeat(64)}`,
+  });
+  saga = advance(testFixture.store, saga, "safety_ready", {
+    safetyId: rollbackBinding.safetyId,
+    safetyIdentity: rollbackBinding.safetyIdentity,
+    safetyPlanIdentity: rollbackBinding.safetyPlanIdentity,
+    safetyCoverage: rollbackBinding.safetyCoverage,
+  });
+  saga = advance(testFixture.store, saga, "mutation_started", {
+    targetCount: originalMutationTargetCount,
+  });
+  if (
+    recoveryBasePhase === "workspace_applied" ||
+    recoveryBasePhase === "session_committed"
+  ) {
+    saga = advance(testFixture.store, saga, "workspace_applied", {
+      appliedCount: originalMutationTargetCount,
+      poststateDigest: `sha256:${"3".repeat(64)}`,
+    });
+  }
+  if (recoveryBasePhase === "session_committed") {
+    saga = advance(testFixture.store, saga, "session_committed", {
+      sessionCommitDigest: `sha256:${"4".repeat(64)}`,
+    });
+  }
+  saga = advance(testFixture.store, saga, "recovery_required", {
+    reason: "worker crashed during workspace mutation",
+    errorCode: "CHECKPOINT_RESTORE_PARTIAL_MUTATION",
+  });
+  if (publishRecoveryStarted) {
+    saga = advance(testFixture.store, saga, "recovery_started", {
+      workspaceLockOwner: workspaceLockOwner(testFixture, operationId),
+      recoveryAction,
+      recoveryRequestId: rollbackBinding.recoveryRequestId,
+    });
+  }
+  return {
+    saga,
+    rollbackBinding,
+    rollbackSettlement,
+    sessionRollbackSettlement,
+  };
+}
+
+function beginAlreadyCompletedRecovery(
+  testFixture,
+  operationId,
+  { basePhase = "workspace_applied", restoreSurface = "timeline" } = {},
+) {
+  const sessionCommitDigest = `sha256:${"b".repeat(64)}`;
+  const recoveryAction = "resume-already-completed";
+  const completedEvidence = {
+    recoveryAction,
+    sessionCommitDigest,
+    resultDigest: `sha256:${"c".repeat(64)}`,
+  };
+  let saga = testFixture.store.create({
+    operationId,
+    evidence: {
+      restoreKind: "copy",
+      restoreSurface,
+      checkpointId: "already-completed-target",
+      checkpointIdentity: "copy:already-completed-target",
+    },
+  });
+  saga = advance(testFixture.store, saga, "locked", {
+    workspaceLockOwner: workspaceLockOwner(testFixture, operationId),
+  });
+  saga = advance(testFixture.store, saga, "prepared", {
+    prestateDigest: `sha256:${"1".repeat(64)}`,
+    targetCount: 0,
+  });
+  saga = advance(testFixture.store, saga, "intent_committed", {
+    intentAuthority: "session",
+    sessionId: "already-completed-session",
+    intentCommitDigest: `sha256:${"2".repeat(64)}`,
+  });
+  saga = advance(testFixture.store, saga, "workspace_applied", {
+    appliedCount: 0,
+    poststateDigest: `sha256:${"3".repeat(64)}`,
+  });
+  if (basePhase === "session_committed") {
+    saga = advance(testFixture.store, saga, "session_committed", {
+      sessionCommitDigest,
+    });
+  }
+  saga = advance(testFixture.store, saga, "recovery_required", {
+    reason: "verified session completion needs saga reconciliation",
+    errorCode: "CHECKPOINT_RESTORE_ALREADY_COMPLETED_RECONCILIATION",
+  });
+  saga = advance(testFixture.store, saga, "recovery_started", {
+    workspaceLockOwner: workspaceLockOwner(testFixture, operationId),
+    recoveryAction,
+  });
+  return { saga, completedEvidence };
+}
+
+function beginRollbackSettlementReconciliation(
+  testFixture,
+  operationId,
+  { restoreSurface = "direct", settlementPhase = "workspace_rolled_back" } = {},
+) {
+  const started = beginPartialMutationRecovery(testFixture, operationId, {
+    restoreSurface,
+  });
+  let saga = advance(
+    testFixture.store,
+    started.saga,
+    "rollback_prepared",
+    started.rollbackBinding,
+  );
+  saga = advance(
+    testFixture.store,
+    saga,
+    "rollback_started",
+    started.rollbackBinding,
+  );
+  saga = advance(
+    testFixture.store,
+    saga,
+    "workspace_rolled_back",
+    started.rollbackSettlement,
+  );
+  if (settlementPhase === "session_rollback_committed") {
+    saga = advance(
+      testFixture.store,
+      saga,
+      "session_rollback_committed",
+      started.sessionRollbackSettlement,
+    );
+  }
+  saga = advance(testFixture.store, saga, "recovery_required", {
+    reason: "process stopped after durable rollback settlement",
+    errorCode: "CHECKPOINT_ROLLBACK_SETTLEMENT_RECONCILE",
+  });
+  saga = advance(testFixture.store, saga, "recovery_started", {
+    workspaceLockOwner: workspaceLockOwner(testFixture, operationId),
+    recoveryAction: started.rollbackBinding.recoveryAction,
+    recoveryRequestId: started.rollbackBinding.recoveryRequestId,
+  });
+  return {
+    saga,
+    settlementEvidence:
+      settlementPhase === "workspace_rolled_back"
+        ? started.rollbackSettlement
+        : started.sessionRollbackSettlement,
+  };
+}
+
 function errorCode(code) {
   return expect.objectContaining({ code });
 }
@@ -141,6 +354,87 @@ function writeHead(testFixture, operationId, head) {
   if (process.platform !== "win32") {
     fs.chmodSync(headPath(testFixture, operationId), 0o600);
   }
+}
+
+function writeEventFile(testFixture, operationId, event) {
+  const filePath = path.join(
+    operationDirectory(testFixture, operationId),
+    `${String(event.seq).padStart(6, "0")}-${event.phase}.json`,
+  );
+  fs.writeFileSync(filePath, `${JSON.stringify(event)}\n`, { mode: 0o600 });
+  if (process.platform !== "win32") fs.chmodSync(filePath, 0o600);
+  return filePath;
+}
+
+function rewriteOperationEventVersion(
+  testFixture,
+  operationId,
+  version,
+  { stripEvidenceKeys = [] } = {},
+) {
+  const rewritten = [];
+  let previousHash = null;
+  for (const name of eventFiles(testFixture, operationId)) {
+    const filePath = path.join(
+      operationDirectory(testFixture, operationId),
+      name,
+    );
+    const event = JSON.parse(fs.readFileSync(filePath, "utf8"));
+    event.version = version;
+    for (const key of stripEvidenceKeys) delete event.evidence[key];
+    event.prevHash = previousHash;
+    event.hash = recomputeEventHash(event);
+    fs.writeFileSync(filePath, `${JSON.stringify(event)}\n`, { mode: 0o600 });
+    if (process.platform !== "win32") fs.chmodSync(filePath, 0o600);
+    previousHash = event.hash;
+    rewritten.push(event);
+  }
+  const tail = rewritten.at(-1);
+  const head = readHead(testFixture, operationId);
+  head.seq = tail.seq;
+  head.phase = tail.phase;
+  head.eventFile = `${String(tail.seq).padStart(6, "0")}-${tail.phase}.json`;
+  head.eventHash = tail.hash;
+  head.prevHash = tail.prevHash;
+  head.anchorHash = recomputeHeadAnchor(head);
+  writeHead(testFixture, operationId, head);
+  return rewritten;
+}
+
+function appendPersistedEvent(
+  testFixture,
+  operationId,
+  { version, phase, evidence },
+) {
+  const names = eventFiles(testFixture, operationId);
+  const previous = JSON.parse(
+    fs.readFileSync(
+      path.join(operationDirectory(testFixture, operationId), names.at(-1)),
+      "utf8",
+    ),
+  );
+  const event = {
+    schema: CHECKPOINT_RESTORE_SAGA_SCHEMA,
+    version,
+    operationId,
+    seq: previous.seq + 1,
+    prevHash: previous.hash,
+    phase,
+    timestamp: previous.timestamp + 1,
+    evidence,
+    hash: null,
+  };
+  event.hash = recomputeEventHash(event);
+  writeEventFile(testFixture, operationId, event);
+  const head = readHead(testFixture, operationId);
+  head.seq = event.seq;
+  head.phase = event.phase;
+  head.eventFile = `${String(event.seq).padStart(6, "0")}-${event.phase}.json`;
+  head.eventHash = event.hash;
+  head.prevHash = event.prevHash;
+  head.anchorHash = recomputeHeadAnchor(head);
+  writeHead(testFixture, operationId, head);
+  return event;
 }
 
 function projectedStat(stat, overrides) {
@@ -982,7 +1276,7 @@ describe("CheckpointRestoreSagaStore", () => {
     );
   });
 
-  it("allows recovery_started to abort but not to enter session_committed", () => {
+  it("allows only the controller's exact pre-intent recovery abort settlement", () => {
     const testFixture = fixture();
     const operationId = "recovery_abort";
     let saga = testFixture.store.create({ operationId });
@@ -995,17 +1289,1008 @@ describe("CheckpointRestoreSagaStore", () => {
     );
     saga = advance(testFixture.store, saga, "recovery_started", {
       workspaceLockOwner: workspaceLockOwner(testFixture, operationId),
-      recoveryAction: "pre-mutation-abort",
+      recoveryAction: "abort-pre-intent",
     });
     expect(() => advance(testFixture.store, saga, "session_committed")).toThrow(
       errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.INVALID_TRANSITION),
     );
+    expect(() =>
+      advance(testFixture.store, saga, "aborted", {
+        recoveryAction: "pre-mutation-abort",
+        reason: "mismatched action",
+      }),
+    ).toThrow(errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.INVALID_EVIDENCE));
+    expect(() =>
+      advance(testFixture.store, saga, "aborted", {
+        recoveryAction: "abort-pre-intent",
+        reason: "widened settlement",
+        resultDigest: `sha256:${"f".repeat(64)}`,
+      }),
+    ).toThrow(errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.INVALID_EVIDENCE));
     saga = advance(testFixture.store, saga, "aborted", {
-      recoveryAction: "pre-mutation-abort",
+      recoveryAction: "abort-pre-intent",
       reason: "restore cancelled during recovery",
     });
     expect(saga.phase).toBe("aborted");
     expect(saga.terminal).toBe(true);
+    expect(peerStore(testFixture).load(operationId)).toMatchObject({
+      phase: "aborted",
+      terminal: true,
+    });
+  });
+
+  it.each(["workspace_applied", "session_committed"])(
+    "allows exact timeline already-completed reconciliation from %s",
+    (basePhase) => {
+      const testFixture = fixture();
+      const operationId = `already_completed_${basePhase}`;
+      const started = beginAlreadyCompletedRecovery(testFixture, operationId, {
+        basePhase,
+      });
+
+      if (basePhase === "session_committed") {
+        expect(() =>
+          advance(testFixture.store, started.saga, "completed", {
+            ...started.completedEvidence,
+            sessionCommitDigest: `sha256:${"d".repeat(64)}`,
+          }),
+        ).toThrow(
+          errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.INVALID_EVIDENCE),
+        );
+      }
+      const completed = advance(
+        testFixture.store,
+        started.saga,
+        "completed",
+        started.completedEvidence,
+      );
+      expect(completed).toMatchObject({ phase: "completed", terminal: true });
+      expect(peerStore(testFixture).load(operationId)).toMatchObject({
+        phase: "completed",
+        terminal: true,
+      });
+    },
+  );
+
+  it("rejects wrong-surface, wrong-action, or widened already-completed evidence", () => {
+    const directFixture = fixture();
+    const directStarted = beginAlreadyCompletedRecovery(
+      directFixture,
+      "direct_already_completed_bypass",
+      { restoreSurface: "direct" },
+    );
+    expect(() =>
+      advance(
+        directFixture.store,
+        directStarted.saga,
+        "completed",
+        directStarted.completedEvidence,
+      ),
+    ).toThrow(errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.INVALID_EVIDENCE));
+
+    const timelineFixture = fixture();
+    const timelineStarted = beginAlreadyCompletedRecovery(
+      timelineFixture,
+      "widened_already_completed_bypass",
+    );
+    expect(() =>
+      advance(timelineFixture.store, timelineStarted.saga, "completed", {
+        ...timelineStarted.completedEvidence,
+        recoveryAction: "rollback-partial-mutation",
+      }),
+    ).toThrow(errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.INVALID_EVIDENCE));
+    expect(() =>
+      advance(timelineFixture.store, timelineStarted.saga, "completed", {
+        ...timelineStarted.completedEvidence,
+        reason: "unverified extra claim",
+      }),
+    ).toThrow(errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.INVALID_EVIDENCE));
+  });
+
+  it.each([
+    {
+      phase: "aborted",
+      evidence: {
+        recoveryAction: "rollback-partial-mutation",
+        reason: "unsafe terminal bypass",
+      },
+    },
+    {
+      phase: "completed",
+      evidence: {
+        recoveryAction: "resume-already-completed",
+        sessionCommitDigest: `sha256:${"d".repeat(64)}`,
+        resultDigest: `sha256:${"e".repeat(64)}`,
+      },
+    },
+  ])(
+    "rejects append and replay of partial mutation recovery bypass to $phase",
+    ({ phase, evidence }) => {
+      const appendFixture = fixture();
+      const appendOperationId = `partial_${phase}_append_bypass`;
+      const appendStarted = beginPartialMutationRecovery(
+        appendFixture,
+        appendOperationId,
+      );
+      expect(() =>
+        advance(appendFixture.store, appendStarted.saga, phase, evidence),
+      ).toThrow(
+        errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.INVALID_EVIDENCE),
+      );
+
+      const replayFixture = fixture();
+      const replayOperationId = `partial_${phase}_replay_bypass`;
+      beginPartialMutationRecovery(replayFixture, replayOperationId);
+      appendPersistedEvent(replayFixture, replayOperationId, {
+        version: CHECKPOINT_RESTORE_SAGA_VERSION,
+        phase,
+        evidence,
+      });
+      expect(() => peerStore(replayFixture).load(replayOperationId)).toThrow(
+        errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.CORRUPT),
+      );
+    },
+  );
+
+  it("requires rollback recovery_started to publish the exact durable request id", () => {
+    const testFixture = fixture();
+    const operationId = "rollback_recovery_request_authority";
+    const pending = beginPartialMutationRecovery(testFixture, operationId, {
+      publishRecoveryStarted: false,
+    });
+
+    expect(() =>
+      advance(testFixture.store, pending.saga, "recovery_started", {
+        workspaceLockOwner: workspaceLockOwner(testFixture, operationId),
+        recoveryAction: pending.rollbackBinding.recoveryAction,
+      }),
+    ).toThrow(errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.INVALID_EVIDENCE));
+    let saga = advance(testFixture.store, pending.saga, "recovery_started", {
+      workspaceLockOwner: workspaceLockOwner(testFixture, operationId),
+      recoveryAction: pending.rollbackBinding.recoveryAction,
+      recoveryRequestId: "different-recovery-request",
+    });
+    expect(() =>
+      advance(
+        testFixture.store,
+        saga,
+        "rollback_prepared",
+        pending.rollbackBinding,
+      ),
+    ).toThrow(errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.INVALID_EVIDENCE));
+
+    saga = advance(testFixture.store, saga, "recovery_required", {
+      reason: "recovery request did not match the rollback plan",
+      errorCode: "CHECKPOINT_RESTORE_RECOVERY_REQUEST_MISMATCH",
+    });
+    saga = advance(testFixture.store, saga, "recovery_started", {
+      workspaceLockOwner: workspaceLockOwner(testFixture, operationId),
+      recoveryAction: pending.rollbackBinding.recoveryAction,
+      recoveryRequestId: pending.rollbackBinding.recoveryRequestId,
+    });
+    saga = advance(
+      testFixture.store,
+      saga,
+      "rollback_prepared",
+      pending.rollbackBinding,
+    );
+    expect(saga.phase).toBe("rollback_prepared");
+  });
+
+  it("persists distinct crash-safe rollback mutation boundaries with exact evidence progression", () => {
+    const testFixture = fixture();
+    const operationId = "partial_mutation_rollback_boundaries";
+    const started = beginPartialMutationRecovery(testFixture, operationId);
+    let saga = started.saga;
+
+    expect(() =>
+      advance(testFixture.store, saga, "rolled_back", {
+        ...started.rollbackSettlement,
+      }),
+    ).toThrow(
+      errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.INVALID_TRANSITION),
+    );
+    expect(() =>
+      advance(testFixture.store, saga, "rollback_prepared", {
+        ...started.rollbackBinding,
+        safetyCoverage: "partial",
+      }),
+    ).toThrow(errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.INVALID_EVIDENCE));
+    expect(() =>
+      advance(testFixture.store, saga, "rollback_prepared", {
+        ...started.rollbackBinding,
+        safetyIdentity: "copy:wrong-safety-identity",
+      }),
+    ).toThrow(errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.INVALID_EVIDENCE));
+    for (const missingField of [
+      "recoveryRequestId",
+      "rollbackPrestateDigest",
+      "rollbackPlanIdentity",
+    ]) {
+      const incompleteBinding = Object.fromEntries(
+        Object.entries(started.rollbackBinding).filter(
+          ([field]) => field !== missingField,
+        ),
+      );
+      expect(() =>
+        advance(
+          testFixture.store,
+          saga,
+          "rollback_prepared",
+          incompleteBinding,
+        ),
+      ).toThrow(
+        errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.INVALID_EVIDENCE),
+      );
+    }
+    expect(() =>
+      advance(testFixture.store, saga, "rollback_prepared", {
+        ...started.rollbackBinding,
+        recoveryRequestId: "x".repeat(257),
+      }),
+    ).toThrow(errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.INVALID_EVIDENCE));
+
+    saga = advance(
+      testFixture.store,
+      saga,
+      "rollback_prepared",
+      started.rollbackBinding,
+    );
+    expect(peerStore(testFixture).load(operationId)).toMatchObject({
+      version: CHECKPOINT_RESTORE_SAGA_VERSION,
+      phase: "rollback_prepared",
+      pending: true,
+      terminal: false,
+    });
+
+    expect(() =>
+      advance(testFixture.store, saga, "rollback_started", {
+        ...started.rollbackBinding,
+        targetCount: 1,
+      }),
+    ).toThrow(errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.INVALID_EVIDENCE));
+    expect(() =>
+      advance(testFixture.store, saga, "rollback_started", {
+        ...started.rollbackBinding,
+        recoveryRequestId: "rollback-recovery-request-drift",
+      }),
+    ).toThrow(errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.INVALID_EVIDENCE));
+    saga = advance(
+      testFixture.store,
+      saga,
+      "rollback_started",
+      started.rollbackBinding,
+    );
+    expect(peerStore(testFixture).load(operationId)).toMatchObject({
+      phase: "rollback_started",
+      pending: true,
+      terminal: false,
+    });
+
+    expect(() =>
+      advance(testFixture.store, saga, "workspace_rolled_back", {
+        ...started.rollbackSettlement,
+        rolledBackCount: 1,
+      }),
+    ).toThrow(errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.INVALID_EVIDENCE));
+    saga = advance(
+      testFixture.store,
+      saga,
+      "workspace_rolled_back",
+      started.rollbackSettlement,
+    );
+    expect(peerStore(testFixture).load(operationId)).toMatchObject({
+      phase: "workspace_rolled_back",
+      pending: true,
+      terminal: false,
+    });
+
+    expect(() =>
+      advance(
+        testFixture.store,
+        saga,
+        "session_rollback_committed",
+        started.sessionRollbackSettlement,
+      ),
+    ).toThrow(errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.INVALID_EVIDENCE));
+    expect(() =>
+      advance(
+        testFixture.store,
+        saga,
+        "rolled_back",
+        started.sessionRollbackSettlement,
+      ),
+    ).toThrow(errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.INVALID_EVIDENCE));
+    expect(() =>
+      advance(testFixture.store, saga, "rolled_back", {
+        ...started.rollbackSettlement,
+        resultDigest: `sha256:${"9".repeat(64)}`,
+      }),
+    ).toThrow(errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.INVALID_EVIDENCE));
+    saga = advance(
+      testFixture.store,
+      saga,
+      "rolled_back",
+      started.rollbackSettlement,
+    );
+    expect(peerStore(testFixture).load(operationId)).toMatchObject({
+      phase: "rolled_back",
+      pending: false,
+      terminal: true,
+    });
+    expect(
+      saga.events
+        .slice(-4)
+        .map((event) => [
+          event.phase,
+          event.evidence.originalMutationTargetCount,
+          event.evidence.targetCount,
+          event.evidence.resultDigest || null,
+        ]),
+    ).toEqual([
+      ["rollback_prepared", 10, 3, null],
+      ["rollback_started", 10, 3, null],
+      ["workspace_rolled_back", 10, 3, started.rollbackSettlement.resultDigest],
+      ["rolled_back", 10, 3, started.rollbackSettlement.resultDigest],
+    ]);
+  });
+
+  it.each([
+    {
+      recoveryBasePhase: "workspace_applied",
+      restoreSurface: "direct",
+    },
+    {
+      recoveryBasePhase: "session_committed",
+      restoreSurface: "timeline",
+    },
+  ])(
+    "rejects partial rollback after the original durable base advanced to $recoveryBasePhase",
+    ({ recoveryBasePhase, restoreSurface }) => {
+      const testFixture = fixture();
+      const operationId = `post_apply_${recoveryBasePhase}_rollback`;
+      const started = beginPartialMutationRecovery(testFixture, operationId, {
+        recoveryBasePhase,
+        restoreSurface,
+      });
+
+      expect(started.saga.phase).toBe("recovery_started");
+      expect(() =>
+        advance(
+          testFixture.store,
+          started.saga,
+          "rollback_prepared",
+          started.rollbackBinding,
+        ),
+      ).toThrow(
+        errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.INVALID_EVIDENCE),
+      );
+      expect(peerStore(testFixture).load(operationId)).toMatchObject({
+        phase: "recovery_started",
+        seq: started.saga.seq,
+        headHash: started.saga.headHash,
+      });
+    },
+  );
+
+  it("settles an exact zero-target rollback without publishing a mutation-started boundary", () => {
+    const testFixture = fixture();
+    const operationId = "zero_target_recovery_rollback";
+    const started = beginPartialMutationRecovery(testFixture, operationId, {
+      originalMutationTargetCount: 10,
+      rollbackTargetCount: 0,
+    });
+    let saga = advance(
+      testFixture.store,
+      started.saga,
+      "rollback_prepared",
+      started.rollbackBinding,
+    );
+
+    expect(() =>
+      advance(
+        testFixture.store,
+        saga,
+        "rollback_started",
+        started.rollbackBinding,
+      ),
+    ).toThrow(errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.INVALID_EVIDENCE));
+    saga = advance(
+      testFixture.store,
+      saga,
+      "workspace_rolled_back",
+      started.rollbackSettlement,
+    );
+    expect(saga.events.slice(-2).map((event) => event.phase)).toEqual([
+      "rollback_prepared",
+      "workspace_rolled_back",
+    ]);
+    saga = advance(
+      testFixture.store,
+      saga,
+      "rolled_back",
+      started.rollbackSettlement,
+    );
+    expect(saga).toMatchObject({
+      phase: "rolled_back",
+      terminal: true,
+      pending: false,
+    });
+    expect(saga.events.at(-2).evidence).toMatchObject({
+      originalMutationTargetCount: 10,
+      targetCount: 0,
+      rolledBackCount: 0,
+      rollbackStateDigest: started.rollbackSettlement.rollbackStateDigest,
+      resultDigest: started.rollbackSettlement.resultDigest,
+    });
+  });
+
+  it("requires timeline rollback to durably settle session authority before terminal publication", () => {
+    const testFixture = fixture();
+    const operationId = "timeline_session_rollback_settlement";
+    const started = beginPartialMutationRecovery(testFixture, operationId, {
+      restoreSurface: "timeline",
+    });
+    let saga = advance(
+      testFixture.store,
+      started.saga,
+      "rollback_prepared",
+      started.rollbackBinding,
+    );
+    saga = advance(
+      testFixture.store,
+      saga,
+      "rollback_started",
+      started.rollbackBinding,
+    );
+    saga = advance(
+      testFixture.store,
+      saga,
+      "workspace_rolled_back",
+      started.rollbackSettlement,
+    );
+
+    expect(() =>
+      advance(
+        testFixture.store,
+        saga,
+        "rolled_back",
+        started.rollbackSettlement,
+      ),
+    ).toThrow(errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.INVALID_EVIDENCE));
+    expect(() =>
+      advance(testFixture.store, saga, "session_rollback_committed", {
+        ...started.sessionRollbackSettlement,
+        resultDigest: `sha256:${"a".repeat(64)}`,
+      }),
+    ).toThrow(errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.INVALID_EVIDENCE));
+
+    saga = advance(
+      testFixture.store,
+      saga,
+      "session_rollback_committed",
+      started.sessionRollbackSettlement,
+    );
+    expect(peerStore(testFixture).load(operationId)).toMatchObject({
+      phase: "session_rollback_committed",
+      pending: true,
+      terminal: false,
+    });
+    expect(() =>
+      advance(testFixture.store, saga, "rolled_back", {
+        ...started.sessionRollbackSettlement,
+        sessionRollbackCommitDigest: `sha256:${"b".repeat(64)}`,
+      }),
+    ).toThrow(errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.INVALID_EVIDENCE));
+    saga = advance(
+      testFixture.store,
+      saga,
+      "rolled_back",
+      started.sessionRollbackSettlement,
+    );
+    expect(saga).toMatchObject({
+      phase: "rolled_back",
+      terminal: true,
+      pending: false,
+    });
+    expect(saga.events.slice(-3).map((event) => event.phase)).toEqual([
+      "workspace_rolled_back",
+      "session_rollback_committed",
+      "rolled_back",
+    ]);
+    expect(saga.events.at(-1).evidence.sessionRollbackCommitDigest).toBe(
+      started.sessionRollbackSettlement.sessionRollbackCommitDigest,
+    );
+  });
+
+  it.each([
+    {
+      restoreSurface: "direct",
+      settlementPhase: "workspace_rolled_back",
+    },
+    {
+      restoreSurface: "timeline",
+      settlementPhase: "workspace_rolled_back",
+    },
+    {
+      restoreSurface: "timeline",
+      settlementPhase: "session_rollback_committed",
+    },
+  ])(
+    "reconciles exact $restoreSurface $settlementPhase after recovery restart without reopening mutation",
+    ({ restoreSurface, settlementPhase }) => {
+      const testFixture = fixture();
+      const operationId = `${restoreSurface}_${settlementPhase}_reconcile`;
+      const started = beginPartialMutationRecovery(testFixture, operationId, {
+        restoreSurface,
+      });
+      let saga = advance(
+        testFixture.store,
+        started.saga,
+        "rollback_prepared",
+        started.rollbackBinding,
+      );
+      saga = advance(
+        testFixture.store,
+        saga,
+        "rollback_started",
+        started.rollbackBinding,
+      );
+      saga = advance(
+        testFixture.store,
+        saga,
+        "workspace_rolled_back",
+        started.rollbackSettlement,
+      );
+      if (settlementPhase === "session_rollback_committed") {
+        saga = advance(
+          testFixture.store,
+          saga,
+          "session_rollback_committed",
+          started.sessionRollbackSettlement,
+        );
+      }
+
+      saga = advance(testFixture.store, saga, "recovery_required", {
+        reason: "process stopped after durable rollback settlement",
+        errorCode: "CHECKPOINT_ROLLBACK_SETTLEMENT_RECONCILE",
+      });
+      expect(() =>
+        advance(testFixture.store, saga, "recovery_started", {
+          workspaceLockOwner: workspaceLockOwner(testFixture, operationId),
+          recoveryAction: started.rollbackBinding.recoveryAction,
+          recoveryRequestId: "wrong-settlement-request",
+        }),
+      ).toThrow(
+        errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.INVALID_EVIDENCE),
+      );
+      expect(() =>
+        advance(testFixture.store, saga, "recovery_started", {
+          workspaceLockOwner: workspaceLockOwner(testFixture, operationId),
+          recoveryAction: "different-rollback-action",
+          recoveryRequestId: started.rollbackBinding.recoveryRequestId,
+        }),
+      ).toThrow(
+        errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.INVALID_EVIDENCE),
+      );
+      saga = advance(testFixture.store, saga, "recovery_started", {
+        workspaceLockOwner: workspaceLockOwner(testFixture, operationId),
+        recoveryAction: started.rollbackBinding.recoveryAction,
+        recoveryRequestId: started.rollbackBinding.recoveryRequestId,
+      });
+      expect(() =>
+        advance(
+          testFixture.store,
+          saga,
+          "rollback_prepared",
+          started.rollbackBinding,
+        ),
+      ).toThrow(
+        errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.INVALID_EVIDENCE),
+      );
+      const settlementEvidence =
+        settlementPhase === "workspace_rolled_back"
+          ? started.rollbackSettlement
+          : started.sessionRollbackSettlement;
+      expect(() =>
+        advance(testFixture.store, saga, settlementPhase, {
+          ...settlementEvidence,
+          resultDigest: `sha256:${"f".repeat(64)}`,
+        }),
+      ).toThrow(
+        errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.INVALID_EVIDENCE),
+      );
+      saga = advance(
+        testFixture.store,
+        saga,
+        settlementPhase,
+        settlementEvidence,
+      );
+      expect(peerStore(testFixture).load(operationId)).toMatchObject({
+        phase: settlementPhase,
+        pending: true,
+      });
+
+      if (
+        restoreSurface === "timeline" &&
+        settlementPhase === "workspace_rolled_back"
+      ) {
+        saga = advance(
+          testFixture.store,
+          saga,
+          "session_rollback_committed",
+          started.sessionRollbackSettlement,
+        );
+      }
+      saga = advance(
+        testFixture.store,
+        saga,
+        "rolled_back",
+        restoreSurface === "timeline"
+          ? started.sessionRollbackSettlement
+          : started.rollbackSettlement,
+      );
+      expect(saga).toMatchObject({ phase: "rolled_back", terminal: true });
+    },
+  );
+
+  it.each([
+    {
+      restoreSurface: "direct",
+      settlementPhase: "workspace_rolled_back",
+    },
+    {
+      restoreSurface: "timeline",
+      settlementPhase: "session_rollback_committed",
+    },
+  ])(
+    "rejects rehashed drift while replaying $settlementPhase reconciliation",
+    ({ restoreSurface, settlementPhase }) => {
+      const testFixture = fixture();
+      const operationId = `${settlementPhase}_replay_reconciliation_drift`;
+      const started = beginRollbackSettlementReconciliation(
+        testFixture,
+        operationId,
+        { restoreSurface, settlementPhase },
+      );
+      appendPersistedEvent(testFixture, operationId, {
+        version: CHECKPOINT_RESTORE_SAGA_VERSION,
+        phase: settlementPhase,
+        evidence: {
+          ...started.settlementEvidence,
+          rollbackStateDigest: `sha256:${"f".repeat(64)}`,
+        },
+      });
+
+      expect(() => peerStore(testFixture).load(operationId)).toThrow(
+        errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.CORRUPT),
+      );
+    },
+  );
+
+  it("fences one rollback prestate/write plan and permits replacement only in a new recovery cycle", () => {
+    const testFixture = fixture();
+    const operationId = "rollback_plan_cycle_fence";
+    const started = beginPartialMutationRecovery(testFixture, operationId);
+    let saga = advance(
+      testFixture.store,
+      started.saga,
+      "rollback_prepared",
+      started.rollbackBinding,
+    );
+
+    expect(() =>
+      advance(testFixture.store, saga, "rollback_started", {
+        ...started.rollbackBinding,
+        rollbackPrestateDigest: `sha256:${"a".repeat(64)}`,
+      }),
+    ).toThrow(errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.INVALID_EVIDENCE));
+    expect(() =>
+      advance(testFixture.store, saga, "rollback_started", {
+        ...started.rollbackBinding,
+        rollbackPlanIdentity: `sha256:${"b".repeat(64)}`,
+      }),
+    ).toThrow(errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.INVALID_EVIDENCE));
+    expect(testFixture.store.load(operationId)).toMatchObject({
+      phase: "rollback_prepared",
+      seq: saga.seq,
+      headHash: saga.headHash,
+    });
+
+    saga = advance(
+      testFixture.store,
+      saga,
+      "rollback_started",
+      started.rollbackBinding,
+    );
+    saga = advance(testFixture.store, saga, "recovery_required", {
+      reason: "rollback worker stopped after its mutation boundary",
+      errorCode: "CHECKPOINT_ROLLBACK_WORKER_STOPPED",
+    });
+    saga = advance(testFixture.store, saga, "recovery_started", {
+      workspaceLockOwner: workspaceLockOwner(testFixture, operationId),
+      recoveryAction: started.rollbackBinding.recoveryAction,
+      recoveryRequestId: started.rollbackBinding.recoveryRequestId,
+    });
+    saga = advance(
+      testFixture.store,
+      saga,
+      "rollback_prepared",
+      started.rollbackBinding,
+    );
+    saga = advance(testFixture.store, saga, "recovery_required", {
+      reason: "rollback plan must be recalculated",
+      errorCode: "CHECKPOINT_ROLLBACK_WORKSPACE_STALE",
+    });
+    saga = advance(testFixture.store, saga, "recovery_started", {
+      workspaceLockOwner: workspaceLockOwner(testFixture, operationId),
+      recoveryAction: started.rollbackBinding.recoveryAction,
+      recoveryRequestId: started.rollbackBinding.recoveryRequestId,
+    });
+    const reusedRequestDrift = {
+      ...started.rollbackBinding,
+      rollbackPrestateDigest: `sha256:${"a".repeat(64)}`,
+      rollbackPlanIdentity: `sha256:${"b".repeat(64)}`,
+      targetCount: 2,
+    };
+    expect(() =>
+      advance(testFixture.store, saga, "rollback_prepared", reusedRequestDrift),
+    ).toThrow(errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.INVALID_EVIDENCE));
+
+    saga = advance(testFixture.store, saga, "recovery_required", {
+      reason: "a changed rollback plan requires a new request id",
+      errorCode: "CHECKPOINT_ROLLBACK_REQUEST_REPLACED",
+    });
+    saga = advance(testFixture.store, saga, "recovery_started", {
+      workspaceLockOwner: workspaceLockOwner(testFixture, operationId),
+      recoveryAction: "rollback-partial-mutation-retry",
+      recoveryRequestId: "rollback-recovery-request-2",
+    });
+    const retryBinding = {
+      ...started.rollbackBinding,
+      recoveryAction: "rollback-partial-mutation-retry",
+      recoveryRequestId: "rollback-recovery-request-2",
+      rollbackPrestateDigest: `sha256:${"a".repeat(64)}`,
+      rollbackPlanIdentity: `sha256:${"b".repeat(64)}`,
+      targetCount: 2,
+    };
+    saga = advance(testFixture.store, saga, "rollback_prepared", retryBinding);
+    saga = advance(testFixture.store, saga, "rollback_started", retryBinding);
+
+    expect(peerStore(testFixture).load(operationId).events.slice(-4)).toEqual([
+      expect.objectContaining({ phase: "recovery_required" }),
+      expect.objectContaining({ phase: "recovery_started" }),
+      expect.objectContaining({
+        phase: "rollback_prepared",
+        evidence: retryBinding,
+      }),
+      expect.objectContaining({
+        phase: "rollback_started",
+        evidence: retryBinding,
+      }),
+    ]);
+  });
+
+  it("rejects rehashed rollback evidence drift and a forged v2 direct rollback during replay", () => {
+    const driftFixture = fixture();
+    const driftOperationId = "rollback_progression_replay_drift";
+    const driftStarted = beginPartialMutationRecovery(
+      driftFixture,
+      driftOperationId,
+    );
+    let driftSaga = advance(
+      driftFixture.store,
+      driftStarted.saga,
+      "rollback_prepared",
+      driftStarted.rollbackBinding,
+    );
+    driftSaga = advance(
+      driftFixture.store,
+      driftSaga,
+      "rollback_started",
+      driftStarted.rollbackBinding,
+    );
+    const rollbackStartedPath = path.join(
+      operationDirectory(driftFixture, driftOperationId),
+      `${String(driftSaga.seq).padStart(6, "0")}-rollback_started.json`,
+    );
+    const rollbackStarted = JSON.parse(
+      fs.readFileSync(rollbackStartedPath, "utf8"),
+    );
+    rollbackStarted.evidence.targetCount = 1;
+    rollbackStarted.hash = recomputeEventHash(rollbackStarted);
+    fs.writeFileSync(
+      rollbackStartedPath,
+      `${JSON.stringify(rollbackStarted)}\n`,
+      { mode: 0o600 },
+    );
+    const driftHead = readHead(driftFixture, driftOperationId);
+    driftHead.eventHash = rollbackStarted.hash;
+    driftHead.anchorHash = recomputeHeadAnchor(driftHead);
+    writeHead(driftFixture, driftOperationId, driftHead);
+    expect(() => peerStore(driftFixture).load(driftOperationId)).toThrow(
+      errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.CORRUPT),
+    );
+
+    const directFixture = fixture();
+    const directOperationId = "v2_direct_rollback_replay";
+    const directStarted = beginPartialMutationRecovery(
+      directFixture,
+      directOperationId,
+    );
+    appendPersistedEvent(directFixture, directOperationId, {
+      version: CHECKPOINT_RESTORE_SAGA_VERSION,
+      phase: "rolled_back",
+      evidence: directStarted.rollbackSettlement,
+    });
+    expect(() => peerStore(directFixture).load(directOperationId)).toThrow(
+      errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.CORRUPT),
+    );
+  });
+
+  it("reads a v1 golden rollback and upgrades pending v1 through strict v2 recovery boundaries", () => {
+    expect(CHECKPOINT_RESTORE_SAGA_VERSION).toBe(2);
+    const pureV1Fixture = fixture();
+    const pureV1OperationId = "legacy_v1_direct_rollback";
+    const pureV1Started = beginPartialMutationRecovery(
+      pureV1Fixture,
+      pureV1OperationId,
+    );
+    rewriteOperationEventVersion(pureV1Fixture, pureV1OperationId, 1, {
+      stripEvidenceKeys: ["recoveryRequestId"],
+    });
+    appendPersistedEvent(pureV1Fixture, pureV1OperationId, {
+      version: 1,
+      phase: "rolled_back",
+      evidence: {
+        recoveryAction: pureV1Started.rollbackBinding.recoveryAction,
+        resultDigest: pureV1Started.rollbackSettlement.resultDigest,
+      },
+    });
+    const pureV1 = peerStore(pureV1Fixture).load(pureV1OperationId);
+    expect(pureV1).toMatchObject({ version: 1, phase: "rolled_back" });
+    expect(new Set(pureV1.events.map((event) => event.version))).toEqual(
+      new Set([1]),
+    );
+
+    const upgradeFixture = fixture();
+    const upgradeOperationId = "legacy_v1_pending_upgrade";
+    const upgradeStarted = beginPartialMutationRecovery(
+      upgradeFixture,
+      upgradeOperationId,
+      { publishRecoveryStarted: false },
+    );
+    rewriteOperationEventVersion(upgradeFixture, upgradeOperationId, 1);
+    const legacyPending = peerStore(upgradeFixture).load(upgradeOperationId);
+    expect(legacyPending).toMatchObject({
+      version: 1,
+      phase: "recovery_required",
+    });
+    let upgraded = advance(
+      upgradeFixture.store,
+      legacyPending,
+      "recovery_started",
+      {
+        workspaceLockOwner: workspaceLockOwner(
+          upgradeFixture,
+          upgradeOperationId,
+        ),
+        recoveryAction: upgradeStarted.rollbackBinding.recoveryAction,
+        recoveryRequestId: upgradeStarted.rollbackBinding.recoveryRequestId,
+      },
+    );
+    upgraded = advance(
+      upgradeFixture.store,
+      upgraded,
+      "rollback_prepared",
+      upgradeStarted.rollbackBinding,
+    );
+    expect(upgraded).toMatchObject({
+      version: CHECKPOINT_RESTORE_SAGA_VERSION,
+      phase: "rollback_prepared",
+      pending: true,
+    });
+    expect(
+      upgraded.events.slice(0, -2).every((event) => event.version === 1),
+    ).toBe(true);
+    expect(upgraded.events.slice(-2).map((event) => event.version)).toEqual([
+      CHECKPOINT_RESTORE_SAGA_VERSION,
+      CHECKPOINT_RESTORE_SAGA_VERSION,
+    ]);
+  });
+
+  it("requires a v2 recovery request before upgrading a v1 recovery_started rollback", () => {
+    const testFixture = fixture();
+    const operationId = "legacy_v1_started_upgrade_without_request";
+    const started = beginPartialMutationRecovery(testFixture, operationId);
+    rewriteOperationEventVersion(testFixture, operationId, 1, {
+      stripEvidenceKeys: ["recoveryRequestId"],
+    });
+    const legacyStarted = peerStore(testFixture).load(operationId);
+
+    expect(() =>
+      advance(
+        testFixture.store,
+        legacyStarted,
+        "rollback_prepared",
+        started.rollbackBinding,
+      ),
+    ).toThrow(errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.INVALID_EVIDENCE));
+  });
+
+  it("rejects rollback mutation phases encoded with legacy v1", () => {
+    const testFixture = fixture();
+    const operationId = "legacy_v1_new_rollback_phase";
+    const started = beginPartialMutationRecovery(testFixture, operationId);
+    rewriteOperationEventVersion(testFixture, operationId, 1, {
+      stripEvidenceKeys: ["recoveryRequestId"],
+    });
+    appendPersistedEvent(testFixture, operationId, {
+      version: 1,
+      phase: "rollback_prepared",
+      evidence: started.rollbackBinding,
+    });
+
+    expect(() => peerStore(testFixture).load(operationId)).toThrow(
+      errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.CORRUPT),
+    );
+  });
+
+  it.each([
+    ["recoveryRequestId", "legacy-request"],
+    ["rollbackPrestateDigest", `sha256:${"1".repeat(64)}`],
+    ["rollbackPlanIdentity", `sha256:${"2".repeat(64)}`],
+    ["originalMutationTargetCount", 1],
+    ["rolledBackCount", 1],
+    ["rollbackStateDigest", `sha256:${"3".repeat(64)}`],
+    ["sessionRollbackCommitDigest", `sha256:${"4".repeat(64)}`],
+  ])("rejects v2-only evidence %s on a rehashed v1 event", (key, value) => {
+    const testFixture = fixture();
+    const operationId = `legacy_v1_evidence_${key}`;
+    testFixture.store.create({ operationId });
+    rewriteOperationEventVersion(testFixture, operationId, 1);
+    const createdPath = path.join(
+      operationDirectory(testFixture, operationId),
+      "000001-created.json",
+    );
+    const created = JSON.parse(fs.readFileSync(createdPath, "utf8"));
+    created.evidence[key] = value;
+    created.hash = recomputeEventHash(created);
+    fs.writeFileSync(createdPath, `${JSON.stringify(created)}\n`, {
+      mode: 0o600,
+    });
+    const head = readHead(testFixture, operationId);
+    head.eventHash = created.hash;
+    head.anchorHash = recomputeHeadAnchor(head);
+    writeHead(testFixture, operationId, head);
+
+    expect(() => peerStore(testFixture).load(operationId)).toThrow(
+      errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.CORRUPT),
+    );
+  });
+
+  it("rejects unsupported future event versions even when their hashes are recomputed", () => {
+    const testFixture = fixture();
+    const operationId = "unsupported_future_event_version";
+    testFixture.store.create({ operationId });
+    const createdPath = path.join(
+      operationDirectory(testFixture, operationId),
+      "000001-created.json",
+    );
+    const created = JSON.parse(fs.readFileSync(createdPath, "utf8"));
+    created.version = CHECKPOINT_RESTORE_SAGA_VERSION + 1;
+    created.hash = recomputeEventHash(created);
+    fs.writeFileSync(createdPath, `${JSON.stringify(created)}\n`, {
+      mode: 0o600,
+    });
+    const head = readHead(testFixture, operationId);
+    head.eventHash = created.hash;
+    head.anchorHash = recomputeHeadAnchor(head);
+    writeHead(testFixture, operationId, head);
+
+    expect(() => peerStore(testFixture).load(operationId)).toThrow(
+      errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.CORRUPT),
+    );
   });
 
   it("makes created durable before the caller acquires a workspace lock", () => {
@@ -1059,23 +2344,19 @@ describe("CheckpointRestoreSagaStore", () => {
     expect(path.basename(store.stateRoot)).toMatch(/^workspace-[a-f0-9]{64}$/);
   });
 
-  it(
-    "establishes a real owner-private state root with the production helper",
-    { timeout: process.platform === "win32" ? 20_000 : 5_000 },
-    () => {
-      const testFixture = fixture({
-        secureDirectory: undefined,
-        secureAuthorityPaths: undefined,
-      });
-      const state = fs.lstatSync(testFixture.stateDir);
+  it("establishes a real owner-private state root with the production helper", () => {
+    const testFixture = fixture({
+      secureDirectory: undefined,
+      secureAuthorityPaths: undefined,
+    });
+    const state = fs.lstatSync(testFixture.stateDir);
 
-      expect(state.isSymbolicLink()).toBe(false);
-      expect(state.isDirectory()).toBe(true);
-      if (process.platform !== "win32") {
-        expect(state.mode & 0o077).toBe(0);
-      }
-    },
-  );
+    expect(state.isSymbolicLink()).toBe(false);
+    expect(state.isDirectory()).toBe(true);
+    if (process.platform !== "win32") {
+      expect(state.mode & 0o077).toBe(0);
+    }
+  });
 
   it.runIf(process.platform === "win32")(
     "repairs an existing broadly writable Windows base state DACL",

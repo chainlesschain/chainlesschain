@@ -36,7 +36,10 @@ import {
 
 export const CHECKPOINT_RESTORE_SAGA_SCHEMA =
   "chainlesschain.checkpoint-restore-saga-event";
-export const CHECKPOINT_RESTORE_SAGA_VERSION = 1;
+// v2 adds explicit rollback mutation boundaries. Replay remains compatible
+// with immutable v1 events; a new append upgrades a legacy chain in place
+// without rewriting any historical event or hash.
+export const CHECKPOINT_RESTORE_SAGA_VERSION = 2;
 export const MAX_CHECKPOINT_RESTORE_SAGA_EVENTS = 64;
 export const MAX_CHECKPOINT_RESTORE_SAGA_EVENT_BYTES = 32 * 1024;
 export const MAX_CHECKPOINT_RESTORE_SAGAS = 10_000;
@@ -84,6 +87,10 @@ export const CHECKPOINT_RESTORE_SAGA_PHASES = Object.freeze([
   "rolled_back",
   "recovery_required",
   "recovery_started",
+  "rollback_prepared",
+  "rollback_started",
+  "workspace_rolled_back",
+  "session_rollback_committed",
 ]);
 
 export const CHECKPOINT_RESTORE_SAGA_TERMINAL_PHASES = Object.freeze([
@@ -94,6 +101,20 @@ export const CHECKPOINT_RESTORE_SAGA_TERMINAL_PHASES = Object.freeze([
 
 const PHASE_SET = new Set(CHECKPOINT_RESTORE_SAGA_PHASES);
 const TERMINAL_PHASE_SET = new Set(CHECKPOINT_RESTORE_SAGA_TERMINAL_PHASES);
+const LEGACY_EVENT_VERSION_SET = new Set([1]);
+const SUPPORTED_EVENT_VERSION_SET = new Set([
+  ...LEGACY_EVENT_VERSION_SET,
+  CHECKPOINT_RESTORE_SAGA_VERSION,
+]);
+const LEGACY_PHASE_SET = new Set(
+  CHECKPOINT_RESTORE_SAGA_PHASES.filter(
+    (phase) =>
+      phase !== "rollback_prepared" &&
+      phase !== "rollback_started" &&
+      phase !== "workspace_rolled_back" &&
+      phase !== "session_rollback_committed",
+  ),
+);
 const HASH_PATTERN = /^sha256:[a-f0-9]{64}$/;
 const OPERATION_ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,127}$/;
 const WORKSPACE_SHARD_PATTERN = /^workspace-[a-f0-9]{64}$/;
@@ -168,25 +189,34 @@ const TRANSITIONS = new Map([
     "safety_ready",
     new Set(["mutation_started", "aborted", "recovery_required"]),
   ],
-  [
-    "mutation_started",
-    new Set(["workspace_applied", "rolled_back", "recovery_required"]),
-  ],
+  ["mutation_started", new Set(["workspace_applied", "recovery_required"])],
   [
     "workspace_applied",
-    new Set([
-      "session_committed",
-      "completed",
-      "rolled_back",
-      "recovery_required",
-    ]),
+    new Set(["session_committed", "completed", "recovery_required"]),
   ],
   ["session_committed", new Set(["completed", "recovery_required"])],
   ["recovery_required", new Set(["recovery_started"])],
   [
     "recovery_started",
-    new Set(["completed", "aborted", "rolled_back", "recovery_required"]),
+    new Set([
+      "completed",
+      "aborted",
+      "rollback_prepared",
+      "workspace_rolled_back",
+      "session_rollback_committed",
+      "recovery_required",
+    ]),
   ],
+  [
+    "rollback_prepared",
+    new Set(["rollback_started", "workspace_rolled_back", "recovery_required"]),
+  ],
+  ["rollback_started", new Set(["workspace_rolled_back", "recovery_required"])],
+  [
+    "workspace_rolled_back",
+    new Set(["session_rollback_committed", "rolled_back", "recovery_required"]),
+  ],
+  ["session_rollback_committed", new Set(["rolled_back", "recovery_required"])],
   ["completed", new Set()],
   ["aborted", new Set()],
   ["rolled_back", new Set()],
@@ -225,16 +255,75 @@ const EVIDENCE_RULES = Object.freeze({
   lockOwnerDigest: Object.freeze({ type: "hash" }),
   prestateDigest: Object.freeze({ type: "hash" }),
   poststateDigest: Object.freeze({ type: "hash" }),
+  rollbackPrestateDigest: Object.freeze({ type: "hash" }),
+  rollbackPlanIdentity: Object.freeze({ type: "hash" }),
   resultDigest: Object.freeze({ type: "hash" }),
   sessionCommitDigest: Object.freeze({ type: "hash" }),
+  sessionRollbackCommitDigest: Object.freeze({ type: "hash" }),
   intentCommitDigest: Object.freeze({ type: "hash" }),
   reason: Object.freeze({ type: "text", max: 2048 }),
   errorCode: Object.freeze({ type: "text", max: 128 }),
   recoveryAction: Object.freeze({ type: "text", max: 128 }),
+  recoveryRequestId: Object.freeze({ type: "text", max: 256 }),
   actorPid: Object.freeze({ type: "positiveInteger" }),
   targetCount: Object.freeze({ type: "nonNegativeInteger" }),
+  originalMutationTargetCount: Object.freeze({
+    type: "nonNegativeInteger",
+  }),
   appliedCount: Object.freeze({ type: "nonNegativeInteger" }),
+  rolledBackCount: Object.freeze({ type: "nonNegativeInteger" }),
+  rollbackStateDigest: Object.freeze({ type: "hash" }),
 });
+
+const ROLLBACK_BINDING_EVIDENCE = Object.freeze([
+  "recoveryAction",
+  "recoveryRequestId",
+  "safetyId",
+  "safetyIdentity",
+  "safetyPlanIdentity",
+  "safetyCoverage",
+  "rollbackPrestateDigest",
+  "rollbackPlanIdentity",
+  "originalMutationTargetCount",
+  "targetCount",
+]);
+const ROLLBACK_SETTLEMENT_EVIDENCE = Object.freeze([
+  ...ROLLBACK_BINDING_EVIDENCE,
+  "rolledBackCount",
+  "rollbackStateDigest",
+  "resultDigest",
+]);
+const SESSION_ROLLBACK_SETTLEMENT_EVIDENCE = Object.freeze([
+  ...ROLLBACK_SETTLEMENT_EVIDENCE,
+  "sessionRollbackCommitDigest",
+]);
+const V2_ONLY_EVIDENCE_KEY_SET = new Set([
+  "recoveryRequestId",
+  "rollbackPrestateDigest",
+  "rollbackPlanIdentity",
+  "originalMutationTargetCount",
+  "rolledBackCount",
+  "rollbackStateDigest",
+  "sessionRollbackCommitDigest",
+]);
+const RECOVERY_ABORT_SETTLEMENT_EVIDENCE = Object.freeze([
+  "recoveryAction",
+  "reason",
+]);
+const RECOVERY_COMPLETED_SETTLEMENT_EVIDENCE = Object.freeze([
+  "recoveryAction",
+  "sessionCommitDigest",
+  "resultDigest",
+]);
+const RECOVERY_STARTED_SETTLEMENT_AUTHORITY_EVIDENCE = Object.freeze([
+  "workspaceLockOwner",
+  "lockOwnerDigest",
+  "recoveryAction",
+]);
+const ROLLBACK_RECOVERY_STARTED_EVIDENCE = Object.freeze([
+  ...RECOVERY_STARTED_SETTLEMENT_AUTHORITY_EVIDENCE,
+  "recoveryRequestId",
+]);
 
 const REQUIRED_EVIDENCE_BY_PHASE = Object.freeze({
   prepared: Object.freeze(["prestateDigest", "targetCount"]),
@@ -250,10 +339,98 @@ const REQUIRED_EVIDENCE_BY_PHASE = Object.freeze({
   session_committed: Object.freeze(["sessionCommitDigest"]),
   completed: Object.freeze(["resultDigest"]),
   aborted: Object.freeze(["reason"]),
-  rolled_back: Object.freeze(["recoveryAction", "resultDigest"]),
+  rolled_back: ROLLBACK_SETTLEMENT_EVIDENCE,
   recovery_required: Object.freeze(["reason", "errorCode"]),
   recovery_started: Object.freeze(["recoveryAction"]),
+  rollback_prepared: ROLLBACK_BINDING_EVIDENCE,
+  rollback_started: ROLLBACK_BINDING_EVIDENCE,
+  workspace_rolled_back: ROLLBACK_SETTLEMENT_EVIDENCE,
+  session_rollback_committed: SESSION_ROLLBACK_SETTLEMENT_EVIDENCE,
 });
+
+const LEGACY_REQUIRED_EVIDENCE_BY_PHASE = Object.freeze({
+  ...REQUIRED_EVIDENCE_BY_PHASE,
+  rolled_back: Object.freeze(["recoveryAction", "resultDigest"]),
+});
+
+const STRICT_EVIDENCE_KEYS_BY_PHASE = Object.freeze({
+  rollback_prepared: ROLLBACK_BINDING_EVIDENCE,
+  rollback_started: ROLLBACK_BINDING_EVIDENCE,
+  workspace_rolled_back: ROLLBACK_SETTLEMENT_EVIDENCE,
+  rolled_back: ROLLBACK_SETTLEMENT_EVIDENCE,
+  session_rollback_committed: SESSION_ROLLBACK_SETTLEMENT_EVIDENCE,
+});
+
+const LEGACY_DIRECT_ROLLBACK_SOURCES = new Set([
+  "mutation_started",
+  "workspace_applied",
+  "recovery_started",
+]);
+const ROLLBACK_RECOVERY_PROTOCOL_PHASE_SET = new Set([
+  "recovery_required",
+  "recovery_started",
+  "rollback_prepared",
+  "rollback_started",
+  "workspace_rolled_back",
+  "session_rollback_committed",
+]);
+const RECOVERY_ADMIN_PHASE_SET = new Set([
+  "recovery_required",
+  "recovery_started",
+]);
+const ROLLBACK_CURRENT_BASE_PHASE_SET = new Set([
+  "mutation_started",
+  "rollback_prepared",
+  "rollback_started",
+]);
+const ROLLBACK_RECOVERY_REQUEST_BASE_PHASE_SET = new Set([
+  ...ROLLBACK_CURRENT_BASE_PHASE_SET,
+  "workspace_rolled_back",
+  "session_rollback_committed",
+]);
+const PRE_MUTATION_ABORT_BASE_PHASE_SET = new Set(["created", "locked"]);
+const ALREADY_COMPLETED_BASE_PHASE_SET = new Set([
+  "workspace_applied",
+  "session_committed",
+]);
+const RECOVERY_ABORT_ACTION = "abort-pre-intent";
+const RECOVERY_ALREADY_COMPLETED_ACTION = "resume-already-completed";
+
+function transitionAllowed(previous, event) {
+  if (TRANSITIONS.get(previous.phase)?.has(event.phase)) return true;
+  return (
+    LEGACY_EVENT_VERSION_SET.has(previous.version) &&
+    LEGACY_EVENT_VERSION_SET.has(event.version) &&
+    event.phase === "rolled_back" &&
+    LEGACY_DIRECT_ROLLBACK_SOURCES.has(previous.phase)
+  );
+}
+
+function latestPhaseEvent(events, phase) {
+  return [...events].reverse().find((event) => event.phase === phase) || null;
+}
+
+function originalDurableBaseEvent(events) {
+  return (
+    [...events]
+      .reverse()
+      .find(
+        (event) => !ROLLBACK_RECOVERY_PROTOCOL_PHASE_SET.has(event.phase),
+      ) || null
+  );
+}
+
+function currentRecoveryBaseEvent(events) {
+  return (
+    [...events]
+      .reverse()
+      .find((event) => !RECOVERY_ADMIN_PHASE_SET.has(event.phase)) || null
+  );
+}
+
+function evidenceFieldsMatch(left, right, fields) {
+  return fields.every((field) => left[field] === right[field]);
+}
 
 export class CheckpointRestoreSagaError extends Error {
   constructor(code, message, options = {}) {
@@ -324,6 +501,8 @@ function sha256(domain, value) {
 function eventHash(event) {
   const body = { ...event };
   delete body.hash;
+  // This domain identifies the hash algorithm, not the event schema version.
+  // Keeping it stable is what lets v1/v2 events coexist in one chain.
   return sha256("cc-checkpoint-restore-saga-event-v1", body);
 }
 
@@ -632,7 +811,7 @@ function frozenSaga(operationId, events, orphanTemporaryFiles = []) {
   );
   const head = frozenEvents[frozenEvents.length - 1];
   return Object.freeze({
-    version: CHECKPOINT_RESTORE_SAGA_VERSION,
+    version: head.version,
     operationId,
     workspaceRoot: frozenEvents[0].evidence.workspaceRoot,
     workspaceIdentity: frozenEvents[0].evidence.workspaceIdentity,
@@ -2124,21 +2303,64 @@ export class CheckpointRestoreSagaStore {
     operationId,
     phase,
     evidence,
-    { replay = false } = {},
+    { replay = false, eventVersion = CHECKPOINT_RESTORE_SAGA_VERSION } = {},
   ) {
     const errorCode = replay
       ? CHECKPOINT_RESTORE_SAGA_ERROR_CODES.CORRUPT
       : CHECKPOINT_RESTORE_SAGA_ERROR_CODES.INVALID_EVIDENCE;
+    const legacyEvent = LEGACY_EVENT_VERSION_SET.has(eventVersion);
     const ownerRequired = phase === "locked" || phase === "recovery_started";
     const owner = evidence.workspaceLockOwner;
     const ownerDigest = evidence.lockOwnerDigest;
-    const missing = (REQUIRED_EVIDENCE_BY_PHASE[phase] || []).filter(
+    if (
+      legacyEvent &&
+      Object.keys(evidence).some((key) => V2_ONLY_EVIDENCE_KEY_SET.has(key))
+    ) {
+      throw sagaError(
+        errorCode,
+        "Legacy v1 saga events cannot carry v2 rollback evidence",
+      );
+    }
+    const evidenceRequirements = legacyEvent
+      ? LEGACY_REQUIRED_EVIDENCE_BY_PHASE
+      : REQUIRED_EVIDENCE_BY_PHASE;
+    const missing = (evidenceRequirements[phase] || []).filter(
       (key) => !Object.hasOwn(evidence, key),
     );
     if (missing.length > 0) {
       throw sagaError(
         errorCode,
         `${phase} requires durable evidence: ${missing.join(", ")}`,
+      );
+    }
+    const strictEvidenceKeys =
+      eventVersion === CHECKPOINT_RESTORE_SAGA_VERSION
+        ? STRICT_EVIDENCE_KEYS_BY_PHASE[phase]
+        : null;
+    const exactSessionRollbackTerminal =
+      phase === "rolled_back" &&
+      eventVersion === CHECKPOINT_RESTORE_SAGA_VERSION &&
+      hasExactKeys(evidence, SESSION_ROLLBACK_SETTLEMENT_EVIDENCE);
+    if (
+      strictEvidenceKeys &&
+      !hasExactKeys(evidence, strictEvidenceKeys) &&
+      !exactSessionRollbackTerminal
+    ) {
+      throw sagaError(
+        errorCode,
+        `${phase} requires one exact rollback evidence projection`,
+      );
+    }
+    if (strictEvidenceKeys && evidence.safetyCoverage !== "full") {
+      throw sagaError(
+        errorCode,
+        `${phase} requires full safety coverage for the rollback target set`,
+      );
+    }
+    if (phase === "rollback_started" && evidence.targetCount === 0) {
+      throw sagaError(
+        errorCode,
+        "rollback_started requires a nonzero current rollback target count",
       );
     }
     if (phase === "intent_committed") {
@@ -2251,9 +2473,258 @@ export class CheckpointRestoreSagaStore {
         );
       }
     }
+    if (
+      event.phase === "recovery_started" &&
+      event.version === CHECKPOINT_RESTORE_SAGA_VERSION
+    ) {
+      const currentBase = currentRecoveryBaseEvent(events);
+      const reconcilesSettledRollback = [
+        "workspace_rolled_back",
+        "session_rollback_committed",
+      ].includes(currentBase?.phase);
+      if (
+        ROLLBACK_RECOVERY_REQUEST_BASE_PHASE_SET.has(currentBase?.phase) &&
+        (!hasExactKeys(event.evidence, ROLLBACK_RECOVERY_STARTED_EVIDENCE) ||
+          (reconcilesSettledRollback &&
+            (event.evidence.recoveryAction !==
+              currentBase.evidence.recoveryAction ||
+              event.evidence.recoveryRequestId !==
+                currentBase.evidence.recoveryRequestId)))
+      ) {
+        throw sagaError(
+          errorCode,
+          "Rollback recovery_started requires exact request authority and must preserve any settled rollback action/request identity",
+        );
+      }
+    }
+    if (
+      event.version === CHECKPOINT_RESTORE_SAGA_VERSION &&
+      event.phase === "aborted" &&
+      events.at(-1)?.phase === "recovery_started"
+    ) {
+      const recovery = events.at(-1);
+      const currentBase = currentRecoveryBaseEvent(events);
+      if (
+        !PRE_MUTATION_ABORT_BASE_PHASE_SET.has(currentBase?.phase) ||
+        recovery.evidence.recoveryAction !== RECOVERY_ABORT_ACTION ||
+        !hasExactKeys(
+          recovery.evidence,
+          RECOVERY_STARTED_SETTLEMENT_AUTHORITY_EVIDENCE,
+        ) ||
+        !hasExactKeys(event.evidence, RECOVERY_ABORT_SETTLEMENT_EVIDENCE) ||
+        event.evidence.recoveryAction !== recovery.evidence.recoveryAction
+      ) {
+        throw sagaError(
+          errorCode,
+          "Recovery may abort only an exact created/locked pre-intent operation settlement",
+        );
+      }
+    }
+    if (
+      event.version === CHECKPOINT_RESTORE_SAGA_VERSION &&
+      event.phase === "completed" &&
+      events.at(-1)?.phase === "recovery_started"
+    ) {
+      const recovery = events.at(-1);
+      const currentBase = currentRecoveryBaseEvent(events);
+      const exactSessionCommit =
+        currentBase?.phase !== "session_committed" ||
+        event.evidence.sessionCommitDigest ===
+          currentBase.evidence.sessionCommitDigest;
+      if (
+        events[0]?.evidence.restoreSurface !== "timeline" ||
+        !ALREADY_COMPLETED_BASE_PHASE_SET.has(currentBase?.phase) ||
+        recovery.evidence.recoveryAction !==
+          RECOVERY_ALREADY_COMPLETED_ACTION ||
+        !hasExactKeys(
+          recovery.evidence,
+          RECOVERY_STARTED_SETTLEMENT_AUTHORITY_EVIDENCE,
+        ) ||
+        !hasExactKeys(event.evidence, RECOVERY_COMPLETED_SETTLEMENT_EVIDENCE) ||
+        event.evidence.recoveryAction !== recovery.evidence.recoveryAction ||
+        !exactSessionCommit
+      ) {
+        throw sagaError(
+          errorCode,
+          "Recovery may complete only an exact timeline already-completed reconciliation",
+        );
+      }
+    }
+    if (event.phase === "rollback_prepared") {
+      const recovery = events.at(-1);
+      const prepared = latestPhaseEvent(events, "prepared");
+      const safety = latestPhaseEvent(events, "safety_ready");
+      const originalDurableBase = originalDurableBaseEvent(events);
+      const currentRecoveryBase = currentRecoveryBaseEvent(events);
+      const mutation =
+        originalDurableBase?.phase === "mutation_started"
+          ? originalDurableBase
+          : null;
+      const reusedRequestBindings = events.filter(
+        (entry) =>
+          entry.phase === "rollback_prepared" &&
+          entry.evidence.recoveryRequestId === event.evidence.recoveryRequestId,
+      );
+      const reusedRequestBindingDrift = reusedRequestBindings.some(
+        (entry) =>
+          !evidenceFieldsMatch(
+            event.evidence,
+            entry.evidence,
+            ROLLBACK_BINDING_EVIDENCE,
+          ),
+      );
+      if (
+        recovery?.phase !== "recovery_started" ||
+        !prepared ||
+        !safety ||
+        !mutation ||
+        !ROLLBACK_CURRENT_BASE_PHASE_SET.has(currentRecoveryBase?.phase) ||
+        safety.evidence.safetyCoverage !== "full" ||
+        event.evidence.recoveryAction !== recovery.evidence.recoveryAction ||
+        event.evidence.recoveryRequestId !==
+          recovery.evidence.recoveryRequestId ||
+        reusedRequestBindingDrift ||
+        event.evidence.safetyId !== safety.evidence.safetyId ||
+        event.evidence.safetyIdentity !== safety.evidence.safetyIdentity ||
+        event.evidence.safetyPlanIdentity !==
+          safety.evidence.safetyPlanIdentity ||
+        event.evidence.safetyCoverage !== safety.evidence.safetyCoverage ||
+        event.evidence.originalMutationTargetCount !==
+          prepared.evidence.targetCount ||
+        event.evidence.originalMutationTargetCount !==
+          mutation.evidence.targetCount ||
+        event.evidence.targetCount > event.evidence.originalMutationTargetCount
+      ) {
+        throw sagaError(
+          errorCode,
+          "rollback_prepared requires a rollback-mutation current base, mutation_started original base, exact recovery request, full safety authority, and one request-stable bounded plan",
+        );
+      }
+    }
+    if (event.phase === "rollback_started") {
+      const rollbackPrepared = events.at(-1);
+      if (
+        rollbackPrepared?.phase !== "rollback_prepared" ||
+        !evidenceFieldsMatch(
+          event.evidence,
+          rollbackPrepared.evidence,
+          ROLLBACK_BINDING_EVIDENCE,
+        )
+      ) {
+        throw sagaError(
+          errorCode,
+          "rollback_started must preserve the exact prepared rollback authority",
+        );
+      }
+    }
+    if (event.phase === "workspace_rolled_back") {
+      const rollbackBoundary = events.at(-1);
+      const currentRecoveryBase = currentRecoveryBaseEvent(events);
+      const zeroTargetSettlement =
+        rollbackBoundary?.phase === "rollback_prepared" &&
+        event.evidence.targetCount === 0 &&
+        event.evidence.rolledBackCount === 0;
+      const mutatedSettlement =
+        rollbackBoundary?.phase === "rollback_started" &&
+        event.evidence.targetCount > 0 &&
+        event.evidence.rolledBackCount === event.evidence.targetCount;
+      const reconciledSettlement =
+        rollbackBoundary?.phase === "recovery_started" &&
+        currentRecoveryBase?.phase === "workspace_rolled_back" &&
+        rollbackBoundary.evidence.recoveryAction ===
+          currentRecoveryBase.evidence.recoveryAction &&
+        rollbackBoundary.evidence.recoveryRequestId ===
+          currentRecoveryBase.evidence.recoveryRequestId &&
+        evidenceFieldsMatch(
+          event.evidence,
+          currentRecoveryBase.evidence,
+          ROLLBACK_SETTLEMENT_EVIDENCE,
+        );
+      const newSettlement = zeroTargetSettlement || mutatedSettlement;
+      const newSettlementBindingMatches = evidenceFieldsMatch(
+        event.evidence,
+        rollbackBoundary?.evidence || {},
+        ROLLBACK_BINDING_EVIDENCE,
+      );
+      if (
+        (!newSettlement && !reconciledSettlement) ||
+        (newSettlement && !newSettlementBindingMatches)
+      ) {
+        throw sagaError(
+          errorCode,
+          "workspace_rolled_back must exactly settle a prepared/started rollback or republish one identical verified workspace settlement",
+        );
+      }
+    }
+    if (
+      event.phase === "rolled_back" &&
+      event.version === CHECKPOINT_RESTORE_SAGA_VERSION
+    ) {
+      const restoreSurface = events[0]?.evidence.restoreSurface || null;
+      const settlement = events.at(-1);
+      const directSettlement =
+        restoreSurface === "direct" &&
+        settlement?.phase === "workspace_rolled_back" &&
+        !Object.hasOwn(event.evidence, "sessionRollbackCommitDigest") &&
+        evidenceFieldsMatch(
+          event.evidence,
+          settlement.evidence,
+          ROLLBACK_SETTLEMENT_EVIDENCE,
+        );
+      const sessionSettlement =
+        restoreSurface === "timeline" &&
+        settlement?.phase === "session_rollback_committed" &&
+        evidenceFieldsMatch(
+          event.evidence,
+          settlement.evidence,
+          SESSION_ROLLBACK_SETTLEMENT_EVIDENCE,
+        );
+      if (!directSettlement && !sessionSettlement) {
+        throw sagaError(
+          errorCode,
+          "rolled_back must preserve the exact direct or session rollback settlement required by its restore surface",
+        );
+      }
+    }
+    if (event.phase === "session_rollback_committed") {
+      const workspaceRolledBack = events.at(-1);
+      const currentRecoveryBase = currentRecoveryBaseEvent(events);
+      const newSessionSettlement =
+        workspaceRolledBack?.phase === "workspace_rolled_back" &&
+        evidenceFieldsMatch(
+          event.evidence,
+          workspaceRolledBack.evidence,
+          ROLLBACK_SETTLEMENT_EVIDENCE,
+        );
+      const reconciledSessionSettlement =
+        workspaceRolledBack?.phase === "recovery_started" &&
+        currentRecoveryBase?.phase === "session_rollback_committed" &&
+        workspaceRolledBack.evidence.recoveryAction ===
+          currentRecoveryBase.evidence.recoveryAction &&
+        workspaceRolledBack.evidence.recoveryRequestId ===
+          currentRecoveryBase.evidence.recoveryRequestId &&
+        evidenceFieldsMatch(
+          event.evidence,
+          currentRecoveryBase.evidence,
+          SESSION_ROLLBACK_SETTLEMENT_EVIDENCE,
+        );
+      if (
+        events[0]?.evidence.restoreSurface !== "timeline" ||
+        (!newSessionSettlement && !reconciledSessionSettlement)
+      ) {
+        throw sagaError(
+          errorCode,
+          "session_rollback_committed requires a timeline workspace settlement or one identical verified session settlement republication",
+        );
+      }
+    }
   }
 
   _validateEvent(value, file, expectedSeq, previous) {
+    const supportedVersion = SUPPORTED_EVENT_VERSION_SET.has(value?.version);
+    const versionPhaseSet = LEGACY_EVENT_VERSION_SET.has(value?.version)
+      ? LEGACY_PHASE_SET
+      : PHASE_SET;
     if (
       !hasExactKeys(value, [
         "schema",
@@ -2267,12 +2738,12 @@ export class CheckpointRestoreSagaStore {
         "hash",
       ]) ||
       value.schema !== CHECKPOINT_RESTORE_SAGA_SCHEMA ||
-      value.version !== CHECKPOINT_RESTORE_SAGA_VERSION ||
+      !supportedVersion ||
       value.operationId !== file.operationId ||
       value.seq !== expectedSeq ||
       value.seq !== file.seq ||
       value.phase !== file.phase ||
-      !PHASE_SET.has(value.phase) ||
+      !versionPhaseSet.has(value.phase) ||
       !Number.isSafeInteger(value.timestamp) ||
       value.timestamp < 0 ||
       !HASH_PATTERN.test(String(value.hash || ""))
@@ -2289,8 +2760,9 @@ export class CheckpointRestoreSagaStore {
       value.prevHash !== expectedPrevHash ||
       value.hash !== eventHash(value) ||
       (previous && value.timestamp < previous.timestamp) ||
+      (previous && value.version < previous.version) ||
       (expectedSeq === 1 && value.phase !== "created") ||
-      (previous && !TRANSITIONS.get(previous.phase)?.has(value.phase))
+      (previous && !transitionAllowed(previous, value))
     ) {
       throw sagaError(
         CHECKPOINT_RESTORE_SAGA_ERROR_CODES.CORRUPT,
@@ -2312,6 +2784,7 @@ export class CheckpointRestoreSagaStore {
     }
     this._validatePhaseEvidence(value.operationId, value.phase, evidence, {
       replay: true,
+      eventVersion: value.version,
     });
     if (
       expectedSeq > 1 &&
