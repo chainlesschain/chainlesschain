@@ -29,9 +29,11 @@ const { createStatusBar } = require("./ui/status-bar");
 const { IdeBridgeTreeProvider } = require("./ui/tree-view");
 const { openDashboard, refreshDashboard } = require("./ui/dashboard");
 const { ChatViewProvider } = require("./chat/chat-view");
+const { InlineChatDecorator } = require("./chat/inline-chat");
 const {
   promptForWindowReloadAfterExtensionUpgrade,
 } = require("./webview-upgrade-reload");
+
 
 let _server = null;
 let _port = null;
@@ -382,6 +384,37 @@ function activate(context) {
       lensSeed("refactor"),
     ),
   );
+
+  // === Inline Chat (CodeBuddy/Cursor style) ===
+  // Select code → shows quick actions (Explain/Refactor/Fix/Docs/Tests) → opens chat panel with context
+  let inlineChat;
+  try {
+    const { InlineChatDecorator } = require("./chat/inline-chat");
+    inlineChat = new InlineChatDecorator(vscode, {
+      log: (msg) => outputLog(msg, "info"),
+    });
+    context.subscriptions.push(inlineChat);
+
+    // Register inline chat commands
+    context.subscriptions.push(
+      vscode.commands.registerCommand("chainlesschain.inlineChat.open", () => inlineChat.show()),
+      vscode.commands.registerCommand("chainlesschain.inlineChat.explain", () => inlineChat.executeAction("explain")),
+      vscode.commands.registerCommand("chainlesschain.inlineChat.refactor", () => inlineChat.executeAction("refactor")),
+      vscode.commands.registerCommand("chainlesschain.inlineChat.fix", () => inlineChat.executeAction("fix")),
+      vscode.commands.registerCommand("chainlesschain.inlineChat.generateDocs", () => inlineChat.executeAction("document")),
+      vscode.commands.registerCommand("chainlesschain.inlineChat.generateTests", () => inlineChat.executeAction("test")),
+      vscode.commands.registerCommand("chainlesschain.inlineChat.accept", () => inlineChat.acceptEdit()),
+      vscode.commands.registerCommand("chainlesschain.inlineChat.reject", () => inlineChat.rejectEdit()),
+      vscode.commands.registerCommand("chainlesschain.inlineChat.action", (args) => {
+        if (args && args.action) return inlineChat.executeAction(args.action);
+        return inlineChat.show();
+      })
+    );
+
+    outputLog("✅ Inline chat decorator initialized (CodeBuddy/Cursor-style quick actions)", "info");
+  } catch (e) {
+    outputLog(`⚠️ Inline chat not loaded: ${e.message}`, "warn");
+  }
 
   // Inline ghost-text completion (manual trigger). The provider only fires on an
   // explicit Invoke (the keybinding → the built-in inline trigger), so typing
@@ -1254,6 +1287,24 @@ function activate(context) {
     vscode.commands.registerCommand("chainlesschain.chat.newConversation", () =>
       chatProvider.newConversation(),
     ),
+    // --- Inline Chat (Cmd/Ctrl+K parity with Claude Code) ---
+    // Import inline chat decorator
+    (() => {
+      const { InlineChatDecorator } = require('./chat/inline-chat.js');
+      const inlineChat = new InlineChatDecorator(vscode, {
+        seedInput: (text, sendImmediate = false) => chatProvider.seedInput(text, sendImmediate),
+        focusChat: () => vscode.commands.executeCommand("chainlesschainIdeChat.focus"),
+      });
+      // Register inline chat commands
+      ctx.subscriptions.push(
+        vscode.commands.registerCommand("chainlesschain.inlineChat.open", () => inlineChat.open()),
+        vscode.commands.registerCommand("chainlesschain.inlineChat.explain", () => inlineChat.runAction('explain')),
+        vscode.commands.registerCommand("chainlesschain.inlineChat.refactor", () => inlineChat.runAction('refactor')),
+        vscode.commands.registerCommand("chainlesschain.inlineChat.fix", () => inlineChat.runAction('fix')),
+        vscode.commands.registerCommand("chainlesschain.inlineChat.generateDocs", () => inlineChat.runAction('docs')),
+        vscode.commands.registerCommand("chainlesschain.inlineChat.generateTests", () => inlineChat.runAction('tests')),
+      );
+    })(),
     vscode.commands.registerCommand(
       "chainlesschain.chat.reopenClosedSession",
       () => chatProvider.reopenClosedSession(),
