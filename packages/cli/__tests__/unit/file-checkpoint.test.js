@@ -88,6 +88,8 @@ import {
   restoreCheckpoint,
   deleteCheckpoint,
   computeCheckpointIdentity,
+  prepareCheckpointRollback,
+  executeCheckpointRollback,
   SKIP_DIRS,
   _fileCheckpointInternals,
 } from "../../src/lib/file-checkpoint.js";
@@ -209,6 +211,69 @@ describe("file-checkpoint store", () => {
 
   const mk = (label) =>
     createCheckpoint(["a.txt", "b.txt"], { cwd: work, root, label });
+
+  const mixedRollbackResidue = (failAfterIndex) => {
+    const c = join(work, "c.txt");
+    writeFileSync(join(work, "a.txt"), "FORWARD-A", "utf8");
+    writeFileSync(join(work, "b.txt"), "FORWARD-B", "utf8");
+    writeFileSync(c, "FORWARD-C", "utf8");
+    const forward = createCheckpoint(["a.txt", "b.txt", "c.txt"], {
+      cwd: work,
+      root,
+      label: "mixed-forward-target",
+    });
+
+    writeFileSync(join(work, "a.txt"), "SAFETY-A", "utf8");
+    rmSync(join(work, "b.txt"));
+    writeFileSync(c, "SAFETY-C", "utf8");
+    const original = restoreCheckpoint(forward.id, {
+      root,
+      cwd: work,
+      expectedIdentity: computeCheckpointIdentity(forward),
+    });
+    rmSync(c);
+
+    let mutationCount = null;
+    let failure = null;
+    try {
+      restoreCheckpoint(original.safetyId, {
+        root,
+        cwd: work,
+        expectedIdentity: original.safetyIdentity,
+        expectedSafetyPlanIdentity: original.safetyPlanIdentity,
+        onMutationStarted: (evidence) => {
+          mutationCount = evidence.mutationCount;
+        },
+        onTargetPublished: ({ index }) => {
+          if (index === failAfterIndex) {
+            const error = new Error("stop mixed restore after publish");
+            error.code = "INJECTED_MIXED_RESTORE_STOP";
+            throw error;
+          }
+        },
+      });
+    } catch (error) {
+      failure = error;
+    }
+    expect(failure).toMatchObject({
+      code: "INJECTED_MIXED_RESTORE_STOP",
+      safetyCoverage: "full",
+    });
+    expect(mutationCount).toBe(3);
+    return {
+      originalId: original.safetyId,
+      originalIdentity: original.safetyIdentity,
+      safetyId: failure.safetyId,
+      safetyIdentity: failure.safetyIdentity,
+      safetyPlanIdentity: failure.safetyPlanIdentity,
+      originalMutationTargetCount: mutationCount,
+    };
+  };
+
+  const ownedLease = () => ({
+    canonicalWorkspaceRoot: realpathSync.native(work),
+    assertOwned: vi.fn(),
+  });
 
   it.each(AFFECTED_WINDOWS_UV_VERSIONS)(
     "accepts trusted cross-API device projections in all checkpoint readers on libuv %s",
@@ -657,6 +722,458 @@ describe("file-checkpoint store", () => {
     // undo the restore using the safety checkpoint
     restoreCheckpoint(r.safetyId, { root, skipSafety: true });
     expect(readFileSync(join(work, "a.txt"), "utf-8")).toBe("CHANGED-A");
+  });
+
+  it("copy rollback adapter restores an exact modified, added, and deleted tree", () => {
+    const fixture = mixedRollbackResidue(2);
+    const prepared = prepareCheckpointRollback(
+      work,
+      fixture.originalId,
+      fixture.safetyId,
+      {
+        root,
+        expectedOriginalIdentity: fixture.originalIdentity,
+        expectedSafetyIdentity: fixture.safetyIdentity,
+        expectedSafetyPlanIdentity: fixture.safetyPlanIdentity,
+        originalMutationTargetCount: fixture.originalMutationTargetCount,
+      },
+    );
+
+    expect(Object.keys(prepared).sort()).toEqual(
+      [
+        "checkpointNamespace",
+        "currentRollbackPaths",
+        "engine",
+        "expectedRollbackStateDigest",
+        "expectedWorkspaceBinding",
+        "originalBindingVerification",
+        "originalCheckpoint",
+        "originalMutationPaths",
+        "originalMutationTargetCount",
+        "originalPlanAuthority",
+        "originalWorkspaceBinding",
+        "rollbackPlanIdentity",
+        "rollbackPrestateDigest",
+        "safetyCheckpoint",
+        "schema",
+        "targetCount",
+        "version",
+        "workspaceRoot",
+      ].sort(),
+    );
+    expect(prepared).toMatchObject({
+      schema: "chainlesschain.checkpoint-rollback-plan",
+      version: 1,
+      engine: "copy",
+      checkpointNamespace: null,
+      originalCheckpoint: {
+        id: fixture.originalId,
+        identity: fixture.originalIdentity,
+        treeIdentity: null,
+      },
+      safetyCheckpoint: {
+        id: fixture.safetyId,
+        identity: fixture.safetyIdentity,
+        planIdentity: fixture.safetyPlanIdentity,
+        treeIdentity: null,
+      },
+      originalBindingVerification: "durable-safety-plan-v2",
+      originalWorkspaceBinding: null,
+      originalMutationPaths: ["a.txt", "b.txt", "c.txt"],
+      currentRollbackPaths: ["a.txt", "b.txt", "c.txt"],
+      originalMutationTargetCount: 3,
+      targetCount: 3,
+      rollbackPrestateDigest: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+      rollbackPlanIdentity: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+      expectedRollbackStateDigest: expect.stringMatching(
+        /^sha256:[a-f0-9]{64}$/,
+      ),
+      originalPlanAuthority: {
+        sourceCheckpointId: fixture.originalId,
+        sourceCheckpointIdentity: fixture.originalIdentity,
+        safetyPlanIdentity: fixture.safetyPlanIdentity,
+        mutationSetIdentity: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+        bindingReconstructable: false,
+      },
+    });
+    expect(prepared.rollbackPlanIdentity).toBe(
+      prepared.expectedWorkspaceBinding.writePlanIdentity,
+    );
+    expect(Object.keys(prepared.originalCheckpoint).sort()).toEqual([
+      "id",
+      "identity",
+      "treeIdentity",
+    ]);
+    expect(Object.keys(prepared.safetyCheckpoint).sort()).toEqual([
+      "id",
+      "identity",
+      "planIdentity",
+      "treeIdentity",
+    ]);
+    expect(Object.isFrozen(prepared)).toBe(true);
+    expect(Object.isFrozen(prepared.currentRollbackPaths)).toBe(true);
+
+    const lease = ownedLease();
+    const result = executeCheckpointRollback(work, prepared, {
+      root,
+      workspaceLease: lease,
+    });
+
+    expect(result).toEqual({
+      schema: "chainlesschain.checkpoint-rollback-result",
+      version: 1,
+      engine: "copy",
+      rolledBackCount: 3,
+      rollbackStateDigest: prepared.expectedRollbackStateDigest,
+    });
+    expect(lease.assertOwned).toHaveBeenCalled();
+    expect(readFileSync(join(work, "a.txt"), "utf8")).toBe("FORWARD-A");
+    expect(readFileSync(join(work, "b.txt"), "utf8")).toBe("FORWARD-B");
+    expect(existsSync(join(work, "c.txt"))).toBe(false);
+    expect(
+      diffCheckpoint(fixture.safetyId, {
+        root,
+        cwd: work,
+        expectedIdentity: fixture.safetyIdentity,
+        expectedSafetyPlanIdentity: fixture.safetyPlanIdentity,
+      }),
+    ).toMatchObject({ modified: [], deleted: [] });
+
+    const settled = prepareCheckpointRollback(
+      work,
+      fixture.originalId,
+      fixture.safetyId,
+      {
+        root,
+        expectedOriginalIdentity: fixture.originalIdentity,
+        expectedSafetyIdentity: fixture.safetyIdentity,
+        expectedSafetyPlanIdentity: fixture.safetyPlanIdentity,
+        originalMutationTargetCount: 3,
+      },
+    );
+    expect(settled).toMatchObject({
+      currentRollbackPaths: [],
+      targetCount: 0,
+      expectedRollbackStateDigest: prepared.expectedRollbackStateDigest,
+    });
+    expect(
+      executeCheckpointRollback(work, settled, {
+        root,
+        workspaceLease: ownedLease(),
+      }),
+    ).toEqual({
+      schema: "chainlesschain.checkpoint-rollback-result",
+      version: 1,
+      engine: "copy",
+      rolledBackCount: 0,
+      rollbackStateDigest: prepared.expectedRollbackStateDigest,
+    });
+  });
+
+  it("copy rollback adapter plans only the exact partial mutation residue", () => {
+    const fixture = mixedRollbackResidue(0);
+    const prepared = prepareCheckpointRollback(
+      work,
+      fixture.originalId,
+      fixture.safetyId,
+      {
+        root,
+        expectedOriginalIdentity: fixture.originalIdentity,
+        expectedSafetyIdentity: fixture.safetyIdentity,
+        expectedSafetyPlanIdentity: fixture.safetyPlanIdentity,
+        originalMutationTargetCount: 3,
+      },
+    );
+
+    expect(prepared.originalMutationPaths).toEqual(["a.txt", "b.txt", "c.txt"]);
+    expect(prepared.currentRollbackPaths).toEqual(["a.txt"]);
+    expect(prepared).toMatchObject({
+      originalMutationTargetCount: 3,
+      targetCount: 1,
+    });
+
+    expect(
+      executeCheckpointRollback(work, prepared, {
+        root,
+        workspaceLease: ownedLease(),
+      }),
+    ).toMatchObject({
+      rolledBackCount: 1,
+      rollbackStateDigest: prepared.expectedRollbackStateDigest,
+    });
+    expect(readFileSync(join(work, "a.txt"), "utf8")).toBe("FORWARD-A");
+    expect(readFileSync(join(work, "b.txt"), "utf8")).toBe("FORWARD-B");
+    expect(existsSync(join(work, "c.txt"))).toBe(false);
+  });
+
+  it("copy rollback adapter rejects a same-content third-party successor", () => {
+    const fixture = mixedRollbackResidue(0);
+    const target = join(work, "a.txt");
+    renameSync(target, join(work, "armed-a-predecessor.txt"));
+    writeFileSync(target, "SAFETY-A", "utf8");
+
+    expect(() =>
+      prepareCheckpointRollback(work, fixture.originalId, fixture.safetyId, {
+        root,
+        expectedOriginalIdentity: fixture.originalIdentity,
+        expectedSafetyIdentity: fixture.safetyIdentity,
+        expectedSafetyPlanIdentity: fixture.safetyPlanIdentity,
+        originalMutationTargetCount: 3,
+      }),
+    ).toThrow(
+      expect.objectContaining({ code: "CHECKPOINT_ROLLBACK_RESIDUE_INVALID" }),
+    );
+    expect(readFileSync(target, "utf8")).toBe("SAFETY-A");
+
+    const deletedFixture = mixedRollbackResidue(0);
+    const deletedTarget = join(work, "b.txt");
+    renameSync(deletedTarget, join(work, "deleted-b-predecessor.txt"));
+    writeFileSync(deletedTarget, "FORWARD-B", "utf8");
+    expect(() =>
+      prepareCheckpointRollback(
+        work,
+        deletedFixture.originalId,
+        deletedFixture.safetyId,
+        {
+          root,
+          expectedOriginalIdentity: deletedFixture.originalIdentity,
+          expectedSafetyIdentity: deletedFixture.safetyIdentity,
+          expectedSafetyPlanIdentity: deletedFixture.safetyPlanIdentity,
+          originalMutationTargetCount: 3,
+        },
+      ),
+    ).toThrow(
+      expect.objectContaining({ code: "CHECKPOINT_ROLLBACK_RESIDUE_INVALID" }),
+    );
+    expect(readFileSync(deletedTarget, "utf8")).toBe("FORWARD-B");
+  });
+
+  it("copy rollback adapter handles an ordinary checkpoint partial forward restore", () => {
+    const original = mk("ordinary-partial-forward");
+    const originalIdentity = computeCheckpointIdentity(original);
+    writeFileSync(join(work, "a.txt"), "PRESTATE-A", "utf8");
+    writeFileSync(join(work, "b.txt"), "PRESTATE-B", "utf8");
+    let failure;
+    try {
+      restoreCheckpoint(original.id, {
+        root,
+        cwd: work,
+        expectedIdentity: originalIdentity,
+        onTargetPublished: ({ index }) => {
+          if (index === 0) {
+            const error = new Error("stop ordinary restore after one target");
+            error.code = "INJECTED_ORDINARY_RESTORE_STOP";
+            throw error;
+          }
+        },
+      });
+    } catch (error) {
+      failure = error;
+    }
+    expect(failure).toMatchObject({
+      code: "INJECTED_ORDINARY_RESTORE_STOP",
+      safetyCoverage: "full",
+    });
+
+    const prepared = prepareCheckpointRollback(
+      work,
+      original.id,
+      failure.safetyId,
+      {
+        root,
+        expectedOriginalIdentity: originalIdentity,
+        expectedSafetyIdentity: failure.safetyIdentity,
+        expectedSafetyPlanIdentity: failure.safetyPlanIdentity,
+        originalMutationTargetCount: 2,
+      },
+    );
+    expect(prepared).toMatchObject({
+      originalMutationPaths: ["a.txt", "b.txt"],
+      currentRollbackPaths: ["a.txt"],
+      originalMutationTargetCount: 2,
+      targetCount: 1,
+    });
+    expect(
+      executeCheckpointRollback(work, prepared, {
+        root,
+        workspaceLease: ownedLease(),
+      }),
+    ).toMatchObject({ rolledBackCount: 1 });
+    expect(readFileSync(join(work, "a.txt"), "utf8")).toBe("PRESTATE-A");
+    expect(readFileSync(join(work, "b.txt"), "utf8")).toBe("PRESTATE-B");
+  });
+
+  it("copy rollback adapter rejects identity, plan, count, and binding drift", () => {
+    const fixture = mixedRollbackResidue(0);
+    const exact = {
+      root,
+      expectedOriginalIdentity: fixture.originalIdentity,
+      expectedSafetyIdentity: fixture.safetyIdentity,
+      expectedSafetyPlanIdentity: fixture.safetyPlanIdentity,
+      originalMutationTargetCount: 3,
+    };
+    expect(() =>
+      prepareCheckpointRollback(work, fixture.originalId, fixture.safetyId, {
+        ...exact,
+        expectedOriginalIdentity: `sha256:${"1".repeat(64)}`,
+      }),
+    ).toThrow(expect.objectContaining({ code: "CHECKPOINT_IDENTITY_STALE" }));
+    expect(() =>
+      prepareCheckpointRollback(work, fixture.originalId, fixture.safetyId, {
+        ...exact,
+        expectedSafetyIdentity: `sha256:${"2".repeat(64)}`,
+      }),
+    ).toThrow(expect.objectContaining({ code: "CHECKPOINT_IDENTITY_STALE" }));
+    expect(() =>
+      prepareCheckpointRollback(work, fixture.originalId, fixture.safetyId, {
+        ...exact,
+        expectedSafetyPlanIdentity: `sha256:${"3".repeat(64)}`,
+      }),
+    ).toThrow(
+      expect.objectContaining({
+        code: "CHECKPOINT_ROLLBACK_AUTHORITY_INVALID",
+      }),
+    );
+    expect(() =>
+      prepareCheckpointRollback(work, fixture.originalId, fixture.safetyId, {
+        ...exact,
+        originalMutationTargetCount: 2,
+      }),
+    ).toThrow(
+      expect.objectContaining({
+        code: "CHECKPOINT_ROLLBACK_AUTHORITY_INVALID",
+      }),
+    );
+
+    const prepared = prepareCheckpointRollback(
+      work,
+      fixture.originalId,
+      fixture.safetyId,
+      exact,
+    );
+    const forged = {
+      ...prepared,
+      expectedWorkspaceBinding: {
+        ...prepared.expectedWorkspaceBinding,
+        prestateIdentity: `sha256:${"4".repeat(64)}`,
+      },
+    };
+    expect(() =>
+      executeCheckpointRollback(work, forged, {
+        root,
+        workspaceLease: ownedLease(),
+      }),
+    ).toThrow(
+      expect.objectContaining({ code: "CHECKPOINT_ROLLBACK_PLAN_STALE" }),
+    );
+  });
+
+  it("copy rollback adapter rejects missing or tampered private authority", () => {
+    const fixture = mixedRollbackResidue(0);
+    const exact = {
+      root,
+      expectedOriginalIdentity: fixture.originalIdentity,
+      expectedSafetyIdentity: fixture.safetyIdentity,
+      expectedSafetyPlanIdentity: fixture.safetyPlanIdentity,
+      originalMutationTargetCount: 3,
+    };
+    const { armPath } = findRestoreArm(
+      root,
+      fixture.safetyId,
+      (arm) => arm.kind === "stage-forward" && arm.rel === "a.txt",
+    );
+    rmSync(armPath);
+    expect(() =>
+      prepareCheckpointRollback(
+        work,
+        fixture.originalId,
+        fixture.safetyId,
+        exact,
+      ),
+    ).toThrow(
+      expect.objectContaining({ code: "CHECKPOINT_RECOVERY_REQUIRED" }),
+    );
+
+    const replacement = mixedRollbackResidue(0);
+    const armed = findRestoreArm(
+      root,
+      replacement.safetyId,
+      (arm) => arm.kind === "stage-forward" && arm.rel === "a.txt",
+    );
+    armed.arm.planIdentity = `sha256:${"5".repeat(64)}`;
+    writeFileSync(armed.armPath, JSON.stringify(armed.arm, null, 2), "utf8");
+    if (process.platform !== "win32") fs.chmodSync(armed.armPath, 0o600);
+    expect(() =>
+      prepareCheckpointRollback(
+        work,
+        replacement.originalId,
+        replacement.safetyId,
+        {
+          root,
+          expectedOriginalIdentity: replacement.originalIdentity,
+          expectedSafetyIdentity: replacement.safetyIdentity,
+          expectedSafetyPlanIdentity: replacement.safetyPlanIdentity,
+          originalMutationTargetCount: 3,
+        },
+      ),
+    ).toThrow(
+      expect.objectContaining({ code: "CHECKPOINT_SAFETY_PLAN_INVALID" }),
+    );
+  });
+
+  it("copy rollback adapter rejects an out-of-workspace safety mutation", () => {
+    const fixture = mixedRollbackResidue(0);
+    const manifestPath = join(root, `${fixture.safetyId}.json`);
+    const safety = getCheckpoint(fixture.safetyId, { root });
+    safety.restoreSafetyPlan.mutations[0].rel = "../escape.txt";
+    writeFileSync(manifestPath, JSON.stringify(safety, null, 2), "utf8");
+    if (process.platform !== "win32") fs.chmodSync(manifestPath, 0o600);
+
+    expect(() =>
+      prepareCheckpointRollback(work, fixture.originalId, fixture.safetyId, {
+        root,
+        expectedOriginalIdentity: fixture.originalIdentity,
+        expectedSafetyIdentity: computeCheckpointIdentity(safety),
+        expectedSafetyPlanIdentity: fixture.safetyPlanIdentity,
+        originalMutationTargetCount: 3,
+      }),
+    ).toThrow(
+      expect.objectContaining({ code: "CHECKPOINT_SAFETY_PLAN_INVALID" }),
+    );
+    expect(existsSync(join(work, "..", "escape.txt"))).toBe(false);
+  });
+
+  it("copy rollback adapter requires a synchronous owned lease and forbids hooks", () => {
+    const fixture = mixedRollbackResidue(0);
+    const prepared = prepareCheckpointRollback(
+      work,
+      fixture.originalId,
+      fixture.safetyId,
+      {
+        root,
+        expectedOriginalIdentity: fixture.originalIdentity,
+        expectedSafetyIdentity: fixture.safetyIdentity,
+        expectedSafetyPlanIdentity: fixture.safetyPlanIdentity,
+        originalMutationTargetCount: 3,
+      },
+    );
+    expect(() =>
+      executeCheckpointRollback(work, prepared, {
+        root,
+        workspaceLease: { assertOwned: () => Promise.resolve() },
+      }),
+    ).toThrow(
+      expect.objectContaining({ code: "CHECKPOINT_ROLLBACK_LEASE_INVALID" }),
+    );
+    expect(() =>
+      executeCheckpointRollback(work, prepared, {
+        root,
+        workspaceLease: ownedLease(),
+        onWorkspaceApplied: () => {},
+      }),
+    ).toThrow(
+      expect.objectContaining({ code: "CHECKPOINT_ROLLBACK_PLAN_STALE" }),
+    );
   });
 
   it.runIf(process.platform === "win32")(

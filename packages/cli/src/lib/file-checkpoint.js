@@ -29,6 +29,7 @@ import {
   inspectPrivatePaths,
   repairPrivatePaths,
 } from "./secure-fs.js";
+import { computeCheckpointRestoreDigest } from "./checkpoint-restore-orchestrator.js";
 
 /** Directories never walked into when a checkpoint path is a directory. */
 export const SKIP_DIRS = new Set([
@@ -53,6 +54,18 @@ const RESTORE_SAFETY_NAMESPACE_DIR = ".restore-workspace";
 const RESTORE_SAFETY_THREAT_BOUNDARY =
   "cooperative-workspace-lock+owner-private-staging/v1";
 const RESTORE_SAFETY_QUARANTINE_POLICY = "non-authoritative-trash/v1";
+export const CHECKPOINT_ROLLBACK_PLAN_SCHEMA =
+  "chainlesschain.checkpoint-rollback-plan";
+export const CHECKPOINT_ROLLBACK_RESULT_SCHEMA =
+  "chainlesschain.checkpoint-rollback-result";
+export const CHECKPOINT_ROLLBACK_VERSION = 1;
+export const FILE_CHECKPOINT_ROLLBACK_ERROR_CODES = Object.freeze({
+  INVALID_AUTHORITY: "CHECKPOINT_ROLLBACK_AUTHORITY_INVALID",
+  INVALID_LEASE: "CHECKPOINT_ROLLBACK_LEASE_INVALID",
+  INVALID_RESIDUE: "CHECKPOINT_ROLLBACK_RESIDUE_INVALID",
+  STALE_PLAN: "CHECKPOINT_ROLLBACK_PLAN_STALE",
+  POSTSTATE_MISMATCH: "CHECKPOINT_ROLLBACK_POSTSTATE_MISMATCH",
+});
 const MAX_WORKSPACE_PATH_LENGTH = 32_768;
 const MAX_RELATIVE_PATH_LENGTH = 4_096;
 const MAX_CHECKPOINT_MANIFEST_BYTES = 16 * 1024 * 1024;
@@ -746,6 +759,26 @@ function compareCanonical(left, right) {
     JSON.stringify(canonicalValue(left)) ===
     JSON.stringify(canonicalValue(right))
   );
+}
+
+function isPlainRecord(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return false;
+  }
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
+}
+
+function freezeCanonical(value) {
+  if (!value || typeof value !== "object" || Object.isFrozen(value)) {
+    return value;
+  }
+  for (const entry of Object.values(value)) freezeCanonical(entry);
+  return Object.freeze(value);
+}
+
+function checkpointRollbackError(code, message, details = {}) {
+  return checkpointWorkspaceError(code, message, details);
 }
 
 function restoreSafetyPlanIdentity(plan) {
@@ -3270,6 +3303,570 @@ function assertCompleteRestorePoststate({
       });
     }
   }
+}
+
+function rollbackObservedMatches(mutation, direction, observed) {
+  const operation = mutation[`${direction}Operation`];
+  if (operation === "delete") return observed.prestate.state === "absent";
+  return (
+    operation === "write" &&
+    observed.prestate.state === "present" &&
+    observed.prestate.sha256 === mutation[`${direction}TargetSha256`] &&
+    observed.content.length === mutation[`${direction}TargetBytes`]
+  );
+}
+
+function assertOriginalMutationAuthority(
+  originalManifest,
+  originalAuthority,
+  mutation,
+) {
+  const originalWrite = originalAuthority.writes.get(mutation.rel) || null;
+  const originalDelete = originalAuthority.deletes.get(mutation.rel) || null;
+  const matches =
+    mutation.forwardOperation === "write"
+      ? originalWrite &&
+        !originalDelete &&
+        originalWrite.targetSha256 === mutation.forwardTargetSha256 &&
+        originalWrite.targetBytes === mutation.forwardTargetBytes
+      : originalDelete && !originalWrite;
+  if (!matches) {
+    throw checkpointRollbackError(
+      FILE_CHECKPOINT_ROLLBACK_ERROR_CODES.INVALID_AUTHORITY,
+      `Restore safety plan no longer matches the original checkpoint target: ${mutation.rel}`,
+      { checkpointId: originalManifest.id, path: mutation.rel },
+    );
+  }
+}
+
+function loadOriginalMutationAuthority(
+  originalManifest,
+  root,
+  workspaceRoot,
+  originalIdentity,
+) {
+  const declaredWorkspace = canonicalWorkspaceDirectory(
+    originalManifest.cwd,
+    "original checkpoint cwd",
+  );
+  if (
+    !samePath(declaredWorkspace, workspaceRoot) ||
+    !Array.isArray(originalManifest.files) ||
+    !Number.isSafeInteger(originalManifest.fileCount) ||
+    originalManifest.fileCount !== originalManifest.files.length ||
+    originalManifest.files.length > DEFAULT_MAX_FILES
+  ) {
+    throw checkpointRollbackError(
+      FILE_CHECKPOINT_ROLLBACK_ERROR_CODES.INVALID_AUTHORITY,
+      "Original checkpoint workspace or file scope is invalid",
+      { checkpointId: originalManifest.id },
+    );
+  }
+  const writes = new Map();
+  for (const file of originalManifest.files) {
+    if (!file || typeof file !== "object" || Array.isArray(file)) {
+      throw checkpointRollbackError(
+        FILE_CHECKPOINT_ROLLBACK_ERROR_CODES.INVALID_AUTHORITY,
+        "Original checkpoint file authority is invalid",
+        { checkpointId: originalManifest.id },
+      );
+    }
+    const rel = normalizedRelativePath(file.rel);
+    const targetPath = path.resolve(workspaceRoot, ...rel.segments);
+    assertStrictlyContained(workspaceRoot, targetPath, file.rel);
+    if (
+      rel.normalized !== file.rel ||
+      typeof file.abs !== "string" ||
+      !path.isAbsolute(file.abs) ||
+      !samePath(file.abs, targetPath) ||
+      !SHA256_RE.test(String(file.sha256 || "")) ||
+      !Number.isSafeInteger(file.bytes) ||
+      file.bytes < 0 ||
+      writes.has(rel.normalized)
+    ) {
+      throw checkpointRollbackError(
+        FILE_CHECKPOINT_ROLLBACK_ERROR_CODES.INVALID_AUTHORITY,
+        `Original checkpoint file binding is invalid: ${file.rel}`,
+        { checkpointId: originalManifest.id, path: String(file.rel || "") },
+      );
+    }
+    const authority = {
+      canonicalRel: rel.normalized,
+      targetSha256: file.sha256,
+      targetBytes: file.bytes,
+    };
+    assertSourceCheckpointBlob(
+      originalManifest,
+      root,
+      originalIdentity,
+      authority,
+    );
+    writes.set(rel.normalized, authority);
+  }
+
+  const deletes = new Map();
+  if (originalManifest.restoreSafetyPlan != null) {
+    const state = assertDurableSafetyState(
+      {
+        id: originalManifest.id,
+        identity: originalIdentity,
+        manifest: originalManifest,
+      },
+      root,
+      workspaceRoot,
+    );
+    for (const tombstone of state.validated.tombstones) {
+      deletes.set(tombstone.rel, tombstone);
+    }
+  }
+  return { writes, deletes };
+}
+
+function assertCurrentRollbackResidue(manifest, mutation, observed) {
+  if (rollbackObservedMatches(mutation, "recovery", observed)) {
+    const recoveryStage = mutation.stages.recovery;
+    const recoveredWritePublished =
+      mutation.recoveryOperation === "write" &&
+      recoveryStage?.state === "consumed";
+    const exactRecoveredWrite =
+      recoveredWritePublished &&
+      recoveryStage.arm &&
+      observed.prestate.state === "present" &&
+      compareCanonical(
+        recoveryStage.arm.objectIdentity,
+        observed.prestate.objectIdentity,
+      );
+    const exactOriginalDeletePrestate =
+      mutation.forwardOperation === "delete" &&
+      mutation.recoveryOperation === "write" &&
+      observed.prestate.state === "present" &&
+      compareCanonical(
+        mutation.forwardDeleteIdentity,
+        observed.prestate.objectIdentity,
+      );
+    if (
+      mutation.recoveryOperation === "write" &&
+      ((recoveredWritePublished && !exactRecoveredWrite) ||
+        (mutation.forwardOperation === "delete" &&
+          !recoveredWritePublished &&
+          !exactOriginalDeletePrestate))
+    ) {
+      throw checkpointRollbackError(
+        FILE_CHECKPOINT_ROLLBACK_ERROR_CODES.INVALID_RESIDUE,
+        `Workspace safety-state write has an untrusted identity: ${mutation.rel}`,
+        { checkpointId: manifest.id, path: mutation.rel },
+      );
+    }
+    return false;
+  }
+  if (!rollbackObservedMatches(mutation, "forward", observed)) {
+    throw checkpointRollbackError(
+      FILE_CHECKPOINT_ROLLBACK_ERROR_CODES.INVALID_RESIDUE,
+      `Workspace path is neither the safety state nor the original restore target: ${mutation.rel}`,
+      { checkpointId: manifest.id, path: mutation.rel },
+    );
+  }
+
+  if (mutation.forwardOperation === "write") {
+    const stage = mutation.stages.forward;
+    if (
+      stage?.state !== "consumed" ||
+      !stage.arm ||
+      observed.prestate.state !== "present" ||
+      !compareCanonical(
+        stage.arm.objectIdentity,
+        observed.prestate.objectIdentity,
+      )
+    ) {
+      throw checkpointRollbackError(
+        FILE_CHECKPOINT_ROLLBACK_ERROR_CODES.INVALID_RESIDUE,
+        `Workspace write is not the durably armed original target: ${mutation.rel}`,
+        { checkpointId: manifest.id, path: mutation.rel },
+      );
+    }
+  } else if (
+    !mutation.quarantine?.arm ||
+    !compareCanonical(
+      mutation.forwardDeleteIdentity,
+      mutation.quarantine.arm.objectIdentity,
+    )
+  ) {
+    throw checkpointRollbackError(
+      FILE_CHECKPOINT_ROLLBACK_ERROR_CODES.INVALID_RESIDUE,
+      `Workspace delete is not backed by durable original authority: ${mutation.rel}`,
+      { checkpointId: manifest.id, path: mutation.rel },
+    );
+  }
+  return true;
+}
+
+function requireRollbackAuthority(
+  cwd,
+  originalCheckpointId,
+  safetyCheckpointId,
+  opts,
+) {
+  if (
+    !isPlainRecord(opts) ||
+    !isSafeCheckpointId(originalCheckpointId) ||
+    !isSafeCheckpointId(safetyCheckpointId) ||
+    originalCheckpointId === safetyCheckpointId ||
+    !SHA256_IDENTITY_RE.test(String(opts.expectedOriginalIdentity || "")) ||
+    !SHA256_IDENTITY_RE.test(String(opts.expectedSafetyIdentity || "")) ||
+    !SHA256_IDENTITY_RE.test(String(opts.expectedSafetyPlanIdentity || "")) ||
+    !Number.isSafeInteger(opts.originalMutationTargetCount) ||
+    opts.originalMutationTargetCount <= 0
+  ) {
+    throw checkpointRollbackError(
+      FILE_CHECKPOINT_ROLLBACK_ERROR_CODES.INVALID_AUTHORITY,
+      "Copy checkpoint rollback requires exact original and safety authority",
+    );
+  }
+  return canonicalWorkspaceDirectory(cwd, "rollback workspace", {
+    absolute: false,
+  });
+}
+
+/**
+ * Inspect a durable copy-restore safety checkpoint and build an in-memory-only
+ * rollback fence. No caller-provided workspace binding is trusted: the full
+ * private v2 authority and live workspace are re-read here.
+ */
+export function prepareCheckpointRollback(
+  cwd,
+  originalCheckpointId,
+  safetyCheckpointId,
+  opts = {},
+) {
+  const workspaceRoot = requireRollbackAuthority(
+    cwd,
+    originalCheckpointId,
+    safetyCheckpointId,
+    opts,
+  );
+  const root = opts.root || defaultRoot();
+  const originalManifest = getCheckpoint(originalCheckpointId, { root });
+  const safetyManifest = getCheckpoint(safetyCheckpointId, { root });
+  if (!originalManifest || !safetyManifest) {
+    throw checkpointRollbackError(
+      FILE_CHECKPOINT_ROLLBACK_ERROR_CODES.INVALID_AUTHORITY,
+      "Original or safety checkpoint is missing",
+      {
+        originalCheckpointId,
+        safetyCheckpointId,
+      },
+    );
+  }
+  const originalIdentity = assertCheckpointIdentity(
+    originalManifest,
+    opts.expectedOriginalIdentity,
+  );
+  const safetyIdentity = assertCheckpointIdentity(
+    safetyManifest,
+    opts.expectedSafetyIdentity,
+  );
+  if (
+    safetyManifest.restoreSafetyPlan?.version !== 2 ||
+    safetyManifest.restoreSafetyPlan?.planIdentity !==
+      opts.expectedSafetyPlanIdentity
+  ) {
+    throw checkpointRollbackError(
+      FILE_CHECKPOINT_ROLLBACK_ERROR_CODES.INVALID_AUTHORITY,
+      "Safety checkpoint plan identity is unavailable or stale",
+      { checkpointId: safetyCheckpointId },
+    );
+  }
+
+  const originalAuthority = loadOriginalMutationAuthority(
+    originalManifest,
+    root,
+    workspaceRoot,
+    originalIdentity,
+  );
+  const safetyState = assertDurableSafetyState(
+    {
+      id: safetyCheckpointId,
+      identity: safetyIdentity,
+      manifest: safetyManifest,
+    },
+    root,
+    workspaceRoot,
+  );
+  const safetyPlan = safetyState.validated.plan;
+  if (
+    safetyPlan.sourceCheckpointId !== originalCheckpointId ||
+    safetyPlan.sourceCheckpointIdentity !== originalIdentity ||
+    safetyPlan.planIdentity !== opts.expectedSafetyPlanIdentity ||
+    safetyPlan.mutations.length !== opts.originalMutationTargetCount
+  ) {
+    throw checkpointRollbackError(
+      FILE_CHECKPOINT_ROLLBACK_ERROR_CODES.INVALID_AUTHORITY,
+      "Safety checkpoint does not bind the exact original mutation authority",
+      { checkpointId: safetyCheckpointId },
+    );
+  }
+
+  const safetyWorkspace = computeWorkspaceBinding(
+    safetyState.manifest,
+    { root, cwd: workspaceRoot, checkpointId: safetyCheckpointId },
+    safetyIdentity,
+  );
+  if (
+    safetyWorkspace.entries.length + safetyWorkspace.tombstones.length !==
+    safetyPlan.mutations.length
+  ) {
+    throw checkpointRollbackError(
+      FILE_CHECKPOINT_ROLLBACK_ERROR_CODES.INVALID_AUTHORITY,
+      "Safety checkpoint mutation scope is incomplete",
+      { checkpointId: safetyCheckpointId },
+    );
+  }
+
+  const safetyEntryByRel = new Map(
+    safetyWorkspace.entries.map((entry) => [entry.rel, entry]),
+  );
+  const safetyTombstoneByRel = new Map(
+    safetyWorkspace.tombstones.map((entry) => [entry.rel, entry]),
+  );
+  const originalMutationPaths = [];
+  const currentRollbackPaths = [];
+  for (const mutation of safetyState.validated.mutations) {
+    assertOriginalMutationAuthority(
+      originalManifest,
+      originalAuthority,
+      mutation,
+    );
+    const entry = safetyEntryByRel.get(mutation.rel) || null;
+    const tombstone = safetyTombstoneByRel.get(mutation.rel) || null;
+    const expectedSafetyTarget =
+      mutation.recoveryOperation === "write" ? entry : tombstone;
+    if (
+      !expectedSafetyTarget ||
+      (mutation.recoveryOperation === "write" && tombstone) ||
+      (mutation.recoveryOperation === "delete" && entry)
+    ) {
+      throw checkpointRollbackError(
+        FILE_CHECKPOINT_ROLLBACK_ERROR_CODES.INVALID_AUTHORITY,
+        `Safety checkpoint target is incomplete: ${mutation.rel}`,
+        { checkpointId: safetyCheckpointId, path: mutation.rel },
+      );
+    }
+    originalMutationPaths.push(mutation.rel);
+    if (
+      assertCurrentRollbackResidue(
+        safetyState.manifest,
+        mutation,
+        expectedSafetyTarget,
+      )
+    ) {
+      currentRollbackPaths.push(mutation.rel);
+    }
+  }
+  originalMutationPaths.sort();
+  currentRollbackPaths.sort();
+  const expectedWorkspaceBinding = safetyWorkspace.workspaceBinding;
+  const rollbackPrestateDigest = computeCheckpointRestoreDigest(
+    "cc-checkpoint-restore-rollback-prestate-v1",
+    {
+      engine: "copy",
+      scopeIdentity: expectedWorkspaceBinding.scopeIdentity,
+      stateIdentity: expectedWorkspaceBinding.prestateIdentity,
+    },
+  );
+  const expectedRollbackStateDigest = computeCheckpointRestoreDigest(
+    "cc-checkpoint-restore-rollback-state-v1",
+    {
+      engine: "copy",
+      scopeIdentity: expectedWorkspaceBinding.scopeIdentity,
+      stateIdentity: expectedWorkspaceBinding.targetPoststateIdentity,
+    },
+  );
+  const mutationSetIdentity = computeCheckpointRestoreDigest(
+    "cc-checkpoint-restore-original-mutation-set-v1",
+    { engine: "copy", paths: originalMutationPaths },
+  );
+  return freezeCanonical({
+    schema: CHECKPOINT_ROLLBACK_PLAN_SCHEMA,
+    version: CHECKPOINT_ROLLBACK_VERSION,
+    engine: "copy",
+    checkpointNamespace: null,
+    workspaceRoot,
+    originalCheckpoint: {
+      id: originalCheckpointId,
+      identity: originalIdentity,
+      treeIdentity: null,
+    },
+    safetyCheckpoint: {
+      id: safetyCheckpointId,
+      identity: safetyIdentity,
+      planIdentity: safetyPlan.planIdentity,
+      treeIdentity: null,
+    },
+    originalBindingVerification: "durable-safety-plan-v2",
+    originalPlanAuthority: {
+      sourceCheckpointId: safetyPlan.sourceCheckpointId,
+      sourceCheckpointIdentity: safetyPlan.sourceCheckpointIdentity,
+      safetyPlanIdentity: safetyPlan.planIdentity,
+      mutationSetIdentity,
+      bindingReconstructable: false,
+    },
+    originalWorkspaceBinding: null,
+    originalMutationPaths,
+    currentRollbackPaths,
+    originalMutationTargetCount: originalMutationPaths.length,
+    targetCount: currentRollbackPaths.length,
+    rollbackPrestateDigest,
+    rollbackPlanIdentity: expectedWorkspaceBinding.writePlanIdentity,
+    expectedRollbackStateDigest,
+    expectedWorkspaceBinding,
+  });
+}
+
+function assertRollbackLease(workspaceRoot, lease) {
+  if (
+    !lease ||
+    typeof lease.assertOwned !== "function" ||
+    lease.assertOwned.constructor?.name === "AsyncFunction"
+  ) {
+    throw checkpointRollbackError(
+      FILE_CHECKPOINT_ROLLBACK_ERROR_CODES.INVALID_LEASE,
+      "Copy checkpoint rollback requires an owned workspace lease",
+    );
+  }
+  if (
+    lease.canonicalWorkspaceRoot != null &&
+    !samePath(lease.canonicalWorkspaceRoot, workspaceRoot)
+  ) {
+    throw checkpointRollbackError(
+      FILE_CHECKPOINT_ROLLBACK_ERROR_CODES.INVALID_LEASE,
+      "Workspace lease does not match the rollback workspace",
+    );
+  }
+  const assertion = lease.assertOwned();
+  let then;
+  try {
+    then =
+      assertion != null &&
+      (typeof assertion === "object" || typeof assertion === "function")
+        ? assertion.then
+        : null;
+  } catch (cause) {
+    throw checkpointRollbackError(
+      FILE_CHECKPOINT_ROLLBACK_ERROR_CODES.INVALID_LEASE,
+      "Workspace lease assertion returned an unreadable thenable",
+      { cause },
+    );
+  }
+  if (typeof then === "function") {
+    throw checkpointRollbackError(
+      FILE_CHECKPOINT_ROLLBACK_ERROR_CODES.INVALID_LEASE,
+      "Workspace lease assertion must be synchronous",
+    );
+  }
+}
+
+/** Execute exactly one prepared copy rollback under a caller-owned lease. */
+export function executeCheckpointRollback(cwd, prepared, opts = {}) {
+  const forbidden = [
+    "direction",
+    "dryRun",
+    "skipSafety",
+    "onSafetyReady",
+    "onMutationStarted",
+    "onTargetPublished",
+    "onWorkspaceApplied",
+  ];
+  if (
+    !isPlainRecord(opts) ||
+    forbidden.some((key) => Object.hasOwn(opts, key)) ||
+    !isPlainRecord(prepared) ||
+    prepared.schema !== CHECKPOINT_ROLLBACK_PLAN_SCHEMA ||
+    prepared.version !== CHECKPOINT_ROLLBACK_VERSION ||
+    prepared.engine !== "copy"
+  ) {
+    throw checkpointRollbackError(
+      FILE_CHECKPOINT_ROLLBACK_ERROR_CODES.STALE_PLAN,
+      "Copy checkpoint rollback plan is invalid",
+    );
+  }
+  const workspaceRoot = canonicalWorkspaceDirectory(cwd, "rollback workspace", {
+    absolute: false,
+  });
+  assertRollbackLease(workspaceRoot, opts.workspaceLease);
+  const recomputed = prepareCheckpointRollback(
+    workspaceRoot,
+    prepared.originalCheckpoint?.id,
+    prepared.safetyCheckpoint?.id,
+    {
+      root: opts.root,
+      expectedOriginalIdentity: prepared.originalCheckpoint?.identity,
+      expectedSafetyIdentity: prepared.safetyCheckpoint?.identity,
+      expectedSafetyPlanIdentity: prepared.safetyCheckpoint?.planIdentity,
+      originalMutationTargetCount: prepared.originalMutationTargetCount,
+    },
+  );
+  assertRollbackLease(workspaceRoot, opts.workspaceLease);
+  if (!compareCanonical(prepared, recomputed)) {
+    throw checkpointRollbackError(
+      FILE_CHECKPOINT_ROLLBACK_ERROR_CODES.STALE_PLAN,
+      "Copy checkpoint rollback plan changed before execution",
+      { checkpointId: prepared.safetyCheckpoint?.id },
+    );
+  }
+
+  if (recomputed.targetCount > 0) {
+    const assertLeaseOwned = () =>
+      assertRollbackLease(workspaceRoot, opts.workspaceLease);
+    restoreCheckpoint(recomputed.safetyCheckpoint.id, {
+      root: opts.root,
+      cwd: workspaceRoot,
+      skipSafety: true,
+      expectedIdentity: recomputed.safetyCheckpoint.identity,
+      expectedSafetyPlanIdentity: recomputed.safetyCheckpoint.planIdentity,
+      expectedWorkspaceBinding: recomputed.expectedWorkspaceBinding,
+      onMutationStarted: assertLeaseOwned,
+      onTargetPublished: assertLeaseOwned,
+      onWorkspaceApplied: assertLeaseOwned,
+    });
+  }
+  assertRollbackLease(workspaceRoot, opts.workspaceLease);
+
+  const postflight = prepareCheckpointRollback(
+    workspaceRoot,
+    recomputed.originalCheckpoint.id,
+    recomputed.safetyCheckpoint.id,
+    {
+      root: opts.root,
+      expectedOriginalIdentity: recomputed.originalCheckpoint.identity,
+      expectedSafetyIdentity: recomputed.safetyCheckpoint.identity,
+      expectedSafetyPlanIdentity: recomputed.safetyCheckpoint.planIdentity,
+      originalMutationTargetCount: recomputed.originalMutationTargetCount,
+    },
+  );
+  assertRollbackLease(workspaceRoot, opts.workspaceLease);
+  if (
+    postflight.targetCount !== 0 ||
+    postflight.currentRollbackPaths.length !== 0 ||
+    postflight.expectedRollbackStateDigest !==
+      recomputed.expectedRollbackStateDigest ||
+    postflight.expectedWorkspaceBinding.scopeIdentity !==
+      recomputed.expectedWorkspaceBinding.scopeIdentity ||
+    postflight.expectedWorkspaceBinding.targetPoststateIdentity !==
+      recomputed.expectedWorkspaceBinding.targetPoststateIdentity
+  ) {
+    throw checkpointRollbackError(
+      FILE_CHECKPOINT_ROLLBACK_ERROR_CODES.POSTSTATE_MISMATCH,
+      "Copy checkpoint rollback did not reach the exact safety state",
+      { checkpointId: recomputed.safetyCheckpoint.id },
+    );
+  }
+  return Object.freeze({
+    schema: CHECKPOINT_ROLLBACK_RESULT_SCHEMA,
+    version: CHECKPOINT_ROLLBACK_VERSION,
+    engine: "copy",
+    rolledBackCount: recomputed.targetCount,
+    rollbackStateDigest: recomputed.expectedRollbackStateDigest,
+  });
 }
 
 /**
