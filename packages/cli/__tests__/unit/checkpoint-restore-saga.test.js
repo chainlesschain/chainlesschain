@@ -9,6 +9,8 @@ import {
   CHECKPOINT_RESTORE_SAGA_DURABILITY,
   CHECKPOINT_RESTORE_SAGA_ERROR_CODES,
   CHECKPOINT_RESTORE_SAGA_VERSION,
+  CHECKPOINT_RESTORE_RETENTION_GUARD_SCHEMA,
+  CHECKPOINT_RESTORE_RETENTION_GUARD_VERSION,
   CheckpointRestoreSagaStore,
   MAX_CHECKPOINT_RESTORE_SAGA_EVENT_BYTES,
   computeCheckpointRestoreWorkspaceLockOwnerDigest,
@@ -304,6 +306,83 @@ function beginRollbackSettlementReconciliation(
   };
 }
 
+function beginRetentionRestore(
+  testFixture,
+  operationId,
+  {
+    engine = "git",
+    namespace = "retention-session",
+    targetCount = 1,
+    publishSafety = true,
+  } = {},
+) {
+  const originalIdentity =
+    engine === "git" ? `git:${"a".repeat(40)}` : `sha256:${"a".repeat(64)}`;
+  const safetyIdentity =
+    engine === "git" ? `git:${"b".repeat(40)}` : `sha256:${"b".repeat(64)}`;
+  let saga = testFixture.store.create({
+    operationId,
+    evidence: {
+      restoreKind: engine,
+      restoreSurface: "direct",
+      checkpointId: "retention-original",
+      checkpointIdentity: originalIdentity,
+      ...(engine === "git" ? { checkpointNamespace: namespace } : {}),
+    },
+  });
+  saga = advance(testFixture.store, saga, "locked", {
+    workspaceLockOwner: workspaceLockOwner(testFixture, operationId),
+  });
+  saga = advance(testFixture.store, saga, "prepared", {
+    prestateDigest: `sha256:${"1".repeat(64)}`,
+    targetCount,
+  });
+  saga = advance(testFixture.store, saga, "intent_committed", {
+    intentAuthority: "operation",
+    intentCommitDigest: `sha256:${"2".repeat(64)}`,
+  });
+  if (publishSafety) {
+    saga = advance(testFixture.store, saga, "safety_ready", {
+      safetyId: "retention-safety",
+      safetyIdentity,
+      safetyPlanIdentity: `sha256:${"3".repeat(64)}`,
+      safetyCoverage: "full",
+    });
+  }
+  return { saga, originalIdentity, safetyIdentity };
+}
+
+function completeRetentionRestore(testFixture, saga) {
+  const prepared = saga.events.find((event) => event.phase === "prepared");
+  const targetCount = prepared.evidence.targetCount;
+  saga = advance(testFixture.store, saga, "mutation_started", {
+    targetCount,
+  });
+  saga = advance(testFixture.store, saga, "workspace_applied", {
+    appliedCount: targetCount,
+    poststateDigest: `sha256:${"4".repeat(64)}`,
+  });
+  return advance(testFixture.store, saga, "completed", {
+    resultDigest: `sha256:${"5".repeat(64)}`,
+  });
+}
+
+function retentionWorkspaceLease(testFixture, overrides = {}) {
+  return {
+    canonicalWorkspaceRoot: testFixture.workspaceRoot,
+    assertOwned: vi.fn(() => true),
+    ...overrides,
+  };
+}
+
+function retentionGuardRequest(testFixture, options = {}) {
+  return {
+    ...options,
+    workspaceLease:
+      options.workspaceLease || retentionWorkspaceLease(testFixture),
+  };
+}
+
 function errorCode(code) {
   return expect.objectContaining({ code });
 }
@@ -564,6 +643,424 @@ afterEach(() => {
 });
 
 describe("CheckpointRestoreSagaStore", () => {
+  describe("checkpoint retention guard", () => {
+    it.each(["git", "copy"])(
+      "protects pending %s original and safety immutable authority",
+      (engine) => {
+        const testFixture = fixture();
+        const authority = beginRetentionRestore(
+          testFixture,
+          `retention_${engine}`,
+          { engine },
+        );
+        const callback = vi.fn();
+        const request = retentionGuardRequest(testFixture, {
+          engine,
+          ...(engine === "git"
+            ? { checkpointNamespace: "retention-session" }
+            : {}),
+          candidates: [
+            { id: "retention-original", identity: authority.originalIdentity },
+            { id: "retention-safety", identity: authority.safetyIdentity },
+          ],
+        });
+
+        expect(() =>
+          testFixture.store.withCheckpointRetentionGuard(request, callback),
+        ).toThrow(
+          errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.RETENTION_PROTECTED),
+        );
+        expect(callback).not.toHaveBeenCalled();
+      },
+    );
+
+    it("excludes protected authorities while retaining a synchronous shard snapshot", () => {
+      const testFixture = fixture();
+      const authority = beginRetentionRestore(testFixture, "retention_exclude");
+      const freeIdentity = `git:${"c".repeat(40)}`;
+      const workspaceLease = retentionWorkspaceLease(testFixture);
+      const result = testFixture.store.withCheckpointRetentionGuard(
+        retentionGuardRequest(testFixture, {
+          engine: "git",
+          checkpointNamespace: "retention-session",
+          protectedPolicy: "exclude",
+          candidates: [
+            { id: "retention-original", identity: authority.originalIdentity },
+            { id: "retention-safety", identity: authority.safetyIdentity },
+            { id: "free-checkpoint", identity: freeIdentity },
+          ],
+          workspaceLease,
+        }),
+        (snapshot) => {
+          expect(snapshot).toMatchObject({
+            schema: CHECKPOINT_RESTORE_RETENTION_GUARD_SCHEMA,
+            version: CHECKPOINT_RESTORE_RETENTION_GUARD_VERSION,
+            engine: "git",
+            checkpointNamespace: "retention-session",
+            activeOperationIds: ["retention_exclude"],
+          });
+          expect(snapshot.protectedAuthorities).toEqual([
+            expect.objectContaining({
+              operationId: "retention_exclude",
+              role: "original",
+              id: "retention-original",
+              identity: authority.originalIdentity,
+            }),
+            expect.objectContaining({
+              operationId: "retention_exclude",
+              role: "safety",
+              id: "retention-safety",
+              identity: authority.safetyIdentity,
+            }),
+          ]);
+          expect(snapshot.protectedCandidates.map((entry) => entry.id)).toEqual(
+            ["retention-original", "retention-safety"],
+          );
+          return snapshot.deletableCandidates.map((entry) => entry.id);
+        },
+      );
+
+      expect(result).toEqual(["free-checkpoint"]);
+      expect(workspaceLease.assertOwned).toHaveBeenCalledTimes(4);
+    });
+
+    it("requires exact synchronous workspace lease authority through callback settlement", () => {
+      const testFixture = fixture();
+      const outside = path.join(testFixture.root, "outside-workspace");
+      fs.mkdirSync(outside);
+      const callback = vi.fn(() => true);
+      const base = {
+        engine: "git",
+        checkpointNamespace: "retention-session",
+        candidates: [],
+      };
+
+      expect(() =>
+        testFixture.store.withCheckpointRetentionGuard(
+          retentionGuardRequest(testFixture, {
+            ...base,
+            workspaceLease: retentionWorkspaceLease(testFixture, {
+              canonicalWorkspaceRoot: fs.realpathSync.native(outside),
+            }),
+          }),
+          callback,
+        ),
+      ).toThrow(
+        errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.RETENTION_UNVERIFIED),
+      );
+      expect(callback).not.toHaveBeenCalled();
+
+      expect(() =>
+        testFixture.store.withCheckpointRetentionGuard(
+          retentionGuardRequest(testFixture, {
+            ...base,
+            workspaceLease: retentionWorkspaceLease(testFixture, {
+              assertOwned: () => ({
+                get then() {
+                  throw new Error("hostile then getter");
+                },
+              }),
+            }),
+          }),
+          callback,
+        ),
+      ).toThrow(
+        errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.RETENTION_UNVERIFIED),
+      );
+      expect(callback).not.toHaveBeenCalled();
+
+      let assertions = 0;
+      const postCallbackLease = retentionWorkspaceLease(testFixture, {
+        assertOwned: vi.fn(() => {
+          assertions += 1;
+          if (assertions === 4) throw new Error("lease lost after callback");
+          return true;
+        }),
+      });
+      expect(() =>
+        testFixture.store.withCheckpointRetentionGuard(
+          retentionGuardRequest(testFixture, {
+            ...base,
+            workspaceLease: postCallbackLease,
+          }),
+          callback,
+        ),
+      ).toThrow(
+        errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.RETENTION_UNVERIFIED),
+      );
+      expect(postCallbackLease.assertOwned).toHaveBeenCalledTimes(4);
+      expect(callback).toHaveBeenCalledOnce();
+    });
+
+    it("keeps completed authority protected until exact terminal archive", () => {
+      const testFixture = fixture();
+      const authority = beginRetentionRestore(
+        testFixture,
+        "retention_completed",
+      );
+      const completed = completeRetentionRestore(testFixture, authority.saga);
+      const request = retentionGuardRequest(testFixture, {
+        engine: "git",
+        checkpointNamespace: "retention-session",
+        candidates: [
+          { id: "retention-safety", identity: authority.safetyIdentity },
+        ],
+      });
+
+      expect(() =>
+        testFixture.store.withCheckpointRetentionGuard(request, () => true),
+      ).toThrow(
+        errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.RETENTION_PROTECTED),
+      );
+
+      testFixture.store.archiveTerminal(completed.operationId, {
+        expectedSeq: completed.seq,
+        expectedHash: completed.headHash,
+      });
+      expect(
+        testFixture.store.withCheckpointRetentionGuard(
+          request,
+          () => "deletable",
+        ),
+      ).toBe("deletable");
+    });
+
+    it("releases authority after an explicit clean abort", () => {
+      const testFixture = fixture();
+      const authority = beginRetentionRestore(testFixture, "retention_aborted");
+      advance(testFixture.store, authority.saga, "aborted", {
+        reason: "explicitly aborted before mutation",
+      });
+
+      expect(
+        testFixture.store.withCheckpointRetentionGuard(
+          retentionGuardRequest(testFixture, {
+            engine: "git",
+            checkpointNamespace: "retention-session",
+            candidates: [
+              {
+                id: "retention-original",
+                identity: authority.originalIdentity,
+              },
+              { id: "retention-safety", identity: authority.safetyIdentity },
+            ],
+          }),
+          (snapshot) => snapshot.deletableCandidates.length,
+        ),
+      ).toBe(2);
+    });
+
+    it("matches Git retention within the exact checkpoint namespace", () => {
+      const testFixture = fixture();
+      const authority = beginRetentionRestore(
+        testFixture,
+        "retention_namespace",
+        { namespace: "other-session" },
+      );
+
+      expect(
+        testFixture.store.withCheckpointRetentionGuard(
+          retentionGuardRequest(testFixture, {
+            engine: "git",
+            checkpointNamespace: "retention-session",
+            candidates: [
+              {
+                id: "retention-original",
+                identity: authority.originalIdentity,
+              },
+            ],
+          }),
+          (snapshot) => snapshot.protectedCandidates.length,
+        ),
+      ).toBe(0);
+    });
+
+    it("fails closed when a retained id has another immutable identity", () => {
+      const testFixture = fixture();
+      beginRetentionRestore(testFixture, "retention_identity");
+      const callback = vi.fn();
+
+      expect(() =>
+        testFixture.store.withCheckpointRetentionGuard(
+          retentionGuardRequest(testFixture, {
+            engine: "git",
+            checkpointNamespace: "retention-session",
+            candidates: [
+              {
+                id: "retention-original",
+                identity: `git:${"f".repeat(40)}`,
+              },
+            ],
+          }),
+          callback,
+        ),
+      ).toThrow(
+        errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.RETENTION_UNVERIFIED),
+      );
+      expect(callback).not.toHaveBeenCalled();
+    });
+
+    it("fails closed on corrupt active authority before invoking cleanup", () => {
+      const testFixture = fixture();
+      const authority = beginRetentionRestore(
+        testFixture,
+        "retention_corrupt_active",
+      );
+      fs.rmSync(
+        path.join(
+          operationDirectory(testFixture, authority.saga.operationId),
+          eventFiles(testFixture, authority.saga.operationId)[0],
+        ),
+      );
+      const callback = vi.fn();
+
+      expect(() =>
+        testFixture.store.withCheckpointRetentionGuard(
+          retentionGuardRequest(testFixture, {
+            engine: "git",
+            checkpointNamespace: "retention-session",
+            candidates: [],
+          }),
+          callback,
+        ),
+      ).toThrow(errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.CORRUPT));
+      expect(callback).not.toHaveBeenCalled();
+    });
+
+    it("fails closed on an active operation's unresolved purge receipt temporary", () => {
+      const testFixture = fixture();
+      beginRetentionRestore(testFixture, "retention_receipt_temp");
+      const temporary = path.join(
+        testFixture.store.purgeReceiptRoot,
+        `.retention_receipt_temp.${process.pid}.${VALID_UUID}.tmp`,
+      );
+      fs.writeFileSync(temporary, "pending receipt\n", { mode: 0o600 });
+      if (process.platform !== "win32") fs.chmodSync(temporary, 0o600);
+      const callback = vi.fn();
+
+      expect(() =>
+        testFixture.store.withCheckpointRetentionGuard(
+          retentionGuardRequest(testFixture, {
+            engine: "git",
+            checkpointNamespace: "retention-session",
+            candidates: [],
+          }),
+          callback,
+        ),
+      ).toThrow(errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.CORRUPT));
+      expect(callback).not.toHaveBeenCalled();
+    });
+
+    it("rejects an over-bound active set before replaying candidates", () => {
+      const testFixture = fixture({ maxSagas: 1 });
+      testFixture.store.create({ operationId: "retention_bound_one" });
+      const second = path.join(testFixture.stateDir, "retention_bound_two");
+      fs.mkdirSync(second, { mode: 0o700 });
+      if (process.platform !== "win32") fs.chmodSync(second, 0o700);
+      const callback = vi.fn();
+
+      expect(() =>
+        testFixture.store.withCheckpointRetentionGuard(
+          retentionGuardRequest(testFixture, {
+            engine: "git",
+            checkpointNamespace: "retention-session",
+            candidates: [],
+          }),
+          callback,
+        ),
+      ).toThrow(errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.LIMIT));
+      expect(callback).not.toHaveBeenCalled();
+    });
+
+    it("ignores unrelated archived corruption but rejects duplicate active retention", () => {
+      const testFixture = fixture();
+      const archivedAuthority = beginRetentionRestore(
+        testFixture,
+        "retention_old_archive",
+      );
+      const completed = completeRetentionRestore(
+        testFixture,
+        archivedAuthority.saga,
+      );
+      testFixture.store.archiveTerminal(completed.operationId, {
+        expectedSeq: completed.seq,
+        expectedHash: completed.headHash,
+      });
+      const archivedDir = path.join(
+        testFixture.store.archiveRoot,
+        completed.operationId,
+      );
+      const archivedEvent = fs
+        .readdirSync(archivedDir)
+        .find((name) => name.endsWith(".json"));
+      fs.writeFileSync(path.join(archivedDir, archivedEvent), "{}\n");
+      const oldReceiptTemporary = path.join(
+        testFixture.store.purgeReceiptRoot,
+        `.unrelated_old_receipt.${process.pid}.${VALID_UUID}.tmp`,
+      );
+      fs.writeFileSync(oldReceiptTemporary, "old pending receipt\n", {
+        mode: 0o600,
+      });
+      if (process.platform !== "win32")
+        fs.chmodSync(oldReceiptTemporary, 0o600);
+
+      expect(
+        testFixture.store.withCheckpointRetentionGuard(
+          retentionGuardRequest(testFixture, {
+            engine: "git",
+            checkpointNamespace: "retention-session",
+            candidates: [],
+          }),
+          () => "unrelated-archive-ignored",
+        ),
+      ).toBe("unrelated-archive-ignored");
+
+      const active = beginRetentionRestore(testFixture, "retention_duplicate");
+      fs.cpSync(
+        operationDirectory(testFixture, active.saga.operationId),
+        path.join(testFixture.store.archiveRoot, active.saga.operationId),
+        { recursive: true },
+      );
+      const callback = vi.fn();
+      expect(() =>
+        testFixture.store.withCheckpointRetentionGuard(
+          retentionGuardRequest(testFixture, {
+            engine: "git",
+            checkpointNamespace: "retention-session",
+            candidates: [],
+          }),
+          callback,
+        ),
+      ).toThrow(errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.CORRUPT));
+      expect(callback).not.toHaveBeenCalled();
+    });
+
+    it("rejects async and thenable cleanup callbacks", () => {
+      const testFixture = fixture();
+      const request = retentionGuardRequest(testFixture, {
+        engine: "git",
+        checkpointNamespace: "retention-session",
+        candidates: [],
+      });
+
+      expect(() =>
+        testFixture.store.withCheckpointRetentionGuard(
+          request,
+          async () => true,
+        ),
+      ).toThrow(
+        errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.RETENTION_UNVERIFIED),
+      );
+      expect(() =>
+        testFixture.store.withCheckpointRetentionGuard(request, () => ({
+          then() {},
+        })),
+      ).toThrow(
+        errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.RETENTION_UNVERIFIED),
+      );
+    });
+  });
+
   it("persists the strict restore chain as immutable hash-linked events", () => {
     const testFixture = fixture({ now: () => 1_700_000_000_000 });
     const operationId = "restore_normal_1";

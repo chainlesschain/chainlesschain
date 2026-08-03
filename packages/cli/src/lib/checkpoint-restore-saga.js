@@ -71,7 +71,14 @@ export const CHECKPOINT_RESTORE_SAGA_ERROR_CODES = Object.freeze({
   LOCK_FAILED: "CHECKPOINT_RESTORE_SAGA_LOCK_FAILED",
   WRITE_FAILED: "CHECKPOINT_RESTORE_SAGA_WRITE_FAILED",
   WORKSPACE_MISMATCH: "CHECKPOINT_RESTORE_SAGA_WORKSPACE_MISMATCH",
+  RETENTION_PROTECTED: "CHECKPOINT_RESTORE_SAGA_RETENTION_PROTECTED",
+  RETENTION_UNVERIFIED: "CHECKPOINT_RESTORE_SAGA_RETENTION_UNVERIFIED",
 });
+
+export const CHECKPOINT_RESTORE_RETENTION_GUARD_SCHEMA =
+  "chainlesschain.checkpoint-restore-retention-guard";
+export const CHECKPOINT_RESTORE_RETENTION_GUARD_VERSION = 1;
+export const MAX_CHECKPOINT_RESTORE_RETENTION_CANDIDATES = 10_000;
 
 export const CHECKPOINT_RESTORE_SAGA_PHASES = Object.freeze([
   "created",
@@ -116,6 +123,10 @@ const LEGACY_PHASE_SET = new Set(
   ),
 );
 const HASH_PATTERN = /^sha256:[a-f0-9]{64}$/;
+const GIT_CHECKPOINT_IDENTITY_PATTERN = /^git:(?:[a-f0-9]{40}|[a-f0-9]{64})$/;
+const COPY_CHECKPOINT_IDENTITY_PATTERN = /^sha256:[a-f0-9]{64}$/;
+const GIT_CHECKPOINT_NAMESPACE_PATTERN =
+  /^(?!\.)(?!.*\.\.)(?!.*\.lock$)(?!.*\.$)[A-Za-z0-9._-]{1,256}$/i;
 const OPERATION_ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,127}$/;
 const WORKSPACE_SHARD_PATTERN = /^workspace-[a-f0-9]{64}$/;
 const EVENT_FILE_PATTERN = /^(\d{6})-([a-z_]+)\.json$/;
@@ -588,6 +599,164 @@ function hasExactKeys(value, keys) {
   return (
     actual.length === expected.length &&
     actual.every((key, index) => key === expected[index])
+  );
+}
+
+function retentionGuardError(code, message, details = {}, cause = null) {
+  return sagaError(code, message, cause, details);
+}
+
+function checkpointIdentityPattern(engine) {
+  return engine === "git"
+    ? GIT_CHECKPOINT_IDENTITY_PATTERN
+    : COPY_CHECKPOINT_IDENTITY_PATTERN;
+}
+
+function normalizeRetentionWorkspaceLease(value) {
+  let canonicalWorkspaceRoot;
+  let assertOwned;
+  try {
+    canonicalWorkspaceRoot = value?.canonicalWorkspaceRoot;
+    assertOwned = value?.assertOwned;
+    if (
+      !value ||
+      (typeof value !== "object" && typeof value !== "function") ||
+      typeof canonicalWorkspaceRoot !== "string" ||
+      !pathDefault.isAbsolute(canonicalWorkspaceRoot) ||
+      canonicalWorkspaceRoot.length > 4096 ||
+      canonicalWorkspaceRoot.includes("\0") ||
+      hasControlCharacters(canonicalWorkspaceRoot) ||
+      typeof assertOwned !== "function" ||
+      Object.prototype.toString.call(assertOwned) === "[object AsyncFunction]"
+    ) {
+      throw new Error("invalid workspace lease");
+    }
+  } catch (cause) {
+    throw retentionGuardError(
+      CHECKPOINT_RESTORE_SAGA_ERROR_CODES.RETENTION_UNVERIFIED,
+      "Checkpoint retention guard requires a synchronous workspace lease",
+      {},
+      cause,
+    );
+  }
+  return Object.freeze({ value, canonicalWorkspaceRoot, assertOwned });
+}
+
+function normalizeRetentionGuardRequest(options, callback) {
+  if (
+    !options ||
+    typeof options !== "object" ||
+    Array.isArray(options) ||
+    !["git", "copy"].includes(options.engine) ||
+    !Array.isArray(options.candidates) ||
+    options.candidates.length > MAX_CHECKPOINT_RESTORE_RETENTION_CANDIDATES ||
+    !["reject", "exclude"].includes(options.protectedPolicy ?? "reject") ||
+    typeof callback !== "function"
+  ) {
+    throw retentionGuardError(
+      CHECKPOINT_RESTORE_SAGA_ERROR_CODES.RETENTION_UNVERIFIED,
+      "Checkpoint retention guard requires a bounded synchronous request",
+    );
+  }
+  try {
+    if (Object.prototype.toString.call(callback) === "[object AsyncFunction]") {
+      throw new Error("async callback");
+    }
+  } catch (cause) {
+    throw retentionGuardError(
+      CHECKPOINT_RESTORE_SAGA_ERROR_CODES.RETENTION_UNVERIFIED,
+      "Checkpoint retention guard callback must be synchronously inspectable",
+      {},
+      cause,
+    );
+  }
+
+  const checkpointNamespace = options.checkpointNamespace ?? null;
+  if (
+    (options.engine === "git" &&
+      (typeof checkpointNamespace !== "string" ||
+        !GIT_CHECKPOINT_NAMESPACE_PATTERN.test(checkpointNamespace))) ||
+    (options.engine === "copy" && checkpointNamespace !== null)
+  ) {
+    throw retentionGuardError(
+      CHECKPOINT_RESTORE_SAGA_ERROR_CODES.RETENTION_UNVERIFIED,
+      "Checkpoint retention guard namespace is not canonical for its engine",
+    );
+  }
+
+  const identityPattern = checkpointIdentityPattern(options.engine);
+  const ids = new Set();
+  const candidates = options.candidates.map((candidate) => {
+    if (
+      !hasExactKeys(candidate, ["id", "identity"]) ||
+      typeof candidate.id !== "string" ||
+      candidate.id.length < 1 ||
+      candidate.id.length > 256 ||
+      candidate.id !== candidate.id.trim() ||
+      hasControlCharacters(candidate.id) ||
+      typeof candidate.identity !== "string" ||
+      !identityPattern.test(candidate.identity) ||
+      ids.has(candidate.id)
+    ) {
+      throw retentionGuardError(
+        CHECKPOINT_RESTORE_SAGA_ERROR_CODES.RETENTION_UNVERIFIED,
+        "Checkpoint retention candidates require unique immutable authority",
+      );
+    }
+    ids.add(candidate.id);
+    return Object.freeze({ id: candidate.id, identity: candidate.identity });
+  });
+  return Object.freeze({
+    engine: options.engine,
+    checkpointNamespace,
+    protectedPolicy: options.protectedPolicy ?? "reject",
+    candidates: Object.freeze(candidates),
+    workspaceLease: normalizeRetentionWorkspaceLease(options.workspaceLease),
+    callback,
+  });
+}
+
+function assertSynchronousRetentionResult(result, label) {
+  if (
+    result === null ||
+    (typeof result !== "object" && typeof result !== "function")
+  ) {
+    return;
+  }
+  let then;
+  try {
+    then = result.then;
+  } catch (cause) {
+    throw retentionGuardError(
+      CHECKPOINT_RESTORE_SAGA_ERROR_CODES.RETENTION_UNVERIFIED,
+      `${label} result could not be inspected synchronously`,
+      {},
+      cause,
+    );
+  }
+  if (typeof then === "function") {
+    throw retentionGuardError(
+      CHECKPOINT_RESTORE_SAGA_ERROR_CODES.RETENTION_UNVERIFIED,
+      `${label} must complete synchronously`,
+    );
+  }
+}
+
+function assertRetentionWorkspaceLeaseOwned(authority) {
+  let result;
+  try {
+    result = Reflect.apply(authority.assertOwned, authority.value, []);
+  } catch (cause) {
+    throw retentionGuardError(
+      CHECKPOINT_RESTORE_SAGA_ERROR_CODES.RETENTION_UNVERIFIED,
+      "Checkpoint retention workspace lease is not owned",
+      {},
+      cause,
+    );
+  }
+  assertSynchronousRetentionResult(
+    result,
+    "Checkpoint retention workspace lease assertion",
   );
 }
 
@@ -4237,6 +4406,308 @@ export class CheckpointRestoreSagaStore {
           expectedHash,
         });
       }),
+    );
+  }
+
+  /**
+   * Hold the workspace shard's retention authority while a trusted caller
+   * deletes checkpoint refs/files. The caller must additionally hold the
+   * canonical workspace lifetime lock for the entire call; that outer lock is
+   * what prevents a restore from publishing new safety evidence while this
+   * shard-local snapshot is used by the synchronous callback.
+   *
+   * Active operations protect both their created source checkpoint and their
+   * latest durable safety checkpoint. A clean explicit abort releases both.
+   * Completed/rolled-back operations remain protected until archiveTerminal()
+   * atomically moves them out of the active namespace.
+   */
+  withCheckpointRetentionGuard(options = {}, callback) {
+    const request = normalizeRetentionGuardRequest(options, callback);
+    let leaseWorkspaceRoot;
+    try {
+      leaseWorkspaceRoot = this._canonicalExistingDirectory(
+        request.workspaceLease.canonicalWorkspaceRoot,
+        "workspace root",
+        { rejectRoot: true },
+      );
+    } catch (cause) {
+      throw retentionGuardError(
+        CHECKPOINT_RESTORE_SAGA_ERROR_CODES.RETENTION_UNVERIFIED,
+        "Checkpoint retention workspace lease root is not canonical",
+        {
+          actualWorkspaceRoot: request.workspaceLease.canonicalWorkspaceRoot,
+        },
+        cause,
+      );
+    }
+    if (
+      !samePath(
+        leaseWorkspaceRoot,
+        this.workspaceRoot,
+        this._platform,
+        this._path,
+      )
+    ) {
+      throw retentionGuardError(
+        CHECKPOINT_RESTORE_SAGA_ERROR_CODES.RETENTION_UNVERIFIED,
+        "Checkpoint retention workspace lease does not match the saga shard",
+        {
+          expectedWorkspaceRoot: this.workspaceRoot,
+          actualWorkspaceRoot: leaseWorkspaceRoot,
+        },
+      );
+    }
+    assertRetentionWorkspaceLeaseOwned(request.workspaceLease);
+    return this._withShardMaintenanceLock(
+      () => {
+        assertRetentionWorkspaceLeaseOwned(request.workspaceLease);
+        const operationIds = this._scanOperationNames(this.stateRoot, [
+          ".locks",
+          ".archive",
+          ".purge",
+          ".purged",
+        ]);
+        if (operationIds.length > this._maxSagas) {
+          throw sagaError(
+            CHECKPOINT_RESTORE_SAGA_ERROR_CODES.LIMIT,
+            "Active checkpoint restore count exceeds its retention bound",
+            null,
+            {
+              activeCount: operationIds.length,
+              maximum: this._maxSagas,
+              budgetExceeded: true,
+            },
+          );
+        }
+        const purgeReceiptScan = this._scanPurgeReceipts();
+        const purgeReceiptTemporaryOperationIds = new Set(
+          purgeReceiptScan.temporaryFiles.map(
+            (temporary) => temporary.operationId,
+          ),
+        );
+        const readBudget = {
+          deadline:
+            this._wallClock() + MAX_CHECKPOINT_RESTORE_SAGA_LIST_TIME_MS,
+          remainingBytes: MAX_CHECKPOINT_RESTORE_SAGA_LIST_BYTES,
+          remainingEvents: MAX_CHECKPOINT_RESTORE_SAGA_LIST_EVENTS,
+        };
+        const protectedAuthorities = [];
+
+        for (const operationId of operationIds) {
+          const remainingMs = readBudget.deadline - this._wallClock();
+          if (remainingMs <= 0) {
+            throw retentionGuardError(
+              CHECKPOINT_RESTORE_SAGA_ERROR_CODES.RETENTION_UNVERIFIED,
+              "Checkpoint retention verification exceeded its time budget",
+              { budgetExceeded: true },
+            );
+          }
+          const saga = this._withOperationLock(
+            operationId,
+            () => {
+              const authority = this._assertOperationDirectory(operationId);
+              const archived = this._assertRetainedOperationDirectory(
+                this.archiveRoot,
+                operationId,
+                "Saga archive",
+                { mustExist: false },
+              );
+              const purging = this._assertRetainedOperationDirectory(
+                this.purgeRoot,
+                operationId,
+                "Saga purge",
+                { mustExist: false },
+              );
+              const purgeReceipt = this._readPurgeReceipt(operationId, {
+                mustExist: false,
+                readBudget,
+              });
+              if (
+                archived ||
+                purging ||
+                purgeReceipt ||
+                purgeReceiptTemporaryOperationIds.has(operationId)
+              ) {
+                throw sagaError(
+                  CHECKPOINT_RESTORE_SAGA_ERROR_CODES.CORRUPT,
+                  "Active checkpoint restore also exists in retained state",
+                  null,
+                  { operationId },
+                );
+              }
+              const observed = this._readOperationFromAuthority(
+                operationId,
+                authority,
+                { readBudget },
+              );
+              if (observed.orphanTemporaryFiles.length > 0) {
+                throw sagaError(
+                  CHECKPOINT_RESTORE_SAGA_ERROR_CODES.CORRUPT,
+                  "Active checkpoint restore has unresolved temporary authority",
+                  null,
+                  {
+                    operationId,
+                    orphanTemporaryFiles: observed.orphanTemporaryFiles,
+                  },
+                );
+              }
+              return observed;
+            },
+            { timeoutMs: Math.min(25, remainingMs) },
+          );
+
+          if (saga.phase === "aborted") continue;
+          const created = saga.events[0]?.evidence;
+          if (!created || created.restoreKind !== request.engine) continue;
+          if (
+            request.engine === "git" &&
+            created.checkpointNamespace !== request.checkpointNamespace
+          ) {
+            continue;
+          }
+
+          const identityPattern = checkpointIdentityPattern(request.engine);
+          if (
+            typeof created.checkpointId !== "string" ||
+            created.checkpointId.length < 1 ||
+            created.checkpointId.length > 256 ||
+            !identityPattern.test(String(created.checkpointIdentity || ""))
+          ) {
+            throw retentionGuardError(
+              CHECKPOINT_RESTORE_SAGA_ERROR_CODES.RETENTION_UNVERIFIED,
+              "Active restore source checkpoint authority is not immutable",
+              { operationId },
+            );
+          }
+          protectedAuthorities.push(
+            Object.freeze({
+              operationId,
+              role: "original",
+              id: created.checkpointId,
+              identity: created.checkpointIdentity,
+              phase: saga.phase,
+            }),
+          );
+
+          const safety = [...saga.events]
+            .reverse()
+            .find((event) => event.phase === "safety_ready");
+          if (!safety) continue;
+          if (
+            typeof safety.evidence.safetyId !== "string" ||
+            safety.evidence.safetyId.length < 1 ||
+            safety.evidence.safetyId.length > 256 ||
+            !identityPattern.test(String(safety.evidence.safetyIdentity || ""))
+          ) {
+            throw retentionGuardError(
+              CHECKPOINT_RESTORE_SAGA_ERROR_CODES.RETENTION_UNVERIFIED,
+              "Active restore safety checkpoint authority is not immutable",
+              { operationId },
+            );
+          }
+          protectedAuthorities.push(
+            Object.freeze({
+              operationId,
+              role: "safety",
+              id: safety.evidence.safetyId,
+              identity: safety.evidence.safetyIdentity,
+              phase: saga.phase,
+            }),
+          );
+        }
+
+        const authoritiesById = new Map();
+        for (const authority of protectedAuthorities) {
+          const matches = authoritiesById.get(authority.id) || [];
+          matches.push(authority);
+          authoritiesById.set(authority.id, matches);
+        }
+        const protectedCandidates = [];
+        const deletableCandidates = [];
+        for (const candidate of request.candidates) {
+          const authorities = authoritiesById.get(candidate.id) || [];
+          if (
+            authorities.some(
+              (authority) => authority.identity !== candidate.identity,
+            )
+          ) {
+            throw retentionGuardError(
+              CHECKPOINT_RESTORE_SAGA_ERROR_CODES.RETENTION_UNVERIFIED,
+              "Checkpoint id matches retained authority with another immutable identity",
+              {
+                checkpointId: candidate.id,
+                expectedIdentities: Object.freeze(
+                  authorities.map((authority) => authority.identity),
+                ),
+                actualIdentity: candidate.identity,
+              },
+            );
+          }
+          if (authorities.length > 0) protectedCandidates.push(candidate);
+          else deletableCandidates.push(candidate);
+        }
+
+        const snapshot = Object.freeze({
+          schema: CHECKPOINT_RESTORE_RETENTION_GUARD_SCHEMA,
+          version: CHECKPOINT_RESTORE_RETENTION_GUARD_VERSION,
+          engine: request.engine,
+          workspaceRoot: this.workspaceRoot,
+          workspaceIdentity: this.workspaceIdentity,
+          checkpointNamespace: request.checkpointNamespace,
+          activeOperationIds: Object.freeze([...operationIds]),
+          protectedAuthorities: Object.freeze(protectedAuthorities),
+          protectedCandidates: Object.freeze(protectedCandidates),
+          deletableCandidates: Object.freeze(deletableCandidates),
+        });
+        if (
+          request.protectedPolicy === "reject" &&
+          protectedCandidates.length > 0
+        ) {
+          throw retentionGuardError(
+            CHECKPOINT_RESTORE_SAGA_ERROR_CODES.RETENTION_PROTECTED,
+            "Checkpoint is retained by an active restore operation",
+            {
+              protectedCheckpointIds: Object.freeze(
+                protectedCandidates.map((candidate) => candidate.id),
+              ),
+              operationIds: Object.freeze([
+                ...new Set(
+                  protectedCandidates.flatMap((candidate) =>
+                    (authoritiesById.get(candidate.id) || []).map(
+                      (authority) => authority.operationId,
+                    ),
+                  ),
+                ),
+              ]),
+            },
+          );
+        }
+
+        assertRetentionWorkspaceLeaseOwned(request.workspaceLease);
+        let result;
+        let callbackFailure = null;
+        try {
+          result = request.callback(snapshot);
+          assertSynchronousRetentionResult(
+            result,
+            "Checkpoint retention callback",
+          );
+        } catch (cause) {
+          callbackFailure = cause;
+        }
+        assertRetentionWorkspaceLeaseOwned(request.workspaceLease);
+        if (callbackFailure) {
+          if (isSagaError(callbackFailure)) throw callbackFailure;
+          throw retentionGuardError(
+            CHECKPOINT_RESTORE_SAGA_ERROR_CODES.RETENTION_UNVERIFIED,
+            "Checkpoint retention callback did not settle synchronously",
+            {},
+            callbackFailure,
+          );
+        }
+        return result;
+      },
+      { timeoutMs: MAX_CHECKPOINT_RESTORE_SAGA_LIST_TIME_MS },
     );
   }
 
