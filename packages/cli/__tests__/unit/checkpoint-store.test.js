@@ -17,6 +17,11 @@ import {
   listCheckpoints,
   resolveCheckpoint,
   rewindTo,
+  prepareCheckpointRollback,
+  executeCheckpointRollback,
+  CHECKPOINT_ROLLBACK_PLAN_SCHEMA,
+  CHECKPOINT_ROLLBACK_RESULT_SCHEMA,
+  CHECKPOINT_ROLLBACK_ERROR_CODES,
   diffCheckpoint,
   statusAgainst,
   showCheckpoint,
@@ -880,6 +885,449 @@ describe("checkpoint-store (git engine)", () => {
       expect(readFileSync(join(repo, "a.txt"), "utf8")).toBe("two\n");
     });
   });
+});
+
+describe("checkpoint-store crash rollback adapter", () => {
+  let repo;
+  const session = "rollback-adapter";
+  const rollbackTest = (name, test) => it(name, test, 60_000);
+
+  beforeEach(() => {
+    repo = mkdtempSync(join(tmpdir(), "cc-cprollback-"));
+    git(repo, "init", "-q");
+    git(repo, "config", "user.email", "t@test.local");
+    git(repo, "config", "user.name", "tester");
+    git(repo, "config", "core.autocrlf", "false");
+    writeFileSync(join(repo, "a.txt"), "base-a\n", "utf8");
+    writeFileSync(join(repo, "b.txt"), "base-b\n", "utf8");
+    git(repo, "add", "-A");
+    git(repo, "commit", "-q", "-m", "init");
+  });
+
+  afterEach(() => rmSync(repo, { recursive: true, force: true }));
+
+  function makeAuthorities() {
+    writeFileSync(join(repo, "a.txt"), "target-a\n", "utf8");
+    writeFileSync(join(repo, "target-added.txt"), "target-added\n", "utf8");
+    rmSync(join(repo, "b.txt"));
+    const original = createCheckpoint(repo, {
+      session,
+      label: "original-target",
+    });
+
+    writeFileSync(join(repo, "a.txt"), "safety-a\n", "utf8");
+    rmSync(join(repo, "target-added.txt"));
+    writeFileSync(join(repo, "b.txt"), "safety-b\n", "utf8");
+    const safety = createCheckpoint(repo, { session, label: "safety" });
+    const preview = statusAgainst(repo, original.id, {
+      session,
+      expectedIdentity: `git:${original.commit}`,
+    });
+    return {
+      original,
+      safety,
+      originalMutationTargetCount:
+        preview.modified.length + preview.added.length + preview.deleted.length,
+      expectedSafetyPlanIdentity: preview.workspaceBinding.writePlanIdentity,
+    };
+  }
+
+  function rollbackOptions(authority) {
+    return {
+      session,
+      expectedOriginalIdentity: `git:${authority.original.commit}`,
+      expectedSafetyIdentity: `git:${authority.safety.commit}`,
+      expectedSafetyPlanIdentity: authority.expectedSafetyPlanIdentity,
+      originalMutationTargetCount: authority.originalMutationTargetCount,
+    };
+  }
+
+  function applyOriginalResidue(
+    paths = ["a.txt", "b.txt", "target-added.txt"],
+  ) {
+    if (paths.includes("a.txt")) {
+      writeFileSync(join(repo, "a.txt"), "target-a\n", "utf8");
+    }
+    if (paths.includes("b.txt")) rmSync(join(repo, "b.txt"));
+    if (paths.includes("target-added.txt")) {
+      writeFileSync(join(repo, "target-added.txt"), "target-added\n", "utf8");
+    }
+  }
+
+  function expectExactSafety(authority) {
+    const status = statusAgainst(repo, authority.safety.id, {
+      session,
+      expectedIdentity: `git:${authority.safety.commit}`,
+    });
+    expect({
+      modified: status.modified,
+      added: status.added,
+      deleted: status.deleted,
+    }).toEqual({ modified: [], added: [], deleted: [] });
+  }
+
+  rollbackTest(
+    "proves and executes an exact modified/added/deleted rollback",
+    () => {
+      const authority = makeAuthorities();
+      applyOriginalResidue();
+      const plan = prepareCheckpointRollback(
+        repo,
+        authority.original.id,
+        authority.safety.id,
+        rollbackOptions(authority),
+      );
+
+      expect(plan).toMatchObject({
+        schema: CHECKPOINT_ROLLBACK_PLAN_SCHEMA,
+        version: 1,
+        engine: "git",
+        originalMutationPaths: ["a.txt", "b.txt", "target-added.txt"],
+        currentRollbackPaths: ["a.txt", "b.txt", "target-added.txt"],
+        originalMutationTargetCount: 3,
+        targetCount: 3,
+        rollbackPlanIdentity: plan.expectedWorkspaceBinding.writePlanIdentity,
+        originalBindingVerification: "exact-checkpoint-tree-reconstruction",
+        originalPlanAuthority: {
+          sourceCheckpointId: authority.original.id,
+          sourceCheckpointIdentity: `git:${authority.original.commit}`,
+          safetyPlanIdentity: authority.expectedSafetyPlanIdentity,
+          mutationSetIdentity: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+          bindingReconstructable: true,
+        },
+      });
+      expect(plan.originalWorkspaceBinding.writePlanIdentity).toBe(
+        authority.expectedSafetyPlanIdentity,
+      );
+      expect(Object.isFrozen(plan)).toBe(true);
+      expect(Object.isFrozen(plan.currentRollbackPaths)).toBe(true);
+
+      const workspaceLease = { assertOwned: vi.fn() };
+      const result = executeCheckpointRollback(repo, plan, { workspaceLease });
+
+      expect(result).toEqual({
+        schema: CHECKPOINT_ROLLBACK_RESULT_SCHEMA,
+        version: 1,
+        engine: "git",
+        rolledBackCount: 3,
+        rollbackStateDigest: plan.expectedRollbackStateDigest,
+      });
+      expect(Object.isFrozen(result)).toBe(true);
+      expect(workspaceLease.assertOwned).toHaveBeenCalled();
+      expect(readFileSync(join(repo, "a.txt"), "utf8")).toBe("safety-a\n");
+      expect(readFileSync(join(repo, "b.txt"), "utf8")).toBe("safety-b\n");
+      expect(existsSync(join(repo, "target-added.txt"))).toBe(false);
+      expectExactSafety(authority);
+    },
+  );
+
+  rollbackTest(
+    "accepts partial exact target residue and only counts live rollback paths",
+    () => {
+      const authority = makeAuthorities();
+      applyOriginalResidue(["a.txt", "target-added.txt"]);
+      const plan = prepareCheckpointRollback(
+        repo,
+        authority.original.id,
+        authority.safety.id,
+        rollbackOptions(authority),
+      );
+      expect(plan.originalMutationTargetCount).toBe(3);
+      expect(plan.currentRollbackPaths).toEqual(["a.txt", "target-added.txt"]);
+      expect(plan.targetCount).toBe(2);
+
+      const result = executeCheckpointRollback(repo, plan, {
+        workspaceLease: { assertOwned: vi.fn() },
+      });
+      expect(result.rolledBackCount).toBe(2);
+      expectExactSafety(authority);
+    },
+  );
+
+  rollbackTest(
+    "verifies a zero-target rollback without invoking checkout-index",
+    () => {
+      const authority = makeAuthorities();
+      const plan = prepareCheckpointRollback(
+        repo,
+        authority.original.id,
+        authority.safety.id,
+        rollbackOptions(authority),
+      );
+      expect(plan.currentRollbackPaths).toEqual([]);
+      expect(plan.targetCount).toBe(0);
+
+      const originalSpawnSync = _deps.spawnSync;
+      const commands = [];
+      _deps.spawnSync = (command, args, options) => {
+        if (command === "git") commands.push(args[0]);
+        return originalSpawnSync(command, args, options);
+      };
+      let result;
+      try {
+        result = executeCheckpointRollback(repo, plan, {
+          workspaceLease: {
+            canonicalWorkspaceRoot: realpathSync.native(repo),
+            assertOwned: vi.fn(),
+          },
+        });
+      } finally {
+        _deps.spawnSync = originalSpawnSync;
+      }
+
+      expect(commands).not.toContain("checkout-index");
+      expect(commands).not.toContain("update-ref");
+      expect(result).toEqual({
+        schema: CHECKPOINT_ROLLBACK_RESULT_SCHEMA,
+        version: 1,
+        engine: "git",
+        rolledBackCount: 0,
+        rollbackStateDigest: plan.expectedRollbackStateDigest,
+      });
+      expectExactSafety(authority);
+    },
+  );
+
+  rollbackTest(
+    "rejects arbitrary third-party content on an original mutation path",
+    () => {
+      const authority = makeAuthorities();
+      writeFileSync(join(repo, "a.txt"), "third-party-a\n", "utf8");
+
+      expect(() =>
+        prepareCheckpointRollback(
+          repo,
+          authority.original.id,
+          authority.safety.id,
+          rollbackOptions(authority),
+        ),
+      ).toThrow(
+        expect.objectContaining({
+          code: CHECKPOINT_ROLLBACK_ERROR_CODES.UNSAFE_WORKSPACE,
+          reason: "non-target-crash-residue",
+          offendingPaths: ["a.txt"],
+        }),
+      );
+      expect(readFileSync(join(repo, "a.txt"), "utf8")).toBe("third-party-a\n");
+    },
+  );
+
+  rollbackTest(
+    "rejects paths outside the immutable original mutation set",
+    () => {
+      const authority = makeAuthorities();
+      applyOriginalResidue(["a.txt"]);
+      writeFileSync(join(repo, "unrelated.txt"), "unrelated\n", "utf8");
+
+      expect(() =>
+        prepareCheckpointRollback(
+          repo,
+          authority.original.id,
+          authority.safety.id,
+          rollbackOptions(authority),
+        ),
+      ).toThrow(
+        expect.objectContaining({
+          code: CHECKPOINT_ROLLBACK_ERROR_CODES.UNSAFE_WORKSPACE,
+          reason: "rollback-path-outside-original-mutation-set",
+          offendingPaths: ["unrelated.txt"],
+        }),
+      );
+      expect(readFileSync(join(repo, "unrelated.txt"), "utf8")).toBe(
+        "unrelated\n",
+      );
+    },
+  );
+
+  rollbackTest(
+    "rejects stale identities, safety plans, counts, and missing safety refs",
+    () => {
+      const authority = makeAuthorities();
+      applyOriginalResidue(["a.txt"]);
+      const options = rollbackOptions(authority);
+      const wrongIdentity = `git:${"1".repeat(40)}`;
+      const wrongDigest = `sha256:${"2".repeat(64)}`;
+
+      for (const override of [
+        { expectedOriginalIdentity: wrongIdentity },
+        { expectedSafetyIdentity: wrongIdentity },
+        { expectedSafetyPlanIdentity: wrongDigest },
+        {
+          originalMutationTargetCount:
+            authority.originalMutationTargetCount + 1,
+        },
+      ]) {
+        expect(() =>
+          prepareCheckpointRollback(
+            repo,
+            authority.original.id,
+            authority.safety.id,
+            { ...options, ...override },
+          ),
+        ).toThrow(
+          expect.objectContaining({
+            code: CHECKPOINT_ROLLBACK_ERROR_CODES.AUTHORITY_STALE,
+          }),
+        );
+      }
+
+      deleteCheckpoint(repo, authority.safety.id, { session });
+      expect(() =>
+        prepareCheckpointRollback(
+          repo,
+          authority.original.id,
+          authority.safety.id,
+          options,
+        ),
+      ).toThrow(
+        expect.objectContaining({
+          code: CHECKPOINT_ROLLBACK_ERROR_CODES.AUTHORITY_STALE,
+          reason: "safety-checkpoint-authority-stale",
+        }),
+      );
+    },
+  );
+
+  rollbackTest(
+    "revalidates the whole plan and workspace under the lease before writing",
+    () => {
+      const authority = makeAuthorities();
+      applyOriginalResidue(["a.txt"]);
+      const plan = prepareCheckpointRollback(
+        repo,
+        authority.original.id,
+        authority.safety.id,
+        rollbackOptions(authority),
+      );
+
+      applyOriginalResidue(["target-added.txt"]);
+      expect(() =>
+        executeCheckpointRollback(repo, plan, {
+          workspaceLease: { assertOwned: vi.fn() },
+        }),
+      ).toThrow(
+        expect.objectContaining({
+          code: CHECKPOINT_ROLLBACK_ERROR_CODES.PLAN_STALE,
+          reason: "rollback-plan-revalidation-mismatch",
+          rollbackPlanIdentity: plan.rollbackPlanIdentity,
+        }),
+      );
+      expect(readFileSync(join(repo, "a.txt"), "utf8")).toBe("target-a\n");
+      expect(readFileSync(join(repo, "target-added.txt"), "utf8")).toBe(
+        "target-added\n",
+      );
+    },
+  );
+
+  rollbackTest(
+    "rejects tampered bindings and a lease for another workspace before writing",
+    () => {
+      const authority = makeAuthorities();
+      applyOriginalResidue(["a.txt"]);
+      const plan = prepareCheckpointRollback(
+        repo,
+        authority.original.id,
+        authority.safety.id,
+        rollbackOptions(authority),
+      );
+      const tampered = {
+        ...plan,
+        expectedWorkspaceBinding: {
+          ...plan.expectedWorkspaceBinding,
+          prestateIdentity: `git-tree:${"1".repeat(40)}`,
+        },
+      };
+
+      expect(() =>
+        executeCheckpointRollback(repo, tampered, {
+          workspaceLease: { assertOwned: vi.fn() },
+        }),
+      ).toThrow(
+        expect.objectContaining({
+          code: CHECKPOINT_ROLLBACK_ERROR_CODES.INVALID_ARGUMENT,
+          reason: "invalid-rollback-prestate-digest",
+        }),
+      );
+      expect(() =>
+        executeCheckpointRollback(repo, plan, {
+          workspaceLease: {
+            canonicalWorkspaceRoot: tmpdir(),
+            assertOwned: vi.fn(),
+          },
+        }),
+      ).toThrow(
+        expect.objectContaining({
+          code: CHECKPOINT_ROLLBACK_ERROR_CODES.INVALID_ARGUMENT,
+          reason: "workspace-lease-root-mismatch",
+        }),
+      );
+      const unreadableThenable = {};
+      Object.defineProperty(unreadableThenable, "then", {
+        get() {
+          throw new Error("unreadable then");
+        },
+      });
+      expect(() =>
+        executeCheckpointRollback(repo, plan, {
+          workspaceLease: {
+            assertOwned: () => unreadableThenable,
+          },
+        }),
+      ).toThrow(
+        expect.objectContaining({
+          code: CHECKPOINT_ROLLBACK_ERROR_CODES.INVALID_ARGUMENT,
+          reason: "unreadable-workspace-lease-thenable",
+        }),
+      );
+      expect(readFileSync(join(repo, "a.txt"), "utf8")).toBe("target-a\n");
+    },
+  );
+
+  rollbackTest(
+    "never reports success when the Git write primitive fails",
+    () => {
+      const authority = makeAuthorities();
+      applyOriginalResidue(["a.txt"]);
+      const plan = prepareCheckpointRollback(
+        repo,
+        authority.original.id,
+        authority.safety.id,
+        rollbackOptions(authority),
+      );
+      const originalSpawnSync = _deps.spawnSync;
+      _deps.spawnSync = (command, args, options) => {
+        if (command === "git" && args?.[0] === "checkout-index") {
+          return {
+            status: 1,
+            stdout: "",
+            stderr: "forced checkout-index failure",
+          };
+        }
+        return originalSpawnSync(command, args, options);
+      };
+
+      let thrown;
+      try {
+        executeCheckpointRollback(repo, plan, {
+          workspaceLease: { assertOwned: vi.fn() },
+        });
+      } catch (error) {
+        thrown = error;
+      } finally {
+        _deps.spawnSync = originalSpawnSync;
+      }
+
+      expect(thrown).toMatchObject({
+        message: "forced checkout-index failure",
+        checkpointRollbackPhase: "workspace-mutation",
+        rollbackPlanIdentity: plan.rollbackPlanIdentity,
+        rollbackPrestateDigest: plan.rollbackPrestateDigest,
+        expectedRollbackStateDigest: plan.expectedRollbackStateDigest,
+        rollbackTargetCount: 1,
+      });
+      expect(readFileSync(join(repo, "a.txt"), "utf8")).toBe("target-a\n");
+    },
+  );
 });
 
 describe("sanitizeSession — ref-format hardening", () => {

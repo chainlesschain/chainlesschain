@@ -23,6 +23,7 @@ import { realpathSync, rmSync } from "node:fs";
 import path from "node:path";
 import executionBroker from "./process-execution-broker/index.js";
 import { credentialAgent } from "./process-execution-broker/credential-agent.js";
+import { computeCheckpointRestoreDigest } from "./checkpoint-restore-orchestrator.js";
 
 export const _deps = {
   spawnSync: (...args) => executionBroker.spawnSync(...args),
@@ -45,6 +46,61 @@ const WORKSPACE_BINDING_KEYS = Object.freeze([
   "workspaceRoot",
   "writePlanIdentity",
 ]);
+export const CHECKPOINT_ROLLBACK_PLAN_SCHEMA =
+  "chainlesschain.checkpoint-rollback-plan";
+export const CHECKPOINT_ROLLBACK_PLAN_VERSION = 1;
+export const CHECKPOINT_ROLLBACK_RESULT_SCHEMA =
+  "chainlesschain.checkpoint-rollback-result";
+export const CHECKPOINT_ROLLBACK_RESULT_VERSION = 1;
+export const CHECKPOINT_ROLLBACK_ERROR_CODES = Object.freeze({
+  INVALID_ARGUMENT: "CHECKPOINT_ROLLBACK_INVALID_ARGUMENT",
+  AUTHORITY_STALE: "CHECKPOINT_ROLLBACK_AUTHORITY_STALE",
+  UNSAFE_WORKSPACE: "CHECKPOINT_ROLLBACK_UNSAFE_WORKSPACE",
+  PLAN_STALE: "CHECKPOINT_ROLLBACK_PLAN_STALE",
+  INVALID_RESULT: "CHECKPOINT_ROLLBACK_INVALID_RESULT",
+  INCOMPLETE: "CHECKPOINT_ROLLBACK_INCOMPLETE",
+});
+const CHECKPOINT_ROLLBACK_PLAN_KEYS = Object.freeze([
+  "checkpointNamespace",
+  "currentRollbackPaths",
+  "engine",
+  "expectedRollbackStateDigest",
+  "expectedWorkspaceBinding",
+  "originalBindingVerification",
+  "originalCheckpoint",
+  "originalMutationPaths",
+  "originalMutationTargetCount",
+  "originalPlanAuthority",
+  "originalWorkspaceBinding",
+  "rollbackPlanIdentity",
+  "rollbackPrestateDigest",
+  "safetyCheckpoint",
+  "schema",
+  "targetCount",
+  "version",
+  "workspaceRoot",
+]);
+const ORIGINAL_CHECKPOINT_AUTHORITY_KEYS = Object.freeze([
+  "id",
+  "identity",
+  "treeIdentity",
+]);
+const SAFETY_CHECKPOINT_AUTHORITY_KEYS = Object.freeze([
+  "id",
+  "identity",
+  "planIdentity",
+  "treeIdentity",
+]);
+const ORIGINAL_PLAN_AUTHORITY_KEYS = Object.freeze([
+  "bindingReconstructable",
+  "mutationSetIdentity",
+  "safetyPlanIdentity",
+  "sourceCheckpointId",
+  "sourceCheckpointIdentity",
+]);
+const GIT_CHECKPOINT_IDENTITY_PATTERN = /^git:(?:[a-f0-9]{40}|[a-f0-9]{64})$/;
+const GIT_TREE_IDENTITY_PATTERN = /^git-tree:(?:[a-f0-9]{40}|[a-f0-9]{64})$/;
+const SHA256_IDENTITY_PATTERN = /^sha256:[a-f0-9]{64}$/;
 // Deterministic identity for shadow commits so `git commit-tree` never trips on
 // a missing user.name / user.email config.
 const CHECKPOINT_IDENTITY = Object.freeze({
@@ -88,7 +144,7 @@ function checkpointGitEnvironment(overrides = null) {
  * @returns {string} trimmed stdout
  * @throws {Error} with git's stderr when the command fails
  */
-function git(args, { cwd, env, input } = {}) {
+function git(args, { cwd, env, input, rawOutput = false } = {}) {
   const res = _deps.spawnSync("git", args, {
     origin: "checkpoint:git",
     scope: "checkpoint",
@@ -109,7 +165,8 @@ function git(args, { cwd, env, input } = {}) {
     const msg = (res.stderr || res.stdout || "").toString().trim();
     throw new Error(msg || `git ${args.join(" ")} failed (exit ${res.status})`);
   }
-  return (res.stdout || "").toString().trim();
+  const stdout = (res.stdout || "").toString();
+  return rawOutput ? stdout : stdout.trim();
 }
 
 /** Best-effort: is this a usable git work tree (and is git on PATH)? */
@@ -142,6 +199,48 @@ function pathIdentity(target) {
 
 function sha256Identity(value) {
   return `sha256:${createHash("sha256").update(value, "utf8").digest("hex")}`;
+}
+
+function isPlainObject(value) {
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    Object.getPrototypeOf(value) === Object.prototype
+  );
+}
+
+function hasExactKeys(value, expectedKeys) {
+  if (!isPlainObject(value)) return false;
+  const actual = Object.keys(value).sort();
+  const expected = [...expectedKeys].sort();
+  return (
+    actual.length === expected.length &&
+    actual.every((key, index) => key === expected[index])
+  );
+}
+
+function checkpointRollbackError(code, message, details = {}, cause = null) {
+  const error = new Error(message, cause ? { cause } : undefined);
+  error.code = code;
+  Object.assign(error, details);
+  return error;
+}
+
+function checkpointRollbackDigest(domain, engine, binding, stateIdentity) {
+  return computeCheckpointRestoreDigest(domain, {
+    engine,
+    scopeIdentity: binding.scopeIdentity,
+    stateIdentity,
+  });
+}
+
+function freezeWorkspaceBinding(binding) {
+  return Object.freeze({ ...binding });
+}
+
+function freezeCheckpointAuthority(authority) {
+  return Object.freeze({ ...authority });
 }
 
 function commonGitDir(root) {
@@ -480,6 +579,29 @@ function snapshotTree(root, dir) {
   } finally {
     rmQuiet(tmpIndex);
   }
+}
+
+/** Exact path set changed between two trees. Rename detection is disabled so
+ * every path that a restore may create/delete is represented independently.
+ * NUL framing preserves whitespace and newlines in valid Git path names. */
+function treeDiffPaths(root, treeA, treeB) {
+  const out = git(
+    [
+      "diff",
+      "--no-ext-diff",
+      "--no-textconv",
+      "--no-renames",
+      "--name-only",
+      "-z",
+      treeA,
+      treeB,
+      "--",
+    ],
+    { cwd: root, rawOutput: true },
+  );
+  const paths = out.split("\0").filter((entry) => entry.length > 0);
+  paths.sort();
+  return paths;
 }
 
 /**
@@ -1036,11 +1158,709 @@ export function rewindTo(cwd = process.cwd(), idOrRef, opts = {}) {
   };
 }
 
-/** name-only diff between two trees filtered by status (A/M/D…). */
+/** Strict validation for the durable authority carried by rollback plans. */
+function validCheckpointReference(value) {
+  return (
+    typeof value === "string" &&
+    value.length > 0 &&
+    value.length <= 4_096 &&
+    value === value.trim() &&
+    !value.includes("\0")
+  );
+}
+
+function validRollbackPaths(paths) {
+  if (!Array.isArray(paths)) return false;
+  let previous = null;
+  for (const entry of paths) {
+    if (
+      typeof entry !== "string" ||
+      entry.length === 0 ||
+      entry.includes("\0") ||
+      entry === "." ||
+      entry.startsWith("/") ||
+      entry.startsWith("../") ||
+      entry.includes("/../") ||
+      entry.endsWith("/..") ||
+      (previous !== null && entry <= previous)
+    ) {
+      return false;
+    }
+    previous = entry;
+  }
+  return true;
+}
+
+function validOriginalCheckpointAuthority(authority) {
+  return (
+    hasExactKeys(authority, ORIGINAL_CHECKPOINT_AUTHORITY_KEYS) &&
+    validCheckpointReference(authority.id) &&
+    GIT_CHECKPOINT_IDENTITY_PATTERN.test(authority.identity) &&
+    GIT_TREE_IDENTITY_PATTERN.test(authority.treeIdentity)
+  );
+}
+
+function validSafetyCheckpointAuthority(authority) {
+  return (
+    hasExactKeys(authority, SAFETY_CHECKPOINT_AUTHORITY_KEYS) &&
+    validCheckpointReference(authority.id) &&
+    GIT_CHECKPOINT_IDENTITY_PATTERN.test(authority.identity) &&
+    SHA256_IDENTITY_PATTERN.test(authority.planIdentity) &&
+    GIT_TREE_IDENTITY_PATTERN.test(authority.treeIdentity)
+  );
+}
+
+function originalMutationSetIdentity(paths) {
+  return computeCheckpointRestoreDigest(
+    "cc-checkpoint-restore-original-mutation-set-v1",
+    { engine: "git", paths },
+  );
+}
+
+function validOriginalPlanAuthority(authority) {
+  return (
+    hasExactKeys(authority, ORIGINAL_PLAN_AUTHORITY_KEYS) &&
+    validCheckpointReference(authority.sourceCheckpointId) &&
+    GIT_CHECKPOINT_IDENTITY_PATTERN.test(authority.sourceCheckpointIdentity) &&
+    SHA256_IDENTITY_PATTERN.test(authority.safetyPlanIdentity) &&
+    SHA256_IDENTITY_PATTERN.test(authority.mutationSetIdentity) &&
+    authority.bindingReconstructable === true
+  );
+}
+
+function rollbackPlanInstanceDigest(plan) {
+  return computeCheckpointRestoreDigest(
+    "cc-checkpoint-restore-rollback-plan-instance-v1",
+    plan,
+  );
+}
+
+function validateCheckpointRollbackPlan(plan) {
+  const invalid = (reason) => {
+    throw checkpointRollbackError(
+      CHECKPOINT_ROLLBACK_ERROR_CODES.INVALID_ARGUMENT,
+      `Invalid Git checkpoint rollback plan: ${reason}`,
+      { reason },
+    );
+  };
+
+  if (!hasExactKeys(plan, CHECKPOINT_ROLLBACK_PLAN_KEYS)) {
+    invalid("invalid-plan-shape");
+  }
+  if (
+    plan.schema !== CHECKPOINT_ROLLBACK_PLAN_SCHEMA ||
+    plan.version !== CHECKPOINT_ROLLBACK_PLAN_VERSION ||
+    plan.engine !== "git"
+  ) {
+    invalid("invalid-plan-envelope");
+  }
+  if (
+    !validCheckpointReference(plan.checkpointNamespace) ||
+    sanitizeSession(plan.checkpointNamespace) !== plan.checkpointNamespace
+  ) {
+    invalid("invalid-checkpoint-namespace");
+  }
+  if (
+    typeof plan.workspaceRoot !== "string" ||
+    !path.isAbsolute(plan.workspaceRoot)
+  ) {
+    invalid("invalid-workspace-root");
+  }
+  if (!validOriginalCheckpointAuthority(plan.originalCheckpoint)) {
+    invalid("invalid-original-checkpoint-authority");
+  }
+  if (!validSafetyCheckpointAuthority(plan.safetyCheckpoint)) {
+    invalid("invalid-safety-checkpoint-authority");
+  }
+  if (
+    plan.originalBindingVerification !== "exact-checkpoint-tree-reconstruction"
+  ) {
+    invalid("invalid-original-binding-verification");
+  }
+  if (!validOriginalPlanAuthority(plan.originalPlanAuthority)) {
+    invalid("invalid-original-plan-authority");
+  }
+  if (
+    !validRollbackPaths(plan.originalMutationPaths) ||
+    !validRollbackPaths(plan.currentRollbackPaths)
+  ) {
+    invalid("invalid-rollback-paths");
+  }
+  if (
+    !Number.isSafeInteger(plan.originalMutationTargetCount) ||
+    plan.originalMutationTargetCount < 0 ||
+    plan.originalMutationTargetCount !== plan.originalMutationPaths.length ||
+    !Number.isSafeInteger(plan.targetCount) ||
+    plan.targetCount < 0 ||
+    plan.targetCount !== plan.currentRollbackPaths.length
+  ) {
+    invalid("invalid-target-count");
+  }
+  const originalPathSet = new Set(plan.originalMutationPaths);
+  if (plan.currentRollbackPaths.some((entry) => !originalPathSet.has(entry))) {
+    invalid("rollback-path-outside-original-mutation-set");
+  }
+  if (
+    !isPlainObject(plan.originalWorkspaceBinding) ||
+    !validWorkspaceBinding(plan.originalWorkspaceBinding) ||
+    !isPlainObject(plan.expectedWorkspaceBinding) ||
+    !validWorkspaceBinding(plan.expectedWorkspaceBinding)
+  ) {
+    invalid("invalid-workspace-binding");
+  }
+  if (
+    plan.originalWorkspaceBinding.workspaceRoot !== plan.workspaceRoot ||
+    plan.expectedWorkspaceBinding.workspaceRoot !== plan.workspaceRoot ||
+    plan.originalWorkspaceBinding.scopeIdentity !==
+      plan.expectedWorkspaceBinding.scopeIdentity ||
+    plan.originalWorkspaceBinding.prestateIdentity !==
+      plan.safetyCheckpoint.treeIdentity ||
+    plan.originalWorkspaceBinding.targetPoststateIdentity !==
+      plan.originalCheckpoint.treeIdentity ||
+    plan.originalWorkspaceBinding.writePlanIdentity !==
+      plan.safetyCheckpoint.planIdentity ||
+    plan.expectedWorkspaceBinding.targetPoststateIdentity !==
+      plan.safetyCheckpoint.treeIdentity
+  ) {
+    invalid("inconsistent-workspace-binding");
+  }
+  if (
+    plan.originalPlanAuthority.sourceCheckpointId !==
+      plan.originalCheckpoint.id ||
+    plan.originalPlanAuthority.sourceCheckpointIdentity !==
+      plan.originalCheckpoint.identity ||
+    plan.originalPlanAuthority.safetyPlanIdentity !==
+      plan.safetyCheckpoint.planIdentity ||
+    plan.originalPlanAuthority.mutationSetIdentity !==
+      originalMutationSetIdentity(plan.originalMutationPaths)
+  ) {
+    invalid("inconsistent-original-plan-authority");
+  }
+  if (
+    !SHA256_IDENTITY_PATTERN.test(plan.rollbackPrestateDigest) ||
+    plan.rollbackPrestateDigest !==
+      checkpointRollbackDigest(
+        "cc-checkpoint-restore-rollback-prestate-v1",
+        "git",
+        plan.expectedWorkspaceBinding,
+        plan.expectedWorkspaceBinding.prestateIdentity,
+      )
+  ) {
+    invalid("invalid-rollback-prestate-digest");
+  }
+  if (
+    !SHA256_IDENTITY_PATTERN.test(plan.expectedRollbackStateDigest) ||
+    plan.expectedRollbackStateDigest !==
+      checkpointRollbackDigest(
+        "cc-checkpoint-restore-rollback-state-v1",
+        "git",
+        plan.expectedWorkspaceBinding,
+        plan.expectedWorkspaceBinding.targetPoststateIdentity,
+      )
+  ) {
+    invalid("invalid-rollback-state-digest");
+  }
+  if (
+    !SHA256_IDENTITY_PATTERN.test(plan.rollbackPlanIdentity) ||
+    plan.rollbackPlanIdentity !==
+      plan.expectedWorkspaceBinding.writePlanIdentity
+  ) {
+    invalid("invalid-rollback-plan-identity");
+  }
+  return plan;
+}
+
+function freezeCheckpointRollbackPlan(plan) {
+  return Object.freeze({
+    ...plan,
+    currentRollbackPaths: Object.freeze([...plan.currentRollbackPaths]),
+    expectedWorkspaceBinding: freezeWorkspaceBinding(
+      plan.expectedWorkspaceBinding,
+    ),
+    originalCheckpoint: freezeCheckpointAuthority(plan.originalCheckpoint),
+    originalMutationPaths: Object.freeze([...plan.originalMutationPaths]),
+    originalPlanAuthority: Object.freeze({ ...plan.originalPlanAuthority }),
+    originalWorkspaceBinding: freezeWorkspaceBinding(
+      plan.originalWorkspaceBinding,
+    ),
+    safetyCheckpoint: freezeCheckpointAuthority(plan.safetyCheckpoint),
+  });
+}
+
+function validateCheckpointRollbackPreparationOptions(opts) {
+  if (!isPlainObject(opts)) {
+    throw checkpointRollbackError(
+      CHECKPOINT_ROLLBACK_ERROR_CODES.INVALID_ARGUMENT,
+      "Git checkpoint rollback options must be a plain object",
+      { reason: "invalid-options" },
+    );
+  }
+  if (!GIT_CHECKPOINT_IDENTITY_PATTERN.test(opts.expectedOriginalIdentity)) {
+    throw checkpointRollbackError(
+      CHECKPOINT_ROLLBACK_ERROR_CODES.INVALID_ARGUMENT,
+      "Git checkpoint rollback requires expectedOriginalIdentity",
+      { reason: "invalid-original-identity" },
+    );
+  }
+  if (!GIT_CHECKPOINT_IDENTITY_PATTERN.test(opts.expectedSafetyIdentity)) {
+    throw checkpointRollbackError(
+      CHECKPOINT_ROLLBACK_ERROR_CODES.INVALID_ARGUMENT,
+      "Git checkpoint rollback requires expectedSafetyIdentity",
+      { reason: "invalid-safety-identity" },
+    );
+  }
+  if (!SHA256_IDENTITY_PATTERN.test(opts.expectedSafetyPlanIdentity)) {
+    throw checkpointRollbackError(
+      CHECKPOINT_ROLLBACK_ERROR_CODES.INVALID_ARGUMENT,
+      "Git checkpoint rollback requires expectedSafetyPlanIdentity",
+      { reason: "invalid-safety-plan-identity" },
+    );
+  }
+  if (
+    !Number.isSafeInteger(opts.originalMutationTargetCount) ||
+    opts.originalMutationTargetCount < 0
+  ) {
+    throw checkpointRollbackError(
+      CHECKPOINT_ROLLBACK_ERROR_CODES.INVALID_ARGUMENT,
+      "Git checkpoint rollback requires originalMutationTargetCount",
+      { reason: "invalid-original-target-count" },
+    );
+  }
+}
+
+function resolveRollbackCheckpointAuthority(
+  root,
+  idOrRef,
+  session,
+  expectedIdentity,
+  role,
+) {
+  try {
+    const commit = resolveExpectedCheckpoint(
+      root,
+      idOrRef,
+      session,
+      expectedIdentity,
+    );
+    const tree = git(["rev-parse", `${commit}^{tree}`], { cwd: root });
+    return { commit, tree };
+  } catch (cause) {
+    throw checkpointRollbackError(
+      CHECKPOINT_ROLLBACK_ERROR_CODES.AUTHORITY_STALE,
+      `Git checkpoint rollback ${role} authority is unavailable or stale`,
+      {
+        reason: `${role}-checkpoint-authority-stale`,
+        checkpointId: String(idOrRef),
+        expectedIdentity,
+      },
+      cause,
+    );
+  }
+}
+
+export function prepareCheckpointRollback(
+  cwd = process.cwd(),
+  originalIdOrRef,
+  safetyIdOrRef,
+  opts = {},
+) {
+  if (
+    !validCheckpointReference(originalIdOrRef) ||
+    !validCheckpointReference(safetyIdOrRef)
+  ) {
+    throw checkpointRollbackError(
+      CHECKPOINT_ROLLBACK_ERROR_CODES.INVALID_ARGUMENT,
+      "Git checkpoint rollback requires original and safety checkpoint ids",
+      { reason: "invalid-checkpoint-reference" },
+    );
+  }
+  validateCheckpointRollbackPreparationOptions(opts);
+
+  const root = repoRoot(cwd);
+  const dir = gitDir(root);
+  const workspaceRoot = canonicalPath(root);
+  const checkpointNamespace = sanitizeSession(opts.session);
+  const original = resolveRollbackCheckpointAuthority(
+    root,
+    originalIdOrRef,
+    checkpointNamespace,
+    opts.expectedOriginalIdentity,
+    "original",
+  );
+  const safety = resolveRollbackCheckpointAuthority(
+    root,
+    safetyIdOrRef,
+    checkpointNamespace,
+    opts.expectedSafetyIdentity,
+    "safety",
+  );
+  const originalWorkspaceBinding = buildWorkspaceBinding(root, dir, {
+    targetCommit: original.commit,
+    targetTree: original.tree,
+    currentTree: safety.tree,
+  });
+  if (
+    originalWorkspaceBinding.writePlanIdentity !==
+    opts.expectedSafetyPlanIdentity
+  ) {
+    throw checkpointRollbackError(
+      CHECKPOINT_ROLLBACK_ERROR_CODES.AUTHORITY_STALE,
+      "Git checkpoint rollback safety plan does not bind the original target and safety tree",
+      {
+        reason: "safety-plan-identity-mismatch",
+        expectedSafetyPlanIdentity: opts.expectedSafetyPlanIdentity,
+        actualSafetyPlanIdentity: originalWorkspaceBinding.writePlanIdentity,
+      },
+    );
+  }
+
+  const originalMutationPaths = treeDiffPaths(root, original.tree, safety.tree);
+  if (originalMutationPaths.length !== opts.originalMutationTargetCount) {
+    throw checkpointRollbackError(
+      CHECKPOINT_ROLLBACK_ERROR_CODES.AUTHORITY_STALE,
+      "Git checkpoint rollback original mutation count is stale",
+      {
+        reason: "original-mutation-count-mismatch",
+        expectedOriginalMutationTargetCount: opts.originalMutationTargetCount,
+        actualOriginalMutationTargetCount: originalMutationPaths.length,
+      },
+    );
+  }
+
+  const currentTree = snapshotTree(root, dir);
+  const currentRollbackPaths = treeDiffPaths(root, safety.tree, currentTree);
+  const originalPathSet = new Set(originalMutationPaths);
+  const outsideOriginalMutationSet = currentRollbackPaths.filter(
+    (entry) => !originalPathSet.has(entry),
+  );
+  if (outsideOriginalMutationSet.length > 0) {
+    throw checkpointRollbackError(
+      CHECKPOINT_ROLLBACK_ERROR_CODES.UNSAFE_WORKSPACE,
+      "Git checkpoint rollback found live paths outside the original mutation set",
+      {
+        reason: "rollback-path-outside-original-mutation-set",
+        offendingPaths: outsideOriginalMutationSet,
+      },
+    );
+  }
+  const pathsDifferentFromOriginal = new Set(
+    treeDiffPaths(root, original.tree, currentTree),
+  );
+  const nonTargetResiduePaths = currentRollbackPaths.filter((entry) =>
+    pathsDifferentFromOriginal.has(entry),
+  );
+  if (nonTargetResiduePaths.length > 0) {
+    throw checkpointRollbackError(
+      CHECKPOINT_ROLLBACK_ERROR_CODES.UNSAFE_WORKSPACE,
+      "Git checkpoint rollback found non-target content on original mutation paths",
+      {
+        reason: "non-target-crash-residue",
+        offendingPaths: nonTargetResiduePaths,
+      },
+    );
+  }
+
+  const expectedWorkspaceBinding = buildWorkspaceBinding(root, dir, {
+    targetCommit: safety.commit,
+    targetTree: safety.tree,
+    currentTree,
+  });
+  const rollbackPrestateDigest = checkpointRollbackDigest(
+    "cc-checkpoint-restore-rollback-prestate-v1",
+    "git",
+    expectedWorkspaceBinding,
+    expectedWorkspaceBinding.prestateIdentity,
+  );
+  const expectedRollbackStateDigest = checkpointRollbackDigest(
+    "cc-checkpoint-restore-rollback-state-v1",
+    "git",
+    expectedWorkspaceBinding,
+    expectedWorkspaceBinding.targetPoststateIdentity,
+  );
+  const plan = {
+    schema: CHECKPOINT_ROLLBACK_PLAN_SCHEMA,
+    version: CHECKPOINT_ROLLBACK_PLAN_VERSION,
+    engine: "git",
+    workspaceRoot,
+    checkpointNamespace,
+    originalCheckpoint: {
+      id: originalIdOrRef,
+      identity: `git:${original.commit}`,
+      treeIdentity: `git-tree:${original.tree}`,
+    },
+    safetyCheckpoint: {
+      id: safetyIdOrRef,
+      identity: `git:${safety.commit}`,
+      treeIdentity: `git-tree:${safety.tree}`,
+      planIdentity: opts.expectedSafetyPlanIdentity,
+    },
+    originalBindingVerification: "exact-checkpoint-tree-reconstruction",
+    originalPlanAuthority: {
+      sourceCheckpointId: originalIdOrRef,
+      sourceCheckpointIdentity: `git:${original.commit}`,
+      safetyPlanIdentity: opts.expectedSafetyPlanIdentity,
+      mutationSetIdentity: originalMutationSetIdentity(originalMutationPaths),
+      bindingReconstructable: true,
+    },
+    originalWorkspaceBinding,
+    originalMutationPaths,
+    originalMutationTargetCount: originalMutationPaths.length,
+    currentRollbackPaths,
+    targetCount: currentRollbackPaths.length,
+    expectedWorkspaceBinding,
+    rollbackPrestateDigest,
+    rollbackPlanIdentity: expectedWorkspaceBinding.writePlanIdentity,
+    expectedRollbackStateDigest,
+  };
+  validateCheckpointRollbackPlan(plan);
+  return freezeCheckpointRollbackPlan(plan);
+}
+
+function assertCheckpointRollbackLease(workspaceLease, workspaceRoot) {
+  if (
+    !workspaceLease ||
+    typeof workspaceLease.assertOwned !== "function" ||
+    workspaceLease.assertOwned.constructor?.name === "AsyncFunction"
+  ) {
+    throw checkpointRollbackError(
+      CHECKPOINT_ROLLBACK_ERROR_CODES.INVALID_ARGUMENT,
+      "Git checkpoint rollback requires a synchronous workspace lease",
+      { reason: "invalid-workspace-lease" },
+    );
+  }
+  if (workspaceLease.canonicalWorkspaceRoot != null) {
+    let leaseRoot;
+    try {
+      leaseRoot = canonicalPath(workspaceLease.canonicalWorkspaceRoot);
+    } catch (cause) {
+      throw checkpointRollbackError(
+        CHECKPOINT_ROLLBACK_ERROR_CODES.INVALID_ARGUMENT,
+        "Git checkpoint rollback workspace lease root is invalid",
+        { reason: "invalid-workspace-lease-root" },
+        cause,
+      );
+    }
+    if (pathIdentity(leaseRoot) !== pathIdentity(workspaceRoot)) {
+      throw checkpointRollbackError(
+        CHECKPOINT_ROLLBACK_ERROR_CODES.INVALID_ARGUMENT,
+        "Git checkpoint rollback workspace lease does not match the plan",
+        { reason: "workspace-lease-root-mismatch" },
+      );
+    }
+  }
+  const result = workspaceLease.assertOwned();
+  let then;
+  try {
+    then =
+      result != null &&
+      (typeof result === "object" || typeof result === "function")
+        ? result.then
+        : null;
+  } catch (cause) {
+    throw checkpointRollbackError(
+      CHECKPOINT_ROLLBACK_ERROR_CODES.INVALID_ARGUMENT,
+      "Git checkpoint rollback workspace lease returned an unreadable thenable",
+      { reason: "unreadable-workspace-lease-thenable" },
+      cause,
+    );
+  }
+  if (typeof then === "function") {
+    throw checkpointRollbackError(
+      CHECKPOINT_ROLLBACK_ERROR_CODES.INVALID_ARGUMENT,
+      "Git checkpoint rollback workspace lease must not return a promise",
+      { reason: "async-workspace-lease" },
+    );
+  }
+}
+
+function validateCheckpointRollbackExecutionOptions(opts, workspaceRoot) {
+  if (
+    !isPlainObject(opts) ||
+    Object.keys(opts).some((key) => key !== "workspaceLease")
+  ) {
+    throw checkpointRollbackError(
+      CHECKPOINT_ROLLBACK_ERROR_CODES.INVALID_ARGUMENT,
+      "Git checkpoint rollback execution only accepts workspaceLease",
+      { reason: "invalid-execution-options" },
+    );
+  }
+  assertCheckpointRollbackLease(opts.workspaceLease, workspaceRoot);
+}
+
+function attachCheckpointRollbackDiagnostics(error, plan, phase) {
+  if (!error || typeof error !== "object") return error;
+  try {
+    error.checkpointRollbackPhase ||= phase;
+    error.rollbackPlanIdentity ||= plan.rollbackPlanIdentity;
+    error.rollbackPrestateDigest ||= plan.rollbackPrestateDigest;
+    error.expectedRollbackStateDigest ||= plan.expectedRollbackStateDigest;
+    error.rollbackTargetCount ??= plan.targetCount;
+    error.originalMutationTargetCount ??= plan.originalMutationTargetCount;
+  } catch {
+    /* best-effort diagnostics never mask the original failure */
+  }
+  return error;
+}
+
+export function executeCheckpointRollback(
+  cwd = process.cwd(),
+  plan,
+  opts = {},
+) {
+  validateCheckpointRollbackPlan(plan);
+  validateCheckpointRollbackExecutionOptions(opts, plan.workspaceRoot);
+  const { workspaceLease } = opts;
+  let phase = "revalidate";
+
+  try {
+    const actualPlan = prepareCheckpointRollback(
+      cwd,
+      plan.originalCheckpoint.id,
+      plan.safetyCheckpoint.id,
+      {
+        session: plan.checkpointNamespace,
+        expectedOriginalIdentity: plan.originalCheckpoint.identity,
+        expectedSafetyIdentity: plan.safetyCheckpoint.identity,
+        expectedSafetyPlanIdentity: plan.safetyCheckpoint.planIdentity,
+        originalMutationTargetCount: plan.originalMutationTargetCount,
+      },
+    );
+    assertCheckpointRollbackLease(workspaceLease, actualPlan.workspaceRoot);
+
+    const expectedPlanInstance = rollbackPlanInstanceDigest(plan);
+    const actualPlanInstance = rollbackPlanInstanceDigest(actualPlan);
+    if (expectedPlanInstance !== actualPlanInstance) {
+      throw checkpointRollbackError(
+        CHECKPOINT_ROLLBACK_ERROR_CODES.PLAN_STALE,
+        "Git checkpoint rollback plan changed before execution",
+        {
+          reason: "rollback-plan-revalidation-mismatch",
+          expectedPlanInstance,
+          actualPlanInstance,
+          actualRollbackPlanIdentity: actualPlan.rollbackPlanIdentity,
+        },
+      );
+    }
+
+    // Revalidation already proved the live tree is exactly safety. Do not run
+    // even the zero-diff rewind path: a zero-target recovery is verification,
+    // not a workspace write operation.
+    if (actualPlan.targetCount === 0) {
+      phase = "postflight";
+      assertCheckpointRollbackLease(workspaceLease, actualPlan.workspaceRoot);
+      return Object.freeze({
+        schema: CHECKPOINT_ROLLBACK_RESULT_SCHEMA,
+        version: CHECKPOINT_ROLLBACK_RESULT_VERSION,
+        engine: "git",
+        rolledBackCount: 0,
+        rollbackStateDigest: actualPlan.expectedRollbackStateDigest,
+      });
+    }
+
+    phase = "workspace-mutation";
+    const restore = rewindTo(cwd, actualPlan.safetyCheckpoint.id, {
+      session: actualPlan.checkpointNamespace,
+      skipSafety: true,
+      expectedIdentity: actualPlan.safetyCheckpoint.identity,
+      expectedWorkspaceBinding: actualPlan.expectedWorkspaceBinding,
+      onMutationStarted: () =>
+        assertCheckpointRollbackLease(workspaceLease, actualPlan.workspaceRoot),
+      onWorkspaceApplied: () =>
+        assertCheckpointRollbackLease(workspaceLease, actualPlan.workspaceRoot),
+    });
+    assertCheckpointRollbackLease(workspaceLease, actualPlan.workspaceRoot);
+
+    const restoredCount =
+      Number(restore?.modified) +
+      Number(restore?.deleted) +
+      Number(restore?.recreated);
+    const safetyCommit = actualPlan.safetyCheckpoint.identity.slice(4);
+    if (
+      !isPlainObject(restore) ||
+      restore.restored !== true ||
+      restore.dryRun !== false ||
+      restore.target !== safetyCommit ||
+      restore.safetyId !== null ||
+      restore.safetyIdentity !== null ||
+      restore.safetyPlanIdentity != null ||
+      !Number.isSafeInteger(restore.modified) ||
+      restore.modified < 0 ||
+      !Number.isSafeInteger(restore.deleted) ||
+      restore.deleted < 0 ||
+      !Number.isSafeInteger(restore.recreated) ||
+      restore.recreated < 0 ||
+      !Number.isSafeInteger(restoredCount) ||
+      restoredCount !== actualPlan.targetCount
+    ) {
+      throw checkpointRollbackError(
+        CHECKPOINT_ROLLBACK_ERROR_CODES.INVALID_RESULT,
+        "Git checkpoint rollback primitive returned an invalid result",
+        { reason: "invalid-rewind-result", actualResult: restore },
+      );
+    }
+
+    phase = "postflight";
+    const root = repoRoot(cwd);
+    const dir = gitDir(root);
+    const settledTree = snapshotTree(root, dir);
+    const expectedSafetyTree = actualPlan.safetyCheckpoint.treeIdentity.slice(
+      "git-tree:".length,
+    );
+    if (settledTree !== expectedSafetyTree) {
+      throw checkpointRollbackError(
+        CHECKPOINT_ROLLBACK_ERROR_CODES.INCOMPLETE,
+        "Git checkpoint rollback did not settle at the exact safety tree",
+        {
+          reason: "rollback-poststate-mismatch",
+          expectedTreeIdentity: actualPlan.safetyCheckpoint.treeIdentity,
+          actualTreeIdentity: `git-tree:${settledTree}`,
+          residualPaths: treeDiffPaths(root, expectedSafetyTree, settledTree),
+        },
+      );
+    }
+    const rollbackStateDigest = checkpointRollbackDigest(
+      "cc-checkpoint-restore-rollback-state-v1",
+      "git",
+      actualPlan.expectedWorkspaceBinding,
+      `git-tree:${settledTree}`,
+    );
+    if (rollbackStateDigest !== actualPlan.expectedRollbackStateDigest) {
+      throw checkpointRollbackError(
+        CHECKPOINT_ROLLBACK_ERROR_CODES.INCOMPLETE,
+        "Git checkpoint rollback state digest does not match the plan",
+        {
+          reason: "rollback-state-digest-mismatch",
+          expectedRollbackStateDigest: actualPlan.expectedRollbackStateDigest,
+          actualRollbackStateDigest: rollbackStateDigest,
+        },
+      );
+    }
+    assertCheckpointRollbackLease(workspaceLease, actualPlan.workspaceRoot);
+
+    return Object.freeze({
+      schema: CHECKPOINT_ROLLBACK_RESULT_SCHEMA,
+      version: CHECKPOINT_ROLLBACK_RESULT_VERSION,
+      engine: "git",
+      rolledBackCount: restoredCount,
+      rollbackStateDigest,
+    });
+  } catch (error) {
+    throw attachCheckpointRollbackDiagnostics(error, plan, phase);
+  }
+}
+
+/** name-only diff between two trees filtered by status (A/M/D). */
 function diffNames(root, treeA, treeB, filter) {
   try {
     const out = git(
-      ["diff", "--name-only", `--diff-filter=${filter}`, treeA, treeB],
+      [
+        "diff",
+        "--no-renames",
+        "--name-only",
+        `--diff-filter=${filter}`,
+        treeA,
+        treeB,
+      ],
       { cwd: root },
     );
     return out ? out.split("\n").filter(Boolean) : [];
