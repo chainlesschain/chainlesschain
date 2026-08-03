@@ -7,10 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added — cc CLI 0.162.191: durable sessions, MCP recovery, and checkpoint safety
+### Added — cc CLI 0.162.192: durable sessions, MCP recovery, and checkpoint safety
 
-> `chainlesschain` **0.162.189 → 0.162.191** (release candidate,
-> 2026-08-03; `0.162.190` was never published). CLI-only release metadata;
+> `chainlesschain` **0.162.189 → 0.162.192** (release candidate,
+> 2026-08-03; `0.162.190` and `0.162.191` were never published). CLI-only release metadata;
 > `@chainlesschain/personal-data-hub`
 > remains **0.4.57** and `@chainlesschain/agent-sdk` remains **0.1.7**.
 
@@ -63,17 +63,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   no-replace copy publication, and root-bound maintenance locks. This is a
   narrow partial-restore recovery path, not general multi-resource atomicity,
   power-loss proof, or checkpoint recovery GA.
-- **Release retry identity**: tag `v-npm-0-162-190` remains an immutable record
-  of the failed pre-publication run `30790359741`; the Agent SDK E2E used its
-  owner-private `CHAINLESSCHAIN_HOME` as the active workspace and was correctly
-  rejected with `CONFIG_HOME_UNSAFE`. No CLI tarball or npm version was
-  published. The fixture now uses sibling control-state and workspace roots;
-  production path safety remains fail closed.
-- **Release status**: `0.162.191` is not published. The exact
+- **Release retry identity**: tags `v-npm-0-162-190` and
+  `v-npm-0-162-191` remain immutable records of pre-publication failures.
+  Run `30790359741` exposed an Agent SDK E2E fixture that used its owner-private
+  `CHAINLESSCHAIN_HOME` as the active workspace; the fixture now uses sibling
+  control-state and workspace roots while production path safety remains fail
+  closed. Run `30793513643` passed all tests but exposed root-monorepo
+  `npm sbom` contamination from unrelated desktop/mobile peer graphs; SBOM
+  generation now resolves an ignore-scripts lock from the immutable CLI
+  tarball and validates its CycloneDX package/version identity. Neither run
+  reached npm publication.
+- **Release status**: `0.162.192` is not published. The exact
   version/changelog/fix commit must pass `CLI CI` and `CLI Strict Sandbox` on
   Ubuntu, Windows, and macOS, plus affected `Session Host Consistency`,
   `CLI Background Interaction E2E`, and immutable npm tarball verification,
-  before tag `v-npm-0-162-191` or npm publication is allowed. Local,
+  before tag `v-npm-0-162-192` or npm publication is allowed. Local,
   older-SHA, and partial results are supplementary only.
 
 ### Added — cc CLI 0.162.189: managed rollback and distributed Agent Teams closure

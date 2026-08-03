@@ -2,7 +2,7 @@
 
 > 分析日期：2026-08-01
 >
-> ChainlessChain 候选基线：`packages/cli` v0.162.191 release candidate；v0.162.190 未发布，npm registry `latest` 仍为 v0.162.189
+> ChainlessChain 候选基线：`packages/cli` v0.162.192 release candidate；v0.162.190 / v0.162.191 未发布，npm registry `latest` 仍为 v0.162.189
 >
 > Claude Code 参考基线：官方文档与 2.1.220 changelog（2026-07-25）
 >
@@ -657,3 +657,9 @@ E2E retry-pass 应记为 flake，而不是普通 pass；超过阈值阻断发布
 - 用户明确授权后，`v-npm-0-162-190` 作为 lightweight tag 精确绑定 `ec4941b0630ffdfb5470be9814052ea690f3776f` 并同步 GitHub/Gitee。正式 [npm workflow `30790359741`](https://github.com/chainlesschain/chainlesschain/actions/runs/30790359741) 的 `exact-sha-gate` 成功，但综合 `test` 在 `Run Agent SDK tests` 失败；依赖它的 `package-cli` 与 `publish` 都是 skipped，因此 npm registry 没有 `chainlesschain@0.162.190`，也不存在可误认为已发布的 CLI tarball。
 - 根因是 `packages/agent-sdk/__tests__/e2e-agent-session.test.ts` 同时把临时 `home` 用作 `CHAINLESSCHAIN_HOME` 和 CLI `cwd`。新 owner-private 路径保护正确拒绝 control state 包含 active workspace，并返回 `CONFIG_HOME_UNSAFE`。修复只把 control-state home 与 workspace 改为同一临时根下的 sibling，并把真实写入目标留在 workspace；没有修改或放宽生产 `getHomeDir()` 安全判断。
 - 修复后的 Agent SDK build 成功，完整套件为 **7 test files / 50 tests passed**，包括真实 CLI 的 stream/result、Write approval、实际落盘与 session resume。失败 tag 保持不可变且不强推；候选 package version 前进到 **`0.162.191`**。只有新版本/文档/夹具所在 exact SHA 重新取得 `CLI CI`、`CLI Strict Sandbox`、受影响的 Background/Session Host 门和 immutable npm tarball 验证后，才允许创建 `v-npm-0-162-191` 并再次进入 npm Trusted Publishing。
+
+### 14.16 `0.162.191` SBOM 门失败与 `0.162.192` 重试身份
+
+- `0.162.191` 的 exact release SHA `9e2a3238426499a3de1d228034e66dab91cbfa2c` 完成 [CLI CI `30791273745`](https://github.com/chainlesschain/chainlesschain/actions/runs/30791273745)、[CLI Strict Sandbox `30791273563`](https://github.com/chainlesschain/chainlesschain/actions/runs/30791273563) 与 [Session Host `30791273622`](https://github.com/chainlesschain/chainlesschain/actions/runs/30791273622)。[npm workflow `30793513643`](https://github.com/chainlesschain/chainlesschain/actions/runs/30793513643) 中 core packages、Agent SDK、PDH、Web Panel 和完整 CLI tests 全部成功，证明上一轮 fixture 修复有效；但 `package-cli` 的 SBOM 子命令失败，artifact upload 与 publish skipped，npm registry 仍无 `0.162.191`。
+- 根因是工作流在 monorepo root 对总 lock 执行 `npm sbom --package-lock-only`，把不属于 CLI 发布载荷的 Electron/React Native peer graph 一并纳入，确定性返回 `ESBOMPROBLEMS`。修复将 pack/manifest 与 SBOM 分步：从已生成的 immutable CLI tarball 解包到名为 `chainlesschain` 的临时根，使用 `--ignore-scripts --legacy-peer-deps` 只生成该发布包 lock，再产出 CycloneDX，并校验 root `name/version/purl` 与非空 components/dependencies。
+- 本地 tarball 路径验证成功：CycloneDX 1.5，root purl `pkg:npm/chainlesschain@0.162.191`，606 components、607 dependency entries；root-monorepo 直接生成继续按预期失败，证明隔离边界有效。`v-npm-0-162-191` 不移动、不覆盖，候选版本前进到 **`0.162.192`**。新 workflow、版本和文档所在 final SHA 必须重新通过三平台 CLI CI / Strict Sandbox 和 immutable package/SBOM/publish gate 后，才允许创建 `v-npm-0-162-192`。

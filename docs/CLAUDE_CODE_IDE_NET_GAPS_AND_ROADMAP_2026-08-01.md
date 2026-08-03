@@ -2,7 +2,7 @@
 
 - 评估日期：2026-08-01
 - ChainlessChain 仓库快照：`eb0bc663b6eb794b1b62ba2bfc7a1267c699d25d`
-- ChainlessChain 候选版本基线：CLI `0.162.191` release candidate（`0.162.190` 未发布，npm `latest` 仍为 `0.162.189`）、VS Code `0.37.37`、JetBrains `0.4.76`
+- ChainlessChain 候选版本基线：CLI `0.162.192` release candidate（`0.162.190` / `0.162.191` 未发布，npm `latest` 仍为 `0.162.189`）、VS Code `0.37.37`、JetBrains `0.4.76`
 - Claude Code 基线：[CLI `2.1.220`](https://code.claude.com/docs/en/changelog)；官方文档回读日期 2026-08-01
 
 > 本文是一份面向下一阶段决策的“净差距”报告，不重复罗列已经完成的能力。
@@ -748,3 +748,5 @@ release gate 已完成。
 - 截至 2026-08-03，仓库 package version 已准备为 **`0.162.190` release candidate**，npm registry `latest` 仍为 `0.162.189`。从 registry gitHead 到代码冻结提交 `767fdada75` 的 CLI 范围为 164 commits、391 files、137,900 additions / 4,015 deletions。结论保持：**功能量足以发 `0.162.190`，但修复与文档所在的最终 exact-SHA 门完成前仍是 release NO-GO，不要发布**。最终精确 SHA 必须重新取得 `CLI CI`、`CLI Strict Sandbox` 与受影响的 Session Host/checkpoint 门在全部配置 OS 上成功，并重新验证 immutable npm tarball；任何旧 SHA、queued、cancelled、failure 或局部成功都不能授权发布。即使门禁转绿，本轮也只给出发布建议，不自动打 tag 或执行 npm publish。
 - 用户授权发布后，轻量 tag `v-npm-0-162-190` 精确指向 `ec4941b0630ffdfb5470be9814052ea690f3776f` 并已同步 GitHub/Gitee。正式 npm workflow `30790359741` 的 exact-SHA gate 成功，但综合 `test` 在 Agent SDK E2E 阶段失败，后续 `package-cli` / `publish` 全部 skipped；npm `0.162.190` 从未写入。失败由测试把 `CHAINLESSCHAIN_HOME` 同时作为 `cwd` 引起，新安全规则按设计返回 `CONFIG_HOME_UNSAFE`，不是 flake，也不能重跑放行。
 - 测试夹具已改为同一临时根下互为 sibling 的 owner-private home 与 workspace，真实 CLI 的写文件、审批回调和 resume 路径本地复跑为 Agent SDK **7 files / 50 tests 全绿**；生产安全规则未放宽。已推送的失败 tag 不移动、不覆盖，后续发布身份前进为 **`chainlesschain@0.162.191` / `v-npm-0-162-191`**，仍须由新 exact SHA 重新取得全部三平台权威门和 immutable tarball 验证。
+- `0.162.191` 的最终 SHA `9e2a3238426499a3de1d228034e66dab91cbfa2c` 已取得 CLI CI `30791273745`、Strict Sandbox `30791273563` 与 Session Host `30791273622` 成功；正式 workflow `30793513643` 中 core/Agent SDK/PDH/Web/完整 CLI tests 全部成功，但 `package-cli` 在 root-monorepo `npm sbom --package-lock-only` 被无关 desktop/mobile peer graph 污染后失败，artifact upload / publish 均 skipped，npm 仍未写入。该失败不是测试或 tarball 身份失败，也不能直接重跑放行。
+- SBOM 门改为从 immutable CLI tarball 解包，在禁用 lifecycle scripts 的前提下生成发布包独立 lock 与 CycloneDX，再校验 root name/version/purl 及非空 dependency graph；本地验证为 CycloneDX 1.5、606 components、607 dependency entries。`v-npm-0-162-191` 保持不可变，后续身份前进到 **`chainlesschain@0.162.192` / `v-npm-0-162-192`**，并重新要求 final exact-SHA 权威门。
