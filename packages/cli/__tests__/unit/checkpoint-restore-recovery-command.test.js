@@ -1,17 +1,67 @@
 import {
+  existsSync,
   mkdirSync,
   mkdtempSync,
+  readFileSync,
   realpathSync,
   rmSync,
   symlinkSync,
+  writeFileSync,
 } from "node:fs";
+import { execFileSync } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
 import { Command } from "commander";
 import { describe, expect, it, vi } from "vitest";
+
+// The copy adapter's authority and rollback logic stays production-real in
+// this wiring test. Avoid starting PowerShell for every owner-private DACL
+// assertion on Windows; dedicated file-checkpoint tests exercise the native
+// ACL implementation in child processes.
+vi.mock("../../src/lib/secure-fs.js", async (importOriginal) => {
+  const actual = await importOriginal();
+  if (process.platform !== "win32") return actual;
+  const runtimeFs = (await import("node:fs")).default;
+  const inspect = (target) => {
+    try {
+      const stat = runtimeFs.lstatSync(target);
+      return {
+        target,
+        exists: true,
+        ok: !stat.isSymbolicLink(),
+        platform: "win32-command-wiring-double",
+      };
+    } catch {
+      return {
+        target,
+        exists: false,
+        ok: false,
+        platform: "win32-command-wiring-double",
+      };
+    }
+  };
+  return {
+    ...actual,
+    ensurePrivateDirectory(target) {
+      runtimeFs.mkdirSync(target, { recursive: true, mode: 0o700 });
+      return target;
+    },
+    inspectPrivatePaths(targets) {
+      return [...new Set((targets || []).map(String))].map(inspect);
+    },
+    repairPrivatePaths(targets) {
+      return [...new Set((targets || []).map(String))].map((target) => ({
+        ...inspect(target),
+        ok: true,
+      }));
+    },
+  };
+});
+
 import {
   CHECKPOINT_RESTORE_RECOVERY_CLI_ERROR_CODES,
   CHECKPOINT_RESTORE_RECOVERY_CLI_EXIT_CODES,
+  CheckpointRestoreRecoveryCliError,
   createCheckpointRestoreRecoveryCommandHandlers,
   previewCheckpointRestoreRecoveryAuthority,
   registerCheckpointRestoreRecoveryCommands,
@@ -20,6 +70,16 @@ import {
   CHECKPOINT_RESTORE_ALREADY_COMPLETED_ACTION,
   CHECKPOINT_RESTORE_ALREADY_COMPLETED_ERROR_CODES,
 } from "../../src/lib/checkpoint-restore-already-completed-controller.js";
+import { CHECKPOINT_RESTORE_PARTIAL_ROLLBACK_ACTION } from "../../src/lib/checkpoint-restore-partial-rollback-controller.js";
+import {
+  createCheckpoint,
+  statusAgainst,
+} from "../../src/lib/checkpoint-store.js";
+import {
+  computeCheckpointIdentity as computeCopyCheckpointIdentity,
+  createCheckpoint as createCopyCheckpoint,
+  restoreCheckpoint as restoreCopyCheckpoint,
+} from "../../src/lib/file-checkpoint.js";
 
 const HEAD_HASH = `sha256:${"a".repeat(64)}`;
 const RECORDED_OWNER_DIGEST = `sha256:${"b".repeat(64)}`;
@@ -28,6 +88,15 @@ const OTHER_OWNER_DIGEST = `sha256:${"d".repeat(64)}`;
 const OWNER_TOKEN = "private-owner-token-0000000000000001";
 const WORKSPACE_ROOT = "C:\\private\\customer\\workspace";
 const RAW_REASON = `secret recovery reason ${OWNER_TOKEN} ${WORKSPACE_ROOT}`;
+
+function git(cwd, ...args) {
+  return execFileSync("git", args, {
+    cwd,
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+    windowsHide: true,
+  }).trim();
+}
 
 function action(candidate, eligible = false, blockers = []) {
   return {
@@ -46,6 +115,10 @@ function recoveryProjection({
   terminal = false,
   clean = true,
   restore = {},
+  progress = {},
+  safety = {},
+  rollback,
+  eligibility = {},
 } = {}) {
   return {
     schema: "chainlesschain.checkpoint-restore-recovery-projection",
@@ -76,8 +149,9 @@ function recoveryProjection({
       timelineEntryId: "turn-1",
       ...restore,
     },
-    progress: { targetCount: 1, appliedCount: null },
-    safety: { coverage: null, complete: false },
+    progress: { targetCount: 1, appliedCount: null, ...progress },
+    safety: { coverage: null, complete: false, ...safety },
+    ...(rollback === undefined ? {} : { rollback }),
     authority: {
       workspaceOwnerEvidencePresent: true,
       workspaceOwnerDigestPresent: true,
@@ -97,8 +171,77 @@ function recoveryProjection({
       resume: action(!terminal),
       rollback: action(basePhase === "mutation_started"),
       release: action(terminal),
+      ...eligibility,
     },
   };
+}
+
+function rollbackProjection({
+  operationId = "restore_cli_rollback",
+  phase = "recovery_required",
+  basePhase = "mutation_started",
+  seq = 7,
+  kind = "git",
+  surface = "direct",
+  checkpointNamespace = kind === "git" ? "session-1" : null,
+  originalMutationTargetCount = 1,
+  rollbackTargetCount = 1,
+} = {}) {
+  const timeline = surface === "timeline";
+  const identity =
+    kind === "git" ? `git:${"1".repeat(40)}` : `sha256:${"1".repeat(64)}`;
+  const rollbackPhase = basePhase === "mutation_started" ? null : basePhase;
+  const workspaceSettled = [
+    "workspace_rolled_back",
+    "session_rollback_committed",
+  ].includes(rollbackPhase);
+  return recoveryProjection({
+    operationId,
+    phase,
+    basePhase,
+    seq,
+    restore: {
+      kind,
+      surface,
+      intentAuthority: timeline ? "session" : "operation",
+      checkpointNamespace,
+      checkpointId: "checkpoint-1",
+      checkpointIdentity: identity,
+      sessionId: timeline ? "session-1" : null,
+      timelineEntryId: timeline ? "turn-1" : null,
+    },
+    progress: {
+      targetCount:
+        rollbackPhase === null
+          ? originalMutationTargetCount
+          : rollbackTargetCount,
+    },
+    safety: {
+      coverage: "full",
+      complete: true,
+      checkpointId: "safety-1",
+      checkpointIdentity: identity,
+      planIdentity: `sha256:${"2".repeat(64)}`,
+    },
+    rollback: {
+      phase: rollbackPhase,
+      recoveryRequestId: rollbackPhase ? "rollback-request-1" : null,
+      rollbackPrestateDigest: rollbackPhase ? `sha256:${"3".repeat(64)}` : null,
+      rollbackPlanIdentity: rollbackPhase ? `sha256:${"4".repeat(64)}` : null,
+      originalMutationTargetCount: rollbackPhase
+        ? originalMutationTargetCount
+        : null,
+      targetCount: rollbackPhase ? rollbackTargetCount : null,
+      rolledBackCount: workspaceSettled ? rollbackTargetCount : null,
+      rollbackStateDigest: workspaceSettled ? `sha256:${"5".repeat(64)}` : null,
+      resultDigest: workspaceSettled ? `sha256:${"6".repeat(64)}` : null,
+      sessionRollbackCommitDigest:
+        rollbackPhase === "session_rollback_committed"
+          ? `sha256:${"7".repeat(64)}`
+          : null,
+    },
+    eligibility: { rollback: action(true) },
+  });
 }
 
 function listProjection(item = recoveryProjection()) {
@@ -132,11 +275,18 @@ function workspaceOwner(operationId = "restore_cli_1") {
 }
 
 function mutationResult(actionName, operationId, overrides = {}) {
+  const partialRollback =
+    actionName === CHECKPOINT_RESTORE_PARTIAL_ROLLBACK_ACTION;
   return {
     ok: true,
     action: actionName,
     operationId,
-    phase: actionName === "abort" ? "aborted" : "completed",
+    phase:
+      actionName === "abort"
+        ? "aborted"
+        : partialRollback
+          ? "rolled_back"
+          : "completed",
     seq: 4,
     headHash: `sha256:${"f".repeat(64)}`,
     archived: true,
@@ -146,6 +296,15 @@ function mutationResult(actionName, operationId, overrides = {}) {
       ? {
           sessionCommitDigest: `sha256:${"1".repeat(64)}`,
           resultDigest: `sha256:${"2".repeat(64)}`,
+        }
+      : {}),
+    ...(partialRollback
+      ? {
+          recoveryRequestId: "rollback-request-1",
+          rolledBackCount: 1,
+          rollbackStateDigest: `sha256:${"3".repeat(64)}`,
+          resultDigest: `sha256:${"4".repeat(64)}`,
+          sessionRollbackCommitDigest: null,
         }
       : {}),
     warning: null,
@@ -173,6 +332,11 @@ function harness({ projection, list, owner } = {}) {
       mutationResult(CHECKPOINT_RESTORE_ALREADY_COMPLETED_ACTION, operationId),
     ),
   };
+  const partialRollbackController = {
+    rollback: vi.fn((operationId) =>
+      mutationResult(CHECKPOINT_RESTORE_PARTIAL_ROLLBACK_ACTION, operationId),
+    ),
+  };
   const observedOwner = owner === undefined ? workspaceOwner() : owner;
   const dependencies = {
     resolveWorkspaceRoot: vi.fn(() => WORKSPACE_ROOT),
@@ -183,6 +347,13 @@ function harness({ projection, list, owner } = {}) {
     createSessionRecoveryReader: vi.fn(() => sessionRecoveryReader),
     createWorkspaceTargetVerifier: vi.fn(() => workspaceTargetVerifier),
     createAlreadyCompletedController: vi.fn(() => alreadyCompletedController),
+    createPartialRollbackController: vi.fn(() => partialRollbackController),
+    prepareGitCheckpointRollback: vi.fn(),
+    executeGitCheckpointRollback: vi.fn(),
+    prepareCopyCheckpointRollback: vi.fn(),
+    executeCopyCheckpointRollback: vi.fn(),
+    withSessionAuthorityTransaction: vi.fn(),
+    withWorkspaceRecoveryLockSync: vi.fn(),
     inspectWorkspaceLockOwnerSync: vi.fn(() => observedOwner),
     computeWorkspaceLockOwnerDigest: vi.fn(() => LIVE_OWNER_DIGEST),
     workspaceLockOptions: { lockDir: "C:\\private\\checkpoint-locks" },
@@ -200,6 +371,7 @@ function harness({ projection, list, owner } = {}) {
     sessionRecoveryReader,
     workspaceTargetVerifier,
     alreadyCompletedController,
+    partialRollbackController,
     observedOwner,
     dependencies,
   };
@@ -222,7 +394,7 @@ async function parse(testHarness, args) {
 }
 
 describe("checkpoint restore recovery command surface", () => {
-  it("registers verified resume while keeping rollback read-only", () => {
+  it("registers verified resume and partial-mutation rollback", () => {
     const testHarness = harness();
     const { recovery } = commandProgram(testHarness);
 
@@ -231,11 +403,10 @@ describe("checkpoint restore recovery command surface", () => {
       "list",
       "release",
       "resume",
+      "rollback",
       "show",
     ]);
-    expect(recovery.helpInformation()).toMatch(
-      /resume\s+only an already-completed timeline restore/i,
-    );
+    expect(recovery.helpInformation()).toMatch(/partial workspace\s+mutation/i);
   });
 
   it("routes bounded list pagination and emits the safe JSON projection", async () => {
@@ -305,7 +476,7 @@ describe("checkpoint restore recovery command surface", () => {
     expect(serialized).not.toContain('"workspaceLockOwner"');
   });
 
-  it("renders unsupported resume and deferred rollback in human output", async () => {
+  it("renders unsupported resume and incomplete rollback authority", async () => {
     const mutationProjection = recoveryProjection({
       phase: "recovery_required",
       basePhase: "mutation_started",
@@ -319,7 +490,7 @@ describe("checkpoint restore recovery command surface", () => {
       "resume: candidate only (not executable: controller_phase_not_supported)",
     );
     expect(testHarness.stdout[0]).toContain(
-      "rollback: candidate only (not executable: action_not_implemented)",
+      "rollback: candidate only (not executable: verified_rollback_authority_required)",
     );
   });
 
@@ -593,6 +764,842 @@ describe("checkpoint restore recovery command surface", () => {
     );
   });
 
+  it.each([
+    "mutation_started",
+    "rollback_prepared",
+    "rollback_started",
+    "workspace_rolled_back",
+    "session_rollback_committed",
+  ])("projects rollback as executable at %s", async (basePhase) => {
+    const projection = rollbackProjection({ basePhase });
+    const testHarness = harness({ projection });
+
+    await parse(testHarness, ["show", projection.operationId, "--json"]);
+
+    expect(JSON.parse(testHarness.stdout[0])).toMatchObject({
+      mutationFence: {
+        expectedSeq: 7,
+        expectedHash: HEAD_HASH,
+        expectedOwnerDigest: LIVE_OWNER_DIGEST,
+      },
+      actions: {
+        rollback: {
+          candidate: true,
+          eligible: true,
+          blockers: [],
+          prerequisites: [
+            "exact_mutation_fence",
+            "verified_full_safety_checkpoint",
+            "verified_workspace_rollback_state",
+            "controller_compare_and_swap",
+          ],
+        },
+      },
+    });
+  });
+
+  it.each(["rollback_prepared", "workspace_rolled_back"])(
+    "keeps zero-target %s rollback publicly executable and returns zero",
+    async (basePhase) => {
+      const projection = rollbackProjection({
+        basePhase,
+        originalMutationTargetCount: 3,
+        rollbackTargetCount: 0,
+      });
+      const testHarness = harness({ projection });
+      testHarness.partialRollbackController.rollback.mockReturnValue(
+        mutationResult(
+          CHECKPOINT_RESTORE_PARTIAL_ROLLBACK_ACTION,
+          projection.operationId,
+          { rolledBackCount: 0 },
+        ),
+      );
+
+      await parse(testHarness, ["show", projection.operationId, "--json"]);
+
+      expect(JSON.parse(testHarness.stdout[0])).toMatchObject({
+        recovery: {
+          progress: { targetCount: 0 },
+          rollback: {
+            phase: basePhase,
+            originalMutationTargetCount: 3,
+            targetCount: 0,
+          },
+        },
+        actions: {
+          rollback: {
+            candidate: true,
+            eligible: true,
+            blockers: [],
+          },
+        },
+      });
+
+      await parse(testHarness, [
+        "rollback",
+        projection.operationId,
+        "--expected-seq",
+        "7",
+        "--expected-head-hash",
+        HEAD_HASH,
+        "--expected-owner-digest",
+        LIVE_OWNER_DIGEST,
+        "--yes",
+        "--json",
+      ]);
+
+      expect(JSON.parse(testHarness.stdout[1])).toMatchObject({
+        ok: true,
+        action: "rollback",
+        recoveryAction: CHECKPOINT_RESTORE_PARTIAL_ROLLBACK_ACTION,
+        operationId: projection.operationId,
+        rolledBackCount: 0,
+      });
+    },
+  );
+
+  it("uses initial mutation count while recovery_started has no rollback binding", async () => {
+    const projection = rollbackProjection();
+    projection.rollback = {
+      ...projection.rollback,
+      phase: "recovery_started",
+      recoveryRequestId: "rollback-request-started",
+    };
+    const testHarness = harness({ projection });
+
+    await parse(testHarness, ["show", projection.operationId, "--json"]);
+
+    expect(JSON.parse(testHarness.stdout[0])).toMatchObject({
+      recovery: {
+        basePhase: "mutation_started",
+        progress: { targetCount: 1 },
+        rollback: {
+          phase: "recovery_started",
+          originalMutationTargetCount: null,
+        },
+      },
+      actions: { rollback: { candidate: true, eligible: true } },
+    });
+  });
+
+  it("never falls back to latest progress after rollback binding begins", async () => {
+    const projection = rollbackProjection({ basePhase: "rollback_prepared" });
+    projection.rollback = {
+      ...projection.rollback,
+      originalMutationTargetCount: null,
+    };
+    const testHarness = harness({ projection });
+
+    await parse(testHarness, ["show", projection.operationId, "--json"]);
+
+    expect(JSON.parse(testHarness.stdout[0])).toMatchObject({
+      recovery: { progress: { targetCount: 1 } },
+      actions: {
+        rollback: {
+          candidate: true,
+          eligible: false,
+          blockers: ["verified_rollback_authority_required"],
+        },
+      },
+    });
+  });
+
+  it.each([
+    ".hidden",
+    "part..part",
+    "session.lock",
+    "session.LOCK",
+    "trailing.",
+    "bad/name",
+    "bad namespace",
+    123,
+  ])(
+    "rejects non-canonical Git namespace %s from rollback eligibility",
+    async (checkpointNamespace) => {
+      const projection = rollbackProjection({ checkpointNamespace });
+      const testHarness = harness({ projection });
+
+      await parse(testHarness, ["show", projection.operationId, "--json"]);
+
+      expect(JSON.parse(testHarness.stdout[0])).toMatchObject({
+        actions: {
+          rollback: {
+            candidate: true,
+            eligible: false,
+            blockers: ["verified_rollback_authority_required"],
+          },
+        },
+      });
+    },
+  );
+
+  it.each([
+    ".hidden",
+    "part..part",
+    "session.lock",
+    "session.LOCK",
+    "trailing.",
+    "bad/name",
+    "bad namespace",
+    123,
+  ])(
+    "rejects non-canonical Git namespace %s before adapter preparation",
+    async (checkpointNamespace) => {
+      const projection = rollbackProjection();
+      const testHarness = harness({ projection });
+
+      await parse(testHarness, [
+        "rollback",
+        projection.operationId,
+        "--expected-seq",
+        "7",
+        "--expected-head-hash",
+        HEAD_HASH,
+        "--expected-owner-digest",
+        LIVE_OWNER_DIGEST,
+        "--yes",
+        "--json",
+      ]);
+
+      const controllerOptions =
+        testHarness.dependencies.createPartialRollbackController.mock
+          .calls[0][0];
+      expect(() =>
+        controllerOptions.prepareWorkspaceRollback({
+          workspaceRoot: WORKSPACE_ROOT,
+          expected: {
+            engine: "git",
+            checkpointNamespace,
+            originalCheckpoint: {
+              id: "git-original",
+              identity: `git:${"1".repeat(40)}`,
+            },
+            safetyCheckpoint: {
+              id: "git-safety",
+              identity: `git:${"2".repeat(40)}`,
+              planIdentity: `sha256:${"3".repeat(64)}`,
+            },
+            originalMutationTargetCount: 3,
+          },
+        }),
+      ).toThrow(
+        expect.objectContaining({
+          code: CHECKPOINT_RESTORE_RECOVERY_CLI_ERROR_CODES.INVALID_DEPENDENCY,
+        }),
+      );
+      expect(
+        testHarness.dependencies.prepareGitCheckpointRollback,
+      ).not.toHaveBeenCalled();
+    },
+  );
+
+  it("executes partial rollback with exact fences and emits declassified JSON", async () => {
+    const projection = rollbackProjection();
+    const testHarness = harness({ projection });
+    testHarness.partialRollbackController.rollback.mockReturnValue(
+      mutationResult(
+        CHECKPOINT_RESTORE_PARTIAL_ROLLBACK_ACTION,
+        projection.operationId,
+        {
+          privatePlan: { workspaceRoot: WORKSPACE_ROOT },
+          warning: { code: "EPERM", message: RAW_REASON },
+        },
+      ),
+    );
+
+    await parse(testHarness, [
+      "rollback",
+      projection.operationId,
+      "--expected-seq",
+      "7",
+      "--expected-head-hash",
+      HEAD_HASH,
+      "--expected-owner-digest",
+      LIVE_OWNER_DIGEST,
+      "--yes",
+      "--json",
+    ]);
+
+    expect(testHarness.partialRollbackController.rollback).toHaveBeenCalledWith(
+      projection.operationId,
+      {
+        expectedSeq: 7,
+        expectedHash: HEAD_HASH,
+        expectedOwnerDigest: LIVE_OWNER_DIGEST,
+      },
+    );
+    expect(
+      testHarness.dependencies.createPartialRollbackController,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        workspaceRoot: WORKSPACE_ROOT,
+        store: testHarness.store,
+        sessionRecoveryReader: testHarness.sessionRecoveryReader,
+        withSessionAuthorityTransaction:
+          testHarness.dependencies.withSessionAuthorityTransaction,
+        inspectWorkspaceLockOwnerSync:
+          testHarness.dependencies.inspectWorkspaceLockOwnerSync,
+        withWorkspaceRecoveryLockSync:
+          testHarness.dependencies.withWorkspaceRecoveryLockSync,
+        computeWorkspaceLockOwnerDigest:
+          testHarness.dependencies.computeWorkspaceLockOwnerDigest,
+        workspaceLockOptions: {
+          lockDir: "C:\\private\\checkpoint-locks",
+        },
+        prepareWorkspaceRollback: expect.any(Function),
+        executeWorkspaceRollback: expect.any(Function),
+      }),
+    );
+    const output = JSON.parse(testHarness.stdout[0]);
+    expect(output).toMatchObject({
+      ok: true,
+      action: "rollback",
+      recoveryAction: CHECKPOINT_RESTORE_PARTIAL_ROLLBACK_ACTION,
+      operationId: projection.operationId,
+      phase: "rolled_back",
+      recoveryRequestId: "rollback-request-1",
+      rolledBackCount: 1,
+      rollbackStateDigest: `sha256:${"3".repeat(64)}`,
+      resultDigest: `sha256:${"4".repeat(64)}`,
+      sessionRollbackCommitDigest: null,
+      warning: { code: "CHECKPOINT_RESTORE_SAGA_ARCHIVE_PENDING" },
+    });
+    const serialized = JSON.stringify(output);
+    expect(serialized).not.toContain("privatePlan");
+    expect(serialized).not.toContain(WORKSPACE_ROOT);
+    expect(serialized).not.toContain(RAW_REASON);
+    expect(serialized).not.toContain("EPERM");
+  });
+
+  it("requires rollback confirmation before opening any authority", async () => {
+    const projection = rollbackProjection();
+    const testHarness = harness({ projection });
+
+    await parse(testHarness, [
+      "rollback",
+      projection.operationId,
+      "--expected-seq",
+      "7",
+      "--expected-head-hash",
+      HEAD_HASH,
+      "--expected-owner-digest",
+      LIVE_OWNER_DIGEST,
+      "--json",
+    ]);
+
+    expect(testHarness.dependencies.createStore).not.toHaveBeenCalled();
+    expect(
+      testHarness.dependencies.createPartialRollbackController,
+    ).not.toHaveBeenCalled();
+    expect(
+      testHarness.dependencies.inspectWorkspaceLockOwnerSync,
+    ).not.toHaveBeenCalled();
+    expect(JSON.parse(testHarness.stderr[0])).toMatchObject({
+      error: {
+        code: CHECKPOINT_RESTORE_RECOVERY_CLI_ERROR_CODES.CONFIRMATION_REQUIRED,
+      },
+      exitCode: CHECKPOINT_RESTORE_RECOVERY_CLI_EXIT_CODES.INVALID_USAGE,
+    });
+  });
+
+  it("dispatches copy rollback by persisted engine and requires a null namespace", async () => {
+    const projection = rollbackProjection({ kind: "copy" });
+    const testHarness = harness({ projection });
+
+    await parse(testHarness, [
+      "rollback",
+      projection.operationId,
+      "--expected-seq",
+      "7",
+      "--expected-head-hash",
+      HEAD_HASH,
+      "--expected-owner-digest",
+      LIVE_OWNER_DIGEST,
+      "--yes",
+      "--json",
+    ]);
+
+    const controllerOptions =
+      testHarness.dependencies.createPartialRollbackController.mock.calls[0][0];
+    const expected = {
+      engine: "copy",
+      restoreSurface: "direct",
+      checkpointNamespace: null,
+      originalCheckpoint: {
+        id: "copy-original",
+        identity: `sha256:${"1".repeat(64)}`,
+      },
+      safetyCheckpoint: {
+        id: "copy-safety",
+        identity: `sha256:${"2".repeat(64)}`,
+        planIdentity: `sha256:${"3".repeat(64)}`,
+      },
+      originalWorkspaceWritePlanIdentity: `sha256:${"4".repeat(64)}`,
+      originalPrestateDigest: `sha256:${"5".repeat(64)}`,
+      originalMutationTargetCount: 3,
+    };
+    const prepared = { engine: "copy", checkpointNamespace: null };
+    testHarness.dependencies.prepareCopyCheckpointRollback.mockReturnValue(
+      prepared,
+    );
+
+    expect(
+      controllerOptions.prepareWorkspaceRollback({
+        operationId: projection.operationId,
+        recoveryRequestId: "rollback-request-copy",
+        workspaceRoot: WORKSPACE_ROOT,
+        workspaceLease: {},
+        expected,
+      }),
+    ).toBe(prepared);
+    expect(
+      testHarness.dependencies.prepareCopyCheckpointRollback,
+    ).toHaveBeenCalledWith(WORKSPACE_ROOT, "copy-original", "copy-safety", {
+      expectedOriginalIdentity: expected.originalCheckpoint.identity,
+      expectedSafetyIdentity: expected.safetyCheckpoint.identity,
+      expectedSafetyPlanIdentity: expected.safetyCheckpoint.planIdentity,
+      originalMutationTargetCount: 3,
+    });
+    expect(() =>
+      controllerOptions.prepareWorkspaceRollback({
+        workspaceRoot: WORKSPACE_ROOT,
+        expected: { ...expected, checkpointNamespace: "default" },
+      }),
+    ).toThrow(
+      expect.objectContaining({
+        code: CHECKPOINT_RESTORE_RECOVERY_CLI_ERROR_CODES.INVALID_DEPENDENCY,
+      }),
+    );
+
+    const lease = { assertOwned: vi.fn() };
+    const executed = { ok: true };
+    testHarness.dependencies.executeCopyCheckpointRollback.mockReturnValue(
+      executed,
+    );
+    expect(
+      controllerOptions.executeWorkspaceRollback({
+        workspaceRoot: WORKSPACE_ROOT,
+        workspaceLease: lease,
+        plan: prepared,
+      }),
+    ).toBe(executed);
+    expect(
+      testHarness.dependencies.executeCopyCheckpointRollback,
+    ).toHaveBeenCalledWith(WORKSPACE_ROOT, prepared, {
+      workspaceLease: lease,
+    });
+    expect(
+      testHarness.dependencies.prepareGitCheckpointRollback,
+    ).not.toHaveBeenCalled();
+    expect(
+      testHarness.dependencies.executeGitCheckpointRollback,
+    ).not.toHaveBeenCalled();
+  });
+
+  it("uses the real Git rollback adapter behind the public wiring", async () => {
+    const projection = rollbackProjection();
+    const testHarness = harness({ projection });
+    delete testHarness.dependencies.prepareGitCheckpointRollback;
+    delete testHarness.dependencies.executeGitCheckpointRollback;
+
+    await parse(testHarness, [
+      "rollback",
+      projection.operationId,
+      "--expected-seq",
+      "7",
+      "--expected-head-hash",
+      HEAD_HASH,
+      "--expected-owner-digest",
+      LIVE_OWNER_DIGEST,
+      "--yes",
+      "--json",
+    ]);
+
+    const controllerOptions =
+      testHarness.dependencies.createPartialRollbackController.mock.calls[0][0];
+    const repo = realpathSync.native(
+      mkdtempSync(path.join(os.tmpdir(), "cc-recovery-cli-git-")),
+    );
+    const session = "recovery-cli-real-adapter";
+    try {
+      git(repo, "init", "-q");
+      git(repo, "config", "user.email", "recovery@test.local");
+      git(repo, "config", "user.name", "recovery-test");
+      git(repo, "config", "core.autocrlf", "false");
+      writeFileSync(path.join(repo, "a.txt"), "base-a\n", "utf8");
+      writeFileSync(path.join(repo, "b.txt"), "base-b\n", "utf8");
+      git(repo, "add", "-A");
+      git(repo, "commit", "-q", "-m", "base");
+
+      writeFileSync(path.join(repo, "a.txt"), "target-a\n", "utf8");
+      rmSync(path.join(repo, "b.txt"));
+      writeFileSync(path.join(repo, "target-added.txt"), "target\n", "utf8");
+      const original = createCheckpoint(repo, {
+        session,
+        label: "original-target",
+      });
+      writeFileSync(path.join(repo, "a.txt"), "safety-a\n", "utf8");
+      writeFileSync(path.join(repo, "b.txt"), "safety-b\n", "utf8");
+      rmSync(path.join(repo, "target-added.txt"));
+      const safety = createCheckpoint(repo, { session, label: "safety" });
+      const originalPreview = statusAgainst(repo, original.id, {
+        session,
+        expectedIdentity: `git:${original.commit}`,
+      });
+      const originalMutationTargetCount =
+        originalPreview.modified.length +
+        originalPreview.added.length +
+        originalPreview.deleted.length;
+
+      writeFileSync(path.join(repo, "a.txt"), "target-a\n", "utf8");
+      rmSync(path.join(repo, "b.txt"));
+      writeFileSync(path.join(repo, "target-added.txt"), "target\n", "utf8");
+      const workspaceLease = {
+        canonicalWorkspaceRoot: repo,
+        assertOwned: vi.fn(),
+      };
+      const plan = controllerOptions.prepareWorkspaceRollback({
+        operationId: projection.operationId,
+        recoveryRequestId: "rollback-real-git",
+        workspaceRoot: repo,
+        workspaceLease,
+        expected: {
+          engine: "git",
+          restoreSurface: "direct",
+          checkpointNamespace: session,
+          originalCheckpoint: {
+            id: original.id,
+            identity: `git:${original.commit}`,
+          },
+          safetyCheckpoint: {
+            id: safety.id,
+            identity: `git:${safety.commit}`,
+            planIdentity: originalPreview.workspaceBinding.writePlanIdentity,
+          },
+          originalWorkspaceWritePlanIdentity:
+            originalPreview.workspaceBinding.writePlanIdentity,
+          originalPrestateDigest: `sha256:${"5".repeat(64)}`,
+          originalMutationTargetCount,
+        },
+      });
+      expect(plan).toMatchObject({
+        engine: "git",
+        checkpointNamespace: session,
+        targetCount: 3,
+      });
+
+      const result = controllerOptions.executeWorkspaceRollback({
+        operationId: projection.operationId,
+        recoveryRequestId: "rollback-real-git",
+        workspaceRoot: repo,
+        workspaceLease,
+        plan,
+      });
+      expect(result).toMatchObject({ engine: "git", rolledBackCount: 3 });
+      expect(readFileSync(path.join(repo, "a.txt"), "utf8")).toBe("safety-a\n");
+      expect(readFileSync(path.join(repo, "b.txt"), "utf8")).toBe("safety-b\n");
+      expect(existsSync(path.join(repo, "target-added.txt"))).toBe(false);
+      expect(statusAgainst(repo, safety.id, { session })).toMatchObject({
+        modified: [],
+        added: [],
+        deleted: [],
+      });
+      expect(workspaceLease.assertOwned).toHaveBeenCalled();
+    } finally {
+      rmSync(repo, { recursive: true, force: true });
+    }
+  }, 60_000);
+
+  it("uses the real copy rollback adapter behind the public wiring", async () => {
+    const projection = rollbackProjection({ kind: "copy" });
+    const testHarness = harness({ projection });
+    delete testHarness.dependencies.prepareCopyCheckpointRollback;
+    delete testHarness.dependencies.executeCopyCheckpointRollback;
+
+    await parse(testHarness, [
+      "rollback",
+      projection.operationId,
+      "--expected-seq",
+      "7",
+      "--expected-head-hash",
+      HEAD_HASH,
+      "--expected-owner-digest",
+      LIVE_OWNER_DIGEST,
+      "--yes",
+      "--json",
+    ]);
+
+    const controllerOptions =
+      testHarness.dependencies.createPartialRollbackController.mock.calls[0][0];
+    const base = realpathSync.native(
+      mkdtempSync(path.join(os.tmpdir(), "cc-recovery-cli-copy-")),
+    );
+    const work = path.join(base, "work");
+    const privateHome = path.join(base, "private-home");
+    mkdirSync(work, { recursive: true });
+    mkdirSync(privateHome, { recursive: true });
+    const priorHome = process.env.CHAINLESSCHAIN_HOME;
+    process.env.CHAINLESSCHAIN_HOME = privateHome;
+    try {
+      const target = path.join(work, "a.txt");
+      writeFileSync(target, "FORWARD-A", "utf8");
+      const forward = createCopyCheckpoint(["a.txt"], {
+        cwd: work,
+        label: "forward-target",
+      });
+      writeFileSync(target, "SAFETY-A", "utf8");
+      const original = restoreCopyCheckpoint(forward.id, {
+        cwd: work,
+        expectedIdentity: computeCopyCheckpointIdentity(forward),
+      });
+      expect(readFileSync(target, "utf8")).toBe("FORWARD-A");
+
+      let originalMutationTargetCount = null;
+      let interrupted = null;
+      try {
+        restoreCopyCheckpoint(original.safetyId, {
+          cwd: work,
+          expectedIdentity: original.safetyIdentity,
+          expectedSafetyPlanIdentity: original.safetyPlanIdentity,
+          onMutationStarted: (evidence) => {
+            originalMutationTargetCount = evidence.mutationCount;
+          },
+          onTargetPublished: () => {
+            const error = new Error("stop after copy target publication");
+            error.code = "INJECTED_COPY_ROLLBACK_WIRING_STOP";
+            throw error;
+          },
+        });
+      } catch (error) {
+        interrupted = error;
+      }
+      expect(interrupted).toMatchObject({
+        code: "INJECTED_COPY_ROLLBACK_WIRING_STOP",
+        safetyCoverage: "full",
+        safetyId: expect.any(String),
+        safetyIdentity: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+        safetyPlanIdentity: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+      });
+      expect(originalMutationTargetCount).toBe(1);
+      expect(readFileSync(target, "utf8")).toBe("SAFETY-A");
+
+      const workspaceLease = {
+        canonicalWorkspaceRoot: realpathSync.native(work),
+        assertOwned: vi.fn(),
+      };
+      const plan = controllerOptions.prepareWorkspaceRollback({
+        operationId: projection.operationId,
+        recoveryRequestId: "rollback-real-copy",
+        workspaceRoot: work,
+        workspaceLease,
+        expected: {
+          engine: "copy",
+          restoreSurface: "direct",
+          checkpointNamespace: null,
+          originalCheckpoint: {
+            id: original.safetyId,
+            identity: original.safetyIdentity,
+          },
+          safetyCheckpoint: {
+            id: interrupted.safetyId,
+            identity: interrupted.safetyIdentity,
+            planIdentity: interrupted.safetyPlanIdentity,
+          },
+          originalWorkspaceWritePlanIdentity: original.safetyPlanIdentity,
+          originalPrestateDigest: `sha256:${"5".repeat(64)}`,
+          originalMutationTargetCount,
+        },
+      });
+      expect(plan).toMatchObject({
+        engine: "copy",
+        checkpointNamespace: null,
+        targetCount: 1,
+      });
+
+      const result = controllerOptions.executeWorkspaceRollback({
+        operationId: projection.operationId,
+        recoveryRequestId: "rollback-real-copy",
+        workspaceRoot: work,
+        workspaceLease,
+        plan,
+      });
+      expect(result).toMatchObject({ engine: "copy", rolledBackCount: 1 });
+      expect(readFileSync(target, "utf8")).toBe("FORWARD-A");
+      expect(workspaceLease.assertOwned).toHaveBeenCalled();
+    } finally {
+      if (priorHome === undefined) delete process.env.CHAINLESSCHAIN_HOME;
+      else process.env.CHAINLESSCHAIN_HOME = priorHome;
+      rmSync(base, { recursive: true, force: true });
+    }
+  }, 120_000);
+
+  it("maps unknown rollback errors to one public allowlisted failure", async () => {
+    const projection = rollbackProjection();
+    const testHarness = harness({ projection });
+    testHarness.partialRollbackController.rollback.mockImplementation(() => {
+      const error = new CheckpointRestoreRecoveryCliError(
+        "PRIVATE_ROLLBACK_SECRET_CODE",
+        RAW_REASON,
+        CHECKPOINT_RESTORE_RECOVERY_CLI_EXIT_CODES.INVALID_USAGE,
+      );
+      error.workspaceRoot = WORKSPACE_ROOT;
+      throw error;
+    });
+
+    await parse(testHarness, [
+      "rollback",
+      projection.operationId,
+      "--expected-seq",
+      "7",
+      "--expected-head-hash",
+      HEAD_HASH,
+      "--expected-owner-digest",
+      LIVE_OWNER_DIGEST,
+      "--yes",
+      "--json",
+    ]);
+
+    const serialized = testHarness.stderr[0];
+    expect(JSON.parse(serialized)).toMatchObject({
+      error: {
+        code: CHECKPOINT_RESTORE_RECOVERY_CLI_ERROR_CODES.FAILED,
+        message:
+          "Checkpoint restore recovery failed without changing the requested authority.",
+      },
+      exitCode: CHECKPOINT_RESTORE_RECOVERY_CLI_EXIT_CODES.FAILURE,
+    });
+    expect(serialized).not.toContain("PRIVATE_ROLLBACK_SECRET_CODE");
+    expect(serialized).not.toContain(RAW_REASON);
+    expect(serialized).not.toContain(WORKSPACE_ROOT);
+  });
+
+  it("rejects a thenable returned by an ordinary rollback function", async () => {
+    const projection = rollbackProjection();
+    const testHarness = harness({ projection });
+    let rollbackCalls = 0;
+    function rollback() {
+      rollbackCalls += 1;
+      return Promise.resolve(
+        mutationResult(
+          CHECKPOINT_RESTORE_PARTIAL_ROLLBACK_ACTION,
+          projection.operationId,
+        ),
+      );
+    }
+    testHarness.dependencies.createPartialRollbackController.mockReturnValue({
+      rollback,
+    });
+
+    await parse(testHarness, [
+      "rollback",
+      projection.operationId,
+      "--expected-seq",
+      "7",
+      "--expected-head-hash",
+      HEAD_HASH,
+      "--expected-owner-digest",
+      LIVE_OWNER_DIGEST,
+      "--yes",
+      "--json",
+    ]);
+
+    expect(rollbackCalls).toBe(1);
+    expect(testHarness.stdout).toEqual([]);
+    expect(JSON.parse(testHarness.stderr[0])).toMatchObject({
+      error: {
+        code: CHECKPOINT_RESTORE_RECOVERY_CLI_ERROR_CODES.INVALID_DEPENDENCY,
+      },
+      exitCode: CHECKPOINT_RESTORE_RECOVERY_CLI_EXIT_CODES.FAILURE,
+    });
+  });
+
+  it("fails closed when a rollback result has a hostile then getter", async () => {
+    const projection = rollbackProjection();
+    const testHarness = harness({ projection });
+    let rollbackCalls = 0;
+    let thenReads = 0;
+    function rollback() {
+      rollbackCalls += 1;
+      const result = mutationResult(
+        CHECKPOINT_RESTORE_PARTIAL_ROLLBACK_ACTION,
+        projection.operationId,
+      );
+      Object.defineProperty(result, "then", {
+        enumerable: true,
+        get() {
+          thenReads += 1;
+          throw new Error(RAW_REASON);
+        },
+      });
+      return result;
+    }
+    testHarness.dependencies.createPartialRollbackController.mockReturnValue({
+      rollback,
+    });
+
+    await parse(testHarness, [
+      "rollback",
+      projection.operationId,
+      "--expected-seq",
+      "7",
+      "--expected-head-hash",
+      HEAD_HASH,
+      "--expected-owner-digest",
+      LIVE_OWNER_DIGEST,
+      "--yes",
+      "--json",
+    ]);
+
+    expect(rollbackCalls).toBe(1);
+    expect(thenReads).toBe(1);
+    expect(testHarness.stdout).toEqual([]);
+    const serialized = testHarness.stderr[0];
+    expect(JSON.parse(serialized)).toMatchObject({
+      error: {
+        code: CHECKPOINT_RESTORE_RECOVERY_CLI_ERROR_CODES.INVALID_DEPENDENCY,
+      },
+      exitCode: CHECKPOINT_RESTORE_RECOVERY_CLI_EXIT_CODES.FAILURE,
+    });
+    expect(serialized).not.toContain(RAW_REASON);
+  });
+
+  it("rejects an asynchronous rollback handler before invoking it", async () => {
+    const projection = rollbackProjection();
+    const testHarness = harness({ projection });
+    let rollbackCalls = 0;
+    async function rollback() {
+      rollbackCalls += 1;
+      return mutationResult(
+        CHECKPOINT_RESTORE_PARTIAL_ROLLBACK_ACTION,
+        projection.operationId,
+      );
+    }
+    testHarness.dependencies.createPartialRollbackController.mockReturnValue({
+      rollback,
+    });
+
+    await parse(testHarness, [
+      "rollback",
+      projection.operationId,
+      "--expected-seq",
+      "7",
+      "--expected-head-hash",
+      HEAD_HASH,
+      "--expected-owner-digest",
+      LIVE_OWNER_DIGEST,
+      "--yes",
+      "--json",
+    ]);
+
+    expect(rollbackCalls).toBe(0);
+    expect(JSON.parse(testHarness.stderr[0])).toMatchObject({
+      error: {
+        code: CHECKPOINT_RESTORE_RECOVERY_CLI_ERROR_CODES.INVALID_DEPENDENCY,
+      },
+      exitCode: CHECKPOINT_RESTORE_RECOVERY_CLI_EXIT_CODES.FAILURE,
+    });
+  });
+
   it("rejects direct restore authority before invoking resume", async () => {
     const projection = recoveryProjection({
       phase: "recovery_required",
@@ -753,7 +1760,7 @@ describe("checkpoint restore recovery command surface", () => {
       ok: true,
       action: "abort",
       operationId: "restore_cli_1",
-      warning: { code: "CHECKPOINT_RESTORE_ARCHIVE_PENDING" },
+      warning: { code: "CHECKPOINT_RESTORE_SAGA_ARCHIVE_PENDING" },
     });
     expect(JSON.stringify(result)).not.toContain(RAW_REASON);
     expect(JSON.stringify(result)).not.toContain(OWNER_TOKEN);

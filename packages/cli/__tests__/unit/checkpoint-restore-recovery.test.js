@@ -512,7 +512,7 @@ describe("checkpoint restore recovery read model", () => {
     });
   });
 
-  it("separates workspace rollback candidates from post-workspace settlement", () => {
+  it("keeps workspace rollback and settlement retries actionable", () => {
     const operationId = "restore_rollback_boundaries";
     const recovery = recoveryRequiredSaga(operationId);
     const owner = recovery.events[1].evidence.workspaceLockOwner;
@@ -543,7 +543,7 @@ describe("checkpoint restore recovery read model", () => {
         phase: "workspace_rolled_back",
         evidence: rollbackSettlement(requestId),
         status: "workspace_rolled_back_pending_session",
-        rollbackCandidate: false,
+        rollbackCandidate: true,
       },
       {
         phase: "session_rollback_committed",
@@ -552,7 +552,7 @@ describe("checkpoint restore recovery read model", () => {
           sessionRollbackCommitDigest: digest(74),
         },
         status: "session_rollback_pending_terminal",
-        rollbackCandidate: false,
+        rollbackCandidate: true,
       },
     ];
 
@@ -590,20 +590,14 @@ describe("checkpoint restore recovery read model", () => {
           resume: { candidate: true, eligible: false },
         },
       });
-      if (boundary.rollbackCandidate) {
-        expect(projection.actionEligibility.rollback.blockers).toEqual(
-          expect.arrayContaining([
-            "workspace_owner_status_unverified",
-            "workspace_state_unverified",
-            "safety_checkpoint_unverified",
-            "session_state_unverified",
-          ]),
-        );
-      } else {
-        expect(projection.actionEligibility.rollback.blockers).toEqual([
-          "workspace_rollback_already_settled",
-        ]);
-      }
+      expect(projection.actionEligibility.rollback.blockers).toEqual(
+        expect.arrayContaining([
+          "workspace_owner_status_unverified",
+          "workspace_state_unverified",
+          "safety_checkpoint_unverified",
+          "session_state_unverified",
+        ]),
+      );
     }
 
     const settled = projectCheckpointRestoreRecovery(saga(events));
@@ -621,6 +615,67 @@ describe("checkpoint restore recovery read model", () => {
     });
     expect(JSON.stringify(settled)).not.toContain(OWNER_TOKEN);
     expect(JSON.stringify(settled)).not.toContain(WORKSPACE_ROOT);
+  });
+
+  it("projects a zero-target rollback from binding through workspace settlement", () => {
+    const operationId = "restore_zero_target_rollback";
+    const recovery = recoveryRequiredSaga(operationId);
+    const owner = recovery.events[1].evidence.workspaceLockOwner;
+    const requestId = "rollback-request-zero";
+    const binding = {
+      ...rollbackBinding(requestId),
+      targetCount: 0,
+    };
+    const preparedEvents = [
+      ...recovery.events,
+      event(operationId, recovery.events.length + 1, "recovery_started", {
+        workspaceLockOwner: owner,
+        lockOwnerDigest: OWNER_DIGEST,
+        recoveryAction: "rollback-partial-mutation",
+        recoveryRequestId: requestId,
+      }),
+      event(
+        operationId,
+        recovery.events.length + 2,
+        "rollback_prepared",
+        binding,
+      ),
+    ];
+
+    const prepared = projectCheckpointRestoreRecovery(saga(preparedEvents));
+    expect(prepared).toMatchObject({
+      basePhase: "rollback_prepared",
+      progress: { targetCount: 0 },
+      rollback: {
+        phase: "rollback_prepared",
+        originalMutationTargetCount: 2,
+        targetCount: 0,
+      },
+      actionEligibility: { rollback: { candidate: true } },
+    });
+
+    const settled = projectCheckpointRestoreRecovery(
+      saga([
+        ...preparedEvents,
+        event(operationId, preparedEvents.length + 1, "workspace_rolled_back", {
+          ...binding,
+          rolledBackCount: 0,
+          rollbackStateDigest: digest(75),
+          resultDigest: digest(76),
+        }),
+      ]),
+    );
+    expect(settled).toMatchObject({
+      basePhase: "workspace_rolled_back",
+      progress: { targetCount: 0 },
+      rollback: {
+        phase: "workspace_rolled_back",
+        originalMutationTargetCount: 2,
+        targetCount: 0,
+        rolledBackCount: 0,
+      },
+      actionEligibility: { rollback: { candidate: true } },
+    });
   });
 
   it("projects only the latest recovery request when a new cycle replans rollback", () => {
@@ -737,8 +792,13 @@ describe("checkpoint restore recovery read model", () => {
       },
       actionEligibility: {
         rollback: {
-          candidate: false,
-          blockers: ["workspace_rollback_already_settled"],
+          candidate: true,
+          blockers: expect.arrayContaining([
+            "workspace_owner_status_unverified",
+            "workspace_state_unverified",
+            "safety_checkpoint_unverified",
+            "session_state_unverified",
+          ]),
         },
         resume: { candidate: true, eligible: false },
       },

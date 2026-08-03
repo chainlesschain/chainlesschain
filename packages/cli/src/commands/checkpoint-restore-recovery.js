@@ -15,7 +15,10 @@ import {
   CheckpointRestoreSagaStore,
   computeCheckpointRestoreWorkspaceLockOwnerDigest,
 } from "../lib/checkpoint-restore-saga.js";
-import { readVerifiedProjection } from "../harness/jsonl-session-store.js";
+import {
+  readVerifiedProjection,
+  withSessionAuthorityTransaction,
+} from "../harness/jsonl-session-store.js";
 import {
   createCheckpointRestoreRecoveryReader,
   MAX_CHECKPOINT_RESTORE_RECOVERY_LIST_LIMIT,
@@ -26,8 +29,23 @@ import {
   CheckpointRestoreAlreadyCompletedController,
 } from "../lib/checkpoint-restore-already-completed-controller.js";
 import { createCheckpointRestoreSessionRecoveryReader } from "../lib/checkpoint-restore-session-recovery.js";
+import {
+  CHECKPOINT_RESTORE_PARTIAL_ROLLBACK_ACTION,
+  CheckpointRestorePartialRollbackController,
+} from "../lib/checkpoint-restore-partial-rollback-controller.js";
 import { CheckpointRestoreWorkspaceTargetVerifier } from "../lib/checkpoint-restore-workspace-target-verifier.js";
-import { inspectWorkspaceLockOwnerSync } from "../lib/process-execution-broker/workspace-transaction.js";
+import {
+  executeCheckpointRollback as executeGitCheckpointRollback,
+  prepareCheckpointRollback as prepareGitCheckpointRollback,
+} from "../lib/checkpoint-store.js";
+import {
+  executeCheckpointRollback as executeCopyCheckpointRollback,
+  prepareCheckpointRollback as prepareCopyCheckpointRollback,
+} from "../lib/file-checkpoint.js";
+import {
+  inspectWorkspaceLockOwnerSync,
+  withWorkspaceRecoveryLockSync,
+} from "../lib/process-execution-broker/workspace-transaction.js";
 
 export const CHECKPOINT_RESTORE_RECOVERY_COMMAND_PREVIEW_SCHEMA =
   "chainlesschain.checkpoint-restore-recovery-command-preview";
@@ -65,7 +83,24 @@ const CONTROLLER_RESUME_PHASES = new Set([
   "workspace_applied",
   "session_committed",
 ]);
+const CONTROLLER_ROLLBACK_PHASES = new Set([
+  "mutation_started",
+  "rollback_prepared",
+  "rollback_started",
+  "workspace_rolled_back",
+  "session_rollback_committed",
+]);
+const ROLLBACK_BINDING_PHASES = new Set([
+  "rollback_prepared",
+  "rollback_started",
+  "workspace_rolled_back",
+  "session_rollback_committed",
+]);
 const CHECKPOINT_RESTORE_PURPOSE = "checkpoint-restore";
+const RECOVERY_REQUEST_ID_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,255}$/;
+const GIT_CHECKPOINT_IDENTITY_PATTERN = /^git:(?:[a-f0-9]{40}|[a-f0-9]{64})$/;
+const GIT_CHECKPOINT_NAMESPACE_PATTERN =
+  /^(?!\.)(?!.*\.\.)(?!.*\.lock$)(?!.*\.$)[A-Za-z0-9._-]{1,256}$/i;
 
 const PUBLIC_ERROR_MESSAGES = Object.freeze({
   CHECKPOINT_RESTORE_RECOVERY_CLI_INVALID_ARGUMENT:
@@ -108,6 +143,22 @@ const PUBLIC_ERROR_MESSAGES = Object.freeze({
     "Workspace target verification authority is invalid.",
   CHECKPOINT_RESTORE_WORKSPACE_TARGET_CONFLICT:
     "The workspace does not match the exact restored checkpoint target.",
+  CHECKPOINT_RESTORE_PARTIAL_ROLLBACK_INVALID_ARGUMENT:
+    "Recovery arguments are invalid; refresh the read-only preview and retry.",
+  CHECKPOINT_RESTORE_PARTIAL_ROLLBACK_SAGA_CONFLICT:
+    "The checkpoint restore saga changed; run recovery show again.",
+  CHECKPOINT_RESTORE_PARTIAL_ROLLBACK_ACTION_NOT_ALLOWED:
+    "Partial rollback is not executable from the verified current state.",
+  CHECKPOINT_RESTORE_PARTIAL_ROLLBACK_OWNER_CONFLICT:
+    "The live workspace recovery owner could not be matched exactly.",
+  CHECKPOINT_RESTORE_PARTIAL_ROLLBACK_PLAN_INVALID:
+    "The exact workspace rollback plan could not be proven safely.",
+  CHECKPOINT_RESTORE_PARTIAL_ROLLBACK_RESULT_INVALID:
+    "Workspace rollback completion could not be proven; recovery authority was retained.",
+  CHECKPOINT_RESTORE_PARTIAL_ROLLBACK_SESSION_CONFLICT:
+    "The session transcript does not prove one exact rollback settlement.",
+  CHECKPOINT_RESTORE_PARTIAL_ROLLBACK_ASYNC_UNSUPPORTED:
+    "Recovery verification must remain synchronous under workspace authority.",
   CHECKPOINT_RESTORE_SAGA_NOT_FOUND:
     "The requested checkpoint restore recovery operation was not found.",
   CHECKPOINT_RESTORE_SAGA_CONFLICT:
@@ -119,6 +170,38 @@ const PUBLIC_ERROR_MESSAGES = Object.freeze({
   WORKSPACE_TRANSACTION_LOCK_CORRUPT:
     "The live workspace lock could not be verified safely.",
 });
+
+const INVALID_USAGE_PUBLIC_ERRORS = new Set([
+  CHECKPOINT_RESTORE_RECOVERY_CLI_ERROR_CODES.INVALID_ARGUMENT,
+  CHECKPOINT_RESTORE_RECOVERY_CLI_ERROR_CODES.CONFIRMATION_REQUIRED,
+  "CHECKPOINT_RESTORE_RECOVERY_INVALID_ARGUMENT",
+  "CHECKPOINT_RESTORE_ALREADY_COMPLETED_INVALID_ARGUMENT",
+  "CHECKPOINT_RESTORE_WORKSPACE_TARGET_INVALID_ARGUMENT",
+  "CHECKPOINT_RESTORE_PARTIAL_ROLLBACK_INVALID_ARGUMENT",
+]);
+
+const NOT_EXECUTABLE_PUBLIC_ERRORS = new Set([
+  CHECKPOINT_RESTORE_RECOVERY_CLI_ERROR_CODES.FENCE_MISMATCH,
+  CHECKPOINT_RESTORE_RECOVERY_CLI_ERROR_CODES.ACTION_NOT_ELIGIBLE,
+  CHECKPOINT_RESTORE_RECOVERY_CLI_ERROR_CODES.WORKSPACE_UNAVAILABLE,
+  "CHECKPOINT_RESTORE_RECOVERY_SAGA_CONFLICT",
+  "CHECKPOINT_RESTORE_RECOVERY_ACTION_NOT_ALLOWED",
+  "CHECKPOINT_RESTORE_RECOVERY_OWNER_CONFLICT",
+  "CHECKPOINT_RESTORE_ALREADY_COMPLETED_SAGA_CONFLICT",
+  "CHECKPOINT_RESTORE_ALREADY_COMPLETED_ACTION_NOT_ALLOWED",
+  "CHECKPOINT_RESTORE_ALREADY_COMPLETED_OWNER_CONFLICT",
+  "CHECKPOINT_RESTORE_ALREADY_COMPLETED_SESSION_CONFLICT",
+  "CHECKPOINT_RESTORE_ALREADY_COMPLETED_WORKSPACE_CONFLICT",
+  "CHECKPOINT_RESTORE_WORKSPACE_TARGET_CONFLICT",
+  "CHECKPOINT_RESTORE_PARTIAL_ROLLBACK_SAGA_CONFLICT",
+  "CHECKPOINT_RESTORE_PARTIAL_ROLLBACK_ACTION_NOT_ALLOWED",
+  "CHECKPOINT_RESTORE_PARTIAL_ROLLBACK_OWNER_CONFLICT",
+  "CHECKPOINT_RESTORE_PARTIAL_ROLLBACK_PLAN_INVALID",
+  "CHECKPOINT_RESTORE_PARTIAL_ROLLBACK_SESSION_CONFLICT",
+  "CHECKPOINT_RESTORE_SAGA_NOT_FOUND",
+  "CHECKPOINT_RESTORE_SAGA_CONFLICT",
+  "WORKSPACE_TRANSACTION_RECOVERY_REQUIRED",
+]);
 
 export class CheckpointRestoreRecoveryCliError extends Error {
   constructor(code, message, exitCode) {
@@ -144,33 +227,31 @@ function isPlainObject(value) {
   return prototype === Object.prototype || prototype === null;
 }
 
-function safeErrorCode(value, fallback) {
-  return typeof value === "string" && ERROR_CODE_PATTERN.test(value)
+function publicErrorCode(error) {
+  let value = null;
+  try {
+    value = error?.code;
+  } catch {
+    return CHECKPOINT_RESTORE_RECOVERY_CLI_ERROR_CODES.FAILED;
+  }
+  return typeof value === "string" &&
+    ERROR_CODE_PATTERN.test(value) &&
+    Object.hasOwn(PUBLIC_ERROR_MESSAGES, value)
     ? value
-    : fallback;
+    : CHECKPOINT_RESTORE_RECOVERY_CLI_ERROR_CODES.FAILED;
 }
 
 function publicError(error) {
-  if (error instanceof CheckpointRestoreRecoveryCliError) return error;
-  const code = safeErrorCode(
-    error?.code,
-    CHECKPOINT_RESTORE_RECOVERY_CLI_ERROR_CODES.FAILED,
-  );
+  const code = publicErrorCode(error);
   const message =
     PUBLIC_ERROR_MESSAGES[code] ||
     PUBLIC_ERROR_MESSAGES.CHECKPOINT_RESTORE_RECOVERY_CLI_FAILED;
-  const notExecutable =
-    code.includes("CONFLICT") ||
-    code.includes("NOT_ALLOWED") ||
-    code.includes("NOT_FOUND") ||
-    code.includes("RECOVERY_REQUIRED");
-  const invalid = code.includes("INVALID_ARGUMENT");
   return new CheckpointRestoreRecoveryCliError(
     code,
     message,
-    invalid
+    INVALID_USAGE_PUBLIC_ERRORS.has(code)
       ? CHECKPOINT_RESTORE_RECOVERY_CLI_EXIT_CODES.INVALID_USAGE
-      : notExecutable
+      : NOT_EXECUTABLE_PUBLIC_ERRORS.has(code)
         ? CHECKPOINT_RESTORE_RECOVERY_CLI_EXIT_CODES.NOT_EXECUTABLE
         : CHECKPOINT_RESTORE_RECOVERY_CLI_EXIT_CODES.FAILURE,
   );
@@ -256,9 +337,28 @@ function normalizeDependencies(dependencies = {}) {
     createAlreadyCompletedController:
       dependencies.createAlreadyCompletedController ||
       ((options) => new CheckpointRestoreAlreadyCompletedController(options)),
+    createPartialRollbackController:
+      dependencies.createPartialRollbackController ||
+      ((options) => new CheckpointRestorePartialRollbackController(options)),
+    prepareGitCheckpointRollback:
+      dependencies.prepareGitCheckpointRollback || prepareGitCheckpointRollback,
+    executeGitCheckpointRollback:
+      dependencies.executeGitCheckpointRollback || executeGitCheckpointRollback,
+    prepareCopyCheckpointRollback:
+      dependencies.prepareCopyCheckpointRollback ||
+      prepareCopyCheckpointRollback,
+    executeCopyCheckpointRollback:
+      dependencies.executeCopyCheckpointRollback ||
+      executeCopyCheckpointRollback,
+    withSessionAuthorityTransaction:
+      dependencies.withSessionAuthorityTransaction ||
+      withSessionAuthorityTransaction,
     inspectWorkspaceLockOwnerSync:
       dependencies.inspectWorkspaceLockOwnerSync ||
       inspectWorkspaceLockOwnerSync,
+    withWorkspaceRecoveryLockSync:
+      dependencies.withWorkspaceRecoveryLockSync ||
+      withWorkspaceRecoveryLockSync,
     computeWorkspaceLockOwnerDigest:
       dependencies.computeWorkspaceLockOwnerDigest ||
       computeCheckpointRestoreWorkspaceLockOwnerDigest,
@@ -274,10 +374,107 @@ function normalizeDependencies(dependencies = {}) {
   });
 }
 
+function invalidRollbackAdapterAuthority() {
+  return cliError(
+    CHECKPOINT_RESTORE_RECOVERY_CLI_ERROR_CODES.INVALID_DEPENDENCY,
+    CHECKPOINT_RESTORE_RECOVERY_CLI_EXIT_CODES.FAILURE,
+  );
+}
+
+function isCanonicalGitCheckpointNamespace(value) {
+  return (
+    typeof value === "string" && GIT_CHECKPOINT_NAMESPACE_PATTERN.test(value)
+  );
+}
+
+function createWorkspaceRollbackAdapters(runtime) {
+  const prepareWorkspaceRollback = (request) => {
+    const expected = request?.expected;
+    const original = expected?.originalCheckpoint;
+    const safety = expected?.safetyCheckpoint;
+    if (
+      !isPlainObject(request) ||
+      !isPlainObject(expected) ||
+      !isPlainObject(original) ||
+      !isPlainObject(safety) ||
+      typeof request.workspaceRoot !== "string"
+    ) {
+      throw invalidRollbackAdapterAuthority();
+    }
+    const options = {
+      expectedOriginalIdentity: original.identity,
+      expectedSafetyIdentity: safety.identity,
+      expectedSafetyPlanIdentity: safety.planIdentity,
+      originalMutationTargetCount: expected.originalMutationTargetCount,
+    };
+    if (expected.engine === "git") {
+      if (!isCanonicalGitCheckpointNamespace(expected.checkpointNamespace)) {
+        throw invalidRollbackAdapterAuthority();
+      }
+      return runtime.prepareGitCheckpointRollback(
+        request.workspaceRoot,
+        original.id,
+        safety.id,
+        { ...options, session: expected.checkpointNamespace },
+      );
+    }
+    if (expected.engine === "copy") {
+      if (expected.checkpointNamespace !== null) {
+        throw invalidRollbackAdapterAuthority();
+      }
+      return runtime.prepareCopyCheckpointRollback(
+        request.workspaceRoot,
+        original.id,
+        safety.id,
+        options,
+      );
+    }
+    throw invalidRollbackAdapterAuthority();
+  };
+
+  const executeWorkspaceRollback = (request) => {
+    if (
+      !isPlainObject(request) ||
+      typeof request.workspaceRoot !== "string" ||
+      !isPlainObject(request.plan)
+    ) {
+      throw invalidRollbackAdapterAuthority();
+    }
+    const options = { workspaceLease: request.workspaceLease };
+    if (request.plan.engine === "git") {
+      return runtime.executeGitCheckpointRollback(
+        request.workspaceRoot,
+        request.plan,
+        options,
+      );
+    }
+    if (request.plan.engine === "copy") {
+      if (request.plan.checkpointNamespace !== null) {
+        throw invalidRollbackAdapterAuthority();
+      }
+      return runtime.executeCopyCheckpointRollback(
+        request.workspaceRoot,
+        request.plan,
+        options,
+      );
+    }
+    throw invalidRollbackAdapterAuthority();
+  };
+
+  return Object.freeze({
+    prepareWorkspaceRollback,
+    executeWorkspaceRollback,
+  });
+}
+
 function openContext(
   runtime,
   directory,
-  { mutation = false, alreadyCompletedResume = false } = {},
+  {
+    mutation = false,
+    alreadyCompletedResume = false,
+    partialRollback = false,
+  } = {},
 ) {
   const resolvedWorkspaceRoot = runtime.resolveWorkspaceRoot(directory || ".");
   if (
@@ -375,12 +572,51 @@ function openContext(
       );
     }
   }
+  let partialRollbackController = null;
+  if (partialRollback) {
+    const sessionRecoveryReader = runtime.createSessionRecoveryReader({
+      workspaceRoot,
+    });
+    if (
+      !sessionRecoveryReader ||
+      typeof sessionRecoveryReader.read !== "function"
+    ) {
+      throw cliError(
+        CHECKPOINT_RESTORE_RECOVERY_CLI_ERROR_CODES.INVALID_DEPENDENCY,
+        CHECKPOINT_RESTORE_RECOVERY_CLI_EXIT_CODES.FAILURE,
+      );
+    }
+    const adapters = createWorkspaceRollbackAdapters(runtime);
+    partialRollbackController = runtime.createPartialRollbackController({
+      workspaceRoot,
+      store,
+      prepareWorkspaceRollback: adapters.prepareWorkspaceRollback,
+      executeWorkspaceRollback: adapters.executeWorkspaceRollback,
+      sessionRecoveryReader,
+      withSessionAuthorityTransaction: runtime.withSessionAuthorityTransaction,
+      inspectWorkspaceLockOwnerSync: runtime.inspectWorkspaceLockOwnerSync,
+      withWorkspaceRecoveryLockSync: runtime.withWorkspaceRecoveryLockSync,
+      computeWorkspaceLockOwnerDigest: runtime.computeWorkspaceLockOwnerDigest,
+      workspaceLockOptions: runtime.workspaceLockOptions,
+    });
+    if (
+      !partialRollbackController ||
+      typeof partialRollbackController.rollback !== "function" ||
+      partialRollbackController.rollback.constructor?.name === "AsyncFunction"
+    ) {
+      throw cliError(
+        CHECKPOINT_RESTORE_RECOVERY_CLI_ERROR_CODES.INVALID_DEPENDENCY,
+        CHECKPOINT_RESTORE_RECOVERY_CLI_EXIT_CODES.FAILURE,
+      );
+    }
+  }
   return Object.freeze({
     workspaceRoot,
     store,
     reader,
     controller,
     alreadyCompletedController,
+    partialRollbackController,
   });
 }
 
@@ -440,6 +676,79 @@ function commandAction({ candidate, eligible, blockers, prerequisites }) {
     blockers: Object.freeze([...blockers]),
     prerequisites: Object.freeze([...prerequisites]),
   });
+}
+
+function projectedText(value, maximum = 1_024) {
+  return (
+    typeof value === "string" &&
+    value.length > 0 &&
+    value.length <= maximum &&
+    value.trim() === value &&
+    !value.includes("\0")
+  );
+}
+
+function projectedOriginalMutationTargetCount(projection) {
+  const rollback = projection?.rollback;
+  const rollbackPhase = projection?.rollback?.phase ?? null;
+  const rollbackCycleBound =
+    ROLLBACK_BINDING_PHASES.has(projection?.basePhase) ||
+    ROLLBACK_BINDING_PHASES.has(rollbackPhase);
+  if (rollbackCycleBound) {
+    return rollback?.originalMutationTargetCount;
+  }
+  const rollbackBindingPresent = [
+    rollback?.rollbackPrestateDigest,
+    rollback?.rollbackPlanIdentity,
+    rollback?.originalMutationTargetCount,
+    rollback?.targetCount,
+  ].some((value) => value !== null && value !== undefined);
+  if (
+    projection?.basePhase === "mutation_started" &&
+    (rollbackPhase === null || rollbackPhase === "recovery_started") &&
+    !rollbackBindingPresent
+  ) {
+    return projection?.progress?.targetCount;
+  }
+  return null;
+}
+
+function projectedRollbackAuthority(projection) {
+  const restore = projection?.restore;
+  const safety = projection?.safety;
+  const kind = restore?.kind;
+  const identityPattern =
+    kind === "git" ? GIT_CHECKPOINT_IDENTITY_PATTERN : HASH_PATTERN;
+  const originalMutationTargetCount =
+    projectedOriginalMutationTargetCount(projection);
+  const engineAuthority =
+    ["git", "copy"].includes(kind) &&
+    projectedText(restore?.checkpointId, 256) &&
+    identityPattern.test(String(restore?.checkpointIdentity || "")) &&
+    safety?.coverage === "full" &&
+    safety?.complete === true &&
+    projectedText(safety?.checkpointId, 256) &&
+    identityPattern.test(String(safety?.checkpointIdentity || "")) &&
+    HASH_PATTERN.test(String(safety?.planIdentity || "")) &&
+    Number.isSafeInteger(originalMutationTargetCount) &&
+    originalMutationTargetCount > 0 &&
+    (kind === "git"
+      ? isCanonicalGitCheckpointNamespace(restore?.checkpointNamespace)
+      : restore?.checkpointNamespace === null);
+  if (!engineAuthority) return false;
+  if (restore.surface === "direct") {
+    return (
+      restore.intentAuthority === "operation" &&
+      restore.sessionId === null &&
+      restore.timelineEntryId === null
+    );
+  }
+  return (
+    restore.surface === "timeline" &&
+    restore.intentAuthority === "session" &&
+    projectedText(restore.sessionId, 256) &&
+    projectedText(restore.timelineEntryId, 256)
+  );
 }
 
 function deriveCommandActions(projection, authority) {
@@ -527,22 +836,37 @@ function deriveCommandActions(projection, authority) {
     resumeBlockers.push("retained_workspace_owner_required");
   }
 
-  const deferred = (name) => {
-    const candidate = projection?.actionEligibility?.[name]?.candidate === true;
-    const projectedBlockers = Array.isArray(
-      projection?.actionEligibility?.[name]?.blockers,
-    )
-      ? projection.actionEligibility[name].blockers
-      : [];
-    return commandAction({
-      candidate,
-      eligible: false,
-      blockers: candidate ? ["action_not_implemented"] : projectedBlockers,
-      prerequisites: candidate
-        ? projection.actionEligibility[name].prerequisites || []
-        : [],
-    });
-  };
+  const rollbackCandidate =
+    projection?.actionEligibility?.rollback?.candidate === true;
+  const rollbackPhaseSupported = CONTROLLER_ROLLBACK_PHASES.has(basePhase);
+  const rollbackAuthority = projectedRollbackAuthority(projection);
+  const rollbackEligible =
+    pending &&
+    clean &&
+    rollbackCandidate &&
+    rollbackPhaseSupported &&
+    rollbackAuthority &&
+    retainedTakeover;
+  const rollbackBlockers = [];
+  if (!rollbackCandidate) {
+    rollbackBlockers.push(
+      ...(Array.isArray(projection?.actionEligibility?.rollback?.blockers)
+        ? projection.actionEligibility.rollback.blockers
+        : ["rollback_not_a_safe_candidate"]),
+    );
+  } else {
+    if (!pending) rollbackBlockers.push("saga_is_terminal");
+    if (!clean) rollbackBlockers.push("saga_integrity_not_clean");
+    if (!rollbackPhaseSupported) {
+      rollbackBlockers.push("controller_phase_not_supported");
+    }
+    if (!rollbackAuthority) {
+      rollbackBlockers.push("verified_rollback_authority_required");
+    }
+    if (!retainedTakeover) {
+      rollbackBlockers.push("retained_workspace_owner_required");
+    }
+  }
 
   return Object.freeze({
     abort: commandAction({
@@ -566,7 +890,22 @@ function deriveCommandActions(projection, authority) {
           ]
         : [],
     }),
-    rollback: deferred("rollback"),
+    rollback: commandAction({
+      candidate: rollbackCandidate,
+      eligible: rollbackEligible,
+      blockers: rollbackBlockers,
+      prerequisites: rollbackCandidate
+        ? [
+            "exact_mutation_fence",
+            "verified_full_safety_checkpoint",
+            "verified_workspace_rollback_state",
+            ...(projection?.restore?.surface === "timeline"
+              ? ["verified_session_rollback_state"]
+              : []),
+            "controller_compare_and_swap",
+          ]
+        : [],
+    }),
     release: commandAction({
       candidate: releaseCandidate,
       eligible: releaseEligible,
@@ -636,9 +975,47 @@ function mutationFence(options, preview) {
   return supplied;
 }
 
-function safeMutationResult(result, actionName, operationId) {
+function assertSynchronousMutationResult(value) {
+  if (
+    value === null ||
+    (typeof value !== "object" && typeof value !== "function")
+  ) {
+    return;
+  }
+  let then;
+  try {
+    then = value.then;
+  } catch {
+    throw cliError(
+      CHECKPOINT_RESTORE_RECOVERY_CLI_ERROR_CODES.INVALID_DEPENDENCY,
+      CHECKPOINT_RESTORE_RECOVERY_CLI_EXIT_CODES.FAILURE,
+    );
+  }
+  if (typeof then === "function") {
+    throw cliError(
+      CHECKPOINT_RESTORE_RECOVERY_CLI_ERROR_CODES.INVALID_DEPENDENCY,
+      CHECKPOINT_RESTORE_RECOVERY_CLI_EXIT_CODES.FAILURE,
+    );
+  }
+}
+
+function safeMutationResult(
+  result,
+  actionName,
+  operationId,
+  { restoreSurface = null } = {},
+) {
   const alreadyCompletedResume =
     actionName === CHECKPOINT_RESTORE_ALREADY_COMPLETED_ACTION;
+  const partialRollback =
+    actionName === CHECKPOINT_RESTORE_PARTIAL_ROLLBACK_ACTION;
+  assertSynchronousMutationResult(result);
+  const rollbackSessionDigestValid =
+    !partialRollback ||
+    (restoreSurface === "timeline"
+      ? HASH_PATTERN.test(String(result?.sessionRollbackCommitDigest || ""))
+      : restoreSurface === "direct" &&
+        result?.sessionRollbackCommitDigest === null);
   if (
     !isPlainObject(result) ||
     result.ok !== true ||
@@ -651,7 +1028,17 @@ function safeMutationResult(result, actionName, operationId) {
     !HASH_PATTERN.test(result.headHash) ||
     (alreadyCompletedResume &&
       (!HASH_PATTERN.test(String(result.sessionCommitDigest || "")) ||
-        !HASH_PATTERN.test(String(result.resultDigest || ""))))
+        !HASH_PATTERN.test(String(result.resultDigest || "")))) ||
+    (partialRollback &&
+      (result.phase !== "rolled_back" ||
+        !RECOVERY_REQUEST_ID_PATTERN.test(
+          String(result.recoveryRequestId || ""),
+        ) ||
+        !Number.isSafeInteger(result.rolledBackCount) ||
+        result.rolledBackCount < 0 ||
+        !HASH_PATTERN.test(String(result.rollbackStateDigest || "")) ||
+        !HASH_PATTERN.test(String(result.resultDigest || "")) ||
+        !rollbackSessionDigestValid))
   ) {
     throw cliError(
       CHECKPOINT_RESTORE_RECOVERY_CLI_ERROR_CODES.INVALID_DEPENDENCY,
@@ -662,9 +1049,13 @@ function safeMutationResult(result, actionName, operationId) {
     schema: CHECKPOINT_RESTORE_RECOVERY_COMMAND_RESULT_SCHEMA,
     version: CHECKPOINT_RESTORE_RECOVERY_COMMAND_VERSION,
     ok: true,
-    action: alreadyCompletedResume ? "resume" : actionName,
-    ...(alreadyCompletedResume
-      ? { recoveryAction: CHECKPOINT_RESTORE_ALREADY_COMPLETED_ACTION }
+    action: alreadyCompletedResume
+      ? "resume"
+      : partialRollback
+        ? "rollback"
+        : actionName,
+    ...(alreadyCompletedResume || partialRollback
+      ? { recoveryAction: actionName }
       : {}),
     operationId,
     phase: result.phase,
@@ -679,12 +1070,18 @@ function safeMutationResult(result, actionName, operationId) {
           resultDigest: result.resultDigest,
         }
       : {}),
+    ...(partialRollback
+      ? {
+          recoveryRequestId: result.recoveryRequestId,
+          rolledBackCount: result.rolledBackCount,
+          rollbackStateDigest: result.rollbackStateDigest,
+          resultDigest: result.resultDigest,
+          sessionRollbackCommitDigest: result.sessionRollbackCommitDigest,
+        }
+      : {}),
     warning: result.warning
       ? Object.freeze({
-          code: safeErrorCode(
-            result.warning.code,
-            "CHECKPOINT_RESTORE_SAGA_ARCHIVE_PENDING",
-          ),
+          code: "CHECKPOINT_RESTORE_SAGA_ARCHIVE_PENDING",
         })
       : null,
   });
@@ -758,6 +1155,19 @@ function humanMutation(result) {
     `  head: ${result.headHash}`,
     `  archived: ${result.archived ? "yes" : "no"}`,
   ];
+  if (result.recoveryAction === CHECKPOINT_RESTORE_PARTIAL_ROLLBACK_ACTION) {
+    lines.push(
+      `  rollback request: ${result.recoveryRequestId}`,
+      `  paths rolled back: ${result.rolledBackCount}`,
+      `  rollback state: ${result.rollbackStateDigest}`,
+      `  result: ${result.resultDigest}`,
+    );
+    if (result.sessionRollbackCommitDigest) {
+      lines.push(
+        `  session rollback commit: ${result.sessionRollbackCommitDigest}`,
+      );
+    }
+  }
   if (result.warning) lines.push(`  warning: ${result.warning.code}`);
   return lines.join("\n");
 }
@@ -901,6 +1311,44 @@ export function createCheckpointRestoreRecoveryCommandHandlers(
       });
     },
 
+    rollback(operationId, options = {}) {
+      return run(options, () => {
+        if (options.yes !== true) {
+          throw cliError(
+            CHECKPOINT_RESTORE_RECOVERY_CLI_ERROR_CODES.CONFIRMATION_REQUIRED,
+            CHECKPOINT_RESTORE_RECOVERY_CLI_EXIT_CODES.INVALID_USAGE,
+          );
+        }
+        const safeOperationId = assertOperationId(operationId);
+        const context = openContext(runtime, options.dir, {
+          partialRollback: true,
+        });
+        const preview = commandPreview(runtime, context, safeOperationId);
+        if (preview.actions.rollback.eligible !== true) {
+          throw cliError(
+            CHECKPOINT_RESTORE_RECOVERY_CLI_ERROR_CODES.ACTION_NOT_ELIGIBLE,
+            CHECKPOINT_RESTORE_RECOVERY_CLI_EXIT_CODES.NOT_EXECUTABLE,
+          );
+        }
+        const fence = mutationFence(options, preview);
+        const result = context.partialRollbackController.rollback(
+          safeOperationId,
+          fence,
+        );
+        return emitSuccess(
+          runtime,
+          options,
+          safeMutationResult(
+            result,
+            CHECKPOINT_RESTORE_PARTIAL_ROLLBACK_ACTION,
+            safeOperationId,
+            { restoreSurface: preview.recovery.restore.surface },
+          ),
+          humanMutation,
+        );
+      });
+    },
+
     release(operationId, options = {}) {
       return run(options, () => {
         if (options.yes !== true) {
@@ -931,7 +1379,7 @@ export function createCheckpointRestoreRecoveryCommandHandlers(
   });
 }
 
-/** Register `checkpoint recovery list/show/abort/resume/release`. */
+/** Register `checkpoint recovery list/show/abort/resume/rollback/release`. */
 export function registerCheckpointRestoreRecoveryCommands(
   checkpointCommand,
   dependencies = {},
@@ -946,11 +1394,11 @@ export function registerCheckpointRestoreRecoveryCommands(
   const recovery = checkpointCommand
     .command("recovery")
     .description(
-      "Inspect and conservatively settle durable checkpoint restore recovery; resume only an already-completed timeline restore",
+      "Inspect and conservatively settle durable checkpoint restore recovery",
     )
     .addHelpText(
       "after",
-      "\nResume only reconciles a verified already-completed timeline restore; rollback remains read-only.\n",
+      "\nResume only reconciles a verified already-completed timeline restore. Rollback only reverses a verified partial workspace mutation to its full safety checkpoint.\n",
     );
 
   recovery
@@ -1005,6 +1453,16 @@ export function registerCheckpointRestoreRecoveryCommands(
   )
     .argument("<operation-id>", "Checkpoint restore operationId")
     .action((operationId, options) => handlers.resume(operationId, options));
+
+  addMutationOptions(
+    recovery
+      .command("rollback")
+      .description(
+        "Reverse only a verified partial workspace mutation to full safety",
+      ),
+  )
+    .argument("<operation-id>", "Checkpoint restore operationId")
+    .action((operationId, options) => handlers.rollback(operationId, options));
 
   addMutationOptions(
     recovery

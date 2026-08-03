@@ -540,25 +540,25 @@ function deriveActionEligibility({
     WORKSPACE_ROLLBACK_CANDIDATE_BASE_PHASES.has(basePhase);
   const workspaceRollbackSettled =
     WORKSPACE_ROLLBACK_SETTLED_BASE_PHASES.has(basePhase);
+  const workspaceRollbackSupported =
+    workspaceRollbackPhase || workspaceRollbackSettled;
   const postApplySettlement = POST_APPLY_BASE_PHASES.has(basePhase);
   const rollbackCandidate =
     pending &&
     knownBasePhase &&
     clean &&
-    workspaceRollbackPhase &&
+    workspaceRollbackSupported &&
     hasFullSafety;
   const rollbackBlockers = [];
   if (!pending) rollbackBlockers.push("saga_is_terminal");
   if (!knownBasePhase) rollbackBlockers.push("base_phase_unknown");
   if (!clean) rollbackBlockers.push("saga_has_orphan_temporary_files");
-  if (pending && knownBasePhase && workspaceRollbackSettled) {
-    rollbackBlockers.push("workspace_rollback_already_settled");
-  } else if (pending && knownBasePhase && postApplySettlement) {
+  if (pending && knownBasePhase && postApplySettlement) {
     rollbackBlockers.push("workspace_rollback_not_partial_mutation");
-  } else if (pending && knownBasePhase && !workspaceRollbackPhase) {
+  } else if (pending && knownBasePhase && !workspaceRollbackSupported) {
     rollbackBlockers.push("workspace_mutation_not_proven");
   }
-  if (pending && workspaceRollbackPhase && !hasFullSafety) {
+  if (pending && workspaceRollbackSupported && !hasFullSafety) {
     rollbackBlockers.push("full_safety_evidence_missing");
   }
   if (rollbackCandidate) {

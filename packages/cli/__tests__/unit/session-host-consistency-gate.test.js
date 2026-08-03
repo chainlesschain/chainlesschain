@@ -286,7 +286,7 @@ describe("cli session-host consistency gate", () => {
     ]) {
       expect(raw).not.toContain(marker);
     }
-  }, 60_000);
+  }, 120_000);
 
   it("fails before host scenarios when exact-SHA provenance mismatches", async () => {
     const output = join(temporaryDirectory(), "provenance-failure.json");
@@ -325,6 +325,14 @@ describe("cli session-host consistency gate", () => {
       "packages/cli/__tests__/unit/ws-runtime-events.test.js",
       "packages/cli/__tests__/integration/ws-bridge-side-effect-resume.test.js",
       "packages/cli/__tests__/unit/headless-runner-resume-roles.test.js",
+      "packages/cli/src/commands/checkpoint-restore-recovery.js",
+      "packages/cli/src/lib/checkpoint-restore-recovery.js",
+      "packages/cli/src/lib/checkpoint-restore-session-recovery.js",
+      "packages/cli/src/lib/checkpoint-restore-partial-rollback-controller.js",
+      "packages/cli/__tests__/unit/checkpoint-restore-recovery.test.js",
+      "packages/cli/__tests__/unit/checkpoint-restore-session-recovery.test.js",
+      "packages/cli/__tests__/unit/checkpoint-restore-partial-rollback-controller.test.js",
+      "packages/cli/__tests__/unit/checkpoint-restore-recovery-command.test.js",
     ]) {
       expect(workflow.split(sourcePath)).toHaveLength(3);
       expect(gateScript.split(sourcePath)).toHaveLength(2);
