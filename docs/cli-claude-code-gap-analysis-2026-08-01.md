@@ -2,7 +2,7 @@
 
 > 分析日期：2026-08-01
 >
-> ChainlessChain 候选基线：`packages/cli` v0.162.192 release candidate；v0.162.190 / v0.162.191 未发布，npm registry `latest` 仍为 v0.162.189
+> ChainlessChain 候选基线：`packages/cli` v0.162.193 release candidate；v0.162.190 / v0.162.191 / v0.162.192 未发布，npm registry `latest` 仍为 v0.162.189
 >
 > Claude Code 参考基线：官方文档与 2.1.220 changelog（2026-07-25）
 >
@@ -663,3 +663,9 @@ E2E retry-pass 应记为 flake，而不是普通 pass；超过阈值阻断发布
 - `0.162.191` 的 exact release SHA `9e2a3238426499a3de1d228034e66dab91cbfa2c` 完成 [CLI CI `30791273745`](https://github.com/chainlesschain/chainlesschain/actions/runs/30791273745)、[CLI Strict Sandbox `30791273563`](https://github.com/chainlesschain/chainlesschain/actions/runs/30791273563) 与 [Session Host `30791273622`](https://github.com/chainlesschain/chainlesschain/actions/runs/30791273622)。[npm workflow `30793513643`](https://github.com/chainlesschain/chainlesschain/actions/runs/30793513643) 中 core packages、Agent SDK、PDH、Web Panel 和完整 CLI tests 全部成功，证明上一轮 fixture 修复有效；但 `package-cli` 的 SBOM 子命令失败，artifact upload 与 publish skipped，npm registry 仍无 `0.162.191`。
 - 根因是工作流在 monorepo root 对总 lock 执行 `npm sbom --package-lock-only`，把不属于 CLI 发布载荷的 Electron/React Native peer graph 一并纳入，确定性返回 `ESBOMPROBLEMS`。修复将 pack/manifest 与 SBOM 分步：从已生成的 immutable CLI tarball 解包到名为 `chainlesschain` 的临时根，使用 `--ignore-scripts --legacy-peer-deps` 只生成该发布包 lock，再产出 CycloneDX，并校验 root `name/version/purl` 与非空 components/dependencies。
 - 本地 tarball 路径验证成功：CycloneDX 1.5，root purl `pkg:npm/chainlesschain@0.162.191`，606 components、607 dependency entries；root-monorepo 直接生成继续按预期失败，证明隔离边界有效。`v-npm-0-162-191` 不移动、不覆盖，候选版本前进到 **`0.162.192`**。新 workflow、版本和文档所在 final SHA 必须重新通过三平台 CLI CI / Strict Sandbox 和 immutable package/SBOM/publish gate 后，才允许创建 `v-npm-0-162-192`。
+
+### 14.17 `0.162.192` rerun 门禁误判与 `0.162.193` 重试身份
+
+- `0.162.192` 的 exact release SHA `19dcdea87a87892fe9eb22a23b4f3fe9ce05af93` 完成 [CLI CI `30795367296` attempt 2](https://github.com/chainlesschain/chainlesschain/actions/runs/30795367296)、[CLI Strict Sandbox `30795367089`](https://github.com/chainlesschain/chainlesschain/actions/runs/30795367089) 与 [Session Host `30795366927`](https://github.com/chainlesschain/chainlesschain/actions/runs/30795366927)。CLI CI 首次执行的 7,259 个 macOS unit 4/4 用例仅真实双进程 CAS 竞争测试失败一次；同一 SHA 重跑后该分片和三平台 `verify-cli` 全绿。
+- [npm workflow `30799974832`](https://github.com/chainlesschain/chainlesschain/actions/runs/30799974832) 的 `exact-sha-gate` 仍失败：验证脚本请求 jobs 时显式使用 `filter=all`，把同一 run 第 1 次 attempt 的失败/skip 与第 2 次 attempt 的成功 jobs 混合，因而错误拒绝已经全绿的 SHA。门禁失败使 package/publish 不可达，npm registry 没有 `0.162.192`。
+- 修复把 jobs 查询改为 `filter=latest`，保留 exact SHA、成功 workflow run、全平台 job 和非 optional job 必须成功的全部约束；回归单测 **6/6** 通过，并用真实 `19dcdea…` / GitHub API 成功验证 CLI CI 与 Strict Sandbox。`v-npm-0-162-192` 不移动、不覆盖，候选版本前进到 **`0.162.193`**；包含修复、版本与文档的 final SHA 必须重新通过完整发布门后才允许打 `v-npm-0-162-193`。

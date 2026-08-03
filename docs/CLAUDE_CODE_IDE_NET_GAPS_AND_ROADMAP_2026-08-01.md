@@ -2,7 +2,7 @@
 
 - 评估日期：2026-08-01
 - ChainlessChain 仓库快照：`eb0bc663b6eb794b1b62ba2bfc7a1267c699d25d`
-- ChainlessChain 候选版本基线：CLI `0.162.192` release candidate（`0.162.190` / `0.162.191` 未发布，npm `latest` 仍为 `0.162.189`）、VS Code `0.37.37`、JetBrains `0.4.76`
+- ChainlessChain 候选版本基线：CLI `0.162.193` release candidate（`0.162.190` / `0.162.191` / `0.162.192` 未发布，npm `latest` 仍为 `0.162.189`）、VS Code `0.37.37`、JetBrains `0.4.76`
 - Claude Code 基线：[CLI `2.1.220`](https://code.claude.com/docs/en/changelog)；官方文档回读日期 2026-08-01
 
 > 本文是一份面向下一阶段决策的“净差距”报告，不重复罗列已经完成的能力。
@@ -750,3 +750,5 @@ release gate 已完成。
 - 测试夹具已改为同一临时根下互为 sibling 的 owner-private home 与 workspace，真实 CLI 的写文件、审批回调和 resume 路径本地复跑为 Agent SDK **7 files / 50 tests 全绿**；生产安全规则未放宽。已推送的失败 tag 不移动、不覆盖，后续发布身份前进为 **`chainlesschain@0.162.191` / `v-npm-0-162-191`**，仍须由新 exact SHA 重新取得全部三平台权威门和 immutable tarball 验证。
 - `0.162.191` 的最终 SHA `9e2a3238426499a3de1d228034e66dab91cbfa2c` 已取得 CLI CI `30791273745`、Strict Sandbox `30791273563` 与 Session Host `30791273622` 成功；正式 workflow `30793513643` 中 core/Agent SDK/PDH/Web/完整 CLI tests 全部成功，但 `package-cli` 在 root-monorepo `npm sbom --package-lock-only` 被无关 desktop/mobile peer graph 污染后失败，artifact upload / publish 均 skipped，npm 仍未写入。该失败不是测试或 tarball 身份失败，也不能直接重跑放行。
 - SBOM 门改为从 immutable CLI tarball 解包，在禁用 lifecycle scripts 的前提下生成发布包独立 lock 与 CycloneDX，再校验 root name/version/purl 及非空 dependency graph；本地验证为 CycloneDX 1.5、606 components、607 dependency entries。`v-npm-0-162-191` 保持不可变，后续身份前进到 **`chainlesschain@0.162.192` / `v-npm-0-162-192`**，并重新要求 final exact-SHA 权威门。
+- `0.162.192` 的最终 SHA `19dcdea87a87892fe9eb22a23b4f3fe9ce05af93` 已取得 CLI CI `30795367296` attempt 2、Strict Sandbox `30795367089` 与 Session Host `30795366927` 成功；CLI CI 首次执行仅 macOS unit 4/4 的真实双进程 CAS 用例失败，重跑后该分片及三平台 `verify-cli` 全绿。正式 npm workflow `30799974832` 的 `exact-sha-gate` 却用 `filter=all` 同时读取同一 run 的旧失败 attempt 和最新成功 attempt，错误地以旧 job 阻断发布；下游 package/publish 因门禁失败不可达，npm 未写入。
+- release gate 已改为 GitHub jobs API `filter=latest`，回归单测 **6/6** 通过，并对真实 `19dcdea…` run 成功验证两项 exact-SHA 门。`v-npm-0-162-192` 保持不可变，后续身份前进到 **`chainlesschain@0.162.193` / `v-npm-0-162-193`**，仍须由包含该修复和版本文档的 final SHA 重新取得全部权威门与 immutable tarball/SBOM 验证。
