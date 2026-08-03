@@ -61,7 +61,10 @@ describe("checkpoint-store (git engine)", () => {
   beforeEach(() => {
     priorNodeEnv = process.env.NODE_ENV;
     process.env.NODE_ENV = "test";
-    repo = mkdtempSync(join(tmpdir(), "cc-cpstore-"));
+    // `tmpdir()` may expose a compatibility alias (`/var` on macOS or an 8.3
+    // short path on Windows). Derive retention authority only from the
+    // canonical root so the fixture exercises the production invariant.
+    repo = realpathSync.native(mkdtempSync(join(tmpdir(), "cc-cpstore-")));
     retentionStateDir = `${repo}-restore-state`;
     retentionLockDir = `${repo}-workspace-locks`;
     git(repo, "init", "-q");
