@@ -1,6 +1,6 @@
 # git-ipc
 
-**Source**: `src/main/git/git-ipc.js`
+**Source**: `src\main\git\git-ipc.js`
 
 ---
 
@@ -10,11 +10,11 @@
 const
 ```
 
-* Git IPC 处理器
- * 负责处理 Git 版本控制相关的前后端通信
- *
- * @module git-ipc
- * @description 提供 Git 同步、冲突解决、配置管理、Markdown 导出、AI 提交信息生成等 IPC 接口
+- Git IPC 处理器
+- 负责处理 Git 版本控制相关的前后端通信
+-
+- @module git-ipc
+- @description 提供 Git 同步、冲突解决、配置管理、Markdown 导出、AI 提交信息生成等 IPC 接口
 
 ---
 
@@ -24,14 +24,14 @@ const
 function registerGitIPC(
 ```
 
-* 注册所有 Git IPC 处理器
- * @param {Object} dependencies - 依赖对象
- * @param {Object} [dependencies.gitManager] - Git 管理器
- * @param {Object} [dependencies.markdownExporter] - Markdown 导出器
- * @param {Function} dependencies.getGitConfig - 获取 Git 配置函数
- * @param {Object} [dependencies.llmManager] - LLM 管理器（用于 AI 提交信息生成）
- * @param {Object} [dependencies.gitHotReload] - Git 热重载管理器
- * @param {Object} [dependencies.mainWindow] - 主窗口对象（用于发送事件）
+- 注册所有 Git IPC 处理器
+- @param {Object} dependencies - 依赖对象
+- @param {Object} [dependencies.gitManager] - Git 管理器
+- @param {Object} [dependencies.markdownExporter] - Markdown 导出器
+- @param {Function} dependencies.getGitConfig - 获取 Git 配置函数
+- @param {Object} [dependencies.llmManager] - LLM 管理器（用于 AI 提交信息生成）
+- @param {Object} [dependencies.gitHotReload] - Git 热重载管理器
+- @param {Object} [dependencies.mainWindow] - 主窗口对象（用于发送事件）
 
 ---
 
@@ -41,8 +41,8 @@ function registerGitIPC(
 ipcMain.handle("git:status", async () =>
 ```
 
-* 获取 Git 状态
-   * Channel: 'git:status'
+- 获取 Git 状态
+  - Channel: 'git:status'
 
 ---
 
@@ -52,8 +52,8 @@ ipcMain.handle("git:status", async () =>
 ipcMain.handle("git:sync", async () =>
 ```
 
-* 同步 Git（导出 + 自动同步）
-   * Channel: 'git:sync'
+- 同步 Git（导出 + 自动同步）
+  - Channel: 'git:sync'
 
 ---
 
@@ -63,8 +63,8 @@ ipcMain.handle("git:sync", async () =>
 ipcMain.handle("git:push", async () =>
 ```
 
-* 推送到远程仓库
-   * Channel: 'git:push'
+- 推送到远程仓库
+  - Channel: 'git:push'
 
 ---
 
@@ -74,8 +74,8 @@ ipcMain.handle("git:push", async () =>
 ipcMain.handle("git:pull", async () =>
 ```
 
-* 从远程仓库拉取
-   * Channel: 'git:pull'
+- 从远程仓库拉取
+  - Channel: 'git:pull'
 
 ---
 
@@ -85,8 +85,8 @@ ipcMain.handle("git:pull", async () =>
 ipcMain.handle("git:clone", async (_event, url, targetPath, auth) =>
 ```
 
-* 克隆远程仓库
-   * Channel: 'git:clone'
+- 克隆远程仓库
+  - Channel: 'git:clone'
 
 ---
 
@@ -96,8 +96,8 @@ ipcMain.handle("git:clone", async (_event, url, targetPath, auth) =>
 ipcMain.handle("git:get-log", async (_event, depth = 10) =>
 ```
 
-* 获取 Git 日志
-   * Channel: 'git:get-log'
+- 获取 Git 日志
+  - Channel: 'git:get-log'
 
 ---
 
@@ -107,8 +107,8 @@ ipcMain.handle("git:get-log", async (_event, depth = 10) =>
 ipcMain.handle("git:get-conflicts", async () =>
 ```
 
-* 获取冲突文件列表
-   * Channel: 'git:get-conflicts'
+- 获取冲突文件列表
+  - Channel: 'git:get-conflicts'
 
 ---
 
@@ -118,8 +118,8 @@ ipcMain.handle("git:get-conflicts", async () =>
 ipcMain.handle("git:get-conflict-content", async (_event, filepath) =>
 ```
 
-* 获取冲突文件内容
-   * Channel: 'git:get-conflict-content'
+- 获取冲突文件内容
+  - Channel: 'git:get-conflict-content'
 
 ---
 
@@ -129,8 +129,8 @@ ipcMain.handle("git:get-conflict-content", async (_event, filepath) =>
 ipcMain.handle(
 ```
 
-* 解决冲突
-   * Channel: 'git:resolve-conflict'
+- 解决冲突
+  - Channel: 'git:resolve-conflict'
 
 ---
 
@@ -140,8 +140,8 @@ ipcMain.handle(
 ipcMain.handle("git:abort-merge", async () =>
 ```
 
-* 中止合并
-   * Channel: 'git:abort-merge'
+- 中止合并
+  - Channel: 'git:abort-merge'
 
 ---
 
@@ -151,8 +151,8 @@ ipcMain.handle("git:abort-merge", async () =>
 ipcMain.handle("git:complete-merge", async (_event, message) =>
 ```
 
-* 完成合并
-   * Channel: 'git:complete-merge'
+- 完成合并
+  - Channel: 'git:complete-merge'
 
 ---
 
@@ -162,8 +162,8 @@ ipcMain.handle("git:complete-merge", async (_event, message) =>
 ipcMain.handle("git:get-config", async () =>
 ```
 
-* 获取 Git 配置
-   * Channel: 'git:get-config'
+- 获取 Git 配置
+  - Channel: 'git:get-config'
 
 ---
 
@@ -173,8 +173,8 @@ ipcMain.handle("git:get-config", async () =>
 ipcMain.handle("git:get-sync-status", async () =>
 ```
 
-* 获取同步状态
-   * Channel: 'git:get-sync-status'
+- 获取同步状态
+  - Channel: 'git:get-sync-status'
 
 ---
 
@@ -184,8 +184,8 @@ ipcMain.handle("git:get-sync-status", async () =>
 ipcMain.handle("git:set-config", async (_event, config) =>
 ```
 
-* 设置 Git 配置
-   * Channel: 'git:set-config'
+- 设置 Git 配置
+  - Channel: 'git:set-config'
 
 ---
 
@@ -195,8 +195,8 @@ ipcMain.handle("git:set-config", async (_event, config) =>
 ipcMain.handle("git:set-remote", async (_event, url) =>
 ```
 
-* 设置远程仓库 URL
-   * Channel: 'git:set-remote'
+- 设置远程仓库 URL
+  - Channel: 'git:set-remote'
 
 ---
 
@@ -206,8 +206,8 @@ ipcMain.handle("git:set-remote", async (_event, url) =>
 ipcMain.handle("git:set-auth", async (_event, auth) =>
 ```
 
-* 设置认证信息
-   * Channel: 'git:set-auth'
+- 设置认证信息
+  - Channel: 'git:set-auth'
 
 ---
 
@@ -217,8 +217,8 @@ ipcMain.handle("git:set-auth", async (_event, auth) =>
 ipcMain.handle("git:export-markdown", async () =>
 ```
 
-* 导出所有数据为 Markdown
-   * Channel: 'git:export-markdown'
+- 导出所有数据为 Markdown
+  - Channel: 'git:export-markdown'
 
 ---
 
@@ -228,8 +228,8 @@ ipcMain.handle("git:export-markdown", async () =>
 ipcMain.handle("git:generateCommitMessage", async (_event, projectPath) =>
 ```
 
-* AI 生成提交信息
-   * Channel: 'git:generateCommitMessage'
+- AI 生成提交信息
+  - Channel: 'git:generateCommitMessage'
 
 ---
 
@@ -239,8 +239,8 @@ ipcMain.handle("git:generateCommitMessage", async (_event, projectPath) =>
 ipcMain.handle("git:hot-reload:start", async () =>
 ```
 
-* 启动 Git 热重载
-   * Channel: 'git:hot-reload:start'
+- 启动 Git 热重载
+  - Channel: 'git:hot-reload:start'
 
 ---
 
@@ -250,8 +250,8 @@ ipcMain.handle("git:hot-reload:start", async () =>
 ipcMain.handle("git:hot-reload:stop", async () =>
 ```
 
-* 停止 Git 热重载
-   * Channel: 'git:hot-reload:stop'
+- 停止 Git 热重载
+  - Channel: 'git:hot-reload:stop'
 
 ---
 
@@ -261,8 +261,8 @@ ipcMain.handle("git:hot-reload:stop", async () =>
 ipcMain.handle("git:hot-reload:status", async () =>
 ```
 
-* 获取 Git 热重载状态
-   * Channel: 'git:hot-reload:status'
+- 获取 Git 热重载状态
+  - Channel: 'git:hot-reload:status'
 
 ---
 
@@ -272,8 +272,8 @@ ipcMain.handle("git:hot-reload:status", async () =>
 ipcMain.handle("git:hot-reload:refresh", async () =>
 ```
 
-* 手动刷新 Git 状态
-   * Channel: 'git:hot-reload:refresh'
+- 手动刷新 Git 状态
+  - Channel: 'git:hot-reload:refresh'
 
 ---
 
@@ -283,8 +283,8 @@ ipcMain.handle("git:hot-reload:refresh", async () =>
 ipcMain.handle("git:hot-reload:configure", async (_event, config) =>
 ```
 
-* 设置 Git 热重载配置
-   * Channel: 'git:hot-reload:configure'
+- 设置 Git 热重载配置
+  - Channel: 'git:hot-reload:configure'
 
 ---
 
@@ -294,8 +294,8 @@ ipcMain.handle("git:hot-reload:configure", async (_event, config) =>
 ipcMain.handle("git:hosting:get-providers", async () =>
 ```
 
-* Get supported hosting providers
-   * Channel: 'git:hosting:get-providers'
+- Get supported hosting providers
+  - Channel: 'git:hosting:get-providers'
 
 ---
 
@@ -305,8 +305,8 @@ ipcMain.handle("git:hosting:get-providers", async () =>
 ipcMain.handle(
 ```
 
-* Test hosting connection
-   * Channel: 'git:hosting:test-connection'
+- Test hosting connection
+  - Channel: 'git:hosting:test-connection'
 
 ---
 
@@ -316,8 +316,8 @@ ipcMain.handle(
 ipcMain.handle("git:hosting:get-repos", async (_event,
 ```
 
-* Get repository list from hosting
-   * Channel: 'git:hosting:get-repos'
+- Get repository list from hosting
+  - Channel: 'git:hosting:get-repos'
 
 ---
 
@@ -327,8 +327,8 @@ ipcMain.handle("git:hosting:get-repos", async (_event,
 ipcMain.handle(
 ```
 
-* Create repository on hosting
-   * Channel: 'git:hosting:create-repo'
+- Create repository on hosting
+  - Channel: 'git:hosting:create-repo'
 
 ---
 
@@ -338,8 +338,8 @@ ipcMain.handle(
 ipcMain.handle("git:ssh:generate-key", async (_event,
 ```
 
-* Generate SSH key
-   * Channel: 'git:ssh:generate-key'
+- Generate SSH key
+  - Channel: 'git:ssh:generate-key'
 
 ---
 
@@ -349,8 +349,8 @@ ipcMain.handle("git:ssh:generate-key", async (_event,
 ipcMain.handle("git:ssh:list-keys", async () =>
 ```
 
-* List SSH keys
-   * Channel: 'git:ssh:list-keys'
+- List SSH keys
+  - Channel: 'git:ssh:list-keys'
 
 ---
 
@@ -360,8 +360,8 @@ ipcMain.handle("git:ssh:list-keys", async () =>
 ipcMain.handle("git:ssh:get-public-key", async (_event,
 ```
 
-* Get SSH public key
-   * Channel: 'git:ssh:get-public-key'
+- Get SSH public key
+  - Channel: 'git:ssh:get-public-key'
 
 ---
 
@@ -371,8 +371,8 @@ ipcMain.handle("git:ssh:get-public-key", async (_event,
 ipcMain.handle(
 ```
 
-* Register SSH key with hosting provider
-   * Channel: 'git:ssh:register-with-provider'
+- Register SSH key with hosting provider
+  - Channel: 'git:ssh:register-with-provider'
 
 ---
 
@@ -382,8 +382,8 @@ ipcMain.handle(
 ipcMain.handle("git:mirror:push-all", async () =>
 ```
 
-* Push to all mirrors
-   * Channel: 'git:mirror:push-all'
+- Push to all mirrors
+  - Channel: 'git:mirror:push-all'
 
 ---
 
@@ -393,8 +393,8 @@ ipcMain.handle("git:mirror:push-all", async () =>
 ipcMain.handle(
 ```
 
-* Migrate repository to new platform
-   * Channel: 'git:mirror:migrate'
+- Migrate repository to new platform
+  - Channel: 'git:mirror:migrate'
 
 ---
 
@@ -404,8 +404,8 @@ ipcMain.handle(
 ipcMain.handle("git:proxy:set-config", async (_event, proxyConfig) =>
 ```
 
-* Set proxy configuration
-   * Channel: 'git:proxy:set-config'
+- Set proxy configuration
+  - Channel: 'git:proxy:set-config'
 
 ---
 
@@ -415,8 +415,7 @@ ipcMain.handle("git:proxy:set-config", async (_event, proxyConfig) =>
 ipcMain.handle("git:mirror:detect-china-cdn", async () =>
 ```
 
-* Detect China CDN availability
-   * Channel: 'git:mirror:detect-china-cdn'
+- Detect China CDN availability
+  - Channel: 'git:mirror:detect-china-cdn'
 
 ---
-

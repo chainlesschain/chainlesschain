@@ -2,6 +2,21 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.38] - Canonical session delivery and rewind (2026-08-03)
+
+- Project the CLI-owned session graph into Sessions Workbench and expose only
+  actions advertised by the exact immutable projection revision, so stale
+  resume, attach, delivery, and remote-control actions fail closed.
+- Add a resumable delivery workflow for GitHub, Gitee, configured remotes, and
+  manual handoff, with explicit confirmation and result/effect digest checks at
+  every step.
+- Expand `/rewind` into the canonical checkpoint and branch timeline, including
+  detail, restore, and fork flows bound to the current session, workspace,
+  repository head, checkpoint revision, and manifest digests.
+- Gate release artifacts with a real installed-VSIX DOM journey that exercises
+  streaming, retry, plan and permission approval, interruption, and session
+  resume across fresh VS Code hosts on the supported OS/version matrix.
+
 ## [0.37.37] - Distributed Agent Team controls (2026-07-31)
 
 - Observe current local Agent Team schema v6 authority and separate distributed

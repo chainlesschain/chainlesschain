@@ -1,6 +1,6 @@
 # setup
 
-**Source**: `src/main/skill-tool-system/__tests__/setup.js`
+**Source**: `src\main\skill-tool-system\__tests__\setup.js`
 
 ---
 
@@ -10,8 +10,7 @@
 import
 ```
 
-* 测试环境设置
- * Mock Electron 和其他依赖
+- 测试环境设置
+- Mock Electron 和其他依赖
 
 ---
-

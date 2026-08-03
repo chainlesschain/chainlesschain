@@ -1,6 +1,6 @@
 # file-utils.test
 
-**Source**: `src/renderer/utils/__tests__/file-utils.test.js`
+**Source**: `src\renderer\utils\__tests__\file-utils.test.js`
 
 ---
 
@@ -10,7 +10,6 @@
 import
 ```
 
-* file-utils 单元测试
+- file-utils 单元测试
 
 ---
-

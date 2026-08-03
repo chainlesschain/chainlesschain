@@ -1,6 +1,6 @@
 # friend-manager
 
-**Source**: `src/main/social/friend-manager.js`
+**Source**: `src\main\social\friend-manager.js`
 
 ---
 
@@ -10,13 +10,13 @@
 const
 ```
 
-* 好友管理器
- *
- * 负责好友关系的管理，包括：
- * - 好友请求发送与接收
- * - 好友列表管理
- * - 好友状态同步
- * - 好友分组和备注
+- 好友管理器
+-
+- 负责好友关系的管理，包括：
+- - 好友请求发送与接收
+- - 好友列表管理
+- - 好友状态同步
+- - 好友分组和备注
 
 ---
 
@@ -26,7 +26,7 @@ const
 const FriendshipStatus =
 ```
 
-* 好友关系状态
+- 好友关系状态
 
 ---
 
@@ -36,7 +36,7 @@ const FriendshipStatus =
 const FriendRequestStatus =
 ```
 
-* 好友请求状态
+- 好友请求状态
 
 ---
 
@@ -46,7 +46,7 @@ const FriendRequestStatus =
 const FriendOnlineStatus =
 ```
 
-* 好友在线状态
+- 好友在线状态
 
 ---
 
@@ -56,7 +56,7 @@ const FriendOnlineStatus =
 class FriendManager extends EventEmitter
 ```
 
-* 好友管理器类
+- 好友管理器类
 
 ---
 
@@ -66,7 +66,7 @@ class FriendManager extends EventEmitter
 async initialize()
 ```
 
-* 初始化好友管理器
+- 初始化好友管理器
 
 ---
 
@@ -76,7 +76,7 @@ async initialize()
 async initializeTables()
 ```
 
-* 初始化数据库表
+- 初始化数据库表
 
 ---
 
@@ -86,17 +86,17 @@ async initializeTables()
 async loadFriendStatus()
 ```
 
-* 加载好友在线状态
+- 加载好友在线状态
 
 ---
 
 ## setupP2PListeners()
 
 ```javascript
-setupP2PListeners()
+setupP2PListeners();
 ```
 
-* 设置 P2P 监听器
+- 设置 P2P 监听器
 
 ---
 
@@ -106,7 +106,7 @@ setupP2PListeners()
 async handlePeerConnected(peerId)
 ```
 
-* 处理节点连接事件
+- 处理节点连接事件
 
 ---
 
@@ -116,7 +116,7 @@ async handlePeerConnected(peerId)
 async handlePeerDisconnected(peerId)
 ```
 
-* 处理节点断开事件
+- 处理节点断开事件
 
 ---
 
@@ -126,9 +126,9 @@ async handlePeerDisconnected(peerId)
 async sendFriendRequest(targetDid, message = "")
 ```
 
-* 发送好友请求
-   * @param {string} targetDid - 目标用户 DID
-   * @param {string} message - 请求消息
+- 发送好友请求
+  - @param {string} targetDid - 目标用户 DID
+  - @param {string} message - 请求消息
 
 ---
 
@@ -138,10 +138,10 @@ async sendFriendRequest(targetDid, message = "")
 async handleFriendRequestReceived(fromDid, message, timestamp)
 ```
 
-* 处理收到的好友请求
-   * @param {string} fromDid - 发送者 DID
-   * @param {string} message - 请求消息
-   * @param {number} timestamp - 时间戳
+- 处理收到的好友请求
+  - @param {string} fromDid - 发送者 DID
+  - @param {string} message - 请求消息
+  - @param {number} timestamp - 时间戳
 
 ---
 
@@ -151,8 +151,8 @@ async handleFriendRequestReceived(fromDid, message, timestamp)
 async acceptFriendRequest(requestId)
 ```
 
-* 接受好友请求
-   * @param {number} requestId - 请求 ID
+- 接受好友请求
+  - @param {number} requestId - 请求 ID
 
 ---
 
@@ -162,8 +162,8 @@ async acceptFriendRequest(requestId)
 async rejectFriendRequest(requestId)
 ```
 
-* 拒绝好友请求
-   * @param {number} requestId - 请求 ID
+- 拒绝好友请求
+  - @param {number} requestId - 请求 ID
 
 ---
 
@@ -173,9 +173,9 @@ async rejectFriendRequest(requestId)
 async getFriendRequest(fromDid, toDid)
 ```
 
-* 获取好友请求
-   * @param {string} fromDid - 发送者 DID
-   * @param {string} toDid - 接收者 DID
+- 获取好友请求
+  - @param {string} fromDid - 发送者 DID
+  - @param {string} toDid - 接收者 DID
 
 ---
 
@@ -185,7 +185,7 @@ async getFriendRequest(fromDid, toDid)
 async getPendingFriendRequests()
 ```
 
-* 获取所有待处理的好友请求
+- 获取所有待处理的好友请求
 
 ---
 
@@ -195,8 +195,8 @@ async getPendingFriendRequests()
 async getFriends(groupName = null)
 ```
 
-* 获取好友列表
-   * @param {string} groupName - 分组名称 (可选)
+- 获取好友列表
+  - @param {string} groupName - 分组名称 (可选)
 
 ---
 
@@ -206,8 +206,8 @@ async getFriends(groupName = null)
 async removeFriend(friendDid)
 ```
 
-* 删除好友
-   * @param {string} friendDid - 好友 DID
+- 删除好友
+  - @param {string} friendDid - 好友 DID
 
 ---
 
@@ -217,9 +217,9 @@ async removeFriend(friendDid)
 async updateFriendNickname(friendDid, nickname)
 ```
 
-* 更新好友备注
-   * @param {string} friendDid - 好友 DID
-   * @param {string} nickname - 备注名
+- 更新好友备注
+  - @param {string} friendDid - 好友 DID
+  - @param {string} nickname - 备注名
 
 ---
 
@@ -229,9 +229,9 @@ async updateFriendNickname(friendDid, nickname)
 async updateFriendGroup(friendDid, groupName)
 ```
 
-* 更新好友分组
-   * @param {string} friendDid - 好友 DID
-   * @param {string} groupName - 分组名称
+- 更新好友分组
+  - @param {string} friendDid - 好友 DID
+  - @param {string} groupName - 分组名称
 
 ---
 
@@ -241,10 +241,10 @@ async updateFriendGroup(friendDid, groupName)
 async updateFriendStatus(friendDid, status, deviceCount = 1)
 ```
 
-* 更新好友在线状态
-   * @param {string} friendDid - 好友 DID
-   * @param {string} status - 在线状态
-   * @param {number} deviceCount - 设备数量
+- 更新好友在线状态
+  - @param {string} friendDid - 好友 DID
+  - @param {string} status - 在线状态
+  - @param {number} deviceCount - 设备数量
 
 ---
 
@@ -254,8 +254,8 @@ async updateFriendStatus(friendDid, status, deviceCount = 1)
 async isFriend(did)
 ```
 
-* 检查是否是好友
-   * @param {string} did - DID
+- 检查是否是好友
+  - @param {string} did - DID
 
 ---
 
@@ -265,7 +265,7 @@ async isFriend(did)
 async getStatistics()
 ```
 
-* 获取好友统计
+- 获取好友统计
 
 ---
 
@@ -275,9 +275,9 @@ async getStatistics()
 async calculateTrustScore(friendDid)
 ```
 
-* Calculate trust score for a friend based on interactions
-   * @param {string} friendDid
-   * @returns {number} Trust score between 0 and 1
+- Calculate trust score for a friend based on interactions
+  - @param {string} friendDid
+  - @returns {number} Trust score between 0 and 1
 
 ---
 
@@ -287,10 +287,10 @@ async calculateTrustScore(friendDid)
 async recordTrustInteraction(friendDid, type, weight = 1.0)
 ```
 
-* Record a trust interaction
-   * @param {string} friendDid
-   * @param {string} type - 'message_sent', 'message_received', 'content_shared', 'reaction', 'call'
-   * @param {number} weight - Positive (trust-building) or negative (trust-reducing)
+- Record a trust interaction
+  - @param {string} friendDid
+  - @param {string} type - 'message_sent', 'message_received', 'content_shared', 'reaction', 'call'
+  - @param {number} weight - Positive (trust-building) or negative (trust-reducing)
 
 ---
 
@@ -300,9 +300,9 @@ async recordTrustInteraction(friendDid, type, weight = 1.0)
 async updateTrustScore(friendDid, score)
 ```
 
-* Update trust score for a friend
-   * @param {string} friendDid
-   * @param {number} score - Trust score between 0 and 1
+- Update trust score for a friend
+  - @param {string} friendDid
+  - @param {number} score - Trust score between 0 and 1
 
 ---
 
@@ -312,9 +312,9 @@ async updateTrustScore(friendDid, score)
 async getTrustScore(friendDid)
 ```
 
-* Get trust score for a friend
-   * @param {string} friendDid
-   * @returns {number} Trust score
+- Get trust score for a friend
+  - @param {string} friendDid
+  - @returns {number} Trust score
 
 ---
 
@@ -324,7 +324,6 @@ async getTrustScore(friendDid)
 async close()
 ```
 
-* 关闭好友管理器
+- 关闭好友管理器
 
 ---
-

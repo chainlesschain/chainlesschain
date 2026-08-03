@@ -1,5 +1,19 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.77] - Canonical session delivery and rewind (2026-08-03)
+
+- Project the CLI-owned session graph into Sessions Workbench and expose only
+  actions advertised by the exact immutable projection revision, so stale
+  resume, attach, delivery, and remote-control actions fail closed.
+- Add a resumable delivery workflow for GitHub, Gitee, configured remotes, and
+  manual handoff, with explicit confirmation and result/effect digest checks at
+  every step.
+- Expand `/rewind` into the canonical checkpoint and branch timeline, including
+  detail, restore, and fork flows while keeping checkpoint authority in the
+  CLI.
+- Gate release artifacts with a real Remote Robot chat/control journey across
+  Windows, Linux, and macOS on IntelliJ IDEA 2024.2 and 2025.2.
+
 ## [0.4.76] - Distributed Agent Team controls (2026-07-31)
 
 - Observe current local Agent Team schema v6 authority and separate distributed

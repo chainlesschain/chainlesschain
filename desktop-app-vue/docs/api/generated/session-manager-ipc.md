@@ -1,6 +1,6 @@
 # session-manager-ipc
 
-**Source**: `src/main/llm/session-manager-ipc.js`
+**Source**: `src\main\llm\session-manager-ipc.js`
 
 ---
 
@@ -10,12 +10,12 @@
 const
 ```
 
-* SessionManager IPC 处理器
- * 负责处理会话管理相关的前后端通信
- *
- * @module session-manager-ipc
- * @version 1.0.0
- * @since 2026-01-16
+- SessionManager IPC 处理器
+- 负责处理会话管理相关的前后端通信
+-
+- @module session-manager-ipc
+- @version 1.0.0
+- @since 2026-01-16
 
 ---
 
@@ -25,10 +25,10 @@ const
 function registerSessionManagerIPC(
 ```
 
-* 注册所有 SessionManager IPC 处理器
- * @param {Object} dependencies - 依赖对象
- * @param {Object} dependencies.sessionManager - SessionManager 实例
- * @param {Object} [dependencies.ipcMain] - IPC 主进程对象（可选，用于测试注入）
+- 注册所有 SessionManager IPC 处理器
+- @param {Object} dependencies - 依赖对象
+- @param {Object} dependencies.sessionManager - SessionManager 实例
+- @param {Object} [dependencies.ipcMain] - IPC 主进程对象（可选，用于测试注入）
 
 ---
 
@@ -38,8 +38,8 @@ function registerSessionManagerIPC(
 ipcMain.handle("session:create", async (_event, params) =>
 ```
 
-* 创建新会话
-   * Channel: 'session:create'
+- 创建新会话
+  - Channel: 'session:create'
 
 ---
 
@@ -49,8 +49,8 @@ ipcMain.handle("session:create", async (_event, params) =>
 ipcMain.handle("session:load", async (_event, sessionId, options =
 ```
 
-* 加载会话
-   * Channel: 'session:load'
+- 加载会话
+  - Channel: 'session:load'
 
 ---
 
@@ -60,8 +60,8 @@ ipcMain.handle("session:load", async (_event, sessionId, options =
 ipcMain.handle(
 ```
 
-* 添加消息到会话
-   * Channel: 'session:add-message'
+- 添加消息到会话
+  - Channel: 'session:add-message'
 
 ---
 
@@ -71,8 +71,8 @@ ipcMain.handle(
 ipcMain.handle("session:compress", async (_event, sessionId) =>
 ```
 
-* 压缩会话历史
-   * Channel: 'session:compress'
+- 压缩会话历史
+  - Channel: 'session:compress'
 
 ---
 
@@ -82,8 +82,8 @@ ipcMain.handle("session:compress", async (_event, sessionId) =>
 ipcMain.handle("session:save", async (_event, sessionId) =>
 ```
 
-* 保存会话
-   * Channel: 'session:save'
+- 保存会话
+  - Channel: 'session:save'
 
 ---
 
@@ -93,8 +93,8 @@ ipcMain.handle("session:save", async (_event, sessionId) =>
 ipcMain.handle(
 ```
 
-* 获取有效消息（用于 LLM 调用）
-   * Channel: 'session:get-effective-messages'
+- 获取有效消息（用于 LLM 调用）
+  - Channel: 'session:get-effective-messages'
 
 ---
 
@@ -104,8 +104,8 @@ ipcMain.handle(
 ipcMain.handle("session:delete", async (_event, sessionId) =>
 ```
 
-* 删除会话
-   * Channel: 'session:delete'
+- 删除会话
+  - Channel: 'session:delete'
 
 ---
 
@@ -115,8 +115,8 @@ ipcMain.handle("session:delete", async (_event, sessionId) =>
 ipcMain.handle("session:list", async (_event, options =
 ```
 
-* 列出会话
-   * Channel: 'session:list'
+- 列出会话
+  - Channel: 'session:list'
 
 ---
 
@@ -126,8 +126,8 @@ ipcMain.handle("session:list", async (_event, options =
 ipcMain.handle("session:get-stats", async (_event, sessionId) =>
 ```
 
-* 获取会话统计
-   * Channel: 'session:get-stats'
+- 获取会话统计
+  - Channel: 'session:get-stats'
 
 ---
 
@@ -137,8 +137,8 @@ ipcMain.handle("session:get-stats", async (_event, sessionId) =>
 ipcMain.handle("session:cleanup-old", async (_event, daysToKeep = 30) =>
 ```
 
-* 清理旧会话
-   * Channel: 'session:cleanup-old'
+- 清理旧会话
+  - Channel: 'session:cleanup-old'
 
 ---
 
@@ -148,8 +148,8 @@ ipcMain.handle("session:cleanup-old", async (_event, daysToKeep = 30) =>
 ipcMain.handle("session:search", async (_event, query, options =
 ```
 
-* 搜索会话
-   * Channel: 'session:search'
+- 搜索会话
+  - Channel: 'session:search'
 
 ---
 
@@ -159,8 +159,8 @@ ipcMain.handle("session:search", async (_event, query, options =
 ipcMain.handle("session:add-tags", async (_event, sessionId, tags) =>
 ```
 
-* 添加标签
-   * Channel: 'session:add-tags'
+- 添加标签
+  - Channel: 'session:add-tags'
 
 ---
 
@@ -170,8 +170,8 @@ ipcMain.handle("session:add-tags", async (_event, sessionId, tags) =>
 ipcMain.handle("session:remove-tags", async (_event, sessionId, tags) =>
 ```
 
-* 移除标签
-   * Channel: 'session:remove-tags'
+- 移除标签
+  - Channel: 'session:remove-tags'
 
 ---
 
@@ -181,8 +181,8 @@ ipcMain.handle("session:remove-tags", async (_event, sessionId, tags) =>
 ipcMain.handle("session:get-all-tags", async () =>
 ```
 
-* 获取所有标签
-   * Channel: 'session:get-all-tags'
+- 获取所有标签
+  - Channel: 'session:get-all-tags'
 
 ---
 
@@ -192,8 +192,8 @@ ipcMain.handle("session:get-all-tags", async () =>
 ipcMain.handle("session:find-by-tags", async (_event, tags, options =
 ```
 
-* 按标签查找会话
-   * Channel: 'session:find-by-tags'
+- 按标签查找会话
+  - Channel: 'session:find-by-tags'
 
 ---
 
@@ -203,8 +203,8 @@ ipcMain.handle("session:find-by-tags", async (_event, tags, options =
 ipcMain.handle(
 ```
 
-* 导出会话为 JSON
-   * Channel: 'session:export-json'
+- 导出会话为 JSON
+  - Channel: 'session:export-json'
 
 ---
 
@@ -214,8 +214,8 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-* 导出会话为 Markdown
-   * Channel: 'session:export-markdown'
+- 导出会话为 Markdown
+  - Channel: 'session:export-markdown'
 
 ---
 
@@ -225,8 +225,8 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-* 从 JSON 导入会话
-   * Channel: 'session:import-json'
+- 从 JSON 导入会话
+  - Channel: 'session:import-json'
 
 ---
 
@@ -236,8 +236,8 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-* 批量导出会话
-   * Channel: 'session:export-multiple'
+- 批量导出会话
+  - Channel: 'session:export-multiple'
 
 ---
 
@@ -247,8 +247,8 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-* 生成会话摘要
-   * Channel: 'session:generate-summary'
+- 生成会话摘要
+  - Channel: 'session:generate-summary'
 
 ---
 
@@ -258,8 +258,8 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-* 批量生成摘要
-   * Channel: 'session:generate-summaries-batch'
+- 批量生成摘要
+  - Channel: 'session:generate-summaries-batch'
 
 ---
 
@@ -269,8 +269,8 @@ ipcMain.handle(
 ipcMain.handle("session:get-auto-summary-config", async () =>
 ```
 
-* 获取自动摘要配置
-   * Channel: 'session:get-auto-summary-config'
+- 获取自动摘要配置
+  - Channel: 'session:get-auto-summary-config'
 
 ---
 
@@ -280,8 +280,8 @@ ipcMain.handle("session:get-auto-summary-config", async () =>
 ipcMain.handle(
 ```
 
-* 更新自动摘要配置
-   * Channel: 'session:update-auto-summary-config'
+- 更新自动摘要配置
+  - Channel: 'session:update-auto-summary-config'
 
 ---
 
@@ -291,8 +291,8 @@ ipcMain.handle(
 ipcMain.handle("session:start-background-summary", async () =>
 ```
 
-* 启动后台摘要生成器
-   * Channel: 'session:start-background-summary'
+- 启动后台摘要生成器
+  - Channel: 'session:start-background-summary'
 
 ---
 
@@ -302,8 +302,8 @@ ipcMain.handle("session:start-background-summary", async () =>
 ipcMain.handle("session:stop-background-summary", async () =>
 ```
 
-* 停止后台摘要生成器
-   * Channel: 'session:stop-background-summary'
+- 停止后台摘要生成器
+  - Channel: 'session:stop-background-summary'
 
 ---
 
@@ -313,8 +313,8 @@ ipcMain.handle("session:stop-background-summary", async () =>
 ipcMain.handle(
 ```
 
-* 获取没有摘要的会话列表
-   * Channel: 'session:get-without-summary'
+- 获取没有摘要的会话列表
+  - Channel: 'session:get-without-summary'
 
 ---
 
@@ -324,8 +324,8 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-* 触发批量摘要生成
-   * Channel: 'session:trigger-bulk-summary'
+- 触发批量摘要生成
+  - Channel: 'session:trigger-bulk-summary'
 
 ---
 
@@ -335,8 +335,8 @@ ipcMain.handle(
 ipcMain.handle("session:get-auto-summary-stats", async () =>
 ```
 
-* 获取自动摘要统计
-   * Channel: 'session:get-auto-summary-stats'
+- 获取自动摘要统计
+  - Channel: 'session:get-auto-summary-stats'
 
 ---
 
@@ -346,8 +346,8 @@ ipcMain.handle("session:get-auto-summary-stats", async () =>
 ipcMain.handle("session:resume", async (_event, sessionId, options =
 ```
 
-* 恢复会话
-   * Channel: 'session:resume'
+- 恢复会话
+  - Channel: 'session:resume'
 
 ---
 
@@ -357,8 +357,8 @@ ipcMain.handle("session:resume", async (_event, sessionId, options =
 ipcMain.handle("session:get-recent", async (_event, count = 5) =>
 ```
 
-* 获取最近的会话
-   * Channel: 'session:get-recent'
+- 获取最近的会话
+  - Channel: 'session:get-recent'
 
 ---
 
@@ -368,8 +368,8 @@ ipcMain.handle("session:get-recent", async (_event, count = 5) =>
 ipcMain.handle(
 ```
 
-* 保存为模板
-   * Channel: 'session:save-as-template'
+- 保存为模板
+  - Channel: 'session:save-as-template'
 
 ---
 
@@ -379,8 +379,8 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-* 从模板创建会话
-   * Channel: 'session:create-from-template'
+- 从模板创建会话
+  - Channel: 'session:create-from-template'
 
 ---
 
@@ -390,8 +390,8 @@ ipcMain.handle(
 ipcMain.handle("session:list-templates", async (_event, options =
 ```
 
-* 列出模板
-   * Channel: 'session:list-templates'
+- 列出模板
+  - Channel: 'session:list-templates'
 
 ---
 
@@ -401,8 +401,8 @@ ipcMain.handle("session:list-templates", async (_event, options =
 ipcMain.handle("session:delete-template", async (_event, templateId) =>
 ```
 
-* 删除模板
-   * Channel: 'session:delete-template'
+- 删除模板
+  - Channel: 'session:delete-template'
 
 ---
 
@@ -412,8 +412,8 @@ ipcMain.handle("session:delete-template", async (_event, templateId) =>
 ipcMain.handle("session:delete-multiple", async (_event, sessionIds) =>
 ```
 
-* 批量删除会话
-   * Channel: 'session:delete-multiple'
+- 批量删除会话
+  - Channel: 'session:delete-multiple'
 
 ---
 
@@ -423,8 +423,8 @@ ipcMain.handle("session:delete-multiple", async (_event, sessionIds) =>
 ipcMain.handle(
 ```
 
-* 批量添加标签
-   * Channel: 'session:add-tags-multiple'
+- 批量添加标签
+  - Channel: 'session:add-tags-multiple'
 
 ---
 
@@ -434,8 +434,8 @@ ipcMain.handle(
 ipcMain.handle("session:get-global-stats", async () =>
 ```
 
-* 获取全局统计
-   * Channel: 'session:get-global-stats'
+- 获取全局统计
+  - Channel: 'session:get-global-stats'
 
 ---
 
@@ -445,8 +445,8 @@ ipcMain.handle("session:get-global-stats", async () =>
 ipcMain.handle("session:update-title", async (_event, sessionId, title) =>
 ```
 
-* 更新会话标题
-   * Channel: 'session:update-title'
+- 更新会话标题
+  - Channel: 'session:update-title'
 
 ---
 
@@ -456,8 +456,8 @@ ipcMain.handle("session:update-title", async (_event, sessionId, title) =>
 ipcMain.handle(
 ```
 
-* 复制会话
-   * Channel: 'session:duplicate'
+- 复制会话
+  - Channel: 'session:duplicate'
 
 ---
 
@@ -467,8 +467,8 @@ ipcMain.handle(
 ipcMain.handle("session:rename-tag", async (_event, oldTag, newTag) =>
 ```
 
-* 重命名标签
-   * Channel: 'session:rename-tag'
+- 重命名标签
+  - Channel: 'session:rename-tag'
 
 ---
 
@@ -478,8 +478,8 @@ ipcMain.handle("session:rename-tag", async (_event, oldTag, newTag) =>
 ipcMain.handle(
 ```
 
-* 合并标签
-   * Channel: 'session:merge-tags'
+- 合并标签
+  - Channel: 'session:merge-tags'
 
 ---
 
@@ -489,8 +489,8 @@ ipcMain.handle(
 ipcMain.handle("session:delete-tag", async (_event, tag) =>
 ```
 
-* 删除标签
-   * Channel: 'session:delete-tag'
+- 删除标签
+  - Channel: 'session:delete-tag'
 
 ---
 
@@ -500,8 +500,8 @@ ipcMain.handle("session:delete-tag", async (_event, tag) =>
 ipcMain.handle("session:delete-tags", async (_event, tags) =>
 ```
 
-* 批量删除标签
-   * Channel: 'session:delete-tags'
+- 批量删除标签
+  - Channel: 'session:delete-tags'
 
 ---
 
@@ -511,8 +511,8 @@ ipcMain.handle("session:delete-tags", async (_event, tags) =>
 ipcMain.handle(
 ```
 
-* 获取标签详情
-   * Channel: 'session:get-tag-details'
+- 获取标签详情
+  - Channel: 'session:get-tag-details'
 
 ---
 
@@ -522,9 +522,8 @@ ipcMain.handle(
 function updateSessionManager(newSessionManager)
 ```
 
-* 更新 SessionManager 引用
-   * 用于热重载或重新初始化
-   * @param {SessionManager} newSessionManager - 新的 SessionManager 实例
+- 更新 SessionManager 引用
+  - 用于热重载或重新初始化
+  - @param {SessionManager} newSessionManager - 新的 SessionManager 实例
 
 ---
-

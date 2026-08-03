@@ -1,6 +1,6 @@
 # graph-analytics
 
-**Source**: `src/main/knowledge-graph/graph-analytics.js`
+**Source**: `src\main\knowledge-graph\graph-analytics.js`
 
 ---
 
@@ -10,8 +10,8 @@
 function calculateDegreeCentrality(nodes, edges)
 ```
 
-* 知识图谱分析模块
- * 提供图分析算法：中心性分析、社区检测、聚类等
+- 知识图谱分析模块
+- 提供图分析算法：中心性分析、社区检测、聚类等
 
 ---
 
@@ -21,8 +21,8 @@ function calculateDegreeCentrality(nodes, edges)
 function calculateDegreeCentrality(nodes, edges)
 ```
 
-* 计算节点的度中心性（Degree Centrality）
- * 度中心性衡量节点的连接数量
+- 计算节点的度中心性（Degree Centrality）
+- 度中心性衡量节点的连接数量
 
 ---
 
@@ -32,8 +32,8 @@ function calculateDegreeCentrality(nodes, edges)
 function calculateClosenessCentrality(nodes, edges)
 ```
 
-* 计算节点的接近中心性（Closeness Centrality）
- * 接近中心性衡量节点到其他所有节点的平均距离
+- 计算节点的接近中心性（Closeness Centrality）
+- 接近中心性衡量节点到其他所有节点的平均距离
 
 ---
 
@@ -43,8 +43,8 @@ function calculateClosenessCentrality(nodes, edges)
 function calculateBetweennessCentrality(nodes, edges)
 ```
 
-* 计算节点的中介中心性（Betweenness Centrality）
- * 中介中心性衡量节点在最短路径上出现的频率
+- 计算节点的中介中心性（Betweenness Centrality）
+- 中介中心性衡量节点在最短路径上出现的频率
 
 ---
 
@@ -54,8 +54,8 @@ function calculateBetweennessCentrality(nodes, edges)
 function calculatePageRank(
 ```
 
-* PageRank 算法
- * 衡量节点的重要性，考虑链接的质量和数量
+- PageRank 算法
+- 衡量节点的重要性，考虑链接的质量和数量
 
 ---
 
@@ -65,8 +65,8 @@ function calculatePageRank(
 function detectCommunities(nodes, edges)
 ```
 
-* Louvain 社区检测算法
- * 检测图中的社区结构
+- Louvain 社区检测算法
+- 检测图中的社区结构
 
 ---
 
@@ -76,7 +76,7 @@ function detectCommunities(nodes, edges)
 function calculateModularityGain(
 ```
 
-* 计算模块度增益
+- 计算模块度增益
 
 ---
 
@@ -86,7 +86,7 @@ function calculateModularityGain(
 function clusterNodes(nodes, edges, k = 5, maxIterations = 100)
 ```
 
-* K-means 聚类算法（基于节点特征）
+- K-means 聚类算法（基于节点特征）
 
 ---
 
@@ -96,7 +96,7 @@ function clusterNodes(nodes, edges, k = 5, maxIterations = 100)
 function extractNodeFeatures(nodes, edges)
 ```
 
-* 提取节点特征
+- 提取节点特征
 
 ---
 
@@ -106,7 +106,7 @@ function extractNodeFeatures(nodes, edges)
 function euclideanDistance(feature1, feature2)
 ```
 
-* 计算欧几里得距离
+- 计算欧几里得距离
 
 ---
 
@@ -116,7 +116,7 @@ function euclideanDistance(feature1, feature2)
 function calculateCentroid(features)
 ```
 
-* 计算质心
+- 计算质心
 
 ---
 
@@ -126,7 +126,7 @@ function calculateCentroid(features)
 function buildAdjacencyList(nodes, edges)
 ```
 
-* 构建邻接表
+- 构建邻接表
 
 ---
 
@@ -136,7 +136,7 @@ function buildAdjacencyList(nodes, edges)
 function bfs(startId, adjacency, nodes)
 ```
 
-* 广度优先搜索（BFS）
+- 广度优先搜索（BFS）
 
 ---
 
@@ -146,7 +146,7 @@ function bfs(startId, adjacency, nodes)
 function findKeyNodes(nodes, edges, topN = 10)
 ```
 
-* 查找关键节点（综合多个指标）
+- 查找关键节点（综合多个指标）
 
 ---
 
@@ -156,7 +156,7 @@ function findKeyNodes(nodes, edges, topN = 10)
 function analyzeGraphStats(nodes, edges)
 ```
 
-* 分析图谱统计信息
+- 分析图谱统计信息
 
 ---
 
@@ -166,7 +166,6 @@ function analyzeGraphStats(nodes, edges)
 function findConnectedComponents(nodes, adjacency)
 ```
 
-* 查找连通分量
+- 查找连通分量
 
 ---
-

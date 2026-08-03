@@ -1,6 +1,6 @@
 # bridge-security
 
-**Source**: `src/main/blockchain/bridge-security.js`
+**Source**: `src\main\blockchain\bridge-security.js`
 
 ---
 
@@ -10,14 +10,14 @@
 const
 ```
 
-* Bridge Security Manager
- *
- * Production-grade security features for cross-chain bridge:
- * - Multi-signature verification
- * - Rate limiting
- * - Transaction monitoring
- * - Fraud detection
- * - Emergency pause mechanism
+- Bridge Security Manager
+-
+- Production-grade security features for cross-chain bridge:
+- - Multi-signature verification
+- - Rate limiting
+- - Transaction monitoring
+- - Fraud detection
+- - Emergency pause mechanism
 
 ---
 
@@ -27,7 +27,7 @@ const
 const SECURITY_CONFIG =
 ```
 
-* Security configuration
+- Security configuration
 
 ---
 
@@ -37,7 +37,7 @@ const SECURITY_CONFIG =
 class BridgeSecurityManager extends EventEmitter
 ```
 
-* Bridge Security Manager
+- Bridge Security Manager
 
 ---
 
@@ -47,7 +47,7 @@ class BridgeSecurityManager extends EventEmitter
 async initialize()
 ```
 
-* Initialize security manager
+- Initialize security manager
 
 ---
 
@@ -57,7 +57,7 @@ async initialize()
 async initializeTables()
 ```
 
-* Initialize database tables
+- Initialize database tables
 
 ---
 
@@ -67,7 +67,7 @@ async initializeTables()
 async loadBlacklist()
 ```
 
-* Load blacklist from database
+- Load blacklist from database
 
 ---
 
@@ -77,49 +77,49 @@ async loadBlacklist()
 async validateTransfer(transfer)
 ```
 
-* Validate bridge transfer
-   * @param {Object} transfer - Transfer details
-   * @returns {Object} Validation result
+- Validate bridge transfer
+  - @param {Object} transfer - Transfer details
+  - @returns {Object} Validation result
 
 ---
 
 ## checkRateLimit(address, amount)
 
 ```javascript
-checkRateLimit(address, amount)
+checkRateLimit(address, amount);
 ```
 
-* Check rate limiting
+- Check rate limiting
 
 ---
 
 ## checkDailyVolume(address, amount)
 
 ```javascript
-checkDailyVolume(address, amount)
+checkDailyVolume(address, amount);
 ```
 
-* Check daily volume limit
+- Check daily volume limit
 
 ---
 
 ## checkSuspiciousActivity(address, amount)
 
 ```javascript
-checkSuspiciousActivity(address, amount)
+checkSuspiciousActivity(address, amount);
 ```
 
-* Check for suspicious activity patterns
+- Check for suspicious activity patterns
 
 ---
 
 ## recordTransfer(address, amount)
 
 ```javascript
-recordTransfer(address, amount)
+recordTransfer(address, amount);
 ```
 
-* Record transfer for rate limiting
+- Record transfer for rate limiting
 
 ---
 
@@ -129,7 +129,7 @@ recordTransfer(address, amount)
 async createMultiSigTransaction(txData)
 ```
 
-* Create multi-signature transaction
+- Create multi-signature transaction
 
 ---
 
@@ -139,7 +139,7 @@ async createMultiSigTransaction(txData)
 async addSignature(txId, signature, signer)
 ```
 
-* Add signature to multi-sig transaction
+- Add signature to multi-sig transaction
 
 ---
 
@@ -149,7 +149,7 @@ async addSignature(txId, signature, signer)
 async pauseBridge(duration = SECURITY_CONFIG.PAUSE_DURATION, reason = "")
 ```
 
-* Emergency pause bridge
+- Emergency pause bridge
 
 ---
 
@@ -159,7 +159,7 @@ async pauseBridge(duration = SECURITY_CONFIG.PAUSE_DURATION, reason = "")
 async resumeBridge()
 ```
 
-* Resume bridge operations
+- Resume bridge operations
 
 ---
 
@@ -169,7 +169,7 @@ async resumeBridge()
 async addToBlacklist(address, reason, addedBy = "system")
 ```
 
-* Add address to blacklist
+- Add address to blacklist
 
 ---
 
@@ -179,17 +179,17 @@ async addToBlacklist(address, reason, addedBy = "system")
 async removeFromBlacklist(address)
 ```
 
-* Remove address from blacklist
+- Remove address from blacklist
 
 ---
 
 ## isBlacklisted(address)
 
 ```javascript
-isBlacklisted(address)
+isBlacklisted(address);
 ```
 
-* Check if address is blacklisted
+- Check if address is blacklisted
 
 ---
 
@@ -199,7 +199,7 @@ isBlacklisted(address)
 async logSecurityEvent(event)
 ```
 
-* Log security event
+- Log security event
 
 ---
 
@@ -209,27 +209,27 @@ async logSecurityEvent(event)
 async getSecurityEvents(filters =
 ```
 
-* Get security events
+- Get security events
 
 ---
 
 ## startCleanupInterval()
 
 ```javascript
-startCleanupInterval()
+startCleanupInterval();
 ```
 
-* Start cleanup interval
+- Start cleanup interval
 
 ---
 
 ## cleanup()
 
 ```javascript
-cleanup()
+cleanup();
 ```
 
-* Cleanup old data
+- Cleanup old data
 
 ---
 
@@ -239,7 +239,6 @@ cleanup()
 async close()
 ```
 
-* Close security manager
+- Close security manager
 
 ---
-

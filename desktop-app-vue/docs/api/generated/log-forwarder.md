@@ -1,6 +1,6 @@
 # log-forwarder
 
-**Source**: `src/main/utils/log-forwarder.js`
+**Source**: `src\main\utils\log-forwarder.js`
 
 ---
 
@@ -10,13 +10,13 @@
 const LOG_CHANNEL = "main:log";
 ```
 
-* 日志转发器 - 将主进程日志转发到渲染进程 DevTools
- *
- * 使用方法：
- * 1. 在主进程中调用 initLogForwarder(mainWindow)
- * 2. 在渲染进程中通过 window.electronAPI.mainLog.onLog(callback) 监听
- *
- * @module log-forwarder
+- 日志转发器 - 将主进程日志转发到渲染进程 DevTools
+-
+- 使用方法：
+- 1.  在主进程中调用 initLogForwarder(mainWindow)
+- 2.  在渲染进程中通过 window.electronAPI.mainLog.onLog(callback) 监听
+-
+- @module log-forwarder
 
 ---
 
@@ -26,9 +26,9 @@ const LOG_CHANNEL = "main:log";
 function shouldForward(args)
 ```
 
-* 检查日志是否应该被转发
- * @param {any[]} args - console 参数
- * @returns {boolean}
+- 检查日志是否应该被转发
+- @param {any[]} args - console 参数
+- @returns {boolean}
 
 ---
 
@@ -38,9 +38,9 @@ function shouldForward(args)
 function serializeArgs(args)
 ```
 
-* 安全序列化参数
- * @param {any[]} args - 原始参数
- * @returns {string[]}
+- 安全序列化参数
+- @param {any[]} args - 原始参数
+- @returns {string[]}
 
 ---
 
@@ -50,9 +50,9 @@ function serializeArgs(args)
 function forwardLog(level, args)
 ```
 
-* 发送日志到渲染进程
- * @param {string} level - 日志级别
- * @param {any[]} args - 日志参数
+- 发送日志到渲染进程
+- @param {string} level - 日志级别
+- @param {any[]} args - 日志参数
 
 ---
 
@@ -62,10 +62,10 @@ function forwardLog(level, args)
 function createWrapper(level, original)
 ```
 
-* 创建包装后的 console 方法
- * @param {string} level - 日志级别
- * @param {Function} original - 原始方法
- * @returns {Function}
+- 创建包装后的 console 方法
+- @param {string} level - 日志级别
+- @param {Function} original - 原始方法
+- @returns {Function}
 
 ---
 
@@ -75,8 +75,8 @@ function createWrapper(level, original)
 function initLogForwarder(mainWindow)
 ```
 
-* 初始化日志转发器
- * @param {Electron.BrowserWindow} mainWindow - 主窗口实例
+- 初始化日志转发器
+- @param {Electron.BrowserWindow} mainWindow - 主窗口实例
 
 ---
 
@@ -86,8 +86,8 @@ function initLogForwarder(mainWindow)
 function updateWebContents(webContents)
 ```
 
-* 更新 webContents 引用（窗口重建时使用）
- * @param {Electron.WebContents} webContents
+- 更新 webContents 引用（窗口重建时使用）
+- @param {Electron.WebContents} webContents
 
 ---
 
@@ -97,9 +97,9 @@ function updateWebContents(webContents)
 function sendLog(level, ...args)
 ```
 
-* 手动发送日志（用于特殊情况）
- * @param {string} level - 日志级别
- * @param {...any} args - 日志内容
+- 手动发送日志（用于特殊情况）
+- @param {string} level - 日志级别
+- @param {...any} args - 日志内容
 
 ---
 
@@ -109,8 +109,7 @@ function sendLog(level, ...args)
 function getLogChannel()
 ```
 
-* 获取日志通道名称
- * @returns {string}
+- 获取日志通道名称
+- @returns {string}
 
 ---
-

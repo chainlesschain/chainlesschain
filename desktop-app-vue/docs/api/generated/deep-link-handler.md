@@ -1,6 +1,6 @@
 # deep-link-handler
 
-**Source**: `src/main/system/deep-link-handler.js`
+**Source**: `src\main\system\deep-link-handler.js`
 
 ---
 
@@ -10,24 +10,24 @@
 const
 ```
 
-* Deep Link Handler - 处理 chainlesschain:// 协议链接
- *
- * 功能:
- * - 注册自定义协议
- * - 解析邀请链接
- * - 触发邀请接受流程
- * - 处理其他深链接场景
+- Deep Link Handler - 处理 chainlesschain:// 协议链接
+-
+- 功能:
+- - 注册自定义协议
+- - 解析邀请链接
+- - 触发邀请接受流程
+- - 处理其他深链接场景
 
 ---
 
 ## register(app)
 
 ```javascript
-register(app)
+register(app);
 ```
 
-* 注册协议处理器
-   * @param {Electron.App} app - Electron app实例
+- 注册协议处理器
+  - @param {Electron.App} app - Electron app实例
 
 ---
 
@@ -37,8 +37,8 @@ register(app)
 async handleDeepLink(urlString)
 ```
 
-* 处理深链接
-   * @param {string} urlString - 深链接URL
+- 处理深链接
+  - @param {string} urlString - 深链接URL
 
 ---
 
@@ -48,8 +48,8 @@ async handleDeepLink(urlString)
 async handleInvitationLink(token)
 ```
 
-* 处理邀请链接
-   * @param {string} token - 邀请令牌
+- 处理邀请链接
+  - @param {string} token - 邀请令牌
 
 ---
 
@@ -59,8 +59,8 @@ async handleInvitationLink(token)
 async handleDIDLink(did)
 ```
 
-* 处理DID链接
-   * @param {string} did - DID标识符
+- 处理DID链接
+  - @param {string} did - DID标识符
 
 ---
 
@@ -70,8 +70,8 @@ async handleDIDLink(did)
 async handleKnowledgeLink(knowledgeId)
 ```
 
-* 处理知识库链接
-   * @param {string} knowledgeId - 知识库ID
+- 处理知识库链接
+  - @param {string} knowledgeId - 知识库ID
 
 ---
 
@@ -81,9 +81,9 @@ async handleKnowledgeLink(knowledgeId)
 async handleNotesLink(noteId, params)
 ```
 
-* 处理笔记链接
-   * @param {string} noteId - 笔记ID
-   * @param {URLSearchParams} params - URL参数
+- 处理笔记链接
+  - @param {string} noteId - 笔记ID
+  - @param {URLSearchParams} params - URL参数
 
 ---
 
@@ -93,9 +93,9 @@ async handleNotesLink(noteId, params)
 async handleClipLink(clipId, params)
 ```
 
-* 处理剪藏链接（来自浏览器扩展）
-   * @param {string} clipId - 剪藏ID
-   * @param {URLSearchParams} params - URL参数
+- 处理剪藏链接（来自浏览器扩展）
+  - @param {string} clipId - 剪藏ID
+  - @param {URLSearchParams} params - URL参数
 
 ---
 
@@ -105,9 +105,9 @@ async handleClipLink(clipId, params)
 async handleGenericNavigation(path, params)
 ```
 
-* 处理通用导航链接
-   * @param {string} path - 路径
-   * @param {URLSearchParams} params - URL参数
+- 处理通用导航链接
+  - @param {string} path - 路径
+  - @param {URLSearchParams} params - URL参数
 
 ---
 
@@ -117,29 +117,28 @@ async handleGenericNavigation(path, params)
 async focusMainWindow()
 ```
 
-* 聚焦主窗口
+- 聚焦主窗口
 
 ---
 
 ## setMainWindow(mainWindow)
 
 ```javascript
-setMainWindow(mainWindow)
+setMainWindow(mainWindow);
 ```
 
-* 设置主窗口引用
-   * @param {Electron.BrowserWindow} mainWindow - 主窗口实例
+- 设置主窗口引用
+  - @param {Electron.BrowserWindow} mainWindow - 主窗口实例
 
 ---
 
 ## handleStartupUrl(argv)
 
 ```javascript
-handleStartupUrl(argv)
+handleStartupUrl(argv);
 ```
 
-* 处理启动时的协议URL (Windows/Linux)
-   * @param {string[]} argv - 命令行参数
+- 处理启动时的协议URL (Windows/Linux)
+  - @param {string[]} argv - 命令行参数
 
 ---
-

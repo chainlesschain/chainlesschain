@@ -1,6 +1,6 @@
 # template-manager
 
-**Source**: `src/main/template/template-manager.js`
+**Source**: `src\main\template\template-manager.js`
 
 ---
 
@@ -20,28 +20,28 @@ Tolerant JSON column parse — a corrupt row must not abort a list-load loop.
 class ProjectTemplateManager
 ```
 
-* 项目模板管理器
- * 负责加载、管理和应用项目模板
+- 项目模板管理器
+- 负责加载、管理和应用项目模板
 
 ---
 
 ## initializeTemplateEngine()
 
 ```javascript
-initializeTemplateEngine()
+initializeTemplateEngine();
 ```
 
-* 初始化模板引擎
+- 初始化模板引擎
 
 ---
 
 ## registerHelpers()
 
 ```javascript
-registerHelpers()
+registerHelpers();
 ```
 
-* 注册 Handlebars 辅助函数
+- 注册 Handlebars 辅助函数
 
 ---
 
@@ -51,7 +51,7 @@ registerHelpers()
 async initialize()
 ```
 
-* 初始化：加载所有内置模板到数据库
+- 初始化：加载所有内置模板到数据库
 
 ---
 
@@ -61,7 +61,7 @@ async initialize()
 async saveTemplate(templateData)
 ```
 
-* 保存模板到数据库
+- 保存模板到数据库
 
 ---
 
@@ -71,7 +71,7 @@ async saveTemplate(templateData)
 async getAllTemplates(filters =
 ```
 
-* 获取所有模板
+- 获取所有模板
 
 ---
 
@@ -81,17 +81,17 @@ async getAllTemplates(filters =
 async getTemplateById(templateId)
 ```
 
-* 根据ID获取模板
+- 根据ID获取模板
 
 ---
 
 ## parseTemplateData(template)
 
 ```javascript
-parseTemplateData(template)
+parseTemplateData(template);
 ```
 
-* 解析模板数据（JSON字段转换）
+- 解析模板数据（JSON字段转换）
 
 ---
 
@@ -101,7 +101,7 @@ parseTemplateData(template)
 validateVariables(variablesSchema, userVariables =
 ```
 
-* 验证模板变量
+- 验证模板变量
 
 ---
 
@@ -111,7 +111,7 @@ validateVariables(variablesSchema, userVariables =
 renderPrompt(template, userVariables =
 ```
 
-* 渲染模板提示词
+- 渲染模板提示词
 
 ---
 
@@ -121,7 +121,7 @@ renderPrompt(template, userVariables =
 async recordTemplateUsage(templateId, userId, projectId, variablesUsed =
 ```
 
-* 记录模板使用
+- 记录模板使用
 
 ---
 
@@ -131,7 +131,7 @@ async recordTemplateUsage(templateId, userId, projectId, variablesUsed =
 async searchTemplates(keyword, filters =
 ```
 
-* 搜索模板
+- 搜索模板
 
 ---
 
@@ -141,7 +141,7 @@ async searchTemplates(keyword, filters =
 async rateTemplate(templateId, userId, rating, review = "")
 ```
 
-* 提交模板评价
+- 提交模板评价
 
 ---
 
@@ -151,7 +151,7 @@ async rateTemplate(templateId, userId, rating, review = "")
 async getTemplateStats()
 ```
 
-* 获取模板统计信息
+- 获取模板统计信息
 
 ---
 
@@ -161,7 +161,7 @@ async getTemplateStats()
 async createTemplate(templateData)
 ```
 
-* 创建新模板
+- 创建新模板
 
 ---
 
@@ -171,7 +171,7 @@ async createTemplate(templateData)
 async updateTemplate(templateId, updates)
 ```
 
-* 更新模板
+- 更新模板
 
 ---
 
@@ -181,7 +181,7 @@ async updateTemplate(templateId, updates)
 async deleteTemplate(templateId)
 ```
 
-* 删除模板（软删除）
+- 删除模板（软删除）
 
 ---
 
@@ -191,7 +191,7 @@ async deleteTemplate(templateId)
 async getRecentTemplates(userId, limit = 10)
 ```
 
-* 获取用户最近使用的模板
+- 获取用户最近使用的模板
 
 ---
 
@@ -201,7 +201,7 @@ async getRecentTemplates(userId, limit = 10)
 async getPopularTemplates(limit = 20)
 ```
 
-* 获取热门模板
+- 获取热门模板
 
 ---
 
@@ -211,28 +211,27 @@ async getPopularTemplates(limit = 20)
 async recommendTemplates(userInput, projectType, userId, options =
 ```
 
-* 智能推荐模板
-   * 基于用户输入、项目类型和历史使用情况推荐合适的模板
+- 智能推荐模板
+  - 基于用户输入、项目类型和历史使用情况推荐合适的模板
 
 ---
 
 ## extractKeywords(text)
 
 ```javascript
-extractKeywords(text)
+extractKeywords(text);
 ```
 
-* 提取关键词
+- 提取关键词
 
 ---
 
 ## calculateKeywordScore(template, keywords)
 
 ```javascript
-calculateKeywordScore(template, keywords)
+calculateKeywordScore(template, keywords);
 ```
 
-* 计算关键词匹配分数
+- 计算关键词匹配分数
 
 ---
-

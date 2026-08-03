@@ -1,6 +1,6 @@
 # knowledge-sync-manager
 
-**Source**: `src/main/p2p/knowledge-sync-manager.js`
+**Source**: `src\main\p2p\knowledge-sync-manager.js`
 
 ---
 
@@ -10,14 +10,14 @@
 const
 ```
 
-* 知识库增量同步管理器
- *
- * 功能：
- * - 变更检测（基于时间戳和版本号）
- * - 增量数据传输
- * - 冲突检测和解决
- * - 同步状态管理
- * - 双向同步支持
+- 知识库增量同步管理器
+-
+- 功能：
+- - 变更检测（基于时间戳和版本号）
+- - 增量数据传输
+- - 冲突检测和解决
+- - 同步状态管理
+- - 双向同步支持
 
 ---
 
@@ -27,9 +27,9 @@ const
 async startSync(peerId, options =
 ```
 
-* 开始同步
-   * @param {string} peerId - 目标设备ID
-   * @param {Object} options - 同步选项
+- 开始同步
+  - @param {string} peerId - 目标设备ID
+  - @param {Object} options - 同步选项
 
 ---
 
@@ -39,7 +39,7 @@ async startSync(peerId, options =
 async detectLocalChanges(since)
 ```
 
-* 检测本地变更
+- 检测本地变更
 
 ---
 
@@ -49,27 +49,27 @@ async detectLocalChanges(since)
 async requestRemoteChanges(peerId, since)
 ```
 
-* 请求远程变更
+- 请求远程变更
 
 ---
 
 ## detectConflicts(localChanges, remoteChanges)
 
 ```javascript
-detectConflicts(localChanges, remoteChanges)
+detectConflicts(localChanges, remoteChanges);
 ```
 
-* 检测冲突
+- 检测冲突
 
 ---
 
 ## analyzeConflict(localChange, remoteChange)
 
 ```javascript
-analyzeConflict(localChange, remoteChange)
+analyzeConflict(localChange, remoteChange);
 ```
 
-* 分析冲突
+- 分析冲突
 
 ---
 
@@ -79,7 +79,7 @@ analyzeConflict(localChange, remoteChange)
 async resolveConflicts(conflicts)
 ```
 
-* 解决冲突
+- 解决冲突
 
 ---
 
@@ -89,7 +89,7 @@ async resolveConflicts(conflicts)
 async mergeChanges(local, remote)
 ```
 
-* 合并变更
+- 合并变更
 
 ---
 
@@ -99,7 +99,7 @@ async mergeChanges(local, remote)
 async applyRemoteChanges(remoteChanges, resolved)
 ```
 
-* 应用远程变更
+- 应用远程变更
 
 ---
 
@@ -109,7 +109,7 @@ async applyRemoteChanges(remoteChanges, resolved)
 async uploadLocalChanges(peerId, localChanges)
 ```
 
-* 上传本地变更
+- 上传本地变更
 
 ---
 
@@ -119,7 +119,7 @@ async uploadLocalChanges(peerId, localChanges)
 async handleSyncRequest(peerId, since)
 ```
 
-* 处理同步请求（作为服务端）
+- 处理同步请求（作为服务端）
 
 ---
 
@@ -129,57 +129,57 @@ async handleSyncRequest(peerId, since)
 async handleSyncPush(peerId, changes)
 ```
 
-* 处理同步推送（作为客户端）
+- 处理同步推送（作为客户端）
 
 ---
 
 ## calculateHash(note)
 
 ```javascript
-calculateHash(note)
+calculateHash(note);
 ```
 
-* 计算哈希
+- 计算哈希
 
 ---
 
 ## chunkArray(array, size)
 
 ```javascript
-chunkArray(array, size)
+chunkArray(array, size);
 ```
 
-* 分块数组
+- 分块数组
 
 ---
 
 ## setupChangeTracking()
 
 ```javascript
-setupChangeTracking()
+setupChangeTracking();
 ```
 
-* 设置变更追踪
+- 设置变更追踪
 
 ---
 
 ## startAutoSync()
 
 ```javascript
-startAutoSync()
+startAutoSync();
 ```
 
-* 启动自动同步
+- 启动自动同步
 
 ---
 
 ## getConflicts()
 
 ```javascript
-getConflicts()
+getConflicts();
 ```
 
-* 获取冲突列表
+- 获取冲突列表
 
 ---
 
@@ -189,27 +189,26 @@ getConflicts()
 async resolveConflictManually(conflictId, resolution)
 ```
 
-* 手动解决冲突
+- 手动解决冲突
 
 ---
 
 ## getStats()
 
 ```javascript
-getStats()
+getStats();
 ```
 
-* 获取统计信息
+- 获取统计信息
 
 ---
 
 ## cleanup()
 
 ```javascript
-cleanup()
+cleanup();
 ```
 
-* 清理资源
+- 清理资源
 
 ---
-

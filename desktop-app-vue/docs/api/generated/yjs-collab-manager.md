@@ -1,6 +1,6 @@
 # yjs-collab-manager
 
-**Source**: `src/main/collaboration/yjs-collab-manager.js`
+**Source**: `src\main\collaboration\yjs-collab-manager.js`
 
 ---
 
@@ -10,18 +10,18 @@
 const
 ```
 
-* Yjs Collaboration Manager
- *
- * Manages real-time collaborative editing using Yjs CRDT.
- * Integrates with the existing P2P network for document synchronization.
- *
- * Features:
- * - Real-time document synchronization
- * - Conflict-free concurrent editing
- * - Cursor position tracking
- * - Presence awareness (who's editing)
- * - Offline support with automatic sync
- * - Version history integration
+- Yjs Collaboration Manager
+-
+- Manages real-time collaborative editing using Yjs CRDT.
+- Integrates with the existing P2P network for document synchronization.
+-
+- Features:
+- - Real-time document synchronization
+- - Conflict-free concurrent editing
+- - Cursor position tracking
+- - Presence awareness (who's editing)
+- - Offline support with automatic sync
+- - Version history integration
 
 ---
 
@@ -38,43 +38,43 @@ Tolerant JSON column parse — a corrupt row must not abort a list-load loop.
 ## _initializeProtocolHandlers()
 
 ```javascript
-_initializeProtocolHandlers()
+_initializeProtocolHandlers();
 ```
 
-* Initialize P2P protocol handlers for Yjs sync
+- Initialize P2P protocol handlers for Yjs sync
 
 ---
 
 ## getDocument(docId)
 
 ```javascript
-getDocument(docId)
+getDocument(docId);
 ```
 
-* Get or create a Yjs document for the given ID
+- Get or create a Yjs document for the given ID
 
 ---
 
 ## _attachUpdateListener(docId, ydoc)
 
 ```javascript
-_attachUpdateListener(docId, ydoc)
+_attachUpdateListener(docId, ydoc);
 ```
 
-* Attach the local-update listener that broadcasts + persists edits. Must be
-   * re-attached whenever the underlying Y.Doc is replaced (e.g. restoreSnapshot
-   * swaps in a fresh doc), otherwise local edits to the new doc fire `update`
-   * with no listener and are silently lost (not broadcast, not saved).
+- Attach the local-update listener that broadcasts + persists edits. Must be
+  - re-attached whenever the underlying Y.Doc is replaced (e.g. restoreSnapshot
+  - swaps in a fresh doc), otherwise local edits to the new doc fire `update`
+  - with no listener and are silently lost (not broadcast, not saved).
 
 ---
 
 ## getAwareness(docId)
 
 ```javascript
-getAwareness(docId)
+getAwareness(docId);
 ```
 
-* Get or create awareness state for a document
+- Get or create awareness state for a document
 
 ---
 
@@ -84,7 +84,7 @@ getAwareness(docId)
 async openDocument(docId, organizationId = null)
 ```
 
-* Open a document for collaborative editing
+- Open a document for collaborative editing
 
 ---
 
@@ -94,7 +94,7 @@ async openDocument(docId, organizationId = null)
 async closeDocument(docId)
 ```
 
-* Close a document and clean up resources
+- Close a document and clean up resources
 
 ---
 
@@ -104,17 +104,17 @@ async closeDocument(docId)
 async updateCursor(docId, cursor, selection = null)
 ```
 
-* Update cursor position for local user
+- Update cursor position for local user
 
 ---
 
 ## getActiveUsers(docId)
 
 ```javascript
-getActiveUsers(docId)
+getActiveUsers(docId);
 ```
 
-* Get all users currently editing a document
+- Get all users currently editing a document
 
 ---
 
@@ -124,7 +124,7 @@ getActiveUsers(docId)
 async createSnapshot(docId, metadata =
 ```
 
-* Create a snapshot of the current document state
+- Create a snapshot of the current document state
 
 ---
 
@@ -134,7 +134,7 @@ async createSnapshot(docId, metadata =
 async restoreSnapshot(docId, snapshotId)
 ```
 
-* Restore document from a snapshot
+- Restore document from a snapshot
 
 ---
 
@@ -144,7 +144,7 @@ async restoreSnapshot(docId, snapshotId)
 async getVersionHistory(docId, limit = 50)
 ```
 
-* Get version history for a document
+- Get version history for a document
 
 ---
 
@@ -154,7 +154,7 @@ async getVersionHistory(docId, limit = 50)
 async _broadcastUpdate(docId, update)
 ```
 
-* Broadcast document update to all connected peers
+- Broadcast document update to all connected peers
 
 ---
 
@@ -164,7 +164,7 @@ async _broadcastUpdate(docId, update)
 async _broadcastAwareness(docId, organizationId = null)
 ```
 
-* Broadcast awareness update to peers
+- Broadcast awareness update to peers
 
 ---
 
@@ -174,7 +174,7 @@ async _broadcastAwareness(docId, organizationId = null)
 async _connectToPeers(docId, organizationId = null)
 ```
 
-* Connect to peers editing the same document
+- Connect to peers editing the same document
 
 ---
 
@@ -184,7 +184,7 @@ async _connectToPeers(docId, organizationId = null)
 async _saveUpdate(docId, update)
 ```
 
-* Save document update to database
+- Save document update to database
 
 ---
 
@@ -194,7 +194,7 @@ async _saveUpdate(docId, update)
 async _loadDocument(docId, ydoc)
 ```
 
-* Load document from database
+- Load document from database
 
 ---
 
@@ -204,7 +204,7 @@ async _loadDocument(docId, ydoc)
 async _readFromStream(stream)
 ```
 
-* Helper: Read data from libp2p stream
+- Helper: Read data from libp2p stream
 
 ---
 
@@ -214,27 +214,27 @@ async _readFromStream(stream)
 async _writeToStream(stream, data)
 ```
 
-* Helper: Write data to libp2p stream
+- Helper: Write data to libp2p stream
 
 ---
 
 ## _encodeAwarenessUpdate(awareness)
 
 ```javascript
-_encodeAwarenessUpdate(awareness)
+_encodeAwarenessUpdate(awareness);
 ```
 
-* Helper: Encode awareness update
+- Helper: Encode awareness update
 
 ---
 
 ## _applyAwarenessUpdate(awareness, update, peerId)
 
 ```javascript
-_applyAwarenessUpdate(awareness, update, peerId)
+_applyAwarenessUpdate(awareness, update, peerId);
 ```
 
-* Helper: Apply awareness update
+- Helper: Apply awareness update
 
 ---
 
@@ -244,7 +244,7 @@ _applyAwarenessUpdate(awareness, update, peerId)
 async _getUserName()
 ```
 
-* Helper: Get current user's name
+- Helper: Get current user's name
 
 ---
 
@@ -254,27 +254,26 @@ async _getUserName()
 async _getUserDID()
 ```
 
-* Helper: Get current user's DID
+- Helper: Get current user's DID
 
 ---
 
 ## _generateUserColor()
 
 ```javascript
-_generateUserColor()
+_generateUserColor();
 ```
 
-* Helper: Generate random color for user cursor
+- Helper: Generate random color for user cursor
 
 ---
 
 ## destroy()
 
 ```javascript
-destroy()
+destroy();
 ```
 
-* Clean up resources
+- Clean up resources
 
 ---
-

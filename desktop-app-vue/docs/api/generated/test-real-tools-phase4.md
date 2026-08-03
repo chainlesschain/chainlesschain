@@ -1,6 +1,6 @@
 # test-real-tools-phase4
 
-**Source**: `src/main/skill-tool-system/test-real-tools-phase4.js`
+**Source**: `src\main\skill-tool-system\test-real-tools-phase4.js`
 
 ---
 
@@ -10,8 +10,7 @@
 process.env.USE_REAL_TOOLS = "true";
 ```
 
-* Phase 4 真实功能测试
- * 测试日常工具的真实实现
+- Phase 4 真实功能测试
+- 测试日常工具的真实实现
 
 ---
-

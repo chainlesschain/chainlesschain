@@ -1,6 +1,6 @@
 # usage-report-generator
 
-**Source**: `src/main/memory/usage-report-generator.js`
+**Source**: `src\main\memory\usage-report-generator.js`
 
 ---
 
@@ -10,17 +10,17 @@
 const
 ```
 
-* UsageReportGenerator - Usage Analytics and Report Generation
- *
- * Generates comprehensive usage reports:
- * - Weekly and monthly usage reports
- * - LLM cost analysis and optimization recommendations
- * - Feature usage statistics
- * - Export to Markdown, JSON, CSV formats
- *
- * @module usage-report-generator
- * @version 1.0.0
- * @since 2026-01-18
+- UsageReportGenerator - Usage Analytics and Report Generation
+-
+- Generates comprehensive usage reports:
+- - Weekly and monthly usage reports
+- - LLM cost analysis and optimization recommendations
+- - Feature usage statistics
+- - Export to Markdown, JSON, CSV formats
+-
+- @module usage-report-generator
+- @version 1.0.0
+- @since 2026-01-18
 
 ---
 
@@ -40,7 +40,7 @@ Tolerant JSON column parse — a corrupt row must not abort a list-load loop.
 class UsageReportGenerator extends EventEmitter
 ```
 
-* UsageReportGenerator class
+- UsageReportGenerator class
 
 ---
 
@@ -50,12 +50,12 @@ class UsageReportGenerator extends EventEmitter
 constructor(options =
 ```
 
-* Create a UsageReportGenerator instance
-   * @param {Object} options - Configuration options
-   * @param {Object} options.database - SQLite database instance
-   * @param {string} options.reportsDir - Directory for report files
-   * @param {Object} [options.tokenTracker] - TokenTracker instance for LLM stats
-   * @param {Object} [options.configManager] - UnifiedConfigManager instance
+- Create a UsageReportGenerator instance
+  - @param {Object} options - Configuration options
+  - @param {Object} options.database - SQLite database instance
+  - @param {string} options.reportsDir - Directory for report files
+  - @param {Object} [options.tokenTracker] - TokenTracker instance for LLM stats
+  - @param {Object} [options.configManager] - UnifiedConfigManager instance
 
 ---
 
@@ -65,7 +65,7 @@ constructor(options =
 async initialize()
 ```
 
-* Initialize the generator
+- Initialize the generator
 
 ---
 
@@ -75,29 +75,29 @@ async initialize()
 async _ensureTables()
 ```
 
-* Ensure database tables exist
-   * @private
+- Ensure database tables exist
+  - @private
 
 ---
 
 ## _startScheduleChecker()
 
 ```javascript
-_startScheduleChecker()
+_startScheduleChecker();
 ```
 
-* Start schedule checker
-   * @private
+- Start schedule checker
+  - @private
 
 ---
 
 ## stopScheduleChecker()
 
 ```javascript
-stopScheduleChecker()
+stopScheduleChecker();
 ```
 
-* Stop schedule checker
+- Stop schedule checker
 
 ---
 
@@ -107,21 +107,21 @@ stopScheduleChecker()
 async _checkAndRunSubscriptions()
 ```
 
-* Check and run due subscriptions
-   * @private
+- Check and run due subscriptions
+  - @private
 
 ---
 
 ## _calculateNextGeneration(subscription)
 
 ```javascript
-_calculateNextGeneration(subscription)
+_calculateNextGeneration(subscription);
 ```
 
-* Calculate next generation time
-   * @param {Object} subscription - Subscription config
-   * @returns {number} Next generation timestamp
-   * @private
+- Calculate next generation time
+  - @param {Object} subscription - Subscription config
+  - @returns {number} Next generation timestamp
+  - @private
 
 ---
 
@@ -131,9 +131,9 @@ _calculateNextGeneration(subscription)
 async generateWeeklyReport(options =
 ```
 
-* Generate a weekly report
-   * @param {Object} options - Report options
-   * @returns {Promise<Object>} Generated report
+- Generate a weekly report
+  - @param {Object} options - Report options
+  - @returns {Promise<Object>} Generated report
 
 ---
 
@@ -143,9 +143,9 @@ async generateWeeklyReport(options =
 async generateMonthlyReport(options =
 ```
 
-* Generate a monthly report
-   * @param {Object} options - Report options
-   * @returns {Promise<Object>} Generated report
+- Generate a monthly report
+  - @param {Object} options - Report options
+  - @returns {Promise<Object>} Generated report
 
 ---
 
@@ -155,10 +155,10 @@ async generateMonthlyReport(options =
 async generateCostAnalysis(startDate, endDate)
 ```
 
-* Generate cost analysis
-   * @param {number} startDate - Start timestamp
-   * @param {number} endDate - End timestamp
-   * @returns {Promise<Object>} Cost analysis
+- Generate cost analysis
+  - @param {number} startDate - Start timestamp
+  - @param {number} endDate - End timestamp
+  - @returns {Promise<Object>} Cost analysis
 
 ---
 
@@ -168,10 +168,10 @@ async generateCostAnalysis(startDate, endDate)
 async exportReport(reportId, options =
 ```
 
-* Export report to file
-   * @param {string} reportId - Report ID
-   * @param {Object} options - Export options
-   * @returns {Promise<Object>} Export result
+- Export report to file
+  - @param {string} reportId - Report ID
+  - @param {Object} options - Export options
+  - @returns {Promise<Object>} Export result
 
 ---
 
@@ -181,22 +181,22 @@ async exportReport(reportId, options =
 async _getLLMStats(startDate, endDate)
 ```
 
-* Get LLM usage statistics
-   * @param {number} startDate - Start timestamp
-   * @param {number} endDate - End timestamp
-   * @returns {Promise<Object>} LLM statistics
-   * @private
+- Get LLM usage statistics
+  - @param {number} startDate - Start timestamp
+  - @param {number} endDate - End timestamp
+  - @returns {Promise<Object>} LLM statistics
+  - @private
 
 ---
 
 ## _getEmptyLLMStats()
 
 ```javascript
-_getEmptyLLMStats()
+_getEmptyLLMStats();
 ```
 
-* Get empty LLM stats
-   * @private
+- Get empty LLM stats
+  - @private
 
 ---
 
@@ -206,72 +206,72 @@ _getEmptyLLMStats()
 async _getFeatureStats(startDate, endDate)
 ```
 
-* Get feature usage statistics
-   * @param {number} startDate - Start timestamp
-   * @param {number} endDate - End timestamp
-   * @returns {Promise<Object>} Feature statistics
-   * @private
+- Get feature usage statistics
+  - @param {number} startDate - Start timestamp
+  - @param {number} endDate - End timestamp
+  - @returns {Promise<Object>} Feature statistics
+  - @private
 
 ---
 
 ## _getEmptyFeatureStats()
 
 ```javascript
-_getEmptyFeatureStats()
+_getEmptyFeatureStats();
 ```
 
-* Get empty feature stats
-   * @private
+- Get empty feature stats
+  - @private
 
 ---
 
 ## _generateRecommendations(llmStats, featureStats)
 
 ```javascript
-_generateRecommendations(llmStats, featureStats)
+_generateRecommendations(llmStats, featureStats);
 ```
 
-* Generate recommendations based on stats
-   * @param {Object} llmStats - LLM statistics
-   * @param {Object} featureStats - Feature statistics
-   * @returns {Array} Recommendations
-   * @private
+- Generate recommendations based on stats
+  - @param {Object} llmStats - LLM statistics
+  - @param {Object} featureStats - Feature statistics
+  - @returns {Array} Recommendations
+  - @private
 
 ---
 
 ## _formatPeriodLabel(startDate, endDate)
 
 ```javascript
-_formatPeriodLabel(startDate, endDate)
+_formatPeriodLabel(startDate, endDate);
 ```
 
-* Format period label
-   * @param {number} startDate - Start timestamp
-   * @param {number} endDate - End timestamp
-   * @returns {string} Period label
-   * @private
+- Format period label
+  - @param {number} startDate - Start timestamp
+  - @param {number} endDate - End timestamp
+  - @returns {string} Period label
+  - @private
 
 ---
 
 ## _formatMarkdownReport(report, summary, details, recommendations)
 
 ```javascript
-_formatMarkdownReport(report, summary, details, recommendations)
+_formatMarkdownReport(report, summary, details, recommendations);
 ```
 
-* Format Markdown report
-   * @private
+- Format Markdown report
+  - @private
 
 ---
 
 ## _formatCSVReport(summary, details)
 
 ```javascript
-_formatCSVReport(summary, details)
+_formatCSVReport(summary, details);
 ```
 
-* Format CSV report
-   * @private
+- Format CSV report
+  - @private
 
 ---
 
@@ -281,10 +281,10 @@ _formatCSVReport(summary, details)
 async _saveReport(reportData)
 ```
 
-* Save report to database
-   * @param {Object} reportData - Report data
-   * @returns {Promise<Object>} Saved report
-   * @private
+- Save report to database
+  - @param {Object} reportData - Report data
+  - @returns {Promise<Object>} Saved report
+  - @private
 
 ---
 
@@ -294,9 +294,9 @@ async _saveReport(reportData)
 async getReport(reportId)
 ```
 
-* Get report by ID
-   * @param {string} reportId - Report ID
-   * @returns {Promise<Object|null>} Report or null
+- Get report by ID
+  - @param {string} reportId - Report ID
+  - @returns {Promise<Object|null>} Report or null
 
 ---
 
@@ -306,9 +306,9 @@ async getReport(reportId)
 async listReports(options =
 ```
 
-* List reports
-   * @param {Object} options - Query options
-   * @returns {Promise<Array>} List of reports
+- List reports
+  - @param {Object} options - Query options
+  - @returns {Promise<Array>} List of reports
 
 ---
 
@@ -318,9 +318,9 @@ async listReports(options =
 async configureSubscription(config)
 ```
 
-* Configure subscription
-   * @param {Object} config - Subscription config
-   * @returns {Promise<Object>} Created subscription
+- Configure subscription
+  - @param {Object} config - Subscription config
+  - @returns {Promise<Object>} Created subscription
 
 ---
 
@@ -330,8 +330,8 @@ async configureSubscription(config)
 async getSubscriptions()
 ```
 
-* Get subscriptions
-   * @returns {Promise<Array>} List of subscriptions
+- Get subscriptions
+  - @returns {Promise<Array>} List of subscriptions
 
 ---
 
@@ -341,8 +341,7 @@ async getSubscriptions()
 async deleteSubscription(id)
 ```
 
-* Delete subscription
-   * @param {string} id - Subscription ID
+- Delete subscription
+  - @param {string} id - Subscription ID
 
 ---
-

@@ -1,6 +1,6 @@
 # extended-tools-memgpt
 
-**Source**: `src/main/ai-engine/extended-tools-memgpt.js`
+**Source**: `src\main\ai-engine\extended-tools-memgpt.js`
 
 ---
 
@@ -10,16 +10,16 @@
 const
 ```
 
-* MemGPT Memory Tools Integration
- *
- * Registers MemGPT memory tools with the function caller:
- * - Core memory operations (append, replace)
- * - Recall memory search
- * - Archival memory operations
- * - Conversation search
- *
- * @module extended-tools-memgpt
- * @version 1.0.0
+- MemGPT Memory Tools Integration
+-
+- Registers MemGPT memory tools with the function caller:
+- - Core memory operations (append, replace)
+- - Recall memory search
+- - Archival memory operations
+- - Conversation search
+-
+- @module extended-tools-memgpt
+- @version 1.0.0
 
 ---
 
@@ -29,29 +29,29 @@ const
 class MemGPTToolsHandler
 ```
 
-* MemGPT Tools Handler
+- MemGPT Tools Handler
 
 ---
 
 ## setMemGPTCore(memgptCore)
 
 ```javascript
-setMemGPTCore(memgptCore)
+setMemGPTCore(memgptCore);
 ```
 
-* Set MemGPTCore reference
-   * @param {Object} memgptCore - MemGPTCore instance
+- Set MemGPTCore reference
+  - @param {Object} memgptCore - MemGPTCore instance
 
 ---
 
 ## register(functionCaller)
 
 ```javascript
-register(functionCaller)
+register(functionCaller);
 ```
 
-* Register all MemGPT tools
-   * @param {FunctionCaller} functionCaller - Function caller instance
+- Register all MemGPT tools
+  - @param {FunctionCaller} functionCaller - Function caller instance
 
 ---
 
@@ -61,8 +61,7 @@ register(functionCaller)
 function getMemGPTTools()
 ```
 
-* Get MemGPT Tools Handler singleton
- * @returns {MemGPTToolsHandler}
+- Get MemGPT Tools Handler singleton
+- @returns {MemGPTToolsHandler}
 
 ---
-

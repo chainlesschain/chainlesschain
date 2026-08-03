@@ -1,6 +1,6 @@
 # speech-config
 
-**Source**: `src/main/speech/speech-config.js`
+**Source**: `src\main\speech\speech-config.js`
 
 ---
 
@@ -10,9 +10,9 @@
 const
 ```
 
-* 语音识别配置管理
- *
- * 管理语音识别系统的所有配置选项
+- 语音识别配置管理
+-
+- 管理语音识别系统的所有配置选项
 
 ---
 
@@ -22,7 +22,7 @@ const
 const DEFAULT_CONFIG =
 ```
 
-* 默认配置
+- 默认配置
 
 ---
 
@@ -32,7 +32,7 @@ const DEFAULT_CONFIG =
 class SpeechConfig
 ```
 
-* 语音配置管理类
+- 语音配置管理类
 
 ---
 
@@ -42,7 +42,7 @@ class SpeechConfig
 async load()
 ```
 
-* 加载配置
+- 加载配置
 
 ---
 
@@ -52,37 +52,37 @@ async load()
 async save()
 ```
 
-* 保存配置
+- 保存配置
 
 ---
 
 ## getAll()
 
 ```javascript
-getAll()
+getAll();
 ```
 
-* 获取所有配置
+- 获取所有配置
 
 ---
 
 ## get(key)
 
 ```javascript
-get(key)
+get(key);
 ```
 
-* 获取单个配置项
+- 获取单个配置项
 
 ---
 
 ## set(key, value)
 
 ```javascript
-set(key, value)
+set(key, value);
 ```
 
-* 设置配置项
+- 设置配置项
 
 ---
 
@@ -92,7 +92,7 @@ set(key, value)
 async update(newConfig)
 ```
 
-* 更新配置（批量）
+- 更新配置（批量）
 
 ---
 
@@ -102,67 +102,66 @@ async update(newConfig)
 async reset()
 ```
 
-* 重置为默认配置
+- 重置为默认配置
 
 ---
 
 ## getEngineConfig(engineType)
 
 ```javascript
-getEngineConfig(engineType)
+getEngineConfig(engineType);
 ```
 
-* 获取引擎配置
+- 获取引擎配置
 
 ---
 
 ## validate()
 
 ```javascript
-validate()
+validate();
 ```
 
-* 验证配置
+- 验证配置
 
 ---
 
 ## deepMerge(target, source)
 
 ```javascript
-deepMerge(target, source)
+deepMerge(target, source);
 ```
 
-* 深度合并对象
+- 深度合并对象
 
 ---
 
 ## isObject(item)
 
 ```javascript
-isObject(item)
+isObject(item);
 ```
 
-* 检查是否为对象
+- 检查是否为对象
 
 ---
 
 ## getNestedValue(obj, key)
 
 ```javascript
-getNestedValue(obj, key)
+getNestedValue(obj, key);
 ```
 
-* 获取嵌套值
+- 获取嵌套值
 
 ---
 
 ## setNestedValue(obj, key, value)
 
 ```javascript
-setNestedValue(obj, key, value)
+setNestedValue(obj, key, value);
 ```
 
-* 设置嵌套值
+- 设置嵌套值
 
 ---
-

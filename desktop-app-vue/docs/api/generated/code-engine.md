@@ -1,6 +1,6 @@
 # code-engine
 
-**Source**: `src/main/engines/code-engine.js`
+**Source**: `src\main\engines\code-engine.js`
 
 ---
 
@@ -10,8 +10,8 @@
 const
 ```
 
-* 代码开发引擎
- * 提供AI驱动的代码生成、测试生成、代码审查和重构功能
+- 代码开发引擎
+- 提供AI驱动的代码生成、测试生成、代码审查和重构功能
 
 ---
 
@@ -21,17 +21,17 @@ const
 async initialize()
 ```
 
-* 初始化代码引擎
+- 初始化代码引擎
 
 ---
 
 ## ensureInitialized()
 
 ```javascript
-ensureInitialized()
+ensureInitialized();
 ```
 
-* 确保已初始化
+- 确保已初始化
 
 ---
 
@@ -41,10 +41,10 @@ ensureInitialized()
 async generateCode(description, options =
 ```
 
-* 生成代码
-   * @param {string} description - 功能描述
-   * @param {Object} options - 选项
-   * @returns {Promise<Object>} 生成结果
+- 生成代码
+  - @param {string} description - 功能描述
+  - @param {Object} options - 选项
+  - @returns {Promise<Object>} 生成结果
 
 ---
 
@@ -54,33 +54,33 @@ async generateCode(description, options =
 async streamQuery(prompt, options =
 ```
 
-* 流式查询LLM
-   * @param {string} prompt - 提示词
-   * @param {Object} options - 选项
-   * @returns {Promise<string>} 响应内容
+- 流式查询LLM
+  - @param {string} prompt - 提示词
+  - @param {Object} options - 选项
+  - @returns {Promise<string>} 响应内容
 
 ---
 
 ## buildCodePrompt(description, language, framework, includeComments, style)
 
 ```javascript
-buildCodePrompt(description, language, framework, includeComments, style)
+buildCodePrompt(description, language, framework, includeComments, style);
 ```
 
-* 构建代码生成提示词
+- 构建代码生成提示词
 
 ---
 
 ## extractCodeBlock(text, language = '')
 
 ```javascript
-extractCodeBlock(text, language = '')
+extractCodeBlock(text, (language = ""));
 ```
 
-* 提取代码块
-   * @param {string} text - 包含代码的文本
-   * @param {string} language - 编程语言
-   * @returns {string} 提取的代码
+- 提取代码块
+  - @param {string} text - 包含代码的文本
+  - @param {string} language - 编程语言
+  - @returns {string} 提取的代码
 
 ---
 
@@ -90,11 +90,11 @@ extractCodeBlock(text, language = '')
 async generateTests(code, language, options =
 ```
 
-* 生成单元测试
-   * @param {string} code - 源代码
-   * @param {string} language - 编程语言
-   * @param {Object} options - 选项
-   * @returns {Promise<string>} 测试代码
+- 生成单元测试
+  - @param {string} code - 源代码
+  - @param {string} language - 编程语言
+  - @param {Object} options - 选项
+  - @returns {Promise<string>} 测试代码
 
 ---
 
@@ -104,11 +104,11 @@ async generateTests(code, language, options =
 async reviewCode(code, language, options =
 ```
 
-* 代码审查（增强版，整合复杂度和安全分析）
-   * @param {string} code - 源代码
-   * @param {string} language - 编程语言
-   * @param {Object} options - 选项
-   * @returns {Promise<Object>} 审查结果
+- 代码审查（增强版，整合复杂度和安全分析）
+  - @param {string} code - 源代码
+  - @param {string} language - 编程语言
+  - @param {Object} options - 选项
+  - @returns {Promise<Object>} 审查结果
 
 ---
 
@@ -118,50 +118,50 @@ async reviewCode(code, language, options =
 async performBasicReview(code, language)
 ```
 
-* 执行基础代码审查
-   * @private
+- 执行基础代码审查
+  - @private
 
 ---
 
 ## complexityToSuggestions(complexity)
 
 ```javascript
-complexityToSuggestions(complexity)
+complexityToSuggestions(complexity);
 ```
 
-* 将复杂度分析转换为建议
-   * @private
+- 将复杂度分析转换为建议
+  - @private
 
 ---
 
 ## securityToSuggestions(security)
 
 ```javascript
-securityToSuggestions(security)
+securityToSuggestions(security);
 ```
 
-* 将安全扫描结果转换为建议
-   * @private
+- 将安全扫描结果转换为建议
+  - @private
 
 ---
 
 ## parseReviewSuggestions(review)
 
 ```javascript
-parseReviewSuggestions(review)
+parseReviewSuggestions(review);
 ```
 
-* 解析审查建议
+- 解析审查建议
 
 ---
 
 ## extractScore(review)
 
 ```javascript
-extractScore(review)
+extractScore(review);
 ```
 
-* 提取评分
+- 提取评分
 
 ---
 
@@ -171,11 +171,11 @@ extractScore(review)
 async refactorCode(code, language, refactoringType)
 ```
 
-* 代码重构
-   * @param {string} code - 源代码
-   * @param {string} language - 编程语言
-   * @param {string} refactoringType - 重构类型
-   * @returns {Promise<Object>} 重构结果
+- 代码重构
+  - @param {string} code - 源代码
+  - @param {string} language - 编程语言
+  - @param {string} refactoringType - 重构类型
+  - @returns {Promise<Object>} 重构结果
 
 ---
 
@@ -185,10 +185,10 @@ async refactorCode(code, language, refactoringType)
 async explainCode(code, language)
 ```
 
-* 解释代码
-   * @param {string} code - 源代码
-   * @param {string} language - 编程语言
-   * @returns {Promise<Object>} 解释结果
+- 解释代码
+  - @param {string} code - 源代码
+  - @param {string} language - 编程语言
+  - @returns {Promise<Object>} 解释结果
 
 ---
 
@@ -198,11 +198,11 @@ async explainCode(code, language)
 async fixBug(code, language, errorMessage = null)
 ```
 
-* 修复代码bug
-   * @param {string} code - 有bug的代码
-   * @param {string} language - 编程语言
-   * @param {string} errorMessage - 错误信息（可选）
-   * @returns {Promise<Object>} 修复结果
+- 修复代码bug
+  - @param {string} code - 有bug的代码
+  - @param {string} language - 编程语言
+  - @param {string} errorMessage - 错误信息（可选）
+  - @returns {Promise<Object>} 修复结果
 
 ---
 
@@ -212,60 +212,60 @@ async fixBug(code, language, errorMessage = null)
 async generateScaffold(projectType, options =
 ```
 
-* 生成项目脚手架
-   * @param {string} projectType - 项目类型
-   * @param {Object} options - 选项
-   * @returns {Promise<Object>} 脚手架文件
+- 生成项目脚手架
+  - @param {string} projectType - 项目类型
+  - @param {Object} options - 选项
+  - @returns {Promise<Object>} 脚手架文件
 
 ---
 
 ## getExpressTemplate(projectName)
 
 ```javascript
-getExpressTemplate(projectName)
+getExpressTemplate(projectName);
 ```
 
-* Express API 模板
+- Express API 模板
 
 ---
 
 ## getReactTemplate(projectName)
 
 ```javascript
-getReactTemplate(projectName)
+getReactTemplate(projectName);
 ```
 
-* React App 模板
+- React App 模板
 
 ---
 
 ## getVueTemplate(projectName)
 
 ```javascript
-getVueTemplate(projectName)
+getVueTemplate(projectName);
 ```
 
-* Vue App 模板
+- Vue App 模板
 
 ---
 
 ## getNextJsTemplate(projectName)
 
 ```javascript
-getNextJsTemplate(projectName)
+getNextJsTemplate(projectName);
 ```
 
-* Next.js App 模板
+- Next.js App 模板
 
 ---
 
 ## getFastAPITemplate(projectName)
 
 ```javascript
-getFastAPITemplate(projectName)
+getFastAPITemplate(projectName);
 ```
 
-* FastAPI 模板
+- FastAPI 模板
 
 ---
 
@@ -275,11 +275,11 @@ getFastAPITemplate(projectName)
 async formatCode(code, language, options =
 ```
 
-* 代码格式化和美化
-   * @param {string} code - 源代码
-   * @param {string} language - 编程语言
-   * @param {Object} options - 格式化选项
-   * @returns {Promise<Object>} 格式化结果
+- 代码格式化和美化
+  - @param {string} code - 源代码
+  - @param {string} language - 编程语言
+  - @param {Object} options - 格式化选项
+  - @returns {Promise<Object>} 格式化结果
 
 ---
 
@@ -289,21 +289,21 @@ async formatCode(code, language, options =
 async analyzeComplexity(code, language)
 ```
 
-* 代码复杂度分析
-   * @param {string} code - 源代码
-   * @param {string} language - 编程语言
-   * @returns {Promise<Object>} 分析结果
+- 代码复杂度分析
+  - @param {string} code - 源代码
+  - @param {string} language - 编程语言
+  - @returns {Promise<Object>} 分析结果
 
 ---
 
 ## parseComplexityMetrics(analysis)
 
 ```javascript
-parseComplexityMetrics(analysis)
+parseComplexityMetrics(analysis);
 ```
 
-* 解析复杂度指标
-   * @private
+- 解析复杂度指标
+  - @private
 
 ---
 
@@ -313,32 +313,32 @@ parseComplexityMetrics(analysis)
 async scanSecurity(code, language)
 ```
 
-* 安全漏洞扫描
-   * @param {string} code - 源代码
-   * @param {string} language - 编程语言
-   * @returns {Promise<Object>} 扫描结果
+- 安全漏洞扫描
+  - @param {string} code - 源代码
+  - @param {string} language - 编程语言
+  - @returns {Promise<Object>} 扫描结果
 
 ---
 
 ## parseSecurityVulnerabilities(report)
 
 ```javascript
-parseSecurityVulnerabilities(report)
+parseSecurityVulnerabilities(report);
 ```
 
-* 解析安全漏洞
-   * @private
+- 解析安全漏洞
+  - @private
 
 ---
 
 ## extractSecurityLevel(report)
 
 ```javascript
-extractSecurityLevel(report)
+extractSecurityLevel(report);
 ```
 
-* 提取安全等级
-   * @private
+- 提取安全等级
+  - @private
 
 ---
 
@@ -348,12 +348,12 @@ extractSecurityLevel(report)
 async convertCode(code, fromLanguage, toLanguage, options =
 ```
 
-* 代码转换/迁移
-   * @param {string} code - 源代码
-   * @param {string} fromLanguage - 源语言
-   * @param {string} toLanguage - 目标语言
-   * @param {Object} options - 转换选项
-   * @returns {Promise<Object>} 转换结果
+- 代码转换/迁移
+  - @param {string} code - 源代码
+  - @param {string} fromLanguage - 源语言
+  - @param {string} toLanguage - 目标语言
+  - @param {Object} options - 转换选项
+  - @returns {Promise<Object>} 转换结果
 
 ---
 
@@ -363,11 +363,11 @@ async convertCode(code, fromLanguage, toLanguage, options =
 async generateIntegrationTests(code, language, options =
 ```
 
-* 生成集成测试
-   * @param {string} code - 源代码
-   * @param {string} language - 编程语言
-   * @param {Object} options - 选项
-   * @returns {Promise<Object>} 测试代码
+- 生成集成测试
+  - @param {string} code - 源代码
+  - @param {string} language - 编程语言
+  - @param {Object} options - 选项
+  - @returns {Promise<Object>} 测试代码
 
 ---
 
@@ -377,11 +377,11 @@ async generateIntegrationTests(code, language, options =
 async generateE2ETests(description, framework = 'cypress', options =
 ```
 
-* 生成E2E测试
-   * @param {string} description - 功能描述
-   * @param {string} framework - 测试框架（Cypress, Playwright, Selenium）
-   * @param {Object} options - 选项
-   * @returns {Promise<Object>} 测试代码
+- 生成E2E测试
+  - @param {string} description - 功能描述
+  - @param {string} framework - 测试框架（Cypress, Playwright, Selenium）
+  - @param {Object} options - 选项
+  - @returns {Promise<Object>} 测试代码
 
 ---
 
@@ -391,8 +391,7 @@ async generateE2ETests(description, framework = 'cypress', options =
 function getCodeEngine()
 ```
 
-* 获取代码引擎实例
- * @returns {CodeEngine}
+- 获取代码引擎实例
+- @returns {CodeEngine}
 
 ---
-

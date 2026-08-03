@@ -1,6 +1,6 @@
 # local-tts-client
 
-**Source**: `src/main/speech/local-tts-client.js`
+**Source**: `src\main\speech\local-tts-client.js`
 
 ---
 
@@ -10,13 +10,13 @@
 const EventEmitter = require("events");
 ```
 
-* Local TTS Client (Piper)
- *
- * Uses Piper for fast, high-quality local text-to-speech.
- * No internet connection required.
- *
- * @module local-tts-client
- * @version 1.0.0
+- Local TTS Client (Piper)
+-
+- Uses Piper for fast, high-quality local text-to-speech.
+- No internet connection required.
+-
+- @module local-tts-client
+- @version 1.0.0
 
 ---
 
@@ -36,7 +36,7 @@ const _deps =
 const PIPER_MODELS =
 ```
 
-* Piper voice models
+- Piper voice models
 
 ---
 
@@ -46,7 +46,7 @@ const PIPER_MODELS =
 const DEFAULT_CONFIG =
 ```
 
-* Default configuration
+- Default configuration
 
 ---
 
@@ -56,7 +56,7 @@ const DEFAULT_CONFIG =
 class LocalTTSClient extends EventEmitter
 ```
 
-* Local TTS Client using Piper
+- Local TTS Client using Piper
 
 ---
 
@@ -66,8 +66,8 @@ class LocalTTSClient extends EventEmitter
 async initialize(options =
 ```
 
-* Initialize client
-   * @param {Object} options - Initialization options
+- Initialize client
+  - @param {Object} options - Initialization options
 
 ---
 
@@ -77,8 +77,8 @@ async initialize(options =
 async checkStatus()
 ```
 
-* Check if Piper is available
-   * @returns {Promise<Object>} Status object
+- Check if Piper is available
+  - @returns {Promise<Object>} Status object
 
 ---
 
@@ -88,21 +88,21 @@ async checkStatus()
 async synthesize(text, options =
 ```
 
-* Synthesize text to speech
-   * @param {string} text - Text to synthesize
-   * @param {Object} options - Synthesis options
-   * @returns {Promise<Object>} Audio data
+- Synthesize text to speech
+  - @param {string} text - Text to synthesize
+  - @param {Object} options - Synthesis options
+  - @returns {Promise<Object>} Audio data
 
 ---
 
 ## getModels()
 
 ```javascript
-getModels()
+getModels();
 ```
 
-* Get available models
-   * @returns {Object} Available models
+- Get available models
+  - @returns {Object} Available models
 
 ---
 
@@ -112,30 +112,30 @@ getModels()
 async downloadModel(modelId)
 ```
 
-* Download a Piper voice model from GitHub releases
-   * @param {string} modelId - Model ID from PIPER_MODELS (e.g. "en_US-lessac-medium")
-   * @returns {Promise<Object>} Download result with paths to .onnx and .json files
+- Download a Piper voice model from GitHub releases
+  - @param {string} modelId - Model ID from PIPER_MODELS (e.g. "en_US-lessac-medium")
+  - @returns {Promise<Object>} Download result with paths to .onnx and .json files
 
 ---
 
 ## _downloadFile(url, destPath)
 
 ```javascript
-_downloadFile(url, destPath)
+_downloadFile(url, destPath);
 ```
 
-* Download a file via HTTPS with redirect following
-   * @private
+- Download a file via HTTPS with redirect following
+  - @private
 
 ---
 
 ## clearCache()
 
 ```javascript
-clearCache()
+clearCache();
 ```
 
-* Clear cache
+- Clear cache
 
 ---
 
@@ -145,8 +145,8 @@ clearCache()
 async _detectPiperPath()
 ```
 
-* Detect Piper path
-   * @private
+- Detect Piper path
+  - @private
 
 ---
 
@@ -156,41 +156,40 @@ async _detectPiperPath()
 async _scanModels()
 ```
 
-* Scan for available models
-   * @private
+- Scan for available models
+  - @private
 
 ---
 
 ## _runCommand(args, timeout = 30000)
 
 ```javascript
-_runCommand(args, timeout = 30000)
+_runCommand(args, (timeout = 30000));
 ```
 
-* Run piper command
-   * @private
+- Run piper command
+  - @private
 
 ---
 
 ## _synthesizeWithStdin(text, args, outputFile)
 
 ```javascript
-_synthesizeWithStdin(text, args, outputFile)
+_synthesizeWithStdin(text, args, outputFile);
 ```
 
-* Synthesize with text via stdin
-   * @private
+- Synthesize with text via stdin
+  - @private
 
 ---
 
 ## _getCacheKey(text, options)
 
 ```javascript
-_getCacheKey(text, options)
+_getCacheKey(text, options);
 ```
 
-* Get cache key
-   * @private
+- Get cache key
+  - @private
 
 ---
-

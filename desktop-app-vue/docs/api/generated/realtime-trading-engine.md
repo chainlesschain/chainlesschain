@@ -1,6 +1,6 @@
 # realtime-trading-engine
 
-**Source**: `src/main/trade/realtime-trading-engine.js`
+**Source**: `src\main\trade\realtime-trading-engine.js`
 
 ---
 
@@ -10,14 +10,14 @@
 const
 ```
 
-* 实时交易引擎
- *
- * 提供实时交易功能，包括：
- * - 实时订单匹配
- * - 实时价格更新
- * - 订单簿管理
- * - 交易执行
- * - WebSocket通信
+- 实时交易引擎
+-
+- 提供实时交易功能，包括：
+- - 实时订单匹配
+- - 实时价格更新
+- - 订单簿管理
+- - 交易执行
+- - WebSocket通信
 
 ---
 
@@ -27,7 +27,7 @@ const
 const OrderType =
 ```
 
-* 订单类型
+- 订单类型
 
 ---
 
@@ -37,7 +37,7 @@ const OrderType =
 const OrderSide =
 ```
 
-* 订单方向
+- 订单方向
 
 ---
 
@@ -47,7 +47,7 @@ const OrderSide =
 const OrderStatus =
 ```
 
-* 订单状态
+- 订单状态
 
 ---
 
@@ -57,7 +57,7 @@ const OrderStatus =
 class RealtimeTradingEngine extends EventEmitter
 ```
 
-* 实时交易引擎类
+- 实时交易引擎类
 
 ---
 
@@ -67,7 +67,7 @@ class RealtimeTradingEngine extends EventEmitter
 async initialize()
 ```
 
-* 初始化交易引擎
+- 初始化交易引擎
 
 ---
 
@@ -77,7 +77,7 @@ async initialize()
 async loadActiveOrders()
 ```
 
-* 加载活跃订单
+- 加载活跃订单
 
 ---
 
@@ -87,7 +87,7 @@ async loadActiveOrders()
 async initializeOrderBooks()
 ```
 
-* 初始化订单簿
+- 初始化订单簿
 
 ---
 
@@ -97,19 +97,19 @@ async initializeOrderBooks()
 async submitOrder(orderData)
 ```
 
-* 提交订单
-   * @param {Object} orderData - 订单数据
-   * @returns {Promise<Object>} 订单结果
+- 提交订单
+  - @param {Object} orderData - 订单数据
+  - @returns {Promise<Object>} 订单结果
 
 ---
 
 ## validateOrder(orderData)
 
 ```javascript
-validateOrder(orderData)
+validateOrder(orderData);
 ```
 
-* 验证订单
+- 验证订单
 
 ---
 
@@ -119,7 +119,7 @@ validateOrder(orderData)
 async checkBalance(order)
 ```
 
-* 检查余额
+- 检查余额
 
 ---
 
@@ -129,9 +129,9 @@ async checkBalance(order)
 async getUserFundBalance(userDid)
 ```
 
-* 获取用户资金账户余额
-   * @param {string} userDid - 用户DID
-   * @returns {Promise<number>} 余额
+- 获取用户资金账户余额
+  - @param {string} userDid - 用户DID
+  - @returns {Promise<number>} 余额
 
 ---
 
@@ -141,9 +141,9 @@ async getUserFundBalance(userDid)
 async getLockedFunds(userDid)
 ```
 
-* 获取用户已锁定的资金（未成交的买单占用）
-   * @param {string} userDid - 用户DID
-   * @returns {Promise<number>} 锁定金额
+- 获取用户已锁定的资金（未成交的买单占用）
+  - @param {string} userDid - 用户DID
+  - @returns {Promise<number>} 锁定金额
 
 ---
 
@@ -153,7 +153,7 @@ async getLockedFunds(userDid)
 async saveOrder(order)
 ```
 
-* 保存订单
+- 保存订单
 
 ---
 
@@ -163,7 +163,7 @@ async saveOrder(order)
 async updateOrder(order)
 ```
 
-* 更新订单
+- 更新订单
 
 ---
 
@@ -173,19 +173,19 @@ async updateOrder(order)
 async cancelOrder(orderId)
 ```
 
-* 取消订单
-   * @param {string} orderId - 订单ID
-   * @returns {Promise<boolean>}
+- 取消订单
+  - @param {string} orderId - 订单ID
+  - @returns {Promise<boolean>}
 
 ---
 
 ## startMatching(interval)
 
 ```javascript
-startMatching(interval)
+startMatching(interval);
 ```
 
-* 启动订单匹配
+- 启动订单匹配
 
 ---
 
@@ -195,7 +195,7 @@ startMatching(interval)
 async matchAllOrders()
 ```
 
-* 匹配所有订单
+- 匹配所有订单
 
 ---
 
@@ -205,7 +205,7 @@ async matchAllOrders()
 async matchOrderBook(orderBook)
 ```
 
-* 匹配订单簿
+- 匹配订单簿
 
 ---
 
@@ -215,7 +215,7 @@ async matchOrderBook(orderBook)
 async matchOrder(order)
 ```
 
-* 匹配单个订单
+- 匹配单个订单
 
 ---
 
@@ -225,7 +225,7 @@ async matchOrder(order)
 async executeMatch(match)
 ```
 
-* 执行匹配
+- 执行匹配
 
 ---
 
@@ -235,17 +235,17 @@ async executeMatch(match)
 async createTrade(tradeData)
 ```
 
-* 创建交易记录
+- 创建交易记录
 
 ---
 
 ## startPriceUpdates(interval)
 
 ```javascript
-startPriceUpdates(interval)
+startPriceUpdates(interval);
 ```
 
-* 启动价格更新
+- 启动价格更新
 
 ---
 
@@ -255,7 +255,7 @@ startPriceUpdates(interval)
 async updateAllPrices()
 ```
 
-* 更新所有价格
+- 更新所有价格
 
 ---
 
@@ -265,37 +265,37 @@ async updateAllPrices()
 async updatePrice(assetId, price)
 ```
 
-* 更新价格
+- 更新价格
 
 ---
 
 ## getOrderBook(assetId)
 
 ```javascript
-getOrderBook(assetId)
+getOrderBook(assetId);
 ```
 
-* 获取订单簿
+- 获取订单簿
 
 ---
 
 ## getPriceFeed(assetId)
 
 ```javascript
-getPriceFeed(assetId)
+getPriceFeed(assetId);
 ```
 
-* 获取价格源
+- 获取价格源
 
 ---
 
 ## getActiveOrders(assetId = null)
 
 ```javascript
-getActiveOrders(assetId = null)
+getActiveOrders((assetId = null));
 ```
 
-* 获取活跃订单
+- 获取活跃订单
 
 ---
 
@@ -305,7 +305,7 @@ getActiveOrders(assetId = null)
 async destroy()
 ```
 
-* 销毁交易引擎
+- 销毁交易引擎
 
 ---
 
@@ -315,67 +315,66 @@ async destroy()
 class OrderBook
 ```
 
-* 订单簿类
+- 订单簿类
 
 ---
 
 ## addOrder(order)
 
 ```javascript
-addOrder(order)
+addOrder(order);
 ```
 
-* 添加订单
+- 添加订单
 
 ---
 
 ## removeOrder(order)
 
 ```javascript
-removeOrder(order)
+removeOrder(order);
 ```
 
-* 移除订单
+- 移除订单
 
 ---
 
 ## findMatches()
 
 ```javascript
-findMatches()
+findMatches();
 ```
 
-* 查找匹配
+- 查找匹配
 
 ---
 
 ## findMatchesForOrder(order)
 
 ```javascript
-findMatchesForOrder(order)
+findMatchesForOrder(order);
 ```
 
-* 为特定订单查找匹配
+- 为特定订单查找匹配
 
 ---
 
 ## getCurrentPrice()
 
 ```javascript
-getCurrentPrice()
+getCurrentPrice();
 ```
 
-* 获取当前价格（最新成交价）
+- 获取当前价格（最新成交价）
 
 ---
 
 ## getSnapshot(depth = 10)
 
 ```javascript
-getSnapshot(depth = 10)
+getSnapshot((depth = 10));
 ```
 
-* 获取订单簿快照
+- 获取订单簿快照
 
 ---
-

@@ -1,0 +1,331 @@
+/* ChainlessChain Inline Chat Styles */
+/* Floating toolbar & inline diff view for CodeBuddy/Cursor-style inline editing */
+
+/* Floating toolbar (quick action buttons above selected code) */
+.cc-inline-toolbar {
+  position: absolute;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--vscode-editorWidget-background);
+  border: 1px solid var(--vscode-editorWidget-border);
+  border-radius: 6px;
+  padding: 3px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  font-family: var(--vscode-font-family);
+  font-size: 12px;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  pointer-events: none;
+}
+
+.cc-inline-toolbar.visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.cc-inline-toolbar button {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--vscode-editorWidget-foreground);
+  cursor: pointer;
+  font-size: 12px;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.cc-inline-toolbar button:hover {
+  background: var(--vscode-toolbar-hoverBackground);
+}
+
+.cc-inline-toolbar button .icon {
+  font-size: 14px;
+}
+
+.cc-inline-toolbar .separator {
+  width: 1px;
+  height: 16px;
+  background: var(--vscode-editorWidget-border);
+  margin: 0 2px;
+}
+
+.cc-inline-toolbar .primary-btn {
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+}
+
+.cc-inline-toolbar .primary-btn:hover {
+  background: var(--vscode-button-hoverBackground);
+}
+
+/* Inline chat input panel (appears below selection when typing) */
+.cc-inline-input-panel {
+  position: absolute;
+  z-index: 1001;
+  width: 500px;
+  max-width: 90vw;
+  background: var(--vscode-editorWidget-background);
+  border: 1px solid var(--vscode-editorWidget-border);
+  border-radius: 8px;
+  padding: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  font-family: var(--vscode-font-family);
+  font-size: 13px;
+}
+
+.cc-inline-input-panel textarea {
+  width: 100%;
+  min-height: 60px;
+  max-height: 200px;
+  resize: vertical;
+  border: 1px solid var(--vscode-input-border, transparent);
+  border-radius: 4px;
+  background: var(--vscode-input-background);
+  color: var(--vscode-input-foreground);
+  padding: 6px 8px;
+  font-family: inherit;
+  font-size: 13px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.cc-inline-input-panel textarea:focus {
+  border-color: var(--vscode-focusBorder);
+}
+
+.cc-inline-input-panel .actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 6px;
+}
+
+.cc-inline-input-panel .hint {
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.cc-inline-input-panel .hint kbd {
+  background: var(--vscode-keybindingLabel-background);
+  border: 1px solid var(--vscode-keybindingLabel-border);
+  border-bottom-width: 2px;
+  border-radius: 3px;
+  padding: 1px 4px;
+  font-family: inherit;
+  font-size: 10px;
+}
+
+.cc-inline-input-panel .buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.cc-inline-input-panel button {
+  padding: 4px 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+}
+
+.cc-inline-input-panel .cancel-btn {
+  background: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-secondaryForeground);
+}
+
+.cc-inline-input-panel .cancel-btn:hover {
+  background: var(--vscode-button-secondaryHoverBackground);
+}
+
+.cc-inline-input-panel .submit-btn {
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+}
+
+.cc-inline-input-panel .submit-btn:hover {
+  background: var(--vscode-button-hoverBackground);
+}
+
+.cc-inline-input-panel .submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Streaming response indicator */
+.cc-inline-streaming {
+  position: absolute;
+  z-index: 1001;
+  width: 500px;
+  max-width: 90vw;
+  background: var(--vscode-editorWidget-background);
+  border: 1px solid var(--vscode-editorWidget-border);
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cc-inline-streaming .spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--vscode-editorWidget-border);
+  border-top-color: var(--vscode-progressBar-background);
+  border-radius: 50%;
+  animation: cc-spin 0.8s linear infinite;
+}
+
+@keyframes cc-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Edit preview diff decoration */
+.cc-inline-edit-inserted {
+  background: rgba(0, 128, 0, 0.15);
+  border-left: 3px solid rgba(0, 180, 0, 0.7);
+}
+
+.cc-inline-edit-deleted {
+  background: rgba(200, 0, 0, 0.15);
+  border-left: 3px solid rgba(220, 0, 0, 0.7);
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+
+/* Accept / Reject action bar above diff */
+.cc-inline-diff-actions {
+  position: absolute;
+  z-index: 1001;
+  display: flex;
+  gap: 4px;
+  background: var(--vscode-editorWidget-background);
+  border: 1px solid var(--vscode-editorWidget-border);
+  border-radius: 4px;
+  padding: 2px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+.cc-inline-diff-actions button {
+  padding: 3px 8px;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.cc-inline-diff-actions .accept-btn {
+  background: rgba(0, 150, 0, 0.2);
+  color: var(--vscode-terminal-ansiGreen);
+}
+
+.cc-inline-diff-actions .accept-btn:hover {
+  background: rgba(0, 150, 0, 0.35);
+}
+
+.cc-inline-diff-actions .reject-btn {
+  background: rgba(200, 0, 0, 0.2);
+  color: var(--vscode-terminal-ansiRed);
+}
+
+.cc-inline-diff-actions .reject-btn:hover {
+  background: rgba(200, 0, 0, 0.35);
+}
+
+/* Code block in response */
+.cc-inline-response {
+  position: absolute;
+  z-index: 1001;
+  width: 600px;
+  max-width: 92vw;
+  max-height: 400px;
+  overflow-y: auto;
+  background: var(--vscode-editorWidget-background);
+  border: 1px solid var(--vscode-editorWidget-border);
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.45);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.cc-inline-response .response-text {
+  color: var(--vscode-editorWidget-foreground);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.cc-inline-response .response-text code {
+  background: var(--vscode-textCodeBlock-background);
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-family: var(--vscode-editor-font-family);
+  font-size: 11px;
+}
+
+.cc-inline-response pre {
+  background: var(--vscode-textCodeBlock-background);
+  padding: 10px;
+  border-radius: 4px;
+  overflow-x: auto;
+  margin: 8px 0;
+}
+
+.cc-inline-response pre code {
+  background: transparent;
+  padding: 0;
+  font-family: var(--vscode-editor-font-family);
+  font-size: 11px;
+}
+
+.cc-inline-response .response-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--vscode-editorWidget-border);
+}
+
+.cc-inline-response .response-actions button {
+  padding: 4px 10px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 11px;
+}
+
+.cc-inline-response .apply-btn {
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+}
+
+.cc-inline-response .apply-btn:hover {
+  background: var(--vscode-button-hoverBackground);
+}
+
+.cc-inline-response .copy-btn,
+.cc-inline-response .close-btn {
+  background: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-secondaryForeground);
+}
+
+.cc-inline-response .copy-btn:hover,
+.cc-inline-response .close-btn:hover {
+  background: var(--vscode-button-secondaryHoverBackground);
+}

@@ -1,6 +1,6 @@
 # file-validator
 
-**Source**: `src/main/security/file-validator.js`
+**Source**: `src\main\security\file-validator.js`
 
 ---
 
@@ -10,13 +10,13 @@
 const fs = require("fs").promises;
 ```
 
-* File Validator
- *
- * 文件安全验证器
- * - MIME类型检测
- * - 文件大小限制
- * - 恶意文件检测
- * - 文件扩展名白名单
+- File Validator
+-
+- 文件安全验证器
+- - MIME类型检测
+- - 文件大小限制
+- - 恶意文件检测
+- - 文件扩展名白名单
 
 ---
 
@@ -26,7 +26,7 @@ const fs = require("fs").promises;
 const ALLOWED_FILE_TYPES =
 ```
 
-* 允许的文件类型配置
+- 允许的文件类型配置
 
 ---
 
@@ -36,7 +36,7 @@ const ALLOWED_FILE_TYPES =
 const DANGEROUS_EXTENSIONS = [
 ```
 
-* 危险文件扩展名黑名单
+- 危险文件扩展名黑名单
 
 ---
 
@@ -46,8 +46,8 @@ const DANGEROUS_EXTENSIONS = [
 const FILE_SIGNATURES =
 ```
 
-* 文件头签名 (Magic Numbers)
- * 用于验证真实的文件类型
+- 文件头签名 (Magic Numbers)
+- 用于验证真实的文件类型
 
 ---
 
@@ -57,10 +57,10 @@ const FILE_SIGNATURES =
 static async validateFile(filePath, category = null)
 ```
 
-* 验证文件
-   * @param {string} filePath - 文件路径
-   * @param {string} category - 文件类别 (document, image, audio, video, archive, spreadsheet, presentation, code)
-   * @returns {Promise<Object>} 验证结果
+- 验证文件
+  - @param {string} filePath - 文件路径
+  - @param {string} category - 文件类别 (document, image, audio, video, archive, spreadsheet, presentation, code)
+  - @returns {Promise<Object>} 验证结果
 
 ---
 
@@ -70,7 +70,7 @@ static async validateFile(filePath, category = null)
 static detectCategory(extension)
 ```
 
-* 检测文件类别
+- 检测文件类别
 
 ---
 
@@ -80,7 +80,7 @@ static detectCategory(extension)
 static async readFileSignature(filePath, length = 8)
 ```
 
-* 读取文件头签名
+- 读取文件头签名
 
 ---
 
@@ -90,7 +90,7 @@ static async readFileSignature(filePath, length = 8)
 static getMimeTypeFromSignature(signature)
 ```
 
-* 根据签名获取MIME类型
+- 根据签名获取MIME类型
 
 ---
 
@@ -100,7 +100,7 @@ static getMimeTypeFromSignature(signature)
 static async calculateFileHash(filePath)
 ```
 
-* 计算文件哈希值 (SHA256)
+- 计算文件哈希值 (SHA256)
 
 ---
 
@@ -110,7 +110,7 @@ static async calculateFileHash(filePath)
 static async performSecurityChecks(filePath, result)
 ```
 
-* 执行额外的安全检查
+- 执行额外的安全检查
 
 ---
 
@@ -120,7 +120,7 @@ static async performSecurityChecks(filePath, result)
 static async validateFiles(filePaths, category = null)
 ```
 
-* 批量验证文件
+- 批量验证文件
 
 ---
 
@@ -130,7 +130,7 @@ static async validateFiles(filePaths, category = null)
 static getAllowedExtensions(category = null)
 ```
 
-* 获取允许的文件扩展名列表
+- 获取允许的文件扩展名列表
 
 ---
 
@@ -140,7 +140,7 @@ static getAllowedExtensions(category = null)
 static getAllowedMimeTypes(category = null)
 ```
 
-* 获取允许的MIME类型列表
+- 获取允许的MIME类型列表
 
 ---
 
@@ -150,7 +150,6 @@ static getAllowedMimeTypes(category = null)
 static getMaxFileSize(category)
 ```
 
-* 获取最大文件大小
+- 获取最大文件大小
 
 ---
-

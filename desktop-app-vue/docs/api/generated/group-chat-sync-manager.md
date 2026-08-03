@@ -1,6 +1,6 @@
 # group-chat-sync-manager
 
-**Source**: `src/main/sync/group-chat-sync-manager.js`
+**Source**: `src\main\sync\group-chat-sync-manager.js`
 
 ---
 
@@ -10,14 +10,14 @@
 const
 ```
 
-* 群聊同步管理器
- *
- * 功能：
- * - 群聊消息实时同步
- * - 群成员变更同步
- * - 群聊设置同步
- * - 离线消息队列
- * - 消息去重和顺序保证
+- 群聊同步管理器
+-
+- 功能：
+- - 群聊消息实时同步
+- - 群成员变更同步
+- - 群聊设置同步
+- - 离线消息队列
+- - 消息去重和顺序保证
 
 ---
 
@@ -27,9 +27,9 @@ const
 async syncMessage(groupId, message)
 ```
 
-* 同步群聊消息
-   * @param {string} groupId - 群聊ID
-   * @param {Object} message - 消息对象
+- 同步群聊消息
+  - @param {string} groupId - 群聊ID
+  - @param {Object} message - 消息对象
 
 ---
 
@@ -39,9 +39,9 @@ async syncMessage(groupId, message)
 async syncMemberChange(groupId, change)
 ```
 
-* 同步群成员变更
-   * @param {string} groupId - 群聊ID
-   * @param {Object} change - 变更对象
+- 同步群成员变更
+  - @param {string} groupId - 群聊ID
+  - @param {Object} change - 变更对象
 
 ---
 
@@ -51,9 +51,9 @@ async syncMemberChange(groupId, change)
 async syncGroupSettings(groupId, settings)
 ```
 
-* 同步群聊设置
-   * @param {string} groupId - 群聊ID
-   * @param {Object} settings - 设置对象
+- 同步群聊设置
+  - @param {string} groupId - 群聊ID
+  - @param {Object} settings - 设置对象
 
 ---
 
@@ -63,10 +63,10 @@ async syncGroupSettings(groupId, settings)
 async requestHistory(groupId, since = 0, limit = 100)
 ```
 
-* 请求群聊历史消息
-   * @param {string} groupId - 群聊ID
-   * @param {number} since - 起始时间戳
-   * @param {number} limit - 消息数量限制
+- 请求群聊历史消息
+  - @param {string} groupId - 群聊ID
+  - @param {number} since - 起始时间戳
+  - @param {number} limit - 消息数量限制
 
 ---
 
@@ -76,7 +76,7 @@ async requestHistory(groupId, since = 0, limit = 100)
 async handleMobileSyncRequest(peerId, payload)
 ```
 
-* 处理来自移动端的群聊同步请求
+- 处理来自移动端的群聊同步请求
 
 ---
 
@@ -86,7 +86,7 @@ async handleMobileSyncRequest(peerId, payload)
 async saveMessage(groupId, message)
 ```
 
-* 保存消息到数据库
+- 保存消息到数据库
 
 ---
 
@@ -96,7 +96,7 @@ async saveMessage(groupId, message)
 async getGroupMembers(groupId)
 ```
 
-* 获取群成员列表
+- 获取群成员列表
 
 ---
 
@@ -106,7 +106,7 @@ async getGroupMembers(groupId)
 async updateGroupSettings(groupId, settings)
 ```
 
-* 更新群聊设置
+- 更新群聊设置
 
 ---
 
@@ -116,17 +116,17 @@ async updateGroupSettings(groupId, settings)
 async sendMessageToMember(memberDid, message)
 ```
 
-* 发送消息给成员
+- 发送消息给成员
 
 ---
 
 ## queueMessage(groupId, memberDid, message)
 
 ```javascript
-queueMessage(groupId, memberDid, message)
+queueMessage(groupId, memberDid, message);
 ```
 
-* 将消息加入队列
+- 将消息加入队列
 
 ---
 
@@ -136,97 +136,96 @@ queueMessage(groupId, memberDid, message)
 async flushMessageQueue(groupId, memberDid)
 ```
 
-* 刷新消息队列
+- 刷新消息队列
 
 ---
 
 ## isDuplicateMessage(messageId)
 
 ```javascript
-isDuplicateMessage(messageId)
+isDuplicateMessage(messageId);
 ```
 
-* 检查是否为重复消息
+- 检查是否为重复消息
 
 ---
 
 ## isMemberOnline(groupId, memberDid)
 
 ```javascript
-isMemberOnline(groupId, memberDid)
+isMemberOnline(groupId, memberDid);
 ```
 
-* 检查成员是否在线
+- 检查成员是否在线
 
 ---
 
 ## updateMemberStatus(groupId, memberDid, status)
 
 ```javascript
-updateMemberStatus(groupId, memberDid, status)
+updateMemberStatus(groupId, memberDid, status);
 ```
 
-* 更新成员在线状态
+- 更新成员在线状态
 
 ---
 
 ## startRealTimeSync()
 
 ```javascript
-startRealTimeSync()
+startRealTimeSync();
 ```
 
-* 启动实时同步
+- 启动实时同步
 
 ---
 
 ## startCleanup()
 
 ```javascript
-startCleanup()
+startCleanup();
 ```
 
-* 启动定期清理
+- 启动定期清理
 
 ---
 
 ## cleanupMessageCache()
 
 ```javascript
-cleanupMessageCache()
+cleanupMessageCache();
 ```
 
-* 清理消息缓存
+- 清理消息缓存
 
 ---
 
 ## chunkArray(array, size)
 
 ```javascript
-chunkArray(array, size)
+chunkArray(array, size);
 ```
 
-* 分块数组
+- 分块数组
 
 ---
 
 ## getStats()
 
 ```javascript
-getStats()
+getStats();
 ```
 
-* 获取统计信息
+- 获取统计信息
 
 ---
 
 ## cleanup()
 
 ```javascript
-cleanup()
+cleanup();
 ```
 
-* 清理资源
+- 清理资源
 
 ---
-

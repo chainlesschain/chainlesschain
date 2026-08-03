@@ -1,6 +1,6 @@
 # llm-manager
 
-**Source**: `src/main/llm/llm-manager.js`
+**Source**: `src\main\llm\llm-manager.js`
 
 ---
 
@@ -10,16 +10,16 @@
 const
 ```
 
-* LLM 服务管理器
- *
- * 统一管理不同的LLM服务提供商
- *
- * 🔥 Manus 优化集成 (2026-01-17):
- * - Context Engineering: KV-Cache 友好的 Prompt 构建
- * - Tool Masking: 通过掩码控制工具可用性
- * - Task Tracking: 任务目标重述机制
- *
- * @see https://manus.im/blog/Context-Engineering-for-AI-Agents-Lessons-from-Building-Manus
+- LLM 服务管理器
+-
+- 统一管理不同的LLM服务提供商
+-
+- 🔥 Manus 优化集成 (2026-01-17):
+- - Context Engineering: KV-Cache 友好的 Prompt 构建
+- - Tool Masking: 通过掩码控制工具可用性
+- - Task Tracking: 任务目标重述机制
+-
+- @see https://manus.im/blog/Context-Engineering-for-AI-Agents-Lessons-from-Building-Manus
 
 ---
 
@@ -29,7 +29,7 @@ const
 const LLMProviders =
 ```
 
-* LLM 提供商类型
+- LLM 提供商类型
 
 ---
 
@@ -39,7 +39,7 @@ const LLMProviders =
 class LLMManager extends EventEmitter
 ```
 
-* LLM管理器类
+- LLM管理器类
 
 ---
 
@@ -49,7 +49,7 @@ class LLMManager extends EventEmitter
 async initialize()
 ```
 
-* 初始化管理器
+- 初始化管理器
 
 ---
 
@@ -59,8 +59,8 @@ async initialize()
 async createClient(provider)
 ```
 
-* 创建客户端
-   * @param {string} provider - 提供商类型
+- 创建客户端
+  - @param {string} provider - 提供商类型
 
 ---
 
@@ -70,9 +70,9 @@ async createClient(provider)
 async switchProvider(provider, config =
 ```
 
-* 切换提供商
-   * @param {string} provider - 提供商类型
-   * @param {Object} config - 配置
+- 切换提供商
+  - @param {string} provider - 提供商类型
+  - @param {Object} config - 配置
 
 ---
 
@@ -82,7 +82,7 @@ async switchProvider(provider, config =
 async checkStatus()
 ```
 
-* 检查服务状态
+- 检查服务状态
 
 ---
 
@@ -92,9 +92,9 @@ async checkStatus()
 async query(prompt, options =
 ```
 
-* 发送查询（非流式）
-   * @param {string} prompt - 提示词
-   * @param {Object} options - 选项
+- 发送查询（非流式）
+  - @param {string} prompt - 提示词
+  - @param {Object} options - 选项
 
 ---
 
@@ -104,9 +104,9 @@ async query(prompt, options =
 async chat(messages, options =
 ```
 
-* 向后兼容：聊天对话（消息数组）
-   * @param {Array} messages
-   * @param {Object} options
+- 向后兼容：聊天对话（消息数组）
+  - @param {Array} messages
+  - @param {Object} options
 
 ---
 
@@ -116,10 +116,10 @@ async chat(messages, options =
 async chatStream(messages, onChunk, options =
 ```
 
-* 向后兼容：聊天对话（流式）
-   * @param {Array} messages
-   * @param {Function} onChunk
-   * @param {Object} options
+- 向后兼容：聊天对话（流式）
+  - @param {Array} messages
+  - @param {Function} onChunk
+  - @param {Object} options
 
 ---
 
@@ -129,9 +129,9 @@ async chatStream(messages, onChunk, options =
 async chatWithMessages(messages, options =
 ```
 
-* 聊天对话（支持完整messages数组，非流式）
-   * @param {Array} messages - 消息数组 [{role: 'user'|'assistant'|'system', content: string}]
-   * @param {Object} options - 选项
+- 聊天对话（支持完整messages数组，非流式）
+  - @param {Array} messages - 消息数组 [{role: 'user'|'assistant'|'system', content: string}]
+  - @param {Object} options - 选项
 
 ---
 
@@ -141,10 +141,10 @@ async chatWithMessages(messages, options =
 async chatWithMessagesStream(messages, onChunk, options =
 ```
 
-* 聊天对话（支持完整messages数组，流式）
-   * @param {Array} messages - 消息数组
-   * @param {Function} onChunk - 回调函数
-   * @param {Object} options - 选项
+- 聊天对话（支持完整messages数组，流式）
+  - @param {Array} messages - 消息数组
+  - @param {Function} onChunk - 回调函数
+  - @param {Object} options - 选项
 
 ---
 
@@ -154,32 +154,32 @@ async chatWithMessagesStream(messages, onChunk, options =
 async queryStream(prompt, onChunk, options =
 ```
 
-* 发送查询（流式）
-   * @param {string} prompt - 提示词
-   * @param {Function} onChunk - 回调函数
-   * @param {Object} options - 选项
+- 发送查询（流式）
+  - @param {string} prompt - 提示词
+  - @param {Function} onChunk - 回调函数
+  - @param {Object} options - 选项
 
 ---
 
 ## clearContext(conversationId)
 
 ```javascript
-clearContext(conversationId)
+clearContext(conversationId);
 ```
 
-* 清除会话上下文
-   * @param {string} conversationId - 会话ID
+- 清除会话上下文
+  - @param {string} conversationId - 会话ID
 
 ---
 
 ## getContext(conversationId)
 
 ```javascript
-getContext(conversationId)
+getContext(conversationId);
 ```
 
-* 获取会话上下文
-   * @param {string} conversationId - 会话ID
+- 获取会话上下文
+  - @param {string} conversationId - 会话ID
 
 ---
 
@@ -189,21 +189,21 @@ getContext(conversationId)
 async embeddings(text, options =
 ```
 
-* 生成嵌入向量
-   * @param {string} text - 文本
+- 生成嵌入向量
+  - @param {string} text - 文本
 
 ---
 
 ## resolveAudioAdapter()
 
 ```javascript
-resolveAudioAdapter()
+resolveAudioAdapter();
 ```
 
-* Resolve the AUDIO category and return an adapter capable of
-   * speech-to-text / text-to-speech. Returns null if no audio-capable
-   * provider is configured. Callers (whisper bridge, TTS pipeline) can
-   * use this instead of hardcoding `this.adapters.openai`.
+- Resolve the AUDIO category and return an adapter capable of
+  - speech-to-text / text-to-speech. Returns null if no audio-capable
+  - provider is configured. Callers (whisper bridge, TTS pipeline) can
+  - use this instead of hardcoding `this.adapters.openai`.
 
 ---
 
@@ -213,7 +213,7 @@ resolveAudioAdapter()
 async listModels()
 ```
 
-* 列出可用模型
+- 列出可用模型
 
 ---
 
@@ -223,9 +223,9 @@ async listModels()
 selectVolcengineModel(scenario =
 ```
 
-* 智能选择模型（仅限火山引擎）
-   * @param {Object} scenario - 场景描述
-   * @returns {Object} 推荐的模型配置
+- 智能选择模型（仅限火山引擎）
+  - @param {Object} scenario - 场景描述
+  - @returns {Object} 推荐的模型配置
 
 ---
 
@@ -235,25 +235,25 @@ selectVolcengineModel(scenario =
 selectModelByTask(taskType, options =
 ```
 
-* 根据任务类型智能选择模型
-   * @param {string} taskType - 任务类型（来自 TaskTypes）
-   * @param {Object} options - 选项
-   * @returns {Object} 推荐的模型配置
+- 根据任务类型智能选择模型
+  - @param {string} taskType - 任务类型（来自 TaskTypes）
+  - @param {Object} options - 选项
+  - @returns {Object} 推荐的模型配置
 
 ---
 
 ## estimateCost(modelId, inputTokens = 0, outputTokens = 0, imageCount = 0)
 
 ```javascript
-estimateCost(modelId, inputTokens = 0, outputTokens = 0, imageCount = 0)
+estimateCost(modelId, (inputTokens = 0), (outputTokens = 0), (imageCount = 0));
 ```
 
-* 估算成本（仅限火山引擎）
-   * @param {string} modelId - 模型ID
-   * @param {number} inputTokens - 输入tokens
-   * @param {number} outputTokens - 输出tokens
-   * @param {number} imageCount - 图片数量
-   * @returns {number} 预估成本（人民币）
+- 估算成本（仅限火山引擎）
+  - @param {string} modelId - 模型ID
+  - @param {number} inputTokens - 输入tokens
+  - @param {number} outputTokens - 输出tokens
+  - @param {number} imageCount - 图片数量
+  - @returns {number} 预估成本（人民币）
 
 ---
 
@@ -263,9 +263,9 @@ estimateCost(modelId, inputTokens = 0, outputTokens = 0, imageCount = 0)
 listVolcengineModels(filters =
 ```
 
-* 列出火山引擎所有可用模型
-   * @param {Object} filters - 过滤条件
-   * @returns {Array} 模型列表
+- 列出火山引擎所有可用模型
+  - @param {Object} filters - 过滤条件
+  - @returns {Array} 模型列表
 
 ---
 
@@ -275,10 +275,10 @@ listVolcengineModels(filters =
 async chatWithWebSearch(messages, options =
 ```
 
-* 启用联网搜索的对话
-   * @param {Array} messages - 消息数组
-   * @param {Object} options - 选项
-   * @returns {Promise<Object>} API响应
+- 启用联网搜索的对话
+  - @param {Array} messages - 消息数组
+  - @param {Object} options - 选项
+  - @returns {Promise<Object>} API响应
 
 ---
 
@@ -288,10 +288,10 @@ async chatWithWebSearch(messages, options =
 async chatWithImageProcess(messages, options =
 ```
 
-* 启用图像处理的对话
-   * @param {Array} messages - 消息数组（需包含图像URL）
-   * @param {Object} options - 选项
-   * @returns {Promise<Object>} API响应
+- 启用图像处理的对话
+  - @param {Array} messages - 消息数组（需包含图像URL）
+  - @param {Object} options - 选项
+  - @returns {Promise<Object>} API响应
 
 ---
 
@@ -301,11 +301,11 @@ async chatWithImageProcess(messages, options =
 async chatWithKnowledgeBase(messages, knowledgeBaseId, options =
 ```
 
-* 使用知识库增强的对话
-   * @param {Array} messages - 消息数组
-   * @param {string} knowledgeBaseId - 知识库ID
-   * @param {Object} options - 选项
-   * @returns {Promise<Object>} API响应
+- 使用知识库增强的对话
+  - @param {Array} messages - 消息数组
+  - @param {string} knowledgeBaseId - 知识库ID
+  - @param {Object} options - 选项
+  - @returns {Promise<Object>} API响应
 
 ---
 
@@ -315,11 +315,11 @@ async chatWithKnowledgeBase(messages, knowledgeBaseId, options =
 async chatWithFunctionCalling(messages, functions, options =
 ```
 
-* Function Calling 对话
-   * @param {Array} messages - 消息数组
-   * @param {Array} functions - 可用函数列表
-   * @param {Object} options - 选项
-   * @returns {Promise<Object>} API响应
+- Function Calling 对话
+  - @param {Array} messages - 消息数组
+  - @param {Array} functions - 可用函数列表
+  - @param {Object} options - 选项
+  - @returns {Promise<Object>} API响应
 
 ---
 
@@ -329,10 +329,10 @@ async chatWithFunctionCalling(messages, functions, options =
 async chatWithMultipleTools(messages, toolConfig =
 ```
 
-* 混合多种工具的对话（智能组合）
-   * @param {Array} messages - 消息数组
-   * @param {Object} toolConfig - 工具配置
-   * @returns {Promise<Object>} API响应
+- 混合多种工具的对话（智能组合）
+  - @param {Array} messages - 消息数组
+  - @param {Object} toolConfig - 工具配置
+  - @returns {Promise<Object>} API响应
 
 ---
 
@@ -342,9 +342,9 @@ async chatWithMultipleTools(messages, toolConfig =
 async _handleBudgetAlert(alert)
 ```
 
-* 处理预算告警事件（内部方法）
-   * @private
-   * @param {Object} alert - 告警详情
+- 处理预算告警事件（内部方法）
+  - @private
+  - @param {Object} alert - 告警详情
 
 ---
 
@@ -354,8 +354,8 @@ async _handleBudgetAlert(alert)
 async _switchToCheaperModel()
 ```
 
-* 切换到更便宜的模型（内部方法）
-   * @private
+- 切换到更便宜的模型（内部方法）
+  - @private
 
 ---
 
@@ -365,8 +365,8 @@ async _switchToCheaperModel()
 async resumeService(userId = "default")
 ```
 
-* 恢复被暂停的服务
-   * @param {string} userId - 用户 ID
+- 恢复被暂停的服务
+  - @param {string} userId - 用户 ID
 
 ---
 
@@ -376,7 +376,7 @@ async resumeService(userId = "default")
 async pauseService()
 ```
 
-* 手动暂停服务
+- 手动暂停服务
 
 ---
 
@@ -386,9 +386,9 @@ async pauseService()
 async getBudgetConfig(userId = "default")
 ```
 
-* 获取预算配置
-   * @param {string} userId - 用户 ID
-   * @returns {Promise<Object>}
+- 获取预算配置
+  - @param {string} userId - 用户 ID
+  - @returns {Promise<Object>}
 
 ---
 
@@ -398,10 +398,10 @@ async getBudgetConfig(userId = "default")
 async saveBudgetConfig(userId = "default", config)
 ```
 
-* 保存预算配置
-   * @param {string} userId - 用户 ID
-   * @param {Object} config - 预算配置
-   * @returns {Promise<Object>}
+- 保存预算配置
+  - @param {string} userId - 用户 ID
+  - @param {Object} config - 预算配置
+  - @returns {Promise<Object>}
 
 ---
 
@@ -411,9 +411,9 @@ async saveBudgetConfig(userId = "default", config)
 async getUsageStats(options =
 ```
 
-* 获取使用统计
-   * @param {Object} options - 查询选项
-   * @returns {Promise<Object>}
+- 获取使用统计
+  - @param {Object} options - 查询选项
+  - @returns {Promise<Object>}
 
 ---
 
@@ -423,9 +423,9 @@ async getUsageStats(options =
 async getTimeSeriesData(options =
 ```
 
-* 获取时间序列数据（用于图表）
-   * @param {Object} options - 查询选项
-   * @returns {Promise<Array>}
+- 获取时间序列数据（用于图表）
+  - @param {Object} options - 查询选项
+  - @returns {Promise<Array>}
 
 ---
 
@@ -435,9 +435,9 @@ async getTimeSeriesData(options =
 async getCostBreakdown(options =
 ```
 
-* 获取成本分解（按提供商/模型）
-   * @param {Object} options - 查询选项
-   * @returns {Promise<Object>}
+- 获取成本分解（按提供商/模型）
+  - @param {Object} options - 查询选项
+  - @returns {Promise<Object>}
 
 ---
 
@@ -447,9 +447,9 @@ async getCostBreakdown(options =
 async exportCostReport(options =
 ```
 
-* 导出成本报告
-   * @param {Object} options - 导出选项
-   * @returns {Promise<string>} CSV 文件路径
+- 导出成本报告
+  - @param {Object} options - 导出选项
+  - @returns {Promise<string>} CSV 文件路径
 
 ---
 
@@ -459,13 +459,13 @@ async exportCostReport(options =
 calculateCostEstimate(
 ```
 
-* 计算成本估算（支持多提供商）
-   * @param {string} provider - 提供商
-   * @param {string} model - 模型名称
-   * @param {number} inputTokens - 输入 tokens
-   * @param {number} outputTokens - 输出 tokens
-   * @param {number} cachedTokens - 缓存 tokens
-   * @returns {Object} 成本估算结果
+- 计算成本估算（支持多提供商）
+  - @param {string} provider - 提供商
+  - @param {string} model - 模型名称
+  - @param {number} inputTokens - 输入 tokens
+  - @param {number} outputTokens - 输出 tokens
+  - @param {number} cachedTokens - 缓存 tokens
+  - @returns {Object} 成本估算结果
 
 ---
 
@@ -475,9 +475,9 @@ calculateCostEstimate(
 async canPerformOperation(estimatedTokens = 0)
 ```
 
-* 检查是否可以执行操作（预算检查）
-   * @param {number} estimatedTokens - 预估 token 数量
-   * @returns {Promise<Object>} { allowed: boolean, reason?: string }
+- 检查是否可以执行操作（预算检查）
+  - @param {number} estimatedTokens - 预估 token 数量
+  - @returns {Promise<Object>} { allowed: boolean, reason?: string }
 
 ---
 
@@ -487,7 +487,7 @@ async canPerformOperation(estimatedTokens = 0)
 async close()
 ```
 
-* 关闭管理器
+- 关闭管理器
 
 ---
 
@@ -497,9 +497,9 @@ async close()
 function getLLMManager(config =
 ```
 
-* 获取LLM管理器单例
- * @param {Object} config - 配置对象（仅首次调用时生效）
- * @returns {LLMManager}
+- 获取LLM管理器单例
+- @param {Object} config - 配置对象（仅首次调用时生效）
+- @returns {LLMManager}
 
 ---
 
@@ -509,7 +509,7 @@ function getLLMManager(config =
 LLMManager.prototype.generateTags = async function (
 ```
 
-* 为LLMManager添加AI标签生成和摘要生成功能
+- 为LLMManager添加AI标签生成和摘要生成功能
 
 ---
 
@@ -519,7 +519,7 @@ LLMManager.prototype.generateTags = async function (
 LLMManager.prototype.generateTagsFallback = function (
 ```
 
-* Fallback标签生成（简单关键词提取）
+- Fallback标签生成（简单关键词提取）
 
 ---
 
@@ -529,7 +529,7 @@ LLMManager.prototype.generateTagsFallback = function (
 LLMManager.prototype.generateSummary = async function (
 ```
 
-* 生成内容摘要
+- 生成内容摘要
 
 ---
 
@@ -539,7 +539,7 @@ LLMManager.prototype.generateSummary = async function (
 LLMManager.prototype.generateSummaryFallback = function (
 ```
 
-* Fallback摘要生成（简单截取）
+- Fallback摘要生成（简单截取）
 
 ---
 
@@ -549,13 +549,13 @@ LLMManager.prototype.generateSummaryFallback = function (
 LLMManager.prototype.buildOptimizedPrompt = function (options)
 ```
 
-* 构建优化后的 Prompt（KV-Cache 友好）
- *
- * @param {Object} options - 构建选项
- * @param {string} options.systemPrompt - 系统提示词
- * @param {Array} options.messages - 对话历史
- * @param {Array} options.tools - 工具定义（可选）
- * @returns {Object} 优化后的消息和元数据
+- 构建优化后的 Prompt（KV-Cache 友好）
+-
+- @param {Object} options - 构建选项
+- @param {string} options.systemPrompt - 系统提示词
+- @param {Array} options.messages - 对话历史
+- @param {Array} options.tools - 工具定义（可选）
+- @returns {Object} 优化后的消息和元数据
 
 ---
 
@@ -565,13 +565,13 @@ LLMManager.prototype.buildOptimizedPrompt = function (options)
 LLMManager.prototype.chatWithOptimizedPrompt = async function (
 ```
 
-* 使用优化后的 Prompt 进行对话
- *
- * @param {Array} messages - 消息数组
- * @param {Object} options - 选项
- * @param {string} options.systemPrompt - 系统提示词
- * @param {Array} options.tools - 工具定义
- * @returns {Promise<Object>} 对话结果
+- 使用优化后的 Prompt 进行对话
+-
+- @param {Array} messages - 消息数组
+- @param {Object} options - 选项
+- @param {string} options.systemPrompt - 系统提示词
+- @param {Array} options.tools - 工具定义
+- @returns {Promise<Object>} 对话结果
 
 ---
 
@@ -581,12 +581,12 @@ LLMManager.prototype.chatWithOptimizedPrompt = async function (
 LLMManager.prototype.startTask = function (task)
 ```
 
-* 开始任务追踪（Manus todo.md 机制）
- *
- * @param {Object} task - 任务信息
- * @param {string} task.objective - 任务目标
- * @param {Array} task.steps - 任务步骤
- * @returns {Object} 任务信息
+- 开始任务追踪（Manus todo.md 机制）
+-
+- @param {Object} task - 任务信息
+- @param {string} task.objective - 任务目标
+- @param {Array} task.steps - 任务步骤
+- @returns {Object} 任务信息
 
 ---
 
@@ -596,10 +596,10 @@ LLMManager.prototype.startTask = function (task)
 LLMManager.prototype.updateTaskProgress = function (stepIndex, status)
 ```
 
-* 更新任务进度
- *
- * @param {number} stepIndex - 当前步骤索引
- * @param {string} status - 状态
+- 更新任务进度
+-
+- @param {number} stepIndex - 当前步骤索引
+- @param {string} status - 状态
 
 ---
 
@@ -609,7 +609,7 @@ LLMManager.prototype.updateTaskProgress = function (stepIndex, status)
 LLMManager.prototype.completeCurrentStep = function ()
 ```
 
-* 完成当前步骤
+- 完成当前步骤
 
 ---
 
@@ -619,7 +619,7 @@ LLMManager.prototype.completeCurrentStep = function ()
 LLMManager.prototype.completeTask = function ()
 ```
 
-* 完成任务
+- 完成任务
 
 ---
 
@@ -629,7 +629,7 @@ LLMManager.prototype.completeTask = function ()
 LLMManager.prototype.cancelTask = function ()
 ```
 
-* 取消任务
+- 取消任务
 
 ---
 
@@ -639,8 +639,8 @@ LLMManager.prototype.cancelTask = function ()
 LLMManager.prototype.getCurrentTask = function ()
 ```
 
-* 获取当前任务
- * @returns {Object|null} 当前任务
+- 获取当前任务
+- @returns {Object|null} 当前任务
 
 ---
 
@@ -650,8 +650,8 @@ LLMManager.prototype.getCurrentTask = function ()
 LLMManager.prototype.recordError = function (error)
 ```
 
-* 记录错误（供模型学习）
- * @param {Object} error - 错误信息
+- 记录错误（供模型学习）
+- @param {Object} error - 错误信息
 
 ---
 
@@ -661,9 +661,9 @@ LLMManager.prototype.recordError = function (error)
 LLMManager.prototype.setToolAvailable = function (toolName, available)
 ```
 
-* 设置工具可用性
- * @param {string} toolName - 工具名称
- * @param {boolean} available - 是否可用
+- 设置工具可用性
+- @param {string} toolName - 工具名称
+- @param {boolean} available - 是否可用
 
 ---
 
@@ -673,8 +673,8 @@ LLMManager.prototype.setToolAvailable = function (toolName, available)
 LLMManager.prototype.setToolMask = function (toolNames)
 ```
 
-* 批量设置允许的工具列表（覆盖整个掩码）
- * @param {string[]} toolNames - 允许的工具名列表
+- 批量设置允许的工具列表（覆盖整个掩码）
+- @param {string[]} toolNames - 允许的工具名列表
 
 ---
 
@@ -684,9 +684,9 @@ LLMManager.prototype.setToolMask = function (toolNames)
 LLMManager.prototype.setToolsByPrefix = function (prefix, available)
 ```
 
-* 按前缀设置工具可用性
- * @param {string} prefix - 工具前缀
- * @param {boolean} available - 是否可用
+- 按前缀设置工具可用性
+- @param {string} prefix - 工具前缀
+- @param {boolean} available - 是否可用
 
 ---
 
@@ -696,9 +696,9 @@ LLMManager.prototype.setToolsByPrefix = function (prefix, available)
 LLMManager.prototype.validateToolCall = function (toolName)
 ```
 
-* 验证工具调用
- * @param {string} toolName - 工具名称
- * @returns {Object} 验证结果
+- 验证工具调用
+- @param {string} toolName - 工具名称
+- @returns {Object} 验证结果
 
 ---
 
@@ -708,8 +708,8 @@ LLMManager.prototype.validateToolCall = function (toolName)
 LLMManager.prototype.configureTaskPhases = function (config)
 ```
 
-* 配置任务阶段状态机
- * @param {Object} config - 状态机配置（可选）
+- 配置任务阶段状态机
+- @param {Object} config - 状态机配置（可选）
 
 ---
 
@@ -719,9 +719,9 @@ LLMManager.prototype.configureTaskPhases = function (config)
 LLMManager.prototype.transitionToPhase = function (phase)
 ```
 
-* 切换到指定阶段
- * @param {string} phase - 阶段名称
- * @returns {boolean} 是否成功
+- 切换到指定阶段
+- @param {string} phase - 阶段名称
+- @returns {boolean} 是否成功
 
 ---
 
@@ -731,8 +731,8 @@ LLMManager.prototype.transitionToPhase = function (phase)
 LLMManager.prototype.getManusStats = function ()
 ```
 
-* 获取 Manus 优化统计
- * @returns {Object} 统计数据
+- 获取 Manus 优化统计
+- @returns {Object} 统计数据
 
 ---
 
@@ -742,10 +742,10 @@ LLMManager.prototype.getManusStats = function ()
 LLMManager.prototype.compressContent = function (content, type)
 ```
 
-* 压缩内容（可恢复压缩）
- * @param {any} content - 原始内容
- * @param {string} type - 内容类型
- * @returns {Object} 压缩后的引用
+- 压缩内容（可恢复压缩）
+- @param {any} content - 原始内容
+- @param {string} type - 内容类型
+- @returns {Object} 压缩后的引用
 
 ---
 
@@ -755,8 +755,8 @@ LLMManager.prototype.compressContent = function (content, type)
 const LLM_CATEGORIES = Object.freeze(
 ```
 
-* 10 个标准类别。新增类别需同时更新 CATEGORY_PROVIDER_PRIORITY 和 CATEGORY_OPTIONS。
- * Path B-3: 新增 ASR / AUDIO_ANALYSIS / VIDEO_VLM 三个媒体类别。
+- 10 个标准类别。新增类别需同时更新 CATEGORY_PROVIDER_PRIORITY 和 CATEGORY_OPTIONS。
+- Path B-3: 新增 ASR / AUDIO_ANALYSIS / VIDEO_VLM 三个媒体类别。
 
 ---
 
@@ -766,8 +766,8 @@ const LLM_CATEGORIES = Object.freeze(
 const CATEGORY_PROVIDER_PRIORITY = Object.freeze(
 ```
 
-* 每个类别的 provider 优先级列表。顺序即偏好。
- * 实际选择时会用"已配置"过滤（ollama 始终配置，custom 需 baseURL，其余需 apiKey）。
+- 每个类别的 provider 优先级列表。顺序即偏好。
+- 实际选择时会用"已配置"过滤（ollama 始终配置，custom 需 baseURL，其余需 apiKey）。
 
 ---
 
@@ -777,7 +777,7 @@ const CATEGORY_PROVIDER_PRIORITY = Object.freeze(
 const CATEGORY_OPTIONS = Object.freeze(
 ```
 
-* 类别附加的生成参数（合并到 options）。
+- 类别附加的生成参数（合并到 options）。
 
 ---
 
@@ -787,9 +787,9 @@ const CATEGORY_OPTIONS = Object.freeze(
 function isProviderConfigured(provider, fullConfig)
 ```
 
-* 判断一个 provider 是否"已配置"（有有效凭据或 URL）。
- * @param {string} provider
- * @param {object} fullConfig - 来自 LLMConfig.getAll()
+- 判断一个 provider 是否"已配置"（有有效凭据或 URL）。
+- @param {string} provider
+- @param {object} fullConfig - 来自 LLMConfig.getAll()
 
 ---
 
@@ -799,16 +799,16 @@ function isProviderConfigured(provider, fullConfig)
 function inferCategoryFromModelHints(modelHints)
 ```
 
-* 从 SKILL.md 的 modelHints 反推类别（无需修改任何 SKILL.md）。
- * 规则：
- *   context-window: large + capability: reasoning → reasoning
- *   context-window: large                          → deep
- *   capability: vision                             → vision
- *   capability: reasoning                          → reasoning
- *   capability: creative                           → creative
- *   default                                        → quick
- * @param {object} modelHints - skill.modelHints
- * @returns {string} category
+- 从 SKILL.md 的 modelHints 反推类别（无需修改任何 SKILL.md）。
+- 规则：
+- context-window: large + capability: reasoning → reasoning
+- context-window: large → deep
+- capability: vision → vision
+- capability: reasoning → reasoning
+- capability: creative → creative
+- default → quick
+- @param {object} modelHints - skill.modelHints
+- @returns {string} category
 
 ---
 
@@ -818,9 +818,9 @@ function inferCategoryFromModelHints(modelHints)
 function pickProviderForCategory(category, fullConfig, fallbackProvider)
 ```
 
-* 给定类别 + 完整 llm-config，选出最匹配的 provider 和它当前配置的 model。
- * 如果没有任何 provider 配置，退回到 { provider: fallbackProvider, model: "" }。
- * @returns {{ provider: string, model: string, options: object } | null}
+- 给定类别 + 完整 llm-config，选出最匹配的 provider 和它当前配置的 model。
+- 如果没有任何 provider 配置，退回到 { provider: fallbackProvider, model: "" }。
+- @returns {{ provider: string, model: string, options: object } | null}
 
 ---
 
@@ -830,8 +830,8 @@ function pickProviderForCategory(category, fullConfig, fallbackProvider)
 const _deps =
 ```
 
-* 依赖注入点（Vitest 拦不住 CJS require，必须用 _deps 注入模式）。
- * 测试中：mod._deps.getLLMConfig = vi.fn(() => fakeConfig);
+- 依赖注入点（Vitest 拦不住 CJS require，必须用 _deps 注入模式）。
+- 测试中：mod._deps.getLLMConfig = vi.fn(() => fakeConfig);
 
 ---
 
@@ -841,13 +841,13 @@ const _deps =
 LLMManager.prototype.resolveCategory = function (category, opts =
 ```
 
-* 解析类别到具体的 provider+model。
- * 结果缓存在 this._categoryMappingCache，rebuildCategoryMapping() 可强制刷新。
- *
- * @param {string} category - 五个 LLM_CATEGORIES 之一
- * @param {object} [opts]
- * @param {object} [opts.skill] - 如果给 skill 对象，先尝试用它的 modelHints 反推
- * @returns {{ provider: string, model: string, options: object } | null}
+- 解析类别到具体的 provider+model。
+- 结果缓存在 this._categoryMappingCache，rebuildCategoryMapping() 可强制刷新。
+-
+- @param {string} category - 五个 LLM_CATEGORIES 之一
+- @param {object} [opts]
+- @param {object} [opts.skill] - 如果给 skill 对象，先尝试用它的 modelHints 反推
+- @returns {{ provider: string, model: string, options: object } | null}
 
 ---
 
@@ -857,9 +857,9 @@ LLMManager.prototype.resolveCategory = function (category, opts =
 LLMManager.prototype.inferCategoryFromSkill = function (skill)
 ```
 
-* 从 skill 对象推断类别（便捷方法）。
- * @param {object} skill - { modelHints: {...} }
- * @returns {string}
+- 从 skill 对象推断类别（便捷方法）。
+- @param {object} skill - { modelHints: {...} }
+- @returns {string}
 
 ---
 
@@ -869,7 +869,6 @@ LLMManager.prototype.inferCategoryFromSkill = function (skill)
 LLMManager.prototype.rebuildCategoryMapping = function ()
 ```
 
-* 强制刷新类别缓存。在 llm-config 变更后调用。
+- 强制刷新类别缓存。在 llm-config 变更后调用。
 
 ---
-

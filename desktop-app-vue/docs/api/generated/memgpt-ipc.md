@@ -1,6 +1,6 @@
 # memgpt-ipc
 
-**Source**: `src/main/memory/memgpt-ipc.js`
+**Source**: `src\main\memory\memgpt-ipc.js`
 
 ---
 
@@ -10,15 +10,15 @@
 const
 ```
 
-* MemGPT IPC Handlers
- *
- * Provides IPC interface for MemGPT memory system:
- * - Memory search and retrieval
- * - Memory management operations
- * - Statistics and status
- *
- * @module memgpt-ipc
- * @version 1.0.0
+- MemGPT IPC Handlers
+-
+- Provides IPC interface for MemGPT memory system:
+- - Memory search and retrieval
+- - Memory management operations
+- - Statistics and status
+-
+- @module memgpt-ipc
+- @version 1.0.0
 
 ---
 
@@ -28,11 +28,11 @@ const
 function registerMemGPTIPC(options =
 ```
 
-* Register MemGPT IPC handlers
- * @param {Object} options - Options
- * @param {MemGPTCore} options.memgptCore - MemGPT Core instance
- * @param {Object} [options.ipcMain] - Custom IPC main (for testing)
- * @returns {Object} Handler update functions
+- Register MemGPT IPC handlers
+- @param {Object} options - Options
+- @param {MemGPTCore} options.memgptCore - MemGPT Core instance
+- @param {Object} [options.ipcMain] - Custom IPC main (for testing)
+- @returns {Object} Handler update functions
 
 ---
 
@@ -42,7 +42,7 @@ function registerMemGPTIPC(options =
 ipc.handle('memgpt:check-status', async () =>
 ```
 
-* Check MemGPT status
+- Check MemGPT status
 
 ---
 
@@ -52,7 +52,7 @@ ipc.handle('memgpt:check-status', async () =>
 ipc.handle('memgpt:get-stats', async () =>
 ```
 
-* Get memory statistics
+- Get memory statistics
 
 ---
 
@@ -62,7 +62,7 @@ ipc.handle('memgpt:get-stats', async () =>
 ipc.handle('memgpt:get-core-memory', async () =>
 ```
 
-* Get core memory content
+- Get core memory content
 
 ---
 
@@ -72,7 +72,7 @@ ipc.handle('memgpt:get-core-memory', async () =>
 ipc.handle('memgpt:update-core-memory', async (event,
 ```
 
-* Update core memory
+- Update core memory
 
 ---
 
@@ -82,7 +82,7 @@ ipc.handle('memgpt:update-core-memory', async (event,
 ipc.handle('memgpt:replace-core-memory', async (event,
 ```
 
-* Replace core memory content
+- Replace core memory content
 
 ---
 
@@ -92,7 +92,7 @@ ipc.handle('memgpt:replace-core-memory', async (event,
 ipc.handle('memgpt:search', async (event,
 ```
 
-* Search memories
+- Search memories
 
 ---
 
@@ -102,7 +102,7 @@ ipc.handle('memgpt:search', async (event,
 ipc.handle('memgpt:search-recall', async (event,
 ```
 
-* Search recall memory
+- Search recall memory
 
 ---
 
@@ -112,7 +112,7 @@ ipc.handle('memgpt:search-recall', async (event,
 ipc.handle('memgpt:search-archival', async (event,
 ```
 
-* Search archival memory
+- Search archival memory
 
 ---
 
@@ -122,7 +122,7 @@ ipc.handle('memgpt:search-archival', async (event,
 ipc.handle('memgpt:search-conversations', async (event,
 ```
 
-* Search conversations
+- Search conversations
 
 ---
 
@@ -132,7 +132,7 @@ ipc.handle('memgpt:search-conversations', async (event,
 ipc.handle('memgpt:archive', async (event,
 ```
 
-* Archive memory
+- Archive memory
 
 ---
 
@@ -142,7 +142,7 @@ ipc.handle('memgpt:archive', async (event,
 ipc.handle('memgpt:learn-fact', async (event,
 ```
 
-* Learn user fact
+- Learn user fact
 
 ---
 
@@ -152,7 +152,7 @@ ipc.handle('memgpt:learn-fact', async (event,
 ipc.handle('memgpt:process-message', async (event,
 ```
 
-* Process message (add to conversation memory)
+- Process message (add to conversation memory)
 
 ---
 
@@ -162,7 +162,7 @@ ipc.handle('memgpt:process-message', async (event,
 ipc.handle('memgpt:get-context', async () =>
 ```
 
-* Get memory context for LLM
+- Get memory context for LLM
 
 ---
 
@@ -172,7 +172,7 @@ ipc.handle('memgpt:get-context', async () =>
 ipc.handle('memgpt:clear-session', async () =>
 ```
 
-* Clear session memory
+- Clear session memory
 
 ---
 
@@ -182,7 +182,7 @@ ipc.handle('memgpt:clear-session', async () =>
 ipc.handle('memgpt:get-working-memory', async () =>
 ```
 
-* Get working memory
+- Get working memory
 
 ---
 
@@ -192,7 +192,7 @@ ipc.handle('memgpt:get-working-memory', async () =>
 ipc.handle('memgpt:get-recall-memory', async (event,
 ```
 
-* Get recall memory
+- Get recall memory
 
 ---
 
@@ -202,7 +202,7 @@ ipc.handle('memgpt:get-recall-memory', async (event,
 ipc.handle('memgpt:get-archival-stats', async () =>
 ```
 
-* Get archival memory stats
+- Get archival memory stats
 
 ---
 
@@ -212,7 +212,7 @@ ipc.handle('memgpt:get-archival-stats', async () =>
 ipc.handle('memgpt:get-important-memories', async (event,
 ```
 
-* Get important memories
+- Get important memories
 
 ---
 
@@ -222,7 +222,7 @@ ipc.handle('memgpt:get-important-memories', async (event,
 ipc.handle('memgpt:get-memories-by-type', async (event,
 ```
 
-* Get memories by type
+- Get memories by type
 
 ---
 
@@ -232,7 +232,7 @@ ipc.handle('memgpt:get-memories-by-type', async (event,
 ipc.handle('memgpt:update-importance', async (event,
 ```
 
-* Update memory importance
+- Update memory importance
 
 ---
 
@@ -242,7 +242,7 @@ ipc.handle('memgpt:update-importance', async (event,
 ipc.handle('memgpt:delete-memory', async (event,
 ```
 
-* Delete memory
+- Delete memory
 
 ---
 
@@ -252,7 +252,7 @@ ipc.handle('memgpt:delete-memory', async (event,
 ipc.handle('memgpt:get-tools', async () =>
 ```
 
-* Get memory tools for function calling
+- Get memory tools for function calling
 
 ---
 
@@ -262,7 +262,6 @@ ipc.handle('memgpt:get-tools', async () =>
 ipc.handle('memgpt:execute-tool', async (event,
 ```
 
-* Execute memory tool
+- Execute memory tool
 
 ---
-

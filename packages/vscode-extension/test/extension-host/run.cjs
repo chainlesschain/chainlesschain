@@ -11,7 +11,7 @@
  * @vscode/test-electron is intentionally installed by CI with
  * --no-save --no-package-lock so this leaf package keeps its lockfile-free
  * packaging workflow. Local usage:
- *   npm install --no-save --no-package-lock @vscode/test-electron@3.0.0
+ *   npm install --no-save --no-package-lock @vscode/test-electron@3.1.0
  *   npm run test:extension-host -- --vsix chainlesschain-ide.vsix
  */
 
@@ -102,7 +102,7 @@ function requireTestElectron() {
     if (error && error.code === "MODULE_NOT_FOUND") {
       throw new Error(
         "@vscode/test-electron is required. Run " +
-          "`npm install --no-save --no-package-lock @vscode/test-electron@3.0.0` first.",
+          "`npm install --no-save --no-package-lock @vscode/test-electron@3.1.0` first.",
         { cause: error },
       );
     }
@@ -320,7 +320,7 @@ function readJsonVersion(filePath) {
   }
 }
 
-function resolveVsCodeHostVersion(executablePath, requestedVersion) {
+async function resolveVsCodeHostVersion(executablePath, requestedVersion) {
   let current = path.dirname(path.resolve(executablePath));
   for (let depth = 0; depth < 7; depth += 1) {
     for (const relative of [
@@ -333,6 +333,21 @@ function resolveVsCodeHostVersion(executablePath, requestedVersion) {
     const parent = path.dirname(current);
     if (parent === current) break;
     current = parent;
+  }
+  // Fallback: ask the executable itself (handles channel downloads like "stable")
+  if (executablePath && fs.existsSync(executablePath)) {
+    try {
+      const { spawnSync } = require("child_process");
+      const r = spawnSync(executablePath, ["--version"], {
+        encoding: "utf8",
+        timeout: 15_000,
+        env: { ...process.env, ELECTRON_RUN_AS_NODE: undefined },
+      });
+      const m = (r.stdout || "").match(/(\d+\.\d+\.\d+)/);
+      if (m) return m[1];
+    } catch {
+      /* fall through */
+    }
   }
   return /^\d+\.\d+(?:\.\d+)?/.test(String(requestedVersion || ""))
     ? requestedVersion
@@ -431,11 +446,19 @@ async function main() {
 
     // Reuses the exact version already downloaded by the install command.
     const vscodeExecutablePath = await downloadAndUnzipVSCode(downloadOptions);
-    hostVersion = resolveVsCodeHostVersion(
+    hostVersion = await resolveVsCodeHostVersion(
       vscodeExecutablePath,
       options.vscodeVersion,
     );
     for (const phase of ["initial", "restart"]) {
+      if (phase === "restart") {
+        // Electron 39 can return from the first Extension Host while its
+        // profile mutex and renderer teardown are still settling. Give that
+        // bounded teardown a moment before launching the same isolated profile
+        // again, otherwise the second test process can exit before its driver
+        // receives the CDP result.
+        await new Promise((resolve) => setTimeout(resolve, 3_000));
+      }
       await runRealDomPhase({
         runTests,
         vscodeExecutablePath,

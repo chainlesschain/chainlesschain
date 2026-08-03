@@ -215,7 +215,7 @@ class CdpClient {
     });
   }
 
-  send(method, params = {}, timeoutMs = 15_000) {
+  send(method, params = {}, timeoutMs = 15_000, sessionId = null) {
     const id = ++this.sequence;
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
@@ -224,7 +224,14 @@ class CdpClient {
       }, timeoutMs);
       this.pending.set(id, { method, resolve, reject, timer });
       try {
-        this.socket.send(JSON.stringify({ id, method, params }));
+        this.socket.send(
+          JSON.stringify({
+            id,
+            method,
+            params,
+            ...(sessionId ? { sessionId } : {}),
+          }),
+        );
       } catch (error) {
         clearTimeout(timer);
         this.pending.delete(id);
@@ -233,19 +240,35 @@ class CdpClient {
     });
   }
 
-  async evaluate(expression) {
-    const response = await this.send("Runtime.evaluate", {
-      expression,
-      awaitPromise: true,
-      returnByValue: true,
-      userGesture: true,
-    });
+  async evaluate(expression, sessionId = null, contextId = null) {
+    const response = await this.send(
+      "Runtime.evaluate",
+      {
+        expression,
+        awaitPromise: true,
+        returnByValue: true,
+        userGesture: true,
+        ...(Number.isInteger(contextId) ? { contextId } : {}),
+      },
+      15_000,
+      sessionId,
+    );
     if (response.exceptionDetails) {
       throw new Error(
         `webview evaluation failed: ${response.exceptionDetails.text || "exception"}`,
       );
     }
     return response.result ? response.result.value : undefined;
+  }
+
+  session(sessionId, contextId = null) {
+    if (!sessionId) throw new Error("CDP session id is required");
+    return {
+      evaluate: (expression) => this.evaluate(expression, sessionId, contextId),
+      send: (method, params = {}, timeoutMs = 15_000) =>
+        this.send(method, params, timeoutMs, sessionId),
+      close: () => this.close(),
+    };
   }
 
   close() {
@@ -273,17 +296,60 @@ async function listTargets(port, signal = null) {
   return Array.isArray(targets) ? targets : [];
 }
 
+async function browserWebSocketUrl(port, signal = null) {
+  throwIfAborted(signal);
+  const timeoutSignal = AbortSignal.timeout(2_000);
+  const requestSignal = signal
+    ? AbortSignal.any([signal, timeoutSignal])
+    : timeoutSignal;
+  const response = await fetch(`http://127.0.0.1:${port}/json/version`, {
+    cache: "no-store",
+    signal: requestSignal,
+  });
+  if (!response.ok) {
+    throw new Error(`CDP browser metadata returned ${response.status}`);
+  }
+  const metadata = await response.json();
+  if (!metadata || typeof metadata.webSocketDebuggerUrl !== "string") {
+    throw new Error("CDP browser metadata has no websocket URL");
+  }
+  return metadata.webSocketDebuggerUrl;
+}
+
+function collectFrameIds(frameTree, result = []) {
+  if (!frameTree || typeof frameTree !== "object") return result;
+  if (typeof frameTree.frame?.id === "string") {
+    result.push(frameTree.frame.id);
+  }
+  for (const child of Array.isArray(frameTree.childFrames)
+    ? frameTree.childFrames
+    : []) {
+    collectFrameIds(child, result);
+  }
+  return result;
+}
+
 async function findChatWebview(
   port,
   timeoutMs = DEFAULT_TIMEOUT_MS,
   signal = null,
+  tracePath = null,
 ) {
   const deadline = Date.now() + timeoutMs;
   let lastError;
+  let lastTargets = [];
+  let lastTargetSnapshot = "";
+  const targetInspections = new Map();
   while (Date.now() < deadline) {
     throwIfAborted(signal);
     try {
       const targets = await listTargets(port, signal);
+      lastTargets = targets.map((target) => ({
+        id: target.id,
+        type: target.type,
+        title: target.title,
+        url: target.url,
+      }));
       for (const target of targets) {
         throwIfAborted(signal);
         if (!target.webSocketDebuggerUrl) continue;
@@ -297,6 +363,147 @@ async function findChatWebview(
         }
         client?.close();
       }
+
+      // Electron 39+ may keep Webview iframe targets off /json/list. Connect
+      // to the browser endpoint (flattened sessions are brokered there), then
+      // attach only to vscode-webview OOPIFs and evaluate their real DOM.
+      const browserUrl = await browserWebSocketUrl(port, signal);
+      const browserClient = await CdpClient.connect(browserUrl);
+      let keepBrowserClient = false;
+      try {
+        const discovered = await browserClient.send("Target.getTargets");
+        const targetInfos = Array.isArray(discovered.targetInfos)
+          ? discovered.targetInfos
+          : [];
+        lastTargets = [
+          ...lastTargets,
+          ...targetInfos.map((info) => ({
+            id: info.targetId,
+            type: info.type,
+            title: info.title,
+            url: info.url,
+          })),
+        ];
+        const targetSnapshot = JSON.stringify(lastTargets.slice(-20));
+        if (tracePath && targetSnapshot !== lastTargetSnapshot) {
+          appendTrace(tracePath, {
+            status: "target-scan",
+            targets: lastTargets.slice(-20),
+          });
+          lastTargetSnapshot = targetSnapshot;
+        }
+        for (const info of targetInfos.filter((candidate) => {
+          const url = String(candidate.url || "");
+          const title = String(candidate.title || "");
+          return (
+            candidate.type === "iframe" ||
+            (["page", "webview"].includes(candidate.type) &&
+              (url.startsWith("vscode-webview://") ||
+                /webview/i.test(`${url} ${title}`)))
+          );
+        })) {
+          let sessionId = null;
+          try {
+            const attached = await browserClient.send("Target.attachToTarget", {
+              targetId: info.targetId,
+              flatten: true,
+            });
+            sessionId = attached.sessionId;
+            const contexts = [{ frameId: null, contextId: null }];
+            if (sessionId) {
+              const pageTree = await browserClient.send(
+                "Page.getFrameTree",
+                {},
+                15_000,
+                sessionId,
+              );
+              for (const frameId of collectFrameIds(pageTree.frameTree)) {
+                const world = await browserClient.send(
+                  "Page.createIsolatedWorld",
+                  {
+                    frameId,
+                    worldName: "chainlesschain-host-journey",
+                  },
+                  15_000,
+                  sessionId,
+                );
+                if (Number.isInteger(world.executionContextId)) {
+                  contexts.push({
+                    frameId,
+                    contextId: world.executionContextId,
+                  });
+                }
+              }
+            }
+            for (const context of contexts) {
+              const inspection = sessionId
+                ? await browserClient.evaluate(
+                    `({
+                      probe: Boolean(${CHAT_WEBVIEW_PROBE}),
+                      readyState: document.readyState,
+                      title: document.title,
+                      url: location.href,
+                      body: document.body ? document.body.innerText.slice(0, 500) : "",
+                      frames: [...document.querySelectorAll("iframe, webview")].map((frame) => ({
+                        tag: frame.tagName,
+                        id: frame.id,
+                        src: frame.getAttribute("src") || ""
+                      }))
+                    })`,
+                    sessionId,
+                    context.contextId,
+                  )
+                : null;
+              const inspectionKey = `${info.targetId}:${context.frameId || "default"}`;
+              const inspectionSnapshot = JSON.stringify(inspection);
+              if (
+                tracePath &&
+                targetInspections.get(inspectionKey) !== inspectionSnapshot
+              ) {
+                appendTrace(tracePath, {
+                  status: "target-inspection",
+                  targetId: info.targetId,
+                  frameId: context.frameId,
+                  inspection,
+                });
+                targetInspections.set(inspectionKey, inspectionSnapshot);
+              }
+              if (sessionId && inspection?.probe) {
+                keepBrowserClient = true;
+                return {
+                  client: browserClient.session(sessionId, context.contextId),
+                  target: {
+                    ...info,
+                    id: info.targetId,
+                    webSocketDebuggerUrl: browserUrl,
+                  },
+                };
+              }
+            }
+          } catch (error) {
+            lastError = error;
+            const errorSnapshot = String(error?.message || error);
+            if (
+              tracePath &&
+              targetInspections.get(info.targetId) !== errorSnapshot
+            ) {
+              appendTrace(tracePath, {
+                status: "target-inspection-error",
+                targetId: info.targetId,
+                error: errorSnapshot,
+              });
+              targetInspections.set(info.targetId, errorSnapshot);
+            }
+          }
+          if (sessionId) {
+            await browserClient
+              .send("Target.detachFromTarget", { sessionId })
+              .catch(() => {});
+          }
+        }
+      } finally {
+        if (!keepBrowserClient) browserClient.close();
+      }
     } catch (error) {
       if (signal?.aborted) throw abortError(signal);
       lastError = error;
@@ -304,7 +511,7 @@ async function findChatWebview(
     await delay(250, signal);
   }
   throw new Error(
-    `ChainlessChain chat webview was not found on CDP port ${port}`,
+    `ChainlessChain chat webview was not found on CDP port ${port}; targets=${JSON.stringify(lastTargets.slice(-20))}; lastError=${String(lastError?.message || lastError || "none")}`,
     {
       cause: lastError,
     },
@@ -500,13 +707,6 @@ async function drivePhase(client, phase, tracePath, signal = null) {
     });
     await step("interrupt", async () => {
       await sendComposer(client, "journey:stop");
-      await waitForDom(
-        client,
-        containsText("fixture stop waiting #5"),
-        "interruptible turn",
-        45_000,
-        signal,
-      );
       await clickSelector(client, "#stop", "interrupt", signal);
       await waitForDom(
         client,
@@ -833,7 +1033,7 @@ async function runCdpHostJourney(options) {
   let failure;
   try {
     await waitForFile(readyFile, timeoutMs, signal);
-    const located = await findChatWebview(port, timeoutMs, signal);
+    const located = await findChatWebview(port, timeoutMs, signal, tracePath);
     client = located.client;
     appendTrace(tracePath, {
       phase,

@@ -1,6 +1,6 @@
 # group-chat-manager
 
-**Source**: `src/main/social/group-chat-manager.js`
+**Source**: `src\main\social\group-chat-manager.js`
 
 ---
 
@@ -10,21 +10,21 @@
 const
 ```
 
-* 群聊管理器
- * 负责群聊的创建、管理、消息发送等功能
- * 支持端到端加密的群组消息（基于Signal Protocol Sender Keys）
- *
- * @module group-chat-manager
+- 群聊管理器
+- 负责群聊的创建、管理、消息发送等功能
+- 支持端到端加密的群组消息（基于Signal Protocol Sender Keys）
+-
+- @module group-chat-manager
 
 ---
 
 ## setCurrentUserDid(did)
 
 ```javascript
-setCurrentUserDid(did)
+setCurrentUserDid(did);
 ```
 
-* 设置当前用户DID
+- 设置当前用户DID
 
 ---
 
@@ -34,13 +34,13 @@ setCurrentUserDid(did)
 async createGroup(options)
 ```
 
-* 创建群聊
-   * @param {Object} options - 群聊选项
-   * @param {string} options.name - 群聊名称
-   * @param {string} options.description - 群聊描述
-   * @param {string} options.avatar - 群聊头像
-   * @param {Array<string>} options.memberDids - 初始成员DID列表
-   * @param {boolean} options.encrypted - 是否启用端到端加密
+- 创建群聊
+  - @param {Object} options - 群聊选项
+  - @param {string} options.name - 群聊名称
+  - @param {string} options.description - 群聊描述
+  - @param {string} options.avatar - 群聊头像
+  - @param {Array<string>} options.memberDids - 初始成员DID列表
+  - @param {boolean} options.encrypted - 是否启用端到端加密
 
 ---
 
@@ -50,7 +50,7 @@ async createGroup(options)
 async getGroups()
 ```
 
-* 获取群聊列表
+- 获取群聊列表
 
 ---
 
@@ -60,7 +60,7 @@ async getGroups()
 async getGroupDetails(groupId)
 ```
 
-* 获取群聊详情
+- 获取群聊详情
 
 ---
 
@@ -70,7 +70,7 @@ async getGroupDetails(groupId)
 async addGroupMember(groupId, memberDid, role = "member")
 ```
 
-* 添加群成员
+- 添加群成员
 
 ---
 
@@ -80,7 +80,7 @@ async addGroupMember(groupId, memberDid, role = "member")
 async removeGroupMember(groupId, memberDid)
 ```
 
-* 移除群成员
+- 移除群成员
 
 ---
 
@@ -90,7 +90,7 @@ async removeGroupMember(groupId, memberDid)
 async leaveGroup(groupId)
 ```
 
-* 退出群聊
+- 退出群聊
 
 ---
 
@@ -100,7 +100,7 @@ async leaveGroup(groupId)
 async dismissGroup(groupId)
 ```
 
-* 解散群聊
+- 解散群聊
 
 ---
 
@@ -110,7 +110,7 @@ async dismissGroup(groupId)
 async sendGroupMessage(groupId, content, options =
 ```
 
-* 发送群消息
+- 发送群消息
 
 ---
 
@@ -120,7 +120,7 @@ async sendGroupMessage(groupId, content, options =
 async getGroupMessages(groupId, limit = 50, offset = 0)
 ```
 
-* 获取群消息
+- 获取群消息
 
 ---
 
@@ -130,7 +130,7 @@ async getGroupMessages(groupId, limit = 50, offset = 0)
 async markMessageAsRead(messageId, groupId)
 ```
 
-* 标记消息为已读
+- 标记消息为已读
 
 ---
 
@@ -140,7 +140,7 @@ async markMessageAsRead(messageId, groupId)
 async getGroupMember(groupId, memberDid)
 ```
 
-* 获取群成员
+- 获取群成员
 
 ---
 
@@ -150,7 +150,7 @@ async getGroupMember(groupId, memberDid)
 async sendSystemMessage(groupId, content)
 ```
 
-* 发送系统消息
+- 发送系统消息
 
 ---
 
@@ -160,7 +160,7 @@ async sendSystemMessage(groupId, content)
 async generateGroupEncryptionKey(groupId)
 ```
 
-* 生成群组加密密钥（Sender Key）
+- 生成群组加密密钥（Sender Key）
 
 ---
 
@@ -170,7 +170,7 @@ async generateGroupEncryptionKey(groupId)
 async encryptGroupMessage(groupId, plaintext)
 ```
 
-* 加密群消息
+- 加密群消息
 
 ---
 
@@ -180,7 +180,7 @@ async encryptGroupMessage(groupId, plaintext)
 async decryptGroupMessage(groupId, ciphertext, keyId)
 ```
 
-* 解密群消息
+- 解密群消息
 
 ---
 
@@ -190,7 +190,7 @@ async decryptGroupMessage(groupId, ciphertext, keyId)
 async broadcastGroupMessage(groupId, message)
 ```
 
-* 通过P2P网络广播群消息
+- 通过P2P网络广播群消息
 
 ---
 
@@ -200,7 +200,7 @@ async broadcastGroupMessage(groupId, message)
 async notifyGroupMembers(groupId, notification)
 ```
 
-* 通知群成员
+- 通知群成员
 
 ---
 
@@ -210,17 +210,16 @@ async notifyGroupMembers(groupId, notification)
 async updateGroupInfo(groupId, updates)
 ```
 
-* 更新群信息
+- 更新群信息
 
 ---
 
 ## cleanup()
 
 ```javascript
-cleanup()
+cleanup();
 ```
 
-* 清理资源
+- 清理资源
 
 ---
-

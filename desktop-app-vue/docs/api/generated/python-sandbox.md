@@ -1,6 +1,6 @@
 # python-sandbox
 
-**Source**: `src/main/sandbox/python-sandbox.js`
+**Source**: `src\main\sandbox\python-sandbox.js`
 
 ---
 
@@ -10,20 +10,20 @@
 const
 ```
 
-* Python Sandbox Manager
- *
- * 安全的 Python 代码执行环境
- * 使用 Docker 隔离，支持资源限制和超时保护
- *
- * @module python-sandbox
- * @version 1.0.0
- *
- * 安全特性:
- * - 网络隔离 (NetworkMode: 'none')
- * - 内存限制 (默认 512MB)
- * - CPU 限制 (默认 50%)
- * - 超时保护 (默认 30s)
- * - 文件系统只读
+- Python Sandbox Manager
+-
+- 安全的 Python 代码执行环境
+- 使用 Docker 隔离，支持资源限制和超时保护
+-
+- @module python-sandbox
+- @version 1.0.0
+-
+- 安全特性:
+- - 网络隔离 (NetworkMode: 'none')
+- - 内存限制 (默认 512MB)
+- - CPU 限制 (默认 50%)
+- - 超时保护 (默认 30s)
+- - 文件系统只读
 
 ---
 
@@ -33,7 +33,7 @@ const
 const DEFAULT_CONFIG =
 ```
 
-* 默认配置
+- 默认配置
 
 ---
 
@@ -43,7 +43,7 @@ const DEFAULT_CONFIG =
 const ExecutionStatus =
 ```
 
-* 执行状态
+- 执行状态
 
 ---
 
@@ -53,7 +53,7 @@ const ExecutionStatus =
 class PythonSandbox extends EventEmitter
 ```
 
-* Python Sandbox 类
+- Python Sandbox 类
 
 ---
 
@@ -63,7 +63,7 @@ class PythonSandbox extends EventEmitter
 async initialize()
 ```
 
-* 初始化沙箱
+- 初始化沙箱
 
 ---
 
@@ -73,10 +73,10 @@ async initialize()
 async execute(code, options =
 ```
 
-* 执行 Python 代码
-   * @param {string} code - Python 代码
-   * @param {Object} options - 执行选项
-   * @returns {Promise<Object>} 执行结果
+- 执行 Python 代码
+  - @param {string} code - Python 代码
+  - @param {Object} options - 执行选项
+  - @returns {Promise<Object>} 执行结果
 
 ---
 
@@ -86,8 +86,8 @@ async execute(code, options =
 async _runInContainer(executionId, workDir, options =
 ```
 
-* 在 Docker 容器中运行代码
-   * @private
+- 在 Docker 容器中运行代码
+  - @private
 
 ---
 
@@ -97,8 +97,8 @@ async _runInContainer(executionId, workDir, options =
 async _killContainer(containerName)
 ```
 
-* 终止容器
-   * @private
+- 终止容器
+  - @private
 
 ---
 
@@ -108,8 +108,8 @@ async _killContainer(containerName)
 async killExecution(executionId)
 ```
 
-* 终止指定执行
-   * @param {string} executionId - 执行 ID
+- 终止指定执行
+  - @param {string} executionId - 执行 ID
 
 ---
 
@@ -119,8 +119,8 @@ async killExecution(executionId)
 async _checkDocker()
 ```
 
-* 检查 Docker 是否可用
-   * @private
+- 检查 Docker 是否可用
+  - @private
 
 ---
 
@@ -130,8 +130,8 @@ async _checkDocker()
 async _checkImage()
 ```
 
-* 检查镜像是否存在
-   * @private
+- 检查镜像是否存在
+  - @private
 
 ---
 
@@ -141,8 +141,8 @@ async _checkImage()
 async _pullImage()
 ```
 
-* 拉取 Docker 镜像
-   * @private
+- 拉取 Docker 镜像
+  - @private
 
 ---
 
@@ -152,18 +152,18 @@ async _pullImage()
 async _cleanup(workDir)
 ```
 
-* 清理工作目录
-   * @private
+- 清理工作目录
+  - @private
 
 ---
 
 ## getStats()
 
 ```javascript
-getStats()
+getStats();
 ```
 
-* 获取统计数据
+- 获取统计数据
 
 ---
 
@@ -173,17 +173,17 @@ getStats()
 async checkStatus()
 ```
 
-* 检查状态
+- 检查状态
 
 ---
 
 ## updateConfig(newConfig)
 
 ```javascript
-updateConfig(newConfig)
+updateConfig(newConfig);
 ```
 
-* 更新配置
+- 更新配置
 
 ---
 
@@ -193,7 +193,7 @@ updateConfig(newConfig)
 async close()
 ```
 
-* 关闭沙箱
+- 关闭沙箱
 
 ---
 
@@ -203,9 +203,8 @@ async close()
 function getPythonSandbox(config =
 ```
 
-* 获取 PythonSandbox 单例
- * @param {Object} config - 配置
- * @returns {PythonSandbox}
+- 获取 PythonSandbox 单例
+- @param {Object} config - 配置
+- @returns {PythonSandbox}
 
 ---
-

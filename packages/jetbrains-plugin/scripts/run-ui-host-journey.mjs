@@ -372,7 +372,7 @@ export async function runJourney(options) {
     `${options.ideVersion}-${Date.now()}`,
   );
   const gradleOptions = [
-    `-PideVersion=${options.ideVersion}`,
+    `-PhostIdeVersion=${options.ideVersion}`,
     "--no-daemon",
     "--stacktrace",
   ];

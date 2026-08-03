@@ -1,6 +1,6 @@
 # followup-intent-classifier.test
 
-**Source**: `src/main/ai-engine/__tests__/followup-intent-classifier.test.js`
+**Source**: `src\main\ai-engine\__tests__\followup-intent-classifier.test.js`
 
 ---
 
@@ -10,7 +10,6 @@
 import
 ```
 
-* 后续输入意图分类器 - 单元测试
+- 后续输入意图分类器 - 单元测试
 
 ---
-

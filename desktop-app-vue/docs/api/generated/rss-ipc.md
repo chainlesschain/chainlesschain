@@ -1,6 +1,6 @@
 # rss-ipc
 
-**Source**: `src/main/api/rss-ipc.js`
+**Source**: `src\main\api\rss-ipc.js`
 
 ---
 
@@ -10,10 +10,10 @@
 const
 ```
 
-* RSS IPC Handlers
- * 处理 RSS 订阅相关的 IPC 通信
- *
- * v0.20.0: 新增 RSS 订阅功能
+- RSS IPC Handlers
+- 处理 RSS 订阅相关的 IPC 通信
+-
+- v0.20.0: 新增 RSS 订阅功能
 
 ---
 
@@ -23,7 +23,7 @@ const
 async addFeed(feedUrl, options =
 ```
 
-* 添加 RSS 订阅源
+- 添加 RSS 订阅源
 
 ---
 
@@ -33,7 +33,7 @@ async addFeed(feedUrl, options =
 async removeFeed(feedId)
 ```
 
-* 删除 RSS 订阅源
+- 删除 RSS 订阅源
 
 ---
 
@@ -43,7 +43,7 @@ async removeFeed(feedId)
 async updateFeed(feedId, updates)
 ```
 
-* 更新 RSS 订阅源
+- 更新 RSS 订阅源
 
 ---
 
@@ -53,7 +53,7 @@ async updateFeed(feedId, updates)
 async getFeeds(options =
 ```
 
-* 获取订阅源列表
+- 获取订阅源列表
 
 ---
 
@@ -63,7 +63,7 @@ async getFeeds(options =
 async getFeed(feedId)
 ```
 
-* 获取单个订阅源
+- 获取单个订阅源
 
 ---
 
@@ -73,7 +73,7 @@ async getFeed(feedId)
 async getItems(options =
 ```
 
-* 获取 RSS 文章列表
+- 获取 RSS 文章列表
 
 ---
 
@@ -83,7 +83,7 @@ async getItems(options =
 async getItem(itemId)
 ```
 
-* 获取单篇文章
+- 获取单篇文章
 
 ---
 
@@ -93,7 +93,7 @@ async getItem(itemId)
 async markAsRead(itemId)
 ```
 
-* 标记为已读
+- 标记为已读
 
 ---
 
@@ -103,7 +103,7 @@ async markAsRead(itemId)
 async markAsUnread(itemId)
 ```
 
-* 标记为未读
+- 标记为未读
 
 ---
 
@@ -113,7 +113,7 @@ async markAsUnread(itemId)
 async markAsStarred(itemId, starred = true)
 ```
 
-* 标记为收藏
+- 标记为收藏
 
 ---
 
@@ -123,7 +123,7 @@ async markAsStarred(itemId, starred = true)
 async archiveItem(itemId)
 ```
 
-* 归档文章
+- 归档文章
 
 ---
 
@@ -133,7 +133,7 @@ async archiveItem(itemId)
 async saveToKnowledge(itemId)
 ```
 
-* 保存到知识库
+- 保存到知识库
 
 ---
 
@@ -143,7 +143,7 @@ async saveToKnowledge(itemId)
 async fetchFeed(feedId)
 ```
 
-* 获取 Feed 更新
+- 获取 Feed 更新
 
 ---
 
@@ -153,7 +153,7 @@ async fetchFeed(feedId)
 async fetchAllFeeds()
 ```
 
-* 获取所有 Feed 更新
+- 获取所有 Feed 更新
 
 ---
 
@@ -163,7 +163,7 @@ async fetchAllFeeds()
 async saveFeedItems(feedId, items)
 ```
 
-* 保存 Feed 文章
+- 保存 Feed 文章
 
 ---
 
@@ -173,7 +173,7 @@ async saveFeedItems(feedId, items)
 async addCategory(name, options =
 ```
 
-* 添加分类
+- 添加分类
 
 ---
 
@@ -183,7 +183,7 @@ async addCategory(name, options =
 async getCategories()
 ```
 
-* 获取分类列表
+- 获取分类列表
 
 ---
 
@@ -193,7 +193,7 @@ async getCategories()
 async assignCategory(feedId, categoryId)
 ```
 
-* 分配分类
+- 分配分类
 
 ---
 
@@ -203,7 +203,7 @@ async assignCategory(feedId, categoryId)
 async discoverFeeds(websiteUrl)
 ```
 
-* 发现 Feed
+- 发现 Feed
 
 ---
 
@@ -213,37 +213,36 @@ async discoverFeeds(websiteUrl)
 async validateFeed(feedUrl)
 ```
 
-* 验证 Feed
+- 验证 Feed
 
 ---
 
 ## startAutoSync(feedId)
 
 ```javascript
-startAutoSync(feedId)
+startAutoSync(feedId);
 ```
 
-* 启动自动同步
+- 启动自动同步
 
 ---
 
 ## stopAutoSync(feedId)
 
 ```javascript
-stopAutoSync(feedId)
+stopAutoSync(feedId);
 ```
 
-* 停止自动同步
+- 停止自动同步
 
 ---
 
 ## cleanup()
 
 ```javascript
-cleanup()
+cleanup();
 ```
 
-* 清理资源
+- 清理资源
 
 ---
-

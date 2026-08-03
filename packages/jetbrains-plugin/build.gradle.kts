@@ -15,12 +15,13 @@ plugins {
     // built with; kotlin.stdlib.default.dependency=false (gradle.properties) keeps
     // the stdlib out of the plugin zip (the IDE provides it).
     id("org.jetbrains.kotlin.jvm") version "1.9.24"
-    id("org.jetbrains.intellij.platform") version "2.1.0"
+    id("org.jetbrains.intellij.platform") version "2.7.2"
 }
 
 group = "com.chainlesschain"
-version = "0.4.76"
+version = "0.4.78"
 val ideVersion = providers.gradleProperty("ideVersion").orElse("2024.2")
+val hostIdeVersion = providers.gradleProperty("hostIdeVersion").orElse(ideVersion)
 
 repositories {
     mavenCentral()
@@ -241,11 +242,11 @@ tasks.register<JavaExec>("smokeTest") {
 }
 
 // ── Real-host Remote Robot tasks ────────────────────────────────────────────
-// Framework decision (2026-07-11): the IntelliJ Platform Gradle Plugin 2.1.0
+// Framework decision (2026-07-11): the IntelliJ Platform Gradle Plugin 2.7.2
 // used here DOES ship `intellijPlatformTesting` + `robotServerPlugin()`, but
 // its `testIdeUi` task is an early Starter-framework integration (archive-
 // driven, ide-starter deps must be version-matched by hand) that only matured
-// in later 2.x releases — wiring Starter against 2.1.0 would be major surgery.
+// in later 2.x releases — wiring Starter here would be major surgery.
 // Remote Robot (com.intellij.remoterobot) works against ANY 2.x setup via the
 // classic runIdeForUiTests pattern, so that is what this gate uses:
 //
@@ -294,6 +295,12 @@ tasks.register<Test>("uiSmokeTest") {
 runCatching {
     val uiTestProjectDir = layout.buildDirectory.dir("uiTest-project")
     intellijPlatformTesting.runIde.register("runIdeForUiTests") {
+        // Compile/package once against the minimum supported 2024.2 API, then
+        // launch that exact artifact in each declared real-host version. Newer
+        // IDEs bundle newer Kotlin metadata, so compiling the plugin itself
+        // against 2025.2 would no longer prove 2024.2 binary compatibility.
+        type = IntelliJPlatformType.IntellijIdeaCommunity
+        version = hostIdeVersion
         task {
             jvmArgumentProviders += org.gradle.process.CommandLineArgumentProvider {
                 listOf(

@@ -2,7 +2,7 @@
   "name": "chainlesschain-ide",
   "displayName": "ChainlessChain IDE Bridge",
   "description": "Bridges the ChainlessChain `cc` agent CLI to VS Code: exposes the active selection, diagnostics, open editors, and native diff review as MCP tools the agent can call.",
-  "version": "0.37.37",
+  "version": "0.37.40",
   "publisher": "chainlesschain",
   "license": "MIT",
   "icon": "media/logo.png",
@@ -245,6 +245,37 @@
         "command": "chainlesschain.cli.rollbackManaged",
         "title": "%cmd.cli.rollbackManaged.title%",
         "icon": "$(history)"
+      },
+      {
+        "command": "chainlesschain.inlineChat.open",
+        "title": "%cmd.inlineChat.open.title%",
+        "icon": "$(comment-discussion)",
+        "category": "ChainlessChain"
+      },
+      {
+        "command": "chainlesschain.inlineChat.explain",
+        "title": "%cmd.inlineChat.explain.title%",
+        "category": "ChainlessChain"
+      },
+      {
+        "command": "chainlesschain.inlineChat.refactor",
+        "title": "%cmd.inlineChat.refactor.title%",
+        "category": "ChainlessChain"
+      },
+      {
+        "command": "chainlesschain.inlineChat.fix",
+        "title": "%cmd.inlineChat.fix.title%",
+        "category": "ChainlessChain"
+      },
+      {
+        "command": "chainlesschain.inlineChat.generateDocs",
+        "title": "%cmd.inlineChat.generateDocs.title%",
+        "category": "ChainlessChain"
+      },
+      {
+        "command": "chainlesschain.inlineChat.generateTests",
+        "title": "%cmd.inlineChat.generateTests.title%",
+        "category": "ChainlessChain"
       }
     ],
     "keybindings": [
@@ -287,6 +318,30 @@
         "key": "ctrl+shift+backspace",
         "mac": "cmd+shift+backspace",
         "when": "chainlesschainDiffActive"
+      },
+      {
+        "command": "chainlesschain.inlineChat.open",
+        "key": "ctrl+k",
+        "mac": "cmd+k",
+        "when": "editorTextFocus && editorHasSelection"
+      },
+      {
+        "command": "chainlesschain.inlineChat.explain",
+        "key": "ctrl+k ctrl+e",
+        "mac": "cmd+k cmd+e",
+        "when": "editorTextFocus && editorHasSelection"
+      },
+      {
+        "command": "chainlesschain.inlineChat.refactor",
+        "key": "ctrl+k ctrl+r",
+        "mac": "cmd+k cmd+r",
+        "when": "editorTextFocus && editorHasSelection"
+      },
+      {
+        "command": "chainlesschain.inlineChat.fix",
+        "key": "ctrl+k ctrl+f",
+        "mac": "cmd+k cmd+f",
+        "when": "editorTextFocus && editorHasSelection"
       }
     ],
     "viewsContainers": {
@@ -330,6 +385,11 @@
           "command": "chainlesschain.chat.refactorSelection",
           "when": "editorHasSelection",
           "group": "navigation@12"
+        },
+        {
+          "submenu": "chainlesschain.inlineChat",
+          "group": "navigation@1",
+          "when": "editorTextFocus"
         }
       ],
       "view/title": [
@@ -405,6 +465,54 @@
           "command": "chainlesschain.lens.refactor",
           "when": "false"
         }
+      ],
+      "chainlesschain.inlineChat.submenu": [
+        {
+          "command": "chainlesschain.inlineChat.explain",
+          "when": "editorHasSelection"
+        },
+        {
+          "command": "chainlesschain.inlineChat.refactor",
+          "when": "editorHasSelection"
+        },
+        {
+          "command": "chainlesschain.inlineChat.fix",
+          "when": "editorHasSelection"
+        },
+        {
+          "command": "chainlesschain.inlineChat.generateDocs",
+          "when": "editorHasSelection"
+        },
+        {
+          "command": "chainlesschain.inlineChat.generateTests",
+          "when": "editorHasSelection"
+        }
+      ],
+      "chainlesschain.inlineChat": [
+        {
+          "command": "chainlesschain.inlineChat.open",
+          "group": "1_open@1"
+        },
+        {
+          "command": "chainlesschain.inlineChat.explain",
+          "group": "2_actions@1"
+        },
+        {
+          "command": "chainlesschain.inlineChat.refactor",
+          "group": "2_actions@2"
+        },
+        {
+          "command": "chainlesschain.inlineChat.fix",
+          "group": "2_actions@3"
+        },
+        {
+          "command": "chainlesschain.inlineChat.generateDocs",
+          "group": "2_actions@4"
+        },
+        {
+          "command": "chainlesschain.inlineChat.generateTests",
+          "group": "2_actions@5"
+        }
       ]
     },
     "configuration": {
@@ -466,7 +574,18 @@
           "description": "%config.remote.peerId.description%"
         }
       }
-    }
+    },
+    "submenus": [
+      {
+        "id": "chainlesschain.inlineChat.submenu",
+        "label": "%submenu.inlineChat.title%"
+      },
+      {
+        "id": "chainlesschain.inlineChat",
+        "label": "ChainlessChain 内联聊天",
+        "icon": "$(comment-discussion)"
+      }
+    ]
   },
   "scripts": {
     "package": "npx --yes @vscode/vsce@3.9.2 package --no-dependencies",

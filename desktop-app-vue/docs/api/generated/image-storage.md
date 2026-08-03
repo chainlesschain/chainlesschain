@@ -1,6 +1,6 @@
 # image-storage
 
-**Source**: `src/main/image/image-storage.js`
+**Source**: `src\main\image\image-storage.js`
 
 ---
 
@@ -10,9 +10,9 @@
 const
 ```
 
-* 图片存储管理器
- *
- * 负责图片文件的存储、检索和管理
+- 图片存储管理器
+-
+- 负责图片文件的存储、检索和管理
 
 ---
 
@@ -22,7 +22,7 @@ const
 const DEFAULT_CONFIG =
 ```
 
-* 图片存储配置
+- 图片存储配置
 
 ---
 
@@ -32,7 +32,7 @@ const DEFAULT_CONFIG =
 class ImageStorage
 ```
 
-* 图片存储类
+- 图片存储类
 
 ---
 
@@ -42,7 +42,7 @@ class ImageStorage
 async initialize()
 ```
 
-* 初始化存储目录
+- 初始化存储目录
 
 ---
 
@@ -52,19 +52,19 @@ async initialize()
 async initializeDatabase()
 ```
 
-* 初始化数据库表
+- 初始化数据库表
 
 ---
 
 ## generateFilename(originalFilename)
 
 ```javascript
-generateFilename(originalFilename)
+generateFilename(originalFilename);
 ```
 
-* 生成文件名
-   * @param {string} originalFilename - 原始文件名
-   * @returns {string} 新文件名
+- 生成文件名
+  - @param {string} originalFilename - 原始文件名
+  - @returns {string} 新文件名
 
 ---
 
@@ -74,10 +74,10 @@ generateFilename(originalFilename)
 async saveImage(sourcePath, metadata =
 ```
 
-* 保存图片
-   * @param {string} sourcePath - 源文件路径
-   * @param {Object} metadata - 图片元信息
-   * @returns {Promise<Object>} 保存结果
+- 保存图片
+  - @param {string} sourcePath - 源文件路径
+  - @param {Object} metadata - 图片元信息
+  - @returns {Promise<Object>} 保存结果
 
 ---
 
@@ -87,10 +87,10 @@ async saveImage(sourcePath, metadata =
 async saveThumbnail(imageId, thumbnailPath)
 ```
 
-* 保存缩略图
-   * @param {string} imageId - 图片 ID
-   * @param {string} thumbnailPath - 缩略图路径
-   * @returns {Promise<Object>}
+- 保存缩略图
+  - @param {string} imageId - 图片 ID
+  - @param {string} thumbnailPath - 缩略图路径
+  - @returns {Promise<Object>}
 
 ---
 
@@ -100,8 +100,8 @@ async saveThumbnail(imageId, thumbnailPath)
 async addImageRecord(record)
 ```
 
-* 添加图片记录到数据库
-   * @param {Object} record - 图片记录
+- 添加图片记录到数据库
+  - @param {Object} record - 图片记录
 
 ---
 
@@ -111,9 +111,9 @@ async addImageRecord(record)
 async updateImageRecord(imageId, updates)
 ```
 
-* 更新图片记录
-   * @param {string} imageId - 图片 ID
-   * @param {Object} updates - 更新字段
+- 更新图片记录
+  - @param {string} imageId - 图片 ID
+  - @param {Object} updates - 更新字段
 
 ---
 
@@ -123,9 +123,9 @@ async updateImageRecord(imageId, updates)
 async getImageRecord(imageId)
 ```
 
-* 获取图片记录
-   * @param {string} imageId - 图片 ID
-   * @returns {Promise<Object|null>}
+- 获取图片记录
+  - @param {string} imageId - 图片 ID
+  - @returns {Promise<Object|null>}
 
 ---
 
@@ -135,9 +135,9 @@ async getImageRecord(imageId)
 async getAllImages(options =
 ```
 
-* 获取所有图片记录
-   * @param {Object} options - 查询选项
-   * @returns {Promise<Array>}
+- 获取所有图片记录
+  - @param {Object} options - 查询选项
+  - @returns {Promise<Array>}
 
 ---
 
@@ -147,9 +147,9 @@ async getAllImages(options =
 async searchImages(query)
 ```
 
-* 搜索图片 (通过 OCR 文本)
-   * @param {string} query - 搜索关键词
-   * @returns {Promise<Array>}
+- 搜索图片 (通过 OCR 文本)
+  - @param {string} query - 搜索关键词
+  - @returns {Promise<Array>}
 
 ---
 
@@ -159,9 +159,9 @@ async searchImages(query)
 async deleteImage(imageId)
 ```
 
-* 删除图片
-   * @param {string} imageId - 图片 ID
-   * @returns {Promise<Object>}
+- 删除图片
+  - @param {string} imageId - 图片 ID
+  - @returns {Promise<Object>}
 
 ---
 
@@ -171,8 +171,8 @@ async deleteImage(imageId)
 async getStats()
 ```
 
-* 获取统计信息
-   * @returns {Promise<Object>}
+- 获取统计信息
+  - @returns {Promise<Object>}
 
 ---
 
@@ -182,19 +182,18 @@ async getStats()
 async cleanOrphanFiles()
 ```
 
-* 清理孤立文件 (数据库中不存在的文件)
-   * @returns {Promise<Object>}
+- 清理孤立文件 (数据库中不存在的文件)
+  - @returns {Promise<Object>}
 
 ---
 
 ## getStoragePaths()
 
 ```javascript
-getStoragePaths()
+getStoragePaths();
 ```
 
-* 获取存储路径
-   * @returns {Object}
+- 获取存储路径
+  - @returns {Object}
 
 ---
-

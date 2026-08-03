@@ -268,6 +268,12 @@ android-app/feature-local-terminal/src/main/jniLibs/x86_64/*.so
 android-app/app/src/main/assets/frida/frida-inject-arm
 android-app/app/src/main/assets/frida/frida-inject-arm64
 
+# npm publish 运行时状态（发布进度追踪）
+.publish-queue.json
+
+# npm pack 构建产物
+*.tgz
+
 # 本地 cc CLI 打包/解压 staging 产物（395M，可由 npm pack 重建，勿入 git）
 /ccbundle/
 

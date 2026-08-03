@@ -1,6 +1,6 @@
 # remote-gateway
 
-**Source**: `src/main/remote/remote-gateway.js`
+**Source**: `src\main\remote\remote-gateway.js`
 
 ---
 
@@ -10,17 +10,17 @@
 const
 ```
 
-* 远程网关 - 统一的远程命令处理入口
- *
- * 功能：
- * - 集成 P2P 命令适配器
- * - 集成权限验证器
- * - 集成命令路由器
- * - 统一的命令处理流程
- * - 事件广播
- * - 统计监控
- *
- * @module remote/remote-gateway
+- 远程网关 - 统一的远程命令处理入口
+-
+- 功能：
+- - 集成 P2P 命令适配器
+- - 集成权限验证器
+- - 集成命令路由器
+- - 统一的命令处理流程
+- - 事件广播
+- - 统计监控
+-
+- @module remote/remote-gateway
 
 ---
 
@@ -30,7 +30,7 @@ const
 class RemoteGateway extends EventEmitter
 ```
 
-* 远程网关类
+- 远程网关类
 
 ---
 
@@ -40,7 +40,7 @@ class RemoteGateway extends EventEmitter
 async initialize()
 ```
 
-* 初始化网关
+- 初始化网关
 
 ---
 
@@ -50,7 +50,7 @@ async initialize()
 async initializePermissionGate()
 ```
 
-* 初始化权限验证器
+- 初始化权限验证器
 
 ---
 
@@ -60,23 +60,23 @@ async initializePermissionGate()
 async initializeCommandRouter()
 ```
 
-* 初始化命令路由器
+- 初始化命令路由器
 
 ---
 
 ## bindMobileBridge(mobileBridge)
 
 ```javascript
-bindMobileBridge(mobileBridge)
+bindMobileBridge(mobileBridge);
 ```
 
-* 接 MobileBridge 实例（M4 D2 桌面胶水末段）。在 index.js 的 MobileBridge
-   * 初始化完成后调用，把 approval channel 的 onRequest 桥到反向 RPC transport。
-   * 重复调用先 unwire 旧的，可以 hot-replace bridge（理论上 MobileBridge 单例，
-   * 但 unit 测试场景需要重置）。
-   *
-   * @param {Object} mobileBridge - mobile-bridge.js 的实例
-   * @returns {boolean} true=接通成功；false=channel 还没初始化（调用顺序错）
+- 接 MobileBridge 实例（M4 D2 桌面胶水末段）。在 index.js 的 MobileBridge
+  - 初始化完成后调用，把 approval channel 的 onRequest 桥到反向 RPC transport。
+  - 重复调用先 unwire 旧的，可以 hot-replace bridge（理论上 MobileBridge 单例，
+  - 但 unit 测试场景需要重置）。
+  -
+  - @param {Object} mobileBridge - mobile-bridge.js 的实例
+  - @returns {boolean} true=接通成功；false=channel 还没初始化（调用顺序错）
 
 ---
 
@@ -86,7 +86,7 @@ bindMobileBridge(mobileBridge)
 async initializeP2PCommandAdapter()
 ```
 
-* 初始化 P2P 命令适配器
+- 初始化 P2P 命令适配器
 
 ---
 
@@ -96,17 +96,17 @@ async initializeP2PCommandAdapter()
 async registerCommandHandlers()
 ```
 
-* 注册命令处理器
+- 注册命令处理器
 
 ---
 
 ## setupEventHandlers()
 
 ```javascript
-setupEventHandlers()
+setupEventHandlers();
 ```
 
-* 设置事件监听
+- 设置事件监听
 
 ---
 
@@ -116,7 +116,7 @@ setupEventHandlers()
 async handleCommand(data)
 ```
 
-* 处理命令（核心方法）
+- 处理命令（核心方法）
 
 ---
 
@@ -126,27 +126,27 @@ async handleCommand(data)
 async sendCommand(peerId, method, params, options =
 ```
 
-* 主动发送命令到设备（PC -> Android）
+- 主动发送命令到设备（PC -> Android）
 
 ---
 
 ## broadcastEvent(method, params, targetDevices = null)
 
 ```javascript
-broadcastEvent(method, params, targetDevices = null)
+broadcastEvent(method, params, (targetDevices = null));
 ```
 
-* 广播事件到所有设备
+- 广播事件到所有设备
 
 ---
 
 ## getConnectedDevices()
 
 ```javascript
-getConnectedDevices()
+getConnectedDevices();
 ```
 
-* 获取已连接设备列表
+- 获取已连接设备列表
 
 ---
 
@@ -156,9 +156,9 @@ getConnectedDevices()
 async disconnectDevice(peerId)
 ```
 
-* 断开设备连接
-   * @param {string} peerId - 设备的 Peer ID 或 DID
-   * @returns {Promise<Object>} 断开结果
+- 断开设备连接
+  - @param {string} peerId - 设备的 Peer ID 或 DID
+  - @returns {Promise<Object>} 断开结果
 
 ---
 
@@ -168,7 +168,7 @@ async disconnectDevice(peerId)
 async setDevicePermission(did, level, options =
 ```
 
-* 设置设备权限
+- 设置设备权限
 
 ---
 
@@ -178,7 +178,7 @@ async setDevicePermission(did, level, options =
 async getDevicePermission(did)
 ```
 
-* 获取设备权限
+- 获取设备权限
 
 ---
 
@@ -188,17 +188,17 @@ async getDevicePermission(did)
 getAuditLogs(options =
 ```
 
-* 获取审计日志
+- 获取审计日志
 
 ---
 
 ## getStats()
 
 ```javascript
-getStats()
+getStats();
 ```
 
-* 获取统计信息
+- 获取统计信息
 
 ---
 
@@ -208,17 +208,16 @@ getStats()
 async stop()
 ```
 
-* 停止网关
+- 停止网关
 
 ---
 
 ## isRunning()
 
 ```javascript
-isRunning()
+isRunning();
 ```
 
-* 检查是否正在运行
+- 检查是否正在运行
 
 ---
-

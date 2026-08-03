@@ -1,6 +1,6 @@
 # preference-manager-ipc
 
-**Source**: `src/main/memory/preference-manager-ipc.js`
+**Source**: `src\main\memory\preference-manager-ipc.js`
 
 ---
 
@@ -10,12 +10,12 @@
 const
 ```
 
-* PreferenceManager IPC Handlers
- * Handles IPC communication for preference management
- *
- * @module preference-manager-ipc
- * @version 1.0.0
- * @since 2026-01-17
+- PreferenceManager IPC Handlers
+- Handles IPC communication for preference management
+-
+- @module preference-manager-ipc
+- @version 1.0.0
+- @since 2026-01-17
 
 ---
 
@@ -25,10 +25,10 @@ const
 function registerPreferenceManagerIPC(
 ```
 
-* Register all PreferenceManager IPC handlers
- * @param {Object} dependencies - Dependencies
- * @param {Object} dependencies.preferenceManager - PreferenceManager instance
- * @param {Object} [dependencies.ipcMain] - IPC main object (for testing)
+- Register all PreferenceManager IPC handlers
+- @param {Object} dependencies - Dependencies
+- @param {Object} dependencies.preferenceManager - PreferenceManager instance
+- @param {Object} [dependencies.ipcMain] - IPC main object (for testing)
 
 ---
 
@@ -38,8 +38,8 @@ function registerPreferenceManagerIPC(
 ipcMain.handle(
 ```
 
-* Get a single preference
-   * Channel: 'preference:get'
+- Get a single preference
+  - Channel: 'preference:get'
 
 ---
 
@@ -49,8 +49,8 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-* Set a single preference
-   * Channel: 'preference:set'
+- Set a single preference
+  - Channel: 'preference:set'
 
 ---
 
@@ -60,8 +60,8 @@ ipcMain.handle(
 ipcMain.handle("preference:delete", async (_event, category, key) =>
 ```
 
-* Delete a preference
-   * Channel: 'preference:delete'
+- Delete a preference
+  - Channel: 'preference:delete'
 
 ---
 
@@ -71,8 +71,8 @@ ipcMain.handle("preference:delete", async (_event, category, key) =>
 ipcMain.handle("preference:get-category", async (_event, category) =>
 ```
 
-* Get all preferences in a category
-   * Channel: 'preference:get-category'
+- Get all preferences in a category
+  - Channel: 'preference:get-category'
 
 ---
 
@@ -82,8 +82,8 @@ ipcMain.handle("preference:get-category", async (_event, category) =>
 ipcMain.handle(
 ```
 
-* Set multiple preferences in a category
-   * Channel: 'preference:set-category'
+- Set multiple preferences in a category
+  - Channel: 'preference:set-category'
 
 ---
 
@@ -93,8 +93,8 @@ ipcMain.handle(
 ipcMain.handle("preference:get-all", async () =>
 ```
 
-* Get all preferences
-   * Channel: 'preference:get-all'
+- Get all preferences
+  - Channel: 'preference:get-all'
 
 ---
 
@@ -104,8 +104,8 @@ ipcMain.handle("preference:get-all", async () =>
 ipcMain.handle(
 ```
 
-* Record a usage event
-   * Channel: 'preference:record-usage'
+- Record a usage event
+  - Channel: 'preference:record-usage'
 
 ---
 
@@ -115,8 +115,8 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-* Get recent usage history
-   * Channel: 'preference:get-recent-history'
+- Get recent usage history
+  - Channel: 'preference:get-recent-history'
 
 ---
 
@@ -126,8 +126,8 @@ ipcMain.handle(
 ipcMain.handle("preference:get-usage-stats", async (_event, options =
 ```
 
-* Get usage statistics
-   * Channel: 'preference:get-usage-stats'
+- Get usage statistics
+  - Channel: 'preference:get-usage-stats'
 
 ---
 
@@ -137,8 +137,8 @@ ipcMain.handle("preference:get-usage-stats", async (_event, options =
 ipcMain.handle(
 ```
 
-* Add to search history
-   * Channel: 'preference:add-search-history'
+- Add to search history
+  - Channel: 'preference:add-search-history'
 
 ---
 
@@ -148,8 +148,8 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-* Get search history
-   * Channel: 'preference:get-search-history'
+- Get search history
+  - Channel: 'preference:get-search-history'
 
 ---
 
@@ -159,8 +159,8 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-* Get search suggestions
-   * Channel: 'preference:get-search-suggestions'
+- Get search suggestions
+  - Channel: 'preference:get-search-suggestions'
 
 ---
 
@@ -170,8 +170,8 @@ ipcMain.handle(
 ipcMain.handle(
 ```
 
-* Clear search history
-   * Channel: 'preference:clear-search-history'
+- Clear search history
+  - Channel: 'preference:clear-search-history'
 
 ---
 
@@ -181,8 +181,8 @@ ipcMain.handle(
 ipcMain.handle("preference:backup", async () =>
 ```
 
-* Backup all preferences
-   * Channel: 'preference:backup'
+- Backup all preferences
+  - Channel: 'preference:backup'
 
 ---
 
@@ -192,8 +192,8 @@ ipcMain.handle("preference:backup", async () =>
 ipcMain.handle("preference:restore", async (_event, options =
 ```
 
-* Restore from backup
-   * Channel: 'preference:restore'
+- Restore from backup
+  - Channel: 'preference:restore'
 
 ---
 
@@ -203,8 +203,8 @@ ipcMain.handle("preference:restore", async (_event, options =
 ipcMain.handle("preference:get-stats", async () =>
 ```
 
-* Get statistics
-   * Channel: 'preference:get-stats'
+- Get statistics
+  - Channel: 'preference:get-stats'
 
 ---
 
@@ -214,8 +214,8 @@ ipcMain.handle("preference:get-stats", async () =>
 ipcMain.handle("preference:clear-cache", async () =>
 ```
 
-* Clear cache
-   * Channel: 'preference:clear-cache'
+- Clear cache
+  - Channel: 'preference:clear-cache'
 
 ---
 
@@ -225,8 +225,8 @@ ipcMain.handle("preference:clear-cache", async () =>
 ipcMain.handle("preference:cleanup", async (_event, options =
 ```
 
-* Cleanup old records
-   * Channel: 'preference:cleanup'
+- Cleanup old records
+  - Channel: 'preference:cleanup'
 
 ---
 
@@ -236,9 +236,8 @@ ipcMain.handle("preference:cleanup", async (_event, options =
 function updatePreferenceManager(newManager)
 ```
 
-* Update PreferenceManager reference
-   * For hot-reload or reinitialization
-   * @param {PreferenceManager} newManager - New PreferenceManager instance
+- Update PreferenceManager reference
+  - For hot-reload or reinitialization
+  - @param {PreferenceManager} newManager - New PreferenceManager instance
 
 ---
-

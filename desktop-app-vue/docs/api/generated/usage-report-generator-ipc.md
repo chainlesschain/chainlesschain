@@ -1,6 +1,6 @@
 # usage-report-generator-ipc
 
-**Source**: `src/main/memory/usage-report-generator-ipc.js`
+**Source**: `src\main\memory\usage-report-generator-ipc.js`
 
 ---
 
@@ -10,12 +10,12 @@
 const
 ```
 
-* UsageReportGenerator IPC Handlers
- * Handles IPC communication for usage report generation
- *
- * @module usage-report-generator-ipc
- * @version 1.0.0
- * @since 2026-01-18
+- UsageReportGenerator IPC Handlers
+- Handles IPC communication for usage report generation
+-
+- @module usage-report-generator-ipc
+- @version 1.0.0
+- @since 2026-01-18
 
 ---
 
@@ -25,10 +25,10 @@ const
 function registerUsageReportGeneratorIPC(
 ```
 
-* Register all UsageReportGenerator IPC handlers
- * @param {Object} dependencies - Dependencies
- * @param {Object} dependencies.usageReportGenerator - UsageReportGenerator instance
- * @param {Object} [dependencies.ipcMain] - IPC main object (for testing)
+- Register all UsageReportGenerator IPC handlers
+- @param {Object} dependencies - Dependencies
+- @param {Object} dependencies.usageReportGenerator - UsageReportGenerator instance
+- @param {Object} [dependencies.ipcMain] - IPC main object (for testing)
 
 ---
 
@@ -38,8 +38,8 @@ function registerUsageReportGeneratorIPC(
 ipcMain.handle("report:generate-weekly", async (_event, options =
 ```
 
-* Generate weekly report
-   * Channel: 'report:generate-weekly'
+- Generate weekly report
+  - Channel: 'report:generate-weekly'
 
 ---
 
@@ -49,8 +49,8 @@ ipcMain.handle("report:generate-weekly", async (_event, options =
 ipcMain.handle("report:generate-monthly", async (_event, options =
 ```
 
-* Generate monthly report
-   * Channel: 'report:generate-monthly'
+- Generate monthly report
+  - Channel: 'report:generate-monthly'
 
 ---
 
@@ -60,8 +60,8 @@ ipcMain.handle("report:generate-monthly", async (_event, options =
 ipcMain.handle(
 ```
 
-* Generate cost analysis
-   * Channel: 'report:get-cost-analysis'
+- Generate cost analysis
+  - Channel: 'report:get-cost-analysis'
 
 ---
 
@@ -71,8 +71,8 @@ ipcMain.handle(
 ipcMain.handle("report:export", async (_event, reportId, options =
 ```
 
-* Export report
-   * Channel: 'report:export'
+- Export report
+  - Channel: 'report:export'
 
 ---
 
@@ -82,8 +82,8 @@ ipcMain.handle("report:export", async (_event, reportId, options =
 ipcMain.handle("report:get", async (_event, reportId) =>
 ```
 
-* Get report by ID
-   * Channel: 'report:get'
+- Get report by ID
+  - Channel: 'report:get'
 
 ---
 
@@ -93,8 +93,8 @@ ipcMain.handle("report:get", async (_event, reportId) =>
 ipcMain.handle("report:list", async (_event, options =
 ```
 
-* List reports
-   * Channel: 'report:list'
+- List reports
+  - Channel: 'report:list'
 
 ---
 
@@ -104,8 +104,8 @@ ipcMain.handle("report:list", async (_event, options =
 ipcMain.handle("report:configure-subscription", async (_event, config) =>
 ```
 
-* Configure subscription
-   * Channel: 'report:configure-subscription'
+- Configure subscription
+  - Channel: 'report:configure-subscription'
 
 ---
 
@@ -115,8 +115,8 @@ ipcMain.handle("report:configure-subscription", async (_event, config) =>
 ipcMain.handle("report:get-subscriptions", async () =>
 ```
 
-* Get subscriptions
-   * Channel: 'report:get-subscriptions'
+- Get subscriptions
+  - Channel: 'report:get-subscriptions'
 
 ---
 
@@ -126,8 +126,8 @@ ipcMain.handle("report:get-subscriptions", async () =>
 ipcMain.handle("report:delete-subscription", async (_event, id) =>
 ```
 
-* Delete subscription
-   * Channel: 'report:delete-subscription'
+- Delete subscription
+  - Channel: 'report:delete-subscription'
 
 ---
 
@@ -137,9 +137,8 @@ ipcMain.handle("report:delete-subscription", async (_event, id) =>
 function updateUsageReportGenerator(newGenerator)
 ```
 
-* Update UsageReportGenerator reference
-   * For hot-reload or reinitialization
-   * @param {UsageReportGenerator} newGenerator - New instance
+- Update UsageReportGenerator reference
+  - For hot-reload or reinitialization
+  - @param {UsageReportGenerator} newGenerator - New instance
 
 ---
-
