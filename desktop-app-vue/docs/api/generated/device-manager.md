@@ -10,13 +10,13 @@
 const
 ```
 
-* 设备管理器
- *
- * 负责多设备支持的核心功能:
- * - 设备身份生成和管理
- * - 设备注册和发现
- * - 设备列表同步
- * - 设备间消息路由
+- 设备管理器
+-
+- 负责多设备支持的核心功能:
+- - 设备身份生成和管理
+- - 设备注册和发现
+- - 设备列表同步
+- - 设备间消息路由
 
 ---
 
@@ -26,7 +26,7 @@ const
 class DeviceManager extends EventEmitter
 ```
 
-* 设备管理器类
+- 设备管理器类
 
 ---
 
@@ -36,17 +36,17 @@ class DeviceManager extends EventEmitter
 async initialize()
 ```
 
-* 初始化设备管理器
+- 初始化设备管理器
 
 ---
 
 ## generateDeviceName()
 
 ```javascript
-generateDeviceName()
+generateDeviceName();
 ```
 
-* 生成设备名称
+- 生成设备名称
 
 ---
 
@@ -56,27 +56,27 @@ generateDeviceName()
 async loadOrGenerateDevice()
 ```
 
-* 加载或生成设备信息
+- 加载或生成设备信息
 
 ---
 
 ## generateDevice()
 
 ```javascript
-generateDevice()
+generateDevice();
 ```
 
-* 生成新设备
+- 生成新设备
 
 ---
 
 ## generateDeviceId()
 
 ```javascript
-generateDeviceId()
+generateDeviceId();
 ```
 
-* 生成设备 ID
+- 生成设备 ID
 
 ---
 
@@ -86,7 +86,7 @@ generateDeviceId()
 async loadDeviceList()
 ```
 
-* 加载已知设备列表
+- 加载已知设备列表
 
 ---
 
@@ -96,7 +96,7 @@ async loadDeviceList()
 async saveDeviceList()
 ```
 
-* 保存设备列表
+- 保存设备列表
 
 ---
 
@@ -106,9 +106,9 @@ async saveDeviceList()
 async registerDevice(userId, device)
 ```
 
-* 注册设备
-   * @param {string} userId - 用户 ID
-   * @param {Object} device - 设备信息
+- 注册设备
+  - @param {string} userId - 用户 ID
+  - @param {Object} device - 设备信息
 
 ---
 
@@ -118,30 +118,30 @@ async registerDevice(userId, device)
 async unregisterDevice(userId, deviceId)
 ```
 
-* 注销设备
-   * @param {string} userId - 用户 ID
-   * @param {string} deviceId - 设备 ID
+- 注销设备
+  - @param {string} userId - 用户 ID
+  - @param {string} deviceId - 设备 ID
 
 ---
 
 ## getUserDevices(userId)
 
 ```javascript
-getUserDevices(userId)
+getUserDevices(userId);
 ```
 
-* 获取用户的所有设备
-   * @param {string} userId - 用户 ID
+- 获取用户的所有设备
+  - @param {string} userId - 用户 ID
 
 ---
 
 ## getCurrentDevice()
 
 ```javascript
-getCurrentDevice()
+getCurrentDevice();
 ```
 
-* 获取当前设备信息
+- 获取当前设备信息
 
 ---
 
@@ -151,20 +151,20 @@ getCurrentDevice()
 async updateDeviceActivity(userId, deviceId)
 ```
 
-* 更新设备活跃时间
-   * @param {string} userId - 用户 ID
-   * @param {string} deviceId - 设备 ID
+- 更新设备活跃时间
+  - @param {string} userId - 用户 ID
+  - @param {string} deviceId - 设备 ID
 
 ---
 
 ## getDeviceBroadcast()
 
 ```javascript
-getDeviceBroadcast()
+getDeviceBroadcast();
 ```
 
-* 获取设备广播信息
-   * 用于在网络中广播当前设备信息
+- 获取设备广播信息
+  - 用于在网络中广播当前设备信息
 
 ---
 
@@ -174,9 +174,9 @@ getDeviceBroadcast()
 async handleDeviceBroadcast(peerId, broadcast)
 ```
 
-* 处理设备广播
-   * @param {string} peerId - 对等节点 ID
-   * @param {Object} broadcast - 广播数据
+- 处理设备广播
+  - @param {string} peerId - 对等节点 ID
+  - @param {Object} broadcast - 广播数据
 
 ---
 
@@ -186,30 +186,30 @@ async handleDeviceBroadcast(peerId, broadcast)
 async cleanupInactiveDevices(maxAge = 7 * 24 * 60 * 60 * 1000)
 ```
 
-* 清理不活跃的设备
-   * @param {number} maxAge - 最大不活跃时间 (毫秒)
+- 清理不活跃的设备
+  - @param {number} maxAge - 最大不活跃时间 (毫秒)
 
 ---
 
 ## getRegisteredDevices()
 
 ```javascript
-getRegisteredDevices()
+getRegisteredDevices();
 ```
 
-* 列所有已注册设备（跨 userId 展平）。
-   * 用于 sync:mobile:list-paired。
+- 列所有已注册设备（跨 userId 展平）。
+  - 用于 sync:mobile:list-paired。
 
 ---
 
 ## isDeviceRegistered(deviceId)
 
 ```javascript
-isDeviceRegistered(deviceId)
+isDeviceRegistered(deviceId);
 ```
 
-* 跨 userId 检查 deviceId 是否已注册。
-   * DevicePairingHandler.validatePairingCode 用。
+- 跨 userId 检查 deviceId 是否已注册。
+  - DevicePairingHandler.validatePairingCode 用。
 
 ---
 
@@ -219,18 +219,18 @@ isDeviceRegistered(deviceId)
 async unregisterDeviceById(deviceId)
 ```
 
-* 单参数注销（跨 userId 搜并删）。
-   * 用于 sync:mobile:unpair（不知道 deviceId 属于哪个 userId）。
+- 单参数注销（跨 userId 搜并删）。
+  - 用于 sync:mobile:unpair（不知道 deviceId 属于哪个 userId）。
 
 ---
 
 ## getStatistics()
 
 ```javascript
-getStatistics()
+getStatistics();
 ```
 
-* 获取所有设备统计
+- 获取所有设备统计
 
 ---
 
@@ -240,7 +240,6 @@ getStatistics()
 async close()
 ```
 
-* 关闭设备管理器
+- 关闭设备管理器
 
 ---
-

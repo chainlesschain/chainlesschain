@@ -10,7 +10,6 @@
 const
 ```
 
-* TeammateTool 单元测试
+- TeammateTool 单元测试
 
 ---
-

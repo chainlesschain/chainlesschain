@@ -10,9 +10,9 @@
 const git = require("isomorphic-git");
 ```
 
-* Git 同步管理器
- *
- * 使用 isomorphic-git 实现Git功能
+- Git 同步管理器
+-
+- 使用 isomorphic-git 实现Git功能
 
 ---
 
@@ -22,25 +22,25 @@ const git = require("isomorphic-git");
 class GitManager extends EventEmitter
 ```
 
-* Git管理器类
- *
- * 功能：
- * - 初始化仓库
- * - 克隆远程仓库
- * - 提交更改
- * - 推送到远程
- * - 拉取远程更新
- * - 状态查询
+- Git管理器类
+-
+- 功能：
+- - 初始化仓库
+- - 克隆远程仓库
+- - 提交更改
+- - 推送到远程
+- - 拉取远程更新
+- - 状态查询
 
 ---
 
 ## getDefaultRepoPath()
 
 ```javascript
-getDefaultRepoPath()
+getDefaultRepoPath();
 ```
 
-* 获取默认仓库路径
+- 获取默认仓库路径
 
 ---
 
@@ -50,7 +50,7 @@ getDefaultRepoPath()
 async initialize()
 ```
 
-* 初始化Git管理器
+- 初始化Git管理器
 
 ---
 
@@ -60,7 +60,7 @@ async initialize()
 async isGitRepository()
 ```
 
-* 检查是否是Git仓库
+- 检查是否是Git仓库
 
 ---
 
@@ -70,7 +70,7 @@ async isGitRepository()
 async getStatus()
 ```
 
-* 获取仓库状态
+- 获取仓库状态
 
 ---
 
@@ -80,7 +80,7 @@ async getStatus()
 async getLastCommitDate()
 ```
 
-* 获取最后提交时间
+- 获取最后提交时间
 
 ---
 
@@ -90,9 +90,9 @@ async getLastCommitDate()
 async calculateAheadBehind(branch)
 ```
 
-* 计算本地分支与远程分支的ahead/behind commits
-   * @param {string} branch - 本地分支名
-   * @returns {Promise<{ahead: number, behind: number}>}
+- 计算本地分支与远程分支的ahead/behind commits
+  - @param {string} branch - 本地分支名
+  - @returns {Promise<{ahead: number, behind: number}>}
 
 ---
 
@@ -102,8 +102,8 @@ async calculateAheadBehind(branch)
 async add(filepaths)
 ```
 
-* 添加文件到暂存区
-   * @param {string|string[]} filepaths - 文件路径
+- 添加文件到暂存区
+  - @param {string|string[]} filepaths - 文件路径
 
 ---
 
@@ -113,8 +113,8 @@ async add(filepaths)
 async commit(message)
 ```
 
-* 提交更改
-   * @param {string} message - 提交消息
+- 提交更改
+  - @param {string} message - 提交消息
 
 ---
 
@@ -124,7 +124,7 @@ async commit(message)
 async push()
 ```
 
-* 推送到远程仓库
+- 推送到远程仓库
 
 ---
 
@@ -134,7 +134,7 @@ async push()
 async pull()
 ```
 
-* 从远程仓库拉取
+- 从远程仓库拉取
 
 ---
 
@@ -144,7 +144,7 @@ async pull()
 async getConflictFiles()
 ```
 
-* 获取冲突文件列表
+- 获取冲突文件列表
 
 ---
 
@@ -154,7 +154,7 @@ async getConflictFiles()
 async readFile(filepath)
 ```
 
-* 读取文件内容
+- 读取文件内容
 
 ---
 
@@ -164,23 +164,23 @@ async readFile(filepath)
 async getConflictContent(filepath)
 ```
 
-* 获取冲突文件的内容（解析冲突标记）
+- 获取冲突文件的内容（解析冲突标记）
 
 ---
 
 ## parseConflictMarkers(content)
 
 ```javascript
-parseConflictMarkers(content)
+parseConflictMarkers(content);
 ```
 
-* 解析冲突标记
-   * 格式:
-   * <<<<<<< HEAD (ours)
-   * our content
-   * =======
-   * their content
-   * >>>>>>> branch-name (theirs)
+- 解析冲突标记
+  - 格式:
+  - <<<<<<< HEAD (ours)
+  - our content
+  - =======
+  - their content
+  - > > > > > > > branch-name (theirs)
 
 ---
 
@@ -190,10 +190,10 @@ parseConflictMarkers(content)
 async resolveConflict(filepath, resolution, content = null)
 ```
 
-* 解决冲突 - 选择一方
-   * @param {string} filepath - 文件路径
-   * @param {string} resolution - 'ours' | 'theirs' | 'manual'
-   * @param {string} content - 如果是 manual，提供解决后的内容
+- 解决冲突 - 选择一方
+  - @param {string} filepath - 文件路径
+  - @param {string} resolution - 'ours' | 'theirs' | 'manual'
+  - @param {string} content - 如果是 manual，提供解决后的内容
 
 ---
 
@@ -203,7 +203,7 @@ async resolveConflict(filepath, resolution, content = null)
 async abortMerge()
 ```
 
-* 中止合并
+- 中止合并
 
 ---
 
@@ -213,7 +213,7 @@ async abortMerge()
 async completeMerge(message = "Merge completed")
 ```
 
-* 完成合并（所有冲突解决后）
+- 完成合并（所有冲突解决后）
 
 ---
 
@@ -223,9 +223,9 @@ async completeMerge(message = "Merge completed")
 async clone(url, targetPath = null)
 ```
 
-* 克隆远程仓库
-   * @param {string} url - 远程仓库URL
-   * @param {string} targetPath - 目标路径
+- 克隆远程仓库
+  - @param {string} url - 远程仓库URL
+  - @param {string} targetPath - 目标路径
 
 ---
 
@@ -235,32 +235,32 @@ async clone(url, targetPath = null)
 async setRemote(url, name = "origin")
 ```
 
-* 配置远程仓库
-   * @param {string} url - 远程仓库URL
-   * @param {string} name - 远程仓库名称
+- 配置远程仓库
+  - @param {string} url - 远程仓库URL
+  - @param {string} name - 远程仓库名称
 
 ---
 
 ## setAuth(auth)
 
 ```javascript
-setAuth(auth)
+setAuth(auth);
 ```
 
-* 设置认证信息
-   * @param {Object} auth - 认证信息
+- 设置认证信息
+  - @param {Object} auth - 认证信息
 
 ---
 
 ## setAuthor(name, email)
 
 ```javascript
-setAuthor(name, email)
+setAuthor(name, email);
 ```
 
-* 设置作者信息
-   * @param {string} name - 作者名称
-   * @param {string} email - 作者邮箱
+- 设置作者信息
+  - @param {string} name - 作者名称
+  - @param {string} email - 作者邮箱
 
 ---
 
@@ -270,8 +270,8 @@ setAuthor(name, email)
 async getLog(depth = 10)
 ```
 
-* 获取提交历史
-   * @param {number} depth - 深度
+- 获取提交历史
+  - @param {number} depth - 深度
 
 ---
 
@@ -281,7 +281,7 @@ async getLog(depth = 10)
 async hasUncommittedChanges()
 ```
 
-* 检查是否有未提交的更改
+- 检查是否有未提交的更改
 
 ---
 
@@ -291,10 +291,10 @@ async hasUncommittedChanges()
 async autoSync(message = "Auto sync")
 ```
 
-* 自动同步
-   * - 添加所有更改
-   * - 提交
-   * - 推送
+- 自动同步
+  - - 添加所有更改
+  - - 提交
+  - - 推送
 
 ---
 
@@ -304,7 +304,6 @@ async autoSync(message = "Auto sync")
 async close()
 ```
 
-* 关闭管理器
+- 关闭管理器
 
 ---
-

@@ -10,18 +10,18 @@
 const
 ```
 
-* 系统命令处理器（增强版）
- *
- * 完整实现系统相关命令，集成截图、通知、系统监控等功能
- *
- * 命令列表：
- * - system.screenshot: 截图
- * - system.notify: 发送通知
- * - system.getStatus: 获取系统状态
- * - system.getInfo: 获取系统信息
- * - system.execCommand: 执行命令（需 Admin 权限）
- *
- * @module remote/handlers/system-handler-enhanced
+- 系统命令处理器（增强版）
+-
+- 完整实现系统相关命令，集成截图、通知、系统监控等功能
+-
+- 命令列表：
+- - system.screenshot: 截图
+- - system.notify: 发送通知
+- - system.getStatus: 获取系统状态
+- - system.getInfo: 获取系统信息
+- - system.execCommand: 执行命令（需 Admin 权限）
+-
+- @module remote/handlers/system-handler-enhanced
 
 ---
 
@@ -31,7 +31,7 @@ const
 class SystemCommandHandlerEnhanced extends EventEmitter
 ```
 
-* 系统命令处理器类
+- 系统命令处理器类
 
 ---
 
@@ -41,7 +41,7 @@ class SystemCommandHandlerEnhanced extends EventEmitter
 async handle(action, params, context)
 ```
 
-* 处理命令（统一入口）
+- 处理命令（统一入口）
 
 ---
 
@@ -51,9 +51,8 @@ async handle(action, params, context)
 async screenshot(params, context)
 ```
 
-* 截图
-   *
-   * 支持全屏、区域截图、质量配置
+- 截图 *
+  - 支持全屏、区域截图、质量配置
 
 ---
 
@@ -63,9 +62,8 @@ async screenshot(params, context)
 async notify(params, context)
 ```
 
-* 发送通知
-   *
-   * 支持标题、内容、图标、操作按钮
+- 发送通知 *
+  - 支持标题、内容、图标、操作按钮
 
 ---
 
@@ -75,9 +73,8 @@ async notify(params, context)
 async getStatus(params, context)
 ```
 
-* 获取系统状态
-   *
-   * CPU、内存、磁盘、网络状态
+- 获取系统状态 *
+  - CPU、内存、磁盘、网络状态
 
 ---
 
@@ -87,9 +84,8 @@ async getStatus(params, context)
 async getInfo(params, context)
 ```
 
-* 获取系统信息
-   *
-   * OS、硬件、应用版本等
+- 获取系统信息 *
+  - OS、硬件、应用版本等
 
 ---
 
@@ -99,19 +95,18 @@ async getInfo(params, context)
 async execCommand(params, context)
 ```
 
-* 执行命令（需 Admin 权限）
-   *
-   * 安全沙箱、超时控制、输出捕获
+- 执行命令（需 Admin 权限）*
+  - 安全沙箱、超时控制、输出捕获
 
 ---
 
 ## isCommandSafe(command)
 
 ```javascript
-isCommandSafe(command)
+isCommandSafe(command);
 ```
 
-* 检查命令是否安全
+- 检查命令是否安全
 
 ---
 
@@ -121,7 +116,7 @@ isCommandSafe(command)
 async getCPUStatus()
 ```
 
-* 获取 CPU 状态
+- 获取 CPU 状态
 
 ---
 
@@ -131,7 +126,7 @@ async getCPUStatus()
 async getMemoryStatus()
 ```
 
-* 获取内存状态
+- 获取内存状态
 
 ---
 
@@ -141,7 +136,7 @@ async getMemoryStatus()
 async getDiskStatus()
 ```
 
-* 获取磁盘状态
+- 获取磁盘状态
 
 ---
 
@@ -151,7 +146,7 @@ async getDiskStatus()
 async getNetworkStatus()
 ```
 
-* 获取网络状态
+- 获取网络状态
 
 ---
 
@@ -161,7 +156,7 @@ async getNetworkStatus()
 async getOSInfo()
 ```
 
-* 获取 OS 信息
+- 获取 OS 信息
 
 ---
 
@@ -171,7 +166,7 @@ async getOSInfo()
 async getCPUInfo()
 ```
 
-* 获取 CPU 信息
+- 获取 CPU 信息
 
 ---
 
@@ -181,7 +176,7 @@ async getCPUInfo()
 async getMemoryInfo()
 ```
 
-* 获取内存信息
+- 获取内存信息
 
 ---
 
@@ -191,27 +186,26 @@ async getMemoryInfo()
 async getGraphicsInfo()
 ```
 
-* 获取显卡信息
+- 获取显卡信息
 
 ---
 
 ## getAppInfo()
 
 ```javascript
-getAppInfo()
+getAppInfo();
 ```
 
-* 获取应用信息
+- 获取应用信息
 
 ---
 
 ## getMetrics()
 
 ```javascript
-getMetrics()
+getMetrics();
 ```
 
-* 获取性能指标
+- 获取性能指标
 
 ---
-

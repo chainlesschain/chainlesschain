@@ -10,9 +10,9 @@
 const
 ```
 
-* 提示词模板管理器
- *
- * 管理 AI 提示词模板，支持变量替换、分类管理、使用统计等功能
+- 提示词模板管理器
+-
+- 管理 AI 提示词模板，支持变量替换、分类管理、使用统计等功能
 
 ---
 
@@ -22,9 +22,9 @@ const
 function safeParse(raw, fallback)
 ```
 
-* Tolerant JSON column parse — a single template with a corrupt variables string
- * must not throw out of the .map and drop the whole template list. The
- * `x ? JSON.parse(x) : d` form it replaces only guarded NULL, not corrupt.
+- Tolerant JSON column parse — a single template with a corrupt variables string
+- must not throw out of the .map and drop the whole template list. The
+- `x ? JSON.parse(x) : d` form it replaces only guarded NULL, not corrupt.
 
 ---
 
@@ -34,7 +34,7 @@ function safeParse(raw, fallback)
 class PromptTemplateManager
 ```
 
-* 提示词模板管理器类
+- 提示词模板管理器类
 
 ---
 
@@ -44,8 +44,8 @@ class PromptTemplateManager
 async initialize()
 ```
 
-* 初始化
-   * 创建数据库表并插入内置模板
+- 初始化
+  - 创建数据库表并插入内置模板
 
 ---
 
@@ -55,7 +55,7 @@ async initialize()
 async createTable()
 ```
 
-* 创建数据库表
+- 创建数据库表
 
 ---
 
@@ -65,7 +65,7 @@ async createTable()
 async insertBuiltInTemplates()
 ```
 
-* 插入内置模板
+- 插入内置模板
 
 ---
 
@@ -75,9 +75,9 @@ async insertBuiltInTemplates()
 async createTemplate(templateData)
 ```
 
-* 创建模板
-   * @param {Object} templateData - 模板数据
-   * @returns {Promise<Object>} 创建的模板
+- 创建模板
+  - @param {Object} templateData - 模板数据
+  - @returns {Promise<Object>} 创建的模板
 
 ---
 
@@ -87,9 +87,9 @@ async createTemplate(templateData)
 async getTemplates(filters =
 ```
 
-* 获取模板列表
-   * @param {Object} filters - 过滤条件
-   * @returns {Promise<Array>} 模板列表
+- 获取模板列表
+  - @param {Object} filters - 过滤条件
+  - @returns {Promise<Array>} 模板列表
 
 ---
 
@@ -99,9 +99,9 @@ async getTemplates(filters =
 async getTemplateById(id)
 ```
 
-* 根据 ID 获取模板
-   * @param {string} id - 模板 ID
-   * @returns {Promise<Object|null>} 模板对象
+- 根据 ID 获取模板
+  - @param {string} id - 模板 ID
+  - @returns {Promise<Object|null>} 模板对象
 
 ---
 
@@ -111,10 +111,10 @@ async getTemplateById(id)
 async updateTemplate(id, updates)
 ```
 
-* 更新模板
-   * @param {string} id - 模板 ID
-   * @param {Object} updates - 更新数据
-   * @returns {Promise<Object>} 更新后的模板
+- 更新模板
+  - @param {string} id - 模板 ID
+  - @param {Object} updates - 更新数据
+  - @returns {Promise<Object>} 更新后的模板
 
 ---
 
@@ -124,9 +124,9 @@ async updateTemplate(id, updates)
 async deleteTemplate(id)
 ```
 
-* 删除模板
-   * @param {string} id - 模板 ID
-   * @returns {Promise<boolean>} 是否成功
+- 删除模板
+  - @param {string} id - 模板 ID
+  - @returns {Promise<boolean>} 是否成功
 
 ---
 
@@ -136,10 +136,10 @@ async deleteTemplate(id)
 async fillTemplate(id, values)
 ```
 
-* 填充模板变量
-   * @param {string} id - 模板 ID
-   * @param {Object} values - 变量值对象
-   * @returns {Promise<string>} 填充后的提示词
+- 填充模板变量
+  - @param {string} id - 模板 ID
+  - @param {Object} values - 变量值对象
+  - @returns {Promise<string>} 填充后的提示词
 
 ---
 
@@ -149,8 +149,8 @@ async fillTemplate(id, values)
 async incrementUsage(id)
 ```
 
-* 增加使用次数
-   * @param {string} id - 模板 ID
+- 增加使用次数
+  - @param {string} id - 模板 ID
 
 ---
 
@@ -160,8 +160,8 @@ async incrementUsage(id)
 async getCategories()
 ```
 
-* 获取模板分类列表
-   * @returns {Promise<Array>} 分类列表
+- 获取模板分类列表
+  - @returns {Promise<Array>} 分类列表
 
 ---
 
@@ -171,9 +171,9 @@ async getCategories()
 async searchTemplates(query)
 ```
 
-* 搜索模板
-   * @param {string} query - 搜索关键词
-   * @returns {Promise<Array>} 匹配的模板列表
+- 搜索模板
+  - @param {string} query - 搜索关键词
+  - @returns {Promise<Array>} 匹配的模板列表
 
 ---
 
@@ -183,8 +183,8 @@ async searchTemplates(query)
 async getStatistics()
 ```
 
-* 获取统计信息
-   * @returns {Promise<Object>} 统计数据
+- 获取统计信息
+  - @returns {Promise<Object>} 统计数据
 
 ---
 
@@ -194,9 +194,9 @@ async getStatistics()
 async exportTemplate(id)
 ```
 
-* 导出模板
-   * @param {string} id - 模板 ID
-   * @returns {Promise<Object>} 导出数据
+- 导出模板
+  - @param {string} id - 模板 ID
+  - @returns {Promise<Object>} 导出数据
 
 ---
 
@@ -206,9 +206,8 @@ async exportTemplate(id)
 async importTemplate(importData)
 ```
 
-* 导入模板
-   * @param {Object} importData - 导入数据
-   * @returns {Promise<Object>} 导入的模板
+- 导入模板
+  - @param {Object} importData - 导入数据
+  - @returns {Promise<Object>} 导入的模板
 
 ---
-

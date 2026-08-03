@@ -4,11 +4,11 @@
 
 ## Module Summary
 
-| Module | Files | Total Size |
-|--------|-------|------------|
-| main | 2077 | 27.08 MB |
-| renderer | 84 | 0.33 MB |
-| shared | 0 | 0.00 MB |
+| Module   | Files | Total Size |
+| -------- | ----- | ---------- |
+| main     | 2077  | 27.08 MB   |
+| renderer | 84    | 0.33 MB    |
+| shared   | 0     | 0.00 MB    |
 
 ## main Module
 
@@ -49,5 +49,3 @@
 **Files**: 0
 
 **Top 10 Largest Files**:
-
-

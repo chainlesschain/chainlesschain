@@ -10,18 +10,18 @@
 const
 ```
 
-* 文件传输命令处理器
- *
- * 处理文件传输相关命令：
- * - file.requestUpload: 请求上传文件（Android → PC）
- * - file.uploadChunk: 上传文件分块
- * - file.completeUpload: 完成上传
- * - file.requestDownload: 请求下载文件（PC → Android）
- * - file.downloadChunk: 下载文件分块
- * - file.cancelTransfer: 取消传输
- * - file.listTransfers: 列出传输任务
- *
- * @module remote/handlers/file-transfer-handler
+- 文件传输命令处理器
+-
+- 处理文件传输相关命令：
+- - file.requestUpload: 请求上传文件（Android → PC）
+- - file.uploadChunk: 上传文件分块
+- - file.completeUpload: 完成上传
+- - file.requestDownload: 请求下载文件（PC → Android）
+- - file.downloadChunk: 下载文件分块
+- - file.cancelTransfer: 取消传输
+- - file.listTransfers: 列出传输任务
+-
+- @module remote/handlers/file-transfer-handler
 
 ---
 
@@ -31,7 +31,7 @@ const
 class FileTransferHandler
 ```
 
-* 文件传输命令处理器类
+- 文件传输命令处理器类
 
 ---
 
@@ -41,7 +41,7 @@ class FileTransferHandler
 async _ensureDirectories()
 ```
 
-* 确保必要的目录存在
+- 确保必要的目录存在
 
 ---
 
@@ -51,7 +51,7 @@ async _ensureDirectories()
 async handle(action, params, context)
 ```
 
-* 处理命令（统一入口）
+- 处理命令（统一入口）
 
 ---
 
@@ -61,7 +61,7 @@ async handle(action, params, context)
 async requestUpload(params, context)
 ```
 
-* 请求上传文件（Android → PC）
+- 请求上传文件（Android → PC）
 
 ---
 
@@ -71,7 +71,7 @@ async requestUpload(params, context)
 async uploadChunk(params, context)
 ```
 
-* 上传文件分块
+- 上传文件分块
 
 ---
 
@@ -81,7 +81,7 @@ async uploadChunk(params, context)
 async completeUpload(params, context)
 ```
 
-* 完成上传
+- 完成上传
 
 ---
 
@@ -91,7 +91,7 @@ async completeUpload(params, context)
 async requestDownload(params, context)
 ```
 
-* 请求下载文件（PC → Android）
+- 请求下载文件（PC → Android）
 
 ---
 
@@ -101,7 +101,7 @@ async requestDownload(params, context)
 async downloadChunk(params, context)
 ```
 
-* 下载文件分块（PC → Android）
+- 下载文件分块（PC → Android）
 
 ---
 
@@ -111,7 +111,7 @@ async downloadChunk(params, context)
 async cancelTransfer(params, context)
 ```
 
-* 取消传输
+- 取消传输
 
 ---
 
@@ -121,7 +121,7 @@ async cancelTransfer(params, context)
 async listTransfers(params, context)
 ```
 
-* 列出传输任务
+- 列出传输任务
 
 ---
 
@@ -131,7 +131,7 @@ async listTransfers(params, context)
 async _calculateChecksum(filePath)
 ```
 
-* 计算文件校验和（MD5）
+- 计算文件校验和（MD5）
 
 ---
 
@@ -141,7 +141,7 @@ async _calculateChecksum(filePath)
 async cleanupExpiredTransfers(maxAge = 24 * 60 * 60 * 1000)
 ```
 
-* 清理过期传输任务（可定期调用）
+- 清理过期传输任务（可定期调用）
 
 ---
 
@@ -151,7 +151,7 @@ async cleanupExpiredTransfers(maxAge = 24 * 60 * 60 * 1000)
 async readFile(params, context)
 ```
 
-* 读取文件内容
+- 读取文件内容
 
 ---
 
@@ -161,7 +161,7 @@ async readFile(params, context)
 async writeFile(params, context)
 ```
 
-* 写入文件内容
+- 写入文件内容
 
 ---
 
@@ -171,7 +171,7 @@ async writeFile(params, context)
 async listDirectory(params, context)
 ```
 
-* 列出目录内容
+- 列出目录内容
 
 ---
 
@@ -181,7 +181,7 @@ async listDirectory(params, context)
 async deleteFile(params, context)
 ```
 
-* 删除文件或目录
+- 删除文件或目录
 
 ---
 
@@ -191,7 +191,7 @@ async deleteFile(params, context)
 async moveFile(params, context)
 ```
 
-* 移动文件
+- 移动文件
 
 ---
 
@@ -201,7 +201,7 @@ async moveFile(params, context)
 async copyFile(params, context)
 ```
 
-* 复制文件
+- 复制文件
 
 ---
 
@@ -211,7 +211,7 @@ async copyFile(params, context)
 async getFileStats(params, context)
 ```
 
-* 获取文件统计信息
+- 获取文件统计信息
 
 ---
 
@@ -221,7 +221,7 @@ async getFileStats(params, context)
 async fileExists(params, context)
 ```
 
-* 检查文件是否存在
+- 检查文件是否存在
 
 ---
 
@@ -231,13 +231,12 @@ async fileExists(params, context)
 async createFile(params, context)
 ```
 
-* 创建文件（语义更清晰的 writeFile 别名）
-   *
-   * @param {Object} params - 参数
-   * @param {string} params.filePath - 文件路径
-   * @param {string} params.content - 文件内容
-   * @param {string} params.encoding - 编码（默认 utf8）
-   * @param {boolean} params.createDir - 是否自动创建目录（默认 true）
+- 创建文件（语义更清晰的 writeFile 别名）*
+  - @param {Object} params - 参数
+  - @param {string} params.filePath - 文件路径
+  - @param {string} params.content - 文件内容
+  - @param {string} params.encoding - 编码（默认 utf8）
+  - @param {boolean} params.createDir - 是否自动创建目录（默认 true）
 
 ---
 
@@ -247,31 +246,29 @@ async createFile(params, context)
 async makeDirectory(params, context)
 ```
 
-* 创建目录
-   *
-   * @param {Object} params - 参数
-   * @param {string} params.dirPath - 目录路径
-   * @param {boolean} params.recursive - 是否递归创建（默认 true）
+- 创建目录 *
+  - @param {Object} params - 参数
+  - @param {string} params.dirPath - 目录路径
+  - @param {boolean} params.recursive - 是否递归创建（默认 true）
 
 ---
 
 ## _resolvePath(filePath)
 
 ```javascript
-_resolvePath(filePath)
+_resolvePath(filePath);
 ```
 
-* 解析文件路径（安全性检查）
+- 解析文件路径（安全性检查）
 
 ---
 
 ## _getBasePath()
 
 ```javascript
-_getBasePath()
+_getBasePath();
 ```
 
-* 获取基础路径
+- 获取基础路径
 
 ---
-

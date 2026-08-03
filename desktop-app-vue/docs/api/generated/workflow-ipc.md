@@ -10,8 +10,7 @@
 const
 ```
 
-* @module ai-engine/workflow/workflow-ipc
- * Phase 82: Workflow Engine IPC handlers (10 handlers)
+- @module ai-engine/workflow/workflow-ipc
+- Phase 82: Workflow Engine IPC handlers (10 handlers)
 
 ---
-

@@ -10,16 +10,16 @@
 const
 ```
 
-* 系统命令处理器
- *
- * 处理系统相关命令：
- * - system.getStatus: 获取系统状态
- * - system.getInfo: 获取系统信息
- * - system.screenshot: 截图
- * - system.notify: 通知
- * - system.execCommand: 执行 Shell 命令（高权限）
- *
- * @module remote/handlers/system-handler
+- 系统命令处理器
+-
+- 处理系统相关命令：
+- - system.getStatus: 获取系统状态
+- - system.getInfo: 获取系统信息
+- - system.screenshot: 截图
+- - system.notify: 通知
+- - system.execCommand: 执行 Shell 命令（高权限）
+-
+- @module remote/handlers/system-handler
 
 ---
 
@@ -29,7 +29,7 @@ const
 class SystemCommandHandler
 ```
 
-* 系统命令处理器类
+- 系统命令处理器类
 
 ---
 
@@ -39,7 +39,7 @@ class SystemCommandHandler
 async handle(action, params, context)
 ```
 
-* 处理命令（统一入口）
+- 处理命令（统一入口）
 
 ---
 
@@ -49,7 +49,7 @@ async handle(action, params, context)
 async getStatus(params, context)
 ```
 
-* 获取系统状态
+- 获取系统状态
 
 ---
 
@@ -59,7 +59,7 @@ async getStatus(params, context)
 async getInfo(params, context)
 ```
 
-* 获取系统信息
+- 获取系统信息
 
 ---
 
@@ -69,8 +69,8 @@ async getInfo(params, context)
 async screenshot(params, context)
 ```
 
-* 截图
-   * 使用 Electron desktopCapturer 获取屏幕截图
+- 截图
+  - 使用 Electron desktopCapturer 获取屏幕截图
 
 ---
 
@@ -80,7 +80,7 @@ async screenshot(params, context)
 async notify(params, context)
 ```
 
-* 发送通知
+- 发送通知
 
 ---
 
@@ -90,7 +90,6 @@ async notify(params, context)
 async execCommand(params, context)
 ```
 
-* 执行 Shell 命令（高权限操作）
+- 执行 Shell 命令（高权限操作）
 
 ---
-

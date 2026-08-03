@@ -10,16 +10,16 @@
 const
 ```
 
-* Memory Search System
- *
- * Advanced memory retrieval with RAG integration:
- * - Semantic search via embeddings
- * - Keyword matching
- * - Temporal filtering
- * - Importance weighting
- *
- * @module memory-search
- * @version 1.0.0
+- Memory Search System
+-
+- Advanced memory retrieval with RAG integration:
+- - Semantic search via embeddings
+- - Keyword matching
+- - Temporal filtering
+- - Importance weighting
+-
+- @module memory-search
+- @version 1.0.0
 
 ---
 
@@ -39,7 +39,7 @@ Tolerant JSON column parse — a corrupt row must not abort a list-load loop.
 const SearchMode =
 ```
 
-* Search modes
+- Search modes
 
 ---
 
@@ -49,40 +49,40 @@ const SearchMode =
 class MemorySearchEngine
 ```
 
-* Memory Search Engine
+- Memory Search Engine
 
 ---
 
 ## setMemoryHierarchy(memoryHierarchy)
 
 ```javascript
-setMemoryHierarchy(memoryHierarchy)
+setMemoryHierarchy(memoryHierarchy);
 ```
 
-* Set memory hierarchy
-   * @param {MemoryHierarchy} memoryHierarchy - Memory hierarchy instance
+- Set memory hierarchy
+  - @param {MemoryHierarchy} memoryHierarchy - Memory hierarchy instance
 
 ---
 
 ## setRagManager(ragManager)
 
 ```javascript
-setRagManager(ragManager)
+setRagManager(ragManager);
 ```
 
-* Set RAG manager for semantic search
-   * @param {Object} ragManager - RAG manager instance
+- Set RAG manager for semantic search
+  - @param {Object} ragManager - RAG manager instance
 
 ---
 
 ## setEmbeddingClient(embeddingClient)
 
 ```javascript
-setEmbeddingClient(embeddingClient)
+setEmbeddingClient(embeddingClient);
 ```
 
-* Set embedding client
-   * @param {Object} embeddingClient - Embedding client instance
+- Set embedding client
+  - @param {Object} embeddingClient - Embedding client instance
 
 ---
 
@@ -92,10 +92,10 @@ setEmbeddingClient(embeddingClient)
 async search(query, options =
 ```
 
-* Search memories
-   * @param {string} query - Search query
-   * @param {Object} options - Search options
-   * @returns {Promise<Array>} Search results
+- Search memories
+  - @param {string} query - Search query
+  - @param {Object} options - Search options
+  - @returns {Promise<Array>} Search results
 
 ---
 
@@ -105,8 +105,8 @@ async search(query, options =
 async _semanticSearch(query, options)
 ```
 
-* Semantic search using embeddings
-   * @private
+- Semantic search using embeddings
+  - @private
 
 ---
 
@@ -116,8 +116,8 @@ async _semanticSearch(query, options)
 async _keywordSearch(query, options)
 ```
 
-* Keyword search using text matching
-   * @private
+- Keyword search using text matching
+  - @private
 
 ---
 
@@ -127,8 +127,8 @@ async _keywordSearch(query, options)
 async _hybridSearch(query, options)
 ```
 
-* Hybrid search combining semantic and keyword
-   * @private
+- Hybrid search combining semantic and keyword
+  - @private
 
 ---
 
@@ -138,8 +138,8 @@ async _hybridSearch(query, options)
 async _temporalSearch(query, options)
 ```
 
-* Temporal search - find memories by time
-   * @private
+- Temporal search - find memories by time
+  - @private
 
 ---
 
@@ -149,10 +149,10 @@ async _temporalSearch(query, options)
 async findRelated(memoryId, limit = 5)
 ```
 
-* Find related memories
-   * @param {string} memoryId - Source memory ID
-   * @param {number} limit - Max results
-   * @returns {Promise<Array>} Related memories
+- Find related memories
+  - @param {string} memoryId - Source memory ID
+  - @param {number} limit - Max results
+  - @returns {Promise<Array>} Related memories
 
 ---
 
@@ -162,86 +162,85 @@ async findRelated(memoryId, limit = 5)
 async getContextualMemories(context, options =
 ```
 
-* Get context-relevant memories for conversation
-   * @param {string} context - Current conversation context
-   * @param {Object} options - Options
-   * @returns {Promise<Array>} Relevant memories
+- Get context-relevant memories for conversation
+  - @param {string} context - Current conversation context
+  - @param {Object} options - Options
+  - @returns {Promise<Array>} Relevant memories
 
 ---
 
 ## _calculateKeywordRelevance(query, content)
 
 ```javascript
-_calculateKeywordRelevance(query, content)
+_calculateKeywordRelevance(query, content);
 ```
 
-* Calculate keyword relevance score
-   * @private
+- Calculate keyword relevance score
+  - @private
 
 ---
 
 ## _extractKeywords(text)
 
 ```javascript
-_extractKeywords(text)
+_extractKeywords(text);
 ```
 
-* Extract keywords from text
-   * @private
+- Extract keywords from text
+  - @private
 
 ---
 
 ## _getCacheKey(query, options)
 
 ```javascript
-_getCacheKey(query, options)
+_getCacheKey(query, options);
 ```
 
-* Get cache key
-   * @private
+- Get cache key
+  - @private
 
 ---
 
 ## _getFromCache(key)
 
 ```javascript
-_getFromCache(key)
+_getFromCache(key);
 ```
 
-* Get from cache
-   * @private
+- Get from cache
+  - @private
 
 ---
 
 ## _addToCache(key, results)
 
 ```javascript
-_addToCache(key, results)
+_addToCache(key, results);
 ```
 
-* Add to cache
-   * @private
+- Add to cache
+  - @private
 
 ---
 
 ## clearCache()
 
 ```javascript
-clearCache()
+clearCache();
 ```
 
-* Clear cache
+- Clear cache
 
 ---
 
 ## getStats()
 
 ```javascript
-getStats()
+getStats();
 ```
 
-* Get statistics
-   * @returns {Object} Statistics
+- Get statistics
+  - @returns {Object} Statistics
 
 ---
-

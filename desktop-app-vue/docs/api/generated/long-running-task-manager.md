@@ -10,18 +10,18 @@
 const
 ```
 
-* LongRunningTaskManager - 长时运行任务管理器
- *
- * 支持复杂任务的长时间执行，具备检查点、恢复、暂停/继续等功能。
- *
- * 核心功能：
- * 1. 任务生命周期管理
- * 2. 检查点创建和恢复
- * 3. 后台执行
- * 4. 进度跟踪
- * 5. 错误处理和重试
- *
- * @module ai-engine/cowork/long-running-task-manager
+- LongRunningTaskManager - 长时运行任务管理器
+-
+- 支持复杂任务的长时间执行，具备检查点、恢复、暂停/继续等功能。
+-
+- 核心功能：
+- 1.  任务生命周期管理
+- 2.  检查点创建和恢复
+- 3.  后台执行
+- 4.  进度跟踪
+- 5.  错误处理和重试
+-
+- @module ai-engine/cowork/long-running-task-manager
 
 ---
 
@@ -31,7 +31,7 @@ const
 const TaskStatus =
 ```
 
-* 任务状态
+- 任务状态
 
 ---
 
@@ -41,48 +41,48 @@ const TaskStatus =
 class SmartCheckpointStrategy
 ```
 
-* 智能检查点策略
- * 根据任务特征动态调整检查点保存频率
+- 智能检查点策略
+- 根据任务特征动态调整检查点保存频率
 
 ---
 
 ## calculateInterval(taskMetadata)
 
 ```javascript
-calculateInterval(taskMetadata)
+calculateInterval(taskMetadata);
 ```
 
-* 计算检查点间隔
+- 计算检查点间隔
 
 ---
 
 ## shouldSaveCheckpoint(lastCheckpointTime, taskMetadata)
 
 ```javascript
-shouldSaveCheckpoint(lastCheckpointTime, taskMetadata)
+shouldSaveCheckpoint(lastCheckpointTime, taskMetadata);
 ```
 
-* 判断是否应该保存检查点
+- 判断是否应该保存检查点
 
 ---
 
 ## getStats()
 
 ```javascript
-getStats()
+getStats();
 ```
 
-* 获取统计信息
+- 获取统计信息
 
 ---
 
 ## reset()
 
 ```javascript
-reset()
+reset();
 ```
 
-* 重置统计
+- 重置统计
 
 ---
 
@@ -92,89 +92,89 @@ reset()
 class IncrementalCheckpoint
 ```
 
-* IncrementalCheckpoint - 增量检查点 (v1.1.0)
- *
- * 只保存与上次基线的 JSON diff，减少检查点大小 60-80%。
+- IncrementalCheckpoint - 增量检查点 (v1.1.0)
+-
+- 只保存与上次基线的 JSON diff，减少检查点大小 60-80%。
 
 ---
 
 ## createBaseline(state)
 
 ```javascript
-createBaseline(state)
+createBaseline(state);
 ```
 
-* 创建全量基线快照
-   * @param {Object} state - 当前完整状态
-   * @returns {string} Baseline ID
+- 创建全量基线快照
+  - @param {Object} state - 当前完整状态
+  - @returns {string} Baseline ID
 
 ---
 
 ## createDelta(currentState)
 
 ```javascript
-createDelta(currentState)
+createDelta(currentState);
 ```
 
-* 创建增量 delta（只保存差异）
-   * @param {Object} currentState - 当前状态
-   * @returns {Object} Delta object
+- 创建增量 delta（只保存差异）
+  - @param {Object} currentState - 当前状态
+  - @returns {Object} Delta object
 
 ---
 
 ## restore(checkpointId = null)
 
 ```javascript
-restore(checkpointId = null)
+restore((checkpointId = null));
 ```
 
-* 从基线 + 累加 delta 恢复状态
-   * @param {string} [checkpointId] - 恢复到指定检查点（默认最新）
-   * @returns {Object} 恢复的状态
+- 从基线 + 累加 delta 恢复状态
+  - @param {string} [checkpointId] - 恢复到指定检查点（默认最新）
+  - @returns {Object} 恢复的状态
 
 ---
 
 ## compact(currentState = null)
 
 ```javascript
-compact(currentState = null)
+compact((currentState = null));
 ```
 
-* 合并旧 delta 为新基线
-   * @param {Object} [currentState] - 可选：直接用当前状态作为新基线
+- 合并旧 delta 为新基线
+  - @param {Object} [currentState] - 可选：直接用当前状态作为新基线
 
 ---
 
 ## getStats()
 
 ```javascript
-getStats()
+getStats();
 ```
 
-* 获取检查点统计
-   * @returns {Object}
+- 获取检查点统计
+  - @returns {Object}
 
 ---
 
 ## _computeDiff(oldObj, newObj, path = "")
 
 ```javascript
-_computeDiff(oldObj, newObj, path = "")
+_computeDiff(oldObj, newObj, (path = ""));
 ```
 
-* 计算两个对象的差异
-   * @private
+- 计算两个对象的差异
+  - @private
 
 ---
 
 ## _applyDiff(state, changes)
 
 ```javascript
-_applyDiff(state, changes)
+_applyDiff(state, changes);
 ```
 
-* 应用差异到状态
-   * @private
+- 应用差异到状态
+  - @private
 
 ---
 
@@ -184,18 +184,18 @@ _applyDiff(state, changes)
 class LongRunningTaskManager extends EventEmitter
 ```
 
-* LongRunningTaskManager 类
+- LongRunningTaskManager 类
 
 ---
 
 ## setDatabase(db)
 
 ```javascript
-setDatabase(db)
+setDatabase(db);
 ```
 
-* 设置数据库实例
-   * @param {Object} db - 数据库实例
+- 设置数据库实例
+  - @param {Object} db - 数据库实例
 
 ---
 
@@ -205,8 +205,8 @@ setDatabase(db)
 async _ensureDataDir()
 ```
 
-* 初始化存储目录
-   * @private
+- 初始化存储目录
+  - @private
 
 ---
 
@@ -216,9 +216,9 @@ async _ensureDataDir()
 async createTask(taskConfig)
 ```
 
-* 创建长时运行任务
-   * @param {Object} taskConfig - 任务配置
-   * @returns {Promise<Object>} 任务对象
+- 创建长时运行任务
+  - @param {Object} taskConfig - 任务配置
+  - @returns {Promise<Object>} 任务对象
 
 ---
 
@@ -228,9 +228,9 @@ async createTask(taskConfig)
 async startTask(taskId)
 ```
 
-* 启动任务
-   * @param {string} taskId - 任务 ID
-   * @returns {Promise<void>} 返回任务执行Promise
+- 启动任务
+  - @param {string} taskId - 任务 ID
+  - @returns {Promise<void>} 返回任务执行Promise
 
 ---
 
@@ -240,8 +240,8 @@ async startTask(taskId)
 async pauseTask(taskId)
 ```
 
-* 暂停任务
-   * @param {string} taskId - 任务 ID
+- 暂停任务
+  - @param {string} taskId - 任务 ID
 
 ---
 
@@ -251,8 +251,8 @@ async pauseTask(taskId)
 async resumeTask(taskId)
 ```
 
-* 继续任务
-   * @param {string} taskId - 任务 ID
+- 继续任务
+  - @param {string} taskId - 任务 ID
 
 ---
 
@@ -262,21 +262,21 @@ async resumeTask(taskId)
 async cancelTask(taskId, reason = "")
 ```
 
-* 取消任务
-   * @param {string} taskId - 任务 ID
-   * @param {string} reason - 取消原因
+- 取消任务
+  - @param {string} taskId - 任务 ID
+  - @param {string} reason - 取消原因
 
 ---
 
 ## getTaskStatus(taskId)
 
 ```javascript
-getTaskStatus(taskId)
+getTaskStatus(taskId);
 ```
 
-* 获取任务状态
-   * @param {string} taskId - 任务 ID
-   * @returns {Object} 任务状态
+- 获取任务状态
+  - @param {string} taskId - 任务 ID
+  - @returns {Object} 任务状态
 
 ---
 
@@ -286,8 +286,8 @@ getTaskStatus(taskId)
 async _executeTask(task)
 ```
 
-* 执行任务
-   * @private
+- 执行任务
+  - @private
 
 ---
 
@@ -297,19 +297,19 @@ async _executeTask(task)
 async _executeSteps(task)
 ```
 
-* 按步骤执行任务
-   * @private
+- 按步骤执行任务
+  - @private
 
 ---
 
 ## _createTaskContext(task)
 
 ```javascript
-_createTaskContext(task)
+_createTaskContext(task);
 ```
 
-* 创建任务上下文
-   * @private
+- 创建任务上下文
+  - @private
 
 ---
 
@@ -319,8 +319,8 @@ _createTaskContext(task)
 async _handleTaskSuccess(task, result)
 ```
 
-* 处理任务成功
-   * @private
+- 处理任务成功
+  - @private
 
 ---
 
@@ -330,8 +330,8 @@ async _handleTaskSuccess(task, result)
 async _handleTaskFailure(task, error)
 ```
 
-* 处理任务失败
-   * @private
+- 处理任务失败
+  - @private
 
 ---
 
@@ -341,8 +341,8 @@ async _handleTaskFailure(task, error)
 async _markTaskFailed(task, error)
 ```
 
-* 标记任务失败
-   * @private
+- 标记任务失败
+  - @private
 
 ---
 
@@ -352,10 +352,10 @@ async _markTaskFailed(task, error)
 async createCheckpoint(taskId, metadata =
 ```
 
-* 创建检查点
-   * @param {string} taskId - 任务 ID
-   * @param {Object} metadata - 元数据
-   * @returns {Promise<Object>} 检查点信息
+- 创建检查点
+  - @param {string} taskId - 任务 ID
+  - @param {Object} metadata - 元数据
+  - @returns {Promise<Object>} 检查点信息
 
 ---
 
@@ -365,31 +365,31 @@ async createCheckpoint(taskId, metadata =
 async restoreFromCheckpoint(checkpointId)
 ```
 
-* 从检查点恢复任务
-   * @param {string} checkpointId - 检查点 ID
-   * @returns {Promise<Object>} 恢复的任务
+- 从检查点恢复任务
+  - @param {string} checkpointId - 检查点 ID
+  - @returns {Promise<Object>} 恢复的任务
 
 ---
 
 ## _startCheckpointTimer(taskId)
 
 ```javascript
-_startCheckpointTimer(taskId)
+_startCheckpointTimer(taskId);
 ```
 
-* 启动检查点定时器
-   * @private
+- 启动检查点定时器
+  - @private
 
 ---
 
 ## _stopCheckpointTimer(taskId)
 
 ```javascript
-_stopCheckpointTimer(taskId)
+_stopCheckpointTimer(taskId);
 ```
 
-* 停止检查点定时器
-   * @private
+- 停止检查点定时器
+  - @private
 
 ---
 
@@ -399,8 +399,8 @@ _stopCheckpointTimer(taskId)
 async _saveTask(task)
 ```
 
-* 保存任务到文件
-   * @private
+- 保存任务到文件
+  - @private
 
 ---
 
@@ -410,41 +410,41 @@ async _saveTask(task)
 async _saveTaskResult(task)
 ```
 
-* 保存任务结果
-   * @private
+- 保存任务结果
+  - @private
 
 ---
 
 ## _estimateTimeRemaining(task)
 
 ```javascript
-_estimateTimeRemaining(task)
+_estimateTimeRemaining(task);
 ```
 
-* 估算剩余时间
-   * @private
+- 估算剩余时间
+  - @private
 
 ---
 
 ## _log(message, level = "info")
 
 ```javascript
-_log(message, level = "info")
+_log(message, (level = "info"));
 ```
 
-* 日志输出
-   * @private
+- 日志输出
+  - @private
 
 ---
 
 ## getAllActiveTasks()
 
 ```javascript
-getAllActiveTasks()
+getAllActiveTasks();
 ```
 
-* 获取所有活跃任务
-   * @returns {Array}
+- 获取所有活跃任务
+  - @returns {Array}
 
 ---
 
@@ -454,42 +454,42 @@ getAllActiveTasks()
 async cleanupCompletedTasks()
 ```
 
-* 清理已完成的任务
+- 清理已完成的任务
 
 ---
 
 ## getStats()
 
 ```javascript
-getStats()
+getStats();
 ```
 
-* 获取统计信息
-   * @returns {Object}
+- 获取统计信息
+  - @returns {Object}
 
 ---
 
 ## getTask(taskId)
 
 ```javascript
-getTask(taskId)
+getTask(taskId);
 ```
 
-* 获取任务（别名：getTaskStatus）
-   * @param {string} taskId - 任务ID
-   * @returns {object} 任务对象
+- 获取任务（别名：getTaskStatus）
+  - @param {string} taskId - 任务ID
+  - @returns {object} 任务对象
 
 ---
 
 ## getCheckpoints(taskId)
 
 ```javascript
-getCheckpoints(taskId)
+getCheckpoints(taskId);
 ```
 
-* 获取任务检查点列表
-   * @param {string} taskId - 任务ID
-   * @returns {Array} 检查点列表
+- 获取任务检查点列表
+  - @param {string} taskId - 任务ID
+  - @returns {Array} 检查点列表
 
 ---
 
@@ -499,13 +499,13 @@ getCheckpoints(taskId)
 async retryTask(taskId, options =
 ```
 
-* 重试失败的任务
-   * @param {string} taskId - 任务ID
-   * @param {object} [options]
-   * @param {boolean} [options.resetRetryCount=true] - 是否重置重试计数。手动重试
-   *   默认重置（全新开始）；自动恢复路径必须传 false 以保留累计计数，否则
-   *   maxRetries 上限永远触发不到，永久失败的任务会无限重试。
-   * @returns {Promise<void>}
+- 重试失败的任务
+  - @param {string} taskId - 任务ID
+  - @param {object} [options]
+  - @param {boolean} [options.resetRetryCount=true] - 是否重置重试计数。手动重试
+  - 默认重置（全新开始）；自动恢复路径必须传 false 以保留累计计数，否则
+  - maxRetries 上限永远触发不到，永久失败的任务会无限重试。
+  - @returns {Promise<void>}
 
 ---
 
@@ -515,9 +515,8 @@ async retryTask(taskId, options =
 listTasks(filters =
 ```
 
-* 列出所有任务
-   * @param {object} filters - 筛选条件
-   * @returns {Array} 任务列表
+- 列出所有任务
+  - @param {object} filters - 筛选条件
+  - @returns {Array} 任务列表
 
 ---
-

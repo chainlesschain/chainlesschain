@@ -10,7 +10,6 @@
 const
 ```
 
-* Quick MCP Benchmark - Reduced iterations for faster testing
+- Quick MCP Benchmark - Reduced iterations for faster testing
 
 ---
-

@@ -10,12 +10,12 @@
 const
 ```
 
-* MCP Tool Adapter
- *
- * Bridges between MCP servers and ChainlessChain's ToolManager.
- * Converts MCP tool definitions to ChainlessChain format and proxies execution.
- *
- * @module MCPToolAdapter
+- MCP Tool Adapter
+-
+- Bridges between MCP servers and ChainlessChain's ToolManager.
+- Converts MCP tool definitions to ChainlessChain format and proxies execution.
+-
+- @module MCPToolAdapter
 
 ---
 
@@ -25,17 +25,17 @@ const
 class MCPToolAdapter extends EventEmitter
 ```
 
-* @typedef {Object} ChainlessChainTool
- * @property {string} id - Tool ID
- * @property {string} name - Tool name
- * @property {string} display_name - Display name
- * @property {string} description - Tool description
- * @property {string} category - Tool category
- * @property {string} tool_type - Tool type
- * @property {Object} parameters_schema - JSON Schema for parameters
- * @property {Object} return_schema - JSON Schema for return values
- * @property {boolean} is_builtin - Is built-in tool
- * @property {string} plugin_id - Plugin ID
+- @typedef {Object} ChainlessChainTool
+- @property {string} id - Tool ID
+- @property {string} name - Tool name
+- @property {string} display_name - Display name
+- @property {string} description - Tool description
+- @property {string} category - Tool category
+- @property {string} tool_type - Tool type
+- @property {Object} parameters_schema - JSON Schema for parameters
+- @property {Object} return_schema - JSON Schema for return values
+- @property {boolean} is_builtin - Is built-in tool
+- @property {string} plugin_id - Plugin ID
 
 ---
 
@@ -45,8 +45,8 @@ class MCPToolAdapter extends EventEmitter
 async initializeServers(config)
 ```
 
-* Initialize and auto-connect configured MCP servers
-   * @param {Object} config - MCP configuration from .chainlesschain/config.json
+- Initialize and auto-connect configured MCP servers
+  - @param {Object} config - MCP configuration from .chainlesschain/config.json
 
 ---
 
@@ -56,10 +56,10 @@ async initializeServers(config)
 async registerMCPServerTools(serverName, serverConfig)
 ```
 
-* Register all tools from an MCP server with ToolManager
-   * @param {string} serverName - Server identifier
-   * @param {Object} serverConfig - Server configuration
-   * @returns {Promise<string[]>} Array of registered tool IDs
+- Register all tools from an MCP server with ToolManager
+  - @param {string} serverName - Server identifier
+  - @param {Object} serverConfig - Server configuration
+  - @returns {Promise<string[]>} Array of registered tool IDs
 
 ---
 
@@ -69,57 +69,57 @@ async registerMCPServerTools(serverName, serverConfig)
 async unregisterMCPServerTools(serverName)
 ```
 
-* Unregister all tools from an MCP server
-   * @param {string} serverName - Server identifier
+- Unregister all tools from an MCP server
+  - @param {string} serverName - Server identifier
 
 ---
 
 ## getMCPTools()
 
 ```javascript
-getMCPTools()
+getMCPTools();
 ```
 
-* Get list of all MCP tools
-   * @returns {Object[]} Array of MCP tool info
+- Get list of all MCP tools
+  - @returns {Object[]} Array of MCP tool info
 
 ---
 
 ## isMCPTool(toolId)
 
 ```javascript
-isMCPTool(toolId)
+isMCPTool(toolId);
 ```
 
-* Check if a tool is from MCP
-   * @param {string} toolId - Tool ID
-   * @returns {boolean} True if tool is from MCP
+- Check if a tool is from MCP
+  - @param {string} toolId - Tool ID
+  - @returns {boolean} True if tool is from MCP
 
 ---
 
 ## getToolServer(toolId)
 
 ```javascript
-getToolServer(toolId)
+getToolServer(toolId);
 ```
 
-* Get MCP server name for a tool
-   * @param {string} toolId - Tool ID
-   * @returns {string|null} Server name or null if not MCP tool
+- Get MCP server name for a tool
+  - @param {string} toolId - Tool ID
+  - @returns {string|null} Server name or null if not MCP tool
 
 ---
 
 ## getToolInfo(toolId)
 
 ```javascript
-getToolInfo(toolId)
+getToolInfo(toolId);
 ```
 
-* Get the authoritative { serverName, originalToolName } for a registered MCP
-   * tool id. Avoids re-parsing the "mcp_<server>_<tool>" name with a regex,
-   * which mis-splits when the server name itself contains underscores.
-   * @param {string} toolId - Tool ID (the mcp_<server>_<tool> function name)
-   * @returns {{ serverName: string, originalToolName: string } | null}
+- Get the authoritative { serverName, originalToolName } for a registered MCP
+  - tool id. Avoids re-parsing the "mcp_<server>_<tool>" name with a regex,
+  - which mis-splits when the server name itself contains underscores.
+  - @param {string} toolId - Tool ID (the mcp_<server>_<tool> function name)
+  - @returns {{ serverName: string, originalToolName: string } | null}
 
 ---
 
@@ -129,8 +129,8 @@ getToolInfo(toolId)
 async refreshServerTools(serverName)
 ```
 
-* Refresh tools from a server (re-fetch and update)
-   * @param {string} serverName - Server identifier
+- Refresh tools from a server (re-fetch and update)
+  - @param {string} serverName - Server identifier
 
 ---
 
@@ -140,19 +140,19 @@ async refreshServerTools(serverName)
 async _registerSingleTool(serverName, mcpTool)
 ```
 
-* Register a single MCP tool with ToolManager
-   * @private
+- Register a single MCP tool with ToolManager
+  - @private
 
 ---
 
 ## _convertMCPToolFormat(serverName, mcpTool)
 
 ```javascript
-_convertMCPToolFormat(serverName, mcpTool)
+_convertMCPToolFormat(serverName, mcpTool);
 ```
 
-* Convert MCP tool definition to ChainlessChain format
-   * @private
+- Convert MCP tool definition to ChainlessChain format
+  - @private
 
 ---
 
@@ -162,41 +162,40 @@ _convertMCPToolFormat(serverName, mcpTool)
 async _executeMCPTool(serverName, toolName, params)
 ```
 
-* Execute an MCP tool with security checks
-   * @private
+- Execute an MCP tool with security checks
+  - @private
 
 ---
 
 ## _transformMCPResult(mcpResult)
 
 ```javascript
-_transformMCPResult(mcpResult)
+_transformMCPResult(mcpResult);
 ```
 
-* Transform MCP result to ChainlessChain format
-   * @private
+- Transform MCP result to ChainlessChain format
+  - @private
 
 ---
 
 ## _extractContent(content)
 
 ```javascript
-_extractContent(content)
+_extractContent(content);
 ```
 
-* Extract content from MCP content array
-   * @private
+- Extract content from MCP content array
+  - @private
 
 ---
 
 ## _extractErrorMessage(content)
 
 ```javascript
-_extractErrorMessage(content)
+_extractErrorMessage(content);
 ```
 
-* Extract error message from MCP error content
-   * @private
+- Extract error message from MCP error content
+  - @private
 
 ---
-

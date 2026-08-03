@@ -10,11 +10,11 @@
 const
 ```
 
-* 图片上传管理器
- *
- * 整合图片处理、OCR 识别、存储管理等功能
- *
- * v0.17.0: 集成文件安全验证
+- 图片上传管理器
+-
+- 整合图片处理、OCR 识别、存储管理等功能
+-
+- v0.17.0: 集成文件安全验证
 
 ---
 
@@ -24,7 +24,7 @@ const
 const DEFAULT_CONFIG =
 ```
 
-* 上传配置
+- 上传配置
 
 ---
 
@@ -34,17 +34,17 @@ const DEFAULT_CONFIG =
 class ImageUploader extends EventEmitter
 ```
 
-* 图片上传管理器类
+- 图片上传管理器类
 
 ---
 
 ## setupEventForwarding()
 
 ```javascript
-setupEventForwarding()
+setupEventForwarding();
 ```
 
-* 设置事件转发
+- 设置事件转发
 
 ---
 
@@ -54,10 +54,9 @@ setupEventForwarding()
 async initialize()
 ```
 
-* 初始化
-   *
-   * v0.18.0: 添加Worker池初始化
-   * v0.18.0: 添加ResumableProcessor初始化
+- 初始化 *
+  - v0.18.0: 添加Worker池初始化
+  - v0.18.0: 添加ResumableProcessor初始化
 
 ---
 
@@ -67,10 +66,10 @@ async initialize()
 async uploadImage(imagePath, options =
 ```
 
-* 上传单个图片
-   * @param {string} imagePath - 图片路径
-   * @param {Object} options - 上传选项
-   * @returns {Promise<Object>} 上传结果
+- 上传单个图片
+  - @param {string} imagePath - 图片路径
+  - @param {Object} options - 上传选项
+  - @returns {Promise<Object>} 上传结果
 
 ---
 
@@ -80,12 +79,12 @@ async uploadImage(imagePath, options =
 async uploadImages(imagePaths, options =
 ```
 
-* 批量上传图片
-   * @param {Array} imagePaths - 图片路径列表
-   * @param {Object} options - 上传选项
-   * @returns {Promise<Array>} 上传结果列表
-   *
-   * v0.18.0: 集成统一进度通知
+- 批量上传图片
+  - @param {Array} imagePaths - 图片路径列表
+  - @param {Object} options - 上传选项
+  - @returns {Promise<Array>} 上传结果列表
+  -
+  - v0.18.0: 集成统一进度通知
 
 ---
 
@@ -95,9 +94,9 @@ async uploadImages(imagePaths, options =
 async performOCR(imagePath)
 ```
 
-* 仅执行 OCR (不保存图片)
-   * @param {string} imagePath - 图片路径
-   * @returns {Promise<Object>} OCR 结果
+- 仅执行 OCR (不保存图片)
+  - @param {string} imagePath - 图片路径
+  - @returns {Promise<Object>} OCR 结果
 
 ---
 
@@ -107,12 +106,12 @@ async performOCR(imagePath)
 async performBatchOCR(imagePaths, options =
 ```
 
-* 批量执行 OCR (使用Worker池并发处理)
-   * @param {Array<string>} imagePaths - 图片路径列表
-   * @param {Object} options - OCR选项
-   * @returns {Promise<Array<Object>>} OCR 结果列表
-   *
-   * v0.18.0: 新增方法，提供3-4倍并发加速
+- 批量执行 OCR (使用Worker池并发处理)
+  - @param {Array<string>} imagePaths - 图片路径列表
+  - @param {Object} options - OCR选项
+  - @returns {Promise<Array<Object>>} OCR 结果列表
+  -
+  - v0.18.0: 新增方法，提供3-4倍并发加速
 
 ---
 
@@ -122,9 +121,9 @@ async performBatchOCR(imagePaths, options =
 async getImageInfo(imageId)
 ```
 
-* 获取图片信息
-   * @param {string} imageId - 图片 ID
-   * @returns {Promise<Object|null>}
+- 获取图片信息
+  - @param {string} imageId - 图片 ID
+  - @returns {Promise<Object|null>}
 
 ---
 
@@ -134,9 +133,9 @@ async getImageInfo(imageId)
 async getAllImages(options =
 ```
 
-* 获取所有图片
-   * @param {Object} options - 查询选项
-   * @returns {Promise<Array>}
+- 获取所有图片
+  - @param {Object} options - 查询选项
+  - @returns {Promise<Array>}
 
 ---
 
@@ -146,9 +145,9 @@ async getAllImages(options =
 async searchImages(query)
 ```
 
-* 搜索图片 (通过 OCR 文本)
-   * @param {string} query - 搜索关键词
-   * @returns {Promise<Array>}
+- 搜索图片 (通过 OCR 文本)
+  - @param {string} query - 搜索关键词
+  - @returns {Promise<Array>}
 
 ---
 
@@ -158,9 +157,9 @@ async searchImages(query)
 async deleteImage(imageId)
 ```
 
-* 删除图片
-   * @param {string} imageId - 图片 ID
-   * @returns {Promise<Object>}
+- 删除图片
+  - @param {string} imageId - 图片 ID
+  - @returns {Promise<Object>}
 
 ---
 
@@ -170,30 +169,30 @@ async deleteImage(imageId)
 async getStats()
 ```
 
-* 获取统计信息
-   * @returns {Promise<Object>}
+- 获取统计信息
+  - @returns {Promise<Object>}
 
 ---
 
 ## getSupportedFormats()
 
 ```javascript
-getSupportedFormats()
+getSupportedFormats();
 ```
 
-* 获取支持的图片格式
-   * @returns {Array}
+- 获取支持的图片格式
+  - @returns {Array}
 
 ---
 
 ## getSupportedLanguages()
 
 ```javascript
-getSupportedLanguages()
+getSupportedLanguages();
 ```
 
-* 获取支持的 OCR 语言
-   * @returns {Array}
+- 获取支持的 OCR 语言
+  - @returns {Array}
 
 ---
 
@@ -203,8 +202,8 @@ getSupportedLanguages()
 async updateConfig(newConfig)
 ```
 
-* 更新配置
-   * @param {Object} newConfig
+- 更新配置
+  - @param {Object} newConfig
 
 ---
 
@@ -214,9 +213,7 @@ async updateConfig(newConfig)
 async terminate()
 ```
 
-* 终止服务
-   *
-   * v0.18.0: 添加Worker池终止
+- 终止服务 *
+  - v0.18.0: 添加Worker池终止
 
 ---
-

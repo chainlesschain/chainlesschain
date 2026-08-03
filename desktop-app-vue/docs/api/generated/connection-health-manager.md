@@ -10,13 +10,13 @@
 const
 ```
 
-* P2P连接健康监控和自动重连管理器
- *
- * 功能：
- * - 连接健康检查
- * - 自动重连机制
- * - 网络质量监控
- * - 连接降级策略
+- P2P连接健康监控和自动重连管理器
+-
+- 功能：
+- - 连接健康检查
+- - 自动重连机制
+- - 网络质量监控
+- - 连接降级策略
 
 ---
 
@@ -26,37 +26,37 @@ const
 async initialize()
 ```
 
-* 初始化
+- 初始化
 
 ---
 
 ## _setupEventListeners()
 
 ```javascript
-_setupEventListeners()
+_setupEventListeners();
 ```
 
-* 设置事件监听
+- 设置事件监听
 
 ---
 
 ## _setupNetworkMonitoring()
 
 ```javascript
-_setupNetworkMonitoring()
+_setupNetworkMonitoring();
 ```
 
-* 设置网络监控
+- 设置网络监控
 
 ---
 
 ## _startHealthCheck()
 
 ```javascript
-_startHealthCheck()
+_startHealthCheck();
 ```
 
-* 启动健康检查
+- 启动健康检查
 
 ---
 
@@ -66,7 +66,7 @@ _startHealthCheck()
 async _performHealthCheck()
 ```
 
-* 执行健康检查
+- 执行健康检查
 
 ---
 
@@ -76,7 +76,7 @@ async _performHealthCheck()
 async _checkPeerConnection(peerId)
 ```
 
-* 检查对等方连接
+- 检查对等方连接
 
 ---
 
@@ -86,17 +86,17 @@ async _checkPeerConnection(peerId)
 async _measureLatency(peerId)
 ```
 
-* 测量延迟
+- 测量延迟
 
 ---
 
 ## _evaluateConnectionQuality(peerId, health)
 
 ```javascript
-_evaluateConnectionQuality(peerId, health)
+_evaluateConnectionQuality(peerId, health);
 ```
 
-* 评估连接质量
+- 评估连接质量
 
 ---
 
@@ -106,37 +106,37 @@ _evaluateConnectionQuality(peerId, health)
 async _triggerReconnect(peerId)
 ```
 
-* 触发重连
+- 触发重连
 
 ---
 
 ## _onPeerConnected(peerId)
 
 ```javascript
-_onPeerConnected(peerId)
+_onPeerConnected(peerId);
 ```
 
-* 处理对等方连接
+- 处理对等方连接
 
 ---
 
 ## _onPeerDisconnected(peerId)
 
 ```javascript
-_onPeerDisconnected(peerId)
+_onPeerDisconnected(peerId);
 ```
 
-* 处理对等方断开
+- 处理对等方断开
 
 ---
 
 ## _onPeerError(peerId, error)
 
 ```javascript
-_onPeerError(peerId, error)
+_onPeerError(peerId, error);
 ```
 
-* 处理对等方错误
+- 处理对等方错误
 
 ---
 
@@ -146,57 +146,56 @@ _onPeerError(peerId, error)
 async _handleNetworkRestore()
 ```
 
-* 处理网络恢复
+- 处理网络恢复
 
 ---
 
 ## _handleNetworkLoss()
 
 ```javascript
-_handleNetworkLoss()
+_handleNetworkLoss();
 ```
 
-* 处理网络丢失
+- 处理网络丢失
 
 ---
 
 ## getPeerHealth(peerId)
 
 ```javascript
-getPeerHealth(peerId)
+getPeerHealth(peerId);
 ```
 
-* 获取对等方健康状态
+- 获取对等方健康状态
 
 ---
 
 ## getAllPeerHealth()
 
 ```javascript
-getAllPeerHealth()
+getAllPeerHealth();
 ```
 
-* 获取所有健康状态
+- 获取所有健康状态
 
 ---
 
 ## getNetworkQuality()
 
 ```javascript
-getNetworkQuality()
+getNetworkQuality();
 ```
 
-* 获取网络质量
+- 获取网络质量
 
 ---
 
 ## cleanup()
 
 ```javascript
-cleanup()
+cleanup();
 ```
 
-* 清理资源
+- 清理资源
 
 ---
-

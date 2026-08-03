@@ -10,8 +10,8 @@
 process.env.USE_REAL_TOOLS = "true";
 ```
 
-* Phase 3 真实功能测试
- * 测试视频处理的真实实现
+- Phase 3 真实功能测试
+- 测试视频处理的真实实现
 
 ---
 
@@ -21,11 +21,10 @@ process.env.USE_REAL_TOOLS = "true";
 function createTestVideo(outputPath, duration, color, text)
 ```
 
-* 创建测试视频
- * @param {string} outputPath - 输出路径
- * @param {number} duration - 时长(秒)
- * @param {string} color - 背景颜色
- * @param {string} text - 显示文本
+- 创建测试视频
+- @param {string} outputPath - 输出路径
+- @param {number} duration - 时长(秒)
+- @param {string} color - 背景颜色
+- @param {string} text - 显示文本
 
 ---
-

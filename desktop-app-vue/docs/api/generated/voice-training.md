@@ -10,9 +10,9 @@
 const
 ```
 
-* 语音训练与个性化系统
- *
- * 提供用户语音配置文件、口音适应、自定义词汇学习和个性化命令建议
+- 语音训练与个性化系统
+-
+- 提供用户语音配置文件、口音适应、自定义词汇学习和个性化命令建议
 
 ---
 
@@ -22,7 +22,7 @@ const
 class VoiceTraining extends EventEmitter
 ```
 
-* 语音训练类
+- 语音训练类
 
 ---
 
@@ -32,7 +32,7 @@ class VoiceTraining extends EventEmitter
 async initialize(userId)
 ```
 
-* 初始化用户配置文件
+- 初始化用户配置文件
 
 ---
 
@@ -42,17 +42,17 @@ async initialize(userId)
 async loadUserProfile(userId)
 ```
 
-* 加载用户配置文件
+- 加载用户配置文件
 
 ---
 
 ## createDefaultProfile(userId)
 
 ```javascript
-createDefaultProfile(userId)
+createDefaultProfile(userId);
 ```
 
-* 创建默认配置文件
+- 创建默认配置文件
 
 ---
 
@@ -62,7 +62,7 @@ createDefaultProfile(userId)
 async saveUserProfile()
 ```
 
-* 保存用户配置文件
+- 保存用户配置文件
 
 ---
 
@@ -72,7 +72,7 @@ async saveUserProfile()
 async recordTranscription(result)
 ```
 
-* 记录转录结果
+- 记录转录结果
 
 ---
 
@@ -82,27 +82,27 @@ async recordTranscription(result)
 async learnVocabulary(text, language)
 ```
 
-* 学习词汇
+- 学习词汇
 
 ---
 
 ## tokenize(text, language)
 
 ```javascript
-tokenize(text, language)
+tokenize(text, language);
 ```
 
-* 分词
+- 分词
 
 ---
 
 ## pruneVocabulary()
 
 ```javascript
-pruneVocabulary()
+pruneVocabulary();
 ```
 
-* 修剪词汇表
+- 修剪词汇表
 
 ---
 
@@ -112,17 +112,17 @@ pruneVocabulary()
 async detectAccentPatterns(result)
 ```
 
-* 检测口音模式
+- 检测口音模式
 
 ---
 
 ## updateAccentInfo()
 
 ```javascript
-updateAccentInfo()
+updateAccentInfo();
 ```
 
-* 更新口音信息
+- 更新口音信息
 
 ---
 
@@ -132,7 +132,7 @@ updateAccentInfo()
 async recordCommandUsage(commandName, success = true)
 ```
 
-* 记录命令使用
+- 记录命令使用
 
 ---
 
@@ -142,7 +142,7 @@ async recordCommandUsage(commandName, success = true)
 async recordCorrection(original, corrected, context =
 ```
 
-* 记录纠正
+- 记录纠正
 
 ---
 
@@ -152,47 +152,47 @@ async recordCorrection(original, corrected, context =
 async learnCorrectionPattern(original, corrected)
 ```
 
-* 学习纠正模式
+- 学习纠正模式
 
 ---
 
 ## extractCorrectionPattern(original, corrected)
 
 ```javascript
-extractCorrectionPattern(original, corrected)
+extractCorrectionPattern(original, corrected);
 ```
 
-* 提取纠正模式
+- 提取纠正模式
 
 ---
 
 ## getCommandSuggestions(limit = 5)
 
 ```javascript
-getCommandSuggestions(limit = 5)
+getCommandSuggestions((limit = 5));
 ```
 
-* 获取命令建议
+- 获取命令建议
 
 ---
 
 ## calculateCommandScore(stats)
 
 ```javascript
-calculateCommandScore(stats)
+calculateCommandScore(stats);
 ```
 
-* 计算命令分数
+- 计算命令分数
 
 ---
 
 ## getCustomVocabulary(minFrequency = 2)
 
 ```javascript
-getCustomVocabulary(minFrequency = 2)
+getCustomVocabulary((minFrequency = 2));
 ```
 
-* 获取自定义词汇
+- 获取自定义词汇
 
 ---
 
@@ -202,7 +202,7 @@ getCustomVocabulary(minFrequency = 2)
 async addCustomWord(word, frequency = 1)
 ```
 
-* 添加自定义词汇
+- 添加自定义词汇
 
 ---
 
@@ -212,27 +212,27 @@ async addCustomWord(word, frequency = 1)
 async removeCustomWord(word)
 ```
 
-* 删除自定义词汇
+- 删除自定义词汇
 
 ---
 
 ## getLearningStats()
 
 ```javascript
-getLearningStats()
+getLearningStats();
 ```
 
-* 获取学习统计
+- 获取学习统计
 
 ---
 
 ## getImprovementSuggestions()
 
 ```javascript
-getImprovementSuggestions()
+getImprovementSuggestions();
 ```
 
-* 获取改进建议
+- 获取改进建议
 
 ---
 
@@ -242,7 +242,7 @@ getImprovementSuggestions()
 async exportUserData()
 ```
 
-* 导出用户数据
+- 导出用户数据
 
 ---
 
@@ -252,7 +252,7 @@ async exportUserData()
 async importUserData(data)
 ```
 
-* 导入用户数据
+- 导入用户数据
 
 ---
 
@@ -262,7 +262,7 @@ async importUserData(data)
 async resetUserData()
 ```
 
-* 重置用户数据
+- 重置用户数据
 
 ---
 
@@ -272,7 +272,7 @@ async resetUserData()
 async getStats()
 ```
 
-* 获取统计信息
+- 获取统计信息
 
 ---
 
@@ -282,7 +282,7 @@ async getStats()
 async exportProfile()
 ```
 
-* 导出配置文件
+- 导出配置文件
 
 ---
 
@@ -292,7 +292,7 @@ async exportProfile()
 async importProfile(filePath)
 ```
 
-* 导入配置文件
+- 导入配置文件
 
 ---
 
@@ -302,7 +302,6 @@ async importProfile(filePath)
 async resetProfile()
 ```
 
-* 重置配置文件
+- 重置配置文件
 
 ---
-

@@ -10,8 +10,8 @@
 const
 ```
 
-* 知识图谱导出模块
- * 支持多种格式导出：PNG, SVG, JSON, GraphML, GEXF, DOT
+- 知识图谱导出模块
+- 支持多种格式导出：PNG, SVG, JSON, GraphML, GEXF, DOT
 
 ---
 
@@ -21,7 +21,7 @@ const
 function exportToJSON(nodes, edges)
 ```
 
-* 导出为 JSON 格式
+- 导出为 JSON 格式
 
 ---
 
@@ -31,7 +31,7 @@ function exportToJSON(nodes, edges)
 function exportToGraphML(nodes, edges)
 ```
 
-* 导出为 GraphML 格式（Gephi 兼容）
+- 导出为 GraphML 格式（Gephi 兼容）
 
 ---
 
@@ -41,7 +41,7 @@ function exportToGraphML(nodes, edges)
 function exportToGEXF(nodes, edges)
 ```
 
-* 导出为 GEXF 格式（Gephi 原生格式）
+- 导出为 GEXF 格式（Gephi 原生格式）
 
 ---
 
@@ -51,7 +51,7 @@ function exportToGEXF(nodes, edges)
 function exportToDOT(nodes, edges)
 ```
 
-* 导出为 DOT 格式（Graphviz）
+- 导出为 DOT 格式（Graphviz）
 
 ---
 
@@ -61,7 +61,7 @@ function exportToDOT(nodes, edges)
 function exportToCSV(nodes, edges)
 ```
 
-* 导出为 CSV 格式（节点和边分别导出）
+- 导出为 CSV 格式（节点和边分别导出）
 
 ---
 
@@ -71,7 +71,7 @@ function exportToCSV(nodes, edges)
 function exportToHTML(nodes, edges)
 ```
 
-* 导出为交互式 HTML
+- 导出为交互式 HTML
 
 ---
 
@@ -81,7 +81,7 @@ function exportToHTML(nodes, edges)
 async function saveExportFile(
 ```
 
-* 保存导出文件
+- 保存导出文件
 
 ---
 
@@ -91,7 +91,7 @@ async function saveExportFile(
 function escapeXml(str)
 ```
 
-* 转义 XML 特殊字符
+- 转义 XML 特殊字符
 
 ---
 
@@ -101,7 +101,7 @@ function escapeXml(str)
 function escapeDot(str)
 ```
 
-* 转义 DOT 特殊字符
+- 转义 DOT 特殊字符
 
 ---
 
@@ -111,7 +111,7 @@ function escapeDot(str)
 function escapeCsv(str)
 ```
 
-* 转义 CSV 特殊字符
+- 转义 CSV 特殊字符
 
 ---
 
@@ -121,7 +121,6 @@ function escapeCsv(str)
 async function exportGraph(nodes, edges, format)
 ```
 
-* 导出图谱（主函数）
+- 导出图谱（主函数）
 
 ---
-
