@@ -134,7 +134,10 @@ export async function verifyWorkflowGate(options) {
     }
     await sleep(Math.max(1000, pollMs));
   }
-  const jobsUrl = `${apiUrl}/repos/${repository}/actions/runs/${run.id}/jobs?filter=all&per_page=100`;
+  // GitHub keeps jobs from every attempt under the same run id. Release gates
+  // must judge the latest attempt only; `filter=all` would mix an earlier
+  // failed attempt with a successful rerun and permanently reject the SHA.
+  const jobsUrl = `${apiUrl}/repos/${repository}/actions/runs/${run.id}/jobs?filter=latest&per_page=100`;
   const jobPayload = await githubJson(fetchImpl, jobsUrl, token);
   const platforms = assertGateJobs(gate, jobPayload.jobs || []);
   return {

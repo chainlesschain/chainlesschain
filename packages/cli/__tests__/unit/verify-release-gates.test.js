@@ -106,6 +106,7 @@ describe("exact-SHA CLI release gates", () => {
       }),
     ).resolves.toMatchObject({ sha: "release-sha", runId: 2 });
     expect(calls[1]).toContain("/actions/runs/2/jobs");
+    expect(calls[1]).toContain("filter=latest");
   });
 
   it("rejects a green run belonging only to an older SHA", async () => {
