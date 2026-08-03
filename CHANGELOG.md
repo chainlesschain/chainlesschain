@@ -45,20 +45,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Checkpoint restore durability**: canonical workspace prestate binding,
   lifetime locks, immutable Git/copy target identity, copy tombstones and
   owner-private safety arms feed a hash-chained CAS restore saga shared by
-  direct and timeline restores. A real Git/copy test covers the narrow
-  post-completion, pre-lock-release kill window.
+  direct and timeline restores. A real Git/copy kill/restart matrix covers
+  both the post-completion, pre-lock-release window and mutation-phase partial
+  rollback recovery.
 - **Conservative recovery CLI**: `cc checkpoint recovery`
-  `list/show/abort/resume/release` derives mutation authority from the current
-  live owner digest or verified owner absence plus exact seq/head fences.
-  `resume` is intentionally limited to a verified timeline already-completed
-  session settlement whose current Git/copy workspace poststate re-verifies;
-  it never replays workspace or conversation mutation.
-- **Rollback v2 protocol foundation**: crash-safe rollback phase boundaries and
-  a transaction-fenced `checkpoint_restore_recovery_resolution` event bind
-  workspace settlement to session settlement in both directions. The
-  production rollback controller and real cross-store mutation-phase
-  kill/restart journey are not wired; public rollback remains read-only, so
-  general rollback and checkpoint recovery GA must not be inferred.
+  `list/show/abort/resume/rollback/release` derives mutation authority from the
+  current live owner digest or verified owner absence plus exact seq/head
+  fences. `resume` remains limited to a verified already-completed settlement;
+  `rollback --yes` only accepts a verified partial-mutation rollback cycle and
+  dispatches the persisted Git/copy engine rather than re-detecting it.
+- **Verified partial restore rollback**: production Git and copy adapters,
+  crash-safe rollback v2 phase boundaries, and the transaction-fenced
+  `checkpoint_restore_recovery_resolution` event bind workspace and session
+  settlement in both directions. Checkpoint delete, clear, and prune now retain
+  active original/safety authority with expected-identity transactions,
+  no-replace copy publication, and root-bound maintenance locks. This is a
+  narrow partial-restore recovery path, not general multi-resource atomicity,
+  power-loss proof, or checkpoint recovery GA.
 - **Release status**: not published. The exact version/changelog commit must
   pass `CLI CI` and `CLI Strict Sandbox` on Ubuntu, Windows, and macOS, plus
   affected `Session Host Consistency`, `CLI Background Interaction E2E`, and

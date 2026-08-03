@@ -2,7 +2,7 @@
 
 > 分析日期：2026-08-01
 >
-> ChainlessChain 基线：`packages/cli` v0.162.189
+> ChainlessChain 候选基线：`packages/cli` v0.162.190 release candidate；npm registry `latest` 仍为 v0.162.189
 >
 > Claude Code 参考基线：官方文档与 2.1.220 changelog（2026-07-25）
 >
@@ -611,11 +611,11 @@ E2E retry-pass 应记为 flake，而不是普通 pass；超过阈值阻断发布
 
 ### 14.10 下一 CLI 版本判定
 
-- 截至 **2026-08-03**，npm registry `latest` 与仓库 package version 都是 `0.162.189`，registry 的该版本绑定 `gitHead=2607af0dadeb951583139942e5f2add3e95e1208`；同一版本不可重复发布。
-- 从该 npm gitHead 到代码冻结提交 `db90af42c5`，`packages/cli` 已累计 **156 个提交、388 个文件变化、127,181 行新增/3,803 行删除**。变更规模和用户可见能力足以准备 patch release，候选版本确定为 **`0.162.190`**。
-- public recovery 已从只读候选推进到窄 `checkpoint recovery resume`：它只收敛 session 与 workspace 都精确证明为 already-completed 的 timeline restore，不重放 workspace/conversation mutation；一般 resume、partial-mutation rollback 和 checkpoint recovery GA 仍未上线。rollback v2 saga/session resolution 已形成可验证协议与写入原语，但尚无公开 rollback controller 和真实跨存储 kill-restart journey。
-- `db90af42c5` 的本地冻结矩阵为 **8 files、209 passed / 2 个平台条件 skip**，帮助索引、Prettier、ESLint、Node `--check` 与 `git diff --check` 均通过；这些只是补充证据。此前精确 SHA 的 Windows 20 秒测试预算和 macOS/Windows temp-root alias 假红已分别由 `9a99ab1091`、`8facbdc3de` 修正，仍必须由后续 exact-SHA CI 重新证明。
-- 结论保持：**应该进入 `0.162.190` release-candidate 准备，但现在不要发布**。下一步创建唯一版本/changelog 提交；只有该最终精确 SHA 的 `CLI CI` 与 `CLI Strict Sandbox` 在 Ubuntu 24.04、macOS 15、Windows 全绿，并通过受影响组件门和 immutable npm tarball 校验，才允许打 `v-npm-0-162-190` tag。任何 queued、cancelled、failure、旧 SHA、docs 前一 SHA 或局部成功都不能授权发布。
+- 截至 **2026-08-03**，npm registry `latest` 仍为 `0.162.189`，并绑定 `gitHead=2607af0dadeb951583139942e5f2add3e95e1208`；仓库 package version 已唯一前进到 **`0.162.190` release candidate**，不会尝试覆盖已发布版本。
+- 从该 npm gitHead 到代码冻结提交 `767fdada75`，`packages/cli` 已累计 **164 个提交、391 个文件变化、137,900 行新增/4,015 行删除**。变更规模和用户可见能力足以发布 patch release，候选版本保持 **`0.162.190`**。
+- public recovery 现同时提供窄 `checkpoint recovery resume` 与 verified `checkpoint recovery rollback --yes`。前者只收敛 session/workspace 均证明 already-completed 的 timeline restore；后者只处理持久 saga 已证明的 partial mutation，绑定 exact seq/head、当前 live owner digest、原始 target count、持久 engine 与双向 session resolution。两者都不等于一般自动 resume、多资源事务或 checkpoint recovery GA。
+- 最新冻结证据包括 mutation/terminal × Git/copy 真实 kill/restart **4/4**、recovery 四文件 **142/142**、`file-checkpoint` **86 passed / 1 skip**、Git retention/predecessor **12/12**、timeline command **27/27**，以及 ESLint、Prettier、Node/帮助生成器和 `git diff --check`。独立终审为新增 P0=0、P1=0；这些仍只是本地补充证据。
+- 结论保持：**应该完成 `0.162.190` release-candidate 验证，但现在不要发布**。只有版本/changelog 所在的最终精确 SHA 的 `CLI CI` 与 `CLI Strict Sandbox` 在 Ubuntu 24.04、macOS 15、Windows 全绿，并通过受影响的 Session Host/checkpoint 门和 immutable npm tarball 校验，才允许打 `v-npm-0-162-190` tag。任何 queued、cancelled、failure、旧 SHA、docs 前一 SHA 或局部成功都不能授权发布；门禁通过后仍需用户明确授权才执行 tag/npm publish。
 
 ### 14.11 Checkpoint canonical workspace lifetime lock 增量
 
@@ -638,4 +638,13 @@ E2E retry-pass 应记为 flake，而不是普通 pass；超过阈值阻断发布
 - production workspace verifier 复用 Git `statusAgainst` 与 copy `diffCheckpoint` 的 canonical planner，绑定 immutable checkpoint identity/namespace、workspace scope、target poststate 与 domain-separated digest，并在读取前后共三次验证 workspace lease。`5f48437b0b` 加入真实 Git/copy exact-pass 与 drift-reject 组合测试；`59ec5bb9b8` 去除并行测试中的全局 home 竞争，`8facbdc3de` 进一步 canonicalize macOS `/var` 与 Windows 8.3 temp alias。这里的“exact”仍受引擎边界约束：Git 是 canonical Git tree，copy 只覆盖 checkpoint targets/tombstones，协作 lease 也不能消除非协作外部写者的验证后 TOCTOU。
 - `5ac697dfa2` 把 rollback saga 升级为 current v2 / legacy v1：`rollback_prepared → rollback_started → workspace_rolled_back → session_rollback_committed → rolled_back` 每一阶段都固定 request、安全快照、write plan、prestate、target/state/result 与 commit digest；terminal 不可重开，v1 pending 只能追加严格 v2 边界，future v3、v2→v1 降级和伪造 direct rollback 均 fail closed。
 - `5654e1ac1f` 新增 `checkpoint_restore_recovery_resolution` session authority 原语：workspace settlement event hash 进入 resolution，resolution hash 再生成 saga `sessionRollbackCommitDigest`，形成双向跨存储绑定；同步 transaction exact-head CAS、append 后复核以及 response-lost reconciliation 禁止 blind reappend。`db90af42c5` 让 recovery reader/CLI 从 saga 单源读取 phase 词表并保守投影 rollback request/evidence。
-- 当前冻结代码经两组独立只读审计均为 P0=0、P1=0，saga 为 **90 passed / 2 skipped**，session/read-model/CLI/timeline 为 **96/96**，最终合并恢复矩阵为 **209 passed / 2 skipped**。这些提交完成的是协议、读模型、already-completed resume 与 session resolution primitive；公开 rollback controller、真实 `withSessionAuthorityTransaction` 跨存储 journey、mutation-phase hard-kill/restart 仍待实现，所以不能宣称通用 rollback 或 checkpoint recovery GA。
+- 该阶段冻结代码经两组独立只读审计均为 P0=0、P1=0，saga 为 **90 passed / 2 skipped**，session/read-model/CLI/timeline 为 **96/96**，当时合并恢复矩阵为 **209 passed / 2 skipped**。这些数字只描述 rollback v2 协议、读模型、already-completed resume 与 session resolution primitive；后续生产 controller、公开 rollback、跨存储 journey 与 mutation kill/restart 的完成状态见下一节。
+
+### 14.14 Verified partial rollback、kill/restart 与 retention 闭包
+
+- `e8a58bd585` 与 `f27495bca7` 分别实现 production Git/copy rollback adapter：只消费 saga 固定的 immutable namespace/identity、safety、write plan、prestate 与 target state；不会在恢复时重新猜测 engine。`000d3af245` 将其接入 crash-safe controller，严格推进 `rollback_prepared → rollback_started → workspace_rolled_back → session_rollback_committed → rolled_back`，并在 response-lost/restart 路径重读和对账。
+- `bac192c488` 先让 active saga 的 original/safety checkpoint 成为 retention authority；`767fdada75` 再把 Git/copy 的 manual delete、clear 与自动 prune 接入 canonical workspace lock 和 saga guard。Git 使用 expected-OID `update-ref --stdin` transaction，并在删除 latest 时验证唯一 predecessor ref 后原子回退 `_tip`；孤儿/不唯一 tip 均 fail closed。Copy 使用同 root 私有 sentinel 与维护锁、manifest hard-link no-replace、独占 ID publication、全组 blob-layout preflight，并拒绝嵌套 custom store，避免删除 successor 或 recovery authority。
+- `4fca29f2f3` 的真实子进程矩阵覆盖 Git/copy × terminal/mutation 四路径，**4/4 无 skip**；mutation 用例在 saga `mutation_started` 后强杀，重启进程通过真实 controller/adapter 恢复 pre-restore workspace、保留第三方文件、提交 session resolution、终结为 `rolled_back` 并释放/归档 authority。它证明的是这四个确定窗口，不是断电等价、任意 fsync 点或非协作写者下的全局原子性。
+- `805706136e` 公开同步 `cc checkpoint recovery rollback --yes`。命令在打开任何 authority 前检查显式确认，随后绑定 exact seq/head、当前 live owner digest 与 cycle-bound original target count；只允许已证明的 rollback phase，沿 persisted engine 调度 Git/copy adapter。公开输出和错误使用稳定白名单；普通函数返回 thenable、恶意 `then` getter、unknown adapter error 与零目标 cycle 均 fail closed。recovery 四文件最终为 **142/142**，Session Host gate 路径同步覆盖。
+- retention 最终冻结回归为 `file-checkpoint` **86 passed / 1 个平台 skip**、Git retention/predecessor **12/12**、timeline command **27/27**；独立终审另跑核心嵌套回归 **4/4**，结论为 P0=0、P1=0。非阻断 P2 是 filesystem/UNC 卷根祖先检查在极端终止顺序下可能形成不可删的混合目录，但严格非递归删除仍 fail closed，不会跨 store 误删；后续可把 root authority 检查移到终止判断前。
+- 边界仍需保守表述：当前是 **verified partial restore rollback**，不是 checkpoint recovery GA，也不是 workspace+session+外部副作用的通用分布式事务。真实断电/fsync 故障注入、非协作 same-UID writer、任意 checkpoint/store 损坏修复、长期 soak 与最终 exact-SHA 三平台发布门仍待验收。因此 `0.162.190` 在这些门完成前仍为 **release NO-GO**。
