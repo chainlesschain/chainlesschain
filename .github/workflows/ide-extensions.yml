@@ -116,7 +116,7 @@ jobs:
           node scripts/verify-vsix.mjs chainlesschain-ide.vsix
 
       - name: Install Extension Host test runtime
-        run: npm install --no-save --no-package-lock @vscode/test-electron@3.0.0
+        run: npm install --no-save --no-package-lock @vscode/test-electron@3.1.0
 
       - name: Extension Host smoke (Windows stable)
         run: >-
@@ -161,7 +161,7 @@ jobs:
           node scripts/verify-vsix.selftest.mjs
           node scripts/verify-vsix.mjs chainlesschain-ide.vsix
       - name: Install Extension Host test runtime
-        run: npm install --no-save --no-package-lock @vscode/test-electron@3.0.0
+        run: npm install --no-save --no-package-lock @vscode/test-electron@3.1.0
       - name: Extension Host smoke (macOS stable)
         run: >-
           node test/extension-host/run.cjs --vsix chainlesschain-ide.vsix
@@ -234,7 +234,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y xvfb
-          npm install --no-save --no-package-lock @vscode/test-electron@3.0.0
+          npm install --no-save --no-package-lock @vscode/test-electron@3.1.0
           xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" \
             node test/extension-host/run.cjs --vsix chainlesschain-ide.vsix \
               --artifact-dir build/reports/extension-host/linux-stable

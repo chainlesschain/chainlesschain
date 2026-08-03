@@ -11,7 +11,7 @@
  * @vscode/test-electron is intentionally installed by CI with
  * --no-save --no-package-lock so this leaf package keeps its lockfile-free
  * packaging workflow. Local usage:
- *   npm install --no-save --no-package-lock @vscode/test-electron@3.0.0
+ *   npm install --no-save --no-package-lock @vscode/test-electron@3.1.0
  *   npm run test:extension-host -- --vsix chainlesschain-ide.vsix
  */
 
@@ -102,7 +102,7 @@ function requireTestElectron() {
     if (error && error.code === "MODULE_NOT_FOUND") {
       throw new Error(
         "@vscode/test-electron is required. Run " +
-          "`npm install --no-save --no-package-lock @vscode/test-electron@3.0.0` first.",
+          "`npm install --no-save --no-package-lock @vscode/test-electron@3.1.0` first.",
         { cause: error },
       );
     }
@@ -436,6 +436,14 @@ async function main() {
       options.vscodeVersion,
     );
     for (const phase of ["initial", "restart"]) {
+      if (phase === "restart") {
+        // Electron 39 can return from the first Extension Host while its
+        // profile mutex and renderer teardown are still settling. Give that
+        // bounded teardown a moment before launching the same isolated profile
+        // again, otherwise the second test process can exit before its driver
+        // receives the CDP result.
+        await new Promise((resolve) => setTimeout(resolve, 3_000));
+      }
       await runRealDomPhase({
         runTests,
         vscodeExecutablePath,

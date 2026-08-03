@@ -13,6 +13,7 @@ const {
   resolveVsCodeHostVersion,
 } = require("./extension-host/run.cjs");
 const {
+  CdpClient,
   JOURNEY_PHASES,
   PHASE_DOM_MARKERS,
   assertJourneyArtifacts,
@@ -133,6 +134,37 @@ test("real-DOM host phase is loopback-only and keeps the fresh profile args", ()
       }),
     /invalid CDP port/,
   );
+});
+
+test("CDP child sessions preserve flattened target identity", async () => {
+  const listeners = new Map();
+  const sent = [];
+  const socket = {
+    addEventListener(name, listener) {
+      listeners.set(name, listener);
+    },
+    send(serialized) {
+      const request = JSON.parse(serialized);
+      sent.push(request);
+      queueMicrotask(() => {
+        listeners.get("message")?.({
+          data: JSON.stringify({
+            id: request.id,
+            sessionId: request.sessionId,
+            result: { result: { value: 2 } },
+          }),
+        });
+      });
+    },
+    close() {},
+  };
+  const client = new CdpClient(socket);
+
+  assert.equal(await client.session("iframe-1", 41).evaluate("1 + 1"), 2);
+  assert.equal(sent.length, 1);
+  assert.equal(sent[0].method, "Runtime.evaluate");
+  assert.equal(sent[0].sessionId, "iframe-1");
+  assert.equal(sent[0].params.contextId, 41);
 });
 
 test("host phase signals are phase-scoped and reject unknown phases", () => {

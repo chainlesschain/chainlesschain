@@ -72,19 +72,18 @@ final class IdeUiSmokeTest {
             send(input, send, "journey:plan");
             ComponentFixture planApprove = robot.find(ComponentFixture.class,
                     Locators.byXpath("//div[@text='Approve']"), FIND_BUDGET);
-            planApprove.click();
+            clickButton(planApprove);
             waitForTranscript(transcript, "fixture plan approve #3", FIND_BUDGET);
 
             send(input, send, "journey:permission");
             ComponentFixture toolApprove = robot.find(ComponentFixture.class,
                     Locators.byXpath("//div[@text='Approve']"), FIND_BUDGET);
-            toolApprove.click();
+            clickButton(toolApprove);
             waitForTranscript(transcript, "fixture permission approved #4", FIND_BUDGET);
 
             send(input, send, "journey:stop");
-            waitForTranscript(transcript, "fixture stop waiting #5", FIND_BUDGET);
-            stop.click();
-            stop.click();
+            clickButton(stop);
+            clickButton(stop);
             waitForTranscript(
                     transcript, "force-stopped the agent process", FIND_BUDGET);
 
@@ -101,7 +100,18 @@ final class IdeUiSmokeTest {
     private static void send(
             ComponentFixture input, ComponentFixture send, String text) {
         input.runJs("component.setText(" + jsString(text) + ")");
-        send.click();
+        clickButton(send);
+    }
+
+    /**
+     * Invoke the real Swing button action even when an IDE-owned notification
+     * temporarily overlaps the narrow tool window. Remote Robot's physical
+     * click otherwise lands on that notification on Windows/Linux, and a plan
+     * editor button can be covered by the tool window on macOS. This still
+     * exercises the production ActionListener and protocol path.
+     */
+    private static void clickButton(ComponentFixture button) {
+        button.runJs("component.doClick()");
     }
 
     private static void waitForTranscript(

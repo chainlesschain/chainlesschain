@@ -110,6 +110,35 @@ function assertPortListening(port) {
   });
 }
 
+async function resumeFixtureSessionAfterHostRestart() {
+  const statePath = process.env.CC_UI_FIXTURE_STATE;
+  assert.ok(statePath, "missing CC_UI_FIXTURE_STATE for restart journey");
+  const state = JSON.parse(fs.readFileSync(statePath, "utf8"));
+  const resumable = Object.entries(state?.sessions || {})
+    .filter(
+      ([sessionId, messageCount]) =>
+        typeof sessionId === "string" &&
+        sessionId.length > 0 &&
+        Number(messageCount) >= 10,
+    )
+    .sort((left, right) => Number(right[1]) - Number(left[1]));
+  assert.ok(resumable.length > 0, "fixture has no completed session to resume");
+
+  // VS Code extension-test windows intentionally use in-memory application
+  // storage, so workspaceState cannot cross the two real IDE processes. Route
+  // the saved fixture id through the extension's production deep-link handler;
+  // this still exercises a fresh host, production resume wiring, and the real
+  // CLI --resume protocol without adding a test-only extension command.
+  const deepLink = vscode.Uri.parse(
+    `vscode://${EXTENSION_ID}/open?session=${encodeURIComponent(resumable[0][0])}`,
+  );
+  await withTimeout(
+    vscode.commands.executeCommand("vscode.open", deepLink),
+    15_000,
+    "ChainlessChain resume deep link",
+  );
+}
+
 function writeSignal(filePath, value) {
   const parent = path.dirname(filePath);
   fs.mkdirSync(parent, { recursive: true, mode: 0o700 });
@@ -223,6 +252,10 @@ async function run() {
     `${EXTENSION_ID} activation`,
   );
   assert.equal(extension.isActive, true, "extension did not become active");
+
+  if (journeyPhase === "restart") {
+    await resumeFixtureSessionAfterHostRestart();
+  }
 
   const commands = new Set(await vscode.commands.getCommands(true));
   const missingCommands = REQUIRED_COMMANDS.filter(
