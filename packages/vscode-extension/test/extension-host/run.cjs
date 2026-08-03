@@ -320,7 +320,7 @@ function readJsonVersion(filePath) {
   }
 }
 
-function resolveVsCodeHostVersion(executablePath, requestedVersion) {
+async function resolveVsCodeHostVersion(executablePath, requestedVersion) {
   let current = path.dirname(path.resolve(executablePath));
   for (let depth = 0; depth < 7; depth += 1) {
     for (const relative of [
@@ -333,6 +333,21 @@ function resolveVsCodeHostVersion(executablePath, requestedVersion) {
     const parent = path.dirname(current);
     if (parent === current) break;
     current = parent;
+  }
+  // Fallback: ask the executable itself (handles channel downloads like "stable")
+  if (executablePath && fs.existsSync(executablePath)) {
+    try {
+      const { spawnSync } = require("child_process");
+      const r = spawnSync(executablePath, ["--version"], {
+        encoding: "utf8",
+        timeout: 15_000,
+        env: { ...process.env, ELECTRON_RUN_AS_NODE: undefined },
+      });
+      const m = (r.stdout || "").match(/(\d+\.\d+\.\d+)/);
+      if (m) return m[1];
+    } catch {
+      /* fall through */
+    }
   }
   return /^\d+\.\d+(?:\.\d+)?/.test(String(requestedVersion || ""))
     ? requestedVersion
@@ -431,7 +446,7 @@ async function main() {
 
     // Reuses the exact version already downloaded by the install command.
     const vscodeExecutablePath = await downloadAndUnzipVSCode(downloadOptions);
-    hostVersion = resolveVsCodeHostVersion(
+    hostVersion = await resolveVsCodeHostVersion(
       vscodeExecutablePath,
       options.vscodeVersion,
     );
