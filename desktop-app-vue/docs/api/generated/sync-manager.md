@@ -1,6 +1,6 @@
 # sync-manager
 
-**Source**: `src/main/file-sync/sync-manager.js`
+**Source**: `src\main\file-sync\sync-manager.js`
 
 ---
 

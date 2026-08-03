@@ -1,6 +1,6 @@
 # retry-manager
 
-**Source**: `src/main/file/retry-manager.js`
+**Source**: `src\main\file\retry-manager.js`
 
 ---
 

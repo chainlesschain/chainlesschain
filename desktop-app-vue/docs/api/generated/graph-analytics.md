@@ -1,6 +1,6 @@
 # graph-analytics
 
-**Source**: `src/main/knowledge-graph/graph-analytics.js`
+**Source**: `src\main\knowledge-graph\graph-analytics.js`
 
 ---
 

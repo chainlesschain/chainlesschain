@@ -1,6 +1,6 @@
 # file-manager
 
-**Source**: `src/main/file/file-manager.js`
+**Source**: `src\main\file\file-manager.js`
 
 ---
 

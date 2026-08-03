@@ -1,6 +1,6 @@
 # professional-skills
 
-**Source**: `src/main/skill-tool-system/professional-skills.js`
+**Source**: `src\main\skill-tool-system\professional-skills.js`
 
 ---
 

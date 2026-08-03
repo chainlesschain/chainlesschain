@@ -1,6 +1,6 @@
 # openai-client
 
-**Source**: `src/main/llm/openai-client.js`
+**Source**: `src\main\llm\openai-client.js`
 
 ---
 

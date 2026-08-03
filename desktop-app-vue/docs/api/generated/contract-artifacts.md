@@ -1,6 +1,6 @@
 # contract-artifacts
 
-**Source**: `src/main/blockchain/contract-artifacts.js`
+**Source**: `src\main\blockchain\contract-artifacts.js`
 
 ---
 

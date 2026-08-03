@@ -1,6 +1,6 @@
 # stdio-transport
 
-**Source**: `src/main/mcp/transports/stdio-transport.js`
+**Source**: `src\main\mcp\transports\stdio-transport.js`
 
 ---
 

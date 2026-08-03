@@ -1,6 +1,6 @@
 # skill-executor
 
-**Source**: `src/main/skill-tool-system/skill-executor.js`
+**Source**: `src\main\skill-tool-system\skill-executor.js`
 
 ---
 

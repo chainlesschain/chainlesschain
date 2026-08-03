@@ -1,6 +1,6 @@
 # learned-pattern-manager-ipc
 
-**Source**: `src/main/memory/learned-pattern-manager-ipc.js`
+**Source**: `src\main\memory\learned-pattern-manager-ipc.js`
 
 ---
 

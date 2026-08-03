@@ -1,6 +1,6 @@
 # voice-command-recognizer
 
-**Source**: `src/main/speech/voice-command-recognizer.js`
+**Source**: `src\main\speech\voice-command-recognizer.js`
 
 ---
 

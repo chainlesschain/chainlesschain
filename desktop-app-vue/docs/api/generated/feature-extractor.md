@@ -1,6 +1,6 @@
 # feature-extractor
 
-**Source**: `src/main/ai-engine/feature-extractor.js`
+**Source**: `src\main\ai-engine\feature-extractor.js`
 
 ---
 

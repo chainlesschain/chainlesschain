@@ -1,6 +1,6 @@
 # ukey-manager
 
-**Source**: `src/main/ukey/ukey-manager.js`
+**Source**: `src\main\ukey\ukey-manager.js`
 
 ---
 

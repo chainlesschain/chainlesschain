@@ -1,6 +1,6 @@
 # test-new-tools
 
-**Source**: `src/main/tests/test-new-tools.js`
+**Source**: `src\main\tests\test-new-tools.js`
 
 ---
 

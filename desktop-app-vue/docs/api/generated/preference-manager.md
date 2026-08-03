@@ -1,6 +1,6 @@
 # preference-manager
 
-**Source**: `src/main/memory/preference-manager.js`
+**Source**: `src\main\memory\preference-manager.js`
 
 ---
 

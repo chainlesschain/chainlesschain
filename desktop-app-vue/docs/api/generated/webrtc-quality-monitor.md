@@ -1,6 +1,6 @@
 # webrtc-quality-monitor
 
-**Source**: `src/main/p2p/webrtc-quality-monitor.js`
+**Source**: `src\main\p2p\webrtc-quality-monitor.js`
 
 ---
 

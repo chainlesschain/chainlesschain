@@ -1,6 +1,6 @@
 # sync-ipc
 
-**Source**: `src/main/sync/sync-ipc.js`
+**Source**: `src\main\sync\sync-ipc.js`
 
 ---
 

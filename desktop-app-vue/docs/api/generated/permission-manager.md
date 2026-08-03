@@ -1,6 +1,6 @@
 # permission-manager
 
-**Source**: `src/main/collaboration/permission-manager.js`
+**Source**: `src\main\collaboration\permission-manager.js`
 
 ---
 

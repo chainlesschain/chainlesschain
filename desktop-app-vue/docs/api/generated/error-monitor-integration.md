@@ -1,6 +1,6 @@
 # error-monitor-integration
 
-**Source**: `src/main/cowork/integrations/error-monitor-integration.js`
+**Source**: `src\main\cowork\integrations\error-monitor-integration.js`
 
 ---
 

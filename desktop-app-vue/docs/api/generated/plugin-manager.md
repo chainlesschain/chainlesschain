@@ -1,6 +1,6 @@
 # plugin-manager
 
-**Source**: `src/main/plugins/plugin-manager.js`
+**Source**: `src\main\plugins\plugin-manager.js`
 
 ---
 

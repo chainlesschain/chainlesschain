@@ -1,6 +1,6 @@
 # performance-ipc
 
-**Source**: `src/main/performance/performance-ipc.js`
+**Source**: `src\main\performance\performance-ipc.js`
 
 ---
 

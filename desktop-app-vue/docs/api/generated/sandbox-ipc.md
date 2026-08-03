@@ -1,6 +1,6 @@
 # sandbox-ipc
 
-**Source**: `src/main/sandbox/sandbox-ipc.js`
+**Source**: `src\main\sandbox\sandbox-ipc.js`
 
 ---
 

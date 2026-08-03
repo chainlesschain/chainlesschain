@@ -1,6 +1,6 @@
 # llm-integration
 
-**Source**: `src/main/cowork/integrations/llm-integration.js`
+**Source**: `src\main\cowork\integrations\llm-integration.js`
 
 ---
 

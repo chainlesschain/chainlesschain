@@ -1,6 +1,6 @@
 # speech-recognizer
 
-**Source**: `src/main/speech/speech-recognizer.js`
+**Source**: `src\main\speech\speech-recognizer.js`
 
 ---
 

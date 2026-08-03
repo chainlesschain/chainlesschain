@@ -1,6 +1,6 @@
 # secure-storage-ipc
 
-**Source**: `src/main/llm/secure-storage-ipc.js`
+**Source**: `src\main\llm\secure-storage-ipc.js`
 
 ---
 

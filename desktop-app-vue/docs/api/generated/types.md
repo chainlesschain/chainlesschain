@@ -1,6 +1,6 @@
 # types
 
-**Source**: `src/main/ukey/types.js`
+**Source**: `src\main\ukey\types.js`
 
 ---
 

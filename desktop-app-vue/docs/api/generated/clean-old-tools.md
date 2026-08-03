@@ -1,6 +1,6 @@
 # clean-old-tools
 
-**Source**: `src/main/skill-tool-system/clean-old-tools.js`
+**Source**: `src\main\skill-tool-system\clean-old-tools.js`
 
 ---
 

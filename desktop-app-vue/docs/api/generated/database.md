@@ -1,6 +1,6 @@
 # database
 
-**Source**: `src/main/database.js`
+**Source**: `src\main\database.js`
 
 ---
 
@@ -69,6 +69,18 @@ async initialize()
 ```
 
 * 初始化数据库
+
+---
+
+## async _resetFailedAdapterState()
+
+```javascript
+async _resetFailedAdapterState()
+```
+
+* Clear a partially initialized native adapter before falling back to
+   * sql.js. saveToFile() branches on this.adapter, so retaining a failed
+   * adapter would silently prevent the sql.js database from being persisted.
 
 ---
 
@@ -884,10 +896,10 @@ getProjectById(projectId)
 
 ---
 
-## saveProject(project)
+## saveProject(project, options =
 
 ```javascript
-saveProject(project)
+saveProject(project, options =
 ```
 
 * 保存项目
@@ -896,10 +908,10 @@ saveProject(project)
 
 ---
 
-## updateProject(projectId, updates)
+## updateProject(projectId, updates, options =
 
 ```javascript
-updateProject(projectId, updates)
+updateProject(projectId, updates, options =
 ```
 
 * 更新项目

@@ -1,6 +1,6 @@
 # bge-reranker-client
 
-**Source**: `src/main/rag/bge-reranker-client.js`
+**Source**: `src\main\rag\bge-reranker-client.js`
 
 ---
 

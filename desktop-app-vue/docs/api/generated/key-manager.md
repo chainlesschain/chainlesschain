@@ -1,6 +1,6 @@
 # key-manager
 
-**Source**: `src/main/database/key-manager.js`
+**Source**: `src\main\database\key-manager.js`
 
 ---
 

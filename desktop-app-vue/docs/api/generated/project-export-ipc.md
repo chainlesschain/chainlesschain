@@ -1,6 +1,6 @@
 # project-export-ipc
 
-**Source**: `src/main/project/project-export-ipc.js`
+**Source**: `src\main\project\project-export-ipc.js`
 
 ---
 

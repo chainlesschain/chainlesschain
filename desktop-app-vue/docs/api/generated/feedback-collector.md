@@ -1,6 +1,6 @@
 # feedback-collector
 
-**Source**: `src/main/feedback/feedback-collector.js`
+**Source**: `src\main\feedback\feedback-collector.js`
 
 ---
 

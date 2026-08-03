@@ -1,6 +1,6 @@
 # version-manager
 
-**Source**: `src/main/file/version-manager.js`
+**Source**: `src\main\file\version-manager.js`
 
 ---
 

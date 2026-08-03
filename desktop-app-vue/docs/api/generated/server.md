@@ -1,6 +1,6 @@
 # server
 
-**Source**: `src/main/native-messaging/server.js`
+**Source**: `src\main\native-messaging\server.js`
 
 ---
 

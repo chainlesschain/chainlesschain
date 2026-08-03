@@ -1,6 +1,6 @@
 # conversation-executor
 
-**Source**: `src/main/ai-engine/conversation-executor.js`
+**Source**: `src\main\ai-engine\conversation-executor.js`
 
 ---
 

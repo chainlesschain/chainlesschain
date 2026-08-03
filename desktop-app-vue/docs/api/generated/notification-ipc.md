@@ -1,6 +1,6 @@
 # notification-ipc
 
-**Source**: `src/main/notification/notification-ipc.js`
+**Source**: `src\main\notification\notification-ipc.js`
 
 ---
 

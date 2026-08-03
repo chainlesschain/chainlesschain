@@ -1,6 +1,6 @@
 # identity-context-manager
 
-**Source**: `src/main/identity/identity-context-manager.js`
+**Source**: `src\main\identity\identity-context-manager.js`
 
 ---
 

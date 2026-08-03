@@ -1,6 +1,6 @@
 # quality-gate-manager
 
-**Source**: `src/main/workflow/quality-gate-manager.js`
+**Source**: `src\main\workflow\quality-gate-manager.js`
 
 ---
 

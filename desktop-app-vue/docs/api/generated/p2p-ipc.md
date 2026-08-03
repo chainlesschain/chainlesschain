@@ -1,6 +1,6 @@
 # p2p-ipc
 
-**Source**: `src/main/p2p/p2p-ipc.js`
+**Source**: `src\main\p2p\p2p-ipc.js`
 
 ---
 

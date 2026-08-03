@@ -1,6 +1,6 @@
 # file-cache
 
-**Source**: `src/main/utils/file-cache.js`
+**Source**: `src\main\utils\file-cache.js`
 
 ---
 

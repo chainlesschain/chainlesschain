@@ -1,6 +1,6 @@
 # knowledge-ipc
 
-**Source**: `src/main/knowledge/knowledge-ipc.js`
+**Source**: `src\main\knowledge\knowledge-ipc.js`
 
 ---
 

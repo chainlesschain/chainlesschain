@@ -1,6 +1,6 @@
 # cross-platform-adapter
 
-**Source**: `src/main/ukey/cross-platform-adapter.js`
+**Source**: `src\main\ukey\cross-platform-adapter.js`
 
 ---
 

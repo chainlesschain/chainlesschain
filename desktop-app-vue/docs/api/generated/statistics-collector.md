@@ -1,6 +1,6 @@
 # statistics-collector
 
-**Source**: `src/main/remote/logging/statistics-collector.js`
+**Source**: `src\main\remote\logging\statistics-collector.js`
 
 ---
 

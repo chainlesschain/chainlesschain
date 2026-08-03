@@ -1,6 +1,6 @@
 # identity-context-ipc
 
-**Source**: `src/main/identity-context/identity-context-ipc.js`
+**Source**: `src\main\identity-context\identity-context-ipc.js`
 
 ---
 

@@ -1,6 +1,6 @@
 # teammate-tool
 
-**Source**: `src/main/ai-engine/cowork/teammate-tool.js`
+**Source**: `src\main\ai-engine\cowork\teammate-tool.js`
 
 ---
 

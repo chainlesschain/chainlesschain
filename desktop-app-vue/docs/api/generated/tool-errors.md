@@ -1,6 +1,6 @@
 # tool-errors
 
-**Source**: `src/main/skill-tool-system/tool-errors.js`
+**Source**: `src\main\skill-tool-system\tool-errors.js`
 
 ---
 

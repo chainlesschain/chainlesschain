@@ -1,6 +1,6 @@
 # tool-manager
 
-**Source**: `src/main/skill-tool-system/tool-manager.js`
+**Source**: `src\main\skill-tool-system\tool-manager.js`
 
 ---
 

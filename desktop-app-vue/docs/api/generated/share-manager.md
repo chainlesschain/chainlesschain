@@ -1,6 +1,6 @@
 # share-manager
 
-**Source**: `src/main/project/share-manager.js`
+**Source**: `src\main\project\share-manager.js`
 
 ---
 

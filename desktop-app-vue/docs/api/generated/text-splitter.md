@@ -1,6 +1,6 @@
 # text-splitter
 
-**Source**: `src/main/rag/text-splitter.js`
+**Source**: `src\main\rag\text-splitter.js`
 
 ---
 

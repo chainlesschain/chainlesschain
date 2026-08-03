@@ -1,6 +1,6 @@
 # mcp-config-loader
 
-**Source**: `src/main/mcp/mcp-config-loader.js`
+**Source**: `src\main\mcp\mcp-config-loader.js`
 
 ---
 

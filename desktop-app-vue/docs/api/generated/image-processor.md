@@ -1,6 +1,6 @@
 # image-processor
 
-**Source**: `src/main/image/image-processor.js`
+**Source**: `src\main\image\image-processor.js`
 
 ---
 

@@ -1,6 +1,6 @@
 # conversation-ipc
 
-**Source**: `src/main/conversation/conversation-ipc.js`
+**Source**: `src\main\conversation\conversation-ipc.js`
 
 ---
 

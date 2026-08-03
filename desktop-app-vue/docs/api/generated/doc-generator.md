@@ -1,6 +1,6 @@
 # doc-generator
 
-**Source**: `src/main/skill-tool-system/doc-generator.js`
+**Source**: `src\main\skill-tool-system\doc-generator.js`
 
 ---
 

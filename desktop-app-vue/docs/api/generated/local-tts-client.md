@@ -1,6 +1,6 @@
 # local-tts-client
 
-**Source**: `src/main/speech/local-tts-client.js`
+**Source**: `src\main\speech\local-tts-client.js`
 
 ---
 

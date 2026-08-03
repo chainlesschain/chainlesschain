@@ -1,6 +1,6 @@
 # llava-client
 
-**Source**: `src/main/llm/llava-client.js`
+**Source**: `src\main\llm\llava-client.js`
 
 ---
 

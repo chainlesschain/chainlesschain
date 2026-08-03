@@ -1,6 +1,6 @@
 # code-generation-agent
 
-**Source**: `src/main/ai-engine/multi-agent/agents/code-generation-agent.js`
+**Source**: `src\main\ai-engine\multi-agent\agents\code-generation-agent.js`
 
 ---
 

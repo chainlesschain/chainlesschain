@@ -1,6 +1,6 @@
 # ui-extension-manager
 
-**Source**: `src/main/plugins/ui-extension-manager.js`
+**Source**: `src\main\plugins\ui-extension-manager.js`
 
 ---
 

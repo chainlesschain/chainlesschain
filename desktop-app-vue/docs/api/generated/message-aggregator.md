@@ -1,6 +1,6 @@
 # message-aggregator
 
-**Source**: `src/main/utils/message-aggregator.js`
+**Source**: `src\main\utils\message-aggregator.js`
 
 ---
 

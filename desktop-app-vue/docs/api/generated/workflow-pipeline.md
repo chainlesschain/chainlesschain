@@ -1,6 +1,6 @@
 # workflow-pipeline
 
-**Source**: `src/main/workflow/workflow-pipeline.js`
+**Source**: `src\main\workflow\workflow-pipeline.js`
 
 ---
 

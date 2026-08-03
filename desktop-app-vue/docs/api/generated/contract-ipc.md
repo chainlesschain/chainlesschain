@@ -1,6 +1,6 @@
 # contract-ipc
 
-**Source**: `src/main/blockchain/contract-ipc.js`
+**Source**: `src\main\blockchain\contract-ipc.js`
 
 ---
 

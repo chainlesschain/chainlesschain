@@ -1,6 +1,6 @@
 # multi-language-support
 
-**Source**: `src/main/speech/multi-language-support.js`
+**Source**: `src\main\speech\multi-language-support.js`
 
 ---
 

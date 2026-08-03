@@ -1,6 +1,6 @@
 # post-manager
 
-**Source**: `src/main/social/post-manager.js`
+**Source**: `src\main\social\post-manager.js`
 
 ---
 

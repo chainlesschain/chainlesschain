@@ -1,6 +1,6 @@
 # cowork-e2e.test
 
-**Source**: `src/main/cowork/__tests__/integration/cowork-e2e.test.js`
+**Source**: `src\main\cowork\__tests__\integration\cowork-e2e.test.js`
 
 ---
 

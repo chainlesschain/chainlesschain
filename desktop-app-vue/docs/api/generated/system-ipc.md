@@ -1,6 +1,6 @@
 # system-ipc
 
-**Source**: `src/main/system/system-ipc.js`
+**Source**: `src\main\system\system-ipc.js`
 
 ---
 

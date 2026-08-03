@@ -1,6 +1,6 @@
 # credit-ipc
 
-**Source**: `src/main/credit/credit-ipc.js`
+**Source**: `src\main\credit\credit-ipc.js`
 
 ---
 

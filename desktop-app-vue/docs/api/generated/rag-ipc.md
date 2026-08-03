@@ -1,6 +1,6 @@
 # rag-ipc
 
-**Source**: `src/main/rag/rag-ipc.js`
+**Source**: `src\main\rag\rag-ipc.js`
 
 ---
 

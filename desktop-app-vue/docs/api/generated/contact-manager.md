@@ -1,6 +1,6 @@
 # contact-manager
 
-**Source**: `src/main/contacts/contact-manager.js`
+**Source**: `src\main\contacts\contact-manager.js`
 
 ---
 

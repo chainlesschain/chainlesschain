@@ -1,6 +1,6 @@
 # ipc-registry
 
-**Source**: `src/main/ipc/ipc-registry.js`
+**Source**: `src\main\ipc\ipc-registry.js`
 
 ---
 

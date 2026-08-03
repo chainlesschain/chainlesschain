@@ -1,6 +1,6 @@
 # update-manager
 
-**Source**: `src/main/plugins/update-manager.js`
+**Source**: `src\main\plugins\update-manager.js`
 
 ---
 

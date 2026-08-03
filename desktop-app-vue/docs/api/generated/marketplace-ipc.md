@@ -1,6 +1,6 @@
 # marketplace-ipc
 
-**Source**: `src/main/blockchain/marketplace-ipc.js`
+**Source**: `src\main\blockchain\marketplace-ipc.js`
 
 ---
 

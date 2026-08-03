@@ -1,6 +1,6 @@
 # checkpoint-validator
 
-**Source**: `src/main/ai-engine/checkpoint-validator.js`
+**Source**: `src\main\ai-engine\checkpoint-validator.js`
 
 ---
 

@@ -1,6 +1,6 @@
 # organization-manager
 
-**Source**: `src/main/organization/organization-manager.js`
+**Source**: `src\main\organization\organization-manager.js`
 
 ---
 

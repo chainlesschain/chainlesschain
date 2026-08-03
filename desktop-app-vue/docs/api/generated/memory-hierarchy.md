@@ -1,6 +1,6 @@
 # memory-hierarchy
 
-**Source**: `src/main/memory/memory-hierarchy.js`
+**Source**: `src\main\memory\memory-hierarchy.js`
 
 ---
 

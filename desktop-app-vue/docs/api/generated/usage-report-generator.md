@@ -1,6 +1,6 @@
 # usage-report-generator
 
-**Source**: `src/main/memory/usage-report-generator.js`
+**Source**: `src\main\memory\usage-report-generator.js`
 
 ---
 

@@ -1,6 +1,6 @@
 # webide-manager
 
-**Source**: `src/main/webide/webide-manager.js`
+**Source**: `src\main\webide\webide-manager.js`
 
 ---
 

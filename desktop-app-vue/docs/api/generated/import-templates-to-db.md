@@ -1,6 +1,6 @@
 # import-templates-to-db
 
-**Source**: `src/main/templates/import-templates-to-db.js`
+**Source**: `src\main\templates\import-templates-to-db.js`
 
 ---
 

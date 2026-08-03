@@ -1,6 +1,6 @@
 # content-recommender
 
-**Source**: `src/main/ai-engine/content-recommender.js`
+**Source**: `src\main\ai-engine\content-recommender.js`
 
 ---
 

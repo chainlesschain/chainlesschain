@@ -1,6 +1,6 @@
 # git-hot-reload
 
-**Source**: `src/main/git/git-hot-reload.js`
+**Source**: `src\main\git\git-hot-reload.js`
 
 ---
 

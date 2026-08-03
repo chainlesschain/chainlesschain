@@ -1,6 +1,6 @@
 # connection-health-manager
 
-**Source**: `src/main/p2p/connection-health-manager.js`
+**Source**: `src\main\p2p\connection-health-manager.js`
 
 ---
 

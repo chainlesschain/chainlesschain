@@ -1,6 +1,6 @@
 # ocr-service
 
-**Source**: `src/main/image/ocr-service.js`
+**Source**: `src\main\image\ocr-service.js`
 
 ---
 

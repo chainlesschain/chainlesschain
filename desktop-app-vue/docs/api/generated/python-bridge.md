@@ -1,6 +1,6 @@
 # python-bridge
 
-**Source**: `src/main/project/python-bridge.js`
+**Source**: `src\main\project\python-bridge.js`
 
 ---
 

@@ -1,6 +1,6 @@
 # escrow-ipc
 
-**Source**: `src/main/blockchain/escrow-ipc.js`
+**Source**: `src\main\blockchain\escrow-ipc.js`
 
 ---
 

@@ -1,6 +1,6 @@
 # p2p-sync-engine
 
-**Source**: `src/main/sync/p2p-sync-engine.js`
+**Source**: `src\main\sync\p2p-sync-engine.js`
 
 ---
 

@@ -1,6 +1,6 @@
 # template-manager
 
-**Source**: `src/main/template/template-manager.js`
+**Source**: `src\main\template\template-manager.js`
 
 ---
 

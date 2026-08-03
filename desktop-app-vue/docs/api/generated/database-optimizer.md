@@ -1,6 +1,6 @@
 # database-optimizer
 
-**Source**: `src/main/database/database-optimizer.js`
+**Source**: `src\main\database\database-optimizer.js`
 
 ---
 

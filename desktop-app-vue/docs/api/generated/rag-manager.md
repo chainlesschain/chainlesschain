@@ -1,6 +1,6 @@
 # rag-manager
 
-**Source**: `src/main/rag/rag-manager.js`
+**Source**: `src\main\rag\rag-manager.js`
 
 ---
 

@@ -1,6 +1,6 @@
 # project-sync-handler
 
-**Source**: `src/main/p2p/project-sync-handler.js`
+**Source**: `src\main\p2p\project-sync-handler.js`
 
 ---
 

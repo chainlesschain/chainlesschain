@@ -1,6 +1,6 @@
 # db-integration
 
-**Source**: `src/main/skill-tool-system/db-integration.js`
+**Source**: `src\main\skill-tool-system\db-integration.js`
 
 ---
 

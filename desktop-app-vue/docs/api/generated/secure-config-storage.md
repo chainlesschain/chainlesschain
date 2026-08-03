@@ -1,6 +1,6 @@
 # secure-config-storage
 
-**Source**: `src/main/llm/secure-config-storage.js`
+**Source**: `src\main\llm\secure-config-storage.js`
 
 ---
 

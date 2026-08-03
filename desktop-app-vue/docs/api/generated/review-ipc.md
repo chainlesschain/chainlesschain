@@ -1,6 +1,6 @@
 # review-ipc
 
-**Source**: `src/main/code-tools/review-ipc.js`
+**Source**: `src\main\code-tools\review-ipc.js`
 
 ---
 

@@ -1,6 +1,6 @@
 # setup
 
-**Source**: `src/main/skill-tool-system/__tests__/setup.js`
+**Source**: `src\main\skill-tool-system\__tests__\setup.js`
 
 ---
 

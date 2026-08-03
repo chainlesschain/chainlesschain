@@ -1,6 +1,6 @@
 # intent-fusion
 
-**Source**: `src/main/ai-engine/intent-fusion.js`
+**Source**: `src\main\ai-engine\intent-fusion.js`
 
 ---
 

@@ -1,6 +1,6 @@
 # hybrid-recommender
 
-**Source**: `src/main/ai-engine/hybrid-recommender.js`
+**Source**: `src\main\ai-engine\hybrid-recommender.js`
 
 ---
 

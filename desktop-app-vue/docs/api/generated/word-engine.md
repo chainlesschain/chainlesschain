@@ -1,6 +1,6 @@
 # word-engine
 
-**Source**: `src/main/engines/word-engine.js`
+**Source**: `src\main\engines\word-engine.js`
 
 ---
 

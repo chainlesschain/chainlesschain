@@ -1,6 +1,6 @@
 # multi-brand-test
 
-**Source**: `src/main/ukey/multi-brand-test.js`
+**Source**: `src\main\ukey\multi-brand-test.js`
 
 ---
 

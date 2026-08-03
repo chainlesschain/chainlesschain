@@ -1,6 +1,6 @@
 # enhanced-tray-manager
 
-**Source**: `src/main/system/enhanced-tray-manager.js`
+**Source**: `src\main\system\enhanced-tray-manager.js`
 
 ---
 

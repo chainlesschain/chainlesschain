@@ -1,6 +1,6 @@
 # ipc-performance-interceptor
 
-**Source**: `src/main/performance/ipc-performance-interceptor.js`
+**Source**: `src\main\performance\ipc-performance-interceptor.js`
 
 ---
 

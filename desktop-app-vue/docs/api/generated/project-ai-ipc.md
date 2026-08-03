@@ -1,6 +1,6 @@
 # project-ai-ipc
 
-**Source**: `src/main/project/project-ai-ipc.js`
+**Source**: `src\main\project\project-ai-ipc.js`
 
 ---
 

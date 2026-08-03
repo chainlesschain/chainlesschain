@@ -1,6 +1,6 @@
 # blockchain-lazy-ipc
 
-**Source**: `src/main/blockchain/blockchain-lazy-ipc.js`
+**Source**: `src\main\blockchain\blockchain-lazy-ipc.js`
 
 ---
 

@@ -1,6 +1,6 @@
 # group-chat-manager
 
-**Source**: `src/main/social/group-chat-manager.js`
+**Source**: `src\main\social\group-chat-manager.js`
 
 ---
 

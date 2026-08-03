@@ -1,6 +1,6 @@
 # test-mode-config
 
-**Source**: `src/main/config/test-mode-config.js`
+**Source**: `src\main\config\test-mode-config.js`
 
 ---
 

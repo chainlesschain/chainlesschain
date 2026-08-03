@@ -1,6 +1,6 @@
 # embeddings-service
 
-**Source**: `src/main/rag/embeddings-service.js`
+**Source**: `src\main\rag\embeddings-service.js`
 
 ---
 

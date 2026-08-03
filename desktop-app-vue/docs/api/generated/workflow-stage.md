@@ -1,6 +1,6 @@
 # workflow-stage
 
-**Source**: `src/main/workflow/workflow-stage.js`
+**Source**: `src\main\workflow\workflow-stage.js`
 
 ---
 

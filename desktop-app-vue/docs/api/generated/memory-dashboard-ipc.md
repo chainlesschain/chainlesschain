@@ -1,6 +1,6 @@
 # memory-dashboard-ipc
 
-**Source**: `src/main/memory/memory-dashboard-ipc.js`
+**Source**: `src\main\memory\memory-dashboard-ipc.js`
 
 ---
 

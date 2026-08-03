@@ -1,6 +1,6 @@
 # volcengine-ipc
 
-**Source**: `src/main/llm/volcengine-ipc.js`
+**Source**: `src\main\llm\volcengine-ipc.js`
 
 ---
 

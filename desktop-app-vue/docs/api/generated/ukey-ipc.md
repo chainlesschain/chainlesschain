@@ -1,6 +1,6 @@
 # ukey-ipc
 
-**Source**: `src/main/ukey/ukey-ipc.js`
+**Source**: `src\main\ukey\ukey-ipc.js`
 
 ---
 

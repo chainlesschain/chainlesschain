@@ -1,6 +1,6 @@
 # nat-detector
 
-**Source**: `src/main/p2p/nat-detector.js`
+**Source**: `src\main\p2p\nat-detector.js`
 
 ---
 

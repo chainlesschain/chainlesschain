@@ -1,6 +1,6 @@
 # vision-manager
 
-**Source**: `src/main/ai-engine/vision-manager.js`
+**Source**: `src\main\ai-engine\vision-manager.js`
 
 ---
 

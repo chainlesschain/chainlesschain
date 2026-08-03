@@ -1,6 +1,6 @@
 # unified-config-manager
 
-**Source**: `src/main/config/unified-config-manager.js`
+**Source**: `src\main\config\unified-config-manager.js`
 
 ---
 

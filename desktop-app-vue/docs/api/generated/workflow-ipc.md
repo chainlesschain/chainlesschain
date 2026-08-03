@@ -1,6 +1,6 @@
 # workflow-ipc
 
-**Source**: `src/main/ai-engine/workflow/workflow-ipc.js`
+**Source**: `src\main\ai-engine\workflow\workflow-ipc.js`
 
 ---
 

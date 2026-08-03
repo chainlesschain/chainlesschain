@@ -1,6 +1,6 @@
 # template-ipc
 
-**Source**: `src/main/template/template-ipc.js`
+**Source**: `src\main\template\template-ipc.js`
 
 ---
 

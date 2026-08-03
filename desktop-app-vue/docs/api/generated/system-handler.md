@@ -1,6 +1,6 @@
 # system-handler
 
-**Source**: `src/main/remote/handlers/system-handler.js`
+**Source**: `src\main\remote\handlers\system-handler.js`
 
 ---
 

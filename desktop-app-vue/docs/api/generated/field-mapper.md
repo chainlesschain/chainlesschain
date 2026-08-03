@@ -1,6 +1,6 @@
 # field-mapper
 
-**Source**: `src/main/sync/field-mapper.js`
+**Source**: `src\main\sync\field-mapper.js`
 
 ---
 

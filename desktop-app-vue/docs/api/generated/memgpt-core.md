@@ -1,6 +1,6 @@
 # memgpt-core
 
-**Source**: `src/main/memory/memgpt-core.js`
+**Source**: `src\main\memory\memgpt-core.js`
 
 ---
 

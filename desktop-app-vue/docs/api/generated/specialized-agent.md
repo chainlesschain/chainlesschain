@@ -1,6 +1,6 @@
 # specialized-agent
 
-**Source**: `src/main/ai-engine/multi-agent/specialized-agent.js`
+**Source**: `src\main\ai-engine\multi-agent\specialized-agent.js`
 
 ---
 

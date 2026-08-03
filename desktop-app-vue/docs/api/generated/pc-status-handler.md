@@ -1,6 +1,6 @@
 # pc-status-handler
 
-**Source**: `src/main/p2p/pc-status-handler.js`
+**Source**: `src\main\p2p\pc-status-handler.js`
 
 ---
 

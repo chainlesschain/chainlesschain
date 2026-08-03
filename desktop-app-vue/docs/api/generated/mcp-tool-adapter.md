@@ -1,6 +1,6 @@
 # mcp-tool-adapter
 
-**Source**: `src/main/mcp/mcp-tool-adapter.js`
+**Source**: `src\main\mcp\mcp-tool-adapter.js`
 
 ---
 

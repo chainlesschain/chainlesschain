@@ -1,6 +1,6 @@
 # marketplace-manager
 
-**Source**: `src/main/trade/marketplace-manager.js`
+**Source**: `src\main\trade\marketplace-manager.js`
 
 ---
 

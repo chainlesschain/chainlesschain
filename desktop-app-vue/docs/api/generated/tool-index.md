@@ -1,6 +1,6 @@
 # tool-index
 
-**Source**: `src/main/skill-tool-system/tool-index.js`
+**Source**: `src\main\skill-tool-system\tool-index.js`
 
 ---
 

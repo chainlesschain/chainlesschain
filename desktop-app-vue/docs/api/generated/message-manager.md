@@ -1,6 +1,6 @@
 # message-manager
 
-**Source**: `src/main/p2p/message-manager.js`
+**Source**: `src\main\p2p\message-manager.js`
 
 ---
 

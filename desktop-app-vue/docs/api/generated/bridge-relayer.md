@@ -1,6 +1,6 @@
 # bridge-relayer
 
-**Source**: `src/main/blockchain/bridge-relayer.js`
+**Source**: `src\main\blockchain\bridge-relayer.js`
 
 ---
 

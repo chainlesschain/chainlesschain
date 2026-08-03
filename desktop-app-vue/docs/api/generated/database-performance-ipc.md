@@ -1,6 +1,6 @@
 # database-performance-ipc
 
-**Source**: `src/main/database/database-performance-ipc.js`
+**Source**: `src\main\database\database-performance-ipc.js`
 
 ---
 

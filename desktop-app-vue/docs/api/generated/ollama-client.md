@@ -1,6 +1,6 @@
 # ollama-client
 
-**Source**: `src/main/llm/ollama-client.js`
+**Source**: `src\main\llm\ollama-client.js`
 
 ---
 

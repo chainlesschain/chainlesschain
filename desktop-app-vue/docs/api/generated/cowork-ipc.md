@@ -1,6 +1,6 @@
 # cowork-ipc
 
-**Source**: `src/main/ai-engine/cowork/cowork-ipc.js`
+**Source**: `src\main\ai-engine\cowork\cowork-ipc.js`
 
 ---
 

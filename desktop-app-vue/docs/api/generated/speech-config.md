@@ -1,6 +1,6 @@
 # speech-config
 
-**Source**: `src/main/speech/speech-config.js`
+**Source**: `src\main\speech\speech-config.js`
 
 ---
 

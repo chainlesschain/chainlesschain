@@ -1,6 +1,6 @@
 # plugin-api
 
-**Source**: `src/main/plugins/plugin-api.js`
+**Source**: `src\main\plugins\plugin-api.js`
 
 ---
 

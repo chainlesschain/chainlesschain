@@ -1,6 +1,6 @@
 # better-sqlite-adapter
 
-**Source**: `src/main/database/better-sqlite-adapter.js`
+**Source**: `src\main\database\better-sqlite-adapter.js`
 
 ---
 

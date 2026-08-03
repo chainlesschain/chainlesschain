@@ -1,6 +1,6 @@
 # sd-client
 
-**Source**: `src/main/image-gen/sd-client.js`
+**Source**: `src\main\image-gen\sd-client.js`
 
 ---
 

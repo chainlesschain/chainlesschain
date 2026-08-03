@@ -1,6 +1,6 @@
 # test-production-integration
 
-**Source**: `src/main/skill-tool-system/test-production-integration.js`
+**Source**: `src\main\skill-tool-system\test-production-integration.js`
 
 ---
 

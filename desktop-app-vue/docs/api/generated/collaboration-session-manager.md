@@ -1,6 +1,6 @@
 # collaboration-session-manager
 
-**Source**: `src/main/knowledge/collaboration-session-manager.js`
+**Source**: `src\main\knowledge\collaboration-session-manager.js`
 
 ---
 

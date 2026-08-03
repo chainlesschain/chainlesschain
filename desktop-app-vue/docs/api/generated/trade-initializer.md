@@ -1,6 +1,6 @@
 # trade-initializer
 
-**Source**: `src/main/bootstrap/trade-initializer.js`
+**Source**: `src\main\bootstrap\trade-initializer.js`
 
 ---
 

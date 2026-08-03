@@ -1,6 +1,6 @@
 # test-chat-skill-bridge
 
-**Source**: `src/main/skill-tool-system/test-chat-skill-bridge.js`
+**Source**: `src\main\skill-tool-system\test-chat-skill-bridge.js`
 
 ---
 

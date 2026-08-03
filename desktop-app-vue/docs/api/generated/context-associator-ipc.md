@@ -1,6 +1,6 @@
 # context-associator-ipc
 
-**Source**: `src/main/memory/context-associator-ipc.js`
+**Source**: `src\main\memory\context-associator-ipc.js`
 
 ---
 

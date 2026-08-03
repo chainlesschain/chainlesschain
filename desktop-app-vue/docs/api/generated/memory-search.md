@@ -1,6 +1,6 @@
 # memory-search
 
-**Source**: `src/main/memory/memory-search.js`
+**Source**: `src\main\memory\memory-search.js`
 
 ---
 

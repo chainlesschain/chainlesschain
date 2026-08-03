@@ -1,6 +1,6 @@
 # call-history-ipc
 
-**Source**: `src/main/p2p/call-history-ipc.js`
+**Source**: `src\main\p2p\call-history-ipc.js`
 
 ---
 

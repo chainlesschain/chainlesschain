@@ -1,6 +1,6 @@
 # vision-ipc
 
-**Source**: `src/main/ai-engine/vision-ipc.js`
+**Source**: `src\main\ai-engine\vision-ipc.js`
 
 ---
 

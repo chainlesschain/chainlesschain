@@ -1,6 +1,6 @@
 # email-ipc
 
-**Source**: `src/main/api/email-ipc.js`
+**Source**: `src\main\api\email-ipc.js`
 
 ---
 

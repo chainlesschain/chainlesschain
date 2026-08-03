@@ -1,6 +1,6 @@
 # multi-agent-ipc
 
-**Source**: `src/main/ai-engine/multi-agent/multi-agent-ipc.js`
+**Source**: `src\main\ai-engine\multi-agent\multi-agent-ipc.js`
 
 ---
 

@@ -1,6 +1,6 @@
 # preview-manager
 
-**Source**: `src/main/preview/preview-manager.js`
+**Source**: `src\main\preview\preview-manager.js`
 
 ---
 

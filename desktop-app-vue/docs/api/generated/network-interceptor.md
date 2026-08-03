@@ -1,6 +1,6 @@
 # network-interceptor
 
-**Source**: `src/main/api/network-interceptor.js`
+**Source**: `src\main\api\network-interceptor.js`
 
 ---
 

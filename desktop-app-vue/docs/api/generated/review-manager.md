@@ -1,6 +1,6 @@
 # review-manager
 
-**Source**: `src/main/trade/review-manager.js`
+**Source**: `src\main\trade\review-manager.js`
 
 ---
 

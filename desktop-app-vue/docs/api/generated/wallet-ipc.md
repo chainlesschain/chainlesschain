@@ -1,6 +1,6 @@
 # wallet-ipc
 
-**Source**: `src/main/blockchain/wallet-ipc.js`
+**Source**: `src\main\blockchain\wallet-ipc.js`
 
 ---
 

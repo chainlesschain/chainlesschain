@@ -1,6 +1,6 @@
 # organization-ipc
 
-**Source**: `src/main/organization/organization-ipc.js`
+**Source**: `src\main\organization\organization-ipc.js`
 
 ---
 

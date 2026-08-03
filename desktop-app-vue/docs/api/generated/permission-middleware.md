@@ -1,6 +1,6 @@
 # permission-middleware
 
-**Source**: `src/main/organization/permission-middleware.js`
+**Source**: `src\main\organization\permission-middleware.js`
 
 ---
 

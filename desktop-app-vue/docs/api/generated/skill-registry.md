@@ -1,6 +1,6 @@
 # skill-registry
 
-**Source**: `src/main/ai-engine/cowork/skills/skill-registry.js`
+**Source**: `src\main\ai-engine\cowork\skills\skill-registry.js`
 
 ---
 

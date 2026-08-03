@@ -1,6 +1,6 @@
 # mcp-performance-monitor
 
-**Source**: `src/main/mcp/mcp-performance-monitor.js`
+**Source**: `src\main\mcp\mcp-performance-monitor.js`
 
 ---
 

@@ -1,6 +1,6 @@
 # splash-window
 
-**Source**: `src/main/splash/splash-window.js`
+**Source**: `src\main\splash\splash-window.js`
 
 ---
 

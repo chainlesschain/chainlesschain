@@ -1,6 +1,6 @@
 # tts-ipc
 
-**Source**: `src/main/speech/tts-ipc.js`
+**Source**: `src\main\speech\tts-ipc.js`
 
 ---
 

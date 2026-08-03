@@ -1,6 +1,6 @@
 # sync-http-client
 
-**Source**: `src/main/sync/sync-http-client.js`
+**Source**: `src\main\sync\sync-http-client.js`
 
 ---
 

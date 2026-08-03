@@ -1,6 +1,6 @@
 # tool-schemas
 
-**Source**: `src/main/skill-tool-system/tool-schemas.js`
+**Source**: `src\main\skill-tool-system\tool-schemas.js`
 
 ---
 

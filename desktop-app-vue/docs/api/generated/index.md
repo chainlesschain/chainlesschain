@@ -1,6 +1,6 @@
 # index
 
-**Source**: `src/main/ai-engine/cowork/skills/index.js`
+**Source**: `src\main\ai-engine\cowork\skills\index.js`
 
 ---
 

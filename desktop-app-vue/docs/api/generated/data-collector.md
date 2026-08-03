@@ -1,6 +1,6 @@
 # data-collector
 
-**Source**: `src/main/ai-engine/data-collector.js`
+**Source**: `src\main\ai-engine\data-collector.js`
 
 ---
 

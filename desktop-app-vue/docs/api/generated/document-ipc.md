@@ -1,6 +1,6 @@
 # document-ipc
 
-**Source**: `src/main/document/document-ipc.js`
+**Source**: `src\main\document\document-ipc.js`
 
 ---
 

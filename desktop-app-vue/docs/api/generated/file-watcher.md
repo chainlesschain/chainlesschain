@@ -1,6 +1,6 @@
 # file-watcher
 
-**Source**: `src/main/file/file-watcher.js`
+**Source**: `src\main\file\file-watcher.js`
 
 ---
 

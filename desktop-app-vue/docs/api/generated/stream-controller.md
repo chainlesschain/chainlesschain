@@ -1,6 +1,6 @@
 # stream-controller
 
-**Source**: `src/main/llm/stream-controller.js`
+**Source**: `src\main\llm\stream-controller.js`
 
 ---
 

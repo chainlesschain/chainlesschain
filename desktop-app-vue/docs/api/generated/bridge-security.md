@@ -1,6 +1,6 @@
 # bridge-security
 
-**Source**: `src/main/blockchain/bridge-security.js`
+**Source**: `src\main\blockchain\bridge-security.js`
 
 ---
 

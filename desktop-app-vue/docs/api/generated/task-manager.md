@@ -1,6 +1,6 @@
 # task-manager
 
-**Source**: `src/main/task/task-manager.js`
+**Source**: `src\main\task\task-manager.js`
 
 ---
 

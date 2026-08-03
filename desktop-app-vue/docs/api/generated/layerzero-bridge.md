@@ -1,6 +1,6 @@
 # layerzero-bridge
 
-**Source**: `src/main/blockchain/bridges/layerzero-bridge.js`
+**Source**: `src\main\blockchain\bridges\layerzero-bridge.js`
 
 ---
 

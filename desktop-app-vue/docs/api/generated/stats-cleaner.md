@@ -1,6 +1,6 @@
 # stats-cleaner
 
-**Source**: `src/main/skill-tool-system/stats-cleaner.js`
+**Source**: `src\main\skill-tool-system\stats-cleaner.js`
 
 ---
 

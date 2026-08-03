@@ -1,6 +1,6 @@
 # followup-intent-ipc
 
-**Source**: `src/main/ai-engine/followup-intent-ipc.js`
+**Source**: `src\main\ai-engine\followup-intent-ipc.js`
 
 ---
 

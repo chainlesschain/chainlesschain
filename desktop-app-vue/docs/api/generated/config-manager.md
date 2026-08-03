@@ -1,6 +1,6 @@
 # config-manager
 
-**Source**: `src/main/database/config-manager.js`
+**Source**: `src\main\database\config-manager.js`
 
 ---
 

@@ -1,6 +1,6 @@
 # bridge-ipc
 
-**Source**: `src/main/blockchain/bridge-ipc.js`
+**Source**: `src\main\blockchain\bridge-ipc.js`
 
 ---
 

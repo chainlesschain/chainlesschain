@@ -1,6 +1,6 @@
 # voice-training
 
-**Source**: `src/main/speech/voice-training.js`
+**Source**: `src\main\speech\voice-training.js`
 
 ---
 

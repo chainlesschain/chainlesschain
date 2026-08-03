@@ -1,6 +1,6 @@
 # document-agent
 
-**Source**: `src/main/ai-engine/multi-agent/agents/document-agent.js`
+**Source**: `src\main\ai-engine\multi-agent\agents\document-agent.js`
 
 ---
 

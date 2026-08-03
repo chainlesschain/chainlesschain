@@ -1,6 +1,6 @@
 # file-sandbox
 
-**Source**: `src/main/ai-engine/cowork/file-sandbox.js`
+**Source**: `src\main\ai-engine\cowork\file-sandbox.js`
 
 ---
 

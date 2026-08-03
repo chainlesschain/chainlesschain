@@ -1,6 +1,6 @@
 # user-profile-manager
 
-**Source**: `src/main/ai-engine/user-profile-manager.js`
+**Source**: `src\main\ai-engine\user-profile-manager.js`
 
 ---
 

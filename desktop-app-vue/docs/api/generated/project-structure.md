@@ -1,6 +1,6 @@
 # project-structure
 
-**Source**: `src/main/project/project-structure.js`
+**Source**: `src\main\project\project-structure.js`
 
 ---
 

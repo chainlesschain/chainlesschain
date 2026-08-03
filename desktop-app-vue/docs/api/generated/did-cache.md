@@ -1,6 +1,6 @@
 # did-cache
 
-**Source**: `src/main/did/did-cache.js`
+**Source**: `src\main\did\did-cache.js`
 
 ---
 

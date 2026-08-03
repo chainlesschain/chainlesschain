@@ -1,6 +1,6 @@
 # email-client
 
-**Source**: `src/main/api/email-client.js`
+**Source**: `src\main\api\email-client.js`
 
 ---
 

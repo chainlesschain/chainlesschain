@@ -1,6 +1,6 @@
 # git-auto-commit
 
-**Source**: `src/main/git/git-auto-commit.js`
+**Source**: `src\main\git\git-auto-commit.js`
 
 ---
 

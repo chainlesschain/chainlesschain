@@ -1,6 +1,6 @@
 # python-sandbox
 
-**Source**: `src/main/sandbox/python-sandbox.js`
+**Source**: `src\main\sandbox\python-sandbox.js`
 
 ---
 

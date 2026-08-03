@@ -1,6 +1,6 @@
 # file-sharing-ipc
 
-**Source**: `src/main/ipc/file-sharing-ipc.js`
+**Source**: `src\main\ipc\file-sharing-ipc.js`
 
 ---
 

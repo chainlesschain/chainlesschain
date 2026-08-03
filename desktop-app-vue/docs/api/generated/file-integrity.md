@@ -1,6 +1,6 @@
 # file-integrity
 
-**Source**: `src/main/utils/file-integrity.js`
+**Source**: `src\main\utils\file-integrity.js`
 
 ---
 

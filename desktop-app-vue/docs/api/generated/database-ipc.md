@@ -1,6 +1,6 @@
 # database-ipc
 
-**Source**: `src/main/database/database-ipc.js`
+**Source**: `src\main\database\database-ipc.js`
 
 ---
 

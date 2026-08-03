@@ -1,6 +1,6 @@
 # initializer-factory
 
-**Source**: `src/main/bootstrap/initializer-factory.js`
+**Source**: `src\main\bootstrap\initializer-factory.js`
 
 ---
 

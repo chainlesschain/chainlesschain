@@ -1,6 +1,6 @@
 # integration-example
 
-**Source**: `src/main/remote/integration-example.js`
+**Source**: `src\main\remote\integration-example.js`
 
 ---
 

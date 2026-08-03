@@ -1,6 +1,6 @@
 # sqlcipher-wrapper
 
-**Source**: `src/main/database/sqlcipher-wrapper.js`
+**Source**: `src\main\database\sqlcipher-wrapper.js`
 
 ---
 

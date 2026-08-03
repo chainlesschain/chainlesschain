@@ -1,6 +1,6 @@
 # skill-recommender
 
-**Source**: `src/main/skill-tool-system/skill-recommender.js`
+**Source**: `src\main\skill-tool-system\skill-recommender.js`
 
 ---
 

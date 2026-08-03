@@ -1,6 +1,6 @@
 # trading-analytics
 
-**Source**: `src/main/trade/trading-analytics.js`
+**Source**: `src\main\trade\trading-analytics.js`
 
 ---
 

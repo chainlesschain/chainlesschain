@@ -1,6 +1,6 @@
 # device-manager
 
-**Source**: `src/main/p2p/device-manager.js`
+**Source**: `src\main\p2p\device-manager.js`
 
 ---
 

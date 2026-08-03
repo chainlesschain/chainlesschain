@@ -1,6 +1,6 @@
 # manus-optimizations
 
-**Source**: `src/main/llm/manus-optimizations.js`
+**Source**: `src\main\llm\manus-optimizations.js`
 
 ---
 

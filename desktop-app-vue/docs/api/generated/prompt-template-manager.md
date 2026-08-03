@@ -1,6 +1,6 @@
 # prompt-template-manager
 
-**Source**: `src/main/prompt/prompt-template-manager.js`
+**Source**: `src\main\prompt\prompt-template-manager.js`
 
 ---
 

@@ -1,6 +1,6 @@
 # social
 
-**Source**: `src/main/ipc/domains/social.js`
+**Source**: `src\main\ipc\domains\social.js`
 
 ---
 

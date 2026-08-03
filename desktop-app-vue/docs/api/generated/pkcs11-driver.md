@@ -1,6 +1,6 @@
 # pkcs11-driver
 
-**Source**: `src/main/ukey/pkcs11-driver.js`
+**Source**: `src\main\ukey\pkcs11-driver.js`
 
 ---
 

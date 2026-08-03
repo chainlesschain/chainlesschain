@@ -1,6 +1,6 @@
 # blockchain-config
 
-**Source**: `src/main/blockchain/blockchain-config.js`
+**Source**: `src\main\blockchain\blockchain-config.js`
 
 ---
 

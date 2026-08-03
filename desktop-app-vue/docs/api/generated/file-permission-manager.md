@@ -1,6 +1,6 @@
 # file-permission-manager
 
-**Source**: `src/main/file/file-permission-manager.js`
+**Source**: `src\main\file\file-permission-manager.js`
 
 ---
 

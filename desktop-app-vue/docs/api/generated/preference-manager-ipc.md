@@ -1,6 +1,6 @@
 # preference-manager-ipc
 
-**Source**: `src/main/memory/preference-manager-ipc.js`
+**Source**: `src\main\memory\preference-manager-ipc.js`
 
 ---
 

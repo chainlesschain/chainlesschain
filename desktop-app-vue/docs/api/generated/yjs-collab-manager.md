@@ -1,6 +1,6 @@
 # yjs-collab-manager
 
-**Source**: `src/main/collaboration/yjs-collab-manager.js`
+**Source**: `src\main\collaboration\yjs-collab-manager.js`
 
 ---
 

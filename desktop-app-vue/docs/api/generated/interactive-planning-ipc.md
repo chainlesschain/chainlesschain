@@ -1,6 +1,6 @@
 # interactive-planning-ipc
 
-**Source**: `src/main/ai-engine/interactive-planning-ipc.js`
+**Source**: `src\main\ai-engine\interactive-planning-ipc.js`
 
 ---
 

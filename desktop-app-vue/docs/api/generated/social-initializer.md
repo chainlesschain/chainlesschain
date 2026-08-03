@@ -1,6 +1,6 @@
 # social-initializer
 
-**Source**: `src/main/bootstrap/social-initializer.js`
+**Source**: `src\main\bootstrap\social-initializer.js`
 
 ---
 

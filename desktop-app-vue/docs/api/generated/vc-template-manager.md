@@ -1,6 +1,6 @@
 # vc-template-manager
 
-**Source**: `src/main/vc/vc-template-manager.js`
+**Source**: `src\main\vc\vc-template-manager.js`
 
 ---
 

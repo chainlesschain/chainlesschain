@@ -1,6 +1,6 @@
 # log-forwarder
 
-**Source**: `src/main/utils/log-forwarder.js`
+**Source**: `src\main\utils\log-forwarder.js`
 
 ---
 

@@ -1,6 +1,6 @@
 # event-listener
 
-**Source**: `src/main/blockchain/event-listener.js`
+**Source**: `src\main\blockchain\event-listener.js`
 
 ---
 

@@ -1,6 +1,6 @@
 # collaboration-ipc
 
-**Source**: `src/main/collaboration/collaboration-ipc.js`
+**Source**: `src\main\collaboration\collaboration-ipc.js`
 
 ---
 

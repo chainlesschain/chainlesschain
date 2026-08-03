@@ -1,6 +1,6 @@
 # health-check
 
-**Source**: `src/main/monitoring/health-check.js`
+**Source**: `src\main\monitoring\health-check.js`
 
 ---
 

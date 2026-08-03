@@ -1,6 +1,6 @@
 # workflow-state-machine
 
-**Source**: `src/main/workflow/workflow-state-machine.js`
+**Source**: `src\main\workflow\workflow-state-machine.js`
 
 ---
 

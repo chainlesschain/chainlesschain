@@ -1,6 +1,6 @@
 # rpc-manager
 
-**Source**: `src/main/blockchain/rpc-manager.js`
+**Source**: `src\main\blockchain\rpc-manager.js`
 
 ---
 

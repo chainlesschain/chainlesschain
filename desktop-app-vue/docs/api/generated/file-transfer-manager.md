@@ -1,6 +1,6 @@
 # file-transfer-manager
 
-**Source**: `src/main/p2p/file-transfer-manager.js`
+**Source**: `src\main\p2p\file-transfer-manager.js`
 
 ---
 

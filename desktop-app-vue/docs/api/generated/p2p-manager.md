@@ -1,6 +1,6 @@
 # p2p-manager
 
-**Source**: `src/main/p2p/p2p-manager.js`
+**Source**: `src\main\p2p\p2p-manager.js`
 
 ---
 

@@ -1,6 +1,6 @@
 # project-templates-migration
 
-**Source**: `src/main/database/migrations/project-templates-migration.js`
+**Source**: `src\main\database\migrations\project-templates-migration.js`
 
 ---
 

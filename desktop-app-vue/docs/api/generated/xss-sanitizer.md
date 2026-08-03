@@ -1,6 +1,6 @@
 # xss-sanitizer
 
-**Source**: `src/main/security/xss-sanitizer.js`
+**Source**: `src\main\security\xss-sanitizer.js`
 
 ---
 

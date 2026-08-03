@@ -1,6 +1,6 @@
 # vc-manager
 
-**Source**: `src/main/vc/vc-manager.js`
+**Source**: `src\main\vc\vc-manager.js`
 
 ---
 

@@ -1,6 +1,6 @@
 # category-manager
 
-**Source**: `src/main/organization/category-manager.js`
+**Source**: `src\main\organization\category-manager.js`
 
 ---
 

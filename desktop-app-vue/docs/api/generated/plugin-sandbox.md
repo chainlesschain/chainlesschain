@@ -1,6 +1,6 @@
 # plugin-sandbox
 
-**Source**: `src/main/plugins/plugin-sandbox.js`
+**Source**: `src\main\plugins\plugin-sandbox.js`
 
 ---
 

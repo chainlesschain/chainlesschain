@@ -1,6 +1,6 @@
 # response-cache
 
-**Source**: `src/main/llm/response-cache.js`
+**Source**: `src\main\llm\response-cache.js`
 
 ---
 

@@ -1,6 +1,6 @@
 # llm-config
 
-**Source**: `src/main/llm/llm-config.js`
+**Source**: `src\main\llm\llm-config.js`
 
 ---
 

@@ -1,6 +1,6 @@
 # knowledge-distillation
 
-**Source**: `src/main/ai-engine/knowledge-distillation.js`
+**Source**: `src\main\ai-engine\knowledge-distillation.js`
 
 ---
 

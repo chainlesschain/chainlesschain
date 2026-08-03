@@ -1,6 +1,6 @@
 # image-gen-manager
 
-**Source**: `src/main/image-gen/image-gen-manager.js`
+**Source**: `src\main\image-gen\image-gen-manager.js`
 
 ---
 

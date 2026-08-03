@@ -1,6 +1,6 @@
 # p2p-command-adapter
 
-**Source**: `src/main/remote/p2p-command-adapter.js`
+**Source**: `src\main\remote\p2p-command-adapter.js`
 
 ---
 

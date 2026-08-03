@@ -1,6 +1,6 @@
 # wrtc-compat
 
-**Source**: `src/main/p2p/wrtc-compat.js`
+**Source**: `src\main\p2p\wrtc-compat.js`
 
 ---
 

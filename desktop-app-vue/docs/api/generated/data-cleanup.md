@@ -1,6 +1,6 @@
 # data-cleanup
 
-**Source**: `src/main/api/data-cleanup.js`
+**Source**: `src\main\api\data-cleanup.js`
 
 ---
 

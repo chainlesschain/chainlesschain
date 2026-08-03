@@ -1,6 +1,6 @@
 # query-rewriter
 
-**Source**: `src/main/rag/query-rewriter.js`
+**Source**: `src\main\rag\query-rewriter.js`
 
 ---
 

@@ -1,6 +1,6 @@
 # path-converter
 
-**Source**: `src/main/git/path-converter.js`
+**Source**: `src\main\git\path-converter.js`
 
 ---
 

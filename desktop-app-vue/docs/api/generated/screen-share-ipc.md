@@ -1,6 +1,6 @@
 # screen-share-ipc
 
-**Source**: `src/main/p2p/screen-share-ipc.js`
+**Source**: `src\main\p2p\screen-share-ipc.js`
 
 ---
 

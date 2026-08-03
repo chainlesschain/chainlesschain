@@ -1,6 +1,6 @@
 # rss-ipc
 
-**Source**: `src/main/api/rss-ipc.js`
+**Source**: `src\main\api\rss-ipc.js`
 
 ---
 

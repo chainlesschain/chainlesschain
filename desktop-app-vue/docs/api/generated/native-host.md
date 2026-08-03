@@ -1,6 +1,6 @@
 # native-host
 
-**Source**: `src/main/native-messaging/native-host.js`
+**Source**: `src\main\native-messaging\native-host.js`
 
 ---
 

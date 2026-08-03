@@ -1,6 +1,6 @@
 # video-ipc
 
-**Source**: `src/main/video/video-ipc.js`
+**Source**: `src\main\video\video-ipc.js`
 
 ---
 

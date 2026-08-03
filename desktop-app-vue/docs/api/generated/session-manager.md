@@ -1,6 +1,6 @@
 # session-manager
 
-**Source**: `src/main/browser/actions/session-manager.js`
+**Source**: `src\main\browser\actions\session-manager.js`
 
 ---
 

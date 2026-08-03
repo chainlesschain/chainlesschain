@@ -1,6 +1,6 @@
 # device-sync-manager
 
-**Source**: `src/main/p2p/device-sync-manager.js`
+**Source**: `src\main\p2p\device-sync-manager.js`
 
 ---
 

@@ -1,6 +1,6 @@
 # window-manager
 
-**Source**: `src/main/system/window-manager.js`
+**Source**: `src\main\system\window-manager.js`
 
 ---
 

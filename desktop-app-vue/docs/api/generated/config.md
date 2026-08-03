@@ -1,6 +1,6 @@
 # config
 
-**Source**: `src/main/ukey/config.js`
+**Source**: `src\main\ukey\config.js`
 
 ---
 

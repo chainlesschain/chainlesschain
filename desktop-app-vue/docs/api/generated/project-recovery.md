@@ -1,6 +1,6 @@
 # project-recovery
 
-**Source**: `src/main/sync/project-recovery.js`
+**Source**: `src\main\sync\project-recovery.js`
 
 ---
 

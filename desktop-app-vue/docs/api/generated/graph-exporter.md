@@ -1,6 +1,6 @@
 # graph-exporter
 
-**Source**: `src/main/knowledge-graph/graph-exporter.js`
+**Source**: `src\main\knowledge-graph\graph-exporter.js`
 
 ---
 

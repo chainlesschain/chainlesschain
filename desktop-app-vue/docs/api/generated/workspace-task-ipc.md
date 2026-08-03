@@ -1,6 +1,6 @@
 # workspace-task-ipc
 
-**Source**: `src/main/ipc/workspace-task-ipc.js`
+**Source**: `src\main\ipc\workspace-task-ipc.js`
 
 ---
 

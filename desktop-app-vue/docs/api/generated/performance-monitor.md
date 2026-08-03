@@ -1,6 +1,6 @@
 # performance-monitor
 
-**Source**: `src/main/monitoring/performance-monitor.js`
+**Source**: `src\main\monitoring\performance-monitor.js`
 
 ---
 

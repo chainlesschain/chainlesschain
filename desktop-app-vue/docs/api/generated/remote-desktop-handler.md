@@ -1,6 +1,6 @@
 # remote-desktop-handler
 
-**Source**: `src/main/remote/handlers/remote-desktop-handler.js`
+**Source**: `src\main\remote\handlers\remote-desktop-handler.js`
 
 ---
 

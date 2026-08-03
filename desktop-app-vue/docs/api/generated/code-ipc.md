@@ -1,6 +1,6 @@
 # code-ipc
 
-**Source**: `src/main/code-tools/code-ipc.js`
+**Source**: `src\main\code-tools\code-ipc.js`
 
 ---
 

@@ -1,6 +1,6 @@
 # prompt-template-ipc
 
-**Source**: `src/main/prompt-template/prompt-template-ipc.js`
+**Source**: `src\main\prompt-template\prompt-template-ipc.js`
 
 ---
 

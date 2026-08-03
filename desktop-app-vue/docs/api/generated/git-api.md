@@ -1,6 +1,6 @@
 # git-api
 
-**Source**: `src/main/project/git-api.js`
+**Source**: `src\main\project\git-api.js`
 
 ---
 

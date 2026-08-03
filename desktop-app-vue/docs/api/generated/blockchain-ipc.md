@@ -1,6 +1,6 @@
 # blockchain-ipc
 
-**Source**: `src/main/blockchain/blockchain-ipc.js`
+**Source**: `src\main\blockchain\blockchain-ipc.js`
 
 ---
 

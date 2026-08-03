@@ -1,6 +1,6 @@
 # learned-pattern-manager
 
-**Source**: `src/main/memory/learned-pattern-manager.js`
+**Source**: `src\main\memory\learned-pattern-manager.js`
 
 ---
 

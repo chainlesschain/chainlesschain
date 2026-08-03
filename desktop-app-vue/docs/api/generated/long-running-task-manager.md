@@ -1,6 +1,6 @@
 # long-running-task-manager
 
-**Source**: `src/main/ai-engine/cowork/long-running-task-manager.js`
+**Source**: `src\main\ai-engine\cowork\long-running-task-manager.js`
 
 ---
 

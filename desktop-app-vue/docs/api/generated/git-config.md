@@ -1,6 +1,6 @@
 # git-config
 
-**Source**: `src/main/git/git-config.js`
+**Source**: `src\main\git\git-config.js`
 
 ---
 

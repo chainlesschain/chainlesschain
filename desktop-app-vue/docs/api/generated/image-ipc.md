@@ -1,6 +1,6 @@
 # image-ipc
 
-**Source**: `src/main/image/image-ipc.js`
+**Source**: `src\main\image\image-ipc.js`
 
 ---
 

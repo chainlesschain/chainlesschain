@@ -1,6 +1,6 @@
 # example-integration
 
-**Source**: `src/main/mcp/examples/example-integration.js`
+**Source**: `src\main\mcp\examples\example-integration.js`
 
 ---
 

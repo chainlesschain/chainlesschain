@@ -1,6 +1,6 @@
 # entity-extraction
 
-**Source**: `src/main/knowledge-graph/entity-extraction.js`
+**Source**: `src\main\knowledge-graph\entity-extraction.js`
 
 ---
 

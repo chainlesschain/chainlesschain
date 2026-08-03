@@ -1,6 +1,6 @@
 # remote-ipc
 
-**Source**: `src/main/remote/remote-ipc.js`
+**Source**: `src\main\remote\remote-ipc.js`
 
 ---
 

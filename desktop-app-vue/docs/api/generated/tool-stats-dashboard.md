@@ -1,6 +1,6 @@
 # tool-stats-dashboard
 
-**Source**: `src/main/skill-tool-system/tool-stats-dashboard.js`
+**Source**: `src\main\skill-tool-system\tool-stats-dashboard.js`
 
 ---
 

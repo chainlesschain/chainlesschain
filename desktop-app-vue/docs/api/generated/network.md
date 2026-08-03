@@ -1,6 +1,6 @@
 # network
 
-**Source**: `src/main/remote/browser-extension/handlers/network.js`
+**Source**: `src\main\remote\browser-extension\handlers\network.js`
 
 ---
 

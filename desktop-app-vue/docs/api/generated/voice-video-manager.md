@@ -1,6 +1,6 @@
 # voice-video-manager
 
-**Source**: `src/main/p2p/voice-video-manager.js`
+**Source**: `src\main\p2p\voice-video-manager.js`
 
 ---
 

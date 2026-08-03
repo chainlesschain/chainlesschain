@@ -1,6 +1,6 @@
 # token-tracker
 
-**Source**: `src/main/llm/token-tracker.js`
+**Source**: `src\main\llm\token-tracker.js`
 
 ---
 

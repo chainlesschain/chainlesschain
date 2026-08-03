@@ -1,6 +1,6 @@
 # escrow-manager
 
-**Source**: `src/main/trade/escrow-manager.js`
+**Source**: `src\main\trade\escrow-manager.js`
 
 ---
 

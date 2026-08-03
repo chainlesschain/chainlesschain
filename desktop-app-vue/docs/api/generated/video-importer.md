@@ -1,6 +1,6 @@
 # video-importer
 
-**Source**: `src/main/video/video-importer.js`
+**Source**: `src\main\video\video-importer.js`
 
 ---
 

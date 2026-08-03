@@ -1,6 +1,6 @@
 # call-history-manager
 
-**Source**: `src/main/p2p/call-history-manager.js`
+**Source**: `src\main\p2p\call-history-manager.js`
 
 ---
 

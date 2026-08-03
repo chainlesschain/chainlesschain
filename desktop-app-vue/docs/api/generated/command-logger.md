@@ -1,6 +1,6 @@
 # command-logger
 
-**Source**: `src/main/remote/logging/command-logger.js`
+**Source**: `src\main\remote\logging\command-logger.js`
 
 ---
 

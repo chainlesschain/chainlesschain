@@ -1,6 +1,6 @@
 # mobile-bridge
 
-**Source**: `src/main/p2p/mobile-bridge.js`
+**Source**: `src\main\p2p\mobile-bridge.js`
 
 ---
 

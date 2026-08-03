@@ -1,6 +1,6 @@
 # knowledge-sync-handler
 
-**Source**: `src/main/p2p/knowledge-sync-handler.js`
+**Source**: `src\main\p2p\knowledge-sync-handler.js`
 
 ---
 

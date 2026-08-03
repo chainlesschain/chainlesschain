@@ -1,6 +1,6 @@
 # manus-ipc
 
-**Source**: `src/main/llm/manus-ipc.js`
+**Source**: `src\main\llm\manus-ipc.js`
 
 ---
 

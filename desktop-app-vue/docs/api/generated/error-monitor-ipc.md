@@ -1,6 +1,6 @@
 # error-monitor-ipc
 
-**Source**: `src/main/monitoring/error-monitor-ipc.js`
+**Source**: `src\main\monitoring\error-monitor-ipc.js`
 
 ---
 

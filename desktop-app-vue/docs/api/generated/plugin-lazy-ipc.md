@@ -1,6 +1,6 @@
 # plugin-lazy-ipc
 
-**Source**: `src/main/plugins/plugin-lazy-ipc.js`
+**Source**: `src\main\plugins\plugin-lazy-ipc.js`
 
 ---
 

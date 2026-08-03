@@ -1,6 +1,6 @@
 # deep-link-handler
 
-**Source**: `src/main/system/deep-link-handler.js`
+**Source**: `src\main\system\deep-link-handler.js`
 
 ---
 

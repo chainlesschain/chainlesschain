@@ -1,6 +1,6 @@
 # pdf-ipc
 
-**Source**: `src/main/pdf/pdf-ipc.js`
+**Source**: `src\main\pdf\pdf-ipc.js`
 
 ---
 

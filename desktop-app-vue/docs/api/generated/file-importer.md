@@ -1,6 +1,6 @@
 # file-importer
 
-**Source**: `src/main/import/file-importer.js`
+**Source**: `src\main\import\file-importer.js`
 
 ---
 

@@ -1,6 +1,6 @@
 # speech-ipc
 
-**Source**: `src/main/speech/speech-ipc.js`
+**Source**: `src\main\speech\speech-ipc.js`
 
 ---
 

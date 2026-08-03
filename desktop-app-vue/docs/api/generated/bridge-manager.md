@@ -1,6 +1,6 @@
 # bridge-manager
 
-**Source**: `src/main/blockchain/bridge-manager.js`
+**Source**: `src\main\blockchain\bridge-manager.js`
 
 ---
 

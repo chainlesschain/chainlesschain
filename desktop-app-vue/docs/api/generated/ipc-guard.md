@@ -1,6 +1,6 @@
 # ipc-guard
 
-**Source**: `src/main/ipc/ipc-guard.js`
+**Source**: `src\main\ipc\ipc-guard.js`
 
 ---
 

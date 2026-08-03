@@ -1,6 +1,6 @@
 # core-initializer
 
-**Source**: `src/main/bootstrap/core-initializer.js`
+**Source**: `src\main\bootstrap\core-initializer.js`
 
 ---
 

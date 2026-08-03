@@ -1,6 +1,6 @@
 # extended-tools-imagegen
 
-**Source**: `src/main/ai-engine/extended-tools-imagegen.js`
+**Source**: `src\main\ai-engine\extended-tools-imagegen.js`
 
 ---
 

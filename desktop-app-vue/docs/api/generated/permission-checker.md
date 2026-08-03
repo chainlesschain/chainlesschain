@@ -1,6 +1,6 @@
 # permission-checker
 
-**Source**: `src/main/plugins/permission-checker.js`
+**Source**: `src\main\plugins\permission-checker.js`
 
 ---
 

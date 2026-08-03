@@ -1,6 +1,6 @@
 # intent-recognizer
 
-**Source**: `src/main/ai-engine/intent-recognizer.js`
+**Source**: `src\main\ai-engine\intent-recognizer.js`
 
 ---
 

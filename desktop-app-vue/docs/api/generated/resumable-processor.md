@@ -1,6 +1,6 @@
 # resumable-processor
 
-**Source**: `src/main/utils/resumable-processor.js`
+**Source**: `src\main\utils\resumable-processor.js`
 
 ---
 

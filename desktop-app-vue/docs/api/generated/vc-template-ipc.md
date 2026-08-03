@@ -1,6 +1,6 @@
 # vc-template-ipc
 
-**Source**: `src/main/vc-template/vc-template-ipc.js`
+**Source**: `src\main\vc-template\vc-template-ipc.js`
 
 ---
 

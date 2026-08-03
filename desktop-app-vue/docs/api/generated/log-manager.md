@@ -1,6 +1,6 @@
 # log-manager
 
-**Source**: `src/main/logging/log-manager.js`
+**Source**: `src\main\logging\log-manager.js`
 
 ---
 

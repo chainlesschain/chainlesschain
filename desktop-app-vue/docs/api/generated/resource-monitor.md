@@ -1,6 +1,6 @@
 # resource-monitor
 
-**Source**: `src/main/utils/resource-monitor.js`
+**Source**: `src\main\utils\resource-monitor.js`
 
 ---
 

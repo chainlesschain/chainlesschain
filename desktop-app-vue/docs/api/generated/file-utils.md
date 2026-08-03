@@ -1,6 +1,6 @@
 # file-utils
 
-**Source**: `src/main/utils/file-utils.js`
+**Source**: `src\main\utils\file-utils.js`
 
 ---
 

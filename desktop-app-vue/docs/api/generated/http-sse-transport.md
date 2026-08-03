@@ -1,6 +1,6 @@
 # http-sse-transport
 
-**Source**: `src/main/mcp/transports/http-sse-transport.js`
+**Source**: `src\main\mcp\transports\http-sse-transport.js`
 
 ---
 

@@ -1,6 +1,6 @@
 # connection-pool
 
-**Source**: `src/main/p2p/connection-pool.js`
+**Source**: `src\main\p2p\connection-pool.js`
 
 ---
 

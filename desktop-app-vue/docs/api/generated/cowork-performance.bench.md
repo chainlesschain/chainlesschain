@@ -1,6 +1,6 @@
 # cowork-performance.bench
 
-**Source**: `src/main/cowork/__tests__/benchmarks/cowork-performance.bench.js`
+**Source**: `src\main\cowork\__tests__\benchmarks\cowork-performance.bench.js`
 
 ---
 

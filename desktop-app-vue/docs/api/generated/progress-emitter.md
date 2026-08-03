@@ -1,6 +1,6 @@
 # progress-emitter
 
-**Source**: `src/main/utils/progress-emitter.js`
+**Source**: `src\main\utils\progress-emitter.js`
 
 ---
 

@@ -1,6 +1,6 @@
 # office-skill
 
-**Source**: `src/main/ai-engine/cowork/skills/office-skill.js`
+**Source**: `src\main\ai-engine\cowork\skills\office-skill.js`
 
 ---
 

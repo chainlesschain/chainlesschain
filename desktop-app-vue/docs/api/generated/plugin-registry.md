@@ -1,6 +1,6 @@
 # plugin-registry
 
-**Source**: `src/main/plugins/plugin-registry.js`
+**Source**: `src\main\plugins\plugin-registry.js`
 
 ---
 

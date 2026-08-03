@@ -1,6 +1,6 @@
 # credit-score
 
-**Source**: `src/main/trade/credit-score.js`
+**Source**: `src\main\trade\credit-score.js`
 
 ---
 

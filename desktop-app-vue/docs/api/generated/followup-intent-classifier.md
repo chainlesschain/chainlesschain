@@ -1,6 +1,6 @@
 # followup-intent-classifier
 
-**Source**: `src/main/ai-engine/followup-intent-classifier.js`
+**Source**: `src\main\ai-engine\followup-intent-classifier.js`
 
 ---
 

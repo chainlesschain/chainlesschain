@@ -1,6 +1,6 @@
 # context-associator
 
-**Source**: `src/main/memory/context-associator.js`
+**Source**: `src\main\memory\context-associator.js`
 
 ---
 

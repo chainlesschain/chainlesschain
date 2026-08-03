@@ -1,6 +1,6 @@
 # transaction-monitor
 
-**Source**: `src/main/blockchain/transaction-monitor.js`
+**Source**: `src\main\blockchain\transaction-monitor.js`
 
 ---
 

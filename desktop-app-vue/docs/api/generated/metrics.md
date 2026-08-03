@@ -1,6 +1,6 @@
 # metrics
 
-**Source**: `src/main/rag/metrics.js`
+**Source**: `src\main\rag\metrics.js`
 
 ---
 

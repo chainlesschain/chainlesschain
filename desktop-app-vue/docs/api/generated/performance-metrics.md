@@ -1,6 +1,6 @@
 # performance-metrics
 
-**Source**: `src/main/file/performance-metrics.js`
+**Source**: `src\main\file\performance-metrics.js`
 
 ---
 

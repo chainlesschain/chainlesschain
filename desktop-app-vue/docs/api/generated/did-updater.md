@@ -1,6 +1,6 @@
 # did-updater
 
-**Source**: `src/main/did/did-updater.js`
+**Source**: `src\main\did\did-updater.js`
 
 ---
 

@@ -1,6 +1,6 @@
 # collaborative-filter
 
-**Source**: `src/main/ai-engine/collaborative-filter.js`
+**Source**: `src\main\ai-engine\collaborative-filter.js`
 
 ---
 

@@ -1,6 +1,6 @@
 # llm-manager
 
-**Source**: `src/main/llm/llm-manager.js`
+**Source**: `src\main\llm\llm-manager.js`
 
 ---
 

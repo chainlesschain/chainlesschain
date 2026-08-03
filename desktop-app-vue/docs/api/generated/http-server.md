@@ -1,6 +1,6 @@
 # http-server
 
-**Source**: `src/main/mcp/sdk/http-server.js`
+**Source**: `src\main\mcp\sdk\http-server.js`
 
 ---
 

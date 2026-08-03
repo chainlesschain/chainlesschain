@@ -1,6 +1,6 @@
 # wallet-manager
 
-**Source**: `src/main/blockchain/wallet-manager.js`
+**Source**: `src\main\blockchain\wallet-manager.js`
 
 ---
 

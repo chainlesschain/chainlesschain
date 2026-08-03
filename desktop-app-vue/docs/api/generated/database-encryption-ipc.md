@@ -1,6 +1,6 @@
 # database-encryption-ipc
 
-**Source**: `src/main/database/database-encryption-ipc.js`
+**Source**: `src\main\database\database-encryption-ipc.js`
 
 ---
 

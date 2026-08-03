@@ -1,6 +1,6 @@
 # p2p-enhanced-manager
 
-**Source**: `src/main/p2p/p2p-enhanced-manager.js`
+**Source**: `src\main\p2p\p2p-enhanced-manager.js`
 
 ---
 

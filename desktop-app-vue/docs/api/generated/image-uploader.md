@@ -1,6 +1,6 @@
 # image-uploader
 
-**Source**: `src/main/image/image-uploader.js`
+**Source**: `src\main\image\image-uploader.js`
 
 ---
 

@@ -1,6 +1,6 @@
 # mcp-function-executor
 
-**Source**: `src/main/mcp/mcp-function-executor.js`
+**Source**: `src\main\mcp\mcp-function-executor.js`
 
 ---
 

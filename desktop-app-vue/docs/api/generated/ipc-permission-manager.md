@@ -1,6 +1,6 @@
 # ipc-permission-manager
 
-**Source**: `src/main/security/ipc-permission-manager.js`
+**Source**: `src\main\security\ipc-permission-manager.js`
 
 ---
 

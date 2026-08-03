@@ -1,6 +1,6 @@
 # database-adapter
 
-**Source**: `src/main/database/database-adapter.js`
+**Source**: `src\main\database\database-adapter.js`
 
 ---
 

@@ -1,6 +1,6 @@
 # collaboration-manager
 
-**Source**: `src/main/collaboration/collaboration-manager.js`
+**Source**: `src\main\collaboration\collaboration-manager.js`
 
 ---
 

@@ -1,6 +1,6 @@
 # video-config
 
-**Source**: `src/main/video/video-config.js`
+**Source**: `src\main\video\video-config.js`
 
 ---
 

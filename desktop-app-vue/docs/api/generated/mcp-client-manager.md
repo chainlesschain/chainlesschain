@@ -1,6 +1,6 @@
 # mcp-client-manager
 
-**Source**: `src/main/mcp/mcp-client-manager.js`
+**Source**: `src\main\mcp\mcp-client-manager.js`
 
 ---
 

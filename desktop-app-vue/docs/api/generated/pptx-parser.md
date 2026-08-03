@@ -1,6 +1,6 @@
 # pptx-parser
 
-**Source**: `src/main/utils/pptx-parser.js`
+**Source**: `src\main\utils\pptx-parser.js`
 
 ---
 

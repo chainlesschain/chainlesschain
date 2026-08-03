@@ -1,6 +1,6 @@
 # performance-config
 
-**Source**: `src/main/remote/logging/performance-config.js`
+**Source**: `src\main\remote\logging\performance-config.js`
 
 ---
 

@@ -1,6 +1,6 @@
 # intent-classifier
 
-**Source**: `src/main/ai-engine/intent-classifier.js`
+**Source**: `src\main\ai-engine\intent-classifier.js`
 
 ---
 

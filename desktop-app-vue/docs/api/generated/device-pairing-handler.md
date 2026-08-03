@@ -1,6 +1,6 @@
 # device-pairing-handler
 
-**Source**: `src/main/p2p/device-pairing-handler.js`
+**Source**: `src\main\p2p\device-pairing-handler.js`
 
 ---
 

@@ -1,6 +1,6 @@
 # error-handler
 
-**Source**: `src/main/monitoring/error-handler.js`
+**Source**: `src\main\monitoring\error-handler.js`
 
 ---
 

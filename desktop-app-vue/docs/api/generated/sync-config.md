@@ -1,6 +1,6 @@
 # sync-config
 
-**Source**: `src/main/sync/sync-config.js`
+**Source**: `src\main\sync\sync-config.js`
 
 ---
 

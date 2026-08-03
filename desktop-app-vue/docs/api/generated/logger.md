@@ -1,6 +1,6 @@
 # logger
 
-**Source**: `src/main/logging/logger.js`
+**Source**: `src\main\logging\logger.js`
 
 ---
 

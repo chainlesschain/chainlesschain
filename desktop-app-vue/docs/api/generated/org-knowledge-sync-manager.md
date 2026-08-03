@@ -1,6 +1,6 @@
 # org-knowledge-sync-manager
 
-**Source**: `src/main/collaboration/org-knowledge-sync-manager.js`
+**Source**: `src\main\collaboration\org-knowledge-sync-manager.js`
 
 ---
 

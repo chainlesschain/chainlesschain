@@ -1,6 +1,6 @@
 # sync-queue
 
-**Source**: `src/main/sync/sync-queue.js`
+**Source**: `src\main\sync\sync-queue.js`
 
 ---
 

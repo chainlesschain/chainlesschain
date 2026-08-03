@@ -1,6 +1,6 @@
 # permission-dialog-manager
 
-**Source**: `src/main/plugins/permission-dialog-manager.js`
+**Source**: `src\main\plugins\permission-dialog-manager.js`
 
 ---
 

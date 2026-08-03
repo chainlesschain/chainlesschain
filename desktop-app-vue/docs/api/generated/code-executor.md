@@ -1,6 +1,6 @@
 # code-executor
 
-**Source**: `src/main/engines/code-executor.js`
+**Source**: `src\main\engines\code-executor.js`
 
 ---
 

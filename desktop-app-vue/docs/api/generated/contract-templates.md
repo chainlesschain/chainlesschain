@@ -1,6 +1,6 @@
 # contract-templates
 
-**Source**: `src/main/trade/contract-templates.js`
+**Source**: `src\main\trade\contract-templates.js`
 
 ---
 

@@ -1,6 +1,6 @@
 # reranker
 
-**Source**: `src/main/rag/reranker.js`
+**Source**: `src\main\rag\reranker.js`
 
 ---
 

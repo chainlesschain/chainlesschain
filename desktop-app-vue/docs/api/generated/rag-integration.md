@@ -1,6 +1,6 @@
 # rag-integration
 
-**Source**: `src/main/cowork/integrations/rag-integration.js`
+**Source**: `src\main\cowork\integrations\rag-integration.js`
 
 ---
 

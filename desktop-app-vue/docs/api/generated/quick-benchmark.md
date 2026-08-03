@@ -1,6 +1,6 @@
 # quick-benchmark
 
-**Source**: `src/main/mcp/__tests__/quick-benchmark.js`
+**Source**: `src\main\mcp\__tests__\quick-benchmark.js`
 
 ---
 

@@ -1,6 +1,6 @@
 # file-handler
 
-**Source**: `src/main/browser/actions/file-handler.js`
+**Source**: `src\main\browser\actions\file-handler.js`
 
 ---
 

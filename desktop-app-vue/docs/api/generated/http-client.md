@@ -1,6 +1,6 @@
 # http-client
 
-**Source**: `src/main/project/http-client.js`
+**Source**: `src\main\project\http-client.js`
 
 ---
 

@@ -1,6 +1,6 @@
 # database-performance-wrapper
 
-**Source**: `src/main/performance/database-performance-wrapper.js`
+**Source**: `src\main\performance\database-performance-wrapper.js`
 
 ---
 

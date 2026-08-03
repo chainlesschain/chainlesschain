@@ -1,6 +1,6 @@
 # plugin-ipc
 
-**Source**: `src/main/plugins/plugin-ipc.js`
+**Source**: `src\main\plugins\plugin-ipc.js`
 
 ---
 

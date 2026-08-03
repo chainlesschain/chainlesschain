@@ -1,6 +1,6 @@
 # mcp-ipc
 
-**Source**: `src/main/mcp/mcp-ipc.js`
+**Source**: `src\main\mcp\mcp-ipc.js`
 
 ---
 

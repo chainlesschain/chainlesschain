@@ -1,6 +1,6 @@
 # file-validator
 
-**Source**: `src/main/security/file-validator.js`
+**Source**: `src\main\security\file-validator.js`
 
 ---
 

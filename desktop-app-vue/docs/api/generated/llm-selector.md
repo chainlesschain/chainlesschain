@@ -1,6 +1,6 @@
 # llm-selector
 
-**Source**: `src/main/llm/llm-selector.js`
+**Source**: `src\main\llm\llm-selector.js`
 
 ---
 

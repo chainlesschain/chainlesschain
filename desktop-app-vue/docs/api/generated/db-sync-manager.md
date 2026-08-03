@@ -1,6 +1,6 @@
 # db-sync-manager
 
-**Source**: `src/main/sync/db-sync-manager.js`
+**Source**: `src\main\sync\db-sync-manager.js`
 
 ---
 

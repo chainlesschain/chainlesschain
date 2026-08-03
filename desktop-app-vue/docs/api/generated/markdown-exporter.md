@@ -1,6 +1,6 @@
 # markdown-exporter
 
-**Source**: `src/main/git/markdown-exporter.js`
+**Source**: `src\main\git\markdown-exporter.js`
 
 ---
 

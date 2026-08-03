@@ -1,6 +1,6 @@
 # sync-templates-to-db
 
-**Source**: `src/main/template/sync-templates-to-db.js`
+**Source**: `src\main\template\sync-templates-to-db.js`
 
 ---
 

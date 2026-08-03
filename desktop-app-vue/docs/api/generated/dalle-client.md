@@ -1,6 +1,6 @@
 # dalle-client
 
-**Source**: `src/main/image-gen/dalle-client.js`
+**Source**: `src\main\image-gen\dalle-client.js`
 
 ---
 

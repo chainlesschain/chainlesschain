@@ -1,6 +1,6 @@
 # external-wallet-connector
 
-**Source**: `src/main/blockchain/external-wallet-connector.js`
+**Source**: `src\main\blockchain\external-wallet-connector.js`
 
 ---
 

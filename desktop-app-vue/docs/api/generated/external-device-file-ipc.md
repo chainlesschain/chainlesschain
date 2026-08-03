@@ -1,6 +1,6 @@
 # external-device-file-ipc
 
-**Source**: `src/main/file/external-device-file-ipc.js`
+**Source**: `src\main\file\external-device-file-ipc.js`
 
 ---
 

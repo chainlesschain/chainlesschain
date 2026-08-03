@@ -1,6 +1,6 @@
 # version-manager.test
 
-**Source**: `src/main/knowledge/__tests__/version-manager.test.js`
+**Source**: `src\main\knowledge\__tests__\version-manager.test.js`
 
 ---
 

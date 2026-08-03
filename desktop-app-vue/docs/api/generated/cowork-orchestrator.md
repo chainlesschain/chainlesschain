@@ -1,6 +1,6 @@
 # cowork-orchestrator
 
-**Source**: `src/main/ai-engine/multi-agent/cowork-orchestrator.js`
+**Source**: `src\main\ai-engine\multi-agent\cowork-orchestrator.js`
 
 ---
 

@@ -1,6 +1,6 @@
 # speech-manager
 
-**Source**: `src/main/speech/speech-manager.js`
+**Source**: `src\main\speech\speech-manager.js`
 
 ---
 

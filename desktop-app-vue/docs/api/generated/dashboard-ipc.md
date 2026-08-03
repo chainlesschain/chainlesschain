@@ -1,6 +1,6 @@
 # dashboard-ipc
 
-**Source**: `src/main/organization/dashboard-ipc.js`
+**Source**: `src\main\organization\dashboard-ipc.js`
 
 ---
 

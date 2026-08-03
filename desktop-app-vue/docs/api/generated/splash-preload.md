@@ -1,6 +1,6 @@
 # splash-preload
 
-**Source**: `src/main/splash/splash-preload.js`
+**Source**: `src\main\splash\splash-preload.js`
 
 ---
 

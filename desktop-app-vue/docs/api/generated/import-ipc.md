@@ -1,6 +1,6 @@
 # import-ipc
 
-**Source**: `src/main/import/import-ipc.js`
+**Source**: `src\main\import\import-ipc.js`
 
 ---
 

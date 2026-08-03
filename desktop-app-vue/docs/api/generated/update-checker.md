@@ -1,6 +1,6 @@
 # update-checker
 
-**Source**: `src/main/system/update-checker.js`
+**Source**: `src\main\system\update-checker.js`
 
 ---
 

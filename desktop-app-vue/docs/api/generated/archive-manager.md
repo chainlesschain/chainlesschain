@@ -1,6 +1,6 @@
 # archive-manager
 
-**Source**: `src/main/archive/archive-manager.js`
+**Source**: `src\main\archive\archive-manager.js`
 
 ---
 
@@ -10,8 +10,8 @@
 const
 ```
 
-* 压缩包管理器
- * 支持 ZIP, RAR, 7Z 格式的预览和提取
+- 压缩包管理器
+- 支持 ZIP, RAR, 7Z 格式的预览和提取
 
 ---
 
@@ -21,7 +21,7 @@ const
 async ensureTempDir()
 ```
 
-* 确保临时目录存在
+- 确保临时目录存在
 
 ---
 
@@ -31,9 +31,9 @@ async ensureTempDir()
 async listContents(archivePath)
 ```
 
-* 列出压缩包内容
-   * @param {string} archivePath - 压缩包路径
-   * @returns {Promise<Array>} 文件列表
+- 列出压缩包内容
+  - @param {string} archivePath - 压缩包路径
+  - @returns {Promise<Array>} 文件列表
 
 ---
 
@@ -43,7 +43,7 @@ async listContents(archivePath)
 async listZipContents(zipPath)
 ```
 
-* 列出ZIP内容
+- 列出ZIP内容
 
 ---
 
@@ -53,7 +53,7 @@ async listZipContents(zipPath)
 async list7zContents(archivePath)
 ```
 
-* 列出7Z内容
+- 列出7Z内容
 
 ---
 
@@ -63,7 +63,7 @@ async list7zContents(archivePath)
 async listRarContents(rarPath)
 ```
 
-* 列出RAR内容（使用7z）
+- 列出RAR内容（使用7z）
 
 ---
 
@@ -73,10 +73,10 @@ async listRarContents(rarPath)
 async extractFile(archivePath, filePath)
 ```
 
-* 提取单个文件到临时目录
-   * @param {string} archivePath - 压缩包路径
-   * @param {string} filePath - 文件在压缩包内的路径
-   * @returns {Promise<string>} 提取后的文件路径
+- 提取单个文件到临时目录
+  - @param {string} archivePath - 压缩包路径
+  - @param {string} filePath - 文件在压缩包内的路径
+  - @returns {Promise<string>} 提取后的文件路径
 
 ---
 
@@ -86,7 +86,7 @@ async extractFile(archivePath, filePath)
 async extractZipFile(zipPath, filePath, outputPath)
 ```
 
-* 从ZIP提取文件
+- 从ZIP提取文件
 
 ---
 
@@ -96,7 +96,7 @@ async extractZipFile(zipPath, filePath, outputPath)
 async extract7zFile(archivePath, filePath, outputPath)
 ```
 
-* 从7Z/RAR提取文件
+- 从7Z/RAR提取文件
 
 ---
 
@@ -106,39 +106,39 @@ async extract7zFile(archivePath, filePath, outputPath)
 async getArchiveInfo(archivePath)
 ```
 
-* 获取压缩包信息
-   * @param {string} archivePath - 压缩包路径
-   * @returns {Promise<Object>} 压缩包信息
+- 获取压缩包信息
+  - @param {string} archivePath - 压缩包路径
+  - @returns {Promise<Object>} 压缩包信息
 
 ---
 
 ## buildTree(flatList)
 
 ```javascript
-buildTree(flatList)
+buildTree(flatList);
 ```
 
-* 构建文件树结构
+- 构建文件树结构
 
 ---
 
 ## getFileType(fileName)
 
 ```javascript
-getFileType(fileName)
+getFileType(fileName);
 ```
 
-* 获取文件类型
+- 获取文件类型
 
 ---
 
 ## get7zBinary()
 
 ```javascript
-get7zBinary()
+get7zBinary();
 ```
 
-* 获取7z二进制路径
+- 获取7z二进制路径
 
 ---
 
@@ -148,7 +148,6 @@ get7zBinary()
 async cleanup()
 ```
 
-* 清理临时文件
+- 清理临时文件
 
 ---
-

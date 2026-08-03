@@ -1,6 +1,6 @@
 # git-manager
 
-**Source**: `src/main/git/git-manager.js`
+**Source**: `src\main\git\git-manager.js`
 
 ---
 

@@ -1,6 +1,6 @@
 # file-sync-protocols
 
-**Source**: `src/main/p2p/file-sync-protocols.js`
+**Source**: `src\main\p2p\file-sync-protocols.js`
 
 ---
 

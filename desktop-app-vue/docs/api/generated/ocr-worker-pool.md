@@ -1,6 +1,6 @@
 # ocr-worker-pool
 
-**Source**: `src/main/image/ocr-worker-pool.js`
+**Source**: `src\main\image\ocr-worker-pool.js`
 
 ---
 

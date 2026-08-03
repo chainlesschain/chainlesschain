@@ -1,6 +1,6 @@
 # blockchain-adapter
 
-**Source**: `src/main/blockchain/blockchain-adapter.js`
+**Source**: `src\main\blockchain\blockchain-adapter.js`
 
 ---
 

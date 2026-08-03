@@ -1,6 +1,6 @@
 # streaming-response
 
-**Source**: `src/main/ai-engine/streaming-response.js`
+**Source**: `src\main\ai-engine\streaming-response.js`
 
 ---
 

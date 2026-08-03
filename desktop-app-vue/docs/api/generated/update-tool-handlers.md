@@ -1,6 +1,6 @@
 # update-tool-handlers
 
-**Source**: `src/main/skill-tool-system/update-tool-handlers.js`
+**Source**: `src\main\skill-tool-system\update-tool-handlers.js`
 
 ---
 

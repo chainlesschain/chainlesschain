@@ -1,6 +1,6 @@
 # builtin-skills
 
-**Source**: `src/main/skill-tool-system/builtin-skills.js`
+**Source**: `src\main\skill-tool-system\builtin-skills.js`
 
 ---
 

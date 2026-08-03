@@ -1,6 +1,6 @@
 # semver-utils
 
-**Source**: `src/main/plugins/semver-utils.js`
+**Source**: `src\main\plugins\semver-utils.js`
 
 ---
 

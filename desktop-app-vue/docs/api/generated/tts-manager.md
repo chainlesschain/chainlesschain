@@ -1,6 +1,6 @@
 # tts-manager
 
-**Source**: `src/main/speech/tts-manager.js`
+**Source**: `src\main\speech\tts-manager.js`
 
 ---
 

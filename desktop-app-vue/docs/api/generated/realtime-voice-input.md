@@ -1,6 +1,6 @@
 # realtime-voice-input
 
-**Source**: `src/main/speech/realtime-voice-input.js`
+**Source**: `src\main\speech\realtime-voice-input.js`
 
 ---
 

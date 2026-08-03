@@ -1,6 +1,6 @@
 # retry-policy
 
-**Source**: `src/main/sync/retry-policy.js`
+**Source**: `src\main\sync\retry-policy.js`
 
 ---
 

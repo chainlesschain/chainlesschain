@@ -1,6 +1,6 @@
 # image-storage
 
-**Source**: `src/main/image/image-storage.js`
+**Source**: `src\main\image\image-storage.js`
 
 ---
 

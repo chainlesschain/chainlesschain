@@ -1,6 +1,6 @@
 # knowledge-comments-manager
 
-**Source**: `src/main/knowledge/knowledge-comments-manager.js`
+**Source**: `src\main\knowledge\knowledge-comments-manager.js`
 
 ---
 

@@ -1,6 +1,6 @@
 # settings-manager
 
-**Source**: `src/main/config/settings-manager.js`
+**Source**: `src\main\config\settings-manager.js`
 
 ---
 

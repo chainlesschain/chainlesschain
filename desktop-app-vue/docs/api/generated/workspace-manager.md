@@ -1,6 +1,6 @@
 # workspace-manager
 
-**Source**: `src/main/workspace/workspace-manager.js`
+**Source**: `src\main\workspace\workspace-manager.js`
 
 ---
 

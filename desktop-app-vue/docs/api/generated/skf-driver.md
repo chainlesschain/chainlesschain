@@ -1,6 +1,6 @@
 # skf-driver
 
-**Source**: `src/main/ukey/skf-driver.js`
+**Source**: `src\main\ukey\skf-driver.js`
 
 ---
 

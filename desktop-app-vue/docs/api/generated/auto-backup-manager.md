@@ -1,6 +1,6 @@
 # auto-backup-manager
 
-**Source**: `src/main/memory/auto-backup-manager.js`
+**Source**: `src\main\memory\auto-backup-manager.js`
 
 ---
 
@@ -10,17 +10,17 @@
 const
 ```
 
-* AutoBackupManager - Automatic Backup Management
- *
- * Provides automatic backup functionality for memory system data:
- * - Full and incremental backups
- * - Scheduled backup execution
- * - Backup retention and cleanup
- * - Backup restoration
- *
- * @module auto-backup-manager
- * @version 1.0.0
- * @since 2026-01-18
+- AutoBackupManager - Automatic Backup Management
+-
+- Provides automatic backup functionality for memory system data:
+- - Full and incremental backups
+- - Scheduled backup execution
+- - Backup retention and cleanup
+- - Backup restoration
+-
+- @module auto-backup-manager
+- @version 1.0.0
+- @since 2026-01-18
 
 ---
 
@@ -30,7 +30,7 @@ const
 class AutoBackupManager extends EventEmitter
 ```
 
-* AutoBackupManager class
+- AutoBackupManager class
 
 ---
 
@@ -40,11 +40,11 @@ class AutoBackupManager extends EventEmitter
 constructor(options =
 ```
 
-* Create an AutoBackupManager instance
-   * @param {Object} options - Configuration options
-   * @param {Object} options.database - SQLite database instance
-   * @param {string} options.backupsDir - Directory for backup files
-   * @param {Object} [options.configManager] - UnifiedConfigManager instance
+- Create an AutoBackupManager instance
+  - @param {Object} options - Configuration options
+  - @param {Object} options.database - SQLite database instance
+  - @param {string} options.backupsDir - Directory for backup files
+  - @param {Object} [options.configManager] - UnifiedConfigManager instance
 
 ---
 
@@ -54,7 +54,7 @@ constructor(options =
 async initialize()
 ```
 
-* Initialize the manager
+- Initialize the manager
 
 ---
 
@@ -64,8 +64,8 @@ async initialize()
 async _ensureTables()
 ```
 
-* Ensure database tables exist
-   * @private
+- Ensure database tables exist
+  - @private
 
 ---
 
@@ -75,29 +75,29 @@ async _ensureTables()
 async _initializeManifest()
 ```
 
-* Initialize manifest file
-   * @private
+- Initialize manifest file
+  - @private
 
 ---
 
 ## _startScheduleChecker()
 
 ```javascript
-_startScheduleChecker()
+_startScheduleChecker();
 ```
 
-* Start schedule checker
-   * @private
+- Start schedule checker
+  - @private
 
 ---
 
 ## stopScheduleChecker()
 
 ```javascript
-stopScheduleChecker()
+stopScheduleChecker();
 ```
 
-* Stop schedule checker
+- Stop schedule checker
 
 ---
 
@@ -107,21 +107,21 @@ stopScheduleChecker()
 async _checkAndRunSchedules()
 ```
 
-* Check and run due schedules
-   * @private
+- Check and run due schedules
+  - @private
 
 ---
 
 ## _calculateNextRun(schedule)
 
 ```javascript
-_calculateNextRun(schedule)
+_calculateNextRun(schedule);
 ```
 
-* Calculate next run time for a schedule
-   * @param {Object} schedule - Schedule config
-   * @returns {number} Next run timestamp
-   * @private
+- Calculate next run time for a schedule
+  - @param {Object} schedule - Schedule config
+  - @returns {number} Next run timestamp
+  - @private
 
 ---
 
@@ -131,9 +131,9 @@ _calculateNextRun(schedule)
 async createFullBackup(scope = "all")
 ```
 
-* Create a full backup
-   * @param {string} scope - Backup scope ('patterns', 'preferences', 'sessions', 'all')
-   * @returns {Promise<Object>} Backup result
+- Create a full backup
+  - @param {string} scope - Backup scope ('patterns', 'preferences', 'sessions', 'all')
+  - @returns {Promise<Object>} Backup result
 
 ---
 
@@ -143,9 +143,9 @@ async createFullBackup(scope = "all")
 async createIncrementalBackup(scope = "all")
 ```
 
-* Create an incremental backup
-   * @param {string} scope - Backup scope
-   * @returns {Promise<Object>} Backup result
+- Create an incremental backup
+  - @param {string} scope - Backup scope
+  - @returns {Promise<Object>} Backup result
 
 ---
 
@@ -155,9 +155,9 @@ async createIncrementalBackup(scope = "all")
 async configureSchedule(config)
 ```
 
-* Configure a backup schedule
-   * @param {Object} config - Schedule configuration
-   * @returns {Promise<Object>} Created schedule
+- Configure a backup schedule
+  - @param {Object} config - Schedule configuration
+  - @returns {Promise<Object>} Created schedule
 
 ---
 
@@ -167,10 +167,10 @@ async configureSchedule(config)
 async updateSchedule(id, updates)
 ```
 
-* Update a backup schedule
-   * @param {string} id - Schedule ID
-   * @param {Object} updates - Updates to apply
-   * @returns {Promise<Object>} Updated schedule
+- Update a backup schedule
+  - @param {string} id - Schedule ID
+  - @param {Object} updates - Updates to apply
+  - @returns {Promise<Object>} Updated schedule
 
 ---
 
@@ -180,8 +180,8 @@ async updateSchedule(id, updates)
 async deleteSchedule(id)
 ```
 
-* Delete a backup schedule
-   * @param {string} id - Schedule ID
+- Delete a backup schedule
+  - @param {string} id - Schedule ID
 
 ---
 
@@ -191,8 +191,8 @@ async deleteSchedule(id)
 async getSchedules()
 ```
 
-* Get all schedules
-   * @returns {Promise<Array>} List of schedules
+- Get all schedules
+  - @returns {Promise<Array>} List of schedules
 
 ---
 
@@ -202,10 +202,10 @@ async getSchedules()
 async restoreFromBackup(backupId, options =
 ```
 
-* Restore from backup
-   * @param {string} backupId - Backup ID to restore from
-   * @param {Object} options - Restore options
-   * @returns {Promise<Object>} Restore result
+- Restore from backup
+  - @param {string} backupId - Backup ID to restore from
+  - @param {Object} options - Restore options
+  - @returns {Promise<Object>} Restore result
 
 ---
 
@@ -215,8 +215,8 @@ async restoreFromBackup(backupId, options =
 async _restoreFullBackup(backupData, options =
 ```
 
-* Restore from full backup
-   * @private
+- Restore from full backup
+  - @private
 
 ---
 
@@ -226,8 +226,8 @@ async _restoreFullBackup(backupData, options =
 async _restoreIncrementalBackup(backupData, backup, options =
 ```
 
-* Restore from incremental backup
-   * @private
+- Restore from incremental backup
+  - @private
 
 ---
 
@@ -237,9 +237,9 @@ async _restoreIncrementalBackup(backupData, backup, options =
 async _cleanupOldBackups(schedule)
 ```
 
-* Cleanup old backups based on retention policy
-   * @param {Object} schedule - Schedule with retention settings
-   * @private
+- Cleanup old backups based on retention policy
+  - @param {Object} schedule - Schedule with retention settings
+  - @private
 
 ---
 
@@ -249,8 +249,8 @@ async _cleanupOldBackups(schedule)
 async deleteBackup(backupId)
 ```
 
-* Delete a backup
-   * @param {string} backupId - Backup ID
+- Delete a backup
+  - @param {string} backupId - Backup ID
 
 ---
 
@@ -260,9 +260,9 @@ async deleteBackup(backupId)
 async getBackupHistory(options =
 ```
 
-* Get backup history
-   * @param {Object} options - Query options
-   * @returns {Promise<Array>} Backup history
+- Get backup history
+  - @param {Object} options - Query options
+  - @returns {Promise<Array>} Backup history
 
 ---
 
@@ -272,21 +272,21 @@ async getBackupHistory(options =
 async getStats()
 ```
 
-* Get backup statistics
-   * @returns {Promise<Object>} Backup statistics
+- Get backup statistics
+  - @returns {Promise<Object>} Backup statistics
 
 ---
 
 ## _getTablesForScope(scope)
 
 ```javascript
-_getTablesForScope(scope)
+_getTablesForScope(scope);
 ```
 
-* Get tables for a scope
-   * @param {string} scope - Backup scope
-   * @returns {string[]} Table names
-   * @private
+- Get tables for a scope
+  - @param {string} scope - Backup scope
+  - @returns {string[]} Table names
+  - @private
 
 ---
 
@@ -296,9 +296,8 @@ _getTablesForScope(scope)
 async _updateManifest(updates)
 ```
 
-* Update manifest file
-   * @param {Object} updates - Updates to apply
-   * @private
+- Update manifest file
+  - @param {Object} updates - Updates to apply
+  - @private
 
 ---
-

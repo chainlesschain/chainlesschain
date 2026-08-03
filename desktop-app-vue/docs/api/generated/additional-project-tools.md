@@ -1,6 +1,6 @@
 # additional-project-tools
 
-**Source**: `src/main/skill-tool-system/additional-project-tools.js`
+**Source**: `src\main\skill-tool-system\additional-project-tools.js`
 
 ---
 
@@ -10,8 +10,8 @@
 const projectTools = [
 ```
 
-* 项目初始化相关工具补充定义
- * 补充NPM、Python、Docker等项目初始化工具
+- 项目初始化相关工具补充定义
+- 补充NPM、Python、Docker等项目初始化工具
 
 ---
 
@@ -21,7 +21,7 @@ const projectTools = [
 id: 'tool_npm_project_setup',
 ```
 
-* NPM项目初始化工具
+- NPM项目初始化工具
 
 ---
 
@@ -31,7 +31,7 @@ id: 'tool_npm_project_setup',
 id: 'tool_package_json_builder',
 ```
 
-* package.json构建器
+- package.json构建器
 
 ---
 
@@ -41,7 +41,7 @@ id: 'tool_package_json_builder',
 id: 'tool_python_project_setup',
 ```
 
-* Python项目初始化工具
+- Python项目初始化工具
 
 ---
 
@@ -51,7 +51,7 @@ id: 'tool_python_project_setup',
 id: 'tool_requirements_generator',
 ```
 
-* requirements.txt生成器
+- requirements.txt生成器
 
 ---
 
@@ -61,7 +61,7 @@ id: 'tool_requirements_generator',
 id: 'tool_setup_py_generator',
 ```
 
-* setup.py生成器
+- setup.py生成器
 
 ---
 
@@ -71,7 +71,7 @@ id: 'tool_setup_py_generator',
 id: 'tool_dockerfile_generator',
 ```
 
-* Dockerfile生成器
+- Dockerfile生成器
 
 ---
 
@@ -81,7 +81,7 @@ id: 'tool_dockerfile_generator',
 id: 'tool_docker_compose_generator',
 ```
 
-* docker-compose.yml生成器
+- docker-compose.yml生成器
 
 ---
 
@@ -91,7 +91,7 @@ id: 'tool_docker_compose_generator',
 id: 'tool_gitignore_generator',
 ```
 
-* .gitignore生成器
+- .gitignore生成器
 
 ---
 
@@ -101,7 +101,6 @@ id: 'tool_gitignore_generator',
 id: 'tool_eslint_config_generator',
 ```
 
-* ESLint配置生成器
+- ESLint配置生成器
 
 ---
-

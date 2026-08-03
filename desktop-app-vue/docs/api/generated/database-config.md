@@ -1,6 +1,6 @@
 # database-config
 
-**Source**: `src/main/config/database-config.js`
+**Source**: `src\main\config\database-config.js`
 
 ---
 

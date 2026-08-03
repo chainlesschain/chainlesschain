@@ -1,6 +1,6 @@
 # transport-diagnostics
 
-**Source**: `src/main/p2p/transport-diagnostics.js`
+**Source**: `src\main\p2p\transport-diagnostics.js`
 
 ---
 

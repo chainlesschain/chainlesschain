@@ -1,6 +1,6 @@
 # web-search
 
-**Source**: `src/main/utils/web-search.js`
+**Source**: `src\main\utils\web-search.js`
 
 ---
 

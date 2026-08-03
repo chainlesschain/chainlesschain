@@ -1,6 +1,6 @@
 # category-ipc
 
-**Source**: `src/main/organization/category-ipc.js`
+**Source**: `src\main\organization\category-ipc.js`
 
 ---
 

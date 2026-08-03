@@ -1,6 +1,6 @@
 # memgpt-ipc
 
-**Source**: `src/main/memory/memgpt-ipc.js`
+**Source**: `src\main\memory\memgpt-ipc.js`
 
 ---
 

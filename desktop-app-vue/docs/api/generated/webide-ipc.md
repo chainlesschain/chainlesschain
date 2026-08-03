@@ -1,6 +1,6 @@
 # webide-ipc
 
-**Source**: `src/main/webide/webide-ipc.js`
+**Source**: `src\main\webide\webide-ipc.js`
 
 ---
 

@@ -1,6 +1,6 @@
 # marketplace-api
 
-**Source**: `src/main/plugins/marketplace-api.js`
+**Source**: `src\main\plugins\marketplace-api.js`
 
 ---
 

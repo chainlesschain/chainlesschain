@@ -1,6 +1,6 @@
 # response-parser
 
-**Source**: `src/main/ai-engine/response-parser.js`
+**Source**: `src\main\ai-engine\response-parser.js`
 
 ---
 

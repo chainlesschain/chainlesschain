@@ -1,6 +1,6 @@
 # file-transfer-handler
 
-**Source**: `src/main/remote/handlers/file-transfer-handler.js`
+**Source**: `src\main\remote\handlers\file-transfer-handler.js`
 
 ---
 

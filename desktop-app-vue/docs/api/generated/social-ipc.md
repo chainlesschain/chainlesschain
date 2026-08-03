@@ -1,6 +1,6 @@
 # social-ipc
 
-**Source**: `src/main/social/social-ipc.js`
+**Source**: `src\main\social\social-ipc.js`
 
 ---
 

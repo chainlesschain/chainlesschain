@@ -1,6 +1,6 @@
 # initial-setup-config
 
-**Source**: `src/main/config/initial-setup-config.js`
+**Source**: `src\main\config\initial-setup-config.js`
 
 ---
 

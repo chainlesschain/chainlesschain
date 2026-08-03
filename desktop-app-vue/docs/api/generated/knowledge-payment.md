@@ -1,6 +1,6 @@
 # knowledge-payment
 
-**Source**: `src/main/trade/knowledge-payment.js`
+**Source**: `src\main\trade\knowledge-payment.js`
 
 ---
 

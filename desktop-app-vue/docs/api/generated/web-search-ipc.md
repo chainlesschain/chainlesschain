@@ -1,6 +1,6 @@
 # web-search-ipc
 
-**Source**: `src/main/utils/web-search-ipc.js`
+**Source**: `src\main\utils\web-search-ipc.js`
 
 ---
 

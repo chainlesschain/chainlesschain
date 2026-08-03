@@ -1,6 +1,6 @@
 # global-shortcut-manager
 
-**Source**: `src/main/system/global-shortcut-manager.js`
+**Source**: `src\main\system\global-shortcut-manager.js`
 
 ---
 

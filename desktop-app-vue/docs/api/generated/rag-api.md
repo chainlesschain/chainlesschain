@@ -1,6 +1,6 @@
 # rag-api
 
-**Source**: `src/main/project/rag-api.js`
+**Source**: `src\main\project\rag-api.js`
 
 ---
 

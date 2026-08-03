@@ -1,6 +1,6 @@
 # graph-ipc
 
-**Source**: `src/main/knowledge-graph/graph-ipc.js`
+**Source**: `src\main\knowledge-graph\graph-ipc.js`
 
 ---
 

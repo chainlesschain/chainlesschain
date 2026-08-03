@@ -1,6 +1,6 @@
 # project-config
 
-**Source**: `src/main/project/project-config.js`
+**Source**: `src\main\project\project-config.js`
 
 ---
 

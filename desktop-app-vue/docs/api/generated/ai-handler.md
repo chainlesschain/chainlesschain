@@ -1,6 +1,6 @@
 # ai-handler
 
-**Source**: `src/main/remote/handlers/ai-handler.js`
+**Source**: `src\main\remote\handlers\ai-handler.js`
 
 ---
 
@@ -10,16 +10,16 @@
 const
 ```
 
-* AI 命令处理器
- *
- * 处理 AI 相关命令：
- * - ai.chat: AI 对话
- * - ai.getConversations: 查询对话历史
- * - ai.ragSearch: RAG 知识库搜索
- * - ai.controlAgent: 控制 AI Agent
- * - ai.getModels: 获取可用模型列表
- *
- * @module remote/handlers/ai-handler
+- AI 命令处理器
+-
+- 处理 AI 相关命令：
+- - ai.chat: AI 对话
+- - ai.getConversations: 查询对话历史
+- - ai.ragSearch: RAG 知识库搜索
+- - ai.controlAgent: 控制 AI Agent
+- - ai.getModels: 获取可用模型列表
+-
+- @module remote/handlers/ai-handler
 
 ---
 
@@ -29,10 +29,10 @@ const
 function safeParse(raw, fallback)
 ```
 
-* Tolerant JSON column parse — a single conversation/agent/template row with a
- * corrupt metadata/config/variables string must not throw out of the .map and
- * drop the whole list. The `x ? JSON.parse(x) : d` form it replaces only guarded
- * NULL, not a corrupt non-empty string.
+- Tolerant JSON column parse — a single conversation/agent/template row with a
+- corrupt metadata/config/variables string must not throw out of the .map and
+- drop the whole list. The `x ? JSON.parse(x) : d` form it replaces only guarded
+- NULL, not a corrupt non-empty string.
 
 ---
 
@@ -42,27 +42,27 @@ function safeParse(raw, fallback)
 class AICommandHandler
 ```
 
-* AI 命令处理器类
+- AI 命令处理器类
 
 ---
 
 ## _ensureSchema()
 
 ```javascript
-_ensureSchema()
+_ensureSchema();
 ```
 
-* 幂等建表 — ai_conversations + ai_messages。
-   * iOS Phase 5 Conversation/ChatMessage 字段对齐：
-   *   Conversation: id / title / model / messageCount / lastMessageAt / createdAt / archived
-   *   ChatMessage:  id / role (user|assistant|system) / content / createdAt / modelUsed / isStreaming
+- 幂等建表 — ai_conversations + ai_messages。
+  - iOS Phase 5 Conversation/ChatMessage 字段对齐：
+  - Conversation: id / title / model / messageCount / lastMessageAt / createdAt / archived
+  - ChatMessage: id / role (user|assistant|system) / content / createdAt / modelUsed / isStreaming
 
 ---
 
 ## _upsertConversation(conversationId, title, model, systemPrompt)
 
 ```javascript
-_upsertConversation(conversationId, title, model, systemPrompt)
+_upsertConversation(conversationId, title, model, systemPrompt);
 ```
 
 内部：upsert conversation + 自增 messageCount。
@@ -85,7 +85,7 @@ _insertMessage(
 async handle(action, params, context)
 ```
 
-* 处理命令（统一入口）
+- 处理命令（统一入口）
 
 ---
 
@@ -95,7 +95,7 @@ async handle(action, params, context)
 async chat(params, context)
 ```
 
-* AI 对话
+- AI 对话
 
 ---
 
@@ -105,7 +105,7 @@ async chat(params, context)
 async getConversations(params, context)
 ```
 
-* 查询对话历史
+- 查询对话历史
 
 ---
 
@@ -115,7 +115,7 @@ async getConversations(params, context)
 async ragSearch(params, context)
 ```
 
-* RAG 知识库搜索
+- RAG 知识库搜索
 
 ---
 
@@ -125,7 +125,7 @@ async ragSearch(params, context)
 async controlAgent(params, context)
 ```
 
-* 控制 AI Agent
+- 控制 AI Agent
 
 ---
 
@@ -135,7 +135,7 @@ async controlAgent(params, context)
 async getModels(params, context)
 ```
 
-* 获取可用模型列表
+- 获取可用模型列表
 
 ---
 
@@ -145,11 +145,10 @@ async getModels(params, context)
 async chatStream(params, context)
 ```
 
-* 启动流式 chat — Phase 5 iOS UI 核心 UX。
-   *
-   * 返 streamId 给 iOS；后续 iOS 通过 `getStreamChunk(streamId)` 轮询。
-   * 内部 Promise 异步驱动 LLMManager.chatStream，chunks 通过 callback 累
-   * 积进 activeStreams Map.[streamId].chunks。完成时设 done=true。
+- 启动流式 chat — Phase 5 iOS UI 核心 UX。*
+  - 返 streamId 给 iOS；后续 iOS 通过 `getStreamChunk(streamId)` 轮询。
+  - 内部 Promise 异步驱动 LLMManager.chatStream，chunks 通过 callback 累
+  - 积进 activeStreams Map.[streamId].chunks。完成时设 done=true。
 
 ---
 
@@ -159,9 +158,8 @@ async chatStream(params, context)
 async getStreamChunk(params, _context)
 ```
 
-* 拉 streamId 的 buffered chunks（自 sinceChunk 起）。
-   *
-   * iOS 端按 sinceChunk 递增轮询，桌面返新累积 chunks + isComplete + nextChunkIdx。
+- 拉 streamId 的 buffered chunks（自 sinceChunk 起）。*
+  - iOS 端按 sinceChunk 递增轮询，桌面返新累积 chunks + isComplete + nextChunkIdx。
 
 ---
 
@@ -241,8 +239,8 @@ async archiveConversation(params, _context)
 async searchConversations(params, _context)
 ```
 
-* 搜 conversation by title / 内容（messages.content LIKE）。
-   * archived 默认 false (排除归档)，传 true 仅在归档里找。
+- 搜 conversation by title / 内容（messages.content LIKE）。
+  - archived 默认 false (排除归档)，传 true 仅在归档里找。
 
 ---
 
@@ -252,7 +250,7 @@ async searchConversations(params, _context)
 async exportConversation(params, _context)
 ```
 
-* 导出 conversation 完整消息历史。format: markdown (default) / json。
+- 导出 conversation 完整消息历史。format: markdown (default) / json。
 
 ---
 
@@ -262,8 +260,8 @@ async exportConversation(params, _context)
 async savePromptTemplate(params, _context)
 ```
 
-* 创建或更新 prompt template (id 传入则 upsert，缺省自动生成新 id)。
-   * variables: 字符串数组，例 ["topic", "tone"] 表示模板含 {{topic}} / {{tone}} 占位。
+- 创建或更新 prompt template (id 传入则 upsert，缺省自动生成新 id)。
+  - variables: 字符串数组，例 ["topic", "tone"] 表示模板含 {{topic}} / {{tone}} 占位。
 
 ---
 
@@ -273,8 +271,8 @@ async savePromptTemplate(params, _context)
 async ragSearchAdvanced(params, _context)
 ```
 
-* 高级 RAG 检索：含 filters (metadata 过滤) / scoreThreshold (低分截断) / namespace 隔离。
-   * 若 ragManager.searchAdvanced 不存在，fallback 到普通 search 然后客户端侧过滤。
+- 高级 RAG 检索：含 filters (metadata 过滤) / scoreThreshold (低分截断) / namespace 隔离。
+  - 若 ragManager.searchAdvanced 不存在，fallback 到普通 search 然后客户端侧过滤。
 
 ---
 
@@ -294,8 +292,8 @@ async ragIndex(params, _context)
 async generateImage(params, _context)
 ```
 
-* 文本生图。aiEngine.generateImage(prompt, options) → { images, model }。
-   * options 含 size (e.g. "1024x1024") / n (生成张数) / model (engine id)。
+- 文本生图。aiEngine.generateImage(prompt, options) → { images, model }。
+  - options 含 size (e.g. "1024x1024") / n (生成张数) / model (engine id)。
 
 ---
 
@@ -305,8 +303,8 @@ async generateImage(params, _context)
 async ocrImage(params, _context)
 ```
 
-* OCR 图像文字识别。imageData (base64) 或 imagePath 二选一。
-   * aiEngine.ocrImage(imageOrPath, options) → { text, confidence, language }。
+- OCR 图像文字识别。imageData (base64) 或 imagePath 二选一。
+  - aiEngine.ocrImage(imageOrPath, options) → { text, confidence, language }。
 
 ---
 
@@ -316,7 +314,7 @@ async ocrImage(params, _context)
 async transcribeAudio(params, _context)
 ```
 
-* 音频转文字。audioData (base64) 或 audioPath 二选一。
+- 音频转文字。audioData (base64) 或 audioPath 二选一。
 
 ---
 
@@ -326,7 +324,7 @@ async transcribeAudio(params, _context)
 async textToSpeech(params, _context)
 ```
 
-* 文字转语音 (TTS)。返 base64 audio data + format。
+- 文字转语音 (TTS)。返 base64 audio data + format。
 
 ---
 
@@ -336,8 +334,8 @@ async textToSpeech(params, _context)
 async _chatOnce(systemPrompt, userPrompt, options =
 ```
 
-* 通用内部 helper — 用 aiEngine.chat 跑一次 system+user prompt 拿到 content。
-   * 4 个 code helper 都共用此模板，避免重复 chat 失败兜底逻辑。
+- 通用内部 helper — 用 aiEngine.chat 跑一次 system+user prompt 拿到 content。
+  - 4 个 code helper 都共用此模板，避免重复 chat 失败兜底逻辑。
 
 ---
 
@@ -387,8 +385,8 @@ async fixCode(params, _context)
 async runAgent(params, _context)
 ```
 
-* 跑指定 agent。input 是 agent 起始 prompt；options 可含 timeout / model / contextId。
-   * 返 runId 让 caller 可后续 stopAgent / 查询状态。
+- 跑指定 agent。input 是 agent 起始 prompt；options 可含 timeout / model / contextId。
+  - 返 runId 让 caller 可后续 stopAgent / 查询状态。
 
 ---
 
@@ -398,15 +396,14 @@ async runAgent(params, _context)
 async runAgentStream(params, _context)
 ```
 
-* 启动 agent 流式运行。返 `{streamId, agentId}`，iOS 端用既有 `getStreamChunk`
-   * 轮询 `activeStreams.get(streamId)` 看 chunks（与 chat stream 共用一套 Map +
-   * 协议；`getStreamChunk` / `cancelStream` 已是 streamId-agnostic）。
-   *
-   * agent manager 接口契约：必须 `agents.runStream(agentId, input, options, onChunk)`
-   * 或 `agents.run` 配合 onChunk callback。缺则 fallback 到非流式 `runAgent` 一次
-   * 性返回（iOS UI 会一次性显示）。
-   *
-   * **错误降级**：缺 manager → throw（mutating action 不能 silent）。
+- 启动 agent 流式运行。返 `{streamId, agentId}`，iOS 端用既有 `getStreamChunk`
+  - 轮询 `activeStreams.get(streamId)` 看 chunks（与 chat stream 共用一套 Map +
+  - 协议；`getStreamChunk` / `cancelStream` 已是 streamId-agnostic）。
+  -
+  - agent manager 接口契约：必须 `agents.runStream(agentId, input, options, onChunk)`
+  - 或 `agents.run` 配合 onChunk callback。缺则 fallback 到非流式 `runAgent` 一次
+  - 性返回（iOS UI 会一次性显示）。
+  -
+  - **错误降级**：缺 manager → throw（mutating action 不能 silent）。
 
 ---
-

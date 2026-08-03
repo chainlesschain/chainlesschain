@@ -1,6 +1,6 @@
 # friend-manager
 
-**Source**: `src/main/social/friend-manager.js`
+**Source**: `src\main\social\friend-manager.js`
 
 ---
 

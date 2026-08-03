@@ -1,6 +1,6 @@
 # memory-sync-service
 
-**Source**: `src/main/memory/memory-sync-service.js`
+**Source**: `src\main\memory\memory-sync-service.js`
 
 ---
 

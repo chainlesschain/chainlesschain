@@ -1,6 +1,6 @@
 # rss-fetcher
 
-**Source**: `src/main/api/rss-fetcher.js`
+**Source**: `src\main\api\rss-fetcher.js`
 
 ---
 

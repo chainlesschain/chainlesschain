@@ -1,6 +1,6 @@
 # stats-collector
 
-**Source**: `src/main/project/stats-collector.js`
+**Source**: `src\main\project\stats-collector.js`
 
 ---
 

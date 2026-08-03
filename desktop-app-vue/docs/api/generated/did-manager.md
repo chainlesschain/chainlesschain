@@ -1,6 +1,6 @@
 # did-manager
 
-**Source**: `src/main/did/did-manager.js`
+**Source**: `src\main\did\did-manager.js`
 
 ---
 

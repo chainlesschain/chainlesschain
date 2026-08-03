@@ -1,6 +1,6 @@
 # multi-intent-recognizer
 
-**Source**: `src/main/ai-engine/multi-intent-recognizer.js`
+**Source**: `src\main\ai-engine\multi-intent-recognizer.js`
 
 ---
 

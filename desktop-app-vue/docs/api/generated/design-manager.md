@@ -1,6 +1,6 @@
 # design-manager
 
-**Source**: `src/main/design/design-manager.js`
+**Source**: `src\main\design\design-manager.js`
 
 ---
 

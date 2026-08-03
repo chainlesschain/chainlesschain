@@ -1,6 +1,6 @@
 # blockchain-integration
 
-**Source**: `src/main/blockchain/blockchain-integration.js`
+**Source**: `src\main\blockchain\blockchain-integration.js`
 
 ---
 

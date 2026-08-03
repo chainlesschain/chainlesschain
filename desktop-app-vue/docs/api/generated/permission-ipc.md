@@ -1,6 +1,6 @@
 # permission-ipc
 
-**Source**: `src/main/organization/permission-ipc.js`
+**Source**: `src\main\organization\permission-ipc.js`
 
 ---
 

@@ -1,6 +1,6 @@
 # graph-extractor
 
-**Source**: `src/main/knowledge-graph/graph-extractor.js`
+**Source**: `src\main\knowledge-graph\graph-extractor.js`
 
 ---
 

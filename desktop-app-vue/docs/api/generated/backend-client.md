@@ -1,6 +1,6 @@
 # backend-client
 
-**Source**: `src/main/api/backend-client.js`
+**Source**: `src\main\api\backend-client.js`
 
 ---
 
@@ -10,8 +10,8 @@
 const
 ```
 
-* 后端API客户端
- * 封装与Java和Python后端服务的HTTP通信
+- 后端API客户端
+- 封装与Java和Python后端服务的HTTP通信
 
 ---
 
@@ -21,10 +21,10 @@ const
 let _javaClient = axios.create(
 ```
 
-* 创建axios实例
- *
- * Module-level `let` + seam for vi.mock CJS interop (RFC T1).
- * Tests inject fakes via `_setClientsForTesting({ java, python })`.
+- 创建axios实例
+-
+- Module-level `let` + seam for vi.mock CJS interop (RFC T1).
+- Tests inject fakes via `_setClientsForTesting({ java, python })`.
 
 ---
 
@@ -34,8 +34,8 @@ let _javaClient = axios.create(
 function handleError(error, context, silent = false)
 ```
 
-* 错误处理
- * @param {boolean} silent - 是否静默错误日志（不输出到控制台）
+- 错误处理
+- @param {boolean} silent - 是否静默错误日志（不输出到控制台）
 
 ---
 
@@ -45,7 +45,7 @@ function handleError(error, context, silent = false)
 class ProjectFileAPI
 ```
 
-* 项目文件管理API
+- 项目文件管理API
 
 ---
 
@@ -55,7 +55,7 @@ class ProjectFileAPI
 static async getFiles(
 ```
 
-* 获取文件列表
+- 获取文件列表
 
 ---
 
@@ -65,7 +65,7 @@ static async getFiles(
 static async getFile(projectId, fileId)
 ```
 
-* 获取单个文件详情
+- 获取单个文件详情
 
 ---
 
@@ -75,7 +75,7 @@ static async getFile(projectId, fileId)
 static async createFile(projectId, fileData)
 ```
 
-* 创建文件
+- 创建文件
 
 ---
 
@@ -85,7 +85,7 @@ static async createFile(projectId, fileData)
 static async batchCreateFiles(projectId, files)
 ```
 
-* 批量创建文件
+- 批量创建文件
 
 ---
 
@@ -95,7 +95,7 @@ static async batchCreateFiles(projectId, files)
 static async updateFile(projectId, fileId, fileData)
 ```
 
-* 更新文件
+- 更新文件
 
 ---
 
@@ -105,7 +105,7 @@ static async updateFile(projectId, fileId, fileData)
 static async deleteFile(projectId, fileId)
 ```
 
-* 删除文件
+- 删除文件
 
 ---
 
@@ -115,7 +115,7 @@ static async deleteFile(projectId, fileId)
 class GitAPI
 ```
 
-* Git操作API
+- Git操作API
 
 ---
 
@@ -125,7 +125,7 @@ class GitAPI
 static async init(repoPath, remoteUrl = null, branchName = "main")
 ```
 
-* 初始化仓库
+- 初始化仓库
 
 ---
 
@@ -135,7 +135,7 @@ static async init(repoPath, remoteUrl = null, branchName = "main")
 static async status(repoPath)
 ```
 
-* 获取状态
+- 获取状态
 
 ---
 
@@ -145,7 +145,7 @@ static async status(repoPath)
 static async commit(
 ```
 
-* 提交更改
+- 提交更改
 
 ---
 
@@ -155,7 +155,7 @@ static async commit(
 static async push(repoPath, remote = "origin", branch = null)
 ```
 
-* 推送到远程
+- 推送到远程
 
 ---
 
@@ -165,7 +165,7 @@ static async push(repoPath, remote = "origin", branch = null)
 static async pull(repoPath, remote = "origin", branch = null)
 ```
 
-* 从远程拉取
+- 从远程拉取
 
 ---
 
@@ -175,7 +175,7 @@ static async pull(repoPath, remote = "origin", branch = null)
 static async log(repoPath, limit = 20)
 ```
 
-* 获取提交历史
+- 获取提交历史
 
 ---
 
@@ -185,7 +185,7 @@ static async log(repoPath, limit = 20)
 static async diff(repoPath, commit1 = null, commit2 = null)
 ```
 
-* 获取差异
+- 获取差异
 
 ---
 
@@ -195,7 +195,7 @@ static async diff(repoPath, commit1 = null, commit2 = null)
 static async branches(repoPath)
 ```
 
-* 列出分支
+- 列出分支
 
 ---
 
@@ -205,7 +205,7 @@ static async branches(repoPath)
 static async createBranch(repoPath, branchName, fromBranch = null)
 ```
 
-* 创建分支
+- 创建分支
 
 ---
 
@@ -215,7 +215,7 @@ static async createBranch(repoPath, branchName, fromBranch = null)
 static async checkoutBranch(repoPath, branchName)
 ```
 
-* 切换分支
+- 切换分支
 
 ---
 
@@ -225,7 +225,7 @@ static async checkoutBranch(repoPath, branchName)
 static async merge(repoPath, sourceBranch, targetBranch = null)
 ```
 
-* 合并分支
+- 合并分支
 
 ---
 
@@ -235,7 +235,7 @@ static async merge(repoPath, sourceBranch, targetBranch = null)
 static async resolveConflicts(
 ```
 
-* 解决冲突
+- 解决冲突
 
 ---
 
@@ -245,7 +245,7 @@ static async resolveConflicts(
 static async generateCommitMessage(
 ```
 
-* AI生成提交消息
+- AI生成提交消息
 
 ---
 
@@ -255,7 +255,7 @@ static async generateCommitMessage(
 class RAGAPI
 ```
 
-* RAG索引API
+- RAG索引API
 
 ---
 
@@ -265,7 +265,7 @@ class RAGAPI
 static async indexProject(
 ```
 
-* 索引项目文件
+- 索引项目文件
 
 ---
 
@@ -275,7 +275,7 @@ static async indexProject(
 static async getIndexStats(projectId)
 ```
 
-* 获取索引统计
+- 获取索引统计
 
 ---
 
@@ -285,7 +285,7 @@ static async getIndexStats(projectId)
 static async enhancedQuery(
 ```
 
-* 增强查询
+- 增强查询
 
 ---
 
@@ -295,7 +295,7 @@ static async enhancedQuery(
 static async deleteProjectIndex(projectId)
 ```
 
-* 删除项目索引
+- 删除项目索引
 
 ---
 
@@ -305,7 +305,7 @@ static async deleteProjectIndex(projectId)
 static async updateFileIndex(projectId, filePath, content)
 ```
 
-* 更新单文件索引
+- 更新单文件索引
 
 ---
 
@@ -315,7 +315,7 @@ static async updateFileIndex(projectId, filePath, content)
 class CodeAPI
 ```
 
-* 代码助手API
+- 代码助手API
 
 ---
 
@@ -325,7 +325,7 @@ class CodeAPI
 static async generate(
 ```
 
-* 生成代码
+- 生成代码
 
 ---
 
@@ -335,7 +335,7 @@ static async generate(
 static async review(code, language, focusAreas = null)
 ```
 
-* 代码审查
+- 代码审查
 
 ---
 
@@ -345,7 +345,7 @@ static async review(code, language, focusAreas = null)
 static async refactor(
 ```
 
-* 代码重构
+- 代码重构
 
 ---
 
@@ -355,7 +355,7 @@ static async refactor(
 static async explain(code, language)
 ```
 
-* 代码解释
+- 代码解释
 
 ---
 
@@ -365,7 +365,7 @@ static async explain(code, language)
 static async fixBug(code, language, bugDescription = null)
 ```
 
-* 修复Bug
+- 修复Bug
 
 ---
 
@@ -375,7 +375,7 @@ static async fixBug(code, language, bugDescription = null)
 static async generateTests(code, language)
 ```
 
-* 生成单元测试
+- 生成单元测试
 
 ---
 
@@ -385,7 +385,6 @@ static async generateTests(code, language)
 static async optimize(code, language)
 ```
 
-* 性能优化
+- 性能优化
 
 ---
-

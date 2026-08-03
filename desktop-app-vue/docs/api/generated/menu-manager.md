@@ -1,6 +1,6 @@
 # menu-manager
 
-**Source**: `src/main/system/menu-manager.js`
+**Source**: `src\main\system\menu-manager.js`
 
 ---
 

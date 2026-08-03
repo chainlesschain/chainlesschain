@@ -1,6 +1,6 @@
 # subtitle-generator
 
-**Source**: `src/main/speech/subtitle-generator.js`
+**Source**: `src\main\speech\subtitle-generator.js`
 
 ---
 

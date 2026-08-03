@@ -1,6 +1,6 @@
 # mcp-security-policy
 
-**Source**: `src/main/mcp/mcp-security-policy.js`
+**Source**: `src\main\mcp\mcp-security-policy.js`
 
 ---
 

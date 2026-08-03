@@ -1,6 +1,6 @@
 # session-integration
 
-**Source**: `src/main/cowork/integrations/session-integration.js`
+**Source**: `src\main\cowork\integrations\session-integration.js`
 
 ---
 

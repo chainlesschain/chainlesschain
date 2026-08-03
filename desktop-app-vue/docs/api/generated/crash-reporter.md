@@ -1,6 +1,6 @@
 # crash-reporter
 
-**Source**: `src/main/monitoring/crash-reporter.js`
+**Source**: `src\main\monitoring\crash-reporter.js`
 
 ---
 

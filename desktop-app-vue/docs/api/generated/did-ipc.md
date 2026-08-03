@@ -1,6 +1,6 @@
 # did-ipc
 
-**Source**: `src/main/did/did-ipc.js`
+**Source**: `src\main\did\did-ipc.js`
 
 ---
 

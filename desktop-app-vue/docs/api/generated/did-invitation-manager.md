@@ -1,6 +1,6 @@
 # did-invitation-manager
 
-**Source**: `src/main/organization/did-invitation-manager.js`
+**Source**: `src\main\organization\did-invitation-manager.js`
 
 ---
 

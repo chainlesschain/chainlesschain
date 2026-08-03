@@ -1,6 +1,6 @@
 # notification-manager
 
-**Source**: `src/main/api/notification-manager.js`
+**Source**: `src\main\api\notification-manager.js`
 
 ---
 

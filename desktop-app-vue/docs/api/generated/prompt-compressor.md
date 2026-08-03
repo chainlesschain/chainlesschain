@@ -1,6 +1,6 @@
 # prompt-compressor
 
-**Source**: `src/main/llm/prompt-compressor.js`
+**Source**: `src\main\llm\prompt-compressor.js`
 
 ---
 

@@ -1,6 +1,6 @@
 # org-p2p-network
 
-**Source**: `src/main/organization/org-p2p-network.js`
+**Source**: `src\main\organization\org-p2p-network.js`
 
 ---
 

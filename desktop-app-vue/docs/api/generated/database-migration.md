@@ -1,6 +1,6 @@
 # database-migration
 
-**Source**: `src/main/database/database-migration.js`
+**Source**: `src\main\database\database-migration.js`
 
 ---
 

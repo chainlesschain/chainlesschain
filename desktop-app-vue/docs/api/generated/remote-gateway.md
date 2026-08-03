@@ -1,6 +1,6 @@
 # remote-gateway
 
-**Source**: `src/main/remote/remote-gateway.js`
+**Source**: `src\main\remote\remote-gateway.js`
 
 ---
 

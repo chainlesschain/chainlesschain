@@ -1,6 +1,6 @@
 # clipboard-manager
 
-**Source**: `src/main/browser/actions/clipboard-manager.js`
+**Source**: `src\main\browser\actions\clipboard-manager.js`
 
 ---
 

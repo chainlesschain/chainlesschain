@@ -1,6 +1,6 @@
 # image-engine
 
-**Source**: `src/main/engines/image-engine.js`
+**Source**: `src\main\engines\image-engine.js`
 
 ---
 

@@ -1,6 +1,6 @@
 # large-file-reader
 
-**Source**: `src/main/file/large-file-reader.js`
+**Source**: `src\main\file\large-file-reader.js`
 
 ---
 

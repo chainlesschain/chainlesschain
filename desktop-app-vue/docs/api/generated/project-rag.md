@@ -1,6 +1,6 @@
 # project-rag
 
-**Source**: `src/main/project/project-rag.js`
+**Source**: `src\main\project\project-rag.js`
 
 ---
 

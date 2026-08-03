@@ -1,6 +1,6 @@
 # data-exporter
 
-**Source**: `src/main/file/data-exporter.js`
+**Source**: `src\main\file\data-exporter.js`
 
 ---
 

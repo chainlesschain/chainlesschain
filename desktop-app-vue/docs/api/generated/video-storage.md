@@ -1,6 +1,6 @@
 # video-storage
 
-**Source**: `src/main/video/video-storage.js`
+**Source**: `src\main\video\video-storage.js`
 
 ---
 

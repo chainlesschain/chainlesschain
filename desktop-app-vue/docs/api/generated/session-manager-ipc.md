@@ -1,6 +1,6 @@
 # session-manager-ipc
 
-**Source**: `src/main/llm/session-manager-ipc.js`
+**Source**: `src\main\llm\session-manager-ipc.js`
 
 ---
 

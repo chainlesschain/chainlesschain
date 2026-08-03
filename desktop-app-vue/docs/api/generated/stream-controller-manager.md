@@ -1,6 +1,6 @@
 # stream-controller-manager
 
-**Source**: `src/main/conversation/stream-controller-manager.js`
+**Source**: `src\main\conversation\stream-controller-manager.js`
 
 ---
 

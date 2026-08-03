@@ -1,6 +1,6 @@
 # llm-ipc
 
-**Source**: `src/main/llm/llm-ipc.js`
+**Source**: `src\main\llm\llm-ipc.js`
 
 ---
 

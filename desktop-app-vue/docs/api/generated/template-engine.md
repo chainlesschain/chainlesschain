@@ -1,6 +1,6 @@
 # template-engine
 
-**Source**: `src/main/engines/template-engine.js`
+**Source**: `src\main\engines\template-engine.js`
 
 ---
 

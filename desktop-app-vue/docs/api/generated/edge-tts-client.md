@@ -1,6 +1,6 @@
 # edge-tts-client
 
-**Source**: `src/main/speech/edge-tts-client.js`
+**Source**: `src\main\speech\edge-tts-client.js`
 
 ---
 

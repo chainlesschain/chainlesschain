@@ -1,6 +1,6 @@
 # skill-tool-ipc
 
-**Source**: `src/main/skill-tool-system/skill-tool-ipc.js`
+**Source**: `src\main\skill-tool-system\skill-tool-ipc.js`
 
 ---
 

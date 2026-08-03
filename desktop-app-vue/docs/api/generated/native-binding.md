@@ -1,6 +1,6 @@
 # native-binding
 
-**Source**: `src/main/ukey/native-binding.js`
+**Source**: `src\main\ukey\native-binding.js`
 
 ---
 

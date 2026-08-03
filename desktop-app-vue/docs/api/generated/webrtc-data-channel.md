@@ -1,6 +1,6 @@
 # webrtc-data-channel
 
-**Source**: `src/main/p2p/webrtc-data-channel.js`
+**Source**: `src\main\p2p\webrtc-data-channel.js`
 
 ---
 

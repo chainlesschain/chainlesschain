@@ -1,6 +1,6 @@
 # tool-logger
 
-**Source**: `src/main/skill-tool-system/tool-logger.js`
+**Source**: `src\main\skill-tool-system\tool-logger.js`
 
 ---
 

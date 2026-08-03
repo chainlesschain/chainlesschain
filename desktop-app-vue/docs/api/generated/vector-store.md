@@ -1,6 +1,6 @@
 # vector-store
 
-**Source**: `src/main/vector/vector-store.js`
+**Source**: `src\main\vector\vector-store.js`
 
 ---
 

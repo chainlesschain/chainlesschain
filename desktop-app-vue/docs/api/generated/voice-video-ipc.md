@@ -1,6 +1,6 @@
 # voice-video-ipc
 
-**Source**: `src/main/p2p/voice-video-ipc.js`
+**Source**: `src\main\p2p\voice-video-ipc.js`
 
 ---
 

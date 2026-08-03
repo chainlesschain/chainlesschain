@@ -1,6 +1,6 @@
 # usage-report-generator-ipc
 
-**Source**: `src/main/memory/usage-report-generator-ipc.js`
+**Source**: `src\main\memory\usage-report-generator-ipc.js`
 
 ---
 

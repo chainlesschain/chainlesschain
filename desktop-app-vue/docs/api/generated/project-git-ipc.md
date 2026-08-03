@@ -1,6 +1,6 @@
 # project-git-ipc
 
-**Source**: `src/main/project/project-git-ipc.js`
+**Source**: `src\main\project\project-git-ipc.js`
 
 ---
 

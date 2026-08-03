@@ -1,6 +1,6 @@
 # self-correction-loop
 
-**Source**: `src/main/ai-engine/self-correction-loop.js`
+**Source**: `src\main\ai-engine\self-correction-loop.js`
 
 ---
 

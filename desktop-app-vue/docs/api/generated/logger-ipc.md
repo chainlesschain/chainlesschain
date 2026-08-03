@@ -1,6 +1,6 @@
 # logger-ipc
 
-**Source**: `src/main/ipc/logger-ipc.js`
+**Source**: `src\main\ipc\logger-ipc.js`
 
 ---
 

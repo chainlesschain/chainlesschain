@@ -1,6 +1,6 @@
 # command-router
 
-**Source**: `src/main/remote/command-router.js`
+**Source**: `src\main\remote\command-router.js`
 
 ---
 

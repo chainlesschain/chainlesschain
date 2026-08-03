@@ -1,6 +1,6 @@
 # image-gen-ipc
 
-**Source**: `src/main/image-gen/image-gen-ipc.js`
+**Source**: `src\main\image-gen\image-gen-ipc.js`
 
 ---
 

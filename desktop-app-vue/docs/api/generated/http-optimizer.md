@@ -1,6 +1,6 @@
 # http-optimizer
 
-**Source**: `src/main/utils/http-optimizer.js`
+**Source**: `src\main\utils\http-optimizer.js`
 
 ---
 

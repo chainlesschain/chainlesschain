@@ -1,6 +1,6 @@
 # group-chat-sync-manager
 
-**Source**: `src/main/sync/group-chat-sync-manager.js`
+**Source**: `src\main\sync\group-chat-sync-manager.js`
 
 ---
 

@@ -1,6 +1,6 @@
 # permission-gate
 
-**Source**: `src/main/remote/permission-gate.js`
+**Source**: `src\main\remote\permission-gate.js`
 
 ---
 

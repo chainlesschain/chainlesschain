@@ -1,6 +1,6 @@
 # memory-sync-ipc
 
-**Source**: `src/main/memory/memory-sync-ipc.js`
+**Source**: `src\main\memory\memory-sync-ipc.js`
 
 ---
 

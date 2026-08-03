@@ -1,6 +1,6 @@
 # dynamic-few-shot-learner
 
-**Source**: `src/main/ai-engine/dynamic-few-shot-learner.js`
+**Source**: `src\main\ai-engine\dynamic-few-shot-learner.js`
 
 ---
 
