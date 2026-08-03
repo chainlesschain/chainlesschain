@@ -75,8 +75,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   tarball and validates its CycloneDX package/version identity. Run
   `30799974832` exposed that the exact-SHA gate queried jobs with
   `filter=all`, so an earlier failed CLI CI attempt overrode the successful
-  rerun; it now verifies only GitHub's latest attempt. None of these runs
-  reached npm publication.
+  rerun; it now verifies only GitHub's latest attempt. The first `0.162.193`
+  candidate then exposed a recurring macOS two-process CAS race in run
+  `30800530258`: a cooperating owner could remove its lock between the
+  unlocked safety inspection steps, and the loser reported `LOCK_FAILED`
+  instead of reaching the serialized stale-head `CONFLICT`. Unlocked
+  pre/postflight inspection now retries that exact disappearance, while
+  owner-required critical-section checks still fail closed. Deterministic
+  directory/owner disappearance regressions, the full 105-test checkpoint
+  saga suite, and five repeated real-process CAS runs pass locally. None of
+  these runs reached npm publication.
 - **Release status**: `0.162.193` is not published. The exact
   version/changelog/fix commit must pass `CLI CI` and `CLI Strict Sandbox` on
   Ubuntu, Windows, and macOS, plus affected `Session Host Consistency`,
