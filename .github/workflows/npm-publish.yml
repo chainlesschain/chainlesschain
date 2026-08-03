@@ -7,571 +7,100 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Version to publish (e.g., 0.37.9). Leave empty to use package.json version."
+        description: 'Specific package, e.g. "chainlesschain@0.162.0" or "@chainlesschain/core-db@0.1.4". Leave empty to auto-detect changed packages.'
         required: false
         type: string
       dry-run:
-        description: "Dry run (npm publish --dry-run)"
+        description: "Dry run (npm publish --dry-run, no actual publish)"
+        required: false
+        type: boolean
+        default: false
+      force:
+        description: "Force publish even if version already exists on npm"
         required: false
         type: boolean
         default: false
 
+permissions:
+  contents: read
+  id-token: write
+
 jobs:
-  # Run tests before publishing
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v5
-        with:
-          node-version: "22.12.0"
-
-      - name: Install root dependencies (workspaces)
-        run: |
-          npm install --legacy-peer-deps
-          npm install @rollup/rollup-linux-x64-gnu --no-save --legacy-peer-deps || true
-
-      - name: Run core package tests
-        run: |
-          set -e
-          echo "=== core-env tests ==="
-          npm test --workspace=packages/core-env
-
-          echo "=== shared-logger tests ==="
-          npm test --workspace=packages/shared-logger
-
-          echo "=== core-config tests ==="
-          npm test --workspace=packages/core-config
-
-          echo "=== core-db tests ==="
-          npm test --workspace=packages/core-db
-
-          echo "=== core-infra tests ==="
-          npm test --workspace=packages/core-infra
-
-          echo "=== session-core tests ==="
-          npm test --workspace=packages/session-core
-
-          echo "=== core-mtc tests ==="
-          npm test --workspace=packages/core-mtc
-
-      - name: Run Agent SDK tests
-        working-directory: packages/agent-sdk
-        run: |
-          npm install --no-audit --no-fund
-          npm run build
-          npx vitest run
-
-      - name: Run Personal Data Hub tests
-        working-directory: packages/personal-data-hub
-        run: npm test
-
-      - name: Test and build the bundled Web Panel
-        working-directory: packages/web-panel
-        run: |
-          npm ci --legacy-peer-deps --no-audit --no-fund
-          npm run build
-          npm test -- --reporter=default --silent=passed-only
-
-      - name: Run CLI tests
-        working-directory: packages/cli
-        # Large suites can overwhelm Vitest's reporter RPC when every passing
-        # assertion is streamed. CI still runs the complete suite.
-        run: npx vitest run --silent=passed-only
-
-  exact-sha-gate:
-    if: ${{ inputs.dry-run != true }}
-    runs-on: ubuntu-latest
-    permissions:
-      actions: read
-      contents: read
-    steps:
-      - name: Checkout exact release commit
-        uses: actions/checkout@v5
-        with:
-          ref: ${{ github.sha }}
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v5
-        with:
-          node-version: "22.14.0"
-
-      - name: Verify CLI CI and CLI Strict Sandbox for exact SHA
-        run: node packages/cli/scripts/verify-release-gates.mjs
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          CC_RELEASE_GATE_OUTPUT: cli-release-gate.json
-          CC_RELEASE_GATE_WAIT_MS: "2700000"
-          CC_RELEASE_GATE_POLL_MS: "30000"
-
-      - name: Upload exact-SHA gate attestation
-        uses: actions/upload-artifact@v6
-        with:
-          name: cli-release-gate-${{ github.sha }}
-          path: cli-release-gate.json
-          if-no-files-found: error
-          retention-days: 90
-
-  package-cli:
-    needs: [test, exact-sha-gate]
-    if: ${{ needs.test.result == 'success' && needs.exact-sha-gate.result == 'success' }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout exact release commit
-        uses: actions/checkout@v5
-        with:
-          ref: ${{ github.sha }}
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v5
-        with:
-          node-version: "22.14.0"
-
-      - name: Install workspace dependencies
-        run: npm install --legacy-peer-deps
-
-      # npm pack does not run prepublishOnly. Build the generated payloads in
-      # this exact-SHA job so the immutable archive cannot inherit a tracked
-      # index.html whose Vite assets are absent from a clean checkout.
-      - name: Build CLI package assets before packing
-        working-directory: packages/cli
-        run: |
-          npm run commands:manifest:check
-          npm run commands:help-index:check
-          npm run commands:completions:check
-          npm run build:web-panel:force
-          npm run build:changelog
-
-      - name: Resolve and pack immutable CLI tarball
-        shell: bash
-        run: |
-          set -euo pipefail
-          VERSION="${{ inputs.version }}"
-          COMMITTED_VERSION=$(node -p "require('./packages/cli/package.json').version")
-          if [ -z "$VERSION" ]; then
-            VERSION="$COMMITTED_VERSION"
-          elif [ "$VERSION" != "$COMMITTED_VERSION" ]; then
-            echo "Requested version $VERSION differs from exact-SHA package version $COMMITTED_VERSION" >&2
-            exit 1
-          fi
-          mkdir -p release-artifacts
-          PACK_JSON=$(cd packages/cli && npm pack --json --pack-destination ../../release-artifacts)
-          TARBALL=$(node -e 'const x=JSON.parse(process.argv[1]); process.stdout.write(x[0].filename)' "$PACK_JSON")
-          TARBALL_PATH="release-artifacts/$TARBALL"
-          CC_RELEASE_VERSION="$VERSION" \
-          GITHUB_SHA="${{ github.sha }}" \
-          node packages/cli/scripts/npm-release-artifact.mjs create \
-            "$TARBALL_PATH" release-artifacts/chainlesschain-release.json
-
-      # The monorepo lock contains desktop/mobile peer graphs that are not part
-      # of the CLI tarball and make root-level `npm sbom --package-lock-only`
-      # fail with ESBOMPROBLEMS. Resolve an ignore-scripts lock from the exact
-      # immutable tarball instead, then validate that the CycloneDX root still
-      # names the release package/version before uploading it beside the
-      # tarball and release manifest.
-      - name: Generate CLI release SBOM from immutable tarball
-        shell: bash
-        run: |
-          set -euo pipefail
-          TARBALL=$(find release-artifacts -maxdepth 1 -name 'chainlesschain-*.tgz' -type f -print -quit)
-          test -n "$TARBALL"
-          VERSION=$(node -e 'process.stdout.write(JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")).version)' release-artifacts/chainlesschain-release.json)
-          SBOM_ROOT=$(mktemp -d)
-          trap 'rm -rf "$SBOM_ROOT"' EXIT
-          mkdir -p "$SBOM_ROOT/chainlesschain"
-          tar -xzf "$TARBALL" -C "$SBOM_ROOT/chainlesschain" --strip-components=1
-          (
-            cd "$SBOM_ROOT/chainlesschain"
-            npm install --package-lock-only --ignore-scripts --legacy-peer-deps --no-audit --no-fund
-            npm sbom --package-lock-only --sbom-format cyclonedx \
-              > "$GITHUB_WORKSPACE/release-artifacts/chainlesschain-sbom.cdx.json"
-          )
-          node -e '
-            const fs = require("fs");
-            const [path, version] = process.argv.slice(1);
-            const sbom = JSON.parse(fs.readFileSync(path, "utf8"));
-            const root = sbom?.metadata?.component;
-            if (sbom?.bomFormat !== "CycloneDX" || root?.name !== "chainlesschain" || root?.version !== version || root?.purl !== `pkg:npm/chainlesschain@${version}`) {
-              throw new Error("CLI release SBOM identity does not match immutable tarball");
-            }
-            if (!Array.isArray(sbom.components) || sbom.components.length === 0 || !Array.isArray(sbom.dependencies) || sbom.dependencies.length === 0) {
-              throw new Error("CLI release SBOM dependency graph is empty");
-            }
-          ' release-artifacts/chainlesschain-sbom.cdx.json "$VERSION"
-
-      - name: Upload immutable CLI release artifact
-        uses: actions/upload-artifact@v6
-        with:
-          name: chainlesschain-npm-${{ github.sha }}
-          path: release-artifacts/
-          if-no-files-found: error
-          retention-days: 90
-
-  dry-run:
-    if: ${{ inputs.dry-run == true }}
-    needs: [test]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version: "22.14.0"
-      - run: npm install --legacy-peer-deps
-      - name: Validate CLI package without publish credentials
-        working-directory: packages/cli
-        run: npm publish --dry-run
-
-  # Publish all packages in dependency order.
-  # NODE_AUTH_TOKEN is intentionally retained during the OIDC rollout. npm
-  # prefers Trusted Publishing and falls back to this token if OIDC is not yet
-  # configured for this workflow.
   publish:
-    needs: [test, exact-sha-gate, package-cli]
-    if: ${{ inputs.dry-run != true && needs.test.result == 'success' && needs.exact-sha-gate.result == 'success' && needs.package-cli.result == 'success' }}
+    name: Publish packages to npm
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
-      - name: Setup Node.js
+      - name: Setup Node.js 22
         uses: actions/setup-node@v5
         with:
-          # npm Trusted Publishing requires Node.js 22.14.0 or newer.
-          node-version: "22.14.0"
+          node-version: "22.x"
           registry-url: "https://registry.npmjs.org"
 
-      - name: Enable npm Trusted Publishing support
-        run: |
-          npm install --global npm@11.18.0
-          npm --version
+      - name: Install root dependencies
+        run: npm install --ignore-scripts
 
-      - name: Install root dependencies (workspaces)
-        run: |
-          npm install --legacy-peer-deps
-          npm install @rollup/rollup-linux-x64-gnu --no-save --legacy-peer-deps || true
+      - name: Detect packages to publish
+        id: detect
+        run: node scripts/ci/detect-publishable-packages.mjs
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          INPUT_FORCE: ${{ inputs.force }}
+          GITHUB_REF: ${{ github.ref }}
 
-      - name: Download exact verified CLI tarball
-        uses: actions/download-artifact@v6
-        with:
-          name: chainlesschain-npm-${{ github.sha }}
-          path: release-artifacts
+      - name: Build packages
+        if: steps.detect.outputs.has_packages == 'true'
+        run: npm run build --if-present
 
-      - name: Verify immutable CLI tarball before publishing
-        shell: bash
-        run: |
-          set -euo pipefail
-          TARBALL=$(find release-artifacts -maxdepth 1 -name 'chainlesschain-*.tgz' -type f -print -quit)
-          test -n "$TARBALL"
-          node packages/cli/scripts/npm-release-artifact.mjs verify \
-            "$TARBALL" release-artifacts/chainlesschain-release.json
-
-      - name: Resolve version
-        id: version
-        run: |
-          if [ -n "${{ inputs.version }}" ]; then
-            VERSION="${{ inputs.version }}"
-          else
-            VERSION=$(node -p "require('./packages/cli/package.json').version")
-          fi
-          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-          echo "Publishing version: $VERSION"
-
-      - name: Set publish command
-        id: publish-cmd
-        run: |
-          echo "FLAGS=--provenance --access public" >> $GITHUB_OUTPUT
-          echo "Mode: LIVE PUBLISH"
-
-      # Publish order respects dependency chain:
-      # 1. core-env (no deps)
-      # 2. shared-logger (-> core-env) + core-config (-> core-env)
-      # 3. core-db (-> core-env, core-config)
-      # 4. core-infra (-> shared-logger)
-      # 5. cli (-> all above)
-
-      - name: "Publish @chainlesschain/core-env"
-        working-directory: packages/core-env
-        run: |
-          PKG_VER=$(node -p "require('./package.json').version")
-          echo "target: @chainlesschain/core-env@$PKG_VER"
-          if [ "${{ inputs.dry-run }}" != "true" ] && npm view "@chainlesschain/core-env@$PKG_VER" version >/dev/null 2>&1; then
-            echo "Exact version already published, skipping"
-          else
-            npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
-          fi
+      - name: Publish packages in dependency order
+        if: steps.detect.outputs.has_packages == 'true'
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      # core-mtc has no internal deps — safe anywhere before cli
-      - name: "Publish @chainlesschain/core-mtc"
-        working-directory: packages/core-mtc
+          DRY_RUN: ${{ inputs.dry-run }}
         run: |
-          PKG_VER=$(node -p "require('./package.json').version")
-          echo "target: @chainlesschain/core-mtc@$PKG_VER"
-          if [ "${{ inputs.dry-run }}" != "true" ] && npm view "@chainlesschain/core-mtc@$PKG_VER" version >/dev/null 2>&1; then
-            echo "Exact version already published, skipping"
-          else
-            npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
-          fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          set -e
+          echo "=== Publish order ==="
+          cat .publish-order.txt
+          echo "====================="
 
-      # core-multisig -> core-mtc (published just above), @noble/*, canonicalize.
-      # Idempotent: skips when npm version already matches package.json.
-      - name: "Publish @chainlesschain/core-multisig"
-        working-directory: packages/core-multisig
-        run: |
-          PKG_VER=$(node -p "require('./package.json').version")
-          echo "target: @chainlesschain/core-multisig@$PKG_VER"
-          if [ "${{ inputs.dry-run }}" != "true" ] && npm view "@chainlesschain/core-multisig@$PKG_VER" version >/dev/null 2>&1; then
-            echo "Exact version already published, skipping"
-          else
-            npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
-          fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      # core-settlement -> core-mtc (published above), canonicalize. (devDep
-      # core-multisig is dev-only, not needed by consumers.) Idempotent.
-      - name: "Publish @chainlesschain/core-settlement"
-        working-directory: packages/core-settlement
-        run: |
-          PKG_VER=$(node -p "require('./package.json').version")
-          echo "target: @chainlesschain/core-settlement@$PKG_VER"
-          if [ "${{ inputs.dry-run }}" != "true" ] && npm view "@chainlesschain/core-settlement@$PKG_VER" version >/dev/null 2>&1; then
-            echo "Exact version already published, skipping"
-          else
-            npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
-          fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: "Publish @chainlesschain/shared-logger"
-        working-directory: packages/shared-logger
-        run: |
-          PKG_VER=$(node -p "require('./package.json').version")
-          echo "target: @chainlesschain/shared-logger@$PKG_VER"
-          if [ "${{ inputs.dry-run }}" != "true" ] && npm view "@chainlesschain/shared-logger@$PKG_VER" version >/dev/null 2>&1; then
-            echo "Exact version already published, skipping"
-          else
-            npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
-          fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: "Publish @chainlesschain/core-config"
-        working-directory: packages/core-config
-        run: |
-          PKG_VER=$(node -p "require('./package.json').version")
-          echo "target: @chainlesschain/core-config@$PKG_VER"
-          if [ "${{ inputs.dry-run }}" != "true" ] && npm view "@chainlesschain/core-config@$PKG_VER" version >/dev/null 2>&1; then
-            echo "Exact version already published, skipping"
-          else
-            npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
-          fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: "Publish @chainlesschain/core-db"
-        working-directory: packages/core-db
-        run: |
-          PKG_VER=$(node -p "require('./package.json').version")
-          echo "target: @chainlesschain/core-db@$PKG_VER"
-          if [ "${{ inputs.dry-run }}" != "true" ] && npm view "@chainlesschain/core-db@$PKG_VER" version >/dev/null 2>&1; then
-            echo "Exact version already published, skipping"
-          else
-            npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
-          fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: "Publish @chainlesschain/core-infra"
-        working-directory: packages/core-infra
-        run: |
-          PKG_VER=$(node -p "require('./package.json').version")
-          echo "target: @chainlesschain/core-infra@$PKG_VER"
-          if [ "${{ inputs.dry-run }}" != "true" ] && npm view "@chainlesschain/core-infra@$PKG_VER" version >/dev/null 2>&1; then
-            echo "Exact version already published, skipping"
-          else
-            npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
-          fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: "Publish @chainlesschain/session-core"
-        working-directory: packages/session-core
-        run: |
-          PKG_VER=$(node -p "require('./package.json').version")
-          echo "target: @chainlesschain/session-core@$PKG_VER"
-          if [ "${{ inputs.dry-run }}" != "true" ] && npm view "@chainlesschain/session-core@$PKG_VER" version >/dev/null 2>&1; then
-            echo "Exact version already published, skipping"
-          else
-            npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
-          fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      # Agent SDK — standalone package (NOT an npm workspace member), so it
-      # needs its own install; prepublishOnly runs the TypeScript dual build.
-      # No consumer pins it yet (VS Code vendors the build; web-panel aliases
-      # the TS source), so order relative to the CLI is free. Added 2026-07-09
-      # (platform phase 3 first publish).
-      - name: "Publish @chainlesschain/agent-sdk"
-        working-directory: packages/agent-sdk
-        run: |
-          PKG_VER=$(node -p "require('./package.json').version")
-          echo "target: @chainlesschain/agent-sdk@$PKG_VER"
-          if [ "${{ inputs.dry-run }}" != "true" ] && npm view "@chainlesschain/agent-sdk@$PKG_VER" version >/dev/null 2>&1; then
-            echo "Exact version already published, skipping"
-          elif [ "${{ inputs.dry-run }}" = "true" ]; then
-            # Validate the standalone package tarball without asking npm to
-            # publish an already-published scoped version.
-            npm install --no-audit --no-fund
-            npm run build
-            npm pack --dry-run
-          else
-            npm install --no-audit --no-fund
-            npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
-          fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      # Personal Data Hub — must publish before CLI: CLI's package.json pins
-      # a fixed version of this package, so a same-day CLI bump expects the
-      # new PDH version to already be on the registry. Added 2026-05-21
-      # alongside Plan A v0.1 system-data-android adapter.
-      - name: "Publish @chainlesschain/personal-data-hub"
-        working-directory: packages/personal-data-hub
-        run: |
-          PKG_VER=$(node -p "require('./package.json').version")
-          echo "target: @chainlesschain/personal-data-hub@$PKG_VER"
-          if [ "${{ inputs.dry-run }}" != "true" ] && npm view "@chainlesschain/personal-data-hub@$PKG_VER" version >/dev/null 2>&1; then
-            echo "Exact version already published, skipping"
-          else
-            npm publish ${{ steps.publish-cmd.outputs.FLAGS }}
-          fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: "Publish chainlesschain (CLI)"
-        shell: bash
-        run: |
-          set -euo pipefail
-          TARBALL=$(find release-artifacts -maxdepth 1 -name 'chainlesschain-*.tgz' -type f -print -quit)
-          MANIFEST=release-artifacts/chainlesschain-release.json
-          node packages/cli/scripts/npm-release-artifact.mjs verify "$TARBALL" "$MANIFEST"
-          PKG_VER=$(node -e 'process.stdout.write(JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")).version)' "$MANIFEST")
-          echo "target: chainlesschain@$PKG_VER"
-          if npm view "chainlesschain@$PKG_VER" version >/dev/null 2>&1; then
-            echo "Exact version already published; verifying registry bytes"
-          else
-            npm publish "$TARBALL" ${{ steps.publish-cmd.outputs.FLAGS }}
-          fi
-          mkdir -p registry-verify
-          npm pack "chainlesschain@$PKG_VER" --pack-destination registry-verify >/dev/null
-          REGISTRY_TARBALL=$(find registry-verify -maxdepth 1 -name 'chainlesschain-*.tgz' -type f -print -quit)
-          node packages/cli/scripts/npm-release-artifact.mjs verify "$REGISTRY_TARBALL" "$MANIFEST"
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Publish summary
-        run: |
-          VERSION="${{ steps.version.outputs.VERSION }}"
-          V_ENV=$(node -p "require('./packages/core-env/package.json').version")
-          V_MTC=$(node -p "require('./packages/core-mtc/package.json').version")
-          V_MULTISIG=$(node -p "require('./packages/core-multisig/package.json').version")
-          V_SETTLEMENT=$(node -p "require('./packages/core-settlement/package.json').version")
-          V_LOG=$(node -p "require('./packages/shared-logger/package.json').version")
-          V_CFG=$(node -p "require('./packages/core-config/package.json').version")
-          V_DB=$(node -p "require('./packages/core-db/package.json').version")
-          V_INF=$(node -p "require('./packages/core-infra/package.json').version")
-          V_SC=$(node -p "require('./packages/session-core/package.json').version")
-          V_AGENT=$(node -p "require('./packages/agent-sdk/package.json').version")
-          V_PDH=$(node -p "require('./packages/personal-data-hub/package.json').version")
-          {
-            echo "## Publish Summary"
+          while IFS= read -r pkg_dir; do
+            [ -z "$pkg_dir" ] && continue
             echo ""
-            echo "**Mode: LIVE (exact-SHA gated, immutable CLI tarball)**"
-            echo "**Release SHA:** \`${{ github.sha }}\`"
-            echo "**CLI tarball SHA-256:** \`$(node -p "require('./release-artifacts/chainlesschain-release.json').sha256")\`"
-            echo ""
-            echo "| Package | Version |"
-            echo "|---------|---------|"
-            echo "| @chainlesschain/core-env | $V_ENV |"
-            echo "| @chainlesschain/core-mtc | $V_MTC |"
-            echo "| @chainlesschain/core-multisig | $V_MULTISIG |"
-            echo "| @chainlesschain/core-settlement | $V_SETTLEMENT |"
-            echo "| @chainlesschain/shared-logger | $V_LOG |"
-            echo "| @chainlesschain/core-config | $V_CFG |"
-            echo "| @chainlesschain/core-db | $V_DB |"
-            echo "| @chainlesschain/core-infra | $V_INF |"
-            echo "| @chainlesschain/session-core | $V_SC |"
-            echo "| @chainlesschain/agent-sdk | $V_AGENT |"
-            echo "| @chainlesschain/personal-data-hub | $V_PDH |"
-            echo "| chainlesschain | $VERSION |"
-          } >> $GITHUB_STEP_SUMMARY
+            echo "▶ Publishing packages/$pkg_dir ..."
 
-      # Trigger npmmirror (cnpmcore) to sync each published package so its
-      # tarball is cached on cdn.npmmirror.com right away. The mirror lists
-      # new versions in metadata but lazily mirrors tarballs, so without an
-      # explicit sync mainland-China users (whose npm defaults to
-      # registry.npmmirror.com) hit E404 on tarball download — see issue #33
-      # (@chainlesschain/core-infra@0.1.0 tarball missing on the mirror).
-      #
-      # Best-effort by design: npmjs.org is the source of truth, so a slow or
-      # unreachable mirror must NOT fail the publish. Per-package outcomes are
-      # surfaced to the job summary (no continue-on-error masking — trap #30).
-      # cosmetic-green-ok: intentional best-effort, each result written to
-      # GITHUB_STEP_SUMMARY below.
-      - name: "Sync published packages to npmmirror"
-        if: ${{ inputs.dry-run != true }}
-        run: |
-          set +e
-          PKGS=(
-            "@chainlesschain/core-env"
-            "@chainlesschain/core-mtc"
-            "@chainlesschain/shared-logger"
-            "@chainlesschain/core-config"
-            "@chainlesschain/core-db"
-            "@chainlesschain/core-infra"
-            "@chainlesschain/core-multisig"
-            "@chainlesschain/core-settlement"
-            "@chainlesschain/session-core"
-            "@chainlesschain/agent-sdk"
-            "@chainlesschain/personal-data-hub"
-            "chainlesschain"
-          )
-          {
-            echo "## npmmirror sync"
-            echo ""
-            echo "| Package | Sync request |"
-            echo "|---------|--------------|"
-          } >> "$GITHUB_STEP_SUMMARY"
-          fail=0
-          for pkg in "${PKGS[@]}"; do
-            enc="${pkg//@/%40}"; enc="${enc//\//%2F}"
-            code=$(curl -s -o /tmp/mirror-sync.json -w "%{http_code}" -X PUT \
-              "https://registry.npmmirror.com/-/package/${enc}/syncs" \
-              -H "content-type: application/json" --max-time 30)
-            if [ "$code" = "201" ] || [ "$code" = "200" ]; then
-              echo "  OK   $pkg (HTTP $code) -> $(cat /tmp/mirror-sync.json)"
-              echo "| \`$pkg\` | ✅ queued (HTTP $code) |" >> "$GITHUB_STEP_SUMMARY"
+            PKG_NAME=$(node -p "require('./packages/$pkg_dir/package.json').name")
+            PKG_VER=$(node -p "require('./packages/$pkg_dir/package.json').version")
+            echo "  → $PKG_NAME@$PKG_VER"
+
+            if [ "$DRY_RUN" = "true" ]; then
+              (cd "packages/$pkg_dir" && npm publish --dry-run --access public) || { echo "  ✗ Dry-run failed for $PKG_NAME"; exit 1; }
+              echo "  ✓ Dry-run OK for $PKG_NAME@$PKG_VER"
             else
-              echo "  WARN $pkg sync request returned HTTP $code (mirror will lazy-sync on first install)"
-              echo "| \`$pkg\` | ⚠️ HTTP $code |" >> "$GITHUB_STEP_SUMMARY"
-              fail=1
+              (cd "packages/$pkg_dir" && npm publish --access public --provenance) || { echo "  ✗ Publish FAILED for $PKG_NAME"; exit 1; }
+              echo "  ✓ Published $PKG_NAME@$PKG_VER"
+              sleep 3  # allow registry propagation before next package installs it
             fi
-          done
-          if [ "$fail" = "1" ]; then
-            echo "::warning::One or more npmmirror sync requests did not return 2xx (best-effort; npmjs.org is authoritative)."
+          done < .publish-order.txt
+
+          echo ""
+          echo "=== All packages processed successfully ==="
+
+      - name: Job Summary
+        if: always()
+        run: |
+          echo "## npm Publish Result" >> $GITHUB_STEP_SUMMARY
+          if [ -f .publish-order.txt ] && [ -s .publish-order.txt ]; then
+            echo "### Published packages:" >> $GITHUB_STEP_SUMMARY
+            while IFS= read -r pkg_dir; do
+              [ -z "$pkg_dir" ] && continue
+              NAME=$(node -p "require('./packages/$pkg_dir/package.json').name")
+              VER=$(node -p "require('./packages/$pkg_dir/package.json').version")
+              echo "- \`$NAME@$VER\`" >> $GITHUB_STEP_SUMMARY
+            done < .publish-order.txt
+          else
+            echo "No packages needed publishing." >> $GITHUB_STEP_SUMMARY
           fi
-          # Best-effort: never fail the publish on mirror issues.
-          exit 0
