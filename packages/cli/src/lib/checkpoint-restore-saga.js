@@ -460,6 +460,10 @@ function isSagaError(error) {
   return error instanceof CheckpointRestoreSagaError;
 }
 
+function isMissingPathError(error) {
+  return error?.code === "ENOENT" || error?.cause?.code === "ENOENT";
+}
+
 function attachCommitState(error, details) {
   if (!error || typeof error !== "object") return error;
   for (const [key, value] of Object.entries(details)) {
@@ -1805,7 +1809,7 @@ export class CheckpointRestoreSagaStore {
       lockStat = this._fs.lstatSync(lockDirectory, { bigint: true });
       canonical = this._fs.realpathSync.native(lockDirectory);
     } catch (cause) {
-      if (cause?.code === "ENOENT" && !requireOwner) return null;
+      if (isMissingPathError(cause) && !requireOwner) return null;
       throw sagaError(
         CHECKPOINT_RESTORE_SAGA_ERROR_CODES.LOCK_FAILED,
         "Saga state lock owner is unavailable",
@@ -1834,6 +1838,11 @@ export class CheckpointRestoreSagaStore {
         "Saga state lock contains too many entries",
       );
     } catch (cause) {
+      // A cooperating owner can release the directory after the initial
+      // lstat/realpath inspection. Outside the critical section, disappearance
+      // is an ordinary acquisition race; withFileLock will re-establish and
+      // inspect the exact owner before running the callback.
+      if (isMissingPathError(cause) && !requireOwner) return null;
       throw sagaError(
         CHECKPOINT_RESTORE_SAGA_ERROR_CODES.LOCK_FAILED,
         "Saga state lock entries are unsafe",
@@ -1875,6 +1884,10 @@ export class CheckpointRestoreSagaStore {
       }
       owner = JSON.parse(this._readBoundedRegularFile(ownerPath));
     } catch (cause) {
+      // The same valid release can happen after readdir observed owner.json
+      // but before its lstat/read. Only tolerate absence during the unlocked
+      // pre/postflight inspection; losing our own owner still fails closed.
+      if (isMissingPathError(cause) && !requireOwner) return null;
       throw sagaError(
         CHECKPOINT_RESTORE_SAGA_ERROR_CODES.LOCK_FAILED,
         "Saga state lock owner is corrupt or unbounded",

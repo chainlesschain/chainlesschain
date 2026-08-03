@@ -3274,6 +3274,75 @@ describe("CheckpointRestoreSagaStore", () => {
     expect(testFixture.store.load(saga.operationId).seq).toBe(2);
   });
 
+  it.each(["directory entries", "owner file"])(
+    "retries when a valid lock disappears while inspecting %s",
+    (racePoint) => {
+      const testFixture = fixture();
+      const saga = testFixture.store.create({
+        operationId: `released_lock_${racePoint.replace(" ", "_")}`,
+      });
+      const lockDirectory = path.join(
+        testFixture.store.lockRoot,
+        `${saga.operationId}.lock`,
+      );
+      const ownerPath = path.join(lockDirectory, "owner.json");
+      fs.mkdirSync(lockDirectory);
+      fs.writeFileSync(
+        ownerPath,
+        JSON.stringify({
+          pid: process.pid,
+          startedAt: Date.now(),
+          token: VALID_UUID,
+        }),
+        { mode: 0o600 },
+      );
+
+      let released = false;
+      const racingFs = {
+        ...fs,
+        opendirSync(target, options) {
+          if (
+            !released &&
+            racePoint === "directory entries" &&
+            path.resolve(target) === path.resolve(lockDirectory)
+          ) {
+            released = true;
+            fs.rmSync(lockDirectory, { recursive: true, force: true });
+            const error = new Error("lock owner released before readdir");
+            error.code = "ENOENT";
+            throw error;
+          }
+          return fs.opendirSync(target, options);
+        },
+        lstatSync(target, options) {
+          if (
+            !released &&
+            racePoint === "owner file" &&
+            path.resolve(target) === path.resolve(ownerPath)
+          ) {
+            released = true;
+            fs.rmSync(lockDirectory, { recursive: true, force: true });
+            const error = new Error("lock owner released before lstat");
+            error.code = "ENOENT";
+            throw error;
+          }
+          return fs.lstatSync(target, options);
+        },
+      };
+      const peer = new CheckpointRestoreSagaStore({
+        workspaceRoot: testFixture.workspaceRoot,
+        stateDir: testFixture.baseStateDir,
+        fs: racingFs,
+        secureDirectory,
+        secureAuthorityPaths,
+      });
+
+      expect(peer.load(saga.operationId).headHash).toBe(saga.headHash);
+      expect(released).toBe(true);
+      expect(fs.existsSync(lockDirectory)).toBe(false);
+    },
+  );
+
   it("recovers a strict operation lock only after its exact owner is dead", () => {
     const testFixture = fixture({ lockTimeoutMs: 25, lockRetryMs: 1 });
     const saga = testFixture.store.create({ operationId: "dead_saga_lock" });
