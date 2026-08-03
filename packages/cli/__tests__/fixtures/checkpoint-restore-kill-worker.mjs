@@ -59,7 +59,13 @@ function preview(config, expectedIdentity = undefined) {
   );
 }
 
-function restore(config, expectedIdentity, expectedWorkspaceBinding, hooks) {
+function restore(
+  config,
+  expectedIdentity,
+  expectedWorkspaceBinding,
+  hooks,
+  holdAtBoundary,
+) {
   if (config.engine === "copy") {
     const result = copyCheckpoints.restoreCheckpoint(config.checkpointId, {
       root: config.checkpointStoreRoot,
@@ -67,6 +73,11 @@ function restore(config, expectedIdentity, expectedWorkspaceBinding, hooks) {
       expectedIdentity,
       expectedWorkspaceBinding,
       ...hooks,
+      onTargetPublished(evidence) {
+        if (evidence.index === 0) {
+          holdAtBoundary("first-target-published", evidence);
+        }
+      },
     });
     return {
       engine: "copy",
@@ -87,6 +98,10 @@ function restore(config, expectedIdentity, expectedWorkspaceBinding, hooks) {
       expectedIdentity,
       expectedWorkspaceBinding,
       ...hooks,
+      onWorkspaceApplied(evidence) {
+        holdAtBoundary("workspace-applied", evidence);
+        hooks.onWorkspaceApplied(evidence);
+      },
     },
   );
   return {
@@ -148,6 +163,60 @@ try {
     preview(config, config.checkpointIdentity),
   );
   const holdState = new Int32Array(new SharedArrayBuffer(4));
+  const mutationHoldBoundary =
+    config.engine === "copy"
+      ? "first-target-published"
+      : config.engine === "git"
+        ? "workspace-applied"
+        : null;
+  if (
+    !mutationHoldBoundary ||
+    !["completed-lock-held", mutationHoldBoundary].includes(config.holdBoundary)
+  ) {
+    throw new Error(
+      `checkpoint restore worker cannot hold ${config.engine} at ${config.holdBoundary}`,
+    );
+  }
+  let boundaryHeld = false;
+  const holdAtBoundary = (boundary, evidence) => {
+    if (boundary !== config.holdBoundary || boundaryHeld) return;
+    boundaryHeld = true;
+    const current = store.load(config.operationId);
+    const terminalBoundary = boundary === "completed-lock-held";
+    const expectedPhase = terminalBoundary ? "completed" : "mutation_started";
+    if (
+      current.phase !== expectedPhase ||
+      current.terminal !== terminalBoundary ||
+      current.pending === terminalBoundary
+    ) {
+      throw new Error(
+        `worker reached ${boundary} with saga ${current.phase}, not ${expectedPhase}`,
+      );
+    }
+    publishMarker(config.markerPath, {
+      ready: true,
+      blocked: true,
+      engine: config.engine,
+      operationId: config.operationId,
+      boundary,
+      boundaryEvidence: evidence,
+      phase: current.phase,
+      seq: current.seq,
+      headHash: current.headHash,
+      pid: process.pid,
+    });
+    if (typeof process.send === "function") {
+      process.send({
+        type: terminalBoundary
+          ? "checkpoint-restore-completed-lock-held"
+          : "checkpoint-restore-mutation-lock-held",
+        operationId: config.operationId,
+        boundary,
+        pid: process.pid,
+      });
+    }
+    Atomics.wait(holdState, 0, 0, config.holdTimeoutMs || 120_000);
+  };
 
   runCheckpointRestoreOperation({
     operationId: config.operationId,
@@ -155,7 +224,13 @@ try {
     revalidate: () =>
       buildPlan(config, preview(config, initialPlan.checkpointIdentity)),
     restore: ({ expectedIdentity, expectedWorkspaceBinding, hooks }) =>
-      restore(config, expectedIdentity, expectedWorkspaceBinding, hooks),
+      restore(
+        config,
+        expectedIdentity,
+        expectedWorkspaceBinding,
+        hooks,
+        holdAtBoundary,
+      ),
     dependencies: {
       createSagaStore: () => store,
       withWorkspaceLockSync: (options, callback) =>
@@ -169,30 +244,9 @@ try {
           },
           (lease) => {
             const result = callback(lease);
-            const completed = store.load(config.operationId);
-            if (!completed.terminal || completed.phase !== "completed") {
-              throw new Error(
-                `worker reached hold boundary at ${completed.phase}, not completed`,
-              );
-            }
-            publishMarker(config.markerPath, {
-              ready: true,
-              blocked: true,
-              engine: config.engine,
+            holdAtBoundary("completed-lock-held", {
               operationId: config.operationId,
-              phase: completed.phase,
-              seq: completed.seq,
-              headHash: completed.headHash,
-              pid: process.pid,
             });
-            if (typeof process.send === "function") {
-              process.send({
-                type: "checkpoint-restore-completed-lock-held",
-                operationId: config.operationId,
-                pid: process.pid,
-              });
-            }
-            Atomics.wait(holdState, 0, 0, config.holdTimeoutMs || 120_000);
             return result;
           },
         ),

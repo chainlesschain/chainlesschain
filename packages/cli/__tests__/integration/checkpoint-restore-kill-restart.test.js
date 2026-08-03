@@ -8,11 +8,16 @@ import {
   computeCheckpointIdentity,
   createCheckpoint as createCopyCheckpoint,
   diffCheckpoint as diffCopyCheckpoint,
+  executeCheckpointRollback as executeCopyCheckpointRollback,
+  prepareCheckpointRollback as prepareCopyCheckpointRollback,
 } from "../../src/lib/file-checkpoint.js";
 import {
   createCheckpoint as createGitCheckpoint,
+  executeCheckpointRollback as executeGitCheckpointRollback,
+  prepareCheckpointRollback as prepareGitCheckpointRollback,
   statusAgainst as statusAgainstGitCheckpoint,
 } from "../../src/lib/checkpoint-store.js";
+import { createCheckpointRestorePartialRollbackController } from "../../src/lib/checkpoint-restore-partial-rollback-controller.js";
 import {
   CheckpointRestoreSagaStore,
   CHECKPOINT_RESTORE_SAGA_ERROR_CODES,
@@ -109,7 +114,7 @@ function lockOptions(config) {
   };
 }
 
-function createScenario(engine) {
+function createScenario(engine, recoveryMode) {
   const root = fs.realpathSync.native(
     fs.mkdtempSync(path.join(os.tmpdir(), `cc-restore-kill-${engine}-`)),
   );
@@ -118,29 +123,45 @@ function createScenario(engine) {
   fs.mkdirSync(workspace);
   const workspaceRoot = fs.realpathSync.native(workspace);
   const targetPath = path.join(workspaceRoot, "target.txt");
-  const targetContents = `checkpoint-${engine}\n`;
-  fs.writeFileSync(targetPath, targetContents, "utf8");
+  const secondaryPath = path.join(workspaceRoot, "secondary.txt");
+  const safetyOnlyPath = path.join(workspaceRoot, "safety-only.txt");
+  const thirdPartyPath = path.join(workspaceRoot, "third-party.txt");
+  const checkpointTargetContents = `checkpoint-target-${engine}\n`;
+  const checkpointSecondaryContents = `checkpoint-secondary-${engine}\n`;
+  const preRestoreTargetContents = `pre-restore-target-${engine}\n`;
+  const preRestoreSecondaryContents = `pre-restore-secondary-${engine}\n`;
+  const safetyOnlyContents = `safety-only-${engine}\n`;
+  const thirdPartyContents = `third-party-stable-${engine}\n`;
+  fs.writeFileSync(targetPath, checkpointTargetContents, "utf8");
+  fs.writeFileSync(secondaryPath, checkpointSecondaryContents, "utf8");
+  fs.writeFileSync(thirdPartyPath, thirdPartyContents, "utf8");
 
   let checkpointId;
   let checkpointIdentity;
   let checkpointStoreRoot = null;
-  const checkpointNamespace = `kill-restart-${engine}`;
+  const checkpointNamespace =
+    engine === "git" ? `kill-restart-${engine}` : null;
   if (engine === "copy") {
     checkpointStoreRoot = path.join(root, "copy-checkpoints");
-    const checkpoint = createCopyCheckpoint(["target.txt"], {
+    const checkpoint = createCopyCheckpoint(["target.txt", "secondary.txt"], {
       cwd: workspaceRoot,
       root: checkpointStoreRoot,
       label: "cross-process target",
     });
     checkpointId = checkpoint.id;
     checkpointIdentity = computeCheckpointIdentity(checkpoint);
-    fs.writeFileSync(targetPath, "mutated-copy\n", "utf8");
   } else {
     runGit(workspaceRoot, ["init", "--quiet"]);
     runGit(workspaceRoot, ["config", "user.email", "fixture@example.invalid"]);
     runGit(workspaceRoot, ["config", "user.name", "Checkpoint Fixture"]);
     runGit(workspaceRoot, ["config", "core.autocrlf", "false"]);
-    runGit(workspaceRoot, ["add", "--", "target.txt"]);
+    runGit(workspaceRoot, [
+      "add",
+      "--",
+      "target.txt",
+      "secondary.txt",
+      "third-party.txt",
+    ]);
     runGit(workspaceRoot, ["commit", "--quiet", "-m", "target state"]);
     const checkpoint = createGitCheckpoint(workspaceRoot, {
       session: checkpointNamespace,
@@ -148,9 +169,10 @@ function createScenario(engine) {
     });
     checkpointId = checkpoint.id;
     checkpointIdentity = `git:${checkpoint.commit}`;
-    fs.writeFileSync(targetPath, "mutated-git\n", "utf8");
-    fs.writeFileSync(path.join(workspaceRoot, "extra.txt"), "remove me\n");
   }
+  fs.writeFileSync(targetPath, preRestoreTargetContents, "utf8");
+  fs.writeFileSync(secondaryPath, preRestoreSecondaryContents, "utf8");
+  fs.writeFileSync(safetyOnlyPath, safetyOnlyContents, "utf8");
 
   const operationId = `kill_restart_${engine}_${process.pid}_${Date.now()}`;
   return {
@@ -158,7 +180,15 @@ function createScenario(engine) {
     engine,
     workspaceRoot,
     targetPath,
-    targetContents,
+    secondaryPath,
+    safetyOnlyPath,
+    thirdPartyPath,
+    checkpointTargetContents,
+    checkpointSecondaryContents,
+    preRestoreTargetContents,
+    preRestoreSecondaryContents,
+    safetyOnlyContents,
+    thirdPartyContents,
     checkpointId,
     checkpointIdentity,
     checkpointNamespace,
@@ -166,7 +196,15 @@ function createScenario(engine) {
     operationId,
     sagaStateDir: path.join(root, "saga-state"),
     lockDir: path.join(root, "workspace-locks"),
-    markerPath: path.join(root, "completed-lock-held.json"),
+    markerPath: path.join(root, `${recoveryMode}-lock-held.json`),
+    holdBoundary:
+      recoveryMode === "terminal"
+        ? "completed-lock-held"
+        : engine === "copy"
+          ? "first-target-published"
+          : "workspace-applied",
+    expectedRolledBackCount: engine === "copy" ? 1 : 3,
+    originalMutationTargetCount: engine === "copy" ? 2 : 3,
     holdTimeoutMs: 120_000,
   };
 }
@@ -233,26 +271,66 @@ async function terminateWorker(record) {
   return bounded(record.exit, 10_000, "restore worker termination");
 }
 
-function assertExactWorkspace(config) {
-  expect(fs.readFileSync(config.targetPath, "utf8")).toBe(
-    config.targetContents,
+function assertThirdPartyUnchanged(config) {
+  expect(fs.readFileSync(config.thirdPartyPath, "utf8")).toBe(
+    config.thirdPartyContents,
   );
+}
+
+function assertCrashWorkspace(config, marker) {
+  assertThirdPartyUnchanged(config);
   if (config.engine === "copy") {
-    expect(fs.readdirSync(config.workspaceRoot).sort()).toEqual(["target.txt"]);
+    expect(marker.boundaryEvidence).toMatchObject({
+      index: 0,
+      operation: "write",
+      created: false,
+    });
+    const publishedPath = path.join(
+      config.workspaceRoot,
+      marker.boundaryEvidence.rel,
+    );
+    const publishedTarget =
+      publishedPath === config.targetPath
+        ? {
+            checkpoint: config.checkpointTargetContents,
+            otherPath: config.secondaryPath,
+            otherPreRestore: config.preRestoreSecondaryContents,
+          }
+        : publishedPath === config.secondaryPath
+          ? {
+              checkpoint: config.checkpointSecondaryContents,
+              otherPath: config.targetPath,
+              otherPreRestore: config.preRestoreTargetContents,
+            }
+          : null;
+    expect(publishedTarget).not.toBeNull();
+    expect(fs.readFileSync(publishedPath, "utf8")).toBe(
+      publishedTarget.checkpoint,
+    );
+    expect(fs.readFileSync(publishedTarget.otherPath, "utf8")).toBe(
+      publishedTarget.otherPreRestore,
+    );
+    expect(fs.readFileSync(config.safetyOnlyPath, "utf8")).toBe(
+      config.safetyOnlyContents,
+    );
     const status = diffCopyCheckpoint(config.checkpointId, {
       root: config.checkpointStoreRoot,
       cwd: config.workspaceRoot,
       expectedIdentity: config.checkpointIdentity,
     });
-    expect(status.modified).toEqual([]);
+    expect(status.modified).toEqual([path.basename(publishedTarget.otherPath)]);
     expect(status.deleted).toEqual([]);
-    expect(status.unchanged).toEqual(["target.txt"]);
+    expect(status.unchanged).toEqual([marker.boundaryEvidence.rel]);
     return;
   }
 
-  expect(fs.existsSync(path.join(config.workspaceRoot, "extra.txt"))).toBe(
-    false,
+  expect(fs.readFileSync(config.targetPath, "utf8")).toBe(
+    config.checkpointTargetContents,
   );
+  expect(fs.readFileSync(config.secondaryPath, "utf8")).toBe(
+    config.checkpointSecondaryContents,
+  );
+  expect(fs.existsSync(config.safetyOnlyPath)).toBe(false);
   const status = statusAgainstGitCheckpoint(
     config.workspaceRoot,
     config.checkpointId,
@@ -273,8 +351,107 @@ function assertExactWorkspace(config) {
   ).toBe("");
 }
 
-async function runKillRestartScenario(engine) {
-  const config = createScenario(engine);
+function assertCompletedWorkspace(config) {
+  expect(fs.readFileSync(config.targetPath, "utf8")).toBe(
+    config.checkpointTargetContents,
+  );
+  expect(fs.readFileSync(config.secondaryPath, "utf8")).toBe(
+    config.checkpointSecondaryContents,
+  );
+  assertThirdPartyUnchanged(config);
+
+  if (config.engine === "copy") {
+    expect(fs.readFileSync(config.safetyOnlyPath, "utf8")).toBe(
+      config.safetyOnlyContents,
+    );
+    const status = diffCopyCheckpoint(config.checkpointId, {
+      root: config.checkpointStoreRoot,
+      cwd: config.workspaceRoot,
+      expectedIdentity: config.checkpointIdentity,
+    });
+    expect(status.modified).toEqual([]);
+    expect(status.deleted).toEqual([]);
+    expect([...status.unchanged].sort()).toEqual([
+      "secondary.txt",
+      "target.txt",
+    ]);
+    return;
+  }
+
+  expect(fs.existsSync(config.safetyOnlyPath)).toBe(false);
+  const status = statusAgainstGitCheckpoint(
+    config.workspaceRoot,
+    config.checkpointId,
+    {
+      session: config.checkpointNamespace,
+      expectedIdentity: config.checkpointIdentity,
+    },
+  );
+  expect(status.modified).toEqual([]);
+  expect(status.added).toEqual([]);
+  expect(status.deleted).toEqual([]);
+  expect(
+    runGit(config.workspaceRoot, [
+      "status",
+      "--porcelain=v1",
+      "--untracked-files=all",
+    ]),
+  ).toBe("");
+}
+
+function assertSafetyWorkspace(config) {
+  expect(fs.readFileSync(config.targetPath, "utf8")).toBe(
+    config.preRestoreTargetContents,
+  );
+  expect(fs.readFileSync(config.targetPath, "utf8")).not.toBe(
+    config.checkpointTargetContents,
+  );
+  expect(fs.readFileSync(config.secondaryPath, "utf8")).toBe(
+    config.preRestoreSecondaryContents,
+  );
+  expect(fs.readFileSync(config.secondaryPath, "utf8")).not.toBe(
+    config.checkpointSecondaryContents,
+  );
+  expect(fs.readFileSync(config.safetyOnlyPath, "utf8")).toBe(
+    config.safetyOnlyContents,
+  );
+  assertThirdPartyUnchanged(config);
+
+  if (config.engine === "copy") {
+    expect(fs.readdirSync(config.workspaceRoot).sort()).toEqual([
+      "safety-only.txt",
+      "secondary.txt",
+      "target.txt",
+      "third-party.txt",
+    ]);
+    const status = diffCopyCheckpoint(config.checkpointId, {
+      root: config.checkpointStoreRoot,
+      cwd: config.workspaceRoot,
+      expectedIdentity: config.checkpointIdentity,
+    });
+    expect([...status.modified].sort()).toEqual([
+      "secondary.txt",
+      "target.txt",
+    ]);
+    expect(status.deleted).toEqual([]);
+    return;
+  }
+
+  const status = statusAgainstGitCheckpoint(
+    config.workspaceRoot,
+    config.checkpointId,
+    {
+      session: config.checkpointNamespace,
+      expectedIdentity: config.checkpointIdentity,
+    },
+  );
+  expect([...status.modified].sort()).toEqual(["secondary.txt", "target.txt"]);
+  expect(status.added).toEqual(["safety-only.txt"]);
+  expect(status.deleted).toEqual([]);
+}
+
+async function runTerminalKillRestartScenario(engine) {
+  const config = createScenario(engine, "terminal");
   const worker = spawnWorker(config);
   const marker = await waitForMarker(worker, config.markerPath);
   expect(marker).toMatchObject({
@@ -282,6 +459,7 @@ async function runKillRestartScenario(engine) {
     blocked: true,
     engine,
     operationId: config.operationId,
+    boundary: "completed-lock-held",
     phase: "completed",
     pid: worker.child.pid,
   });
@@ -303,13 +481,13 @@ async function runKillRestartScenario(engine) {
     transactionId: config.operationId,
     workspaceRoot: config.workspaceRoot,
   });
-  assertExactWorkspace(config);
+  assertCompletedWorkspace(config);
 
   expect(worker.child.kill("SIGKILL")).toBe(true);
   const killed = await bounded(
     worker.exit,
     10_000,
-    "killed restore worker exit",
+    "terminal restore worker exit",
   );
   expect(killed.error).toBeNull();
 
@@ -357,8 +535,8 @@ async function runKillRestartScenario(engine) {
     ownerDigest === zeroDigest ? `sha256:${"1".repeat(64)}` : zeroDigest;
   expect(() =>
     controller.release(config.operationId, {
-      expectedSeq: recovery.seq,
-      expectedHash: recovery.headHash,
+      expectedSeq: recovery.fence.expectedSeq,
+      expectedHash: recovery.fence.expectedHash,
       expectedOwnerDigest: wrongOwnerDigest,
     }),
   ).toThrow(
@@ -374,11 +552,11 @@ async function runKillRestartScenario(engine) {
     seq: recovery.seq,
     headHash: recovery.headHash,
   });
-  assertExactWorkspace(config);
+  assertCompletedWorkspace(config);
 
   const released = controller.release(config.operationId, {
-    expectedSeq: recovery.seq,
-    expectedHash: recovery.headHash,
+    expectedSeq: recovery.fence.expectedSeq,
+    expectedHash: recovery.fence.expectedHash,
     expectedOwnerDigest: ownerDigest,
   });
   expect(released).toMatchObject({
@@ -393,7 +571,7 @@ async function runKillRestartScenario(engine) {
     warning: null,
   });
   expect(inspectWorkspaceLockOwnerSync(lockOptions(config))).toBeNull();
-  assertExactWorkspace(config);
+  assertCompletedWorkspace(config);
 
   const verificationStore = createStore(config);
   expect(() => verificationStore.load(config.operationId)).toThrow(
@@ -403,15 +581,240 @@ async function runKillRestartScenario(engine) {
   );
   expect(
     verificationStore.archiveTerminal(config.operationId, {
-      expectedSeq: recovery.seq,
-      expectedHash: recovery.headHash,
+      expectedSeq: released.seq,
+      expectedHash: released.headHash,
     }),
   ).toMatchObject({
     archived: true,
     alreadyArchived: true,
     phase: "completed",
-    seq: recovery.seq,
-    headHash: recovery.headHash,
+    seq: released.seq,
+    headHash: released.headHash,
+  });
+  expect(
+    fs.existsSync(path.join(verificationStore.archiveRoot, config.operationId)),
+  ).toBe(true);
+}
+
+async function runMutationKillRestartScenario(engine) {
+  const config = createScenario(engine, "mutation");
+  const worker = spawnWorker(config);
+  const marker = await waitForMarker(worker, config.markerPath);
+  expect(marker).toMatchObject({
+    ready: true,
+    blocked: true,
+    engine,
+    operationId: config.operationId,
+    boundary: config.holdBoundary,
+    phase: "mutation_started",
+    pid: worker.child.pid,
+  });
+
+  const preKillStore = createStore(config);
+  const preKillSaga = preKillStore.load(config.operationId);
+  expect(preKillSaga).toMatchObject({
+    operationId: config.operationId,
+    phase: "mutation_started",
+    terminal: false,
+    pending: true,
+    seq: marker.seq,
+    headHash: marker.headHash,
+  });
+  expect(preKillSaga.events.slice(-2).map((event) => event.phase)).toEqual([
+    "safety_ready",
+    "mutation_started",
+  ]);
+  expect(
+    preKillSaga.events.some((event) => event.phase === "workspace_applied"),
+  ).toBe(false);
+  const liveOwner = inspectWorkspaceLockOwnerSync(lockOptions(config));
+  expect(liveOwner).toMatchObject({
+    pid: worker.child.pid,
+    purpose: "checkpoint-restore",
+    transactionId: config.operationId,
+    workspaceRoot: config.workspaceRoot,
+  });
+  assertCrashWorkspace(config, marker);
+
+  expect(worker.child.kill("SIGKILL")).toBe(true);
+  const killed = await bounded(
+    worker.exit,
+    10_000,
+    "killed restore worker exit",
+  );
+  expect(killed.error).toBeNull();
+  const retainedOwner = inspectWorkspaceLockOwnerSync(lockOptions(config));
+  expect(retainedOwner).toEqual(liveOwner);
+  assertCrashWorkspace(config, marker);
+
+  const restartedStore = createStore(config);
+  const reader = createCheckpointRestoreRecoveryReader({
+    store: restartedStore,
+  });
+  const recovery = reader.show(config.operationId);
+  expect(recovery).toMatchObject({
+    operationId: config.operationId,
+    phase: "mutation_started",
+    basePhase: "mutation_started",
+    terminal: false,
+    pending: true,
+    restore: {
+      kind: engine,
+      surface: "direct",
+      intentAuthority: "operation",
+      checkpointNamespace: config.checkpointNamespace,
+      checkpointId: config.checkpointId,
+      checkpointIdentity: config.checkpointIdentity,
+    },
+    progress: {
+      targetCount: config.originalMutationTargetCount,
+      appliedCount: null,
+    },
+    safety: {
+      coverage: "full",
+      complete: true,
+    },
+    actionEligibility: {
+      rollback: { candidate: true },
+    },
+  });
+
+  const ownerDigest =
+    computeCheckpointRestoreWorkspaceLockOwnerDigest(retainedOwner);
+  expect(recovery.fence).toEqual({
+    expectedSeq: recovery.seq,
+    expectedHash: recovery.headHash,
+    ownerAuthority: "unverified",
+    recordedOwnerDigest: ownerDigest,
+  });
+
+  const adapterAudit = { prepared: [], executed: [] };
+  const controller = createCheckpointRestorePartialRollbackController({
+    workspaceRoot: config.workspaceRoot,
+    store: restartedStore,
+    workspaceLockOptions: lockOptions(config),
+    prepareWorkspaceRollback(request) {
+      const expected = request.expected;
+      const plan =
+        engine === "copy"
+          ? prepareCopyCheckpointRollback(
+              config.workspaceRoot,
+              expected.originalCheckpoint.id,
+              expected.safetyCheckpoint.id,
+              {
+                root: config.checkpointStoreRoot,
+                expectedOriginalIdentity: expected.originalCheckpoint.identity,
+                expectedSafetyIdentity: expected.safetyCheckpoint.identity,
+                expectedSafetyPlanIdentity:
+                  expected.safetyCheckpoint.planIdentity,
+                originalMutationTargetCount:
+                  expected.originalMutationTargetCount,
+              },
+            )
+          : prepareGitCheckpointRollback(
+              config.workspaceRoot,
+              expected.originalCheckpoint.id,
+              expected.safetyCheckpoint.id,
+              {
+                session: expected.checkpointNamespace,
+                expectedOriginalIdentity: expected.originalCheckpoint.identity,
+                expectedSafetyIdentity: expected.safetyCheckpoint.identity,
+                expectedSafetyPlanIdentity:
+                  expected.safetyCheckpoint.planIdentity,
+                originalMutationTargetCount:
+                  expected.originalMutationTargetCount,
+              },
+            );
+      adapterAudit.prepared.push({ expected, plan });
+      return plan;
+    },
+    executeWorkspaceRollback(request) {
+      adapterAudit.executed.push({
+        operationId: request.operationId,
+        recoveryRequestId: request.recoveryRequestId,
+        plan: request.plan,
+      });
+      return engine === "copy"
+        ? executeCopyCheckpointRollback(config.workspaceRoot, request.plan, {
+            root: config.checkpointStoreRoot,
+            workspaceLease: request.workspaceLease,
+          })
+        : executeGitCheckpointRollback(config.workspaceRoot, request.plan, {
+            workspaceLease: request.workspaceLease,
+          });
+    },
+  });
+
+  const rolledBack = controller.rollback(config.operationId, {
+    expectedSeq: recovery.fence.expectedSeq,
+    expectedHash: recovery.fence.expectedHash,
+    expectedOwnerDigest: ownerDigest,
+  });
+  expect(rolledBack).toMatchObject({
+    ok: true,
+    action: "rollback-partial-mutation",
+    operationId: config.operationId,
+    phase: "rolled_back",
+    rolledBackCount: config.expectedRolledBackCount,
+    rollbackStateDigest: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+    resultDigest: expect.stringMatching(/^sha256:[a-f0-9]{64}$/),
+    sessionRollbackCommitDigest: null,
+    archived: true,
+    alreadyArchived: false,
+    reconciledFromError: false,
+    warning: null,
+  });
+  expect(adapterAudit.prepared).toHaveLength(1);
+  expect(adapterAudit.prepared[0].expected).toMatchObject({
+    engine,
+    restoreSurface: "direct",
+    checkpointNamespace: config.checkpointNamespace,
+    originalCheckpoint: {
+      id: config.checkpointId,
+      identity: config.checkpointIdentity,
+    },
+    safetyCheckpoint: {
+      id: recovery.safety.checkpointId,
+      identity: recovery.safety.checkpointIdentity,
+      planIdentity: recovery.safety.planIdentity,
+    },
+    originalMutationTargetCount: config.originalMutationTargetCount,
+  });
+  expect(adapterAudit.prepared[0].plan).toMatchObject({
+    engine,
+    checkpointNamespace: config.checkpointNamespace,
+    targetCount: config.expectedRolledBackCount,
+    originalMutationTargetCount: config.originalMutationTargetCount,
+  });
+  expect(adapterAudit.executed).toHaveLength(1);
+  expect(adapterAudit.executed[0]).toMatchObject({
+    operationId: config.operationId,
+    recoveryRequestId: rolledBack.recoveryRequestId,
+    plan: {
+      engine,
+      targetCount: config.expectedRolledBackCount,
+    },
+  });
+  expect(inspectWorkspaceLockOwnerSync(lockOptions(config))).toBeNull();
+  assertSafetyWorkspace(config);
+
+  const verificationStore = createStore(config);
+  expect(() => verificationStore.load(config.operationId)).toThrow(
+    expect.objectContaining({
+      code: CHECKPOINT_RESTORE_SAGA_ERROR_CODES.NOT_FOUND,
+    }),
+  );
+  expect(
+    verificationStore.archiveTerminal(config.operationId, {
+      expectedSeq: rolledBack.seq,
+      expectedHash: rolledBack.headHash,
+    }),
+  ).toMatchObject({
+    archived: true,
+    alreadyArchived: true,
+    phase: "rolled_back",
+    seq: rolledBack.seq,
+    headHash: rolledBack.headHash,
   });
   expect(
     fs.existsSync(path.join(verificationStore.archiveRoot, config.operationId)),
@@ -429,14 +832,26 @@ afterEach(async () => {
 
 describe("checkpoint restore kill -> restart recovery", () => {
   it(
-    "recovers a real copy restore killed after completed and before lock release",
-    () => runKillRestartScenario("copy"),
-    85_000,
+    "releases and archives a real copy restore killed after completion while its workspace lock is held",
+    () => runTerminalKillRestartScenario("copy"),
+    120_000,
   );
 
   it.skipIf(!GIT_AVAILABLE)(
-    "recovers a real git restore killed after completed and before lock release (skipped when git is unavailable)",
-    () => runKillRestartScenario("git"),
-    85_000,
+    "releases and archives a real git restore killed after completion while its workspace lock is held (skipped when git is unavailable)",
+    () => runTerminalKillRestartScenario("git"),
+    120_000,
+  );
+
+  it(
+    "rolls a copy restore back to its durable safety checkpoint after the first target is published and the worker is killed",
+    () => runMutationKillRestartScenario("copy"),
+    120_000,
+  );
+
+  it.skipIf(!GIT_AVAILABLE)(
+    "rolls a git restore back to its durable safety checkpoint when killed at workspace-applied before saga settlement (skipped when git is unavailable)",
+    () => runMutationKillRestartScenario("git"),
+    120_000,
   );
 });
