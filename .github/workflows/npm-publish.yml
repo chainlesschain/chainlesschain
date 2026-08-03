@@ -165,8 +165,42 @@ jobs:
           GITHUB_SHA="${{ github.sha }}" \
           node packages/cli/scripts/npm-release-artifact.mjs create \
             "$TARBALL_PATH" release-artifacts/chainlesschain-release.json
-          npm sbom --package-lock-only --sbom-format cyclonedx \
-            > release-artifacts/chainlesschain-sbom.cdx.json
+
+      # The monorepo lock contains desktop/mobile peer graphs that are not part
+      # of the CLI tarball and make root-level `npm sbom --package-lock-only`
+      # fail with ESBOMPROBLEMS. Resolve an ignore-scripts lock from the exact
+      # immutable tarball instead, then validate that the CycloneDX root still
+      # names the release package/version before uploading it beside the
+      # tarball and release manifest.
+      - name: Generate CLI release SBOM from immutable tarball
+        shell: bash
+        run: |
+          set -euo pipefail
+          TARBALL=$(find release-artifacts -maxdepth 1 -name 'chainlesschain-*.tgz' -type f -print -quit)
+          test -n "$TARBALL"
+          VERSION=$(node -e 'process.stdout.write(JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")).version)' release-artifacts/chainlesschain-release.json)
+          SBOM_ROOT=$(mktemp -d)
+          trap 'rm -rf "$SBOM_ROOT"' EXIT
+          mkdir -p "$SBOM_ROOT/chainlesschain"
+          tar -xzf "$TARBALL" -C "$SBOM_ROOT/chainlesschain" --strip-components=1
+          (
+            cd "$SBOM_ROOT/chainlesschain"
+            npm install --package-lock-only --ignore-scripts --legacy-peer-deps --no-audit --no-fund
+            npm sbom --package-lock-only --sbom-format cyclonedx \
+              > "$GITHUB_WORKSPACE/release-artifacts/chainlesschain-sbom.cdx.json"
+          )
+          node -e '
+            const fs = require("fs");
+            const [path, version] = process.argv.slice(1);
+            const sbom = JSON.parse(fs.readFileSync(path, "utf8"));
+            const root = sbom?.metadata?.component;
+            if (sbom?.bomFormat !== "CycloneDX" || root?.name !== "chainlesschain" || root?.version !== version || root?.purl !== `pkg:npm/chainlesschain@${version}`) {
+              throw new Error("CLI release SBOM identity does not match immutable tarball");
+            }
+            if (!Array.isArray(sbom.components) || sbom.components.length === 0 || !Array.isArray(sbom.dependencies) || sbom.dependencies.length === 0) {
+              throw new Error("CLI release SBOM dependency graph is empty");
+            }
+          ' release-artifacts/chainlesschain-sbom.cdx.json "$VERSION"
 
       - name: Upload immutable CLI release artifact
         uses: actions/upload-artifact@v6
