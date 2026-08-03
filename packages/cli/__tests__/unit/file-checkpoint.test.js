@@ -87,14 +87,24 @@ import {
   diffCheckpoint,
   restoreCheckpoint,
   deleteCheckpoint,
+  clearCheckpoints,
   computeCheckpointIdentity,
   prepareCheckpointRollback,
   executeCheckpointRollback,
   SKIP_DIRS,
   _fileCheckpointInternals,
+  _fileCheckpointStoreDeps,
 } from "../../src/lib/file-checkpoint.js";
+import {
+  CHECKPOINT_RESTORE_SAGA_ERROR_CODES,
+  CheckpointRestoreSagaStore,
+} from "../../src/lib/checkpoint-restore-saga.js";
 
 const AFFECTED_WINDOWS_UV_VERSIONS = Object.freeze(["1.49.1", "1.50.0"]);
+const COPY_STORE_AUTHORITY_DIR = ".cc-copy-store-authority";
+const COPY_STORE_AUTHORITY_SCHEMA = "cc-copy-checkpoint-store-authority/v1";
+const COPY_STORE_AUTHORITY_DIGEST_DOMAIN =
+  "cc-copy-checkpoint-store-authority-root/v1\0";
 
 function filesystemObjectIdentity(stat) {
   const ns = (field, fallback) =>
@@ -189,8 +199,13 @@ function projectedFileIdentityOptions(
 describe("file-checkpoint store", () => {
   let work; // the "project" dir holding files
   let root; // checkpoint store root
+  let retentionStateDir;
+  let retentionLockDir;
+  let priorNodeEnv;
 
   beforeEach(() => {
+    priorNodeEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = "test";
     privateAuthorityCalls.inspections.length = 0;
     privateAuthorityCalls.repairs.length = 0;
     // macOS commonly exposes /var as /private/var, while hosted Windows
@@ -201,16 +216,50 @@ describe("file-checkpoint store", () => {
     const base = realpathSync.native(mkdtempSync(join(tmpdir(), "cp-test-")));
     work = join(base, "work");
     root = join(base, "store");
+    retentionStateDir = join(base, "restore-state");
+    retentionLockDir = join(base, "workspace-locks");
     mkdirSync(work, { recursive: true });
     writeFileSync(join(work, "a.txt"), "ORIGINAL-A", "utf-8");
     writeFileSync(join(work, "b.txt"), "ORIGINAL-B", "utf-8");
   });
   afterEach(() => {
     rmSync(join(work, ".."), { recursive: true, force: true });
+    if (priorNodeEnv === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = priorNodeEnv;
   });
 
   const mk = (label) =>
     createCheckpoint(["a.txt", "b.txt"], { cwd: work, root, label });
+
+  const retentionOptions = (cwd = work) => ({
+    root,
+    cwd,
+    retentionAllowTestRuntime: true,
+    retentionStateDir,
+    retentionWorkspaceLockOptions: {
+      lockDir: retentionLockDir,
+      allowNonCanonicalLockDirForTests: true,
+      timeoutMs: 1_000,
+      retryMs: 1,
+    },
+  });
+
+  const retainCopyCheckpoint = (manifest, operationId) => {
+    const store = new CheckpointRestoreSagaStore({
+      workspaceRoot: realpathSync.native(work),
+      stateDir: retentionStateDir,
+    });
+    store.create({
+      operationId,
+      evidence: {
+        restoreKind: "copy",
+        restoreSurface: "direct",
+        checkpointId: manifest.id,
+        checkpointIdentity: computeCheckpointIdentity(manifest),
+      },
+    });
+    return store;
+  };
 
   const mixedRollbackResidue = (failAfterIndex) => {
     const c = join(work, "c.txt");
@@ -1213,14 +1262,18 @@ describe("file-checkpoint store", () => {
 
       expect(restored.safetyCoverage).toBe("full");
       expect(publishedArmTemps.length).toBeGreaterThan(0);
-      expect(privateAuthorityCalls.inspections).toHaveLength(1);
+      const restoreAuthorityInspections =
+        privateAuthorityCalls.inspections.filter((targets) =>
+          targets.includes(resolve(root)),
+        );
+      expect(restoreAuthorityInspections).toHaveLength(1);
       expect(privateAuthorityCalls.repairs[0]).toEqual([resolve(root)]);
       expect(
         privateAuthorityCalls.repairs.some((targets) =>
           targets.includes(resolve(root)),
         ),
       ).toBe(true);
-      expect(privateAuthorityCalls.inspections[0]).toContain(resolve(root));
+      expect(restoreAuthorityInspections[0]).toContain(resolve(root));
     },
   );
 
@@ -2257,9 +2310,566 @@ describe("file-checkpoint store", () => {
 
   it("delete removes manifest + blobs", () => {
     const m = mk();
-    expect(deleteCheckpoint(m.id, { root })).toBe(true);
+    expect(deleteCheckpoint(m.id, retentionOptions())).toBe(true);
     expect(getCheckpoint(m.id, { root })).toBeNull();
-    expect(deleteCheckpoint(m.id, { root })).toBe(false); // already gone
+    expect(deleteCheckpoint(m.id, retentionOptions())).toBe(false); // already gone
+  });
+
+  it("keeps the maintenance lock disjoint from create, delete, and clear ids", () => {
+    const legacyLockId = ".copy-checkpoint-store-maintenance.lock";
+    const first = createCheckpoint(["a.txt"], {
+      cwd: work,
+      root,
+      id: legacyLockId,
+      label: "legacy-lock-name",
+    });
+    expect(existsSync(join(root, first.id, first.files[0].sha256))).toBe(true);
+    expect(deleteCheckpoint(first.id, retentionOptions())).toBe(true);
+    expect(getCheckpoint(first.id, { root })).toBeNull();
+
+    const recreated = createCheckpoint(["a.txt"], {
+      cwd: work,
+      root,
+      id: legacyLockId,
+      label: "legacy-lock-name-recreated",
+    });
+    const ordinary = mk("ordinary");
+    expect(clearCheckpoints(retentionOptions())).toBe(2);
+    expect(getCheckpoint(recreated.id, { root })).toBeNull();
+    expect(getCheckpoint(ordinary.id, { root })).toBeNull();
+  });
+
+  it("bootstraps one root-bound owner authority and keeps clear outside it", () => {
+    const checkpoint = mk("authority-bootstrap");
+    const canonicalRoot = realpathSync.native(root);
+    const authorityDir = join(root, COPY_STORE_AUTHORITY_DIR);
+    const sentinelPath = join(authorityDir, "authority.json");
+    const sentinel = JSON.parse(readFileSync(sentinelPath, "utf8"));
+    const expectedDigest = createHash("sha256")
+      .update(COPY_STORE_AUTHORITY_DIGEST_DOMAIN, "utf8")
+      .update(canonicalRoot, "utf8")
+      .digest("hex");
+
+    expect(sentinel).toEqual({
+      schema: COPY_STORE_AUTHORITY_SCHEMA,
+      canonicalRootDigest: expectedDigest,
+    });
+    expect(readdirSync(authorityDir)).toEqual(["authority.json"]);
+    expect(clearCheckpoints(retentionOptions())).toBe(1);
+    expect(getCheckpoint(checkpoint.id, { root })).toBeNull();
+    expect(readFileSync(sentinelPath, "utf8")).toContain(expectedDigest);
+  });
+
+  it.each([
+    ["missing", null],
+    ["malformed", "{"],
+    [
+      "mismatched",
+      JSON.stringify({
+        schema: COPY_STORE_AUTHORITY_SCHEMA,
+        canonicalRootDigest: "0".repeat(64),
+      }),
+    ],
+  ])(
+    "fails closed for a %s pre-existing authority sentinel",
+    (_kind, value) => {
+      const authorityDir = join(root, COPY_STORE_AUTHORITY_DIR);
+      const sentinelPath = join(authorityDir, "authority.json");
+      mkdirSync(authorityDir, { recursive: true, mode: 0o700 });
+      if (value != null) writeFileSync(sentinelPath, value, { mode: 0o600 });
+      writeFileSync(join(authorityDir, "legacy-checkpoint-blob"), "legacy", {
+        mode: 0o600,
+      });
+      const before = readdirSync(authorityDir).sort();
+
+      expect(() => createCheckpoint(["a.txt"], { cwd: work, root })).toThrow(
+        expect.objectContaining({
+          code: CHECKPOINT_RESTORE_SAGA_ERROR_CODES.RETENTION_UNVERIFIED,
+        }),
+      );
+      expect(readdirSync(authorityDir).sort()).toEqual(before);
+    },
+  );
+
+  it("reserves authority ids and every casefold-equivalent root component", () => {
+    for (const id of [
+      COPY_STORE_AUTHORITY_DIR,
+      COPY_STORE_AUTHORITY_DIR.toUpperCase(),
+    ]) {
+      expect(() =>
+        createCheckpoint(["a.txt"], { cwd: work, root, id }),
+      ).toThrow(/Unsafe checkpoint id/);
+    }
+
+    const base = join(work, "..");
+    const casefoldAuthority = COPY_STORE_AUTHORITY_DIR.toUpperCase();
+    for (const maliciousRoot of [
+      join(base, casefoldAuthority),
+      join(base, casefoldAuthority, "nested"),
+      join(root, COPY_STORE_AUTHORITY_DIR, "maintenance.lock", "nested"),
+    ]) {
+      expect(() =>
+        createCheckpoint(["a.txt"], {
+          cwd: work,
+          root: maliciousRoot,
+          id: "nested-store",
+        }),
+      ).toThrow(
+        expect.objectContaining({
+          code: CHECKPOINT_RESTORE_SAGA_ERROR_CODES.RETENTION_UNVERIFIED,
+        }),
+      );
+      expect(existsSync(maliciousRoot)).toBe(false);
+    }
+  });
+
+  it("rejects custom roots at or below an existing checkpoint blob directory", () => {
+    const outer = createCheckpoint(["a.txt"], {
+      cwd: work,
+      root,
+      id: "outer-blob",
+    });
+    const blobRoot = join(root, outer.id);
+    for (const nestedRoot of [blobRoot, join(blobRoot, "deep", "store")]) {
+      expect(() =>
+        createCheckpoint(["a.txt"], {
+          cwd: work,
+          root: nestedRoot,
+          id: "nested",
+        }),
+      ).toThrow(
+        expect.objectContaining({
+          code: CHECKPOINT_RESTORE_SAGA_ERROR_CODES.RETENTION_UNVERIFIED,
+        }),
+      );
+      expect(existsSync(join(nestedRoot, COPY_STORE_AUTHORITY_DIR))).toBe(
+        false,
+      );
+    }
+    expect(getCheckpoint(outer.id, { root })).not.toBeNull();
+  });
+
+  it("rejects a nested root after its ancestor authority publishes but before its manifest", () => {
+    const originalWithFileLock = _fileCheckpointStoreDeps.withFileLock;
+    let nestedError = null;
+    let injected = false;
+    _fileCheckpointStoreDeps.withFileLock = (target, callback) => {
+      if (
+        !injected &&
+        target === join(root, COPY_STORE_AUTHORITY_DIR, "maintenance")
+      ) {
+        injected = true;
+        try {
+          createCheckpoint(["a.txt"], {
+            cwd: work,
+            root: join(root, "future-blob"),
+            id: "nested-before-manifest",
+          });
+        } catch (error) {
+          nestedError = error;
+        }
+      }
+      return callback({ locked: true });
+    };
+
+    let outer;
+    try {
+      outer = createCheckpoint(["a.txt"], {
+        cwd: work,
+        root,
+        id: "future-blob",
+      });
+    } finally {
+      _fileCheckpointStoreDeps.withFileLock = originalWithFileLock;
+    }
+
+    expect(injected).toBe(true);
+    expect(nestedError).toMatchObject({
+      code: CHECKPOINT_RESTORE_SAGA_ERROR_CODES.RETENTION_UNVERIFIED,
+    });
+    expect(getCheckpoint(outer.id, { root })).not.toBeNull();
+  });
+
+  it("refuses to delete a pre-existing nested store from a checkpoint blob", () => {
+    const outer = createCheckpoint(["a.txt"], {
+      cwd: work,
+      root,
+      id: "nested-delete",
+    });
+    const nestedAuthority = join(root, outer.id, COPY_STORE_AUTHORITY_DIR);
+    mkdirSync(nestedAuthority, { recursive: true });
+    writeFileSync(join(nestedAuthority, "authority.json"), "legacy-nested");
+
+    expect(() => deleteCheckpoint(outer.id, retentionOptions())).toThrow(
+      expect.objectContaining({
+        code: CHECKPOINT_RESTORE_SAGA_ERROR_CODES.RETENTION_UNVERIFIED,
+      }),
+    );
+    expect(getCheckpoint(outer.id, { root })).not.toBeNull();
+    expect(readFileSync(join(nestedAuthority, "authority.json"), "utf8")).toBe(
+      "legacy-nested",
+    );
+  });
+
+  it("preflights every blob layout before clear removes any checkpoint", () => {
+    const safe = createCheckpoint(["a.txt"], {
+      cwd: work,
+      root,
+      id: "a-safe-clear",
+    });
+    const nested = createCheckpoint(["b.txt"], {
+      cwd: work,
+      root,
+      id: "z-nested-clear",
+    });
+    const nestedAuthority = join(root, nested.id, COPY_STORE_AUTHORITY_DIR);
+    mkdirSync(nestedAuthority, { recursive: true });
+    writeFileSync(join(nestedAuthority, "authority.json"), "legacy-nested");
+
+    expect(() => clearCheckpoints(retentionOptions())).toThrow(
+      expect.objectContaining({
+        code: CHECKPOINT_RESTORE_SAGA_ERROR_CODES.RETENTION_UNVERIFIED,
+      }),
+    );
+    expect(getCheckpoint(safe.id, { root })).not.toBeNull();
+    expect(getCheckpoint(nested.id, { root })).not.toBeNull();
+    expect(readFileSync(join(nestedAuthority, "authority.json"), "utf8")).toBe(
+      "legacy-nested",
+    );
+  });
+
+  it("uses one root-derived lock across homes and isolates different roots", () => {
+    const originalWithFileLock = _fileCheckpointStoreDeps.withFileLock;
+    const priorHome = process.env.CHAINLESSCHAIN_HOME;
+    const targets = [];
+    _fileCheckpointStoreDeps.withFileLock = (target, callback) => {
+      targets.push(target);
+      return callback({ locked: true });
+    };
+    try {
+      process.env.CHAINLESSCHAIN_HOME = join(work, "..", "home-a");
+      createCheckpoint(["a.txt"], {
+        cwd: work,
+        root,
+        id: "home-a",
+      });
+      process.env.CHAINLESSCHAIN_HOME = join(work, "..", "home-b");
+      createCheckpoint(["a.txt"], {
+        cwd: work,
+        root,
+        id: "home-b",
+      });
+      createCheckpoint(["a.txt"], {
+        cwd: work,
+        root: join(work, "..", "other-store"),
+        id: "other-root",
+      });
+    } finally {
+      _fileCheckpointStoreDeps.withFileLock = originalWithFileLock;
+      if (priorHome === undefined) delete process.env.CHAINLESSCHAIN_HOME;
+      else process.env.CHAINLESSCHAIN_HOME = priorHome;
+    }
+
+    expect(targets).toHaveLength(3);
+    expect(targets[0]).toBe(targets[1]);
+    expect(targets[2]).not.toBe(targets[0]);
+    expect(targets[0]).toBe(
+      join(root, COPY_STORE_AUTHORITY_DIR, "maintenance"),
+    );
+  });
+
+  it("fails clear on a casefold-reserved manifest without touching authority", () => {
+    const checkpoint = mk("reserved-manifest-clear");
+    const sentinelPath = join(root, COPY_STORE_AUTHORITY_DIR, "authority.json");
+    const sentinelBefore = readFileSync(sentinelPath, "utf8");
+    writeFileSync(
+      join(root, `${COPY_STORE_AUTHORITY_DIR.toUpperCase()}.json`),
+      "{}",
+      "utf8",
+    );
+
+    expect(() => clearCheckpoints(retentionOptions())).toThrow(
+      expect.objectContaining({
+        code: CHECKPOINT_RESTORE_SAGA_ERROR_CODES.RETENTION_UNVERIFIED,
+      }),
+    );
+    expect(getCheckpoint(checkpoint.id, { root })).not.toBeNull();
+    expect(readFileSync(sentinelPath, "utf8")).toBe(sentinelBefore);
+  });
+
+  it("rejects a duplicate id but permits a successor after exact deletion", () => {
+    const id = "duplicate-id";
+    const original = createCheckpoint(["a.txt"], {
+      cwd: work,
+      root,
+      id,
+      label: "original",
+    });
+    const originalIdentity = computeCheckpointIdentity(original);
+    writeFileSync(join(work, "a.txt"), "DUPLICATE-REPLACEMENT", "utf8");
+
+    expect(() =>
+      createCheckpoint(["a.txt"], {
+        cwd: work,
+        root,
+        id,
+        label: "forbidden-replacement",
+      }),
+    ).toThrow(expect.objectContaining({ code: "CHECKPOINT_ID_CONFLICT" }));
+    expect(computeCheckpointIdentity(getCheckpoint(id, { root }))).toBe(
+      originalIdentity,
+    );
+
+    expect(deleteCheckpoint(id, retentionOptions())).toBe(true);
+    const successor = createCheckpoint(["a.txt"], {
+      cwd: work,
+      root,
+      id,
+      label: "allowed-successor",
+    });
+    expect(successor.label).toBe("allowed-successor");
+    expect(computeCheckpointIdentity(successor)).not.toBe(originalIdentity);
+  });
+
+  it("does not replace active retained copy checkpoint authority", () => {
+    const original = createCheckpoint(["a.txt"], {
+      cwd: work,
+      root,
+      id: "retained-original",
+      label: "retained-original",
+    });
+    const originalIdentity = computeCheckpointIdentity(original);
+    retainCopyCheckpoint(original, "copy-retained-original-no-replace");
+    writeFileSync(join(work, "a.txt"), "RETAINED-REPLACEMENT", "utf8");
+
+    expect(() =>
+      createCheckpoint(["a.txt"], {
+        cwd: work,
+        root,
+        id: original.id,
+        label: "forbidden-retained-replacement",
+      }),
+    ).toThrow(expect.objectContaining({ code: "CHECKPOINT_ID_CONFLICT" }));
+    expect(
+      computeCheckpointIdentity(getCheckpoint(original.id, { root })),
+    ).toBe(originalIdentity);
+  });
+
+  it("does not replace active retained copy restore safety authority", () => {
+    const source = createCheckpoint(["a.txt"], {
+      cwd: work,
+      root,
+      id: "restore-source",
+    });
+    writeFileSync(join(work, "a.txt"), "DIRTY-BEFORE-RESTORE", "utf8");
+    const restored = restoreCheckpoint(source.id, {
+      root,
+      cwd: work,
+      expectedIdentity: computeCheckpointIdentity(source),
+    });
+    const safety = getCheckpoint(restored.safetyId, { root });
+    const safetyIdentity = computeCheckpointIdentity(safety);
+    retainCopyCheckpoint(safety, "copy-retained-safety-no-replace");
+
+    expect(() =>
+      createCheckpoint(["a.txt"], {
+        cwd: work,
+        root,
+        id: safety.id,
+        label: "forbidden-safety-replacement",
+      }),
+    ).toThrow(expect.objectContaining({ code: "CHECKPOINT_ID_CONFLICT" }));
+    expect(computeCheckpointIdentity(getCheckpoint(safety.id, { root }))).toBe(
+      safetyIdentity,
+    );
+  });
+
+  it("fails closed when generated restore safety id is already reserved", () => {
+    const fixedNow = 1_777_777_777_777;
+    const fixedRandom = 0.123456789;
+    const collidingSafetyId = `cp-${fixedNow}-${fixedRandom
+      .toString(36)
+      .slice(2, 8)}`;
+    const occupied = createCheckpoint(["a.txt"], {
+      cwd: work,
+      root,
+      id: collidingSafetyId,
+      label: "occupied-safety-id",
+    });
+    const occupiedIdentity = computeCheckpointIdentity(occupied);
+    const source = createCheckpoint(["a.txt"], {
+      cwd: work,
+      root,
+      id: "collision-source",
+    });
+    writeFileSync(join(work, "a.txt"), "DIRTY-COLLISION", "utf8");
+    const nowSpy = vi.spyOn(Date, "now").mockReturnValue(fixedNow);
+    const randomSpy = vi.spyOn(Math, "random").mockReturnValue(fixedRandom);
+    try {
+      expect(() =>
+        restoreCheckpoint(source.id, {
+          root,
+          cwd: work,
+          expectedIdentity: computeCheckpointIdentity(source),
+        }),
+      ).toThrow(expect.objectContaining({ code: "CHECKPOINT_ID_CONFLICT" }));
+    } finally {
+      nowSpy.mockRestore();
+      randomSpy.mockRestore();
+    }
+
+    expect(
+      computeCheckpointIdentity(getCheckpoint(occupied.id, { root })),
+    ).toBe(occupiedIdentity);
+    expect(readFileSync(join(work, "a.txt"), "utf8")).toBe("DIRTY-COLLISION");
+  });
+
+  it("fails a group clear before deleting free or retained authority", () => {
+    const retained = mk("retained");
+    writeFileSync(join(work, "a.txt"), "FREE-A", "utf8");
+    const free = mk("free");
+    retainCopyCheckpoint(retained, "copy-retention-clear");
+
+    expect(() => clearCheckpoints(retentionOptions())).toThrow(
+      expect.objectContaining({
+        code: CHECKPOINT_RESTORE_SAGA_ERROR_CODES.RETENTION_PROTECTED,
+      }),
+    );
+    expect(getCheckpoint(retained.id, { root })).not.toBeNull();
+    expect(getCheckpoint(free.id, { root })).not.toBeNull();
+  });
+
+  it("binds list, delete, and clear to one exact copy workspace", () => {
+    const own = mk("own");
+    const otherWork = join(work, "..", "other-work");
+    mkdirSync(otherWork);
+    writeFileSync(join(otherWork, "other.txt"), "OTHER", "utf8");
+    const other = createCheckpoint(["other.txt"], {
+      cwd: otherWork,
+      root,
+      label: "other",
+    });
+
+    expect(listCheckpoints({ root, cwd: work }).map((row) => row.id)).toEqual([
+      own.id,
+    ]);
+    expect(getCheckpoint(other.id, { root, cwd: work })).toBeNull();
+    expect(() => deleteCheckpoint(other.id, retentionOptions(work))).toThrow(
+      expect.objectContaining({
+        code: CHECKPOINT_RESTORE_SAGA_ERROR_CODES.RETENTION_UNVERIFIED,
+      }),
+    );
+
+    expect(clearCheckpoints(retentionOptions(work))).toBe(1);
+    expect(getCheckpoint(own.id, { root })).toBeNull();
+    expect(getCheckpoint(other.id, { root })).not.toBeNull();
+  });
+
+  it("re-reads immutable identity under the guard before deleting an id successor", () => {
+    const original = mk("original");
+    const successor = { ...original, label: "successor" };
+    const manifestPath = join(root, `${original.id}.json`);
+    const guard = vi
+      .spyOn(
+        CheckpointRestoreSagaStore.prototype,
+        "withCheckpointRetentionGuard",
+      )
+      .mockImplementation((request, callback) => {
+        writeFileSync(manifestPath, JSON.stringify(successor, null, 2), "utf8");
+        return callback({
+          protectedCandidates: [],
+          deletableCandidates: request.candidates,
+        });
+      });
+
+    try {
+      expect(() => deleteCheckpoint(original.id, retentionOptions())).toThrow(
+        expect.objectContaining({
+          code: CHECKPOINT_RESTORE_SAGA_ERROR_CODES.RETENTION_UNVERIFIED,
+        }),
+      );
+      expect(getCheckpoint(original.id, { root })).toMatchObject({
+        label: "successor",
+      });
+      expect(existsSync(join(root, original.id))).toBe(true);
+    } finally {
+      guard.mockRestore();
+    }
+  });
+
+  it("serializes same-id create after the final deletion identity read", () => {
+    const original = mk("original");
+    const originalWithFileLock = _fileCheckpointStoreDeps.withFileLock;
+    const originalBeforeDelete =
+      _fileCheckpointStoreDeps.beforeDeleteCopyAuthorityForTests;
+    let activeTarget = null;
+    let blockedCreate = null;
+    _fileCheckpointStoreDeps.withFileLock = (target, callback) => {
+      if (activeTarget === target) {
+        const error = new Error("copy checkpoint store is already locked");
+        error.code = "STATE_LOCK_UNAVAILABLE";
+        throw error;
+      }
+      const priorTarget = activeTarget;
+      activeTarget = target;
+      try {
+        return callback({ locked: true });
+      } finally {
+        activeTarget = priorTarget;
+      }
+    };
+    _fileCheckpointStoreDeps.beforeDeleteCopyAuthorityForTests = () => {
+      try {
+        createCheckpoint(["a.txt", "b.txt"], {
+          cwd: work,
+          root,
+          id: original.id,
+          label: "racing-successor",
+        });
+      } catch (error) {
+        blockedCreate = error;
+      }
+    };
+
+    try {
+      expect(deleteCheckpoint(original.id, retentionOptions())).toBe(true);
+      expect(blockedCreate).toMatchObject({ code: "STATE_LOCK_UNAVAILABLE" });
+      expect(getCheckpoint(original.id, { root })).toBeNull();
+
+      const successor = createCheckpoint(["a.txt", "b.txt"], {
+        cwd: work,
+        root,
+        id: original.id,
+        label: "serialized-successor",
+      });
+      expect(getCheckpoint(original.id, { root })).toMatchObject({
+        label: "serialized-successor",
+      });
+      expect(computeCheckpointIdentity(successor)).toBe(
+        computeCheckpointIdentity(getCheckpoint(original.id, { root })),
+      );
+    } finally {
+      _fileCheckpointStoreDeps.withFileLock = originalWithFileLock;
+      _fileCheckpointStoreDeps.beforeDeleteCopyAuthorityForTests =
+        originalBeforeDelete;
+    }
+  });
+
+  it("rejects copy retention authority redirection outside the test runtime", () => {
+    const checkpoint = mk("redirect");
+    const priorNodeEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = "production";
+    try {
+      expect(() => deleteCheckpoint(checkpoint.id, retentionOptions())).toThrow(
+        expect.objectContaining({
+          code: CHECKPOINT_RESTORE_SAGA_ERROR_CODES.RETENTION_UNVERIFIED,
+        }),
+      );
+    } finally {
+      if (priorNodeEnv === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = priorNodeEnv;
+    }
+    expect(getCheckpoint(checkpoint.id, { root })).not.toBeNull();
   });
 
   it("rejects an empty path list and a non-existent path", () => {

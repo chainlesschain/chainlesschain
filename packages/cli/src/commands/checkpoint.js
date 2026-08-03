@@ -202,7 +202,7 @@ function copyEngine(cs, dir) {
       };
     },
     list: () =>
-      cs.listCheckpoints().map((c) => ({
+      cs.listCheckpoints({ cwd: dir }).map((c) => ({
         id: c.id,
         label: c.label,
         createdAt: c.createdAt,
@@ -210,7 +210,7 @@ function copyEngine(cs, dir) {
         identity: c.identity || null,
       })),
     show: (id) => {
-      const m = cs.getCheckpoint(id);
+      const m = cs.getCheckpoint(id, { cwd: dir });
       if (!m) throw new Error(`no such checkpoint: ${id}`);
       return {
         id: m.id,
@@ -262,12 +262,8 @@ function copyEngine(cs, dir) {
         deletedPaths: r.deletedPaths,
       };
     },
-    remove: (id) => cs.deleteCheckpoint(id),
-    clear: () => {
-      const all = cs.listCheckpoints();
-      for (const c of all) cs.deleteCheckpoint(c.id);
-      return all.length;
-    },
+    remove: (id) => cs.deleteCheckpoint(id, { cwd: dir }),
+    clear: () => cs.clearCheckpoints({ cwd: dir }),
   };
 }
 

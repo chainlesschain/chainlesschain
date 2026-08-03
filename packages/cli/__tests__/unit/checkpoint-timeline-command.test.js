@@ -36,6 +36,7 @@ const state = vi.hoisted(() => ({
   failSagaAdvanceBeforePhase: null,
   failPostCommitReload: false,
   restoreOrchestratorCalls: [],
+  copyStoreCalls: [],
 }));
 
 vi.mock("../../src/lib/turn-binding-store.js", () => ({
@@ -193,6 +194,8 @@ vi.mock("../../src/harness/jsonl-session-store.js", () => ({
 
 vi.mock("../../src/lib/checkpoint-store.js", () => ({
   isCheckpointAvailable: () => state.gitAvailable,
+  prepareCheckpointRollback: vi.fn(),
+  executeCheckpointRollback: vi.fn(),
   listCheckpoints: () =>
     state.checkpoints.map((checkpoint) => ({ ...checkpoint })),
   statusAgainst: (_dir, _checkpointId, options) => {
@@ -262,8 +265,24 @@ vi.mock("../../src/lib/checkpoint-store.js", () => ({
 }));
 
 vi.mock("../../src/lib/file-checkpoint.js", () => ({
-  listCheckpoints: () =>
-    state.checkpoints.map((checkpoint) => ({ ...checkpoint })),
+  prepareCheckpointRollback: vi.fn(),
+  executeCheckpointRollback: vi.fn(),
+  listCheckpoints: (options) => {
+    state.copyStoreCalls.push({ action: "list", options });
+    return state.checkpoints.map((checkpoint) => ({ ...checkpoint }));
+  },
+  getCheckpoint: (id, options) => {
+    state.copyStoreCalls.push({ action: "get", id, options });
+    return state.checkpoints.find((checkpoint) => checkpoint.id === id) || null;
+  },
+  deleteCheckpoint: (id, options) => {
+    state.copyStoreCalls.push({ action: "delete", id, options });
+    return state.checkpoints.some((checkpoint) => checkpoint.id === id);
+  },
+  clearCheckpoints: (options) => {
+    state.copyStoreCalls.push({ action: "clear", options });
+    return state.checkpoints.length;
+  },
   diffCheckpoint: (_checkpointId, options) => {
     state.statusIdentities.push({
       engine: "copy",
@@ -585,6 +604,7 @@ describe("checkpoint timeline CLI command authority", () => {
     state.failSagaAdvanceBeforePhase = null;
     state.failPostCommitReload = false;
     state.restoreOrchestratorCalls = [];
+    state.copyStoreCalls = [];
     process.exitCode = undefined;
   });
 
@@ -705,6 +725,26 @@ describe("checkpoint timeline CLI command authority", () => {
       checkpointNamespace: "copy-namespace",
       checkpointIdentity: expectedIdentity,
     });
+  });
+
+  it("binds copy clear to the selected canonical command workspace", async () => {
+    state.gitAvailable = false;
+    const result = await invoke([
+      "checkpoint",
+      "clear",
+      "--dir",
+      state.workspaceRoot,
+      "--force",
+      "--json",
+    ]);
+
+    expect(result).toEqual({ removed: 1, engine: "copy" });
+    expect(state.copyStoreCalls).toEqual([
+      {
+        action: "clear",
+        options: { cwd: state.workspaceRoot },
+      },
+    ]);
   });
 
   it("reports a direct terminal saga archive failure as a warning", async () => {

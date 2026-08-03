@@ -8,9 +8,14 @@ import {
   existsSync,
   mkdirSync,
   realpathSync,
+  readdirSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import {
+  CHECKPOINT_RESTORE_SAGA_ERROR_CODES,
+  CheckpointRestoreSagaStore,
+} from "../../src/lib/checkpoint-restore-saga.js";
 import {
   isCheckpointAvailable,
   createCheckpoint,
@@ -42,9 +47,23 @@ function git(repo, ...args) {
 
 describe("checkpoint-store (git engine)", () => {
   let repo;
+  let retentionStateDir;
+  let retentionLockDir;
+  let priorNodeEnv;
+
+  const secureDirectory = (target) => {
+    mkdirSync(target, { recursive: true, mode: 0o700 });
+  };
+
+  const secureAuthorityPaths = (targets) =>
+    targets.map((target) => ({ target, exists: true, ok: true }));
 
   beforeEach(() => {
+    priorNodeEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = "test";
     repo = mkdtempSync(join(tmpdir(), "cc-cpstore-"));
+    retentionStateDir = `${repo}-restore-state`;
+    retentionLockDir = `${repo}-workspace-locks`;
     git(repo, "init", "-q");
     git(repo, "config", "user.email", "t@test.local");
     git(repo, "config", "user.name", "tester");
@@ -59,7 +78,46 @@ describe("checkpoint-store (git engine)", () => {
 
   afterEach(() => {
     rmSync(repo, { recursive: true, force: true });
+    rmSync(retentionStateDir, { recursive: true, force: true });
+    rmSync(retentionLockDir, { recursive: true, force: true });
+    if (priorNodeEnv === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = priorNodeEnv;
   });
+
+  const retentionOptions = () => ({
+    retentionStateDir,
+    retentionWorkspaceLockOptions: {
+      lockDir: retentionLockDir,
+      allowNonCanonicalLockDirForTests: true,
+      timeoutMs: 1_000,
+      retryMs: 1,
+    },
+    retentionSagaStoreOptionsForTests: {
+      secureDirectory,
+      secureAuthorityPaths,
+    },
+    retentionAllowTestRuntime: true,
+  });
+
+  const retainCheckpoint = (checkpoint, session, operationId) => {
+    const store = new CheckpointRestoreSagaStore({
+      workspaceRoot: realpathSync.native(repo),
+      stateDir: retentionStateDir,
+      secureDirectory,
+      secureAuthorityPaths,
+    });
+    store.create({
+      operationId,
+      evidence: {
+        restoreKind: "git",
+        restoreSurface: "direct",
+        checkpointId: checkpoint.id,
+        checkpointIdentity: `git:${checkpoint.commit}`,
+        checkpointNamespace: session,
+      },
+    });
+    return store;
+  };
 
   it("reports availability inside vs outside a git work tree", () => {
     expect(isCheckpointAvailable(repo)).toBe(true);
@@ -802,14 +860,167 @@ describe("checkpoint-store (git engine)", () => {
   it("delete removes one checkpoint; clear removes all in a session", () => {
     const c1 = createCheckpoint(repo, { label: "x" });
     createCheckpoint(repo, { label: "y" });
-    expect(deleteCheckpoint(repo, c1.id)).toBe(true);
-    expect(deleteCheckpoint(repo, c1.id)).toBe(false); // already gone
+    expect(deleteCheckpoint(repo, c1.id, retentionOptions())).toBe(true);
+    expect(deleteCheckpoint(repo, c1.id, retentionOptions())).toBe(false); // already gone
     expect(listCheckpoints(repo).length).toBe(1);
 
-    const removed = clearCheckpoints(repo);
+    const removed = clearCheckpoints(repo, retentionOptions());
     expect(removed).toBe(1);
     expect(listCheckpoints(repo).length).toBe(0);
-  });
+  }, 20_000);
+
+  it("fails manual delete and clear before removing retained restore authority", () => {
+    const first = createCheckpoint(repo, { label: "retained" });
+    createCheckpoint(repo, { label: "free" });
+    retainCheckpoint(first, "default", "git-retention-manual");
+
+    expect(() => deleteCheckpoint(repo, first.id, retentionOptions())).toThrow(
+      expect.objectContaining({
+        code: CHECKPOINT_RESTORE_SAGA_ERROR_CODES.RETENTION_PROTECTED,
+      }),
+    );
+    expect(() => clearCheckpoints(repo, retentionOptions())).toThrow(
+      expect.objectContaining({
+        code: CHECKPOINT_RESTORE_SAGA_ERROR_CODES.RETENTION_PROTECTED,
+      }),
+    );
+    expect(listCheckpoints(repo)).toHaveLength(2);
+  }, 20_000);
+
+  it("fails closed when an orphan session tip is the last restore authority", () => {
+    const retained = createCheckpoint(repo, { label: "orphan-tip" });
+    retainCheckpoint(retained, "default", "git-retention-orphan-tip");
+    git(repo, "update-ref", "-d", retained.ref, retained.commit);
+
+    expect(listCheckpoints(repo)).toEqual([]);
+    expect(() => clearCheckpoints(repo, retentionOptions())).toThrow(
+      expect.objectContaining({
+        code: CHECKPOINT_RESTORE_SAGA_ERROR_CODES.RETENTION_UNVERIFIED,
+      }),
+    );
+    expect(git(repo, "rev-parse", "refs/cc-checkpoints/default/_tip")).toBe(
+      retained.commit,
+    );
+  }, 20_000);
+
+  it("rejects retention authority redirection outside the test runtime", () => {
+    const checkpoint = createCheckpoint(repo, { label: "redirect" });
+    const priorNodeEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = "production";
+    try {
+      expect(() =>
+        deleteCheckpoint(repo, checkpoint.id, retentionOptions()),
+      ).toThrow(
+        expect.objectContaining({
+          code: CHECKPOINT_RESTORE_SAGA_ERROR_CODES.RETENTION_UNVERIFIED,
+        }),
+      );
+    } finally {
+      if (priorNodeEnv === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = priorNodeEnv;
+    }
+    expect(resolveCheckpoint(repo, checkpoint.id)).toBe(checkpoint.commit);
+  }, 20_000);
+
+  it("uses an expected-OID CAS and never deletes a checkpoint id successor", () => {
+    const original = createCheckpoint(repo, { label: "original" });
+    writeFileSync(join(repo, "a.txt"), "successor\n", "utf8");
+    const successor = createCheckpoint(repo, { label: "successor" });
+    const originalSpawnSync = _deps.spawnSync;
+    let swapped = false;
+    _deps.spawnSync = (command, args, options) => {
+      if (
+        !swapped &&
+        command === "git" &&
+        args?.[0] === "update-ref" &&
+        args?.[1] === "--stdin" &&
+        String(options?.input || "").includes(`delete ${original.ref}`)
+      ) {
+        swapped = true;
+        git(
+          repo,
+          "update-ref",
+          original.ref,
+          successor.commit,
+          original.commit,
+        );
+      }
+      return originalSpawnSync(command, args, options);
+    };
+
+    try {
+      expect(() =>
+        deleteCheckpoint(repo, original.id, retentionOptions()),
+      ).toThrow(
+        expect.objectContaining({
+          code: CHECKPOINT_RESTORE_SAGA_ERROR_CODES.RETENTION_UNVERIFIED,
+        }),
+      );
+      expect(swapped).toBe(true);
+      expect(resolveCheckpoint(repo, original.id)).toBe(successor.commit);
+    } finally {
+      _deps.spawnSync = originalSpawnSync;
+    }
+  }, 20_000);
+
+  it("rewinds the session tip when deleting latest, then supports create and clear", () => {
+    const first = createCheckpoint(repo, { label: "first" });
+    writeFileSync(join(repo, "a.txt"), "latest\n", "utf8");
+    const latest = createCheckpoint(repo, { label: "latest" });
+
+    expect(deleteCheckpoint(repo, latest.id, retentionOptions())).toBe(true);
+    expect(git(repo, "rev-parse", "refs/cc-checkpoints/default/_tip")).toBe(
+      first.commit,
+    );
+
+    writeFileSync(join(repo, "a.txt"), "replacement\n", "utf8");
+    const replacement = createCheckpoint(repo, { label: "replacement" });
+    expect(replacement.parent).toBe(first.commit);
+    expect(clearCheckpoints(repo, retentionOptions())).toBe(2);
+    expect(listCheckpoints(repo)).toEqual([]);
+    expect(() =>
+      git(repo, "rev-parse", "refs/cc-checkpoints/default/_tip"),
+    ).toThrow();
+  }, 30_000);
+
+  it("verifies the predecessor ref while atomically rewinding the session tip", () => {
+    const first = createCheckpoint(repo, { label: "first" });
+    writeFileSync(join(repo, "a.txt"), "latest\n", "utf8");
+    const latest = createCheckpoint(repo, { label: "latest" });
+    const originalSpawnSync = _deps.spawnSync;
+    let predecessorDeleted = false;
+    _deps.spawnSync = (command, args, options) => {
+      if (
+        !predecessorDeleted &&
+        command === "git" &&
+        args?.[0] === "rev-list" &&
+        args?.includes(latest.commit)
+      ) {
+        predecessorDeleted = true;
+        expect(deleteCheckpoint(repo, first.id, retentionOptions())).toBe(true);
+      }
+      return originalSpawnSync(command, args, options);
+    };
+
+    try {
+      expect(() =>
+        deleteCheckpoint(repo, latest.id, retentionOptions()),
+      ).toThrow(
+        expect.objectContaining({
+          code: CHECKPOINT_RESTORE_SAGA_ERROR_CODES.RETENTION_UNVERIFIED,
+        }),
+      );
+    } finally {
+      _deps.spawnSync = originalSpawnSync;
+    }
+
+    expect(predecessorDeleted).toBe(true);
+    expect(listCheckpoints(repo).map((row) => row.id)).toEqual([latest.id]);
+    expect(git(repo, "rev-parse", "refs/cc-checkpoints/default/_tip")).toBe(
+      latest.commit,
+    );
+    expect(clearCheckpoints(repo, retentionOptions())).toBe(1);
+  }, 30_000);
 
   it("scopes checkpoints by session namespace", () => {
     createCheckpoint(repo, { session: "alpha", label: "a" });
@@ -844,7 +1055,12 @@ describe("checkpoint-store (git engine)", () => {
       const session = "autotest";
       for (let i = 0; i < 6; i++) {
         writeFileSync(join(repo, "a.txt"), `v${i}\n`, "utf8");
-        createCheckpoint(repo, { session, label: `cp${i}`, maxPerSession: 3 });
+        createCheckpoint(repo, {
+          session,
+          label: `cp${i}`,
+          maxPerSession: 3,
+          ...retentionOptions(),
+        });
       }
       const rows = listCheckpoints(repo, { session });
       expect(rows.length).toBe(3); // capped at maxPerSession
@@ -853,7 +1069,7 @@ describe("checkpoint-store (git engine)", () => {
       expect(labels).toContain("cp3");
       expect(labels).not.toContain("cp0"); // oldest pruned
       expect(labels).not.toContain("cp2");
-    });
+    }, 30_000);
 
     it("does not prune when maxPerSession is omitted (manual = unbounded)", () => {
       const session = "manual";
@@ -862,28 +1078,86 @@ describe("checkpoint-store (git engine)", () => {
         createCheckpoint(repo, { session, label: `m${i}` });
       }
       expect(listCheckpoints(repo, { session }).length).toBe(5);
-    });
+    }, 20_000);
+
+    it("excludes retained authority and prunes the oldest free checkpoint", () => {
+      const session = "retained-prune";
+      const retained = createCheckpoint(repo, { session, label: "retained" });
+      writeFileSync(join(repo, "a.txt"), "free-old\n", "utf8");
+      createCheckpoint(repo, { session, label: "free-old" });
+      retainCheckpoint(retained, session, "git-retention-prune");
+
+      writeFileSync(join(repo, "a.txt"), "newest\n", "utf8");
+      createCheckpoint(repo, {
+        session,
+        label: "newest",
+        maxPerSession: 2,
+        ...retentionOptions(),
+      });
+
+      expect(
+        listCheckpoints(repo, { session }).map((row) => row.label),
+      ).toEqual(["newest", "retained"]);
+    }, 20_000);
+
+    it("skips the entire prune when restore authority is unverified", () => {
+      const session = "unverified-prune";
+      const retained = createCheckpoint(repo, { session, label: "retained" });
+      writeFileSync(join(repo, "a.txt"), "middle\n", "utf8");
+      createCheckpoint(repo, { session, label: "middle" });
+      const store = retainCheckpoint(
+        retained,
+        session,
+        "git-retention-corrupt",
+      );
+      const operationDir = join(store.stateRoot, "git-retention-corrupt");
+      const event = readdirSync(operationDir).find((name) =>
+        name.endsWith(".json"),
+      );
+      writeFileSync(join(operationDir, event), "{", "utf8");
+
+      writeFileSync(join(repo, "a.txt"), "newest\n", "utf8");
+      createCheckpoint(repo, {
+        session,
+        label: "newest",
+        maxPerSession: 2,
+        ...retentionOptions(),
+      });
+
+      expect(listCheckpoints(repo, { session })).toHaveLength(3);
+    }, 20_000);
 
     it("a pruned checkpoint's predecessor tree is still restorable via the kept chain", () => {
       const session = "chain";
       // 3 checkpoints, cap 2: the first is pruned but its tree lives on as the
       // parent of the survivors — rewinding to a kept checkpoint still works.
       writeFileSync(join(repo, "a.txt"), "one\n", "utf8");
-      createCheckpoint(repo, { session, label: "one", maxPerSession: 2 });
+      createCheckpoint(repo, {
+        session,
+        label: "one",
+        maxPerSession: 2,
+        ...retentionOptions(),
+      });
       writeFileSync(join(repo, "a.txt"), "two\n", "utf8");
       const keep = createCheckpoint(repo, {
         session,
         label: "two",
         maxPerSession: 2,
+        ...retentionOptions(),
       });
       writeFileSync(join(repo, "a.txt"), "three\n", "utf8");
-      createCheckpoint(repo, { session, label: "three", maxPerSession: 2 });
+      createCheckpoint(repo, {
+        session,
+        label: "three",
+        maxPerSession: 2,
+        ...retentionOptions(),
+      });
 
       expect(listCheckpoints(repo, { session }).length).toBe(2);
       // The kept "two" checkpoint still rewinds cleanly.
       rewindTo(repo, keep.id, { session, skipSafety: true });
       expect(readFileSync(join(repo, "a.txt"), "utf8")).toBe("two\n");
-    });
+    }, 20_000);
   });
 });
 
@@ -1171,7 +1445,7 @@ describe("checkpoint-store crash rollback adapter", () => {
         );
       }
 
-      deleteCheckpoint(repo, authority.safety.id, { session });
+      git(repo, "update-ref", "-d", authority.safety.ref);
       expect(() =>
         prepareCheckpointRollback(
           repo,

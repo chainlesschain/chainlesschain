@@ -24,6 +24,10 @@ import path from "node:path";
 import executionBroker from "./process-execution-broker/index.js";
 import { credentialAgent } from "./process-execution-broker/credential-agent.js";
 import { computeCheckpointRestoreDigest } from "./checkpoint-restore-orchestrator.js";
+import {
+  checkpointRestoreRetentionUnverifiedError,
+  withCheckpointRestoreRetention,
+} from "./checkpoint-restore-retention.js";
 
 export const _deps = {
   spawnSync: (...args) => executionBroker.spawnSync(...args),
@@ -35,6 +39,7 @@ const REF_NS = "refs/cc-checkpoints";
 // and rebuild the shadow commit. Keep the bound finite: a permanently locked
 // or externally churned namespace must fail instead of spinning forever.
 const MAX_REF_PUBLISH_ATTEMPTS = 16;
+const MAX_CHECKPOINT_TIP_REWIND_COMMITS = 10_001;
 const WORKSPACE_BINDING_SCHEMA = "cc-checkpoint-workspace-binding/v1";
 const WORKSPACE_BINDING_KEYS = Object.freeze([
   "engine",
@@ -116,6 +121,38 @@ const INTERNAL_GIT_ENV_KEYS = new Set([
   "GIT_COMMITTER_NAME",
   "GIT_COMMITTER_EMAIL",
 ]);
+
+function checkpointRetentionOptions(opts = {}) {
+  const redirectsAuthority =
+    opts.retentionStateDir != null ||
+    opts.retentionWorkspaceLockOptions != null ||
+    opts.retentionSagaStoreOptionsForTests != null;
+  if (
+    redirectsAuthority &&
+    (process.env.NODE_ENV !== "test" || opts.retentionAllowTestRuntime !== true)
+  ) {
+    throw checkpointRestoreRetentionUnverifiedError(
+      null,
+      "Git checkpoint retention authority redirection is test-only",
+    );
+  }
+  return {
+    ...(redirectsAuthority
+      ? { allowTestRuntime: opts.retentionAllowTestRuntime === true }
+      : {}),
+    ...(opts.retentionStateDir != null
+      ? { stateDir: opts.retentionStateDir }
+      : {}),
+    ...(opts.retentionWorkspaceLockOptions != null
+      ? { workspaceLockOptions: opts.retentionWorkspaceLockOptions }
+      : {}),
+    ...(opts.retentionSagaStoreOptionsForTests != null
+      ? {
+          sagaStoreOptionsForTests: opts.retentionSagaStoreOptionsForTests,
+        }
+      : {}),
+  };
+}
 
 function checkpointGitEnvironment(overrides = null) {
   const environment = {};
@@ -481,6 +518,12 @@ function readRef(root, ref) {
   }
 }
 
+function readRefStrict(root, ref) {
+  return (
+    git(["for-each-ref", "--format=%(objectname)", ref], { cwd: root }) || null
+  );
+}
+
 function isRefTransactionConflict(error) {
   return /(?:cannot lock ref|unable to create .*\.lock|reference already exists|is at .* but expected)/i.test(
     String(error?.message || error || ""),
@@ -741,17 +784,15 @@ export function createCheckpoint(cwd = process.cwd(), opts = {}) {
     // oldest entries). Manual `cc checkpoint create` omits the cap → unbounded.
     if (Number.isFinite(opts.maxPerSession) && opts.maxPerSession > 0) {
       try {
-        const rows = listRefs(root, session); // oldest-first (creatordate)
-        const excess = rows.length - opts.maxPerSession;
-        for (let i = 0; i < excess; i++) {
-          try {
-            git(["update-ref", "-d", rows[i].ref], { cwd: root });
-          } catch {
-            /* best-effort — a failed prune never affects the new checkpoint */
-          }
-        }
+        const rows = listRefs(root, session, { strict: true });
+        pruneCheckpointRows(root, session, rows, opts.maxPerSession, opts, {
+          id,
+          ref,
+          commit,
+        });
       } catch {
-        /* pruning is entirely best-effort */
+        // Verification failure skips the whole prune. The newly published
+        // checkpoint remains valid; no possibly retained authority is removed.
       }
     }
 
@@ -774,7 +815,7 @@ function nextId(root, session) {
 }
 
 /** Raw ref rows for a session (excludes the internal _tip pointer). */
-function listRefs(root, session) {
+function listRefs(root, session, { strict = false } = {}) {
   const prefix = sessionPrefix(session);
   let out = "";
   try {
@@ -787,7 +828,8 @@ function listRefs(root, session) {
       ],
       { cwd: root },
     );
-  } catch {
+  } catch (error) {
+    if (strict) throw error;
     return [];
   }
   if (!out) return [];
@@ -801,6 +843,123 @@ function listRefs(root, session) {
     rows.push({ id, ref: refname, commit, createdAt, label });
   }
   return rows;
+}
+
+function deleteCheckpointRowsExact(root, rows, tip = null) {
+  if (rows.length === 0 && !tip) return;
+  const tipCommand = tip
+    ? tip.nextRow
+      ? `update ${tip.ref} ${tip.nextRow.commit} ${tip.expectedCommit}`
+      : `delete ${tip.ref} ${tip.expectedCommit}`
+    : null;
+  const input = [
+    "start",
+    ...(tip?.nextRow
+      ? [`verify ${tip.nextRow.ref} ${tip.nextRow.commit}`]
+      : []),
+    ...rows.map((row) => `delete ${row.ref} ${row.commit}`),
+    ...(tipCommand ? [tipCommand] : []),
+    "prepare",
+    "commit",
+    "",
+  ].join("\n");
+  git(["update-ref", "--stdin"], { cwd: root, input });
+}
+
+function exactSessionTipRow(rows, tipCommit) {
+  if (!tipCommit) return null;
+  const matches = rows.filter((row) => row.commit === tipCommit);
+  if (matches.length !== 1) {
+    throw checkpointRestoreRetentionUnverifiedError(
+      null,
+      "Git checkpoint session tip does not match one exact checkpoint ref",
+    );
+  }
+  return matches[0];
+}
+
+function previousRetainedSessionTip(root, tipCommit, remainingRows) {
+  if (remainingRows.length === 0) return null;
+  const remainingRowsByCommit = new Map();
+  for (const row of remainingRows) {
+    const matches = remainingRowsByCommit.get(row.commit) || [];
+    matches.push(row);
+    remainingRowsByCommit.set(row.commit, matches);
+  }
+  const history = git(
+    [
+      "rev-list",
+      "--first-parent",
+      `--max-count=${MAX_CHECKPOINT_TIP_REWIND_COMMITS + 1}`,
+      tipCommit,
+    ],
+    { cwd: root },
+  )
+    .split("\n")
+    .filter(Boolean);
+  for (const commit of history.slice(1)) {
+    const matches = remainingRowsByCommit.get(commit) || [];
+    if (matches.length > 1) {
+      throw checkpointRestoreRetentionUnverifiedError(
+        null,
+        "Git checkpoint tip predecessor does not match one exact checkpoint ref",
+      );
+    }
+    if (matches.length === 1) return matches[0];
+  }
+  throw checkpointRestoreRetentionUnverifiedError(
+    null,
+    history.length > MAX_CHECKPOINT_TIP_REWIND_COMMITS
+      ? "Git checkpoint tip rewind exceeded its verification bound"
+      : "Git checkpoint tip has no retained checkpoint ancestor",
+  );
+}
+
+function pruneCheckpointRows(root, session, rows, maximum, opts, sessionTip) {
+  const excess = rows.length - maximum;
+  if (excess <= 0 || rows.length <= 1) return;
+  const isSessionTip = (row) =>
+    row.id === sessionTip.id &&
+    row.ref === sessionTip.ref &&
+    row.commit === sessionTip.commit;
+  if (!rows.some(isSessionTip)) {
+    throw checkpointRestoreRetentionUnverifiedError(
+      null,
+      "Newly published Git checkpoint tip could not be retained during prune",
+    );
+  }
+
+  // The exact newly published session tip must remain addressable even when
+  // protected older authority means the requested cap cannot be reached.
+  const candidates = rows
+    .filter((row) => !isSessionTip(row))
+    .map((row) => ({
+      id: row.id,
+      identity: `git:${row.commit}`,
+    }));
+  withCheckpointRestoreRetention(
+    {
+      workspaceRoot: canonicalPath(root),
+      engine: "git",
+      checkpointNamespace: session,
+      candidates,
+      protectedPolicy: "exclude",
+      ...checkpointRetentionOptions(opts),
+    },
+    (snapshot) => {
+      const deletable = new Map(
+        snapshot.deletableCandidates.map((candidate) => [
+          candidate.id,
+          candidate.identity,
+        ]),
+      );
+      const selected = rows
+        .filter((row) => !isSessionTip(row))
+        .filter((row) => deletable.get(row.id) === `git:${row.commit}`)
+        .slice(0, excess);
+      deleteCheckpointRowsExact(root, selected);
+    },
+  );
 }
 
 /**
@@ -1936,20 +2095,58 @@ export function showCheckpoint(cwd = process.cwd(), idOrRef, opts = {}) {
 export function deleteCheckpoint(cwd = process.cwd(), idOrRef, opts = {}) {
   const root = repoRoot(cwd);
   const session = sanitizeSession(opts.session);
-  let commit;
+  let rows;
+  let tipCommit;
   try {
-    commit = resolveCheckpoint(root, idOrRef, { session });
-  } catch {
-    return false;
+    rows = listRefs(root, session, { strict: true });
+    tipCommit = readRefStrict(root, `${sessionPrefix(session)}/_tip`);
+  } catch (cause) {
+    throw checkpointRestoreRetentionUnverifiedError(
+      cause,
+      "Git checkpoint deletion authority could not be enumerated",
+    );
   }
-  const row = listRefs(root, session).find((r) => r.commit === commit);
-  const ref = row ? row.ref : `${sessionPrefix(session)}/${idOrRef}`;
-  try {
-    git(["update-ref", "-d", ref], { cwd: root });
-    return true;
-  } catch {
-    return false;
+  const tipRow = exactSessionTipRow(rows, tipCommit);
+  let row = rows.find(
+    (candidate) =>
+      candidate.id === idOrRef ||
+      candidate.ref === idOrRef ||
+      candidate.commit === idOrRef,
+  );
+  if (!row) {
+    let commit;
+    try {
+      commit = resolveCheckpoint(root, idOrRef, { session });
+    } catch {
+      return false;
+    }
+    row = rows.find((candidate) => candidate.commit === commit);
   }
+  if (!row) return false;
+  const remainingRows = rows.filter((candidate) => candidate.ref !== row.ref);
+  const tipUpdate =
+    tipRow?.ref === row.ref
+      ? {
+          ref: `${sessionPrefix(session)}/_tip`,
+          expectedCommit: tipCommit,
+          nextRow: previousRetainedSessionTip(root, tipCommit, remainingRows),
+        }
+      : null;
+
+  return withCheckpointRestoreRetention(
+    {
+      workspaceRoot: canonicalPath(root),
+      engine: "git",
+      checkpointNamespace: session,
+      candidates: [{ id: row.id, identity: `git:${row.commit}` }],
+      protectedPolicy: "reject",
+      ...checkpointRetentionOptions(opts),
+    },
+    () => {
+      deleteCheckpointRowsExact(root, [row], tipUpdate);
+      return true;
+    },
+  );
 }
 
 /**
@@ -1960,20 +2157,44 @@ export function deleteCheckpoint(cwd = process.cwd(), idOrRef, opts = {}) {
 export function clearCheckpoints(cwd = process.cwd(), opts = {}) {
   const root = repoRoot(cwd);
   const session = sanitizeSession(opts.session);
-  const rows = listRefs(root, session);
-  for (const r of rows) {
-    try {
-      git(["update-ref", "-d", r.ref], { cwd: root });
-    } catch {
-      /* best-effort */
-    }
-  }
+  const tipRef = `${sessionPrefix(session)}/_tip`;
+  let rows;
+  let tipCommit;
   try {
-    git(["update-ref", "-d", `${sessionPrefix(session)}/_tip`], { cwd: root });
-  } catch {
-    /* _tip may not exist */
+    rows = listRefs(root, session, { strict: true });
+    tipCommit = readRefStrict(root, tipRef);
+  } catch (cause) {
+    throw checkpointRestoreRetentionUnverifiedError(
+      cause,
+      "Git checkpoint clear authority could not be enumerated",
+    );
   }
-  return rows.length;
+  exactSessionTipRow(rows, tipCommit);
+  if (rows.length === 0 && !tipCommit) return 0;
+
+  return withCheckpointRestoreRetention(
+    {
+      workspaceRoot: canonicalPath(root),
+      engine: "git",
+      checkpointNamespace: session,
+      candidates: rows.map((row) => ({
+        id: row.id,
+        identity: `git:${row.commit}`,
+      })),
+      protectedPolicy: "reject",
+      ...checkpointRetentionOptions(opts),
+    },
+    () => {
+      deleteCheckpointRowsExact(
+        root,
+        rows,
+        tipCommit
+          ? { ref: tipRef, expectedCommit: tipCommit, nextRow: null }
+          : null,
+      );
+      return rows.length;
+    },
+  );
 }
 
 // Exposed for unit tests / advanced callers.

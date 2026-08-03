@@ -29,7 +29,12 @@ import {
   inspectPrivatePaths,
   repairPrivatePaths,
 } from "./secure-fs.js";
+import { withFileLock as withFileLockDefault } from "./with-file-lock.js";
 import { computeCheckpointRestoreDigest } from "./checkpoint-restore-orchestrator.js";
+import {
+  checkpointRestoreRetentionUnverifiedError,
+  withCheckpointRestoreRetention,
+} from "./checkpoint-restore-retention.js";
 
 /** Directories never walked into when a checkpoint path is a directory. */
 export const SKIP_DIRS = new Set([
@@ -42,6 +47,11 @@ export const SKIP_DIRS = new Set([
   ".cache",
   "coverage",
 ]);
+
+export const _fileCheckpointStoreDeps = {
+  withFileLock: (...args) => withFileLockDefault(...args),
+  beforeDeleteCopyAuthorityForTests: null,
+};
 
 /** Safety cap so `checkpoint create <huge-dir>` can't snapshot the universe. */
 export const DEFAULT_MAX_FILES = 2000;
@@ -74,9 +84,50 @@ const SHA256_RE = /^[a-f0-9]{64}$/;
 const SHA256_IDENTITY_RE = /^sha256:[a-f0-9]{64}$/;
 const EMPTY_SHA256 = createHash("sha256").update(Buffer.alloc(0)).digest("hex");
 const BIGINT_STAT_OPTIONS = Object.freeze({ bigint: true });
+const COPY_CHECKPOINT_STORE_LOCK_TIMEOUT_MS = 5_000;
+const COPY_CHECKPOINT_STORE_LOCK_RETRY_MS = 5;
+const COPY_CHECKPOINT_STORE_AUTHORITY_DIR = ".cc-copy-store-authority";
+const COPY_CHECKPOINT_STORE_AUTHORITY_SENTINEL = "authority.json";
+const COPY_CHECKPOINT_STORE_AUTHORITY_SCHEMA =
+  "cc-copy-checkpoint-store-authority/v1";
+const COPY_CHECKPOINT_STORE_AUTHORITY_DIGEST_DOMAIN =
+  "cc-copy-checkpoint-store-authority-root/v1\0";
+const MAX_COPY_CHECKPOINT_STORE_AUTHORITY_BYTES = 4 * 1024;
 
 function defaultRoot() {
   return path.join(getHomeDir(), "checkpoints");
+}
+
+function checkpointRetentionOptions(opts = {}) {
+  const redirectsAuthority =
+    opts.retentionStateDir != null ||
+    opts.retentionWorkspaceLockOptions != null ||
+    opts.retentionSagaStoreOptionsForTests != null;
+  if (
+    redirectsAuthority &&
+    (process.env.NODE_ENV !== "test" || opts.retentionAllowTestRuntime !== true)
+  ) {
+    throw checkpointRestoreRetentionUnverifiedError(
+      null,
+      "Copy checkpoint retention authority redirection is test-only",
+    );
+  }
+  return {
+    ...(redirectsAuthority
+      ? { allowTestRuntime: opts.retentionAllowTestRuntime === true }
+      : {}),
+    ...(opts.retentionStateDir != null
+      ? { stateDir: opts.retentionStateDir }
+      : {}),
+    ...(opts.retentionWorkspaceLockOptions != null
+      ? { workspaceLockOptions: opts.retentionWorkspaceLockOptions }
+      : {}),
+    ...(opts.retentionSagaStoreOptionsForTests != null
+      ? {
+          sagaStoreOptionsForTests: opts.retentionSagaStoreOptionsForTests,
+        }
+      : {}),
+  };
 }
 
 function ensureDir(dir) {
@@ -133,7 +184,15 @@ function atomicWriteFileSync(filePath, data, options = {}) {
       ? createdFileIdentity(fs.lstatSync(tmp, { bigint: true }))
       : null;
     options.beforeRename?.({ stagingIdentity, tmp });
-    fs.renameSync(tmp, filePath);
+    if (options.noReplace === true) {
+      // A same-filesystem hard-link publishes the fully flushed staging inode
+      // only when the final name is absent. Unlike rename on Windows/POSIX,
+      // it never replaces an authority that appeared after ID reservation.
+      fs.linkSync(tmp, filePath);
+      fs.unlinkSync(tmp);
+    } else {
+      fs.renameSync(tmp, filePath);
+    }
     if (options.durable) flushPublishedFile(filePath);
   } catch (err) {
     try {
@@ -242,6 +301,218 @@ function createPrivateAuthorityDirectories(paths) {
     });
   }
   return uniqueTargets;
+}
+
+function copyCheckpointAuthorityComponentKey(component) {
+  let key = String(component).normalize("NFC").toLowerCase();
+  if (process.platform === "win32") key = key.replace(/[. ]+$/u, "");
+  return key;
+}
+
+function hasCopyCheckpointAuthorityPathComponent(filePath) {
+  const reserved = copyCheckpointAuthorityComponentKey(
+    COPY_CHECKPOINT_STORE_AUTHORITY_DIR,
+  );
+  return path
+    .resolve(filePath)
+    .split(/[\\/]+/u)
+    .some(
+      (component) =>
+        copyCheckpointAuthorityComponentKey(component) === reserved,
+    );
+}
+
+function assertCopyCheckpointStoreRootNamespace(root, phase) {
+  if (hasCopyCheckpointAuthorityPathComponent(root)) {
+    throw checkpointRestoreRetentionUnverifiedError(
+      null,
+      `Copy checkpoint store ${phase} uses the reserved authority namespace`,
+    );
+  }
+}
+
+function copyCheckpointPathEntryExists(filePath, purpose) {
+  try {
+    fs.lstatSync(filePath, BIGINT_STAT_OPTIONS);
+    return true;
+  } catch (cause) {
+    if (cause?.code === "ENOENT") return false;
+    throw checkpointRestoreRetentionUnverifiedError(
+      cause,
+      `Copy checkpoint store ${purpose} could not be inspected`,
+    );
+  }
+}
+
+function assertCopyCheckpointStoreIsNotNested(root, phase) {
+  let current = path.resolve(root);
+  let isCandidateRoot = true;
+  for (;;) {
+    const parent = path.dirname(current);
+    if (samePath(parent, current)) return;
+    const component = path.basename(current);
+    if (
+      component &&
+      copyCheckpointPathEntryExists(
+        path.join(parent, `${component}.json`),
+        `${phase} legacy checkpoint ancestor`,
+      )
+    ) {
+      throw checkpointRestoreRetentionUnverifiedError(
+        null,
+        `Copy checkpoint store ${phase} is inside a legacy checkpoint blob directory`,
+      );
+    }
+    if (
+      !isCandidateRoot &&
+      copyCheckpointPathEntryExists(
+        path.join(current, COPY_CHECKPOINT_STORE_AUTHORITY_DIR),
+        `${phase} ancestor authority`,
+      )
+    ) {
+      throw checkpointRestoreRetentionUnverifiedError(
+        null,
+        `Copy checkpoint store ${phase} is nested inside another checkpoint store`,
+      );
+    }
+    current = parent;
+    isCandidateRoot = false;
+  }
+}
+
+function copyCheckpointStoreAuthorityDigest(canonicalRoot) {
+  return createHash("sha256")
+    .update(COPY_CHECKPOINT_STORE_AUTHORITY_DIGEST_DOMAIN, "utf8")
+    .update(canonicalRoot, "utf8")
+    .digest("hex");
+}
+
+function copyCheckpointStoreAuthoritySentinel(canonicalRoot) {
+  return {
+    schema: COPY_CHECKPOINT_STORE_AUTHORITY_SCHEMA,
+    canonicalRootDigest: copyCheckpointStoreAuthorityDigest(canonicalRoot),
+  };
+}
+
+function verifyCopyCheckpointStoreAuthority(canonicalRoot, authorityDir) {
+  const sentinelPath = path.join(
+    authorityDir,
+    COPY_CHECKPOINT_STORE_AUTHORITY_SENTINEL,
+  );
+  try {
+    const authorityStat = fs.lstatSync(authorityDir, BIGINT_STAT_OPTIONS);
+    if (authorityStat.isSymbolicLink() || !authorityStat.isDirectory()) {
+      throw new Error("authority path is not a plain directory");
+    }
+    const canonicalAuthority = fs.realpathSync.native(authorityDir);
+    if (!samePath(authorityDir, canonicalAuthority)) {
+      throw new Error("authority directory is not canonical");
+    }
+    const inspected = inspectPrivatePaths([authorityDir, sentinelPath]);
+    if (
+      inspected.length !== 2 ||
+      inspected.some((entry) => entry.exists === false || entry.ok !== true)
+    ) {
+      throw new Error("authority directory or sentinel is not owner-private");
+    }
+    const sentinel = JSON.parse(
+      readBoundedPlainFile(
+        sentinelPath,
+        MAX_COPY_CHECKPOINT_STORE_AUTHORITY_BYTES,
+      ).toString("utf8"),
+    );
+    const expected = copyCheckpointStoreAuthoritySentinel(canonicalRoot);
+    if (
+      !sentinel ||
+      typeof sentinel !== "object" ||
+      Array.isArray(sentinel) ||
+      Object.keys(sentinel).sort().join("\0") !==
+        ["canonicalRootDigest", "schema"].join("\0") ||
+      sentinel.schema !== expected.schema ||
+      sentinel.canonicalRootDigest !== expected.canonicalRootDigest
+    ) {
+      throw new Error("authority sentinel does not match the checkpoint root");
+    }
+    return canonicalAuthority;
+  } catch (cause) {
+    throw checkpointRestoreRetentionUnverifiedError(
+      cause,
+      "Copy checkpoint store lock authority could not be verified",
+    );
+  }
+}
+
+function openCopyCheckpointStoreAuthority(canonicalRoot) {
+  const authorityDir = path.join(
+    canonicalRoot,
+    COPY_CHECKPOINT_STORE_AUTHORITY_DIR,
+  );
+  const sentinelPath = path.join(
+    authorityDir,
+    COPY_CHECKPOINT_STORE_AUTHORITY_SENTINEL,
+  );
+  let created = false;
+  try {
+    fs.mkdirSync(authorityDir, { mode: 0o700 });
+    created = true;
+  } catch (cause) {
+    if (cause?.code !== "EEXIST") {
+      throw checkpointRestoreRetentionUnverifiedError(
+        cause,
+        "Copy checkpoint store lock authority could not be created",
+      );
+    }
+  }
+  if (created) {
+    try {
+      atomicWriteFileSync(
+        sentinelPath,
+        `${JSON.stringify(copyCheckpointStoreAuthoritySentinel(canonicalRoot), null, 2)}\n`,
+        { durable: true, mode: 0o600, noReplace: true },
+      );
+      repairPrivatePaths(
+        [authorityDir, sentinelPath],
+        PRIVATE_AUTHORITY_OPTIONS,
+      );
+    } catch (cause) {
+      throw checkpointRestoreRetentionUnverifiedError(
+        cause,
+        "Copy checkpoint store lock authority bootstrap failed",
+      );
+    }
+  }
+  return verifyCopyCheckpointStoreAuthority(canonicalRoot, authorityDir);
+}
+
+function withCopyCheckpointStoreMaintenance(root, callback) {
+  if (typeof callback !== "function") {
+    throw new TypeError("copy checkpoint store callback must be a function");
+  }
+  const requestedRoot = path.resolve(root || defaultRoot());
+  assertCopyCheckpointStoreRootNamespace(requestedRoot, "root");
+  assertCopyCheckpointStoreIsNotNested(requestedRoot, "root");
+  ensurePrivateAuthorityDirectories([requestedRoot]);
+  const canonicalRoot = fs.realpathSync.native(requestedRoot);
+  if (!samePath(requestedRoot, canonicalRoot)) {
+    throw checkpointRestoreRetentionUnverifiedError(
+      null,
+      "Copy checkpoint store root must be canonical",
+    );
+  }
+  assertCopyCheckpointStoreRootNamespace(canonicalRoot, "canonical root");
+  assertCopyCheckpointStoreIsNotNested(canonicalRoot, "canonical root");
+  const lockAuthority = openCopyCheckpointStoreAuthority(canonicalRoot);
+  return _fileCheckpointStoreDeps.withFileLock(
+    path.join(lockAuthority, "maintenance"),
+    () => callback(canonicalRoot),
+    {
+      failIfUnavailable: true,
+      timeoutMs: COPY_CHECKPOINT_STORE_LOCK_TIMEOUT_MS,
+      retryMs: COPY_CHECKPOINT_STORE_LOCK_RETRY_MS,
+      maxRetryMs: 50,
+      retryJitterMs: 2,
+    },
+  );
 }
 
 function ensurePrivateAuthorityFiles(paths) {
@@ -1915,8 +2186,41 @@ function isSafeCheckpointId(id) {
     !id.includes("/") &&
     !id.includes("\\") &&
     !id.includes(":") &&
-    !id.includes("\0")
+    !id.includes("\0") &&
+    copyCheckpointAuthorityComponentKey(id) !==
+      copyCheckpointAuthorityComponentKey(COPY_CHECKPOINT_STORE_AUTHORITY_DIR)
   );
+}
+
+function checkpointIdConflict(id, cause = null) {
+  const error = new Error(
+    `Checkpoint id is already reserved: ${id}`,
+    cause ? { cause } : undefined,
+  );
+  error.code = "CHECKPOINT_ID_CONFLICT";
+  error.checkpointId = id;
+  return error;
+}
+
+function reserveCheckpointId(root, id) {
+  const manifestPath = path.join(root, `${id}.json`);
+  const blobDir = path.join(root, id);
+  if (fs.existsSync(manifestPath) || fs.existsSync(blobDir)) {
+    throw checkpointIdConflict(id);
+  }
+  try {
+    // mkdir is the atomic ID reservation. A failed publication deliberately
+    // leaves this directory behind so retry cannot overwrite another process's
+    // successor or reinterpret partial data as a free ID.
+    fs.mkdirSync(blobDir);
+  } catch (cause) {
+    if (cause?.code === "EEXIST") throw checkpointIdConflict(id, cause);
+    throw cause;
+  }
+  if (fs.existsSync(manifestPath)) {
+    throw checkpointIdConflict(id);
+  }
+  return Object.freeze({ blobDir, manifestPath });
 }
 
 /**
@@ -1961,7 +2265,7 @@ function collectFiles(abs, { maxFiles, acc }) {
  * @param {object} [opts] { cwd, label, root, maxFiles }
  * @returns {{ id, label, createdAt, cwd, fileCount, files:Array }}
  */
-export function createCheckpoint(paths, opts = {}) {
+function createCheckpointLocked(paths, opts = {}) {
   const cwd = opts.cwd || process.cwd();
   const root = opts.root || defaultRoot();
   const maxFiles = Number.isFinite(opts.maxFiles)
@@ -1988,8 +2292,7 @@ export function createCheckpoint(paths, opts = {}) {
   if (!isSafeCheckpointId(id)) {
     throw new Error(`Unsafe checkpoint id (path traversal): ${id}`);
   }
-  const blobDir = path.join(root, id);
-  ensureDir(blobDir);
+  const { blobDir, manifestPath } = reserveCheckpointId(root, id);
 
   const files = [];
   for (const abs of uniqueAbs) {
@@ -2019,15 +2322,19 @@ export function createCheckpoint(paths, opts = {}) {
     files,
   };
   ensureDir(root);
-  atomicWriteFileSync(
-    path.join(root, `${id}.json`),
-    JSON.stringify(manifest, null, 2),
-    {
-      durable: opts.durable === true,
-      ...(opts.mode != null ? { mode: opts.mode } : {}),
-    },
-  );
+  atomicWriteFileSync(manifestPath, JSON.stringify(manifest, null, 2), {
+    durable: opts.durable === true,
+    noReplace: true,
+    ...(opts.mode != null ? { mode: opts.mode } : {}),
+  });
   return manifest;
+}
+
+export function createCheckpoint(paths, opts = {}) {
+  const root = path.resolve(opts.root || defaultRoot());
+  return withCopyCheckpointStoreMaintenance(root, (lockedRoot) =>
+    createCheckpointLocked(paths, { ...opts, root: lockedRoot }),
+  );
 }
 
 /** Load a checkpoint manifest by id, or null. */
@@ -2036,11 +2343,24 @@ export function getCheckpoint(id, opts = {}) {
   const root = opts.root || defaultRoot();
   const file = path.join(root, `${id}.json`);
   try {
-    return JSON.parse(
+    const manifest = JSON.parse(
       readBoundedPlainFile(file, MAX_CHECKPOINT_MANIFEST_BYTES).toString(
         "utf8",
       ),
     );
+    if (opts.cwd != null) {
+      const requestedWorkspace = canonicalWorkspaceDirectory(
+        opts.cwd,
+        "checkpoint query cwd",
+        { absolute: false },
+      );
+      const manifestWorkspace = canonicalWorkspaceDirectory(
+        manifest.cwd,
+        "checkpoint manifest cwd",
+      );
+      if (!samePath(requestedWorkspace, manifestWorkspace)) return null;
+    }
+    return manifest;
   } catch {
     return null;
   }
@@ -2053,7 +2373,10 @@ export function listCheckpoints(opts = {}) {
   const out = [];
   for (const name of fs.readdirSync(root)) {
     if (!name.endsWith(".json")) continue;
-    const m = getCheckpoint(name.slice(0, -5), { root });
+    const m = getCheckpoint(name.slice(0, -5), {
+      root,
+      ...(opts.cwd != null ? { cwd: opts.cwd } : {}),
+    });
     if (m) {
       out.push({
         id: m.id,
@@ -2141,7 +2464,19 @@ export function diffCheckpoint(id, opts = {}) {
   return { id, checkpointIdentity, modified, unchanged, deleted };
 }
 
-function createRestoreSafetyCheckpoint({
+function createRestoreSafetyCheckpoint(options) {
+  if (options.existingPaths.length === 0 && options.tombstones.length === 0) {
+    return null;
+  }
+  return withCopyCheckpointStoreMaintenance(options.root, (lockedRoot) =>
+    createRestoreSafetyCheckpointLocked({
+      ...options,
+      root: lockedRoot,
+    }),
+  );
+}
+
+function createRestoreSafetyCheckpointLocked({
   root,
   workspaceRoot,
   sourceCheckpointId,
@@ -2150,8 +2485,6 @@ function createRestoreSafetyCheckpoint({
   tombstones,
   mutations,
 }) {
-  if (existingPaths.length === 0 && tombstones.length === 0) return null;
-
   ensurePrivateAuthorityDirectories([root]);
   const checkpointRoot = fs.realpathSync.native(root);
   const canonicalWorkspaceRoot = fs.realpathSync.native(workspaceRoot);
@@ -2189,7 +2522,7 @@ function createRestoreSafetyCheckpoint({
 
   let manifest;
   if (existingPaths.length > 0) {
-    manifest = createCheckpoint(existingPaths, {
+    manifest = createCheckpointLocked(existingPaths, {
       root,
       cwd: workspaceRoot,
       label: `auto-before-restore-${sourceCheckpointId}`,
@@ -2198,7 +2531,10 @@ function createRestoreSafetyCheckpoint({
     });
   } else {
     const safetyId = newId();
-    ensureDir(path.join(root, safetyId));
+    const { manifestPath: safetyManifestPath } = reserveCheckpointId(
+      root,
+      safetyId,
+    );
     manifest = {
       id: safetyId,
       label: `auto-before-restore-${sourceCheckpointId}`,
@@ -2208,11 +2544,11 @@ function createRestoreSafetyCheckpoint({
       files: [],
     };
     ensureDir(root);
-    atomicWriteFileSync(
-      path.join(root, `${safetyId}.json`),
-      JSON.stringify(manifest, null, 2),
-      { durable: true, mode: 0o600 },
-    );
+    atomicWriteFileSync(safetyManifestPath, JSON.stringify(manifest, null, 2), {
+      durable: true,
+      mode: 0o600,
+      noReplace: true,
+    });
   }
 
   const checkpointDir = fs.realpathSync.native(path.join(root, manifest.id));
@@ -4432,20 +4768,308 @@ export function restoreCheckpoint(id, opts = {}) {
   };
 }
 
-/** Delete a checkpoint (manifest + blobs). Returns true if it existed. */
-export function deleteCheckpoint(id, opts = {}) {
-  if (!isSafeCheckpointId(id)) return false;
-  const root = opts.root || defaultRoot();
+function copyDeletionAuthority(id, opts = {}) {
+  const root = path.resolve(opts.root || defaultRoot());
   const file = path.join(root, `${id}.json`);
   const blobDir = path.join(root, id);
-  let existed = false;
-  if (fs.existsSync(file)) {
-    fs.rmSync(file);
-    existed = true;
+  const manifestExists = fs.existsSync(file);
+  const blobExists = fs.existsSync(blobDir);
+  if (!manifestExists && !blobExists) return null;
+  if (!manifestExists || opts.cwd == null) {
+    throw checkpointRestoreRetentionUnverifiedError(
+      null,
+      !manifestExists
+        ? `Copy checkpoint manifest is missing: ${id}`
+        : "Copy checkpoint deletion requires an exact workspace cwd",
+    );
   }
-  if (fs.existsSync(blobDir)) {
-    fs.rmSync(blobDir, { recursive: true, force: true });
-    existed = true;
+
+  const manifest = getCheckpoint(id, { root });
+  if (!manifest || manifest.id !== id) {
+    throw checkpointRestoreRetentionUnverifiedError(
+      null,
+      `Copy checkpoint manifest authority is invalid: ${id}`,
+    );
   }
-  return existed;
+  let requestedWorkspace;
+  let manifestWorkspace;
+  try {
+    requestedWorkspace = canonicalWorkspaceDirectory(
+      opts.cwd,
+      "checkpoint deletion cwd",
+      { absolute: false },
+    );
+    manifestWorkspace = canonicalWorkspaceDirectory(
+      manifest.cwd,
+      "checkpoint manifest cwd",
+    );
+  } catch (cause) {
+    throw checkpointRestoreRetentionUnverifiedError(
+      cause,
+      `Copy checkpoint workspace authority is invalid: ${id}`,
+    );
+  }
+  if (!samePath(requestedWorkspace, manifestWorkspace)) {
+    throw checkpointRestoreRetentionUnverifiedError(
+      null,
+      `Copy checkpoint does not belong to the requested workspace: ${id}`,
+    );
+  }
+  return Object.freeze({
+    id,
+    identity: computeCheckpointIdentity(manifest),
+    manifest,
+    root,
+    file,
+    blobDir,
+    workspaceRoot: requestedWorkspace,
+  });
+}
+
+function beforeDeleteCopyAuthorityForTests(authority) {
+  const beforeDelete =
+    _fileCheckpointStoreDeps.beforeDeleteCopyAuthorityForTests;
+  if (beforeDelete == null) return;
+  if (process.env.NODE_ENV !== "test" || typeof beforeDelete !== "function") {
+    throw checkpointRestoreRetentionUnverifiedError(
+      null,
+      "Copy checkpoint deletion hook is test-only",
+    );
+  }
+  beforeDelete(authority);
+}
+
+function preflightCopyBlobLayout(authority) {
+  try {
+    const directoryStat = fs.lstatSync(authority.blobDir, BIGINT_STAT_OPTIONS);
+    if (directoryStat.isSymbolicLink() || !directoryStat.isDirectory()) {
+      throw new Error("checkpoint blob authority is not a plain directory");
+    }
+    const entries = fs.readdirSync(authority.blobDir, {
+      withFileTypes: true,
+    });
+    const expectedBlobs = new Set(
+      authority.manifest.files.map((file) => file.sha256),
+    );
+    if (
+      entries.length !== expectedBlobs.size ||
+      entries.some(
+        (entry) =>
+          !entry.isFile() ||
+          !SHA256_RE.test(entry.name) ||
+          !expectedBlobs.has(entry.name),
+      )
+    ) {
+      throw new Error("checkpoint blob authority contains unexpected entries");
+    }
+    const blobPaths = entries.map((entry) => {
+      const blobPath = path.join(authority.blobDir, entry.name);
+      const blobStat = fs.lstatSync(blobPath, BIGINT_STAT_OPTIONS);
+      if (!isSingleLinkRegularFile(blobStat)) {
+        throw new Error("checkpoint blob is not a single-link regular file");
+      }
+      return blobPath;
+    });
+    return Object.freeze(blobPaths);
+  } catch (cause) {
+    throw checkpointRestoreRetentionUnverifiedError(
+      cause,
+      `Copy checkpoint blob layout could not be verified: ${authority.id}`,
+    );
+  }
+}
+
+function deleteCopyAuthority(authority, blobPaths) {
+  for (const blobPath of blobPaths) fs.unlinkSync(blobPath);
+  fs.rmdirSync(authority.blobDir);
+  if (!fs.existsSync(authority.file)) {
+    throw checkpointRestoreRetentionUnverifiedError(
+      null,
+      `Copy checkpoint manifest disappeared before deletion: ${authority.id}`,
+    );
+  }
+  fs.rmSync(authority.file);
+  return true;
+}
+
+function assertCurrentCopyDeletionAuthority(expected, opts) {
+  const current = copyDeletionAuthority(expected.id, opts);
+  if (
+    !current ||
+    current.identity !== expected.identity ||
+    !samePath(current.workspaceRoot, expected.workspaceRoot) ||
+    current.root !== expected.root
+  ) {
+    throw checkpointRestoreRetentionUnverifiedError(
+      null,
+      `Copy checkpoint identity changed before deletion: ${expected.id}`,
+    );
+  }
+  return current;
+}
+
+/** Delete one workspace-bound checkpoint (manifest + blobs). */
+export function deleteCheckpoint(id, opts = {}) {
+  if (!isSafeCheckpointId(id)) return false;
+  const authority = copyDeletionAuthority(id, opts);
+  if (!authority) return false;
+  return withCheckpointRestoreRetention(
+    {
+      workspaceRoot: authority.workspaceRoot,
+      engine: "copy",
+      checkpointNamespace: null,
+      candidates: [{ id: authority.id, identity: authority.identity }],
+      protectedPolicy: "reject",
+      ...checkpointRetentionOptions(opts),
+    },
+    () =>
+      withCopyCheckpointStoreMaintenance(authority.root, (lockedRoot) => {
+        const current = assertCurrentCopyDeletionAuthority(authority, {
+          ...opts,
+          root: lockedRoot,
+        });
+        beforeDeleteCopyAuthorityForTests(current);
+        const blobPaths = preflightCopyBlobLayout(current);
+        return deleteCopyAuthority(current, blobPaths);
+      }),
+  );
+}
+
+/**
+ * Clear every checkpoint belonging to one exact workspace. All candidates are
+ * retention-checked and re-read before the first filesystem deletion.
+ */
+function enumerateCopyClearAuthorities(root, requestedWorkspace, opts) {
+  let names;
+  try {
+    names = fs
+      .readdirSync(root)
+      .filter((name) => name.endsWith(".json"))
+      .sort();
+  } catch (cause) {
+    throw checkpointRestoreRetentionUnverifiedError(
+      cause,
+      "Copy checkpoint clear authority could not be enumerated",
+    );
+  }
+  const authorities = [];
+  for (const name of names) {
+    const id = name.slice(0, -5);
+    if (!isSafeCheckpointId(id)) {
+      throw checkpointRestoreRetentionUnverifiedError(
+        null,
+        `Copy checkpoint store contains an unsafe manifest name: ${name}`,
+      );
+    }
+    const manifest = getCheckpoint(id, { root });
+    if (!manifest) {
+      throw checkpointRestoreRetentionUnverifiedError(
+        null,
+        `Copy checkpoint store contains an unreadable manifest: ${id}`,
+      );
+    }
+    let manifestWorkspace;
+    try {
+      manifestWorkspace = canonicalWorkspaceDirectory(
+        manifest.cwd,
+        "checkpoint manifest cwd",
+      );
+    } catch (cause) {
+      throw checkpointRestoreRetentionUnverifiedError(
+        cause,
+        `Copy checkpoint store contains unverified workspace authority: ${id}`,
+      );
+    }
+    if (!samePath(manifestWorkspace, requestedWorkspace)) continue;
+    const authority = copyDeletionAuthority(id, { ...opts, root });
+    if (!authority) {
+      throw checkpointRestoreRetentionUnverifiedError(
+        null,
+        `Copy checkpoint changed during clear preflight: ${id}`,
+      );
+    }
+    authorities.push(authority);
+  }
+  return authorities;
+}
+
+function sameCopyDeletionAuthorities(left, right) {
+  return (
+    left.length === right.length &&
+    left.every(
+      (authority, index) =>
+        authority.id === right[index].id &&
+        authority.identity === right[index].identity &&
+        authority.root === right[index].root &&
+        samePath(authority.workspaceRoot, right[index].workspaceRoot),
+    )
+  );
+}
+
+export function clearCheckpoints(opts = {}) {
+  if (opts.cwd == null) {
+    throw checkpointRestoreRetentionUnverifiedError(
+      null,
+      "Copy checkpoint clear requires an exact workspace cwd",
+    );
+  }
+  const root = path.resolve(opts.root || defaultRoot());
+  if (!fs.existsSync(root)) return 0;
+  let requestedWorkspace;
+  try {
+    requestedWorkspace = canonicalWorkspaceDirectory(
+      opts.cwd,
+      "checkpoint clear cwd",
+      { absolute: false },
+    );
+  } catch (cause) {
+    throw checkpointRestoreRetentionUnverifiedError(
+      cause,
+      "Copy checkpoint clear workspace authority is invalid",
+    );
+  }
+  const authorities = enumerateCopyClearAuthorities(
+    root,
+    requestedWorkspace,
+    opts,
+  );
+  if (authorities.length === 0) return 0;
+
+  return withCheckpointRestoreRetention(
+    {
+      workspaceRoot: requestedWorkspace,
+      engine: "copy",
+      checkpointNamespace: null,
+      candidates: authorities.map((authority) => ({
+        id: authority.id,
+        identity: authority.identity,
+      })),
+      protectedPolicy: "reject",
+      ...checkpointRetentionOptions(opts),
+    },
+    () =>
+      withCopyCheckpointStoreMaintenance(root, (lockedRoot) => {
+        const currentAuthorities = enumerateCopyClearAuthorities(
+          lockedRoot,
+          requestedWorkspace,
+          { ...opts, root: lockedRoot },
+        );
+        if (!sameCopyDeletionAuthorities(authorities, currentAuthorities)) {
+          throw checkpointRestoreRetentionUnverifiedError(
+            null,
+            "Copy checkpoint set changed before clear",
+          );
+        }
+        for (const authority of currentAuthorities) {
+          beforeDeleteCopyAuthorityForTests(authority);
+        }
+        const blobLayouts = currentAuthorities.map((authority) =>
+          preflightCopyBlobLayout(authority),
+        );
+        for (let index = 0; index < currentAuthorities.length; index += 1) {
+          deleteCopyAuthority(currentAuthorities[index], blobLayouts[index]);
+        }
+        return currentAuthorities.length;
+      }),
+  );
 }
