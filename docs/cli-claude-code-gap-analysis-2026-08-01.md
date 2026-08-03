@@ -2,7 +2,7 @@
 
 > 分析日期：2026-08-01
 >
-> ChainlessChain 候选基线：`packages/cli` v0.162.190 release candidate；npm registry `latest` 仍为 v0.162.189
+> ChainlessChain 候选基线：`packages/cli` v0.162.191 release candidate；v0.162.190 未发布，npm registry `latest` 仍为 v0.162.189
 >
 > Claude Code 参考基线：官方文档与 2.1.220 changelog（2026-07-25）
 >
@@ -651,3 +651,9 @@ E2E retry-pass 应记为 flake，而不是普通 pass；超过阈值阻断发布
 - `d465de2013` 的本地 clean-worktree release artifact 已完成 generator、Web/changelog build、pack、manifest create/verify 与仓库 audit policy；tarball 为 `5,823,024` bytes、SHA-256 `f6e422bf1f401ffb1b5b41f348891887ffd22f9cbcb4a5bb4f5733b9b49d402c`。同 SHA 的 Strict Sandbox `30781907923`、Session Host `30781910691` 与 Background Interaction `30781914093` 成功，但 CLI CI `30781904317` failure，因此 artifact 和三个组件门不能授权发布。
 - 失败不是 flake：macOS 与 Windows 的 unit shard 3/4 在同一个 `checkpoint-store` 文件各报相同 10 项，分别由 `/var`→`/private/var` 与 `RUNNER~1`→长路径造成。新增 retention fixture 从未 canonicalize 的 `tmpdir()` 根派生 state/lock，而 production saga 按设计拒绝 durable authority alias；其余 CAS/prune 断言是 retention 初始化 fail-closed 后的级联。`bb15105561` 只在 fixture 源头执行 `realpathSync.native(mkdtempSync(...))`，生产安全策略未放宽；本地相关 retention/delete/prune 组 **12/12** 通过。
 - 边界仍需保守表述：当前是 **verified partial restore rollback**，不是 checkpoint recovery GA，也不是 workspace+session+外部副作用的通用分布式事务。真实断电/fsync 故障注入、非协作 same-UID writer、任意 checkpoint/store 损坏修复、长期 soak 与文档提交后的最终 exact-SHA 三平台发布门仍待验收。因此 `0.162.190` 仍为 **release NO-GO**；修复后的最终 SHA 必须重新跑完整 `CLI CI`、`CLI Strict Sandbox` 与受影响组件门，不能重跑或沿用 `d465de2013` 的部分成功。
+
+### 14.15 `0.162.190` 发布门失败与 `0.162.191` 重试身份
+
+- 用户明确授权后，`v-npm-0-162-190` 作为 lightweight tag 精确绑定 `ec4941b0630ffdfb5470be9814052ea690f3776f` 并同步 GitHub/Gitee。正式 [npm workflow `30790359741`](https://github.com/chainlesschain/chainlesschain/actions/runs/30790359741) 的 `exact-sha-gate` 成功，但综合 `test` 在 `Run Agent SDK tests` 失败；依赖它的 `package-cli` 与 `publish` 都是 skipped，因此 npm registry 没有 `chainlesschain@0.162.190`，也不存在可误认为已发布的 CLI tarball。
+- 根因是 `packages/agent-sdk/__tests__/e2e-agent-session.test.ts` 同时把临时 `home` 用作 `CHAINLESSCHAIN_HOME` 和 CLI `cwd`。新 owner-private 路径保护正确拒绝 control state 包含 active workspace，并返回 `CONFIG_HOME_UNSAFE`。修复只把 control-state home 与 workspace 改为同一临时根下的 sibling，并把真实写入目标留在 workspace；没有修改或放宽生产 `getHomeDir()` 安全判断。
+- 修复后的 Agent SDK build 成功，完整套件为 **7 test files / 50 tests passed**，包括真实 CLI 的 stream/result、Write approval、实际落盘与 session resume。失败 tag 保持不可变且不强推；候选 package version 前进到 **`0.162.191`**。只有新版本/文档/夹具所在 exact SHA 重新取得 `CLI CI`、`CLI Strict Sandbox`、受影响的 Background/Session Host 门和 immutable npm tarball 验证后，才允许创建 `v-npm-0-162-191` 并再次进入 npm Trusted Publishing。
