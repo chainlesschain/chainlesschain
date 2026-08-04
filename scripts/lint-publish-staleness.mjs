@@ -236,7 +236,7 @@ for (const v of violations) {
     `         bump its package.json dep range AND its own version`,
   );
   console.log(
-    `      3. Verify npm-publish.yml workflow lists this package (or it`,
+    `      3. Verify workspace-npm-publish.yml lists this package (or it`,
   );
   console.log(`         won't actually publish)`);
   console.log("");

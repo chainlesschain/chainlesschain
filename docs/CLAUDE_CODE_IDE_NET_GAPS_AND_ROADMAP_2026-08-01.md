@@ -2,7 +2,7 @@
 
 - 评估日期：2026-08-01
 - ChainlessChain 仓库快照：`eb0bc663b6eb794b1b62ba2bfc7a1267c699d25d`
-- ChainlessChain 候选版本基线：CLI `0.162.193` release candidate（`0.162.190` / `0.162.191` / `0.162.192` 未发布，npm `latest` 仍为 `0.162.189`）、VS Code `0.37.37`、JetBrains `0.4.76`
+- ChainlessChain 候选版本基线：CLI `0.162.194` release candidate（`0.162.190` / `0.162.191` / `0.162.192` 未发布；`0.162.193` 被非权威通用 workflow 发布，npm `latest` 为 `0.162.193`）、VS Code `0.37.37`、JetBrains `0.4.76`
 - Claude Code 基线：[CLI `2.1.220`](https://code.claude.com/docs/en/changelog)；官方文档回读日期 2026-08-01
 
 > 本文是一份面向下一阶段决策的“净差距”报告，不重复罗列已经完成的能力。
@@ -753,3 +753,5 @@ release gate 已完成。
 - `0.162.192` 的最终 SHA `19dcdea87a87892fe9eb22a23b4f3fe9ce05af93` 已取得 CLI CI `30795367296` attempt 2、Strict Sandbox `30795367089` 与 Session Host `30795366927` 成功；CLI CI 首次执行仅 macOS unit 4/4 的真实双进程 CAS 用例失败，重跑后该分片及三平台 `verify-cli` 全绿。正式 npm workflow `30799974832` 的 `exact-sha-gate` 却用 `filter=all` 同时读取同一 run 的旧失败 attempt 和最新成功 attempt，错误地以旧 job 阻断发布；下游 package/publish 因门禁失败不可达，npm 未写入。
 - release gate 已改为 GitHub jobs API `filter=latest`，回归单测 **6/6** 通过，并对真实 `19dcdea…` run 成功验证两项 exact-SHA 门。`v-npm-0-162-192` 保持不可变，后续身份前进到 **`chainlesschain@0.162.193` / `v-npm-0-162-193`**，仍须由包含该修复和版本文档的 final SHA 重新取得全部权威门与 immutable tarball/SBOM 验证。
 - 首个 `0.162.193` 候选提交的 Strict Sandbox 与 Session Host 已成功，但 CLI CI run `30800530258` 再次在 macOS unit 4/4 暴露真实双进程 CAS 竞争：协作方可在非 owner 安全检查的 `lstat/realpath`、目录枚举与 `owner.json` 读取之间正常释放锁，旧实现把该瞬时 `ENOENT` 包装为 `LOCK_FAILED`，使输掉 CAS 的进程未进入串行 stale-head 校验并返回预期 `CONFLICT`。修复只在 `requireOwner=false` 的 unlocked pre/postflight 容忍该精确消失并交由 `withFileLock` 重试；临界区 owner 丢失仍 fail closed。新增目录项与 owner 文件两个确定性回归，完整 checkpoint saga **105 passed / 2 skipped**，真实双进程 CAS 独立重复 5 次均通过。该候选尚未打 tag、npm 未写入；修复后的 final SHA 仍须重跑全部权威门，不能用旧成功 job 拼接放行。
+- 后续权威回读纠正了上一条末句：通用 workflow run `30820089779` 已从 `e8e7ba274b487ed491c04ec3359841a0e545debb` 发布 `chainlesschain@0.162.193`，但没有 `v-npm-0-162-193`，且同 SHA 的 CLI CI `30819465463` 随后失败。提交 `734a438156` 实际覆盖了专用 `npm-publish.yml`，使通用 auto-detect 绕过 exact-SHA 双门、immutable tarball/SBOM 与完整测试。修复恢复专用流程，将通用发布器迁到独立 workflow/`v-packages-*` namespace，并在检测与最终 publish loop 双重拒绝 CLI；候选前进为 `0.162.194`，已发布 `0.162.193` 不删除、不覆盖、不补造授权 tag。
+- 专用 npm workflow 的 tag trigger 同步从重叠的 `v*` 收紧到 `v-npm-*`；通用 workflow 只响应独立 package tag 与数字产品 tag，且双重拒绝 CLI。产品 `release.yml` 删除 token-backed `publish-cli` / `skip_tests`，改为在 finalize 前验证已发布 CLI 的 `v-npm-*` tag、registry `gitHead` 和 exact-SHA 双门；两份本地通用 publisher 也移除并拒绝 CLI。同一失败 SHA 中的 VS Code inline-chat 重复注册、错误 `open/runAction` API 与未定义 `outputLog` 已合并为单一 decorator/ChatProvider 接线，六个公开命令同步进入 canonical capability manifest；release/changelog/gate/IDE 定向矩阵本地为 **11 files / 63 tests passed**。这些结果不能替代 `0.162.194` final SHA 的完整权威门。

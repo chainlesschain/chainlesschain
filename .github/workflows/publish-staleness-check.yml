@@ -96,7 +96,7 @@ jobs:
               "   dependency range AND that package's own version (so its consumers",
               "   also get the fix). See trap #7's 'dependency chain propagation'",
               "   section in `docs/internal/hidden-risk-traps.md`.",
-              "3. Confirm `npm-publish.yml` workflow lists this package — if it's",
+              "3. Confirm `workspace-npm-publish.yml` lists this package — if it's",
               "   a brand new package, add it.",
               "",
               `Run log: ${runUrl}`,

@@ -86,6 +86,14 @@ const SPAWNING = [
   "chainlesschain.memory.init", // quickpick → cancelled, safe but async-heavy
   "chainlesschain.llm.configure", // spawns cc config get probes
   "chainlesschain.llm.configureVision", // spawns cc config get probes
+  // Registered only here: invoking these schedules chat-panel work and a
+  // selection timeout, while this test's purpose is activation wiring.
+  "chainlesschain.inlineChat.open",
+  "chainlesschain.inlineChat.explain",
+  "chainlesschain.inlineChat.refactor",
+  "chainlesschain.inlineChat.fix",
+  "chainlesschain.inlineChat.generateDocs",
+  "chainlesschain.inlineChat.generateTests",
 ];
 
 describe("extension activate() wiring", () => {

@@ -161,6 +161,10 @@ const vscode = {
       dispose: () => {},
       name: "fake-terminal",
     }),
+    onDidChangeTextEditorSelection: () => ({ dispose: () => {} }),
+    onDidChangeActiveTextEditor: () => ({ dispose: () => {} }),
+    onDidChangeTextEditorVisibleRanges: () => ({ dispose: () => {} }),
+    createTextEditorDecorationType: () => ({ dispose: () => {} }),
     terminals: [],
     createWebviewPanel: () => ({
       webview: {

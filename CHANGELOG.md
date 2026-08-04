@@ -7,10 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added — cc CLI 0.162.193: durable sessions, MCP recovery, and checkpoint safety
+### Added — cc CLI 0.162.194: durable sessions, MCP recovery, and checkpoint safety
 
-> `chainlesschain` **0.162.189 → 0.162.193** (release candidate,
-> 2026-08-03; `0.162.190`, `0.162.191`, and `0.162.192` were never published). CLI-only release metadata;
+> `chainlesschain` **0.162.189 → 0.162.194** (release candidate,
+> 2026-08-04; `0.162.190`, `0.162.191`, and `0.162.192` were never published;
+> `0.162.193` was published outside the authoritative CLI release workflow).
+> CLI-only release metadata;
 > `@chainlesschain/personal-data-hub`
 > remains **0.4.57** and `@chainlesschain/agent-sdk` remains **0.1.7**.
 
@@ -83,13 +85,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   pre/postflight inspection now retries that exact disappearance, while
   owner-required critical-section checks still fail closed. Deterministic
   directory/owner disappearance regressions, the full 105-test checkpoint
-  saga suite, and five repeated real-process CAS runs pass locally. None of
-  these runs reached npm publication.
-- **Release status**: `0.162.193` is not published. The exact
+  saga suite, and five repeated real-process CAS runs pass locally.
+- **Release authority containment**: a later generic workspace publisher
+  replaced the dedicated CLI workflow at the same `npm-publish.yml` path.
+  Manually dispatched run `30820089779` therefore auto-selected and published
+  `chainlesschain@0.162.193` from `e8e7ba274b487ed491c04ec3359841a0e545debb`
+  while that SHA's `CLI CI` was still running and eventually failed. The
+  package has npm provenance but no `v-npm-0-162-193` tag, exact-SHA gate
+  attestation, verified immutable tarball/SBOM handoff, or successful complete
+  CLI matrix. The authoritative workflow is restored; the generic publisher
+  is moved to a distinct workflow/tag namespace, while the live CLI path now
+  requires the event ref to exactly match `v-npm-<package-version>` and its
+  checked-out `GITHUB_SHA`. The generic publisher excludes `packages/cli`
+  and package name `chainlesschain` both during detection and immediately
+  before publish. Numeric product releases no longer contain a CLI publisher:
+  they require an already-published `v-npm-*` tag, matching registry `gitHead`,
+  and successful exact-SHA gates before finalizing. The two local generic
+  publisher scripts also exclude and reject the CLI.
+- **Inline-chat release blocker**: the `0.162.193` source registered the six
+  VS Code inline-chat commands twice, invoked non-existent methods in the
+  second registration, and referenced an undefined `outputLog` during
+  activation. The extension now constructs one decorator with the existing
+  chat provider and module logger, registers each contributed command exactly
+  once, and publishes the same six commands through the canonical IDE
+  capability manifest. The activation fake now exercises the decorator path,
+  so constructor or registration regressions fail the CLI matrix.
+- **Release status**: `0.162.193` exists on npm but is not an authorized CLI
+  release and must not be overwritten or represented as gate-complete.
+  `0.162.194` is not published. The exact
   version/changelog/fix commit must pass `CLI CI` and `CLI Strict Sandbox` on
   Ubuntu, Windows, and macOS, plus affected `Session Host Consistency`,
   `CLI Background Interaction E2E`, and immutable npm tarball verification,
-  before tag `v-npm-0-162-193` or npm publication is allowed. Local,
+  before tag `v-npm-0-162-194` or npm publication is allowed. Local,
   older-SHA, and partial results are supplementary only.
 
 ### Added — cc CLI 0.162.189: managed rollback and distributed Agent Teams closure

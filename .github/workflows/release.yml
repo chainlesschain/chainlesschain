@@ -20,11 +20,6 @@ on:
         required: false
         type: boolean
         default: false
-      skip_tests:
-        description: "Skip CLI tests before publishing (use when builds already passed)"
-        required: false
-        type: boolean
-        default: false
 
 jobs:
   # ────────────────────────────────────────────────────────────────────────
@@ -41,15 +36,15 @@ jobs:
   #   npm error notarget No matching version found for @chainlesschain/X@Y.Z.W
   #
   # Before this job existed, the chain was:
-  #   build-* (incl desktop) ─→ create-release ─→ publish-cli (which also
-  #                                                publishes the 9 deps)
+  #   build-* (incl desktop) ─→ create-release ─→ historical publish-cli
+  #                                                (which also published deps)
   # That's a chicken-and-egg: desktop builds need PDH on npm, but PDH only
   # gets published after they succeed. v5.0.3.79 hit this — see commit
   # message of the fix.
   #
-  # publish-cli now only publishes the CLI itself; the 9 workspace deps are
-  # handled here. Per-package guards (CURRENT vs PKG_VER) keep this idempotent
-  # so re-running release.yml on the same tag is safe.
+  # The CLI is no longer published anywhere in this product workflow. The
+  # workspace deps remain handled here; the post-build CLI precondition only
+  # consumes a separately authorized v-npm-* release.
   #
   # Risk vs. previous design: workspace deps now get published even if the
   # desktop builds fail. That's an acceptable trade-off — npm publishes are
@@ -57,7 +52,7 @@ jobs:
   # tag-burn` cousin: npm publish == permanent). Better to publish-then-fail
   # than to never publish and block all future re-runs.
   #
-  # npm-publish.yml is the canonical OIDC publisher. This release job waits
+  # workspace-npm-publish.yml is the generic OIDC publisher. This release job waits
   # for that workflow first, while NODE_AUTH_TOKEN remains an explicit rollback
   # path for manual releases or a failed primary publish.
   publish-deps:
@@ -105,7 +100,8 @@ jobs:
               return 0
             fi
 
-            # Tag pushes also start npm-publish.yml, the canonical OIDC
+            # Numeric product tag pushes also start workspace-npm-publish.yml,
+            # the generic OIDC
             # publisher. Give it time to finish its test gate before using the
             # retained NPM_TOKEN rollback path. Manual release runs have no
             # sibling workflow, so they fall back immediately.
@@ -113,7 +109,7 @@ jobs:
               return 1
             fi
 
-            echo "Waiting up to 15 minutes for $name@$version from npm-publish.yml"
+            echo "Waiting up to 15 minutes for $name@$version from workspace-npm-publish.yml"
             for attempt in $(seq 1 60); do
               sleep 15
               if version_is_published "$name" "$version"; then
@@ -182,7 +178,7 @@ jobs:
               return 1
             fi
 
-            echo "Waiting up to 15 minutes for $name@$version from npm-publish.yml"
+            echo "Waiting up to 15 minutes for $name@$version from workspace-npm-publish.yml"
             for attempt in $(seq 1 60); do
               sleep 15
               if version_is_published "$name" "$version"; then
@@ -196,7 +192,7 @@ jobs:
           }
 
           # Not an npm workspace member — needs its own devDeps for the
-          # prepublishOnly TypeScript dual build (see npm-publish.yml twin).
+          # prepublishOnly TypeScript dual build (see workspace-npm-publish.yml twin).
           PKG_VER=$(node -p "require('./package.json').version")
           if await_primary_publish "@chainlesschain/agent-sdk" "$PKG_VER"; then
             echo "  @chainlesschain/agent-sdk@$PKG_VER already published, skip"
@@ -1495,7 +1491,7 @@ jobs:
           # Plan A — draft-until-complete (issue #2):
           # Release is always created as --draft. Drafts are MUTABLE — assets
           # can be added/replaced freely on rerun. The finalize-release job
-          # flips --draft=false at the end after all jobs (publish-cli +
+          # flips --draft=false at the end after all jobs (CLI verification +
           # update-changelog) succeed. Avoids the v5.0.2.55 immutable-asset
           # incident where build-android rerun → create-release rerun → 422
           # "Cannot delete asset from an immutable release".
@@ -1512,7 +1508,7 @@ jobs:
           #       first upload). To recover from missing assets (e.g.
           #       v5.0.3.37's missing Android APKs), cut a new version.
           #       Downstream jobs handle this state gracefully:
-          #       publish-cli-precheck skips if already_published;
+          #       verify-cli-release revalidates the immutable published identity;
           #       finalize-release no-ops via its isDraft guard.
           if gh release view "$VERSION" > /dev/null 2>&1; then
             IS_DRAFT=$(gh release view "$VERSION" --json isDraft -q .isDraft)
@@ -1547,154 +1543,72 @@ jobs:
           echo "✅ create-release done (state: $(gh release view "$VERSION" --json isDraft -q 'if .isDraft then "draft" else "published" end'))"
           echo "🔗 https://github.com/${{ github.repository }}/releases/tag/${VERSION}"
 
-  # Verify the canonical npm workflow completed, with a token-backed CLI
-  # fallback for manual releases or a failed primary publish.
-  # Precheck: resolve the published version + decide whether tests should run.
-  # Split from publish-cli so tests can live in their own reusable workflow
-  # (./.github/workflows/_cli-test.yml) — see that file for shard rationale.
-  publish-cli-precheck:
+  # Product releases consume an already-published CLI; they never create one.
+  # The CLI package is irreversible public state and is authorized only by the
+  # dedicated v-npm-* exact-SHA workflow.
+  verify-cli-release:
+    name: Verify authorized CLI release precondition
     needs: [create-release]
     if: ${{ always() && needs.create-release.result == 'success' }}
     runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.cli-version.outputs.VERSION }}
-      already_published: ${{ steps.check-published.outputs.ALREADY_PUBLISHED }}
-      should_test: ${{ steps.decide.outputs.SHOULD_TEST }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v5
-        with:
-          node-version: "22.12.0"
-          registry-url: "https://registry.npmjs.org"
-
-      - name: Resolve version
-        id: cli-version
-        run: |
-          # CLI npm version is ALWAYS sourced from packages/cli/package.json —
-          # tag / workflow_dispatch input is only a trigger, not part of the
-          # version decision. This prevents non-CLI version strings (e.g.
-          # product tag v5.0.3.49 — 4-segment, not valid semver; or Android
-          # GA v1.0.0 — would silently overwrite the npm latest dist-tag) from
-          # being stripped of the leading "v" and re-interpreted as a 3-segment
-          # CLI npm version (see v5.0.3.48 / v1.0.0 incident on 2026-05-12 and
-          # v5.0.3.49 workflow_dispatch override 4-segment incident).
-          #
-          # To ship a CLI release: bump packages/cli/package.json in a
-          # chore(release) commit, then tag. The check-published step below
-          # will skip publish when the version is already on npm, so re-running
-          # the workflow on a stale tag is safe.
-          VERSION=$(node -p "require('./packages/cli/package.json').version")
-          echo "📦 packages/cli/package.json version: $VERSION"
-          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-
-      - name: Check if CLI version already published
-        id: check-published
-        run: |
-          VERSION="${{ steps.cli-version.outputs.VERSION }}"
-          if npm view "chainlesschain@${VERSION}" version 2>/dev/null; then
-            echo "⚠️ chainlesschain@${VERSION} already published, skipping"
-            echo "ALREADY_PUBLISHED=true" >> $GITHUB_OUTPUT
-          else
-            echo "ALREADY_PUBLISHED=false" >> $GITHUB_OUTPUT
-          fi
-
-      # Skip tests when the version is already on npm — the tag SHA may be
-      # behind main (e.g. test fixes landed after the tag was cut), but the
-      # package itself is immutable once published. Running tests here would
-      # only red-block finalize-release for already-shipped releases.
-      - name: Decide whether to run tests
-        id: decide
-        run: |
-          if [ "${{ steps.check-published.outputs.ALREADY_PUBLISHED }}" == "true" ]; then
-            echo "SHOULD_TEST=false" >> $GITHUB_OUTPUT
-            echo "Skipping tests: version already published"
-          elif [ "${{ inputs.skip_tests }}" == "true" ]; then
-            echo "SHOULD_TEST=false" >> $GITHUB_OUTPUT
-            echo "Skipping tests: skip_tests input was true"
-          else
-            echo "SHOULD_TEST=true" >> $GITHUB_OUTPUT
-          fi
-
-  # Tests run in the shared reusable workflow (vitest --shard matrix).
-  # Conditional skip is at the JOB level — never a step-level loop, so we never
-  # drift back into the IPC-saturating glob batches that this replaced.
-  cli-tests:
-    needs: [publish-cli-precheck]
-    if: ${{ needs.publish-cli-precheck.outputs.should_test == 'true' }}
-    uses: ./.github/workflows/_cli-test.yml
-    with:
-      runs-on: ubuntu-latest
-
-  publish-cli:
-    # Wait on cli-tests so a red shard blocks publish. Use `always()` plus an
-    # explicit success-or-skipped check so the job still runs when cli-tests
-    # was skipped (already-published or skip_tests=true case).
-    # NODE_AUTH_TOKEN remains a temporary rollback path while OIDC is verified.
-    needs: [publish-cli-precheck, cli-tests]
-    if: |
-      always() &&
-      needs.publish-cli-precheck.result == 'success' &&
-      (needs.cli-tests.result == 'success' || needs.cli-tests.result == 'skipped')
-    runs-on: ubuntu-latest
     permissions:
+      actions: read
       contents: read
-      id-token: write
     steps:
-      - name: Checkout code
+      - name: Checkout code and release tags
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
-          # npm Trusted Publishing requires Node.js 22.14.0 or newer.
           node-version: "22.14.0"
           registry-url: "https://registry.npmjs.org"
 
-      - name: Enable npm Trusted Publishing support
+      - name: Verify registry, tag, provenance, and exact-SHA gates
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
-          npm install --global npm@11.18.0
-          npm --version
+          set -euo pipefail
+          VERSION=$(node -p "require('./packages/cli/package.json').version")
+          TAG="v-npm-${VERSION//./-}"
 
-      - name: Install dependencies (workspaces)
-        uses: ./.github/actions/setup-node-deps
-        with:
-          install-command: npm ci
+          if ! NPM_VERSION=$(npm view "chainlesschain@${VERSION}" version --silent); then
+            echo "::error::chainlesschain@${VERSION} is not published. Publish it only through npm-publish.yml after the v-npm exact-SHA gates pass."
+            exit 1
+          fi
+          test "$NPM_VERSION" = "$VERSION"
 
-      # The 9 workspace deps (core-env … personal-data-hub) used to be
-      # published from here. After v5.0.3.79, they moved to the publish-deps
-      # job at the top of the graph so desktop builds can resolve them at
-      # `npm install --omit=dev` time. This job now only publishes the CLI.
-
-      - name: Confirm CLI version matches resolved version
-        # No-op safety net: VERSION already comes from packages/cli/package.json
-        # in publish-cli-precheck, so this `npm version --allow-same-version`
-        # is a no-op in normal flow. Kept in case workflow_dispatch override
-        # ever specifies a version different from what package.json holds.
-        if: needs.publish-cli-precheck.outputs.already_published != 'true'
-        working-directory: packages/cli
-        run: |
-          VERSION="${{ needs.publish-cli-precheck.outputs.version }}"
-          npm version "$VERSION" --no-git-tag-version --allow-same-version
-          echo "📦 Publishing chainlesschain@${VERSION}"
-
-      - name: Publish CLI to npm
-        if: needs.publish-cli-precheck.outputs.already_published != 'true'
-        working-directory: packages/cli
-        run: |
-          VERSION="${{ needs.publish-cli-precheck.outputs.version }}"
-          if npm publish --provenance --access public; then
-            exit 0
+          if ! TAG_SHA=$(git rev-parse "${TAG}^{commit}" 2>/dev/null); then
+            echo "::error::Missing immutable CLI release tag ${TAG}."
+            exit 1
+          fi
+          TAG_VERSION=$(git show "${TAG}:packages/cli/package.json" | node -e 'let s=""; process.stdin.on("data", c => s += c); process.stdin.on("end", () => process.stdout.write(JSON.parse(s).version))')
+          if [ "$TAG_VERSION" != "$VERSION" ]; then
+            echo "::error::${TAG} contains CLI version ${TAG_VERSION}, expected ${VERSION}."
+            exit 1
+          fi
+          NPM_SHA=$(npm view "chainlesschain@${VERSION}" gitHead --silent)
+          if [ -z "$NPM_SHA" ] || [ "$NPM_SHA" != "$TAG_SHA" ]; then
+            echo "::error::Registry gitHead does not match ${TAG}: npm=${NPM_SHA:-missing}, tag=${TAG_SHA}"
+            exit 1
           fi
 
-          # The canonical OIDC workflow may have won the race after precheck.
-          npm view "chainlesschain@${VERSION}" version 2>/dev/null |
-            grep -Fx "$VERSION" >/dev/null
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          git checkout --detach "$TAG_SHA"
+          GITHUB_SHA="$TAG_SHA" \
+          CC_RELEASE_GATE_OUTPUT=cli-release-gate.json \
+          node packages/cli/scripts/verify-release-gates.mjs
+          echo "Authorized CLI release verified: chainlesschain@${VERSION} (${TAG_SHA})"
 
+      - name: Upload consumed CLI gate attestation
+        uses: actions/upload-artifact@v6
+        with:
+          name: product-release-cli-gate-${{ github.sha }}
+          path: cli-release-gate.json
+          if-no-files-found: error
+          retention-days: 90
   # Regenerate CHANGELOG.md after a successful release. documentation.yml's
   # auto-run on push deliberately skips changelog (it would grow by one line
   # per push and trigger a churn auto-commit). Releases are the right time to
@@ -1755,12 +1669,12 @@ jobs:
           git push origin main
 
   # Plan A — draft-until-complete finalize step (issue #2)
-  # Flips draft → published only after create-release + publish-cli +
+  # Flips draft → published only after create-release + verified CLI +
   # update-changelog all succeed. Skip when user explicitly wanted a
   # draft (workflow_dispatch with inputs.draft=true).
   finalize-release:
-    needs: [create-release, publish-cli, update-changelog]
-    if: ${{ always() && needs.create-release.result == 'success' && needs.publish-cli.result == 'success' && needs.update-changelog.result == 'success' }}
+    needs: [create-release, verify-cli-release, update-changelog]
+    if: ${{ always() && needs.create-release.result == 'success' && needs.verify-cli-release.result == 'success' && needs.update-changelog.result == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write

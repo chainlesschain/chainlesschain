@@ -233,7 +233,7 @@ function trap28FixChain() {
     `trap #28 fix (pdh_workspace_dep_npm_publish_stale.md) — 4 steps, all required:`,
     `  1. bump ${PDH_PKG_PATH} version (semver patch)`,
     `  2. sync ${CLI_PKG_PATH} dep "${PDH_DEP_NAME}" to the new version`,
-    `  3. gh workflow run "npm-publish.yml" — wait ~8–10 min for registry publish`,
+    `  3. gh workflow run "workspace-npm-publish.yml" — wait ~8–10 min for registry publish`,
     `  4. gh workflow run "Node.js Runtime Bundle (Termux)" — rebuilds cc-cli.tgz from registry`,
     `  Then bump USR_VERSION per trap #27 + rebuild APK.`,
   ];

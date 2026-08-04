@@ -3,7 +3,7 @@
  * CI helper: detect which npm packages to publish.
  *
  * Trigger modes:
- *   1. Tag push (refs/tags/v*)       → publish ALL public packages
+ *   1. Tag push (refs/tags/v-packages-*) → publish generic public packages
  *   2. workflow_dispatch.version set → publish that specific package
  *   3. workflow_dispatch (no inputs) → publish packages whose version > npm latest
  *   4. INPUT_FORCE=true              → skip version-exists check
@@ -14,18 +14,30 @@
  *   .publish-order.txt = newline-separated dir names in topo order
  */
 import { execFileSync } from "child_process";
-import { appendFileSync, existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "fs";
+import {
+  appendFileSync,
+  existsSync,
+  readdirSync,
+  readFileSync,
+  statSync,
+  writeFileSync,
+} from "fs";
 import { join, resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const PACKAGES_DIR = join(REPO_ROOT, "packages");
 const ORDER_FILE = join(REPO_ROOT, ".publish-order.txt");
+const PROTECTED_PACKAGE_NAMES = new Set(["chainlesschain"]);
+const PROTECTED_PACKAGE_DIRS = new Set(["cli"]);
 
 // ── helpers ──────────────────────────────────────────────────
 const log = (m) => console.log(`[detect] ${m}`);
 const warn = (m) => console.warn(`[detect] ⚠️  ${m}`);
-const err = (m) => { console.error(`[detect] ❌ ${m}`); process.exit(1); };
+const err = (m) => {
+  console.error(`[detect] ❌ ${m}`);
+  process.exit(1);
+};
 
 function listPackages() {
   if (!existsSync(PACKAGES_DIR)) return [];
@@ -36,7 +48,11 @@ function listPackages() {
     const pj = join(pkgDir, "package.json");
     if (!existsSync(pj)) continue;
     let pkg;
-    try { pkg = JSON.parse(readFileSync(pj, "utf-8")); } catch { continue; }
+    try {
+      pkg = JSON.parse(readFileSync(pj, "utf-8"));
+    } catch {
+      continue;
+    }
     out.push({
       dir: entry,
       name: pkg.name || entry,
@@ -51,6 +67,12 @@ function listPackages() {
   return out;
 }
 
+function isProtectedPackage(pkg) {
+  return (
+    PROTECTED_PACKAGE_NAMES.has(pkg.name) || PROTECTED_PACKAGE_DIRS.has(pkg.dir)
+  );
+}
+
 /** Topological sort — dependencies before dependents */
 function topoSort(pkgs) {
   const byName = new Map(pkgs.map((p) => [p.name, p]));
@@ -60,7 +82,11 @@ function topoSort(pkgs) {
 
   function visit(p) {
     if (visited.has(p.dir)) return;
-    if (stack.has(p.dir)) { result.push(p.dir); visited.add(p.dir); return; }
+    if (stack.has(p.dir)) {
+      result.push(p.dir);
+      visited.add(p.dir);
+      return;
+    }
     stack.add(p.dir);
     for (const depName of p.deps) {
       const dep = byName.get(depName);
@@ -78,24 +104,36 @@ function topoSort(pkgs) {
 function npmLatest(pkgName) {
   try {
     const out = execFileSync("npm", ["view", pkgName, "version", "--silent"], {
-      encoding: "utf-8", timeout: 15000, stdio: ["ignore", "pipe", "ignore"],
+      encoding: "utf-8",
+      timeout: 15000,
+      stdio: ["ignore", "pipe", "ignore"],
     }).trim();
     return out || null;
-  } catch { return null; }
+  } catch {
+    return null;
+  }
 }
 
 /** semver-ish compare: a > b ? */
 function verGt(a, b) {
   if (!b) return true;
-  const pa = String(a).split(/[.-]/).map((p) => (/^\d+$/.test(p) ? +p : p));
-  const pb = String(b).split(/[.-]/).map((p) => (/^\d+$/.test(p) ? +p : p));
+  const pa = String(a)
+    .split(/[.-]/)
+    .map((p) => (/^\d+$/.test(p) ? +p : p));
+  const pb = String(b)
+    .split(/[.-]/)
+    .map((p) => (/^\d+$/.test(p) ? +p : p));
   for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
-    const va = pa[i] ?? 0, vb = pb[i] ?? 0;
+    const va = pa[i] ?? 0,
+      vb = pb[i] ?? 0;
     if (typeof va === "number" && typeof vb === "number") {
-      if (va > vb) return true; if (va < vb) return false;
+      if (va > vb) return true;
+      if (va < vb) return false;
     } else {
-      const sa = String(va), sb = String(vb);
-      if (sa > sb) return true; if (sa < sb) return false;
+      const sa = String(va),
+        sb = String(vb);
+      if (sa > sb) return true;
+      if (sa < sb) return false;
     }
   }
   return false;
@@ -112,8 +150,11 @@ const force = process.env.INPUT_FORCE === "true";
 const isTag = (process.env.GITHUB_REF || "").startsWith("refs/tags/");
 
 const all = listPackages();
-const pub = all.filter((p) => !p.private);
-log(`Found ${all.length} workspace packages (${pub.length} public)`);
+const publicPackages = all.filter((p) => !p.private);
+const pub = publicPackages.filter((p) => !isProtectedPackage(p));
+log(
+  `Found ${all.length} workspace packages (${publicPackages.length} public, ${pub.length} generic-publishable)`,
+);
 
 let toPublish;
 
@@ -121,13 +162,19 @@ if (inputVersion) {
   // "@scope/name@ver"  or  "name@ver"
   const at = inputVersion.lastIndexOf("@");
   const name = at > 0 ? inputVersion.slice(0, at) : inputVersion;
+  const protectedPackage = publicPackages.find((p) => p.name === name);
+  if (protectedPackage && isProtectedPackage(protectedPackage)) {
+    err(
+      `Package "${name}" is protected and must use the dedicated exact-SHA CLI release workflow.`,
+    );
+  }
   const pkg = pub.find((p) => p.name === name);
   if (!pkg) err(`Package "${name}" not found in workspace or is private.`);
   toPublish = [pkg];
   log(`Manual mode: publish ${name}@${pkg.version}`);
 } else if (isTag) {
   toPublish = [...pub];
-  log(`Tag trigger: publishing ALL ${pub.length} public packages`);
+  log(`Tag trigger: publishing ${pub.length} generic public packages`);
 } else {
   toPublish = [];
   log("Auto mode: comparing versions against npm registry...");

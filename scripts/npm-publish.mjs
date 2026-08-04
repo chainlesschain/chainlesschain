@@ -23,7 +23,6 @@ const publishOrder = [
   'core-settlement',    // -> core-mtc, core-db, core-multisig
   'session-core',       // independent
   'personal-data-hub',  // -> core-db, core-mtc, core-multisig, core-settlement, session-core
-  'cli',                // -> all core-* + pdh
 ];
 
 function getPkgInfo(pkgDir) {
@@ -54,6 +53,10 @@ function publish(pkgDir) {
   }
   
   const { name, version, private: priv } = pkgJson;
+  if (pkgDir === 'cli' || name === 'chainlesschain') {
+    console.error('❌ Refusing protected CLI package; use the v-npm exact-SHA workflow.');
+    return { success: false, name, version, error: 'protected-cli-package' };
+  }
   if (priv) {
     console.log(`⏭️  Skipping ${name}@${version} - private package`);
     return { skipped: true, reason: 'private' };

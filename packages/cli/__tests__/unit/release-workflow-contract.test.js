@@ -1,5 +1,7 @@
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
+import { spawnSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
 
 const repositoryRoot = path.resolve(import.meta.dirname, "../../../..");
@@ -15,7 +17,13 @@ describe("CLI release workflow contracts", () => {
   it("gates npm production on exact-SHA matrices and one immutable tarball", () => {
     const text = workflow("npm-publish.yml");
     expect(text).not.toContain("skip_tests");
+    expect(text).toContain('- "v-npm-*"');
+    expect(text).not.toContain('- "v*"');
+    expect(text).not.toContain('- "v-packages-*"');
     expect(text).toContain("verify-release-gates.mjs");
+    expect(text).toContain("Verify immutable npm tag identity");
+    expect(text).toContain('EXPECTED_REF="refs/tags/v-npm-${VERSION//./-}"');
+    expect(text).toContain('[ "$GITHUB_REF" != "$EXPECTED_REF" ]');
     expect(text).toContain("CC_RELEASE_GATE_WAIT_MS");
     expect(text).toContain("npm-release-artifact.mjs create");
     expect(text).toContain('npm publish "$TARBALL"');
@@ -76,6 +84,132 @@ describe("CLI release workflow contracts", () => {
       const text = workflow(name);
       expect(text).toContain('- "v*"');
       expect(text).toContain('- "cli-v*"');
+    }
+  });
+
+  it("keeps generic workspace publishing outside the CLI release authority", () => {
+    const generic = workflow("workspace-npm-publish.yml");
+    const detector = fs.readFileSync(
+      path.join(
+        repositoryRoot,
+        "scripts",
+        "ci",
+        "detect-publishable-packages.mjs",
+      ),
+      "utf8",
+    );
+
+    expect(generic).toContain("name: Publish workspace packages to npm");
+    expect(generic).toContain('- "v-packages-*"');
+    expect(generic).toContain('- "v[0-9]*.*.*"');
+    expect(generic).not.toContain('- "v*"');
+    expect(generic).toContain('[ "$pkg_dir" = "cli" ]');
+    expect(generic).toContain('[ "$PKG_NAME" = "chainlesschain" ]');
+    expect(detector).toContain(
+      'const PROTECTED_PACKAGE_NAMES = new Set(["chainlesschain"]);',
+    );
+    expect(detector).toContain(
+      'const PROTECTED_PACKAGE_DIRS = new Set(["cli"]);',
+    );
+    expect(detector).toContain(
+      "must use the dedicated exact-SHA CLI release workflow",
+    );
+  });
+
+  it("makes product releases consume, never create, an authorized CLI release", () => {
+    const product = workflow("release.yml");
+    expect(product).toContain("verify-cli-release:");
+    expect(product).toContain("Verify authorized CLI release precondition");
+    expect(product).toContain('TAG="v-npm-${VERSION//./-}"');
+    expect(product).toContain('git show "${TAG}:packages/cli/package.json"');
+    expect(product).toContain('git checkout --detach "$TAG_SHA"');
+    expect(product).toContain('GITHUB_SHA="$TAG_SHA"');
+    expect(product).toContain("verify-release-gates.mjs");
+    expect(product).toContain("Registry gitHead does not match");
+    expect(product).toContain(
+      "needs: [create-release, verify-cli-release, update-changelog]",
+    );
+    expect(product).not.toContain("publish-cli:");
+    expect(product).not.toContain("- name: Publish CLI to npm");
+    expect(product).not.toContain("skip_tests");
+  });
+
+  it("keeps local generic publish scripts outside the CLI authority", () => {
+    for (const name of ["npm-publish.js", "npm-publish.mjs"]) {
+      const source = fs.readFileSync(
+        path.join(repositoryRoot, "scripts", name),
+        "utf8",
+      );
+      const order = source.match(/const publishOrder = \[([\s\S]*?)\];/u)?.[1];
+      expect(order, name).toBeTypeOf("string");
+      expect(order, name).not.toMatch(/["']cli["']/u);
+      expect(source, name).toContain("protected-cli-package");
+      expect(source, name).toContain("v-npm exact-SHA workflow");
+    }
+  });
+
+  it("excludes the CLI from generic tag detection and rejects explicit selection", () => {
+    const tempRoot = fs.realpathSync.native(
+      fs.mkdtempSync(path.join(os.tmpdir(), "cc-generic-publish-")),
+    );
+
+    try {
+      const scriptDir = path.join(tempRoot, "scripts", "ci");
+      const cliDir = path.join(tempRoot, "packages", "cli");
+      const coreDir = path.join(tempRoot, "packages", "core-env");
+      fs.mkdirSync(scriptDir, { recursive: true });
+      fs.mkdirSync(cliDir, { recursive: true });
+      fs.mkdirSync(coreDir, { recursive: true });
+      fs.copyFileSync(
+        path.join(
+          repositoryRoot,
+          "scripts",
+          "ci",
+          "detect-publishable-packages.mjs",
+        ),
+        path.join(scriptDir, "detect-publishable-packages.mjs"),
+      );
+      fs.writeFileSync(
+        path.join(cliDir, "package.json"),
+        JSON.stringify({ name: "chainlesschain", version: "9.9.9" }),
+      );
+      fs.writeFileSync(
+        path.join(coreDir, "package.json"),
+        JSON.stringify({ name: "@chainlesschain/core-env", version: "9.9.9" }),
+      );
+
+      const script = path.join(scriptDir, "detect-publishable-packages.mjs");
+      const tagRun = spawnSync(process.execPath, [script], {
+        cwd: tempRoot,
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          GITHUB_REF: "refs/tags/v-packages-smoke",
+          GITHUB_OUTPUT: path.join(tempRoot, "tag-output.txt"),
+        },
+      });
+      expect(tagRun.status, tagRun.stderr).toBe(0);
+      expect(
+        fs.readFileSync(path.join(tempRoot, ".publish-order.txt"), "utf8"),
+      ).toBe("core-env\n");
+      expect(tagRun.stdout).not.toContain("chainlesschain@9.9.9");
+
+      const explicitRun = spawnSync(process.execPath, [script], {
+        cwd: tempRoot,
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          GITHUB_REF: "refs/heads/main",
+          GITHUB_OUTPUT: path.join(tempRoot, "manual-output.txt"),
+          INPUT_VERSION: "chainlesschain@9.9.9",
+        },
+      });
+      expect(explicitRun.status).toBe(1);
+      expect(explicitRun.stderr).toContain(
+        "must use the dedicated exact-SHA CLI release workflow",
+      );
+    } finally {
+      fs.rmSync(tempRoot, { recursive: true, force: true });
     }
   });
 

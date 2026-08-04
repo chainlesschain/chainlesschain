@@ -1888,9 +1888,9 @@ CI auto-commit 不会自动 bump USR_VERSION —— `node-runtime-bundle.yml` �
    git commit -m "chore(pdh): bump 0.3.7 → 0.3.8 + cli dep sync"
    ```
 
-2. **必跑 `npm-publish.yml` workflow 把新版本推到 registry**：
+2. **必跑 `workspace-npm-publish.yml` workflow 把普通 workspace 包的新版本推到 registry**（CLI `chainlesschain` 只能走专用 `npm-publish.yml` exact-SHA 流程）：
    ```bash
-   gh workflow run "npm-publish.yml" --ref main
+   gh workflow run "workspace-npm-publish.yml" --ref main
    gh run watch <id>  # ~8-10 min
    npm cache clean --force  # npm view cache 会 stale
    npm view @chainlesschain/personal-data-hub@0.3.8 version  # 必须打印 "0.3.8" 而不是 E404
