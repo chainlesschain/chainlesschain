@@ -650,7 +650,7 @@ VS Code / JetBrains / Desktop / Web / Mobile
 - [Desktop coding agent bootstrap](../desktop-app-vue/src/main/bootstrap/coding-agent-bootstrap.js)
 - [现有完整差距审计](./IDE_VS_PLUGIN_CLAUDE_GAPS_AND_OPTIMIZATIONS_2026-07-22.md)
 
-## 十二、实施状态快照（更新至 2026-08-03）
+## 十二、实施状态快照（更新至 2026-08-04）
 
 本节记录原始审计快照之后的实施进展。状态严格区分“仓库实现”“本地定向验证”“真实宿主/远程矩阵”和
 “公开发布回读”：前两者不能替代后两者，也不能据此宣称 Microsoft Marketplace 发布、真实 PR/merge 或完整
@@ -755,3 +755,9 @@ release gate 已完成。
 - 首个 `0.162.193` 候选提交的 Strict Sandbox 与 Session Host 已成功，但 CLI CI run `30800530258` 再次在 macOS unit 4/4 暴露真实双进程 CAS 竞争：协作方可在非 owner 安全检查的 `lstat/realpath`、目录枚举与 `owner.json` 读取之间正常释放锁，旧实现把该瞬时 `ENOENT` 包装为 `LOCK_FAILED`，使输掉 CAS 的进程未进入串行 stale-head 校验并返回预期 `CONFLICT`。修复只在 `requireOwner=false` 的 unlocked pre/postflight 容忍该精确消失并交由 `withFileLock` 重试；临界区 owner 丢失仍 fail closed。新增目录项与 owner 文件两个确定性回归，完整 checkpoint saga **105 passed / 2 skipped**，真实双进程 CAS 独立重复 5 次均通过。该候选尚未打 tag、npm 未写入；修复后的 final SHA 仍须重跑全部权威门，不能用旧成功 job 拼接放行。
 - 后续权威回读纠正了上一条末句：通用 workflow run `30820089779` 已从 `e8e7ba274b487ed491c04ec3359841a0e545debb` 发布 `chainlesschain@0.162.193`，但没有 `v-npm-0-162-193`，且同 SHA 的 CLI CI `30819465463` 随后失败。提交 `734a438156` 实际覆盖了专用 `npm-publish.yml`，使通用 auto-detect 绕过 exact-SHA 双门、immutable tarball/SBOM 与完整测试。修复恢复专用流程，将通用发布器迁到独立 workflow/`v-packages-*` namespace，并在检测与最终 publish loop 双重拒绝 CLI；候选前进为 `0.162.194`，已发布 `0.162.193` 不删除、不覆盖、不补造授权 tag。
 - 专用 npm workflow 的 tag trigger 同步从重叠的 `v*` 收紧到 `v-npm-*`；通用 workflow 只响应独立 package tag 与数字产品 tag，且双重拒绝 CLI。产品 `release.yml` 删除 token-backed `publish-cli` / `skip_tests`，改为在 finalize 前验证已发布 CLI 的 `v-npm-*` tag、registry `gitHead` 和 exact-SHA 双门；两份本地通用 publisher 也移除并拒绝 CLI。同一失败 SHA 中的 VS Code inline-chat 重复注册、错误 `open/runAction` API 与未定义 `outputLog` 已合并为单一 decorator/ChatProvider 接线，六个公开命令同步进入 canonical capability manifest；release/changelog/gate/IDE 定向矩阵本地为 **11 files / 63 tests passed**。这些结果不能替代 `0.162.194` final SHA 的完整权威门。
+
+### 2026-08-04 IDE 宿主门与命令面收敛增量
+
+- PR `#84` 的 `4b5102a3136cdf42dc85f239f04099ca4cd94030` 为 VS Code 真实宿主阶段加入 bounded CDP settlement 与受控进程终止：CDP journey 已结算但 Electron 未退出时，runner 会先记录 phase-scoped progress，再请求 shutdown，并在有界窗口后终止子进程树；正常退出不会触发额外 kill。诊断发现继续限制在 release-relevant host logs。`extension-host-runner.test.cjs` 本地 **15/15** 通过。该 SHA 的 IDE Extensions run `30923194189` 仍在运行，不能提前写成 macOS/Windows/JetBrains 宿主矩阵成功。
+- CLI 第三批命令面迁移把 15 个明确标注为 V2 governance/in-memory overlay 的入口收敛到虚拟 `cc lab ...`：`execbe`、`itbudget`、`mcpscaf`、`meminj`、`orchgov`、`promcomp`、`seshhook`、`seshsearch`、`seshtail`、`seshu`、`slotfill`、`svccont`、`tms`、`topiccls`、`uprof`。旧顶层拼写继续路由到同一 lazy registrar，stderr-only 提示至少保留到 `0.164.0`；`todo`、`subagent`、`webfetch` 与 `planmode` 保持产品级顶层入口。注册图仍为 175、净增长 0，推荐面从 166 降为 151；manifest、README、namespace help 与四种 shell completion 同源生成。
+- `56c87fa5d0` 已提交第三批迁移，`d4a5590db7` 已提交对应 CLI 审计记录。核心 lifecycle/lazy/completion 为 **3 files / 39 tests passed**；加入 command registration、changelog 与 docs drift 后为 **103 tests passed**。本机完整 `index.js` 冷导入约 20 秒，扩大矩阵使用显式 30 秒测试预算而没有修改 CI 默认契约；manifest/help-index/completion 漂移检查、Node syntax 与 `git diff --check` 均通过。`4b5102a313` 的在途 IDE 结果只能授权该 SHA，不能与更晚提交拼接为 release GO；当前 PR head 仍须重新取得 CLI/IDE 权威门。
