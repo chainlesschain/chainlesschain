@@ -18,7 +18,7 @@
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
-const { spawn } = require("node:child_process");
+const { spawn, spawnSync } = require("node:child_process");
 const { PassThrough } = require("node:stream");
 const { pathToFileURL } = require("node:url");
 const {
@@ -252,6 +252,51 @@ function buildHostPipeLaunchArgs({ workspaceDir, profileArgs }) {
     "--disable-crash-reporter",
     workspaceDir,
   ];
+}
+
+function resolveMacAppBundle(vscodeExecutablePath) {
+  let candidate = path.resolve(vscodeExecutablePath);
+  for (let depth = 0; depth < 6; depth += 1) {
+    if (candidate.toLowerCase().endsWith(".app")) return candidate;
+    const parent = path.dirname(candidate);
+    if (parent === candidate) break;
+    candidate = parent;
+  }
+  throw new Error(
+    `VS Code executable is not inside a macOS app bundle: ${vscodeExecutablePath}`,
+  );
+}
+
+function authorizeMacAppFirewall(
+  vscodeExecutablePath,
+  { platform = process.platform, run = spawnSync } = {},
+) {
+  if (platform !== "darwin") return null;
+  const appBundle = resolveMacAppBundle(vscodeExecutablePath);
+  const firewallTool = "/usr/libexec/ApplicationFirewall/socketfilterfw";
+  for (const action of ["--add", "--unblockapp"]) {
+    const result = run("sudo", [firewallTool, action, appBundle], {
+      encoding: "utf8",
+      timeout: 30_000,
+      windowsHide: true,
+    });
+    if (result?.error) {
+      throw new Error(
+        `macOS application firewall ${action} failed: ${result.error.message}`,
+        { cause: result.error },
+      );
+    }
+    if (result?.status !== 0) {
+      throw new Error(
+        `macOS application firewall ${action} exited ${String(result?.status)}: ${String(result?.stderr || result?.stdout || "no diagnostic").trim()}`,
+      );
+    }
+    const diagnostic = String(result.stdout || result.stderr || "").trim();
+    if (diagnostic) {
+      process.stdout.write(`[extension-host-smoke] firewall: ${diagnostic}\n`);
+    }
+  }
+  return appBundle;
 }
 
 function buildExtensionTestLaunchArgs({
@@ -883,6 +928,14 @@ async function main() {
       vscodeExecutablePath,
       options.vscodeVersion,
     );
+    if (process.platform === "darwin") {
+      recordHostProgress(progressPath, "firewall_authorization_started");
+      const appBundle = authorizeMacAppFirewall(vscodeExecutablePath);
+      process.stdout.write(
+        `[extension-host-smoke] macOS loopback debugger authorized for ${appBundle}\n`,
+      );
+      recordHostProgress(progressPath, "firewall_authorization_completed");
+    }
     recordHostProgress(progressPath, "download_completed");
     for (const phase of ["initial", "restart"]) {
       const profileArgs = buildProfileArgs({ runRoot, extensionsDir, phase });
@@ -1000,6 +1053,7 @@ async function main() {
 }
 
 module.exports = {
+  authorizeMacAppFirewall,
   buildProfileArgs,
   buildExtensionTestLaunchArgs,
   buildHostApiLaunchArgs,
@@ -1014,6 +1068,7 @@ module.exports = {
   launchExtensionHostWithCdpPipe,
   parseArgs,
   parseDevToolsBrowserEndpoint,
+  resolveMacAppBundle,
   recordHostProgress,
   resolveVsCodeHostVersion,
   runHostApiPhase,

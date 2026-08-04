@@ -150,8 +150,9 @@ version.
   `test/extension-host/run.cjs`. Windows, macOS, and Linux/Xvfb run the complete
   real Webview DOM control/restart journey through a random loopback-only CDP
   port. The test host disables Chromium's interactive remote-debugging approval
-  feature so CI cannot stall on a modal prompt. macOS remains
-  release-authoritative only when both stable and minimum journeys pass.
+  feature; macOS additionally authorizes the exact downloaded `.app` in the
+  ephemeral runner's application firewall. macOS remains release-authoritative
+  only when both stable and minimum journeys pass.
   `--host-api-only` is a
   diagnostic fallback that verifies activation, registered commands, the live
   bridge, and the production Activity View/focus command, but it does not prove

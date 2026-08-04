@@ -64,6 +64,8 @@ test("VS Code macOS host gate pins the validated Intel runner image", () => {
     hostRunner,
     /--disable-features=DevToolsAcceptDebuggingConnections/u,
   );
+  assert.match(hostRunner, /ApplicationFirewall\/socketfilterfw/u);
+  assert.match(hostRunner, /--unblockapp/u);
   assert.equal(
     macGate[0].match(
       /- name: Extension Host smoke \(macOS (?:stable|minimum 1\.85\.2)\)\n\s+timeout-minutes: 15/gu,

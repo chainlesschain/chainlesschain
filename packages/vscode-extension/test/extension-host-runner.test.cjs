@@ -9,6 +9,7 @@ const { PassThrough, Readable } = require("node:stream");
 const { afterEach, test } = require("node:test");
 const {
   assertHostApiArtifacts,
+  authorizeMacAppFirewall,
   buildExtensionTestLaunchArgs,
   buildHostApiLaunchArgs,
   buildProfileArgs,
@@ -24,6 +25,7 @@ const {
   parseDevToolsBrowserEndpoint,
   recordHostProgress,
   resolveVsCodeHostVersion,
+  resolveMacAppBundle,
   settleHostAfterCdp,
 } = require("./extension-host/run.cjs");
 const {
@@ -131,6 +133,52 @@ test("fresh host profile root stays within the macOS Unix-socket budget", () => 
   assert.ok(
     path.basename(runRoot).length <= 10,
     "unique host directory must remain short enough for VS Code IPC sockets",
+  );
+});
+
+test("macOS host authorizes the exact downloaded app in the application firewall", () => {
+  const expectedAppBundle = path.resolve("/tmp", "Visual Studio Code.app");
+  const executable = path.join(expectedAppBundle, "Contents", "MacOS", "Code");
+  const calls = [];
+  const appBundle = authorizeMacAppFirewall(executable, {
+    platform: "darwin",
+    run(command, args, options) {
+      calls.push({ command, args, options });
+      return { status: 0, stdout: "authorized" };
+    },
+  });
+  assert.equal(appBundle, expectedAppBundle);
+  assert.equal(resolveMacAppBundle(executable), appBundle);
+  assert.deepEqual(
+    calls.map(({ command, args }) => [command, ...args]),
+    [
+      [
+        "sudo",
+        "/usr/libexec/ApplicationFirewall/socketfilterfw",
+        "--add",
+        appBundle,
+      ],
+      [
+        "sudo",
+        "/usr/libexec/ApplicationFirewall/socketfilterfw",
+        "--unblockapp",
+        appBundle,
+      ],
+    ],
+  );
+  assert.ok(calls.every(({ options }) => options.timeout === 30_000));
+  assert.equal(
+    authorizeMacAppFirewall(executable, {
+      platform: "linux",
+      run() {
+        throw new Error("must not run");
+      },
+    }),
+    null,
+  );
+  assert.throws(
+    () => resolveMacAppBundle("/tmp/Code"),
+    /not inside a macOS app bundle/,
   );
 });
 
