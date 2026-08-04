@@ -154,10 +154,11 @@ version.
   through VS Code's own Extension Host/Webview message boundary. The hidden
   relay exists only when the launcher injects a fresh 256-bit token, validates
   that token on both sides, and exposes fixed semantic DOM actions rather than
-  arbitrary JavaScript evaluation. A random loopback-only Electron inspector
-  endpoint and a positional workspace are still used as a VS Code test-runner
-  bootstrap workaround, but the journey never connects to that endpoint and
-  all DOM state remains on the token-gated relay.
+  arbitrary JavaScript evaluation. The target extension invokes one fixed
+  driver command after activation, the isolated macOS app is foregrounded, and
+  the real Chat focus command must settle before DOM polling begins. No
+  Inspector or remote-debugging transport is opened; all DOM state remains on
+  the token-gated relay.
   macOS remains release-authoritative only when both stable and minimum
   journeys pass.
   `--host-api-only` is a

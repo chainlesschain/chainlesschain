@@ -762,21 +762,29 @@ E2E retry-pass 应记为 flake，而不是普通 pass；超过阈值阻断发布
 - 新的唯一已证实 macOS stable 失败点是聊天 Webview relay 就绪：driver 在真实 `smoke.cjs` 调用栈中运行，45 秒内持续得到 `chat webview DOM is not ready`，最终以 `chat webview relay did not become true within 45000ms` 失败。日志同时记录 UI protocol 2 probe 超时和 Webview 重建。该结果证明目标发现、产品扩展激活、命令面与 IDE bridge 均已跨过，不能据此声称真实聊天 DOM journey 已通过。
 - macOS stable 失败后，minimum 被前置条件跳过；为提取失败工件而取消整个 workflow 后，其余被取消 job 不构成功能失败或成功证据。Windows stable 在取消前成功，但不能替代 macOS stable/minimum，也不能沿用到包含本节文档的后续 SHA。`350ef5601e` 的 [CLI CI `30947673915`](https://github.com/chainlesschain/chainlesschain/actions/runs/30947673915) 截至本次取证仍为 queued；CLI Strict Sandbox 仍因当前 GitHub CLI 凭据无效而无法 dispatch。
 
+### 14.30 macOS Webview 阻断复核与候选版本前进
+
+- `c9d46b4a7a` 的 macOS evidence 将状态细化为 `view=true/visible=true/ready=false/protocol=false`；`521c35a77a` 去除 Inspector 后的 IDE run `30958675402` 仍在同一边界失败，说明 debugger bootstrap 与后台渲染开关不是直接根因。`7f323aa188` 再前台激活外层 `.app` 并等待真实 Chat focus，`54db9c8ff7` 把无响应探针的单次重建宽限从 750ms 调整为 5 秒；对应 macOS jobs 仍未收到任何 ready/protocol 消息。已排除范围因此扩展到视图隐藏、Inspector 干扰、应用未激活、focus 未落定和 750ms 冷启动误判，但不能据此把 hosted runner/VS Code Webview renderer 的上游限制写成已确认结论。
+- VS Code candidate 已从 `0.37.40` 前进到 `0.37.41`；本地扩展单测 **58/58**、协议专项 **8/8**、VSIX self-test **11/11**、包元数据 **18/18** 通过。`54db9c8ff7` 的 Workspace Publish Staleness Check `30959722765` 成功；同 SHA 的 IDE workflow `30959722716` 中 macOS stable job `92160841699` 失败且 minimum 跳过，其他在途 job 不计通过。
+- 权威 CLI 证据不能跨 SHA 拼接：`9327ea0ad2` 的 CLI CI `30948439064` 成功；`7f323aa188` 的 CLI Strict Sandbox `30959399318` 成功，但同 SHA CLI CI cancelled 且 IDE macOS 门失败。`54db9c8ff7` 已重新触发 CLI CI 与 Strict Sandbox，只有其最终结果可描述该实现提交；后续文档提交仍会形成新的 SHA，不能直接继承发布授权。
+- `61f8235105` 停止对 token-gated fresh Webview 做无消息超时重建，并让 minimum 在 stable 失败后继续运行；本地扩展单测 **59/59**、协议专项 **8/8** 通过。IDE run `30960237759` 中 current stable `1.131.0` 仍因 relay 45 秒未 ready 失败；minimum `1.85.2` 首次完整通过 initial 的 stream/retry/plan/permission/interrupt 与 restart-resume，evidence 为 `result=passed`、`evidenceComplete=true`、15 个 artifact。Windows host 同 SHA 成功，CLI Strict Sandbox `30960275491` 三 OS 成功，CLI CI `30960238100` 尚未结算；阻断现已精确为 current stable 路径，不再是“macOS minimum 未运行”或 relay 在所有 macOS host 上不可用。
+- 下一候选不固定或跳过 current stable，而是只给隔离的 macOS real-DOM host 增加 `--disable-gpu` 软件渲染与 `--verbose` renderer/service-worker 诊断。该 journey 不验收 GPU 行为；本地扩展单测 **59/59**、runner 专项 **32/32**、语法/格式检查通过。只有 exact candidate SHA 上 current stable 与 minimum 的真实 DOM initial/restart 均通过后，这项调整才能关闭宿主门。
+
 ## 15. 2026-08-05 收口快照与剩余行动
 
-| 判定对象                         | 当前状态                          | 权威边界                                                                                                   |
-| -------------------------------- | --------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| 差距分析、优先级与实施路线       | **文档收口**                      | 第 1～13 节保留 2026-08-01 历史基线，第 14 节按时间记录实现、审计与 exact-SHA 证据；两者不得混读           |
-| CLI/Session/installer 等仓库实现 | **分项完成、产品验收未完成**      | 只承认顶部状态表和第 14 节为各切片声明的范围；组件测试、旧 SHA 或单门成功不得外推                          |
-| VS Code macOS host journey       | **阻断已精确到 Webview 协议就绪** | 固定命令回退已跨过 driver bootstrap、激活、命令和 bridge；stable DOM relay 失败，minimum 未运行            |
-| `0.162.194` release candidate    | **NO-GO**                         | 没有一个最终 exact SHA 同时取得完整 `CLI CI`、`CLI Strict Sandbox`、受影响 IDE/组件门和不可变 tarball/SBOM |
-| tag、npm publish 与公开渠道激活  | **未授权**                        | 不得创建 `v-npm-0-162-194`，不得执行 publish，也不得以 `0.162.193` 的非权威发布事故或其他 SHA 结果补授权   |
+| 判定对象                         | 当前状态                                | 权威边界                                                                                                          |
+| -------------------------------- | --------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| 差距分析、优先级与实施路线       | **文档收口**                            | 第 1～13 节保留 2026-08-01 历史基线，第 14 节按时间记录实现、审计与 exact-SHA 证据；两者不得混读                  |
+| CLI/Session/installer 等仓库实现 | **分项完成、产品验收未完成**            | 只承认顶部状态表和第 14 节为各切片声明的范围；组件测试、旧 SHA 或单门成功不得外推                                 |
+| VS Code macOS host journey       | **current stable 阻断，minimum 已通过** | `1.85.2` 的真实 DOM initial/restart 全旅程与 evidence 已通过；`1.131.0` 仍未收到 ready/protocol，二者不可互相替代 |
+| `0.162.194` release candidate    | **NO-GO**                               | 没有一个最终 exact SHA 同时取得完整 `CLI CI`、`CLI Strict Sandbox`、受影响 IDE/组件门和不可变 tarball/SBOM        |
+| tag、npm publish 与公开渠道激活  | **未授权**                              | 不得创建 `v-npm-0-162-194`，不得执行 publish，也不得以 `0.162.193` 的非权威发布事故或其他 SHA 结果补授权          |
 
 后续只按以下顺序推进，任一步失败都保持 NO-GO：
 
 1. 修复并在同一候选 SHA 证明 macOS stable 与 minimum 的聊天 Webview protocol/DOM relay 就绪、initial/restart journey 和有界退出。
 2. 在该最终 SHA 完成 Windows VS Code host、JetBrains 受支持版本以及所有受影响组件门；取消、跳过和部分矩阵不计通过。
-3. 在同一最终 SHA 完整通过 `CLI CI` 与 `CLI Strict Sandbox` 的全部配置 OS；先恢复具备 workflow dispatch 权限的 GitHub 凭据。
+3. 在同一最终 SHA 完整通过 `CLI CI` 与 `CLI Strict Sandbox` 的全部配置 OS；已能手动 dispatch 不等于门通过，仍须核对最终 conclusion、head SHA 与完整矩阵。
 4. 生成并验证绑定 exact SHA 的 immutable npm tarball、SBOM、签名、安装、升级、回滚与公开渠道回读。
 5. 继续完成不阻塞本次文档收口、但仍阻塞对应产品级声明的真实长会话/1 GiB、kill/restart、fsync/断电、恶意 writer/MCP、跨架构和长期 soak 验收。
 
