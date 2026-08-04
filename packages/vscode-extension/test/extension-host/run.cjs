@@ -200,13 +200,14 @@ function buildHostLaunchArgs({ workspaceDir, profileArgs, cdpPort }) {
     throw new Error(`invalid CDP port: ${cdpPort}`);
   }
   return [
-    workspaceDir,
     ...profileArgs,
     `--remote-debugging-port=${cdpPort}`,
     "--remote-debugging-address=127.0.0.1",
+    "--new-window",
     "--disable-extension-update-checks",
     "--disable-telemetry",
     "--disable-crash-reporter",
+    workspaceDir,
   ];
 }
 

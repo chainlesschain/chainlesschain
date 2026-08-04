@@ -236,13 +236,14 @@ test("real-DOM host phase is loopback-only and keeps the fresh profile args", ()
       cdpPort: 43210,
     }),
     [
-      path.join(root, "workspace"),
       ...profileArgs,
       "--remote-debugging-port=43210",
       "--remote-debugging-address=127.0.0.1",
+      "--new-window",
       "--disable-extension-update-checks",
       "--disable-telemetry",
       "--disable-crash-reporter",
+      path.join(root, "workspace"),
     ],
   );
   assert.throws(
