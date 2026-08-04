@@ -8,7 +8,7 @@
 >
 > 文档性质：现状审计、实施方案与持续进度记录；未标记“已完成”的项目仍是待办
 
-## 实施进展（更新至 2026-08-04）
+## 实施进展（更新至 2026-08-05）
 
 | 方案项                                             | 状态                                      | 落地结果与验证证据                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | -------------------------------------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -753,3 +753,31 @@ E2E retry-pass 应记为 flake，而不是普通 pass；超过阈值阻断发布
 - `95e9ef8edd` 进一步覆盖了“随机 loopback `--inspect` + positional workspace + 不连接 Inspector”的剩余组合。[IDE Extensions `30946343303`](https://github.com/chainlesschain/chainlesschain/actions/runs/30946343303) 的 stable smoke 从 `2026-08-04 20:09:43 UTC` 运行到约 4 分 26 秒后主动取消；日志只有 `Debugger listening` 和 development/local/my extension 扫描，没有 `Debugger attached`、`driver entered` 或 driver trace，artifact 仍精确停在 `initial_started`，minimum skipped。该结果与 `--folder-uri`、提前 attach、wildcard activation、Chromium CDP 和 Electron Inspector 等前序失败共同把阻断定界为：VS Code 1.131 / `@vscode/test-electron` 3.1.0 在 `macos-15-intel` 上识别了 development extension，却没有调用 `--extensionTestsPath` 指定的 runner。
 - 在没有更强证据前，不再继续排列组合 Inspector、firewall、Origin、workspace 参数或 activation event。下一技术前置是把上述现象缩成不含产品扩展的最小 `@vscode/test-electron` macOS reproducer，并据此确认上游缺陷、可接受的 host pin 或修复版本；若改用 Extension Host 自身 Inspector 直接启动 runner，则必须先单独评审 loopback 隔离、固定表达式边界、超时和 artifact 完整性，不能把诊断通道直接升级为发布权威通道。
 - 当前分支本地 VS Code 扩展单测为 **54/54 passed**，适用文件 Prettier、workflow actionlint、Node 语法与 `git diff --check` 通过；这些只属于补充证据。远端 macOS stable/minimum 未通过，latest exact SHA 的 CLI Strict Sandbox 也因当前 `gh` 凭据对 workflow dispatch 返回 `HTTP 401` 而没有形成权威矩阵，immutable npm tarball/SBOM 发布门同样未完成。最终结论是 **release NO-GO**：不得创建 `v-npm-0-162-194`、不得发布 CLI npm 包，也不得把任何取消 run 或其他 SHA 的局部成功沿用为授权。
+
+### 14.29 固定命令回退实机取证与新阻断边界
+
+- `350ef5601e15e63051a67ce5e1bf810d4fa24e38` 增加 token-gated 固定命令 `chainlesschainTests.runHostJourney`：只有本次 host journey 持有有效随机 token 时，已安装的产品扩展才会调度测试 driver；正常产品启动没有 token，路径保持 inert。driver 以 `runOnce()` 保证至多执行一次，host runner 则以结构化 result file 结算 relay，并在 relay 终态后执行有界 shutdown。该变更绕过了 macOS 上未调用 `extensionTestsPath` runner 的 bootstrap 缺陷，但没有把诊断入口暴露为普通产品能力。
+- 本地补充证据为 VS Code 扩展完整单测 **55/55 passed**、真实 activation wiring **7/7 passed**，适用的 10 个文件 Prettier、Node 语法与 `git diff --check` 通过。上述结果验证的是回退接线、无 token inert、固定命令契约与 run-once 行为，仍不能替代真实宿主或发布门。
+- 同 SHA 的 [IDE Extensions `30947671847`](https://github.com/chainlesschain/chainlesschain/actions/runs/30947671847) 首次给出了 driver 已实际执行的结构化证据。`macos-stable.progress.jsonl` 从 `prepared`、安装和下载推进到 `initial_started`，最终记录 `journey_failed` 与 evidence 完成；driver trace 依次通过 `installed-vsix-discovered`、`vsix-activated`、`commands-verified`（17 个命令）和 `bridge-verified`。因此 14.28 所述 `extensionTestsPath` bootstrap 仍是上游行为缺陷，但已不再是当前回退路径的直接阻断。
+- 新的唯一已证实 macOS stable 失败点是聊天 Webview relay 就绪：driver 在真实 `smoke.cjs` 调用栈中运行，45 秒内持续得到 `chat webview DOM is not ready`，最终以 `chat webview relay did not become true within 45000ms` 失败。日志同时记录 UI protocol 2 probe 超时和 Webview 重建。该结果证明目标发现、产品扩展激活、命令面与 IDE bridge 均已跨过，不能据此声称真实聊天 DOM journey 已通过。
+- macOS stable 失败后，minimum 被前置条件跳过；为提取失败工件而取消整个 workflow 后，其余被取消 job 不构成功能失败或成功证据。Windows stable 在取消前成功，但不能替代 macOS stable/minimum，也不能沿用到包含本节文档的后续 SHA。`350ef5601e` 的 [CLI CI `30947673915`](https://github.com/chainlesschain/chainlesschain/actions/runs/30947673915) 截至本次取证仍为 queued；CLI Strict Sandbox 仍因当前 GitHub CLI 凭据无效而无法 dispatch。
+
+## 15. 2026-08-05 收口快照与剩余行动
+
+| 判定对象                         | 当前状态                          | 权威边界                                                                                                   |
+| -------------------------------- | --------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| 差距分析、优先级与实施路线       | **文档收口**                      | 第 1～13 节保留 2026-08-01 历史基线，第 14 节按时间记录实现、审计与 exact-SHA 证据；两者不得混读           |
+| CLI/Session/installer 等仓库实现 | **分项完成、产品验收未完成**      | 只承认顶部状态表和第 14 节为各切片声明的范围；组件测试、旧 SHA 或单门成功不得外推                          |
+| VS Code macOS host journey       | **阻断已精确到 Webview 协议就绪** | 固定命令回退已跨过 driver bootstrap、激活、命令和 bridge；stable DOM relay 失败，minimum 未运行            |
+| `0.162.194` release candidate    | **NO-GO**                         | 没有一个最终 exact SHA 同时取得完整 `CLI CI`、`CLI Strict Sandbox`、受影响 IDE/组件门和不可变 tarball/SBOM |
+| tag、npm publish 与公开渠道激活  | **未授权**                        | 不得创建 `v-npm-0-162-194`，不得执行 publish，也不得以 `0.162.193` 的非权威发布事故或其他 SHA 结果补授权   |
+
+后续只按以下顺序推进，任一步失败都保持 NO-GO：
+
+1. 修复并在同一候选 SHA 证明 macOS stable 与 minimum 的聊天 Webview protocol/DOM relay 就绪、initial/restart journey 和有界退出。
+2. 在该最终 SHA 完成 Windows VS Code host、JetBrains 受支持版本以及所有受影响组件门；取消、跳过和部分矩阵不计通过。
+3. 在同一最终 SHA 完整通过 `CLI CI` 与 `CLI Strict Sandbox` 的全部配置 OS；先恢复具备 workflow dispatch 权限的 GitHub 凭据。
+4. 生成并验证绑定 exact SHA 的 immutable npm tarball、SBOM、签名、安装、升级、回滚与公开渠道回读。
+5. 继续完成不阻塞本次文档收口、但仍阻塞对应产品级声明的真实长会话/1 GiB、kill/restart、fsync/断电、恶意 writer/MCP、跨架构和长期 soak 验收。
+
+因此，本文件可以作为当前差距分析与实施路线的收口版本；这只表示分析、证据边界和剩余行动已经明确，**不表示产品实现全部完成，也不构成任何发布授权**。
