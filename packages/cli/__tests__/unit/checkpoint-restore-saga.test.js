@@ -1016,11 +1016,16 @@ describe("CheckpointRestoreSagaStore", () => {
       ).toBe("unrelated-archive-ignored");
 
       const active = beginRetentionRestore(testFixture, "retention_duplicate");
+      const duplicateArchive = path.join(
+        testFixture.store.archiveRoot,
+        active.saga.operationId,
+      );
       fs.cpSync(
         operationDirectory(testFixture, active.saga.operationId),
-        path.join(testFixture.store.archiveRoot, active.saga.operationId),
+        duplicateArchive,
         { recursive: true },
       );
+      if (process.platform !== "win32") fs.chmodSync(duplicateArchive, 0o700);
       const callback = vi.fn();
       expect(() =>
         testFixture.store.withCheckpointRetentionGuard(
@@ -4161,11 +4166,16 @@ describe("CheckpointRestoreSagaStore", () => {
     const saga = testFixture.store.create({
       operationId: "duplicate_retention",
     });
+    const duplicateArchive = path.join(
+      testFixture.store.archiveRoot,
+      saga.operationId,
+    );
     fs.cpSync(
       operationDirectory(testFixture, saga.operationId),
-      path.join(testFixture.store.archiveRoot, saga.operationId),
+      duplicateArchive,
       { recursive: true },
     );
+    if (process.platform !== "win32") fs.chmodSync(duplicateArchive, 0o700);
 
     expect(() => testFixture.store.load(saga.operationId)).toThrow(
       errorCode(CHECKPOINT_RESTORE_SAGA_ERROR_CODES.CORRUPT),

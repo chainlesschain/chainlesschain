@@ -32,15 +32,25 @@ test("VS Code credentials are checked before either immutable publish", () => {
     "- name: Preflight required marketplace credentials",
   );
   const openVsxPublish = workflow.indexOf("- name: Publish to Open VSX");
-  const vscodePublish = workflow.indexOf("- name: Publish to VS Code Marketplace");
+  const vscodePublish = workflow.indexOf(
+    "- name: Publish to VS Code Marketplace",
+  );
 
   assert.ok(preflight > 0, "credential preflight must exist");
   assert.ok(preflight < openVsxPublish, "preflight must precede Open VSX");
   assert.ok(preflight < vscodePublish, "preflight must precede VS Marketplace");
   assert.match(workflow, /OVSX_PAT: \$\{\{ secrets\.OVSX_PAT \}\}/u);
   assert.match(workflow, /VSCE_PAT: \$\{\{ secrets\.VSCE_PAT \}\}/u);
-  assert.match(
-    workflow,
-    /@vscode\/vsce@3\.9\.2 verify-pat chainlesschain/u,
+  assert.match(workflow, /@vscode\/vsce@3\.9\.2 verify-pat chainlesschain/u);
+});
+
+test("VS Code macOS host gate pins the validated ARM runner image", () => {
+  const workflow = read(".github/workflows/ide-extensions.yml");
+  const macGate = workflow.match(
+    /vscode-macos-smoke:[\s\S]*?(?=\n  [a-z][a-z0-9-]+:)/u,
   );
+
+  assert.ok(macGate, "macOS host gate job must exist");
+  assert.match(macGate[0], /runs-on: macos-15/u);
+  assert.doesNotMatch(macGate[0], /runs-on: macos-latest/u);
 });

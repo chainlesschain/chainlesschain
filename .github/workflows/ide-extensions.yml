@@ -140,7 +140,10 @@ jobs:
   vscode-macos-smoke:
     name: VS Code extension (macOS host gate)
     needs: capability-manifest
-    runs-on: macos-latest
+    # Keep the real Electron gate on the stable macOS 15 ARM image. The
+    # macos-latest label can advance independently and macOS 26 currently
+    # stalls VS Code's extension-test bootstrap before the driver can run.
+    runs-on: macos-15
     timeout-minutes: 45
     defaults:
       run:
