@@ -121,6 +121,41 @@ function makeFreshRunRoot(parent) {
   return fs.mkdtempSync(path.join(base, "ccv-"));
 }
 
+function buildProfileArgs({ runRoot, extensionsDir, phase }) {
+  if (!/^(?:install|initial|restart)$/.test(phase)) {
+    throw new Error(`unknown host profile phase: ${phase}`);
+  }
+  return [
+    `--extensions-dir=${extensionsDir}`,
+    `--user-data-dir=${path.join(runRoot, `user-data-${phase}`)}`,
+  ];
+}
+
+function createHostProgressJournal(artifactDir) {
+  const progressPath = path.join(
+    path.dirname(artifactDir),
+    `${path.basename(artifactDir)}.progress.jsonl`,
+  );
+  fs.mkdirSync(path.dirname(progressPath), { recursive: true, mode: 0o700 });
+  fs.writeFileSync(progressPath, "", {
+    encoding: "utf8",
+    flag: "wx",
+    mode: 0o600,
+  });
+  return progressPath;
+}
+
+function recordHostProgress(progressPath, stage) {
+  if (!/^[a-z][a-z0-9_]*$/.test(stage)) {
+    throw new Error(`invalid host progress stage: ${stage}`);
+  }
+  fs.appendFileSync(
+    progressPath,
+    `${JSON.stringify({ stage, at: new Date().toISOString() })}\n`,
+    "utf8",
+  );
+}
+
 function writeWorkspace(workspaceDir, fixtureCliCommand) {
   const vscodeDir = path.join(workspaceDir, ".vscode");
   fs.mkdirSync(vscodeDir, { recursive: true });
@@ -258,7 +293,6 @@ function assertInstalled(listOutput, version) {
 }
 
 function findDiagnosticLogs(runRoot) {
-  const logsRoot = path.join(runRoot, "user-data", "logs");
   const candidates = [];
   function walk(dir) {
     let entries;
@@ -281,16 +315,15 @@ function findDiagnosticLogs(runRoot) {
       }
     }
   }
-  walk(logsRoot);
+  walk(runRoot);
   return candidates.sort();
 }
 
 function dumpFailureDiagnostics(runRoot) {
-  const logsRoot = path.join(runRoot, "user-data", "logs");
   const candidates = findDiagnosticLogs(runRoot);
   if (candidates.length === 0) {
     process.stderr.write(
-      `[extension-host-smoke] no diagnostic logs found under ${logsRoot}\n`,
+      `[extension-host-smoke] no diagnostic logs found under ${runRoot}\n`,
     );
     return;
   }
@@ -398,7 +431,6 @@ async function main() {
   );
   const expectedVersion = extensionManifest.version;
   const runRoot = makeFreshRunRoot(options.workDir);
-  const userDataDir = path.join(runRoot, "user-data");
   const extensionsDir = path.join(runRoot, "extensions");
   const profileHome = path.join(runRoot, "profile-home");
   const workspaceDir = path.join(runRoot, "workspace");
@@ -407,12 +439,13 @@ async function main() {
   const artifactDir = path.resolve(
     options.artifactDir || path.join(runRoot, "journey-evidence"),
   );
+  const progressPath = createHostProgressJournal(artifactDir);
+  recordHostProgress(progressPath, "prepared");
   const startedAt = new Date().toISOString();
   const cliVersion = readJsonVersion(
     path.resolve(PACKAGE_ROOT, "..", "cli", "package.json"),
   );
   for (const dir of [
-    userDataDir,
     extensionsDir,
     profileHome,
     workspaceDir,
@@ -428,11 +461,15 @@ async function main() {
 
   process.stdout.write(`[extension-host-smoke] fresh run root: ${runRoot}\n`);
 
-  const downloadOptions = { version: options.vscodeVersion };
-  const profileArgs = [
-    `--extensions-dir=${extensionsDir}`,
-    `--user-data-dir=${userDataDir}`,
-  ];
+  const downloadOptions = {
+    version: options.vscodeVersion,
+    spawn: { timeout: 120_000, killSignal: "SIGTERM" },
+  };
+  const installProfileArgs = buildProfileArgs({
+    runRoot,
+    extensionsDir,
+    phase: "install",
+  });
   let hostVersion = null;
   let journeyResult = "failed";
   let journeyError = null;
@@ -440,10 +477,12 @@ async function main() {
   try {
     const { downloadAndUnzipVSCode, runTests, runVSCodeCommand } =
       requireTestElectron();
+    recordHostProgress(progressPath, "install_started");
     const install = await runVSCodeCommand(
-      [...profileArgs, "--install-extension", vsixPath, "--force"],
+      [...installProfileArgs, "--install-extension", vsixPath, "--force"],
       downloadOptions,
     );
+    recordHostProgress(progressPath, "install_completed");
     if (install.stdout.trim()) {
       process.stdout.write(install.stdout);
     }
@@ -451,27 +490,25 @@ async function main() {
       process.stderr.write(install.stderr);
     }
 
+    recordHostProgress(progressPath, "list_started");
     const listed = await runVSCodeCommand(
-      [...profileArgs, "--list-extensions", "--show-versions"],
+      [...installProfileArgs, "--list-extensions", "--show-versions"],
       downloadOptions,
     );
     assertInstalled(listed.stdout, expectedVersion);
+    recordHostProgress(progressPath, "list_completed");
 
     // Reuses the exact version already downloaded by the install command.
+    recordHostProgress(progressPath, "download_started");
     const vscodeExecutablePath = await downloadAndUnzipVSCode(downloadOptions);
     hostVersion = await resolveVsCodeHostVersion(
       vscodeExecutablePath,
       options.vscodeVersion,
     );
+    recordHostProgress(progressPath, "download_completed");
     for (const phase of ["initial", "restart"]) {
-      if (phase === "restart") {
-        // Electron 39 can return from the first Extension Host while its
-        // profile mutex and renderer teardown are still settling. Give that
-        // bounded teardown a moment before launching the same isolated profile
-        // again, otherwise the second test process can exit before its driver
-        // receives the CDP result.
-        await new Promise((resolve) => setTimeout(resolve, 3_000));
-      }
+      const profileArgs = buildProfileArgs({ runRoot, extensionsDir, phase });
+      recordHostProgress(progressPath, `${phase}_started`);
       await runRealDomPhase({
         runTests,
         vscodeExecutablePath,
@@ -485,6 +522,7 @@ async function main() {
         journeyArtifactDir,
         fixture,
       });
+      recordHostProgress(progressPath, `${phase}_completed`);
     }
     assertJourneyArtifacts({
       artifactDir: journeyArtifactDir,
@@ -493,12 +531,14 @@ async function main() {
       extensionsDir,
       workspaceDir,
     });
+    recordHostProgress(progressPath, "assertions_completed");
     journeyResult = "passed";
     process.stdout.write(
       `[extension-host-smoke] PASS ${EXTENSION_ID}@${expectedVersion} real-DOM control/restart journey on ${hostVersion || options.vscodeVersion}\n`,
     );
   } catch (error) {
     journeyError = error;
+    recordHostProgress(progressPath, "journey_failed");
     dumpFailureDiagnostics(runRoot);
   } finally {
     const diagnosticLogs = findDiagnosticLogs(runRoot);
@@ -517,6 +557,7 @@ async function main() {
       sourceRoots.push(path.join(runRoot, "__missing-host-diagnostics__"));
     }
     try {
+      recordHostProgress(progressPath, "evidence_started");
       const result = await writeJourneyEvidence({
         artifactDir,
         journeyId: "vscode-installed-vsix-real-dom-control-resume",
@@ -536,6 +577,7 @@ async function main() {
       process.stdout.write(
         `[extension-host-smoke] evidence: ${result.destination} (${result.evidence.evidenceDigest})\n`,
       );
+      recordHostProgress(progressPath, "evidence_completed");
       if (!result.evidence.evidenceComplete) {
         evidenceError = new Error(
           `IDE journey evidence is incomplete: ${result.evidence.incidents
@@ -545,6 +587,7 @@ async function main() {
       }
     } catch (error) {
       evidenceError = error;
+      recordHostProgress(progressPath, "evidence_failed");
       if (journeyError) {
         process.stderr.write(
           `[extension-host-smoke] evidence failure: ${error.message}\n`,
@@ -557,11 +600,14 @@ async function main() {
 }
 
 module.exports = {
+  buildProfileArgs,
   buildHostLaunchArgs,
+  createHostProgressJournal,
   findDiagnosticLogs,
   hostPhaseSignalPaths,
   makeFreshRunRoot,
   parseArgs,
+  recordHostProgress,
   resolveVsCodeHostVersion,
   runRealDomPhase,
 };

@@ -6,11 +6,14 @@ const os = require("node:os");
 const path = require("node:path");
 const { afterEach, test } = require("node:test");
 const {
+  buildProfileArgs,
   buildHostLaunchArgs,
+  createHostProgressJournal,
   findDiagnosticLogs,
   hostPhaseSignalPaths,
   makeFreshRunRoot,
   parseArgs,
+  recordHostProgress,
   resolveVsCodeHostVersion,
 } = require("./extension-host/run.cjs");
 const {
@@ -110,9 +113,58 @@ test("fresh host profile root stays within the macOS Unix-socket budget", () => 
   );
 });
 
+test("host phases share installed extensions but isolate user-data profiles", () => {
+  const root = temporaryRoot();
+  const extensionsDir = path.join(root, "extensions");
+  const initial = buildProfileArgs({
+    runRoot: root,
+    extensionsDir,
+    phase: "initial",
+  });
+  const restart = buildProfileArgs({
+    runRoot: root,
+    extensionsDir,
+    phase: "restart",
+  });
+
+  assert.equal(initial[0], restart[0]);
+  assert.notEqual(initial[1], restart[1]);
+  assert.match(initial[1], /user-data-initial$/u);
+  assert.match(restart[1], /user-data-restart$/u);
+  assert.throws(
+    () => buildProfileArgs({ runRoot: root, extensionsDir, phase: "other" }),
+    /unknown host profile phase/,
+  );
+});
+
+test("host progress journal survives before immutable evidence exists", () => {
+  const root = temporaryRoot();
+  const artifactDir = path.join(root, "reports", "macos-stable");
+  const progressPath = createHostProgressJournal(artifactDir);
+  recordHostProgress(progressPath, "prepared");
+  recordHostProgress(progressPath, "initial_started");
+
+  assert.equal(fs.existsSync(artifactDir), false);
+  assert.equal(
+    progressPath,
+    path.join(root, "reports", "macos-stable.progress.jsonl"),
+  );
+  const records = fs
+    .readFileSync(progressPath, "utf8")
+    .trim()
+    .split("\n")
+    .map((line) => JSON.parse(line));
+  assert.deepEqual(
+    records.map((record) => record.stage),
+    ["prepared", "initial_started"],
+  );
+  assert.ok(records.every((record) => !Number.isNaN(Date.parse(record.at))));
+  assert.throws(() => createHostProgressJournal(artifactDir), /EEXIST|exist/i);
+});
+
 test("diagnostic discovery is limited to release-relevant host logs", () => {
   const root = temporaryRoot();
-  const logs = path.join(root, "user-data", "logs", "window1");
+  const logs = path.join(root, "user-data-restart", "logs", "window1");
   fs.mkdirSync(logs, { recursive: true });
   for (const name of [
     "exthost.log",

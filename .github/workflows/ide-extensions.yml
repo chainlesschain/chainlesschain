@@ -166,10 +166,12 @@ jobs:
       - name: Install Extension Host test runtime
         run: npm install --no-save --no-package-lock @vscode/test-electron@3.1.0
       - name: Extension Host smoke (macOS stable)
+        timeout-minutes: 15
         run: >-
           node test/extension-host/run.cjs --vsix chainlesschain-ide.vsix
           --artifact-dir build/reports/extension-host/macos-stable
       - name: Extension Host smoke (macOS minimum 1.85.2)
+        timeout-minutes: 15
         run: >-
           node test/extension-host/run.cjs --vsix chainlesschain-ide.vsix
           --vscode-version 1.85.2
