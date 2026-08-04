@@ -26,6 +26,11 @@ const {
   readJourneyResult,
   writeJsonSignal,
 } = require("./extension-host/cdp-journey.cjs");
+const {
+  ACTIVITY_VIEW_COMMAND,
+  CHAT_VIEW_FOCUS_COMMAND,
+  requestChatViewForDomJourney,
+} = require("./extension-host/driver/view-control.cjs");
 
 const temporaryRoots = [];
 
@@ -294,6 +299,34 @@ test("host phase signals are phase-scoped and reject unknown phases", () => {
     resultFile: path.join(root, "restart-cdp-result.json"),
   });
   assert.throws(() => hostPhaseSignalPaths(root, "other"), /unknown host/);
+});
+
+test("host ready is not blocked by VS Code's pending chat focus promise", async () => {
+  const calls = [];
+  let settleFocus;
+  const pendingFocus = new Promise((resolve) => {
+    settleFocus = resolve;
+  });
+  const commands = {
+    executeCommand(command) {
+      calls.push(command);
+      return command === ACTIVITY_VIEW_COMMAND
+        ? Promise.resolve()
+        : pendingFocus;
+    },
+  };
+
+  await Promise.race([
+    requestChatViewForDomJourney({ commands, timeoutMs: 50 }),
+    new Promise((_, reject) =>
+      setTimeout(
+        () => reject(new Error("pending focus blocked the CDP handoff")),
+        100,
+      ),
+    ),
+  ]);
+  assert.deepEqual(calls, [ACTIVITY_VIEW_COMMAND, CHAT_VIEW_FOCUS_COMMAND]);
+  settleFocus();
 });
 
 test("fixture CLI wrappers are isolated and cannot overwrite an existing shim", () => {

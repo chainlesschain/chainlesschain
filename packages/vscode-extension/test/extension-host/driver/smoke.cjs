@@ -5,6 +5,11 @@ const fs = require("node:fs");
 const net = require("node:net");
 const path = require("node:path");
 const vscode = require("vscode");
+const {
+  CHAT_VIEW_FOCUS_COMMAND,
+  requestChatViewForDomJourney,
+  withTimeout,
+} = require("./view-control.cjs");
 
 const EXTENSION_ID = "chainlesschain.chainlesschain-ide";
 const REQUIRED_COMMANDS = [
@@ -24,20 +29,8 @@ const REQUIRED_COMMANDS = [
   "chainlesschain.background.agents",
   "chainlesschain.remote.control",
   "chainlesschain.remote.doctor",
+  CHAT_VIEW_FOCUS_COMMAND,
 ];
-
-function withTimeout(promise, timeoutMs, label) {
-  let timer;
-  return Promise.race([
-    promise,
-    new Promise((_, reject) => {
-      timer = setTimeout(
-        () => reject(new Error(`${label} timed out after ${timeoutMs}ms`)),
-        timeoutMs,
-      );
-    }),
-  ]).finally(() => clearTimeout(timer));
-}
 
 function normalizeForCompare(value) {
   const resolved = path.resolve(value);
@@ -197,18 +190,11 @@ async function revealChatAndWaitForDomJourney({
   assert.match(phase, /^(?:initial|restart)$/);
   assert.ok(readyFile, "missing CHAINLESSCHAIN_HOST_READY_FILE");
   assert.ok(resultFile, "missing CHAINLESSCHAIN_HOST_RESULT_FILE");
-  await withTimeout(
-    vscode.commands.executeCommand(
-      "workbench.view.extension.chainlesschainIde",
-    ),
-    15_000,
-    "ChainlessChain activity view reveal",
-  );
-  await withTimeout(
-    vscode.commands.executeCommand("chainlesschainIdeChat.focus"),
-    15_000,
-    "ChainlessChain chat webview focus",
-  );
+  await requestChatViewForDomJourney({
+    commands: vscode.commands,
+    log: (message) =>
+      console.log(`[extension-host-smoke] ${phase}: ${message}`),
+  });
   writeSignal(readyFile, {
     phase,
     extensionPath: fs.realpathSync(extensionPath),
