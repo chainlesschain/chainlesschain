@@ -224,7 +224,6 @@ function buildHostLaunchArgs({ workspaceDir, profileArgs, cdpPort }) {
     throw new Error(`invalid CDP port: ${cdpPort}`);
   }
   return [
-    workspaceDir,
     ...profileArgs,
     `--remote-debugging-port=${cdpPort}`,
     "--remote-debugging-address=127.0.0.1",
@@ -235,6 +234,10 @@ function buildHostLaunchArgs({ workspaceDir, profileArgs, cdpPort }) {
     "--disable-extension-update-checks",
     "--disable-telemetry",
     "--disable-crash-reporter",
+    // Keep the positional workspace after every host switch. Some Electron /
+    // VS Code launch paths stop interpreting Chromium switches once a
+    // positional argument has been consumed.
+    workspaceDir,
   ];
 }
 

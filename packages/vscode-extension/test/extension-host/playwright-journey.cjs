@@ -46,7 +46,6 @@ function buildPlaywrightHostArgs({
   extensionTestsPath,
 }) {
   return [
-    workspaceDir,
     ...profileArgs,
     "--no-sandbox",
     "--disable-gpu-sandbox",
@@ -61,6 +60,10 @@ function buildPlaywrightHostArgs({
     "--enable-smoke-test-driver",
     `--extensionTestsPath=${extensionTestsPath}`,
     `--extensionDevelopmentPath=${extensionDevelopmentPath}`,
+    // Playwright prepends its own Electron debugging switches. Keep VS Code's
+    // positional workspace last so none of the extension-test switches are
+    // parsed as workspace input on macOS.
+    workspaceDir,
   ];
 }
 

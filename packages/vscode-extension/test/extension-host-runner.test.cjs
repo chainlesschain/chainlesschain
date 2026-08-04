@@ -251,7 +251,6 @@ test("real-DOM host phase is loopback-only and keeps the fresh profile args", ()
       cdpPort: 43210,
     }),
     [
-      path.join(root, "workspace"),
       ...profileArgs,
       "--remote-debugging-port=43210",
       "--remote-debugging-address=127.0.0.1",
@@ -259,6 +258,7 @@ test("real-DOM host phase is loopback-only and keeps the fresh profile args", ()
       "--disable-extension-update-checks",
       "--disable-telemetry",
       "--disable-crash-reporter",
+      path.join(root, "workspace"),
     ],
   );
   assert.throws(
@@ -283,7 +283,7 @@ test("macOS Playwright host keeps the real extension-test contract", async () =>
     extensionDevelopmentPath: path.join(root, "driver"),
     extensionTestsPath: path.join(root, "driver", "smoke.cjs"),
   });
-  assert.equal(args[0], path.join(root, "workspace"));
+  assert.equal(args.at(-1), path.join(root, "workspace"));
   assert.ok(args.includes("--enable-smoke-test-driver"));
   assert.ok(
     args.includes(`--extensionDevelopmentPath=${path.join(root, "driver")}`),
