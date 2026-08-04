@@ -4,6 +4,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
+const { Readable } = require("node:stream");
 const { afterEach, test } = require("node:test");
 const {
   buildProfileArgs,
@@ -25,6 +26,7 @@ const {
   PHASE_DOM_MARKERS,
   assertJourneyArtifacts,
   createFixtureCli,
+  isInspectableBrowserTarget,
   readJourneyResult,
   writeJsonSignal,
 } = require("./extension-host/cdp-journey.cjs");
@@ -263,7 +265,7 @@ test("real-DOM host phase is loopback-only and keeps the fresh profile args", ()
   );
 });
 
-test("captures only the expected loopback DevTools browser endpoint", () => {
+test("captures only the expected loopback DevTools browser endpoint", async () => {
   const written = [];
   const capture = createDevToolsEndpointCapture(43210, {
     write(chunk) {
@@ -277,9 +279,18 @@ test("captures only the expected loopback DevTools browser endpoint", () => {
   );
   capture.stderr.write("browser/not-loopback\n");
   assert.equal(capture.getEndpoint(), null);
-  capture.stderr.write("DevTools listening on ws://127.0.0.1:43210/devtools/");
-  capture.stderr.write("browser/browser-id\n");
 
+  await new Promise((resolve, reject) => {
+    Readable.from([
+      "DevTools listening on ws://127.0.0.1:43210/devtools/",
+      "browser/browser-id\n",
+    ])
+      .pipe(capture.stderr)
+      .once("finish", resolve)
+      .once("error", reject);
+  });
+  // The first complete endpoint is rejected; a later valid endpoint in the
+  // same captured stream is still accepted.
   assert.equal(
     capture.getEndpoint(),
     "ws://127.0.0.1:43210/devtools/browser/browser-id",
@@ -303,6 +314,15 @@ test("captures only the expected loopback DevTools browser endpoint", () => {
     ),
     null,
   );
+});
+
+test("browser discovery inspects renderable targets and excludes workers", () => {
+  for (const type of ["page", "iframe", "webview"]) {
+    assert.equal(isInspectableBrowserTarget({ type }), true);
+  }
+  for (const type of ["browser", "service_worker", "shared_worker", null]) {
+    assert.equal(isInspectableBrowserTarget({ type }), false);
+  }
 });
 
 test("CDP child sessions preserve flattened target identity", async () => {

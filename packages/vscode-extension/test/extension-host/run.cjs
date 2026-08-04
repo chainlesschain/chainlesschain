@@ -18,6 +18,7 @@
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
+const { PassThrough } = require("node:stream");
 const { pathToFileURL } = require("node:url");
 const {
   assertJourneyArtifacts,
@@ -248,21 +249,20 @@ function parseDevToolsBrowserEndpoint(value, expectedPort) {
 function createDevToolsEndpointCapture(expectedPort, output = process.stderr) {
   let buffered = "";
   let endpoint = null;
+  const stderr = new PassThrough();
+  stderr.on("data", (chunk) => {
+    const text = Buffer.isBuffer(chunk)
+      ? chunk.toString("utf8")
+      : String(chunk);
+    output.write(chunk);
+    if (!endpoint) {
+      buffered = `${buffered}${text}`.slice(-8_192);
+      endpoint = parseDevToolsBrowserEndpoint(buffered, expectedPort);
+    }
+  });
   return {
     getEndpoint: () => endpoint,
-    stderr: {
-      write(chunk) {
-        const text = Buffer.isBuffer(chunk)
-          ? chunk.toString("utf8")
-          : String(chunk);
-        output.write(chunk);
-        if (!endpoint) {
-          buffered = `${buffered}${text}`.slice(-8_192);
-          endpoint = parseDevToolsBrowserEndpoint(buffered, expectedPort);
-        }
-        return true;
-      },
-    },
+    stderr,
   };
 }
 

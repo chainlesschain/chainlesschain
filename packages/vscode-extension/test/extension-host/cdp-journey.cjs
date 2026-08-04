@@ -329,6 +329,10 @@ function collectFrameIds(frameTree, result = []) {
   return result;
 }
 
+function isInspectableBrowserTarget(candidate) {
+  return ["page", "iframe", "webview"].includes(candidate?.type);
+}
+
 async function findChatWebview(
   port,
   timeoutMs = DEFAULT_TIMEOUT_MS,
@@ -404,16 +408,11 @@ async function findChatWebview(
           });
           lastTargetSnapshot = targetSnapshot;
         }
-        for (const info of targetInfos.filter((candidate) => {
-          const url = String(candidate.url || "");
-          const title = String(candidate.title || "");
-          return (
-            candidate.type === "iframe" ||
-            (["page", "webview"].includes(candidate.type) &&
-              (url.startsWith("vscode-webview://") ||
-                /webview/i.test(`${url} ${title}`)))
-          );
-        })) {
+        // Electron versions differ in whether a Webview is surfaced as its
+        // own iframe/webview target or as a frame under the workbench page.
+        // Inspect every renderable target and let CHAT_WEBVIEW_PROBE provide
+        // the strict identity check; browser and worker targets stay excluded.
+        for (const info of targetInfos.filter(isInspectableBrowserTarget)) {
           let sessionId = null;
           try {
             const attached = await browserClient.send("Target.attachToTarget", {
@@ -1107,6 +1106,7 @@ module.exports = {
   PHASE_DOM_MARKERS,
   assertJourneyArtifacts,
   createFixtureCli,
+  isInspectableBrowserTarget,
   readJourneyResult,
   reserveLoopbackPort,
   runCdpHostJourney,
