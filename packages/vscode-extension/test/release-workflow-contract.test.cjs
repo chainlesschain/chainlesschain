@@ -54,14 +54,16 @@ test("VS Code macOS host gate pins the validated Intel runner image", () => {
   assert.match(macGate[0], /runs-on: macos-15-intel/u);
   assert.doesNotMatch(macGate[0], /runs-on: macos-latest/u);
   assert.match(macGate[0], /@vscode\/test-electron@3\.1\.0/u);
-  assert.doesNotMatch(macGate[0], /ws@/u);
+  assert.match(macGate[0], /ws@8\.21\.2/u);
   assert.doesNotMatch(macGate[0], /playwright/u);
   assert.doesNotMatch(macGate[0], /--host-api-only/u);
   const hostRunner = read(
     "packages/vscode-extension/test/extension-host/run.cjs",
   );
-  assert.match(hostRunner, /--remote-debugging-pipe/u);
-  assert.match(hostRunner, /process\.platform === "darwin"/u);
+  assert.match(
+    hostRunner,
+    /--disable-features=DevToolsAcceptDebuggingConnections/u,
+  );
   assert.equal(
     macGate[0].match(
       /- name: Extension Host smoke \(macOS (?:stable|minimum 1\.85\.2)\)\n\s+timeout-minutes: 15/gu,
@@ -75,7 +77,7 @@ test("VS Code macOS host gate pins the validated Intel runner image", () => {
   );
   assert.equal(
     workflow.match(/ws@8\.21\.2/gu)?.length,
-    2,
-    "only Windows and Linux host gates use the pinned websocket client",
+    3,
+    "all three host gates must pin the CDP websocket client",
   );
 });

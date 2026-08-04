@@ -259,6 +259,7 @@ test("real-DOM host phase is loopback-only and keeps the fresh profile args", ()
       ...profileArgs,
       "--remote-debugging-port=43210",
       "--remote-debugging-address=127.0.0.1",
+      "--disable-features=DevToolsAcceptDebuggingConnections",
       "--remote-allow-origins=http://127.0.0.1:43210",
       "--disable-extension-update-checks",
       "--disable-telemetry",

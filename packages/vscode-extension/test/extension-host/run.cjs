@@ -8,9 +8,9 @@
  * extensions directory (not --extensionDevelopmentPath), activates it, and
  * checks its command/bridge surface.
  *
- * @vscode/test-electron and (for loopback-WebSocket hosts) ws are intentionally
- * installed by CI with --no-save --no-package-lock so this leaf package keeps
- * its lockfile-free packaging workflow. Local Windows/Linux usage:
+ * @vscode/test-electron and ws are intentionally installed by CI with
+ * --no-save --no-package-lock so this leaf package keeps its lockfile-free
+ * packaging workflow. Local usage:
  *   npm install --no-save --no-package-lock @vscode/test-electron@3.1.0 ws@8.21.2
  *   npm run test:extension-host -- --vsix chainlesschain-ide.vsix
  */
@@ -214,6 +214,11 @@ function buildHostLaunchArgs({ workspaceDir, profileArgs, cdpPort }) {
     ...profileArgs,
     `--remote-debugging-port=${cdpPort}`,
     "--remote-debugging-address=127.0.0.1",
+    // Chromium 142+ can start a remote-debugging server whose websocket
+    // connections wait for a modal user-approval dialog. Command-line CDP is
+    // already isolated to this fresh profile and random loopback port, so keep
+    // the release gate deterministic by disabling that interactive feature.
+    "--disable-features=DevToolsAcceptDebuggingConnections",
     // Match the explicit Origin emitted by the pinned `ws` client. Both the
     // debugging socket and allowed Origin are scoped to this run's random
     // loopback-only port in a fresh test profile.
@@ -895,7 +900,7 @@ async function main() {
         runtimeDir: journeyRuntimeDir,
         journeyArtifactDir,
         fixture,
-        useCdpPipe: process.platform === "darwin" && !hostApiMode,
+        useCdpPipe: false,
       });
       recordHostProgress(progressPath, `${phase}_completed`);
     }
@@ -960,9 +965,7 @@ async function main() {
         extensionVersion: expectedVersion,
         transport: hostApiMode
           ? "local-ide-bridge+vscode-extension-test-api"
-          : process.platform === "darwin"
-            ? "local-ide-bridge+cdp-pipe"
-            : "local-ide-bridge+loopback-cdp",
+          : "local-ide-bridge+loopback-cdp",
         result: journeyResult,
         startedAt,
         finishedAt: new Date().toISOString(),

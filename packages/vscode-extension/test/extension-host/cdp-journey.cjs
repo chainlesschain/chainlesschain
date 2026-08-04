@@ -3,10 +3,9 @@
 /**
  * Test-only CDP driver for the installed-VSIX host journey.
  *
- * VS Code is launched with either a random loopback-only debugging port or,
- * on macOS, Chromium's private fd-backed CDP pipe. This module locates the
- * ChainlessChain webview target and drives its real DOM without a production
- * test command or extension export.
+ * VS Code is launched with a random loopback-only debugging endpoint. This
+ * module locates the ChainlessChain webview target and drives its real DOM
+ * without a production test command or extension export.
  */
 
 const fs = require("node:fs");

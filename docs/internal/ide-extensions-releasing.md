@@ -148,10 +148,11 @@ version.
 - **VS Code runtime gates**: install the packaged VSIX into fresh stable and
   minimum-supported (`1.85.2`) Extension Hosts with
   `test/extension-host/run.cjs`. Windows, macOS, and Linux/Xvfb run the complete
-  real Webview DOM control/restart journey. Windows and Linux use a random
-  loopback-only CDP port; macOS uses Chromium's private FD 3/4 DevTools pipe.
-  macOS remains release-authoritative only when both stable and minimum
-  journeys pass. `--host-api-only` is a
+  real Webview DOM control/restart journey through a random loopback-only CDP
+  port. The test host disables Chromium's interactive remote-debugging approval
+  feature so CI cannot stall on a modal prompt. macOS remains
+  release-authoritative only when both stable and minimum journeys pass.
+  `--host-api-only` is a
   diagnostic fallback that verifies activation, registered commands, the live
   bridge, and the production Activity View/focus command, but it does not prove
   DOM behavior and cannot authorize a release. Windows is also mandatory
