@@ -44,14 +44,14 @@ test("VS Code credentials are checked before either immutable publish", () => {
   assert.match(workflow, /@vscode\/vsce@3\.9\.2 verify-pat chainlesschain/u);
 });
 
-test("VS Code macOS host gate pins the validated ARM runner image", () => {
+test("VS Code macOS host gate pins the validated Intel runner image", () => {
   const workflow = read(".github/workflows/ide-extensions.yml");
   const macGate = workflow.match(
     /vscode-macos-smoke:[\s\S]*?(?=\n  [a-z][a-z0-9-]+:)/u,
   );
 
   assert.ok(macGate, "macOS host gate job must exist");
-  assert.match(macGate[0], /runs-on: macos-15/u);
+  assert.match(macGate[0], /runs-on: macos-15-intel/u);
   assert.doesNotMatch(macGate[0], /runs-on: macos-latest/u);
   assert.equal(
     macGate[0].match(
