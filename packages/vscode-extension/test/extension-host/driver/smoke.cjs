@@ -331,7 +331,7 @@ async function run() {
   console.log(
     `[extension-host-smoke] ${journeyPhase}: installed VSIX discovered`,
   );
-  if (journeyMode === "host-api") {
+  if (journeyMode !== "dom") {
     appendHostTrace(traceFile, journeyPhase, "installed-vsix-discovered", {
       extensionVersion: extension.packageJSON.version,
     });
@@ -345,7 +345,7 @@ async function run() {
   );
   assert.equal(extension.isActive, true, "extension did not become active");
   console.log(`[extension-host-smoke] ${journeyPhase}: VSIX activated`);
-  if (journeyMode === "host-api") {
+  if (journeyMode !== "dom") {
     appendHostTrace(traceFile, journeyPhase, "vsix-activated");
   }
 
@@ -362,7 +362,7 @@ async function run() {
     [],
     `activated extension is missing commands: ${missingCommands.join(", ")}`,
   );
-  if (journeyMode === "host-api") {
+  if (journeyMode !== "dom") {
     appendHostTrace(traceFile, journeyPhase, "commands-verified", {
       commandCount: REQUIRED_COMMANDS.length,
     });
@@ -378,7 +378,7 @@ async function run() {
   assert.match(lock.token, /^[a-f0-9]{64}$/, "bridge token is malformed");
   await assertPortListening(lock.port);
   console.log(`[extension-host-smoke] ${journeyPhase}: bridge verified`);
-  if (journeyMode === "host-api") {
+  if (journeyMode !== "dom") {
     appendHostTrace(traceFile, journeyPhase, "bridge-verified");
   }
 
@@ -422,4 +422,11 @@ async function run() {
   );
 }
 
-module.exports = { run };
+let runPromise;
+
+function runOnce() {
+  if (!runPromise) runPromise = run();
+  return runPromise;
+}
+
+module.exports = { run: runOnce };

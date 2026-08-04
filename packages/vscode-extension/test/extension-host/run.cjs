@@ -531,6 +531,7 @@ async function runRealDomPhase({
   }
   const { readyFile, resultFile } = hostPhaseSignalPaths(runtimeDir, phase);
   if (useDomRelay) {
+    fs.mkdirSync(journeyArtifactDir, { recursive: true, mode: 0o700 });
     const hostDomToken = crypto.randomBytes(32).toString("hex");
     // Signed macOS VS Code builds on hosted runners do not start their
     // extensionTestsPath runner without Chromium's test bootstrap switch.
