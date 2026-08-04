@@ -334,6 +334,7 @@ async function findChatWebview(
   timeoutMs = DEFAULT_TIMEOUT_MS,
   signal = null,
   tracePath = null,
+  getBrowserWebSocketUrl = null,
 ) {
   const deadline = Date.now() + timeoutMs;
   let lastError;
@@ -343,7 +344,17 @@ async function findChatWebview(
   while (Date.now() < deadline) {
     throwIfAborted(signal);
     try {
-      const targets = await listTargets(port, signal);
+      const announcedBrowserUrl =
+        typeof getBrowserWebSocketUrl === "function"
+          ? getBrowserWebSocketUrl()
+          : null;
+      // When Chromium has already announced its authoritative browser
+      // endpoint, avoid both HTTP discovery requests. This matters on the
+      // macOS Extension Host where /json/list and /json/version can remain
+      // pending even while the websocket endpoint is accepting connections.
+      const targets = announcedBrowserUrl
+        ? []
+        : await listTargets(port, signal);
       lastTargets = targets.map((target) => ({
         id: target.id,
         type: target.type,
@@ -367,7 +378,8 @@ async function findChatWebview(
       // Electron 39+ may keep Webview iframe targets off /json/list. Connect
       // to the browser endpoint (flattened sessions are brokered there), then
       // attach only to vscode-webview OOPIFs and evaluate their real DOM.
-      const browserUrl = await browserWebSocketUrl(port, signal);
+      const browserUrl =
+        announcedBrowserUrl || (await browserWebSocketUrl(port, signal));
       const browserClient = await CdpClient.connect(browserUrl);
       let keepBrowserClient = false;
       try {
@@ -1020,6 +1032,7 @@ async function runCdpHostJourney(options) {
     artifactDir,
     timeoutMs = 120_000,
     signal = null,
+    getBrowserWebSocketUrl = null,
   } = options;
   if (!Number.isInteger(port) || port < 1 || port > 65_535) {
     throw new Error(`invalid loopback CDP port: ${port}`);
@@ -1033,7 +1046,13 @@ async function runCdpHostJourney(options) {
   let failure;
   try {
     await waitForFile(readyFile, timeoutMs, signal);
-    const located = await findChatWebview(port, timeoutMs, signal, tracePath);
+    const located = await findChatWebview(
+      port,
+      timeoutMs,
+      signal,
+      tracePath,
+      getBrowserWebSocketUrl,
+    );
     client = located.client;
     appendTrace(tracePath, {
       phase,

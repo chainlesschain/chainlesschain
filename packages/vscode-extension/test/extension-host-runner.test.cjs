@@ -8,11 +8,13 @@ const { afterEach, test } = require("node:test");
 const {
   buildProfileArgs,
   buildHostLaunchArgs,
+  createDevToolsEndpointCapture,
   createHostProgressJournal,
   findDiagnosticLogs,
   hostPhaseSignalPaths,
   makeFreshRunRoot,
   parseArgs,
+  parseDevToolsBrowserEndpoint,
   recordHostProgress,
   resolveVsCodeHostVersion,
   settleHostAfterCdp,
@@ -258,6 +260,48 @@ test("real-DOM host phase is loopback-only and keeps the fresh profile args", ()
         cdpPort: 0,
       }),
     /invalid CDP port/,
+  );
+});
+
+test("captures only the expected loopback DevTools browser endpoint", () => {
+  const written = [];
+  const capture = createDevToolsEndpointCapture(43210, {
+    write(chunk) {
+      written.push(String(chunk));
+      return true;
+    },
+  });
+
+  capture.stderr.write(
+    "DevTools listening on ws://example.com:43210/devtools/",
+  );
+  capture.stderr.write("browser/not-loopback\n");
+  assert.equal(capture.getEndpoint(), null);
+  capture.stderr.write("DevTools listening on ws://127.0.0.1:43210/devtools/");
+  capture.stderr.write("browser/browser-id\n");
+
+  assert.equal(
+    capture.getEndpoint(),
+    "ws://127.0.0.1:43210/devtools/browser/browser-id",
+  );
+  assert.equal(
+    written.join(""),
+    "DevTools listening on ws://example.com:43210/devtools/browser/not-loopback\n" +
+      "DevTools listening on ws://127.0.0.1:43210/devtools/browser/browser-id\n",
+  );
+  assert.equal(
+    parseDevToolsBrowserEndpoint(
+      "DevTools listening on ws://127.0.0.1:43211/devtools/browser/wrong-port",
+      43210,
+    ),
+    null,
+  );
+  assert.equal(
+    parseDevToolsBrowserEndpoint(
+      "DevTools listening on ws://127.0.0.1:43210/devtools/page/not-browser",
+      43210,
+    ),
+    null,
   );
 });
 

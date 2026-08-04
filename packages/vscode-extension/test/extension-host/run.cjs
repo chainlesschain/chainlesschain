@@ -210,6 +210,62 @@ function buildHostLaunchArgs({ workspaceDir, profileArgs, cdpPort }) {
   ];
 }
 
+function parseDevToolsBrowserEndpoint(value, expectedPort) {
+  if (
+    !Number.isInteger(expectedPort) ||
+    expectedPort < 1 ||
+    expectedPort > 65_535
+  ) {
+    throw new Error(`invalid CDP port: ${expectedPort}`);
+  }
+  const input = String(value || "");
+  const matches = input.matchAll(/DevTools listening on (ws:\/\/\S+)/g);
+  for (const match of matches) {
+    try {
+      const endpoint = new URL(match[1]);
+      const loopbackHost = ["127.0.0.1", "[::1]", "::1"].includes(
+        endpoint.hostname,
+      );
+      if (
+        endpoint.protocol === "ws:" &&
+        loopbackHost &&
+        Number(endpoint.port) === expectedPort &&
+        endpoint.username === "" &&
+        endpoint.password === "" &&
+        endpoint.search === "" &&
+        endpoint.hash === "" &&
+        /^\/devtools\/browser\/[^/]+$/.test(endpoint.pathname)
+      ) {
+        return endpoint.href;
+      }
+    } catch {
+      // Ignore unrelated or partially-written stderr lines.
+    }
+  }
+  return null;
+}
+
+function createDevToolsEndpointCapture(expectedPort, output = process.stderr) {
+  let buffered = "";
+  let endpoint = null;
+  return {
+    getEndpoint: () => endpoint,
+    stderr: {
+      write(chunk) {
+        const text = Buffer.isBuffer(chunk)
+          ? chunk.toString("utf8")
+          : String(chunk);
+        output.write(chunk);
+        if (!endpoint) {
+          buffered = `${buffered}${text}`.slice(-8_192);
+          endpoint = parseDevToolsBrowserEndpoint(buffered, expectedPort);
+        }
+        return true;
+      },
+    },
+  };
+}
+
 function waitForOutcome(promise, timeoutMs) {
   const timedOut = Symbol("timed-out");
   let timer;
@@ -269,9 +325,17 @@ async function runRealDomPhase({
 }) {
   const cdpPort = await reserveLoopbackPort();
   const { readyFile, resultFile } = hostPhaseSignalPaths(runtimeDir, phase);
+  // Chromium prints its authoritative browser websocket endpoint before the
+  // Extension Host becomes ready. Capture that loopback-only URL while still
+  // teeing stderr to the workflow log. macOS hosts have intermittently left
+  // the secondary /json/version discovery request pending even though this
+  // endpoint is already listening; using the announced endpoint avoids that
+  // redundant HTTP dependency without weakening target/DOM assertions.
+  const devToolsEndpoint = createDevToolsEndpointCapture(cdpPort);
   const abortController = new AbortController();
   const cdpOutcome = runCdpHostJourney({
     port: cdpPort,
+    getBrowserWebSocketUrl: devToolsEndpoint.getEndpoint,
     readyFile,
     resultFile,
     phase,
@@ -296,6 +360,7 @@ async function runRealDomPhase({
           vscodeExecutablePath,
           extensionDevelopmentPath: path.join(__dirname, "driver"),
           extensionTestsPath: path.join(__dirname, "driver", "smoke.cjs"),
+          stderr: devToolsEndpoint.stderr,
           launchArgs: buildHostLaunchArgs({
             workspaceDir,
             profileArgs,
@@ -674,11 +739,13 @@ async function main() {
 module.exports = {
   buildProfileArgs,
   buildHostLaunchArgs,
+  createDevToolsEndpointCapture,
   createHostProgressJournal,
   findDiagnosticLogs,
   hostPhaseSignalPaths,
   makeFreshRunRoot,
   parseArgs,
+  parseDevToolsBrowserEndpoint,
   recordHostProgress,
   resolveVsCodeHostVersion,
   runRealDomPhase,
