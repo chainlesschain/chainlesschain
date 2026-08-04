@@ -203,7 +203,6 @@ function buildHostLaunchArgs({ workspaceDir, profileArgs, cdpPort }) {
     ...profileArgs,
     `--remote-debugging-port=${cdpPort}`,
     "--remote-debugging-address=127.0.0.1",
-    "--new-window",
     "--disable-extension-update-checks",
     "--disable-telemetry",
     "--disable-crash-reporter",
