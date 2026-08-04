@@ -111,6 +111,7 @@ class ChatViewProvider {
     this._loopTimers = new Map(); // convId -> { timer, intervalMs, prompt }
     this._hostDomToken = this.opts.hostDomToken || null;
     this._hostDomPending = new Map();
+    this._hostDomRevealRequested = false;
   }
 
   /** The active conversation, creating the first one (lazily) if none exist. */
@@ -325,7 +326,25 @@ class ChatViewProvider {
       return Promise.reject(new Error("host DOM relay is disabled"));
     }
     if (!this.view || !this._webviewReady || !this._webviewProtocolConfirmed) {
-      return Promise.reject(new Error("chat webview DOM is not ready"));
+      if (this.view && !this._hostDomRevealRequested) {
+        this._hostDomRevealRequested = true;
+        try {
+          // Webview scripts are suspended while their view is hidden. The
+          // token-gated host journey may run in a background macOS window, so
+          // reveal the already-resolved production view without stealing
+          // editor focus and let the next bounded relay retry prove readiness.
+          this.view.show(true);
+        } catch {
+          /* readiness diagnostics below remain fail closed */
+        }
+      }
+      return Promise.reject(
+        new Error(
+          `chat webview DOM is not ready (view=${Boolean(this.view)}, ` +
+            `visible=${Boolean(this.view?.visible)}, ready=${this._webviewReady}, ` +
+            `protocol=${this._webviewProtocolConfirmed})`,
+        ),
+      );
     }
     const command = validateHostDomRequest(request);
     const requestId = crypto.randomBytes(16).toString("hex");
@@ -2702,6 +2721,7 @@ class ChatViewProvider {
 
   resolveWebviewView(view) {
     this.view = view;
+    this._hostDomRevealRequested = false;
     this._webviewReady = false;
     this._webviewProtocolGuard = true;
     this._webviewProtocolConfirmed = false;
@@ -2745,6 +2765,7 @@ class ChatViewProvider {
       this._modeStatus?.item.dispose();
       this._modeStatus = null;
       this.view = null;
+      this._hostDomRevealRequested = false;
       this._webviewReady = false;
       this._webviewProtocolGuard = false;
       this._webviewProtocolConfirmed = false;

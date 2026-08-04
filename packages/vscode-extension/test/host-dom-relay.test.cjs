@@ -106,6 +106,29 @@ test("ChatViewProvider correlates a token-authenticated DOM response", async () 
   });
 });
 
+test("ChatViewProvider reveals a suspended relay view once and reports readiness state", async () => {
+  const vscode = { l10n: { t: (value) => value } };
+  const provider = new ChatViewProvider(vscode, { hostDomToken: TOKEN });
+  let revealCount = 0;
+  provider.view = {
+    visible: false,
+    show(preserveFocus) {
+      assert.equal(preserveFocus, true);
+      revealCount += 1;
+    },
+  };
+
+  await assert.rejects(
+    provider.runHostDomCommand({ action: "snapshot" }),
+    /view=true, visible=false, ready=false, protocol=false/u,
+  );
+  await assert.rejects(
+    provider.runHostDomCommand({ action: "snapshot" }),
+    /chat webview DOM is not ready/u,
+  );
+  assert.equal(revealCount, 1);
+});
+
 test("DOM relay driver produces the same auditable phase ledger and snapshots", async () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-dom-relay-"));
   temporaryRoots.push(root);

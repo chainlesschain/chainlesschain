@@ -420,6 +420,9 @@ test("macOS real-DOM host uses the loopback Electron inspector", () => {
   assert.deepEqual(inspectorArgs, [
     ...profileArgs,
     "--inspect=127.0.0.1:43210",
+    "--disable-background-timer-throttling",
+    "--disable-backgrounding-occluded-windows",
+    "--disable-renderer-backgrounding",
     "--disable-extension-update-checks",
     "--disable-telemetry",
     "--disable-crash-reporter",
