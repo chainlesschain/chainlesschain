@@ -147,9 +147,14 @@ version.
   `verify-vsix.selftest.mjs` and `verify-vsix.mjs`.
 - **VS Code runtime gates**: install the packaged VSIX into fresh stable and
   minimum-supported (`1.85.2`) Extension Hosts with
-  `test/extension-host/run.cjs`. Windows is mandatory because the bridge
-  lockfile's owner-only DACL is platform-specific; Linux/Xvfb is the second
-  release host.
+  `test/extension-host/run.cjs`. Windows and Linux/Xvfb run the complete real
+  Webview DOM control/restart journey. macOS runs the installed-VSIX host/API
+  contract twice and verifies activation, registered commands, the live bridge,
+  and the production Activity View/focus command; signed marketplace VS Code
+  builds do not expose their workbench window to the supported macOS test
+  bootstrap, so this gate deliberately does not claim DOM coverage. Windows is
+  also mandatory because the bridge lockfile's owner-only DACL is
+  platform-specific.
 - **JetBrains headless gates**:
   `./gradlew smokeTest test buildPlugin verifyPluginStructure
 verifyPluginProjectConfiguration verifyPlugin --no-daemon --stacktrace`.

@@ -53,13 +53,14 @@ test("VS Code macOS host gate pins the validated Intel runner image", () => {
   assert.ok(macGate, "macOS host gate job must exist");
   assert.match(macGate[0], /runs-on: macos-15-intel/u);
   assert.doesNotMatch(macGate[0], /runs-on: macos-latest/u);
-  assert.match(macGate[0], /playwright-core@1\.61\.1/u);
+  assert.match(macGate[0], /@vscode\/test-electron@3\.1\.0/u);
+  assert.doesNotMatch(macGate[0], /playwright/u);
   assert.equal(
     macGate[0].match(
-      /- name: Extension Host smoke \(macOS (?:stable|minimum 1\.85\.2)\)\n\s+timeout-minutes: 15/gu,
+      /- name: Extension Host API smoke \(macOS (?:stable|minimum 1\.85\.2)\)\n\s+timeout-minutes: 15/gu,
     )?.length,
     2,
-    "both real-host phases must fail within a diagnostic step deadline",
+    "both real-host API gates must fail within a diagnostic step deadline",
   );
   assert.match(
     macGate[0],

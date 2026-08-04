@@ -152,6 +152,23 @@ function writeSignal(filePath, value) {
   fs.renameSync(temporary, filePath);
 }
 
+function appendHostTrace(traceFile, phase, stage, details = {}) {
+  assert.ok(traceFile, "missing CHAINLESSCHAIN_HOST_TRACE_FILE");
+  assert.match(phase, /^(?:initial|restart)$/);
+  assert.match(stage, /^[a-z][a-z0-9-]*$/);
+  fs.mkdirSync(path.dirname(traceFile), { recursive: true, mode: 0o700 });
+  fs.appendFileSync(
+    traceFile,
+    `${JSON.stringify({
+      phase,
+      stage,
+      at: new Date().toISOString(),
+      ...details,
+    })}\n`,
+    { encoding: "utf8", mode: 0o600 },
+  );
+}
+
 async function waitForJourneyResult(resultFile, phase, timeoutMs) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
@@ -204,18 +221,58 @@ async function revealChatAndWaitForDomJourney({
   await waitForJourneyResult(resultFile, phase, 135_000);
 }
 
+async function revealChatForHostApiJourney({
+  phase,
+  readyFile,
+  resultFile,
+  traceFile,
+  extensionPath,
+  workspaceDir,
+}) {
+  assert.ok(phase, "missing CHAINLESSCHAIN_HOST_JOURNEY_PHASE");
+  assert.match(phase, /^(?:initial|restart)$/);
+  assert.ok(readyFile, "missing CHAINLESSCHAIN_HOST_READY_FILE");
+  assert.ok(resultFile, "missing CHAINLESSCHAIN_HOST_RESULT_FILE");
+  await requestChatViewForDomJourney({
+    commands: vscode.commands,
+    log: (message) =>
+      console.log(`[extension-host-smoke] ${phase}: ${message}`),
+  });
+  appendHostTrace(traceFile, phase, "view-command-dispatched");
+  writeSignal(readyFile, {
+    phase,
+    mode: "host-api",
+    extensionPath: fs.realpathSync(extensionPath),
+    workspaceDir: fs.realpathSync(workspaceDir),
+    readyAt: new Date().toISOString(),
+  });
+  writeSignal(resultFile, {
+    ok: true,
+    phase,
+    mode: "host-api",
+    completedAt: new Date().toISOString(),
+  });
+  appendHostTrace(traceFile, phase, "phase-completed");
+}
+
 async function run() {
   const extensionsDir = process.env.CHAINLESSCHAIN_SMOKE_EXTENSIONS_DIR;
   const expectedVersion = process.env.CHAINLESSCHAIN_SMOKE_EXPECTED_VERSION;
   const workspaceDir = process.env.CHAINLESSCHAIN_SMOKE_WORKSPACE;
   const profileHome = process.env.HOME || process.env.USERPROFILE;
   const journeyPhase = process.env.CHAINLESSCHAIN_HOST_JOURNEY_PHASE;
+  const journeyMode = process.env.CHAINLESSCHAIN_HOST_JOURNEY_MODE || "dom";
   const readyFile = process.env.CHAINLESSCHAIN_HOST_READY_FILE;
   const resultFile = process.env.CHAINLESSCHAIN_HOST_RESULT_FILE;
+  const traceFile = process.env.CHAINLESSCHAIN_HOST_TRACE_FILE;
   assert.ok(extensionsDir, "missing CHAINLESSCHAIN_SMOKE_EXTENSIONS_DIR");
   assert.ok(expectedVersion, "missing CHAINLESSCHAIN_SMOKE_EXPECTED_VERSION");
   assert.ok(workspaceDir, "missing CHAINLESSCHAIN_SMOKE_WORKSPACE");
   assert.ok(profileHome, "missing isolated profile home");
+  assert.match(journeyMode, /^(?:dom|host-api)$/);
+  if (journeyMode === "host-api") {
+    assert.ok(traceFile, "missing CHAINLESSCHAIN_HOST_TRACE_FILE");
+  }
   console.log(`[extension-host-smoke] ${journeyPhase}: driver entered`);
 
   const extension = vscode.extensions.getExtension(EXTENSION_ID);
@@ -235,6 +292,11 @@ async function run() {
   console.log(
     `[extension-host-smoke] ${journeyPhase}: installed VSIX discovered`,
   );
+  if (journeyMode === "host-api") {
+    appendHostTrace(traceFile, journeyPhase, "installed-vsix-discovered", {
+      extensionVersion: extension.packageJSON.version,
+    });
+  }
 
   console.log(`[extension-host-smoke] ${journeyPhase}: activating VSIX`);
   await withTimeout(
@@ -244,8 +306,11 @@ async function run() {
   );
   assert.equal(extension.isActive, true, "extension did not become active");
   console.log(`[extension-host-smoke] ${journeyPhase}: VSIX activated`);
+  if (journeyMode === "host-api") {
+    appendHostTrace(traceFile, journeyPhase, "vsix-activated");
+  }
 
-  if (journeyPhase === "restart") {
+  if (journeyMode === "dom" && journeyPhase === "restart") {
     await resumeFixtureSessionAfterHostRestart();
   }
 
@@ -258,6 +323,11 @@ async function run() {
     [],
     `activated extension is missing commands: ${missingCommands.join(", ")}`,
   );
+  if (journeyMode === "host-api") {
+    appendHostTrace(traceFile, journeyPhase, "commands-verified", {
+      commandCount: REQUIRED_COMMANDS.length,
+    });
+  }
 
   // activate() starts the bridge asynchronously, so wait for its production
   // discovery artifact and then prove the advertised localhost port is live.
@@ -269,21 +339,36 @@ async function run() {
   assert.match(lock.token, /^[a-f0-9]{64}$/, "bridge token is malformed");
   await assertPortListening(lock.port);
   console.log(`[extension-host-smoke] ${journeyPhase}: bridge verified`);
+  if (journeyMode === "host-api") {
+    appendHostTrace(traceFile, journeyPhase, "bridge-verified");
+  }
 
   // Open the production-contributed view through VS Code's real workbench
-  // command. The external CDP peer then queries and clicks the actual Webview
-  // DOM; this driver exposes no production test command or extension internals.
-  await revealChatAndWaitForDomJourney({
-    phase: journeyPhase,
-    readyFile,
-    resultFile,
-    extensionPath: extension.extensionPath,
-    workspaceDir,
-  });
+  // command. DOM mode hands off to the external CDP peer for actual Webview
+  // interaction. Host-API mode ends at the production command boundary and
+  // labels its evidence accordingly; neither path exposes extension internals.
+  if (journeyMode === "host-api") {
+    await revealChatForHostApiJourney({
+      phase: journeyPhase,
+      readyFile,
+      resultFile,
+      traceFile,
+      extensionPath: extension.extensionPath,
+      workspaceDir,
+    });
+  } else {
+    await revealChatAndWaitForDomJourney({
+      phase: journeyPhase,
+      readyFile,
+      resultFile,
+      extensionPath: extension.extensionPath,
+      workspaceDir,
+    });
+  }
 
   console.log(
     `[extension-host-smoke] activated installed ${EXTENSION_ID}@${expectedVersion}; ` +
-      `${REQUIRED_COMMANDS.length} commands, bridge port, and ${journeyPhase} real-DOM phase verified`,
+      `${REQUIRED_COMMANDS.length} commands, bridge port, and ${journeyPhase} ${journeyMode} phase verified`,
   );
 }
 

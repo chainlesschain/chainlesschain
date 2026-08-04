@@ -11,7 +11,7 @@
  * @vscode/test-electron is intentionally installed by CI with
  * --no-save --no-package-lock so this leaf package keeps its lockfile-free
  * packaging workflow. Local usage:
- *   npm install --no-save --no-package-lock @vscode/test-electron@3.1.0 playwright-core@1.61.1
+ *   npm install --no-save --no-package-lock @vscode/test-electron@3.1.0
  *   npm run test:extension-host -- --vsix chainlesschain-ide.vsix
  */
 
@@ -21,16 +21,15 @@ const path = require("node:path");
 const { PassThrough } = require("node:stream");
 const { pathToFileURL } = require("node:url");
 const {
+  assertHostReadySignal,
   assertJourneyArtifacts,
   createFixtureCli,
+  isExactIsoTimestamp,
+  readJsonLines,
   readJourneyResult,
   reserveLoopbackPort,
   runCdpHostJourney,
 } = require("./cdp-journey.cjs");
-const {
-  buildPlaywrightHostArgs,
-  runPlaywrightHostJourney,
-} = require("./playwright-journey.cjs");
 
 const EXTENSION_ID = "chainlesschain.chainlesschain-ide";
 const PACKAGE_ROOT = path.resolve(__dirname, "..", "..");
@@ -108,25 +107,6 @@ function requireTestElectron() {
       throw new Error(
         "@vscode/test-electron is required. Run " +
           "`npm install --no-save --no-package-lock @vscode/test-electron@3.1.0` first.",
-        { cause: error },
-      );
-    }
-    throw error;
-  }
-}
-
-function requirePlaywrightElectron() {
-  try {
-    const playwright = require("playwright-core");
-    if (!playwright?._electron?.launch) {
-      throw new Error("playwright-core does not expose its Electron launcher");
-    }
-    return playwright._electron;
-  } catch (error) {
-    if (error && error.code === "MODULE_NOT_FOUND") {
-      throw new Error(
-        "playwright-core is required for the macOS real-DOM host gate. Run " +
-          "`npm install --no-save --no-package-lock playwright-core@1.61.1` first.",
         { cause: error },
       );
     }
@@ -237,6 +217,16 @@ function buildHostLaunchArgs({ workspaceDir, profileArgs, cdpPort }) {
     // Keep the positional workspace after every host switch. Some Electron /
     // VS Code launch paths stop interpreting Chromium switches once a
     // positional argument has been consumed.
+    workspaceDir,
+  ];
+}
+
+function buildHostApiLaunchArgs({ workspaceDir, profileArgs }) {
+  return [
+    ...profileArgs,
+    "--disable-extension-update-checks",
+    "--disable-telemetry",
+    "--disable-crash-reporter",
     workspaceDir,
   ];
 }
@@ -446,32 +436,8 @@ async function runRealDomPhase({
   return readJourneyResult(resultFile, phase);
 }
 
-function processExitOutcome(child) {
-  if (child.exitCode !== null || child.signalCode !== null) {
-    return Promise.resolve({ code: child.exitCode, signal: child.signalCode });
-  }
-  return new Promise((resolve) => {
-    child.once("exit", (code, signal) => resolve({ code, signal }));
-  });
-}
-
-async function closePlaywrightElectron(electronApp, timeoutMs = 15_000) {
-  const close = Promise.resolve()
-    .then(() => electronApp.close())
-    .then(
-      () => ({ closed: true }),
-      (error) => ({ error }),
-    );
-  const outcome = await waitForOutcome(close, timeoutMs);
-  if (!outcome) {
-    throw new Error(
-      `Playwright Electron host did not close within ${timeoutMs}ms`,
-    );
-  }
-  if (outcome.error) throw outcome.error;
-}
-
-async function runPlaywrightRealDomPhase({
+async function runHostApiPhase({
+  runTests,
   vscodeExecutablePath,
   workspaceDir,
   profileArgs,
@@ -480,98 +446,98 @@ async function runPlaywrightRealDomPhase({
   expectedVersion,
   phase,
   runtimeDir,
-  journeyArtifactDir,
   fixture,
 }) {
   const { readyFile, resultFile } = hostPhaseSignalPaths(runtimeDir, phase);
-  const extensionDevelopmentPath = path.join(__dirname, "driver");
-  const extensionTestsPath = path.join(__dirname, "driver", "smoke.cjs");
-  const extensionTestsEnv = {
-    HOME: profileHome,
-    USERPROFILE: profileHome,
-    CHAINLESSCHAIN_SMOKE_EXTENSIONS_DIR: extensionsDir,
-    CHAINLESSCHAIN_SMOKE_EXPECTED_VERSION: expectedVersion,
-    CHAINLESSCHAIN_SMOKE_WORKSPACE: workspaceDir,
-    CHAINLESSCHAIN_HOST_JOURNEY_PHASE: phase,
-    CHAINLESSCHAIN_HOST_READY_FILE: readyFile,
-    CHAINLESSCHAIN_HOST_RESULT_FILE: resultFile,
-    CC_UI_FIXTURE_STATE: fixture.statePath,
-    CC_UI_FIXTURE_TRACE: fixture.tracePath,
-  };
-  const abortController = new AbortController();
-  let electronApp;
-  let hostOutcome;
-  let journeyOutcome;
-  try {
-    electronApp = await requirePlaywrightElectron().launch({
-      executablePath: vscodeExecutablePath,
-      args: buildPlaywrightHostArgs({
-        workspaceDir,
-        profileArgs,
-        extensionDevelopmentPath,
-        extensionTestsPath,
-      }),
-      env: { ...process.env, ...extensionTestsEnv },
-      timeout: 60_000,
-    });
-    hostOutcome = processExitOutcome(electronApp.process());
-    journeyOutcome = runPlaywrightHostJourney({
-      electronApp,
+  const traceFile = path.join(runtimeDir, "host-api-trace.jsonl");
+  await runTests({
+    vscodeExecutablePath,
+    extensionDevelopmentPath: path.join(__dirname, "driver"),
+    extensionTestsPath: path.join(__dirname, "driver", "smoke.cjs"),
+    launchArgs: buildHostApiLaunchArgs({
+      workspaceDir,
+      profileArgs,
+    }),
+    extensionTestsEnv: {
+      HOME: profileHome,
+      USERPROFILE: profileHome,
+      CHAINLESSCHAIN_SMOKE_EXTENSIONS_DIR: extensionsDir,
+      CHAINLESSCHAIN_SMOKE_EXPECTED_VERSION: expectedVersion,
+      CHAINLESSCHAIN_SMOKE_WORKSPACE: workspaceDir,
+      CHAINLESSCHAIN_HOST_JOURNEY_PHASE: phase,
+      CHAINLESSCHAIN_HOST_JOURNEY_MODE: "host-api",
+      CHAINLESSCHAIN_HOST_READY_FILE: readyFile,
+      CHAINLESSCHAIN_HOST_RESULT_FILE: resultFile,
+      CHAINLESSCHAIN_HOST_TRACE_FILE: traceFile,
+      CC_UI_FIXTURE_STATE: fixture.statePath,
+      CC_UI_FIXTURE_TRACE: fixture.tracePath,
+    },
+  });
+  return readJourneyResult(resultFile, phase);
+}
+
+function assertHostApiArtifacts({
+  runtimeDir,
+  extensionsDir,
+  workspaceDir,
+  expectedVersion,
+}) {
+  const traceFile = path.join(runtimeDir, "host-api-trace.jsonl");
+  const records = readJsonLines(traceFile);
+  const requiredStages = [
+    "installed-vsix-discovered",
+    "vsix-activated",
+    "commands-verified",
+    "bridge-verified",
+    "view-command-dispatched",
+    "phase-completed",
+  ];
+  const results = [];
+  for (const phase of ["initial", "restart"]) {
+    const { readyFile, resultFile } = hostPhaseSignalPaths(runtimeDir, phase);
+    const ready = assertHostReadySignal({
       readyFile,
-      resultFile,
       phase,
-      artifactDir: journeyArtifactDir,
-      signal: abortController.signal,
-    }).then(
-      (value) => ({ value }),
-      (error) => ({ error }),
-    );
-
-    const first = await Promise.race([
-      hostOutcome.then((outcome) => ({ source: "host", outcome })),
-      journeyOutcome.then((outcome) => ({ source: "journey", outcome })),
-    ]);
-    if (first.source === "host") {
-      abortController.abort(
-        new Error(
-          `Playwright VS Code host exited before ${phase} DOM journey completed`,
-        ),
-      );
-      const journey = await journeyOutcome;
-      throw new Error(
-        `Playwright VS Code host exited before ${phase} DOM journey completed (code=${String(first.outcome.code)}, signal=${String(first.outcome.signal)})`,
-        { cause: journey.error },
-      );
+      extensionsDir,
+      workspaceDir,
+    });
+    if (ready.mode !== "host-api") {
+      throw new Error(`host API ready signal mode mismatch: ${phase}`);
+    }
+    const result = readJourneyResult(resultFile, phase);
+    if (result.mode !== "host-api") {
+      throw new Error(`host API result mode mismatch: ${phase}`);
+    }
+    if (!isExactIsoTimestamp(result.completedAt)) {
+      throw new Error(`host API result has no exact timestamp: ${phase}`);
     }
 
-    const journey = first.outcome;
-    let host = await waitForOutcome(hostOutcome, 10_000);
-    let managedTermination = false;
-    if (!host) {
-      managedTermination = true;
-      await closePlaywrightElectron(electronApp);
-      host = await waitForOutcome(hostOutcome, 5_000);
-    }
-    if (journey.error) throw journey.error;
-    if (!host) {
-      throw new Error(`Playwright VS Code host did not exit during ${phase}`);
-    }
-    if (!managedTermination && host.code !== 0) {
-      throw new Error(
-        `Playwright VS Code host failed during ${phase} (code=${String(host.code)}, signal=${String(host.signal)})`,
-      );
-    }
-    return readJourneyResult(resultFile, phase);
-  } finally {
-    abortController.abort(new Error(`${phase} Playwright host phase ended`));
-    if (electronApp && electronApp.process().exitCode === null) {
-      try {
-        await closePlaywrightElectron(electronApp);
-      } catch {
-        // The phase's primary error and evidence remain authoritative.
+    const phaseRecords = records.filter((record) => record.phase === phase);
+    let previousIndex = -1;
+    for (const stage of requiredStages) {
+      const index = phaseRecords.findIndex((record) => record.stage === stage);
+      if (index <= previousIndex) {
+        throw new Error(
+          `host API trace stage is missing or out of order: ${phase}/${stage}`,
+        );
       }
+      const record = phaseRecords[index];
+      if (!isExactIsoTimestamp(record.at)) {
+        throw new Error(
+          `host API trace has no exact timestamp: ${phase}/${stage}`,
+        );
+      }
+      previousIndex = index;
     }
+    const discovered = phaseRecords.find(
+      (record) => record.stage === "installed-vsix-discovered",
+    );
+    if (discovered.extensionVersion !== expectedVersion) {
+      throw new Error(`host API trace extension version mismatch: ${phase}`);
+    }
+    results.push({ phase, ready, result });
   }
+  return { traceFile, results };
 }
 
 function assertInstalled(listOutput, version) {
@@ -735,6 +701,7 @@ async function main() {
     options.artifactDir || path.join(runRoot, "journey-evidence"),
   );
   const progressPath = createHostProgressJournal(artifactDir);
+  const hostApiMode = process.platform === "darwin";
   recordHostProgress(progressPath, "prepared");
   const startedAt = new Date().toISOString();
   const cliVersion = readJsonVersion(
@@ -804,12 +771,9 @@ async function main() {
     for (const phase of ["initial", "restart"]) {
       const profileArgs = buildProfileArgs({ runRoot, extensionsDir, phase });
       recordHostProgress(progressPath, `${phase}_started`);
-      const runHostPhase =
-        process.platform === "darwin"
-          ? runPlaywrightRealDomPhase
-          : runRealDomPhase;
+      const runHostPhase = hostApiMode ? runHostApiPhase : runRealDomPhase;
       await runHostPhase({
-        ...(process.platform === "darwin" ? {} : { runTests }),
+        runTests,
         vscodeExecutablePath,
         workspaceDir,
         profileArgs,
@@ -823,17 +787,30 @@ async function main() {
       });
       recordHostProgress(progressPath, `${phase}_completed`);
     }
-    assertJourneyArtifacts({
-      artifactDir: journeyArtifactDir,
-      fixtureTracePath: fixture.tracePath,
-      runtimeDir: journeyRuntimeDir,
-      extensionsDir,
-      workspaceDir,
-    });
+    if (hostApiMode) {
+      assertHostApiArtifacts({
+        runtimeDir: journeyRuntimeDir,
+        extensionsDir,
+        workspaceDir,
+        expectedVersion,
+      });
+    } else {
+      assertJourneyArtifacts({
+        artifactDir: journeyArtifactDir,
+        fixtureTracePath: fixture.tracePath,
+        runtimeDir: journeyRuntimeDir,
+        extensionsDir,
+        workspaceDir,
+      });
+    }
     recordHostProgress(progressPath, "assertions_completed");
     journeyResult = "passed";
     process.stdout.write(
-      `[extension-host-smoke] PASS ${EXTENSION_ID}@${expectedVersion} real-DOM control/restart journey on ${hostVersion || options.vscodeVersion}\n`,
+      `[extension-host-smoke] PASS ${EXTENSION_ID}@${expectedVersion} ${
+        hostApiMode
+          ? "host-API activation/view relaunch smoke"
+          : "real-DOM control/restart journey"
+      } on ${hostVersion || options.vscodeVersion}\n`,
     );
   } catch (error) {
     journeyError = error;
@@ -848,7 +825,10 @@ async function main() {
     if (fs.statSync(journeyRuntimeDir, { throwIfNoEntry: false })) {
       sourceRoots.push(journeyRuntimeDir);
     }
-    if (fs.statSync(fixture.tracePath, { throwIfNoEntry: false })?.isFile()) {
+    if (
+      !hostApiMode &&
+      fs.statSync(fixture.tracePath, { throwIfNoEntry: false })?.isFile()
+    ) {
       sourceRoots.push(fixture.tracePath);
     }
     sourceRoots.push(...diagnosticLogs);
@@ -859,15 +839,16 @@ async function main() {
       recordHostProgress(progressPath, "evidence_started");
       const result = await writeJourneyEvidence({
         artifactDir,
-        journeyId: "vscode-installed-vsix-real-dom-control-resume",
+        journeyId: hostApiMode
+          ? "vscode-installed-vsix-host-api-activation-view-relaunch"
+          : "vscode-installed-vsix-real-dom-control-resume",
         host: "vscode",
         hostVersion: hostVersion || options.vscodeVersion,
         cliVersion,
         extensionVersion: expectedVersion,
-        transport:
-          process.platform === "darwin"
-            ? "local-ide-bridge+playwright-electron"
-            : "local-ide-bridge+loopback-cdp",
+        transport: hostApiMode
+          ? "local-ide-bridge+vscode-extension-test-api"
+          : "local-ide-bridge+loopback-cdp",
         result: journeyResult,
         startedAt,
         finishedAt: new Date().toISOString(),
@@ -903,7 +884,9 @@ async function main() {
 
 module.exports = {
   buildProfileArgs,
+  buildHostApiLaunchArgs,
   buildHostLaunchArgs,
+  assertHostApiArtifacts,
   createDevToolsEndpointCapture,
   createHostProgressJournal,
   findDiagnosticLogs,
@@ -913,7 +896,7 @@ module.exports = {
   parseDevToolsBrowserEndpoint,
   recordHostProgress,
   resolveVsCodeHostVersion,
-  runPlaywrightRealDomPhase,
+  runHostApiPhase,
   runRealDomPhase,
   settleHostAfterCdp,
 };

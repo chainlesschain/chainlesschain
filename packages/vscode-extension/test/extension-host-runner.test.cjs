@@ -7,6 +7,8 @@ const path = require("node:path");
 const { Readable } = require("node:stream");
 const { afterEach, test } = require("node:test");
 const {
+  assertHostApiArtifacts,
+  buildHostApiLaunchArgs,
   buildProfileArgs,
   buildHostLaunchArgs,
   createDevToolsEndpointCapture,
@@ -35,12 +37,6 @@ const {
   CHAT_VIEW_FOCUS_COMMAND,
   requestChatViewForDomJourney,
 } = require("./extension-host/driver/view-control.cjs");
-const {
-  buildPlaywrightHostArgs,
-  createPlaywrightDomClient,
-  describeFrames,
-  findChatWebviewFrame,
-} = require("./extension-host/playwright-journey.cjs");
 
 const temporaryRoots = [];
 
@@ -272,60 +268,91 @@ test("real-DOM host phase is loopback-only and keeps the fresh profile args", ()
   );
 });
 
-test("macOS Playwright host keeps the real extension-test contract", async () => {
+test("host-API launch keeps the real extension-test profile without CDP", () => {
   const root = temporaryRoot();
-  const args = buildPlaywrightHostArgs({
+  const profileArgs = [
+    `--extensions-dir=${path.join(root, "extensions")}`,
+    `--user-data-dir=${path.join(root, "user-data")}`,
+  ];
+  const args = buildHostApiLaunchArgs({
     workspaceDir: path.join(root, "workspace"),
-    profileArgs: [
-      `--extensions-dir=${path.join(root, "extensions")}`,
-      `--user-data-dir=${path.join(root, "user-data")}`,
-    ],
-    extensionDevelopmentPath: path.join(root, "driver"),
-    extensionTestsPath: path.join(root, "driver", "smoke.cjs"),
+    profileArgs,
   });
   assert.equal(args.at(-1), path.join(root, "workspace"));
-  assert.ok(args.includes("--enable-smoke-test-driver"));
-  assert.ok(
-    args.includes(`--extensionDevelopmentPath=${path.join(root, "driver")}`),
-  );
-  assert.ok(
-    args.includes(
-      `--extensionTestsPath=${path.join(root, "driver", "smoke.cjs")}`,
-    ),
-  );
+  assert.deepEqual(args.slice(0, profileArgs.length), profileArgs);
   assert.equal(
     args.some((arg) => arg.startsWith("--remote-debugging")),
     false,
   );
+});
 
-  const screenshot = Buffer.from("playwright-frame");
-  const frame = {
-    name: () => "active-frame",
-    url: () => "vscode-webview://chainlesschain",
-    evaluate: async (expression) => expression,
-    locator: () => ({ screenshot: async () => screenshot }),
-  };
-  const page = { frames: () => [frame] };
-  const electronApp = { windows: () => [page] };
-  assert.deepEqual(describeFrames(electronApp), [
-    {
-      pageIndex: 0,
-      name: "active-frame",
-      url: "vscode-webview://chainlesschain",
-    },
-  ]);
-  const located = await findChatWebviewFrame(electronApp, 50);
-  assert.deepEqual(located.target, {
-    type: "playwright-frame",
-    url: "vscode-webview://chainlesschain",
+test("host-API evidence proves both fresh host launches in order", () => {
+  const root = temporaryRoot();
+  const runtimeDir = path.join(root, "runtime");
+  const extensionsDir = path.join(root, "extensions");
+  const installedExtension = path.join(
+    extensionsDir,
+    "chainlesschain.chainlesschain-ide-0.37.40",
+  );
+  const workspaceDir = path.join(root, "workspace");
+  fs.mkdirSync(installedExtension, { recursive: true });
+  fs.mkdirSync(workspaceDir, { recursive: true });
+  const stages = [
+    "installed-vsix-discovered",
+    "vsix-activated",
+    "commands-verified",
+    "bridge-verified",
+    "view-command-dispatched",
+    "phase-completed",
+  ];
+  const records = [];
+  for (const phase of ["initial", "restart"]) {
+    writeJsonSignal(path.join(runtimeDir, `${phase}-host-ready.json`), {
+      phase,
+      mode: "host-api",
+      extensionPath: installedExtension,
+      workspaceDir,
+      readyAt: "2026-08-01T00:00:00.000Z",
+    });
+    writeJsonSignal(path.join(runtimeDir, `${phase}-cdp-result.json`), {
+      ok: true,
+      phase,
+      mode: "host-api",
+      completedAt: "2026-08-01T00:01:00.000Z",
+    });
+    for (const stage of stages) {
+      records.push({
+        phase,
+        stage,
+        at: "2026-08-01T00:00:30.000Z",
+        ...(stage === "installed-vsix-discovered"
+          ? { extensionVersion: "0.37.40" }
+          : {}),
+      });
+    }
+  }
+  writeJsonLines(path.join(runtimeDir, "host-api-trace.jsonl"), records);
+
+  const evidence = assertHostApiArtifacts({
+    runtimeDir,
+    extensionsDir,
+    workspaceDir,
+    expectedVersion: "0.37.40",
   });
-  const client = createPlaywrightDomClient(frame, page);
-  assert.equal(await client.evaluate("document.body"), "document.body");
-  assert.deepEqual(await client.send("Page.enable"), {});
-  assert.deepEqual(await client.send("Page.captureScreenshot"), {
-    data: screenshot.toString("base64"),
-  });
-  await assert.rejects(() => client.send("Runtime.enable"), /unsupported/u);
+  assert.equal(evidence.results.length, 2);
+
+  records.splice(3, 1);
+  writeJsonLines(path.join(runtimeDir, "host-api-trace.jsonl"), records);
+  assert.throws(
+    () =>
+      assertHostApiArtifacts({
+        runtimeDir,
+        extensionsDir,
+        workspaceDir,
+        expectedVersion: "0.37.40",
+      }),
+    /bridge-verified/,
+  );
 });
 
 test("captures only the expected loopback DevTools browser endpoint", async () => {
