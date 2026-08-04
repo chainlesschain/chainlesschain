@@ -7,7 +7,7 @@ implemented and build-verified** (0.4.0).
 
 > ✅ **CORRECTION (2026-06-16):** the earlier "can't build on Windows" assumption
 > was wrong. `./gradlew.bat buildPlugin` builds fine on the Windows box with
-> `JAVA_HOME` = Eclipse Adoptium **JDK 17** (the IntelliJ 2024.2 SDK downloads on
+> `JAVA_HOME` = Eclipse Adoptium **JDK 21** (the IntelliJ 2024.2 SDK downloads on
 > first run, ~1 GB; rebuilds are cached). The pure layers smoke-test with
 > `javac --release 8 -encoding UTF-8` (**must** pass `-encoding UTF-8` — raw javac
 > defaults to GBK on Windows and chokes on the `—`/`…` in comments).

@@ -19,7 +19,7 @@ plugins {
 }
 
 group = "com.chainlesschain"
-version = "0.4.78"
+version = "0.4.79"
 val ideVersion = providers.gradleProperty("ideVersion").orElse("2024.2")
 val hostIdeVersion = providers.gradleProperty("hostIdeVersion").orElse(ideVersion)
 
@@ -82,12 +82,12 @@ dependencies {
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
 }
 
 kotlin {
-    jvmToolchain(17)
+    jvmToolchain(21)
 }
 
 // Windows javac defaults to the platform codepage (GBK) — non-ASCII UI
@@ -272,7 +272,7 @@ tasks.register<Test>("uiSmokeTest") {
     classpath = uiTestSourceSet.runtimeClasspath
     useJUnitPlatform()
     // Remote Robot 0.11.x models IDE-side failures as Throwable fields in its
-    // Retrofit/Gson response DTOs. On JDK 17, Gson cannot create that adapter
+    // Retrofit/Gson response DTOs. On JDK 21, Gson cannot create that adapter
     // unless java.lang is opened to the unnamed test-worker module. Without
     // this, even the first successful response can fail client-side with
     // JsonIOException -> InaccessibleObjectException before a fixture is read.

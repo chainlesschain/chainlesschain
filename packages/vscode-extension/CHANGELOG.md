@@ -2,6 +2,16 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.40] - Inline chat and release-host hardening (2026-08-04)
+
+- Add an editor-native inline chat panel with selection-aware prompts,
+  streaming responses, and copy/insert/replace actions while keeping its
+  session isolated from the sidebar conversation.
+- Add localized commands and keybindings for explain, refactor, fix,
+  documentation, and test-generation flows.
+- Repair the cross-platform release gate so its asynchronous downloaded-host
+  version probe is awaited before the packaged VSIX host journeys run.
+
 ## [0.37.38] - Canonical session delivery and rewind (2026-08-03)
 
 - Project the CLI-owned session graph into Sessions Workbench and expose only

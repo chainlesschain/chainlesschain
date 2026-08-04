@@ -65,7 +65,7 @@ test("extension-host runner accepts an explicit evidence directory", () => {
   );
 });
 
-test("extension-host runner resolves the downloaded host's exact version", () => {
+test("extension-host runner resolves the downloaded host's exact version", async () => {
   const root = temporaryRoot();
   const executable = path.join(root, "VSCode-linux-x64", "bin", "code");
   const packageJson = path.join(
@@ -80,8 +80,14 @@ test("extension-host runner resolves the downloaded host's exact version", () =>
   fs.writeFileSync(executable, "", "utf8");
   fs.writeFileSync(packageJson, JSON.stringify({ version: "1.110.3" }), "utf8");
 
-  assert.equal(resolveVsCodeHostVersion(executable, "stable"), "1.110.3");
-  assert.equal(resolveVsCodeHostVersion(executable, "1.85.2"), "1.110.3");
+  assert.equal(
+    await resolveVsCodeHostVersion(executable, "stable"),
+    "1.110.3",
+  );
+  assert.equal(
+    await resolveVsCodeHostVersion(executable, "1.85.2"),
+    "1.110.3",
+  );
 });
 
 test("diagnostic discovery is limited to release-relevant host logs", () => {

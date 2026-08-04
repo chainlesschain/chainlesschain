@@ -261,6 +261,26 @@ jobs:
           path: packages/vscode-extension/chainlesschain-ide.vsix
           if-no-files-found: error
 
+      # Validate every required release credential before the first immutable
+      # marketplace upload. In particular, a missing/expired VSCE_PAT must not
+      # publish only to Open VSX and burn a version that cannot complete both
+      # required channels.
+      - name: Preflight required marketplace credentials
+        if: startsWith(github.ref, 'refs/tags/ide-vscode-v')
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: |
+          if [ -z "$OVSX_PAT" ]; then
+            echo "::error::OVSX_PAT secret is not set; refusing a partial release."
+            exit 1
+          fi
+          if [ -z "$VSCE_PAT" ]; then
+            echo "::error::VSCE_PAT secret is not set; refusing a partial release."
+            exit 1
+          fi
+          npx --yes @vscode/vsce@3.9.2 verify-pat chainlesschain -p "$VSCE_PAT"
+
       # Open VSX is the primary channel (Cursor / VSCodium / Gitpod / ...). The
       # namespace + token are 'chainlesschain' / OVSX_PAT (see
       # docs/internal/ide-extensions-releasing.md).
@@ -350,7 +370,7 @@ jobs:
         os: [windows-latest, ubuntu-latest, macos-latest]
         ide:
           - version: "2024.2"
-            java: "17"
+            java: "21"
           - version: "2025.2"
             java: "21"
     steps:
@@ -409,7 +429,7 @@ jobs:
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: "17"
+          java-version: "21"
       - uses: actions/setup-node@v5
         with:
           node-version: "22.12.0"
