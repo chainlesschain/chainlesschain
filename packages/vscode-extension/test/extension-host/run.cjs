@@ -8,9 +8,9 @@
  * extensions directory (not --extensionDevelopmentPath), activates it, and
  * checks its command/bridge surface.
  *
- * @vscode/test-electron and ws are intentionally installed by CI with
- * --no-save --no-package-lock so this leaf package keeps its lockfile-free
- * packaging workflow. Local usage:
+ * @vscode/test-electron and (for loopback-WebSocket hosts) ws are intentionally
+ * installed by CI with --no-save --no-package-lock so this leaf package keeps
+ * its lockfile-free packaging workflow. Local Windows/Linux usage:
  *   npm install --no-save --no-package-lock @vscode/test-electron@3.1.0 ws@8.21.2
  *   npm run test:extension-host -- --vsix chainlesschain-ide.vsix
  */
@@ -18,12 +18,15 @@
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
+const { spawn } = require("node:child_process");
 const { PassThrough } = require("node:stream");
 const { pathToFileURL } = require("node:url");
 const {
+  CdpClient,
   assertHostReadySignal,
   assertJourneyArtifacts,
   createFixtureCli,
+  createCdpPipeSocket,
   isExactIsoTimestamp,
   readJsonLines,
   readJourneyResult,
@@ -235,6 +238,94 @@ function buildHostApiLaunchArgs({ workspaceDir, profileArgs }) {
   ];
 }
 
+function buildHostPipeLaunchArgs({ workspaceDir, profileArgs }) {
+  return [
+    ...profileArgs,
+    "--remote-debugging-pipe",
+    "--disable-extension-update-checks",
+    "--disable-telemetry",
+    "--disable-crash-reporter",
+    workspaceDir,
+  ];
+}
+
+function buildExtensionTestLaunchArgs({
+  launchArgs,
+  extensionDevelopmentPath,
+  extensionTestsPath,
+}) {
+  return [
+    ...launchArgs,
+    "--no-sandbox",
+    "--disable-gpu-sandbox",
+    "--disable-updates",
+    "--skip-welcome",
+    "--skip-release-notes",
+    "--no-cached-data",
+    "--disable-workspace-trust",
+    `--extensionTestsPath=${extensionTestsPath}`,
+    `--extensionDevelopmentPath=${extensionDevelopmentPath}`,
+  ];
+}
+
+function launchExtensionHostWithCdpPipe({
+  vscodeExecutablePath,
+  launchArgs,
+  extensionDevelopmentPath,
+  extensionTestsPath,
+  extensionTestsEnv,
+  stdout = process.stdout,
+  stderr = process.stderr,
+  spawnProcess = spawn,
+}) {
+  const child = spawnProcess(
+    vscodeExecutablePath,
+    buildExtensionTestLaunchArgs({
+      launchArgs,
+      extensionDevelopmentPath,
+      extensionTestsPath,
+    }),
+    {
+      env: { ...process.env, ...extensionTestsEnv },
+      shell: false,
+      // Chromium's --remote-debugging-pipe contract reads commands on FD 3
+      // and writes NUL-delimited responses on FD 4.
+      stdio: ["ignore", "pipe", "pipe", "pipe", "pipe"],
+    },
+  );
+  child.stdout?.on("data", (chunk) => stdout.write(chunk));
+  child.stderr?.on("data", (chunk) => stderr.write(chunk));
+  const pipeWrite = child.stdio?.[3];
+  const pipeRead = child.stdio?.[4];
+  if (!pipeWrite || !pipeRead) {
+    child.kill("SIGKILL");
+    throw new Error("VS Code host did not expose CDP pipe FDs 3 and 4");
+  }
+
+  const outcome = new Promise((resolve, reject) => {
+    child.once("error", reject);
+    child.once("close", (code, signal) => {
+      if (code === 0) resolve(code);
+      else {
+        reject(
+          new Error(
+            `VS Code pipe host failed (code=${String(code)}, signal=${String(signal)})`,
+          ),
+        );
+      }
+    });
+  });
+  let stopRequests = 0;
+  return {
+    browserClient: new CdpClient(createCdpPipeSocket(pipeWrite, pipeRead)),
+    outcome,
+    requestStop() {
+      stopRequests += 1;
+      child.kill(stopRequests === 1 ? "SIGINT" : "SIGKILL");
+    },
+  };
+}
+
 function parseDevToolsBrowserEndpoint(value, expectedPort) {
   if (
     !Number.isInteger(expectedPort) ||
@@ -346,20 +437,45 @@ async function runRealDomPhase({
   runtimeDir,
   journeyArtifactDir,
   fixture,
+  useCdpPipe = false,
 }) {
-  const cdpPort = await reserveLoopbackPort();
+  const cdpPort = useCdpPipe ? null : await reserveLoopbackPort();
   const { readyFile, resultFile } = hostPhaseSignalPaths(runtimeDir, phase);
-  // Chromium prints its authoritative browser websocket endpoint before the
-  // Extension Host becomes ready. Capture that loopback-only URL while still
-  // teeing stderr to the workflow log. macOS hosts have intermittently left
-  // the secondary /json/version discovery request pending even though this
-  // endpoint is already listening; using the announced endpoint avoids that
-  // redundant HTTP dependency without weakening target/DOM assertions.
-  const devToolsEndpoint = createDevToolsEndpointCapture(cdpPort);
+  // TCP CDP hosts print their authoritative browser websocket endpoint before
+  // the Extension Host becomes ready. Capture that loopback-only URL while
+  // still teeing stderr to the workflow log. macOS uses Chromium's private
+  // fd-backed pipe instead, avoiding an externally addressable endpoint.
+  const devToolsEndpoint = useCdpPipe
+    ? null
+    : createDevToolsEndpointCapture(cdpPort);
+  const extensionDevelopmentPath = path.join(__dirname, "driver");
+  const extensionTestsPath = path.join(__dirname, "driver", "smoke.cjs");
+  const extensionTestsEnv = {
+    HOME: profileHome,
+    USERPROFILE: profileHome,
+    CHAINLESSCHAIN_SMOKE_EXTENSIONS_DIR: extensionsDir,
+    CHAINLESSCHAIN_SMOKE_EXPECTED_VERSION: expectedVersion,
+    CHAINLESSCHAIN_SMOKE_WORKSPACE: workspaceDir,
+    CHAINLESSCHAIN_HOST_JOURNEY_PHASE: phase,
+    CHAINLESSCHAIN_HOST_READY_FILE: readyFile,
+    CHAINLESSCHAIN_HOST_RESULT_FILE: resultFile,
+    CC_UI_FIXTURE_STATE: fixture.statePath,
+    CC_UI_FIXTURE_TRACE: fixture.tracePath,
+  };
+  const pipeHost = useCdpPipe
+    ? launchExtensionHostWithCdpPipe({
+        vscodeExecutablePath,
+        launchArgs: buildHostPipeLaunchArgs({ workspaceDir, profileArgs }),
+        extensionDevelopmentPath,
+        extensionTestsPath,
+        extensionTestsEnv,
+      })
+    : null;
   const abortController = new AbortController();
   const cdpOutcome = runCdpHostJourney({
     port: cdpPort,
-    getBrowserWebSocketUrl: devToolsEndpoint.getEndpoint,
+    getBrowserWebSocketUrl: devToolsEndpoint?.getEndpoint,
+    browserClient: pipeHost?.browserClient,
     readyFile,
     resultFile,
     phase,
@@ -378,36 +494,26 @@ async function runRealDomPhase({
   let cdp;
   let managedTermination = false;
   try {
-    const hostOutcome = Promise.resolve()
-      .then(() =>
-        runTests({
-          vscodeExecutablePath,
-          extensionDevelopmentPath: path.join(__dirname, "driver"),
-          extensionTestsPath: path.join(__dirname, "driver", "smoke.cjs"),
-          stderr: devToolsEndpoint.stderr,
-          launchArgs: buildHostLaunchArgs({
-            workspaceDir,
-            profileArgs,
-            cdpPort,
+    const hostPromise = pipeHost
+      ? pipeHost.outcome
+      : Promise.resolve().then(() =>
+          runTests({
+            vscodeExecutablePath,
+            extensionDevelopmentPath,
+            extensionTestsPath,
+            stderr: devToolsEndpoint.stderr,
+            launchArgs: buildHostLaunchArgs({
+              workspaceDir,
+              profileArgs,
+              cdpPort,
+            }),
+            extensionTestsEnv,
           }),
-          extensionTestsEnv: {
-            HOME: profileHome,
-            USERPROFILE: profileHome,
-            CHAINLESSCHAIN_SMOKE_EXTENSIONS_DIR: extensionsDir,
-            CHAINLESSCHAIN_SMOKE_EXPECTED_VERSION: expectedVersion,
-            CHAINLESSCHAIN_SMOKE_WORKSPACE: workspaceDir,
-            CHAINLESSCHAIN_HOST_JOURNEY_PHASE: phase,
-            CHAINLESSCHAIN_HOST_READY_FILE: readyFile,
-            CHAINLESSCHAIN_HOST_RESULT_FILE: resultFile,
-            CC_UI_FIXTURE_STATE: fixture.statePath,
-            CC_UI_FIXTURE_TRACE: fixture.tracePath,
-          },
-        }),
-      )
-      .then(
-        (value) => ({ value }),
-        (error) => ({ error }),
-      );
+        );
+    const hostOutcome = hostPromise.then(
+      (value) => ({ value }),
+      (error) => ({ error }),
+    );
     const first = await Promise.race([
       hostOutcome.then((outcome) => ({ source: "host", outcome })),
       cdpOutcome.then((outcome) => ({ source: "cdp", outcome })),
@@ -421,6 +527,7 @@ async function runRealDomPhase({
       ({ host, managedTermination } = await settleHostAfterCdp({
         hostOutcome,
         phase,
+        ...(pipeHost ? { emitSigint: pipeHost.requestStop } : {}),
       }));
     }
   } finally {
@@ -788,6 +895,7 @@ async function main() {
         runtimeDir: journeyRuntimeDir,
         journeyArtifactDir,
         fixture,
+        useCdpPipe: process.platform === "darwin" && !hostApiMode,
       });
       recordHostProgress(progressPath, `${phase}_completed`);
     }
@@ -852,7 +960,9 @@ async function main() {
         extensionVersion: expectedVersion,
         transport: hostApiMode
           ? "local-ide-bridge+vscode-extension-test-api"
-          : "local-ide-bridge+loopback-cdp",
+          : process.platform === "darwin"
+            ? "local-ide-bridge+cdp-pipe"
+            : "local-ide-bridge+loopback-cdp",
         result: journeyResult,
         startedAt,
         finishedAt: new Date().toISOString(),
@@ -888,14 +998,17 @@ async function main() {
 
 module.exports = {
   buildProfileArgs,
+  buildExtensionTestLaunchArgs,
   buildHostApiLaunchArgs,
   buildHostLaunchArgs,
+  buildHostPipeLaunchArgs,
   assertHostApiArtifacts,
   createDevToolsEndpointCapture,
   createHostProgressJournal,
   findDiagnosticLogs,
   hostPhaseSignalPaths,
   makeFreshRunRoot,
+  launchExtensionHostWithCdpPipe,
   parseArgs,
   parseDevToolsBrowserEndpoint,
   recordHostProgress,

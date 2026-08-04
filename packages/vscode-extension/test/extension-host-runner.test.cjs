@@ -4,13 +4,15 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
-const { Readable } = require("node:stream");
+const { PassThrough, Readable } = require("node:stream");
 const { afterEach, test } = require("node:test");
 const {
   assertHostApiArtifacts,
+  buildExtensionTestLaunchArgs,
   buildHostApiLaunchArgs,
   buildProfileArgs,
   buildHostLaunchArgs,
+  buildHostPipeLaunchArgs,
   createDevToolsEndpointCapture,
   createHostProgressJournal,
   findDiagnosticLogs,
@@ -28,6 +30,7 @@ const {
   PHASE_DOM_MARKERS,
   assertJourneyArtifacts,
   buildCdpWebSocketOptions,
+  createCdpPipeSocket,
   createFixtureCli,
   isInspectableBrowserTarget,
   readJourneyResult,
@@ -288,6 +291,61 @@ test("host-API launch keeps the real extension-test profile without CDP", () => 
     args.some((arg) => arg.startsWith("--remote-debugging")),
     false,
   );
+});
+
+test("macOS real-DOM host keeps CDP on Chromium's private pipe", () => {
+  const root = temporaryRoot();
+  const workspaceDir = path.join(root, "workspace");
+  const profileArgs = [
+    `--extensions-dir=${path.join(root, "extensions")}`,
+    `--user-data-dir=${path.join(root, "user-data")}`,
+  ];
+  const pipeArgs = buildHostPipeLaunchArgs({ workspaceDir, profileArgs });
+  assert.deepEqual(pipeArgs, [
+    ...profileArgs,
+    "--remote-debugging-pipe",
+    "--disable-extension-update-checks",
+    "--disable-telemetry",
+    "--disable-crash-reporter",
+    workspaceDir,
+  ]);
+  const finalArgs = buildExtensionTestLaunchArgs({
+    launchArgs: pipeArgs,
+    extensionDevelopmentPath: path.join(root, "driver"),
+    extensionTestsPath: path.join(root, "driver", "smoke.cjs"),
+  });
+  assert.ok(finalArgs.includes("--remote-debugging-pipe"));
+  assert.equal(
+    finalArgs.some((arg) => arg.startsWith("--remote-debugging-port")),
+    false,
+  );
+  assert.ok(
+    finalArgs.includes(
+      `--extensionTestsPath=${path.join(root, "driver", "smoke.cjs")}`,
+    ),
+  );
+});
+
+test("CDP pipe transport frames browser commands with NUL delimiters", async () => {
+  const toBrowser = new PassThrough();
+  const fromBrowser = new PassThrough();
+  const client = new CdpClient(createCdpPipeSocket(toBrowser, fromBrowser));
+  let command = Buffer.alloc(0);
+  toBrowser.on("data", (chunk) => {
+    command = Buffer.concat([command, chunk]);
+    const boundary = command.indexOf(0);
+    if (boundary === -1) return;
+    const request = JSON.parse(command.subarray(0, boundary).toString("utf8"));
+    fromBrowser.write(
+      `${JSON.stringify({ id: request.id, result: { targetInfos: [] } })}\0`,
+    );
+  });
+  assert.deepEqual(await client.send("Target.getTargets"), { targetInfos: [] });
+  assert.match(command.toString("utf8"), /"method":"Target.getTargets"/u);
+  assert.equal(command.at(-1), 0);
+  client.close();
+  toBrowser.destroy();
+  fromBrowser.destroy();
 });
 
 test("host-API evidence proves both fresh host launches in order", () => {
