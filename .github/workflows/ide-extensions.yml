@@ -176,6 +176,7 @@ jobs:
           node test/extension-host/run.cjs --vsix chainlesschain-ide.vsix
           --artifact-dir build/reports/extension-host/macos-stable
       - name: Extension Host smoke (macOS minimum 1.85.2)
+        if: always()
         timeout-minutes: 15
         run: >-
           node test/extension-host/run.cjs --vsix chainlesschain-ide.vsix

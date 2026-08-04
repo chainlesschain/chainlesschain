@@ -15,6 +15,9 @@ All notable changes to this extension are documented here.
 - Foreground the isolated macOS host, wait for real Chat focus, and allow a
   cold signed Webview five seconds to complete its protocol handshake before a
   one-time stale-DOM rebuild.
+- Keep fresh token-gated Webviews free of stale-DOM reloads while retaining the
+  bounded relay deadline, and collect minimum-host evidence even after a stable
+  host failure.
 
 ## [0.37.40] - Inline chat and release-host hardening (2026-08-04)
 

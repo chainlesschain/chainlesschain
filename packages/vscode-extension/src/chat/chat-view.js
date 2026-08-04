@@ -434,6 +434,13 @@ class ChatViewProvider {
     } catch {
       /* a disposed/not-yet-live webview is handled by the timeout */
     }
+    // Every token-gated host journey uses a fresh profile and a fresh Webview,
+    // so there cannot be a retained legacy DOM to repair. Reloading a cold
+    // signed macOS Webview while its renderer/service worker is still starting
+    // can permanently strand that test view. Keep protocol mismatch messages
+    // fail-fast, but let the journey's 45-second relay deadline own the
+    // no-message case without rewriting the HTML underneath it.
+    if (this._hostDomToken) return;
     this._webviewProtocolTimer = setTimeout(() => {
       this._webviewProtocolTimer = null;
       if (

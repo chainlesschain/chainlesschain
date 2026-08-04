@@ -6,7 +6,10 @@ const os = require("node:os");
 const path = require("node:path");
 const vm = require("node:vm");
 const { afterEach, test } = require("node:test");
-const { buildChatHtml } = require("../src/chat/chat-html");
+const {
+  buildChatHtml,
+  CHAT_UI_PROTOCOL_VERSION,
+} = require("../src/chat/chat-html");
 const { ChatViewProvider } = require("../src/chat/chat-view");
 const {
   HOST_DOM_COMMAND,
@@ -127,6 +130,29 @@ test("ChatViewProvider reveals a suspended relay view once and reports readiness
     /chat webview DOM is not ready/u,
   );
   assert.equal(revealCount, 1);
+});
+
+test("token-gated fresh Webviews do not self-reload during cold startup", () => {
+  const vscode = { l10n: { t: (value) => value } };
+  const provider = new ChatViewProvider(vscode, { hostDomToken: TOKEN });
+  const posted = [];
+  const view = {
+    webview: {
+      postMessage(message) {
+        posted.push(message);
+        return Promise.resolve(true);
+      },
+    },
+  };
+  provider.view = view;
+  provider._webviewProtocolGuard = true;
+
+  provider._armWebviewProtocolCheck(view);
+
+  assert.deepEqual(posted, [
+    { kind: "protocolProbe", uiProtocolVersion: CHAT_UI_PROTOCOL_VERSION },
+  ]);
+  assert.equal(provider._webviewProtocolTimer, null);
 });
 
 test("DOM relay driver produces the same auditable phase ledger and snapshots", async () => {
