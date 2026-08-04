@@ -110,6 +110,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   once, and publishes the same six commands through the canonical IDE
   capability manifest. The activation fake now exercises the decorator path,
   so constructor or registration regressions fail the CLI matrix.
+- **Production REPL prompt interactions**: each real REPL session now owns a
+  prompt interaction controller and slash-command registry for `/paste-image`,
+  `/editor`, `/stash`, `/suggestions`, and `/recap`. Guarded keypress dispatch
+  consumes configured interaction keys before readline, live assistant/session
+  context feeds manual and automatic suggestions, and local clipboard data
+  images join the existing multimodal vision-provider path while remote image
+  chips fail closed. The focused REPL, prompt, keybinding, image, and provider
+  matrix passes 200/200 locally; real terminal/clipboard host coverage and the
+  exact-SHA release gates remain required.
 - **Release status**: `0.162.193` exists on npm but is not an authorized CLI
   release and must not be overwritten or represented as gate-complete.
   `0.162.194` is not published. The exact

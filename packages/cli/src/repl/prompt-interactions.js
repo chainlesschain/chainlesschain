@@ -21,6 +21,7 @@ import {
   readClipboardImageChip,
 } from "./clipboard-image.js";
 import { layoutTerminalText } from "./terminal-layout.js";
+import { SlashCommandRegistry } from "./slash-command-registry.js";
 
 function commandArgs(line, command) {
   const text = String(line || "");
@@ -80,6 +81,29 @@ export function registerPromptInteractionCommands(registry, controller) {
   return PROMPT_INTERACTION_SLASH_COMMANDS.map((command) => command.name);
 }
 
+/** Build one session-local controller + registry dispatcher for production. */
+export function createPromptInteractionSurface(options = {}) {
+  const controller =
+    options.controller || new PromptInteractionController(options);
+  const registry = options.registry || new SlashCommandRegistry();
+  const commandNames = new Set(
+    registerPromptInteractionCommands(registry, controller),
+  );
+  return {
+    controller,
+    registry,
+    commandNames,
+    async dispatchSlash(line) {
+      const text = String(line || "").trim();
+      const commandName = text.split(/\s+/, 1)[0];
+      if (!commandNames.has(commandName)) return { handled: false };
+      const command = registry.getCommand(commandName);
+      const args = text.slice(commandName.length).trim();
+      return command.handler(args);
+    },
+  };
+}
+
 export class PromptInteractionController {
   constructor(options = {}) {
     this.readline = options.readline || null;
@@ -96,6 +120,10 @@ export class PromptInteractionController {
       typeof options.getSessionId === "function"
         ? options.getSessionId
         : () => options.sessionId || null;
+    this.getSuggestionContext =
+      typeof options.getSuggestionContext === "function"
+        ? options.getSuggestionContext
+        : () => ({});
     this.screenReader = options.screenReader === true;
     this.getColumns =
       typeof options.getColumns === "function"
@@ -160,6 +188,22 @@ export class PromptInteractionController {
     this._print(`\n${renderPromptSuggestions(suggestions)}`, { refresh: true });
   }
 
+  _suggestionContext(overrides = {}) {
+    let live = {};
+    try {
+      const value = this.getSuggestionContext();
+      if (value && typeof value === "object") live = value;
+    } catch {
+      // Suggestion context is optional polish and cannot break prompt input.
+    }
+    return {
+      ...live,
+      ...overrides,
+      sessionId:
+        overrides.sessionId || live.sessionId || this.getSessionId() || null,
+    };
+  }
+
   diagnostics() {
     return {
       keybindingErrors: this.keybindingDiagnostics.slice(),
@@ -219,7 +263,7 @@ export class PromptInteractionController {
       const result = runPromptSuggestionsCommand(suggestionArgs, {
         controller: this.suggestions,
         persistEnabled: this.persistSuggestionEnabled,
-        context: optionsContext(this.getSessionId()),
+        context: this._suggestionContext(),
       });
       this._print(result.message, { error: !result.ok });
       return { handled: true, ...result };
@@ -321,10 +365,7 @@ export class PromptInteractionController {
   }
 
   scheduleSuggestions(context = {}) {
-    return this.suggestions.schedule({
-      ...context,
-      sessionId: context.sessionId || this.getSessionId(),
-    });
+    return this.suggestions.schedule(this._suggestionContext(context));
   }
 
   takeClipboardImageChips() {
@@ -339,6 +380,25 @@ export class PromptInteractionController {
   }
 }
 
-function optionsContext(sessionId) {
-  return { sessionId: sessionId || null };
+/**
+ * Merge host-provided clipboard image chips into a prepared user message.
+ * Only bounded data-image blocks produced by clipboard-image.js are accepted;
+ * a host cannot smuggle a remote URL into the model through this seam.
+ */
+export function mergeClipboardImageChips(content, chips = []) {
+  const accepted = (Array.isArray(chips) ? chips : []).filter(
+    (chip) =>
+      chip?.type === "image_url" &&
+      /^data:image\/(?:png|jpeg|gif|webp);base64,[A-Za-z0-9+/]+={0,2}$/u.test(
+        String(chip.image_url?.url || ""),
+      ),
+  );
+  if (!accepted.length) return { content, attached: 0 };
+  const parts = Array.isArray(content)
+    ? content.slice()
+    : String(content || "")
+      ? [{ type: "text", text: String(content) }]
+      : [];
+  parts.push(...accepted);
+  return { content: parts, attached: accepted.length };
 }

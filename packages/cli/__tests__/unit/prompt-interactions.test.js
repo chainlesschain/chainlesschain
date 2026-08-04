@@ -1,8 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  createPromptInteractionSurface,
+  mergeClipboardImageChips,
   PromptInteractionController,
   registerPromptInteractionCommands,
 } from "../../src/repl/prompt-interactions.js";
+import { SlashCommandRegistry } from "../../src/repl/slash-command-registry.js";
 import { PromptSuggestionController } from "../../src/repl/prompt-suggestions.js";
 
 function harness(options = {}) {
@@ -44,6 +47,7 @@ function harness(options = {}) {
     keybindings: options.keybindings,
     clipboardBinding: options.clipboardBinding,
     persistSuggestionEnabled: options.persistSuggestionEnabled,
+    getSuggestionContext: options.getSuggestionContext,
     getColumns: options.getColumns,
     screenReader: options.screenReader,
   });
@@ -69,6 +73,21 @@ describe("prompt interaction controller", () => {
     ]);
     await commands.get("/recap").handler("");
     expect(h.output.join("")).toContain("recap:session-1");
+  });
+
+  it("builds a session-local production surface backed by SlashCommandRegistry", async () => {
+    const h = harness();
+    const surface = createPromptInteractionSurface({
+      controller: h.controller,
+    });
+    expect(surface.registry).toBeInstanceOf(SlashCommandRegistry);
+    await expect(
+      surface.dispatchSlash("/recap live-session"),
+    ).resolves.toMatchObject({ handled: true, action: "recap" });
+    expect(h.output.join("")).toContain("recap:live-session");
+    await expect(surface.dispatchSlash("/model x")).resolves.toEqual({
+      handled: false,
+    });
   });
 
   it("routes recap without reading or mutating the live message array", async () => {
@@ -160,6 +179,47 @@ describe("prompt interaction controller", () => {
     });
     expect(supported.controller.takeClipboardImageChips()).toHaveLength(1);
     expect(supported.controller.takeClipboardImageChips()).toEqual([]);
+  });
+
+  it("merges only local data-image chips into multimodal turn content", () => {
+    const valid = {
+      type: "image_url",
+      image_url: { url: "data:image/png;base64,aW1hZ2U=" },
+    };
+    const remote = {
+      type: "image_url",
+      image_url: { url: "https://example.test/private.png" },
+    };
+    expect(mergeClipboardImageChips("inspect this", [valid, remote])).toEqual({
+      attached: 1,
+      content: [{ type: "text", text: "inspect this" }, valid],
+    });
+    expect(mergeClipboardImageChips("plain", [remote])).toEqual({
+      attached: 0,
+      content: "plain",
+    });
+  });
+
+  it("refreshes suggestions with the live assistant message context", async () => {
+    const generate = vi.fn(async () => ["continue from the live answer"]);
+    const suggestionController = new PromptSuggestionController({
+      generate,
+      debounceMs: 0,
+    });
+    const messages = [{ role: "assistant", content: "live answer" }];
+    const h = harness({
+      suggestionController,
+      getSuggestionContext: () => ({ messages }),
+    });
+    const refresh = await h.controller.handleSlash("/suggestions refresh");
+    await expect(refresh.promise).resolves.toMatchObject({ status: "ready" });
+    expect(generate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sessionId: "session-1",
+        messages,
+      }),
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
   });
 
   it("falls back to safe defaults when configured keybindings are invalid", () => {

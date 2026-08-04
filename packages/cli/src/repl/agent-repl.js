@@ -123,7 +123,7 @@ import {
 } from "../runtime/agent-core.js";
 import { formatBackgroundTasks } from "./tasks-status.js";
 import { expandFileRefsAsync } from "../runtime/file-ref-expander.js";
-import { prepareVisionTurn } from "../lib/image-input.js";
+import { prepareVisionTurn, resolveVisionLlm } from "../lib/image-input.js";
 import { composeSystemPrompt } from "../runtime/system-prompt.js";
 import { installPipeSafety } from "../runtime/pipe-safety.js";
 import {
@@ -145,6 +145,10 @@ import {
 } from "./btw-command.js";
 import { shouldStreamLive } from "./stream-decision.js";
 import { emptyTurnNotice } from "./empty-turn-notice.js";
+import {
+  createPromptInteractionSurface,
+  mergeClipboardImageChips,
+} from "./prompt-interactions.js";
 import {
   buildPermissionPrompt,
   resolveAskIdleTimeoutMs,
@@ -2134,6 +2138,8 @@ async function startAgentReplInWorkspace(options = {}, startupAdmission) {
   // an auto-detected image path so the REPL switches to a vision-capable model
   // for that turn only (resolveVisionLlm falls back to the default when unset).
   let _visionModel;
+  let _promptInteractionConfig = {};
+  let _persistPromptSuggestionsEnabled = null;
   // Hard stream inactivity timeout override (config.llm.streamStallTimeoutMs,
   // ms): a stream silent that long is aborted + retried instead of hanging.
   // Unset → agent-core's 180s default (matches cc chat/ask). Set to 0 to
@@ -2148,8 +2154,11 @@ async function startAgentReplInWorkspace(options = {}, startupAdmission) {
   // CC_PERMISSION_ASK_TIMEOUT_MS env > config permissions.askTimeoutMs > off.
   let _askIdleTimeoutMs = resolveAskIdleTimeoutMs();
   try {
-    const { loadConfig } = await import("../lib/config-manager.js");
-    const _cfg = loadConfig();
+    const configManager = await import("../lib/config-manager.js");
+    const _cfg = configManager.loadConfig();
+    _promptInteractionConfig = _cfg || {};
+    _persistPromptSuggestionsEnabled = (enabled) =>
+      configManager.setConfigValue("cli.promptSuggestions", enabled === true);
     _visionModel = _cfg?.llm?.visionModel || undefined;
     _autoPinCfgValue = _cfg?.context?.autoPin;
     _askIdleTimeoutMs = resolveAskIdleTimeoutMs({
@@ -3588,11 +3597,13 @@ async function startAgentReplInWorkspace(options = {}, startupAdmission) {
           "/note-next",
           "/output-style",
           "/permissions",
+          "/paste-image",
           "/plan",
           "/pr-comments",
           "/profile",
           "/provider",
           "/quit",
+          "/recap",
           "/reindex",
           "/release-notes",
           "/reload-plugins",
@@ -3606,7 +3617,9 @@ async function startAgentReplInWorkspace(options = {}, startupAdmission) {
           "/stats",
           "/status",
           "/statusline",
+          "/stash",
           "/sub-agents",
+          "/suggestions",
           "/task",
           "/tasks",
           "/terminal-setup",
@@ -3617,6 +3630,7 @@ async function startAgentReplInWorkspace(options = {}, startupAdmission) {
           "/ultrathink",
           "/vim",
           "/voice",
+          "/editor",
         ],
     // User/project custom commands (.claude/commands/*.md) join TAB completion
     // alongside the built-ins above. Sync + best-effort; the completer
@@ -3659,6 +3673,28 @@ async function startAgentReplInWorkspace(options = {}, startupAdmission) {
   // Let the EPIPE guard route a broken pipe through this interface's graceful
   // "close" cleanup instead of a bare exit.
   _replRl = rl;
+
+  // Prompt-side interaction modules share the production readline surface.
+  // A per-REPL registry avoids singleton handlers retaining an old session.
+  const _promptInteractionSurface = createPromptInteractionSurface({
+    readline: rl,
+    config: _promptInteractionConfig,
+    keybindings: _promptInteractionConfig,
+    getSessionId: () => sessionId,
+    getSuggestionContext: () => ({ messages: messages.slice() }),
+    persistSuggestionEnabled: _persistPromptSuggestionsEnabled,
+    clipboardBinding: options.clipboardBinding || null,
+    generateSuggestions: options.generatePromptSuggestions,
+    suggestionDebounceMs: options.promptSuggestionDebounceMs,
+    screenReader: _screenReaderMode,
+    write: (text) => process.stdout.write(String(text)),
+    writeError: (text) => process.stderr.write(String(text)),
+    getColumns: () => process.stdout.columns || 80,
+  });
+  const _promptInteractions = _promptInteractionSurface.controller;
+  for (const diagnostic of _promptInteractions.diagnostics().keybindingErrors) {
+    logger.warn(`prompt keybinding ignored: ${diagnostic}`);
+  }
 
   // MCP elicitation in the interactive REPL uses the same readline surface as
   // approvals, while MCPClient retains the protocol-level response shape.
@@ -3757,9 +3793,34 @@ async function startAgentReplInWorkspace(options = {}, startupAdmission) {
   // Vim-mode plumbing: capture readline's OWN keypress listeners now so we can
   // suspend them while in NORMAL mode (the engine drives editing then) and
   // reattach them for INSERT mode (readline's rich editing/history/completion).
-  const _rlKeypressListeners = process.stdin.isTTY
+  const _nativeReadlineKeypressListeners = process.stdin.isTTY
     ? process.stdin.listeners("keypress").slice()
     : [];
+  const _consumedReadlineKeypresses = new WeakSet();
+  const _consumeReadlineKeypress = (key) => {
+    if (key && typeof key === "object") _consumedReadlineKeypresses.add(key);
+  };
+  const _rlKeypressListeners = _nativeReadlineKeypressListeners.map(
+    (listener) =>
+      function guardedReadlineKeypress(input, key) {
+        if (
+          key &&
+          typeof key === "object" &&
+          _consumedReadlineKeypresses.has(key)
+        ) {
+          return;
+        }
+        return listener.call(this, input, key);
+      },
+  );
+  if (process.stdin.isTTY) {
+    for (const listener of _nativeReadlineKeypressListeners) {
+      process.stdin.removeListener("keypress", listener);
+    }
+    for (const listener of _rlKeypressListeners) {
+      process.stdin.on("keypress", listener);
+    }
+  }
   const _suspendReadlineKeys = () => {
     for (const l of _rlKeypressListeners)
       process.stdin.removeListener("keypress", l);
@@ -3809,11 +3870,13 @@ async function startAgentReplInWorkspace(options = {}, startupAdmission) {
   // sequences (arrows etc.) never reach here as bare "escape".
   let _turnAbort = null;
   let _lastIdleEscAt = 0;
+  let _replKeypressHandler = null;
   if (process.stdin.isTTY) {
-    process.stdin.on("keypress", (_str, key) => {
+    _replKeypressHandler = (_str, key) => {
       const k = key || {};
       // 1) Turn abort always wins, regardless of vim mode.
       if (k.name === "escape" && !k.meta && _turnAbort) {
+        _consumeReadlineKeypress(key);
         process.stdout.write(chalk.yellow("\n⎋ interrupting…\n"));
         try {
           _turnAbort.abort();
@@ -3849,6 +3912,7 @@ async function startAgentReplInWorkspace(options = {}, startupAdmission) {
       const isShiftTab =
         (k.name === "tab" && k.shift) || k.sequence === "\u001b[Z";
       if (isShiftTab) {
+        _consumeReadlineKeypress(key);
         if (
           _approvalGate &&
           sessionId &&
@@ -3877,14 +3941,30 @@ async function startAgentReplInWorkspace(options = {}, startupAdmission) {
         return;
       }
 
+      // 1.75) Prompt interaction keybindings share the controller used by
+      // slash commands. They are idle-only and stay out of Vim NORMAL mode,
+      // where the modal editor owns every key.
+      if (
+        !_turnAbort &&
+        (!_vimEnabled || !_vim) &&
+        _promptInteractions.handleKeypress(_str, k)
+      ) {
+        _consumeReadlineKeypress(key);
+        return;
+      }
+
       // 2) Vim mode: modal editing on the current input line.
       if (_vimEnabled && !_turnAbort) {
         if (!_vim) {
           // INSERT mode — readline owns the keys; Esc switches to NORMAL.
-          if (k.name === "escape" && !k.meta) _vimEnterNormal();
+          if (k.name === "escape" && !k.meta) {
+            _consumeReadlineKeypress(key);
+            _vimEnterNormal();
+          }
           return;
         }
         // NORMAL mode — readline suspended; the engine interprets every key.
+        _consumeReadlineKeypress(key);
         const res = feedNormalKey(_vim, _str || "", k);
         if (res.submit) {
           // Hand the line to readline as a normal Enter (fires 'line', clears).
@@ -3906,6 +3986,7 @@ async function startAgentReplInWorkspace(options = {}, startupAdmission) {
 
       // 3) Non-vim: double-Esc while idle → rewind picker shortcut.
       if (k.name !== "escape" || k.meta) return;
+      _consumeReadlineKeypress(key);
       const nowTs = Date.now();
       if (nowTs - _lastIdleEscAt < 600) {
         _lastIdleEscAt = 0;
@@ -3930,7 +4011,8 @@ async function startAgentReplInWorkspace(options = {}, startupAdmission) {
       } else {
         _lastIdleEscAt = nowTs;
       }
-    });
+    };
+    process.stdin.prependListener("keypress", _replKeypressHandler);
   }
 
   logger.log(chalk.bold("\nChainlessChain Agent"));
@@ -4206,6 +4288,19 @@ async function startAgentReplInWorkspace(options = {}, startupAdmission) {
       return;
     }
 
+    // The interaction commands are registered through the shared registry,
+    // while the mature REPL handlers below remain on their existing direct
+    // paths. --disable-slash-commands replaces `trimmed` with a sentinel, so
+    // it cannot accidentally reach this dispatcher.
+    if (trimmed.startsWith("/")) {
+      const commandName = trimmed.split(/\s+/, 1)[0];
+      if (_promptInteractionSurface.commandNames.has(commandName)) {
+        await _promptInteractionSurface.dispatchSlash(trimmed);
+        prompt();
+        return;
+      }
+    }
+
     if (trimmed === "/help") {
       logger.log(chalk.bold("\nCommands:"));
       logger.log(
@@ -4263,6 +4358,21 @@ async function startAgentReplInWorkspace(options = {}, startupAdmission) {
       );
       logger.log(
         `  ${chalk.cyan("/output-style")} Response persona (/output-style <name|list>; explanatory/learning built-in)`,
+      );
+      logger.log(
+        `  ${chalk.cyan("/editor")}     Edit a draft prompt in an external editor`,
+      );
+      logger.log(
+        `  ${chalk.cyan("/stash")}      Stash/list/pop/clear draft prompts`,
+      );
+      logger.log(
+        `  ${chalk.cyan("/recap")}      Show a lightweight session recap`,
+      );
+      logger.log(
+        `  ${chalk.cyan("/suggestions")} Prompt suggestions on|off|status|refresh`,
+      );
+      logger.log(
+        `  ${chalk.cyan("/paste-image")} Attach a clipboard image from a supporting host`,
       );
       logger.log(
         `  ${chalk.cyan("/config")}     Show config; ${chalk.cyan("/config <key>")} read, ${chalk.cyan("/config <key>=<val>")} set, ${chalk.cyan("/config --help")} keys`,
@@ -7364,6 +7474,35 @@ async function startAgentReplInWorkspace(options = {}, startupAdmission) {
       return;
     }
 
+    // Explicit clipboard attachment chips are consumed only when a real model
+    // turn is about to start. They compose with auto-detected path images and
+    // enter the same provider-neutral multimodal message/vision override.
+    const clipboardImageChips = _promptInteractions.takeClipboardImageChips();
+    const clipboardMerge = mergeClipboardImageChips(
+      _userMessageContent,
+      clipboardImageChips,
+    );
+    if (clipboardMerge.attached > 0) {
+      _userMessageContent = clipboardMerge.content;
+      if (!_visionLlm) {
+        _visionLlm = resolveVisionLlm({
+          hasImage: true,
+          flags: {},
+          llm: {
+            provider,
+            baseUrl,
+            apiKey,
+            visionModel: _visionModel,
+          },
+        });
+      }
+      logger.info(
+        chalk.gray(
+          `[image] ${clipboardMerge.attached} clipboard image(s) attached -> vision model ${_visionLlm.model}`,
+        ),
+      );
+    }
+
     // Add user message (keep the object ref so /note-next can be injected for
     // this turn's model call and then stripped before persistence).
     const _userMsg = { role: "user", content: _userMessageContent };
@@ -7426,7 +7565,17 @@ async function startAgentReplInWorkspace(options = {}, startupAdmission) {
               .map(([k, v]) => `${k}: ${v}`);
             // Append context to the last user message
             const lastMsg = messages[messages.length - 1];
-            lastMsg.content += `\n\n[Context — user provided: ${parts.join(", ")}]`;
+            const slotContext = `[Context - user provided: ${parts.join(", ")}]`;
+            if (Array.isArray(lastMsg.content)) {
+              const textPart = lastMsg.content.find(
+                (part) => part?.type === "text",
+              );
+              if (textPart)
+                textPart.text = `${textPart.text}\n\n${slotContext}`;
+              else lastMsg.content.unshift({ type: "text", text: slotContext });
+            } else {
+              lastMsg.content = `${lastMsg.content}\n\n${slotContext}`;
+            }
             logger.info(chalk.gray(`[slot-fill] ${parts.join(", ")}`));
           }
         }
@@ -7868,6 +8017,15 @@ async function startAgentReplInWorkspace(options = {}, startupAdmission) {
         );
       }
 
+      // Generate follow-up suggestions from the settled assistant turn. The
+      // controller snapshots the actual conversation context and debounces in
+      // the background, so readline and persistence remain non-blocking.
+      const suggestionRun = _promptInteractions.scheduleSuggestions({
+        messages: messages.slice(),
+        lastAssistantText: effectiveResponse || "",
+      });
+      void suggestionRun.promise;
+
       // Auto-save session
       if (sessionId) {
         try {
@@ -8046,6 +8204,15 @@ async function startAgentReplInWorkspace(options = {}, startupAdmission) {
   });
 
   rl.on("close", async () => {
+    _promptInteractions.dispose();
+    if (process.stdin.isTTY) {
+      if (_replKeypressHandler) {
+        process.stdin.removeListener("keypress", _replKeypressHandler);
+      }
+      for (const listener of _rlKeypressListeners) {
+        process.stdin.removeListener("keypress", listener);
+      }
+    }
     // Leave the alternate screen buffer first so the terminal is restored to
     // the user's scrollback no matter how the REPL exits.
     if (_tuiMode === "fullscreen" && process.stdout.isTTY) {
