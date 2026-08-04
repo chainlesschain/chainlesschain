@@ -9,6 +9,7 @@ const {
   buildHostLaunchArgs,
   findDiagnosticLogs,
   hostPhaseSignalPaths,
+  makeFreshRunRoot,
   parseArgs,
   resolveVsCodeHostVersion,
 } = require("./extension-host/run.cjs");
@@ -87,6 +88,18 @@ test("extension-host runner resolves the downloaded host's exact version", async
   assert.equal(
     await resolveVsCodeHostVersion(executable, "1.85.2"),
     "1.110.3",
+  );
+});
+
+test("fresh host profile root stays within the macOS Unix-socket budget", () => {
+  const parent = temporaryRoot();
+  const runRoot = makeFreshRunRoot(parent);
+  temporaryRoots.push(runRoot);
+
+  assert.match(path.basename(runRoot), /^ccv-[A-Za-z0-9]{6}$/u);
+  assert.ok(
+    path.basename(runRoot).length <= 10,
+    "unique host directory must remain short enough for VS Code IPC sockets",
   );
 });
 

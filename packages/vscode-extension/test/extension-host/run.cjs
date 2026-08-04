@@ -110,11 +110,15 @@ function requireTestElectron() {
   }
 }
 
-function makeFreshRunRoot(parent, vscodeVersion) {
-  const base = path.resolve(parent || os.tmpdir());
+function makeFreshRunRoot(parent) {
+  // VS Code places its macOS main-process Unix socket below --user-data-dir.
+  // The Darwin sockaddr_un path limit is 103 bytes, while os.tmpdir() expands
+  // to a long /var/folders/... path on GitHub-hosted runners. Keep both the
+  // default base and the unique directory name deliberately short.
+  const defaultBase = process.platform === "darwin" ? "/tmp" : os.tmpdir();
+  const base = path.resolve(parent || defaultBase);
   fs.mkdirSync(base, { recursive: true });
-  const slug = String(vscodeVersion).replace(/[^a-zA-Z0-9._-]/g, "_");
-  return fs.mkdtempSync(path.join(base, `chainlesschain-vscode-${slug}-`));
+  return fs.mkdtempSync(path.join(base, "ccv-"));
 }
 
 function writeWorkspace(workspaceDir, fixtureCliCommand) {
@@ -384,7 +388,7 @@ async function main() {
     fs.readFileSync(path.join(PACKAGE_ROOT, "package.json"), "utf8"),
   );
   const expectedVersion = extensionManifest.version;
-  const runRoot = makeFreshRunRoot(options.workDir, options.vscodeVersion);
+  const runRoot = makeFreshRunRoot(options.workDir);
   const userDataDir = path.join(runRoot, "user-data");
   const extensionsDir = path.join(runRoot, "extensions");
   const profileHome = path.join(runRoot, "profile-home");
@@ -547,6 +551,7 @@ module.exports = {
   buildHostLaunchArgs,
   findDiagnosticLogs,
   hostPhaseSignalPaths,
+  makeFreshRunRoot,
   parseArgs,
   resolveVsCodeHostVersion,
   runRealDomPhase,
