@@ -81,14 +81,8 @@ test("extension-host runner resolves the downloaded host's exact version", async
   fs.writeFileSync(executable, "", "utf8");
   fs.writeFileSync(packageJson, JSON.stringify({ version: "1.110.3" }), "utf8");
 
-  assert.equal(
-    await resolveVsCodeHostVersion(executable, "stable"),
-    "1.110.3",
-  );
-  assert.equal(
-    await resolveVsCodeHostVersion(executable, "1.85.2"),
-    "1.110.3",
-  );
+  assert.equal(await resolveVsCodeHostVersion(executable, "stable"), "1.110.3");
+  assert.equal(await resolveVsCodeHostVersion(executable, "1.85.2"), "1.110.3");
 });
 
 test("fresh host profile root stays within the macOS Unix-socket budget", () => {
