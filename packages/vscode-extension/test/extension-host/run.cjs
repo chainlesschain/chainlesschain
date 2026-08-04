@@ -266,6 +266,19 @@ function buildHostApiLaunchArgs({ workspaceDir, profileArgs }) {
   ];
 }
 
+function buildHostDomRelayLaunchArgs({ workspaceDir, profileArgs }) {
+  return [
+    ...profileArgs,
+    "--disable-background-timer-throttling",
+    "--disable-backgrounding-occluded-windows",
+    "--disable-renderer-backgrounding",
+    "--disable-extension-update-checks",
+    "--disable-telemetry",
+    "--disable-crash-reporter",
+    workspaceDir,
+  ];
+}
+
 function buildHostPipeLaunchArgs({ workspaceDir, profileArgs }) {
   return [
     ...profileArgs,
@@ -540,10 +553,9 @@ async function runRealDomPhase({
     const hostDomToken = crypto.randomBytes(32).toString("hex");
     // The signed macOS host does not reliably schedule extensionTestsPath.
     // A valid one-launch token lets the installed target invoke the test-only
-    // driver's fixed contributed command after target activation returns. The
-    // Inspector switch remains bootstrap-only: every DOM action and result
-    // crosses the token-gated Extension Host/Webview message relay below.
-    const bootstrapInspectorPort = await reserveLoopbackPort();
+    // driver's fixed contributed command after target activation returns.
+    // No debugger transport is opened: every DOM action and result crosses
+    // the token-gated Extension Host/Webview message relay below.
     const sigintGuard = () => {};
     process.on("SIGINT", sigintGuard);
     let host;
@@ -556,10 +568,9 @@ async function runRealDomPhase({
             vscodeExecutablePath,
             extensionDevelopmentPath: path.join(__dirname, "driver"),
             extensionTestsPath: path.join(__dirname, "driver", "smoke.cjs"),
-            launchArgs: buildHostInspectorLaunchArgs({
+            launchArgs: buildHostDomRelayLaunchArgs({
               workspaceDir,
               profileArgs,
-              inspectorPort: bootstrapInspectorPort,
             }),
             extensionTestsEnv: {
               HOME: profileHome,
@@ -1210,6 +1221,7 @@ module.exports = {
   buildProfileArgs,
   buildExtensionTestLaunchArgs,
   buildHostApiLaunchArgs,
+  buildHostDomRelayLaunchArgs,
   buildHostInspectorLaunchArgs,
   buildHostLaunchArgs,
   buildHostPipeLaunchArgs,

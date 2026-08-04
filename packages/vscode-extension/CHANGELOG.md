@@ -2,6 +2,17 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.41] - Auditable macOS host journey (2026-08-05)
+
+- Add a one-launch, 256-bit-token-gated Webview message relay for the real
+  installed-VSIX host journey; only fixed snapshot, send, and semantic click
+  actions are accepted, and normal product launches keep the relay inert.
+- Activate the test-only macOS journey through one contributed fixed command
+  after product activation, deduplicate fallback and standard test entrypoints,
+  and settle result files before bounded Extension Host shutdown.
+- Remove the obsolete debugger bootstrap from the macOS relay launch and retain
+  phase-scoped progress, DOM snapshots, protocol trace, and fail-closed evidence.
+
 ## [0.37.40] - Inline chat and release-host hardening (2026-08-04)
 
 - Add an editor-native inline chat panel with selection-aware prompts,

@@ -11,6 +11,7 @@ const {
   assertHostApiArtifacts,
   buildExtensionTestLaunchArgs,
   buildHostApiLaunchArgs,
+  buildHostDomRelayLaunchArgs,
   buildHostInspectorLaunchArgs,
   buildProfileArgs,
   buildHostLaunchArgs,
@@ -303,7 +304,7 @@ test("host-API launch keeps the real extension-test profile without CDP", () => 
   );
 });
 
-test("macOS DOM relay keeps its loopback Inspector bootstrap transport-free", async () => {
+test("macOS DOM relay launches without a debugger transport", async () => {
   const root = temporaryRoot();
   const runtimeDir = path.join(root, "runtime");
   const artifactDir = path.join(root, "artifacts");
@@ -352,10 +353,10 @@ test("macOS DOM relay keeps its loopback Inspector bootstrap transport-free", as
   });
 
   assert.equal(result.mode, "dom-relay");
-  const inspectorSwitch = launch.launchArgs.find((argument) =>
-    argument.startsWith("--inspect=127.0.0.1:"),
+  assert.equal(
+    launch.launchArgs.some((argument) => argument.startsWith("--inspect")),
+    false,
   );
-  assert.match(inspectorSwitch || "", /^--inspect=127\.0\.0\.1:\d+$/u);
   assert.equal(
     launch.launchArgs.some((argument) =>
       argument.startsWith("--remote-debugging"),
@@ -363,6 +364,17 @@ test("macOS DOM relay keeps its loopback Inspector bootstrap transport-free", as
     false,
   );
   assert.equal(launch.launchArgs.at(-1), workspaceDir);
+  assert.deepEqual(
+    launch.launchArgs,
+    buildHostDomRelayLaunchArgs({
+      workspaceDir,
+      profileArgs: buildProfileArgs({
+        runRoot: root,
+        extensionsDir,
+        phase: "initial",
+      }),
+    }),
+  );
   assert.equal(
     launch.extensionTestsEnv.CHAINLESSCHAIN_HOST_JOURNEY_MODE,
     "dom-relay",
