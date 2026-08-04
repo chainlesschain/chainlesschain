@@ -25,11 +25,27 @@ const migratedCommands = [
   "consol",
   "dao",
   "evomap",
+  "execbe",
   "fflag",
+  "itbudget",
+  "mcpscaf",
+  "meminj",
+  "orchgov",
   "pdfp",
+  "promcomp",
+  "seshhook",
+  "seshsearch",
+  "seshtail",
+  "seshu",
   "sganal",
+  "slotfill",
+  "svccont",
+  "tms",
+  "topiccls",
+  "uprof",
   "vcheck",
 ];
+const retainedProductCommands = ["planmode", "subagent", "todo", "webfetch"];
 const argv = (...args) => ["node", "cc", ...args];
 
 function output(isTTY = false) {
@@ -72,10 +88,10 @@ describe("command lifecycle policy", () => {
       baselineCommandCount: 175,
       maximumNetGrowth: 0,
       registeredCommandCount: 175,
-      activeRegisteredCommandCount: 165,
+      activeRegisteredCommandCount: 150,
       virtualNamespaceCount: 1,
-      deprecatedCompatibilityCount: 10,
-      recommendedTopLevelCommandCount: 166,
+      deprecatedCompatibilityCount: 25,
+      recommendedTopLevelCommandCount: 151,
       netGrowth: 0,
     });
     expect(manifest.commands.some((entry) => entry.name === "lab")).toBe(false);
@@ -137,6 +153,22 @@ describe("command lifecycle policy", () => {
       );
     }
   });
+
+  it("keeps product-facing commands active instead of migrating by keyword", () => {
+    const labCommands = manifest.surface.namespaces.find(
+      (namespace) => namespace.name === "lab",
+    ).commands;
+    for (const command of retainedProductCommands) {
+      const entry = manifest.commands.find(
+        (candidate) => candidate.name === command,
+      );
+      expect(entry).toMatchObject({
+        replacement: null,
+        lifecycle: { state: "active" },
+      });
+      expect(labCommands).not.toContain(command);
+    }
+  });
 });
 
 describe("phase-0 compatibility namespace", () => {
@@ -193,6 +225,23 @@ describe("phase-0 compatibility namespace", () => {
       );
       expect(secondBatchLegacy.stderr).toContain("use 'cc lab bm25'");
       expect(secondBatchReplacement.stderr).not.toContain("Deprecated command");
+
+      const thirdBatchLegacy = run(["--quiet", "itbudget", "enums-v2"]);
+      const thirdBatchReplacement = run([
+        "--quiet",
+        "lab",
+        "itbudget",
+        "enums-v2",
+      ]);
+      expect(thirdBatchLegacy.status, thirdBatchLegacy.stderr).toBe(0);
+      expect(thirdBatchReplacement.status, thirdBatchReplacement.stderr).toBe(
+        0,
+      );
+      expect(JSON.parse(thirdBatchReplacement.stdout)).toEqual(
+        JSON.parse(thirdBatchLegacy.stdout),
+      );
+      expect(thirdBatchLegacy.stderr).toContain("use 'cc lab itbudget'");
+      expect(thirdBatchReplacement.stderr).not.toContain("Deprecated command");
     },
   );
 

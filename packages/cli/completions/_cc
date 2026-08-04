@@ -1,5 +1,5 @@
 # Generated from src/command-manifest.json; do not edit.
-# manifest-sha256: 10e9b6691a34d1d091488b50d346eef8f48029340d7a9a07041b666ba49f34a7
+# manifest-sha256: a342dc48c6d65ef81a96c7df387418e739a51c2a82b9a626d39882387bd2e999
 #compdef cc chainlesschain clc clchain
 
 _chainlesschain() {
@@ -202,7 +202,7 @@ _chainlesschain() {
       'zkp'
   elif (( CURRENT == 3 )); then
     case "$words[2]" in
-      'lab') compadd -- 'bm25' 'ccron' 'compt' 'consol' 'dao' 'evomap' 'fflag' 'pdfp' 'sganal' 'vcheck' ;;
+      'lab') compadd -- 'bm25' 'ccron' 'compt' 'consol' 'dao' 'evomap' 'execbe' 'fflag' 'itbudget' 'mcpscaf' 'meminj' 'orchgov' 'pdfp' 'promcomp' 'seshhook' 'seshsearch' 'seshtail' 'seshu' 'sganal' 'slotfill' 'svccont' 'tms' 'topiccls' 'uprof' 'vcheck' ;;
     esac
   fi
 }

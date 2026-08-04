@@ -128,6 +128,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   README, namespace help, and four shell completions share the same lifecycle
   source. Native manifest generation also now uses the real pure `/doctor`
   status exports instead of a nonexistent registry import.
+- **Third command-surface migration batch**: fifteen explicitly in-memory V2
+  governance overlays (`execbe`, `itbudget`, `mcpscaf`, `meminj`, `orchgov`,
+  `promcomp`, `seshhook`, `seshsearch`, `seshtail`, `seshu`, `slotfill`,
+  `svccont`, `tms`, `topiccls`, and `uprof`) now use canonical `cc lab ...`
+  spellings. Product-facing `todo`, `subagent`, `webfetch`, and `planmode`
+  remain active top-level commands instead of being migrated by keyword alone.
+  Legacy spellings remain compatible through at least `0.164.0` and warn only
+  on stderr. The registered graph remains 175 commands with zero net growth;
+  the recommended surface drops from 166 to 151, with manifest, README,
+  namespace help, and four shell completions generated from one lifecycle
+  policy.
 - **Release status**: `0.162.193` exists on npm but is not an authorized CLI
   release and must not be overwritten or represented as gate-complete.
   `0.162.194` is not published. The exact

@@ -74,9 +74,24 @@ describe("generated shell completions", () => {
       "consol",
       "dao",
       "evomap",
+      "execbe",
       "fflag",
+      "itbudget",
+      "mcpscaf",
+      "meminj",
+      "orchgov",
       "pdfp",
+      "promcomp",
+      "seshhook",
+      "seshsearch",
+      "seshtail",
+      "seshu",
       "sganal",
+      "slotfill",
+      "svccont",
+      "tms",
+      "topiccls",
+      "uprof",
       "vcheck",
     ]);
 
@@ -85,6 +100,7 @@ describe("generated shell completions", () => {
       expect(text).toContain("lab");
       expect(text).toContain("dao");
       expect(text).toContain("evomap");
+      expect(text).toContain("itbudget");
     }
     expect(completion("cc.bash")).toContain(
       `'lab') COMPREPLY=( $(compgen -W '${namespace.commands.join(" ")}'`,
