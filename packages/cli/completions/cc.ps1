@@ -1,5 +1,5 @@
 # Generated from src/command-manifest.json; do not edit.
-# manifest-sha256: e989e4e22dc918cc8f60a1857957f9e4cfdfd4ced4ca6ab8f956156e441ba528
+# manifest-sha256: 10e9b6691a34d1d091488b50d346eef8f48029340d7a9a07041b666ba49f34a7
 using namespace System.Management.Automation
 
 $ChainlessChainCommands = @(
@@ -201,7 +201,7 @@ $ChainlessChainCommands = @(
 )
 
 $ChainlessChainNamespaceCommands = @{
-  'lab' = @('dao', 'evomap')
+  'lab' = @('bm25', 'ccron', 'compt', 'consol', 'dao', 'evomap', 'fflag', 'pdfp', 'sganal', 'vcheck')
 }
 
 $ChainlessChainCompleter = {

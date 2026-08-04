@@ -119,6 +119,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   chips fail closed. The focused REPL, prompt, keybinding, image, and provider
   matrix passes 200/200 locally; real terminal/clipboard host coverage and the
   exact-SHA release gates remain required.
+- **Second command-surface migration batch**: eight explicitly legacy or
+  in-memory governance commands (`bm25`, `ccron`, `compt`, `consol`, `fflag`,
+  `pdfp`, `sganal`, and `vcheck`) now have canonical `cc lab ...` spellings.
+  Their original top-level forms remain compatible through at least `0.164.0`
+  and warn only on stderr. The registered graph remains 175 commands with zero
+  net growth, while the recommended surface drops from 174 to 166; manifest,
+  README, namespace help, and four shell completions share the same lifecycle
+  source. Native manifest generation also now uses the real pure `/doctor`
+  status exports instead of a nonexistent registry import.
 - **Release status**: `0.162.193` exists on npm but is not an authorized CLI
   release and must not be overwritten or represented as gate-complete.
   `0.162.194` is not published. The exact

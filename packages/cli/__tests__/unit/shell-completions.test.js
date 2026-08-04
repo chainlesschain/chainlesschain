@@ -67,7 +67,18 @@ describe("generated shell completions", () => {
     const namespace = manifest.surface.namespaces.find(
       (candidate) => candidate.name === "lab",
     );
-    expect(namespace.commands).toEqual(["dao", "evomap"]);
+    expect(namespace.commands).toEqual([
+      "bm25",
+      "ccron",
+      "compt",
+      "consol",
+      "dao",
+      "evomap",
+      "fflag",
+      "pdfp",
+      "sganal",
+      "vcheck",
+    ]);
 
     for (const name of ["cc.bash", "_cc", "cc.fish", "cc.ps1"]) {
       const text = completion(name);
@@ -76,13 +87,21 @@ describe("generated shell completions", () => {
       expect(text).toContain("evomap");
     }
     expect(completion("cc.bash")).toContain(
-      "'lab') COMPREPLY=( $(compgen -W 'dao evomap'",
+      `'lab') COMPREPLY=( $(compgen -W '${namespace.commands.join(" ")}'`,
     );
-    expect(completion("_cc")).toContain("'lab') compadd -- 'dao' 'evomap'");
+    expect(completion("_cc")).toContain(
+      `'lab') compadd -- ${namespace.commands
+        .map((command) => `'${command}'`)
+        .join(" ")}`,
+    );
     expect(completion("cc.fish")).toContain(
       "__chainlesschain_needs_lab_command",
     );
-    expect(completion("cc.ps1")).toContain("'lab' = @('dao', 'evomap')");
+    expect(completion("cc.ps1")).toContain(
+      `'lab' = @(${namespace.commands
+        .map((command) => `'${command}'`)
+        .join(", ")})`,
+    );
     expect(completion("cc.ps1")).toContain(
       "$elements.Count -eq 2 -and [String]::IsNullOrEmpty($wordToComplete)",
     );

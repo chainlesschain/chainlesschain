@@ -47,6 +47,21 @@ describe("Slash command parity (cc vs Claude Code)", () => {
     expect(registry.getCommand("/nope")).toBeUndefined();
   });
 
+  it("renders /doctor from the supported pure doctor-status contract", async () => {
+    const { SlashCommandRegistry } =
+      await import("../../src/repl/slash-command-registry.js");
+    const registry = SlashCommandRegistry.getInstance();
+    const chunks = [];
+    await registry.getCommand("/doctor").handler("", {
+      write: (value) => chunks.push(String(value)),
+      doctorInput: {
+        config: { llm: { provider: "ollama", model: "qwen3" } },
+      },
+    });
+    expect(chunks.join("\n")).toContain("Session health (/doctor)");
+    expect(chunks.join("\n")).toContain("LLM provider: ollama · qwen3");
+  });
+
   it("should have /login command handler", async () => {
     const { SlashCommandRegistry } =
       await import("../../src/repl/slash-command-registry.js");

@@ -4,7 +4,7 @@
  */
 
 import { formatBackgroundTasks } from "./tasks-status.js";
-import { runDoctorChecks } from "./doctor-status.js";
+import { buildDoctorChecks, renderDoctor } from "./doctor-status.js";
 
 export class SlashCommandRegistry {
   static _instance = null;
@@ -124,9 +124,8 @@ export class SlashCommandRegistry {
       [
         "/doctor",
         "Check system health",
-        async (args, { write }) => {
-          write("Running system diagnostics...");
-          await runDoctorChecks(write);
+        (args, { write, doctorInput = {} }) => {
+          write(renderDoctor(buildDoctorChecks(doctorInput)));
         },
       ],
       [

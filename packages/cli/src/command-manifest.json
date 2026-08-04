@@ -14,10 +14,10 @@
       "baselineCommandCount": 175,
       "maximumNetGrowth": 0,
       "registeredCommandCount": 175,
-      "activeRegisteredCommandCount": 173,
+      "activeRegisteredCommandCount": 165,
       "virtualNamespaceCount": 1,
-      "deprecatedCompatibilityCount": 2,
-      "recommendedTopLevelCommandCount": 174,
+      "deprecatedCompatibilityCount": 10,
+      "recommendedTopLevelCommandCount": 166,
       "netGrowth": 0
     },
     "namespaces": [
@@ -25,7 +25,18 @@
         "name": "lab",
         "summary": "Compatibility namespace for long-tail and experimental commands",
         "visibility": "extended",
-        "commands": ["dao", "evomap"]
+        "commands": [
+          "bm25",
+          "ccron",
+          "compt",
+          "consol",
+          "dao",
+          "evomap",
+          "fflag",
+          "pdfp",
+          "sganal",
+          "vcheck"
+        ]
       }
     ],
     "coreGroups": [
@@ -272,8 +283,14 @@
       "stability": "compatibility",
       "category": "compatibility",
       "visibility": "extended",
-      "replacement": null,
-      "lifecycle": { "state": "active" }
+      "replacement": "lab bm25",
+      "lifecycle": {
+        "state": "deprecated",
+        "deprecatedSince": "0.162.194",
+        "removalNotBefore": "0.164.0",
+        "minimumReleaseCycles": 2,
+        "releaseCycle": "minor"
+      }
     },
     {
       "name": "browse",
@@ -296,8 +313,14 @@
       "stability": "compatibility",
       "category": "compatibility",
       "visibility": "extended",
-      "replacement": null,
-      "lifecycle": { "state": "active" }
+      "replacement": "lab ccron",
+      "lifecycle": {
+        "state": "deprecated",
+        "deprecatedSince": "0.162.194",
+        "removalNotBefore": "0.164.0",
+        "minimumReleaseCycles": 2,
+        "releaseCycle": "minor"
+      }
     },
     {
       "name": "changelog",
@@ -452,8 +475,14 @@
       "stability": "compatibility",
       "category": "compatibility",
       "visibility": "extended",
-      "replacement": null,
-      "lifecycle": { "state": "active" }
+      "replacement": "lab compt",
+      "lifecycle": {
+        "state": "deprecated",
+        "deprecatedSince": "0.162.194",
+        "removalNotBefore": "0.164.0",
+        "minimumReleaseCycles": 2,
+        "releaseCycle": "minor"
+      }
     },
     {
       "name": "config",
@@ -476,8 +505,14 @@
       "stability": "compatibility",
       "category": "compatibility",
       "visibility": "extended",
-      "replacement": null,
-      "lifecycle": { "state": "active" }
+      "replacement": "lab consol",
+      "lifecycle": {
+        "state": "deprecated",
+        "deprecatedSince": "0.162.194",
+        "removalNotBefore": "0.164.0",
+        "minimumReleaseCycles": 2,
+        "releaseCycle": "minor"
+      }
     },
     {
       "name": "context",
@@ -776,8 +811,14 @@
       "stability": "compatibility",
       "category": "compatibility",
       "visibility": "extended",
-      "replacement": null,
-      "lifecycle": { "state": "active" }
+      "replacement": "lab fflag",
+      "lifecycle": {
+        "state": "deprecated",
+        "deprecatedSince": "0.162.194",
+        "removalNotBefore": "0.164.0",
+        "minimumReleaseCycles": 2,
+        "releaseCycle": "minor"
+      }
     },
     {
       "name": "fusion",
@@ -1328,8 +1369,14 @@
       "stability": "compatibility",
       "category": "compatibility",
       "visibility": "extended",
-      "replacement": null,
-      "lifecycle": { "state": "active" }
+      "replacement": "lab pdfp",
+      "lifecycle": {
+        "state": "deprecated",
+        "deprecatedSince": "0.162.194",
+        "removalNotBefore": "0.164.0",
+        "minimumReleaseCycles": 2,
+        "releaseCycle": "minor"
+      }
     },
     {
       "name": "pdh",
@@ -1748,8 +1795,14 @@
       "stability": "compatibility",
       "category": "compatibility",
       "visibility": "extended",
-      "replacement": null,
-      "lifecycle": { "state": "active" }
+      "replacement": "lab sganal",
+      "lifecycle": {
+        "state": "deprecated",
+        "deprecatedSince": "0.162.194",
+        "removalNotBefore": "0.164.0",
+        "minimumReleaseCycles": 2,
+        "releaseCycle": "minor"
+      }
     },
     {
       "name": "siem",
@@ -2096,8 +2149,14 @@
       "stability": "compatibility",
       "category": "compatibility",
       "visibility": "extended",
-      "replacement": null,
-      "lifecycle": { "state": "active" }
+      "replacement": "lab vcheck",
+      "lifecycle": {
+        "state": "deprecated",
+        "deprecatedSince": "0.162.194",
+        "removalNotBefore": "0.164.0",
+        "minimumReleaseCycles": 2,
+        "releaseCycle": "minor"
+      }
     },
     {
       "name": "video",

@@ -65,12 +65,20 @@ source (npm root -g)/chainlesschain/completions/cc.fish
 
 ### Compatibility namespace and command lifecycle
 
-The registered Commander graph contains **175** top-level commands (net growth **0** against the 175-command baseline). After excluding 2 deprecated compatibility entries and adding `lab` as their recommended namespace, the recommended top-level surface contains **174** commands. `lab` is phase-0 only, not another eagerly registered command.
+The registered Commander graph contains **175** top-level commands (net growth **0** against the 175-command baseline). After excluding 10 deprecated compatibility entries and adding `lab` as their recommended namespace, the recommended top-level surface contains **166** commands. `lab` is phase-0 only, not another eagerly registered command.
 
 | Legacy entry | Replacement  | Deprecated since | Removal not before | Minimum window |
 | ------------ | ------------ | ---------------- | ------------------ | -------------- |
+| `bm25`       | `lab bm25`   | `0.162.194`      | `0.164.0`          | 2 minor cycles |
+| `ccron`      | `lab ccron`  | `0.162.194`      | `0.164.0`          | 2 minor cycles |
+| `compt`      | `lab compt`  | `0.162.194`      | `0.164.0`          | 2 minor cycles |
+| `consol`     | `lab consol` | `0.162.194`      | `0.164.0`          | 2 minor cycles |
 | `dao`        | `lab dao`    | `0.162.189`      | `0.164.0`          | 2 minor cycles |
 | `evomap`     | `lab evomap` | `0.162.189`      | `0.164.0`          | 2 minor cycles |
+| `fflag`      | `lab fflag`  | `0.162.194`      | `0.164.0`          | 2 minor cycles |
+| `pdfp`       | `lab pdfp`   | `0.162.194`      | `0.164.0`          | 2 minor cycles |
+| `sganal`     | `lab sganal` | `0.162.194`      | `0.164.0`          | 2 minor cycles |
+| `vcheck`     | `lab vcheck` | `0.162.194`      | `0.164.0`          | 2 minor cycles |
 
 Both forms route to the same lazy command registrar during the compatibility window. Legacy invocations emit their migration notice on stderr only.
 

@@ -26,6 +26,26 @@ export const COMMAND_NAMESPACES = Object.freeze([
 const MINIMUM_COMPATIBILITY_RELEASE_CYCLES = 2;
 
 const COMMAND_MIGRATIONS = Object.freeze({
+  bm25: Object.freeze({
+    namespace: "lab",
+    deprecatedSince: "0.162.194",
+    removalNotBefore: "0.164.0",
+  }),
+  ccron: Object.freeze({
+    namespace: "lab",
+    deprecatedSince: "0.162.194",
+    removalNotBefore: "0.164.0",
+  }),
+  compt: Object.freeze({
+    namespace: "lab",
+    deprecatedSince: "0.162.194",
+    removalNotBefore: "0.164.0",
+  }),
+  consol: Object.freeze({
+    namespace: "lab",
+    deprecatedSince: "0.162.194",
+    removalNotBefore: "0.164.0",
+  }),
   dao: Object.freeze({
     namespace: "lab",
     deprecatedSince: "0.162.189",
@@ -34,6 +54,26 @@ const COMMAND_MIGRATIONS = Object.freeze({
   evomap: Object.freeze({
     namespace: "lab",
     deprecatedSince: "0.162.189",
+    removalNotBefore: "0.164.0",
+  }),
+  fflag: Object.freeze({
+    namespace: "lab",
+    deprecatedSince: "0.162.194",
+    removalNotBefore: "0.164.0",
+  }),
+  pdfp: Object.freeze({
+    namespace: "lab",
+    deprecatedSince: "0.162.194",
+    removalNotBefore: "0.164.0",
+  }),
+  sganal: Object.freeze({
+    namespace: "lab",
+    deprecatedSince: "0.162.194",
+    removalNotBefore: "0.164.0",
+  }),
+  vcheck: Object.freeze({
+    namespace: "lab",
+    deprecatedSince: "0.162.194",
     removalNotBefore: "0.164.0",
   }),
 });

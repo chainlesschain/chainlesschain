@@ -18,6 +18,18 @@ const repositoryRoot = path.resolve(packageRoot, "../..");
 const manifest = JSON.parse(
   readFileSync(path.join(packageRoot, "src", "command-manifest.json"), "utf8"),
 );
+const migratedCommands = [
+  "bm25",
+  "ccron",
+  "compt",
+  "consol",
+  "dao",
+  "evomap",
+  "fflag",
+  "pdfp",
+  "sganal",
+  "vcheck",
+];
 const argv = (...args) => ["node", "cc", ...args];
 
 function output(isTTY = false) {
@@ -60,10 +72,10 @@ describe("command lifecycle policy", () => {
       baselineCommandCount: 175,
       maximumNetGrowth: 0,
       registeredCommandCount: 175,
-      activeRegisteredCommandCount: 173,
+      activeRegisteredCommandCount: 165,
       virtualNamespaceCount: 1,
-      deprecatedCompatibilityCount: 2,
-      recommendedTopLevelCommandCount: 174,
+      deprecatedCompatibilityCount: 10,
+      recommendedTopLevelCommandCount: 166,
       netGrowth: 0,
     });
     expect(manifest.commands.some((entry) => entry.name === "lab")).toBe(false);
@@ -102,10 +114,10 @@ describe("command lifecycle policy", () => {
       releaseCycle: "minor",
     });
     expect(manifest.surface.namespaces).toEqual([
-      expect.objectContaining({ name: "lab", commands: ["dao", "evomap"] }),
+      expect.objectContaining({ name: "lab", commands: migratedCommands }),
     ]);
 
-    for (const command of ["dao", "evomap"]) {
+    for (const command of migratedCommands) {
       const entry = manifest.commands.find(
         (candidate) => candidate.name === command,
       );
@@ -164,11 +176,28 @@ describe("phase-0 compatibility namespace", () => {
       expect(JSON.parse(replacement.stdout)).toEqual(JSON.parse(legacy.stdout));
       expect(legacy.stderr).toContain("use 'cc lab dao'");
       expect(replacement.stderr).not.toContain("Deprecated command");
+
+      const secondBatchLegacy = run(["--quiet", "bm25", "config-v2"]);
+      const secondBatchReplacement = run([
+        "--quiet",
+        "lab",
+        "bm25",
+        "config-v2",
+      ]);
+      expect(secondBatchLegacy.status, secondBatchLegacy.stderr).toBe(0);
+      expect(secondBatchReplacement.status, secondBatchReplacement.stderr).toBe(
+        0,
+      );
+      expect(JSON.parse(secondBatchReplacement.stdout)).toEqual(
+        JSON.parse(secondBatchLegacy.stdout),
+      );
+      expect(secondBatchLegacy.stderr).toContain("use 'cc lab bm25'");
+      expect(secondBatchReplacement.stderr).not.toContain("Deprecated command");
     },
   );
 
   it("rewrites lab commands to the exact same manifest route", () => {
-    for (const command of ["dao", "evomap"]) {
+    for (const command of migratedCommands) {
       const legacyEntry = manifest.commands.find(
         (candidate) => candidate.name === command,
       );
@@ -245,7 +274,7 @@ describe("phase-0 compatibility namespace", () => {
     expect(JSON.parse(namespaceJsonOut.value())).toMatchObject({
       schema: "chainlesschain.namespace-help.v1",
       name: "lab",
-      commandCount: 2,
+      commandCount: migratedCommands.length,
     });
 
     const legacyOut = output();
@@ -536,6 +565,7 @@ describe("phase-0 compatibility namespace", () => {
       stderr: output().stream,
     });
     expect(textOut.value()).toContain("deprecated; use cc lab dao");
+    expect(textOut.value()).toContain("deprecated; use cc lab bm25");
     expect(textOut.value()).toContain("Compatibility namespace: lab");
 
     const jsonOut = output();
@@ -549,10 +579,9 @@ describe("phase-0 compatibility namespace", () => {
     expect(document.namespaces).toEqual([
       expect.objectContaining({
         name: "lab",
-        commands: [
-          expect.objectContaining({ name: "dao" }),
-          expect.objectContaining({ name: "evomap" }),
-        ],
+        commands: migratedCommands.map((name) =>
+          expect.objectContaining({ name }),
+        ),
       }),
     ]);
     expect(
