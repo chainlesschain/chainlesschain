@@ -282,8 +282,19 @@ async function runElectronMainHostJourney(options) {
       10_000,
       signal,
     );
+    appendTrace(tracePath, {
+      phase,
+      status: "electron-inspector-endpoint-ready",
+    });
     inspector = await connectElectronInspector(endpoint);
-    await inspector.send("Runtime.enable");
+    // Runtime.evaluate is available without Runtime.enable. On the VS Code
+    // 1.131 macOS Electron main process, Runtime.enable accepts the inspector
+    // connection but never settles, so requiring it creates a deterministic
+    // 15-second false failure before any WebContents can be inspected.
+    appendTrace(tracePath, {
+      phase,
+      status: "electron-inspector-connected",
+    });
     const located = await findChatWebContents(
       inspector,
       timeoutMs,
