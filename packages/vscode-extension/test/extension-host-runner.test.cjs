@@ -85,6 +85,19 @@ test("extension-host runner resolves the downloaded host's exact version", async
   assert.equal(await resolveVsCodeHostVersion(executable, "1.85.2"), "1.110.3");
 });
 
+test("host version resolves from the test-electron Windows archive directory", async () => {
+  const root = temporaryRoot();
+  const executable = path.join(
+    root,
+    "vscode-win32-x64-archive-1.131.0",
+    "Code.exe",
+  );
+  fs.mkdirSync(path.dirname(executable), { recursive: true });
+  fs.writeFileSync(executable, "", "utf8");
+
+  assert.equal(await resolveVsCodeHostVersion(executable, "stable"), "1.131.0");
+});
+
 test("fresh host profile root stays within the macOS Unix-socket budget", () => {
   const parent = temporaryRoot();
   const runRoot = makeFreshRunRoot(parent);

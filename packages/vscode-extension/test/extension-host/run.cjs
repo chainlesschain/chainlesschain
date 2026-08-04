@@ -334,6 +334,15 @@ async function resolveVsCodeHostVersion(executablePath, requestedVersion) {
       const version = readJsonVersion(path.join(current, relative));
       if (version) return version;
     }
+    // @vscode/test-electron resolves channels such as "stable" before
+    // extraction and records the exact version in its install directory, e.g.
+    // vscode-win32-x64-archive-1.131.0. Windows archive layouts do not always
+    // expose resources/app/package.json next to the returned executable, so
+    // use that immutable cache identity before falling back to the CLI probe.
+    const directoryVersion = path
+      .basename(current)
+      .match(/(?:^|[-_])(\d+\.\d+\.\d+)(?:$|[-_])/u);
+    if (directoryVersion) return directoryVersion[1];
     const parent = path.dirname(current);
     if (parent === current) break;
     current = parent;
