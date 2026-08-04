@@ -54,21 +54,28 @@ test("VS Code macOS host gate pins the validated Intel runner image", () => {
   assert.match(macGate[0], /runs-on: macos-15-intel/u);
   assert.doesNotMatch(macGate[0], /runs-on: macos-latest/u);
   assert.match(macGate[0], /@vscode\/test-electron@3\.1\.0/u);
-  assert.match(macGate[0], /ws@8\.21\.2/u);
+  assert.doesNotMatch(macGate[0], /ws@8\.21\.2/u);
   assert.doesNotMatch(macGate[0], /playwright/u);
   assert.doesNotMatch(macGate[0], /--host-api-only/u);
   const hostRunner = read(
     "packages/vscode-extension/test/extension-host/run.cjs",
   );
-  const electronJourney = read(
-    "packages/vscode-extension/test/extension-host/electron-main-journey.cjs",
+  const relayJourney = read(
+    "packages/vscode-extension/test/extension-host/driver/dom-relay-journey.cjs",
   );
-  assert.match(hostRunner, /--inspect=127\.0\.0\.1:/u);
-  assert.match(hostRunner, /useElectronMainInspector/u);
+  const productionRelay = read(
+    "packages/vscode-extension/src/chat/host-dom-relay.js",
+  );
+  assert.match(
+    hostRunner,
+    /useDomRelay: !hostApiMode && process\.platform === "darwin"/u,
+  );
+  assert.match(hostRunner, /CHAINLESSCHAIN_HOST_DOM_TOKEN/u);
   assert.doesNotMatch(hostRunner, /ApplicationFirewall\/socketfilterfw/u);
-  assert.match(electronJourney, /webContents\.getAllWebContents/u);
-  assert.match(electronJourney, /contents\.executeJavaScript/u);
-  assert.match(electronJourney, /contents\.capturePage/u);
+  assert.match(relayJourney, /vscode-webview-message-relay/u);
+  assert.doesNotMatch(relayJourney, /\beval\s*\(/u);
+  assert.match(productionRelay, /timingSafeEqual/u);
+  assert.doesNotMatch(productionRelay, /\beval\s*\(/u);
   assert.equal(
     macGate[0].match(
       /- name: Extension Host smoke \(macOS (?:stable|minimum 1\.85\.2)\)\n\s+timeout-minutes: 15/gu,
@@ -82,7 +89,7 @@ test("VS Code macOS host gate pins the validated Intel runner image", () => {
   );
   assert.equal(
     workflow.match(/ws@8\.21\.2/gu)?.length,
-    3,
-    "all three host gates must pin the CDP websocket client",
+    2,
+    "only the Windows and Linux CDP host gates need the websocket client",
   );
 });

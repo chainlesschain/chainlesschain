@@ -149,9 +149,12 @@ version.
   minimum-supported (`1.85.2`) Extension Hosts with
   `test/extension-host/run.cjs`. Windows and Linux/Xvfb run the complete real
   Webview DOM control/restart journey through a random loopback-only Chromium
-  CDP port. macOS uses Electron's random loopback-only Node inspector and the
-  main-process `webContents` API to evaluate and capture the same installed
-  VSIX Webview DOM without depending on Chromium's browser-target websocket.
+  CDP port. Signed macOS VS Code builds reject the hosted runner's external
+  CDP and inspector handshakes, so macOS drives the same installed VSIX Webview
+  through VS Code's own Extension Host/Webview message boundary. The hidden
+  relay exists only when the launcher injects a fresh 256-bit token, validates
+  that token on both sides, and exposes fixed semantic DOM actions rather than
+  arbitrary JavaScript evaluation.
   macOS remains release-authoritative only when both stable and minimum
   journeys pass.
   `--host-api-only` is a

@@ -37,7 +37,11 @@ const ELICITATION_FORM_SOURCE = fs.readFileSync(
 // an explicit UI/Host handshake rather than relying on the extension version.
 const CHAT_UI_PROTOCOL_VERSION = 2;
 
-function buildChatHtml({ cspSource, nonce, l10n }) {
+function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
+  const safeHostDomToken =
+    typeof hostDomToken === "string" && /^[a-f0-9]{64}$/u.test(hostDomToken)
+      ? hostDomToken
+      : "";
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -177,6 +181,7 @@ function buildChatHtml({ cspSource, nonce, l10n }) {
 <script nonce="${nonce}">
   const vscode = acquireVsCodeApi();
   const CC_CHAT_UI_PROTOCOL_VERSION = ${CHAT_UI_PROTOCOL_VERSION};
+  const CC_HOST_DOM_TOKEN = ${JSON.stringify(safeHostDomToken)};
   const CC_L10N = ${JSON.stringify(l10n || {})};
   const log = document.getElementById("log");
   const input = document.getElementById("input");
@@ -726,6 +731,77 @@ function buildChatHtml({ cspSource, nonce, l10n }) {
 
   window.addEventListener("message", (e) => {
     const m = e.data || {};
+    if (
+      m.kind === "hostDomCommand" &&
+      CC_HOST_DOM_TOKEN &&
+      m.token === CC_HOST_DOM_TOKEN &&
+      /^[a-f0-9]{32}$/.test(String(m.requestId || ""))
+    ) {
+      const respond = (ok, value) => vscode.postMessage({
+        type: "hostDomResult",
+        token: CC_HOST_DOM_TOKEN,
+        requestId: m.requestId,
+        ok,
+        ...(ok ? { result: value } : { error: String(value || "host DOM command failed") }),
+      });
+      try {
+        const command = m.command || {};
+        if (command.action === "snapshot") {
+          const plan = document.getElementById("plan");
+          const approvalCards = [...document.querySelectorAll('.approval[id^="appr-"]')];
+          const approval = approvalCards[approvalCards.length - 1] || null;
+          const approvalButton = approval
+            ? [...approval.querySelectorAll("button")].find(
+                (button) => button.textContent.trim() === "Approve" && !button.disabled,
+              ) || null
+            : null;
+          respond(true, {
+            readyState: document.readyState,
+            title: document.title,
+            url: location.href,
+            text: document.body ? document.body.innerText : "",
+            inputPresent: Boolean(input),
+            sendEnabled: Boolean(document.getElementById("send") && !document.getElementById("send").disabled),
+            stopEnabled: Boolean(document.getElementById("stop") && !document.getElementById("stop").disabled),
+            planVisible: Boolean(plan && getComputedStyle(plan).display !== "none"),
+            planApproveEnabled: Boolean(document.getElementById("planApprove") && !document.getElementById("planApprove").disabled),
+            approvalApproveEnabled: Boolean(approvalButton),
+          });
+          return;
+        }
+        if (command.action === "send" && typeof command.text === "string" && command.text.length <= 512) {
+          const button = document.getElementById("send");
+          if (!input || !button || button.disabled) throw new Error("composer is unavailable");
+          input.value = command.text;
+          input.dispatchEvent(new Event("input", { bubbles: true }));
+          button.click();
+          respond(true, { sent: true });
+          return;
+        }
+        if (command.action === "click") {
+          let button = null;
+          if (command.target === "planApprove") button = document.getElementById("planApprove");
+          if (command.target === "stop") button = document.getElementById("stop");
+          if (command.target === "latestApprovalApprove") {
+            const cards = [...document.querySelectorAll('.approval[id^="appr-"]')];
+            const card = cards[cards.length - 1] || null;
+            button = card
+              ? [...card.querySelectorAll("button")].find(
+                  (candidate) => candidate.textContent.trim() === "Approve" && !candidate.disabled,
+                ) || null
+              : null;
+          }
+          if (!button || button.disabled) throw new Error("control is unavailable: " + String(command.target));
+          button.click();
+          respond(true, { clicked: command.target });
+          return;
+        }
+        throw new Error("unsupported host DOM action: " + String(command.action));
+      } catch (error) {
+        respond(false, error && error.message ? error.message : error);
+      }
+      return;
+    }
     // The Extension Host may have restarted while VS Code retained this DOM.
     // Answer its probe so it can distinguish this UI from an older script.
     if (m.kind === "protocolProbe") {

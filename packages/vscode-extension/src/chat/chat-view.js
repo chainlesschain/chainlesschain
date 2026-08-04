@@ -19,6 +19,10 @@ const {
 } = require("./chat-events");
 const { buildChatHtml, CHAT_UI_PROTOCOL_VERSION } = require("./chat-html");
 const {
+  hostDomTokensEqual,
+  validateHostDomRequest,
+} = require("./host-dom-relay");
+const {
   ConversationManager,
   deriveTabTitle,
   isDefaultTitle,
@@ -48,6 +52,7 @@ const {
 
 const PLAN_REVIEW_STATES_KEY = "chainlesschain.chat.planReviewStates.v1";
 const WEBVIEW_PROTOCOL_TIMEOUT_MS = 750;
+const HOST_DOM_RESPONSE_TIMEOUT_MS = 10_000;
 
 class ChatViewProvider {
   /**
@@ -104,6 +109,8 @@ class ChatViewProvider {
       ? opts.state.get(PLAN_REVIEW_STATES_KEY)
       : [];
     this._loopTimers = new Map(); // convId -> { timer, intervalMs, prompt }
+    this._hostDomToken = this.opts.hostDomToken || null;
+    this._hostDomPending = new Map();
   }
 
   /** The active conversation, creating the first one (lazily) if none exist. */
@@ -298,6 +305,7 @@ class ChatViewProvider {
     return buildChatHtml({
       cspSource: view.webview.cspSource,
       nonce: crypto.randomBytes(16).toString("hex"),
+      hostDomToken: this._hostDomToken,
       // Localized in the host (the webview can't call vscode.l10n.t) and
       // injected as CC_L10N for the setup card.
       l10n: {
@@ -310,6 +318,79 @@ class ChatViewProvider {
         configureLlmBtn: this.vscode.l10n.t("Configure LLM"),
       },
     });
+  }
+
+  runHostDomCommand(request) {
+    if (!this._hostDomToken) {
+      return Promise.reject(new Error("host DOM relay is disabled"));
+    }
+    if (!this.view || !this._webviewReady || !this._webviewProtocolConfirmed) {
+      return Promise.reject(new Error("chat webview DOM is not ready"));
+    }
+    const command = validateHostDomRequest(request);
+    const requestId = crypto.randomBytes(16).toString("hex");
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        this._hostDomPending.delete(requestId);
+        reject(new Error(`host DOM command timed out: ${command.action}`));
+      }, HOST_DOM_RESPONSE_TIMEOUT_MS);
+      timer.unref?.();
+      this._hostDomPending.set(requestId, { resolve, reject, timer });
+      Promise.resolve(
+        this.view.webview.postMessage({
+          kind: "hostDomCommand",
+          token: this._hostDomToken,
+          requestId,
+          command,
+        }),
+      ).then(
+        (accepted) => {
+          if (accepted !== false) return;
+          const pending = this._hostDomPending.get(requestId);
+          if (!pending) return;
+          this._hostDomPending.delete(requestId);
+          clearTimeout(pending.timer);
+          pending.reject(
+            new Error("chat webview rejected the host DOM command"),
+          );
+        },
+        (error) => {
+          const pending = this._hostDomPending.get(requestId);
+          if (!pending) return;
+          this._hostDomPending.delete(requestId);
+          clearTimeout(pending.timer);
+          pending.reject(error);
+        },
+      );
+    });
+  }
+
+  _acceptHostDomResult(message) {
+    if (
+      !this._hostDomToken ||
+      !hostDomTokensEqual(this._hostDomToken, message.token) ||
+      typeof message.requestId !== "string"
+    ) {
+      return false;
+    }
+    const pending = this._hostDomPending.get(message.requestId);
+    if (!pending) return false;
+    this._hostDomPending.delete(message.requestId);
+    clearTimeout(pending.timer);
+    if (message.ok === true) pending.resolve(message.result);
+    else
+      pending.reject(
+        new Error(String(message.error || "host DOM command failed")),
+      );
+    return true;
+  }
+
+  _rejectHostDomPending(reason) {
+    for (const pending of this._hostDomPending.values()) {
+      clearTimeout(pending.timer);
+      pending.reject(new Error(reason));
+    }
+    this._hostDomPending.clear();
   }
 
   /**
@@ -2653,6 +2734,7 @@ class ChatViewProvider {
     }
     this._updateModeStatus();
     view.onDidDispose(() => {
+      this._rejectHostDomPending("chat webview was disposed");
       this._clearWebviewProtocolTimer();
       this._flushPlanReviewDrafts();
       for (const summary of this._convs.list()) {
@@ -2721,6 +2803,10 @@ class ChatViewProvider {
 
   _handleMessage(m) {
     if (!m || typeof m !== "object") return;
+    if (m.type === "hostDomResult") {
+      this._acceptHostDomResult(m);
+      return;
+    }
     if (this._webviewProtocolGuard) {
       if (m.type === "ready" || m.type === "protocol") {
         const wasReady = this._webviewReady;

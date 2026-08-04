@@ -15,6 +15,7 @@
  *   npm run test:extension-host -- --vsix chainlesschain-ide.vsix
  */
 
+const crypto = require("node:crypto");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
@@ -520,16 +521,49 @@ async function runRealDomPhase({
   fixture,
   useCdpPipe = false,
   useElectronMainInspector = false,
+  useDomRelay = false,
 }) {
-  if (useCdpPipe && useElectronMainInspector) {
-    throw new Error("CDP pipe and Electron inspector transports are exclusive");
+  if (
+    [useCdpPipe, useElectronMainInspector, useDomRelay].filter(Boolean).length >
+    1
+  ) {
+    throw new Error("host DOM transports are mutually exclusive");
+  }
+  const { readyFile, resultFile } = hostPhaseSignalPaths(runtimeDir, phase);
+  if (useDomRelay) {
+    const hostDomToken = crypto.randomBytes(32).toString("hex");
+    await runTests({
+      vscodeExecutablePath,
+      extensionDevelopmentPath: path.join(__dirname, "driver"),
+      extensionTestsPath: path.join(__dirname, "driver", "smoke.cjs"),
+      launchArgs: buildHostApiLaunchArgs({ workspaceDir, profileArgs }),
+      extensionTestsEnv: {
+        HOME: profileHome,
+        USERPROFILE: profileHome,
+        CHAINLESSCHAIN_SMOKE_EXTENSIONS_DIR: extensionsDir,
+        CHAINLESSCHAIN_SMOKE_EXPECTED_VERSION: expectedVersion,
+        CHAINLESSCHAIN_SMOKE_WORKSPACE: workspaceDir,
+        CHAINLESSCHAIN_HOST_JOURNEY_PHASE: phase,
+        CHAINLESSCHAIN_HOST_JOURNEY_MODE: "dom-relay",
+        CHAINLESSCHAIN_HOST_READY_FILE: readyFile,
+        CHAINLESSCHAIN_HOST_RESULT_FILE: resultFile,
+        CHAINLESSCHAIN_HOST_TRACE_FILE: path.join(
+          journeyArtifactDir,
+          "cdp-journey.jsonl",
+        ),
+        CHAINLESSCHAIN_HOST_ARTIFACT_DIR: journeyArtifactDir,
+        CHAINLESSCHAIN_HOST_DOM_TOKEN: hostDomToken,
+        CC_UI_FIXTURE_STATE: fixture.statePath,
+        CC_UI_FIXTURE_TRACE: fixture.tracePath,
+      },
+    });
+    return readJourneyResult(resultFile, phase);
   }
   const inspectorPort = useElectronMainInspector
     ? await reserveLoopbackPort()
     : null;
   const cdpPort =
     useCdpPipe || useElectronMainInspector ? null : await reserveLoopbackPort();
-  const { readyFile, resultFile } = hostPhaseSignalPaths(runtimeDir, phase);
   // Both Chromium CDP and Electron's Node inspector print their authoritative
   // endpoint before the Extension Host becomes ready. Capture only the exact
   // loopback URL allocated for this fresh host while teeing stderr to CI.
@@ -645,7 +679,9 @@ async function runRealDomPhase({
   if (hostError && cdp.error && cdp.error.name !== "AbortError") {
     throw new AggregateError(
       [hostError, cdp.error],
-      `VS Code host and CDP journey failed during ${phase}`,
+      `VS Code host and DOM journey failed during ${phase}: host=${String(
+        hostError.message || hostError,
+      )}; journey=${String(cdp.error.message || cdp.error)}`,
     );
   }
   if (hostError) throw hostError;
@@ -1002,7 +1038,8 @@ async function main() {
         journeyArtifactDir,
         fixture,
         useCdpPipe: false,
-        useElectronMainInspector: !hostApiMode && process.platform === "darwin",
+        useElectronMainInspector: false,
+        useDomRelay: !hostApiMode && process.platform === "darwin",
       });
       recordHostProgress(progressPath, `${phase}_completed`);
     }
@@ -1068,7 +1105,7 @@ async function main() {
         transport: hostApiMode
           ? "local-ide-bridge+vscode-extension-test-api"
           : process.platform === "darwin"
-            ? "local-ide-bridge+electron-main-inspector"
+            ? "local-ide-bridge+vscode-webview-message-dom"
             : "local-ide-bridge+loopback-cdp",
         result: journeyResult,
         startedAt,

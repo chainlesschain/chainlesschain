@@ -143,8 +143,8 @@ jobs:
     name: VS Code extension (macOS host gate)
     needs: capability-manifest
     # Keep the complete real-DOM Extension Host gate on the stable macOS 15
-    # Intel image. Chromium CDP stays on a random loopback-only port; the exact
-    # downloaded app is firewall-authorized and both hosts prove the journey.
+    # Intel image. A launch-token-gated test driver crosses VS Code's own
+    # Webview message boundary because signed macOS builds reject external CDP.
     runs-on: macos-15-intel
     timeout-minutes: 45
     defaults:
@@ -168,7 +168,7 @@ jobs:
       - name: Install Extension Host test runtime
         run: >-
           npm install --no-save --no-package-lock
-          @vscode/test-electron@3.1.0 ws@8.21.2
+          @vscode/test-electron@3.1.0
       - name: Extension Host smoke (macOS stable)
         timeout-minutes: 15
         run: >-

@@ -26,6 +26,7 @@ const {
   parseElectronInspectorEndpoint,
   recordHostProgress,
   resolveVsCodeHostVersion,
+  runRealDomPhase,
   settleHostAfterCdp,
 } = require("./extension-host/run.cjs");
 const {
@@ -299,6 +300,71 @@ test("host-API launch keeps the real extension-test profile without CDP", () => 
   assert.equal(
     args.some((arg) => arg.startsWith("--remote-debugging")),
     false,
+  );
+});
+
+test("macOS DOM relay launches the installed host without a debugging endpoint", async () => {
+  const root = temporaryRoot();
+  const runtimeDir = path.join(root, "runtime");
+  const artifactDir = path.join(root, "artifacts");
+  const workspaceDir = path.join(root, "workspace");
+  const extensionsDir = path.join(root, "extensions");
+  const profileHome = path.join(root, "home");
+  for (const directory of [workspaceDir, extensionsDir, profileHome]) {
+    fs.mkdirSync(directory, { recursive: true });
+  }
+  let launch;
+  const result = await runRealDomPhase({
+    runTests: async (options) => {
+      launch = options;
+      assert.match(
+        options.extensionTestsEnv.CHAINLESSCHAIN_HOST_DOM_TOKEN,
+        /^[a-f0-9]{64}$/u,
+      );
+      writeJsonSignal(
+        options.extensionTestsEnv.CHAINLESSCHAIN_HOST_RESULT_FILE,
+        {
+          ok: true,
+          phase: "initial",
+          mode: "dom-relay",
+          completedAt: "2026-08-01T00:00:00.000Z",
+        },
+      );
+    },
+    vscodeExecutablePath: path.join(root, "Code"),
+    workspaceDir,
+    profileArgs: buildProfileArgs({
+      runRoot: root,
+      extensionsDir,
+      phase: "initial",
+    }),
+    extensionsDir,
+    profileHome,
+    expectedVersion: "0.37.40",
+    phase: "initial",
+    runtimeDir,
+    journeyArtifactDir: artifactDir,
+    fixture: {
+      statePath: path.join(root, "fixture-state.json"),
+      tracePath: path.join(root, "fixture-trace.jsonl"),
+    },
+    useDomRelay: true,
+  });
+
+  assert.equal(result.mode, "dom-relay");
+  assert.equal(
+    launch.launchArgs.some((argument) =>
+      /(?:remote-debugging|--inspect)/u.test(argument),
+    ),
+    false,
+  );
+  assert.equal(
+    launch.extensionTestsEnv.CHAINLESSCHAIN_HOST_JOURNEY_MODE,
+    "dom-relay",
+  );
+  assert.equal(
+    launch.extensionTestsEnv.CHAINLESSCHAIN_HOST_TRACE_FILE,
+    path.join(artifactDir, "cdp-journey.jsonl"),
   );
 });
 

@@ -10,6 +10,7 @@ const {
   requestChatViewForDomJourney,
   withTimeout,
 } = require("./view-control.cjs");
+const { runDomRelayJourney } = require("./dom-relay-journey.cjs");
 
 const EXTENSION_ID = "chainlesschain.chainlesschain-ide";
 const REQUIRED_COMMANDS = [
@@ -255,6 +256,34 @@ async function revealChatForHostApiJourney({
   appendHostTrace(traceFile, phase, "phase-completed");
 }
 
+async function revealChatAndRunDomRelayJourney({
+  phase,
+  readyFile,
+  resultFile,
+  traceFile,
+  artifactDir,
+  token,
+  extensionPath,
+  workspaceDir,
+}) {
+  await requestChatViewForDomJourney({
+    commands: vscode.commands,
+    log: (message) =>
+      console.log(`[extension-host-smoke] ${phase}: ${message}`),
+  });
+  await runDomRelayJourney({
+    commands: vscode.commands,
+    token,
+    phase,
+    readyFile,
+    resultFile,
+    traceFile,
+    artifactDir,
+    extensionPath,
+    workspaceDir,
+  });
+}
+
 async function run() {
   const extensionsDir = process.env.CHAINLESSCHAIN_SMOKE_EXTENSIONS_DIR;
   const expectedVersion = process.env.CHAINLESSCHAIN_SMOKE_EXPECTED_VERSION;
@@ -265,13 +294,23 @@ async function run() {
   const readyFile = process.env.CHAINLESSCHAIN_HOST_READY_FILE;
   const resultFile = process.env.CHAINLESSCHAIN_HOST_RESULT_FILE;
   const traceFile = process.env.CHAINLESSCHAIN_HOST_TRACE_FILE;
+  const artifactDir = process.env.CHAINLESSCHAIN_HOST_ARTIFACT_DIR;
+  const hostDomToken = process.env.CHAINLESSCHAIN_HOST_DOM_TOKEN;
   assert.ok(extensionsDir, "missing CHAINLESSCHAIN_SMOKE_EXTENSIONS_DIR");
   assert.ok(expectedVersion, "missing CHAINLESSCHAIN_SMOKE_EXPECTED_VERSION");
   assert.ok(workspaceDir, "missing CHAINLESSCHAIN_SMOKE_WORKSPACE");
   assert.ok(profileHome, "missing isolated profile home");
-  assert.match(journeyMode, /^(?:dom|host-api)$/);
-  if (journeyMode === "host-api") {
+  assert.match(journeyMode, /^(?:dom|dom-relay|host-api)$/);
+  if (journeyMode === "host-api" || journeyMode === "dom-relay") {
     assert.ok(traceFile, "missing CHAINLESSCHAIN_HOST_TRACE_FILE");
+  }
+  if (journeyMode === "dom-relay") {
+    assert.ok(artifactDir, "missing CHAINLESSCHAIN_HOST_ARTIFACT_DIR");
+    assert.match(
+      hostDomToken || "",
+      /^[a-f0-9]{64}$/u,
+      "missing or malformed CHAINLESSCHAIN_HOST_DOM_TOKEN",
+    );
   }
   console.log(`[extension-host-smoke] ${journeyPhase}: driver entered`);
 
@@ -310,7 +349,7 @@ async function run() {
     appendHostTrace(traceFile, journeyPhase, "vsix-activated");
   }
 
-  if (journeyMode === "dom" && journeyPhase === "restart") {
+  if (journeyMode !== "host-api" && journeyPhase === "restart") {
     await resumeFixtureSessionAfterHostRestart();
   }
 
@@ -353,6 +392,17 @@ async function run() {
       readyFile,
       resultFile,
       traceFile,
+      extensionPath: extension.extensionPath,
+      workspaceDir,
+    });
+  } else if (journeyMode === "dom-relay") {
+    await revealChatAndRunDomRelayJourney({
+      phase: journeyPhase,
+      readyFile,
+      resultFile,
+      traceFile,
+      artifactDir,
+      token: hostDomToken,
       extensionPath: extension.extensionPath,
       workspaceDir,
     });

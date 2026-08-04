@@ -1,0 +1,284 @@
+"use strict";
+
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
+
+const HOST_DOM_COMMAND = "chainlesschain.internal.hostDomCommand";
+const JOURNEY_PHASES = Object.freeze({
+  initial: Object.freeze([
+    "stream",
+    "retry",
+    "plan-approval",
+    "permission",
+    "interrupt",
+  ]),
+  restart: Object.freeze(["ide-restart-resume"]),
+});
+
+function delay(milliseconds) {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
+function appendTrace(traceFile, record) {
+  fs.mkdirSync(path.dirname(traceFile), { recursive: true, mode: 0o700 });
+  fs.appendFileSync(
+    traceFile,
+    `${JSON.stringify({ at: new Date().toISOString(), ...record })}\n`,
+    { encoding: "utf8", mode: 0o600 },
+  );
+}
+
+function writeSignal(filePath, value) {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true, mode: 0o700 });
+  assert.equal(
+    fs.existsSync(filePath),
+    false,
+    `refusing to reuse stale journey signal ${filePath}`,
+  );
+  const temporary = path.join(
+    path.dirname(filePath),
+    `.${path.basename(filePath)}.${process.pid}.${Date.now()}.tmp`,
+  );
+  fs.writeFileSync(temporary, `${JSON.stringify(value)}\n`, {
+    encoding: "utf8",
+    mode: 0o600,
+    flag: "wx",
+  });
+  fs.renameSync(temporary, filePath);
+}
+
+async function executeRelay(commands, token, request) {
+  return commands.executeCommand(HOST_DOM_COMMAND, token, request);
+}
+
+function assertSnapshot(snapshot) {
+  assert.ok(
+    snapshot && typeof snapshot === "object",
+    "DOM snapshot is missing",
+  );
+  assert.equal(typeof snapshot.text, "string", "DOM snapshot text is missing");
+  assert.equal(
+    snapshot.inputPresent,
+    true,
+    "chat composer is missing from the DOM",
+  );
+  assert.equal(snapshot.sendEnabled, true, "chat send control is unavailable");
+  return snapshot;
+}
+
+async function waitForSnapshot({
+  commands,
+  token,
+  predicate = () => true,
+  label,
+  timeoutMs = 45_000,
+}) {
+  const deadline = Date.now() + timeoutMs;
+  let lastError;
+  while (Date.now() < deadline) {
+    try {
+      const snapshot = assertSnapshot(
+        await executeRelay(commands, token, { action: "snapshot" }),
+      );
+      if (predicate(snapshot)) return snapshot;
+    } catch (error) {
+      lastError = error;
+    }
+    await delay(100);
+  }
+  throw new Error(`${label} did not become true within ${timeoutMs}ms`, {
+    cause: lastError,
+  });
+}
+
+async function sendComposer(commands, token, text) {
+  const result = await executeRelay(commands, token, { action: "send", text });
+  assert.equal(result?.sent, true, `could not send composer text: ${text}`);
+}
+
+async function clickWhenReady({ commands, token, target, snapshotKey, label }) {
+  await waitForSnapshot({
+    commands,
+    token,
+    predicate: (snapshot) => snapshot[snapshotKey] === true,
+    label: `${label} control`,
+  });
+  const result = await executeRelay(commands, token, {
+    action: "click",
+    target,
+  });
+  assert.equal(result?.clicked, target, `could not click ${label}`);
+}
+
+async function drivePhase(commands, token, phase, traceFile) {
+  const step = async (name, action) => {
+    appendTrace(traceFile, { phase, step: name, status: "started" });
+    await action();
+    appendTrace(traceFile, { phase, step: name, status: "passed" });
+  };
+  const waitForText = (text, label) =>
+    waitForSnapshot({
+      commands,
+      token,
+      predicate: (snapshot) => snapshot.text.includes(text),
+      label,
+    });
+
+  if (phase === "initial") {
+    await step("stream", async () => {
+      await sendComposer(commands, token, "journey:stream");
+      await waitForText("fixture stream complete #1", "first streamed turn");
+    });
+    await step("retry", async () => {
+      await sendComposer(commands, token, "/retry");
+      await waitForText("fixture stream complete #2", "retried turn");
+    });
+    await step("plan-approval", async () => {
+      await sendComposer(commands, token, "journey:plan");
+      await waitForSnapshot({
+        commands,
+        token,
+        predicate: (snapshot) => snapshot.planVisible === true,
+        label: "plan card",
+      });
+      await clickWhenReady({
+        commands,
+        token,
+        target: "planApprove",
+        snapshotKey: "planApproveEnabled",
+        label: "plan approve",
+      });
+      await waitForText("fixture plan approve #3", "plan continuation");
+    });
+    await step("permission", async () => {
+      await sendComposer(commands, token, "journey:permission");
+      await clickWhenReady({
+        commands,
+        token,
+        target: "latestApprovalApprove",
+        snapshotKey: "approvalApproveEnabled",
+        label: "permission approve",
+      });
+      await waitForText(
+        "fixture permission approved #4",
+        "permission continuation",
+      );
+    });
+    await step("interrupt", async () => {
+      await sendComposer(commands, token, "journey:stop");
+      await clickWhenReady({
+        commands,
+        token,
+        target: "stop",
+        snapshotKey: "stopEnabled",
+        label: "interrupt",
+      });
+      await waitForText("interrupted", "interrupt result");
+    });
+    return;
+  }
+
+  if (phase === "restart") {
+    await step("ide-restart-resume", async () => {
+      await sendComposer(commands, token, "journey:resume");
+      await waitForText(
+        "resumed previous conversation",
+        "resume acknowledgement",
+      );
+      await waitForText(
+        "fixture stream complete #6",
+        "post-restart streamed turn",
+      );
+    });
+    return;
+  }
+  throw new Error(`unknown DOM relay journey phase: ${phase}`);
+}
+
+async function runDomRelayJourney({
+  commands,
+  token,
+  phase,
+  readyFile,
+  resultFile,
+  traceFile,
+  artifactDir,
+  extensionPath,
+  workspaceDir,
+}) {
+  assert.match(
+    token || "",
+    /^[a-f0-9]{64}$/u,
+    "host DOM relay token is malformed",
+  );
+  assert.ok(
+    Object.hasOwn(JOURNEY_PHASES, phase),
+    `unknown journey phase: ${phase}`,
+  );
+  let failure;
+  try {
+    const initialSnapshot = await waitForSnapshot({
+      commands,
+      token,
+      label: "chat webview relay",
+    });
+    appendTrace(traceFile, {
+      phase,
+      status: "target-found",
+      targetType: "vscode-webview-message-relay",
+      targetUrl:
+        initialSnapshot.url || "vscode-webview://chainlesschainIdeChat",
+    });
+    writeSignal(readyFile, {
+      phase,
+      mode: "dom-relay",
+      extensionPath: fs.realpathSync(extensionPath),
+      workspaceDir: fs.realpathSync(workspaceDir),
+      readyAt: new Date().toISOString(),
+    });
+    await drivePhase(commands, token, phase, traceFile);
+    const finalSnapshot = await waitForSnapshot({
+      commands,
+      token,
+      label: "final chat webview snapshot",
+    });
+    fs.mkdirSync(artifactDir, { recursive: true, mode: 0o700 });
+    fs.writeFileSync(
+      path.join(artifactDir, `${phase}-dom.txt`),
+      finalSnapshot.text.slice(-128 * 1024),
+      { encoding: "utf8", mode: 0o600, flag: "wx" },
+    );
+    writeSignal(resultFile, {
+      ok: true,
+      phase,
+      mode: "dom-relay",
+      completedAt: new Date().toISOString(),
+    });
+  } catch (error) {
+    failure = error;
+    appendTrace(traceFile, {
+      phase,
+      status: "failed",
+      error: String(error?.stack || error),
+    });
+    if (!fs.existsSync(resultFile)) {
+      writeSignal(resultFile, {
+        ok: false,
+        phase,
+        mode: "dom-relay",
+        error: String(error?.message || error),
+        completedAt: new Date().toISOString(),
+      });
+    }
+  }
+  if (failure) throw failure;
+}
+
+module.exports = {
+  HOST_DOM_COMMAND,
+  assertSnapshot,
+  drivePhase,
+  runDomRelayJourney,
+  waitForSnapshot,
+};
