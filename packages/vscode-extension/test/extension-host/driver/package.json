@@ -9,5 +9,15 @@
     "vscode": "^1.85.0"
   },
   "main": "./noop.cjs",
-  "activationEvents": []
+  "activationEvents": [
+    "onCommand:chainlesschainTests.runHostJourney"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "chainlesschainTests.runHostJourney",
+        "title": "ChainlessChain Tests: Run Host Journey"
+      }
+    ]
+  }
 }

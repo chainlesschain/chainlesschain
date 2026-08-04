@@ -34,6 +34,11 @@ const {
   activate,
   deactivate,
 } = require("../../../vscode-extension/src/extension.js");
+const {
+  HOST_DOM_DRIVER_COMMAND,
+} = require("../../../vscode-extension/src/chat/host-dom-relay.js");
+
+const HOST_DOM_TOKEN = "ab".repeat(32);
 
 function fakeContext() {
   const store = new Map();
@@ -98,8 +103,11 @@ const SPAWNING = [
 
 describe("extension activate() wiring", () => {
   let ctx;
+  let inheritedHostDomToken;
 
   beforeEach(() => {
+    inheritedHostDomToken = process.env.CHAINLESSCHAIN_HOST_DOM_TOKEN;
+    delete process.env.CHAINLESSCHAIN_HOST_DOM_TOKEN;
     vscode.__reset();
     // Keep activation pure wiring: no MCP server, no lockfile, no cc probes.
     vscode.__setConfig({ "chainlesschain.ide.enabled": false });
@@ -116,6 +124,35 @@ describe("extension activate() wiring", () => {
         /* fake disposables */
       }
     }
+    if (inheritedHostDomToken === undefined) {
+      delete process.env.CHAINLESSCHAIN_HOST_DOM_TOKEN;
+    } else {
+      process.env.CHAINLESSCHAIN_HOST_DOM_TOKEN = inheritedHostDomToken;
+    }
+  });
+
+  it("keeps the test driver inert without a valid host DOM token", async () => {
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(vscode.__executed).not.toContainEqual({
+      id: HOST_DOM_DRIVER_COMMAND,
+      args: [],
+    });
+  });
+
+  it("dispatches the fixed host journey command once for a valid test token", async () => {
+    await deactivate();
+    for (const disposable of ctx.subscriptions) disposable?.dispose?.();
+    vscode.__reset();
+    vscode.__setConfig({ "chainlesschain.ide.enabled": false });
+    process.env.CHAINLESSCHAIN_HOST_DOM_TOKEN = HOST_DOM_TOKEN;
+    ctx = fakeContext();
+
+    activate(ctx);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(
+      vscode.__executed.filter(({ id }) => id === HOST_DOM_DRIVER_COMMAND),
+    ).toEqual([{ id: HOST_DOM_DRIVER_COMMAND, args: [] }]);
   });
 
   it("registers every command it relies on", () => {

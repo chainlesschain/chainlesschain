@@ -31,6 +31,7 @@ const { openDashboard, refreshDashboard } = require("./ui/dashboard");
 const { ChatViewProvider } = require("./chat/chat-view");
 const {
   HOST_DOM_COMMAND,
+  HOST_DOM_DRIVER_COMMAND,
   normalizeHostDomToken,
   hostDomTokensEqual,
 } = require("./chat/host-dom-relay");
@@ -1407,6 +1408,20 @@ function activate(context) {
   );
 
   startBridge(context).catch((e) => log("start failed: " + e.message));
+  if (hostDomToken) {
+    // The packaged target activates before the test-only development driver on
+    // signed macOS hosts. Trigger the driver's fixed contributed command only
+    // after this synchronous activation has returned; normal product launches
+    // have no relay token, so this hook is absent in production sessions.
+    const driverTimer = setTimeout(() => {
+      Promise.resolve(
+        vscode.commands.executeCommand(HOST_DOM_DRIVER_COMMAND),
+      ).catch((error) =>
+        log(`host DOM relay driver failed: ${error?.message || error}`),
+      );
+    }, 0);
+    context.subscriptions.push({ dispose: () => clearTimeout(driverTimer) });
+  }
 }
 
 function deactivate() {

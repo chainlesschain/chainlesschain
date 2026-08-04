@@ -3,6 +3,7 @@
 const crypto = require("crypto");
 
 const HOST_DOM_COMMAND = "chainlesschain.internal.hostDomCommand";
+const HOST_DOM_DRIVER_COMMAND = "chainlesschainTests.runHostJourney";
 const HOST_DOM_TOKEN_PATTERN = /^[a-f0-9]{64}$/u;
 const HOST_DOM_ACTIONS = new Set(["snapshot", "send", "click"]);
 const HOST_DOM_CLICK_TARGETS = new Set([
@@ -52,6 +53,7 @@ function validateHostDomRequest(value) {
 
 module.exports = {
   HOST_DOM_COMMAND,
+  HOST_DOM_DRIVER_COMMAND,
   normalizeHostDomToken,
   hostDomTokensEqual,
   validateHostDomRequest,

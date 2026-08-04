@@ -373,6 +373,38 @@ test("macOS DOM relay keeps its loopback Inspector bootstrap transport-free", as
   );
 });
 
+test("macOS fallback driver exposes one fixed command and deduplicates the journey", () => {
+  const driverRoot = path.join(__dirname, "extension-host", "driver");
+  const manifest = JSON.parse(
+    fs.readFileSync(path.join(driverRoot, "package.json"), "utf8"),
+  );
+  assert.deepEqual(manifest.activationEvents, [
+    "onCommand:chainlesschainTests.runHostJourney",
+  ]);
+  assert.deepEqual(manifest.contributes?.commands, [
+    {
+      command: "chainlesschainTests.runHostJourney",
+      title: "ChainlessChain Tests: Run Host Journey",
+    },
+  ]);
+
+  const activationSource = fs.readFileSync(
+    path.join(driverRoot, "noop.cjs"),
+    "utf8",
+  );
+  const journeySource = fs.readFileSync(
+    path.join(driverRoot, "smoke.cjs"),
+    "utf8",
+  );
+  assert.match(
+    activationSource,
+    /registerCommand\(DRIVER_COMMAND,[\s\S]*require\("\.\/smoke\.cjs"\)\.run\(\)/u,
+  );
+  assert.match(journeySource, /let runPromise;/u);
+  assert.match(journeySource, /if \(!runPromise\) runPromise = run\(\);/u);
+  assert.match(journeySource, /module\.exports = \{ run: runOnce \};/u);
+});
+
 test("macOS real-DOM host uses the loopback Electron inspector", () => {
   const root = temporaryRoot();
   const workspaceDir = path.join(root, "workspace");

@@ -33,6 +33,7 @@ const {
   readJourneyResult,
   reserveLoopbackPort,
   runCdpHostJourney,
+  waitForFile,
 } = require("./cdp-journey.cjs");
 const { runElectronMainHostJourney } = require("./electron-main-journey.cjs");
 
@@ -483,12 +484,13 @@ async function settleHostAfterCdp({
   graceMs = 5_000,
   forceGraceMs = 15_000,
   emitSigint = () => process.emit("SIGINT"),
+  journeyLabel = "CDP journey",
 }) {
   let host = await waitForOutcome(hostOutcome, graceMs);
   if (host) return { host, managedTermination: false };
 
   process.stdout.write(
-    `[extension-host-smoke] ${phase}: CDP journey settled; requesting host shutdown\n`,
+    `[extension-host-smoke] ${phase}: ${journeyLabel} settled; requesting host shutdown\n`,
   );
   emitSigint();
   host = await waitForOutcome(hostOutcome, graceMs);
@@ -533,42 +535,92 @@ async function runRealDomPhase({
   if (useDomRelay) {
     fs.mkdirSync(journeyArtifactDir, { recursive: true, mode: 0o700 });
     const hostDomToken = crypto.randomBytes(32).toString("hex");
-    // Signed macOS VS Code builds on hosted runners do not start their
-    // extensionTestsPath runner without Electron's main-process inspector
-    // switch and a positional workspace. The journey never connects to this
-    // endpoint; every DOM action and result crosses the token-gated Extension
-    // Host/Webview message relay below.
+    // The signed macOS host does not reliably schedule extensionTestsPath.
+    // A valid one-launch token lets the installed target invoke the test-only
+    // driver's fixed contributed command after target activation returns. The
+    // Inspector switch remains bootstrap-only: every DOM action and result
+    // crosses the token-gated Extension Host/Webview message relay below.
     const bootstrapInspectorPort = await reserveLoopbackPort();
-    await runTests({
-      vscodeExecutablePath,
-      extensionDevelopmentPath: path.join(__dirname, "driver"),
-      extensionTestsPath: path.join(__dirname, "driver", "smoke.cjs"),
-      launchArgs: buildHostInspectorLaunchArgs({
-        workspaceDir,
-        profileArgs,
-        inspectorPort: bootstrapInspectorPort,
-      }),
-      extensionTestsEnv: {
-        HOME: profileHome,
-        USERPROFILE: profileHome,
-        CHAINLESSCHAIN_SMOKE_EXTENSIONS_DIR: extensionsDir,
-        CHAINLESSCHAIN_SMOKE_EXPECTED_VERSION: expectedVersion,
-        CHAINLESSCHAIN_SMOKE_WORKSPACE: workspaceDir,
-        CHAINLESSCHAIN_HOST_JOURNEY_PHASE: phase,
-        CHAINLESSCHAIN_HOST_JOURNEY_MODE: "dom-relay",
-        CHAINLESSCHAIN_HOST_READY_FILE: readyFile,
-        CHAINLESSCHAIN_HOST_RESULT_FILE: resultFile,
-        CHAINLESSCHAIN_HOST_TRACE_FILE: path.join(
-          journeyArtifactDir,
-          "cdp-journey.jsonl",
-        ),
-        CHAINLESSCHAIN_HOST_ARTIFACT_DIR: journeyArtifactDir,
-        CHAINLESSCHAIN_HOST_DOM_TOKEN: hostDomToken,
-        CC_UI_FIXTURE_STATE: fixture.statePath,
-        CC_UI_FIXTURE_TRACE: fixture.tracePath,
-      },
-    });
-    return readJourneyResult(resultFile, phase);
+    const sigintGuard = () => {};
+    process.on("SIGINT", sigintGuard);
+    let host;
+    let relay;
+    let managedTermination = false;
+    try {
+      const hostOutcome = Promise.resolve()
+        .then(() =>
+          runTests({
+            vscodeExecutablePath,
+            extensionDevelopmentPath: path.join(__dirname, "driver"),
+            extensionTestsPath: path.join(__dirname, "driver", "smoke.cjs"),
+            launchArgs: buildHostInspectorLaunchArgs({
+              workspaceDir,
+              profileArgs,
+              inspectorPort: bootstrapInspectorPort,
+            }),
+            extensionTestsEnv: {
+              HOME: profileHome,
+              USERPROFILE: profileHome,
+              CHAINLESSCHAIN_SMOKE_EXTENSIONS_DIR: extensionsDir,
+              CHAINLESSCHAIN_SMOKE_EXPECTED_VERSION: expectedVersion,
+              CHAINLESSCHAIN_SMOKE_WORKSPACE: workspaceDir,
+              CHAINLESSCHAIN_HOST_JOURNEY_PHASE: phase,
+              CHAINLESSCHAIN_HOST_JOURNEY_MODE: "dom-relay",
+              CHAINLESSCHAIN_HOST_READY_FILE: readyFile,
+              CHAINLESSCHAIN_HOST_RESULT_FILE: resultFile,
+              CHAINLESSCHAIN_HOST_TRACE_FILE: path.join(
+                journeyArtifactDir,
+                "cdp-journey.jsonl",
+              ),
+              CHAINLESSCHAIN_HOST_ARTIFACT_DIR: journeyArtifactDir,
+              CHAINLESSCHAIN_HOST_DOM_TOKEN: hostDomToken,
+              CC_UI_FIXTURE_STATE: fixture.statePath,
+              CC_UI_FIXTURE_TRACE: fixture.tracePath,
+            },
+          }),
+        )
+        .then(
+          (value) => ({ value }),
+          (error) => ({ error }),
+        );
+      const relayOutcome = waitForFile(resultFile, 180_000)
+        .then(() => readJourneyResult(resultFile, phase))
+        .then(
+          (value) => ({ value }),
+          (error) => ({ error }),
+        );
+      const first = await Promise.race([
+        hostOutcome.then((outcome) => ({ source: "host", outcome })),
+        relayOutcome.then((outcome) => ({ source: "relay", outcome })),
+      ]);
+      if (first.source === "host") {
+        host = first.outcome;
+        relay = await relayOutcome;
+      } else {
+        relay = first.outcome;
+        ({ host, managedTermination } = await settleHostAfterCdp({
+          hostOutcome,
+          phase,
+          journeyLabel: "DOM relay journey",
+        }));
+      }
+    } finally {
+      process.removeListener("SIGINT", sigintGuard);
+    }
+
+    const hostError =
+      managedTermination && !relay.error ? null : host && host.error;
+    if (hostError && relay.error) {
+      throw new AggregateError(
+        [hostError, relay.error],
+        `VS Code host and DOM relay journey failed during ${phase}: host=${String(
+          hostError.message || hostError,
+        )}; journey=${String(relay.error.message || relay.error)}`,
+      );
+    }
+    if (hostError) throw hostError;
+    if (relay.error) throw relay.error;
+    return relay.value;
   }
   const inspectorPort = useElectronMainInspector
     ? await reserveLoopbackPort()

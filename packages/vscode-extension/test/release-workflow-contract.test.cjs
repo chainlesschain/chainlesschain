@@ -66,6 +66,15 @@ test("VS Code macOS host gate pins the validated Intel runner image", () => {
   const productionRelay = read(
     "packages/vscode-extension/src/chat/host-dom-relay.js",
   );
+  const productionExtension = read(
+    "packages/vscode-extension/src/extension.js",
+  );
+  const driverManifest = JSON.parse(
+    read("packages/vscode-extension/test/extension-host/driver/package.json"),
+  );
+  const driverEntry = read(
+    "packages/vscode-extension/test/extension-host/driver/noop.cjs",
+  );
   assert.match(
     hostRunner,
     /useDomRelay: !hostApiMode && process\.platform === "darwin"/u,
@@ -75,11 +84,25 @@ test("VS Code macOS host gate pins the validated Intel runner image", () => {
     /const bootstrapInspectorPort = await reserveLoopbackPort\(\)/u,
   );
   assert.match(hostRunner, /CHAINLESSCHAIN_HOST_DOM_TOKEN/u);
+  assert.match(hostRunner, /waitForFile\(resultFile, 180_000\)/u);
   assert.doesNotMatch(hostRunner, /ApplicationFirewall\/socketfilterfw/u);
   assert.match(relayJourney, /vscode-webview-message-relay/u);
   assert.doesNotMatch(relayJourney, /\beval\s*\(/u);
   assert.match(productionRelay, /timingSafeEqual/u);
   assert.doesNotMatch(productionRelay, /\beval\s*\(/u);
+  assert.deepEqual(driverManifest.activationEvents, [
+    "onCommand:chainlesschainTests.runHostJourney",
+  ]);
+  assert.equal(
+    driverManifest.contributes.commands[0].command,
+    "chainlesschainTests.runHostJourney",
+  );
+  assert.match(driverEntry, /registerCommand\(DRIVER_COMMAND/u);
+  assert.match(productionExtension, /if \(hostDomToken\)/u);
+  assert.match(
+    productionExtension,
+    /executeCommand\(HOST_DOM_DRIVER_COMMAND\)/u,
+  );
   assert.equal(
     macGate[0].match(
       /- name: Extension Host smoke \(macOS (?:stable|minimum 1\.85\.2)\)\n\s+timeout-minutes: 15/gu,

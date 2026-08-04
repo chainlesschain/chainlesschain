@@ -10,6 +10,7 @@ const { buildChatHtml } = require("../src/chat/chat-html");
 const { ChatViewProvider } = require("../src/chat/chat-view");
 const {
   HOST_DOM_COMMAND,
+  HOST_DOM_DRIVER_COMMAND,
   hostDomTokensEqual,
   normalizeHostDomToken,
   validateHostDomRequest,
@@ -29,6 +30,7 @@ afterEach(() => {
 
 test("host DOM relay is token-gated and only accepts fixed semantic actions", () => {
   assert.equal(HOST_DOM_COMMAND, "chainlesschain.internal.hostDomCommand");
+  assert.equal(HOST_DOM_DRIVER_COMMAND, "chainlesschainTests.runHostJourney");
   assert.equal(normalizeHostDomToken(TOKEN), TOKEN);
   assert.equal(normalizeHostDomToken("short"), null);
   assert.equal(hostDomTokensEqual(TOKEN, TOKEN), true);
