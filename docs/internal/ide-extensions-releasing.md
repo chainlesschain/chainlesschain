@@ -147,12 +147,13 @@ version.
   `verify-vsix.selftest.mjs` and `verify-vsix.mjs`.
 - **VS Code runtime gates**: install the packaged VSIX into fresh stable and
   minimum-supported (`1.85.2`) Extension Hosts with
-  `test/extension-host/run.cjs`. Windows, macOS, and Linux/Xvfb run the complete
-  real Webview DOM control/restart journey through a random loopback-only CDP
-  port. The test host disables Chromium's interactive remote-debugging approval
-  feature; macOS additionally authorizes the exact downloaded `.app` in the
-  ephemeral runner's application firewall. macOS remains release-authoritative
-  only when both stable and minimum journeys pass.
+  `test/extension-host/run.cjs`. Windows and Linux/Xvfb run the complete real
+  Webview DOM control/restart journey through a random loopback-only Chromium
+  CDP port. macOS uses Electron's random loopback-only Node inspector and the
+  main-process `webContents` API to evaluate and capture the same installed
+  VSIX Webview DOM without depending on Chromium's browser-target websocket.
+  macOS remains release-authoritative only when both stable and minimum
+  journeys pass.
   `--host-api-only` is a
   diagnostic fallback that verifies activation, registered commands, the live
   bridge, and the production Activity View/focus command, but it does not prove

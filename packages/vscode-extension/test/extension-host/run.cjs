@@ -18,7 +18,7 @@
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
-const { spawn, spawnSync } = require("node:child_process");
+const { spawn } = require("node:child_process");
 const { PassThrough } = require("node:stream");
 const { pathToFileURL } = require("node:url");
 const {
@@ -33,6 +33,7 @@ const {
   reserveLoopbackPort,
   runCdpHostJourney,
 } = require("./cdp-journey.cjs");
+const { runElectronMainHostJourney } = require("./electron-main-journey.cjs");
 
 const EXTENSION_ID = "chainlesschain.chainlesschain-ide";
 const PACKAGE_ROOT = path.resolve(__dirname, "..", "..");
@@ -214,11 +215,6 @@ function buildHostLaunchArgs({ workspaceDir, profileArgs, cdpPort }) {
     ...profileArgs,
     `--remote-debugging-port=${cdpPort}`,
     "--remote-debugging-address=127.0.0.1",
-    // Chromium 142+ can start a remote-debugging server whose websocket
-    // connections wait for a modal user-approval dialog. Command-line CDP is
-    // already isolated to this fresh profile and random loopback port, so keep
-    // the release gate deterministic by disabling that interactive feature.
-    "--disable-features=DevToolsAcceptDebuggingConnections",
     // Match the explicit Origin emitted by the pinned `ws` client. Both the
     // debugging socket and allowed Origin are scoped to this run's random
     // loopback-only port in a fresh test profile.
@@ -229,6 +225,28 @@ function buildHostLaunchArgs({ workspaceDir, profileArgs, cdpPort }) {
     // Keep the positional workspace after every host switch. Some Electron /
     // VS Code launch paths stop interpreting Chromium switches once a
     // positional argument has been consumed.
+    workspaceDir,
+  ];
+}
+
+function buildHostInspectorLaunchArgs({
+  workspaceDir,
+  profileArgs,
+  inspectorPort,
+}) {
+  if (
+    !Number.isInteger(inspectorPort) ||
+    inspectorPort < 1 ||
+    inspectorPort > 65_535
+  ) {
+    throw new Error(`invalid Electron inspector port: ${inspectorPort}`);
+  }
+  return [
+    ...profileArgs,
+    `--inspect=127.0.0.1:${inspectorPort}`,
+    "--disable-extension-update-checks",
+    "--disable-telemetry",
+    "--disable-crash-reporter",
     workspaceDir,
   ];
 }
@@ -252,51 +270,6 @@ function buildHostPipeLaunchArgs({ workspaceDir, profileArgs }) {
     "--disable-crash-reporter",
     workspaceDir,
   ];
-}
-
-function resolveMacAppBundle(vscodeExecutablePath) {
-  let candidate = path.resolve(vscodeExecutablePath);
-  for (let depth = 0; depth < 6; depth += 1) {
-    if (candidate.toLowerCase().endsWith(".app")) return candidate;
-    const parent = path.dirname(candidate);
-    if (parent === candidate) break;
-    candidate = parent;
-  }
-  throw new Error(
-    `VS Code executable is not inside a macOS app bundle: ${vscodeExecutablePath}`,
-  );
-}
-
-function authorizeMacAppFirewall(
-  vscodeExecutablePath,
-  { platform = process.platform, run = spawnSync } = {},
-) {
-  if (platform !== "darwin") return null;
-  const appBundle = resolveMacAppBundle(vscodeExecutablePath);
-  const firewallTool = "/usr/libexec/ApplicationFirewall/socketfilterfw";
-  for (const action of ["--add", "--unblockapp"]) {
-    const result = run("sudo", [firewallTool, action, appBundle], {
-      encoding: "utf8",
-      timeout: 30_000,
-      windowsHide: true,
-    });
-    if (result?.error) {
-      throw new Error(
-        `macOS application firewall ${action} failed: ${result.error.message}`,
-        { cause: result.error },
-      );
-    }
-    if (result?.status !== 0) {
-      throw new Error(
-        `macOS application firewall ${action} exited ${String(result?.status)}: ${String(result?.stderr || result?.stdout || "no diagnostic").trim()}`,
-      );
-    }
-    const diagnostic = String(result.stdout || result.stderr || "").trim();
-    if (diagnostic) {
-      process.stdout.write(`[extension-host-smoke] firewall: ${diagnostic}\n`);
-    }
-  }
-  return appBundle;
 }
 
 function buildExtensionTestLaunchArgs({
@@ -411,6 +384,41 @@ function parseDevToolsBrowserEndpoint(value, expectedPort) {
   return null;
 }
 
+function parseElectronInspectorEndpoint(value, expectedPort) {
+  if (
+    !Number.isInteger(expectedPort) ||
+    expectedPort < 1 ||
+    expectedPort > 65_535
+  ) {
+    throw new Error(`invalid Electron inspector port: ${expectedPort}`);
+  }
+  const input = String(value || "");
+  const matches = input.matchAll(/Debugger listening on (ws:\/\/\S+)/g);
+  for (const match of matches) {
+    try {
+      const endpoint = new URL(match[1]);
+      const loopbackHost = ["127.0.0.1", "[::1]", "::1"].includes(
+        endpoint.hostname,
+      );
+      if (
+        endpoint.protocol === "ws:" &&
+        loopbackHost &&
+        Number(endpoint.port) === expectedPort &&
+        endpoint.username === "" &&
+        endpoint.password === "" &&
+        endpoint.search === "" &&
+        endpoint.hash === "" &&
+        /^\/[0-9a-f-]{16,}$/iu.test(endpoint.pathname)
+      ) {
+        return endpoint.href;
+      }
+    } catch {
+      // Ignore unrelated or partially-written stderr lines.
+    }
+  }
+  return null;
+}
+
 function createDevToolsEndpointCapture(expectedPort, output = process.stderr) {
   let buffered = "";
   let endpoint = null;
@@ -423,6 +431,29 @@ function createDevToolsEndpointCapture(expectedPort, output = process.stderr) {
     if (!endpoint) {
       buffered = `${buffered}${text}`.slice(-8_192);
       endpoint = parseDevToolsBrowserEndpoint(buffered, expectedPort);
+    }
+  });
+  return {
+    getEndpoint: () => endpoint,
+    stderr,
+  };
+}
+
+function createElectronInspectorEndpointCapture(
+  expectedPort,
+  output = process.stderr,
+) {
+  let buffered = "";
+  let endpoint = null;
+  const stderr = new PassThrough();
+  stderr.on("data", (chunk) => {
+    const text = Buffer.isBuffer(chunk)
+      ? chunk.toString("utf8")
+      : String(chunk);
+    output.write(chunk);
+    if (!endpoint) {
+      buffered = `${buffered}${text}`.slice(-8_192);
+      endpoint = parseElectronInspectorEndpoint(buffered, expectedPort);
     }
   });
   return {
@@ -488,16 +519,25 @@ async function runRealDomPhase({
   journeyArtifactDir,
   fixture,
   useCdpPipe = false,
+  useElectronMainInspector = false,
 }) {
-  const cdpPort = useCdpPipe ? null : await reserveLoopbackPort();
+  if (useCdpPipe && useElectronMainInspector) {
+    throw new Error("CDP pipe and Electron inspector transports are exclusive");
+  }
+  const inspectorPort = useElectronMainInspector
+    ? await reserveLoopbackPort()
+    : null;
+  const cdpPort =
+    useCdpPipe || useElectronMainInspector ? null : await reserveLoopbackPort();
   const { readyFile, resultFile } = hostPhaseSignalPaths(runtimeDir, phase);
-  // TCP CDP hosts print their authoritative browser websocket endpoint before
-  // the Extension Host becomes ready. Capture that loopback-only URL while
-  // still teeing stderr to the workflow log. macOS uses Chromium's private
-  // fd-backed pipe instead, avoiding an externally addressable endpoint.
-  const devToolsEndpoint = useCdpPipe
+  // Both Chromium CDP and Electron's Node inspector print their authoritative
+  // endpoint before the Extension Host becomes ready. Capture only the exact
+  // loopback URL allocated for this fresh host while teeing stderr to CI.
+  const endpointCapture = useCdpPipe
     ? null
-    : createDevToolsEndpointCapture(cdpPort);
+    : useElectronMainInspector
+      ? createElectronInspectorEndpointCapture(inspectorPort)
+      : createDevToolsEndpointCapture(cdpPort);
   const extensionDevelopmentPath = path.join(__dirname, "driver");
   const extensionTestsPath = path.join(__dirname, "driver", "smoke.cjs");
   const extensionTestsEnv = {
@@ -522,16 +562,26 @@ async function runRealDomPhase({
       })
     : null;
   const abortController = new AbortController();
-  const cdpOutcome = runCdpHostJourney({
-    port: cdpPort,
-    getBrowserWebSocketUrl: devToolsEndpoint?.getEndpoint,
-    browserClient: pipeHost?.browserClient,
-    readyFile,
-    resultFile,
-    phase,
-    artifactDir: journeyArtifactDir,
-    signal: abortController.signal,
-  }).then(
+  const journeyPromise = useElectronMainInspector
+    ? runElectronMainHostJourney({
+        getInspectorWebSocketUrl: endpointCapture?.getEndpoint,
+        readyFile,
+        resultFile,
+        phase,
+        artifactDir: journeyArtifactDir,
+        signal: abortController.signal,
+      })
+    : runCdpHostJourney({
+        port: cdpPort,
+        getBrowserWebSocketUrl: endpointCapture?.getEndpoint,
+        browserClient: pipeHost?.browserClient,
+        readyFile,
+        resultFile,
+        phase,
+        artifactDir: journeyArtifactDir,
+        signal: abortController.signal,
+      });
+  const cdpOutcome = journeyPromise.then(
     (value) => ({ value }),
     (error) => ({ error }),
   );
@@ -551,12 +601,18 @@ async function runRealDomPhase({
             vscodeExecutablePath,
             extensionDevelopmentPath,
             extensionTestsPath,
-            stderr: devToolsEndpoint.stderr,
-            launchArgs: buildHostLaunchArgs({
-              workspaceDir,
-              profileArgs,
-              cdpPort,
-            }),
+            stderr: endpointCapture.stderr,
+            launchArgs: useElectronMainInspector
+              ? buildHostInspectorLaunchArgs({
+                  workspaceDir,
+                  profileArgs,
+                  inspectorPort,
+                })
+              : buildHostLaunchArgs({
+                  workspaceDir,
+                  profileArgs,
+                  cdpPort,
+                }),
             extensionTestsEnv,
           }),
         );
@@ -928,14 +984,6 @@ async function main() {
       vscodeExecutablePath,
       options.vscodeVersion,
     );
-    if (process.platform === "darwin") {
-      recordHostProgress(progressPath, "firewall_authorization_started");
-      const appBundle = authorizeMacAppFirewall(vscodeExecutablePath);
-      process.stdout.write(
-        `[extension-host-smoke] macOS loopback debugger authorized for ${appBundle}\n`,
-      );
-      recordHostProgress(progressPath, "firewall_authorization_completed");
-    }
     recordHostProgress(progressPath, "download_completed");
     for (const phase of ["initial", "restart"]) {
       const profileArgs = buildProfileArgs({ runRoot, extensionsDir, phase });
@@ -954,6 +1002,7 @@ async function main() {
         journeyArtifactDir,
         fixture,
         useCdpPipe: false,
+        useElectronMainInspector: !hostApiMode && process.platform === "darwin",
       });
       recordHostProgress(progressPath, `${phase}_completed`);
     }
@@ -1018,7 +1067,9 @@ async function main() {
         extensionVersion: expectedVersion,
         transport: hostApiMode
           ? "local-ide-bridge+vscode-extension-test-api"
-          : "local-ide-bridge+loopback-cdp",
+          : process.platform === "darwin"
+            ? "local-ide-bridge+electron-main-inspector"
+            : "local-ide-bridge+loopback-cdp",
         result: journeyResult,
         startedAt,
         finishedAt: new Date().toISOString(),
@@ -1053,14 +1104,15 @@ async function main() {
 }
 
 module.exports = {
-  authorizeMacAppFirewall,
   buildProfileArgs,
   buildExtensionTestLaunchArgs,
   buildHostApiLaunchArgs,
+  buildHostInspectorLaunchArgs,
   buildHostLaunchArgs,
   buildHostPipeLaunchArgs,
   assertHostApiArtifacts,
   createDevToolsEndpointCapture,
+  createElectronInspectorEndpointCapture,
   createHostProgressJournal,
   findDiagnosticLogs,
   hostPhaseSignalPaths,
@@ -1068,7 +1120,7 @@ module.exports = {
   launchExtensionHostWithCdpPipe,
   parseArgs,
   parseDevToolsBrowserEndpoint,
-  resolveMacAppBundle,
+  parseElectronInspectorEndpoint,
   recordHostProgress,
   resolveVsCodeHostVersion,
   runHostApiPhase,

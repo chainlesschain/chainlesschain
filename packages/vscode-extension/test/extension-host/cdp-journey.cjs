@@ -1253,6 +1253,7 @@ async function runCdpHostJourney(options) {
 
 module.exports = {
   CdpClient,
+  CHAT_WEBVIEW_PROBE,
   JOURNEY_PHASES,
   PHASE_DOM_MARKERS,
   assertHostReadySignal,

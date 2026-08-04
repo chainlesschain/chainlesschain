@@ -9,13 +9,13 @@ const { PassThrough, Readable } = require("node:stream");
 const { afterEach, test } = require("node:test");
 const {
   assertHostApiArtifacts,
-  authorizeMacAppFirewall,
   buildExtensionTestLaunchArgs,
   buildHostApiLaunchArgs,
+  buildHostInspectorLaunchArgs,
   buildProfileArgs,
   buildHostLaunchArgs,
-  buildHostPipeLaunchArgs,
   createDevToolsEndpointCapture,
+  createElectronInspectorEndpointCapture,
   createHostProgressJournal,
   findDiagnosticLogs,
   hostPhaseSignalPaths,
@@ -23,9 +23,9 @@ const {
   makeFreshRunRoot,
   parseArgs,
   parseDevToolsBrowserEndpoint,
+  parseElectronInspectorEndpoint,
   recordHostProgress,
   resolveVsCodeHostVersion,
-  resolveMacAppBundle,
   settleHostAfterCdp,
 } = require("./extension-host/run.cjs");
 const {
@@ -40,6 +40,10 @@ const {
   readJourneyResult,
   writeJsonSignal,
 } = require("./extension-host/cdp-journey.cjs");
+const {
+  buildElectronInspectorWebSocketOptions,
+  createWebContentsClient,
+} = require("./extension-host/electron-main-journey.cjs");
 const {
   ACTIVITY_VIEW_COMMAND,
   CHAT_VIEW_FOCUS_COMMAND,
@@ -133,52 +137,6 @@ test("fresh host profile root stays within the macOS Unix-socket budget", () => 
   assert.ok(
     path.basename(runRoot).length <= 10,
     "unique host directory must remain short enough for VS Code IPC sockets",
-  );
-});
-
-test("macOS host authorizes the exact downloaded app in the application firewall", () => {
-  const expectedAppBundle = path.resolve("/tmp", "Visual Studio Code.app");
-  const executable = path.join(expectedAppBundle, "Contents", "MacOS", "Code");
-  const calls = [];
-  const appBundle = authorizeMacAppFirewall(executable, {
-    platform: "darwin",
-    run(command, args, options) {
-      calls.push({ command, args, options });
-      return { status: 0, stdout: "authorized" };
-    },
-  });
-  assert.equal(appBundle, expectedAppBundle);
-  assert.equal(resolveMacAppBundle(executable), appBundle);
-  assert.deepEqual(
-    calls.map(({ command, args }) => [command, ...args]),
-    [
-      [
-        "sudo",
-        "/usr/libexec/ApplicationFirewall/socketfilterfw",
-        "--add",
-        appBundle,
-      ],
-      [
-        "sudo",
-        "/usr/libexec/ApplicationFirewall/socketfilterfw",
-        "--unblockapp",
-        appBundle,
-      ],
-    ],
-  );
-  assert.ok(calls.every(({ options }) => options.timeout === 30_000));
-  assert.equal(
-    authorizeMacAppFirewall(executable, {
-      platform: "linux",
-      run() {
-        throw new Error("must not run");
-      },
-    }),
-    null,
-  );
-  assert.throws(
-    () => resolveMacAppBundle("/tmp/Code"),
-    /not inside a macOS app bundle/,
   );
 });
 
@@ -307,7 +265,6 @@ test("real-DOM host phase is loopback-only and keeps the fresh profile args", ()
       ...profileArgs,
       "--remote-debugging-port=43210",
       "--remote-debugging-address=127.0.0.1",
-      "--disable-features=DevToolsAcceptDebuggingConnections",
       "--remote-allow-origins=http://127.0.0.1:43210",
       "--disable-extension-update-checks",
       "--disable-telemetry",
@@ -344,28 +301,32 @@ test("host-API launch keeps the real extension-test profile without CDP", () => 
   );
 });
 
-test("macOS real-DOM host keeps CDP on Chromium's private pipe", () => {
+test("macOS real-DOM host uses the loopback Electron inspector", () => {
   const root = temporaryRoot();
   const workspaceDir = path.join(root, "workspace");
   const profileArgs = [
     `--extensions-dir=${path.join(root, "extensions")}`,
     `--user-data-dir=${path.join(root, "user-data")}`,
   ];
-  const pipeArgs = buildHostPipeLaunchArgs({ workspaceDir, profileArgs });
-  assert.deepEqual(pipeArgs, [
+  const inspectorArgs = buildHostInspectorLaunchArgs({
+    workspaceDir,
+    profileArgs,
+    inspectorPort: 43210,
+  });
+  assert.deepEqual(inspectorArgs, [
     ...profileArgs,
-    "--remote-debugging-pipe",
+    "--inspect=127.0.0.1:43210",
     "--disable-extension-update-checks",
     "--disable-telemetry",
     "--disable-crash-reporter",
     workspaceDir,
   ]);
   const finalArgs = buildExtensionTestLaunchArgs({
-    launchArgs: pipeArgs,
+    launchArgs: inspectorArgs,
     extensionDevelopmentPath: path.join(root, "driver"),
     extensionTestsPath: path.join(root, "driver", "smoke.cjs"),
   });
-  assert.ok(finalArgs.includes("--remote-debugging-pipe"));
+  assert.ok(finalArgs.includes("--inspect=127.0.0.1:43210"));
   assert.equal(
     finalArgs.some((arg) => arg.startsWith("--remote-debugging-port")),
     false,
@@ -374,6 +335,15 @@ test("macOS real-DOM host keeps CDP on Chromium's private pipe", () => {
     finalArgs.includes(
       `--extensionTestsPath=${path.join(root, "driver", "smoke.cjs")}`,
     ),
+  );
+  assert.throws(
+    () =>
+      buildHostInspectorLaunchArgs({
+        workspaceDir,
+        profileArgs,
+        inspectorPort: 0,
+      }),
+    /invalid Electron inspector port/,
   );
 });
 
@@ -562,6 +532,81 @@ test("captures only the expected loopback DevTools browser endpoint", async () =
     ),
     null,
   );
+});
+
+test("captures only the expected loopback Electron inspector endpoint", async () => {
+  const capture = createElectronInspectorEndpointCapture(43210, {
+    write() {
+      return true;
+    },
+  });
+  capture.stderr.write(
+    "Debugger listening on ws://example.com:43210/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee\n",
+  );
+  assert.equal(capture.getEndpoint(), null);
+  capture.stderr.end(
+    "Debugger listening on ws://127.0.0.1:43210/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee\n",
+  );
+  await new Promise((resolve, reject) => {
+    capture.stderr.once("finish", resolve).once("error", reject);
+  });
+  assert.equal(
+    capture.getEndpoint(),
+    "ws://127.0.0.1:43210/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+  );
+  assert.equal(
+    parseElectronInspectorEndpoint(
+      "Debugger listening on ws://127.0.0.1:43211/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+      43210,
+    ),
+    null,
+  );
+  assert.deepEqual(
+    buildElectronInspectorWebSocketOptions(
+      "ws://127.0.0.1:43210/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+    ),
+    { perMessageDeflate: false, handshakeTimeout: 8_000 },
+  );
+  assert.throws(
+    () =>
+      buildElectronInspectorWebSocketOptions(
+        "ws://example.com:43210/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+      ),
+    /non-loopback Electron inspector websocket/,
+  );
+});
+
+test("Electron inspector client evaluates and captures the real WebContents", async () => {
+  const expressions = [];
+  let closed = false;
+  const inspector = {
+    async send(method, params) {
+      assert.equal(method, "Runtime.evaluate");
+      expressions.push(params.expression);
+      return {
+        result: {
+          value: params.expression.includes("capturePage")
+            ? { data: "cG5n" }
+            : 2,
+        },
+      };
+    },
+    close() {
+      closed = true;
+    },
+  };
+  const client = createWebContentsClient(inspector, 7);
+  assert.equal(await client.evaluate("1 + 1"), 2);
+  assert.deepEqual(await client.send("Page.enable"), {});
+  assert.deepEqual(await client.send("Page.captureScreenshot"), {
+    data: "cG5n",
+  });
+  assert.ok(
+    expressions.every((expression) => expression.includes("fromId(7)")),
+  );
+  assert.ok(expressions[0].includes('executeJavaScript("1 + 1", true)'));
+  client.close();
+  assert.equal(closed, true);
 });
 
 test("CDP websocket handshake binds its Origin to the loopback endpoint", () => {
