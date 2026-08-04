@@ -78,7 +78,7 @@ describe("command manifest ⇄ eager program (drift guard)", () => {
       topLevelGrowth: {
         baselineCommandCount: 175,
         registeredCommandCount: 175,
-        recommendedTopLevelCommandCount: 174,
+        recommendedTopLevelCommandCount: 166,
         netGrowth: 0,
       },
     });
