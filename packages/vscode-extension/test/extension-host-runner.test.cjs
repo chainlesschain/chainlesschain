@@ -1,6 +1,7 @@
 "use strict";
 
 const assert = require("node:assert/strict");
+const { EventEmitter } = require("node:events");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
@@ -17,6 +18,7 @@ const {
   createHostProgressJournal,
   findDiagnosticLogs,
   hostPhaseSignalPaths,
+  launchExtensionHostWithCdpPipe,
   makeFreshRunRoot,
   parseArgs,
   parseDevToolsBrowserEndpoint,
@@ -346,6 +348,51 @@ test("CDP pipe transport frames browser commands with NUL delimiters", async () 
   client.close();
   toBrowser.destroy();
   fromBrowser.destroy();
+});
+
+test("pipe host launch inherits Chromium's FD 3/4 contract", async () => {
+  const child = new EventEmitter();
+  child.stdout = new PassThrough();
+  child.stderr = new PassThrough();
+  child.stdio = [
+    null,
+    child.stdout,
+    child.stderr,
+    new PassThrough(),
+    new PassThrough(),
+  ];
+  child.kill = () => true;
+  let spawnCall;
+  const launched = launchExtensionHostWithCdpPipe({
+    vscodeExecutablePath: "/tmp/Code",
+    launchArgs: ["--remote-debugging-pipe", "/tmp/workspace"],
+    extensionDevelopmentPath: "/tmp/driver",
+    extensionTestsPath: "/tmp/driver/smoke.cjs",
+    extensionTestsEnv: { CHAINLESSCHAIN_HOST_JOURNEY_PHASE: "initial" },
+    stdout: new PassThrough(),
+    stderr: new PassThrough(),
+    spawnProcess(executable, args, options) {
+      spawnCall = { executable, args, options };
+      return child;
+    },
+  });
+  assert.equal(spawnCall.executable, "/tmp/Code");
+  assert.deepEqual(spawnCall.options.stdio, [
+    "ignore",
+    "pipe",
+    "pipe",
+    "pipe",
+    "pipe",
+  ]);
+  assert.ok(spawnCall.args.includes("--remote-debugging-pipe"));
+  assert.equal(
+    spawnCall.options.env.CHAINLESSCHAIN_HOST_JOURNEY_PHASE,
+    "initial",
+  );
+  child.emit("close", 0, null);
+  assert.equal(await launched.outcome, 0);
+  launched.browserClient.close();
+  for (const stream of child.stdio.slice(1)) stream.destroy();
 });
 
 test("host-API evidence proves both fresh host launches in order", () => {
