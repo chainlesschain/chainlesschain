@@ -140,9 +140,9 @@ jobs:
   vscode-macos-smoke:
     name: VS Code extension (macOS host gate)
     needs: capability-manifest
-    # Keep the real Extension Host/API gate on the stable macOS 15 Intel image.
-    # Windows owns the full DOM journey because signed macOS VS Code builds do
-    # not expose their workbench window through the supported test bootstrap.
+    # Keep the complete real-DOM Extension Host gate on the stable macOS 15
+    # Intel image. The remote debugger is bound to a random loopback-only port
+    # in a fresh profile, and both stable/minimum must prove the full journey.
     runs-on: macos-15-intel
     timeout-minutes: 45
     defaults:
@@ -167,12 +167,12 @@ jobs:
         run: >-
           npm install --no-save --no-package-lock
           @vscode/test-electron@3.1.0
-      - name: Extension Host API smoke (macOS stable)
+      - name: Extension Host smoke (macOS stable)
         timeout-minutes: 15
         run: >-
           node test/extension-host/run.cjs --vsix chainlesschain-ide.vsix
           --artifact-dir build/reports/extension-host/macos-stable
-      - name: Extension Host API smoke (macOS minimum 1.85.2)
+      - name: Extension Host smoke (macOS minimum 1.85.2)
         timeout-minutes: 15
         run: >-
           node test/extension-host/run.cjs --vsix chainlesschain-ide.vsix

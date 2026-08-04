@@ -56,6 +56,7 @@ function usage() {
     "  --vscode-version <value>   stable, insiders, or an exact version (default: stable)",
     "  --work-dir <path>          Parent for fresh profiles and diagnostic logs",
     "  --artifact-dir <path>      Immutable journey evidence output directory",
+    "  --host-api-only            Diagnostic activation/view check without DOM authority",
     "  --help                     Show this help",
   ].join("\n");
 }
@@ -74,6 +75,7 @@ function parseArgs(argv) {
     vscodeVersion: "stable",
     workDir: null,
     artifactDir: null,
+    hostApiOnly: false,
     help: false,
   };
   for (let i = 0; i < argv.length; i += 1) {
@@ -92,6 +94,8 @@ function parseArgs(argv) {
     } else if (arg === "--artifact-dir") {
       options.artifactDir = takeValue(argv, i, arg);
       i += 1;
+    } else if (arg === "--host-api-only") {
+      options.hostApiOnly = true;
     } else {
       throw new Error(`unknown option: ${arg}`);
     }
@@ -701,7 +705,7 @@ async function main() {
     options.artifactDir || path.join(runRoot, "journey-evidence"),
   );
   const progressPath = createHostProgressJournal(artifactDir);
-  const hostApiMode = process.platform === "darwin";
+  const hostApiMode = options.hostApiOnly;
   recordHostProgress(progressPath, "prepared");
   const startedAt = new Date().toISOString();
   const cliVersion = readJsonVersion(

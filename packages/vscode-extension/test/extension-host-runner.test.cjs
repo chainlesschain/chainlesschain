@@ -70,15 +70,18 @@ test("extension-host runner accepts an explicit evidence directory", () => {
       "1.85.2",
       "--artifact-dir",
       "reports/stable",
+      "--host-api-only",
     ]),
     {
       vsix: "release.vsix",
       vscodeVersion: "1.85.2",
       workDir: null,
       artifactDir: "reports/stable",
+      hostApiOnly: true,
       help: false,
     },
   );
+  assert.equal(parseArgs([]).hostApiOnly, false);
 });
 
 test("extension-host runner resolves the downloaded host's exact version", async () => {
