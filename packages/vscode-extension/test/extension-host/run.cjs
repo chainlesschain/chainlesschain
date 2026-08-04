@@ -208,6 +208,17 @@ function hostPhaseSignalPaths(runtimeDir, phase) {
   };
 }
 
+function buildWorkspaceFolderArg(workspaceDir) {
+  if (typeof workspaceDir !== "string" || !path.isAbsolute(workspaceDir)) {
+    throw new TypeError("host workspace must be an absolute path");
+  }
+  // @vscode/test-electron appends --extensionTestsPath and
+  // --extensionDevelopmentPath after launchArgs. A positional workspace makes
+  // signed macOS builds stop parsing before those switches, so express the
+  // same folder as a switch and leave the whole argv option-only.
+  return `--folder-uri=${pathToFileURL(workspaceDir).href}`;
+}
+
 function buildHostLaunchArgs({ workspaceDir, profileArgs, cdpPort }) {
   if (!Number.isInteger(cdpPort) || cdpPort < 1 || cdpPort > 65_535) {
     throw new Error(`invalid CDP port: ${cdpPort}`);
@@ -223,10 +234,7 @@ function buildHostLaunchArgs({ workspaceDir, profileArgs, cdpPort }) {
     "--disable-extension-update-checks",
     "--disable-telemetry",
     "--disable-crash-reporter",
-    // Keep the positional workspace after every host switch. Some Electron /
-    // VS Code launch paths stop interpreting Chromium switches once a
-    // positional argument has been consumed.
-    workspaceDir,
+    buildWorkspaceFolderArg(workspaceDir),
   ];
 }
 
@@ -248,7 +256,7 @@ function buildHostInspectorLaunchArgs({
     "--disable-extension-update-checks",
     "--disable-telemetry",
     "--disable-crash-reporter",
-    workspaceDir,
+    buildWorkspaceFolderArg(workspaceDir),
   ];
 }
 
@@ -258,7 +266,7 @@ function buildHostApiLaunchArgs({ workspaceDir, profileArgs }) {
     "--disable-extension-update-checks",
     "--disable-telemetry",
     "--disable-crash-reporter",
-    workspaceDir,
+    buildWorkspaceFolderArg(workspaceDir),
   ];
 }
 
@@ -269,7 +277,7 @@ function buildHostPipeLaunchArgs({ workspaceDir, profileArgs }) {
     "--disable-extension-update-checks",
     "--disable-telemetry",
     "--disable-crash-reporter",
-    workspaceDir,
+    buildWorkspaceFolderArg(workspaceDir),
   ];
 }
 
@@ -534,19 +542,19 @@ async function runRealDomPhase({
     fs.mkdirSync(journeyArtifactDir, { recursive: true, mode: 0o700 });
     const hostDomToken = crypto.randomBytes(32).toString("hex");
     // Signed macOS VS Code builds on hosted runners do not start their
-    // extensionTestsPath runner without Chromium's test bootstrap switch.
-    // Keep a random loopback-only endpoint for that launch quirk, but never
-    // connect to it: every DOM action and result crosses the token-gated
+    // extensionTestsPath runner without Electron's main-process inspector
+    // switch. Keep a random loopback-only endpoint for that launch quirk, but
+    // never connect to it: every DOM action and result crosses the token-gated
     // Extension Host/Webview message relay below.
-    const bootstrapCdpPort = await reserveLoopbackPort();
+    const bootstrapInspectorPort = await reserveLoopbackPort();
     await runTests({
       vscodeExecutablePath,
       extensionDevelopmentPath: path.join(__dirname, "driver"),
       extensionTestsPath: path.join(__dirname, "driver", "smoke.cjs"),
-      launchArgs: buildHostLaunchArgs({
+      launchArgs: buildHostInspectorLaunchArgs({
         workspaceDir,
         profileArgs,
-        cdpPort: bootstrapCdpPort,
+        inspectorPort: bootstrapInspectorPort,
       }),
       extensionTestsEnv: {
         HOME: profileHome,

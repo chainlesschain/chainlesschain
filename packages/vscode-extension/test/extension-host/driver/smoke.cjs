@@ -422,11 +422,4 @@ async function run() {
   );
 }
 
-let runPromise;
-
-function runOnce() {
-  if (!runPromise) runPromise = run();
-  return runPromise;
-}
-
-module.exports = { run: runOnce };
+module.exports = { run };

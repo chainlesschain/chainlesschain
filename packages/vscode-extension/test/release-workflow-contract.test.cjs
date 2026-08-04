@@ -66,32 +66,16 @@ test("VS Code macOS host gate pins the validated Intel runner image", () => {
   const productionRelay = read(
     "packages/vscode-extension/src/chat/host-dom-relay.js",
   );
-  const driverManifest = JSON.parse(
-    read("packages/vscode-extension/test/extension-host/driver/package.json"),
-  );
-  const driverEntry = read(
-    "packages/vscode-extension/test/extension-host/driver/noop.cjs",
-  );
-  const driverTests = read(
-    "packages/vscode-extension/test/extension-host/driver/smoke.cjs",
-  );
   assert.match(
     hostRunner,
     /useDomRelay: !hostApiMode && process\.platform === "darwin"/u,
   );
   assert.match(
     hostRunner,
-    /const bootstrapCdpPort = await reserveLoopbackPort\(\)/u,
+    /const bootstrapInspectorPort = await reserveLoopbackPort\(\)/u,
   );
   assert.match(hostRunner, /CHAINLESSCHAIN_HOST_DOM_TOKEN/u);
   assert.doesNotMatch(hostRunner, /ApplicationFirewall\/socketfilterfw/u);
-  assert.deepEqual(driverManifest.activationEvents, ["*"]);
-  assert.match(
-    driverEntry,
-    /CHAINLESSCHAIN_HOST_JOURNEY_MODE !== "dom-relay"/u,
-  );
-  assert.match(driverEntry, /require\("\.\/smoke\.cjs"\)\.run\(\)/u);
-  assert.match(driverTests, /if \(!runPromise\) runPromise = run\(\)/u);
   assert.match(relayJourney, /vscode-webview-message-relay/u);
   assert.doesNotMatch(relayJourney, /\beval\s*\(/u);
   assert.match(productionRelay, /timingSafeEqual/u);

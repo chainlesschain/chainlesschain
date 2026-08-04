@@ -7,6 +7,7 @@ const os = require("node:os");
 const path = require("node:path");
 const { PassThrough, Readable } = require("node:stream");
 const { afterEach, test } = require("node:test");
+const { pathToFileURL } = require("node:url");
 const {
   assertHostApiArtifacts,
   buildExtensionTestLaunchArgs,
@@ -253,13 +254,14 @@ test("diagnostic discovery is limited to release-relevant host logs", () => {
 
 test("real-DOM host phase is loopback-only and keeps the fresh profile args", () => {
   const root = temporaryRoot();
+  const workspaceDir = path.join(root, "workspace");
   const profileArgs = [
     `--extensions-dir=${path.join(root, "extensions")}`,
     `--user-data-dir=${path.join(root, "user-data")}`,
   ];
   assert.deepEqual(
     buildHostLaunchArgs({
-      workspaceDir: path.join(root, "workspace"),
+      workspaceDir,
       profileArgs,
       cdpPort: 43210,
     }),
@@ -271,7 +273,7 @@ test("real-DOM host phase is loopback-only and keeps the fresh profile args", ()
       "--disable-extension-update-checks",
       "--disable-telemetry",
       "--disable-crash-reporter",
-      path.join(root, "workspace"),
+      `--folder-uri=${pathToFileURL(workspaceDir).href}`,
     ],
   );
   assert.throws(
@@ -287,23 +289,28 @@ test("real-DOM host phase is loopback-only and keeps the fresh profile args", ()
 
 test("host-API launch keeps the real extension-test profile without CDP", () => {
   const root = temporaryRoot();
+  const workspaceDir = path.join(root, "workspace");
   const profileArgs = [
     `--extensions-dir=${path.join(root, "extensions")}`,
     `--user-data-dir=${path.join(root, "user-data")}`,
   ];
   const args = buildHostApiLaunchArgs({
-    workspaceDir: path.join(root, "workspace"),
+    workspaceDir,
     profileArgs,
   });
-  assert.equal(args.at(-1), path.join(root, "workspace"));
+  assert.equal(args.at(-1), `--folder-uri=${pathToFileURL(workspaceDir).href}`);
   assert.deepEqual(args.slice(0, profileArgs.length), profileArgs);
   assert.equal(
     args.some((arg) => arg.startsWith("--remote-debugging")),
     false,
   );
+  assert.equal(
+    args.every((arg) => arg.startsWith("--")),
+    true,
+  );
 });
 
-test("macOS DOM relay uses a loopback bootstrap endpoint without CDP transport", async () => {
+test("macOS DOM relay uses a loopback Inspector bootstrap without Inspector transport", async () => {
   const root = temporaryRoot();
   const runtimeDir = path.join(root, "runtime");
   const artifactDir = path.join(root, "artifacts");
@@ -352,20 +359,24 @@ test("macOS DOM relay uses a loopback bootstrap endpoint without CDP transport",
   });
 
   assert.equal(result.mode, "dom-relay");
-  const portSwitch = launch.launchArgs.find((argument) =>
-    argument.startsWith("--remote-debugging-port="),
+  const inspectorSwitch = launch.launchArgs.find((argument) =>
+    argument.startsWith("--inspect=127.0.0.1:"),
   );
-  assert.match(portSwitch || "", /^--remote-debugging-port=\d+$/u);
-  const port = portSwitch.split("=").at(-1);
-  assert.ok(launch.launchArgs.includes("--remote-debugging-address=127.0.0.1"));
+  assert.match(inspectorSwitch || "", /^--inspect=127\.0\.0\.1:\d+$/u);
+  assert.equal(
+    launch.launchArgs.some((argument) =>
+      argument.startsWith("--remote-debugging"),
+    ),
+    false,
+  );
   assert.ok(
     launch.launchArgs.includes(
-      `--remote-allow-origins=http://127.0.0.1:${port}`,
+      `--folder-uri=${pathToFileURL(workspaceDir).href}`,
     ),
   );
   assert.equal(
-    launch.launchArgs.some((argument) => argument.startsWith("--inspect")),
-    false,
+    launch.launchArgs.every((argument) => argument.startsWith("--")),
+    true,
   );
   assert.equal(
     launch.extensionTestsEnv.CHAINLESSCHAIN_HOST_JOURNEY_MODE,
@@ -395,7 +406,7 @@ test("macOS real-DOM host uses the loopback Electron inspector", () => {
     "--disable-extension-update-checks",
     "--disable-telemetry",
     "--disable-crash-reporter",
-    workspaceDir,
+    `--folder-uri=${pathToFileURL(workspaceDir).href}`,
   ]);
   const finalArgs = buildExtensionTestLaunchArgs({
     launchArgs: inspectorArgs,
