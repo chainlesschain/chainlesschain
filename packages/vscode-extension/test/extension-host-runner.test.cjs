@@ -7,7 +7,6 @@ const os = require("node:os");
 const path = require("node:path");
 const { PassThrough, Readable } = require("node:stream");
 const { afterEach, test } = require("node:test");
-const { pathToFileURL } = require("node:url");
 const {
   assertHostApiArtifacts,
   buildExtensionTestLaunchArgs,
@@ -254,14 +253,13 @@ test("diagnostic discovery is limited to release-relevant host logs", () => {
 
 test("real-DOM host phase is loopback-only and keeps the fresh profile args", () => {
   const root = temporaryRoot();
-  const workspaceDir = path.join(root, "workspace");
   const profileArgs = [
     `--extensions-dir=${path.join(root, "extensions")}`,
     `--user-data-dir=${path.join(root, "user-data")}`,
   ];
   assert.deepEqual(
     buildHostLaunchArgs({
-      workspaceDir,
+      workspaceDir: path.join(root, "workspace"),
       profileArgs,
       cdpPort: 43210,
     }),
@@ -273,7 +271,7 @@ test("real-DOM host phase is loopback-only and keeps the fresh profile args", ()
       "--disable-extension-update-checks",
       "--disable-telemetry",
       "--disable-crash-reporter",
-      `--folder-uri=${pathToFileURL(workspaceDir).href}`,
+      path.join(root, "workspace"),
     ],
   );
   assert.throws(
@@ -289,24 +287,19 @@ test("real-DOM host phase is loopback-only and keeps the fresh profile args", ()
 
 test("host-API launch keeps the real extension-test profile without CDP", () => {
   const root = temporaryRoot();
-  const workspaceDir = path.join(root, "workspace");
   const profileArgs = [
     `--extensions-dir=${path.join(root, "extensions")}`,
     `--user-data-dir=${path.join(root, "user-data")}`,
   ];
   const args = buildHostApiLaunchArgs({
-    workspaceDir,
+    workspaceDir: path.join(root, "workspace"),
     profileArgs,
   });
-  assert.equal(args.at(-1), `--folder-uri=${pathToFileURL(workspaceDir).href}`);
+  assert.equal(args.at(-1), path.join(root, "workspace"));
   assert.deepEqual(args.slice(0, profileArgs.length), profileArgs);
   assert.equal(
     args.some((arg) => arg.startsWith("--remote-debugging")),
     false,
-  );
-  assert.equal(
-    args.every((arg) => arg.startsWith("--")),
-    true,
   );
 });
 
@@ -321,12 +314,21 @@ test("macOS DOM relay uses a loopback Inspector bootstrap without Inspector tran
     fs.mkdirSync(directory, { recursive: true });
   }
   let launch;
+  let bootstrapConnected = false;
+  let bootstrapClosed = false;
   const result = await runRealDomPhase({
     runTests: async (options) => {
       launch = options;
       assert.match(
         options.extensionTestsEnv.CHAINLESSCHAIN_HOST_DOM_TOKEN,
         /^[a-f0-9]{64}$/u,
+      );
+      const inspectorSwitch = options.launchArgs.find((argument) =>
+        argument.startsWith("--inspect=127.0.0.1:"),
+      );
+      const inspectorPort = inspectorSwitch.split(":").at(-1);
+      options.stderr.write(
+        `Debugger listening on ws://127.0.0.1:${inspectorPort}/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee\n`,
       );
       writeJsonSignal(
         options.extensionTestsEnv.CHAINLESSCHAIN_HOST_RESULT_FILE,
@@ -337,6 +339,18 @@ test("macOS DOM relay uses a loopback Inspector bootstrap without Inspector tran
           completedAt: "2026-08-01T00:00:00.000Z",
         },
       );
+    },
+    connectInspectorBootstrap: async ({ getInspectorWebSocketUrl }) => {
+      assert.match(
+        getInspectorWebSocketUrl(),
+        /^ws:\/\/127\.0\.0\.1:\d+\/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee$/u,
+      );
+      bootstrapConnected = true;
+      return {
+        close() {
+          bootstrapClosed = true;
+        },
+      };
     },
     vscodeExecutablePath: path.join(root, "Code"),
     workspaceDir,
@@ -359,6 +373,8 @@ test("macOS DOM relay uses a loopback Inspector bootstrap without Inspector tran
   });
 
   assert.equal(result.mode, "dom-relay");
+  assert.equal(bootstrapConnected, true);
+  assert.equal(bootstrapClosed, true);
   const inspectorSwitch = launch.launchArgs.find((argument) =>
     argument.startsWith("--inspect=127.0.0.1:"),
   );
@@ -369,15 +385,7 @@ test("macOS DOM relay uses a loopback Inspector bootstrap without Inspector tran
     ),
     false,
   );
-  assert.ok(
-    launch.launchArgs.includes(
-      `--folder-uri=${pathToFileURL(workspaceDir).href}`,
-    ),
-  );
-  assert.equal(
-    launch.launchArgs.every((argument) => argument.startsWith("--")),
-    true,
-  );
+  assert.equal(launch.launchArgs.at(-1), workspaceDir);
   assert.equal(
     launch.extensionTestsEnv.CHAINLESSCHAIN_HOST_JOURNEY_MODE,
     "dom-relay",
@@ -406,7 +414,7 @@ test("macOS real-DOM host uses the loopback Electron inspector", () => {
     "--disable-extension-update-checks",
     "--disable-telemetry",
     "--disable-crash-reporter",
-    `--folder-uri=${pathToFileURL(workspaceDir).href}`,
+    workspaceDir,
   ]);
   const finalArgs = buildExtensionTestLaunchArgs({
     launchArgs: inspectorArgs,

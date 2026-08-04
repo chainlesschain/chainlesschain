@@ -34,7 +34,11 @@ const {
   reserveLoopbackPort,
   runCdpHostJourney,
 } = require("./cdp-journey.cjs");
-const { runElectronMainHostJourney } = require("./electron-main-journey.cjs");
+const {
+  buildElectronInspectorWebSocketOptions,
+  runElectronMainHostJourney,
+  waitForInspectorEndpoint,
+} = require("./electron-main-journey.cjs");
 
 const EXTENSION_ID = "chainlesschain.chainlesschain-ide";
 const PACKAGE_ROOT = path.resolve(__dirname, "..", "..");
@@ -208,17 +212,6 @@ function hostPhaseSignalPaths(runtimeDir, phase) {
   };
 }
 
-function buildWorkspaceFolderArg(workspaceDir) {
-  if (typeof workspaceDir !== "string" || !path.isAbsolute(workspaceDir)) {
-    throw new TypeError("host workspace must be an absolute path");
-  }
-  // @vscode/test-electron appends --extensionTestsPath and
-  // --extensionDevelopmentPath after launchArgs. A positional workspace makes
-  // signed macOS builds stop parsing before those switches, so express the
-  // same folder as a switch and leave the whole argv option-only.
-  return `--folder-uri=${pathToFileURL(workspaceDir).href}`;
-}
-
 function buildHostLaunchArgs({ workspaceDir, profileArgs, cdpPort }) {
   if (!Number.isInteger(cdpPort) || cdpPort < 1 || cdpPort > 65_535) {
     throw new Error(`invalid CDP port: ${cdpPort}`);
@@ -234,7 +227,10 @@ function buildHostLaunchArgs({ workspaceDir, profileArgs, cdpPort }) {
     "--disable-extension-update-checks",
     "--disable-telemetry",
     "--disable-crash-reporter",
-    buildWorkspaceFolderArg(workspaceDir),
+    // Keep the positional workspace after every host switch. Some Electron /
+    // VS Code launch paths stop interpreting Chromium switches once a
+    // positional argument has been consumed.
+    workspaceDir,
   ];
 }
 
@@ -256,7 +252,7 @@ function buildHostInspectorLaunchArgs({
     "--disable-extension-update-checks",
     "--disable-telemetry",
     "--disable-crash-reporter",
-    buildWorkspaceFolderArg(workspaceDir),
+    workspaceDir,
   ];
 }
 
@@ -266,7 +262,7 @@ function buildHostApiLaunchArgs({ workspaceDir, profileArgs }) {
     "--disable-extension-update-checks",
     "--disable-telemetry",
     "--disable-crash-reporter",
-    buildWorkspaceFolderArg(workspaceDir),
+    workspaceDir,
   ];
 }
 
@@ -277,7 +273,7 @@ function buildHostPipeLaunchArgs({ workspaceDir, profileArgs }) {
     "--disable-extension-update-checks",
     "--disable-telemetry",
     "--disable-crash-reporter",
-    buildWorkspaceFolderArg(workspaceDir),
+    workspaceDir,
   ];
 }
 
@@ -471,6 +467,38 @@ function createElectronInspectorEndpointCapture(
   };
 }
 
+async function connectInspectorBootstrap({
+  getInspectorWebSocketUrl,
+  timeoutMs = 15_000,
+}) {
+  const endpoint = await waitForInspectorEndpoint(
+    getInspectorWebSocketUrl,
+    timeoutMs,
+  );
+  // Validate the same strict loopback endpoint shape as the retained
+  // diagnostic Inspector journey, then use Node 22's built-in WebSocket so
+  // the macOS relay gate has no external websocket dependency.
+  buildElectronInspectorWebSocketOptions(endpoint);
+  const inspector = await CdpClient.connect(endpoint);
+  try {
+    const response = await inspector.send(
+      "Runtime.evaluate",
+      {
+        expression: "1",
+        returnByValue: true,
+      },
+      timeoutMs,
+    );
+    if (response.exceptionDetails || response.result?.value !== 1) {
+      throw new Error("Electron Inspector bootstrap evaluation failed");
+    }
+    return inspector;
+  } catch (error) {
+    inspector.close();
+    throw error;
+  }
+}
+
 function waitForOutcome(promise, timeoutMs) {
   const timedOut = Symbol("timed-out");
   let timer;
@@ -530,6 +558,7 @@ async function runRealDomPhase({
   useCdpPipe = false,
   useElectronMainInspector = false,
   useDomRelay = false,
+  connectInspectorBootstrap: connectBootstrap = connectInspectorBootstrap,
 }) {
   if (
     [useCdpPipe, useElectronMainInspector, useDomRelay].filter(Boolean).length >
@@ -543,39 +572,68 @@ async function runRealDomPhase({
     const hostDomToken = crypto.randomBytes(32).toString("hex");
     // Signed macOS VS Code builds on hosted runners do not start their
     // extensionTestsPath runner without Electron's main-process inspector
-    // switch. Keep a random loopback-only endpoint for that launch quirk, but
-    // never connect to it: every DOM action and result crosses the token-gated
-    // Extension Host/Webview message relay below.
+    // switch plus one attached client. The bootstrap evaluates only constant
+    // `1` and stays open until the host settles; every DOM action and result
+    // crosses the token-gated Extension Host/Webview message relay below.
     const bootstrapInspectorPort = await reserveLoopbackPort();
-    await runTests({
-      vscodeExecutablePath,
-      extensionDevelopmentPath: path.join(__dirname, "driver"),
-      extensionTestsPath: path.join(__dirname, "driver", "smoke.cjs"),
-      launchArgs: buildHostInspectorLaunchArgs({
-        workspaceDir,
-        profileArgs,
-        inspectorPort: bootstrapInspectorPort,
-      }),
-      extensionTestsEnv: {
-        HOME: profileHome,
-        USERPROFILE: profileHome,
-        CHAINLESSCHAIN_SMOKE_EXTENSIONS_DIR: extensionsDir,
-        CHAINLESSCHAIN_SMOKE_EXPECTED_VERSION: expectedVersion,
-        CHAINLESSCHAIN_SMOKE_WORKSPACE: workspaceDir,
-        CHAINLESSCHAIN_HOST_JOURNEY_PHASE: phase,
-        CHAINLESSCHAIN_HOST_JOURNEY_MODE: "dom-relay",
-        CHAINLESSCHAIN_HOST_READY_FILE: readyFile,
-        CHAINLESSCHAIN_HOST_RESULT_FILE: resultFile,
-        CHAINLESSCHAIN_HOST_TRACE_FILE: path.join(
-          journeyArtifactDir,
-          "cdp-journey.jsonl",
-        ),
-        CHAINLESSCHAIN_HOST_ARTIFACT_DIR: journeyArtifactDir,
-        CHAINLESSCHAIN_HOST_DOM_TOKEN: hostDomToken,
-        CC_UI_FIXTURE_STATE: fixture.statePath,
-        CC_UI_FIXTURE_TRACE: fixture.tracePath,
-      },
-    });
+    const endpointCapture = createElectronInspectorEndpointCapture(
+      bootstrapInspectorPort,
+    );
+    const sigintGuard = () => {};
+    process.on("SIGINT", sigintGuard);
+    const hostOutcome = Promise.resolve()
+      .then(() =>
+        runTests({
+          vscodeExecutablePath,
+          extensionDevelopmentPath: path.join(__dirname, "driver"),
+          extensionTestsPath: path.join(__dirname, "driver", "smoke.cjs"),
+          stderr: endpointCapture.stderr,
+          launchArgs: buildHostInspectorLaunchArgs({
+            workspaceDir,
+            profileArgs,
+            inspectorPort: bootstrapInspectorPort,
+          }),
+          extensionTestsEnv: {
+            HOME: profileHome,
+            USERPROFILE: profileHome,
+            CHAINLESSCHAIN_SMOKE_EXTENSIONS_DIR: extensionsDir,
+            CHAINLESSCHAIN_SMOKE_EXPECTED_VERSION: expectedVersion,
+            CHAINLESSCHAIN_SMOKE_WORKSPACE: workspaceDir,
+            CHAINLESSCHAIN_HOST_JOURNEY_PHASE: phase,
+            CHAINLESSCHAIN_HOST_JOURNEY_MODE: "dom-relay",
+            CHAINLESSCHAIN_HOST_READY_FILE: readyFile,
+            CHAINLESSCHAIN_HOST_RESULT_FILE: resultFile,
+            CHAINLESSCHAIN_HOST_TRACE_FILE: path.join(
+              journeyArtifactDir,
+              "cdp-journey.jsonl",
+            ),
+            CHAINLESSCHAIN_HOST_ARTIFACT_DIR: journeyArtifactDir,
+            CHAINLESSCHAIN_HOST_DOM_TOKEN: hostDomToken,
+            CC_UI_FIXTURE_STATE: fixture.statePath,
+            CC_UI_FIXTURE_TRACE: fixture.tracePath,
+          },
+        }),
+      )
+      .then(
+        (value) => ({ value }),
+        (error) => ({ error }),
+      );
+    let bootstrap;
+    try {
+      await Promise.resolve();
+      bootstrap = await connectBootstrap({
+        getInspectorWebSocketUrl: endpointCapture.getEndpoint,
+      });
+      const host = await hostOutcome;
+      if (host.error) throw host.error;
+    } catch (error) {
+      process.emit("SIGINT");
+      await waitForOutcome(hostOutcome, 5_000);
+      throw error;
+    } finally {
+      bootstrap?.close();
+      process.removeListener("SIGINT", sigintGuard);
+    }
     return readJourneyResult(resultFile, phase);
   }
   const inspectorPort = useElectronMainInspector
@@ -1169,6 +1227,7 @@ module.exports = {
   assertHostApiArtifacts,
   createDevToolsEndpointCapture,
   createElectronInspectorEndpointCapture,
+  connectInspectorBootstrap,
   createHostProgressJournal,
   findDiagnosticLogs,
   hostPhaseSignalPaths,
