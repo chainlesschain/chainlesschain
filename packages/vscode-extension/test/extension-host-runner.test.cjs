@@ -43,6 +43,7 @@ const {
 const {
   buildElectronInspectorWebSocketOptions,
   createWebContentsClient,
+  inspectWebContentsExpression,
 } = require("./extension-host/electron-main-journey.cjs");
 const {
   ACTIVITY_VIEW_COMMAND,
@@ -607,6 +608,55 @@ test("Electron inspector client evaluates and captures the real WebContents", as
   assert.ok(expressions[0].includes('executeJavaScript("1 + 1", true)'));
   client.close();
   assert.equal(closed, true);
+});
+
+test("Electron inspector scan bounds stalled WebContents probes", async () => {
+  const responsive = {
+    id: 7,
+    getType: () => "webview",
+    getURL: () => "vscode-webview://chainlesschain",
+    isDestroyed: () => false,
+    executeJavaScript: async () => true,
+  };
+  const stalled = {
+    id: 8,
+    getType: () => "window",
+    getURL: () => "vscode-file://vscode-app/workbench.html",
+    isDestroyed: () => false,
+    executeJavaScript: () => new Promise(() => {}),
+  };
+  const evaluate = Function(
+    "require",
+    "setTimeout",
+    `return ${inspectWebContentsExpression()}`,
+  );
+  const startedAt = Date.now();
+  const entries = await evaluate((specifier) => {
+    assert.equal(specifier, "electron");
+    return {
+      webContents: {
+        getAllWebContents: () => [stalled, responsive],
+      },
+    };
+  }, setTimeout);
+  assert.ok(Date.now() - startedAt < 5_000);
+  assert.deepEqual(entries, [
+    {
+      id: 8,
+      type: "window",
+      url: "vscode-file://vscode-app/workbench.html",
+      destroyed: false,
+      probe: false,
+      error: "Electron WebContents probe timed out",
+    },
+    {
+      id: 7,
+      type: "webview",
+      url: "vscode-webview://chainlesschain",
+      destroyed: false,
+      probe: true,
+    },
+  ]);
 });
 
 test("CDP websocket handshake binds its Origin to the loopback endpoint", () => {

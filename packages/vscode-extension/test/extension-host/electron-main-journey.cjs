@@ -111,8 +111,7 @@ async function evaluateMain(inspector, expression) {
 function inspectWebContentsExpression() {
   return `(async () => {
     const { webContents } = require("electron");
-    const entries = [];
-    for (const contents of webContents.getAllWebContents()) {
+    const entries = await Promise.all(webContents.getAllWebContents().map(async (contents) => {
       const entry = {
         id: contents.id,
         type: contents.getType(),
@@ -122,15 +121,21 @@ function inspectWebContentsExpression() {
       };
       if (!entry.destroyed) {
         try {
-          entry.probe = Boolean(await contents.executeJavaScript(${JSON.stringify(
-            `Boolean(${CHAT_WEBVIEW_PROBE})`,
-          )}, true));
+          entry.probe = Boolean(await Promise.race([
+            contents.executeJavaScript(${JSON.stringify(
+              `Boolean(${CHAT_WEBVIEW_PROBE})`,
+            )}, true),
+            new Promise((_, reject) => setTimeout(
+              () => reject(new Error("Electron WebContents probe timed out")),
+              1_500,
+            )),
+          ]));
         } catch (error) {
           entry.error = String(error && error.message ? error.message : error);
         }
       }
-      entries.push(entry);
-    }
+      return entry;
+    }));
     return entries;
   })()`;
 }
