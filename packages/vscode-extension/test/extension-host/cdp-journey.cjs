@@ -206,9 +206,23 @@ class CdpClient {
       );
       socket.addEventListener(
         "error",
-        () => {
+        (event) => {
           clearTimeout(timer);
-          reject(new Error(`CDP websocket failed: ${webSocketUrl}`));
+          const details = [
+            event?.message,
+            event?.error?.message,
+            event?.error?.cause?.message,
+          ]
+            .filter(
+              (value, index, values) =>
+                Boolean(value) && values.indexOf(value) === index,
+            )
+            .join("; ");
+          reject(
+            new Error(
+              `CDP websocket failed: ${webSocketUrl}${details ? `: ${details}` : ""}`,
+            ),
+          );
         },
         { once: true },
       );
@@ -1104,8 +1118,11 @@ module.exports = {
   CdpClient,
   JOURNEY_PHASES,
   PHASE_DOM_MARKERS,
+  appendTrace,
   assertJourneyArtifacts,
+  captureWebview,
   createFixtureCli,
+  drivePhase,
   isInspectableBrowserTarget,
   readJourneyResult,
   reserveLoopbackPort,

@@ -35,6 +35,12 @@ const {
   CHAT_VIEW_FOCUS_COMMAND,
   requestChatViewForDomJourney,
 } = require("./extension-host/driver/view-control.cjs");
+const {
+  buildPlaywrightHostArgs,
+  createPlaywrightDomClient,
+  describeFrames,
+  findChatWebviewFrame,
+} = require("./extension-host/playwright-journey.cjs");
 
 const temporaryRoots = [];
 
@@ -245,13 +251,14 @@ test("real-DOM host phase is loopback-only and keeps the fresh profile args", ()
       cdpPort: 43210,
     }),
     [
+      path.join(root, "workspace"),
       ...profileArgs,
       "--remote-debugging-port=43210",
       "--remote-debugging-address=127.0.0.1",
+      "--remote-allow-origins=*",
       "--disable-extension-update-checks",
       "--disable-telemetry",
       "--disable-crash-reporter",
-      path.join(root, "workspace"),
     ],
   );
   assert.throws(
@@ -263,6 +270,62 @@ test("real-DOM host phase is loopback-only and keeps the fresh profile args", ()
       }),
     /invalid CDP port/,
   );
+});
+
+test("macOS Playwright host keeps the real extension-test contract", async () => {
+  const root = temporaryRoot();
+  const args = buildPlaywrightHostArgs({
+    workspaceDir: path.join(root, "workspace"),
+    profileArgs: [
+      `--extensions-dir=${path.join(root, "extensions")}`,
+      `--user-data-dir=${path.join(root, "user-data")}`,
+    ],
+    extensionDevelopmentPath: path.join(root, "driver"),
+    extensionTestsPath: path.join(root, "driver", "smoke.cjs"),
+  });
+  assert.equal(args[0], path.join(root, "workspace"));
+  assert.ok(args.includes("--enable-smoke-test-driver"));
+  assert.ok(
+    args.includes(`--extensionDevelopmentPath=${path.join(root, "driver")}`),
+  );
+  assert.ok(
+    args.includes(
+      `--extensionTestsPath=${path.join(root, "driver", "smoke.cjs")}`,
+    ),
+  );
+  assert.equal(
+    args.some((arg) => arg.startsWith("--remote-debugging")),
+    false,
+  );
+
+  const screenshot = Buffer.from("playwright-frame");
+  const frame = {
+    name: () => "active-frame",
+    url: () => "vscode-webview://chainlesschain",
+    evaluate: async (expression) => expression,
+    locator: () => ({ screenshot: async () => screenshot }),
+  };
+  const page = { frames: () => [frame] };
+  const electronApp = { windows: () => [page] };
+  assert.deepEqual(describeFrames(electronApp), [
+    {
+      pageIndex: 0,
+      name: "active-frame",
+      url: "vscode-webview://chainlesschain",
+    },
+  ]);
+  const located = await findChatWebviewFrame(electronApp, 50);
+  assert.deepEqual(located.target, {
+    type: "playwright-frame",
+    url: "vscode-webview://chainlesschain",
+  });
+  const client = createPlaywrightDomClient(frame, page);
+  assert.equal(await client.evaluate("document.body"), "document.body");
+  assert.deepEqual(await client.send("Page.enable"), {});
+  assert.deepEqual(await client.send("Page.captureScreenshot"), {
+    data: screenshot.toString("base64"),
+  });
+  await assert.rejects(() => client.send("Runtime.enable"), /unsupported/u);
 });
 
 test("captures only the expected loopback DevTools browser endpoint", async () => {
@@ -354,6 +417,31 @@ test("CDP child sessions preserve flattened target identity", async () => {
   assert.equal(sent[0].method, "Runtime.evaluate");
   assert.equal(sent[0].sessionId, "iframe-1");
   assert.equal(sent[0].params.contextId, 41);
+});
+
+test("CDP websocket failures retain the handshake diagnostic", async () => {
+  class RejectedWebSocket {
+    addEventListener(name, listener) {
+      if (name === "error") {
+        queueMicrotask(() =>
+          listener({
+            message: "Received non-101 status code",
+            error: new Error("403 Forbidden"),
+          }),
+        );
+      }
+    }
+
+    close() {}
+  }
+
+  await assert.rejects(
+    CdpClient.connect(
+      "ws://127.0.0.1:43210/devtools/browser/test",
+      RejectedWebSocket,
+    ),
+    /Received non-101 status code; 403 Forbidden/,
+  );
 });
 
 test("host phase signals are phase-scoped and reject unknown phases", () => {

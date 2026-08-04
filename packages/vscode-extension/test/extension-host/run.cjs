@@ -11,7 +11,7 @@
  * @vscode/test-electron is intentionally installed by CI with
  * --no-save --no-package-lock so this leaf package keeps its lockfile-free
  * packaging workflow. Local usage:
- *   npm install --no-save --no-package-lock @vscode/test-electron@3.1.0
+ *   npm install --no-save --no-package-lock @vscode/test-electron@3.1.0 playwright-core@1.61.1
  *   npm run test:extension-host -- --vsix chainlesschain-ide.vsix
  */
 
@@ -27,6 +27,10 @@ const {
   reserveLoopbackPort,
   runCdpHostJourney,
 } = require("./cdp-journey.cjs");
+const {
+  buildPlaywrightHostArgs,
+  runPlaywrightHostJourney,
+} = require("./playwright-journey.cjs");
 
 const EXTENSION_ID = "chainlesschain.chainlesschain-ide";
 const PACKAGE_ROOT = path.resolve(__dirname, "..", "..");
@@ -104,6 +108,25 @@ function requireTestElectron() {
       throw new Error(
         "@vscode/test-electron is required. Run " +
           "`npm install --no-save --no-package-lock @vscode/test-electron@3.1.0` first.",
+        { cause: error },
+      );
+    }
+    throw error;
+  }
+}
+
+function requirePlaywrightElectron() {
+  try {
+    const playwright = require("playwright-core");
+    if (!playwright?._electron?.launch) {
+      throw new Error("playwright-core does not expose its Electron launcher");
+    }
+    return playwright._electron;
+  } catch (error) {
+    if (error && error.code === "MODULE_NOT_FOUND") {
+      throw new Error(
+        "playwright-core is required for the macOS real-DOM host gate. Run " +
+          "`npm install --no-save --no-package-lock playwright-core@1.61.1` first.",
         { cause: error },
       );
     }
@@ -201,13 +224,17 @@ function buildHostLaunchArgs({ workspaceDir, profileArgs, cdpPort }) {
     throw new Error(`invalid CDP port: ${cdpPort}`);
   }
   return [
+    workspaceDir,
     ...profileArgs,
     `--remote-debugging-port=${cdpPort}`,
     "--remote-debugging-address=127.0.0.1",
+    // Chromium rejects DevTools WebSocket origins unless explicitly allowed.
+    // The debugging socket is still bound to a random loopback-only port in a
+    // fresh test profile, so this does not expose the host beyond the runner.
+    "--remote-allow-origins=*",
     "--disable-extension-update-checks",
     "--disable-telemetry",
     "--disable-crash-reporter",
-    workspaceDir,
   ];
 }
 
@@ -414,6 +441,134 @@ async function runRealDomPhase({
   if (hostError) throw hostError;
   if (cdp.error) throw cdp.error;
   return readJourneyResult(resultFile, phase);
+}
+
+function processExitOutcome(child) {
+  if (child.exitCode !== null || child.signalCode !== null) {
+    return Promise.resolve({ code: child.exitCode, signal: child.signalCode });
+  }
+  return new Promise((resolve) => {
+    child.once("exit", (code, signal) => resolve({ code, signal }));
+  });
+}
+
+async function closePlaywrightElectron(electronApp, timeoutMs = 15_000) {
+  const close = Promise.resolve()
+    .then(() => electronApp.close())
+    .then(
+      () => ({ closed: true }),
+      (error) => ({ error }),
+    );
+  const outcome = await waitForOutcome(close, timeoutMs);
+  if (!outcome) {
+    throw new Error(
+      `Playwright Electron host did not close within ${timeoutMs}ms`,
+    );
+  }
+  if (outcome.error) throw outcome.error;
+}
+
+async function runPlaywrightRealDomPhase({
+  vscodeExecutablePath,
+  workspaceDir,
+  profileArgs,
+  extensionsDir,
+  profileHome,
+  expectedVersion,
+  phase,
+  runtimeDir,
+  journeyArtifactDir,
+  fixture,
+}) {
+  const { readyFile, resultFile } = hostPhaseSignalPaths(runtimeDir, phase);
+  const extensionDevelopmentPath = path.join(__dirname, "driver");
+  const extensionTestsPath = path.join(__dirname, "driver", "smoke.cjs");
+  const extensionTestsEnv = {
+    HOME: profileHome,
+    USERPROFILE: profileHome,
+    CHAINLESSCHAIN_SMOKE_EXTENSIONS_DIR: extensionsDir,
+    CHAINLESSCHAIN_SMOKE_EXPECTED_VERSION: expectedVersion,
+    CHAINLESSCHAIN_SMOKE_WORKSPACE: workspaceDir,
+    CHAINLESSCHAIN_HOST_JOURNEY_PHASE: phase,
+    CHAINLESSCHAIN_HOST_READY_FILE: readyFile,
+    CHAINLESSCHAIN_HOST_RESULT_FILE: resultFile,
+    CC_UI_FIXTURE_STATE: fixture.statePath,
+    CC_UI_FIXTURE_TRACE: fixture.tracePath,
+  };
+  const abortController = new AbortController();
+  let electronApp;
+  let hostOutcome;
+  let journeyOutcome;
+  try {
+    electronApp = await requirePlaywrightElectron().launch({
+      executablePath: vscodeExecutablePath,
+      args: buildPlaywrightHostArgs({
+        workspaceDir,
+        profileArgs,
+        extensionDevelopmentPath,
+        extensionTestsPath,
+      }),
+      env: { ...process.env, ...extensionTestsEnv },
+      timeout: 60_000,
+    });
+    hostOutcome = processExitOutcome(electronApp.process());
+    journeyOutcome = runPlaywrightHostJourney({
+      electronApp,
+      readyFile,
+      resultFile,
+      phase,
+      artifactDir: journeyArtifactDir,
+      signal: abortController.signal,
+    }).then(
+      (value) => ({ value }),
+      (error) => ({ error }),
+    );
+
+    const first = await Promise.race([
+      hostOutcome.then((outcome) => ({ source: "host", outcome })),
+      journeyOutcome.then((outcome) => ({ source: "journey", outcome })),
+    ]);
+    if (first.source === "host") {
+      abortController.abort(
+        new Error(
+          `Playwright VS Code host exited before ${phase} DOM journey completed`,
+        ),
+      );
+      const journey = await journeyOutcome;
+      throw new Error(
+        `Playwright VS Code host exited before ${phase} DOM journey completed (code=${String(first.outcome.code)}, signal=${String(first.outcome.signal)})`,
+        { cause: journey.error },
+      );
+    }
+
+    const journey = first.outcome;
+    let host = await waitForOutcome(hostOutcome, 10_000);
+    let managedTermination = false;
+    if (!host) {
+      managedTermination = true;
+      await closePlaywrightElectron(electronApp);
+      host = await waitForOutcome(hostOutcome, 5_000);
+    }
+    if (journey.error) throw journey.error;
+    if (!host) {
+      throw new Error(`Playwright VS Code host did not exit during ${phase}`);
+    }
+    if (!managedTermination && host.code !== 0) {
+      throw new Error(
+        `Playwright VS Code host failed during ${phase} (code=${String(host.code)}, signal=${String(host.signal)})`,
+      );
+    }
+    return readJourneyResult(resultFile, phase);
+  } finally {
+    abortController.abort(new Error(`${phase} Playwright host phase ended`));
+    if (electronApp && electronApp.process().exitCode === null) {
+      try {
+        await closePlaywrightElectron(electronApp);
+      } catch {
+        // The phase's primary error and evidence remain authoritative.
+      }
+    }
+  }
 }
 
 function assertInstalled(listOutput, version) {
@@ -646,8 +801,12 @@ async function main() {
     for (const phase of ["initial", "restart"]) {
       const profileArgs = buildProfileArgs({ runRoot, extensionsDir, phase });
       recordHostProgress(progressPath, `${phase}_started`);
-      await runRealDomPhase({
-        runTests,
+      const runHostPhase =
+        process.platform === "darwin"
+          ? runPlaywrightRealDomPhase
+          : runRealDomPhase;
+      await runHostPhase({
+        ...(process.platform === "darwin" ? {} : { runTests }),
         vscodeExecutablePath,
         workspaceDir,
         profileArgs,
@@ -702,7 +861,10 @@ async function main() {
         hostVersion: hostVersion || options.vscodeVersion,
         cliVersion,
         extensionVersion: expectedVersion,
-        transport: "local-ide-bridge+loopback-cdp",
+        transport:
+          process.platform === "darwin"
+            ? "local-ide-bridge+playwright-electron"
+            : "local-ide-bridge+loopback-cdp",
         result: journeyResult,
         startedAt,
         finishedAt: new Date().toISOString(),
@@ -748,6 +910,7 @@ module.exports = {
   parseDevToolsBrowserEndpoint,
   recordHostProgress,
   resolveVsCodeHostVersion,
+  runPlaywrightRealDomPhase,
   runRealDomPhase,
   settleHostAfterCdp,
 };
