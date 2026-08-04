@@ -51,7 +51,11 @@ const {
 } = require("./slash-commands.js");
 
 const PLAN_REVIEW_STATES_KEY = "chainlesschain.chat.planReviewStates.v1";
-const WEBVIEW_PROTOCOL_TIMEOUT_MS = 750;
+// A cold signed macOS Webview can take longer than one second to start its
+// renderer. Keep version-mismatch messages fail-fast, but do not tear down a
+// valid first load merely because its ready/protocol message is still in
+// flight on a busy host.
+const WEBVIEW_PROTOCOL_TIMEOUT_MS = 5_000;
 const HOST_DOM_RESPONSE_TIMEOUT_MS = 10_000;
 
 class ChatViewProvider {

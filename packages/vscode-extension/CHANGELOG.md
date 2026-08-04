@@ -12,6 +12,9 @@ All notable changes to this extension are documented here.
   and settle result files before bounded Extension Host shutdown.
 - Remove the obsolete debugger bootstrap from the macOS relay launch and retain
   phase-scoped progress, DOM snapshots, protocol trace, and fail-closed evidence.
+- Foreground the isolated macOS host, wait for real Chat focus, and allow a
+  cold signed Webview five seconds to complete its protocol handshake before a
+  one-time stale-DOM rebuild.
 
 ## [0.37.40] - Inline chat and release-host hardening (2026-08-04)
 
