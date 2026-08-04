@@ -27,6 +27,7 @@ const {
   JOURNEY_PHASES,
   PHASE_DOM_MARKERS,
   assertJourneyArtifacts,
+  buildCdpWebSocketOptions,
   createFixtureCli,
   isInspectableBrowserTarget,
   readJourneyResult,
@@ -253,7 +254,7 @@ test("real-DOM host phase is loopback-only and keeps the fresh profile args", ()
       ...profileArgs,
       "--remote-debugging-port=43210",
       "--remote-debugging-address=127.0.0.1",
-      "--remote-allow-origins=*",
+      "--remote-allow-origins=http://127.0.0.1:43210",
       "--disable-extension-update-checks",
       "--disable-telemetry",
       "--disable-crash-reporter",
@@ -406,6 +407,33 @@ test("captures only the expected loopback DevTools browser endpoint", async () =
       43210,
     ),
     null,
+  );
+});
+
+test("CDP websocket handshake binds its Origin to the loopback endpoint", () => {
+  assert.deepEqual(
+    buildCdpWebSocketOptions(
+      "ws://127.0.0.1:43210/devtools/browser/browser-id",
+    ),
+    {
+      origin: "http://127.0.0.1:43210",
+      perMessageDeflate: false,
+      handshakeTimeout: 8_000,
+    },
+  );
+  assert.throws(
+    () =>
+      buildCdpWebSocketOptions(
+        "ws://example.com:43210/devtools/browser/browser-id",
+      ),
+    /non-loopback CDP websocket/,
+  );
+  assert.throws(
+    () =>
+      buildCdpWebSocketOptions(
+        "wss://127.0.0.1:43210/devtools/browser/browser-id",
+      ),
+    /non-loopback CDP websocket/,
   );
 });
 

@@ -54,6 +54,7 @@ test("VS Code macOS host gate pins the validated Intel runner image", () => {
   assert.match(macGate[0], /runs-on: macos-15-intel/u);
   assert.doesNotMatch(macGate[0], /runs-on: macos-latest/u);
   assert.match(macGate[0], /@vscode\/test-electron@3\.1\.0/u);
+  assert.match(macGate[0], /ws@8\.21\.2/u);
   assert.doesNotMatch(macGate[0], /playwright/u);
   assert.doesNotMatch(macGate[0], /--host-api-only/u);
   assert.equal(
@@ -66,5 +67,10 @@ test("VS Code macOS host gate pins the validated Intel runner image", () => {
   assert.match(
     macGate[0],
     /- name: Upload macOS host journey evidence\n\s+if: always\(\)/u,
+  );
+  assert.equal(
+    workflow.match(/ws@8\.21\.2/gu)?.length,
+    3,
+    "Windows, macOS, and Linux host gates must pin the CDP websocket client",
   );
 });

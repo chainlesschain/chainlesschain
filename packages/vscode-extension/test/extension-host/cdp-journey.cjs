@@ -1,12 +1,12 @@
 "use strict";
 
 /**
- * Dependency-free CDP driver for the installed-VSIX host journey.
+ * Test-only CDP driver for the installed-VSIX host journey.
  *
  * VS Code is launched with a random loopback-only debugging port. This module
- * connects with Node's built-in WebSocket client, locates the ChainlessChain
- * webview target, and drives its real DOM. It never uses a production test
- * command or extension export.
+ * connects with the CI-pinned `ws` client, locates the ChainlessChain webview
+ * target, and drives its real DOM. It never uses a production test command or
+ * extension export.
  */
 
 const fs = require("node:fs");
@@ -294,6 +294,50 @@ class CdpClient {
   }
 }
 
+function buildCdpWebSocketOptions(webSocketUrl) {
+  const endpoint = new URL(webSocketUrl);
+  if (
+    endpoint.protocol !== "ws:" ||
+    !["127.0.0.1", "[::1]", "::1"].includes(endpoint.hostname) ||
+    !endpoint.port ||
+    endpoint.username ||
+    endpoint.password
+  ) {
+    throw new Error(`refusing non-loopback CDP websocket: ${webSocketUrl}`);
+  }
+  return {
+    // Chromium accepts a DevTools websocket origin whose host/port exactly
+    // matches the debugging endpoint. Supplying it explicitly avoids the
+    // signed macOS Electron host closing Node's origin-less WHATWG handshake.
+    origin: `http://${endpoint.host}`,
+    perMessageDeflate: false,
+    // Fire before CdpClient's 10-second outer deadline so a genuine handshake
+    // error wins over its best-effort CONNECTING-state cleanup.
+    handshakeTimeout: 8_000,
+  };
+}
+
+function connectCdpWebSocket(webSocketUrl) {
+  let WebSocketImpl;
+  try {
+    const ws = require("ws");
+    WebSocketImpl = ws.WebSocket || ws;
+  } catch (error) {
+    throw new Error(
+      "ws is required for the cross-platform CDP host journey; install the pinned test runtime first",
+      { cause: error },
+    );
+  }
+  return CdpClient.connect(
+    webSocketUrl,
+    class LoopbackCdpWebSocket extends WebSocketImpl {
+      constructor(url) {
+        super(url, buildCdpWebSocketOptions(url));
+      }
+    },
+  );
+}
+
 async function listTargets(port, signal = null) {
   throwIfAborted(signal);
   const timeoutSignal = AbortSignal.timeout(2_000);
@@ -384,7 +428,7 @@ async function findChatWebview(
         if (!target.webSocketDebuggerUrl) continue;
         let client;
         try {
-          client = await CdpClient.connect(target.webSocketDebuggerUrl);
+          client = await connectCdpWebSocket(target.webSocketDebuggerUrl);
           const found = await client.evaluate(`Boolean(${CHAT_WEBVIEW_PROBE})`);
           if (found) return { client, target };
         } catch (error) {
@@ -398,7 +442,7 @@ async function findChatWebview(
       // attach only to vscode-webview OOPIFs and evaluate their real DOM.
       const browserUrl =
         announcedBrowserUrl || (await browserWebSocketUrl(port, signal));
-      const browserClient = await CdpClient.connect(browserUrl);
+      const browserClient = await connectCdpWebSocket(browserUrl);
       let keepBrowserClient = false;
       try {
         const discovered = await browserClient.send("Target.getTargets");
@@ -1120,6 +1164,7 @@ module.exports = {
   PHASE_DOM_MARKERS,
   assertHostReadySignal,
   assertJourneyArtifacts,
+  buildCdpWebSocketOptions,
   createFixtureCli,
   isExactIsoTimestamp,
   isInspectableBrowserTarget,

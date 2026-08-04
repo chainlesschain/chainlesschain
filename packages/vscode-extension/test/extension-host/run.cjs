@@ -8,10 +8,10 @@
  * extensions directory (not --extensionDevelopmentPath), activates it, and
  * checks its command/bridge surface.
  *
- * @vscode/test-electron is intentionally installed by CI with
+ * @vscode/test-electron and ws are intentionally installed by CI with
  * --no-save --no-package-lock so this leaf package keeps its lockfile-free
  * packaging workflow. Local usage:
- *   npm install --no-save --no-package-lock @vscode/test-electron@3.1.0
+ *   npm install --no-save --no-package-lock @vscode/test-electron@3.1.0 ws@8.21.2
  *   npm run test:extension-host -- --vsix chainlesschain-ide.vsix
  */
 
@@ -211,10 +211,10 @@ function buildHostLaunchArgs({ workspaceDir, profileArgs, cdpPort }) {
     ...profileArgs,
     `--remote-debugging-port=${cdpPort}`,
     "--remote-debugging-address=127.0.0.1",
-    // Chromium rejects DevTools WebSocket origins unless explicitly allowed.
-    // The debugging socket is still bound to a random loopback-only port in a
-    // fresh test profile, so this does not expose the host beyond the runner.
-    "--remote-allow-origins=*",
+    // Match the explicit Origin emitted by the pinned `ws` client. Both the
+    // debugging socket and allowed Origin are scoped to this run's random
+    // loopback-only port in a fresh test profile.
+    `--remote-allow-origins=http://127.0.0.1:${cdpPort}`,
     "--disable-extension-update-checks",
     "--disable-telemetry",
     "--disable-crash-reporter",
