@@ -230,6 +230,7 @@ async function run() {
   assert.ok(expectedVersion, "missing CHAINLESSCHAIN_SMOKE_EXPECTED_VERSION");
   assert.ok(workspaceDir, "missing CHAINLESSCHAIN_SMOKE_WORKSPACE");
   assert.ok(profileHome, "missing isolated profile home");
+  console.log(`[extension-host-smoke] ${journeyPhase}: driver entered`);
 
   const extension = vscode.extensions.getExtension(EXTENSION_ID);
   assert.ok(
@@ -245,13 +246,18 @@ async function run() {
     expectedVersion,
     "the installed VSIX version differs from package.json",
   );
+  console.log(
+    `[extension-host-smoke] ${journeyPhase}: installed VSIX discovered`,
+  );
 
+  console.log(`[extension-host-smoke] ${journeyPhase}: activating VSIX`);
   await withTimeout(
     Promise.resolve().then(() => extension.activate()),
     30_000,
     `${EXTENSION_ID} activation`,
   );
   assert.equal(extension.isActive, true, "extension did not become active");
+  console.log(`[extension-host-smoke] ${journeyPhase}: VSIX activated`);
 
   if (journeyPhase === "restart") {
     await resumeFixtureSessionAfterHostRestart();
@@ -276,6 +282,7 @@ async function run() {
   const lock = await waitForBridgeLock(profileHome, workspaceDir, 45_000);
   assert.match(lock.token, /^[a-f0-9]{64}$/, "bridge token is malformed");
   await assertPortListening(lock.port);
+  console.log(`[extension-host-smoke] ${journeyPhase}: bridge verified`);
 
   // Open the production-contributed view through VS Code's real workbench
   // command. The external CDP peer then queries and clicks the actual Webview

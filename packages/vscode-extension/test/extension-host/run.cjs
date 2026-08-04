@@ -210,6 +210,50 @@ function buildHostLaunchArgs({ workspaceDir, profileArgs, cdpPort }) {
   ];
 }
 
+function waitForOutcome(promise, timeoutMs) {
+  const timedOut = Symbol("timed-out");
+  let timer;
+  return Promise.race([
+    promise,
+    new Promise((resolve) => {
+      timer = setTimeout(() => resolve(timedOut), timeoutMs);
+    }),
+  ]).then((value) => {
+    clearTimeout(timer);
+    return value === timedOut ? null : value;
+  });
+}
+
+async function settleHostAfterCdp({
+  hostOutcome,
+  phase,
+  graceMs = 5_000,
+  forceGraceMs = 15_000,
+  emitSigint = () => process.emit("SIGINT"),
+}) {
+  let host = await waitForOutcome(hostOutcome, graceMs);
+  if (host) return { host, managedTermination: false };
+
+  process.stdout.write(
+    `[extension-host-smoke] ${phase}: CDP journey settled; requesting host shutdown\n`,
+  );
+  emitSigint();
+  host = await waitForOutcome(hostOutcome, graceMs);
+  if (host) return { host, managedTermination: true };
+
+  process.stderr.write(
+    `[extension-host-smoke] ${phase}: host ignored graceful shutdown; terminating its process tree\n`,
+  );
+  emitSigint();
+  host = await waitForOutcome(hostOutcome, forceGraceMs);
+  if (!host) {
+    throw new Error(
+      `VS Code host did not exit after managed shutdown during ${phase}`,
+    );
+  }
+  return { host, managedTermination: true };
+}
+
 async function runRealDomPhase({
   runTests,
   vscodeExecutablePath,
@@ -237,37 +281,65 @@ async function runRealDomPhase({
     (value) => ({ value }),
     (error) => ({ error }),
   );
-
-  let hostError = null;
+  // @vscode/test-electron exposes cancellation through its SIGINT handlers.
+  // Keep one outer listener installed so its managed shutdown path does not
+  // call process.exit() before this runner can persist diagnostics/evidence.
+  const sigintGuard = () => {};
+  process.on("SIGINT", sigintGuard);
+  let host;
+  let cdp;
+  let managedTermination = false;
   try {
-    await runTests({
-      vscodeExecutablePath,
-      extensionDevelopmentPath: path.join(__dirname, "driver"),
-      extensionTestsPath: path.join(__dirname, "driver", "smoke.cjs"),
-      launchArgs: buildHostLaunchArgs({
-        workspaceDir,
-        profileArgs,
-        cdpPort,
-      }),
-      extensionTestsEnv: {
-        HOME: profileHome,
-        USERPROFILE: profileHome,
-        CHAINLESSCHAIN_SMOKE_EXTENSIONS_DIR: extensionsDir,
-        CHAINLESSCHAIN_SMOKE_EXPECTED_VERSION: expectedVersion,
-        CHAINLESSCHAIN_SMOKE_WORKSPACE: workspaceDir,
-        CHAINLESSCHAIN_HOST_JOURNEY_PHASE: phase,
-        CHAINLESSCHAIN_HOST_READY_FILE: readyFile,
-        CHAINLESSCHAIN_HOST_RESULT_FILE: resultFile,
-        CC_UI_FIXTURE_STATE: fixture.statePath,
-        CC_UI_FIXTURE_TRACE: fixture.tracePath,
-      },
-    });
-  } catch (error) {
-    hostError = error;
-    abortController.abort(error);
+    const hostOutcome = Promise.resolve()
+      .then(() =>
+        runTests({
+          vscodeExecutablePath,
+          extensionDevelopmentPath: path.join(__dirname, "driver"),
+          extensionTestsPath: path.join(__dirname, "driver", "smoke.cjs"),
+          launchArgs: buildHostLaunchArgs({
+            workspaceDir,
+            profileArgs,
+            cdpPort,
+          }),
+          extensionTestsEnv: {
+            HOME: profileHome,
+            USERPROFILE: profileHome,
+            CHAINLESSCHAIN_SMOKE_EXTENSIONS_DIR: extensionsDir,
+            CHAINLESSCHAIN_SMOKE_EXPECTED_VERSION: expectedVersion,
+            CHAINLESSCHAIN_SMOKE_WORKSPACE: workspaceDir,
+            CHAINLESSCHAIN_HOST_JOURNEY_PHASE: phase,
+            CHAINLESSCHAIN_HOST_READY_FILE: readyFile,
+            CHAINLESSCHAIN_HOST_RESULT_FILE: resultFile,
+            CC_UI_FIXTURE_STATE: fixture.statePath,
+            CC_UI_FIXTURE_TRACE: fixture.tracePath,
+          },
+        }),
+      )
+      .then(
+        (value) => ({ value }),
+        (error) => ({ error }),
+      );
+    const first = await Promise.race([
+      hostOutcome.then((outcome) => ({ source: "host", outcome })),
+      cdpOutcome.then((outcome) => ({ source: "cdp", outcome })),
+    ]);
+    if (first.source === "host") {
+      host = first.outcome;
+      if (host.error) abortController.abort(host.error);
+      cdp = await cdpOutcome;
+    } else {
+      cdp = first.outcome;
+      ({ host, managedTermination } = await settleHostAfterCdp({
+        hostOutcome,
+        phase,
+      }));
+    }
+  } finally {
+    process.removeListener("SIGINT", sigintGuard);
   }
 
-  const cdp = await cdpOutcome;
+  const hostError =
+    managedTermination && !cdp.error ? null : host && host.error;
   if (hostError && cdp.error && cdp.error.name !== "AbortError") {
     throw new AggregateError(
       [hostError, cdp.error],
@@ -610,6 +682,7 @@ module.exports = {
   recordHostProgress,
   resolveVsCodeHostVersion,
   runRealDomPhase,
+  settleHostAfterCdp,
 };
 
 if (require.main === module) {

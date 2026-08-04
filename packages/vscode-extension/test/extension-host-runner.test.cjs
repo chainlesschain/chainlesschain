@@ -15,6 +15,7 @@ const {
   parseArgs,
   recordHostProgress,
   resolveVsCodeHostVersion,
+  settleHostAfterCdp,
 } = require("./extension-host/run.cjs");
 const {
   CdpClient,
@@ -160,6 +161,47 @@ test("host progress journal survives before immutable evidence exists", () => {
   );
   assert.ok(records.every((record) => !Number.isNaN(Date.parse(record.at))));
   assert.throws(() => createHostProgressJournal(artifactDir), /EEXIST|exist/i);
+});
+
+test("completed hosts need no managed shutdown after CDP settles", async () => {
+  let signalCount = 0;
+  const host = { value: 0 };
+  const result = await settleHostAfterCdp({
+    hostOutcome: Promise.resolve(host),
+    phase: "initial",
+    graceMs: 5,
+    forceGraceMs: 5,
+    emitSigint: () => {
+      signalCount += 1;
+    },
+  });
+
+  assert.deepEqual(result, { host, managedTermination: false });
+  assert.equal(signalCount, 0);
+});
+
+test("hung hosts are shut down after the CDP deadline", async () => {
+  let resolveHost;
+  const hostOutcome = new Promise((resolve) => {
+    resolveHost = resolve;
+  });
+  const host = {
+    error: Object.assign(new Error("terminated"), { signal: "SIGINT" }),
+  };
+  let signalCount = 0;
+  const result = await settleHostAfterCdp({
+    hostOutcome,
+    phase: "initial",
+    graceMs: 5,
+    forceGraceMs: 5,
+    emitSigint: () => {
+      signalCount += 1;
+      resolveHost(host);
+    },
+  });
+
+  assert.deepEqual(result, { host, managedTermination: true });
+  assert.equal(signalCount, 1);
 });
 
 test("diagnostic discovery is limited to release-relevant host logs", () => {
