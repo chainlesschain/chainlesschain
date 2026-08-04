@@ -532,11 +532,21 @@ async function runRealDomPhase({
   const { readyFile, resultFile } = hostPhaseSignalPaths(runtimeDir, phase);
   if (useDomRelay) {
     const hostDomToken = crypto.randomBytes(32).toString("hex");
+    // Signed macOS VS Code builds on hosted runners do not start their
+    // extensionTestsPath runner without Chromium's test bootstrap switch.
+    // Keep a random loopback-only endpoint for that launch quirk, but never
+    // connect to it: every DOM action and result crosses the token-gated
+    // Extension Host/Webview message relay below.
+    const bootstrapCdpPort = await reserveLoopbackPort();
     await runTests({
       vscodeExecutablePath,
       extensionDevelopmentPath: path.join(__dirname, "driver"),
       extensionTestsPath: path.join(__dirname, "driver", "smoke.cjs"),
-      launchArgs: buildHostApiLaunchArgs({ workspaceDir, profileArgs }),
+      launchArgs: buildHostLaunchArgs({
+        workspaceDir,
+        profileArgs,
+        cdpPort: bootstrapCdpPort,
+      }),
       extensionTestsEnv: {
         HOME: profileHome,
         USERPROFILE: profileHome,

@@ -303,7 +303,7 @@ test("host-API launch keeps the real extension-test profile without CDP", () => 
   );
 });
 
-test("macOS DOM relay launches the installed host without a debugging endpoint", async () => {
+test("macOS DOM relay uses a loopback bootstrap endpoint without CDP transport", async () => {
   const root = temporaryRoot();
   const runtimeDir = path.join(root, "runtime");
   const artifactDir = path.join(root, "artifacts");
@@ -352,10 +352,19 @@ test("macOS DOM relay launches the installed host without a debugging endpoint",
   });
 
   assert.equal(result.mode, "dom-relay");
-  assert.equal(
-    launch.launchArgs.some((argument) =>
-      /(?:remote-debugging|--inspect)/u.test(argument),
+  const portSwitch = launch.launchArgs.find((argument) =>
+    argument.startsWith("--remote-debugging-port="),
+  );
+  assert.match(portSwitch || "", /^--remote-debugging-port=\d+$/u);
+  const port = portSwitch.split("=").at(-1);
+  assert.ok(launch.launchArgs.includes("--remote-debugging-address=127.0.0.1"));
+  assert.ok(
+    launch.launchArgs.includes(
+      `--remote-allow-origins=http://127.0.0.1:${port}`,
     ),
+  );
+  assert.equal(
+    launch.launchArgs.some((argument) => argument.startsWith("--inspect")),
     false,
   );
   assert.equal(

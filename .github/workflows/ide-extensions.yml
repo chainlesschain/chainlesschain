@@ -143,8 +143,9 @@ jobs:
     name: VS Code extension (macOS host gate)
     needs: capability-manifest
     # Keep the complete real-DOM Extension Host gate on the stable macOS 15
-    # Intel image. A launch-token-gated test driver crosses VS Code's own
-    # Webview message boundary because signed macOS builds reject external CDP.
+    # Intel image. A random loopback CDP switch only bootstraps VS Code's test
+    # runner; a launch-token-gated driver crosses VS Code's own Webview message
+    # boundary because signed macOS builds reject external CDP connections.
     runs-on: macos-15-intel
     timeout-minutes: 45
     defaults:

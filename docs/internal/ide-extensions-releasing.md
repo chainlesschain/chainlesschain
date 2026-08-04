@@ -154,7 +154,9 @@ version.
   through VS Code's own Extension Host/Webview message boundary. The hidden
   relay exists only when the launcher injects a fresh 256-bit token, validates
   that token on both sides, and exposes fixed semantic DOM actions rather than
-  arbitrary JavaScript evaluation.
+  arbitrary JavaScript evaluation. A random loopback-only Chromium endpoint is
+  still enabled as a VS Code test-runner bootstrap workaround, but the macOS
+  journey never connects to it and does not install a WebSocket client.
   macOS remains release-authoritative only when both stable and minimum
   journeys pass.
   `--host-api-only` is a
