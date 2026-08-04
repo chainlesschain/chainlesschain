@@ -1,8 +1,24 @@
-# CLI Runtime 当前实现（0.162.189）
+# CLI Runtime 当前实现（源码候选 0.162.194）
 
-> 更新时间：2026-08-01。npm `latest` 已发布 `0.162.189`。
+> 更新时间：2026-08-04。生产推荐基线为 `0.162.189`；npm `latest` 当前是缺少权威发布身份的 `0.162.193`；当前源码候选为尚未发布的 `0.162.194`。
 
 本文是当前 CLI 运行时的实现快照，适合部署、排障和集成方阅读。设计取舍详见[运行时设计核对](/design/cli-runtime-current)。
+
+## 安装版本怎么选
+
+| 用途 | 版本 | 说明 |
+| --- | --- | --- |
+| 生产 / 日常稳定使用 | `0.162.189` | 最近在同一 exact SHA 完成 Linux、Windows、macOS 的 `CLI CI`、`CLI Strict Sandbox`、长期 Agent Team soak 与专用 npm 发布门 |
+| npm `latest` | `0.162.193` | 已存在于 registry，但由通用 workspace publisher 在同 SHA CLI CI 最终失败时写入；没有 `v-npm-0-162-193`、exact-SHA attestation 或专用 immutable tarball/SBOM handoff |
+| 源码开发 / 候选验证 | `0.162.194` | 包含发布权限遏制、IDE activation 修复和本页新增运行时；尚未发布，状态为 release NO-GO |
+
+生产安装建议显式固定：
+
+```bash
+npm i -g chainlesschain@0.162.189
+```
+
+已安装 `0.162.193` 的用户不必覆盖或伪造 tag；需要权威发布基线时降级固定 `0.162.189`，等待 `0.162.194` 完成完整发布门后再升级。
 
 ## 现在可以使用什么
 
@@ -11,6 +27,10 @@
 - `cc logs <id>`、`cc daemon status|view|resume|stop`：查看和管理后台会话。
 - 后台提问、审批与副作用确认：重连后继续等待原问题，并按会话/回合/操作指纹校验，避免重复执行。
 - `Setup` / `Notification` hooks：在命令开始前注入环境并发送会话通知。
+- 安全配置写入：schema secret 必须经 `cc config set-secret` 的隐藏输入与 OS store/owner-only fallback，普通 `config set` 会拒绝敏感字段；显式 `workspace-write` / `strict` sandbox 在不可用时失败闭合。
+- MCP `ws/wss`、可信动态 header、timeout notification 与不确定结果恢复：REPL、stream、Cowork/host、WebSocket 使用共享 recovery authority，结果不明确时要求核验或裁决，不盲目 replay。
+- Canonical session 与持久预算：REPL、stream、WebSocket、headless 使用可验证 transcript projection 与事务化 summary/compaction；后台/Team adapter 使用 fenced token、USD 与 wall-clock 预算。
+- Agent 工作流：plan/todo revision 与 authority ceiling、受控 Skill 子 Agent、后台 launch profile、semantic handoff、`/btw` 临时旁路、manifest-driven help 与 shell completion 已进入当前源码。
 - 跨平台 sandbox 与 credential agent：前台、后台、hook、MCP、monitor、LSP、PTY 和插件 bin 都通过统一 broker 执行。
 - 强执行路径补齐：插件异步/后台进程、通用后台任务、CLI PTY 与桌面项目 PTY 共用失败闭合边界；未经证明的项目根和远端 metadata 不能获得本机 PTY 权限。
 - 技能进程安全：CLI-Anything 与 CLI 指令技能包生成的 handler 通过宿主 Process Broker 执行，不再直接导入 `child_process`。
@@ -18,6 +38,7 @@
 - 用量与重试归因：`cc session usage` 可按插件/版本归因 plugin-bin 与插件 MCP 调用，并显示有界工具耗时、观测重试及脱敏 LLM retry 原因，不记录工具参数、输出或凭据。
 - IDE worktree 与协作任务：VS Code / JetBrains 显示 worktree、team 与 batch 的 owner、权限模式、预算、状态和副作用计数；协作单元不会因此获得后台进程 attach/stop 权限。
 - P2-14 托管 workspace 回滚：Process Broker 为声明范围内的 managed writer 建立持久 checkpoint，成功时接受，失败、取消或超时时带 fence 恢复，并显式区分 `full`、`partial` 与 `none` 覆盖。
+- Checkpoint restore saga：direct/timeline restore 绑定 workspace prestate、生命周期锁、Git/copy 不可变目标、安全 checkpoint 与 hash-chained CAS journal；`cc checkpoint recovery list|show|abort|resume|rollback|release` 只对验证通过的恢复状态开放。
 - P2-16 Agent Teams：`cc team run` 使用本地 schema v6 authority；`cc team queue` 使用独立 queue schema v1、fenced lease、四维预算与共享可信本地文件系统协调，恢复和不明确副作用进入显式裁决。
 - `cc session export <id>`：默认扫描并脱敏会话中的 API Key、JWT、连接串等秘密；只有显式 `--no-redact` 才保留原文。
 - `CHAINLESSCHAIN_HOME=<dir>`：把配置、会话、状态、日志和缓存统一隔离到指定目录，适合 CI、多项目或便携部署。
@@ -28,11 +49,12 @@
 cc
  ├─ lazy command dispatch (manifest + help/alias)
  ├─ agent runtime (foreground / background)
- │    └─ local attach (NDJSON/TCP)
+ │    ├─ local attach (NDJSON/TCP)
+ │    └─ canonical transcript / compaction / resource budget
  ├─ process-execution-broker
  │    ├─ platform sandbox + native attestation
  │    ├─ credential agent
- │    └─ managed workspace transaction (checkpoint / fenced rollback)
+ │    └─ managed workspace transaction + restore saga/recovery
  ├─ agent-team runtime
  │    ├─ local authority schema v6
  │    └─ shared-filesystem queue schema v1
@@ -40,6 +62,7 @@ cc
  ├─ skill-process-broker
  │    └─ frozen host facade → process-execution-broker
  ├─ durable event / interaction journal
+ ├─ MCP ws/wss + uncertain-outcome recovery authority
  ├─ bounded usage / retry attribution
  ├─ async-hook supervisor (timeout + process-tree reap)
  └─ Hooks v2 + session hooks (Setup/Notification)
@@ -52,7 +75,11 @@ cc
 - `packages/cli/src/cli.js`：启动与注册。
 - `packages/cli/src/lazy-dispatch.js`：命令延迟分发。
 - `packages/cli/src/lib/background-agent-supervisor.js`：后台会话监督。
+- `packages/cli/src/lib/session-host-runtime.js`、`session-resource-budget.js`：canonical host 与持久资源预算。
 - `packages/cli/src/lib/process-execution-broker/`：子进程安全执行。
+- `packages/cli/src/lib/checkpoint-restore-saga.js`、`checkpoint-restore-recovery*.js`：持久 restore saga、投影与恢复控制器。
+- `packages/cli/src/commands/checkpoint-restore-recovery.js`：保守的 `cc checkpoint recovery` 命令面。
+- `packages/cli/src/lib/mcp-call-recovery*.js`：MCP 不确定结果记录、核验与裁决。
 - `packages/cli/src/lib/agent-team/`、`packages/cli/src/commands/team.js`：Agent Team、本地 authority、分布式 queue 与人工裁决。
 - `packages/cli/src/lib/plugin-runtime/`：插件安装、scope、来源与 sandbox 策略。
 - `packages/cli/src/lib/plugin-usage-attribution.js`：插件调用归因。
@@ -77,7 +104,7 @@ cc
 
 ## 在 IDE 中查看质量、插件、Worktree 与 Agent Teams
 
-VS Code `0.37.37` 和 JetBrains `0.4.76` 推荐搭配 CLI `0.162.189`，两个插件版本均已在各自公开市场上架：
+Open VSX 当前公开 VS Code `0.37.38`，JetBrains Marketplace 当前公开 `0.4.76`；源码分别为 `0.37.40` / `0.4.78`。生产仍建议搭配 CLI `0.162.189`：
 
 - 质量上下文只发送有界的测试结果、覆盖率与调试器快照，并标注新鲜度；VS Code Notebook 使用当前 notebook 的真实执行上下文。
 - Installation Doctor 会同时检查 Node/Java、managed CLI 与插件 registry 离线恢复状态，不从工作区目录探测可执行文件。
@@ -85,6 +112,8 @@ VS Code `0.37.37` 和 JetBrains `0.4.76` 推荐搭配 CLI `0.162.189`，两个�
 - Worktree Tasks 和 team/batch 协作记录显示 durable owner/session、权限、预算、生命周期与副作用摘要；team/batch 仍不暴露后台进程控制按钮。
 - Team Monitor 只读观察本地 v6 或 queue v1 原始状态；takeover、managed checkpoint recovery 与 side-effect adjudication 通过解析出的 CLI 执行，并绑定精确 authority digest、lease 和 evidence fence。IDE 不直接改写权威 JSON。
 - 用量视图显示真实工具耗时、观测重试与实际 provider/model 的脱敏 retry 原因。
+- Sessions Workbench 只消费 CLI-owned session projection，并按 exact revision 决定 resume、attach、delivery 与 remote-control 动作；可恢复 delivery 覆盖 GitHub、Gitee、configured remote 与 manual handoff，rewind/branch timeline 绑定 session、workspace、repository head、checkpoint revision 与 manifest digest。
+- VS Code `0.37.40` 源码增加编辑器内联聊天、选区上下文、流式回复和代码块复制/插入/替换；重复命令注册与 activation logger 错误已修复。该源码版本未公开发布。Open VSX `0.37.38` 虽可下载，但 tagged workflow 最终失败，不能写成完整发布门通过。
 
 ## 托管回滚与 Agent Team 边界
 
@@ -115,7 +144,7 @@ credential agent 会保留运行所需的非秘密会话标识（如 `CC_SESSION
 - 报错 `Process Broker unavailable for skill execution` 时，应升级 CLI 并重新生成/注册技能，不要修改 handler 绕过检查：
 
 ```bash
-npm i -g chainlesschain@latest
+npm i -g chainlesschain@0.162.189
 chainlesschain skill sync-cli --force
 chainlesschain cli-anything register <name> --force
 ```

@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人 AI 管理平台
-  tagline: "v5.0.3.135 | CLI 0.162.189 · IDE VS Code 0.37.37 / JetBrains 0.4.76 | P2-14 限定范围托管回滚 · P2-16 Agent Teams 发布门闭合 | PDH 0.4.57"
+  tagline: "v5.0.3.135 | 推荐 CLI 0.162.189 · 源码候选 0.162.194 | Open VSX 0.37.38 · JetBrains 0.4.76 | 可恢复会话与 Checkpoint Restore Saga"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -21,14 +21,14 @@ hero:
 
 features:
   - icon: 🛟
-    title: P2-14 托管回滚
-    details: Process Broker 为声明工作区 writer 建立持久 checkpoint，失败、取消或超时后按 full / partial / none 覆盖契约恢复；范围外写入和外部副作用不伪装成可回滚。
+    title: Checkpoint Restore Saga
+    details: direct / timeline restore 共用持久 CAS saga；recovery list/show/abort/resume/rollback/release 按 owner、seq 与 head fence 保守结算，外部副作用仍不伪装成可回滚。
   - icon: 🤝
     title: P2-16 Agent Teams
     details: 依赖 DAG、fenced lease、四维预算、每任务 worktree、本地 v6 authority 与分布式 queue v1 已完成三平台短门及长期 soak。
   - icon: 🧑‍💻
-    title: 双 IDE 人工控制
-    details: VS Code 0.37.37 与 JetBrains 0.4.76 已公开；IDE 只读观察团队状态，takeover、恢复和副作用裁决均交由 CLI authority fence 执行。
+    title: 双 IDE 会话与交付
+    details: Open VSX 0.37.38 下载已突破 2 万，提供 CLI-owned Sessions Workbench、可恢复交付与 canonical rewind；JetBrains Marketplace 为 0.4.76，源码候选分别为 0.37.40 / 0.4.78。
   - icon: 🔐
     title: 安全优先
     details: 本地优先、权限控制、会话恢复、Process Broker 与跨平台沙箱共同保护 Agent 执行边界。
@@ -36,11 +36,11 @@ features:
     title: Personal Data Hub 0.4.57
     details: 92 个采集契约覆盖 18 类来源，支持事务化事实归并、显式游标、有界分页与部分结果失败闭合。
   - icon: 🧪
-    title: 工程化验证
-    details: CLI 0.162.189 与双 IDE 发布绑定精确提交和权威 CI；本地结果只作补充，不替代发布门。
+    title: 发布证据分层
+    details: CLI 0.162.189 是最近完整门禁基线；npm 0.162.193 非权威发布，源码 0.162.194 仍为 NO-GO。registry、源码版本与 exact-SHA gate 分开记录。
 ---
 
-> **2026-08-01 当前主线快照**：桌面、Android 与 iOS 源码版本保持 `5.0.3.135`；CLI `0.162.189`、PDH `0.4.57`、Agent SDK `0.1.7`、Open VSX `0.37.37` 与 JetBrains Marketplace `0.4.76` 均已公开。P2-14 以限定范围完成 Process Broker 托管 checkpoint/回滚，P2-16 完成 Agent Teams 的本地 v6 authority、分布式 queue v1、wall lifecycle fence、IDE human-control 与三平台长期 soak。托管回滚只覆盖声明工作区内由 Broker 管理的 writer，不捕获宿主机全部写入，也不回滚网络、数据库、消息、部署或支付；共享 FS queue 不是共识网络队列。CLI 精确发布提交 `2607af0dad` 与 IDE 精确发布提交 `33e4d512d3` 的权威门禁均已成功。详细入口：[CLI Runtime 当前实现](/chainlesschain/cli-runtime-current)、[Agent Team](/chainlesschain/cli-team)、[IDE 插件使用指南](/chainlesschain/ide-plugin)、[个人数据中台](/chainlesschain/personal-data-hub)与[更新日志](/changelog)。
+> **2026-08-04 当前主线快照**：桌面、Android 与 iOS 源码版本保持 `5.0.3.135`；CLI 源码为未发布候选 `0.162.194`，最近完整权威门禁通过版仍是 `0.162.189`。npm `latest` `0.162.193` 由通用 publisher 在同 SHA CLI CI 最终失败的情况下写入，没有专用 tag、exact-SHA attestation 或 immutable tarball/SBOM handoff，生产环境建议固定 `0.162.189`。Open VSX 当前公开 `0.37.38`（registry public，但 tagged workflow 未完整成功），JetBrains Marketplace 当前公开 `0.4.76`；源码分别为 `0.37.40` / `0.4.78`。主线新增 canonical session/budget、MCP 不确定结果恢复、受控 Skill 子 Agent、签名更新恢复、checkpoint restore saga、IDE Sessions Workbench/可恢复交付/canonical rewind，以及 VS Code 内联聊天源码候选。详细入口：[CLI Runtime 当前实现](/chainlesschain/cli-runtime-current)、[检查点恢复](/chainlesschain/checkpoint)、[IDE 插件使用指南](/chainlesschain/ide-plugin)、[个人数据中台](/chainlesschain/personal-data-hub)与[更新日志](/changelog)。
 
 > 2026-04-08 更新：文档站已对齐 CLI Agent Runtime 重构、统一 runtime event、session record、后台任务增强、Worktree 合并助手、压缩观测、会话迁移，以及 **Coding Agent Phase 5 最小 Harness + 真实 interrupt**。
 >

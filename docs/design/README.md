@@ -1,13 +1,15 @@
 ﻿# 设计文档
 
-> 本目录是 ChainlessChain 的研发设计入口，也是用户文档站与设计文档站的共享设计源。CLI Runtime 核对已更新到 2026-08-01 / CLI 0.162.189 的正式发布状态。
+> 本目录是 ChainlessChain 的研发设计入口，也是用户文档站与设计文档站的共享设计源。CLI Runtime 核对已更新到 2026-08-04：当前源码候选为 `0.162.194`，最近完整门禁通过的公开基线仍为 `0.162.189`。
 
 ## 当前重点
 
 - CLI Agent Runtime、Cowork Runtime、Web Panel、Hooks、Workflow 等主线设计仍以 `docs/design/modules/` 为准。
 - P2-14 已按限定范围完成：Process Broker 为其管理的声明 workspace writer 提供持久 checkpoint、分层 coverage 与 fenced rollback/recovery；外部副作用不在回滚承诺内。
 - P2-16 已完成本地 Agent Team v6 authority、分布式 queue v1、预算/lease/wall fencing、两阶段 worktree 清理、交互式裁决与三平台长期 soak；10k task / 64 worker 是单进程规模验证，长期 soak 使用 2 个真实 OS worker。
-- VS Code `0.37.37` 与 JetBrains `0.4.76` 已公开，两端只读投影 Agent Team 状态，takeover、checkpoint recovery 与副作用裁决继续由 CLI-owned authority 执行。
+- CLI `0.162.194` 源码已落地可验证会话投影、MCP 不确定结果恢复、持久资源预算、受控 Skill 子 Agent、签名原生更新恢复和 checkpoint restore saga；这些能力仍处于 release NO-GO，不与已验证公开基线混写。
+- Checkpoint 的直接恢复与 timeline restore 共用 hash-chained CAS saga，并新增 `cc checkpoint recovery list|show|abort|resume|rollback|release`。恢复动作绑定 workspace prestate、owner/owner absence、seq/head fence 与持久 Git/copy engine；它仍只是文件恢复闭包，不是通用多资源事务。
+- Open VSX 当前公开 `0.37.38`，累计下载已突破 **2 万**；JetBrains Marketplace 当前公开 `0.4.76`。源码分别为 VS Code `0.37.40`、JetBrains `0.4.78`。IDE 只读投影会话、交付、rewind 与 Agent Team 状态，权威变更继续由 CLI-owned authority 执行。
 - Managed Agents 对标已新增独立模块 `91_Managed_Agents对标计划.md`，底层能力沉到共享包 `@chainlesschain/session-core`。
 - `session-core` 当前已覆盖 SessionHandle、TraceStore、SessionManager、IdleParker、AgentGroup、SharedTaskList、MemoryStore、MemoryConsolidator、ApprovalGate、BetaFlags、StreamRouter、file-adapters。
 - CLI 已接入 `memory recall/store`、`session policy`、`config beta list|enable|disable`；Desktop 仍处于 shim + 后续收口阶段。
@@ -16,13 +18,14 @@
 
 ### `cli-runtime-current.md`
 
-- 版本基线更新为 CLI `0.162.189`，正式发布 SHA 为 `2607af0dadeb951583139942e5f2add3e95e1208`。
+- 双基线更新为 CLI 源码候选 `0.162.194` 与最后完整门禁公开版 `0.162.189`；npm `0.162.193` 已存在但没有权威发布身份。
+- 补充类型化 secret 配置、MCP `ws/wss` 与恢复裁决、canonical session/budget、受控 Skill 子 Agent、checkpoint restore saga 与保守 recovery CLI。
 - 明确 `CHAINLESSCHAIN_HOME` 是完整运行目录覆盖值，测试夹具不得写入真实 home。
 - 补充 process-execution-broker 的非秘密会话标识 allowlist 与默认凭据过滤边界。
 - 补充 `skill-process-broker`：`shell-exec` 技能只获得宿主冻结 facade，来源元数据不可由 handler 伪造。
 - 记录 CLI-Anything 的字面 argv + `shell:false`，以及 CLI 指令技能包 direct/hybrid handler 的 Broker 接线与 fail-closed 行为。
 - 记录异步 hook 的 POSIX 进程组 / Windows `taskkill` + 后代快照 fallback 设计。
-- 记录 unit / integration / E2E 三平台分层门禁、P2-14/P2-16 专项门、120 分钟 Agent Team soak、打包/启动校验与 0.162.189 发布基线。
+- 记录 unit / integration / E2E 三平台分层门禁、P2-14/P2-16 专项门、120 分钟 Agent Team soak、打包/启动校验、0.162.189 发布基线与 0.162.194 候选 NO-GO 边界。
 
 ### `CLAUDE_CODE_CLI_PARITY_OPTIMIZATION_PLAN.md`
 
@@ -32,7 +35,8 @@
 
 ### `modules/98_IDE桥接对标方案.md`
 
-- 页首增加当前发布状态：VS Code `0.37.37`（Open VSX）与 JetBrains `0.4.76`（JetBrains Marketplace）。
+- 页首区分公开与源码状态：Open VSX `0.37.38` / JetBrains Marketplace `0.4.76`，源码 VS Code `0.37.40` / JetBrains `0.4.78`。
+- 记录 CLI-owned Sessions Workbench、可恢复交付、canonical rewind/branch timeline 与 VS Code 内联聊天源码候选；未通过完整发布门的能力不标为已公开稳定。
 - 初版 Phase 0–7、`0.2.x` / `0.1.0` 和当时的 Marketplace 待审状态继续保留为历史首发记录，不再冒充当前版本。
 
 ### `modules/91_Managed_Agents对标计划.md`
@@ -78,8 +82,8 @@
 
 近期与本目录直接相关的新增验证包括：
 
-- CLI `0.162.189` exact-SHA：CLI CI、CLI Strict Sandbox、Background Interaction E2E、三平台 Agent Team 120 分钟 soak 与 npm publish 全绿
-- IDE exact-SHA `33e4d512d319bc771190f672bcc7847fb4099835`：VS Code 0.37.37 Open VSX 发布/回读通过；JetBrains 0.4.76 build/verify/publish 成功，Marketplace API 随后确认已审核并公开
+- CLI `0.162.189` exact-SHA：CLI CI、CLI Strict Sandbox、Background Interaction E2E、三平台 Agent Team 120 分钟 soak 与 npm publish 全绿；`0.162.193` 的通用 publisher 写入不替代这些门禁，`0.162.194` 仍待 final exact-SHA 全矩阵
+- IDE：Open VSX registry 当前公开 `0.37.38`，但其 tagged workflow 最终失败，不能记为完整门禁通过；JetBrains Marketplace 当前公开且审核通过的仍是 `0.4.76`。源码 `0.37.40` / `0.4.78` 尚未公开发布
 
 - `@chainlesschain/session-core`: `293/293`
 - CLI unit: `session-core-singletons.test.js` `4/4`

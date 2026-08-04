@@ -1,8 +1,10 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import cliPkg from '../../../../packages/cli/package.json';
+import releaseStatus from '../../data/release-status.json';
 
-const CLI_VERSION = cliPkg.version;
+const CLI_VERSION = releaseStatus.recommendedCliVersion;
+const SOURCE_CLI_VERSION = cliPkg.version;
 ---
 <BaseLayout
   title="Security & Privacy — U-Key · SIMKey · Signal · Local Ollama | ChainlessChain"
@@ -264,7 +266,7 @@ const CLI_VERSION = cliPkg.version;
         </div>
         <div>
           <p class="text-xl leading-relaxed mb-4">Let agents invoke local tools without turning plugin code into ambient authority.</p>
-          <p class="prose-muted mb-4">CLI <code>{CLI_VERSION}</code> routes plugin hooks, MCP, LSP, monitors, PTYs, background tasks, and native bins through one Process Broker policy. Linux accepts only attested supported static ELF files for the current architecture, pins the plugin tree by descriptor, and enters a fixed bubblewrap filesystem/network boundary. Windows AppContainer binds the resolver-issued target handle, trusted environment, and policy digest. Copied, replayed, or stale contracts, dynamic loaders, malformed segments, and missing isolation primitives fail before launch.</p>
+          <p class="prose-muted mb-4">Fully gated CLI <code>{CLI_VERSION}</code> routes plugin hooks, MCP, LSP, monitors, PTYs, background tasks, and native bins through one Process Broker policy. Linux accepts only attested supported static ELF files for the current architecture, pins the plugin tree by descriptor, and enters a fixed bubblewrap filesystem/network boundary. Windows AppContainer binds the resolver-issued target handle, trusted environment, and policy digest. Copied, replayed, or stale contracts, dynamic loaders, malformed segments, and missing isolation primitives fail before launch. Source <code>{SOURCE_CLI_VERSION}</code> remains an unpublished candidate.</p>
           <p class="prose-muted mb-4">Plugin management surfaces signature, SBOM, source, and managed-policy summaries. Plugin-bin and plugin-provided MCP usage is attributed by plugin/version without retaining tool arguments. Publication requires the exact release commit to pass CLI CI and CLI Strict Sandbox across Ubuntu, Windows, and macOS.</p>
           <div class="flex flex-wrap gap-2">
             <span class="chip">fd-bound bubblewrap</span>

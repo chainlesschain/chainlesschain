@@ -2,10 +2,15 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import cliPkg from '../../../../packages/cli/package.json';
 import vscodePkg from '../../../../packages/vscode-extension/package.json';
+import releaseStatus from '../../data/release-status.json';
 
-const CLI_VERSION = cliPkg.version;
-const VSCODE_VERSION = vscodePkg.version;
-const JETBRAINS_VERSION = '0.4.76';
+const CLI_VERSION = releaseStatus.recommendedCliVersion;
+const SOURCE_CLI_VERSION = cliPkg.version;
+const VSCODE_VERSION = releaseStatus.openVsxVersion;
+const VSCODE_SOURCE_VERSION = vscodePkg.version;
+const JETBRAINS_VERSION = releaseStatus.jetBrainsMarketplaceVersion;
+const JETBRAINS_SOURCE_VERSION = releaseStatus.sourceJetBrainsVersion;
+const OPEN_VSX_DOWNLOADS = releaseStatus.openVsxDownloadsMilestone;
 ---
 <BaseLayout
   title="IDE Integration — VS Code + JetBrains extensions, agent in your editor | ChainlessChain"
@@ -31,7 +36,10 @@ const JETBRAINS_VERSION = '0.4.76';
           <a href="https://docs.chainlesschain.com/chainlesschain/ide-bridge.html" rel="noopener" class="btn-ghost">Full docs ↗</a>
         </div>
         <p class="mt-5 text-sm text-muted">
-          VS Code <strong class="text-ink">{VSCODE_VERSION}</strong> is publicly listed on Open VSX, and JetBrains <strong class="text-ink">{JETBRAINS_VERSION}</strong> is publicly listed on JetBrains Marketplace; both are recommended with CLI <strong class="text-ink">{CLI_VERSION}</strong>. Quality/retry attribution, transactional plugin recovery, and durable worktree/team/batch governance all come from the same authoritative CLI runtime. A Microsoft VS Code Marketplace build has not been published.
+          VS Code <strong class="text-ink">{VSCODE_VERSION}</strong> is publicly listed on Open VSX with more than <strong class="text-ink">{OPEN_VSX_DOWNLOADS}</strong> downloads; JetBrains <strong class="text-ink">{JETBRAINS_VERSION}</strong> is public on Marketplace. Use them with fully gated CLI <strong class="text-ink">{CLI_VERSION}</strong>. The Open VSX build's tagged workflow did not finish successfully, so registry availability and gate status remain separate facts. No Microsoft VS Code Marketplace build is published.
+        </p>
+        <p class="mt-3 text-sm text-muted">
+          Source candidates are CLI <strong class="text-ink">{SOURCE_CLI_VERSION}</strong>, VS Code <strong class="text-ink">{VSCODE_SOURCE_VERSION}</strong>, and JetBrains <strong class="text-ink">{JETBRAINS_SOURCE_VERSION}</strong>. Source adds inline chat, the CLI-owned Sessions Workbench, resumable delivery, and canonical rewind; these are not public-install promises until their release gates complete.
         </p>
       </div>
     </div>
@@ -39,7 +47,7 @@ const JETBRAINS_VERSION = '0.4.76';
 
   <section class="py-16 md:py-24">
     <div class="container-wide">
-      <h2 class="text-4xl md:text-5xl mb-12 max-w-3xl">Thirteen things, the moment you open the editor.</h2>
+      <h2 class="text-4xl md:text-5xl mb-12 max-w-3xl">Sixteen things, the moment you open the editor.</h2>
       <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         {[
           ['Sense', 'Selection with every prompt', 'Each prompt automatically carries your current selection + open tabs (an <ide-context> block) — the model knows what you are looking at, never persisted to the session.'],
@@ -53,7 +61,10 @@ const JETBRAINS_VERSION = '0.4.76';
           ['Plugins', 'Transactional upgrades and supply-chain governance', 'Enable or disable by scope. Upgrades stage and revalidate manifests/signatures/SBOMs before atomic activation, restoring the previous version on failure. IDEs reload only after activation and require explicit consent for capability widening.'],
           ['Governance', 'Distributed Agent Teams', 'The IDE observes raw local team-state v6 and separate distributed-queue v1 snapshots read-only. Takeover, managed-checkpoint recovery, and side-effect adjudication return to the CLI with authority-digest, lease, and evidence fences. Stale UI actions fail closed; the IDE never mutates authoritative JSON directly.'],
           ['Attribution', 'Tool duration and retries', 'Usage views show measured tool duration, observed same-turn retries, and secret-free streaming LLM retry reasons with actual provider/model identity, without retaining tool arguments, output, or credentials.'],
-          ['Sync', 'CLI version-sync', 'On activation it checks cc --version and offers a one-click upgrade if your chainlesschain CLI is older than the extension needs; the "Upgrade CLI" palette command runs npm i -g chainlesschain@latest on demand — keeping the extension (Open VSX) and CLI (npm) in step.'],
+          ['Sessions', 'CLI-owned Sessions Workbench', 'Public 0.37.38 reads immutable session projections produced by the CLI. Resume, attach, and remote-control actions appear only when the revision authorizes them; stale actions fail closed.'],
+          ['Delivery', 'Resumable delivery and rewind', 'The public build covers GitHub, Gitee, configured remotes, and manual handoff. Each step verifies result/effect digests; rewind binds session, workspace, repository head, checkpoint revision, and manifest digest.'],
+          ['Inline', 'Ask and edit beside a selection', 'VS Code 0.37.40 source candidate adds isolated inline sessions, streaming replies, and code-block copy/insert/replace. Explain / Refactor / Fix / Docs / Tests are not yet published on Open VSX.'],
+          ['Sync', 'CLI version-sync', 'Activation checks cc --version. Stable installation is currently pinned to npm i -g chainlesschain@0.162.189 instead of automatically following an npm latest that has not completed the full gate. Public and source versions are shown separately.'],
           ['Complete', '@ files / live slash commands', '@-path TAB completion ranks editor-open files first; @-completion offers @selection / @diagnostics / @terminal; /status /doctor /mcp /hooks /permissions /agents /tasks /memory inspect the active session, alongside /new /plan /approve /reject /stop /expand.'],
         ].map(([tag, title, desc]) => (
           <div class="p-8 rounded-2xl border border-line hover:border-ember transition-colors">
@@ -105,7 +116,7 @@ const JETBRAINS_VERSION = '0.4.76';
       <div class="max-w-3xl">
         <h2 class="text-3xl md:text-4xl mb-6 font-display">Two steps to install</h2>
         <ol class="space-y-4 text-muted leading-relaxed">
-          <li><strong class="text-ink">1. Install the CLI:</strong> <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">npm i -g chainlesschain</code> (current recommended <code class="font-mono text-sm">{CLI_VERSION}</code>, bridge minimum <code class="font-mono text-sm">0.162.47</code>; <code class="font-mono text-sm">cc ide doctor</code> diagnoses connectivity)</li>
+          <li><strong class="text-ink">1. Install the CLI:</strong> <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">npm i -g chainlesschain@{CLI_VERSION}</code> (recommended fully gated <code class="font-mono text-sm">{CLI_VERSION}</code>, bridge minimum <code class="font-mono text-sm">0.162.47</code>; <code class="font-mono text-sm">cc ide doctor</code> diagnoses connectivity)</li>
           <li><strong class="text-ink">2. Install the extension:</strong> VSCodium / Cursor etc. — search <strong class="text-ink">ChainlessChain IDE</strong> in the extension panel (Open VSX currently <code class="font-mono text-sm">{VSCODE_VERSION}</code>); IDEA / PyCharm / WebStorm — Settings → Plugins → Marketplace, same name (current <code class="font-mono text-sm">{JETBRAINS_VERSION}</code>, 2024.2+). The Microsoft VS Code Marketplace build has not been published; stock VS Code users can download and install the <code class="font-mono text-sm">.vsix</code> from Open VSX.</li>
         </ol>
         <p class="mt-6 text-sm text-muted">

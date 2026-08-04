@@ -9,7 +9,7 @@ export default defineConfig({
   transformPageData(pageData) {
     if (pageData.relativePath === "index.md" && pageData.frontmatter.hero) {
       pageData.frontmatter.hero.tagline =
-        "v5.0.3.135 · CLI 0.162.189 · PDH 0.4.57 · VS Code 0.37.37 · JetBrains 0.4.76｜P2-14 限定范围托管回滚 · P2-16 Agent Teams 发布门闭合";
+        "v5.0.3.135 · 推荐 CLI 0.162.189 · 源码 0.162.194 · PDH 0.4.57 · Open VSX 0.37.38 · JetBrains 0.4.76｜Canonical Session · Checkpoint Restore Saga";
     }
   },
 

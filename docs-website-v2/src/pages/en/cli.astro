@@ -1,10 +1,13 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import cliPkg from '../../../../packages/cli/package.json';
+import releaseStatus from '../../data/release-status.json';
 import { parseChangelog } from '../../../../packages/cli/src/lib/changelog.js';
 import { readFileSync } from 'node:fs';
 
-const CLI_VERSION = cliPkg.version;
+const CLI_VERSION = releaseStatus.recommendedCliVersion;
+const NPM_LATEST_CLI_VERSION = releaseStatus.npmLatestCliVersion;
+const SOURCE_CLI_VERSION = cliPkg.version;
 
 // Recent CLI (npm) updates, derived from the root CHANGELOG.md at BUILD time via
 // the same parser that powers `cc changelog` — no committed snapshot to go
@@ -14,7 +17,18 @@ const CLI_UPDATES = parseChangelog(
   readFileSync(new URL('../../../../CHANGELOG.md', import.meta.url), 'utf-8'),
 )
   .slice(0, 6)
-  .map((r) => ({ version: r.cliVersion, date: r.date }));
+  .map((r) => ({
+    version: r.cliVersion,
+    date: r.date,
+    status:
+      r.cliVersion === SOURCE_CLI_VERSION
+        ? 'source candidate'
+        : r.cliVersion === NPM_LATEST_CLI_VERSION
+          ? 'npm latest · release review'
+          : r.cliVersion === CLI_VERSION
+            ? 'fully gated'
+            : 'historical',
+  }));
 
 const categories = [
   {
@@ -429,12 +443,15 @@ const packs = [
     <div class="absolute inset-0 bg-grid-paper opacity-60 pointer-events-none"></div>
     <div class="container-wide relative pt-20 pb-16 md:pt-28 md:pb-20">
       <div class="max-w-4xl">
-        <div class="chip mb-6 animate-fade-in">CLI · v{CLI_VERSION}</div>
+        <div class="chip mb-6 animate-fade-in">Verified CLI · v{CLI_VERSION}</div>
         <h1 class="animate-fade-in-delay font-display text-6xl md:text-display-lg leading-[1.02]">
           Your terminal,<br/><span class="italic text-ember">your AI workbench</span>.
         </h1>
         <p class="animate-fade-in-delay-2 mt-8 text-xl text-muted leading-relaxed max-w-3xl">
           175 top-level commands covering the full lifecycle from knowledge base to on-chain governance. Zero GUI dependency, plain text I/O — pipeable, scriptable, CI-ready.
+        </p>
+        <p class="mt-4 text-sm text-muted max-w-3xl">
+          The site recommends <strong class="text-ink">{CLI_VERSION}</strong>, the last release to pass the complete Linux / Windows / macOS gate. npm latest <strong class="text-ink">{NPM_LATEST_CLI_VERSION}</strong> is under release-chain review and source <strong class="text-ink">{SOURCE_CLI_VERSION}</strong> remains a candidate, so install commands are pinned to the verified version.
         </p>
 
         <!-- Install tabs -->
@@ -451,10 +468,10 @@ const packs = [
               <span class="term-title">install</span>
             </div>
             <div class="term-body">
-              <div data-tab-panel="npm"><span class="term-prompt">$</span> npm i -g chainlesschain</div>
-              <div data-tab-panel="yarn" hidden><span class="term-prompt">$</span> yarn global add chainlesschain</div>
-              <div data-tab-panel="pnpm" hidden><span class="term-prompt">$</span> pnpm add -g chainlesschain</div>
-              <div data-tab-panel="bun" hidden><span class="term-prompt">$</span> bun add -g chainlesschain</div>
+              <div data-tab-panel="npm"><span class="term-prompt">$</span> npm i -g chainlesschain@{CLI_VERSION}</div>
+              <div data-tab-panel="yarn" hidden><span class="term-prompt">$</span> yarn global add chainlesschain@{CLI_VERSION}</div>
+              <div data-tab-panel="pnpm" hidden><span class="term-prompt">$</span> pnpm add -g chainlesschain@{CLI_VERSION}</div>
+              <div data-tab-panel="bun" hidden><span class="term-prompt">$</span> bun add -g chainlesschain@{CLI_VERSION}</div>
               <div class="term-comment mt-3"># Aliases: chainlesschain / cc / clc / clchain</div>
               <div class="term-out">$ cc --help</div>
             </div>
@@ -611,6 +628,9 @@ const packs = [
         <p class="mt-4 text-lg text-muted">
           The current CLI carries PDH 0.4.57. Source aliases, raw observations, field-level conflict decisions, rewritten references, and final entities commit in one transaction. Desktop, Web Panel, and CLI share one live-collection protocol; transient Cookie/OAuth inputs are not persisted, and partial reads, unreadable databases, or incomplete pagination retain the previous checkpoint for a safe resume.
         </p>
+        <p class="mt-4 text-lg text-muted">
+          Source candidate <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">{SOURCE_CLI_VERSION}</code> adds canonical session projections, MCP ws/wss plus trusted dynamic headers, plan/Todo revision ceilings, and an auditable checkpoint restore saga. Recovery mutations require <code class="font-mono text-sm">--yes</code>, an expected sequence, and an expected head hash. These remain source-preview capabilities until the release gate completes.
+        </p>
       </div>
     </div>
   </section>
@@ -619,12 +639,12 @@ const packs = [
   <section class="py-16 md:py-24 bg-cream/50 border-y border-line">
     <div class="container-wide">
       <div class="max-w-3xl mb-10">
-        <div class="chip mb-6">Recent updates · npm chainlesschain</div>
+        <div class="chip mb-6">Updates and release status · npm chainlesschain</div>
         <h2 class="text-4xl md:text-5xl leading-tight">
           Every release is on the record —<br/><span class="italic text-ember">read it with <code class="font-mono">cc changelog</code>.</span>
         </h2>
         <p class="mt-6 text-lg text-muted">
-          The CLI ships on its own npm alpha track (<code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">0.162.x</code>). The most recent releases are below;
+          The CLI ships on its own npm alpha track (<code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">0.162.x</code>). The list distinguishes source candidates, npm latest, and fully gated builds; registry upload alone is not a completed release gate.
           once installed, <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">cc changelog</code> shows the full per-version notes offline
           (<code class="font-mono text-sm">--all</code>, <code class="font-mono text-sm">&lt;version&gt;</code>, <code class="font-mono text-sm">--json</code>).
         </p>
@@ -634,6 +654,7 @@ const packs = [
           <li class="border border-line rounded px-3 py-2 bg-paper">
             <span class="font-mono text-ember font-semibold">v{r.version}</span>
             {r.date && <span class="ml-2 text-sm text-muted">{r.date}</span>}
+            <span class="ml-2 text-xs text-muted">{r.status}</span>
           </li>
         ))}
       </ol>

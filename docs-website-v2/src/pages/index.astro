@@ -6,6 +6,7 @@ import cliPkg from '../../../packages/cli/package.json';
 import pdhPkg from '../../../packages/personal-data-hub/package.json';
 import pdhCatalog from '../../../docs/internal/pdh-app-data-catalog.json';
 import releaseSizes from '../data/release-sizes.json';
+import releaseStatus from '../data/release-status.json';
 
 const PRODUCT_VERSION = rootPkg.productVersion;
 const PDH_VERSION = pdhPkg.version;
@@ -14,7 +15,9 @@ const PDH_ADAPTER_COUNT = pdhCatalog.count;
 // fetch-release-sizes.mjs from npm's `latest` dist-tag). Falls back to the
 // in-repo package.json only if the registry fetch + cache both failed — that
 // fallback can drift ahead of npm during dev, so the pinned value is the norm.
-const CLI_VERSION = releaseSizes.cliVersion || cliPkg.version;
+const CLI_VERSION = releaseStatus.recommendedCliVersion;
+const NPM_LATEST_CLI_VERSION = releaseSizes.cliVersion || releaseStatus.npmLatestCliVersion;
+const SOURCE_CLI_VERSION = cliPkg.version;
 const ANDROID_TAG = releaseSizes.tag || PRODUCT_VERSION;
 const DOWNLOAD_VERSION = releaseSizes.productVersion || PRODUCT_VERSION;
 const ANDROID_VERSION = DOWNLOAD_VERSION;
@@ -86,7 +89,7 @@ const everyday = [
 const badges = [
   { icon: '🏆', label: '4 项发明专利' },
   { icon: '🔒', label: '军事级加密' },
-  { icon: '⭐', label: 'Open VSX 插件下载 1.8 万+' },
+  { icon: '⭐', label: 'Open VSX 插件下载 2 万+' },
   { icon: '✅', label: '等保三级认证' },
   { icon: '📋', label: '参编《人工智能 智能体内生安全技术要求》T/ZGCMCA 023—2025', href: 'https://www.ttbz.org.cn/standardDetail.html?id=jy42azxbb1ymwtf6tm371ejs6jcuwz7' },
 ];
@@ -100,9 +103,9 @@ const badges = [
       <div class="max-w-4xl">
         <div class="animate-fade-in flex items-center gap-3 mb-8 flex-wrap">
           <span class="chip"><span class="w-1.5 h-1.5 bg-ember rounded-full"></span> {PRODUCT_VERSION} · Evolution Edition</span>
-          <span class="chip">CLI v{CLI_VERSION}</span>
+          <span class="chip">已验证 CLI v{CLI_VERSION}</span>
           <span class="chip">175 命令</span>
-          <a href="https://open-vsx.org/extension/chainlesschain/chainlesschain-ide" target="_blank" rel="noopener" class="chip"><span class="w-1.5 h-1.5 bg-ember rounded-full"></span> 🎉 VS Code 插件 Open VSX 下载 1.8 万+</a>
+          <a href="https://open-vsx.org/extension/chainlesschain/chainlesschain-ide" target="_blank" rel="noopener" class="chip"><span class="w-1.5 h-1.5 bg-ember rounded-full"></span> 🎉 VS Code 插件 Open VSX 下载突破 2 万</a>
           <a href="https://www.npmjs.com/search?q=chainlesschain" target="_blank" rel="noopener" class="chip"><span class="w-1.5 h-1.5 bg-ember rounded-full"></span> 📦 ChainlessChain 系列 npm 包月下载 5 万+</a>
           <span class="chip">Web Shell（默认）</span>
           <span class="chip">Web Panel i18n（中英）</span>
@@ -123,17 +126,21 @@ const badges = [
         <div class="animate-fade-in-delay-3 mt-10 flex flex-wrap items-center gap-4">
           <button
             class="btn-primary group"
-            data-copy="npm i -g chainlesschain"
+            data-copy={`npm i -g chainlesschain@${CLI_VERSION}`}
             aria-label="复制安装命令"
           >
             <span class="text-ember">$</span>
-            <span>npm i -g chainlesschain</span>
+            <span>npm i -g chainlesschain@{CLI_VERSION}</span>
             <span class="text-muted-dark text-xs ml-2 group-hover:text-cream">点击复制</span>
           </button>
           <a href="#security" class="btn-ghost">
             了解硬件加密 <span aria-hidden="true">→</span>
           </a>
         </div>
+
+        <p class="animate-fade-in-delay-3 mt-5 text-sm text-muted max-w-3xl">
+          发布说明：npm <code class="font-mono">latest</code> 当前为 <code class="font-mono">{NPM_LATEST_CLI_VERSION}</code>，但缺少完整 exact-SHA 发布门身份；源码候选为 <code class="font-mono">{SOURCE_CLI_VERSION}</code>，尚未发布。本站安装命令固定到最近完整门禁通过的 <code class="font-mono">{CLI_VERSION}</code>。
+        </p>
 
         <!-- Trust badges -->
         <div class="animate-fade-in-delay-3 mt-14 pt-8 border-t border-line flex flex-wrap gap-x-8 gap-y-3">
@@ -507,7 +514,7 @@ const badges = [
           无需启动任何 GUI — <code class="font-mono text-sm bg-cream px-2 py-0.5 rounded">chainlesschain</code> 让本地 AI、Agent 编码、多智能体协作全部在终端里完成。
         </p>
         <p class="text-sm text-muted mb-8">
-          当前 {CLI_VERSION}：Process Broker 为受管 workspace 写入建立 checkpoint，并在失败、取消或超时后按 fence 回滚，覆盖范围明确标为 full / partial / none；Agent Teams 以本地 state v6 和共享文件系统 distributed queue v1 承载 authority digest、lease、CAS 与 wall-clock fence。Auto mode 另有 145-case 离线安全分类门，危险操作分类失败即闭合。
+          已验证版 {CLI_VERSION} 提供限定范围的 Process Broker checkpoint/rollback、Agent Teams v6/queue v1 与 Auto mode 145-case 安全门。源码候选 {SOURCE_CLI_VERSION} 进一步加入 canonical session/budget、MCP 不确定结果裁决，以及绑定 workspace、owner、seq/head fence 和持久 Git/copy engine 的 checkpoint restore saga；候选能力尚未作为稳定 npm 版本发布。
         </p>
         <div class="grid grid-cols-3 gap-6 mb-8">
           <div>
@@ -641,8 +648,8 @@ const badges = [
             <li>· MCP 工具生态 + 9 Skill Packs</li>
             <li>· 175 命令 · 30,000+ 测试 · V2 规范层 220+ 治理表面</li>
           </ul>
-          <button class="btn-primary bg-ember text-ink hover:bg-ember-dark" data-copy="npm i -g chainlesschain">
-            <span>$ npm i -g chainlesschain</span>
+          <button class="btn-primary bg-ember text-ink hover:bg-ember-dark" data-copy={`npm i -g chainlesschain@${CLI_VERSION}`}>
+            <span>$ npm i -g chainlesschain@{CLI_VERSION}</span>
           </button>
         </div>
       </div>
@@ -709,8 +716,8 @@ const badges = [
         <div class="p-8 rounded-2xl border border-line hover:border-ember transition-colors">
           <div class="font-mono text-xs text-muted mb-3">CLI · v{CLI_VERSION}</div>
           <h3 class="font-display text-2xl mb-3">命令行工具</h3>
-          <div class="font-mono text-sm bg-ink text-cream px-3 py-2 rounded mb-4 cursor-pointer" data-copy="npm i -g chainlesschain">$ npm i -g chainlesschain</div>
-          <p class="text-sm text-muted">支持 npm / yarn / pnpm / bun · 约 2MB</p>
+          <div class="font-mono text-sm bg-ink text-cream px-3 py-2 rounded mb-4 cursor-pointer" data-copy={`npm i -g chainlesschain@${CLI_VERSION}`}>$ npm i -g chainlesschain@{CLI_VERSION}</div>
+          <p class="text-sm text-muted">最近完整门禁版本；npm latest {NPM_LATEST_CLI_VERSION} 正在发布审查 · 支持 npm / yarn / pnpm / bun</p>
         </div>
         <div class="p-8 rounded-2xl border border-line hover:border-ember transition-colors">
           <div class="font-mono text-xs text-muted mb-3">DESKTOP · {DOWNLOAD_VERSION}</div>

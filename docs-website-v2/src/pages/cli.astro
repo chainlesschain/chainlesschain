@@ -1,10 +1,13 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import cliPkg from '../../../packages/cli/package.json';
+import releaseStatus from '../data/release-status.json';
 import { parseChangelog } from '../../../packages/cli/src/lib/changelog.js';
 import { readFileSync } from 'node:fs';
 
-const CLI_VERSION = cliPkg.version;
+const CLI_VERSION = releaseStatus.recommendedCliVersion;
+const NPM_LATEST_CLI_VERSION = releaseStatus.npmLatestCliVersion;
+const SOURCE_CLI_VERSION = cliPkg.version;
 
 // Recent CLI (npm) updates, derived from the root CHANGELOG.md at BUILD time via
 // the same parser that powers `cc changelog`. No committed snapshot to go stale:
@@ -22,6 +25,14 @@ const CLI_UPDATES = parseChangelog(
       .replace(/^(chore|feat|fix|docs|refactor|perf|style|test)(\([^)]*\))?:\s*/i, '')
       .replace(/^\W*(Fixed|Added|Changed|Tests|Security|Feat|Fix|chore|Removed|Deprecated)\b[^—]*—+\s*/i, '')
       .trim(),
+    status:
+      r.cliVersion === SOURCE_CLI_VERSION
+        ? '源码候选'
+        : r.cliVersion === NPM_LATEST_CLI_VERSION
+          ? 'npm 最新 · 发布审查中'
+          : r.cliVersion === CLI_VERSION
+            ? '完整门禁'
+            : '历史版本',
   }));
 
 const categories = [
@@ -436,12 +447,15 @@ const packs = [
     <div class="absolute inset-0 bg-grid-paper opacity-60 pointer-events-none"></div>
     <div class="container-wide relative pt-20 pb-16 md:pt-28 md:pb-20">
       <div class="max-w-4xl">
-        <div class="chip mb-6 animate-fade-in">CLI · v{CLI_VERSION}</div>
+        <div class="chip mb-6 animate-fade-in">已验证 CLI · v{CLI_VERSION}</div>
         <h1 class="animate-fade-in-delay font-display text-6xl md:text-display-lg leading-[1.02]">
           你的终端，<br/><span class="italic text-ember">就是 AI 工作台</span>。
         </h1>
         <p class="animate-fade-in-delay-2 mt-8 text-xl text-muted leading-relaxed max-w-3xl">
           175 条顶层命令，覆盖从知识库到链上治理的完整生命周期。零 GUI 依赖，纯文本输入输出，可管道可脚本可 CI。
+        </p>
+        <p class="mt-4 text-sm text-muted max-w-3xl">
+          官网推荐完整通过 Linux / Windows / macOS 门禁的 <strong class="text-ink">{CLI_VERSION}</strong>。npm 最新 <strong class="text-ink">{NPM_LATEST_CLI_VERSION}</strong> 的发布链路正在审查，源码 <strong class="text-ink">{SOURCE_CLI_VERSION}</strong> 仍是候选版本，因此安装命令默认固定到已验证版本。
         </p>
 
         <!-- Install tabs -->
@@ -458,10 +472,10 @@ const packs = [
               <span class="term-title">install</span>
             </div>
             <div class="term-body">
-              <div data-tab-panel="npm"><span class="term-prompt">$</span> npm i -g chainlesschain</div>
-              <div data-tab-panel="yarn" hidden><span class="term-prompt">$</span> yarn global add chainlesschain</div>
-              <div data-tab-panel="pnpm" hidden><span class="term-prompt">$</span> pnpm add -g chainlesschain</div>
-              <div data-tab-panel="bun" hidden><span class="term-prompt">$</span> bun add -g chainlesschain</div>
+              <div data-tab-panel="npm"><span class="term-prompt">$</span> npm i -g chainlesschain@{CLI_VERSION}</div>
+              <div data-tab-panel="yarn" hidden><span class="term-prompt">$</span> yarn global add chainlesschain@{CLI_VERSION}</div>
+              <div data-tab-panel="pnpm" hidden><span class="term-prompt">$</span> pnpm add -g chainlesschain@{CLI_VERSION}</div>
+              <div data-tab-panel="bun" hidden><span class="term-prompt">$</span> bun add -g chainlesschain@{CLI_VERSION}</div>
               <div class="term-comment mt-3"># 支持 chainlesschain / cc / clc / clchain 四种别名</div>
               <div class="term-out">$ cc --help</div>
             </div>
@@ -617,6 +631,9 @@ const packs = [
         <p class="mt-4 text-lg text-muted">
           当前 CLI 搭载 PDH 0.4.57：来源别名、raw observation、字段级冲突决策、引用重写与最终实体在同一事务提交；桌面端、Web Panel 与命令行共用实时采集协议，临时 Cookie/OAuth 不落配置；部分读取、不可读数据库或不完整分页保留旧水位，可在下一轮安全续扫。
         </p>
+        <p class="mt-4 text-lg text-muted">
+          源码候选 <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">{SOURCE_CLI_VERSION}</code> 继续加入规范化会话投影、MCP ws/wss 与可信动态请求头、计划/Todo 修订上限，以及可审计的 checkpoint restore saga。恢复命令要求 <code class="font-mono text-sm">--yes</code>、期望序列号和 head hash；这些能力在完成发布门禁前只作为源码预览，不纳入稳定安装承诺。
+        </p>
       </div>
     </div>
   </section>
@@ -625,12 +642,12 @@ const packs = [
   <section class="py-16 md:py-24 bg-cream/50 border-y border-line">
     <div class="container-wide">
       <div class="max-w-3xl mb-10">
-        <div class="chip mb-6">最近更新 · npm chainlesschain</div>
+        <div class="chip mb-6">更新与发布状态 · npm chainlesschain</div>
         <h2 class="text-4xl md:text-5xl leading-tight">
           每次发版都有据可查，<br/><span class="italic text-ember">装了就能 <code class="font-mono">cc changelog</code> 翻。</span>
         </h2>
         <p class="mt-6 text-lg text-muted">
-          CLI 走 npm alpha 轨（<code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">0.162.x</code>）独立发版。以下是最近几次 CLI 更新；
+          CLI 走 npm alpha 轨（<code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">0.162.x</code>）独立发版。列表同时标识源码候选、npm 最新与完整门禁版本；“已上传注册表”不等于“完整门禁已通过”。
           装了以后终端里 <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">cc changelog</code> 可离线查看完整版本说明
           （<code class="font-mono text-sm">--all</code> 全部历史、<code class="font-mono text-sm">&lt;version&gt;</code> 指定版本、<code class="font-mono text-sm">--json</code> 机器可读）。
         </p>
@@ -641,6 +658,7 @@ const packs = [
             <div class="shrink-0 sm:w-48">
               <span class="font-mono text-ember font-semibold">v{r.version}</span>
               {r.date && <span class="ml-2 text-sm text-muted">{r.date}</span>}
+              <span class="ml-2 text-xs text-muted">{r.status}</span>
             </div>
             <p class="text-muted leading-snug">{r.summary}</p>
           </li>

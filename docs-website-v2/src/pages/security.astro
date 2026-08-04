@@ -1,8 +1,10 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import cliPkg from '../../../packages/cli/package.json';
+import releaseStatus from '../data/release-status.json';
 
-const CLI_VERSION = cliPkg.version;
+const CLI_VERSION = releaseStatus.recommendedCliVersion;
+const SOURCE_CLI_VERSION = cliPkg.version;
 ---
 <BaseLayout
   title="硬件加密与数据主权 — U-Key · SIMKey · Signal · 本地 Ollama | ChainlessChain"
@@ -271,7 +273,7 @@ const CLI_VERSION = cliPkg.version;
         </div>
         <div>
           <p class="text-xl leading-relaxed mb-4">让 AI 直接调本机命令，又不让它越权 —— 物理隔离，不靠"承诺"。</p>
-          <p class="prose-muted mb-4">CLI <code>{CLI_VERSION}</code> 把插件 hook、MCP、LSP、monitor、PTY、后台任务与原生 bin 收进同一 Process Broker policy。Linux 只允许经身份验证、当前架构、显式非可执行栈的受支持静态 ELF，并用文件描述符钉住插件树后进入固定 bubblewrap 文件系统/网络边界；Windows AppContainer 绑定 resolver 目标句柄、受信环境与策略摘要。复制、重放、过期 contract、动态 loader、畸形 segment 或隔离能力缺失都会在启动前失败闭合。</p>
+          <p class="prose-muted mb-4">完整门禁 CLI <code>{CLI_VERSION}</code> 把插件 hook、MCP、LSP、monitor、PTY、后台任务与原生 bin 收进同一 Process Broker policy。Linux 只允许经身份验证、当前架构、显式非可执行栈的受支持静态 ELF，并用文件描述符钉住插件树后进入固定 bubblewrap 文件系统/网络边界；Windows AppContainer 绑定 resolver 目标句柄、受信环境与策略摘要。复制、重放、过期 contract、动态 loader、畸形 segment 或隔离能力缺失都会在启动前失败闭合。源码 <code>{SOURCE_CLI_VERSION}</code> 仍为未发布候选。</p>
           <p class="prose-muted mb-4">插件管理同时展示签名、SBOM、来源与 managed-policy 摘要；plugin-bin 和插件 MCP 的用量按插件/版本归因，但工具参数不进入用量记录。发布要求同一精确提交通过 Ubuntu、Windows、macOS 的 CLI CI 与 Strict Sandbox 矩阵。</p>
           <p class="prose-muted mb-4">v5.0.3.67 起，Android 端「cc Chat (自然语言)」允许 LLM 自动调本机 <code>cc</code> 命令完成查询。默认仅放行 8 个只读子命令（<code>note list/show/view</code> · <code>search</code> · <code>memory list/show</code> · <code>skill list</code> · <code>status</code> · <code>session list</code> · <code>mcp list</code> · <code>did show</code>）。写入、删除、安装、shell 元字符即便 LLM 编也会被白名单当场拦截（<code>exitCode=126</code>），调用走 <code>ProcessBuilder</code> 绕过 shell，<strong>零注入面</strong>。</p>
           <p class="prose-muted mb-4">三家原生 tool-use 接通（OpenAI · Doubao 豆包 · Claude / Anthropic）；不支持 tool-use 的厂商自动走"防幻觉 fallback"——明确告知用户切模型，<strong>从不编造结果</strong>。每次调用作为独立卡片显示 <code>命令</code> + <code>exitCode</code> + <code>耗时</code> + <code>stdout</code> 折叠/展开，长查询一键取消。</p>

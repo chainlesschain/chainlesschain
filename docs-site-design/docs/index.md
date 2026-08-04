@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 系统设计文档
-  tagline: "v5.0.3.135 | 87+ 模块设计 | 146 技能 | CLI 175 命令 / 0.162.189 | IDE VS Code 0.37.37 / JetBrains 0.4.76 | PDH 0.4.57 | P2-14 受控回滚与 P2-16 Agent Teams 已按正式发布提交验证"
+  tagline: "v5.0.3.135 | 87+ 模块设计 | CLI 推荐 0.162.189 / 源码 0.162.194 | Open VSX 0.37.38 / JetBrains 0.4.76 | Canonical Session · Restore Saga · IDE Delivery/Rewind"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -25,8 +25,8 @@ features:
     details: 覆盖知识库、社交、交易、AI引擎、安全、企业、去中心化基础设施、Web3、低代码平台、自进化AI、CLI分发系统、CLI高级功能、AI媒体创作、AI文档创作、Web管理界面、Personal Data Hub、iOS Phase 1-6、远程操控 Plan A/B/C、MTC v0.11 联邦等全部子系统的详细设计
 
   - icon: 🏗️
-    title: 架构设计
-    details: 系统整体架构、技术栈选型、数据库设计、IPC通信协议、安全机制等基础架构文档
+    title: 可恢复 Agent Runtime
+    details: Canonical session、MCP 不确定结果裁决、持久资源预算、受控 Skill 子 Agent、签名更新恢复，以及绑定 workspace/owner/seq/head fence 的 Checkpoint Restore Saga
 
   - icon: 🔐
     title: 安全机制
@@ -45,7 +45,7 @@ features:
     details: RBAC权限、SOC2合规、SCIM用户配置、DLP数据防泄漏、SIEM安全信息管理
 ---
 
-> **2026-08-01 设计核对**：当前产品 `5.0.3.135`、CLI `0.162.189`、PDH `0.4.57`、Agent SDK `0.1.7`，IDE VS Code `0.37.37` / JetBrains `0.4.76` 均已公开发布。P2-14 已按限定范围闭合：Process Broker 只为其管理且位于声明 workspace 范围内的 writer 建立持久 transaction/checkpoint，并明确报告 `full` / `partial` / `none` coverage；网络、数据库、消息、部署和支付等外部副作用不在回滚承诺内。P2-16 已完成本地 v6 authority、分布式 queue v1、预算与 lease fencing、两阶段 worktree 清理、交互式裁决/安全恢复及三平台长期 soak；10k task / 64 worker 是单进程规模验证，长期 soak 使用 2 个真实 OS worker。VS Code 与 JetBrains 只读投影 Agent Team 状态，接管、checkpoint 恢复和副作用裁决始终经 CLI-owned authority 执行。CLI 正式发布提交为 `2607af0dad`，IDE 双端发布提交为 `33e4d512d3`。详见[运行时实现核对](/cli-runtime-current)、[CLI 对标与 P2 收口](/CLAUDE_CODE_CLI_PARITY_OPTIMIZATION_PLAN)及[IDE 桥接设计](/modules/m98-ide-bridge)。
+> **2026-08-04 设计核对**：当前产品源码 `5.0.3.135`，CLI 源码候选 `0.162.194`；最近完整权威门禁通过版仍为 `0.162.189`。npm `latest` `0.162.193` 缺少专用 tag、exact-SHA attestation 与 immutable tarball/SBOM handoff，且同 SHA CLI CI 失败，不能作为权威发布。主线增加 canonical session/budget、MCP `ws/wss` 与不确定结果恢复、受控 Skill 子 Agent、签名更新恢复，以及 direct/timeline 共用的 checkpoint restore saga 和保守 recovery CLI。Open VSX 当前公开 `0.37.38`（registry public，tagged workflow 未完整成功），JetBrains Marketplace 当前公开 `0.4.76`；源码分别为 `0.37.40` / `0.4.78`，包含 CLI-owned Sessions Workbench、可恢复交付、canonical rewind/branch timeline 与 VS Code 内联聊天候选。详见[运行时实现核对](/cli-runtime-current)、[CLI 对标与 P2 收口](/CLAUDE_CODE_CLI_PARITY_OPTIMIZATION_PLAN)及[IDE 桥接设计](/modules/m98-ide-bridge)。
 
 ## 快速导航
 
@@ -87,6 +87,7 @@ features:
 | **v5.0.3.3**                          | —       | **MTC v0.5 — Phase 3 federation 全套 + libp2p auto-discovery**：Phase 3.1 多签 landmark + `cc mtc federation {join,leave,status}` 本地 registry（atomic write、`wx` race-safe）；Phase 3.2 `cc mtc batch* / publish-skills --federation <id> --threshold <M>` 多签发布；Phase 3.3 `--transport filesystem` 跨进程 drop-zone 发现（NFS/Syncthing/SMB/USB）+ self-signed announce schema `mtc-federation-announce/v1` + TTL-evicting 名册；Phase 3.4 `--transport libp2p` 真 P2P gossipsub topic `mtc-federation/v1/<id>` auto-discovery，`Libp2pTransport` 加 `publishRaw / subscribeRaw` 通用 pubsub（与 landmark 通道隔离）。Backend Q-ENG-2 `OperationLogService` 桥接 `cc audit mtc emit` 写回 `audit_mtc_event_id`（V013 migration），web-panel `Audit.vue` 加 4 态 MTC 列徽章。**476 MTC 测试全绿**（core-mtc 182 + CLI 89 + desktop 33 + web-panel 153 + backend 19）跨 6 层覆盖。CLI 0.160.0                                                                                                                                 |
 | **v5.0.3.4**                          | —       | **Web Panel i18n M3 全覆盖 + V6 LanguageSwitcher + web-shell opt-out + projects folder picker**：i18n M3 一波收 ~25 个视图（Speech/Analytics/Cron/Security/Templates/Search/Audit/McpTools/Backup/Tokens/Mtc/WebAuthn/Community/Wallet/Inference/Organization/Recommend/Federation/Reputation/AIOps/Projects 等），全部接入 vue-i18n 中英双语字典；V6 preview topbar 接入 `LanguageSwitcher`（commit `645b19f30`）；web-shell 加 `--no-web-shell` dev opt-out + settings-authoritative precedence（`9119bdec1`）；projects 加 folder picker 走 `cc init --cwd` 完成"打开已有文件夹"流（`c935a95d4`）。CLI 0.160.1                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | **v5.0.3.135（P2-14 / P2-16 收口）**  | —       | **CLI 0.162.189 + IDE 协作控制正式发布**：P2-14 在 Process Broker 管理的声明 workspace writer 范围内提供持久 checkpoint、分层 coverage 与失败/取消/超时后的 fenced rollback/recovery；P2-16 完成本地 v6 authority、分布式 queue v1、团队预算、lease/CAS fencing、wall lifecycle fence、两阶段 worktree 清理、交互式裁决/安全恢复及三平台长期 soak。VS Code 0.37.37 与 JetBrains 0.4.76 以只读投影呈现 Agent Team 状态，所有权威变更继续由 CLI 执行。CLI release SHA `2607af0dad`；IDE release SHA `33e4d512d3`。                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| **2026-08-04 源码候选**                 | —       | **CLI 0.162.194 / VS Code 0.37.40 / JetBrains 0.4.78（均未发布）**：canonical session 与资源预算、MCP recovery adjudication、受控 Skill 子 Agent、签名 updater recovery、checkpoint restore saga/recovery CLI、IDE Sessions Workbench、resumable delivery、canonical rewind/branch timeline 与 VS Code inline chat。公开 registry 仍分别按推荐 CLI 0.162.189、Open VSX 0.37.38、JetBrains 0.4.76 说明；不把候选源码或失败 workflow 表述为稳定发布。 |
 
 ---
 

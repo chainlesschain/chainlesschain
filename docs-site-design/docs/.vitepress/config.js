@@ -9,7 +9,7 @@ export default defineConfig({
   transformPageData(pageData) {
     if (pageData.relativePath === "index.md" && pageData.frontmatter.hero) {
       pageData.frontmatter.hero.tagline =
-        "v5.0.3.135 · CLI 0.162.189 · PDH 0.4.57｜P2-14 受控回滚 · P2-16 Agent Teams · IDE CLI-owned controls";
+        "v5.0.3.135 · 推荐 CLI 0.162.189 · 源码 0.162.194 · PDH 0.4.57｜Canonical Session · Checkpoint Restore Saga · IDE CLI-owned Delivery/Rewind";
     }
   },
 

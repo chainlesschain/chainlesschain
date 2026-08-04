@@ -5,6 +5,26 @@
 
 ## [Unreleased]
 
+#### Added — CLI 0.162.194 源码候选：可恢复会话、MCP 裁决与 Checkpoint Restore Saga
+
+> 当前源码为 `0.162.194`（2026-08-04，未发布）。最近完成完整权威门禁的生产推荐版仍是 `0.162.189`。npm `latest` `0.162.193` 由通用 workspace publisher 在同 SHA CLI CI 最终失败时写入，没有 `v-npm-0-162-193`、exact-SHA attestation 或专用 immutable tarball/SBOM handoff，不能视为权威发布。
+
+- **安全配置与 MCP**：schema secret 改走 `config set-secret`；显式 `workspace-write` / `strict` sandbox 能力不足时失败闭合。MCP 增加 `ws/wss`、可信动态 header、timeout notification 与不确定结果 recovery/adjudication，不盲目 replay 可能已有副作用的调用。
+- **Canonical session 与预算**：REPL、stream、WebSocket、headless 共用可验证 transcript projection、事务化 summary/compaction 与 stale/corrupt resume 拒绝；后台/Team adapter 增加 fenced token、USD 与 wall-clock 预算。
+- **Agent 工作流**：plan/todo revision 与 authority ceiling、受控 Skill 子 Agent、后台 launch profile、semantic handoff、`/btw`、manifest-driven help 与确定性 shell completion 已进入当前树。
+- **Restore saga**：direct/timeline restore 统一绑定 workspace prestate、生命周期锁、Git/copy 不可变目标、安全 checkpoint 与 hash-chained CAS journal。`cc checkpoint recovery list|show|abort|resume|rollback|release` 仅对 live fence 验证通过的状态开放；`resume` 只结算已完成恢复，`rollback` 只反转已验证的部分文件变更。
+- **发布权限遏制**：专用 CLI publisher 已恢复；普通 workspace publisher 使用独立 workflow/tag namespace，并在检测与 publish 前双重排除 CLI。产品 release 不再持有 CLI 发布令牌，只消费已验证 tag、registry `gitHead` 与 exact-SHA gates 的既有版本。
+- **状态**：`0.162.194` 仍须在包含全部修复的 final exact SHA 上通过 Ubuntu、Windows、macOS 的 `CLI CI`、`CLI Strict Sandbox`、受影响宿主门和 immutable tarball/SBOM 验证；当前为 release NO-GO。
+
+#### Added — IDE 公开与源码双轨：Open VSX 0.37.38 / JetBrains 0.4.76 / 源码 0.37.40 与 0.4.78
+
+> Open VSX registry 当前公开 `0.37.38`，累计下载已突破 **2 万**；JetBrains Marketplace 当前公开且审核通过 `0.4.76`。源码分别为 VS Code `0.37.40`、JetBrains `0.4.78`。`0.37.38` tagged workflow 最终失败，JetBrains `0.4.77` / `0.4.78` tagged workflow 也失败，因此不能把源码或 registry presence 扩写成完整双端发布门通过。
+
+- Sessions Workbench 只消费 CLI-owned immutable session projection，并按 exact revision 暴露 resume、attach、delivery 与 remote-control 动作。
+- 可恢复 delivery 覆盖 GitHub、Gitee、configured remote 与 manual handoff；canonical rewind/branch timeline 绑定 session、workspace、repository head、checkpoint revision 与 manifest digest。
+- VS Code `0.37.40` 源码新增编辑器内联聊天：自动携带选区、流式输出，代码块支持复制/插入/替换，并提供 Explain / Refactor / Fix / Generate Docs / Generate Tests。重复 command 注册和 activation logger 接线错误已修复，六个 command 已进入 canonical public IDE capability manifest。
+- 当前公开安装仍以 Open VSX `0.37.38` 与 JetBrains Marketplace `0.4.76` 为准；内联聊天属于未发布源码候选。
+
 #### Added — CLI 0.162.189：P2-14 托管回滚与 P2-16 大规模 Agent Teams 发布闭环
 
 > `chainlesschain` `0.162.185 → 0.162.189`（2026-07-31）；PDH 保持 `0.4.57`，Agent SDK 保持 `0.1.7`。npm `latest` 已公开 `0.162.189`。
