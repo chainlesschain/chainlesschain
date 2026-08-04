@@ -303,7 +303,7 @@ test("host-API launch keeps the real extension-test profile without CDP", () => 
   );
 });
 
-test("macOS DOM relay uses a loopback Inspector bootstrap without Inspector transport", async () => {
+test("macOS DOM relay keeps its loopback Inspector bootstrap transport-free", async () => {
   const root = temporaryRoot();
   const runtimeDir = path.join(root, "runtime");
   const artifactDir = path.join(root, "artifacts");
@@ -314,21 +314,12 @@ test("macOS DOM relay uses a loopback Inspector bootstrap without Inspector tran
     fs.mkdirSync(directory, { recursive: true });
   }
   let launch;
-  let bootstrapConnected = false;
-  let bootstrapClosed = false;
   const result = await runRealDomPhase({
     runTests: async (options) => {
       launch = options;
       assert.match(
         options.extensionTestsEnv.CHAINLESSCHAIN_HOST_DOM_TOKEN,
         /^[a-f0-9]{64}$/u,
-      );
-      const inspectorSwitch = options.launchArgs.find((argument) =>
-        argument.startsWith("--inspect=127.0.0.1:"),
-      );
-      const inspectorPort = inspectorSwitch.split(":").at(-1);
-      options.stderr.write(
-        `Debugger listening on ws://127.0.0.1:${inspectorPort}/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee\n`,
       );
       writeJsonSignal(
         options.extensionTestsEnv.CHAINLESSCHAIN_HOST_RESULT_FILE,
@@ -339,18 +330,6 @@ test("macOS DOM relay uses a loopback Inspector bootstrap without Inspector tran
           completedAt: "2026-08-01T00:00:00.000Z",
         },
       );
-    },
-    connectInspectorBootstrap: async ({ getInspectorWebSocketUrl }) => {
-      assert.match(
-        getInspectorWebSocketUrl(),
-        /^ws:\/\/127\.0\.0\.1:\d+\/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee$/u,
-      );
-      bootstrapConnected = true;
-      return {
-        close() {
-          bootstrapClosed = true;
-        },
-      };
     },
     vscodeExecutablePath: path.join(root, "Code"),
     workspaceDir,
@@ -373,8 +352,6 @@ test("macOS DOM relay uses a loopback Inspector bootstrap without Inspector tran
   });
 
   assert.equal(result.mode, "dom-relay");
-  assert.equal(bootstrapConnected, true);
-  assert.equal(bootstrapClosed, true);
   const inspectorSwitch = launch.launchArgs.find((argument) =>
     argument.startsWith("--inspect=127.0.0.1:"),
   );

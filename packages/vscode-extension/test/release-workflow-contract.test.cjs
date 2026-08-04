@@ -74,7 +74,6 @@ test("VS Code macOS host gate pins the validated Intel runner image", () => {
     hostRunner,
     /const bootstrapInspectorPort = await reserveLoopbackPort\(\)/u,
   );
-  assert.match(hostRunner, /expression: "1"/u);
   assert.match(hostRunner, /CHAINLESSCHAIN_HOST_DOM_TOKEN/u);
   assert.doesNotMatch(hostRunner, /ApplicationFirewall\/socketfilterfw/u);
   assert.match(relayJourney, /vscode-webview-message-relay/u);

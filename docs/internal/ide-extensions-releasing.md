@@ -155,9 +155,9 @@ version.
   relay exists only when the launcher injects a fresh 256-bit token, validates
   that token on both sides, and exposes fixed semantic DOM actions rather than
   arbitrary JavaScript evaluation. A random loopback-only Electron inspector
-  endpoint is still enabled as a VS Code test-runner bootstrap workaround. The
-  Node 22 built-in WebSocket attaches once and evaluates only the constant `1`;
-  it never reads or drives DOM state, which remains on the token-gated relay.
+  endpoint and a positional workspace are still used as a VS Code test-runner
+  bootstrap workaround, but the journey never connects to that endpoint and
+  all DOM state remains on the token-gated relay.
   macOS remains release-authoritative only when both stable and minimum
   journeys pass.
   `--host-api-only` is a
