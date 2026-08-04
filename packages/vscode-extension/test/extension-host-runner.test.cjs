@@ -50,6 +50,8 @@ const {
 const {
   ACTIVITY_VIEW_COMMAND,
   CHAT_VIEW_FOCUS_COMMAND,
+  activateMacHostWindow,
+  findOuterMacAppBundle,
   requestChatViewForDomJourney,
 } = require("./extension-host/driver/view-control.cjs");
 
@@ -904,6 +906,56 @@ test("host ready is not blocked by VS Code's pending chat focus promise", async 
   ]);
   assert.deepEqual(calls, [ACTIVITY_VIEW_COMMAND, CHAT_VIEW_FOCUS_COMMAND]);
   settleFocus();
+});
+
+test("macOS host activation targets the outer app bundle without a shell", async () => {
+  const executablePath =
+    "/tmp/VS Code.app/Contents/Frameworks/Code Helper (Plugin).app/Contents/MacOS/Code Helper (Plugin)";
+  const calls = [];
+  assert.equal(findOuterMacAppBundle(executablePath), "/tmp/VS Code.app");
+
+  assert.equal(
+    await activateMacHostWindow({
+      platform: "darwin",
+      executablePath,
+      execFileProcess(file, args, options, callback) {
+        calls.push({ file, args, options });
+        callback(null);
+      },
+    }),
+    true,
+  );
+  assert.deepEqual(calls, [
+    {
+      file: "/usr/bin/open",
+      args: ["/tmp/VS Code.app"],
+      options: { timeout: 10_000, windowsHide: true },
+    },
+  ]);
+  assert.equal(
+    await activateMacHostWindow({ platform: "win32", executablePath }),
+    false,
+  );
+});
+
+test("macOS DOM relay can require the real chat focus command to settle", async () => {
+  const calls = [];
+  const logs = [];
+  const commands = {
+    executeCommand(command) {
+      calls.push(command);
+      return Promise.resolve();
+    },
+  };
+
+  await requestChatViewForDomJourney({
+    commands,
+    timeoutMs: 50,
+    waitForFocus: true,
+    log: (message) => logs.push(message),
+  });
+  assert.deepEqual(calls, [ACTIVITY_VIEW_COMMAND, CHAT_VIEW_FOCUS_COMMAND]);
+  assert.deepEqual(logs, ["ChainlessChain chat webview focus command settled"]);
 });
 
 test("fixture CLI wrappers are isolated and cannot overwrite an existing shim", () => {

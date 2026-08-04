@@ -7,6 +7,7 @@ const path = require("node:path");
 const vscode = require("vscode");
 const {
   CHAT_VIEW_FOCUS_COMMAND,
+  activateMacHostWindow,
   requestChatViewForDomJourney,
   withTimeout,
 } = require("./view-control.cjs");
@@ -266,8 +267,13 @@ async function revealChatAndRunDomRelayJourney({
   extensionPath,
   workspaceDir,
 }) {
+  await activateMacHostWindow({
+    log: (message) =>
+      console.log(`[extension-host-smoke] ${phase}: ${message}`),
+  });
   await requestChatViewForDomJourney({
     commands: vscode.commands,
+    waitForFocus: true,
     log: (message) =>
       console.log(`[extension-host-smoke] ${phase}: ${message}`),
   });

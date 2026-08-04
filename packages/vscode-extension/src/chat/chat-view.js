@@ -330,10 +330,11 @@ class ChatViewProvider {
         this._hostDomRevealRequested = true;
         try {
           // Webview scripts are suspended while their view is hidden. The
-          // token-gated host journey may run in a background macOS window, so
-          // reveal the already-resolved production view without stealing
-          // editor focus and let the next bounded relay retry prove readiness.
-          this.view.show(true);
+          // token-gated host journey may run in a background macOS window, and
+          // merely revealing with preserveFocus=true leaves that renderer
+          // suspended there. Give the real production view focus for this
+          // isolated test launch and let the next bounded retry prove readiness.
+          this.view.show(false);
         } catch {
           /* readiness diagnostics below remain fail closed */
         }

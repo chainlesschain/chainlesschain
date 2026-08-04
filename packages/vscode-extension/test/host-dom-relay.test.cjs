@@ -113,7 +113,7 @@ test("ChatViewProvider reveals a suspended relay view once and reports readiness
   provider.view = {
     visible: false,
     show(preserveFocus) {
-      assert.equal(preserveFocus, true);
+      assert.equal(preserveFocus, false);
       revealCount += 1;
     },
   };
