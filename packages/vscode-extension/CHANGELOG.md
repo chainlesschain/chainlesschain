@@ -18,6 +18,8 @@ All notable changes to this extension are documented here.
 - Keep fresh token-gated Webviews free of stale-DOM reloads while retaining the
   bounded relay deadline, and collect minimum-host evidence even after a stable
   host failure.
+- Use deterministic software rendering for the isolated macOS host journey and
+  retain verbose Webview/service-worker diagnostics on current VS Code builds.
 
 ## [0.37.40] - Inline chat and release-host hardening (2026-08-04)
 
