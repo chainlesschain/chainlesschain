@@ -6,6 +6,8 @@ All notable changes to this extension are documented here.
 
 - Preserve a prompt sent before the first chat tab identity arrives, so
   `/retry` cannot lose that prompt during bootstrap tab activation.
+- Keep Open VSX tag releases independent while requiring an explicit exact-tag
+  workflow dispatch to backfill the Microsoft VS Code Marketplace.
 
 ## [0.37.41] - Auditable macOS host journey (2026-08-05)
 
