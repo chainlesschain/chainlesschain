@@ -104,6 +104,57 @@ describe("rewind-commands (pure)", () => {
     });
     expect(err).toEqual({ ok: false, error: "stderr msg" });
   });
+
+  it("preserves a structured Windows submission as one cmd.exe argument", async () => {
+    const calls = [];
+    const submission = '{"schema":"cc-action/v1","value":"a b"}';
+    const result = await rewind.runCliJson({
+      command: "C:\\Program Files\\cc.cmd",
+      args: ["checkpoint", "action", "--submission", submission],
+      deps: {
+        platform: "win32",
+        execFile: (file, args, options, callback) => {
+          calls.push({ file, args, options });
+          callback(null, '{"ok":true}', "");
+        },
+      },
+    });
+
+    expect(result).toEqual({ ok: true, data: { ok: true } });
+    expect(calls).toHaveLength(1);
+    expect(calls[0].file.toLowerCase()).toContain("cmd.exe");
+    expect(calls[0].args).toEqual([
+      "/d",
+      "/s",
+      "/v:off",
+      "/c",
+      '""C:\\Program Files\\cc.cmd" "checkpoint" "action" "--submission" "{""schema"":""cc-action/v1"",""value"":""a b""}""',
+    ]);
+    expect(calls[0].options).toMatchObject({
+      shell: false,
+      windowsVerbatimArguments: true,
+    });
+  });
+
+  it("fails closed before spawn on Windows cmd expansion or line breaks", async () => {
+    let calls = 0;
+    const execFile = () => {
+      calls += 1;
+    };
+
+    for (const value of ["%PATH%", "line1\nline2"]) {
+      await expect(
+        rewind.runCliJson({
+          args: ["checkpoint", "action", "--submission", value],
+          deps: { platform: "win32", execFile },
+        }),
+      ).resolves.toEqual({
+        ok: false,
+        error: "unsafe Windows CLI argument",
+      });
+    }
+    expect(calls).toBe(0);
+  });
 });
 
 // --- ChatViewProvider._rewind orchestration ---
