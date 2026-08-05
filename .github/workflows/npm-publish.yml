@@ -490,8 +490,22 @@ jobs:
             npm publish "$TARBALL" ${{ steps.publish-cmd.outputs.FLAGS }}
           fi
           mkdir -p registry-verify
-          npm pack "chainlesschain@$PKG_VER" --pack-destination registry-verify >/dev/null
-          REGISTRY_TARBALL=$(find registry-verify -maxdepth 1 -name 'chainlesschain-*.tgz' -type f -print -quit)
+          REGISTRY_TARBALL=""
+          for ATTEMPT in {1..30}; do
+            if npm pack "chainlesschain@$PKG_VER" --pack-destination registry-verify \
+              >/dev/null 2>registry-verify/npm-pack.err; then
+              REGISTRY_TARBALL=$(find registry-verify -maxdepth 1 -name 'chainlesschain-*.tgz' -type f -print -quit)
+              break
+            fi
+            if [ "$ATTEMPT" -eq 30 ]; then
+              echo "Registry did not expose chainlesschain@$PKG_VER after 30 attempts" >&2
+              cat registry-verify/npm-pack.err >&2
+              exit 1
+            fi
+            echo "::notice::Registry has not exposed chainlesschain@$PKG_VER yet (attempt $ATTEMPT/30); retrying in 10 seconds"
+            sleep 10
+          done
+          test -n "$REGISTRY_TARBALL"
           node packages/cli/scripts/npm-release-artifact.mjs verify "$REGISTRY_TARBALL" "$MANIFEST"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

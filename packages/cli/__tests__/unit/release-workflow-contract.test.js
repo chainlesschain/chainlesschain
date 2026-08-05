@@ -79,8 +79,19 @@ describe("CLI release workflow contracts", () => {
     );
     expect(cliPublish).toContain('find "$GITHUB_WORKSPACE/release-artifacts"');
     expect(cliPublish).not.toContain("TARBALL=$(find release-artifacts");
+    expect(cliPublish).toContain("for ATTEMPT in {1..30}; do");
+    expect(cliPublish).toContain(
+      "Registry has not exposed chainlesschain@$PKG_VER yet",
+    );
+    expect(cliPublish).toContain('test -n "$REGISTRY_TARBALL"');
     expect(cliPublish.indexOf("npm-release-artifact.mjs verify")).toBeLessThan(
       cliPublish.indexOf('npm publish "$TARBALL"'),
+    );
+    expect(cliPublish.indexOf('npm publish "$TARBALL"')).toBeLessThan(
+      cliPublish.indexOf("for ATTEMPT in {1..30}; do"),
+    );
+    expect(cliPublish.indexOf("for ATTEMPT in {1..30}; do")).toBeLessThan(
+      cliPublish.lastIndexOf("npm-release-artifact.mjs verify"),
     );
   });
 
