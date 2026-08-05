@@ -1,32 +1,84 @@
 # Cowork 多智能体协作系统
 
-> **当前版本：CLI 0.162.189（2026-08-01） | 状态: ✅ Cowork 命令可用；P2-16 Agent Teams 已完成发布门 | 运行时测试持续维护**
+> **适用版本：CLI 0.162.197（仓库源码、npm latest 与生产推荐一致）| P2-16 Agent Teams 发布门已通过 | 状态：Cowork 命令可用，运行时测试持续维护**
 >
-> 当前代码同时保留历史桌面端 Cowork 能力；CLI 入口以 `packages/cli/src/commands/cowork.js` 为准，命令实现采用按需加载。Cowork 与基于 DAG / lease / queue 的 `cc team` 是不同入口；大规模协作与回滚边界见 [Agent Team 用户指南](./cli-team.md)。本文中的桌面 IPC 数量、旧版本性能数字和历史模块行数仅作为演进记录，不作为 CLI 当前 SLA。
+> 本文同时说明当前 CLI 与历史桌面端 Cowork。日常使用请优先参考“快速开始”和 CLI 章节；桌面 IPC 数量、历史性能基线与模块行数仅用于回归和演进追踪，不代表当前 CLI 的服务等级。Cowork 与基于 DAG / lease / queue 的 `cc team` 是两个不同入口，大规模团队协作请参阅 [Agent Team 用户指南](./cli-team.md)。
 
 ## 概述
 
-Cowork 是 ChainlessChain 的生产级多智能体协作系统，基于 Claude Code 的 TeammateTool 设计模式实现，提供智能任务分配、并行执行和协同工作流能力。系统包含 95 个内置技能、13 核心操作、文件沙箱、Agent 池化、P2P 跨设备代理网络和去中心化代理联邦等完整功能矩阵。
+Cowork 是 ChainlessChain 的生产级多智能体协作系统，基于 Claude Code 的 TeammateTool 设计模式实现，提供智能任务分配、并行执行和协同工作流能力。系统包含 146 个内置技能、13 核心操作、文件沙箱、Agent 池化、P2P 跨设备代理网络和去中心化代理联邦等完整功能矩阵。
 
-ChainlessChain Cowork 是一个生产级的多智能体协作系统，基于 Claude Code 的 TeammateTool 设计模式实现。它为复杂任务提供智能的任务分配、并行执行和协同工作流能力，包含 13 核心操作、FileSandbox 安全沙箱、长时任务管理、Agent 池化、95 内置技能、技能流水线引擎、可视化工作流编辑器、Git Hooks 集成、Instinct 学习系统、Orchestrate 编排工作流、Verification Loop 验证流水线、**P2P 跨设备代理网络、设备能力发现、混合执行策略、Computer Use Bridge、RESTful API 服务、Webhook 事件推送**、全自动开发流水线、自然语言编程（NL→Spec）、多模态协作（音视频/图像/文档融合）、自主运维（异常检测/自动修复/告警）以及**去中心化代理网络（Agent DID / 联邦发现 / 跨组织路由 / 信誉系统）**。
+ChainlessChain Cowork 是一个生产级的多智能体协作系统，基于 Claude Code 的 TeammateTool 设计模式实现。它为复杂任务提供智能的任务分配、并行执行和协同工作流能力，包含 13 核心操作、FileSandbox 安全沙箱、长时任务管理、Agent 池化、146 个内置技能、技能流水线引擎、可视化工作流编辑器、Git Hooks 集成、Instinct 学习系统、Orchestrate 编排工作流、Verification Loop 验证流水线、**P2P 跨设备代理网络、设备能力发现、混合执行策略、Computer Use Bridge、RESTful API 服务、Webhook 事件推送**、全自动开发流水线、自然语言编程（NL→Spec）、多模态协作（音视频/图像/文档融合）、自主运维（异常检测/自动修复/告警）以及**去中心化代理网络（Agent DID / 联邦发现 / 跨组织路由 / 信誉系统）**。
 
 ### 当前 CLI 能力边界
 
-当前 CLI Cowork 入口包含：多视角辩论评审、A/B 方案比较、代码分析、任务模板、Cron 调度、签名共享包、DAG 工作流、运行观察、历史学习，以及协调器/Runner V2 管理命令。所有命令使用已配置的 LLM provider，可通过命令行覆盖 provider/model。
+当前 CLI Cowork 入口包含：多视角辩论评审、A/B 方案比较、代码分析、任务模板、Cron 调度、签名共享包、DAG 工作流、运行观察、历史学习，以及协调器/Runner V2 管理命令。`debate`、`compare` 和 `analyze` 使用已配置的 LLM provider，并可通过命令行覆盖 provider/model；知识图谱分析及多数本地管理命令不调用 LLM。协调器、Runner 及其他 `*-v2` 命令属于治理/开发者接口，日常使用通常不需要直接调用。
 
 本文按以下模块组织：
 
-| 模块                      | 内容                                               |
-| ------------------------- | -------------------------------------------------- |
-| [系统架构](#系统架构)     | Cowork 层次、任务执行与持久化边界                  |
-| [配置参考](#配置参考)     | TeammateTool、FileSandbox、长时任务和 CLI 运行参数 |
-| [性能指标](#性能指标)     | 历史桌面基线与当前 CLI 的测量口径                  |
-| [测试覆盖率](#测试覆盖率) | 桌面 E2E 与 CLI unit/integration/e2e 覆盖          |
-| [安全考虑](#安全考虑)     | 文件、凭据、沙箱、传输与审计边界                   |
-| [故障排查](#故障排查)     | 桌面 IPC 与 CLI 常见故障                           |
-| [关键文件](#关键文件)     | 桌面实现与 CLI 实现入口                            |
-| [使用示例](#使用示例)     | 当前可直接执行的 CLI 示例                          |
-| [相关文档](#相关文档)     | 用户指南、设计文档和测试文档                       |
+| 模块                  | 内容                                          |
+| --------------------- | --------------------------------------------- |
+| [快速开始](#快速开始) | 环境检查、模型配置和第一个任务                |
+| [系统架构](#系统架构) | CLI 与桌面端层次、任务执行和持久化边界        |
+| [配置参考](#配置参考) | CLI、TeammateTool、FileSandbox 和长时任务参数 |
+| [性能指标](#性能指标) | 当前 CLI 边界、测量口径和历史桌面基线         |
+| [测试覆盖](#测试覆盖) | CLI/Web unit、integration、E2E 与历史桌面覆盖 |
+| [安全考虑](#安全考虑) | 文件、凭据、沙箱、模板、传输与审计边界        |
+| [故障排查](#故障排查) | CLI、本地状态与桌面 IPC 常见故障              |
+| [关键文件](#关键文件) | 当前 CLI/Web 和历史桌面端实现入口             |
+| [使用示例](#使用示例) | 评审、分析、工作流、调度、分享与历史学习      |
+| [相关文档](#相关文档) | 命令参考、Web 指南、工作流、安全和设计文档    |
+
+## 快速开始
+
+### 1. 检查环境
+
+Cowork CLI 要求 Node.js `>=22.12.0`。安装 CLI 后先检查版本和命令入口：
+
+```bash
+node --version
+cc --version
+cc cowork --help
+```
+
+从源码运行时，可在仓库根目录使用：
+
+```bash
+node packages/cli/bin/chainlesschain.js cowork --help
+```
+
+### 2. 配置模型
+
+```bash
+# 使用本地 Ollama
+cc config set llm.provider ollama
+cc config set llm.model qwen2.5:7b
+
+# 或配置云端模型；密钥通过隐藏输入保存，不进入 shell 历史
+cc config set llm.provider openai
+cc config set llm.model gpt-4o
+cc config set-secret llm.apiKey
+
+# 验证当前模型连接
+cc llm test --provider openai
+```
+
+也可以只对单次命令使用 `--provider` 和 `--model` 覆盖全局配置。
+
+### 3. 运行第一个任务
+
+```bash
+# 不调用 LLM，先验证本地分析链路
+cc cowork analyze ./src --type knowledge-graph --json
+
+# 多视角代码评审
+cc cowork debate ./src/index.js --perspectives security,maintainability
+
+# 查看本地 Cowork 状态
+cc cowork status
+```
+
+`debate` 既接受文件路径，也接受主题文本；读取文件时最多向评审链路传入前 15,000 个字符。
 
 ## 核心特性
 
@@ -35,7 +87,7 @@ ChainlessChain Cowork 是一个生产级的多智能体协作系统，基于 Cla
 - 🔒 **文件沙箱**: 20+ 敏感文件检测，路径遍历防护，细粒度权限
 - ⏱️ **长时任务**: 检查点恢复、智能重试、进度跟踪、超时处理、增量检查点
 - 🏊 **Agent 池化**: 能力池化、温复用、内存感知缩池、健康检查
-- 🎯 **95 内置技能**: 四层加载、懒加载（启动提升 87%）、门控检查、热加载/热卸载
+- 🎯 **146 内置技能**: 四层加载、懒加载（历史 90 技能基线启动约提升 87%）、门控检查、热加载/热卸载
 - 🔗 **技能流水线**: 5 种步骤类型（串联/并行/条件/循环/转换）、10 预置模板、变量传递
 - 🎨 **可视化工作流**: Vue Flow 拖拽编辑器、8 种节点类型、DAG 拓扑排序执行
 - 🪝 **Git Hooks 集成**: Pre-commit 智能检查、影响分析、CI 失败自动修复
@@ -58,6 +110,9 @@ ChainlessChain Cowork 是一个生产级的多智能体协作系统，基于 Cla
 - 🎭 **Debate Review**: 多视角辩论式代码审查（性能/安全/可维护性），共识投票裁决
 - ⚖️ **A/B Comparator**: 多代理方案生成与基准对比，自动评分排名
 - 🔄 **Experience Replay**: 工作流模板自动提取，成功路径沉淀为 Instinct 模式
+- ⏰ **Cron 与 DAG 工作流**: 5 字段定时调度、依赖校验、批次并行、流水线和失败降级
+- 📦 **模板、分享与学习**: EvoMap 模板、SHA-256/可选 DID 签名、历史推荐与失败归因
+- 🔌 **MCP 工具挂载**: 模板声明 MCP server，任务生命周期内自动挂载和卸载
 - 🔩 **全自动开发流水线** (v3.0): DAG 流水线编排，需求→Spec→代码→部署→监控全链路自动化
 - 💬 **自然语言编程** (v3.1): NL→Spec 翻译（9 种意图分类），约定分析，代码生成，交互精炼
 - 🖼️ **多模态协作** (v3.2): 音频/图像/文档/屏幕/文本五模态融合，富输出（MD/HTML/ECharts/幻灯片）
@@ -66,6 +121,24 @@ ChainlessChain Cowork 是一个生产级的多智能体协作系统，基于 Cla
 - 🌐 **联邦代理发现** (v4.0): KadDHT 去中心化发现，跨组织技能查询，实时延迟感知路由
 - 🔀 **跨组织任务路由** (v4.0): 凭证证明委派，SLA 预算控制，任务状态追踪，全程审计日志
 - ⭐ **信誉系统** (v4.0): 动态评分（完成率/质量/响应时间/近期活跃），衰减机制，排名百分位
+
+### 当前 CLI 新增能力
+
+在原有桌面端团队协作、文件沙箱、Agent 池和技能体系之外，当前 CLI 已提供以下可组合能力：
+
+| 能力               | 命令入口                            | 说明                                                         |
+| ------------------ | ----------------------------------- | ------------------------------------------------------------ |
+| 多视角辩论评审     | `cowork debate`                     | 默认从性能、安全、可维护性三个视角并行评审，再汇总共识       |
+| A/B 方案生成与评分 | `cowork compare`                    | 默认生成 3 个、最多 4 个方案，按指定维度评分排序             |
+| 代码与决策分析     | `cowork analyze`                    | 支持本地知识图谱，以及基于 LLM 的风格和架构决策分析          |
+| 模板市场           | `cowork template`                   | 搜索、安装、列出、删除和发布 EvoMap 模板                     |
+| Cron 调度          | `cowork cron`                       | 管理 5 字段 cron 计划，并由前台调度循环触发任务              |
+| 签名分享包         | `cowork share`                      | 导出、导入和验证模板/结果包，支持校验和及可选 DID 签名       |
+| DAG 工作流         | `cowork workflow`                   | 校验依赖与环路，支持批次并行、流水线模式和失败后继续         |
+| 观察与学习         | `cowork observe`、`cowork learning` | 汇总近期任务、提供本地只读面板，并从历史中生成推荐和失败归因 |
+| MCP 生命周期扩展   | 模板中的 `mcpServers`               | 在任务生命周期内挂载和卸载模板声明的 MCP server              |
+
+上述能力与 `cc team` 的 lease、分布式队列、worktree 和裁决协议互补，但不是同一套命令或状态文件。
 
 ## TeammateTool — 13 核心操作
 
@@ -585,7 +658,7 @@ SmartCheckpointStrategy 根据任务特征动态调整检查点间隔：
 
 ## Skills 技能系统
 
-Cowork 集成了 95 个内置技能，使用 SKILL.md 格式定义，支持四层加载和自动匹配。
+桌面端 Cowork 当前包含 146 个带 `SKILL.md` 的内置技能，并支持用户、工作区和 Marketplace 扩展。技能数量会随版本变化，准确清单以 `desktop-app-vue/src/main/ai-engine/cowork/skills/builtin/` 为准。
 
 ### 四层加载架构
 
@@ -601,28 +674,45 @@ Cowork 集成了 95 个内置技能，使用 SKILL.md 格式定义，支持四�
 │  2. Marketplace 技能 (第三方安装)          │
 │     .chainlesschain/marketplace/skills/    │
 ├───────────────────────────────────────────┤
-│  1. Bundled 技能 (内置 95 个)              │
-│     src/main/ai-engine/cowork/skills/      │
-│     builtin/                               │
+│  1. Bundled 技能 (当前 146 个)              │
+│     desktop-app-vue/src/main/ai-engine/    │
+│     cowork/skills/builtin/                 │
 └───────────────────────────────────────────┘
 ```
 
-### 技能分类（95 个内置技能）
+### 技能分类（当前 146 个内置技能）
 
-| 类别      | 数量 | 示例技能                                                   |
-| --------- | ---- | ---------------------------------------------------------- |
-| 开发      | 18   | code-review, git-commit, refactor, architect-mode          |
-| 自动化    | 4    | browser-automation, computer-use, workflow-automation      |
-| 数据      | 4    | web-scraping, data-analysis, chart-creator, csv-processor  |
-| 知识      | 6    | memory-management, smart-search, research-agent            |
-| 测试      | 5    | api-tester, lint-and-fix, test-and-fix, bugbot             |
-| 分析      | 4    | dependency-analyzer, impact-analyzer, git-history-analyzer |
-| 文档      | 7    | pdf-toolkit, doc-converter, excel-analyzer, pptx-creator   |
-| 媒体      | 7    | audio-transcriber, video-toolkit, subtitle-generator       |
-| 安全      | 4    | security-audit, vulnerability-scanner, crypto-toolkit      |
-| DevOps    | 6    | devops-automation, env-doctor, release-manager             |
-| AI        | 4    | prompt-enhancer, auto-context, multi-model-router          |
-| 系统/工具 | 21   | backup-manager, json-yaml-toolkit, http-client 等          |
+下表按各 `SKILL.md` frontmatter 中的 `category` 统计，合计 146 个：
+
+| 类别            | 数量 | 示例技能                                                         |
+| --------------- | ---: | ---------------------------------------------------------------- |
+| `development`   |   41 | `ab-compare`、`api-design`、`api-docs-generator`                 |
+| `knowledge`     |   16 | `codebase-qa`、`context-loader`、`deep-research`                 |
+| `automation`    |    9 | `agent-browser`、`api-gateway`、`browser-automation`             |
+| `media`         |    8 | `audio-transcriber`、`image-editor`、`media-metadata`            |
+| `data`          |    7 | `chart-creator`、`csv-processor`、`data-analysis`                |
+| `workflow`      |    7 | `complete`、`deep-interview`、`orchestrate`                      |
+| `devops`        |    6 | `devops-automation`、`env-doctor`、`log-analyzer`                |
+| `document`      |    6 | `doc-comparator`、`doc-converter`、`excel-analyzer`              |
+| `productivity`  |    6 | `content-publisher`、`google-workspace`、`humanizer`             |
+| `system`        |    6 | `backup-manager`、`find-skills`、`free-model-manager`            |
+| `security`      |    5 | `crypto-toolkit`、`password-generator`、`security-audit`         |
+| `utility`       |    5 | `clipboard-manager`、`file-compressor`、`json-yaml-toolkit`      |
+| `ai`            |    4 | `auto-context`、`image-generator`、`multi-model-router`          |
+| `analysis`      |    3 | `dependency-analyzer`、`git-history-analyzer`、`impact-analyzer` |
+| `documentation` |    3 | `doc-coauthoring`、`doc-generator`、`markdown-enhancer`          |
+| `testing`       |    3 | `api-tester`、`bugbot`、`test-and-fix`                           |
+| `design`        |    2 | `color-picker`、`frontend-design`                                |
+| `general`       |    2 | `brainstorming`、`my-custom-skill`                               |
+| `integration`   |    1 | `pdh-android-collector`                                          |
+| `remote`        |    1 | `remote-control`                                                 |
+| `quality`       |    1 | `verification-loop`                                              |
+| `debugging`     |    1 | `fault-localizer`                                                |
+| `code-review`   |    1 | `debate-review`                                                  |
+| `database`      |    1 | `db-migration`                                                   |
+| `learning`      |    1 | `explain-code`                                                   |
+
+技能数量和分类会随源码变化；发布前可重新扫描 `builtin/*/SKILL.md` 更新本表。
 
 ### SKILL.md 格式
 
@@ -725,7 +815,42 @@ const check = await window.electron.ipcRenderer.invoke(
 
 ## 系统架构
 
-### 整体架构图
+### 当前 CLI 架构
+
+```text
+cc cowork
+   │
+   ├─ debate / compare / analyze
+   │      ├─ cowork adapter ── LLM provider（按需调用）
+   │      └─ knowledge graph（本地静态分析）
+   │
+   ├─ template / cron / workflow
+   │      ├─ 任务模板与 SubAgentContext
+   │      ├─ 5 字段 cron 调度器
+   │      └─ DAG 校验与并行执行器
+   │
+   └─ share / observe / learning / status
+          ├─ SHA-256 + 可选 DID 签名
+          ├─ 本地历史聚合
+          └─ 模板推荐与失败归因
+                    │
+                    ▼
+       <项目>/.chainlesschain/cowork/
+```
+
+`packages/cli/src/commands/cowork.js` 只负责命令注册、参数校验和输出，具体模块在调用子命令时按需加载。CLI 状态默认落在当前项目的 `.chainlesschain/cowork/`，不会写入桌面端 Cowork 数据库。
+
+| 数据         | 默认位置                                              | 格式  |
+| ------------ | ----------------------------------------------------- | ----- |
+| 调度计划     | `.chainlesschain/cowork/schedules.jsonl`              | JSONL |
+| 工作流定义   | `.chainlesschain/cowork/workflows/<id>.json`          | JSON  |
+| 工作流历史   | `.chainlesschain/cowork/workflow-history.jsonl`       | JSONL |
+| 任务历史     | `.chainlesschain/cowork/history.jsonl`                | JSONL |
+| 用户模板     | `.chainlesschain/cowork/user-templates/<id>.json`     | JSON  |
+| 导入结果     | `.chainlesschain/cowork/shared-results/<taskId>.json` | JSON  |
+| 学习补丁记录 | `.chainlesschain/cowork/learning-patches.jsonl`       | JSONL |
+
+### 桌面端整体架构图
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -759,7 +884,7 @@ const check = await window.electron.ipcRenderer.invoke(
 │  └────┬─────┘  └─────┬──────┘  └───┬──────────┘  └┬──────────┘ │
 │       │              │              │              │              │
 │  ┌────┴──────────────┴──────────────┴──────────────┴──────────┐  │
-│  │                    Skills 框架 (90 内置技能)                  │  │
+│  │                   Skills 框架 (当前 146 内置技能)             │  │
 │  │         四层加载 | 懒加载 | 门控检查 | 热加载/热卸载           │  │
 │  └────┬──────────────┬──────────────┬──────────────┬─────────┘  │
 │       │              │              │              │              │
@@ -1204,7 +1329,42 @@ const useCoworkStore = defineStore("cowork", {
 
 ## 配置参考
 
-> 桌面端配置使用下列 Cowork 对象；CLI 端不读取这些桌面 IPC 配置对象，而是复用全局 LLM/provider、权限和项目配置。CLI 运行时的 provider/model 可在每条 Cowork 命令上用 `--provider`、`--model` 覆盖。
+> CLI 与桌面端使用不同配置入口。CLI 复用全局 LLM、权限和项目配置；下面的 TeammateTool、FileSandbox 和 LongRunningTaskManager 对象只适用于桌面端。
+
+### CLI 配置
+
+```bash
+# 查看生效值及来源
+cc config get llm.provider
+cc config get llm.model
+cc config explain llm.model
+
+# 设置默认 provider/model
+cc config set llm.provider ollama
+cc config set llm.model qwen2.5:7b
+
+# 安全写入云端密钥
+cc config set-secret llm.apiKey
+```
+
+CLI 主配置默认位于 `~/.chainlesschain/config.json`；如果设置 `CHAINLESSCHAIN_HOME`，则使用 `<CHAINLESSCHAIN_HOME>/config.json`。云端 provider 也可从 `ANTHROPIC_API_KEY`、`OPENAI_API_KEY`、`DEEPSEEK_API_KEY`、`DASHSCOPE_API_KEY`、`GEMINI_API_KEY` 或 `MISTRAL_API_KEY` 读取凭据。
+
+`debate`、`compare` 和 `analyze` 支持命令级 `--provider` / `--model` 覆盖。工作流和定时任务由任务执行器读取生效的全局配置。
+
+| 参数                               | 默认值                                 | 作用范围                                  |
+| ---------------------------------- | -------------------------------------- | ----------------------------------------- |
+| `debate --perspectives`            | `performance,security,maintainability` | 评审视角，可选 correctness/architecture   |
+| `compare --variants`               | `3`                                    | 方案数量，最多使用 4 个内置 profile       |
+| `compare --criteria`               | `quality,performance,readability`      | 方案评分维度                              |
+| `analyze --type`                   | `style`                                | `style`、`knowledge-graph` 或 `decisions` |
+| `workflow run --max-parallel`      | `4`                                    | 每批最多并行步骤数                        |
+| `workflow run --pipeline`          | 关闭                                   | 依赖满足后立即启动步骤，不等待整批完成    |
+| `workflow run --continue-on-error` | 关闭                                   | 步骤失败后继续执行可运行步骤              |
+| `cron run --interval`              | `60000` ms                             | 调度器检查周期                            |
+| `observe report --days`            | `7`                                    | 聚合窗口天数                              |
+| `observe serve --host/--port`      | `127.0.0.1:18820`                      | 只读观察面板监听地址                      |
+
+所有相对路径都以运行命令时的当前工作目录为基准。建议在项目根目录运行 Cowork，以便状态集中写入同一个 `.chainlesschain/cowork/`。
 
 ### TeammateTool 配置
 
@@ -1254,9 +1414,34 @@ const useCoworkStore = defineStore("cowork", {
 
 ## 性能指标
 
-> 下表是历史桌面端基准（用于回归比较，不是所有机器上的保证值）。CLI Cowork 的 LLM 延迟取决于 provider、模型、上下文和并发量；性能测试应使用 `--json` 输出并记录 provider/model、输入规模和运行环境。
+CLI Cowork 没有承诺固定响应时间。LLM 延迟受 provider、模型、上下文长度、限流和网络影响；本地知识图谱、签名校验、历史聚合等操作则主要受输入规模和磁盘性能影响。
 
-### 响应时间
+### 当前 CLI 性能边界
+
+| 场景             | 当前边界/默认值                      | 性能含义                                            |
+| ---------------- | ------------------------------------ | --------------------------------------------------- |
+| `debate <file>`  | 文件内容截断到 15,000 字符           | 控制每个评审者的上下文规模                          |
+| `debate`         | 默认 3 个评审者并行 + 1 次汇总       | 总耗时通常接近最慢评审加汇总，而非 4 次请求串行之和 |
+| `compare`        | 默认 3、最多 4 个方案并行 + 1 次评分 | 增加方案数会增加 token 与 provider 并发压力         |
+| `workflow run`   | `--max-parallel 4`                   | 限制每批同时执行的步骤数                            |
+| `cron run`       | 每 60 秒检查一次                     | 调度触发精度受 `--interval` 影响                    |
+| `observe report` | 默认读取最近 7 天                    | 历史文件增长时，聚合耗时和内存会线性增加            |
+
+建议在目标环境中记录“命令总耗时、provider/model、输入字符数、并发数、token 用量和成功率”。例如：
+
+```bash
+# Linux / macOS
+time cc cowork analyze ./src --type knowledge-graph --json > result.json
+
+# PowerShell
+Measure-Command { cc cowork analyze .\src --type knowledge-graph --json | Out-Null }
+```
+
+### 历史桌面端基准
+
+下表是历史桌面端基准，仅用于同环境回归比较，不是所有机器上的保证值，也不应作为 CLI SLA。
+
+#### 响应时间
 
 | 操作       | 目标   | 实际 | 状态 |
 | ---------- | ------ | ---- | ---- |
@@ -1269,7 +1454,7 @@ const useCoworkStore = defineStore("cowork", {
 | 检查点创建 | < 50ms | 40ms | ✅   |
 | 技能匹配   | < 30ms | 20ms | ✅   |
 
-### 资源使用
+#### 资源使用
 
 | 指标         | 数值               |
 | ------------ | ------------------ |
@@ -1279,7 +1464,7 @@ const useCoworkStore = defineStore("cowork", {
 | CPU (高负载) | < 30%              |
 | 代理池复用率 | ~74%               |
 
-### 可扩展性
+#### 可扩展性
 
 | 限制              | 数值  |
 | ----------------- | ----- |
@@ -1290,9 +1475,37 @@ const useCoworkStore = defineStore("cowork", {
 | 最大授权路径/团队 | 100   |
 | 消息队列容量      | 1000  |
 
-## 测试覆盖率
+## 测试覆盖
 
-### 单元测试
+### 当前 CLI 与 Web Panel
+
+CLI 包当前包含 35 个 Cowork 专项测试文件：28 个单元测试、3 个集成测试和 4 个 E2E 测试；Web Panel 另有工作流状态测试。覆盖重点如下：
+
+| 层级     | 代表性测试                                                                               | 覆盖内容                              |
+| -------- | ---------------------------------------------------------------------------------------- | ------------------------------------- |
+| 单元     | `cowork-task-runner.test.js`、`cowork-workflow.test.js`、`cowork-cron.test.js`           | 任务生命周期、DAG、调度与持久化       |
+| 单元     | `cowork-share.test.js`、`cowork-learning.test.js`、`cowork-template-marketplace.test.js` | 校验包、模板分层、推荐与失败归因      |
+| 单元     | `cowork-mcp-tools.test.js`、`cowork-observe.test.js`                                     | MCP 挂载与观测聚合                    |
+| Web 单元 | `workflow-store.test.js`                                                                 | Web 工作流状态管理                    |
+| 相关回归 | `agent-sandbox.test.js`、`credential-proxy.test.js`、`session-hooks.test.js`             | 执行沙箱、凭据代理与 Hook 安全边界    |
+| 集成     | `cowork-task-workflow.test.js`、`cowork-evolution-workflow.test.js`                      | 真实临时目录、模块组合与持久化往返    |
+| E2E      | `cowork-command.test.js`、`cowork-evolution-commands.test.js`                            | CLI 子进程、参数、JSON 输出和错误路径 |
+| E2E      | `cowork-task-e2e.test.js`、`cowork-workflow-ws-e2e.test.js`                              | 任务与 WebSocket 工作流端到端链路     |
+
+推荐按层执行：
+
+```bash
+cd packages/cli
+npm test -- cowork
+npm run test:e2e -- cowork
+
+cd ../web-panel
+npm test -- workflow-store
+```
+
+发布结论以 CI 对准确提交运行的 Linux、Windows、macOS 矩阵为准。本页只描述覆盖面，不用静态用例数推导覆盖率，也不把一次本地通过视为发布门结果。
+
+### 历史桌面端单元测试
 
 ```
 ✅ teammate-tool.test.js              - 50+ 测试用例 (团队/代理/任务/消息/投票)
@@ -1312,17 +1525,9 @@ const useCoworkStore = defineStore("cowork", {
 ✅ skill-pipeline-e2e.test.js         - 44 测试用例 (模板→流水线→执行→指标端到端)
 ```
 
-> **覆盖率口径说明**：上面的 440+ 测试是历史桌面 Cowork 基线。当前 CLI 测试分散在 `packages/cli/__tests__/unit/`、`integration/` 与 `e2e/`，请以 CI 当次结果为准，不把历史数字当作当前 CLI 覆盖率。
+> **口径说明**：上面的 440+ 测试是历史桌面 Cowork 基线，文件名和数量用于追踪旧版本，不代表当前 CLI 覆盖率。
 
-当前 CLI 回归重点包括：
-
-- `cowork-command.test.js`、`cowork-evolution-commands.test.js`：命令注册、参数和 JSON 输出。
-- `cowork-task-e2e.test.js`、`cowork-workflow-ws-e2e.test.js`：任务执行与工作流端到端流程。
-- `cowork-task-runner.test.js`、`cowork-workflow.test.js`、`cowork-cron.test.js`：任务、DAG 和定时调度纯逻辑。
-- `cowork-share.test.js`、`cowork-template-marketplace.test.js`、`cowork-learning.test.js`：共享包、模板和学习功能。
-- `agent-sandbox.test.js`、`credential-proxy.test.js`、`session-hooks.test.js`：执行安全和 hooks 回归。
-
-### E2E 测试
+### 历史桌面端 E2E 测试
 
 - ✅ 团队创建、暂停、恢复和解散完整流程
 - ✅ 任务分配、执行和结果合并流程
@@ -1338,7 +1543,7 @@ const useCoworkStore = defineStore("cowork", {
 - ✅ 懒加载和热加载/卸载（v1.1.0）
 - ✅ Git Hooks pre-commit/impact/auto-fix（v1.1.0）
 
-### 性能测试
+### 历史桌面端性能测试
 
 - ✅ 代理池 5 分钟热身 + 2 分钟压力测试
 - ✅ 并发团队创建 (100+)
@@ -1346,30 +1551,50 @@ const useCoworkStore = defineStore("cowork", {
 
 ## 安全考虑
 
-CLI 侧还遵循统一 Agent 安全边界：shell 经过 `process-execution-broker`；sandbox 引擎在严格模式下不可用会拒绝启动；credential agent 默认屏蔽长效凭据；后台/共享操作需要本地会话凭据和签名校验。不要把 API key、私钥或真实凭据写入 Cowork prompt、任务模板、日志或共享包。
+### CLI 安全边界
 
-### 文件访问安全
+- **模型数据边界**：`knowledge-graph` 在本地运行；`debate`、`compare`、`style` 和 `decisions` 会把输入发送给所选 provider。评审敏感代码时优先使用本地模型或先脱敏。
+- **凭据保护**：使用 `cc config set-secret llm.apiKey` 或 provider 环境变量。不要把 API key、私钥或访问令牌写进 prompt、工作流、模板、历史记录或共享包。
+- **统一执行边界**：Cowork 任务的 shell 调用进入 `process-execution-broker` 策略/沙箱链路，credential agent 默认不向任务暴露长效凭据。严格模式下沙箱不可用会拒绝启动；可用 `cc doctor` 核对实际隔离能力。
+- **项目状态**：任务提示、摘要和结果会写入项目下的 `.chainlesschain/cowork/*.json(l)`。如内容敏感，应限制目录权限、设置备份策略，并避免将该目录提交到版本控制。
+- **只读面板**：`observe serve` 默认绑定 `127.0.0.1`。除非已经配置反向代理认证和网络访问控制，否则不要改成公网监听地址。
 
-1. **敏感文件检测** — 20+ 内置模式 + 自定义模式支持
-2. **路径遍历防护** — 禁止 `../` 路径遍历
-3. **权限检查** — READ / WRITE / EXECUTE 三级控制
-4. **符号链接验证** — 防止绕过沙箱限制
-5. **审计日志** — 100% 操作审计覆盖率
-6. **文件大小限制** — 最大 100MB 防止资源耗尽
+### 模板与共享包
 
-### 数据安全
+校验和只能证明内容未被意外修改，不能证明作者可信；DID 签名能验证来源，也不代表模板本身安全。第三方模板可能声明 MCP server、提示扩展或 shell 策略覆盖，安装和运行前应人工检查。
 
-1. **SQLCipher 加密** — 数据库 AES-256 加密
-2. **内存清理** — 敏感数据使用后立即清理
-3. **传输安全** — IPC 通信加密
-4. **检查点加密** — 检查点数据持久化加密
+```bash
+# 只安装带签名且来自指定 DID 的模板
+cc cowork template install <gene-id> --require-signed --trust <did>
 
-### 代码注入防护
+# 导入前先校验；正式导入时同时要求签名与信任列表
+cc cowork share verify ./packet.json
+cc cowork share import ./packet.json --require-signed --trust <did>
+```
 
-1. **参数验证** — 严格的输入类型和范围检查
-2. **SQL 参数化** — 防止 SQL 注入
-3. **命令白名单** — 防止命令注入
-4. **输出净化** — 防止跨站脚本
+模板 ID 会被限制为单一路径段以阻止路径遍历；导入包还会验证 canonical JSON 校验和和可选 Ed25519 签名。即使验证通过，也应把外部模板视为代码级输入进行审查。
+
+### 桌面端安全能力
+
+桌面端 FileSandbox 提供敏感文件模式、路径遍历防护、READ/WRITE/EXECUTE 权限、符号链接检查、文件大小限制和操作审计。桌面数据库是否启用 SQLCipher、检查点是否加密以及 IPC/远程传输保护，取决于实际部署配置；不要仅根据本页示例假定已启用。
+
+#### 文件访问安全
+
+1. **敏感文件检测** — 20+ 内置模式，并支持自定义模式。
+2. **路径遍历防护** — 拒绝逃逸授权根目录的 `../` 路径。
+3. **权限检查** — READ / WRITE / EXECUTE 三级控制。
+4. **符号链接验证** — 防止通过链接绕过沙箱边界。
+5. **审计日志** — 记录允许与拒绝的文件操作。
+6. **文件大小限制** — 默认示例上限为 100 MB，防止资源耗尽。
+
+#### 数据与代码注入防护
+
+1. **数据库保护** — 部署启用 SQLCipher 时使用加密数据库；密钥不得写入任务提示或日志。
+2. **检查点保护** — 检查点包含任务上下文，应结合目录权限和部署级加密保护。
+3. **参数验证** — IPC、工作流和模板字段在进入执行层前进行类型与范围检查。
+4. **SQL 参数化** — 数据库操作使用参数化语句，避免拼接用户输入。
+5. **命令策略** — shell 命令进入统一策略/沙箱链路，第三方模板的策略覆盖必须审查。
+6. **输出净化** — Web 页面展示模型或外部内容时使用安全渲染，避免脚本注入。
 
 ## 故障排查
 
@@ -1377,19 +1602,35 @@ CLI 侧还遵循统一 Agent 安全边界：shell 经过 `process-execution-brok
 
 **Q: `cowork` 命令找不到或启动失败？**
 
-确认使用 Node.js `>=22.12.0`，重新执行 `cc cowork --help`；若是源码运行，先在仓库根目录安装依赖，并检查 `packages/cli/src/command-manifest.json` 与 CLI 版本是否匹配。
+确认使用 Node.js `>=22.12.0`，依次执行 `cc --version` 和 `cc cowork --help`。若从源码运行，使用 `node packages/cli/bin/chainlesschain.js cowork --help`，并检查 `packages/cli/src/command-manifest.json` 是否与当前 CLI 版本匹配。
 
 **Q: LLM 请求很慢或任务没有结果？**
 
-使用 `--json` 保留结构化输出，确认 provider/model 配置和网络连通性；先用小输入运行 `cowork compare` 或 `cowork analyze`，不要把模型响应时间误判为本地任务队列故障。
+先执行 `cc config explain llm.model` 和 `cc llm test --provider <name>`，确认生效的 provider/model、凭据和网络。再用较小输入运行 `cc cowork compare ... --variants 1 --json`；知识图谱模式不调用 LLM，可用于区分本地 CLI 故障和模型服务故障。
 
 **Q: `cowork share import` 或模板导入被拒绝？**
 
-检查签名、包路径和包格式，优先使用同一信任配置导出的包；不要关闭签名校验来绕过错误。
+先运行 `cc cowork share verify <file>` 检查 JSON、校验和和签名，再确认 `--trust` 使用的是签名包中的完整 DID。不要关闭 `--require-signed` 来绕过来源校验。
 
 **Q: CLI sandbox 报引擎不可用？**
 
 按配置安装并验证 Docker 或 bubblewrap；严格模式会在启动阶段 fail-closed。需要确认当前实际隔离级别时运行 `cc doctor`，不要仅依据配置文件判断已完成隔离。
+
+**Q: Cron 任务没有触发？**
+
+确认 `cc cowork cron run` 正在前台运行，并在创建计划时使用的同一项目目录启动。检查系统时区、5 字段 cron 表达式和 `cc cowork cron list` 中的 enabled 状态；默认检查周期为 60 秒。
+
+**Q: 工作流提示不存在、依赖无效或出现环？**
+
+使用 `cc cowork workflow show <id>` 检查实际保存内容。步骤 ID 必须唯一，`dependsOn` 只能引用已有步骤且不能形成环；工作流文件必须是合法 JSON。相对路径按当前项目目录解析。
+
+**Q: `observe` 或 `learning` 没有数据？**
+
+这些命令读取当前项目 `.chainlesschain/cowork/` 下的历史。请回到执行任务时的项目目录，并确认 `history.jsonl` 或 `workflow-history.jsonl` 存在。首次使用且没有历史时返回空结果是正常行为。
+
+**Q: 提示 schedule/history JSONL 损坏？**
+
+先备份 `.chainlesschain/cowork/`，再定位报错文件中的非 JSON 行或被截断的最后一行。不要直接删除整个目录；调度计划、历史、工作流和用户模板分别存储，可以只修复受影响的文件。
 
 ### 常见问题
 
@@ -1446,7 +1687,30 @@ const logs = await window.electron.ipcRenderer.invoke("cowork:get-logs", {
 
 ## 关键文件
 
-### v1.0.0 核心文件
+### 当前 CLI 与 Web 入口
+
+| 文件                                                  | 职责                                          |
+| ----------------------------------------------------- | --------------------------------------------- |
+| `packages/cli/src/commands/cowork.js`                 | CLI 子命令、参数、按需模块加载与输出          |
+| `packages/cli/src/lib/cowork/`                        | debate、compare、代码知识图谱、决策和风格分析 |
+| `packages/cli/src/lib/cowork-task-templates.js`       | 内置/用户任务模板注册表                       |
+| `packages/cli/src/lib/cowork-task-runner.js`          | SubAgent 任务执行、MCP 挂载与历史收口         |
+| `packages/cli/src/lib/cowork-workflow.js`             | DAG 校验、持久化、批次/流水线执行             |
+| `packages/cli/src/lib/cowork-cron.js`                 | 5 字段 cron 解析、租约与前台调度器            |
+| `packages/cli/src/lib/cowork-template-marketplace.js` | 用户模板存储与安全路径校验                    |
+| `packages/cli/src/lib/cowork-evomap-adapter.js`       | EvoMap 搜索、安装、发布与签名策略             |
+| `packages/cli/src/lib/cowork-share.js`                | 模板/结果包导出、校验、签名和导入             |
+| `packages/cli/src/lib/cowork-learning.js`             | 历史统计、推荐、失败归因与补丁建议            |
+| `packages/cli/src/lib/cowork-observe.js`              | 任务、工作流和调度历史聚合                    |
+| `packages/web-panel/src/views/Cowork.vue`             | Web Cowork 日常任务页面                       |
+| `packages/web-panel/src/stores/cowork.js`             | Web Cowork Pinia 状态                         |
+| `scripts/cowork-doc-generator.js`                     | Cowork 文档生成辅助脚本                       |
+
+专项测试位于 `packages/cli/__tests__/{unit,integration,e2e}/`，Web 工作流 Store 测试位于 `packages/web-panel/__tests__/unit/workflow-store.test.js`。
+
+### 历史桌面端 v1.0.0 核心文件
+
+下表中的 `src/` 路径均相对于 `desktop-app-vue/`；行数为历史近似值。
 
 | 文件                                                     | 职责                         | 行数   |
 | -------------------------------------------------------- | ---------------------------- | ------ |
@@ -1461,34 +1725,34 @@ const logs = await window.electron.ipcRenderer.invoke("cowork:get-logs", {
 | `src/main/ai-engine/cowork/skills/markdown-skill.js`     | 技能实例 + ensureFullyLoaded | ~260   |
 | `src/main/ai-engine/cowork/skills/skill-loader.js`       | 四层加载 + loadSingleSkill   | ~360   |
 | `src/main/ai-engine/cowork/skills/skill-registry.js`     | 注册表 + 热加载/卸载         | ~200   |
-| `src/main/ai-engine/cowork/skills/builtin/`              | 90 内置技能 Handler          | ~3,000 |
+| `src/main/ai-engine/cowork/skills/builtin/`              | 146 个内置技能定义与 Handler | —      |
 | `src/renderer/pages/CoworkDashboard.vue`                 | 仪表板页面                   | ~638   |
 | `src/renderer/pages/CoworkAnalytics.vue`                 | 分析页面                     | ~1,080 |
 | `src/renderer/stores/cowork.ts`                          | Pinia 状态管理               | ~1,410 |
 
-### v1.1.0 新增文件
+### 历史桌面端 v1.1.0 新增文件
 
-| 文件                                                          | 职责                        | 行数 |
-| ------------------------------------------------------------- | --------------------------- | ---- |
-| `src/main/ai-engine/cowork/skills/skill-pipeline-engine.js`   | 流水线引擎（5 种步骤类型）  | ~580 |
-| `src/main/ai-engine/cowork/skills/pipeline-templates.js`      | 10 预置流水线模板           | ~470 |
-| `src/main/ai-engine/cowork/skills/skill-metrics-collector.js` | 技能指标采集器              | ~320 |
-| `src/main/ai-engine/cowork/skills/skill-pipeline-ipc.js`      | Pipeline IPC（12 handlers） | ~180 |
-| `src/main/ai-engine/cowork/skills/skill-metrics-ipc.js`       | Metrics IPC（5 handlers）   | ~90  |
-| `src/main/ai-engine/cowork/skills/skill-workflow-engine.js`   | 可视化工作流引擎            | ~350 |
-| `src/main/ai-engine/cowork/skills/skill-workflow-ipc.js`      | Workflow IPC（10 handlers） | ~150 |
-| `src/main/hooks/git-hook-runner.js`                           | Git Hook 运行器             | ~300 |
-| `src/main/hooks/git-hook-ipc.js`                              | Git Hook IPC（8 handlers）  | ~130 |
-| `src/renderer/pages/SkillPipelinePage.vue`                    | 流水线编排页                | ~163 |
-| `src/renderer/pages/WorkflowDesignerPage.vue`                 | 工作流设计器                | ~209 |
-| `src/renderer/pages/SkillPerformancePage.vue`                 | 技能性能仪表板              | ~122 |
-| `src/renderer/pages/GitHooksPage.vue`                         | Git Hooks 管理页            | ~147 |
-| `src/renderer/stores/skill-pipeline.ts`                       | 流水线 Pinia Store          | —    |
-| `src/renderer/stores/skill-metrics.ts`                        | 指标 Pinia Store            | —    |
-| `src/renderer/stores/workflow-designer.ts`                    | 工作流设计器 Store          | ~284 |
-| `src/renderer/stores/git-hooks.ts`                            | Git Hooks Store             | —    |
+| 文件                                                          | 职责                                       | 行数 |
+| ------------------------------------------------------------- | ------------------------------------------ | ---- |
+| `src/main/ai-engine/cowork/skills/skill-pipeline-engine.js`   | 流水线引擎（5 种步骤类型）                 | ~580 |
+| `src/main/ai-engine/cowork/skills/pipeline-templates.js`      | 10 预置流水线模板                          | ~470 |
+| `src/main/ai-engine/cowork/skills/skill-metrics-collector.js` | 技能指标采集器                             | ~320 |
+| `src/main/ai-engine/cowork/skills/skill-pipeline-ipc.js`      | Pipeline IPC（12 handlers）                | ~180 |
+| `src/main/ai-engine/cowork/skills/skill-metrics-ipc.js`       | Metrics IPC（5 handlers）                  | ~90  |
+| `src/main/ai-engine/cowork/skills/skill-workflow-engine.js`   | 可视化工作流引擎                           | ~350 |
+| `src/main/ai-engine/cowork/skills/skill-workflow-ipc.js`      | Workflow IPC（10 handlers）                | ~150 |
+| `src/main/hooks/git-hook-runner.js`                           | Git Hook 运行器                            | ~300 |
+| `src/main/hooks/git-hook-ipc.js`                              | Git Hook IPC（8 handlers）                 | ~130 |
+| `src/renderer/pages/SkillPipelinePage.vue`                    | 流水线编排页（历史版本，当前源码已移除）   | ~163 |
+| `src/renderer/pages/WorkflowDesignerPage.vue`                 | 工作流设计器                               | ~209 |
+| `src/renderer/pages/SkillPerformancePage.vue`                 | 技能性能仪表板（历史版本，当前源码已移除） | ~122 |
+| `src/renderer/pages/GitHooksPage.vue`                         | Git Hooks 管理页                           | ~147 |
+| `src/renderer/stores/skill-pipeline.ts`                       | 流水线 Pinia Store                         | —    |
+| `src/renderer/stores/skill-metrics.ts`                        | 指标 Pinia Store                           | —    |
+| `src/renderer/stores/workflow-designer.ts`                    | 工作流设计器 Store                         | ~284 |
+| `src/renderer/stores/git-hooks.ts`                            | Git Hooks Store                            | —    |
 
-### v1.2.0 新增文件
+### 历史桌面端 v1.2.0 新增文件
 
 | 文件                                                                    | 职责                        | 行数   |
 | ----------------------------------------------------------------------- | --------------------------- | ------ |
@@ -1499,7 +1763,7 @@ const logs = await window.electron.ipcRenderer.invoke("cowork:get-logs", {
 | `src/main/ai-engine/cowork/skills/builtin/verification-loop/SKILL.md`   | Verification Loop 技能定义  | ~118   |
 | `src/main/ai-engine/cowork/skills/builtin/verification-loop/handler.js` | Verification Loop 验证引擎  | ~547   |
 
-### v2.0.0 新增文件
+### 历史桌面端 v2.0.0 新增文件
 
 | 文件                                               | 职责                          | 行数 |
 | -------------------------------------------------- | ----------------------------- | ---- |
@@ -1511,26 +1775,16 @@ const logs = await window.electron.ipcRenderer.invoke("cowork:get-logs", {
 | `src/main/ai-engine/cowork/webhook-manager.js`     | Webhook 事件推送（17 事件）   | ~530 |
 | `src/main/ai-engine/cowork/cowork-v2-ipc.js`       | 34 个 IPC Handler             | ~420 |
 
-### 当前 CLI 文件
+## 历史前端路由（v1.1.0 新增）
 
-| 文件                                             | 职责                                                |
-| ------------------------------------------------ | --------------------------------------------------- |
-| `packages/cli/src/commands/cowork.js`            | Cowork CLI 子命令注册与参数解析                     |
-| `packages/cli/src/lib/cowork/`                   | debate、compare、分析、任务、工作流、观察与学习实现 |
-| `packages/cli/src/lib/cowork-task-runner.js`     | Cowork 任务执行与状态收口                           |
-| `packages/cli/src/lib/cowork-workflow.js`        | DAG 工作流持久化与执行                              |
-| `packages/cli/src/lib/cowork-cron.js`            | 定时任务配置与运行                                  |
-| `packages/cli/src/lib/cowork-share.js`           | 签名共享包导出、导入和校验                          |
-| `packages/cli/src/lib/process-execution-broker/` | shell、sandbox、credential agent 安全边界           |
+当前源码仍注册工作流设计器和 Git Hooks 路由；流水线编排页、技能性能页及对应路由属于历史版本记录。
 
-## 前端路由（v1.1.0 新增）
-
-| 路由                   | 页面                     | 说明           |
-| ---------------------- | ------------------------ | -------------- |
-| `#/cowork/pipeline`    | SkillPipelinePage.vue    | 流水线编排     |
-| `#/cowork/workflow`    | WorkflowDesignerPage.vue | 工作流设计器   |
-| `#/cowork/performance` | SkillPerformancePage.vue | 技能性能仪表板 |
-| `#/cowork/git-hooks`   | GitHooksPage.vue         | Git Hooks 管理 |
+| 路由                   | 页面                     | 说明           | 当前源码状态 |
+| ---------------------- | ------------------------ | -------------- | ------------ |
+| `#/cowork/pipeline`    | SkillPipelinePage.vue    | 流水线编排     | 已移除       |
+| `#/cowork/workflow`    | WorkflowDesignerPage.vue | 工作流设计器   | 保留         |
+| `#/cowork/performance` | SkillPerformancePage.vue | 技能性能仪表板 | 已移除       |
+| `#/cowork/git-hooks`   | GitHooksPage.vue         | Git Hooks 管理 | 保留         |
 
 ## npm 新依赖（v1.1.0）
 
@@ -1540,54 +1794,125 @@ const logs = await window.electron.ipcRenderer.invoke("cowork:get-logs", {
 
 ## 使用示例
 
+以下示例使用短命令 `cc`；npm 包同时提供 `chainlesschain`、`clc` 和 `clchain` 别名，原有脚本无需改名。
+
 ### Debate Review 多视角代码评审
 
 ```bash
 # 对指定文件发起多视角辩论式评审（性能/安全/可维护性三个视角）
-chainlesschain cowork debate src/main/database.js
+cc cowork debate src/main/database.js
 
 # 仅评审安全视角，并输出 JSON 结果
-chainlesschain cowork debate src/auth/login.js --perspectives security --json
+cc cowork debate src/auth/login.js --perspectives security --json
 ```
 
 ### A/B 方案对比
 
 ```bash
 # 对同一需求生成多个方案并自动评分
-chainlesschain cowork compare "实现一个高性能的本地缓存模块" --variants 3 --json
+cc cowork compare "实现一个高性能的本地缓存模块" --variants 3 --json
 
-# 指定对比维度：性能、内存占用、代码复杂度
-chainlesschain cowork compare "用户认证方案" --criteria performance,security,complexity
+# 也可以按性能、安全和复杂度评估
+cc cowork compare "用户认证方案" --criteria performance,security,complexity
 
-# 指定评估维度
-chainlesschain cowork compare "用户认证方案" --criteria performance,security,readability
+# 指定 provider/model 和评估维度
+cc cowork compare "用户认证方案" \
+  --criteria performance,security,readability \
+  --provider openai --model gpt-4o
 ```
 
-### 代码知识图谱分析
+### 本地代码分析
 
 ```bash
-# 分析项目代码结构，构建实体/关系知识图谱
-chainlesschain cowork analyze src/main/ --type knowledge-graph
+# 构建实体/关系知识图谱，不调用 LLM
+cc cowork analyze src/main/ --type knowledge-graph --json
 
-# 检测循环依赖并输出依赖链
-chainlesschain cowork analyze src/main/ --type knowledge-graph --json
+# 使用 LLM 分析项目编码风格
+cc cowork analyze src/ --type style
 
-# 分析项目编码风格并提取模式
-chainlesschain cowork analyze src/ --type style
+# 从文档和配置中提取架构决策
+cc cowork analyze . --type decisions --json
+```
 
-# 查看 Cowork 系统运行状态（团队数/任务数/代理池）
-chainlesschain cowork status
+### DAG 工作流
 
-# 查看可用的任务、工作流、定时任务和历史观察数据
-chainlesschain cowork workflow list
-chainlesschain cowork cron list
-chainlesschain cowork observe report --json
-chainlesschain cowork learning stats --json
+将下面内容保存为 `review-workflow.json`：
+
+```json
+{
+  "id": "daily-review",
+  "name": "每日代码检查",
+  "steps": [
+    {
+      "id": "scan",
+      "message": "分析 src 目录并找出高风险模块"
+    },
+    {
+      "id": "review",
+      "message": "根据扫描摘要给出修复优先级：${step.scan.summary}",
+      "dependsOn": ["scan"]
+    }
+  ]
+}
+```
+
+```bash
+cc cowork workflow add ./review-workflow.json
+cc cowork workflow show daily-review
+cc cowork workflow run daily-review --max-parallel 2 --pipeline
+```
+
+### 定时执行与观察
+
+```bash
+# 工作日 09:00 创建一条检查任务
+cc cowork cron add --cron "0 9 * * 1-5" --message "检查项目风险并生成日报"
+cc cowork cron list
+
+# 调度器是前台进程，需保持运行
+cc cowork cron run
+
+# 查看最近 7 天聚合数据，或启动本机只读面板
+cc cowork observe report --days 7 --json
+cc cowork observe serve --host 127.0.0.1 --port 18820
+```
+
+### 模板与签名分享
+
+```bash
+# 从 EvoMap 搜索并安装受信任模板
+cc cowork template search "code review" --json
+cc cowork template install <gene-id> --require-signed --trust <did>
+
+# 导出已安装的用户模板；--sign 可选
+cc cowork share export-template <template-id> \
+  --out ./template.packet.json --sign <local-did>
+
+# 接收方先验证，再按信任策略导入
+cc cowork share verify ./template.packet.json
+cc cowork share import ./template.packet.json --require-signed --trust <did>
+```
+
+### 状态与历史学习
+
+```bash
+# status 展示可用命令，不是运行中团队的实时监控器
+cc cowork status
+
+# 基于当前项目历史生成统计、推荐和失败摘要
+cc cowork learning stats --json
+cc cowork learning recommend "把周报转换为 PDF" --min-runs 3 --json
+cc cowork learning failures --limit 5 --json
 ```
 
 ## 相关文档
 
-- 快速入门指南 →
+- [CLI Cowork 命令参考 →](/chainlesschain/cli-cowork)
+- [Web Cowork 日常任务协作 →](/chainlesschain/web-cowork)
+- [Cowork 工作流 →](/chainlesschain/cowork-workflow)
+- [Agent Team 用户指南 →](/chainlesschain/cli-team)
+- [CLI 配置管理 →](/chainlesschain/cli-config)
+- [CLI 安全沙箱 →](/chainlesschain/cli-sandbox)
 - [Skills 技能系统 →](/chainlesschain/skills)
 - [Computer Use →](/chainlesschain/computer-use)
 - [权限系统 →](/chainlesschain/permissions)
@@ -1596,8 +1921,6 @@ chainlesschain cowork learning stats --json
 - [Session Manager →](/chainlesschain/session-manager)
 - [当前 CLI Runtime 实现 →](/chainlesschain/cli-runtime-current)
 - [后台 Agent 与 attach →](/chainlesschain/cli-background-agents)
-- [CLI Hooks 系统 →](/chainlesschain/hooks)
-- [CLI 安全沙箱 →](/chainlesschain/cli-sandbox)
 - [CLI 更新日志 →](/changelog)
 
 ---

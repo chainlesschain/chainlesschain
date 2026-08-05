@@ -1,8 +1,8 @@
 # IDE 桥接（IDE Bridge）
 
-> **版本: Design Module 98（机制篇，更新 2026-08-04）| 公开: VS Code `0.37.38` Open VSX / JetBrains `0.4.76` Marketplace | 源码: VS Code `0.37.40` / JetBrains `0.4.78` | 9+ IDE 工具 + CLI-owned Sessions / Delivery / Rewind**
+> **版本: Design Module 98（机制篇，更新 2026-08-05）| 公开与源码一致: VS Code `0.37.42` Open VSX / JetBrains `0.4.79` Marketplace | 9+ IDE 工具 + CLI-owned Sessions / Delivery / Rewind**
 >
-> Open VSX `0.37.38` 已公开、累计下载已突破 **2 万**，但 tagged workflow 未完整成功；JetBrains Marketplace 当前公开且审核通过的仍是 `0.4.76`。源码候选尚未公开，微软 VS Code Marketplace 也仍未发布。当前日常使用、Agent Team human-control 与发布证据见 [IDE 插件使用指南](/chainlesschain/ide-plugin)。
+> Open VSX `0.37.42` 已公开、累计下载已突破 **2 万**，tagged workflow 已完整通过；JetBrains Marketplace `0.4.79` 已审核并公开。微软 VS Code Marketplace 仍未发布。当前日常使用、Agent Team human-control 与发布证据见 [IDE 插件使用指南](/chainlesschain/ide-plugin)。
 >
 > 让 `cc` agent 在真实编辑器（VS Code / JetBrains）内读取当前选区、诊断、打开的文件，并以**编辑器原生 diff** 提交改动评审。核心洞察：**"IDE 桥接"本质就是一个 MCP server** —— 编辑器扩展内跑一个本地 MCP server，`cc` 作为 MCP client 自动连上，编辑器能力就成了 agent 可调用的工具。
 >
@@ -121,7 +121,7 @@ Activity Bar → **ChainlessChain IDE → Chat**:不开终端直接和 agent 对
 
 ```bash
 npm i -g chainlesschain
-cc --version          # 生产推荐 0.162.189；源码候选 0.162.194；该桥接路径最低 0.162.39
+cc --version          # 生产推荐 0.162.197；该桥接路径最低 0.162.39
 cc ide --help         # 确认有 ide 子命令
 ```
 
@@ -140,7 +140,7 @@ cc ide --help         # 确认有 ide 子命令
 
 **JetBrains（IDEA / PyCharm / WebStorm …）**
 
-- **已过审上架 JetBrains Marketplace**（`com.chainlesschain.ide`，当前 v0.4.76）：IDE 的 _Settings → Plugins → Marketplace_ 搜 **ChainlessChain IDE** 一键装（2024.2+），或访问 [plugin 32208](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge)。
+- **已过审上架 JetBrains Marketplace**（`com.chainlesschain.ide`，当前 v0.4.79）：IDE 的 _Settings → Plugins → Marketplace_ 搜 **ChainlessChain IDE** 一键装（2024.2+），或访问 [plugin 32208](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge)。
 - 离线/源码装:`./gradlew buildPlugin` 出 `build/distributions/*.zip` → _Settings → Plugins → ⚙ → Install Plugin from Disk_。
 
 **3. 配置大模型(首次)**:VS Code 系用**命令面板**跑 **ChainlessChain: Configure LLM**

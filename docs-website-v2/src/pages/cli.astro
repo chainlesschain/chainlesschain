@@ -26,12 +26,12 @@ const CLI_UPDATES = parseChangelog(
       .replace(/^\W*(Fixed|Added|Changed|Tests|Security|Feat|Fix|chore|Removed|Deprecated)\b[^—]*—+\s*/i, '')
       .trim(),
     status:
-      r.cliVersion === SOURCE_CLI_VERSION
-        ? '源码候选'
-        : r.cliVersion === NPM_LATEST_CLI_VERSION
-          ? 'npm 最新 · 发布审查中'
-          : r.cliVersion === CLI_VERSION
-            ? '完整门禁'
+      r.cliVersion === CLI_VERSION
+        ? '完整门禁 · npm latest'
+        : r.cliVersion === SOURCE_CLI_VERSION
+          ? '源码候选'
+          : r.cliVersion === NPM_LATEST_CLI_VERSION
+            ? 'npm 最新 · 发布审查中'
             : '历史版本',
   }));
 
@@ -455,7 +455,7 @@ const packs = [
           175 条顶层命令，覆盖从知识库到链上治理的完整生命周期。零 GUI 依赖，纯文本输入输出，可管道可脚本可 CI。
         </p>
         <p class="mt-4 text-sm text-muted max-w-3xl">
-          官网推荐完整通过 Linux / Windows / macOS 门禁的 <strong class="text-ink">{CLI_VERSION}</strong>。npm 最新 <strong class="text-ink">{NPM_LATEST_CLI_VERSION}</strong> 的发布链路正在审查，源码 <strong class="text-ink">{SOURCE_CLI_VERSION}</strong> 仍是候选版本，因此安装命令默认固定到已验证版本。
+          官网推荐完整通过 Linux / Windows / macOS 门禁的 <strong class="text-ink">{CLI_VERSION}</strong>。npm 最新与源码版本均为 <strong class="text-ink">{NPM_LATEST_CLI_VERSION}</strong>；exact-SHA、不可变制品、SBOM、provenance 与 registry 回读已核验，安装命令固定到该已验证版本。
         </p>
 
         <!-- Install tabs -->
@@ -632,7 +632,7 @@ const packs = [
           当前 CLI 搭载 PDH 0.4.57：来源别名、raw observation、字段级冲突决策、引用重写与最终实体在同一事务提交；桌面端、Web Panel 与命令行共用实时采集协议，临时 Cookie/OAuth 不落配置；部分读取、不可读数据库或不完整分页保留旧水位，可在下一轮安全续扫。
         </p>
         <p class="mt-4 text-lg text-muted">
-          源码候选 <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">{SOURCE_CLI_VERSION}</code> 继续加入规范化会话投影、MCP ws/wss 与可信动态请求头、计划/Todo 修订上限，以及可审计的 checkpoint restore saga。恢复命令要求 <code class="font-mono text-sm">--yes</code>、期望序列号和 head hash；这些能力在完成发布门禁前只作为源码预览，不纳入稳定安装承诺。
+          稳定版 <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">{SOURCE_CLI_VERSION}</code> 已包含规范化会话投影、MCP ws/wss 与可信动态请求头、计划/Todo 修订上限，以及可审计的 checkpoint restore saga。恢复命令要求 <code class="font-mono text-sm">--yes</code>、期望序列号和 head hash；能力边界只覆盖验证过的文件恢复闭包，不扩写为外部副作用回滚。
         </p>
       </div>
     </div>

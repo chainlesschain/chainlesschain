@@ -7,11 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added — cc CLI 0.162.194: durable sessions, MCP recovery, and checkpoint safety
+### Added — cc CLI 0.162.197: durable sessions, MCP recovery, and checkpoint safety
 
-> `chainlesschain` **0.162.189 → 0.162.194** (release candidate,
-> 2026-08-04; `0.162.190`, `0.162.191`, and `0.162.192` were never published;
-> `0.162.193` was published outside the authoritative CLI release workflow).
+> `chainlesschain` **0.162.189 → 0.162.197** (published,
+> 2026-08-05; `0.162.190`, `0.162.191`, and `0.162.192` were never published;
+> `0.162.193` was published outside the authoritative CLI release workflow;
+> `0.162.194`, `0.162.195`, and `0.162.196` failed before npm upload and their
+> tags remain immutable).
 > CLI-only release metadata;
 > `@chainlesschain/personal-data-hub`
 > remains **0.4.57** and `@chainlesschain/agent-sdk` remains **0.1.7**.
@@ -66,7 +68,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   narrow partial-restore recovery path, not general multi-resource atomicity,
   power-loss proof, or checkpoint recovery GA.
 - **Release retry identity**: tags `v-npm-0-162-190`,
-  `v-npm-0-162-191`, and `v-npm-0-162-192` remain immutable records of
+  `v-npm-0-162-191`, `v-npm-0-162-192`, `v-npm-0-162-194`, and
+  `v-npm-0-162-195` / `v-npm-0-162-196` remain immutable records of
   pre-publication failures.
   Run `30790359741` exposed an Agent SDK E2E fixture that used its owner-private
   `CHAINLESSCHAIN_HOME` as the active workspace; the fixture now uses sibling
@@ -86,6 +89,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   owner-required critical-section checks still fail closed. Deterministic
   directory/owner disappearance regressions, the full 105-test checkpoint
   saga suite, and five repeated real-process CAS runs pass locally.
+  Run `30966796114` passed its exact-SHA gate but failed before package creation
+  when the Agent SDK build assumed a package-local `node_modules/.bin/tsc`.
+  The build now resolves the TypeScript compiler module through Node, supporting
+  both independent installs and npm workspace hoisting; the consumed
+  `v-npm-0-162-194` identity is not moved or reused.
+  Run `30973665834` then passed the exact-SHA gate and all tests, but its
+  immutable package job passed the complete `npm pack --json` result as one
+  command-line argument; the 959-file metadata exceeded Linux `ARG_MAX` before
+  release-manifest creation. Pack metadata now flows through a temporary file,
+  and the consumed `v-npm-0-162-195` identity is also not moved or reused.
+  Run `30976924860` passed all tests, immutable tarball creation, SBOM validation,
+  and artifact upload, but `npm publish` interpreted the bare relative
+  `release-artifacts/...tgz` argument as a GitHub `owner/repo` package spec and
+  failed before upload. The publish step now discovers the tarball through the
+  absolute `$GITHUB_WORKSPACE` path; `v-npm-0-162-196` is not moved or reused.
 - **Release authority containment**: a later generic workspace publisher
   replaced the dedicated CLI workflow at the same `npm-publish.yml` path.
   Manually dispatched run `30820089779` therefore auto-selected and published
@@ -117,8 +135,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   context feeds manual and automatic suggestions, and local clipboard data
   images join the existing multimodal vision-provider path while remote image
   chips fail closed. The focused REPL, prompt, keybinding, image, and provider
-  matrix passes 200/200 locally; real terminal/clipboard host coverage and the
-  exact-SHA release gates remain required.
+  matrix passes 200/200 locally; the exact-SHA three-platform release gates
+  listed below also passed.
 - **Second command-surface migration batch**: eight explicitly legacy or
   in-memory governance commands (`bm25`, `ccron`, `compt`, `consol`, `fflag`,
   `pdfp`, `sganal`, and `vcheck`) now have canonical `cc lab ...` spellings.
@@ -139,14 +157,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the recommended surface drops from 166 to 151, with manifest, README,
   namespace help, and four shell completions generated from one lifecycle
   policy.
-- **Release status**: `0.162.193` exists on npm but is not an authorized CLI
-  release and must not be overwritten or represented as gate-complete.
-  `0.162.194` is not published. The exact
-  version/changelog/fix commit must pass `CLI CI` and `CLI Strict Sandbox` on
-  Ubuntu, Windows, and macOS, plus affected `Session Host Consistency`,
-  `CLI Background Interaction E2E`, and immutable npm tarball verification,
-  before tag `v-npm-0-162-194` or npm publication is allowed. Local,
-  older-SHA, and partial results are supplementary only.
+- **Published release evidence**: `0.162.193` remains an unauthorized historical
+  registry record and is superseded by `0.162.197`; `0.162.194`, `0.162.195`,
+  and `0.162.196` are not published and their failed tags remain immutable.
+  Tag `v-npm-0-162-197` points to exact commit
+  `a03ad1b548cc6f15c9bef8f82d519e9c625eef8d`. Its
+  [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/30979565407),
+  [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/30979565251),
+  and [dedicated npm release](https://github.com/chainlesschain/chainlesschain/actions/runs/30979565206)
+  passed across Ubuntu, Windows, and macOS, including exact-SHA, immutable
+  tarball/SBOM, and provenance checks. A subsequent
+  [registry readback](https://github.com/chainlesschain/chainlesschain/actions/runs/30983536627)
+  verified package bytes, signed provenance, and workflow identity. Local,
+  older-SHA, and partial results remain supplementary only.
 
 ### Added — cc CLI 0.162.189: managed rollback and distributed Agent Teams closure
 

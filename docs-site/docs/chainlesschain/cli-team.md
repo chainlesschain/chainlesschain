@@ -1,6 +1,6 @@
 # Agent Team：声明式任务图协作（`cc team`）
 
-> 状态：P2-16 已完成并随 CLI `0.162.189` 公开（2026-07-31）。实现候选
+> 状态：P2-16 已完成并随 CLI `0.162.189` 首次公开；当前生产推荐版为 `0.162.197`（2026-08-05）。实现候选
 > `7df6feced4670ac71d19548752d18ac4cc225025` 的三平台短门与各 120 分钟 soak
 > 均成功；最终发布提交
 > [`2607af0dadeb951583139942e5f2add3e95e1208`](https://github.com/chainlesschain/chainlesschain/commit/2607af0dadeb951583139942e5f2add3e95e1208)
@@ -9,6 +9,8 @@
 > [Agent Team 长期 soak](https://github.com/chainlesschain/chainlesschain/actions/runs/30564377629)
 > 与 [npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/30588174291)。本文同时保留
 > 共享 FS queue、partial checkpoint、unsigned state 和不可回滚 external side effects 等边界。
+
+## 概述
 
 `cc team` 用依赖 DAG、独占租约、预算和隔离 worktree 协调一组 shell 或 Agent 任务。
 它提供三种运行形态：
@@ -22,7 +24,7 @@
 > “多进程队列”不是网络队列或共识系统。所有 worker 必须能看到同一 Git 仓库和同一可信
 > 队列文件，并依赖本地文件锁语义。
 
-## 核心保证
+## 核心特性
 
 - 只有依赖全部完成的任务才可领取；未知依赖和依赖环在运行前被拒绝。
 - 同一时刻至多一个未过期、未被 fencing 的租约有权结算某个任务。
@@ -33,6 +35,27 @@
 
 这些保证不是“外部副作用 exactly-once”。租约和 fencing 能保护调度状态，但不能撤销已经
 发出的网络请求、数据库写入、消息、部署或付款。
+
+## 系统架构
+
+```text
+任务 JSON
+   │
+   ├─ cc team plan ── DAG 校验 / 并行波次预览
+   │
+   ├─ cc team run ─── 单协调器 TeamRunner
+   │                     ├─ shell / Agent worker
+   │                     ├─ 可选 Git worktree
+   │                     └─ 本地 authority + 预算 + checkpoint
+   │
+   └─ cc team queue ── 可信共享文件系统队列
+                         ├─ queue state + 文件锁
+                         ├─ lease / renew / fence
+                         ├─ 多个 OS worker
+                         └─ recovery / adjudication / finalize
+```
+
+`plan` 只读校验任务图；`run` 在一个 CLI 进程内协调多个 teammate；`queue` 把控制状态持久化到可信共享本地文件系统，使多个 OS 进程可领取任务。三种模式都遵循依赖、预算和 authority 收紧规则，但只有显式启用且满足前置条件的 worktree/checkpoint 能提供文件级隔离或回滚。
 
 ## 任务图
 
@@ -125,6 +148,24 @@ Agent 图示例：
   ]
 }
 ```
+
+## 配置参考
+
+任务图负责声明任务、依赖和任务级策略；命令行负责选择执行模式、并发、预算、状态和隔离。任务级权限与预算只能保持或收紧父级配置。
+
+| 配置维度   | 单协调器 `team run`                                      | 多进程 `team queue`                                    |
+| ---------- | -------------------------------------------------------- | ------------------------------------------------------ |
+| 输入       | `--tasks <file>`                                         | `queue init --tasks <file>`                            |
+| 模式       | `--exec` / `--agent`，可选 `--worktree`                  | 固定为 `shell-worktree` 或 `agent-worktree`            |
+| 并发       | `--teammates <n>`                                        | 启动多个 `queue worker` 进程                           |
+| 团队预算   | `--max-tasks`、`--max-tokens`、`--max-usd`、`--max-wall` | `queue init` 的对应参数；后续 worker 不可放宽          |
+| Agent 预算 | `--agent-max-*`                                          | `queue init --agent-max-*`                             |
+| 租约       | `--ttl <seconds>`                                        | `--ttl-ms`、`--renew-every-ms`                         |
+| 状态       | `--state <file>`、`--resume`                             | `--state` + `run-id` + 建议固定 queue/authority digest |
+| 回滚       | `--managed-checkpoint` + `--checkpoint-state-dir`        | 初始化时固定，worker 只能断言不能改写                  |
+| 输出       | `--json`、`--otlp <file>`                                | 各子命令支持 `--json`                                  |
+
+状态文件和 checkpoint 目录必须位于任务不可写、仓库外部的可信路径。`run` 的 wall/lease 参数使用秒，queue 对应参数使用毫秒；详细选项见后文“参数”“公共参数”和“子命令参数”。
 
 ## 计划预览
 
@@ -626,6 +667,27 @@ Agent Team 当前 checkpoint authority 明确声明：
 TeamRunner 库内部有有界 mailbox 接口，但当前公共 CLI 没有 `cc team send`，分布式队列也没有
 teammate 消息命令。不要把定向消息当作现有 CLI 工作流契约。
 
+## 使用示例
+
+先预览任务图，再根据任务的可信级别选择本地或分布式执行方式：
+
+```bash
+# 只验证任务图和调度计划，不执行任务
+cc team plan --tasks team-tasks.json --json
+
+# 单 teammate 执行受信任的本地 shell 任务
+cc team run --tasks team-tasks.json --exec --teammates 1
+
+# 使用隔离 worktree 并发执行
+cc team run --tasks team-tasks.json --exec --worktree --teammates 4
+
+# 查看分布式队列的一致状态快照
+cc team queue status --state /trusted/state/team-queue.json --json
+```
+
+完整的队列初始化、worker 绑定、裁决与最终发布流程见前文对应章节。任务文件中的
+`command` 和 `prompt` 都属于执行 authority；不要直接运行来源不明的任务图。
+
 ## 面向 CLI 使用者的硬限制
 
 | 项目                                        | 限制                              |
@@ -647,7 +709,60 @@ teammate 消息命令。不要把定向消息当作现有 CLI 工作流契约。
 64 个分布式 OS 进程的生产保证。跨平台分布式发布 soak 使用 2 个 worker 进程验证确定性
 DAG、故障和恢复流程；它也不等价于 live-model 质量测试。
 
-## 安全边界
+## 性能指标
+
+这里列出的是当前实现中的容量边界和已验证规模，不是对任意硬件、模型供应商或共享文件
+系统的延迟 SLA：
+
+| 指标                  | 当前边界或验证范围                                     |
+| --------------------- | ------------------------------------------------------ |
+| 本地 teammate 并发    | `1` 至 `64`，默认 `2`                                  |
+| 本地任务图规模        | 最多 10,000 个任务、100,000 条依赖边                   |
+| 任务文件与运行状态    | 单文件最大 64 MiB                                      |
+| 自动任务尝试          | 默认最多 3 次，同时受团队 token、USD 和 wall time 预算 |
+| 同进程规模测试        | 10,000 个任务、64 个异步 worker                        |
+| 跨平台分布式发布 soak | 2 个独立 OS worker，覆盖确定性 DAG、故障和恢复         |
+
+实际吞吐主要受任务内容、模型时延、Git 工作区大小、checkpoint 范围和共享存储锁语义影响。部署前应
+使用真实任务图、目标操作系统和计划使用的模型做基准测试。
+
+## 测试覆盖
+
+Agent Team 的自动化测试覆盖任务契约、调度与预算、租约和分布式队列、裁决、进程 checkpoint、
+worktree 隔离以及多进程最终发布。代表性测试包括：
+
+- 单元测试：`team-task-contract.test.js`、`team-runner.test.js`、`team-budget.test.js`、
+  `team-distributed-queue.test.js`、`team-adjudication.test.js`、
+  `team-process-checkpoint.test.js`、`team-worktree.test.js`。
+- 集成测试：`team-worktree-real-git.test.js`、`team-distributed-queue-multiprocess.test.js`、
+  `team-distributed-finalization.test.js`、`team-distributed-cli.test.js`、
+  `team-distributed-agent.test.js`、`team-distributed-soak.test.js`。
+
+```bash
+cd packages/cli
+npm run test:unit -- team
+npm run test:integration -- team
+```
+
+发布判定仍以目标提交上的 GitHub Actions 跨平台矩阵为准；本地结果用于快速回归，不能替代
+发布门禁。
+
+## 关键文件
+
+| 文件                                                         | 职责                                     |
+| ------------------------------------------------------------ | ---------------------------------------- |
+| `packages/cli/src/commands/team.js`                          | `cc team` 命令、参数校验与输出协议       |
+| `packages/cli/src/commands/team-distributed.js`              | `cc team queue` 分布式队列命令           |
+| `packages/cli/src/lib/agent-team/team-runner.js`             | 本地 DAG 调度、并发控制与任务生命周期    |
+| `packages/cli/src/lib/agent-team/team-task-contract.js`      | 任务图规范化、依赖和容量边界校验         |
+| `packages/cli/src/lib/agent-team/team-distributed-queue.js`  | 分布式队列状态、锁与 revision 协议       |
+| `packages/cli/src/lib/agent-team/task-lease.js`              | 租约领取、续租、过期和 fenced completion |
+| `packages/cli/src/lib/agent-team/team-budget.js`             | token、USD、wall time 与任务尝试预算     |
+| `packages/cli/src/lib/agent-team/team-worktree.js`           | Git worktree 隔离与最终发布              |
+| `packages/cli/src/lib/agent-team/team-process-checkpoint.js` | 托管执行、checkpoint 与回滚边界          |
+| `packages/cli/src/lib/agent-team/team-adjudication.js`       | 不确定结果的证据绑定和裁决               |
+
+## 安全考虑
 
 ### 可信输入和状态
 
@@ -677,7 +792,7 @@ DAG、故障和恢复流程；它也不等价于 live-model 质量测试。
 - writable symlink 依赖目录会绕过部分 worktree 隔离。
 - deterministic soak 验证故障协议，不验证实时模型质量、供应商可用性或外部 API 幂等性。
 
-## 常见问题
+## 故障排查
 
 | 现象                                           | 原因与处理                                                        |
 | ---------------------------------------------- | ----------------------------------------------------------------- |

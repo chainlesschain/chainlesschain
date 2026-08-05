@@ -170,8 +170,10 @@ jobs:
             exit 1
           fi
           mkdir -p release-artifacts
-          PACK_JSON=$(cd packages/cli && npm pack --json --pack-destination ../../release-artifacts)
-          TARBALL=$(node -e 'const x=JSON.parse(process.argv[1]); process.stdout.write(x[0].filename)' "$PACK_JSON")
+          PACK_METADATA=$(mktemp)
+          trap 'rm -f "$PACK_METADATA"' EXIT
+          (cd packages/cli && npm pack --json --pack-destination ../../release-artifacts) > "$PACK_METADATA"
+          TARBALL=$(node -e 'const fs=require("node:fs"); const x=JSON.parse(fs.readFileSync(process.argv[1], "utf8")); process.stdout.write(x[0].filename)' "$PACK_METADATA")
           TARBALL_PATH="release-artifacts/$TARBALL"
           CC_RELEASE_VERSION="$VERSION" \
           GITHUB_SHA="${{ github.sha }}" \
@@ -431,8 +433,8 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      # Agent SDK — standalone package (NOT an npm workspace member), so it
-      # needs its own install; prepublishOnly runs the TypeScript dual build.
+      # Agent SDK — workspace member whose prepublishOnly runs the TypeScript
+      # dual build. Its build resolves a local or workspace-hoisted compiler.
       # No consumer pins it yet (VS Code vendors the build; web-panel aliases
       # the TS source), so order relative to the CLI is free. Added 2026-07-09
       # (platform phase 3 first publish).
@@ -477,7 +479,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          TARBALL=$(find release-artifacts -maxdepth 1 -name 'chainlesschain-*.tgz' -type f -print -quit)
+          TARBALL=$(find "$GITHUB_WORKSPACE/release-artifacts" -maxdepth 1 -name 'chainlesschain-*.tgz' -type f -print -quit)
           MANIFEST=release-artifacts/chainlesschain-release.json
           node packages/cli/scripts/npm-release-artifact.mjs verify "$TARBALL" "$MANIFEST"
           PKG_VER=$(node -e 'process.stdout.write(JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")).version)' "$MANIFEST")
@@ -488,11 +490,74 @@ jobs:
             npm publish "$TARBALL" ${{ steps.publish-cmd.outputs.FLAGS }}
           fi
           mkdir -p registry-verify
-          npm pack "chainlesschain@$PKG_VER" --pack-destination registry-verify >/dev/null
-          REGISTRY_TARBALL=$(find registry-verify -maxdepth 1 -name 'chainlesschain-*.tgz' -type f -print -quit)
+          REGISTRY_TARBALL=""
+          for ATTEMPT in {1..30}; do
+            if npm pack "chainlesschain@$PKG_VER" --pack-destination registry-verify \
+              >/dev/null 2>registry-verify/npm-pack.err; then
+              REGISTRY_TARBALL=$(find registry-verify -maxdepth 1 -name 'chainlesschain-*.tgz' -type f -print -quit)
+              break
+            fi
+            if [ "$ATTEMPT" -eq 30 ]; then
+              echo "Registry did not expose chainlesschain@$PKG_VER after 30 attempts" >&2
+              cat registry-verify/npm-pack.err >&2
+              exit 1
+            fi
+            echo "::notice::Registry has not exposed chainlesschain@$PKG_VER yet (attempt $ATTEMPT/30); retrying in 10 seconds"
+            sleep 10
+          done
+          test -n "$REGISTRY_TARBALL"
           node packages/cli/scripts/npm-release-artifact.mjs verify "$REGISTRY_TARBALL" "$MANIFEST"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Verify published CLI npm provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          MANIFEST=release-artifacts/chainlesschain-release.json
+          VERSION=$(node -e 'process.stdout.write(JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")).version)' "$MANIFEST")
+          EXPECTED_SHA512=$(node -e 'process.stdout.write(JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")).sha512)' "$MANIFEST")
+          EXPECTED_REF="refs/tags/v-npm-${VERSION//./-}"
+          AUDIT_ROOT=$(mktemp -d)
+          trap 'rm -rf "$AUDIT_ROOT"' EXIT
+          (
+            cd "$AUDIT_ROOT"
+            npm init --yes >/dev/null
+            npm install --ignore-scripts --no-audit --no-fund "chainlesschain@$VERSION"
+          )
+          VERIFIED=false
+          for ATTEMPT in {1..30}; do
+            AUDIT_JSON="$AUDIT_ROOT/npm-signatures.json"
+            AUDIT_ERROR="$AUDIT_ROOT/npm-signatures.err"
+            if (
+              cd "$AUDIT_ROOT"
+              npm audit signatures --include-attestations --json \
+                > "$AUDIT_JSON" 2> "$AUDIT_ERROR"
+            ) && CC_NPM_PROVENANCE_OUTPUT=release-artifacts/chainlesschain-npm-provenance.json \
+              node packages/cli/scripts/verify-npm-release-provenance.mjs \
+                "$AUDIT_JSON" "$VERSION" "$GITHUB_SHA" "$EXPECTED_REF" "$EXPECTED_SHA512"; then
+              VERIFIED=true
+              break
+            fi
+            if [ "$ATTEMPT" -eq 30 ]; then
+              echo "npm did not expose valid signed provenance for chainlesschain@$VERSION after 30 attempts" >&2
+              cat "$AUDIT_ERROR" >&2 || true
+              exit 1
+            fi
+            echo "::notice::Signed npm provenance is not ready for chainlesschain@$VERSION (attempt $ATTEMPT/30); retrying in 10 seconds"
+            sleep 10
+          done
+          test "$VERIFIED" = true
+
+      - name: Upload public npm readback evidence
+        uses: actions/upload-artifact@v6
+        with:
+          name: chainlesschain-npm-readback-${{ github.sha }}
+          path: |
+            release-artifacts/chainlesschain-release.json
+            release-artifacts/chainlesschain-npm-provenance.json
+          if-no-files-found: error
+          retention-days: 90
 
       - name: Publish summary
         run: |

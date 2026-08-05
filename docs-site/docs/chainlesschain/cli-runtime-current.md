@@ -1,26 +1,28 @@
-# CLI Runtime 当前实现（源码候选 0.162.194）
+# CLI Runtime 当前实现（0.162.197）
 
-> 更新时间：2026-08-04。生产推荐基线为 `0.162.189`；npm `latest` 当前是缺少权威发布身份的 `0.162.193`；当前源码候选为尚未发布的 `0.162.194`。
+> 更新时间：2026-08-05。仓库源码、npm `latest` 与生产推荐基线当前均为 `0.162.197`。精确发布 SHA 的 CLI CI、CLI Strict Sandbox、专用发布、不可变制品、SBOM 与 provenance 已完成核验；后续版本仍不能只凭 registry 版本号判断发布权威。
+
+## 概述
 
 本文是当前 CLI 运行时的实现快照，适合部署、排障和集成方阅读。设计取舍详见[运行时设计核对](/design/cli-runtime-current)。
 
 ## 安装版本怎么选
 
-| 用途 | 版本 | 说明 |
-| --- | --- | --- |
-| 生产 / 日常稳定使用 | `0.162.189` | 最近在同一 exact SHA 完成 Linux、Windows、macOS 的 `CLI CI`、`CLI Strict Sandbox`、长期 Agent Team soak 与专用 npm 发布门 |
-| npm `latest` | `0.162.193` | 已存在于 registry，但由通用 workspace publisher 在同 SHA CLI CI 最终失败时写入；没有 `v-npm-0-162-193`、exact-SHA attestation 或专用 immutable tarball/SBOM handoff |
-| 源码开发 / 候选验证 | `0.162.194` | 包含发布权限遏制、IDE activation 修复和本页新增运行时；尚未发布，状态为 release NO-GO |
+| 用途                | 版本        | 说明                                                                                                                        |
+| ------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------- |
+| 生产 / 日常稳定使用 | `0.162.197` | `v-npm-0-162-197` 的同一 exact SHA 已完成 Linux、Windows、macOS CLI CI、Strict Sandbox、不可变制品、SBOM、provenance 与发布 |
+| npm `latest`        | `0.162.197` | registry、tag、attestation、tarball bytes 与授权 workflow 已交叉回读                                                        |
+| 源码开发 / 调试     | `0.162.197` | 与 `packages/cli/package.json` 一致；源码 HEAD 含发布后的回读加固，运行时能力仍以发布 SHA 为稳定契约                         |
 
 生产安装建议显式固定：
 
 ```bash
-npm i -g chainlesschain@0.162.189
+npm i -g chainlesschain@0.162.197
 ```
 
-已安装 `0.162.193` 的用户不必覆盖或伪造 tag；需要权威发布基线时降级固定 `0.162.189`，等待 `0.162.194` 完成完整发布门后再升级。
+已安装 `0.162.197` 的用户不需要降级。`0.162.193` 是已被正式版本取代的历史非权威记录；失败的 `0.162.194`、`0.162.195`、`0.162.196` tag 保持不可变，不移动或复用。
 
-## 现在可以使用什么
+## 核心特性
 
 - `cc agent --bg`：后台启动长任务，返回可持久化的会话 ID。
 - `cc attach <id>`：通过本机控制通道继续提问、停止或查看后台 Agent；通道不可用时自动改为日志跟随。
@@ -43,7 +45,7 @@ npm i -g chainlesschain@0.162.189
 - `cc session export <id>`：默认扫描并脱敏会话中的 API Key、JWT、连接串等秘密；只有显式 `--no-redact` 才保留原文。
 - `CHAINLESSCHAIN_HOME=<dir>`：把配置、会话、状态、日志和缓存统一隔离到指定目录，适合 CI、多项目或便携部署。
 
-## 运行结构
+## 系统架构
 
 ```text
 cc
@@ -68,7 +70,7 @@ cc
  └─ Hooks v2 + session hooks (Setup/Notification)
 ```
 
-## 命令入口
+## 关键文件
 
 主要入口位于：
 
@@ -104,7 +106,7 @@ cc
 
 ## 在 IDE 中查看质量、插件、Worktree 与 Agent Teams
 
-Open VSX 当前公开 VS Code `0.37.38`，JetBrains Marketplace 当前公开 `0.4.76`；源码分别为 `0.37.40` / `0.4.78`。生产仍建议搭配 CLI `0.162.189`：
+Open VSX 当前公开 VS Code `0.37.42`，JetBrains Marketplace 当前公开 `0.4.79`；源码与公开版本一致。生产建议搭配 CLI `0.162.197`：
 
 - 质量上下文只发送有界的测试结果、覆盖率与调试器快照，并标注新鲜度；VS Code Notebook 使用当前 notebook 的真实执行上下文。
 - Installation Doctor 会同时检查 Node/Java、managed CLI 与插件 registry 离线恢复状态，不从工作区目录探测可执行文件。
@@ -113,7 +115,7 @@ Open VSX 当前公开 VS Code `0.37.38`，JetBrains Marketplace 当前公开 `0.
 - Team Monitor 只读观察本地 v6 或 queue v1 原始状态；takeover、managed checkpoint recovery 与 side-effect adjudication 通过解析出的 CLI 执行，并绑定精确 authority digest、lease 和 evidence fence。IDE 不直接改写权威 JSON。
 - 用量视图显示真实工具耗时、观测重试与实际 provider/model 的脱敏 retry 原因。
 - Sessions Workbench 只消费 CLI-owned session projection，并按 exact revision 决定 resume、attach、delivery 与 remote-control 动作；可恢复 delivery 覆盖 GitHub、Gitee、configured remote 与 manual handoff，rewind/branch timeline 绑定 session、workspace、repository head、checkpoint revision 与 manifest digest。
-- VS Code `0.37.40` 源码增加编辑器内联聊天、选区上下文、流式回复和代码块复制/插入/替换；重复命令注册与 activation logger 错误已修复。该源码版本未公开发布。Open VSX `0.37.38` 虽可下载，但 tagged workflow 最终失败，不能写成完整发布门通过。
+- VS Code `0.37.42` 公开版包含编辑器内联聊天、选区上下文、流式回复、代码块复制/插入/替换、重复命令注册与 activation logger 修复，以及首次标签页 activation 重试。`ide-vscode-v0.37.42` 已完成不可变 VSIX、三平台真实宿主、Open VSX 发布与 registry 回读。
 
 ## 托管回滚与 Agent Team 边界
 
@@ -123,7 +125,7 @@ Open VSX 当前公开 VS Code `0.37.38`，JetBrains Marketplace 当前公开 `0.
 - queue v1 依赖共享可信本地文件系统和文件锁，不提供复制、仲裁、BFT 或网络分区容错。状态是未签名的可信控制面，父目录与祖先必须可信。
 - 10,000 task / 64 worker 结果来自单进程内 TeamRunner 异步 worker；三平台长期 soak 使用 2 个真实 OS worker 验证跨进程 DAG、故障与恢复，不等价于 64 个分布式进程或 live-model 质量保证。
 
-## 配置目录约定
+## 配置参考
 
 默认运行目录是 `~/.chainlesschain`。设置 `CHAINLESSCHAIN_HOME` 时，该值就是运行目录本身，不会再追加一层 `.chainlesschain`：
 
@@ -144,12 +146,67 @@ credential agent 会保留运行所需的非秘密会话标识（如 `CC_SESSION
 - 报错 `Process Broker unavailable for skill execution` 时，应升级 CLI 并重新生成/注册技能，不要修改 handler 绕过检查：
 
 ```bash
-npm i -g chainlesschain@0.162.189
+npm i -g chainlesschain@0.162.197
 chainlesschain skill sync-cli --force
 chainlesschain cli-anything register <name> --force
 ```
 
-## 验证
+## 使用示例
+
+```bash
+# 后台启动 Agent，并用返回的会话 ID 接管或查看日志
+cc agent --bg -p "重构 auth 模块并补测试"
+cc attach <session-id>
+cc logs <session-id>
+
+# 使用隔离运行目录验证配置与会话
+CHAINLESSCHAIN_HOME=/tmp/cc-ci cc session list
+
+# 只预览 Agent Team DAG，不执行任务
+cc team plan --tasks team-shell.json --json
+
+# 查看 checkpoint 恢复状态；执行 resume/rollback 前先核验证据
+cc checkpoint recovery list --json
+```
+
+## 性能指标
+
+当前 Runtime 不承诺跨机器固定延迟。模型响应时间取决于 provider、上下文和网络；本地性能主要受 CLI 冷启动、JSONL 会话大小、工具进程数量、Git/worktree 操作和磁盘性能影响。
+
+| 指标/边界           | 当前口径                                                                         |
+| ------------------- | -------------------------------------------------------------------------------- |
+| 命令加载            | manifest + lazy dispatch，未使用命令不在启动阶段加载                             |
+| TeamRunner 容量验证 | 单进程异步 worker 场景覆盖 10,000 task / 64 worker；不等价于 64 个 OS 进程       |
+| 跨进程长期验证      | Linux、Windows、macOS 各使用 2 个真实 OS worker 运行 120 分钟 soak               |
+| 资源预算            | token、USD、wall-clock 预算持久化并带 fencing；未知计量不会在启用 cap 时按零处理 |
+| Hook 回收           | 受 timeout 管理；退出时回收已知子进程或进程树，并显式报告平台限制                |
+
+性能回归应记录 CLI 版本、准确提交、操作系统、Node 版本、provider/model、输入规模和 sandbox 模式；不能把 fake-LLM 或单进程压力结果外推为线上模型质量或分布式吞吐保证。
+
+## 安全考虑
+
+- 所有前台、后台、Hook、MCP、PTY、插件和技能子进程应经统一 Process Broker；不要在生成的 handler 中直接绕过 Broker。
+- 显式 `workspace-write` / `strict` sandbox 无法建立时失败闭合。配置值不等于隔离已经生效，应结合 `cc doctor` 和平台证明检查。
+- secret 使用 `cc config set-secret` 或受支持的环境/OS store；普通 `config set`、argv、日志和会话导出不应用于保存明文凭据。
+- 后台控制通道凭据、checkpoint authority、Team lease/fence 和恢复 evidence 都是本机能力边界，状态目录及其祖先必须可信。
+- managed checkpoint 只回滚声明 workspace 内由 Broker 管理的 writer，不能撤销网络、数据库、部署、消息或支付等外部副作用。
+- `cc session export` 默认脱敏；只有理解泄露风险时才使用 `--no-redact`。
+
+更细的平台约束见“平台注意”，回滚与队列限制见“托管回滚与 Agent Team 边界”。
+
+## 故障排查
+
+| 症状                                             | 排查与处理                                                                                                        |
+| ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------- |
+| `cc` 命令或帮助与源码不一致                      | 比较 `cc --version` 与 `packages/cli/package.json`；源码运行使用 `node packages/cli/bin/chainlesschain.js --help` |
+| 后台 `attach` 只能跟随日志                       | 检查 session 状态与本地控制通道；worker 已退出或通道不可用时降级为日志跟随是预期行为                              |
+| strict sandbox 启动即拒绝                        | 运行 `cc doctor`，检查 Docker/bubblewrap/AppContainer 与平台证明；不要通过降低策略掩盖生产配置错误                |
+| checkpoint 显示 `partial` / `none`               | 检查 writer 是否由 Broker 管理、是否位于声明 workspace，以及是否存在外部副作用                                    |
+| Team task 停在 adjudication                      | 重新读取 status、authority digest、attempt 和 evidence，再显式 retry、accept 或 cancel                            |
+| `Process Broker unavailable for skill execution` | 升级 CLI 后重新生成/注册技能，不要修改 handler 绕过检查                                                           |
+| 会话或预算状态异常                               | 在同一 `CHAINLESSCHAIN_HOME` 下检查 session JSONL、状态日志和目录权限，避免混用多个运行目录                       |
+
+## 测试覆盖
 
 在发布或本地验证前，建议执行：
 
@@ -160,4 +217,15 @@ npm run test:integration
 npm run test:e2e
 ```
 
-`0.162.189` 的权威发布提交为 [`2607af0dadeb951583139942e5f2add3e95e1208`](https://github.com/chainlesschain/chainlesschain/commit/2607af0dadeb951583139942e5f2add3e95e1208)。同一 `head_sha` 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/30586603353)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/30586603019)、[Agent Team 长期 soak](https://github.com/chainlesschain/chainlesschain/actions/runs/30564377629) 与 [npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/30588174291) 均已成功。Linux、Windows、macOS 的权威矩阵必须绑定精确提交；本地结果只能补充，不能替代发布门。
+`0.162.197` 的权威发布提交为 [`a03ad1b548cc6f15c9bef8f82d519e9c625eef8d`](https://github.com/chainlesschain/chainlesschain/commit/a03ad1b548cc6f15c9bef8f82d519e9c625eef8d)。同一 `head_sha` 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/30979565407)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/30979565251) 与 [npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/30979565206) 均成功；发布后的 [registry/provenance 回读](https://github.com/chainlesschain/chainlesschain/actions/runs/30983536627) 进一步核对 artifact bytes、签名 provenance 与授权 workflow identity。Linux、Windows、macOS 的权威矩阵必须绑定精确提交；本地结果只能补充，不能替代发布门。
+
+## 相关文档
+
+- [CLI 命令行工具](./cli.md)
+- [后台 Agent 与 attach](./cli-background-agents.md)
+- [Agent Team 用户指南](./cli-team.md)
+- [CLI 安全沙箱](./cli-sandbox.md)
+- [Checkpoint 与回滚](./checkpoint.md)
+- [配置管理](./cli-config.md)
+- [Cowork 多智能体协作](./cowork.md)
+- [运行时设计核对](/design/cli-runtime-current)

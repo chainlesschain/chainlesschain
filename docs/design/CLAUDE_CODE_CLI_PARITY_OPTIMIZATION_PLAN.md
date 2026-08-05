@@ -58,6 +58,16 @@ ChainlessChain CLI 已具备会话恢复、Checkpoint、上下文压缩、MCP、
 
 ### P2-14 / P2-16 发布状态校准（2026-07-31）
 
+> **当前稳定版补充（2026-08-05）**：`chainlesschain@0.162.197` 已取代
+> `0.162.189` 成为生产推荐版，精确 tag SHA 为
+> `a03ad1b548cc6f15c9bef8f82d519e9c625eef8d`。该 SHA 的
+> [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/30979565407)、
+> [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/30979565251)
+> 与[专用 npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/30979565206)
+> 均成功，覆盖三平台分层测试、exact-SHA gate、不可变 tarball/SBOM 与 provenance。
+> `0.162.197` 继续包含本节 P2-14/P2-16 的限定能力和安全边界；版本升级不把受控
+> workspace 回滚扩大为通用事务，也不把共享文件系统队列扩大为共识系统。
+
 > **正式发布补充（2026-08-01）**：下方 `7df6feced4670ac71d19548752d18ac4cc225025`
 > 继续作为实现候选与首轮三平台短门/长期 soak 的可追溯证据；正式发布版本为
 > `chainlesschain@0.162.189`，release SHA

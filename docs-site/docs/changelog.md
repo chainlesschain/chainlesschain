@@ -5,25 +5,25 @@
 
 ## [Unreleased]
 
-#### Added — CLI 0.162.194 源码候选：可恢复会话、MCP 裁决与 Checkpoint Restore Saga
+#### Added — CLI 0.162.197 正式发布：可恢复会话、MCP 裁决与 Checkpoint Restore Saga
 
-> 当前源码为 `0.162.194`（2026-08-04，未发布）。最近完成完整权威门禁的生产推荐版仍是 `0.162.189`。npm `latest` `0.162.193` 由通用 workspace publisher 在同 SHA CLI CI 最终失败时写入，没有 `v-npm-0-162-193`、exact-SHA attestation 或专用 immutable tarball/SBOM handoff，不能视为权威发布。
+> `chainlesschain@0.162.197` 已于 2026-08-05 正式发布，当前源码、npm `latest` 与生产推荐版一致。`0.162.193` 保留为被正式版本取代的历史非权威记录；失败的 `0.162.194`、`0.162.195`、`0.162.196` tag 保持不可变。
 
 - **安全配置与 MCP**：schema secret 改走 `config set-secret`；显式 `workspace-write` / `strict` sandbox 能力不足时失败闭合。MCP 增加 `ws/wss`、可信动态 header、timeout notification 与不确定结果 recovery/adjudication，不盲目 replay 可能已有副作用的调用。
 - **Canonical session 与预算**：REPL、stream、WebSocket、headless 共用可验证 transcript projection、事务化 summary/compaction 与 stale/corrupt resume 拒绝；后台/Team adapter 增加 fenced token、USD 与 wall-clock 预算。
 - **Agent 工作流**：plan/todo revision 与 authority ceiling、受控 Skill 子 Agent、后台 launch profile、semantic handoff、`/btw`、manifest-driven help 与确定性 shell completion 已进入当前树。
 - **Restore saga**：direct/timeline restore 统一绑定 workspace prestate、生命周期锁、Git/copy 不可变目标、安全 checkpoint 与 hash-chained CAS journal。`cc checkpoint recovery list|show|abort|resume|rollback|release` 仅对 live fence 验证通过的状态开放；`resume` 只结算已完成恢复，`rollback` 只反转已验证的部分文件变更。
 - **发布权限遏制**：专用 CLI publisher 已恢复；普通 workspace publisher 使用独立 workflow/tag namespace，并在检测与 publish 前双重排除 CLI。产品 release 不再持有 CLI 发布令牌，只消费已验证 tag、registry `gitHead` 与 exact-SHA gates 的既有版本。
-- **状态**：`0.162.194` 仍须在包含全部修复的 final exact SHA 上通过 Ubuntu、Windows、macOS 的 `CLI CI`、`CLI Strict Sandbox`、受影响宿主门和 immutable tarball/SBOM 验证；当前为 release NO-GO。
+- **发布证据**：`v-npm-0-162-197` 精确指向 [`a03ad1b548`](https://github.com/chainlesschain/chainlesschain/commit/a03ad1b548cc6f15c9bef8f82d519e9c625eef8d)；[CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/30979565407)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/30979565251) 与[专用 npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/30979565206)均成功，覆盖三平台、exact-SHA、不可变 tarball/SBOM 与 provenance。发布后的 [registry 回读](https://github.com/chainlesschain/chainlesschain/actions/runs/30983536627)又核对了包字节、签名 provenance 与 workflow identity。
 
-#### Added — IDE 公开与源码双轨：Open VSX 0.37.38 / JetBrains 0.4.76 / 源码 0.37.40 与 0.4.78
+#### Added — IDE 正式发布：Open VSX 0.37.42 / JetBrains Marketplace 0.4.79
 
-> Open VSX registry 当前公开 `0.37.38`，累计下载已突破 **2 万**；JetBrains Marketplace 当前公开且审核通过 `0.4.76`。源码分别为 VS Code `0.37.40`、JetBrains `0.4.78`。`0.37.38` tagged workflow 最终失败，JetBrains `0.4.77` / `0.4.78` tagged workflow 也失败，因此不能把源码或 registry presence 扩写成完整双端发布门通过。
+> Open VSX `0.37.42` 与 JetBrains Marketplace `0.4.79` 已公开，源码版本与公开版一致；双标签精确指向 [`0844f1cb85`](https://github.com/chainlesschain/chainlesschain/commit/0844f1cb8512bbb7cde2c0242d84f91533c6f5af)。
 
 - Sessions Workbench 只消费 CLI-owned immutable session projection，并按 exact revision 暴露 resume、attach、delivery 与 remote-control 动作。
 - 可恢复 delivery 覆盖 GitHub、Gitee、configured remote 与 manual handoff；canonical rewind/branch timeline 绑定 session、workspace、repository head、checkpoint revision 与 manifest digest。
-- VS Code `0.37.40` 源码新增编辑器内联聊天：自动携带选区、流式输出，代码块支持复制/插入/替换，并提供 Explain / Refactor / Fix / Generate Docs / Generate Tests。重复 command 注册和 activation logger 接线错误已修复，六个 command 已进入 canonical public IDE capability manifest。
-- 当前公开安装仍以 Open VSX `0.37.38` 与 JetBrains Marketplace `0.4.76` 为准；内联聊天属于未发布源码候选。
+- VS Code `0.37.42` 公开版提供编辑器内联聊天：自动携带选区、流式输出，代码块支持复制/插入/替换，并提供 Explain / Refactor / Fix / Generate Docs / Generate Tests；同时修复重复 command、activation logger 与首次标签页重试竞态。
+- [VS Code 发布门](https://github.com/chainlesschain/chainlesschain/actions/runs/30975707451)完成不可变 VSIX、三平台真实宿主、Open VSX 发布与回读；[JetBrains 发布门](https://github.com/chainlesschain/chainlesschain/actions/runs/30975672764)完成 2024.2/2025.2 三平台宿主、上传与 Marketplace 回读。微软 VS Code Marketplace 仍未发布。
 
 #### Added — CLI 0.162.189：P2-14 托管回滚与 P2-16 大规模 Agent Teams 发布闭环
 

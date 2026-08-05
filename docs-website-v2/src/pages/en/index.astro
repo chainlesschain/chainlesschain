@@ -142,7 +142,7 @@ const badges = [
         </div>
 
         <p class="animate-fade-in-delay-3 mt-5 text-sm text-muted max-w-3xl">
-          Release note: npm <code class="font-mono">latest</code> is currently <code class="font-mono">{NPM_LATEST_CLI_VERSION}</code>, but it lacks the complete exact-SHA release identity. Source candidate <code class="font-mono">{SOURCE_CLI_VERSION}</code> is unpublished. This site pins installs to the most recent fully gated release, <code class="font-mono">{CLI_VERSION}</code>.
+          Release note: npm <code class="font-mono">latest</code>, source, and the production recommendation are all <code class="font-mono">{CLI_VERSION}</code>. The same tagged SHA passed the three-OS CLI CI and Strict Sandbox gates, immutable artifact and SBOM checks, provenance, and registry readback.
         </p>
 
         <div class="animate-fade-in-delay-3 mt-14 pt-8 border-t border-line flex flex-wrap gap-x-8 gap-y-3">
@@ -510,7 +510,7 @@ const badges = [
           No GUI required — <code class="font-mono text-sm bg-cream px-2 py-0.5 rounded">chainlesschain</code> runs local AI, agent coding, and multi-agent orchestration entirely in the terminal.
         </p>
         <p class="text-sm text-muted mb-8">
-          Verified release {CLI_VERSION} provides scoped Process Broker checkpoint/rollback, Agent Teams v6/queue v1, and the 145-case Auto mode safety gate. Source candidate {SOURCE_CLI_VERSION} adds canonical sessions/budgets, uncertain MCP outcome adjudication, and a checkpoint restore saga bound to workspace, owner, sequence/head fences, and a persisted Git/copy engine; those candidate capabilities are not a stable npm release yet.
+          Verified release {CLI_VERSION} provides scoped Process Broker checkpoint/rollback, Agent Teams v6/queue v1, the 145-case Auto mode safety gate, canonical sessions/budgets, uncertain MCP outcome adjudication, and a checkpoint restore saga bound to workspace, owner, sequence/head fences, and a persisted Git/copy engine.
         </p>
         <div class="grid grid-cols-3 gap-6 mb-8">
           <div>
@@ -713,7 +713,7 @@ const badges = [
           <div class="font-mono text-xs text-muted mb-3">CLI · v{CLI_VERSION}</div>
           <h3 class="font-display text-2xl mb-3">Command-line</h3>
           <div class="font-mono text-sm bg-ink text-cream px-3 py-2 rounded mb-4 cursor-pointer" data-copy={`npm i -g chainlesschain@${CLI_VERSION}`}>$ npm i -g chainlesschain@{CLI_VERSION}</div>
-          <p class="text-sm text-muted">Most recent fully gated release; npm latest {NPM_LATEST_CLI_VERSION} is under release review · npm / yarn / pnpm / bun</p>
+          <p class="text-sm text-muted">Fully gated and aligned with npm latest {NPM_LATEST_CLI_VERSION} · npm / yarn / pnpm / bun</p>
         </div>
         <div class="p-8 rounded-2xl border border-line hover:border-ember transition-colors">
           <div class="font-mono text-xs text-muted mb-3">DESKTOP · {DOWNLOAD_VERSION}</div>
