@@ -175,10 +175,9 @@ describe("CLI release workflow contracts", () => {
     expect(readback).toContain(
       "run-id: ${{ steps.provenance.outputs.run_id }}",
     );
-    expect(readback).toContain("npm-release-artifact.mjs verify");
-    expect(readback).toContain(
-      'cmp --silent "$SOURCE_TARBALL" "$REGISTRY_TARBALL"',
-    );
+    expect(readback).toContain("verify-npm-registry-readback.mjs");
+    expect(readback).toContain('CC_RELEASE_COMMIT="$TAG_SHA"');
+    expect(readback).toContain("chainlesschain-npm-readback.json");
     expect(readback).not.toContain("NPM_TOKEN");
   });
 

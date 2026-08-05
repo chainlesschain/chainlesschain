@@ -13,7 +13,9 @@ on:
       - ".github/workflows/npm-publish.yml"
       - ".github/workflows/release.yml"
       - "packages/cli/scripts/npm-release-artifact.mjs"
+      - "packages/cli/scripts/verify-npm-registry-readback.mjs"
       - "packages/cli/scripts/verify-npm-release-provenance.mjs"
+      - "packages/cli/__tests__/unit/npm-registry-readback.test.js"
       - "packages/cli/__tests__/unit/npm-release-provenance.test.js"
       - "packages/cli/__tests__/unit/release-workflow-contract.test.js"
 
@@ -124,13 +126,12 @@ jobs:
           REGISTRY_TARBALL=$(find registry-readback -maxdepth 1 -name 'chainlesschain-*.tgz' -type f -print -quit)
           test -n "$SOURCE_TARBALL"
           test -n "$REGISTRY_TARBALL"
-          GITHUB_SHA="$TAG_SHA" CC_RELEASE_VERSION="$VERSION" \
-            node packages/cli/scripts/npm-release-artifact.mjs verify \
-              "$SOURCE_TARBALL" source-artifact/chainlesschain-release.json
-          GITHUB_SHA="$TAG_SHA" CC_RELEASE_VERSION="$VERSION" \
-            node packages/cli/scripts/npm-release-artifact.mjs verify \
-              "$REGISTRY_TARBALL" source-artifact/chainlesschain-release.json
-          cmp --silent "$SOURCE_TARBALL" "$REGISTRY_TARBALL"
+          CC_RELEASE_COMMIT="$TAG_SHA" CC_RELEASE_VERSION="$VERSION" \
+          CC_NPM_READBACK_OUTPUT=readback/chainlesschain-npm-readback.json \
+            node packages/cli/scripts/verify-npm-registry-readback.mjs \
+              "$SOURCE_TARBALL" "$REGISTRY_TARBALL" \
+              source-artifact/chainlesschain-release.json \
+              readback/chainlesschain-npm-provenance.json
           cp source-artifact/chainlesschain-release.json readback/chainlesschain-release.json
           {
             echo "## CLI npm public readback"
