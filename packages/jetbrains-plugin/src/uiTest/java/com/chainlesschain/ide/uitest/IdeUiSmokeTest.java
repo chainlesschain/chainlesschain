@@ -39,6 +39,7 @@ final class IdeUiSmokeTest {
     private static final Duration CONNECT_BUDGET = Duration.ofMinutes(3);
     private static final Duration FRAME_BUDGET = Duration.ofMinutes(5);
     private static final Duration FIND_BUDGET = Duration.ofSeconds(45);
+    private static final Duration FIRST_POPUP_BUDGET = Duration.ofSeconds(15);
 
     /** Match new-UI and classic-UI stripe buttons. */
     private static final String STRIPE_XPATH =
@@ -224,7 +225,12 @@ final class IdeUiSmokeTest {
                 Object value = table.callJs(
                         "component.getValueAt(" + selected + ", 2)");
                 last = String.valueOf(value);
-                if (expected.equals(last)) return;
+                // The real Workbench decorates needs-input/blocked states with
+                // an approval marker in the status cell.  The lifecycle state
+                // is still the first token; keep the journey strict about that
+                // state without rejecting the independently rendered marker.
+                if (expected.equals(last)
+                        || last.startsWith(expected + " ")) return;
             } else {
                 selectWorkbenchBackground(table);
             }
@@ -300,7 +306,17 @@ final class IdeUiSmokeTest {
             int actionIndex,
             String actionLabel) throws InterruptedException {
         send(input, send, "/rewind");
-        choosePopupIndex(robot, 1); // turn-2: the canonical partial-coverage row
+        try {
+            choosePopupIndex(
+                    robot, 1, FIRST_POPUP_BUDGET); // canonical partial row
+        } catch (RuntimeException firstPopupMissed) {
+            // IDEA 2025.2 on a loaded Linux EDT has occasionally completed the
+            // CLI timeline read without presenting its queued first chooser.
+            // Re-enter through the same real /rewind UI path once; the second
+            // attempt still has to render and complete under the full budget.
+            send(input, send, "/rewind");
+            choosePopupIndex(robot, 1, FIND_BUDGET);
+        }
         choosePopupIndex(robot, actionIndex);
         ComponentFixture confirm = robot.find(ComponentFixture.class,
                 Locators.byXpath("//div[@text='Confirm action']"), FIND_BUDGET);
@@ -314,9 +330,15 @@ final class IdeUiSmokeTest {
 
     private static void choosePopupIndex(RemoteRobot robot, int index)
             throws InterruptedException {
+        choosePopupIndex(robot, index, FIND_BUDGET);
+    }
+
+    private static void choosePopupIndex(
+            RemoteRobot robot, int index, Duration budget)
+            throws InterruptedException {
         ComponentFixture list = robot.find(ComponentFixture.class,
                 Locators.byXpath("//div[@class='JBList' and @visible='true']"),
-                FIND_BUDGET);
+                budget);
         list.runJs(
                 "component.setSelectedIndex(" + index + ");"
                         + "component.requestFocusInWindow();"

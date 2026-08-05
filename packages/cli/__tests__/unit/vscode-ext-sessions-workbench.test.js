@@ -640,5 +640,6 @@ describe("manifest wiring", () => {
     const src = readFileSync(ext("src/extension.js"), "utf-8");
     expect(src).toContain('"chainlesschain.sessions.workbench"');
     expect(src).toContain("openSessionsWorkbench");
+    expect(src).toContain("sessionsView.isSessionsWorkbenchOpen()");
   });
 });

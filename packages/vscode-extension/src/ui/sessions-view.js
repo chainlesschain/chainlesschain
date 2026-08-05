@@ -531,6 +531,10 @@ async function runSessionsWorkbenchHostDomCommand(request) {
   });
 }
 
+function isSessionsWorkbenchOpen() {
+  return Boolean(_panel);
+}
+
 function nonce() {
   return require("crypto").randomBytes(16).toString("hex");
 }
@@ -676,5 +680,6 @@ function renderPageHtml(hostDomToken = null) {
 
 module.exports = {
   openSessionsWorkbench,
+  isSessionsWorkbenchOpen,
   runSessionsWorkbenchHostDomCommand,
 };

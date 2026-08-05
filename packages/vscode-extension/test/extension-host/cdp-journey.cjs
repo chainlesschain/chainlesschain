@@ -870,6 +870,7 @@ async function openSessionsWorkbenchFromCommandPalette(
   workbenchClient,
   signal = null,
 ) {
+  const label = "ChainlessChain: Sessions Workbench";
   await workbenchClient.send("Input.dispatchKeyEvent", {
     type: "keyDown",
     key: "F1",
@@ -884,9 +885,30 @@ async function openSessionsWorkbenchFromCommandPalette(
     windowsVirtualKeyCode: 112,
     nativeVirtualKeyCode: 112,
   });
+  const visibleInput =
+    "[...document.querySelectorAll('.quick-input-widget')].find((element) => getComputedStyle(element).display !== 'none' && getComputedStyle(element).visibility !== 'hidden')?.querySelector('input')";
+  await waitForDom(
+    workbenchClient,
+    `Boolean(${visibleInput})`,
+    "command palette input",
+    45_000,
+    signal,
+  );
+  const focused = await workbenchClient.evaluate(`(() => {
+    const input = ${visibleInput};
+    if (!input) return false;
+    input.focus();
+    return document.activeElement === input;
+  })()`);
+  if (!focused) throw new Error("could not focus the command palette input");
+  // The unfiltered command palette virtualizes its rows, so this extension's
+  // command is not guaranteed to exist in the rendered slice on a fresh
+  // Windows profile.  Insert the label after F1's existing `>` prefix and then
+  // choose the real filtered row.
+  await workbenchClient.send("Input.insertText", { text: label });
   await chooseQuickPickItem(
     workbenchClient,
-    "ChainlessChain: Sessions Workbench",
+    label,
     signal,
   );
 }

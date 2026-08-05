@@ -313,7 +313,14 @@ function activate(context) {
             throw new Error("host DOM relay token mismatch");
           }
           if (request?.surface === "sessions-workbench") {
-            const sessionsView = openSessionsWorkbenchPanel();
+            const sessionsView = require("./ui/sessions-view.js");
+            // Relay polling must not re-open the panel: the existing-panel
+            // path starts an asynchronous projection refresh, so a 100 ms DOM
+            // poll otherwise creates overlapping CLI reads that can overwrite
+            // the action's revision-gated snapshot while it is dispatching.
+            if (!sessionsView.isSessionsWorkbenchOpen()) {
+              openSessionsWorkbenchPanel();
+            }
             return sessionsView.runSessionsWorkbenchHostDomCommand(request);
           }
           return chatProvider.runHostDomCommand(request);

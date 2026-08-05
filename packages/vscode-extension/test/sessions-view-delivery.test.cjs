@@ -5,6 +5,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const test = require("node:test");
 const {
+  isSessionsWorkbenchOpen,
   openSessionsWorkbench,
   runSessionsWorkbenchHostDomCommand,
 } = require("../src/ui/sessions-view.js");
@@ -116,6 +117,7 @@ test("token-gated Workbench relay exposes only fixed rendered-DOM semantics", as
   const host = createHost({ deliveryOutputs: [], hostDomToken: HOST_TOKEN });
   t.after(() => host.dispose());
 
+  assert.equal(isSessionsWorkbenchOpen(), true);
   assert.match(host.panel.webview.html, /hostWorkbenchDomCommand/u);
   assert.match(host.panel.webview.html, new RegExp(HOST_TOKEN, "u"));
   assert.doesNotMatch(host.panel.webview.html, /\beval\s*\(/u);
@@ -141,6 +143,13 @@ test("token-gated Workbench relay exposes only fixed rendered-DOM semantics", as
     result: { rowCount: 5, artifactVisible: true },
   });
   assert.deepEqual(await pending, { rowCount: 5, artifactVisible: true });
+});
+
+test("Workbench open-state probe tracks panel disposal", () => {
+  const host = createHost({ deliveryOutputs: [] });
+  assert.equal(isSessionsWorkbenchOpen(), true);
+  host.dispose();
+  assert.equal(isSessionsWorkbenchOpen(), false);
 });
 
 function lastDeliveryPost(host) {
