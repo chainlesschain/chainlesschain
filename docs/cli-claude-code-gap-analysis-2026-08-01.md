@@ -2,13 +2,13 @@
 
 > 分析日期：2026-08-01
 >
-> ChainlessChain 候选基线：`packages/cli` v0.162.194 release candidate；v0.162.190 / v0.162.191 / v0.162.192 未发布；v0.162.193 已被非权威通用 workflow 发布且不得视为门禁通过，npm registry `latest` 为 v0.162.193
+> ChainlessChain 历史候选基线：`packages/cli` v0.162.194 release candidate；v0.162.190 / v0.162.191 / v0.162.192 未发布；v0.162.193 已被非权威通用 workflow 发布且不得视为门禁通过。当前收口基线见第 16 节：v0.162.197 已完成 exact-SHA npm 发布与公网回读。
 >
 > Claude Code 参考基线：官方文档与 2.1.220 changelog（2026-07-25）
 >
-> 文档性质：现状审计、实施方案与持续进度记录；未标记“已完成”的项目仍是待办
+> 文档性质：现状审计、实施方案与持续进度记录；未标记“已完成”的项目仍是待办。第 14～15 节保留逐次历史证据，第 16 节是当前判定入口。
 
-## 实施进展（更新至 2026-08-05）
+## 历史实施进展（截至 2026-08-05 `0.162.194` 失败快照）
 
 | 方案项                                             | 状态                                      | 落地结果与验证证据                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | -------------------------------------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -773,7 +773,7 @@ E2E retry-pass 应记为 flake，而不是普通 pass；超过阈值阻断发布
 - 已结算候选 `fb39e2cbe6` 的 IDE Extensions `30965289911` 整体成功：Windows/macOS/Linux stable + minimum、JetBrains 2024.2/2025.2 × 三 OS 六格、VSIX package/artifact 及 JetBrains build/compatibility 全部通过；macOS `1.131.0` 与 `1.85.2` evidence 均为 `result=passed`、`evidenceComplete=true`、15 个 artifact。CLI CI `30965290031`、CLI Strict Sandbox `30965296663` 与 staleness gate `30965289905` 同 SHA 成功。本轮 required local-host gate 已关闭，但 PR publish/readback 按条件跳过。
 - 在没有形成新的发布授权时，GitHub tag `v-npm-0-162-194` 随后被创建并指向 `fb39e2cbe6`。正式 npm workflow `30966796114` 的 `exact-sha-gate` 成功，但 `test` job 在 Agent SDK build 中因 `packages/agent-sdk/node_modules/.bin/tsc` 缺失而失败，`dry-run`、`package-cli` 与 `publish` 全部跳过。registry 仍为 `chainlesschain@0.162.193`、`gitHead=e8e7ba274b487ed491c04ec3359841a0e545debb`。该失败 tag 不移动、不删除、不复用；若修复后继续发布，版本与 tag 必须前进。
 
-## 15. 2026-08-05 收口快照与剩余行动
+## 15. 2026-08-05 `0.162.194` 失败快照与当时剩余行动（历史）
 
 | 判定对象                         | 当前状态                      | 权威边界                                                                                                         |
 | -------------------------------- | ----------------------------- | ---------------------------------------------------------------------------------------------------------------- |
@@ -792,3 +792,41 @@ E2E retry-pass 应记为 flake，而不是普通 pass；超过阈值阻断发布
 5. 继续完成不阻塞本次文档收口、但仍阻塞对应产品级声明的真实长会话/1 GiB、kill/restart、fsync/断电、恶意 writer/MCP、跨架构和长期 soak 验收。
 
 因此，本文件可以作为当前差距分析与实施路线的收口版本；这只表示分析、证据边界和剩余行动已经明确，**不表示产品实现全部完成，也不构成任何发布授权**。
+
+## 16. 2026-08-05 `0.162.197` 发布闭环与当前未完成项
+
+本节取代第 15 节的“当前”判定；第 15 节继续保留 `0.162.194` 失败 tag 的历史证据，不得据此把已经完成的 npm 子范围重新判为 NO-GO，也不得把 npm 成功外推到 native、ARM64 或长期可靠性范围。
+
+### 16.1 已关闭的 `0.162.194` 后续行动
+
+| 原行动                                            | 当前判定                 | 权威证据                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| ------------------------------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 修复 Agent SDK 安装/构建门并前进版本身份          | **已完成**               | `9350e8c948` 修复 workspace publish，失败 tag `v-npm-0-162-194` 保持不可变；候选依次前进并最终使用 `v-npm-0-162-197` / `a03ad1b548cc6f15c9bef8f82d519e9c625eef8d`                                                                                                                                                                                                                                                                                |
+| final exact SHA 的 CLI/Strict/IDE required matrix | **已完成**               | `a03ad1b548` 的 [CLI CI `30978007430`](https://github.com/chainlesschain/chainlesschain/actions/runs/30978007430)、[CLI Strict Sandbox `30978007359`](https://github.com/chainlesschain/chainlesschain/actions/runs/30978007359) 与 [IDE Extensions `30978007086`](https://github.com/chainlesschain/chainlesschain/actions/runs/30978007086) 均成功；IDE 门覆盖 VS Code stable/minimum × Windows/macOS/Linux 与 JetBrains 2024.2/2025.2 × 三 OS |
+| 保留 macOS stable + minimum 真实 DOM journey      | **已完成**               | 上述 IDE run 在发布 SHA 上成功，未采用失败的旧 host pin；更早 `fb39e2cbe6` 的 required local-host matrix 也已给出完整 evidence                                                                                                                                                                                                                                                                                                                   |
+| immutable tarball、SBOM、npm publish 与公网回读   | **CLI npm 子范围已完成** | [npm workflow `30979565206`](https://github.com/chainlesschain/chainlesschain/actions/runs/30979565206) 的 exact-SHA gate、测试、package、SBOM 与 publish 成功；[readback `30983536627`](https://github.com/chainlesschain/chainlesschain/actions/runs/30983536627) 验证 npm 签名/SLSA、精确 repo/workflow/tag/SHA、原始不可变 artifact 与 registry tarball 逐字节一致。npm 公网 `latest` 为 `chainlesschain@0.162.197`                          |
+
+因此 P0-3 的 **CLI npm exact-SHA 交付链为 GO**。该结论只覆盖 npm CLI，不授权 Microsoft Marketplace、Desktop/native installer、Homebrew/WinGet 或其他公开渠道。
+
+### 16.2 P0-5 / P1-6 冷进程长会话 SLO 增量
+
+当前变更集把既有 `CLI Session Scale` 从 `canonical-store-hot-process` 证据扩展为完整 CLI 冷进程证据：
+
+- `session show` 的 canonical JSONL 只读路径使用独立 registrar，不再为只读恢复静态加载 Session DB、Process Broker、observability 与 Event Runtime；legacy DB 缺失回退仍按需动态加载，语义未删除。
+- PR link 的只读 ledger 与可能启动 `git`/`gh` 的写侧模块分离，冷恢复只读取有界 JSON 文件。
+- 每个冷样本都启动新的 `packages/cli/bin/chainlesschain.js session show <id> --json` 进程；计时包含 Node 启动、phase-0 dispatch、Commander、模块加载与 canonical resume。子进程在退出时独立记录峰值 RSS，formal profile 固定不少于 15 个冷进程样本，不能通过环境变量缩减。
+- 1 GiB fixture 由 production hasher 构造完整有效链，并在计时前通过 production metadata builder 建立、复核 `last_hash` / `event_count` sidecar。缺少该 sidecar 的 synthetic/legacy transcript 会触发一次 O(N) index rebuild，不得混入正常 indexed-session SLO，也不得把后续缓存样本冒充首次正常恢复。
+
+本地 Windows x64 补充证据（非发布授权）：1,073,741,824 字节完整链和 production sidecar 均 verified；canonical hot resume p95 `1.79 ms`、峰值 RSS `49.49 MiB`、最大读取 `65,537` 字节；5 个完整 CLI 冷进程 p95 `854.76 ms`、峰值 RSS `59.50 MiB`，均满足 `<2 s` / `<100 MiB`。冷路径、1 GiB gate contract、PR ledger、Session eager/lazy、参数校验、legacy fallback 与 usage attribution 相邻矩阵串行复验 **64/64 passed**；较小默认超时下的并行扩大运行只出现资源竞争型 timeout，逐文件复跑没有断言失败。
+
+该增量已落地于本节所在提交，但尚未在 Ubuntu、macOS、Windows formal matrix 运行，因此 **P0-5/P1-6 冷进程 SLO 仍是 NO-GO**。只有包含本节与实现的最终提交在 `.github/workflows/cli-session-scale.yml` 三平台 formal job 全部成功并上传 exact-SHA artifact 后，才可关闭这一子项；本地 1 GiB 成功不能替代该门。
+
+### 16.3 仍未完成的产品级任务
+
+1. 在当前冷进程增量的最终 exact SHA 上运行三平台 `CLI Session Scale` formal matrix：20 个 writer × 1,000 次 append、10,000 sessions、1 GiB transcript、至少 15 个完整 CLI 冷进程样本、真实进程强杀与 exhaustive partial-record cuts 必须全部成功。
+2. 完成 Session/Skill/MCP 的真实恶意矩阵：跨进程 kill/restart、旧宿主停止与新 authority 接管、恶意 MCP/Skill、即时撤权、非协作 same-UID writer、磁盘满/只读目录/broken pipe，以及长期安全 soak。`HOST STOPPED` challenge 仍不是 machine-wide lease。
+3. 完成 native generation transaction 与公开发行链：任意阶段 taskkill/断电/fsync 后的确定恢复，Linux/macOS/Windows x64 + ARM64 目标二进制实机，notarization/Authenticode/Linux 签名、fresh install/upgrade/rollback 及 Homebrew/WinGet/公开 manifest/asset 回读。
+4. 完成 P1 命令生命周期后续：依据真实 usage telemetry 观察至少两个 minor cycle 后决定兼容 alias 移除；在此之前不得删除旧入口。
+5. 完成真实 TTY、SSH、screen reader、Windows/macOS clipboard 与键盘布局、1,000+ turns、超大 MCP output、20+ 并发 Agent、FD/handle/orphan/worktree 清理和长期 soak。各矩阵必须报告延迟、RSS、I/O、FD/handle 与 cleanup deadline，不能只记录“测试最终通过”。
+
+当前总判定：**CLI npm 子范围 GO；完整产品实现仍为 NO-GO**。后续每关闭一个子项，都必须在本节追加 exact-SHA、矩阵范围、artifact 和未覆盖边界，不能改写历史失败，也不能用不同 SHA 的局部成功拼接授权。

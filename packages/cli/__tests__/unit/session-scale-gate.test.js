@@ -42,6 +42,7 @@ function runGate(output, overrides = {}, expectedCode = 0) {
         CC_SESSION_SCALE_TRANSCRIPT_BYTES: String(8 * 1024 * 1024),
         CC_SESSION_SCALE_LIST_SAMPLES: "3",
         CC_SESSION_SCALE_RESUME_SAMPLES: "3",
+        CC_SESSION_SCALE_COLD_RESUME_SAMPLES: "2",
         CC_SESSION_SCALE_ACTUAL_KILL_CASES: "1",
         CC_SESSION_SCALE_EXHAUSTIVE_CUTS: "0",
         CC_SESSION_SCALE_LIST_P95_MS: "200",
@@ -111,14 +112,33 @@ describe("cli-session-scale gate", () => {
         allRecordsHashChainedByConstruction: true,
         tailChainVerified: true,
         fullChainStatus: "verified",
+        productionSidecarAnchored: true,
       },
       proof: {
         boundedHeapProcessMb: 96,
         productionReverseReaderInstrumented: true,
         validJsonlConstructedWithProductionHasher: true,
         entireFileLoaded: false,
+        fullCliEntrypoint: "packages/cli/bin/chainlesschain.js",
+        fullCliCommand: "session show <id> --json",
+        freshProcessPerSample: true,
+        processStartupAndModuleLoadIncluded: true,
       },
     });
+    expect(result.scenarios.checkpointResume.coldProcess).toMatchObject({
+      measurementScope: "full-cli-cold-process",
+      sampleCount: 2,
+      samples: [
+        expect.objectContaining({ messageCount: 2 }),
+        expect.objectContaining({ messageCount: 2 }),
+      ],
+    });
+    expect(result.scenarios.checkpointResume.coldProcess.p95Ms).toBeLessThan(
+      2_000,
+    );
+    expect(
+      result.scenarios.checkpointResume.coldProcess.peakRssMb,
+    ).toBeLessThan(100);
     expect(result.scenarios.checkpointResume.maxIoBytesRead).toBeLessThan(
       1024 * 1024,
     );
@@ -172,6 +192,7 @@ describe("cli-session-scale gate", () => {
       eventsPerWriter: 1_000,
       sessionCount: 10_000,
       transcriptBytes: 1024 ** 3,
+      coldResumeSamples: 15,
       actualKillCases: 6,
       exhaustiveCuts: true,
       thresholds: {
@@ -222,6 +243,9 @@ describe("cli-session-scale gate", () => {
     );
     expect(workflow).toContain("CC_SESSION_SCALE_EXPECTED_SHA");
     expect(workflow).toContain("CC_SESSION_SCALE_OUTPUT");
+    expect(workflow).toContain(
+      "packages/cli/__tests__/fixtures/session-scale-*.mjs",
+    );
     expect(workflow).toContain("actions/upload-artifact@v6");
     expect(workflow).toContain(
       "cli-session-scale-${{ matrix.os }}-${{ env.CC_SESSION_SCALE_EXPECTED_SHA }}",

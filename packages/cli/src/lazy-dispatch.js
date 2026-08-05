@@ -691,7 +691,7 @@ export async function dispatchCli(
   { manifestData = manifest, ...dispatchOptions } = {},
 ) {
   const commandName = resolveCommandToken(argv);
-  const entry = findManifestEntry(commandName, manifestData);
+  let entry = findManifestEntry(commandName, manifestData);
   if (!entry) {
     const program = await (
       dispatchOptions.loadFullProgram || defaultLoadFullProgram
@@ -699,20 +699,35 @@ export async function dispatchCli(
     await program.parseAsync(argv);
     return;
   }
+  const commandLocation = findCommandTokenLocation(argv);
+  if (entry.name === "session" && argv[commandLocation?.index + 1] === "show") {
+    entry = {
+      ...entry,
+      module: "./commands/session-show.js",
+      register: "registerSessionShowCommand",
+    };
+  }
   await dispatchManifestEntry(argv, entry, dispatchOptions);
 }
 
 export function isFastReadOnlyInvocation(argv, env = process.env) {
   const args = argv.slice(2);
-  return (
+  const explicitOtlp =
+    args.includes("--otlp-endpoint") ||
+    args.some((token) => token.startsWith("--otlp-endpoint=")) ||
+    env.OTEL_EXPORTER_OTLP_ENDPOINT ||
+    env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT ||
+    env.OTEL_EXPORTER_OTLP_METRICS_ENDPOINT;
+  const quickStatus =
     resolveCommandToken(argv) === "status" &&
     !args.includes("--deep") &&
-    !args.includes("--otlp-endpoint") &&
-    !args.some((token) => token.startsWith("--otlp-endpoint=")) &&
-    !env.OTEL_EXPORTER_OTLP_ENDPOINT &&
-    !env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT &&
-    !env.OTEL_EXPORTER_OTLP_METRICS_ENDPOINT
-  );
+    !explicitOtlp;
+  const commandLocation = findCommandTokenLocation(argv);
+  const sessionShow =
+    commandLocation?.token === "session" &&
+    argv[commandLocation.index + 1] === "show" &&
+    !explicitOtlp;
+  return quickStatus || sessionShow;
 }
 
 let processHandlersInstalled = false;

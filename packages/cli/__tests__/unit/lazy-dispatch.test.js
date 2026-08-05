@@ -200,6 +200,30 @@ describe("phase-1-only read paths", () => {
       }),
     ).toBe(false);
   });
+
+  it("keeps canonical JSONL session show on the read-only cold path", () => {
+    expect(
+      isFastReadOnlyInvocation(
+        argv("session", "show", "session-1", "--json"),
+        {},
+      ),
+    ).toBe(true);
+    expect(
+      isFastReadOnlyInvocation(
+        argv(
+          "--otlp-endpoint",
+          "http://localhost:4318",
+          "session",
+          "show",
+          "session-1",
+        ),
+        {},
+      ),
+    ).toBe(false);
+    expect(
+      isFastReadOnlyInvocation(argv("session", "resume", "session-1"), {}),
+    ).toBe(false);
+  });
 });
 
 describe("phase-0 invocation", () => {
