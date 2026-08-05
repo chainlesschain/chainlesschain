@@ -23,7 +23,10 @@ import {
 } from "../../src/lib/mcp-client.js";
 
 const STDIO_FRAME_HARD_LIMIT_BYTES = 16 * 1024 * 1024;
+const STDIO_AGGREGATE_LIMIT_BYTES = 1024 * 1024;
+const STDIO_MALFORMED_LIMIT_FRAMES = 32;
 const HARD_LIMIT_OVERFLOW = "x".repeat(STDIO_FRAME_HARD_LIMIT_BYTES + 1);
+const AGGREGATE_LIMIT_OVERFLOW = "z".repeat(STDIO_AGGREGATE_LIMIT_BYTES + 1);
 
 async function rejectionOf(promise) {
   try {
@@ -274,12 +277,150 @@ describe("MCPClient stdio — runaway buffer is capped", () => {
     const errors = [];
     client.on("server-error", (e) => errors.push(e));
 
-    // 5 KB of data, but newline-delimited → each line processed, tail stays tiny.
+    // Many valid newline-delimited frames are processed independently; only
+    // malformed aggregate traffic consumes the malformed-frame budget.
     let blob = "";
-    for (let i = 0; i < 50; i++) blob += "y".repeat(100) + "\n";
+    for (let i = 0; i < 50; i++) {
+      blob +=
+        JSON.stringify({
+          jsonrpc: "2.0",
+          method: "notifications/test",
+          params: { value: "y".repeat(40) },
+        }) + "\n";
+    }
     expect(() => proc.stdout.emit("data", Buffer.from(blob))).not.toThrow();
     expect(errors).toHaveLength(0);
     const srv = client.listServers().find((s) => s.name === "srv");
     expect(srv.state).toBe("connected");
+  });
+
+  it("suppresses stderr content and coalesces bounded diagnostics", async () => {
+    await client.connect("srv", { command: "fake-mcp" });
+    const entry = client.servers.get("srv");
+    const errors = [];
+    client.on("server-error", (event) => errors.push(event));
+    const canary = "\u001b]8;;https://evil.test\u0007STDERR_SECRET_CANARY";
+    const first = Buffer.from(canary, "utf8");
+    const second = Buffer.from("second diagnostic", "utf8");
+
+    proc.stderr.emit("data", first);
+    proc.stderr.emit("data", second);
+
+    expect(errors).toEqual([
+      {
+        name: "srv",
+        code: "CC_MCP_STDIO_STDERR_OUTPUT",
+        error: 'MCP stdio server "srv" wrote diagnostics to stderr',
+        bytes: first.byteLength,
+      },
+    ]);
+    expect(JSON.stringify(errors)).not.toContain("STDERR_SECRET_CANARY");
+    expect(JSON.stringify(errors)).not.toContain("evil.test");
+    expect(entry._stderrBytes).toBe(first.byteLength + second.byteLength);
+    expect(entry._stderrNotified).toBe(true);
+    expect(entry.state).toBe("connected");
+    expect(proc.killed).toBe(false);
+  });
+
+  it("fails closed when cumulative stderr exceeds its host budget", async () => {
+    await client.connect("srv", { command: "fake-mcp" });
+    const entry = client.servers.get("srv");
+    const errors = [];
+    const reconnect = vi.fn(async () => true);
+    client.setReconnector("srv", reconnect);
+    client.on("server-error", (event) => errors.push(event));
+    const pending = client.callTool("srv", "doit", {});
+
+    proc.stderr.emit("data", AGGREGATE_LIMIT_OVERFLOW);
+    const error = await rejectionOf(pending);
+
+    expect(error).toMatchObject({
+      code: "CC_MCP_STDIO_STDERR_TOO_LARGE",
+      transport: "stdio",
+      limitBytes: STDIO_AGGREGATE_LIMIT_BYTES,
+      dispatched: true,
+      outcomeUnknown: true,
+    });
+    expect(error.message).toBe(
+      'MCP stdio server "srv" exceeded the 1048576-byte host stderr budget',
+    );
+    expect(JSON.stringify(error)).not.toContain("zzzz");
+    expect(errors).toEqual([
+      {
+        name: "srv",
+        code: "CC_MCP_STDIO_STDERR_TOO_LARGE",
+        error:
+          'MCP stdio server "srv" exceeded the 1048576-byte host stderr budget',
+        limitBytes: STDIO_AGGREGATE_LIMIT_BYTES,
+      },
+    ]);
+    expect(reconnect).not.toHaveBeenCalled();
+    expect(isLikelyConnectionError(error)).toBe(false);
+    expect(isTransientMcpError(error)).toBe(false);
+    expect(entry.state).toBe("error");
+    expect(proc.killed).toBe(true);
+  });
+
+  it("fails after the fixed malformed stdout frame count", async () => {
+    await client.connect("srv", { command: "fake-mcp" });
+    const entry = client.servers.get("srv");
+    const errors = [];
+    const reconnect = vi.fn(async () => true);
+    client.setReconnector("srv", reconnect);
+    client.on("server-error", (event) => errors.push(event));
+    const pending = client.callTool("srv", "doit", {});
+
+    proc.stdout.emit("data", "{\n".repeat(STDIO_MALFORMED_LIMIT_FRAMES));
+    expect(entry._malformedFrameCount).toBe(STDIO_MALFORMED_LIMIT_FRAMES);
+    expect(entry._malformedFrameBytes).toBe(STDIO_MALFORMED_LIMIT_FRAMES);
+    expect(entry.state).toBe("connected");
+    expect(errors).toHaveLength(0);
+    proc.stdout.emit("data", "MALFORMED_COUNT_CANARY\n");
+    const error = await rejectionOf(pending);
+
+    expect(error).toMatchObject({
+      code: "CC_MCP_STDIO_MALFORMED_BUDGET_EXCEEDED",
+      transport: "stdio",
+      limitBytes: STDIO_AGGREGATE_LIMIT_BYTES,
+      limitFrames: STDIO_MALFORMED_LIMIT_FRAMES,
+      dispatched: true,
+      outcomeUnknown: true,
+    });
+    expect(error.message).toBe(
+      'MCP stdio server "srv" exceeded the malformed stdout budget',
+    );
+    expect(error.message).not.toContain("MALFORMED_COUNT_CANARY");
+    expect(errors).toEqual([
+      {
+        name: "srv",
+        code: "CC_MCP_STDIO_MALFORMED_BUDGET_EXCEEDED",
+        error: 'MCP stdio server "srv" exceeded the malformed stdout budget',
+        limitBytes: STDIO_AGGREGATE_LIMIT_BYTES,
+        limitFrames: STDIO_MALFORMED_LIMIT_FRAMES,
+      },
+    ]);
+    expect(reconnect).not.toHaveBeenCalled();
+    expect(entry.state).toBe("error");
+    expect(proc.killed).toBe(true);
+  });
+
+  it("fails after one bounded malformed frame exhausts the byte budget", async () => {
+    await client.connect("srv", { command: "fake-mcp" });
+    const entry = client.servers.get("srv");
+    const pending = client.callTool("srv", "doit", {});
+
+    proc.stdout.emit("data", `${AGGREGATE_LIMIT_OVERFLOW}\n`);
+    const error = await rejectionOf(pending);
+
+    expect(error).toMatchObject({
+      code: "CC_MCP_STDIO_MALFORMED_BUDGET_EXCEEDED",
+      limitBytes: STDIO_AGGREGATE_LIMIT_BYTES,
+      limitFrames: STDIO_MALFORMED_LIMIT_FRAMES,
+      outcomeUnknown: true,
+    });
+    expect(entry._malformedFrameCount).toBe(1);
+    expect(entry._malformedFrameBytes).toBe(STDIO_AGGREGATE_LIMIT_BYTES + 1);
+    expect(entry.state).toBe("error");
+    expect(proc.killed).toBe(true);
   });
 });

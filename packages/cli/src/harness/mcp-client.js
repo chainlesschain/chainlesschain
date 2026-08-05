@@ -479,6 +479,7 @@ function mcpTransportError(code, message, details = {}) {
   if (details.status != null) error.status = details.status;
   if (details.closeCode != null) error.closeCode = details.closeCode;
   if (details.limitBytes != null) error.limitBytes = details.limitBytes;
+  if (details.limitFrames != null) error.limitFrames = details.limitFrames;
   if (details.dispatched != null) {
     error.dispatched = details.dispatched === true;
   }
@@ -568,6 +569,8 @@ const MCP_NON_RETRYABLE_PROTOCOL_ERROR_CODES = new Set([
   "CC_MCP_HTTP_RESPONSE_TIMEOUT",
   "CC_MCP_HTTP_DISCARD_TIMEOUT",
   "CC_MCP_STDIO_FRAME_TOO_LARGE",
+  "CC_MCP_STDIO_MALFORMED_BUDGET_EXCEEDED",
+  "CC_MCP_STDIO_STDERR_TOO_LARGE",
   "CC_MCP_RPC_ERROR_INVALID",
   "CC_MCP_RPC_RESPONSE_INVALID",
   "CC_MCP_RPC_MESSAGE_INVALID",
@@ -617,6 +620,9 @@ const MCP_DISCOVERY_BACKOFF_MS = 250; // 250ms, 500ms
 // frame, including its unterminated tail. maxBufferChars remains a compatible
 // way to request a smaller limit, but cannot disable or raise this boundary.
 const MCP_STDIO_FRAME_MAX_BYTES = 16 * 1024 * 1024;
+const MCP_STDIO_MALFORMED_MAX_BYTES = 1024 * 1024;
+const MCP_STDIO_MALFORMED_MAX_FRAMES = 32;
+const MCP_STDIO_STDERR_MAX_BYTES = 1024 * 1024;
 
 function stdioFrameByteLimit(configuredLimit) {
   if (Number.isFinite(configuredLimit) && configuredLimit > 0) {
@@ -1317,12 +1323,15 @@ export class MCPClient extends EventEmitter {
       _buffer: "",
       _bufferBytes: 0,
       _stdioFrameError: null,
-      // Per-connection streaming decoders so a multi-byte UTF-8 character (e.g.
-      // a 3-byte Chinese char) split across two stdout/stderr chunks is
+      _malformedFrameBytes: 0,
+      _malformedFrameCount: 0,
+      _stderrBytes: 0,
+      _stderrNotified: false,
+      // Per-connection streaming decoder so a multi-byte UTF-8 character (e.g.
+      // a 3-byte Chinese char) split across two stdout chunks is
       // reassembled instead of corrupted into U+FFFD. Decoding each chunk
       // independently (data.toString("utf8")) would mangle a split character.
       _decoder: new TextDecoder("utf-8"),
-      _stderrDecoder: new TextDecoder("utf-8"),
     };
 
     const rejectPending = (error) => {
@@ -1653,13 +1662,7 @@ export class MCPClient extends EventEmitter {
         });
 
         proc.stderr.on("data", (data) => {
-          this.emit("server-error", {
-            name,
-            error:
-              typeof data === "string"
-                ? data
-                : entry._stderrDecoder.decode(data, { stream: true }),
-          });
+          this._handleStdioStderr(name, data);
         });
 
         // If the server process dies with requests in flight, reject them
@@ -2999,20 +3002,94 @@ export class MCPClient extends EventEmitter {
       if (newline < 0) return;
 
       const line = entry._buffer;
+      const frameBytes = entry._bufferBytes;
       entry._buffer = "";
       entry._bufferBytes = 0;
       offset = newline + 1;
       const trimmed = line.trim();
       if (!trimmed) continue;
 
+      let msg;
       try {
-        const msg = JSON.parse(trimmed);
-        this._handleMessage(serverName, msg);
+        msg = JSON.parse(trimmed);
       } catch {
-        // Skip malformed lines. Aggregate malformed-frame budgeting remains a
-        // separate transport boundary; individual frames are bounded here.
+        if (this._recordMalformedStdioFrame(serverName, entry, frameBytes)) {
+          return;
+        }
+        continue;
       }
+      this._handleMessage(serverName, msg);
     }
+  }
+
+  _handleStdioStderr(serverName, data) {
+    const entry = this.servers.get(serverName);
+    if (!entry || entry._stdioFrameError) return;
+    const chunkBytes =
+      typeof data === "string"
+        ? Buffer.byteLength(data, "utf8")
+        : Number.isFinite(data?.byteLength)
+          ? data.byteLength
+          : Buffer.byteLength(String(data || ""), "utf8");
+    if (chunkBytes <= 0) return;
+    const totalBytes = (entry._stderrBytes || 0) + chunkBytes;
+    entry._stderrBytes = totalBytes;
+    if (totalBytes > MCP_STDIO_STDERR_MAX_BYTES) {
+      const dispatched =
+        entry._pending instanceof Map && entry._pending.size > 0;
+      return this._failStdioInput(
+        serverName,
+        entry,
+        mcpTransportError(
+          "CC_MCP_STDIO_STDERR_TOO_LARGE",
+          `MCP stdio server "${serverName}" exceeded the ${MCP_STDIO_STDERR_MAX_BYTES}-byte host stderr budget`,
+          {
+            transport: "stdio",
+            limitBytes: MCP_STDIO_STDERR_MAX_BYTES,
+            dispatched,
+            outcomeUnknown: dispatched,
+          },
+        ),
+      );
+    }
+    if (!entry._stderrNotified) {
+      entry._stderrNotified = true;
+      this.emit("server-error", {
+        name: serverName,
+        code: "CC_MCP_STDIO_STDERR_OUTPUT",
+        error: `MCP stdio server "${serverName}" wrote diagnostics to stderr`,
+        bytes: chunkBytes,
+      });
+    }
+    return null;
+  }
+
+  _recordMalformedStdioFrame(serverName, entry, frameBytes) {
+    entry._malformedFrameCount = (entry._malformedFrameCount || 0) + 1;
+    entry._malformedFrameBytes = (entry._malformedFrameBytes || 0) + frameBytes;
+    if (
+      entry._malformedFrameCount <= MCP_STDIO_MALFORMED_MAX_FRAMES &&
+      entry._malformedFrameBytes <= MCP_STDIO_MALFORMED_MAX_BYTES
+    ) {
+      return false;
+    }
+    const dispatched = entry._pending instanceof Map && entry._pending.size > 0;
+    this._failStdioInput(
+      serverName,
+      entry,
+      mcpTransportError(
+        "CC_MCP_STDIO_MALFORMED_BUDGET_EXCEEDED",
+        `MCP stdio server "${serverName}" exceeded the malformed stdout budget`,
+        {
+          transport: "stdio",
+          limitBytes: MCP_STDIO_MALFORMED_MAX_BYTES,
+          limitFrames: MCP_STDIO_MALFORMED_MAX_FRAMES,
+          dispatched,
+          outcomeUnknown: dispatched,
+        },
+      ),
+    );
+    return true;
   }
 
   _failStdioFrameTooLarge(serverName, entry, cap) {
@@ -3028,6 +3105,11 @@ export class MCPClient extends EventEmitter {
         outcomeUnknown: dispatched,
       },
     );
+    return this._failStdioInput(serverName, entry, error);
+  }
+
+  _failStdioInput(serverName, entry, error) {
+    if (entry._stdioFrameError) return entry._stdioFrameError;
     entry._stdioFrameError = error;
     entry._buffer = "";
     entry._bufferBytes = 0;
@@ -3048,7 +3130,8 @@ export class MCPClient extends EventEmitter {
       name: serverName,
       code: error.code,
       error: error.message,
-      limitBytes: cap,
+      ...(error.limitBytes != null ? { limitBytes: error.limitBytes } : {}),
+      ...(error.limitFrames != null ? { limitFrames: error.limitFrames } : {}),
     });
     try {
       entry.process?.kill?.();
