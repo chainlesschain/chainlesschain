@@ -1005,6 +1005,7 @@ async function drivePhase(
   tracePath,
   signal = null,
   workbenchClient = null,
+  artifactDir = null,
 ) {
   const step = async (name, action) => {
     throwIfAborted(signal);
@@ -1076,6 +1077,12 @@ async function drivePhase(
       );
     });
     if (workbenchClient) {
+      // Conversation-changing rewind actions intentionally replace the
+      // transcript, and Branch finishes in a new conversation. Freeze the
+      // pre-rewind DOM now so evidence retains the earlier stream, retry,
+      // plan, permission, and interrupt controls instead of expecting them in
+      // the final post-Branch snapshot.
+      await captureWebview(client, artifactDir, "initial-before-rewind");
       for (const action of REWIND_HOST_ACTIONS) {
         await step(`rewind-${action.action}`, async () => {
           await driveRewindAction(
@@ -1284,6 +1291,10 @@ function assertJourneyArtifacts({
       `CDP journey contains a failed record for ${failed.phase || "unknown phase"}`,
     );
   }
+  const nativeTimeline = cdpRecords.some(
+    (record) =>
+      record.phase === "initial" && record.status === "native-workbench-found",
+  );
   for (const [phase, steps] of Object.entries(JOURNEY_PHASES)) {
     const targetRecord = cdpRecords.find(
       (record) => record.phase === phase && record.status === "target-found",
@@ -1312,9 +1323,20 @@ function assertJourneyArtifacts({
       }
     }
     requireTextMarkers(
-      path.join(artifactDir, `${phase}-dom.txt`),
+      path.join(
+        artifactDir,
+        phase === "initial" && nativeTimeline
+          ? "initial-before-rewind-dom.txt"
+          : `${phase}-dom.txt`,
+      ),
       PHASE_DOM_MARKERS[phase],
     );
+  }
+  if (nativeTimeline) {
+    requireTextMarkers(path.join(artifactDir, "initial-dom.txt"), [
+      "Branch from here completed at turn-2",
+      "branch-turn-2 is ready",
+    ]);
   }
   for (const phase of Object.keys(JOURNEY_PHASES)) {
     assertHostReadySignal({
@@ -1333,10 +1355,6 @@ function assertJourneyArtifacts({
   }
 
   const fixtureRecords = readJsonLines(fixtureTracePath);
-  const nativeTimeline = cdpRecords.some(
-    (record) =>
-      record.phase === "initial" && record.status === "native-workbench-found",
-  );
   if (nativeTimeline) {
     const timelineReads = fixtureRecords.filter(
       (record) =>
@@ -1420,9 +1438,14 @@ function assertJourneyArtifacts({
   return {
     tracePath,
     fixtureTracePath,
-    domPaths: Object.keys(JOURNEY_PHASES).map((phase) =>
-      path.join(artifactDir, `${phase}-dom.txt`),
-    ),
+    domPaths: [
+      ...Object.keys(JOURNEY_PHASES).map((phase) =>
+        path.join(artifactDir, `${phase}-dom.txt`),
+      ),
+      ...(nativeTimeline
+        ? [path.join(artifactDir, "initial-before-rewind-dom.txt")]
+        : []),
+    ],
   };
 }
 
@@ -1484,7 +1507,14 @@ async function runCdpHostJourney(options) {
         targetUrl: workbench.target.url,
       });
     }
-    await drivePhase(client, phase, tracePath, signal, workbenchClient);
+    await drivePhase(
+      client,
+      phase,
+      tracePath,
+      signal,
+      workbenchClient,
+      artifactDir,
+    );
     await captureWebview(client, artifactDir, phase);
     writeJsonSignal(resultFile, {
       ok: true,

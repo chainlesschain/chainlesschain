@@ -1100,9 +1100,18 @@ test("raw DOM and protocol evidence must prove every control and restart step", 
     fs.mkdirSync(artifactDir, { recursive: true });
     fs.writeFileSync(
       path.join(artifactDir, `${phase}-dom.txt`),
-      PHASE_DOM_MARKERS[phase].join("\n"),
+      phase === "initial"
+        ? "Branch from here completed at turn-2\nbranch-turn-2 is ready\n"
+        : PHASE_DOM_MARKERS[phase].join("\n"),
       "utf8",
     );
+    if (phase === "initial") {
+      fs.writeFileSync(
+        path.join(artifactDir, "initial-before-rewind-dom.txt"),
+        PHASE_DOM_MARKERS.initial.join("\n"),
+        "utf8",
+      );
+    }
     writeJsonSignal(path.join(runtimeDir, `${phase}-host-ready.json`), {
       phase,
       extensionPath: installedExtension,
@@ -1162,7 +1171,7 @@ test("raw DOM and protocol evidence must prove every control and restart step", 
     extensionsDir,
     workspaceDir,
   });
-  assert.equal(evidence.domPaths.length, 2);
+  assert.equal(evidence.domPaths.length, 3);
 
   fs.writeFileSync(
     path.join(artifactDir, "restart-dom.txt"),
