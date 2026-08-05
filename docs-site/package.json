@@ -5,8 +5,9 @@
   "description": "ChainlessChain Documentation Website",
   "scripts": {
     "sync:design": "node scripts/sync-design-docs.js",
+    "check:user-docs": "node scripts/check-user-doc-sections.js",
     "dev": "npm run sync:design && vitepress dev docs",
-    "build": "npm run sync:design && vitepress build docs",
+    "build": "npm run sync:design && npm run check:user-docs && vitepress build docs",
     "preview": "vitepress preview docs"
   },
   "keywords": [
