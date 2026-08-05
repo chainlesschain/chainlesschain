@@ -159,15 +159,10 @@ version.
   the real Chat focus command must settle before DOM polling begins. No
   Inspector or remote-debugging transport is opened; all DOM state remains on
   the token-gated relay.
-  For the `0.37.41` / CLI `0.162.194` release candidate only, the macOS Intel
-  gate uses fixed stable `1.130.0` plus minimum `1.85.2`. This bounded host pin
-  follows repeated fail-closed `1.131.0` runs in which the same signed hosted
-  runner completed the minimum-host real-DOM journey but received no Webview
-  ready/protocol message on `1.131.0`. Windows and Linux continue to exercise
-  current stable. The pin must be removed or explicitly re-reviewed before the
-  next VS Code extension release; it does not convert the recorded `1.131.0`
-  runner failure into a pass. macOS is release-authoritative only when both the
-  fixed validated stable and minimum journeys pass.
+  The isolated macOS journey uses VS Code's test-only in-memory secret storage
+  because a fresh CI profile contains no user credentials and must not block on
+  headless Keychain access before Webview startup. macOS remains
+  release-authoritative only when both current stable and minimum journeys pass.
   `--host-api-only` is a
   diagnostic fallback that verifies activation, registered commands, the live
   bridge, and the production Activity View/focus command, but it does not prove

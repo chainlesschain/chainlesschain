@@ -20,8 +20,8 @@ All notable changes to this extension are documented here.
   host failure.
 - Retain verbose Webview/service-worker diagnostics for the isolated macOS host
   journey without disabling the renderer used by current VS Code builds.
-- Validate this release candidate on fixed stable host `1.130.0` while the
-  GitHub Intel runner remains blocked on the `1.131.0` Webview relay.
+- Keep the isolated macOS host on VS Code's in-memory test secret storage so a
+  headless Keychain request cannot block current stable before Webview startup.
 
 ## [0.37.40] - Inline chat and release-host hardening (2026-08-04)
 

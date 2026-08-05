@@ -57,10 +57,6 @@ test("VS Code macOS host gate pins the validated Intel runner image", () => {
   assert.doesNotMatch(macGate[0], /ws@8\.21\.2/u);
   assert.doesNotMatch(macGate[0], /playwright/u);
   assert.doesNotMatch(macGate[0], /--host-api-only/u);
-  assert.match(
-    macGate[0],
-    /Extension Host smoke \(macOS validated stable 1\.130\.0\)[\s\S]*?--vscode-version 1\.130\.0/u,
-  );
   const hostRunner = read(
     "packages/vscode-extension/test/extension-host/run.cjs",
   );
@@ -107,7 +103,7 @@ test("VS Code macOS host gate pins the validated Intel runner image", () => {
   );
   assert.equal(
     macGate[0].match(
-      /- name: Extension Host smoke \(macOS (?:validated stable 1\.130\.0|minimum 1\.85\.2)\)\n\s+(?:if: always\(\)\n\s+)?timeout-minutes: 15/gu,
+      /- name: Extension Host smoke \(macOS (?:stable|minimum 1\.85\.2)\)\n\s+(?:if: always\(\)\n\s+)?timeout-minutes: 15/gu,
     )?.length,
     2,
     "both real-DOM host gates must fail within a diagnostic step deadline",

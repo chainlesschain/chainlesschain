@@ -273,6 +273,11 @@ function buildHostDomRelayLaunchArgs({ workspaceDir, profileArgs }) {
     // GPU remains enabled because disabling it can stall stable VS Code before
     // either the target extension or the test driver reaches activation.
     "--verbose",
+    // VS Code's own automation launcher uses this switch for isolated tests.
+    // A fresh macOS runner has no user secrets to validate, and allowing the
+    // current host to reach Keychain can stall its renderer before Webviews
+    // are created.
+    "--use-inmemory-secretstorage",
     "--disable-background-timer-throttling",
     "--disable-backgrounding-occluded-windows",
     "--disable-renderer-backgrounding",
