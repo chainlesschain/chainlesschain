@@ -2024,6 +2024,13 @@ export class MCPClient extends EventEmitter {
    * @param {{signal?: AbortSignal}} options - Host-owned cancellation
    */
   async callTool(serverName, toolName, args = {}, options = {}) {
+    if (options?.signal?.aborted) {
+      throw mcpRequestAbortedError(
+        serverName,
+        this.servers.get(serverName),
+        false,
+      );
+    }
     try {
       return await this._callToolOnce(serverName, toolName, args, options);
     } catch (err) {
@@ -2375,6 +2382,10 @@ export class MCPClient extends EventEmitter {
   _sendRequest(serverName, method, params, options = {}) {
     const entry = this.servers.get(serverName);
     if (!entry) return Promise.reject(new Error("Server not available"));
+    const callerSignal = options?.signal || null;
+    if (callerSignal?.aborted) {
+      return Promise.reject(mcpRequestAbortedError(serverName, entry, false));
+    }
     if (entry._httpDiscardStopping) {
       return Promise.reject(mcpServerDisconnectingError(serverName, entry));
     }
@@ -2384,7 +2395,7 @@ export class MCPClient extends EventEmitter {
     }
 
     if (entry.socket) {
-      return this._sendWebSocketRequest(serverName, method, params);
+      return this._sendWebSocketRequest(serverName, method, params, options);
     }
 
     return new Promise((resolve, reject) => {
@@ -2400,7 +2411,58 @@ export class MCPClient extends EventEmitter {
         params,
       });
 
-      entry._pending.set(id, { resolve, reject });
+      let timeout = null;
+      let removeCallerAbort = null;
+      let dispatched = false;
+      let settled = false;
+      const cleanup = () => {
+        if (timeout) clearTimeout(timeout);
+        try {
+          removeCallerAbort?.();
+        } catch {
+          // Best-effort cleanup for non-native AbortSignal adapters.
+        }
+        entry._pending.delete(id);
+      };
+      const settle = (settler, value) => {
+        if (settled) return false;
+        settled = true;
+        cleanup();
+        settler(value);
+        return true;
+      };
+      const pending = {
+        resolve: (value) => settle(resolve, value),
+        reject: (error) => settle(reject, error),
+      };
+      entry._pending.set(id, pending);
+
+      if (callerSignal?.addEventListener) {
+        const onCallerAbort = () => {
+          const wasDispatched = dispatched;
+          if (
+            !settle(
+              reject,
+              mcpRequestAbortedError(serverName, entry, wasDispatched),
+            )
+          ) {
+            return;
+          }
+          if (wasDispatched) {
+            this._sendRequestCancellation(
+              serverName,
+              method,
+              id,
+              `Request cancelled by caller: ${method}`,
+            );
+          }
+        };
+        callerSignal.addEventListener("abort", onCallerAbort, { once: true });
+        removeCallerAbort = () =>
+          callerSignal.removeEventListener?.("abort", onCallerAbort);
+        if (callerSignal.aborted) onCallerAbort();
+      }
+      if (settled) return;
 
       // Per-call timeout — honour the same config knobs as the HTTP path so the
       // two transports behave consistently: `longRunning` servers (a tool that
@@ -2415,33 +2477,31 @@ export class MCPClient extends EventEmitter {
       const timeoutMs = Number.isFinite(entry.config?.requestTimeoutMs)
         ? entry.config.requestTimeoutMs
         : STDIO_REQUEST_TIMEOUT_MS;
-      let timeout = null;
       if (!longRunning && timeoutMs > 0) {
         timeout = setTimeout(() => {
-          if (!entry._pending.delete(id)) return;
           const timeoutError = new Error(`Request timeout: ${method}`);
+          if (!settle(reject, timeoutError)) return;
           this._sendRequestCancellation(
             serverName,
             method,
             id,
             timeoutError.message,
           );
-          reject(timeoutError);
         }, timeoutMs);
-        entry._pending.get(id).timeout = timeout;
+        timeout.unref?.();
+        pending.timeout = timeout;
       }
 
       try {
+        dispatched = true;
         entry.process.stdin.write(message + "\n");
       } catch (err) {
-        clearTimeout(timeout); // clearTimeout(null) is a safe no-op
-        entry._pending.delete(id);
-        reject(err);
+        settle(reject, err);
       }
     });
   }
 
-  _sendWebSocketRequest(serverName, method, params) {
+  _sendWebSocketRequest(serverName, method, params, options = {}) {
     const entry = this.servers.get(serverName);
     if (!entry?.socket || entry.socket.readyState !== 1) {
       return Promise.reject(
@@ -2452,6 +2512,10 @@ export class MCPClient extends EventEmitter {
         ),
       );
     }
+    const callerSignal = options?.signal || null;
+    if (callerSignal?.aborted) {
+      return Promise.reject(mcpRequestAbortedError(serverName, entry, false));
+    }
 
     return new Promise((resolve, reject) => {
       const id = this._nextId++;
@@ -2461,28 +2525,79 @@ export class MCPClient extends EventEmitter {
         ? entry.config.requestTimeoutMs
         : STDIO_REQUEST_TIMEOUT_MS;
       let timeout = null;
+      let removeCallerAbort = null;
+      let dispatched = false;
+      let settled = false;
+      const cleanup = () => {
+        if (timeout) clearTimeout(timeout);
+        try {
+          removeCallerAbort?.();
+        } catch {
+          // Best-effort cleanup for non-native AbortSignal adapters.
+        }
+        entry._pending.delete(id);
+      };
+      const settle = (settler, value) => {
+        if (settled) return false;
+        settled = true;
+        cleanup();
+        settler(value);
+        return true;
+      };
+      const pending = {
+        resolve: (value) => settle(resolve, value),
+        reject: (error) => settle(reject, error),
+      };
+      entry._pending.set(id, pending);
+
+      if (callerSignal?.addEventListener) {
+        const onCallerAbort = () => {
+          const wasDispatched = dispatched;
+          if (
+            !settle(
+              reject,
+              mcpRequestAbortedError(serverName, entry, wasDispatched),
+            )
+          ) {
+            return;
+          }
+          if (wasDispatched) {
+            this._sendRequestCancellation(
+              serverName,
+              method,
+              id,
+              `Request cancelled by caller: ${method}`,
+            );
+          }
+        };
+        callerSignal.addEventListener("abort", onCallerAbort, { once: true });
+        removeCallerAbort = () =>
+          callerSignal.removeEventListener?.("abort", onCallerAbort);
+        if (callerSignal.aborted) onCallerAbort();
+      }
+      if (settled) return;
+
       if (!longRunning && timeoutMs > 0) {
         timeout = setTimeout(() => {
-          if (!entry._pending.delete(id)) return;
           const timeoutError = mcpTransportError(
             "CC_MCP_WS_REQUEST_TIMEOUT",
             `Request timeout: ${method} (WebSocket, no response in ${timeoutMs}ms)`,
             { transport: entry.transportKind, url: entry.config?.url },
           );
+          if (!settle(reject, timeoutError)) return;
           this._sendRequestCancellation(
             serverName,
             method,
             id,
             timeoutError.message,
           );
-          reject(timeoutError);
         }, timeoutMs);
+        timeout.unref?.();
+        pending.timeout = timeout;
       }
-      entry._pending.set(id, { resolve, reject, timeout });
       const failDispatch = () => {
-        if (timeout) clearTimeout(timeout);
-        entry._pending.delete(id);
-        reject(
+        settle(
+          reject,
           mcpTransportError(
             "CC_MCP_WS_SEND_FAILED",
             `WebSocket request dispatch failed for method "${method}"`,
@@ -2496,6 +2611,7 @@ export class MCPClient extends EventEmitter {
         );
       };
       try {
+        dispatched = true;
         entry.socket.send(message, (cause) => {
           if (!cause) return;
           failDispatch();
