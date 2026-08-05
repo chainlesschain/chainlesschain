@@ -18,8 +18,10 @@ All notable changes to this extension are documented here.
 - Keep fresh token-gated Webviews free of stale-DOM reloads while retaining the
   bounded relay deadline, and collect minimum-host evidence even after a stable
   host failure.
-- Use deterministic software rendering for the isolated macOS host journey and
-  retain verbose Webview/service-worker diagnostics on current VS Code builds.
+- Retain verbose Webview/service-worker diagnostics for the isolated macOS host
+  journey without disabling the renderer used by current VS Code builds.
+- Validate this release candidate on fixed stable host `1.130.0` while the
+  GitHub Intel runner remains blocked on the `1.131.0` Webview relay.
 
 ## [0.37.40] - Inline chat and release-host hardening (2026-08-04)
 
