@@ -156,7 +156,7 @@ final class IdeUiSmokeTest {
 
     private static void send(
             ComponentFixture input, ComponentFixture send, String text) {
-        input.runJs("component.setText(" + jsString(text) + ")");
+        input.runJs("component.setText(" + jsString(text) + ")", true);
         clickButton(send);
     }
 
@@ -168,7 +168,7 @@ final class IdeUiSmokeTest {
      * exercises the production ActionListener and protocol path.
      */
     private static void clickButton(ComponentFixture button) {
-        button.runJs("component.doClick()");
+        button.runJs("component.doClick()", true);
     }
 
     private static void waitForTranscript(
