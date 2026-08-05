@@ -64,6 +64,9 @@ export function parseMcpServers(raw) {
       transport: cfg.transport,
       headers:
         cfg.headers && typeof cfg.headers === "object" ? cfg.headers : {},
+      ...(Number.isFinite(cfg.maxPayloadBytes)
+        ? { maxPayloadBytes: cfg.maxPayloadBytes }
+        : {}),
       ...headersHelperField(cfg.headersHelper),
       ...(cfg.configScope ? { configScope: cfg.configScope } : {}),
       ...(cfg.configSource ? { configSource: cfg.configSource } : {}),

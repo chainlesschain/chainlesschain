@@ -92,6 +92,18 @@ describe("parseMcpServers", () => {
       headers: {},
     });
   });
+
+  it("preserves only numeric WebSocket payload limits", () => {
+    const out = parseMcpServers({
+      mcpServers: {
+        strict: { url: "ws://example.test/mcp", maxPayloadBytes: 2048 },
+        textual: { url: "ws://example.test/mcp", maxPayloadBytes: "2048" },
+      },
+    });
+
+    expect(out.strict.maxPayloadBytes).toBe(2048);
+    expect(out.textual).not.toHaveProperty("maxPayloadBytes");
+  });
 });
 
 describe("mcpToolName", () => {

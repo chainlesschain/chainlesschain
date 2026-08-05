@@ -7,6 +7,7 @@ import {
   _deps,
   isLikelyConnectionError,
 } from "../../src/harness/mcp-client.js";
+import { loadMcpConfig } from "../../src/runtime/mcp-config.js";
 
 const WEBSOCKET_HARD_LIMIT_BYTES = 16 * 1024 * 1024;
 const PAYLOAD_CANARY = "OVERSIZED_WS_PAYLOAD_CANARY_MUST_NOT_SURFACE";
@@ -138,6 +139,36 @@ afterEach(async () => {
 });
 
 describe("MCPClient WebSocket host-owned payload limit", () => {
+  it("propagates a tighter ordinary config-file limit to the socket sink", async () => {
+    const observed = [];
+    _deps.WebSocket = class RejectingWebSocket {
+      constructor(_url, options) {
+        observed.push(options.maxPayload);
+        throw new Error("fixture constructor stop");
+      }
+    };
+    const errors = [];
+
+    const loaded = await loadMcpConfig("fixture.json", {
+      readFile: () =>
+        JSON.stringify({
+          mcpServers: {
+            limited: {
+              transport: "ws",
+              url: "ws://mcp.example.test/rpc",
+              headers: { Authorization: "Bearer fixture" },
+              maxPayloadBytes: 2048,
+            },
+          },
+        }),
+      writeErr: (line) => errors.push(line),
+    });
+
+    expect(observed).toEqual([2048]);
+    expect(loaded.connected).toEqual([]);
+    expect(errors.join("")).toContain("fixture constructor stop");
+  });
+
   it("clamps disabled, invalid, and oversized config before construction", async () => {
     const observed = [];
     _deps.WebSocket = class RejectingWebSocket {
