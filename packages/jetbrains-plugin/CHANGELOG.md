@@ -1,5 +1,16 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.79] - Release-host reliability (2026-08-04)
+
+- Carry forward the canonical session delivery and rewind experience from
+  0.4.77 in a new immutable Marketplace version after the 0.4.78 tag failed
+  before upload.
+- Align Java and Kotlin compilation plus every Windows, Linux, and macOS host
+  journey with the Java 21 runtime required by the supported IntelliJ
+  Platform 2024.2 and 2025.2 releases.
+- Drive the nightly Remote Robot journey through the same deterministic
+  fixture-backed host runner used by the release matrix.
+
 ## [0.4.77] - Canonical session delivery and rewind (2026-08-03)
 
 - Project the CLI-owned session graph into Sessions Workbench and expose only

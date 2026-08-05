@@ -111,10 +111,13 @@ describe("chat Webview UI protocol self-heal", () => {
     const harness = makeHarness();
     harness.provider.resolveWebviewView(harness.view);
 
-    vi.advanceTimersByTime(750);
+    vi.advanceTimersByTime(4_999);
+    expect(harness.htmlWrites).toHaveLength(1);
+
+    vi.advanceTimersByTime(1);
     expect(harness.htmlWrites).toHaveLength(2);
 
-    vi.advanceTimersByTime(750);
+    vi.advanceTimersByTime(5_000);
     expect(harness.htmlWrites).toHaveLength(2);
     harness.disposeView();
   });

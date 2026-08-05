@@ -8,24 +8,34 @@
  * extensions directory (not --extensionDevelopmentPath), activates it, and
  * checks its command/bridge surface.
  *
- * @vscode/test-electron is intentionally installed by CI with
+ * @vscode/test-electron and ws are intentionally installed by CI with
  * --no-save --no-package-lock so this leaf package keeps its lockfile-free
  * packaging workflow. Local usage:
- *   npm install --no-save --no-package-lock @vscode/test-electron@3.1.0
+ *   npm install --no-save --no-package-lock @vscode/test-electron@3.1.0 ws@8.21.2
  *   npm run test:extension-host -- --vsix chainlesschain-ide.vsix
  */
 
+const crypto = require("node:crypto");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
+const { spawn } = require("node:child_process");
+const { PassThrough } = require("node:stream");
 const { pathToFileURL } = require("node:url");
 const {
+  CdpClient,
+  assertHostReadySignal,
   assertJourneyArtifacts,
   createFixtureCli,
+  createCdpPipeSocket,
+  isExactIsoTimestamp,
+  readJsonLines,
   readJourneyResult,
   reserveLoopbackPort,
   runCdpHostJourney,
+  waitForFile,
 } = require("./cdp-journey.cjs");
+const { runElectronMainHostJourney } = require("./electron-main-journey.cjs");
 
 const EXTENSION_ID = "chainlesschain.chainlesschain-ide";
 const PACKAGE_ROOT = path.resolve(__dirname, "..", "..");
@@ -52,6 +62,7 @@ function usage() {
     "  --vscode-version <value>   stable, insiders, or an exact version (default: stable)",
     "  --work-dir <path>          Parent for fresh profiles and diagnostic logs",
     "  --artifact-dir <path>      Immutable journey evidence output directory",
+    "  --host-api-only            Diagnostic activation/view check without DOM authority",
     "  --help                     Show this help",
   ].join("\n");
 }
@@ -70,6 +81,7 @@ function parseArgs(argv) {
     vscodeVersion: "stable",
     workDir: null,
     artifactDir: null,
+    hostApiOnly: false,
     help: false,
   };
   for (let i = 0; i < argv.length; i += 1) {
@@ -88,6 +100,8 @@ function parseArgs(argv) {
     } else if (arg === "--artifact-dir") {
       options.artifactDir = takeValue(argv, i, arg);
       i += 1;
+    } else if (arg === "--host-api-only") {
+      options.hostApiOnly = true;
     } else {
       throw new Error(`unknown option: ${arg}`);
     }
@@ -110,11 +124,50 @@ function requireTestElectron() {
   }
 }
 
-function makeFreshRunRoot(parent, vscodeVersion) {
-  const base = path.resolve(parent || os.tmpdir());
+function makeFreshRunRoot(parent) {
+  // VS Code places its macOS main-process Unix socket below --user-data-dir.
+  // The Darwin sockaddr_un path limit is 103 bytes, while os.tmpdir() expands
+  // to a long /var/folders/... path on GitHub-hosted runners. Keep both the
+  // default base and the unique directory name deliberately short.
+  const defaultBase = process.platform === "darwin" ? "/tmp" : os.tmpdir();
+  const base = path.resolve(parent || defaultBase);
   fs.mkdirSync(base, { recursive: true });
-  const slug = String(vscodeVersion).replace(/[^a-zA-Z0-9._-]/g, "_");
-  return fs.mkdtempSync(path.join(base, `chainlesschain-vscode-${slug}-`));
+  return fs.mkdtempSync(path.join(base, "ccv-"));
+}
+
+function buildProfileArgs({ runRoot, extensionsDir, phase }) {
+  if (!/^(?:install|initial|restart)$/.test(phase)) {
+    throw new Error(`unknown host profile phase: ${phase}`);
+  }
+  return [
+    `--extensions-dir=${extensionsDir}`,
+    `--user-data-dir=${path.join(runRoot, `user-data-${phase}`)}`,
+  ];
+}
+
+function createHostProgressJournal(artifactDir) {
+  const progressPath = path.join(
+    path.dirname(artifactDir),
+    `${path.basename(artifactDir)}.progress.jsonl`,
+  );
+  fs.mkdirSync(path.dirname(progressPath), { recursive: true, mode: 0o700 });
+  fs.writeFileSync(progressPath, "", {
+    encoding: "utf8",
+    flag: "wx",
+    mode: 0o600,
+  });
+  return progressPath;
+}
+
+function recordHostProgress(progressPath, stage) {
+  if (!/^[a-z][a-z0-9_]*$/.test(stage)) {
+    throw new Error(`invalid host progress stage: ${stage}`);
+  }
+  fs.appendFileSync(
+    progressPath,
+    `${JSON.stringify({ stage, at: new Date().toISOString() })}\n`,
+    "utf8",
+  );
 }
 
 function writeWorkspace(workspaceDir, fixtureCliCommand) {
@@ -161,14 +214,324 @@ function buildHostLaunchArgs({ workspaceDir, profileArgs, cdpPort }) {
     throw new Error(`invalid CDP port: ${cdpPort}`);
   }
   return [
-    workspaceDir,
     ...profileArgs,
     `--remote-debugging-port=${cdpPort}`,
     "--remote-debugging-address=127.0.0.1",
+    // Match the explicit Origin emitted by the pinned `ws` client. Both the
+    // debugging socket and allowed Origin are scoped to this run's random
+    // loopback-only port in a fresh test profile.
+    `--remote-allow-origins=http://127.0.0.1:${cdpPort}`,
     "--disable-extension-update-checks",
     "--disable-telemetry",
     "--disable-crash-reporter",
+    // Keep the positional workspace after every host switch. Some Electron /
+    // VS Code launch paths stop interpreting Chromium switches once a
+    // positional argument has been consumed.
+    workspaceDir,
   ];
+}
+
+function buildHostInspectorLaunchArgs({
+  workspaceDir,
+  profileArgs,
+  inspectorPort,
+}) {
+  if (
+    !Number.isInteger(inspectorPort) ||
+    inspectorPort < 1 ||
+    inspectorPort > 65_535
+  ) {
+    throw new Error(`invalid Electron inspector port: ${inspectorPort}`);
+  }
+  return [
+    ...profileArgs,
+    `--inspect=127.0.0.1:${inspectorPort}`,
+    "--disable-background-timer-throttling",
+    "--disable-backgrounding-occluded-windows",
+    "--disable-renderer-backgrounding",
+    "--disable-extension-update-checks",
+    "--disable-telemetry",
+    "--disable-crash-reporter",
+    workspaceDir,
+  ];
+}
+
+function buildHostApiLaunchArgs({ workspaceDir, profileArgs }) {
+  return [
+    ...profileArgs,
+    "--disable-extension-update-checks",
+    "--disable-telemetry",
+    "--disable-crash-reporter",
+    workspaceDir,
+  ];
+}
+
+function buildHostDomRelayLaunchArgs({ workspaceDir, profileArgs }) {
+  return [
+    ...profileArgs,
+    // Retain renderer/service-worker diagnostics for current Electron builds.
+    // GPU remains enabled because disabling it can stall stable VS Code before
+    // either the target extension or the test driver reaches activation.
+    "--verbose",
+    // VS Code's own automation launcher uses this switch for isolated tests.
+    // A fresh macOS runner has no user secrets to validate, and allowing the
+    // current host to reach Keychain can stall its renderer before Webviews
+    // are created.
+    "--use-inmemory-secretstorage",
+    "--disable-background-timer-throttling",
+    "--disable-backgrounding-occluded-windows",
+    "--disable-renderer-backgrounding",
+    "--disable-extension-update-checks",
+    "--disable-telemetry",
+    "--disable-crash-reporter",
+    workspaceDir,
+  ];
+}
+
+function buildHostPipeLaunchArgs({ workspaceDir, profileArgs }) {
+  return [
+    ...profileArgs,
+    "--remote-debugging-pipe",
+    "--disable-extension-update-checks",
+    "--disable-telemetry",
+    "--disable-crash-reporter",
+    workspaceDir,
+  ];
+}
+
+function buildExtensionTestLaunchArgs({
+  launchArgs,
+  extensionDevelopmentPath,
+  extensionTestsPath,
+}) {
+  return [
+    ...launchArgs,
+    "--no-sandbox",
+    "--disable-gpu-sandbox",
+    "--disable-updates",
+    "--skip-welcome",
+    "--skip-release-notes",
+    "--no-cached-data",
+    "--disable-workspace-trust",
+    `--extensionTestsPath=${extensionTestsPath}`,
+    `--extensionDevelopmentPath=${extensionDevelopmentPath}`,
+  ];
+}
+
+function launchExtensionHostWithCdpPipe({
+  vscodeExecutablePath,
+  launchArgs,
+  extensionDevelopmentPath,
+  extensionTestsPath,
+  extensionTestsEnv,
+  stdout = process.stdout,
+  stderr = process.stderr,
+  spawnProcess = spawn,
+}) {
+  const child = spawnProcess(
+    vscodeExecutablePath,
+    buildExtensionTestLaunchArgs({
+      launchArgs,
+      extensionDevelopmentPath,
+      extensionTestsPath,
+    }),
+    {
+      env: { ...process.env, ...extensionTestsEnv },
+      shell: false,
+      // Chromium's --remote-debugging-pipe contract reads commands on FD 3
+      // and writes NUL-delimited responses on FD 4.
+      stdio: ["ignore", "pipe", "pipe", "pipe", "pipe"],
+    },
+  );
+  child.stdout?.on("data", (chunk) => stdout.write(chunk));
+  child.stderr?.on("data", (chunk) => stderr.write(chunk));
+  const pipeWrite = child.stdio?.[3];
+  const pipeRead = child.stdio?.[4];
+  if (!pipeWrite || !pipeRead) {
+    child.kill("SIGKILL");
+    throw new Error("VS Code host did not expose CDP pipe FDs 3 and 4");
+  }
+
+  const outcome = new Promise((resolve, reject) => {
+    child.once("error", reject);
+    child.once("close", (code, signal) => {
+      if (code === 0) resolve(code);
+      else {
+        reject(
+          new Error(
+            `VS Code pipe host failed (code=${String(code)}, signal=${String(signal)})`,
+          ),
+        );
+      }
+    });
+  });
+  let stopRequests = 0;
+  return {
+    browserClient: new CdpClient(createCdpPipeSocket(pipeWrite, pipeRead)),
+    outcome,
+    requestStop() {
+      stopRequests += 1;
+      child.kill(stopRequests === 1 ? "SIGINT" : "SIGKILL");
+    },
+  };
+}
+
+function parseDevToolsBrowserEndpoint(value, expectedPort) {
+  if (
+    !Number.isInteger(expectedPort) ||
+    expectedPort < 1 ||
+    expectedPort > 65_535
+  ) {
+    throw new Error(`invalid CDP port: ${expectedPort}`);
+  }
+  const input = String(value || "");
+  const matches = input.matchAll(/DevTools listening on (ws:\/\/\S+)/g);
+  for (const match of matches) {
+    try {
+      const endpoint = new URL(match[1]);
+      const loopbackHost = ["127.0.0.1", "[::1]", "::1"].includes(
+        endpoint.hostname,
+      );
+      if (
+        endpoint.protocol === "ws:" &&
+        loopbackHost &&
+        Number(endpoint.port) === expectedPort &&
+        endpoint.username === "" &&
+        endpoint.password === "" &&
+        endpoint.search === "" &&
+        endpoint.hash === "" &&
+        /^\/devtools\/browser\/[^/]+$/.test(endpoint.pathname)
+      ) {
+        return endpoint.href;
+      }
+    } catch {
+      // Ignore unrelated or partially-written stderr lines.
+    }
+  }
+  return null;
+}
+
+function parseElectronInspectorEndpoint(value, expectedPort) {
+  if (
+    !Number.isInteger(expectedPort) ||
+    expectedPort < 1 ||
+    expectedPort > 65_535
+  ) {
+    throw new Error(`invalid Electron inspector port: ${expectedPort}`);
+  }
+  const input = String(value || "");
+  const matches = input.matchAll(/Debugger listening on (ws:\/\/\S+)/g);
+  for (const match of matches) {
+    try {
+      const endpoint = new URL(match[1]);
+      const loopbackHost = ["127.0.0.1", "[::1]", "::1"].includes(
+        endpoint.hostname,
+      );
+      if (
+        endpoint.protocol === "ws:" &&
+        loopbackHost &&
+        Number(endpoint.port) === expectedPort &&
+        endpoint.username === "" &&
+        endpoint.password === "" &&
+        endpoint.search === "" &&
+        endpoint.hash === "" &&
+        /^\/[0-9a-f-]{16,}$/iu.test(endpoint.pathname)
+      ) {
+        return endpoint.href;
+      }
+    } catch {
+      // Ignore unrelated or partially-written stderr lines.
+    }
+  }
+  return null;
+}
+
+function createDevToolsEndpointCapture(expectedPort, output = process.stderr) {
+  let buffered = "";
+  let endpoint = null;
+  const stderr = new PassThrough();
+  stderr.on("data", (chunk) => {
+    const text = Buffer.isBuffer(chunk)
+      ? chunk.toString("utf8")
+      : String(chunk);
+    output.write(chunk);
+    if (!endpoint) {
+      buffered = `${buffered}${text}`.slice(-8_192);
+      endpoint = parseDevToolsBrowserEndpoint(buffered, expectedPort);
+    }
+  });
+  return {
+    getEndpoint: () => endpoint,
+    stderr,
+  };
+}
+
+function createElectronInspectorEndpointCapture(
+  expectedPort,
+  output = process.stderr,
+) {
+  let buffered = "";
+  let endpoint = null;
+  const stderr = new PassThrough();
+  stderr.on("data", (chunk) => {
+    const text = Buffer.isBuffer(chunk)
+      ? chunk.toString("utf8")
+      : String(chunk);
+    output.write(chunk);
+    if (!endpoint) {
+      buffered = `${buffered}${text}`.slice(-8_192);
+      endpoint = parseElectronInspectorEndpoint(buffered, expectedPort);
+    }
+  });
+  return {
+    getEndpoint: () => endpoint,
+    stderr,
+  };
+}
+
+function waitForOutcome(promise, timeoutMs) {
+  const timedOut = Symbol("timed-out");
+  let timer;
+  return Promise.race([
+    promise,
+    new Promise((resolve) => {
+      timer = setTimeout(() => resolve(timedOut), timeoutMs);
+    }),
+  ]).then((value) => {
+    clearTimeout(timer);
+    return value === timedOut ? null : value;
+  });
+}
+
+async function settleHostAfterCdp({
+  hostOutcome,
+  phase,
+  graceMs = 5_000,
+  forceGraceMs = 15_000,
+  emitSigint = () => process.emit("SIGINT"),
+  journeyLabel = "CDP journey",
+}) {
+  let host = await waitForOutcome(hostOutcome, graceMs);
+  if (host) return { host, managedTermination: false };
+
+  process.stdout.write(
+    `[extension-host-smoke] ${phase}: ${journeyLabel} settled; requesting host shutdown\n`,
+  );
+  emitSigint();
+  host = await waitForOutcome(hostOutcome, graceMs);
+  if (host) return { host, managedTermination: true };
+
+  process.stderr.write(
+    `[extension-host-smoke] ${phase}: host ignored graceful shutdown; terminating its process tree\n`,
+  );
+  emitSigint();
+  host = await waitForOutcome(hostOutcome, forceGraceMs);
+  if (!host) {
+    throw new Error(
+      `VS Code host did not exit after managed shutdown during ${phase}`,
+    );
+  }
+  return { host, managedTermination: true };
 }
 
 async function runRealDomPhase({
@@ -183,61 +546,337 @@ async function runRealDomPhase({
   runtimeDir,
   journeyArtifactDir,
   fixture,
+  useCdpPipe = false,
+  useElectronMainInspector = false,
+  useDomRelay = false,
 }) {
-  const cdpPort = await reserveLoopbackPort();
+  if (
+    [useCdpPipe, useElectronMainInspector, useDomRelay].filter(Boolean).length >
+    1
+  ) {
+    throw new Error("host DOM transports are mutually exclusive");
+  }
   const { readyFile, resultFile } = hostPhaseSignalPaths(runtimeDir, phase);
+  if (useDomRelay) {
+    fs.mkdirSync(journeyArtifactDir, { recursive: true, mode: 0o700 });
+    const hostDomToken = crypto.randomBytes(32).toString("hex");
+    // The signed macOS host does not reliably schedule extensionTestsPath.
+    // A valid one-launch token lets the installed target invoke the test-only
+    // driver's fixed contributed command after target activation returns.
+    // No debugger transport is opened: every DOM action and result crosses
+    // the token-gated Extension Host/Webview message relay below.
+    const sigintGuard = () => {};
+    process.on("SIGINT", sigintGuard);
+    let host;
+    let relay;
+    let managedTermination = false;
+    try {
+      const hostOutcome = Promise.resolve()
+        .then(() =>
+          runTests({
+            vscodeExecutablePath,
+            extensionDevelopmentPath: path.join(__dirname, "driver"),
+            extensionTestsPath: path.join(__dirname, "driver", "smoke.cjs"),
+            launchArgs: buildHostDomRelayLaunchArgs({
+              workspaceDir,
+              profileArgs,
+            }),
+            extensionTestsEnv: {
+              HOME: profileHome,
+              USERPROFILE: profileHome,
+              CHAINLESSCHAIN_SMOKE_EXTENSIONS_DIR: extensionsDir,
+              CHAINLESSCHAIN_SMOKE_EXPECTED_VERSION: expectedVersion,
+              CHAINLESSCHAIN_SMOKE_WORKSPACE: workspaceDir,
+              CHAINLESSCHAIN_HOST_JOURNEY_PHASE: phase,
+              CHAINLESSCHAIN_HOST_JOURNEY_MODE: "dom-relay",
+              CHAINLESSCHAIN_HOST_READY_FILE: readyFile,
+              CHAINLESSCHAIN_HOST_RESULT_FILE: resultFile,
+              CHAINLESSCHAIN_HOST_TRACE_FILE: path.join(
+                journeyArtifactDir,
+                "cdp-journey.jsonl",
+              ),
+              CHAINLESSCHAIN_HOST_ARTIFACT_DIR: journeyArtifactDir,
+              CHAINLESSCHAIN_HOST_DOM_TOKEN: hostDomToken,
+              CC_UI_FIXTURE_STATE: fixture.statePath,
+              CC_UI_FIXTURE_TRACE: fixture.tracePath,
+            },
+          }),
+        )
+        .then(
+          (value) => ({ value }),
+          (error) => ({ error }),
+        );
+      const relayOutcome = waitForFile(resultFile, 180_000)
+        .then(() => readJourneyResult(resultFile, phase))
+        .then(
+          (value) => ({ value }),
+          (error) => ({ error }),
+        );
+      const first = await Promise.race([
+        hostOutcome.then((outcome) => ({ source: "host", outcome })),
+        relayOutcome.then((outcome) => ({ source: "relay", outcome })),
+      ]);
+      if (first.source === "host") {
+        host = first.outcome;
+        relay = await relayOutcome;
+      } else {
+        relay = first.outcome;
+        ({ host, managedTermination } = await settleHostAfterCdp({
+          hostOutcome,
+          phase,
+          journeyLabel: "DOM relay journey",
+        }));
+      }
+    } finally {
+      process.removeListener("SIGINT", sigintGuard);
+    }
+
+    const hostError =
+      managedTermination && !relay.error ? null : host && host.error;
+    if (hostError && relay.error) {
+      throw new AggregateError(
+        [hostError, relay.error],
+        `VS Code host and DOM relay journey failed during ${phase}: host=${String(
+          hostError.message || hostError,
+        )}; journey=${String(relay.error.message || relay.error)}`,
+      );
+    }
+    if (hostError) throw hostError;
+    if (relay.error) throw relay.error;
+    return relay.value;
+  }
+  const inspectorPort = useElectronMainInspector
+    ? await reserveLoopbackPort()
+    : null;
+  const cdpPort =
+    useCdpPipe || useElectronMainInspector ? null : await reserveLoopbackPort();
+  // Both Chromium CDP and Electron's Node inspector print their authoritative
+  // endpoint before the Extension Host becomes ready. Capture only the exact
+  // loopback URL allocated for this fresh host while teeing stderr to CI.
+  const endpointCapture = useCdpPipe
+    ? null
+    : useElectronMainInspector
+      ? createElectronInspectorEndpointCapture(inspectorPort)
+      : createDevToolsEndpointCapture(cdpPort);
+  const extensionDevelopmentPath = path.join(__dirname, "driver");
+  const extensionTestsPath = path.join(__dirname, "driver", "smoke.cjs");
+  const extensionTestsEnv = {
+    HOME: profileHome,
+    USERPROFILE: profileHome,
+    CHAINLESSCHAIN_SMOKE_EXTENSIONS_DIR: extensionsDir,
+    CHAINLESSCHAIN_SMOKE_EXPECTED_VERSION: expectedVersion,
+    CHAINLESSCHAIN_SMOKE_WORKSPACE: workspaceDir,
+    CHAINLESSCHAIN_HOST_JOURNEY_PHASE: phase,
+    CHAINLESSCHAIN_HOST_READY_FILE: readyFile,
+    CHAINLESSCHAIN_HOST_RESULT_FILE: resultFile,
+    CC_UI_FIXTURE_STATE: fixture.statePath,
+    CC_UI_FIXTURE_TRACE: fixture.tracePath,
+  };
+  const pipeHost = useCdpPipe
+    ? launchExtensionHostWithCdpPipe({
+        vscodeExecutablePath,
+        launchArgs: buildHostPipeLaunchArgs({ workspaceDir, profileArgs }),
+        extensionDevelopmentPath,
+        extensionTestsPath,
+        extensionTestsEnv,
+      })
+    : null;
   const abortController = new AbortController();
-  const cdpOutcome = runCdpHostJourney({
-    port: cdpPort,
-    readyFile,
-    resultFile,
-    phase,
-    artifactDir: journeyArtifactDir,
-    signal: abortController.signal,
-  }).then(
+  const journeyPromise = useElectronMainInspector
+    ? runElectronMainHostJourney({
+        getInspectorWebSocketUrl: endpointCapture?.getEndpoint,
+        readyFile,
+        resultFile,
+        phase,
+        artifactDir: journeyArtifactDir,
+        signal: abortController.signal,
+      })
+    : runCdpHostJourney({
+        port: cdpPort,
+        getBrowserWebSocketUrl: endpointCapture?.getEndpoint,
+        browserClient: pipeHost?.browserClient,
+        readyFile,
+        resultFile,
+        phase,
+        artifactDir: journeyArtifactDir,
+        signal: abortController.signal,
+      });
+  const cdpOutcome = journeyPromise.then(
     (value) => ({ value }),
     (error) => ({ error }),
   );
-
-  let hostError = null;
+  // @vscode/test-electron exposes cancellation through its SIGINT handlers.
+  // Keep one outer listener installed so its managed shutdown path does not
+  // call process.exit() before this runner can persist diagnostics/evidence.
+  const sigintGuard = () => {};
+  process.on("SIGINT", sigintGuard);
+  let host;
+  let cdp;
+  let managedTermination = false;
   try {
-    await runTests({
-      vscodeExecutablePath,
-      extensionDevelopmentPath: path.join(__dirname, "driver"),
-      extensionTestsPath: path.join(__dirname, "driver", "smoke.cjs"),
-      launchArgs: buildHostLaunchArgs({
-        workspaceDir,
-        profileArgs,
-        cdpPort,
-      }),
-      extensionTestsEnv: {
-        HOME: profileHome,
-        USERPROFILE: profileHome,
-        CHAINLESSCHAIN_SMOKE_EXTENSIONS_DIR: extensionsDir,
-        CHAINLESSCHAIN_SMOKE_EXPECTED_VERSION: expectedVersion,
-        CHAINLESSCHAIN_SMOKE_WORKSPACE: workspaceDir,
-        CHAINLESSCHAIN_HOST_JOURNEY_PHASE: phase,
-        CHAINLESSCHAIN_HOST_READY_FILE: readyFile,
-        CHAINLESSCHAIN_HOST_RESULT_FILE: resultFile,
-        CC_UI_FIXTURE_STATE: fixture.statePath,
-        CC_UI_FIXTURE_TRACE: fixture.tracePath,
-      },
-    });
-  } catch (error) {
-    hostError = error;
-    abortController.abort(error);
+    const hostPromise = pipeHost
+      ? pipeHost.outcome
+      : Promise.resolve().then(() =>
+          runTests({
+            vscodeExecutablePath,
+            extensionDevelopmentPath,
+            extensionTestsPath,
+            stderr: endpointCapture.stderr,
+            launchArgs: useElectronMainInspector
+              ? buildHostInspectorLaunchArgs({
+                  workspaceDir,
+                  profileArgs,
+                  inspectorPort,
+                })
+              : buildHostLaunchArgs({
+                  workspaceDir,
+                  profileArgs,
+                  cdpPort,
+                }),
+            extensionTestsEnv,
+          }),
+        );
+    const hostOutcome = hostPromise.then(
+      (value) => ({ value }),
+      (error) => ({ error }),
+    );
+    const first = await Promise.race([
+      hostOutcome.then((outcome) => ({ source: "host", outcome })),
+      cdpOutcome.then((outcome) => ({ source: "cdp", outcome })),
+    ]);
+    if (first.source === "host") {
+      host = first.outcome;
+      if (host.error) abortController.abort(host.error);
+      cdp = await cdpOutcome;
+    } else {
+      cdp = first.outcome;
+      ({ host, managedTermination } = await settleHostAfterCdp({
+        hostOutcome,
+        phase,
+        ...(pipeHost ? { emitSigint: pipeHost.requestStop } : {}),
+      }));
+    }
+  } finally {
+    process.removeListener("SIGINT", sigintGuard);
   }
 
-  const cdp = await cdpOutcome;
+  const hostError =
+    managedTermination && !cdp.error ? null : host && host.error;
   if (hostError && cdp.error && cdp.error.name !== "AbortError") {
     throw new AggregateError(
       [hostError, cdp.error],
-      `VS Code host and CDP journey failed during ${phase}`,
+      `VS Code host and DOM journey failed during ${phase}: host=${String(
+        hostError.message || hostError,
+      )}; journey=${String(cdp.error.message || cdp.error)}`,
     );
   }
   if (hostError) throw hostError;
   if (cdp.error) throw cdp.error;
   return readJourneyResult(resultFile, phase);
+}
+
+async function runHostApiPhase({
+  runTests,
+  vscodeExecutablePath,
+  workspaceDir,
+  profileArgs,
+  extensionsDir,
+  profileHome,
+  expectedVersion,
+  phase,
+  runtimeDir,
+  fixture,
+}) {
+  const { readyFile, resultFile } = hostPhaseSignalPaths(runtimeDir, phase);
+  const traceFile = path.join(runtimeDir, "host-api-trace.jsonl");
+  await runTests({
+    vscodeExecutablePath,
+    extensionDevelopmentPath: path.join(__dirname, "driver"),
+    extensionTestsPath: path.join(__dirname, "driver", "smoke.cjs"),
+    launchArgs: buildHostApiLaunchArgs({
+      workspaceDir,
+      profileArgs,
+    }),
+    extensionTestsEnv: {
+      HOME: profileHome,
+      USERPROFILE: profileHome,
+      CHAINLESSCHAIN_SMOKE_EXTENSIONS_DIR: extensionsDir,
+      CHAINLESSCHAIN_SMOKE_EXPECTED_VERSION: expectedVersion,
+      CHAINLESSCHAIN_SMOKE_WORKSPACE: workspaceDir,
+      CHAINLESSCHAIN_HOST_JOURNEY_PHASE: phase,
+      CHAINLESSCHAIN_HOST_JOURNEY_MODE: "host-api",
+      CHAINLESSCHAIN_HOST_READY_FILE: readyFile,
+      CHAINLESSCHAIN_HOST_RESULT_FILE: resultFile,
+      CHAINLESSCHAIN_HOST_TRACE_FILE: traceFile,
+      CC_UI_FIXTURE_STATE: fixture.statePath,
+      CC_UI_FIXTURE_TRACE: fixture.tracePath,
+    },
+  });
+  return readJourneyResult(resultFile, phase);
+}
+
+function assertHostApiArtifacts({
+  runtimeDir,
+  extensionsDir,
+  workspaceDir,
+  expectedVersion,
+}) {
+  const traceFile = path.join(runtimeDir, "host-api-trace.jsonl");
+  const records = readJsonLines(traceFile);
+  const requiredStages = [
+    "installed-vsix-discovered",
+    "vsix-activated",
+    "commands-verified",
+    "bridge-verified",
+    "view-command-dispatched",
+    "phase-completed",
+  ];
+  const results = [];
+  for (const phase of ["initial", "restart"]) {
+    const { readyFile, resultFile } = hostPhaseSignalPaths(runtimeDir, phase);
+    const ready = assertHostReadySignal({
+      readyFile,
+      phase,
+      extensionsDir,
+      workspaceDir,
+    });
+    if (ready.mode !== "host-api") {
+      throw new Error(`host API ready signal mode mismatch: ${phase}`);
+    }
+    const result = readJourneyResult(resultFile, phase);
+    if (result.mode !== "host-api") {
+      throw new Error(`host API result mode mismatch: ${phase}`);
+    }
+    if (!isExactIsoTimestamp(result.completedAt)) {
+      throw new Error(`host API result has no exact timestamp: ${phase}`);
+    }
+
+    const phaseRecords = records.filter((record) => record.phase === phase);
+    let previousIndex = -1;
+    for (const stage of requiredStages) {
+      const index = phaseRecords.findIndex((record) => record.stage === stage);
+      if (index <= previousIndex) {
+        throw new Error(
+          `host API trace stage is missing or out of order: ${phase}/${stage}`,
+        );
+      }
+      const record = phaseRecords[index];
+      if (!isExactIsoTimestamp(record.at)) {
+        throw new Error(
+          `host API trace has no exact timestamp: ${phase}/${stage}`,
+        );
+      }
+      previousIndex = index;
+    }
+    const discovered = phaseRecords.find(
+      (record) => record.stage === "installed-vsix-discovered",
+    );
+    if (discovered.extensionVersion !== expectedVersion) {
+      throw new Error(`host API trace extension version mismatch: ${phase}`);
+    }
+    results.push({ phase, ready, result });
+  }
+  return { traceFile, results };
 }
 
 function assertInstalled(listOutput, version) {
@@ -254,7 +893,6 @@ function assertInstalled(listOutput, version) {
 }
 
 function findDiagnosticLogs(runRoot) {
-  const logsRoot = path.join(runRoot, "user-data", "logs");
   const candidates = [];
   function walk(dir) {
     let entries;
@@ -277,16 +915,15 @@ function findDiagnosticLogs(runRoot) {
       }
     }
   }
-  walk(logsRoot);
+  walk(runRoot);
   return candidates.sort();
 }
 
 function dumpFailureDiagnostics(runRoot) {
-  const logsRoot = path.join(runRoot, "user-data", "logs");
   const candidates = findDiagnosticLogs(runRoot);
   if (candidates.length === 0) {
     process.stderr.write(
-      `[extension-host-smoke] no diagnostic logs found under ${logsRoot}\n`,
+      `[extension-host-smoke] no diagnostic logs found under ${runRoot}\n`,
     );
     return;
   }
@@ -330,6 +967,15 @@ async function resolveVsCodeHostVersion(executablePath, requestedVersion) {
       const version = readJsonVersion(path.join(current, relative));
       if (version) return version;
     }
+    // @vscode/test-electron resolves channels such as "stable" before
+    // extraction and records the exact version in its install directory, e.g.
+    // vscode-win32-x64-archive-1.131.0. Windows archive layouts do not always
+    // expose resources/app/package.json next to the returned executable, so
+    // use that immutable cache identity before falling back to the CLI probe.
+    const directoryVersion = path
+      .basename(current)
+      .match(/(?:^|[-_])(\d+\.\d+\.\d+)(?:$|[-_])/u);
+    if (directoryVersion) return directoryVersion[1];
     const parent = path.dirname(current);
     if (parent === current) break;
     current = parent;
@@ -384,8 +1030,7 @@ async function main() {
     fs.readFileSync(path.join(PACKAGE_ROOT, "package.json"), "utf8"),
   );
   const expectedVersion = extensionManifest.version;
-  const runRoot = makeFreshRunRoot(options.workDir, options.vscodeVersion);
-  const userDataDir = path.join(runRoot, "user-data");
+  const runRoot = makeFreshRunRoot(options.workDir);
   const extensionsDir = path.join(runRoot, "extensions");
   const profileHome = path.join(runRoot, "profile-home");
   const workspaceDir = path.join(runRoot, "workspace");
@@ -394,12 +1039,14 @@ async function main() {
   const artifactDir = path.resolve(
     options.artifactDir || path.join(runRoot, "journey-evidence"),
   );
+  const progressPath = createHostProgressJournal(artifactDir);
+  const hostApiMode = options.hostApiOnly;
+  recordHostProgress(progressPath, "prepared");
   const startedAt = new Date().toISOString();
   const cliVersion = readJsonVersion(
     path.resolve(PACKAGE_ROOT, "..", "cli", "package.json"),
   );
   for (const dir of [
-    userDataDir,
     extensionsDir,
     profileHome,
     workspaceDir,
@@ -415,11 +1062,15 @@ async function main() {
 
   process.stdout.write(`[extension-host-smoke] fresh run root: ${runRoot}\n`);
 
-  const downloadOptions = { version: options.vscodeVersion };
-  const profileArgs = [
-    `--extensions-dir=${extensionsDir}`,
-    `--user-data-dir=${userDataDir}`,
-  ];
+  const downloadOptions = {
+    version: options.vscodeVersion,
+    spawn: { timeout: 120_000, killSignal: "SIGTERM" },
+  };
+  const installProfileArgs = buildProfileArgs({
+    runRoot,
+    extensionsDir,
+    phase: "install",
+  });
   let hostVersion = null;
   let journeyResult = "failed";
   let journeyError = null;
@@ -427,10 +1078,12 @@ async function main() {
   try {
     const { downloadAndUnzipVSCode, runTests, runVSCodeCommand } =
       requireTestElectron();
+    recordHostProgress(progressPath, "install_started");
     const install = await runVSCodeCommand(
-      [...profileArgs, "--install-extension", vsixPath, "--force"],
+      [...installProfileArgs, "--install-extension", vsixPath, "--force"],
       downloadOptions,
     );
+    recordHostProgress(progressPath, "install_completed");
     if (install.stdout.trim()) {
       process.stdout.write(install.stdout);
     }
@@ -438,28 +1091,27 @@ async function main() {
       process.stderr.write(install.stderr);
     }
 
+    recordHostProgress(progressPath, "list_started");
     const listed = await runVSCodeCommand(
-      [...profileArgs, "--list-extensions", "--show-versions"],
+      [...installProfileArgs, "--list-extensions", "--show-versions"],
       downloadOptions,
     );
     assertInstalled(listed.stdout, expectedVersion);
+    recordHostProgress(progressPath, "list_completed");
 
     // Reuses the exact version already downloaded by the install command.
+    recordHostProgress(progressPath, "download_started");
     const vscodeExecutablePath = await downloadAndUnzipVSCode(downloadOptions);
     hostVersion = await resolveVsCodeHostVersion(
       vscodeExecutablePath,
       options.vscodeVersion,
     );
+    recordHostProgress(progressPath, "download_completed");
     for (const phase of ["initial", "restart"]) {
-      if (phase === "restart") {
-        // Electron 39 can return from the first Extension Host while its
-        // profile mutex and renderer teardown are still settling. Give that
-        // bounded teardown a moment before launching the same isolated profile
-        // again, otherwise the second test process can exit before its driver
-        // receives the CDP result.
-        await new Promise((resolve) => setTimeout(resolve, 3_000));
-      }
-      await runRealDomPhase({
+      const profileArgs = buildProfileArgs({ runRoot, extensionsDir, phase });
+      recordHostProgress(progressPath, `${phase}_started`);
+      const runHostPhase = hostApiMode ? runHostApiPhase : runRealDomPhase;
+      await runHostPhase({
         runTests,
         vscodeExecutablePath,
         workspaceDir,
@@ -471,21 +1123,40 @@ async function main() {
         runtimeDir: journeyRuntimeDir,
         journeyArtifactDir,
         fixture,
+        useCdpPipe: false,
+        useElectronMainInspector: false,
+        useDomRelay: !hostApiMode && process.platform === "darwin",
+      });
+      recordHostProgress(progressPath, `${phase}_completed`);
+    }
+    if (hostApiMode) {
+      assertHostApiArtifacts({
+        runtimeDir: journeyRuntimeDir,
+        extensionsDir,
+        workspaceDir,
+        expectedVersion,
+      });
+    } else {
+      assertJourneyArtifacts({
+        artifactDir: journeyArtifactDir,
+        fixtureTracePath: fixture.tracePath,
+        runtimeDir: journeyRuntimeDir,
+        extensionsDir,
+        workspaceDir,
       });
     }
-    assertJourneyArtifacts({
-      artifactDir: journeyArtifactDir,
-      fixtureTracePath: fixture.tracePath,
-      runtimeDir: journeyRuntimeDir,
-      extensionsDir,
-      workspaceDir,
-    });
+    recordHostProgress(progressPath, "assertions_completed");
     journeyResult = "passed";
     process.stdout.write(
-      `[extension-host-smoke] PASS ${EXTENSION_ID}@${expectedVersion} real-DOM control/restart journey on ${hostVersion || options.vscodeVersion}\n`,
+      `[extension-host-smoke] PASS ${EXTENSION_ID}@${expectedVersion} ${
+        hostApiMode
+          ? "host-API activation/view relaunch smoke"
+          : "real-DOM control/restart journey"
+      } on ${hostVersion || options.vscodeVersion}\n`,
     );
   } catch (error) {
     journeyError = error;
+    recordHostProgress(progressPath, "journey_failed");
     dumpFailureDiagnostics(runRoot);
   } finally {
     const diagnosticLogs = findDiagnosticLogs(runRoot);
@@ -496,7 +1167,10 @@ async function main() {
     if (fs.statSync(journeyRuntimeDir, { throwIfNoEntry: false })) {
       sourceRoots.push(journeyRuntimeDir);
     }
-    if (fs.statSync(fixture.tracePath, { throwIfNoEntry: false })?.isFile()) {
+    if (
+      !hostApiMode &&
+      fs.statSync(fixture.tracePath, { throwIfNoEntry: false })?.isFile()
+    ) {
       sourceRoots.push(fixture.tracePath);
     }
     sourceRoots.push(...diagnosticLogs);
@@ -504,14 +1178,21 @@ async function main() {
       sourceRoots.push(path.join(runRoot, "__missing-host-diagnostics__"));
     }
     try {
+      recordHostProgress(progressPath, "evidence_started");
       const result = await writeJourneyEvidence({
         artifactDir,
-        journeyId: "vscode-installed-vsix-real-dom-control-resume",
+        journeyId: hostApiMode
+          ? "vscode-installed-vsix-host-api-activation-view-relaunch"
+          : "vscode-installed-vsix-real-dom-control-resume",
         host: "vscode",
         hostVersion: hostVersion || options.vscodeVersion,
         cliVersion,
         extensionVersion: expectedVersion,
-        transport: "local-ide-bridge+loopback-cdp",
+        transport: hostApiMode
+          ? "local-ide-bridge+vscode-extension-test-api"
+          : process.platform === "darwin"
+            ? "local-ide-bridge+vscode-webview-message-dom"
+            : "local-ide-bridge+loopback-cdp",
         result: journeyResult,
         startedAt,
         finishedAt: new Date().toISOString(),
@@ -523,6 +1204,7 @@ async function main() {
       process.stdout.write(
         `[extension-host-smoke] evidence: ${result.destination} (${result.evidence.evidenceDigest})\n`,
       );
+      recordHostProgress(progressPath, "evidence_completed");
       if (!result.evidence.evidenceComplete) {
         evidenceError = new Error(
           `IDE journey evidence is incomplete: ${result.evidence.incidents
@@ -532,6 +1214,7 @@ async function main() {
       }
     } catch (error) {
       evidenceError = error;
+      recordHostProgress(progressPath, "evidence_failed");
       if (journeyError) {
         process.stderr.write(
           `[extension-host-smoke] evidence failure: ${error.message}\n`,
@@ -544,12 +1227,29 @@ async function main() {
 }
 
 module.exports = {
+  buildProfileArgs,
+  buildExtensionTestLaunchArgs,
+  buildHostApiLaunchArgs,
+  buildHostDomRelayLaunchArgs,
+  buildHostInspectorLaunchArgs,
   buildHostLaunchArgs,
+  buildHostPipeLaunchArgs,
+  assertHostApiArtifacts,
+  createDevToolsEndpointCapture,
+  createElectronInspectorEndpointCapture,
+  createHostProgressJournal,
   findDiagnosticLogs,
   hostPhaseSignalPaths,
+  makeFreshRunRoot,
+  launchExtensionHostWithCdpPipe,
   parseArgs,
+  parseDevToolsBrowserEndpoint,
+  parseElectronInspectorEndpoint,
+  recordHostProgress,
   resolveVsCodeHostVersion,
+  runHostApiPhase,
   runRealDomPhase,
+  settleHostAfterCdp,
 };
 
 if (require.main === module) {

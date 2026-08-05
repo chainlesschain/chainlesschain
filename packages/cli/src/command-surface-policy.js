@@ -56,7 +56,32 @@ const COMMAND_MIGRATIONS = Object.freeze({
     deprecatedSince: "0.162.189",
     removalNotBefore: "0.164.0",
   }),
+  execbe: Object.freeze({
+    namespace: "lab",
+    deprecatedSince: "0.162.194",
+    removalNotBefore: "0.164.0",
+  }),
   fflag: Object.freeze({
+    namespace: "lab",
+    deprecatedSince: "0.162.194",
+    removalNotBefore: "0.164.0",
+  }),
+  itbudget: Object.freeze({
+    namespace: "lab",
+    deprecatedSince: "0.162.194",
+    removalNotBefore: "0.164.0",
+  }),
+  mcpscaf: Object.freeze({
+    namespace: "lab",
+    deprecatedSince: "0.162.194",
+    removalNotBefore: "0.164.0",
+  }),
+  meminj: Object.freeze({
+    namespace: "lab",
+    deprecatedSince: "0.162.194",
+    removalNotBefore: "0.164.0",
+  }),
+  orchgov: Object.freeze({
     namespace: "lab",
     deprecatedSince: "0.162.194",
     removalNotBefore: "0.164.0",
@@ -66,7 +91,57 @@ const COMMAND_MIGRATIONS = Object.freeze({
     deprecatedSince: "0.162.194",
     removalNotBefore: "0.164.0",
   }),
+  promcomp: Object.freeze({
+    namespace: "lab",
+    deprecatedSince: "0.162.194",
+    removalNotBefore: "0.164.0",
+  }),
+  seshhook: Object.freeze({
+    namespace: "lab",
+    deprecatedSince: "0.162.194",
+    removalNotBefore: "0.164.0",
+  }),
+  seshsearch: Object.freeze({
+    namespace: "lab",
+    deprecatedSince: "0.162.194",
+    removalNotBefore: "0.164.0",
+  }),
+  seshtail: Object.freeze({
+    namespace: "lab",
+    deprecatedSince: "0.162.194",
+    removalNotBefore: "0.164.0",
+  }),
+  seshu: Object.freeze({
+    namespace: "lab",
+    deprecatedSince: "0.162.194",
+    removalNotBefore: "0.164.0",
+  }),
   sganal: Object.freeze({
+    namespace: "lab",
+    deprecatedSince: "0.162.194",
+    removalNotBefore: "0.164.0",
+  }),
+  slotfill: Object.freeze({
+    namespace: "lab",
+    deprecatedSince: "0.162.194",
+    removalNotBefore: "0.164.0",
+  }),
+  svccont: Object.freeze({
+    namespace: "lab",
+    deprecatedSince: "0.162.194",
+    removalNotBefore: "0.164.0",
+  }),
+  tms: Object.freeze({
+    namespace: "lab",
+    deprecatedSince: "0.162.194",
+    removalNotBefore: "0.164.0",
+  }),
+  topiccls: Object.freeze({
+    namespace: "lab",
+    deprecatedSince: "0.162.194",
+    removalNotBefore: "0.164.0",
+  }),
+  uprof: Object.freeze({
     namespace: "lab",
     deprecatedSince: "0.162.194",
     removalNotBefore: "0.164.0",

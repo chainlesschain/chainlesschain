@@ -5,6 +5,13 @@ const fs = require("node:fs");
 const net = require("node:net");
 const path = require("node:path");
 const vscode = require("vscode");
+const {
+  CHAT_VIEW_FOCUS_COMMAND,
+  activateMacHostWindow,
+  requestChatViewForDomJourney,
+  withTimeout,
+} = require("./view-control.cjs");
+const { runDomRelayJourney } = require("./dom-relay-journey.cjs");
 
 const EXTENSION_ID = "chainlesschain.chainlesschain-ide";
 const REQUIRED_COMMANDS = [
@@ -24,20 +31,8 @@ const REQUIRED_COMMANDS = [
   "chainlesschain.background.agents",
   "chainlesschain.remote.control",
   "chainlesschain.remote.doctor",
+  CHAT_VIEW_FOCUS_COMMAND,
 ];
-
-function withTimeout(promise, timeoutMs, label) {
-  let timer;
-  return Promise.race([
-    promise,
-    new Promise((_, reject) => {
-      timer = setTimeout(
-        () => reject(new Error(`${label} timed out after ${timeoutMs}ms`)),
-        timeoutMs,
-      );
-    }),
-  ]).finally(() => clearTimeout(timer));
-}
 
 function normalizeForCompare(value) {
   const resolved = path.resolve(value);
@@ -159,6 +154,23 @@ function writeSignal(filePath, value) {
   fs.renameSync(temporary, filePath);
 }
 
+function appendHostTrace(traceFile, phase, stage, details = {}) {
+  assert.ok(traceFile, "missing CHAINLESSCHAIN_HOST_TRACE_FILE");
+  assert.match(phase, /^(?:initial|restart)$/);
+  assert.match(stage, /^[a-z][a-z0-9-]*$/);
+  fs.mkdirSync(path.dirname(traceFile), { recursive: true, mode: 0o700 });
+  fs.appendFileSync(
+    traceFile,
+    `${JSON.stringify({
+      phase,
+      stage,
+      at: new Date().toISOString(),
+      ...details,
+    })}\n`,
+    { encoding: "utf8", mode: 0o600 },
+  );
+}
+
 async function waitForJourneyResult(resultFile, phase, timeoutMs) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
@@ -197,18 +209,11 @@ async function revealChatAndWaitForDomJourney({
   assert.match(phase, /^(?:initial|restart)$/);
   assert.ok(readyFile, "missing CHAINLESSCHAIN_HOST_READY_FILE");
   assert.ok(resultFile, "missing CHAINLESSCHAIN_HOST_RESULT_FILE");
-  await withTimeout(
-    vscode.commands.executeCommand(
-      "workbench.view.extension.chainlesschainIde",
-    ),
-    15_000,
-    "ChainlessChain activity view reveal",
-  );
-  await withTimeout(
-    vscode.commands.executeCommand("chainlesschainIdeChat.focus"),
-    15_000,
-    "ChainlessChain chat webview focus",
-  );
+  await requestChatViewForDomJourney({
+    commands: vscode.commands,
+    log: (message) =>
+      console.log(`[extension-host-smoke] ${phase}: ${message}`),
+  });
   writeSignal(readyFile, {
     phase,
     extensionPath: fs.realpathSync(extensionPath),
@@ -218,18 +223,102 @@ async function revealChatAndWaitForDomJourney({
   await waitForJourneyResult(resultFile, phase, 135_000);
 }
 
+async function revealChatForHostApiJourney({
+  phase,
+  readyFile,
+  resultFile,
+  traceFile,
+  extensionPath,
+  workspaceDir,
+}) {
+  assert.ok(phase, "missing CHAINLESSCHAIN_HOST_JOURNEY_PHASE");
+  assert.match(phase, /^(?:initial|restart)$/);
+  assert.ok(readyFile, "missing CHAINLESSCHAIN_HOST_READY_FILE");
+  assert.ok(resultFile, "missing CHAINLESSCHAIN_HOST_RESULT_FILE");
+  await requestChatViewForDomJourney({
+    commands: vscode.commands,
+    log: (message) =>
+      console.log(`[extension-host-smoke] ${phase}: ${message}`),
+  });
+  appendHostTrace(traceFile, phase, "view-command-dispatched");
+  writeSignal(readyFile, {
+    phase,
+    mode: "host-api",
+    extensionPath: fs.realpathSync(extensionPath),
+    workspaceDir: fs.realpathSync(workspaceDir),
+    readyAt: new Date().toISOString(),
+  });
+  writeSignal(resultFile, {
+    ok: true,
+    phase,
+    mode: "host-api",
+    completedAt: new Date().toISOString(),
+  });
+  appendHostTrace(traceFile, phase, "phase-completed");
+}
+
+async function revealChatAndRunDomRelayJourney({
+  phase,
+  readyFile,
+  resultFile,
+  traceFile,
+  artifactDir,
+  token,
+  extensionPath,
+  workspaceDir,
+}) {
+  await activateMacHostWindow({
+    log: (message) =>
+      console.log(`[extension-host-smoke] ${phase}: ${message}`),
+  });
+  await requestChatViewForDomJourney({
+    commands: vscode.commands,
+    waitForFocus: true,
+    log: (message) =>
+      console.log(`[extension-host-smoke] ${phase}: ${message}`),
+  });
+  await runDomRelayJourney({
+    commands: vscode.commands,
+    token,
+    phase,
+    readyFile,
+    resultFile,
+    traceFile,
+    artifactDir,
+    extensionPath,
+    workspaceDir,
+  });
+}
+
 async function run() {
   const extensionsDir = process.env.CHAINLESSCHAIN_SMOKE_EXTENSIONS_DIR;
   const expectedVersion = process.env.CHAINLESSCHAIN_SMOKE_EXPECTED_VERSION;
   const workspaceDir = process.env.CHAINLESSCHAIN_SMOKE_WORKSPACE;
   const profileHome = process.env.HOME || process.env.USERPROFILE;
   const journeyPhase = process.env.CHAINLESSCHAIN_HOST_JOURNEY_PHASE;
+  const journeyMode = process.env.CHAINLESSCHAIN_HOST_JOURNEY_MODE || "dom";
   const readyFile = process.env.CHAINLESSCHAIN_HOST_READY_FILE;
   const resultFile = process.env.CHAINLESSCHAIN_HOST_RESULT_FILE;
+  const traceFile = process.env.CHAINLESSCHAIN_HOST_TRACE_FILE;
+  const artifactDir = process.env.CHAINLESSCHAIN_HOST_ARTIFACT_DIR;
+  const hostDomToken = process.env.CHAINLESSCHAIN_HOST_DOM_TOKEN;
   assert.ok(extensionsDir, "missing CHAINLESSCHAIN_SMOKE_EXTENSIONS_DIR");
   assert.ok(expectedVersion, "missing CHAINLESSCHAIN_SMOKE_EXPECTED_VERSION");
   assert.ok(workspaceDir, "missing CHAINLESSCHAIN_SMOKE_WORKSPACE");
   assert.ok(profileHome, "missing isolated profile home");
+  assert.match(journeyMode, /^(?:dom|dom-relay|host-api)$/);
+  if (journeyMode === "host-api" || journeyMode === "dom-relay") {
+    assert.ok(traceFile, "missing CHAINLESSCHAIN_HOST_TRACE_FILE");
+  }
+  if (journeyMode === "dom-relay") {
+    assert.ok(artifactDir, "missing CHAINLESSCHAIN_HOST_ARTIFACT_DIR");
+    assert.match(
+      hostDomToken || "",
+      /^[a-f0-9]{64}$/u,
+      "missing or malformed CHAINLESSCHAIN_HOST_DOM_TOKEN",
+    );
+  }
+  console.log(`[extension-host-smoke] ${journeyPhase}: driver entered`);
 
   const extension = vscode.extensions.getExtension(EXTENSION_ID);
   assert.ok(
@@ -245,15 +334,28 @@ async function run() {
     expectedVersion,
     "the installed VSIX version differs from package.json",
   );
+  console.log(
+    `[extension-host-smoke] ${journeyPhase}: installed VSIX discovered`,
+  );
+  if (journeyMode !== "dom") {
+    appendHostTrace(traceFile, journeyPhase, "installed-vsix-discovered", {
+      extensionVersion: extension.packageJSON.version,
+    });
+  }
 
+  console.log(`[extension-host-smoke] ${journeyPhase}: activating VSIX`);
   await withTimeout(
     Promise.resolve().then(() => extension.activate()),
     30_000,
     `${EXTENSION_ID} activation`,
   );
   assert.equal(extension.isActive, true, "extension did not become active");
+  console.log(`[extension-host-smoke] ${journeyPhase}: VSIX activated`);
+  if (journeyMode !== "dom") {
+    appendHostTrace(traceFile, journeyPhase, "vsix-activated");
+  }
 
-  if (journeyPhase === "restart") {
+  if (journeyMode !== "host-api" && journeyPhase === "restart") {
     await resumeFixtureSessionAfterHostRestart();
   }
 
@@ -266,6 +368,11 @@ async function run() {
     [],
     `activated extension is missing commands: ${missingCommands.join(", ")}`,
   );
+  if (journeyMode !== "dom") {
+    appendHostTrace(traceFile, journeyPhase, "commands-verified", {
+      commandCount: REQUIRED_COMMANDS.length,
+    });
+  }
 
   // activate() starts the bridge asynchronously, so wait for its production
   // discovery artifact and then prove the advertised localhost port is live.
@@ -276,22 +383,56 @@ async function run() {
   const lock = await waitForBridgeLock(profileHome, workspaceDir, 45_000);
   assert.match(lock.token, /^[a-f0-9]{64}$/, "bridge token is malformed");
   await assertPortListening(lock.port);
+  console.log(`[extension-host-smoke] ${journeyPhase}: bridge verified`);
+  if (journeyMode !== "dom") {
+    appendHostTrace(traceFile, journeyPhase, "bridge-verified");
+  }
 
   // Open the production-contributed view through VS Code's real workbench
-  // command. The external CDP peer then queries and clicks the actual Webview
-  // DOM; this driver exposes no production test command or extension internals.
-  await revealChatAndWaitForDomJourney({
-    phase: journeyPhase,
-    readyFile,
-    resultFile,
-    extensionPath: extension.extensionPath,
-    workspaceDir,
-  });
+  // command. DOM mode hands off to the external CDP peer for actual Webview
+  // interaction. Host-API mode ends at the production command boundary and
+  // labels its evidence accordingly; neither path exposes extension internals.
+  if (journeyMode === "host-api") {
+    await revealChatForHostApiJourney({
+      phase: journeyPhase,
+      readyFile,
+      resultFile,
+      traceFile,
+      extensionPath: extension.extensionPath,
+      workspaceDir,
+    });
+  } else if (journeyMode === "dom-relay") {
+    await revealChatAndRunDomRelayJourney({
+      phase: journeyPhase,
+      readyFile,
+      resultFile,
+      traceFile,
+      artifactDir,
+      token: hostDomToken,
+      extensionPath: extension.extensionPath,
+      workspaceDir,
+    });
+  } else {
+    await revealChatAndWaitForDomJourney({
+      phase: journeyPhase,
+      readyFile,
+      resultFile,
+      extensionPath: extension.extensionPath,
+      workspaceDir,
+    });
+  }
 
   console.log(
     `[extension-host-smoke] activated installed ${EXTENSION_ID}@${expectedVersion}; ` +
-      `${REQUIRED_COMMANDS.length} commands, bridge port, and ${journeyPhase} real-DOM phase verified`,
+      `${REQUIRED_COMMANDS.length} commands, bridge port, and ${journeyPhase} ${journeyMode} phase verified`,
   );
 }
 
-module.exports = { run };
+let runPromise;
+
+function runOnce() {
+  if (!runPromise) runPromise = run();
+  return runPromise;
+}
+
+module.exports = { run: runOnce };

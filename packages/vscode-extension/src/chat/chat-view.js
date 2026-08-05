@@ -19,6 +19,10 @@ const {
 } = require("./chat-events");
 const { buildChatHtml, CHAT_UI_PROTOCOL_VERSION } = require("./chat-html");
 const {
+  hostDomTokensEqual,
+  validateHostDomRequest,
+} = require("./host-dom-relay");
+const {
   ConversationManager,
   deriveTabTitle,
   isDefaultTitle,
@@ -47,7 +51,12 @@ const {
 } = require("./slash-commands.js");
 
 const PLAN_REVIEW_STATES_KEY = "chainlesschain.chat.planReviewStates.v1";
-const WEBVIEW_PROTOCOL_TIMEOUT_MS = 750;
+// A cold signed macOS Webview can take longer than one second to start its
+// renderer. Keep version-mismatch messages fail-fast, but do not tear down a
+// valid first load merely because its ready/protocol message is still in
+// flight on a busy host.
+const WEBVIEW_PROTOCOL_TIMEOUT_MS = 5_000;
+const HOST_DOM_RESPONSE_TIMEOUT_MS = 10_000;
 
 class ChatViewProvider {
   /**
@@ -104,6 +113,9 @@ class ChatViewProvider {
       ? opts.state.get(PLAN_REVIEW_STATES_KEY)
       : [];
     this._loopTimers = new Map(); // convId -> { timer, intervalMs, prompt }
+    this._hostDomToken = this.opts.hostDomToken || null;
+    this._hostDomPending = new Map();
+    this._hostDomRevealRequested = false;
   }
 
   /** The active conversation, creating the first one (lazily) if none exist. */
@@ -298,6 +310,7 @@ class ChatViewProvider {
     return buildChatHtml({
       cspSource: view.webview.cspSource,
       nonce: crypto.randomBytes(16).toString("hex"),
+      hostDomToken: this._hostDomToken,
       // Localized in the host (the webview can't call vscode.l10n.t) and
       // injected as CC_L10N for the setup card.
       l10n: {
@@ -310,6 +323,98 @@ class ChatViewProvider {
         configureLlmBtn: this.vscode.l10n.t("Configure LLM"),
       },
     });
+  }
+
+  runHostDomCommand(request) {
+    if (!this._hostDomToken) {
+      return Promise.reject(new Error("host DOM relay is disabled"));
+    }
+    if (!this.view || !this._webviewReady || !this._webviewProtocolConfirmed) {
+      if (this.view && !this._hostDomRevealRequested) {
+        this._hostDomRevealRequested = true;
+        try {
+          // Webview scripts are suspended while their view is hidden. The
+          // token-gated host journey may run in a background macOS window, and
+          // merely revealing with preserveFocus=true leaves that renderer
+          // suspended there. Give the real production view focus for this
+          // isolated test launch and let the next bounded retry prove readiness.
+          this.view.show(false);
+        } catch {
+          /* readiness diagnostics below remain fail closed */
+        }
+      }
+      return Promise.reject(
+        new Error(
+          `chat webview DOM is not ready (view=${Boolean(this.view)}, ` +
+            `visible=${Boolean(this.view?.visible)}, ready=${this._webviewReady}, ` +
+            `protocol=${this._webviewProtocolConfirmed})`,
+        ),
+      );
+    }
+    const command = validateHostDomRequest(request);
+    const requestId = crypto.randomBytes(16).toString("hex");
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        this._hostDomPending.delete(requestId);
+        reject(new Error(`host DOM command timed out: ${command.action}`));
+      }, HOST_DOM_RESPONSE_TIMEOUT_MS);
+      timer.unref?.();
+      this._hostDomPending.set(requestId, { resolve, reject, timer });
+      Promise.resolve(
+        this.view.webview.postMessage({
+          kind: "hostDomCommand",
+          token: this._hostDomToken,
+          requestId,
+          command,
+        }),
+      ).then(
+        (accepted) => {
+          if (accepted !== false) return;
+          const pending = this._hostDomPending.get(requestId);
+          if (!pending) return;
+          this._hostDomPending.delete(requestId);
+          clearTimeout(pending.timer);
+          pending.reject(
+            new Error("chat webview rejected the host DOM command"),
+          );
+        },
+        (error) => {
+          const pending = this._hostDomPending.get(requestId);
+          if (!pending) return;
+          this._hostDomPending.delete(requestId);
+          clearTimeout(pending.timer);
+          pending.reject(error);
+        },
+      );
+    });
+  }
+
+  _acceptHostDomResult(message) {
+    if (
+      !this._hostDomToken ||
+      !hostDomTokensEqual(this._hostDomToken, message.token) ||
+      typeof message.requestId !== "string"
+    ) {
+      return false;
+    }
+    const pending = this._hostDomPending.get(message.requestId);
+    if (!pending) return false;
+    this._hostDomPending.delete(message.requestId);
+    clearTimeout(pending.timer);
+    if (message.ok === true) pending.resolve(message.result);
+    else
+      pending.reject(
+        new Error(String(message.error || "host DOM command failed")),
+      );
+    return true;
+  }
+
+  _rejectHostDomPending(reason) {
+    for (const pending of this._hostDomPending.values()) {
+      clearTimeout(pending.timer);
+      pending.reject(new Error(reason));
+    }
+    this._hostDomPending.clear();
   }
 
   /**
@@ -329,6 +434,13 @@ class ChatViewProvider {
     } catch {
       /* a disposed/not-yet-live webview is handled by the timeout */
     }
+    // Every token-gated host journey uses a fresh profile and a fresh Webview,
+    // so there cannot be a retained legacy DOM to repair. Reloading a cold
+    // signed macOS Webview while its renderer/service worker is still starting
+    // can permanently strand that test view. Keep protocol mismatch messages
+    // fail-fast, but let the journey's 45-second relay deadline own the
+    // no-message case without rewriting the HTML underneath it.
+    if (this._hostDomToken) return;
     this._webviewProtocolTimer = setTimeout(() => {
       this._webviewProtocolTimer = null;
       if (
@@ -2621,6 +2733,7 @@ class ChatViewProvider {
 
   resolveWebviewView(view) {
     this.view = view;
+    this._hostDomRevealRequested = false;
     this._webviewReady = false;
     this._webviewProtocolGuard = true;
     this._webviewProtocolConfirmed = false;
@@ -2653,6 +2766,7 @@ class ChatViewProvider {
     }
     this._updateModeStatus();
     view.onDidDispose(() => {
+      this._rejectHostDomPending("chat webview was disposed");
       this._clearWebviewProtocolTimer();
       this._flushPlanReviewDrafts();
       for (const summary of this._convs.list()) {
@@ -2663,6 +2777,7 @@ class ChatViewProvider {
       this._modeStatus?.item.dispose();
       this._modeStatus = null;
       this.view = null;
+      this._hostDomRevealRequested = false;
       this._webviewReady = false;
       this._webviewProtocolGuard = false;
       this._webviewProtocolConfirmed = false;
@@ -2721,6 +2836,10 @@ class ChatViewProvider {
 
   _handleMessage(m) {
     if (!m || typeof m !== "object") return;
+    if (m.type === "hostDomResult") {
+      this._acceptHostDomResult(m);
+      return;
+    }
     if (this._webviewProtocolGuard) {
       if (m.type === "ready" || m.type === "protocol") {
         const wasReady = this._webviewReady;

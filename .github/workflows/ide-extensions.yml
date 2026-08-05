@@ -57,10 +57,10 @@ on:
     inputs:
       publish_vscode_marketplace:
         description: >-
-          Publish the packaged .vsix to the official VS Code Marketplace
-          (needs VSCE_PAT). Use to backfill a version already tagged +
-          published to Open VSX without retagging — the Open VSX step stays
-          tag-gated, so a backfill cannot alter the Open VSX release.
+          Backfill the official VS Code Marketplace (needs VSCE_PAT). This is
+          accepted only when the workflow is dispatched against the exact
+          existing ide-vscode-v* tag; Open VSX is replayed with
+          --skip-duplicate and strictly verified before the official publish.
         type: boolean
         default: false
 
@@ -82,112 +82,36 @@ jobs:
       - name: Verify commands, actions, Doctor and CLI floor
         run: node packages/cli/scripts/gen-public-ide-capability-manifest.mjs --check
 
-  vscode-windows-smoke:
-    name: VS Code extension (Windows host gate)
+  vscode-package:
+    name: VS Code extension (immutable candidate)
     needs: capability-manifest
-    runs-on: windows-latest
-    timeout-minutes: 45
-    defaults:
-      run:
-        working-directory: packages/vscode-extension
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version: "22.12.0"
-
-      - name: Unit tests
-        run: npm run test:unit
-
-      - name: Marketplace verifier self-test
-        run: node ../../scripts/verify-ide-marketplace.mjs --self-test
-
-      # Windows is a release gate because the bridge lockfile uses a native
-      # owner-only DACL. Exercise both the latest editor and engines.vscode's
-      # minimum supported release from a freshly packaged VSIX.
-      - name: Package .vsix
-        run: |
-          node scripts/sync-elicitation-schema.mjs --check
-          npx --yes @vscode/vsce@3.9.2 package --no-dependencies --out chainlesschain-ide.vsix
-
-      - name: Verify .vsix metadata
-        run: |
-          node scripts/verify-vsix.selftest.mjs
-          node scripts/verify-vsix.mjs chainlesschain-ide.vsix
-
-      - name: Install Extension Host test runtime
-        run: npm install --no-save --no-package-lock @vscode/test-electron@3.1.0
-
-      - name: Extension Host smoke (Windows stable)
-        run: >-
-          node test/extension-host/run.cjs --vsix chainlesschain-ide.vsix
-          --artifact-dir build/reports/extension-host/windows-stable
-
-      - name: Extension Host smoke (Windows minimum 1.85.2)
-        run: >-
-          node test/extension-host/run.cjs --vsix chainlesschain-ide.vsix
-          --vscode-version 1.85.2
-          --artifact-dir build/reports/extension-host/windows-minimum
-
-      - name: Upload Windows host journey evidence
-        if: always()
-        uses: actions/upload-artifact@v6
-        with:
-          name: vscode-windows-host-evidence
-          path: packages/vscode-extension/build/reports/extension-host/
-          if-no-files-found: error
-
-  vscode-macos-smoke:
-    name: VS Code extension (macOS host gate)
-    needs: capability-manifest
-    runs-on: macos-latest
-    timeout-minutes: 45
-    defaults:
-      run:
-        working-directory: packages/vscode-extension
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version: "22.12.0"
-      - name: Unit tests
-        run: npm run test:unit
-      - name: Package .vsix
-        run: |
-          node scripts/sync-elicitation-schema.mjs --check
-          npx --yes @vscode/vsce@3.9.2 package --no-dependencies --out chainlesschain-ide.vsix
-      - name: Verify .vsix metadata
-        run: |
-          node scripts/verify-vsix.selftest.mjs
-          node scripts/verify-vsix.mjs chainlesschain-ide.vsix
-      - name: Install Extension Host test runtime
-        run: npm install --no-save --no-package-lock @vscode/test-electron@3.1.0
-      - name: Extension Host smoke (macOS stable)
-        run: >-
-          node test/extension-host/run.cjs --vsix chainlesschain-ide.vsix
-          --artifact-dir build/reports/extension-host/macos-stable
-      - name: Extension Host smoke (macOS minimum 1.85.2)
-        run: >-
-          node test/extension-host/run.cjs --vsix chainlesschain-ide.vsix
-          --vscode-version 1.85.2
-          --artifact-dir build/reports/extension-host/macos-minimum
-      - name: Upload macOS host journey evidence
-        if: always()
-        uses: actions/upload-artifact@v6
-        with:
-          name: vscode-macos-host-evidence
-          path: packages/vscode-extension/build/reports/extension-host/
-          if-no-files-found: error
-
-  vscode:
-    name: VS Code extension (package + publish)
-    needs: [vscode-windows-smoke, vscode-macos-smoke]
+    if: >-
+      ${{
+        !startsWith(github.ref, 'refs/tags/ide-jetbrains-v') ||
+        (github.event_name == 'workflow_dispatch' && inputs.publish_vscode_marketplace)
+      }}
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: packages/vscode-extension
     steps:
       - uses: actions/checkout@v5
+
+      - name: Reject unsafe VS Code Marketplace backfill
+        if: github.event_name == 'workflow_dispatch' && inputs.publish_vscode_marketplace
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "$GITHUB_REF" in
+            refs/tags/ide-vscode-v?*) ;;
+            *)
+              echo "::error::Marketplace backfill must be dispatched against the exact existing ide-vscode-v* tag, not '$GITHUB_REF'."
+              exit 1
+              ;;
+          esac
+          echo "Validated tagged Marketplace backfill ref: $GITHUB_REF"
+
       - uses: actions/setup-node@v5
         with:
           node-version: "22.12.0"
@@ -208,23 +132,163 @@ jobs:
       - name: Unit tests
         run: npm run test:unit
 
-      # The extension has no runtime npm deps — package straight to a .vsix.
-      - name: Package .vsix
+      - name: Marketplace verifier self-test
+        run: node ../../scripts/verify-ide-marketplace.mjs --self-test
+
+      - name: Package .vsix candidate
         run: |
           node scripts/sync-elicitation-schema.mjs --check
           npx --yes @vscode/vsce@3.9.2 package --no-dependencies --out chainlesschain-ide.vsix
 
-      # Parse gate: a .vsix is a ZIP — crack it open (dependency-free reader
-      # in the script) and assert the marketplace metadata is coherent before
-      # the artifact is uploaded or any publish step can run: publisher/name/
-      # version match package.json, engines/repository/icon/README/LICENSE/
-      # main all packed, and extension.vsixmanifest Identity agrees. The
-      # selftest exercises the reader + assertion core against a synthetic
-      # zip first, so a broken verifier can't green-light a broken package.
       - name: Verify .vsix metadata
         run: |
           node scripts/verify-vsix.selftest.mjs
           node scripts/verify-vsix.mjs chainlesschain-ide.vsix
+
+      - name: Create immutable candidate manifest
+        run: >-
+          node scripts/vsix-release-artifact.mjs create
+          chainlesschain-ide.vsix manifest.json
+
+      - name: Upload immutable .vsix candidate
+        uses: actions/upload-artifact@v6
+        with:
+          name: chainlesschain-ide-vscode-candidate
+          path: |
+            packages/vscode-extension/chainlesschain-ide.vsix
+            packages/vscode-extension/manifest.json
+          if-no-files-found: error
+          overwrite: true
+
+  vscode-windows-smoke:
+    name: VS Code extension (Windows host gate)
+    needs: vscode-package
+    if: ${{ !startsWith(github.ref, 'refs/tags/ide-jetbrains-v') }}
+    runs-on: windows-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: packages/vscode-extension
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+
+      - name: Download immutable .vsix candidate
+        uses: actions/download-artifact@v6
+        with:
+          name: chainlesschain-ide-vscode-candidate
+          path: packages/vscode-extension
+
+      - name: Verify immutable candidate manifest
+        run: >-
+          node scripts/vsix-release-artifact.mjs verify
+          chainlesschain-ide.vsix manifest.json
+
+      # Windows is a release gate because the bridge lockfile uses a native
+      # owner-only DACL. Exercise both the latest editor and engines.vscode's
+      # minimum supported release from the immutable candidate.
+
+      - name: Install Extension Host test runtime
+        run: >-
+          npm install --no-save --no-package-lock
+          @vscode/test-electron@3.1.0 ws@8.21.2
+
+      - name: Extension Host smoke (Windows stable)
+        run: >-
+          node test/extension-host/run.cjs --vsix chainlesschain-ide.vsix
+          --artifact-dir build/reports/extension-host/windows-stable
+
+      - name: Extension Host smoke (Windows minimum 1.85.2)
+        run: >-
+          node test/extension-host/run.cjs --vsix chainlesschain-ide.vsix
+          --vscode-version 1.85.2
+          --artifact-dir build/reports/extension-host/windows-minimum
+
+      - name: Upload Windows host journey evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: vscode-windows-host-evidence-${{ github.run_attempt }}
+          path: packages/vscode-extension/build/reports/extension-host/
+          if-no-files-found: error
+
+  vscode-macos-smoke:
+    name: VS Code extension (macOS host gate)
+    needs: vscode-package
+    if: ${{ !startsWith(github.ref, 'refs/tags/ide-jetbrains-v') }}
+    # Keep the complete real-DOM Extension Host gate on the stable macOS 15
+    # Intel image. A launch-token-gated fixed driver command foregrounds the
+    # signed host and crosses VS Code's own Webview message boundary; this path
+    # opens no debugger or remote-debugging transport.
+    runs-on: macos-15-intel
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: packages/vscode-extension
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+      - name: Download immutable .vsix candidate
+        uses: actions/download-artifact@v6
+        with:
+          name: chainlesschain-ide-vscode-candidate
+          path: packages/vscode-extension
+      - name: Verify immutable candidate manifest
+        run: >-
+          node scripts/vsix-release-artifact.mjs verify
+          chainlesschain-ide.vsix manifest.json
+      - name: Install Extension Host test runtime
+        run: >-
+          npm install --no-save --no-package-lock
+          @vscode/test-electron@3.1.0
+      - name: Extension Host smoke (macOS stable)
+        timeout-minutes: 15
+        run: >-
+          node test/extension-host/run.cjs --vsix chainlesschain-ide.vsix
+          --artifact-dir build/reports/extension-host/macos-stable
+      - name: Extension Host smoke (macOS minimum 1.85.2)
+        if: always()
+        timeout-minutes: 15
+        run: >-
+          node test/extension-host/run.cjs --vsix chainlesschain-ide.vsix
+          --vscode-version 1.85.2
+          --artifact-dir build/reports/extension-host/macos-minimum
+      - name: Upload macOS host journey evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: vscode-macos-host-evidence-${{ github.run_attempt }}
+          path: packages/vscode-extension/build/reports/extension-host/
+          if-no-files-found: error
+
+  vscode:
+    name: VS Code extension (Linux host gate + publish)
+    needs: [vscode-package, vscode-windows-smoke, vscode-macos-smoke]
+    if: ${{ !startsWith(github.ref, 'refs/tags/ide-jetbrains-v') }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/vscode-extension
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+
+      - name: Download immutable .vsix candidate
+        uses: actions/download-artifact@v6
+        with:
+          name: chainlesschain-ide-vscode-candidate
+          path: packages/vscode-extension
+
+      - name: Verify immutable candidate manifest before Linux host gates
+        run: >-
+          node scripts/vsix-release-artifact.mjs verify
+          chainlesschain-ide.vsix manifest.json
 
       # Real VS Code Extension Host gate: install the packaged artifact into a
       # fresh profile and verify activation, declared commands, and the local
@@ -234,7 +298,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y xvfb
-          npm install --no-save --no-package-lock @vscode/test-electron@3.1.0
+          npm install --no-save --no-package-lock @vscode/test-electron@3.1.0 ws@8.21.2
           xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" \
             node test/extension-host/run.cjs --vsix chainlesschain-ide.vsix \
               --artifact-dir build/reports/extension-host/linux-stable
@@ -250,22 +314,48 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v6
         with:
-          name: vscode-linux-host-evidence
+          name: vscode-linux-host-evidence-${{ github.run_attempt }}
           path: packages/vscode-extension/build/reports/extension-host/
           if-no-files-found: error
 
-      - name: Upload .vsix artifact
-        uses: actions/upload-artifact@v6
-        with:
-          name: chainlesschain-ide-vscode
-          path: packages/vscode-extension/chainlesschain-ide.vsix
-          if-no-files-found: error
+      - name: Verify immutable candidate manifest before publishing
+        run: >-
+          node scripts/vsix-release-artifact.mjs verify
+          chainlesschain-ide.vsix manifest.json
+
+      # Validate every required release credential before the first immutable
+      # marketplace upload. In particular, a missing/expired VSCE_PAT must not
+      # publish only to Open VSX and burn a version that cannot complete both
+      # required channels.
+      - name: Preflight required marketplace credentials
+        if: >-
+          startsWith(github.ref, 'refs/tags/ide-vscode-v') &&
+          (github.event_name == 'push' ||
+          (github.event_name == 'workflow_dispatch' &&
+          inputs.publish_vscode_marketplace))
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: |
+          if [ -z "$OVSX_PAT" ]; then
+            echo "::error::OVSX_PAT secret is not set; refusing a partial release."
+            exit 1
+          fi
+          if [ -z "$VSCE_PAT" ]; then
+            echo "::error::VSCE_PAT secret is not set; refusing a partial release."
+            exit 1
+          fi
+          npx --yes @vscode/vsce@3.9.2 verify-pat chainlesschain -p "$VSCE_PAT"
 
       # Open VSX is the primary channel (Cursor / VSCodium / Gitpod / ...). The
       # namespace + token are 'chainlesschain' / OVSX_PAT (see
       # docs/internal/ide-extensions-releasing.md).
       - name: Publish to Open VSX
-        if: startsWith(github.ref, 'refs/tags/ide-vscode-v')
+        if: >-
+          startsWith(github.ref, 'refs/tags/ide-vscode-v') &&
+          (github.event_name == 'push' ||
+          (github.event_name == 'workflow_dispatch' &&
+          inputs.publish_vscode_marketplace))
         env:
           OVSX_PAT: ${{ secrets.OVSX_PAT }}
         run: |
@@ -278,7 +368,11 @@ jobs:
           npx --yes ovsx@1.0.2 publish --skip-duplicate chainlesschain-ide.vsix
 
       - name: Verify Open VSX listing
-        if: startsWith(github.ref, 'refs/tags/ide-vscode-v')
+        if: >-
+          startsWith(github.ref, 'refs/tags/ide-vscode-v') &&
+          (github.event_name == 'push' ||
+          (github.event_name == 'workflow_dispatch' &&
+          inputs.publish_vscode_marketplace))
         env:
           # Open VSX can accept an upload before allVersions/download metadata
           # converges. Allow roughly ten minutes instead of a two-minute false
@@ -307,8 +401,10 @@ jobs:
       # for the stock VS Code gallery.
       - name: Publish to VS Code Marketplace
         if: >-
-          startsWith(github.ref, 'refs/tags/ide-vscode-v') ||
-          (github.event_name == 'workflow_dispatch' && inputs.publish_vscode_marketplace)
+          startsWith(github.ref, 'refs/tags/ide-vscode-v') &&
+          (github.event_name == 'push' ||
+          (github.event_name == 'workflow_dispatch' &&
+          inputs.publish_vscode_marketplace))
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
         run: |
@@ -321,8 +417,10 @@ jobs:
 
       - name: Verify VS Code Marketplace listing and exact VSIX
         if: >-
-          startsWith(github.ref, 'refs/tags/ide-vscode-v') ||
-          (github.event_name == 'workflow_dispatch' && inputs.publish_vscode_marketplace)
+          startsWith(github.ref, 'refs/tags/ide-vscode-v') &&
+          (github.event_name == 'push' ||
+          (github.event_name == 'workflow_dispatch' &&
+          inputs.publish_vscode_marketplace))
         env:
           CC_MARKETPLACE_VERIFY_ATTEMPTS: "30"
           CC_MARKETPLACE_VERIFY_DELAY_MS: "20000"
@@ -342,6 +440,11 @@ jobs:
   jetbrains-host-matrix:
     name: JetBrains real host (${{ matrix.os }}, ${{ matrix.ide.version }})
     needs: capability-manifest
+    if: >-
+      ${{
+        !startsWith(github.ref, 'refs/tags/ide-vscode-v') &&
+        !(github.event_name == 'workflow_dispatch' && inputs.publish_vscode_marketplace)
+      }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 120
     strategy:
@@ -350,7 +453,7 @@ jobs:
         os: [windows-latest, ubuntu-latest, macos-latest]
         ide:
           - version: "2024.2"
-            java: "17"
+            java: "21"
           - version: "2025.2"
             java: "21"
     steps:
@@ -388,7 +491,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v6
         with:
-          name: jetbrains-${{ runner.os }}-${{ matrix.ide.version }}-host-evidence
+          name: jetbrains-${{ runner.os }}-${{ matrix.ide.version }}-host-evidence-${{ github.run_attempt }}
           path: |
             packages/jetbrains-plugin/build/reports/ide-journey/
             packages/jetbrains-plugin/build/reports/ui-host-driver/
@@ -399,6 +502,11 @@ jobs:
   jetbrains:
     name: JetBrains plugin (build + publish)
     needs: [capability-manifest, jetbrains-host-matrix]
+    if: >-
+      ${{
+        !startsWith(github.ref, 'refs/tags/ide-vscode-v') &&
+        !(github.event_name == 'workflow_dispatch' && inputs.publish_vscode_marketplace)
+      }}
     runs-on: ubuntu-latest
     timeout-minutes: 120
     defaults:
@@ -409,7 +517,7 @@ jobs:
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: "17"
+          java-version: "21"
       - uses: actions/setup-node@v5
         with:
           node-version: "22.12.0"
@@ -473,12 +581,14 @@ jobs:
       - name: Upload plugin artifact
         uses: actions/upload-artifact@v6
         with:
-          name: chainlesschain-ide-jetbrains
+          name: chainlesschain-ide-jetbrains-${{ github.run_attempt }}
           path: packages/jetbrains-plugin/build/distributions/*.zip
           if-no-files-found: error
 
       - name: Publish to JetBrains Marketplace
-        if: startsWith(github.ref, 'refs/tags/ide-jetbrains-v')
+        if: >-
+          github.event_name == 'push' &&
+          startsWith(github.ref, 'refs/tags/ide-jetbrains-v')
         env:
           JETBRAINS_PUBLISH_TOKEN: ${{ secrets.JETBRAINS_PUBLISH_TOKEN }}
           CERTIFICATE_CHAIN: ${{ secrets.JETBRAINS_CERTIFICATE_CHAIN }}
@@ -511,7 +621,9 @@ jobs:
   jetbrains-marketplace-verify:
     name: JetBrains Marketplace (post-publish verification)
     needs: jetbrains
-    if: startsWith(github.ref, 'refs/tags/ide-jetbrains-v')
+    if: >-
+      github.event_name == 'push' &&
+      startsWith(github.ref, 'refs/tags/ide-jetbrains-v')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     defaults:

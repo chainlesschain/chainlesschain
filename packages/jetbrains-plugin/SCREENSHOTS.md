@@ -7,7 +7,7 @@ carousel hero).
 
 ## Capture environment
 Use a real **2024.2+ IDE** with the plugin installed, **or** the dev sandbox:
-`cd packages/jetbrains-plugin && JAVA_HOME=<Adoptium JDK17> ./gradlew runIde`.
+`cd packages/jetbrains-plugin && JAVA_HOME=<Adoptium JDK21> ./gradlew runIde`.
 Open a small/medium project so the chat + editor both fit. **Dark theme** matches
 the plugin's icon work and reads best in the carousel.
 

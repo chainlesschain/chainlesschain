@@ -1,12 +1,11 @@
 "use strict";
 
 /**
- * Dependency-free CDP driver for the installed-VSIX host journey.
+ * Test-only CDP driver for the installed-VSIX host journey.
  *
- * VS Code is launched with a random loopback-only debugging port. This module
- * connects with Node's built-in WebSocket client, locates the ChainlessChain
- * webview target, and drives its real DOM. It never uses a production test
- * command or extension export.
+ * VS Code is launched with a random loopback-only debugging endpoint. This
+ * module locates the ChainlessChain webview target and drives its real DOM
+ * without a production test command or extension export.
  */
 
 const fs = require("node:fs");
@@ -173,12 +172,23 @@ class CdpClient {
         pending.resolve(message.result || {});
       }
     });
-    socket.addEventListener("close", () => {
+    const failPending = (error) => {
       for (const pending of this.pending.values()) {
         clearTimeout(pending.timer);
-        pending.reject(new Error("CDP target closed"));
+        pending.reject(error);
       }
       this.pending.clear();
+    };
+    socket.addEventListener("close", () => {
+      failPending(new Error("CDP target closed"));
+    });
+    socket.addEventListener("error", (event) => {
+      failPending(
+        new Error(
+          `CDP transport failed: ${String(event?.error?.message || event?.message || "unknown error")}`,
+          { cause: event?.error },
+        ),
+      );
     });
   }
 
@@ -206,9 +216,23 @@ class CdpClient {
       );
       socket.addEventListener(
         "error",
-        () => {
+        (event) => {
           clearTimeout(timer);
-          reject(new Error(`CDP websocket failed: ${webSocketUrl}`));
+          const details = [
+            event?.message,
+            event?.error?.message,
+            event?.error?.cause?.message,
+          ]
+            .filter(
+              (value, index, values) =>
+                Boolean(value) && values.indexOf(value) === index,
+            )
+            .join("; ");
+          reject(
+            new Error(
+              `CDP websocket failed: ${webSocketUrl}${details ? `: ${details}` : ""}`,
+            ),
+          );
         },
         { once: true },
       );
@@ -280,6 +304,123 @@ class CdpClient {
   }
 }
 
+function createCdpPipeSocket(pipeWrite, pipeRead) {
+  if (
+    !pipeWrite ||
+    typeof pipeWrite.write !== "function" ||
+    !pipeRead ||
+    typeof pipeRead.on !== "function"
+  ) {
+    throw new Error("CDP pipe requires writable FD 3 and readable FD 4");
+  }
+  const listeners = new Map();
+  let pending = Buffer.alloc(0);
+  let closed = false;
+
+  const emit = (type, event = {}) => {
+    for (const entry of [...(listeners.get(type) || [])]) {
+      if (entry.once) listeners.get(type)?.delete(entry);
+      entry.listener(event);
+    }
+  };
+  const fail = (error) => {
+    emit("error", {
+      error,
+      message: String(error?.message || error),
+    });
+  };
+  pipeRead.on("data", (chunk) => {
+    if (closed) return;
+    pending = Buffer.concat([pending, Buffer.from(chunk)]);
+    if (pending.length > 32 * 1024 * 1024) {
+      fail(new Error("CDP pipe frame exceeds 32 MiB"));
+      closed = true;
+      emit("close", {});
+      return;
+    }
+    let boundary = pending.indexOf(0);
+    while (boundary !== -1) {
+      const message = pending.subarray(0, boundary).toString("utf8");
+      pending = pending.subarray(boundary + 1);
+      if (message) emit("message", { data: message });
+      boundary = pending.indexOf(0);
+    }
+  });
+  pipeRead.on("error", fail);
+  pipeWrite.on("error", fail);
+  pipeRead.on("close", () => {
+    if (closed) return;
+    closed = true;
+    emit("close", {});
+  });
+  pipeRead.on("end", () => {
+    if (closed) return;
+    closed = true;
+    emit("close", {});
+  });
+
+  return {
+    addEventListener(type, listener, options = {}) {
+      if (!listeners.has(type)) listeners.set(type, new Set());
+      listeners.get(type).add({ listener, once: Boolean(options.once) });
+    },
+    send(message) {
+      if (closed) throw new Error("CDP pipe is closed");
+      pipeWrite.write(String(message));
+      pipeWrite.write("\0");
+    },
+    close() {
+      if (closed) return;
+      closed = true;
+      emit("close", {});
+    },
+  };
+}
+
+function buildCdpWebSocketOptions(webSocketUrl) {
+  const endpoint = new URL(webSocketUrl);
+  if (
+    endpoint.protocol !== "ws:" ||
+    !["127.0.0.1", "[::1]", "::1"].includes(endpoint.hostname) ||
+    !endpoint.port ||
+    endpoint.username ||
+    endpoint.password
+  ) {
+    throw new Error(`refusing non-loopback CDP websocket: ${webSocketUrl}`);
+  }
+  return {
+    // Chromium accepts a DevTools websocket origin whose host/port exactly
+    // matches the debugging endpoint. Supplying it explicitly avoids the
+    // signed macOS Electron host closing Node's origin-less WHATWG handshake.
+    origin: `http://${endpoint.host}`,
+    perMessageDeflate: false,
+    // Fire before CdpClient's 10-second outer deadline so a genuine handshake
+    // error wins over its best-effort CONNECTING-state cleanup.
+    handshakeTimeout: 8_000,
+  };
+}
+
+function connectCdpWebSocket(webSocketUrl) {
+  let WebSocketImpl;
+  try {
+    const ws = require("ws");
+    WebSocketImpl = ws.WebSocket || ws;
+  } catch (error) {
+    throw new Error(
+      "ws is required for the cross-platform CDP host journey; install the pinned test runtime first",
+      { cause: error },
+    );
+  }
+  return CdpClient.connect(
+    webSocketUrl,
+    class LoopbackCdpWebSocket extends WebSocketImpl {
+      constructor(url) {
+        super(url, buildCdpWebSocketOptions(url));
+      }
+    },
+  );
+}
+
 async function listTargets(port, signal = null) {
   throwIfAborted(signal);
   const timeoutSignal = AbortSignal.timeout(2_000);
@@ -329,11 +470,17 @@ function collectFrameIds(frameTree, result = []) {
   return result;
 }
 
+function isInspectableBrowserTarget(candidate) {
+  return ["page", "iframe", "webview"].includes(candidate?.type);
+}
+
 async function findChatWebview(
   port,
   timeoutMs = DEFAULT_TIMEOUT_MS,
   signal = null,
   tracePath = null,
+  getBrowserWebSocketUrl = null,
+  suppliedBrowserClient = null,
 ) {
   const deadline = Date.now() + timeoutMs;
   let lastError;
@@ -343,7 +490,18 @@ async function findChatWebview(
   while (Date.now() < deadline) {
     throwIfAborted(signal);
     try {
-      const targets = await listTargets(port, signal);
+      const announcedBrowserUrl =
+        typeof getBrowserWebSocketUrl === "function"
+          ? getBrowserWebSocketUrl()
+          : null;
+      // When Chromium has already announced its authoritative browser
+      // endpoint, avoid both HTTP discovery requests. This matters on the
+      // macOS Extension Host where /json/list and /json/version can remain
+      // pending even while the websocket endpoint is accepting connections.
+      const targets =
+        announcedBrowserUrl || suppliedBrowserClient
+          ? []
+          : await listTargets(port, signal);
       lastTargets = targets.map((target) => ({
         id: target.id,
         type: target.type,
@@ -355,7 +513,7 @@ async function findChatWebview(
         if (!target.webSocketDebuggerUrl) continue;
         let client;
         try {
-          client = await CdpClient.connect(target.webSocketDebuggerUrl);
+          client = await connectCdpWebSocket(target.webSocketDebuggerUrl);
           const found = await client.evaluate(`Boolean(${CHAT_WEBVIEW_PROBE})`);
           if (found) return { client, target };
         } catch (error) {
@@ -367,8 +525,12 @@ async function findChatWebview(
       // Electron 39+ may keep Webview iframe targets off /json/list. Connect
       // to the browser endpoint (flattened sessions are brokered there), then
       // attach only to vscode-webview OOPIFs and evaluate their real DOM.
-      const browserUrl = await browserWebSocketUrl(port, signal);
-      const browserClient = await CdpClient.connect(browserUrl);
+      const browserUrl = suppliedBrowserClient
+        ? "pipe://browser"
+        : announcedBrowserUrl || (await browserWebSocketUrl(port, signal));
+      const browserClient =
+        suppliedBrowserClient || (await connectCdpWebSocket(browserUrl));
+      const ownsBrowserClient = !suppliedBrowserClient;
       let keepBrowserClient = false;
       try {
         const discovered = await browserClient.send("Target.getTargets");
@@ -392,16 +554,11 @@ async function findChatWebview(
           });
           lastTargetSnapshot = targetSnapshot;
         }
-        for (const info of targetInfos.filter((candidate) => {
-          const url = String(candidate.url || "");
-          const title = String(candidate.title || "");
-          return (
-            candidate.type === "iframe" ||
-            (["page", "webview"].includes(candidate.type) &&
-              (url.startsWith("vscode-webview://") ||
-                /webview/i.test(`${url} ${title}`)))
-          );
-        })) {
+        // Electron versions differ in whether a Webview is surfaced as its
+        // own iframe/webview target or as a frame under the workbench page.
+        // Inspect every renderable target and let CHAT_WEBVIEW_PROBE provide
+        // the strict identity check; browser and worker targets stay excluded.
+        for (const info of targetInfos.filter(isInspectableBrowserTarget)) {
           let sessionId = null;
           try {
             const attached = await browserClient.send("Target.attachToTarget", {
@@ -502,7 +659,7 @@ async function findChatWebview(
           }
         }
       } finally {
-        if (!keepBrowserClient) browserClient.close();
+        if (!keepBrowserClient && ownsBrowserClient) browserClient.close();
       }
     } catch (error) {
       if (signal?.aborted) throw abortError(signal);
@@ -1020,8 +1177,13 @@ async function runCdpHostJourney(options) {
     artifactDir,
     timeoutMs = 120_000,
     signal = null,
+    getBrowserWebSocketUrl = null,
+    browserClient = null,
   } = options;
-  if (!Number.isInteger(port) || port < 1 || port > 65_535) {
+  if (
+    !browserClient &&
+    (!Number.isInteger(port) || port < 1 || port > 65_535)
+  ) {
     throw new Error(`invalid loopback CDP port: ${port}`);
   }
   if (!Object.hasOwn(JOURNEY_PHASES, phase)) {
@@ -1033,7 +1195,14 @@ async function runCdpHostJourney(options) {
   let failure;
   try {
     await waitForFile(readyFile, timeoutMs, signal);
-    const located = await findChatWebview(port, timeoutMs, signal, tracePath);
+    const located = await findChatWebview(
+      port,
+      timeoutMs,
+      signal,
+      tracePath,
+      getBrowserWebSocketUrl,
+      browserClient,
+    );
     client = located.client;
     appendTrace(tracePath, {
       phase,
@@ -1084,10 +1253,17 @@ async function runCdpHostJourney(options) {
 
 module.exports = {
   CdpClient,
+  CHAT_WEBVIEW_PROBE,
   JOURNEY_PHASES,
   PHASE_DOM_MARKERS,
+  assertHostReadySignal,
   assertJourneyArtifacts,
+  buildCdpWebSocketOptions,
+  createCdpPipeSocket,
   createFixtureCli,
+  isExactIsoTimestamp,
+  isInspectableBrowserTarget,
+  readJsonLines,
   readJourneyResult,
   reserveLoopbackPort,
   runCdpHostJourney,

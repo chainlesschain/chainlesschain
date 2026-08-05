@@ -29,6 +29,12 @@ const { createStatusBar } = require("./ui/status-bar");
 const { IdeBridgeTreeProvider } = require("./ui/tree-view");
 const { openDashboard, refreshDashboard } = require("./ui/dashboard");
 const { ChatViewProvider } = require("./chat/chat-view");
+const {
+  HOST_DOM_COMMAND,
+  HOST_DOM_DRIVER_COMMAND,
+  normalizeHostDomToken,
+  hostDomTokensEqual,
+} = require("./chat/host-dom-relay");
 const { InlineChatDecorator } = require("./chat/inline-chat");
 const {
   promptForWindowReloadAfterExtensionUpgrade,
@@ -259,6 +265,9 @@ function activate(context) {
   // Chat panel: a webview that drives a persistent `cc agent` duplex child.
   // The child env carries this window's bridge port/token, so the agent gets
   // selection context, diagnostics feedback, and native diff reviews here.
+  const hostDomToken = normalizeHostDomToken(
+    process.env.CHAINLESSCHAIN_HOST_DOM_TOKEN,
+  );
   const chatProvider = new ChatViewProvider(vscode, {
     getBridgeEnv: () =>
       _port && _token
@@ -269,6 +278,7 @@ function activate(context) {
         : {},
     state: context.workspaceState, // per-workspace chat session resume
     enableSessionIndex: true,
+    hostDomToken,
     log,
   });
   context.subscriptions.push(
@@ -283,6 +293,19 @@ function activate(context) {
     ),
     chatProvider,
   );
+  if (hostDomToken) {
+    context.subscriptions.push(
+      vscode.commands.registerCommand(
+        HOST_DOM_COMMAND,
+        (presentedToken, request) => {
+          if (!hostDomTokensEqual(hostDomToken, presentedToken)) {
+            throw new Error("host DOM relay token mismatch");
+          }
+          return chatProvider.runHostDomCommand(request);
+        },
+      ),
+    );
+  }
   // Activation-level upgrade guard: a retained Webview can survive an
   // Extension Host restart without resolveWebviewView being called again.
   // VS Code exposes no targeted public API that recreates that view/provider;
@@ -1385,6 +1408,20 @@ function activate(context) {
   );
 
   startBridge(context).catch((e) => log("start failed: " + e.message));
+  if (hostDomToken) {
+    // The packaged target activates before the test-only development driver on
+    // signed macOS hosts. Trigger the driver's fixed contributed command only
+    // after this synchronous activation has returned; normal product launches
+    // have no relay token, so this hook is absent in production sessions.
+    const driverTimer = setTimeout(() => {
+      Promise.resolve(
+        vscode.commands.executeCommand(HOST_DOM_DRIVER_COMMAND),
+      ).catch((error) =>
+        log(`host DOM relay driver failed: ${error?.message || error}`),
+      );
+    }, 0);
+    context.subscriptions.push({ dispose: () => clearTimeout(driverTimer) });
+  }
 }
 
 function deactivate() {

@@ -145,11 +145,29 @@ version.
   `npm run test:unit`, `node scripts/sync-elicitation-schema.mjs --check`,
   `vsce package --no-dependencies`, then
   `verify-vsix.selftest.mjs` and `verify-vsix.mjs`.
-- **VS Code runtime gates**: install the packaged VSIX into fresh stable and
-  minimum-supported (`1.85.2`) Extension Hosts with
-  `test/extension-host/run.cjs`. Windows is mandatory because the bridge
-  lockfile's owner-only DACL is platform-specific; Linux/Xvfb is the second
-  release host.
+- **VS Code runtime gates**: install the packaged VSIX into fresh current stable
+  and minimum-supported (`1.85.2`) Extension Hosts with
+  `test/extension-host/run.cjs`. Windows and Linux/Xvfb run the complete real
+  Webview DOM control/restart journey through a random loopback-only Chromium
+  CDP port. Signed macOS VS Code builds reject the hosted runner's external
+  CDP and inspector handshakes, so macOS drives the same installed VSIX Webview
+  through VS Code's own Extension Host/Webview message boundary. The hidden
+  relay exists only when the launcher injects a fresh 256-bit token, validates
+  that token on both sides, and exposes fixed semantic DOM actions rather than
+  arbitrary JavaScript evaluation. The target extension invokes one fixed
+  driver command after activation, the isolated macOS app is foregrounded, and
+  the real Chat focus command must settle before DOM polling begins. No
+  Inspector or remote-debugging transport is opened; all DOM state remains on
+  the token-gated relay.
+  The isolated macOS journey uses VS Code's test-only in-memory secret storage
+  because a fresh CI profile contains no user credentials and must not block on
+  headless Keychain access before Webview startup. macOS remains
+  release-authoritative only when both current stable and minimum journeys pass.
+  `--host-api-only` is a
+  diagnostic fallback that verifies activation, registered commands, the live
+  bridge, and the production Activity View/focus command, but it does not prove
+  DOM behavior and cannot authorize a release. Windows is also mandatory
+  because the bridge lockfile's owner-only DACL is platform-specific.
 - **JetBrains headless gates**:
   `./gradlew smokeTest test buildPlugin verifyPluginStructure
 verifyPluginProjectConfiguration verifyPlugin --no-daemon --stacktrace`.

@@ -14,10 +14,10 @@
       "baselineCommandCount": 175,
       "maximumNetGrowth": 0,
       "registeredCommandCount": 175,
-      "activeRegisteredCommandCount": 165,
+      "activeRegisteredCommandCount": 150,
       "virtualNamespaceCount": 1,
-      "deprecatedCompatibilityCount": 10,
-      "recommendedTopLevelCommandCount": 166,
+      "deprecatedCompatibilityCount": 25,
+      "recommendedTopLevelCommandCount": 151,
       "netGrowth": 0
     },
     "namespaces": [
@@ -32,9 +32,24 @@
           "consol",
           "dao",
           "evomap",
+          "execbe",
           "fflag",
+          "itbudget",
+          "mcpscaf",
+          "meminj",
+          "orchgov",
           "pdfp",
+          "promcomp",
+          "seshhook",
+          "seshsearch",
+          "seshtail",
+          "seshu",
           "sganal",
+          "slotfill",
+          "svccont",
+          "tms",
+          "topiccls",
+          "uprof",
           "vcheck"
         ]
       }
@@ -775,8 +790,14 @@
       "stability": "compatibility",
       "category": "compatibility",
       "visibility": "extended",
-      "replacement": null,
-      "lifecycle": { "state": "active" }
+      "replacement": "lab execbe",
+      "lifecycle": {
+        "state": "deprecated",
+        "deprecatedSince": "0.162.194",
+        "removalNotBefore": "0.164.0",
+        "minimumReleaseCycles": 2,
+        "releaseCycle": "minor"
+      }
     },
     {
       "name": "export",
@@ -1033,8 +1054,14 @@
       "stability": "compatibility",
       "category": "compatibility",
       "visibility": "extended",
-      "replacement": null,
-      "lifecycle": { "state": "active" }
+      "replacement": "lab itbudget",
+      "lifecycle": {
+        "state": "deprecated",
+        "deprecatedSince": "0.162.194",
+        "removalNotBefore": "0.164.0",
+        "minimumReleaseCycles": 2,
+        "releaseCycle": "minor"
+      }
     },
     {
       "name": "kg",
@@ -1153,8 +1180,14 @@
       "stability": "compatibility",
       "category": "compatibility",
       "visibility": "extended",
-      "replacement": null,
-      "lifecycle": { "state": "active" }
+      "replacement": "lab mcpscaf",
+      "lifecycle": {
+        "state": "deprecated",
+        "deprecatedSince": "0.162.194",
+        "removalNotBefore": "0.164.0",
+        "minimumReleaseCycles": 2,
+        "releaseCycle": "minor"
+      }
     },
     {
       "name": "meminj",
@@ -1165,8 +1198,14 @@
       "stability": "compatibility",
       "category": "compatibility",
       "visibility": "extended",
-      "replacement": null,
-      "lifecycle": { "state": "active" }
+      "replacement": "lab meminj",
+      "lifecycle": {
+        "state": "deprecated",
+        "deprecatedSince": "0.162.194",
+        "removalNotBefore": "0.164.0",
+        "minimumReleaseCycles": 2,
+        "releaseCycle": "minor"
+      }
     },
     {
       "name": "memory",
@@ -1297,8 +1336,14 @@
       "stability": "compatibility",
       "category": "compatibility",
       "visibility": "extended",
-      "replacement": null,
-      "lifecycle": { "state": "active" }
+      "replacement": "lab orchgov",
+      "lifecycle": {
+        "state": "deprecated",
+        "deprecatedSince": "0.162.194",
+        "removalNotBefore": "0.164.0",
+        "minimumReleaseCycles": 2,
+        "releaseCycle": "minor"
+      }
     },
     {
       "name": "org",
@@ -1543,8 +1588,14 @@
       "stability": "compatibility",
       "category": "compatibility",
       "visibility": "extended",
-      "replacement": null,
-      "lifecycle": { "state": "active" }
+      "replacement": "lab promcomp",
+      "lifecycle": {
+        "state": "deprecated",
+        "deprecatedSince": "0.162.194",
+        "removalNotBefore": "0.164.0",
+        "minimumReleaseCycles": 2,
+        "releaseCycle": "minor"
+      }
     },
     {
       "name": "quantize",
@@ -1723,8 +1774,14 @@
       "stability": "compatibility",
       "category": "compatibility",
       "visibility": "extended",
-      "replacement": null,
-      "lifecycle": { "state": "active" }
+      "replacement": "lab seshhook",
+      "lifecycle": {
+        "state": "deprecated",
+        "deprecatedSince": "0.162.194",
+        "removalNotBefore": "0.164.0",
+        "minimumReleaseCycles": 2,
+        "releaseCycle": "minor"
+      }
     },
     {
       "name": "seshsearch",
@@ -1735,8 +1792,14 @@
       "stability": "compatibility",
       "category": "compatibility",
       "visibility": "extended",
-      "replacement": null,
-      "lifecycle": { "state": "active" }
+      "replacement": "lab seshsearch",
+      "lifecycle": {
+        "state": "deprecated",
+        "deprecatedSince": "0.162.194",
+        "removalNotBefore": "0.164.0",
+        "minimumReleaseCycles": 2,
+        "releaseCycle": "minor"
+      }
     },
     {
       "name": "seshtail",
@@ -1747,8 +1810,14 @@
       "stability": "compatibility",
       "category": "compatibility",
       "visibility": "extended",
-      "replacement": null,
-      "lifecycle": { "state": "active" }
+      "replacement": "lab seshtail",
+      "lifecycle": {
+        "state": "deprecated",
+        "deprecatedSince": "0.162.194",
+        "removalNotBefore": "0.164.0",
+        "minimumReleaseCycles": 2,
+        "releaseCycle": "minor"
+      }
     },
     {
       "name": "seshu",
@@ -1759,8 +1828,14 @@
       "stability": "compatibility",
       "category": "compatibility",
       "visibility": "extended",
-      "replacement": null,
-      "lifecycle": { "state": "active" }
+      "replacement": "lab seshu",
+      "lifecycle": {
+        "state": "deprecated",
+        "deprecatedSince": "0.162.194",
+        "removalNotBefore": "0.164.0",
+        "minimumReleaseCycles": 2,
+        "releaseCycle": "minor"
+      }
     },
     {
       "name": "session",
@@ -1849,8 +1924,14 @@
       "stability": "compatibility",
       "category": "compatibility",
       "visibility": "extended",
-      "replacement": null,
-      "lifecycle": { "state": "active" }
+      "replacement": "lab slotfill",
+      "lifecycle": {
+        "state": "deprecated",
+        "deprecatedSince": "0.162.194",
+        "removalNotBefore": "0.164.0",
+        "minimumReleaseCycles": 2,
+        "releaseCycle": "minor"
+      }
     },
     {
       "name": "social",
@@ -1969,8 +2050,14 @@
       "stability": "compatibility",
       "category": "compatibility",
       "visibility": "extended",
-      "replacement": null,
-      "lifecycle": { "state": "active" }
+      "replacement": "lab svccont",
+      "lifecycle": {
+        "state": "deprecated",
+        "deprecatedSince": "0.162.194",
+        "removalNotBefore": "0.164.0",
+        "minimumReleaseCycles": 2,
+        "releaseCycle": "minor"
+      }
     },
     {
       "name": "sync",
@@ -2053,8 +2140,14 @@
       "stability": "compatibility",
       "category": "compatibility",
       "visibility": "extended",
-      "replacement": null,
-      "lifecycle": { "state": "active" }
+      "replacement": "lab tms",
+      "lifecycle": {
+        "state": "deprecated",
+        "deprecatedSince": "0.162.194",
+        "removalNotBefore": "0.164.0",
+        "minimumReleaseCycles": 2,
+        "releaseCycle": "minor"
+      }
     },
     {
       "name": "todo",
@@ -2089,8 +2182,14 @@
       "stability": "compatibility",
       "category": "compatibility",
       "visibility": "extended",
-      "replacement": null,
-      "lifecycle": { "state": "active" }
+      "replacement": "lab topiccls",
+      "lifecycle": {
+        "state": "deprecated",
+        "deprecatedSince": "0.162.194",
+        "removalNotBefore": "0.164.0",
+        "minimumReleaseCycles": 2,
+        "releaseCycle": "minor"
+      }
     },
     {
       "name": "trust",
@@ -2137,8 +2236,14 @@
       "stability": "compatibility",
       "category": "compatibility",
       "visibility": "extended",
-      "replacement": null,
-      "lifecycle": { "state": "active" }
+      "replacement": "lab uprof",
+      "lifecycle": {
+        "state": "deprecated",
+        "deprecatedSince": "0.162.194",
+        "removalNotBefore": "0.164.0",
+        "minimumReleaseCycles": 2,
+        "releaseCycle": "minor"
+      }
     },
     {
       "name": "vcheck",

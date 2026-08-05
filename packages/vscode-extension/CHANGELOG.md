@@ -2,6 +2,37 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.41] - Auditable macOS host journey (2026-08-05)
+
+- Add a one-launch, 256-bit-token-gated Webview message relay for the real
+  installed-VSIX host journey; only fixed snapshot, send, and semantic click
+  actions are accepted, and normal product launches keep the relay inert.
+- Activate the test-only macOS journey through one contributed fixed command
+  after product activation, deduplicate fallback and standard test entrypoints,
+  and settle result files before bounded Extension Host shutdown.
+- Remove the obsolete debugger bootstrap from the macOS relay launch and retain
+  phase-scoped progress, DOM snapshots, protocol trace, and fail-closed evidence.
+- Foreground the isolated macOS host, wait for real Chat focus, and allow a
+  cold signed Webview five seconds to complete its protocol handshake before a
+  one-time stale-DOM rebuild.
+- Keep fresh token-gated Webviews free of stale-DOM reloads while retaining the
+  bounded relay deadline, and collect minimum-host evidence even after a stable
+  host failure.
+- Retain verbose Webview/service-worker diagnostics for the isolated macOS host
+  journey without disabling the renderer used by current VS Code builds.
+- Keep the isolated macOS host on VS Code's in-memory test secret storage so a
+  headless Keychain request cannot block current stable before Webview startup.
+
+## [0.37.40] - Inline chat and release-host hardening (2026-08-04)
+
+- Add an editor-native inline chat panel with selection-aware prompts,
+  streaming responses, and copy/insert/replace actions while keeping its
+  session isolated from the sidebar conversation.
+- Add localized commands and keybindings for explain, refactor, fix,
+  documentation, and test-generation flows.
+- Repair the cross-platform release gate so its asynchronous downloaded-host
+  version probe is awaited before the packaged VSIX host journeys run.
+
 ## [0.37.38] - Canonical session delivery and rewind (2026-08-03)
 
 - Project the CLI-owned session graph into Sessions Workbench and expose only
