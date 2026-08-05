@@ -133,19 +133,20 @@ final class IdeUiSmokeTest {
         ComponentFixture list = robot.find(ComponentFixture.class,
                 Locators.byXpath("//div[@class='JBList' and @visible='true']"),
                 FIND_BUDGET);
-        list.runJs("component.setSelectedIndex(" + index + ");"
-                + "component.requestFocusInWindow();"
-                + "component.dispatchEvent(new java.awt.event.KeyEvent("
-                + "component, java.awt.event.KeyEvent.KEY_PRESSED,"
-                + "java.lang.System.currentTimeMillis(), 0,"
-                + "java.awt.event.KeyEvent.VK_ENTER,"
-                + "java.awt.event.KeyEvent.CHAR_UNDEFINED));"
-                + "component.dispatchEvent(new java.awt.event.KeyEvent("
-                + "component, java.awt.event.KeyEvent.KEY_RELEASED,"
-                + "java.lang.System.currentTimeMillis(), 0,"
-                + "java.awt.event.KeyEvent.VK_ENTER,"
-                + "java.awt.event.KeyEvent.CHAR_UNDEFINED));"
-        );
+        list.runJs(
+                "component.setSelectedIndex(" + index + ");"
+                        + "component.requestFocusInWindow();"
+                        + "component.dispatchEvent(new java.awt.event.KeyEvent("
+                        + "component, java.awt.event.KeyEvent.KEY_PRESSED,"
+                        + "java.lang.System.currentTimeMillis(), 0,"
+                        + "java.awt.event.KeyEvent.VK_ENTER,"
+                        + "java.awt.event.KeyEvent.CHAR_UNDEFINED));"
+                        + "component.dispatchEvent(new java.awt.event.KeyEvent("
+                        + "component, java.awt.event.KeyEvent.KEY_RELEASED,"
+                        + "java.lang.System.currentTimeMillis(), 0,"
+                        + "java.awt.event.KeyEvent.VK_ENTER,"
+                        + "java.awt.event.KeyEvent.CHAR_UNDEFINED));",
+                true);
         Thread.sleep(250);
     }
 
