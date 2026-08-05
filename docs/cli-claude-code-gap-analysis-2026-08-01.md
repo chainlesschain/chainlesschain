@@ -819,11 +819,13 @@ E2E retry-pass 应记为 flake，而不是普通 pass；超过阈值阻断发布
 
 本地 Windows x64 补充证据（非发布授权）：1,073,741,824 字节完整链和 production sidecar 均 verified；canonical hot resume p95 `1.79 ms`、峰值 RSS `49.49 MiB`、最大读取 `65,537` 字节；5 个完整 CLI 冷进程 p95 `854.76 ms`、峰值 RSS `59.50 MiB`，均满足 `<2 s` / `<100 MiB`。冷路径、1 GiB gate contract、PR ledger、Session eager/lazy、参数校验、legacy fallback 与 usage attribution 相邻矩阵串行复验 **64/64 passed**；较小默认超时下的并行扩大运行只出现资源竞争型 timeout，逐文件复跑没有断言失败。
 
-该增量已落地于本节所在提交，但尚未在 Ubuntu、macOS、Windows formal matrix 运行，因此 **P0-5/P1-6 冷进程 SLO 仍是 NO-GO**。只有包含本节与实现的最终提交在 `.github/workflows/cli-session-scale.yml` 三平台 formal job 全部成功并上传 exact-SHA artifact 后，才可关闭这一子项；本地 1 GiB 成功不能替代该门。
+实现提交 `f99f18e4cb3832b8848534186ba32756e98c66c9` 又以 clean tracked worktree 运行 Windows x64 **formal** profile，`expectedSha` / `exactSha` 均精确命中该提交，gate source list 无漂移。564.72 秒的完整运行得到：20 个 writer × 1,000 次 append 共 `20,000/20,000` 唯一事件且链 verified；10,000 sessions indexed list p95 `132.94 ms`、峰值 RSS `54.03 MiB`；1 GiB hot resume p95 `2.21 ms`、峰值 RSS `49.54 MiB`、最大读取 `65,537` 字节；15 个完整 CLI 冷进程 p95 `990.41 ms`、峰值 RSS `60.14 MiB`；8 次真实进程强杀（6 次 partial append、2 次 pipeline）及 344 个 exhaustive partial-record cuts 均零失败。结果文件记录 tree `82bfb6c040ec0fcf3d718448567552b8ec19a93c` 和空 violations。
+
+因此 Windows x64 本地 formal 子格已补齐，但 Ubuntu、macOS 以及 GitHub-hosted Windows exact-SHA artifact 尚未形成，**P0-5/P1-6 冷进程 SLO 仍是 NO-GO**。只有该实现提交在 `.github/workflows/cli-session-scale.yml` 三平台 formal job 全部成功并上传 exact-SHA artifact 后，才可关闭这一子项；本地 formal 成功不能替代权威矩阵。
 
 ### 16.3 仍未完成的产品级任务
 
-1. 在当前冷进程增量的最终 exact SHA 上运行三平台 `CLI Session Scale` formal matrix：20 个 writer × 1,000 次 append、10,000 sessions、1 GiB transcript、至少 15 个完整 CLI 冷进程样本、真实进程强杀与 exhaustive partial-record cuts 必须全部成功。
+1. 在实现 SHA `f99f18e4cb3832b8848534186ba32756e98c66c9` 上完成三平台 `CLI Session Scale` formal matrix：本地 Windows x64 formal 已通过，仍须取得 GitHub-hosted Ubuntu、macOS、Windows 的 exact-SHA artifacts；每格的 20 个 writer × 1,000 次 append、10,000 sessions、1 GiB transcript、至少 15 个完整 CLI 冷进程样本、真实进程强杀与 exhaustive partial-record cuts 必须全部成功。
 2. 完成 Session/Skill/MCP 的真实恶意矩阵：跨进程 kill/restart、旧宿主停止与新 authority 接管、恶意 MCP/Skill、即时撤权、非协作 same-UID writer、磁盘满/只读目录/broken pipe，以及长期安全 soak。`HOST STOPPED` challenge 仍不是 machine-wide lease。
 3. 完成 native generation transaction 与公开发行链：任意阶段 taskkill/断电/fsync 后的确定恢复，Linux/macOS/Windows x64 + ARM64 目标二进制实机，notarization/Authenticode/Linux 签名、fresh install/upgrade/rollback 及 Homebrew/WinGet/公开 manifest/asset 回读。
 4. 完成 P1 命令生命周期后续：依据真实 usage telemetry 观察至少两个 minor cycle 后决定兼容 alias 移除；在此之前不得删除旧入口。
