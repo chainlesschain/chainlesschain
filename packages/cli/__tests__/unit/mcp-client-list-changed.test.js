@@ -18,6 +18,12 @@ beforeEach(() => {
   });
   _deps.materializeApprovedMcpStdioInvocation = (_approval, { config }) =>
     config;
+  _deps.prepareMcpStdioExecutableIdentity = ({ config }) => ({
+    command: config.command,
+    args: config.args || [],
+    identity: null,
+    authority: Object.freeze({}),
+  });
 });
 
 function makeFakeProc(state) {

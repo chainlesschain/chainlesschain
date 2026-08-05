@@ -29,6 +29,12 @@ beforeEach(() => {
   });
   _deps.materializeApprovedMcpStdioInvocation = (_approval, { config }) =>
     config;
+  _deps.prepareMcpStdioExecutableIdentity = ({ config }) => ({
+    command: config.command,
+    args: config.args || [],
+    identity: null,
+    authority: Object.freeze({}),
+  });
 });
 
 const STDIO_FRAME_HARD_LIMIT_BYTES = 16 * 1024 * 1024;

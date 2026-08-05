@@ -27,7 +27,18 @@ function parseMcpAddOptions(argv = []) {
   return add.opts();
 }
 
+function registeredMcpSubcommands() {
+  const program = new Command();
+  registerMcpCommand(program);
+  const mcp = program.commands.find((command) => command.name() === "mcp");
+  return mcp.commands.map((command) => command.name());
+}
+
 describe("cc mcp add scope default", () => {
+  it("registers an explicit executable-byte trust command", () => {
+    expect(registeredMcpSubcommands()).toContain("trust-executable");
+  });
+
   it("uses local scope when --scope is omitted", () => {
     expect(parseMcpAddOptions().scope).toBe("local");
   });

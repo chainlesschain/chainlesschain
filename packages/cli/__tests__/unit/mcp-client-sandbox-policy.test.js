@@ -46,6 +46,7 @@ function makeFakeMcpProcess() {
 const originalSpawn = _deps.spawn;
 const originalConsume = _deps.consumeMcpStdioExecutionAuthority;
 const originalMaterialize = _deps.materializeApprovedMcpStdioInvocation;
+const originalPrepareIdentity = _deps.prepareMcpStdioExecutableIdentity;
 
 beforeEach(() => {
   _deps.consumeMcpStdioExecutionAuthority = () => ({
@@ -53,12 +54,19 @@ beforeEach(() => {
   });
   _deps.materializeApprovedMcpStdioInvocation = (_approval, { config }) =>
     config;
+  _deps.prepareMcpStdioExecutableIdentity = ({ config }) => ({
+    command: config.command,
+    args: config.args || [],
+    identity: null,
+    authority: Object.freeze({}),
+  });
 });
 
 afterEach(() => {
   _deps.spawn = originalSpawn;
   _deps.consumeMcpStdioExecutionAuthority = originalConsume;
   _deps.materializeApprovedMcpStdioInvocation = originalMaterialize;
+  _deps.prepareMcpStdioExecutableIdentity = originalPrepareIdentity;
   vi.restoreAllMocks();
 });
 

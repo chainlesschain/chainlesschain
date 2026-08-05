@@ -59,6 +59,12 @@ describe("MCP elicitation/create routing", () => {
     });
     _deps.materializeApprovedMcpStdioInvocation = (_approval, { config }) =>
       config;
+    _deps.prepareMcpStdioExecutableIdentity = ({ config }) => ({
+      command: config.command,
+      args: config.args || [],
+      identity: null,
+      authority: Object.freeze({}),
+    });
   });
 
   it("routes a server request to the injected handler", async () => {

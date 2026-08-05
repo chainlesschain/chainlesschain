@@ -40,9 +40,12 @@ import {
   issueProjectMcpWorkspaceAuthority,
 } from "../lib/project-mcp-trust.js";
 import {
+  consumeMcpStdioExecutionAuthority,
   MCP_STDIO_LOCAL_CODE_TRUST_REQUIRED_CODE,
   issueMcpStdioExecutionAuthority,
+  materializeApprovedMcpStdioInvocation,
 } from "../lib/mcp-stdio-execution-authority.js";
+import { prepareMcpStdioExecutableIdentity } from "../lib/mcp-stdio-executable-identity.js";
 import {
   CATALOG as REGISTRY_CATALOG,
   CATEGORIES as REGISTRY_CATEGORIES,
@@ -801,6 +804,85 @@ export function registerMcpCommand(program) {
       } catch (err) {
         logger.error(`Failed: ${err.message}`);
         process.exit(1);
+      }
+    });
+
+  mcp
+    .command("trust-executable <name>")
+    .description(
+      "Review and trust the current executable and interpreter-entrypoint bytes for one stdio MCP server",
+    )
+    .option(
+      "--scope <scope>",
+      `Configuration scope: ${MCP_CONFIG_SCOPES.join(" | ")}`,
+    )
+    .option("--json", "Output the trusted paths and SHA-256 identities as JSON")
+    .action(async (name, options) => {
+      try {
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        if (!ctx.db) throw new Error("Database not available");
+        const configStore = new MCPServerConfig(ctx.db.getDatabase());
+        const scope = options.scope
+          ? normalizeMcpConfigScope(options.scope)
+          : undefined;
+        const rows = await effectiveMcpRows(configStore, { scope });
+        const row = rows.find((entry) => entry.name === name);
+        if (!row) {
+          throw new Error(
+            `${notFoundWithSuggestion(
+              name,
+              rows.map((entry) => entry.name),
+              { noun: "Server" },
+            )}. Use 'mcp add' first.`,
+          );
+        }
+        if (inferTransport(row) !== "stdio") {
+          throw new Error(
+            `MCP server "${name}" does not use the stdio transport`,
+          );
+        }
+
+        const authorized = authorizeMcpRowForConnect(row);
+        const approval = consumeMcpStdioExecutionAuthority(
+          authorized.mcpStdioExecutionAuthority,
+          { serverName: name, config: authorized },
+        );
+        const invocation = materializeApprovedMcpStdioInvocation(approval);
+        const prepared = prepareMcpStdioExecutableIdentity({
+          serverName: name,
+          config: invocation,
+          approval,
+          cwd: process.cwd(),
+          env: process.env,
+          retrust: true,
+        });
+        const result = {
+          name,
+          status: prepared.trustStatus,
+          identityDigest: prepared.identityDigest,
+          command: prepared.identity.command,
+          entrypoints: prepared.identity.entrypoints,
+        };
+        if (options.json) {
+          console.log(JSON.stringify(result, null, 2));
+        } else {
+          logger.log(
+            chalk.green(`Trusted MCP stdio executable identity for "${name}".`),
+          );
+          logger.log(
+            `  ${chalk.gray("Command:")} ${result.command.realPath}  sha256:${result.command.sha256}`,
+          );
+          for (const entrypoint of result.entrypoints) {
+            logger.log(
+              `  ${chalk.gray(`${entrypoint.role}:`)} ${entrypoint.realPath}  sha256:${entrypoint.sha256}`,
+            );
+          }
+        }
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exitCode = 1;
+        await shutdown();
       }
     });
 

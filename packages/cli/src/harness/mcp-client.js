@@ -34,6 +34,7 @@ import {
   materializeApprovedMcpStdioInvocation,
   renewMcpStdioExecutionAuthority,
 } from "../lib/mcp-stdio-execution-authority.js";
+import { prepareMcpStdioExecutableIdentity } from "../lib/mcp-stdio-executable-identity.js";
 
 /**
  * Injectable dependencies — overridable from tests.
@@ -49,6 +50,7 @@ export const _deps = {
   consumeMcpStdioExecutionAuthority,
   materializeApprovedMcpStdioInvocation,
   renewMcpStdioExecutionAuthority,
+  prepareMcpStdioExecutableIdentity,
   // Backoff sleep seam (tests override with a no-op so retries don't wait).
   sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
 };
@@ -1851,12 +1853,53 @@ export class MCPClient extends EventEmitter {
     const sourceConfig = approvedStdioInvocation
       ? { ...untrustedSourceConfig, ...approvedStdioInvocation }
       : untrustedSourceConfig;
+    let pluginWorkspaceRoot = null;
+    let stdioExecutableIdentity = null;
+    let stdioExecutableIdentityAuthority = null;
+    let runtimeConfig = sourceConfig;
+    if (transportKind === "stdio") {
+      const isPlugin = sourceConfig.origin === "plugin:mcp";
+      pluginWorkspaceRoot = isPlugin
+        ? resolvePluginWorkspaceAuthority(
+            sourceConfig.pluginWorkspaceAuthority,
+            {
+              origin: sourceConfig.origin,
+              pluginId: sourceConfig.pluginId,
+              pluginVersion: sourceConfig.pluginVersion,
+              pluginSource: sourceConfig.pluginSource,
+            },
+          )
+        : null;
+      if (
+        isPlugin &&
+        sourceConfig.sandboxPolicy?.requiredBoundaries?.length > 0 &&
+        !pluginWorkspaceRoot
+      ) {
+        throw new Error(
+          `plugin MCP server "${name}" is missing its trusted workspace authority`,
+        );
+      }
+      const prepared = _deps.prepareMcpStdioExecutableIdentity({
+        serverName: name,
+        config: sourceConfig,
+        approval: stdioExecutionApproval,
+        cwd: pluginWorkspaceRoot || process.cwd(),
+        env: process.env,
+      });
+      runtimeConfig = {
+        ...sourceConfig,
+        command: prepared.command,
+        args: [...prepared.args],
+      };
+      stdioExecutableIdentity = prepared.identity;
+      stdioExecutableIdentityAuthority = prepared.authority;
+    }
     const connectionHeaders = await this._connectionHeaders(
       name,
       sourceConfig,
       transportKind,
     );
-    config = { ...sourceConfig, headers: connectionHeaders };
+    config = { ...runtimeConfig, headers: connectionHeaders };
     const entry = {
       // Keep the source config (static headers + helper command) so every
       // reconnect can execute the helper afresh instead of reusing credentials.
@@ -1879,6 +1922,7 @@ export class MCPClient extends EventEmitter {
       _inboundTrafficBudget: null,
       _toolMetadataBytes: 0,
       _stdioExecutionApproval: stdioExecutionApproval,
+      _stdioExecutableIdentity: stdioExecutableIdentity,
       tools: [],
       resources: [],
       resourceTemplates: [],
@@ -2247,23 +2291,6 @@ export class MCPClient extends EventEmitter {
           );
         }
         const isPlugin = config.origin === "plugin:mcp";
-        const pluginWorkspaceRoot = isPlugin
-          ? resolvePluginWorkspaceAuthority(config.pluginWorkspaceAuthority, {
-              origin: config.origin,
-              pluginId: config.pluginId,
-              pluginVersion: config.pluginVersion,
-              pluginSource: config.pluginSource,
-            })
-          : null;
-        if (
-          isPlugin &&
-          config.sandboxPolicy?.requiredBoundaries?.length > 0 &&
-          !pluginWorkspaceRoot
-        ) {
-          throw new Error(
-            `plugin MCP server "${name}" is missing its trusted workspace authority`,
-          );
-        }
         const spawnOptions = {
           cwd: pluginWorkspaceRoot || process.cwd(),
           stdio: ["pipe", "pipe", "pipe"],
@@ -2292,6 +2319,7 @@ export class MCPClient extends EventEmitter {
           ...(config.sandboxPolicy
             ? { sandboxPolicy: config.sandboxPolicy }
             : {}),
+          mcpStdioExecutableIdentityAuthority: stdioExecutableIdentityAuthority,
         };
         const sandboxExecutionContract =
           !isPlugin || pluginWorkspaceRoot

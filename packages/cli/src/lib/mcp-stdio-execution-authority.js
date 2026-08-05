@@ -346,3 +346,18 @@ export function materializeApprovedMcpStdioInvocation(approval) {
   }
   return materializeSnapshot(issued.snapshot);
 }
+
+/**
+ * Return only the content-free provenance needed to key a durable executable
+ * identity. The approval object itself remains an unforgeable WeakMap-backed
+ * capability and is never serialized.
+ */
+export function resolveMcpStdioExecutionApproval(approval) {
+  const issued = renewableApprovals.get(approval);
+  if (!issued) return null;
+  return Object.freeze({
+    approvalKind: issued.approvalKind,
+    approvalSource: issued.approvalSource,
+    fingerprint: issued.fingerprint,
+  });
+}

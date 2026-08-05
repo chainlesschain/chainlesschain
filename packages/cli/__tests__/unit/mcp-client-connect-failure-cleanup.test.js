@@ -24,6 +24,7 @@ const originalFetch = _deps.fetch;
 const originalTerminator = _deps.terminateOwnedProcessTree;
 const originalConsume = _deps.consumeMcpStdioExecutionAuthority;
 const originalMaterialize = _deps.materializeApprovedMcpStdioInvocation;
+const originalPrepareIdentity = _deps.prepareMcpStdioExecutableIdentity;
 
 beforeEach(() => {
   _deps.consumeMcpStdioExecutionAuthority = () => ({
@@ -31,6 +32,12 @@ beforeEach(() => {
   });
   _deps.materializeApprovedMcpStdioInvocation = (_approval, { config }) =>
     config;
+  _deps.prepareMcpStdioExecutableIdentity = ({ config }) => ({
+    command: config.command,
+    args: config.args || [],
+    identity: null,
+    authority: Object.freeze({}),
+  });
 });
 
 afterEach(() => {
@@ -39,6 +46,7 @@ afterEach(() => {
   _deps.terminateOwnedProcessTree = originalTerminator;
   _deps.consumeMcpStdioExecutionAuthority = originalConsume;
   _deps.materializeApprovedMcpStdioInvocation = originalMaterialize;
+  _deps.prepareMcpStdioExecutableIdentity = originalPrepareIdentity;
 });
 
 // A child whose stdin write fails — `_sendRequest("initialize")` rejects at once.

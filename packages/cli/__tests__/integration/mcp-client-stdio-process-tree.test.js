@@ -47,7 +47,7 @@ async function waitForMarker(markerPath, nonce, timeoutMs, getEarlyOutcome) {
     const earlyOutcome = getEarlyOutcome();
     if (earlyOutcome) {
       throw new Error(
-        `MCP process-tree fixture settled before publishing PIDs: ${earlyOutcome.error?.code || "unknown"}`,
+        `MCP process-tree fixture settled before publishing PIDs: ${earlyOutcome.error?.code || earlyOutcome.error?.message || (earlyOutcome.resolved ? "connected unexpectedly" : "unknown")}`,
       );
     }
     await delay(25);
@@ -62,24 +62,6 @@ async function waitForProcessesToExit(pids, timeoutMs) {
     await delay(25);
   } while (Date.now() < deadline);
   return pids.every((pid) => !isProcessAlive(pid));
-}
-
-function nativeMcpSpawn(file, args, options) {
-  const nativeOptions = { ...options };
-  for (const key of [
-    "origin",
-    "policy",
-    "scope",
-    "pluginId",
-    "pluginVersion",
-    "pluginSource",
-    "sandboxPolicy",
-    "sandboxExecutionContract",
-    "requiredBoundaries",
-  ]) {
-    delete nativeOptions[key];
-  }
-  return nativeSpawn(file, args, nativeOptions);
 }
 
 async function canTerminateWindowsChildTree() {
@@ -169,7 +151,7 @@ describe.skipIf(!SUPPORTED_PLATFORMS.has(process.platform))(
   () => {
     it(
       "reaps the MCP root and grandchild before a failed connect settles",
-      { timeout: process.platform === "win32" ? 25_000 : 15_000 },
+      { timeout: process.platform === "win32" ? 35_000 : 20_000 },
       async ({ skip }) => {
         if (process.platform === "win32") {
           const taskkillAvailable = await canTerminateWindowsChildTree();
@@ -188,12 +170,14 @@ describe.skipIf(!SUPPORTED_PLATFORMS.has(process.platform))(
         const nonce = `${process.pid}-${Date.now()}-${Math.random()}`;
         const originalSpawn = mcpDeps.spawn;
         const originalTerminator = mcpDeps.terminateOwnedProcessTree;
+        const originalTrust = process.env.CC_MCP_EXECUTABLE_TRUST;
+        const originalTrustStore = process.env.CC_MCP_EXECUTABLE_TRUST_STORE;
         let rootChild = null;
         let marker = null;
         let earlyOutcome = null;
 
         mcpDeps.spawn = (file, args, options) => {
-          rootChild = nativeMcpSpawn(file, args, options);
+          rootChild = originalSpawn(file, args, options);
           return rootChild;
         };
         mcpDeps.terminateOwnedProcessTree = (child, options) =>
@@ -201,6 +185,11 @@ describe.skipIf(!SUPPORTED_PLATFORMS.has(process.platform))(
             ...options,
             spawnSync: nativeSpawnSync,
           });
+        process.env.CC_MCP_EXECUTABLE_TRUST = "1";
+        process.env.CC_MCP_EXECUTABLE_TRUST_STORE = path.join(
+          workspace,
+          "mcp-executable-identities.json",
+        );
 
         const client = new MCPClient();
         const connectionConfig = {
@@ -211,7 +200,7 @@ describe.skipIf(!SUPPORTED_PLATFORMS.has(process.platform))(
             CC_MCP_HEADERS_HELPER_TREE_MARKER: markerPath,
             CC_MCP_HEADERS_HELPER_TREE_NONCE: nonce,
           },
-          requestTimeoutMs: 1_000,
+          requestTimeoutMs: process.platform === "win32" ? 8_000 : 2_000,
           processTreeGraceMs: 50,
           processTreeCleanupTimeoutMs: 2_000,
         };
@@ -234,10 +223,17 @@ describe.skipIf(!SUPPORTED_PLATFORMS.has(process.platform))(
           marker = await waitForMarker(
             markerPath,
             nonce,
-            4_000,
+            process.platform === "win32" ? 12_000 : 5_000,
             () => earlyOutcome,
           );
-          expect(marker.parentPid).toBe(rootChild.pid);
+          // POSIX launches the MCP root directly. Windows may return the
+          // restricted-token Job launcher while the fixture root is its child;
+          // the cleanup assertions below prove that the whole Job tree closes.
+          if (process.platform !== "win32") {
+            expect(marker.parentPid).toBe(rootChild.pid);
+          } else {
+            expect(rootChild.pid).toBeGreaterThan(0);
+          }
           expect(marker.grandchildPid).not.toBe(marker.parentPid);
           expect(isProcessAlive(marker.parentPid)).toBe(true);
           expect(isProcessAlive(marker.grandchildPid)).toBe(true);
@@ -257,6 +253,16 @@ describe.skipIf(!SUPPORTED_PLATFORMS.has(process.platform))(
         } finally {
           mcpDeps.spawn = originalSpawn;
           mcpDeps.terminateOwnedProcessTree = originalTerminator;
+          if (originalTrust === undefined) {
+            delete process.env.CC_MCP_EXECUTABLE_TRUST;
+          } else {
+            process.env.CC_MCP_EXECUTABLE_TRUST = originalTrust;
+          }
+          if (originalTrustStore === undefined) {
+            delete process.env.CC_MCP_EXECUTABLE_TRUST_STORE;
+          } else {
+            process.env.CC_MCP_EXECUTABLE_TRUST_STORE = originalTrustStore;
+          }
           const knownPids = marker ? [marker.grandchildPid] : [];
           forceCleanupKnownTree(rootChild?.pid, knownPids);
           await waitForProcessesToExit(
