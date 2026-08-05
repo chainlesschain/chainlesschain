@@ -567,6 +567,7 @@ const MCP_NON_RETRYABLE_PROTOCOL_ERROR_CODES = new Set([
   "CC_MCP_HTTP_RESPONSE_STREAM_REQUIRED",
   "CC_MCP_HTTP_RESPONSE_TIMEOUT",
   "CC_MCP_HTTP_DISCARD_TIMEOUT",
+  "CC_MCP_STDIO_FRAME_TOO_LARGE",
   "CC_MCP_RPC_ERROR_INVALID",
   "CC_MCP_RPC_RESPONSE_INVALID",
   "CC_MCP_RPC_MESSAGE_INVALID",
@@ -612,16 +613,20 @@ export function isMcpAuthenticationError(err) {
 const MCP_DISCOVERY_RETRIES = 2; // up to 3 attempts total
 const MCP_DISCOVERY_BACKOFF_MS = 250; // 250ms, 500ms
 
-/**
- * Hard cap on the unterminated stdout tail buffered per stdio server. JSON-RPC
- * frames are newline-delimited; a runaway or non-MCP process that streams
- * without ever emitting a newline would otherwise grow `entry._buffer` without
- * bound and exhaust memory. 16M chars is far above any legitimate single MCP
- * message (even a tool result with embedded base64), so crossing it signals a
- * misbehaving server. Override per server with `config.maxBufferChars` (0
- * disables the cap).
- */
-const MCP_MAX_BUFFER_CHARS = 16 * 1024 * 1024;
+// Host-owned UTF-8 byte ceiling for every newline-delimited stdio JSON-RPC
+// frame, including its unterminated tail. maxBufferChars remains a compatible
+// way to request a smaller limit, but cannot disable or raise this boundary.
+const MCP_STDIO_FRAME_MAX_BYTES = 16 * 1024 * 1024;
+
+function stdioFrameByteLimit(configuredLimit) {
+  if (Number.isFinite(configuredLimit) && configuredLimit > 0) {
+    return Math.min(
+      MCP_STDIO_FRAME_MAX_BYTES,
+      Math.max(1, Math.floor(configuredLimit)),
+    );
+  }
+  return MCP_STDIO_FRAME_MAX_BYTES;
+}
 
 /**
  * Is this a TRANSIENT error worth a short retry during capability discovery?
@@ -1310,6 +1315,8 @@ export class MCPClient extends EventEmitter {
       resourceSubscriptions: new Set(),
       _pending: new Map(),
       _buffer: "",
+      _bufferBytes: 0,
+      _stdioFrameError: null,
       // Per-connection streaming decoders so a multi-byte UTF-8 character (e.g.
       // a 3-byte Chinese char) split across two stdout/stderr chunks is
       // reassembled instead of corrupted into U+FFFD. Decoding each chunk
@@ -1671,7 +1678,12 @@ export class MCPClient extends EventEmitter {
         };
 
         proc.on("close", (code) => {
-          entry.state = ServerState.DISCONNECTED;
+          // Preserve a host-detected fatal framing state after the process kill
+          // it initiated; a subsequent close event must not downgrade ERROR to
+          // an ordinary peer disconnect.
+          if (!entry._stdioFrameError) {
+            entry.state = ServerState.DISCONNECTED;
+          }
           failPending(
             `MCP server "${name}" process exited (code ${code}) before responding`,
           );
@@ -2959,15 +2971,37 @@ export class MCPClient extends EventEmitter {
 
   _handleData(serverName, data) {
     const entry = this.servers.get(serverName);
-    if (!entry) return;
+    if (!entry || entry._stdioFrameError) return;
 
-    entry._buffer += data;
+    const cap = stdioFrameByteLimit(entry.config?.maxBufferChars);
+    const text = typeof data === "string" ? data : String(data || "");
+    let offset = 0;
 
-    // Process complete JSON lines
-    const lines = entry._buffer.split("\n");
-    entry._buffer = lines.pop() || "";
+    // Scan before concatenation/JSON.parse so both a complete line delivered in
+    // one chunk and an unterminated multi-chunk tail obey the same byte budget.
+    // Newline separators are framing bytes and are not part of the JSON value.
+    while (offset < text.length) {
+      const newline = text.indexOf("\n", offset);
+      const end = newline < 0 ? text.length : newline;
+      const segment = text.slice(offset, end);
+      const segmentBytes = Buffer.byteLength(segment, "utf8");
+      const bufferedBytes = Number.isFinite(entry._bufferBytes)
+        ? entry._bufferBytes
+        : Buffer.byteLength(entry._buffer || "", "utf8");
 
-    for (const line of lines) {
+      if (bufferedBytes + segmentBytes > cap) {
+        this._failStdioFrameTooLarge(serverName, entry, cap);
+        return;
+      }
+
+      if (segment) entry._buffer += segment;
+      entry._bufferBytes = bufferedBytes + segmentBytes;
+      if (newline < 0) return;
+
+      const line = entry._buffer;
+      entry._buffer = "";
+      entry._bufferBytes = 0;
+      offset = newline + 1;
       const trimmed = line.trim();
       if (!trimmed) continue;
 
@@ -2975,40 +3009,53 @@ export class MCPClient extends EventEmitter {
         const msg = JSON.parse(trimmed);
         this._handleMessage(serverName, msg);
       } catch {
-        // Skip malformed lines
+        // Skip malformed lines. Aggregate malformed-frame budgeting remains a
+        // separate transport boundary; individual frames are bounded here.
       }
     }
+  }
 
-    // Guard against unbounded buffer growth: a runaway / non-MCP server that
-    // streams without ever sending a newline would grow the unterminated tail
-    // forever and exhaust memory. If the leftover partial line exceeds the cap,
-    // treat it as a fatal transport error (drop the buffer, drain in-flight
-    // requests, kill the process) rather than letting it grow without limit.
-    const cap = Number.isFinite(entry.config?.maxBufferChars)
-      ? entry.config.maxBufferChars
-      : MCP_MAX_BUFFER_CHARS;
-    if (cap > 0 && entry._buffer.length > cap) {
-      entry._buffer = "";
-      entry.state = ServerState.ERROR;
-      const errMsg = `MCP server "${serverName}" exceeded the ${cap}-char line buffer with no newline (runaway or non-MCP output)`;
-      for (const [, pending] of entry._pending) {
+  _failStdioFrameTooLarge(serverName, entry, cap) {
+    if (entry._stdioFrameError) return entry._stdioFrameError;
+    const dispatched = entry._pending instanceof Map && entry._pending.size > 0;
+    const error = mcpTransportError(
+      "CC_MCP_STDIO_FRAME_TOO_LARGE",
+      `MCP stdio server "${serverName}" exceeded the ${cap}-byte host line frame cap`,
+      {
+        transport: "stdio",
+        limitBytes: cap,
+        dispatched,
+        outcomeUnknown: dispatched,
+      },
+    );
+    entry._stdioFrameError = error;
+    entry._buffer = "";
+    entry._bufferBytes = 0;
+    entry.state = ServerState.ERROR;
+    if (entry._pending instanceof Map) {
+      for (const pending of entry._pending.values()) {
         if (pending.timeout) clearTimeout(pending.timeout);
         try {
-          pending.reject(new Error(errMsg));
+          pending.reject(error);
         } catch {
-          // already settled — ignore
+          // Already settled; the transport remains fatally closed.
         }
       }
       entry._pending.clear();
-      if (entry.process) {
-        try {
-          entry.process.kill();
-        } catch {
-          // best-effort — surfacing the error is what matters
-        }
-      }
-      this.emit("server-error", { name: serverName, error: errMsg });
     }
+    this._cancelServerElicitations(serverName);
+    this.emit("server-error", {
+      name: serverName,
+      code: error.code,
+      error: error.message,
+      limitBytes: cap,
+    });
+    try {
+      entry.process?.kill?.();
+    } catch {
+      // Best-effort process teardown; the fixed host error is authoritative.
+    }
+    return error;
   }
 
   _handleMessage(serverName, msg) {
