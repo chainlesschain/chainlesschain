@@ -69,6 +69,9 @@ describe("CLI release workflow contracts", () => {
     expect(packageJob.indexOf("npm pack --json")).toBeLessThan(
       packageJob.indexOf("npm-release-artifact.mjs create"),
     );
+    expect(packageJob).toContain("PACK_METADATA=$(mktemp)");
+    expect(packageJob).toContain('readFileSync(process.argv[1], "utf8")');
+    expect(packageJob).not.toContain("JSON.parse(process.argv[1])");
 
     const cliPublish = text.slice(
       text.indexOf('- name: "Publish chainlesschain (CLI)"'),

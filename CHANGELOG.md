@@ -7,12 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added — cc CLI 0.162.195: durable sessions, MCP recovery, and checkpoint safety
+### Added — cc CLI 0.162.196: durable sessions, MCP recovery, and checkpoint safety
 
-> `chainlesschain` **0.162.189 → 0.162.195** (release candidate,
+> `chainlesschain` **0.162.189 → 0.162.196** (release candidate,
 > 2026-08-05; `0.162.190`, `0.162.191`, and `0.162.192` were never published;
 > `0.162.193` was published outside the authoritative CLI release workflow;
-> `0.162.194` failed before package creation or npm upload and its tag remains
+> `0.162.194` and `0.162.195` failed before npm upload and their tags remain
 > immutable).
 > CLI-only release metadata;
 > `@chainlesschain/personal-data-hub`
@@ -68,8 +68,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   narrow partial-restore recovery path, not general multi-resource atomicity,
   power-loss proof, or checkpoint recovery GA.
 - **Release retry identity**: tags `v-npm-0-162-190`,
-  `v-npm-0-162-191`, `v-npm-0-162-192`, and `v-npm-0-162-194` remain immutable
-  records of pre-publication failures.
+  `v-npm-0-162-191`, `v-npm-0-162-192`, `v-npm-0-162-194`, and
+  `v-npm-0-162-195` remain immutable records of pre-publication failures.
   Run `30790359741` exposed an Agent SDK E2E fixture that used its owner-private
   `CHAINLESSCHAIN_HOME` as the active workspace; the fixture now uses sibling
   control-state and workspace roots while production path safety remains fail
@@ -93,6 +93,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   The build now resolves the TypeScript compiler module through Node, supporting
   both independent installs and npm workspace hoisting; the consumed
   `v-npm-0-162-194` identity is not moved or reused.
+  Run `30973665834` then passed the exact-SHA gate and all tests, but its
+  immutable package job passed the complete `npm pack --json` result as one
+  command-line argument; the 959-file metadata exceeded Linux `ARG_MAX` before
+  release-manifest creation. Pack metadata now flows through a temporary file,
+  and the consumed `v-npm-0-162-195` identity is also not moved or reused.
 - **Release authority containment**: a later generic workspace publisher
   replaced the dedicated CLI workflow at the same `npm-publish.yml` path.
   Manually dispatched run `30820089779` therefore auto-selected and published
@@ -148,12 +153,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   policy.
 - **Release status**: `0.162.193` exists on npm but is not an authorized CLI
   release and must not be overwritten or represented as gate-complete.
-  `0.162.194` is not published and its failed tag remains immutable. The
-  `0.162.195` exact
+  `0.162.194` and `0.162.195` are not published and their failed tags remain
+  immutable. The `0.162.196` exact
   version/changelog/fix commit must pass `CLI CI` and `CLI Strict Sandbox` on
   Ubuntu, Windows, and macOS, plus affected `Session Host Consistency`,
   `CLI Background Interaction E2E`, and immutable npm tarball verification,
-  before tag `v-npm-0-162-195` or npm publication is allowed. Local,
+  before tag `v-npm-0-162-196` or npm publication is allowed. Local,
   older-SHA, and partial results are supplementary only.
 
 ### Added — cc CLI 0.162.189: managed rollback and distributed Agent Teams closure

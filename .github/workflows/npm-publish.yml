@@ -170,8 +170,10 @@ jobs:
             exit 1
           fi
           mkdir -p release-artifacts
-          PACK_JSON=$(cd packages/cli && npm pack --json --pack-destination ../../release-artifacts)
-          TARBALL=$(node -e 'const x=JSON.parse(process.argv[1]); process.stdout.write(x[0].filename)' "$PACK_JSON")
+          PACK_METADATA=$(mktemp)
+          trap 'rm -f "$PACK_METADATA"' EXIT
+          (cd packages/cli && npm pack --json --pack-destination ../../release-artifacts) > "$PACK_METADATA"
+          TARBALL=$(node -e 'const fs=require("node:fs"); const x=JSON.parse(fs.readFileSync(process.argv[1], "utf8")); process.stdout.write(x[0].filename)' "$PACK_METADATA")
           TARBALL_PATH="release-artifacts/$TARBALL"
           CC_RELEASE_VERSION="$VERSION" \
           GITHUB_SHA="${{ github.sha }}" \
