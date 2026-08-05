@@ -25,17 +25,21 @@ function memento(sessionId) {
   };
 }
 
-function providerWith({ responses, confirm = "Confirm action" }) {
+function providerWith({ responses, confirm = true }) {
   const parsed = rewind.parseTimelineProjection(fixture.projection);
   const entry = parsed.entries[1];
   const turnPick = rewind.toTimelineQuickPickItem(entry);
   const actionPick = rewind
     .timelineActionItems(entry)
     .find((candidate) => candidate.action === "restore-both");
-  const picks = [turnPick, actionPick];
+  const confirmationPick = confirm
+    ? { label: "Confirm action", confirmed: true }
+    : undefined;
+  const picks = [turnPick, actionPick, confirmationPick];
   const calls = [];
   const posted = [];
   const shownDocs = [];
+  const quickPicks = [];
   let responseIndex = 0;
   const rewindStub = {
     ...rewind,
@@ -47,8 +51,10 @@ function providerWith({ responses, confirm = "Confirm action" }) {
   const vscode = {
     commands: { executeCommand() {} },
     window: {
-      showQuickPick: async () => picks.shift(),
-      showWarningMessage: async () => confirm,
+      showQuickPick: async (...args) => {
+        quickPicks.push(args);
+        return picks.shift();
+      },
       showTextDocument: async (doc) => shownDocs.push(doc),
     },
     workspace: {
@@ -66,7 +72,7 @@ function providerWith({ responses, confirm = "Confirm action" }) {
       postMessage: (message) => (posted.push(message), Promise.resolve()),
     },
   };
-  return { provider, calls, posted, shownDocs, actionPick };
+  return { provider, calls, posted, shownDocs, quickPicks, actionPick };
 }
 
 function executedResult(overrides = {}) {
@@ -88,13 +94,14 @@ function executedResult(overrides = {}) {
 
 describe("ChatView canonical checkpoint timeline", () => {
   it("shows turn/action UI, previews, confirms, and submits the exact envelope", async () => {
-    const { provider, calls, posted, shownDocs, actionPick } = providerWith({
-      responses: [
-        { ok: true, data: fixture.projection },
-        { ok: true, data: fixture.actionPreview },
-        { ok: true, data: executedResult() },
-      ],
-    });
+    const { provider, calls, posted, shownDocs, quickPicks, actionPick } =
+      providerWith({
+        responses: [
+          { ok: true, data: fixture.projection },
+          { ok: true, data: fixture.actionPreview },
+          { ok: true, data: executedResult() },
+        ],
+      });
 
     await provider._rewind();
 
@@ -108,6 +115,24 @@ describe("ChatView canonical checkpoint timeline", () => {
     );
     expect(shownDocs[0]).toMatchObject({ language: "markdown" });
     expect(shownDocs[0].content).toContain("bundle.zip");
+    const confirmationItems = quickPicks[2][0];
+    const confirmationOptions = quickPicks[2][1];
+    expect(confirmationItems[0]).toMatchObject({
+      label: "Confirm action",
+      description: "Restore code + conversation at turn-2",
+      confirmed: true,
+    });
+    expect(confirmationItems[0].detail).toContain(
+      "Excluded paths: vendor/cache",
+    );
+    expect(confirmationItems[0].detail).toContain(
+      "Irreversible side effects: publish release, bundle.zip",
+    );
+    expect(confirmationOptions).toMatchObject({
+      title: "Confirm Restore code + conversation at turn-2",
+      ignoreFocusOut: true,
+    });
+    expect(confirmationOptions.placeHolder).toContain("vendor/cache");
     expect(posted).toContainEqual({ kind: "reset" });
     expect(posted.at(-1)).toMatchObject({
       kind: "info",
@@ -139,6 +164,26 @@ describe("ChatView canonical checkpoint timeline", () => {
     expect(posted.some((message) => /completed/.test(message.text || ""))).toBe(
       false,
     );
+  });
+
+  it("cancels fail closed when the confirmation picker is dismissed", async () => {
+    const { provider, calls, posted } = providerWith({
+      confirm: false,
+      responses: [
+        { ok: true, data: fixture.projection },
+        { ok: true, data: fixture.actionPreview },
+      ],
+    });
+
+    await provider._rewind();
+
+    expect(calls).toHaveLength(2);
+    expect(calls[1]).toContain("--preview");
+    expect(calls.some((args) => args.includes("--confirm"))).toBe(false);
+    expect(posted.at(-1)).toMatchObject({
+      kind: "info",
+      text: expect.stringContaining("cancelled"),
+    });
   });
 
   it("refuses to open a mutable timeline during an active turn", async () => {

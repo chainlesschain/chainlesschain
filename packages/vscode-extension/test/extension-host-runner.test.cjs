@@ -13,6 +13,7 @@ const {
   buildHostApiLaunchArgs,
   buildHostDomRelayLaunchArgs,
   buildHostInspectorLaunchArgs,
+  buildHostPipeLaunchArgs,
   buildProfileArgs,
   buildHostLaunchArgs,
   createDevToolsEndpointCapture,
@@ -38,6 +39,7 @@ const {
   buildCdpWebSocketOptions,
   createCdpPipeSocket,
   createFixtureCli,
+  findWorkbenchWindow,
   isInspectableBrowserTarget,
   readJourneyResult,
   writeJsonSignal,
@@ -511,7 +513,10 @@ test("pipe host launch inherits Chromium's FD 3/4 contract", async () => {
   let spawnCall;
   const launched = launchExtensionHostWithCdpPipe({
     vscodeExecutablePath: "/tmp/Code",
-    launchArgs: ["--remote-debugging-pipe", "/tmp/workspace"],
+    launchArgs: buildHostPipeLaunchArgs({
+      workspaceDir: "/tmp/workspace",
+      profileArgs: [],
+    }),
     extensionDevelopmentPath: "/tmp/driver",
     extensionTestsPath: "/tmp/driver/smoke.cjs",
     extensionTestsEnv: { CHAINLESSCHAIN_HOST_JOURNEY_PHASE: "initial" },
@@ -821,6 +826,59 @@ test("browser discovery inspects renderable targets and excludes workers", () =>
   }
 });
 
+test("workbench discovery attaches through the browser Target domain", async () => {
+  const calls = [];
+  const workbenchClient = {
+    evaluate: async (expression) => {
+      assert.match(expression, /monaco-workbench/u);
+      assert.doesNotMatch(expression, /quick-input-widget/u);
+      return true;
+    },
+  };
+  const browserClient = {
+    send: async (method, params) => {
+      calls.push({ method, params });
+      if (method === "Target.getTargets") {
+        return {
+          targetInfos: [
+            {
+              targetId: "workbench-page",
+              type: "page",
+              title: "Extension Development Host",
+              url: "vscode-file://vscode-app/out/vs/code/electron-browser/workbench/workbench.html",
+            },
+          ],
+        };
+      }
+      if (method === "Target.attachToTarget") {
+        return { sessionId: "workbench-session" };
+      }
+      throw new Error(`unexpected CDP method: ${method}`);
+    },
+    session: (sessionId) => {
+      assert.equal(sessionId, "workbench-session");
+      return workbenchClient;
+    },
+  };
+
+  const located = await findWorkbenchWindow(
+    0,
+    1_000,
+    null,
+    null,
+    browserClient,
+  );
+  assert.equal(located.client, workbenchClient);
+  assert.equal(located.target.targetId, "workbench-page");
+  assert.deepEqual(calls, [
+    { method: "Target.getTargets", params: undefined },
+    {
+      method: "Target.attachToTarget",
+      params: { targetId: "workbench-page", flatten: true },
+    },
+  ]);
+});
+
 test("CDP child sessions preserve flattened target identity", async () => {
   const listeners = new Map();
   const sent = [];
@@ -1014,15 +1072,46 @@ test("raw DOM and protocol evidence must prove every control and restart step", 
       targetType: "iframe",
       targetUrl: `vscode-webview://chainlesschain/${phase}`,
     });
+    if (phase === "initial") {
+      cdpRecords.push({
+        phase,
+        status: "native-workbench-found",
+        targetType: "page",
+        targetUrl: "vscode-file://vscode-app/workbench.html",
+      });
+      for (const action of [
+        "restore-code",
+        "restore-conversation",
+        "restore-both",
+        "summary-from",
+        "summary-to",
+        "branch",
+      ]) {
+        cdpRecords.push({
+          phase,
+          step: `rewind-${action}`,
+          status: "passed",
+        });
+      }
+    }
     for (const step of steps) {
       cdpRecords.push({ phase, step, status: "passed" });
     }
     fs.mkdirSync(artifactDir, { recursive: true });
     fs.writeFileSync(
       path.join(artifactDir, `${phase}-dom.txt`),
-      PHASE_DOM_MARKERS[phase].join("\n"),
+      phase === "initial"
+        ? "Branch from here completed at turn-2\nbranch-turn-2 is ready\n"
+        : PHASE_DOM_MARKERS[phase].join("\n"),
       "utf8",
     );
+    if (phase === "initial") {
+      fs.writeFileSync(
+        path.join(artifactDir, "initial-before-rewind-dom.txt"),
+        PHASE_DOM_MARKERS.initial.join("\n"),
+        "utf8",
+      );
+    }
     writeJsonSignal(path.join(runtimeDir, `${phase}-host-ready.json`), {
       phase,
       extensionPath: installedExtension,
@@ -1036,7 +1125,7 @@ test("raw DOM and protocol evidence must prove every control and restart step", 
     });
   }
   writeJsonLines(path.join(artifactDir, "cdp-journey.jsonl"), cdpRecords);
-  writeJsonLines(fixtureTracePath, [
+  const fixtureRecords = [
     { direction: "in", event: { type: "user", text: "journey:stream" } },
     { direction: "in", event: { type: "user", text: "journey:stream" } },
     { direction: "in", event: { type: "plan", action: "approve" } },
@@ -1049,7 +1138,31 @@ test("raw DOM and protocol evidence must prove every control and restart step", 
     { direction: "in", event: { type: "interrupt" } },
     { direction: "out", event: { type: "system", resumed_messages: 10 } },
     { direction: "in", event: { type: "user", text: "journey:resume" } },
-  ]);
+  ];
+  for (let index = 0; index < 6; index += 1) {
+    fixtureRecords.push({
+      direction: "command",
+      command: "checkpoint-timeline",
+    });
+  }
+  for (const action of [
+    "restore-code",
+    "restore-conversation",
+    "restore-both",
+    "summary-from",
+    "summary-to",
+    "branch",
+  ]) {
+    for (const mode of ["preview", "confirm"]) {
+      fixtureRecords.push({
+        direction: "command",
+        command: "checkpoint-action",
+        action,
+        mode,
+      });
+    }
+  }
+  writeJsonLines(fixtureTracePath, fixtureRecords);
 
   const evidence = assertJourneyArtifacts({
     artifactDir,
@@ -1058,7 +1171,7 @@ test("raw DOM and protocol evidence must prove every control and restart step", 
     extensionsDir,
     workspaceDir,
   });
-  assert.equal(evidence.domPaths.length, 2);
+  assert.equal(evidence.domPaths.length, 3);
 
   fs.writeFileSync(
     path.join(artifactDir, "restart-dom.txt"),

@@ -527,6 +527,36 @@ function formatDiffPreview(data) {
  * Run a CLI command and resolve `{ ok, data }` (stdout parsed as JSON) or
  * `{ ok:false, error }`. Never rejects — the caller renders a fallback.
  */
+function buildCliInvocation(
+  command,
+  args = [],
+  { platform = process.platform, env = process.env } = {},
+) {
+  if (platform !== "win32") {
+    return { file: command, args, windowsVerbatimArguments: false };
+  }
+
+  const values = [command, ...args];
+  if (
+    values.some(
+      (value) => typeof value !== "string" || /[\0\r\n%]/.test(String(value)),
+    )
+  ) {
+    // Percent expansion happens even inside cmd.exe quotes. Fail closed rather
+    // than execute a different command or corrupt a structured JSON argument.
+    return null;
+  }
+
+  const commandLine = `"${values
+    .map((value) => `"${value.replace(/"/g, '""')}"`)
+    .join(" ")}"`;
+  return {
+    file: (env && (env.ComSpec || env.COMSPEC)) || "cmd.exe",
+    args: ["/d", "/s", "/v:off", "/c", commandLine],
+    windowsVerbatimArguments: true,
+  };
+}
+
 function runCliJson({
   command = "cc",
   args,
@@ -536,19 +566,32 @@ function runCliJson({
   deps,
 } = {}) {
   const run = (deps && deps.execFile) || execFile;
+  const childEnv = hardenedEnv(env);
+  const invocation = buildCliInvocation(command, args, {
+    platform: (deps && deps.platform) || process.platform,
+    env: childEnv,
+  });
+  if (!invocation) {
+    return Promise.resolve({
+      ok: false,
+      error: "unsafe Windows CLI argument",
+    });
+  }
   return new Promise((resolve) => {
     run(
-      command,
-      args,
+      invocation.file,
+      invocation.args,
       {
         cwd,
         // Hardened so cmd.exe doesn't resolve a repo-local `cc.bat` before PATH.
-        env: hardenedEnv(env),
+        env: childEnv,
         timeout: timeoutMs,
         windowsHide: true,
         maxBuffer: 4 * 1024 * 1024,
-        // npm global shims on Windows are .cmd files — they need a shell.
-        shell: process.platform === "win32",
+        // npm global shims are .cmd files. Invoke cmd.exe explicitly so Node
+        // never performs a second, lossy shell serialization of JSON args.
+        shell: false,
+        windowsVerbatimArguments: invocation.windowsVerbatimArguments,
       },
       (err, stdout, stderr) => {
         const out = String(stdout || "").trim();
@@ -609,6 +652,7 @@ module.exports = {
   validTimelineConfirmation,
   formatTimelinePreview,
   formatDiffPreview,
+  buildCliInvocation,
   runCliJson,
   toQuickPickItem,
   restoredCount,

@@ -15,6 +15,15 @@ import readline from "node:readline";
 const argv = process.argv.slice(2);
 const statePath = process.env.CC_UI_FIXTURE_STATE || "";
 const tracePath = process.env.CC_UI_FIXTURE_TRACE || "";
+const timelineFixture = JSON.parse(
+  readFileSync(
+    new URL(
+      "../../../packages/vscode-extension/src/__fixtures__/checkpoint-timeline/cases.json",
+      import.meta.url,
+    ),
+    "utf8",
+  ),
+);
 
 function emit(event) {
   process.stdout.write(`${JSON.stringify(event)}\n`);
@@ -59,6 +68,165 @@ function writeState(value) {
   });
 }
 
+function clone(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function writeJson(value) {
+  process.stdout.write(`${JSON.stringify(value)}\n`);
+}
+
+function projectionForSession(sessionId) {
+  const projection = clone(timelineFixture.projection);
+  projection.sessionId = sessionId;
+  for (const entry of projection.entries) {
+    for (const candidate of entry.actions) {
+      if (candidate.submission) candidate.submission.sessionId = sessionId;
+    }
+  }
+  return projection;
+}
+
+function timelineEntry(projection, turnId) {
+  return projection.entries.find((entry) => entry.turnId === turnId) || null;
+}
+
+function workspaceConfirmation(action) {
+  if (!new Set(["restore-code", "restore-both"]).has(action)) return null;
+  return clone(timelineFixture.actionPreview.confirmationSubmission.workspace);
+}
+
+function branchResult(submission) {
+  if (submission.action !== "branch") return null;
+  return {
+    branchSessionId: `${submission.sessionId}-branch-${submission.turnId}`,
+    parentSessionId: submission.sessionId,
+    warnings: ["partial-coverage", "irreversible-side-effects"],
+  };
+}
+
+function previewTimelineAction(submission) {
+  const projection = projectionForSession(submission.sessionId);
+  const entry = timelineEntry(projection, submission.turnId);
+  if (!entry)
+    return {
+      schema: "cc-checkpoint-timeline-result/v1",
+      version: 1,
+      ok: false,
+    };
+  const action = submission.action;
+  const includesCode = action === "restore-code" || action === "restore-both";
+  const includesConversation = action !== "restore-code";
+  return {
+    schema: "cc-checkpoint-timeline-result/v1",
+    version: 1,
+    ok: true,
+    mode: "preview",
+    action,
+    sessionId: submission.sessionId,
+    turnId: submission.turnId,
+    revision: submission.revision,
+    coverage: entry.coverage,
+    excludedPaths: clone(entry.excludedPaths),
+    irreversibleSideEffects: clone(entry.irreversibleSideEffects),
+    warnings: clone(entry.warnings || []),
+    confirmationRequired: true,
+    code: includesCode
+      ? {
+          checkpointId: submission.checkpointId,
+          modified: ["src/a.js"],
+          added: [],
+          deleted: ["old.js"],
+        }
+      : null,
+    conversation: includesConversation
+      ? { beforeMessages: 9, afterMessages: 4, affectedMessages: 5 }
+      : null,
+    branch: branchResult(submission),
+    confirmationSubmission: {
+      schema: "cc-checkpoint-timeline-confirmation/v1",
+      version: 1,
+      authority: "cli",
+      submission: clone(submission),
+      workspace: workspaceConfirmation(action),
+      digest: `sha256:${"6".repeat(64)}`,
+    },
+  };
+}
+
+function commitTimelineAction(confirmation) {
+  const submission = confirmation?.submission || {};
+  const projection = projectionForSession(
+    submission.sessionId || "ui-host-session",
+  );
+  const entry = timelineEntry(projection, submission.turnId);
+  if (!entry)
+    return {
+      schema: "cc-checkpoint-timeline-result/v1",
+      version: 1,
+      ok: false,
+    };
+  return {
+    schema: "cc-checkpoint-timeline-result/v1",
+    version: 1,
+    ok: true,
+    mode: "commit",
+    action: submission.action,
+    sessionId: submission.sessionId,
+    turnId: submission.turnId,
+    revision: submission.revision,
+    coverage: entry.coverage,
+    excludedPaths: clone(entry.excludedPaths),
+    irreversibleSideEffects: clone(entry.irreversibleSideEffects),
+    result: {
+      code:
+        submission.action === "restore-code" ||
+        submission.action === "restore-both"
+          ? { restored: true, checkpointId: submission.checkpointId }
+          : null,
+      conversation:
+        submission.action !== "restore-code"
+          ? { restored: true, afterMessages: 4 }
+          : null,
+      branch: branchResult(submission),
+    },
+  };
+}
+
+function handleCheckpointCommand() {
+  const sessionId = option("-s", "ui-host-session");
+  if (argv[1] === "timeline") {
+    trace({ direction: "command", command: "checkpoint-timeline", sessionId });
+    writeJson(projectionForSession(sessionId));
+    return true;
+  }
+  if (argv[1] === "action") {
+    let envelope;
+    try {
+      envelope = JSON.parse(option("--submission", "{}"));
+    } catch {
+      envelope = {};
+    }
+    const mode = argv.includes("--preview") ? "preview" : "confirm";
+    const submission = mode === "preview" ? envelope : envelope.submission;
+    trace({
+      direction: "command",
+      command: "checkpoint-action",
+      mode,
+      sessionId,
+      action: submission?.action || null,
+      turnId: submission?.turnId || null,
+    });
+    writeJson(
+      mode === "preview"
+        ? previewTimelineAction(envelope)
+        : commitTimelineAction(envelope),
+    );
+    return true;
+  }
+  return false;
+}
+
 function textDelta(text) {
   emit({
     type: "stream_event",
@@ -89,6 +257,10 @@ if (argv[0] === "context") {
   process.stdout.write(
     `${JSON.stringify({ total: 44, window: 4096, pct: 1, overflow: false })}\n`,
   );
+  process.exit(0);
+}
+
+if (argv[0] === "checkpoint" && handleCheckpointCommand()) {
   process.exit(0);
 }
 

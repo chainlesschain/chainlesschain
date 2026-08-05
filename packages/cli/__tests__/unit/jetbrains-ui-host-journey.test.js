@@ -9,6 +9,7 @@ import {
   parseArgs,
   prependPath,
   readPluginVersion,
+  verifyRewindFixtureLedger,
 } from "../../../../packages/jetbrains-plugin/scripts/run-ui-host-journey.mjs";
 
 const temporaryRoots = [];
@@ -156,6 +157,112 @@ describe("JetBrains real-host journey driver", () => {
     expect(init.resumed_messages).toBe(4);
     await resumed.close();
   });
+
+  it("fixture peer serves the canonical partial-coverage timeline and settles every action", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-jb-timeline-peer-"));
+    temporaryRoots.push(root);
+    const script = fileURLToPath(
+      new URL(
+        "../../../../tests/fixtures/ide-roadmap/fake-stream-json-agent.mjs",
+        import.meta.url,
+      ),
+    );
+    const environment = {
+      ...process.env,
+      CC_UI_FIXTURE_TRACE: path.join(root, "trace.jsonl"),
+    };
+    const invoke = (args) => {
+      const result = spawnSync(process.execPath, [script, ...args], {
+        env: environment,
+        encoding: "utf8",
+        windowsHide: true,
+      });
+      expect(result.status, result.stderr).toBe(0);
+      return JSON.parse(result.stdout);
+    };
+
+    const projection = invoke([
+      "checkpoint",
+      "timeline",
+      "-s",
+      "host-timeline-session",
+      "--json",
+    ]);
+    expect(projection).toMatchObject({
+      schema: "cc-checkpoint-timeline/v1",
+      authority: "cli",
+      sessionId: "host-timeline-session",
+    });
+    const partial = projection.entries.find(
+      (entry) => entry.turnId === "turn-2",
+    );
+    expect(partial).toMatchObject({
+      coverage: "partial",
+      excludedPaths: ["vendor/cache"],
+    });
+
+    for (const candidate of partial.actions.filter((entry) => entry.enabled)) {
+      const preview = invoke([
+        "checkpoint",
+        "action",
+        "-s",
+        projection.sessionId,
+        "--submission",
+        JSON.stringify(candidate.submission),
+        "--preview",
+        "--json",
+      ]);
+      expect(preview).toMatchObject({
+        ok: true,
+        mode: "preview",
+        action: candidate.action,
+        coverage: "partial",
+        excludedPaths: ["vendor/cache"],
+      });
+      const committed = invoke([
+        "checkpoint",
+        "action",
+        "-s",
+        projection.sessionId,
+        "--submission",
+        JSON.stringify(preview.confirmationSubmission),
+        "--confirm",
+        "--json",
+      ]);
+      expect(committed).toMatchObject({
+        ok: true,
+        mode: "commit",
+        action: candidate.action,
+        coverage: "partial",
+      });
+      if (candidate.action === "branch") {
+        expect(committed.result.branch.branchSessionId).toBe(
+          "host-timeline-session-branch-turn-2",
+        );
+      }
+    }
+    for (let index = 1; index < 6; index += 1) {
+      invoke([
+        "checkpoint",
+        "timeline",
+        "-s",
+        "host-timeline-session",
+        "--json",
+      ]);
+    }
+    expect(verifyRewindFixtureLedger(environment.CC_UI_FIXTURE_TRACE)).toEqual({
+      timelineReads: 6,
+      actions: [
+        "restore-code",
+        "restore-conversation",
+        "restore-both",
+        "summary-from",
+        "summary-to",
+        "branch",
+      ],
+      coverage: "partial",
+    });
+  }, 15_000);
 });
 
 function startFixture(script, environment) {

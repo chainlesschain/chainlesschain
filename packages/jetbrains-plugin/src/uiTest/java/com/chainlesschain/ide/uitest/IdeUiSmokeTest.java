@@ -24,7 +24,10 @@ import java.time.Duration;
  * replies all use the normal plugin path.
  *
  * <p>The journey covers streaming, retry, plan approval, tool permission,
- * interrupt escalation, child restart, and session resume. It is not
+ * interrupt escalation, child restart, session resume, and the canonical
+ * partial-coverage checkpoint timeline. The latter executes code-only,
+ * conversation-only, combined, both summary directions, and branch actions
+ * through the production chooser/preview/confirmation path. It is not
  * live-provider evidence and does not claim Diff, Preview, remote transport,
  * or plugin-lifecycle coverage; those remain separate P0 host journeys.
  */
@@ -91,15 +94,75 @@ final class IdeUiSmokeTest {
             waitForTranscript(
                     transcript, "resumed previous conversation", FIND_BUDGET);
             waitForTranscript(transcript, "fixture stream complete #6", FIND_BUDGET);
+
+            runRewindAction(robot, input, send, transcript,
+                    0, "Restore code");
+            runRewindAction(robot, input, send, transcript,
+                    1, "Restore conversation");
+            runRewindAction(robot, input, send, transcript,
+                    2, "Restore code + conversation");
+            runRewindAction(robot, input, send, transcript,
+                    3, "Summarize from here");
+            runRewindAction(robot, input, send, transcript,
+                    4, "Summarize up to here");
+            runRewindAction(robot, input, send, transcript,
+                    5, "Branch from here");
         } catch (Throwable t) {
             saveScreenshot(robot, "chat-control-journey");
             throw t;
         }
     }
 
+    private static void runRewindAction(
+            RemoteRobot robot,
+            ComponentFixture input,
+            ComponentFixture send,
+            ComponentFixture transcript,
+            int actionIndex,
+            String actionLabel) throws InterruptedException {
+        send(input, send, "/rewind");
+        choosePopupIndex(robot, 1); // turn-2: the canonical partial-coverage row
+        choosePopupIndex(robot, actionIndex);
+        ComponentFixture confirm = robot.find(ComponentFixture.class,
+                Locators.byXpath("//div[@text='Confirm action']"), FIND_BUDGET);
+        clickButton(confirm);
+        waitUntilHidden(confirm, "timeline confirmation", FIND_BUDGET);
+        waitForTranscript(
+                transcript,
+                actionLabel + " completed at turn-2",
+                FIND_BUDGET);
+    }
+
+    private static void choosePopupIndex(RemoteRobot robot, int index)
+            throws InterruptedException {
+        ComponentFixture list = robot.find(ComponentFixture.class,
+                Locators.byXpath("//div[@class='JBList' and @visible='true']"),
+                FIND_BUDGET);
+        list.runJs(
+                "component.setSelectedIndex(" + index + ");"
+                        + "component.requestFocusInWindow();"
+                        + "component.dispatchEvent(new java.awt.event.KeyEvent("
+                        + "component, java.awt.event.KeyEvent.KEY_PRESSED,"
+                        + "java.lang.System.currentTimeMillis(), 0,"
+                        + "java.awt.event.KeyEvent.VK_ENTER,"
+                        + "java.awt.event.KeyEvent.CHAR_UNDEFINED));"
+                        + "component.dispatchEvent(new java.awt.event.KeyEvent("
+                        + "component, java.awt.event.KeyEvent.KEY_RELEASED,"
+                        + "java.lang.System.currentTimeMillis(), 0,"
+                        + "java.awt.event.KeyEvent.VK_ENTER,"
+                        + "java.awt.event.KeyEvent.CHAR_UNDEFINED));",
+                true);
+        // The next timeline stage also uses a JBList. On a loaded Linux EDT,
+        // a fixed sleep could let the next lookup bind to the outgoing list,
+        // eventually leaving a hidden popup stack that suppressed later
+        // actions. Require the selected popup to be disposed before looking
+        // for the next stage.
+        waitUntilHidden(list, "selected timeline popup", FIND_BUDGET);
+    }
+
     private static void send(
             ComponentFixture input, ComponentFixture send, String text) {
-        input.runJs("component.setText(" + jsString(text) + ")");
+        input.runJs("component.setText(" + jsString(text) + ")", true);
         clickButton(send);
     }
 
@@ -111,7 +174,27 @@ final class IdeUiSmokeTest {
      * exercises the production ActionListener and protocol path.
      */
     private static void clickButton(ComponentFixture button) {
-        button.runJs("component.doClick()");
+        button.runJs("component.doClick()", true);
+    }
+
+    private static void waitUntilHidden(
+            ComponentFixture component, String label, Duration budget)
+            throws InterruptedException {
+        long deadline = System.nanoTime() + budget.toNanos();
+        while (System.nanoTime() < deadline) {
+            try {
+                Object hidden = component.callJs("!component.isShowing()");
+                if (Boolean.TRUE.equals(hidden)
+                        || "true".equals(String.valueOf(hidden))) return;
+            } catch (RuntimeException disposed) {
+                // A disposed fixture is no longer visible, which is exactly
+                // the transition this helper is waiting for.
+                return;
+            }
+            Thread.sleep(100);
+        }
+        throw new AssertionError(label + " did not close within "
+                + budget.toSeconds() + "s");
     }
 
     private static void waitForTranscript(

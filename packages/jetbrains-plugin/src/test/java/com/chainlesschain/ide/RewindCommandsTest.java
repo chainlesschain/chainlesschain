@@ -162,6 +162,16 @@ class RewindCommandsTest {
         assertEquals("checkpoint", previewArgs.get(0));
         assertTrue(previewArgs.contains("--preview"));
         assertEquals(expected, MiniJson.parse(previewArgs.get(5)));
+
+        Map<String, Object> preview =
+                (Map<String, Object>) fixture.get("actionPreview");
+        Map<String, Object> confirmation =
+                (Map<String, Object>) preview.get("confirmationSubmission");
+        List<String> confirmArgs = RewindCommands.buildTimelineActionArgs(
+                confirmation, false, true);
+        assertEquals("session-fixture", confirmArgs.get(3));
+        assertTrue(confirmArgs.contains("--confirm"));
+        assertEquals(confirmation, MiniJson.parse(confirmArgs.get(5)));
     }
 
     @Test
