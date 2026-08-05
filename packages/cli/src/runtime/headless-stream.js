@@ -1047,19 +1047,68 @@ async function runTurn(
  */
 export async function runAgentHeadlessStream(options = {}, deps = {}) {
   const trustedWorkspaceRoot = options.cwd || process.cwd();
-  return runWithHostHooksV2Workspace(trustedWorkspaceRoot, () =>
-    runAgentHeadlessStreamInWorkspace(options, deps),
-  );
+  const pipeState = { closed: false };
+  const shouldInstallPipeSafety =
+    typeof deps.installPipeSafety === "function" ||
+    (!deps.writeOut && !deps.writeErr);
+  const pipeAbort = shouldInstallPipeSafety ? new AbortController() : null;
+  const runtimeOptions = pipeAbort
+    ? {
+        ...options,
+        signal: options.signal
+          ? AbortSignal.any([options.signal, pipeAbort.signal])
+          : pipeAbort.signal,
+      }
+    : options;
+  const installSafety = deps.installPipeSafety || installPipeSafety;
+  const disposePipeSafety = shouldInstallPipeSafety
+    ? installSafety(undefined, () => {
+        if (pipeState.closed) return;
+        pipeState.closed = true;
+        process.exitCode = 0;
+        pipeAbort.abort();
+        // The concurrent stdin pump otherwise remains in flowing async-iterator
+        // mode after the session has returned. A live stdin handle can keep the
+        // process alive forever even though its downstream output is gone.
+        try {
+          const input = deps.input || process.stdin;
+          if (typeof input.destroy === "function" && !input.destroyed) {
+            input.destroy();
+          } else {
+            input.pause?.();
+          }
+        } catch {
+          // The abort signal still wakes the session loop; input retirement is
+          // best-effort for non-Node custom async iterables.
+        }
+      })
+    : null;
+
+  try {
+    const outcome = await runWithHostHooksV2Workspace(
+      trustedWorkspaceRoot,
+      () => runAgentHeadlessStreamInWorkspace(runtimeOptions, deps, pipeState),
+    );
+    return pipeState.closed ? { ...outcome, exitCode: 0 } : outcome;
+  } catch (error) {
+    if (pipeState.closed) return { exitCode: 0, turns: 0 };
+    throw error;
+  } finally {
+    disposePipeSafety?.();
+  }
 }
 
-async function runAgentHeadlessStreamInWorkspace(options = {}, deps = {}) {
+async function runAgentHeadlessStreamInWorkspace(
+  options = {},
+  deps = {},
+  pipeState = { closed: false },
+) {
   const model = options.model || "qwen2.5:7b";
   const provider = options.provider || "ollama";
   const baseUrl = options.baseUrl || "http://localhost:11434";
   const apiKey = options.apiKey || null;
   const writeOut = deps.writeOut || ((s) => process.stdout.write(s));
   const writeErr = deps.writeErr || ((s) => process.stderr.write(s));
-  if (!deps.writeOut && !deps.writeErr) installPipeSafety();
 
   const sessionId =
     options.sessionId || `headless-stream-${Date.now()}-${process.pid}`;
@@ -2549,11 +2598,20 @@ async function runAgentHeadlessStreamInWorkspace(options = {}, deps = {}) {
   const nextEvent = async () => {
     for (;;) {
       if (queue.length > 0) return queue.shift();
-      if (inputDone) return null;
+      if (inputDone || options.signal?.aborted) return null;
       await new Promise((r) => {
-        wakeQueue = r;
+        let settled = false;
+        const wake = () => {
+          if (settled) return;
+          settled = true;
+          options.signal?.removeEventListener("abort", wake);
+          if (wakeQueue === wake) wakeQueue = null;
+          r();
+        };
+        wakeQueue = wake;
+        options.signal?.addEventListener("abort", wake, { once: true });
+        if (options.signal?.aborted) wake();
       });
-      wakeQueue = null;
     }
   };
 
@@ -3333,7 +3391,11 @@ async function runAgentHeadlessStreamInWorkspace(options = {}, deps = {}) {
       runObserveHooks(
         settingsHooks,
         "SessionEnd",
-        { reason: "stdin_closed", cwd, session_id: sessionId },
+        {
+          reason: pipeState.closed ? "pipe_closed" : "stdin_closed",
+          cwd,
+          session_id: sessionId,
+        },
         { cwd },
       );
     } catch {
@@ -3341,6 +3403,8 @@ async function runAgentHeadlessStreamInWorkspace(options = {}, deps = {}) {
     }
   }
 
-  emit({ type: "system", subtype: "end", session_id: sessionId, turns });
-  return { exitCode: sawError ? 1 : 0, turns };
+  if (!pipeState.closed) {
+    emit({ type: "system", subtype: "end", session_id: sessionId, turns });
+  }
+  return { exitCode: pipeState.closed ? 0 : sawError ? 1 : 0, turns };
 }

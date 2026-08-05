@@ -139,6 +139,49 @@ describe("headless-runner — pure helpers", () => {
 });
 
 describe("headless-runner — output formats", () => {
+  it("routes EPIPE through the normal MCP cleanup before returning success", async () => {
+    const previousExitCode = process.exitCode;
+    const disconnectAll = vi.fn(async () => {});
+    const disposePipeSafety = vi.fn();
+    let closePipe;
+    const { deps } = makeDeps(null);
+    deps.installPipeSafety = vi.fn((_streams, onEpipe) => {
+      closePipe = onEpipe;
+      return disposePipeSafety;
+    });
+    deps.resolveAgentMcp = vi.fn(async () => ({
+      mcpClient: { callTool: vi.fn(), disconnectAll },
+      connected: [],
+      extraToolDefinitions: [],
+      externalToolExecutors: {},
+      externalToolDescriptors: {},
+    }));
+    deps.agentLoop = async function* (_messages, loopOptions) {
+      yield* [];
+      closePipe();
+      expect(loopOptions.signal.aborted).toBe(true);
+      throw Object.assign(new Error("pipe closed"), { name: "AbortError" });
+    };
+
+    try {
+      const outcome = await runAgentHeadless(
+        {
+          prompt: "hi",
+          outputFormat: "text",
+          settingsHooks: {},
+          asyncHookWaitMs: 0,
+        },
+        deps,
+      );
+
+      expect(outcome).toMatchObject({ exitCode: 0, isError: false });
+      expect(disconnectAll).toHaveBeenCalledOnce();
+      expect(disposePipeSafety).toHaveBeenCalledOnce();
+    } finally {
+      process.exitCode = previousExitCode;
+    }
+  }, 15_000);
+
   it("binds lifecycle hooks to the CLI host cwd for the full async run", async () => {
     const { deps } = makeDeps(replyText("scoped"));
     const trustedRoot = realpathSync.native(

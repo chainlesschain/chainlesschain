@@ -364,12 +364,52 @@ export function applyForkSession(opts = {}, store = {}) {
  */
 export async function runAgentHeadless(options = {}, deps = {}) {
   const trustedWorkspaceRoot = options.cwd || process.cwd();
-  return runWithHostHooksV2Workspace(trustedWorkspaceRoot, () =>
-    runAgentHeadlessInWorkspace(options, deps),
-  );
+  const pipeState = { closed: false };
+  const shouldInstallPipeSafety =
+    typeof deps.installPipeSafety === "function" ||
+    (!deps.writeOut && !deps.writeErr);
+  const pipeAbort = shouldInstallPipeSafety ? new AbortController() : null;
+  const runtimeOptions = pipeAbort
+    ? {
+        ...options,
+        signal: options.signal
+          ? AbortSignal.any([options.signal, pipeAbort.signal])
+          : pipeAbort.signal,
+      }
+    : options;
+  const installSafety = deps.installPipeSafety || installPipeSafety;
+  const disposePipeSafety = shouldInstallPipeSafety
+    ? installSafety(undefined, () => {
+        if (pipeState.closed) return;
+        pipeState.closed = true;
+        process.exitCode = 0;
+        pipeAbort.abort();
+      })
+    : null;
+
+  try {
+    const outcome = await runWithHostHooksV2Workspace(
+      trustedWorkspaceRoot,
+      () => runAgentHeadlessInWorkspace(runtimeOptions, deps, pipeState),
+    );
+    return pipeState.closed
+      ? { ...outcome, exitCode: 0, isError: false }
+      : outcome;
+  } catch (error) {
+    if (pipeState.closed) {
+      return { exitCode: 0, result: "", isError: false };
+    }
+    throw error;
+  } finally {
+    disposePipeSafety?.();
+  }
 }
 
-async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
+async function runAgentHeadlessInWorkspace(
+  options = {},
+  deps = {},
+  pipeState = { closed: false },
+) {
   const prompt = (options.prompt || "").trim();
   if (!prompt) {
     throw new Error(
@@ -389,7 +429,6 @@ async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
   const isText = outputFormat === "text";
   const writeOut = deps.writeOut || ((s) => process.stdout.write(s));
   const writeErr = deps.writeErr || ((s) => process.stderr.write(s));
-  if (!deps.writeOut && !deps.writeErr) installPipeSafety();
 
   const hasInjectedSessionStore =
     typeof deps.sessionHasPersistedEvidence === "function" ||
@@ -2674,7 +2713,11 @@ async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
       try {
         const { runObserveHooks, dispatchAsyncHooks } =
           await import("../lib/settings-hook-events.js");
-        const stopPayload = { reason: endReason, cwd, session_id: sessionId };
+        const stopPayload = {
+          reason: pipeState.closed ? "pipe_closed" : endReason,
+          cwd,
+          session_id: sessionId,
+        };
         const stopOutcome = runObserveHooks(
           settingsHooks,
           "Stop",
@@ -2750,7 +2793,11 @@ async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
         runObserveHooks(
           settingsHooks,
           "SessionEnd",
-          { reason: "completed", cwd, session_id: sessionId },
+          {
+            reason: pipeState.closed ? "pipe_closed" : "completed",
+            cwd,
+            session_id: sessionId,
+          },
           { cwd },
         );
       } catch (error) {
@@ -2763,6 +2810,14 @@ async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
         // observe-only + best-effort async surfacing
       }
     }
+  }
+
+  // A downstream consumer closed stdout/stderr. The abort above unwound the
+  // model loop through the same `finally` as every other termination, so MCP,
+  // background tasks, approval bridges, and hooks are settled. Do not attempt
+  // more writes to the closed pipe or persist a partial assistant answer.
+  if (pipeState.closed) {
+    return { exitCode: 0, result: finalText, isError: false };
   }
 
   // coreAgentLoop emits run-ended reason "budget-exhausted" when the iteration

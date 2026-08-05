@@ -566,6 +566,29 @@ describe("agent-repl thin wrapper contracts", () => {
     "agent-repl.js",
   );
 
+  it("defers an early EPIPE until the graceful close handler is ready", () => {
+    const content = readFileSync(agentReplPath, "utf8");
+    const guardStart = content.indexOf("// EPIPE guard:");
+    const startupStart = content.indexOf(
+      "const { useJsonl, candidate: _startupJsonlResume }",
+      guardStart,
+    );
+    const guard = content.slice(guardStart, startupStart);
+    const closeHandler = content.indexOf('rl.on("close", async () => {');
+    const closeReady = content.indexOf("_replCloseReady = true;", closeHandler);
+
+    expect(guardStart).toBeGreaterThanOrEqual(0);
+    expect(startupStart).toBeGreaterThan(guardStart);
+    expect(guard).toContain("process.exitCode = 0;");
+    expect(guard).toContain("_replRl && _replCloseReady");
+    expect(guard).not.toContain("process.exit(");
+    expect(closeHandler).toBeGreaterThan(startupStart);
+    expect(closeReady).toBeGreaterThan(closeHandler);
+    expect(content.slice(closeHandler, closeReady)).toContain(
+      "if (_replCleanupStarted) return;",
+    );
+  });
+
   it("executeTool wrapper passes hookDb and cwd to coreExecuteTool", () => {
     const content = readFileSync(agentReplPath, "utf8");
     // executeTool should delegate to coreExecuteTool with hookDb and cwd

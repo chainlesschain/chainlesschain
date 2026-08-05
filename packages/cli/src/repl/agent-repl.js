@@ -2078,22 +2078,25 @@ async function startAgentReplInWorkspace(options = {}, startupAdmission) {
   // `cc agent | head`), the async stream `error` would otherwise crash the
   // process. Route a broken pipe into the REPL's own graceful shutdown (the
   // rl "close" handler — MCP disconnect, kill background tasks) when the
-  // interface exists, else exit cleanly. `_replClosing` makes it fire once so a
-  // cleanup write that also EPIPEs can't loop. `_replRl` is set when rl is built.
+  // interface and its close handler exist. `_replClosing` makes it fire once so
+  // a cleanup write that also EPIPEs can't loop. An early EPIPE remains pending
+  // until the close handler is attached; it never skips directly to exit.
   let _replRl = null;
   let _replClosing = false;
+  let _replCloseReady = false;
+  let _replCleanupStarted = false;
   installPipeSafety(undefined, () => {
     if (_replClosing) return;
     _replClosing = true;
-    if (_replRl) {
+    process.exitCode = 0;
+    if (_replRl && _replCloseReady) {
       try {
-        _replRl.close(); // triggers the graceful "close" cleanup → process.exit
-        return;
+        _replRl.close(); // triggers the graceful "close" cleanup
       } catch {
-        /* fall through to a bare exit */
+        // The close handler owns shutdown. Leaving exitCode set allows the
+        // event loop to drain without bypassing the teardown lifecycle.
       }
     }
-    process.exit(0);
   });
   const { useJsonl, candidate: _startupJsonlResume } = startupAdmission;
   let model = options.model || "qwen2.5:7b";
@@ -8223,6 +8226,9 @@ async function startAgentReplInWorkspace(options = {}, startupAdmission) {
   });
 
   rl.on("close", async () => {
+    if (_replCleanupStarted) return;
+    _replCleanupStarted = true;
+    _replClosing = true;
     _promptInteractions.dispose();
     if (process.stdin.isTTY) {
       if (_replKeypressHandler) {
@@ -8412,4 +8418,16 @@ async function startAgentReplInWorkspace(options = {}, startupAdmission) {
     }
     process.exit(0);
   });
+  _replCloseReady = true;
+  if (_replClosing) {
+    // stdout may have broken before readline and its cleanup handler were fully
+    // initialized. Close only now so the complete async teardown runs.
+    queueMicrotask(() => {
+      try {
+        rl.close();
+      } catch {
+        process.exitCode = 0;
+      }
+    });
+  }
 }

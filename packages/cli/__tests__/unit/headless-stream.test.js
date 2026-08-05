@@ -8,6 +8,7 @@ import { describe, it, expect, vi } from "vitest";
 import { mkdtempSync, realpathSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { PassThrough } from "node:stream";
 import {
   parseInputEvent,
   readJsonLines,
@@ -199,6 +200,53 @@ describe("runAgentHeadlessStream", () => {
       .trimEnd()
       .split("\n")
       .map((l) => JSON.parse(l));
+
+  it("wakes idle input and disconnects MCP after EPIPE", async () => {
+    const previousExitCode = process.exitCode;
+    const disconnectAll = vi.fn(async () => {});
+    const disposePipeSafety = vi.fn();
+    let closePipe;
+    const liveInput = new PassThrough();
+    liveInput.write(`${JSON.stringify({ type: "user", text: "go" })}\n`);
+    const agentLoop = async function* () {
+      yield { type: "response-complete", content: "done" };
+      yield { type: "run-ended", reason: "complete" };
+      queueMicrotask(closePipe);
+    };
+    const deps = baseDeps({
+      agentLoop,
+      input: liveInput,
+      installPipeSafety: vi.fn((_streams, onEpipe) => {
+        closePipe = onEpipe;
+        return disposePipeSafety;
+      }),
+      resolveAgentMcp: async () => ({
+        mcpClient: { callTool: vi.fn(), disconnectAll },
+        connected: [],
+        extraToolDefinitions: [],
+        externalToolExecutors: {},
+        externalToolDescriptors: {},
+      }),
+    });
+
+    try {
+      const outcome = await runAgentHeadlessStream(
+        { expandFileRefs: false, settingsHooks: {} },
+        deps,
+      );
+
+      expect(outcome).toEqual({ exitCode: 0, turns: 1 });
+      expect(disconnectAll).toHaveBeenCalledOnce();
+      expect(disposePipeSafety).toHaveBeenCalledOnce();
+      expect(liveInput.destroyed).toBe(true);
+      expect(parseEmitted(deps._lines).at(-1)).not.toMatchObject({
+        type: "system",
+        subtype: "end",
+      });
+    } finally {
+      process.exitCode = previousExitCode;
+    }
+  }, 15_000);
 
   it("binds lifecycle hooks to the streaming CLI host cwd", async () => {
     const trustedRoot = realpathSync.native(
