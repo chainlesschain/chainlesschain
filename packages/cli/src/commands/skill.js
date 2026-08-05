@@ -46,6 +46,7 @@ import {
   autoFailStuckExecutionsV2,
   getSkillLoaderStatsV2,
 } from "../lib/skill-loader.js";
+import { raceWithAbort, throwIfAborted } from "../lib/abort-utils.js";
 import { getElectronUserDataDir } from "../lib/paths.js";
 import { findProjectRoot } from "../lib/project-detector.js";
 import { loadConfig } from "../lib/config-manager.js";
@@ -130,6 +131,10 @@ export function createControlledSkillScaffold(name, targetDir, io = fs) {
 
 export function createCliSkillReauthorizer(options = {}) {
   return async (request) => {
+    throwIfAborted(
+      request?.signal,
+      "Skill authorization prompt was interrupted",
+    );
     if (options.assumeYes === true) return { authorized: true };
     const stdin = options.stdin || process.stdin;
     const stdout = options.stdout || process.stdout;
@@ -140,12 +145,19 @@ export function createCliSkillReauthorizer(options = {}) {
     const skillId = request?.skill?.id || "unknown";
     const source = request?.skill?.source || "unknown";
     const digest = String(request?.currentDigest || "").slice(0, 24);
-    const authorized = await confirm({
-      message:
-        `Authorize isolated skill "${skillId}" from ${source} ` +
-        `for this process (${digest || "digest unavailable"})?`,
-      default: false,
-    });
+    const authorized = await raceWithAbort(
+      confirm(
+        {
+          message:
+            `Authorize isolated skill "${skillId}" from ${source} ` +
+            `for this process (${digest || "digest unavailable"})?`,
+          default: false,
+        },
+        request?.signal ? { signal: request.signal } : undefined,
+      ),
+      request?.signal,
+      "Skill authorization prompt was interrupted",
+    );
     return { authorized: authorized === true };
   };
 }
@@ -179,7 +191,9 @@ export async function runControlledSkill(options = {}) {
     loader,
     executeTool = null,
     llmOptions = null,
+    signal = null,
   } = options;
+  throwIfAborted(signal, "Skill command interrupted before discovery");
   if (
     !loader ||
     (typeof loader.getResolvedSkills !== "function" &&
@@ -200,9 +214,14 @@ export async function runControlledSkill(options = {}) {
   const executionContext = {
     loadedBecause: "run_skill",
     bodyIncluded: false,
+    signal,
   };
   if (typeof loader.materializeSkillForExecution === "function") {
-    skill = await loader.materializeSkillForExecution(skill, executionContext);
+    skill = await raceWithAbort(
+      loader.materializeSkillForExecution(skill, executionContext),
+      signal,
+      "Skill command interrupted during authorization",
+    );
   } else if (typeof loader.materializeSkill === "function") {
     skill = loader.materializeSkill(skill, executionContext);
   }
@@ -222,14 +241,20 @@ export async function runControlledSkill(options = {}) {
   }
   const dispatch =
     executeTool || (await import("../runtime/agent-core.js")).executeTool;
-  const result = await dispatch(
-    "run_skill",
-    { skill_name: skill.id, input: String(input) },
-    {
-      cwd,
-      skillLoader: loader,
-      ...(llmOptions ? { llmOptions: { ...llmOptions } } : {}),
-    },
+  throwIfAborted(signal, "Skill command interrupted before execution");
+  const result = await raceWithAbort(
+    dispatch(
+      "run_skill",
+      { skill_name: skill.id, input: String(input) },
+      {
+        cwd,
+        skillLoader: loader,
+        ...(signal ? { signal } : {}),
+        ...(llmOptions ? { llmOptions: { ...llmOptions } } : {}),
+      },
+    ),
+    signal,
+    "Skill command interrupted during execution",
   );
   const nestedFailure = /^\s*Sub-agent failed:/i.test(
     String(result?.summary || ""),

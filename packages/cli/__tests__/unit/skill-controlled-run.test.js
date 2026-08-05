@@ -109,6 +109,95 @@ describe("controlled skill command path", () => {
     await expect(allow({})).resolves.toEqual({ authorized: true });
   });
 
+  it("passes the parent signal into an interactive authorization prompt", async () => {
+    const controller = new AbortController();
+    const confirm = vi.fn(async (_question, context) => {
+      expect(context.signal).toBe(controller.signal);
+      return false;
+    });
+    const authorize = createCliSkillReauthorizer({
+      stdin: { isTTY: true },
+      stdout: { isTTY: true },
+      confirm,
+    });
+
+    await expect(
+      authorize({
+        skill: { id: "cancel-aware", source: "workspace" },
+        currentDigest: "sha256:test",
+        signal: controller.signal,
+      }),
+    ).resolves.toEqual({ authorized: false });
+    expect(confirm).toHaveBeenCalledOnce();
+  });
+
+  it("cancels an interactive authorization even when the prompt adapter ignores its signal", async () => {
+    let resolvePrompt;
+    const confirm = vi.fn(
+      () =>
+        new Promise((resolve) => {
+          resolvePrompt = resolve;
+        }),
+    );
+    const authorize = createCliSkillReauthorizer({
+      stdin: { isTTY: true },
+      stdout: { isTTY: true },
+      confirm,
+    });
+    const controller = new AbortController();
+    const reason = Object.assign(new Error("authorization stopped"), {
+      name: "AbortError",
+    });
+    const waiting = authorize({
+      skill: { id: "cancel-prompt", source: "workspace" },
+      signal: controller.signal,
+    });
+    await vi.waitFor(() => expect(confirm).toHaveBeenCalledOnce());
+
+    controller.abort(reason);
+    await expect(waiting).rejects.toBe(reason);
+    resolvePrompt(true);
+    await Promise.resolve();
+    await expect(waiting).rejects.toBe(reason);
+  });
+
+  it("cancels a pending controlled command dispatch and fences its late result", async () => {
+    const skill = {
+      id: "pending",
+      dirName: "pending",
+      isolation: true,
+    };
+    const loader = {
+      getResolvedSkills: () => [skill],
+      materializeSkillForExecution: vi.fn(async () => skill),
+    };
+    let resolveDispatch;
+    const executeTool = vi.fn(
+      () =>
+        new Promise((resolve) => {
+          resolveDispatch = resolve;
+        }),
+    );
+    const controller = new AbortController();
+    const reason = Object.assign(new Error("controlled command stopped"), {
+      name: "AbortError",
+    });
+    const running = runControlledSkill({
+      name: "pending",
+      loader,
+      executeTool,
+      signal: controller.signal,
+    });
+    await vi.waitFor(() => expect(executeTool).toHaveBeenCalledOnce());
+    expect(executeTool.mock.calls[0][2].signal).toBe(controller.signal);
+
+    controller.abort(reason);
+    await expect(running).rejects.toBe(reason);
+    resolveDispatch({ success: true, summary: "late command success" });
+    await Promise.resolve();
+    await expect(running).rejects.toBe(reason);
+  });
+
   it("resolves the existing command LLM config and a runnable local default", () => {
     expect(
       resolveControlledSkillLlmOptions({

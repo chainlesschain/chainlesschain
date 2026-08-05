@@ -197,6 +197,42 @@ describe("Skill execution identity", () => {
     expect(materialized.executionAuthority.mode).toBe("controlled-agent-tools");
   });
 
+  it("does not retain a late authorization decision after parent cancellation", async () => {
+    const fixture = createSkill({ isolation: true, body: "# Cancel approval" });
+    let resolveFirstDecision;
+    const reauthorizeSkill = vi
+      .fn()
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveFirstDecision = resolve;
+          }),
+      )
+      .mockResolvedValue({ authorized: true });
+    const { loader, skill } = discover(fixture, { reauthorizeSkill });
+    const controller = new AbortController();
+    const reason = Object.assign(new Error("parent cancelled approval"), {
+      name: "AbortError",
+    });
+    const materializing = loader.materializeSkillForExecution(skill, {
+      loadedBecause: "run_skill",
+      signal: controller.signal,
+    });
+    await vi.waitFor(() => expect(reauthorizeSkill).toHaveBeenCalledOnce());
+
+    controller.abort(reason);
+    await expect(materializing).rejects.toBe(reason);
+    resolveFirstDecision({ authorized: true });
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const second = await loader.materializeSkillForExecution(skill, {
+      loadedBecause: "run_skill",
+    });
+    expect(second.body).toContain("Cancel approval");
+    expect(reauthorizeSkill).toHaveBeenCalledTimes(2);
+  });
+
   it("does not trust the user-writable managed/global layer by default", async () => {
     const fixture = createSkill({ isolation: true, body: "# Global custom" });
     const loader = new CLISkillLoader({ contextLedger: null });

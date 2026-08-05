@@ -14,6 +14,7 @@ const mocks = vi.hoisted(() => ({
   skills: [],
   childConfigs: [],
   childRuns: [],
+  childRunOptions: [],
   createSubAgent: vi.fn(),
 }));
 
@@ -52,7 +53,8 @@ vi.mock("../../src/lib/hook-manager.js", () => ({
   },
 }));
 
-const { executeTool } = await import("../../src/runtime/agent-core.js");
+const { agentLoop, executeTool } =
+  await import("../../src/runtime/agent-core.js");
 
 describe("run_skill controlled execution boundary", () => {
   let tempDir;
@@ -62,13 +64,15 @@ describe("run_skill controlled execution boundary", () => {
     mocks.skills.length = 0;
     mocks.childConfigs.length = 0;
     mocks.childRuns.length = 0;
+    mocks.childRunOptions.length = 0;
     mocks.createSubAgent.mockReset();
     mocks.createSubAgent.mockImplementation((config) => {
       mocks.childConfigs.push(config);
       return {
         id: `skill-child-${mocks.childConfigs.length}`,
-        run: vi.fn(async (input) => {
+        run: vi.fn(async (input, loopOptions) => {
           mocks.childRuns.push(input);
+          mocks.childRunOptions.push(loopOptions);
           return {
             summary: `isolated:${input}`,
             toolsUsed: ["read_file"],
@@ -174,11 +178,192 @@ describe("run_skill controlled execution boundary", () => {
     expect(mocks.childConfigs[0]).not.toHaveProperty("processBroker");
   });
 
+  it("links the parent AbortSignal into the isolated Skill context", async () => {
+    registerSkill({ id: "linked-cancel", isolation: true });
+    const controller = new AbortController();
+
+    await expect(
+      executeTool(
+        "run_skill",
+        { skill_name: "linked-cancel", input: "inspect" },
+        { cwd: tempDir, signal: controller.signal },
+      ),
+    ).resolves.toMatchObject({ success: true, isolated: true });
+
+    expect(mocks.childConfigs[0].signal).toBe(controller.signal);
+  });
+
+  it("rejects a pre-cancelled run_skill before discovery or child creation", async () => {
+    const reason = Object.assign(new Error("parent already stopped"), {
+      name: "AbortError",
+    });
+    const controller = new AbortController();
+    controller.abort(reason);
+    const getResolvedSkills = vi.fn(() => mocks.skills);
+
+    await expect(
+      executeTool(
+        "run_skill",
+        { skill_name: "never-discovered", input: "x" },
+        {
+          cwd: tempDir,
+          signal: controller.signal,
+          skillLoader: { getResolvedSkills },
+        },
+      ),
+    ).rejects.toBe(reason);
+    expect(getResolvedSkills).not.toHaveBeenCalled();
+    expect(mocks.createSubAgent).not.toHaveBeenCalled();
+  });
+
+  it("cancels an in-flight authorization promptly and ignores its late success", async () => {
+    registerSkill({ id: "cancel-auth", isolation: true });
+    let resolveAuthorization;
+    const materializeSkillForExecution = vi.fn(
+      () =>
+        new Promise((resolve) => {
+          resolveAuthorization = resolve;
+        }),
+    );
+    const controller = new AbortController();
+    const reason = Object.assign(new Error("stopped during authorization"), {
+      name: "AbortError",
+    });
+    const running = executeTool(
+      "run_skill",
+      { skill_name: "cancel-auth", input: "x" },
+      {
+        cwd: tempDir,
+        signal: controller.signal,
+        skillLoader: {
+          getResolvedSkills: () => mocks.skills,
+          materializeSkillForExecution,
+        },
+      },
+    );
+    await vi.waitFor(() =>
+      expect(materializeSkillForExecution).toHaveBeenCalledOnce(),
+    );
+
+    controller.abort(reason);
+    await expect(running).rejects.toBe(reason);
+    expect(mocks.createSubAgent).not.toHaveBeenCalled();
+
+    resolveAuthorization({ ...mocks.skills[0], body: "late authorized body" });
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(mocks.createSubAgent).not.toHaveBeenCalled();
+  });
+
+  it("cancels a running isolated child promptly and fences its late result", async () => {
+    registerSkill({ id: "cancel-child", isolation: true });
+    let resolveChild;
+    const childRun = vi.fn(
+      () =>
+        new Promise((resolve) => {
+          resolveChild = resolve;
+        }),
+    );
+    mocks.createSubAgent.mockImplementationOnce((config) => {
+      mocks.childConfigs.push(config);
+      return { id: "cancel-child-context", status: "active", run: childRun };
+    });
+    const controller = new AbortController();
+    const reason = Object.assign(new Error("parent stopped child"), {
+      name: "AbortError",
+    });
+    const running = executeTool(
+      "run_skill",
+      { skill_name: "cancel-child", input: "x" },
+      { cwd: tempDir, signal: controller.signal },
+    );
+    await vi.waitFor(() => expect(childRun).toHaveBeenCalledOnce());
+    expect(mocks.childConfigs[0].signal).toBe(controller.signal);
+
+    controller.abort(reason);
+    await expect(running).rejects.toBe(reason);
+
+    resolveChild({ summary: "late child success", toolsUsed: [] });
+    await Promise.resolve();
+    await Promise.resolve();
+    await expect(running).rejects.toBe(reason);
+  });
+
+  it("propagates the agentLoop parent signal through run_skill without appending a late tool result", async () => {
+    registerSkill({ id: "loop-cancel", isolation: true });
+    let resolveChild;
+    const childRun = vi.fn(
+      () =>
+        new Promise((resolve) => {
+          resolveChild = resolve;
+        }),
+    );
+    mocks.createSubAgent.mockImplementationOnce((config) => {
+      mocks.childConfigs.push(config);
+      return { id: "loop-cancel-child", status: "active", run: childRun };
+    });
+    let chatCalls = 0;
+    const chatFn = vi.fn(async () => {
+      chatCalls += 1;
+      if (chatCalls === 1) {
+        return {
+          message: {
+            role: "assistant",
+            tool_calls: [
+              {
+                id: "run-skill-call",
+                function: {
+                  name: "run_skill",
+                  arguments: JSON.stringify({
+                    skill_name: "loop-cancel",
+                    input: "inspect",
+                  }),
+                },
+              },
+            ],
+          },
+        };
+      }
+      return { message: { role: "assistant", content: "must not run" } };
+    });
+    const controller = new AbortController();
+    const reason = Object.assign(new Error("loop parent stopped"), {
+      name: "AbortError",
+    });
+    const messages = [{ role: "user", content: "use the skill" }];
+    const draining = (async () => {
+      const events = [];
+      for await (const event of agentLoop(messages, {
+        cwd: tempDir,
+        signal: controller.signal,
+        chatFn,
+        skillLoader: { getResolvedSkills: () => mocks.skills },
+        autoCompact: false,
+        runnableProviderFallback: false,
+      })) {
+        events.push(event);
+      }
+      return events;
+    })();
+    await vi.waitFor(() => expect(childRun).toHaveBeenCalledOnce());
+
+    controller.abort(reason);
+    await expect(draining).rejects.toBe(reason);
+    resolveChild({ summary: "late loop child success", toolsUsed: [] });
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(messages.some((message) => message.role === "tool")).toBe(false);
+    expect(chatFn).toHaveBeenCalledOnce();
+  });
+
   it("awaits the host's async execution materializer before creating the child", async () => {
     registerSkill({ id: "async-authorized", isolation: true });
+    const controller = new AbortController();
     const materializeSkillForExecution = vi.fn(async (skill, context) => {
       await Promise.resolve();
       expect(context.loadedBecause).toBe("run_skill");
+      expect(context.signal).toBe(controller.signal);
       return { ...skill, body: "# Authorized after IDE confirmation" };
     });
     const skillLoader = {
@@ -189,7 +374,7 @@ describe("run_skill controlled execution boundary", () => {
     const result = await executeTool(
       "run_skill",
       { skill_name: "async-authorized", input: "inspect" },
-      { cwd: tempDir, skillLoader },
+      { cwd: tempDir, skillLoader, signal: controller.signal },
     );
 
     expect(result).toMatchObject({ success: true, isolated: true });

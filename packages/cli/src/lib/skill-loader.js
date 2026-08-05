@@ -32,6 +32,7 @@ import { normalizeSkillPaths } from "./skill-path-scope.js";
 import { discoverPluginSkillLayers } from "./plugin-runtime/skills.js";
 import settingsLoader from "./settings-loader.cjs";
 import contextSourceLedger from "./context-source-ledger.js";
+import { isAbortError, raceWithAbort, throwIfAborted } from "./abort-utils.js";
 import {
   admitSkillPrompt,
   assertSkillFileSize,
@@ -418,6 +419,7 @@ export class CLISkillLoader {
       loadedBecause: context.loadedBecause || "explicit",
       sessionId: context.sessionId || null,
       turnId: context.turnId || null,
+      signal: context.signal || null,
     });
   }
 
@@ -443,6 +445,10 @@ export class CLISkillLoader {
    * materializeSkillForExecution after the await, closing the prompt-time race.
    */
   async _authorizeSkillExecutionDigest(skill, context = {}) {
+    throwIfAborted(
+      context.signal,
+      "Skill execution authorization was interrupted",
+    );
     const snapshot = captureSkillExecutionSnapshot({
       skillDir: skill.skillDir,
       skillId: skill.id,
@@ -489,16 +495,25 @@ export class CLISkillLoader {
 
     let decision;
     try {
-      decision = await this._reauthorizeSkill(
-        this._skillReauthorizationRequest(skill, snapshot, context, {
-          firstUseAuthorization,
-          contentChanged,
-          previouslyAuthorizedDigest,
-        }),
+      decision = await raceWithAbort(
+        this._reauthorizeSkill(
+          this._skillReauthorizationRequest(skill, snapshot, context, {
+            firstUseAuthorization,
+            contentChanged,
+            previouslyAuthorizedDigest,
+          }),
+        ),
+        context.signal,
+        "Skill execution authorization was interrupted",
       );
     } catch (cause) {
+      if (context.signal?.aborted || isAbortError(cause)) throw cause;
       throw skillReauthorizationError(skill, cause);
     }
+    throwIfAborted(
+      context.signal,
+      "Skill execution authorization was interrupted",
+    );
     if (decision !== true && decision?.authorized !== true) {
       this._throwSkillAuthorizationDenial(skill, snapshot, {
         firstUseAuthorization,
@@ -514,7 +529,15 @@ export class CLISkillLoader {
 
   async materializeSkillForExecution(skill, context = {}) {
     const executionContext = { ...context, forExecution: true };
+    throwIfAborted(
+      executionContext.signal,
+      "Skill execution materialization was interrupted",
+    );
     await this._authorizeSkillExecutionDigest(skill, executionContext);
+    throwIfAborted(
+      executionContext.signal,
+      "Skill execution materialization was interrupted",
+    );
     // Re-capture and re-check after a potentially human-blocking async prompt.
     // materializeSkill recognizes only the exact digest authorized above.
     return this.materializeSkill(skill, executionContext);
@@ -762,6 +785,10 @@ export class CLISkillLoader {
    * size/mtime metadata, and provenance records never include source content.
    */
   materializeSkill(skill, context = {}) {
+    throwIfAborted(
+      context.signal,
+      "Skill execution materialization was interrupted",
+    );
     if (!skill || !skill.skillMdPath) {
       throw new TypeError("A discovered skill descriptor is required");
     }
@@ -820,6 +847,7 @@ export class CLISkillLoader {
           }),
         );
       } catch (cause) {
+        if (context.signal?.aborted || isAbortError(cause)) throw cause;
         throw skillReauthorizationError(skill, cause);
       }
       if (decision && typeof decision.then === "function") {
@@ -842,6 +870,10 @@ export class CLISkillLoader {
           snapshot.contentDigest,
         );
       }
+      throwIfAborted(
+        context.signal,
+        "Skill execution authorization was interrupted",
+      );
       if (executionRequiresTrust) {
         this._authorizedExecutionDigests.set(
           snapshot.identityDigest,

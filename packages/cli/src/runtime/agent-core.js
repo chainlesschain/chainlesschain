@@ -57,7 +57,11 @@ import {
 } from "./coding-agent-contract.js";
 import { createToolContext } from "../tools/tool-context.js";
 import { createToolTelemetryRecord } from "../tools/tool-telemetry.js";
-import { isAbortError, throwIfAborted } from "../lib/abort-utils.js";
+import {
+  isAbortError,
+  raceWithAbort,
+  throwIfAborted,
+} from "../lib/abort-utils.js";
 import {
   classifyEditReplay,
   editIdempotencyKey,
@@ -5714,10 +5718,16 @@ async function executeToolInner(
     }
 
     case "run_skill": {
-      const allSkills = await filterSkillsByCwd(
-        skillLoader.getResolvedSkills().filter(skillAllowed),
-        cwd,
+      throwIfAborted(signal, "run_skill interrupted before discovery");
+      const allSkills = await raceWithAbort(
+        filterSkillsByCwd(
+          skillLoader.getResolvedSkills().filter(skillAllowed),
+          cwd,
+        ),
+        signal,
+        "run_skill interrupted during discovery",
       );
+      throwIfAborted(signal, "run_skill interrupted during discovery");
       if (allSkills.length === 0) {
         return attachDescriptor({
           error: _skillAllowlist
@@ -5736,25 +5746,33 @@ async function executeToolInner(
       }
       try {
         if (typeof skillLoader.materializeSkillForExecution === "function") {
-          match = await skillLoader.materializeSkillForExecution(match, {
-            sessionId,
-            turnId,
-            loadedBecause: "run_skill",
-            bodyIncluded: true,
-          });
+          match = await raceWithAbort(
+            skillLoader.materializeSkillForExecution(match, {
+              sessionId,
+              turnId,
+              loadedBecause: "run_skill",
+              bodyIncluded: true,
+              signal,
+            }),
+            signal,
+            "run_skill interrupted during authorization",
+          );
         } else if (typeof skillLoader.materializeSkill === "function") {
           match = skillLoader.materializeSkill(match, {
             sessionId,
             turnId,
             loadedBecause: "run_skill",
             bodyIncluded: true,
+            signal,
           });
         }
+        throwIfAborted(signal, "run_skill interrupted during materialization");
         // A custom loader is not an authority to raise host model-input caps.
         // Re-admit at the final consumer before constructing the child task.
         admittedSkillBody = match?.body;
         admitSkillPrompt(admittedSkillBody, skillLoader.getLimits?.());
       } catch (error) {
+        if (signal?.aborted || isAbortError(error)) throw error;
         return attachDescriptor({
           error: `Skill "${args.skill_name}" body could not be loaded: ${error.message}`,
           ...(error?.code ? { code: error.code } : {}),
@@ -5794,6 +5812,7 @@ async function executeToolInner(
             `User input:\n${String(args.input || "").substring(0, 8000)}`,
           allowedTools: isolatedSkillTools,
           hookParentTraceId: hookTraceId || null,
+          signal,
           toolAdmission,
           cwd,
           llmOptions: llmOptions || null,
@@ -5846,7 +5865,12 @@ async function executeToolInner(
         });
         skillSubRef = subCtx;
         try {
-          const result = await subCtx.run(args.input);
+          const result = await raceWithAbort(
+            subCtx.run(args.input),
+            signal,
+            "run_skill interrupted while the isolated child was running",
+          );
+          throwIfAborted(signal, "run_skill interrupted before child handoff");
           const resolvedFailure =
             subCtx.status === "failed" ||
             result?.success === false ||
@@ -5874,6 +5898,7 @@ async function executeToolInner(
             toolsUsed: result.toolsUsed,
           });
         } catch (err) {
+          if (signal?.aborted || isAbortError(err)) throw err;
           return attachDescriptor({
             success: false,
             isolated: true,
