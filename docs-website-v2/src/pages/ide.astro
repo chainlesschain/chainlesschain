@@ -35,10 +35,10 @@ const OPEN_VSX_DOWNLOADS = releaseStatus.openVsxDownloadsMilestone;
           <a href="https://docs.chainlesschain.com/chainlesschain/ide-bridge.html" rel="noopener" class="btn-ghost">完整文档 ↗</a>
         </div>
         <p class="mt-5 text-sm text-muted">
-          当前 VS Code <strong class="text-ink">{VSCODE_VERSION}</strong> 已公开上架 Open VSX，累计下载突破 <strong class="text-ink">{OPEN_VSX_DOWNLOADS}</strong>；JetBrains <strong class="text-ink">{JETBRAINS_VERSION}</strong> 已公开上架 Marketplace，推荐搭配完整门禁 CLI <strong class="text-ink">{CLI_VERSION}</strong>。Open VSX 版本的 tagged workflow 最终未完整成功，因此公开可下载状态与门禁结论分开记录；微软 VS Code Marketplace 版本仍未发布。
+          当前 VS Code <strong class="text-ink">{VSCODE_VERSION}</strong> 已公开上架 Open VSX，累计下载突破 <strong class="text-ink">{OPEN_VSX_DOWNLOADS}</strong>；JetBrains <strong class="text-ink">{JETBRAINS_VERSION}</strong> 已公开上架 Marketplace，推荐搭配完整门禁 CLI <strong class="text-ink">{CLI_VERSION}</strong>。两个 tagged workflow 均已完成三平台真实宿主、制品、发布与 registry 回读；微软 VS Code Marketplace 版本仍未发布。
         </p>
         <p class="mt-3 text-sm text-muted">
-          源码候选为 CLI <strong class="text-ink">{SOURCE_CLI_VERSION}</strong>、VS Code <strong class="text-ink">{VSCODE_SOURCE_VERSION}</strong>、JetBrains <strong class="text-ink">{JETBRAINS_SOURCE_VERSION}</strong>。源码新增内联聊天、CLI-owned Sessions Workbench、可恢复交付和 canonical rewind；未完成发布门前不作为公开安装能力承诺。
+          源码与公开稳定版已对齐：CLI <strong class="text-ink">{SOURCE_CLI_VERSION}</strong>、VS Code <strong class="text-ink">{VSCODE_SOURCE_VERSION}</strong>、JetBrains <strong class="text-ink">{JETBRAINS_SOURCE_VERSION}</strong>。内联聊天、CLI-owned Sessions Workbench、可恢复交付和 canonical rewind 均已进入公开安装能力。
         </p>
       </div>
     </div>
@@ -60,10 +60,10 @@ const OPEN_VSX_DOWNLOADS = releaseStatus.openVsxDownloadsMilestone;
           ['插件', '事务化升级 + 供应链治理', '按 scope 启停；升级先 staging 校验 manifest/签名/SBOM 再原子激活，失败恢复旧版本。IDE 只在 activated 后重载会话，扩大 capability 前要求显式批准。'],
           ['治理', 'Distributed Agent Teams', 'IDE 只读观察本地 team state v6 与独立 distributed queue v1 原始快照；takeover、managed checkpoint recovery 与副作用 adjudication 全部交回 CLI，并绑定 authority digest、lease 与 evidence fence。过期 UI 动作失败闭合，IDE 不直接改权威 JSON。'],
           ['归因', '耗时与重试可见', '用量视图展示真实工具耗时、同轮观测重试和脱敏的流式 LLM retry 原因/实际 provider/model，不保存工具参数、输出或凭据。'],
-          ['会话', 'CLI-owned Sessions Workbench', '公开版 0.37.38 读取 CLI 生成的 immutable session projection；resume、attach 与 remote-control 只在 revision 明确授权时开放，过期动作失败闭合。'],
+          ['会话', 'CLI-owned Sessions Workbench', '公开版 0.37.42 / 0.4.79 读取 CLI 生成的 immutable session projection；resume、attach 与 remote-control 只在 revision 明确授权时开放，过期动作失败闭合。'],
           ['交付', '可恢复 delivery 与 rewind', '公开版覆盖 GitHub、Gitee、configured remote 与 manual handoff；每步校验结果/副作用摘要，rewind 绑定 session、workspace、仓库 head、checkpoint revision 与 manifest digest。'],
-          ['内联', '选区旁直接问与改', 'VS Code 0.37.40 源码候选提供独立内联会话、流式响应，以及代码块复制、插入、替换；Explain / Refactor / Fix / Docs / Tests 尚未在 Open VSX 发布。'],
-          ['同步', 'CLI 版本对齐', '激活时检测 cc --version；当前稳定安装固定到 npm i -g chainlesschain@0.162.189，避免自动追随未经完整门禁确认的 npm latest。扩展与 CLI 的公开版本、源码候选分别展示。'],
+          ['内联', '选区旁直接问与改', 'VS Code 0.37.42 提供独立内联会话、流式响应，以及代码块复制、插入、替换；Explain / Refactor / Fix / Docs / Tests 已在 Open VSX 公开。'],
+          ['同步', 'CLI 版本对齐', '激活时检测 cc --version；当前稳定安装固定到 npm i -g chainlesschain@0.162.197，与已完成完整门禁的 npm latest 一致。'],
           ['补全', '@ 文件 / 实时斜杠命令', 'REPL 里 @ 路径 TAB 补全把编辑器打开的文件排最前；面板 @ 补全含 @selection / @diagnostics / @terminal；/status /doctor /mcp /hooks /permissions /agents /tasks /memory 读取当前会话，另含 /new /plan /approve /reject /stop /expand。'],
         ].map(([tag, title, desc]) => (
           <div class="p-8 rounded-2xl border border-line hover:border-ember transition-colors">

@@ -2,26 +2,26 @@
 
 > **📋 Android v1.0 Repositioning RFC under review** (2026-05-10) — Desktop = AI workstation, Mobile = key + capture + remote. Stop chasing desktop skill count; pivot to L1 (StrongBox/DID/QR) + L2 (Voice/Camera OCR/push) + L3 (REMOTE-invoke desktop skills) three-layer architecture. See [design doc](docs/design/Android_重新定位_设计文档.md) | [user doc](docs-site/docs/chainlesschain/mobile-positioning.md).
 
-> **📦 CLI install**: `npm i -g chainlesschain@0.162.189` (current fully gated build; aliases `cc` / `clc` / `clchain`).
+> **📦 CLI install**: `npm i -g chainlesschain@0.162.197` (current fully gated build; aliases `cc` / `clc` / `clchain`).
 > **Note for users behind the China mirror**: if your npm defaults to the Taobao mirror `registry.npmmirror.com`, you may hit `npm error code E404 … '@chainlesschain/…' is not in this registry` during install. This is the mirror **lazily syncing tarballs** for newly published packages (metadata is present but the tarball isn't cached yet). Install from the official registry instead:
 >
 > ```bash
-> npm i -g chainlesschain@0.162.189 --registry https://registry.npmjs.org
+> npm i -g chainlesschain@0.162.197 --registry https://registry.npmjs.org
 > ```
 >
 > The mirror usually catches up shortly after a release (the project's publish pipeline also triggers a sync proactively); once synced, the default mirror works fine.
 
-## 2026-08-04 Current mainline — **v5.0.3.135 / CLI source 0.162.194 / PDH 0.4.57 / VS Code source 0.37.40 / JetBrains source 0.4.78**
+## 2026-08-05 Current mainline — **v5.0.3.135 / CLI 0.162.197 / PDH 0.4.57 / Open VSX 0.37.42 / JetBrains 0.4.79**
 
-> **Release status:** the most recent CLI that completed every authoritative gate remains `chainlesschain@0.162.189`, from exact commit [`2607af0dad`](https://github.com/chainlesschain/chainlesschain/commit/2607af0dadeb951583139942e5f2add3e95e1208). npm `latest` is currently `0.162.193`, but a generic workspace publisher released it while the same-SHA CLI CI was still running and later failed. It has no `v-npm-0-162-193` tag, exact-SHA gate attestation, or dedicated immutable tarball/SBOM handoff, so it **must not be represented as an authoritative release**. Source has advanced to the unpublished `0.162.194` candidate. Until that candidate passes `CLI CI` and `CLI Strict Sandbox` on Ubuntu, Windows, and macOS, production users should pin `npm i -g chainlesschain@0.162.189`.
+> **Release status:** `chainlesschain@0.162.197` is the current npm `latest` and production recommendation, published from exact commit [`a03ad1b548`](https://github.com/chainlesschain/chainlesschain/commit/a03ad1b548cc6f15c9bef8f82d519e9c625eef8d). The same tagged SHA passed [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/30979565407), [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/30979565251), and the [dedicated npm release](https://github.com/chainlesschain/chainlesschain/actions/runs/30979565206) across Ubuntu, Windows, and macOS, including the exact-SHA gate, immutable tarball/SBOM handoff, and npm provenance. The working tree still reports CLI `0.162.197`; later release-pipeline fixes do not change the runtime shipped in that package.
 >
 > **New CLI mainline:** typed configuration refuses schema-declared secrets in ordinary config and routes them through `config set-secret`; MCP adds `ws/wss`, trusted dynamic headers, timeout notifications, and uncertain-outcome adjudication. REPL, stream, WebSocket, and headless paths share verified session projections, transactional summary/compaction state, persistent resource budgets, controlled Skill subagents, background launch profiles, semantic handoff, `/btw`, and deterministic shell completions.
 >
 > **Checkpoint recovery:** direct and timeline restores now share a hash-chained CAS saga bound to workspace prestate, lifetime locks, immutable Git/copy targets, and safety checkpoints. `cc checkpoint recovery list|show|abort|resume|rollback|release` mutates state only after validating live-owner or verified-owner-absence authority, exact sequence/head fences, and action eligibility. `resume` only settles an already-completed verified restore, while `rollback --yes` only reverses a verified partial file mutation. This is a narrow file-recovery closure, not general multi-resource atomicity, power-loss proof, or external-side-effect rollback.
 >
-> **IDE mainline:** Open VSX currently serves `0.37.38` and has passed **20,000 downloads**, with the CLI-owned Sessions Workbench, resumable GitHub/Gitee/remote/manual delivery, and the canonical rewind/branch timeline. Its tagged workflow ultimately failed, so it is public but not claimed as fully gate-complete. JetBrains Marketplace remains at `0.4.76`. Current source `0.37.40` / `0.4.78` also carries host-version gate fixes; VS Code source adds editor inline chat, selection context, streaming, and code-block copy/insert/replace, with duplicate command registration and activation logger wiring fixed. Those source capabilities are not yet public releases. Microsoft VS Code Marketplace remains unpublished.
+> **IDE mainline:** Open VSX `0.37.42` and JetBrains Marketplace `0.4.79` are public, and both tags resolve to exact commit [`0844f1cb85`](https://github.com/chainlesschain/chainlesschain/commit/0844f1cb8512bbb7cde2c0242d84f91533c6f5af). The [VS Code release gate](https://github.com/chainlesschain/chainlesschain/actions/runs/30975707451) passed immutable VSIX verification, real Windows/macOS/Linux hosts, publication, and Open VSX readback. The [JetBrains release gate](https://github.com/chainlesschain/chainlesschain/actions/runs/30975672764) passed the 2024.2/2025.2 three-OS host matrix, upload, and Marketplace readback. Public VS Code now includes inline chat, selection context, streaming, code-block copy/insert/replace, and the first-tab activation retry fix. Microsoft VS Code Marketplace remains unpublished.
 >
-> **Publication authority containment:** the dedicated CLI publisher has been restored. The generic workspace publisher now uses a separate workflow/tag namespace and excludes `packages/cli` and package name `chainlesschain` both at candidate detection and immediately before publish. Numeric product releases only consume a pre-existing CLI whose tag, registry `gitHead`, and exact-SHA gates verify; they no longer hold CLI publish authority. PDH remains `0.4.57` (92 collection contracts / 18 source categories), and Agent SDK remains `0.1.7`.
+> **Release-chain closure:** the dedicated CLI publisher is restored. The generic workspace publisher uses a separate workflow/tag namespace and excludes `packages/cli` and package name `chainlesschain` both at candidate detection and immediately before publish. Post-release readback now verifies registry bytes, signed provenance, and workflow identity, so registry presence alone is never treated as proof of release authority. Numeric product releases only consume an existing CLI with matching tag, exact-SHA, and registry evidence; they no longer hold CLI publish authority. PDH remains `0.4.57` (92 collection contracts / 18 source categories), and Agent SDK remains `0.1.7`.
 >
 > See the [current CLI Runtime guide](docs-site/docs/chainlesschain/cli-runtime-current.md), [checkpoint recovery guide](docs-site/docs/chainlesschain/checkpoint.md), [IDE extension guide](docs-site/docs/chainlesschain/ide-plugin.md), [runtime design check](docs/design/cli-runtime-current.md), [IDE bridge design](docs/design/modules/98_IDE桥接对标方案.md), and [changelog](CHANGELOG.md).
 
@@ -2503,7 +2503,7 @@ Design, protocol, and test matrix: [docs/design/modules/79_Coding_Agent系统.md
 ![Tests](https://img.shields.io/badge/tests-30000%2B-brightgreen.svg)
 ![Skills](https://img.shields.io/badge/skills-146-blue.svg)
 ![Commands](https://img.shields.io/badge/CLI%20commands-175-blue.svg)
-![CLI](https://img.shields.io/badge/cli-0.162.189-blue.svg)
+![CLI](https://img.shields.io/badge/cli-0.162.197-blue.svg)
 ![npm](https://img.shields.io/badge/npm-chainlesschain-cb3837.svg)
 
 **Decentralized · Privacy First · AI Native**

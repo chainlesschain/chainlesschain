@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added — cc CLI 0.162.197: durable sessions, MCP recovery, and checkpoint safety
 
-> `chainlesschain` **0.162.189 → 0.162.197** (release candidate,
+> `chainlesschain` **0.162.189 → 0.162.197** (published,
 > 2026-08-05; `0.162.190`, `0.162.191`, and `0.162.192` were never published;
 > `0.162.193` was published outside the authoritative CLI release workflow;
 > `0.162.194`, `0.162.195`, and `0.162.196` failed before npm upload and their
@@ -135,8 +135,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   context feeds manual and automatic suggestions, and local clipboard data
   images join the existing multimodal vision-provider path while remote image
   chips fail closed. The focused REPL, prompt, keybinding, image, and provider
-  matrix passes 200/200 locally; real terminal/clipboard host coverage and the
-  exact-SHA release gates remain required.
+  matrix passes 200/200 locally; the exact-SHA three-platform release gates
+  listed below also passed.
 - **Second command-surface migration batch**: eight explicitly legacy or
   in-memory governance commands (`bm25`, `ccron`, `compt`, `consol`, `fflag`,
   `pdfp`, `sganal`, and `vcheck`) now have canonical `cc lab ...` spellings.
@@ -157,15 +157,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the recommended surface drops from 166 to 151, with manifest, README,
   namespace help, and four shell completions generated from one lifecycle
   policy.
-- **Release status**: `0.162.193` exists on npm but is not an authorized CLI
-  release and must not be overwritten or represented as gate-complete.
-  `0.162.194`, `0.162.195`, and `0.162.196` are not published and their failed
-  tags remain immutable. The `0.162.197` exact
-  version/changelog/fix commit must pass `CLI CI` and `CLI Strict Sandbox` on
-  Ubuntu, Windows, and macOS, plus affected `Session Host Consistency`,
-  `CLI Background Interaction E2E`, and immutable npm tarball verification,
-  before tag `v-npm-0-162-197` or npm publication is allowed. Local,
-  older-SHA, and partial results are supplementary only.
+- **Published release evidence**: `0.162.193` remains an unauthorized historical
+  registry record and is superseded by `0.162.197`; `0.162.194`, `0.162.195`,
+  and `0.162.196` are not published and their failed tags remain immutable.
+  Tag `v-npm-0-162-197` points to exact commit
+  `a03ad1b548cc6f15c9bef8f82d519e9c625eef8d`. Its
+  [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/30979565407),
+  [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/30979565251),
+  and [dedicated npm release](https://github.com/chainlesschain/chainlesschain/actions/runs/30979565206)
+  passed across Ubuntu, Windows, and macOS, including exact-SHA, immutable
+  tarball/SBOM, and provenance checks. A subsequent
+  [registry readback](https://github.com/chainlesschain/chainlesschain/actions/runs/30983536627)
+  verified package bytes, signed provenance, and workflow identity. Local,
+  older-SHA, and partial results remain supplementary only.
 
 ### Added — cc CLI 0.162.189: managed rollback and distributed Agent Teams closure
 

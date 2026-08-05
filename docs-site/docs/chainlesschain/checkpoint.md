@@ -1,6 +1,6 @@
 # 检查点 / 回滚（cc checkpoint）
 
-> **当前源码候选: 0.162.194 | 生产推荐: 0.162.189 | 双引擎 (git-plumbing + copy fallback) | 持久 Restore Saga + 保守 Recovery CLI**
+> **当前稳定版: 0.162.197 | 源码、npm latest 与生产推荐一致 | 双引擎 (git-plumbing + copy fallback) | 持久 Restore Saga + 保守 Recovery CLI**
 >
 > `cc checkpoint` 提供**文件状态快照与回滚**能力，对标 Claude Code 的 rewind。它采用**双引擎**设计：在 git 工作树中默认走 git-plumbing 影子提交（零触真实索引/工作区），非 git 目录则退回基于复制的快照。配合 `cc agent --checkpoint`，可在 agent 每次改文件前自动快照，随时回滚。
 
@@ -8,13 +8,13 @@
 
 让 AI agent 大胆改代码的前提是「随时能撤回」。`cc checkpoint` 为当前工作目录的文件状态打快照，并能精确回滚到任意快照——回滚会删除「快照后新建」的文件、重建「快照后删除」的文件，并在回滚前自动先打一个安全检查点。它与 git 提交互补：检查点是**会话内的临时安全网**，不污染你的提交历史。
 
-CLI `0.162.189` 还把 checkpoint 接入 Process Broker 的托管 workspace transaction：声明范围内的 managed writer 在执行前建立持久恢复证据，成功时接受 checkpoint，失败、取消或超时时带 fence 回滚。该 P2-14 完成口径是**限定范围**，与“捕获机器上的所有文件写入”不同：未托管进程、其他本地进程、范围外路径，以及网络、数据库、消息、部署和支付等外部副作用均不在保证内。
+CLI `0.162.197` 还把 checkpoint 接入 Process Broker 的托管 workspace transaction：声明范围内的 managed writer 在执行前建立持久恢复证据，成功时接受 checkpoint，失败、取消或超时时带 fence 回滚。该 P2-14 完成口径是**限定范围**，与“捕获机器上的所有文件写入”不同：未托管进程、其他本地进程、范围外路径，以及网络、数据库、消息、部署和支付等外部副作用均不在保证内。
 
 覆盖结果会明确报告为 `full`、`partial` 或 `none`。`full` 仍要求 `writerIsolation=exclusive-workspace`；Agent Team 的当前 checkpoint authority 是 `coverageTarget=partial`、`writerIsolation=unknown`、`externalSideEffects=true`。团队模式的使用与恢复边界见 [Agent Team 用户指南](./cli-team.md#托管-checkpoint-的范围)。
 
-当前 `0.162.194` 源码进一步把 direct restore 与 timeline restore 统一进持久 saga：恢复前绑定 workspace prestate、生命周期锁、原始 checkpoint、安全 checkpoint、Git/copy engine 与不可变目标 identity；每个阶段写入 hash-chained CAS journal。进程在“已改文件但尚未完成结算”或“已完成但尚未释放锁”的窗口退出后，下一次启动不会猜测结果，而是生成可验证 recovery projection。
+`0.162.197` 进一步把 direct restore 与 timeline restore 统一进持久 saga：恢复前绑定 workspace prestate、生命周期锁、原始 checkpoint、安全 checkpoint、Git/copy engine 与不可变目标 identity；每个阶段写入 hash-chained CAS journal。进程在“已改文件但尚未完成结算”或“已完成但尚未释放锁”的窗口退出后，下一次启动不会猜测结果，而是生成可验证 recovery projection。
 
-> `0.162.194` 仍是未发布候选。npm `latest` `0.162.193` 没有完整权威发布身份；生产环境继续建议固定 `chainlesschain@0.162.189`。以下 `checkpoint recovery` 命令用于源码候选验证，待 final exact-SHA 发布门通过后才能视为公开稳定命令面。
+> `0.162.197` 已在 final exact SHA 上通过完整三平台权威门并发布到 npm；以下 `checkpoint recovery` 命令已纳入公开稳定命令面。外部副作用与未托管写入仍不在恢复保证内。
 
 ### 双引擎
 
@@ -36,7 +36,7 @@ CLI `0.162.189` 还把 checkpoint 接入 Process Broker 的托管 workspace tran
 - 🤖 **自动检查点（git 仓库内默认开启，v0.162.45+）**：cwd 在 git 仓库内时 `cc agent` **默认**在每个会改文件的工具前自动快照；`--no-checkpoint` 关闭，显式 `--checkpoint` 在任何目录强制开启（非 git 目录的复制引擎保持 opt-in，避免在家目录静默写真实文件）。只读工具跳过
 - 🔁 **去重**：`createCheckpoint({skipIfUnchanged})` 跳过与上一帧完全相同的连续快照
 - 📤 **JSON 输出**：`--json` 便于脚本消费
-- 🧾 **持久恢复投影（0.162.194 源码）**：列出未结算 restore 的状态、eligible action、live owner/owner absence、seq/head fence 与安全摘要，不暴露不必要的原始内容
+- 🧾 **持久恢复投影（0.162.197）**：列出未结算 restore 的状态、eligible action、live owner/owner absence、seq/head fence 与安全摘要，不暴露不必要的原始内容
 - 🧯 **已完成恢复结算**：`resume --yes` 只允许“文件恢复已完成、session settlement 尚未完成”的验证状态，不会重做文件写入
 - ↩️ **部分变更回滚**：`rollback --yes` 只允许已验证的 partial-mutation cycle，并调用 saga 中持久化的 Git/copy adapter 回到 full-safety checkpoint，不在恢复时重新猜引擎
 - 🔒 **维护锁与 authority retention**：checkpoint delete/clear/prune 会保留活跃 original/safety authority，并通过 expected identity、no-replace publication 与 root-bound maintenance lock 防止清理过程破坏恢复证据
@@ -81,7 +81,7 @@ cc checkpoint clear [--session <s>] [--force]      # 清空（某会话的）快
 
 公共 flag：`-d/--dir <dir>`（指定工作目录）、`-s/--session <s>`（会话隔离）、`--diff`、`--stat`、`--dry-run`、`--force`、`--json`。
 
-### 恢复命令（0.162.194 源码候选）
+### 恢复命令（0.162.197 稳定版）
 
 ```bash
 cc checkpoint recovery list [-d <dir>] [--limit 1-64] [--after-operation-id <id>] [--json]
@@ -152,7 +152,7 @@ npx vitest run __tests__/unit/checkpoint-store.test.js
 | `commit-tree` 报缺用户配置 | git 身份未配置                                          | 引擎已用 `GIT_*_NAME/EMAIL` 强制注入；确认环境未被清空 |
 | 自动检查点没生成           | 工具是只读，或非 git 目录                               | 只读工具跳过、非 git no-op 均为预期；改文件工具才快照  |
 | 找不到快照                 | `--session` 不匹配                                      | 用 `cc checkpoint list --session <s>` 确认会话         |
-| `recovery` 子命令不存在     | 使用的是推荐稳定版 `0.162.189`                           | 该命令面当前仅在 `0.162.194` 源码候选；等待权威发布    |
+| `recovery` 子命令不存在     | 使用的是早于 `0.162.197` 的 CLI                          | 升级并固定 `chainlesschain@0.162.197`                  |
 | `FENCE_MISMATCH`           | `show` 后 seq/head/owner authority 已变化                | 重新运行 `recovery show`，不要复用旧 fence             |
 | `ACTION_NOT_ELIGIBLE`      | 当前 recovery phase 不允许所选动作                       | 以 `show` 返回的 eligible actions 为准，不强制绕过      |
 
@@ -194,7 +194,7 @@ cc checkpoint restore <id>     # 不满意就回滚
 # 6) 清理某会话的所有检查点
 cc checkpoint clear --session <s> --force
 
-# 7) 源码候选：查看崩溃后未结算 restore
+# 7) 查看崩溃后未结算 restore
 cc checkpoint recovery list --json
 cc checkpoint recovery show <operation-id> --json
 

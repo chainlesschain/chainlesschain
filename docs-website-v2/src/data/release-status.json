@@ -1,11 +1,11 @@
 {
-  "checkedAt": "2026-08-04",
-  "recommendedCliVersion": "0.162.189",
-  "npmLatestCliVersion": "0.162.193",
-  "openVsxVersion": "0.37.38",
+  "checkedAt": "2026-08-05",
+  "recommendedCliVersion": "0.162.197",
+  "npmLatestCliVersion": "0.162.197",
+  "openVsxVersion": "0.37.42",
   "openVsxDownloadsMilestone": "20,000+",
-  "jetBrainsMarketplaceVersion": "0.4.76",
-  "sourceJetBrainsVersion": "0.4.78",
-  "lastFullyGatedVsCodeVersion": "0.37.37",
-  "lastFullyGatedJetBrainsVersion": "0.4.76"
+  "jetBrainsMarketplaceVersion": "0.4.79",
+  "sourceJetBrainsVersion": "0.4.79",
+  "lastFullyGatedVsCodeVersion": "0.37.42",
+  "lastFullyGatedJetBrainsVersion": "0.4.79"
 }

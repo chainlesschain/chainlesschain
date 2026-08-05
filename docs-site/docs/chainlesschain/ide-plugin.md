@@ -1,10 +1,10 @@
 # IDE 插件使用指南（VS Code / JetBrains）
 
-> **当前推荐组合（2026-08-04）：CLI `0.162.189` + VS Code 扩展 `0.37.38`（Open VSX）+ JetBrains 插件 `0.4.76`（JetBrains Marketplace）。源码候选为 CLI `0.162.194`、VS Code `0.37.40`、JetBrains `0.4.78`；源码能力与公开版本在本文中分开标注。**
+> **当前推荐组合（2026-08-05）：CLI `0.162.197` + VS Code 扩展 `0.37.42`（Open VSX）+ JetBrains 插件 `0.4.79`（JetBrains Marketplace）。三个源码版本与公开稳定版已对齐。**
 >
 > 把 ChainlessChain 的 `cc` agent 变成**编辑器里的一等公民**：侧边栏 Chat 面板直接对话、计划以可编辑 Markdown 文档审阅、文件改动走编辑器原生 diff 评审（可逐块接受、可行级批注）、代理自动感知你的选区与诊断。VS Code 与 JetBrains 双端同一套协议、同一套功能面，会话还能跨 IDE 互相续接。
 >
-> **发布提示**：Open VSX registry 已公开 `0.37.38`，累计下载已突破 **2 万**；但对应 tagged workflow 最终失败，所以它不能表述为完整发布门通过。JetBrains Marketplace 最新公开且审核通过的仍是 `0.4.76`。npm `latest` CLI `0.162.193` 也缺少权威发布身份，生产环境建议固定 `chainlesschain@0.162.189`。
+> **发布提示**：Open VSX `0.37.42` 累计下载已突破 **2 万**，JetBrains Marketplace `0.4.79` 已审核、列出并公开；两者的 tagged workflow 都已完成三平台真实宿主与 registry 回读。npm `latest` CLI `0.162.197` 也已完成 exact-SHA 三平台发布门。
 
 ## 概述
 
@@ -22,7 +22,7 @@ ChainlessChain IDE 插件是 `cc` CLI 在编辑器内的完整工作台，由两
 ### 1. 安装 / 升级 `cc` CLI
 
 ```bash
-npm i -g chainlesschain@0.162.189  # 需要 Node ≥ 22.12.0；最近完整门禁基线
+npm i -g chainlesschain@0.162.197  # 需要 Node ≥ 22.12.0；当前完整门禁基线
 cc --version                # 建议 ≥ 0.162.157
 cc ide --help               # 确认有 ide 子命令
 ```
@@ -44,7 +44,7 @@ cc ide --help               # 确认有 ide 子命令
 - **已上架 [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/32208-chainlesschain-ide-bridge)**（插件 ID `com.chainlesschain.ide`）：_Settings → Plugins → Marketplace_ 搜 **ChainlessChain IDE** 一键安装。仅依赖 platform 模块，非 Java IDE 同样可装。
 - 离线 / 源码安装：`./gradlew buildPlugin` 得 `build/distributions/*.zip` → _Settings → Plugins → ⚙ → Install Plugin from Disk_。
 
-最后一组完整双端发布证据仍是 `ide-vscode-v0.37.37` 与 `ide-jetbrains-v0.4.76`，精确指向提交 [`33e4d512d3`](https://github.com/chainlesschain/chainlesschain/commit/33e4d512d319bc771190f672bcc7847fb4099835)。[Open VSX 发布门](https://github.com/chainlesschain/chainlesschain/actions/runs/30616688007)成功并完成 registry 回读；[JetBrains 发布门](https://github.com/chainlesschain/chainlesschain/actions/runs/30645282946)完成构建、验证与上传。后续 Open VSX `0.37.38` 已可下载，但其 tagged workflow 最终失败；JetBrains `0.4.77` / `0.4.78` tagged workflow 失败且 Marketplace 未公开。微软 VS Code Marketplace 未发布，不能把 Open VSX 的公开状态扩写到该渠道。
+当前完整双端发布证据是 `ide-vscode-v0.37.42` 与 `ide-jetbrains-v0.4.79`，精确指向提交 [`0844f1cb85`](https://github.com/chainlesschain/chainlesschain/commit/0844f1cb8512bbb7cde2c0242d84f91533c6f5af)。[Open VSX 发布门](https://github.com/chainlesschain/chainlesschain/actions/runs/30975707451)完成不可变 VSIX、Windows/macOS/Linux 真实 Extension Host、发布与 registry 回读；[JetBrains 发布门](https://github.com/chainlesschain/chainlesschain/actions/runs/30975672764)完成 IntelliJ 2024.2/2025.2 的三平台真实宿主、上传与 Marketplace 回读。微软 VS Code Marketplace 未发布，不能把 Open VSX 的公开状态扩写到该渠道。
 
 ### 3. 配置大模型（首次）
 
@@ -76,9 +76,9 @@ cc ide doctor       # 发现失败时解释原因
 - **审批卡与提问卡**：危险动作（危险 shell、settings `ask` 规则）弹 Approve/Deny 卡片阻塞等裁决（默认 120s 超时回落拒绝）；agent 拿不准时经 `ask_user_question` 弹单选 / 多选 / 自由文本卡而不是瞎猜。
 - **用量与重试可视化**：工作中实时 token 计数、回合结束 `in→out` 汇总、迭代预算预警、常驻**上下文窗口占用指示条**；CLI `0.162.184+` 还提供真实工具耗时、同轮观测重试，以及不含密钥/参数的流式 LLM retry 原因和实际 provider/model。
 - **后台 tab 信号**：非活动标签回合完成亮绿点、等待审批亮蓝点 + "Show" 提示，不抢焦点。
-- **CLI-owned Sessions Workbench（Open VSX 0.37.38 / 源码双端）**：会话列表只消费 CLI 生成的 immutable projection revision；resume、attach、delivery 与 remote-control 动作必须由该 revision 明确声明，过期按钮失败闭合。
-- **可恢复交付与 rewind timeline（Open VSX 0.37.38 / 源码双端）**：交付覆盖 GitHub、Gitee、configured remote 与 manual handoff，每步要求显式确认并校验 result/effect digest；`/rewind` 展开为绑定 session、workspace、repository head、checkpoint revision 与 manifest digest 的 detail/restore/fork 流程。
-- **编辑器内联聊天（仅 VS Code 0.37.40 源码候选）**：在当前选区旁打开独立浮层会话，逐字流式响应，代码块可复制、插入或替换；Explain / Refactor / Fix / Generate Docs / Generate Tests 六个 command 已进入 canonical IDE capability manifest。它与侧边栏会话互不污染，当前尚未在 Open VSX 发布。
+- **CLI-owned Sessions Workbench（VS Code 0.37.42 / JetBrains 0.4.79）**：会话列表只消费 CLI 生成的 immutable projection revision；resume、attach、delivery 与 remote-control 动作必须由该 revision 明确声明，过期按钮失败闭合。
+- **可恢复交付与 rewind timeline（VS Code 0.37.42 / JetBrains 0.4.79）**：交付覆盖 GitHub、Gitee、configured remote 与 manual handoff，每步要求显式确认并校验 result/effect digest；`/rewind` 展开为绑定 session、workspace、repository head、checkpoint revision 与 manifest digest 的 detail/restore/fork 流程。
+- **编辑器内联聊天（VS Code 0.37.42）**：在当前选区旁打开独立浮层会话，逐字流式响应，代码块可复制、插入或替换；Explain / Refactor / Fix / Generate Docs / Generate Tests 六个 command 已进入 canonical IDE capability manifest。它与侧边栏会话互不污染，并已在 Open VSX 公开。
 
 **面板斜杠命令**（双端一致，输入 `/` 有自动补全）：
 

@@ -1,13 +1,13 @@
-# CLI Runtime 当前实现核对（源码候选 0.162.194）
+# CLI Runtime 当前实现核对（稳定版 0.162.197）
 
-> 更新时间：2026-08-04。本文同时记录当前代码与正式发布证据，并明确区分：源码候选 `0.162.194`、npm `latest` `0.162.193`、以及最后完整门禁通过的公开基线 `0.162.189`。路线图与实验性设计仍以各自计划文档为准。
+> 更新时间：2026-08-05。本文同时记录当前代码与正式发布证据。当前源码版本、npm `latest` 与最后完整门禁通过的公开基线均为 `0.162.197`；发布能力仍绑定精确 tag SHA，而不是仅凭版本字符串判断。路线图与实验性设计仍以各自计划文档为准。
 
 ## 版本与证据边界
 
-- `0.162.189` 是最近完成同一 exact SHA 的 `CLI CI`、`CLI Strict Sandbox`、Background Interaction E2E、三平台 Agent Team 长期 soak、不可变 npm 产物与发布回读的版本，仍是生产推荐基线。
-- `0.162.193` 已由错误接管专用 workflow 路径的通用 workspace publisher 写入 npm；它没有 `v-npm-0-162-193`、exact-SHA gate attestation 或专用 immutable tarball/SBOM handoff，且同 SHA 的 CLI CI 最终失败，不能标为权威发布。
-- 当前树已前进到 `0.162.194`，并恢复专用 CLI publisher、隔离普通 workspace publisher、移除产品 release 的 CLI 写权限。它仍须在包含这些修复的 final exact SHA 上重跑全部权威门，当前状态为 **release NO-GO**。
-- IDE 也采用双口径：Open VSX 实际公开 `0.37.38`、JetBrains Marketplace 实际公开 `0.4.76`；当前源码分别为 `0.37.40` / `0.4.78`。公开 registry 存在不等于对应 tagged workflow 已完整通过。
+- `0.162.197` 是当前生产推荐基线。`v-npm-0-162-197` 精确指向 `a03ad1b548cc6f15c9bef8f82d519e9c625eef8d`；同一 SHA 的 `CLI CI`、`CLI Strict Sandbox`、专用 npm 发布、exact-SHA gate、不可变 tarball/SBOM 和 provenance 均成功。
+- `0.162.193` 保留为历史审计记录：它由错误接管专用路径的通用 workspace publisher 写入，缺少同 SHA 的完整 CLI 矩阵和专用制品交接，不能追溯性补造成权威发布；它已被 `0.162.197` 正式取代。
+- 当前树的包版本仍为 `0.162.197`。发布后新增 registry bytes、签名 provenance、workflow identity 与重试回读校验；这些变更加强后续发布链，不改变 `a03ad1b548` 已发布 CLI 的运行时能力。
+- IDE 当前公开与源码版本已对齐：Open VSX `0.37.42`、JetBrains Marketplace `0.4.79`，双标签都指向 `0844f1cb8512bbb7cde2c0242d84f91533c6f5af`，各自 tag workflow 完成三平台宿主、制品与 registry 回读。微软 VS Code Marketplace 仍未发布。
 
 ## 当前边界
 
@@ -40,7 +40,7 @@ cc entry
   └─ session hooks (Setup / Notification / lifecycle)
 ```
 
-## 0.162.194 源码增量
+## 0.162.197 发布增量
 
 - **配置与 sandbox 默认值**：schema secret 不允许经普通 `config set` 写入，必须使用隐藏 TTY/stdin 与 OS store/owner-only fallback 的 `config set-secret`；显式 `workspace-write` / `strict` 以及 managed-required sandbox 在能力缺失时失败闭合。`mcp add` 默认 local scope，常规 `status` 使用有界 quick probe，完整 Docker Compose 细节改由 `--deep` 请求。
 - **MCP 恢复权威**：`ws/wss` transport、可信动态 header 与 timeout notification 已接线；REPL、stream、Cowork/host 与 WebSocket 使用共享的持久恢复记录。结果不明确时必须 verification/adjudication，不能盲目重放可能已有外部副作用的调用。
@@ -133,10 +133,10 @@ cc entry
 - 插件管理面显示签名、SBOM、来源、托管策略及 registry/Git/local 元数据的脱敏摘要。来源字符串不会作为 shell 命令执行，工作区目录也不会参与可执行文件探测。
 - compact transcript 与 `cc session usage` 可按插件 id/version 归因 plugin-bin 和插件提供的 MCP 调用，并记录有界工具耗时、同轮观测重试与脱敏的流式 LLM retry 原因/实际 provider/model；不持久化工具参数、输出或凭据。
 - VS Code 与 JetBrains 通过 `cc-ide-quality/v1` 提供有界的测试、覆盖率和调试器快照，并携带 Context v2 freshness 元数据；Notebook 执行使用真实 notebook 上下文。
-- IDE 源码 `0.37.40` / `0.4.78` 只在插件升级结果为 `activated` 后重载 live session；capability widening 必须先展示新增能力并由用户显式批准，`rolled_back` 或不可读结果保持失败闭合。
+- IDE `0.37.42` / `0.4.79` 只在插件升级结果为 `activated` 后重载 live session；capability widening 必须先展示新增能力并由用户显式批准，`rolled_back` 或不可读结果保持失败闭合。
 - 两个 IDE 只读观察本地 Agent Team schema v6 与分布式 queue schema v1。takeover、managed checkpoint recovery 和 side-effect adjudication 必须携带精确 authority digest、lease/evidence fence，并通过解析出的 CLI 执行；文件监听与刷新只更新投影，不能绕开 CLI-owned compare-and-swap authority。
 - IDE 还把 CLI-owned session graph 投影到 Sessions Workbench，并提供受 projection revision 约束的 resume/attach、可恢复 GitHub/Gitee/remote/manual delivery，以及绑定 session/workspace/repository/checkpoint/manifest digest 的 rewind/branch timeline。过期按钮与 projection 必须失败闭合。
-- Open VSX 当前公开 `0.37.38`，但对应 tagged workflow 最终失败，因此只能表述为 registry public，不能表述为完整门禁通过；JetBrains Marketplace 当前公开且审核通过的仍是 `0.4.76`。VS Code 源码 `0.37.40` 的内联聊天与 JetBrains 源码 `0.4.78` 均未公开发布；Microsoft VS Code Marketplace 仍未发布。
+- Open VSX 当前公开 `0.37.42`，JetBrains Marketplace 当前公开且审核通过 `0.4.79`。VS Code 的内联聊天、Sessions Workbench、可恢复交付、canonical rewind 和首次标签页 activation 重试已进入公开版；JetBrains 同步公开会话、交付和 rewind 能力。Microsoft VS Code Marketplace 仍未发布。
 - Installation Doctor 同时报告 Node/Java、managed CLI 和插件 registry 的离线恢复状态；恢复建议不把不可信工作区加入命令搜索路径。
 
 ### 9. Auto mode 安全分类与标准 OTLP 出口
@@ -183,8 +183,8 @@ npm run test:integration
 npm run test:e2e
 ```
 
-`0.162.189` 的精确正式发布提交为 `2607af0dadeb951583139942e5f2add3e95e1208`。该提交的 [CLI CI run 30586603353](https://github.com/chainlesschain/chainlesschain/actions/runs/30586603353)、[CLI Strict Sandbox run 30586603019](https://github.com/chainlesschain/chainlesschain/actions/runs/30586603019)、[CLI Background Interaction E2E run 30586603055](https://github.com/chainlesschain/chainlesschain/actions/runs/30586603055)、[三平台 Agent Team 120 分钟 soak run 30564377629](https://github.com/chainlesschain/chainlesschain/actions/runs/30564377629) 与 [npm publish run 30588174291](https://github.com/chainlesschain/chainlesschain/actions/runs/30588174291) 均已成功；Code Quality & Security、Full Test Automation、E2E、Project Management E2E 与 CI Tests 也在同一 `head_sha` 成功。
+`0.162.197` 的精确正式发布提交为 [`a03ad1b548cc6f15c9bef8f82d519e9c625eef8d`](https://github.com/chainlesschain/chainlesschain/commit/a03ad1b548cc6f15c9bef8f82d519e9c625eef8d)。该提交的 [CLI CI run 30979565407](https://github.com/chainlesschain/chainlesschain/actions/runs/30979565407)、[CLI Strict Sandbox run 30979565251](https://github.com/chainlesschain/chainlesschain/actions/runs/30979565251) 与 [npm publish run 30979565206](https://github.com/chainlesschain/chainlesschain/actions/runs/30979565206) 均成功；CLI CI 含 Ubuntu、Windows、macOS 的 unit/integration/E2E 分片、打包与全局安装验证，Strict Sandbox 三平台全绿，发布 workflow 的 `exact-sha-gate`、immutable package、SBOM 与 provenance 全绿。
 
-npm `latest` 已被非权威流程推进到 `0.162.193`，其 `gitHead` 为 `e8e7ba274b487ed491c04ec3359841a0e545debb`，但该 SHA 的 CLI CI 失败；这条 registry 记录不能追溯性补造发布授权。`0.162.194` 只有在包含 workflow 隔离、版本、changelog 与 IDE activation 修复的 final exact SHA 上完成全部 Linux、Windows、macOS 权威矩阵及 immutable tarball/SBOM 验证后，才允许创建 `v-npm-0-162-194` 并发布。本地测试只作补充，不能替代发布门。
+发布后的 [CLI npm release readback](https://github.com/chainlesschain/chainlesschain/actions/runs/30983536627) 又从 registry 回读 `0.162.197`，核对不可变 artifact bytes、签名 provenance 与授权 workflow identity。`0.162.193` 的历史非权威记录仍保留，不移动或伪造 tag；`0.162.194`、`0.162.195`、`0.162.196` 的失败 tag 也保持不可变。后续版本仍必须在各自 final exact SHA 上重新完成全部权威门，本地测试只作补充。
 
 平台专项还应覆盖 Linux bubblewrap 的 fd 绑定、private mount topology、静态 ELF/架构/segment/栈校验、通用后台/PTY 强边界与网络隔离，以及 Windows `.cmd` 启动、AppContainer 目标句柄/策略摘要、后台 attach、停止自 PID 记录、hook 输出清理和进程树能力探测。P2-14 专项必须区分 `full` / `partial` / `none`，验证 crash recovery 在证据不足时进入 `recovery_required`；P2-16 专项必须分别覆盖单进程规模测试、真实跨进程短门和三平台长期 soak。Hooks 专项需覆盖 stdin `EPIPE` 的 status 0/2 协议、单一 CredentialTransport listener 与 teardown 后 FD 零增长。TCP attach 需要运行对应的 IPC/transport 回归测试。真实系统能力不可用时，测试必须明确跳过并由注入测试补齐，不得把权限拒绝伪装成功。

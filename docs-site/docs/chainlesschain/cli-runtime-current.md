@@ -1,6 +1,6 @@
 # CLI Runtime 当前实现（0.162.197）
 
-> 更新时间：2026-08-05。仓库源码与 npm `latest` 当前均为 `0.162.197`；生产推荐基线仍为完成 exact-SHA 三平台发布门的 `0.162.189`。在 `0.162.197` 的 CLI CI、CLI Strict Sandbox、发布来源和不可变制品证据全部核验前，不把 registry 版本号本身等同于权威发布结论。
+> 更新时间：2026-08-05。仓库源码、npm `latest` 与生产推荐基线当前均为 `0.162.197`。精确发布 SHA 的 CLI CI、CLI Strict Sandbox、专用发布、不可变制品、SBOM 与 provenance 已完成核验；后续版本仍不能只凭 registry 版本号判断发布权威。
 
 ## 概述
 
@@ -8,19 +8,19 @@
 
 ## 安装版本怎么选
 
-| 用途                | 版本        | 说明                                                                                                                      |
-| ------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------- |
-| 生产 / 日常稳定使用 | `0.162.189` | 最近在同一 exact SHA 完成 Linux、Windows、macOS 的 `CLI CI`、`CLI Strict Sandbox`、长期 Agent Team soak 与专用 npm 发布门 |
-| npm `latest`        | `0.162.197` | registry 当前返回版本；仍需把包来源、tag、attestation、不可变 tarball/SBOM 和同 SHA CI 作为独立证据核验                   |
-| 源码开发 / 候选验证 | `0.162.197` | 与 `packages/cli/package.json` 一致；是否可作为生产基线取决于准确提交的完整发布门，而不是版本号                           |
+| 用途                | 版本        | 说明                                                                                                                        |
+| ------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------- |
+| 生产 / 日常稳定使用 | `0.162.197` | `v-npm-0-162-197` 的同一 exact SHA 已完成 Linux、Windows、macOS CLI CI、Strict Sandbox、不可变制品、SBOM、provenance 与发布 |
+| npm `latest`        | `0.162.197` | registry、tag、attestation、tarball bytes 与授权 workflow 已交叉回读                                                        |
+| 源码开发 / 调试     | `0.162.197` | 与 `packages/cli/package.json` 一致；源码 HEAD 含发布后的回读加固，运行时能力仍以发布 SHA 为稳定契约                         |
 
 生产安装建议显式固定：
 
 ```bash
-npm i -g chainlesschain@0.162.189
+npm i -g chainlesschain@0.162.197
 ```
 
-已安装 `0.162.197` 的用户无需改写或伪造 tag；需要已核验权威发布基线时可固定 `0.162.189`，待 `0.162.197` 对应准确提交的完整发布门证据确认后再调整生产基线。
+已安装 `0.162.197` 的用户不需要降级。`0.162.193` 是已被正式版本取代的历史非权威记录；失败的 `0.162.194`、`0.162.195`、`0.162.196` tag 保持不可变，不移动或复用。
 
 ## 核心特性
 
@@ -106,7 +106,7 @@ cc
 
 ## 在 IDE 中查看质量、插件、Worktree 与 Agent Teams
 
-Open VSX 当前公开 VS Code `0.37.38`，JetBrains Marketplace 当前公开 `0.4.76`；源码分别为 `0.37.40` / `0.4.78`。生产仍建议搭配 CLI `0.162.189`：
+Open VSX 当前公开 VS Code `0.37.42`，JetBrains Marketplace 当前公开 `0.4.79`；源码与公开版本一致。生产建议搭配 CLI `0.162.197`：
 
 - 质量上下文只发送有界的测试结果、覆盖率与调试器快照，并标注新鲜度；VS Code Notebook 使用当前 notebook 的真实执行上下文。
 - Installation Doctor 会同时检查 Node/Java、managed CLI 与插件 registry 离线恢复状态，不从工作区目录探测可执行文件。
@@ -115,7 +115,7 @@ Open VSX 当前公开 VS Code `0.37.38`，JetBrains Marketplace 当前公开 `0.
 - Team Monitor 只读观察本地 v6 或 queue v1 原始状态；takeover、managed checkpoint recovery 与 side-effect adjudication 通过解析出的 CLI 执行，并绑定精确 authority digest、lease 和 evidence fence。IDE 不直接改写权威 JSON。
 - 用量视图显示真实工具耗时、观测重试与实际 provider/model 的脱敏 retry 原因。
 - Sessions Workbench 只消费 CLI-owned session projection，并按 exact revision 决定 resume、attach、delivery 与 remote-control 动作；可恢复 delivery 覆盖 GitHub、Gitee、configured remote 与 manual handoff，rewind/branch timeline 绑定 session、workspace、repository head、checkpoint revision 与 manifest digest。
-- VS Code `0.37.40` 源码增加编辑器内联聊天、选区上下文、流式回复和代码块复制/插入/替换；重复命令注册与 activation logger 错误已修复。该源码版本未公开发布。Open VSX `0.37.38` 虽可下载，但 tagged workflow 最终失败，不能写成完整发布门通过。
+- VS Code `0.37.42` 公开版包含编辑器内联聊天、选区上下文、流式回复、代码块复制/插入/替换、重复命令注册与 activation logger 修复，以及首次标签页 activation 重试。`ide-vscode-v0.37.42` 已完成不可变 VSIX、三平台真实宿主、Open VSX 发布与 registry 回读。
 
 ## 托管回滚与 Agent Team 边界
 
@@ -146,7 +146,7 @@ credential agent 会保留运行所需的非秘密会话标识（如 `CC_SESSION
 - 报错 `Process Broker unavailable for skill execution` 时，应升级 CLI 并重新生成/注册技能，不要修改 handler 绕过检查：
 
 ```bash
-npm i -g chainlesschain@0.162.189
+npm i -g chainlesschain@0.162.197
 chainlesschain skill sync-cli --force
 chainlesschain cli-anything register <name> --force
 ```
@@ -217,7 +217,7 @@ npm run test:integration
 npm run test:e2e
 ```
 
-`0.162.189` 的权威发布提交为 [`2607af0dadeb951583139942e5f2add3e95e1208`](https://github.com/chainlesschain/chainlesschain/commit/2607af0dadeb951583139942e5f2add3e95e1208)。同一 `head_sha` 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/30586603353)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/30586603019)、[Agent Team 长期 soak](https://github.com/chainlesschain/chainlesschain/actions/runs/30564377629) 与 [npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/30588174291) 均已成功。Linux、Windows、macOS 的权威矩阵必须绑定精确提交；本地结果只能补充，不能替代发布门。
+`0.162.197` 的权威发布提交为 [`a03ad1b548cc6f15c9bef8f82d519e9c625eef8d`](https://github.com/chainlesschain/chainlesschain/commit/a03ad1b548cc6f15c9bef8f82d519e9c625eef8d)。同一 `head_sha` 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/30979565407)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/30979565251) 与 [npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/30979565206) 均成功；发布后的 [registry/provenance 回读](https://github.com/chainlesschain/chainlesschain/actions/runs/30983536627) 进一步核对 artifact bytes、签名 provenance 与授权 workflow identity。Linux、Windows、macOS 的权威矩阵必须绑定精确提交；本地结果只能补充，不能替代发布门。
 
 ## 相关文档
 

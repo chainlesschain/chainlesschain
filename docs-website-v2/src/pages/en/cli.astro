@@ -21,12 +21,12 @@ const CLI_UPDATES = parseChangelog(
     version: r.cliVersion,
     date: r.date,
     status:
-      r.cliVersion === SOURCE_CLI_VERSION
-        ? 'source candidate'
-        : r.cliVersion === NPM_LATEST_CLI_VERSION
-          ? 'npm latest · release review'
-          : r.cliVersion === CLI_VERSION
-            ? 'fully gated'
+      r.cliVersion === CLI_VERSION
+        ? 'fully gated · npm latest'
+        : r.cliVersion === SOURCE_CLI_VERSION
+          ? 'source candidate'
+          : r.cliVersion === NPM_LATEST_CLI_VERSION
+            ? 'npm latest · release review'
             : 'historical',
   }));
 
@@ -451,7 +451,7 @@ const packs = [
           175 top-level commands covering the full lifecycle from knowledge base to on-chain governance. Zero GUI dependency, plain text I/O — pipeable, scriptable, CI-ready.
         </p>
         <p class="mt-4 text-sm text-muted max-w-3xl">
-          The site recommends <strong class="text-ink">{CLI_VERSION}</strong>, the last release to pass the complete Linux / Windows / macOS gate. npm latest <strong class="text-ink">{NPM_LATEST_CLI_VERSION}</strong> is under release-chain review and source <strong class="text-ink">{SOURCE_CLI_VERSION}</strong> remains a candidate, so install commands are pinned to the verified version.
+          The site recommends <strong class="text-ink">{CLI_VERSION}</strong>, which passed the complete Linux / Windows / macOS gate. npm latest and source are both <strong class="text-ink">{NPM_LATEST_CLI_VERSION}</strong>; exact-SHA, immutable artifact, SBOM, provenance, and registry readback evidence have been verified, so install commands pin this release.
         </p>
 
         <!-- Install tabs -->
@@ -629,7 +629,7 @@ const packs = [
           The current CLI carries PDH 0.4.57. Source aliases, raw observations, field-level conflict decisions, rewritten references, and final entities commit in one transaction. Desktop, Web Panel, and CLI share one live-collection protocol; transient Cookie/OAuth inputs are not persisted, and partial reads, unreadable databases, or incomplete pagination retain the previous checkpoint for a safe resume.
         </p>
         <p class="mt-4 text-lg text-muted">
-          Source candidate <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">{SOURCE_CLI_VERSION}</code> adds canonical session projections, MCP ws/wss plus trusted dynamic headers, plan/Todo revision ceilings, and an auditable checkpoint restore saga. Recovery mutations require <code class="font-mono text-sm">--yes</code>, an expected sequence, and an expected head hash. These remain source-preview capabilities until the release gate completes.
+          Stable release <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">{SOURCE_CLI_VERSION}</code> includes canonical session projections, MCP ws/wss plus trusted dynamic headers, plan/Todo revision ceilings, and an auditable checkpoint restore saga. Recovery mutations require <code class="font-mono text-sm">--yes</code>, an expected sequence, and an expected head hash. The guarantee remains a verified file-recovery closure, not rollback of external side effects.
         </p>
       </div>
     </div>

@@ -139,7 +139,7 @@ const badges = [
         </div>
 
         <p class="animate-fade-in-delay-3 mt-5 text-sm text-muted max-w-3xl">
-          发布说明：npm <code class="font-mono">latest</code> 当前为 <code class="font-mono">{NPM_LATEST_CLI_VERSION}</code>，但缺少完整 exact-SHA 发布门身份；源码候选为 <code class="font-mono">{SOURCE_CLI_VERSION}</code>，尚未发布。本站安装命令固定到最近完整门禁通过的 <code class="font-mono">{CLI_VERSION}</code>。
+          发布说明：npm <code class="font-mono">latest</code>、源码与生产推荐版均为 <code class="font-mono">{CLI_VERSION}</code>。同一 tag SHA 的三平台 CLI CI、Strict Sandbox、不可变制品、SBOM、provenance 与 registry 回读均已通过。
         </p>
 
         <!-- Trust badges -->
@@ -514,7 +514,7 @@ const badges = [
           无需启动任何 GUI — <code class="font-mono text-sm bg-cream px-2 py-0.5 rounded">chainlesschain</code> 让本地 AI、Agent 编码、多智能体协作全部在终端里完成。
         </p>
         <p class="text-sm text-muted mb-8">
-          已验证版 {CLI_VERSION} 提供限定范围的 Process Broker checkpoint/rollback、Agent Teams v6/queue v1 与 Auto mode 145-case 安全门。源码候选 {SOURCE_CLI_VERSION} 进一步加入 canonical session/budget、MCP 不确定结果裁决，以及绑定 workspace、owner、seq/head fence 和持久 Git/copy engine 的 checkpoint restore saga；候选能力尚未作为稳定 npm 版本发布。
+          已验证版 {CLI_VERSION} 提供限定范围的 Process Broker checkpoint/rollback、Agent Teams v6/queue v1、Auto mode 145-case 安全门、canonical session/budget、MCP 不确定结果裁决，以及绑定 workspace、owner、seq/head fence 和持久 Git/copy engine 的 checkpoint restore saga。
         </p>
         <div class="grid grid-cols-3 gap-6 mb-8">
           <div>
@@ -717,7 +717,7 @@ const badges = [
           <div class="font-mono text-xs text-muted mb-3">CLI · v{CLI_VERSION}</div>
           <h3 class="font-display text-2xl mb-3">命令行工具</h3>
           <div class="font-mono text-sm bg-ink text-cream px-3 py-2 rounded mb-4 cursor-pointer" data-copy={`npm i -g chainlesschain@${CLI_VERSION}`}>$ npm i -g chainlesschain@{CLI_VERSION}</div>
-          <p class="text-sm text-muted">最近完整门禁版本；npm latest {NPM_LATEST_CLI_VERSION} 正在发布审查 · 支持 npm / yarn / pnpm / bun</p>
+          <p class="text-sm text-muted">完整门禁版本，与 npm latest {NPM_LATEST_CLI_VERSION} 一致 · 支持 npm / yarn / pnpm / bun</p>
         </div>
         <div class="p-8 rounded-2xl border border-line hover:border-ember transition-colors">
           <div class="font-mono text-xs text-muted mb-3">DESKTOP · {DOWNLOAD_VERSION}</div>
