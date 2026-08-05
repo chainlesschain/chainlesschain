@@ -6,7 +6,7 @@
  * agent; legacy/non-isolated handlers fail closed.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -108,6 +108,14 @@ describe("run_skill controlled execution boundary", () => {
       body,
     });
   }
+
+  it("has no dormant Skill process-broker module to reattach", () => {
+    const brokerPath = new URL(
+      "../../src/lib/skill-process-broker.js",
+      import.meta.url,
+    );
+    expect(existsSync(brokerPath)).toBe(false);
+  });
 
   it("blocks a legacy direct handler without importing or mounting anything", async () => {
     const fakeMcp = {

@@ -1,6 +1,6 @@
 # CLI Runtime 当前实现核对（稳定版 0.162.197）
 
-> 更新时间：2026-08-05。本文同时记录当前代码与正式发布证据。当前源码版本、npm `latest` 与最后完整门禁通过的公开基线均为 `0.162.197`；发布能力仍绑定精确 tag SHA，而不是仅凭版本字符串判断。路线图与实验性设计仍以各自计划文档为准。
+> 更新时间：2026-08-06。本文同时记录当前代码与正式发布证据。当前源码版本、npm `latest` 与最后完整门禁通过的公开基线均为 `0.162.197`；发布能力仍绑定精确 tag SHA，而不是仅凭版本字符串判断。路线图与实验性设计仍以各自计划文档为准。
 
 ## 版本与证据边界
 
@@ -27,8 +27,8 @@ cc entry
   │    ├─ manifest capability + sandbox policy
   │    ├─ hooks / MCP / LSP / monitors / native bins
   │    └─ lifecycle + signature / SBOM / source provenance
-  ├─ skill-process-broker
-  │    └─ host-owned facade → process-execution-broker
+  ├─ controlled Skill boundary
+  │    └─ isolated child → read_file / search_files / list_dir only
   ├─ durable event + interaction journal
   ├─ Agent Team authority
   │    ├─ local state v6 + distributed queue v1
@@ -73,10 +73,9 @@ cc entry
 
 - `process-execution-broker` 统一前台、后台、IPC、hook、MCP、monitor、LSP、PTY 与插件 bin 的进程执行入口，跨平台 sandbox 与 credential agent 默认接入。
 - 带策略的插件 bin 在 async/background 启动中继续携带钉住的执行身份；通用后台任务、CLI PTY 与桌面项目 PTY 进入同一套失败闭合的 Linux 文件系统/网络边界，不再存在“直接执行已隔离、后台或 PTY 旁路”的分叉。
-- 声明 `capabilities: [shell-exec]` 的技能不会直接获得 Node.js `child_process`。宿主通过 `createSkillProcessBroker()` 注入窄化且冻结的 `run`、`runSync`、`runFileSync` facade；没有声明该能力的技能得到 `null`。
-- 执行来源由宿主写入并覆盖 handler 传入值：`origin=skill:<id>`、`scope=skill`、`policy=allow`，以及可用的插件 id/version/source。技能不能伪造来源或绕开统一审计。
-- CLI-Anything 生成 handler 会把输入解析为字面 argv，经 `runFileSync(..., shell:false)` 执行；危险 shell 字符、未闭合引号和缺失 Broker 都会拒绝执行。
-- CLI 指令技能包的 direct/hybrid handler 经 `processBroker.runSync` 调用 `chainlesschain`，先校验域内命令白名单与 shell 元字符。Windows `.cmd` shim 仍可显式请求 `shell:true`，但执行、来源和生命周期继续由宿主 Broker 管理。
+- production `run_skill` 不会在 CLI 主进程 import `handler.js`，也不向 Skill 注入 MCP client、process broker 或 Node.js `child_process`。非隔离 handler 固定返回 `CC_SKILL_DIRECT_HANDLER_BLOCKED`；隔离 Skill 只获得与父级 ceiling 相交后的 `read_file`、`search_files`、`list_dir`。
+- `capabilities: [shell-exec]` 当前只是历史 descriptor/template 元数据，不产生 runtime authority。无 production consumer 的 `skill-process-broker` façade 已删除，避免后续代码在没有完整进程树、可执行身份和宿主 dispose 证明时误接回休眠执行权限。
+- CLI-Anything、CLI Pack 与 `init ai-*-creator` 仍可生成 legacy `handler.js` 供显式外部迁移/检查，但 production `run_skill` 不执行它们；这些模板中的 `processBroker` 调用不能作为当前可运行能力或安全边界证据。若未来恢复 handler 执行，必须重新通过 source/digest approval、可执行字节身份、OS process-tree ownership、fixed deadline、host-owned dispose 与三平台真实回归，不能复活已删除 façade。
 - 凭据代理向子进程提供受控占位符，避免把长效凭据直接暴露给 agent 工具链。
 - 非秘密运行标识使用显式 allowlist：`CC_SESSION_ID`、`CLAUDE_CODE_SESSION_ID` 可以跨 broker 边界；未知 `*_SESSION` 与凭据型变量仍默认过滤。这样既不破坏会话关联，也不放宽通用环境透传。
 - 插件 manifest 可以声明所需 sandbox 边界；未声明、策略不允许、宿主能力不足或证明不匹配时，hook、MCP、LSP、monitor、PTY、Python 发现、`run_code`、bang command 与后台任务均失败闭合。
@@ -164,7 +163,7 @@ cc entry
 | 插件沙箱策略    | `packages/cli/src/lib/plugin-runtime/sandbox-policy.js`                                                                                          |
 | 插件生命周期    | `packages/cli/src/lib/plugin-runtime/install.js`、`commands/plugin.js`                                                                           |
 | 插件用量归因    | `packages/cli/src/lib/plugin-usage-attribution.js`、`lib/session-usage.js`                                                                       |
-| 技能进程 facade | `packages/cli/src/lib/skill-process-broker.js`                                                                                                   |
+| 技能执行边界    | `packages/cli/src/lib/skill-loader.js`、`runtime/agent-core.js`                                                                                  |
 | 技能生成入口    | `packages/cli/src/lib/cli-anything-bridge.js`、`lib/skill-packs/generator.js`                                                                    |
 | 技能注入入口    | `packages/cli/src/commands/skill.js`、`runtime/agent-core.js`                                                                                    |
 | 路径契约        | `packages/cli/src/lib/paths.js`、`harness/jsonl-session-store.js`                                                                                |

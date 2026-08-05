@@ -227,6 +227,10 @@ MCP、Skills、Subagent、Hooks、插件治理、LSP、Review、OTel 和 Agent S
   `shell-exec` capability 注入受限 Broker 门面，缺少门面时 fail-closed，CLI-Anything 参数使用
   literal argv；Agent `run_skill` 现已通过 `createSkillProcessBroker(match)` 注入同一门面，仅
   声明 `shell-exec` 的 Skill 可获得，普通 Skill 收到 `null`，并有 Agent Core 回归测试覆盖。
+- **2026-08-06 当前树修正**：上述两句只保留早期实现历史，不再描述 production。后续安全收口已禁止
+  `run_skill` import 非隔离 handler；隔离 Skill 只获得三个只读文件工具，无 production consumer 的
+  `skill-process-broker` 也已删除。以下生成模板中的 `processBroker` 调用仍是 inert legacy output，不能
+  作为当前可运行能力或安全证明；未来重引入前必须重新通过可执行身份、完整进程树与宿主 dispose 门禁。
 - `init ai-media-creator` 生成的 `audio-gen` Skill 已声明 `shell-exec` capability；edge-tts/Python
   探测、异步合成与 piper stdin 路径均只使用宿主注入的无 shell Broker 门面，缺少门面时 fail-closed。
 - `init ai-doc-creator` 生成的 `doc-generate` Skill 已按同一 capability/fail-closed 契约迁移；

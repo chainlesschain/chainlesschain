@@ -1,6 +1,6 @@
 ﻿# 设计文档
 
-> 本目录是 ChainlessChain 的研发设计入口，也是用户文档站与设计文档站的共享设计源。CLI Runtime 核对已更新到 2026-08-05：当前源码、npm `latest` 与完整门禁公开基线均为 `0.162.197`，发布证据绑定精确 tag SHA `a03ad1b548`。
+> 本目录是 ChainlessChain 的研发设计入口，也是用户文档站与设计文档站的共享设计源。CLI Runtime 核对已更新到 2026-08-06：当前源码、npm `latest` 与完整门禁公开基线均为 `0.162.197`，发布证据绑定精确 tag SHA `a03ad1b548`。
 
 ## 当前重点
 
@@ -22,8 +22,8 @@
 - 补充类型化 secret 配置、MCP `ws/wss` 与恢复裁决、canonical session/budget、受控 Skill 子 Agent、checkpoint restore saga 与保守 recovery CLI。
 - 明确 `CHAINLESSCHAIN_HOME` 是完整运行目录覆盖值，测试夹具不得写入真实 home。
 - 补充 process-execution-broker 的非秘密会话标识 allowlist 与默认凭据过滤边界。
-- 补充 `skill-process-broker`：`shell-exec` 技能只获得宿主冻结 facade，来源元数据不可由 handler 伪造。
-- 记录 CLI-Anything 的字面 argv + `shell:false`，以及 CLI 指令技能包 direct/hybrid handler 的 Broker 接线与 fail-closed 行为。
+- 明确 production `run_skill` 不 import `handler.js`，隔离 Skill 只获得三个只读文件工具；历史 `shell-exec` metadata 不产生 process authority，无消费方的 `skill-process-broker` façade 已删除。
+- 记录 CLI-Anything/CLI Pack legacy handler 仍可生成但不会由 production `run_skill` 执行；未来恢复前必须重新满足可执行身份、完整进程树、宿主 dispose 与三平台门禁。
 - 记录异步 hook 的 POSIX 进程组 / Windows `taskkill` + 后代快照 fallback 设计。
 - 记录 unit / integration / E2E 三平台分层门禁、P2-14/P2-16 专项门、120 分钟 Agent Team soak、打包/启动校验，以及 0.162.197 的 exact-SHA、不可变制品、SBOM、provenance 与 registry 回读边界。
 
