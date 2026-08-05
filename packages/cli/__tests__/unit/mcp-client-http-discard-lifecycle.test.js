@@ -176,6 +176,55 @@ describe("MCPClient discarded HTTP response lifecycle", () => {
     },
   );
 
+  it("projects a server-response deadline with a stable host diagnostic", async () => {
+    vi.useFakeTimers();
+    const adapterCanary = "ADAPTER_ABORT_CANARY_MUST_NOT_SURFACE";
+    let signal = null;
+    _deps.fetch = vi.fn((_url, options) => {
+      signal = options.signal;
+      return new Promise((_resolve, reject) => {
+        signal.addEventListener(
+          "abort",
+          () => {
+            const error = new Error(adapterCanary);
+            error.name = "AbortError";
+            reject(error);
+          },
+          { once: true },
+        );
+      });
+    });
+    const client = new MCPClient();
+    const entry = addHttpEntry(
+      client,
+      "callback-deadline",
+      "https://mcp.test/rpc?secret=must-not-surface",
+      { requestTimeoutMs: 20 },
+    );
+    const streamErrors = [];
+    client.on("server-stream-error", (event) => streamErrors.push(event));
+
+    client._sendResponse("callback-deadline", "peer-request-1", { ok: true });
+    expect(signal).toBeInstanceOf(AbortSignal);
+    await vi.advanceTimersByTimeAsync(19);
+    expect(streamErrors).toHaveLength(0);
+    await vi.advanceTimersByTimeAsync(1);
+    await Promise.resolve();
+
+    expect(signal.aborted).toBe(true);
+    expect(streamErrors).toEqual([
+      {
+        name: "callback-deadline",
+        code: "CC_MCP_HTTP_DISCARD_TIMEOUT",
+        error: "MCP HTTP discard request exceeded the 20ms host deadline",
+      },
+    ]);
+    expect(JSON.stringify(streamErrors)).not.toContain(adapterCanary);
+    expect(JSON.stringify(streamErrors)).not.toContain("must-not-surface");
+    expect(entry._httpDiscardControllers.size).toBe(0);
+    client.servers.delete("callback-deadline");
+  });
+
   it("drops the controller registry when a non-standard fetch ignores abort", async () => {
     vi.useFakeTimers();
     let signal = null;

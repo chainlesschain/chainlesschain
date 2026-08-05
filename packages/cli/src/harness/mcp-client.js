@@ -80,6 +80,11 @@ const HTTP_REQUEST_TIMEOUT_MS = 30000;
 // requestTimeoutMs may tighten this deadline; zero/invalid/oversized values do
 // not disable or raise it.
 const MCP_HTTP_DISCARD_TIMEOUT_MS = 30000;
+// Once a successful finite response has supplied its headers, its body must
+// still finish inside a host-owned absolute deadline. `longRunning` may exempt
+// the peer's computation/header wait, but it must not let a byte-at-a-time body
+// retain the request for years. Server config can only tighten this ceiling.
+const MCP_HTTP_RESPONSE_READ_TIMEOUT_MS = 30000;
 const WEBSOCKET_CONNECT_TIMEOUT_MS = 10000;
 const WEBSOCKET_MAX_PAYLOAD_BYTES = 16 * 1024 * 1024;
 
@@ -520,6 +525,25 @@ function mcpRequestAbortedError(serverName, entry, dispatched) {
   );
 }
 
+function mcpHttpResponseTimeoutError(
+  serverName,
+  entry,
+  method,
+  timeoutMs,
+  dispatched,
+) {
+  return mcpTransportError(
+    "CC_MCP_HTTP_RESPONSE_TIMEOUT",
+    `MCP HTTP response body for method "${method}" exceeded the ${timeoutMs}ms host deadline`,
+    {
+      transport: entry?.transportKind,
+      url: entry?.config?.url,
+      dispatched,
+      outcomeUnknown: dispatched,
+    },
+  );
+}
+
 function isWebSocketPayloadError(error) {
   const code = safeRpcProperty(error, "code");
   return (
@@ -541,6 +565,8 @@ const MCP_NON_RETRYABLE_PROTOCOL_ERROR_CODES = new Set([
   "CC_MCP_SERVER_DISCONNECTING",
   "CC_MCP_REQUEST_ABORTED",
   "CC_MCP_HTTP_RESPONSE_STREAM_REQUIRED",
+  "CC_MCP_HTTP_RESPONSE_TIMEOUT",
+  "CC_MCP_HTTP_DISCARD_TIMEOUT",
   "CC_MCP_RPC_ERROR_INVALID",
   "CC_MCP_RPC_RESPONSE_INVALID",
   "CC_MCP_RPC_MESSAGE_INVALID",
@@ -2702,9 +2728,14 @@ export class MCPClient extends EventEmitter {
       (entry._httpRequestControllers = new Set());
     if (request) requests.add(request);
     let timer = null;
+    let responseTimer = null;
     let removeCallerAbort = null;
     const timeoutMessage = `Request timeout: ${method} (HTTP, no response in ${timeoutMs}ms)`;
     const callerAbortMessage = `Request cancelled by caller: ${method}`;
+    const responseTimeoutMs = _httpResponseReadTimeout(
+      entry.config?.requestTimeoutMs,
+    );
+    const responseTimeoutMessage = `MCP HTTP response body for method "${method}" exceeded the ${responseTimeoutMs}ms host deadline`;
 
     const throwIfAborted = () => {
       if (!request?.abortKind) return;
@@ -2713,6 +2744,15 @@ export class MCPClient extends EventEmitter {
       _cancelHttpResponseBody(response);
       if (request.abortKind === "timeout") {
         throw new Error(timeoutMessage);
+      }
+      if (request.abortKind === "response_timeout") {
+        throw mcpHttpResponseTimeoutError(
+          serverName,
+          entry,
+          method,
+          responseTimeoutMs,
+          request.dispatched,
+        );
       }
       if (request.abortKind === "caller") {
         throw mcpRequestAbortedError(serverName, entry, request.dispatched);
@@ -2815,16 +2855,39 @@ export class MCPClient extends EventEmitter {
         );
       }
 
+      // The request-level timer is deliberately optional for long-running
+      // server work. Once success headers arrive, however, every finite JSON
+      // or request-scoped SSE body gets a fresh absolute deadline that server
+      // config may tighten but never disable or raise.
+      if (request) {
+        responseTimer = setTimeout(() => {
+          if (request.abortKind) return;
+          request.abortKind = "response_timeout";
+          request.controller.abort();
+          this._sendRequestCancellation(
+            serverName,
+            method,
+            id,
+            responseTimeoutMessage,
+          );
+        }, responseTimeoutMs);
+        responseTimer.unref?.();
+      }
+
       const contentType = response.headers?.get
         ? String(response.headers.get("content-type") || "").toLowerCase()
         : "";
       let envelope;
       if (contentType.includes("text/event-stream")) {
-        envelope = await _extractSseResponse(response, id, cap, (message) =>
-          this._handleMessage(serverName, message),
+        envelope = await _extractSseResponse(
+          response,
+          id,
+          cap,
+          (message) => this._handleMessage(serverName, message),
+          controller?.signal,
         );
       } else {
-        const text = await _readBodyCapped(response, cap);
+        const text = await _readBodyCapped(response, cap, controller?.signal);
         try {
           envelope = text ? JSON.parse(text) : null;
         } catch {
@@ -2857,6 +2920,7 @@ export class MCPClient extends EventEmitter {
       throw err;
     } finally {
       if (timer) clearTimeout(timer);
+      if (responseTimer) clearTimeout(responseTimer);
       try {
         removeCallerAbort?.();
       } catch {
@@ -3150,9 +3214,11 @@ export class MCPClient extends EventEmitter {
         body: JSON.stringify(envelope),
       }).catch((cause) => {
         if (entry._httpDiscardStopping) return;
+        const code = safeRpcProperty(cause, "code");
         this.emit("server-stream-error", {
           name: serverName,
-          error: cause?.message || String(cause),
+          error: safeRpcErrorText(cause) || "MCP HTTP server response failed",
+          ...(code ? { code } : {}),
         });
       });
       return;
@@ -3181,6 +3247,24 @@ function _httpDiscardTimeout(configuredTimeout) {
     );
   }
   return MCP_HTTP_DISCARD_TIMEOUT_MS;
+}
+
+function _httpResponseReadTimeout(configuredTimeout) {
+  if (Number.isFinite(configuredTimeout) && configuredTimeout > 0) {
+    return Math.min(
+      MCP_HTTP_RESPONSE_READ_TIMEOUT_MS,
+      Math.max(1, Math.floor(configuredTimeout)),
+    );
+  }
+  return MCP_HTTP_RESPONSE_READ_TIMEOUT_MS;
+}
+
+function _httpDiscardTimeoutError(entry, timeoutMs) {
+  return mcpTransportError(
+    "CC_MCP_HTTP_DISCARD_TIMEOUT",
+    `MCP HTTP discard request exceeded the ${timeoutMs}ms host deadline`,
+    { transport: entry?.transportKind, url: entry?.config?.url },
+  );
 }
 
 function _abortHttpRequests(entry) {
@@ -3224,9 +3308,11 @@ async function _fetchAndDiscardHttpResponse(entry, options) {
     typeof AbortController === "function" ? new AbortController() : null;
   const timeoutMs = _httpDiscardTimeout(entry?.config?.requestTimeoutMs);
   let timer = null;
+  let timedOut = false;
   if (controller) {
     controllers?.add(controller);
     timer = setTimeout(() => {
+      timedOut = true;
       controller.abort();
       // Production fetch rejects on abort and reaches finally. Delete here as
       // well so a non-standard adapter that ignores AbortSignal cannot pin the
@@ -3241,7 +3327,18 @@ async function _fetchAndDiscardHttpResponse(entry, options) {
       ...(controller ? { signal: controller.signal } : {}),
     });
     _cancelHttpResponseBody(response);
+    if (timedOut) {
+      throw _httpDiscardTimeoutError(entry, timeoutMs);
+    }
     return response;
+  } catch (cause) {
+    if (
+      timedOut &&
+      safeRpcProperty(cause, "code") !== "CC_MCP_HTTP_DISCARD_TIMEOUT"
+    ) {
+      throw _httpDiscardTimeoutError(entry, timeoutMs);
+    }
+    throw cause;
   } finally {
     if (timer) clearTimeout(timer);
     if (controller) controllers?.delete(controller);
@@ -3285,6 +3382,37 @@ function _httpResponseStreamRequired(response) {
   return error;
 }
 
+function _httpReadAbortedError() {
+  const error = new Error("MCP HTTP response read aborted");
+  error.code = "CC_MCP_HTTP_READ_ABORTED";
+  return error;
+}
+
+function _readHttpReaderChunk(reader, signal) {
+  if (!signal?.addEventListener) return reader.read();
+  if (signal.aborted) return Promise.reject(_httpReadAbortedError());
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const finish = (settle, value) => {
+      if (settled) return;
+      settled = true;
+      signal.removeEventListener?.("abort", onAbort);
+      settle(value);
+    };
+    const onAbort = () => finish(reject, _httpReadAbortedError());
+    signal.addEventListener("abort", onAbort, { once: true });
+    Promise.resolve()
+      .then(() => reader.read())
+      .then(
+        (result) => finish(resolve, result),
+        (error) => finish(reject, error),
+      );
+    // Cover a custom signal that changes between the preflight read and
+    // listener installation.
+    if (signal.aborted) onAbort();
+  });
+}
+
 /**
  * Read a finite HTTP response body to text under a host-owned absolute byte
  * ceiling. The per-call timeout bounds TIME but not MEMORY: a malicious or
@@ -3295,7 +3423,7 @@ function _httpResponseStreamRequired(response) {
  * before text() because an after-the-fact string check cannot bound allocation.
  * A declared Content-Length over the effective cap is rejected before any read.
  */
-async function _readBodyCapped(response, cap) {
+async function _readBodyCapped(response, cap, signal = null) {
   cap = _httpResponseByteLimit(cap);
   if (response.headers && typeof response.headers.get === "function") {
     const declaredHeader = response.headers.get("content-length");
@@ -3317,7 +3445,7 @@ async function _readBodyCapped(response, cap) {
     let total = 0;
     try {
       for (;;) {
-        const { value, done } = await reader.read();
+        const { value, done } = await _readHttpReaderChunk(reader, signal);
         if (done) break;
         total += value?.byteLength || 0;
         if (total > cap) {
@@ -3361,8 +3489,9 @@ async function _extractSseResponse(
   requestId,
   cap = 0,
   onMessage = null,
+  signal = null,
 ) {
-  const text = await _readBodyCapped(response, cap);
+  const text = await _readBodyCapped(response, cap, signal);
 
   // Split into events on blank line, parse each event's concatenated `data:` lines.
   const events = text.split(/\r?\n\r?\n/);
@@ -3423,7 +3552,11 @@ async function _consumeSseMessageStream(
   };
 
   if (!response.body || typeof response.body.getReader !== "function") {
-    const text = await _readBodyCapped(response, cap);
+    const text = await _readBodyCapped(
+      response,
+      cap,
+      stream.controller?.signal,
+    );
     for (const event of text.split(/\r?\n\r?\n/)) dispatch(event);
     return;
   }
@@ -3433,7 +3566,10 @@ async function _consumeSseMessageStream(
   let buffer = "";
   try {
     for (;;) {
-      const { value, done } = await reader.read();
+      const { value, done } = await _readHttpReaderChunk(
+        reader,
+        stream.controller?.signal,
+      );
       if (done) break;
       buffer += decoder.decode(value, { stream: true });
       let boundary;
