@@ -8,6 +8,7 @@ import {
   PHASE_ZERO_GLOBAL_OPTION_SCHEMA,
   prepareInvocation,
   resolveCommandLifecycleInvocation,
+  resolveCommandLifecycleTelemetry,
   runCli,
 } from "../../src/lazy-dispatch.js";
 import { validateCommandSurface } from "../../src/command-surface-policy.js";
@@ -168,6 +169,35 @@ describe("command lifecycle policy", () => {
       });
       expect(labCommands).not.toContain(command);
     }
+  });
+
+  it("derives bounded lifecycle telemetry without copying command arguments", () => {
+    const legacy = resolveCommandLifecycleTelemetry(
+      argv("dao", "config-v2", "--token=must-not-appear"),
+      manifest,
+    );
+    const replacement = resolveCommandLifecycleTelemetry(
+      argv("lab", "dao", "config-v2", "--token=must-not-appear"),
+      manifest,
+    );
+
+    expect(legacy).toEqual({
+      command: "dao",
+      route: "legacy",
+      version: expect.stringMatching(/^\d+\.\d+\.\d+/),
+      deprecatedSince: "0.162.189",
+      removalNotBefore: "0.164.0",
+    });
+    expect(replacement).toEqual({ ...legacy, route: "replacement" });
+    expect(JSON.stringify([legacy, replacement])).not.toContain(
+      "must-not-appear",
+    );
+    expect(
+      resolveCommandLifecycleTelemetry(argv("agent"), manifest),
+    ).toBeNull();
+    expect(
+      resolveCommandLifecycleTelemetry(argv("lab", "unknown"), manifest),
+    ).toBeNull();
   });
 });
 

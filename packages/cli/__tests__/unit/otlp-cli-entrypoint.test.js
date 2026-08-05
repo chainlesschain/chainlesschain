@@ -89,4 +89,77 @@ describe("published CLI OTLP lifecycle", () => {
           .some((name) => name.endsWith(".json")),
     ).toBe(false);
   }, 30_000);
+
+  it("exports content-free legacy and replacement command usage", async () => {
+    const requests = [];
+    const server = http.createServer((request, response) => {
+      const chunks = [];
+      request.on("data", (chunk) => chunks.push(chunk));
+      request.on("end", () => {
+        requests.push({
+          url: request.url,
+          body: JSON.parse(Buffer.concat(chunks).toString("utf8")),
+        });
+        response.writeHead(200);
+        response.end();
+      });
+    });
+    servers.push(server);
+    await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+    const endpoint = `http://127.0.0.1:${server.address().port}`;
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "cc-otlp-lifecycle-"));
+    tempDirs.push(home);
+    const env = {
+      CHAINLESSCHAIN_HOME: home,
+      CC_OTEL_SPOOL_DIR: path.join(home, "spool"),
+      CC_EVENT_RUNTIME_DURABLE: "0",
+      OTEL_SDK_DISABLED: "false",
+    };
+
+    const legacy = await runCli(
+      ["--otlp-endpoint", endpoint, "dao", "config-v2", "--json"],
+      env,
+    );
+    const replacement = await runCli(
+      ["--otlp-endpoint", endpoint, "lab", "dao", "config-v2", "--json"],
+      env,
+    );
+
+    expect(legacy.code, legacy.stderr).toBe(0);
+    expect(replacement.code, replacement.stderr).toBe(0);
+    const metrics = requests
+      .filter((item) => item.url === "/v1/metrics")
+      .flatMap(
+        (item) =>
+          item.body.resourceMetrics?.[0]?.scopeMetrics?.[0]?.metrics || [],
+      )
+      .filter(
+        (metric) =>
+          metric.name === "chainlesschain.cli.command.lifecycle.invocations",
+      );
+    const routes = metrics.map((metric) =>
+      Object.fromEntries(
+        metric.sum.dataPoints[0].attributes.map((attribute) => [
+          attribute.key,
+          attribute.value.stringValue,
+        ]),
+      ),
+    );
+    expect(routes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          "command.name": "dao",
+          "command.route": "legacy",
+          "command.outcome": "completed",
+        }),
+        expect.objectContaining({
+          "command.name": "dao",
+          "command.route": "replacement",
+          "command.outcome": "completed",
+        }),
+      ]),
+    );
+    expect(metrics).toHaveLength(2);
+    expect(JSON.stringify(requests)).not.toContain("config-v2");
+  }, 30_000);
 });

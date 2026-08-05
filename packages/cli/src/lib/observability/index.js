@@ -136,6 +136,73 @@ export class ObservabilityRuntime {
     ]);
   }
 
+  /**
+   * Export one migrated-command invocation without command arguments or any
+   * session/workspace identity. Collection remains opt-in because a disabled
+   * OTLP runtime returns before constructing or queueing the metric payload.
+   */
+  exportCommandLifecycleInvocation(value = {}) {
+    if (!this.enabled) return false;
+    const command = normalizeLifecycleDimension(
+      value.command,
+      /^[a-z0-9][a-z0-9-]{0,63}$/,
+      "unknown",
+    );
+    const route = ["legacy", "replacement"].includes(value.route)
+      ? value.route
+      : "unknown";
+    const outcome = ["completed", "error"].includes(value.outcome)
+      ? value.outcome
+      : "unknown";
+    const version = normalizeLifecycleDimension(
+      value.version,
+      /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/,
+      "unknown",
+    );
+    const deprecatedSince = normalizeLifecycleDimension(
+      value.deprecatedSince,
+      /^\d+\.\d+\.\d+$/,
+      "unknown",
+    );
+    const removalNotBefore = normalizeLifecycleDimension(
+      value.removalNotBefore,
+      /^\d+\.\d+\.\d+$/,
+      "unknown",
+    );
+    const durationMs = Math.max(0, Number(value.durationMs) || 0);
+    const attributes = {
+      "command.name": command,
+      "command.route": route,
+      "command.outcome": outcome,
+      "cli.version": version,
+      "command.deprecated_since": deprecatedSince,
+      "command.removal_not_before": removalNotBefore,
+    };
+    try {
+      return this.exporter.exportMetrics([
+        {
+          name: "chainlesschain.cli.command.lifecycle.invocations",
+          type: "sum",
+          unit: "{invocation}",
+          value: 1,
+          monotonic: true,
+          attributes,
+        },
+        {
+          name: "chainlesschain.cli.command.lifecycle.duration",
+          type: "histogram",
+          unit: "ms",
+          count: 1,
+          sum: durationMs,
+          attributes,
+        },
+      ]);
+    } catch {
+      // Observability is advisory and must never change the command result.
+      return false;
+    }
+  }
+
   captureMetrics() {
     if (!this.enabled) return false;
     const metrics = collectedMetrics(this.metricsCollector);
@@ -154,6 +221,10 @@ export class ObservabilityRuntime {
   getStats() {
     return this.exporter.getStats();
   }
+}
+
+function normalizeLifecycleDimension(value, pattern, fallback) {
+  return typeof value === "string" && pattern.test(value) ? value : fallback;
 }
 
 let defaultRuntime = null;

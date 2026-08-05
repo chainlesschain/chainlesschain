@@ -387,6 +387,61 @@ describe("OTLP/HTTP export reliability", () => {
   });
 });
 
+describe("command lifecycle metrics", () => {
+  it("exports only bounded lifecycle dimensions and remains best-effort", () => {
+    const exporter = {
+      enabled: true,
+      exportMetrics: vi.fn(() => true),
+      exportSpans: vi.fn(() => true),
+    };
+    const runtime = new ObservabilityRuntime({}, { exporter });
+
+    expect(
+      runtime.exportCommandLifecycleInvocation({
+        command: "dao",
+        route: "legacy",
+        outcome: "completed",
+        version: "0.162.197",
+        deprecatedSince: "0.162.189",
+        removalNotBefore: "0.164.0",
+        durationMs: 12.5,
+        argv: ["--token=must-not-appear"],
+      }),
+    ).toBe(true);
+
+    const metrics = exporter.exportMetrics.mock.calls[0][0];
+    expect(metrics).toEqual([
+      expect.objectContaining({
+        name: "chainlesschain.cli.command.lifecycle.invocations",
+        type: "sum",
+        value: 1,
+      }),
+      expect.objectContaining({
+        name: "chainlesschain.cli.command.lifecycle.duration",
+        type: "histogram",
+        count: 1,
+        sum: 12.5,
+      }),
+    ]);
+    expect(metrics[0].attributes).toEqual({
+      "command.name": "dao",
+      "command.route": "legacy",
+      "command.outcome": "completed",
+      "cli.version": "0.162.197",
+      "command.deprecated_since": "0.162.189",
+      "command.removal_not_before": "0.164.0",
+    });
+    expect(JSON.stringify(metrics)).not.toContain("must-not-appear");
+
+    exporter.exportMetrics.mockImplementationOnce(() => {
+      throw new Error("collector queue unavailable");
+    });
+    expect(
+      runtime.exportCommandLifecycleInvocation({ command: "not valid!" }),
+    ).toBe(false);
+  });
+});
+
 describe("process observability bridge", () => {
   it("exports ended W3C spans, recorder payloads, metrics and team aggregates", async () => {
     const exporter = {

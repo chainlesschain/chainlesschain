@@ -337,6 +337,43 @@ export function resolveCommandLifecycleInvocation(
   };
 }
 
+/**
+ * Build the bounded, content-free lifecycle usage dimensions for a migrated
+ * command. The original argv is inspected only to distinguish the retained
+ * top-level spelling from its virtual namespace replacement; arguments and
+ * nested command names are never copied into telemetry.
+ */
+export function resolveCommandLifecycleTelemetry(
+  argv,
+  manifestData = manifest,
+) {
+  const invocation = resolveCommandLifecycleInvocation(argv, manifestData);
+  let entry = null;
+  let route = null;
+  if (invocation.kind === "namespace-rewrite") {
+    entry = invocation.entry;
+    route = "replacement";
+  } else if (invocation.kind === "passthrough") {
+    const commandName = resolveCommandToken(argv);
+    entry = findManifestEntry(commandName, manifestData);
+    route = "legacy";
+  }
+  if (
+    entry?.lifecycle?.state !== "deprecated" ||
+    typeof entry.name !== "string" ||
+    !entry.replacement
+  ) {
+    return null;
+  }
+  return Object.freeze({
+    command: entry.name,
+    route,
+    version: packageMetadata.version,
+    deprecatedSince: entry.lifecycle.deprecatedSince,
+    removalNotBefore: entry.lifecycle.removalNotBefore,
+  });
+}
+
 export function formatCommandDeprecationWarning(entry, invokedName) {
   const lifecycle = entry?.lifecycle;
   if (lifecycle?.state !== "deprecated" || !entry.replacement) return null;
@@ -782,6 +819,10 @@ async function withInvocationOutputContext(argv, task) {
 }
 
 export async function runCli(argv, options = {}) {
+  const lifecycleTelemetry = resolveCommandLifecycleTelemetry(
+    argv,
+    options.manifestData || manifest,
+  );
   const prepared = await prepareInvocation(argv, options);
   if (prepared.handled) {
     if (prepared.exitCode) {
@@ -814,12 +855,24 @@ export async function runCli(argv, options = {}) {
     }
 
     const observability = await initializeCommandRuntime(dispatchArgv);
+    const lifecycleStartedAt = performance.now();
+    let lifecycleOutcome = "completed";
     try {
       return await withDefaultEventRuntimeLifecycle(
         () => dispatchCli(dispatchArgv, options),
         options,
       );
+    } catch (error) {
+      lifecycleOutcome = "error";
+      throw error;
     } finally {
+      if (lifecycleTelemetry) {
+        observability.exportCommandLifecycleInvocation({
+          ...lifecycleTelemetry,
+          outcome: lifecycleOutcome,
+          durationMs: performance.now() - lifecycleStartedAt,
+        });
+      }
       await observability.shutdown().catch(() => {});
     }
   });
