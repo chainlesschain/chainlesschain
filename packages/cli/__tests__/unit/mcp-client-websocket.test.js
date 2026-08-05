@@ -144,24 +144,127 @@ describe("MCPClient WebSocket transport contract", () => {
     expect(client.servers.has("bad")).toBe(false);
   });
 
-  it("rejects an in-flight request with structured close diagnostics", async () => {
+  it("redacts peer close reasons and never replays an outcome-unknown call", async () => {
+    const canary = "WS_CLOSE_REASON_SECRET_HTTP_503_ECONNRESET";
+    let toolCalls = 0;
     const { url } = await startMcpWebSocket((socket, message) => {
       if (message.method === "tools/call") {
-        socket.close(1011, "fixture failure");
-        return true;
+        toolCalls += 1;
+        if (toolCalls === 1) {
+          socket.close(1011, canary);
+          return true;
+        }
       }
       return false;
     });
     const client = new MCPClient();
+    const disconnected = [];
+    client.on("server-disconnected", (event) => disconnected.push(event));
     await client.connect("closing", {
       transport: "ws",
       url,
       requestTimeoutMs: 1000,
     });
-    await expect(client.callTool("closing", "echo", {})).rejects.toMatchObject({
+    const reconnector = vi.fn(() => ({ transport: "ws", url }));
+    client.setReconnector("closing", reconnector);
+
+    let error;
+    try {
+      await client.callTool("closing", "echo", {});
+    } catch (cause) {
+      error = cause;
+    }
+
+    expect(error).toMatchObject({
       code: "CC_MCP_WS_CLOSED",
       closeCode: 1011,
+      dispatched: true,
+      outcomeUnknown: true,
     });
+    expect(toolCalls).toBe(1);
+    expect(reconnector).not.toHaveBeenCalled();
+    expect(disconnected).toContainEqual({
+      name: "closing",
+      code: 1011,
+      reason: "peer_closed",
+      errorCode: "CC_MCP_WS_CLOSED",
+    });
+    expect(
+      JSON.stringify({
+        message: error?.message,
+        stack: error?.stack,
+        disconnected,
+      }),
+    ).not.toContain(canary);
+    await expect(
+      client.callTool("closing", "echo", { text: "fresh-call" }),
+    ).resolves.toEqual({
+      content: [{ type: "text", text: "fresh-call" }],
+    });
+    expect(reconnector).toHaveBeenCalledOnce();
+    expect(toolCalls).toBe(2);
+    await client.disconnectAll();
+  });
+
+  it("cancels direct elicitation and URL completion waiters on peer close", async () => {
+    const canary = "WS_ELICITATION_CLOSE_SECRET";
+    let releaseHandlerStart;
+    const handlerStarted = new Promise((resolve) => {
+      releaseHandlerStart = resolve;
+    });
+    const { server, url } = await startMcpWebSocket();
+    const client = new MCPClient({
+      elicitationHandler: async (request) => {
+        if (request.requestId === "hanging-form") {
+          releaseHandlerStart();
+          return new Promise(() => {});
+        }
+        return { action: "accept" };
+      },
+    });
+    await client.connect("eliciting", {
+      transport: "ws",
+      url,
+      requestTimeoutMs: 1000,
+    });
+    await expect(
+      client._resolveElicitation("eliciting", "url-flow", {
+        mode: "url",
+        elicitationId: "close-flow",
+        url: "https://example.test/authorize",
+        message: "Authorize",
+      }),
+    ).resolves.toEqual({ action: "accept" });
+    const completion = client.waitForElicitationCompletion(
+      "close-flow",
+      10_000,
+    );
+    const hanging = client._resolveElicitation("eliciting", "hanging-form", {
+      message: "Confirm",
+    });
+    await handlerStarted;
+
+    const disconnected = new Promise((resolve) => {
+      client.once("server-disconnected", resolve);
+    });
+    [...server.clients][0].close(1011, canary);
+
+    const disconnectedEvent = await disconnected;
+    expect(disconnectedEvent).toMatchObject({
+      name: "eliciting",
+      reason: "peer_closed",
+    });
+    await expect(hanging).resolves.toEqual({ action: "cancel" });
+    await expect(completion).resolves.toBe(false);
+    expect(client._activeElicitations).toBe(0);
+    expect(client._elicitationDisconnectGuards.size).toBe(0);
+    expect(client._urlElicitations.get("close-flow")).toMatchObject({
+      server: "eliciting",
+      status: "cancel",
+    });
+    expect(client._urlElicitations.get("close-flow").waiters.size).toBe(0);
+    expect(JSON.stringify(disconnectedEvent)).not.toContain(canary);
+    await client.disconnectAll();
   });
 
   it.each([

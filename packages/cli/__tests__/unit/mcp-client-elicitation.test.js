@@ -250,6 +250,32 @@ describe("MCP elicitation/create routing", () => {
     });
   });
 
+  it("cancels event-driven elicitations for only the disconnected server", async () => {
+    const client = new MCPClient({ elicitationTimeoutMs: 10_000 });
+    client.on("elicitation-request", () => {});
+
+    const disconnected = client._resolveElicitation("srv", "request", {
+      message: "First server",
+    });
+    const sibling = client._resolveElicitation("srv:child", "request", {
+      message: "Sibling server",
+    });
+    await new Promise((resolve) => setImmediate(resolve));
+
+    await expect(client.disconnect("srv")).resolves.toBe(false);
+    await expect(disconnected).resolves.toEqual({ action: "cancel" });
+    expect(
+      [...client._pendingElicitations.values()].map(
+        (pending) => pending.request.server,
+      ),
+    ).toEqual(["srv:child"]);
+
+    expect(client.cancelElicitation("srv:child", "request")).toBe(true);
+    await expect(sibling).resolves.toEqual({ action: "cancel" });
+    expect(client._pendingElicitations.size).toBe(0);
+    expect(client._activeElicitations).toBe(0);
+  });
+
   it("keeps concurrent session-scoped handlers isolated", async () => {
     const client = new MCPClient();
     client.setElicitationHandler(

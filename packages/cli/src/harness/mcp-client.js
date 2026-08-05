@@ -656,6 +656,7 @@ export class MCPClient extends EventEmitter {
         : 180000;
     this._pendingElicitations = new Map();
     this._urlElicitations = new Map();
+    this._elicitationDisconnectGuards = new Map();
     this._activeElicitations = 0;
     this._maxConcurrentElicitations =
       Number(options.maxConcurrentElicitations) > 0
@@ -734,6 +735,74 @@ export class MCPClient extends EventEmitter {
     return this.respondElicitation(serverName, requestId, {
       action: "cancel",
     });
+  }
+
+  _awaitElicitationHandler(serverName, handler, request) {
+    const name = String(serverName);
+    const disconnectedResult = { kind: "disconnected" };
+    let wasDisconnected = false;
+    let signalDisconnect;
+    const disconnected = new Promise((resolve) => {
+      signalDisconnect = () => {
+        wasDisconnected = true;
+        resolve(disconnectedResult);
+      };
+    });
+    let guards = this._elicitationDisconnectGuards.get(name);
+    if (!guards) {
+      guards = new Set();
+      this._elicitationDisconnectGuards.set(name, guards);
+    }
+    guards.add(signalDisconnect);
+
+    const handled = Promise.resolve()
+      .then(() =>
+        wasDisconnected ? disconnectedResult : handler({ ...request }),
+      )
+      .then(
+        (value) =>
+          value === disconnectedResult
+            ? disconnectedResult
+            : { kind: "response", value },
+        (error) => ({ kind: "error", error }),
+      );
+    return Promise.race([handled, disconnected]).finally(() => {
+      guards.delete(signalDisconnect);
+      if (
+        guards.size === 0 &&
+        this._elicitationDisconnectGuards.get(name) === guards
+      ) {
+        this._elicitationDisconnectGuards.delete(name);
+      }
+    });
+  }
+
+  _cancelServerElicitations(serverName) {
+    const name = String(serverName);
+    const guards = this._elicitationDisconnectGuards.get(name);
+    if (guards) {
+      this._elicitationDisconnectGuards.delete(name);
+      for (const signalDisconnect of [...guards]) signalDisconnect();
+      guards.clear();
+    }
+
+    for (const pending of [...this._pendingElicitations.values()]) {
+      if (String(pending.request?.server) !== name) continue;
+      this.cancelElicitation(name, pending.request?.requestId);
+    }
+
+    for (const entry of this._urlElicitations.values()) {
+      if (
+        String(entry.server) !== name ||
+        (entry.status !== "pending" && entry.status !== "accepted")
+      ) {
+        continue;
+      }
+      entry.status = "cancel";
+      entry.completionNotified = false;
+      for (const waiter of [...entry.waiters]) waiter(false);
+      entry.waiters.clear();
+    }
   }
 
   _elicitationKey(serverName, requestId) {
@@ -825,9 +894,26 @@ export class MCPClient extends EventEmitter {
       this._elicitationHandler;
     if (handler) {
       try {
-        const direct = await handler({
-          ...request,
-        });
+        const outcome = await this._awaitElicitationHandler(
+          serverName,
+          handler,
+          request,
+        );
+        if (outcome.kind === "disconnected") {
+          const response = { action: "cancel" };
+          this._settleUrlElicitation(request, response);
+          try {
+            this._runtimeProducer?.store.acknowledgeInbox(
+              `mcp-elicitation:${key}`,
+              { response },
+            );
+          } catch {
+            // Runtime inbox acknowledgement is advisory.
+          }
+          return response;
+        }
+        if (outcome.kind === "error") throw outcome.error;
+        const direct = outcome.value;
         if (
           direct !== undefined &&
           String(direct?.action || "").toLowerCase() !== "defer"
@@ -942,7 +1028,7 @@ export class MCPClient extends EventEmitter {
   _settleUrlElicitation(request, response) {
     if (request?.mode !== "url" || !request.elicitationId) return;
     const entry = this._urlElicitations.get(request.elicitationId);
-    if (!entry || entry.status === "completed") return;
+    if (!entry || entry.status !== "pending") return;
     entry.status =
       response?.action === "accept"
         ? "accepted"
@@ -1293,6 +1379,7 @@ export class MCPClient extends EventEmitter {
           entry._webSocketPayloadError = error;
           entry.state = ServerState.ERROR;
           rejectPending(error);
+          this._cancelServerElicitations(name);
           this.emit("server-error", {
             name,
             error: error.message,
@@ -1357,6 +1444,7 @@ export class MCPClient extends EventEmitter {
             );
             entry.state = ServerState.ERROR;
             rejectPending(error);
+            this._cancelServerElicitations(name);
             this.emit("server-error", {
               name,
               error: error.message,
@@ -1383,6 +1471,7 @@ export class MCPClient extends EventEmitter {
             );
             entry.state = ServerState.ERROR;
             rejectPending(error);
+            this._cancelServerElicitations(name);
             this.emit("server-error", {
               name,
               code: error.code,
@@ -1391,16 +1480,19 @@ export class MCPClient extends EventEmitter {
             socket.close(1007, "Invalid JSON-RPC message");
           }
         });
-        socket.on("close", (code, reason) => {
+        socket.on("close", (code) => {
+          const closeCode =
+            Number.isInteger(code) && code >= 0 && code <= 65535 ? code : null;
           const payloadError =
             entry._webSocketPayloadError ||
-            (code === 1009 ? recordPayloadFailure(1009) : null);
+            (closeCode === 1009 ? recordPayloadFailure(1009) : null);
           if (payloadError) {
             entry.state = ServerState.ERROR;
             rejectPending(payloadError);
+            this._cancelServerElicitations(name);
             this.emit("server-disconnected", {
               name,
-              code,
+              code: closeCode,
               reason: "payload too large",
               errorCode: payloadError.code,
               limitBytes: payloadError.limitBytes,
@@ -1408,17 +1500,25 @@ export class MCPClient extends EventEmitter {
             return;
           }
           entry.state = ServerState.DISCONNECTED;
-          const suffix = reason?.length ? `: ${String(reason)}` : "";
+          const dispatched = entry._pending.size > 0;
           const error = mcpTransportError(
             "CC_MCP_WS_CLOSED",
-            `MCP WebSocket server "${name}" disconnected (code ${code})${suffix}`,
-            { transport: transportKind, url: config.url, closeCode: code },
+            `MCP WebSocket server "${name}" disconnected (code ${closeCode ?? "unknown"})`,
+            {
+              transport: transportKind,
+              url: config.url,
+              closeCode,
+              dispatched,
+              outcomeUnknown: dispatched,
+            },
           );
           rejectPending(error);
+          this._cancelServerElicitations(name);
           this.emit("server-disconnected", {
             name,
-            code,
-            reason: String(reason || ""),
+            code: closeCode,
+            reason: "peer_closed",
+            errorCode: error.code,
           });
         });
         socket.on("error", (cause) => {
@@ -1427,12 +1527,19 @@ export class MCPClient extends EventEmitter {
             return;
           }
           entry.state = ServerState.ERROR;
+          const dispatched = entry._pending.size > 0;
           const error = mcpTransportError(
             "CC_MCP_WS_ERROR",
-            `MCP WebSocket server "${name}" error: ${cause?.message || cause}`,
-            { transport: transportKind, url: config.url },
+            `MCP WebSocket transport failed for server "${name}"`,
+            {
+              transport: transportKind,
+              url: config.url,
+              dispatched,
+              outcomeUnknown: dispatched,
+            },
           );
           rejectPending(error);
+          this._cancelServerElicitations(name);
           this.emit("server-error", {
             name,
             error: error.message,
@@ -1539,12 +1646,14 @@ export class MCPClient extends EventEmitter {
           failPending(
             `MCP server "${name}" process exited (code ${code}) before responding`,
           );
+          this._cancelServerElicitations(name);
           this.emit("server-disconnected", { name, code });
         });
 
         proc.on("error", (err) => {
           entry.state = ServerState.ERROR;
           failPending(`MCP server "${name}" process error: ${err.message}`);
+          this._cancelServerElicitations(name);
           this.emit("server-error", { name, error: err.message });
         });
 
@@ -1558,6 +1667,7 @@ export class MCPClient extends EventEmitter {
           proc.stdin.on("error", (err) => {
             entry.state = ServerState.ERROR;
             failPending(`MCP server "${name}" stdin error: ${err.message}`);
+            this._cancelServerElicitations(name);
             this.emit("server-error", { name, error: err.message });
           });
         }
@@ -1681,6 +1791,7 @@ export class MCPClient extends EventEmitter {
       };
     } catch (err) {
       entry.state = ServerState.ERROR;
+      this._cancelServerElicitations(name);
       // The initialize notification is fire-and-forget. If later capability
       // discovery fails, connect() deletes this entry without going through
       // disconnect(), so explicitly reap any response-discard request first.
@@ -1737,7 +1848,10 @@ export class MCPClient extends EventEmitter {
    */
   disconnect(name) {
     const entry = this.servers.get(name);
-    if (!entry) return Promise.resolve(false);
+    if (!entry) {
+      this._cancelServerElicitations(name);
+      return Promise.resolve(false);
+    }
     if (entry._disconnectPromise) return entry._disconnectPromise;
 
     // Make disconnect visible before any teardown awaits. In particular, an
@@ -1746,14 +1860,9 @@ export class MCPClient extends EventEmitter {
     // reconnect that resurrects a server the caller is intentionally closing.
     entry.state = ServerState.DISCONNECTED;
     entry._httpDiscardStopping = true;
+    this._cancelServerElicitations(name);
     const disconnecting = Promise.resolve().then(async () => {
       try {
-        for (const [key, pending] of this._pendingElicitations) {
-          if (key.startsWith(`${String(name)}:`)) {
-            pending.resolve({ action: "cancel" });
-          }
-        }
-
         if (entry.process) {
           entry.process.kill();
         }
@@ -1881,6 +1990,7 @@ export class MCPClient extends EventEmitter {
         // Retry exactly once after every out-of-band flow reports completion.
         return this._callToolOnce(serverName, toolName, args, options);
       }
+      if (safeRpcProperty(err, "outcomeUnknown") === true) throw err;
       if (
         !this._reconnectors.has(serverName) &&
         !this.servers.get(serverName)?.config?.headersHelper
@@ -2325,18 +2435,30 @@ export class MCPClient extends EventEmitter {
         }, timeoutMs);
       }
       entry._pending.set(id, { resolve, reject, timeout });
-      entry.socket.send(message, (cause) => {
-        if (!cause) return;
+      const failDispatch = () => {
         if (timeout) clearTimeout(timeout);
         entry._pending.delete(id);
         reject(
           mcpTransportError(
             "CC_MCP_WS_SEND_FAILED",
-            `WebSocket send failed for ${method}: ${cause.message}`,
-            { transport: entry.transportKind, url: entry.config?.url },
+            `WebSocket request dispatch failed for method "${method}"`,
+            {
+              transport: entry.transportKind,
+              url: entry.config?.url,
+              dispatched: true,
+              outcomeUnknown: true,
+            },
           ),
         );
-      });
+      };
+      try {
+        entry.socket.send(message, (cause) => {
+          if (!cause) return;
+          failDispatch();
+        });
+      } catch {
+        failDispatch();
+      }
     });
   }
 
