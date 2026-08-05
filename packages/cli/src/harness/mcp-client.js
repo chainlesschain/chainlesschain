@@ -75,6 +75,17 @@ export function normalizeMcpConfigScope(scope = "user") {
 const HTTP_REQUEST_TIMEOUT_MS = 30000;
 const WEBSOCKET_CONNECT_TIMEOUT_MS = 10000;
 const WEBSOCKET_MAX_PAYLOAD_BYTES = 16 * 1024 * 1024;
+
+function webSocketPayloadLimit(configuredLimit) {
+  if (Number.isFinite(configuredLimit)) {
+    return Math.min(
+      WEBSOCKET_MAX_PAYLOAD_BYTES,
+      Math.max(1024, Math.floor(configuredLimit)),
+    );
+  }
+  return WEBSOCKET_MAX_PAYLOAD_BYTES;
+}
+
 // Host-owned ceiling for every finite HTTP MCP response body. Server config
 // may tighten this through maxBufferChars for backwards compatibility, but it
 // cannot raise or disable this byte limit.
@@ -231,7 +242,26 @@ function mcpTransportError(code, message, details = {}) {
   error.url = details.url ? redactMcpUrl(details.url) : null;
   if (details.status != null) error.status = details.status;
   if (details.closeCode != null) error.closeCode = details.closeCode;
+  if (details.limitBytes != null) error.limitBytes = details.limitBytes;
   return error;
+}
+
+function mcpWebSocketPayloadTooLargeError(
+  serverName,
+  { transport, url, limitBytes, closeCode = 1009 },
+) {
+  return mcpTransportError(
+    "CC_MCP_WS_PAYLOAD_TOO_LARGE",
+    `MCP WebSocket connection for server "${serverName}" rejected a payload over the ${limitBytes}-byte host cap`,
+    { transport, url, closeCode, limitBytes },
+  );
+}
+
+function isWebSocketPayloadError(error) {
+  return (
+    error?.code === "WS_ERR_UNSUPPORTED_MESSAGE_LENGTH" ||
+    error?.code === "WS_ERR_UNSUPPORTED_DATA_PAYLOAD_LENGTH"
+  );
 }
 
 /**
@@ -245,6 +275,7 @@ function mcpTransportError(code, message, details = {}) {
  * this client's own "server gone" states.
  */
 export function isLikelyConnectionError(err) {
+  if (err?.code === "CC_MCP_WS_PAYLOAD_TOO_LARGE") return false;
   const msg = String((err && err.message) || err || "");
   return /fetch failed|ECONNREFUSED|ECONNRESET|ETIMEDOUT|EPIPE|socket hang up|network error|WebSocket|HTTP 40[134]\b|not connected|not found|not available/i.test(
     msg,
@@ -865,6 +896,7 @@ export class MCPClient extends EventEmitter {
       httpSessionId: null,
       protocolVersion: null,
       _httpMessageStream: null,
+      _webSocketPayloadError: null,
       tools: [],
       resources: [],
       resourceTemplates: [],
@@ -942,9 +974,7 @@ export class MCPClient extends EventEmitter {
         const connectTimeoutMs = Number.isFinite(config.connectTimeoutMs)
           ? Math.max(1, config.connectTimeoutMs)
           : WEBSOCKET_CONNECT_TIMEOUT_MS;
-        const maxPayload = Number.isFinite(config.maxPayloadBytes)
-          ? Math.max(1024, config.maxPayloadBytes)
-          : WEBSOCKET_MAX_PAYLOAD_BYTES;
+        const maxPayload = webSocketPayloadLimit(config.maxPayloadBytes);
         const Socket = _deps.WebSocket;
         const socket = new Socket(config.url, {
           headers: { ...(config.headers || {}) },
@@ -956,6 +986,36 @@ export class MCPClient extends EventEmitter {
             : {}),
         });
         entry.socket = socket;
+
+        const recordPayloadFailure = (closeCode = 1009) => {
+          if (entry._webSocketPayloadError) {
+            return entry._webSocketPayloadError;
+          }
+          const error = mcpWebSocketPayloadTooLargeError(name, {
+            transport: transportKind,
+            url: config.url,
+            limitBytes: maxPayload,
+            closeCode,
+          });
+          entry._webSocketPayloadError = error;
+          entry.state = ServerState.ERROR;
+          rejectPending(error);
+          this.emit("server-error", {
+            name,
+            error: error.message,
+            code: error.code,
+            closeCode: error.closeCode,
+            limitBytes: error.limitBytes,
+          });
+          if (socket.readyState === 1) {
+            try {
+              socket.close(1009, "payload too large");
+            } catch {
+              socket.terminate?.();
+            }
+          }
+          return error;
+        };
 
         await new Promise((resolve, reject) => {
           let settled = false;
@@ -1039,6 +1099,21 @@ export class MCPClient extends EventEmitter {
           }
         });
         socket.on("close", (code, reason) => {
+          const payloadError =
+            entry._webSocketPayloadError ||
+            (code === 1009 ? recordPayloadFailure(1009) : null);
+          if (payloadError) {
+            entry.state = ServerState.ERROR;
+            rejectPending(payloadError);
+            this.emit("server-disconnected", {
+              name,
+              code,
+              reason: "payload too large",
+              errorCode: payloadError.code,
+              limitBytes: payloadError.limitBytes,
+            });
+            return;
+          }
           entry.state = ServerState.DISCONNECTED;
           const suffix = reason?.length ? `: ${String(reason)}` : "";
           const error = mcpTransportError(
@@ -1054,6 +1129,10 @@ export class MCPClient extends EventEmitter {
           });
         });
         socket.on("error", (cause) => {
+          if (isWebSocketPayloadError(cause)) {
+            recordPayloadFailure(1009);
+            return;
+          }
           entry.state = ServerState.ERROR;
           const error = mcpTransportError(
             "CC_MCP_WS_ERROR",
