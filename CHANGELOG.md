@@ -7,13 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added — cc CLI 0.162.196: durable sessions, MCP recovery, and checkpoint safety
+### Added — cc CLI 0.162.197: durable sessions, MCP recovery, and checkpoint safety
 
-> `chainlesschain` **0.162.189 → 0.162.196** (release candidate,
+> `chainlesschain` **0.162.189 → 0.162.197** (release candidate,
 > 2026-08-05; `0.162.190`, `0.162.191`, and `0.162.192` were never published;
 > `0.162.193` was published outside the authoritative CLI release workflow;
-> `0.162.194` and `0.162.195` failed before npm upload and their tags remain
-> immutable).
+> `0.162.194`, `0.162.195`, and `0.162.196` failed before npm upload and their
+> tags remain immutable).
 > CLI-only release metadata;
 > `@chainlesschain/personal-data-hub`
 > remains **0.4.57** and `@chainlesschain/agent-sdk` remains **0.1.7**.
@@ -69,7 +69,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   power-loss proof, or checkpoint recovery GA.
 - **Release retry identity**: tags `v-npm-0-162-190`,
   `v-npm-0-162-191`, `v-npm-0-162-192`, `v-npm-0-162-194`, and
-  `v-npm-0-162-195` remain immutable records of pre-publication failures.
+  `v-npm-0-162-195` / `v-npm-0-162-196` remain immutable records of
+  pre-publication failures.
   Run `30790359741` exposed an Agent SDK E2E fixture that used its owner-private
   `CHAINLESSCHAIN_HOME` as the active workspace; the fixture now uses sibling
   control-state and workspace roots while production path safety remains fail
@@ -98,6 +99,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   command-line argument; the 959-file metadata exceeded Linux `ARG_MAX` before
   release-manifest creation. Pack metadata now flows through a temporary file,
   and the consumed `v-npm-0-162-195` identity is also not moved or reused.
+  Run `30976924860` passed all tests, immutable tarball creation, SBOM validation,
+  and artifact upload, but `npm publish` interpreted the bare relative
+  `release-artifacts/...tgz` argument as a GitHub `owner/repo` package spec and
+  failed before upload. The publish step now discovers the tarball through the
+  absolute `$GITHUB_WORKSPACE` path; `v-npm-0-162-196` is not moved or reused.
 - **Release authority containment**: a later generic workspace publisher
   replaced the dedicated CLI workflow at the same `npm-publish.yml` path.
   Manually dispatched run `30820089779` therefore auto-selected and published
@@ -153,12 +159,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   policy.
 - **Release status**: `0.162.193` exists on npm but is not an authorized CLI
   release and must not be overwritten or represented as gate-complete.
-  `0.162.194` and `0.162.195` are not published and their failed tags remain
-  immutable. The `0.162.196` exact
+  `0.162.194`, `0.162.195`, and `0.162.196` are not published and their failed
+  tags remain immutable. The `0.162.197` exact
   version/changelog/fix commit must pass `CLI CI` and `CLI Strict Sandbox` on
   Ubuntu, Windows, and macOS, plus affected `Session Host Consistency`,
   `CLI Background Interaction E2E`, and immutable npm tarball verification,
-  before tag `v-npm-0-162-196` or npm publication is allowed. Local,
+  before tag `v-npm-0-162-197` or npm publication is allowed. Local,
   older-SHA, and partial results are supplementary only.
 
 ### Added — cc CLI 0.162.189: managed rollback and distributed Agent Teams closure

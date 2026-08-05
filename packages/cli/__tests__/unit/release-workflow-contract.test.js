@@ -77,6 +77,8 @@ describe("CLI release workflow contracts", () => {
       text.indexOf('- name: "Publish chainlesschain (CLI)"'),
       text.indexOf("      - name: Publish summary"),
     );
+    expect(cliPublish).toContain('find "$GITHUB_WORKSPACE/release-artifacts"');
+    expect(cliPublish).not.toContain("TARBALL=$(find release-artifacts");
     expect(cliPublish.indexOf("npm-release-artifact.mjs verify")).toBeLessThan(
       cliPublish.indexOf('npm publish "$TARBALL"'),
     );
