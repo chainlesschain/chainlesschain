@@ -858,12 +858,29 @@ clean implementation SHA `5a7bc85f9f91a5d92908f8aebd99437e63b535bb` 在 Windows 
 
 该增量关闭的是**遵守 production sink 的 MCP 宿主在 authority 旋转后的下一次持久写边界**，不是 machine-wide process lease：已经完成 prewrite、正在外部执行的旧调用不会被瞬时中断，其结果仍必须按 outcome-unknown/人工裁决处理；恶意同 UID 代码仍可绕过 sink，通用 session host、Skill、非 MCP side effect 也不受此 fence 直接约束。它同样不提供独立 anti-rollback anchor、fsync/断电、三平台或长期 soak 证明。因此 scoped MCP old-host fencing 本地已完成，但完整 Session/Skill/MCP 产品项仍为 **NO-GO**。
 
-### 16.6 仍未完成的产品级任务
+### 16.6 Canonical transcript 外部丢失与恢复冲突失败关闭增量
+
+实现提交 `b53671b260a7f0970c101a30f3ac28d2e9fa5f47` 关闭了一个更窄但可生产触发的故障窗口：canonical `.jsonl` 被外部删除、而其 per-session meta 仍存活时，旧实现可能把同一 ID 静默当作新 genesis，或让命令回退到 stale legacy history。提交 `311396d6497e5ce885a1e5e53575cfcca6ec4897` 又修正 latest resolution 的毫秒级并列反例：健康旧会话与 missing/conflict 同时刻时，先选择 damaged candidate 失败关闭，只在同风险级内按 ID 破平。
+
+- store 现在区分 `absent`、`present`、`missing-transcript`、`tombstoned` 与 `conflict`。普通 append、`session_start`、verified projection、raw compatibility read/rebuild、repair、强制 migration 与显式 resume 都不能把 surviving live witness 解释成空会话；只有显式 delete 先提交 tombstone，随后显式 `session_start` 才能建立新的 verified genesis。
+- delete 在 meta 之外先提交 owner-only `<id>.tombstone` namespace witness。它让 `--continue` 无须读取每一个 live sidecar，就能在 disposable activity journal 被删除、全坏或只剩合法旧前缀时发现“tombstone 后恢复旧 transcript”的 conflict。普通 tombstone/absent 不会被 stale pre-delete journal 复活；conflict-only 连续 list 不会反复重建或无限扩张 journal。
+- exact-ID command fallback、普通 headless resume、persist-only headless、stream、REPL admission、authenticated background attach 与 WebSocket resume 均在 config/bootstrap/hooks/MCP/model/tool 或状态 commit 前拒绝 damaged authority；`session tail` 在启动和每次 poll 前重新检查 presence，doctor 将 missing/conflict 与 tamper 一样报告为完整性错误。公开失败 snapshot 只含稳定错误码、摘要与空消息，不复制 transcript 内容。
+- `getLastSessionId()` 同时合并 indexed live candidate、sidecar-only missing candidate 与 marker-backed conflict candidate；相同 `updated_at_ms` 时 `missing/conflict` 优先于 healthy session。正式 fixture 固定同一毫秒，并故意让 conflict ID 的字典序小于 healthy ID，避免测试靠 ID 偶然通过。
+
+本地回归包括 canonical store **107/107**、headless runner + session list index **75/75**、session tail **9/9**、新增 doctor 完整性用例 **1/1**，以及 Session Host gate test **5/5**；Node 语法、Prettier 与 `git diff --check` 均通过。随后在 clean tracked worktree 对最终实现 SHA `311396d6497e5ce885a1e5e53575cfcca6ec4897` 运行 Windows x64 / Node `22.22.2` exact-SHA 门禁：
+
+- `CLI Session Host Consistency` 的 `expectedSha` / `exactSha` 均命中最终提交，tree 为 `b2ceb8c14869171c7eefd1a395814dea1025de5f`，84.83 秒内九个场景全部通过、violations 为空、`gateSourcePathsExact=true`、`trackedWorktreeDirty=false`。新增 `restoredTranscriptConflictRefusal` 同时证明 parseable stale journal、同毫秒风险并列、REPL、`--continue`、persist-only、stream、background attach 与 WebSocket 的副作用前拒绝。
+- 同一 SHA 的 `CLI Session Scale` smoke 也精确通过：3 个 writer × 25 次 append 为 `75/75` 唯一事件且链 verified；250 sessions indexed list p95 `13.60 ms`、峰值 RSS `51.43 MiB`；64 MiB hot resume p95 `3.17 ms`、最大读取 `65,537` 字节，3 个完整 CLI 冷进程 p95 `812.66 ms`、峰值 RSS `60.80 MiB`；4 次真实进程强杀和 5 个 smoke byte cuts 零失败。该 smoke 只作当前改动的性能回归证据，不能替代第 16.2 节的三平台 1 GiB formal matrix。
+
+本节关闭的是 **exact-ID / latest-continue 在 per-session meta+tombstone witness set 完整存活时的 pre-write deletion/conflict fencing**。它不证明并发 pathname replace/unlink 的 FD identity 事务，也不检测“删除 interior/prefix record 但保留原 tail”的所有 append 前篡改；meta 或 tombstone witness 任一遭外部删除时仍缺独立 anchor。prefix/interactive picker、`JSONL_SESSION` feature flag 关闭时的 legacy fallback、mirror/search/raw session-index consumers、合法替换链与 chain-only `verifySession` 的语义统一也仍未闭合。以上限制以及通用跨进程 lease、fsync/断电、三平台 artifact 均不得由本地成功外推。
+
+### 16.7 仍未完成的产品级任务
 
 1. 在实现 SHA `f99f18e4cb3832b8848534186ba32756e98c66c9` 上完成三平台 `CLI Session Scale` formal matrix：本地 Windows x64 formal 已通过，仍须取得 GitHub-hosted Ubuntu、macOS、Windows 的 exact-SHA artifacts；每格的 20 个 writer × 1,000 次 append、10,000 sessions、1 GiB transcript、至少 15 个完整 CLI 冷进程样本、真实进程强杀与 exhaustive partial-record cuts 必须全部成功。
-2. 完成 Session/Skill/MCP 的剩余真实恶意矩阵：当前 Windows 本地门已覆盖 WS claim owner kill、同 request 不接管、transcript+sidecar 同 UID 伪造拒绝，以及遵守 production sink 的旧 MCP 宿主在裁决后无法 settlement/再次 prewrite；仍须三平台 artifact、覆盖通用 session/Skill/非 MCP side effect 的 machine-wide lease、在途 transport 即时撤权、恶意 MCP/Skill、无法伪造 sidecar 的独立 anti-rollback anchor、磁盘满/只读目录/broken pipe，以及长期安全 soak。`HOST STOPPED` challenge 与本节 scoped MCP fence 都不是 machine-wide lease。
-3. 完成 native generation transaction 与公开发行链：任意阶段 taskkill/断电/fsync 后的确定恢复，Linux/macOS/Windows x64 + ARM64 目标二进制实机，notarization/Authenticode/Linux 签名、fresh install/upgrade/rollback 及 Homebrew/WinGet/公开 manifest/asset 回读。
-4. 完成 P1 命令生命周期观察窗：在包含当前 OTLP 接线的发布版本上积累至少两个 minor cycle，报告 collector 覆盖与抽样偏差，并按 command 比较 legacy/replacement 用量后逐项决定兼容 alias 是否可移除；在此之前不得删除旧入口。
-5. 完成真实 TTY、SSH、screen reader、Windows/macOS clipboard 与键盘布局、1,000+ turns、超大 MCP output、20+ 并发 Agent、FD/handle/orphan/worktree 清理和长期 soak。各矩阵必须报告延迟、RSS、I/O、FD/handle 与 cleanup deadline，不能只记录“测试最终通过”。
+2. 完成 Session 剩余事实源与竞态闭包：本节只关闭 exact-ID/latest-continue 的 pre-write missing/conflict；仍须处理 damaged prefix namespace 与 ambiguity、interactive/recent picker、feature flag 关闭时的 canonical-over-legacy fence、mirror/search/raw index consumer、合法 replacement chain、append 的 interior/prefix deletion、检查到 append 之间的 pathname/FD identity TOCTOU、meta/tombstone 任一 witness 丢失与独立 anti-rollback anchor，并形成三平台 exact-SHA artifact。通用 machine-wide session-host lease 与非 MCP side effect fencing 仍未完成。
+3. 完成 Skill/MCP 真实恶意矩阵：默认不得在 dispatch 后自动重放 outcome-unknown 的非幂等 `tools/call`；AbortSignal/recovery generation 必须贯穿 agent-core 到 HTTP/WS/SSE/stdio transport，并按 deadline 清理完整进程树。HTTP 非 2xx body、stdio complete line/stderr/malformed aggregate、最终 result/ledger/stream、tool schema/description 与 Skill 文件/递归总量都需要 host-owned 不可放宽的字节/深度预算；token 估算失败不得返回 0 后 fail-open。还须覆盖 run_skill 父级取消、即时 revoke、可执行字节身份绑定，以及“任意 stdio command 等价于信任本地代码执行”的明确边界。现有 Session Host MCP 场景只证明 ledger recovery fence，不是真实 transport 恶意矩阵。
+4. 完成 native generation transaction 与公开发行链：POSIX pointer、PowerShell installer 与 OTA 需要统一 durable WAL/phase/commit decision、restart recovery 与 stale-lock 处置；任意阶段 taskkill/断电/fsync 后必须确定恢复。随后补齐 Linux/macOS/Windows x64 + ARM64 目标二进制实机、notarization/Authenticode/Linux 签名、fresh install/upgrade/rollback 及 Homebrew/WinGet/公开 manifest/asset 回读，不能用 cross-target synthetic skip 代替六目标真实 host。
+5. 完成 P1 命令生命周期观察窗：在包含当前 OTLP 接线的发布版本上积累至少两个 minor cycle，报告 collector 覆盖与抽样偏差，并按 command 比较 legacy/replacement 用量后逐项决定兼容 alias 是否可移除；在此之前不得删除旧入口。
+6. 完成真实磁盘、pipe、终端与长期运行矩阵：修正 EPIPE 直接 `process.exit(0)` 绕过 cleanup、stdout/stderr write(false) backpressure、stream 非 finally cleanup，以及 ENOSPC/EROFS 的 commit-state 语义；覆盖真实 TTY、SSH、screen reader、Windows/macOS clipboard 与键盘布局、1,000+ turns、超大 MCP output、20+ 并发 Agent、FD/handle/orphan/worktree 清理和长期 soak。各矩阵必须报告 p95、RSS、I/O、FD/handle/process-descendant 差值与 cleanup deadline，不能只记录“测试最终通过”。
 
 当前总判定：**CLI npm 子范围 GO；完整产品实现仍为 NO-GO**。后续每关闭一个子项，都必须在本节追加 exact-SHA、矩阵范围、artifact 和未覆盖边界，不能改写历史失败，也不能用不同 SHA 的局部成功拼接授权。
