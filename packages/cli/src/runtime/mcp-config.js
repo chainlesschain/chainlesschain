@@ -36,6 +36,10 @@ import {
 import { collectPluginMcpServers } from "../lib/plugin-runtime/mcp.js";
 import { EventRuntimeStore } from "../lib/event-runtime-store.js";
 import { mcpEffectDescriptorFields } from "../lib/mcp-effect-contract.js";
+import {
+  admitMcpToolList,
+  isMcpToolMetadataError,
+} from "../lib/mcp-tool-metadata.js";
 
 function headersHelperField(value) {
   return typeof value === "string" && value.trim()
@@ -80,6 +84,25 @@ export function parseMcpServers(raw) {
         : {}),
       ...(Number.isFinite(cfg.maxJsonNodes)
         ? { maxJsonNodes: cfg.maxJsonNodes }
+        : {}),
+      ...(Number.isFinite(cfg.maxTools) ? { maxTools: cfg.maxTools } : {}),
+      ...(Number.isFinite(cfg.maxToolDescriptionBytes)
+        ? { maxToolDescriptionBytes: cfg.maxToolDescriptionBytes }
+        : {}),
+      ...(Number.isFinite(cfg.maxToolSchemaBytes)
+        ? { maxToolSchemaBytes: cfg.maxToolSchemaBytes }
+        : {}),
+      ...(Number.isFinite(cfg.maxToolSchemaDepth)
+        ? { maxToolSchemaDepth: cfg.maxToolSchemaDepth }
+        : {}),
+      ...(Number.isFinite(cfg.maxToolSchemaNodes)
+        ? { maxToolSchemaNodes: cfg.maxToolSchemaNodes }
+        : {}),
+      ...(Number.isFinite(cfg.maxToolDefinitionBytes)
+        ? { maxToolDefinitionBytes: cfg.maxToolDefinitionBytes }
+        : {}),
+      ...(Number.isFinite(cfg.maxToolMetadataBytes)
+        ? { maxToolMetadataBytes: cfg.maxToolMetadataBytes }
         : {}),
       ...headersHelperField(cfg.headersHelper),
       ...(cfg.configScope ? { configScope: cfg.configScope } : {}),
@@ -227,6 +250,9 @@ export async function setupMcpFromConfig(servers, deps = {}) {
   ) {
     result.instructionsByServer = {};
   }
+  if (!Number.isSafeInteger(result._mcpToolMetadataBytes)) {
+    result._mcpToolMetadataBytes = 0;
+  }
   const {
     mcpClient,
     extraToolDefinitions,
@@ -307,7 +333,18 @@ export async function setupMcpFromConfig(servers, deps = {}) {
       writeErr(line);
       continue;
     }
-    const tools = Array.isArray(res?.tools) ? res.tools : [];
+    let tools = [];
+    let toolMetadataError = null;
+    try {
+      const admitted = admitMcpToolList(name, res?.tools ?? [], cfg, {
+        clientBytesUsed: result._mcpToolMetadataBytes,
+      });
+      tools = admitted.tools;
+      result._mcpToolMetadataBytes += admitted.metadataBytes;
+    } catch (error) {
+      if (!isMcpToolMetadataError(error)) throw error;
+      toolMetadataError = error;
+    }
     const resources = Array.isArray(res?.resources) ? res.resources : [];
     const prompts = Array.isArray(res?.prompts) ? res.prompts : [];
     // A server can connect (initialize OK) yet have its tools/list fail — the
@@ -320,6 +357,11 @@ export async function setupMcpFromConfig(servers, deps = {}) {
       const hint = mcpAuthHint(cfg.url, res.toolsError);
       if (hint) line += hint;
       writeErr(line);
+    }
+    if (toolMetadataError) {
+      writeErr(
+        `  mcp: "${name}" connected but tool metadata was rejected: ${toolMetadataError.message}\n`,
+      );
     }
     connected.push({
       server: name,

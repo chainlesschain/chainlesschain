@@ -19,6 +19,10 @@ import { EventRuntimeProducer } from "../lib/event-runtime-producer.js";
 import { currentHostHooksV2WorkspaceBinding } from "../lib/hooks-v2-workspace-context.js";
 import { resolvePluginWorkspaceAuthority } from "../lib/plugin-runtime/sandbox-policy.js";
 import {
+  admitMcpToolList,
+  isMcpToolMetadataError,
+} from "../lib/mcp-tool-metadata.js";
+import {
   mergeMcpHeaders,
   resolveMcpHeadersHelperContext,
   runMcpHeadersHelper,
@@ -1075,6 +1079,7 @@ export class MCPClient extends EventEmitter {
   constructor(options = {}) {
     super();
     this.servers = new Map(); // name → { process, state, tools, resources, config }
+    this._toolMetadataBytes = 0;
     this._nextId = 1;
     this._reconnectors = new Map(); // name → async () => config|null
     this._reconnecting = new Map(); // name → in-flight reconnect promise
@@ -1809,6 +1814,7 @@ export class MCPClient extends EventEmitter {
       _webSocketPayloadError: null,
       _webSocketInboundError: null,
       _inboundTrafficBudget: null,
+      _toolMetadataBytes: 0,
       tools: [],
       resources: [],
       resourceTemplates: [],
@@ -2350,7 +2356,7 @@ export class MCPClient extends EventEmitter {
           "tools/list",
           {},
         );
-        entry.tools = toolsResult?.tools || [];
+        this._replaceToolInventory(name, entry, toolsResult?.tools || []);
       } catch (err) {
         if (advertisesTools) {
           entry.toolsError = err?.message || String(err);
@@ -2451,6 +2457,7 @@ export class MCPClient extends EventEmitter {
           // teardown is best-effort
         }
       }
+      this._releaseToolInventory(entry);
       this.servers.delete(name);
       if (
         !_authRetryUsed &&
@@ -2523,6 +2530,7 @@ export class MCPClient extends EventEmitter {
         return true;
       } finally {
         entry.state = ServerState.DISCONNECTED;
+        this._releaseToolInventory(entry);
         // A future connection may reuse the same name. Never let a delayed
         // teardown delete that replacement entry.
         if (this.servers.get(name) === entry) this.servers.delete(name);
@@ -2545,6 +2553,36 @@ export class MCPClient extends EventEmitter {
     const names = [...this.servers.keys()];
     for (const name of names) {
       await this.disconnect(name);
+    }
+  }
+
+  _replaceToolInventory(serverName, entry, tools) {
+    const previousBytes = Number.isSafeInteger(entry?._toolMetadataBytes)
+      ? entry._toolMetadataBytes
+      : 0;
+    const clientBytesUsed = Math.max(
+      0,
+      this._toolMetadataBytes - previousBytes,
+    );
+    const admitted = admitMcpToolList(serverName, tools, entry?.config, {
+      clientBytesUsed,
+    });
+    entry.tools = admitted.tools;
+    entry._toolMetadataBytes = admitted.metadataBytes;
+    this._toolMetadataBytes = clientBytesUsed + admitted.metadataBytes;
+    return entry.tools;
+  }
+
+  _releaseToolInventory(entry) {
+    const bytes = Number.isSafeInteger(entry?._toolMetadataBytes)
+      ? entry._toolMetadataBytes
+      : 0;
+    if (bytes > 0) {
+      this._toolMetadataBytes = Math.max(0, this._toolMetadataBytes - bytes);
+    }
+    if (entry) {
+      entry._toolMetadataBytes = 0;
+      entry.tools = [];
     }
   }
 
@@ -4048,13 +4086,37 @@ export class MCPClient extends EventEmitter {
               : kind === "resourceTemplates"
                 ? result?.resourceTemplates
                 : result?.resources) || [];
-          entry[kind] = list;
-          if (kind === "tools") entry.toolsError = null;
+          if (kind === "tools") {
+            this._replaceToolInventory(serverName, entry, list);
+            entry.toolsError = null;
+          } else {
+            entry[kind] = list;
+          }
           this.emit(`${kind}-changed`, {
             server: serverName,
             count: list.length,
           });
-        } catch {
+        } catch (error) {
+          if (kind === "tools" && isMcpToolMetadataError(error)) {
+            entry.toolsError = error.message;
+            this.emit("server-error", {
+              name: serverName,
+              code: error.code,
+              error: error.message,
+              ...(error.limitBytes != null
+                ? { limitBytes: error.limitBytes }
+                : {}),
+              ...(error.limitDepth != null
+                ? { limitDepth: error.limitDepth }
+                : {}),
+              ...(error.limitNodes != null
+                ? { limitNodes: error.limitNodes }
+                : {}),
+              ...(error.limitTools != null
+                ? { limitTools: error.limitTools }
+                : {}),
+            });
+          }
           break; // keep the previous list; the next notification retries
         }
       } while (flags[`${kind}Dirty`]);

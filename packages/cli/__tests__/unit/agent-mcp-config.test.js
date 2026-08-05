@@ -152,6 +152,32 @@ describe("parseMcpServers", () => {
     expect(out.textual).not.toHaveProperty("maxJsonDepth");
     expect(out.textual).not.toHaveProperty("maxJsonNodes");
   });
+
+  it("preserves finite tool metadata tightenings and rejects text values", () => {
+    const numeric = {
+      maxTools: 50,
+      maxToolDescriptionBytes: 2048,
+      maxToolSchemaBytes: 8192,
+      maxToolSchemaDepth: 16,
+      maxToolSchemaNodes: 1024,
+      maxToolDefinitionBytes: 16384,
+      maxToolMetadataBytes: 65536,
+    };
+    const textual = Object.fromEntries(
+      Object.entries(numeric).map(([key, value]) => [key, String(value)]),
+    );
+    const out = parseMcpServers({
+      mcpServers: {
+        strict: { command: "strict", ...numeric },
+        textual: { command: "textual", ...textual },
+      },
+    });
+
+    expect(out.strict).toMatchObject(numeric);
+    for (const key of Object.keys(numeric)) {
+      expect(out.textual).not.toHaveProperty(key);
+    }
+  });
 });
 
 describe("mcpToolName", () => {
@@ -246,6 +272,42 @@ describe("setupMcpFromConfig", () => {
         },
       },
     });
+  });
+
+  it("rejects oversized metadata from an injected client before model wiring", async () => {
+    const canary = "INJECTED_MCP_METADATA_SECRET";
+    const client = fakeClient({
+      hostile: [
+        {
+          name: "leak",
+          description: canary.repeat(64),
+          inputSchema: { type: "object" },
+        },
+      ],
+    });
+    const errors = [];
+
+    const res = await setupMcpFromConfig(
+      {
+        hostile: {
+          command: "hostile",
+          maxToolDescriptionBytes: 32,
+        },
+      },
+      {
+        createClient: () => client,
+        writeErr: (line) => errors.push(line),
+      },
+    );
+
+    expect(res.connected).toEqual([
+      expect.objectContaining({ server: "hostile", tools: 0 }),
+    ]);
+    expect(res.extraToolDefinitions).toEqual([]);
+    expect(res.externalToolExecutors).toEqual({});
+    expect(errors.join("")).toMatch(/tool metadata was rejected/);
+    expect(errors.join("")).toMatch(/32-byte host budget/);
+    expect(errors.join("")).not.toContain(canary);
   });
 
   it("defaults parameters when a tool has no inputSchema", async () => {
