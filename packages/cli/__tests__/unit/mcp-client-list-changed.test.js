@@ -10,7 +10,15 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import { EventEmitter } from "events";
-import { MCPClient } from "../../src/lib/mcp-client.js";
+import { MCPClient, _deps } from "../../src/lib/mcp-client.js";
+
+beforeEach(() => {
+  _deps.consumeMcpStdioExecutionAuthority = () => ({
+    approvalKind: "test-fixture",
+  });
+  _deps.materializeApprovedMcpStdioInvocation = (_approval, { config }) =>
+    config;
+});
 
 function makeFakeProc(state) {
   const proc = new EventEmitter();

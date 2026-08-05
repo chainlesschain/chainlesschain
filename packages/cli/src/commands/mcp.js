@@ -40,6 +40,10 @@ import {
   issueProjectMcpWorkspaceAuthority,
 } from "../lib/project-mcp-trust.js";
 import {
+  MCP_STDIO_LOCAL_CODE_TRUST_REQUIRED_CODE,
+  issueMcpStdioExecutionAuthority,
+} from "../lib/mcp-stdio-execution-authority.js";
+import {
   CATALOG as REGISTRY_CATALOG,
   CATEGORIES as REGISTRY_CATEGORIES,
   listServers as registryListServers,
@@ -77,6 +81,32 @@ export function isHeadlessEnv(env = process.env, platform = process.platform) {
 
 // Singleton MCP client for session reuse
 let mcpClient = null;
+const PROJECT_MCP_FILE_TRUST = Symbol("projectMcpFileTrust");
+
+export function authorizeMcpRowForConnect(row, overrides = {}) {
+  const config = { ...row, ...overrides };
+  if (inferTransport(config) !== "stdio") return config;
+  if (row?.[PROJECT_MCP_FILE_TRUST] === false) {
+    const error = new Error(
+      `Project MCP server "${String(row?.name)}" can execute local code; trust the current .mcp.json before connecting`,
+    );
+    error.code = MCP_STDIO_LOCAL_CODE_TRUST_REQUIRED_CODE;
+    throw error;
+  }
+  const approvalKind =
+    row?.configScope === "managed"
+      ? "managed-settings"
+      : row?.configScope === "project"
+        ? "project-config"
+        : "registered-config";
+  config.mcpStdioExecutionAuthority = issueMcpStdioExecutionAuthority({
+    serverName: row.name,
+    config,
+    approvalKind,
+    approvalSource: `${row?.configScope || "user"}:${row?.configSource || "database"}:${row.name}`,
+  });
+  return config;
+}
 
 function commandWorkspaceBinding() {
   return registerHostHooksV2Workspace(projectMcpLocation(process.cwd()).root);
@@ -150,7 +180,7 @@ async function connectForQuery(program, serverName) {
   for (const row of rows) {
     if (!row) continue;
     try {
-      await client.connect(row.name, row);
+      await client.connect(row.name, authorizeMcpRowForConnect(row));
       connected.push(row.name);
     } catch (err) {
       logger.log(
@@ -339,6 +369,7 @@ export function readProjectMcpRows(cwd = process.cwd()) {
         configSource: file,
         projectPath: root,
       };
+      Object.defineProperty(row, PROJECT_MCP_FILE_TRUST, { value: trusted });
       if (trusted && row.headersHelper) {
         row.projectMcpWorkspaceAuthority = issueProjectMcpWorkspaceAuthority({
           file,
@@ -1207,11 +1238,13 @@ export function registerMcpCommand(program) {
             workspaceBinding: commandWorkspaceBinding(),
           });
           try {
-            const connected = await client.connect(row.name, {
-              ...row,
-              connectTimeoutMs: timeoutMs,
-              requestTimeoutMs: timeoutMs,
-            });
+            const connected = await client.connect(
+              row.name,
+              authorizeMcpRowForConnect(row, {
+                connectTimeoutMs: timeoutMs,
+                requestTimeoutMs: timeoutMs,
+              }),
+            );
             diagnostics.push({
               ...record,
               ok: true,
@@ -1301,7 +1334,10 @@ export function registerMcpCommand(program) {
         const spinner = ora(`Connecting to ${name}...`).start();
         const client = getClient();
 
-        const result = await client.connect(name, serverConfig);
+        const result = await client.connect(
+          name,
+          authorizeMcpRowForConnect(serverConfig),
+        );
         spinner.stop();
 
         if (options.json) {

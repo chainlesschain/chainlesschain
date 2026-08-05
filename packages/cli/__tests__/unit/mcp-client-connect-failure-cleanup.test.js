@@ -15,18 +15,30 @@
  * the teardown happened.
  */
 
-import { afterEach, describe, it, expect, vi } from "vitest";
+import { afterEach, beforeEach, describe, it, expect, vi } from "vitest";
 import { EventEmitter } from "events";
 import { MCPClient, _deps } from "../../src/lib/mcp-client.js";
 
 const originalSpawn = _deps.spawn;
 const originalFetch = _deps.fetch;
 const originalTerminator = _deps.terminateOwnedProcessTree;
+const originalConsume = _deps.consumeMcpStdioExecutionAuthority;
+const originalMaterialize = _deps.materializeApprovedMcpStdioInvocation;
+
+beforeEach(() => {
+  _deps.consumeMcpStdioExecutionAuthority = () => ({
+    approvalKind: "test-fixture",
+  });
+  _deps.materializeApprovedMcpStdioInvocation = (_approval, { config }) =>
+    config;
+});
 
 afterEach(() => {
   _deps.spawn = originalSpawn;
   _deps.fetch = originalFetch;
   _deps.terminateOwnedProcessTree = originalTerminator;
+  _deps.consumeMcpStdioExecutionAuthority = originalConsume;
+  _deps.materializeApprovedMcpStdioInvocation = originalMaterialize;
 });
 
 // A child whose stdin write fails — `_sendRequest("initialize")` rejects at once.

@@ -9,6 +9,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { MCPClient, _deps as mcpDeps } from "../../src/harness/mcp-client.js";
 import { terminateOwnedProcessTree } from "../../src/lib/process-tree-termination.js";
+import { issueMcpStdioExecutionAuthority } from "../../src/lib/mcp-stdio-execution-authority.js";
 
 const SUPPORTED_PLATFORMS = new Set(["darwin", "linux", "win32"]);
 const fixturePath = fileURLToPath(
@@ -202,23 +203,29 @@ describe.skipIf(!SUPPORTED_PLATFORMS.has(process.platform))(
           });
 
         const client = new MCPClient();
-        const outcome = client
-          .connect("real-tree", {
-            command: process.execPath,
-            args: [fixturePath],
-            env: {
-              ...process.env,
-              CC_MCP_HEADERS_HELPER_TREE_MARKER: markerPath,
-              CC_MCP_HEADERS_HELPER_TREE_NONCE: nonce,
-            },
-            requestTimeoutMs: 1_000,
-            processTreeGraceMs: 50,
-            processTreeCleanupTimeoutMs: 2_000,
-          })
-          .then(
-            () => ({ resolved: true, error: null }),
-            (error) => ({ resolved: false, error }),
-          );
+        const connectionConfig = {
+          command: process.execPath,
+          args: [fixturePath],
+          env: {
+            ...process.env,
+            CC_MCP_HEADERS_HELPER_TREE_MARKER: markerPath,
+            CC_MCP_HEADERS_HELPER_TREE_NONCE: nonce,
+          },
+          requestTimeoutMs: 1_000,
+          processTreeGraceMs: 50,
+          processTreeCleanupTimeoutMs: 2_000,
+        };
+        connectionConfig.mcpStdioExecutionAuthority =
+          issueMcpStdioExecutionAuthority({
+            serverName: "real-tree",
+            config: connectionConfig,
+            approvalKind: "explicit-config",
+            approvalSource: "integration-fixture",
+          });
+        const outcome = client.connect("real-tree", connectionConfig).then(
+          () => ({ resolved: true, error: null }),
+          (error) => ({ resolved: false, error }),
+        );
         void outcome.then((result) => {
           earlyOutcome = result;
         });

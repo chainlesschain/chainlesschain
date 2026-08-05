@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { EventEmitter } from "node:events";
 import { MCPClient, _deps } from "../../src/lib/mcp-client.js";
 import { executionBroker } from "../../src/lib/process-execution-broker/index.js";
@@ -44,9 +44,21 @@ function makeFakeMcpProcess() {
 }
 
 const originalSpawn = _deps.spawn;
+const originalConsume = _deps.consumeMcpStdioExecutionAuthority;
+const originalMaterialize = _deps.materializeApprovedMcpStdioInvocation;
+
+beforeEach(() => {
+  _deps.consumeMcpStdioExecutionAuthority = () => ({
+    approvalKind: "test-fixture",
+  });
+  _deps.materializeApprovedMcpStdioInvocation = (_approval, { config }) =>
+    config;
+});
 
 afterEach(() => {
   _deps.spawn = originalSpawn;
+  _deps.consumeMcpStdioExecutionAuthority = originalConsume;
+  _deps.materializeApprovedMcpStdioInvocation = originalMaterialize;
   vi.restoreAllMocks();
 });
 

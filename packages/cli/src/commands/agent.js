@@ -277,7 +277,7 @@ export function registerAgentCommand(program) {
     )
     .option(
       "--bundle <path>",
-      "Agent bundle directory (chainless-agent.toml + AGENTS.md + skills/ + mcp.json + USER.md)",
+      "Agent bundle directory (may execute local MCP commands from mcp.json)",
     )
     // 鈹€鈹€ Headless / print mode (Claude-Code `claude -p` parity) 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
     .option(

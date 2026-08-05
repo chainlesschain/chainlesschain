@@ -211,9 +211,10 @@ describe("Phase 7 parity: MCP tool invocation", () => {
     expect(events[2].content).toBe("unavailable noted");
   });
 
-  it("returned non-object values are wrapped as { result } for consistent downstream shape", async () => {
-    // Some MCP servers return bare scalars. The executor wraps them so the
-    // tool-result event always carries an object.
+  it("treats a non-object MCP result as an invalid outcome", async () => {
+    // The host-owned result contract accepts structured MCP result graphs.
+    // A bare scalar is not silently reinterpreted after dispatch because the
+    // remote outcome may already have occurred.
     const mcpClient = {
       callTool: vi.fn().mockResolvedValue("raw-string-payload"),
     };
@@ -226,6 +227,18 @@ describe("Phase 7 parity: MCP tool invocation", () => {
       }),
     );
 
-    expect(events[1].result).toMatchObject({ result: "raw-string-payload" });
+    expect(events[1].result).toMatchObject({
+      code: "CC_MCP_LEDGER_OUTCOME_UNKNOWN",
+      status: "outcome_unknown",
+      outcomeUnknown: true,
+      retryable: false,
+      mcpLedgerIncident: {
+        phase: "result",
+        code: "CC_MCP_TOOL_RESULT_INVALID",
+      },
+    });
+    expect(JSON.stringify(events[1].result)).not.toContain(
+      "raw-string-payload",
+    );
   });
 });

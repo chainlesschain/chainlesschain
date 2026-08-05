@@ -9,12 +9,14 @@ import {
   normalizeMcpConfigScope,
 } from "../../src/harness/mcp-client.js";
 import {
+  authorizeMcpRowForConnect,
   diagnoseMcpTransportConfig,
   readProjectMcpRows,
   removeProjectMcpServer,
   registerMcpCommand,
   writeProjectMcpServer,
 } from "../../src/commands/mcp.js";
+import { consumeMcpStdioExecutionAuthority } from "../../src/lib/mcp-stdio-execution-authority.js";
 
 function parseMcpAddOptions(argv = []) {
   const program = new Command();
@@ -53,6 +55,24 @@ describe("cc mcp add scope default", () => {
 });
 
 describe("MCP configuration scopes", () => {
+  it("authorizes a registered stdio row with a one-shot bound capability", () => {
+    const row = {
+      name: "registered",
+      command: "node",
+      args: ["server.mjs"],
+      configScope: "user",
+      configSource: "database",
+    };
+    const authorized = authorizeMcpRowForConnect(row);
+
+    expect(
+      consumeMcpStdioExecutionAuthority(authorized.mcpStdioExecutionAuthority, {
+        serverName: row.name,
+        config: authorized,
+      }),
+    ).toMatchObject({ approvalKind: "registered-config" });
+  });
+
   it("validates the four public scopes", () => {
     for (const scope of ["local", "project", "user", "managed"]) {
       expect(normalizeMcpConfigScope(scope.toUpperCase())).toBe(scope);
@@ -157,6 +177,25 @@ describe("MCP configuration scopes", () => {
       ]);
       expect(removeProjectMcpServer("shared-project", nested)).toBe(true);
       expect(readProjectMcpRows(nested)).toEqual([]);
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("refuses an untrusted project-file stdio row", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-mcp-untrusted-"));
+    fs.writeFileSync(path.join(root, ".git"), "gitdir: test\n");
+    fs.writeFileSync(
+      path.join(root, ".mcp.json"),
+      JSON.stringify({ mcpServers: { local: { command: "node" } } }),
+    );
+    try {
+      const [row] = readProjectMcpRows(root);
+      expect(() => authorizeMcpRowForConnect(row)).toThrow(
+        expect.objectContaining({
+          code: "CC_MCP_STDIO_LOCAL_CODE_TRUST_REQUIRED",
+        }),
+      );
     } finally {
       fs.rmSync(root, { recursive: true, force: true });
     }

@@ -142,11 +142,15 @@ describe("cowork-mcp-tools", () => {
           return fake;
         };
 
-      const res = await mountTemplateMcpTools({
-        mcpServers: [
-          { name: "fetch", command: "npx", args: ["-y", "@mcp/fetch"] },
-        ],
-      });
+      const res = await mountTemplateMcpTools(
+        {
+          id: "approved-template",
+          mcpServers: [
+            { name: "fetch", command: "npx", args: ["-y", "@mcp/fetch"] },
+          ],
+        },
+        { approveLocalCodeExecution: async () => true },
+      );
 
       expect(res.mounted).toEqual(["fetch"]);
       expect(res.skipped).toEqual([]);
@@ -184,7 +188,7 @@ describe("cowork-mcp-tools", () => {
             { name: "good", command: "echo" },
           ],
         },
-        { onWarn },
+        { onWarn, approveLocalCodeExecution: async () => true },
       );
 
       expect(res.mounted).toEqual(["good"]);
@@ -201,9 +205,10 @@ describe("cowork-mcp-tools", () => {
           return fake;
         };
 
-      const res = await mountTemplateMcpTools({
-        mcpServers: [{ name: "a", command: "echo" }],
-      });
+      const res = await mountTemplateMcpTools(
+        { mcpServers: [{ name: "a", command: "echo" }] },
+        { approveLocalCodeExecution: async () => true },
+      );
 
       await res.cleanup();
       expect(fake.disconnected).toEqual(["a"]);
@@ -220,9 +225,10 @@ describe("cowork-mcp-tools", () => {
           return fake;
         };
 
-      const res = await mountTemplateMcpTools({
-        mcpServers: [{ name: "a", command: "echo" }],
-      });
+      const res = await mountTemplateMcpTools(
+        { mcpServers: [{ name: "a", command: "echo" }] },
+        { approveLocalCodeExecution: async () => true },
+      );
 
       await res.cleanup();
       expect(disconnectAll).toHaveBeenCalledOnce();
@@ -238,11 +244,28 @@ describe("cowork-mcp-tools", () => {
           return fake;
         };
 
-      const res = await mountTemplateMcpTools({
-        mcpServers: [{ name: "a", command: "echo" }],
-      });
+      const res = await mountTemplateMcpTools(
+        { mcpServers: [{ name: "a", command: "echo" }] },
+        { approveLocalCodeExecution: async () => true },
+      );
 
       await expect(res.cleanup()).resolves.toBeUndefined();
+    });
+
+    it("fails closed before creating a client without explicit local-code approval", async () => {
+      const onWarn = vi.fn();
+      const res = await mountTemplateMcpTools(
+        { mcpServers: [{ name: "a", command: "echo" }] },
+        { onWarn },
+      );
+
+      expect(res.mcpClient).toBeNull();
+      expect(res.mounted).toEqual([]);
+      expect(res.skipped[0]).toMatchObject({ name: "a" });
+      expect(res.skipped[0].error).toContain(
+        "CC_MCP_STDIO_LOCAL_CODE_TRUST_REQUIRED",
+      );
+      expect(onWarn).toHaveBeenCalledOnce();
     });
   });
 });

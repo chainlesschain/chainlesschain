@@ -16,7 +16,11 @@
 
 import fs from "fs";
 import path from "path";
-import { MCPClient, redactMcpUrl } from "../harness/mcp-client.js";
+import {
+  MCPClient,
+  inferTransport,
+  redactMcpUrl,
+} from "../harness/mcp-client.js";
 import { projectRootBase } from "../lib/project-root.cjs";
 import {
   discoverIdeServer,
@@ -40,6 +44,34 @@ import {
   admitMcpToolList,
   isMcpToolMetadataError,
 } from "../lib/mcp-tool-metadata.js";
+import { issueMcpStdioExecutionAuthority } from "../lib/mcp-stdio-execution-authority.js";
+
+function authorizeStdioServers(
+  servers,
+  approvalKind,
+  sourceForServer,
+  { writeErr = () => {}, failFast = false } = {},
+) {
+  for (const [name, config] of Object.entries(servers || {})) {
+    if (!config || typeof config !== "object") continue;
+    if (inferTransport(config) !== "stdio") continue;
+    try {
+      config.mcpStdioExecutionAuthority = issueMcpStdioExecutionAuthority({
+        serverName: name,
+        config,
+        approvalKind,
+        approvalSource: sourceForServer(name, config),
+      });
+    } catch (error) {
+      if (failFast) throw error;
+      delete servers[name];
+      writeErr(
+        `  mcp: SKIPPING stdio server "${name}" because its local-code execution authority could not be issued.\n`,
+      );
+    }
+  }
+  return servers;
+}
 
 function headersHelperField(value) {
   return typeof value === "string" && value.trim()
@@ -132,6 +164,12 @@ export async function loadManagedMcp(settings, deps = {}) {
     config.configScope = "managed";
     config.configSource = deps.managedFile || "managed-settings";
   }
+  authorizeStdioServers(
+    servers,
+    "managed-settings",
+    (_name, config) => config.configSource,
+    { writeErr: deps.writeErr },
+  );
   if (Object.keys(servers).length === 0) return deps.into || null;
   (deps.writeErr || (() => {}))(
     `  mcp: ${Object.keys(servers).length} managed server(s) from ${deps.managedFile || "managed settings"}\n`,
@@ -591,6 +629,12 @@ export async function loadMcpConfig(filePath, deps = {}) {
         `(expected {"mcpServers": {"name": {"command": "..."}}}).`,
     );
   }
+  authorizeStdioServers(
+    servers,
+    "explicit-config",
+    () => path.resolve(filePath),
+    { failFast: true },
+  );
   return setupMcpFromConfig(servers, deps);
 }
 
@@ -636,6 +680,13 @@ export async function loadRegisteredMcp(rawDb, deps = {}) {
     };
   }
   if (Object.keys(servers).length === 0) return deps.into || null;
+  authorizeStdioServers(
+    servers,
+    "registered-config",
+    (name, config) =>
+      `${config.configScope || "user"}:${config.configSource || "user-database"}:${name}`,
+    { writeErr: deps.writeErr },
+  );
   return setupMcpFromConfig(servers, deps);
 }
 
@@ -867,14 +918,16 @@ export async function loadProjectMcp(opts = {}, deps = {}) {
         config.configScope = "project";
         config.configSource = file;
         config.projectPath = path.dirname(file);
-        if (config.headersHelper) {
-          if (typeof trust.issueProjectMcpWorkspaceAuthority !== "function") {
-            writeErr(
-              `  mcp: SKIPPING project headersHelper "${name}" — project execution authority is unavailable.\n`,
-            );
-            delete parsed[name];
-            continue;
-          }
+        const needsExecutionAuthority =
+          config.headersHelper || inferTransport(config) === "stdio";
+        if (
+          needsExecutionAuthority &&
+          typeof trust.issueProjectMcpWorkspaceAuthority !== "function"
+        ) {
+          delete parsed[name];
+          continue;
+        }
+        if (needsExecutionAuthority) {
           config.projectMcpWorkspaceAuthority =
             trust.issueProjectMcpWorkspaceAuthority({
               file,
@@ -893,6 +946,12 @@ export async function loadProjectMcp(opts = {}, deps = {}) {
   writeErr(
     `  mcp: ${Object.keys(servers).length} server(s) from project .mcp.json ` +
       `(${seenFiles.join(", ")}) — loaded via --project-mcp\n`,
+  );
+  authorizeStdioServers(
+    servers,
+    "project-config",
+    (name, config) => `${config.configSource}:${name}`,
+    { writeErr },
   );
   return setupMcpFromConfig(servers, deps);
 }
@@ -936,6 +995,13 @@ export async function loadPluginMcp(opts = {}, deps = {}) {
   if (names.length === 0) return deps.into || null;
   writeErr(
     `  mcp: ${names.length} server(s) from trusted plugin(s): ${names.join(", ")}\n`,
+  );
+  authorizeStdioServers(
+    servers,
+    "trusted-plugin",
+    (name, config) =>
+      `${config.pluginId || "plugin"}@${config.pluginVersion || "unknown"}:${config.pluginSource || "unknown"}:${name}`,
+    { writeErr },
   );
   return setupMcpFromConfig(servers, deps);
 }

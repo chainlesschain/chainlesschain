@@ -19,11 +19,16 @@ import { attachTopicHandlers } from "../gateways/ws/topic-handler-attachment.js"
 import { PtyManager } from "../gateways/terminal/PtyManager.js";
 import { createTerminalHandlers } from "../gateways/terminal/terminal-handlers.js";
 import { createWebUIServer } from "../gateways/ui/web-ui-server.js";
-import { MCPClient, MCPServerConfig } from "../harness/mcp-client.js";
+import {
+  MCPClient,
+  MCPServerConfig,
+  inferTransport,
+} from "../harness/mcp-client.js";
 import sharedManagedToolPolicy from "./coding-agent-managed-tool-policy.cjs";
 import { findProjectRoot, loadProjectConfig } from "../lib/project-detector.js";
 import { loadConfig } from "../lib/config-manager.js";
 import { collectWorkspacePluginBinSandboxPolicy } from "../lib/plugin-runtime/bin.js";
+import { issueMcpStdioExecutionAuthority } from "../lib/mcp-stdio-execution-authority.js";
 
 const {
   DEFAULT_ALLOWED_MCP_SERVER_NAMES,
@@ -266,7 +271,15 @@ export class AgentRuntime {
             }
             for (const [name, cfg] of entries) {
               try {
-                await bundleMcpClient.connect(name, cfg);
+                const authorizedConfig = { ...cfg };
+                authorizedConfig.mcpStdioExecutionAuthority =
+                  issueMcpStdioExecutionAuthority({
+                    serverName: name,
+                    config: authorizedConfig,
+                    approvalKind: "explicit-config",
+                    approvalSource: `agent-bundle:${path.resolve(this.policy.bundlePath)}`,
+                  });
+                await bundleMcpClient.connect(name, authorizedConfig);
               } catch (mcpErr) {
                 runtimeLogger.log(
                   chalk.yellow(
@@ -779,7 +792,17 @@ export class AgentRuntime {
 
     for (const server of eligibleServers) {
       try {
-        await mcpClient.connect(server.name, server);
+        const authorizedServer = { ...server };
+        if (inferTransport(authorizedServer) === "stdio") {
+          authorizedServer.mcpStdioExecutionAuthority =
+            issueMcpStdioExecutionAuthority({
+              serverName: server.name,
+              config: authorizedServer,
+              approvalKind: "registered-config",
+              approvalSource: `${server.configScope || "user"}:${server.configSource || "database"}:${server.name}`,
+            });
+        }
+        await mcpClient.connect(server.name, authorizedServer);
         connectedCount += 1;
       } catch (err) {
         options.logger?.log?.(

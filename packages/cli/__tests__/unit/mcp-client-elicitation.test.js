@@ -54,6 +54,11 @@ describe("MCP elicitation/create routing", () => {
   beforeEach(() => {
     proc = fakeProcess();
     _deps.spawn = () => proc;
+    _deps.consumeMcpStdioExecutionAuthority = () => ({
+      approvalKind: "test-fixture",
+    });
+    _deps.materializeApprovedMcpStdioInvocation = (_approval, { config }) =>
+      config;
   });
 
   it("routes a server request to the injected handler", async () => {

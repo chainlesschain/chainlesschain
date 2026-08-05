@@ -18,9 +18,18 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { EventEmitter } from "events";
 import {
   MCPClient,
+  _deps,
   isLikelyConnectionError,
   isTransientMcpError,
 } from "../../src/lib/mcp-client.js";
+
+beforeEach(() => {
+  _deps.consumeMcpStdioExecutionAuthority = () => ({
+    approvalKind: "test-fixture",
+  });
+  _deps.materializeApprovedMcpStdioInvocation = (_approval, { config }) =>
+    config;
+});
 
 const STDIO_FRAME_HARD_LIMIT_BYTES = 16 * 1024 * 1024;
 const STDIO_AGGREGATE_LIMIT_BYTES = 1024 * 1024;

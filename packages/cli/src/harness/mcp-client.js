@@ -29,6 +29,11 @@ import {
   resolveMcpHeadersHelperContext,
   runMcpHeadersHelper,
 } from "../lib/mcp-headers-helper.js";
+import {
+  consumeMcpStdioExecutionAuthority,
+  materializeApprovedMcpStdioInvocation,
+  renewMcpStdioExecutionAuthority,
+} from "../lib/mcp-stdio-execution-authority.js";
 
 /**
  * Injectable dependencies — overridable from tests.
@@ -41,6 +46,9 @@ export const _deps = {
   runMcpHeadersHelper,
   resolveMcpHeadersHelperContext,
   terminateOwnedProcessTree,
+  consumeMcpStdioExecutionAuthority,
+  materializeApprovedMcpStdioInvocation,
+  renewMcpStdioExecutionAuthority,
   // Backoff sleep seam (tests override with a no-op so retries don't wait).
   sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
 };
@@ -1819,7 +1827,30 @@ export class MCPClient extends EventEmitter {
     }
 
     const transportKind = inferTransport(config);
-    const sourceConfig = config;
+    let stdioExecutionApproval = null;
+    let approvedStdioInvocation = null;
+    if (transportKind === "stdio") {
+      if (!config?.command) {
+        throw new Error(
+          `stdio transport requires a command (server "${name}")`,
+        );
+      }
+      stdioExecutionApproval = _deps.consumeMcpStdioExecutionAuthority(
+        config?.mcpStdioExecutionAuthority,
+        { serverName: name, config },
+      );
+      approvedStdioInvocation = _deps.materializeApprovedMcpStdioInvocation(
+        stdioExecutionApproval,
+        { serverName: name, config },
+      );
+    }
+    const {
+      mcpStdioExecutionAuthority: _stdioExecutionAuthority,
+      ...untrustedSourceConfig
+    } = config;
+    const sourceConfig = approvedStdioInvocation
+      ? { ...untrustedSourceConfig, ...approvedStdioInvocation }
+      : untrustedSourceConfig;
     const connectionHeaders = await this._connectionHeaders(
       name,
       sourceConfig,
@@ -1847,6 +1878,7 @@ export class MCPClient extends EventEmitter {
       _webSocketInboundError: null,
       _inboundTrafficBudget: null,
       _toolMetadataBytes: 0,
+      _stdioExecutionApproval: stdioExecutionApproval,
       tools: [],
       resources: [],
       resourceTemplates: [],
@@ -2886,7 +2918,8 @@ export class MCPClient extends EventEmitter {
     if (inFlight) return inFlight;
     const p = (async () => {
       try {
-        const currentConfig = this.servers.get(name)?.config || null;
+        const currentEntry = this.servers.get(name) || null;
+        const currentConfig = currentEntry?.config || null;
         const resolver = this._reconnectors.get(name);
         const fresh = resolver ? await resolver() : currentConfig;
         if (!fresh) return false;
@@ -2895,7 +2928,20 @@ export class MCPClient extends EventEmitter {
         } catch {
           // entry may already be gone — connect() below is what matters
         }
-        await this.connect(name, fresh, options.connectAuthRetryUsed === true);
+        let reconnectConfig = fresh;
+        if (inferTransport(fresh) === "stdio") {
+          reconnectConfig = { ...fresh };
+          reconnectConfig.mcpStdioExecutionAuthority =
+            _deps.renewMcpStdioExecutionAuthority(
+              currentEntry?._stdioExecutionApproval,
+              { serverName: name, config: reconnectConfig },
+            );
+        }
+        await this.connect(
+          name,
+          reconnectConfig,
+          options.connectAuthRetryUsed === true,
+        );
         this.emit("server-reconnected", { name, url: fresh.url || null });
         return true;
       } catch {

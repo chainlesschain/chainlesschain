@@ -25,6 +25,7 @@ import path from "path";
 import { randomUUID } from "node:crypto";
 import { isPromise, isProxy } from "node:util/types";
 import { logger } from "../lib/logger.js";
+import { issueMcpStdioExecutionAuthority } from "../lib/mcp-stdio-execution-authority.js";
 import { getPlanModeManager, PlanState } from "../lib/plan-mode.js";
 import { createVimState, feedNormalKey } from "../lib/repl-vim.js";
 import {
@@ -2993,7 +2994,15 @@ async function startAgentReplInWorkspace(options = {}, startupAdmission) {
             let connected = 0;
             for (const [name, cfg] of serverEntries) {
               try {
-                await _bundleMcpClient.connect(name, cfg);
+                const authorizedConfig = { ...cfg };
+                authorizedConfig.mcpStdioExecutionAuthority =
+                  issueMcpStdioExecutionAuthority({
+                    serverName: name,
+                    config: authorizedConfig,
+                    approvalKind: "explicit-config",
+                    approvalSource: `agent-bundle:${path.resolve(options.bundlePath)}`,
+                  });
+                await _bundleMcpClient.connect(name, authorizedConfig);
                 connected += 1;
               } catch (mcpErr) {
                 logger.log(

@@ -27,6 +27,11 @@
  * Pure functions only (except mount/unmount which take an MCPClient dep).
  */
 
+import {
+  MCP_STDIO_LOCAL_CODE_TRUST_REQUIRED_CODE,
+  issueMcpStdioExecutionAuthority,
+} from "./mcp-stdio-execution-authority.js";
+
 /**
  * Parse MCP server declarations from a SKILL.md body.
  * Returns an empty array if no `mcp-servers` code block is present.
@@ -103,6 +108,7 @@ export function validateMcpServerConfig(entry) {
  * @param {object} skill - Skill metadata with `mcpServers` array
  * @param {object} [opts]
  * @param {(msg: string, err?: Error) => void} [opts.onWarn] - Warning hook
+ * @param {(request: object) => boolean|Promise<boolean>} [opts.approveLocalCodeExecution]
  * @returns {Promise<{ mounted: string[], skipped: Array<{ name: string, error: string }> }>}
  */
 export async function mountSkillMcpServers(mcpClient, skill, opts = {}) {
@@ -130,8 +136,44 @@ export async function mountSkillMcpServers(mcpClient, skill, opts = {}) {
       }
       continue;
     }
+    let approved = false;
     try {
-      await mcpClient.connect(normalized.name, normalized);
+      approved =
+        typeof opts.approveLocalCodeExecution === "function" &&
+        (await opts.approveLocalCodeExecution({
+          skillId: skill?.id || skill?.name || null,
+          serverName: normalized.name,
+          command: normalized.command,
+          args: [...normalized.args],
+          cwd: normalized.cwd || null,
+          envKeys: Object.keys(normalized.env || {}).sort(),
+        })) === true;
+    } catch (error) {
+      const message = error?.message || String(error);
+      skipped.push({ name: normalized.name, error: message });
+      opts.onWarn?.(
+        `[skill-mcp] Local-code approval failed for "${normalized.name}": ${message}`,
+        error,
+      );
+      continue;
+    }
+    if (!approved) {
+      const message = `${MCP_STDIO_LOCAL_CODE_TRUST_REQUIRED_CODE}: skill MCP server requires explicit local-code approval`;
+      skipped.push({ name: normalized.name, error: message });
+      opts.onWarn?.(
+        `[skill-mcp] Skipped "${normalized.name}" for skill "${skill?.id || skill?.name}": ${message}`,
+      );
+      continue;
+    }
+    try {
+      const config = { ...normalized };
+      config.mcpStdioExecutionAuthority = issueMcpStdioExecutionAuthority({
+        serverName: normalized.name,
+        config,
+        approvalKind: "explicit-config",
+        approvalSource: `skill:${skill?.id || skill?.name || "unknown"}:${normalized.name}`,
+      });
+      await mcpClient.connect(normalized.name, config);
       mounted.push(normalized.name);
     } catch (err) {
       const message = err?.message || String(err);

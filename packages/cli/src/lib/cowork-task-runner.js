@@ -400,6 +400,7 @@ export function prepareCoworkMcpRuntime(mcp, options = {}) {
  * @param {number} [options.maxIterations] - Override iteration limit
  * @param {number} [options.tokenBudget] - Override token budget
  * @param {string} [options.mcpSessionId] - Stable MCP ledger session for resume
+ * @param {(request: object) => boolean|Promise<boolean>} [options.approveMcpLocalCodeExecution]
  * @returns {Promise<{ taskId: string, status: string, result: object }>}
  */
 export async function runCoworkTask(options = {}) {
@@ -415,6 +416,7 @@ export async function runCoworkTask(options = {}) {
     onProgress = null,
     signal = null,
     mcpSessionId = null,
+    approveMcpLocalCodeExecution = null,
   } = options;
 
   if (!userMessage || typeof userMessage !== "string") {
@@ -463,6 +465,7 @@ export async function runCoworkTask(options = {}) {
 
   // Mount template-declared MCP servers (best-effort, failures are tolerated)
   const mcp = await mountTemplateMcpTools(template, {
+    approveLocalCodeExecution: approveMcpLocalCodeExecution,
     onWarn: (msg) => {
       if (onProgress) onProgress({ type: "mcp-warning", message: msg });
     },
