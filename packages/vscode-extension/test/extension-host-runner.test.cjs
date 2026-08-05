@@ -1025,6 +1025,8 @@ test("raw DOM and protocol evidence must prove every control and restart step", 
         "restore-code",
         "restore-conversation",
         "restore-both",
+        "summary-from",
+        "summary-to",
         "branch",
       ]) {
         cdpRecords.push({
@@ -1070,7 +1072,7 @@ test("raw DOM and protocol evidence must prove every control and restart step", 
     { direction: "out", event: { type: "system", resumed_messages: 10 } },
     { direction: "in", event: { type: "user", text: "journey:resume" } },
   ];
-  for (let index = 0; index < 4; index += 1) {
+  for (let index = 0; index < 6; index += 1) {
     fixtureRecords.push({
       direction: "command",
       command: "checkpoint-timeline",
@@ -1080,6 +1082,8 @@ test("raw DOM and protocol evidence must prove every control and restart step", 
     "restore-code",
     "restore-conversation",
     "restore-both",
+    "summary-from",
+    "summary-to",
     "branch",
   ]) {
     for (const mode of ["preview", "confirm"]) {

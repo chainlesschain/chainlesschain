@@ -46,6 +46,8 @@ const REWIND_HOST_ACTIONS = Object.freeze([
     action: "restore-both",
     label: "Restore code + conversation",
   }),
+  Object.freeze({ action: "summary-from", label: "Summarize from here" }),
+  Object.freeze({ action: "summary-to", label: "Summarize up to here" }),
   Object.freeze({ action: "branch", label: "Branch from here" }),
 ]);
 const CHAT_WEBVIEW_PROBE = [

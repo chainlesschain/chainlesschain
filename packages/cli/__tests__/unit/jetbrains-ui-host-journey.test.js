@@ -241,7 +241,7 @@ describe("JetBrains real-host journey driver", () => {
         );
       }
     }
-    for (let index = 1; index < 4; index += 1) {
+    for (let index = 1; index < 6; index += 1) {
       invoke([
         "checkpoint",
         "timeline",
@@ -251,11 +251,13 @@ describe("JetBrains real-host journey driver", () => {
       ]);
     }
     expect(verifyRewindFixtureLedger(environment.CC_UI_FIXTURE_TRACE)).toEqual({
-      timelineReads: 4,
+      timelineReads: 6,
       actions: [
         "restore-code",
         "restore-conversation",
         "restore-both",
+        "summary-from",
+        "summary-to",
         "branch",
       ],
       coverage: "partial",

@@ -26,8 +26,8 @@ import java.time.Duration;
  * <p>The journey covers streaming, retry, plan approval, tool permission,
  * interrupt escalation, child restart, session resume, and the canonical
  * partial-coverage checkpoint timeline. The latter executes code-only,
- * conversation-only, combined, and branch actions through the production
- * chooser/preview/confirmation path. It is not
+ * conversation-only, combined, both summary directions, and branch actions
+ * through the production chooser/preview/confirmation path. It is not
  * live-provider evidence and does not claim Diff, Preview, remote transport,
  * or plugin-lifecycle coverage; those remain separate P0 host journeys.
  */
@@ -101,6 +101,10 @@ final class IdeUiSmokeTest {
                     1, "Restore conversation");
             runRewindAction(robot, input, send, transcript,
                     2, "Restore code + conversation");
+            runRewindAction(robot, input, send, transcript,
+                    3, "Summarize from here");
+            runRewindAction(robot, input, send, transcript,
+                    4, "Summarize up to here");
             runRewindAction(robot, input, send, transcript,
                     5, "Branch from here");
         } catch (Throwable t) {

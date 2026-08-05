@@ -301,6 +301,8 @@ const REQUIRED_REWIND_ACTIONS = Object.freeze([
   "restore-code",
   "restore-conversation",
   "restore-both",
+  "summary-from",
+  "summary-to",
   "branch",
 ]);
 
