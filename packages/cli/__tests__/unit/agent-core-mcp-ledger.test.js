@@ -202,8 +202,11 @@ describe("agent-core MCP call ledger", () => {
     async ({ label, effectContract, hostToolPolicy, abort }) => {
       const harness = guardedLedger({ randomUUID: () => label });
       const abortController = new AbortController();
-      const callTool = vi.fn(async () => {
-        if (abort) abortController.abort();
+      const callTool = vi.fn(async (_server, _tool, _input, callOptions) => {
+        if (abort) {
+          expect(callOptions?.signal).toBe(abortController.signal);
+          abortController.abort();
+        }
         const error = new Error(`private transport detail: ${label}`);
         if (abort) error.name = "AbortError";
         throw error;

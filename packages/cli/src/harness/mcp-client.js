@@ -249,6 +249,12 @@ function mcpTransportError(code, message, details = {}) {
   if (details.status != null) error.status = details.status;
   if (details.closeCode != null) error.closeCode = details.closeCode;
   if (details.limitBytes != null) error.limitBytes = details.limitBytes;
+  if (details.dispatched != null) {
+    error.dispatched = details.dispatched === true;
+  }
+  if (details.outcomeUnknown != null) {
+    error.outcomeUnknown = details.outcomeUnknown === true;
+  }
   return error;
 }
 
@@ -263,11 +269,29 @@ function mcpWebSocketPayloadTooLargeError(
   );
 }
 
-function mcpServerDisconnectingError(serverName, entry) {
+function mcpServerDisconnectingError(serverName, entry, details = {}) {
   return mcpTransportError(
     "CC_MCP_SERVER_DISCONNECTING",
     `MCP server "${serverName}" is disconnecting`,
-    { transport: entry?.transportKind, url: entry?.config?.url },
+    {
+      transport: entry?.transportKind,
+      url: entry?.config?.url,
+      dispatched: details.dispatched,
+      outcomeUnknown: details.dispatched,
+    },
+  );
+}
+
+function mcpRequestAbortedError(serverName, entry, dispatched) {
+  return mcpTransportError(
+    "CC_MCP_REQUEST_ABORTED",
+    `MCP request for server "${serverName}" was cancelled by its caller`,
+    {
+      transport: entry?.transportKind,
+      url: entry?.config?.url,
+      dispatched,
+      outcomeUnknown: dispatched,
+    },
   );
 }
 
@@ -291,7 +315,8 @@ function isWebSocketPayloadError(error) {
 export function isLikelyConnectionError(err) {
   if (
     err?.code === "CC_MCP_WS_PAYLOAD_TOO_LARGE" ||
-    err?.code === "CC_MCP_SERVER_DISCONNECTING"
+    err?.code === "CC_MCP_SERVER_DISCONNECTING" ||
+    err?.code === "CC_MCP_REQUEST_ABORTED"
   ) {
     return false;
   }
@@ -915,6 +940,7 @@ export class MCPClient extends EventEmitter {
       httpSessionId: null,
       protocolVersion: null,
       _httpMessageStream: null,
+      _httpRequestControllers: new Set(),
       _httpDiscardControllers: new Set(),
       _httpDiscardStopping: false,
       _disconnectPromise: null,
@@ -1414,6 +1440,7 @@ export class MCPClient extends EventEmitter {
       // discovery fails, connect() deletes this entry without going through
       // disconnect(), so explicitly reap any response-discard request first.
       entry._httpDiscardStopping = true;
+      _abortHttpRequests(entry);
       _abortHttpDiscardRequests(entry);
       // A stdio child spawned above but failed to initialize (handshake
       // timeout / broken pipe / non-MCP command) would otherwise leak: we
@@ -1534,6 +1561,7 @@ export class MCPClient extends EventEmitter {
     // Abort already-issued fire-and-forget POSTs synchronously after the
     // single-flight marker is installed, so abort listeners cannot re-enter a
     // second teardown.
+    _abortHttpRequests(entry);
     _abortHttpDiscardRequests(entry);
     return disconnecting;
   }
@@ -1595,23 +1623,34 @@ export class MCPClient extends EventEmitter {
    * @param {string} serverName - Server name
    * @param {string} toolName - Tool name
    * @param {object} args - Tool arguments
+   * @param {{signal?: AbortSignal}} options - Host-owned cancellation
    */
-  async callTool(serverName, toolName, args = {}) {
+  async callTool(serverName, toolName, args = {}, options = {}) {
     try {
-      return await this._callToolOnce(serverName, toolName, args);
+      return await this._callToolOnce(serverName, toolName, args, options);
     } catch (err) {
       if (
         err?.code === URL_ELICITATION_REQUIRED &&
         (await this._resolveRequiredUrlElicitations(serverName, err))
       ) {
         // Retry exactly once after every out-of-band flow reports completion.
-        return this._callToolOnce(serverName, toolName, args);
+        return this._callToolOnce(serverName, toolName, args, options);
       }
       if (
         !this._reconnectors.has(serverName) &&
         !this.servers.get(serverName)?.config?.headersHelper
       ) {
         throw err;
+      }
+      if (options?.signal?.aborted && isLikelyConnectionError(err)) {
+        // A network failure and host cancellation can race after dispatch.
+        // Cancellation wins over hot reconnect so an outcome-unknown tool is
+        // never replayed after its owning turn has already stopped.
+        throw mcpRequestAbortedError(
+          serverName,
+          this.servers.get(serverName),
+          true,
+        );
       }
       if (!isLikelyConnectionError(err)) {
         throw err;
@@ -1623,7 +1662,7 @@ export class MCPClient extends EventEmitter {
         connectAuthRetryUsed: true,
       });
       if (!reconnected) throw err;
-      return await this._callToolOnce(serverName, toolName, args);
+      return await this._callToolOnce(serverName, toolName, args, options);
     }
   }
 
@@ -1671,7 +1710,7 @@ export class MCPClient extends EventEmitter {
     return completed.every(Boolean);
   }
 
-  async _callToolOnce(serverName, toolName, args) {
+  async _callToolOnce(serverName, toolName, args, options = {}) {
     const entry = this.servers.get(serverName);
     if (!entry) throw new Error(`Server "${serverName}" not found`);
     if (entry._httpDiscardStopping) {
@@ -1681,10 +1720,15 @@ export class MCPClient extends EventEmitter {
       throw new Error(`Server "${serverName}" is not connected`);
     }
 
-    const result = await this._sendRequest(serverName, "tools/call", {
-      name: toolName,
-      arguments: args,
-    });
+    const result = await this._sendRequest(
+      serverName,
+      "tools/call",
+      {
+        name: toolName,
+        arguments: args,
+      },
+      options,
+    );
 
     return result;
   }
@@ -1745,14 +1789,20 @@ export class MCPClient extends EventEmitter {
 
   /**
    * Read a resource from a server.
+   * @param {string} serverName
+   * @param {string} uri
+   * @param {{signal?: AbortSignal}} options
    */
-  async readResource(serverName, uri) {
+  async readResource(serverName, uri, options = {}) {
     const entry = this.servers.get(serverName);
     if (!entry) throw new Error(`Server "${serverName}" not found`);
 
-    const result = await this._sendRequest(serverName, "resources/read", {
-      uri,
-    });
+    const result = await this._sendRequest(
+      serverName,
+      "resources/read",
+      { uri },
+      options,
+    );
     return result;
   }
 
@@ -1892,7 +1942,7 @@ export class MCPClient extends EventEmitter {
     }
   }
 
-  _sendRequest(serverName, method, params) {
+  _sendRequest(serverName, method, params, options = {}) {
     const entry = this.servers.get(serverName);
     if (!entry) return Promise.reject(new Error("Server not available"));
     if (entry._httpDiscardStopping) {
@@ -1900,7 +1950,7 @@ export class MCPClient extends EventEmitter {
     }
 
     if (entry.httpUrl) {
-      return this._sendHttpRequest(serverName, method, params);
+      return this._sendHttpRequest(serverName, method, params, options);
     }
 
     if (entry.socket) {
@@ -1940,7 +1990,7 @@ export class MCPClient extends EventEmitter {
         timeout = setTimeout(() => {
           if (!entry._pending.delete(id)) return;
           const timeoutError = new Error(`Request timeout: ${method}`);
-          this._sendTimeoutCancellation(
+          this._sendRequestCancellation(
             serverName,
             method,
             id,
@@ -1989,7 +2039,7 @@ export class MCPClient extends EventEmitter {
             `Request timeout: ${method} (WebSocket, no response in ${timeoutMs}ms)`,
             { transport: entry.transportKind, url: entry.config?.url },
           );
-          this._sendTimeoutCancellation(
+          this._sendRequestCancellation(
             serverName,
             method,
             id,
@@ -2014,7 +2064,7 @@ export class MCPClient extends EventEmitter {
     });
   }
 
-  _sendTimeoutCancellation(serverName, method, requestId, reason) {
+  _sendRequestCancellation(serverName, method, requestId, reason) {
     // The initialize handshake establishes the protocol/session needed for
     // later notifications, so it cannot itself be cancelled safely.
     if (method === "initialize") return;
@@ -2200,10 +2250,15 @@ export class MCPClient extends EventEmitter {
    * Accepts responses as either `application/json` or `text/event-stream`.
    * Captures `Mcp-Session-Id` header from the first response for reuse.
    */
-  async _sendHttpRequest(serverName, method, params) {
+  async _sendHttpRequest(serverName, method, params, options = {}) {
     const entry = this.servers.get(serverName);
     if (!entry || !entry.httpUrl) {
       throw new Error("Server not available");
+    }
+
+    const callerSignal = options?.signal || null;
+    if (callerSignal?.aborted) {
+      throw mcpRequestAbortedError(serverName, entry, false);
     }
 
     const id = this._nextId++;
@@ -2221,37 +2276,92 @@ export class MCPClient extends EventEmitter {
         entry.protocolVersion || this._protocolVersion;
     }
 
-    // Per-call timeout (parity with the 30s stdio timeout) so a hung or dead
-    // HTTP MCP server can't block the request forever. Servers flagged
-    // longRunning — e.g. the IDE bridge, whose openDiff blocks on human review
-    // (see ideServerToMcpConfig) — are exempt. Override per server with
-    // config.requestTimeoutMs (0 disables).
+    // Every request owns a controller so caller cancellation and disconnect
+    // remain enforceable even when its optional deadline is disabled.
+    // longRunning/requestTimeoutMs=0 suppress only the timeout timer.
     const longRunning = Boolean(entry.config && entry.config.longRunning);
     const timeoutMs = Number.isFinite(entry.config?.requestTimeoutMs)
       ? entry.config.requestTimeoutMs
       : HTTP_REQUEST_TIMEOUT_MS;
-    let controller = null;
+    const controller =
+      typeof AbortController === "function" ? new AbortController() : null;
+    const request = controller
+      ? {
+          controller,
+          abortKind: null,
+          dispatched: false,
+          response: null,
+        }
+      : null;
+    const requests =
+      entry._httpRequestControllers ||
+      (entry._httpRequestControllers = new Set());
+    if (request) requests.add(request);
     let timer = null;
+    let removeCallerAbort = null;
     const timeoutMessage = `Request timeout: ${method} (HTTP, no response in ${timeoutMs}ms)`;
-    if (
-      !longRunning &&
-      timeoutMs > 0 &&
-      typeof AbortController === "function"
-    ) {
-      controller = new AbortController();
+    const callerAbortMessage = `Request cancelled by caller: ${method}`;
+
+    const throwIfAborted = () => {
+      if (!request?.abortKind) return;
+      const response = request.response;
+      request.response = null;
+      _cancelHttpResponseBody(response);
+      if (request.abortKind === "timeout") {
+        throw new Error(timeoutMessage);
+      }
+      if (request.abortKind === "caller") {
+        throw mcpRequestAbortedError(serverName, entry, request.dispatched);
+      }
+      throw mcpServerDisconnectingError(serverName, entry, {
+        dispatched: request.dispatched,
+      });
+    };
+
+    if (request && callerSignal?.addEventListener) {
+      const onCallerAbort = () => {
+        if (request.abortKind) return;
+        request.abortKind = "caller";
+        request.controller.abort();
+        if (request.dispatched) {
+          this._sendRequestCancellation(
+            serverName,
+            method,
+            id,
+            callerAbortMessage,
+          );
+        }
+      };
+      callerSignal.addEventListener("abort", onCallerAbort, { once: true });
+      removeCallerAbort = () =>
+        callerSignal.removeEventListener?.("abort", onCallerAbort);
+      // Cover a signal that changed between the preflight read and listener
+      // installation (custom AbortSignal implementations may be re-entrant).
+      if (callerSignal.aborted) onCallerAbort();
+    }
+
+    if (!longRunning && timeoutMs > 0 && request) {
       timer = setTimeout(() => {
-        controller.abort();
-        this._sendTimeoutCancellation(serverName, method, id, timeoutMessage);
+        if (request.abortKind) return;
+        request.abortKind = "timeout";
+        request.controller.abort();
+        this._sendRequestCancellation(serverName, method, id, timeoutMessage);
       }, timeoutMs);
+      timer.unref?.();
     }
 
     try {
-      const response = await _deps.fetch(entry.httpUrl, {
+      throwIfAborted();
+      const responsePromise = _deps.fetch(entry.httpUrl, {
         method: "POST",
         headers,
         body,
         ...(controller ? { signal: controller.signal } : {}),
       });
+      if (request) request.dispatched = true;
+      const response = await responsePromise;
+      if (request) request.response = response;
+      throwIfAborted();
 
       // Capture session id (server may emit on initialize response only)
       const sessionId =
@@ -2326,14 +2436,22 @@ export class MCPClient extends EventEmitter {
       if (envelope.error) {
         throw mcpRpcError(envelope.error);
       }
+      throwIfAborted();
       return envelope.result;
     } catch (err) {
-      if (controller && controller.signal.aborted) {
-        throw new Error(timeoutMessage);
-      }
+      throwIfAborted();
       throw err;
     } finally {
       if (timer) clearTimeout(timer);
+      try {
+        removeCallerAbort?.();
+      } catch {
+        // Best-effort listener cleanup for non-native signal adapters.
+      }
+      if (request) {
+        request.response = null;
+        requests.delete(request);
+      }
     }
   }
 
@@ -2615,6 +2733,28 @@ function _httpDiscardTimeout(configuredTimeout) {
     );
   }
   return MCP_HTTP_DISCARD_TIMEOUT_MS;
+}
+
+function _abortHttpRequests(entry) {
+  const requests = entry?._httpRequestControllers;
+  if (!requests) return;
+  for (const request of requests) {
+    // First abort cause wins: a timeout/caller cancellation racing disconnect
+    // must retain its original public classification.
+    if (!request.abortKind) request.abortKind = "disconnect";
+    const response = request.response;
+    request.response = null;
+    _cancelHttpResponseBody(response);
+    try {
+      if (!request.controller.signal.aborted) request.controller.abort();
+    } catch {
+      // The local abort classification still fences every later await/result.
+    }
+  }
+  // Production fetch settles on abort and its finally removes the record. The
+  // eager clear also prevents a non-standard adapter that ignores signal from
+  // pinning the host registry after disconnect.
+  requests.clear();
 }
 
 function _abortHttpDiscardRequests(entry) {

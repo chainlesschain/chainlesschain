@@ -5,8 +5,8 @@
  * finally consumes the `longRunning` metadata set by ideServerToMcpConfig.
  *
  * fetch is mocked via _deps; a hanging fetch that honours AbortSignal lets us
- * assert the timeout fires, and recording opts.signal lets us assert that
- * normal servers get an abort signal while longRunning ones don't.
+ * assert the timeout fires. Every request now owns a lifecycle signal, while
+ * longRunning/timeout=0 disable only the deadline timer.
  */
 
 import { describe, it, expect, beforeEach } from "vitest";
@@ -173,7 +173,7 @@ describe("MCPClient HTTP per-call timeout", () => {
     ).toBe(false);
   });
 
-  it("does NOT attach a signal for longRunning servers (openDiff exemption)", async () => {
+  it("keeps a lifecycle signal for longRunning servers (openDiff deadline exemption)", async () => {
     const calls = [];
     mod._deps.fetch = recordingFetch(calls);
 
@@ -188,11 +188,12 @@ describe("MCPClient HTTP per-call timeout", () => {
     });
     expect(requestCalls.length).toBeGreaterThan(0);
     for (const c of requestCalls) {
-      expect(c.opts.signal).toBeUndefined();
+      expect(c.opts.signal).toBeInstanceOf(AbortSignal);
+      expect(c.opts.signal.aborted).toBe(false);
     }
   });
 
-  it("requestTimeoutMs:0 disables the timeout (no signal attached)", async () => {
+  it("requestTimeoutMs:0 disables only the timeout, not lifecycle cancellation", async () => {
     const calls = [];
     mod._deps.fetch = recordingFetch(calls);
 
@@ -205,7 +206,8 @@ describe("MCPClient HTTP per-call timeout", () => {
       (c) => JSON.parse(c.opts.body).id !== undefined,
     );
     for (const c of requestCalls) {
-      expect(c.opts.signal).toBeUndefined();
+      expect(c.opts.signal).toBeInstanceOf(AbortSignal);
+      expect(c.opts.signal.aborted).toBe(false);
     }
   });
 });

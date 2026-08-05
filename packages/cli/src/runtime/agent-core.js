@@ -5907,7 +5907,9 @@ async function executeToolInner(
               error: `Could not resolve which MCP server owns resource "${uri}". Pass 'server' explicitly.`,
             });
           }
-          const result = await mcpClient.readResource(server, uri);
+          const result = signal
+            ? await mcpClient.readResource(server, uri, { signal })
+            : await mcpClient.readResource(server, uri);
           return attachDescriptor(
             result && typeof result === "object" ? result : { result },
           );
@@ -6048,11 +6050,17 @@ async function executeToolInner(
 
           let pendingResult;
           try {
-            pendingResult = Reflect.apply(mcpClient.callTool, mcpClient, [
+            const callArguments = [
               localToolExecutor.serverName,
               localToolExecutor.toolName,
               mcpWireInput,
-            ]);
+            ];
+            if (signal) callArguments.push({ signal });
+            pendingResult = Reflect.apply(
+              mcpClient.callTool,
+              mcpClient,
+              callArguments,
+            );
           } catch (callError) {
             return await transportFailure(callError);
           }
