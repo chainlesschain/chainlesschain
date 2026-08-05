@@ -2,6 +2,11 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.42] - Bootstrap retry race fix (2026-08-05)
+
+- Preserve a prompt sent before the first chat tab identity arrives, so
+  `/retry` cannot lose that prompt during bootstrap tab activation.
+
 ## [0.37.41] - Auditable macOS host journey (2026-08-05)
 
 - Add a one-launch, 256-bit-token-gated Webview message relay for the real
@@ -22,8 +27,6 @@ All notable changes to this extension are documented here.
   journey without disabling the renderer used by current VS Code builds.
 - Keep the isolated macOS host on VS Code's in-memory test secret storage so a
   headless Keychain request cannot block current stable before Webview startup.
-- Preserve a prompt sent before the first chat tab identity arrives, so
-  `/retry` cannot lose that prompt during bootstrap tab activation.
 
 ## [0.37.40] - Inline chat and release-host hardening (2026-08-04)
 

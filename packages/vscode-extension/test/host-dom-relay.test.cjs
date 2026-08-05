@@ -93,6 +93,20 @@ test("first tab activation preserves a bootstrap prompt for retry", () => {
   const alreadyOwned = { _: "bootstrap", "tab-1": "newer" };
   assert.equal(migrateBootstrapLastSent(alreadyOwned, null, "tab-1"), true);
   assert.deepEqual(alreadyOwned, { "tab-1": "newer" });
+
+  const empty = {};
+  assert.equal(migrateBootstrapLastSent(empty, null, "tab-1"), false);
+  assert.deepEqual(empty, {});
+
+  const html = buildChatHtml({
+    cspSource: "vscode-webview:",
+    nonce: "nonce",
+    l10n: {},
+  });
+  assert.match(
+    html,
+    /migrateBootstrapLastSent\(lastSentByTab, activeTabId, m\.activeId\)/u,
+  );
 });
 
 test("ChatViewProvider correlates a token-authenticated DOM response", async () => {
