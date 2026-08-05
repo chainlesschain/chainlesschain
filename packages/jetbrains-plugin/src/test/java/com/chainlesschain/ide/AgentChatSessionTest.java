@@ -97,10 +97,10 @@ class AgentChatSessionTest {
                 true);
         assertEquals(Arrays.asList(
                 "cmd.exe", "/d", "/s", "/v:off", "/c",
-                "\"C:\\Program Files\\cc.cmd\" \"checkpoint\" \"action\" "
+                "\"\"C:\\Program Files\\cc.cmd\" \"checkpoint\" \"action\" "
                         + "\"--submission\" "
                         + "\"{\"\"schema\"\":\"\"cc-action/v1\"\","
-                        + "\"\"value\"\":\"\"a b\"\"}\""), command);
+                        + "\"\"value\"\":\"\"a b\"\"}\"\""), command);
     }
 
     @Test

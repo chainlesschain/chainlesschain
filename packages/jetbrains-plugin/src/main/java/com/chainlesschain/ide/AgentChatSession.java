@@ -290,6 +290,11 @@ public final class AgentChatSession {
             if (commandLine.length() > 0) commandLine.append(' ');
             commandLine.append('"').append(value.replace("\"", "\"\"")).append('"');
         }
+        // ProcessBuilder serializes the final /c argument itself. cmd.exe /s
+        // removes its first and last quote, so retain one outer pair around the
+        // fully quoted command line; otherwise the leading executable quote is
+        // stripped and a Windows npm .cmd shim is never reached.
+        commandLine.insert(0, '"').append('"');
         return new ArrayList<String>(Arrays.asList(
                 "cmd.exe", "/d", "/s", "/v:off", "/c",
                 commandLine.toString()));
