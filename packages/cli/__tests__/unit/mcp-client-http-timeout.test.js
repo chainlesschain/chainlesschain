@@ -142,7 +142,9 @@ describe("MCPClient HTTP per-call timeout", () => {
       requestId: request.message.id,
       reason: "Request timeout: tools/call (HTTP, no response in 30ms)",
     });
-    expect(cancellations[0].opts.signal).toBeUndefined();
+    expect(cancellations[0].opts.signal).toBeInstanceOf(AbortSignal);
+    expect(cancellations[0].opts.signal).not.toBe(request.opts.signal);
+    expect(cancellations[0].opts.signal.aborted).toBe(false);
   });
 
   it("attaches an abort signal and does not cancel completed requests", async () => {

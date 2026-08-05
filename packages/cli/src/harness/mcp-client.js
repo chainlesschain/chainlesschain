@@ -73,6 +73,12 @@ export function normalizeMcpConfigScope(scope = "user") {
  * review) are exempt; override per server with `config.requestTimeoutMs`.
  */
 const HTTP_REQUEST_TIMEOUT_MS = 30000;
+// Responses to one-way HTTP messages are never semantically consumed, but the
+// transport still needs a host-owned deadline so a peer cannot retain sockets,
+// timers, and client state forever by withholding response headers. A server's
+// requestTimeoutMs may tighten this deadline; zero/invalid/oversized values do
+// not disable or raise it.
+const MCP_HTTP_DISCARD_TIMEOUT_MS = 30000;
 const WEBSOCKET_CONNECT_TIMEOUT_MS = 10000;
 const WEBSOCKET_MAX_PAYLOAD_BYTES = 16 * 1024 * 1024;
 
@@ -257,6 +263,14 @@ function mcpWebSocketPayloadTooLargeError(
   );
 }
 
+function mcpServerDisconnectingError(serverName, entry) {
+  return mcpTransportError(
+    "CC_MCP_SERVER_DISCONNECTING",
+    `MCP server "${serverName}" is disconnecting`,
+    { transport: entry?.transportKind, url: entry?.config?.url },
+  );
+}
+
 function isWebSocketPayloadError(error) {
   return (
     error?.code === "WS_ERR_UNSUPPORTED_MESSAGE_LENGTH" ||
@@ -275,7 +289,12 @@ function isWebSocketPayloadError(error) {
  * this client's own "server gone" states.
  */
 export function isLikelyConnectionError(err) {
-  if (err?.code === "CC_MCP_WS_PAYLOAD_TOO_LARGE") return false;
+  if (
+    err?.code === "CC_MCP_WS_PAYLOAD_TOO_LARGE" ||
+    err?.code === "CC_MCP_SERVER_DISCONNECTING"
+  ) {
+    return false;
+  }
   const msg = String((err && err.message) || err || "");
   return /fetch failed|ECONNREFUSED|ECONNRESET|ETIMEDOUT|EPIPE|socket hang up|network error|WebSocket|HTTP 40[134]\b|not connected|not found|not available/i.test(
     msg,
@@ -896,6 +915,9 @@ export class MCPClient extends EventEmitter {
       httpSessionId: null,
       protocolVersion: null,
       _httpMessageStream: null,
+      _httpDiscardControllers: new Set(),
+      _httpDiscardStopping: false,
+      _disconnectPromise: null,
       _webSocketPayloadError: null,
       tools: [],
       resources: [],
@@ -1388,6 +1410,11 @@ export class MCPClient extends EventEmitter {
       };
     } catch (err) {
       entry.state = ServerState.ERROR;
+      // The initialize notification is fire-and-forget. If later capability
+      // discovery fails, connect() deletes this entry without going through
+      // disconnect(), so explicitly reap any response-discard request first.
+      entry._httpDiscardStopping = true;
+      _abortHttpDiscardRequests(entry);
       // A stdio child spawned above but failed to initialize (handshake
       // timeout / broken pipe / non-MCP command) would otherwise leak: we
       // delete the entry from `this.servers` below, so disconnect() can never
@@ -1436,59 +1463,79 @@ export class MCPClient extends EventEmitter {
   /**
    * Disconnect from an MCP server.
    */
-  async disconnect(name) {
+  disconnect(name) {
     const entry = this.servers.get(name);
-    if (!entry) return false;
+    if (!entry) return Promise.resolve(false);
+    if (entry._disconnectPromise) return entry._disconnectPromise;
 
-    for (const [key, pending] of this._pendingElicitations) {
-      if (key.startsWith(`${String(name)}:`)) {
-        pending.resolve({ action: "cancel" });
-      }
-    }
-
-    if (entry.process) {
-      entry.process.kill();
-    }
-    if (entry.socket) {
-      entry._rejectPending?.(
-        mcpTransportError(
-          "CC_MCP_WS_CLIENT_DISCONNECT",
-          `MCP WebSocket server "${name}" disconnected by client`,
-          { transport: entry.transportKind, url: entry.config?.url },
-        ),
-      );
-      try {
-        entry.socket.close(1000, "client disconnect");
-      } catch {
-        entry.socket.terminate?.();
-      }
-    }
-    if (entry._httpMessageStream) {
-      entry._httpMessageStream.stopped = true;
-      entry._httpMessageStream.controller?.abort();
-      entry._httpMessageStream.wake?.();
-      entry._httpMessageStream = null;
-    }
-    // HTTP sessions: best-effort DELETE to free server-side state.
-    if (entry.httpUrl && entry.httpSessionId) {
-      try {
-        await _deps.fetch(entry.httpUrl, {
-          method: "DELETE",
-          headers: {
-            ...(entry.httpHeaders || {}),
-            "Mcp-Session-Id": entry.httpSessionId,
-            "MCP-Protocol-Version":
-              entry.protocolVersion || this._protocolVersion,
-          },
-        });
-      } catch {
-        // ignore — disconnect is best-effort
-      }
-    }
-
+    // Make disconnect visible before any teardown awaits. In particular, an
+    // HTTP session DELETE may wait for response headers; no new tool/resource
+    // request may enter the transport during that window or trigger a hot
+    // reconnect that resurrects a server the caller is intentionally closing.
     entry.state = ServerState.DISCONNECTED;
-    this.servers.delete(name);
-    return true;
+    entry._httpDiscardStopping = true;
+    const disconnecting = Promise.resolve().then(async () => {
+      try {
+        for (const [key, pending] of this._pendingElicitations) {
+          if (key.startsWith(`${String(name)}:`)) {
+            pending.resolve({ action: "cancel" });
+          }
+        }
+
+        if (entry.process) {
+          entry.process.kill();
+        }
+        if (entry.socket) {
+          entry._rejectPending?.(
+            mcpTransportError(
+              "CC_MCP_WS_CLIENT_DISCONNECT",
+              `MCP WebSocket server "${name}" disconnected by client`,
+              { transport: entry.transportKind, url: entry.config?.url },
+            ),
+          );
+          try {
+            entry.socket.close(1000, "client disconnect");
+          } catch {
+            entry.socket.terminate?.();
+          }
+        }
+        if (entry._httpMessageStream) {
+          entry._httpMessageStream.stopped = true;
+          entry._httpMessageStream.controller?.abort();
+          entry._httpMessageStream.wake?.();
+          entry._httpMessageStream = null;
+        }
+        // HTTP sessions: best-effort DELETE to free server-side state.
+        if (entry.httpUrl && entry.httpSessionId) {
+          try {
+            await _fetchAndDiscardHttpResponse(entry, {
+              method: "DELETE",
+              headers: {
+                ...(entry.httpHeaders || {}),
+                "Mcp-Session-Id": entry.httpSessionId,
+                "MCP-Protocol-Version":
+                  entry.protocolVersion || this._protocolVersion,
+              },
+            });
+          } catch {
+            // ignore — disconnect is best-effort
+          }
+        }
+        return true;
+      } finally {
+        entry.state = ServerState.DISCONNECTED;
+        // A future connection may reuse the same name. Never let a delayed
+        // teardown delete that replacement entry.
+        if (this.servers.get(name) === entry) this.servers.delete(name);
+      }
+    });
+    entry._disconnectPromise = disconnecting;
+
+    // Abort already-issued fire-and-forget POSTs synchronously after the
+    // single-flight marker is installed, so abort listeners cannot re-enter a
+    // second teardown.
+    _abortHttpDiscardRequests(entry);
+    return disconnecting;
   }
 
   /**
@@ -1627,6 +1674,9 @@ export class MCPClient extends EventEmitter {
   async _callToolOnce(serverName, toolName, args) {
     const entry = this.servers.get(serverName);
     if (!entry) throw new Error(`Server "${serverName}" not found`);
+    if (entry._httpDiscardStopping) {
+      throw mcpServerDisconnectingError(serverName, entry);
+    }
     if (entry.state !== ServerState.CONNECTED) {
       throw new Error(`Server "${serverName}" is not connected`);
     }
@@ -1845,6 +1895,9 @@ export class MCPClient extends EventEmitter {
   _sendRequest(serverName, method, params) {
     const entry = this.servers.get(serverName);
     if (!entry) return Promise.reject(new Error("Server not available"));
+    if (entry._httpDiscardStopping) {
+      return Promise.reject(mcpServerDisconnectingError(serverName, entry));
+    }
 
     if (entry.httpUrl) {
       return this._sendHttpRequest(serverName, method, params);
@@ -2287,7 +2340,7 @@ export class MCPClient extends EventEmitter {
   /** Fire-and-forget JSON-RPC notification over HTTP. Errors swallowed. */
   _sendHttpNotification(serverName, method, params) {
     const entry = this.servers.get(serverName);
-    if (!entry || !entry.httpUrl) return;
+    if (!entry || !entry.httpUrl || entry._httpDiscardStopping) return;
     const body = JSON.stringify({ jsonrpc: "2.0", method, params });
     const headers = {
       "Content-Type": "application/json",
@@ -2299,16 +2352,13 @@ export class MCPClient extends EventEmitter {
     }
     headers["MCP-Protocol-Version"] =
       entry.protocolVersion || this._protocolVersion;
-    try {
-      const p = _deps.fetch(entry.httpUrl, {
-        method: "POST",
-        headers,
-        body,
-      });
-      if (p && typeof p.catch === "function") p.catch(() => {});
-    } catch {
-      // ignore
-    }
+    _fetchAndDiscardHttpResponse(entry, {
+      method: "POST",
+      headers,
+      body,
+    }).catch(() => {
+      // Notifications are intentionally best-effort.
+    });
   }
 
   _handleData(serverName, data) {
@@ -2513,7 +2563,7 @@ export class MCPClient extends EventEmitter {
   /** Write a JSON-RPC response back over stdio or Streamable HTTP POST. */
   _sendResponse(serverName, id, result, error) {
     const entry = this.servers.get(serverName);
-    if (!entry) return;
+    if (!entry || entry._httpDiscardStopping) return;
     const envelope =
       error !== undefined
         ? { jsonrpc: "2.0", id, error }
@@ -2528,24 +2578,17 @@ export class MCPClient extends EventEmitter {
           : {}),
         "MCP-Protocol-Version": entry.protocolVersion || this._protocolVersion,
       };
-      try {
-        const pending = _deps.fetch(entry.httpUrl, {
-          method: "POST",
-          headers,
-          body: JSON.stringify(envelope),
-        });
-        pending?.catch?.((cause) =>
-          this.emit("server-stream-error", {
-            name: serverName,
-            error: cause?.message || String(cause),
-          }),
-        );
-      } catch (cause) {
+      _fetchAndDiscardHttpResponse(entry, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(envelope),
+      }).catch((cause) => {
+        if (entry._httpDiscardStopping) return;
         this.emit("server-stream-error", {
           name: serverName,
           error: cause?.message || String(cause),
         });
-      }
+      });
       return;
     }
     if (entry.socket) {
@@ -2561,6 +2604,59 @@ export class MCPClient extends EventEmitter {
     } catch {
       // Ignore response write errors (server may have just exited)
     }
+  }
+}
+
+function _httpDiscardTimeout(configuredTimeout) {
+  if (Number.isFinite(configuredTimeout) && configuredTimeout > 0) {
+    return Math.min(
+      MCP_HTTP_DISCARD_TIMEOUT_MS,
+      Math.max(1, Math.floor(configuredTimeout)),
+    );
+  }
+  return MCP_HTTP_DISCARD_TIMEOUT_MS;
+}
+
+function _abortHttpDiscardRequests(entry) {
+  const controllers = entry?._httpDiscardControllers;
+  if (!controllers) return;
+  for (const controller of controllers) {
+    try {
+      controller.abort();
+    } catch {
+      // Best-effort teardown; every request also owns a bounded timer.
+    }
+  }
+  controllers.clear();
+}
+
+async function _fetchAndDiscardHttpResponse(entry, options) {
+  const controllers = entry?._httpDiscardControllers;
+  const controller =
+    typeof AbortController === "function" ? new AbortController() : null;
+  const timeoutMs = _httpDiscardTimeout(entry?.config?.requestTimeoutMs);
+  let timer = null;
+  if (controller) {
+    controllers?.add(controller);
+    timer = setTimeout(() => {
+      controller.abort();
+      // Production fetch rejects on abort and reaches finally. Delete here as
+      // well so a non-standard adapter that ignores AbortSignal cannot pin the
+      // host's in-flight controller registry past the deadline.
+      controllers?.delete(controller);
+    }, timeoutMs);
+    timer.unref?.();
+  }
+  try {
+    const response = await _deps.fetch(entry.httpUrl, {
+      ...options,
+      ...(controller ? { signal: controller.signal } : {}),
+    });
+    _cancelHttpResponseBody(response);
+    return response;
+  } finally {
+    if (timer) clearTimeout(timer);
+    if (controller) controllers?.delete(controller);
   }
 }
 
