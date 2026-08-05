@@ -19,11 +19,17 @@ import {
   createMcpRecoveryAdmissionController,
   guardMcpLedgerForRecovery,
 } from "../../src/lib/mcp-ledger-recovery-admission.js";
+import { textByteStream } from "../helpers/mcp-http-response.js";
 
 const TOOL_NAME = "mcp__files__update";
 const originalMcpDeps = { ...mcpDeps };
 
 function rpcErrorResponse(requestId, message, data = {}) {
+  const body = JSON.stringify({
+    jsonrpc: "2.0",
+    id: requestId,
+    error: { code: -32000, message, data },
+  });
   return {
     ok: true,
     status: 200,
@@ -34,12 +40,9 @@ function rpcErrorResponse(requestId, message, data = {}) {
           : null;
       },
     },
+    body: textByteStream(body),
     async text() {
-      return JSON.stringify({
-        jsonrpc: "2.0",
-        id: requestId,
-        error: { code: -32000, message, data },
-      });
+      return body;
     },
   };
 }

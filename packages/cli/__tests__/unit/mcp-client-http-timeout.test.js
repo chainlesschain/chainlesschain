@@ -11,6 +11,7 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import { MCPClient } from "../../src/lib/mcp-client.js";
+import { textByteStream } from "../helpers/mcp-http-response.js";
 
 function makeResponse({ body = "", sessionId = "s1" } = {}) {
   const headers = new Map([["content-type", "application/json"]]);
@@ -19,6 +20,7 @@ function makeResponse({ body = "", sessionId = "s1" } = {}) {
     ok: true,
     status: 200,
     headers: { get: (k) => headers.get(String(k).toLowerCase()) ?? null },
+    body: textByteStream(body),
     async text() {
       return body;
     },

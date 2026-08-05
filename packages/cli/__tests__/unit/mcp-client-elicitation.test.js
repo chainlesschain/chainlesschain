@@ -5,6 +5,7 @@ import {
   _deps,
   normalizeMcpElicitationRequest,
 } from "../../src/lib/mcp-client.js";
+import { textByteStream } from "../helpers/mcp-http-response.js";
 
 function fakeProcess() {
   const proc = new EventEmitter();
@@ -448,6 +449,7 @@ describe("MCP elicitation/create routing", () => {
           return null;
         },
       },
+      body: textByteStream(body),
       async text() {
         return body;
       },
@@ -537,6 +539,7 @@ describe("MCP elicitation/create routing", () => {
           ok: true,
           status: 200,
           headers: { get: () => "text/event-stream" },
+          body: textByteStream("id: cursor-1\nretry: 1\ndata:\n\n"),
           async text() {
             return "id: cursor-1\nretry: 1\ndata:\n\n";
           },

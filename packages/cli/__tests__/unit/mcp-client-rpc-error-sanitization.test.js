@@ -8,6 +8,7 @@ import {
   isMcpRpcError,
   isTransientMcpError,
 } from "../../src/harness/mcp-client.js";
+import { textByteStream } from "../helpers/mcp-http-response.js";
 
 const originalDeps = { ..._deps };
 const MESSAGE_CANARY =
@@ -15,6 +16,7 @@ const MESSAGE_CANARY =
 const DATA_CANARY = "RPC_DATA_SECRET";
 
 function rpcResponse(requestId, error) {
+  const body = JSON.stringify({ jsonrpc: "2.0", id: requestId, error });
   return {
     ok: true,
     status: 200,
@@ -25,13 +27,15 @@ function rpcResponse(requestId, error) {
           : null;
       },
     },
+    body: textByteStream(body),
     async text() {
-      return JSON.stringify({ jsonrpc: "2.0", id: requestId, error });
+      return body;
     },
   };
 }
 
 function resultResponse(requestId, result) {
+  const body = JSON.stringify({ jsonrpc: "2.0", id: requestId, result });
   return {
     ok: true,
     status: 200,
@@ -42,13 +46,15 @@ function resultResponse(requestId, result) {
           : null;
       },
     },
+    body: textByteStream(body),
     async text() {
-      return JSON.stringify({ jsonrpc: "2.0", id: requestId, result });
+      return body;
     },
   };
 }
 
 function envelopeResponse(envelope) {
+  const body = JSON.stringify(envelope);
   return {
     ok: true,
     status: 200,
@@ -59,8 +65,9 @@ function envelopeResponse(envelope) {
           : null;
       },
     },
+    body: textByteStream(body),
     async text() {
-      return JSON.stringify(envelope);
+      return body;
     },
   };
 }
@@ -76,6 +83,7 @@ function rawTextResponse(body, contentType = "application/json") {
           : null;
       },
     },
+    body: textByteStream(body),
     async text() {
       return body;
     },

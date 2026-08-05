@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createServer } from "node:http";
 import { MCPClient, _deps } from "../../src/harness/mcp-client.js";
+import { textByteStream } from "../helpers/mcp-http-response.js";
 
 const originalDeps = { ..._deps };
 const clients = [];
@@ -41,6 +42,7 @@ function response(message, { status = 200, result, text = "" } = {}) {
         return null;
       },
     },
+    body: textByteStream(body),
     text: vi.fn(async () => body),
   };
 }

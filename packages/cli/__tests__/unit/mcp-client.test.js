@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { MockDatabase } from "../helpers/mock-db.js";
+import { textByteStream } from "../helpers/mcp-http-response.js";
 import {
   MCPClient,
   MCPServerConfig,
@@ -504,6 +505,7 @@ describe("MCP Client", () => {
         headers: {
           get: (k) => headers.get(String(k).toLowerCase()) ?? null,
         },
+        body: textByteStream(body),
         async text() {
           return body;
         },

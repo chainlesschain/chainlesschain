@@ -540,6 +540,7 @@ const MCP_NON_RETRYABLE_PROTOCOL_ERROR_CODES = new Set([
   "CC_MCP_WS_INVALID_MESSAGE",
   "CC_MCP_SERVER_DISCONNECTING",
   "CC_MCP_REQUEST_ABORTED",
+  "CC_MCP_HTTP_RESPONSE_STREAM_REQUIRED",
   "CC_MCP_RPC_ERROR_INVALID",
   "CC_MCP_RPC_RESPONSE_INVALID",
   "CC_MCP_RPC_MESSAGE_INVALID",
@@ -2613,6 +2614,9 @@ export class MCPClient extends EventEmitter {
                 : {}),
             });
             if (error?.code === "CC_MCP_HTTP_RESPONSE_TOO_LARGE") return;
+            if (error?.code === "CC_MCP_HTTP_RESPONSE_STREAM_REQUIRED") {
+              return;
+            }
             if (String(error?.code || "").startsWith("CC_MCP_HEADERS_HELPER")) {
               return;
             }
@@ -3270,14 +3274,23 @@ function _httpResponseTooLarge(cap, detail) {
   return error;
 }
 
+function _httpResponseStreamRequired(response) {
+  _cancelHttpResponseBody(response);
+  const error = new Error(
+    "MCP HTTP response does not expose a readable byte stream",
+  );
+  error.code = "CC_MCP_HTTP_RESPONSE_STREAM_REQUIRED";
+  return error;
+}
+
 /**
  * Read a finite HTTP response body to text under a host-owned absolute byte
  * ceiling. The per-call timeout bounds TIME but not MEMORY: a malicious or
  * buggy MCP server could otherwise stream a multi-GB response body within the
- * timeout and OOM the client. Real fetch responses are accumulated
+ * timeout and OOM the client. Fetch responses are accumulated
  * only after a running byte check and their reader is cancelled on overflow.
- * Response-like test doubles without a readable body retain a text() fallback,
- * which is checked by UTF-8 byte length immediately after that mock resolves.
+ * A non-standard Response-like adapter without a byte reader is rejected
+ * before text() because an after-the-fact string check cannot bound allocation.
  * A declared Content-Length over the effective cap is rejected before any read.
  */
 async function _readBodyCapped(response, cap) {
@@ -3332,14 +3345,7 @@ async function _readBodyCapped(response, cap) {
       }
     }
   }
-  if (typeof response.text !== "function") {
-    throw new Error("HTTP response is not readable");
-  }
-  const text = await response.text();
-  if (Buffer.byteLength(text, "utf8") > cap) {
-    throw _httpResponseTooLarge(cap, "response-like fallback");
-  }
-  return text;
+  throw _httpResponseStreamRequired(response);
 }
 
 /**

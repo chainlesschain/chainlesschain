@@ -1,6 +1,7 @@
 import { createServer } from "node:http";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MCPClient, _deps } from "../../src/harness/mcp-client.js";
+import { textByteStream } from "../helpers/mcp-http-response.js";
 
 const originalDeps = { ..._deps };
 const clients = new Set();
@@ -67,6 +68,7 @@ function jsonResponse(message, result) {
           : null;
       },
     },
+    body: textByteStream(text),
     async text() {
       return text;
     },

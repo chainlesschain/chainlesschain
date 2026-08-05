@@ -27,16 +27,19 @@ import {
 } from "../../src/harness/mcp-client.js";
 import { _deps as ideDeps } from "../../src/lib/ide-bridge.js";
 import { loadIdeMcp } from "../../src/runtime/mcp-config.js";
+import { textByteStream } from "../helpers/mcp-http-response.js";
 
 // ─── fake Streamable-HTTP MCP endpoint (unit layer) ─────────────────────────
 
 function resp(status, jsonBody) {
+  const text = jsonBody == null ? "" : JSON.stringify(jsonBody);
   return {
     ok: status >= 200 && status < 300,
     status,
     headers: { get: () => null },
+    body: textByteStream(text),
     json: async () => jsonBody,
-    text: async () => (jsonBody == null ? "" : JSON.stringify(jsonBody)),
+    text: async () => text,
   };
 }
 const rpc = (id, result) => resp(200, { jsonrpc: "2.0", id, result });

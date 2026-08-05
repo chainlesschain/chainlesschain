@@ -14,6 +14,7 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import { MCPClient } from "../../src/lib/mcp-client.js";
+import { textByteStream } from "../helpers/mcp-http-response.js";
 
 function makeResponse({
   ok = true,
@@ -29,6 +30,7 @@ function makeResponse({
     ok,
     status,
     headers: { get: (k) => headers.get(String(k).toLowerCase()) ?? null },
+    body: textByteStream(body),
     async text() {
       return body;
     },

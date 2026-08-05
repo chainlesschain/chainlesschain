@@ -12,8 +12,10 @@ import {
   isTransientMcpError,
   _deps,
 } from "../../src/harness/mcp-client.js";
+import { textByteStream } from "../helpers/mcp-http-response.js";
 
 function jsonResponse(id, result, { status = 200, ok = true } = {}) {
+  const body = JSON.stringify({ jsonrpc: "2.0", id, result });
   const headers = new Map([
     ["content-type", "application/json"],
     ["mcp-session-id", "s1"],
@@ -22,8 +24,9 @@ function jsonResponse(id, result, { status = 200, ok = true } = {}) {
     ok,
     status,
     headers: { get: (k) => headers.get(String(k).toLowerCase()) ?? null },
+    body: textByteStream(body),
     async text() {
-      return JSON.stringify({ jsonrpc: "2.0", id, result });
+      return body;
     },
     async json() {
       return { jsonrpc: "2.0", id, result };

@@ -1,6 +1,12 @@
 import { createServer } from "node:http";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { MCPClient, ServerState, _deps } from "../../src/lib/mcp-client.js";
+import {
+  MCPClient,
+  ServerState,
+  _deps,
+  isLikelyConnectionError,
+  isTransientMcpError,
+} from "../../src/lib/mcp-client.js";
 
 const HTTP_RESPONSE_HARD_LIMIT_BYTES = 16 * 1024 * 1024;
 const ERROR_CANARY = "ERROR_BODY_CANARY_MUST_NOT_BE_READ";
@@ -337,6 +343,113 @@ describe("MCPClient HTTP response body byte limits", () => {
     ).rejects.toThrow("fixture read failed");
     expect(cancelled).toBe(true);
     expect(released).toBe(true);
+  });
+
+  it("rejects a success response without a byte reader before text allocation", async () => {
+    let cancelCalls = 0;
+    let fetchCalls = 0;
+    let textCalls = 0;
+    _deps.fetch = async () => {
+      fetchCalls += 1;
+      return {
+        ok: true,
+        status: 200,
+        headers: {
+          get(name) {
+            return String(name).toLowerCase() === "content-type"
+              ? "application/json"
+              : null;
+          },
+        },
+        body: {
+          async cancel() {
+            cancelCalls += 1;
+          },
+        },
+        async text() {
+          textCalls += 1;
+          return JSON.stringify({
+            jsonrpc: "2.0",
+            id: 1,
+            result: { canary: "MUST_NOT_ALLOCATE" },
+          });
+        },
+      };
+    };
+
+    let error;
+    try {
+      await new MCPClient().connect("no-reader", {
+        url: "https://mcp.example.test/rpc",
+      });
+    } catch (cause) {
+      error = cause;
+    }
+
+    expect(error).toMatchObject({
+      code: "CC_MCP_HTTP_RESPONSE_STREAM_REQUIRED",
+    });
+    expect(error.message).toBe(
+      "MCP HTTP response does not expose a readable byte stream",
+    );
+    expect(cancelCalls).toBe(1);
+    expect(fetchCalls).toBe(1);
+    expect(textCalls).toBe(0);
+    expect(isLikelyConnectionError(error)).toBe(false);
+    expect(isTransientMcpError(error)).toBe(false);
+  });
+
+  it("stops a background SSE stream when its response has no byte reader", async () => {
+    let cancelCalls = 0;
+    let fetchCalls = 0;
+    let textCalls = 0;
+    _deps.fetch = async () => {
+      fetchCalls += 1;
+      return {
+        ok: true,
+        status: 200,
+        headers: { get: () => "text/event-stream" },
+        body: {
+          async cancel() {
+            cancelCalls += 1;
+          },
+        },
+        async text() {
+          textCalls += 1;
+          return 'data: {"jsonrpc":"2.0","method":"notifications/test"}\n\n';
+        },
+      };
+    };
+    const client = new MCPClient();
+    client.servers.set("no-reader-sse", {
+      config: {},
+      httpHeaders: {},
+      httpSessionId: null,
+      httpUrl: "https://mcp.example.test/rpc",
+      protocolVersion: "2025-11-25",
+      state: ServerState.CONNECTED,
+      transportKind: "https",
+      _httpMessageStream: null,
+      _pending: new Map(),
+    });
+    const streamError = new Promise((resolve) =>
+      client.once("server-stream-error", resolve),
+    );
+
+    expect(client._ensureHttpMessageStream("no-reader-sse")).toBe(true);
+    const activeStream = client.servers.get("no-reader-sse")._httpMessageStream;
+    const emitted = await streamError;
+    await activeStream.promise;
+
+    expect(emitted).toMatchObject({
+      name: "no-reader-sse",
+      code: "CC_MCP_HTTP_RESPONSE_STREAM_REQUIRED",
+      error: "MCP HTTP response does not expose a readable byte stream",
+    });
+    expect(cancelCalls).toBe(1);
+    expect(fetchCalls).toBe(1);
+    expect(textCalls).toBe(0);
+    expect(client.servers.get("no-reader-sse")._httpMessageStream).toBeNull();
   });
 
   it.each([0, Number.MAX_SAFE_INTEGER])(
