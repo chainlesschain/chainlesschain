@@ -1,9 +1,11 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { WebSocketServer } from "ws";
 import {
   MCPClient,
   ServerState,
   inferTransport,
+  isLikelyConnectionError,
+  isTransientMcpError,
   isWebSocketTransport,
 } from "../../src/harness/mcp-client.js";
 import { loadMcpConfig } from "../../src/runtime/mcp-config.js";
@@ -161,6 +163,66 @@ describe("MCPClient WebSocket transport contract", () => {
       closeCode: 1011,
     });
   });
+
+  it.each([
+    {
+      label: "malformed JSON text",
+      expectedCode: "CC_MCP_WS_INVALID_MESSAGE",
+      send(socket, canary) {
+        socket.send(`ECONNRESET HTTP 503 ${canary}`);
+      },
+    },
+    {
+      label: "binary frame",
+      expectedCode: "CC_MCP_WS_BINARY_MESSAGE",
+      send(socket, canary) {
+        socket.send(Buffer.from(canary));
+      },
+    },
+  ])(
+    "does not leak or replay a tool call after a $label",
+    async ({ expectedCode, send }) => {
+      const canary = `WS_PROTOCOL_SECRET_${expectedCode}`;
+      let toolCalls = 0;
+      const { url } = await startMcpWebSocket((socket, message) => {
+        if (message.method !== "tools/call") return false;
+        toolCalls += 1;
+        send(socket, canary);
+        return true;
+      });
+      const client = new MCPClient();
+      const serverErrors = [];
+      client.on("server-error", (event) => serverErrors.push(event));
+      await client.connect("invalid-frame", {
+        transport: "ws",
+        url,
+        requestTimeoutMs: 1000,
+      });
+      const reconnector = vi.fn(() => ({ transport: "ws", url }));
+      client.setReconnector("invalid-frame", reconnector);
+
+      let error;
+      try {
+        await client.callTool("invalid-frame", "echo", {});
+      } catch (cause) {
+        error = cause;
+      }
+
+      expect(error).toMatchObject({ code: expectedCode });
+      expect(toolCalls).toBe(1);
+      expect(reconnector).not.toHaveBeenCalled();
+      expect(isLikelyConnectionError(error)).toBe(false);
+      expect(isTransientMcpError(error)).toBe(false);
+      expect(
+        JSON.stringify({
+          message: error?.message,
+          stack: error?.stack,
+          serverErrors,
+        }),
+      ).not.toContain(canary);
+      await client.disconnectAll();
+    },
+  );
 
   it("times out an unanswered request with a structured diagnostic", async () => {
     let requestId = null;

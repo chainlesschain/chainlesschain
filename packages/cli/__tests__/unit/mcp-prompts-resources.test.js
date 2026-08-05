@@ -341,82 +341,108 @@ describe("agent loop — MCP resource tools", () => {
     );
   }, 15_000);
 
-  it("keeps an HTTP error body out of the resource tool event and next model turn", async () => {
-    const canary = "MODEL_SESSION_HTTP_BODY_SECRET_CANARY";
-    const client = fakeClient({
-      docs: { resources: [{ uri: "file:///private.md", name: "Private" }] },
-    });
-    client.readResource = vi.fn(async () => {
-      const error = new Error(`HTTP 503: ${canary}`);
-      error.code = "CC_MCP_HTTP_STATUS";
-      error.status = 503;
-      throw error;
-    });
-    const wiring = await setupMcpFromConfig(
-      { docs: { command: "x" } },
-      { createClient: () => client },
-    );
-
-    const modelInputs = [];
-    let turn = 0;
-    const chatFn = vi.fn(async (messages) => {
-      modelInputs.push(JSON.stringify(messages));
-      turn += 1;
-      if (turn === 1) {
-        return {
-          message: {
-            role: "assistant",
-            content: "",
-            tool_calls: [
-              {
-                id: "c-http-error",
-                type: "function",
-                function: {
-                  name: "read_mcp_resource",
-                  arguments: JSON.stringify({
-                    server: "docs",
-                    uri: "file:///private.md",
-                  }),
-                },
-              },
-            ],
-          },
-        };
-      }
-      return { message: { role: "assistant", content: "done" } };
-    });
-    const persisted = [];
-    const { deps, out } = baseDeps({
-      loadMcpConfig: async () => wiring,
-      chatFn,
-      appendAssistantMessage: (...args) => persisted.push(args),
-      appendToolCallCompact: (...args) => persisted.push(args),
-      appendTokenUsage: (...args) => persisted.push(args),
-    });
-
-    const result = await runAgentHeadless(
-      {
-        prompt: "read private docs",
-        mcpConfig: "x.json",
-        outputFormat: "stream-json",
-        sessionId: "s-resource-http-error",
-        permissionMode: "bypassPermissions",
-        expandFileRefs: false,
+  it.each([
+    {
+      label: "HTTP error body",
+      canary: "MODEL_SESSION_HTTP_BODY_SECRET_CANARY",
+      makeError(canary) {
+        const error = new Error(`HTTP 503: ${canary}`);
+        error.code = "CC_MCP_HTTP_STATUS";
+        error.status = 503;
+        return error;
       },
-      deps,
-    );
+      expected: "MCP HTTP request failed with status 503",
+    },
+    {
+      label: "JSON-RPC message/data",
+      canary: "MODEL_SESSION_RPC_ERROR_SECRET_CANARY",
+      makeError(canary) {
+        const error = new Error(`not connected HTTP 503: ${canary}`);
+        error.name = "McpRpcError";
+        error.code = -32000;
+        error.rpcCode = -32000;
+        error.mcpErrorCode = "CC_MCP_RPC_ERROR";
+        error.data = { secret: canary };
+        return error;
+      },
+      expected: "MCP server returned a JSON-RPC error (code -32000)",
+    },
+  ])(
+    "keeps $label out of the resource tool event and next model turn",
+    async ({ canary, makeError, expected }) => {
+      const client = fakeClient({
+        docs: { resources: [{ uri: "file:///private.md", name: "Private" }] },
+      });
+      client.readResource = vi.fn(async () => {
+        throw makeError(canary);
+      });
+      const wiring = await setupMcpFromConfig(
+        { docs: { command: "x" } },
+        { createClient: () => client },
+      );
 
-    expect(result.exitCode).toBe(0);
-    expect(chatFn).toHaveBeenCalledTimes(2);
-    expect(client.readResource).toHaveBeenCalledOnce();
-    const exposed = [
-      out.join(""),
-      ...modelInputs,
-      JSON.stringify(persisted),
-    ].join("\n");
-    expect(exposed).toContain("MCP HTTP request failed with status 503");
-    expect(exposed).not.toContain(canary);
-  }, 15_000);
+      const modelInputs = [];
+      let turn = 0;
+      const chatFn = vi.fn(async (messages) => {
+        modelInputs.push(JSON.stringify(messages));
+        turn += 1;
+        if (turn === 1) {
+          return {
+            message: {
+              role: "assistant",
+              content: "",
+              tool_calls: [
+                {
+                  id: "c-resource-error",
+                  type: "function",
+                  function: {
+                    name: "read_mcp_resource",
+                    arguments: JSON.stringify({
+                      server: "docs",
+                      uri: "file:///private.md",
+                    }),
+                  },
+                },
+              ],
+            },
+          };
+        }
+        return { message: { role: "assistant", content: "done" } };
+      });
+      const persisted = [];
+      const { deps, out } = baseDeps({
+        loadMcpConfig: async () => wiring,
+        chatFn,
+        appendAssistantMessage: (...args) => persisted.push(args),
+        appendToolCallCompact: (...args) => persisted.push(args),
+        appendTokenUsage: (...args) => persisted.push(args),
+      });
+
+      const result = await runAgentHeadless(
+        {
+          prompt: "read private docs",
+          mcpConfig: "x.json",
+          outputFormat: "stream-json",
+          sessionId: "s-resource-error",
+          permissionMode: "bypassPermissions",
+          expandFileRefs: false,
+        },
+        deps,
+      );
+
+      expect(result.exitCode).toBe(0);
+      expect(chatFn).toHaveBeenCalledTimes(2);
+      expect(client.readResource).toHaveBeenCalledOnce();
+      const exposed = [
+        out.join(""),
+        ...modelInputs,
+        JSON.stringify(persisted),
+      ].join("\n");
+      expect(exposed).toContain(expected);
+      expect(exposed).not.toContain(canary);
+    },
+    15_000,
+  );
 });
 
 // ─── 4. repl/mcp-prompt pure helpers ─────────────────────────────────────────

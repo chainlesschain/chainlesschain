@@ -74,7 +74,7 @@ function fakeEndpoint({ token = null, marker = "x", toolError = null } = {}) {
           return resp(200, {
             jsonrpc: "2.0",
             id: body.id,
-            error: { message: toolError },
+            error: { code: -32000, message: toolError },
           });
         }
         return rpc(body.id, {
@@ -209,8 +209,11 @@ describe("MCPClient hot reconnect (unit, fake fetch)", () => {
     const reconnector = vi.fn();
     client.setReconnector("ide", reconnector);
 
-    await expect(client.callTool("ide", "ping", {})).rejects.toThrow("boom");
+    await expect(client.callTool("ide", "ping", {})).rejects.toThrow(
+      "MCP server returned a JSON-RPC error",
+    );
     expect(reconnector).not.toHaveBeenCalled();
+    expect(a.calls).toBe(1);
   });
 
   it("does not retry without a reconnector", async () => {

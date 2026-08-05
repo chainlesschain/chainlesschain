@@ -112,6 +112,7 @@ import {
   buildExtractiveHandoff,
   formatStructuredHandoff,
 } from "../harness/structured-handoff.js";
+import { isMcpRpcError } from "../harness/mcp-client.js";
 import { projectCanonicalResumeMessages } from "../lib/session-message-provenance.js";
 
 export { formatProviderHttpError };
@@ -3354,14 +3355,27 @@ const MCP_PROTOCOL_RESULT_INVALID_CODE = "CC_MCP_PROTOCOL_RESULT_INVALID";
 const MCP_RESULT_PROJECTION_FAILED_CODE = "CC_MCP_RESULT_PROJECTION_FAILED";
 
 function safeMcpProperty(value, property) {
+  if (!value || (typeof value !== "object" && typeof value !== "function")) {
+    return undefined;
+  }
   try {
-    return value?.[property];
+    if (isProxy(value)) return undefined;
+    const descriptor = Object.getOwnPropertyDescriptor(value, property);
+    return descriptor && Object.hasOwn(descriptor, "value")
+      ? descriptor.value
+      : undefined;
   } catch {
     return undefined;
   }
 }
 
 function safeMcpErrorMessage(error) {
+  if (safeMcpProperty(error, "mcpErrorCode") === "CC_MCP_RPC_ERROR") {
+    const rpcCode = safeMcpProperty(error, "rpcCode");
+    return Number.isSafeInteger(rpcCode)
+      ? `MCP server returned a JSON-RPC error (code ${rpcCode})`
+      : "MCP server returned a JSON-RPC error";
+  }
   // HTTP status bodies are peer-controlled. The production transport omits
   // them at source, and this boundary independently prevents any MCP client
   // honoring the stable transport error code from projecting one into tool
@@ -3374,16 +3388,22 @@ function safeMcpErrorMessage(error) {
   }
   const message = safeMcpProperty(error, "message");
   if (typeof message === "string" && message) return message;
-  try {
-    return String(error || "unknown error");
-  } catch {
-    return "unknown error";
-  }
+  if (typeof error === "string" && error) return error;
+  return "unknown error";
 }
 
 function safeMcpErrorCode(error, fallback) {
   const code = safeMcpProperty(error, "code");
   return typeof code === "string" && code ? code : fallback;
+}
+
+function projectMcpCallError(error) {
+  const projected = new Error(safeMcpErrorMessage(error));
+  const code = isMcpRpcError(error)
+    ? "CC_MCP_RPC_ERROR"
+    : safeMcpErrorCode(error, null);
+  if (code) projected.code = code;
+  return projected;
 }
 
 function invalidMcpProtocolResult(cause) {
@@ -6028,7 +6048,11 @@ async function executeToolInner(
           }
 
           const transportFailure = async (callError) => {
-            if (mcpTransportOutcomeIsUnsafe(ledgerEffectContract)) {
+            const definitiveRpcFailure = isMcpRpcError(callError);
+            if (
+              mcpTransportOutcomeIsUnsafe(ledgerEffectContract) &&
+              !definitiveRpcFailure
+            ) {
               return attachDescriptor(
                 mcpOutcomeUnknownPayload(ledger, ledgerTicket, {
                   phase: "call",
@@ -6036,10 +6060,11 @@ async function executeToolInner(
                 }),
               );
             }
+            const projectedError = projectMcpCallError(callError);
             try {
               await ledgerTicket.settle({
                 status: "failed",
-                error: callError,
+                error: projectedError,
               });
             } catch (ledgerError) {
               return attachDescriptor(
@@ -6053,7 +6078,7 @@ async function executeToolInner(
               );
             }
             return attachDescriptor({
-              error: `MCP tool execution failed: ${safeMcpErrorMessage(callError)}`,
+              error: `MCP tool execution failed: ${projectedError.message}`,
               mcpLedgerId: safeMcpProperty(ledgerTicket, "ledgerId") || null,
             });
           };

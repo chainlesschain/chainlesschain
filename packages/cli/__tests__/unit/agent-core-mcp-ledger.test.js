@@ -5,6 +5,11 @@ import path from "node:path";
 import vm from "node:vm";
 import { executeTool } from "../../src/runtime/agent-core.js";
 import {
+  MCPClient,
+  ServerState,
+  _deps as mcpDeps,
+} from "../../src/harness/mcp-client.js";
+import {
   computeMcpExactReplayDigest,
   createMcpCallLedger,
   summarizeMcpPayload,
@@ -16,6 +21,48 @@ import {
 } from "../../src/lib/mcp-ledger-recovery-admission.js";
 
 const TOOL_NAME = "mcp__files__update";
+const originalMcpDeps = { ...mcpDeps };
+
+function rpcErrorResponse(requestId, message, data = {}) {
+  return {
+    ok: true,
+    status: 200,
+    headers: {
+      get(name) {
+        return String(name).toLowerCase() === "content-type"
+          ? "application/json"
+          : null;
+      },
+    },
+    async text() {
+      return JSON.stringify({
+        jsonrpc: "2.0",
+        id: requestId,
+        error: { code: -32000, message, data },
+      });
+    },
+  };
+}
+
+function actualHttpMcpClient() {
+  const client = new MCPClient();
+  const url = "https://mcp.example.test/rpc";
+  client.servers.set("files", {
+    state: ServerState.CONNECTED,
+    tools: [],
+    resources: [],
+    resourceTemplates: [],
+    prompts: [],
+    config: { url, longRunning: true },
+    transportKind: "https",
+    httpUrl: url,
+    httpHeaders: {},
+    httpSessionId: "session-1",
+    protocolVersion: "2025-11-25",
+    _httpRequestControllers: new Set(),
+  });
+  return client;
+}
 
 function toolOptions(
   cwd,
@@ -95,6 +142,7 @@ describe("agent-core MCP call ledger", () => {
   });
 
   afterEach(() => {
+    Object.assign(mcpDeps, originalMcpDeps);
     fs.rmSync(cwd, { recursive: true, force: true });
   });
 
@@ -324,6 +372,111 @@ describe("agent-core MCP call ledger", () => {
     expect(JSON.stringify(harness.rawLedger.list())).not.toContain(canary);
     expect(harness.rawLedger.list()[0].status).toBe("failed");
   });
+
+  it("settles branded RPC rejections as known failures without message-dependent digests", async () => {
+    const canaries = [
+      "RPC_MESSAGE_DATA_SECRET_CANARY_ONE",
+      "RPC_MESSAGE_DATA_SECRET_CANARY_TWO",
+    ];
+    const harness = guardedLedger({ randomUUID: () => "rpc-error" });
+    const client = actualHttpMcpClient();
+    let responseIndex = 0;
+    mcpDeps.fetch = vi.fn(async (_url, options) => {
+      const request = JSON.parse(options.body);
+      const canary = canaries[responseIndex++];
+      return rpcErrorResponse(request.id, `not connected HTTP 503: ${canary}`, {
+        secret: canary,
+      });
+    });
+    const options = toolOptions(
+      cwd,
+      client,
+      harness.ledger,
+      { declaredEffect: "write" },
+      hostEffectPolicy("write", true),
+    );
+
+    const first = await executeTool(TOOL_NAME, { revision: 1 }, options);
+    const second = await executeTool(TOOL_NAME, { revision: 2 }, options);
+
+    for (const result of [first, second]) {
+      expect(result).toMatchObject({
+        error:
+          "MCP tool execution failed: MCP server returned a JSON-RPC error (code -32000)",
+      });
+      expect(result.outcomeUnknown).toBeUndefined();
+    }
+    expect(mcpDeps.fetch).toHaveBeenCalledTimes(2);
+    expect(harness.settle).toHaveBeenCalledTimes(2);
+    const records = harness.rawLedger.list();
+    expect(records.map((record) => record.status)).toEqual([
+      "failed",
+      "failed",
+    ]);
+    expect(records[0].errorSummary.messageDigest).toBe(
+      records[1].errorSummary.messageDigest,
+    );
+    const publicState = JSON.stringify({ first, second, records });
+    for (const canary of canaries) expect(publicState).not.toContain(canary);
+    expect(harness.controller.admission.blockMode).toBeNull();
+  });
+
+  it.each(["accessor", "proxy"])(
+    "settles a trusted-read %s rejection without executing peer traps",
+    async (kind) => {
+      const canary = `RPC_TRAP_SECRET_${kind}`;
+      const harness = guardedLedger({ randomUUID: () => `rpc-${kind}` });
+      let trapReads = 0;
+      let hostileError;
+      if (kind === "proxy") {
+        hostileError = new Proxy(
+          {},
+          {
+            get() {
+              trapReads += 1;
+              throw new Error(canary);
+            },
+            getOwnPropertyDescriptor() {
+              trapReads += 1;
+              throw new Error(canary);
+            },
+          },
+        );
+      } else {
+        hostileError = {
+          mcpErrorCode: "CC_MCP_RPC_ERROR",
+          rpcCode: -32000,
+        };
+        Object.defineProperty(hostileError, "message", {
+          get() {
+            trapReads += 1;
+            return canary;
+          },
+        });
+      }
+      const callTool = vi.fn(async () => {
+        throw hostileError;
+      });
+
+      const result = await executeTool(
+        TOOL_NAME,
+        {},
+        toolOptions(
+          cwd,
+          { callTool },
+          harness.ledger,
+          { declaredEffect: "read" },
+          hostEffectPolicy("read", true),
+        ),
+      );
+
+      expect(trapReads).toBe(0);
+      expect(harness.settle).toHaveBeenCalledOnce();
+      expect(harness.rawLedger.list()[0].status).toBe("failed");
+      expect(JSON.stringify(result)).not.toContain(canary);
+      expect(JSON.stringify(harness.rawLedger.list())).not.toContain(canary);
+    },
+  );
 
   it.each([
     [

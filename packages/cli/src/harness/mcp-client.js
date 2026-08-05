@@ -12,6 +12,7 @@ import { executionBroker } from "../lib/process-execution-broker/index.js";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { EventEmitter } from "events";
 import { pathToFileURL } from "url";
+import { isProxy } from "node:util/types";
 import WebSocket from "ws";
 import { safeJsonParse } from "../lib/safe-json.js";
 import { EventRuntimeProducer } from "../lib/event-runtime-producer.js";
@@ -108,6 +109,26 @@ const MCP_HTTP_RESPONSE_MAX_BYTES = 16 * 1024 * 1024;
 const STDIO_REQUEST_TIMEOUT_MS = 30000;
 const MCP_PROTOCOL_VERSION = "2025-11-25";
 const URL_ELICITATION_REQUIRED = -32042;
+const MCP_RPC_ERROR_CODE = "CC_MCP_RPC_ERROR";
+const mcpRpcControlData = new WeakMap();
+const mcpRpcErrors = new WeakSet();
+const MCP_RPC_URL_ELICITATION_MAX_COUNT = 16;
+const MCP_RPC_URL_ELICITATION_MODE_MAX_BYTES = 16;
+const MCP_RPC_URL_ELICITATION_ID_MAX_BYTES = 256;
+const MCP_RPC_URL_ELICITATION_URL_MAX_BYTES = 8192;
+const MCP_RPC_URL_ELICITATION_MESSAGE_MAX_BYTES = 4096;
+const MCP_URL_ELICITATION_HISTORY_MAX_COUNT = 1000;
+
+export function isMcpRpcError(value) {
+  if (!value || (typeof value !== "object" && typeof value !== "function")) {
+    return false;
+  }
+  try {
+    return !isProxy(value) && mcpRpcErrors.has(value);
+  } catch {
+    return false;
+  }
+}
 
 function supportsUrlElicitationVersion(version) {
   const normalized = String(version || "");
@@ -144,10 +165,217 @@ export function inferTransport(config) {
   return "stdio";
 }
 
+function safeRpcProperty(value, property) {
+  return rpcWireDataProperty(value, property);
+}
+
+function rpcWireField(value, property) {
+  if ((typeof value !== "object" && typeof value !== "function") || !value) {
+    return { valid: false, present: false, value: undefined };
+  }
+  try {
+    if (isProxy(value)) {
+      return { valid: false, present: false, value: undefined };
+    }
+    const descriptor = Object.getOwnPropertyDescriptor(value, property);
+    if (!descriptor) {
+      return { valid: true, present: false, value: undefined };
+    }
+    if (!Object.hasOwn(descriptor, "value")) {
+      return { valid: false, present: true, value: undefined };
+    }
+    return { valid: true, present: true, value: descriptor.value };
+  } catch {
+    return { valid: false, present: false, value: undefined };
+  }
+}
+
+function rpcWireDataProperty(value, property) {
+  const field = rpcWireField(value, property);
+  return field.valid && field.present ? field.value : undefined;
+}
+
+function snapshotRpcMessage(message) {
+  try {
+    if (
+      !message ||
+      typeof message !== "object" ||
+      Array.isArray(message) ||
+      isProxy(message)
+    ) {
+      return null;
+    }
+  } catch {
+    return null;
+  }
+  const snapshot = {};
+  for (const fieldName of [
+    "jsonrpc",
+    "id",
+    "method",
+    "params",
+    "result",
+    "error",
+  ]) {
+    const field = rpcWireField(message, fieldName);
+    if (!field.valid) return null;
+    snapshot[fieldName] = field.value;
+    snapshot[`has${fieldName[0].toUpperCase()}${fieldName.slice(1)}`] =
+      field.present;
+  }
+  return Object.freeze(snapshot);
+}
+
+function boundedRpcControlString(value, maxBytes) {
+  if (
+    typeof value !== "string" ||
+    Buffer.byteLength(value, "utf8") > maxBytes ||
+    /\p{Cc}/u.test(value)
+  ) {
+    return null;
+  }
+  return value;
+}
+
+function snapshotRpcUrlElicitations(payload) {
+  const data = rpcWireDataProperty(payload, "data");
+  const requested = rpcWireDataProperty(data, "elicitations");
+  try {
+    if (!Array.isArray(requested) || isProxy(requested)) return null;
+    const length = rpcWireDataProperty(requested, "length");
+    if (!Number.isSafeInteger(length) || length < 0) return null;
+    const snapshots = [];
+    const retained = Math.min(length, MCP_RPC_URL_ELICITATION_MAX_COUNT + 1);
+    for (let index = 0; index < retained; index += 1) {
+      const item = rpcWireDataProperty(requested, String(index));
+      const mode = boundedRpcControlString(
+        rpcWireDataProperty(item, "mode"),
+        MCP_RPC_URL_ELICITATION_MODE_MAX_BYTES,
+      );
+      const elicitationId = boundedRpcControlString(
+        rpcWireDataProperty(item, "elicitationId"),
+        MCP_RPC_URL_ELICITATION_ID_MAX_BYTES,
+      );
+      const url = boundedRpcControlString(
+        rpcWireDataProperty(item, "url"),
+        MCP_RPC_URL_ELICITATION_URL_MAX_BYTES,
+      );
+      const message = boundedRpcControlString(
+        rpcWireDataProperty(item, "message"),
+        MCP_RPC_URL_ELICITATION_MESSAGE_MAX_BYTES,
+      );
+      if (
+        mode === null ||
+        elicitationId === null ||
+        url === null ||
+        message === null
+      ) {
+        return null;
+      }
+      snapshots.push(
+        Object.freeze({
+          mode,
+          elicitationId,
+          url,
+          message,
+        }),
+      );
+    }
+    return Object.freeze(snapshots);
+  } catch {
+    return null;
+  }
+}
+
+function mcpRpcProtocolError(code, message) {
+  const error = new Error(message);
+  error.name = "McpRpcProtocolError";
+  error.code = code;
+  return error;
+}
+
+function mcpRpcInvalidError() {
+  return mcpRpcProtocolError(
+    "CC_MCP_RPC_ERROR_INVALID",
+    "MCP server returned an invalid JSON-RPC error object",
+  );
+}
+
+function mcpRpcInvalidResponseError() {
+  return mcpRpcProtocolError(
+    "CC_MCP_RPC_RESPONSE_INVALID",
+    "MCP server returned an invalid JSON-RPC response",
+  );
+}
+
+function mcpRpcInvalidMessageError() {
+  return mcpRpcProtocolError(
+    "CC_MCP_RPC_MESSAGE_INVALID",
+    "MCP server sent an invalid JSON-RPC message",
+  );
+}
+
+function mcpRpcErrorLabel(code) {
+  switch (code) {
+    case -32700:
+      return "Parse error";
+    case -32600:
+      return "Invalid Request";
+    case -32601:
+      return "Method not found";
+    case -32602:
+      return "Invalid params";
+    case -32603:
+      return "Internal error";
+    case URL_ELICITATION_REQUIRED:
+      return "URL elicitation required";
+    default:
+      return null;
+  }
+}
+
 function mcpRpcError(payload = {}) {
-  const error = new Error(payload.message || "Unknown MCP error");
-  if (payload.code !== undefined) error.code = payload.code;
-  if (payload.data !== undefined) error.data = payload.data;
+  const codeField = rpcWireField(payload, "code");
+  const messageField = rpcWireField(payload, "message");
+  if (
+    !codeField.valid ||
+    !codeField.present ||
+    !Number.isSafeInteger(codeField.value) ||
+    !messageField.valid ||
+    !messageField.present ||
+    typeof messageField.value !== "string"
+  ) {
+    return mcpRpcInvalidError();
+  }
+
+  const rpcCode = codeField.value;
+  const label = mcpRpcErrorLabel(rpcCode);
+  const detail = ` (code ${rpcCode}${label ? `: ${label}` : ""})`;
+  // JSON-RPC message/data are peer-controlled and routinely flow into stderr,
+  // tool results, model context and session persistence. Keep diagnostics
+  // host-generated. The one data-bearing control flow we support (-32042) is
+  // retained out-of-band in a WeakMap and never attached to the Error object.
+  const error = new Error(`MCP server returned a JSON-RPC error${detail}`);
+  error.name = "McpRpcError";
+  error.mcpErrorCode = MCP_RPC_ERROR_CODE;
+  error.rpcCode = rpcCode;
+  error.code = rpcCode;
+  mcpRpcErrors.add(error);
+
+  if (rpcCode === URL_ELICITATION_REQUIRED) {
+    const elicitations = snapshotRpcUrlElicitations(payload);
+    if (elicitations) {
+      // Retain only a frozen allowlist snapshot, capped one item beyond the
+      // accepted maximum so an oversized batch is rejected without keeping an
+      // attacker-sized object graph alive.
+      mcpRpcControlData.set(
+        error,
+        Object.freeze({
+          elicitations,
+        }),
+      );
+    }
+  }
   return error;
 }
 
@@ -293,9 +521,33 @@ function mcpRequestAbortedError(serverName, entry, dispatched) {
 }
 
 function isWebSocketPayloadError(error) {
+  const code = safeRpcProperty(error, "code");
   return (
-    error?.code === "WS_ERR_UNSUPPORTED_MESSAGE_LENGTH" ||
-    error?.code === "WS_ERR_UNSUPPORTED_DATA_PAYLOAD_LENGTH"
+    code === "WS_ERR_UNSUPPORTED_MESSAGE_LENGTH" ||
+    code === "WS_ERR_UNSUPPORTED_DATA_PAYLOAD_LENGTH"
+  );
+}
+
+function safeRpcErrorText(error) {
+  if (typeof error === "string") return error;
+  const message = safeRpcProperty(error, "message");
+  return typeof message === "string" ? message : "";
+}
+
+const MCP_NON_RETRYABLE_PROTOCOL_ERROR_CODES = new Set([
+  "CC_MCP_WS_PAYLOAD_TOO_LARGE",
+  "CC_MCP_WS_BINARY_MESSAGE",
+  "CC_MCP_WS_INVALID_MESSAGE",
+  "CC_MCP_SERVER_DISCONNECTING",
+  "CC_MCP_REQUEST_ABORTED",
+  "CC_MCP_RPC_ERROR_INVALID",
+  "CC_MCP_RPC_RESPONSE_INVALID",
+  "CC_MCP_RPC_MESSAGE_INVALID",
+]);
+
+function isMcpNonRetryableProtocolError(error) {
+  return MCP_NON_RETRYABLE_PROTOCOL_ERROR_CODES.has(
+    safeRpcProperty(error, "code"),
   );
 }
 
@@ -310,24 +562,22 @@ function isWebSocketPayloadError(error) {
  * this client's own "server gone" states.
  */
 export function isLikelyConnectionError(err) {
-  if (
-    err?.code === "CC_MCP_WS_PAYLOAD_TOO_LARGE" ||
-    err?.code === "CC_MCP_SERVER_DISCONNECTING" ||
-    err?.code === "CC_MCP_REQUEST_ABORTED"
-  ) {
+  if (isMcpRpcError(err) || isMcpNonRetryableProtocolError(err)) {
     return false;
   }
-  const msg = String((err && err.message) || err || "");
+  const msg = safeRpcErrorText(err);
   return /fetch failed|ECONNREFUSED|ECONNRESET|ETIMEDOUT|EPIPE|socket hang up|network error|WebSocket|HTTP 40[134]\b|not connected|not found|not available/i.test(
     msg,
   );
 }
 
 export function isMcpAuthenticationError(err) {
+  if (isMcpRpcError(err)) return false;
+  const status = safeRpcProperty(err, "status");
   return (
-    err?.status === 401 ||
-    err?.status === 403 ||
-    /\bHTTP\s*40[13]\b/i.test(String(err?.message || err || ""))
+    status === 401 ||
+    status === 403 ||
+    /\bHTTP\s*40[13]\b/i.test(safeRpcErrorText(err))
   );
 }
 
@@ -354,7 +604,8 @@ const MCP_MAX_BUFFER_CHARS = 16 * 1024 * 1024;
  * retrying those just wastes attempts.
  */
 export function isTransientMcpError(err) {
-  const msg = String((err && err.message) || err || "");
+  if (isMcpRpcError(err) || isMcpNonRetryableProtocolError(err)) return false;
+  const msg = safeRpcErrorText(err);
   if (/HTTP 4\d\d\b/i.test(msg)) return false; // any 4xx is permanent here
   if (/Request timeout/i.test(msg)) return false; // already spent the full budget
   return /fetch failed|ECONNREFUSED|ECONNRESET|ETIMEDOUT|EAI_AGAIN|EPIPE|socket hang up|network error|HTTP 5\d\d\b/i.test(
@@ -668,27 +919,24 @@ export class MCPClient extends EventEmitter {
     const id = request?.elicitationId;
     if (!id) return;
     const existing = this._urlElicitations.get(id);
-    if (existing && existing.server !== request.server) {
-      throw new Error(`MCP URL elicitation id collision across servers: ${id}`);
+    if (existing) {
+      const error = new Error("MCP URL elicitation id was already used");
+      error.code = "CC_MCP_ELICITATION_ID_REUSED";
+      throw error;
     }
-    if (existing && existing.request?.url !== request.url) {
-      throw new Error(
-        `MCP URL elicitation id reused with a different URL: ${id}`,
-      );
+    if (this._urlElicitations.size >= MCP_URL_ELICITATION_HISTORY_MAX_COUNT) {
+      const error = new Error("MCP URL elicitation history is full");
+      error.code = "CC_MCP_ELICITATION_HISTORY_FULL";
+      throw error;
     }
-    if (!existing) {
-      this._urlElicitations.set(id, {
-        id,
-        server: request.server,
-        request,
-        status: "pending",
-        completionNotified: false,
-        waiters: new Set(),
-      });
-      while (this._urlElicitations.size > 1000) {
-        this._urlElicitations.delete(this._urlElicitations.keys().next().value);
-      }
-    }
+    this._urlElicitations.set(id, {
+      id,
+      server: request.server,
+      request,
+      status: "pending",
+      completionNotified: false,
+      waiters: new Set(),
+    });
   }
 
   _settleUrlElicitation(request, response) {
@@ -1127,10 +1375,10 @@ export class MCPClient extends EventEmitter {
               throw new Error("expected one JSON-RPC object");
             }
             this._handleMessage(name, message);
-          } catch (cause) {
+          } catch {
             const error = mcpTransportError(
               "CC_MCP_WS_INVALID_MESSAGE",
-              `Invalid WebSocket JSON-RPC message: ${cause?.message || cause}`,
+              "MCP WebSocket server sent an invalid JSON-RPC message",
               { transport: transportKind, url: config.url },
             );
             entry.state = ServerState.ERROR;
@@ -1627,7 +1875,7 @@ export class MCPClient extends EventEmitter {
       return await this._callToolOnce(serverName, toolName, args, options);
     } catch (err) {
       if (
-        err?.code === URL_ELICITATION_REQUIRED &&
+        mcpRpcControlData.has(err) &&
         (await this._resolveRequiredUrlElicitations(serverName, err))
       ) {
         // Retry exactly once after every out-of-band flow reports completion.
@@ -1664,19 +1912,32 @@ export class MCPClient extends EventEmitter {
   }
 
   async _resolveRequiredUrlElicitations(serverName, error) {
-    const requested = Array.isArray(error?.data?.elicitations)
-      ? error.data.elicitations
-      : [];
-    if (requested.length === 0 || requested.length > 16) return false;
+    const requested = mcpRpcControlData.get(error)?.elicitations;
+    if (
+      !Array.isArray(requested) ||
+      requested.length === 0 ||
+      requested.length > MCP_RPC_URL_ELICITATION_MAX_COUNT
+    ) {
+      return false;
+    }
     const normalized = [];
     const ids = new Set();
     for (const params of requested) {
       let request;
       try {
+        // -32042 is the sole RPC error whose data drives client behavior.
+        // Admit only the protocol fields needed by URL elicitation; arbitrary
+        // peer data must not hitchhike into handlers/events via object spread.
+        const candidate = {
+          mode: params.mode,
+          elicitationId: params.elicitationId,
+          url: params.url,
+          message: params.message,
+        };
         request = normalizeMcpElicitationRequest(
           serverName,
-          `url-required:${params?.elicitationId || normalized.length}`,
-          params,
+          `url-required:${candidate.elicitationId || normalized.length}`,
+          candidate,
         );
       } catch {
         return false;
@@ -1686,13 +1947,31 @@ export class MCPClient extends EventEmitter {
       ids.add(request.elicitationId);
       normalized.push(request);
     }
+    // Completion notifications are correlated by elicitationId alone. Reusing
+    // any retained id could let a prior completed generation authorize an
+    // automatic retry, so reject the whole batch before prompting.
+    if (
+      normalized.some((request) =>
+        this._urlElicitations.has(request.elicitationId),
+      )
+    ) {
+      return false;
+    }
     const accepted = [];
     for (const request of normalized) {
-      const response = await this._resolveElicitation(
-        serverName,
-        request.requestId,
-        request,
-      );
+      let response;
+      try {
+        response = await this._resolveElicitation(
+          serverName,
+          request.requestId,
+          request,
+        );
+      } catch {
+        // A collision can race the preflight check. Preserve the original,
+        // host-sanitized -32042 error instead of replacing it with any
+        // elicitation detail or handler failure.
+        return false;
+      }
       if (response.action !== "accept") return false;
       accepted.push(request);
     }
@@ -2418,17 +2697,33 @@ export class MCPClient extends EventEmitter {
         );
       } else {
         const text = await _readBodyCapped(response, cap);
-        envelope = text ? JSON.parse(text) : null;
+        try {
+          envelope = text ? JSON.parse(text) : null;
+        } catch {
+          // Modern JSON.parse diagnostics quote a slice of the malformed input.
+          // A peer can place secrets or retry/auth keywords there, so replace
+          // the SyntaxError without retaining it as a cause.
+          throw mcpRpcInvalidResponseError();
+        }
       }
 
-      if (!envelope || typeof envelope !== "object") {
-        throw new Error("Empty or invalid JSON-RPC response");
+      const wire = snapshotRpcMessage(envelope);
+      if (
+        !wire ||
+        !wire.hasJsonrpc ||
+        wire.jsonrpc !== "2.0" ||
+        !wire.hasId ||
+        wire.id !== id ||
+        wire.hasMethod ||
+        wire.hasResult === wire.hasError
+      ) {
+        throw mcpRpcInvalidResponseError();
       }
-      if (envelope.error) {
-        throw mcpRpcError(envelope.error);
+      if (wire.hasError) {
+        throw mcpRpcError(wire.error);
       }
       throwIfAborted();
-      return envelope.result;
+      return wire.result;
     } catch (err) {
       throwIfAborted();
       throw err;
@@ -2528,16 +2823,46 @@ export class MCPClient extends EventEmitter {
     const entry = this.servers.get(serverName);
     if (!entry) return;
 
-    // Response to a request
-    if (msg.id !== undefined && entry._pending.has(msg.id)) {
-      const { resolve, reject, timeout } = entry._pending.get(msg.id);
-      clearTimeout(timeout);
-      entry._pending.delete(msg.id);
+    // Snapshot every top-level field before touching the pending registry.
+    // Although production transports JSON.parse their input, keeping this
+    // boundary descriptor-only prevents a custom adapter/getter/Proxy from
+    // consuming a pending request and then throwing before it can be rejected.
+    const wire = snapshotRpcMessage(msg);
+    if (!wire || !wire.hasJsonrpc || wire.jsonrpc !== "2.0") {
+      const error = mcpRpcInvalidMessageError();
+      entry.state = ServerState.ERROR;
+      if (entry._pending instanceof Map) {
+        for (const pending of entry._pending.values()) {
+          clearTimeout(pending.timeout);
+          pending.reject(error);
+        }
+        entry._pending.clear();
+      }
+      this.emit("server-error", {
+        name: serverName,
+        code: error.code,
+        error: error.message,
+      });
+      return;
+    }
 
-      if (msg.error) {
-        reject(mcpRpcError(msg.error));
+    // Response to a request
+    if (
+      wire.hasId &&
+      !wire.hasMethod &&
+      entry._pending instanceof Map &&
+      entry._pending.has(wire.id)
+    ) {
+      const { resolve, reject, timeout } = entry._pending.get(wire.id);
+      clearTimeout(timeout);
+      entry._pending.delete(wire.id);
+
+      if (wire.hasResult === wire.hasError) {
+        reject(mcpRpcInvalidResponseError());
+      } else if (wire.hasError) {
+        reject(mcpRpcError(wire.error));
       } else {
-        resolve(msg.result);
+        resolve(wire.result);
       }
       return;
     }
@@ -2546,44 +2871,48 @@ export class MCPClient extends EventEmitter {
     // one of ours). Previously these fell into the notification branch and
     // never got a response, so a server calling e.g. roots/list hung until its
     // own timeout. Answer the ones our advertised capabilities invite.
-    if (msg.id !== undefined && msg.method) {
-      this._handleServerRequest(serverName, msg);
+    if (wire.hasId && typeof wire.method === "string" && wire.method) {
+      this._handleServerRequest(serverName, {
+        id: wire.id,
+        method: wire.method,
+        params: wire.params,
+      });
       return;
     }
 
     // Server notification
-    if (msg.method) {
+    if (typeof wire.method === "string" && wire.method) {
       // tools/resources list_changed (gap 2026-07-11 MCP 生命周期): refetch
       // the changed list so entry.tools/entry.resources stay live —
       // `listTools()`, `/mcp` status and callTool routing all see the update.
       // (The LLM tool array of an in-flight turn is deliberately NOT mutated:
       // tool-search's prompt-cache stability depends on an append-only,
       // stable-prefix tool list.)
-      if (msg.method === "notifications/tools/list_changed") {
+      if (wire.method === "notifications/tools/list_changed") {
         this._refreshServerList(serverName, "tools");
-      } else if (msg.method === "notifications/resources/list_changed") {
+      } else if (wire.method === "notifications/resources/list_changed") {
         this._refreshServerList(serverName, "resources");
         this._refreshServerList(serverName, "resourceTemplates");
-      } else if (msg.method === "notifications/resources/updated") {
+      } else if (wire.method === "notifications/resources/updated") {
         this.emit("resource-updated", {
           server: serverName,
-          uri: msg.params?.uri || null,
-          params: msg.params || {},
+          uri: safeRpcProperty(wire.params, "uri") || null,
+          params: wire.params || {},
         });
-      } else if (msg.method === "notifications/message") {
+      } else if (wire.method === "notifications/message") {
         this.emit("log-message", {
           server: serverName,
-          level: msg.params?.level || "info",
-          logger: msg.params?.logger || null,
-          data: msg.params?.data,
+          level: safeRpcProperty(wire.params, "level") || "info",
+          logger: safeRpcProperty(wire.params, "logger") || null,
+          data: safeRpcProperty(wire.params, "data"),
         });
-      } else if (msg.method === "notifications/elicitation/complete") {
-        this._handleElicitationComplete(serverName, msg.params || {});
+      } else if (wire.method === "notifications/elicitation/complete") {
+        this._handleElicitationComplete(serverName, wire.params || {});
       }
       this.emit("notification", {
         server: serverName,
-        method: msg.method,
-        params: msg.params,
+        method: wire.method,
+        params: wire.params,
       });
     }
   }

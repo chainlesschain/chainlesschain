@@ -413,16 +413,41 @@ function frozenSnapshot(record) {
   return Object.freeze(snapshot);
 }
 
+function safeOwnDataProperty(value, property) {
+  if (!value || (typeof value !== "object" && typeof value !== "function")) {
+    return undefined;
+  }
+  try {
+    if (isProxy(value)) return undefined;
+    const descriptor = Object.getOwnPropertyDescriptor(value, property);
+    return descriptor && Object.hasOwn(descriptor, "value")
+      ? descriptor.value
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 function summarizeError(error) {
-  const message = String(error?.message || error || "unknown error");
+  const errorMessage = safeOwnDataProperty(error, "message");
+  const message =
+    typeof error === "string" && error
+      ? error
+      : typeof errorMessage === "string" && errorMessage
+        ? errorMessage
+        : "unknown error";
+  const errorName = safeOwnDataProperty(error, "name");
+  const errorCode = safeOwnDataProperty(error, "code");
   return Object.freeze({
     name: safeIdentifier(
-      error?.name,
+      typeof errorName === "string" ? errorName : null,
       "Error",
       MCP_CALL_LEDGER_PROTOCOL_LIMITS.errorName,
     ),
     code: safeIdentifier(
-      error?.code,
+      typeof errorCode === "string" || Number.isSafeInteger(errorCode)
+        ? errorCode
+        : null,
       null,
       MCP_CALL_LEDGER_PROTOCOL_LIMITS.errorCode,
     ),
@@ -431,19 +456,22 @@ function summarizeError(error) {
 }
 
 function normalizeStatus(outcome = {}) {
-  if (outcome.status) {
-    const status = String(outcome.status).toLowerCase();
+  const explicitStatus = safeOwnDataProperty(outcome, "status");
+  if (typeof explicitStatus === "string" && explicitStatus) {
+    const status = explicitStatus.toLowerCase();
     if (!TERMINAL_STATUSES.has(status)) {
-      throw new TypeError(
-        `Invalid MCP ledger terminal status "${outcome.status}"`,
-      );
+      throw new TypeError(`Invalid MCP ledger terminal status "${status}"`);
     }
     return status;
   }
-  if (outcome.cancelled === true || outcome.error?.name === "AbortError") {
+  const error = safeOwnDataProperty(outcome, "error");
+  if (
+    safeOwnDataProperty(outcome, "cancelled") === true ||
+    safeOwnDataProperty(error, "name") === "AbortError"
+  ) {
     return McpCallStatus.CANCELLED;
   }
-  return outcome.error ? McpCallStatus.FAILED : McpCallStatus.COMPLETED;
+  return error ? McpCallStatus.FAILED : McpCallStatus.COMPLETED;
 }
 
 function resolveSinkWriter(sink) {
@@ -675,7 +703,8 @@ export class McpCallLedger {
             : outcome.result,
         )
       : null;
-    const errorSummary = outcome.error ? summarizeError(outcome.error) : null;
+    const outcomeError = safeOwnDataProperty(outcome, "error");
+    const errorSummary = outcomeError ? summarizeError(outcomeError) : null;
     const settlementPersistence =
       current.prewritePersistence === "failed-open"
         ? "skipped-no-prewrite"
