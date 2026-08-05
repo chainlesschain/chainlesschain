@@ -2,6 +2,13 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.42] - Bootstrap retry race fix (2026-08-05)
+
+- Preserve a prompt sent before the first chat tab identity arrives, so
+  `/retry` cannot lose that prompt during bootstrap tab activation.
+- Keep Open VSX tag releases independent while requiring an explicit exact-tag
+  workflow dispatch to backfill the Microsoft VS Code Marketplace.
+
 ## [0.37.41] - Auditable macOS host journey (2026-08-05)
 
 - Add a one-launch, 256-bit-token-gated Webview message relay for the real

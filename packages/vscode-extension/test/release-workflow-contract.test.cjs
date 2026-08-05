@@ -37,19 +37,33 @@ test("JetBrains release hosts use the platform-required Java 21 toolchain", () =
   assert.match(build, /jvmToolchain\(21\)/u);
 });
 
-test("VS Code credentials are checked before either immutable publish", () => {
+test("VS Code channel credentials are checked before their immutable publishes", () => {
   const workflow = read(".github/workflows/ide-extensions.yml");
-  const preflight = workflow.indexOf(
-    "- name: Preflight required marketplace credentials",
+  const openVsxPreflight = workflow.indexOf(
+    "- name: Preflight Open VSX credential",
+  );
+  const vscodePreflight = workflow.indexOf(
+    "- name: Preflight VS Code Marketplace credential",
   );
   const openVsxPublish = workflow.indexOf("- name: Publish to Open VSX");
   const vscodePublish = workflow.indexOf(
     "- name: Publish to VS Code Marketplace",
   );
 
-  assert.ok(preflight > 0, "credential preflight must exist");
-  assert.ok(preflight < openVsxPublish, "preflight must precede Open VSX");
-  assert.ok(preflight < vscodePublish, "preflight must precede VS Marketplace");
+  assert.ok(openVsxPreflight > 0, "Open VSX preflight must exist");
+  assert.ok(vscodePreflight > 0, "Marketplace preflight must exist");
+  assert.ok(
+    openVsxPreflight < openVsxPublish,
+    "Open VSX preflight must precede its publish",
+  );
+  assert.ok(
+    vscodePreflight < openVsxPublish,
+    "Marketplace backfill credentials must fail before the Open VSX replay",
+  );
+  assert.ok(
+    vscodePreflight < vscodePublish,
+    "Marketplace preflight must precede its publish",
+  );
   assert.match(workflow, /OVSX_PAT: \$\{\{ secrets\.OVSX_PAT \}\}/u);
   assert.match(workflow, /VSCE_PAT: \$\{\{ secrets\.VSCE_PAT \}\}/u);
   assert.match(workflow, /@vscode\/vsce@3\.9\.2 verify-pat chainlesschain/u);
@@ -193,12 +207,20 @@ test("IDE release tags are isolated and manual Marketplace backfill is tag-bound
     /github\.event_name == 'push' &&\s+startsWith\(github\.ref, 'refs\/tags\/ide-jetbrains-v'\)/u,
   );
 
-  const marketplaceGuard =
+  const openVsxGuard =
     /startsWith\(github\.ref, 'refs\/tags\/ide-vscode-v'\) &&\s+\(github\.event_name == 'push' \|\|\s+\(github\.event_name == 'workflow_dispatch' &&\s+inputs\.publish_vscode_marketplace\)\)/gu;
   assert.equal(
-    workflow.match(marketplaceGuard)?.length,
-    5,
-    "credential preflight and all four VS marketplace write/read steps must share the tag-bound guard",
+    workflow.match(openVsxGuard)?.length,
+    3,
+    "Open VSX preflight, publish, and verification must share the tag-bound release/replay guard",
+  );
+
+  const officialBackfillGuard =
+    /startsWith\(github\.ref, 'refs\/tags\/ide-vscode-v'\) &&\s+github\.event_name == 'workflow_dispatch' &&\s+inputs\.publish_vscode_marketplace/gu;
+  assert.equal(
+    workflow.match(officialBackfillGuard)?.length,
+    3,
+    "official credential preflight, publish, and verification must require an explicit exact-tag backfill",
   );
 
   const openVsxPublish = releaseJob.indexOf("- name: Publish to Open VSX");
