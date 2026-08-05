@@ -180,6 +180,9 @@ function writeWorkspace(workspaceDir, fixtureCliCommand) {
   );
   // Keep activation deterministic and offline. The managed-CLI command still
   // has to be registered; only its asynchronous startup probe is disabled.
+  // Modal extension messages use native OS dialogs by default on some desktop
+  // hosts. The real-DOM journey needs VS Code's supported custom dialog style
+  // so its confirmation text and action can be inspected through CDP.
   fs.writeFileSync(
     path.join(vscodeDir, "settings.json"),
     `${JSON.stringify(
@@ -191,6 +194,7 @@ function writeWorkspace(workspaceDir, fixtureCliCommand) {
         "extensions.autoUpdate": false,
         "telemetry.telemetryLevel": "off",
         "update.mode": "none",
+        "window.dialogStyle": "custom",
       },
       null,
       2,
@@ -1250,6 +1254,7 @@ module.exports = {
   runHostApiPhase,
   runRealDomPhase,
   settleHostAfterCdp,
+  writeWorkspace,
 };
 
 if (require.main === module) {

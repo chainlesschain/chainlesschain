@@ -29,6 +29,7 @@ const {
   resolveVsCodeHostVersion,
   runRealDomPhase,
   settleHostAfterCdp,
+  writeWorkspace,
 } = require("./extension-host/run.cjs");
 const {
   CdpClient,
@@ -168,6 +169,22 @@ test("host phases share installed extensions but isolate user-data profiles", ()
     () => buildProfileArgs({ runRoot: root, extensionsDir, phase: "other" }),
     /unknown host profile phase/,
   );
+});
+
+test("host workspace renders modal confirmations in inspectable VS Code DOM", () => {
+  const root = temporaryRoot();
+  const workspaceDir = path.join(root, "workspace");
+  fs.mkdirSync(workspaceDir, { recursive: true });
+
+  writeWorkspace(workspaceDir, path.join(root, "cc.cmd"));
+
+  const settings = JSON.parse(
+    fs.readFileSync(
+      path.join(workspaceDir, ".vscode", "settings.json"),
+      "utf8",
+    ),
+  );
+  assert.equal(settings["window.dialogStyle"], "custom");
 });
 
 test("host progress journal survives before immutable evidence exists", () => {
