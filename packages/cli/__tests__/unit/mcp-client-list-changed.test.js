@@ -46,6 +46,9 @@ function makeFakeProc(state) {
       case "resources/list":
         result = { resources: [...state.resources] };
         break;
+      case "resources/templates/list":
+        result = { resourceTemplates: [] };
+        break;
       case "prompts/list":
         result = { prompts: [] };
         break;

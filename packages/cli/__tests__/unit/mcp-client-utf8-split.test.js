@@ -24,6 +24,8 @@ function handshakeResult(method) {
       return { tools: [{ name: "doit" }] };
     case "resources/list":
       return { resources: [] };
+    case "resources/templates/list":
+      return { resourceTemplates: [] };
     case "prompts/list":
       return { prompts: [] };
     default:
@@ -68,7 +70,9 @@ function makeFakeProc() {
         setImmediate(() => {
           proc.stdout.emit(
             "data",
-            Buffer.from(JSON.stringify({ jsonrpc: "2.0", id: msg.id, result }) + "\n"),
+            Buffer.from(
+              JSON.stringify({ jsonrpc: "2.0", id: msg.id, result }) + "\n",
+            ),
           );
         });
       }

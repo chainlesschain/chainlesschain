@@ -29,6 +29,8 @@ function handshakeResult(method) {
       return { tools: [{ name: "doit" }] };
     case "resources/list":
       return { resources: [] };
+    case "resources/templates/list":
+      return { resourceTemplates: [] };
     case "prompts/list":
       return { prompts: [] };
     default:
