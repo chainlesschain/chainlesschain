@@ -829,23 +829,32 @@ async function confirmNativeTimelineAction(client, signal = null) {
   await waitForDom(
     client,
     `(() => {
-      const dialogs = [...document.querySelectorAll('.monaco-dialog-box')]
-        .filter((element) => getComputedStyle(element).display !== 'none');
-      const dialog = dialogs.at(-1);
-      const text = dialog ? (dialog.textContent || '') : '';
-      return text.includes('Confirm action') && document.body.innerText.includes('vendor/cache')
-        && document.body.innerText.includes('publish release');
+      const isVisible = (element) => {
+        const style = getComputedStyle(element);
+        const bounds = element.getBoundingClientRect();
+        return style.display !== 'none' && style.visibility !== 'hidden'
+          && bounds.width > 0 && bounds.height > 0;
+      };
+      const button = [...document.querySelectorAll('button, .monaco-button, [role="button"]')]
+        .find((candidate) => isVisible(candidate)
+          && (candidate.textContent || '').trim() === 'Confirm action');
+      const text = document.body?.innerText || '';
+      return Boolean(button) && text.includes('vendor/cache') && text.includes('publish release');
     })()`,
     "partial-coverage rewind confirmation",
     45_000,
     signal,
   );
   const clicked = await client.evaluate(`(() => {
-    const dialogs = [...document.querySelectorAll('.monaco-dialog-box')]
-      .filter((element) => getComputedStyle(element).display !== 'none');
-    const dialog = dialogs.at(-1);
-    const button = dialog && [...dialog.querySelectorAll('button, .monaco-button')]
-      .find((candidate) => (candidate.textContent || '').trim() === 'Confirm action');
+    const isVisible = (element) => {
+      const style = getComputedStyle(element);
+      const bounds = element.getBoundingClientRect();
+      return style.display !== 'none' && style.visibility !== 'hidden'
+        && bounds.width > 0 && bounds.height > 0;
+    };
+    const button = [...document.querySelectorAll('button, .monaco-button, [role="button"]')]
+      .find((candidate) => isVisible(candidate)
+        && (candidate.textContent || '').trim() === 'Confirm action');
     if (!button) return false;
     button.click();
     return true;
