@@ -23,6 +23,7 @@ import {
   isMcpToolMetadataError,
 } from "../lib/mcp-tool-metadata.js";
 import { admitMcpToolResult } from "../lib/mcp-tool-result.js";
+import { terminateOwnedProcessTree } from "../lib/process-tree-termination.js";
 import {
   mergeMcpHeaders,
   resolveMcpHeadersHelperContext,
@@ -39,9 +40,39 @@ export const _deps = {
   WebSocket,
   runMcpHeadersHelper,
   resolveMcpHeadersHelperContext,
+  terminateOwnedProcessTree,
   // Backoff sleep seam (tests override with a no-op so retries don't wait).
   sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
 };
+
+function mcpStdioCleanupError(name, result) {
+  const error = new Error(
+    `MCP server "${name}" process tree did not terminate before the cleanup deadline`,
+  );
+  error.code = "CC_MCP_STDIO_PROCESS_TREE_CLEANUP_TIMEOUT";
+  error.cleanup = result;
+  return error;
+}
+
+function retireStdioEntryProcess(entry, options = {}) {
+  if (!entry?.process) return Promise.resolve(null);
+  if (entry._stdioRetirementPromise) return entry._stdioRetirementPromise;
+  const retirement = Promise.resolve()
+    .then(() =>
+      _deps.terminateOwnedProcessTree(entry.process, {
+        alreadyClosed: options.alreadyClosed === true,
+        cleanupTimeoutMs: entry.config?.processTreeCleanupTimeoutMs,
+        graceMs: entry.config?.processTreeGraceMs,
+        treeMode: entry._stdioTreeMode,
+      }),
+    )
+    .then((result) => {
+      entry._stdioTreeCleanup = result;
+      return result;
+    });
+  entry._stdioRetirementPromise = retirement;
+  return retirement;
+}
 
 /**
  * MCP Server connection states.
@@ -2215,6 +2246,14 @@ export class MCPClient extends EventEmitter {
           policy: config.policy || "allow",
           scope: config.scope || "mcp",
           shell: false,
+          windowsHide: true,
+          // POSIX owns an independent process group. Windows requires the
+          // Broker's Job Object boundary so an unexpectedly exiting MCP root
+          // cannot orphan grandchildren before taskkill can enumerate them.
+          detached: process.platform !== "win32",
+          ...(process.platform === "win32"
+            ? { requiredBoundaries: ["process-tree"] }
+            : {}),
           pluginId: config.pluginId,
           pluginVersion: config.pluginVersion,
           pluginSource: config.pluginSource,
@@ -2227,16 +2266,27 @@ export class MCPClient extends EventEmitter {
             ? executionBroker.issueLinuxWorkspaceSandboxExecutionContract(
                 config.command,
                 config.args || [],
-                spawnOptions,
+                { ...spawnOptions, detached: false },
                 pluginWorkspaceRoot || process.cwd(),
               )
             : null;
-        const proc = _deps.spawn(config.command, config.args || [], {
+        const launchOptions = {
           ...spawnOptions,
+          detached: sandboxExecutionContract ? false : spawnOptions.detached,
           ...(sandboxExecutionContract ? { sandboxExecutionContract } : {}),
+        };
+        const proc = _deps.spawn(config.command, config.args || [], {
+          ...launchOptions,
         });
 
         entry.process = proc;
+        entry._stdioTreeMode =
+          sandboxExecutionContract ||
+          (process.platform === "win32" && proc?.sandboxReady?.then)
+            ? "sandbox"
+            : process.platform === "win32"
+              ? "windows-tree"
+              : "posix-group";
 
         proc.stdout.on("data", (data) => {
           this._handleData(
@@ -2278,6 +2328,27 @@ export class MCPClient extends EventEmitter {
           );
           this._cancelServerElicitations(name);
           this.emit("server-disconnected", { name, code });
+          // The root may exit while leaving descendants alive. A Broker-owned
+          // namespace/Job close is already a tree fence; an unmanaged POSIX
+          // process group is still signalled and probed by the same bounded
+          // retirement path used by disconnect().
+          void retireStdioEntryProcess(entry, { alreadyClosed: true }).then(
+            (cleanup) => {
+              if (cleanup?.verifiable && !cleanup.confirmed) {
+                entry.state = ServerState.ERROR;
+                const cleanupError = mcpStdioCleanupError(name, cleanup);
+                this.emit("server-error", {
+                  name,
+                  error: cleanupError.message,
+                  code: cleanupError.code,
+                });
+              }
+            },
+            () => {
+              // The production terminator is total. Keep a rejection from a
+              // test-injected dependency from becoming an unhandled promise.
+            },
+          );
         });
 
         proc.on("error", (err) => {
@@ -2433,15 +2504,32 @@ export class MCPClient extends EventEmitter {
       // delete the entry from `this.servers` below, so disconnect() can never
       // reach it, and an alive-but-unresponsive process fires neither `close`
       // nor `error` — it would run orphaned with its stdio listeners bound for
-      // the lifetime of the CLI. Tear it down on the way out (best-effort;
-      // never mask the original connect error).
+      // the lifetime of the CLI. Retire the owned tree on the way out without
+      // masking the original connect error.
       if (entry.process) {
+        let cleanup = null;
+        try {
+          cleanup = await retireStdioEntryProcess(entry, {
+            alreadyClosed:
+              entry.process.exitCode !== null &&
+              entry.process.exitCode !== undefined,
+          });
+        } catch {
+          // Preserve the original connection failure if a test-injected
+          // cleanup dependency rejects. The production terminator is total.
+        }
+        if (
+          cleanup &&
+          err !== null &&
+          (typeof err === "object" || typeof err === "function")
+        ) {
+          err.processTreeCleanup = cleanup;
+        }
         try {
           entry.process.stdout?.removeAllListeners();
           entry.process.stderr?.removeAllListeners();
           entry.process.stdin?.removeAllListeners?.();
           entry.process.removeAllListeners();
-          entry.process.kill();
         } catch {
           // teardown is best-effort — the connect error is what matters
         }
@@ -2495,7 +2583,10 @@ export class MCPClient extends EventEmitter {
     const disconnecting = Promise.resolve().then(async () => {
       try {
         if (entry.process) {
-          entry.process.kill();
+          const cleanup = await retireStdioEntryProcess(entry);
+          if (cleanup?.verifiable && !cleanup.confirmed) {
+            throw mcpStdioCleanupError(name, cleanup);
+          }
         }
         if (entry.socket) {
           entry._rejectPending?.(
