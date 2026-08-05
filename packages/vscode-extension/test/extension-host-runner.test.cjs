@@ -29,7 +29,6 @@ const {
   resolveVsCodeHostVersion,
   runRealDomPhase,
   settleHostAfterCdp,
-  writeWorkspace,
 } = require("./extension-host/run.cjs");
 const {
   CdpClient,
@@ -171,18 +170,17 @@ test("host phases share installed extensions but isolate user-data profiles", ()
   );
 });
 
-test("host workspace renders modal confirmations in inspectable VS Code DOM", () => {
+test("host profile renders modal confirmations in inspectable VS Code DOM", () => {
   const root = temporaryRoot();
-  const workspaceDir = path.join(root, "workspace");
-  fs.mkdirSync(workspaceDir, { recursive: true });
-
-  writeWorkspace(workspaceDir, path.join(root, "cc.cmd"));
+  const profileArgs = buildProfileArgs({
+    runRoot: root,
+    extensionsDir: path.join(root, "extensions"),
+    phase: "initial",
+  });
+  const userDataDir = profileArgs[1].slice("--user-data-dir=".length);
 
   const settings = JSON.parse(
-    fs.readFileSync(
-      path.join(workspaceDir, ".vscode", "settings.json"),
-      "utf8",
-    ),
+    fs.readFileSync(path.join(userDataDir, "User", "settings.json"), "utf8"),
   );
   assert.equal(settings["window.dialogStyle"], "custom");
 });
