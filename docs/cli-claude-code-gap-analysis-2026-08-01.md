@@ -846,10 +846,22 @@ clean implementation SHA `5a7bc85f9f91a5d92908f8aebd99437e63b535bb` 在 Windows 
 
 一次较早的本机运行跨越宿主暂停，虽然最终断言通过但 wall-clock 约 65 分钟并触发外层超时，已排除为无效性能证据；上述 67.58 秒 clean rerun 才是本节采用的结果。该门本身明确只证明 host-adapter conformance + per-request WS fencing：它没有通用跨进程 session-host lease、独立 anti-rollback anchor、fsync/断电/remote-host 证明，也未覆盖恶意 MCP/Skill、即时撤权或磁盘/pipe 故障。因此该切片仍须三平台 exact-SHA artifact，完整 Session/Skill/MCP 安全项继续 **NO-GO**。
 
-### 16.5 仍未完成的产品级任务
+### 16.5 MCP 裁决后的旧宿主写栅栏增量
+
+实现提交 `a3a15f5cfb01f02e8a61e4774c63e50f363c9abf` 为所有生产 MCP ledger sink 增加 recovery-generation fence：
+
+- canonical JSONL store 新增同一 writer lock 内的“完整 verified projection → 校验 → authority append”原子路径，消除先读 recovery、再追加 started/settled 之间的竞态。REPL、普通 headless、stream、Cowork 与 WebSocket 都在建立持久 MCP runtime 时绑定已验证 recovery；WebSocket 只有在 verified recovery revision 前进后才替换 fence。
+- fence 只绑定 session、integrity incidents、人工 adjudications 与 exact replay denies；普通 transcript 消息、head 变化、当前宿主自己的 started/settled 和由它产生的 unsettled 不旋转 fence。因此同一代宿主可正常完成调用，而裁决或新的完整性事件会使旧代宿主在下一次 ledger write 前以 `CC_MCP_LEDGER_HOST_FENCE_STALE` 失败。
+- 真实 store 回归先由旧宿主持久化 write prewrite，再执行 `confirmed_not_applied` 裁决；旧 ticket 的 settlement 和旧宿主的下一次 write prewrite 都被拒绝，transcript 中旧 ledger 仍只有一个 started event。重新读取 verified authority 后建立的新宿主可完整持久化 started + completed。公开与内部 adjudication projection 的 fence 输入归一为相同最小字段，避免 resume surface 不同造成误拒绝。
+
+目标矩阵最终为 **10 个相关测试文件 / 422 个唯一测试通过**；Node 语法、Prettier、`git diff --check` 通过，目标 ESLint 为 0 error（只报告既有 warning）。随后在 clean tracked worktree 对实现 SHA 运行 Windows x64 formal `CLI Session Host Consistency`：`expectedSha` / `exactSha` 均为 `a3a15f5cfb01f02e8a61e4774c63e50f363c9abf`，tree 为 `fe428d5e03443b756ce925bb2237f0ff2c206e4c`，90.03 秒内七个场景全部通过、violations 为空、`gateSourcePathsExact=true`。新增 `mcpRecoveryHostFence` 场景用 8.32 秒证明 stale settlement/prewrite 均拒绝且 resumed host 完成。
+
+该增量关闭的是**遵守 production sink 的 MCP 宿主在 authority 旋转后的下一次持久写边界**，不是 machine-wide process lease：已经完成 prewrite、正在外部执行的旧调用不会被瞬时中断，其结果仍必须按 outcome-unknown/人工裁决处理；恶意同 UID 代码仍可绕过 sink，通用 session host、Skill、非 MCP side effect 也不受此 fence 直接约束。它同样不提供独立 anti-rollback anchor、fsync/断电、三平台或长期 soak 证明。因此 scoped MCP old-host fencing 本地已完成，但完整 Session/Skill/MCP 产品项仍为 **NO-GO**。
+
+### 16.6 仍未完成的产品级任务
 
 1. 在实现 SHA `f99f18e4cb3832b8848534186ba32756e98c66c9` 上完成三平台 `CLI Session Scale` formal matrix：本地 Windows x64 formal 已通过，仍须取得 GitHub-hosted Ubuntu、macOS、Windows 的 exact-SHA artifacts；每格的 20 个 writer × 1,000 次 append、10,000 sessions、1 GiB transcript、至少 15 个完整 CLI 冷进程样本、真实进程强杀与 exhaustive partial-record cuts 必须全部成功。
-2. 完成 Session/Skill/MCP 的剩余真实恶意矩阵：当前 Windows 本地门已覆盖 WS claim owner kill、同 request 不接管及 transcript+sidecar 同 UID 伪造拒绝，但仍须三平台 artifact、通用旧宿主停止/新 authority machine-wide lease、恶意 MCP/Skill、即时撤权、无法伪造 sidecar 的独立 anti-rollback anchor、磁盘满/只读目录/broken pipe，以及长期安全 soak。`HOST STOPPED` challenge 仍不是 machine-wide lease。
+2. 完成 Session/Skill/MCP 的剩余真实恶意矩阵：当前 Windows 本地门已覆盖 WS claim owner kill、同 request 不接管、transcript+sidecar 同 UID 伪造拒绝，以及遵守 production sink 的旧 MCP 宿主在裁决后无法 settlement/再次 prewrite；仍须三平台 artifact、覆盖通用 session/Skill/非 MCP side effect 的 machine-wide lease、在途 transport 即时撤权、恶意 MCP/Skill、无法伪造 sidecar 的独立 anti-rollback anchor、磁盘满/只读目录/broken pipe，以及长期安全 soak。`HOST STOPPED` challenge 与本节 scoped MCP fence 都不是 machine-wide lease。
 3. 完成 native generation transaction 与公开发行链：任意阶段 taskkill/断电/fsync 后的确定恢复，Linux/macOS/Windows x64 + ARM64 目标二进制实机，notarization/Authenticode/Linux 签名、fresh install/upgrade/rollback 及 Homebrew/WinGet/公开 manifest/asset 回读。
 4. 完成 P1 命令生命周期观察窗：在包含当前 OTLP 接线的发布版本上积累至少两个 minor cycle，报告 collector 覆盖与抽样偏差，并按 command 比较 legacy/replacement 用量后逐项决定兼容 alias 是否可移除；在此之前不得删除旧入口。
 5. 完成真实 TTY、SSH、screen reader、Windows/macOS clipboard 与键盘布局、1,000+ turns、超大 MCP output、20+ 并发 Agent、FD/handle/orphan/worktree 清理和长期 soak。各矩阵必须报告延迟、RSS、I/O、FD/handle 与 cleanup deadline，不能只记录“测试最终通过”。
