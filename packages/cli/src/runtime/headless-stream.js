@@ -1444,11 +1444,7 @@ async function runAgentHeadlessStreamInWorkspace(options = {}, deps = {}) {
       (hasInjectedSessionStore ? null : jsonlReadVerifiedProjection),
     findLatestEvent: storeFindLatestEvent,
   };
-  const mcpLedgerSink = persist
-    ? createSessionMcpLedgerSink(sessionId, {
-        appendEvent: store.appendAuthorityEvent,
-      })
-    : null;
+  let mcpLedgerSink = null;
 
   // ── P0-2: crash-safe side-effect ledger — the stream twin of the
   // single-prompt runner (headless-runner.js) and the WS bridge
@@ -2114,6 +2110,14 @@ async function runAgentHeadlessStreamInWorkspace(options = {}, deps = {}) {
     }
   }
 
+  mcpLedgerSink = persist
+    ? createSessionMcpLedgerSink(
+        sessionId,
+        hasInjectedSessionStore
+          ? { appendEvent: store.appendAuthorityEvent }
+          : { recovery: mcpLedgerRecovery },
+      )
+    : null;
   const mcpRecoveryRuntime = createMcpHostRecoveryRuntime({
     bundle: mcp,
     sessionId,

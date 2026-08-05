@@ -910,6 +910,112 @@ export function appendAuthorityEventIfHead(
 }
 
 /**
+ * Validate a caller-owned projection and append one authority event while the
+ * same transcript writer lock remains held. This closes the read/validate to
+ * append race for authorities (such as MCP host fencing) that are derived from
+ * the complete verified transcript rather than from the head hash alone.
+ *
+ * Both callbacks must be synchronous. The projection remains caller-owned and
+ * only its validation result controls whether the event is appended.
+ */
+export function appendAuthorityEventWithVerifiedProjection(
+  sessionId,
+  type,
+  data,
+  { createProjection, validateProjection } = {},
+) {
+  if (
+    typeof createProjection !== "function" ||
+    typeof validateProjection !== "function"
+  ) {
+    throw new TypeError(
+      "Authority projection append requires projection and validation callbacks",
+    );
+  }
+  if (
+    createProjection.constructor?.name === "AsyncFunction" ||
+    validateProjection.constructor?.name === "AsyncFunction"
+  ) {
+    throw new TypeError(
+      "Authority projection append callbacks must be synchronous",
+    );
+  }
+  const filePath = sessionPath(sessionId);
+  return withFileLock(
+    filePath,
+    () => {
+      const projection = createProjection();
+      if (
+        !projection ||
+        typeof projection.accept !== "function" ||
+        typeof projection.finish !== "function"
+      ) {
+        throw new TypeError(
+          "Authority projection must provide accept() and finish()",
+        );
+      }
+      if (!existsSync(filePath)) {
+        throw unverifiedTranscriptError(sessionId, {
+          status: "missing",
+          reason: "authority transcript does not exist",
+          lastHash: null,
+          chainedEvents: 0,
+        });
+      }
+      _resolveChainTail(filePath);
+      const verification = verifyTranscriptFile(filePath, {
+        onVerifiedEvent: (event) => {
+          const accepted = projection.accept(event);
+          if (accepted && typeof accepted.then === "function") {
+            throw new TypeError(
+              "Authority projection accept() must be synchronous",
+            );
+          }
+        },
+      });
+      assertVerifiedTranscriptAnchor(sessionId, verification);
+      const authority = Object.freeze({
+        headHash: verification.lastHash,
+        eventCount: verification.chainedEvents,
+        readMessages: () => rebuildVerifiedMessagesFromFile(filePath),
+      });
+      const projected = projection.finish(authority);
+      if (projected && typeof projected.then === "function") {
+        throw new TypeError(
+          "Authority projection finish() must be synchronous",
+        );
+      }
+      const validation = validateProjection(projected, authority);
+      if (validation && typeof validation.then === "function") {
+        throw new TypeError(
+          "Authority projection validation must be synchronous",
+        );
+      }
+      if (validation === false) {
+        throw new Error("Authority projection validation rejected the append");
+      }
+      const persistedData = encodeEventMessageProvenance(type, data);
+      const appended = appendVerifiedWsAuthorityEventLocked(
+        sessionId,
+        filePath,
+        type,
+        persistedData,
+        authority.headHash,
+      );
+      return Object.freeze({ hash: appended.hash });
+    },
+    {
+      failIfUnavailable: true,
+      timeoutMs: 30_000,
+      retryMs: 1,
+      maxRetryMs: 8,
+      retryJitterMs: 4,
+      yieldAfterReleaseMs: 2,
+    },
+  );
+}
+
+/**
  * Run a synchronous authority transaction while holding the canonical
  * transcript writer lock for its whole lifetime.
  *

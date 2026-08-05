@@ -11,7 +11,9 @@
  * independently rebuilt projection agree on the same content-free revision
  * and MCP recovery authority. A damaged sample must be rejected before any
  * host side effect or state transition. A separate two-process fixture proves
- * that one request id has one durable owner before model/tool execution.
+ * that one request id has one durable owner before model/tool execution. An
+ * MCP recovery-generation fixture proves an adjudicated host cannot write its
+ * old settlement or start another call before loading fresh authority.
  */
 
 import { execFileSync, spawn } from "node:child_process";
@@ -35,10 +37,15 @@ import { interactiveAttach } from "../src/commands/background-session.js";
 import { WSAgentHandler } from "../src/gateways/ws/ws-agent-handler.js";
 import { handleSessionResume } from "../src/gateways/ws/session-protocol.js";
 import { startBackgroundSessionServer } from "../src/lib/background-session-transport.js";
+import { createMcpCallLedger } from "../src/lib/mcp-call-ledger.js";
 import {
   createSessionMcpLedgerSink,
   loadMcpLedgerRecovery,
 } from "../src/lib/mcp-call-ledger-store.js";
+import {
+  adjudicateMcpRecovery,
+  readMcpRecoveryAuthority,
+} from "../src/lib/mcp-recovery-adjudication.js";
 import { projectSessionHostObservation } from "../src/lib/session-host-snapshot.js";
 import {
   DURABLE_SYSTEM_MESSAGE_KINDS,
@@ -116,6 +123,7 @@ const GATE_SOURCE_PATHS = [
   "packages/cli/__tests__/unit/agent-core.test.js",
   "packages/cli/__tests__/unit/cowork-task-runner.test.js",
   "packages/cli/__tests__/unit/mcp-recovery-adjudication.test.js",
+  "packages/cli/__tests__/unit/mcp-recovery-adjudication-store.test.js",
   "packages/cli/__tests__/unit/checkpoint-timeline-command.test.js",
   "packages/cli/__tests__/unit/compact-command.test.js",
   "packages/cli/__tests__/unit/ws-agent-handler.test.js",
@@ -461,6 +469,124 @@ function startedMcpRecord(sessionId) {
     outputSummary: null,
     outputDigest: null,
     errorSummary: null,
+  };
+}
+
+function errorCodes(error) {
+  const codes = [];
+  let current = error;
+  while (current && typeof current === "object" && codes.length < 8) {
+    if (typeof current.code === "string") codes.push(current.code);
+    current = current.cause;
+  }
+  return codes;
+}
+
+async function runMcpRecoveryHostFenceScenario(store, home) {
+  process.env.CHAINLESSCHAIN_HOME = home;
+  const sessionId = "session-host-mcp-recovery-fence";
+  store.startSession(sessionId, {
+    title: "MCP recovery host fence fixture",
+    provider: "host-consistency",
+    model: "fixture",
+  });
+  const initialRecovery = readMcpRecoveryAuthority(sessionId);
+  const oldLedger = createMcpCallLedger({
+    sink: createSessionMcpLedgerSink(sessionId, {
+      recovery: initialRecovery,
+    }),
+    randomUUID: () => "old-host",
+  });
+  const oldTicket = await oldLedger.begin({
+    sessionId,
+    turnId: "old-host-turn",
+    serverName: "repo",
+    toolName: "publish",
+    input: { release: "host-fence" },
+    effectContract: { effect: "write" },
+  });
+  const beforeAdjudication = readMcpRecoveryAuthority(sessionId);
+  await adjudicateMcpRecovery({
+    sessionId,
+    ledgerId: oldTicket.ledgerId,
+    decision: "confirmed_not_applied",
+    expectedHeadHash: beforeAdjudication.headHash,
+    expectedRecoveryDigest: beforeAdjudication.recoveryDigest,
+    reason: "host consistency gate confirmed no external application",
+    requestId: "host-consistency-adjudication",
+  });
+
+  let settlementError = null;
+  try {
+    await oldTicket.settle({ output: { published: true } });
+  } catch (error) {
+    settlementError = error;
+  }
+  const settlementCodes = errorCodes(settlementError);
+  assert(
+    settlementCodes.includes("CC_MCP_LEDGER_HOST_FENCE_STALE"),
+    "old MCP host persisted a post-adjudication settlement",
+  );
+
+  let prewriteError = null;
+  try {
+    await oldLedger.begin({
+      sessionId,
+      turnId: "old-host-next-turn",
+      serverName: "repo",
+      toolName: "publish",
+      input: { release: "old-host-next" },
+      effectContract: { effect: "write" },
+    });
+  } catch (error) {
+    prewriteError = error;
+  }
+  const prewriteCodes = errorCodes(prewriteError);
+  assert(
+    prewriteCodes.includes("CC_MCP_LEDGER_HOST_FENCE_STALE"),
+    "old MCP host persisted a post-adjudication prewrite",
+  );
+
+  const resumedRecovery = readMcpRecoveryAuthority(sessionId);
+  const resumedLedger = createMcpCallLedger({
+    sink: createSessionMcpLedgerSink(sessionId, {
+      recovery: resumedRecovery,
+    }),
+    randomUUID: () => "resumed-host",
+  });
+  const resumedTicket = await resumedLedger.begin({
+    sessionId,
+    turnId: "resumed-host-turn",
+    serverName: "repo",
+    toolName: "publish",
+    input: { release: "resumed-host" },
+    effectContract: { effect: "write" },
+  });
+  await resumedTicket.settle({ output: { published: true } });
+
+  const ledgerEvents = store
+    .readVerifiedEvents(sessionId)
+    .filter((event) => event.type === "mcp_call_ledger");
+  const oldEvents = ledgerEvents.filter(
+    (event) => event.data.record.ledgerId === oldTicket.ledgerId,
+  );
+  const resumedEvents = ledgerEvents.filter(
+    (event) => event.data.record.ledgerId === resumedTicket.ledgerId,
+  );
+  assert(oldEvents.length === 1, "old MCP host wrote beyond its durable start");
+  assert(
+    resumedEvents.length === 2,
+    "resumed MCP host did not persist start and settlement",
+  );
+
+  return {
+    pass: true,
+    sessionId,
+    staleSettlementRefused: true,
+    stalePrewriteRefused: true,
+    resumedHostCompleted: true,
+    settlementCodes,
+    prewriteCodes,
   };
 }
 
@@ -1740,7 +1866,8 @@ export async function runSessionHostConsistencyGate() {
     platform: process.platform,
     arch: process.arch,
     node: process.version,
-    proofScope: "host-adapter-conformance-plus-ws-request-claim-fencing",
+    proofScope:
+      "host-adapter-conformance-plus-ws-request-claim-and-mcp-recovery-fencing",
     limitations: [...LIMITATIONS],
     scenarios: {},
     violations: [],
@@ -1809,6 +1936,12 @@ export async function runSessionHostConsistencyGate() {
       runWsForgedSettlementDuringModelScenario(
         store,
         join(root, "ws-model-tamper-home"),
+      ),
+    );
+    await runScenario("mcpRecoveryHostFence", () =>
+      runMcpRecoveryHostFenceScenario(
+        store,
+        join(root, "mcp-recovery-fence-home"),
       ),
     );
     await runScenario("tamperRefusal", () =>

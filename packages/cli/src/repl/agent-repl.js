@@ -1934,7 +1934,12 @@ export function createReplMcpHostRuntimeManager(dependencies = {}) {
     }
 
     const sink = persistLedger
-      ? createLedgerSink(sessionId, { appendEvent: appendLedgerEvent })
+      ? createLedgerSink(
+          sessionId,
+          appendLedgerEvent === appendAuthorityEvent
+            ? { recovery }
+            : { appendEvent: appendLedgerEvent },
+        )
       : null;
     const sharedController =
       !verifiedRecovery && current?.sessionId === sessionId

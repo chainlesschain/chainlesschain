@@ -68,7 +68,7 @@ const {
 } = await import("../../src/lib/jsonl-session-store.js");
 const { computeEventHash } =
   await import("../../src/harness/transcript-integrity.js");
-const { readVerifiedProjection } =
+const { appendAuthorityEventWithVerifiedProjection, readVerifiedProjection } =
   await import("../../src/harness/jsonl-session-store.js");
 const {
   DURABLE_SYSTEM_MESSAGE_KINDS,
@@ -1128,6 +1128,57 @@ describe("jsonl-session-store", () => {
         expect.objectContaining({ code: "SESSION_TRANSCRIPT_UNVERIFIED" }),
       );
       expect(staleFinish).not.toHaveBeenCalled();
+    });
+
+    it("validates a verified projection under the writer lock before append", () => {
+      const id = startSession("authority-projection-append", {
+        title: "verified",
+      });
+      appendUserMessage(id, "one pass");
+      const acceptedTypes = [];
+      const appended = appendAuthorityEventWithVerifiedProjection(
+        id,
+        "projection_guarded",
+        { schemaVersion: 1 },
+        {
+          createProjection: () => ({
+            accept(event) {
+              acceptedTypes.push(event.type);
+            },
+            finish(authority) {
+              return { eventCount: authority.eventCount };
+            },
+          }),
+          validateProjection(projected, authority) {
+            expect(projected.eventCount).toBe(2);
+            expect(authority.headHash).toBe(readEvents(id).at(-1).hash);
+          },
+        },
+      );
+
+      expect(acceptedTypes).toEqual(["session_start", "user_message"]);
+      expect(appended.hash).toMatch(/^[a-f0-9]{64}$/);
+      expect(readEvents(id).at(-1).type).toBe("projection_guarded");
+
+      const eventCount = readEvents(id).length;
+      expect(() =>
+        appendAuthorityEventWithVerifiedProjection(
+          id,
+          "projection_rejected",
+          { schemaVersion: 1 },
+          {
+            createProjection: () => ({
+              accept() {},
+              finish() {
+                return {};
+              },
+            }),
+            validateProjection: () => false,
+          },
+        ),
+      ).toThrow("Authority projection validation rejected the append");
+      expect(readEvents(id)).toHaveLength(eventCount);
+      expect(verifySession(id).status).toBe("verified");
     });
 
     it("refuses a stale compact CAS without hiding a concurrent turn", () => {

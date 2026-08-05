@@ -171,7 +171,8 @@ describe("cli session-host consistency gate", () => {
       schema: "cc-cli-session-host-consistency-result/v1",
       status: "passed",
       platform: process.platform,
-      proofScope: "host-adapter-conformance-plus-ws-request-claim-fencing",
+      proofScope:
+        "host-adapter-conformance-plus-ws-request-claim-and-mcp-recovery-fencing",
       scenarios: {
         verifiedHostAgreement: {
           pass: true,
@@ -237,6 +238,20 @@ describe("cli session-host consistency gate", () => {
           forgedResponseNotReturned: true,
           retryModelCalls: 0,
           tamperedRetryRefused: true,
+        },
+        mcpRecoveryHostFence: {
+          pass: true,
+          staleSettlementRefused: true,
+          stalePrewriteRefused: true,
+          resumedHostCompleted: true,
+          settlementCodes: [
+            "CC_MCP_LEDGER_SETTLE_FAILED",
+            "CC_MCP_LEDGER_HOST_FENCE_STALE",
+          ],
+          prewriteCodes: [
+            "CC_MCP_LEDGER_PREWRITE_FAILED",
+            "CC_MCP_LEDGER_HOST_FENCE_STALE",
+          ],
         },
         tamperRefusal: {
           pass: true,
@@ -333,6 +348,7 @@ describe("cli session-host consistency gate", () => {
       "packages/cli/__tests__/unit/checkpoint-restore-session-recovery.test.js",
       "packages/cli/__tests__/unit/checkpoint-restore-partial-rollback-controller.test.js",
       "packages/cli/__tests__/unit/checkpoint-restore-recovery-command.test.js",
+      "packages/cli/__tests__/unit/mcp-recovery-adjudication-store.test.js",
     ]) {
       expect(workflow.split(sourcePath)).toHaveLength(3);
       expect(gateScript.split(sourcePath)).toHaveLength(2);

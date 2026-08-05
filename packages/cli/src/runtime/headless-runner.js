@@ -1465,9 +1465,12 @@ async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
     bundle: mcp,
     sessionId,
     sink: persist
-      ? createSessionMcpLedgerSink(sessionId, {
-          appendEvent: store.appendAuthorityEvent,
-        })
+      ? createSessionMcpLedgerSink(
+          sessionId,
+          hasInjectedSessionStore
+            ? { appendEvent: store.appendAuthorityEvent }
+            : { recovery: resumeMcpRecovery },
+        )
       : null,
     recovery: resumeMcpRecovery,
     recoveryError: resumeMcpRecoveryError,

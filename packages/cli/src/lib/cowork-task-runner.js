@@ -313,6 +313,7 @@ export function prepareCoworkMcpRuntime(mcp, options = {}) {
   }
   let recoveryNotice = null;
   let recoveryState = null;
+  let recoveryAuthority = null;
   let bindingAllowed = false;
   let expectedHeadHash = null;
   try {
@@ -321,6 +322,7 @@ export function prepareCoworkMcpRuntime(mcp, options = {}) {
       String(options.templateId || "free"),
     );
     const recovery = projected.recovery;
+    recoveryAuthority = recovery;
     expectedHeadHash = projected.expectedHeadHash;
     bindingAllowed = projected.bindingAllowed;
     recoveryNotice = formatMcpLedgerRecoveryNotice(recovery);
@@ -361,9 +363,12 @@ export function prepareCoworkMcpRuntime(mcp, options = {}) {
     }
   }
 
-  const sink = createSessionMcpLedgerSink(sessionId, {
-    appendEvent: _deps.appendSessionEvent,
-  });
+  const sink = createSessionMcpLedgerSink(
+    sessionId,
+    _deps.appendSessionEvent === appendSessionEvent
+      ? { recovery: recoveryAuthority }
+      : { appendEvent: _deps.appendSessionEvent },
+  );
   const recoveryController =
     createMcpRecoveryAdmissionController(recoveryState);
   return {

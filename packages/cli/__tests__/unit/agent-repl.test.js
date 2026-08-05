@@ -755,8 +755,9 @@ describe("agent-repl MCP host runtime manager", () => {
     const { createReplMcpHostRuntimeManager } =
       await import("../../src/repl/agent-repl.js");
     let runtimeId = 0;
+    const createSessionMcpLedgerSink = vi.fn(() => vi.fn());
     const manager = createReplMcpHostRuntimeManager({
-      createSessionMcpLedgerSink: vi.fn(() => vi.fn()),
+      createSessionMcpLedgerSink,
       createMcpHostRecoveryRuntime: vi.fn(({ rawClient }) => {
         runtimeId += 1;
         return {
@@ -768,17 +769,27 @@ describe("agent-repl MCP host runtime manager", () => {
       }),
     });
     const rawClient = { callTool: vi.fn() };
+    const oldRecovery = {
+      unsettled: [],
+      incidents: [],
+      replayDenied: [],
+    };
     const oldRuntime = manager.activate({
       adhocMcp: { mcpClient: rawClient },
       sessionId: "old-session",
       persistent: true,
-      recovery: { unsettled: [], incidents: [], replayDenied: [] },
+      recovery: oldRecovery,
     });
+    const newRecovery = {
+      unsettled: [],
+      incidents: [],
+      replayDenied: [],
+    };
     const preparedRuntime = manager.prepare({
       adhocMcp: { mcpClient: rawClient },
       sessionId: "new-session",
       persistent: true,
-      recovery: { unsettled: [], incidents: [], replayDenied: [] },
+      recovery: newRecovery,
     });
 
     expect(preparedRuntime).not.toBe(oldRuntime);
@@ -795,6 +806,16 @@ describe("agent-repl MCP host runtime manager", () => {
       oldRuntime.runtime.controller,
     );
     expect(manager.current.runtime.ledger).not.toBe(oldRuntime.runtime.ledger);
+    expect(createSessionMcpLedgerSink).toHaveBeenNthCalledWith(
+      1,
+      "old-session",
+      { recovery: oldRecovery },
+    );
+    expect(createSessionMcpLedgerSink).toHaveBeenNthCalledWith(
+      2,
+      "new-session",
+      { recovery: newRecovery },
+    );
   });
 
   it("prefers adhoc MCP, supports bundle fallback, and skips durable DB sinks", async () => {

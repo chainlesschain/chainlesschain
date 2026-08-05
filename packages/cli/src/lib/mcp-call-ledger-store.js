@@ -10,6 +10,7 @@
 import { isProxy } from "node:util/types";
 import {
   appendAuthorityEvent as storeAppendAuthorityEvent,
+  appendAuthorityEventWithVerifiedProjection as storeAppendAuthorityEventWithVerifiedProjection,
   readVerifiedEvents as storeReadVerifiedEvents,
   readVerifiedProjection as storeReadVerifiedProjection,
 } from "../harness/jsonl-session-store.js";
@@ -514,6 +515,53 @@ export function computeMcpRecoveryDigest(recovery = {}) {
   });
 }
 
+/**
+ * Stable host generation fence. Ordinary transcript messages and this host's
+ * own started/settled records do not rotate it; adjudication, replay denies or
+ * integrity incidents do. A host must reload a newly verified projection to
+ * adopt a changed fence.
+ */
+export function computeMcpRecoveryFenceDigest(recovery = {}) {
+  const incidents = Array.isArray(recovery.incidents) ? recovery.incidents : [];
+  const adjudications = Array.isArray(recovery.adjudications)
+    ? recovery.adjudications
+    : [];
+  const replayDenied = Array.isArray(recovery.replayDenied)
+    ? recovery.replayDenied
+    : [];
+  return sha256PayloadDigest({
+    schemaVersion: 1,
+    sessionId: recovery.sessionId || null,
+    incidents: stableSorted(
+      incidents.map((entry) => ({
+        code: entry?.code || null,
+        ledgerId: entry?.ledgerId || null,
+      })),
+    ),
+    adjudications: stableSorted(
+      adjudications.map((entry) => ({
+        requestId: entry?.requestId || null,
+        ledgerId: entry?.ledgerId || null,
+        decision: entry?.decision || null,
+        authority: entry?.authority || null,
+        confirmation: entry?.confirmation || null,
+        reasonDigest: entry?.reasonDigest || null,
+      })),
+    ),
+    replayDenied: stableSorted(
+      replayDenied.map((entry) => ({
+        ledgerId: entry?.ledgerId || null,
+        serverName: entry?.serverName || null,
+        toolName: entry?.toolName || null,
+        inputBytes: Number.isSafeInteger(entry?.inputBytes)
+          ? entry.inputBytes
+          : null,
+        replayDigest: entry?.replayDigest || null,
+      })),
+    ),
+  });
+}
+
 function immutableRecordMatches(started, settled) {
   return IMMUTABLE_RECORD_FIELDS.every(
     (field) =>
@@ -634,6 +682,18 @@ export function snapshotMcpLedgerRecoveryProjection(sessionId, recovery) {
 /** Create the async sink accepted by `McpCallLedger`. */
 export function createSessionMcpLedgerSink(sessionId, options = {}) {
   const appendEvent = options.appendEvent || storeAppendAuthorityEvent;
+  const appendFencedEvent =
+    options.appendFencedEvent ||
+    storeAppendAuthorityEventWithVerifiedProjection;
+  let recoveryFenceDigest = Object.prototype.hasOwnProperty.call(
+    options,
+    "recovery",
+  )
+    ? computeMcpRecoveryFenceDigest({
+        ...(options.recovery || {}),
+        sessionId,
+      })
+    : null;
   if (
     !isCanonicalProtocolText(
       sessionId,
@@ -645,8 +705,11 @@ export function createSessionMcpLedgerSink(sessionId, options = {}) {
   if (typeof appendEvent !== "function") {
     throw new TypeError("MCP ledger session sink requires appendEvent");
   }
+  if (typeof appendFencedEvent !== "function") {
+    throw new TypeError("MCP ledger session sink requires appendFencedEvent");
+  }
 
-  return async (record, metadata = {}) => {
+  const sink = async (record, metadata = {}) => {
     const canonical = canonicalRecord(record);
     if (!canonical) {
       throw new McpCallLedgerStoreError(
@@ -678,16 +741,57 @@ export function createSessionMcpLedgerSink(sessionId, options = {}) {
       );
     }
     try {
-      const written = await appendEvent(sessionId, MCP_CALL_LEDGER_EVENT, {
+      const eventData = {
         schemaVersion: MCP_CALL_LEDGER_EVENT_SCHEMA_VERSION,
         phase,
         record: canonical,
-      });
+      };
+      const written = recoveryFenceDigest
+        ? await appendFencedEvent(sessionId, MCP_CALL_LEDGER_EVENT, eventData, {
+            createProjection: () => {
+              const reducer = createMcpLedgerEventReducer({
+                sessionId,
+                verified: true,
+              });
+              let acceptedCount = 0;
+              return Object.freeze({
+                accept: (event) => {
+                  acceptedCount += 1;
+                  return reducer.accept(event);
+                },
+                finish: (authority) => {
+                  const recovery = reducer.finish();
+                  assertMcpVerifiedProjectionAuthority(authority, {
+                    acceptedCount,
+                    headHash: recovery.headHash,
+                  });
+                  return recovery;
+                },
+              });
+            },
+            validateProjection: (recovery) => {
+              const currentFence = computeMcpRecoveryFenceDigest(recovery);
+              if (currentFence !== recoveryFenceDigest) {
+                throw new McpCallLedgerStoreError(
+                  "CC_MCP_LEDGER_HOST_FENCE_STALE",
+                  "MCP host recovery authority changed; restart or resume before executing MCP calls",
+                  { sessionId, ledgerId: canonical.ledgerId },
+                );
+              }
+            },
+          })
+        : await appendEvent(sessionId, MCP_CALL_LEDGER_EVENT, eventData);
       if (written === false) {
         throw new Error("canonical session store rejected the event");
       }
       return true;
     } catch (cause) {
+      if (
+        cause instanceof McpCallLedgerStoreError &&
+        cause.code === "CC_MCP_LEDGER_HOST_FENCE_STALE"
+      ) {
+        throw cause;
+      }
       throw new McpCallLedgerStoreError(
         "CC_MCP_LEDGER_EVENT_PERSIST_FAILED",
         `MCP ledger event persistence failed for ${sessionId}: ${cause.message}`,
@@ -695,6 +799,15 @@ export function createSessionMcpLedgerSink(sessionId, options = {}) {
       );
     }
   };
+  sink.replaceRecoveryFence = (recovery) => {
+    recoveryFenceDigest = computeMcpRecoveryFenceDigest({
+      ...(recovery || {}),
+      sessionId,
+    });
+    return recoveryFenceDigest;
+  };
+  sink.getRecoveryFenceDigest = () => recoveryFenceDigest;
+  return sink;
 }
 
 /**
