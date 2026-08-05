@@ -192,6 +192,7 @@ describe("Skill execution identity", () => {
         reason: "first-use",
         sessionId: "ide-session",
         turnId: "turn-1",
+        executionAuthorityGeneration: expect.stringMatching(/^\d+$/),
       }),
     );
     expect(materialized.executionAuthority.mode).toBe("controlled-agent-tools");
@@ -230,6 +231,136 @@ describe("Skill execution identity", () => {
       loadedBecause: "run_skill",
     });
     expect(second.body).toContain("Cancel approval");
+    expect(reauthorizeSkill).toHaveBeenCalledTimes(2);
+  });
+
+  it("invalidates a cached digest immediately and requires authorization again", async () => {
+    const fixture = createSkill({ isolation: true, body: "# Revoke cache" });
+    const reauthorizeSkill = vi.fn(async () => ({ authorized: true }));
+    const { loader, skill } = discover(fixture, { reauthorizeSkill });
+
+    await loader.materializeSkillForExecution(skill, {
+      loadedBecause: "run_skill",
+    });
+    await loader.materializeSkillForExecution(skill, {
+      loadedBecause: "run_skill",
+    });
+    expect(reauthorizeSkill).toHaveBeenCalledOnce();
+
+    const revoker = new CLISkillLoader({ contextLedger: null });
+    const revoked = revoker.revokeExecutionAuthorizations();
+    expect(revoked).toMatchObject({
+      code: "CC_SKILL_EXECUTION_REVOKED",
+      interruptedLeases: 0,
+      clearedLocalAuthorizations: 0,
+    });
+    expect(revoked.generation).toMatch(/^\d+$/);
+
+    await loader.materializeSkillForExecution(skill, {
+      loadedBecause: "run_skill",
+    });
+    expect(reauthorizeSkill).toHaveBeenCalledTimes(2);
+  });
+
+  it("revokes another loader's in-flight authorization and fences its late approval", async () => {
+    const fixture = createSkill({ isolation: true, body: "# Global revoke" });
+    let resolveFirstDecision;
+    const reauthorizeSkill = vi
+      .fn()
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveFirstDecision = resolve;
+          }),
+      )
+      .mockResolvedValue({ authorized: true });
+    const { loader, skill } = discover(fixture, { reauthorizeSkill });
+    const materializing = loader.materializeSkillForExecution(skill, {
+      loadedBecause: "run_skill",
+    });
+    await vi.waitFor(() => expect(reauthorizeSkill).toHaveBeenCalledOnce());
+
+    const revoker = new CLISkillLoader({ contextLedger: null });
+    const revoked = revoker.revokeExecutionAuthorizations({
+      message: "operator revoked skill authority",
+    });
+    expect(revoked.interruptedLeases).toBe(1);
+    await expect(materializing).rejects.toMatchObject({
+      name: "AbortError",
+      code: "CC_SKILL_EXECUTION_REVOKED",
+      message: "operator revoked skill authority",
+      generation: revoked.generation,
+    });
+
+    resolveFirstDecision({ authorized: true });
+    await Promise.resolve();
+    await Promise.resolve();
+    await loader.materializeSkillForExecution(skill, {
+      loadedBecause: "run_skill",
+    });
+    expect(reauthorizeSkill).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not cache a synchronous approval returned after its generation was revoked", () => {
+    const fixture = createSkill({ isolation: true, body: "# Sync revoke" });
+    let loader;
+    let skill;
+    const reauthorizeSkill = vi
+      .fn()
+      .mockImplementationOnce(() => {
+        loader.revokeExecutionAuthorizations({
+          message: "revoked inside synchronous authorizer",
+        });
+        return { authorized: true };
+      })
+      .mockReturnValue({ authorized: true });
+    ({ loader, skill } = discover(fixture, { reauthorizeSkill }));
+
+    expect(() =>
+      loader.materializeSkill(skill, { loadedBecause: "run_skill" }),
+    ).toThrow(
+      expect.objectContaining({
+        code: "CC_SKILL_EXECUTION_REVOKED",
+        message: "Skill execution authorization was revoked by the host",
+      }),
+    );
+    expect(reauthorizeSkill).toHaveBeenCalledOnce();
+
+    const materialized = loader.materializeSkill(skill, {
+      loadedBecause: "run_skill",
+    });
+    expect(materialized.body).toContain("Sync revoke");
+    expect(reauthorizeSkill).toHaveBeenCalledTimes(2);
+  });
+
+  it("fails closed when an async decision getter revokes its own generation", async () => {
+    const fixture = createSkill({ isolation: true, body: "# Getter revoke" });
+    let loader;
+    let skill;
+    const reauthorizeSkill = vi
+      .fn()
+      .mockImplementationOnce(async () => ({
+        get authorized() {
+          loader.revokeExecutionAuthorizations({
+            message: "revoked by decision getter",
+          });
+          return true;
+        },
+      }))
+      .mockResolvedValue({ authorized: true });
+    ({ loader, skill } = discover(fixture, { reauthorizeSkill }));
+
+    await expect(
+      loader.materializeSkillForExecution(skill, {
+        loadedBecause: "run_skill",
+      }),
+    ).rejects.toMatchObject({
+      code: "CC_SKILL_EXECUTION_REVOKED",
+      message: "revoked by decision getter",
+    });
+    await loader.materializeSkillForExecution(skill, {
+      loadedBecause: "run_skill",
+    });
     expect(reauthorizeSkill).toHaveBeenCalledTimes(2);
   });
 

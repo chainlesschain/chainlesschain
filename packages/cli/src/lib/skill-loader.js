@@ -32,7 +32,12 @@ import { normalizeSkillPaths } from "./skill-path-scope.js";
 import { discoverPluginSkillLayers } from "./plugin-runtime/skills.js";
 import settingsLoader from "./settings-loader.cjs";
 import contextSourceLedger from "./context-source-ledger.js";
-import { isAbortError, raceWithAbort, throwIfAborted } from "./abort-utils.js";
+import {
+  createAbortError,
+  isAbortError,
+  raceWithAbort,
+  throwIfAborted,
+} from "./abort-utils.js";
 import {
   admitSkillPrompt,
   assertSkillFileSize,
@@ -57,6 +62,51 @@ import {
 } from "./skill-execution-identity.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+const SKILL_EXECUTION_REVOKED_CODE = "CC_SKILL_EXECUTION_REVOKED";
+let skillExecutionAuthorityGeneration = 0n;
+const activeSkillExecutionLeases = new Set();
+
+function skillExecutionRevokedError(generation, message) {
+  const error = new Error(
+    message || "Skill execution authorization was revoked by the host",
+  );
+  error.name = "AbortError";
+  error.code = SKILL_EXECUTION_REVOKED_CODE;
+  error.generation = String(generation);
+  return error;
+}
+
+/**
+ * Revoke every Skill execution authorization in this Node host process.
+ * Existing loaders observe the generation before their next cache read, while
+ * active authorization/child leases are aborted synchronously.
+ */
+export function revokeSkillExecutionAuthorizations(options = {}) {
+  let message;
+  try {
+    const candidate = options?.message;
+    if (typeof candidate === "string" && candidate.length > 0) {
+      message = candidate;
+    }
+  } catch {
+    // Revocation is an emergency restriction path; malformed diagnostic
+    // options cannot prevent it from advancing the authority generation.
+  }
+  skillExecutionAuthorityGeneration += 1n;
+  const generation = skillExecutionAuthorityGeneration;
+  let interruptedLeases = 0;
+  for (const lease of [...activeSkillExecutionLeases]) {
+    if (lease.controller.signal.aborted) continue;
+    interruptedLeases += 1;
+    lease.controller.abort(skillExecutionRevokedError(generation, message));
+  }
+  return Object.freeze({
+    code: SKILL_EXECUTION_REVOKED_CODE,
+    generation: String(generation),
+    interruptedLeases,
+  });
+}
 
 /**
  * Whether the bundled (built-in) skill layer should be hidden — Claude-Code
@@ -375,6 +425,7 @@ export class CLISkillLoader {
     this._limits = resolveSkillLimits(limits);
     this._trustedExecutionSources = new Set(trustedExecutionSources);
     this._authorizedExecutionDigests = new Map();
+    this._executionAuthorityGeneration = skillExecutionAuthorityGeneration;
     this._cacheStats = {
       descriptorScans: 0,
       descriptorCacheHits: 0,
@@ -387,6 +438,104 @@ export class CLISkillLoader {
 
   getLimits() {
     return this._limits;
+  }
+
+  _syncExecutionAuthorityGeneration() {
+    if (
+      this._executionAuthorityGeneration !== skillExecutionAuthorityGeneration
+    ) {
+      this._authorizedExecutionDigests.clear();
+      this._executionAuthorityGeneration = skillExecutionAuthorityGeneration;
+    }
+    return this._executionAuthorityGeneration;
+  }
+
+  _assertExecutionAuthorityGeneration(expectedGeneration) {
+    this._syncExecutionAuthorityGeneration();
+    if (expectedGeneration !== this._executionAuthorityGeneration) {
+      throw skillExecutionRevokedError(this._executionAuthorityGeneration);
+    }
+  }
+
+  /**
+   * Acquire a process-generation lease for one authorization or controlled
+   * execution. Revocation aborts the returned signal before advancing any new
+   * execution under an old digest decision.
+   */
+  acquireSkillExecution(skill, context = {}) {
+    if (!skill || typeof skill !== "object") {
+      throw new TypeError("A discovered skill descriptor is required");
+    }
+    throwIfAborted(context.signal, "Skill execution was interrupted");
+    const generation = this._syncExecutionAuthorityGeneration();
+    const controller = new AbortController();
+    const leaseRecord = {
+      controller,
+      generation,
+      skillId: String(skill.id || skill.dirName || "unknown"),
+    };
+    let released = false;
+    let parentAbortListener = null;
+    const release = () => {
+      if (released) return;
+      released = true;
+      activeSkillExecutionLeases.delete(leaseRecord);
+      if (parentAbortListener) {
+        try {
+          context.signal?.removeEventListener?.("abort", parentAbortListener);
+        } catch {
+          // Lease retirement must remain idempotent even for a malformed host
+          // signal implementation.
+        }
+      }
+    };
+    const assertActive = () => {
+      throwIfAborted(controller.signal, "Skill execution was interrupted");
+      this._assertExecutionAuthorityGeneration(generation);
+    };
+
+    activeSkillExecutionLeases.add(leaseRecord);
+    if (context.signal?.addEventListener) {
+      parentAbortListener = () => {
+        if (!controller.signal.aborted) {
+          controller.abort(
+            context.signal.reason ||
+              createAbortError("Skill execution was interrupted"),
+          );
+        }
+      };
+      try {
+        context.signal.addEventListener("abort", parentAbortListener, {
+          once: true,
+        });
+      } catch (error) {
+        release();
+        throw error;
+      }
+      // Close the same pre-check/listener-registration race handled by
+      // raceWithAbort for Promise consumers.
+      if (context.signal.aborted) parentAbortListener();
+    }
+    try {
+      assertActive();
+    } catch (error) {
+      release();
+      throw error;
+    }
+    return Object.freeze({
+      generation: String(generation),
+      signal: controller.signal,
+      assertActive,
+      release,
+    });
+  }
+
+  revokeExecutionAuthorizations(options = {}) {
+    this._syncExecutionAuthorityGeneration();
+    const clearedLocalAuthorizations = this._authorizedExecutionDigests.size;
+    const result = revokeSkillExecutionAuthorizations(options);
+    this._syncExecutionAuthorityGeneration();
+    return Object.freeze({ ...result, clearedLocalAuthorizations });
   }
 
   _skillReauthorizationRequest(
@@ -416,6 +565,7 @@ export class CLISkillLoader {
       discoveredDigest: skill.executionIdentity?.contentDigest || null,
       currentDigest: snapshot.contentDigest,
       componentDigests: Object.freeze({ ...snapshot.componentDigests }),
+      executionAuthorityGeneration: String(this._executionAuthorityGeneration),
       loadedBecause: context.loadedBecause || "explicit",
       sessionId: context.sessionId || null,
       turnId: context.turnId || null,
@@ -449,6 +599,7 @@ export class CLISkillLoader {
       context.signal,
       "Skill execution authorization was interrupted",
     );
+    const authorizationGeneration = this._syncExecutionAuthorityGeneration();
     const snapshot = captureSkillExecutionSnapshot({
       skillDir: skill.skillDir,
       skillId: skill.id,
@@ -477,6 +628,7 @@ export class CLISkillLoader {
       isSkillExecutionContext(context) &&
       skill.hasHandler === true &&
       !this._trustedExecutionSources.has(String(skill.source || ""));
+    this._assertExecutionAuthorityGeneration(authorizationGeneration);
     const previouslyAuthorizedDigest = this._authorizedExecutionDigests.get(
       snapshot.identityDigest,
     );
@@ -510,11 +662,13 @@ export class CLISkillLoader {
       if (context.signal?.aborted || isAbortError(cause)) throw cause;
       throw skillReauthorizationError(skill, cause);
     }
+    const authorized = decision === true || decision?.authorized === true;
     throwIfAborted(
       context.signal,
       "Skill execution authorization was interrupted",
     );
-    if (decision !== true && decision?.authorized !== true) {
+    this._assertExecutionAuthorityGeneration(authorizationGeneration);
+    if (!authorized) {
       this._throwSkillAuthorizationDenial(skill, snapshot, {
         firstUseAuthorization,
         contentChanged,
@@ -528,19 +682,27 @@ export class CLISkillLoader {
   }
 
   async materializeSkillForExecution(skill, context = {}) {
-    const executionContext = { ...context, forExecution: true };
-    throwIfAborted(
-      executionContext.signal,
-      "Skill execution materialization was interrupted",
-    );
-    await this._authorizeSkillExecutionDigest(skill, executionContext);
-    throwIfAborted(
-      executionContext.signal,
-      "Skill execution materialization was interrupted",
-    );
-    // Re-capture and re-check after a potentially human-blocking async prompt.
-    // materializeSkill recognizes only the exact digest authorized above.
-    return this.materializeSkill(skill, executionContext);
+    const executionLease = this.acquireSkillExecution(skill, {
+      signal: context.signal,
+    });
+    const executionContext = {
+      ...context,
+      forExecution: true,
+      signal: executionLease.signal,
+    };
+    try {
+      executionLease.assertActive();
+      await this._authorizeSkillExecutionDigest(skill, executionContext);
+      executionLease.assertActive();
+      // Re-capture and re-check after a potentially human-blocking async
+      // prompt. materializeSkill recognizes only the exact digest authorized
+      // above.
+      const materialized = this.materializeSkill(skill, executionContext);
+      executionLease.assertActive();
+      return materialized;
+    } finally {
+      executionLease.release();
+    }
   }
 
   /**
@@ -789,6 +951,7 @@ export class CLISkillLoader {
       context.signal,
       "Skill execution materialization was interrupted",
     );
+    const authorizationGeneration = this._syncExecutionAuthorityGeneration();
     if (!skill || !skill.skillMdPath) {
       throw new TypeError("A discovered skill descriptor is required");
     }
@@ -820,6 +983,7 @@ export class CLISkillLoader {
       isSkillExecutionContext(context) &&
       skill.hasHandler === true &&
       !this._trustedExecutionSources.has(String(skill.source || ""));
+    this._assertExecutionAuthorityGeneration(authorizationGeneration);
     const previouslyAuthorizedDigest = this._authorizedExecutionDigests.get(
       snapshot.identityDigest,
     );
@@ -874,6 +1038,7 @@ export class CLISkillLoader {
         context.signal,
         "Skill execution authorization was interrupted",
       );
+      this._assertExecutionAuthorityGeneration(authorizationGeneration);
       if (executionRequiresTrust) {
         this._authorizedExecutionDigests.set(
           snapshot.identityDigest,
@@ -885,6 +1050,7 @@ export class CLISkillLoader {
       skill.hasHandler === true &&
       this._trustedExecutionSources.has(String(skill.source || ""))
     ) {
+      this._assertExecutionAuthorityGeneration(authorizationGeneration);
       this._authorizedExecutionDigests.set(
         snapshot.identityDigest,
         snapshot.contentDigest,

@@ -4428,7 +4428,7 @@ async function startAgentReplInWorkspace(options = {}, startupAdmission) {
         `  ${chalk.cyan("/add-dir")}    Add an extra working root (/add-dir <dir>; no arg lists roots)`,
       );
       logger.log(
-        `  ${chalk.cyan("/reload-skills")} Re-scan skill layers without restarting`,
+        `  ${chalk.cyan("/reload-skills")} Revoke process Skill grants and re-scan layers`,
       );
       logger.log(
         `  ${chalk.cyan("/reload-plugins")} Re-scan installed plugins after add/trust/upgrade`,
@@ -5852,6 +5852,10 @@ async function startAgentReplInWorkspace(options = {}, startupAdmission) {
     // layers (incl. .claude/skills) without restarting the session.
     if (trimmed === "/reload-skills") {
       try {
+        _replSkillLoader.revokeExecutionAuthorizations?.({
+          message:
+            "Skill execution authorization was revoked by /reload-skills",
+        });
         _replSkillLoader.clearCache();
         const n = _replSkillLoader.loadAll().length;
         _replBaseSystem = _buildReplBaseSystem();
@@ -5861,7 +5865,7 @@ async function startAgentReplInWorkspace(options = {}, startupAdmission) {
         _persistReplContextSources();
         logger.log(
           chalk.green(
-            `✔ skills reloaded — ${n} available (${_replSkillLoader.getLayerPaths().length} layers re-scanned)`,
+            `✔ Skill grants revoked and skills reloaded — ${n} available (${_replSkillLoader.getLayerPaths().length} layers re-scanned)`,
           ),
         );
       } catch (err) {

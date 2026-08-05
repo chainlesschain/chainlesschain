@@ -982,11 +982,15 @@ export function getAgentToolDescriptors(options = {}) {
 const _defaultSkillLoader = new CLISkillLoader();
 
 /**
- * Re-scan all skill layers (Claude-Code `/reload-skills` parity): drops the
- * default loader's cache so newly added/edited SKILL.md dirs are picked up
- * without restarting the session. Returns the resolved skill count.
+ * Re-scan all skill layers (Claude-Code `/reload-skills` parity): revokes this
+ * process's Skill execution generation, then drops the default loader cache so
+ * newly added/edited SKILL.md dirs are picked up without restarting. Returns
+ * the resolved skill count.
  */
 export function reloadSkills() {
+  _defaultSkillLoader.revokeExecutionAuthorizations({
+    message: "Skill execution authorization was revoked by /reload-skills",
+  });
   _defaultSkillLoader.clearCache();
   return _defaultSkillLoader.loadAll().length;
 }
@@ -5744,7 +5748,12 @@ async function executeToolInner(
           error: `Skill "${args.skill_name}" not found or has no handler. Use list_skills to see available skills.`,
         });
       }
+      const skillExecutionLease = skillLoader.acquireSkillExecution?.(match, {
+        signal,
+      });
+      const skillExecutionSignal = skillExecutionLease?.signal || signal;
       try {
+        skillExecutionLease?.assertActive?.();
         if (typeof skillLoader.materializeSkillForExecution === "function") {
           match = await raceWithAbort(
             skillLoader.materializeSkillForExecution(match, {
@@ -5752,9 +5761,9 @@ async function executeToolInner(
               turnId,
               loadedBecause: "run_skill",
               bodyIncluded: true,
-              signal,
+              signal: skillExecutionSignal,
             }),
-            signal,
+            skillExecutionSignal,
             "run_skill interrupted during authorization",
           );
         } else if (typeof skillLoader.materializeSkill === "function") {
@@ -5763,16 +5772,27 @@ async function executeToolInner(
             turnId,
             loadedBecause: "run_skill",
             bodyIncluded: true,
-            signal,
+            signal: skillExecutionSignal,
           });
         }
-        throwIfAborted(signal, "run_skill interrupted during materialization");
+        skillExecutionLease?.assertActive?.();
+        throwIfAborted(
+          skillExecutionSignal,
+          "run_skill interrupted during materialization",
+        );
         // A custom loader is not an authority to raise host model-input caps.
         // Re-admit at the final consumer before constructing the child task.
         admittedSkillBody = match?.body;
         admitSkillPrompt(admittedSkillBody, skillLoader.getLimits?.());
       } catch (error) {
-        if (signal?.aborted || isAbortError(error)) throw error;
+        skillExecutionLease?.release?.();
+        if (
+          signal?.aborted ||
+          skillExecutionSignal?.aborted ||
+          isAbortError(error)
+        ) {
+          throw error;
+        }
         return attachDescriptor({
           error: `Skill "${args.skill_name}" body could not be loaded: ${error.message}`,
           ...(error?.code ? { code: error.code } : {}),
@@ -5804,73 +5824,84 @@ async function executeToolInner(
           : null;
         let skillSubRef = null;
         // Run skill through isolated sub-agent context
-        const subCtx = SubAgentContext.create({
-          role: `skill-${args.skill_name}`,
-          task:
-            `Execute the "${args.skill_name}" skill using only the approved tools.\n\n` +
-            `Authoritative skill instructions:\n${admittedSkillBody}\n\n` +
-            `User input:\n${String(args.input || "").substring(0, 8000)}`,
-          allowedTools: isolatedSkillTools,
-          hookParentTraceId: hookTraceId || null,
-          signal,
-          toolAdmission,
-          cwd,
-          llmOptions: llmOptions || null,
-          ...(sessionBudget ? { sessionBudget } : {}),
-          ...(permissionRules ? { permissionRules } : {}),
-          ...(hostManagedToolPolicy
-            ? {
-                hostManagedToolPolicy: {
-                  ...hostManagedToolPolicy,
-                  toolDefinitions: [],
-                },
-              }
-            : {}),
-          ...(planManager ? { planManager } : {}),
-          ...(sandbox ? { sandbox } : {}),
-          ...(Array.isArray(additionalDirectories)
-            ? { additionalDirectories: [...additionalDirectories] }
-            : {}),
-          ...(approvalGate ? { approvalGate } : {}),
-          ...(shellPolicyOverrides ? { shellPolicyOverrides } : {}),
-          ...(classifyAllShell ? { classifyAllShell: true } : {}),
-          ...(unattendedActionPolicy ? { unattendedActionPolicy } : {}),
-          ...(mcpCallLedger ? { mcpCallLedger } : {}),
-          ...(mcpConflictScheduler ? { mcpConflictScheduler } : {}),
-          onUsage: skillUsageSink
-            ? (u) => {
-                try {
-                  skillUsageSink.push(
-                    u && u.attribution
-                      ? u
-                      : {
-                          provider: u?.provider ?? null,
-                          model: u?.model ?? null,
-                          usage: u?.usage || null,
-                          ...(u?.source ? { source: u.source } : {}),
-                          attribution: {
-                            origin: "skill",
-                            skill: args.skill_name,
-                            subagentId: skillSubRef?.id || null,
-                            parentSessionId: sessionId || null,
-                            depth: (subAgentDepth || 0) + 1,
-                          },
-                        },
-                  );
-                } catch (_e) {
-                  // usage forwarding is best-effort
+        let subCtx;
+        try {
+          skillExecutionLease?.assertActive?.();
+          subCtx = SubAgentContext.create({
+            role: `skill-${args.skill_name}`,
+            task:
+              `Execute the "${args.skill_name}" skill using only the approved tools.\n\n` +
+              `Authoritative skill instructions:\n${admittedSkillBody}\n\n` +
+              `User input:\n${String(args.input || "").substring(0, 8000)}`,
+            allowedTools: isolatedSkillTools,
+            hookParentTraceId: hookTraceId || null,
+            signal: skillExecutionSignal,
+            toolAdmission,
+            cwd,
+            llmOptions: llmOptions || null,
+            ...(sessionBudget ? { sessionBudget } : {}),
+            ...(permissionRules ? { permissionRules } : {}),
+            ...(hostManagedToolPolicy
+              ? {
+                  hostManagedToolPolicy: {
+                    ...hostManagedToolPolicy,
+                    toolDefinitions: [],
+                  },
                 }
-              }
-            : null,
-        });
+              : {}),
+            ...(planManager ? { planManager } : {}),
+            ...(sandbox ? { sandbox } : {}),
+            ...(Array.isArray(additionalDirectories)
+              ? { additionalDirectories: [...additionalDirectories] }
+              : {}),
+            ...(approvalGate ? { approvalGate } : {}),
+            ...(shellPolicyOverrides ? { shellPolicyOverrides } : {}),
+            ...(classifyAllShell ? { classifyAllShell: true } : {}),
+            ...(unattendedActionPolicy ? { unattendedActionPolicy } : {}),
+            ...(mcpCallLedger ? { mcpCallLedger } : {}),
+            ...(mcpConflictScheduler ? { mcpConflictScheduler } : {}),
+            onUsage: skillUsageSink
+              ? (u) => {
+                  try {
+                    skillUsageSink.push(
+                      u && u.attribution
+                        ? u
+                        : {
+                            provider: u?.provider ?? null,
+                            model: u?.model ?? null,
+                            usage: u?.usage || null,
+                            ...(u?.source ? { source: u.source } : {}),
+                            attribution: {
+                              origin: "skill",
+                              skill: args.skill_name,
+                              subagentId: skillSubRef?.id || null,
+                              parentSessionId: sessionId || null,
+                              depth: (subAgentDepth || 0) + 1,
+                            },
+                          },
+                    );
+                  } catch (_e) {
+                    // usage forwarding is best-effort
+                  }
+                }
+              : null,
+          });
+        } catch (error) {
+          skillExecutionLease?.release?.();
+          throw error;
+        }
         skillSubRef = subCtx;
         try {
           const result = await raceWithAbort(
             subCtx.run(args.input),
-            signal,
+            skillExecutionSignal,
             "run_skill interrupted while the isolated child was running",
           );
-          throwIfAborted(signal, "run_skill interrupted before child handoff");
+          skillExecutionLease?.assertActive?.();
+          throwIfAborted(
+            skillExecutionSignal,
+            "run_skill interrupted before child handoff",
+          );
           const resolvedFailure =
             subCtx.status === "failed" ||
             result?.success === false ||
@@ -5898,7 +5929,13 @@ async function executeToolInner(
             toolsUsed: result.toolsUsed,
           });
         } catch (err) {
-          if (signal?.aborted || isAbortError(err)) throw err;
+          if (
+            signal?.aborted ||
+            skillExecutionSignal?.aborted ||
+            isAbortError(err)
+          ) {
+            throw err;
+          }
           return attachDescriptor({
             success: false,
             isolated: true,
@@ -5906,6 +5943,8 @@ async function executeToolInner(
             code: err?.code || "CC_SKILL_ISOLATED_EXECUTION_FAILED",
             error: `Isolated skill execution failed: ${err.message}`,
           });
+        } finally {
+          skillExecutionLease?.release?.();
         }
       }
 
@@ -5913,6 +5952,7 @@ async function executeToolInner(
       // reaching here. Keep the runtime fence explicit so a custom/legacy
       // loader can never re-enable arbitrary handler.js imports in the CLI
       // process or hand a Skill the raw MCP client/process broker.
+      skillExecutionLease?.release?.();
       return attachDescriptor({
         error: `Skill "${args.skill_name}" cannot execute handler.js directly. Add isolation: true and use the controlled agent-tool path.`,
         code: "CC_SKILL_DIRECT_HANDLER_BLOCKED",

@@ -80,7 +80,12 @@ describe("controlled skill command path", () => {
     expect(executeTool).toHaveBeenCalledWith(
       "run_skill",
       { skill_name: "review-notes", input: "inspect this" },
-      { cwd: root, skillLoader: loader, llmOptions },
+      expect.objectContaining({
+        cwd: root,
+        skillLoader: loader,
+        llmOptions,
+        signal: expect.objectContaining({ aborted: false }),
+      }),
     );
     expect(authorize).toHaveBeenCalledOnce();
   });
@@ -196,6 +201,49 @@ describe("controlled skill command path", () => {
     resolveDispatch({ success: true, summary: "late command success" });
     await Promise.resolve();
     await expect(running).rejects.toBe(reason);
+  });
+
+  it("revokes a pending controlled command from another loader and fences its late result", async () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-skill-command-"));
+    roots.push(root);
+    createControlledSkillScaffold(
+      "revoke-running",
+      path.join(root, "revoke-running"),
+    );
+    const loader = fixtureLoader(root, {
+      reauthorizeSkill: async () => ({ authorized: true }),
+    });
+    let resolveDispatch;
+    const executeTool = vi.fn(
+      () =>
+        new Promise((resolve) => {
+          resolveDispatch = resolve;
+        }),
+    );
+    const running = runControlledSkill({
+      name: "revoke-running",
+      loader,
+      executeTool,
+    });
+    await vi.waitFor(() => expect(executeTool).toHaveBeenCalledOnce());
+    const executionSignal = executeTool.mock.calls[0][2].signal;
+    expect(executionSignal.aborted).toBe(false);
+
+    const revoker = new CLISkillLoader({ contextLedger: null });
+    const revoked = revoker.revokeExecutionAuthorizations();
+    expect(revoked.interruptedLeases).toBe(1);
+    expect(executionSignal.aborted).toBe(true);
+    await expect(running).rejects.toMatchObject({
+      name: "AbortError",
+      code: "CC_SKILL_EXECUTION_REVOKED",
+      generation: revoked.generation,
+    });
+
+    resolveDispatch({ success: true, summary: "late revoked success" });
+    await Promise.resolve();
+    await expect(running).rejects.toMatchObject({
+      code: "CC_SKILL_EXECUTION_REVOKED",
+    });
   });
 
   it("resolves the existing command LLM config and a runnable local default", () => {

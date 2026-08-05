@@ -289,6 +289,56 @@ describe("run_skill controlled execution boundary", () => {
     await expect(running).rejects.toBe(reason);
   });
 
+  it("honors a loader execution-lease revocation while the isolated child is running", async () => {
+    registerSkill({ id: "revoke-child", isolation: true });
+    let resolveChild;
+    const childRun = vi.fn(
+      () =>
+        new Promise((resolve) => {
+          resolveChild = resolve;
+        }),
+    );
+    mocks.createSubAgent.mockImplementationOnce((config) => {
+      mocks.childConfigs.push(config);
+      return { id: "revoked-child-context", status: "active", run: childRun };
+    });
+    const revocationController = new AbortController();
+    const release = vi.fn();
+    const acquireSkillExecution = vi.fn(() => ({
+      signal: revocationController.signal,
+      assertActive: () => {
+        if (revocationController.signal.aborted) {
+          throw revocationController.signal.reason;
+        }
+      },
+      release,
+    }));
+    const skillLoader = {
+      getResolvedSkills: () => mocks.skills,
+      materializeSkillForExecution: vi.fn(async (skill) => skill),
+      acquireSkillExecution,
+    };
+    const running = executeTool(
+      "run_skill",
+      { skill_name: "revoke-child", input: "x" },
+      { cwd: tempDir, skillLoader },
+    );
+    await vi.waitFor(() => expect(childRun).toHaveBeenCalledOnce());
+    expect(mocks.childConfigs[0].signal).toBe(revocationController.signal);
+
+    const reason = Object.assign(new Error("skill authority revoked"), {
+      name: "AbortError",
+      code: "CC_SKILL_EXECUTION_REVOKED",
+    });
+    revocationController.abort(reason);
+    await expect(running).rejects.toBe(reason);
+    expect(release).toHaveBeenCalledOnce();
+
+    resolveChild({ summary: "late revoked child success", toolsUsed: [] });
+    await Promise.resolve();
+    await expect(running).rejects.toBe(reason);
+  });
+
   it("propagates the agentLoop parent signal through run_skill without appending a late tool result", async () => {
     registerSkill({ id: "loop-cancel", isolation: true });
     let resolveChild;

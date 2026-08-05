@@ -211,63 +211,75 @@ export async function runControlledSkill(options = {}) {
   if (!skill) {
     return { error: `Skill not found: ${name}`, code: "CC_SKILL_NOT_FOUND" };
   }
-  const executionContext = {
-    loadedBecause: "run_skill",
-    bodyIncluded: false,
-    signal,
-  };
-  if (typeof loader.materializeSkillForExecution === "function") {
-    skill = await raceWithAbort(
-      loader.materializeSkillForExecution(skill, executionContext),
-      signal,
-      "Skill command interrupted during authorization",
+  const executionLease = loader.acquireSkillExecution?.(skill, { signal });
+  const executionSignal = executionLease?.signal || signal;
+  try {
+    const executionContext = {
+      loadedBecause: "run_skill",
+      bodyIncluded: false,
+      signal: executionSignal,
+    };
+    if (typeof loader.materializeSkillForExecution === "function") {
+      skill = await raceWithAbort(
+        loader.materializeSkillForExecution(skill, executionContext),
+        executionSignal,
+        "Skill command interrupted during authorization",
+      );
+    } else if (typeof loader.materializeSkill === "function") {
+      skill = loader.materializeSkill(skill, executionContext);
+    }
+    executionLease?.assertActive?.();
+    if (skill.isolation !== true) {
+      return {
+        error:
+          `Skill "${skill.id}" is not configured for controlled execution. ` +
+          "Add isolation: true before running it.",
+        code: "CC_SKILL_DIRECT_HANDLER_BLOCKED",
+      };
+    }
+    if (!canRunOnPlatform(skill)) {
+      return {
+        error: `Skill "${skill.id}" is not supported on ${process.platform}`,
+        code: "CC_SKILL_PLATFORM_UNSUPPORTED",
+      };
+    }
+    const dispatch =
+      executeTool || (await import("../runtime/agent-core.js")).executeTool;
+    executionLease?.assertActive?.();
+    throwIfAborted(
+      executionSignal,
+      "Skill command interrupted before execution",
     );
-  } else if (typeof loader.materializeSkill === "function") {
-    skill = loader.materializeSkill(skill, executionContext);
+    const result = await raceWithAbort(
+      dispatch(
+        "run_skill",
+        { skill_name: skill.id, input: String(input) },
+        {
+          cwd,
+          skillLoader: loader,
+          ...(executionSignal ? { signal: executionSignal } : {}),
+          ...(llmOptions ? { llmOptions: { ...llmOptions } } : {}),
+        },
+      ),
+      executionSignal,
+      "Skill command interrupted during execution",
+    );
+    executionLease?.assertActive?.();
+    const nestedFailure = /^\s*Sub-agent failed:/i.test(
+      String(result?.summary || ""),
+    );
+    if (result?.error || nestedFailure) {
+      return {
+        ...result,
+        success: false,
+        code: result?.code || "CC_SKILL_CONTROLLED_RUN_FAILED",
+        error: result?.error || result.summary,
+      };
+    }
+    return result;
+  } finally {
+    executionLease?.release?.();
   }
-  if (skill.isolation !== true) {
-    return {
-      error:
-        `Skill "${skill.id}" is not configured for controlled execution. ` +
-        "Add isolation: true before running it.",
-      code: "CC_SKILL_DIRECT_HANDLER_BLOCKED",
-    };
-  }
-  if (!canRunOnPlatform(skill)) {
-    return {
-      error: `Skill "${skill.id}" is not supported on ${process.platform}`,
-      code: "CC_SKILL_PLATFORM_UNSUPPORTED",
-    };
-  }
-  const dispatch =
-    executeTool || (await import("../runtime/agent-core.js")).executeTool;
-  throwIfAborted(signal, "Skill command interrupted before execution");
-  const result = await raceWithAbort(
-    dispatch(
-      "run_skill",
-      { skill_name: skill.id, input: String(input) },
-      {
-        cwd,
-        skillLoader: loader,
-        ...(signal ? { signal } : {}),
-        ...(llmOptions ? { llmOptions: { ...llmOptions } } : {}),
-      },
-    ),
-    signal,
-    "Skill command interrupted during execution",
-  );
-  const nestedFailure = /^\s*Sub-agent failed:/i.test(
-    String(result?.summary || ""),
-  );
-  if (result?.error || nestedFailure) {
-    return {
-      ...result,
-      success: false,
-      code: result?.code || "CC_SKILL_CONTROLLED_RUN_FAILED",
-      error: result?.error || result.summary,
-    };
-  }
-  return result;
 }
 
 export function registerSkillCommand(program) {
