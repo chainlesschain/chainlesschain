@@ -721,7 +721,7 @@ async function findWorkbenchWindow(
         try {
           client = await connectCdpWebSocket(target.webSocketDebuggerUrl);
           const found = await client.evaluate(
-            "Boolean(document.querySelector('.monaco-workbench') && document.querySelector('.quick-input-widget'))",
+            "Boolean(document.querySelector('.monaco-workbench'))",
           );
           if (found) return { client, target };
         } catch (error) {
@@ -765,7 +765,7 @@ async function findWorkbenchWindow(
             sessionId = attached.sessionId;
             const workbenchClient = browserClient.session(sessionId);
             const found = await workbenchClient.evaluate(
-              "Boolean(document.querySelector('.monaco-workbench') && document.querySelector('.quick-input-widget'))",
+              "Boolean(document.querySelector('.monaco-workbench'))",
             );
             if (found) {
               keepBrowserClient = true;

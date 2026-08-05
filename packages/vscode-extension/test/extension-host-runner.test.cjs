@@ -825,7 +825,11 @@ test("browser discovery inspects renderable targets and excludes workers", () =>
 test("workbench discovery attaches through the browser Target domain", async () => {
   const calls = [];
   const workbenchClient = {
-    evaluate: async () => true,
+    evaluate: async (expression) => {
+      assert.match(expression, /monaco-workbench/u);
+      assert.doesNotMatch(expression, /quick-input-widget/u);
+      return true;
+    },
   };
   const browserClient = {
     send: async (method, params) => {
