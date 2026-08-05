@@ -3213,11 +3213,18 @@ export function getLastSessionId() {
     includeDeleted: (id) =>
       getSessionPresence(id) === SESSION_PRESENCE.CONFLICT,
   });
+  const candidateRisk = (presence) =>
+    [SESSION_PRESENCE.MISSING_TRANSCRIPT, SESSION_PRESENCE.CONFLICT].includes(
+      presence,
+    )
+      ? 1
+      : 0;
   let latest =
     sessions.length > 0
       ? {
           id: sessions[0].id,
           updatedAt: Date.parse(sessions[0].updated_at) || 0,
+          risk: candidateRisk(getSessionPresence(sessions[0].id)),
         }
       : null;
 
@@ -3253,12 +3260,16 @@ export function getLastSessionId() {
       const isRecoveredConflict = presence === SESSION_PRESENCE.CONFLICT;
       if (!meta || (!isMissing && !isRecoveredConflict)) continue;
       const updatedAt = Math.max(0, Number(meta?.updated_at_ms) || 0);
+      const risk = candidateRisk(presence);
       if (
         latest === null ||
         updatedAt > latest.updatedAt ||
-        (updatedAt === latest.updatedAt && id > latest.id)
+        (updatedAt === latest.updatedAt && risk > latest.risk) ||
+        (updatedAt === latest.updatedAt &&
+          risk === latest.risk &&
+          id > latest.id)
       ) {
-        latest = { id, updatedAt };
+        latest = { id, updatedAt, risk };
       }
     }
   }

@@ -2420,15 +2420,27 @@ describe("jsonl-session-store", () => {
     });
 
     it("returns a newest restored tombstone conflict before an older live session", () => {
-      const olderId = startSession("continue-older-live", { title: "older" });
-      const conflictId = startSession("continue-newer-conflict", {
-        title: "newer",
-      });
-      appendUserMessage(conflictId, "newest activity");
-      const restored = readFileSync(sessionPath(conflictId), "utf8");
-      expect(deleteJsonlSession(conflictId)).toBe(true);
+      const tiedClock = vi.spyOn(Date, "now").mockReturnValue(4_242);
+      let olderId;
+      let conflictId;
+      let restored;
+      try {
+        olderId = startSession("zz-continue-older-live", {
+          title: "older",
+        });
+        conflictId = startSession("aa-continue-newer-conflict", {
+          title: "newer",
+        });
+        appendUserMessage(conflictId, "newest activity");
+        restored = readFileSync(sessionPath(conflictId), "utf8");
+        expect(deleteJsonlSession(conflictId)).toBe(true);
+      } finally {
+        tiedClock.mockRestore();
+      }
       writeFileSync(sessionPath(conflictId), restored, "utf8");
 
+      // The damaged id sorts before the healthy id and both sidecars were
+      // produced naturally in the same millisecond.
       expect(getSessionPresence(conflictId)).toBe("conflict");
       expect(getLastSessionId()).toBe(conflictId);
 

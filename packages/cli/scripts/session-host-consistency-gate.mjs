@@ -2127,21 +2127,29 @@ async function runMissingTranscriptScenario(store, home) {
 
 async function runRestoredTranscriptConflictScenario(store, home) {
   process.env.CHAINLESSCHAIN_HOME = home;
-  const olderId = "session-host-consistency-aa-older-live";
-  const sessionId = "session-host-consistency-zz-restored-conflict";
+  const olderId = "session-host-consistency-zz-older-live";
+  const sessionId = "session-host-consistency-aa-restored-conflict";
   const original = "SESSION_HOST_CONFLICT_ORIGINAL_0a41cc";
   const stale = "SESSION_HOST_CONFLICT_STALE_5a9b31";
   const streamInput = "SESSION_HOST_CONFLICT_STREAM_INPUT_4c81d2";
 
-  store.startSession(olderId, { title: "older live fixture" });
-  store.startSession(sessionId, { title: "restored conflict fixture" });
-  store.appendUserMessage(sessionId, original);
-  const transcript = store.sessionPath(sessionId);
-  const restoredTranscript = readFileSync(transcript, "utf8");
-  assert(
-    store.deleteJsonlSession(sessionId),
-    "conflict fixture could not publish its tombstone",
-  );
+  const originalDateNow = Date.now;
+  let transcript;
+  let restoredTranscript;
+  try {
+    Date.now = () => 4_242;
+    store.startSession(olderId, { title: "older live fixture" });
+    store.startSession(sessionId, { title: "restored conflict fixture" });
+    store.appendUserMessage(sessionId, original);
+    transcript = store.sessionPath(sessionId);
+    restoredTranscript = readFileSync(transcript, "utf8");
+    assert(
+      store.deleteJsonlSession(sessionId),
+      "conflict fixture could not publish its tombstone",
+    );
+  } finally {
+    Date.now = originalDateNow;
+  }
   writeFileSync(transcript, restoredTranscript, "utf8");
   assert(
     existsSync(join(dirname(transcript), `${sessionId}.tombstone`)),
@@ -2351,6 +2359,7 @@ async function runRestoredTranscriptConflictScenario(store, home) {
     sessionId,
     errorCode: wsError.payload.code,
     parseableStaleJournalFenced: true,
+    equalTimestampRiskTieFenced: true,
     replRefusedBeforeCommit: replCommitCalls === 0,
     continueRefusedBeforeSideEffects: true,
     persistOnlyRefusedBeforeSideEffects: true,

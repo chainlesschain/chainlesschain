@@ -284,6 +284,7 @@ describe("cli session-host consistency gate", () => {
           pass: true,
           errorCode: "CC_SESSION_HOST_SNAPSHOT_UNVERIFIED",
           parseableStaleJournalFenced: true,
+          equalTimestampRiskTieFenced: true,
           replRefusedBeforeCommit: true,
           continueRefusedBeforeSideEffects: true,
           persistOnlyRefusedBeforeSideEffects: true,
