@@ -13,6 +13,7 @@ const {
   buildHostApiLaunchArgs,
   buildHostDomRelayLaunchArgs,
   buildHostInspectorLaunchArgs,
+  buildHostPipeLaunchArgs,
   buildProfileArgs,
   buildHostLaunchArgs,
   createDevToolsEndpointCapture,
@@ -170,21 +171,6 @@ test("host phases share installed extensions but isolate user-data profiles", ()
   );
 });
 
-test("host profile renders modal confirmations in inspectable VS Code DOM", () => {
-  const root = temporaryRoot();
-  const profileArgs = buildProfileArgs({
-    runRoot: root,
-    extensionsDir: path.join(root, "extensions"),
-    phase: "initial",
-  });
-  const userDataDir = profileArgs[1].slice("--user-data-dir=".length);
-
-  const settings = JSON.parse(
-    fs.readFileSync(path.join(userDataDir, "User", "settings.json"), "utf8"),
-  );
-  assert.equal(settings["window.dialogStyle"], "custom");
-});
-
 test("host progress journal survives before immutable evidence exists", () => {
   const root = temporaryRoot();
   const artifactDir = path.join(root, "reports", "macos-stable");
@@ -287,6 +273,7 @@ test("real-DOM host phase is loopback-only and keeps the fresh profile args", ()
       "--remote-debugging-port=43210",
       "--remote-debugging-address=127.0.0.1",
       "--remote-allow-origins=http://127.0.0.1:43210",
+      "--enable-smoke-test-driver",
       "--disable-extension-update-checks",
       "--disable-telemetry",
       "--disable-crash-reporter",
@@ -383,6 +370,7 @@ test("macOS DOM relay launches without a debugger transport", async () => {
   );
   assert.equal(launch.launchArgs.includes("--disable-gpu"), false);
   assert.equal(launch.launchArgs.includes("--verbose"), true);
+  assert.equal(launch.launchArgs.includes("--enable-smoke-test-driver"), true);
   assert.equal(
     launch.launchArgs.includes("--use-inmemory-secretstorage"),
     true,
@@ -459,6 +447,7 @@ test("macOS real-DOM host uses the loopback Electron inspector", () => {
     "--disable-background-timer-throttling",
     "--disable-backgrounding-occluded-windows",
     "--disable-renderer-backgrounding",
+    "--enable-smoke-test-driver",
     "--disable-extension-update-checks",
     "--disable-telemetry",
     "--disable-crash-reporter",
@@ -527,7 +516,10 @@ test("pipe host launch inherits Chromium's FD 3/4 contract", async () => {
   let spawnCall;
   const launched = launchExtensionHostWithCdpPipe({
     vscodeExecutablePath: "/tmp/Code",
-    launchArgs: ["--remote-debugging-pipe", "/tmp/workspace"],
+    launchArgs: buildHostPipeLaunchArgs({
+      workspaceDir: "/tmp/workspace",
+      profileArgs: [],
+    }),
     extensionDevelopmentPath: "/tmp/driver",
     extensionTestsPath: "/tmp/driver/smoke.cjs",
     extensionTestsEnv: { CHAINLESSCHAIN_HOST_JOURNEY_PHASE: "initial" },
@@ -547,6 +539,7 @@ test("pipe host launch inherits Chromium's FD 3/4 contract", async () => {
     "pipe",
   ]);
   assert.ok(spawnCall.args.includes("--remote-debugging-pipe"));
+  assert.ok(spawnCall.args.includes("--enable-smoke-test-driver"));
   assert.equal(
     spawnCall.options.env.CHAINLESSCHAIN_HOST_JOURNEY_PHASE,
     "initial",

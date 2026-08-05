@@ -139,21 +139,9 @@ function buildProfileArgs({ runRoot, extensionsDir, phase }) {
   if (!/^(?:install|initial|restart)$/.test(phase)) {
     throw new Error(`unknown host profile phase: ${phase}`);
   }
-  const userDataDir = path.join(runRoot, `user-data-${phase}`);
-  const userDir = path.join(userDataDir, "User");
-  fs.mkdirSync(userDir, { recursive: true });
-  // Modal extension messages use native OS dialogs by default on some desktop
-  // hosts. The real-DOM journey needs VS Code's supported custom dialog style
-  // so its confirmation text and action can be inspected through CDP. This is
-  // an application-scoped setting, so it belongs in the fresh user profile.
-  fs.writeFileSync(
-    path.join(userDir, "settings.json"),
-    `${JSON.stringify({ "window.dialogStyle": "custom" }, null, 2)}\n`,
-    "utf8",
-  );
   return [
     `--extensions-dir=${extensionsDir}`,
-    `--user-data-dir=${userDataDir}`,
+    `--user-data-dir=${path.join(runRoot, `user-data-${phase}`)}`,
   ];
 }
 
@@ -233,6 +221,9 @@ function buildHostLaunchArgs({ workspaceDir, profileArgs, cdpPort }) {
     // debugging socket and allowed Origin are scoped to this run's random
     // loopback-only port in a fresh test profile.
     `--remote-allow-origins=http://127.0.0.1:${cdpPort}`,
+    // VS Code's own smoke-test driver forces modal prompts into the custom
+    // workbench dialog so the real confirmation remains inspectable by CDP.
+    "--enable-smoke-test-driver",
     "--disable-extension-update-checks",
     "--disable-telemetry",
     "--disable-crash-reporter",
@@ -261,6 +252,7 @@ function buildHostInspectorLaunchArgs({
     "--disable-background-timer-throttling",
     "--disable-backgrounding-occluded-windows",
     "--disable-renderer-backgrounding",
+    "--enable-smoke-test-driver",
     "--disable-extension-update-checks",
     "--disable-telemetry",
     "--disable-crash-reporter",
@@ -293,6 +285,7 @@ function buildHostDomRelayLaunchArgs({ workspaceDir, profileArgs }) {
     "--disable-background-timer-throttling",
     "--disable-backgrounding-occluded-windows",
     "--disable-renderer-backgrounding",
+    "--enable-smoke-test-driver",
     "--disable-extension-update-checks",
     "--disable-telemetry",
     "--disable-crash-reporter",
@@ -304,6 +297,7 @@ function buildHostPipeLaunchArgs({ workspaceDir, profileArgs }) {
   return [
     ...profileArgs,
     "--remote-debugging-pipe",
+    "--enable-smoke-test-driver",
     "--disable-extension-update-checks",
     "--disable-telemetry",
     "--disable-crash-reporter",
