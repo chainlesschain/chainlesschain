@@ -2612,15 +2612,18 @@ class ChatViewProvider {
         /* modal confirmation below still gates the CLI write */
       }
     }
-    const risks = [
-      ...(preview.excludedPaths || []),
-      ...(preview.irreversibleSideEffects || []),
-    ];
+    const excludedPaths = preview.excludedPaths || [];
+    const irreversibleSideEffects = preview.irreversibleSideEffects || [];
+    const riskDetails = [
+      excludedPaths.length
+        ? ` Excluded paths: ${excludedPaths.join(", ")}.`
+        : "",
+      irreversibleSideEffects.length
+        ? ` Irreversible side effects: ${irreversibleSideEffects.join(", ")}.`
+        : "",
+    ].join("");
     const proceed = await this.vscode.window.showWarningMessage(
-      `${pickedAction.label} at ${entry.turnId}?` +
-        (risks.length
-          ? ` Review ${risks.length} excluded/irreversible item(s).`
-          : ""),
+      `${pickedAction.label} at ${entry.turnId}?${riskDetails}`,
       { modal: true },
       "Confirm action",
     );

@@ -36,6 +36,7 @@ function providerWith({ responses, confirm = "Confirm action" }) {
   const calls = [];
   const posted = [];
   const shownDocs = [];
+  const warnings = [];
   let responseIndex = 0;
   const rewindStub = {
     ...rewind,
@@ -48,7 +49,10 @@ function providerWith({ responses, confirm = "Confirm action" }) {
     commands: { executeCommand() {} },
     window: {
       showQuickPick: async () => picks.shift(),
-      showWarningMessage: async () => confirm,
+      showWarningMessage: async (...args) => {
+        warnings.push(args);
+        return confirm;
+      },
       showTextDocument: async (doc) => shownDocs.push(doc),
     },
     workspace: {
@@ -66,7 +70,7 @@ function providerWith({ responses, confirm = "Confirm action" }) {
       postMessage: (message) => (posted.push(message), Promise.resolve()),
     },
   };
-  return { provider, calls, posted, shownDocs, actionPick };
+  return { provider, calls, posted, shownDocs, warnings, actionPick };
 }
 
 function executedResult(overrides = {}) {
@@ -88,13 +92,14 @@ function executedResult(overrides = {}) {
 
 describe("ChatView canonical checkpoint timeline", () => {
   it("shows turn/action UI, previews, confirms, and submits the exact envelope", async () => {
-    const { provider, calls, posted, shownDocs, actionPick } = providerWith({
-      responses: [
-        { ok: true, data: fixture.projection },
-        { ok: true, data: fixture.actionPreview },
-        { ok: true, data: executedResult() },
-      ],
-    });
+    const { provider, calls, posted, shownDocs, warnings, actionPick } =
+      providerWith({
+        responses: [
+          { ok: true, data: fixture.projection },
+          { ok: true, data: fixture.actionPreview },
+          { ok: true, data: executedResult() },
+        ],
+      });
 
     await provider._rewind();
 
@@ -108,6 +113,11 @@ describe("ChatView canonical checkpoint timeline", () => {
     );
     expect(shownDocs[0]).toMatchObject({ language: "markdown" });
     expect(shownDocs[0].content).toContain("bundle.zip");
+    expect(warnings[0][0]).toContain("Excluded paths: vendor/cache");
+    expect(warnings[0][0]).toContain(
+      "Irreversible side effects: publish release, bundle.zip",
+    );
+    expect(warnings[0].slice(1)).toEqual([{ modal: true }, "Confirm action"]);
     expect(posted).toContainEqual({ kind: "reset" });
     expect(posted.at(-1)).toMatchObject({
       kind: "info",
