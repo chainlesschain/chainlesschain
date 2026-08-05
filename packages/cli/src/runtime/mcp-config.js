@@ -104,6 +104,15 @@ export function parseMcpServers(raw) {
       ...(Number.isFinite(cfg.maxToolMetadataBytes)
         ? { maxToolMetadataBytes: cfg.maxToolMetadataBytes }
         : {}),
+      ...(Number.isFinite(cfg.maxToolResultBytes)
+        ? { maxToolResultBytes: cfg.maxToolResultBytes }
+        : {}),
+      ...(Number.isFinite(cfg.maxToolResultDepth)
+        ? { maxToolResultDepth: cfg.maxToolResultDepth }
+        : {}),
+      ...(Number.isFinite(cfg.maxToolResultNodes)
+        ? { maxToolResultNodes: cfg.maxToolResultNodes }
+        : {}),
       ...headersHelperField(cfg.headersHelper),
       ...(cfg.configScope ? { configScope: cfg.configScope } : {}),
       ...(cfg.configSource ? { configSource: cfg.configSource } : {}),
@@ -380,6 +389,18 @@ export async function setupMcpFromConfig(servers, deps = {}) {
       if (!p || !p.name) continue;
       result.prompts.push({ ...p, server: name });
     }
+    const toolResultConfig = Object.freeze({
+      ...(Number.isFinite(cfg.maxToolResultBytes)
+        ? { maxToolResultBytes: cfg.maxToolResultBytes }
+        : {}),
+      ...(Number.isFinite(cfg.maxToolResultDepth)
+        ? { maxToolResultDepth: cfg.maxToolResultDepth }
+        : {}),
+      ...(Number.isFinite(cfg.maxToolResultNodes)
+        ? { maxToolResultNodes: cfg.maxToolResultNodes }
+        : {}),
+    });
+    const hasToolResultConfig = Object.keys(toolResultConfig).length > 0;
     for (const t of tools) {
       if (!t || !t.name) continue;
       const full = mcpToolName(name, t.name);
@@ -396,6 +417,7 @@ export async function setupMcpFromConfig(servers, deps = {}) {
         kind: "mcp",
         serverName: name,
         toolName: t.name,
+        ...(hasToolResultConfig ? { toolResultConfig } : {}),
       };
       externalToolDescriptors[full] = {
         name: full,

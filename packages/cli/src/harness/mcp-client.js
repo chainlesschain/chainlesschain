@@ -22,6 +22,7 @@ import {
   admitMcpToolList,
   isMcpToolMetadataError,
 } from "../lib/mcp-tool-metadata.js";
+import { admitMcpToolResult } from "../lib/mcp-tool-result.js";
 import {
   mergeMcpHeaders,
   resolveMcpHeadersHelperContext,
@@ -2779,7 +2780,7 @@ export class MCPClient extends EventEmitter {
       options,
     );
 
-    return result;
+    return admitMcpToolResult(serverName, result, entry.config).result;
   }
 
   /**

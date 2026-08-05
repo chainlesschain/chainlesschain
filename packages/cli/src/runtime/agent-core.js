@@ -101,6 +101,10 @@ import {
   snapshotMcpJsonRpcInput,
 } from "../lib/mcp-call-ledger.js";
 import {
+  admitMcpToolResult,
+  isMcpToolResultAdmissionError,
+} from "../lib/mcp-tool-result.js";
+import {
   MCP_OUTCOME_UNKNOWN_CODE,
   markMcpLedgerOutcomeUnknown,
 } from "../lib/mcp-ledger-recovery-admission.js";
@@ -6047,16 +6051,23 @@ async function executeToolInner(
             });
           }
 
-          const transportFailure = async (callError) => {
+          const transportFailure = async (callError, phase = "call") => {
             const definitiveRpcFailure = isMcpRpcError(callError);
             if (
               mcpTransportOutcomeIsUnsafe(ledgerEffectContract) &&
               !definitiveRpcFailure
             ) {
+              const resultAdmissionFailure =
+                isMcpToolResultAdmissionError(callError);
               return attachDescriptor(
                 mcpOutcomeUnknownPayload(ledger, ledgerTicket, {
-                  phase: "call",
-                  reasonCode: MCP_TRANSPORT_OUTCOME_UNKNOWN_CODE,
+                  phase,
+                  reasonCode: resultAdmissionFailure
+                    ? safeMcpErrorCode(
+                        callError,
+                        MCP_PROTOCOL_RESULT_INVALID_CODE,
+                      )
+                    : MCP_TRANSPORT_OUTCOME_UNKNOWN_CODE,
                 }),
               );
             }
@@ -6097,7 +6108,10 @@ async function executeToolInner(
               callArguments,
             );
           } catch (callError) {
-            return await transportFailure(callError);
+            return await transportFailure(
+              callError,
+              isMcpToolResultAdmissionError(callError) ? "result" : "call",
+            );
           }
 
           let result;
@@ -6134,7 +6148,10 @@ async function executeToolInner(
               try {
                 result = await pendingResult;
               } catch (callError) {
-                return await transportFailure(callError);
+                return await transportFailure(
+                  callError,
+                  isMcpToolResultAdmissionError(callError) ? "result" : "call",
+                );
               }
             } else {
               let then;
@@ -6177,6 +6194,16 @@ async function executeToolInner(
             }
           } else {
             result = pendingResult;
+          }
+
+          try {
+            result = admitMcpToolResult(
+              localToolExecutor.serverName,
+              result,
+              localToolExecutor.toolResultConfig,
+            ).result;
+          } catch (resultError) {
+            return await transportFailure(resultError, "result");
           }
 
           let protocolError;
@@ -6726,12 +6753,21 @@ export const MAX_SUB_AGENTS_PER_RUN = 32;
  * `substring(0, 5000)` that sliced mid-content with no marker and undercut even
  * read_file's own 50k self-limit. Tools that self-limit (read_file, notebook
  * render) stay below this; it is the final safety net for the ones that don't
- * (run_shell, search_files, run_code, MCP). Override with CC_MAX_TOOL_RESULT_CHARS.
+ * (run_shell, search_files, run_code, MCP). CC_MAX_TOOL_RESULT_CHARS may only
+ * tighten the host ceiling; it cannot raise or disable it.
  */
-export const MAX_TOOL_RESULT_CHARS = (() => {
-  const n = Number(process.env.CC_MAX_TOOL_RESULT_CHARS);
-  return Number.isFinite(n) && n > 0 ? Math.floor(n) : 50000;
-})();
+export const MAX_TOOL_RESULT_CHARS_HARD_LIMIT = 50000;
+
+export function resolveMaxToolResultChars(configured) {
+  const value = Number(configured);
+  return Number.isFinite(value) && value > 0
+    ? Math.min(MAX_TOOL_RESULT_CHARS_HARD_LIMIT, Math.max(1, Math.floor(value)))
+    : MAX_TOOL_RESULT_CHARS_HARD_LIMIT;
+}
+
+export const MAX_TOOL_RESULT_CHARS = resolveMaxToolResultChars(
+  process.env.CC_MAX_TOOL_RESULT_CHARS,
+);
 
 /**
  * Cap a serialized tool result to `max` chars, appending a visible truncation
@@ -6741,10 +6777,11 @@ export const MAX_TOOL_RESULT_CHARS = (() => {
  */
 export function capToolResultString(serialized, max = MAX_TOOL_RESULT_CHARS) {
   const s = String(serialized ?? "");
-  if (s.length <= max) return s;
+  const effectiveMax = resolveMaxToolResultChars(max);
+  if (s.length <= effectiveMax) return s;
   return (
-    s.slice(0, max) +
-    `\n…[tool output truncated: showing the first ${max} of ${s.length} chars` +
+    s.slice(0, effectiveMax) +
+    `\n…[tool output truncated: showing the first ${effectiveMax} of ${s.length} chars` +
     ` — narrow the request (read a line range, grep, or paginate) to see the rest]`
   );
 }

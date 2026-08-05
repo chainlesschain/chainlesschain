@@ -73,6 +73,7 @@ function toolOptions(
   mcpCallLedger,
   effectContract,
   hostToolPolicy = null,
+  toolResultConfig = null,
 ) {
   return {
     cwd,
@@ -94,6 +95,7 @@ function toolOptions(
         kind: "mcp",
         serverName: "files",
         toolName: "update",
+        ...(toolResultConfig ? { toolResultConfig } : {}),
       },
     },
     ...(hostToolPolicy
@@ -186,6 +188,65 @@ describe("agent-core MCP call ledger", () => {
     });
     expect(JSON.stringify(events)).not.toContain("secret-input");
     expect(events[1].record.status).toBe("completed");
+  });
+
+  it("keeps an unsafe oversized result out of ledger and public projection", async () => {
+    const canary = "OVERSIZED_MCP_RESULT_PRIVATE_CANARY";
+    const harness = guardedLedger({ randomUUID: () => "oversized-result" });
+    const callTool = vi.fn(async () => ({ content: canary.repeat(32) }));
+
+    const result = await executeTool(
+      TOOL_NAME,
+      {},
+      toolOptions(
+        cwd,
+        { callTool },
+        harness.ledger,
+        { declaredEffect: "write" },
+        null,
+        { maxToolResultBytes: 64 },
+      ),
+    );
+
+    expectOutcomeUnknown(result, "result");
+    expect(result.mcpLedgerIncident.code).toBe("CC_MCP_TOOL_RESULT_TOO_LARGE");
+    expect(JSON.stringify(result)).not.toContain(canary);
+    expect(harness.settle).not.toHaveBeenCalled();
+    expect(harness.rawLedger.list()[0].status).toBe("started");
+    expect(harness.controller.admission).toMatchObject({
+      blockMode: "unsafe",
+      reasonCode: "CC_MCP_TOOL_RESULT_TOO_LARGE",
+    });
+  });
+
+  it("settles a trusted read as failed when its result exceeds admission", async () => {
+    const canary = "TRUSTED_READ_RESULT_PRIVATE_CANARY";
+    const harness = guardedLedger({ randomUUID: () => "read-result" });
+    const callTool = vi.fn(async () => ({ content: canary.repeat(32) }));
+
+    const result = await executeTool(
+      TOOL_NAME,
+      {},
+      toolOptions(
+        cwd,
+        { callTool },
+        harness.ledger,
+        { declaredEffect: "read" },
+        hostEffectPolicy("read", true),
+        { maxToolResultBytes: 64 },
+      ),
+    );
+
+    expect(result).toMatchObject({
+      error:
+        "MCP tool execution failed: MCP tool result exceeded the 64-byte host budget",
+    });
+    expect(JSON.stringify(result)).not.toContain(canary);
+    expect(harness.settle).toHaveBeenCalledOnce();
+    expect(harness.rawLedger.list()[0]).toMatchObject({
+      status: "failed",
+      effectContract: { effect: "read", trusted: true },
+    });
   });
 
   it("does not treat an MCP server's read-only claim as host authorization", async () => {
@@ -493,6 +554,7 @@ describe("agent-core MCP call ledger", () => {
             },
           },
         ),
+      "CC_MCP_PROTOCOL_RESULT_INVALID",
     ],
     [
       "throwing isError getter",
@@ -505,6 +567,7 @@ describe("agent-core MCP call ledger", () => {
         });
         return result;
       },
+      "CC_MCP_TOOL_RESULT_INVALID",
     ],
     [
       "throwing custom then getter",
@@ -517,6 +580,7 @@ describe("agent-core MCP call ledger", () => {
         });
         return result;
       },
+      "CC_MCP_PROTOCOL_RESULT_INVALID",
     ],
     [
       "rejecting custom thenable",
@@ -525,6 +589,7 @@ describe("agent-core MCP call ledger", () => {
           reject(new Error("private result detail"));
         },
       }),
+      "CC_MCP_PROTOCOL_RESULT_INVALID",
     ],
     [
       "rejecting foreign promise",
@@ -532,10 +597,11 @@ describe("agent-core MCP call ledger", () => {
         vm.runInNewContext(
           "Promise.reject(new Error('private result detail'))",
         ),
+      "CC_MCP_PROTOCOL_RESULT_INVALID",
     ],
   ])(
     "leaves a %s outcome unknown without settlement",
-    async (_label, makeResult) => {
+    async (_label, makeResult, reasonCode) => {
       const harness = guardedLedger({ randomUUID: () => "invalid-result" });
       const callTool = vi.fn(() => makeResult());
 
@@ -548,15 +614,13 @@ describe("agent-core MCP call ledger", () => {
       );
 
       expectOutcomeUnknown(result, "result");
-      expect(result.mcpLedgerIncident.code).toBe(
-        "CC_MCP_PROTOCOL_RESULT_INVALID",
-      );
+      expect(result.mcpLedgerIncident.code).toBe(reasonCode);
       expect(JSON.stringify(result)).not.toContain("private result detail");
       expect(harness.settle).not.toHaveBeenCalled();
       expect(harness.rawLedger.list()[0].status).toBe("started");
       expect(harness.controller.admission).toMatchObject({
         blockMode: "unsafe",
-        reasonCode: "CC_MCP_PROTOCOL_RESULT_INVALID",
+        reasonCode,
       });
     },
   );
@@ -719,7 +783,7 @@ describe("agent-core MCP call ledger", () => {
     });
   });
 
-  it("does not settle again when result projection throws after settlement", async () => {
+  it("rejects an accessor result before settlement or projection", async () => {
     const harness = guardedLedger({ randomUUID: () => "projection" });
     let payloadReads = 0;
     const callResult = {};
@@ -741,21 +805,15 @@ describe("agent-core MCP call ledger", () => {
       }),
     );
 
-    expect(result).toMatchObject({
-      code: "CC_MCP_RESULT_PROJECTION_FAILED",
-      retryable: false,
-      mcpLedgerIncident: {
-        phase: "result",
-        code: "CC_MCP_RESULT_PROJECTION_FAILED",
-      },
-    });
-    expect(result.outcomeUnknown).toBeUndefined();
-    expect(result.error).toContain("completed");
-    expect(result.error).toContain("do not retry automatically");
+    expectOutcomeUnknown(result, "result");
+    expect(result.mcpLedgerIncident.code).toBe("CC_MCP_TOOL_RESULT_INVALID");
     expect(JSON.stringify(result)).not.toContain("private projection detail");
-    expect(payloadReads).toBe(2);
-    expect(harness.settle).toHaveBeenCalledOnce();
-    expect(harness.rawLedger.list()[0].status).toBe("completed");
-    expect(harness.controller.admission.blockMode).toBeNull();
+    expect(payloadReads).toBe(0);
+    expect(harness.settle).not.toHaveBeenCalled();
+    expect(harness.rawLedger.list()[0].status).toBe("started");
+    expect(harness.controller.admission).toMatchObject({
+      blockMode: "unsafe",
+      reasonCode: "CC_MCP_TOOL_RESULT_INVALID",
+    });
   });
 });

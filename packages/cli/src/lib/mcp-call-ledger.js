@@ -1,5 +1,9 @@
 import { createHash, randomUUID as nodeRandomUUID } from "node:crypto";
 import { isProxy } from "node:util/types";
+import {
+  admitMcpToolResult,
+  resolveMcpToolResultLimits,
+} from "./mcp-tool-result.js";
 
 export const MCP_CALL_LEDGER_SCHEMA_VERSION = 1;
 
@@ -520,6 +524,14 @@ export class McpCallLedger {
     this._randomUUID = options.randomUUID || nodeRandomUUID;
     this._sequence = 0;
     this._records = new Map();
+    const toolResultLimits = resolveMcpToolResultLimits(
+      options.toolResultConfig,
+    );
+    this._toolResultConfig = Object.freeze({
+      maxToolResultBytes: toolResultLimits.maxBytes,
+      maxToolResultDepth: toolResultLimits.maxDepth,
+      maxToolResultNodes: toolResultLimits.maxNodes,
+    });
 
     const requested = options.prewriteFailurePolicy || {};
     for (const [effect, action] of Object.entries(requested)) {
@@ -698,9 +710,13 @@ export class McpCallLedger {
       Object.prototype.hasOwnProperty.call(outcome, "result");
     const output = hasOutput
       ? summarizeMcpPayload(
-          Object.prototype.hasOwnProperty.call(outcome, "output")
-            ? outcome.output
-            : outcome.result,
+          admitMcpToolResult(
+            null,
+            Object.prototype.hasOwnProperty.call(outcome, "output")
+              ? outcome.output
+              : outcome.result,
+            this._toolResultConfig,
+          ).result,
         )
       : null;
     const outcomeError = safeOwnDataProperty(outcome, "error");

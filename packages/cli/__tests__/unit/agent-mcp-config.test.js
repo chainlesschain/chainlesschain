@@ -153,7 +153,7 @@ describe("parseMcpServers", () => {
     expect(out.textual).not.toHaveProperty("maxJsonNodes");
   });
 
-  it("preserves finite tool metadata tightenings and rejects text values", () => {
+  it("preserves finite tool metadata/result tightenings and rejects text values", () => {
     const numeric = {
       maxTools: 50,
       maxToolDescriptionBytes: 2048,
@@ -162,6 +162,9 @@ describe("parseMcpServers", () => {
       maxToolSchemaNodes: 1024,
       maxToolDefinitionBytes: 16384,
       maxToolMetadataBytes: 65536,
+      maxToolResultBytes: 32768,
+      maxToolResultDepth: 24,
+      maxToolResultNodes: 4096,
     };
     const textual = Object.fromEntries(
       Object.entries(numeric).map(([key, value]) => [key, String(value)]),
@@ -308,6 +311,31 @@ describe("setupMcpFromConfig", () => {
     expect(errors.join("")).toMatch(/tool metadata was rejected/);
     expect(errors.join("")).toMatch(/32-byte host budget/);
     expect(errors.join("")).not.toContain(canary);
+  });
+
+  it("binds tightened result budgets to every projected server tool", async () => {
+    const res = await setupMcpFromConfig(
+      {
+        bounded: {
+          command: "bounded",
+          maxToolResultBytes: 2048,
+          maxToolResultDepth: 12,
+          maxToolResultNodes: 256,
+        },
+      },
+      {
+        createClient: () => fakeClient({ bounded: [{ name: "read" }] }),
+      },
+    );
+
+    const config =
+      res.externalToolExecutors.mcp__bounded__read.toolResultConfig;
+    expect(config).toEqual({
+      maxToolResultBytes: 2048,
+      maxToolResultDepth: 12,
+      maxToolResultNodes: 256,
+    });
+    expect(Object.isFrozen(config)).toBe(true);
   });
 
   it("defaults parameters when a tool has no inputSchema", async () => {
@@ -709,6 +737,82 @@ describe("runAgentHeadless — --mcp-config wiring", () => {
       type: "result",
       result: "It is sunny in NYC.",
     });
+  });
+
+  it("keeps an oversized MCP result out of stream output and the next model turn", async () => {
+    const canary = "STREAM_MCP_RESULT_PRIVATE_CANARY";
+    const client = fakeClient();
+    client.callTool = vi.fn(async () => ({ content: canary.repeat(32) }));
+    const mcp = fakeMcp(client);
+    mcp.externalToolExecutors.mcp__weather__get.toolResultConfig =
+      Object.freeze({ maxToolResultBytes: 64 });
+    const modelInputs = [];
+    let turn = 0;
+    const chatFn = vi.fn(async (messages) => {
+      modelInputs.push(messages);
+      turn += 1;
+      if (turn === 1) {
+        return {
+          message: {
+            role: "assistant",
+            content: "",
+            tool_calls: [
+              {
+                id: "oversized-result",
+                type: "function",
+                function: {
+                  name: "mcp__weather__get",
+                  arguments: "{}",
+                },
+              },
+            ],
+          },
+        };
+      }
+      return { message: { role: "assistant", content: "Result rejected." } };
+    });
+    const { deps, out } = baseDeps({
+      loadMcpConfig: async () => mcp,
+      chatFn,
+    });
+
+    const run = await runAgentHeadless(
+      {
+        prompt: "run it",
+        mcpConfig: "x.json",
+        outputFormat: "stream-json",
+        sessionId: "s-result-budget",
+        permissionMode: "bypassPermissions",
+        expandFileRefs: false,
+      },
+      deps,
+    );
+
+    const wire = out.join("");
+    const events = wire
+      .trim()
+      .split("\n")
+      .filter(Boolean)
+      .map((line) => JSON.parse(line));
+    const toolResult = events.find((event) => event.type === "tool_result");
+    expect(run.exitCode).toBe(0);
+    expect(toolResult).toMatchObject({
+      is_error: true,
+      result: {
+        code: "CC_MCP_LEDGER_OUTCOME_UNKNOWN",
+        outcomeUnknown: true,
+        retryable: false,
+        mcpLedgerIncident: {
+          phase: "result",
+          code: "CC_MCP_TOOL_RESULT_TOO_LARGE",
+        },
+      },
+    });
+    expect(wire).not.toContain(canary);
+    expect(JSON.stringify(modelInputs[1])).not.toContain(canary);
+    expect(JSON.stringify(modelInputs[1])).toContain(
+      "CC_MCP_TOOL_RESULT_TOO_LARGE",
+    );
   });
 
   it("fails fast when the config file is bad", async () => {

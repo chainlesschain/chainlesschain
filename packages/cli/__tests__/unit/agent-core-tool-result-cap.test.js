@@ -8,6 +8,8 @@ import { describe, it, expect } from "vitest";
 import {
   capToolResultString,
   MAX_TOOL_RESULT_CHARS,
+  MAX_TOOL_RESULT_CHARS_HARD_LIMIT,
+  resolveMaxToolResultChars,
   safeStringifyToolResult,
 } from "../../src/runtime/agent-core.js";
 
@@ -39,6 +41,31 @@ describe("capToolResultString", () => {
   it("honors an explicit max argument", () => {
     expect(capToolResultString("abcdefgh", 4)).toMatch(/^abcd\n…\[tool output/);
     expect(capToolResultString("abc", 4)).toBe("abc");
+  });
+
+  it("only permits environment or call-site values to tighten the host cap", () => {
+    expect(resolveMaxToolResultChars(4096)).toBe(4096);
+    for (const value of [
+      0,
+      -1,
+      Number.NaN,
+      Number.POSITIVE_INFINITY,
+      Number.MAX_SAFE_INTEGER,
+    ]) {
+      expect(resolveMaxToolResultChars(value)).toBe(
+        MAX_TOOL_RESULT_CHARS_HARD_LIMIT,
+      );
+    }
+    const oversized = "z".repeat(MAX_TOOL_RESULT_CHARS_HARD_LIMIT + 10);
+    expect(capToolResultString(oversized, Number.MAX_SAFE_INTEGER)).toMatch(
+      /tool output truncated/,
+    );
+    expect(
+      capToolResultString(oversized, Number.MAX_SAFE_INTEGER).slice(
+        0,
+        MAX_TOOL_RESULT_CHARS_HARD_LIMIT,
+      ),
+    ).toBe("z".repeat(MAX_TOOL_RESULT_CHARS_HARD_LIMIT));
   });
 
   it("default cap is generous enough not to undercut read_file's 50k self-limit", () => {
