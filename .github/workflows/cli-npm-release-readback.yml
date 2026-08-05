@@ -1,0 +1,150 @@
+name: CLI npm release readback
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Published CLI version; empty uses packages/cli/package.json"
+        required: false
+        type: string
+  pull_request:
+    paths:
+      - ".github/workflows/cli-npm-release-readback.yml"
+      - ".github/workflows/npm-publish.yml"
+      - ".github/workflows/release.yml"
+      - "packages/cli/scripts/npm-release-artifact.mjs"
+      - "packages/cli/scripts/verify-npm-release-provenance.mjs"
+      - "packages/cli/__tests__/unit/npm-release-provenance.test.js"
+      - "packages/cli/__tests__/unit/release-workflow-contract.test.js"
+
+concurrency:
+  group: cli-npm-readback-${{ github.event.pull_request.number || inputs.version || github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  public-readback:
+    name: immutable artifact, registry bytes, and signed provenance
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout verification implementation and tags
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js and npm attestation support
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22.14.0"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Enable npm attestation verification
+        run: |
+          npm install --global npm@11.18.0
+          npm --version
+
+      - name: Resolve immutable release identity
+        id: identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${{ inputs.version }}"
+          if [ -z "$VERSION" ]; then
+            VERSION=$(node -p "require('./packages/cli/package.json').version")
+          fi
+          TAG="v-npm-${VERSION//./-}"
+          TAG_SHA=$(git rev-parse "${TAG}^{commit}")
+          TAG_VERSION=$(git show "${TAG}:packages/cli/package.json" | node -e 'let s=""; process.stdin.on("data", c => s += c); process.stdin.on("end", () => process.stdout.write(JSON.parse(s).version))')
+          test "$TAG_VERSION" = "$VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "tag_sha=$TAG_SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Verify public registry bytes and signed provenance
+        id: provenance
+        shell: bash
+        env:
+          VERSION: ${{ steps.identity.outputs.version }}
+          TAG: ${{ steps.identity.outputs.tag }}
+          TAG_SHA: ${{ steps.identity.outputs.tag_sha }}
+        run: |
+          set -euo pipefail
+          mkdir -p registry-readback readback
+          REGISTRY_TARBALL=""
+          for ATTEMPT in {1..30}; do
+            if npm pack "chainlesschain@$VERSION" --pack-destination registry-readback \
+              >/dev/null 2>registry-readback/npm-pack.err; then
+              REGISTRY_TARBALL=$(find registry-readback -maxdepth 1 -name 'chainlesschain-*.tgz' -type f -print -quit)
+              break
+            fi
+            if [ "$ATTEMPT" -eq 30 ]; then
+              cat registry-readback/npm-pack.err >&2
+              exit 1
+            fi
+            sleep 10
+          done
+          test -n "$REGISTRY_TARBALL"
+          REGISTRY_SHA512=$(node -e 'const fs=require("fs"),crypto=require("crypto"); process.stdout.write(crypto.createHash("sha512").update(fs.readFileSync(process.argv[1])).digest("hex"))' "$REGISTRY_TARBALL")
+
+          AUDIT_ROOT=$(mktemp -d)
+          trap 'rm -rf "$AUDIT_ROOT"' EXIT
+          (
+            cd "$AUDIT_ROOT"
+            npm init --yes >/dev/null
+            npm install --ignore-scripts --no-audit --no-fund "chainlesschain@$VERSION"
+            npm audit signatures --include-attestations --json > npm-signatures.json
+          )
+          CC_NPM_PROVENANCE_OUTPUT=readback/chainlesschain-npm-provenance.json \
+          node packages/cli/scripts/verify-npm-release-provenance.mjs \
+            "$AUDIT_ROOT/npm-signatures.json" "$VERSION" "$TAG_SHA" "refs/tags/$TAG" "$REGISTRY_SHA512"
+          RUN_ID=$(node -p "require('./readback/chainlesschain-npm-provenance.json').runId")
+          echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Download immutable artifact from the attested publish run
+        uses: actions/download-artifact@v6
+        with:
+          name: chainlesschain-npm-${{ steps.identity.outputs.tag_sha }}
+          path: source-artifact
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ steps.provenance.outputs.run_id }}
+
+      - name: Prove registry tarball is the immutable workflow artifact
+        shell: bash
+        env:
+          VERSION: ${{ steps.identity.outputs.version }}
+          TAG_SHA: ${{ steps.identity.outputs.tag_sha }}
+        run: |
+          set -euo pipefail
+          SOURCE_TARBALL=$(find source-artifact -maxdepth 1 -name 'chainlesschain-*.tgz' -type f -print -quit)
+          REGISTRY_TARBALL=$(find registry-readback -maxdepth 1 -name 'chainlesschain-*.tgz' -type f -print -quit)
+          test -n "$SOURCE_TARBALL"
+          test -n "$REGISTRY_TARBALL"
+          GITHUB_SHA="$TAG_SHA" CC_RELEASE_VERSION="$VERSION" \
+            node packages/cli/scripts/npm-release-artifact.mjs verify \
+              "$SOURCE_TARBALL" source-artifact/chainlesschain-release.json
+          GITHUB_SHA="$TAG_SHA" CC_RELEASE_VERSION="$VERSION" \
+            node packages/cli/scripts/npm-release-artifact.mjs verify \
+              "$REGISTRY_TARBALL" source-artifact/chainlesschain-release.json
+          cmp --silent "$SOURCE_TARBALL" "$REGISTRY_TARBALL"
+          cp source-artifact/chainlesschain-release.json readback/chainlesschain-release.json
+          {
+            echo "## CLI npm public readback"
+            echo ""
+            echo "- Package: \`chainlesschain@$VERSION\`"
+            echo "- Tag commit: \`$TAG_SHA\`"
+            echo "- Attested publish run: \`${{ steps.provenance.outputs.run_id }}\`"
+            echo "- Result: registry tarball is byte-identical to the immutable workflow artifact"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload bounded public readback evidence
+        uses: actions/upload-artifact@v6
+        with:
+          name: cli-npm-public-readback-${{ steps.identity.outputs.tag_sha }}
+          path: readback/
+          if-no-files-found: error
+          retention-days: 90

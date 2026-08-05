@@ -510,6 +510,55 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
+      - name: Verify published CLI npm provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          MANIFEST=release-artifacts/chainlesschain-release.json
+          VERSION=$(node -e 'process.stdout.write(JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")).version)' "$MANIFEST")
+          EXPECTED_SHA512=$(node -e 'process.stdout.write(JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")).sha512)' "$MANIFEST")
+          EXPECTED_REF="refs/tags/v-npm-${VERSION//./-}"
+          AUDIT_ROOT=$(mktemp -d)
+          trap 'rm -rf "$AUDIT_ROOT"' EXIT
+          (
+            cd "$AUDIT_ROOT"
+            npm init --yes >/dev/null
+            npm install --ignore-scripts --no-audit --no-fund "chainlesschain@$VERSION"
+          )
+          VERIFIED=false
+          for ATTEMPT in {1..30}; do
+            AUDIT_JSON="$AUDIT_ROOT/npm-signatures.json"
+            AUDIT_ERROR="$AUDIT_ROOT/npm-signatures.err"
+            if (
+              cd "$AUDIT_ROOT"
+              npm audit signatures --include-attestations --json \
+                > "$AUDIT_JSON" 2> "$AUDIT_ERROR"
+            ) && CC_NPM_PROVENANCE_OUTPUT=release-artifacts/chainlesschain-npm-provenance.json \
+              node packages/cli/scripts/verify-npm-release-provenance.mjs \
+                "$AUDIT_JSON" "$VERSION" "$GITHUB_SHA" "$EXPECTED_REF" "$EXPECTED_SHA512"; then
+              VERIFIED=true
+              break
+            fi
+            if [ "$ATTEMPT" -eq 30 ]; then
+              echo "npm did not expose valid signed provenance for chainlesschain@$VERSION after 30 attempts" >&2
+              cat "$AUDIT_ERROR" >&2 || true
+              exit 1
+            fi
+            echo "::notice::Signed npm provenance is not ready for chainlesschain@$VERSION (attempt $ATTEMPT/30); retrying in 10 seconds"
+            sleep 10
+          done
+          test "$VERIFIED" = true
+
+      - name: Upload public npm readback evidence
+        uses: actions/upload-artifact@v6
+        with:
+          name: chainlesschain-npm-readback-${{ github.sha }}
+          path: |
+            release-artifacts/chainlesschain-release.json
+            release-artifacts/chainlesschain-npm-provenance.json
+          if-no-files-found: error
+          retention-days: 90
+
       - name: Publish summary
         run: |
           VERSION="${{ steps.version.outputs.VERSION }}"

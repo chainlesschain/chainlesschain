@@ -1566,6 +1566,11 @@ jobs:
           node-version: "22.14.0"
           registry-url: "https://registry.npmjs.org"
 
+      - name: Enable npm attestation verification
+        run: |
+          npm install --global npm@11.18.0
+          npm --version
+
       - name: Verify registry, tag, provenance, and exact-SHA gates
         shell: bash
         env:
@@ -1590,11 +1595,23 @@ jobs:
             echo "::error::${TAG} contains CLI version ${TAG_VERSION}, expected ${VERSION}."
             exit 1
           fi
-          NPM_SHA=$(npm view "chainlesschain@${VERSION}" gitHead --silent)
-          if [ -z "$NPM_SHA" ] || [ "$NPM_SHA" != "$TAG_SHA" ]; then
-            echo "::error::Registry gitHead does not match ${TAG}: npm=${NPM_SHA:-missing}, tag=${TAG_SHA}"
-            exit 1
-          fi
+
+          REGISTRY_ROOT=$(mktemp -d)
+          AUDIT_ROOT=$(mktemp -d)
+          trap 'rm -rf "$REGISTRY_ROOT" "$AUDIT_ROOT"' EXIT
+          npm pack "chainlesschain@${VERSION}" --pack-destination "$REGISTRY_ROOT" >/dev/null
+          REGISTRY_TARBALL=$(find "$REGISTRY_ROOT" -maxdepth 1 -name 'chainlesschain-*.tgz' -type f -print -quit)
+          test -n "$REGISTRY_TARBALL"
+          REGISTRY_SHA512=$(node -e 'const fs=require("fs"),crypto=require("crypto"); process.stdout.write(crypto.createHash("sha512").update(fs.readFileSync(process.argv[1])).digest("hex"))' "$REGISTRY_TARBALL")
+          (
+            cd "$AUDIT_ROOT"
+            npm init --yes >/dev/null
+            npm install --ignore-scripts --no-audit --no-fund "chainlesschain@$VERSION"
+            npm audit signatures --include-attestations --json > npm-signatures.json
+          )
+          CC_NPM_PROVENANCE_OUTPUT=cli-npm-provenance.json \
+          node packages/cli/scripts/verify-npm-release-provenance.mjs \
+            "$AUDIT_ROOT/npm-signatures.json" "$VERSION" "$TAG_SHA" "refs/tags/$TAG" "$REGISTRY_SHA512"
 
           git checkout --detach "$TAG_SHA"
           GITHUB_SHA="$TAG_SHA" \
@@ -1606,7 +1623,9 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: product-release-cli-gate-${{ github.sha }}
-          path: cli-release-gate.json
+          path: |
+            cli-release-gate.json
+            cli-npm-provenance.json
           if-no-files-found: error
           retention-days: 90
   # Regenerate CHANGELOG.md after a successful release. documentation.yml's

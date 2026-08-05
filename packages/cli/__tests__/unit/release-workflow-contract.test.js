@@ -93,6 +93,12 @@ describe("CLI release workflow contracts", () => {
     expect(cliPublish.indexOf("for ATTEMPT in {1..30}; do")).toBeLessThan(
       cliPublish.lastIndexOf("npm-release-artifact.mjs verify"),
     );
+    expect(text).toContain("Verify published CLI npm provenance");
+    expect(text).toContain(
+      "npm audit signatures --include-attestations --json",
+    );
+    expect(text).toContain("verify-npm-release-provenance.mjs");
+    expect(text).toContain("chainlesschain-npm-readback-${{ github.sha }}");
   });
 
   it("runs both authoritative workflows for npm and native release tags", () => {
@@ -141,13 +147,39 @@ describe("CLI release workflow contracts", () => {
     expect(product).toContain('git checkout --detach "$TAG_SHA"');
     expect(product).toContain('GITHUB_SHA="$TAG_SHA"');
     expect(product).toContain("verify-release-gates.mjs");
-    expect(product).toContain("Registry gitHead does not match");
+    expect(product).toContain("npm audit signatures --include-attestations");
+    expect(product).toContain("verify-npm-release-provenance.mjs");
+    expect(product).toContain("cli-npm-provenance.json");
+    expect(product).not.toContain("Registry gitHead does not match");
+    expect(product).not.toContain(
+      'npm view "chainlesschain@${VERSION}" gitHead',
+    );
     expect(product).toContain(
       "needs: [create-release, verify-cli-release, update-changelog]",
     );
     expect(product).not.toContain("publish-cli:");
     expect(product).not.toContain("- name: Publish CLI to npm");
     expect(product).not.toContain("skip_tests");
+  });
+
+  it("revalidates public npm bytes against the immutable attested run", () => {
+    const readback = workflow("cli-npm-release-readback.yml");
+    expect(readback).toContain("workflow_dispatch:");
+    expect(readback).toContain("pull_request:");
+    expect(readback).toContain("actions: read");
+    expect(readback).toContain(
+      "npm audit signatures --include-attestations --json",
+    );
+    expect(readback).toContain("verify-npm-release-provenance.mjs");
+    expect(readback).toContain("actions/download-artifact@v6");
+    expect(readback).toContain(
+      "run-id: ${{ steps.provenance.outputs.run_id }}",
+    );
+    expect(readback).toContain("npm-release-artifact.mjs verify");
+    expect(readback).toContain(
+      'cmp --silent "$SOURCE_TARBALL" "$REGISTRY_TARBALL"',
+    );
+    expect(readback).not.toContain("NPM_TOKEN");
   });
 
   it("keeps local generic publish scripts outside the CLI authority", () => {
