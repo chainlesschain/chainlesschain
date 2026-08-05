@@ -35,6 +35,7 @@ const {
   CdpClient,
   JOURNEY_PHASES,
   PHASE_DOM_MARKERS,
+  PHASE_WORKBENCH_DOM_MARKERS,
   assertJourneyArtifacts,
   buildCdpWebSocketOptions,
   createCdpPipeSocket,
@@ -1072,6 +1073,12 @@ test("raw DOM and protocol evidence must prove every control and restart step", 
       targetType: "iframe",
       targetUrl: `vscode-webview://chainlesschain/${phase}`,
     });
+    cdpRecords.push({
+      phase,
+      status: "sessions-workbench-found",
+      targetType: "iframe",
+      targetUrl: `vscode-webview://chainlesschain/${phase}/sessions-workbench`,
+    });
     if (phase === "initial") {
       cdpRecords.push({
         phase,
@@ -1103,6 +1110,11 @@ test("raw DOM and protocol evidence must prove every control and restart step", 
       phase === "initial"
         ? "Branch from here completed at turn-2\nbranch-turn-2 is ready\n"
         : PHASE_DOM_MARKERS[phase].join("\n"),
+      "utf8",
+    );
+    fs.writeFileSync(
+      path.join(artifactDir, `${phase}-workbench-dom.txt`),
+      PHASE_WORKBENCH_DOM_MARKERS[phase].join("\n"),
       "utf8",
     );
     if (phase === "initial") {
@@ -1138,7 +1150,15 @@ test("raw DOM and protocol evidence must prove every control and restart step", 
     { direction: "in", event: { type: "interrupt" } },
     { direction: "out", event: { type: "system", resumed_messages: 10 } },
     { direction: "in", event: { type: "user", text: "journey:resume" } },
+    { direction: "command", command: "daemon-resume" },
+    { direction: "command", command: "daemon-reply" },
   ];
+  for (let index = 0; index < 4; index += 1) {
+    fixtureRecords.push({
+      direction: "command",
+      command: "session-projection",
+    });
+  }
   for (let index = 0; index < 6; index += 1) {
     fixtureRecords.push({
       direction: "command",
@@ -1171,7 +1191,7 @@ test("raw DOM and protocol evidence must prove every control and restart step", 
     extensionsDir,
     workspaceDir,
   });
-  assert.equal(evidence.domPaths.length, 3);
+  assert.equal(evidence.domPaths.length, 5);
 
   fs.writeFileSync(
     path.join(artifactDir, "restart-dom.txt"),

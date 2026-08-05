@@ -247,6 +247,15 @@ async function waitForRobot(child, robotUrl, timeoutMs) {
   throw new Error(`Remote Robot did not become ready within ${timeoutMs}ms`);
 }
 
+async function waitForRobotStopped(robotUrl, timeoutMs = 60_000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (!(await robotReady(robotUrl))) return;
+    await delay(500);
+  }
+  throw new Error(`Remote Robot did not stop within ${timeoutMs}ms`);
+}
+
 function processAlive(child) {
   return child && child.exitCode === null && child.signalCode === null;
 }
@@ -352,6 +361,50 @@ export function verifyRewindFixtureLedger(tracePath) {
   };
 }
 
+export function verifyWorkbenchFixtureLedger(tracePath) {
+  const records = readFileSync(tracePath, "utf8")
+    .split(/\r?\n/u)
+    .filter(Boolean)
+    .map((line, index) => {
+      try {
+        return JSON.parse(line);
+      } catch (error) {
+        throw new Error(
+          `fixture ledger has invalid JSON at line ${index + 1}: ${error.message}`,
+        );
+      }
+    });
+  const resume = records.findIndex(
+    (record) =>
+      record.direction === "command" &&
+      record.command === "daemon-resume" &&
+      record.stage === "needs_input",
+  );
+  const reply = records.findIndex(
+    (record) =>
+      record.direction === "command" &&
+      record.command === "daemon-reply" &&
+      record.stage === "done",
+  );
+  const recoveredProjection = records.findIndex(
+    (record, index) =>
+      index > reply &&
+      record.direction === "command" &&
+      record.command === "session-projection",
+  );
+  if (resume < 0 || reply <= resume || recoveredProjection <= reply) {
+    throw new Error(
+      "fixture ledger does not prove dispatch -> needs_input -> reply -> restart projection",
+    );
+  }
+  return {
+    resume,
+    reply,
+    recoveredProjection,
+    coverage: "canonical-workbench-restart",
+  };
+}
+
 function firstPluginArchive() {
   const distributions = path.join(PACKAGE_ROOT, "build", "distributions");
   if (!existsSync(distributions)) return null;
@@ -381,7 +434,7 @@ async function writeEvidence(options, result, startedAt, logRoot) {
   const pluginArchive = firstPluginArchive();
   return writeIdeJourneyEvidence({
     artifactDir: options.artifactDir,
-    journeyId: "jetbrains-chat-control-resume-rewind",
+    journeyId: "jetbrains-chat-control-workbench-restart-rewind",
     host: "jetbrains",
     hostVersion: options.ideVersion,
     cliVersion: readPackageVersion(
@@ -441,23 +494,56 @@ export async function runJourney(options) {
       logRoot,
       "prepare",
     );
-    const launched = launchGradle(
-      ["runIdeForUiTests", ...gradleOptions],
-      logRoot,
-      "sandbox-ide",
-      {
-        detached: true,
-        env: createFakeCliEnvironment(logRoot),
-      },
-    );
-    ideProcess = launched.child;
-    await waitForRobot(ideProcess, options.robotUrl, options.startupTimeoutMs);
-    await runGradle(
-      ["uiSmokeTest", `-Dui.robot.url=${options.robotUrl}`, ...gradleOptions],
-      logRoot,
-      "ui-smoke",
+    const fixtureEnvironment = createFakeCliEnvironment(logRoot);
+    const hostPhases = [];
+    for (const phase of ["initial", "restart"]) {
+      const launched = launchGradle(
+        ["runIdeForUiTests", ...gradleOptions],
+        logRoot,
+        `sandbox-ide-${phase}`,
+        {
+          detached: true,
+          env: fixtureEnvironment,
+        },
+      );
+      ideProcess = launched.child;
+      const phaseStartedAt = new Date().toISOString();
+      try {
+        await waitForRobot(
+          ideProcess,
+          options.robotUrl,
+          options.startupTimeoutMs,
+        );
+        await runGradle(
+          [
+            "uiSmokeTest",
+            "--rerun-tasks",
+            `-Dui.robot.url=${options.robotUrl}`,
+            `-Dui.journey.phase=${phase}`,
+            ...gradleOptions,
+          ],
+          logRoot,
+          `ui-smoke-${phase}`,
+        );
+        hostPhases.push({
+          phase,
+          processId: ideProcess.pid,
+          startedAt: phaseStartedAt,
+          completedAt: new Date().toISOString(),
+        });
+      } finally {
+        await stopProcessTree(ideProcess);
+        ideProcess = null;
+      }
+      await waitForRobotStopped(options.robotUrl);
+    }
+    writeFileSync(
+      path.join(logRoot, "workbench-host-phases.json"),
+      `${JSON.stringify({ phases: hostPhases }, null, 2)}\n`,
+      { encoding: "utf8", mode: 0o600, flag: "wx" },
     );
     verifyRewindFixtureLedger(path.join(logRoot, "fake-cli-protocol.jsonl"));
+    verifyWorkbenchFixtureLedger(path.join(logRoot, "fake-cli-protocol.jsonl"));
     result = "passed";
   } catch (error) {
     journeyError = error;

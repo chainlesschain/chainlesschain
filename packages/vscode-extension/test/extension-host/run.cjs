@@ -1151,7 +1151,7 @@ async function main() {
       `[extension-host-smoke] PASS ${EXTENSION_ID}@${expectedVersion} ${
         hostApiMode
           ? "host-API activation/view relaunch smoke"
-          : "real-DOM control/restart journey"
+          : "real-DOM control/Workbench/restart journey"
       } on ${hostVersion || options.vscodeVersion}\n`,
     );
   } catch (error) {
@@ -1183,7 +1183,7 @@ async function main() {
         artifactDir,
         journeyId: hostApiMode
           ? "vscode-installed-vsix-host-api-activation-view-relaunch"
-          : "vscode-installed-vsix-real-dom-control-resume",
+          : "vscode-installed-vsix-real-dom-control-workbench-restart",
         host: "vscode",
         hostVersion: hostVersion || options.vscodeVersion,
         cliVersion,

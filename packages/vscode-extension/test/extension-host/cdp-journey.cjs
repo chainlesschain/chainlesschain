@@ -20,8 +20,10 @@ const JOURNEY_PHASES = Object.freeze({
     "plan-approval",
     "permission",
     "interrupt",
+    "workbench-dispatch-needs-input",
+    "workbench-reply-artifact",
   ]),
-  restart: Object.freeze(["ide-restart-resume"]),
+  restart: Object.freeze(["ide-restart-resume", "workbench-restart-recovery"]),
 });
 const PHASE_DOM_MARKERS = Object.freeze({
   initial: Object.freeze([
@@ -35,6 +37,18 @@ const PHASE_DOM_MARKERS = Object.freeze({
     "resumed previous conversation",
     "fixture stream complete #6",
   ]),
+});
+const PHASE_WORKBENCH_DOM_MARKERS = Object.freeze({
+  initial: Object.freeze([
+    "local",
+    "background",
+    "remote",
+    "team",
+    "workflow",
+    "workbench-result.md",
+    "PR #88 merged",
+  ]),
+  restart: Object.freeze(["workbench-result.md", "PR #88 merged"]),
 });
 const REWIND_HOST_ACTIONS = Object.freeze([
   Object.freeze({ action: "restore-code", label: "Restore code" }),
@@ -57,6 +71,12 @@ const CHAT_WEBVIEW_PROBE = [
   "document.querySelector('textarea#input')",
   "document.querySelector('#send')",
   "document.querySelector('#planApprove')",
+].join(" && ");
+const SESSIONS_WORKBENCH_WEBVIEW_PROBE = [
+  "document.body",
+  "document.querySelector('#list')",
+  "document.querySelector('#refresh')",
+  "document.querySelector('h1')?.textContent?.includes('Sessions Workbench')",
 ].join(" && ");
 
 function abortError(signal) {
@@ -495,6 +515,8 @@ async function findChatWebview(
   tracePath = null,
   getBrowserWebSocketUrl = null,
   suppliedBrowserClient = null,
+  identityProbe = CHAT_WEBVIEW_PROBE,
+  identityLabel = "ChainlessChain chat webview",
 ) {
   const deadline = Date.now() + timeoutMs;
   let lastError;
@@ -528,7 +550,7 @@ async function findChatWebview(
         let client;
         try {
           client = await connectCdpWebSocket(target.webSocketDebuggerUrl);
-          const found = await client.evaluate(`Boolean(${CHAT_WEBVIEW_PROBE})`);
+          const found = await client.evaluate(`Boolean(${identityProbe})`);
           if (found) return { client, target };
         } catch (error) {
           lastError = error;
@@ -610,7 +632,7 @@ async function findChatWebview(
               const inspection = sessionId
                 ? await browserClient.evaluate(
                     `({
-                      probe: Boolean(${CHAT_WEBVIEW_PROBE}),
+                      probe: Boolean(${identityProbe}),
                       readyState: document.readyState,
                       title: document.title,
                       url: location.href,
@@ -682,10 +704,29 @@ async function findChatWebview(
     await delay(250, signal);
   }
   throw new Error(
-    `ChainlessChain chat webview was not found on CDP port ${port}; targets=${JSON.stringify(lastTargets.slice(-20))}; lastError=${String(lastError?.message || lastError || "none")}`,
+    `${identityLabel} was not found on CDP port ${port}; targets=${JSON.stringify(lastTargets.slice(-20))}; lastError=${String(lastError?.message || lastError || "none")}`,
     {
       cause: lastError,
     },
+  );
+}
+
+async function findSessionsWorkbenchWebview(
+  port,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+  signal = null,
+  tracePath = null,
+  getBrowserWebSocketUrl = null,
+) {
+  return findChatWebview(
+    port,
+    timeoutMs,
+    signal,
+    tracePath,
+    getBrowserWebSocketUrl,
+    null,
+    SESSIONS_WORKBENCH_WEBVIEW_PROBE,
+    "ChainlessChain Sessions Workbench webview",
   );
 }
 
@@ -825,6 +866,31 @@ async function chooseQuickPickItem(client, label, signal = null) {
   if (!selected) throw new Error(`could not choose quick pick item ${label}`);
 }
 
+async function openSessionsWorkbenchFromCommandPalette(
+  workbenchClient,
+  signal = null,
+) {
+  await workbenchClient.send("Input.dispatchKeyEvent", {
+    type: "keyDown",
+    key: "F1",
+    code: "F1",
+    windowsVirtualKeyCode: 112,
+    nativeVirtualKeyCode: 112,
+  });
+  await workbenchClient.send("Input.dispatchKeyEvent", {
+    type: "keyUp",
+    key: "F1",
+    code: "F1",
+    windowsVirtualKeyCode: 112,
+    nativeVirtualKeyCode: 112,
+  });
+  await chooseQuickPickItem(
+    workbenchClient,
+    "ChainlessChain: Sessions Workbench",
+    signal,
+  );
+}
+
 async function confirmNativeTimelineAction(client, signal = null) {
   const visibleWidget =
     "[...document.querySelectorAll('.quick-input-widget')].find((element) => getComputedStyle(element).display !== 'none' && getComputedStyle(element).visibility !== 'hidden')";
@@ -927,6 +993,162 @@ async function clickSelector(client, selector, label, signal = null) {
     return true;
   })()`);
   if (!clicked) throw new Error(`could not click ${label}`);
+}
+
+async function readSessionsWorkbenchSnapshot(client) {
+  return client.evaluate(`(() => {
+    const rows = [...document.querySelectorAll('#list tbody tr')];
+    const background = rows.find((row) =>
+      row.querySelector('[data-source-id="ui-workbench-background"]')
+    ) || null;
+    return {
+      text: document.body?.innerText || '',
+      rowCount: rows.length,
+      kinds: [...new Set(rows.map((row) =>
+        row.querySelector('.kind')?.textContent?.trim()
+      ).filter(Boolean))],
+      backgroundState: background?.querySelector('.st')?.textContent?.trim() || null,
+      dispatchEnabled: Boolean(background?.querySelector('button[data-act="dispatch"]')),
+      replyEnabled: Boolean(background?.querySelector('button[data-act="reply"]')),
+      artifactVisible: Boolean(background && (background.textContent || '').includes('workbench-result.md')),
+      prVisible: Boolean(background && (background.textContent || '').includes('PR #88 merged')),
+    };
+  })()`);
+}
+
+async function waitForSessionsWorkbench({
+  client,
+  predicate = () => true,
+  label,
+  timeoutMs = 45_000,
+  signal = null,
+}) {
+  const deadline = Date.now() + timeoutMs;
+  let last;
+  let lastError;
+  while (Date.now() < deadline) {
+    throwIfAborted(signal);
+    try {
+      last = await readSessionsWorkbenchSnapshot(client);
+      if (
+        last &&
+        typeof last.text === "string" &&
+        Number(last.rowCount) >= 5 &&
+        predicate(last)
+      ) {
+        return last;
+      }
+    } catch (error) {
+      lastError = error;
+    }
+    await delay(100, signal);
+  }
+  throw new Error(
+    `${label} did not become true within ${timeoutMs}ms; last=${JSON.stringify(last)}`,
+    { cause: lastError },
+  );
+}
+
+async function clickSessionsWorkbenchAction(
+  client,
+  action,
+  prompt,
+  signal = null,
+) {
+  await waitForSessionsWorkbench({
+    client,
+    predicate: (snapshot) => snapshot[`${action}Enabled`] === true,
+    label: `Sessions Workbench ${action} control`,
+    signal,
+  });
+  const clicked = await client.evaluate(`(() => {
+    const button = document.querySelector(
+      '#list button[data-source-id="ui-workbench-background"][data-act=${JSON.stringify(action)}]'
+    );
+    if (!button) return false;
+    const originalPrompt = window.prompt;
+    window.prompt = () => ${JSON.stringify(prompt)};
+    try { button.click(); } finally { window.prompt = originalPrompt; }
+    return true;
+  })()`);
+  if (!clicked) {
+    throw new Error(`could not click Sessions Workbench ${action}`);
+  }
+}
+
+async function driveSessionsWorkbenchPhase(
+  client,
+  phase,
+  tracePath,
+  signal = null,
+) {
+  const step = async (name, action) => {
+    throwIfAborted(signal);
+    appendTrace(tracePath, { phase, step: name, status: "started" });
+    await action();
+    throwIfAborted(signal);
+    appendTrace(tracePath, { phase, step: name, status: "passed" });
+  };
+  if (phase === "initial") {
+    await step("workbench-dispatch-needs-input", async () => {
+      const initial = await waitForSessionsWorkbench({
+        client,
+        predicate: (snapshot) =>
+          snapshot.backgroundState === "done" &&
+          snapshot.dispatchEnabled === true &&
+          ["local", "background", "remote", "team", "workflow"].every((kind) =>
+            snapshot.kinds.includes(kind),
+          ),
+        label: "initial canonical Sessions Workbench projection",
+        signal,
+      });
+      if (initial.artifactVisible) {
+        throw new Error("fresh Workbench unexpectedly contains an artifact");
+      }
+      await clickSessionsWorkbenchAction(
+        client,
+        "dispatch",
+        "dispatch from VS Code Workbench",
+        signal,
+      );
+      await waitForSessionsWorkbench({
+        client,
+        predicate: (snapshot) =>
+          snapshot.backgroundState === "needs_input" &&
+          snapshot.replyEnabled === true,
+        label: "Sessions Workbench needs_input transition",
+        signal,
+      });
+    });
+    await step("workbench-reply-artifact", async () => {
+      await clickSessionsWorkbenchAction(client, "reply", "beta", signal);
+      await waitForSessionsWorkbench({
+        client,
+        predicate: (snapshot) =>
+          snapshot.backgroundState === "done" &&
+          snapshot.artifactVisible === true &&
+          snapshot.prVisible === true,
+        label: "Sessions Workbench artifact and PR projection",
+        signal,
+      });
+    });
+    return;
+  }
+  if (phase === "restart") {
+    await step("workbench-restart-recovery", async () => {
+      await waitForSessionsWorkbench({
+        client,
+        predicate: (snapshot) =>
+          snapshot.backgroundState === "done" &&
+          snapshot.artifactVisible === true &&
+          snapshot.prVisible === true,
+        label: "Sessions Workbench restart recovery",
+        signal,
+      });
+    });
+    return;
+  }
+  throw new Error(`unknown Sessions Workbench journey phase: ${phase}`);
 }
 
 async function clickApproval(client, signal = null) {
@@ -1310,6 +1532,21 @@ function assertJourneyArtifacts({
     ) {
       throw new Error(`CDP target identity is incomplete for ${phase}`);
     }
+    const workbenchTarget = cdpRecords.find(
+      (record) =>
+        record.phase === phase && record.status === "sessions-workbench-found",
+    );
+    if (
+      !workbenchTarget ||
+      typeof workbenchTarget.targetType !== "string" ||
+      !workbenchTarget.targetType ||
+      typeof workbenchTarget.targetUrl !== "string" ||
+      !workbenchTarget.targetUrl
+    ) {
+      throw new Error(
+        `CDP journey has no real Sessions Workbench target for ${phase}`,
+      );
+    }
     for (const step of steps) {
       if (
         !cdpRecords.some(
@@ -1339,6 +1576,10 @@ function assertJourneyArtifacts({
     ]);
   }
   for (const phase of Object.keys(JOURNEY_PHASES)) {
+    requireTextMarkers(
+      path.join(artifactDir, `${phase}-workbench-dom.txt`),
+      PHASE_WORKBENCH_DOM_MARKERS[phase],
+    );
     assertHostReadySignal({
       readyFile: path.join(runtimeDir, `${phase}-host-ready.json`),
       phase,
@@ -1355,6 +1596,25 @@ function assertJourneyArtifacts({
   }
 
   const fixtureRecords = readJsonLines(fixtureTracePath);
+  for (const command of ["daemon-resume", "daemon-reply"]) {
+    if (
+      !fixtureRecords.some(
+        (record) =>
+          record.direction === "command" && record.command === command,
+      )
+    ) {
+      throw new Error(`fixture ledger does not prove ${command}`);
+    }
+  }
+  const projectionReads = fixtureRecords.filter(
+    (record) =>
+      record.direction === "command" && record.command === "session-projection",
+  ).length;
+  if (projectionReads < 4) {
+    throw new Error(
+      `fixture ledger proves only ${projectionReads} canonical projection read(s)`,
+    );
+  }
   if (nativeTimeline) {
     const timelineReads = fixtureRecords.filter(
       (record) =>
@@ -1442,6 +1702,9 @@ function assertJourneyArtifacts({
       ...Object.keys(JOURNEY_PHASES).map((phase) =>
         path.join(artifactDir, `${phase}-dom.txt`),
       ),
+      ...Object.keys(JOURNEY_PHASES).map((phase) =>
+        path.join(artifactDir, `${phase}-workbench-dom.txt`),
+      ),
       ...(nativeTimeline
         ? [path.join(artifactDir, "initial-before-rewind-dom.txt")]
         : []),
@@ -1474,6 +1737,7 @@ async function runCdpHostJourney(options) {
   const tracePath = path.join(artifactDir, "cdp-journey.jsonl");
   let client;
   let workbenchClient;
+  let sessionsWorkbenchClient;
   let failure;
   try {
     await waitForFile(readyFile, timeoutMs, signal);
@@ -1492,7 +1756,7 @@ async function runCdpHostJourney(options) {
       targetType: located.target.type,
       targetUrl: located.target.url,
     });
-    if (phase === "initial" && !browserClient) {
+    if (!browserClient) {
       const workbench = await findWorkbenchWindow(
         port,
         timeoutMs,
@@ -1514,6 +1778,37 @@ async function runCdpHostJourney(options) {
       signal,
       workbenchClient,
       artifactDir,
+    );
+    if (!workbenchClient) {
+      throw new Error(
+        "native VS Code workbench is required for Sessions Workbench journey",
+      );
+    }
+    await openSessionsWorkbenchFromCommandPalette(workbenchClient, signal);
+    const sessionsWorkbench = await findSessionsWorkbenchWebview(
+      port,
+      timeoutMs,
+      signal,
+      tracePath,
+      getBrowserWebSocketUrl,
+    );
+    sessionsWorkbenchClient = sessionsWorkbench.client;
+    appendTrace(tracePath, {
+      phase,
+      status: "sessions-workbench-found",
+      targetType: sessionsWorkbench.target.type,
+      targetUrl: sessionsWorkbench.target.url,
+    });
+    await driveSessionsWorkbenchPhase(
+      sessionsWorkbenchClient,
+      phase,
+      tracePath,
+      signal,
+    );
+    await captureWebview(
+      sessionsWorkbenchClient,
+      artifactDir,
+      `${phase}-workbench`,
     );
     await captureWebview(client, artifactDir, phase);
     writeJsonSignal(resultFile, {
@@ -1550,6 +1845,7 @@ async function runCdpHostJourney(options) {
       );
     }
   } finally {
+    sessionsWorkbenchClient?.close();
     workbenchClient?.close();
     client?.close();
   }
@@ -1561,6 +1857,7 @@ module.exports = {
   CHAT_WEBVIEW_PROBE,
   JOURNEY_PHASES,
   PHASE_DOM_MARKERS,
+  PHASE_WORKBENCH_DOM_MARKERS,
   assertHostReadySignal,
   assertJourneyArtifacts,
   buildCdpWebSocketOptions,

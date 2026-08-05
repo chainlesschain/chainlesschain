@@ -11,6 +11,7 @@
 
 import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
 import readline from "node:readline";
+import { buildSessionProjection } from "../../../packages/cli/src/lib/session-projection.js";
 
 const argv = process.argv.slice(2);
 const statePath = process.env.CC_UI_FIXTURE_STATE || "";
@@ -74,6 +75,196 @@ function clone(value) {
 
 function writeJson(value) {
   process.stdout.write(`${JSON.stringify(value)}\n`);
+}
+
+const WORKBENCH_SESSION_ID = "ui-workbench-session";
+const WORKBENCH_BACKGROUND_ID = "ui-workbench-background";
+
+function workbenchStage(state = readState()) {
+  const stage = String(state.workbench?.stage || "stopped");
+  return new Set(["stopped", "needs_input", "done"]).has(stage)
+    ? stage
+    : "stopped";
+}
+
+function workbenchProjection() {
+  const state = readState();
+  const stage = workbenchStage(state);
+  const background = {
+    id: WORKBENCH_BACKGROUND_ID,
+    title: "Workbench lifecycle fixture",
+    status: stage === "needs_input" ? "running" : "completed",
+    phase: stage,
+    sessionId: WORKBENCH_SESSION_ID,
+    interactive: true,
+    cwd: process.cwd(),
+    heartbeatAt: Date.parse("2026-08-06T00:04:00.000Z"),
+    governance: { owner: "ui-host-fixture" },
+  };
+  if (stage === "needs_input") {
+    background.pendingQuestion = {
+      requestId: "ui-workbench-question",
+      question: "Choose the deterministic workbench answer",
+      options: ["alpha", "beta"],
+    };
+  }
+  const artifacts =
+    stage === "done"
+      ? [
+          {
+            id: "ui-workbench-artifact",
+            sessionId: WORKBENCH_SESSION_ID,
+            title: "workbench-result.md",
+            kind: "report",
+            createdAt: "2026-08-06T00:08:00.000Z",
+          },
+        ]
+      : [];
+  return buildSessionProjection({
+    generatedAt: "2026-08-06T00:10:00.000Z",
+    local: [
+      {
+        id: WORKBENCH_SESSION_ID,
+        title: "Workbench saved session",
+        workspace: process.cwd(),
+        updated_at: "2026-08-06 00:00:00",
+      },
+    ],
+    background: [background],
+    remote: [
+      {
+        remoteSessionId: "ui-workbench-remote",
+        agentSessionId: WORKBENCH_SESSION_ID,
+        peerId: "ui-host-peer",
+        alive: true,
+        port: 18888,
+        host: "127.0.0.1",
+        mode: "fixture",
+      },
+    ],
+    team: [
+      {
+        id: "ui-workbench-team",
+        kind: "team",
+        status: "blocked",
+        owner: "team:ui-workbench-team",
+        updatedAt: Date.parse("2026-08-06T00:06:00.000Z"),
+        units: [
+          {
+            key: "review",
+            sessionId: "ui-workbench-team-session",
+            status: "blocked",
+            sideEffects: { unknown: 1 },
+          },
+        ],
+      },
+    ],
+    workflow: [
+      {
+        id: "ui-workbench-workflow",
+        sessionId: "ui-workbench-workflow",
+        stage: "plan",
+        hasPlan: true,
+        approved: false,
+        cwd: process.cwd(),
+        updatedAt: "2026-08-06T00:05:00.000Z",
+      },
+    ],
+    artifacts,
+    prLinks:
+      stage === "done"
+        ? {
+            [WORKBENCH_SESSION_ID]: [
+              {
+                number: 88,
+                repo: "chainlesschain/chainlesschain",
+                url: "https://github.com/chainlesschain/chainlesschain/pull/88",
+                state: "merged",
+                updatedAt: Date.parse("2026-08-06T00:09:00.000Z"),
+              },
+            ],
+          }
+        : {},
+  });
+}
+
+function updateWorkbench(stage, details = {}) {
+  const state = readState();
+  state.workbench = {
+    ...(state.workbench || {}),
+    ...details,
+    stage,
+  };
+  writeState(state);
+  return state.workbench;
+}
+
+function handleWorkbenchCommand() {
+  if (argv[0] === "session" && argv[1] === "projection") {
+    trace({ direction: "command", command: "session-projection" });
+    writeJson(workbenchProjection());
+    return true;
+  }
+  if (argv[0] === "daemon" && argv[1] === "resume") {
+    const id = String(argv[2] || "");
+    const prompt = String(argv[3] || "");
+    if (id !== WORKBENCH_BACKGROUND_ID || !prompt) {
+      process.stderr.write("invalid workbench resume request\n");
+      process.exitCode = 1;
+      return true;
+    }
+    const stage = workbenchStage();
+    if (stage !== "stopped" && stage !== "done") {
+      process.stderr.write(`workbench session cannot resume from ${stage}\n`);
+      process.exitCode = 1;
+      return true;
+    }
+    const workbench = updateWorkbench("needs_input", {
+      dispatchPrompt: prompt,
+    });
+    trace({
+      direction: "command",
+      command: "daemon-resume",
+      id,
+      stage: workbench.stage,
+    });
+    writeJson({ id, accepted: true, phase: workbench.stage });
+    return true;
+  }
+  if (argv[0] === "daemon" && argv[1] === "reply") {
+    const id = String(argv[2] || "");
+    const prompt = String(argv[3] || "");
+    if (
+      id !== WORKBENCH_BACKGROUND_ID ||
+      !prompt ||
+      workbenchStage() !== "needs_input"
+    ) {
+      process.stderr.write("invalid workbench reply request\n");
+      process.exitCode = 1;
+      return true;
+    }
+    const workbench = updateWorkbench("done", { replyPrompt: prompt });
+    trace({
+      direction: "command",
+      command: "daemon-reply",
+      id,
+      stage: workbench.stage,
+    });
+    writeJson({ id, accepted: true, queued: 1, phase: workbench.stage });
+    return true;
+  }
+  if (argv[0] === "daemon" && argv[1] === "view") {
+    writeJson({
+      session: {
+        id: WORKBENCH_BACKGROUND_ID,
+        phase: workbenchStage(),
+        sessionId: WORKBENCH_SESSION_ID,
+      },
+      log: "deterministic workbench fixture",
+    });
+    return true;
+  }
+  return false;
 }
 
 function projectionForSession(sessionId) {
@@ -262,6 +453,10 @@ if (argv[0] === "context") {
 
 if (argv[0] === "checkpoint" && handleCheckpointCommand()) {
   process.exit(0);
+}
+
+if (handleWorkbenchCommand()) {
+  process.exit(process.exitCode || 0);
 }
 
 if (argv[0] !== "agent") {
