@@ -365,7 +365,7 @@ final class IdeUiSmokeTest {
                 Object hidden = component.callJs("!component.isShowing()");
                 if (Boolean.TRUE.equals(hidden)
                         || "true".equals(String.valueOf(hidden))) return;
-            } catch (RuntimeException disposed) {
+            } catch (Throwable disposed) {
                 // A disposed fixture is no longer visible, which is exactly
                 // the transition this helper is waiting for.
                 return;
