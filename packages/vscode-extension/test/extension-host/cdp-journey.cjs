@@ -36,6 +36,18 @@ const PHASE_DOM_MARKERS = Object.freeze({
     "fixture stream complete #6",
   ]),
 });
+const REWIND_HOST_ACTIONS = Object.freeze([
+  Object.freeze({ action: "restore-code", label: "Restore code" }),
+  Object.freeze({
+    action: "restore-conversation",
+    label: "Restore conversation",
+  }),
+  Object.freeze({
+    action: "restore-both",
+    label: "Restore code + conversation",
+  }),
+  Object.freeze({ action: "branch", label: "Branch from here" }),
+]);
 const CHAT_WEBVIEW_PROBE = [
   "document.body",
   "document.querySelector('#tabs')",
@@ -675,6 +687,126 @@ async function findChatWebview(
   );
 }
 
+async function findWorkbenchWindow(
+  port,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+  signal = null,
+) {
+  const deadline = Date.now() + timeoutMs;
+  let lastTargets = [];
+  let lastError;
+  while (Date.now() < deadline) {
+    throwIfAborted(signal);
+    try {
+      const targets = await listTargets(port, signal);
+      lastTargets = targets.map((target) => ({
+        type: target.type,
+        title: target.title,
+        url: target.url,
+      }));
+      for (const target of targets) {
+        if (target.type !== "page" || !target.webSocketDebuggerUrl) continue;
+        let client;
+        try {
+          client = await connectCdpWebSocket(target.webSocketDebuggerUrl);
+          const found = await client.evaluate(
+            "Boolean(document.querySelector('.monaco-workbench') && document.querySelector('.quick-input-widget'))",
+          );
+          if (found) return { client, target };
+        } catch (error) {
+          lastError = error;
+        }
+        client?.close();
+      }
+    } catch (error) {
+      lastError = error;
+    }
+    await delay(100, signal);
+  }
+  throw new Error(
+    `VS Code workbench target was not found; targets=${JSON.stringify(lastTargets.slice(-20))}; lastError=${String(lastError?.message || lastError || "none")}`,
+  );
+}
+
+async function chooseQuickPickItem(client, label, signal = null) {
+  const labelJson = JSON.stringify(label);
+  const visibleWidget =
+    "[...document.querySelectorAll('.quick-input-widget')].find((element) => getComputedStyle(element).display !== 'none' && getComputedStyle(element).visibility !== 'hidden')";
+  await waitForDom(
+    client,
+    `(() => { const widget = ${visibleWidget}; return Boolean(widget && [...widget.querySelectorAll('.monaco-list-row')].some((row) => (row.textContent || '').includes(${labelJson}))); })()`,
+    `quick pick item ${label}`,
+    45_000,
+    signal,
+  );
+  const selected = await client.evaluate(`(() => {
+    const widget = ${visibleWidget};
+    const row = widget && [...widget.querySelectorAll('.monaco-list-row')]
+      .find((candidate) => (candidate.textContent || '').includes(${labelJson}));
+    if (!row) return false;
+    row.scrollIntoView({ block: 'center' });
+    for (const type of ['mousedown', 'mouseup', 'click']) {
+      row.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true, view: window }));
+    }
+    return true;
+  })()`);
+  if (!selected) throw new Error(`could not choose quick pick item ${label}`);
+}
+
+async function confirmNativeTimelineAction(client, signal = null) {
+  await waitForDom(
+    client,
+    `(() => {
+      const dialogs = [...document.querySelectorAll('.monaco-dialog-box')]
+        .filter((element) => getComputedStyle(element).display !== 'none');
+      const dialog = dialogs.at(-1);
+      const text = dialog ? (dialog.textContent || '') : '';
+      return text.includes('Confirm action') && document.body.innerText.includes('vendor/cache')
+        && document.body.innerText.includes('publish release');
+    })()`,
+    "partial-coverage rewind confirmation",
+    45_000,
+    signal,
+  );
+  const clicked = await client.evaluate(`(() => {
+    const dialogs = [...document.querySelectorAll('.monaco-dialog-box')]
+      .filter((element) => getComputedStyle(element).display !== 'none');
+    const dialog = dialogs.at(-1);
+    const button = dialog && [...dialog.querySelectorAll('button, .monaco-button')]
+      .find((candidate) => (candidate.textContent || '').trim() === 'Confirm action');
+    if (!button) return false;
+    button.click();
+    return true;
+  })()`);
+  if (!clicked) throw new Error("could not confirm native timeline action");
+}
+
+async function driveRewindAction(
+  webviewClient,
+  workbenchClient,
+  action,
+  tracePath,
+  signal = null,
+) {
+  await sendComposer(webviewClient, "/rewind");
+  await chooseQuickPickItem(workbenchClient, "turn-2", signal);
+  await chooseQuickPickItem(workbenchClient, action.label, signal);
+  await confirmNativeTimelineAction(workbenchClient, signal);
+  await waitForDom(
+    webviewClient,
+    containsText(`${action.label} completed at turn-2`),
+    `${action.action} completion`,
+    45_000,
+    signal,
+  );
+  appendTrace(tracePath, {
+    phase: "initial",
+    action: action.action,
+    coverage: "partial",
+    status: "rewind-action-observed",
+  });
+}
+
 async function waitForDom(
   client,
   expression,
@@ -803,7 +935,13 @@ async function captureWebview(client, artifactDir, phase) {
   return { domPath, screenshotPath };
 }
 
-async function drivePhase(client, phase, tracePath, signal = null) {
+async function drivePhase(
+  client,
+  phase,
+  tracePath,
+  signal = null,
+  workbenchClient = null,
+) {
   const step = async (name, action) => {
     throwIfAborted(signal);
     appendTrace(tracePath, { phase, step: name, status: "started" });
@@ -873,6 +1011,19 @@ async function drivePhase(client, phase, tracePath, signal = null) {
         signal,
       );
     });
+    if (workbenchClient) {
+      for (const action of REWIND_HOST_ACTIONS) {
+        await step(`rewind-${action.action}`, async () => {
+          await driveRewindAction(
+            client,
+            workbenchClient,
+            action,
+            tracePath,
+            signal,
+          );
+        });
+      }
+    }
     return;
   }
 
@@ -1118,6 +1269,49 @@ function assertJourneyArtifacts({
   }
 
   const fixtureRecords = readJsonLines(fixtureTracePath);
+  const nativeTimeline = cdpRecords.some(
+    (record) =>
+      record.phase === "initial" && record.status === "native-workbench-found",
+  );
+  if (nativeTimeline) {
+    const timelineReads = fixtureRecords.filter(
+      (record) =>
+        record.direction === "command" &&
+        record.command === "checkpoint-timeline",
+    ).length;
+    if (timelineReads < REWIND_HOST_ACTIONS.length) {
+      throw new Error(
+        `fixture ledger proves only ${timelineReads} canonical timeline read(s)`,
+      );
+    }
+    for (const action of REWIND_HOST_ACTIONS) {
+      if (
+        !cdpRecords.some(
+          (record) =>
+            record.phase === "initial" &&
+            record.step === `rewind-${action.action}` &&
+            record.status === "passed",
+        )
+      ) {
+        throw new Error(`native rewind journey did not pass: ${action.action}`);
+      }
+      for (const mode of ["preview", "confirm"]) {
+        if (
+          !fixtureRecords.some(
+            (record) =>
+              record.direction === "command" &&
+              record.command === "checkpoint-action" &&
+              record.action === action.action &&
+              record.mode === mode,
+          )
+        ) {
+          throw new Error(
+            `fixture ledger does not prove ${action.action}/${mode}`,
+          );
+        }
+      }
+    }
+  }
   const requiredInbound = [
     (event) => event.type === "user" && event.text === "journey:stream",
     (event) => event.type === "plan" && event.action === "approve",
@@ -1192,6 +1386,7 @@ async function runCdpHostJourney(options) {
   fs.mkdirSync(artifactDir, { recursive: true });
   const tracePath = path.join(artifactDir, "cdp-journey.jsonl");
   let client;
+  let workbenchClient;
   let failure;
   try {
     await waitForFile(readyFile, timeoutMs, signal);
@@ -1210,7 +1405,17 @@ async function runCdpHostJourney(options) {
       targetType: located.target.type,
       targetUrl: located.target.url,
     });
-    await drivePhase(client, phase, tracePath, signal);
+    if (phase === "initial" && !browserClient) {
+      const workbench = await findWorkbenchWindow(port, timeoutMs, signal);
+      workbenchClient = workbench.client;
+      appendTrace(tracePath, {
+        phase,
+        status: "native-workbench-found",
+        targetType: workbench.target.type,
+        targetUrl: workbench.target.url,
+      });
+    }
+    await drivePhase(client, phase, tracePath, signal, workbenchClient);
     await captureWebview(client, artifactDir, phase);
     writeJsonSignal(resultFile, {
       ok: true,
@@ -1246,6 +1451,7 @@ async function runCdpHostJourney(options) {
       );
     }
   } finally {
+    workbenchClient?.close();
     client?.close();
   }
   throw failure;
@@ -1263,6 +1469,7 @@ module.exports = {
   createFixtureCli,
   isExactIsoTimestamp,
   isInspectableBrowserTarget,
+  findWorkbenchWindow,
   readJsonLines,
   readJourneyResult,
   reserveLoopbackPort,

@@ -297,6 +297,59 @@ export function readPluginVersion(pluginXmlPath) {
   return matches[0][1].trim();
 }
 
+const REQUIRED_REWIND_ACTIONS = Object.freeze([
+  "restore-code",
+  "restore-conversation",
+  "restore-both",
+  "branch",
+]);
+
+export function verifyRewindFixtureLedger(tracePath) {
+  const records = readFileSync(tracePath, "utf8")
+    .split(/\r?\n/u)
+    .filter(Boolean)
+    .map((line, index) => {
+      try {
+        return JSON.parse(line);
+      } catch (error) {
+        throw new Error(
+          `fixture ledger has invalid JSON at line ${index + 1}: ${error.message}`,
+        );
+      }
+    });
+  const timelineReads = records.filter(
+    (record) =>
+      record.direction === "command" &&
+      record.command === "checkpoint-timeline",
+  ).length;
+  if (timelineReads < REQUIRED_REWIND_ACTIONS.length) {
+    throw new Error(
+      `fixture ledger proves only ${timelineReads} checkpoint timeline read(s)`,
+    );
+  }
+  for (const action of REQUIRED_REWIND_ACTIONS) {
+    for (const mode of ["preview", "confirm"]) {
+      if (
+        !records.some(
+          (record) =>
+            record.direction === "command" &&
+            record.command === "checkpoint-action" &&
+            record.action === action &&
+            record.mode === mode &&
+            record.turnId === "turn-2",
+        )
+      ) {
+        throw new Error(`fixture ledger does not prove ${action}/${mode}`);
+      }
+    }
+  }
+  return {
+    timelineReads,
+    actions: [...REQUIRED_REWIND_ACTIONS],
+    coverage: "partial",
+  };
+}
+
 function firstPluginArchive() {
   const distributions = path.join(PACKAGE_ROOT, "build", "distributions");
   if (!existsSync(distributions)) return null;
@@ -326,7 +379,7 @@ async function writeEvidence(options, result, startedAt, logRoot) {
   const pluginArchive = firstPluginArchive();
   return writeIdeJourneyEvidence({
     artifactDir: options.artifactDir,
-    journeyId: "jetbrains-chat-control-resume",
+    journeyId: "jetbrains-chat-control-resume-rewind",
     host: "jetbrains",
     hostVersion: options.ideVersion,
     cliVersion: readPackageVersion(
@@ -402,6 +455,7 @@ export async function runJourney(options) {
       logRoot,
       "ui-smoke",
     );
+    verifyRewindFixtureLedger(path.join(logRoot, "fake-cli-protocol.jsonl"));
     result = "passed";
   } catch (error) {
     journeyError = error;

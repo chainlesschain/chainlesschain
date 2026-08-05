@@ -1000,6 +1000,14 @@ final class ConversationView {
                     append("⚠ /rewind: timeline became stale in the panel; reopen it.\n");
                     return;
                 }
+                Object confirmationObject = preview.get("confirmationSubmission");
+                if (!(confirmationObject instanceof Map)) {
+                    append("⚠ /rewind preview failed: missing confirmation envelope\n");
+                    return;
+                }
+                @SuppressWarnings("unchecked")
+                final Map<String, Object> confirmation =
+                        (Map<String, Object>) confirmationObject;
                 AgentChatSession live = liveSession();
                 conv.session = null;
                 interruptRequested = null;
@@ -1007,7 +1015,7 @@ final class ConversationView {
                     if (live != null) live.stop();
                     String executedRaw = AgentChatSession.runCapture(
                             RewindCommands.buildTimelineActionArgs(
-                                    submission, false, true), cwd, 60000);
+                                    confirmation, false, true), cwd, 60000);
                     final Map<String, Object> executed =
                             RewindCommands.parseTimelineActionResult(executedRaw);
                     SwingUtilities.invokeLater(() -> finishTimelineAction(

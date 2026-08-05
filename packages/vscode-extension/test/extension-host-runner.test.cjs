@@ -1014,6 +1014,26 @@ test("raw DOM and protocol evidence must prove every control and restart step", 
       targetType: "iframe",
       targetUrl: `vscode-webview://chainlesschain/${phase}`,
     });
+    if (phase === "initial") {
+      cdpRecords.push({
+        phase,
+        status: "native-workbench-found",
+        targetType: "page",
+        targetUrl: "vscode-file://vscode-app/workbench.html",
+      });
+      for (const action of [
+        "restore-code",
+        "restore-conversation",
+        "restore-both",
+        "branch",
+      ]) {
+        cdpRecords.push({
+          phase,
+          step: `rewind-${action}`,
+          status: "passed",
+        });
+      }
+    }
     for (const step of steps) {
       cdpRecords.push({ phase, step, status: "passed" });
     }
@@ -1036,7 +1056,7 @@ test("raw DOM and protocol evidence must prove every control and restart step", 
     });
   }
   writeJsonLines(path.join(artifactDir, "cdp-journey.jsonl"), cdpRecords);
-  writeJsonLines(fixtureTracePath, [
+  const fixtureRecords = [
     { direction: "in", event: { type: "user", text: "journey:stream" } },
     { direction: "in", event: { type: "user", text: "journey:stream" } },
     { direction: "in", event: { type: "plan", action: "approve" } },
@@ -1049,7 +1069,29 @@ test("raw DOM and protocol evidence must prove every control and restart step", 
     { direction: "in", event: { type: "interrupt" } },
     { direction: "out", event: { type: "system", resumed_messages: 10 } },
     { direction: "in", event: { type: "user", text: "journey:resume" } },
-  ]);
+  ];
+  for (let index = 0; index < 4; index += 1) {
+    fixtureRecords.push({
+      direction: "command",
+      command: "checkpoint-timeline",
+    });
+  }
+  for (const action of [
+    "restore-code",
+    "restore-conversation",
+    "restore-both",
+    "branch",
+  ]) {
+    for (const mode of ["preview", "confirm"]) {
+      fixtureRecords.push({
+        direction: "command",
+        command: "checkpoint-action",
+        action,
+        mode,
+      });
+    }
+  }
+  writeJsonLines(fixtureTracePath, fixtureRecords);
 
   const evidence = assertJourneyArtifacts({
     artifactDir,
