@@ -242,8 +242,7 @@ final class IdeUiSmokeTest {
                 Locators.byXpath("//div[@visible='true' and @title="
                         + xpathString(title) + "]"), FIND_BUDGET);
         dialog.runJs(
-                "((javax.swing.text.JTextComponent)((java.awt.Window)component)"
-                        + ".getFocusOwner()).setText(" + jsString(text) + ")",
+                "component.getFocusOwner().setText(" + jsString(text) + ")",
                 true);
         ComponentFixture ok = robot.find(ComponentFixture.class,
                 Locators.byXpath("//div[@text='OK']"), FIND_BUDGET);
