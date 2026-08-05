@@ -1484,9 +1484,11 @@ export class MCPClient extends EventEmitter {
         socket.on("close", (code) => {
           const closeCode =
             Number.isInteger(code) && code >= 0 && code <= 65535 ? code : null;
-          const payloadError =
-            entry._webSocketPayloadError ||
-            (closeCode === 1009 ? recordPayloadFailure(1009) : null);
+          // Only a local ws payload error proves that this client rejected an
+          // inbound message over its host cap. A peer can send close 1009 when
+          // it rejected our outbound data, or for any private policy reason;
+          // the code alone does not establish direction or local limit breach.
+          const payloadError = entry._webSocketPayloadError;
           if (payloadError) {
             entry.state = ServerState.ERROR;
             rejectPending(payloadError);

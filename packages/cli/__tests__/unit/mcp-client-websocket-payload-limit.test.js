@@ -294,7 +294,7 @@ describe("MCPClient WebSocket host-owned payload limit", () => {
     10000,
   );
 
-  it("maps a remote close code 1009 without exposing its reason", async () => {
+  it("keeps an isolated peer 1009 direction-neutral and outcome-unknown", async () => {
     const fixture = await startPayloadServer({ closeWith1009: true });
     const client = new MCPClient();
     clients.add(client);
@@ -308,6 +308,11 @@ describe("MCPClient WebSocket host-owned payload limit", () => {
       maxPayloadBytes: 1024,
       requestTimeoutMs: 2000,
     });
+    let reconnectCalls = 0;
+    client.setReconnector("remote-1009", async () => {
+      reconnectCalls += 1;
+      return null;
+    });
 
     const error = await captureError(
       client.callTool("remote-1009", "explode", {}),
@@ -316,17 +321,26 @@ describe("MCPClient WebSocket host-owned payload limit", () => {
     await new Promise((resolve) => setImmediate(resolve));
 
     expect(error).toMatchObject({
-      code: "CC_MCP_WS_PAYLOAD_TOO_LARGE",
+      code: "CC_MCP_WS_CLOSED",
       closeCode: 1009,
-      limitBytes: 1024,
+      dispatched: true,
+      outcomeUnknown: true,
     });
-    expect(serverErrors).toHaveLength(1);
+    expect(error).not.toHaveProperty("limitBytes");
+    expect(error.message).not.toMatch(/host cap|payload/i);
+    expect(isLikelyConnectionError(error)).toBe(true);
+    expect(fixture.state.toolCalls).toBe(1);
+    expect(reconnectCalls).toBe(0);
+    expect(serverErrors).toHaveLength(0);
     expect(disconnected).toHaveLength(1);
     expect(disconnected[0]).toMatchObject({
       code: 1009,
-      reason: "payload too large",
-      errorCode: "CC_MCP_WS_PAYLOAD_TOO_LARGE",
-      limitBytes: 1024,
+      reason: "peer_closed",
+      errorCode: "CC_MCP_WS_CLOSED",
+    });
+    expect(disconnected[0]).not.toHaveProperty("limitBytes");
+    expect(client.servers.get("remote-1009")).toMatchObject({
+      state: ServerState.DISCONNECTED,
     });
     expect(
       [
