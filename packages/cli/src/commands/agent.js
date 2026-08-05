@@ -1254,9 +1254,9 @@ export function registerAgentCommand(program) {
         const resumeRequested =
           Boolean(options.continue) || options.resume !== undefined;
         if (resumeRequested && options.session) {
-          const { sessionExists } =
+          const { sessionHasPersistedEvidence } =
             await import("../harness/jsonl-session-store.js");
-          if (!sessionExists(options.session)) {
+          if (!sessionHasPersistedEvidence(options.session)) {
             process.stderr.write(
               `Note: no headless transcript for session "${options.session}" 鈥?` +
                 "starting fresh (headless resume reads JSONL sessions only).\n",

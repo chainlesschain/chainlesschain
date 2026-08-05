@@ -51,6 +51,7 @@ import {
   rebuildMessages,
   getJsonlSessionMetadata,
   resolveSessionId,
+  sessionHasPersistedEvidence,
   deleteJsonlSession,
   migrateLegacySessions,
   migrateLegacySessionsBatch,
@@ -614,12 +615,36 @@ export function registerSessionCommand(program) {
 
         // Try JSONL first
         const jsonlId = feature("JSONL_SESSION") ? resolveSessionId(id) : null;
+        if (
+          !jsonlId &&
+          feature("JSONL_SESSION") &&
+          sessionHasPersistedEvidence(id)
+        ) {
+          logger.error(
+            `Session ${id} has canonical persistence evidence but no readable transcript.`,
+          );
+          logger.error(
+            "Refusing legacy fallback. Inspect or explicitly delete the damaged JSONL session before reusing its id.",
+          );
+          process.exitCode = 1;
+          return;
+        }
         if (jsonlId) {
           // Tamper gate: a broken hash chain means the transcript was edited
           // outside the store — never silently rebuild it as trusted context.
           const { verifySession } =
             await import("../harness/jsonl-session-store.js");
           const trust = verifySession(jsonlId);
+          if (["missing", "conflict"].includes(trust.status)) {
+            logger.error(
+              `Session ${jsonlId} transcript is unavailable: ${trust.reason}`,
+            );
+            logger.error(
+              "Refusing to resume without canonical history. Inspect or explicitly delete the damaged session before reusing its id.",
+            );
+            process.exitCode = 1;
+            return;
+          }
           if (trust.status === "tampered") {
             if (!options.allowTampered) {
               logger.error(
@@ -712,6 +737,11 @@ export function registerSessionCommand(program) {
         const store = await import("../harness/jsonl-session-store.js");
         const sid =
           id === "last" ? store.getLastSessionId() : store.resolveSessionId(id);
+        if (!sid && id !== "last" && store.sessionHasPersistedEvidence(id)) {
+          throw new Error(
+            `Session ${id} has canonical persistence evidence but no readable transcript`,
+          );
+        }
         if (sid) {
           const { renderAgentSessionMarkdown } =
             await import("../lib/agent-session-export.js");
@@ -891,7 +921,8 @@ export function registerSessionCommand(program) {
     .action(async (id, options) => {
       let ctx = null;
       try {
-        const jsonlId = resolveSessionId(id);
+        const jsonlId =
+          resolveSessionId(id) || (sessionHasPersistedEvidence(id) ? id : null);
         let db = null;
         try {
           ctx = await bootstrap({ verbose: program.opts().verbose });
@@ -955,6 +986,11 @@ export function registerSessionCommand(program) {
         ).trim();
         if (!normalized) throw new Error("A non-empty title is required");
         const jsonlId = resolveSessionId(id);
+        if (!jsonlId && sessionHasPersistedEvidence(id)) {
+          throw new Error(
+            `Session ${id} has canonical persistence evidence but no readable transcript`,
+          );
+        }
         let result;
         if (jsonlId) {
           const { renameSession } =
@@ -1173,10 +1209,18 @@ export function registerSessionCommand(program) {
           }
         }
 
-        const anyTampered = (Array.isArray(result) ? result : [result]).some(
-          (item) => item.status === "tampered",
+        const hasVerificationFailure = (
+          Array.isArray(result) ? result : [result]
+        ).some((item) =>
+          [
+            "tampered",
+            "missing",
+            "conflict",
+            "not-found",
+            "invalid-id",
+          ].includes(item.status),
         );
-        if (anyTampered) process.exit(1);
+        if (hasVerificationFailure) process.exit(1);
       } catch (err) {
         logger.error(`Failed: ${err.message}`);
         process.exit(1);

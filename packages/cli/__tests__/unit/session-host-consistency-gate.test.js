@@ -172,7 +172,7 @@ describe("cli session-host consistency gate", () => {
       status: "passed",
       platform: process.platform,
       proofScope:
-        "host-adapter-conformance-plus-ws-request-claim-and-mcp-recovery-fencing",
+        "host-adapter-conformance-plus-ws-request-claim-mcp-recovery-and-missing-or-restored-conflict-fencing",
       scenarios: {
         verifiedHostAgreement: {
           pass: true,
@@ -264,6 +264,35 @@ describe("cli session-host consistency gate", () => {
           websocketRefusedBeforeResume: true,
           contentFreeFailureEvidence: true,
         },
+        missingTranscriptRefusal: {
+          pass: true,
+          errorCode: "CC_SESSION_HOST_SNAPSHOT_UNVERIFIED",
+          appendRefusedWithoutRecreation: true,
+          sessionStartRefusedWithoutRecreation: true,
+          survivingAnchorUnchanged: true,
+          replRefusedBeforeCommit: true,
+          headlessRefusedBeforeSideEffects: true,
+          streamRefusedBeforeSideEffects: true,
+          configWritePrevented: true,
+          backgroundRefused: true,
+          websocketRefusedBeforeResume: true,
+          contentFreeFailureEvidence: true,
+          tombstoneResumeRefusedBeforeSideEffects: true,
+          explicitDeleteThenRecreateVerified: true,
+        },
+        restoredTranscriptConflictRefusal: {
+          pass: true,
+          errorCode: "CC_SESSION_HOST_SNAPSHOT_UNVERIFIED",
+          parseableStaleJournalFenced: true,
+          replRefusedBeforeCommit: true,
+          continueRefusedBeforeSideEffects: true,
+          persistOnlyRefusedBeforeSideEffects: true,
+          streamRefusedBeforeSideEffects: true,
+          configWritePrevented: true,
+          backgroundRefused: true,
+          websocketRefusedBeforeResume: true,
+          contentFreeFailureEvidence: true,
+        },
       },
     });
     expect(result.exactSha).toMatch(/^[0-9a-f]{40,64}$/);
@@ -278,6 +307,7 @@ describe("cli session-host consistency gate", () => {
         expect.stringMatching(/bounded-resume-IO/i),
         expect.stringMatching(/1GB cold-process.*RSS/i),
         expect.stringMatching(/O\(N\).*writer lock/i),
+        expect.stringMatching(/meta\/tombstone witness.*loss/i),
       ]),
     );
     for (const marker of [
@@ -298,10 +328,16 @@ describe("cli session-host consistency gate", () => {
       "WS_CLAIM_CRASH_",
       "WS_MODEL_TAMPER_",
       "SESSION_HOST_STREAM_TAMPER_INPUT",
+      "SESSION_HOST_MISSING_ORIGINAL",
+      "SESSION_HOST_MISSING_STALE",
+      "SESSION_HOST_MISSING_STREAM_INPUT",
+      "SESSION_HOST_CONFLICT_ORIGINAL",
+      "SESSION_HOST_CONFLICT_STALE",
+      "SESSION_HOST_CONFLICT_STREAM_INPUT",
     ]) {
       expect(raw).not.toContain(marker);
     }
-  }, 120_000);
+  }, 180_000);
 
   it("fails before host scenarios when exact-SHA provenance mismatches", async () => {
     const output = join(temporaryDirectory(), "provenance-failure.json");

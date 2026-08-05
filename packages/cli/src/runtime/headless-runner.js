@@ -53,6 +53,7 @@ import {
   findLatestEvent as jsonlFindLatestEvent,
   rebuildMessages as jsonlRebuildMessages,
   sessionExists as jsonlSessionExists,
+  sessionHasPersistedEvidence as jsonlSessionHasPersistedEvidence,
   getLastSessionId as jsonlGetLastSessionId,
   verifySession as jsonlVerifySession,
 } from "../harness/jsonl-session-store.js";
@@ -391,6 +392,7 @@ async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
   if (!deps.writeOut && !deps.writeErr) installPipeSafety();
 
   const hasInjectedSessionStore =
+    typeof deps.sessionHasPersistedEvidence === "function" ||
     typeof deps.sessionExists === "function" ||
     typeof deps.rebuildMessages === "function" ||
     typeof deps.appendEvent === "function" ||
@@ -435,27 +437,36 @@ async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
   // settings/plugin loading, bootstrap, model access, hooks, MCP and tools.
   const canReadCanonicalResume =
     !hasInjectedSessionStore || typeof deps.readVerifiedEvents === "function";
-  const canonicalResume =
-    resumeId && canReadCanonicalResume
-      ? readSessionHostResumeState(resumeId, {
+  const canonicalAdmissionId = resumeId || (persist ? sessionId : null);
+  const canonicalAdmission =
+    canonicalAdmissionId && canReadCanonicalResume
+      ? readSessionHostResumeState(canonicalAdmissionId, {
+          sessionHasPersistedEvidence:
+            deps.sessionHasPersistedEvidence ||
+            (!hasInjectedSessionStore
+              ? jsonlSessionHasPersistedEvidence
+              : undefined),
           sessionExists: deps.sessionExists || jsonlSessionExists,
           readVerifiedEvents:
             deps.readVerifiedEvents || jsonlReadVerifiedEvents,
         })
       : null;
-  if (canonicalResume && !canonicalResume.snapshot.verified) {
+  if (canonicalAdmission && !canonicalAdmission.snapshot.verified) {
     const message =
       "CC_SESSION_HOST_SNAPSHOT_UNVERIFIED: canonical JSONL session is not " +
-      "fully verified; resume was refused";
+      "fully verified; resume/write admission was refused";
     emitHeadlessError(message);
     writeErr(`${message}\n`);
     return {
       exitCode: 1,
       result: message,
       isError: true,
-      sessionSnapshot: canonicalResume.snapshot,
+      sessionSnapshot: canonicalAdmission.snapshot,
     };
   }
+  // A persist-only target must pass the same canonical admission boundary, but
+  // it does not opt into replaying the target's prior conversation.
+  const canonicalResume = resumeId ? canonicalAdmission : null;
 
   // `let` (not const): a custom-command macro's `model:` frontmatter may
   // override it below (when the user passed no explicit --model), mirroring

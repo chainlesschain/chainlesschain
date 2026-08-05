@@ -7,6 +7,7 @@ import {
   getJsonlSessionMetadata,
   rebuildMessages,
   resolveSessionId,
+  sessionHasPersistedEvidence,
 } from "../harness/jsonl-session-store.js";
 
 export function registerSessionShowSubcommand(session, program) {
@@ -23,6 +24,17 @@ export function registerSessionShowSubcommand(session, program) {
         let sess = null;
 
         const jsonlId = feature("JSONL_SESSION") ? resolveSessionId(id) : null;
+        if (
+          !jsonlId &&
+          feature("JSONL_SESSION") &&
+          sessionHasPersistedEvidence(id)
+        ) {
+          logger.error(
+            `Session ${id} has canonical persistence evidence but no readable transcript.`,
+          );
+          process.exitCode = 1;
+          return;
+        }
         if (jsonlId) {
           const metadata = getJsonlSessionMetadata(jsonlId);
           const messages = rebuildMessages(jsonlId);

@@ -604,22 +604,24 @@ async function transcriptSection(_opts, _deps2) {
     const { verifyAllSessions } =
       await import("../harness/jsonl-session-store.js");
     const results = verifyAllSessions({ limit: 200 });
-    const tampered = results.filter((r) => r.status === "tampered");
-    if (tampered.length > 0) {
+    const integrityFailures = results.filter((result) =>
+      ["tampered", "missing", "conflict"].includes(result.status),
+    );
+    if (integrityFailures.length > 0) {
       checks.push(
         check(
           "transcript-tamper",
           "Transcript integrity",
           CHECK_LEVELS.ERR,
-          `${tampered.length} tampered transcript(s): ${tampered
+          `${integrityFailures.length} transcript integrity failure(s): ${integrityFailures
             .slice(0, 5)
-            .map((t) => t.sessionId)
-            .join(", ")}${tampered.length > 5 ? ", …" : ""}`,
+            .map((result) => `${result.sessionId} [${result.status}]`)
+            .join(", ")}${integrityFailures.length > 5 ? ", …" : ""}`,
           {
             id: "transcript-tamper",
             safe: false,
             description: "Inspect the flagged transcripts",
-            command: `cc session verify ${tampered[0].sessionId}`,
+            command: `cc session verify ${integrityFailures[0].sessionId}`,
           },
         ),
       );
@@ -629,7 +631,7 @@ async function transcriptSection(_opts, _deps2) {
           "transcript-tamper",
           "Transcript integrity",
           CHECK_LEVELS.OK,
-          `${results.length} session(s) checked, no tamper`,
+          `${results.length} session(s) checked, no integrity failures`,
         ),
       );
     }

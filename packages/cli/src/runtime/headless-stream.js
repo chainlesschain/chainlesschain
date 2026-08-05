@@ -92,6 +92,7 @@ import {
   readVerifiedProjection as jsonlReadVerifiedProjection,
   findLatestEvent as jsonlFindLatestEvent,
   sessionExists as jsonlSessionExists,
+  sessionHasPersistedEvidence as jsonlSessionHasPersistedEvidence,
 } from "../harness/jsonl-session-store.js";
 import {
   isVerifiedSessionHostSnapshot,
@@ -1081,6 +1082,7 @@ async function runAgentHeadlessStreamInWorkspace(options = {}, deps = {}) {
   const emit = streamCoalescer.emit;
 
   const hasInjectedSessionStore =
+    typeof deps.sessionHasPersistedEvidence === "function" ||
     typeof deps.sessionExists === "function" ||
     typeof deps.rebuildMessages === "function" ||
     typeof deps.appendEvent === "function" ||
@@ -1118,7 +1120,10 @@ async function runAgentHeadlessStreamInWorkspace(options = {}, deps = {}) {
           ? jsonlReadVerifiedProjection
           : null;
     const resumeDependencies = {
-      sessionExists: deps.sessionExists || jsonlSessionExists,
+      sessionExists:
+        deps.sessionHasPersistedEvidence ||
+        deps.sessionExists ||
+        jsonlSessionHasPersistedEvidence,
       readVerifiedEvents: (...args) =>
         requireSynchronousRecoveryResult(
           readVerifiedEvents(...args),

@@ -1144,6 +1144,57 @@ describe("headless-runner — session resume + persistence", () => {
     expect(store.events.assistant).toHaveLength(0);
   });
 
+  it.each(["missing", "tombstoned", "conflict"])(
+    "refuses a persist-only %s canonical target before host side effects",
+    async (status) => {
+      const chatFn = replyText("must not run");
+      const { deps, out } = makeDeps(chatFn);
+      deps.sessionHasPersistedEvidence = () => true;
+      deps.sessionExists = () => false;
+      deps.readVerifiedEvents = () => {
+        const error = new Error(`canonical target is ${status}`);
+        error.code = "SESSION_TRANSCRIPT_UNVERIFIED";
+        throw error;
+      };
+      deps.bootstrap = vi.fn(async () => ({ db: null }));
+      deps.executeHooksV2Event = vi.fn(async () => ({
+        success: true,
+        blocked: false,
+        decision: "continue",
+        results: [],
+      }));
+      deps.expandFileRefs = vi.fn(async (prompt) => ({
+        prompt,
+        warnings: [],
+      }));
+
+      const result = await runAgentHeadless(
+        {
+          prompt: "/config llm.model=must-not-write",
+          outputFormat: "json",
+          sessionId: `persist-only-${status}`,
+          persistSession: true,
+        },
+        deps,
+      );
+
+      expect(result).toMatchObject({
+        exitCode: 1,
+        isError: true,
+        sessionSnapshot: { verified: false },
+      });
+      expect(deps.bootstrap).not.toHaveBeenCalled();
+      expect(deps.executeHooksV2Event).not.toHaveBeenCalled();
+      expect(deps.expandFileRefs).not.toHaveBeenCalled();
+      expect(chatFn).not.toHaveBeenCalled();
+      expect(JSON.parse(out.join(""))).toMatchObject({
+        type: "result",
+        subtype: "error",
+        is_error: true,
+      });
+    },
+  );
+
   it("reports resumed_from + history_messages in the init envelope", async () => {
     const store = makeStore({
       "sess-A": [{ role: "user", content: "q" }],

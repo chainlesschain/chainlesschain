@@ -153,4 +153,50 @@ describe("session-tail", () => {
     expect(initialOffset("s5", { fromStart: true })).toBe(0);
     expect(initialOffset("s5")).toBeGreaterThan(0);
   });
+
+  it("refuses missing, tombstoned, and restored-conflict transcripts", async () => {
+    const store = await import("../../src/harness/jsonl-session-store.js");
+    const { followSession, initialOffset } =
+      await import("../../src/lib/session-tail.js");
+    const id = store.startSession("tail-damaged", { title: "damaged" });
+    const transcript = store.sessionPath(id);
+    const restored = fs.readFileSync(transcript, "utf8");
+
+    fs.rmSync(transcript, { force: true });
+    expect(() => initialOffset(id, { fromStart: true })).toThrowError(
+      expect.objectContaining({ code: "SESSION_TRANSCRIPT_UNVERIFIED" }),
+    );
+    await expect(
+      drain(followSession(id, { fromStart: true, once: true })),
+    ).rejects.toMatchObject({ code: "SESSION_TRANSCRIPT_UNVERIFIED" });
+
+    expect(store.deleteJsonlSession(id)).toBe(true);
+    await expect(
+      drain(followSession(id, { fromStart: true, once: true })),
+    ).rejects.toMatchObject({ code: "SESSION_DELETED" });
+
+    fs.writeFileSync(transcript, restored, "utf8");
+    await expect(
+      drain(followSession(id, { fromStart: true, once: true })),
+    ).rejects.toMatchObject({ code: "SESSION_TRANSCRIPT_UNVERIFIED" });
+  });
+
+  it("stops a live follower when its transcript becomes a restored conflict", async () => {
+    const store = await import("../../src/harness/jsonl-session-store.js");
+    const { followSession } = await import("../../src/lib/session-tail.js");
+    const id = store.startSession("tail-live-conflict", { title: "live" });
+    const transcript = store.sessionPath(id);
+    const restored = fs.readFileSync(transcript, "utf8");
+    const iter = followSession(id, { pollMs: 10 });
+    const pending = iter.next();
+
+    setTimeout(() => {
+      store.deleteJsonlSession(id);
+      fs.writeFileSync(transcript, restored, "utf8");
+    }, 25);
+
+    await expect(pending).rejects.toMatchObject({
+      code: "SESSION_TRANSCRIPT_UNVERIFIED",
+    });
+  });
 });

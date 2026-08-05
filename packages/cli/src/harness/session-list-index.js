@@ -11,6 +11,7 @@ import {
   appendFileSync,
   existsSync,
   readFileSync,
+  rmSync,
   writeFileSync,
 } from "node:fs";
 import { join } from "node:path";
@@ -19,6 +20,7 @@ import { ensurePrivateFile } from "../lib/secure-fs.js";
 
 export const SESSION_INDEX_SCHEMA = 2;
 export const SESSION_INDEX_FILE = ".sessions-index-v2.ndjson";
+export const SESSION_TOMBSTONE_MARKER_SUFFIX = ".tombstone";
 
 // Used only by an opted-in child in the independent session-scale crash gate.
 // Keeping the injection immediately around the production sidecar/journal
@@ -39,6 +41,10 @@ export function sessionMetaPath(dir, sessionId) {
 
 export function sessionIndexPath(dir) {
   return join(dir, SESSION_INDEX_FILE);
+}
+
+export function sessionTombstoneMarkerPath(dir, sessionId) {
+  return join(dir, `${sessionId}${SESSION_TOMBSTONE_MARKER_SUFFIX}`);
 }
 
 export function emptySessionMeta(sessionId) {
@@ -108,6 +114,18 @@ export function applyEventToSessionMeta(meta, event, lastHash) {
 
 function writeMetaSnapshot(dir, meta) {
   const filePath = sessionMetaPath(dir, meta.id);
+  const tombstoneMarker = sessionTombstoneMarkerPath(dir, meta.id);
+  // The marker is the durable per-session namespace witness that makes a
+  // tombstoned identity discoverable without reading every live sidecar on
+  // `--continue`; the meta snapshot remains the content/status authority.
+  // Publish the marker before the tombstone snapshot, and fail the delete if
+  // that publication fails. Remove it only after a live generation snapshot
+  // commits, so crashes can cause an extra candidate read but never hide a
+  // successfully committed tombstone.
+  if (meta.deleted === true) {
+    writeFileSync(tombstoneMarker, "", { encoding: "utf8", mode: 0o600 });
+    ensurePrivateFile(tombstoneMarker);
+  }
   // The owning transcript lock serializes this derived snapshot. It need not
   // use a second temp+rename protocol: interruption can only corrupt a cache,
   // which readSessionMeta rejects and rebuildSessionMeta regenerates.
@@ -116,6 +134,7 @@ function writeMetaSnapshot(dir, meta) {
     mode: 0o600,
   });
   ensurePrivateFile(filePath);
+  if (meta.deleted !== true) rmSync(tombstoneMarker, { force: true });
 }
 
 function appendActivity(dir, meta) {
@@ -135,9 +154,20 @@ function appendActivity(dir, meta) {
 }
 
 /** Called while the owning transcript lock is held. */
-export function recordSessionEvent(dir, sessionId, event, lastHash) {
-  const current =
-    readSessionMeta(dir, sessionId) || emptySessionMeta(sessionId);
+export function recordSessionEvent(
+  dir,
+  sessionId,
+  event,
+  lastHash,
+  { resetGeneration = false } = {},
+) {
+  const existing = readSessionMeta(dir, sessionId);
+  // Only the transcript writer may authorize a new generation after checking
+  // the tombstone and physical file under its lock. The index cannot infer
+  // that authority from an attacker-controlled genesis-shaped event alone.
+  const current = resetGeneration
+    ? emptySessionMeta(sessionId)
+    : existing || emptySessionMeta(sessionId);
   current.id = sessionId;
   const next = applyEventToSessionMeta(current, event, lastHash);
   writeMetaSnapshot(dir, next);
@@ -224,13 +254,29 @@ export function publicSessionMeta(meta) {
  */
 export function listIndexedSessions(
   dir,
-  { limit = 20, hasSession = () => true } = {},
+  {
+    limit = 20,
+    hasSession = () => true,
+    includeDeleted = () => false,
+    onScanComplete = null,
+  } = {},
 ) {
   const filePath = sessionIndexPath(dir);
-  if (!existsSync(filePath)) return [];
+  if (!existsSync(filePath)) {
+    if (typeof onScanComplete === "function") {
+      onScanComplete({
+        exhausted: true,
+        seenSessionIds: new Set(),
+        latestBySessionId: new Map(),
+      });
+    }
+    return [];
+  }
   const wanted = Math.max(0, Number(limit) || 0);
   const seen = new Set();
+  const latestBySessionId = new Map();
   const result = [];
+  let exhausted = true;
   for (const { line } of iterateFileLinesReverseSync(filePath)) {
     let meta;
     try {
@@ -246,9 +292,21 @@ export function listIndexedSessions(
       continue;
     }
     seen.add(meta.id);
-    if (meta.deleted || !hasSession(meta.id)) continue;
+    latestBySessionId.set(meta.id, meta);
+    if (
+      (meta.deleted && !includeDeleted(meta.id, meta)) ||
+      !hasSession(meta.id)
+    ) {
+      continue;
+    }
     result.push(publicSessionMeta(meta));
-    if (wanted > 0 && result.length >= wanted) break;
+    if (wanted > 0 && result.length >= wanted) {
+      exhausted = false;
+      break;
+    }
+  }
+  if (typeof onScanComplete === "function") {
+    onScanComplete({ exhausted, seenSessionIds: seen, latestBySessionId });
   }
   return result;
 }

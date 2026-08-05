@@ -8,6 +8,8 @@ import {
 import { _deps as registryDeps } from "../../src/lib/lsp/lsp-server-registry.js";
 import { getConfigPath, getHomeDir } from "../../src/lib/paths.js";
 import { join } from "node:path";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 
 /** Dir-agnostic fake fs deps: nothing exists except what the test opts into. */
 function fakeDeps(overrides = {}) {
@@ -48,6 +50,38 @@ describe("doctor-checkup", () => {
       for (const c of s.checks) {
         expect(Object.values(CHECK_LEVELS)).toContain(c.level);
       }
+    }
+  });
+
+  it("reports missing transcripts and restored tombstone conflicts as integrity errors", async () => {
+    const previousHome = process.env.CHAINLESSCHAIN_HOME;
+    const home = mkdtempSync(join(tmpdir(), "cc-doctor-transcripts-"));
+    process.env.CHAINLESSCHAIN_HOME = home;
+    try {
+      const store = await import("../../src/harness/jsonl-session-store.js");
+      const missingId = store.startSession("doctor-missing", {
+        title: "missing",
+      });
+      rmSync(store.sessionPath(missingId), { force: true });
+
+      const conflictId = store.startSession("doctor-conflict", {
+        title: "conflict",
+      });
+      const restored = readFileSync(store.sessionPath(conflictId), "utf8");
+      expect(store.deleteJsonlSession(conflictId)).toBe(true);
+      writeFileSync(store.sessionPath(conflictId), restored, "utf8");
+
+      const sections = await collectCheckupSections({ deps: fakeDeps() });
+      const transcriptCheck = sections
+        .find((section) => section.id === "transcripts")
+        .checks.find((entry) => entry.id === "transcript-tamper");
+      expect(transcriptCheck.level).toBe(CHECK_LEVELS.ERR);
+      expect(transcriptCheck.detail).toContain(`${missingId} [missing]`);
+      expect(transcriptCheck.detail).toContain(`${conflictId} [conflict]`);
+    } finally {
+      if (previousHome === undefined) delete process.env.CHAINLESSCHAIN_HOME;
+      else process.env.CHAINLESSCHAIN_HOME = previousHome;
+      rmSync(home, { recursive: true, force: true });
     }
   });
 

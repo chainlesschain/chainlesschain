@@ -14,7 +14,7 @@ import {
   projectWsTurnMessages,
   readVerifiedEvents as storeReadVerifiedEvents,
   readVerifiedProjection as storeReadVerifiedProjection,
-  sessionExists as storeSessionExists,
+  sessionHasPersistedEvidence as storeSessionHasPersistedEvidence,
 } from "../harness/jsonl-session-store.js";
 import {
   createMcpLedgerEventReducer,
@@ -344,12 +344,16 @@ function createStreamingSessionHostProjection(sessionId) {
 /**
  * Read one real JSONL session for a host resume/attach boundary.
  *
- * `null` means no JSONL session exists and callers may use their legacy store.
- * A present but damaged/unanchored transcript returns a fail-closed snapshot
- * and no raw messages, so a host cannot silently fall back to stale history.
+ * `null` means no canonical JSONL evidence exists and callers may use their
+ * legacy store. A tombstoned, missing, damaged, or unanchored transcript
+ * returns a fail-closed snapshot and no raw messages, so a host cannot silently
+ * fall back to stale history or implicitly recreate a deleted generation.
  */
 export function readSessionHostResumeState(sessionId, dependencies = {}) {
-  const exists = dependencies.sessionExists || storeSessionExists;
+  const exists =
+    dependencies.sessionHasPersistedEvidence ||
+    dependencies.sessionExists ||
+    storeSessionHasPersistedEvidence;
   const hasCustomLegacyReader =
     typeof dependencies.readVerifiedEvents === "function" &&
     dependencies.readVerifiedEvents !== storeReadVerifiedEvents;
