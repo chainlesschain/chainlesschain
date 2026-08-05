@@ -693,6 +693,8 @@ async function findWorkbenchWindow(
   port,
   timeoutMs = DEFAULT_TIMEOUT_MS,
   signal = null,
+  getBrowserWebSocketUrl = null,
+  suppliedBrowserClient = null,
 ) {
   const deadline = Date.now() + timeoutMs;
   let lastTargets = [];
@@ -700,7 +702,14 @@ async function findWorkbenchWindow(
   while (Date.now() < deadline) {
     throwIfAborted(signal);
     try {
-      const targets = await listTargets(port, signal);
+      const announcedBrowserUrl =
+        typeof getBrowserWebSocketUrl === "function"
+          ? getBrowserWebSocketUrl()
+          : null;
+      const targets =
+        announcedBrowserUrl || suppliedBrowserClient
+          ? []
+          : await listTargets(port, signal);
       lastTargets = targets.map((target) => ({
         type: target.type,
         title: target.title,
@@ -719,6 +728,67 @@ async function findWorkbenchWindow(
           lastError = error;
         }
         client?.close();
+      }
+
+      // Electron 39+ can expose the workbench only through the browser-level
+      // Target domain. Attach to that page exactly as the Webview discovery
+      // path above attaches to OOPIFs; do not infer readiness from its URL.
+      const browserUrl = suppliedBrowserClient
+        ? "pipe://browser"
+        : announcedBrowserUrl || (await browserWebSocketUrl(port, signal));
+      const browserClient =
+        suppliedBrowserClient || (await connectCdpWebSocket(browserUrl));
+      const ownsBrowserClient = !suppliedBrowserClient;
+      let keepBrowserClient = false;
+      try {
+        const discovered = await browserClient.send("Target.getTargets");
+        const targetInfos = Array.isArray(discovered.targetInfos)
+          ? discovered.targetInfos
+          : [];
+        lastTargets = [
+          ...lastTargets,
+          ...targetInfos.map((info) => ({
+            type: info.type,
+            title: info.title,
+            url: info.url,
+          })),
+        ];
+        for (const info of targetInfos.filter(
+          (candidate) => candidate.type === "page",
+        )) {
+          let sessionId = null;
+          try {
+            const attached = await browserClient.send("Target.attachToTarget", {
+              targetId: info.targetId,
+              flatten: true,
+            });
+            sessionId = attached.sessionId;
+            const workbenchClient = browserClient.session(sessionId);
+            const found = await workbenchClient.evaluate(
+              "Boolean(document.querySelector('.monaco-workbench') && document.querySelector('.quick-input-widget'))",
+            );
+            if (found) {
+              keepBrowserClient = true;
+              return {
+                client: workbenchClient,
+                target: {
+                  ...info,
+                  id: info.targetId,
+                  webSocketDebuggerUrl: browserUrl,
+                },
+              };
+            }
+          } catch (error) {
+            lastError = error;
+          }
+          if (sessionId) {
+            await browserClient
+              .send("Target.detachFromTarget", { sessionId })
+              .catch(() => {});
+          }
+        }
+      } finally {
+        if (!keepBrowserClient && ownsBrowserClient) browserClient.close();
       }
     } catch (error) {
       lastError = error;
@@ -1408,7 +1478,12 @@ async function runCdpHostJourney(options) {
       targetUrl: located.target.url,
     });
     if (phase === "initial" && !browserClient) {
-      const workbench = await findWorkbenchWindow(port, timeoutMs, signal);
+      const workbench = await findWorkbenchWindow(
+        port,
+        timeoutMs,
+        signal,
+        getBrowserWebSocketUrl,
+      );
       workbenchClient = workbench.client;
       appendTrace(tracePath, {
         phase,

@@ -38,6 +38,7 @@ const {
   buildCdpWebSocketOptions,
   createCdpPipeSocket,
   createFixtureCli,
+  findWorkbenchWindow,
   isInspectableBrowserTarget,
   readJourneyResult,
   writeJsonSignal,
@@ -819,6 +820,55 @@ test("browser discovery inspects renderable targets and excludes workers", () =>
   for (const type of ["browser", "service_worker", "shared_worker", null]) {
     assert.equal(isInspectableBrowserTarget({ type }), false);
   }
+});
+
+test("workbench discovery attaches through the browser Target domain", async () => {
+  const calls = [];
+  const workbenchClient = {
+    evaluate: async () => true,
+  };
+  const browserClient = {
+    send: async (method, params) => {
+      calls.push({ method, params });
+      if (method === "Target.getTargets") {
+        return {
+          targetInfos: [
+            {
+              targetId: "workbench-page",
+              type: "page",
+              title: "Extension Development Host",
+              url: "vscode-file://vscode-app/out/vs/code/electron-browser/workbench/workbench.html",
+            },
+          ],
+        };
+      }
+      if (method === "Target.attachToTarget") {
+        return { sessionId: "workbench-session" };
+      }
+      throw new Error(`unexpected CDP method: ${method}`);
+    },
+    session: (sessionId) => {
+      assert.equal(sessionId, "workbench-session");
+      return workbenchClient;
+    },
+  };
+
+  const located = await findWorkbenchWindow(
+    0,
+    1_000,
+    null,
+    null,
+    browserClient,
+  );
+  assert.equal(located.client, workbenchClient);
+  assert.equal(located.target.targetId, "workbench-page");
+  assert.deepEqual(calls, [
+    { method: "Target.getTargets", params: undefined },
+    {
+      method: "Target.attachToTarget",
+      params: { targetId: "workbench-page", flatten: true },
+    },
+  ]);
 });
 
 test("CDP child sessions preserve flattened target identity", async () => {
