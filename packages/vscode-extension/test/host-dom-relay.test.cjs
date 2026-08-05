@@ -9,6 +9,7 @@ const { afterEach, test } = require("node:test");
 const {
   buildChatHtml,
   CHAT_UI_PROTOCOL_VERSION,
+  migrateBootstrapLastSent,
 } = require("../src/chat/chat-html");
 const { ChatViewProvider } = require("../src/chat/chat-view");
 const {
@@ -78,6 +79,20 @@ test("chat HTML keeps the relay inert without a valid launch token", () => {
   for (const [, source] of scripts) {
     assert.doesNotThrow(() => new vm.Script(source));
   }
+});
+
+test("first tab activation preserves a bootstrap prompt for retry", () => {
+  const bootstrap = { _: "journey:stream" };
+  assert.equal(migrateBootstrapLastSent(bootstrap, null, "tab-1"), true);
+  assert.deepEqual(bootstrap, { "tab-1": "journey:stream" });
+
+  const established = { _: "stale", "tab-1": "current" };
+  assert.equal(migrateBootstrapLastSent(established, "tab-1", "tab-2"), false);
+  assert.deepEqual(established, { _: "stale", "tab-1": "current" });
+
+  const alreadyOwned = { _: "bootstrap", "tab-1": "newer" };
+  assert.equal(migrateBootstrapLastSent(alreadyOwned, null, "tab-1"), true);
+  assert.deepEqual(alreadyOwned, { "tab-1": "newer" });
 });
 
 test("ChatViewProvider correlates a token-authenticated DOM response", async () => {
