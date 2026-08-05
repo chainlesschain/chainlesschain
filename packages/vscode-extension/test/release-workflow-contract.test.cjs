@@ -75,7 +75,8 @@ test("one immutable VSIX candidate gates every release host and publisher", () =
     packageJob,
     /vsix-release-artifact\.mjs create\s+chainlesschain-ide\.vsix manifest\.json/u,
   );
-  assert.match(packageJob, /name: chainlesschain-ide-vscode-candidate/u);
+  assert.match(packageJob, /name: chainlesschain-ide-vscode-candidate\s/u);
+  assert.match(packageJob, /overwrite: true/u);
   assert.match(packageJob, /packages\/vscode-extension\/manifest\.json/u);
   assert.match(
     releaseJob,
@@ -89,7 +90,7 @@ test("one immutable VSIX candidate gates every release host and publisher", () =
   ]) {
     assert.match(
       job,
-      /uses: actions\/download-artifact@v6[\s\S]*?name: chainlesschain-ide-vscode-candidate[\s\S]*?path: packages\/vscode-extension/u,
+      /uses: actions\/download-artifact@v6[\s\S]*?name: chainlesschain-ide-vscode-candidate\s+[\s\S]*?path: packages\/vscode-extension/u,
       `${name} must download the immutable candidate from this workflow run`,
     );
     assert.match(
@@ -113,6 +114,18 @@ test("one immutable VSIX candidate gates every release host and publisher", () =
   assert.match(
     releaseJob,
     /Verify immutable candidate manifest before publishing[\s\S]*?Publish to Open VSX/u,
+  );
+  assert.match(
+    windowsJob,
+    /name: vscode-windows-host-evidence-\$\{\{ github\.run_attempt \}\}/u,
+  );
+  assert.match(
+    macosJob,
+    /name: vscode-macos-host-evidence-\$\{\{ github\.run_attempt \}\}/u,
+  );
+  assert.match(
+    releaseJob,
+    /name: vscode-linux-host-evidence-\$\{\{ github\.run_attempt \}\}/u,
   );
 });
 
@@ -163,6 +176,14 @@ test("IDE release tags are isolated and manual Marketplace backfill is tag-bound
       "JetBrains jobs must skip manual VS Code Marketplace backfills",
     );
   }
+  assert.match(
+    jetbrainsHosts,
+    /name: jetbrains-\$\{\{ runner\.os \}\}-\$\{\{ matrix\.ide\.version \}\}-host-evidence-\$\{\{ github\.run_attempt \}\}/u,
+  );
+  assert.match(
+    jetbrainsRelease,
+    /name: chainlesschain-ide-jetbrains-\$\{\{ github\.run_attempt \}\}/u,
+  );
   assert.match(
     jetbrainsRelease,
     /github\.event_name == 'push' &&\s+startsWith\(github\.ref, 'refs\/tags\/ide-jetbrains-v'\)/u,
