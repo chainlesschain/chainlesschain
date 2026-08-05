@@ -2165,7 +2165,7 @@ async function runAgentHeadlessStreamInWorkspace(options = {}, deps = {}) {
     });
   }
   if (mcp?.mcpClient?.setElicitationHandler && interactiveQuestions) {
-    mcp.mcpClient.setElicitationHandler(async (request) => {
+    const elicitationHandler = async (request) => {
       const hookContext = {
         schema_version: 1,
         server: request.server || null,
@@ -2223,6 +2223,9 @@ async function runAgentHeadlessStreamInWorkspace(options = {}, deps = {}) {
         });
         throw error;
       }
+    };
+    mcp.mcpClient.setElicitationHandler(elicitationHandler, {
+      signal: options.signal || null,
     });
   }
 

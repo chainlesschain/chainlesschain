@@ -85,6 +85,11 @@ const MCP_HTTP_DISCARD_TIMEOUT_MS = 30000;
 // the peer's computation/header wait, but it must not let a byte-at-a-time body
 // retain the request for years. Server config can only tighten this ceiling.
 const MCP_HTTP_RESPONSE_READ_TIMEOUT_MS = 30000;
+// A background SSE connection may stay open indefinitely, but one individual
+// event must not retain its parser state forever by sending a byte at a time.
+// Positive requestTimeoutMs values may tighten this host ceiling; zero,
+// longRunning, invalid, and oversized values cannot disable or raise it.
+const MCP_SSE_EVENT_TIMEOUT_MS = 30000;
 const WEBSOCKET_CONNECT_TIMEOUT_MS = 10000;
 const WEBSOCKET_MAX_PAYLOAD_BYTES = 16 * 1024 * 1024;
 
@@ -526,6 +531,15 @@ function mcpRequestAbortedError(serverName, entry, dispatched) {
   );
 }
 
+function mcpSseEventTimeoutError(timeoutMs) {
+  const error = new Error(
+    `MCP HTTP message stream event exceeded the ${timeoutMs}ms host deadline`,
+  );
+  error.code = "CC_MCP_SSE_EVENT_TIMEOUT";
+  error.timeoutMs = timeoutMs;
+  return error;
+}
+
 function mcpHttpResponseTimeoutError(
   serverName,
   entry,
@@ -568,6 +582,7 @@ const MCP_NON_RETRYABLE_PROTOCOL_ERROR_CODES = new Set([
   "CC_MCP_HTTP_RESPONSE_STREAM_REQUIRED",
   "CC_MCP_HTTP_RESPONSE_TIMEOUT",
   "CC_MCP_HTTP_DISCARD_TIMEOUT",
+  "CC_MCP_SSE_EVENT_TIMEOUT",
   "CC_MCP_STDIO_FRAME_TOO_LARGE",
   "CC_MCP_STDIO_MALFORMED_BUDGET_EXCEEDED",
   "CC_MCP_STDIO_STDERR_TOO_LARGE",
@@ -687,6 +702,8 @@ export class MCPClient extends EventEmitter {
         ? options.elicitationHandler
         : null;
     this._elicitationHandlers = new Map();
+    this._elicitationHandlerAbortCleanup = null;
+    this._elicitationHandlerAbortCleanups = new Map();
     this._elicitationContext = new AsyncLocalStorage();
     this._elicitationTimeoutMs =
       Number(options.elicitationTimeoutMs) > 0
@@ -711,24 +728,96 @@ export class MCPClient extends EventEmitter {
       : null;
   }
 
-  /** Install or clear the host-side MCP elicitation resolver. */
+  /**
+   * Install or clear the host-side MCP elicitation resolver. An optional
+   * caller signal owns that route and retires the background HTTP/SSE channel
+   * once no resolver remains.
+   */
   setElicitationHandler(handler, options = {}) {
     const sessionId = options.sessionId;
+    const callerSignal = options.signal || null;
+    const install = typeof handler === "function" && !callerSignal?.aborted;
     if (sessionId != null && sessionId !== "") {
       const key = String(sessionId);
-      if (typeof handler === "function")
-        this._elicitationHandlers.set(key, handler);
+      try {
+        this._elicitationHandlerAbortCleanups.get(key)?.();
+      } catch {
+        // Best-effort cleanup for non-native AbortSignal adapters.
+      }
+      this._elicitationHandlerAbortCleanups.delete(key);
+      if (install) this._elicitationHandlers.set(key, handler);
       else this._elicitationHandlers.delete(key);
     } else {
-      this._elicitationHandler = typeof handler === "function" ? handler : null;
+      try {
+        this._elicitationHandlerAbortCleanup?.();
+      } catch {
+        // Best-effort cleanup for non-native AbortSignal adapters.
+      }
+      this._elicitationHandlerAbortCleanup = null;
+      this._elicitationHandler = install ? handler : null;
     }
     if (Number(options.timeoutMs) > 0) {
       this._elicitationTimeoutMs = Number(options.timeoutMs);
     }
-    if (typeof handler === "function") {
+
+    if (install && callerSignal?.addEventListener) {
+      const key =
+        sessionId != null && sessionId !== "" ? String(sessionId) : null;
+      const onCallerAbort = () => {
+        if (key != null) {
+          if (this._elicitationHandlers.get(key) === handler) {
+            this.clearElicitationHandler(key);
+          }
+        } else if (this._elicitationHandler === handler) {
+          this.setElicitationHandler(null);
+        }
+      };
+      callerSignal.addEventListener("abort", onCallerAbort, { once: true });
+      const cleanup = () =>
+        callerSignal.removeEventListener?.("abort", onCallerAbort);
+      if (key != null) {
+        this._elicitationHandlerAbortCleanups.set(key, cleanup);
+      } else {
+        this._elicitationHandlerAbortCleanup = cleanup;
+      }
+      // Cover a custom signal that changes between preflight and listener
+      // installation. Identity checks keep replacement handlers intact.
+      if (callerSignal.aborted) onCallerAbort();
+    }
+    this._syncHttpMessageStreams();
+  }
+
+  _hasElicitationHandler() {
+    return Boolean(
+      this._elicitationHandler || this._elicitationHandlers.size > 0,
+    );
+  }
+
+  _stopHttpMessageStream(entry) {
+    const stream = entry?._httpMessageStream;
+    if (!stream) return false;
+    stream.stopped = true;
+    try {
+      stream.controller?.abort();
+    } catch {
+      // The stopped flag still prevents dispatch/reconnect.
+    }
+    stream.wake?.();
+    if (entry._httpMessageStream === stream) {
+      entry._httpMessageStream = null;
+    }
+    return true;
+  }
+
+  _syncHttpMessageStreams() {
+    if (this._hasElicitationHandler()) {
       for (const name of this.servers.keys()) {
         this._ensureHttpMessageStream(name);
       }
+      return;
+    }
+    for (const entry of this.servers.values()) {
+      this._stopHttpMessageStream(entry);
     }
   }
 
@@ -744,7 +833,16 @@ export class MCPClient extends EventEmitter {
   /** Remove a session route when a WS session is closed. */
   clearElicitationHandler(sessionId) {
     if (sessionId == null || sessionId === "") return false;
-    return this._elicitationHandlers.delete(String(sessionId));
+    const key = String(sessionId);
+    try {
+      this._elicitationHandlerAbortCleanups.get(key)?.();
+    } catch {
+      // Best-effort cleanup for non-native AbortSignal adapters.
+    }
+    this._elicitationHandlerAbortCleanups.delete(key);
+    const removed = this._elicitationHandlers.delete(key);
+    this._syncHttpMessageStreams();
+    return removed;
   }
 
   /** Resolve a pending server elicitation by its server/request id pair. */
@@ -1924,12 +2022,7 @@ export class MCPClient extends EventEmitter {
             entry.socket.terminate?.();
           }
         }
-        if (entry._httpMessageStream) {
-          entry._httpMessageStream.stopped = true;
-          entry._httpMessageStream.controller?.abort();
-          entry._httpMessageStream.wake?.();
-          entry._httpMessageStream = null;
-        }
+        this._stopHttpMessageStream(entry);
         // HTTP sessions: best-effort DELETE to free server-side state.
         if (entry.httpUrl && entry.httpSessionId) {
           try {
@@ -2718,13 +2811,16 @@ export class MCPClient extends EventEmitter {
                 ? { "Last-Event-ID": stream.lastEventId }
                 : {}),
             };
-            const response = await _deps.fetch(entry.httpUrl, {
-              method: "GET",
-              headers,
-              ...(stream.controller
-                ? { signal: stream.controller.signal }
-                : {}),
-            });
+            const response = await _waitForHttpMessageStreamResponse(
+              _deps.fetch(entry.httpUrl, {
+                method: "GET",
+                headers,
+                ...(stream.controller
+                  ? { signal: stream.controller.signal }
+                  : {}),
+              }),
+              stream.controller?.signal,
+            );
             if (response.status === 405) {
               _cancelHttpResponseBody(response);
               return;
@@ -2760,10 +2856,11 @@ export class MCPClient extends EventEmitter {
             await _consumeSseMessageStream(response, {
               cap,
               stream,
+              eventTimeoutMs: _sseEventTimeout(entry.config?.requestTimeoutMs),
               onMessage: (message) => this._handleMessage(serverName, message),
             });
           } catch (error) {
-            if (stream.stopped || stream.controller?.signal.aborted) return;
+            if (stream.stopped) return;
             this.emit("server-stream-error", {
               name: serverName,
               error: error?.message || String(error),
@@ -2771,11 +2868,16 @@ export class MCPClient extends EventEmitter {
               ...(error?.limitBytes != null
                 ? { limitBytes: error.limitBytes }
                 : {}),
+              ...(error?.timeoutMs != null
+                ? { timeoutMs: error.timeoutMs }
+                : {}),
             });
+            if (stream.controller?.signal.aborted) return;
             if (error?.code === "CC_MCP_HTTP_RESPONSE_TOO_LARGE") return;
             if (error?.code === "CC_MCP_HTTP_RESPONSE_STREAM_REQUIRED") {
               return;
             }
+            if (error?.code === "CC_MCP_SSE_EVENT_TIMEOUT") return;
             if (String(error?.code || "").startsWith("CC_MCP_HEADERS_HELPER")) {
               return;
             }
@@ -3505,6 +3607,16 @@ function _httpResponseReadTimeout(configuredTimeout) {
   return MCP_HTTP_RESPONSE_READ_TIMEOUT_MS;
 }
 
+function _sseEventTimeout(configuredTimeout) {
+  if (Number.isFinite(configuredTimeout) && configuredTimeout > 0) {
+    return Math.min(
+      MCP_SSE_EVENT_TIMEOUT_MS,
+      Math.max(1, Math.floor(configuredTimeout)),
+    );
+  }
+  return MCP_SSE_EVENT_TIMEOUT_MS;
+}
+
 function _httpDiscardTimeoutError(entry, timeoutMs) {
   return mcpTransportError(
     "CC_MCP_HTTP_DISCARD_TIMEOUT",
@@ -3659,6 +3771,44 @@ function _readHttpReaderChunk(reader, signal) {
   });
 }
 
+function _waitForHttpMessageStreamResponse(responsePromise, signal) {
+  if (!signal?.addEventListener) return Promise.resolve(responsePromise);
+  if (signal.aborted) {
+    Promise.resolve(responsePromise).then(
+      (response) => _cancelHttpResponseBody(response),
+      () => {},
+    );
+    return Promise.reject(_httpReadAbortedError());
+  }
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    let aborted = false;
+    const cleanup = () => signal.removeEventListener?.("abort", onAbort);
+    const finish = (settler, value) => {
+      if (settled) return false;
+      settled = true;
+      cleanup();
+      settler(value);
+      return true;
+    };
+    const onAbort = () => {
+      aborted = true;
+      finish(reject, _httpReadAbortedError());
+    };
+    signal.addEventListener("abort", onAbort, { once: true });
+    Promise.resolve(responsePromise).then(
+      (response) => {
+        if (!finish(resolve, response) && aborted) {
+          _cancelHttpResponseBody(response);
+        }
+      },
+      (error) => finish(reject, error),
+    );
+    // Cover a custom signal that changes between preflight and installation.
+    if (signal.aborted) onAbort();
+  });
+}
+
 /**
  * Read a finite HTTP response body to text under a host-owned absolute byte
  * ceiling. The per-call timeout bounds TIME but not MEMORY: a malicious or
@@ -3782,9 +3932,10 @@ function _parseSseEvent(event) {
 
 async function _consumeSseMessageStream(
   response,
-  { cap = 0, stream, onMessage },
+  { cap = 0, stream, eventTimeoutMs = MCP_SSE_EVENT_TIMEOUT_MS, onMessage },
 ) {
   cap = _httpResponseByteLimit(cap);
+  eventTimeoutMs = _sseEventTimeout(eventTimeoutMs);
   const dispatch = (rawEvent) => {
     if (Buffer.byteLength(String(rawEvent || ""), "utf8") > cap) {
       throw _httpResponseTooLarge(cap, "SSE event");
@@ -3810,6 +3961,77 @@ async function _consumeSseMessageStream(
   const reader = response.body.getReader();
   const decoder = new TextDecoder("utf-8");
   let buffer = "";
+  let wireEventBytes = 0;
+  let wireTail = [];
+  let eventTimer = null;
+  let eventTimedOut = false;
+  const separators = [
+    [13, 10, 13, 10],
+    [13, 10, 10],
+    [10, 13, 10],
+    [10, 10],
+  ];
+  const endsWithBytes = (source, suffix) =>
+    suffix.length <= source.length &&
+    suffix.every(
+      (byte, index) => source[source.length - suffix.length + index] === byte,
+    );
+  const delimiterPrefixLength = () => {
+    let longest = 0;
+    for (const separator of separators) {
+      for (let length = 1; length < separator.length; length += 1) {
+        if (
+          length > longest &&
+          endsWithBytes(wireTail, separator.slice(0, length))
+        ) {
+          longest = length;
+        }
+      }
+    }
+    return longest;
+  };
+  const scanEventBytes = (value) => {
+    let sawBoundary = false;
+    const bytes = value
+      ? new Uint8Array(value.buffer, value.byteOffset, value.byteLength)
+      : [];
+    for (const byte of bytes) {
+      wireEventBytes += 1;
+      wireTail.push(byte);
+      if (wireTail.length > 4) wireTail.shift();
+      const separator = separators.find((candidate) =>
+        endsWithBytes(wireTail, candidate),
+      );
+      if (separator) {
+        const payloadBytes = wireEventBytes - separator.length;
+        if (payloadBytes > cap) {
+          throw _httpResponseTooLarge(cap, "SSE event");
+        }
+        wireEventBytes = 0;
+        wireTail = [];
+        sawBoundary = true;
+      } else if (wireEventBytes - delimiterPrefixLength() > cap) {
+        throw _httpResponseTooLarge(cap, "unterminated SSE event");
+      }
+    }
+    return sawBoundary;
+  };
+  const clearEventTimer = () => {
+    if (eventTimer) clearTimeout(eventTimer);
+    eventTimer = null;
+  };
+  const armEventTimer = () => {
+    if (wireEventBytes <= 0 || eventTimer) return;
+    eventTimer = setTimeout(() => {
+      eventTimedOut = true;
+      try {
+        stream.controller?.abort();
+      } catch {
+        // The local timeout classification remains authoritative.
+      }
+    }, eventTimeoutMs);
+    eventTimer.unref?.();
+  };
   try {
     for (;;) {
       const { value, done } = await _readHttpReaderChunk(
@@ -3817,6 +4039,9 @@ async function _consumeSseMessageStream(
         stream.controller?.signal,
       );
       if (done) break;
+      const sawBoundary = scanEventBytes(value);
+      if (sawBoundary) clearEventTimer();
+      armEventTimer();
       buffer += decoder.decode(value, { stream: true });
       let boundary;
       while ((boundary = buffer.search(/\r?\n\r?\n/)) >= 0) {
@@ -3825,23 +4050,23 @@ async function _consumeSseMessageStream(
         buffer = buffer.slice(boundary + separator.length);
         dispatch(event);
       }
-      if (Buffer.byteLength(buffer, "utf8") > cap) {
-        throw _httpResponseTooLarge(cap, "unterminated SSE event");
-      }
     }
     buffer += decoder.decode();
-    if (Buffer.byteLength(buffer, "utf8") > cap) {
+    if (wireEventBytes > cap) {
       throw _httpResponseTooLarge(cap, "unterminated SSE event");
     }
     if (buffer.trim()) dispatch(buffer);
   } catch (error) {
     try {
-      await reader.cancel();
+      const pending = reader.cancel();
+      pending?.catch?.(() => {});
     } catch {
       // Best-effort cleanup; the bounded stream error remains authoritative.
     }
+    if (eventTimedOut) throw mcpSseEventTimeoutError(eventTimeoutMs);
     throw error;
   } finally {
+    clearEventTimer();
     try {
       reader.releaseLock?.();
     } catch {
