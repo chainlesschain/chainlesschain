@@ -488,6 +488,8 @@ function mcpTransportError(code, message, details = {}) {
   if (details.limitMessages != null) {
     error.limitMessages = details.limitMessages;
   }
+  if (details.limitDepth != null) error.limitDepth = details.limitDepth;
+  if (details.limitNodes != null) error.limitNodes = details.limitNodes;
   if (details.windowMs != null) error.windowMs = details.windowMs;
   if (details.dispatched != null) {
     error.dispatched = details.dispatched === true;
@@ -571,6 +573,40 @@ function mcpInboundBudgetError(serverName, entry, budget) {
   );
 }
 
+function mcpJsonBudgetError(serverName, entry, budget) {
+  const dispatched = Boolean(
+    (entry?._pending instanceof Map && entry._pending.size > 0) ||
+    (entry?._httpRequestControllers instanceof Set &&
+      entry._httpRequestControllers.size > 0),
+  );
+  if (budget === "depth") {
+    const limitDepth = mcpJsonDepthLimit(entry?.config?.maxJsonDepth);
+    return mcpTransportError(
+      "CC_MCP_JSON_DEPTH_EXCEEDED",
+      `MCP server "${serverName}" exceeded the ${limitDepth}-level host JSON depth budget`,
+      {
+        transport: entry?.transportKind,
+        url: entry?.config?.url || entry?.httpUrl,
+        limitDepth,
+        dispatched,
+        outcomeUnknown: dispatched,
+      },
+    );
+  }
+  const limitNodes = mcpJsonNodeLimit(entry?.config?.maxJsonNodes);
+  return mcpTransportError(
+    "CC_MCP_JSON_NODES_EXCEEDED",
+    `MCP server "${serverName}" exceeded the ${limitNodes}-node host JSON graph budget`,
+    {
+      transport: entry?.transportKind,
+      url: entry?.config?.url || entry?.httpUrl,
+      limitNodes,
+      dispatched,
+      outcomeUnknown: dispatched,
+    },
+  );
+}
+
 function mcpSseEventTimeoutError(timeoutMs) {
   const error = new Error(
     `MCP HTTP message stream event exceeded the ${timeoutMs}ms host deadline`,
@@ -625,6 +661,8 @@ const MCP_NON_RETRYABLE_PROTOCOL_ERROR_CODES = new Set([
   "CC_MCP_SSE_EVENT_TIMEOUT",
   "CC_MCP_INBOUND_RATE_EXCEEDED",
   "CC_MCP_INBOUND_TRAFFIC_EXCEEDED",
+  "CC_MCP_JSON_DEPTH_EXCEEDED",
+  "CC_MCP_JSON_NODES_EXCEEDED",
   "CC_MCP_STDIO_FRAME_TOO_LARGE",
   "CC_MCP_STDIO_MALFORMED_BUDGET_EXCEEDED",
   "CC_MCP_STDIO_STDERR_TOO_LARGE",
@@ -755,6 +793,237 @@ function recordMcpInboundTraffic(serverName, entry, inboundBytes) {
   budget.messageTokens -= 1;
   budget.byteTokens -= bytes;
   return null;
+}
+
+// A small JSON wire value can expand into a much larger object graph, and a
+// deeply nested result can overflow recursive downstream consumers even while
+// it remains below every transport byte cap. Scan the wire iteratively before
+// JSON.parse, then inspect the resulting graph without invoking accessors or
+// Proxy traps. These defaults match the strict durable-message JSON boundary;
+// server config may tighten but never disable or raise them.
+const MCP_JSON_MAX_DEPTH = 100;
+const MCP_JSON_MAX_NODES = 100_000;
+
+function mcpJsonDepthLimit(configuredLimit) {
+  if (Number.isFinite(configuredLimit) && configuredLimit > 0) {
+    return Math.min(
+      MCP_JSON_MAX_DEPTH,
+      Math.max(1, Math.floor(configuredLimit)),
+    );
+  }
+  return MCP_JSON_MAX_DEPTH;
+}
+
+function mcpJsonNodeLimit(configuredLimit) {
+  if (Number.isFinite(configuredLimit) && configuredLimit > 0) {
+    return Math.min(
+      MCP_JSON_MAX_NODES,
+      Math.max(1, Math.floor(configuredLimit)),
+    );
+  }
+  return MCP_JSON_MAX_NODES;
+}
+
+function inspectMcpJsonWireBudget(text, config = {}) {
+  const limitDepth = mcpJsonDepthLimit(config?.maxJsonDepth);
+  const limitNodes = mcpJsonNodeLimit(config?.maxJsonNodes);
+  const source = String(text || "");
+  let depth = 0;
+  let nodes = 0;
+  let inString = false;
+  let escaped = false;
+
+  const addNode = () => {
+    nodes += 1;
+    return nodes > limitNodes ? "nodes" : null;
+  };
+
+  for (let index = 0; index < source.length; index += 1) {
+    const char = source[index];
+    if (inString) {
+      if (escaped) {
+        escaped = false;
+      } else if (char === "\\") {
+        escaped = true;
+      } else if (char === '"') {
+        inString = false;
+      }
+      continue;
+    }
+
+    if (char === '"') {
+      const issue = addNode();
+      if (issue) return issue;
+      inString = true;
+      continue;
+    }
+    if (char === "{" || char === "[") {
+      const issue = addNode();
+      if (issue) return issue;
+      depth += 1;
+      if (depth > limitDepth) return "depth";
+      continue;
+    }
+    if (char === "}" || char === "]") {
+      depth = Math.max(0, depth - 1);
+      continue;
+    }
+    if (/\s/u.test(char) || char === "," || char === ":") continue;
+
+    const issue = addNode();
+    if (issue) return issue;
+    while (index + 1 < source.length && !/[\s,\]:}]/u.test(source[index + 1])) {
+      index += 1;
+    }
+  }
+  return null;
+}
+
+function inspectMcpJsonGraphBudget(value, config = {}) {
+  const limitDepth = mcpJsonDepthLimit(config?.maxJsonDepth);
+  const limitNodes = mcpJsonNodeLimit(config?.maxJsonNodes);
+  const stack = [{ value, parentDepth: 0 }];
+  const seen = new WeakSet();
+  let nodes = 0;
+  let invalid = false;
+
+  const consumeNodes = (count = 1) => {
+    nodes += count;
+    return nodes > limitNodes;
+  };
+
+  while (stack.length > 0) {
+    const current = stack.pop();
+    const candidate = current.value;
+    if (consumeNodes()) return "nodes";
+    if (
+      candidate === null ||
+      typeof candidate === "string" ||
+      typeof candidate === "boolean" ||
+      (typeof candidate === "number" && Number.isFinite(candidate))
+    ) {
+      continue;
+    }
+    if (!candidate || typeof candidate !== "object") {
+      invalid = true;
+      continue;
+    }
+
+    try {
+      if (isProxy(candidate) || seen.has(candidate)) {
+        invalid = true;
+        continue;
+      }
+      seen.add(candidate);
+    } catch {
+      invalid = true;
+      continue;
+    }
+
+    const depth = current.parentDepth + 1;
+    if (depth > limitDepth) return "depth";
+
+    if (Array.isArray(candidate)) {
+      let lengthDescriptor;
+      let keys;
+      try {
+        lengthDescriptor = Object.getOwnPropertyDescriptor(candidate, "length");
+        if (
+          !lengthDescriptor ||
+          !Object.hasOwn(lengthDescriptor, "value") ||
+          !Number.isSafeInteger(lengthDescriptor.value) ||
+          lengthDescriptor.value < 0
+        ) {
+          invalid = true;
+          continue;
+        }
+        if (nodes + lengthDescriptor.value > limitNodes) return "nodes";
+        keys = Reflect.ownKeys(candidate);
+      } catch {
+        invalid = true;
+        continue;
+      }
+      if (
+        keys.length !== lengthDescriptor.value + 1 ||
+        keys.some((key) => typeof key === "symbol")
+      ) {
+        invalid = true;
+        continue;
+      }
+      for (let index = 0; index < lengthDescriptor.value; index += 1) {
+        const descriptor = Object.getOwnPropertyDescriptor(
+          candidate,
+          String(index),
+        );
+        if (
+          !descriptor ||
+          !Object.hasOwn(descriptor, "value") ||
+          descriptor.enumerable !== true
+        ) {
+          invalid = true;
+          continue;
+        }
+        stack.push({ value: descriptor.value, parentDepth: depth });
+      }
+      continue;
+    }
+
+    let prototype;
+    let keys;
+    try {
+      prototype = Object.getPrototypeOf(candidate);
+      keys = Reflect.ownKeys(candidate);
+    } catch {
+      invalid = true;
+      continue;
+    }
+    if (
+      (prototype !== Object.prototype && prototype !== null) ||
+      keys.some((key) => typeof key === "symbol")
+    ) {
+      invalid = true;
+      continue;
+    }
+    if (consumeNodes(keys.length)) return "nodes";
+    for (const key of keys) {
+      let descriptor;
+      try {
+        descriptor = Object.getOwnPropertyDescriptor(candidate, key);
+      } catch {
+        invalid = true;
+        continue;
+      }
+      if (
+        !descriptor ||
+        !Object.hasOwn(descriptor, "value") ||
+        descriptor.enumerable !== true
+      ) {
+        invalid = true;
+        continue;
+      }
+      stack.push({ value: descriptor.value, parentDepth: depth });
+    }
+  }
+  return invalid ? "invalid" : null;
+}
+
+function parseMcpJson(text, serverName, entry) {
+  const wireIssue = inspectMcpJsonWireBudget(text, entry?.config);
+  if (wireIssue) throw mcpJsonBudgetError(serverName, entry, wireIssue);
+  const parsed = JSON.parse(text);
+  const graphIssue = inspectMcpJsonGraphBudget(parsed, entry?.config);
+  if (graphIssue === "depth" || graphIssue === "nodes") {
+    throw mcpJsonBudgetError(serverName, entry, graphIssue);
+  }
+  return parsed;
+}
+
+function isMcpJsonBudgetError(error) {
+  const code = safeRpcProperty(error, "code");
+  return (
+    code === "CC_MCP_JSON_DEPTH_EXCEEDED" ||
+    code === "CC_MCP_JSON_NODES_EXCEEDED"
+  );
 }
 
 // Host-owned UTF-8 byte ceiling for every newline-delimited stdio JSON-RPC
@@ -1683,6 +1952,12 @@ export class MCPClient extends EventEmitter {
             ...(error.limitMessages != null
               ? { limitMessages: error.limitMessages }
               : {}),
+            ...(error.limitDepth != null
+              ? { limitDepth: error.limitDepth }
+              : {}),
+            ...(error.limitNodes != null
+              ? { limitNodes: error.limitNodes }
+              : {}),
             ...(error.windowMs != null ? { windowMs: error.windowMs } : {}),
           });
           if (socket.readyState === 1) {
@@ -1768,7 +2043,7 @@ export class MCPClient extends EventEmitter {
             return;
           }
           try {
-            const message = JSON.parse(String(data));
+            const message = parseMcpJson(String(data), name, entry);
             if (
               !message ||
               Array.isArray(message) ||
@@ -1777,7 +2052,11 @@ export class MCPClient extends EventEmitter {
               throw new Error("expected one JSON-RPC object");
             }
             this._handleMessage(name, message);
-          } catch {
+          } catch (cause) {
+            if (isMcpJsonBudgetError(cause)) {
+              recordInboundFailure(cause);
+              return;
+            }
             const error = mcpTransportError(
               "CC_MCP_WS_INVALID_MESSAGE",
               "MCP WebSocket server sent an invalid JSON-RPC message",
@@ -1817,6 +2096,12 @@ export class MCPClient extends EventEmitter {
                 : {}),
               ...(inboundError.limitMessages != null
                 ? { limitMessages: inboundError.limitMessages }
+                : {}),
+              ...(inboundError.limitDepth != null
+                ? { limitDepth: inboundError.limitDepth }
+                : {}),
+              ...(inboundError.limitNodes != null
+                ? { limitNodes: inboundError.limitNodes }
                 : {}),
               ...(inboundError.windowMs != null
                 ? { windowMs: inboundError.windowMs }
@@ -3057,6 +3342,7 @@ export class MCPClient extends EventEmitter {
                 const error = recordMcpInboundTraffic(serverName, entry, bytes);
                 if (error) throw error;
               },
+              parseJson: (text) => parseMcpJson(text, serverName, entry),
               onMessage: (message) => this._handleMessage(serverName, message),
             });
           } catch (error) {
@@ -3074,6 +3360,12 @@ export class MCPClient extends EventEmitter {
               ...(error?.limitMessages != null
                 ? { limitMessages: error.limitMessages }
                 : {}),
+              ...(error?.limitDepth != null
+                ? { limitDepth: error.limitDepth }
+                : {}),
+              ...(error?.limitNodes != null
+                ? { limitNodes: error.limitNodes }
+                : {}),
               ...(error?.windowMs != null ? { windowMs: error.windowMs } : {}),
             });
             if (stream.controller?.signal.aborted) return;
@@ -3084,6 +3376,8 @@ export class MCPClient extends EventEmitter {
             if (error?.code === "CC_MCP_SSE_EVENT_TIMEOUT") return;
             if (error?.code === "CC_MCP_INBOUND_RATE_EXCEEDED") return;
             if (error?.code === "CC_MCP_INBOUND_TRAFFIC_EXCEEDED") return;
+            if (error?.code === "CC_MCP_JSON_DEPTH_EXCEEDED") return;
+            if (error?.code === "CC_MCP_JSON_NODES_EXCEEDED") return;
             if (String(error?.code || "").startsWith("CC_MCP_HEADERS_HELPER")) {
               return;
             }
@@ -3324,12 +3618,14 @@ export class MCPClient extends EventEmitter {
           cap,
           (message) => this._handleMessage(serverName, message),
           controller?.signal,
+          (text) => parseMcpJson(text, serverName, entry),
         );
       } else {
         const text = await _readBodyCapped(response, cap, controller?.signal);
         try {
-          envelope = text ? JSON.parse(text) : null;
-        } catch {
+          envelope = text ? parseMcpJson(text, serverName, entry) : null;
+        } catch (error) {
+          if (isMcpJsonBudgetError(error)) throw error;
           // Modern JSON.parse diagnostics quote a slice of the malformed input.
           // A peer can place secrets or retry/auth keywords there, so replace
           // the SyntaxError without retaining it as a cause.
@@ -3445,8 +3741,12 @@ export class MCPClient extends EventEmitter {
 
       let msg;
       try {
-        msg = JSON.parse(trimmed);
-      } catch {
+        msg = parseMcpJson(trimmed, serverName, entry);
+      } catch (error) {
+        if (isMcpJsonBudgetError(error)) {
+          this._failStdioInput(serverName, entry, error);
+          return;
+        }
         if (this._recordMalformedStdioFrame(serverName, entry, frameBytes)) {
           return;
         }
@@ -3569,6 +3869,8 @@ export class MCPClient extends EventEmitter {
       ...(error.limitMessages != null
         ? { limitMessages: error.limitMessages }
         : {}),
+      ...(error.limitDepth != null ? { limitDepth: error.limitDepth } : {}),
+      ...(error.limitNodes != null ? { limitNodes: error.limitNodes } : {}),
       ...(error.windowMs != null ? { windowMs: error.windowMs } : {}),
     });
     try {
@@ -3583,13 +3885,7 @@ export class MCPClient extends EventEmitter {
     const entry = this.servers.get(serverName);
     if (!entry) return;
 
-    // Snapshot every top-level field before touching the pending registry.
-    // Although production transports JSON.parse their input, keeping this
-    // boundary descriptor-only prevents a custom adapter/getter/Proxy from
-    // consuming a pending request and then throwing before it can be rejected.
-    const wire = snapshotRpcMessage(msg);
-    if (!wire || !wire.hasJsonrpc || wire.jsonrpc !== "2.0") {
-      const error = mcpRpcInvalidMessageError();
+    const failMessage = (error) => {
       entry.state = ServerState.ERROR;
       if (entry._pending instanceof Map) {
         for (const pending of entry._pending.values()) {
@@ -3602,8 +3898,28 @@ export class MCPClient extends EventEmitter {
         name: serverName,
         code: error.code,
         error: error.message,
+        ...(error.limitDepth != null ? { limitDepth: error.limitDepth } : {}),
+        ...(error.limitNodes != null ? { limitNodes: error.limitNodes } : {}),
       });
-      return;
+      return error;
+    };
+
+    // Snapshot every top-level field before touching the pending registry.
+    // Although production transports JSON.parse their input, keeping this
+    // boundary descriptor-only prevents a custom adapter/getter/Proxy from
+    // consuming a pending request and then throwing before it can be rejected.
+    const wire = snapshotRpcMessage(msg);
+    if (!wire || !wire.hasJsonrpc || wire.jsonrpc !== "2.0") {
+      return failMessage(mcpRpcInvalidMessageError());
+    }
+
+    // Production messages are checked before JSON.parse. Keep the shared
+    // object boundary independently bounded for injected/custom adapters too;
+    // traversal is iterative and descriptor-only, so deep graphs, accessors,
+    // and Proxy values cannot consume the pending registry first.
+    const graphIssue = inspectMcpJsonGraphBudget(msg, entry.config);
+    if (graphIssue === "depth" || graphIssue === "nodes") {
+      return failMessage(mcpJsonBudgetError(serverName, entry, graphIssue));
     }
 
     // Response to a request
@@ -3622,7 +3938,15 @@ export class MCPClient extends EventEmitter {
       } else if (wire.hasError) {
         reject(mcpRpcError(wire.error));
       } else {
-        resolve(wire.result);
+        const resultIssue = inspectMcpJsonGraphBudget(
+          wire.result,
+          entry.config,
+        );
+        if (resultIssue === "invalid") {
+          reject(mcpRpcInvalidResponseError());
+        } else {
+          resolve(wire.result);
+        }
       }
       return;
     }
@@ -3632,6 +3956,13 @@ export class MCPClient extends EventEmitter {
     // never got a response, so a server calling e.g. roots/list hung until its
     // own timeout. Answer the ones our advertised capabilities invite.
     if (wire.hasId && typeof wire.method === "string" && wire.method) {
+      if (
+        wire.hasParams &&
+        inspectMcpJsonGraphBudget(wire.params, entry.config) === "invalid"
+      ) {
+        failMessage(mcpRpcInvalidMessageError());
+        return;
+      }
       this._handleServerRequest(serverName, {
         id: wire.id,
         method: wire.method,
@@ -3642,6 +3973,13 @@ export class MCPClient extends EventEmitter {
 
     // Server notification
     if (typeof wire.method === "string" && wire.method) {
+      if (
+        wire.hasParams &&
+        inspectMcpJsonGraphBudget(wire.params, entry.config) === "invalid"
+      ) {
+        failMessage(mcpRpcInvalidMessageError());
+        return;
+      }
       // tools/resources list_changed (gap 2026-07-11 MCP 生命周期): refetch
       // the changed list so entry.tools/entry.resources stay live —
       // `listTools()`, `/mcp` status and callTool routing all see the update.
@@ -4106,13 +4444,14 @@ async function _extractSseResponse(
   cap = 0,
   onMessage = null,
   signal = null,
+  parseJson = JSON.parse,
 ) {
   const text = await _readBodyCapped(response, cap, signal);
 
   // Split into events on blank line, parse each event's concatenated `data:` lines.
   const events = text.split(/\r?\n\r?\n/);
   for (const event of events) {
-    const parsed = _parseSseEvent(event);
+    const parsed = _parseSseEvent(event, parseJson);
     if (!parsed?.message) continue;
     const payload = parsed.message;
     if (payload.jsonrpc === "2.0" && payload.id === requestId) {
@@ -4123,7 +4462,7 @@ async function _extractSseResponse(
   throw new Error(`SSE stream ended without a response for id ${requestId}`);
 }
 
-function _parseSseEvent(event) {
+function _parseSseEvent(event, parseJson = JSON.parse) {
   const dataLines = [];
   let id = null;
   let retry = null;
@@ -4141,9 +4480,10 @@ function _parseSseEvent(event) {
   let message = null;
   if (dataLines.some((line) => line.length > 0)) {
     try {
-      const candidate = JSON.parse(dataLines.join("\n"));
+      const candidate = parseJson(dataLines.join("\n"));
       if (candidate && typeof candidate === "object") message = candidate;
-    } catch {
+    } catch (error) {
+      if (isMcpJsonBudgetError(error)) throw error;
       // Non-JSON SSE events are transport metadata, not MCP messages.
     }
   }
@@ -4157,6 +4497,7 @@ async function _consumeSseMessageStream(
     stream,
     eventTimeoutMs = MCP_SSE_EVENT_TIMEOUT_MS,
     onInbound = null,
+    parseJson = JSON.parse,
     onMessage,
   },
 ) {
@@ -4168,7 +4509,7 @@ async function _consumeSseMessageStream(
       throw _httpResponseTooLarge(cap, "SSE event");
     }
     onInbound?.(eventBytes);
-    const parsed = _parseSseEvent(rawEvent);
+    const parsed = _parseSseEvent(rawEvent, parseJson);
     if (parsed.id != null && parsed.id !== "") {
       stream.lastEventId = parsed.id;
     }

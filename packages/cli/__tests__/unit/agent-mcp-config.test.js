@@ -128,6 +128,30 @@ describe("parseMcpServers", () => {
     expect(out.textual).not.toHaveProperty("maxInboundMessagesPerSecond");
     expect(out.textual).not.toHaveProperty("maxInboundBytesPerMinute");
   });
+
+  it("preserves finite JSON graph tightenings and rejects text values", () => {
+    const out = parseMcpServers({
+      mcpServers: {
+        strict: {
+          command: "strict",
+          maxJsonDepth: 32,
+          maxJsonNodes: 4096,
+        },
+        textual: {
+          command: "textual",
+          maxJsonDepth: "32",
+          maxJsonNodes: "4096",
+        },
+      },
+    });
+
+    expect(out.strict).toMatchObject({
+      maxJsonDepth: 32,
+      maxJsonNodes: 4096,
+    });
+    expect(out.textual).not.toHaveProperty("maxJsonDepth");
+    expect(out.textual).not.toHaveProperty("maxJsonNodes");
+  });
 });
 
 describe("mcpToolName", () => {

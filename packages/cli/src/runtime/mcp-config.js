@@ -75,6 +75,12 @@ export function parseMcpServers(raw) {
       ...(Number.isFinite(cfg.maxInboundBytesPerMinute)
         ? { maxInboundBytesPerMinute: cfg.maxInboundBytesPerMinute }
         : {}),
+      ...(Number.isFinite(cfg.maxJsonDepth)
+        ? { maxJsonDepth: cfg.maxJsonDepth }
+        : {}),
+      ...(Number.isFinite(cfg.maxJsonNodes)
+        ? { maxJsonNodes: cfg.maxJsonNodes }
+        : {}),
       ...headersHelperField(cfg.headersHelper),
       ...(cfg.configScope ? { configScope: cfg.configScope } : {}),
       ...(cfg.configSource ? { configSource: cfg.configSource } : {}),
