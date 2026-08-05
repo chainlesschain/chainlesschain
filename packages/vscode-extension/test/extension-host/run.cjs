@@ -221,9 +221,6 @@ function buildHostLaunchArgs({ workspaceDir, profileArgs, cdpPort }) {
     // debugging socket and allowed Origin are scoped to this run's random
     // loopback-only port in a fresh test profile.
     `--remote-allow-origins=http://127.0.0.1:${cdpPort}`,
-    // VS Code's own smoke-test driver forces modal prompts into the custom
-    // workbench dialog so the real confirmation remains inspectable by CDP.
-    "--enable-smoke-test-driver",
     "--disable-extension-update-checks",
     "--disable-telemetry",
     "--disable-crash-reporter",
@@ -252,7 +249,6 @@ function buildHostInspectorLaunchArgs({
     "--disable-background-timer-throttling",
     "--disable-backgrounding-occluded-windows",
     "--disable-renderer-backgrounding",
-    "--enable-smoke-test-driver",
     "--disable-extension-update-checks",
     "--disable-telemetry",
     "--disable-crash-reporter",
@@ -285,7 +281,6 @@ function buildHostDomRelayLaunchArgs({ workspaceDir, profileArgs }) {
     "--disable-background-timer-throttling",
     "--disable-backgrounding-occluded-windows",
     "--disable-renderer-backgrounding",
-    "--enable-smoke-test-driver",
     "--disable-extension-update-checks",
     "--disable-telemetry",
     "--disable-crash-reporter",
@@ -297,7 +292,6 @@ function buildHostPipeLaunchArgs({ workspaceDir, profileArgs }) {
   return [
     ...profileArgs,
     "--remote-debugging-pipe",
-    "--enable-smoke-test-driver",
     "--disable-extension-update-checks",
     "--disable-telemetry",
     "--disable-crash-reporter",

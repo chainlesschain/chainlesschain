@@ -273,7 +273,6 @@ test("real-DOM host phase is loopback-only and keeps the fresh profile args", ()
       "--remote-debugging-port=43210",
       "--remote-debugging-address=127.0.0.1",
       "--remote-allow-origins=http://127.0.0.1:43210",
-      "--enable-smoke-test-driver",
       "--disable-extension-update-checks",
       "--disable-telemetry",
       "--disable-crash-reporter",
@@ -370,7 +369,6 @@ test("macOS DOM relay launches without a debugger transport", async () => {
   );
   assert.equal(launch.launchArgs.includes("--disable-gpu"), false);
   assert.equal(launch.launchArgs.includes("--verbose"), true);
-  assert.equal(launch.launchArgs.includes("--enable-smoke-test-driver"), true);
   assert.equal(
     launch.launchArgs.includes("--use-inmemory-secretstorage"),
     true,
@@ -447,7 +445,6 @@ test("macOS real-DOM host uses the loopback Electron inspector", () => {
     "--disable-background-timer-throttling",
     "--disable-backgrounding-occluded-windows",
     "--disable-renderer-backgrounding",
-    "--enable-smoke-test-driver",
     "--disable-extension-update-checks",
     "--disable-telemetry",
     "--disable-crash-reporter",
@@ -539,7 +536,6 @@ test("pipe host launch inherits Chromium's FD 3/4 contract", async () => {
     "pipe",
   ]);
   assert.ok(spawnCall.args.includes("--remote-debugging-pipe"));
-  assert.ok(spawnCall.args.includes("--enable-smoke-test-driver"));
   assert.equal(
     spawnCall.options.env.CHAINLESSCHAIN_HOST_JOURNEY_PHASE,
     "initial",

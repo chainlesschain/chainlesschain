@@ -126,6 +126,7 @@ final class IdeUiSmokeTest {
         ComponentFixture confirm = robot.find(ComponentFixture.class,
                 Locators.byXpath("//div[@text='Confirm action']"), FIND_BUDGET);
         clickButton(confirm);
+        waitUntilHidden(confirm, "timeline confirmation", FIND_BUDGET);
         waitForTranscript(
                 transcript,
                 actionLabel + " completed at turn-2",
@@ -151,7 +152,12 @@ final class IdeUiSmokeTest {
                         + "java.awt.event.KeyEvent.VK_ENTER,"
                         + "java.awt.event.KeyEvent.CHAR_UNDEFINED));",
                 true);
-        Thread.sleep(250);
+        // The next timeline stage also uses a JBList. On a loaded Linux EDT,
+        // a fixed sleep could let the next lookup bind to the outgoing list,
+        // eventually leaving a hidden popup stack that suppressed later
+        // actions. Require the selected popup to be disposed before looking
+        // for the next stage.
+        waitUntilHidden(list, "selected timeline popup", FIND_BUDGET);
     }
 
     private static void send(
@@ -169,6 +175,26 @@ final class IdeUiSmokeTest {
      */
     private static void clickButton(ComponentFixture button) {
         button.runJs("component.doClick()", true);
+    }
+
+    private static void waitUntilHidden(
+            ComponentFixture component, String label, Duration budget)
+            throws InterruptedException {
+        long deadline = System.nanoTime() + budget.toNanos();
+        while (System.nanoTime() < deadline) {
+            try {
+                Object hidden = component.callJs("!component.isShowing()");
+                if (Boolean.TRUE.equals(hidden)
+                        || "true".equals(String.valueOf(hidden))) return;
+            } catch (RuntimeException disposed) {
+                // A disposed fixture is no longer visible, which is exactly
+                // the transition this helper is waiting for.
+                return;
+            }
+            Thread.sleep(100);
+        }
+        throw new AssertionError(label + " did not close within "
+                + budget.toSeconds() + "s");
     }
 
     private static void waitForTranscript(

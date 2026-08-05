@@ -826,40 +826,23 @@ async function chooseQuickPickItem(client, label, signal = null) {
 }
 
 async function confirmNativeTimelineAction(client, signal = null) {
+  const visibleWidget =
+    "[...document.querySelectorAll('.quick-input-widget')].find((element) => getComputedStyle(element).display !== 'none' && getComputedStyle(element).visibility !== 'hidden')";
   await waitForDom(
     client,
     `(() => {
-      const isVisible = (element) => {
-        const style = getComputedStyle(element);
-        const bounds = element.getBoundingClientRect();
-        return style.display !== 'none' && style.visibility !== 'hidden'
-          && bounds.width > 0 && bounds.height > 0;
-      };
-      const button = [...document.querySelectorAll('button, .monaco-button, [role="button"]')]
-        .find((candidate) => isVisible(candidate)
-          && (candidate.textContent || '').trim() === 'Confirm action');
-      const text = document.body?.innerText || '';
-      return Boolean(button) && text.includes('vendor/cache') && text.includes('publish release');
+      const widget = ${visibleWidget};
+      const text = widget?.innerText || '';
+      return Boolean(widget)
+        && text.includes('Confirm action')
+        && text.includes('vendor/cache')
+        && text.includes('publish release');
     })()`,
     "partial-coverage rewind confirmation",
     45_000,
     signal,
   );
-  const clicked = await client.evaluate(`(() => {
-    const isVisible = (element) => {
-      const style = getComputedStyle(element);
-      const bounds = element.getBoundingClientRect();
-      return style.display !== 'none' && style.visibility !== 'hidden'
-        && bounds.width > 0 && bounds.height > 0;
-    };
-    const button = [...document.querySelectorAll('button, .monaco-button, [role="button"]')]
-      .find((candidate) => isVisible(candidate)
-        && (candidate.textContent || '').trim() === 'Confirm action');
-    if (!button) return false;
-    button.click();
-    return true;
-  })()`);
-  if (!clicked) throw new Error("could not confirm native timeline action");
+  await chooseQuickPickItem(client, "Confirm action", signal);
 }
 
 async function driveRewindAction(
