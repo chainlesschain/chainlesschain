@@ -1,10 +1,31 @@
 /** /reload-skills — process grant revocation + cache drop + live re-scan. */
-import { describe, it, expect, vi } from "vitest";
+import { afterAll, beforeAll, describe, it, expect, vi } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { CLISkillLoader } from "../../src/lib/skill-loader.js";
-import { reloadSkills } from "../../src/runtime/agent-core.js";
+
+let reloadSkills;
+let authorityHome;
+let previousAuthorityHome;
+
+beforeAll(async () => {
+  previousAuthorityHome = process.env.CHAINLESSCHAIN_HOME;
+  authorityHome = fs.mkdtempSync(
+    path.join(os.tmpdir(), "cc-reload-skills-authority-"),
+  );
+  process.env.CHAINLESSCHAIN_HOME = authorityHome;
+  ({ reloadSkills } = await import("../../src/runtime/agent-core.js"));
+});
+
+afterAll(() => {
+  if (previousAuthorityHome === undefined) {
+    delete process.env.CHAINLESSCHAIN_HOME;
+  } else {
+    process.env.CHAINLESSCHAIN_HOME = previousAuthorityHome;
+  }
+  fs.rmSync(authorityHome, { recursive: true, force: true });
+});
 
 describe("reloadSkills", () => {
   it("picks up a skill added after the first scan (cache dropped)", () => {

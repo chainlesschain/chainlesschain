@@ -1,7 +1,15 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import { CLISkillLoader } from "../../src/lib/skill-loader.js";
 import {
   captureSkillExecutionSnapshot,
@@ -9,6 +17,25 @@ import {
 } from "../../src/lib/skill-execution-identity.js";
 
 const roots = [];
+let authorityHome;
+let previousAuthorityHome;
+
+beforeAll(() => {
+  previousAuthorityHome = process.env.CHAINLESSCHAIN_HOME;
+  authorityHome = fs.mkdtempSync(
+    path.join(os.tmpdir(), "cc-skill-identity-authority-"),
+  );
+  process.env.CHAINLESSCHAIN_HOME = authorityHome;
+});
+
+afterAll(() => {
+  if (previousAuthorityHome === undefined) {
+    delete process.env.CHAINLESSCHAIN_HOME;
+  } else {
+    process.env.CHAINLESSCHAIN_HOME = previousAuthorityHome;
+  }
+  fs.rmSync(authorityHome, { recursive: true, force: true });
+});
 
 function createSkill(options = {}) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-skill-identity-"));

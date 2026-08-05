@@ -60,52 +60,18 @@ import {
   skillReauthorizationError,
   skillTrustRequiredError,
 } from "./skill-execution-identity.js";
+import { getSkillExecutionAuthority } from "./skill-execution-authority.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const SKILL_EXECUTION_REVOKED_CODE = "CC_SKILL_EXECUTION_REVOKED";
-let skillExecutionAuthorityGeneration = 0n;
-const activeSkillExecutionLeases = new Set();
-
-function skillExecutionRevokedError(generation, message) {
-  const error = new Error(
-    message || "Skill execution authorization was revoked by the host",
-  );
-  error.name = "AbortError";
-  error.code = SKILL_EXECUTION_REVOKED_CODE;
-  error.generation = String(generation);
-  return error;
-}
-
 /**
- * Revoke every Skill execution authorization in this Node host process.
- * Existing loaders observe the generation before their next cache read, while
- * active authorization/child leases are aborted synchronously.
+ * Revoke every Skill execution authorization sharing this CLI state home.
+ * The durable generation is advanced before success is returned. Existing
+ * local leases are aborted synchronously; other local hosts observe it through
+ * their active-lease poller and at every authority-sensitive transition.
  */
 export function revokeSkillExecutionAuthorizations(options = {}) {
-  let message;
-  try {
-    const candidate = options?.message;
-    if (typeof candidate === "string" && candidate.length > 0) {
-      message = candidate;
-    }
-  } catch {
-    // Revocation is an emergency restriction path; malformed diagnostic
-    // options cannot prevent it from advancing the authority generation.
-  }
-  skillExecutionAuthorityGeneration += 1n;
-  const generation = skillExecutionAuthorityGeneration;
-  let interruptedLeases = 0;
-  for (const lease of [...activeSkillExecutionLeases]) {
-    if (lease.controller.signal.aborted) continue;
-    interruptedLeases += 1;
-    lease.controller.abort(skillExecutionRevokedError(generation, message));
-  }
-  return Object.freeze({
-    code: SKILL_EXECUTION_REVOKED_CODE,
-    generation: String(generation),
-    interruptedLeases,
-  });
+  return getSkillExecutionAuthority().revoke(options);
 }
 
 /**
@@ -408,6 +374,7 @@ export class CLISkillLoader {
   constructor({
     contextLedger = contextSourceLedger,
     reauthorizeSkill = null,
+    executionAuthority = null,
     limits = {},
     // Only package-owned, immutable-at-install sources are trusted by
     // default. The historical "managed" layer is actually the user-writable
@@ -422,10 +389,22 @@ export class CLISkillLoader {
     this._bodyCache = new Map();
     this._contextLedger = contextLedger;
     this._reauthorizeSkill = reauthorizeSkill;
+    this._executionAuthority =
+      executionAuthority || getSkillExecutionAuthority();
+    if (
+      typeof this._executionAuthority.readGeneration !== "function" ||
+      typeof this._executionAuthority.acquireLease !== "function" ||
+      typeof this._executionAuthority.assertGeneration !== "function" ||
+      typeof this._executionAuthority.revoke !== "function"
+    ) {
+      throw new TypeError(
+        "executionAuthority must implement the Skill authority API",
+      );
+    }
     this._limits = resolveSkillLimits(limits);
     this._trustedExecutionSources = new Set(trustedExecutionSources);
     this._authorizedExecutionDigests = new Map();
-    this._executionAuthorityGeneration = skillExecutionAuthorityGeneration;
+    this._executionAuthorityGeneration = null;
     this._cacheStats = {
       descriptorScans: 0,
       descriptorCacheHits: 0,
@@ -441,45 +420,40 @@ export class CLISkillLoader {
   }
 
   _syncExecutionAuthorityGeneration() {
-    if (
-      this._executionAuthorityGeneration !== skillExecutionAuthorityGeneration
-    ) {
+    const authorityGeneration = this._executionAuthority.readGeneration();
+    if (this._executionAuthorityGeneration !== authorityGeneration) {
       this._authorizedExecutionDigests.clear();
-      this._executionAuthorityGeneration = skillExecutionAuthorityGeneration;
+      this._executionAuthorityGeneration = authorityGeneration;
     }
     return this._executionAuthorityGeneration;
   }
 
   _assertExecutionAuthorityGeneration(expectedGeneration) {
+    this._executionAuthority.assertGeneration(expectedGeneration);
     this._syncExecutionAuthorityGeneration();
-    if (expectedGeneration !== this._executionAuthorityGeneration) {
-      throw skillExecutionRevokedError(this._executionAuthorityGeneration);
-    }
   }
 
   /**
-   * Acquire a process-generation lease for one authorization or controlled
-   * execution. Revocation aborts the returned signal before advancing any new
-   * execution under an old digest decision.
+   * Acquire a durable-generation lease for one authorization or controlled
+   * execution. Same-home revocation aborts the returned signal and fences any
+   * later transition under an old digest decision.
    */
   acquireSkillExecution(skill, context = {}) {
     if (!skill || typeof skill !== "object") {
       throw new TypeError("A discovered skill descriptor is required");
     }
     throwIfAborted(context.signal, "Skill execution was interrupted");
-    const generation = this._syncExecutionAuthorityGeneration();
-    const controller = new AbortController();
-    const leaseRecord = {
-      controller,
-      generation,
+    this._syncExecutionAuthorityGeneration();
+    const authorityLease = this._executionAuthority.acquireLease({
       skillId: String(skill.id || skill.dirName || "unknown"),
-    };
+    });
+    const generation = authorityLease.generation;
     let released = false;
     let parentAbortListener = null;
     const release = () => {
       if (released) return;
       released = true;
-      activeSkillExecutionLeases.delete(leaseRecord);
+      authorityLease.release();
       if (parentAbortListener) {
         try {
           context.signal?.removeEventListener?.("abort", parentAbortListener);
@@ -490,19 +464,16 @@ export class CLISkillLoader {
       }
     };
     const assertActive = () => {
-      throwIfAborted(controller.signal, "Skill execution was interrupted");
+      throwIfAborted(authorityLease.signal, "Skill execution was interrupted");
       this._assertExecutionAuthorityGeneration(generation);
     };
 
-    activeSkillExecutionLeases.add(leaseRecord);
     if (context.signal?.addEventListener) {
       parentAbortListener = () => {
-        if (!controller.signal.aborted) {
-          controller.abort(
-            context.signal.reason ||
-              createAbortError("Skill execution was interrupted"),
-          );
-        }
+        authorityLease.abort(
+          context.signal.reason ||
+            createAbortError("Skill execution was interrupted"),
+        );
       };
       try {
         context.signal.addEventListener("abort", parentAbortListener, {
@@ -524,7 +495,7 @@ export class CLISkillLoader {
     }
     return Object.freeze({
       generation: String(generation),
-      signal: controller.signal,
+      signal: authorityLease.signal,
       assertActive,
       release,
     });
@@ -533,7 +504,7 @@ export class CLISkillLoader {
   revokeExecutionAuthorizations(options = {}) {
     this._syncExecutionAuthorityGeneration();
     const clearedLocalAuthorizations = this._authorizedExecutionDigests.size;
-    const result = revokeSkillExecutionAuthorizations(options);
+    const result = this._executionAuthority.revoke(options);
     this._syncExecutionAuthorityGeneration();
     return Object.freeze({ ...result, clearedLocalAuthorizations });
   }

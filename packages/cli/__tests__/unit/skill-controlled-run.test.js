@@ -1,7 +1,15 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import {
   createCliSkillReauthorizer,
   createControlledSkillScaffold,
@@ -11,6 +19,25 @@ import {
 import { CLISkillLoader } from "../../src/lib/skill-loader.js";
 
 const roots = [];
+let authorityHome;
+let previousAuthorityHome;
+
+beforeAll(() => {
+  previousAuthorityHome = process.env.CHAINLESSCHAIN_HOME;
+  authorityHome = fs.mkdtempSync(
+    path.join(os.tmpdir(), "cc-skill-command-authority-"),
+  );
+  process.env.CHAINLESSCHAIN_HOME = authorityHome;
+});
+
+afterAll(() => {
+  if (previousAuthorityHome === undefined) {
+    delete process.env.CHAINLESSCHAIN_HOME;
+  } else {
+    process.env.CHAINLESSCHAIN_HOME = previousAuthorityHome;
+  }
+  fs.rmSync(authorityHome, { recursive: true, force: true });
+});
 
 function fixtureLoader(root, options = {}) {
   const loader = new CLISkillLoader({ contextLedger: null, ...options });

@@ -990,6 +990,7 @@ const _defaultSkillLoader = new CLISkillLoader();
 export function reloadSkills() {
   _defaultSkillLoader.revokeExecutionAuthorizations({
     message: "Skill execution authorization was revoked by /reload-skills",
+    reasonCode: "reload-skills",
   });
   _defaultSkillLoader.clearCache();
   return _defaultSkillLoader.loadAll().length;

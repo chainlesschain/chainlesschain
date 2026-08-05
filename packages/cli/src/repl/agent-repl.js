@@ -5855,6 +5855,7 @@ async function startAgentReplInWorkspace(options = {}, startupAdmission) {
         _replSkillLoader.revokeExecutionAuthorizations?.({
           message:
             "Skill execution authorization was revoked by /reload-skills",
+          reasonCode: "reload-skills",
         });
         _replSkillLoader.clearCache();
         const n = _replSkillLoader.loadAll().length;
