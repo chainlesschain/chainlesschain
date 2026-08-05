@@ -269,11 +269,9 @@ function buildHostApiLaunchArgs({ workspaceDir, profileArgs }) {
 function buildHostDomRelayLaunchArgs({ workspaceDir, profileArgs }) {
   return [
     ...profileArgs,
-    // GitHub's Intel macOS guests have no stable accelerated compositor for
-    // VS Code's out-of-process Webview on current Electron builds. The DOM
-    // journey does not test GPU behavior, so force deterministic software
-    // rendering and retain verbose renderer/service-worker diagnostics.
-    "--disable-gpu",
+    // Retain renderer/service-worker diagnostics for current Electron builds.
+    // GPU remains enabled because disabling it can stall stable VS Code before
+    // either the target extension or the test driver reaches activation.
     "--verbose",
     "--disable-background-timer-throttling",
     "--disable-backgrounding-occluded-windows",

@@ -365,7 +365,7 @@ test("macOS DOM relay launches without a debugger transport", async () => {
     ),
     false,
   );
-  assert.equal(launch.launchArgs.includes("--disable-gpu"), true);
+  assert.equal(launch.launchArgs.includes("--disable-gpu"), false);
   assert.equal(launch.launchArgs.includes("--verbose"), true);
   assert.equal(launch.launchArgs.at(-1), workspaceDir);
   assert.deepEqual(
