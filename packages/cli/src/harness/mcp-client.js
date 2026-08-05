@@ -75,6 +75,13 @@ export function normalizeMcpConfigScope(scope = "user") {
 const HTTP_REQUEST_TIMEOUT_MS = 30000;
 const WEBSOCKET_CONNECT_TIMEOUT_MS = 10000;
 const WEBSOCKET_MAX_PAYLOAD_BYTES = 16 * 1024 * 1024;
+// Host-owned ceiling for every finite HTTP MCP response body. Server config
+// may tighten this through maxBufferChars for backwards compatibility, but it
+// cannot raise or disable this byte limit.
+const MCP_HTTP_RESPONSE_MAX_BYTES = 16 * 1024 * 1024;
+// Error diagnostics only surface 200 characters. Bound the transport-owned
+// preview well below the full response ceiling and cancel the remaining body.
+const MCP_HTTP_ERROR_PREVIEW_MAX_BYTES = 4 * 1024;
 
 /**
  * Default per-call timeout for stdio MCP requests — the same 30s default as the
@@ -1978,8 +1985,12 @@ export class MCPClient extends EventEmitter {
                 ? { signal: stream.controller.signal }
                 : {}),
             });
-            if (response.status === 405) return;
+            if (response.status === 405) {
+              _cancelHttpResponseBody(response);
+              return;
+            }
             if (response.status === 401 || response.status === 403) {
+              _cancelHttpResponseBody(response);
               if (entry.config?.headersHelper && stream.authFailures === 0) {
                 stream.authFailures = 1;
                 continue;
@@ -1992,6 +2003,7 @@ export class MCPClient extends EventEmitter {
               return;
             }
             if (!response.ok) {
+              _cancelHttpResponseBody(response);
               throw new Error(
                 `MCP HTTP message stream returned ${response.status}`,
               );
@@ -2000,10 +2012,11 @@ export class MCPClient extends EventEmitter {
             const contentType = response.headers?.get
               ? String(response.headers.get("content-type") || "").toLowerCase()
               : "";
-            if (!contentType.includes("text/event-stream")) return;
-            const cap = Number.isFinite(entry.config?.maxBufferChars)
-              ? entry.config.maxBufferChars
-              : MCP_MAX_BUFFER_CHARS;
+            if (!contentType.includes("text/event-stream")) {
+              _cancelHttpResponseBody(response);
+              return;
+            }
+            const cap = _httpResponseByteLimit(entry.config?.maxBufferChars);
             await _consumeSseMessageStream(response, {
               cap,
               stream,
@@ -2014,7 +2027,12 @@ export class MCPClient extends EventEmitter {
             this.emit("server-stream-error", {
               name: serverName,
               error: error?.message || String(error),
+              ...(error?.code ? { code: error.code } : {}),
+              ...(error?.limitBytes != null
+                ? { limitBytes: error.limitBytes }
+                : {}),
             });
+            if (error?.code === "CC_MCP_HTTP_RESPONSE_TOO_LARGE") return;
             if (String(error?.code || "").startsWith("CC_MCP_HEADERS_HELPER")) {
               return;
             }
@@ -2113,6 +2131,11 @@ export class MCPClient extends EventEmitter {
         entry.httpSessionId = sessionId;
       }
 
+      // This is a host-owned absolute byte limit. maxBufferChars remains a
+      // backwards-compatible way to request a smaller HTTP body limit, but 0
+      // no longer disables the HTTP ceiling (stdio retains its old semantics).
+      const cap = _httpResponseByteLimit(entry.config?.maxBufferChars);
+
       if (!response.ok) {
         // Authentication bodies frequently echo token/debug material. When a
         // dynamic helper is configured, any error body may reflect its opaque
@@ -2122,18 +2145,23 @@ export class MCPClient extends EventEmitter {
           Boolean(entry.config?.headersHelper) ||
           response.status === 401 ||
           response.status === 403;
+        if (suppressBody) _cancelHttpResponseBody(response);
         const text = suppressBody
           ? ""
-          : typeof response.text === "function"
-            ? await response.text()
-            : "";
+          : await _readHttpErrorBodyPreview(response, cap);
         const detail = text ? `: ${text.slice(0, 200)}` : "";
         // 404 usually means a wrong/stale server URL — name it and point at the
         // MCP config (Claude-Code 2.1.191: "HTTP 404 errors now show the URL and
         // point to your MCP config") instead of a bare "HTTP 404".
         if (response.status === 404) {
-          throw new Error(
+          throw mcpTransportError(
+            "CC_MCP_HTTP_STATUS",
             `HTTP 404${detail} — ${redactMcpUrl(entry.httpUrl)} returned Not Found; check this server's "url" in your MCP config`,
+            {
+              transport: entry.transportKind,
+              url: entry.config?.url,
+              status: response.status,
+            },
           );
         }
         throw mcpTransportError(
@@ -2150,12 +2178,6 @@ export class MCPClient extends EventEmitter {
       const contentType = response.headers?.get
         ? String(response.headers.get("content-type") || "").toLowerCase()
         : "";
-      // Bound the response body the same way the stdio path bounds its line
-      // buffer (per-server maxBufferChars override; 0 disables).
-      const cap = Number.isFinite(entry.config?.maxBufferChars)
-        ? entry.config.maxBufferChars
-        : MCP_MAX_BUFFER_CHARS;
-
       let envelope;
       if (contentType.includes("text/event-stream")) {
         envelope = await _extractSseResponse(response, id, cap, (message) =>
@@ -2463,27 +2485,57 @@ export class MCPClient extends EventEmitter {
   }
 }
 
+function _httpResponseByteLimit(configuredLimit) {
+  if (Number.isFinite(configuredLimit) && configuredLimit > 0) {
+    return Math.min(
+      MCP_HTTP_RESPONSE_MAX_BYTES,
+      Math.max(1, Math.floor(configuredLimit)),
+    );
+  }
+  return MCP_HTTP_RESPONSE_MAX_BYTES;
+}
+
+function _cancelHttpResponseBody(response) {
+  try {
+    const pending = response?.body?.cancel?.();
+    pending?.catch?.(() => {});
+  } catch {
+    // Best-effort cleanup; callers still surface the bounded status/size error.
+  }
+}
+
+function _httpResponseTooLarge(cap, detail) {
+  const error = new Error(
+    `MCP HTTP response exceeded the ${cap}-byte cap${detail ? ` (${detail})` : ""}`,
+  );
+  error.code = "CC_MCP_HTTP_RESPONSE_TOO_LARGE";
+  error.limitBytes = cap;
+  return error;
+}
+
 /**
- * Read an HTTP response body to text with a hard size cap, mirroring the stdio
- * transport's MCP_MAX_BUFFER_CHARS guard. The per-call timeout bounds TIME but
- * not MEMORY: a malicious/buggy HTTP MCP server could stream a multi-GB body
- * within the timeout and OOM the client. When the body is a readable stream
- * (real fetch) we accumulate with a running cap and cancel on overflow; for a
- * non-stream response (test mocks) we fall back to text() + a post-hoc check.
- * A declared Content-Length over the cap is rejected before any read. cap<=0
- * disables the limit.
+ * Read a finite HTTP response body to text under a host-owned absolute byte
+ * ceiling. The per-call timeout bounds TIME but not MEMORY: a malicious or
+ * buggy MCP server could otherwise stream a multi-GB success or error body
+ * within the timeout and OOM the client. Real fetch responses are accumulated
+ * only after a running byte check and their reader is cancelled on overflow.
+ * Response-like test doubles without a readable body retain a text() fallback,
+ * which is checked by UTF-8 byte length immediately after that mock resolves.
+ * A declared Content-Length over the effective cap is rejected before any read.
  */
 async function _readBodyCapped(response, cap) {
-  if (
-    cap > 0 &&
-    response.headers &&
-    typeof response.headers.get === "function"
-  ) {
-    const declared = Number(response.headers.get("content-length"));
-    if (Number.isFinite(declared) && declared > cap) {
-      throw new Error(
-        `MCP HTTP response exceeds the ${cap}-byte cap (content-length ${declared})`,
-      );
+  cap = _httpResponseByteLimit(cap);
+  if (response.headers && typeof response.headers.get === "function") {
+    const declaredHeader = response.headers.get("content-length");
+    if (/^\d+$/.test(String(declaredHeader || "").trim())) {
+      const declared = BigInt(String(declaredHeader).trim());
+      if (declared > BigInt(cap)) {
+        _cancelHttpResponseBody(response);
+        throw _httpResponseTooLarge(
+          cap,
+          `content-length ${String(declaredHeader).trim()}`,
+        );
+      }
     }
   }
   if (response.body && typeof response.body.getReader === "function") {
@@ -2491,33 +2543,105 @@ async function _readBodyCapped(response, cap) {
     const decoder = new TextDecoder("utf-8");
     const chunks = [];
     let total = 0;
-    for (;;) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      total += value && value.length ? value.length : 0;
-      if (cap > 0 && total > cap) {
-        try {
-          await reader.cancel();
-        } catch {
-          /* best-effort — the throw below is what matters */
+    try {
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        total += value?.byteLength || 0;
+        if (total > cap) {
+          try {
+            await reader.cancel();
+          } catch {
+            /* best-effort — the throw below is what matters */
+          }
+          throw _httpResponseTooLarge(cap, "runaway server");
         }
-        throw new Error(
-          `MCP HTTP response exceeded the ${cap}-byte cap (runaway server)`,
-        );
+        chunks.push(decoder.decode(value, { stream: true }));
       }
-      chunks.push(decoder.decode(value, { stream: true }));
+      chunks.push(decoder.decode());
+      return chunks.join("");
+    } catch (error) {
+      try {
+        await reader.cancel();
+      } catch {
+        // Best-effort cleanup; preserve the original read/limit error.
+      }
+      throw error;
+    } finally {
+      try {
+        reader.releaseLock?.();
+      } catch {
+        // The reader may already be detached after cancellation.
+      }
     }
-    chunks.push(decoder.decode());
-    return chunks.join("");
   }
   if (typeof response.text !== "function") {
     throw new Error("HTTP response is not readable");
   }
   const text = await response.text();
-  if (cap > 0 && text.length > cap) {
-    throw new Error(`MCP HTTP response exceeded the ${cap}-char cap`);
+  if (Buffer.byteLength(text, "utf8") > cap) {
+    throw _httpResponseTooLarge(cap, "response-like fallback");
   }
   return text;
+}
+
+/** Read only the bounded diagnostic prefix of an HTTP error response. */
+async function _readHttpErrorBodyPreview(response, responseCap) {
+  const cap = Math.min(
+    _httpResponseByteLimit(responseCap),
+    MCP_HTTP_ERROR_PREVIEW_MAX_BYTES,
+  );
+  if (response.body && typeof response.body.getReader === "function") {
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder("utf-8");
+    const chunks = [];
+    let total = 0;
+    try {
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        const bytes = value?.byteLength || 0;
+        const remaining = cap - total;
+        if (bytes >= remaining) {
+          if (remaining > 0) {
+            chunks.push(
+              decoder.decode(value.subarray(0, remaining), { stream: true }),
+            );
+          }
+          try {
+            await reader.cancel();
+          } catch {
+            // Best-effort cancellation; the preview is already bounded.
+          }
+          break;
+        }
+        total += bytes;
+        chunks.push(decoder.decode(value, { stream: true }));
+      }
+      chunks.push(decoder.decode());
+      return chunks.join("");
+    } catch (error) {
+      try {
+        await reader.cancel();
+      } catch {
+        // Best-effort cleanup; preserve the original preview read error.
+      }
+      throw error;
+    } finally {
+      try {
+        reader.releaseLock?.();
+      } catch {
+        // The reader may already be detached after cancellation.
+      }
+    }
+  }
+  if (typeof response.text !== "function") return "";
+  // This compatibility branch exists for Response-like test doubles only.
+  // Unlike a real fetch ReadableStream, text() cannot be stopped mid-read, so
+  // its UTF-8 byte bound is necessarily enforced immediately after resolution.
+  const text = await response.text();
+  if (Buffer.byteLength(text, "utf8") <= cap) return text;
+  return Buffer.from(text, "utf8").subarray(0, cap).toString("utf8");
 }
 
 /**
@@ -2579,7 +2703,11 @@ async function _consumeSseMessageStream(
   response,
   { cap = 0, stream, onMessage },
 ) {
+  cap = _httpResponseByteLimit(cap);
   const dispatch = (rawEvent) => {
+    if (Buffer.byteLength(String(rawEvent || ""), "utf8") > cap) {
+      throw _httpResponseTooLarge(cap, "SSE event");
+    }
     const parsed = _parseSseEvent(rawEvent);
     if (parsed.id != null && parsed.id !== "") {
       stream.lastEventId = parsed.id;
@@ -2602,9 +2730,6 @@ async function _consumeSseMessageStream(
       const { value, done } = await reader.read();
       if (done) break;
       buffer += decoder.decode(value, { stream: true });
-      if (cap > 0 && buffer.length > cap) {
-        throw new Error(`MCP HTTP SSE event exceeded the ${cap}-char cap`);
-      }
       let boundary;
       while ((boundary = buffer.search(/\r?\n\r?\n/)) >= 0) {
         const separator = buffer.match(/\r?\n\r?\n/)[0];
@@ -2612,9 +2737,22 @@ async function _consumeSseMessageStream(
         buffer = buffer.slice(boundary + separator.length);
         dispatch(event);
       }
+      if (Buffer.byteLength(buffer, "utf8") > cap) {
+        throw _httpResponseTooLarge(cap, "unterminated SSE event");
+      }
     }
     buffer += decoder.decode();
+    if (Buffer.byteLength(buffer, "utf8") > cap) {
+      throw _httpResponseTooLarge(cap, "unterminated SSE event");
+    }
     if (buffer.trim()) dispatch(buffer);
+  } catch (error) {
+    try {
+      await reader.cancel();
+    } catch {
+      // Best-effort cleanup; the bounded stream error remains authoritative.
+    }
+    throw error;
   } finally {
     try {
       reader.releaseLock?.();
