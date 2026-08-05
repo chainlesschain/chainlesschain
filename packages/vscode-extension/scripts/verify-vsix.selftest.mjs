@@ -14,8 +14,16 @@
  * can run it with zero install.
  */
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { deflateRawSync } from "node:zlib";
 
+import {
+  createVsixReleaseArtifactManifest,
+  verifyVsixReleaseArtifact,
+} from "./vsix-release-artifact.mjs";
 import {
   listZipEntries,
   parseVsixManifest,
@@ -177,6 +185,24 @@ function runVerifier(zipBuf, expected = EXPECTED) {
   });
 }
 
+function withReleaseFixture(fn) {
+  const directory = mkdtempSync(join(tmpdir(), "verify-vsix-release-"));
+  const vsix = join(directory, "chainlesschain-ide.vsix");
+  const zip = buildZip(goodFiles());
+  writeFileSync(vsix, zip);
+  try {
+    return fn({ vsix, zip });
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+}
+
+const RELEASE_PROVENANCE = {
+  commit: "0123456789abcdef0123456789abcdef01234567",
+  workflowRun:
+    "https://github.com/chainlesschain/chainlesschain/actions/runs/123456789",
+};
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -290,6 +316,115 @@ test("vsixmanifest identity drift from package.json fails", () => {
   );
   const { failures } = runVerifier(buildZip(goodFiles({ manifestXml: xml })));
   assert.ok(failures.some((f) => f.startsWith("vsixmanifest Identity Id")));
+});
+
+test("release manifest create + verify bind raw bytes and identities", () => {
+  withReleaseFixture(({ vsix, zip }) => {
+    const manifest = createVsixReleaseArtifactManifest({
+      vsix,
+      ...RELEASE_PROVENANCE,
+      packageName: EXPECTED.name,
+      publisher: EXPECTED.publisher,
+      version: EXPECTED.version,
+    });
+    assert.equal(manifest.schema, 1);
+    assert.equal(manifest.artifact, "chainlesschain-ide.vsix");
+    assert.equal(manifest.bytes, zip.length);
+    assert.equal(
+      manifest.sha256,
+      createHash("sha256").update(zip).digest("hex"),
+    );
+    assert.equal(
+      manifest.sha512,
+      createHash("sha512").update(zip).digest("hex"),
+    );
+    assert.equal(manifest.package, EXPECTED.name);
+    assert.equal(manifest.publisher, EXPECTED.publisher);
+    assert.equal(manifest.version, EXPECTED.version);
+    assert.deepEqual(manifest.vsixmanifestIdentity, {
+      id: EXPECTED.name,
+      publisher: EXPECTED.publisher,
+      version: EXPECTED.version,
+    });
+    assert.equal(
+      verifyVsixReleaseArtifact(vsix, manifest, {
+        packageName: EXPECTED.name,
+        publisher: EXPECTED.publisher,
+        version: EXPECTED.version,
+        ...RELEASE_PROVENANCE,
+      }),
+      true,
+    );
+  });
+});
+
+test("release verification rejects raw VSIX tampering", () => {
+  withReleaseFixture(({ vsix }) => {
+    const manifest = createVsixReleaseArtifactManifest({
+      vsix,
+      ...RELEASE_PROVENANCE,
+    });
+    writeFileSync(
+      vsix,
+      Buffer.concat([buildZip(goodFiles()), Buffer.from("tampered")]),
+    );
+    assert.throws(
+      () => verifyVsixReleaseArtifact(vsix, manifest, RELEASE_PROVENANCE),
+      /byte length, sha256, sha512/,
+    );
+  });
+});
+
+test("release creation rejects duplicated identity authority entries", () => {
+  withReleaseFixture(({ vsix }) => {
+    writeFileSync(
+      vsix,
+      buildZip([
+        ...goodFiles(),
+        {
+          name: "extension/package.json",
+          data: JSON.stringify({ ...GOOD_PACKAGE, version: "0.0.0-evil" }),
+        },
+      ]),
+    );
+    assert.throws(
+      () =>
+        createVsixReleaseArtifactManifest({
+          vsix,
+          ...RELEASE_PROVENANCE,
+        }),
+      /extension\/package\.json is duplicated/,
+    );
+  });
+});
+
+test("release verification rejects commit mismatch", () => {
+  withReleaseFixture(({ vsix }) => {
+    const manifest = createVsixReleaseArtifactManifest({
+      vsix,
+      ...RELEASE_PROVENANCE,
+    });
+    assert.throws(
+      () =>
+        verifyVsixReleaseArtifact(vsix, manifest, {
+          commit: "ffffffffffffffffffffffffffffffffffffffff",
+        }),
+      /verification failed: commit/,
+    );
+  });
+});
+
+test("release verification rejects expected version mismatch", () => {
+  withReleaseFixture(({ vsix }) => {
+    const manifest = createVsixReleaseArtifactManifest({
+      vsix,
+      ...RELEASE_PROVENANCE,
+    });
+    assert.throws(
+      () => verifyVsixReleaseArtifact(vsix, manifest, { version: "9.9.8" }),
+      /verification failed: version/,
+    );
+  });
 });
 
 console.log(`verify-vsix selftest: all ${testCount} tests passed`);

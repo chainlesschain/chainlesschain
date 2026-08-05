@@ -11,6 +11,17 @@ function read(relativePath) {
   return fs.readFileSync(path.join(repositoryRoot, relativePath), "utf8");
 }
 
+function workflowJob(workflow, jobId) {
+  const normalized = workflow.replace(/\r\n/gu, "\n");
+  const marker = `  ${jobId}:\n`;
+  const start = normalized.indexOf(marker);
+  assert.notEqual(start, -1, `workflow job ${jobId} must exist`);
+  const bodyStart = start + marker.length;
+  const nextJob = normalized.slice(bodyStart).match(/\n  [a-z][a-z0-9-]*:\n/u);
+  const end = nextJob ? bodyStart + nextJob.index : normalized.length;
+  return normalized.slice(start, end);
+}
+
 test("JetBrains release hosts use the platform-required Java 21 toolchain", () => {
   const workflow = read(".github/workflows/ide-extensions.yml");
   const nightly = read(".github/workflows/ide-jetbrains-ui-smoke.yml");
@@ -42,6 +53,150 @@ test("VS Code credentials are checked before either immutable publish", () => {
   assert.match(workflow, /OVSX_PAT: \$\{\{ secrets\.OVSX_PAT \}\}/u);
   assert.match(workflow, /VSCE_PAT: \$\{\{ secrets\.VSCE_PAT \}\}/u);
   assert.match(workflow, /@vscode\/vsce@3\.9\.2 verify-pat chainlesschain/u);
+});
+
+test("one immutable VSIX candidate gates every release host and publisher", () => {
+  const workflow = read(".github/workflows/ide-extensions.yml");
+  const packageJob = workflowJob(workflow, "vscode-package");
+  const windowsJob = workflowJob(workflow, "vscode-windows-smoke");
+  const macosJob = workflowJob(workflow, "vscode-macos-smoke");
+  const releaseJob = workflowJob(workflow, "vscode");
+  const packageCommand =
+    /@vscode\/vsce@3\.9\.2 package --no-dependencies --out chainlesschain-ide\.vsix/gu;
+
+  assert.equal(
+    workflow.match(packageCommand)?.length,
+    1,
+    "the workflow must package the release candidate exactly once",
+  );
+  assert.match(packageJob, /needs: capability-manifest/u);
+  assert.match(packageJob, /npm run test:unit/u);
+  assert.match(
+    packageJob,
+    /vsix-release-artifact\.mjs create\s+chainlesschain-ide\.vsix manifest\.json/u,
+  );
+  assert.match(packageJob, /name: chainlesschain-ide-vscode-candidate/u);
+  assert.match(packageJob, /packages\/vscode-extension\/manifest\.json/u);
+  assert.match(
+    releaseJob,
+    /needs: \[vscode-package, vscode-windows-smoke, vscode-macos-smoke\]/u,
+  );
+
+  for (const [name, job] of [
+    ["Windows", windowsJob],
+    ["macOS", macosJob],
+    ["Linux/publish", releaseJob],
+  ]) {
+    assert.match(
+      job,
+      /uses: actions\/download-artifact@v6[\s\S]*?name: chainlesschain-ide-vscode-candidate[\s\S]*?path: packages\/vscode-extension/u,
+      `${name} must download the immutable candidate from this workflow run`,
+    );
+    assert.match(
+      job,
+      /vsix-release-artifact\.mjs verify\s+chainlesschain-ide\.vsix manifest\.json/u,
+      `${name} must verify the downloaded candidate manifest`,
+    );
+    assert.doesNotMatch(
+      job,
+      /@vscode\/vsce@3\.9\.2 package/u,
+      `${name} must not rebuild the candidate`,
+    );
+    assert.doesNotMatch(job, /npm run test:unit/u);
+  }
+
+  assert.equal(
+    releaseJob.match(/vsix-release-artifact\.mjs verify/gu)?.length,
+    2,
+    "the Linux/publish job must verify the candidate before host gates and again before publishing",
+  );
+  assert.match(
+    releaseJob,
+    /Verify immutable candidate manifest before publishing[\s\S]*?Publish to Open VSX/u,
+  );
+});
+
+test("IDE release tags are isolated and manual Marketplace backfill is tag-bound", () => {
+  const workflow = read(".github/workflows/ide-extensions.yml");
+  const packageJob = workflowJob(workflow, "vscode-package");
+  const windowsJob = workflowJob(workflow, "vscode-windows-smoke");
+  const macosJob = workflowJob(workflow, "vscode-macos-smoke");
+  const releaseJob = workflowJob(workflow, "vscode");
+  const jetbrainsHosts = workflowJob(workflow, "jetbrains-host-matrix");
+  const jetbrainsRelease = workflowJob(workflow, "jetbrains");
+  const jetbrainsVerify = workflowJob(workflow, "jetbrains-marketplace-verify");
+
+  assert.match(
+    workflow,
+    /accepted only when the workflow is dispatched against the exact\s+existing ide-vscode-v\* tag/u,
+  );
+  assert.match(packageJob, /Reject unsafe VS Code Marketplace backfill/u);
+  assert.match(
+    packageJob,
+    /github\.event_name == 'workflow_dispatch' && inputs\.publish_vscode_marketplace/u,
+  );
+  assert.match(packageJob, /case "\$GITHUB_REF" in/u);
+  assert.match(packageJob, /refs\/tags\/ide-vscode-v\?\*\) ;;/u);
+
+  for (const job of [windowsJob, macosJob, releaseJob]) {
+    assert.match(
+      job,
+      /!startsWith\(github\.ref, 'refs\/tags\/ide-jetbrains-v'\)/u,
+      "VS Code jobs must skip JetBrains release tags",
+    );
+  }
+  assert.match(
+    packageJob,
+    /!startsWith\(github\.ref, 'refs\/tags\/ide-jetbrains-v'\)[\s\S]*?github\.event_name == 'workflow_dispatch'/u,
+    "the candidate job must still run to reject an invalid manual backfill ref",
+  );
+
+  for (const job of [jetbrainsHosts, jetbrainsRelease]) {
+    assert.match(
+      job,
+      /!startsWith\(github\.ref, 'refs\/tags\/ide-vscode-v'\)/u,
+      "JetBrains jobs must skip VS Code release tags",
+    );
+    assert.match(
+      job,
+      /!\(github\.event_name == 'workflow_dispatch' && inputs\.publish_vscode_marketplace\)/u,
+      "JetBrains jobs must skip manual VS Code Marketplace backfills",
+    );
+  }
+  assert.match(
+    jetbrainsRelease,
+    /github\.event_name == 'push' &&\s+startsWith\(github\.ref, 'refs\/tags\/ide-jetbrains-v'\)/u,
+  );
+  assert.match(
+    jetbrainsVerify,
+    /github\.event_name == 'push' &&\s+startsWith\(github\.ref, 'refs\/tags\/ide-jetbrains-v'\)/u,
+  );
+
+  const marketplaceGuard =
+    /startsWith\(github\.ref, 'refs\/tags\/ide-vscode-v'\) &&\s+\(github\.event_name == 'push' \|\|\s+\(github\.event_name == 'workflow_dispatch' &&\s+inputs\.publish_vscode_marketplace\)\)/gu;
+  assert.equal(
+    workflow.match(marketplaceGuard)?.length,
+    5,
+    "credential preflight and all four VS marketplace write/read steps must share the tag-bound guard",
+  );
+
+  const openVsxPublish = releaseJob.indexOf("- name: Publish to Open VSX");
+  const openVsxVerify = releaseJob.indexOf("- name: Verify Open VSX listing");
+  const vscodePublish = releaseJob.indexOf(
+    "- name: Publish to VS Code Marketplace",
+  );
+  const vscodeVerify = releaseJob.indexOf(
+    "- name: Verify VS Code Marketplace listing and exact VSIX",
+  );
+  assert.ok(openVsxPublish >= 0);
+  assert.ok(openVsxPublish < openVsxVerify);
+  assert.ok(openVsxVerify < vscodePublish);
+  assert.ok(vscodePublish < vscodeVerify);
+  assert.match(releaseJob, /ovsx@1\.0\.2 publish --skip-duplicate/u);
+  assert.match(
+    releaseJob,
+    /verify-ide-marketplace\.mjs open-vsx "\$version" --artifact chainlesschain-ide\.vsix/u,
+  );
 });
 
 test("VS Code macOS host gate pins the validated Intel runner image", () => {
