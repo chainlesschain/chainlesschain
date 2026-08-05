@@ -19,6 +19,7 @@ import {
   registerMcpResourceTools,
 } from "../../src/runtime/mcp-config.js";
 import { runAgentHeadless } from "../../src/runtime/headless-runner.js";
+import { executeTool } from "../../src/runtime/agent-core.js";
 import {
   parseMcpPromptCommand,
   renderPromptMessages,
@@ -97,6 +98,40 @@ describe("MCPClient — resources + prompts", () => {
     await expect(client.getPrompt("docs", "x")).rejects.toThrow(
       "not connected",
     );
+  });
+
+  it("suppresses peer-controlled HTTP status detail at the resource tool boundary", async () => {
+    const canary = "RESOURCE_HTTP_BODY_SECRET_CANARY";
+    const readResource = vi.fn(async () => {
+      const error = new Error(`HTTP 500: ${canary}`);
+      error.code = "CC_MCP_HTTP_STATUS";
+      error.status = 500;
+      throw error;
+    });
+
+    const result = await executeTool(
+      "read_mcp_resource",
+      { server: "docs", uri: "file:///a.md" },
+      {
+        mcpClient: { readResource },
+        externalToolDescriptors: {
+          read_mcp_resource: {
+            name: "read_mcp_resource",
+            kind: "mcp-resource",
+            category: "mcp",
+          },
+        },
+        externalToolExecutors: {
+          read_mcp_resource: { kind: "mcp-resource", op: "read" },
+        },
+      },
+    );
+
+    expect(readResource).toHaveBeenCalledWith("docs", "file:///a.md");
+    expect(result.error).toBe(
+      "MCP resource access failed: MCP HTTP request failed with status 500",
+    );
+    expect(JSON.stringify(result)).not.toContain(canary);
   });
 });
 
@@ -304,6 +339,83 @@ describe("agent loop — MCP resource tools", () => {
     expect(events.some((e) => e.type === "tool_result" && e.is_error)).toBe(
       false,
     );
+  }, 15_000);
+
+  it("keeps an HTTP error body out of the resource tool event and next model turn", async () => {
+    const canary = "MODEL_SESSION_HTTP_BODY_SECRET_CANARY";
+    const client = fakeClient({
+      docs: { resources: [{ uri: "file:///private.md", name: "Private" }] },
+    });
+    client.readResource = vi.fn(async () => {
+      const error = new Error(`HTTP 503: ${canary}`);
+      error.code = "CC_MCP_HTTP_STATUS";
+      error.status = 503;
+      throw error;
+    });
+    const wiring = await setupMcpFromConfig(
+      { docs: { command: "x" } },
+      { createClient: () => client },
+    );
+
+    const modelInputs = [];
+    let turn = 0;
+    const chatFn = vi.fn(async (messages) => {
+      modelInputs.push(JSON.stringify(messages));
+      turn += 1;
+      if (turn === 1) {
+        return {
+          message: {
+            role: "assistant",
+            content: "",
+            tool_calls: [
+              {
+                id: "c-http-error",
+                type: "function",
+                function: {
+                  name: "read_mcp_resource",
+                  arguments: JSON.stringify({
+                    server: "docs",
+                    uri: "file:///private.md",
+                  }),
+                },
+              },
+            ],
+          },
+        };
+      }
+      return { message: { role: "assistant", content: "done" } };
+    });
+    const persisted = [];
+    const { deps, out } = baseDeps({
+      loadMcpConfig: async () => wiring,
+      chatFn,
+      appendAssistantMessage: (...args) => persisted.push(args),
+      appendToolCallCompact: (...args) => persisted.push(args),
+      appendTokenUsage: (...args) => persisted.push(args),
+    });
+
+    const result = await runAgentHeadless(
+      {
+        prompt: "read private docs",
+        mcpConfig: "x.json",
+        outputFormat: "stream-json",
+        sessionId: "s-resource-http-error",
+        permissionMode: "bypassPermissions",
+        expandFileRefs: false,
+      },
+      deps,
+    );
+
+    expect(result.exitCode).toBe(0);
+    expect(chatFn).toHaveBeenCalledTimes(2);
+    expect(client.readResource).toHaveBeenCalledOnce();
+    const exposed = [
+      out.join(""),
+      ...modelInputs,
+      JSON.stringify(persisted),
+    ].join("\n");
+    expect(exposed).toContain("MCP HTTP request failed with status 503");
+    expect(exposed).not.toContain(canary);
   }, 15_000);
 });
 

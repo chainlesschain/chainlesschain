@@ -96,9 +96,6 @@ function webSocketPayloadLimit(configuredLimit) {
 // may tighten this through maxBufferChars for backwards compatibility, but it
 // cannot raise or disable this byte limit.
 const MCP_HTTP_RESPONSE_MAX_BYTES = 16 * 1024 * 1024;
-// Error diagnostics only surface 200 characters. Bound the transport-owned
-// preview well below the full response ceiling and cancel the remaining body.
-const MCP_HTTP_ERROR_PREVIEW_MAX_BYTES = 4 * 1024;
 
 /**
  * Default per-call timeout for stdio MCP requests — the same 30s default as the
@@ -2379,26 +2376,20 @@ export class MCPClient extends EventEmitter {
       const cap = _httpResponseByteLimit(entry.config?.maxBufferChars);
 
       if (!response.ok) {
-        // Authentication bodies frequently echo token/debug material. When a
-        // dynamic helper is configured, any error body may reflect its opaque
-        // header values; structured HTTP status is sufficient and cannot leak
-        // freshly generated credentials into logs or exceptions.
-        const suppressBody =
-          Boolean(entry.config?.headersHelper) ||
-          response.status === 401 ||
-          response.status === 403;
-        if (suppressBody) _cancelHttpResponseBody(response);
-        const text = suppressBody
-          ? ""
-          : await _readHttpErrorBodyPreview(response, cap);
-        const detail = text ? `: ${text.slice(0, 200)}` : "";
+        // An HTTP error body is untrusted peer data and can contain secrets,
+        // terminal controls, prompt-injection text, or reflected request
+        // headers. Never read or copy it into the Error object: downstream
+        // hosts surface error.message to stderr, tool results, models and
+        // sessions. Status + redacted endpoint are the complete diagnostic
+        // contract; cancel the body immediately for every non-2xx response.
+        _cancelHttpResponseBody(response);
         // 404 usually means a wrong/stale server URL — name it and point at the
         // MCP config (Claude-Code 2.1.191: "HTTP 404 errors now show the URL and
         // point to your MCP config") instead of a bare "HTTP 404".
         if (response.status === 404) {
           throw mcpTransportError(
             "CC_MCP_HTTP_STATUS",
-            `HTTP 404${detail} — ${redactMcpUrl(entry.httpUrl)} returned Not Found; check this server's "url" in your MCP config`,
+            `HTTP 404 — ${redactMcpUrl(entry.httpUrl)} returned Not Found; check this server's "url" in your MCP config`,
             {
               transport: entry.transportKind,
               url: entry.config?.url,
@@ -2408,7 +2399,7 @@ export class MCPClient extends EventEmitter {
         }
         throw mcpTransportError(
           "CC_MCP_HTTP_STATUS",
-          `HTTP ${response.status}${detail}`,
+          `HTTP ${response.status}`,
           {
             transport: entry.transportKind,
             url: entry.config?.url,
@@ -2831,8 +2822,8 @@ function _httpResponseTooLarge(cap, detail) {
 /**
  * Read a finite HTTP response body to text under a host-owned absolute byte
  * ceiling. The per-call timeout bounds TIME but not MEMORY: a malicious or
- * buggy MCP server could otherwise stream a multi-GB success or error body
- * within the timeout and OOM the client. Real fetch responses are accumulated
+ * buggy MCP server could otherwise stream a multi-GB response body within the
+ * timeout and OOM the client. Real fetch responses are accumulated
  * only after a running byte check and their reader is cancelled on overflow.
  * Response-like test doubles without a readable body retain a text() fallback,
  * which is checked by UTF-8 byte length immediately after that mock resolves.
@@ -2898,65 +2889,6 @@ async function _readBodyCapped(response, cap) {
     throw _httpResponseTooLarge(cap, "response-like fallback");
   }
   return text;
-}
-
-/** Read only the bounded diagnostic prefix of an HTTP error response. */
-async function _readHttpErrorBodyPreview(response, responseCap) {
-  const cap = Math.min(
-    _httpResponseByteLimit(responseCap),
-    MCP_HTTP_ERROR_PREVIEW_MAX_BYTES,
-  );
-  if (response.body && typeof response.body.getReader === "function") {
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder("utf-8");
-    const chunks = [];
-    let total = 0;
-    try {
-      for (;;) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        const bytes = value?.byteLength || 0;
-        const remaining = cap - total;
-        if (bytes >= remaining) {
-          if (remaining > 0) {
-            chunks.push(
-              decoder.decode(value.subarray(0, remaining), { stream: true }),
-            );
-          }
-          try {
-            await reader.cancel();
-          } catch {
-            // Best-effort cancellation; the preview is already bounded.
-          }
-          break;
-        }
-        total += bytes;
-        chunks.push(decoder.decode(value, { stream: true }));
-      }
-      chunks.push(decoder.decode());
-      return chunks.join("");
-    } catch (error) {
-      try {
-        await reader.cancel();
-      } catch {
-        // Best-effort cleanup; preserve the original preview read error.
-      }
-      throw error;
-    } finally {
-      try {
-        reader.releaseLock?.();
-      } catch {
-        // The reader may already be detached after cancellation.
-      }
-    }
-  }
-  if (typeof response.text !== "function") return "";
-  // This compatibility branch exists for Response-like test doubles only.
-  // Unlike a real fetch ReadableStream, text() cannot be stopped mid-read, so
-  // its UTF-8 byte bound is necessarily enforced immediately after resolution.
-  const text = await response.text();
-  if (Buffer.byteLength(text, "utf8") <= cap) return text;
-  return Buffer.from(text, "utf8").subarray(0, cap).toString("utf8");
 }
 
 /**

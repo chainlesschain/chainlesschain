@@ -3362,6 +3362,16 @@ function safeMcpProperty(value, property) {
 }
 
 function safeMcpErrorMessage(error) {
+  // HTTP status bodies are peer-controlled. The production transport omits
+  // them at source, and this boundary independently prevents any MCP client
+  // honoring the stable transport error code from projecting one into tool
+  // results, models, or sessions.
+  if (safeMcpProperty(error, "code") === "CC_MCP_HTTP_STATUS") {
+    const status = safeMcpProperty(error, "status");
+    return Number.isInteger(status) && status >= 100 && status <= 599
+      ? `MCP HTTP request failed with status ${status}`
+      : "MCP HTTP request failed";
+  }
   const message = safeMcpProperty(error, "message");
   if (typeof message === "string" && message) return message;
   try {
@@ -5915,7 +5925,7 @@ async function executeToolInner(
           );
         } catch (err) {
           return attachDescriptor({
-            error: `MCP resource access failed: ${err.message}`,
+            error: `MCP resource access failed: ${safeMcpErrorMessage(err)}`,
           });
         }
       }

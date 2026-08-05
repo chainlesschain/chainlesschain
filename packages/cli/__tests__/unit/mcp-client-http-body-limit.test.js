@@ -194,7 +194,7 @@ describe("MCPClient HTTP response body byte limits", () => {
   });
 
   it.each([401, 404, 503])(
-    "bounds and cancels a chunked HTTP %i error body before its canary",
+    "suppresses and cancels a chunked HTTP %i error body before its canary",
     async (status) => {
       const canaryOffset = 64 * 1024;
       const fixture = await startChunkedFixture({
@@ -214,8 +214,7 @@ describe("MCPClient HTTP response body byte limits", () => {
         status,
       );
 
-      if (status === 401) expect(error.message).not.toContain("visible-error");
-      else expect(error.message).toContain(`visible-error-${status}`);
+      expect(error.message).not.toContain(`visible-error-${status}`);
       expect(error.message).not.toContain(ERROR_CANARY);
       expect(fixture.getResponseState().responseHeaders).not.toHaveProperty(
         "content-length",
@@ -260,45 +259,45 @@ describe("MCPClient HTTP response body byte limits", () => {
     await expectClosedEarly(fixture.getResponseState(), canaryOffset);
   });
 
-  it("does not decode bytes beyond an exact error-preview boundary", async () => {
-    const visible = Buffer.from("1234567", "utf8");
-    const hidden = Buffer.from("你SECRET_AFTER_BOUNDARY", "utf8");
-    const bytes = Buffer.concat([visible, hidden]);
-    let cancelled = false;
+  it("cancels a non-auth error body without acquiring a reader or calling text", async () => {
+    const secret = "\u001b]8;;https://evil.test\u0007PROMPT_SECRET\u0000";
+    let cancelCalls = 0;
+    let getReaderCalls = 0;
+    let textCalls = 0;
     _deps.fetch = async () => ({
       ok: false,
-      status: 500,
+      status: 418,
       headers: { get: () => null },
       body: {
-        getReader() {
-          let read = false;
-          return {
-            async read() {
-              if (read) return { done: true };
-              read = true;
-              return { done: false, value: bytes };
-            },
-            async cancel() {
-              cancelled = true;
-            },
-            releaseLock() {},
-          };
+        async cancel() {
+          cancelCalls += 1;
         },
+        getReader() {
+          getReaderCalls += 1;
+          throw new Error(`reader acquired: ${secret}`);
+        },
+      },
+      async text() {
+        textCalls += 1;
+        return secret;
       },
     });
 
     const error = await expectHttpStatus(
-      new MCPClient().connect("utf8-preview", {
+      new MCPClient().connect("error-body-suppressed", {
         url: "https://mcp.example.test/rpc",
         maxBufferChars: 8,
       }),
-      500,
+      418,
     );
 
-    expect(cancelled).toBe(true);
-    expect(error.message).toContain("1234567");
-    expect(error.message).not.toContain("你");
-    expect(error.message).not.toContain("SECRET_AFTER_BOUNDARY");
+    expect(cancelCalls).toBe(1);
+    expect(getReaderCalls).toBe(0);
+    expect(textCalls).toBe(0);
+    expect(error.message).toBe("HTTP 418");
+    expect(
+      [String(error), error.stack, JSON.stringify(error)].join("\n"),
+    ).not.toContain("PROMPT_SECRET");
   });
 
   it("cancels and releases a finite response reader when reading fails", async () => {

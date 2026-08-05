@@ -293,6 +293,38 @@ describe("agent-core MCP call ledger", () => {
     expect(harness.controller.admission.blockMode).toBeNull();
   });
 
+  it("does not project an HTTP status body's peer-controlled detail into a trusted-read result", async () => {
+    const canary = "HTTP_BODY_SECRET_PROMPT_CANARY";
+    const harness = guardedLedger({ randomUUID: () => "http-status" });
+    const callTool = vi.fn(async () => {
+      const error = new Error(`HTTP 503: ${canary}`);
+      error.code = "CC_MCP_HTTP_STATUS";
+      error.status = 503;
+      throw error;
+    });
+
+    const result = await executeTool(
+      TOOL_NAME,
+      {},
+      toolOptions(
+        cwd,
+        { callTool },
+        harness.ledger,
+        { declaredEffect: "read" },
+        hostEffectPolicy("read", true),
+      ),
+    );
+
+    expect(result).toMatchObject({
+      error:
+        "MCP tool execution failed: MCP HTTP request failed with status 503",
+    });
+    expect(JSON.stringify(result)).not.toContain(canary);
+    expect(harness.settle).toHaveBeenCalledOnce();
+    expect(JSON.stringify(harness.rawLedger.list())).not.toContain(canary);
+    expect(harness.rawLedger.list()[0].status).toBe("failed");
+  });
+
   it.each([
     [
       "Proxy result",
