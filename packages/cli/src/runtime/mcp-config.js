@@ -67,6 +67,14 @@ export function parseMcpServers(raw) {
       ...(Number.isFinite(cfg.maxPayloadBytes)
         ? { maxPayloadBytes: cfg.maxPayloadBytes }
         : {}),
+      ...(Number.isFinite(cfg.maxInboundMessagesPerSecond)
+        ? {
+            maxInboundMessagesPerSecond: cfg.maxInboundMessagesPerSecond,
+          }
+        : {}),
+      ...(Number.isFinite(cfg.maxInboundBytesPerMinute)
+        ? { maxInboundBytesPerMinute: cfg.maxInboundBytesPerMinute }
+        : {}),
       ...headersHelperField(cfg.headersHelper),
       ...(cfg.configScope ? { configScope: cfg.configScope } : {}),
       ...(cfg.configSource ? { configSource: cfg.configSource } : {}),

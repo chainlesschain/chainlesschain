@@ -485,6 +485,10 @@ function mcpTransportError(code, message, details = {}) {
   if (details.closeCode != null) error.closeCode = details.closeCode;
   if (details.limitBytes != null) error.limitBytes = details.limitBytes;
   if (details.limitFrames != null) error.limitFrames = details.limitFrames;
+  if (details.limitMessages != null) {
+    error.limitMessages = details.limitMessages;
+  }
+  if (details.windowMs != null) error.windowMs = details.windowMs;
   if (details.dispatched != null) {
     error.dispatched = details.dispatched === true;
   }
@@ -525,6 +529,42 @@ function mcpRequestAbortedError(serverName, entry, dispatched) {
     {
       transport: entry?.transportKind,
       url: entry?.config?.url,
+      dispatched,
+      outcomeUnknown: dispatched,
+    },
+  );
+}
+
+function mcpInboundBudgetError(serverName, entry, budget) {
+  const dispatched = entry?._pending instanceof Map && entry._pending.size > 0;
+  if (budget === "messages") {
+    const limitMessages = inboundMessageRateLimit(
+      entry?.config?.maxInboundMessagesPerSecond,
+    );
+    return mcpTransportError(
+      "CC_MCP_INBOUND_RATE_EXCEEDED",
+      `MCP server "${serverName}" exceeded the ${limitMessages}-message/${MCP_INBOUND_MESSAGE_RATE_WINDOW_MS}ms host inbound rate budget`,
+      {
+        transport: entry?.transportKind,
+        url: entry?.config?.url,
+        limitMessages,
+        windowMs: MCP_INBOUND_MESSAGE_RATE_WINDOW_MS,
+        dispatched,
+        outcomeUnknown: dispatched,
+      },
+    );
+  }
+  const limitBytes = inboundTrafficByteLimit(
+    entry?.config?.maxInboundBytesPerMinute,
+  );
+  return mcpTransportError(
+    "CC_MCP_INBOUND_TRAFFIC_EXCEEDED",
+    `MCP server "${serverName}" exceeded the ${limitBytes}-byte/${MCP_INBOUND_TRAFFIC_WINDOW_MS}ms host inbound traffic budget`,
+    {
+      transport: entry?.transportKind,
+      url: entry?.config?.url,
+      limitBytes,
+      windowMs: MCP_INBOUND_TRAFFIC_WINDOW_MS,
       dispatched,
       outcomeUnknown: dispatched,
     },
@@ -583,6 +623,8 @@ const MCP_NON_RETRYABLE_PROTOCOL_ERROR_CODES = new Set([
   "CC_MCP_HTTP_RESPONSE_TIMEOUT",
   "CC_MCP_HTTP_DISCARD_TIMEOUT",
   "CC_MCP_SSE_EVENT_TIMEOUT",
+  "CC_MCP_INBOUND_RATE_EXCEEDED",
+  "CC_MCP_INBOUND_TRAFFIC_EXCEEDED",
   "CC_MCP_STDIO_FRAME_TOO_LARGE",
   "CC_MCP_STDIO_MALFORMED_BUDGET_EXCEEDED",
   "CC_MCP_STDIO_STDERR_TOO_LARGE",
@@ -630,6 +672,90 @@ export function isMcpAuthenticationError(err) {
 /** Capability-discovery retry tuning (Claude-Code 2.1.191 "short backoff"). */
 const MCP_DISCOVERY_RETRIES = 2; // up to 3 attempts total
 const MCP_DISCOVERY_BACKOFF_MS = 250; // 250ms, 500ms
+
+// Long-lived stdio, WebSocket, and background SSE transports may legitimately
+// run forever, so lifetime totals would eventually kill every healthy peer.
+// Token buckets instead bound any sustained inbound message/byte flow while
+// retaining a finite burst allowance. Ordinary config may tighten these caps
+// but cannot disable or raise them.
+const MCP_INBOUND_MESSAGE_RATE_WINDOW_MS = 1000;
+const MCP_INBOUND_MESSAGE_RATE_MAX = 128;
+const MCP_INBOUND_TRAFFIC_WINDOW_MS = 60_000;
+const MCP_INBOUND_TRAFFIC_MAX_BYTES = 64 * 1024 * 1024;
+
+function inboundMessageRateLimit(configuredLimit) {
+  if (Number.isFinite(configuredLimit) && configuredLimit > 0) {
+    return Math.min(
+      MCP_INBOUND_MESSAGE_RATE_MAX,
+      Math.max(1, Math.floor(configuredLimit)),
+    );
+  }
+  return MCP_INBOUND_MESSAGE_RATE_MAX;
+}
+
+function inboundTrafficByteLimit(configuredLimit) {
+  if (Number.isFinite(configuredLimit) && configuredLimit > 0) {
+    return Math.min(
+      MCP_INBOUND_TRAFFIC_MAX_BYTES,
+      Math.max(1, Math.floor(configuredLimit)),
+    );
+  }
+  return MCP_INBOUND_TRAFFIC_MAX_BYTES;
+}
+
+function recordMcpInboundTraffic(serverName, entry, inboundBytes) {
+  const messageCapacity = inboundMessageRateLimit(
+    entry?.config?.maxInboundMessagesPerSecond,
+  );
+  const byteCapacity = inboundTrafficByteLimit(
+    entry?.config?.maxInboundBytesPerMinute,
+  );
+  const now = Date.now();
+  let budget = entry?._inboundTrafficBudget;
+  if (
+    !budget ||
+    budget.messageCapacity !== messageCapacity ||
+    budget.byteCapacity !== byteCapacity
+  ) {
+    budget = {
+      messageCapacity,
+      byteCapacity,
+      messageTokens: messageCapacity,
+      byteTokens: byteCapacity,
+      lastRefillMs: now,
+    };
+    entry._inboundTrafficBudget = budget;
+  }
+
+  const elapsedMs = Math.max(0, now - budget.lastRefillMs);
+  if (elapsedMs > 0) {
+    budget.messageTokens = Math.min(
+      messageCapacity,
+      budget.messageTokens +
+        (elapsedMs * messageCapacity) / MCP_INBOUND_MESSAGE_RATE_WINDOW_MS,
+    );
+    budget.byteTokens = Math.min(
+      byteCapacity,
+      budget.byteTokens +
+        (elapsedMs * byteCapacity) / MCP_INBOUND_TRAFFIC_WINDOW_MS,
+    );
+    budget.lastRefillMs = now;
+  }
+
+  const bytes =
+    Number.isFinite(inboundBytes) && inboundBytes > 0
+      ? Math.ceil(inboundBytes)
+      : 0;
+  if (budget.messageTokens < 1) {
+    return mcpInboundBudgetError(serverName, entry, "messages");
+  }
+  if (budget.byteTokens < bytes) {
+    return mcpInboundBudgetError(serverName, entry, "bytes");
+  }
+  budget.messageTokens -= 1;
+  budget.byteTokens -= bytes;
+  return null;
+}
 
 // Host-owned UTF-8 byte ceiling for every newline-delimited stdio JSON-RPC
 // frame, including its unterminated tail. maxBufferChars remains a compatible
@@ -1412,6 +1538,8 @@ export class MCPClient extends EventEmitter {
       _httpDiscardStopping: false,
       _disconnectPromise: null,
       _webSocketPayloadError: null,
+      _webSocketInboundError: null,
+      _inboundTrafficBudget: null,
       tools: [],
       resources: [],
       resourceTemplates: [],
@@ -1537,6 +1665,35 @@ export class MCPClient extends EventEmitter {
           }
           return error;
         };
+        const recordInboundFailure = (error) => {
+          if (entry._webSocketInboundError) {
+            return entry._webSocketInboundError;
+          }
+          entry._webSocketInboundError = error;
+          entry.state = ServerState.ERROR;
+          rejectPending(error);
+          this._cancelServerElicitations(name);
+          this.emit("server-error", {
+            name,
+            error: error.message,
+            code: error.code,
+            ...(error.limitBytes != null
+              ? { limitBytes: error.limitBytes }
+              : {}),
+            ...(error.limitMessages != null
+              ? { limitMessages: error.limitMessages }
+              : {}),
+            ...(error.windowMs != null ? { windowMs: error.windowMs } : {}),
+          });
+          if (socket.readyState === 1) {
+            try {
+              socket.close(1008, "inbound budget exceeded");
+            } catch {
+              socket.terminate?.();
+            }
+          }
+          return error;
+        };
 
         await new Promise((resolve, reject) => {
           let settled = false;
@@ -1577,6 +1734,7 @@ export class MCPClient extends EventEmitter {
         });
 
         socket.on("message", (data, isBinary) => {
+          if (entry._webSocketInboundError) return;
           if (isBinary) {
             const error = mcpTransportError(
               "CC_MCP_WS_BINARY_MESSAGE",
@@ -1592,6 +1750,21 @@ export class MCPClient extends EventEmitter {
               code: error.code,
             });
             socket.close(1003, "JSON text required");
+            return;
+          }
+          const inboundBytes =
+            typeof data === "string"
+              ? Buffer.byteLength(data, "utf8")
+              : Number.isFinite(data?.byteLength)
+                ? data.byteLength
+                : Buffer.byteLength(String(data || ""), "utf8");
+          const inboundError = recordMcpInboundTraffic(
+            name,
+            entry,
+            inboundBytes,
+          );
+          if (inboundError) {
+            recordInboundFailure(inboundError);
             return;
           }
           try {
@@ -1629,6 +1802,28 @@ export class MCPClient extends EventEmitter {
           // it rejected our outbound data, or for any private policy reason;
           // the code alone does not establish direction or local limit breach.
           const payloadError = entry._webSocketPayloadError;
+          const inboundError = entry._webSocketInboundError;
+          if (inboundError) {
+            entry.state = ServerState.ERROR;
+            rejectPending(inboundError);
+            this._cancelServerElicitations(name);
+            this.emit("server-disconnected", {
+              name,
+              code: closeCode,
+              reason: "inbound_budget_exceeded",
+              errorCode: inboundError.code,
+              ...(inboundError.limitBytes != null
+                ? { limitBytes: inboundError.limitBytes }
+                : {}),
+              ...(inboundError.limitMessages != null
+                ? { limitMessages: inboundError.limitMessages }
+                : {}),
+              ...(inboundError.windowMs != null
+                ? { windowMs: inboundError.windowMs }
+                : {}),
+            });
+            return;
+          }
           if (payloadError) {
             entry.state = ServerState.ERROR;
             rejectPending(payloadError);
@@ -1665,6 +1860,7 @@ export class MCPClient extends EventEmitter {
           });
         });
         socket.on("error", (cause) => {
+          if (entry._webSocketInboundError) return;
           if (isWebSocketPayloadError(cause)) {
             recordPayloadFailure(1009);
             return;
@@ -2857,6 +3053,10 @@ export class MCPClient extends EventEmitter {
               cap,
               stream,
               eventTimeoutMs: _sseEventTimeout(entry.config?.requestTimeoutMs),
+              onInbound: (bytes) => {
+                const error = recordMcpInboundTraffic(serverName, entry, bytes);
+                if (error) throw error;
+              },
               onMessage: (message) => this._handleMessage(serverName, message),
             });
           } catch (error) {
@@ -2871,6 +3071,10 @@ export class MCPClient extends EventEmitter {
               ...(error?.timeoutMs != null
                 ? { timeoutMs: error.timeoutMs }
                 : {}),
+              ...(error?.limitMessages != null
+                ? { limitMessages: error.limitMessages }
+                : {}),
+              ...(error?.windowMs != null ? { windowMs: error.windowMs } : {}),
             });
             if (stream.controller?.signal.aborted) return;
             if (error?.code === "CC_MCP_HTTP_RESPONSE_TOO_LARGE") return;
@@ -2878,6 +3082,8 @@ export class MCPClient extends EventEmitter {
               return;
             }
             if (error?.code === "CC_MCP_SSE_EVENT_TIMEOUT") return;
+            if (error?.code === "CC_MCP_INBOUND_RATE_EXCEEDED") return;
+            if (error?.code === "CC_MCP_INBOUND_TRAFFIC_EXCEEDED") return;
             if (String(error?.code || "").startsWith("CC_MCP_HEADERS_HELPER")) {
               return;
             }
@@ -3227,6 +3433,16 @@ export class MCPClient extends EventEmitter {
       const trimmed = line.trim();
       if (!trimmed) continue;
 
+      const inboundError = recordMcpInboundTraffic(
+        serverName,
+        entry,
+        frameBytes,
+      );
+      if (inboundError) {
+        this._failStdioInput(serverName, entry, inboundError);
+        return;
+      }
+
       let msg;
       try {
         msg = JSON.parse(trimmed);
@@ -3350,6 +3566,10 @@ export class MCPClient extends EventEmitter {
       error: error.message,
       ...(error.limitBytes != null ? { limitBytes: error.limitBytes } : {}),
       ...(error.limitFrames != null ? { limitFrames: error.limitFrames } : {}),
+      ...(error.limitMessages != null
+        ? { limitMessages: error.limitMessages }
+        : {}),
+      ...(error.windowMs != null ? { windowMs: error.windowMs } : {}),
     });
     try {
       entry.process?.kill?.();
@@ -3932,14 +4152,22 @@ function _parseSseEvent(event) {
 
 async function _consumeSseMessageStream(
   response,
-  { cap = 0, stream, eventTimeoutMs = MCP_SSE_EVENT_TIMEOUT_MS, onMessage },
+  {
+    cap = 0,
+    stream,
+    eventTimeoutMs = MCP_SSE_EVENT_TIMEOUT_MS,
+    onInbound = null,
+    onMessage,
+  },
 ) {
   cap = _httpResponseByteLimit(cap);
   eventTimeoutMs = _sseEventTimeout(eventTimeoutMs);
   const dispatch = (rawEvent) => {
-    if (Buffer.byteLength(String(rawEvent || ""), "utf8") > cap) {
+    const eventBytes = Buffer.byteLength(String(rawEvent || ""), "utf8");
+    if (eventBytes > cap) {
       throw _httpResponseTooLarge(cap, "SSE event");
     }
+    onInbound?.(eventBytes);
     const parsed = _parseSseEvent(rawEvent);
     if (parsed.id != null && parsed.id !== "") {
       stream.lastEventId = parsed.id;

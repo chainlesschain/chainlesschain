@@ -104,6 +104,30 @@ describe("parseMcpServers", () => {
     expect(out.strict.maxPayloadBytes).toBe(2048);
     expect(out.textual).not.toHaveProperty("maxPayloadBytes");
   });
+
+  it("preserves finite inbound traffic tightenings and rejects text values", () => {
+    const out = parseMcpServers({
+      mcpServers: {
+        strict: {
+          command: "strict",
+          maxInboundMessagesPerSecond: 16,
+          maxInboundBytesPerMinute: 4096,
+        },
+        textual: {
+          command: "textual",
+          maxInboundMessagesPerSecond: "16",
+          maxInboundBytesPerMinute: "4096",
+        },
+      },
+    });
+
+    expect(out.strict).toMatchObject({
+      maxInboundMessagesPerSecond: 16,
+      maxInboundBytesPerMinute: 4096,
+    });
+    expect(out.textual).not.toHaveProperty("maxInboundMessagesPerSecond");
+    expect(out.textual).not.toHaveProperty("maxInboundBytesPerMinute");
+  });
 });
 
 describe("mcpToolName", () => {
