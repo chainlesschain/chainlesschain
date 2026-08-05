@@ -37,6 +37,17 @@ const ELICITATION_FORM_SOURCE = fs.readFileSync(
 // an explicit UI/Host handshake rather than relying on the extension version.
 const CHAT_UI_PROTOCOL_VERSION = 2;
 
+function migrateBootstrapLastSent(lastSentByTab, activeTabId, nextActiveTabId) {
+  if (!lastSentByTab || activeTabId || !nextActiveTabId || !lastSentByTab._) {
+    return false;
+  }
+  if (!lastSentByTab[nextActiveTabId]) {
+    lastSentByTab[nextActiveTabId] = lastSentByTab._;
+  }
+  delete lastSentByTab._;
+  return true;
+}
+
 function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
   const safeHostDomToken =
     typeof hostDomToken === "string" && /^[a-f0-9]{64}$/u.test(hostDomToken)
@@ -195,6 +206,7 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
   let thinkingBody = null; // the body inside it where deltas are appended
   const lastSentByTab = {}; // per-tab last user prompt, for /retry (regenerate)
   const tabKey = () => activeTabId || "_"; // stable key before the first tab bar
+  ${migrateBootstrapLastSent.toString()}
   let turnTokens = null; // live per-turn token tally from token_usage events
   const tokfmt = (n) =>
     n >= 1000 ? (n / 1000).toFixed(n >= 10000 ? 0 : 1) + "k" : String(n);
@@ -1198,6 +1210,9 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
       case "tabs": {
         renderTabBar(m.tabs, m.activeId);
         if (m.activeId !== activeTabId) {
+          // A fast first send can beat the initial tabs message. Preserve that
+          // bootstrap prompt under the real tab id so /retry remains available.
+          migrateBootstrapLastSent(lastSentByTab, activeTabId, m.activeId);
           // Save the outgoing tab's nodes (detached, listeners intact), restore
           // the incoming one's. Real DOM nodes (vs innerHTML) keep approval-card
           // button handlers alive across tab switches.
@@ -1238,4 +1253,8 @@ function buildChatHtml({ cspSource, nonce, l10n, hostDomToken = null }) {
 </html>`;
 }
 
-module.exports = { buildChatHtml, CHAT_UI_PROTOCOL_VERSION };
+module.exports = {
+  buildChatHtml,
+  CHAT_UI_PROTOCOL_VERSION,
+  migrateBootstrapLastSent,
+};

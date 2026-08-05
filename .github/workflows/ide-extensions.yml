@@ -4,7 +4,9 @@ name: IDE Extensions
 # Publishing to the marketplaces happens ONLY on a dedicated tag. A normal
 # push just builds + uploads.
 #
-#   tag ide-vscode-v*     -> publish the VS Code extension   (needs OVSX_PAT +
+#   tag ide-vscode-v*     -> publish the VS Code extension to Open VSX
+#                                                            (needs OVSX_PAT)
+#   manual exact VS tag   -> backfill Microsoft Marketplace (needs OVSX_PAT +
 #                                                             VSCE_PAT)
 #   tag ide-jetbrains-v*  -> publish the JetBrains plugin     (needs publish
 #                                                             token; signing
@@ -323,11 +325,10 @@ jobs:
           node scripts/vsix-release-artifact.mjs verify
           chainlesschain-ide.vsix manifest.json
 
-      # Validate every required release credential before the first immutable
-      # marketplace upload. In particular, a missing/expired VSCE_PAT must not
-      # publish only to Open VSX and burn a version that cannot complete both
-      # required channels.
-      - name: Preflight required marketplace credentials
+      # A release tag publishes the primary Open VSX channel independently.
+      # Fail before upload when its token is missing; Microsoft credentials are
+      # checked separately only for an explicit exact-tag backfill.
+      - name: Preflight Open VSX credential
         if: >-
           startsWith(github.ref, 'refs/tags/ide-vscode-v') &&
           (github.event_name == 'push' ||
@@ -335,14 +336,22 @@ jobs:
           inputs.publish_vscode_marketplace))
         env:
           OVSX_PAT: ${{ secrets.OVSX_PAT }}
-          VSCE_PAT: ${{ secrets.VSCE_PAT }}
         run: |
           if [ -z "$OVSX_PAT" ]; then
-            echo "::error::OVSX_PAT secret is not set; refusing a partial release."
+            echo "::error::OVSX_PAT secret is not set; cannot publish to Open VSX."
             exit 1
           fi
+
+      - name: Preflight VS Code Marketplace credential
+        if: >-
+          startsWith(github.ref, 'refs/tags/ide-vscode-v') &&
+          github.event_name == 'workflow_dispatch' &&
+          inputs.publish_vscode_marketplace
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: |
           if [ -z "$VSCE_PAT" ]; then
-            echo "::error::VSCE_PAT secret is not set; refusing a partial release."
+            echo "::error::VSCE_PAT secret is not set; cannot backfill the official Marketplace."
             exit 1
           fi
           npx --yes @vscode/vsce@3.9.2 verify-pat chainlesschain -p "$VSCE_PAT"
@@ -392,19 +401,16 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
-      # Official VS Code Marketplace — required on a release tag; needs a
-      # VSCE_PAT secret (an
+      # Official VS Code Marketplace is an explicit exact-tag backfill, not
+      # part of the primary Open VSX tag release. It needs a VSCE_PAT secret (an
       # Azure DevOps PAT, org "All accessible organizations", scope
-      # Marketplace→Manage; the org itself is free) + the `chainlesschain`
-      # publisher on marketplace.visualstudio.com/manage. A release is not
-      # complete when this credential is missing: Open VSX cannot substitute
-      # for the stock VS Code gallery.
+      # Marketplace→Manage; the org itself is free) and the `chainlesschain`
+      # publisher on marketplace.visualstudio.com/manage.
       - name: Publish to VS Code Marketplace
         if: >-
           startsWith(github.ref, 'refs/tags/ide-vscode-v') &&
-          (github.event_name == 'push' ||
-          (github.event_name == 'workflow_dispatch' &&
-          inputs.publish_vscode_marketplace))
+          github.event_name == 'workflow_dispatch' &&
+          inputs.publish_vscode_marketplace
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
         run: |
@@ -418,9 +424,8 @@ jobs:
       - name: Verify VS Code Marketplace listing and exact VSIX
         if: >-
           startsWith(github.ref, 'refs/tags/ide-vscode-v') &&
-          (github.event_name == 'push' ||
-          (github.event_name == 'workflow_dispatch' &&
-          inputs.publish_vscode_marketplace))
+          github.event_name == 'workflow_dispatch' &&
+          inputs.publish_vscode_marketplace
         env:
           CC_MARKETPLACE_VERIFY_ATTEMPTS: "30"
           CC_MARKETPLACE_VERIFY_DELAY_MS: "20000"
