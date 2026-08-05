@@ -431,8 +431,8 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      # Agent SDK — standalone package (NOT an npm workspace member), so it
-      # needs its own install; prepublishOnly runs the TypeScript dual build.
+      # Agent SDK — workspace member whose prepublishOnly runs the TypeScript
+      # dual build. Its build resolves a local or workspace-hoisted compiler.
       # No consumer pins it yet (VS Code vendors the build; web-panel aliases
       # the TS source), so order relative to the CLI is free. Added 2026-07-09
       # (platform phase 3 first publish).

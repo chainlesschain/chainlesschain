@@ -5,24 +5,38 @@
  */
 import { execFileSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
-const tsc = join(root, "node_modules", ".bin", process.platform === "win32" ? "tsc.cmd" : "tsc");
+const require = createRequire(import.meta.url);
+// npm workspaces may hoist TypeScript to the repository root, while an
+// independently installed SDK keeps it local. Resolve the real compiler module
+// through Node instead of assuming either node_modules/.bin layout.
+const tsc = require.resolve("typescript/lib/tsc.js");
 
 function run(args) {
-  execFileSync(tsc, args, { cwd: root, stdio: "inherit", shell: process.platform === "win32" });
+  execFileSync(process.execPath, [tsc, ...args], {
+    cwd: root,
+    stdio: "inherit",
+  });
 }
 
 run(["-p", "tsconfig.json"]);
 run([
-  "-p", "tsconfig.json",
-  "--module", "CommonJS",
-  "--moduleResolution", "Node10",
-  "--outDir", "dist/cjs",
-  "--declaration", "false",
-  "--verbatimModuleSyntax", "false",
+  "-p",
+  "tsconfig.json",
+  "--module",
+  "CommonJS",
+  "--moduleResolution",
+  "Node10",
+  "--outDir",
+  "dist/cjs",
+  "--declaration",
+  "false",
+  "--verbatimModuleSyntax",
+  "false",
 ]);
 
 mkdirSync(join(root, "dist", "cjs"), { recursive: true });
