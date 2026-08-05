@@ -36,6 +36,11 @@ import {
 } from "../lib/lsp/workspace-roots.js";
 import { getPlanModeManager } from "../lib/plan-mode.js";
 import { CLISkillLoader } from "../lib/skill-loader.js";
+import {
+  admitSkillPrompt,
+  debitSkillPromptBudget,
+  resolveSkillLimits,
+} from "../lib/skill-budget.js";
 import { executeHooks, HookEvents } from "../lib/hook-manager.js";
 import { detectPython } from "../lib/cli-anything-bridge.js";
 import { findProjectRoot, loadProjectConfig } from "../lib/project-detector.js";
@@ -1251,13 +1256,34 @@ export function buildSystemPrompt(cwd, opts = {}) {
       turnId: opts.turnId,
       loadedBecause: "persona_auto",
     });
+    // Re-admit custom/injected loader output at the final model boundary. Do
+    // the complete aggregate pass before appending anything so an oversized
+    // later persona cannot leave an earlier partial projection in the prompt.
+    const limits = resolveSkillLimits(loader.getLimits?.());
+    const promptBudget = { limits, bytes: 0, tokens: 0 };
+    const personaProjections = [];
+    for (const personaSkill of personaSkills) {
+      const displayName =
+        typeof personaSkill?.displayName === "string"
+          ? personaSkill.displayName
+          : typeof personaSkill?.id === "string"
+            ? personaSkill.id
+            : "Skill";
+      const body = personaSkill?.body;
+      admitSkillPrompt(body, limits);
+      if (!body.trim()) continue;
+      const projection = `\n\n## Persona: ${displayName}\n${body}`;
+      debitSkillPromptBudget(
+        promptBudget,
+        admitSkillPrompt(projection, limits),
+      );
+      personaProjections.push(projection);
+    }
     if (typeof opts.onSkillsLoaded === "function") {
       opts.onSkillsLoaded(personaSkills, loader.getCacheLedger());
     }
-    for (const p of personaSkills) {
-      if (p.body?.trim()) {
-        prompt += `\n\n## Persona: ${p.displayName}\n${p.body}`;
-      }
+    for (const projection of personaProjections) {
+      prompt += projection;
     }
   } catch {
     // Non-critical — skill loader may not be available
@@ -5702,6 +5728,7 @@ async function executeToolInner(
       let match = allSkills.find(
         (s) => s.id === args.skill_name || s.dirName === args.skill_name,
       );
+      let admittedSkillBody = "";
       if (!match || !match.hasHandler) {
         return attachDescriptor({
           error: `Skill "${args.skill_name}" not found or has no handler. Use list_skills to see available skills.`,
@@ -5713,16 +5740,20 @@ async function executeToolInner(
             sessionId,
             turnId,
             loadedBecause: "run_skill",
-            bodyIncluded: false,
+            bodyIncluded: true,
           });
         } else if (typeof skillLoader.materializeSkill === "function") {
           match = skillLoader.materializeSkill(match, {
             sessionId,
             turnId,
             loadedBecause: "run_skill",
-            bodyIncluded: false,
+            bodyIncluded: true,
           });
         }
+        // A custom loader is not an authority to raise host model-input caps.
+        // Re-admit at the final consumer before constructing the child task.
+        admittedSkillBody = match?.body;
+        admitSkillPrompt(admittedSkillBody, skillLoader.getLimits?.());
       } catch (error) {
         return attachDescriptor({
           error: `Skill "${args.skill_name}" body could not be loaded: ${error.message}`,
@@ -5759,7 +5790,7 @@ async function executeToolInner(
           role: `skill-${args.skill_name}`,
           task:
             `Execute the "${args.skill_name}" skill using only the approved tools.\n\n` +
-            `Authoritative skill instructions:\n${String(match.body || "").substring(0, 48000)}\n\n` +
+            `Authoritative skill instructions:\n${admittedSkillBody}\n\n` +
             `User input:\n${String(args.input || "").substring(0, 8000)}`,
           allowedTools: isolatedSkillTools,
           hookParentTraceId: hookTraceId || null,

@@ -33,6 +33,17 @@ import { discoverPluginSkillLayers } from "./plugin-runtime/skills.js";
 import settingsLoader from "./settings-loader.cjs";
 import contextSourceLedger from "./context-source-ledger.js";
 import {
+  admitSkillPrompt,
+  assertSkillFileSize,
+  createSkillDiscoveryBudget,
+  debitSkillDiscoveryBudget,
+  debitSkillDiscoveryEntry,
+  debitSkillPromptBudget,
+  HOST_SKILL_LIMITS,
+  isSkillBudgetError,
+  resolveSkillLimits,
+} from "./skill-budget.js";
+import {
   assertControlledSkillExecution,
   captureSkillExecutionSnapshot,
   describeSkillExecutionAuthority,
@@ -108,7 +119,7 @@ export const LAYER_NAMES = [
 
 /** Max directory depth to descend when scanning a skill layer for nested
  *  `<group>/<skill>/SKILL.md` layouts (infinite-recursion / deep-tree guard). */
-export const MAX_SKILL_NEST_DEPTH = 5;
+export const MAX_SKILL_NEST_DEPTH = HOST_SKILL_LIMITS.maxSkillNestDepth;
 
 // Frontmatter keys (camelCased) that are semantically strings and are consumed
 // with string methods; they must never be number/boolean-coerced. `version` is
@@ -235,7 +246,12 @@ export function parseSkillMd(content) {
  * body is deliberately not retained during discovery; it is materialized by
  * CLISkillLoader.materializeSkill() only when a persona or run_skill needs it.
  */
-function readSkillFrontmatter(skillMd, maxBytes = 256 * 1024) {
+function readSkillFrontmatter(skillMd, maxBytes = 256 * 1024, limits = {}) {
+  const before = fs.lstatSync(skillMd);
+  if (before.isSymbolicLink() || !before.isFile()) {
+    throw new TypeError("SKILL.md must be a regular, non-symlink file");
+  }
+  assertSkillFileSize("SKILL.md", before.size, limits);
   const fd = fs.openSync(skillMd, "r");
   const chunks = [];
   let total = 0;
@@ -341,6 +357,7 @@ export class CLISkillLoader {
   constructor({
     contextLedger = contextSourceLedger,
     reauthorizeSkill = null,
+    limits = {},
     // Only package-owned, immutable-at-install sources are trusted by
     // default. The historical "managed" layer is actually the user-writable
     // <userData>/skills directory (and `skill add --global` writes there), so
@@ -354,6 +371,7 @@ export class CLISkillLoader {
     this._bodyCache = new Map();
     this._contextLedger = contextLedger;
     this._reauthorizeSkill = reauthorizeSkill;
+    this._limits = resolveSkillLimits(limits);
     this._trustedExecutionSources = new Set(trustedExecutionSources);
     this._authorizedExecutionDigests = new Map();
     this._cacheStats = {
@@ -364,6 +382,10 @@ export class CLISkillLoader {
       bodyCacheMisses: 0,
       bodyLoads: new Map(),
     };
+  }
+
+  getLimits() {
+    return this._limits;
   }
 
   _skillReauthorizationRequest(
@@ -425,6 +447,7 @@ export class CLISkillLoader {
       skillDir: skill.skillDir,
       skillId: skill.id,
       source: skill.source,
+      limits: this._limits,
     });
     const discovered = skill.executionIdentity;
     if (
@@ -619,9 +642,10 @@ export class CLISkillLoader {
    * @param {string} layer - Layer name for source tracking
    * @returns {object[]} Array of skill metadata
    */
-  _loadFromDir(dir, layer) {
+  _loadFromDir(dir, layer, discoveryBudget = null) {
     const skills = [];
-    this._collectSkills(dir, layer, skills, 0);
+    const budget = discoveryBudget || createSkillDiscoveryBudget(this._limits);
+    this._collectSkills(dir, layer, skills, 0, budget);
     return skills;
   }
 
@@ -632,79 +656,102 @@ export class CLISkillLoader {
    * descended into, so nested layouts like `.claude/skills/<group>/<skill>/`
    * load too (Claude-Code 2.1.178 nested-skills parity). Depth-capped.
    */
-  _collectSkills(dir, layer, out, depth) {
+  _collectSkills(dir, layer, out, depth, discoveryBudget) {
     if (!dir || !fs.existsSync(dir)) return;
-    let entries;
+    let directory;
     try {
-      entries = fs.readdirSync(dir, { withFileTypes: true });
+      directory = fs.opendirSync(dir);
     } catch {
       return; // Directory unreadable
     }
-    for (const entry of entries) {
-      if (!entry.isDirectory()) continue;
-      const skillDir = path.join(dir, entry.name);
-      const skillMd = path.join(skillDir, "SKILL.md");
-      if (!fs.existsSync(skillMd)) {
-        // Grouping folder → descend (bounded) to find nested skills.
-        if (depth < MAX_SKILL_NEST_DEPTH) {
-          this._collectSkills(skillDir, layer, out, depth + 1);
+    try {
+      let entry;
+      while ((entry = directory.readSync()) !== null) {
+        debitSkillDiscoveryEntry(discoveryBudget);
+        if (!entry.isDirectory()) continue;
+        const skillDir = path.join(dir, entry.name);
+        const skillMd = path.join(skillDir, "SKILL.md");
+        if (!fs.existsSync(skillMd)) {
+          // Grouping folder → descend (bounded) to find nested skills.
+          if (depth < this._limits.maxSkillNestDepth) {
+            this._collectSkills(
+              skillDir,
+              layer,
+              out,
+              depth + 1,
+              discoveryBudget,
+            );
+          }
+          continue;
         }
-        continue;
-      }
-      try {
-        const data = readSkillFrontmatter(skillMd);
-        const stat = fs.statSync(skillMd);
-        const id = data.name || entry.name;
-        const isolation = data.isolation === true;
-        const snapshot = captureSkillExecutionSnapshot({
-          skillDir,
-          skillId: id,
-          source: layer,
-        });
-        const hasHandler = snapshot.handlerPresent;
+        try {
+          const data = readSkillFrontmatter(
+            skillMd,
+            Math.min(256 * 1024, this._limits.maxSkillFileBytes),
+            this._limits,
+          );
+          const stat = fs.statSync(skillMd);
+          const id = data.name || entry.name;
+          const isolation = data.isolation === true;
+          const snapshot = captureSkillExecutionSnapshot({
+            skillDir,
+            skillId: id,
+            source: layer,
+            limits: this._limits,
+          });
+          debitSkillDiscoveryBudget(
+            discoveryBudget,
+            snapshot.componentFileCount,
+            snapshot.componentBytes,
+          );
+          const hasHandler = snapshot.handlerPresent;
 
-        out.push({
-          id,
-          displayName: data.displayName || entry.name,
-          description: data.description || "",
-          version: data.version || "1.0.0",
-          category: data.category || "uncategorized",
-          activation: data.activation || "manual",
-          tags: data.tags || [],
-          userInvocable: data.userInvocable !== false,
-          handler: data.handler || null,
-          capabilities: data.capabilities || [],
-          os: data.os || [],
-          // CLI pack extended fields
-          executionMode: data.executionMode || null,
-          cliDomain: data.cliDomain || null,
-          cliVersionHash: data.cliVersionHash || null,
-          // Optional per-directory path-scope: when set, the skill is only
-          // surfaced/runnable under a matching subtree (large-monorepo lazy
-          // context). null (the default) = applies everywhere.
-          paths: normalizeSkillPaths(data),
-          dirName: entry.name,
-          hasHandler,
-          isolation,
-          executionIdentity: executionIdentityMetadata(snapshot),
-          executionAuthority: describeSkillExecutionAuthority({
+          out.push({
+            id,
+            displayName: data.displayName || entry.name,
+            description: data.description || "",
+            version: data.version || "1.0.0",
+            category: data.category || "uncategorized",
+            activation: data.activation || "manual",
+            tags: data.tags || [],
+            userInvocable: data.userInvocable !== false,
+            handler: data.handler || null,
+            capabilities: data.capabilities || [],
+            os: data.os || [],
+            // CLI pack extended fields
+            executionMode: data.executionMode || null,
+            cliDomain: data.cliDomain || null,
+            cliVersionHash: data.cliVersionHash || null,
+            // Optional per-directory path-scope: when set, the skill is only
+            // surfaced/runnable under a matching subtree (large-monorepo lazy
+            // context). null (the default) = applies everywhere.
+            paths: normalizeSkillPaths(data),
+            dirName: entry.name,
             hasHandler,
             isolation,
-          }),
-          // Two-tier loading: discovery retains only the descriptor. The body
-          // and embedded MCP declarations are populated on first use.
-          body: null,
-          bodyLoaded: false,
-          mcpServers: [],
-          source: layer,
-          skillDir: snapshot.rootRealPath,
-          skillMdPath: path.join(snapshot.rootRealPath, "SKILL.md"),
-          skillFileBytes: snapshot.skillFileBytes,
-          skillFileMtimeMs: stat.mtimeMs,
-        });
-      } catch {
-        // Skip malformed skill files
+            executionIdentity: executionIdentityMetadata(snapshot),
+            executionAuthority: describeSkillExecutionAuthority({
+              hasHandler,
+              isolation,
+            }),
+            // Two-tier loading: discovery retains only the descriptor. The body
+            // and embedded MCP declarations are populated on first use.
+            body: null,
+            bodyLoaded: false,
+            mcpServers: [],
+            source: layer,
+            skillDir: snapshot.rootRealPath,
+            skillMdPath: path.join(snapshot.rootRealPath, "SKILL.md"),
+            skillFileBytes: snapshot.skillFileBytes,
+            skillFileMtimeMs: stat.mtimeMs,
+          });
+        } catch (error) {
+          if (isSkillBudgetError(error)) throw error;
+          // Skip malformed skill files
+        }
       }
+    } finally {
+      directory.closeSync();
     }
   }
 
@@ -723,6 +770,7 @@ export class CLISkillLoader {
       skillDir: skill.skillDir,
       skillId: skill.id,
       source: skill.source,
+      limits: this._limits,
     });
     const discovered = skill.executionIdentity;
     if (
@@ -816,6 +864,7 @@ export class CLISkillLoader {
     if (String(runtimeId) !== String(skill.id)) {
       throw skillIdentityChangedError(skill);
     }
+    const promptMeasurement = admitSkillPrompt(parsed.body, this._limits);
     const runtimeIsolation = parsed.data.isolation === true;
     skill.handler = parsed.data.handler || null;
     skill.capabilities = parsed.data.capabilities || [];
@@ -844,6 +893,8 @@ export class CLISkillLoader {
         mcpServers: parseSkillMcpServers(body),
         rawChars: body.length,
         estimatedTokens: estimateSkillTokens(body),
+        promptBytes: promptMeasurement.bytes,
+        promptTokenUpperBound: promptMeasurement.tokenUpperBound,
       };
       this._bodyCache.set(skill.skillMdPath, cached);
       this._cacheStats.bodyCacheMisses += 1;
@@ -1040,6 +1091,7 @@ export class CLISkillLoader {
     }
     const layers = this.getLayerPaths();
     const skillMap = new Map();
+    const discoveryBudget = createSkillDiscoveryBudget(this._limits);
     // Claude-Code `disableBundledSkills`: hide the built-in layer so only
     // user/workspace/Claude-Code-portable skills load.
     const dropBundled = bundledSkillsDisabled(options);
@@ -1049,7 +1101,7 @@ export class CLISkillLoader {
       if (!exists) continue;
       if (dropBundled && (layer === "bundled" || layer === "cli-bundled"))
         continue;
-      const skills = this._loadFromDir(layerPath, layer);
+      const skills = this._loadFromDir(layerPath, layer, discoveryBudget);
       for (const skill of skills) {
         skillMap.set(skill.id, skill);
       }
@@ -1071,11 +1123,16 @@ export class CLISkillLoader {
     if (allSkillsDisabled(options)) return [];
     const dropBundled = bundledSkillsDisabled(options);
     const out = [];
+    const discoveryBudget = createSkillDiscoveryBudget(this._limits);
     for (const { layer, path: layerPath, exists } of this.getLayerPaths()) {
       if (!exists) continue;
       if (dropBundled && (layer === "bundled" || layer === "cli-bundled"))
         continue;
-      for (const skill of this._loadFromDir(layerPath, layer)) {
+      for (const skill of this._loadFromDir(
+        layerPath,
+        layer,
+        discoveryBudget,
+      )) {
         out.push({
           id: skill.id,
           layer: skill.source || layer,
@@ -1103,15 +1160,25 @@ export class CLISkillLoader {
    * @returns {object[]} skills with category "persona" and activation "auto"
    */
   getAutoActivatedPersonas(context = {}) {
+    const promptBudget = {
+      limits: this._limits,
+      bytes: 0,
+      tokens: 0,
+    };
     return this.getResolvedSkills()
       .filter((s) => s.category === "persona" && s.activation === "auto")
-      .map((skill) =>
-        this.materializeSkill(skill, {
+      .map((skill) => {
+        const materialized = this.materializeSkill(skill, {
           ...context,
           loadedBecause: context.loadedBecause || "persona_auto",
           bodyIncluded: true,
-        }),
-      );
+        });
+        debitSkillPromptBudget(
+          promptBudget,
+          admitSkillPrompt(materialized.body, this._limits),
+        );
+        return materialized;
+      });
   }
 
   /**

@@ -538,6 +538,32 @@ describe("skill-improver", () => {
       expect(result).toBeNull();
     });
 
+    it("rejects an oversized SKILL.md from metadata before reading or calling the model", async () => {
+      const readFile = vi.fn();
+      const llm = vi.fn();
+      impDeps.fs = {
+        promises: {
+          lstat: vi.fn(async () => ({
+            size: 257,
+            isSymbolicLink: () => false,
+            isFile: () => true,
+          })),
+          readFile,
+        },
+      };
+      impDeps.path = { join: (...args) => args.join("/") };
+      const imp = new SkillImprover(db, llm, store, {
+        skillsDir: "/s",
+        limits: { maxSkillFileBytes: 256 },
+      });
+
+      await expect(
+        imp.repairFromError("oversized", { error: "ignored" }),
+      ).resolves.toEqual({ improved: false, reason: "skill not found" });
+      expect(readFile).not.toHaveBeenCalled();
+      expect(llm).not.toHaveBeenCalled();
+    });
+
     it("_writeSkill does nothing without skillsDir", async () => {
       const mockWrite = vi.fn();
       impDeps.fs = { promises: { mkdir: vi.fn(), writeFile: mockWrite } };
