@@ -249,6 +249,15 @@ describe("canonical session projection", () => {
       argv: ["daemon", "resume", "bg-finished", "$prompt", "--json"],
       input: "prompt",
     });
+    const active = projection.sessions.find((item) => item.sourceId === "bg-1");
+    expect(
+      active.actions.find((action) => action.id === "reply").preview,
+    ).toEqual({
+      executor: "cli",
+      argv: ["daemon", "reply", "bg-1", "$prompt", "--json"],
+      mutates: true,
+      input: "prompt",
+    });
     expect(JSON.stringify(projection)).not.toContain("must-not-leak");
   });
 

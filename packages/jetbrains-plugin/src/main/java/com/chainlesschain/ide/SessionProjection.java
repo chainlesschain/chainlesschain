@@ -74,12 +74,14 @@ public final class SessionProjection {
         public final List<String> actions;
         public final Map<String, String> unavailableReasons;
         public final Map<String, ActionPreview> previews;
+        /** Bounded, content-free owner/worktree/artifact/approval/PR summary. */
+        public final String detail;
 
         private Item(String id, String sourceId, String kind, String state,
                 String title, String linkedSessionId, String cwd, long port,
                 String lastEventAt, String revision, List<String> actions,
                 Map<String, String> unavailableReasons,
-                Map<String, ActionPreview> previews) {
+                Map<String, ActionPreview> previews, String detail) {
             this.id = id;
             this.sourceId = sourceId;
             this.kind = kind;
@@ -95,6 +97,7 @@ public final class SessionProjection {
                     new LinkedHashMap<String, String>(unavailableReasons));
             this.previews = Collections.unmodifiableMap(
                     new LinkedHashMap<String, ActionPreview>(previews));
+            this.detail = detail == null ? "" : detail;
         }
     }
 
@@ -211,7 +214,8 @@ public final class SessionProjection {
                         itemRevision,
                         available,
                         unavailable,
-                        previews));
+                        previews,
+                        projectionDetail(item)));
             }
         } catch (RuntimeException error) {
             return disconnected("malformed session projection row",
@@ -292,6 +296,56 @@ public final class SessionProjection {
         }
         return new ActionPreview(executor, argv,
                 Boolean.TRUE.equals(preview.get("mutates")), input);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static String projectionDetail(Map<String, Object> item) {
+        List<String> parts = new ArrayList<String>();
+        Map<String, Object> owner = item.get("owner") instanceof Map
+                ? (Map<String, Object>) item.get("owner") : Map.of();
+        String ownerType = str(owner.get("type"));
+        String ownerId = str(owner.get("id"));
+        if (!ownerType.isEmpty()) {
+            parts.add("owner " + ownerType
+                    + (ownerId.isEmpty() ? "" : ":" + ownerId));
+        }
+        Map<String, Object> worktree = item.get("worktree") instanceof Map
+                ? (Map<String, Object>) item.get("worktree") : Map.of();
+        String worktreeLabel = fallback(
+                str(worktree.get("branch")), str(worktree.get("path")));
+        if (!worktreeLabel.isEmpty()) parts.add("worktree " + worktreeLabel);
+
+        Map<String, Object> artifact = item.get("artifact") instanceof Map
+                ? (Map<String, Object>) item.get("artifact") : Map.of();
+        long artifactCount = number(artifact.get("count"));
+        Map<String, Object> latestArtifact = artifact.get("latest") instanceof Map
+                ? (Map<String, Object>) artifact.get("latest") : Map.of();
+        if (artifactCount > 0) {
+            parts.add("artifacts " + artifactCount
+                    + (str(latestArtifact.get("title")).isEmpty() ? ""
+                    : " · " + str(latestArtifact.get("title"))));
+        }
+
+        Map<String, Object> approval = item.get("approval") instanceof Map
+                ? (Map<String, Object>) item.get("approval") : Map.of();
+        if (Boolean.TRUE.equals(approval.get("pending"))) {
+            String type = fallback(str(approval.get("type")), "pending");
+            long count = number(approval.get("count"));
+            parts.add("input " + type + (count > 0 ? " (" + count + ")" : ""));
+        }
+
+        Map<String, Object> pr = item.get("pr") instanceof Map
+                ? (Map<String, Object>) item.get("pr") : Map.of();
+        long prCount = number(pr.get("count"));
+        Map<String, Object> latestPr = pr.get("latest") instanceof Map
+                ? (Map<String, Object>) pr.get("latest") : Map.of();
+        if (prCount > 0) {
+            String number = str(latestPr.get("number"));
+            String state = str(latestPr.get("state"));
+            parts.add("PR " + (number.isEmpty() ? prCount : "#" + number)
+                    + (state.isEmpty() ? "" : " " + state));
+        }
+        return String.join(" · ", parts);
     }
 
     private static Snapshot disconnected(String error, boolean stale,

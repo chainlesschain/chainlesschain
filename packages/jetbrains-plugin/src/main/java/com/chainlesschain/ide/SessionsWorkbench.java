@@ -90,20 +90,23 @@ public final class SessionsWorkbench {
         public final Map<String, SessionProjection.ActionPreview> actionPreviews;
         /** Remote-control port, or 0. */
         public final long port;
+        /** Bounded projection summary shown in the right/detail surface. */
+        public final String detail;
 
         Row(String id, String kind, String title, String workspace, String status,
                 long lastActivity, boolean waitingApproval, List<String> actions,
                 String sessionId) {
             this(id, kind, title, workspace, status, lastActivity,
                     waitingApproval, actions, sessionId, id, "", "", 0L,
-                    Map.of());
+                    Map.of(), "");
         }
 
         Row(String id, String kind, String title, String workspace, String status,
                 long lastActivity, boolean waitingApproval, List<String> actions,
                 String sessionId, String sourceId, String projectionRevision,
                 String itemRevision, long port,
-                Map<String, SessionProjection.ActionPreview> actionPreviews) {
+                Map<String, SessionProjection.ActionPreview> actionPreviews,
+                String detail) {
             this.id = id == null ? "" : id;
             this.kind = kind == null ? "" : kind;
             this.title = title == null ? "" : title;
@@ -121,6 +124,7 @@ public final class SessionsWorkbench {
             this.actionPreviews = Collections.unmodifiableMap(
                     new LinkedHashMap<String, SessionProjection.ActionPreview>(
                             actionPreviews == null ? Map.of() : actionPreviews));
+            this.detail = detail == null ? "" : detail;
         }
     }
 
@@ -165,7 +169,8 @@ public final class SessionsWorkbench {
                     snapshot.revision,
                     item.revision,
                     item.port,
-                    item.previews));
+                    item.previews,
+                    item.detail));
         }
         return Collections.unmodifiableList(rows);
     }
@@ -454,6 +459,7 @@ public final class SessionsWorkbench {
         if (!r.sessionId.isEmpty()) sb.append("session: ").append(r.sessionId).append('\n');
         String rel = formatRelativeTime(nowMs, r.lastActivity);
         if (!rel.isEmpty()) sb.append("last activity: ").append(rel).append('\n');
+        if (!r.detail.isEmpty()) sb.append(r.detail).append('\n');
         sb.append("actions: ").append(String.join(", ", r.actions));
         return sb.toString();
     }

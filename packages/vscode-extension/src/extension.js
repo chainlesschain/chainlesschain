@@ -281,6 +281,17 @@ function activate(context) {
     hostDomToken,
     log,
   });
+  const openSessionsWorkbenchPanel = () => {
+    const sessionsView = require("./ui/sessions-view.js");
+    sessionsView.openSessionsWorkbench(vscode, {
+      resumeChatSession: (id) => {
+        vscode.commands.executeCommand("chainlesschainIdeChat.focus");
+        chatProvider.resumeSessionId(id);
+      },
+      hostDomToken,
+    });
+    return sessionsView;
+  };
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(
       "chainlesschainIdeChat",
@@ -300,6 +311,10 @@ function activate(context) {
         (presentedToken, request) => {
           if (!hostDomTokensEqual(hostDomToken, presentedToken)) {
             throw new Error("host DOM relay token mismatch");
+          }
+          if (request?.surface === "sessions-workbench") {
+            const sessionsView = openSessionsWorkbenchPanel();
+            return sessionsView.runSessionsWorkbenchHostDomCommand(request);
           }
           return chatProvider.runHostDomCommand(request);
         },
@@ -688,13 +703,7 @@ function activate(context) {
     // stop/continue routed to the existing flows. Resume reuses the chat
     // view's resumeSessionId (same path /sessions and deep links take).
     vscode.commands.registerCommand("chainlesschain.sessions.workbench", () => {
-      const { openSessionsWorkbench } = require("./ui/sessions-view.js");
-      openSessionsWorkbench(vscode, {
-        resumeChatSession: (id) => {
-          vscode.commands.executeCommand("chainlesschainIdeChat.focus");
-          chatProvider.resumeSessionId(id);
-        },
-      });
+      openSessionsWorkbenchPanel();
     }),
     // Artifacts drawer (gap #9): browse the agent deliverable store
     // (`cc artifacts`) — metadata list + preview (markdown/image/text via

@@ -4,13 +4,33 @@
   "authority": "cli",
   "connected": true,
   "generatedAt": "2026-08-01T00:10:00.000Z",
-  "revision": "sha256:503dda21cca770369a2e5ad0a25a300ab079d09cd9cedc342ae1b5d4b637c0be",
+  "revision": "sha256:a8e6e8f46d7d4467d994a5e67b97cfb49955446f74453e719ba510cbb573b4e5",
   "sources": {
-    "local": { "ok": true, "count": 1, "error": null },
-    "background": { "ok": true, "count": 1, "error": null },
-    "remote": { "ok": true, "count": 1, "error": null },
-    "team": { "ok": true, "count": 1, "error": null },
-    "workflow": { "ok": true, "count": 1, "error": null }
+    "local": {
+      "ok": true,
+      "count": 1,
+      "error": null
+    },
+    "background": {
+      "ok": true,
+      "count": 1,
+      "error": null
+    },
+    "remote": {
+      "ok": true,
+      "count": 1,
+      "error": null
+    },
+    "team": {
+      "ok": true,
+      "count": 1,
+      "error": null
+    },
+    "workflow": {
+      "ok": true,
+      "count": 1,
+      "error": null
+    }
   },
   "sessions": [
     {
@@ -96,7 +116,10 @@
         }
       ],
       "linkedSessionId": "workflow-fixture",
-      "owner": { "type": "local-user", "id": null },
+      "owner": {
+        "type": "local-user",
+        "id": null
+      },
       "environment": {
         "cwd": "C:/repo",
         "host": null,
@@ -104,9 +127,19 @@
         "mode": null
       },
       "worktree": null,
-      "artifact": { "count": 0, "latest": null },
-      "approval": { "pending": true, "type": "input", "count": 0 },
-      "pr": { "count": 0, "latest": null },
+      "artifact": {
+        "count": 0,
+        "latest": null
+      },
+      "approval": {
+        "pending": true,
+        "type": "input",
+        "count": 0
+      },
+      "pr": {
+        "count": 0,
+        "latest": null
+      },
       "lastEvent": {
         "type": "state:needs_input",
         "at": "2026-08-01T00:05:00.000Z"
@@ -143,10 +176,10 @@
           "available": true,
           "reason": null,
           "preview": {
-            "executor": "terminal",
-            "argv": ["attach", "bg-fixture"],
-            "mutates": false,
-            "input": null
+            "executor": "cli",
+            "argv": ["daemon", "reply", "bg-fixture", "$prompt", "--json"],
+            "mutates": true,
+            "input": "prompt"
           }
         },
         {
@@ -191,7 +224,10 @@
         }
       ],
       "linkedSessionId": "local-fixture",
-      "owner": { "type": "local-user", "id": "alice" },
+      "owner": {
+        "type": "local-user",
+        "id": "alice"
+      },
       "environment": {
         "cwd": "C:/repo",
         "host": null,
@@ -213,7 +249,11 @@
           "createdAt": "2026-08-01T00:02:00.000Z"
         }
       },
-      "approval": { "pending": true, "type": "input", "count": 0 },
+      "approval": {
+        "pending": true,
+        "type": "input",
+        "count": 0
+      },
       "pr": {
         "count": 1,
         "latest": {
@@ -228,7 +268,7 @@
         "type": "state:needs_input",
         "at": "2026-08-01T00:04:00.000Z"
       },
-      "revision": "sha256:6cc27116fb89bf1f9b970959e06eb02063989c992c0d55dd5863ca47b980c893"
+      "revision": "sha256:02662f896008fe0109c01e0977b886d20def478f8ad813c47c7f72d9b021db0b"
     },
     {
       "id": "team:team-fixture",
@@ -288,7 +328,10 @@
         }
       ],
       "linkedSessionId": "team-session-fixture",
-      "owner": { "type": "team-coordinator", "id": null },
+      "owner": {
+        "type": "team-coordinator",
+        "id": null
+      },
       "environment": {
         "cwd": "C:/repo",
         "host": null,
@@ -302,9 +345,19 @@
         "baseSha": null,
         "count": 1
       },
-      "artifact": { "count": 0, "latest": null },
-      "approval": { "pending": true, "type": "adjudication", "count": 1 },
-      "pr": { "count": 0, "latest": null },
+      "artifact": {
+        "count": 0,
+        "latest": null
+      },
+      "approval": {
+        "pending": true,
+        "type": "adjudication",
+        "count": 1
+      },
+      "pr": {
+        "count": 0,
+        "latest": null
+      },
       "lastEvent": {
         "type": "state:blocked",
         "at": "2026-08-01T00:06:00.000Z"
@@ -379,7 +432,10 @@
         }
       ],
       "linkedSessionId": "local-fixture",
-      "owner": { "type": "remote-peer", "id": "phone" },
+      "owner": {
+        "type": "remote-peer",
+        "id": "phone"
+      },
       "environment": {
         "cwd": null,
         "host": "0.0.0.0",
@@ -396,7 +452,11 @@
           "createdAt": "2026-08-01T00:02:00.000Z"
         }
       },
-      "approval": { "pending": false, "type": null, "count": 0 },
+      "approval": {
+        "pending": false,
+        "type": null,
+        "count": 0
+      },
       "pr": {
         "count": 1,
         "latest": {
@@ -481,7 +541,10 @@
         }
       ],
       "linkedSessionId": "local-fixture",
-      "owner": { "type": "local-user", "id": null },
+      "owner": {
+        "type": "local-user",
+        "id": null
+      },
       "environment": {
         "cwd": "C:/repo",
         "host": null,
@@ -498,7 +561,11 @@
           "createdAt": "2026-08-01T00:02:00.000Z"
         }
       },
-      "approval": { "pending": false, "type": null, "count": 0 },
+      "approval": {
+        "pending": false,
+        "type": null,
+        "count": 0
+      },
       "pr": {
         "count": 1,
         "latest": {
