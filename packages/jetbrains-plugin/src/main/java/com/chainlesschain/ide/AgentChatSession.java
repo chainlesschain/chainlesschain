@@ -269,15 +269,37 @@ public final class AgentChatSession {
         }
     }
 
+    /** Build a one-shot capture command without losing structured arguments to
+     *  the second cmd.exe parse used by Windows npm shims. */
+    static List<String> buildCaptureCommand(
+            String binary, List<String> args, boolean windows) {
+        List<String> raw = new ArrayList<String>();
+        raw.add(binary);
+        if (args != null) raw.addAll(args);
+        if (!windows) return raw;
+
+        StringBuilder commandLine = new StringBuilder();
+        for (String value : raw) {
+            if (value == null || value.indexOf('\0') >= 0
+                    || value.indexOf('\r') >= 0 || value.indexOf('\n') >= 0
+                    || value.indexOf('%') >= 0) {
+                // Percent expansion happens even inside cmd quotes. Fail closed
+                // instead of executing a different command or corrupting JSON.
+                return new ArrayList<String>();
+            }
+            if (commandLine.length() > 0) commandLine.append(' ');
+            commandLine.append('"').append(value.replace("\"", "\"\"")).append('"');
+        }
+        return new ArrayList<String>(Arrays.asList(
+                "cmd.exe", "/d", "/s", "/v:off", "/c",
+                commandLine.toString()));
+    }
+
     /** {@code <binary> <args…>} → captured stdout, or "" on failure/timeout. */
     private static String runCaptureWith(String binary, List<String> args, File cwd, long timeoutMs) {
-        List<String> cmd = new ArrayList<>();
-        if (File.separatorChar == '\\') {
-            cmd.add("cmd.exe");
-            cmd.add("/c");
-        }
-        cmd.add(binary);
-        if (args != null) cmd.addAll(args);
+        List<String> cmd = buildCaptureCommand(
+                binary, args, File.separatorChar == '\\');
+        if (cmd.isEmpty()) return "";
         try {
             ProcessBuilder pb = new ProcessBuilder(cmd);
             if (cwd != null) pb.directory(cwd);

@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.Arrays;
+import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -83,5 +85,37 @@ class AgentChatSessionTest {
     void chooseBinaryYieldsNullWhenNoCandidateResolves() {
         assertNull(AgentChatSession.chooseBinary(c -> ""));
         assertNull(AgentChatSession.chooseBinary(c -> null));
+    }
+
+    @Test
+    void windowsCapturePreservesJsonAsOneExactArgument() {
+        List<String> command = AgentChatSession.buildCaptureCommand(
+                "C:\\Program Files\\cc.cmd",
+                Arrays.asList(
+                        "checkpoint", "action", "--submission",
+                        "{\"schema\":\"cc-action/v1\",\"value\":\"a b\"}"),
+                true);
+        assertEquals(Arrays.asList(
+                "cmd.exe", "/d", "/s", "/v:off", "/c",
+                "\"C:\\Program Files\\cc.cmd\" \"checkpoint\" \"action\" "
+                        + "\"--submission\" "
+                        + "\"{\"\"schema\"\":\"\"cc-action/v1\"\","
+                        + "\"\"value\"\":\"\"a b\"\"}\""), command);
+    }
+
+    @Test
+    void windowsCaptureFailsClosedOnCmdExpansionOrLineBreaks() {
+        assertTrue(AgentChatSession.buildCaptureCommand(
+                "cc", Arrays.asList("--submission", "%PATH%"), true).isEmpty());
+        assertTrue(AgentChatSession.buildCaptureCommand(
+                "cc", Arrays.asList("line1\nline2"), true).isEmpty());
+    }
+
+    @Test
+    void posixCaptureKeepsTheShellLessArgumentVector() {
+        assertEquals(Arrays.asList("cc", "--submission", "{\"value\":\"a b\"}"),
+                AgentChatSession.buildCaptureCommand(
+                        "cc", Arrays.asList("--submission", "{\"value\":\"a b\"}"),
+                        false));
     }
 }
