@@ -8,11 +8,6 @@ INSTALL_DIR="${CC_CLI_INSTALL_DIR:-$HOME/.local/bin}"
 MANIFEST_URL="$BASE_URL/chainlesschain-update.json"
 IDENTITY="^https://github.com/${REPOSITORY}/.github/workflows/cli-native-release.yml@refs/tags/cli-v"
 
-command -v curl >/dev/null 2>&1 || { echo "curl is required" >&2; exit 2; }
-command -v cosign >/dev/null 2>&1 || {
-  echo "cosign is required to verify the signed CLI release" >&2
-  exit 2
-}
 command -v python3 >/dev/null 2>&1 || { echo "python3 is required" >&2; exit 2; }
 
 case "$(uname -s)" in
@@ -55,6 +50,7 @@ ALIAS_CLAIM_PATH=""
 BACKUP_ORPHAN_PATH=""
 LINEAGE_ORPHAN_PATH=""
 RECOVERY_STATE_PATH=""
+JOURNAL_PATH=""
 RECOVERY_RETIRED_PATH=""
 RECOVERY_RETIRED_SHA256=""
 RECOVERY_RETIRED_IDENTITY=""
@@ -106,14 +102,39 @@ cleanup() {
   status=$?
   set +e
   trap - 0 HUP INT TERM
+  if [ -n "$JOURNAL_PATH" ] && [ -f "$JOURNAL_PATH" ]; then
+    journal_cleanup_decision=""
+    if journal_cleanup_decision=$(read_install_transaction_decision); then
+      if [ "$journal_cleanup_decision" = commit ]; then
+        COMMITTED=1
+      fi
+    else
+      PRESERVE_RECOVERY=1
+      [ "$status" -ne 0 ] || status=1
+      echo "native install journal decision is invalid; recovery evidence was retained" >&2
+    fi
+  fi
+  # Once commit-decision publication starts, an asynchronous signal must not
+  # race an in-process rollback against the journal write. Keep the journal,
+  # recovery set, and lock together so the next process applies whichever
+  # decision reached durable storage.
+  if [ "$COMMITTED" -eq 1 ] && [ -n "$JOURNAL_PATH" ] && \
+    { [ -e "$JOURNAL_PATH" ] || [ -L "$JOURNAL_PATH" ]; }; then
+    PRESERVE_RECOVERY=1
+  fi
   if [ "$RECOVERY_RETIREMENT_GUARD" -eq 1 ] || \
     { [ -n "$RECOVERY_RETIRED_PATH" ] && { [ -e "$RECOVERY_RETIRED_PATH" ] || [ -L "$RECOVERY_RETIRED_PATH" ]; }; }; then
     PRESERVE_RECOVERY=1
   fi
   if [ "$SWAPPED" -eq 1 ] && [ "$COMMITTED" -eq 0 ] && [ "$PRESERVE_RECOVERY" -eq 0 ]; then
     if rollback_install; then
-      SWAPPED=0
-      echo "incomplete install transaction was rolled back" >&2
+      if retire_install_transaction_journal rollback; then
+        SWAPPED=0
+        echo "incomplete install transaction was rolled back" >&2
+      else
+        PRESERVE_RECOVERY=1
+        echo "incomplete install transaction rolled back but its journal could not be retired" >&2
+      fi
     else
       PRESERVE_RECOVERY=1
       echo "incomplete install transaction could not be rolled back" >&2
@@ -128,6 +149,15 @@ cleanup() {
         PRESERVE_RECOVERY=1
         echo "native recovery-set retirement or cleanup failed" >&2
       fi
+    fi
+  fi
+  if [ "$PRESERVE_RECOVERY" -eq 0 ] && [ -n "$JOURNAL_PATH" ] && [ -f "$JOURNAL_PATH" ]; then
+    cleanup_decision=rollback
+    [ "$COMMITTED" -eq 0 ] || cleanup_decision=commit
+    if ! retire_install_transaction_journal "$cleanup_decision"; then
+      PRESERVE_RECOVERY=1
+      [ "$status" -ne 0 ] || status=1
+      echo "native install journal could not be retired after cleanup" >&2
     fi
   fi
   if [ "$PRESERVE_RECOVERY" -eq 0 ]; then
@@ -1973,6 +2003,574 @@ discard_transaction_snapshots() {
   [ "$CLEANUP_PENDING" -eq 0 ]
 }
 
+write_install_transaction_journal() {
+  journal_phase=$1
+  journal_decision=$2
+  python3 - \
+    "$JOURNAL_PATH" \
+    "$INSTALL_DIR" \
+    "$TRANSACTION_ID" \
+    "$journal_phase" \
+    "$journal_decision" \
+    "$ARTIFACT_SHA256" \
+    "$HAD_TARGET" \
+    "$OLD_TARGET_SHA256" \
+    "$HAD_BACKUP" \
+    "$OLD_BACKUP_SHA256" \
+    "$HAD_ALIAS" \
+    "$OLD_ALIAS_TARGET_SHA256" \
+    "$HAD_LINEAGE" \
+    "$OLD_LINEAGE_SHA256" <<'PY'
+import datetime, errno, json, os, re, stat, sys, uuid
+
+(
+    journal_path,
+    directory,
+    transaction_id,
+    phase,
+    decision,
+    expected_sha,
+    had_target,
+    target_before_sha,
+    had_backup,
+    backup_before_sha,
+    had_alias,
+    alias_before_sha,
+    had_lineage,
+    lineage_before_sha,
+) = sys.argv[1:]
+phases = {
+    'prepared',
+    'target-committed',
+    'backup-committed',
+    'alias-committed',
+    'verified',
+    'lineage-committed',
+    'committed',
+}
+
+if phase not in phases or decision not in ('rollback', 'commit'):
+    raise SystemExit('invalid native install transaction phase or decision')
+if (phase == 'committed') != (decision == 'commit'):
+    raise SystemExit('native install transaction decision does not match its phase')
+try:
+    transaction_id = str(uuid.UUID(transaction_id))
+except ValueError as error:
+    raise SystemExit('invalid native install transaction ID') from error
+hash_pattern = re.compile(r'^[0-9a-f]{64}$')
+if hash_pattern.fullmatch(expected_sha) is None:
+    raise SystemExit('invalid native install expected SHA-256')
+
+def before_state(flag, value):
+    present = flag == '1'
+    if flag not in ('0', '1'):
+        raise SystemExit('invalid native install pre-state flag')
+    if present:
+        if hash_pattern.fullmatch(value) is None:
+            raise SystemExit('invalid native install pre-state SHA-256')
+        return True, value
+    if value:
+        raise SystemExit('absent native install pre-state has a digest')
+    return False, None
+
+had_target, target_before_sha = before_state(had_target, target_before_sha)
+had_backup, backup_before_sha = before_state(had_backup, backup_before_sha)
+had_alias, alias_before_sha = before_state(had_alias, alias_before_sha)
+had_lineage, lineage_before_sha = before_state(had_lineage, lineage_before_sha)
+payload = {
+    'schema': 'chainlesschain.native-install-transaction.v1',
+    'transactionId': transaction_id,
+    'operation': 'install',
+    'phase': phase,
+    'decision': decision,
+    'expectedSha256': expected_sha,
+    'hadTarget': had_target,
+    'targetBeforeSha256': target_before_sha,
+    'hadBackup': had_backup,
+    'backupBeforeSha256': backup_before_sha,
+    'hadAlias': had_alias,
+    'aliasBeforeSha256': alias_before_sha,
+    'hadLineage': had_lineage,
+    'lineageBeforeSha256': lineage_before_sha,
+    'updatedAt': datetime.datetime.now(datetime.timezone.utc).isoformat().replace('+00:00', 'Z'),
+}
+payload_bytes = (json.dumps(payload, separators=(',', ':'), sort_keys=True) + '\n').encode()
+temporary_path = os.path.join(directory, f'.chainlesschain.install-journal-{transaction_id}.tmp')
+if os.path.lexists(temporary_path):
+    raise SystemExit('native install journal staging path already exists')
+if os.path.lexists(journal_path):
+    existing = os.lstat(journal_path)
+    if not stat.S_ISREG(existing.st_mode):
+        raise SystemExit('native install journal is not a regular file')
+    flags = os.O_RDONLY | getattr(os, 'O_NOFOLLOW', 0)
+    fd = os.open(journal_path, flags)
+    try:
+        current = json.loads(os.read(fd, 1024 * 1024))
+    finally:
+        os.close(fd)
+    if current.get('transactionId') != transaction_id:
+        raise SystemExit('another native install transaction journal exists')
+flags = os.O_CREAT | os.O_EXCL | os.O_WRONLY | getattr(os, 'O_NOFOLLOW', 0)
+fd = os.open(temporary_path, flags, 0o600)
+try:
+    os.write(fd, payload_bytes)
+    os.fsync(fd)
+finally:
+    os.close(fd)
+os.replace(temporary_path, journal_path)
+dir_fd = os.open(directory, os.O_RDONLY)
+try:
+    try:
+        os.fsync(dir_fd)
+    except OSError as error:
+        if error.errno not in (errno.EBADF, errno.EINVAL, getattr(errno, 'ENOTSUP', errno.EINVAL), getattr(errno, 'EOPNOTSUPP', errno.EINVAL)):
+            raise
+finally:
+    os.close(dir_fd)
+PY
+}
+
+read_install_transaction_decision() {
+  python3 - "$JOURNAL_PATH" "$TRANSACTION_ID" <<'PY'
+import json, os, stat, sys
+
+journal_path, transaction_id = sys.argv[1:]
+flags = os.O_RDONLY | getattr(os, 'O_NOFOLLOW', 0)
+fd = os.open(journal_path, flags)
+try:
+    before = os.fstat(fd)
+    path_before = os.lstat(journal_path)
+    payload = os.read(fd, 1024 * 1024)
+    after = os.fstat(fd)
+    path_after = os.lstat(journal_path)
+finally:
+    os.close(fd)
+values = (before, path_before, after, path_after)
+if (
+    not all(stat.S_ISREG(value.st_mode) for value in values)
+    or len({(value.st_dev, value.st_ino) for value in values}) != 1
+    or before.st_size != after.st_size
+    or after.st_size != len(payload)
+):
+    raise SystemExit('native install journal changed while its decision was read')
+value = json.loads(payload)
+decision = value.get('decision')
+if (
+    value.get('schema') != 'chainlesschain.native-install-transaction.v1'
+    or value.get('transactionId') != transaction_id
+    or decision not in ('rollback', 'commit')
+    or ((value.get('phase') == 'committed') != (decision == 'commit'))
+):
+    raise SystemExit('native install journal decision is invalid')
+print(decision)
+PY
+}
+
+retire_install_transaction_journal() {
+  expected_decision=$1
+  [ -n "$JOURNAL_PATH" ] || return 0
+  [ -e "$JOURNAL_PATH" ] || return 0
+  python3 - "$JOURNAL_PATH" "$JOURNAL_PATH.last" "$INSTALL_DIR" "$TRANSACTION_ID" "$expected_decision" <<'PY'
+import errno, json, os, stat, sys
+
+journal_path, retired_path, directory, transaction_id, expected_decision = sys.argv[1:]
+flags = os.O_RDONLY | getattr(os, 'O_NOFOLLOW', 0)
+fd = os.open(journal_path, flags)
+try:
+    before = os.fstat(fd)
+    path_before = os.lstat(journal_path)
+    payload = os.read(fd, 1024 * 1024)
+    after = os.fstat(fd)
+    path_after = os.lstat(journal_path)
+finally:
+    os.close(fd)
+if not all(stat.S_ISREG(value.st_mode) for value in (before, path_before, after, path_after)):
+    raise SystemExit('native install journal is not a regular file')
+identities = {(value.st_dev, value.st_ino) for value in (before, path_before, after, path_after)}
+if len(identities) != 1 or before.st_size != after.st_size or after.st_size != len(payload):
+    raise SystemExit('native install journal changed before retirement')
+value = json.loads(payload)
+if value.get('transactionId') != transaction_id or value.get('decision') != expected_decision:
+    raise SystemExit('native install journal does not match its retirement decision')
+if (value.get('phase') == 'committed') != (expected_decision == 'commit'):
+    raise SystemExit('native install journal phase does not match its retirement decision')
+if os.path.lexists(retired_path) and not stat.S_ISREG(os.lstat(retired_path).st_mode):
+    raise SystemExit('retired native install journal is not a regular file')
+os.replace(journal_path, retired_path)
+dir_fd = os.open(directory, os.O_RDONLY)
+try:
+    try:
+        os.fsync(dir_fd)
+    except OSError as error:
+        if error.errno not in (errno.EBADF, errno.EINVAL, getattr(errno, 'ENOTSUP', errno.EINVAL), getattr(errno, 'EOPNOTSUPP', errno.EINVAL)):
+            raise
+finally:
+    os.close(dir_fd)
+PY
+  JOURNAL_PATH=""
+}
+
+crash_after_install_phase() {
+  crash_phase=$1
+  if [ "${CC_CLI_INSTALL_CRASH_AFTER_PHASE:-}" = "$crash_phase" ]; then
+    kill -KILL "$$"
+  fi
+  if [ "${CC_CLI_INSTALL_TERMINATE_AFTER_PHASE:-}" = "$crash_phase" ]; then
+    kill -TERM "$$"
+  fi
+}
+
+resolve_stale_install_lock() {
+  python3 - "$LOCK_PATH" "$INSTALL_DIR" <<'PY'
+import errno, os, re, stat, sys, uuid
+
+lock_path, directory = sys.argv[1:]
+try:
+    path_before = os.lstat(lock_path)
+except FileNotFoundError:
+    raise SystemExit(0)
+if not stat.S_ISREG(path_before.st_mode):
+    raise SystemExit('native update lock is not a regular file')
+flags = os.O_RDONLY | getattr(os, 'O_NOFOLLOW', 0)
+fd = os.open(lock_path, flags)
+try:
+    before = os.fstat(fd)
+    token = os.read(fd, 129).decode('utf-8')
+    after = os.fstat(fd)
+    path_after = os.lstat(lock_path)
+finally:
+    os.close(fd)
+identities = {(value.st_dev, value.st_ino) for value in (path_before, before, after, path_after)}
+if (
+    len(identities) != 1
+    or not all(stat.S_ISREG(value.st_mode) for value in (before, after, path_after))
+    or before.st_size != after.st_size
+    or after.st_size != len(token.encode('utf-8'))
+):
+    raise SystemExit('native update lock changed during stale-lock validation')
+match = re.fullmatch(
+    r'([1-9][0-9]*):(?:[0-9a-f]{32}|[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})',
+    token,
+)
+if match is None:
+    raise SystemExit('native update lock token is invalid and requires manual recovery')
+owner_pid = int(match.group(1))
+try:
+    os.kill(owner_pid, 0)
+except ProcessLookupError:
+    pass
+except PermissionError:
+    raise SystemExit(f'native update lock owner PID {owner_pid} is still live')
+else:
+    raise SystemExit(f'native update lock owner PID {owner_pid} is still live')
+orphan_path = f'{lock_path}.orphaned-{uuid.uuid4().hex}'
+os.rename(lock_path, orphan_path)
+orphan = os.lstat(orphan_path)
+if (orphan.st_dev, orphan.st_ino) != (after.st_dev, after.st_ino):
+    raise SystemExit('stale native update lock changed during quarantine')
+dir_fd = os.open(directory, os.O_RDONLY)
+try:
+    try:
+        os.fsync(dir_fd)
+    except OSError as error:
+        if error.errno not in (errno.EBADF, errno.EINVAL, getattr(errno, 'ENOTSUP', errno.EINVAL), getattr(errno, 'EOPNOTSUPP', errno.EINVAL)):
+            raise
+finally:
+    os.close(dir_fd)
+print(orphan_path)
+PY
+}
+
+recover_interrupted_install() {
+  python3 - \
+    "$JOURNAL_PATH" \
+    "$JOURNAL_PATH.last" \
+    "$INSTALL_DIR" \
+    "$TARGET_PATH" \
+    "$BACKUP_PATH" \
+    "$ALIAS_PATH" \
+    "$LINEAGE_PATH" <<'PY'
+import errno, hashlib, json, os, re, shutil, stat, sys, uuid
+
+journal_path, retired_journal_path, directory, target_path, backup_path, alias_path, lineage_path = sys.argv[1:]
+hash_pattern = re.compile(r'^[0-9a-f]{64}$')
+phases = {
+    'prepared', 'target-committed', 'backup-committed', 'alias-committed',
+    'verified', 'lineage-committed', 'committed',
+}
+unsupported_fsync = {
+    errno.EBADF, errno.EINVAL, getattr(errno, 'ENOTSUP', errno.EINVAL),
+    getattr(errno, 'EOPNOTSUPP', errno.EINVAL),
+}
+
+def barrier():
+    fd = os.open(directory, os.O_RDONLY)
+    try:
+        try:
+            os.fsync(fd)
+        except OSError as error:
+            if error.errno not in unsupported_fsync:
+                raise
+    finally:
+        os.close(fd)
+
+def read_regular(path, capture=False, max_capture_bytes=1024 * 1024):
+    flags = os.O_RDONLY | getattr(os, 'O_NOFOLLOW', 0)
+    fd = os.open(path, flags)
+    try:
+        before = os.fstat(fd)
+        path_before = os.lstat(path)
+        digest = hashlib.sha256()
+        blocks = []
+        while True:
+            block = os.read(fd, 1024 * 1024)
+            if not block:
+                break
+            digest.update(block)
+            if capture:
+                blocks.append(block)
+                if sum(len(value) for value in blocks) > max_capture_bytes:
+                    raise RuntimeError(f'recovery metadata is oversized: {path}')
+        after = os.fstat(fd)
+        path_after = os.lstat(path)
+    finally:
+        os.close(fd)
+    values = (before, path_before, after, path_after)
+    identities = {(value.st_dev, value.st_ino) for value in values}
+    if (
+        not all(stat.S_ISREG(value.st_mode) for value in values)
+        or len(identities) != 1
+        or before.st_size != after.st_size
+        or before.st_mtime_ns != after.st_mtime_ns
+        or before.st_ctime_ns != after.st_ctime_ns
+    ):
+        raise RuntimeError(f'regular recovery path changed while read: {path}')
+    return b''.join(blocks), digest.hexdigest(), f'{after.st_dev}:{after.st_ino}:{after.st_mode}'
+
+journal_bytes, _, _ = read_regular(journal_path, capture=True)
+try:
+    journal = json.loads(journal_bytes)
+    transaction_id = str(uuid.UUID(journal.get('transactionId', '')))
+except (AttributeError, TypeError, ValueError, json.JSONDecodeError) as error:
+    raise SystemExit('native install transaction journal is invalid') from error
+required = {
+    'schema', 'transactionId', 'operation', 'phase', 'decision', 'expectedSha256',
+    'hadTarget', 'targetBeforeSha256', 'hadBackup', 'backupBeforeSha256',
+    'hadAlias', 'aliasBeforeSha256', 'hadLineage', 'lineageBeforeSha256', 'updatedAt',
+}
+if set(journal) != required:
+    raise SystemExit('native install transaction journal fields are invalid')
+if (
+    journal['schema'] != 'chainlesschain.native-install-transaction.v1'
+    or journal['transactionId'] != transaction_id
+    or journal['operation'] != 'install'
+    or journal['phase'] not in phases
+    or journal['decision'] not in ('rollback', 'commit')
+    or (journal['phase'] == 'committed') != (journal['decision'] == 'commit')
+    or hash_pattern.fullmatch(journal.get('expectedSha256', '')) is None
+):
+    raise SystemExit('native install transaction journal failed schema validation')
+
+def prestate(flag_name, hash_name):
+    present = journal.get(flag_name)
+    digest = journal.get(hash_name)
+    if type(present) is not bool:
+        raise SystemExit(f'native install transaction {flag_name} is invalid')
+    if (present and (not isinstance(digest, str) or hash_pattern.fullmatch(digest) is None)) or (not present and digest is not None):
+        raise SystemExit(f'native install transaction {hash_name} is invalid')
+    return present, digest
+
+had_target, target_before = prestate('hadTarget', 'targetBeforeSha256')
+had_backup, backup_before = prestate('hadBackup', 'backupBeforeSha256')
+had_alias, alias_before = prestate('hadAlias', 'aliasBeforeSha256')
+had_lineage, lineage_before = prestate('hadLineage', 'lineageBeforeSha256')
+expected = journal['expectedSha256']
+prior_target = os.path.join(directory, f'.chainlesschain.target-prior-{transaction_id}')
+prior_backup = os.path.join(directory, f'.chainlesschain.backup-prior-{transaction_id}')
+prior_lineage = os.path.join(directory, f'.chainlesschain.lineage-prior-{transaction_id}')
+prior_alias = os.path.join(directory, f'.cc.prior-{transaction_id}')
+pointer = os.path.join(directory, f'.chainlesschain.recovery-{transaction_id}.json')
+
+members = {
+    'priorTarget': (prior_target, had_target, target_before, 'regular'),
+    'priorBackup': (prior_backup, had_backup, backup_before, 'regular'),
+    'priorLineage': (prior_lineage, had_lineage, lineage_before, 'regular'),
+    'priorAlias': (prior_alias, had_alias, alias_before, 'symlink'),
+}
+if any(value[1] for value in members.values()):
+    pointer_bytes, _, _ = read_regular(pointer, capture=True)
+    pointer_value = json.loads(pointer_bytes)
+    if pointer_value.get('schema') != 'chainlesschain.native-install-recovery.v1' or pointer_value.get('transactionId') != transaction_id:
+        raise SystemExit('native install recovery pointer does not match its journal')
+    if set(pointer_value.get('members', {})) != set(members):
+        raise SystemExit('native install recovery pointer members are invalid')
+    for name, (member_path, present, digest, kind) in members.items():
+        value = pointer_value['members'][name]
+        expected_path = member_path if present else None
+        digest_key = 'targetSha256' if kind == 'symlink' else 'sha256'
+        if value.get('path') != expected_path or value.get(digest_key) != digest:
+            raise SystemExit(f'{name} recovery pointer member is not canonical')
+        if not present:
+            continue
+        if kind == 'regular':
+            _, actual_digest, actual_identity = read_regular(member_path)
+        else:
+            before = os.lstat(member_path)
+            raw_target = os.readlink(member_path)
+            after = os.lstat(member_path)
+            if not stat.S_ISLNK(before.st_mode) or (before.st_dev, before.st_ino) != (after.st_dev, after.st_ino):
+                raise SystemExit('native install alias recovery snapshot changed')
+            actual_digest = hashlib.sha256(os.fsencode(raw_target)).hexdigest()
+            actual_identity = f'{after.st_dev}:{after.st_ino}:{after.st_mode}'
+        if actual_digest != digest or value.get('identity') != actual_identity:
+            raise SystemExit(f'{name} recovery member changed')
+elif os.path.lexists(pointer):
+    raise SystemExit('unexpected native install recovery pointer')
+
+def regular_digest_or_none(path):
+    try:
+        value = os.lstat(path)
+    except FileNotFoundError:
+        return None
+    if not stat.S_ISREG(value.st_mode):
+        raise SystemExit(f'native install public path has an unsafe type: {path}')
+    return read_regular(path)[1]
+
+def alias_digest_or_none(path):
+    try:
+        value = os.lstat(path)
+    except FileNotFoundError:
+        return None
+    if not stat.S_ISLNK(value.st_mode):
+        raise SystemExit('native install alias has an unsafe type')
+    return hashlib.sha256(os.fsencode(os.readlink(path))).hexdigest()
+
+def lineage_matches_new():
+    digest = regular_digest_or_none(lineage_path)
+    if digest is None:
+        return False
+    value = json.loads(read_regular(lineage_path, capture=True)[0])
+    return (
+        value.get('schema') == 'chainlesschain.native-update-lineage.v1'
+        and value.get('transactionId') == transaction_id
+        and value.get('currentSha256') == expected
+    )
+
+def restore_regular(source, destination, digest, label):
+    _, source_digest, _ = read_regular(source)
+    if source_digest != digest:
+        raise SystemExit(f'{label} recovery source changed')
+    staging = f'{destination}.restart-recovery-{transaction_id}'
+    if os.path.lexists(staging):
+        raise SystemExit(f'{label} recovery staging path exists')
+    shutil.copyfile(source, staging, follow_symlinks=False)
+    os.chmod(staging, stat.S_IMODE(os.lstat(source).st_mode))
+    fd = os.open(staging, os.O_RDONLY | getattr(os, 'O_NOFOLLOW', 0))
+    try:
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+    if read_regular(staging)[1] != digest:
+        raise SystemExit(f'{label} recovery staging changed')
+    os.replace(staging, destination)
+    barrier()
+    if read_regular(destination)[1] != digest:
+        raise SystemExit(f'{label} recovery failed verification')
+
+def remove_known_regular(path, allowed, label):
+    digest = regular_digest_or_none(path)
+    if digest is None:
+        return
+    if digest not in {value for value in allowed if value}:
+        raise SystemExit(f'{label} has an unknown generation')
+    retired = f'{path}.restart-retired-{transaction_id}'
+    if os.path.lexists(retired):
+        raise SystemExit(f'{label} retirement path already exists')
+    os.rename(path, retired)
+    barrier()
+
+canonical_alias_digest = hashlib.sha256(b'chainlesschain').hexdigest()
+if journal['decision'] == 'commit':
+    if regular_digest_or_none(target_path) != expected:
+        raise SystemExit('committed native install target does not match its decision')
+    expected_backup = target_before if had_target else None
+    if regular_digest_or_none(backup_path) != expected_backup:
+        raise SystemExit('committed native install backup does not match its decision')
+    if alias_digest_or_none(alias_path) != canonical_alias_digest:
+        raise SystemExit('committed native install alias does not match its decision')
+    if not lineage_matches_new():
+        raise SystemExit('committed native install lineage does not match its decision')
+    outcome = 'committed'
+else:
+    current_target = regular_digest_or_none(target_path)
+    if had_target:
+        if current_target not in (target_before, expected, None):
+            raise SystemExit('interrupted native install target has an unknown generation')
+        if current_target != target_before:
+            restore_regular(prior_target, target_path, target_before, 'target')
+    else:
+        remove_known_regular(target_path, (expected,), 'fresh native install target')
+
+    current_backup = regular_digest_or_none(backup_path)
+    if had_backup:
+        if current_backup not in (backup_before, target_before, None):
+            raise SystemExit('interrupted native install backup has an unknown generation')
+        if current_backup != backup_before:
+            restore_regular(prior_backup, backup_path, backup_before, 'backup')
+    else:
+        remove_known_regular(backup_path, (target_before,), 'fresh native install backup')
+
+    current_alias = alias_digest_or_none(alias_path)
+    if had_alias:
+        if current_alias not in (alias_before, canonical_alias_digest, None):
+            raise SystemExit('interrupted native install alias has an unknown generation')
+        if current_alias != alias_before:
+            raw_target = os.readlink(prior_alias)
+            staging = f'{alias_path}.restart-recovery-{transaction_id}'
+            if os.path.lexists(staging):
+                raise SystemExit('alias recovery staging path exists')
+            os.symlink(raw_target, staging)
+            os.replace(staging, alias_path)
+            barrier()
+            if alias_digest_or_none(alias_path) != alias_before:
+                raise SystemExit('alias recovery failed verification')
+    elif current_alias is not None:
+        if current_alias != canonical_alias_digest:
+            raise SystemExit('fresh native install alias has an unknown generation')
+        retired_alias = f'{alias_path}.restart-retired-{transaction_id}'
+        if os.path.lexists(retired_alias):
+            raise SystemExit('fresh native install alias retirement path already exists')
+        os.rename(alias_path, retired_alias)
+        barrier()
+
+    current_lineage = regular_digest_or_none(lineage_path)
+    if had_lineage:
+        if current_lineage != lineage_before:
+            if current_lineage is not None and not lineage_matches_new():
+                raise SystemExit('interrupted native install lineage has an unknown generation')
+            restore_regular(prior_lineage, lineage_path, lineage_before, 'lineage')
+    elif current_lineage is not None:
+        if not lineage_matches_new():
+            raise SystemExit('fresh native install lineage has an unknown generation')
+        retired_lineage = f'{lineage_path}.restart-retired-{transaction_id}'
+        if os.path.lexists(retired_lineage):
+            raise SystemExit('fresh native install lineage retirement path already exists')
+        os.rename(lineage_path, retired_lineage)
+        barrier()
+    outcome = 'rolled-back'
+
+if os.path.lexists(retired_journal_path) and not stat.S_ISREG(os.lstat(retired_journal_path).st_mode):
+    raise SystemExit('retired native install journal has an unsafe type')
+os.replace(journal_path, retired_journal_path)
+barrier()
+
+# Once the fixed journal name has been durably retired, leftovers are private,
+# transaction-derived evidence only. POSIX has no conditional unlink-by-inode;
+# a bounded, identity-aware GC owns their later retirement.
+print(outcome)
+PY
+}
+
 validate_rollback_public_state() {
   assert_lock_owned || return 1
   if [ -n "$RECOVERY_STATE_PATH" ]; then
@@ -2235,6 +2833,60 @@ rollback_install() {
   fi
 }
 
+# Recover the fixed durable journal before release tooling or network access is
+# required. This path intentionally performs no manifest download.
+assert_safe_install_dir "$INSTALL_DIR"
+mkdir -p "$INSTALL_DIR"
+assert_safe_install_dir "$INSTALL_DIR"
+INSTALL_DIR=$(cd -P "$INSTALL_DIR" && pwd)
+TARGET_PATH="$INSTALL_DIR/chainlesschain"
+BACKUP_PATH="$TARGET_PATH.previous"
+ALIAS_PATH="$INSTALL_DIR/cc"
+LOCK_PATH="$TARGET_PATH.update.lock"
+LINEAGE_PATH="$TARGET_PATH.update-lineage.json"
+JOURNAL_PATH="$TARGET_PATH.update-transaction.json"
+RESULT_PATH="$TARGET_PATH.update-result.json"
+LAST_RESULT_PATH="$TARGET_PATH.update-result.last.json"
+assert_regular_file_or_missing "$JOURNAL_PATH" "native install transaction journal"
+
+stale_lock_path=$(resolve_stale_install_lock)
+if [ -n "$stale_lock_path" ]; then
+  echo "quarantined stale native update lock at $stale_lock_path" >&2
+fi
+recovered_transaction=""
+if [ -f "$JOURNAL_PATH" ]; then
+  TRANSACTION_ID=$(python3 -c 'import uuid; print(uuid.uuid4())')
+  LOCK_TOKEN="$$:$(python3 -c 'import uuid; print(uuid.uuid4().hex)')"
+  if LOCK_IDENTITY=$(acquire_update_lock "$LOCK_PATH" "$LOCK_TOKEN" 2>/dev/null); then
+    LOCK_HELD=1
+  else
+    die "another ChainlessChain CLI install/update is already in progress"
+  fi
+  if recovered_transaction=$(recover_interrupted_install); then
+    :
+  else
+    PRESERVE_RECOVERY=1
+    die "interrupted native install recovery failed closed"
+  fi
+  if release_update_lock; then
+    LOCK_HELD=0
+  else
+    PRESERVE_RECOVERY=1
+    die "interrupted native install recovered but its lock could not be retired"
+  fi
+  echo "recovered interrupted native install transaction ($recovered_transaction)" >&2
+fi
+if [ "${CC_CLI_INSTALL_RECOVERY_ONLY:-0}" = "1" ]; then
+  [ -n "$recovered_transaction" ] || die "recovery-only mode found no interrupted native install transaction"
+  exit 0
+fi
+
+command -v curl >/dev/null 2>&1 || { echo "curl is required" >&2; exit 2; }
+command -v cosign >/dev/null 2>&1 || {
+  echo "cosign is required to verify the signed CLI release" >&2
+  exit 2
+}
+
 STAGING=$(mktemp -d "${TMPDIR:-/tmp}/chainlesschain-install.XXXXXX")
 curl -fL "$MANIFEST_URL" -o "$STAGING/manifest.json"
 curl -fL "$MANIFEST_URL.sigstore.json" -o "$STAGING/manifest.sigstore.json"
@@ -2280,12 +2932,14 @@ BACKUP_PATH="$TARGET_PATH.previous"
 ALIAS_PATH="$INSTALL_DIR/cc"
 LOCK_PATH="$TARGET_PATH.update.lock"
 LINEAGE_PATH="$TARGET_PATH.update-lineage.json"
+JOURNAL_PATH="$TARGET_PATH.update-transaction.json"
 RESULT_PATH="$TARGET_PATH.update-result.json"
 LAST_RESULT_PATH="$TARGET_PATH.update-result.last.json"
 
 assert_regular_file_or_missing "$TARGET_PATH" "install target"
 assert_regular_file_or_missing "$BACKUP_PATH" "last-known-good backup"
 assert_regular_file_or_missing "$LINEAGE_PATH" "native update lineage"
+assert_regular_file_or_missing "$JOURNAL_PATH" "native install transaction journal"
 assert_regular_file_or_missing "$LOCK_PATH" "native update lock"
 assert_regular_file_or_missing "$RESULT_PATH" "native update result"
 assert_regular_file_or_missing "$LAST_RESULT_PATH" "last consumed native update result"
@@ -2432,6 +3086,8 @@ if [ -n "$PRIOR_TARGET_PATH" ] || [ -n "$PRIOR_BACKUP_PATH" ] || [ -n "$PRIOR_LI
   create_recovery_state || die "could not persist native recovery-state pointer"
   process_recovery_state validate || die "native recovery-state pointer failed validation"
 fi
+write_install_transaction_journal prepared rollback || die "could not persist native install transaction intent"
+crash_after_install_phase prepared
 
 # Re-check the manifest-bound bytes immediately before the commit point.
 assert_safe_install_dir "$INSTALL_DIR"
@@ -2500,6 +3156,8 @@ fi
 CANDIDATE_PATH=""
 TARGET_CLAIM_PATH=""
 fsync_dir "$INSTALL_DIR"
+write_install_transaction_journal target-committed rollback || { PRESERVE_RECOVERY=1; die "could not persist target commit phase"; }
+crash_after_install_phase target-committed
 
 if [ "$(sha256_file "$TARGET_PATH")" != "$ARTIFACT_SHA256" ]; then
   die "installed target changed at the commit boundary"
@@ -2552,6 +3210,8 @@ if [ "$HAD_TARGET" -eq 1 ]; then
   BACKUP_CLAIM_PATH=""
   fsync_dir "$INSTALL_DIR"
 fi
+write_install_transaction_journal backup-committed rollback || { PRESERVE_RECOVERY=1; die "could not persist backup commit phase"; }
+crash_after_install_phase backup-committed
 
 ALIAS_TEMP_PATH="$INSTALL_DIR/.cc.link-$TRANSACTION_ID"
 [ ! -e "$ALIAS_TEMP_PATH" ] && [ ! -L "$ALIAS_TEMP_PATH" ] || die "alias staging path already exists"
@@ -2600,6 +3260,10 @@ ALIAS_TEMP_PATH=""
 ALIAS_CLAIM_PATH=""
 alias_matches_identity "$ALIAS_PATH" "$CANONICAL_ALIAS_TARGET_SHA256" "$INSTALLED_ALIAS_IDENTITY" || die "CLI alias changed at the commit boundary"
 fsync_dir "$INSTALL_DIR"
+write_install_transaction_journal alias-committed rollback || { PRESERVE_RECOVERY=1; die "could not persist alias commit phase"; }
+crash_after_install_phase alias-committed
+write_install_transaction_journal verified rollback || { PRESERVE_RECOVERY=1; die "could not persist verification phase"; }
+crash_after_install_phase verified
 LINEAGE_COMMIT_STARTED=1
 if [ "$HAD_TARGET" -eq 1 ]; then
   assert_lock_owned || die "native update lock ownership was lost before lineage commit"
@@ -2612,7 +3276,12 @@ else
     die "could not persist native update lineage"
   fi
 fi
+write_install_transaction_journal lineage-committed rollback || { PRESERVE_RECOVERY=1; die "could not persist lineage commit phase"; }
+crash_after_install_phase lineage-committed
+crash_after_install_phase commit-decision-started
+write_install_transaction_journal committed commit || { PRESERVE_RECOVERY=1; die "could not persist native install commit decision"; }
 COMMITTED=1
+crash_after_install_phase committed
 if ! discard_transaction_snapshots; then
   if [ "$CLEANUP_PENDING" -eq 1 ] && [ "$RECOVERY_RETIREMENT_GUARD" -eq 0 ]; then
     die "install committed in cleanup-pending/degraded state; fd-bound tombstones were retained for later garbage collection"
@@ -2620,4 +3289,5 @@ if ! discard_transaction_snapshots; then
   PRESERVE_RECOVERY=1
   die "install committed but recovery retirement failed; evidence and the native update lock were retained"
 fi
+retire_install_transaction_journal commit || { PRESERVE_RECOVERY=1; die "install committed but its transaction journal could not be retired"; }
 echo "Installed ChainlessChain CLI at $TARGET_PATH"

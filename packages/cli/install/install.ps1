@@ -311,7 +311,7 @@ function Resolve-StaleInstallLock {
   } finally {
     if ($null -ne $Stream) { $Stream.Dispose() }
   }
-  if ($Token -notmatch '^(?<pid>[1-9][0-9]*):[a-f0-9]{32}$') {
+  if ($Token -notmatch '^(?<pid>[1-9][0-9]*):(?:[a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12})$') {
     throw "Stale installer lock token is invalid and requires manual recovery"
   }
   $OwnerPid = [int64]$Matches.pid

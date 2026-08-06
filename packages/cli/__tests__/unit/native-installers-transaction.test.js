@@ -18,6 +18,7 @@ const fixtureDirectoryPrefixes = [
   "cc-ps-install-tx-",
   "cc-ps-install-crash-",
   "cc-ps-install-fresh-",
+  "cc-ps-stale-lock-",
 ];
 
 afterEach(() => {
@@ -295,6 +296,8 @@ function runPosixInstallerFixture({
   replaceLockOnRelease = false,
   lockReleaseFault = "none",
   killAfterTargetReplace = false,
+  crashAfterPhase = "",
+  terminateAfterPhase = "",
   tamperRecoveryPointerDuringRetire = false,
   mutationRace = "none",
   terminateAfterPublication = "none",
@@ -1059,6 +1062,8 @@ exec "$REAL_MV" "$@"
       CC_TEST_REPLACE_LOCK_ON_RELEASE: replaceLockOnRelease ? "1" : "0",
       CC_TEST_LOCK_RELEASE_FAULT: lockReleaseFault,
       CC_TEST_KILL_AFTER_TARGET_REPLACE: killAfterTargetReplace ? "1" : "0",
+      CC_CLI_INSTALL_CRASH_AFTER_PHASE: crashAfterPhase,
+      CC_CLI_INSTALL_TERMINATE_AFTER_PHASE: terminateAfterPhase,
       CC_TEST_TAMPER_RECOVERY_POINTER_DURING_RETIRE:
         tamperRecoveryPointerDuringRetire ? "1" : "0",
       CC_TEST_MUTATION_RACE: mutationRace,
@@ -1138,6 +1143,7 @@ exec "$REAL_MV" "$@"
     candidateVictimPath,
     successorLockValue,
     prestate,
+    posixShell,
     run,
   };
 }
@@ -1147,6 +1153,9 @@ describe("native installer transaction contracts", () => {
     const source = fs.readFileSync(shPath, "utf8");
     expect(source).toContain("releases/download/cli-stable");
     expect(source).toContain('LOCK_PATH="$TARGET_PATH.update.lock"');
+    expect(source).toContain(
+      'JOURNAL_PATH="$TARGET_PATH.update-transaction.json"',
+    );
     expect(source).toContain('acquire_update_lock "$LOCK_PATH" "$LOCK_TOKEN"');
     expect(source).toContain("getattr(os, 'O_NOFOLLOW', 0)");
     expect(source).toContain('LOCK_IDENTITY=""');
@@ -1272,6 +1281,17 @@ describe("native installer transaction contracts", () => {
     expect(source).toContain('python3 - "write-lineage"');
     expect(source).toContain("if error.errno not in unsupported:");
     expect(source).toContain("chainlesschain.native-install-recovery.v1");
+    expect(source).toContain("chainlesschain.native-install-transaction.v1");
+    expect(source).toContain("write_install_transaction_journal() {");
+    expect(source).toContain("recover_interrupted_install() {");
+    expect(source).toContain("resolve_stale_install_lock() {");
+    expect(source).toContain(
+      "write_install_transaction_journal prepared rollback",
+    );
+    expect(source).toContain(
+      "write_install_transaction_journal committed commit",
+    );
+    expect(source).toContain("CC_CLI_INSTALL_RECOVERY_ONLY");
     expect(source).toContain("'priorTarget': {");
     expect(source).toContain("'sha256': old_target_sha or None");
     expect(source).toContain("process_recovery_state() {");
@@ -1347,6 +1367,191 @@ describe("native installer transaction contracts", () => {
     expect(priorLineageRestore).toContain("mutate_public_path \\");
     expect(priorLineageRestore).not.toContain('rm -f "$LINEAGE_PATH"');
   });
+
+  it.runIf(process.platform !== "win32").each([
+    ["prepared", "rollback"],
+    ["target-committed", "rollback"],
+    ["backup-committed", "rollback"],
+    ["alias-committed", "rollback"],
+    ["verified", "rollback"],
+    ["lineage-committed", "rollback"],
+    ["commit-decision-started", "rollback"],
+    ["committed", "commit"],
+  ])(
+    "POSIX installer recovers a hard crash after %s with a %s decision",
+    (phase, decision) => {
+      const fixture = runPosixInstallerFixture({
+        existing: true,
+        targetOnly: true,
+        lineageFailure: "none",
+        crashAfterPhase: phase,
+      });
+      const journalPath = `${fixture.targetPath}.update-transaction.json`;
+      expect(
+        fixture.run.status,
+        fixture.run.stderr || fixture.run.stdout,
+      ).not.toBe(0);
+      expect(
+        pathLexists(journalPath),
+        fixture.run.stderr || fixture.run.stdout,
+      ).toBe(true);
+      expect(JSON.parse(fs.readFileSync(journalPath, "utf8"))).toMatchObject({
+        phase:
+          phase === "commit-decision-started" ? "lineage-committed" : phase,
+        decision: decision === "commit" ? "commit" : "rollback",
+      });
+      expect(
+        pathLexists(`${fixture.targetPath}.update.lock`),
+        fixture.run.stderr || fixture.run.stdout,
+      ).toBe(true);
+      const recovered = spawnSync(fixture.posixShell, [shPath], {
+        encoding: "utf8",
+        timeout: 90_000,
+        env: {
+          ...process.env,
+          CC_CLI_INSTALL_DIR: fixture.targetDir,
+          CC_CLI_INSTALL_RECOVERY_ONLY: "1",
+          CC_CLI_INSTALL_CRASH_AFTER_PHASE: "",
+        },
+      });
+      expect(recovered.status, recovered.stderr || recovered.stdout).toBe(0);
+      expect(pathLexists(journalPath)).toBe(false);
+      expect(pathLexists(`${fixture.targetPath}.update.lock`)).toBe(false);
+
+      const retiredJournal = JSON.parse(
+        fs.readFileSync(`${journalPath}.last`, "utf8"),
+      );
+      expect(retiredJournal.decision).toBe(
+        decision === "commit" ? "commit" : "rollback",
+      );
+      if (decision === "rollback") {
+        expect(fs.readFileSync(fixture.targetPath)).toEqual(
+          fixture.prestate.targetBytes,
+        );
+        expect(pathLexists(fixture.backupPath)).toBe(false);
+        expect(pathLexists(fixture.aliasPath)).toBe(false);
+        expect(pathLexists(fixture.lineagePath)).toBe(false);
+      } else {
+        expect(sha256File(fixture.targetPath)).toBe(fixture.artifactSha256);
+        expect(fs.readFileSync(fixture.backupPath)).toEqual(
+          fixture.prestate.targetBytes,
+        );
+        expect(pathLexists(fixture.aliasPath)).toBe(true);
+        expect(
+          JSON.parse(fs.readFileSync(fixture.lineagePath, "utf8")),
+        ).toMatchObject({
+          schema: "chainlesschain.native-update-lineage.v1",
+          currentSha256: fixture.artifactSha256,
+        });
+      }
+    },
+    180_000,
+  );
+
+  it.runIf(process.platform !== "win32")(
+    "POSIX TERM before the durable commit decision remains recoverable as rollback",
+    () => {
+      const fixture = runPosixInstallerFixture({
+        existing: true,
+        targetOnly: true,
+        lineageFailure: "none",
+        terminateAfterPhase: "commit-decision-started",
+      });
+      const journalPath = `${fixture.targetPath}.update-transaction.json`;
+      expect(
+        fixture.run.status,
+        fixture.run.stderr || fixture.run.stdout,
+      ).not.toBe(0);
+      expect(pathLexists(journalPath)).toBe(true);
+      expect(pathLexists(`${fixture.targetPath}.update.lock`)).toBe(true);
+      expect(JSON.parse(fs.readFileSync(journalPath, "utf8"))).toMatchObject({
+        phase: "lineage-committed",
+        decision: "rollback",
+      });
+
+      const recovered = spawnSync(fixture.posixShell, [shPath], {
+        encoding: "utf8",
+        timeout: 90_000,
+        env: {
+          ...process.env,
+          CC_CLI_INSTALL_DIR: fixture.targetDir,
+          CC_CLI_INSTALL_RECOVERY_ONLY: "1",
+          CC_CLI_INSTALL_CRASH_AFTER_PHASE: "",
+          CC_CLI_INSTALL_TERMINATE_AFTER_PHASE: "",
+        },
+      });
+      expect(recovered.status, recovered.stderr || recovered.stdout).toBe(0);
+      expect(pathLexists(journalPath)).toBe(false);
+      expect(pathLexists(`${fixture.targetPath}.update.lock`)).toBe(false);
+      expect(
+        JSON.parse(fs.readFileSync(`${journalPath}.last`, "utf8")),
+      ).toMatchObject({ phase: "lineage-committed", decision: "rollback" });
+      expect(fs.readFileSync(fixture.targetPath)).toEqual(
+        fixture.prestate.targetBytes,
+      );
+      expect(pathLexists(fixture.backupPath)).toBe(false);
+      expect(pathLexists(fixture.aliasPath)).toBe(false);
+      expect(pathLexists(fixture.lineagePath)).toBe(false);
+    },
+    180_000,
+  );
+
+  it.runIf(process.platform !== "win32")(
+    "POSIX TERM after the durable commit decision remains recoverable as committed",
+    () => {
+      const fixture = runPosixInstallerFixture({
+        existing: true,
+        targetOnly: true,
+        lineageFailure: "none",
+        terminateAfterPhase: "committed",
+      });
+      const journalPath = `${fixture.targetPath}.update-transaction.json`;
+      expect(
+        fixture.run.status,
+        fixture.run.stderr || fixture.run.stdout,
+      ).not.toBe(0);
+      expect(pathLexists(journalPath)).toBe(true);
+      expect(pathLexists(`${fixture.targetPath}.update.lock`)).toBe(true);
+      expect(JSON.parse(fs.readFileSync(journalPath, "utf8"))).toMatchObject({
+        phase: "committed",
+        decision: "commit",
+      });
+      expect(sha256File(fixture.targetPath)).toBe(fixture.artifactSha256);
+      expect(fs.readFileSync(fixture.backupPath)).toEqual(
+        fixture.prestate.targetBytes,
+      );
+
+      const recovered = spawnSync(fixture.posixShell, [shPath], {
+        encoding: "utf8",
+        timeout: 90_000,
+        env: {
+          ...process.env,
+          CC_CLI_INSTALL_DIR: fixture.targetDir,
+          CC_CLI_INSTALL_RECOVERY_ONLY: "1",
+          CC_CLI_INSTALL_CRASH_AFTER_PHASE: "",
+          CC_CLI_INSTALL_TERMINATE_AFTER_PHASE: "",
+        },
+      });
+      expect(recovered.status, recovered.stderr || recovered.stdout).toBe(0);
+      expect(pathLexists(journalPath)).toBe(false);
+      expect(pathLexists(`${fixture.targetPath}.update.lock`)).toBe(false);
+      expect(
+        JSON.parse(fs.readFileSync(`${journalPath}.last`, "utf8")),
+      ).toMatchObject({ phase: "committed", decision: "commit" });
+      expect(sha256File(fixture.targetPath)).toBe(fixture.artifactSha256);
+      expect(fs.readFileSync(fixture.backupPath)).toEqual(
+        fixture.prestate.targetBytes,
+      );
+      expect(pathLexists(fixture.aliasPath)).toBe(true);
+      expect(
+        JSON.parse(fs.readFileSync(fixture.lineagePath, "utf8")),
+      ).toMatchObject({
+        schema: "chainlesschain.native-update-lineage.v1",
+        currentSha256: fixture.artifactSha256,
+      });
+    },
+    180_000,
+  );
 
   it.runIf(process.platform !== "win32")(
     "POSIX lineage failure restores public state and retains private cleanup tombstones",
@@ -2651,6 +2856,49 @@ describe("native installer transaction contracts", () => {
     expect(aliasCommit).toBeLessThan(transactionCatch);
     expect(source.indexOf("$Committed = $true")).toBeLessThan(transactionCatch);
   });
+
+  it.runIf(process.platform === "win32")(
+    "PowerShell installer quarantines a legacy GUID stale lock before recovery",
+    () => {
+      const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-ps-stale-lock-"));
+      temporaryDirectories.push(root);
+      const targetDir = path.join(root, "bin");
+      fs.mkdirSync(targetDir, { recursive: true });
+      const lockPath = path.join(targetDir, "chainlesschain.exe.update.lock");
+      const legacyToken = "9999999999:00000000-0000-4000-8000-000000000001";
+      fs.writeFileSync(lockPath, legacyToken);
+
+      const run = spawnSync(
+        "powershell.exe",
+        [
+          "-NoProfile",
+          "-NonInteractive",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-Command",
+          [
+            `$env:CC_CLI_INSTALL_DIR = ${psQuote(targetDir)}`,
+            `$env:CC_CLI_INSTALL_RECOVERY_ONLY = '1'`,
+            `. ${psQuote(ps1Path)}`,
+          ].join("; "),
+        ],
+        { encoding: "utf8", timeout: 60_000 },
+      );
+
+      expect(run.status, run.stderr || run.stdout).not.toBe(0);
+      expect(fs.existsSync(lockPath)).toBe(false);
+      const quarantined = fs
+        .readdirSync(targetDir)
+        .filter((name) =>
+          name.startsWith("chainlesschain.exe.update.lock.orphaned-"),
+        );
+      expect(quarantined).toHaveLength(1);
+      expect(
+        fs.readFileSync(path.join(targetDir, quarantined[0]), "utf8"),
+      ).toBe(legacyToken);
+    },
+    90_000,
+  );
 
   it.runIf(process.platform === "win32")(
     "PowerShell installer rolls the primary binary back when alias commit fails",
