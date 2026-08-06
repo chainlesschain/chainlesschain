@@ -145,6 +145,17 @@ export function getSessionAntiRollbackDirectory({
   return directory;
 }
 
+/**
+ * Register one explicit anti-rollback directory as a test-owned filesystem.
+ * This is an import-only test seam: production callers never invoke it, and
+ * it does not change path separation, record validation, locking, or CAS.
+ */
+export function _registerTestScopedSessionAntiRollbackDirectory(options = {}) {
+  const directory = getSessionAntiRollbackDirectory(options);
+  testScopedDirectories.add(directory);
+  return directory;
+}
+
 function anchorLocation(sessionId, options = {}) {
   const canonicalId = canonicalSessionId(sessionId);
   const sessionDigest = sha256(canonicalId);

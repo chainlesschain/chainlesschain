@@ -16,10 +16,15 @@ import { spawn } from "node:child_process";
 // Set up temp directory for sessions
 const testDir = join(tmpdir(), `cc-jsonl-test-${Date.now()}`);
 const sessionsDir = join(testDir, "sessions");
+const securityAnchorDir = join(
+  tmpdir(),
+  `cc-jsonl-security-anchor-${Date.now()}`,
+);
 
 vi.mock("../../src/lib/paths.js", () => ({
   getHomeDir: () => testDir,
   getStatePath: () => join(testDir, "state"),
+  getMachineSecurityAnchorDir: () => securityAnchorDir,
 }));
 
 const {
@@ -78,6 +83,12 @@ const { computeEventHash } =
   await import("../../src/harness/transcript-integrity.js");
 const { readSessionHostResumeState } =
   await import("../../src/lib/session-host-snapshot.js");
+const { _registerTestScopedSessionAntiRollbackDirectory } =
+  await import("../../src/lib/session-anti-rollback-anchor.js");
+_registerTestScopedSessionAntiRollbackDirectory({
+  homeDir: testDir,
+  anchorBase: securityAnchorDir,
+});
 const { appendAuthorityEventWithVerifiedProjection, readVerifiedProjection } =
   await import("../../src/harness/jsonl-session-store.js");
 const {
@@ -133,6 +144,9 @@ describe("jsonl-session-store", () => {
     _sessionScaleFaultHooks.afterTranscriptAppend = null;
     if (existsSync(testDir)) {
       rmSync(testDir, { recursive: true, force: true });
+    }
+    if (existsSync(securityAnchorDir)) {
+      rmSync(securityAnchorDir, { recursive: true, force: true });
     }
   });
 
@@ -227,7 +241,7 @@ describe("jsonl-session-store", () => {
           expect.objectContaining({
             code: "CC_SESSION_PERSISTENCE_FAILED",
             fsCode: "EROFS",
-            operation: "append-event",
+            operation: "transcript-append",
             commitState: "not-committed",
             retryable: false,
           }),
@@ -264,7 +278,7 @@ describe("jsonl-session-store", () => {
             fsCode: "ENOSPC",
             operation: "transcript-settlement",
             commitState: "unknown",
-            retryable: true,
+            retryable: false,
           }),
         );
       } finally {
@@ -940,9 +954,18 @@ describe("jsonl-session-store", () => {
         "../../src/harness/jsonl-session-store.js",
         import.meta.url,
       ).href;
+      const anchorUrl = new URL(
+        "../../src/lib/session-anti-rollback-anchor.js",
+        import.meta.url,
+      ).href;
       const childScript = `
           import { existsSync, writeFileSync } from "node:fs";
           import { appendEvent } from ${JSON.stringify(storeUrl)};
+          import { _registerTestScopedSessionAntiRollbackDirectory } from ${JSON.stringify(anchorUrl)};
+          _registerTestScopedSessionAntiRollbackDirectory({
+            homeDir: ${JSON.stringify(testDir)},
+            anchorBase: ${JSON.stringify(securityAnchorDir)},
+          });
           const sleep = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
           while (!existsSync(${JSON.stringify(gate)})) sleep(10);
           writeFileSync(${JSON.stringify(attempted)}, "attempted");
@@ -954,7 +977,11 @@ describe("jsonl-session-store", () => {
         ["--input-type=module", "--eval", childScript],
         {
           cwd: process.cwd(),
-          env: { ...process.env, CHAINLESSCHAIN_HOME: testDir },
+          env: {
+            ...process.env,
+            CHAINLESSCHAIN_HOME: testDir,
+            CHAINLESSCHAIN_SECURITY_ANCHOR_HOME: securityAnchorDir,
+          },
           stdio: ["ignore", "ignore", "pipe"],
           windowsHide: true,
         },
@@ -981,7 +1008,10 @@ describe("jsonl-session-store", () => {
       );
 
       const childResult = await waitForChild(child);
-      expect(childResult).toMatchObject({ code: 0, signal: null });
+      expect(childResult, childResult.stderr).toMatchObject({
+        code: 0,
+        signal: null,
+      });
       expect(childResult.stderr).toBe("");
       expect(existsSync(completed)).toBe(true);
       expect(readEvents(id).map((event) => event.type)).toEqual([

@@ -3928,6 +3928,9 @@ export function createBranchSession({
       }
 
       let prevHash = verification.lastHash;
+      let expectedTranscriptState = existsSync(filePath)
+        ? readPhysicalTranscriptState(filePath)
+        : null;
       for (
         let index = existingEvents.length;
         index < plannedEvents.length;
@@ -3941,7 +3944,13 @@ export function createBranchSession({
         };
         const hash = computeEventHash(prevHash, core);
         const event = { ...core, prevHash, hash };
-        appendTranscriptEvent(branchSessionId, planned.type, event, filePath);
+        expectedTranscriptState = appendTranscriptEvent(
+          branchSessionId,
+          planned.type,
+          event,
+          filePath,
+          expectedTranscriptState,
+        );
         prevHash = hash;
       }
 
