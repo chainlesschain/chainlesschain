@@ -669,6 +669,38 @@ release gate 已完成。
 | Q4b / R3b                | CLI npm 的 exact-SHA 发布与公开回读已完成；IDE Marketplace、原生安装/升级闭环未完成                           | `a03ad1b548` 的 CLI CI `30978007430`、CLI Strict Sandbox `30978007359`、Session Host Consistency `30978007292`、Background Interaction E2E `30978007505` 与 IDE Extensions `30978007086` 均成功；tag `v-npm-0-162-197` 触发 run `30979565206`，全部 gate、测试、不可变 tarball/SBOM 及 npm 上传成功。上传后首次即时 `npm pack` 因 registry 传播延迟使原 run 红灯，但公开包已带 npm/Sigstore SLSA 证明；PR `#86` 的只读 run `30983536627` 由 npm 11 验证签名、精确 repo/workflow/tag/SHA/digest，按证明中的 run ID 下载原 artifact，并证明 registry tarball 与原 artifact 逐字节一致，证据 artifact `8921133281` 保留至 2026-11-03                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | Microsoft Marketplace `0.37.41` exact-version/digest 回读、原生签名、ARM64、fresh-profile 安装/升级/回滚仍未完成；Open VSX 或 CLI npm 结果不能替代 Microsoft Marketplace 与 Desktop/native 公开渠道。原 publish workflow 的传播延迟误报由 `2338900f8b` 有界重试修复；产品 release 中不适用于 tarball publish 的 `gitHead` 前置条件由 PR `#86` 改为 npm 已验证 SLSA authority                                                 |
 | P1 / R4 与 P2 / R5       | 三批命令生命周期迁移、会话预算 foundation 与热进程 formal scale 门已提交；完整 R4/R5 未完成                   | `c50d2f8a53`、`1f2a9caf3d` 与 `56c87fa5d0` 完成三批长尾迁移：25 个旧顶层入口保留兼容别名并收敛到虚拟 `cc lab ...`，至少保留两个 release cycle；注册图仍为 175、净增长 0，推荐顶层命令从 166 降至 151，manifest、README、namespace help 与四种 shell completion 同源生成。核心 lifecycle/lazy/completion 39/39，扩大命令/文档矩阵 103/103。`008335171f` 至 `6b4570c80f` 的预算 foundation、后台与 TeamRunner 定向矩阵继续保持通过。发布 SHA `a03ad1b548` 的 `CLI Session Scale` formal run `30979989460` 在 Ubuntu、Windows、macOS 全绿，覆盖 100/10,000 会话配置、1 GiB 逻辑 transcript、P95/RSS/I/O 阈值与 crash-repair artifact                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | 命令面迁移已完成计划中的三批，但仍需按弃用周期观测使用并决定后续移除；预算能力仍只是 foundation/local adapters，生产 root、全部 turn/token/tool 与 WS/REPL/headless 入口尚未统一 authority。formal scale 当前测量范围仍是 `canonical-store-hot-process`；完整 CLI 冷进程恢复 `<2s`/RSS `<100MB`、Dynamic Workflow、Execution Location、Automation、Context/Permission Center、Marketplace 治理与真实长会话全宿主验收仍待推进 |
 
+### 2026-08-06 P0-1 与 P0-S 正式门收口补充
+
+- P0-1 的早期 12-sample 证据已由强制每格 100 次的正式质量门替代。PR
+  [#91](https://github.com/chainlesschain/chainlesschain/pull/91) 以 merge commit
+  `98107f0767cf10d9b0ba4c1a2dcab80e7d868851` 合并；最终候选
+  `b5177f13c950fcc74be8a2a4aa573f5c422a1b13` 的 IDE Extensions
+  [31086078037](https://github.com/chainlesschain/chainlesschain/actions/runs/31086078037) 整体成功。
+  VS Code stable `1.132.0` / minimum `1.85.2` × Windows、macOS、Linux 与 JetBrains
+  `2024.2` / `2025.2` × 三 OS 共 12/12 个 journey 均为 `result=passed`、
+  `evidenceComplete=true`，每格 100 个测量样本和 1 个 warmup，共 1,200 个样本；最高
+  nearest-rank P95 为 1,205ms，满足 `<2s`。不可变 VSIX `0.37.44` 为 467,023 字节，
+  SHA-256 `7e7b4aaccb8153c6c55d3361cfe669285b3daf31b6993b3195e2e75de4b29762`；
+  JetBrains ZIP `chainlesschain-ide-bridge-0.4.81.zip` 为 802,584 字节，SHA-256
+  `99b2c86875bae413d1498d11cb5988d958918b6da56d29ee0d60aa545606a285`。本证据关闭
+  P0-1，并同时作为该候选的本地真实宿主门；不外推到 P0-4 的 remote/多根/网络抖动/8 小时 soak。
+- P0-S 的 Plan/TODO/WS 持久化恢复与结构化语义 handoff 已有正式跨平台门。PR
+  [#94](https://github.com/chainlesschain/chainlesschain/pull/94) 以同一 final candidate
+  `b5177f13c950fcc74be8a2a4aa573f5c422a1b13` 合并；IDE Roadmap Safety Matrix
+  [31085994178](https://github.com/chainlesschain/chainlesschain/actions/runs/31085994178) 在 Linux、macOS、
+  Windows 全绿。聚合 artifact `8961872748`（保留至 2026-11-04）验证每个声明 kill point 和每个
+  semantic transport 各 100 次，共 2,100 次真实子进程强杀与 600 条语义轨迹；状态一致率和冻结事实
+  保留率均为 100%，capability widening、错误 approval binding 与 silent loss 均为 0。
+- 上述 P0-S 结论只关闭版本化 fixture 声明的四个原子持久化点、三个运行时 kill/restart 点，以及
+  local-provider/offline-fallback 的结构化 handoff。恶意 MCP、运行中即时全局撤权、任意 taskkill/断电与
+  fsync durability、更强 transcript+metadata 同时篡改攻击者和长期安全 soak 仍未关闭；因此不能把该子门
+  外推为整个 P0-S 或 Auto/无人值守安全范围已经完成。
+- 公开渠道只读回查时，Open VSX 最新为 `0.37.42`、JetBrains Marketplace 最新为 `0.4.79`，Microsoft
+  Marketplace 尚无 `chainlesschain.chainlesschain-ide` listing。仓库已配置 Open VSX 与 JetBrains publish
+  token，但尚无 `VSCE_PAT`，JetBrains 作者签名三项 secret 也未配置。因此 `0.37.44`/`0.4.81` 目前是通过
+  exact-SHA 宿主门的候选，不是已公开发布版本；Microsoft Marketplace exact-version/digest 与作者签名仍是
+  R0/Q4b 明确阻塞项。
+
 上述提交已推送到 GitHub 与 Gitee，部分 exact SHA 也已产生组件级 CI 结果；代码交付和验证证据都不等同于 Microsoft Marketplace 发布、真实 PR/merge 或完整产品 release。CLI `0.162.197` 的 npm 子闭环已经绑定 exact release SHA、不可变发布工件、npm 签名/SLSA 和公开逐字节回读；该结论只授权 CLI npm 子范围，不能由此升级 IDE Marketplace、Desktop/native installer 或路线图其他产品范围。
 
 ### 2026-08-02 恢复安全检查点
