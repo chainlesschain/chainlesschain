@@ -1050,6 +1050,7 @@ function createHeadlessStreamCleanupScope({ input }) {
   let remoteApproval = null;
   let inputCancel = null;
   let interactionCleanup = null;
+  let outputCleanup = null;
   let sessionEnd = null;
   let reason = "error";
   let stopRequested = false;
@@ -1116,6 +1117,9 @@ function createHeadlessStreamCleanupScope({ input }) {
       interactionCleanup = typeof cleanup === "function" ? cleanup : null;
       if (stopRequested) settleInteractions();
     },
+    setOutputCleanup(cleanup) {
+      outputCleanup = typeof cleanup === "function" ? cleanup : null;
+    },
     setSessionEnd(cleanup) {
       sessionEnd = typeof cleanup === "function" ? cleanup : null;
     },
@@ -1128,6 +1132,7 @@ function createHeadlessStreamCleanupScope({ input }) {
           // an early return or exception.
           requestStop();
           await interactionCleanupPromise;
+          await runBestEffort(() => outputCleanup?.(reason));
           await runBestEffort(() => mcpClient?.disconnectAll?.());
           await runBestEffort(() => remoteApproval?.close?.());
           await runBestEffort(() => sessionEnd?.(reason));
@@ -1233,6 +1238,7 @@ async function runAgentHeadlessStreamInWorkspace(
       fieldGate,
     });
   const emit = streamCoalescer.emit;
+  streamCleanup.setOutputCleanup(() => streamCoalescer.flush?.());
 
   const hasInjectedSessionStore =
     typeof deps.sessionHasPersistedEvidence === "function" ||

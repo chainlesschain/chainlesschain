@@ -254,9 +254,11 @@ describe("runAgentHeadlessStream", () => {
       throw new Error("disconnect also failed");
     });
     const runObserveHooks = vi.fn();
+    const flush = vi.fn();
     const deps = baseDeps({
       input: liveInput,
       runObserveHooks,
+      streamCoalescer: { emit: vi.fn(), flush },
       resolveAgentMcp: async () => ({
         mcpClient: {
           callTool: vi.fn(),
@@ -285,6 +287,7 @@ describe("runAgentHeadlessStream", () => {
     ).rejects.toThrow("elicitation setup failed");
 
     expect(liveInput.destroyed).toBe(true);
+    expect(flush).toHaveBeenCalledOnce();
     expect(disconnectAll).toHaveBeenCalledOnce();
     expect(runObserveHooks).toHaveBeenCalledWith(
       {},
