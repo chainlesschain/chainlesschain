@@ -145,6 +145,18 @@ function buildProfileArgs({ runRoot, extensionsDir, phase }) {
   ];
 }
 
+function resolveHostJourneyTransport(hostApiMode) {
+  return hostApiMode
+    ? {
+        useDomRelay: false,
+        evidenceTransport: "local-ide-bridge+vscode-extension-test-api",
+      }
+    : {
+        useDomRelay: true,
+        evidenceTransport: "local-ide-bridge+vscode-webview-message-dom",
+      };
+}
+
 function createHostProgressJournal(artifactDir) {
   const progressPath = path.join(
     path.dirname(artifactDir),
@@ -560,11 +572,12 @@ async function runRealDomPhase({
   if (useDomRelay) {
     fs.mkdirSync(journeyArtifactDir, { recursive: true, mode: 0o700 });
     const hostDomToken = crypto.randomBytes(32).toString("hex");
-    // The signed macOS host does not reliably schedule extensionTestsPath.
     // A valid one-launch token lets the installed target invoke the test-only
-    // driver's fixed contributed command after target activation returns.
-    // No debugger transport is opened: every DOM action and result crosses
-    // the token-gated Extension Host/Webview message relay below.
+    // driver's fixed contributed command after target activation returns. The
+    // same transport is used on every release OS so Webview prompts are driven
+    // in their real main world instead of relying on Chromium's unstable OOPIF
+    // dialog ownership. No debugger transport is opened: every DOM action and
+    // result crosses the token-gated Extension Host/Webview message relay.
     const sigintGuard = () => {};
     process.on("SIGINT", sigintGuard);
     let host;
@@ -1041,6 +1054,7 @@ async function main() {
   );
   const progressPath = createHostProgressJournal(artifactDir);
   const hostApiMode = options.hostApiOnly;
+  const hostJourneyTransport = resolveHostJourneyTransport(hostApiMode);
   recordHostProgress(progressPath, "prepared");
   const startedAt = new Date().toISOString();
   const cliVersion = readJsonVersion(
@@ -1125,7 +1139,7 @@ async function main() {
         fixture,
         useCdpPipe: false,
         useElectronMainInspector: false,
-        useDomRelay: !hostApiMode && process.platform === "darwin",
+        useDomRelay: hostJourneyTransport.useDomRelay,
       });
       recordHostProgress(progressPath, `${phase}_completed`);
     }
@@ -1188,11 +1202,7 @@ async function main() {
         hostVersion: hostVersion || options.vscodeVersion,
         cliVersion,
         extensionVersion: expectedVersion,
-        transport: hostApiMode
-          ? "local-ide-bridge+vscode-extension-test-api"
-          : process.platform === "darwin"
-            ? "local-ide-bridge+vscode-webview-message-dom"
-            : "local-ide-bridge+loopback-cdp",
+        transport: hostJourneyTransport.evidenceTransport,
         result: journeyResult,
         startedAt,
         finishedAt: new Date().toISOString(),
@@ -1246,6 +1256,7 @@ module.exports = {
   parseDevToolsBrowserEndpoint,
   parseElectronInspectorEndpoint,
   recordHostProgress,
+  resolveHostJourneyTransport,
   resolveVsCodeHostVersion,
   runHostApiPhase,
   runRealDomPhase,

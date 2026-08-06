@@ -27,6 +27,7 @@ const {
   parseDevToolsBrowserEndpoint,
   parseElectronInspectorEndpoint,
   recordHostProgress,
+  resolveHostJourneyTransport,
   resolveVsCodeHostVersion,
   runRealDomPhase,
   settleHostAfterCdp,
@@ -396,6 +397,17 @@ test("macOS DOM relay launches without a debugger transport", async () => {
     launch.extensionTestsEnv.CHAINLESSCHAIN_HOST_TRACE_FILE,
     path.join(artifactDir, "cdp-journey.jsonl"),
   );
+});
+
+test("release real-host journeys use one main-world DOM relay on every OS", () => {
+  assert.deepEqual(resolveHostJourneyTransport(false), {
+    useDomRelay: true,
+    evidenceTransport: "local-ide-bridge+vscode-webview-message-dom",
+  });
+  assert.deepEqual(resolveHostJourneyTransport(true), {
+    useDomRelay: false,
+    evidenceTransport: "local-ide-bridge+vscode-extension-test-api",
+  });
 });
 
 test("macOS fallback driver exposes one fixed command and deduplicates the journey", () => {
