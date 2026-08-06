@@ -297,6 +297,82 @@ describe("runAgentHeadlessStream", () => {
     );
   }, 15_000);
 
+  it("bounds a hung cleanup step and still starts later disposers", async () => {
+    const runObserveHooks = vi.fn();
+    const cleanupReports = [];
+    const disconnectAll = vi.fn(() => new Promise(() => {}));
+    const deps = baseDeps({
+      input: input(),
+      cleanupDeadlineMs: 20,
+      onCleanupReport: (report) => cleanupReports.push(report),
+      runObserveHooks,
+      resolveAgentMcp: async () => ({
+        mcpClient: { callTool: vi.fn(), disconnectAll },
+        connected: [],
+        extraToolDefinitions: [],
+        externalToolExecutors: {},
+        externalToolDescriptors: {},
+      }),
+    });
+
+    await expect(
+      runAgentHeadlessStream(
+        { expandFileRefs: false, settingsHooks: {} },
+        deps,
+      ),
+    ).rejects.toMatchObject({
+      code: "CC_CLEANUP_DEADLINE_EXCEEDED",
+      timeoutMs: 20,
+      timedOutSteps: expect.arrayContaining(["mcp"]),
+    });
+
+    expect(disconnectAll).toHaveBeenCalledOnce();
+    expect(runObserveHooks).toHaveBeenCalledWith(
+      {},
+      "SessionEnd",
+      expect.objectContaining({ reason: "stdin_closed" }),
+      expect.any(Object),
+    );
+    expect(cleanupReports).toHaveLength(1);
+    expect(cleanupReports[0]).toMatchObject({
+      label: "headless-stream-cleanup",
+      timeoutMs: 20,
+      timedOut: true,
+    });
+  });
+
+  it("keeps a primary setup failure when cleanup also times out", async () => {
+    const cleanupReports = [];
+    const deps = baseDeps({
+      input: input(),
+      cleanupDeadlineMs: 15,
+      onCleanupReport: (report) => cleanupReports.push(report),
+      resolveAgentMcp: async () => ({
+        mcpClient: {
+          callTool: vi.fn(),
+          disconnectAll: vi.fn(() => new Promise(() => {})),
+          on: vi.fn(),
+          setElicitationHandler() {
+            throw new Error("primary elicitation failure");
+          },
+        },
+        connected: [],
+        extraToolDefinitions: [],
+        externalToolExecutors: {},
+        externalToolDescriptors: {},
+      }),
+    });
+
+    await expect(
+      runAgentHeadlessStream(
+        { expandFileRefs: false, interactiveQuestions: true },
+        deps,
+      ),
+    ).rejects.toThrow("primary elicitation failure");
+    expect(cleanupReports).toHaveLength(1);
+    expect(cleanupReports[0].timedOut).toBe(true);
+  });
+
   it("retains remote approval ownership when pairing output throws", async () => {
     const close = vi.fn(async () => {});
     const emitted = [];
@@ -428,6 +504,105 @@ describe("runAgentHeadlessStream", () => {
     });
     expect(outcome).toEqual({ exitCode: 0, turns: 2 });
   }, 15000);
+
+  it("fails before the model when a persisted user turn hits EROFS", async () => {
+    const agentLoop = vi.fn(async function* () {
+      yield { type: "response-complete", content: "must not run" };
+      yield { type: "run-ended", reason: "complete" };
+    });
+    const deps = baseDeps({
+      agentLoop,
+      input: input({ type: "user", text: "go" }),
+      sessionExists: () => false,
+      startSession: () => {},
+      appendUserMessage: () => {
+        throw Object.assign(new Error("private path"), { code: "EROFS" });
+      },
+      appendAssistantMessage: () => {},
+      appendEvent: () => {},
+      readEvents: () => [],
+      loadSideEffectLedger: () => null,
+    });
+
+    const outcome = await runAgentHeadlessStream(
+      { sessionId: "stream-disk-erofs", expandFileRefs: false },
+      deps,
+    );
+
+    expect(agentLoop).not.toHaveBeenCalled();
+    expect(outcome).toMatchObject({
+      exitCode: 1,
+      turns: 1,
+      persistence: {
+        fs_code: "EROFS",
+        phase: "before-model",
+        commit_state: "not-committed",
+        retryable: false,
+      },
+    });
+    const failure = parseEmitted(deps._lines).find(
+      (event) => event.subtype === "error_persistence",
+    );
+    expect(failure).toMatchObject({
+      is_error: true,
+      persistence: {
+        code: "CC_SESSION_PERSISTENCE_FAILED",
+        fs_code: "EROFS",
+        commit_state: "not-committed",
+      },
+    });
+    expect(JSON.stringify(failure)).not.toContain("private path");
+  });
+
+  it("reports unknown durability when assistant persistence hits ENOSPC", async () => {
+    const agentLoop = vi.fn(async function* () {
+      yield { type: "response-complete", content: "answer survives" };
+      yield { type: "run-ended", reason: "complete" };
+    });
+    const deps = baseDeps({
+      agentLoop,
+      input: input({ type: "user", text: "go" }),
+      sessionExists: () => false,
+      startSession: () => {},
+      appendUserMessage: () => {},
+      appendAssistantMessage: () => {
+        throw Object.assign(new Error("private path"), { code: "ENOSPC" });
+      },
+      appendEvent: () => {},
+      readEvents: () => [],
+      loadSideEffectLedger: () => null,
+    });
+
+    const outcome = await runAgentHeadlessStream(
+      { sessionId: "stream-disk-full", expandFileRefs: false },
+      deps,
+    );
+
+    expect(outcome).toMatchObject({
+      exitCode: 1,
+      turns: 1,
+      persistence: {
+        fs_code: "ENOSPC",
+        phase: "after-model",
+        commit_state: "unknown",
+        retryable: false,
+      },
+    });
+    const failure = parseEmitted(deps._lines).find(
+      (event) => event.subtype === "error_persistence",
+    );
+    expect(failure).toMatchObject({
+      is_error: true,
+      result: "answer survives",
+      persistence: {
+        code: "CC_SESSION_PERSISTENCE_FAILED",
+        fs_code: "ENOSPC",
+        commit_state: "unknown",
+        retryable: false,
+      },
+    });
+    expect(JSON.stringify(failure)).not.toContain("private path");
+  });
 
   it("threads autoCheckpoint into the loop options, keyed by sessionId", async () => {
     const captured = [];

@@ -155,6 +155,14 @@ const VALID_OUTPUT_FORMATS = Object.freeze(["text", "json", "stream-json"]);
 export { installPipeSafety } from "./pipe-safety.js";
 import { installPipeSafety } from "./pipe-safety.js";
 import { createHeadlessOutputBackpressure } from "./output-backpressure.js";
+import {
+  cleanupDeadlineError,
+  createCleanupDeadline,
+} from "./cleanup-deadline.js";
+import {
+  createSessionPersistenceFailure,
+  projectSessionPersistenceFailure,
+} from "../lib/session-persistence-failure.js";
 
 /**
  * Normalize a public --permission-mode spelling to the canonical internal mode.
@@ -470,6 +478,10 @@ async function runAgentHeadlessInWorkspace(
   const isText = outputFormat === "text";
   const writeOut = deps.writeOut;
   const writeErr = deps.writeErr;
+  const cleanupDeadline = createCleanupDeadline({
+    timeoutMs: deps.cleanupDeadlineMs,
+    label: "headless-runner-cleanup",
+  });
 
   const hasInjectedSessionStore =
     typeof deps.sessionHasPersistedEvidence === "function" ||
@@ -1463,9 +1475,10 @@ async function runAgentHeadlessInWorkspace(
     { role: "user", content: userMessageContent },
   ]);
 
-  // Persist the user turn up front (best-effort) so a session is recoverable
-  // even if the run crashes mid-loop. startSession is append-safe: only seed
-  // the header when the file does not yet exist.
+  // Persist the user turn before model/tool side effects. A full or read-only
+  // session disk is a recoverability contract failure, so it fails closed
+  // while the requested turn is still side-effect free. startSession is
+  // append-safe: only seed the header when the file does not yet exist.
   if (persist) {
     try {
       if (!store.sessionExists(sessionId)) {
@@ -1478,8 +1491,62 @@ async function runAgentHeadlessInWorkspace(
       // Persist the expanded content so a resumed session faithfully replays
       // what the model actually saw (the file snapshot, not just the @token).
       store.appendUserMessage(sessionId, userContent);
-    } catch {
-      // Persistence is best-effort — never fail the run over it.
+    } catch (error) {
+      const persistenceError = createSessionPersistenceFailure(error, {
+        sessionId,
+        operation: "user-turn-append",
+      });
+      const persistence = projectSessionPersistenceFailure(persistenceError, {
+        phase: "before-model",
+      });
+      if (persistence) {
+        try {
+          deps.onPersistenceFailure?.(persistence);
+        } catch {
+          // Observability cannot change persistence semantics.
+        }
+        const resultMsg = `${persistence.code}: session turn was not durably persisted`;
+        if (isStream) {
+          writeOut(
+            JSON.stringify({
+              type: "result",
+              subtype: "error_persistence",
+              is_error: true,
+              error: resultMsg,
+              session_id: sessionId,
+              persistence,
+            }) + "\n",
+          );
+        } else if (isJson) {
+          writeOut(
+            JSON.stringify(
+              buildResultEnvelope({
+                subtype: "error_persistence",
+                isError: true,
+                result: resultMsg,
+                sessionId,
+                toolCalls: [],
+                usage: {},
+                numTurns: 0,
+                durationMs: 0,
+                persistence,
+              }),
+            ) + "\n",
+          );
+        } else {
+          writeErr(
+            `${resultMsg} (${persistence.fs_code}; ${persistence.commit_state})\n`,
+          );
+        }
+        return {
+          exitCode: 1,
+          result: resultMsg,
+          isError: true,
+          persistence,
+        };
+      }
+      // Preserve legacy best-effort handling for errors outside the explicit
+      // ENOSPC/EROFS durability contract.
     }
   }
 
@@ -1630,7 +1697,13 @@ async function runAgentHeadlessInWorkspace(
       ppt = resolvePermissionPromptTool(mcp, options.permissionPromptTool);
     } catch (err) {
       writeErr(`Error: ${err.message}\n`);
-      if (mcp?.mcpClient) await mcp.mcpClient.disconnectAll().catch(() => {});
+      await cleanupDeadline.run("mcp", () => mcp?.mcpClient?.disconnectAll?.());
+      const cleanupReport = cleanupDeadline.report();
+      try {
+        deps.onCleanupReport?.(cleanupReport);
+      } catch {
+        // Metrics/reporting cannot change cleanup semantics.
+      }
       emitHeadlessError(err.message);
       // A bad --permission-prompt-tool reference is a CONFIG error.
       return {
@@ -2261,6 +2334,8 @@ async function runAgentHeadlessInWorkspace(
   process.once("SIGINT", _onHardSignal);
   process.once("SIGTERM", _onHardSignal);
 
+  let loopFailureOutcome = null;
+  let cleanupFailure = null;
   try {
     while (true) {
       // P1 turn→checkpoint binding: one drain of the loop = one turn. Anchor
@@ -2724,16 +2799,18 @@ async function runAgentHeadlessInWorkspace(
     }
     // Provider/transport failures get their own exit code (5) so CI can tell
     // "the model call failed" from "the run itself errored" (1).
-    return { exitCode: classifyLoopError(err), result: message, isError: true };
+    loopFailureOutcome = {
+      exitCode: classifyLoopError(err),
+      result: message,
+      isError: true,
+    };
   } finally {
     // Capture body-cache hits/misses caused by list_skills/run_skill during the
     // turn. `cc context --sources` reads the newest snapshot.
     persistContextSources();
-    try {
-      _backgroundInteraction?.close?.();
-    } catch {
-      // Best-effort listener cleanup; never mask the run result.
-    }
+    await cleanupDeadline.run("background-interaction", () =>
+      _backgroundInteraction?.close?.(),
+    );
     // Drop the signal handlers first — a normal return must not leave a
     // process-wide SIGINT/SIGTERM listener behind (a later Ctrl-C would wrongly
     // exit with 130, and repeated in-process runs would leak listeners).
@@ -2742,135 +2819,141 @@ async function runAgentHeadlessInWorkspace(
     // Tear down ad-hoc MCP servers (--mcp-config) before returning, whether the
     // loop completed or threw. Best-effort: a failed disconnect never masks the
     // run's own outcome.
-    if (mcp?.mcpClient) {
-      try {
-        await mcp.mcpClient.disconnectAll();
-      } catch {
-        // ignore — disconnect is best-effort
-      }
-    }
+    await cleanupDeadline.run("mcp", () => mcp?.mcpClient?.disconnectAll?.());
     // Kill any background run_shell tasks this run spawned so a backgrounded
     // command (e.g. a dev server) doesn't outlive the headless invocation.
-    try {
-      killAllBackgroundShellTasks();
-    } catch {
-      // best-effort — never mask the run's own outcome
-    }
+    await cleanupDeadline.run("background-shells", () =>
+      killAllBackgroundShellTasks(),
+    );
     // Tear down the --remote-control approval bridge + its self-hosted WS
     // server so the run's port/socket never outlives the invocation.
-    if (_remoteApproval) {
-      try {
-        await _remoteApproval.close();
-      } catch {
-        // best-effort — never mask the run's own outcome
-      }
-    }
+    await cleanupDeadline.run("remote-approval", () =>
+      _remoteApproval?.close?.(),
+    );
     // settings.json Stop + SessionEnd hooks when the run finishes. Stop is the
     // canonical async-hook trigger ("run the test suite at turn end"); fire its
     // async hooks fire-and-forget, then settle so a fast background check can
     // report back within this one-shot run.
-    if (settingsHooks) {
-      try {
-        const { runObserveHooks, dispatchAsyncHooks } =
-          await import("../lib/settings-hook-events.js");
-        const stopPayload = {
-          reason: pipeState.closed ? "pipe_closed" : endReason,
-          cwd,
-          session_id: sessionId,
-        };
-        const stopOutcome = runObserveHooks(
-          settingsHooks,
-          "Stop",
-          stopPayload,
-          { cwd },
-        );
-        const stopFailures = (stopOutcome?.results || []).filter(
-          (result) =>
-            result?.nonBlockingError === true ||
-            result?.malformedDecision === true ||
-            result?.breakerOpen === true,
-        );
-        if (stopFailures.length > 0) {
-          emitHooksV2Event("StopFailure", {
-            schema_version: 1,
-            session_id: sessionId,
-            phase: "stop-hook",
-            failures: stopFailures.map((failure) => ({
-              command: failure.command || null,
-              exit_code: failure.exitCode ?? null,
-              reason: failure.reason || failure.error || null,
-            })),
-          });
-        }
-        // Skip the async Stop dispatch/settle here if the auto-rewake re-drive
-        // loop already fired + drained it this run (avoids double-execution).
-        if (_hookSupervisor && !_asyncStopHandled) {
-          dispatchAsyncHooks(settingsHooks, "Stop", stopPayload, {
+    await cleanupDeadline.run("settings-hooks", async () => {
+      if (settingsHooks) {
+        try {
+          const { runObserveHooks, dispatchAsyncHooks } =
+            await import("../lib/settings-hook-events.js");
+          const stopPayload = {
+            reason: pipeState.closed ? "pipe_closed" : endReason,
             cwd,
-            supervisor: _hookSupervisor,
-          });
-          // Bounded settle: wait for in-flight async hooks (Stop + any
-          // PostToolUse dispatched during the loop) to finish, capped so a
-          // slow/hung check can never stall the run. Default 5s; tunable.
-          const waitMs = Number.isFinite(options.asyncHookWaitMs)
-            ? options.asyncHookWaitMs
-            : 5000;
-          const started = Date.now();
-          while (
-            _hookSupervisor.runningCount() > 0 &&
-            Date.now() - started < waitMs
-          ) {
-            await new Promise((r) => setTimeout(r, 50));
-          }
-          // Surface any results/rewakes out-of-band on stderr (never touches the
-          // stdout envelope). A rewake means a background check FAILED and would
-          // re-engage the agent in an interactive session — flag it clearly so a
-          // headless caller/CI can react.
-          for (const rw of _hookSupervisor.drainRewakes()) {
+            session_id: sessionId,
+          };
+          const stopOutcome = runObserveHooks(
+            settingsHooks,
+            "Stop",
+            stopPayload,
+            { cwd },
+          );
+          const stopFailures = (stopOutcome?.results || []).filter(
+            (result) =>
+              result?.nonBlockingError === true ||
+              result?.malformedDecision === true ||
+              result?.breakerOpen === true,
+          );
+          if (stopFailures.length > 0) {
             emitHooksV2Event("StopFailure", {
               schema_version: 1,
               session_id: sessionId,
-              phase: "async-stop-hook",
-              command: rw.command || null,
-              exit_code: rw.exitCode ?? null,
-              reason: rw.error || "async stop hook requested rewake",
+              phase: "stop-hook",
+              failures: stopFailures.map((failure) => ({
+                command: failure.command || null,
+                exit_code: failure.exitCode ?? null,
+                reason: failure.reason || failure.error || null,
+              })),
             });
-            writeErr(
-              `[async-hook REWAKE] ${rw.command} failed` +
-                `${rw.exitCode != null ? ` (exit ${rw.exitCode})` : ""}` +
-                `${rw.error ? `: ${rw.error}` : ""}\n`,
-            );
           }
-          for (const rs of _hookSupervisor.drainResults()) {
-            if (rs.additionalContext) {
-              writeErr(`[async-hook] ${rs.command}: ${rs.additionalContext}\n`);
+          // Skip the async Stop dispatch/settle here if the auto-rewake re-drive
+          // loop already fired + drained it this run (avoids double-execution).
+          if (_hookSupervisor && !_asyncStopHandled) {
+            dispatchAsyncHooks(settingsHooks, "Stop", stopPayload, {
+              cwd,
+              supervisor: _hookSupervisor,
+            });
+            // Bounded settle: wait for in-flight async hooks (Stop + any
+            // PostToolUse dispatched during the loop) to finish, capped so a
+            // slow/hung check can never stall the run. Default 5s; tunable.
+            const waitMs = Number.isFinite(options.asyncHookWaitMs)
+              ? options.asyncHookWaitMs
+              : 5000;
+            const started = Date.now();
+            while (
+              _hookSupervisor.runningCount() > 0 &&
+              Date.now() - started < waitMs
+            ) {
+              await new Promise((r) => setTimeout(r, 50));
+            }
+            // Surface any results/rewakes out-of-band on stderr (never touches the
+            // stdout envelope). A rewake means a background check FAILED and would
+            // re-engage the agent in an interactive session — flag it clearly so a
+            // headless caller/CI can react.
+            for (const rw of _hookSupervisor.drainRewakes()) {
+              emitHooksV2Event("StopFailure", {
+                schema_version: 1,
+                session_id: sessionId,
+                phase: "async-stop-hook",
+                command: rw.command || null,
+                exit_code: rw.exitCode ?? null,
+                reason: rw.error || "async stop hook requested rewake",
+              });
+              writeErr(
+                `[async-hook REWAKE] ${rw.command} failed` +
+                  `${rw.exitCode != null ? ` (exit ${rw.exitCode})` : ""}` +
+                  `${rw.error ? `: ${rw.error}` : ""}\n`,
+              );
+            }
+            for (const rs of _hookSupervisor.drainResults()) {
+              if (rs.additionalContext) {
+                writeErr(
+                  `[async-hook] ${rs.command}: ${rs.additionalContext}\n`,
+                );
+              }
             }
           }
-        }
-        // Always reap the supervisor (kills any straggler child + detaches the
-        // exit reaper), whether the async Stop was handled here or in re-drive.
-        if (_hookSupervisor) _hookSupervisor.stopAll();
-        runObserveHooks(
-          settingsHooks,
-          "SessionEnd",
-          {
-            reason: pipeState.closed ? "pipe_closed" : "completed",
-            cwd,
+          // Always reap the supervisor (kills any straggler child + detaches the
+          // exit reaper), whether the async Stop was handled here or in re-drive.
+          if (_hookSupervisor) _hookSupervisor.stopAll();
+          runObserveHooks(
+            settingsHooks,
+            "SessionEnd",
+            {
+              reason: pipeState.closed ? "pipe_closed" : "completed",
+              cwd,
+              session_id: sessionId,
+            },
+            { cwd },
+          );
+        } catch (error) {
+          emitHooksV2Event("StopFailure", {
+            schema_version: 1,
             session_id: sessionId,
-          },
-          { cwd },
-        );
-      } catch (error) {
-        emitHooksV2Event("StopFailure", {
-          schema_version: 1,
-          session_id: sessionId,
-          phase: "stop-hook-dispatch",
-          reason: error?.message || String(error),
-        });
-        // observe-only + best-effort async surfacing
+            phase: "stop-hook-dispatch",
+            reason: error?.message || String(error),
+          });
+          // observe-only + best-effort async surfacing
+        }
       }
+    });
+    const cleanupReport = cleanupDeadline.report();
+    try {
+      deps.onCleanupReport?.(cleanupReport);
+    } catch {
+      // Metrics/reporting cannot change cleanup semantics.
+    }
+    if (cleanupReport.timedOut) {
+      cleanupFailure = cleanupDeadlineError(cleanupReport);
     }
   }
+
+  // Preserve the primary model/runtime failure. A simultaneous cleanup timeout
+  // remains observable through onCleanupReport but must not replace it.
+  if (loopFailureOutcome) return loopFailureOutcome;
+  if (cleanupFailure) throw cleanupFailure;
 
   // A downstream consumer closed stdout/stderr. The abort above unwound the
   // model loop through the same `finally` as every other termination, so MCP,
@@ -2886,8 +2969,8 @@ async function runAgentHeadlessInWorkspace(
   const exhausted =
     endReason === "budget-exhausted" || endReason === "max_turns";
   const costStopped = endReason === "cost-budget-exhausted";
-  const isError = exhausted || costStopped || endReason === "no-response";
-  const subtype = exhausted
+  let isError = exhausted || costStopped || endReason === "no-response";
+  let subtype = exhausted
     ? "error_max_turns"
     : costStopped
       ? "error_max_budget"
@@ -2895,6 +2978,7 @@ async function runAgentHeadlessInWorkspace(
         ? "error"
         : "success";
   const durationMs = (deps.now ? deps.now() : Date.now()) - startedAt;
+  let persistenceFailure = null;
 
   // Persist the assistant turn so a later --resume / --continue replays it.
   // The user turn was already recorded up front; only append on a clean run.
@@ -2921,8 +3005,30 @@ async function runAgentHeadlessInWorkspace(
         store.appendTokenUsage(sessionId, au);
       }
       store.appendTokenUsage(sessionId, usage);
-    } catch {
-      // Persistence is best-effort — never fail the run over it.
+    } catch (error) {
+      const persistenceError = createSessionPersistenceFailure(error, {
+        sessionId,
+        operation: "assistant-turn-append",
+      });
+      persistenceFailure = projectSessionPersistenceFailure(persistenceError, {
+        phase: "after-model",
+      });
+      if (persistenceFailure) {
+        isError = true;
+        subtype = "error_persistence";
+        try {
+          deps.onPersistenceFailure?.(persistenceFailure);
+        } catch {
+          // Observability cannot change persistence semantics.
+        }
+        if (isText) {
+          writeErr(
+            `CC_SESSION_PERSISTENCE_FAILED: assistant turn durability is ${persistenceFailure.commit_state} (${persistenceFailure.fs_code})\n`,
+          );
+        }
+      }
+      // Preserve legacy best-effort handling for errors outside the explicit
+      // ENOSPC/EROFS durability contract.
     }
   }
 
@@ -3016,6 +3122,7 @@ async function runAgentHeadlessInWorkspace(
       ...(compactionDegradations.length
         ? { compaction_degradations: compactionDegradations }
         : {}),
+      ...(persistenceFailure ? { persistence: persistenceFailure } : {}),
     });
   } else if (isJson) {
     writeOut(
@@ -3031,6 +3138,7 @@ async function runAgentHeadlessInWorkspace(
           durationMs,
           denials,
           compactionDegradations,
+          persistence: persistenceFailure,
         }),
       ) + "\n",
     );
@@ -3075,6 +3183,7 @@ async function runAgentHeadlessInWorkspace(
     exitCode: exitCodeForEndReason(endReason, isError),
     result: finalText,
     isError,
+    ...(persistenceFailure ? { persistence: persistenceFailure } : {}),
   };
 }
 
@@ -3089,6 +3198,7 @@ function buildResultEnvelope({
   durationMs,
   denials,
   compactionDegradations,
+  persistence,
 }) {
   const env = {
     type: "result",
@@ -3107,5 +3217,6 @@ function buildResultEnvelope({
   if (Array.isArray(compactionDegradations) && compactionDegradations.length) {
     env.compaction_degradations = compactionDegradations;
   }
+  if (persistence) env.persistence = persistence;
   return env;
 }
