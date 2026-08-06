@@ -3277,7 +3277,11 @@ describe("native installer transaction contracts", () => {
 
   it("packed CLI startup consumes detached native update results", () => {
     const source = fs.readFileSync(binPath, "utf8");
+    expect(source).toContain("recoverPendingNativeGeneration();");
     expect(source).toContain("reportPendingNativeUpdateResult();");
+    expect(source.indexOf("recoverPendingNativeGeneration();")).toBeLessThan(
+      source.indexOf("reportPendingNativeUpdateResult();"),
+    );
     expect(source.indexOf("reportPendingNativeUpdateResult();")).toBeLessThan(
       source.indexOf("runCli(process.argv)"),
     );

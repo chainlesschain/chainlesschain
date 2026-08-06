@@ -31,8 +31,10 @@ import {
   _deps,
 } from "../../src/lib/packer/pack-update-applier.js";
 import {
+  NATIVE_GENERATION_TRANSACTION_SCHEMA,
   NATIVE_UPDATE_LINEAGE_SCHEMA,
   NATIVE_UPDATE_RESULT_SCHEMA,
+  recoverPendingNativeGeneration,
   reportPendingNativeUpdateResult,
 } from "../../src/lib/packer/native-update-state.js";
 
@@ -679,7 +681,7 @@ describe("scheduleReplace – POSIX branch", () => {
             platform: "posix",
           }),
         ),
-      ).rejects.toMatchObject({ code: "UPDATE_LOCK_LOST" });
+      ).rejects.toMatchObject({ code: "ROLLBACK_FAILED" });
     } finally {
       chmodSpy.mockRestore();
     }
@@ -687,6 +689,7 @@ describe("scheduleReplace – POSIX branch", () => {
     expect(fs.readFileSync(target, "utf8")).toBe("old-payload");
     expect(fs.readFileSync(newExe, "utf8")).toBe("new-payload");
     expect(fs.readFileSync(lockPath, "utf8")).toBe("foreign-owner");
+    expect(fs.existsSync(`${target}.update-transaction.json`)).toBe(true);
     expect(
       fs
         .readdirSync(tmpDir)
@@ -722,10 +725,8 @@ describe("scheduleReplace – POSIX branch", () => {
       renameSpy.mockRestore();
     }
     expect(fs.readFileSync(target, "utf8")).toBe("old-payload");
-    expect(fs.readFileSync(`${target}.previous`, "utf8")).toBe("old-payload");
-    expect(
-      JSON.parse(fs.readFileSync(`${target}.update-lineage.json`, "utf8")),
-    ).toMatchObject({ operation: "rolled-back" });
+    expect(fs.existsSync(`${target}.previous`)).toBe(false);
+    expect(fs.existsSync(`${target}.update-lineage.json`)).toBe(false);
   });
 
   it("restart=true spawns the new exe detached after rename", async () => {
@@ -805,14 +806,9 @@ describe("scheduleReplace – POSIX branch", () => {
       ),
     ).rejects.toMatchObject({ code: "UPDATE_VERIFY_FAILED" });
     expect(fs.readFileSync(target, "utf8")).toBe("old-payload");
-    expect(fs.readFileSync(`${target}.previous`, "utf8")).toBe("old-payload");
+    expect(fs.existsSync(`${target}.previous`)).toBe(false);
     expect(fs.existsSync(`${target}.update.lock`)).toBe(false);
-    expect(
-      JSON.parse(fs.readFileSync(`${target}.update-lineage.json`, "utf8")),
-    ).toMatchObject({
-      operation: "rolled-back",
-      currentSha256: sha256("old-payload"),
-    });
+    expect(fs.existsSync(`${target}.update-lineage.json`)).toBe(false);
     expect(verifyImpl).toHaveBeenCalledWith(
       target,
       ["--version"],
@@ -838,7 +834,7 @@ describe("scheduleReplace – POSIX branch", () => {
       ),
     ).rejects.toMatchObject({ code: "UPDATE_VERIFY_FAILED" });
     expect(fs.readFileSync(target, "utf8")).toBe("old-payload");
-    expect(fs.readFileSync(`${target}.previous`, "utf8")).toBe("old-payload");
+    expect(fs.existsSync(`${target}.previous`)).toBe(false);
   });
 
   it("preserves the transaction rescue snapshot when rollback fails", async () => {
@@ -847,7 +843,7 @@ describe("scheduleReplace – POSIX branch", () => {
     const copySpy = vi
       .spyOn(fs, "copyFileSync")
       .mockImplementation((sourcePath, destinationPath, flags) => {
-        if (String(sourcePath).includes(".previous.pending-")) {
+        if (String(sourcePath).includes(".chainlesschain.target-prior-")) {
           const error = new Error("rollback copy denied");
           error.code = "EACCES";
           throw error;
@@ -873,7 +869,7 @@ describe("scheduleReplace – POSIX branch", () => {
     expect(fs.existsSync(backupPath)).toBe(false);
     const recoverySnapshot = fs
       .readdirSync(tmpDir)
-      .find((name) => name.includes(".previous.pending-"));
+      .find((name) => name.includes(".chainlesschain.target-prior-"));
     expect(recoverySnapshot).toBeTruthy();
     expect(fs.readFileSync(path.join(tmpDir, recoverySnapshot), "utf8")).toBe(
       "old-payload",
@@ -1862,6 +1858,204 @@ describe("writeWindowsSidecar (cmd body)", () => {
 });
 
 describe("native sidecar result reporting", () => {
+  it("recovers an interrupted POSIX generation to its exact pre-state", () => {
+    const dir = fs.mkdtempSync(
+      path.join(CANONICAL_TEMP_ROOT, "cc-generation-recovery-"),
+    );
+    const targetExePath = path.join(dir, "chainlesschain");
+    const backupPath = `${targetExePath}.previous`;
+    const lineagePath = `${targetExePath}.update-lineage.json`;
+    const journalPath = `${targetExePath}.update-transaction.json`;
+    const transactionId = FIXTURE_TRANSACTION_ID;
+    const originalTarget = "generation-original-target";
+    const originalBackup = "generation-original-backup";
+    const originalLineage = `${JSON.stringify({
+      schema: NATIVE_UPDATE_LINEAGE_SCHEMA,
+      transactionId: "00000000-0000-4000-8000-000000000002",
+      operation: "update",
+      currentSha256: sha256(originalTarget),
+      previousSha256: sha256(originalBackup),
+      updatedAt: "2026-08-01T00:00:00.000Z",
+    })}\n`;
+    const expectedTarget = "generation-interrupted-new-target";
+    fs.writeFileSync(targetExePath, expectedTarget);
+    fs.writeFileSync(backupPath, originalTarget);
+    fs.writeFileSync(
+      lineagePath,
+      `${JSON.stringify({
+        schema: NATIVE_UPDATE_LINEAGE_SCHEMA,
+        transactionId,
+        operation: "update",
+        currentSha256: sha256(expectedTarget),
+        previousSha256: sha256(originalTarget),
+      })}\n`,
+    );
+    fs.writeFileSync(
+      path.join(dir, `.chainlesschain.target-prior-${transactionId}`),
+      originalTarget,
+    );
+    fs.writeFileSync(
+      path.join(dir, `.chainlesschain.backup-prior-${transactionId}`),
+      originalBackup,
+    );
+    fs.writeFileSync(
+      path.join(dir, `.chainlesschain.lineage-prior-${transactionId}`),
+      originalLineage,
+    );
+    fs.writeFileSync(
+      journalPath,
+      `${JSON.stringify({
+        schema: NATIVE_GENERATION_TRANSACTION_SCHEMA,
+        transactionId,
+        operation: "update",
+        phase: "lineage-committed",
+        decision: "rollback",
+        expectedSha256: sha256(expectedTarget),
+        hadTarget: true,
+        targetBeforeSha256: sha256(originalTarget),
+        hadBackup: true,
+        backupBeforeSha256: sha256(originalBackup),
+        hadAlias: false,
+        aliasBeforeSha256: null,
+        hadLineage: true,
+        lineageBeforeSha256: sha256(originalLineage),
+        updatedAt: "2026-08-01T00:00:00.000Z",
+      })}\n`,
+    );
+    fs.writeFileSync(
+      `${targetExePath}.update.lock`,
+      `999999:${FIXTURE_TRANSACTION_ID}`,
+    );
+    const killSpy = vi.spyOn(process, "kill").mockImplementation(() => {
+      const error = new Error("fixture PID is not live");
+      error.code = "ESRCH";
+      throw error;
+    });
+    const stderr = { write: vi.fn() };
+    try {
+      expect(
+        recoverPendingNativeGeneration({
+          targetExePath,
+          platform: "posix",
+          force: true,
+          stderr,
+        }),
+      ).toMatchObject({ outcome: "rolled-back", transactionId });
+      expect(fs.readFileSync(targetExePath, "utf8")).toBe(originalTarget);
+      expect(fs.readFileSync(backupPath, "utf8")).toBe(originalBackup);
+      expect(fs.readFileSync(lineagePath, "utf8")).toBe(originalLineage);
+      expect(fs.existsSync(journalPath)).toBe(false);
+      expect(fs.existsSync(`${journalPath}.last`)).toBe(true);
+      expect(fs.existsSync(`${targetExePath}.update.lock`)).toBe(false);
+      expect(stderr.write).toHaveBeenCalledWith(
+        expect.stringContaining("rolled-back"),
+      );
+    } finally {
+      killSpy.mockRestore();
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("finishes a durably committed POSIX generation without rolling it back", () => {
+    const dir = fs.mkdtempSync(
+      path.join(CANONICAL_TEMP_ROOT, "cc-generation-commit-recovery-"),
+    );
+    const targetExePath = path.join(dir, "chainlesschain");
+    const backupPath = `${targetExePath}.previous`;
+    const lineagePath = `${targetExePath}.update-lineage.json`;
+    const journalPath = `${targetExePath}.update-transaction.json`;
+    const transactionId = FIXTURE_TRANSACTION_ID;
+    const originalTarget = "generation-original-target";
+    const committedTarget = "generation-committed-target";
+    fs.writeFileSync(targetExePath, committedTarget);
+    fs.writeFileSync(backupPath, originalTarget);
+    fs.writeFileSync(
+      lineagePath,
+      `${JSON.stringify({
+        schema: NATIVE_UPDATE_LINEAGE_SCHEMA,
+        transactionId,
+        operation: "update",
+        currentSha256: sha256(committedTarget),
+        previousSha256: sha256(originalTarget),
+      })}\n`,
+    );
+    fs.writeFileSync(
+      journalPath,
+      `${JSON.stringify({
+        schema: NATIVE_GENERATION_TRANSACTION_SCHEMA,
+        transactionId,
+        operation: "update",
+        phase: "committed",
+        decision: "commit",
+        expectedSha256: sha256(committedTarget),
+        hadTarget: true,
+        targetBeforeSha256: sha256(originalTarget),
+        hadBackup: false,
+        backupBeforeSha256: null,
+        hadAlias: false,
+        aliasBeforeSha256: null,
+        hadLineage: false,
+        lineageBeforeSha256: null,
+        updatedAt: "2026-08-01T00:00:00.000Z",
+      })}\n`,
+    );
+    fs.writeFileSync(
+      `${targetExePath}.update.lock`,
+      `999999:${FIXTURE_TRANSACTION_ID}`,
+    );
+    const killSpy = vi.spyOn(process, "kill").mockImplementation(() => {
+      const error = new Error("fixture PID is not live");
+      error.code = "ESRCH";
+      throw error;
+    });
+    try {
+      expect(
+        recoverPendingNativeGeneration({
+          targetExePath,
+          platform: "posix",
+          force: true,
+          stderr: { write: vi.fn() },
+        }),
+      ).toMatchObject({ outcome: "committed", transactionId });
+      expect(fs.readFileSync(targetExePath, "utf8")).toBe(committedTarget);
+      expect(fs.readFileSync(backupPath, "utf8")).toBe(originalTarget);
+      expect(fs.existsSync(journalPath)).toBe(false);
+      expect(fs.existsSync(`${journalPath}.last`)).toBe(true);
+      expect(fs.existsSync(`${targetExePath}.update.lock`)).toBe(false);
+    } finally {
+      killSpy.mockRestore();
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("fails closed without mutating a generation when its journal is corrupt", () => {
+    const dir = fs.mkdtempSync(
+      path.join(CANONICAL_TEMP_ROOT, "cc-generation-corrupt-journal-"),
+    );
+    const targetExePath = path.join(dir, "chainlesschain");
+    const journalPath = `${targetExePath}.update-transaction.json`;
+    const targetBytes = "generation-that-must-not-change";
+    fs.writeFileSync(targetExePath, targetBytes);
+    fs.writeFileSync(journalPath, '{"schema":"unknown"}\n');
+    try {
+      expect(() =>
+        recoverPendingNativeGeneration({
+          targetExePath,
+          platform: "posix",
+          force: true,
+          stderr: { write: vi.fn() },
+        }),
+      ).toThrowError(expect.objectContaining({ code: "TRANSACTION_INVALID" }));
+      expect(fs.readFileSync(targetExePath, "utf8")).toBe(targetBytes);
+      expect(fs.readFileSync(journalPath, "utf8")).toBe(
+        '{"schema":"unknown"}\n',
+      );
+      expect(fs.existsSync(`${targetExePath}.update.lock`)).toBe(false);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it("atomically consumes a valid pending result and retains diagnostics", () => {
     const dir = fs.mkdtempSync(
       path.join(CANONICAL_TEMP_ROOT, "cc-update-result-"),

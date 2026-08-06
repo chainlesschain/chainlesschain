@@ -23,6 +23,7 @@ import {
   sameOpenedFileIdentity,
 } from "./file-identity.js";
 import {
+  NATIVE_GENERATION_TRANSACTION_SCHEMA,
   NATIVE_UPDATE_LINEAGE_SCHEMA,
   NATIVE_UPDATE_RESULT_SCHEMA,
   SHA256_HEX,
@@ -101,6 +102,8 @@ export async function scheduleReplace(ctx = {}) {
     "last-known-good backup": statePaths.backupPath,
     "update lock": statePaths.lockPath,
     "update lineage": statePaths.lineagePath,
+    "generation transaction journal": statePaths.journalPath,
+    "retired generation transaction journal": statePaths.lastJournalPath,
     "update result": statePaths.resultPath,
     "last consumed update result": statePaths.lastResultPath,
   })) {
@@ -160,6 +163,8 @@ export async function scheduleReplace(ctx = {}) {
     for (const [label, filePath] of Object.entries({
       "last-known-good backup": statePaths.backupPath,
       "update lineage": statePaths.lineagePath,
+      "generation transaction journal": statePaths.journalPath,
+      "retired generation transaction journal": statePaths.lastJournalPath,
       "update result": statePaths.resultPath,
       "last consumed update result": statePaths.lastResultPath,
     })) {
@@ -182,6 +187,10 @@ export async function scheduleReplace(ctx = {}) {
     const hadPriorBackup = Boolean(lstatOrNull(statePaths.backupPath));
     const priorBackupSha = hadPriorBackup
       ? stableSha256(statePaths.backupPath, "existing last-known-good backup")
+      : null;
+    const hadPriorLineage = Boolean(lstatOrNull(statePaths.lineagePath));
+    const priorLineageSha = hadPriorLineage
+      ? stableSha256(statePaths.lineagePath, "existing native update lineage")
       : null;
 
     if (platform === "win32") {
@@ -218,6 +227,9 @@ export async function scheduleReplace(ctx = {}) {
       targetBeforeSha,
       hadTarget,
       hadPriorBackup,
+      hadPriorLineage,
+      priorBackupSha,
+      priorLineageSha,
       restart: Boolean(restart),
       verify: Boolean(verify),
       spawnImpl,
@@ -245,6 +257,9 @@ function applyPosixUpdate(ctx) {
     targetBeforeSha,
     hadTarget,
     hadPriorBackup,
+    hadPriorLineage,
+    priorBackupSha,
+    priorLineageSha,
     restart,
     verify,
     spawnImpl,
@@ -253,7 +268,61 @@ function applyPosixUpdate(ctx) {
   } = ctx;
   const targetPath = layout.canonicalPath;
   let backupStagingPath = null;
-  let backupCommitted = false;
+  const snapshotPaths = generationSnapshotPaths(targetPath, transactionId);
+  const journal = makeGenerationJournal({
+    transactionId,
+    operation: "update",
+    expectedSha,
+    hadTarget,
+    targetBeforeSha,
+    hadBackup: hadPriorBackup,
+    backupBeforeSha: priorBackupSha,
+    hadLineage: hadPriorLineage,
+    lineageBeforeSha: priorLineageSha,
+  });
+
+  try {
+    if (hadTarget) {
+      atomicCopyFile(targetPath, snapshotPaths.priorTargetPath, {
+        preserveModeFrom: targetPath,
+        updateLock,
+      });
+      assertExpectedFileHash(
+        snapshotPaths.priorTargetPath,
+        targetBeforeSha,
+        "target generation snapshot",
+      );
+    }
+    if (hadPriorBackup) {
+      atomicCopyFile(statePaths.backupPath, snapshotPaths.priorBackupPath, {
+        preserveModeFrom: statePaths.backupPath,
+        updateLock,
+      });
+      assertExpectedFileHash(
+        snapshotPaths.priorBackupPath,
+        priorBackupSha,
+        "backup generation snapshot",
+      );
+    }
+    if (hadPriorLineage) {
+      atomicCopyFile(statePaths.lineagePath, snapshotPaths.priorLineagePath, {
+        preserveModeFrom: statePaths.lineagePath,
+        updateLock,
+      });
+      assertExpectedFileHash(
+        snapshotPaths.priorLineagePath,
+        priorLineageSha,
+        "lineage generation snapshot",
+      );
+    }
+  } catch (error) {
+    cleanupGenerationSnapshots(snapshotPaths);
+    throw asApplyError(
+      error,
+      "GENERATION_SNAPSHOT_FAILED",
+      "could not preserve the native generation pre-state",
+    );
+  }
 
   if (hadTarget) {
     backupStagingPath = uniqueSibling(statePaths.backupPath, "pending");
@@ -269,8 +338,33 @@ function applyPosixUpdate(ctx) {
       );
     } catch (error) {
       removeRegularFileIfPresent(backupStagingPath);
+      cleanupGenerationSnapshots(snapshotPaths);
       throw asApplyError(error, "BACKUP_FAILED", "could not create backup");
     }
+  }
+
+  try {
+    writeGenerationJournalPhase(
+      statePaths.journalPath,
+      journal,
+      "prepared",
+      "rollback",
+      updateLock,
+    );
+  } catch (error) {
+    removeRegularFileIfPresent(backupStagingPath);
+    if (lstatOrNull(statePaths.journalPath)) {
+      throw new ApplyError(
+        `native generation intent persistence is unknown: ${error.message}`,
+        "ROLLBACK_FAILED",
+      );
+    }
+    cleanupGenerationSnapshots(snapshotPaths);
+    throw asApplyError(
+      error,
+      "JOURNAL_WRITE_FAILED",
+      "could not persist native generation intent",
+    );
   }
 
   try {
@@ -294,8 +388,36 @@ function applyPosixUpdate(ctx) {
     assertUpdateLockOwned(updateLock);
     fs.renameSync(resolvedNewPath, targetPath);
     fsyncDirectory(path.dirname(targetPath));
+    writeGenerationJournalPhase(
+      statePaths.journalPath,
+      journal,
+      "target-committed",
+      "rollback",
+      updateLock,
+    );
   } catch (error) {
     removeRegularFileIfPresent(backupStagingPath);
+    try {
+      rollbackFailedPosixUpdate({
+        targetPath,
+        statePaths,
+        transactionId,
+        hadTarget,
+        targetBeforeSha,
+        hadPriorBackup,
+        hadPriorLineage,
+        priorBackupSha,
+        priorLineageSha,
+        snapshotPaths,
+        journal,
+        updateLock,
+      });
+    } catch (recoveryError) {
+      throw new ApplyError(
+        `target commit failed and its generation journal could not be retired: ${recoveryError.message}`,
+        "ROLLBACK_FAILED",
+      );
+    }
     if (error instanceof ApplyError) throw error;
     throw new ApplyError(`rename failed: ${error.message}`, "RENAME_FAILED");
   }
@@ -318,13 +440,35 @@ function applyPosixUpdate(ctx) {
   }
   if (!commitFailure) {
     try {
+      writeGenerationJournalPhase(
+        statePaths.journalPath,
+        journal,
+        "verified",
+        "rollback",
+        updateLock,
+      );
+    } catch (error) {
+      commitFailure = new ApplyError(
+        `could not persist native generation verification: ${error.message}`,
+        "JOURNAL_WRITE_FAILED",
+      );
+    }
+  }
+  if (!commitFailure) {
+    try {
       if (hadTarget) {
         assertUpdateLockOwned(updateLock);
         fs.renameSync(backupStagingPath, statePaths.backupPath);
         backupStagingPath = null;
-        backupCommitted = true;
         fsyncDirectory(path.dirname(targetPath));
       }
+      writeGenerationJournalPhase(
+        statePaths.journalPath,
+        journal,
+        "backup-committed",
+        "rollback",
+        updateLock,
+      );
     } catch (error) {
       commitFailure = new ApplyError(
         `could not persist last-known-good backup: ${error.message}`,
@@ -344,6 +488,13 @@ function applyPosixUpdate(ctx) {
         }),
         updateLock,
       );
+      writeGenerationJournalPhase(
+        statePaths.journalPath,
+        journal,
+        "lineage-committed",
+        "rollback",
+        updateLock,
+      );
     } catch (error) {
       commitFailure = new ApplyError(
         `could not persist update lineage: ${error.message}`,
@@ -359,13 +510,40 @@ function applyPosixUpdate(ctx) {
       transactionId,
       hadTarget,
       targetBeforeSha,
-      rollbackSourcePath: backupStagingPath || statePaths.backupPath,
-      backupCommitted,
       hadPriorBackup,
+      hadPriorLineage,
+      priorBackupSha,
+      priorLineageSha,
+      snapshotPaths,
+      journal,
       updateLock,
     });
     removeRegularFileIfPresent(backupStagingPath);
     throw commitFailure;
+  }
+
+  try {
+    writeGenerationJournalPhase(
+      statePaths.journalPath,
+      journal,
+      "committed",
+      "commit",
+      updateLock,
+    );
+  } catch (error) {
+    throw new ApplyError(
+      `native generation commit decision is unknown: ${error.message}`,
+      "ROLLBACK_FAILED",
+    );
+  }
+  cleanupGenerationSnapshots(snapshotPaths);
+  try {
+    retireGenerationJournal(statePaths, journal, updateLock);
+  } catch (error) {
+    throw new ApplyError(
+      `native generation committed but journal retirement failed: ${error.message}`,
+      "ROLLBACK_FAILED",
+    );
   }
 
   restartVerifiedExecutable(targetPath, restart, spawnImpl);
@@ -390,9 +568,12 @@ function rollbackFailedPosixUpdate(ctx) {
     transactionId,
     hadTarget,
     targetBeforeSha,
-    rollbackSourcePath,
-    backupCommitted,
     hadPriorBackup,
+    hadPriorLineage,
+    priorBackupSha,
+    priorLineageSha,
+    snapshotPaths,
+    journal,
     updateLock,
   } = ctx;
   const failedPath = uniqueSibling(targetPath, "failed");
@@ -406,8 +587,8 @@ function rollbackFailedPosixUpdate(ctx) {
       } catch {
         /* preserving rejected bytes must never block restoration */
       }
-      atomicCopyFile(rollbackSourcePath, targetPath, {
-        preserveModeFrom: rollbackSourcePath,
+      atomicCopyFile(snapshotPaths.priorTargetPath, targetPath, {
+        preserveModeFrom: snapshotPaths.priorTargetPath,
         updateLock,
       });
       assertExpectedFileHash(
@@ -415,43 +596,68 @@ function rollbackFailedPosixUpdate(ctx) {
         targetBeforeSha,
         "restored executable",
       );
-      // When the pending backup was never committed, the old target,
-      // `.previous`, and lineage are once again the exact pre-transaction
-      // state. Preserve that lineage instead of fabricating a relationship to
-      // a backup that was never installed.
-      if (backupCommitted) {
-        atomicWriteJson(
-          statePaths.lineagePath,
-          makeLineage({
-            transactionId,
-            operation: "rolled-back",
-            currentSha256: targetBeforeSha,
-            previousSha256: targetBeforeSha,
-          }),
-          updateLock,
-        );
-      } else if (!hadPriorBackup) {
-        assertUpdateLockOwned(updateLock);
-        fs.renameSync(rollbackSourcePath, statePaths.backupPath);
-        fsyncDirectory(path.dirname(targetPath));
-        atomicWriteJson(
-          statePaths.lineagePath,
-          makeLineage({
-            transactionId,
-            operation: "rolled-back",
-            currentSha256: targetBeforeSha,
-            previousSha256: targetBeforeSha,
-          }),
-          updateLock,
-        );
-      }
     } else {
+      const currentTarget = lstatOrNull(targetPath);
+      if (currentTarget) {
+        assertExpectedFileHash(
+          targetPath,
+          journal.expectedSha256,
+          "failed fresh target",
+        );
+        assertUpdateLockOwned(updateLock);
+        fs.renameSync(targetPath, failedPath);
+        fsyncDirectory(path.dirname(targetPath));
+      }
+    }
+
+    if (hadPriorBackup) {
+      atomicCopyFile(snapshotPaths.priorBackupPath, statePaths.backupPath, {
+        preserveModeFrom: snapshotPaths.priorBackupPath,
+        updateLock,
+      });
+      assertExpectedFileHash(
+        statePaths.backupPath,
+        priorBackupSha,
+        "restored last-known-good backup",
+      );
+    } else if (lstatOrNull(statePaths.backupPath)) {
+      if (!hadTarget) {
+        throw new Error("fresh update created an unexpected backup");
+      }
+      assertExpectedFileHash(
+        statePaths.backupPath,
+        targetBeforeSha,
+        "transaction-created last-known-good backup",
+      );
       assertUpdateLockOwned(updateLock);
-      fs.renameSync(targetPath, failedPath);
+      removeRegularFileIfPresent(statePaths.backupPath);
       fsyncDirectory(path.dirname(targetPath));
+    }
+
+    if (hadPriorLineage) {
+      atomicCopyFile(snapshotPaths.priorLineagePath, statePaths.lineagePath, {
+        preserveModeFrom: snapshotPaths.priorLineagePath,
+        updateLock,
+      });
+      assertExpectedFileHash(
+        statePaths.lineagePath,
+        priorLineageSha,
+        "restored native update lineage",
+      );
+    } else if (lstatOrNull(statePaths.lineagePath)) {
+      const lineage = readNativeLineage(statePaths.lineagePath);
+      if (
+        lineage.transactionId !== transactionId ||
+        lineage.currentSha256 !== journal.expectedSha256
+      ) {
+        throw new Error("transaction-created lineage changed before rollback");
+      }
       assertUpdateLockOwned(updateLock);
       removeRegularFileIfPresent(statePaths.lineagePath);
+      fsyncDirectory(path.dirname(targetPath));
     }
+    retireGenerationJournal(statePaths, journal, updateLock);
+    cleanupGenerationSnapshots(snapshotPaths);
   } catch (error) {
     throw new ApplyError(
       `new binary failed and rollback failed: ${error.message}`,
@@ -1483,6 +1689,91 @@ function makeLineage({
     previousSha256,
     updatedAt: new Date().toISOString(),
   };
+}
+
+function generationSnapshotPaths(targetPath, transactionId) {
+  const directory = path.dirname(targetPath);
+  return {
+    priorTargetPath: path.join(
+      directory,
+      `.chainlesschain.target-prior-${transactionId}`,
+    ),
+    priorBackupPath: path.join(
+      directory,
+      `.chainlesschain.backup-prior-${transactionId}`,
+    ),
+    priorLineagePath: path.join(
+      directory,
+      `.chainlesschain.lineage-prior-${transactionId}`,
+    ),
+  };
+}
+
+function makeGenerationJournal({
+  transactionId,
+  operation,
+  expectedSha,
+  hadTarget,
+  targetBeforeSha,
+  hadBackup,
+  backupBeforeSha,
+  hadLineage,
+  lineageBeforeSha,
+}) {
+  return {
+    schema: NATIVE_GENERATION_TRANSACTION_SCHEMA,
+    transactionId,
+    operation,
+    phase: "prepared",
+    decision: "rollback",
+    expectedSha256: expectedSha,
+    hadTarget,
+    targetBeforeSha256: hadTarget ? targetBeforeSha : null,
+    hadBackup,
+    backupBeforeSha256: hadBackup ? backupBeforeSha : null,
+    hadAlias: false,
+    aliasBeforeSha256: null,
+    hadLineage,
+    lineageBeforeSha256: hadLineage ? lineageBeforeSha : null,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+function writeGenerationJournalPhase(
+  journalPath,
+  journal,
+  phase,
+  decision,
+  updateLock,
+) {
+  journal.phase = phase;
+  journal.decision = decision;
+  journal.updatedAt = new Date().toISOString();
+  atomicWriteJson(journalPath, journal, updateLock);
+}
+
+function retireGenerationJournal(statePaths, journal, updateLock) {
+  assertUpdateLockOwned(updateLock);
+  const current = JSON.parse(fs.readFileSync(statePaths.journalPath, "utf8"));
+  if (
+    current.schema !== NATIVE_GENERATION_TRANSACTION_SCHEMA ||
+    current.transactionId !== journal.transactionId ||
+    current.decision !== journal.decision ||
+    (current.phase === "committed") !== (current.decision === "commit")
+  ) {
+    throw new ApplyError(
+      "native generation journal changed before retirement",
+      "JOURNAL_CHANGED",
+    );
+  }
+  fs.renameSync(statePaths.journalPath, statePaths.lastJournalPath);
+  fsyncDirectory(path.dirname(statePaths.journalPath));
+}
+
+function cleanupGenerationSnapshots(snapshotPaths) {
+  for (const snapshotPath of Object.values(snapshotPaths)) {
+    removeRegularFileIfPresent(snapshotPath);
+  }
 }
 
 function buildPlan({
