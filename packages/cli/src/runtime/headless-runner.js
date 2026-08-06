@@ -54,6 +54,7 @@ import {
   rebuildMessages as jsonlRebuildMessages,
   sessionExists as jsonlSessionExists,
   sessionHasPersistedEvidence as jsonlSessionHasPersistedEvidence,
+  resolveSessionAuthority as jsonlResolveSessionAuthority,
   getLastSessionId as jsonlGetLastSessionId,
   verifySession as jsonlVerifySession,
 } from "../harness/jsonl-session-store.js";
@@ -298,6 +299,19 @@ export function resolveHeadlessSession(options = {}, store = {}, fallbackId) {
   } else if (typeof resume === "string" && resume.trim()) {
     resumeId = resume.trim();
   }
+  if (resumeId && typeof store.resolveSessionAuthority === "function") {
+    const authority = store.resolveSessionAuthority(resumeId);
+    if (authority && !authority.readable) {
+      const error = new Error(
+        `Canonical session ${authority.id} is not resumable (${authority.presence})`,
+      );
+      error.code = "SESSION_CANONICAL_UNAVAILABLE";
+      error.sessionId = authority.id;
+      error.presence = authority.presence;
+      throw error;
+    }
+    if (authority?.id) resumeId = authority.id;
+  }
   const persist =
     ephemeral === true
       ? false
@@ -493,7 +507,12 @@ async function runAgentHeadlessInWorkspace(
     typeof deps.readVerifiedEvents === "function";
   const { sessionId, resumeId, persist } = resolveHeadlessSession(
     options,
-    { getLastSessionId: deps.getLastSessionId || jsonlGetLastSessionId },
+    {
+      getLastSessionId: deps.getLastSessionId || jsonlGetLastSessionId,
+      resolveSessionAuthority:
+        deps.resolveSessionAuthority ||
+        (!hasInjectedSessionStore ? jsonlResolveSessionAuthority : undefined),
+    },
     `headless-${Date.now()}-${process.pid}`,
   );
 

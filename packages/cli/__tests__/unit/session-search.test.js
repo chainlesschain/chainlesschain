@@ -29,7 +29,7 @@ function createMockDb(options = {}) {
 // ─── Mock JSONL session store ───────────────────────────────────────
 
 vi.mock("../../src/harness/jsonl-session-store.js", () => ({
-  readEvents: vi.fn((sessionId) => {
+  readVerifiedEvents: vi.fn((sessionId) => {
     if (sessionId === "sess-with-msgs") {
       return [
         {
@@ -134,9 +134,9 @@ describe("SessionSearchIndex", () => {
     });
 
     it("truncates long messages to MAX_CONTENT_LENGTH", async () => {
-      const { readEvents } =
+      const { readVerifiedEvents } =
         await import("../../src/harness/jsonl-session-store.js");
-      readEvents.mockReturnValueOnce([
+      readVerifiedEvents.mockReturnValueOnce([
         {
           type: "user_message",
           timestamp: 3000,
@@ -172,6 +172,22 @@ describe("SessionSearchIndex", () => {
       index.ensureTables();
       const result = index.indexSession("nonexistent");
       expect(result.indexed).toBe(0);
+    });
+
+    it("purges stale FTS rows when canonical verification fails", async () => {
+      const { readVerifiedEvents } =
+        await import("../../src/harness/jsonl-session-store.js");
+      const error = new Error("canonical transcript rejected");
+      error.code = "SESSION_TRANSCRIPT_UNVERIFIED";
+      readVerifiedEvents.mockImplementationOnce(() => {
+        throw error;
+      });
+      index.ensureTables();
+
+      expect(() => index.indexSession("damaged")).toThrow(error);
+      expect(db.exec).toHaveBeenCalledWith(
+        "DELETE FROM session_fts WHERE session_id = 'damaged'",
+      );
     });
 
     it("auto-calls ensureTables if not initialized", () => {
@@ -378,9 +394,9 @@ describe("SessionSearchIndex", () => {
 
   describe("indexSession with empty/whitespace content", () => {
     it("skips messages with whitespace-only content", async () => {
-      const { readEvents } =
+      const { readVerifiedEvents } =
         await import("../../src/harness/jsonl-session-store.js");
-      readEvents.mockReturnValueOnce([
+      readVerifiedEvents.mockReturnValueOnce([
         {
           type: "user_message",
           timestamp: 5000,
@@ -432,9 +448,9 @@ describe("SessionSearchIndex", () => {
 
   describe("extractMessages fallback role", () => {
     it("uses type-based fallback when event.data.role is missing", async () => {
-      const { readEvents } =
+      const { readVerifiedEvents } =
         await import("../../src/harness/jsonl-session-store.js");
-      readEvents.mockReturnValueOnce([
+      readVerifiedEvents.mockReturnValueOnce([
         {
           type: "user_message",
           timestamp: 6000,

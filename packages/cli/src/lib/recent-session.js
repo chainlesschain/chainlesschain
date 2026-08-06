@@ -7,8 +7,10 @@
  */
 
 import { listSessions } from "./session-manager.js";
-import { listJsonlSessions } from "../harness/jsonl-session-store.js";
-import { feature } from "./feature-flags.js";
+import {
+  listSessionAuthoritySummaries,
+  listSessionEvidenceIds,
+} from "../harness/jsonl-session-store.js";
 
 /**
  * Merge both stores into a single newest-first, id-deduped list.
@@ -21,15 +23,18 @@ import { feature } from "./feature-flags.js";
 export function listRecentSessions(ctx, opts = {}) {
   const scan = Math.max(1, opts.scan || 20);
   const sessions = [];
+  const canonicalIds = new Set(listSessionEvidenceIds());
 
   if (ctx && ctx.db) {
     try {
       const db = ctx.db.getDatabase();
       sessions.push(
-        ...listSessions(db, { limit: scan }).map((s) => ({
-          ...s,
-          _store: "db",
-        })),
+        ...listSessions(db, { limit: scan })
+          .filter((s) => !canonicalIds.has(s?.id))
+          .map((s) => ({
+            ...s,
+            _store: "db",
+          })),
       );
     } catch (err) {
       /* db unavailable — fall through to JSONL */
@@ -37,17 +42,12 @@ export function listRecentSessions(ctx, opts = {}) {
     }
   }
 
-  if (feature("JSONL_SESSION")) {
-    try {
-      sessions.push(
-        ...listJsonlSessions({ limit: scan }).map((s) => ({
-          ...s,
-          _store: "jsonl",
-        })),
-      );
-    } catch (err) {
-      void err;
-    }
+  try {
+    // Existing canonical history remains authoritative even when the feature
+    // flag that controls new JSONL adoption is disabled.
+    sessions.push(...listSessionAuthoritySummaries({ limit: scan }));
+  } catch (err) {
+    void err;
   }
 
   // Dedup by id (JSONL precedence via sort+seen), newest updated_at first.

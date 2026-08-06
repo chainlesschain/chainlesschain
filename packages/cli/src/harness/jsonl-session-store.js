@@ -16,6 +16,7 @@ import {
   fstatSync,
   lstatSync,
   readSync,
+  writeSync,
   ftruncateSync,
 } from "node:fs";
 import { join, basename, resolve } from "node:path";
@@ -25,7 +26,9 @@ import { getHomeDir } from "../lib/paths.js";
 import { ensurePrivateDirectory, ensurePrivateFile } from "../lib/secure-fs.js";
 import {
   computeEventHash,
+  latestChainHash,
   TRANSCRIPT_CHAIN_STATUS,
+  verifyTranscriptText,
 } from "./transcript-integrity.js";
 import { withFileLock } from "../lib/with-file-lock.js";
 import {
@@ -48,10 +51,14 @@ import {
   publicSessionMeta,
   readLatestSessionActivity,
   readSessionMeta,
+  readSessionTombstoneMarker,
   recordSessionDeleted,
   recordSessionEvent,
   recordSessionActivity,
   replaceSessionMeta,
+  normalizeSessionGenerationAuthority,
+  SESSION_GENERATION_AUTHORITY_FIELD,
+  SESSION_GENERATION_AUTHORITY_SCHEMA,
   SESSION_TOMBSTONE_MARKER_SUFFIX,
 } from "./session-list-index.js";
 import { createSessionPersistenceFailure } from "../lib/session-persistence-failure.js";
@@ -80,6 +87,11 @@ const WS_TURN_REQUEST_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:@-]*$/;
 const WS_TURN_INPUT_DIGEST_PATTERN = /^sha256:[0-9a-f]{64}$/;
 const WS_TURN_CLAIM_ID_PATTERN = /^claim-[0-9a-f-]{36}$/;
 const WS_TURN_FAILURE_CODE_PATTERN = /^[A-Z][A-Z0-9_]{0,63}$/;
+
+export {
+  SESSION_GENERATION_AUTHORITY_FIELD,
+  SESSION_GENERATION_AUTHORITY_SCHEMA,
+};
 
 function wsTurnError(message, code) {
   const error = new Error(message);
@@ -513,6 +525,46 @@ export function sessionPath(sessionId) {
   return join(getSessionsDir(), `${sessionId}.jsonl`);
 }
 
+function physicalTranscriptStateFromStats(stats) {
+  return Object.freeze({
+    dev: String(stats.dev),
+    ino: String(stats.ino),
+    size: Number(stats.size),
+    mtimeMs: Number(stats.mtimeMs),
+    ctimeMs: Number(stats.ctimeMs),
+  });
+}
+
+function readPhysicalTranscriptState(filePath) {
+  const stats = lstatSync(filePath);
+  if (stats.isSymbolicLink() || !stats.isFile()) {
+    const error = new Error("Session transcript path is not a regular file");
+    error.code = "SESSION_TRANSCRIPT_IDENTITY_CHANGED";
+    error.commitState = "not-committed";
+    throw error;
+  }
+  return physicalTranscriptStateFromStats(stats);
+}
+
+function samePhysicalTranscriptState(left, right, { content = true } = {}) {
+  if (!left || !right) return left === right;
+  return (
+    String(left.dev) === String(right.dev) &&
+    String(left.ino) === String(right.ino) &&
+    (!content ||
+      (Number(left.size) === Number(right.size) &&
+        Number(left.mtimeMs) === Number(right.mtimeMs) &&
+        Number(left.ctimeMs) === Number(right.ctimeMs)))
+  );
+}
+
+function transcriptIdentityError(commitState, reason) {
+  const error = new Error(`Session transcript identity changed: ${reason}`);
+  error.code = "SESSION_TRANSCRIPT_IDENTITY_CHANGED";
+  error.commitState = commitState;
+  return error;
+}
+
 export function appendTokenUsage(sessionId, usage) {
   appendEvent(sessionId, "token_usage", usage || {});
 }
@@ -663,9 +715,19 @@ function appendVerifiedWsAuthorityEventLocked(
   const core = { type, timestamp: Date.now(), data };
   const hash = computeEventHash(previousHeadHash, core);
   const event = { ...core, prevHash: previousHeadHash, hash };
-  appendTranscriptEvent(sessionId, type, event, filePath);
+  ensurePrivateFile(filePath);
+  const expectedState = readPhysicalTranscriptState(filePath);
+  const transcriptState = appendTranscriptEvent(
+    sessionId,
+    type,
+    event,
+    filePath,
+    expectedState,
+  );
   try {
-    recordSessionEvent(getSessionsDir(), sessionId, event, hash);
+    recordSessionEvent(getSessionsDir(), sessionId, event, hash, {
+      transcriptState,
+    });
   } catch (cause) {
     const error = new Error(
       `Session authority anchor could not be persisted: ${sessionId}`,
@@ -732,7 +794,13 @@ function encodeEventMessageProvenance(type, data) {
   return data;
 }
 
-function appendTranscriptEvent(sessionId, type, event, filePath) {
+function appendTranscriptEvent(
+  sessionId,
+  type,
+  event,
+  filePath,
+  expectedState,
+) {
   const payload = { sessionId, type, event, filePath };
   try {
     runSessionScaleFaultHook("beforeTranscriptAppend", payload);
@@ -743,29 +811,69 @@ function appendTranscriptEvent(sessionId, type, event, filePath) {
       commitState: "not-committed",
     });
   }
+  let fd = null;
+  let wroteBytes = false;
+  let appendCompleted = false;
   try {
-    appendFileSync(filePath, `${JSON.stringify(event)}\n`, {
-      encoding: "utf8",
-      mode: 0o600,
-    });
+    let flags = fsConstants.O_WRONLY | fsConstants.O_APPEND;
+    if (expectedState === null) {
+      flags |= fsConstants.O_CREAT | fsConstants.O_EXCL;
+    }
+    if (typeof fsConstants.O_NOFOLLOW === "number") {
+      flags |= fsConstants.O_NOFOLLOW;
+    }
+    fd = openSync(filePath, flags, 0o600);
+    const openedState = physicalTranscriptStateFromStats(fstatSync(fd));
+    if (
+      expectedState !== null &&
+      !samePhysicalTranscriptState(expectedState, openedState)
+    ) {
+      throw transcriptIdentityError(
+        "not-committed",
+        "the append descriptor does not match the verified path",
+      );
+    }
+    const bytes = Buffer.from(`${JSON.stringify(event)}\n`, "utf8");
+    let offset = 0;
+    while (offset < bytes.length) {
+      const written = writeSync(fd, bytes, offset, bytes.length - offset);
+      if (!Number.isSafeInteger(written) || written <= 0) {
+        throw new Error("Session transcript append made no forward progress");
+      }
+      offset += written;
+      wroteBytes = true;
+    }
+    appendCompleted = true;
+    runSessionScaleFaultHook("afterTranscriptAppend", payload);
+    const descriptorState = physicalTranscriptStateFromStats(fstatSync(fd));
+    const pathState = readPhysicalTranscriptState(filePath);
+    if (
+      !samePhysicalTranscriptState(descriptorState, pathState, {
+        content: false,
+      })
+    ) {
+      throw transcriptIdentityError(
+        "unknown",
+        "the published path no longer names the appended descriptor",
+      );
+    }
+    return descriptorState;
   } catch (cause) {
+    if (cause?.code === "SESSION_TRANSCRIPT_IDENTITY_CHANGED") throw cause;
     throw createSessionPersistenceFailure(cause, {
       sessionId,
-      operation: "transcript-append",
+      operation: appendCompleted
+        ? "transcript-settlement"
+        : "transcript-append",
       // ENOSPC can follow a short write. EROFS fails before the append can
       // mutate the target.
-      commitState: cause?.code === "EROFS" ? "not-committed" : "unknown",
+      commitState:
+        !appendCompleted && (cause?.code === "EROFS" || !wroteBytes)
+          ? "not-committed"
+          : "unknown",
     });
-  }
-  try {
-    ensurePrivateFile(filePath);
-    runSessionScaleFaultHook("afterTranscriptAppend", payload);
-  } catch (cause) {
-    throw createSessionPersistenceFailure(cause, {
-      sessionId,
-      operation: "transcript-settlement",
-      commitState: "unknown",
-    });
+  } finally {
+    if (fd !== null) closeSync(fd);
   }
 }
 
@@ -803,6 +911,69 @@ function sanitizeSessionAuthorityRecoveryEvidence(value) {
   return Object.keys(evidence).length > 0 ? Object.freeze(evidence) : null;
 }
 
+function sessionDeletedError(sessionId) {
+  const error = new Error(`Session was deleted: ${sessionId}`);
+  error.code = "SESSION_DELETED";
+  return error;
+}
+
+function createSessionGenerationAuthority(
+  sessionId,
+  predecessorWitness = null,
+  generationId = `generation-${randomUUID()}`,
+) {
+  const previous = normalizeSessionGenerationAuthority(
+    predecessorWitness?.generation,
+  );
+  const isReplacement = predecessorWitness !== null;
+  return Object.freeze({
+    schema: SESSION_GENERATION_AUTHORITY_SCHEMA,
+    sessionId,
+    generationId,
+    ordinal:
+      previous?.sessionId === sessionId
+        ? previous.ordinal + 1
+        : isReplacement
+          ? 2
+          : 1,
+    predecessor: isReplacement
+      ? Object.freeze({
+          kind:
+            previous?.sessionId === sessionId
+              ? "tombstone"
+              : "legacy-tombstone",
+          generationId:
+            previous?.sessionId === sessionId ? previous.generationId : null,
+          headHash:
+            typeof predecessorWitness?.last_hash === "string" &&
+            /^[0-9a-f]{64}$/.test(predecessorWitness.last_hash)
+              ? predecessorWitness.last_hash
+              : null,
+          eventCount: Math.max(0, Number(predecessorWitness?.event_count) || 0),
+          tombstonedAtMs: Number.isSafeInteger(
+            Number(predecessorWitness?.deleted_at_ms),
+          )
+            ? Math.max(0, Number(predecessorWitness.deleted_at_ms))
+            : null,
+        })
+      : null,
+  });
+}
+
+function encodeSessionGenerationData(data, authority = null) {
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
+    return authority
+      ? { [SESSION_GENERATION_AUTHORITY_FIELD]: authority }
+      : data;
+  }
+  const clean = { ...data };
+  // The namespace generation is store-owned authority. Callers may not forge
+  // it on arbitrary events or choose a replacement predecessor.
+  delete clean[SESSION_GENERATION_AUTHORITY_FIELD];
+  if (authority) clean[SESSION_GENERATION_AUTHORITY_FIELD] = authority;
+  return clean;
+}
+
 function appendEventLocked(
   sessionId,
   type,
@@ -814,31 +985,63 @@ function appendEventLocked(
     filePath,
     () => {
       const existingMeta = readSessionMeta(getSessionsDir(), sessionId);
-      const persistedWitness = existingMeta;
+      const marker = readSessionTombstoneMarker(getSessionsDir(), sessionId);
+      const presence = getSessionPresence(sessionId);
       const transcriptExists = existsSync(filePath);
       const startsNewGeneration =
-        !transcriptExists &&
-        persistedWitness?.deleted === true &&
-        type === "session_start";
-      if (
-        persistedWitness?.deleted === true &&
-        (transcriptExists || type !== "session_start")
-      ) {
-        const error = new Error(`Session was deleted: ${sessionId}`);
-        error.code = "SESSION_DELETED";
-        throw error;
+        presence === SESSION_PRESENCE.TOMBSTONED && type === "session_start";
+      if (presence === SESSION_PRESENCE.CONFLICT) {
+        if (marker !== null || existingMeta?.deleted === true) {
+          throw sessionDeletedError(sessionId);
+        }
+        throw unverifiedTranscriptError(
+          sessionId,
+          transcriptAnchorMismatchVerification(),
+        );
       }
       if (
-        !transcriptExists &&
-        persistedWitness !== null &&
-        persistedWitness?.deleted !== true
+        presence === SESSION_PRESENCE.TOMBSTONED &&
+        type !== "session_start"
+      ) {
+        throw sessionDeletedError(sessionId);
+      }
+      if (
+        presence === SESSION_PRESENCE.MISSING_TRANSCRIPT ||
+        (!transcriptExists &&
+          existingMeta !== null &&
+          existingMeta?.deleted !== true)
       ) {
         throw unverifiedTranscriptError(
           sessionId,
           missingTranscriptVerification(),
         );
       }
+      const duplicateLiveStart =
+        presence === SESSION_PRESENCE.PRESENT && type === "session_start";
       const { prevHash, recovery } = _resolveChainTail(filePath);
+      let expectedTranscriptState = transcriptExists
+        ? readPhysicalTranscriptState(filePath)
+        : null;
+      if (
+        transcriptExists &&
+        existingMeta?.transcript &&
+        (!samePhysicalTranscriptState(
+          existingMeta.transcript,
+          expectedTranscriptState,
+          { content: recovery === null },
+        ) ||
+          Number(existingMeta.transcript.size) !==
+            Number(expectedTranscriptState.size))
+      ) {
+        throw transcriptIdentityError(
+          "not-committed",
+          "the transcript no longer matches its persisted physical witness",
+        );
+      }
+      if (transcriptExists) {
+        ensurePrivateFile(filePath);
+        expectedTranscriptState = readPhysicalTranscriptState(filePath);
+      }
       if (
         transcriptExists &&
         existingMeta !== null &&
@@ -864,6 +1067,11 @@ function appendEventLocked(
         // projection under the same writer lock before advancing the chain.
         rebuildSessionMetaUnlocked(getSessionsDir(), sessionId, filePath);
       }
+      if (duplicateLiveStart) {
+        const error = new Error(`Session already exists: ${sessionId}`);
+        error.code = "SESSION_ALREADY_EXISTS";
+        throw error;
+      }
       if (compareHead && prevHash !== (expectedHeadHash || null)) {
         const error = new Error(
           `Session revision changed for ${sessionId}; refresh the checkpoint timeline`,
@@ -873,14 +1081,34 @@ function appendEventLocked(
         error.actualHeadHash = prevHash;
         throw error;
       }
-      const persistedData = encodeEventMessageProvenance(type, data);
+      const generationAuthority =
+        type === "session_start" &&
+        [SESSION_PRESENCE.ABSENT, SESSION_PRESENCE.TOMBSTONED].includes(
+          presence,
+        )
+          ? createSessionGenerationAuthority(
+              sessionId,
+              startsNewGeneration ? existingMeta || marker : null,
+            )
+          : null;
+      const persistedData = encodeSessionGenerationData(
+        encodeEventMessageProvenance(type, data),
+        generationAuthority,
+      );
       const core = { type, timestamp: Date.now(), data: persistedData };
       const hash = computeEventHash(prevHash, core);
       const event = { ...core, prevHash, hash };
-      appendTranscriptEvent(sessionId, type, event, filePath);
+      const transcriptState = appendTranscriptEvent(
+        sessionId,
+        type,
+        event,
+        filePath,
+        expectedTranscriptState,
+      );
       try {
         recordSessionEvent(getSessionsDir(), sessionId, event, hash, {
           resetGeneration: startsNewGeneration,
+          transcriptState,
         });
       } catch (cause) {
         if (requireIndexAnchor) {
@@ -1608,20 +1836,77 @@ export function listSessionIds() {
     .map((file) => basename(file, ".jsonl"));
 }
 
-/** Resolve an exact id or one unambiguous prefix without reading transcripts. */
-export function resolveSessionId(input) {
+/**
+ * Enumerate every durable id occupying the canonical JSONL namespace.
+ *
+ * A transcript is not the only authority witness: a live/missing sidecar and
+ * a tombstone marker must continue to fence legacy stores even when the JSONL
+ * path itself is absent. Keeping this enumeration content-free also lets
+ * prefix resolution detect ambiguity without opening transcript bodies.
+ */
+export function listSessionEvidenceIds() {
+  const dir = getSessionsDir();
+  if (!existsSync(dir)) return [];
+  const ids = new Set();
+  for (const file of readdirSync(dir)) {
+    let id = null;
+    if (file.endsWith(".jsonl")) {
+      id = basename(file, ".jsonl");
+    } else if (file.endsWith(".meta.json")) {
+      id = file.slice(0, -".meta.json".length);
+    } else if (file.endsWith(SESSION_TOMBSTONE_MARKER_SUFFIX)) {
+      id = file.slice(0, -SESSION_TOMBSTONE_MARKER_SUFFIX.length);
+    }
+    if (id && !isUnsafeSessionId(id)) ids.add(id);
+  }
+  return [...ids].sort();
+}
+
+/**
+ * Resolve an exact id or unambiguous prefix across the complete persisted
+ * namespace, including damaged and tombstoned generations.
+ *
+ * Returning the presence separately from the id prevents callers from using
+ * "not readable" as "not canonical" and then silently consulting a legacy
+ * store. Ambiguity is fail-closed even when only one candidate is currently
+ * readable.
+ */
+export function resolveSessionAuthority(input) {
   if (isUnsafeSessionId(input)) return null;
-  if (sessionExists(input)) return input;
-  const matches = listSessionIds().filter(
-    (id) => id.startsWith(input) && sessionExists(id),
-  );
+  const exactPresence = getSessionPresence(input);
+  if (exactPresence !== SESSION_PRESENCE.ABSENT) {
+    return Object.freeze({
+      id: input,
+      match: "exact",
+      presence: exactPresence,
+      readable: exactPresence === SESSION_PRESENCE.PRESENT,
+    });
+  }
+  const matches = listSessionEvidenceIds()
+    .filter((id) => id.startsWith(input))
+    .map((id) => ({ id, presence: getSessionPresence(id) }))
+    .filter(({ presence }) => presence !== SESSION_PRESENCE.ABSENT);
   if (matches.length > 1) {
     const error = new Error(`Ambiguous session id prefix: ${input}`);
     error.code = "AMBIGUOUS_SESSION_ID";
-    error.matches = matches.slice(0, 20);
+    error.matches = matches.slice(0, 20).map(({ id }) => id);
+    error.authorities = matches.slice(0, 20).map((item) => ({ ...item }));
     throw error;
   }
-  return matches[0] || null;
+  if (matches.length === 0) return null;
+  const [{ id, presence }] = matches;
+  return Object.freeze({
+    id,
+    match: "prefix",
+    presence,
+    readable: presence === SESSION_PRESENCE.PRESENT,
+  });
+}
+
+/** Resolve an exact id or one unambiguous prefix without reading transcripts. */
+export function resolveSessionId(input) {
+  const authority = resolveSessionAuthority(input);
+  return authority?.readable ? authority.id : null;
 }
 
 export { TRANSCRIPT_CHAIN_STATUS };
@@ -2076,14 +2361,30 @@ function hasLiveSessionWitness(sessionId) {
   return witness !== null && witness?.deleted !== true;
 }
 
-function assertVerifiedTranscriptAnchor(sessionId, verification) {
+function assertVerifiedTranscriptAnchor(
+  sessionId,
+  verification,
+  physicalState = null,
+) {
   const meta = readSessionMeta(getSessionsDir(), sessionId);
+  let physicalAnchorMatches = true;
+  if (meta?.transcript) {
+    try {
+      physicalAnchorMatches = samePhysicalTranscriptState(
+        meta.transcript,
+        physicalState || readPhysicalTranscriptState(sessionPath(sessionId)),
+      );
+    } catch {
+      physicalAnchorMatches = false;
+    }
+  }
   const trustedStatus =
     verification.status === TRANSCRIPT_CHAIN_STATUS.VERIFIED;
   const anchoredHead =
     meta?.deleted !== true &&
     meta?.last_hash === verification.lastHash &&
-    Number(meta?.event_count) === verification.chainedEvents;
+    Number(meta?.event_count) === verification.chainedEvents &&
+    physicalAnchorMatches;
   if (
     !trustedStatus ||
     !anchoredHead ||
@@ -2141,13 +2442,11 @@ export function readVerifiedProjection(
         );
       }
       if (!existsSync(filePath)) {
-        const witness = readSessionPersistenceWitness(sessionId);
-        if (witness?.deleted === true) {
-          const error = new Error(`Session was deleted: ${sessionId}`);
-          error.code = "SESSION_DELETED";
-          throw error;
+        const presence = getSessionPresence(sessionId);
+        if (presence === SESSION_PRESENCE.TOMBSTONED) {
+          throw sessionDeletedError(sessionId);
         }
-        if (witness !== null) {
+        if (presence === SESSION_PRESENCE.MISSING_TRANSCRIPT) {
           throw unverifiedTranscriptError(
             sessionId,
             missingTranscriptVerification(),
@@ -2205,6 +2504,86 @@ export function readVerifiedEvents(sessionId) {
       },
     };
   });
+}
+
+/**
+ * Return the exact JSONL bytes only after the transcript and its persisted
+ * anchor verify under the canonical writer lock. This is the export/mirror
+ * boundary; derived consumers must never copy a merely parseable raw path.
+ */
+export function readVerifiedTranscriptBytes(sessionId) {
+  if (isUnsafeSessionId(sessionId)) {
+    throw unverifiedTranscriptError(
+      sessionId,
+      transcriptAnchorMismatchVerification(),
+    );
+  }
+  const filePath = sessionPath(sessionId);
+  return withFileLock(
+    filePath,
+    () => {
+      const presence = getSessionPresence(sessionId);
+      if (presence === SESSION_PRESENCE.MISSING_TRANSCRIPT) {
+        throw unverifiedTranscriptError(
+          sessionId,
+          missingTranscriptVerification(),
+        );
+      }
+      if (presence !== SESSION_PRESENCE.PRESENT) {
+        throw unverifiedTranscriptError(
+          sessionId,
+          transcriptAnchorMismatchVerification(),
+        );
+      }
+      let flags = fsConstants.O_RDONLY;
+      if (typeof fsConstants.O_NOFOLLOW === "number") {
+        flags |= fsConstants.O_NOFOLLOW;
+      }
+      const fd = openSync(filePath, flags);
+      try {
+        const before = physicalTranscriptStateFromStats(fstatSync(fd));
+        if (
+          !samePhysicalTranscriptState(
+            before,
+            readPhysicalTranscriptState(filePath),
+          )
+        ) {
+          throw transcriptIdentityError(
+            "not-committed",
+            "the read descriptor does not match the canonical path",
+          );
+        }
+        const text = readFileSync(fd, "utf8");
+        const after = physicalTranscriptStateFromStats(fstatSync(fd));
+        const published = readPhysicalTranscriptState(filePath);
+        if (
+          !samePhysicalTranscriptState(before, after) ||
+          !samePhysicalTranscriptState(after, published)
+        ) {
+          throw transcriptIdentityError(
+            "unknown",
+            "the transcript changed while verified bytes were read",
+          );
+        }
+        const verification = {
+          ...verifyTranscriptText(text),
+          lastHash: latestChainHash(text),
+        };
+        assertVerifiedTranscriptAnchor(sessionId, verification, after);
+        return text;
+      } finally {
+        closeSync(fd);
+      }
+    },
+    {
+      failIfUnavailable: true,
+      timeoutMs: 30_000,
+      retryMs: 1,
+      maxRetryMs: 8,
+      retryJitterMs: 4,
+      yieldAfterReleaseMs: 2,
+    },
+  );
 }
 
 /**
@@ -2397,6 +2776,7 @@ function rebuildSessionMetaUnlocked(dir, sessionId, filePath) {
       // a best-effort projection over all intact events.
     }
   }
+  meta.transcript = readPhysicalTranscriptState(filePath);
   return replaceSessionMeta(dir, meta);
 }
 
@@ -2477,6 +2857,58 @@ export function listJsonlSessions(options = {}) {
     });
   }
   return indexed;
+}
+
+/**
+ * List canonical namespace occupants for recent-session and picker consumers.
+ * Damaged generations are deliberately represented as blocked rows so a
+ * newer missing/conflicting canonical session cannot disappear and cause an
+ * older legacy conversation to be resumed instead. Tombstones fence duplicate
+ * legacy ids but are not resumable choices unless explicitly requested.
+ */
+export function listSessionAuthoritySummaries(options = {}) {
+  const limit = Math.max(1, Number(options.limit) || 20);
+  const evidenceIds = listSessionEvidenceIds();
+  const readable = new Map(
+    listJsonlSessions({ limit: Math.max(limit, evidenceIds.length) }).map(
+      (item) => [item.id, item],
+    ),
+  );
+  const rows = [];
+  for (const id of evidenceIds) {
+    const presence = getSessionPresence(id);
+    if (
+      presence === SESSION_PRESENCE.ABSENT ||
+      (presence === SESSION_PRESENCE.TOMBSTONED &&
+        options.includeTombstoned !== true)
+    ) {
+      continue;
+    }
+    const item = readable.get(id);
+    const meta = item ? null : readSessionMeta(getSessionsDir(), id);
+    rows.push({
+      ...(item ||
+        publicSessionMeta({
+          ...emptySessionMeta(id),
+          ...(meta || {}),
+          id,
+        })),
+      id,
+      _store: "jsonl",
+      _presence: presence,
+      _blocked: presence !== SESSION_PRESENCE.PRESENT,
+    });
+  }
+  return rows
+    .sort((a, b) => {
+      const delta =
+        (Date.parse(b.updated_at || "") || 0) -
+        (Date.parse(a.updated_at || "") || 0);
+      if (delta !== 0) return delta;
+      if (a._blocked !== b._blocked) return a._blocked ? -1 : 1;
+      return String(b.id).localeCompare(String(a.id));
+    })
+    .slice(0, limit);
 }
 
 /**
@@ -2822,12 +3254,22 @@ export function forkSession(sourceId, options = {}) {
               sourceHeadHash: sourceVerification.lastHash,
               sourceEventCount: sourceVerification.chainedEvents,
             };
+            const forkGenerationId = `generation-${createHash("sha256")
+              .update(`fork-generation\0${newId}`, "utf8")
+              .digest("hex")
+              .slice(0, 32)}`;
             const core = {
               type: "system",
               timestamp: Date.now(),
               data: {
                 ...persistedData,
                 [SESSION_FORK_AUTHORITY_FIELD]: forkAuthority,
+                [SESSION_GENERATION_AUTHORITY_FIELD]:
+                  createSessionGenerationAuthority(
+                    newId,
+                    null,
+                    forkGenerationId,
+                  ),
               },
             };
             const hash = computeEventHash(prevHash, core);
@@ -2857,6 +3299,17 @@ export function forkSession(sourceId, options = {}) {
             sourceHeadHash: authority?.sourceHeadHash,
             sourceEventCount: authorityEventCount,
           };
+          const generationAuthority = normalizeSessionGenerationAuthority(
+            target.lineageEvent?.data?.[SESSION_GENERATION_AUTHORITY_FIELD],
+          );
+          const hasGenerationAuthority =
+            target.lineageEvent?.data?.[SESSION_GENERATION_AUTHORITY_FIELD] !==
+            undefined;
+          const generationMatches =
+            !hasGenerationAuthority ||
+            (generationAuthority?.sessionId === newId &&
+              generationAuthority.ordinal === 1 &&
+              generationAuthority.predecessor === null);
           const lineageMatches =
             target.matchingLineageEvents === 1 &&
             target.lineageEvent?.type === "system" &&
@@ -2865,10 +3318,16 @@ export function forkSession(sourceId, options = {}) {
             typeof authority?.sourceHeadHash === "string" &&
             target.lineageEventIndex === creationEventCount &&
             target.lineageEvent?.prevHash === authority.sourceHeadHash &&
+            generationMatches &&
             JSON.stringify(target.lineageEvent?.data) ===
               JSON.stringify({
                 ...persistedData,
                 [SESSION_FORK_AUTHORITY_FIELD]: expectedAuthority,
+                ...(hasGenerationAuthority
+                  ? {
+                      [SESSION_GENERATION_AUTHORITY_FIELD]: generationAuthority,
+                    }
+                  : {}),
               });
           if (
             target.verification.status !== TRANSCRIPT_CHAIN_STATUS.VERIFIED ||
@@ -3030,7 +3489,7 @@ export function createBranchSession({
     provider: typeof cleanMeta.provider === "string" ? cleanMeta.provider : "",
     model: typeof cleanMeta.model === "string" ? cleanMeta.model : "",
   };
-  const plannedEvents = [
+  const digestEvents = [
     { type: "session_start", data: startData },
     {
       type: "session_branch",
@@ -3043,19 +3502,19 @@ export function createBranchSession({
   let count = 0;
   for (const m of canonicalMessages) {
     if (m.role === "user") {
-      plannedEvents.push({
+      digestEvents.push({
         type: "user_message",
         data: { role: "user", content: m.content },
       });
       count += 1;
     } else if (m.role === "assistant") {
-      plannedEvents.push({
+      digestEvents.push({
         type: "assistant_message",
         data: { role: "assistant", content: m.content },
       });
       count += 1;
     } else if (m.role === "system") {
-      plannedEvents.push({
+      digestEvents.push({
         type: "system",
         data: encodePersistedMessage(m),
       });
@@ -3065,8 +3524,27 @@ export function createBranchSession({
     // canonical projection above retains only explicitly durable systems.
   }
   const inputDigest = `sha256:${createHash("sha256")
-    .update(JSON.stringify(plannedEvents), "utf8")
+    .update(JSON.stringify(digestEvents), "utf8")
     .digest("hex")}`;
+  const branchGenerationId = `generation-${createHash("sha256")
+    .update(`branch-generation\0${branchSessionId}`, "utf8")
+    .digest("hex")
+    .slice(0, 32)}`;
+  const plannedEvents = digestEvents.map((event, index) =>
+    index === 0
+      ? {
+          ...event,
+          data: encodeSessionGenerationData(
+            event.data,
+            createSessionGenerationAuthority(
+              branchSessionId,
+              null,
+              branchGenerationId,
+            ),
+          ),
+        }
+      : event,
+  );
   plannedEvents.push({
     type: "session_branch_complete",
     data: {
@@ -3081,6 +3559,23 @@ export function createBranchSession({
   return withFileLock(
     filePath,
     () => {
+      const presence = getSessionPresence(branchSessionId);
+      if (
+        presence === SESSION_PRESENCE.TOMBSTONED ||
+        (presence === SESSION_PRESENCE.CONFLICT &&
+          readSessionTombstoneMarker(sessionsDir, branchSessionId) !== null)
+      ) {
+        throw sessionDeletedError(branchSessionId);
+      }
+      if (
+        presence === SESSION_PRESENCE.MISSING_TRANSCRIPT ||
+        presence === SESSION_PRESENCE.CONFLICT
+      ) {
+        throw unverifiedTranscriptError(
+          branchSessionId,
+          transcriptAnchorMismatchVerification(),
+        );
+      }
       if (existsSync(filePath)) inspectPhysicalTail(filePath);
       let verification = existsSync(filePath)
         ? verifyTranscriptFile(filePath)
@@ -3102,12 +3597,22 @@ export function createBranchSession({
         : [];
       const prefixMatches = existingEvents
         .slice(0, Math.min(existingEvents.length, plannedEvents.length))
-        .every(
-          (event, index) =>
+        .every((event, index) => {
+          let plannedData = plannedEvents[index].data;
+          // Existing v1 branches predate generation authority. They remain
+          // idempotently readable; only newly created branches publish it.
+          if (
+            index === 0 &&
+            event?.data?.[SESSION_GENERATION_AUTHORITY_FIELD] === undefined
+          ) {
+            plannedData = { ...plannedData };
+            delete plannedData[SESSION_GENERATION_AUTHORITY_FIELD];
+          }
+          return (
             event.type === plannedEvents[index].type &&
-            JSON.stringify(event.data) ===
-              JSON.stringify(plannedEvents[index].data),
-        );
+            JSON.stringify(event.data) === JSON.stringify(plannedData)
+          );
+        });
       if (!prefixMatches) {
         const error = new Error(
           `Branch session conflicts with its deterministic input: ${branchSessionId}`,
@@ -3214,13 +3719,22 @@ export const SESSION_PRESENCE = Object.freeze({
 
 export function getSessionPresence(sessionId) {
   if (isUnsafeSessionId(sessionId)) return SESSION_PRESENCE.ABSENT;
+  const dir = getSessionsDir();
   const transcriptExists = existsSync(sessionPath(sessionId));
+  const tombstoneMarkerExists = existsSync(
+    join(dir, `${sessionId}${SESSION_TOMBSTONE_MARKER_SUFFIX}`),
+  );
   const witness = readSessionPersistenceWitness(sessionId);
-  if (transcriptExists && witness?.deleted === true) {
+  if (
+    transcriptExists &&
+    (witness?.deleted === true || tombstoneMarkerExists)
+  ) {
     return SESSION_PRESENCE.CONFLICT;
   }
   if (transcriptExists) return SESSION_PRESENCE.PRESENT;
-  if (witness?.deleted === true) return SESSION_PRESENCE.TOMBSTONED;
+  if (witness?.deleted === true || tombstoneMarkerExists) {
+    return SESSION_PRESENCE.TOMBSTONED;
+  }
   if (witness !== null) return SESSION_PRESENCE.MISSING_TRANSCRIPT;
   return SESSION_PRESENCE.ABSENT;
 }

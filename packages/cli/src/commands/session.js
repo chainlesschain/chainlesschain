@@ -47,18 +47,17 @@ import {
   getSessionManagerStatsV2,
 } from "../lib/session-manager.js";
 import {
-  listJsonlSessions,
+  listSessionAuthoritySummaries,
+  listSessionEvidenceIds,
   rebuildMessages,
   getJsonlSessionMetadata,
-  resolveSessionId,
-  sessionHasPersistedEvidence,
+  resolveSessionAuthority,
   deleteJsonlSession,
   migrateLegacySessions,
   migrateLegacySessionsBatch,
   validateJsonlSession,
   validateAllJsonlSessions,
 } from "../harness/jsonl-session-store.js";
-import { feature } from "../lib/feature-flags.js";
 import {
   listWorkflowSessions,
   readWorkflowSession,
@@ -234,26 +233,24 @@ export function registerSessionCommand(program) {
         const ctx = await bootstrap({ verbose: program.opts().verbose });
         const limit = Math.max(1, parseInt(options.limit) || 20);
         let sessions = [];
+        const canonicalIds = new Set(listSessionEvidenceIds());
 
         // Merge DB sessions + JSONL sessions
         if (ctx.db) {
           const db = ctx.db.getDatabase();
           sessions.push(
-            ...listSessions(db, { limit }).map((s) => ({
-              ...s,
-              _store: "db",
-            })),
+            ...listSessions(db, { limit })
+              .filter((s) => !canonicalIds.has(s?.id))
+              .map((s) => ({
+                ...s,
+                _store: "db",
+              })),
           );
         }
 
-        if (feature("JSONL_SESSION")) {
-          sessions.push(
-            ...listJsonlSessions({ limit }).map((s) => ({
-              ...s,
-              _store: "jsonl",
-            })),
-          );
-        }
+        // Existing canonical sessions remain authoritative even if the
+        // creation/migration feature flag is later disabled.
+        sessions.push(...listSessionAuthoritySummaries({ limit }));
 
         // Deduplicate by id (JSONL takes precedence) and rank by real time.
         sessions = rankSessions(sessions, limit);
@@ -324,11 +321,14 @@ export function registerSessionCommand(program) {
         try {
           ctx = await bootstrap({ verbose: program.opts().verbose });
           if (ctx.db) {
+            const canonicalIds = new Set(listSessionEvidenceIds());
             local.push(
-              ...listSessions(ctx.db.getDatabase(), { limit }).map((item) => ({
-                ...item,
-                _store: "db",
-              })),
+              ...listSessions(ctx.db.getDatabase(), { limit })
+                .filter((item) => !canonicalIds.has(item?.id))
+                .map((item) => ({
+                  ...item,
+                  _store: "db",
+                })),
             );
           }
         } catch (error) {
@@ -338,12 +338,7 @@ export function registerSessionCommand(program) {
           // JSONL is the canonical transcript store and can be read without
           // bootstrapping legacy native DB/config packages (some of which
           // write banners directly to stdout and would corrupt --json).
-          local.push(
-            ...listJsonlSessions({ limit }).map((item) => ({
-              ...item,
-              _store: "jsonl",
-            })),
-          );
+          local.push(...listSessionAuthoritySummaries({ limit }));
           local = rankSessions(local, limit);
         } catch (error) {
           sourceErrors.local = error?.message || String(error);
@@ -613,15 +608,14 @@ export function registerSessionCommand(program) {
           id = picked.id;
         }
 
-        // Try JSONL first
-        const jsonlId = feature("JSONL_SESSION") ? resolveSessionId(id) : null;
-        if (
-          !jsonlId &&
-          feature("JSONL_SESSION") &&
-          sessionHasPersistedEvidence(id)
-        ) {
+        // Try the complete canonical namespace first. The feature flag cannot
+        // make an existing/damaged canonical generation disappear and thereby
+        // authorize a legacy fallback.
+        const authority = resolveSessionAuthority(id);
+        const jsonlId = authority?.readable ? authority.id : null;
+        if (authority && !authority.readable) {
           logger.error(
-            `Session ${id} has canonical persistence evidence but no readable transcript.`,
+            `Session ${authority.id} has canonical persistence evidence but no readable transcript (${authority.presence}).`,
           );
           logger.error(
             "Refusing legacy fallback. Inspect or explicitly delete the damaged JSONL session before reusing its id.",
@@ -735,11 +729,14 @@ export function registerSessionCommand(program) {
         // Canonical content source: append-only JSONL event log. The legacy DB
         // is consulted only when no matching transcript exists.
         const store = await import("../harness/jsonl-session-store.js");
-        const sid =
-          id === "last" ? store.getLastSessionId() : store.resolveSessionId(id);
-        if (!sid && id !== "last" && store.sessionHasPersistedEvidence(id)) {
+        const requestedId = id === "last" ? store.getLastSessionId() : id;
+        const authority = requestedId
+          ? store.resolveSessionAuthority(requestedId)
+          : null;
+        const sid = authority?.readable ? authority.id : null;
+        if (authority && !authority.readable) {
           throw new Error(
-            `Session ${id} has canonical persistence evidence but no readable transcript`,
+            `Session ${authority.id} has canonical persistence evidence but no readable transcript (${authority.presence})`,
           );
         }
         if (sid) {
@@ -820,7 +817,10 @@ export function registerSessionCommand(program) {
         try {
           const sessionIndex = await import("../harness/session-index.js");
           indexDb = sessionIndex.openIndex();
-          sessionIndex.syncIndex(indexDb);
+          const sync = sessionIndex.syncIndex(indexDb);
+          if (sync.rejected > 0) {
+            indexDiagnostic = `${sync.rejected} canonical session(s) were excluded because verification failed`;
+          }
           matches = sessionIndex
             .searchSessions(indexDb, query, { limit })
             .map((hit) => ({
@@ -841,7 +841,7 @@ export function registerSessionCommand(program) {
           });
           for (const s of sessions) {
             if (matches.length >= limit) break;
-            for (const ev of store.readEvents(s.id)) {
+            for (const ev of store.readVerifiedEvents(s.id)) {
               if (matches.length >= limit) break;
               if (
                 ev.type !== "user_message" &&
@@ -921,8 +921,8 @@ export function registerSessionCommand(program) {
     .action(async (id, options) => {
       let ctx = null;
       try {
-        const jsonlId =
-          resolveSessionId(id) || (sessionHasPersistedEvidence(id) ? id : null);
+        const authority = resolveSessionAuthority(id);
+        const jsonlId = authority?.id || null;
         let db = null;
         try {
           ctx = await bootstrap({ verbose: program.opts().verbose });
@@ -985,10 +985,11 @@ export function registerSessionCommand(program) {
           Array.isArray(title) ? title.join(" ") : title,
         ).trim();
         if (!normalized) throw new Error("A non-empty title is required");
-        const jsonlId = resolveSessionId(id);
-        if (!jsonlId && sessionHasPersistedEvidence(id)) {
+        const authority = resolveSessionAuthority(id);
+        const jsonlId = authority?.readable ? authority.id : null;
+        if (authority && !authority.readable) {
           throw new Error(
-            `Session ${id} has canonical persistence evidence but no readable transcript`,
+            `Session ${authority.id} has canonical persistence evidence but no readable transcript (${authority.presence})`,
           );
         }
         let result;
@@ -2175,14 +2176,17 @@ async function mirrorSessions(ids) {
 
   const pushed = [];
   const errors = [];
-  const { readFileSync, existsSync } = await import("node:fs");
   for (const id of ids) {
     try {
-      if (store.isUnsafeSessionId(id)) throw new Error("unsafe session id");
-      const file = store.sessionPath(id);
-      if (!existsSync(file)) throw new Error("session not found");
-      const bytes = readFileSync(file, "utf-8");
-      pushed.push(await mirror.push(id, bytes));
+      const authority = store.resolveSessionAuthority(id);
+      if (!authority) throw new Error("session not found");
+      if (!authority.readable) {
+        throw new Error(
+          `canonical session is not readable (${authority.presence})`,
+        );
+      }
+      const bytes = store.readVerifiedTranscriptBytes(authority.id);
+      pushed.push(await mirror.push(authority.id, bytes));
     } catch (err) {
       errors.push({ id, error: err.message });
     }
@@ -2232,7 +2236,11 @@ async function mirrorPruneSessions() {
   const { pruneMirror } = await import("../harness/session-mirror.js");
   const { mirror } = await loadConfiguredMirror();
   if (!mirror) return { target: null, deleted: [], kept: [] };
-  const keep = store.listSessionIds();
+  // A damaged local generation must not cause automatic deletion of its last
+  // off-box recovery copy. Only an explicit canonical tombstone is prunable.
+  const keep = store
+    .listSessionEvidenceIds()
+    .filter((id) => store.getSessionPresence(id) !== "tombstoned");
   const res = await pruneMirror(mirror, { keep });
   return { target: mirror.target, ...res };
 }

@@ -1045,6 +1045,46 @@ describe("resolveHeadlessSession — pure resolution", () => {
     });
   });
 
+  it("resolves a canonical prefix before replay", () => {
+    const r = resolveHeadlessSession(
+      { resume: "sess-prefix" },
+      {
+        resolveSessionAuthority: () => ({
+          id: "sess-prefix-full",
+          presence: "present",
+          readable: true,
+        }),
+      },
+      "fallback",
+    );
+    expect(r).toMatchObject({
+      sessionId: "sess-prefix-full",
+      resumeId: "sess-prefix-full",
+      persist: true,
+    });
+  });
+
+  it("fails closed when a resume prefix resolves to damaged canonical authority", () => {
+    expect(() =>
+      resolveHeadlessSession(
+        { resume: "sess-damaged" },
+        {
+          resolveSessionAuthority: () => ({
+            id: "sess-damaged-full",
+            presence: "missing-transcript",
+            readable: false,
+          }),
+        },
+        "fallback",
+      ),
+    ).toThrowError(
+      expect.objectContaining({
+        code: "SESSION_CANONICAL_UNAVAILABLE",
+        sessionId: "sess-damaged-full",
+      }),
+    );
+  });
+
   it("--continue (or bare --resume) resolves the most-recent id", () => {
     const store = { getLastSessionId: () => "latest-1" };
     expect(

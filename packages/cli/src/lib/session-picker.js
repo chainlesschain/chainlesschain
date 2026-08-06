@@ -22,10 +22,23 @@ export function formatSessionChoice(s) {
   const when = chalk.gray(s.updated_at || "");
   const store = s._store === "jsonl" ? " " + chalk.yellow("[JSONL]") : "";
   return {
-    name: `${title} ${msgs}  ${when}${store}`,
+    name: `${title} ${msgs}  ${when}${store}${s._blocked ? chalk.red(` [${s._presence || "unavailable"}]`) : ""}`,
     value: s.id,
     short: String(s.id).slice(0, 12),
+    ...(s._blocked
+      ? { disabled: `canonical session is ${s._presence || "unavailable"}` }
+      : {}),
   };
+}
+
+function blockedSessionError(session) {
+  const error = new Error(
+    `Canonical session ${session.id} is not resumable (${session._presence || "unavailable"})`,
+  );
+  error.code = "SESSION_CANONICAL_UNAVAILABLE";
+  error.sessionId = session.id;
+  error.presence = session._presence || "unavailable";
+  return error;
 }
 
 /**
@@ -51,7 +64,12 @@ export async function pickRecentSession(ctx, opts = {}, deps = {}) {
 
   // No interactive prompt possible/wanted → newest wins (claude --continue).
   if (!isTTY || sessions.length === 1 || opts.noPicker) {
+    if (sessions[0]._blocked) throw blockedSessionError(sessions[0]);
     return { id: sessions[0].id, sessions, picked: false };
+  }
+
+  if (!sessions.some((session) => !session._blocked)) {
+    throw blockedSessionError(sessions[0]);
   }
 
   const select = deps.select || (await import("@inquirer/prompts")).select;
@@ -60,9 +78,14 @@ export async function pickRecentSession(ctx, opts = {}, deps = {}) {
       message: opts.message || "Resume which session?",
       choices: sessions.map(formatSessionChoice),
     });
+    const selected = sessions.find((session) => session.id === id);
+    if (selected?._blocked) throw blockedSessionError(selected);
     return { id, sessions, picked: true };
-  } catch {
+  } catch (error) {
+    if (error?.code === "SESSION_CANONICAL_UNAVAILABLE") throw error;
     // Ctrl-C / non-interactive environment → fall back to most recent.
-    return { id: sessions[0].id, sessions, picked: false };
+    const fallback = sessions.find((session) => !session._blocked);
+    if (!fallback) throw blockedSessionError(sessions[0]);
+    return { id: fallback.id, sessions, picked: false };
   }
 }

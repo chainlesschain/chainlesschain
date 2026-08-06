@@ -21,6 +21,11 @@ import { ensurePrivateFile } from "../lib/secure-fs.js";
 export const SESSION_INDEX_SCHEMA = 2;
 export const SESSION_INDEX_FILE = ".sessions-index-v2.ndjson";
 export const SESSION_TOMBSTONE_MARKER_SUFFIX = ".tombstone";
+export const SESSION_TOMBSTONE_MARKER_SCHEMA =
+  "chainlesschain.session-tombstone/v1";
+export const SESSION_GENERATION_AUTHORITY_FIELD = "_sessionGeneration";
+export const SESSION_GENERATION_AUTHORITY_SCHEMA =
+  "chainlesschain.session-generation-authority/v1";
 
 // Used only by an opted-in child in the independent session-scale crash gate.
 // Keeping the injection immediately around the production sidecar/journal
@@ -59,7 +64,64 @@ export function emptySessionMeta(sessionId) {
     created_at_ms: 0,
     updated_at_ms: 0,
     last_hash: null,
+    transcript: null,
+    generation: null,
+    deleted_at_ms: null,
     deleted: false,
+  };
+}
+
+export function normalizeSessionGenerationAuthority(value) {
+  if (
+    !value ||
+    typeof value !== "object" ||
+    Array.isArray(value) ||
+    value.schema !== SESSION_GENERATION_AUTHORITY_SCHEMA ||
+    typeof value.sessionId !== "string" ||
+    value.sessionId.length === 0 ||
+    typeof value.generationId !== "string" ||
+    !/^generation-[0-9a-f-]{32,36}$/.test(value.generationId) ||
+    !Number.isSafeInteger(value.ordinal) ||
+    value.ordinal < 1
+  ) {
+    return null;
+  }
+  let predecessor = null;
+  if (value.predecessor !== null) {
+    const previous = value.predecessor;
+    if (
+      !previous ||
+      typeof previous !== "object" ||
+      Array.isArray(previous) ||
+      !["tombstone", "legacy-tombstone"].includes(previous.kind) ||
+      (previous.generationId !== null &&
+        (typeof previous.generationId !== "string" ||
+          !/^generation-[0-9a-f-]{32,36}$/.test(previous.generationId))) ||
+      (previous.headHash !== null &&
+        (typeof previous.headHash !== "string" ||
+          !/^[0-9a-f]{64}$/.test(previous.headHash))) ||
+      !Number.isSafeInteger(previous.eventCount) ||
+      previous.eventCount < 0 ||
+      (previous.tombstonedAtMs !== null &&
+        (!Number.isSafeInteger(previous.tombstonedAtMs) ||
+          previous.tombstonedAtMs < 0))
+    ) {
+      return null;
+    }
+    predecessor = {
+      kind: previous.kind,
+      generationId: previous.generationId,
+      headHash: previous.headHash,
+      eventCount: previous.eventCount,
+      tombstonedAtMs: previous.tombstonedAtMs,
+    };
+  }
+  return {
+    schema: SESSION_GENERATION_AUTHORITY_SCHEMA,
+    sessionId: value.sessionId,
+    generationId: value.generationId,
+    ordinal: value.ordinal,
+    predecessor,
   };
 }
 
@@ -108,6 +170,11 @@ export function applyEventToSessionMeta(meta, event, lastHash) {
   ) {
     next.message_count = Math.max(0, Number(next.message_count) || 0) + 2;
   }
+  const generation = normalizeSessionGenerationAuthority(
+    event?.data?.[SESSION_GENERATION_AUTHORITY_FIELD],
+  );
+  if (generation?.sessionId === next.id) next.generation = generation;
+  next.deleted_at_ms = null;
   next.last_hash = typeof lastHash === "string" ? lastHash : null;
   return next;
 }
@@ -123,7 +190,26 @@ function writeMetaSnapshot(dir, meta) {
   // commits, so crashes can cause an extra candidate read but never hide a
   // successfully committed tombstone.
   if (meta.deleted === true) {
-    writeFileSync(tombstoneMarker, "", { encoding: "utf8", mode: 0o600 });
+    const generation = normalizeSessionGenerationAuthority(meta.generation);
+    const marker = {
+      schema: SESSION_TOMBSTONE_MARKER_SCHEMA,
+      id: meta.id,
+      generation: generation?.sessionId === meta.id ? generation : null,
+      last_hash:
+        typeof meta.last_hash === "string" &&
+        /^[0-9a-f]{64}$/.test(meta.last_hash)
+          ? meta.last_hash
+          : null,
+      event_count: Math.max(0, Number(meta.event_count) || 0),
+      deleted_at_ms: Math.max(
+        0,
+        Number(meta.deleted_at_ms || meta.updated_at_ms) || 0,
+      ),
+    };
+    writeFileSync(tombstoneMarker, `${JSON.stringify(marker)}\n`, {
+      encoding: "utf8",
+      mode: 0o600,
+    });
     ensurePrivateFile(tombstoneMarker);
   }
   // The owning transcript lock serializes this derived snapshot. It need not
@@ -135,6 +221,39 @@ function writeMetaSnapshot(dir, meta) {
   });
   ensurePrivateFile(filePath);
   if (meta.deleted !== true) rmSync(tombstoneMarker, { force: true });
+}
+
+/**
+ * Read the durable namespace marker. Legacy empty/invalid markers still count
+ * as deletion evidence, but deliberately expose no predecessor authority.
+ */
+export function readSessionTombstoneMarker(dir, sessionId) {
+  const filePath = sessionTombstoneMarkerPath(dir, sessionId);
+  if (!existsSync(filePath)) return null;
+  try {
+    const value = JSON.parse(readFileSync(filePath, "utf8"));
+    if (
+      value?.schema !== SESSION_TOMBSTONE_MARKER_SCHEMA ||
+      value?.id !== sessionId
+    ) {
+      return { id: sessionId, legacy: true };
+    }
+    const generation = normalizeSessionGenerationAuthority(value.generation);
+    return {
+      schema: SESSION_TOMBSTONE_MARKER_SCHEMA,
+      id: sessionId,
+      generation: generation?.sessionId === sessionId ? generation : null,
+      last_hash:
+        typeof value.last_hash === "string" &&
+        /^[0-9a-f]{64}$/.test(value.last_hash)
+          ? value.last_hash
+          : null,
+      event_count: Math.max(0, Number(value.event_count) || 0),
+      deleted_at_ms: Math.max(0, Number(value.deleted_at_ms) || 0),
+    };
+  } catch {
+    return { id: sessionId, legacy: true };
+  }
 }
 
 function appendActivity(dir, meta) {
@@ -159,7 +278,7 @@ export function recordSessionEvent(
   sessionId,
   event,
   lastHash,
-  { resetGeneration = false } = {},
+  { resetGeneration = false, transcriptState = null } = {},
 ) {
   const existing = readSessionMeta(dir, sessionId);
   // Only the transcript writer may authorize a new generation after checking
@@ -170,6 +289,15 @@ export function recordSessionEvent(
     : existing || emptySessionMeta(sessionId);
   current.id = sessionId;
   const next = applyEventToSessionMeta(current, event, lastHash);
+  next.transcript = transcriptState
+    ? {
+        dev: String(transcriptState.dev),
+        ino: String(transcriptState.ino),
+        size: Number(transcriptState.size),
+        mtimeMs: Number(transcriptState.mtimeMs),
+        ctimeMs: Number(transcriptState.ctimeMs),
+      }
+    : null;
   writeMetaSnapshot(dir, next);
   runSessionScaleFaultHook("afterMetaSnapshot", {
     dir,
@@ -201,7 +329,9 @@ export function recordSessionDeleted(dir, sessionId, timestamp = Date.now()) {
   const tombstone = {
     ...current,
     updated_at_ms: timestamp,
+    deleted_at_ms: timestamp,
     deleted: true,
+    transcript: null,
   };
   writeMetaSnapshot(dir, tombstone);
   appendActivity(dir, tombstone);

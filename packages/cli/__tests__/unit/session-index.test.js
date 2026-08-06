@@ -5,9 +5,12 @@ import {
   rmSync,
   mkdirSync,
   writeFileSync,
+  readFileSync,
+  statSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { DatabaseSync } from "node:sqlite";
 
 const testHome = join(tmpdir(), `cc-sidx-${Date.now()}`);
 vi.mock("../../src/lib/paths.js", () => ({ getHomeDir: () => testHome }));
@@ -19,9 +22,34 @@ const {
   searchSessions,
   getIndexedSession,
   indexStats,
+  _deps: sessionIndexDeps,
 } = await import("../../src/harness/session-index.js");
 const { createMirror, createFsMirror, createHttpMirror } =
   await import("../../src/harness/session-mirror.js");
+const { computeEventHash } =
+  await import("../../src/harness/transcript-integrity.js");
+
+class TestDatabase extends DatabaseSync {
+  pragma(statement) {
+    this.exec(`PRAGMA ${statement}`);
+  }
+
+  transaction(task) {
+    return (...args) => {
+      this.exec("BEGIN");
+      try {
+        const result = task(...args);
+        this.exec("COMMIT");
+        return result;
+      } catch (error) {
+        this.exec("ROLLBACK");
+        throw error;
+      }
+    };
+  }
+}
+
+sessionIndexDeps.Database = TestDatabase;
 
 let sessionsDir;
 beforeEach(() => {
@@ -31,31 +59,93 @@ beforeEach(() => {
 });
 afterEach(() => rmSync(testHome, { recursive: true, force: true }));
 
-/** Write a minimal valid JSONL session (unchained lines are fine for the index). */
+/** Write one fully chained and physically anchored JSONL session. */
 function writeSession(id, { title = "T", ts = 1000, msgs = [] } = {}) {
-  const lines = [];
-  lines.push(
-    JSON.stringify({
-      type: "session_start",
-      timestamp: ts,
-      data: { title, provider: "anthropic", model: "m" },
-    }),
-  );
+  const events = [];
+  let previousHash = null;
+  const add = (core) => {
+    const hash = computeEventHash(previousHash, core);
+    events.push({ ...core, prevHash: previousHash, hash });
+    previousHash = hash;
+  };
+  add({
+    type: "session_start",
+    timestamp: ts,
+    data: { title, provider: "anthropic", model: "m" },
+  });
   let t = ts;
   for (const m of msgs) {
     t += 10;
-    lines.push(
-      JSON.stringify({
-        type: m.role === "assistant" ? "assistant_message" : "user_message",
-        timestamp: t,
-        data: { role: m.role, content: m.content },
-      }),
-    );
+    add({
+      type: m.role === "assistant" ? "assistant_message" : "user_message",
+      timestamp: t,
+      data: { role: m.role, content: m.content },
+    });
   }
+  const transcript = join(sessionsDir, `${id}.jsonl`);
   writeFileSync(
-    join(sessionsDir, `${id}.jsonl`),
-    lines.join("\n") + "\n",
+    transcript,
+    `${events.map(JSON.stringify).join("\n")}\n`,
     "utf-8",
+  );
+  const physical = statSync(transcript);
+  writeFileSync(
+    join(sessionsDir, `${id}.meta.json`),
+    `${JSON.stringify({
+      schema: 2,
+      id,
+      title,
+      provider: "anthropic",
+      model: "m",
+      message_count: msgs.length,
+      event_count: events.length,
+      created_at_ms: ts,
+      updated_at_ms: t,
+      last_hash: previousHash,
+      transcript: {
+        dev: String(physical.dev),
+        ino: String(physical.ino),
+        size: physical.size,
+        mtimeMs: physical.mtimeMs,
+        ctimeMs: physical.ctimeMs,
+      },
+      deleted: false,
+    })}\n`,
+    "utf8",
+  );
+}
+
+function appendSessionRecord(id, core) {
+  const transcript = join(sessionsDir, `${id}.jsonl`);
+  const metaPath = join(sessionsDir, `${id}.meta.json`);
+  const meta = JSON.parse(readFileSync(metaPath, "utf8"));
+  const hash = computeEventHash(meta.last_hash, core);
+  appendFileSync(
+    transcript,
+    `${JSON.stringify({ ...core, prevHash: meta.last_hash, hash })}\n`,
+    "utf8",
+  );
+  const physical = statSync(transcript);
+  writeFileSync(
+    metaPath,
+    `${JSON.stringify({
+      ...meta,
+      title:
+        core.type === "session_rename" && core.data?.title
+          ? core.data.title
+          : meta.title,
+      event_count: meta.event_count + 1,
+      updated_at_ms: core.timestamp,
+      last_hash: hash,
+      transcript: {
+        dev: String(physical.dev),
+        ino: String(physical.ino),
+        size: physical.size,
+        mtimeMs: physical.mtimeMs,
+        ctimeMs: physical.ctimeMs,
+      },
+    })}\n`,
+    "utf8",
   );
 }
 
@@ -107,6 +197,25 @@ describe("session-index sync + list", () => {
     db.close();
   });
 
+  it("removes a cached row when the canonical transcript no longer verifies", () => {
+    writeSession("session-a", {
+      msgs: [{ role: "user", content: "trusted content" }],
+    });
+    const db = openIndex({ file: ":memory:" });
+    expect(syncIndex(db)).toMatchObject({ updated: 1, rejected: 0, total: 1 });
+    const transcript = join(sessionsDir, "session-a.jsonl");
+    writeFileSync(
+      transcript,
+      readFileSync(transcript, "utf8").replace("trusted", "altered"),
+      "utf8",
+    );
+
+    expect(syncIndex(db)).toMatchObject({ rejected: 1, total: 0 });
+    expect(getIndexedSession(db, "session-a")).toBeNull();
+    expect(searchSessions(db, "trusted")).toEqual([]);
+    db.close();
+  });
+
   it("stats aggregate messages and events", () => {
     writeSession("session-a", {
       msgs: [
@@ -128,15 +237,11 @@ describe("session-index sync + list", () => {
       title: "Original",
       msgs: [{ role: "user", content: "needle" }],
     });
-    appendFileSync(
-      join(sessionsDir, "session-a.jsonl"),
-      `${JSON.stringify({
-        type: "session_rename",
-        timestamp: 9_000,
-        data: { title: "Renamed" },
-      })}\n`,
-      "utf8",
-    );
+    appendSessionRecord("session-a", {
+      type: "session_rename",
+      timestamp: 9_000,
+      data: { title: "Renamed" },
+    });
     const db = openIndex({ file: ":memory:" });
     syncIndex(db);
     expect(getIndexedSession(db, "session-a")).toMatchObject({

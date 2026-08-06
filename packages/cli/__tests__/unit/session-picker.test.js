@@ -33,6 +33,17 @@ describe("formatSessionChoice", () => {
     const c = formatSessionChoice(S("x", { _store: "db" }));
     expect(c.name).not.toContain("[JSONL]");
   });
+
+  it("disables damaged canonical choices", () => {
+    const c = formatSessionChoice(
+      S("damaged", {
+        _blocked: true,
+        _presence: "missing-transcript",
+      }),
+    );
+    expect(c.name).toContain("missing-transcript");
+    expect(c.disabled).toContain("missing-transcript");
+  });
 });
 
 describe("pickRecentSession", () => {
@@ -78,6 +89,28 @@ describe("pickRecentSession", () => {
     expect(r.id).toBe("newest");
     expect(r.picked).toBe(false);
     expect(select).not.toHaveBeenCalled();
+  });
+
+  it("fails closed when non-interactive latest authority is damaged", async () => {
+    await expect(
+      pickRecentSession(
+        null,
+        {},
+        {
+          listRecentSessions: () => [
+            S("damaged", {
+              _blocked: true,
+              _presence: "missing-transcript",
+            }),
+            S("older"),
+          ],
+          isTTY: false,
+        },
+      ),
+    ).rejects.toMatchObject({
+      code: "SESSION_CANONICAL_UNAVAILABLE",
+      sessionId: "damaged",
+    });
   });
 
   it("honours noPicker even with a TTY and many sessions", async () => {
@@ -130,6 +163,29 @@ describe("pickRecentSession", () => {
       },
     );
     expect(r.id).toBe("newest");
+    expect(r.picked).toBe(false);
+  });
+
+  it("skips a disabled damaged authority when an interactive prompt is cancelled", async () => {
+    const select = vi.fn(async () => {
+      throw new Error("User force closed the prompt");
+    });
+    const r = await pickRecentSession(
+      null,
+      {},
+      {
+        listRecentSessions: () => [
+          S("damaged", {
+            _blocked: true,
+            _presence: "conflict",
+          }),
+          S("healthy"),
+        ],
+        isTTY: true,
+        select,
+      },
+    );
+    expect(r.id).toBe("healthy");
     expect(r.picked).toBe(false);
   });
 });

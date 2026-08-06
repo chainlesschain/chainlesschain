@@ -1,13 +1,11 @@
 import chalk from "chalk";
 import { numericOption } from "../lib/cli-numeric.js";
-import { feature } from "../lib/feature-flags.js";
 import { logger } from "../lib/logger.js";
 import { getPrLinks } from "../lib/pr-link-store.js";
 import {
   getJsonlSessionMetadata,
   rebuildMessages,
-  resolveSessionId,
-  sessionHasPersistedEvidence,
+  resolveSessionAuthority,
 } from "../harness/jsonl-session-store.js";
 
 export function registerSessionShowSubcommand(session, program) {
@@ -23,14 +21,14 @@ export function registerSessionShowSubcommand(session, program) {
       try {
         let sess = null;
 
-        const jsonlId = feature("JSONL_SESSION") ? resolveSessionId(id) : null;
-        if (
-          !jsonlId &&
-          feature("JSONL_SESSION") &&
-          sessionHasPersistedEvidence(id)
-        ) {
+        // The feature flag controls creation/migration, not authority. Once a
+        // canonical namespace witness exists it must fence the legacy DB even
+        // if JSONL_SESSION is later disabled.
+        const authority = resolveSessionAuthority(id);
+        const jsonlId = authority?.readable ? authority.id : null;
+        if (authority && !authority.readable) {
           logger.error(
-            `Session ${id} has canonical persistence evidence but no readable transcript.`,
+            `Session ${authority.id} has canonical persistence evidence but no readable transcript (${authority.presence}).`,
           );
           process.exitCode = 1;
           return;

@@ -11,7 +11,7 @@
  */
 
 import {
-  readEvents,
+  readVerifiedEvents,
   listJsonlSessions,
 } from "../harness/jsonl-session-store.js";
 
@@ -54,7 +54,7 @@ export class SessionSearchIndex {
    * @returns {Array<{role: string, content: string, timestamp: number}>}
    */
   extractMessages(sessionId) {
-    const events = readEvents(sessionId);
+    const events = readVerifiedEvents(sessionId);
     const messages = [];
 
     for (const event of events) {
@@ -86,13 +86,22 @@ export class SessionSearchIndex {
     if (!this._db) return { indexed: 0 };
     if (!this._initialized) this.ensureTables();
 
-    const messages = this.extractMessages(sessionId);
-    if (messages.length === 0) return { indexed: 0 };
+    const deleteExisting = () =>
+      this._db.exec(
+        `DELETE FROM session_fts WHERE session_id = '${sessionId.replace(/'/g, "''")}'`,
+      );
+    let messages;
+    try {
+      messages = this.extractMessages(sessionId);
+    } catch (error) {
+      deleteExisting();
+      throw error;
+    }
 
-    // Remove existing entries for this session (idempotent re-index)
-    this._db.exec(
-      `DELETE FROM session_fts WHERE session_id = '${sessionId.replace(/'/g, "''")}'`,
-    );
+    // Remove existing entries before publishing the newly verified sample.
+    // Empty and damaged sessions must not leave older searchable content.
+    deleteExisting();
+    if (messages.length === 0) return { indexed: 0 };
 
     const insert = this._db.prepare(
       `INSERT INTO session_fts (session_id, role, content, timestamp) VALUES (?, ?, ?, ?)`,
@@ -164,13 +173,18 @@ export class SessionSearchIndex {
 
     const sessions = listJsonlSessions({ limit: 10000 });
     let totalMessages = 0;
+    let rejected = 0;
 
     for (const session of sessions) {
-      const result = this.indexSession(session.id);
-      totalMessages += result.indexed;
+      try {
+        const result = this.indexSession(session.id);
+        totalMessages += result.indexed;
+      } catch {
+        rejected += 1;
+      }
     }
 
-    return { sessions: sessions.length, messages: totalMessages };
+    return { sessions: sessions.length, messages: totalMessages, rejected };
   }
 
   /**

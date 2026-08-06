@@ -40,6 +40,7 @@ const {
   _sessionScaleFaultHooks,
   readEvents,
   readVerifiedEvents,
+  readVerifiedTranscriptBytes,
   readVerifiedWsTurnState,
   computeWsTurnInputDigest,
   createWsTurnClaimId,
@@ -51,6 +52,8 @@ const {
   renameSession,
   deleteJsonlSession,
   resolveSessionId,
+  resolveSessionAuthority,
+  listSessionEvidenceIds,
   pruneJsonlSessions,
   forkSession,
   createBranchSession,
@@ -68,6 +71,8 @@ const {
   verifySession,
   verifyAllSessions,
   repairSession,
+  SESSION_GENERATION_AUTHORITY_FIELD,
+  SESSION_GENERATION_AUTHORITY_SCHEMA,
 } = await import("../../src/lib/jsonl-session-store.js");
 const { computeEventHash } =
   await import("../../src/harness/transcript-integrity.js");
@@ -278,6 +283,71 @@ describe("jsonl-session-store", () => {
       expect(() => readVerifiedEvents(id)).toThrow(
         expect.objectContaining({ code: "SESSION_TRANSCRIPT_UNVERIFIED" }),
       );
+    });
+
+    it.each([
+      ["same-size interior rewrite", (bytes) => bytes.replace("disk", "d1sk")],
+      ["prefix deletion", (bytes) => `${bytes.split("\n")[0]}\n`],
+    ])(
+      "refuses append after %s between verification and descriptor open",
+      (_name, mutate) => {
+        const id = startSession("disk-identity-race", { title: "disk" });
+        appendUserMessage(id, "anchored-prefix");
+        const transcript = sessionPath(id);
+        const original = readFileSync(transcript, "utf8");
+        const previous = process.env.CC_SESSION_SCALE_FAULT_INJECTION;
+        process.env.CC_SESSION_SCALE_FAULT_INJECTION = "1";
+        _sessionScaleFaultHooks.beforeTranscriptAppend = ({ type }) => {
+          if (type === "assistant_message") {
+            writeFileSync(transcript, mutate(original), "utf8");
+          }
+        };
+
+        try {
+          expect(() => appendAssistantMessage(id, "must not append")).toThrow(
+            expect.objectContaining({
+              code: "SESSION_TRANSCRIPT_IDENTITY_CHANGED",
+              commitState: "not-committed",
+            }),
+          );
+        } finally {
+          _sessionScaleFaultHooks.beforeTranscriptAppend = null;
+          if (previous === undefined) {
+            delete process.env.CC_SESSION_SCALE_FAULT_INJECTION;
+          } else {
+            process.env.CC_SESSION_SCALE_FAULT_INJECTION = previous;
+          }
+        }
+
+        expect(readFileSync(transcript, "utf8")).toBe(mutate(original));
+        expect(readFileSync(transcript, "utf8")).not.toContain(
+          "must not append",
+        );
+      },
+    );
+
+    it("rejects a byte-identical pathname replacement after commit", () => {
+      const id = startSession("disk-replaced-path", { title: "disk" });
+      appendUserMessage(id, "anchored");
+      const transcript = sessionPath(id);
+      const bytes = readFileSync(transcript, "utf8");
+      expect(readVerifiedTranscriptBytes(id)).toBe(bytes);
+      rmSync(transcript, { force: true });
+      writeFileSync(transcript, bytes, "utf8");
+
+      expect(() => readVerifiedEvents(id)).toThrowError(
+        expect.objectContaining({ code: "SESSION_TRANSCRIPT_UNVERIFIED" }),
+      );
+      expect(() => readVerifiedTranscriptBytes(id)).toThrowError(
+        expect.objectContaining({ code: "SESSION_TRANSCRIPT_UNVERIFIED" }),
+      );
+      expect(() => appendAssistantMessage(id, "must not append")).toThrowError(
+        expect.objectContaining({
+          code: "SESSION_TRANSCRIPT_IDENTITY_CHANGED",
+          commitState: "not-committed",
+        }),
+      );
+      expect(readFileSync(transcript, "utf8")).toBe(bytes);
     });
   });
 
@@ -1464,12 +1534,20 @@ describe("jsonl-session-store", () => {
       );
       const metaFile = join(sessionsDir, `${id}.meta.json`);
       const meta = JSON.parse(readFileSync(metaFile, "utf8"));
+      const physical = statSync(file);
       writeFileSync(
         metaFile,
         `${JSON.stringify({
           ...meta,
           event_count: events.length,
           last_hash: previousHash,
+          transcript: {
+            dev: String(physical.dev),
+            ino: String(physical.ino),
+            size: physical.size,
+            mtimeMs: physical.mtimeMs,
+            ctimeMs: physical.ctimeMs,
+          },
         })}\n`,
         "utf8",
       );
@@ -1956,9 +2034,122 @@ describe("jsonl-session-store", () => {
       expect(resolveSessionId("missing")).toBeNull();
     });
 
+    it("resolves damaged prefixes as canonical authority and includes them in ambiguity", () => {
+      startSession("authority-damaged-aa");
+      startSession("authority-damaged-b");
+      rmSync(sessionPath("authority-damaged-aa"), { force: true });
+
+      expect(resolveSessionAuthority("authority-damaged-aa")).toMatchObject({
+        id: "authority-damaged-aa",
+        match: "exact",
+        presence: "missing-transcript",
+        readable: false,
+      });
+      expect(resolveSessionAuthority("authority-damaged-a")).toMatchObject({
+        id: "authority-damaged-aa",
+        match: "prefix",
+        presence: "missing-transcript",
+        readable: false,
+      });
+      expect(() => resolveSessionId("authority-damaged-")).toThrowError(
+        expect.objectContaining({
+          code: "AMBIGUOUS_SESSION_ID",
+          matches: ["authority-damaged-aa", "authority-damaged-b"],
+        }),
+      );
+    });
+
+    it("retains a tombstone namespace when its metadata sidecar is lost", () => {
+      startSession("marker-only-tombstone");
+      const oldStart = readVerifiedEvents("marker-only-tombstone")[0];
+      const oldGeneration = oldStart.data[SESSION_GENERATION_AUTHORITY_FIELD];
+      expect(deleteJsonlSession("marker-only-tombstone")).toBe(true);
+      rmSync(join(sessionsDir, "marker-only-tombstone.meta.json"), {
+        force: true,
+      });
+
+      expect(getSessionPresence("marker-only-tombstone")).toBe("tombstoned");
+      expect(listSessionEvidenceIds()).toContain("marker-only-tombstone");
+      expect(resolveSessionAuthority("marker-only-tomb")).toMatchObject({
+        id: "marker-only-tombstone",
+        presence: "tombstoned",
+        readable: false,
+      });
+      expect(resolveSessionId("marker-only-tomb")).toBeNull();
+      expect(() => readVerifiedEvents("marker-only-tombstone")).toThrowError(
+        expect.objectContaining({ code: "SESSION_DELETED" }),
+      );
+
+      startSession("marker-only-tombstone", { title: "replacement" });
+      const replacement = readVerifiedEvents("marker-only-tombstone")[0];
+      expect(replacement.prevHash).toBeNull();
+      expect(
+        replacement.data[SESSION_GENERATION_AUTHORITY_FIELD],
+      ).toMatchObject({
+        schema: SESSION_GENERATION_AUTHORITY_SCHEMA,
+        sessionId: "marker-only-tombstone",
+        ordinal: 2,
+        predecessor: {
+          kind: "tombstone",
+          generationId: oldGeneration.generationId,
+          headHash: oldStart.hash,
+          eventCount: 1,
+        },
+      });
+    });
+
+    it("blocks a restored transcript behind a marker even when metadata is lost", () => {
+      const id = startSession("marker-restored-conflict");
+      appendUserMessage(id, "old generation");
+      const oldTranscript = readFileSync(sessionPath(id), "utf8");
+      expect(deleteJsonlSession(id)).toBe(true);
+      rmSync(join(sessionsDir, `${id}.meta.json`), { force: true });
+      writeFileSync(sessionPath(id), oldTranscript, "utf8");
+
+      expect(getSessionPresence(id)).toBe("conflict");
+      expect(() => startSession(id, { title: "must fail" })).toThrowError(
+        expect.objectContaining({ code: "SESSION_DELETED" }),
+      );
+      expect(readFileSync(sessionPath(id), "utf8")).toBe(oldTranscript);
+    });
+
+    it("owns generation authority and rejects a second live genesis", () => {
+      const id = startSession("generation-owned");
+      expect(() =>
+        appendEvent(id, "session_start", {
+          title: "forged",
+          [SESSION_GENERATION_AUTHORITY_FIELD]: {
+            schema: SESSION_GENERATION_AUTHORITY_SCHEMA,
+            sessionId: id,
+            generationId: `generation-${"0".repeat(32)}`,
+            ordinal: 999,
+            predecessor: null,
+          },
+        }),
+      ).toThrowError(
+        expect.objectContaining({ code: "SESSION_ALREADY_EXISTS" }),
+      );
+
+      appendEvent(id, "custom", {
+        [SESSION_GENERATION_AUTHORITY_FIELD]: {
+          schema: SESSION_GENERATION_AUTHORITY_SCHEMA,
+          sessionId: id,
+          generationId: `generation-${"0".repeat(32)}`,
+          ordinal: 999,
+          predecessor: null,
+        },
+      });
+      expect(
+        readVerifiedEvents(id)[1].data[SESSION_GENERATION_AUTHORITY_FIELD],
+      ).toBeUndefined();
+    });
+
     it("tombstones deletion so stale non-start writers cannot resurrect it", () => {
       startSession("delete-me", { title: "D" });
       appendUserMessage("delete-me", "old generation");
+      const oldEvents = readVerifiedEvents("delete-me");
+      const oldGeneration =
+        oldEvents[0].data[SESSION_GENERATION_AUTHORITY_FIELD];
       const oldTranscript = readFileSync(sessionPath("delete-me"), "utf8");
       expect(deleteJsonlSession("delete-me")).toBe(true);
       expect(sessionExists("delete-me")).toBe(false);
@@ -2019,6 +2210,21 @@ describe("jsonl-session-store", () => {
       expect(verifySession("delete-me").status).toBe("verified");
       expect(readEvents("delete-me")[0].prevHash).toBeNull();
       expect(readVerifiedEvents("delete-me")).toHaveLength(1);
+      expect(
+        readVerifiedEvents("delete-me")[0].data[
+          SESSION_GENERATION_AUTHORITY_FIELD
+        ],
+      ).toMatchObject({
+        schema: SESSION_GENERATION_AUTHORITY_SCHEMA,
+        sessionId: "delete-me",
+        ordinal: 2,
+        predecessor: {
+          kind: "tombstone",
+          generationId: oldGeneration.generationId,
+          headHash: oldEvents.at(-1).hash,
+          eventCount: oldEvents.length,
+        },
+      });
       expect(getJsonlSessionMetadata("delete-me")).toMatchObject({
         title: "Recreated",
         message_count: 0,
@@ -3087,12 +3293,18 @@ describe("jsonl-session-store", () => {
       writeFileSync(sessionPath(id), "", "utf8");
 
       expect(() => appendUserMessage(id, "must not append")).toThrowError(
-        expect.objectContaining({ code: "SESSION_TRANSCRIPT_UNVERIFIED" }),
+        expect.objectContaining({
+          code: "SESSION_TRANSCRIPT_IDENTITY_CHANGED",
+          commitState: "not-committed",
+        }),
       );
       expect(() =>
         startSession(id, { title: "must not restart" }),
       ).toThrowError(
-        expect.objectContaining({ code: "SESSION_TRANSCRIPT_UNVERIFIED" }),
+        expect.objectContaining({
+          code: "SESSION_TRANSCRIPT_IDENTITY_CHANGED",
+          commitState: "not-committed",
+        }),
       );
       expect(readFileSync(sessionPath(id), "utf8")).toBe("");
       expect(readFileSync(metaPath, "utf8")).toBe(anchoredMeta);

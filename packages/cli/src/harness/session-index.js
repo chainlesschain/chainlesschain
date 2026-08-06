@@ -21,8 +21,8 @@ import { existsSync, readdirSync, statSync } from "node:fs";
 import { join, basename } from "node:path";
 import { createRequire } from "node:module";
 import { getHomeDir } from "../lib/paths.js";
-import { iterateFileLinesSync } from "../lib/file-lines.js";
 import { ensurePrivateDirectory, ensurePrivateFile } from "../lib/secure-fs.js";
+import { readVerifiedProjection } from "./jsonl-session-store.js";
 
 const requireCjs = createRequire(import.meta.url);
 
@@ -98,84 +98,74 @@ function toIsoSafe(value) {
   return Number.isNaN(date.getTime()) ? "" : date.toISOString();
 }
 
-function summarizeSessionFile(id, filePath) {
-  let startEvent = null;
-  let lastEvent = null;
-  let renamedTitle = null;
-  let messageCount = 0;
-  let eventCount = 0;
-  let chainHash = "";
-  const parts = [];
-  let used = 0;
-  for (const { line } of iterateFileLinesSync(filePath)) {
-    let event;
-    try {
-      event = JSON.parse(line);
-    } catch {
-      continue;
-    }
-    eventCount += 1;
-    lastEvent = event;
-    if (!startEvent && event.type === "session_start") startEvent = event;
-    if (event.type === "session_rename" && event.data?.title) {
-      renamedTitle = String(event.data.title);
-    }
-    if (event.type === "user_message" || event.type === "assistant_message") {
-      messageCount += 1;
-      if (used < CONTENT_CAP) {
-        const content = event.data?.content;
-        const text =
-          typeof content === "string"
-            ? content
-            : content == null
-              ? ""
-              : JSON.stringify(content);
-        if (text) {
-          const bounded = text.slice(0, CONTENT_CAP - used);
-          parts.push(bounded);
-          used += bounded.length;
+function summarizeVerifiedSession(id) {
+  return readVerifiedProjection(id, () => {
+    let startEvent = null;
+    let lastEvent = null;
+    let renamedTitle = null;
+    let messageCount = 0;
+    let eventCount = 0;
+    let chainHash = "";
+    const parts = [];
+    let used = 0;
+    const acceptContent = (content) => {
+      if (used >= CONTENT_CAP) return;
+      const text =
+        typeof content === "string"
+          ? content
+          : content == null
+            ? ""
+            : JSON.stringify(content);
+      if (!text) return;
+      const bounded = text.slice(0, CONTENT_CAP - used);
+      parts.push(bounded);
+      used += bounded.length;
+    };
+    return {
+      accept(event) {
+        eventCount += 1;
+        lastEvent = event;
+        if (!startEvent && event.type === "session_start") startEvent = event;
+        if (event.type === "session_rename" && event.data?.title) {
+          renamedTitle = String(event.data.title);
         }
-      }
-    } else if (
-      event.type === "ws_turn" &&
-      event.data?.schemaVersion === 1 &&
-      event.data?.outcome === "completed" &&
-      event.data?.user?.role === "user" &&
-      event.data?.assistant?.role === "assistant"
-    ) {
-      messageCount += 2;
-      for (const message of [event.data?.user, event.data?.assistant]) {
-        if (used >= CONTENT_CAP) break;
-        const content = message?.content;
-        const text =
-          typeof content === "string"
-            ? content
-            : content == null
-              ? ""
-              : JSON.stringify(content);
-        if (text) {
-          const bounded = text.slice(0, CONTENT_CAP - used);
-          parts.push(bounded);
-          used += bounded.length;
+        if (
+          event.type === "user_message" ||
+          event.type === "assistant_message"
+        ) {
+          messageCount += 1;
+          acceptContent(event.data?.content);
+        } else if (
+          event.type === "ws_turn" &&
+          event.data?.schemaVersion === 1 &&
+          event.data?.outcome === "completed" &&
+          event.data?.user?.role === "user" &&
+          event.data?.assistant?.role === "assistant"
+        ) {
+          messageCount += 2;
+          acceptContent(event.data.user.content);
+          acceptContent(event.data.assistant.content);
         }
-      }
-    }
-    if (typeof event.hash === "string") chainHash = event.hash;
-  }
-  if (!lastEvent) return null;
-  return {
-    id,
-    title: renamedTitle || startEvent?.data?.title || "Untitled",
-    provider: startEvent?.data?.provider || "",
-    model: startEvent?.data?.model || "",
-    message_count: messageCount,
-    event_count: eventCount,
-    created_at: toIsoSafe(startEvent?.timestamp),
-    updated_at: toIsoSafe(lastEvent?.timestamp),
-    last_ts: lastEvent?.timestamp || 0,
-    content: parts.join("\n").slice(0, CONTENT_CAP),
-    chain_hash: chainHash,
-  };
+        if (typeof event.hash === "string") chainHash = event.hash;
+      },
+      finish() {
+        if (!lastEvent) return null;
+        return {
+          id,
+          title: renamedTitle || startEvent?.data?.title || "Untitled",
+          provider: startEvent?.data?.provider || "",
+          model: startEvent?.data?.model || "",
+          message_count: messageCount,
+          event_count: eventCount,
+          created_at: toIsoSafe(startEvent?.timestamp),
+          updated_at: toIsoSafe(lastEvent?.timestamp),
+          last_ts: lastEvent?.timestamp || 0,
+          content: parts.join("\n").slice(0, CONTENT_CAP),
+          chain_hash: chainHash,
+        };
+      },
+    };
+  });
 }
 
 const UPSERT_SESSION = `
@@ -195,7 +185,7 @@ ON CONFLICT(id) DO UPDATE SET
 export function indexOneSession(db, id, { mtimeMs = 0, sizeBytes = 0 } = {}) {
   const filePath = join(sessionsDir(), `${id}.jsonl`);
   if (!existsSync(filePath)) return false;
-  const s = summarizeSessionFile(id, filePath);
+  const s = summarizeVerifiedSession(id);
   if (!s) return false;
   db.prepare(UPSERT_SESSION).run({
     id: s.id,
@@ -228,6 +218,7 @@ export function syncIndex(db, { force = false } = {}) {
   let scanned = 0;
   let updated = 0;
   let removed = 0;
+  let rejected = 0;
   const seen = new Set();
 
   if (existsSync(dir)) {
@@ -251,7 +242,16 @@ export function syncIndex(db, { force = false } = {}) {
         ) {
           continue; // unchanged
         }
-        if (indexOneSession(db, id, { mtimeMs, sizeBytes: size })) updated++;
+        try {
+          if (indexOneSession(db, id, { mtimeMs, sizeBytes: size })) updated++;
+        } catch {
+          // The index is disposable. A damaged canonical source invalidates any
+          // older cached content immediately and is reported without exposing
+          // transcript text or local paths.
+          db.prepare("DELETE FROM sessions WHERE id=?").run(id);
+          db.prepare("DELETE FROM session_content WHERE id=?").run(id);
+          rejected++;
+        }
       }
     });
     const entries = [];
@@ -278,7 +278,7 @@ export function syncIndex(db, { force = false } = {}) {
   }
 
   const total = db.prepare("SELECT COUNT(*) c FROM sessions").get().c;
-  return { scanned, updated, removed, total };
+  return { scanned, updated, removed, rejected, total };
 }
 
 const LIST_COLUMNS =
