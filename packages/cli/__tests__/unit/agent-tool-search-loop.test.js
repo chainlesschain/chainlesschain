@@ -13,6 +13,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { runAgentHeadless } from "../../src/runtime/headless-runner.js";
+import { agentLoop as coreAgentLoop } from "../../src/runtime/agent-core.js";
 
 const bigSchema = () => {
   const properties = {};
@@ -77,6 +78,11 @@ const baseDeps = (over = {}) => {
         setConfirmer() {},
         decide: async () => ({ decision: "allow", via: "t", policy: "t" }),
       }),
+      agentLoop: (messages, options) =>
+        coreAgentLoop(messages, {
+          ...options,
+          permissionConfirm: vi.fn(async () => true),
+        }),
       writeOut: (s) => out.push(s),
       writeErr: (s) => err.push(s),
       sessionExists: () => false,

@@ -23,6 +23,7 @@ import {
   makePermissionPromptConfirmer,
 } from "../../src/runtime/mcp-config.js";
 import { runAgentHeadless } from "../../src/runtime/headless-runner.js";
+import { agentLoop as coreAgentLoop } from "../../src/runtime/agent-core.js";
 
 // setupMcpFromConfig dynamically imports mcp-oauth to discover a stored bearer
 // for url-based servers. A file-scoped mock returns a token so the injection
@@ -604,6 +605,11 @@ describe("runAgentHeadless — --mcp-config wiring", () => {
         appendAssistantMessage: () => {},
         appendTokenUsage: () => {},
         getLastSessionId: () => null,
+        agentLoop: (messages, options) =>
+          coreAgentLoop(messages, {
+            ...options,
+            permissionConfirm: vi.fn(async () => true),
+          }),
         ...over,
       },
     };
