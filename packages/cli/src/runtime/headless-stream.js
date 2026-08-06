@@ -125,6 +125,14 @@ import {
 } from "./session-slash-commands.js";
 import { extractPluginUsageAttribution } from "../lib/plugin-usage-attribution.js";
 import { createHeadlessOutputBackpressure } from "./output-backpressure.js";
+import {
+  cleanupDeadlineError,
+  createCleanupDeadline,
+} from "./cleanup-deadline.js";
+import {
+  createSessionPersistenceFailure,
+  projectSessionPersistenceFailure,
+} from "../lib/session-persistence-failure.js";
 
 function invalidMcpRecoveryTransaction(capability, expected) {
   const error = new TypeError(
@@ -1048,7 +1056,7 @@ async function runTurn(
  *                            writeOut, writeErr, expandFileRefs }
  * @returns {Promise<{exitCode:number, turns:number}>}
  */
-function createHeadlessStreamCleanupScope({ input }) {
+function createHeadlessStreamCleanupScope({ input, timeoutMs, onReport }) {
   let mcpClient = null;
   let remoteApproval = null;
   let inputCancel = null;
@@ -1130,15 +1138,29 @@ function createHeadlessStreamCleanupScope({ input }) {
     cleanup() {
       if (!cleanupPromise) {
         cleanupPromise = (async () => {
+          const deadline = createCleanupDeadline({
+            timeoutMs,
+            label: "headless-stream-cleanup",
+          });
           // Stop the live stdin owner before network/process resources. A
           // flowing stdin iterator can otherwise keep the process alive after
           // an early return or exception.
           requestStop();
-          await interactionCleanupPromise;
-          await runBestEffort(() => outputCleanup?.(reason));
-          await runBestEffort(() => mcpClient?.disconnectAll?.());
-          await runBestEffort(() => remoteApproval?.close?.());
-          await runBestEffort(() => sessionEnd?.(reason));
+          await deadline.run("interactions", () => interactionCleanupPromise);
+          await deadline.run("output-coalescer", () => outputCleanup?.(reason));
+          await deadline.run("mcp", () => mcpClient?.disconnectAll?.());
+          await deadline.run("remote-approval", () =>
+            remoteApproval?.close?.(),
+          );
+          await deadline.run("session-end", () => sessionEnd?.(reason));
+          const report = deadline.report();
+          try {
+            onReport?.(report);
+          } catch {
+            // Metrics/reporting cannot change cleanup semantics.
+          }
+          if (report.timedOut) throw cleanupDeadlineError(report);
+          return report;
         })();
       }
       return cleanupPromise;
@@ -1150,7 +1172,11 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
   const trustedWorkspaceRoot = options.cwd || process.cwd();
   const input = deps.input || process.stdin;
   const pipeState = { closed: false };
-  const streamCleanup = createHeadlessStreamCleanupScope({ input });
+  const streamCleanup = createHeadlessStreamCleanupScope({
+    input,
+    timeoutMs: deps.cleanupDeadlineMs,
+    onReport: deps.onCleanupReport,
+  });
   const stdout = deps.stdout || process.stdout;
   const stderr = deps.stderr || process.stderr;
   const shouldInstallPipeSafety =
@@ -1228,7 +1254,11 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
   } catch (error) {
     failure = error;
   } finally {
-    await streamCleanup.cleanup();
+    try {
+      await streamCleanup.cleanup();
+    } catch (error) {
+      failure ||= error;
+    }
     try {
       await outputFlow.wait();
     } catch (error) {
@@ -1239,7 +1269,7 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
     disposePipeSafety?.();
   }
 
-  if (pipeState.closed) {
+  if (pipeState.closed && failure?.isCleanupDeadlineFailure !== true) {
     return { ...(outcome || { turns: 0 }), exitCode: 0 };
   }
   if (failure) throw failure;
@@ -2197,18 +2227,41 @@ async function runAgentHeadlessStreamInWorkspace(
           }),
           "startSession",
         );
-      } catch {
+      } catch (error) {
         const code = "CC_SESSION_PERSISTENCE_START_FAILED";
+        const persistenceError = createSessionPersistenceFailure(error, {
+          sessionId,
+          operation: "session-start",
+        });
+        const persistence = projectSessionPersistenceFailure(persistenceError, {
+          phase: "before-model",
+        });
+        if (persistence) {
+          try {
+            deps.onPersistenceFailure?.(persistence);
+          } catch {
+            // Observability cannot change persistence semantics.
+          }
+        }
         emit({
           type: "result",
-          subtype: "error_session_persistence",
+          subtype: persistence
+            ? "error_persistence"
+            : "error_session_persistence",
           is_error: true,
-          code,
+          code: persistence?.code || code,
           error: "Canonical stream session could not be created",
           session_id: sessionId,
+          ...(persistence ? { persistence } : {}),
         });
-        writeErr(`${code}: canonical stream session creation was refused\n`);
-        return { exitCode: 1, turns: 0 };
+        writeErr(
+          `${persistence?.code || code}: canonical stream session creation was refused\n`,
+        );
+        return {
+          exitCode: 1,
+          turns: 0,
+          ...(persistence ? { persistence } : {}),
+        };
       }
     }
   }
@@ -2675,6 +2728,7 @@ async function runAgentHeadlessStreamInWorkspace(
     : null;
 
   let sawError = false;
+  let terminalPersistenceFailure = null;
   // Session-scoped tool-call correlation ids ("tu-<n>", additive protocol-v1
   // field): one counter across ALL turns so ids never repeat within a session.
   // Gated by the capability handshake (docs/PROTOCOL.md §1.3): a client that
@@ -3307,14 +3361,44 @@ async function runAgentHeadlessStreamInWorkspace(
     }
 
     messages.push({ role: "user", content: turnContent });
+    let persistenceFailure = null;
     if (persist) {
       try {
         store.appendUserMessage(sessionId, turnContent);
-      } catch {
-        /* best-effort */
+      } catch (error) {
+        const persistenceError = createSessionPersistenceFailure(error, {
+          sessionId,
+          operation: "user-turn-append",
+        });
+        persistenceFailure = projectSessionPersistenceFailure(
+          persistenceError,
+          { phase: "before-model" },
+        );
+        if (persistenceFailure) {
+          try {
+            deps.onPersistenceFailure?.(persistenceFailure);
+          } catch {
+            // Observability cannot change persistence semantics.
+          }
+        }
       }
     }
     turns += 1;
+    if (persistenceFailure) {
+      terminalPersistenceFailure = persistenceFailure;
+      sawError = true;
+      emit({
+        type: "result",
+        subtype: "error_persistence",
+        is_error: true,
+        code: persistenceFailure.code,
+        error: "Session user turn was not durably persisted",
+        session_id: sessionId,
+        turn: turns,
+        persistence: persistenceFailure,
+      });
+      break;
+    }
     turnBindingFeed?.beginTurn(messages.length, {
       worktreeId: options.worktreeId ?? null,
     });
@@ -3494,8 +3578,23 @@ async function runAgentHeadlessStreamInWorkspace(
             durationMs: call.durationMs,
           });
         }
-      } catch {
-        /* best-effort */
+      } catch (error) {
+        const persistenceError = createSessionPersistenceFailure(error, {
+          sessionId,
+          operation: "assistant-turn-append",
+        });
+        persistenceFailure = projectSessionPersistenceFailure(
+          persistenceError,
+          { phase: "after-model" },
+        );
+        if (persistenceFailure) {
+          terminalPersistenceFailure = persistenceFailure;
+          try {
+            deps.onPersistenceFailure?.(persistenceFailure);
+          } catch {
+            // Observability cannot change persistence semantics.
+          }
+        }
       }
     }
 
@@ -3504,7 +3603,10 @@ async function runAgentHeadlessStreamInWorkspace(
       outcome.endReason === "max_turns";
     const costStopped = outcome.endReason === "cost-budget-exhausted";
     const isError =
-      exhausted || costStopped || outcome.endReason === "no-response";
+      exhausted ||
+      costStopped ||
+      outcome.endReason === "no-response" ||
+      Boolean(persistenceFailure);
     if (isError) sawError = true;
 
     if (costStopped) {
@@ -3523,14 +3625,17 @@ async function runAgentHeadlessStreamInWorkspace(
         ? "error_max_turns"
         : costStopped
           ? "error_max_budget"
-          : isError
-            ? "error"
-            : "success",
+          : persistenceFailure
+            ? "error_persistence"
+            : isError
+              ? "error"
+              : "success",
       is_error: isError,
       result: outcome.finalText,
       session_id: sessionId,
       turn: turns,
       usage: outcome.usage,
+      ...(persistenceFailure ? { persistence: persistenceFailure } : {}),
     });
 
     // --json-schema (P2): emit this turn's structured verdict right after its
@@ -3550,7 +3655,7 @@ async function runAgentHeadlessStreamInWorkspace(
     }
 
     // Session-wide cost cap reached → stop accepting further turns.
-    if (costStopped) break;
+    if (costStopped || persistenceFailure) break;
 
     // While planning, blocked tool calls grew the plan during this turn —
     // push the fresh snapshot so the panel's plan card stays live.
@@ -3580,5 +3685,11 @@ async function runAgentHeadlessStreamInWorkspace(
   if (!pipeState.closed) {
     emit({ type: "system", subtype: "end", session_id: sessionId, turns });
   }
-  return { exitCode: pipeState.closed ? 0 : sawError ? 1 : 0, turns };
+  return {
+    exitCode: pipeState.closed ? 0 : sawError ? 1 : 0,
+    turns,
+    ...(terminalPersistenceFailure
+      ? { persistence: terminalPersistenceFailure }
+      : {}),
+  };
 }

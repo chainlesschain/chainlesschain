@@ -54,6 +54,7 @@ import {
   replaceSessionMeta,
   SESSION_TOMBSTONE_MARKER_SUFFIX,
 } from "./session-list-index.js";
+import { createSessionPersistenceFailure } from "../lib/session-persistence-failure.js";
 
 let securedSessionsDir = null;
 let securedSessionsDirIdentity = null;
@@ -62,6 +63,7 @@ let securedSessionsDirIdentity = null;
 // gate. The hooks are inert unless the dedicated child process opts in; this
 // keeps production behavior and ordinary tests on the exact same append path.
 export const _sessionScaleFaultHooks = Object.seal({
+  beforeTranscriptAppend: null,
   afterTranscriptAppend: null,
   afterForkCopy: null,
   afterForkLineage: null,
@@ -661,17 +663,7 @@ function appendVerifiedWsAuthorityEventLocked(
   const core = { type, timestamp: Date.now(), data };
   const hash = computeEventHash(previousHeadHash, core);
   const event = { ...core, prevHash: previousHeadHash, hash };
-  appendFileSync(filePath, `${JSON.stringify(event)}\n`, {
-    encoding: "utf8",
-    mode: 0o600,
-  });
-  ensurePrivateFile(filePath);
-  runSessionScaleFaultHook("afterTranscriptAppend", {
-    sessionId,
-    type,
-    event,
-    filePath,
-  });
+  appendTranscriptEvent(sessionId, type, event, filePath);
   try {
     recordSessionEvent(getSessionsDir(), sessionId, event, hash);
   } catch (cause) {
@@ -738,6 +730,43 @@ function encodeEventMessageProvenance(type, data) {
   }
   if (type === "system") return encodePersistedMessage(data);
   return data;
+}
+
+function appendTranscriptEvent(sessionId, type, event, filePath) {
+  const payload = { sessionId, type, event, filePath };
+  try {
+    runSessionScaleFaultHook("beforeTranscriptAppend", payload);
+  } catch (cause) {
+    throw createSessionPersistenceFailure(cause, {
+      sessionId,
+      operation: "transcript-append",
+      commitState: "not-committed",
+    });
+  }
+  try {
+    appendFileSync(filePath, `${JSON.stringify(event)}\n`, {
+      encoding: "utf8",
+      mode: 0o600,
+    });
+  } catch (cause) {
+    throw createSessionPersistenceFailure(cause, {
+      sessionId,
+      operation: "transcript-append",
+      // ENOSPC can follow a short write. EROFS fails before the append can
+      // mutate the target.
+      commitState: cause?.code === "EROFS" ? "not-committed" : "unknown",
+    });
+  }
+  try {
+    ensurePrivateFile(filePath);
+    runSessionScaleFaultHook("afterTranscriptAppend", payload);
+  } catch (cause) {
+    throw createSessionPersistenceFailure(cause, {
+      sessionId,
+      operation: "transcript-settlement",
+      commitState: "unknown",
+    });
+  }
 }
 
 const SESSION_AUTHORITY_RECOVERY_TEXT_LIMITS = Object.freeze({
@@ -848,15 +877,7 @@ function appendEventLocked(
       const core = { type, timestamp: Date.now(), data: persistedData };
       const hash = computeEventHash(prevHash, core);
       const event = { ...core, prevHash, hash };
-      const line = JSON.stringify(event) + "\n";
-      appendFileSync(filePath, line, { encoding: "utf8", mode: 0o600 });
-      ensurePrivateFile(filePath);
-      runSessionScaleFaultHook("afterTranscriptAppend", {
-        sessionId,
-        type,
-        event,
-        filePath,
-      });
+      appendTranscriptEvent(sessionId, type, event, filePath);
       try {
         recordSessionEvent(getSessionsDir(), sessionId, event, hash, {
           resetGeneration: startsNewGeneration,
@@ -869,6 +890,7 @@ function appendEventLocked(
           );
           error.code = "SESSION_INDEX_ANCHOR_FAILED";
           error.sessionId = sessionId;
+          error.commitState = "unknown";
           throw error;
         }
         // The metadata index is explicitly rebuildable. Never turn a committed
@@ -891,10 +913,11 @@ function appendEventLocked(
           error.code = "SESSION_INDEX_ANCHOR_FAILED";
           error.sessionId = sessionId;
           error.verification = verification;
+          error.commitState = "unknown";
           throw error;
         }
       }
-      return { hash, recovery };
+      return { hash, recovery, commitState: "committed" };
     },
     {
       failIfUnavailable: true,
@@ -907,8 +930,24 @@ function appendEventLocked(
   );
 }
 
+function runClassifiedAppend(sessionId, operation, append) {
+  try {
+    return append();
+  } catch (cause) {
+    throw createSessionPersistenceFailure(cause, {
+      sessionId,
+      operation,
+      // Preserve an inner append/settlement classification. Without one,
+      // EROFS defaults to not-committed and ENOSPC remains unknown.
+      commitState: cause?.commitState,
+    });
+  }
+}
+
 export function appendEvent(sessionId, type, data) {
-  return appendEventLocked(sessionId, type, data);
+  return runClassifiedAppend(sessionId, "append-event", () =>
+    appendEventLocked(sessionId, type, data),
+  );
 }
 
 /**
@@ -916,9 +955,11 @@ export function appendEvent(sessionId, type, data) {
  * crash/tail-truncation anchor are durably updated and still agree.
  */
 export function appendAuthorityEvent(sessionId, type, data) {
-  return appendEventLocked(sessionId, type, data, {
-    requireIndexAnchor: true,
-  });
+  return runClassifiedAppend(sessionId, "append-authority-event", () =>
+    appendEventLocked(sessionId, type, data, {
+      requireIndexAnchor: true,
+    }),
+  );
 }
 
 /**
@@ -3121,17 +3162,7 @@ export function createBranchSession({
         };
         const hash = computeEventHash(prevHash, core);
         const event = { ...core, prevHash, hash };
-        appendFileSync(filePath, `${JSON.stringify(event)}\n`, {
-          encoding: "utf8",
-          mode: 0o600,
-        });
-        ensurePrivateFile(filePath);
-        runSessionScaleFaultHook("afterTranscriptAppend", {
-          sessionId: branchSessionId,
-          type: planned.type,
-          event,
-          filePath,
-        });
+        appendTranscriptEvent(branchSessionId, planned.type, event, filePath);
         prevHash = hash;
       }
 

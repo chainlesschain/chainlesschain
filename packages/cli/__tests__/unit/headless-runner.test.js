@@ -182,6 +182,108 @@ describe("headless-runner — output formats", () => {
     }
   }, 15_000);
 
+  it("bounds hung cleanup and starts every later single-turn disposer", async () => {
+    const { deps } = makeDeps(replyText("done"));
+    const disconnectAll = vi.fn(() => new Promise(() => {}));
+    const reports = [];
+    deps.cleanupDeadlineMs = 20;
+    deps.onCleanupReport = (report) => reports.push(report);
+    deps.resolveAgentMcp = vi.fn(async () => ({
+      mcpClient: { callTool: vi.fn(), disconnectAll },
+      connected: [],
+      extraToolDefinitions: [],
+      externalToolExecutors: {},
+      externalToolDescriptors: {},
+    }));
+
+    await expect(
+      runAgentHeadless(
+        {
+          prompt: "hi",
+          outputFormat: "text",
+          settingsHooks: {},
+          asyncHookWaitMs: 0,
+        },
+        deps,
+      ),
+    ).rejects.toMatchObject({
+      code: "CC_CLEANUP_DEADLINE_EXCEEDED",
+      timeoutMs: 20,
+      timedOutSteps: expect.arrayContaining(["mcp", "settings-hooks"]),
+    });
+
+    expect(disconnectAll).toHaveBeenCalledOnce();
+    expect(reports).toHaveLength(1);
+    expect(reports[0]).toMatchObject({
+      label: "headless-runner-cleanup",
+      timeoutMs: 20,
+      timedOut: true,
+      steps: expect.arrayContaining([
+        expect.objectContaining({ name: "settings-hooks", status: "timeout" }),
+      ]),
+    });
+  });
+
+  it("keeps the primary runtime failure when cleanup also times out", async () => {
+    const { deps } = makeDeps(replyText("unused"));
+    const reports = [];
+    deps.cleanupDeadlineMs = 15;
+    deps.onCleanupReport = (report) => reports.push(report);
+    deps.resolveAgentMcp = vi.fn(async () => ({
+      mcpClient: {
+        callTool: vi.fn(),
+        disconnectAll: vi.fn(() => new Promise(() => {})),
+      },
+      connected: [],
+      extraToolDefinitions: [],
+      externalToolExecutors: {},
+      externalToolDescriptors: {},
+    }));
+    deps.agentLoop = async function* () {
+      throw new Error("primary model failure");
+    };
+
+    const outcome = await runAgentHeadless({ prompt: "hi" }, deps);
+
+    expect(outcome).toMatchObject({
+      isError: true,
+      result: "primary model failure",
+    });
+    expect(reports).toHaveLength(1);
+    expect(reports[0].timedOut).toBe(true);
+  });
+
+  it("bounds MCP cleanup on an early permission-tool config failure", async () => {
+    const { deps } = makeDeps(replyText("must not run"));
+    const disconnectAll = vi.fn(() => new Promise(() => {}));
+    const reports = [];
+    deps.cleanupDeadlineMs = 15;
+    deps.onCleanupReport = (report) => reports.push(report);
+    deps.resolveAgentMcp = vi.fn(async () => ({
+      mcpClient: { callTool: vi.fn(), disconnectAll },
+      connected: [],
+      extraToolDefinitions: [],
+      externalToolExecutors: {},
+      externalToolDescriptors: {},
+    }));
+
+    const outcome = await runAgentHeadless(
+      {
+        prompt: "hi",
+        permissionPromptTool: "mcp__missing__approve",
+      },
+      deps,
+    );
+
+    expect(outcome).toMatchObject({ exitCode: 6, isError: true });
+    expect(disconnectAll).toHaveBeenCalledOnce();
+    expect(reports).toHaveLength(1);
+    expect(reports[0]).toMatchObject({
+      timedOut: true,
+      steps: [expect.objectContaining({ name: "mcp", status: "timeout" })],
+    });
+  });
+
   it("binds lifecycle hooks to the CLI host cwd for the full async run", async () => {
     const { deps } = makeDeps(replyText("scoped"));
     const trustedRoot = realpathSync.native(
@@ -1159,6 +1261,82 @@ describe("headless-runner — session resume + persistence", () => {
       id: "sess-NEW",
       content: "the answer",
     });
+  });
+
+  it("fails before the model when the user turn hits EROFS", async () => {
+    const store = makeStore();
+    const { deps, out } = makeDeps(replyText("must not run"));
+    Object.assign(deps, store.deps);
+    deps.agentLoop = vi.fn(capturingLoop({}, "must not run"));
+    deps.appendUserMessage = () => {
+      throw Object.assign(new Error("private path"), { code: "EROFS" });
+    };
+
+    const outcome = await runAgentHeadless(
+      { prompt: "new task", resume: "disk-read-only", outputFormat: "json" },
+      deps,
+    );
+
+    expect(outcome).toMatchObject({
+      exitCode: 1,
+      isError: true,
+      persistence: {
+        fs_code: "EROFS",
+        phase: "before-model",
+        commit_state: "not-committed",
+        retryable: false,
+      },
+    });
+    expect(deps.agentLoop).not.toHaveBeenCalled();
+    expect(JSON.parse(out.join(""))).toMatchObject({
+      subtype: "error_persistence",
+      is_error: true,
+      persistence: {
+        code: "CC_SESSION_PERSISTENCE_FAILED",
+        fs_code: "EROFS",
+        commit_state: "not-committed",
+      },
+    });
+    expect(out.join("")).not.toContain("private path");
+  });
+
+  it("marks a completed model turn failed when assistant persistence is unknown", async () => {
+    const store = makeStore();
+    const { deps, out } = makeDeps(replyText("answer survives"));
+    Object.assign(deps, store.deps);
+    deps.agentLoop = capturingLoop({}, "answer survives");
+    deps.appendAssistantMessage = () => {
+      throw Object.assign(new Error("private path"), { code: "ENOSPC" });
+    };
+
+    const outcome = await runAgentHeadless(
+      { prompt: "new task", resume: "disk-full", outputFormat: "json" },
+      deps,
+    );
+
+    expect(outcome).toMatchObject({
+      exitCode: 1,
+      result: "answer survives",
+      isError: true,
+      persistence: {
+        fs_code: "ENOSPC",
+        phase: "after-model",
+        commit_state: "unknown",
+        retryable: false,
+      },
+    });
+    expect(JSON.parse(out.join(""))).toMatchObject({
+      subtype: "error_persistence",
+      is_error: true,
+      result: "answer survives",
+      persistence: {
+        code: "CC_SESSION_PERSISTENCE_FAILED",
+        fs_code: "ENOSPC",
+        commit_state: "unknown",
+        retryable: false,
+      },
+    });
+    expect(out.join("")).not.toContain("private path");
   });
 
   it("does not re-seed the header when resuming an existing session", async () => {
