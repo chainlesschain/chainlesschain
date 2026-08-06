@@ -13,6 +13,7 @@ const net = require("node:net");
 const path = require("node:path");
 
 const DEFAULT_TIMEOUT_MS = 60_000;
+const WORKBENCH_NEEDS_INPUT_SLA_MS = 2_000;
 const JOURNEY_PHASES = Object.freeze({
   initial: Object.freeze([
     "stream",
@@ -906,11 +907,7 @@ async function openSessionsWorkbenchFromCommandPalette(
   // Windows profile.  Insert the label after F1's existing `>` prefix and then
   // choose the real filtered row.
   await workbenchClient.send("Input.insertText", { text: label });
-  await chooseQuickPickItem(
-    workbenchClient,
-    label,
-    signal,
-  );
+  await chooseQuickPickItem(workbenchClient, label, signal);
 }
 
 async function confirmNativeTimelineAction(client, signal = null) {
@@ -1083,19 +1080,48 @@ async function clickSessionsWorkbenchAction(
     label: `Sessions Workbench ${action} control`,
     signal,
   });
-  const clicked = await client.evaluate(`(() => {
+  const target = await client.evaluate(`(() => {
     const button = document.querySelector(
       '#list button[data-source-id="ui-workbench-background"][data-act=${JSON.stringify(action)}]'
     );
-    if (!button) return false;
-    const originalPrompt = window.prompt;
+    if (!button) return null;
+    window.__ccWorkbenchOriginalPrompt = window.prompt;
     window.prompt = () => ${JSON.stringify(prompt)};
-    try { button.click(); } finally { window.prompt = originalPrompt; }
-    return true;
+    const rect = button.getBoundingClientRect();
+    return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
   })()`);
-  if (!clicked) {
+  if (!target || !Number.isFinite(target.x) || !Number.isFinite(target.y)) {
     throw new Error(`could not click Sessions Workbench ${action}`);
   }
+  const clickedAt = Date.now();
+  try {
+    await client.send("Input.dispatchMouseEvent", {
+      type: "mousePressed",
+      x: target.x,
+      y: target.y,
+      button: "left",
+      clickCount: 1,
+    });
+    await client.send("Input.dispatchMouseEvent", {
+      type: "mouseReleased",
+      x: target.x,
+      y: target.y,
+      button: "left",
+      clickCount: 1,
+    });
+  } finally {
+    await client
+      .evaluate(
+        `(() => {
+        if (window.__ccWorkbenchOriginalPrompt) {
+          window.prompt = window.__ccWorkbenchOriginalPrompt;
+        }
+        delete window.__ccWorkbenchOriginalPrompt;
+      })()`,
+      )
+      .catch(() => {});
+  }
+  return clickedAt;
 }
 
 async function driveSessionsWorkbenchPhase(
@@ -1127,7 +1153,7 @@ async function driveSessionsWorkbenchPhase(
       if (initial.artifactVisible) {
         throw new Error("fresh Workbench unexpectedly contains an artifact");
       }
-      await clickSessionsWorkbenchAction(
+      const dispatchedAt = await clickSessionsWorkbenchAction(
         client,
         "dispatch",
         "dispatch from VS Code Workbench",
@@ -1141,6 +1167,19 @@ async function driveSessionsWorkbenchPhase(
         label: "Sessions Workbench needs_input transition",
         signal,
       });
+      const latencyMs = Date.now() - dispatchedAt;
+      appendTrace(tracePath, {
+        phase,
+        metric: "needs-input-visible",
+        latencyMs,
+        thresholdMs: WORKBENCH_NEEDS_INPUT_SLA_MS,
+      });
+      if (latencyMs >= WORKBENCH_NEEDS_INPUT_SLA_MS) {
+        throw new Error(
+          `Sessions Workbench needs_input visibility took ${latencyMs}ms; ` +
+            `required <${WORKBENCH_NEEDS_INPUT_SLA_MS}ms`,
+        );
+      }
     });
     await step("workbench-reply-artifact", async () => {
       await clickSessionsWorkbenchAction(client, "reply", "beta", signal);
@@ -1539,6 +1578,26 @@ function assertJourneyArtifacts({
     (record) =>
       record.phase === "initial" && record.status === "native-workbench-found",
   );
+  const visibilityMetrics = cdpRecords.filter(
+    (record) =>
+      record.phase === "initial" && record.metric === "needs-input-visible",
+  );
+  if (visibilityMetrics.length !== 1) {
+    throw new Error(
+      `CDP journey proves ${visibilityMetrics.length} needs_input visibility metric(s); expected 1`,
+    );
+  }
+  const visibility = visibilityMetrics[0];
+  if (
+    visibility.thresholdMs !== WORKBENCH_NEEDS_INPUT_SLA_MS ||
+    !Number.isFinite(visibility.latencyMs) ||
+    visibility.latencyMs < 0 ||
+    visibility.latencyMs >= WORKBENCH_NEEDS_INPUT_SLA_MS
+  ) {
+    throw new Error(
+      `CDP journey violates needs_input visibility SLA: ${JSON.stringify(visibility)}`,
+    );
+  }
   for (const [phase, steps] of Object.entries(JOURNEY_PHASES)) {
     const targetRecord = cdpRecords.find(
       (record) => record.phase === phase && record.status === "target-found",

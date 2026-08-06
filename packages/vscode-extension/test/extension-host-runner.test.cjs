@@ -1136,6 +1136,13 @@ test("raw DOM and protocol evidence must prove every control and restart step", 
       completedAt: "2026-08-01T00:01:00.000Z",
     });
   }
+  cdpRecords.push({
+    at: "2026-08-01T00:00:01.000Z",
+    phase: "initial",
+    metric: "needs-input-visible",
+    latencyMs: 125,
+    thresholdMs: 2_000,
+  });
   writeJsonLines(path.join(artifactDir, "cdp-journey.jsonl"), cdpRecords);
   const fixtureRecords = [
     { direction: "in", event: { type: "user", text: "journey:stream" } },

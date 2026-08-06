@@ -111,12 +111,23 @@ function parseSessionProjection(input, { expectedRevision = null } = {}) {
   try {
     root = typeof input === "string" ? JSON.parse(input) : input;
   } catch {
+    const raw = typeof input === "string" ? input : String(input ?? "");
+    const codePoint = (value) =>
+      value == null
+        ? "empty"
+        : `U+${value.toString(16).toUpperCase().padStart(4, "0")}`;
     return {
       connected: false,
       stale: false,
       revision: null,
       rows: [],
-      error: "invalid session projection JSON",
+      // Keep transport diagnostics content-free: length and endpoint code
+      // points distinguish empty/BOM/truncated output without reflecting CLI
+      // stdout into the privileged IDE UI.
+      error:
+        `invalid session projection JSON (stdout ${raw.length} chars; ` +
+        `first ${codePoint(raw.codePointAt(0))}; ` +
+        `last ${codePoint(raw.codePointAt(Math.max(0, raw.length - 1)))})`,
     };
   }
   if (

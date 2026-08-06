@@ -405,6 +405,49 @@ export function verifyWorkbenchFixtureLedger(tracePath) {
   };
 }
 
+export function verifyWorkbenchVisibilityMetrics(metricsPath) {
+  if (!existsSync(metricsPath)) {
+    throw new Error("Workbench visibility metrics are missing");
+  }
+  const records = readFileSync(metricsPath, "utf8")
+    .split(/\r?\n/u)
+    .filter(Boolean)
+    .map((line, index) => {
+      try {
+        return JSON.parse(line);
+      } catch (error) {
+        throw new Error(
+          `Workbench metrics have invalid JSON at line ${index + 1}: ${error.message}`,
+        );
+      }
+    });
+  const samples = records.filter(
+    (record) =>
+      record.host === "jetbrains" && record.metric === "needs-input-visible",
+  );
+  if (samples.length !== 1) {
+    throw new Error(
+      `Workbench metrics prove ${samples.length} needs_input visibility sample(s); expected 1`,
+    );
+  }
+  const sample = samples[0];
+  if (
+    sample.thresholdMs !== 2_000 ||
+    !Number.isFinite(sample.latencyMs) ||
+    sample.latencyMs < 0 ||
+    sample.latencyMs >= 2_000
+  ) {
+    throw new Error(
+      `Workbench metrics violate the needs_input visibility SLA: ${JSON.stringify(sample)}`,
+    );
+  }
+  return {
+    samples: samples.length,
+    p95LatencyMs: sample.latencyMs,
+    thresholdMs: 2_000,
+  };
+}
+
 function firstPluginArchive() {
   const distributions = path.join(PACKAGE_ROOT, "build", "distributions");
   if (!existsSync(distributions)) return null;
@@ -479,6 +522,7 @@ export async function runJourney(options) {
     "ui-host-driver",
     `${options.ideVersion}-${Date.now()}`,
   );
+  const metricsPath = path.join(logRoot, "workbench-metrics.jsonl");
   const gradleOptions = [
     `-PhostIdeVersion=${options.ideVersion}`,
     "--no-daemon",
@@ -520,6 +564,7 @@ export async function runJourney(options) {
             "--rerun-tasks",
             `-Dui.robot.url=${options.robotUrl}`,
             `-Dui.journey.phase=${phase}`,
+            `-Dui.metrics.path=${metricsPath}`,
             ...gradleOptions,
           ],
           logRoot,
@@ -544,6 +589,7 @@ export async function runJourney(options) {
     );
     verifyRewindFixtureLedger(path.join(logRoot, "fake-cli-protocol.jsonl"));
     verifyWorkbenchFixtureLedger(path.join(logRoot, "fake-cli-protocol.jsonl"));
+    verifyWorkbenchVisibilityMetrics(metricsPath);
     result = "passed";
   } catch (error) {
     journeyError = error;

@@ -74,7 +74,25 @@ function clone(value) {
 }
 
 function writeJson(value) {
-  process.stdout.write(`${JSON.stringify(value)}\n`);
+  const serialized = JSON.stringify(value);
+  trace({
+    direction: "out",
+    event: "command-json",
+    command: argv.slice(0, 2).join("-"),
+    chars: serialized.length,
+    firstCodePoint: serialized.codePointAt(0) ?? null,
+    lastCodePoint: serialized.codePointAt(serialized.length - 1) ?? null,
+  });
+  process.stdout.write(`${serialized}\n`);
+}
+
+async function exitAfterStdout(code = 0) {
+  // stdout is a non-blocking pipe in every real-host journey. Calling
+  // process.exit() immediately after writeJson() can truncate the machine JSON
+  // before older Electron/Extension Host combinations drain it. An ordered
+  // zero-byte write callback proves every earlier chunk has flushed.
+  await new Promise((resolve) => process.stdout.write("", resolve));
+  process.exit(code);
 }
 
 const WORKBENCH_SESSION_ID = "ui-workbench-session";
@@ -439,7 +457,7 @@ function finish(turn, result, extra = {}) {
 
 if (argv.includes("--version")) {
   process.stdout.write("0.999.0-ui-journey\n");
-  process.exit(0);
+  await exitAfterStdout(0);
 }
 
 // ConversationView probes these after a turn. Keep machine output valid so a
@@ -448,20 +466,20 @@ if (argv[0] === "context") {
   process.stdout.write(
     `${JSON.stringify({ total: 44, window: 4096, pct: 1, overflow: false })}\n`,
   );
-  process.exit(0);
+  await exitAfterStdout(0);
 }
 
 if (argv[0] === "checkpoint" && handleCheckpointCommand()) {
-  process.exit(0);
+  await exitAfterStdout(0);
 }
 
 if (handleWorkbenchCommand()) {
-  process.exit(process.exitCode || 0);
+  await exitAfterStdout(process.exitCode || 0);
 }
 
 if (argv[0] !== "agent") {
   process.stdout.write("\n");
-  process.exit(0);
+  await exitAfterStdout(0);
 }
 
 const sessionId = option("--resume", "ui-host-session");

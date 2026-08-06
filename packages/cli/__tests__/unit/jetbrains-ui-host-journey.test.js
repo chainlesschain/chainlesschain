@@ -10,6 +10,7 @@ import {
   prependPath,
   readPluginVersion,
   verifyRewindFixtureLedger,
+  verifyWorkbenchVisibilityMetrics,
 } from "../../../../packages/jetbrains-plugin/scripts/run-ui-host-journey.mjs";
 
 const temporaryRoots = [];
@@ -74,6 +75,41 @@ describe("JetBrains real-host journey driver", () => {
       "utf8",
     );
     expect(() => readPluginVersion(pluginXml)).toThrow(/exactly one/);
+  });
+
+  it("requires a measured sub-two-second needs_input visibility sample", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-jb-sla-"));
+    temporaryRoots.push(root);
+    const metricsPath = path.join(root, "workbench-metrics.jsonl");
+    fs.writeFileSync(
+      metricsPath,
+      `${JSON.stringify({
+        host: "jetbrains",
+        metric: "needs-input-visible",
+        latencyMs: 250,
+        thresholdMs: 2_000,
+      })}\n`,
+      "utf8",
+    );
+    expect(verifyWorkbenchVisibilityMetrics(metricsPath)).toEqual({
+      samples: 1,
+      p95LatencyMs: 250,
+      thresholdMs: 2_000,
+    });
+
+    fs.writeFileSync(
+      metricsPath,
+      `${JSON.stringify({
+        host: "jetbrains",
+        metric: "needs-input-visible",
+        latencyMs: 2_000,
+        thresholdMs: 2_000,
+      })}\n`,
+      "utf8",
+    );
+    expect(() => verifyWorkbenchVisibilityMetrics(metricsPath)).toThrow(
+      /visibility SLA/,
+    );
   });
 
   it("prepends an isolated fixture CLI without duplicating the PATH key", () => {

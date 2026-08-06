@@ -5,6 +5,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const HOST_DOM_COMMAND = "chainlesschain.internal.hostDomCommand";
+const WORKBENCH_NEEDS_INPUT_SLA_MS = 2_000;
 const JOURNEY_PHASES = Object.freeze({
   initial: Object.freeze([
     "stream",
@@ -230,6 +231,7 @@ async function drivePhase(commands, token, phase, traceFile) {
         label: "initial canonical workbench projection",
       });
       assert.equal(initial.artifactVisible, false);
+      const dispatchedAt = Date.now();
       const clicked = await executeWorkbench(commands, token, {
         action: "click",
         target: "dispatch",
@@ -244,6 +246,17 @@ async function drivePhase(commands, token, phase, traceFile) {
           snapshot.replyEnabled === true,
         label: "Workbench needs_input transition",
       });
+      const latencyMs = Date.now() - dispatchedAt;
+      appendTrace(traceFile, {
+        phase,
+        metric: "needs-input-visible",
+        latencyMs,
+        thresholdMs: WORKBENCH_NEEDS_INPUT_SLA_MS,
+      });
+      assert.ok(
+        latencyMs < WORKBENCH_NEEDS_INPUT_SLA_MS,
+        `Workbench needs_input visibility took ${latencyMs}ms; required <${WORKBENCH_NEEDS_INPUT_SLA_MS}ms`,
+      );
     });
     await step("workbench-reply-artifact", async () => {
       const clicked = await executeWorkbench(commands, token, {
