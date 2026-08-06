@@ -201,6 +201,10 @@ describe("JetBrains real-host journey driver", () => {
     expect(source).toContain(
       "ApplicationManager.getApplication().invokeLater(click);",
     );
+    expect(source).toContain("setInputDialogText(dialog, title, text");
+    expect(source).toContain("current instanceof JTextComponent");
+    expect(source).toContain("current.isShowing() && current.isEditable()");
+    expect(source).not.toContain("component.getFocusOwner().setText");
     expect(source).not.toContain("clickButton(dispatch);");
     expect(source).not.toContain("clickButton(reply);");
   });

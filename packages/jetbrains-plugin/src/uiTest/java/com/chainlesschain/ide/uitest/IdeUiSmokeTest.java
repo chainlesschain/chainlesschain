@@ -267,15 +267,54 @@ final class IdeUiSmokeTest {
         ComponentFixture dialog = robot.find(ComponentFixture.class,
                 Locators.byXpath("//div[@visible='true' and @title="
                         + xpathString(title) + "]"), FIND_BUDGET);
-        dialog.runJs(
-                "component.getFocusOwner().setText(" + jsString(text) + ")",
-                true);
+        setInputDialogText(dialog, title, text, FIND_BUDGET);
         ComponentFixture ok = robot.find(ComponentFixture.class,
                 Locators.byXpath("//div[@text='OK']"), FIND_BUDGET);
         long submittedAt = System.nanoTime();
         clickButton(ok);
         waitUntilHidden(dialog, title + " input dialog", FIND_BUDGET);
         return submittedAt;
+    }
+
+    private static void setInputDialogText(
+            ComponentFixture dialog,
+            String title,
+            String text,
+            Duration budget) throws InterruptedException {
+        String script =
+                "importClass(java.awt.Container);"
+                        + "importClass(java.util.ArrayDeque);"
+                        + "importClass(javax.swing.text.JTextComponent);"
+                        + "var pending = new ArrayDeque();"
+                        + "pending.add(component);"
+                        + "var updated = false;"
+                        + "while (!pending.isEmpty() && !updated) {"
+                        + "var current = pending.removeFirst();"
+                        + "if (current instanceof JTextComponent"
+                        + " && current.isShowing() && current.isEditable()) {"
+                        + "current.setText(" + jsString(text) + ");"
+                        + "current.requestFocusInWindow();"
+                        + "updated = true;"
+                        + "} else if (current instanceof Container) {"
+                        + "var children = current.getComponents();"
+                        + "for (var index = 0; index < children.length; index += 1) {"
+                        + "pending.add(children[index]);"
+                        + "}"
+                        + "}"
+                        + "}"
+                        + "updated;";
+        long deadline = System.nanoTime() + budget.toNanos();
+        while (System.nanoTime() < deadline) {
+            Object updated = dialog.callJs(script);
+            if (Boolean.TRUE.equals(updated)
+                    || "true".equals(String.valueOf(updated))) return;
+            // On IDEA 2024.2/Linux the modal window can be discoverable a few
+            // EDT turns before its editor is attached. Traversing the dialog
+            // avoids relying on the equally transient Window focus owner.
+            Thread.sleep(100);
+        }
+        throw new AssertionError(title + " input editor did not become ready within "
+                + budget.toSeconds() + "s");
     }
 
     private static void recordNeedsInputVisibility(
