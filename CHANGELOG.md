@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — cc CLI 0.162.198: interactive streaming and release portability
+
+> `chainlesschain` **0.162.197 → 0.162.198** (release candidate, 2026-08-06).
+> CLI-only release metadata; `@chainlesschain/personal-data-hub` remains
+> **0.4.57** and `@chainlesschain/agent-sdk` remains **0.1.7**.
+
+- **Interactive output backpressure**: REPL, headless streaming, provider
+  pacing, and TTY writers now wait for saturated output streams to drain and
+  clean up pending listeners across completion, interruption, and session
+  transitions instead of allowing unbounded interactive writes.
+- **Canonical session controls**: the CLI-owned session projection and bounded
+  reply routes now support the completed VS Code and JetBrains workbench and
+  rewind journeys while preserving CLI authority over persisted mutations.
+- **Portable release gates**: Windows path-alias fixtures, state-path mocks,
+  Skill metadata fixtures, POSIX executable-bit setup, and the deprecated
+  agent-core shim are aligned with the three-platform CLI CI and Strict
+  Sandbox contracts.
+- **Release readback hardening**: public npm verification remains independent
+  of undeclared runtime dependencies, retries bounded registry propagation,
+  and binds provenance and registry bytes to the immutable publish artifact.
+- **Candidate evidence**: merged implementation SHA `0b7a5471e7a9` passed
+  [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/31071519048)
+  and [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/31071522429)
+  on Ubuntu, Windows, and macOS. The final `0.162.198` version commit must pass
+  both gates again on its own exact SHA before tag `v-npm-0-162-198` is
+  created; local, older-SHA, and partial results remain supplementary only.
+
 ### Added — cc CLI 0.162.197: durable sessions, MCP recovery, and checkpoint safety
 
 > `chainlesschain` **0.162.189 → 0.162.197** (published,
