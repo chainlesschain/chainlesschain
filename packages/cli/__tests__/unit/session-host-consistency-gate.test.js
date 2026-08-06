@@ -172,7 +172,7 @@ describe("cli session-host consistency gate", () => {
       status: "passed",
       platform: process.platform,
       proofScope:
-        "host-adapter-conformance-plus-ws-request-claim-mcp-recovery-and-missing-or-restored-conflict-fencing",
+        "host-adapter-conformance-plus-cross-process-lease-independent-anti-rollback-ws-request-claim-mcp-recovery-and-conflict-fencing",
       scenarios: {
         verifiedHostAgreement: {
           pass: true,
@@ -230,6 +230,14 @@ describe("cli session-host consistency gate", () => {
           crashedClaimStayedPending: true,
           crashedClaimWasNotTakenOver: true,
           newRequestIdAllowed: true,
+        },
+        crossProcessSessionLease: {
+          pass: true,
+          competingProcessRefused: true,
+          refusalCode: "CC_SESSION_HOST_LEASE_HELD",
+          deadOwnerRetired: true,
+          recoveredFencingToken: 2,
+          recoveredLeaseReleased: true,
         },
         wsModelPeriodTamper: {
           pass: true,
@@ -294,6 +302,19 @@ describe("cli session-host consistency gate", () => {
           websocketRefusedBeforeResume: true,
           contentFreeFailureEvidence: true,
         },
+        independentAntiRollbackRefusal: {
+          pass: true,
+          detectedCode: "CC_SESSION_ANTI_ROLLBACK_DETECTED",
+          configuredHomeRollbackDetected: true,
+          independentAnchorSurvived: true,
+          replRefusedBeforeCommit: true,
+          headlessRefusedBeforeSideEffects: true,
+          streamRefusedBeforeSideEffects: true,
+          configWritePrevented: true,
+          backgroundRefused: true,
+          websocketRefusedBeforeResume: true,
+          contentFreeFailureEvidence: true,
+        },
       },
     });
     expect(result.exactSha).toMatch(/^[0-9a-f]{40,64}$/);
@@ -303,12 +324,11 @@ describe("cli session-host consistency gate", () => {
     expect(result.limitations).toEqual(
       expect.arrayContaining([
         expect.stringMatching(/same-process/i),
-        expect.stringMatching(/general cross-process session lease/i),
-        expect.stringMatching(/anti-rollback/i),
+        expect.stringMatching(/cooperative same-user/i),
+        expect.stringMatching(/simultaneous rollback.*both roots/i),
         expect.stringMatching(/bounded-resume-IO/i),
         expect.stringMatching(/1GB cold-process.*RSS/i),
         expect.stringMatching(/O\(N\).*writer lock/i),
-        expect.stringMatching(/meta\/tombstone witness.*loss/i),
       ]),
     );
     for (const marker of [
@@ -335,10 +355,14 @@ describe("cli session-host consistency gate", () => {
       "SESSION_HOST_CONFLICT_ORIGINAL",
       "SESSION_HOST_CONFLICT_STALE",
       "SESSION_HOST_CONFLICT_STREAM_INPUT",
+      "SESSION_HOST_EXTERNAL_ROLLBACK_ORIGINAL",
+      "SESSION_HOST_EXTERNAL_ROLLBACK_ADVANCED",
+      "SESSION_HOST_EXTERNAL_ROLLBACK_STALE",
+      "SESSION_HOST_EXTERNAL_ROLLBACK_STREAM",
     ]) {
       expect(raw).not.toContain(marker);
     }
-  }, 180_000);
+  }, 360_000);
 
   it("fails before host scenarios when exact-SHA provenance mismatches", async () => {
     const output = join(temporaryDirectory(), "provenance-failure.json");
@@ -386,8 +410,13 @@ describe("cli session-host consistency gate", () => {
       "packages/cli/__tests__/unit/checkpoint-restore-partial-rollback-controller.test.js",
       "packages/cli/__tests__/unit/checkpoint-restore-recovery-command.test.js",
       "packages/cli/__tests__/unit/mcp-recovery-adjudication-store.test.js",
+      "packages/cli/src/lib/session-host-lease.js",
+      "packages/cli/src/lib/session-anti-rollback-anchor.js",
+      "packages/cli/__tests__/fixtures/session-host-lease-child.mjs",
+      "packages/cli/__tests__/unit/session-host-lease.test.js",
+      "packages/cli/__tests__/unit/session-anti-rollback-anchor.test.js",
     ]) {
-      expect(workflow.split(sourcePath)).toHaveLength(3);
+      expect(workflow.split(sourcePath).length).toBeGreaterThanOrEqual(3);
       expect(gateScript.split(sourcePath)).toHaveLength(2);
     }
   });

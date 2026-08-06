@@ -19,6 +19,11 @@ on:
       - "packages/cli/src/lib/jsonl-session-store.js"
       - "packages/cli/src/lib/doctor-checkup.js"
       - "packages/cli/src/lib/session-host-snapshot.js"
+      - "packages/cli/src/lib/session-host-lease.js"
+      - "packages/cli/src/lib/session-anti-rollback-anchor.js"
+      - "packages/cli/src/lib/durable-security-store.js"
+      - "packages/cli/src/lib/paths.js"
+      - "packages/cli/src/lib/with-file-lock.js"
       - "packages/cli/src/lib/session-tail.js"
       - "packages/cli/src/lib/session-message-provenance.js"
       - "packages/cli/src/lib/checkpoint-timeline-authority.js"
@@ -48,6 +53,7 @@ on:
       - "packages/cli/src/gateways/ws/ws-session-gateway.js"
       - "packages/cli/scripts/session-host-consistency-gate.mjs"
       - "packages/cli/__tests__/fixtures/session-host-ws-claim-race-worker.mjs"
+      - "packages/cli/__tests__/fixtures/session-host-lease-child.mjs"
       - "packages/cli/__tests__/unit/jsonl-session-store.test.js"
       - "packages/cli/__tests__/unit/doctor-checkup.test.js"
       - "packages/cli/__tests__/unit/session-tail.test.js"
@@ -83,6 +89,8 @@ on:
       - "packages/cli/__tests__/unit/session-index.test.js"
       - "packages/cli/__tests__/unit/session-list-index.test.js"
       - "packages/cli/__tests__/unit/session-host-consistency-gate.test.js"
+      - "packages/cli/__tests__/unit/session-host-lease.test.js"
+      - "packages/cli/__tests__/unit/session-anti-rollback-anchor.test.js"
       - "packages/cli/__tests__/unit/headless-runner-mcp-ledger.test.js"
       - "packages/cli/__tests__/unit/headless-runner.test.js"
   pull_request:
@@ -103,6 +111,11 @@ on:
       - "packages/cli/src/lib/jsonl-session-store.js"
       - "packages/cli/src/lib/doctor-checkup.js"
       - "packages/cli/src/lib/session-host-snapshot.js"
+      - "packages/cli/src/lib/session-host-lease.js"
+      - "packages/cli/src/lib/session-anti-rollback-anchor.js"
+      - "packages/cli/src/lib/durable-security-store.js"
+      - "packages/cli/src/lib/paths.js"
+      - "packages/cli/src/lib/with-file-lock.js"
       - "packages/cli/src/lib/session-tail.js"
       - "packages/cli/src/lib/session-message-provenance.js"
       - "packages/cli/src/lib/checkpoint-timeline-authority.js"
@@ -132,6 +145,7 @@ on:
       - "packages/cli/src/gateways/ws/ws-session-gateway.js"
       - "packages/cli/scripts/session-host-consistency-gate.mjs"
       - "packages/cli/__tests__/fixtures/session-host-ws-claim-race-worker.mjs"
+      - "packages/cli/__tests__/fixtures/session-host-lease-child.mjs"
       - "packages/cli/__tests__/unit/jsonl-session-store.test.js"
       - "packages/cli/__tests__/unit/doctor-checkup.test.js"
       - "packages/cli/__tests__/unit/session-tail.test.js"
@@ -167,6 +181,8 @@ on:
       - "packages/cli/__tests__/unit/session-index.test.js"
       - "packages/cli/__tests__/unit/session-list-index.test.js"
       - "packages/cli/__tests__/unit/session-host-consistency-gate.test.js"
+      - "packages/cli/__tests__/unit/session-host-lease.test.js"
+      - "packages/cli/__tests__/unit/session-anti-rollback-anchor.test.js"
       - "packages/cli/__tests__/unit/headless-runner-mcp-ledger.test.js"
       - "packages/cli/__tests__/unit/headless-runner.test.js"
   workflow_dispatch:
@@ -213,6 +229,12 @@ jobs:
         run: |
           [[ "$CC_SESSION_HOST_CONSISTENCY_EXPECTED_SHA" =~ ^[0-9a-f]{40}$ ]]
           test "$(git rev-parse HEAD)" = "$CC_SESSION_HOST_CONSISTENCY_EXPECTED_SHA"
+
+      - name: Run focused lease and anti-rollback component tests
+        run: >-
+          npx vitest run
+          packages/cli/__tests__/unit/session-host-lease.test.js
+          packages/cli/__tests__/unit/session-anti-rollback-anchor.test.js
 
       - name: Run cross-host JSONL consistency gate
         env:

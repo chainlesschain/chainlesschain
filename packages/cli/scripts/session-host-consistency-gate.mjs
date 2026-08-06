@@ -19,7 +19,7 @@
  * before side effects.
  */
 
-import { execFileSync, spawn } from "node:child_process";
+import { execFileSync, fork, spawn } from "node:child_process";
 import {
   appendFileSync,
   existsSync,
@@ -27,6 +27,7 @@ import {
   mkdtempSync,
   readFileSync,
   rmSync,
+  statSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -51,6 +52,11 @@ import {
 } from "../src/lib/mcp-recovery-adjudication.js";
 import { projectSessionHostObservation } from "../src/lib/session-host-snapshot.js";
 import {
+  SESSION_HOST_LEASE_HELD_CODE,
+  SessionHostLeaseAuthority,
+} from "../src/lib/session-host-lease.js";
+import { SESSION_ANTI_ROLLBACK_DETECTED_CODE } from "../src/lib/session-anti-rollback-anchor.js";
+import {
   DURABLE_SYSTEM_MESSAGE_KINDS,
   getDurableSystemMessageProvenance,
   markDurableSystemMessage,
@@ -72,6 +78,10 @@ const WS_CLAIM_RACE_WORKER = resolve(
   SCRIPT_DIR,
   "../__tests__/fixtures/session-host-ws-claim-race-worker.mjs",
 );
+const SESSION_HOST_LEASE_CHILD = resolve(
+  SCRIPT_DIR,
+  "../__tests__/fixtures/session-host-lease-child.mjs",
+);
 const RESULT_SCHEMA = "cc-cli-session-host-consistency-result/v1";
 const MIB = 1024 ** 2;
 const GATE_SOURCE_PATHS = [
@@ -90,6 +100,11 @@ const GATE_SOURCE_PATHS = [
   "packages/cli/src/lib/jsonl-session-store.js",
   "packages/cli/src/lib/doctor-checkup.js",
   "packages/cli/src/lib/session-host-snapshot.js",
+  "packages/cli/src/lib/session-host-lease.js",
+  "packages/cli/src/lib/session-anti-rollback-anchor.js",
+  "packages/cli/src/lib/durable-security-store.js",
+  "packages/cli/src/lib/paths.js",
+  "packages/cli/src/lib/with-file-lock.js",
   "packages/cli/src/lib/session-tail.js",
   "packages/cli/src/lib/session-message-provenance.js",
   "packages/cli/src/lib/checkpoint-timeline-authority.js",
@@ -120,6 +135,7 @@ const GATE_SOURCE_PATHS = [
   "packages/cli/src/gateways/ws/ws-session-gateway.js",
   "packages/cli/scripts/session-host-consistency-gate.mjs",
   "packages/cli/__tests__/fixtures/session-host-ws-claim-race-worker.mjs",
+  "packages/cli/__tests__/fixtures/session-host-lease-child.mjs",
   "packages/cli/__tests__/unit/jsonl-session-store.test.js",
   "packages/cli/__tests__/unit/doctor-checkup.test.js",
   "packages/cli/__tests__/unit/headless-runner.test.js",
@@ -157,17 +173,18 @@ const GATE_SOURCE_PATHS = [
   "packages/cli/__tests__/unit/session-index.test.js",
   "packages/cli/__tests__/unit/session-list-index.test.js",
   "packages/cli/__tests__/unit/session-host-consistency-gate.test.js",
+  "packages/cli/__tests__/unit/session-host-lease.test.js",
+  "packages/cli/__tests__/unit/session-anti-rollback-anchor.test.js",
 ];
 
 const LIMITATIONS = Object.freeze([
-  "host adapter agreement is same-process conformance",
-  "no general cross-process session lease beyond per-request WS claim fencing",
-  "no independent anti-rollback anchor proof",
+  "host adapter agreement remains same-process conformance while the lease fixture separately proves same-machine cross-process exclusion and takeover",
+  "the session lease and anti-rollback anchor are cooperative same-user authorities, not a hostile same-UID sandbox or remote-host consensus protocol",
   "no bounded-resume-IO or long-session performance proof",
   "no 1GB cold-process p95 or RSS evidence",
   "per-request claim and settlement verification remains O(N) under the writer lock",
-  "no fsync, power-loss, or remote-host durability proof",
-  "external deletion refusal covers pre-write loss with the per-session meta/tombstone witness set intact, not concurrent path replacement or loss of either witness",
+  "append-only anchor records are fsynced, but no taskkill-at-every-write-point, power-loss, or remote-host durability proof is claimed here",
+  "the independent anchor detects rollback of CHAINLESSCHAIN_HOME while its separate OS user-state directory survives; simultaneous rollback or deletion of both roots is outside this gate",
 ]);
 
 function git(...args) {
@@ -282,6 +299,54 @@ function childJson(result, label) {
       cause,
     });
   }
+}
+
+function waitForChildMessage(child, label, timeoutMs = 15_000) {
+  return new Promise((resolvePromise, rejectPromise) => {
+    const timeout = setTimeout(() => {
+      cleanup();
+      rejectPromise(new Error(`${label} did not become ready`));
+    }, timeoutMs);
+    const onMessage = (message) => {
+      cleanup();
+      resolvePromise(message);
+    };
+    const onExit = (code, signal) => {
+      cleanup();
+      rejectPromise(
+        new Error(`${label} exited early (${code ?? signal ?? "unknown"})`),
+      );
+    };
+    const cleanup = () => {
+      clearTimeout(timeout);
+      child.off("message", onMessage);
+      child.off("exit", onExit);
+    };
+    child.once("message", onMessage);
+    child.once("exit", onExit);
+  });
+}
+
+function waitForChildExit(child, label, timeoutMs = 15_000) {
+  return new Promise((resolvePromise, rejectPromise) => {
+    if (child.exitCode !== null || child.signalCode !== null) {
+      resolvePromise();
+      return;
+    }
+    const timeout = setTimeout(() => {
+      cleanup();
+      rejectPromise(new Error(`${label} did not exit`));
+    }, timeoutMs);
+    const onExit = () => {
+      cleanup();
+      resolvePromise();
+    };
+    const cleanup = () => {
+      clearTimeout(timeout);
+      child.off("exit", onExit);
+    };
+    child.once("exit", onExit);
+  });
 }
 
 function publicSnapshot(snapshot) {
@@ -1680,6 +1745,268 @@ async function runWsForgedSettlementDuringModelScenario(store, home) {
   };
 }
 
+async function runCrossProcessLeaseScenario(home) {
+  process.env.CHAINLESSCHAIN_HOME = home;
+  const stateRoot = join(home, "state", "session-host-lease-gate");
+  const sessionId = "session-host-consistency-process-lease";
+  const child = fork(SESSION_HOST_LEASE_CHILD, [stateRoot, sessionId], {
+    cwd: REPOSITORY_ROOT,
+    windowsHide: true,
+    stdio: ["ignore", "ignore", "ignore", "ipc"],
+    env: { ...process.env, CHAINLESSCHAIN_HOME: home },
+  });
+  let ready = null;
+  let refusal = null;
+  let recovered = null;
+  try {
+    ready = await waitForChildMessage(child, "session host lease child");
+    assert(
+      ready?.type === "ready" && Number.isSafeInteger(ready.pid),
+      "session host lease child emitted an invalid readiness record",
+    );
+    const authority = new SessionHostLeaseAuthority({ stateRoot });
+    try {
+      authority.acquire(sessionId, { hostKind: "competing-gate-host" });
+    } catch (error) {
+      refusal = error;
+    }
+    assert(
+      refusal?.code === SESSION_HOST_LEASE_HELD_CODE,
+      "a real second process acquired a live session host lease",
+    );
+
+    child.kill();
+    await waitForChildExit(child, "session host lease child");
+    recovered = authority.acquire(sessionId, { hostKind: "recovery" });
+    assert(
+      recovered.fencingToken === 2,
+      "session host lease takeover did not advance the fencing token",
+    );
+    assert(
+      recovered.release() === true,
+      "recovered session host lease did not release cleanly",
+    );
+    return {
+      pass: true,
+      sessionId,
+      firstOwnerPid: ready.pid,
+      competingProcessRefused: true,
+      refusalCode: refusal.code,
+      deadOwnerRetired: true,
+      recoveredFencingToken: recovered.fencingToken,
+      recoveredLeaseReleased: true,
+    };
+  } finally {
+    if (child.exitCode === null && child.signalCode === null) {
+      child.kill();
+      await waitForChildExit(child, "session host lease child").catch(() => {});
+    }
+    try {
+      recovered?.release();
+    } catch {
+      // The primary assertion preserves any release failure above.
+    }
+  }
+}
+
+async function runIndependentAntiRollbackScenario(store, home) {
+  process.env.CHAINLESSCHAIN_HOME = home;
+  const sessionId = "session-host-consistency-independent-rollback";
+  const original = "SESSION_HOST_EXTERNAL_ROLLBACK_ORIGINAL_7b52e1";
+  const advanced = "SESSION_HOST_EXTERNAL_ROLLBACK_ADVANCED_c0e13a";
+  const stale = "SESSION_HOST_EXTERNAL_ROLLBACK_STALE_84f016";
+  const streamInput = "SESSION_HOST_EXTERNAL_ROLLBACK_STREAM_1a7df8";
+
+  store.startSession(sessionId, { title: "independent rollback fixture" });
+  store.appendUserMessage(sessionId, original);
+  const transcript = store.sessionPath(sessionId);
+  const metaPath = join(dirname(transcript), `${sessionId}.meta.json`);
+  const priorTranscript = readFileSync(transcript, "utf8");
+  const priorMeta = JSON.parse(readFileSync(metaPath, "utf8"));
+  store.appendAssistantMessage(sessionId, advanced);
+
+  writeFileSync(transcript, priorTranscript, "utf8");
+  const restored = statSync(transcript);
+  priorMeta.transcript = {
+    dev: String(restored.dev),
+    ino: String(restored.ino),
+    size: restored.size,
+    mtimeMs: restored.mtimeMs,
+    ctimeMs: restored.ctimeMs,
+  };
+  writeFileSync(metaPath, `${JSON.stringify(priorMeta)}\n`, "utf8");
+
+  let presenceError = null;
+  try {
+    store.getSessionPresence(sessionId);
+  } catch (error) {
+    presenceError = error;
+  }
+  assert(
+    presenceError?.code === SESSION_ANTI_ROLLBACK_DETECTED_CODE,
+    "an internally consistent CHAINLESSCHAIN_HOME rollback bypassed the independent anchor",
+  );
+
+  const replCandidate = prepareReplJsonlResumeCandidate(sessionId);
+  let replCommitCalls = 0;
+  const replCommitted = commitPreparedReplJsonlResume(replCandidate, () => {
+    replCommitCalls += 1;
+  });
+  assert(!replCandidate.ok, "REPL admitted an externally anchored rollback");
+  assert(
+    !replCommitted && replCommitCalls === 0,
+    "REPL committed state from an externally anchored rollback",
+  );
+
+  const configPath = join(home, "config.json");
+  const headlessObservations = {};
+  const headlessResult = await runAgentHeadless(
+    {
+      prompt: "/config llm.model=external-rollback-must-not-write",
+      resume: sessionId,
+      outputFormat: "json",
+      cwd: REPOSITORY_ROOT,
+    },
+    headlessDependencies(store, headlessObservations),
+  );
+  assert(
+    headlessResult.exitCode === 1 &&
+      headlessResult.sessionSnapshot?.verified === false,
+    "headless admitted an externally anchored rollback",
+  );
+  for (const seam of ["bootstrap", "hooks", "slashMacro", "mcp", "model"]) {
+    assert(
+      Number(headlessObservations[seam] || 0) === 0,
+      `headless touched ${seam} before anti-rollback refusal`,
+    );
+  }
+  assert(
+    !existsSync(configPath),
+    "headless wrote config before anti-rollback refusal",
+  );
+
+  const streamObservations = {};
+  const streamOutput = [];
+  async function* rollbackInput() {
+    streamObservations.input = Number(streamObservations.input || 0) + 1;
+    yield `${JSON.stringify({ text: streamInput })}\n`;
+  }
+  const streamResult = await runAgentHeadlessStream(
+    { sessionId, cwd: REPOSITORY_ROOT, expandFileRefs: false },
+    {
+      input: rollbackInput(),
+      writeOut: (line) => streamOutput.push(line),
+      writeErr: () => {},
+      sessionHasPersistedEvidence: store.sessionHasPersistedEvidence,
+      sessionExists: store.sessionExists,
+      readVerifiedEvents: store.readVerifiedEvents,
+      readVerifiedProjection: store.readVerifiedProjection,
+      bootstrap: async () => {
+        streamObservations.bootstrap =
+          Number(streamObservations.bootstrap || 0) + 1;
+        return { db: null };
+      },
+      executeHooksV2Event: async () => {
+        streamObservations.hooks = Number(streamObservations.hooks || 0) + 1;
+        return { blocked: false, decision: "allow" };
+      },
+      resolveAgentMcp: async () => {
+        streamObservations.mcp = Number(streamObservations.mcp || 0) + 1;
+        return null;
+      },
+      agentLoop: async function* () {
+        streamObservations.model = Number(streamObservations.model || 0) + 1;
+        yield { type: "response-complete", content: "must not execute" };
+      },
+      appendUserMessage: () => {
+        streamObservations.append = Number(streamObservations.append || 0) + 1;
+      },
+    },
+  );
+  assert(streamResult.exitCode === 1, "stream admitted an anchored rollback");
+  for (const seam of [
+    "input",
+    "bootstrap",
+    "hooks",
+    "mcp",
+    "model",
+    "append",
+  ]) {
+    assert(
+      Number(streamObservations[seam] || 0) === 0,
+      `stream touched ${seam} before anti-rollback refusal`,
+    );
+  }
+  const streamEvidence = streamOutput.join("");
+  assert(
+    streamEvidence.includes("CC_SESSION_HOST_SNAPSHOT_UNVERIFIED"),
+    "stream anti-rollback refusal omitted the stable host error code",
+  );
+
+  let backgroundError = null;
+  try {
+    await observeAuthenticatedBackgroundAttach(sessionId, home);
+  } catch (error) {
+    backgroundError = error;
+  }
+  const backgroundSnapshot = backgroundError?.sessionSnapshot || null;
+  assert(
+    backgroundError?.code === "CC_SESSION_HOST_SNAPSHOT_UNVERIFIED" &&
+      backgroundSnapshot?.verified === false,
+    "authenticated background attach admitted an anchored rollback",
+  );
+
+  const wsHarness = createWsHarness(
+    sessionId,
+    stale,
+    "independent-rollback-system-prompt",
+  );
+  await handleSessionResume(
+    wsHarness.server,
+    "host-consistency-independent-rollback",
+    {},
+    { sessionId },
+  );
+  const wsError = wsHarness.sent.at(-1);
+  assert(wsError?.type === "error", "WebSocket admitted an anchored rollback");
+  assert(
+    wsError?.payload?.code === "CC_SESSION_HOST_SNAPSHOT_UNVERIFIED",
+    "WebSocket anti-rollback refusal used the wrong error code",
+  );
+  assert(
+    wsHarness.resumeCalls() === 0 && wsHarness.emitted.length === 0,
+    "WebSocket resumed or emitted state from an anchored rollback",
+  );
+
+  const publicEvidence = JSON.stringify({
+    replSnapshot: replCandidate.sessionSnapshot,
+    headlessSnapshot: headlessResult.sessionSnapshot,
+    backgroundSnapshot,
+    wsError,
+  });
+  for (const secret of [original, advanced, stale, streamInput]) {
+    assert(
+      !publicEvidence.includes(secret) && !streamEvidence.includes(secret),
+      "anti-rollback refusal evidence leaked content",
+    );
+  }
+
+  return {
+    pass: true,
+    sessionId,
+    detectedCode: presenceError.code,
+    configuredHomeRollbackDetected: true,
+    independentAnchorSurvived: true,
+    replRefusedBeforeCommit: replCommitCalls === 0,
+    headlessRefusedBeforeSideEffects: true,
+    streamRefusedBeforeSideEffects: true,
+    configWritePrevented: true,
+    backgroundRefused: backgroundSnapshot.verified === false,
+    websocketRefusedBeforeResume: wsHarness.resumeCalls() === 0,
+    contentFreeFailureEvidence: true,
+  };
+}
+
 async function runTamperScenario(store, home) {
   process.env.CHAINLESSCHAIN_HOME = home;
   const sessionId = "session-host-consistency-tampered";
@@ -2375,6 +2702,8 @@ export async function runSessionHostConsistencyGate() {
   const started = performance.now();
   const resultFile = outputPath();
   const previousHome = process.env.CHAINLESSCHAIN_HOME;
+  const previousSecurityAnchorHome =
+    process.env.CHAINLESSCHAIN_SECURITY_ANCHOR_HOME;
   const result = {
     schema: RESULT_SCHEMA,
     startedAt: new Date().toISOString(),
@@ -2389,7 +2718,7 @@ export async function runSessionHostConsistencyGate() {
     arch: process.arch,
     node: process.version,
     proofScope:
-      "host-adapter-conformance-plus-ws-request-claim-mcp-recovery-and-missing-or-restored-conflict-fencing",
+      "host-adapter-conformance-plus-cross-process-lease-independent-anti-rollback-ws-request-claim-mcp-recovery-and-conflict-fencing",
     limitations: [...LIMITATIONS],
     scenarios: {},
     violations: [],
@@ -2422,6 +2751,10 @@ export async function runSessionHostConsistencyGate() {
     }
 
     root = mkdtempSync(join(tmpdir(), "cc-session-host-consistency-"));
+    process.env.CHAINLESSCHAIN_SECURITY_ANCHOR_HOME = join(
+      root,
+      "independent-machine-security-anchor",
+    );
     const store = await import("../src/harness/jsonl-session-store.js");
 
     const runScenario = async (name, task) => {
@@ -2454,6 +2787,9 @@ export async function runSessionHostConsistencyGate() {
     await runScenario("wsCrossProcessClaim", () =>
       runWsCrossProcessClaimScenario(store, join(root, "ws-cross-home")),
     );
+    await runScenario("crossProcessSessionLease", () =>
+      runCrossProcessLeaseScenario(join(root, "process-lease-home")),
+    );
     await runScenario("wsModelPeriodTamper", () =>
       runWsForgedSettlementDuringModelScenario(
         store,
@@ -2481,6 +2817,12 @@ export async function runSessionHostConsistencyGate() {
         join(root, "restored-transcript-conflict-home"),
       ),
     );
+    await runScenario("independentAntiRollbackRefusal", () =>
+      runIndependentAntiRollbackScenario(
+        store,
+        join(root, "independent-anti-rollback-home"),
+      ),
+    );
 
     for (const [name, scenario] of Object.entries(result.scenarios)) {
       if (scenario.pass !== true)
@@ -2499,6 +2841,12 @@ export async function runSessionHostConsistencyGate() {
   } finally {
     if (previousHome === undefined) delete process.env.CHAINLESSCHAIN_HOME;
     else process.env.CHAINLESSCHAIN_HOME = previousHome;
+    if (previousSecurityAnchorHome === undefined) {
+      delete process.env.CHAINLESSCHAIN_SECURITY_ANCHOR_HOME;
+    } else {
+      process.env.CHAINLESSCHAIN_SECURITY_ANCHOR_HOME =
+        previousSecurityAnchorHome;
+    }
     if (root && existsSync(root)) {
       try {
         rmSync(root, { recursive: true, force: true });
