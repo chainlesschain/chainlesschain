@@ -2,7 +2,7 @@
 
 > 分析日期：2026-08-01
 >
-> ChainlessChain 历史候选基线：`packages/cli` v0.162.194 release candidate；v0.162.190 / v0.162.191 / v0.162.192 未发布；v0.162.193 已被非权威通用 workflow 发布且不得视为门禁通过。当前收口基线见第 16 节：v0.162.197 已完成 exact-SHA npm 发布与公网回读。
+> ChainlessChain 历史候选基线：`packages/cli` v0.162.194 release candidate；v0.162.190 / v0.162.191 / v0.162.192 未发布；v0.162.193 已被非权威通用 workflow 发布且不得视为门禁通过。当前收口基线见第 17 节：v0.162.198 已完成 exact-SHA npm 发布与公网回读；v0.162.197 的历史闭环保留在第 16 节。
 >
 > Claude Code 参考基线：官方文档与 2.1.220 changelog（2026-07-25）
 >
@@ -1087,7 +1087,21 @@ clean implementation SHA 在 Windows x64 / Node `22.22.2` 上复跑全部 `mcp-c
    第 3 项末尾原列的“可执行字节身份绑定”已由 `99883589ad` 缩减：direct command 与已识别解释器 direct entrypoint 的 durable SHA-256 identity、显式 trust/retrust、dynamic launcher/direct shebang 拒绝及 Broker pre-spawn 复验已完成。现存任务是 identity store 独立 anti-rollback、re-attest 到 OS exec/open 的原子 pathname/byte 绑定、传递依赖/固定版本 package materialization，以及 Linux/macOS exact-SHA 恶意 race/长期 soak；不能继续把整个 direct executable identity 记为未实现。
 
 4. 完成 native generation transaction 与公开发行链：POSIX pointer、PowerShell installer 与 OTA 需要统一 durable WAL/phase/commit decision、restart recovery 与 stale-lock 处置；任意阶段 taskkill/断电/fsync 后必须确定恢复。随后补齐 Linux/macOS/Windows x64 + ARM64 目标二进制实机、notarization/Authenticode/Linux 签名、fresh install/upgrade/rollback 及 Homebrew/WinGet/公开 manifest/asset 回读，不能用 cross-target synthetic skip 代替六目标真实 host。
-5. 完成 P1 命令生命周期观察窗：在包含当前 OTLP 接线的发布版本上积累至少两个 minor cycle，报告 collector 覆盖与抽样偏差，并按 command 比较 legacy/replacement 用量后逐项决定兼容 alias 是否可移除；在此之前不得删除旧入口。
+5. 完成 P1 命令生命周期观察窗：`0.162.198` 是包含当前 OTLP 接线的首个明确公开观察基线；仍须从该版本起积累至少两个 minor cycle，报告 collector 覆盖与抽样偏差，并按 command 比较 legacy/replacement 用量后逐项决定兼容 alias 是否可移除；在此之前不得删除旧入口。
 6. 完成真实磁盘、pipe、终端与长期运行矩阵：`b4990364f2` 已关闭 EPIPE 直接 `process.exit(0)` 绕过 cleanup，并覆盖 single-turn、stream-json live input 与 REPL early-close 的本地故障注入；`f7c869946e` / `e306837d5c` 已把 production stream-json 登记资源接入所有可捕获 return/throw 的顶层 single-flight cleanup；`b03a2d112b` 已关闭 production single-turn headless 与 stream-json 机器输出路径的 stdout/stderr `write(false)`，包括有限 host queue、agent/input event drain barrier、最终输出结算与同步/异步 EPIPE；`4224729be8` 已把同一有限 gate 与 provider read pacing 接入 Agent REPL、legacy Chat REPL、background dashboard 及其 readline/logger/direct TTY 写入，并在 cleanup 恢复原始 Writable method。现存实现任务是统一且可量化的 cleanup deadline，以及 ENOSPC/EROFS 的 commit-state 语义。仍须覆盖真实 OS pipe、TTY、SSH、screen reader、Windows/macOS clipboard 与键盘布局、1,000+ turns、超大 MCP output、20+ 并发 Agent、FD/handle/orphan/worktree 清理和长期 soak。各矩阵必须报告 p95、RSS、I/O、FD/handle/process-descendant 差值与 cleanup deadline，不能只记录“测试最终通过”。
 
 当前总判定：**CLI npm 子范围 GO；完整产品实现仍为 NO-GO**。后续每关闭一个子项，都必须在本节追加 exact-SHA、矩阵范围、artifact 和未覆盖边界，不能改写历史失败，也不能用不同 SHA 的局部成功拼接授权。
+
+## 17. 2026-08-06 `0.162.198` 发布闭环与继续执行边界
+
+`0.162.198` 是第 16 节之后的 CLI-only 补丁发布，纳入 P0-1 canonical session workbench、P0-2 rewind/branch 宿主绑定、P0-3 发布可靠性跟进，以及 REPL/headless/provider/TTY 输出背压和跨平台 release fixture 修复。它不改变第 16.8 节产品级未完成项的授权边界。
+
+| 发布事实 | 状态 | exact-SHA / 公网证据 |
+| --- | --- | --- |
+| P0-1 / P0-2 / P0-3 合并 | **完成** | P0-1 [PR #89](https://github.com/chainlesschain/chainlesschain/pull/89)、P0-2 [PR #88](https://github.com/chainlesschain/chainlesschain/pull/88) 已进入 `main`；P0-3 follow-up [PR #90](https://github.com/chainlesschain/chainlesschain/pull/90) squash 为 `0b7a5471e7a9356708ae722cc084ca57457cec46`。 |
+| `0.162.198` 版本提交 | **完成** | [PR #92](https://github.com/chainlesschain/chainlesschain/pull/92) squash 为最终 release SHA `3c0f62fa17242cfa3123ab502a9bf5d1cbed8481`；该提交的 `packages/cli/package.json` 与 lockfile 均为 `0.162.198`。 |
+| 最终 SHA 三平台发布门 | **完成** | [CLI CI `31078499968`](https://github.com/chainlesschain/chainlesschain/actions/runs/31078499968) 的 Ubuntu/Windows/macOS unit、integration、E2E、package/dry-run 与三平台 `verify-cli` 成功；[CLI Strict Sandbox `31078499270`](https://github.com/chainlesschain/chainlesschain/actions/runs/31078499270) 三平台成功。两者 `headSha` 均为 `3c0f62fa17242cfa3123ab502a9bf5d1cbed8481`。 |
+| 不可变 tag、制品与 npm 发布 | **完成** | 轻量 tag `v-npm-0-162-198` 精确指向最终 release SHA。[发布 run `31081337370`](https://github.com/chainlesschain/chainlesschain/actions/runs/31081337370) 的 immutable tag identity、exact-SHA gate、完整测试、tarball、CycloneDX SBOM、Trusted Publishing、签名 provenance、registry 回读与 npmmirror 同步全部成功。 |
+| 独立公网逐字节回读 | **完成** | [readback `31082366544`](https://github.com/chainlesschain/chainlesschain/actions/runs/31082366544) 从 npm 重新下载 `chainlesschain@0.162.198`，验证签名 provenance、原发布 workflow/tag/SHA、不可变 artifact 与 registry tarball 字节一致。npm `latest` 已为 `0.162.198`；公开 tarball `sha1=0438e7ef25fbc089b0299a0a6d18a4a3f0d2cd25`，integrity 为 `sha512-TUL4ZYdl6rvZgwBN1J9QFwXo95r9KSER2lHiGKnbSG/SKwu/7iZw6vtaD9AYT2w2RdxuAvd2Sba1387ORA5DsA==`。 |
+
+因此 `0.162.198` 的 **CLI npm exact-SHA 子闭环为 GO**，并成为第 16.8(5) 项命令生命周期 observation window 的公开起点。该结论仍不授权第 16.8 节中的 cold-process formal scale、session anti-rollback/TOCTOU、真实恶意 Skill/MCP、native generation transaction、真实终端/磁盘/长期 soak、IDE Marketplace 或 Desktop/native 公开发行链；这些任务继续保持未完成，必须各自取得同范围的 exact-SHA 矩阵与 artifact。
