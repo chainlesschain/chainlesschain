@@ -517,7 +517,10 @@ function ioDelta(before, after) {
   return result;
 }
 
-function descendantCount(pid) {
+function descendantProcessSnapshot(pid) {
+  if (!Number.isSafeInteger(pid) || pid <= 0) {
+    return { available: false, pids: [] };
+  }
   if (process.platform === "win32") {
     const probe = spawnSync(
       "powershell.exe",
@@ -525,21 +528,74 @@ function descendantCount(pid) {
         "-NoProfile",
         "-NonInteractive",
         "-Command",
-        `$ErrorActionPreference='Stop'; (` +
-          `Get-CimInstance -ClassName Win32_Process ` +
-          `-Filter 'ParentProcessId = ${pid}' -ErrorAction Stop | ` +
-          `Measure-Object).Count`,
+        `$ErrorActionPreference='Stop'; $items=@(` +
+          `Get-CimInstance -ClassName Win32_Process -ErrorAction Stop | ` +
+          `Select-Object ProcessId,ParentProcessId); ` +
+          `ConvertTo-Json -Compress -InputObject $items`,
       ],
       { encoding: "utf8", windowsHide: true },
     );
-    const value = Number.parseInt(probe.stdout, 10);
-    return Number.isFinite(value) ? value : null;
+    if (probe.status !== 0) return { available: false, pids: [] };
+    try {
+      const processes = JSON.parse(probe.stdout.trim());
+      const childrenByParent = new Map();
+      for (const entry of Array.isArray(processes) ? processes : [processes]) {
+        const processId = Number(entry?.ProcessId);
+        const parentProcessId = Number(entry?.ParentProcessId);
+        if (
+          !Number.isSafeInteger(processId) ||
+          processId <= 0 ||
+          !Number.isSafeInteger(parentProcessId) ||
+          parentProcessId < 0
+        ) {
+          continue;
+        }
+        const children = childrenByParent.get(parentProcessId) || [];
+        children.push(processId);
+        childrenByParent.set(parentProcessId, children);
+      }
+      const descendants = [];
+      const pending = [...(childrenByParent.get(pid) || [])];
+      const seen = new Set();
+      while (pending.length > 0) {
+        const processId = pending.shift();
+        if (seen.has(processId)) continue;
+        seen.add(processId);
+        descendants.push(processId);
+        pending.push(...(childrenByParent.get(processId) || []));
+      }
+      return { available: true, pids: descendants };
+    } catch {
+      return { available: false, pids: [] };
+    }
   }
-  const probe = spawnSync("pgrep", ["-P", String(pid)], { encoding: "utf8" });
-  if (probe.status === 1) return 0;
-  return probe.status === 0
-    ? probe.stdout.trim().split(/\s+/u).filter(Boolean).length
-    : null;
+  const descendants = [];
+  const pending = [pid];
+  const seen = new Set([pid]);
+  while (pending.length > 0) {
+    const parentPid = pending.shift();
+    const probe = spawnSync("pgrep", ["-P", String(parentPid)], {
+      encoding: "utf8",
+    });
+    if (probe.status !== 0 && probe.status !== 1) {
+      return { available: false, pids: [] };
+    }
+    if (probe.status === 1) continue;
+    for (const value of probe.stdout.trim().split(/\s+/u).filter(Boolean)) {
+      const processId = Number.parseInt(value, 10);
+      if (!Number.isSafeInteger(processId) || processId <= 0) continue;
+      if (seen.has(processId)) continue;
+      seen.add(processId);
+      descendants.push(processId);
+      pending.push(processId);
+    }
+  }
+  return { available: true, pids: descendants };
+}
+
+function descendantCount(pid) {
+  const snapshot = descendantProcessSnapshot(pid);
+  return snapshot.available ? snapshot.pids.length : null;
 }
 
 function processExists(pid) {
@@ -1163,9 +1219,22 @@ async function duplexSoakScenario(
   const resourcesAfter = resourceCount(child.pid);
   const rssAfter = rssBytes(child.pid);
   const ioAfter = ioSnapshot(child.pid);
-  const descendantsBeforeExit = descendantCount(child.pid);
+  const descendantsBeforeExit = descendantProcessSnapshot(child.pid);
   child.stdin.end();
   const exit = await waitForExit(child, profile.cleanupDeadlineMs + 20_000);
+  const descendantRetirements = descendantsBeforeExit.available
+    ? await Promise.all(
+        descendantsBeforeExit.pids.map((processId) =>
+          waitForLocalProcessRetirement(processId, profile.cleanupDeadlineMs),
+        ),
+      )
+    : [];
+  const descendantsAfterExit = descendantProcessSnapshot(child.pid);
+  const allDescendantsRetired =
+    descendantsBeforeExit.available &&
+    descendantsAfterExit.available &&
+    descendantRetirements.every(Boolean) &&
+    descendantsAfterExit.pids.length === 0;
   const resourceGrowth =
     resourcesBefore.count == null || resourcesAfter.count == null
       ? null
@@ -1175,7 +1244,8 @@ async function duplexSoakScenario(
   const requiredMeasurementsAvailable =
     rssGrowthBytes != null &&
     resourceGrowth != null &&
-    descendantsBeforeExit != null;
+    descendantsBeforeExit.available &&
+    descendantsAfterExit.available;
   return {
     pass:
       exit.code === 0 &&
@@ -1184,7 +1254,7 @@ async function duplexSoakScenario(
       (resourceGrowth == null || resourceGrowth <= profile.maxResourceGrowth) &&
       (rssGrowthBytes == null ||
         rssGrowthBytes <= profile.maxRssGrowthMb * MIB) &&
-      (descendantsBeforeExit == null || descendantsBeforeExit === 0) &&
+      (!descendantsBeforeExit.available || allDescendantsRetired) &&
       (profile.mode !== "formal" || requiredMeasurementsAvailable),
     turns,
     configuredDurationSeconds: profile.durationSeconds,
@@ -1218,7 +1288,19 @@ async function duplexSoakScenario(
       requiredMeasurementsAvailable,
     },
     io: ioDelta(ioBefore, ioAfter),
-    processDescendants: { beforeExit: descendantsBeforeExit, afterExit: 0 },
+    processDescendants: {
+      measurementAvailable:
+        descendantsBeforeExit.available && descendantsAfterExit.available,
+      beforeExit: descendantsBeforeExit.available
+        ? descendantsBeforeExit.pids.length
+        : null,
+      observed: descendantsBeforeExit.pids.length,
+      retired: descendantRetirements.filter(Boolean).length,
+      afterExit: descendantsAfterExit.available
+        ? descendantsAfterExit.pids.length
+        : null,
+      allRetired: allDescendantsRetired,
+    },
     exit,
     results: {
       count: resultCount,
