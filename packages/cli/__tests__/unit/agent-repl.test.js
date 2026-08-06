@@ -189,6 +189,36 @@ describe("agent-repl module exports", () => {
     const mod = await import("../../src/repl/agent-repl.js");
     expect(typeof mod.startAgentRepl).toBe("function");
   }, 15000);
+
+  it("pauses core event consumption until the REPL output drain settles", async () => {
+    const { agentLoop } = await import("../../src/repl/agent-repl.js");
+    let produced = 0;
+    let releaseDrain;
+    const drain = new Promise((resolve) => {
+      releaseDrain = resolve;
+    });
+    const _coreLoop = async function* () {
+      produced += 1;
+      yield { type: "iteration-warning", message: "first" };
+      produced += 1;
+      yield { type: "response-complete", content: "done" };
+    };
+    const writes = [];
+    const running = agentLoop([], {
+      _coreLoop,
+      writeOut: (chunk) => {
+        writes.push(String(chunk));
+        return false;
+      },
+      waitForOutput: () => drain,
+    });
+
+    await vi.waitFor(() => expect(produced).toBe(1));
+    releaseDrain();
+    await expect(running).resolves.toMatchObject({ content: "done" });
+    expect(produced).toBe(2);
+    expect(writes.join("")).toContain("first");
+  });
 });
 
 describe("agent-repl TOOLS definition", () => {
@@ -579,7 +609,7 @@ describe("agent-repl thin wrapper contracts", () => {
 
     expect(guardStart).toBeGreaterThanOrEqual(0);
     expect(startupStart).toBeGreaterThan(guardStart);
-    expect(guard).toContain("process.exitCode = 0;");
+    expect(guard).toContain('error.code === "EPIPE" ? 0 : 1');
     expect(guard).toContain("_replRl && _replCloseReady");
     expect(guard).not.toContain("process.exit(");
     expect(closeHandler).toBeGreaterThan(startupStart);

@@ -8320,6 +8320,42 @@ function _ollamaInitState() {
   };
 }
 
+function _streamUiCallbacks(onToken, onThinking) {
+  let pending = [];
+  const capture = (callback) =>
+    typeof callback === "function"
+      ? (value) => {
+          try {
+            const result = callback(value);
+            if (result && typeof result.then === "function") {
+              pending.push(Promise.resolve(result));
+            }
+          } catch (error) {
+            pending.push(Promise.reject(error));
+          }
+        }
+      : callback;
+  return {
+    onToken: capture(onToken),
+    onThinking: capture(onThinking),
+    async settle() {
+      if (pending.length === 0) return;
+      const current = pending;
+      pending = [];
+      const outcomes = await Promise.allSettled(current);
+      const fatal = outcomes.find(
+        (outcome) =>
+          outcome.status === "rejected" &&
+          outcome.reason?.isOutputBackpressureFailure === true,
+      );
+      if (fatal) throw fatal.reason;
+      // Generic UI callback failures retain their historical best-effort
+      // semantics. Branded output failures are lifecycle failures and abort the
+      // provider stream instead of allowing its terminal queue to grow.
+    },
+  };
+}
+
 function _ollamaReduceLine(state, line, onToken) {
   const s = (line || "").trim();
   if (!s) return state;
@@ -8390,6 +8426,7 @@ export function _accumulateOllamaStream(lines, onToken) {
  * showing raw errors"). Pure + exported for unit tests.
  */
 export function _streamErrorDisposition(err, signal, partialText) {
+  if (err?.isOutputBackpressureFailure === true) return "rethrow";
   if (isAbortError(err)) return "rethrow";
   if (signal && signal.aborted) return "rethrow";
   if (typeof partialText === "string" && partialText.trim()) return "preserve";
@@ -8604,6 +8641,7 @@ async function _chatOllamaStreaming(
     throw new Error(await formatProviderResponseError("ollama", response));
   }
   const state = _ollamaInitState();
+  const ui = _streamUiCallbacks(onToken);
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let buf = "";
@@ -8616,11 +8654,15 @@ async function _chatOllamaStreaming(
       buf += decoder.decode(value, { stream: true });
       let idx;
       while ((idx = buf.indexOf("\n")) >= 0) {
-        _ollamaReduceLine(state, buf.slice(0, idx), onToken);
+        _ollamaReduceLine(state, buf.slice(0, idx), ui.onToken);
+        await ui.settle();
         buf = buf.slice(idx + 1);
       }
     }
-    if (buf.trim()) _ollamaReduceLine(state, buf, onToken);
+    if (buf.trim()) {
+      _ollamaReduceLine(state, buf, ui.onToken);
+      await ui.settle();
+    }
   } catch (err) {
     if (_streamErrorDisposition(err, signal, state.content) === "rethrow")
       throw err;
@@ -8790,6 +8832,7 @@ async function _chatAnthropicStreaming(
     throw new Error(await formatProviderResponseError("anthropic", response));
   }
   const state = _anthropicInitState();
+  const ui = _streamUiCallbacks(onToken, onThinking);
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let buf = "";
@@ -8802,10 +8845,15 @@ async function _chatAnthropicStreaming(
       buf += decoder.decode(value, { stream: true });
       const lines = buf.split("\n");
       buf = lines.pop() || "";
-      for (const line of lines)
-        _anthropicReduceLine(state, line, onToken, onThinking);
+      for (const line of lines) {
+        _anthropicReduceLine(state, line, ui.onToken, ui.onThinking);
+        await ui.settle();
+      }
     }
-    if (buf.trim()) _anthropicReduceLine(state, buf, onToken, onThinking);
+    if (buf.trim()) {
+      _anthropicReduceLine(state, buf, ui.onToken, ui.onThinking);
+      await ui.settle();
+    }
   } catch (err) {
     if (_streamErrorDisposition(err, signal, state.text) === "rethrow")
       throw err;
@@ -8942,6 +8990,7 @@ async function _chatOpenAIStreaming(
     throw new Error(await formatProviderResponseError(provider, response));
   }
   const state = _openaiInitState();
+  const ui = _streamUiCallbacks(onToken);
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let buf = "";
@@ -8954,9 +9003,15 @@ async function _chatOpenAIStreaming(
       buf += decoder.decode(value, { stream: true });
       const lines = buf.split("\n");
       buf = lines.pop() || "";
-      for (const line of lines) _openaiReduceLine(state, line, onToken);
+      for (const line of lines) {
+        _openaiReduceLine(state, line, ui.onToken);
+        await ui.settle();
+      }
     }
-    if (buf.trim()) _openaiReduceLine(state, buf, onToken);
+    if (buf.trim()) {
+      _openaiReduceLine(state, buf, ui.onToken);
+      await ui.settle();
+    }
   } catch (err) {
     if (_streamErrorDisposition(err, signal, state.text) === "rethrow")
       throw err;

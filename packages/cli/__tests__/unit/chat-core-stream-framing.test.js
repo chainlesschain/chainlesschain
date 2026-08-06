@@ -69,4 +69,49 @@ describe("chat-core — stream line framing across chunk boundaries", () => {
     expect(tokens.join("")).toBe("Hello World");
     expect(full).toBe("Hello World");
   });
+
+  it("streamOpenAI waits for an async terminal sink before reading more", async () => {
+    const { streamOpenAI } = await import("../../src/lib/chat-core.js");
+    const encoder = new TextEncoder();
+    const chunks = [
+      'data: {"choices":[{"delta":{"content":"one"}}]}\n',
+      'data: {"choices":[{"delta":{"content":"two"}}]}\n',
+    ];
+    let index = 0;
+    let reads = 0;
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      body: {
+        getReader: () => ({
+          read: async () => {
+            reads += 1;
+            return index < chunks.length
+              ? { done: false, value: encoder.encode(chunks[index++]) }
+              : { done: true, value: undefined };
+          },
+        }),
+      },
+    });
+    let releaseFirst;
+    const firstDrain = new Promise((resolve) => {
+      releaseFirst = resolve;
+    });
+    const tokens = [];
+    const running = streamOpenAI(
+      [{ role: "user", content: "hi" }],
+      "gpt-4o",
+      "https://api.openai.com/v1",
+      "sk-test",
+      (token) => {
+        tokens.push(token);
+        return tokens.length === 1 ? firstDrain : undefined;
+      },
+    );
+
+    await vi.waitFor(() => expect(tokens).toEqual(["one"]));
+    expect(reads).toBe(1);
+    releaseFirst();
+    await expect(running).resolves.toBe("onetwo");
+    expect(tokens).toEqual(["one", "two"]);
+  });
 });

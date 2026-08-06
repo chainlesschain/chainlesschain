@@ -52,6 +52,8 @@ import {
   appendTokenUsage,
   appendEvent,
 } from "../harness/jsonl-session-store.js";
+import { installPipeSafety } from "../runtime/pipe-safety.js";
+import { installOutputBackpressure } from "../runtime/output-backpressure.js";
 
 const SLASH_COMMANDS = {
   "/exit": "Exit the chat",
@@ -96,6 +98,8 @@ export async function startChatRepl(options = {}) {
   const apiKey = options.apiKey || null;
 
   const messages = [];
+  const stdout = options.stdout || process.stdout;
+  const stderr = options.stderr || process.stderr;
 
   // Phase J — attach chat REPL to a JSONL session so token_usage is recorded
   // and `cc session usage` / `usage.*` WS routes show real numbers.
@@ -112,12 +116,42 @@ export async function startChatRepl(options = {}) {
     }
   }
 
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-    prompt: chalk.green("you> "),
-    terminal: true,
+  let rl = null;
+  let closing = false;
+  let cleanupStarted = false;
+  let outputFailure = null;
+  const requestOutputClose = (error) => {
+    if (error && !outputFailure) outputFailure = error;
+    if (error) process.exitCode = error.code === "EPIPE" ? 0 : 1;
+    if (closing) return;
+    closing = true;
+    rl?.close?.();
+  };
+  const outputFlow = installOutputBackpressure({
+    stdout,
+    stderr,
+    maxQueuedBytes: options.outputBackpressureMaxBytes,
+    onFailure: requestOutputClose,
   });
+  const disposePipeSafety = installPipeSafety([stdout, stderr], () =>
+    requestOutputClose(
+      Object.assign(new Error("chat REPL output pipe closed"), {
+        code: "EPIPE",
+      }),
+    ),
+  );
+  try {
+    rl = readline.createInterface({
+      input: options.input || process.stdin,
+      output: stdout,
+      prompt: chalk.green("you> "),
+      terminal: true,
+    });
+  } catch (error) {
+    disposePipeSafety();
+    outputFlow.restore();
+    throw error;
+  }
 
   logger.log(chalk.bold("\nChainlessChain AI Chat"));
   logger.log(chalk.gray(`Model: ${model}  Provider: ${provider}`));
@@ -127,6 +161,11 @@ export async function startChatRepl(options = {}) {
   rl.prompt();
 
   rl.on("line", async (input) => {
+    try {
+      await outputFlow.wait();
+    } catch {
+      return;
+    }
     const trimmed = input.trim();
 
     if (!trimmed) {
@@ -225,11 +264,14 @@ export async function startChatRepl(options = {}) {
     messages.push({ role: "user", content: userContent });
 
     // Stream the response
-    process.stdout.write(chalk.blue("ai>  "));
+    stdout.write(chalk.blue("ai>  "));
 
     try {
       let response;
-      const onToken = (token) => process.stdout.write(token);
+      const onToken = (token) => {
+        const accepted = stdout.write(token);
+        return accepted === false ? outputFlow.wait() : undefined;
+      };
       let capturedUsage = null;
       const onUsage = (u) => {
         capturedUsage = u;
@@ -246,7 +288,7 @@ export async function startChatRepl(options = {}) {
         const timeoutIn =
           timeoutMs > ms ? Math.round((timeoutMs - ms) / 1000) : 0;
         const suffix = timeoutIn > 0 ? ` · will time out in ${timeoutIn}s` : "";
-        process.stderr.write(
+        stderr.write(
           `\x1b[2m  ⏳ waiting for API response (silent ${silent}s)${suffix}…\x1b[0m\n`,
         );
       };
@@ -310,7 +352,7 @@ export async function startChatRepl(options = {}) {
         );
       }
 
-      process.stdout.write("\n\n");
+      stdout.write("\n\n");
       messages.push({ role: "assistant", content: response });
 
       if (sessionId) {
@@ -331,14 +373,37 @@ export async function startChatRepl(options = {}) {
         }
       }
     } catch (err) {
-      process.stdout.write("\n");
+      if (err?.isOutputBackpressureFailure === true) return;
+      stdout.write("\n");
       logger.error(`Error: ${err.message}`);
     }
 
+    try {
+      await outputFlow.wait();
+    } catch {
+      return;
+    }
     rl.prompt();
   });
 
-  rl.on("close", () => {
-    process.exit(0);
+  rl.on("close", async () => {
+    if (cleanupStarted) return;
+    cleanupStarted = true;
+    closing = true;
+    if (!outputFailure) {
+      try {
+        await outputFlow.wait();
+      } catch (error) {
+        outputFailure ||= error;
+      }
+    }
+    const exitCode = outputFailure
+      ? outputFailure.code === "EPIPE"
+        ? 0
+        : 1
+      : 0;
+    disposePipeSafety();
+    outputFlow.restore();
+    process.exit(exitCode);
   });
 }

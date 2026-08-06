@@ -1,8 +1,11 @@
-import { Writable } from "node:stream";
+import readline from "node:readline";
+import { PassThrough, Writable } from "node:stream";
 import { describe, expect, it, vi } from "vitest";
 import {
   createHeadlessOutputBackpressure,
   createWritableBackpressureGate,
+  installOutputBackpressure,
+  installWritableBackpressureGate,
 } from "../../src/runtime/output-backpressure.js";
 import { runAgentHeadless } from "../../src/runtime/headless-runner.js";
 import { runAgentHeadlessStream } from "../../src/runtime/headless-stream.js";
@@ -132,6 +135,87 @@ describe("output backpressure", () => {
     expect(gate.write("a")).toBe(false);
     await expect(gate.wait()).rejects.toMatchObject({ code: "EPIPE", cause });
     gate.dispose();
+  });
+
+  it("gates transitive readline writes and restores the Writable method", async () => {
+    const input = new PassThrough();
+    const output = new ManualWritable();
+    output.isTTY = true;
+    output.columns = 80;
+    const originalWrite = output.write;
+    const installed = installWritableBackpressureGate(output, {
+      label: "tty",
+    });
+    const rl = readline.createInterface({ input, output, terminal: true });
+
+    rl.setPrompt("one> ");
+    rl.prompt();
+    rl.setPrompt("two> ");
+    rl.prompt();
+    expect(output.chunks).toHaveLength(1);
+    expect(installed.snapshot()).toMatchObject({
+      blocked: true,
+    });
+    expect(installed.snapshot().queuedChunks).toBeGreaterThan(0);
+
+    const drained = installed.wait();
+    await releaseUntil(
+      output,
+      () =>
+        installed.snapshot().blocked === false &&
+        installed.snapshot().queuedChunks === 0,
+    );
+    await drained;
+    rl.close();
+    installed.restore();
+    expect(output.write).toBe(originalWrite);
+  });
+
+  it("settles discarded write callbacks with the overflow failure", async () => {
+    const stream = new ManualWritable();
+    const gate = createWritableBackpressureGate(stream, {
+      maxQueuedBytes: 1,
+    });
+    const queuedCallback = vi.fn();
+    const overflowCallback = vi.fn();
+
+    gate.write("a");
+    gate.write("b", queuedCallback);
+    gate.write("c", overflowCallback);
+    await expect(gate.wait()).rejects.toMatchObject({
+      code: "CC_OUTPUT_BACKPRESSURE_OVERFLOW",
+    });
+    await tick();
+    expect(queuedCallback).toHaveBeenCalledWith(
+      expect.objectContaining({ code: "CC_OUTPUT_BACKPRESSURE_OVERFLOW" }),
+    );
+    expect(overflowCallback).toHaveBeenCalledWith(
+      expect.objectContaining({ code: "CC_OUTPUT_BACKPRESSURE_OVERFLOW" }),
+    );
+    gate.dispose();
+  });
+
+  it("uses one restorable gate when stdout and stderr share a stream", async () => {
+    const output = new ManualWritable();
+    const originalWrite = output.write;
+    const flow = installOutputBackpressure({ stdout: output, stderr: output });
+
+    output.write("a");
+    output.write("b");
+    expect(output.chunks).toEqual(["a"]);
+    const sharedSnapshot = flow.snapshot();
+    expect(sharedSnapshot.stdout).toBe(sharedSnapshot.stderr);
+
+    const drained = flow.wait();
+    await releaseUntil(
+      output,
+      () =>
+        flow.snapshot().stdout.blocked === false &&
+        flow.snapshot().stdout.queuedChunks === 0,
+    );
+    await drained;
+    flow.restore();
+    expect(output.write).toBe(originalWrite);
   });
 
   it("keeps injected writers byte-compatible and immediately settled", async () => {

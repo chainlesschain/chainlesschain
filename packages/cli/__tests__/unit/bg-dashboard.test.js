@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { PassThrough, Writable } from "node:stream";
 import {
   groupKey,
   buildDashboardModel,
@@ -9,6 +10,7 @@ import {
   runBgDashboard,
   FILTERS,
   GROUP_TITLES,
+  defaultDashboardIo,
 } from "../../src/repl/bg-dashboard.js";
 
 const NOW = 1_000_000;
@@ -195,6 +197,46 @@ describe("bg-dashboard controller", () => {
       },
     };
   }
+
+  it("holds dashboard writes behind a real terminal drain", async () => {
+    class SlowOutput extends Writable {
+      constructor() {
+        super({ highWaterMark: 1 });
+        this.chunks = [];
+        this.callbacks = [];
+        this.isTTY = true;
+      }
+      _write(chunk, _encoding, callback) {
+        this.chunks.push(chunk.toString());
+        this.callbacks.push(callback);
+      }
+      releaseOne() {
+        this.callbacks.shift()?.();
+      }
+    }
+    const input = new PassThrough();
+    input.isTTY = true;
+    input.setRawMode = vi.fn();
+    const stdout = new SlowOutput();
+    const stderr = new Writable({
+      write(_chunk, _encoding, callback) {
+        callback();
+      },
+    });
+    const io = defaultDashboardIo({ input, stdout, stderr });
+
+    io.write("first");
+    io.write("second");
+    expect(stdout.chunks).toEqual(["first"]);
+    const settled = io.wait();
+    while (stdout.callbacks.length > 0) {
+      stdout.releaseOne();
+      await new Promise((resolve) => setImmediate(resolve));
+    }
+    await settled;
+    expect(stdout.chunks).toEqual(["first", "second"]);
+    io.dispose();
+  });
 
   it("navigates, stops the selected agent, and quits", async () => {
     const io = fakeIo();

@@ -90,6 +90,21 @@ function _cachedPromptTokens(usage) {
   return 0;
 }
 
+async function _deliverToken(onToken, token, guard) {
+  if (typeof onToken !== "function") return;
+  // Terminal backpressure is not provider silence. Suspend the network stall
+  // timer while the UI sink drains, then re-arm it before reading more bytes.
+  guard.stop();
+  try {
+    await onToken(token);
+  } catch (error) {
+    if (error?.isOutputBackpressureFailure === true) throw error;
+    // Generic UI callbacks retain their historical best-effort semantics.
+  } finally {
+    guard.bump();
+  }
+}
+
 /**
  * Stream a response from Ollama.
  * If `onUsage` is provided, it's called with `{inputTokens, outputTokens}`
@@ -156,7 +171,7 @@ export async function streamOllama(
           const json = JSON.parse(line);
           if (json.message?.content) {
             fullResponse += json.message.content;
-            onToken(json.message.content);
+            await _deliverToken(onToken, json.message.content, guard);
           }
           if (json.done && onUsage) {
             const inputTokens = Number(json.prompt_eval_count) || 0;
@@ -165,7 +180,8 @@ export async function streamOllama(
               onUsage({ inputTokens, outputTokens });
             }
           }
-        } catch {
+        } catch (error) {
+          if (error?.isOutputBackpressureFailure === true) throw error;
           // Partial JSON, skip
         }
       }
@@ -257,7 +273,7 @@ export async function streamOpenAI(
             const content = json.choices?.[0]?.delta?.content;
             if (content) {
               fullResponse += content;
-              onToken(content);
+              await _deliverToken(onToken, content, guard);
             }
             if (json.usage && onUsage) {
               // Split cached prompt tokens out of prompt_tokens so cc cost
@@ -270,7 +286,8 @@ export async function streamOpenAI(
                 onUsage({ inputTokens, outputTokens, cacheReadTokens });
               }
             }
-          } catch {
+          } catch (error) {
+            if (error?.isOutputBackpressureFailure === true) throw error;
             // Partial data
           }
         }
@@ -377,7 +394,7 @@ export async function streamAnthropic(
             const delta = obj.delta?.text;
             if (delta) {
               fullResponse += delta;
-              onToken(delta);
+              await _deliverToken(onToken, delta, guard);
             }
           } else if (obj.type === "message_start") {
             const u = obj.message?.usage || {};
@@ -390,7 +407,8 @@ export async function streamAnthropic(
           } else if (obj.type === "message_delta") {
             outputTokens = Number(obj.usage?.output_tokens) || outputTokens;
           }
-        } catch {
+        } catch (error) {
+          if (error?.isOutputBackpressureFailure === true) throw error;
           /* skip malformed */
         }
       }

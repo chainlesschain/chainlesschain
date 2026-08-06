@@ -124,6 +124,24 @@ describe("chatWithTools — streaming connection-drop resilience", () => {
     );
   };
 
+  const stubFiniteFetch = (chunks) => {
+    let i = 0;
+    let reads = 0;
+    const reader = {
+      read: async () => {
+        reads += 1;
+        return i < chunks.length
+          ? { done: false, value: enc.encode(chunks[i++]) }
+          : { done: true, value: undefined };
+      },
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({ ok: true, body: { getReader: () => reader } })),
+    );
+    return () => reads;
+  };
+
   const baseOpts = (over = {}) => ({
     provider: "openai",
     model: "gpt-4o-mini",
@@ -154,6 +172,49 @@ describe("chatWithTools — streaming connection-drop resilience", () => {
     // ...and the finalized message keeps that partial text + a truncation flag.
     expect(out.message.content).toBe("Hello wor");
     expect(out.message._truncated).toBe(true);
+  });
+
+  it("does not read the next provider chunk until an async token sink settles", async () => {
+    const reads = stubFiniteFetch([
+      'data: {"choices":[{"delta":{"content":"one"}}]}\n',
+      'data: {"choices":[{"delta":{"content":"two"}}]}\n',
+    ]);
+    const tokens = [];
+    let releaseFirst;
+    const firstSettled = new Promise((resolve) => {
+      releaseFirst = resolve;
+    });
+    const running = chatWithTools(
+      [{ role: "user", content: "hi" }],
+      baseOpts({
+        onToken: (token) => {
+          tokens.push(token);
+          return tokens.length === 1 ? firstSettled : undefined;
+        },
+      }),
+    );
+
+    await vi.waitFor(() => expect(tokens).toEqual(["one"]));
+    expect(reads()).toBe(1);
+    releaseFirst();
+    const out = await running;
+    expect(tokens).toEqual(["one", "two"]);
+    expect(out.message.content).toBe("onetwo");
+  });
+
+  it("does not downgrade a terminal backpressure failure to partial success", async () => {
+    stubFiniteFetch(['data: {"choices":[{"delta":{"content":"partial"}}]}\n']);
+    const outputError = Object.assign(new Error("terminal queue overflow"), {
+      code: "CC_OUTPUT_BACKPRESSURE_OVERFLOW",
+      isOutputBackpressureFailure: true,
+    });
+
+    await expect(
+      chatWithTools(
+        [{ role: "user", content: "hi" }],
+        baseOpts({ onToken: () => Promise.reject(outputError) }),
+      ),
+    ).rejects.toBe(outputError);
   });
 
   it("drops a half-streamed tool_call when preserving a truncated answer", async () => {

@@ -1925,6 +1925,24 @@ async function runAgentHeadlessInWorkspace(
       const suffix = retryIn > 0 ? ` · will retry in ${retryIn}s` : "";
       writeErr(`  ⏳ waiting for API response (silent ${silent}s)${suffix}…\n`);
     },
+    onProviderFallback: (info) => {
+      if (isStream) {
+        emitStream({
+          type: "raw",
+          subtype: "provider_fallback",
+          text:
+            info.message || `provider switched from ${info.from} to ${info.to}`,
+          from: info.from,
+          to: info.to,
+          reason: info.reason,
+          session_id: sessionId,
+        });
+      } else {
+        writeErr(
+          `[provider] ${info.message || `switched from ${info.from} to ${info.to}`}\n`,
+        );
+      }
+    },
   };
 
   // Goal binding (cc goal, Phase 1). `--goal <id>` binds explicitly; `--goal`

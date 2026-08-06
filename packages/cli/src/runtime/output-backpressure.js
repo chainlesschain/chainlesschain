@@ -5,6 +5,7 @@ const DEFAULT_MAX_QUEUED_BYTES = 1024 * 1024;
 function outputError(code, message, details = {}) {
   const error = new Error(message);
   error.code = code;
+  error.isOutputBackpressureFailure = true;
   Object.assign(error, details);
   return error;
 }
@@ -34,6 +35,9 @@ export function createWritableBackpressureGate(
   if (!stream || typeof stream.write !== "function") {
     throw new TypeError(`${label} must be a writable stream`);
   }
+  // Capture the native writer before a caller optionally installs this gate as
+  // `stream.write`. Looking it up dynamically would recurse after installation.
+  const nativeWrite = stream.write.bind(stream);
   const queueLimit =
     Number.isSafeInteger(maxQueuedBytes) && maxQueuedBytes > 0
       ? maxQueuedBytes
@@ -47,6 +51,17 @@ export function createWritableBackpressureGate(
   let rejectWait = null;
   let disposed = false;
   let backpressureCount = 0;
+
+  const notifyCallback = (callback, error) => {
+    if (typeof callback !== "function") return;
+    queueMicrotask(() => {
+      try {
+        callback(error);
+      } catch {
+        // A write callback is observational and cannot replace gate failure.
+      }
+    });
+  };
 
   const ensureWait = () => {
     if (waitPromise) return;
@@ -70,8 +85,9 @@ export function createWritableBackpressureGate(
     if (failure) return;
     failure = error;
     blocked = false;
-    queue.length = 0;
+    const discarded = queue.splice(0);
     queuedBytes = 0;
+    for (const entry of discarded) notifyCallback(entry.callback, error);
     ensureWait();
     rejectWait?.(error);
     try {
@@ -80,18 +96,25 @@ export function createWritableBackpressureGate(
       // Failure notification must never replace the original stream error.
     }
   };
-  const writeNative = (chunk, encoding) => {
+  const writeNative = (chunk, encoding, callback) => {
     let accepted;
     try {
-      accepted = stream.write(chunk, encoding);
+      accepted =
+        typeof callback === "function"
+          ? encoding != null
+            ? nativeWrite(chunk, encoding, callback)
+            : nativeWrite(chunk, callback)
+          : encoding != null
+            ? nativeWrite(chunk, encoding)
+            : nativeWrite(chunk);
     } catch (error) {
-      fail(
-        outputError(
-          error?.code === "EPIPE" ? "EPIPE" : "CC_OUTPUT_STREAM_ERROR",
-          `${label} write failed: ${error?.message || error}`,
-          { cause: error },
-        ),
+      const wrapped = outputError(
+        error?.code === "EPIPE" ? "EPIPE" : "CC_OUTPUT_STREAM_ERROR",
+        `${label} write failed: ${error?.message || error}`,
+        { cause: error },
       );
+      notifyCallback(callback, wrapped);
+      fail(wrapped);
       return false;
     }
     if (accepted === false) {
@@ -107,7 +130,7 @@ export function createWritableBackpressureGate(
     while (queue.length > 0 && !blocked && !failure) {
       const entry = queue.shift();
       queuedBytes -= entry.bytes;
-      writeNative(entry.chunk, entry.encoding);
+      writeNative(entry.chunk, entry.encoding, entry.callback);
     }
     if (!blocked && queue.length === 0 && !failure) finishWait();
   };
@@ -125,24 +148,38 @@ export function createWritableBackpressureGate(
   stream.on?.("error", onError);
 
   return {
-    write(chunk, encoding) {
-      if (disposed || failure) return false;
+    write(chunk, encoding, callback) {
+      if (typeof encoding === "function") {
+        callback = encoding;
+        encoding = undefined;
+      }
+      if (disposed || failure) {
+        notifyCallback(
+          callback,
+          failure ||
+            outputError(
+              "CC_OUTPUT_BACKPRESSURE_DISPOSED",
+              `${label} is no longer writable`,
+            ),
+        );
+        return false;
+      }
       if (!blocked && queue.length === 0) {
-        return writeNative(chunk, encoding);
+        return writeNative(chunk, encoding, callback);
       }
 
       const bytes = chunkBytes(chunk, encoding);
       if (queuedBytes + bytes > queueLimit) {
-        fail(
-          outputError(
-            "CC_OUTPUT_BACKPRESSURE_OVERFLOW",
-            `${label} backpressure queue exceeded ${queueLimit} bytes`,
-            { queuedBytes, incomingBytes: bytes, maxQueuedBytes: queueLimit },
-          ),
+        const overflow = outputError(
+          "CC_OUTPUT_BACKPRESSURE_OVERFLOW",
+          `${label} backpressure queue exceeded ${queueLimit} bytes`,
+          { queuedBytes, incomingBytes: bytes, maxQueuedBytes: queueLimit },
         );
+        notifyCallback(callback, overflow);
+        fail(overflow);
         return false;
       }
-      queue.push({ chunk, encoding, bytes });
+      queue.push({ chunk, encoding, callback, bytes });
       queuedBytes += bytes;
       ensureWait();
       return false;
@@ -179,6 +216,106 @@ export function createWritableBackpressureGate(
           ),
         );
       }
+    },
+  };
+}
+
+/**
+ * Install a gate directly on a Writable's `write` method. This is intended for
+ * readline/TTY owners whose transitive writers all hold the same stream object
+ * and cannot each be converted to an async writer. The original method shape
+ * is restored exactly when `restore()` runs.
+ */
+export function installWritableBackpressureGate(stream, options = {}) {
+  const hadOwnWrite = Object.prototype.hasOwnProperty.call(stream, "write");
+  const ownWriteDescriptor = hadOwnWrite
+    ? Object.getOwnPropertyDescriptor(stream, "write")
+    : null;
+  const gate = createWritableBackpressureGate(stream, options);
+  const installedWrite = (chunk, encoding, callback) =>
+    gate.write(chunk, encoding, callback);
+  try {
+    Object.defineProperty(stream, "write", {
+      configurable: true,
+      enumerable: ownWriteDescriptor?.enumerable ?? false,
+      writable: true,
+      value: installedWrite,
+    });
+  } catch (cause) {
+    gate.dispose();
+    throw outputError(
+      "CC_OUTPUT_BACKPRESSURE_INSTALL_FAILED",
+      `${options.label || "output"} write method cannot be gated`,
+      { cause },
+    );
+  }
+
+  let restored = false;
+  return {
+    wait: gate.wait,
+    snapshot: gate.snapshot,
+    restore() {
+      if (restored) return;
+      restored = true;
+      if (stream.write === installedWrite) {
+        if (hadOwnWrite) {
+          Object.defineProperty(stream, "write", ownWriteDescriptor);
+        } else {
+          Reflect.deleteProperty(stream, "write");
+        }
+      }
+      gate.dispose();
+    },
+  };
+}
+
+/** Install coordinated gates on stdout and stderr for a long-lived TTY owner. */
+export function installOutputBackpressure({
+  stdout = process.stdout,
+  stderr = process.stderr,
+  maxQueuedBytes,
+  onFailure,
+} = {}) {
+  if (stdout === stderr) {
+    const shared = installWritableBackpressureGate(stdout, {
+      label: "output",
+      maxQueuedBytes,
+      onFailure,
+    });
+    return {
+      wait: shared.wait,
+      snapshot: () => {
+        const current = shared.snapshot();
+        return { stdout: current, stderr: current };
+      },
+      restore: shared.restore,
+    };
+  }
+  const out = installWritableBackpressureGate(stdout, {
+    label: "stdout",
+    maxQueuedBytes,
+    onFailure,
+  });
+  let err;
+  try {
+    err = installWritableBackpressureGate(stderr, {
+      label: "stderr",
+      maxQueuedBytes,
+      onFailure,
+    });
+  } catch (error) {
+    out.restore();
+    throw error;
+  }
+  let restored = false;
+  return {
+    wait: () => Promise.all([out.wait(), err.wait()]),
+    snapshot: () => ({ stdout: out.snapshot(), stderr: err.snapshot() }),
+    restore() {
+      if (restored) return;
+      restored = true;
+      out.restore();
+      err.restore();
     },
   };
 }

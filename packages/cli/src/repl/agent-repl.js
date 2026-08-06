@@ -127,6 +127,7 @@ import { expandFileRefsAsync } from "../runtime/file-ref-expander.js";
 import { prepareVisionTurn, resolveVisionLlm } from "../lib/image-input.js";
 import { composeSystemPrompt } from "../runtime/system-prompt.js";
 import { installPipeSafety } from "../runtime/pipe-safety.js";
+import { installOutputBackpressure } from "../runtime/output-backpressure.js";
 import {
   makeFallbackChatFn,
   normalizeFallbackModels,
@@ -324,6 +325,9 @@ async function executeTool(name, args) {
  * unit-testable via the `options._coreLoop` injection seam.
  */
 export async function agentLoop(messages, options) {
+  const writeOut =
+    options.writeOut || ((text) => process.stdout.write(String(text)));
+  const waitForOutput = options.waitForOutput;
   // Resume-degenerate role merge (Claude Code 2.1.187 parity), gated by the
   // one-shot `mergeRoles` flag so it fires only on the first model call after
   // resuming a session whose prior run produced no assistant response. Collapse
@@ -344,7 +348,7 @@ export async function agentLoop(messages, options) {
   const onProviderFallback =
     options.onProviderFallback ||
     ((info) =>
-      process.stdout.write(
+      writeOut(
         chalk.yellow(
           `\n  ⚠️  ${info.message || `已从 "${info.from}" 切换到 "${info.to}"`}\n`,
         ),
@@ -381,7 +385,7 @@ export async function agentLoop(messages, options) {
         event.type === "managed-checkpoint-error" || event.coverage === "none"
           ? chalk.yellow
           : chalk.gray;
-      process.stdout.write(render(`${managedCheckpointLine}\n`));
+      writeOut(render(`${managedCheckpointLine}\n`));
     } else if (event.type === "checkpoint") {
       // Remember which file snapshot lines up with the live conversation so
       // `/rewind <n>` can restore code + conversation together (Claude-Code
@@ -394,7 +398,7 @@ export async function agentLoop(messages, options) {
           tool: event.tool,
         });
       }
-      process.stdout.write(
+      writeOut(
         chalk.gray(`  ⎌ checkpoint ${event.id} (before ${event.tool})\n`),
       );
     } else if (event.type === "tool-executing") {
@@ -403,7 +407,7 @@ export async function agentLoop(messages, options) {
         args: event.args,
         startedAt: options.now ? options.now() : Date.now(),
       };
-      process.stdout.write(
+      writeOut(
         chalk.gray(
           `  [${event.tool}] ${formatToolArgs(event.tool, event.args)}\n`,
         ),
@@ -439,9 +443,7 @@ export async function agentLoop(messages, options) {
         }
       }
       if (event.error || event.result?.error) {
-        process.stdout.write(
-          chalk.red(`  Error: ${event.error || event.result?.error}\n`),
-        );
+        writeOut(chalk.red(`  Error: ${event.error || event.result?.error}\n`));
         // Record policy denials (not plain tool failures) into the caller's
         // denial log for review via `/permissions denials` (Claude-Code 2.1.193
         // recent denials). Caller passes the session log (mirrors checkpointMarks)
@@ -478,13 +480,13 @@ export async function agentLoop(messages, options) {
           const sid = options?.sessionId;
           const policy = approval.policy || "strict";
           if (sid && policy === "strict") {
-            process.stdout.write(
+            writeOut(
               chalk.yellow(
                 `  Hint: relax policy with  cc session policy ${sid} --set trusted\n`,
               ),
             );
           } else if (sid) {
-            process.stdout.write(
+            writeOut(
               chalk.yellow(
                 `  Hint: per-session policy is "${policy}" — see  cc session policy ${sid}\n`,
               ),
@@ -492,26 +494,26 @@ export async function agentLoop(messages, options) {
           }
         }
       } else if (event.result?.success) {
-        process.stdout.write(chalk.green(`  Done\n`));
+        writeOut(chalk.green(`  Done\n`));
       }
     } else if (event.type === "thinking") {
       // Intermediate-step reasoning (before a tool call) — dimmed, inline.
       if (process.env.CC_REPL_THINKING !== "0" && event.text) {
-        process.stdout.write(
+        writeOut(
           "\n" + chalk.dim("💭 " + event.text.replace(/\n/g, "\n   ")) + "\n",
         );
       }
     } else if (event.type === "token-usage") {
       usageEvents.push(event);
     } else if (event.type === "iteration-warning") {
-      process.stdout.write(chalk.yellow(`\n  ${event.message}\n`));
+      writeOut(chalk.yellow(`\n  ${event.message}\n`));
     } else if (event.type === "iteration-budget-exhausted") {
-      process.stdout.write(
-        chalk.red(`\n  [Budget Exhausted] ${event.budget}\n`),
-      );
+      writeOut(chalk.red(`\n  [Budget Exhausted] ${event.budget}\n`));
     } else if (event.type === "response-complete") {
+      await waitForOutput?.();
       return { content: event.content, usageEvents, thinking: event.thinking };
     }
+    await waitForOutput?.();
   }
   return { content: "", usageEvents };
 }
@@ -2074,6 +2076,47 @@ export async function startAgentRepl(options = {}) {
 }
 
 async function startAgentReplInWorkspace(options = {}, startupAdmission) {
+  let failureHandler = null;
+  let disposePipeSafety = null;
+  const flow = installOutputBackpressure({
+    stdout: process.stdout,
+    stderr: process.stderr,
+    maxQueuedBytes: options.outputBackpressureMaxBytes,
+    onFailure: (error) => failureHandler?.(error),
+  });
+  let restored = false;
+  const outputScope = {
+    flow,
+    setFailureHandler(handler) {
+      failureHandler = handler;
+    },
+    setPipeDisposer(disposer) {
+      disposePipeSafety = disposer;
+    },
+    restore() {
+      if (restored) return;
+      restored = true;
+      disposePipeSafety?.();
+      flow.restore();
+    },
+  };
+  try {
+    return await startAgentReplInWorkspaceOwned(
+      options,
+      startupAdmission,
+      outputScope,
+    );
+  } catch (error) {
+    outputScope.restore();
+    throw error;
+  }
+}
+
+async function startAgentReplInWorkspaceOwned(
+  options = {},
+  startupAdmission,
+  outputScope,
+) {
   // EPIPE guard: if the REPL's stdout is piped and the consumer closes (e.g.
   // `cc agent | head`), the async stream `error` would otherwise crash the
   // process. Route a broken pipe into the REPL's own graceful shutdown (the
@@ -2085,10 +2128,16 @@ async function startAgentReplInWorkspace(options = {}, startupAdmission) {
   let _replClosing = false;
   let _replCloseReady = false;
   let _replCleanupStarted = false;
-  installPipeSafety(undefined, () => {
+  let _turnAbort = null;
+  let _replOutputFailure = null;
+  const _requestReplOutputClose = (error) => {
+    if (error && !_replOutputFailure) _replOutputFailure = error;
+    if (error) {
+      process.exitCode = error.code === "EPIPE" ? 0 : 1;
+      _turnAbort?.abort(error);
+    }
     if (_replClosing) return;
     _replClosing = true;
-    process.exitCode = 0;
     if (_replRl && _replCloseReady) {
       try {
         _replRl.close(); // triggers the graceful "close" cleanup
@@ -2097,7 +2146,23 @@ async function startAgentReplInWorkspace(options = {}, startupAdmission) {
         // event loop to drain without bypassing the teardown lifecycle.
       }
     }
-  });
+  };
+  const _replOutputFlow = outputScope.flow;
+  outputScope.setFailureHandler(_requestReplOutputClose);
+  const _disposeReplPipeSafety = installPipeSafety(undefined, () =>
+    _requestReplOutputClose(
+      Object.assign(new Error("REPL output pipe closed"), { code: "EPIPE" }),
+    ),
+  );
+  outputScope.setPipeDisposer(_disposeReplPipeSafety);
+  const _waitForReplOutput = async () => {
+    try {
+      await _replOutputFlow.wait();
+      return true;
+    } catch {
+      return false;
+    }
+  };
   const { useJsonl, candidate: _startupJsonlResume } = startupAdmission;
   let model = options.model || "qwen2.5:7b";
   let provider = options.provider || "ollama";
@@ -3885,7 +3950,7 @@ async function startAgentReplInWorkspace(options = {}, startupAdmission) {
   // seam (throwIfAborted at each iteration); partial conversation is kept.
   // Idle Esc presses (no active turn) are ignored, and escape-prefixed key
   // sequences (arrows etc.) never reach here as bare "escape".
-  let _turnAbort = null;
+  _turnAbort = null;
   let _lastIdleEscAt = 0;
   let _replKeypressHandler = null;
   if (process.stdin.isTTY) {
@@ -4106,7 +4171,9 @@ async function startAgentReplInWorkspace(options = {}, startupAdmission) {
         });
         // Custom command wins; otherwise the built-in context-usage render.
         if (_slCfg) {
-          return _sl.renderStatusLine(_slCfg, context, { cwd: process.cwd() });
+          return _sl.renderStatusLine(_slCfg, context, {
+            cwd: process.cwd(),
+          });
         }
         const line = _sl.renderDefaultStatusLine(context);
         return line && line.trim() ? line : null;
@@ -5300,7 +5367,11 @@ async function startAgentReplInWorkspace(options = {}, startupAdmission) {
               dispatchAsyncHooks(
                 _settingsHooks,
                 "CwdChanged",
-                { old_cwd: oldCwd, cwd: newCwd, session_id: sessionId || null },
+                {
+                  old_cwd: oldCwd,
+                  cwd: newCwd,
+                  session_id: sessionId || null,
+                },
                 { cwd: newCwd, supervisor: _asyncHookSupervisor },
               );
             } catch {
@@ -6091,7 +6162,9 @@ async function startAgentReplInWorkspace(options = {}, startupAdmission) {
             logger.log(chalk.gray(l));
         } else {
           // set — createReplGoal throws on a malformed spec (caught below).
-          _sessionGoal = rg.createReplGoal(cmd.spec, { now: () => Date.now() });
+          _sessionGoal = rg.createReplGoal(cmd.spec, {
+            now: () => Date.now(),
+          });
           for (const l of rg.renderGoalStart(_sessionGoal))
             logger.log(chalk.cyan(l));
         }
@@ -7701,22 +7774,29 @@ async function startAgentReplInWorkspace(options = {}, startupAdmission) {
       // reasoning dimmed before it. Skipped (left undefined) in replay mode.
       let _liveStreamed = false;
       let _liveThinkStarted = false;
+      const _settleLiveWrite = (blocked) =>
+        blocked ? _replOutputFlow.wait() : undefined;
       const liveOpts = _streamLive
         ? {
             onToken: (t) => {
               // Separate the answer from the dimmed reasoning above it (once).
-              if (!_liveStreamed && _liveThinkStarted)
-                process.stdout.write("\n");
+              let blocked = false;
+              if (!_liveStreamed && _liveThinkStarted) {
+                blocked = process.stdout.write("\n") === false;
+              }
               _liveStreamed = true;
-              process.stdout.write(t);
+              blocked = process.stdout.write(t) === false || blocked;
+              return _settleLiveWrite(blocked);
             },
             onThinking: (t) => {
               if (process.env.CC_REPL_THINKING === "0") return;
+              let blocked = false;
               if (!_liveThinkStarted) {
                 process.stdout.write(chalk.dim("💭 "));
                 _liveThinkStarted = true;
               }
-              process.stdout.write(chalk.dim(t));
+              blocked = process.stdout.write(chalk.dim(t)) === false || blocked;
+              return _settleLiveWrite(blocked);
             },
           }
         : {};
@@ -7748,7 +7828,9 @@ async function startAgentReplInWorkspace(options = {}, startupAdmission) {
       if (_settingsHooks && !_asyncHookSupervisor) {
         const { AsyncHookSupervisor } =
           await import("../lib/async-hook-supervisor.js");
-        _asyncHookSupervisor = new AsyncHookSupervisor({ persistStats: true });
+        _asyncHookSupervisor = new AsyncHookSupervisor({
+          persistStats: true,
+        });
       }
       const activeMcpRuntime = _activateMcpHostRuntime();
       const activeRawMcpClient = activeMcpRuntime.rawClient || undefined;
@@ -7758,6 +7840,7 @@ async function startAgentReplInWorkspace(options = {}, startupAdmission) {
         thinking: reasoning,
       } = await agentLoop(messages, {
         ...liveOpts,
+        waitForOutput: _replOutputFlow.wait,
         mergeRoles: _mergeRolesThisTurn,
         // Visible auto-retry feedback (Claude-Code 2.1.181): when the model's
         // streaming call hits a transient connection drop and retries, tell the
@@ -8192,6 +8275,7 @@ async function startAgentReplInWorkspace(options = {}, startupAdmission) {
   };
 
   rl.on("line", async (input) => {
+    if (!(await _waitForReplOutput())) return;
     if (_processingLine) {
       const concurrentBtw = _slashCommandsDisabled
         ? null
@@ -8215,10 +8299,12 @@ async function startAgentReplInWorkspace(options = {}, startupAdmission) {
     _processingLine = true;
     try {
       await handleLine(input);
+      if (!(await _waitForReplOutput())) return;
       while (_pendingLines.length) {
         const next = _pendingLines.shift();
         logger.log(chalk.cyan(`▶ running queued input: ${next}`));
         await handleLine(next);
+        if (!(await _waitForReplOutput())) return;
       }
     } finally {
       _processingLine = false;
@@ -8416,7 +8502,20 @@ async function startAgentReplInWorkspace(options = {}, startupAdmission) {
     } catch (_e) {
       // Non-critical
     }
-    process.exit(0);
+    if (!_replOutputFailure) {
+      try {
+        await _replOutputFlow.wait();
+      } catch (error) {
+        _replOutputFailure ||= error;
+      }
+    }
+    const outputExitCode = _replOutputFailure
+      ? _replOutputFailure.code === "EPIPE"
+        ? 0
+        : 1
+      : 0;
+    outputScope.restore();
+    process.exit(outputExitCode);
   });
   _replCloseReady = true;
   if (_replClosing) {
