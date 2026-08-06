@@ -248,6 +248,96 @@ describe("runAgentHeadlessStream", () => {
     }
   }, 15_000);
 
+  it("runs top-level cleanup when MCP post-connect setup throws", async () => {
+    const liveInput = new PassThrough();
+    const disconnectAll = vi.fn(async () => {
+      throw new Error("disconnect also failed");
+    });
+    const runObserveHooks = vi.fn();
+    const deps = baseDeps({
+      input: liveInput,
+      runObserveHooks,
+      resolveAgentMcp: async () => ({
+        mcpClient: {
+          callTool: vi.fn(),
+          disconnectAll,
+          on: vi.fn(),
+          setElicitationHandler() {
+            throw new Error("elicitation setup failed");
+          },
+        },
+        connected: [],
+        extraToolDefinitions: [],
+        externalToolExecutors: {},
+        externalToolDescriptors: {},
+      }),
+    });
+
+    await expect(
+      runAgentHeadlessStream(
+        {
+          expandFileRefs: false,
+          interactiveQuestions: true,
+          settingsHooks: {},
+        },
+        deps,
+      ),
+    ).rejects.toThrow("elicitation setup failed");
+
+    expect(liveInput.destroyed).toBe(true);
+    expect(disconnectAll).toHaveBeenCalledOnce();
+    expect(runObserveHooks).toHaveBeenCalledWith(
+      {},
+      "SessionEnd",
+      expect.objectContaining({ reason: "error" }),
+      expect.any(Object),
+    );
+  }, 15_000);
+
+  it("retains remote approval ownership when pairing output throws", async () => {
+    const close = vi.fn(async () => {});
+    const emitted = [];
+    const deps = baseDeps({
+      input: input(),
+      resolveAgentMcp: async () => null,
+      startHeadlessRemoteApproval: vi.fn(async () => ({
+        pairing: {
+          uri: "cc://pair/test",
+          remoteSessionId: "remote-1",
+          expiresAt: 123,
+        },
+        confirmer: vi.fn(),
+        close,
+      })),
+      writeOut(line) {
+        const event = JSON.parse(line);
+        if (event.type === "remote_control" && event.subtype === "pairing") {
+          throw new Error("pairing sink failed");
+        }
+        emitted.push(event);
+      },
+    });
+
+    const outcome = await runAgentHeadlessStream(
+      {
+        expandFileRefs: false,
+        remoteControl: true,
+        settingsHooks: {},
+      },
+      deps,
+    );
+
+    expect(outcome).toEqual({ exitCode: 0, turns: 0 });
+    expect(close).toHaveBeenCalledOnce();
+    expect(emitted).toContainEqual(
+      expect.objectContaining({
+        type: "remote_control",
+        subtype: "unavailable",
+        error: "pairing sink failed",
+      }),
+    );
+  }, 15_000);
+
   it("binds lifecycle hooks to the streaming CLI host cwd", async () => {
     const trustedRoot = realpathSync.native(
       mkdtempSync(path.join(tmpdir(), "stream-host-workspace-")),

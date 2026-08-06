@@ -1045,8 +1045,102 @@ async function runTurn(
  *                            writeOut, writeErr, expandFileRefs }
  * @returns {Promise<{exitCode:number, turns:number}>}
  */
+function createHeadlessStreamCleanupScope({ input }) {
+  let mcpClient = null;
+  let remoteApproval = null;
+  let inputCancel = null;
+  let interactionCleanup = null;
+  let sessionEnd = null;
+  let reason = "error";
+  let stopRequested = false;
+  let interactionCleanupPromise = Promise.resolve();
+  let cleanupPromise = null;
+
+  const runBestEffort = async (operation) => {
+    if (typeof operation !== "function") return;
+    try {
+      await operation();
+    } catch {
+      // Cleanup is exhaustive: one failing disposer must not prevent the
+      // remaining resources from being retired.
+    }
+  };
+
+  const stopInputOwner = () => {
+    try {
+      if (input && input.readableEnded !== true && input.destroyed !== true) {
+        if (typeof input.destroy === "function") input.destroy();
+        else input.pause?.();
+      }
+    } catch {
+      // Best-effort for non-Node custom input objects.
+    }
+  };
+  const cancelInputIterator = () => {
+    try {
+      Promise.resolve(inputCancel?.()).catch(() => {});
+    } catch {
+      // A custom async iterator may reject cancellation synchronously.
+    }
+  };
+  const settleInteractions = () => {
+    interactionCleanupPromise = runBestEffort(() =>
+      interactionCleanup?.(reason),
+    );
+  };
+  const requestStop = () => {
+    if (stopRequested) return;
+    stopRequested = true;
+    stopInputOwner();
+    cancelInputIterator();
+    settleInteractions();
+  };
+
+  return {
+    setReason(nextReason) {
+      if (!stopRequested && !cleanupPromise && nextReason) {
+        reason = String(nextReason);
+      }
+    },
+    setMcpClient(client) {
+      mcpClient = client || null;
+    },
+    setRemoteApproval(approval) {
+      remoteApproval = approval || null;
+    },
+    setInputCancel(cancel) {
+      inputCancel = typeof cancel === "function" ? cancel : null;
+      if (stopRequested) cancelInputIterator();
+    },
+    setInteractionCleanup(cleanup) {
+      interactionCleanup = typeof cleanup === "function" ? cleanup : null;
+      if (stopRequested) settleInteractions();
+    },
+    setSessionEnd(cleanup) {
+      sessionEnd = typeof cleanup === "function" ? cleanup : null;
+    },
+    requestStop,
+    cleanup() {
+      if (!cleanupPromise) {
+        cleanupPromise = (async () => {
+          // Stop the live stdin owner before network/process resources. A
+          // flowing stdin iterator can otherwise keep the process alive after
+          // an early return or exception.
+          requestStop();
+          await interactionCleanupPromise;
+          await runBestEffort(() => mcpClient?.disconnectAll?.());
+          await runBestEffort(() => remoteApproval?.close?.());
+          await runBestEffort(() => sessionEnd?.(reason));
+        })();
+      }
+      return cleanupPromise;
+    },
+  };
+}
+
 export async function runAgentHeadlessStream(options = {}, deps = {}) {
   const trustedWorkspaceRoot = options.cwd || process.cwd();
+  const input = deps.input || process.stdin;
   const pipeState = { closed: false };
   const shouldInstallPipeSafety =
     typeof deps.installPipeSafety === "function" ||
@@ -1060,48 +1154,58 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
           : pipeAbort.signal,
       }
     : options;
+  const streamCleanup = createHeadlessStreamCleanupScope({ input });
+  const onCallerAbort = () => {
+    streamCleanup.setReason("aborted");
+    streamCleanup.requestStop();
+  };
+  options.signal?.addEventListener("abort", onCallerAbort, { once: true });
+  if (options.signal?.aborted) onCallerAbort();
   const installSafety = deps.installPipeSafety || installPipeSafety;
-  const disposePipeSafety = shouldInstallPipeSafety
-    ? installSafety(undefined, () => {
-        if (pipeState.closed) return;
-        pipeState.closed = true;
-        process.exitCode = 0;
-        pipeAbort.abort();
-        // The concurrent stdin pump otherwise remains in flowing async-iterator
-        // mode after the session has returned. A live stdin handle can keep the
-        // process alive forever even though its downstream output is gone.
-        try {
-          const input = deps.input || process.stdin;
-          if (typeof input.destroy === "function" && !input.destroyed) {
-            input.destroy();
-          } else {
-            input.pause?.();
-          }
-        } catch {
-          // The abort signal still wakes the session loop; input retirement is
-          // best-effort for non-Node custom async iterables.
-        }
-      })
-    : null;
+  let disposePipeSafety = null;
 
+  let outcome;
+  let failure = null;
   try {
-    const outcome = await runWithHostHooksV2Workspace(
-      trustedWorkspaceRoot,
-      () => runAgentHeadlessStreamInWorkspace(runtimeOptions, deps, pipeState),
+    disposePipeSafety = shouldInstallPipeSafety
+      ? installSafety(undefined, () => {
+          if (pipeState.closed) return;
+          pipeState.closed = true;
+          streamCleanup.setReason("pipe_closed");
+          process.exitCode = 0;
+          pipeAbort.abort();
+          streamCleanup.requestStop();
+        })
+      : null;
+
+    outcome = await runWithHostHooksV2Workspace(trustedWorkspaceRoot, () =>
+      runAgentHeadlessStreamInWorkspace(
+        runtimeOptions,
+        deps,
+        pipeState,
+        streamCleanup,
+      ),
     );
-    return pipeState.closed ? { ...outcome, exitCode: 0 } : outcome;
   } catch (error) {
-    if (pipeState.closed) return { exitCode: 0, turns: 0 };
-    throw error;
+    failure = error;
   } finally {
+    await streamCleanup.cleanup();
+    options.signal?.removeEventListener("abort", onCallerAbort);
     disposePipeSafety?.();
   }
+
+  if (pipeState.closed) {
+    return { ...(outcome || { turns: 0 }), exitCode: 0 };
+  }
+  if (failure) throw failure;
+  return outcome;
 }
 
 async function runAgentHeadlessStreamInWorkspace(
   options = {},
   deps = {},
   pipeState = { closed: false },
+  streamCleanup,
 ) {
   const model = options.model || "qwen2.5:7b";
   const provider = options.provider || "ollama";
@@ -1388,6 +1492,20 @@ async function runAgentHeadlessStreamInWorkspace(
   const doExpand = deps.expandFileRefs || expandFileRefsAsync;
   const runSessionSlashCommand =
     deps.executeSessionSlashCommand || executeSessionSlashCommand;
+  let turns = 0;
+
+  streamCleanup.setSessionEnd(async (reason) => {
+    if (!settingsHooks) return;
+    const runObserveHooks =
+      deps.runObserveHooks ||
+      (await import("../lib/settings-hook-events.js")).runObserveHooks;
+    runObserveHooks(
+      settingsHooks,
+      "SessionEnd",
+      { reason, cwd, session_id: sessionId },
+      { cwd },
+    );
+  });
 
   const getApprovalGate =
     deps.getApprovalGate ||
@@ -1442,6 +1560,7 @@ async function runAgentHeadlessStreamInWorkspace(
       result: reason,
       session_id: sessionId,
     });
+    streamCleanup.setReason("blocked");
     return { exitCode: 2, turns: 0 };
   }
 
@@ -1790,6 +1909,37 @@ async function runAgentHeadlessStreamInWorkspace(
     e.code = "USER_TIMEOUT"; // handler → user_timeout (model proceeds, not a failure)
     p.reject(e);
   };
+  streamCleanup.setInteractionCleanup((reason) => {
+    const via = reason === "pipe_closed" ? "pipe-closed" : "session-closed";
+    for (const [id, pending] of [...pendingApprovals.entries()]) {
+      pendingApprovals.delete(id);
+      clearTimeout(pending.timer);
+      try {
+        emit({
+          type: "approval_resolved",
+          id,
+          approved: false,
+          via,
+          session_id: sessionId,
+        });
+      } catch {
+        // The output pipe may itself be the reason cleanup is running.
+      }
+      pending.resolve(false);
+    }
+    for (const [id, pending] of [...pendingQuestions.entries()]) {
+      pendingQuestions.delete(id);
+      clearTimeout(pending.timer);
+      try {
+        emit({ type: "question_resolved", id, via, session_id: sessionId });
+      } catch {
+        // Best-effort cleanup notification.
+      }
+      const error = new Error(`ask_user_question ${via}`);
+      error.code = "USER_TIMEOUT";
+      pending.reject(error);
+    }
+  });
   const interactionAskUser = ({
     question,
     options: qOptions,
@@ -2139,6 +2289,7 @@ async function runAgentHeadlessStreamInWorkspace(
           loadJetbrainsMcp: deps.loadJetbrainsMcp,
         },
       );
+      streamCleanup.setMcpClient(mcp?.mcpClient);
       // MCP tool search (context scaling): defer big tool schemas behind the
       // internal tool_search tool. Below-threshold / disabled → no-op.
       if (mcp) {
@@ -2308,7 +2459,6 @@ async function runAgentHeadlessStreamInWorkspace(
         is_error: true,
         error: err.message,
       });
-      if (mcp?.mcpClient) await mcp.mcpClient.disconnectAll().catch(() => {});
       return { exitCode: 1, turns: 0 };
     }
     if (approvalGate && typeof approvalGate.setConfirmer === "function") {
@@ -2334,11 +2484,14 @@ async function runAgentHeadlessStreamInWorkspace(
     options.interactiveApprovals !== true
   ) {
     try {
-      const { startHeadlessRemoteApproval } =
-        await import("../lib/remote-approval-bridge.js");
-      _remoteApproval = await startHeadlessRemoteApproval({
+      const startRemoteApproval =
+        deps.startHeadlessRemoteApproval ||
+        (await import("../lib/remote-approval-bridge.js"))
+          .startHeadlessRemoteApproval;
+      _remoteApproval = await startRemoteApproval({
         agentSessionId: sessionId,
       });
+      streamCleanup.setRemoteApproval(_remoteApproval);
       emit({
         type: "remote_control",
         subtype: "pairing",
@@ -2475,7 +2628,6 @@ async function runAgentHeadlessStreamInWorkspace(
       })
     : null;
 
-  let turns = 0;
   let sawError = false;
   // Session-scoped tool-call correlation ids ("tu-<n>", additive protocol-v1
   // field): one counter across ALL turns so ids never repeat within a session.
@@ -2508,9 +2660,11 @@ async function runAgentHeadlessStreamInWorkspace(
   let inputDone = false;
   let currentAbort = null;
   let slashRequestSeq = 0;
+  const inputLines = readJsonLines(input);
+  streamCleanup.setInputCancel(() => inputLines.return?.());
   (async () => {
     try {
-      for await (const line of readJsonLines(input)) {
+      for await (const line of inputLines) {
         const parsed = parseInputEvent(line);
         if (parsed == null) continue;
         if (parsed.hello) {
@@ -3364,44 +3518,16 @@ async function runAgentHeadlessStreamInWorkspace(
     }
   }
 
-  // Tear down ad-hoc MCP servers (--mcp-config) when stdin closes.
-  if (mcp?.mcpClient) {
-    try {
-      await mcp.mcpClient.disconnectAll();
-    } catch {
-      // ignore — disconnect is best-effort
-    }
-  }
-
-  // Tear down the --remote-control approval bridge + its self-hosted WS
-  // server so the stream session's port never outlives the invocation.
-  if (_remoteApproval) {
-    try {
-      await _remoteApproval.close();
-    } catch {
-      // best-effort
-    }
-  }
-
-  // settings.json SessionEnd hooks (observe-only) when stdin closes.
-  if (settingsHooks) {
-    try {
-      const { runObserveHooks } =
-        await import("../lib/settings-hook-events.js");
-      runObserveHooks(
-        settingsHooks,
-        "SessionEnd",
-        {
-          reason: pipeState.closed ? "pipe_closed" : "stdin_closed",
-          cwd,
-          session_id: sessionId,
-        },
-        { cwd },
-      );
-    } catch {
-      // observe-only
-    }
-  }
+  streamCleanup.setReason(
+    pipeState.closed
+      ? "pipe_closed"
+      : options.signal?.aborted
+        ? "aborted"
+        : inputDone
+          ? "stdin_closed"
+          : "completed",
+  );
+  await streamCleanup.cleanup();
 
   if (!pipeState.closed) {
     emit({ type: "system", subtype: "end", session_id: sessionId, turns });
