@@ -28,7 +28,119 @@ const RESULT_SCHEMA = "chainlesschain.cli-reliability-soak.v2";
 const MIB = 1024 * 1024;
 const MCP_PRIVATE_CANARY = "CC_RELIABILITY_MCP_PRIVATE_CANARY";
 const MAX_RETAINED_LATENCY_SAMPLES = 10_000;
+const WINDOWS_TOOLHELP32_SNAPSHOT_COMMAND = String.raw`
+$ErrorActionPreference = 'Stop'
+$source = @'
+using System;
+using System.Runtime.InteropServices;
+using System.Text;
+
+public static class CcProcessSnapshot {
+  [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+  private struct PROCESSENTRY32 {
+    public uint dwSize;
+    public uint cntUsage;
+    public uint th32ProcessID;
+    public IntPtr th32DefaultHeapID;
+    public uint th32ModuleID;
+    public uint cntThreads;
+    public uint th32ParentProcessID;
+    public int pcPriClassBase;
+    public uint dwFlags;
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)]
+    public string szExeFile;
+  }
+
+  [DllImport("kernel32.dll", SetLastError = true)]
+  private static extern IntPtr CreateToolhelp32Snapshot(uint flags, uint pid);
+  [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+  private static extern bool Process32FirstW(IntPtr snapshot, ref PROCESSENTRY32 entry);
+  [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+  private static extern bool Process32NextW(IntPtr snapshot, ref PROCESSENTRY32 entry);
+  [DllImport("kernel32.dll")]
+  private static extern bool CloseHandle(IntPtr handle);
+
+  public static string Capture() {
+    IntPtr snapshot = CreateToolhelp32Snapshot(0x00000002, 0);
+    if (snapshot == new IntPtr(-1)) {
+      throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
+    }
+    try {
+      var output = new StringBuilder();
+      var entry = new PROCESSENTRY32();
+      entry.dwSize = (uint)Marshal.SizeOf(typeof(PROCESSENTRY32));
+      if (Process32FirstW(snapshot, ref entry)) {
+        do {
+          output.Append(entry.th32ParentProcessID);
+          output.Append(',');
+          output.Append(entry.th32ProcessID);
+          output.Append('\n');
+          entry.dwSize = (uint)Marshal.SizeOf(typeof(PROCESSENTRY32));
+        } while (Process32NextW(snapshot, ref entry));
+      }
+      return output.ToString();
+    } finally {
+      CloseHandle(snapshot);
+    }
+  }
+}
+'@
+Add-Type -TypeDefinition $source -Language CSharp
+[CcProcessSnapshot]::Capture()
+`;
+const WINDOWS_IO_COUNTER_COMMAND = String.raw`
+$ErrorActionPreference = 'Stop'
+$source = @'
+using System;
+using System.Globalization;
+using System.Runtime.InteropServices;
+
+public static class CcIoCounters {
+  [StructLayout(LayoutKind.Sequential)]
+  private struct IO_COUNTERS {
+    public ulong ReadOperationCount;
+    public ulong WriteOperationCount;
+    public ulong OtherOperationCount;
+    public ulong ReadTransferCount;
+    public ulong WriteTransferCount;
+    public ulong OtherTransferCount;
+  }
+
+  [DllImport("kernel32.dll", SetLastError = true)]
+  private static extern IntPtr OpenProcess(uint access, bool inherit, uint pid);
+  [DllImport("kernel32.dll", SetLastError = true)]
+  private static extern bool GetProcessIoCounters(IntPtr process, out IO_COUNTERS counters);
+  [DllImport("kernel32.dll")]
+  private static extern bool CloseHandle(IntPtr handle);
+
+  public static string Capture(uint pid) {
+    IntPtr process = OpenProcess(0x1000, false, pid);
+    if (process == IntPtr.Zero) {
+      throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
+    }
+    try {
+      IO_COUNTERS counters;
+      if (!GetProcessIoCounters(process, out counters)) {
+        throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
+      }
+      return String.Join(",", new string[] {
+        counters.ReadTransferCount.ToString(CultureInfo.InvariantCulture),
+        counters.WriteTransferCount.ToString(CultureInfo.InvariantCulture),
+        counters.ReadOperationCount.ToString(CultureInfo.InvariantCulture),
+        counters.WriteOperationCount.ToString(CultureInfo.InvariantCulture)
+      });
+    } finally {
+      CloseHandle(process);
+    }
+  }
+}
+'@
+Add-Type -TypeDefinition $source -Language CSharp
+[CcIoCounters]::Capture(__PID__)
+`;
 const ownedProcesses = new Set();
+let preferredWindowsProcessProbe = null;
+let preferredWindowsIoProbe = null;
 
 function positiveNumber(value, fallback, name, { integer = false } = {}) {
   if (value == null || value === "") return fallback;
@@ -455,7 +567,7 @@ function rssBytes(pid) {
   return Number.isFinite(value) ? value * 1024 : null;
 }
 
-function ioSnapshot(pid) {
+export function ioSnapshot(pid) {
   if (process.platform === "linux") {
     try {
       const fields = Object.fromEntries(
@@ -477,26 +589,66 @@ function ioSnapshot(pid) {
     }
   }
   if (process.platform === "win32") {
-    const probe = spawnSync(
-      "powershell.exe",
-      [
-        "-NoProfile",
-        "-NonInteractive",
-        "-Command",
-        `(Get-CimInstance Win32_Process -Filter 'ProcessId=${pid}' | Select-Object ReadTransferCount,WriteTransferCount | ConvertTo-Json -Compress)`,
-      ],
-      { encoding: "utf8", windowsHide: true },
-    );
-    try {
-      const parsed = JSON.parse(probe.stdout.trim());
+    const probes = [
+      {
+        source: "cim",
+        command:
+          `(Get-CimInstance Win32_Process -Filter ` +
+          `'ProcessId=${pid}' -ErrorAction Stop | ` +
+          `ForEach-Object { '{0},{1},{2},{3}' -f ` +
+          `$_.ReadTransferCount,$_.WriteTransferCount,` +
+          `$_.ReadOperationCount,$_.WriteOperationCount })`,
+      },
+      {
+        source: "kernel32",
+        command: WINDOWS_IO_COUNTER_COMMAND.replace("__PID__", String(pid)),
+      },
+    ];
+    const orderedProbes = preferredWindowsIoProbe
+      ? [
+          probes.find((probe) => probe.source === preferredWindowsIoProbe),
+          ...probes.filter((probe) => probe.source !== preferredWindowsIoProbe),
+        ].filter(Boolean)
+      : probes;
+    const failures = [];
+    for (const candidate of orderedProbes) {
+      const probe = spawnSync(
+        "powershell.exe",
+        ["-NoProfile", "-NonInteractive", "-Command", candidate.command],
+        {
+          encoding: "utf8",
+          windowsHide: true,
+          timeout: 10_000,
+          maxBuffer: MIB,
+        },
+      );
+      if (probe.status !== 0) {
+        failures.push(
+          probe.error?.code
+            ? `${candidate.source}-${probe.error.code}`
+            : `${candidate.source}-exit-${probe.status ?? "unknown"}`,
+        );
+        continue;
+      }
+      const fields = probe.stdout.trim().split(",").map(Number);
+      if (fields.length !== 4 || !fields.every(Number.isFinite)) {
+        failures.push(`${candidate.source}-invalid-output`);
+        continue;
+      }
+      preferredWindowsIoProbe = candidate.source;
       return {
         available: true,
-        readBytes: Number(parsed.ReadTransferCount),
-        writeBytes: Number(parsed.WriteTransferCount),
+        source: candidate.source,
+        readBytes: fields[0],
+        writeBytes: fields[1],
+        readOperations: fields[2],
+        writeOperations: fields[3],
       };
-    } catch {
-      return { available: false, reason: "cim-io-unavailable" };
     }
+    return {
+      available: false,
+      reason: failures.join("+") || "windows-io-unavailable",
+    };
   }
   return { available: false, reason: "host-has-no-portable-io-counter" };
 }
@@ -514,60 +666,147 @@ function ioDelta(before, after) {
       result[field] = Math.max(0, after[field] - before[field]);
     }
   }
+  result.source = after.source || before.source || null;
+  for (const field of ["readOperations", "writeOperations"]) {
+    if (Number.isFinite(before[field]) && Number.isFinite(after[field])) {
+      result[field] = Math.max(0, after[field] - before[field]);
+    }
+  }
   return result;
 }
 
-function descendantProcessSnapshot(pid) {
+export function descendantPidsFromProcessRows(rows, rootPid) {
+  if (!Number.isSafeInteger(rootPid) || rootPid <= 0) return [];
+  const childrenByParent = new Map();
+  for (const entry of rows) {
+    const processId = Number(entry?.processId);
+    const parentProcessId = Number(entry?.parentProcessId);
+    if (
+      !Number.isSafeInteger(processId) ||
+      processId <= 0 ||
+      !Number.isSafeInteger(parentProcessId) ||
+      parentProcessId < 0
+    ) {
+      continue;
+    }
+    const children = childrenByParent.get(parentProcessId) || [];
+    children.push(processId);
+    childrenByParent.set(parentProcessId, children);
+  }
+  const descendants = [];
+  const pending = [...(childrenByParent.get(rootPid) || [])];
+  const seen = new Set([rootPid]);
+  while (pending.length > 0) {
+    const processId = pending.shift();
+    if (seen.has(processId)) continue;
+    seen.add(processId);
+    descendants.push(processId);
+    pending.push(...(childrenByParent.get(processId) || []));
+  }
+  return descendants;
+}
+
+function parseWindowsProcessPairs(value) {
+  const rows = [];
+  for (const line of String(value || "").split(/\r?\n/u)) {
+    const fields = line.trim().split(",");
+    if (fields.length < 2) continue;
+    const parentProcessId = Number(fields.at(-2));
+    const processId = Number(fields.at(-1));
+    if (
+      Number.isSafeInteger(processId) &&
+      processId > 0 &&
+      Number.isSafeInteger(parentProcessId) &&
+      parentProcessId >= 0
+    ) {
+      rows.push({ processId, parentProcessId });
+    }
+  }
+  return rows;
+}
+
+export function descendantProcessSnapshot(pid) {
   if (!Number.isSafeInteger(pid) || pid <= 0) {
-    return { available: false, pids: [] };
+    return { available: false, pids: [], reason: "invalid-root-pid" };
   }
   if (process.platform === "win32") {
-    const probe = spawnSync(
-      "powershell.exe",
-      [
-        "-NoProfile",
-        "-NonInteractive",
-        "-Command",
-        `$ErrorActionPreference='Stop'; $items=@(` +
-          `Get-CimInstance -ClassName Win32_Process -ErrorAction Stop | ` +
-          `Select-Object ProcessId,ParentProcessId); ` +
-          `ConvertTo-Json -Compress -InputObject $items`,
-      ],
-      { encoding: "utf8", windowsHide: true },
-    );
-    if (probe.status !== 0) return { available: false, pids: [] };
-    try {
-      const processes = JSON.parse(probe.stdout.trim());
-      const childrenByParent = new Map();
-      for (const entry of Array.isArray(processes) ? processes : [processes]) {
-        const processId = Number(entry?.ProcessId);
-        const parentProcessId = Number(entry?.ParentProcessId);
-        if (
-          !Number.isSafeInteger(processId) ||
-          processId <= 0 ||
-          !Number.isSafeInteger(parentProcessId) ||
-          parentProcessId < 0
-        ) {
-          continue;
-        }
-        const children = childrenByParent.get(parentProcessId) || [];
-        children.push(processId);
-        childrenByParent.set(parentProcessId, children);
+    const probes = [
+      {
+        source: "wmic",
+        command: "wmic.exe",
+        args: [
+          "path",
+          "Win32_Process",
+          "get",
+          "ParentProcessId,ProcessId",
+          "/format:csv",
+        ],
+      },
+      {
+        source: "cim",
+        command: "powershell.exe",
+        args: [
+          "-NoProfile",
+          "-NonInteractive",
+          "-Command",
+          `$ErrorActionPreference='Stop'; Get-CimInstance ` +
+            `-ClassName Win32_Process -ErrorAction Stop | ` +
+            `ForEach-Object { '{0},{1}' -f ` +
+            `$_.ParentProcessId,$_.ProcessId }`,
+        ],
+      },
+      {
+        source: "toolhelp32",
+        command: "powershell.exe",
+        args: [
+          "-NoProfile",
+          "-NonInteractive",
+          "-Command",
+          WINDOWS_TOOLHELP32_SNAPSHOT_COMMAND,
+        ],
+      },
+    ];
+    const orderedProbes = preferredWindowsProcessProbe
+      ? [
+          probes.find((probe) => probe.source === preferredWindowsProcessProbe),
+          ...probes.filter(
+            (probe) => probe.source !== preferredWindowsProcessProbe,
+          ),
+        ].filter(Boolean)
+      : probes;
+    const failures = [];
+    for (const probe of orderedProbes) {
+      const result = spawnSync(probe.command, probe.args, {
+        encoding: "utf8",
+        windowsHide: true,
+        timeout: 10_000,
+        maxBuffer: 16 * MIB,
+      });
+      if (result.status !== 0) {
+        failures.push(
+          result.error?.code
+            ? `${probe.source}-${result.error.code}`
+            : `${probe.source}-exit-${result.status ?? "unknown"}`,
+        );
+        continue;
       }
-      const descendants = [];
-      const pending = [...(childrenByParent.get(pid) || [])];
-      const seen = new Set();
-      while (pending.length > 0) {
-        const processId = pending.shift();
-        if (seen.has(processId)) continue;
-        seen.add(processId);
-        descendants.push(processId);
-        pending.push(...(childrenByParent.get(processId) || []));
+      const rows = parseWindowsProcessPairs(result.stdout);
+      if (rows.length === 0) {
+        failures.push(`${probe.source}-empty`);
+        continue;
       }
-      return { available: true, pids: descendants };
-    } catch {
-      return { available: false, pids: [] };
+      preferredWindowsProcessProbe = probe.source;
+      return {
+        available: true,
+        pids: descendantPidsFromProcessRows(rows, pid),
+        source: probe.source,
+      };
     }
+    return {
+      available: false,
+      pids: [],
+      reason: failures.join("+") || "windows-process-snapshot-unavailable",
+    };
   }
   const descendants = [];
   const pending = [pid];
@@ -578,7 +817,7 @@ function descendantProcessSnapshot(pid) {
       encoding: "utf8",
     });
     if (probe.status !== 0 && probe.status !== 1) {
-      return { available: false, pids: [] };
+      return { available: false, pids: [], reason: "pgrep-unavailable" };
     }
     if (probe.status === 1) continue;
     for (const value of probe.stdout.trim().split(/\s+/u).filter(Boolean)) {
@@ -590,7 +829,7 @@ function descendantProcessSnapshot(pid) {
       pending.push(processId);
     }
   }
-  return { available: true, pids: descendants };
+  return { available: true, pids: descendants, source: "pgrep" };
 }
 
 function descendantCount(pid) {
@@ -1291,6 +1530,10 @@ async function duplexSoakScenario(
     processDescendants: {
       measurementAvailable:
         descendantsBeforeExit.available && descendantsAfterExit.available,
+      beforeSource: descendantsBeforeExit.source || null,
+      afterSource: descendantsAfterExit.source || null,
+      unavailableReason:
+        descendantsBeforeExit.reason || descendantsAfterExit.reason || null,
       beforeExit: descendantsBeforeExit.available
         ? descendantsBeforeExit.pids.length
         : null,

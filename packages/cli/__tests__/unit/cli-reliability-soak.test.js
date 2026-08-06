@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  descendantPidsFromProcessRows,
   percentile,
   recordBoundedSample,
   resolveReliabilityProfile,
@@ -53,6 +54,22 @@ describe("CLI reliability soak gate", () => {
     expect([...samples].sort((left, right) => left - right)).toEqual([5, 6, 7]);
   });
 
+  it("walks a bounded process snapshot transitively and cycle-safely", () => {
+    expect(
+      descendantPidsFromProcessRows(
+        [
+          { processId: 20, parentProcessId: 10 },
+          { processId: 30, parentProcessId: 20 },
+          { processId: 40, parentProcessId: 30 },
+          { processId: 20, parentProcessId: 40 },
+          { processId: 50, parentProcessId: 999 },
+          { processId: "invalid", parentProcessId: 10 },
+        ],
+        10,
+      ),
+    ).toEqual([20, 30, 40]);
+  });
+
   it("declares an exact-SHA three-platform artifact workflow with real SSH", () => {
     const workflowPath = resolve(
       REPOSITORY_ROOT,
@@ -84,6 +101,7 @@ describe("CLI reliability soak gate", () => {
     expect(gate).toContain("partialScenarios");
     expect(gate).toContain("remoteRetired");
     expect(gate).toContain("CC_MCP_TOOL_RESULT_TOO_LARGE");
+    expect(gate).toContain("CreateToolhelp32Snapshot");
 
     const mcpFixture = readFileSync(
       resolve(
