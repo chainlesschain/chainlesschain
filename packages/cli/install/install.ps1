@@ -273,10 +273,12 @@ function Read-InstallTransactionJournal {
     ([string]$Journal.expectedSha256 -match $HashPattern) -and
     ($Journal.hadTarget -is [bool]) -and
     ($Journal.hadAlias -is [bool]) -and
+    ($Journal.hadBackup -is [bool]) -and
     ($Journal.hadLineage -is [bool]) -and
-    ((-not $Journal.hadTarget -and $null -eq $Journal.targetBeforeSha256) -or ([string]$Journal.targetBeforeSha256 -match $HashPattern)) -and
-    ((-not $Journal.hadAlias -and $null -eq $Journal.aliasBeforeSha256) -or ([string]$Journal.aliasBeforeSha256 -match $HashPattern)) -and
-    ((-not $Journal.hadLineage -and $null -eq $Journal.lineageBeforeSha256) -or ([string]$Journal.lineageBeforeSha256 -match $HashPattern)) -and
+    ((-not $Journal.hadTarget -and $null -eq $Journal.targetBeforeSha256) -or ($Journal.hadTarget -and [string]$Journal.targetBeforeSha256 -match $HashPattern)) -and
+    ((-not $Journal.hadAlias -and $null -eq $Journal.aliasBeforeSha256) -or ($Journal.hadAlias -and [string]$Journal.aliasBeforeSha256 -match $HashPattern)) -and
+    ((-not $Journal.hadBackup -and $null -eq $Journal.backupBeforeSha256) -or ($Journal.hadBackup -and [string]$Journal.backupBeforeSha256 -match $HashPattern)) -and
+    ((-not $Journal.hadLineage -and $null -eq $Journal.lineageBeforeSha256) -or ($Journal.hadLineage -and [string]$Journal.lineageBeforeSha256 -match $HashPattern)) -and
     (([string]$Journal.phase -eq "committed" -and [string]$Journal.decision -eq "commit") -or ([string]$Journal.phase -ne "committed" -and [string]$Journal.decision -eq "rollback"))
   )
   if (-not $Valid) {
@@ -382,10 +384,12 @@ function Invoke-InterruptedInstallRecovery {
   $ExpectedHash = ([string]$Journal.expectedSha256).ToLowerInvariant()
   $TargetBeforeHash = if ($Journal.hadTarget) { ([string]$Journal.targetBeforeSha256).ToLowerInvariant() } else { $null }
   $AliasBeforeHash = if ($Journal.hadAlias) { ([string]$Journal.aliasBeforeSha256).ToLowerInvariant() } else { $null }
+  $BackupBeforeHash = if ($Journal.hadBackup) { ([string]$Journal.backupBeforeSha256).ToLowerInvariant() } else { $null }
   $LineageBeforeHash = if ($Journal.hadLineage) { ([string]$Journal.lineageBeforeSha256).ToLowerInvariant() } else { $null }
   $CandidatePath = Join-Path $InstallDirectory (".chainlesschain.new-$TransactionId.exe")
   $AliasCandidatePath = Join-Path $InstallDirectory (".cc.new-$TransactionId.exe")
   $AliasBackupPath = Join-Path $InstallDirectory (".cc.previous-$TransactionId.exe")
+  $BackupSnapshotPath = Join-Path $InstallDirectory (".chainlesschain.backup-prior-$TransactionId.exe")
   $LineageSnapshotPath = Join-Path $InstallDirectory (".chainlesschain.lineage-prior-$TransactionId.json")
 
   Assert-RegularFileOrMissing $TargetPath "Install target"
@@ -395,6 +399,7 @@ function Invoke-InterruptedInstallRecovery {
   Assert-RegularFileOrMissing $CandidatePath "Canonical candidate"
   Assert-RegularFileOrMissing $AliasCandidatePath "Alias candidate"
   Assert-RegularFileOrMissing $AliasBackupPath "Alias recovery snapshot"
+  Assert-RegularFileOrMissing $BackupSnapshotPath "Backup recovery snapshot"
   Assert-RegularFileOrMissing $LineageSnapshotPath "Lineage recovery snapshot"
 
   if ([string]$Journal.decision -eq "commit") {
@@ -416,6 +421,7 @@ function Invoke-InterruptedInstallRecovery {
     Remove-RegularFileIfPresent $CandidatePath
     Remove-RegularFileIfPresent $AliasCandidatePath
     Remove-RegularFileIfPresent $AliasBackupPath
+    Remove-RegularFileIfPresent $BackupSnapshotPath
     Remove-RegularFileIfPresent $LineageSnapshotPath
     Remove-RegularFileIfPresent $JournalPath
     return "committed"
@@ -434,6 +440,21 @@ function Invoke-InterruptedInstallRecovery {
       throw "Interrupted fresh install target has an unknown generation"
     }
     [IO.File]::Delete($TargetPath)
+  }
+
+  $CurrentBackupHash = if ([IO.File]::Exists($BackupPath)) { Get-Sha256File $BackupPath } else { $null }
+  if ($Journal.hadBackup) {
+    if ($CurrentBackupHash -ne $BackupBeforeHash) {
+      if ($CurrentBackupHash -ne $TargetBeforeHash) {
+        throw "Interrupted last-known-good backup has an unknown generation"
+      }
+      Restore-InstallFileGeneration $BackupSnapshotPath $BackupPath $BackupBeforeHash $TransactionId "Last-known-good backup"
+    }
+  } elseif ($null -ne $CurrentBackupHash) {
+    if (-not $Journal.hadTarget -or $CurrentBackupHash -ne $TargetBeforeHash) {
+      throw "Interrupted install created an unknown last-known-good backup"
+    }
+    [IO.File]::Delete($BackupPath)
   }
 
   $CurrentAliasHash = if ([IO.File]::Exists($AliasPath)) { Get-Sha256File $AliasPath } else { $null }
@@ -470,6 +491,7 @@ function Invoke-InterruptedInstallRecovery {
   Remove-RegularFileIfPresent $CandidatePath
   Remove-RegularFileIfPresent $AliasCandidatePath
   Remove-RegularFileIfPresent $AliasBackupPath
+  Remove-RegularFileIfPresent $BackupSnapshotPath
   Remove-RegularFileIfPresent $LineageSnapshotPath
   Remove-RegularFileIfPresent $JournalPath
   return "rolled-back"
@@ -541,6 +563,7 @@ $AliasCandidatePath = $null
 $AliasBackupPath = $null
 $AliasRollbackPath = $null
 $LineageSnapshotPath = $null
+$BackupSnapshotPath = $null
 $TransactionJournal = $null
 $PreserveRecovery = $false
 New-Item -ItemType Directory -Path $Staging | Out-Null
@@ -657,6 +680,16 @@ try {
 
   $TargetBeforeHash = if ($HadTarget) { Get-Sha256File $TargetPath } else { $null }
   $AliasBeforeHash = if ($HadAlias) { Get-Sha256File $AliasPath } else { $null }
+  $HadBackup = [IO.File]::Exists($BackupPath)
+  $BackupBeforeHash = if ($HadBackup) { Get-Sha256File $BackupPath } else { $null }
+  $BackupSnapshotPath = Join-Path $InstallDir (".chainlesschain.backup-prior-$TransactionId.exe")
+  if ($HadBackup) {
+    [IO.File]::Copy($BackupPath, $BackupSnapshotPath, $false)
+    Sync-FileToDisk $BackupSnapshotPath
+    if ((Get-Sha256File $BackupSnapshotPath) -ne $BackupBeforeHash) {
+      throw "Last-known-good backup recovery snapshot changed while staging"
+    }
+  }
   $HadLineage = [IO.File]::Exists($LineagePath)
   $LineageBeforeHash = if ($HadLineage) { Get-Sha256File $LineagePath } else { $null }
   $LineageSnapshotPath = Join-Path $InstallDir (".chainlesschain.lineage-prior-$TransactionId.json")
@@ -679,6 +712,8 @@ try {
     targetBeforeSha256 = $TargetBeforeHash
     hadAlias = $HadAlias
     aliasBeforeSha256 = $AliasBeforeHash
+    hadBackup = $HadBackup
+    backupBeforeSha256 = $BackupBeforeHash
     hadLineage = $HadLineage
     lineageBeforeSha256 = $LineageBeforeHash
     updatedAt = $null
@@ -760,6 +795,8 @@ try {
     $Committed = $true
     Remove-RegularFileIfPresent $AliasBackupPath
     $AliasBackupPath = $null
+    Remove-RegularFileIfPresent $BackupSnapshotPath
+    $BackupSnapshotPath = $null
     Remove-RegularFileIfPresent $LineageSnapshotPath
     $LineageSnapshotPath = $null
     Remove-RegularFileIfPresent $JournalPath
@@ -824,6 +861,18 @@ try {
         $RollbackErrors.Add("canonical: $($_.Exception.Message)")
       }
       try {
+        if ($HadBackup) {
+          Restore-InstallFileGeneration $BackupSnapshotPath $BackupPath $BackupBeforeHash $TransactionId "Last-known-good backup"
+        } elseif ([IO.File]::Exists($BackupPath)) {
+          if (-not $HadTarget -or (Get-Sha256File $BackupPath) -ne $TargetBeforeHash) {
+            throw "Last-known-good backup changed before rollback"
+          }
+          [IO.File]::Delete($BackupPath)
+        }
+      } catch {
+        $RollbackErrors.Add("backup: $($_.Exception.Message)")
+      }
+      try {
         if ($HadLineage) {
           Restore-InstallFileGeneration $LineageSnapshotPath $LineagePath $LineageBeforeHash $TransactionId "Native update lineage"
         } else {
@@ -844,6 +893,8 @@ try {
       }
       Remove-RegularFileIfPresent $LineageSnapshotPath
       $LineageSnapshotPath = $null
+      Remove-RegularFileIfPresent $BackupSnapshotPath
+      $BackupSnapshotPath = $null
       Remove-RegularFileIfPresent $JournalPath
       if ($HadTarget) {
         throw "Install transaction failed; the previous version was restored. $TransactionError"
@@ -873,11 +924,14 @@ try {
     Remove-RegularFileIfPresent $RollbackTempPath
     Remove-RegularFileIfPresent $AliasBackupPath
     Remove-RegularFileIfPresent $AliasRollbackPath
+    Remove-RegularFileIfPresent $BackupSnapshotPath
+    Remove-RegularFileIfPresent $LineageSnapshotPath
   } else {
     if ($RollbackTempPath) { Write-Warning "Rollback candidate preserved at $RollbackTempPath" }
     if ($AliasBackupPath) { Write-Warning "CLI alias recovery snapshot preserved at $AliasBackupPath" }
     if ($AliasRollbackPath) { Write-Warning "CLI alias rollback candidate preserved at $AliasRollbackPath" }
     if ($LineageSnapshotPath) { Write-Warning "Lineage recovery snapshot preserved at $LineageSnapshotPath" }
+    if ($BackupSnapshotPath) { Write-Warning "Backup recovery snapshot preserved at $BackupSnapshotPath" }
     if ($JournalPath) { Write-Warning "Native install transaction journal preserved at $JournalPath" }
   }
   if ($PreserveRecovery -and $null -ne $InstallLock) {

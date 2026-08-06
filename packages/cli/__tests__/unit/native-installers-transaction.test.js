@@ -2693,6 +2693,7 @@ describe("native installer transaction contracts", () => {
       const aliasPath = path.join(targetDir, "cc.exe");
       fs.writeFileSync(targetPath, "known-good-primary");
       fs.writeFileSync(aliasPath, "known-good-alias");
+      fs.writeFileSync(`${targetPath}.previous`, "known-good-older-backup");
 
       const command = [
         `Import-Module Microsoft.PowerShell.Utility -ErrorAction Stop`,
@@ -2723,7 +2724,7 @@ describe("native installer transaction contracts", () => {
         run.stderr || run.stdout,
       ).toBe(true);
       expect(fs.readFileSync(`${targetPath}.previous`, "utf8")).toBe(
-        "known-good-primary",
+        "known-good-older-backup",
       );
       expect(fs.readFileSync(aliasPath, "utf8")).toBe("known-good-alias");
       expect(fs.existsSync(`${targetPath}.update.lock`)).toBe(false);
@@ -2737,8 +2738,10 @@ describe("native installer transaction contracts", () => {
   );
 
   it.runIf(process.platform === "win32").each([
+    ["prepared", "rollback"],
     ["target-committed", "rollback"],
     ["alias-committed", "rollback"],
+    ["verified", "rollback"],
     ["committed", "commit"],
   ])(
     "PowerShell installer recovers a hard crash after %s with a %s decision",
@@ -2781,10 +2784,12 @@ describe("native installer transaction contracts", () => {
 
       const targetPath = path.join(targetDir, "chainlesschain.exe");
       const aliasPath = path.join(targetDir, "cc.exe");
+      const backupPath = `${targetPath}.previous`;
       const lineagePath = `${targetPath}.update-lineage.json`;
       const journalPath = `${targetPath}.update-transaction.json`;
       const originalTarget = "hard-crash-known-good-primary";
       const originalAlias = "hard-crash-known-good-alias";
+      const originalBackup = "hard-crash-older-rollback-generation";
       const originalLineage = `${JSON.stringify({
         schema: "chainlesschain.native-update-lineage.v1",
         transactionId: "00000000-0000-0000-0000-000000000001",
@@ -2798,6 +2803,7 @@ describe("native installer transaction contracts", () => {
       })}\n`;
       fs.writeFileSync(targetPath, originalTarget);
       fs.writeFileSync(aliasPath, originalAlias);
+      fs.writeFileSync(backupPath, originalBackup);
       fs.writeFileSync(lineagePath, originalLineage);
 
       const fixtureSetup = [
@@ -2851,6 +2857,7 @@ describe("native installer transaction contracts", () => {
       if (decision === "rollback") {
         expect(fs.readFileSync(targetPath, "utf8")).toBe(originalTarget);
         expect(fs.readFileSync(aliasPath, "utf8")).toBe(originalAlias);
+        expect(fs.readFileSync(backupPath, "utf8")).toBe(originalBackup);
         expect(fs.readFileSync(lineagePath, "utf8")).toBe(originalLineage);
       } else {
         expect(
@@ -2870,12 +2877,13 @@ describe("native installer transaction contracts", () => {
           operation: "install",
           currentSha256: expectedHash,
         });
+        expect(fs.readFileSync(backupPath, "utf8")).toBe(originalTarget);
       }
 
       const remaining = fs.readdirSync(targetDir);
       expect(
         remaining.filter((name) =>
-          /(?:update-transaction|\.new-|\.recovery-|\.rejected-|lineage-prior-|\.cc\.previous-)/.test(
+          /(?:update-transaction|\.new-|\.recovery-|\.rejected-|lineage-prior-|backup-prior-|\.cc\.previous-)/.test(
             name,
           ),
         ),
