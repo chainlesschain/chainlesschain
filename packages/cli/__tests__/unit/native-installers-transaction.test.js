@@ -16,6 +16,7 @@ const fixtureTempRoot = fs.realpathSync(os.tmpdir());
 const fixtureDirectoryPrefixes = [
   "cc-sh-install-tx-",
   "cc-ps-install-tx-",
+  "cc-ps-install-crash-",
   "cc-ps-install-fresh-",
 ];
 
@@ -2598,11 +2599,27 @@ describe("native installer transaction contracts", () => {
     expect(source).toContain("Move-StaleStateToQuarantine");
     expect(source).toContain('$ResultPath = "$TargetPath.update-result.json"');
     expect(source).toContain(
-      "[IO.File]::Copy($Artifact, $CandidatePath, $false)",
+      '$JournalPath = "$TargetPath.update-transaction.json"',
     );
     expect(source).toContain(
-      '(".chainlesschain.new-" + [guid]::NewGuid().ToString("N") + ".exe")',
+      'schema = "chainlesschain.native-install-transaction.v1"',
     );
+    expect(source).toContain("Resolve-StaleInstallLock $LockPath");
+    expect(source).toContain("Invoke-InterruptedInstallRecovery");
+    expect(source).toContain("Write-InstallTransactionJournal");
+    expect(source).toContain('phase = "prepared"');
+    expect(source).toContain('$TransactionJournal.phase = "target-committed"');
+    expect(source).toContain('$TransactionJournal.phase = "alias-committed"');
+    expect(source).toContain('$TransactionJournal.phase = "verified"');
+    expect(source).toContain('$TransactionJournal.phase = "committed"');
+    expect(source).toContain('$TransactionJournal.decision = "commit"');
+    expect(source).toContain(
+      '[Environment]::FailFast("CLI installer crash fixture after $Phase")',
+    );
+    expect(source).toContain(
+      "[IO.File]::Copy($Artifact, $CandidatePath, $false)",
+    );
+    expect(source).toContain('(".chainlesschain.new-$TransactionId.exe")');
     expect(source).toContain(
       "[IO.File]::Replace($CandidatePath, $TargetPath, $BackupPath, $true)",
     );
@@ -2717,6 +2734,157 @@ describe("native installer transaction contracts", () => {
       ).toEqual([]);
     },
     90_000,
+  );
+
+  it.runIf(process.platform === "win32").each([
+    ["target-committed", "rollback"],
+    ["alias-committed", "rollback"],
+    ["committed", "commit"],
+  ])(
+    "PowerShell installer recovers a hard crash after %s with a %s decision",
+    (phase, decision) => {
+      const root = fs.mkdtempSync(
+        path.join(os.tmpdir(), "cc-ps-install-crash-"),
+      );
+      temporaryDirectories.push(root);
+      const fixtureDir = path.join(root, "fixtures");
+      const targetDir = path.join(root, "bin");
+      fs.mkdirSync(fixtureDir, { recursive: true });
+      fs.mkdirSync(targetDir, { recursive: true });
+
+      const artifactPath = path.join(fixtureDir, "artifact.exe");
+      fs.copyFileSync(process.execPath, artifactPath);
+      const expectedHash = crypto
+        .createHash("sha256")
+        .update(fs.readFileSync(artifactPath))
+        .digest("hex");
+      const target =
+        process.arch === "arm64" ? "node20-win-arm64" : "node20-win-x64";
+      const manifestPath = path.join(fixtureDir, "manifest.json");
+      const bundlePath = path.join(fixtureDir, "bundle.json");
+      fs.writeFileSync(
+        manifestPath,
+        JSON.stringify({
+          latest: {
+            artifacts: [
+              {
+                target,
+                url: "https://fixture/artifact.exe",
+                sha256: expectedHash,
+                signature: "https://fixture/artifact.sigstore.json",
+              },
+            ],
+          },
+        }),
+      );
+      fs.writeFileSync(bundlePath, "{}");
+
+      const targetPath = path.join(targetDir, "chainlesschain.exe");
+      const aliasPath = path.join(targetDir, "cc.exe");
+      const lineagePath = `${targetPath}.update-lineage.json`;
+      const journalPath = `${targetPath}.update-transaction.json`;
+      const originalTarget = "hard-crash-known-good-primary";
+      const originalAlias = "hard-crash-known-good-alias";
+      const originalLineage = `${JSON.stringify({
+        schema: "chainlesschain.native-update-lineage.v1",
+        transactionId: "00000000-0000-0000-0000-000000000001",
+        operation: "install",
+        currentSha256: crypto
+          .createHash("sha256")
+          .update(originalTarget)
+          .digest("hex"),
+        previousSha256: null,
+        updatedAt: "2026-08-01T00:00:00.000Z",
+      })}\n`;
+      fs.writeFileSync(targetPath, originalTarget);
+      fs.writeFileSync(aliasPath, originalAlias);
+      fs.writeFileSync(lineagePath, originalLineage);
+
+      const fixtureSetup = [
+        `Import-Module Microsoft.PowerShell.Utility -ErrorAction Stop`,
+        `$env:CC_CLI_RELEASE_BASE_URL = 'https://fixture/base'`,
+        `$env:CC_CLI_INSTALL_DIR = ${psQuote(targetDir)}`,
+        `function cosign { $global:LASTEXITCODE = 0 }`,
+        `function Invoke-WebRequest { param([string]$Uri, [string]$OutFile); if ($Uri.EndsWith('chainlesschain-update.json.sigstore.json')) { $Source = ${psQuote(bundlePath)} } elseif ($Uri.EndsWith('chainlesschain-update.json')) { $Source = ${psQuote(manifestPath)} } elseif ($Uri.EndsWith('artifact.sigstore.json')) { $Source = ${psQuote(bundlePath)} } elseif ($Uri.EndsWith('artifact.exe')) { $Source = ${psQuote(artifactPath)} } else { throw "unexpected fixture URL: $Uri" }; [IO.File]::Copy($Source, $OutFile, $true) }`,
+      ];
+      const crashed = spawnSync(
+        "powershell.exe",
+        [
+          "-NoProfile",
+          "-NonInteractive",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-Command",
+          [
+            ...fixtureSetup,
+            `$env:CC_CLI_INSTALL_CRASH_AFTER_PHASE = ${psQuote(phase)}`,
+            `. ${psQuote(ps1Path)}`,
+          ].join("; "),
+        ],
+        { encoding: "utf8", timeout: 90_000 },
+      );
+      expect(crashed.status, crashed.stderr || crashed.stdout).not.toBe(0);
+      expect(fs.existsSync(journalPath)).toBe(true);
+      expect(fs.existsSync(`${targetPath}.update.lock`)).toBe(true);
+
+      const recovered = spawnSync(
+        "powershell.exe",
+        [
+          "-NoProfile",
+          "-NonInteractive",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-Command",
+          [
+            `$env:CC_CLI_INSTALL_DIR = ${psQuote(targetDir)}`,
+            `$env:CC_CLI_INSTALL_CRASH_AFTER_PHASE = $null`,
+            `$env:CC_CLI_INSTALL_RECOVERY_ONLY = '1'`,
+            `. ${psQuote(ps1Path)}`,
+          ].join("; "),
+        ],
+        { encoding: "utf8", timeout: 90_000 },
+      );
+      expect(recovered.status, recovered.stderr || recovered.stdout).toBe(0);
+      expect(fs.existsSync(journalPath)).toBe(false);
+      expect(fs.existsSync(`${targetPath}.update.lock`)).toBe(false);
+
+      if (decision === "rollback") {
+        expect(fs.readFileSync(targetPath, "utf8")).toBe(originalTarget);
+        expect(fs.readFileSync(aliasPath, "utf8")).toBe(originalAlias);
+        expect(fs.readFileSync(lineagePath, "utf8")).toBe(originalLineage);
+      } else {
+        expect(
+          crypto
+            .createHash("sha256")
+            .update(fs.readFileSync(targetPath))
+            .digest("hex"),
+        ).toBe(expectedHash);
+        expect(
+          crypto
+            .createHash("sha256")
+            .update(fs.readFileSync(aliasPath))
+            .digest("hex"),
+        ).toBe(expectedHash);
+        expect(JSON.parse(fs.readFileSync(lineagePath, "utf8"))).toMatchObject({
+          schema: "chainlesschain.native-update-lineage.v1",
+          operation: "install",
+          currentSha256: expectedHash,
+        });
+      }
+
+      const remaining = fs.readdirSync(targetDir);
+      expect(
+        remaining.filter((name) =>
+          /(?:update-transaction|\.new-|\.recovery-|\.rejected-|lineage-prior-|\.cc\.previous-)/.test(
+            name,
+          ),
+        ),
+      ).toEqual([]);
+      expect(
+        remaining.some((name) => name.includes("update.lock.orphaned-")),
+      ).toBe(true);
+    },
+    180_000,
   );
 
   it.runIf(process.platform === "win32")(

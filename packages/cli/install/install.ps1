@@ -218,10 +218,311 @@ function Move-StaleStateToQuarantine {
   return $QuarantinePath
 }
 
+function Write-DurableJsonFile {
+  param(
+    [Parameter(Mandatory = $true)][string]$LiteralPath,
+    [Parameter(Mandatory = $true)]$Value,
+    [Parameter(Mandatory = $true)][string]$Label
+  )
+  Assert-RegularFileOrMissing $LiteralPath $Label
+  $Directory = Split-Path -Parent $LiteralPath
+  $StagingPath = Join-Path $Directory (".chainlesschain.json-" + [guid]::NewGuid().ToString("N"))
+  $ReplacedPath = Join-Path $Directory (".chainlesschain.json-previous-" + [guid]::NewGuid().ToString("N"))
+  try {
+    $Payload = $Value | ConvertTo-Json -Compress -Depth 8
+    [IO.File]::WriteAllText($StagingPath, $Payload + [Environment]::NewLine, [Text.UTF8Encoding]::new($false))
+    Sync-FileToDisk $StagingPath
+    if ([IO.File]::Exists($LiteralPath)) {
+      [IO.File]::Replace($StagingPath, $LiteralPath, $ReplacedPath, $true)
+      Remove-RegularFileIfPresent $ReplacedPath
+    } else {
+      [IO.File]::Move($StagingPath, $LiteralPath)
+    }
+    Sync-FileToDisk $LiteralPath
+  } finally {
+    Remove-RegularFileIfPresent $StagingPath
+    Remove-RegularFileIfPresent $ReplacedPath
+  }
+}
+
+function Write-InstallTransactionJournal {
+  param(
+    [Parameter(Mandatory = $true)][string]$LiteralPath,
+    [Parameter(Mandatory = $true)]$Journal
+  )
+  $Journal.updatedAt = [DateTimeOffset]::UtcNow.ToString("o")
+  Write-DurableJsonFile $LiteralPath $Journal "Native install transaction journal"
+}
+
+function Read-InstallTransactionJournal {
+  param([Parameter(Mandatory = $true)][string]$LiteralPath)
+  Assert-RegularFileOrMissing $LiteralPath "Native install transaction journal"
+  try {
+    $Journal = Get-Content -Raw -LiteralPath $LiteralPath | ConvertFrom-Json
+  } catch {
+    throw "Native install transaction journal is corrupt and requires manual recovery"
+  }
+  $ParsedTransactionId = [guid]::Empty
+  $HashPattern = '^[a-f0-9]{64}$'
+  $Valid = (
+    [string]$Journal.schema -eq "chainlesschain.native-install-transaction.v1" -and
+    [guid]::TryParse([string]$Journal.transactionId, [ref]$ParsedTransactionId) -and
+    [string]$Journal.operation -eq "install" -and
+    @("prepared", "target-committed", "alias-committed", "verified", "committed") -contains [string]$Journal.phase -and
+    @("rollback", "commit") -contains [string]$Journal.decision -and
+    ([string]$Journal.expectedSha256 -match $HashPattern) -and
+    ($Journal.hadTarget -is [bool]) -and
+    ($Journal.hadAlias -is [bool]) -and
+    ($Journal.hadLineage -is [bool]) -and
+    ((-not $Journal.hadTarget -and $null -eq $Journal.targetBeforeSha256) -or ([string]$Journal.targetBeforeSha256 -match $HashPattern)) -and
+    ((-not $Journal.hadAlias -and $null -eq $Journal.aliasBeforeSha256) -or ([string]$Journal.aliasBeforeSha256 -match $HashPattern)) -and
+    ((-not $Journal.hadLineage -and $null -eq $Journal.lineageBeforeSha256) -or ([string]$Journal.lineageBeforeSha256 -match $HashPattern)) -and
+    (([string]$Journal.phase -eq "committed" -and [string]$Journal.decision -eq "commit") -or ([string]$Journal.phase -ne "committed" -and [string]$Journal.decision -eq "rollback"))
+  )
+  if (-not $Valid) {
+    throw "Native install transaction journal failed schema validation and requires manual recovery"
+  }
+  return $Journal
+}
+
+function Resolve-StaleInstallLock {
+  param([Parameter(Mandatory = $true)][string]$LiteralPath)
+  $Item = Get-PathItemIfPresent $LiteralPath
+  if ($null -eq $Item) { return $null }
+  Assert-RegularFileOrMissing $LiteralPath "Installer lock"
+  $Stream = $null
+  try {
+    $Stream = [IO.File]::Open(
+      $LiteralPath,
+      [IO.FileMode]::Open,
+      [IO.FileAccess]::ReadWrite,
+      [IO.FileShare]::None
+    )
+    if ($Stream.Length -lt 3 -or $Stream.Length -gt 128) {
+      throw "Stale installer lock token is invalid"
+    }
+    $Bytes = [byte[]]::new([int]$Stream.Length)
+    [void]$Stream.Read($Bytes, 0, $Bytes.Length)
+    $Token = [Text.Encoding]::UTF8.GetString($Bytes)
+  } catch [IO.IOException] {
+    throw "Another ChainlessChain CLI install/update is already in progress: $LiteralPath"
+  } finally {
+    if ($null -ne $Stream) { $Stream.Dispose() }
+  }
+  if ($Token -notmatch '^(?<pid>[1-9][0-9]*):[a-f0-9]{32}$') {
+    throw "Stale installer lock token is invalid and requires manual recovery"
+  }
+  $OwnerPid = [int64]$Matches.pid
+  if ($OwnerPid -le [int]::MaxValue -and $null -ne (Get-Process -Id ([int]$OwnerPid) -ErrorAction SilentlyContinue)) {
+    throw "Installer lock owner PID $OwnerPid is still live; refusing stale-lock takeover"
+  }
+  $QuarantinePath = "$LiteralPath.orphaned-$([guid]::NewGuid().ToString('N'))"
+  Assert-RegularFileOrMissing $QuarantinePath "Quarantined installer lock"
+  [IO.File]::Move($LiteralPath, $QuarantinePath)
+  return $QuarantinePath
+}
+
+function Restore-InstallFileGeneration {
+  param(
+    [Parameter(Mandatory = $true)][string]$SourcePath,
+    [Parameter(Mandatory = $true)][string]$DestinationPath,
+    [Parameter(Mandatory = $true)][string]$ExpectedSha256,
+    [Parameter(Mandatory = $true)][string]$TransactionId,
+    [Parameter(Mandatory = $true)][string]$Label
+  )
+  Assert-RegularFileOrMissing $SourcePath "$Label recovery source"
+  Assert-RegularFileOrMissing $DestinationPath "$Label destination"
+  if (-not [IO.File]::Exists($SourcePath) -or (Get-Sha256File $SourcePath) -ne $ExpectedSha256) {
+    throw "$Label recovery source is missing or changed"
+  }
+  $RestorePath = "$DestinationPath.recovery-$TransactionId"
+  $RejectedPath = "$DestinationPath.rejected-$TransactionId"
+  Assert-RegularFileOrMissing $RestorePath "$Label recovery staging"
+  Assert-RegularFileOrMissing $RejectedPath "$Label rejected generation"
+  [IO.File]::Copy($SourcePath, $RestorePath, $false)
+  try {
+    Sync-FileToDisk $RestorePath
+    if ((Get-Sha256File $RestorePath) -ne $ExpectedSha256) {
+      throw "$Label recovery staging failed SHA-256 verification"
+    }
+    if ([IO.File]::Exists($DestinationPath)) {
+      [IO.File]::Replace($RestorePath, $DestinationPath, $RejectedPath, $true)
+      Remove-RegularFileIfPresent $RejectedPath
+    } else {
+      [IO.File]::Move($RestorePath, $DestinationPath)
+    }
+    Sync-FileToDisk $DestinationPath
+    if ((Get-Sha256File $DestinationPath) -ne $ExpectedSha256) {
+      throw "$Label restored generation failed SHA-256 verification"
+    }
+  } finally {
+    Remove-RegularFileIfPresent $RestorePath
+  }
+}
+
+function Invoke-InstallCrashFixture {
+  param([Parameter(Mandatory = $true)][string]$Phase)
+  if ([string]$env:CC_CLI_INSTALL_CRASH_AFTER_PHASE -eq $Phase) {
+    [Environment]::FailFast("CLI installer crash fixture after $Phase")
+  }
+}
+
+function Invoke-InterruptedInstallRecovery {
+  param(
+    [Parameter(Mandatory = $true)][string]$InstallDirectory,
+    [Parameter(Mandatory = $true)][string]$TargetPath,
+    [Parameter(Mandatory = $true)][string]$BackupPath,
+    [Parameter(Mandatory = $true)][string]$AliasPath,
+    [Parameter(Mandatory = $true)][string]$LineagePath,
+    [Parameter(Mandatory = $true)][string]$JournalPath
+  )
+  if (-not [IO.File]::Exists($JournalPath)) { return $null }
+  $Journal = Read-InstallTransactionJournal $JournalPath
+  $TransactionId = [string]$Journal.transactionId
+  $ExpectedHash = ([string]$Journal.expectedSha256).ToLowerInvariant()
+  $TargetBeforeHash = if ($Journal.hadTarget) { ([string]$Journal.targetBeforeSha256).ToLowerInvariant() } else { $null }
+  $AliasBeforeHash = if ($Journal.hadAlias) { ([string]$Journal.aliasBeforeSha256).ToLowerInvariant() } else { $null }
+  $LineageBeforeHash = if ($Journal.hadLineage) { ([string]$Journal.lineageBeforeSha256).ToLowerInvariant() } else { $null }
+  $CandidatePath = Join-Path $InstallDirectory (".chainlesschain.new-$TransactionId.exe")
+  $AliasCandidatePath = Join-Path $InstallDirectory (".cc.new-$TransactionId.exe")
+  $AliasBackupPath = Join-Path $InstallDirectory (".cc.previous-$TransactionId.exe")
+  $LineageSnapshotPath = Join-Path $InstallDirectory (".chainlesschain.lineage-prior-$TransactionId.json")
+
+  Assert-RegularFileOrMissing $TargetPath "Install target"
+  Assert-RegularFileOrMissing $BackupPath "Last-known-good backup"
+  Assert-RegularFileOrMissing $AliasPath "CLI alias"
+  Assert-RegularFileOrMissing $LineagePath "Native update lineage"
+  Assert-RegularFileOrMissing $CandidatePath "Canonical candidate"
+  Assert-RegularFileOrMissing $AliasCandidatePath "Alias candidate"
+  Assert-RegularFileOrMissing $AliasBackupPath "Alias recovery snapshot"
+  Assert-RegularFileOrMissing $LineageSnapshotPath "Lineage recovery snapshot"
+
+  if ([string]$Journal.decision -eq "commit") {
+    if (-not [IO.File]::Exists($TargetPath) -or (Get-Sha256File $TargetPath) -ne $ExpectedHash) {
+      throw "Committed install target does not match its durable decision"
+    }
+    if (-not [IO.File]::Exists($AliasPath) -or (Get-Sha256File $AliasPath) -ne $ExpectedHash) {
+      throw "Committed CLI alias does not match its durable decision"
+    }
+    if (-not [IO.File]::Exists($LineagePath)) {
+      throw "Committed native update lineage is missing"
+    }
+    $Lineage = Get-Content -Raw -LiteralPath $LineagePath | ConvertFrom-Json
+    if ([string]$Lineage.schema -ne "chainlesschain.native-update-lineage.v1" -or
+        [string]$Lineage.transactionId -ne $TransactionId -or
+        ([string]$Lineage.currentSha256).ToLowerInvariant() -ne $ExpectedHash) {
+      throw "Committed native update lineage does not match its durable decision"
+    }
+    Remove-RegularFileIfPresent $CandidatePath
+    Remove-RegularFileIfPresent $AliasCandidatePath
+    Remove-RegularFileIfPresent $AliasBackupPath
+    Remove-RegularFileIfPresent $LineageSnapshotPath
+    Remove-RegularFileIfPresent $JournalPath
+    return "committed"
+  }
+
+  $CurrentTargetHash = if ([IO.File]::Exists($TargetPath)) { Get-Sha256File $TargetPath } else { $null }
+  if ($Journal.hadTarget) {
+    if ($CurrentTargetHash -ne $TargetBeforeHash) {
+      if ($CurrentTargetHash -ne $ExpectedHash) {
+        throw "Interrupted install target has an unknown generation"
+      }
+      Restore-InstallFileGeneration $BackupPath $TargetPath $TargetBeforeHash $TransactionId "Install target"
+    }
+  } elseif ($null -ne $CurrentTargetHash) {
+    if ($CurrentTargetHash -ne $ExpectedHash) {
+      throw "Interrupted fresh install target has an unknown generation"
+    }
+    [IO.File]::Delete($TargetPath)
+  }
+
+  $CurrentAliasHash = if ([IO.File]::Exists($AliasPath)) { Get-Sha256File $AliasPath } else { $null }
+  if ($Journal.hadAlias) {
+    if ($CurrentAliasHash -ne $AliasBeforeHash) {
+      if ($CurrentAliasHash -ne $ExpectedHash) {
+        throw "Interrupted CLI alias has an unknown generation"
+      }
+      Restore-InstallFileGeneration $AliasBackupPath $AliasPath $AliasBeforeHash $TransactionId "CLI alias"
+    }
+  } elseif ($null -ne $CurrentAliasHash) {
+    if ($CurrentAliasHash -ne $ExpectedHash) {
+      throw "Interrupted fresh CLI alias has an unknown generation"
+    }
+    [IO.File]::Delete($AliasPath)
+  }
+
+  if ($Journal.hadLineage) {
+    if (-not [IO.File]::Exists($LineageSnapshotPath)) {
+      throw "Interrupted install lineage recovery snapshot is missing"
+    }
+    if (-not [IO.File]::Exists($LineagePath) -or (Get-Sha256File $LineagePath) -ne $LineageBeforeHash) {
+      Restore-InstallFileGeneration $LineageSnapshotPath $LineagePath $LineageBeforeHash $TransactionId "Native update lineage"
+    }
+  } elseif ([IO.File]::Exists($LineagePath)) {
+    $Lineage = Get-Content -Raw -LiteralPath $LineagePath | ConvertFrom-Json
+    if ([string]$Lineage.schema -ne "chainlesschain.native-update-lineage.v1" -or
+        [string]$Lineage.transactionId -ne $TransactionId) {
+      throw "Interrupted install lineage has an unknown generation"
+    }
+    [IO.File]::Delete($LineagePath)
+  }
+
+  Remove-RegularFileIfPresent $CandidatePath
+  Remove-RegularFileIfPresent $AliasCandidatePath
+  Remove-RegularFileIfPresent $AliasBackupPath
+  Remove-RegularFileIfPresent $LineageSnapshotPath
+  Remove-RegularFileIfPresent $JournalPath
+  return "rolled-back"
+}
+
 $Repository = if ($env:CC_CLI_REPOSITORY) { $env:CC_CLI_REPOSITORY } else { "chainlesschain/chainlesschain" }
 $BaseUrl = if ($env:CC_CLI_RELEASE_BASE_URL) { $env:CC_CLI_RELEASE_BASE_URL.TrimEnd('/') } else { "https://github.com/$Repository/releases/download/cli-stable" }
 $InstallDir = if ($env:CC_CLI_INSTALL_DIR) { $env:CC_CLI_INSTALL_DIR } else { Join-Path $env:LOCALAPPDATA "ChainlessChain\bin" }
 $Identity = "^https://github.com/$Repository/.github/workflows/cli-native-release.yml@refs/tags/cli-v"
+
+# Recover a prior durable decision before checking release tooling or touching
+# the network. A machine that lost power mid-commit must be able to restore its
+# last known generation while completely offline.
+Assert-NoReparsePointInPath $InstallDir
+New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
+Assert-NoReparsePointInPath $InstallDir
+$InstallDir = [IO.Path]::GetFullPath($InstallDir)
+$TargetPath = Join-Path $InstallDir "chainlesschain.exe"
+$BackupPath = "$TargetPath.previous"
+$AliasPath = Join-Path $InstallDir "cc.exe"
+$LockPath = "$TargetPath.update.lock"
+$LineagePath = "$TargetPath.update-lineage.json"
+$JournalPath = "$TargetPath.update-transaction.json"
+$ResultPath = "$TargetPath.update-result.json"
+$LastResultPath = "$TargetPath.update-result.last.json"
+$RecoveredTransaction = $null
+$RecoveryLock = $null
+$StaleLockPath = Resolve-StaleInstallLock $LockPath
+if ($StaleLockPath) {
+  Write-Warning "Quarantined a stale native update lock at $StaleLockPath"
+}
+if ([IO.File]::Exists($JournalPath)) {
+  try {
+    $RecoveryLock = New-ExclusiveInstallLock $LockPath
+    $RecoveredTransaction = Invoke-InterruptedInstallRecovery `
+      $InstallDir $TargetPath $BackupPath $AliasPath $LineagePath $JournalPath
+    Release-ExclusiveInstallLock $RecoveryLock
+    $RecoveryLock = $null
+  } catch {
+    if ($null -ne $RecoveryLock) {
+      try { $RecoveryLock.Stream.Dispose() } catch { }
+      Write-Warning "Native update lock retained for recovery at $($RecoveryLock.Path)"
+    }
+    throw
+  }
+  Write-Warning "Recovered interrupted native install transaction ($RecoveredTransaction)"
+}
+if ([string]$env:CC_CLI_INSTALL_RECOVERY_ONLY -eq "1") {
+  if (-not $RecoveredTransaction) {
+    throw "Recovery-only mode found no interrupted native install transaction"
+  }
+  return
+}
 
 if (-not (Get-Command cosign -ErrorAction SilentlyContinue)) {
   throw "cosign is required to verify the signed CLI release"
@@ -239,6 +540,8 @@ $RollbackTempPath = $null
 $AliasCandidatePath = $null
 $AliasBackupPath = $null
 $AliasRollbackPath = $null
+$LineageSnapshotPath = $null
+$TransactionJournal = $null
 $PreserveRecovery = $false
 New-Item -ItemType Directory -Path $Staging | Out-Null
 
@@ -266,33 +569,38 @@ try {
   # Download staging may live on another volume. Commit only from a verified
   # candidate created beside the target, while an exclusive lock is held.
   Assert-NoReparsePointInPath $InstallDir
-  New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
-  Assert-NoReparsePointInPath $InstallDir
-  $InstallDir = [IO.Path]::GetFullPath($InstallDir)
-
-  $TargetPath = Join-Path $InstallDir "chainlesschain.exe"
-  $BackupPath = "$TargetPath.previous"
-  $AliasPath = Join-Path $InstallDir "cc.exe"
-  $LockPath = "$TargetPath.update.lock"
-  $LineagePath = "$TargetPath.update-lineage.json"
-  $ResultPath = "$TargetPath.update-result.json"
-  $LastResultPath = "$TargetPath.update-result.last.json"
   Assert-RegularFileOrMissing $TargetPath "Install target"
   Assert-RegularFileOrMissing $BackupPath "Last-known-good backup"
   Assert-RegularFileOrMissing $AliasPath "CLI alias"
   Assert-RegularFileOrMissing $LockPath "Installer lock"
   Assert-RegularFileOrMissing $LineagePath "Native update lineage"
+  Assert-RegularFileOrMissing $JournalPath "Native install transaction journal"
   Assert-RegularFileOrMissing $ResultPath "Native update result"
   Assert-RegularFileOrMissing $LastResultPath "Last consumed native update result"
 
+  $StaleLockPath = Resolve-StaleInstallLock $LockPath
+  if ($StaleLockPath) {
+    Write-Warning "Quarantined a stale native update lock at $StaleLockPath"
+  }
   $InstallLock = New-ExclusiveInstallLock $LockPath
   Assert-NoReparsePointInPath $InstallDir
   Assert-RegularFileOrMissing $TargetPath "Install target"
   Assert-RegularFileOrMissing $BackupPath "Last-known-good backup"
   Assert-RegularFileOrMissing $AliasPath "CLI alias"
   Assert-RegularFileOrMissing $LineagePath "Native update lineage"
+  Assert-RegularFileOrMissing $JournalPath "Native install transaction journal"
   Assert-RegularFileOrMissing $ResultPath "Native update result"
   Assert-RegularFileOrMissing $LastResultPath "Last consumed native update result"
+  try {
+    $RecoveredTransaction = Invoke-InterruptedInstallRecovery `
+      $InstallDir $TargetPath $BackupPath $AliasPath $LineagePath $JournalPath
+  } catch {
+    $PreserveRecovery = $true
+    throw
+  }
+  if ($RecoveredTransaction) {
+    Write-Warning "Recovered interrupted native install transaction ($RecoveredTransaction)"
+  }
   if ([IO.File]::Exists($ResultPath)) {
     throw "An unconsumed native update result must be handled before installing"
   }
@@ -329,7 +637,7 @@ try {
   # PowerShell resolves native commands by extension. Keep the verified
   # same-directory candidate executable so the pre-commit startup check runs
   # the binary instead of treating it as a document in a pipeline.
-  $CandidatePath = Join-Path $InstallDir (".chainlesschain.new-" + [guid]::NewGuid().ToString("N") + ".exe")
+  $CandidatePath = Join-Path $InstallDir (".chainlesschain.new-$TransactionId.exe")
   [IO.File]::Copy($Artifact, $CandidatePath, $false)
   if ((Get-Sha256File $CandidatePath) -ne $ExpectedHash) {
     throw "Same-filesystem staging copy failed SHA-256 verification"
@@ -340,7 +648,7 @@ try {
   }
   Invoke-BinaryStartupCheck $CandidatePath
 
-  $AliasCandidatePath = Join-Path $InstallDir (".cc.new-" + [guid]::NewGuid().ToString("N") + ".exe")
+  $AliasCandidatePath = Join-Path $InstallDir (".cc.new-$TransactionId.exe")
   [IO.File]::Copy($CandidatePath, $AliasCandidatePath, $false)
   if ((Get-Sha256File $AliasCandidatePath) -ne $ExpectedHash) {
     throw "Alias staging copy failed SHA-256 verification"
@@ -349,6 +657,34 @@ try {
 
   $TargetBeforeHash = if ($HadTarget) { Get-Sha256File $TargetPath } else { $null }
   $AliasBeforeHash = if ($HadAlias) { Get-Sha256File $AliasPath } else { $null }
+  $HadLineage = [IO.File]::Exists($LineagePath)
+  $LineageBeforeHash = if ($HadLineage) { Get-Sha256File $LineagePath } else { $null }
+  $LineageSnapshotPath = Join-Path $InstallDir (".chainlesschain.lineage-prior-$TransactionId.json")
+  if ($HadLineage) {
+    [IO.File]::Copy($LineagePath, $LineageSnapshotPath, $false)
+    Sync-FileToDisk $LineageSnapshotPath
+    if ((Get-Sha256File $LineageSnapshotPath) -ne $LineageBeforeHash) {
+      throw "Native update lineage recovery snapshot changed while staging"
+    }
+  }
+  $AliasBackupPath = Join-Path $InstallDir (".cc.previous-$TransactionId.exe")
+  $TransactionJournal = [ordered]@{
+    schema = "chainlesschain.native-install-transaction.v1"
+    transactionId = $TransactionId
+    operation = "install"
+    phase = "prepared"
+    decision = "rollback"
+    expectedSha256 = $ExpectedHash
+    hadTarget = $HadTarget
+    targetBeforeSha256 = $TargetBeforeHash
+    hadAlias = $HadAlias
+    aliasBeforeSha256 = $AliasBeforeHash
+    hadLineage = $HadLineage
+    lineageBeforeSha256 = $LineageBeforeHash
+    updatedAt = $null
+  }
+  Write-InstallTransactionJournal $JournalPath $TransactionJournal
+  Invoke-InstallCrashFixture "prepared"
   $Swapped = $false
   $AliasSwapped = $false
   $Committed = $false
@@ -385,17 +721,22 @@ try {
     $Swapped = $true
     Sync-FileToDisk $TargetPath
     if ($HadTarget) { Sync-FileToDisk $BackupPath }
+    $TransactionJournal.phase = "target-committed"
+    Write-InstallTransactionJournal $JournalPath $TransactionJournal
+    Invoke-InstallCrashFixture "target-committed"
 
     # Canonical and cc.exe are committed and verified as one transaction.
     Assert-RegularFileOrMissing $AliasPath "CLI alias"
     if ($HadAlias) {
-      $AliasBackupPath = Join-Path $InstallDir (".cc.previous-" + [guid]::NewGuid().ToString("N") + ".exe")
       [IO.File]::Replace($AliasCandidatePath, $AliasPath, $AliasBackupPath, $true)
     } else {
       [IO.File]::Move($AliasCandidatePath, $AliasPath)
     }
     $AliasCandidatePath = $null
     $AliasSwapped = $true
+    $TransactionJournal.phase = "alias-committed"
+    Write-InstallTransactionJournal $JournalPath $TransactionJournal
+    Invoke-InstallCrashFixture "alias-committed"
     if ((Get-Sha256File $TargetPath) -ne $ExpectedHash -or
         (Get-Sha256File $AliasPath) -ne $ExpectedHash) {
       throw "Canonical/alias hash parity verification failed"
@@ -408,10 +749,20 @@ try {
       throw "CLI alias changed before startup check"
     }
     Invoke-BinaryStartupCheck $AliasPath
+    $TransactionJournal.phase = "verified"
+    Write-InstallTransactionJournal $JournalPath $TransactionJournal
+    Invoke-InstallCrashFixture "verified"
     Write-NativeUpdateLineage $LineagePath $TransactionId "install" $ExpectedHash $TargetBeforeHash
+    $TransactionJournal.phase = "committed"
+    $TransactionJournal.decision = "commit"
+    Write-InstallTransactionJournal $JournalPath $TransactionJournal
+    Invoke-InstallCrashFixture "committed"
     $Committed = $true
     Remove-RegularFileIfPresent $AliasBackupPath
     $AliasBackupPath = $null
+    Remove-RegularFileIfPresent $LineageSnapshotPath
+    $LineageSnapshotPath = $null
+    Remove-RegularFileIfPresent $JournalPath
   } catch {
     $TransactionError = $_.Exception.Message
     if ($Swapped -and -not $Committed) {
@@ -464,24 +815,50 @@ try {
           if ((Get-Sha256File $TargetPath) -ne $TargetBeforeHash) {
             throw "Restored install target failed SHA-256 verification"
           }
-          Write-NativeUpdateLineage $LineagePath $TransactionId "rolled-back" $TargetBeforeHash $TargetBeforeHash
         } else {
           Assert-RegularFileOrMissing $TargetPath "Failed install target"
           if ([IO.File]::Exists($TargetPath)) { [IO.File]::Delete($TargetPath) }
           if ([IO.File]::Exists($TargetPath)) { throw "Fresh install target could not be removed" }
-          Remove-RegularFileIfPresent $LineagePath
         }
       } catch {
         $RollbackErrors.Add("canonical: $($_.Exception.Message)")
+      }
+      try {
+        if ($HadLineage) {
+          Restore-InstallFileGeneration $LineageSnapshotPath $LineagePath $LineageBeforeHash $TransactionId "Native update lineage"
+        } else {
+          if ([IO.File]::Exists($LineagePath)) {
+            $CurrentLineage = Get-Content -Raw -LiteralPath $LineagePath | ConvertFrom-Json
+            if ([string]$CurrentLineage.transactionId -ne $TransactionId) {
+              throw "Native update lineage changed before rollback"
+            }
+            [IO.File]::Delete($LineagePath)
+          }
+        }
+      } catch {
+        $RollbackErrors.Add("lineage: $($_.Exception.Message)")
       }
       if ($RollbackErrors.Count -gt 0) {
         $PreserveRecovery = $true
         throw "Install transaction failed ($TransactionError) and rollback also failed: $($RollbackErrors -join '; ')"
       }
+      Remove-RegularFileIfPresent $LineageSnapshotPath
+      $LineageSnapshotPath = $null
+      Remove-RegularFileIfPresent $JournalPath
       if ($HadTarget) {
         throw "Install transaction failed; the previous version was restored. $TransactionError"
       }
       throw "Install transaction failed; the partial installation was removed. $TransactionError"
+    }
+    if (-not $Swapped -and $JournalPath -and [IO.File]::Exists($JournalPath)) {
+      try {
+        [void](Invoke-InterruptedInstallRecovery `
+          $InstallDir $TargetPath $BackupPath $AliasPath $LineagePath $JournalPath)
+        $LineageSnapshotPath = $null
+      } catch {
+        $PreserveRecovery = $true
+        throw "Install transaction failed ($TransactionError) and pre-commit recovery failed: $($_.Exception.Message)"
+      }
     }
     throw
   }
@@ -489,6 +866,9 @@ try {
 } finally {
   Remove-RegularFileIfPresent $CandidatePath
   Remove-RegularFileIfPresent $AliasCandidatePath
+  if ($JournalPath -and [IO.File]::Exists($JournalPath)) {
+    $PreserveRecovery = $true
+  }
   if (-not $PreserveRecovery) {
     Remove-RegularFileIfPresent $RollbackTempPath
     Remove-RegularFileIfPresent $AliasBackupPath
@@ -497,6 +877,8 @@ try {
     if ($RollbackTempPath) { Write-Warning "Rollback candidate preserved at $RollbackTempPath" }
     if ($AliasBackupPath) { Write-Warning "CLI alias recovery snapshot preserved at $AliasBackupPath" }
     if ($AliasRollbackPath) { Write-Warning "CLI alias rollback candidate preserved at $AliasRollbackPath" }
+    if ($LineageSnapshotPath) { Write-Warning "Lineage recovery snapshot preserved at $LineageSnapshotPath" }
+    if ($JournalPath) { Write-Warning "Native install transaction journal preserved at $JournalPath" }
   }
   if ($PreserveRecovery -and $null -ne $InstallLock) {
     try { $InstallLock.Stream.Dispose() } catch { }
