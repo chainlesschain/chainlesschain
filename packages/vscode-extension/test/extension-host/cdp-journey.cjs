@@ -1085,43 +1085,36 @@ async function clickSessionsWorkbenchAction(
       '#list button[data-source-id="ui-workbench-background"][data-act=${JSON.stringify(action)}]'
     );
     if (!button) return null;
-    window.__ccWorkbenchOriginalPrompt = window.prompt;
-    window.prompt = () => ${JSON.stringify(prompt)};
     const rect = button.getBoundingClientRect();
     return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
   })()`);
   if (!target || !Number.isFinite(target.x) || !Number.isFinite(target.y)) {
     throw new Error(`could not click Sessions Workbench ${action}`);
   }
-  const clickedAt = Date.now();
-  try {
-    await client.send("Input.dispatchMouseEvent", {
-      type: "mousePressed",
-      x: target.x,
-      y: target.y,
-      button: "left",
-      clickCount: 1,
-    });
-    await client.send("Input.dispatchMouseEvent", {
-      type: "mouseReleased",
-      x: target.x,
-      y: target.y,
-      button: "left",
-      clickCount: 1,
-    });
-  } finally {
-    await client
-      .evaluate(
-        `(() => {
-        if (window.__ccWorkbenchOriginalPrompt) {
-          window.prompt = window.__ccWorkbenchOriginalPrompt;
-        }
-        delete window.__ccWorkbenchOriginalPrompt;
-      })()`,
-      )
-      .catch(() => {});
-  }
-  return clickedAt;
+  await client.send("Input.dispatchMouseEvent", {
+    type: "mousePressed",
+    x: target.x,
+    y: target.y,
+    button: "left",
+    clickCount: 1,
+  });
+  await client.send("Input.dispatchMouseEvent", {
+    type: "mouseReleased",
+    x: target.x,
+    y: target.y,
+    button: "left",
+    clickCount: 1,
+  });
+  // The target DOM is evaluated in a CDP isolated world, while the product
+  // click handler (and its prompt()) runs in the Webview's main world.  A
+  // window.prompt override in the isolated world therefore cannot answer the
+  // real dialog.  Submit it through the Page domain, exactly as a user would,
+  // and begin the visibility SLA after that input has been accepted.
+  await client.send("Page.handleJavaScriptDialog", {
+    accept: true,
+    promptText: prompt,
+  });
+  return Date.now();
 }
 
 async function driveSessionsWorkbenchPhase(
@@ -1942,6 +1935,7 @@ module.exports = {
   assertHostReadySignal,
   assertJourneyArtifacts,
   buildCdpWebSocketOptions,
+  clickSessionsWorkbenchAction,
   createCdpPipeSocket,
   createFixtureCli,
   isExactIsoTimestamp,

@@ -38,6 +38,7 @@ const {
   PHASE_WORKBENCH_DOM_MARKERS,
   assertJourneyArtifacts,
   buildCdpWebSocketOptions,
+  clickSessionsWorkbenchAction,
   createCdpPipeSocket,
   createFixtureCli,
   findWorkbenchWindow,
@@ -909,6 +910,53 @@ test("CDP child sessions preserve flattened target identity", async () => {
   assert.equal(sent[0].method, "Runtime.evaluate");
   assert.equal(sent[0].sessionId, "iframe-1");
   assert.equal(sent[0].params.contextId, 41);
+});
+
+test("CDP workbench actions accept the real main-world prompt before polling", async () => {
+  const evaluations = [
+    {
+      text: "Sessions Workbench",
+      rowCount: 5,
+      kinds: ["local", "background", "remote", "team", "workflow"],
+      backgroundState: "done",
+      dispatchEnabled: true,
+      replyEnabled: false,
+      artifactVisible: false,
+      prVisible: false,
+    },
+    { x: 120, y: 48 },
+  ];
+  const commands = [];
+  const client = {
+    async evaluate() {
+      return evaluations.shift();
+    },
+    async send(method, params) {
+      commands.push({ method, params });
+      return {};
+    },
+  };
+
+  const acceptedAt = await clickSessionsWorkbenchAction(
+    client,
+    "dispatch",
+    "dispatch from VS Code Workbench",
+  );
+
+  assert.equal(Number.isFinite(acceptedAt), true);
+  assert.deepEqual(
+    commands.map((command) => command.method),
+    [
+      "Input.dispatchMouseEvent",
+      "Input.dispatchMouseEvent",
+      "Page.handleJavaScriptDialog",
+    ],
+  );
+  assert.deepEqual(commands[2].params, {
+    accept: true,
+    promptText: "dispatch from VS Code Workbench",
+  });
+  assert.equal(evaluations.length, 0);
 });
 
 test("CDP websocket failures retain the handshake diagnostic", async () => {
