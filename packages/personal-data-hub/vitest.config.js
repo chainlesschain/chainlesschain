@@ -63,10 +63,11 @@ const NATIVE_DEPENDENT_TESTS = [
 
 const native = probeNativeVault();
 const exclude = [...configDefaults.exclude];
-// Shared Windows runners can exceed 10s under filesystem/Defender contention.
-// Keep every other environment strict while retaining a finite Windows CI cap.
+// Shared Windows runners can exceed 30s while native SQLite vaults are opened
+// under filesystem/Defender contention. Keep every other environment strict
+// while retaining a finite Windows CI cap for genuine hangs.
 const windowsCI = process.platform === "win32" && process.env.CI === "true";
-const timeout = windowsCI ? 30_000 : 10_000;
+const timeout = windowsCI ? 60_000 : 10_000;
 
 if (!native.available) {
   exclude.push(...NATIVE_DEPENDENT_TESTS);

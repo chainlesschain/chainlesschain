@@ -46,6 +46,7 @@ import {
   autoFailStuckExecutionsV2,
   getSkillLoaderStatsV2,
 } from "../lib/skill-loader.js";
+import { raceWithAbort, throwIfAborted } from "../lib/abort-utils.js";
 import { getElectronUserDataDir } from "../lib/paths.js";
 import { findProjectRoot } from "../lib/project-detector.js";
 import { loadConfig } from "../lib/config-manager.js";
@@ -130,6 +131,10 @@ export function createControlledSkillScaffold(name, targetDir, io = fs) {
 
 export function createCliSkillReauthorizer(options = {}) {
   return async (request) => {
+    throwIfAborted(
+      request?.signal,
+      "Skill authorization prompt was interrupted",
+    );
     if (options.assumeYes === true) return { authorized: true };
     const stdin = options.stdin || process.stdin;
     const stdout = options.stdout || process.stdout;
@@ -140,12 +145,19 @@ export function createCliSkillReauthorizer(options = {}) {
     const skillId = request?.skill?.id || "unknown";
     const source = request?.skill?.source || "unknown";
     const digest = String(request?.currentDigest || "").slice(0, 24);
-    const authorized = await confirm({
-      message:
-        `Authorize isolated skill "${skillId}" from ${source} ` +
-        `for this process (${digest || "digest unavailable"})?`,
-      default: false,
-    });
+    const authorized = await raceWithAbort(
+      confirm(
+        {
+          message:
+            `Authorize isolated skill "${skillId}" from ${source} ` +
+            `for this process (${digest || "digest unavailable"})?`,
+          default: false,
+        },
+        request?.signal ? { signal: request.signal } : undefined,
+      ),
+      request?.signal,
+      "Skill authorization prompt was interrupted",
+    );
     return { authorized: authorized === true };
   };
 }
@@ -179,7 +191,9 @@ export async function runControlledSkill(options = {}) {
     loader,
     executeTool = null,
     llmOptions = null,
+    signal = null,
   } = options;
+  throwIfAborted(signal, "Skill command interrupted before discovery");
   if (
     !loader ||
     (typeof loader.getResolvedSkills !== "function" &&
@@ -197,52 +211,75 @@ export async function runControlledSkill(options = {}) {
   if (!skill) {
     return { error: `Skill not found: ${name}`, code: "CC_SKILL_NOT_FOUND" };
   }
-  const executionContext = {
-    loadedBecause: "run_skill",
-    bodyIncluded: false,
-  };
-  if (typeof loader.materializeSkillForExecution === "function") {
-    skill = await loader.materializeSkillForExecution(skill, executionContext);
-  } else if (typeof loader.materializeSkill === "function") {
-    skill = loader.materializeSkill(skill, executionContext);
-  }
-  if (skill.isolation !== true) {
-    return {
-      error:
-        `Skill "${skill.id}" is not configured for controlled execution. ` +
-        "Add isolation: true before running it.",
-      code: "CC_SKILL_DIRECT_HANDLER_BLOCKED",
+  const executionLease = loader.acquireSkillExecution?.(skill, { signal });
+  const executionSignal = executionLease?.signal || signal;
+  try {
+    const executionContext = {
+      loadedBecause: "run_skill",
+      bodyIncluded: false,
+      signal: executionSignal,
     };
+    if (typeof loader.materializeSkillForExecution === "function") {
+      skill = await raceWithAbort(
+        loader.materializeSkillForExecution(skill, executionContext),
+        executionSignal,
+        "Skill command interrupted during authorization",
+      );
+    } else if (typeof loader.materializeSkill === "function") {
+      skill = loader.materializeSkill(skill, executionContext);
+    }
+    executionLease?.assertActive?.();
+    if (skill.isolation !== true) {
+      return {
+        error:
+          `Skill "${skill.id}" is not configured for controlled execution. ` +
+          "Add isolation: true before running it.",
+        code: "CC_SKILL_DIRECT_HANDLER_BLOCKED",
+      };
+    }
+    if (!canRunOnPlatform(skill)) {
+      return {
+        error: `Skill "${skill.id}" is not supported on ${process.platform}`,
+        code: "CC_SKILL_PLATFORM_UNSUPPORTED",
+      };
+    }
+    const dispatch =
+      executeTool || (await import("../runtime/agent-core.js")).executeTool;
+    executionLease?.assertActive?.();
+    throwIfAborted(
+      executionSignal,
+      "Skill command interrupted before execution",
+    );
+    const result = await raceWithAbort(
+      dispatch(
+        "run_skill",
+        { skill_name: skill.id, input: String(input) },
+        {
+          cwd,
+          skillLoader: loader,
+          ...(executionSignal ? { signal: executionSignal } : {}),
+          ...(llmOptions ? { llmOptions: { ...llmOptions } } : {}),
+        },
+      ),
+      executionSignal,
+      "Skill command interrupted during execution",
+    );
+    executionLease?.assertActive?.();
+    const nestedFailure = /^\s*Sub-agent failed:/i.test(
+      String(result?.summary || ""),
+    );
+    if (result?.error || nestedFailure) {
+      return {
+        ...result,
+        success: false,
+        code: result?.code || "CC_SKILL_CONTROLLED_RUN_FAILED",
+        error: result?.error || result.summary,
+      };
+    }
+    return result;
+  } finally {
+    executionLease?.release?.();
   }
-  if (!canRunOnPlatform(skill)) {
-    return {
-      error: `Skill "${skill.id}" is not supported on ${process.platform}`,
-      code: "CC_SKILL_PLATFORM_UNSUPPORTED",
-    };
-  }
-  const dispatch =
-    executeTool || (await import("../runtime/agent-core.js")).executeTool;
-  const result = await dispatch(
-    "run_skill",
-    { skill_name: skill.id, input: String(input) },
-    {
-      cwd,
-      skillLoader: loader,
-      ...(llmOptions ? { llmOptions: { ...llmOptions } } : {}),
-    },
-  );
-  const nestedFailure = /^\s*Sub-agent failed:/i.test(
-    String(result?.summary || ""),
-  );
-  if (result?.error || nestedFailure) {
-    return {
-      ...result,
-      success: false,
-      code: result?.code || "CC_SKILL_CONTROLLED_RUN_FAILED",
-      error: result?.error || result.summary,
-    };
-  }
-  return result;
 }
 
 export function registerSkillCommand(program) {

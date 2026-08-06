@@ -25,6 +25,7 @@ const testDir = join(tmpdir(), `cc-v5029ext-${Date.now()}`);
 
 vi.mock("../../src/lib/paths.js", () => ({
   getHomeDir: () => testDir,
+  getStatePath: () => join(testDir, "state"),
 }));
 
 let mockConfig = { features: {} };

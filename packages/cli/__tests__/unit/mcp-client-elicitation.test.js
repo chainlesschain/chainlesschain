@@ -5,6 +5,7 @@ import {
   _deps,
   normalizeMcpElicitationRequest,
 } from "../../src/lib/mcp-client.js";
+import { textByteStream } from "../helpers/mcp-http-response.js";
 
 function fakeProcess() {
   const proc = new EventEmitter();
@@ -24,11 +25,18 @@ function fakeProcess() {
       "prompts/list": { prompts: [] },
     };
     if (message.id !== undefined && results[message.method]) {
-      setImmediate(() => proc.stdout.emit("data", Buffer.from(JSON.stringify({
-        jsonrpc: "2.0",
-        id: message.id,
-        result: results[message.method],
-      }) + "\n")));
+      setImmediate(() =>
+        proc.stdout.emit(
+          "data",
+          Buffer.from(
+            JSON.stringify({
+              jsonrpc: "2.0",
+              id: message.id,
+              result: results[message.method],
+            }) + "\n",
+          ),
+        ),
+      );
     }
     return true;
   };
@@ -46,6 +54,17 @@ describe("MCP elicitation/create routing", () => {
   beforeEach(() => {
     proc = fakeProcess();
     _deps.spawn = () => proc;
+    _deps.consumeMcpStdioExecutionAuthority = () => ({
+      approvalKind: "test-fixture",
+    });
+    _deps.materializeApprovedMcpStdioInvocation = (_approval, { config }) =>
+      config;
+    _deps.prepareMcpStdioExecutableIdentity = ({ config }) => ({
+      command: config.command,
+      args: config.args || [],
+      identity: null,
+      authority: Object.freeze({}),
+    });
   });
 
   it("routes a server request to the injected handler", async () => {
@@ -227,7 +246,9 @@ describe("MCP elicitation/create routing", () => {
     });
     await request;
     await new Promise((resolve) => setImmediate(resolve));
-    expect(proc.written.find((message) => message.id === "event-1").result).toEqual({
+    expect(
+      proc.written.find((message) => message.id === "event-1").result,
+    ).toEqual({
       action: "accept",
       content: { value: 7 },
     });
@@ -239,6 +260,32 @@ describe("MCP elicitation/create routing", () => {
     ).resolves.toEqual({
       action: "decline",
     });
+  });
+
+  it("cancels event-driven elicitations for only the disconnected server", async () => {
+    const client = new MCPClient({ elicitationTimeoutMs: 10_000 });
+    client.on("elicitation-request", () => {});
+
+    const disconnected = client._resolveElicitation("srv", "request", {
+      message: "First server",
+    });
+    const sibling = client._resolveElicitation("srv:child", "request", {
+      message: "Sibling server",
+    });
+    await new Promise((resolve) => setImmediate(resolve));
+
+    await expect(client.disconnect("srv")).resolves.toBe(false);
+    await expect(disconnected).resolves.toEqual({ action: "cancel" });
+    expect(
+      [...client._pendingElicitations.values()].map(
+        (pending) => pending.request.server,
+      ),
+    ).toEqual(["srv:child"]);
+
+    expect(client.cancelElicitation("srv:child", "request")).toBe(true);
+    await expect(sibling).resolves.toEqual({ action: "cancel" });
+    expect(client._pendingElicitations.size).toBe(0);
+    expect(client._activeElicitations).toBe(0);
   });
 
   it("keeps concurrent session-scoped handlers isolated", async () => {
@@ -294,20 +341,29 @@ describe("MCP elicitation/create routing", () => {
     };
     const client = new MCPClient({
       eventRuntimeStore: store,
-      elicitationHandler: async () => ({ action: "accept", content: { ok: true } }),
+      elicitationHandler: async () => ({
+        action: "accept",
+        content: { ok: true },
+      }),
     });
-    await expect(client._resolveElicitation("srv", "r1", { message: "ok" })).resolves.toEqual({
+    await expect(
+      client._resolveElicitation("srv", "r1", { message: "ok" }),
+    ).resolves.toEqual({
       action: "accept",
       content: { ok: true },
     });
-    expect(records[0].event).toMatchObject({ type: "mcp_elicitation", origin: "mcp" });
+    expect(records[0].event).toMatchObject({
+      type: "mcp_elicitation",
+      origin: "mcp",
+    });
     expect(records[0].result.response.content).toEqual({ ok: true });
   });
 
-  it("correlates completion once and retries a -32042 tool call once", async () => {
+  it("does not grant URL-flow authority to a hand-built -32042 error", async () => {
+    const handler = vi.fn(async () => ({ action: "accept" }));
     const client = new MCPClient({
       elicitationTimeoutMs: 100,
-      elicitationHandler: async () => ({ action: "accept" }),
+      elicitationHandler: handler,
     });
     const required = Object.assign(new Error("setup required"), {
       code: -32042,
@@ -322,35 +378,14 @@ describe("MCP elicitation/create routing", () => {
         ],
       },
     });
-    client._callToolOnce = vi
-      .fn()
-      .mockRejectedValueOnce(required)
-      .mockResolvedValueOnce({ content: [{ type: "text", text: "done" }] });
+    client._callToolOnce = vi.fn().mockRejectedValue(required);
     const completed = vi.fn();
     client.on("elicitation-complete", completed);
-    client.once("elicitation-url-response", () => {
-      expect(
-        client._handleElicitationComplete("other-server", {
-          elicitationId: "flow-1",
-        }),
-      ).toBe(false);
-      expect(
-        client._handleElicitationComplete("srv", {
-          elicitationId: "flow-1",
-        }),
-      ).toBe(true);
-      expect(
-        client._handleElicitationComplete("srv", {
-          elicitationId: "flow-1",
-        }),
-      ).toBe(false);
-    });
 
-    await expect(client.callTool("srv", "finish", {})).resolves.toEqual({
-      content: [{ type: "text", text: "done" }],
-    });
-    expect(client._callToolOnce).toHaveBeenCalledTimes(2);
-    expect(completed).toHaveBeenCalledOnce();
+    await expect(client.callTool("srv", "finish", {})).rejects.toBe(required);
+    expect(client._callToolOnce).toHaveBeenCalledOnce();
+    expect(handler).not.toHaveBeenCalled();
+    expect(completed).not.toHaveBeenCalled();
   });
 
   it("does not lose a URL completion that races explicit host consent", async () => {
@@ -382,7 +417,7 @@ describe("MCP elicitation/create routing", () => {
     expect(completed).toHaveBeenCalledOnce();
   });
 
-  it("rejects oversized or duplicate -32042 batches before prompting", async () => {
+  it("rejects unbranded -32042 batches before prompting", async () => {
     const handler = vi.fn(async () => ({ action: "accept" }));
     const client = new MCPClient({ elicitationHandler: handler });
     const item = (id) => ({
@@ -392,11 +427,6 @@ describe("MCP elicitation/create routing", () => {
       message: "Complete setup",
     });
 
-    await expect(
-      client._resolveRequiredUrlElicitations("srv", {
-        data: { elicitations: Array.from({ length: 17 }, (_, i) => item(i)) },
-      }),
-    ).resolves.toBe(false);
     await expect(
       client._resolveRequiredUrlElicitations("srv", {
         data: { elicitations: [item("same"), item("same")] },
@@ -430,6 +460,7 @@ describe("MCP elicitation/create routing", () => {
           return null;
         },
       },
+      body: textByteStream(body),
       async text() {
         return body;
       },
@@ -519,6 +550,7 @@ describe("MCP elicitation/create routing", () => {
           ok: true,
           status: 200,
           headers: { get: () => "text/event-stream" },
+          body: textByteStream("id: cursor-1\nretry: 1\ndata:\n\n"),
           async text() {
             return "id: cursor-1\nretry: 1\ndata:\n\n";
           },

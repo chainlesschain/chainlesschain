@@ -20,6 +20,8 @@
 
 import chalk from "chalk";
 import { phaseGroupKey } from "../lib/background-agent-phase.js";
+import { installPipeSafety } from "../runtime/pipe-safety.js";
+import { installOutputBackpressure } from "../runtime/output-backpressure.js";
 
 export const GROUP_ORDER = [
   "needs-input",
@@ -171,37 +173,67 @@ const ALT_EXIT = `${ESC}[?25h${ESC}[?1049l`;
 const CLEAR = `${ESC}[2J${ESC}[H`;
 
 /** Default terminal IO — swapped for a fake in tests. */
-export function defaultDashboardIo() {
+export function defaultDashboardIo({
+  input = process.stdin,
+  stdout = process.stdout,
+  stderr = process.stderr,
+} = {}) {
+  let failure = null;
+  const recordFailure = (error) => {
+    failure ||= error;
+    process.exitCode = error?.code === "EPIPE" ? 0 : 1;
+  };
+  const outputFlow = installOutputBackpressure({
+    stdout,
+    stderr,
+    onFailure: recordFailure,
+  });
+  const disposePipeSafety = installPipeSafety([stdout, stderr], () =>
+    recordFailure(
+      Object.assign(new Error("dashboard output pipe closed"), {
+        code: "EPIPE",
+      }),
+    ),
+  );
   return {
-    isTTY: Boolean(process.stdout.isTTY && process.stdin.isTTY),
-    write: (s) => process.stdout.write(s),
-    enterAlt: () => process.stdout.write(ALT_ENTER),
-    exitAlt: () => process.stdout.write(ALT_EXIT),
-    clear: () => process.stdout.write(CLEAR),
+    isTTY: Boolean(stdout.isTTY && input.isTTY),
+    write: (s) => stdout.write(s),
+    enterAlt: () => stdout.write(ALT_ENTER),
+    exitAlt: () => stdout.write(ALT_EXIT),
+    clear: () => stdout.write(CLEAR),
     setRaw: (on) => {
-      if (process.stdin.isTTY && process.stdin.setRawMode) {
-        process.stdin.setRawMode(on);
+      if (input.isTTY && input.setRawMode) {
+        input.setRawMode(on);
       }
     },
     async listenKeys(onKey) {
       const readline = await import("node:readline");
-      readline.emitKeypressEvents(process.stdin);
-      process.stdin.resume();
+      readline.emitKeypressEvents(input);
+      input.resume();
       const handler = (str, key) => onKey(str, key || {});
-      process.stdin.on("keypress", handler);
-      return () => process.stdin.off("keypress", handler);
+      input.on("keypress", handler);
+      return () => input.off("keypress", handler);
     },
     async promptLine(question) {
       const readline = await import("node:readline");
       const rl = readline.createInterface({
-        input: process.stdin,
-        output: process.stdout,
+        input,
+        output: stdout,
       });
       try {
         return await new Promise((resolve) => rl.question(question, resolve));
       } finally {
         rl.close();
       }
+    },
+    async wait() {
+      if (failure) throw failure;
+      await outputFlow.wait();
+      if (failure) throw failure;
+    },
+    dispose() {
+      disposePipeSafety();
+      outputFlow.restore();
     },
   };
 }
@@ -224,23 +256,36 @@ export async function runBgDashboard(deps = {}) {
   let filterIndex = 0;
   let peek = null;
   let message = "";
+  let outputFailed = false;
+  let finishDashboard = () => {};
+  let renderChain = Promise.resolve();
   let model = buildDashboardModel(listAgents(), {
     filter: FILTERS[filterIndex],
     now: now(),
   });
 
   const render = () => {
-    model = buildDashboardModel(listAgents(), {
-      filter: FILTERS[filterIndex],
-      now: now(),
-    });
-    if (selected >= model.flat.length)
-      selected = Math.max(0, model.flat.length - 1);
-    if (peek && !model.flat.some((s) => s.id === peek.id)) peek = null;
-    io.clear();
-    io.write(
-      renderDashboard(model, { selectedIndex: selected, peek, message }) + "\n",
-    );
+    renderChain = renderChain
+      .then(async () => {
+        model = buildDashboardModel(listAgents(), {
+          filter: FILTERS[filterIndex],
+          now: now(),
+        });
+        if (selected >= model.flat.length)
+          selected = Math.max(0, model.flat.length - 1);
+        if (peek && !model.flat.some((s) => s.id === peek.id)) peek = null;
+        io.clear();
+        io.write(
+          renderDashboard(model, { selectedIndex: selected, peek, message }) +
+            "\n",
+        );
+        await io.wait?.();
+      })
+      .catch(() => {
+        outputFailed = true;
+        finishDashboard();
+      });
+    return renderChain;
   };
 
   const selectedSession = () => model.flat[selected] || null;
@@ -259,13 +304,15 @@ export async function runBgDashboard(deps = {}) {
 
   io.enterAlt();
   io.setRaw(true);
-  const timer = setInterval(render, refreshMs);
+  const timer = setInterval(() => void render(), refreshMs);
   timer.unref?.();
-  render();
+  await render();
 
   let stopListening = () => {};
   await new Promise((resolve) => {
     const finish = () => resolve();
+    finishDashboard = finish;
+    if (outputFailed) finish();
     const onKey = async (str, key) => {
       const name = key?.name || str;
       const ctrlC = key?.ctrl && key.name === "c";
@@ -342,7 +389,7 @@ export async function runBgDashboard(deps = {}) {
       } catch (err) {
         message = `error: ${err.message}`;
       }
-      render();
+      await render();
     };
     io.listenKeys(onKey).then((stop) => {
       stopListening = stop || (() => {});
@@ -353,4 +400,10 @@ export async function runBgDashboard(deps = {}) {
   stopListening();
   io.setRaw(false);
   io.exitAlt();
+  try {
+    await io.wait?.();
+  } catch {
+    // The output owner already classified the exit code.
+  }
+  io.dispose?.();
 }

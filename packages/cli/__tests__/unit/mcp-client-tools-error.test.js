@@ -14,6 +14,7 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import { MCPClient } from "../../src/lib/mcp-client.js";
+import { textByteStream } from "../helpers/mcp-http-response.js";
 
 function makeResponse({
   ok = true,
@@ -29,6 +30,7 @@ function makeResponse({
     ok,
     status,
     headers: { get: (k) => headers.get(String(k).toLowerCase()) ?? null },
+    body: textByteStream(body),
     async text() {
       return body;
     },
@@ -87,12 +89,17 @@ describe("MCPClient connect — tools/list failure surfacing", () => {
     });
 
     expect(result.tools).toEqual([]);
-    expect(result.toolsError).toBe("boom fetching tools");
+    expect(result.toolsError).toBe(
+      "MCP server returned a JSON-RPC error (code -32603: Internal error)",
+    );
+    expect(JSON.stringify(result)).not.toContain("boom fetching tools");
     // initialize succeeded → still connected, not thrown.
     expect(result.state).toBeDefined();
     // listServers() exposes the same signal for the `mcp servers` view.
     const listed = client.listServers().find((s) => s.name === "srv");
-    expect(listed.toolsError).toBe("boom fetching tools");
+    expect(listed.toolsError).toBe(
+      "MCP server returned a JSON-RPC error (code -32603: Internal error)",
+    );
   });
 
   it("stays quiet (toolsError null) when a server that did NOT advertise tools fails tools/list", async () => {

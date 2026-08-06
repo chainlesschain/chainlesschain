@@ -139,6 +139,49 @@ describe("headless-runner — pure helpers", () => {
 });
 
 describe("headless-runner — output formats", () => {
+  it("routes EPIPE through the normal MCP cleanup before returning success", async () => {
+    const previousExitCode = process.exitCode;
+    const disconnectAll = vi.fn(async () => {});
+    const disposePipeSafety = vi.fn();
+    let closePipe;
+    const { deps } = makeDeps(null);
+    deps.installPipeSafety = vi.fn((_streams, onEpipe) => {
+      closePipe = onEpipe;
+      return disposePipeSafety;
+    });
+    deps.resolveAgentMcp = vi.fn(async () => ({
+      mcpClient: { callTool: vi.fn(), disconnectAll },
+      connected: [],
+      extraToolDefinitions: [],
+      externalToolExecutors: {},
+      externalToolDescriptors: {},
+    }));
+    deps.agentLoop = async function* (_messages, loopOptions) {
+      yield* [];
+      closePipe();
+      expect(loopOptions.signal.aborted).toBe(true);
+      throw Object.assign(new Error("pipe closed"), { name: "AbortError" });
+    };
+
+    try {
+      const outcome = await runAgentHeadless(
+        {
+          prompt: "hi",
+          outputFormat: "text",
+          settingsHooks: {},
+          asyncHookWaitMs: 0,
+        },
+        deps,
+      );
+
+      expect(outcome).toMatchObject({ exitCode: 0, isError: false });
+      expect(disconnectAll).toHaveBeenCalledOnce();
+      expect(disposePipeSafety).toHaveBeenCalledOnce();
+    } finally {
+      process.exitCode = previousExitCode;
+    }
+  }, 15_000);
+
   it("binds lifecycle hooks to the CLI host cwd for the full async run", async () => {
     const { deps } = makeDeps(replyText("scoped"));
     const trustedRoot = realpathSync.native(
@@ -1143,6 +1186,57 @@ describe("headless-runner — session resume + persistence", () => {
     expect(store.events.user).toHaveLength(0);
     expect(store.events.assistant).toHaveLength(0);
   });
+
+  it.each(["missing", "tombstoned", "conflict"])(
+    "refuses a persist-only %s canonical target before host side effects",
+    async (status) => {
+      const chatFn = replyText("must not run");
+      const { deps, out } = makeDeps(chatFn);
+      deps.sessionHasPersistedEvidence = () => true;
+      deps.sessionExists = () => false;
+      deps.readVerifiedEvents = () => {
+        const error = new Error(`canonical target is ${status}`);
+        error.code = "SESSION_TRANSCRIPT_UNVERIFIED";
+        throw error;
+      };
+      deps.bootstrap = vi.fn(async () => ({ db: null }));
+      deps.executeHooksV2Event = vi.fn(async () => ({
+        success: true,
+        blocked: false,
+        decision: "continue",
+        results: [],
+      }));
+      deps.expandFileRefs = vi.fn(async (prompt) => ({
+        prompt,
+        warnings: [],
+      }));
+
+      const result = await runAgentHeadless(
+        {
+          prompt: "/config llm.model=must-not-write",
+          outputFormat: "json",
+          sessionId: `persist-only-${status}`,
+          persistSession: true,
+        },
+        deps,
+      );
+
+      expect(result).toMatchObject({
+        exitCode: 1,
+        isError: true,
+        sessionSnapshot: { verified: false },
+      });
+      expect(deps.bootstrap).not.toHaveBeenCalled();
+      expect(deps.executeHooksV2Event).not.toHaveBeenCalled();
+      expect(deps.expandFileRefs).not.toHaveBeenCalled();
+      expect(chatFn).not.toHaveBeenCalled();
+      expect(JSON.parse(out.join(""))).toMatchObject({
+        type: "result",
+        subtype: "error",
+        is_error: true,
+      });
+    },
+  );
 
   it("reports resumed_from + history_messages in the init envelope", async () => {
     const store = makeStore({

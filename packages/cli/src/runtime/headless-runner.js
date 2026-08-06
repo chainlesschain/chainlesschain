@@ -53,6 +53,7 @@ import {
   findLatestEvent as jsonlFindLatestEvent,
   rebuildMessages as jsonlRebuildMessages,
   sessionExists as jsonlSessionExists,
+  sessionHasPersistedEvidence as jsonlSessionHasPersistedEvidence,
   getLastSessionId as jsonlGetLastSessionId,
   verifySession as jsonlVerifySession,
 } from "../harness/jsonl-session-store.js";
@@ -153,6 +154,7 @@ const VALID_OUTPUT_FORMATS = Object.freeze(["text", "json", "stream-json"]);
 // the stream-json driver + REPL); re-exported here for existing importers.
 export { installPipeSafety } from "./pipe-safety.js";
 import { installPipeSafety } from "./pipe-safety.js";
+import { createHeadlessOutputBackpressure } from "./output-backpressure.js";
 
 /**
  * Normalize a public --permission-mode spelling to the canonical internal mode.
@@ -363,12 +365,92 @@ export function applyForkSession(opts = {}, store = {}) {
  */
 export async function runAgentHeadless(options = {}, deps = {}) {
   const trustedWorkspaceRoot = options.cwd || process.cwd();
-  return runWithHostHooksV2Workspace(trustedWorkspaceRoot, () =>
-    runAgentHeadlessInWorkspace(options, deps),
-  );
+  const pipeState = { closed: false };
+  const stdout = deps.stdout || process.stdout;
+  const stderr = deps.stderr || process.stderr;
+  const shouldInstallPipeSafety =
+    typeof deps.installPipeSafety === "function" ||
+    (!deps.writeOut && !deps.writeErr);
+  const pipeAbort = shouldInstallPipeSafety ? new AbortController() : null;
+  const managesNativeOutput = !deps.writeOut || !deps.writeErr;
+  const outputAbort = managesNativeOutput ? new AbortController() : null;
+  const handlePipeClosed = () => {
+    if (pipeState.closed) return;
+    pipeState.closed = true;
+    process.exitCode = 0;
+    pipeAbort?.abort();
+  };
+  const outputFlow =
+    deps.outputFlow ||
+    createHeadlessOutputBackpressure({
+      stdout,
+      stderr,
+      writeOut: deps.writeOut,
+      writeErr: deps.writeErr,
+      maxQueuedBytes: deps.outputBackpressureMaxBytes,
+      onFailure: (error) => {
+        outputAbort?.abort(error);
+        if (error?.code === "EPIPE") handlePipeClosed();
+      },
+    });
+  const abortSignals = [
+    options.signal,
+    pipeAbort?.signal,
+    outputAbort?.signal,
+  ].filter(Boolean);
+  const runtimeOptions =
+    abortSignals.length === 0
+      ? options
+      : {
+          ...options,
+          signal:
+            abortSignals.length === 1
+              ? abortSignals[0]
+              : AbortSignal.any(abortSignals),
+        };
+  const runtimeDeps = {
+    ...deps,
+    writeOut: outputFlow.writeOut,
+    writeErr: outputFlow.writeErr,
+    outputFlow,
+  };
+  const installSafety = deps.installPipeSafety || installPipeSafety;
+  const disposePipeSafety = shouldInstallPipeSafety
+    ? installSafety([stdout, stderr], handlePipeClosed)
+    : null;
+
+  let outcome;
+  let failure = null;
+  try {
+    outcome = await runWithHostHooksV2Workspace(trustedWorkspaceRoot, () =>
+      runAgentHeadlessInWorkspace(runtimeOptions, runtimeDeps, pipeState),
+    );
+  } catch (error) {
+    failure = error;
+  } finally {
+    try {
+      await outputFlow.wait();
+    } catch (error) {
+      failure ||= error;
+    }
+    outputFlow.dispose();
+    disposePipeSafety?.();
+  }
+
+  if (pipeState.closed) {
+    return outcome
+      ? { ...outcome, exitCode: 0, isError: false }
+      : { exitCode: 0, result: "", isError: false };
+  }
+  if (failure) throw failure;
+  return outcome;
 }
 
-async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
+async function runAgentHeadlessInWorkspace(
+  options = {},
+  deps = {},
+  pipeState = { closed: false },
+) {
   const prompt = (options.prompt || "").trim();
   if (!prompt) {
     throw new Error(
@@ -386,11 +468,11 @@ async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
   const isStream = outputFormat === "stream-json";
   const isJson = outputFormat === "json";
   const isText = outputFormat === "text";
-  const writeOut = deps.writeOut || ((s) => process.stdout.write(s));
-  const writeErr = deps.writeErr || ((s) => process.stderr.write(s));
-  if (!deps.writeOut && !deps.writeErr) installPipeSafety();
+  const writeOut = deps.writeOut;
+  const writeErr = deps.writeErr;
 
   const hasInjectedSessionStore =
+    typeof deps.sessionHasPersistedEvidence === "function" ||
     typeof deps.sessionExists === "function" ||
     typeof deps.rebuildMessages === "function" ||
     typeof deps.appendEvent === "function" ||
@@ -435,27 +517,36 @@ async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
   // settings/plugin loading, bootstrap, model access, hooks, MCP and tools.
   const canReadCanonicalResume =
     !hasInjectedSessionStore || typeof deps.readVerifiedEvents === "function";
-  const canonicalResume =
-    resumeId && canReadCanonicalResume
-      ? readSessionHostResumeState(resumeId, {
+  const canonicalAdmissionId = resumeId || (persist ? sessionId : null);
+  const canonicalAdmission =
+    canonicalAdmissionId && canReadCanonicalResume
+      ? readSessionHostResumeState(canonicalAdmissionId, {
+          sessionHasPersistedEvidence:
+            deps.sessionHasPersistedEvidence ||
+            (!hasInjectedSessionStore
+              ? jsonlSessionHasPersistedEvidence
+              : undefined),
           sessionExists: deps.sessionExists || jsonlSessionExists,
           readVerifiedEvents:
             deps.readVerifiedEvents || jsonlReadVerifiedEvents,
         })
       : null;
-  if (canonicalResume && !canonicalResume.snapshot.verified) {
+  if (canonicalAdmission && !canonicalAdmission.snapshot.verified) {
     const message =
       "CC_SESSION_HOST_SNAPSHOT_UNVERIFIED: canonical JSONL session is not " +
-      "fully verified; resume was refused";
+      "fully verified; resume/write admission was refused";
     emitHeadlessError(message);
     writeErr(`${message}\n`);
     return {
       exitCode: 1,
       result: message,
       isError: true,
-      sessionSnapshot: canonicalResume.snapshot,
+      sessionSnapshot: canonicalAdmission.snapshot,
     };
   }
+  // A persist-only target must pass the same canonical admission boundary, but
+  // it does not opt into replaying the target's prior conversation.
+  const canonicalResume = resumeId ? canonicalAdmission : null;
 
   // `let` (not const): a custom-command macro's `model:` frontmatter may
   // override it below (when the user passed no explicit --model), mirroring
@@ -533,7 +624,7 @@ async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
           cwd,
           settingsFile: options.settingsFile,
         });
-        if (notice) process.stderr.write(notice + "\n");
+        if (notice) writeErr(notice + "\n");
       } catch {
         /* trust notice is best-effort */
       }
@@ -1465,9 +1556,12 @@ async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
     bundle: mcp,
     sessionId,
     sink: persist
-      ? createSessionMcpLedgerSink(sessionId, {
-          appendEvent: store.appendAuthorityEvent,
-        })
+      ? createSessionMcpLedgerSink(
+          sessionId,
+          hasInjectedSessionStore
+            ? { appendEvent: store.appendAuthorityEvent }
+            : { recovery: resumeMcpRecovery },
+        )
       : null,
     recovery: resumeMcpRecovery,
     recoveryError: resumeMcpRecoveryError,
@@ -1830,6 +1924,24 @@ async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
       const retryIn = timeoutMs > ms ? Math.round((timeoutMs - ms) / 1000) : 0;
       const suffix = retryIn > 0 ? ` · will retry in ${retryIn}s` : "";
       writeErr(`  ⏳ waiting for API response (silent ${silent}s)${suffix}…\n`);
+    },
+    onProviderFallback: (info) => {
+      if (isStream) {
+        emitStream({
+          type: "raw",
+          subtype: "provider_fallback",
+          text:
+            info.message || `provider switched from ${info.from} to ${info.to}`,
+          from: info.from,
+          to: info.to,
+          reason: info.reason,
+          session_id: sessionId,
+        });
+      } else {
+        writeErr(
+          `[provider] ${info.message || `switched from ${info.from} to ${info.to}`}\n`,
+        );
+      }
     },
   };
 
@@ -2421,6 +2533,7 @@ async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
             if (isStream && event.type) emitStream(event);
             break;
         }
+        await deps.outputFlow?.wait?.();
         // Hard cost cap reached: stop consuming the loop so no further paid LLM
         // call is made (break out of the for-await, not just the switch).
         if (stopForCost) break;
@@ -2660,7 +2773,11 @@ async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
       try {
         const { runObserveHooks, dispatchAsyncHooks } =
           await import("../lib/settings-hook-events.js");
-        const stopPayload = { reason: endReason, cwd, session_id: sessionId };
+        const stopPayload = {
+          reason: pipeState.closed ? "pipe_closed" : endReason,
+          cwd,
+          session_id: sessionId,
+        };
         const stopOutcome = runObserveHooks(
           settingsHooks,
           "Stop",
@@ -2736,7 +2853,11 @@ async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
         runObserveHooks(
           settingsHooks,
           "SessionEnd",
-          { reason: "completed", cwd, session_id: sessionId },
+          {
+            reason: pipeState.closed ? "pipe_closed" : "completed",
+            cwd,
+            session_id: sessionId,
+          },
           { cwd },
         );
       } catch (error) {
@@ -2749,6 +2870,14 @@ async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
         // observe-only + best-effort async surfacing
       }
     }
+  }
+
+  // A downstream consumer closed stdout/stderr. The abort above unwound the
+  // model loop through the same `finally` as every other termination, so MCP,
+  // background tasks, approval bridges, and hooks are settled. Do not attempt
+  // more writes to the closed pipe or persist a partial assistant answer.
+  if (pipeState.closed) {
+    return { exitCode: 0, result: finalText, isError: false };
   }
 
   // coreAgentLoop emits run-ended reason "budget-exhausted" when the iteration
@@ -2923,12 +3052,10 @@ async function runAgentHeadlessInWorkspace(options = {}, deps = {}) {
         );
         if (!isStream) {
           const sum = _otlpRecorder.summary();
-          process.stderr.write(
-            `[otlp] ${sum.spanCount} span(s) → ${options.otlp}\n`,
-          );
+          writeErr(`[otlp] ${sum.spanCount} span(s) → ${options.otlp}\n`);
         }
       } catch (err) {
-        process.stderr.write(`[otlp] export failed: ${err.message}\n`);
+        writeErr(`[otlp] export failed: ${err.message}\n`);
       }
     }
     if (_collectorEnabled) {

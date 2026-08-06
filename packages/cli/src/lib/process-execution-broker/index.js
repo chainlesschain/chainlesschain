@@ -48,6 +48,7 @@ import { consumeIssuedPluginSandboxExecutionContract } from "../plugin-runtime/b
 import runtimeProvenanceLedger from "../runtime-provenance-ledger.js";
 import { credentialAgent } from "./credential-agent.js";
 import { WorkspaceTransactionManager } from "./workspace-transaction.js";
+import { consumeMcpStdioExecutableIdentityAuthority } from "../mcp-stdio-executable-identity.js";
 
 const SUPPORTED_SANDBOX_BOUNDARIES = new Set(Object.values(SANDBOX_BOUNDARIES));
 const SUPPORTED_SANDBOX_PROFILES = new Set([
@@ -2717,6 +2718,10 @@ class ProcessExecutionBroker extends EventEmitter {
     const startTime = Date.now();
     const origin = options.origin || "unknown";
     const requestedCwd = options.cwd || process.cwd();
+    const mcpStdioExecutableIdentityAuthority =
+      options.mcpStdioExecutableIdentityAuthority;
+    const identityCommand = command;
+    const identityArgs = [...(args || [])];
     options = this._withWorkspaceTransactionBoundaries(options, requestedCwd, {
       command,
       args,
@@ -2764,6 +2769,7 @@ class ProcessExecutionBroker extends EventEmitter {
       sandboxRequired: [],
       sandboxGuarantees: [],
       sandboxBackend: null,
+      mcpStdioExecutableIdentityDigest: null,
     };
 
     let sandboxPolicy;
@@ -2813,6 +2819,7 @@ class ProcessExecutionBroker extends EventEmitter {
     this._stripPluginControlOptions(spawnOpts);
     this._stripWorkspaceTransactionOptions(spawnOpts);
     this._stripAuditControlOptions(spawnOpts);
+    delete spawnOpts.mcpStdioExecutableIdentityAuthority;
     if (traceCtx) {
       spawnOpts.env = { ...(spawnOpts.env || process.env) };
       spawnOpts.env.TRACEPARENT = traceCtx.traceparent;
@@ -2886,6 +2893,13 @@ class ProcessExecutionBroker extends EventEmitter {
     const nativeSpawnFn = this._native?.spawn || nativeSpawn;
     let proc;
     try {
+      if (mcpStdioExecutableIdentityAuthority !== undefined) {
+        const admitted = consumeMcpStdioExecutableIdentityAuthority(
+          mcpStdioExecutableIdentityAuthority,
+          { command: identityCommand, args: identityArgs },
+        );
+        auditEntry.mcpStdioExecutableIdentityDigest = admitted.identityDigest;
+      }
       proc = nativeSpawnFn(command, args, optsForSpawn);
       this._bindWorkspaceTransactionProcess(auditEntry, proc);
     } catch (spawnError) {

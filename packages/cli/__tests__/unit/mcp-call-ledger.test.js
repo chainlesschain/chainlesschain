@@ -201,6 +201,62 @@ describe("McpCallLedger", () => {
     );
   });
 
+  it("summarizes accessor and Proxy errors without executing peer traps", async () => {
+    const ledger = createMcpCallLedger({ randomUUID: () => "hostile-error" });
+    const digests = [];
+
+    for (const kind of ["accessor", "proxy"]) {
+      const canary = `LEDGER_ERROR_TRAP_${kind}`;
+      let trapReads = 0;
+      let hostileError;
+      if (kind === "proxy") {
+        hostileError = new Proxy(
+          {},
+          {
+            get() {
+              trapReads += 1;
+              throw new Error(canary);
+            },
+            getOwnPropertyDescriptor() {
+              trapReads += 1;
+              throw new Error(canary);
+            },
+          },
+        );
+      } else {
+        hostileError = {};
+        for (const property of ["name", "code", "message"]) {
+          Object.defineProperty(hostileError, property, {
+            get() {
+              trapReads += 1;
+              return canary;
+            },
+          });
+        }
+      }
+
+      const call = await ledger.begin({
+        toolName: `tool-${kind}`,
+        serverName: "server",
+        input: {},
+        effectContract: { effect: "read" },
+      });
+      const settled = await call.settle({
+        status: "failed",
+        error: hostileError,
+      });
+
+      expect(trapReads).toBe(0);
+      expect(settled.errorSummary).toMatchObject({ name: "Error", code: null });
+      expect(JSON.stringify(settled)).not.toContain(canary);
+      digests.push(settled.errorSummary.messageDigest);
+    }
+
+    expect(new Set(digests)).toEqual(
+      new Set([sha256PayloadDigest("unknown error")]),
+    );
+  });
+
   it("issues a unique ledger id for every call even with a repeated UUID seam", async () => {
     const ledger = new McpCallLedger({ randomUUID: () => "same" });
     const first = await ledger.beginCall({

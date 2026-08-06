@@ -19,6 +19,7 @@ const sessionsDir = join(testDir, "sessions");
 
 vi.mock("../../src/lib/paths.js", () => ({
   getHomeDir: () => testDir,
+  getStatePath: () => join(testDir, "state"),
 }));
 
 const {
@@ -54,6 +55,8 @@ const {
   forkSession,
   createBranchSession,
   sessionExists,
+  sessionHasPersistedEvidence,
+  getSessionPresence,
   getLastSessionId,
   migrateLegacySessionFile,
   migrateLegacySessionsBatch,
@@ -68,7 +71,9 @@ const {
 } = await import("../../src/lib/jsonl-session-store.js");
 const { computeEventHash } =
   await import("../../src/harness/transcript-integrity.js");
-const { readVerifiedProjection } =
+const { readSessionHostResumeState } =
+  await import("../../src/lib/session-host-snapshot.js");
+const { appendAuthorityEventWithVerifiedProjection, readVerifiedProjection } =
   await import("../../src/harness/jsonl-session-store.js");
 const {
   DURABLE_SYSTEM_MESSAGE_KINDS,
@@ -1130,6 +1135,57 @@ describe("jsonl-session-store", () => {
       expect(staleFinish).not.toHaveBeenCalled();
     });
 
+    it("validates a verified projection under the writer lock before append", () => {
+      const id = startSession("authority-projection-append", {
+        title: "verified",
+      });
+      appendUserMessage(id, "one pass");
+      const acceptedTypes = [];
+      const appended = appendAuthorityEventWithVerifiedProjection(
+        id,
+        "projection_guarded",
+        { schemaVersion: 1 },
+        {
+          createProjection: () => ({
+            accept(event) {
+              acceptedTypes.push(event.type);
+            },
+            finish(authority) {
+              return { eventCount: authority.eventCount };
+            },
+          }),
+          validateProjection(projected, authority) {
+            expect(projected.eventCount).toBe(2);
+            expect(authority.headHash).toBe(readEvents(id).at(-1).hash);
+          },
+        },
+      );
+
+      expect(acceptedTypes).toEqual(["session_start", "user_message"]);
+      expect(appended.hash).toMatch(/^[a-f0-9]{64}$/);
+      expect(readEvents(id).at(-1).type).toBe("projection_guarded");
+
+      const eventCount = readEvents(id).length;
+      expect(() =>
+        appendAuthorityEventWithVerifiedProjection(
+          id,
+          "projection_rejected",
+          { schemaVersion: 1 },
+          {
+            createProjection: () => ({
+              accept() {},
+              finish() {
+                return {};
+              },
+            }),
+            validateProjection: () => false,
+          },
+        ),
+      ).toThrow("Authority projection validation rejected the append");
+      expect(readEvents(id)).toHaveLength(eventCount);
+      expect(verifySession(id).status).toBe("verified");
+    });
+
     it("refuses a stale compact CAS without hiding a concurrent turn", () => {
       const id = startSession("compact-stale-cas", { title: "verified" });
       appendUserMessage(id, "before compact");
@@ -1699,6 +1755,24 @@ describe("jsonl-session-store", () => {
       expect(good).toBeTruthy();
       expect(good.created_at).not.toBe(""); // healthy session keeps its date
     });
+
+    it("does not grow the activity journal when only a restored tombstone conflict exists", () => {
+      const id = startSession("list-conflict-only", { title: "Conflict" });
+      const restored = readFileSync(sessionPath(id), "utf8");
+      expect(deleteJsonlSession(id)).toBe(true);
+      writeFileSync(sessionPath(id), restored, "utf8");
+      expect(getSessionPresence(id)).toBe("conflict");
+
+      const activityPath = join(sessionsDir, ".sessions-index-v2.ndjson");
+      expect(listJsonlSessions({ limit: 20 })).toEqual([]);
+      const afterFirst = {
+        bytes: readFileSync(activityPath, "utf8"),
+        mtimeMs: statSync(activityPath).mtimeMs,
+      };
+      expect(listJsonlSessions({ limit: 20 })).toEqual([]);
+      expect(readFileSync(activityPath, "utf8")).toBe(afterFirst.bytes);
+      expect(statSync(activityPath).mtimeMs).toBe(afterFirst.mtimeMs);
+    });
   });
 
   // ── renameSession / pruneJsonlSessions (gap 2026-07-11) ───────────
@@ -1733,18 +1807,71 @@ describe("jsonl-session-store", () => {
 
     it("tombstones deletion so stale non-start writers cannot resurrect it", () => {
       startSession("delete-me", { title: "D" });
+      appendUserMessage("delete-me", "old generation");
+      const oldTranscript = readFileSync(sessionPath("delete-me"), "utf8");
       expect(deleteJsonlSession("delete-me")).toBe(true);
       expect(sessionExists("delete-me")).toBe(false);
+      expect(getSessionPresence("delete-me")).toBe("tombstoned");
+      const tombstoneMarkerPath = join(sessionsDir, "delete-me.tombstone");
+      expect(existsSync(tombstoneMarkerPath)).toBe(true);
+      expect(sessionHasPersistedEvidence("delete-me")).toBe(true);
+      expect(readSessionHostResumeState("delete-me")).toMatchObject({
+        messages: null,
+        snapshot: { verified: false },
+      });
+      expect(
+        verifyAllSessions().find((item) => item.sessionId === "delete-me"),
+      ).toBeUndefined();
       expect(() => appendUserMessage("delete-me", "late")).toThrowError(
         expect.objectContaining({ code: "SESSION_DELETED" }),
       );
       expect(sessionExists("delete-me")).toBe(false);
 
+      // Restoring the deleted generation's bytes must not bypass its durable
+      // tombstone, even when the attempted write is another session_start.
+      writeFileSync(sessionPath("delete-me"), oldTranscript, "utf8");
+      expect(sessionExists("delete-me")).toBe(false);
+      expect(getSessionPresence("delete-me")).toBe("conflict");
+      expect(sessionHasPersistedEvidence("delete-me")).toBe(true);
+      const tombstoneMetaPath = join(sessionsDir, "delete-me.meta.json");
+      const tombstoneMeta = readFileSync(tombstoneMetaPath, "utf8");
+      for (const dryRun of [true, false]) {
+        expect(repairSession("delete-me", { dryRun })).toMatchObject({
+          changed: false,
+          healthy: false,
+          status: "conflict",
+        });
+        expect(getSessionPresence("delete-me")).toBe("conflict");
+        expect(readFileSync(tombstoneMetaPath, "utf8")).toBe(tombstoneMeta);
+        expect(readFileSync(sessionPath("delete-me"), "utf8")).toBe(
+          oldTranscript,
+        );
+      }
+      expect(
+        verifyAllSessions().find((item) => item.sessionId === "delete-me"),
+      ).toMatchObject({ status: "conflict" });
+      expect(() =>
+        appendUserMessage("delete-me", "late restored write"),
+      ).toThrowError(expect.objectContaining({ code: "SESSION_DELETED" }));
+      expect(() => startSession("delete-me", { title: "unsafe" })).toThrowError(
+        expect.objectContaining({ code: "SESSION_DELETED" }),
+      );
+      expect(readFileSync(sessionPath("delete-me"), "utf8")).toBe(
+        oldTranscript,
+      );
+      expect(deleteJsonlSession("delete-me")).toBe(true);
+
       // An explicit new session_start is the only operation allowed to reuse
       // a tombstoned id, and starts a new genesis chain.
       startSession("delete-me", { title: "Recreated" });
+      expect(existsSync(tombstoneMarkerPath)).toBe(false);
       expect(verifySession("delete-me").status).toBe("verified");
       expect(readEvents("delete-me")[0].prevHash).toBeNull();
+      expect(readVerifiedEvents("delete-me")).toHaveLength(1);
+      expect(getJsonlSessionMetadata("delete-me")).toMatchObject({
+        title: "Recreated",
+        message_count: 0,
+      });
     });
   });
 
@@ -2272,6 +2399,88 @@ describe("jsonl-session-store", () => {
       mkdirSync(sessionsDir, { recursive: true });
       expect(getLastSessionId()).toBeNull();
     });
+
+    it("retains the newest sidecar-only witness when the activity index is lost", () => {
+      startSession("aa-readable-session", { title: "readable" });
+      const missingId = startSession("zz-missing-session", {
+        title: "missing",
+      });
+      appendUserMessage(missingId, "latest activity");
+      rmSync(sessionPath(missingId), { force: true });
+      rmSync(join(sessionsDir, ".sessions-index-v2.ndjson"), { force: true });
+
+      expect(getLastSessionId()).toBe(missingId);
+      expect(getSessionPresence(missingId)).toBe("missing-transcript");
+
+      writeFileSync(
+        join(sessionsDir, ".sessions-index-v2.ndjson"),
+        "corrupt journal tail",
+        "utf8",
+      );
+      expect(getLastSessionId()).toBe(missingId);
+    });
+
+    it("returns a newest restored tombstone conflict before an older live session", () => {
+      const tiedClock = vi.spyOn(Date, "now").mockReturnValue(4_242);
+      let olderId;
+      let conflictId;
+      let restored;
+      try {
+        olderId = startSession("zz-continue-older-live", {
+          title: "older",
+        });
+        conflictId = startSession("aa-continue-newer-conflict", {
+          title: "newer",
+        });
+        appendUserMessage(conflictId, "newest activity");
+        restored = readFileSync(sessionPath(conflictId), "utf8");
+        expect(deleteJsonlSession(conflictId)).toBe(true);
+      } finally {
+        tiedClock.mockRestore();
+      }
+      writeFileSync(sessionPath(conflictId), restored, "utf8");
+
+      // The damaged id sorts before the healthy id and both sidecars were
+      // produced naturally in the same millisecond.
+      expect(getSessionPresence(conflictId)).toBe("conflict");
+      expect(getLastSessionId()).toBe(conflictId);
+
+      const activityPath = join(sessionsDir, ".sessions-index-v2.ndjson");
+      rmSync(activityPath, { force: true });
+      expect(getLastSessionId()).toBe(conflictId);
+      writeFileSync(activityPath, "corrupt journal tail", "utf8");
+      expect(getLastSessionId()).toBe(conflictId);
+
+      const olderMeta = JSON.parse(
+        readFileSync(join(sessionsDir, `${olderId}.meta.json`), "utf8"),
+      );
+      writeFileSync(activityPath, `\n${JSON.stringify(olderMeta)}\n`, "utf8");
+      expect(getLastSessionId()).toBe(conflictId);
+    });
+
+    it("does not revive a tombstoned id from a parseable pre-delete journal snapshot", () => {
+      const olderId = startSession("continue-live-after-delete", {
+        title: "older live",
+      });
+      const deletedId = startSession("continue-stale-deleted", {
+        title: "deleted",
+      });
+      const olderMeta = JSON.parse(
+        readFileSync(join(sessionsDir, `${olderId}.meta.json`), "utf8"),
+      );
+      const staleDeletedMeta = JSON.parse(
+        readFileSync(join(sessionsDir, `${deletedId}.meta.json`), "utf8"),
+      );
+      expect(deleteJsonlSession(deletedId)).toBe(true);
+      expect(getSessionPresence(deletedId)).toBe("tombstoned");
+
+      writeFileSync(
+        join(sessionsDir, ".sessions-index-v2.ndjson"),
+        `\n${JSON.stringify(olderMeta)}\n\n${JSON.stringify(staleDeletedMeta)}\n`,
+        "utf8",
+      );
+      expect(getLastSessionId()).toBe(olderId);
+    });
   });
 
   describe("migration and validation", () => {
@@ -2296,6 +2505,42 @@ describe("jsonl-session-store", () => {
       expect(result.migrated).toBe(true);
       expect(sessionExists("legacy-session")).toBe(true);
       expect(rebuildMessages("legacy-session")).toHaveLength(2);
+    });
+
+    it("force-migrates through an explicit tombstone and resets the anchor", () => {
+      const id = "legacy-force-replace";
+      startSession(id, { title: "old generation", provider: "old" });
+      appendUserMessage(id, "old content");
+      const legacyPath = join(sessionsDir, "legacy-force-replace.json");
+      writeFileSync(
+        legacyPath,
+        JSON.stringify({
+          id,
+          title: "new generation",
+          provider: "new",
+          messages: [{ role: "user", content: "replacement content" }],
+        }),
+        "utf8",
+      );
+
+      const result = migrateLegacySessionFile(legacyPath, {
+        force: true,
+        archive: false,
+      });
+
+      expect(result.migrated).toBe(true);
+      expect(readVerifiedEvents(id).map((event) => event.type)).toEqual([
+        "session_start",
+        "user_message",
+      ]);
+      expect(rebuildMessages(id)).toEqual([
+        { role: "user", content: "replacement content" },
+      ]);
+      expect(getJsonlSessionMetadata(id)).toMatchObject({
+        title: "new generation",
+        provider: "new",
+        message_count: 1,
+      });
     });
 
     it("marks a migrated summary as durable replay context", () => {
@@ -2683,16 +2928,111 @@ describe("jsonl-session-store", () => {
       ]);
     });
 
-    it("self-heals the chain-tail cache when the file is deleted externally", () => {
+    it("refuses a live transcript whose anchored tail was truncated", () => {
+      const id = startSession("chain-truncated-before-append", { title: "T" });
+      appendUserMessage(id, "anchored");
+      const metaPath = join(sessionsDir, `${id}.meta.json`);
+      const anchoredMeta = readFileSync(metaPath, "utf8");
+      writeFileSync(sessionPath(id), "", "utf8");
+
+      expect(() => appendUserMessage(id, "must not append")).toThrowError(
+        expect.objectContaining({ code: "SESSION_TRANSCRIPT_UNVERIFIED" }),
+      );
+      expect(() =>
+        startSession(id, { title: "must not restart" }),
+      ).toThrowError(
+        expect.objectContaining({ code: "SESSION_TRANSCRIPT_UNVERIFIED" }),
+      );
+      expect(readFileSync(sessionPath(id), "utf8")).toBe("");
+      expect(readFileSync(metaPath, "utf8")).toBe(anchoredMeta);
+    });
+
+    it("rebuilds a lost sidecar before advancing a surviving transcript", () => {
+      const id = startSession("chain-rebuild-sidecar", { title: "R" });
+      appendUserMessage(id, "before");
+      rmSync(join(sessionsDir, `${id}.meta.json`), { force: true });
+
+      appendAssistantMessage(id, "after");
+
+      expect(readVerifiedEvents(id).map((event) => event.type)).toEqual([
+        "session_start",
+        "user_message",
+        "assistant_message",
+      ]);
+      expect(getJsonlSessionMetadata(id)).toMatchObject({
+        message_count: 2,
+      });
+    });
+
+    it("does not re-anchor a tampered transcript when its sidecar is lost", () => {
+      const id = startSession("chain-sidecar-loss-tamper", { title: "S" });
+      appendUserMessage(id, "original");
+      const transcript = sessionPath(id);
+      const metaPath = join(sessionsDir, `${id}.meta.json`);
+      const activityPath = join(sessionsDir, ".sessions-index-v2.ndjson");
+      rmSync(metaPath, { force: true });
+      const tampered = readFileSync(transcript, "utf8").replace(
+        "original",
+        "tampered",
+      );
+      writeFileSync(transcript, tampered, "utf8");
+      const activityBefore = readFileSync(activityPath, "utf8");
+
+      expect(() => appendAssistantMessage(id, "must not append")).toThrowError(
+        expect.objectContaining({ code: "SESSION_TRANSCRIPT_UNVERIFIED" }),
+      );
+      expect(readFileSync(transcript, "utf8")).toBe(tampered);
+      expect(existsSync(metaPath)).toBe(false);
+      expect(readFileSync(activityPath, "utf8")).toBe(activityBefore);
+    });
+
+    it("fails closed when the transcript is deleted externally", () => {
       const id = startSession("chain-heal", { title: "H" });
       appendUserMessage(id, "q");
+      const metaPath = join(sessionsDir, `${id}.meta.json`);
+      const anchoredMeta = readFileSync(metaPath, "utf8");
       rmSync(sessionPath(id), { force: true });
-      // Re-create through the store — must restart at genesis, not chain onto
-      // the deleted file's cached tail.
-      appendUserMessage(id, "fresh");
-      const result = verifySession(id);
-      expect(result.status).toBe("verified");
-      expect(readEvents(id)[0].prevHash).toBeNull();
+
+      // The live sidecar proves this identity had a transcript. Resume and all
+      // writes must reject the missing authority instead of creating a fresh
+      // genesis or falling back to another host's stale history.
+      expect(sessionExists(id)).toBe(false);
+      expect(sessionHasPersistedEvidence(id)).toBe(true);
+      expect(getSessionPresence(id)).toBe("missing-transcript");
+      expect(verifySession(id)).toMatchObject({
+        status: "missing",
+        reason: "persisted session witness exists without its transcript",
+      });
+      expect(
+        verifyAllSessions().find((item) => item.sessionId === id),
+      ).toMatchObject({ status: "missing" });
+      expect(() => readVerifiedEvents(id)).toThrowError(
+        expect.objectContaining({ code: "SESSION_TRANSCRIPT_UNVERIFIED" }),
+      );
+      expect(readSessionHostResumeState(id)).toMatchObject({
+        messages: null,
+        snapshot: {
+          verified: false,
+          recoveryAuthority: { blockMode: "all" },
+        },
+      });
+      expect(() => appendUserMessage(id, "late")).toThrowError(
+        expect.objectContaining({ code: "SESSION_TRANSCRIPT_UNVERIFIED" }),
+      );
+      expect(() => startSession(id, { title: "unsafe reuse" })).toThrowError(
+        expect.objectContaining({ code: "SESSION_TRANSCRIPT_UNVERIFIED" }),
+      );
+      expect(existsSync(sessionPath(id))).toBe(false);
+      expect(readFileSync(metaPath, "utf8")).toBe(anchoredMeta);
+
+      // An explicit delete acknowledges the loss and tombstones the identity;
+      // only then may a new session_start create a clean, anchored generation.
+      expect(deleteJsonlSession(id)).toBe(true);
+      expect(sessionExists(id)).toBe(false);
+      startSession(id, { title: "Recreated" });
+      expect(readVerifiedEvents(id).map((event) => event.type)).toEqual([
+        "session_start",
+      ]);
     });
   });
 });

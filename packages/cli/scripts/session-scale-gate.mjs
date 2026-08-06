@@ -17,7 +17,7 @@ import {
 import { spawn, execFileSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { performance } from "node:perf_hooks";
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
@@ -30,6 +30,11 @@ const MEASURE_WORKER = resolve(
   SCRIPT_DIR,
   "../__tests__/fixtures/session-scale-measure-worker.mjs",
 );
+const PROCESS_PROBE = resolve(
+  SCRIPT_DIR,
+  "../__tests__/fixtures/session-scale-process-probe.mjs",
+);
+const CLI_ENTRYPOINT = resolve(SCRIPT_DIR, "../bin/chainlesschain.js");
 const CRASH_WORKER = resolve(
   SCRIPT_DIR,
   "../__tests__/fixtures/session-scale-crash-writer.mjs",
@@ -47,10 +52,16 @@ const GATE_SOURCE_PATHS = [
   "packages/cli/src/harness/jsonl-session-store.js",
   "packages/cli/src/harness/session-list-index.js",
   "packages/cli/src/lib/file-lines.js",
+  "packages/cli/bin/chainlesschain.js",
+  "packages/cli/src/lazy-dispatch.js",
+  "packages/cli/src/commands/session.js",
+  "packages/cli/src/commands/session-show.js",
+  "packages/cli/src/lib/pr-link-store.js",
   "packages/cli/scripts/session-scale-gate.mjs",
   "packages/cli/__tests__/fixtures/session-concurrency-writer.mjs",
   "packages/cli/__tests__/fixtures/session-scale-crash-writer.mjs",
   "packages/cli/__tests__/fixtures/session-scale-measure-worker.mjs",
+  "packages/cli/__tests__/fixtures/session-scale-process-probe.mjs",
   "packages/cli/__tests__/fixtures/session-scale-pipeline-crash-worker.mjs",
   "packages/cli/__tests__/unit/jsonl-session-store.test.js",
   "packages/cli/__tests__/unit/session-list-index.test.js",
@@ -97,6 +108,7 @@ export function resolveSessionScaleProfile(env = process.env) {
         transcriptBytes: GIB,
         listSamples: 25,
         resumeSamples: 15,
+        coldResumeSamples: 15,
         actualKillCases: 6,
         exhaustiveCuts: true,
       }
@@ -107,6 +119,7 @@ export function resolveSessionScaleProfile(env = process.env) {
         transcriptBytes: 64 * MIB,
         listSamples: 5,
         resumeSamples: 5,
+        coldResumeSamples: 3,
         actualKillCases: 2,
         exhaustiveCuts: false,
       };
@@ -147,6 +160,13 @@ export function resolveSessionScaleProfile(env = process.env) {
     resumeSamples: floor(
       readInteger("CC_SESSION_SCALE_RESUME_SAMPLES", defaults.resumeSamples),
       defaults.resumeSamples,
+    ),
+    coldResumeSamples: floor(
+      readInteger(
+        "CC_SESSION_SCALE_COLD_RESUME_SAMPLES",
+        defaults.coldResumeSamples,
+      ),
+      defaults.coldResumeSamples,
     ),
     actualKillCases: floor(
       readInteger(
@@ -293,6 +313,83 @@ async function runJsonWorker(args, { timeoutMs = 60_000 } = {}) {
   );
   const lines = result.stdout.trim().split(/\r?\n/).filter(Boolean);
   return JSON.parse(lines.at(-1));
+}
+
+function percentile(values, percentileValue) {
+  const ordered = [...values].sort((a, b) => a - b);
+  const index = Math.max(
+    0,
+    Math.ceil((percentileValue / 100) * ordered.length) - 1,
+  );
+  return ordered[index];
+}
+
+async function runColdCliResumeSample(home, sessionId, sampleIndex) {
+  const probeOutput = join(
+    home,
+    `cold-cli-probe-${String(sampleIndex).padStart(3, "0")}.json`,
+  );
+  const started = performance.now();
+  const execution = await spawnCapture(
+    process.execPath,
+    [
+      "--max-old-space-size=96",
+      "--import",
+      pathToFileURL(PROCESS_PROBE).href,
+      CLI_ENTRYPOINT,
+      "session",
+      "show",
+      sessionId,
+      "--json",
+    ],
+    {
+      timeoutMs: 30_000,
+      env: {
+        ...process.env,
+        CHAINLESSCHAIN_HOME: home,
+        CC_SESSION_SCALE_PROBE_OUTPUT: probeOutput,
+        NO_COLOR: "1",
+      },
+    },
+  );
+  const wallMs = performance.now() - started;
+  if (!existsSync(probeOutput)) {
+    throw new Error("cold CLI resume process did not emit its RSS probe");
+  }
+  const probe = JSON.parse(readFileSync(probeOutput, "utf8"));
+  rmSync(probeOutput, { force: true });
+  const payload = JSON.parse(execution.stdout.trim());
+  if (
+    payload.id !== sessionId ||
+    payload.message_count !== 2 ||
+    payload.messages?.[0]?.content !== "bounded summary" ||
+    payload.messages?.[1]?.content !== "new turn"
+  ) {
+    throw new Error("cold CLI resume returned unexpected session content");
+  }
+  return {
+    wallMs,
+    processDurationMs: probe.durationMs,
+    peakRssMb: probe.peakRssMb,
+    messageCount: payload.message_count,
+  };
+}
+
+async function measureColdCliResume(home, sessionId, profile) {
+  const samples = [];
+  for (let index = 0; index < profile.coldResumeSamples; index += 1) {
+    samples.push(await runColdCliResumeSample(home, sessionId, index));
+  }
+  return {
+    measurementScope: "full-cli-cold-process",
+    samples,
+    sampleCount: samples.length,
+    p95Ms: percentile(
+      samples.map((sample) => sample.wallMs),
+      95,
+    ),
+    peakRssMb: Math.max(...samples.map((sample) => sample.peakRssMb)),
+  };
 }
 
 async function runConcurrencyScenario(store, home, profile) {
@@ -483,7 +580,13 @@ function eventLine(core, prevHash, computeEventHash) {
   };
 }
 
-function createValidTranscript(store, home, transcriptBytes, computeEventHash) {
+function createValidTranscript(
+  store,
+  sessionIndex,
+  home,
+  transcriptBytes,
+  computeEventHash,
+) {
   process.env.CHAINLESSCHAIN_HOME = home;
   mkdirSync(join(home, "sessions"), { recursive: true });
   const sessionId = "scale-valid-checkpoint";
@@ -633,6 +736,21 @@ function createValidTranscript(store, home, transcriptBytes, computeEventHash) {
       "valid transcript failed full production chain verification",
     );
   }
+  const sidecarStarted = performance.now();
+  const metadata = store.getJsonlSessionMetadata(sessionId);
+  const rawMetadata = sessionIndex.readSessionMeta(
+    join(home, "sessions"),
+    sessionId,
+  );
+  const sidecarBuildDurationMs = performance.now() - sidecarStarted;
+  if (
+    !metadata ||
+    rawMetadata?.deleted === true ||
+    rawMetadata?.last_hash !== fullChainVerification.lastHash ||
+    Number(rawMetadata?.event_count) !== fullChainVerification.chainedEvents
+  ) {
+    throw new Error("valid transcript production metadata anchor is missing");
+  }
   return {
     sessionId,
     filePath,
@@ -649,12 +767,21 @@ function createValidTranscript(store, home, transcriptBytes, computeEventHash) {
     fullChainStatus: fullChainVerification.status,
     fullChainVerifiedEvents: fullChainVerification.chainedEvents,
     fullChainVerificationDurationMs,
+    productionSidecarAnchored: true,
+    sidecarBuildDurationMs,
   };
 }
 
-async function runResumeScenario(store, home, profile, computeEventHash) {
+async function runResumeScenario(
+  store,
+  sessionIndex,
+  home,
+  profile,
+  computeEventHash,
+) {
   const fixture = createValidTranscript(
     store,
+    sessionIndex,
     home,
     profile.transcriptBytes,
     computeEventHash,
@@ -662,6 +789,11 @@ async function runResumeScenario(store, home, profile, computeEventHash) {
   const measurement = await runJsonWorker(
     ["resume", home, fixture.sessionId, String(profile.resumeSamples), "10"],
     { timeoutMs: 5 * 60_000 },
+  );
+  const coldProcess = await measureColdCliResume(
+    home,
+    fixture.sessionId,
+    profile,
   );
   const violations = [];
   if (!(measurement.p95Ms < profile.thresholds.resumeP95Ms)) {
@@ -682,6 +814,16 @@ async function runResumeScenario(store, home, profile, computeEventHash) {
   if (!(measurement.maxIoBytesRead < fixture.logicalBytes)) {
     violations.push("resume IO is not bounded below transcript size");
   }
+  if (!(coldProcess.p95Ms < profile.thresholds.resumeP95Ms)) {
+    violations.push(
+      `cold CLI resume p95 ${coldProcess.p95Ms}ms is not below ${profile.thresholds.resumeP95Ms}ms`,
+    );
+  }
+  if (!(coldProcess.peakRssMb < profile.thresholds.resumeRssMb)) {
+    violations.push(
+      `cold CLI resume RSS ${coldProcess.peakRssMb}MB is not below ${profile.thresholds.resumeRssMb}MB`,
+    );
+  }
   return {
     pass: violations.length === 0,
     fixture: {
@@ -700,9 +842,12 @@ async function runResumeScenario(store, home, profile, computeEventHash) {
       fullChainStatus: fixture.fullChainStatus,
       fullChainVerifiedEvents: fixture.fullChainVerifiedEvents,
       fullChainVerificationDurationMs: fixture.fullChainVerificationDurationMs,
+      productionSidecarAnchored: fixture.productionSidecarAnchored,
+      sidecarBuildDurationMs: fixture.sidecarBuildDurationMs,
     },
     operation: "rebuildMessages from newest compact checkpoint",
     ...measurement,
+    coldProcess,
     ioToLogicalRatio: measurement.maxIoBytesRead / fixture.logicalBytes,
     thresholds: {
       p95MsExclusive: profile.thresholds.resumeP95Ms,
@@ -714,6 +859,10 @@ async function runResumeScenario(store, home, profile, computeEventHash) {
       productionReverseReaderInstrumented: true,
       validJsonlConstructedWithProductionHasher: true,
       entireFileLoaded: measurement.maxIoBytesRead >= fixture.logicalBytes,
+      fullCliEntrypoint: "packages/cli/bin/chainlesschain.js",
+      fullCliCommand: "session show <id> --json",
+      freshProcessPerSample: true,
+      processStartupAndModuleLoadIncluded: true,
     },
     violations,
   };
@@ -1243,7 +1392,13 @@ export async function runSessionScaleGate() {
     const resumeHome = join(root, "resume-home");
     mkdirSync(resumeHome, { recursive: true });
     await runScenario("checkpointResume", () =>
-      runResumeScenario(store, resumeHome, profile, computeEventHash),
+      runResumeScenario(
+        store,
+        sessionIndex,
+        resumeHome,
+        profile,
+        computeEventHash,
+      ),
     );
     const crashHome = join(root, "crash-home");
     mkdirSync(crashHome, { recursive: true });

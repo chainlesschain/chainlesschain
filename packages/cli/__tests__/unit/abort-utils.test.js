@@ -1,7 +1,8 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   createAbortError,
   isAbortError,
+  raceWithAbort,
   throwIfAborted,
 } from "../../src/lib/abort-utils.js";
 
@@ -92,5 +93,68 @@ describe("throwIfAborted", () => {
     const ac = new AbortController();
     ac.abort();
     expect(() => throwIfAborted(ac.signal)).toThrow();
+  });
+});
+
+describe("raceWithAbort", () => {
+  it("returns an already-settled value and removes its listener", async () => {
+    const listeners = new EventTarget();
+    const signal = {
+      aborted: false,
+      addEventListener: vi.fn((...args) => listeners.addEventListener(...args)),
+      removeEventListener: vi.fn((...args) =>
+        listeners.removeEventListener(...args),
+      ),
+    };
+
+    await expect(raceWithAbort("done", signal)).resolves.toBe("done");
+    expect(signal.addEventListener).toHaveBeenCalledOnce();
+    expect(signal.removeEventListener).toHaveBeenCalledOnce();
+  });
+
+  it("rejects promptly with the exact abort reason", async () => {
+    const controller = new AbortController();
+    let resolveSource;
+    const source = new Promise((resolve) => {
+      resolveSource = resolve;
+    });
+    const waiting = raceWithAbort(source, controller.signal);
+    const reason = createAbortError("parent stopped");
+
+    controller.abort(reason);
+    await expect(waiting).rejects.toBe(reason);
+    // A late success is observed but cannot replace the cancelled settlement.
+    resolveSource("late success");
+    await Promise.resolve();
+    await expect(waiting).rejects.toBe(reason);
+  });
+
+  it("does not inspect a thenable after pre-cancellation", async () => {
+    const controller = new AbortController();
+    controller.abort(createAbortError("already stopped"));
+    const then = vi.fn();
+
+    await expect(raceWithAbort({ then }, controller.signal)).rejects.toThrow(
+      "already stopped",
+    );
+    expect(then).not.toHaveBeenCalled();
+  });
+
+  it("closes an abort race that fires immediately before listener attachment", async () => {
+    const reason = createAbortError("registration race stopped");
+    const signal = {
+      aborted: false,
+      reason: undefined,
+      addEventListener: vi.fn(function () {
+        this.aborted = true;
+        this.reason = reason;
+      }),
+      removeEventListener: vi.fn(),
+    };
+
+    await expect(
+      raceWithAbort(Promise.resolve("too late"), signal),
+    ).rejects.toBe(reason);
+    expect(signal.removeEventListener).toHaveBeenCalledOnce();
   });
 });

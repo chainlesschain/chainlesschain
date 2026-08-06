@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { MockDatabase } from "../helpers/mock-db.js";
+import { textByteStream } from "../helpers/mcp-http-response.js";
 import {
   MCPClient,
   MCPServerConfig,
@@ -91,7 +92,11 @@ describe("MCP Client", () => {
         timeout: null,
       });
 
-      client._handleMessage("test", { id: 1, result: { tools: [] } });
+      client._handleMessage("test", {
+        jsonrpc: "2.0",
+        id: 1,
+        result: { tools: [] },
+      });
       expect(resolved).toEqual({ tools: [] });
     });
 
@@ -110,9 +115,21 @@ describe("MCP Client", () => {
         timeout: null,
       });
 
-      client._handleMessage("test", { id: 2, error: { message: "Not found" } });
+      client._handleMessage("test", {
+        jsonrpc: "2.0",
+        id: 2,
+        error: { code: -32601, message: "Not found" },
+      });
       expect(rejected).toBeTruthy();
-      expect(rejected.message).toBe("Not found");
+      expect(rejected).toMatchObject({
+        name: "McpRpcError",
+        code: -32601,
+        rpcCode: -32601,
+        mcpErrorCode: "CC_MCP_RPC_ERROR",
+        message:
+          "MCP server returned a JSON-RPC error (code -32601: Method not found)",
+      });
+      expect(JSON.stringify(rejected)).not.toContain("Not found");
     });
 
     it("should handle _handleMessage for notifications", () => {
@@ -124,7 +141,11 @@ describe("MCP Client", () => {
       const notifications = [];
       client.on("notification", (n) => notifications.push(n));
 
-      client._handleMessage("test", { method: "tools/changed", params: {} });
+      client._handleMessage("test", {
+        jsonrpc: "2.0",
+        method: "tools/changed",
+        params: {},
+      });
       expect(notifications).toHaveLength(1);
       expect(notifications[0].method).toBe("tools/changed");
     });
@@ -484,6 +505,7 @@ describe("MCP Client", () => {
         headers: {
           get: (k) => headers.get(String(k).toLowerCase()) ?? null,
         },
+        body: textByteStream(body),
         async text() {
           return body;
         },
@@ -626,7 +648,7 @@ describe("MCP Client", () => {
       expect(client.servers.has("auth")).toBe(false);
     });
 
-    it("throws on JSON-RPC error envelope", async () => {
+    it("throws a host-generated error on a JSON-RPC error envelope", async () => {
       fetchQueue.push(
         makeResponse({
           body: JSON.stringify({
@@ -638,7 +660,13 @@ describe("MCP Client", () => {
       );
       await expect(
         client.connect("err", { url: "https://err.example.com/mcp" }),
-      ).rejects.toThrow(/boom/);
+      ).rejects.toMatchObject({
+        name: "McpRpcError",
+        code: -32000,
+        rpcCode: -32000,
+        mcpErrorCode: "CC_MCP_RPC_ERROR",
+        message: "MCP server returned a JSON-RPC error (code -32000)",
+      });
     });
 
     it("rejects HTTP config that is missing a URL", async () => {
@@ -786,7 +814,9 @@ describe("MCP Client", () => {
         makeResponse({
           body: JSON.stringify({
             jsonrpc: "2.0",
-            id: 4,
+            // Optional resource-template/prompt probes consume ids 4 and 5
+            // even though this fixture lets those requests fail closed.
+            id: 6,
             result: { content: [{ type: "text", text: "pong" }] },
           }),
         }),

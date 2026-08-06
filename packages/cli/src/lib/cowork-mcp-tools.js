@@ -21,6 +21,10 @@
  */
 import { validateMcpServerConfig } from "./skill-mcp.js";
 import { mcpEffectDescriptorFields } from "./mcp-effect-contract.js";
+import {
+  MCP_STDIO_LOCAL_CODE_TRUST_REQUIRED_CODE,
+  issueMcpStdioExecutionAuthority,
+} from "./mcp-stdio-execution-authority.js";
 
 export const _deps = {
   importMcpClient: async () => {
@@ -90,6 +94,7 @@ export function toAgentTool(serverName, tool) {
  * @param {{ mcpServers?: Array<object> }} template
  * @param {object} [opts]
  * @param {(msg: string, err?: Error) => void} [opts.onWarn]
+ * @param {(request: object) => boolean|Promise<boolean>} [opts.approveLocalCodeExecution]
  * @returns {Promise<{
  *   mcpClient: object|null,
  *   mounted: string[],
@@ -121,15 +126,55 @@ export async function mountTemplateMcpTools(template, opts = {}) {
     .filter(Boolean);
   if (validated.length === 0) return empty;
 
+  const skipped = [];
+  const authorized = [];
+  for (const server of validated) {
+    let approved = false;
+    try {
+      approved =
+        typeof opts.approveLocalCodeExecution === "function" &&
+        (await opts.approveLocalCodeExecution({
+          templateId: template?.id || null,
+          serverName: server.name,
+          command: server.command,
+          args: [...server.args],
+          cwd: server.cwd || null,
+          envKeys: Object.keys(server.env || {}).sort(),
+        })) === true;
+    } catch (error) {
+      const message = error?.message || String(error);
+      skipped.push({ name: server.name, error: message });
+      opts.onWarn?.(
+        `[cowork-mcp] Local-code approval failed for "${server.name}": ${message}`,
+        error,
+      );
+      continue;
+    }
+    if (!approved) {
+      const message = `${MCP_STDIO_LOCAL_CODE_TRUST_REQUIRED_CODE}: template MCP server requires explicit local-code approval`;
+      skipped.push({ name: server.name, error: message });
+      opts.onWarn?.(`[cowork-mcp] Skipped "${server.name}": ${message}`);
+      continue;
+    }
+    const config = { ...server };
+    config.mcpStdioExecutionAuthority = issueMcpStdioExecutionAuthority({
+      serverName: server.name,
+      config,
+      approvalKind: "explicit-config",
+      approvalSource: `cowork-template:${template?.id || "unknown"}:${server.name}`,
+    });
+    authorized.push(config);
+  }
+  if (authorized.length === 0) return { ...empty, skipped };
+
   const MCPClient = await _deps.importMcpClient();
   const mcpClient = new MCPClient();
   const mounted = [];
-  const skipped = [];
   const extraToolDefinitions = [];
   const externalToolDescriptors = {};
   const externalToolExecutors = {};
 
-  for (const server of validated) {
+  for (const server of authorized) {
     try {
       await mcpClient.connect(server.name, server);
       mounted.push(server.name);

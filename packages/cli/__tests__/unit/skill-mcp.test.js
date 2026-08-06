@@ -184,7 +184,9 @@ describe("mountSkillMcpServers", () => {
         { name: "fs", command: "node", args: ["s.js"] },
       ],
     };
-    const result = await mountSkillMcpServers(client, skill);
+    const result = await mountSkillMcpServers(client, skill, {
+      approveLocalCodeExecution: async () => true,
+    });
     expect(result.mounted).toEqual(["weather", "fs"]);
     expect(result.skipped).toEqual([]);
     expect(client.connect).toHaveBeenCalledTimes(2);
@@ -216,7 +218,10 @@ describe("mountSkillMcpServers", () => {
         { name: "bad", command: "y" },
       ],
     };
-    const result = await mountSkillMcpServers(client, skill, { onWarn });
+    const result = await mountSkillMcpServers(client, skill, {
+      onWarn,
+      approveLocalCodeExecution: async () => true,
+    });
     expect(result.mounted).toEqual(["ok"]);
     expect(result.skipped).toEqual([
       { name: "bad", error: "connection refused" },
@@ -235,19 +240,40 @@ describe("mountSkillMcpServers", () => {
         { command: "no-name" }, // invalid
       ],
     };
-    const result = await mountSkillMcpServers(client, skill, { onWarn });
+    const result = await mountSkillMcpServers(client, skill, {
+      onWarn,
+      approveLocalCodeExecution: async () => true,
+    });
     expect(result.mounted).toEqual(["valid"]);
-    expect(result.skipped).toEqual([{ name: "(invalid)", error: "invalid config" }]);
+    expect(result.skipped).toEqual([
+      { name: "(invalid)", error: "invalid config" },
+    ]);
     expect(client.connect).toHaveBeenCalledTimes(1);
     // Invalid configs are now surfaced too (previously only connect failures warned).
     expect(onWarn).toHaveBeenCalledOnce();
-    expect(onWarn.mock.calls[0][0]).toMatch(/Skipped "\(invalid\)".*invalid config/);
+    expect(onWarn.mock.calls[0][0]).toMatch(
+      /Skipped "\(invalid\)".*invalid config/,
+    );
   });
 
   it("throws when mcpClient lacks .connect", async () => {
     await expect(
       mountSkillMcpServers({}, { mcpServers: [{ name: "x", command: "y" }] }),
     ).rejects.toThrow(/requires an MCPClient/);
+  });
+
+  it("fails closed before connect without explicit local-code approval", async () => {
+    const client = fakeClient();
+    const result = await mountSkillMcpServers(client, {
+      id: "untrusted-skill",
+      mcpServers: [{ name: "x", command: "node" }],
+    });
+
+    expect(client.connect).not.toHaveBeenCalled();
+    expect(result.mounted).toEqual([]);
+    expect(result.skipped[0].error).toContain(
+      "CC_MCP_STDIO_LOCAL_CODE_TRUST_REQUIRED",
+    );
   });
 });
 

@@ -8,6 +8,7 @@
  * The pump handles approval verdicts immediately, mid-turn, like interrupts.
  */
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { PassThrough } from "node:stream";
 import {
   runAgentHeadlessStream,
   parseInputEvent,
@@ -125,6 +126,47 @@ describe("interactive approvals round-trip", () => {
     ).toMatchObject({ id: "appr-1", approved: true, via: "user-approve" });
     expect(h.events().find((e) => e.type === "result").result).toBe("executed");
   });
+
+  it("caller abort settles a pending approval and retires live stdin", async () => {
+    const input = new PassThrough();
+    const controller = new AbortController();
+    const events = [];
+    input.write(
+      JSON.stringify({ type: "user", text: "do the RISKY thing" }) + "\n",
+    );
+
+    const outcome = await runAgentHeadlessStream(
+      {
+        expandFileRefs: false,
+        interactiveApprovals: true,
+        settingsHooks: {},
+        signal: controller.signal,
+      },
+      {
+        bootstrap: async () => ({ db: null }),
+        getApprovalGate: async () => null,
+        writeOut(line) {
+          const event = JSON.parse(line);
+          events.push(event);
+          if (event.type === "approval_request") {
+            queueMicrotask(() => controller.abort());
+          }
+        },
+        writeErr: () => {},
+        agentLoop: confirmingLoop,
+        input,
+      },
+    );
+
+    expect(outcome).toEqual({ exitCode: 0, turns: 1 });
+    expect(input.destroyed).toBe(true);
+    expect(
+      events.find((event) => event.type === "approval_resolved"),
+    ).toMatchObject({
+      approved: false,
+      via: "session-closed",
+    });
+  }, 15_000);
 
   it("deny: the tool gets false", async () => {
     const h = harness({

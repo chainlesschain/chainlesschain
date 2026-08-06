@@ -41,7 +41,7 @@ export function registerServeCommand(program) {
     )
     .option(
       "--bundle <path>",
-      "Agent bundle directory — applies AGENTS.md, MCP, and approval policy to all sessions",
+      "Agent bundle directory; may execute local MCP commands from mcp.json",
     )
     .action(async (opts) => {
       try {

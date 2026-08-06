@@ -92,6 +92,95 @@ describe("parseMcpServers", () => {
       headers: {},
     });
   });
+
+  it("preserves only numeric WebSocket payload limits", () => {
+    const out = parseMcpServers({
+      mcpServers: {
+        strict: { url: "ws://example.test/mcp", maxPayloadBytes: 2048 },
+        textual: { url: "ws://example.test/mcp", maxPayloadBytes: "2048" },
+      },
+    });
+
+    expect(out.strict.maxPayloadBytes).toBe(2048);
+    expect(out.textual).not.toHaveProperty("maxPayloadBytes");
+  });
+
+  it("preserves finite inbound traffic tightenings and rejects text values", () => {
+    const out = parseMcpServers({
+      mcpServers: {
+        strict: {
+          command: "strict",
+          maxInboundMessagesPerSecond: 16,
+          maxInboundBytesPerMinute: 4096,
+        },
+        textual: {
+          command: "textual",
+          maxInboundMessagesPerSecond: "16",
+          maxInboundBytesPerMinute: "4096",
+        },
+      },
+    });
+
+    expect(out.strict).toMatchObject({
+      maxInboundMessagesPerSecond: 16,
+      maxInboundBytesPerMinute: 4096,
+    });
+    expect(out.textual).not.toHaveProperty("maxInboundMessagesPerSecond");
+    expect(out.textual).not.toHaveProperty("maxInboundBytesPerMinute");
+  });
+
+  it("preserves finite JSON graph tightenings and rejects text values", () => {
+    const out = parseMcpServers({
+      mcpServers: {
+        strict: {
+          command: "strict",
+          maxJsonDepth: 32,
+          maxJsonNodes: 4096,
+        },
+        textual: {
+          command: "textual",
+          maxJsonDepth: "32",
+          maxJsonNodes: "4096",
+        },
+      },
+    });
+
+    expect(out.strict).toMatchObject({
+      maxJsonDepth: 32,
+      maxJsonNodes: 4096,
+    });
+    expect(out.textual).not.toHaveProperty("maxJsonDepth");
+    expect(out.textual).not.toHaveProperty("maxJsonNodes");
+  });
+
+  it("preserves finite tool metadata/result tightenings and rejects text values", () => {
+    const numeric = {
+      maxTools: 50,
+      maxToolDescriptionBytes: 2048,
+      maxToolSchemaBytes: 8192,
+      maxToolSchemaDepth: 16,
+      maxToolSchemaNodes: 1024,
+      maxToolDefinitionBytes: 16384,
+      maxToolMetadataBytes: 65536,
+      maxToolResultBytes: 32768,
+      maxToolResultDepth: 24,
+      maxToolResultNodes: 4096,
+    };
+    const textual = Object.fromEntries(
+      Object.entries(numeric).map(([key, value]) => [key, String(value)]),
+    );
+    const out = parseMcpServers({
+      mcpServers: {
+        strict: { command: "strict", ...numeric },
+        textual: { command: "textual", ...textual },
+      },
+    });
+
+    expect(out.strict).toMatchObject(numeric);
+    for (const key of Object.keys(numeric)) {
+      expect(out.textual).not.toHaveProperty(key);
+    }
+  });
 });
 
 describe("mcpToolName", () => {
@@ -186,6 +275,67 @@ describe("setupMcpFromConfig", () => {
         },
       },
     });
+  });
+
+  it("rejects oversized metadata from an injected client before model wiring", async () => {
+    const canary = "INJECTED_MCP_METADATA_SECRET";
+    const client = fakeClient({
+      hostile: [
+        {
+          name: "leak",
+          description: canary.repeat(64),
+          inputSchema: { type: "object" },
+        },
+      ],
+    });
+    const errors = [];
+
+    const res = await setupMcpFromConfig(
+      {
+        hostile: {
+          command: "hostile",
+          maxToolDescriptionBytes: 32,
+        },
+      },
+      {
+        createClient: () => client,
+        writeErr: (line) => errors.push(line),
+      },
+    );
+
+    expect(res.connected).toEqual([
+      expect.objectContaining({ server: "hostile", tools: 0 }),
+    ]);
+    expect(res.extraToolDefinitions).toEqual([]);
+    expect(res.externalToolExecutors).toEqual({});
+    expect(errors.join("")).toMatch(/tool metadata was rejected/);
+    expect(errors.join("")).toMatch(/32-byte host budget/);
+    expect(errors.join("")).not.toContain(canary);
+  });
+
+  it("binds tightened result budgets to every projected server tool", async () => {
+    const res = await setupMcpFromConfig(
+      {
+        bounded: {
+          command: "bounded",
+          maxToolResultBytes: 2048,
+          maxToolResultDepth: 12,
+          maxToolResultNodes: 256,
+        },
+      },
+      {
+        createClient: () => fakeClient({ bounded: [{ name: "read" }] }),
+      },
+    );
+
+    const config =
+      res.externalToolExecutors.mcp__bounded__read.toolResultConfig;
+    expect(config).toEqual({
+      maxToolResultBytes: 2048,
+      maxToolResultDepth: 12,
+      maxToolResultNodes: 256,
+    });
+    expect(Object.isFrozen(config)).toBe(true);
   });
 
   it("defaults parameters when a tool has no inputSchema", async () => {
@@ -587,6 +737,82 @@ describe("runAgentHeadless — --mcp-config wiring", () => {
       type: "result",
       result: "It is sunny in NYC.",
     });
+  });
+
+  it("keeps an oversized MCP result out of stream output and the next model turn", async () => {
+    const canary = "STREAM_MCP_RESULT_PRIVATE_CANARY";
+    const client = fakeClient();
+    client.callTool = vi.fn(async () => ({ content: canary.repeat(32) }));
+    const mcp = fakeMcp(client);
+    mcp.externalToolExecutors.mcp__weather__get.toolResultConfig =
+      Object.freeze({ maxToolResultBytes: 64 });
+    const modelInputs = [];
+    let turn = 0;
+    const chatFn = vi.fn(async (messages) => {
+      modelInputs.push(messages);
+      turn += 1;
+      if (turn === 1) {
+        return {
+          message: {
+            role: "assistant",
+            content: "",
+            tool_calls: [
+              {
+                id: "oversized-result",
+                type: "function",
+                function: {
+                  name: "mcp__weather__get",
+                  arguments: "{}",
+                },
+              },
+            ],
+          },
+        };
+      }
+      return { message: { role: "assistant", content: "Result rejected." } };
+    });
+    const { deps, out } = baseDeps({
+      loadMcpConfig: async () => mcp,
+      chatFn,
+    });
+
+    const run = await runAgentHeadless(
+      {
+        prompt: "run it",
+        mcpConfig: "x.json",
+        outputFormat: "stream-json",
+        sessionId: "s-result-budget",
+        permissionMode: "bypassPermissions",
+        expandFileRefs: false,
+      },
+      deps,
+    );
+
+    const wire = out.join("");
+    const events = wire
+      .trim()
+      .split("\n")
+      .filter(Boolean)
+      .map((line) => JSON.parse(line));
+    const toolResult = events.find((event) => event.type === "tool_result");
+    expect(run.exitCode).toBe(0);
+    expect(toolResult).toMatchObject({
+      is_error: true,
+      result: {
+        code: "CC_MCP_LEDGER_OUTCOME_UNKNOWN",
+        outcomeUnknown: true,
+        retryable: false,
+        mcpLedgerIncident: {
+          phase: "result",
+          code: "CC_MCP_TOOL_RESULT_TOO_LARGE",
+        },
+      },
+    });
+    expect(wire).not.toContain(canary);
+    expect(JSON.stringify(modelInputs[1])).not.toContain(canary);
+    expect(JSON.stringify(modelInputs[1])).toContain(
+      "CC_MCP_TOOL_RESULT_TOO_LARGE",
+    );
   });
 
   it("fails fast when the config file is bad", async () => {

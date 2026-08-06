@@ -98,6 +98,7 @@ export class WSAgentHandler {
     this._approvalGate = approvalGate || null;
     this._approvalGateInit = Boolean(approvalGate);
     this._mcpRecoveryRuntime = null;
+    this._mcpRecoverySink = null;
     this._mcpRecoveryRevision = null;
     this._mcpRecoveryClient = null;
     this._agentLoop = runAgentLoop || agentLoop;
@@ -361,6 +362,9 @@ export class WSAgentHandler {
           },
         );
       }
+      this._mcpRecoverySink = createSessionMcpLedgerSink(session.id, {
+        recovery: session.mcpLedgerRecovery || null,
+      });
       this._mcpRecoveryRuntime = createMcpHostRecoveryRuntime({
         bundle: {
           mcpClient: rawClient,
@@ -369,7 +373,7 @@ export class WSAgentHandler {
         },
         rawClient,
         sessionId: session.id,
-        sink: createSessionMcpLedgerSink(session.id),
+        sink: this._mcpRecoverySink,
         recovery: session.mcpLedgerRecovery || null,
         controller,
       });
@@ -382,6 +386,9 @@ export class WSAgentHandler {
           unsettled: [],
           replayDenied: [],
         },
+      );
+      this._mcpRecoverySink?.replaceRecoveryFence?.(
+        session.mcpLedgerRecovery || null,
       );
       this._mcpRecoveryRevision = revision;
     }

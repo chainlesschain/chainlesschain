@@ -12,16 +12,29 @@ import { executionBroker } from "../lib/process-execution-broker/index.js";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { EventEmitter } from "events";
 import { pathToFileURL } from "url";
+import { isProxy } from "node:util/types";
 import WebSocket from "ws";
 import { safeJsonParse } from "../lib/safe-json.js";
 import { EventRuntimeProducer } from "../lib/event-runtime-producer.js";
 import { currentHostHooksV2WorkspaceBinding } from "../lib/hooks-v2-workspace-context.js";
 import { resolvePluginWorkspaceAuthority } from "../lib/plugin-runtime/sandbox-policy.js";
 import {
+  admitMcpToolList,
+  isMcpToolMetadataError,
+} from "../lib/mcp-tool-metadata.js";
+import { admitMcpToolResult } from "../lib/mcp-tool-result.js";
+import { terminateOwnedProcessTree } from "../lib/process-tree-termination.js";
+import {
   mergeMcpHeaders,
   resolveMcpHeadersHelperContext,
   runMcpHeadersHelper,
 } from "../lib/mcp-headers-helper.js";
+import {
+  consumeMcpStdioExecutionAuthority,
+  materializeApprovedMcpStdioInvocation,
+  renewMcpStdioExecutionAuthority,
+} from "../lib/mcp-stdio-execution-authority.js";
+import { prepareMcpStdioExecutableIdentity } from "../lib/mcp-stdio-executable-identity.js";
 
 /**
  * Injectable dependencies — overridable from tests.
@@ -33,9 +46,43 @@ export const _deps = {
   WebSocket,
   runMcpHeadersHelper,
   resolveMcpHeadersHelperContext,
+  terminateOwnedProcessTree,
+  consumeMcpStdioExecutionAuthority,
+  materializeApprovedMcpStdioInvocation,
+  renewMcpStdioExecutionAuthority,
+  prepareMcpStdioExecutableIdentity,
   // Backoff sleep seam (tests override with a no-op so retries don't wait).
   sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
 };
+
+function mcpStdioCleanupError(name, result) {
+  const error = new Error(
+    `MCP server "${name}" process tree did not terminate before the cleanup deadline`,
+  );
+  error.code = "CC_MCP_STDIO_PROCESS_TREE_CLEANUP_TIMEOUT";
+  error.cleanup = result;
+  return error;
+}
+
+function retireStdioEntryProcess(entry, options = {}) {
+  if (!entry?.process) return Promise.resolve(null);
+  if (entry._stdioRetirementPromise) return entry._stdioRetirementPromise;
+  const retirement = Promise.resolve()
+    .then(() =>
+      _deps.terminateOwnedProcessTree(entry.process, {
+        alreadyClosed: options.alreadyClosed === true,
+        cleanupTimeoutMs: entry.config?.processTreeCleanupTimeoutMs,
+        graceMs: entry.config?.processTreeGraceMs,
+        treeMode: entry._stdioTreeMode,
+      }),
+    )
+    .then((result) => {
+      entry._stdioTreeCleanup = result;
+      return result;
+    });
+  entry._stdioRetirementPromise = retirement;
+  return retirement;
+}
 
 /**
  * MCP Server connection states.
@@ -73,8 +120,39 @@ export function normalizeMcpConfigScope(scope = "user") {
  * review) are exempt; override per server with `config.requestTimeoutMs`.
  */
 const HTTP_REQUEST_TIMEOUT_MS = 30000;
+// Responses to one-way HTTP messages are never semantically consumed, but the
+// transport still needs a host-owned deadline so a peer cannot retain sockets,
+// timers, and client state forever by withholding response headers. A server's
+// requestTimeoutMs may tighten this deadline; zero/invalid/oversized values do
+// not disable or raise it.
+const MCP_HTTP_DISCARD_TIMEOUT_MS = 30000;
+// Once a successful finite response has supplied its headers, its body must
+// still finish inside a host-owned absolute deadline. `longRunning` may exempt
+// the peer's computation/header wait, but it must not let a byte-at-a-time body
+// retain the request for years. Server config can only tighten this ceiling.
+const MCP_HTTP_RESPONSE_READ_TIMEOUT_MS = 30000;
+// A background SSE connection may stay open indefinitely, but one individual
+// event must not retain its parser state forever by sending a byte at a time.
+// Positive requestTimeoutMs values may tighten this host ceiling; zero,
+// longRunning, invalid, and oversized values cannot disable or raise it.
+const MCP_SSE_EVENT_TIMEOUT_MS = 30000;
 const WEBSOCKET_CONNECT_TIMEOUT_MS = 10000;
 const WEBSOCKET_MAX_PAYLOAD_BYTES = 16 * 1024 * 1024;
+
+function webSocketPayloadLimit(configuredLimit) {
+  if (Number.isFinite(configuredLimit)) {
+    return Math.min(
+      WEBSOCKET_MAX_PAYLOAD_BYTES,
+      Math.max(1024, Math.floor(configuredLimit)),
+    );
+  }
+  return WEBSOCKET_MAX_PAYLOAD_BYTES;
+}
+
+// Host-owned ceiling for every finite HTTP MCP response body. Server config
+// may tighten this through maxBufferChars for backwards compatibility, but it
+// cannot raise or disable this byte limit.
+const MCP_HTTP_RESPONSE_MAX_BYTES = 16 * 1024 * 1024;
 
 /**
  * Default per-call timeout for stdio MCP requests — the same 30s default as the
@@ -87,6 +165,26 @@ const WEBSOCKET_MAX_PAYLOAD_BYTES = 16 * 1024 * 1024;
 const STDIO_REQUEST_TIMEOUT_MS = 30000;
 const MCP_PROTOCOL_VERSION = "2025-11-25";
 const URL_ELICITATION_REQUIRED = -32042;
+const MCP_RPC_ERROR_CODE = "CC_MCP_RPC_ERROR";
+const mcpRpcControlData = new WeakMap();
+const mcpRpcErrors = new WeakSet();
+const MCP_RPC_URL_ELICITATION_MAX_COUNT = 16;
+const MCP_RPC_URL_ELICITATION_MODE_MAX_BYTES = 16;
+const MCP_RPC_URL_ELICITATION_ID_MAX_BYTES = 256;
+const MCP_RPC_URL_ELICITATION_URL_MAX_BYTES = 8192;
+const MCP_RPC_URL_ELICITATION_MESSAGE_MAX_BYTES = 4096;
+const MCP_URL_ELICITATION_HISTORY_MAX_COUNT = 1000;
+
+export function isMcpRpcError(value) {
+  if (!value || (typeof value !== "object" && typeof value !== "function")) {
+    return false;
+  }
+  try {
+    return !isProxy(value) && mcpRpcErrors.has(value);
+  } catch {
+    return false;
+  }
+}
 
 function supportsUrlElicitationVersion(version) {
   const normalized = String(version || "");
@@ -123,10 +221,217 @@ export function inferTransport(config) {
   return "stdio";
 }
 
+function safeRpcProperty(value, property) {
+  return rpcWireDataProperty(value, property);
+}
+
+function rpcWireField(value, property) {
+  if ((typeof value !== "object" && typeof value !== "function") || !value) {
+    return { valid: false, present: false, value: undefined };
+  }
+  try {
+    if (isProxy(value)) {
+      return { valid: false, present: false, value: undefined };
+    }
+    const descriptor = Object.getOwnPropertyDescriptor(value, property);
+    if (!descriptor) {
+      return { valid: true, present: false, value: undefined };
+    }
+    if (!Object.hasOwn(descriptor, "value")) {
+      return { valid: false, present: true, value: undefined };
+    }
+    return { valid: true, present: true, value: descriptor.value };
+  } catch {
+    return { valid: false, present: false, value: undefined };
+  }
+}
+
+function rpcWireDataProperty(value, property) {
+  const field = rpcWireField(value, property);
+  return field.valid && field.present ? field.value : undefined;
+}
+
+function snapshotRpcMessage(message) {
+  try {
+    if (
+      !message ||
+      typeof message !== "object" ||
+      Array.isArray(message) ||
+      isProxy(message)
+    ) {
+      return null;
+    }
+  } catch {
+    return null;
+  }
+  const snapshot = {};
+  for (const fieldName of [
+    "jsonrpc",
+    "id",
+    "method",
+    "params",
+    "result",
+    "error",
+  ]) {
+    const field = rpcWireField(message, fieldName);
+    if (!field.valid) return null;
+    snapshot[fieldName] = field.value;
+    snapshot[`has${fieldName[0].toUpperCase()}${fieldName.slice(1)}`] =
+      field.present;
+  }
+  return Object.freeze(snapshot);
+}
+
+function boundedRpcControlString(value, maxBytes) {
+  if (
+    typeof value !== "string" ||
+    Buffer.byteLength(value, "utf8") > maxBytes ||
+    /\p{Cc}/u.test(value)
+  ) {
+    return null;
+  }
+  return value;
+}
+
+function snapshotRpcUrlElicitations(payload) {
+  const data = rpcWireDataProperty(payload, "data");
+  const requested = rpcWireDataProperty(data, "elicitations");
+  try {
+    if (!Array.isArray(requested) || isProxy(requested)) return null;
+    const length = rpcWireDataProperty(requested, "length");
+    if (!Number.isSafeInteger(length) || length < 0) return null;
+    const snapshots = [];
+    const retained = Math.min(length, MCP_RPC_URL_ELICITATION_MAX_COUNT + 1);
+    for (let index = 0; index < retained; index += 1) {
+      const item = rpcWireDataProperty(requested, String(index));
+      const mode = boundedRpcControlString(
+        rpcWireDataProperty(item, "mode"),
+        MCP_RPC_URL_ELICITATION_MODE_MAX_BYTES,
+      );
+      const elicitationId = boundedRpcControlString(
+        rpcWireDataProperty(item, "elicitationId"),
+        MCP_RPC_URL_ELICITATION_ID_MAX_BYTES,
+      );
+      const url = boundedRpcControlString(
+        rpcWireDataProperty(item, "url"),
+        MCP_RPC_URL_ELICITATION_URL_MAX_BYTES,
+      );
+      const message = boundedRpcControlString(
+        rpcWireDataProperty(item, "message"),
+        MCP_RPC_URL_ELICITATION_MESSAGE_MAX_BYTES,
+      );
+      if (
+        mode === null ||
+        elicitationId === null ||
+        url === null ||
+        message === null
+      ) {
+        return null;
+      }
+      snapshots.push(
+        Object.freeze({
+          mode,
+          elicitationId,
+          url,
+          message,
+        }),
+      );
+    }
+    return Object.freeze(snapshots);
+  } catch {
+    return null;
+  }
+}
+
+function mcpRpcProtocolError(code, message) {
+  const error = new Error(message);
+  error.name = "McpRpcProtocolError";
+  error.code = code;
+  return error;
+}
+
+function mcpRpcInvalidError() {
+  return mcpRpcProtocolError(
+    "CC_MCP_RPC_ERROR_INVALID",
+    "MCP server returned an invalid JSON-RPC error object",
+  );
+}
+
+function mcpRpcInvalidResponseError() {
+  return mcpRpcProtocolError(
+    "CC_MCP_RPC_RESPONSE_INVALID",
+    "MCP server returned an invalid JSON-RPC response",
+  );
+}
+
+function mcpRpcInvalidMessageError() {
+  return mcpRpcProtocolError(
+    "CC_MCP_RPC_MESSAGE_INVALID",
+    "MCP server sent an invalid JSON-RPC message",
+  );
+}
+
+function mcpRpcErrorLabel(code) {
+  switch (code) {
+    case -32700:
+      return "Parse error";
+    case -32600:
+      return "Invalid Request";
+    case -32601:
+      return "Method not found";
+    case -32602:
+      return "Invalid params";
+    case -32603:
+      return "Internal error";
+    case URL_ELICITATION_REQUIRED:
+      return "URL elicitation required";
+    default:
+      return null;
+  }
+}
+
 function mcpRpcError(payload = {}) {
-  const error = new Error(payload.message || "Unknown MCP error");
-  if (payload.code !== undefined) error.code = payload.code;
-  if (payload.data !== undefined) error.data = payload.data;
+  const codeField = rpcWireField(payload, "code");
+  const messageField = rpcWireField(payload, "message");
+  if (
+    !codeField.valid ||
+    !codeField.present ||
+    !Number.isSafeInteger(codeField.value) ||
+    !messageField.valid ||
+    !messageField.present ||
+    typeof messageField.value !== "string"
+  ) {
+    return mcpRpcInvalidError();
+  }
+
+  const rpcCode = codeField.value;
+  const label = mcpRpcErrorLabel(rpcCode);
+  const detail = ` (code ${rpcCode}${label ? `: ${label}` : ""})`;
+  // JSON-RPC message/data are peer-controlled and routinely flow into stderr,
+  // tool results, model context and session persistence. Keep diagnostics
+  // host-generated. The one data-bearing control flow we support (-32042) is
+  // retained out-of-band in a WeakMap and never attached to the Error object.
+  const error = new Error(`MCP server returned a JSON-RPC error${detail}`);
+  error.name = "McpRpcError";
+  error.mcpErrorCode = MCP_RPC_ERROR_CODE;
+  error.rpcCode = rpcCode;
+  error.code = rpcCode;
+  mcpRpcErrors.add(error);
+
+  if (rpcCode === URL_ELICITATION_REQUIRED) {
+    const elicitations = snapshotRpcUrlElicitations(payload);
+    if (elicitations) {
+      // Retain only a frozen allowlist snapshot, capped one item beyond the
+      // accepted maximum so an oversized batch is rejected without keeping an
+      // attacker-sized object graph alive.
+      mcpRpcControlData.set(
+        error,
+        Object.freeze({
+          elicitations,
+        }),
+      );
+    }
+  }
   return error;
 }
 
@@ -224,7 +529,198 @@ function mcpTransportError(code, message, details = {}) {
   error.url = details.url ? redactMcpUrl(details.url) : null;
   if (details.status != null) error.status = details.status;
   if (details.closeCode != null) error.closeCode = details.closeCode;
+  if (details.limitBytes != null) error.limitBytes = details.limitBytes;
+  if (details.limitFrames != null) error.limitFrames = details.limitFrames;
+  if (details.limitMessages != null) {
+    error.limitMessages = details.limitMessages;
+  }
+  if (details.limitDepth != null) error.limitDepth = details.limitDepth;
+  if (details.limitNodes != null) error.limitNodes = details.limitNodes;
+  if (details.windowMs != null) error.windowMs = details.windowMs;
+  if (details.dispatched != null) {
+    error.dispatched = details.dispatched === true;
+  }
+  if (details.outcomeUnknown != null) {
+    error.outcomeUnknown = details.outcomeUnknown === true;
+  }
   return error;
+}
+
+function mcpWebSocketPayloadTooLargeError(
+  serverName,
+  { transport, url, limitBytes, closeCode = 1009 },
+) {
+  return mcpTransportError(
+    "CC_MCP_WS_PAYLOAD_TOO_LARGE",
+    `MCP WebSocket connection for server "${serverName}" rejected a payload over the ${limitBytes}-byte host cap`,
+    { transport, url, closeCode, limitBytes },
+  );
+}
+
+function mcpServerDisconnectingError(serverName, entry, details = {}) {
+  return mcpTransportError(
+    "CC_MCP_SERVER_DISCONNECTING",
+    `MCP server "${serverName}" is disconnecting`,
+    {
+      transport: entry?.transportKind,
+      url: entry?.config?.url,
+      dispatched: details.dispatched,
+      outcomeUnknown: details.dispatched,
+    },
+  );
+}
+
+function mcpRequestAbortedError(serverName, entry, dispatched) {
+  return mcpTransportError(
+    "CC_MCP_REQUEST_ABORTED",
+    `MCP request for server "${serverName}" was cancelled by its caller`,
+    {
+      transport: entry?.transportKind,
+      url: entry?.config?.url,
+      dispatched,
+      outcomeUnknown: dispatched,
+    },
+  );
+}
+
+function mcpInboundBudgetError(serverName, entry, budget) {
+  const dispatched = entry?._pending instanceof Map && entry._pending.size > 0;
+  if (budget === "messages") {
+    const limitMessages = inboundMessageRateLimit(
+      entry?.config?.maxInboundMessagesPerSecond,
+    );
+    return mcpTransportError(
+      "CC_MCP_INBOUND_RATE_EXCEEDED",
+      `MCP server "${serverName}" exceeded the ${limitMessages}-message/${MCP_INBOUND_MESSAGE_RATE_WINDOW_MS}ms host inbound rate budget`,
+      {
+        transport: entry?.transportKind,
+        url: entry?.config?.url,
+        limitMessages,
+        windowMs: MCP_INBOUND_MESSAGE_RATE_WINDOW_MS,
+        dispatched,
+        outcomeUnknown: dispatched,
+      },
+    );
+  }
+  const limitBytes = inboundTrafficByteLimit(
+    entry?.config?.maxInboundBytesPerMinute,
+  );
+  return mcpTransportError(
+    "CC_MCP_INBOUND_TRAFFIC_EXCEEDED",
+    `MCP server "${serverName}" exceeded the ${limitBytes}-byte/${MCP_INBOUND_TRAFFIC_WINDOW_MS}ms host inbound traffic budget`,
+    {
+      transport: entry?.transportKind,
+      url: entry?.config?.url,
+      limitBytes,
+      windowMs: MCP_INBOUND_TRAFFIC_WINDOW_MS,
+      dispatched,
+      outcomeUnknown: dispatched,
+    },
+  );
+}
+
+function mcpJsonBudgetError(serverName, entry, budget) {
+  const dispatched = Boolean(
+    (entry?._pending instanceof Map && entry._pending.size > 0) ||
+    (entry?._httpRequestControllers instanceof Set &&
+      entry._httpRequestControllers.size > 0),
+  );
+  if (budget === "depth") {
+    const limitDepth = mcpJsonDepthLimit(entry?.config?.maxJsonDepth);
+    return mcpTransportError(
+      "CC_MCP_JSON_DEPTH_EXCEEDED",
+      `MCP server "${serverName}" exceeded the ${limitDepth}-level host JSON depth budget`,
+      {
+        transport: entry?.transportKind,
+        url: entry?.config?.url || entry?.httpUrl,
+        limitDepth,
+        dispatched,
+        outcomeUnknown: dispatched,
+      },
+    );
+  }
+  const limitNodes = mcpJsonNodeLimit(entry?.config?.maxJsonNodes);
+  return mcpTransportError(
+    "CC_MCP_JSON_NODES_EXCEEDED",
+    `MCP server "${serverName}" exceeded the ${limitNodes}-node host JSON graph budget`,
+    {
+      transport: entry?.transportKind,
+      url: entry?.config?.url || entry?.httpUrl,
+      limitNodes,
+      dispatched,
+      outcomeUnknown: dispatched,
+    },
+  );
+}
+
+function mcpSseEventTimeoutError(timeoutMs) {
+  const error = new Error(
+    `MCP HTTP message stream event exceeded the ${timeoutMs}ms host deadline`,
+  );
+  error.code = "CC_MCP_SSE_EVENT_TIMEOUT";
+  error.timeoutMs = timeoutMs;
+  return error;
+}
+
+function mcpHttpResponseTimeoutError(
+  serverName,
+  entry,
+  method,
+  timeoutMs,
+  dispatched,
+) {
+  return mcpTransportError(
+    "CC_MCP_HTTP_RESPONSE_TIMEOUT",
+    `MCP HTTP response body for method "${method}" exceeded the ${timeoutMs}ms host deadline`,
+    {
+      transport: entry?.transportKind,
+      url: entry?.config?.url,
+      dispatched,
+      outcomeUnknown: dispatched,
+    },
+  );
+}
+
+function isWebSocketPayloadError(error) {
+  const code = safeRpcProperty(error, "code");
+  return (
+    code === "WS_ERR_UNSUPPORTED_MESSAGE_LENGTH" ||
+    code === "WS_ERR_UNSUPPORTED_DATA_PAYLOAD_LENGTH"
+  );
+}
+
+function safeRpcErrorText(error) {
+  if (typeof error === "string") return error;
+  const message = safeRpcProperty(error, "message");
+  return typeof message === "string" ? message : "";
+}
+
+const MCP_NON_RETRYABLE_PROTOCOL_ERROR_CODES = new Set([
+  "CC_MCP_WS_PAYLOAD_TOO_LARGE",
+  "CC_MCP_WS_BINARY_MESSAGE",
+  "CC_MCP_WS_INVALID_MESSAGE",
+  "CC_MCP_SERVER_DISCONNECTING",
+  "CC_MCP_REQUEST_ABORTED",
+  "CC_MCP_HTTP_RESPONSE_STREAM_REQUIRED",
+  "CC_MCP_HTTP_RESPONSE_TIMEOUT",
+  "CC_MCP_HTTP_DISCARD_TIMEOUT",
+  "CC_MCP_SSE_EVENT_TIMEOUT",
+  "CC_MCP_INBOUND_RATE_EXCEEDED",
+  "CC_MCP_INBOUND_TRAFFIC_EXCEEDED",
+  "CC_MCP_JSON_DEPTH_EXCEEDED",
+  "CC_MCP_JSON_NODES_EXCEEDED",
+  "CC_MCP_STDIO_FRAME_TOO_LARGE",
+  "CC_MCP_STDIO_MALFORMED_BUDGET_EXCEEDED",
+  "CC_MCP_STDIO_STDERR_TOO_LARGE",
+  "CC_MCP_RPC_ERROR_INVALID",
+  "CC_MCP_RPC_RESPONSE_INVALID",
+  "CC_MCP_RPC_MESSAGE_INVALID",
+]);
+
+function isMcpNonRetryableProtocolError(error) {
+  return MCP_NON_RETRYABLE_PROTOCOL_ERROR_CODES.has(
+    safeRpcProperty(error, "code"),
+  );
 }
 
 /**
@@ -238,17 +734,22 @@ function mcpTransportError(code, message, details = {}) {
  * this client's own "server gone" states.
  */
 export function isLikelyConnectionError(err) {
-  const msg = String((err && err.message) || err || "");
+  if (isMcpRpcError(err) || isMcpNonRetryableProtocolError(err)) {
+    return false;
+  }
+  const msg = safeRpcErrorText(err);
   return /fetch failed|ECONNREFUSED|ECONNRESET|ETIMEDOUT|EPIPE|socket hang up|network error|WebSocket|HTTP 40[134]\b|not connected|not found|not available/i.test(
     msg,
   );
 }
 
 export function isMcpAuthenticationError(err) {
+  if (isMcpRpcError(err)) return false;
+  const status = safeRpcProperty(err, "status");
   return (
-    err?.status === 401 ||
-    err?.status === 403 ||
-    /\bHTTP\s*40[13]\b/i.test(String(err?.message || err || ""))
+    status === 401 ||
+    status === 403 ||
+    /\bHTTP\s*40[13]\b/i.test(safeRpcErrorText(err))
   );
 }
 
@@ -256,16 +757,338 @@ export function isMcpAuthenticationError(err) {
 const MCP_DISCOVERY_RETRIES = 2; // up to 3 attempts total
 const MCP_DISCOVERY_BACKOFF_MS = 250; // 250ms, 500ms
 
-/**
- * Hard cap on the unterminated stdout tail buffered per stdio server. JSON-RPC
- * frames are newline-delimited; a runaway or non-MCP process that streams
- * without ever emitting a newline would otherwise grow `entry._buffer` without
- * bound and exhaust memory. 16M chars is far above any legitimate single MCP
- * message (even a tool result with embedded base64), so crossing it signals a
- * misbehaving server. Override per server with `config.maxBufferChars` (0
- * disables the cap).
- */
-const MCP_MAX_BUFFER_CHARS = 16 * 1024 * 1024;
+// Long-lived stdio, WebSocket, and background SSE transports may legitimately
+// run forever, so lifetime totals would eventually kill every healthy peer.
+// Token buckets instead bound any sustained inbound message/byte flow while
+// retaining a finite burst allowance. Ordinary config may tighten these caps
+// but cannot disable or raise them.
+const MCP_INBOUND_MESSAGE_RATE_WINDOW_MS = 1000;
+const MCP_INBOUND_MESSAGE_RATE_MAX = 128;
+const MCP_INBOUND_TRAFFIC_WINDOW_MS = 60_000;
+const MCP_INBOUND_TRAFFIC_MAX_BYTES = 64 * 1024 * 1024;
+
+function inboundMessageRateLimit(configuredLimit) {
+  if (Number.isFinite(configuredLimit) && configuredLimit > 0) {
+    return Math.min(
+      MCP_INBOUND_MESSAGE_RATE_MAX,
+      Math.max(1, Math.floor(configuredLimit)),
+    );
+  }
+  return MCP_INBOUND_MESSAGE_RATE_MAX;
+}
+
+function inboundTrafficByteLimit(configuredLimit) {
+  if (Number.isFinite(configuredLimit) && configuredLimit > 0) {
+    return Math.min(
+      MCP_INBOUND_TRAFFIC_MAX_BYTES,
+      Math.max(1, Math.floor(configuredLimit)),
+    );
+  }
+  return MCP_INBOUND_TRAFFIC_MAX_BYTES;
+}
+
+function recordMcpInboundTraffic(serverName, entry, inboundBytes) {
+  const messageCapacity = inboundMessageRateLimit(
+    entry?.config?.maxInboundMessagesPerSecond,
+  );
+  const byteCapacity = inboundTrafficByteLimit(
+    entry?.config?.maxInboundBytesPerMinute,
+  );
+  const now = Date.now();
+  let budget = entry?._inboundTrafficBudget;
+  if (
+    !budget ||
+    budget.messageCapacity !== messageCapacity ||
+    budget.byteCapacity !== byteCapacity
+  ) {
+    budget = {
+      messageCapacity,
+      byteCapacity,
+      messageTokens: messageCapacity,
+      byteTokens: byteCapacity,
+      lastRefillMs: now,
+    };
+    entry._inboundTrafficBudget = budget;
+  }
+
+  const elapsedMs = Math.max(0, now - budget.lastRefillMs);
+  if (elapsedMs > 0) {
+    budget.messageTokens = Math.min(
+      messageCapacity,
+      budget.messageTokens +
+        (elapsedMs * messageCapacity) / MCP_INBOUND_MESSAGE_RATE_WINDOW_MS,
+    );
+    budget.byteTokens = Math.min(
+      byteCapacity,
+      budget.byteTokens +
+        (elapsedMs * byteCapacity) / MCP_INBOUND_TRAFFIC_WINDOW_MS,
+    );
+    budget.lastRefillMs = now;
+  }
+
+  const bytes =
+    Number.isFinite(inboundBytes) && inboundBytes > 0
+      ? Math.ceil(inboundBytes)
+      : 0;
+  if (budget.messageTokens < 1) {
+    return mcpInboundBudgetError(serverName, entry, "messages");
+  }
+  if (budget.byteTokens < bytes) {
+    return mcpInboundBudgetError(serverName, entry, "bytes");
+  }
+  budget.messageTokens -= 1;
+  budget.byteTokens -= bytes;
+  return null;
+}
+
+// A small JSON wire value can expand into a much larger object graph, and a
+// deeply nested result can overflow recursive downstream consumers even while
+// it remains below every transport byte cap. Scan the wire iteratively before
+// JSON.parse, then inspect the resulting graph without invoking accessors or
+// Proxy traps. These defaults match the strict durable-message JSON boundary;
+// server config may tighten but never disable or raise them.
+const MCP_JSON_MAX_DEPTH = 100;
+const MCP_JSON_MAX_NODES = 100_000;
+
+function mcpJsonDepthLimit(configuredLimit) {
+  if (Number.isFinite(configuredLimit) && configuredLimit > 0) {
+    return Math.min(
+      MCP_JSON_MAX_DEPTH,
+      Math.max(1, Math.floor(configuredLimit)),
+    );
+  }
+  return MCP_JSON_MAX_DEPTH;
+}
+
+function mcpJsonNodeLimit(configuredLimit) {
+  if (Number.isFinite(configuredLimit) && configuredLimit > 0) {
+    return Math.min(
+      MCP_JSON_MAX_NODES,
+      Math.max(1, Math.floor(configuredLimit)),
+    );
+  }
+  return MCP_JSON_MAX_NODES;
+}
+
+function inspectMcpJsonWireBudget(text, config = {}) {
+  const limitDepth = mcpJsonDepthLimit(config?.maxJsonDepth);
+  const limitNodes = mcpJsonNodeLimit(config?.maxJsonNodes);
+  const source = String(text || "");
+  let depth = 0;
+  let nodes = 0;
+  let inString = false;
+  let escaped = false;
+
+  const addNode = () => {
+    nodes += 1;
+    return nodes > limitNodes ? "nodes" : null;
+  };
+
+  for (let index = 0; index < source.length; index += 1) {
+    const char = source[index];
+    if (inString) {
+      if (escaped) {
+        escaped = false;
+      } else if (char === "\\") {
+        escaped = true;
+      } else if (char === '"') {
+        inString = false;
+      }
+      continue;
+    }
+
+    if (char === '"') {
+      const issue = addNode();
+      if (issue) return issue;
+      inString = true;
+      continue;
+    }
+    if (char === "{" || char === "[") {
+      const issue = addNode();
+      if (issue) return issue;
+      depth += 1;
+      if (depth > limitDepth) return "depth";
+      continue;
+    }
+    if (char === "}" || char === "]") {
+      depth = Math.max(0, depth - 1);
+      continue;
+    }
+    if (/\s/u.test(char) || char === "," || char === ":") continue;
+
+    const issue = addNode();
+    if (issue) return issue;
+    while (index + 1 < source.length && !/[\s,\]:}]/u.test(source[index + 1])) {
+      index += 1;
+    }
+  }
+  return null;
+}
+
+function inspectMcpJsonGraphBudget(value, config = {}) {
+  const limitDepth = mcpJsonDepthLimit(config?.maxJsonDepth);
+  const limitNodes = mcpJsonNodeLimit(config?.maxJsonNodes);
+  const stack = [{ value, parentDepth: 0 }];
+  const seen = new WeakSet();
+  let nodes = 0;
+  let invalid = false;
+
+  const consumeNodes = (count = 1) => {
+    nodes += count;
+    return nodes > limitNodes;
+  };
+
+  while (stack.length > 0) {
+    const current = stack.pop();
+    const candidate = current.value;
+    if (consumeNodes()) return "nodes";
+    if (
+      candidate === null ||
+      typeof candidate === "string" ||
+      typeof candidate === "boolean" ||
+      (typeof candidate === "number" && Number.isFinite(candidate))
+    ) {
+      continue;
+    }
+    if (!candidate || typeof candidate !== "object") {
+      invalid = true;
+      continue;
+    }
+
+    try {
+      if (isProxy(candidate) || seen.has(candidate)) {
+        invalid = true;
+        continue;
+      }
+      seen.add(candidate);
+    } catch {
+      invalid = true;
+      continue;
+    }
+
+    const depth = current.parentDepth + 1;
+    if (depth > limitDepth) return "depth";
+
+    if (Array.isArray(candidate)) {
+      let lengthDescriptor;
+      let keys;
+      try {
+        lengthDescriptor = Object.getOwnPropertyDescriptor(candidate, "length");
+        if (
+          !lengthDescriptor ||
+          !Object.hasOwn(lengthDescriptor, "value") ||
+          !Number.isSafeInteger(lengthDescriptor.value) ||
+          lengthDescriptor.value < 0
+        ) {
+          invalid = true;
+          continue;
+        }
+        if (nodes + lengthDescriptor.value > limitNodes) return "nodes";
+        keys = Reflect.ownKeys(candidate);
+      } catch {
+        invalid = true;
+        continue;
+      }
+      if (
+        keys.length !== lengthDescriptor.value + 1 ||
+        keys.some((key) => typeof key === "symbol")
+      ) {
+        invalid = true;
+        continue;
+      }
+      for (let index = 0; index < lengthDescriptor.value; index += 1) {
+        const descriptor = Object.getOwnPropertyDescriptor(
+          candidate,
+          String(index),
+        );
+        if (
+          !descriptor ||
+          !Object.hasOwn(descriptor, "value") ||
+          descriptor.enumerable !== true
+        ) {
+          invalid = true;
+          continue;
+        }
+        stack.push({ value: descriptor.value, parentDepth: depth });
+      }
+      continue;
+    }
+
+    let prototype;
+    let keys;
+    try {
+      prototype = Object.getPrototypeOf(candidate);
+      keys = Reflect.ownKeys(candidate);
+    } catch {
+      invalid = true;
+      continue;
+    }
+    if (
+      (prototype !== Object.prototype && prototype !== null) ||
+      keys.some((key) => typeof key === "symbol")
+    ) {
+      invalid = true;
+      continue;
+    }
+    if (consumeNodes(keys.length)) return "nodes";
+    for (const key of keys) {
+      let descriptor;
+      try {
+        descriptor = Object.getOwnPropertyDescriptor(candidate, key);
+      } catch {
+        invalid = true;
+        continue;
+      }
+      if (
+        !descriptor ||
+        !Object.hasOwn(descriptor, "value") ||
+        descriptor.enumerable !== true
+      ) {
+        invalid = true;
+        continue;
+      }
+      stack.push({ value: descriptor.value, parentDepth: depth });
+    }
+  }
+  return invalid ? "invalid" : null;
+}
+
+function parseMcpJson(text, serverName, entry) {
+  const wireIssue = inspectMcpJsonWireBudget(text, entry?.config);
+  if (wireIssue) throw mcpJsonBudgetError(serverName, entry, wireIssue);
+  const parsed = JSON.parse(text);
+  const graphIssue = inspectMcpJsonGraphBudget(parsed, entry?.config);
+  if (graphIssue === "depth" || graphIssue === "nodes") {
+    throw mcpJsonBudgetError(serverName, entry, graphIssue);
+  }
+  return parsed;
+}
+
+function isMcpJsonBudgetError(error) {
+  const code = safeRpcProperty(error, "code");
+  return (
+    code === "CC_MCP_JSON_DEPTH_EXCEEDED" ||
+    code === "CC_MCP_JSON_NODES_EXCEEDED"
+  );
+}
+
+// Host-owned UTF-8 byte ceiling for every newline-delimited stdio JSON-RPC
+// frame, including its unterminated tail. maxBufferChars remains a compatible
+// way to request a smaller limit, but cannot disable or raise this boundary.
+const MCP_STDIO_FRAME_MAX_BYTES = 16 * 1024 * 1024;
+const MCP_STDIO_MALFORMED_MAX_BYTES = 1024 * 1024;
+const MCP_STDIO_MALFORMED_MAX_FRAMES = 32;
+const MCP_STDIO_STDERR_MAX_BYTES = 1024 * 1024;
+
+function stdioFrameByteLimit(configuredLimit) {
+  if (Number.isFinite(configuredLimit) && configuredLimit > 0) {
+    return Math.min(
+      MCP_STDIO_FRAME_MAX_BYTES,
+      Math.max(1, Math.floor(configuredLimit)),
+    );
+  }
+  return MCP_STDIO_FRAME_MAX_BYTES;
+}
 
 /**
  * Is this a TRANSIENT error worth a short retry during capability discovery?
@@ -275,7 +1098,8 @@ const MCP_MAX_BUFFER_CHARS = 16 * 1024 * 1024;
  * retrying those just wastes attempts.
  */
 export function isTransientMcpError(err) {
-  const msg = String((err && err.message) || err || "");
+  if (isMcpRpcError(err) || isMcpNonRetryableProtocolError(err)) return false;
+  const msg = safeRpcErrorText(err);
   if (/HTTP 4\d\d\b/i.test(msg)) return false; // any 4xx is permanent here
   if (/Request timeout/i.test(msg)) return false; // already spent the full budget
   return /fetch failed|ECONNREFUSED|ECONNRESET|ETIMEDOUT|EAI_AGAIN|EPIPE|socket hang up|network error|HTTP 5\d\d\b/i.test(
@@ -297,6 +1121,7 @@ export class MCPClient extends EventEmitter {
   constructor(options = {}) {
     super();
     this.servers = new Map(); // name → { process, state, tools, resources, config }
+    this._toolMetadataBytes = 0;
     this._nextId = 1;
     this._reconnectors = new Map(); // name → async () => config|null
     this._reconnecting = new Map(); // name → in-flight reconnect promise
@@ -319,6 +1144,8 @@ export class MCPClient extends EventEmitter {
         ? options.elicitationHandler
         : null;
     this._elicitationHandlers = new Map();
+    this._elicitationHandlerAbortCleanup = null;
+    this._elicitationHandlerAbortCleanups = new Map();
     this._elicitationContext = new AsyncLocalStorage();
     this._elicitationTimeoutMs =
       Number(options.elicitationTimeoutMs) > 0
@@ -326,6 +1153,7 @@ export class MCPClient extends EventEmitter {
         : 180000;
     this._pendingElicitations = new Map();
     this._urlElicitations = new Map();
+    this._elicitationDisconnectGuards = new Map();
     this._activeElicitations = 0;
     this._maxConcurrentElicitations =
       Number(options.maxConcurrentElicitations) > 0
@@ -342,24 +1170,96 @@ export class MCPClient extends EventEmitter {
       : null;
   }
 
-  /** Install or clear the host-side MCP elicitation resolver. */
+  /**
+   * Install or clear the host-side MCP elicitation resolver. An optional
+   * caller signal owns that route and retires the background HTTP/SSE channel
+   * once no resolver remains.
+   */
   setElicitationHandler(handler, options = {}) {
     const sessionId = options.sessionId;
+    const callerSignal = options.signal || null;
+    const install = typeof handler === "function" && !callerSignal?.aborted;
     if (sessionId != null && sessionId !== "") {
       const key = String(sessionId);
-      if (typeof handler === "function")
-        this._elicitationHandlers.set(key, handler);
+      try {
+        this._elicitationHandlerAbortCleanups.get(key)?.();
+      } catch {
+        // Best-effort cleanup for non-native AbortSignal adapters.
+      }
+      this._elicitationHandlerAbortCleanups.delete(key);
+      if (install) this._elicitationHandlers.set(key, handler);
       else this._elicitationHandlers.delete(key);
     } else {
-      this._elicitationHandler = typeof handler === "function" ? handler : null;
+      try {
+        this._elicitationHandlerAbortCleanup?.();
+      } catch {
+        // Best-effort cleanup for non-native AbortSignal adapters.
+      }
+      this._elicitationHandlerAbortCleanup = null;
+      this._elicitationHandler = install ? handler : null;
     }
     if (Number(options.timeoutMs) > 0) {
       this._elicitationTimeoutMs = Number(options.timeoutMs);
     }
-    if (typeof handler === "function") {
+
+    if (install && callerSignal?.addEventListener) {
+      const key =
+        sessionId != null && sessionId !== "" ? String(sessionId) : null;
+      const onCallerAbort = () => {
+        if (key != null) {
+          if (this._elicitationHandlers.get(key) === handler) {
+            this.clearElicitationHandler(key);
+          }
+        } else if (this._elicitationHandler === handler) {
+          this.setElicitationHandler(null);
+        }
+      };
+      callerSignal.addEventListener("abort", onCallerAbort, { once: true });
+      const cleanup = () =>
+        callerSignal.removeEventListener?.("abort", onCallerAbort);
+      if (key != null) {
+        this._elicitationHandlerAbortCleanups.set(key, cleanup);
+      } else {
+        this._elicitationHandlerAbortCleanup = cleanup;
+      }
+      // Cover a custom signal that changes between preflight and listener
+      // installation. Identity checks keep replacement handlers intact.
+      if (callerSignal.aborted) onCallerAbort();
+    }
+    this._syncHttpMessageStreams();
+  }
+
+  _hasElicitationHandler() {
+    return Boolean(
+      this._elicitationHandler || this._elicitationHandlers.size > 0,
+    );
+  }
+
+  _stopHttpMessageStream(entry) {
+    const stream = entry?._httpMessageStream;
+    if (!stream) return false;
+    stream.stopped = true;
+    try {
+      stream.controller?.abort();
+    } catch {
+      // The stopped flag still prevents dispatch/reconnect.
+    }
+    stream.wake?.();
+    if (entry._httpMessageStream === stream) {
+      entry._httpMessageStream = null;
+    }
+    return true;
+  }
+
+  _syncHttpMessageStreams() {
+    if (this._hasElicitationHandler()) {
       for (const name of this.servers.keys()) {
         this._ensureHttpMessageStream(name);
       }
+      return;
+    }
+    for (const entry of this.servers.values()) {
+      this._stopHttpMessageStream(entry);
     }
   }
 
@@ -375,7 +1275,16 @@ export class MCPClient extends EventEmitter {
   /** Remove a session route when a WS session is closed. */
   clearElicitationHandler(sessionId) {
     if (sessionId == null || sessionId === "") return false;
-    return this._elicitationHandlers.delete(String(sessionId));
+    const key = String(sessionId);
+    try {
+      this._elicitationHandlerAbortCleanups.get(key)?.();
+    } catch {
+      // Best-effort cleanup for non-native AbortSignal adapters.
+    }
+    this._elicitationHandlerAbortCleanups.delete(key);
+    const removed = this._elicitationHandlers.delete(key);
+    this._syncHttpMessageStreams();
+    return removed;
   }
 
   /** Resolve a pending server elicitation by its server/request id pair. */
@@ -404,6 +1313,74 @@ export class MCPClient extends EventEmitter {
     return this.respondElicitation(serverName, requestId, {
       action: "cancel",
     });
+  }
+
+  _awaitElicitationHandler(serverName, handler, request) {
+    const name = String(serverName);
+    const disconnectedResult = { kind: "disconnected" };
+    let wasDisconnected = false;
+    let signalDisconnect;
+    const disconnected = new Promise((resolve) => {
+      signalDisconnect = () => {
+        wasDisconnected = true;
+        resolve(disconnectedResult);
+      };
+    });
+    let guards = this._elicitationDisconnectGuards.get(name);
+    if (!guards) {
+      guards = new Set();
+      this._elicitationDisconnectGuards.set(name, guards);
+    }
+    guards.add(signalDisconnect);
+
+    const handled = Promise.resolve()
+      .then(() =>
+        wasDisconnected ? disconnectedResult : handler({ ...request }),
+      )
+      .then(
+        (value) =>
+          value === disconnectedResult
+            ? disconnectedResult
+            : { kind: "response", value },
+        (error) => ({ kind: "error", error }),
+      );
+    return Promise.race([handled, disconnected]).finally(() => {
+      guards.delete(signalDisconnect);
+      if (
+        guards.size === 0 &&
+        this._elicitationDisconnectGuards.get(name) === guards
+      ) {
+        this._elicitationDisconnectGuards.delete(name);
+      }
+    });
+  }
+
+  _cancelServerElicitations(serverName) {
+    const name = String(serverName);
+    const guards = this._elicitationDisconnectGuards.get(name);
+    if (guards) {
+      this._elicitationDisconnectGuards.delete(name);
+      for (const signalDisconnect of [...guards]) signalDisconnect();
+      guards.clear();
+    }
+
+    for (const pending of [...this._pendingElicitations.values()]) {
+      if (String(pending.request?.server) !== name) continue;
+      this.cancelElicitation(name, pending.request?.requestId);
+    }
+
+    for (const entry of this._urlElicitations.values()) {
+      if (
+        String(entry.server) !== name ||
+        (entry.status !== "pending" && entry.status !== "accepted")
+      ) {
+        continue;
+      }
+      entry.status = "cancel";
+      entry.completionNotified = false;
+      for (const waiter of [...entry.waiters]) waiter(false);
+      entry.waiters.clear();
+    }
   }
 
   _elicitationKey(serverName, requestId) {
@@ -495,9 +1472,26 @@ export class MCPClient extends EventEmitter {
       this._elicitationHandler;
     if (handler) {
       try {
-        const direct = await handler({
-          ...request,
-        });
+        const outcome = await this._awaitElicitationHandler(
+          serverName,
+          handler,
+          request,
+        );
+        if (outcome.kind === "disconnected") {
+          const response = { action: "cancel" };
+          this._settleUrlElicitation(request, response);
+          try {
+            this._runtimeProducer?.store.acknowledgeInbox(
+              `mcp-elicitation:${key}`,
+              { response },
+            );
+          } catch {
+            // Runtime inbox acknowledgement is advisory.
+          }
+          return response;
+        }
+        if (outcome.kind === "error") throw outcome.error;
+        const direct = outcome.value;
         if (
           direct !== undefined &&
           String(direct?.action || "").toLowerCase() !== "defer"
@@ -589,33 +1583,30 @@ export class MCPClient extends EventEmitter {
     const id = request?.elicitationId;
     if (!id) return;
     const existing = this._urlElicitations.get(id);
-    if (existing && existing.server !== request.server) {
-      throw new Error(`MCP URL elicitation id collision across servers: ${id}`);
+    if (existing) {
+      const error = new Error("MCP URL elicitation id was already used");
+      error.code = "CC_MCP_ELICITATION_ID_REUSED";
+      throw error;
     }
-    if (existing && existing.request?.url !== request.url) {
-      throw new Error(
-        `MCP URL elicitation id reused with a different URL: ${id}`,
-      );
+    if (this._urlElicitations.size >= MCP_URL_ELICITATION_HISTORY_MAX_COUNT) {
+      const error = new Error("MCP URL elicitation history is full");
+      error.code = "CC_MCP_ELICITATION_HISTORY_FULL";
+      throw error;
     }
-    if (!existing) {
-      this._urlElicitations.set(id, {
-        id,
-        server: request.server,
-        request,
-        status: "pending",
-        completionNotified: false,
-        waiters: new Set(),
-      });
-      while (this._urlElicitations.size > 1000) {
-        this._urlElicitations.delete(this._urlElicitations.keys().next().value);
-      }
-    }
+    this._urlElicitations.set(id, {
+      id,
+      server: request.server,
+      request,
+      status: "pending",
+      completionNotified: false,
+      waiters: new Set(),
+    });
   }
 
   _settleUrlElicitation(request, response) {
     if (request?.mode !== "url" || !request.elicitationId) return;
     const entry = this._urlElicitations.get(request.elicitationId);
-    if (!entry || entry.status === "completed") return;
+    if (!entry || entry.status !== "pending") return;
     entry.status =
       response?.action === "accept"
         ? "accepted"
@@ -838,13 +1829,77 @@ export class MCPClient extends EventEmitter {
     }
 
     const transportKind = inferTransport(config);
-    const sourceConfig = config;
+    let stdioExecutionApproval = null;
+    let approvedStdioInvocation = null;
+    if (transportKind === "stdio") {
+      if (!config?.command) {
+        throw new Error(
+          `stdio transport requires a command (server "${name}")`,
+        );
+      }
+      stdioExecutionApproval = _deps.consumeMcpStdioExecutionAuthority(
+        config?.mcpStdioExecutionAuthority,
+        { serverName: name, config },
+      );
+      approvedStdioInvocation = _deps.materializeApprovedMcpStdioInvocation(
+        stdioExecutionApproval,
+        { serverName: name, config },
+      );
+    }
+    const {
+      mcpStdioExecutionAuthority: _stdioExecutionAuthority,
+      ...untrustedSourceConfig
+    } = config;
+    const sourceConfig = approvedStdioInvocation
+      ? { ...untrustedSourceConfig, ...approvedStdioInvocation }
+      : untrustedSourceConfig;
+    let pluginWorkspaceRoot = null;
+    let stdioExecutableIdentity = null;
+    let stdioExecutableIdentityAuthority = null;
+    let runtimeConfig = sourceConfig;
+    if (transportKind === "stdio") {
+      const isPlugin = sourceConfig.origin === "plugin:mcp";
+      pluginWorkspaceRoot = isPlugin
+        ? resolvePluginWorkspaceAuthority(
+            sourceConfig.pluginWorkspaceAuthority,
+            {
+              origin: sourceConfig.origin,
+              pluginId: sourceConfig.pluginId,
+              pluginVersion: sourceConfig.pluginVersion,
+              pluginSource: sourceConfig.pluginSource,
+            },
+          )
+        : null;
+      if (
+        isPlugin &&
+        sourceConfig.sandboxPolicy?.requiredBoundaries?.length > 0 &&
+        !pluginWorkspaceRoot
+      ) {
+        throw new Error(
+          `plugin MCP server "${name}" is missing its trusted workspace authority`,
+        );
+      }
+      const prepared = _deps.prepareMcpStdioExecutableIdentity({
+        serverName: name,
+        config: sourceConfig,
+        approval: stdioExecutionApproval,
+        cwd: pluginWorkspaceRoot || process.cwd(),
+        env: process.env,
+      });
+      runtimeConfig = {
+        ...sourceConfig,
+        command: prepared.command,
+        args: [...prepared.args],
+      };
+      stdioExecutableIdentity = prepared.identity;
+      stdioExecutableIdentityAuthority = prepared.authority;
+    }
     const connectionHeaders = await this._connectionHeaders(
       name,
       sourceConfig,
       transportKind,
     );
-    config = { ...sourceConfig, headers: connectionHeaders };
+    config = { ...runtimeConfig, headers: connectionHeaders };
     const entry = {
       // Keep the source config (static headers + helper command) so every
       // reconnect can execute the helper afresh instead of reusing credentials.
@@ -858,6 +1913,16 @@ export class MCPClient extends EventEmitter {
       httpSessionId: null,
       protocolVersion: null,
       _httpMessageStream: null,
+      _httpRequestControllers: new Set(),
+      _httpDiscardControllers: new Set(),
+      _httpDiscardStopping: false,
+      _disconnectPromise: null,
+      _webSocketPayloadError: null,
+      _webSocketInboundError: null,
+      _inboundTrafficBudget: null,
+      _toolMetadataBytes: 0,
+      _stdioExecutionApproval: stdioExecutionApproval,
+      _stdioExecutableIdentity: stdioExecutableIdentity,
       tools: [],
       resources: [],
       resourceTemplates: [],
@@ -865,12 +1930,17 @@ export class MCPClient extends EventEmitter {
       resourceSubscriptions: new Set(),
       _pending: new Map(),
       _buffer: "",
-      // Per-connection streaming decoders so a multi-byte UTF-8 character (e.g.
-      // a 3-byte Chinese char) split across two stdout/stderr chunks is
+      _bufferBytes: 0,
+      _stdioFrameError: null,
+      _malformedFrameBytes: 0,
+      _malformedFrameCount: 0,
+      _stderrBytes: 0,
+      _stderrNotified: false,
+      // Per-connection streaming decoder so a multi-byte UTF-8 character (e.g.
+      // a 3-byte Chinese char) split across two stdout chunks is
       // reassembled instead of corrupted into U+FFFD. Decoding each chunk
       // independently (data.toString("utf8")) would mangle a split character.
       _decoder: new TextDecoder("utf-8"),
-      _stderrDecoder: new TextDecoder("utf-8"),
     };
 
     const rejectPending = (error) => {
@@ -935,9 +2005,7 @@ export class MCPClient extends EventEmitter {
         const connectTimeoutMs = Number.isFinite(config.connectTimeoutMs)
           ? Math.max(1, config.connectTimeoutMs)
           : WEBSOCKET_CONNECT_TIMEOUT_MS;
-        const maxPayload = Number.isFinite(config.maxPayloadBytes)
-          ? Math.max(1024, config.maxPayloadBytes)
-          : WEBSOCKET_MAX_PAYLOAD_BYTES;
+        const maxPayload = webSocketPayloadLimit(config.maxPayloadBytes);
         const Socket = _deps.WebSocket;
         const socket = new Socket(config.url, {
           headers: { ...(config.headers || {}) },
@@ -949,6 +2017,72 @@ export class MCPClient extends EventEmitter {
             : {}),
         });
         entry.socket = socket;
+
+        const recordPayloadFailure = (closeCode = 1009) => {
+          if (entry._webSocketPayloadError) {
+            return entry._webSocketPayloadError;
+          }
+          const error = mcpWebSocketPayloadTooLargeError(name, {
+            transport: transportKind,
+            url: config.url,
+            limitBytes: maxPayload,
+            closeCode,
+          });
+          entry._webSocketPayloadError = error;
+          entry.state = ServerState.ERROR;
+          rejectPending(error);
+          this._cancelServerElicitations(name);
+          this.emit("server-error", {
+            name,
+            error: error.message,
+            code: error.code,
+            closeCode: error.closeCode,
+            limitBytes: error.limitBytes,
+          });
+          if (socket.readyState === 1) {
+            try {
+              socket.close(1009, "payload too large");
+            } catch {
+              socket.terminate?.();
+            }
+          }
+          return error;
+        };
+        const recordInboundFailure = (error) => {
+          if (entry._webSocketInboundError) {
+            return entry._webSocketInboundError;
+          }
+          entry._webSocketInboundError = error;
+          entry.state = ServerState.ERROR;
+          rejectPending(error);
+          this._cancelServerElicitations(name);
+          this.emit("server-error", {
+            name,
+            error: error.message,
+            code: error.code,
+            ...(error.limitBytes != null
+              ? { limitBytes: error.limitBytes }
+              : {}),
+            ...(error.limitMessages != null
+              ? { limitMessages: error.limitMessages }
+              : {}),
+            ...(error.limitDepth != null
+              ? { limitDepth: error.limitDepth }
+              : {}),
+            ...(error.limitNodes != null
+              ? { limitNodes: error.limitNodes }
+              : {}),
+            ...(error.windowMs != null ? { windowMs: error.windowMs } : {}),
+          });
+          if (socket.readyState === 1) {
+            try {
+              socket.close(1008, "inbound budget exceeded");
+            } catch {
+              socket.terminate?.();
+            }
+          }
+          return error;
+        };
 
         await new Promise((resolve, reject) => {
           let settled = false;
@@ -989,6 +2123,7 @@ export class MCPClient extends EventEmitter {
         });
 
         socket.on("message", (data, isBinary) => {
+          if (entry._webSocketInboundError) return;
           if (isBinary) {
             const error = mcpTransportError(
               "CC_MCP_WS_BINARY_MESSAGE",
@@ -997,6 +2132,7 @@ export class MCPClient extends EventEmitter {
             );
             entry.state = ServerState.ERROR;
             rejectPending(error);
+            this._cancelServerElicitations(name);
             this.emit("server-error", {
               name,
               error: error.message,
@@ -1005,8 +2141,23 @@ export class MCPClient extends EventEmitter {
             socket.close(1003, "JSON text required");
             return;
           }
+          const inboundBytes =
+            typeof data === "string"
+              ? Buffer.byteLength(data, "utf8")
+              : Number.isFinite(data?.byteLength)
+                ? data.byteLength
+                : Buffer.byteLength(String(data || ""), "utf8");
+          const inboundError = recordMcpInboundTraffic(
+            name,
+            entry,
+            inboundBytes,
+          );
+          if (inboundError) {
+            recordInboundFailure(inboundError);
+            return;
+          }
           try {
-            const message = JSON.parse(String(data));
+            const message = parseMcpJson(String(data), name, entry);
             if (
               !message ||
               Array.isArray(message) ||
@@ -1016,13 +2167,18 @@ export class MCPClient extends EventEmitter {
             }
             this._handleMessage(name, message);
           } catch (cause) {
+            if (isMcpJsonBudgetError(cause)) {
+              recordInboundFailure(cause);
+              return;
+            }
             const error = mcpTransportError(
               "CC_MCP_WS_INVALID_MESSAGE",
-              `Invalid WebSocket JSON-RPC message: ${cause?.message || cause}`,
+              "MCP WebSocket server sent an invalid JSON-RPC message",
               { transport: transportKind, url: config.url },
             );
             entry.state = ServerState.ERROR;
             rejectPending(error);
+            this._cancelServerElicitations(name);
             this.emit("server-error", {
               name,
               code: error.code,
@@ -1031,29 +2187,97 @@ export class MCPClient extends EventEmitter {
             socket.close(1007, "Invalid JSON-RPC message");
           }
         });
-        socket.on("close", (code, reason) => {
+        socket.on("close", (code) => {
+          const closeCode =
+            Number.isInteger(code) && code >= 0 && code <= 65535 ? code : null;
+          // Only a local ws payload error proves that this client rejected an
+          // inbound message over its host cap. A peer can send close 1009 when
+          // it rejected our outbound data, or for any private policy reason;
+          // the code alone does not establish direction or local limit breach.
+          const payloadError = entry._webSocketPayloadError;
+          const inboundError = entry._webSocketInboundError;
+          if (inboundError) {
+            entry.state = ServerState.ERROR;
+            rejectPending(inboundError);
+            this._cancelServerElicitations(name);
+            this.emit("server-disconnected", {
+              name,
+              code: closeCode,
+              reason: "inbound_budget_exceeded",
+              errorCode: inboundError.code,
+              ...(inboundError.limitBytes != null
+                ? { limitBytes: inboundError.limitBytes }
+                : {}),
+              ...(inboundError.limitMessages != null
+                ? { limitMessages: inboundError.limitMessages }
+                : {}),
+              ...(inboundError.limitDepth != null
+                ? { limitDepth: inboundError.limitDepth }
+                : {}),
+              ...(inboundError.limitNodes != null
+                ? { limitNodes: inboundError.limitNodes }
+                : {}),
+              ...(inboundError.windowMs != null
+                ? { windowMs: inboundError.windowMs }
+                : {}),
+            });
+            return;
+          }
+          if (payloadError) {
+            entry.state = ServerState.ERROR;
+            rejectPending(payloadError);
+            this._cancelServerElicitations(name);
+            this.emit("server-disconnected", {
+              name,
+              code: closeCode,
+              reason: "payload too large",
+              errorCode: payloadError.code,
+              limitBytes: payloadError.limitBytes,
+            });
+            return;
+          }
           entry.state = ServerState.DISCONNECTED;
-          const suffix = reason?.length ? `: ${String(reason)}` : "";
+          const dispatched = entry._pending.size > 0;
           const error = mcpTransportError(
             "CC_MCP_WS_CLOSED",
-            `MCP WebSocket server "${name}" disconnected (code ${code})${suffix}`,
-            { transport: transportKind, url: config.url, closeCode: code },
+            `MCP WebSocket server "${name}" disconnected (code ${closeCode ?? "unknown"})`,
+            {
+              transport: transportKind,
+              url: config.url,
+              closeCode,
+              dispatched,
+              outcomeUnknown: dispatched,
+            },
           );
           rejectPending(error);
+          this._cancelServerElicitations(name);
           this.emit("server-disconnected", {
             name,
-            code,
-            reason: String(reason || ""),
+            code: closeCode,
+            reason: "peer_closed",
+            errorCode: error.code,
           });
         });
         socket.on("error", (cause) => {
+          if (entry._webSocketInboundError) return;
+          if (isWebSocketPayloadError(cause)) {
+            recordPayloadFailure(1009);
+            return;
+          }
           entry.state = ServerState.ERROR;
+          const dispatched = entry._pending.size > 0;
           const error = mcpTransportError(
             "CC_MCP_WS_ERROR",
-            `MCP WebSocket server "${name}" error: ${cause?.message || cause}`,
-            { transport: transportKind, url: config.url },
+            `MCP WebSocket transport failed for server "${name}"`,
+            {
+              transport: transportKind,
+              url: config.url,
+              dispatched,
+              outcomeUnknown: dispatched,
+            },
           );
           rejectPending(error);
+          this._cancelServerElicitations(name);
           this.emit("server-error", {
             name,
             error: error.message,
@@ -1067,23 +2291,6 @@ export class MCPClient extends EventEmitter {
           );
         }
         const isPlugin = config.origin === "plugin:mcp";
-        const pluginWorkspaceRoot = isPlugin
-          ? resolvePluginWorkspaceAuthority(config.pluginWorkspaceAuthority, {
-              origin: config.origin,
-              pluginId: config.pluginId,
-              pluginVersion: config.pluginVersion,
-              pluginSource: config.pluginSource,
-            })
-          : null;
-        if (
-          isPlugin &&
-          config.sandboxPolicy?.requiredBoundaries?.length > 0 &&
-          !pluginWorkspaceRoot
-        ) {
-          throw new Error(
-            `plugin MCP server "${name}" is missing its trusted workspace authority`,
-          );
-        }
         const spawnOptions = {
           cwd: pluginWorkspaceRoot || process.cwd(),
           stdio: ["pipe", "pipe", "pipe"],
@@ -1098,28 +2305,48 @@ export class MCPClient extends EventEmitter {
           policy: config.policy || "allow",
           scope: config.scope || "mcp",
           shell: false,
+          windowsHide: true,
+          // POSIX owns an independent process group. Windows requires the
+          // Broker's Job Object boundary so an unexpectedly exiting MCP root
+          // cannot orphan grandchildren before taskkill can enumerate them.
+          detached: process.platform !== "win32",
+          ...(process.platform === "win32"
+            ? { requiredBoundaries: ["process-tree"] }
+            : {}),
           pluginId: config.pluginId,
           pluginVersion: config.pluginVersion,
           pluginSource: config.pluginSource,
           ...(config.sandboxPolicy
             ? { sandboxPolicy: config.sandboxPolicy }
             : {}),
+          mcpStdioExecutableIdentityAuthority: stdioExecutableIdentityAuthority,
         };
         const sandboxExecutionContract =
           !isPlugin || pluginWorkspaceRoot
             ? executionBroker.issueLinuxWorkspaceSandboxExecutionContract(
                 config.command,
                 config.args || [],
-                spawnOptions,
+                { ...spawnOptions, detached: false },
                 pluginWorkspaceRoot || process.cwd(),
               )
             : null;
-        const proc = _deps.spawn(config.command, config.args || [], {
+        const launchOptions = {
           ...spawnOptions,
+          detached: sandboxExecutionContract ? false : spawnOptions.detached,
           ...(sandboxExecutionContract ? { sandboxExecutionContract } : {}),
+        };
+        const proc = _deps.spawn(config.command, config.args || [], {
+          ...launchOptions,
         });
 
         entry.process = proc;
+        entry._stdioTreeMode =
+          sandboxExecutionContract ||
+          (process.platform === "win32" && proc?.sandboxReady?.then)
+            ? "sandbox"
+            : process.platform === "win32"
+              ? "windows-tree"
+              : "posix-group";
 
         proc.stdout.on("data", (data) => {
           this._handleData(
@@ -1131,13 +2358,7 @@ export class MCPClient extends EventEmitter {
         });
 
         proc.stderr.on("data", (data) => {
-          this.emit("server-error", {
-            name,
-            error:
-              typeof data === "string"
-                ? data
-                : entry._stderrDecoder.decode(data, { stream: true }),
-          });
+          this._handleStdioStderr(name, data);
         });
 
         // If the server process dies with requests in flight, reject them
@@ -1156,16 +2377,44 @@ export class MCPClient extends EventEmitter {
         };
 
         proc.on("close", (code) => {
-          entry.state = ServerState.DISCONNECTED;
+          // Preserve a host-detected fatal framing state after the process kill
+          // it initiated; a subsequent close event must not downgrade ERROR to
+          // an ordinary peer disconnect.
+          if (!entry._stdioFrameError) {
+            entry.state = ServerState.DISCONNECTED;
+          }
           failPending(
             `MCP server "${name}" process exited (code ${code}) before responding`,
           );
+          this._cancelServerElicitations(name);
           this.emit("server-disconnected", { name, code });
+          // The root may exit while leaving descendants alive. A Broker-owned
+          // namespace/Job close is already a tree fence; an unmanaged POSIX
+          // process group is still signalled and probed by the same bounded
+          // retirement path used by disconnect().
+          void retireStdioEntryProcess(entry, { alreadyClosed: true }).then(
+            (cleanup) => {
+              if (cleanup?.verifiable && !cleanup.confirmed) {
+                entry.state = ServerState.ERROR;
+                const cleanupError = mcpStdioCleanupError(name, cleanup);
+                this.emit("server-error", {
+                  name,
+                  error: cleanupError.message,
+                  code: cleanupError.code,
+                });
+              }
+            },
+            () => {
+              // The production terminator is total. Keep a rejection from a
+              // test-injected dependency from becoming an unhandled promise.
+            },
+          );
         });
 
         proc.on("error", (err) => {
           entry.state = ServerState.ERROR;
           failPending(`MCP server "${name}" process error: ${err.message}`);
+          this._cancelServerElicitations(name);
           this.emit("server-error", { name, error: err.message });
         });
 
@@ -1179,6 +2428,7 @@ export class MCPClient extends EventEmitter {
           proc.stdin.on("error", (err) => {
             entry.state = ServerState.ERROR;
             failPending(`MCP server "${name}" stdin error: ${err.message}`);
+            this._cancelServerElicitations(name);
             this.emit("server-error", { name, error: err.message });
           });
         }
@@ -1238,7 +2488,7 @@ export class MCPClient extends EventEmitter {
           "tools/list",
           {},
         );
-        entry.tools = toolsResult?.tools || [];
+        this._replaceToolInventory(name, entry, toolsResult?.tools || []);
       } catch (err) {
         if (advertisesTools) {
           entry.toolsError = err?.message || String(err);
@@ -1302,20 +2552,44 @@ export class MCPClient extends EventEmitter {
       };
     } catch (err) {
       entry.state = ServerState.ERROR;
+      this._cancelServerElicitations(name);
+      // The initialize notification is fire-and-forget. If later capability
+      // discovery fails, connect() deletes this entry without going through
+      // disconnect(), so explicitly reap any response-discard request first.
+      entry._httpDiscardStopping = true;
+      _abortHttpRequests(entry);
+      _abortHttpDiscardRequests(entry);
       // A stdio child spawned above but failed to initialize (handshake
       // timeout / broken pipe / non-MCP command) would otherwise leak: we
       // delete the entry from `this.servers` below, so disconnect() can never
       // reach it, and an alive-but-unresponsive process fires neither `close`
       // nor `error` — it would run orphaned with its stdio listeners bound for
-      // the lifetime of the CLI. Tear it down on the way out (best-effort;
-      // never mask the original connect error).
+      // the lifetime of the CLI. Retire the owned tree on the way out without
+      // masking the original connect error.
       if (entry.process) {
+        let cleanup = null;
+        try {
+          cleanup = await retireStdioEntryProcess(entry, {
+            alreadyClosed:
+              entry.process.exitCode !== null &&
+              entry.process.exitCode !== undefined,
+          });
+        } catch {
+          // Preserve the original connection failure if a test-injected
+          // cleanup dependency rejects. The production terminator is total.
+        }
+        if (
+          cleanup &&
+          err !== null &&
+          (typeof err === "object" || typeof err === "function")
+        ) {
+          err.processTreeCleanup = cleanup;
+        }
         try {
           entry.process.stdout?.removeAllListeners();
           entry.process.stderr?.removeAllListeners();
           entry.process.stdin?.removeAllListeners?.();
           entry.process.removeAllListeners();
-          entry.process.kill();
         } catch {
           // teardown is best-effort — the connect error is what matters
         }
@@ -1332,6 +2606,7 @@ export class MCPClient extends EventEmitter {
           // teardown is best-effort
         }
       }
+      this._releaseToolInventory(entry);
       this.servers.delete(name);
       if (
         !_authRetryUsed &&
@@ -1350,59 +2625,77 @@ export class MCPClient extends EventEmitter {
   /**
    * Disconnect from an MCP server.
    */
-  async disconnect(name) {
+  disconnect(name) {
     const entry = this.servers.get(name);
-    if (!entry) return false;
+    if (!entry) {
+      this._cancelServerElicitations(name);
+      return Promise.resolve(false);
+    }
+    if (entry._disconnectPromise) return entry._disconnectPromise;
 
-    for (const [key, pending] of this._pendingElicitations) {
-      if (key.startsWith(`${String(name)}:`)) {
-        pending.resolve({ action: "cancel" });
-      }
-    }
-
-    if (entry.process) {
-      entry.process.kill();
-    }
-    if (entry.socket) {
-      entry._rejectPending?.(
-        mcpTransportError(
-          "CC_MCP_WS_CLIENT_DISCONNECT",
-          `MCP WebSocket server "${name}" disconnected by client`,
-          { transport: entry.transportKind, url: entry.config?.url },
-        ),
-      );
-      try {
-        entry.socket.close(1000, "client disconnect");
-      } catch {
-        entry.socket.terminate?.();
-      }
-    }
-    if (entry._httpMessageStream) {
-      entry._httpMessageStream.stopped = true;
-      entry._httpMessageStream.controller?.abort();
-      entry._httpMessageStream.wake?.();
-      entry._httpMessageStream = null;
-    }
-    // HTTP sessions: best-effort DELETE to free server-side state.
-    if (entry.httpUrl && entry.httpSessionId) {
-      try {
-        await _deps.fetch(entry.httpUrl, {
-          method: "DELETE",
-          headers: {
-            ...(entry.httpHeaders || {}),
-            "Mcp-Session-Id": entry.httpSessionId,
-            "MCP-Protocol-Version":
-              entry.protocolVersion || this._protocolVersion,
-          },
-        });
-      } catch {
-        // ignore — disconnect is best-effort
-      }
-    }
-
+    // Make disconnect visible before any teardown awaits. In particular, an
+    // HTTP session DELETE may wait for response headers; no new tool/resource
+    // request may enter the transport during that window or trigger a hot
+    // reconnect that resurrects a server the caller is intentionally closing.
     entry.state = ServerState.DISCONNECTED;
-    this.servers.delete(name);
-    return true;
+    entry._httpDiscardStopping = true;
+    this._cancelServerElicitations(name);
+    const disconnecting = Promise.resolve().then(async () => {
+      try {
+        if (entry.process) {
+          const cleanup = await retireStdioEntryProcess(entry);
+          if (cleanup?.verifiable && !cleanup.confirmed) {
+            throw mcpStdioCleanupError(name, cleanup);
+          }
+        }
+        if (entry.socket) {
+          entry._rejectPending?.(
+            mcpTransportError(
+              "CC_MCP_WS_CLIENT_DISCONNECT",
+              `MCP WebSocket server "${name}" disconnected by client`,
+              { transport: entry.transportKind, url: entry.config?.url },
+            ),
+          );
+          try {
+            entry.socket.close(1000, "client disconnect");
+          } catch {
+            entry.socket.terminate?.();
+          }
+        }
+        this._stopHttpMessageStream(entry);
+        // HTTP sessions: best-effort DELETE to free server-side state.
+        if (entry.httpUrl && entry.httpSessionId) {
+          try {
+            await _fetchAndDiscardHttpResponse(entry, {
+              method: "DELETE",
+              headers: {
+                ...(entry.httpHeaders || {}),
+                "Mcp-Session-Id": entry.httpSessionId,
+                "MCP-Protocol-Version":
+                  entry.protocolVersion || this._protocolVersion,
+              },
+            });
+          } catch {
+            // ignore — disconnect is best-effort
+          }
+        }
+        return true;
+      } finally {
+        entry.state = ServerState.DISCONNECTED;
+        this._releaseToolInventory(entry);
+        // A future connection may reuse the same name. Never let a delayed
+        // teardown delete that replacement entry.
+        if (this.servers.get(name) === entry) this.servers.delete(name);
+      }
+    });
+    entry._disconnectPromise = disconnecting;
+
+    // Abort already-issued fire-and-forget POSTs synchronously after the
+    // single-flight marker is installed, so abort listeners cannot re-enter a
+    // second teardown.
+    _abortHttpRequests(entry);
+    _abortHttpDiscardRequests(entry);
+    return disconnecting;
   }
 
   /**
@@ -1412,6 +2705,36 @@ export class MCPClient extends EventEmitter {
     const names = [...this.servers.keys()];
     for (const name of names) {
       await this.disconnect(name);
+    }
+  }
+
+  _replaceToolInventory(serverName, entry, tools) {
+    const previousBytes = Number.isSafeInteger(entry?._toolMetadataBytes)
+      ? entry._toolMetadataBytes
+      : 0;
+    const clientBytesUsed = Math.max(
+      0,
+      this._toolMetadataBytes - previousBytes,
+    );
+    const admitted = admitMcpToolList(serverName, tools, entry?.config, {
+      clientBytesUsed,
+    });
+    entry.tools = admitted.tools;
+    entry._toolMetadataBytes = admitted.metadataBytes;
+    this._toolMetadataBytes = clientBytesUsed + admitted.metadataBytes;
+    return entry.tools;
+  }
+
+  _releaseToolInventory(entry) {
+    const bytes = Number.isSafeInteger(entry?._toolMetadataBytes)
+      ? entry._toolMetadataBytes
+      : 0;
+    if (bytes > 0) {
+      this._toolMetadataBytes = Math.max(0, this._toolMetadataBytes - bytes);
+    }
+    if (entry) {
+      entry._toolMetadataBytes = 0;
+      entry.tools = [];
     }
   }
 
@@ -1462,23 +2785,42 @@ export class MCPClient extends EventEmitter {
    * @param {string} serverName - Server name
    * @param {string} toolName - Tool name
    * @param {object} args - Tool arguments
+   * @param {{signal?: AbortSignal}} options - Host-owned cancellation
    */
-  async callTool(serverName, toolName, args = {}) {
+  async callTool(serverName, toolName, args = {}, options = {}) {
+    if (options?.signal?.aborted) {
+      throw mcpRequestAbortedError(
+        serverName,
+        this.servers.get(serverName),
+        false,
+      );
+    }
     try {
-      return await this._callToolOnce(serverName, toolName, args);
+      return await this._callToolOnce(serverName, toolName, args, options);
     } catch (err) {
       if (
-        err?.code === URL_ELICITATION_REQUIRED &&
+        mcpRpcControlData.has(err) &&
         (await this._resolveRequiredUrlElicitations(serverName, err))
       ) {
         // Retry exactly once after every out-of-band flow reports completion.
-        return this._callToolOnce(serverName, toolName, args);
+        return this._callToolOnce(serverName, toolName, args, options);
       }
+      if (safeRpcProperty(err, "outcomeUnknown") === true) throw err;
       if (
         !this._reconnectors.has(serverName) &&
         !this.servers.get(serverName)?.config?.headersHelper
       ) {
         throw err;
+      }
+      if (options?.signal?.aborted && isLikelyConnectionError(err)) {
+        // A network failure and host cancellation can race after dispatch.
+        // Cancellation wins over hot reconnect so an outcome-unknown tool is
+        // never replayed after its owning turn has already stopped.
+        throw mcpRequestAbortedError(
+          serverName,
+          this.servers.get(serverName),
+          true,
+        );
       }
       if (!isLikelyConnectionError(err)) {
         throw err;
@@ -1490,24 +2832,37 @@ export class MCPClient extends EventEmitter {
         connectAuthRetryUsed: true,
       });
       if (!reconnected) throw err;
-      return await this._callToolOnce(serverName, toolName, args);
+      return await this._callToolOnce(serverName, toolName, args, options);
     }
   }
 
   async _resolveRequiredUrlElicitations(serverName, error) {
-    const requested = Array.isArray(error?.data?.elicitations)
-      ? error.data.elicitations
-      : [];
-    if (requested.length === 0 || requested.length > 16) return false;
+    const requested = mcpRpcControlData.get(error)?.elicitations;
+    if (
+      !Array.isArray(requested) ||
+      requested.length === 0 ||
+      requested.length > MCP_RPC_URL_ELICITATION_MAX_COUNT
+    ) {
+      return false;
+    }
     const normalized = [];
     const ids = new Set();
     for (const params of requested) {
       let request;
       try {
+        // -32042 is the sole RPC error whose data drives client behavior.
+        // Admit only the protocol fields needed by URL elicitation; arbitrary
+        // peer data must not hitchhike into handlers/events via object spread.
+        const candidate = {
+          mode: params.mode,
+          elicitationId: params.elicitationId,
+          url: params.url,
+          message: params.message,
+        };
         request = normalizeMcpElicitationRequest(
           serverName,
-          `url-required:${params?.elicitationId || normalized.length}`,
-          params,
+          `url-required:${candidate.elicitationId || normalized.length}`,
+          candidate,
         );
       } catch {
         return false;
@@ -1517,13 +2872,31 @@ export class MCPClient extends EventEmitter {
       ids.add(request.elicitationId);
       normalized.push(request);
     }
+    // Completion notifications are correlated by elicitationId alone. Reusing
+    // any retained id could let a prior completed generation authorize an
+    // automatic retry, so reject the whole batch before prompting.
+    if (
+      normalized.some((request) =>
+        this._urlElicitations.has(request.elicitationId),
+      )
+    ) {
+      return false;
+    }
     const accepted = [];
     for (const request of normalized) {
-      const response = await this._resolveElicitation(
-        serverName,
-        request.requestId,
-        request,
-      );
+      let response;
+      try {
+        response = await this._resolveElicitation(
+          serverName,
+          request.requestId,
+          request,
+        );
+      } catch {
+        // A collision can race the preflight check. Preserve the original,
+        // host-sanitized -32042 error instead of replacing it with any
+        // elicitation detail or handler failure.
+        return false;
+      }
       if (response.action !== "accept") return false;
       accepted.push(request);
     }
@@ -1538,19 +2911,27 @@ export class MCPClient extends EventEmitter {
     return completed.every(Boolean);
   }
 
-  async _callToolOnce(serverName, toolName, args) {
+  async _callToolOnce(serverName, toolName, args, options = {}) {
     const entry = this.servers.get(serverName);
     if (!entry) throw new Error(`Server "${serverName}" not found`);
+    if (entry._httpDiscardStopping) {
+      throw mcpServerDisconnectingError(serverName, entry);
+    }
     if (entry.state !== ServerState.CONNECTED) {
       throw new Error(`Server "${serverName}" is not connected`);
     }
 
-    const result = await this._sendRequest(serverName, "tools/call", {
-      name: toolName,
-      arguments: args,
-    });
+    const result = await this._sendRequest(
+      serverName,
+      "tools/call",
+      {
+        name: toolName,
+        arguments: args,
+      },
+      options,
+    );
 
-    return result;
+    return admitMcpToolResult(serverName, result, entry.config).result;
   }
 
   /**
@@ -1565,7 +2946,8 @@ export class MCPClient extends EventEmitter {
     if (inFlight) return inFlight;
     const p = (async () => {
       try {
-        const currentConfig = this.servers.get(name)?.config || null;
+        const currentEntry = this.servers.get(name) || null;
+        const currentConfig = currentEntry?.config || null;
         const resolver = this._reconnectors.get(name);
         const fresh = resolver ? await resolver() : currentConfig;
         if (!fresh) return false;
@@ -1574,7 +2956,20 @@ export class MCPClient extends EventEmitter {
         } catch {
           // entry may already be gone — connect() below is what matters
         }
-        await this.connect(name, fresh, options.connectAuthRetryUsed === true);
+        let reconnectConfig = fresh;
+        if (inferTransport(fresh) === "stdio") {
+          reconnectConfig = { ...fresh };
+          reconnectConfig.mcpStdioExecutionAuthority =
+            _deps.renewMcpStdioExecutionAuthority(
+              currentEntry?._stdioExecutionApproval,
+              { serverName: name, config: reconnectConfig },
+            );
+        }
+        await this.connect(
+          name,
+          reconnectConfig,
+          options.connectAuthRetryUsed === true,
+        );
         this.emit("server-reconnected", { name, url: fresh.url || null });
         return true;
       } catch {
@@ -1609,14 +3004,20 @@ export class MCPClient extends EventEmitter {
 
   /**
    * Read a resource from a server.
+   * @param {string} serverName
+   * @param {string} uri
+   * @param {{signal?: AbortSignal}} options
    */
-  async readResource(serverName, uri) {
+  async readResource(serverName, uri, options = {}) {
     const entry = this.servers.get(serverName);
     if (!entry) throw new Error(`Server "${serverName}" not found`);
 
-    const result = await this._sendRequest(serverName, "resources/read", {
-      uri,
-    });
+    const result = await this._sendRequest(
+      serverName,
+      "resources/read",
+      { uri },
+      options,
+    );
     return result;
   }
 
@@ -1756,16 +3157,23 @@ export class MCPClient extends EventEmitter {
     }
   }
 
-  _sendRequest(serverName, method, params) {
+  _sendRequest(serverName, method, params, options = {}) {
     const entry = this.servers.get(serverName);
     if (!entry) return Promise.reject(new Error("Server not available"));
+    const callerSignal = options?.signal || null;
+    if (callerSignal?.aborted) {
+      return Promise.reject(mcpRequestAbortedError(serverName, entry, false));
+    }
+    if (entry._httpDiscardStopping) {
+      return Promise.reject(mcpServerDisconnectingError(serverName, entry));
+    }
 
     if (entry.httpUrl) {
-      return this._sendHttpRequest(serverName, method, params);
+      return this._sendHttpRequest(serverName, method, params, options);
     }
 
     if (entry.socket) {
-      return this._sendWebSocketRequest(serverName, method, params);
+      return this._sendWebSocketRequest(serverName, method, params, options);
     }
 
     return new Promise((resolve, reject) => {
@@ -1781,7 +3189,58 @@ export class MCPClient extends EventEmitter {
         params,
       });
 
-      entry._pending.set(id, { resolve, reject });
+      let timeout = null;
+      let removeCallerAbort = null;
+      let dispatched = false;
+      let settled = false;
+      const cleanup = () => {
+        if (timeout) clearTimeout(timeout);
+        try {
+          removeCallerAbort?.();
+        } catch {
+          // Best-effort cleanup for non-native AbortSignal adapters.
+        }
+        entry._pending.delete(id);
+      };
+      const settle = (settler, value) => {
+        if (settled) return false;
+        settled = true;
+        cleanup();
+        settler(value);
+        return true;
+      };
+      const pending = {
+        resolve: (value) => settle(resolve, value),
+        reject: (error) => settle(reject, error),
+      };
+      entry._pending.set(id, pending);
+
+      if (callerSignal?.addEventListener) {
+        const onCallerAbort = () => {
+          const wasDispatched = dispatched;
+          if (
+            !settle(
+              reject,
+              mcpRequestAbortedError(serverName, entry, wasDispatched),
+            )
+          ) {
+            return;
+          }
+          if (wasDispatched) {
+            this._sendRequestCancellation(
+              serverName,
+              method,
+              id,
+              `Request cancelled by caller: ${method}`,
+            );
+          }
+        };
+        callerSignal.addEventListener("abort", onCallerAbort, { once: true });
+        removeCallerAbort = () =>
+          callerSignal.removeEventListener?.("abort", onCallerAbort);
+        if (callerSignal.aborted) onCallerAbort();
+      }
+      if (settled) return;
 
       // Per-call timeout — honour the same config knobs as the HTTP path so the
       // two transports behave consistently: `longRunning` servers (a tool that
@@ -1796,33 +3255,31 @@ export class MCPClient extends EventEmitter {
       const timeoutMs = Number.isFinite(entry.config?.requestTimeoutMs)
         ? entry.config.requestTimeoutMs
         : STDIO_REQUEST_TIMEOUT_MS;
-      let timeout = null;
       if (!longRunning && timeoutMs > 0) {
         timeout = setTimeout(() => {
-          if (!entry._pending.delete(id)) return;
           const timeoutError = new Error(`Request timeout: ${method}`);
-          this._sendTimeoutCancellation(
+          if (!settle(reject, timeoutError)) return;
+          this._sendRequestCancellation(
             serverName,
             method,
             id,
             timeoutError.message,
           );
-          reject(timeoutError);
         }, timeoutMs);
-        entry._pending.get(id).timeout = timeout;
+        timeout.unref?.();
+        pending.timeout = timeout;
       }
 
       try {
+        dispatched = true;
         entry.process.stdin.write(message + "\n");
       } catch (err) {
-        clearTimeout(timeout); // clearTimeout(null) is a safe no-op
-        entry._pending.delete(id);
-        reject(err);
+        settle(reject, err);
       }
     });
   }
 
-  _sendWebSocketRequest(serverName, method, params) {
+  _sendWebSocketRequest(serverName, method, params, options = {}) {
     const entry = this.servers.get(serverName);
     if (!entry?.socket || entry.socket.readyState !== 1) {
       return Promise.reject(
@@ -1833,6 +3290,10 @@ export class MCPClient extends EventEmitter {
         ),
       );
     }
+    const callerSignal = options?.signal || null;
+    if (callerSignal?.aborted) {
+      return Promise.reject(mcpRequestAbortedError(serverName, entry, false));
+    }
 
     return new Promise((resolve, reject) => {
       const id = this._nextId++;
@@ -1842,40 +3303,104 @@ export class MCPClient extends EventEmitter {
         ? entry.config.requestTimeoutMs
         : STDIO_REQUEST_TIMEOUT_MS;
       let timeout = null;
+      let removeCallerAbort = null;
+      let dispatched = false;
+      let settled = false;
+      const cleanup = () => {
+        if (timeout) clearTimeout(timeout);
+        try {
+          removeCallerAbort?.();
+        } catch {
+          // Best-effort cleanup for non-native AbortSignal adapters.
+        }
+        entry._pending.delete(id);
+      };
+      const settle = (settler, value) => {
+        if (settled) return false;
+        settled = true;
+        cleanup();
+        settler(value);
+        return true;
+      };
+      const pending = {
+        resolve: (value) => settle(resolve, value),
+        reject: (error) => settle(reject, error),
+      };
+      entry._pending.set(id, pending);
+
+      if (callerSignal?.addEventListener) {
+        const onCallerAbort = () => {
+          const wasDispatched = dispatched;
+          if (
+            !settle(
+              reject,
+              mcpRequestAbortedError(serverName, entry, wasDispatched),
+            )
+          ) {
+            return;
+          }
+          if (wasDispatched) {
+            this._sendRequestCancellation(
+              serverName,
+              method,
+              id,
+              `Request cancelled by caller: ${method}`,
+            );
+          }
+        };
+        callerSignal.addEventListener("abort", onCallerAbort, { once: true });
+        removeCallerAbort = () =>
+          callerSignal.removeEventListener?.("abort", onCallerAbort);
+        if (callerSignal.aborted) onCallerAbort();
+      }
+      if (settled) return;
+
       if (!longRunning && timeoutMs > 0) {
         timeout = setTimeout(() => {
-          if (!entry._pending.delete(id)) return;
           const timeoutError = mcpTransportError(
             "CC_MCP_WS_REQUEST_TIMEOUT",
             `Request timeout: ${method} (WebSocket, no response in ${timeoutMs}ms)`,
             { transport: entry.transportKind, url: entry.config?.url },
           );
-          this._sendTimeoutCancellation(
+          if (!settle(reject, timeoutError)) return;
+          this._sendRequestCancellation(
             serverName,
             method,
             id,
             timeoutError.message,
           );
-          reject(timeoutError);
         }, timeoutMs);
+        timeout.unref?.();
+        pending.timeout = timeout;
       }
-      entry._pending.set(id, { resolve, reject, timeout });
-      entry.socket.send(message, (cause) => {
-        if (!cause) return;
-        if (timeout) clearTimeout(timeout);
-        entry._pending.delete(id);
-        reject(
+      const failDispatch = () => {
+        settle(
+          reject,
           mcpTransportError(
             "CC_MCP_WS_SEND_FAILED",
-            `WebSocket send failed for ${method}: ${cause.message}`,
-            { transport: entry.transportKind, url: entry.config?.url },
+            `WebSocket request dispatch failed for method "${method}"`,
+            {
+              transport: entry.transportKind,
+              url: entry.config?.url,
+              dispatched: true,
+              outcomeUnknown: true,
+            },
           ),
         );
-      });
+      };
+      try {
+        dispatched = true;
+        entry.socket.send(message, (cause) => {
+          if (!cause) return;
+          failDispatch();
+        });
+      } catch {
+        failDispatch();
+      }
     });
   }
 
-  _sendTimeoutCancellation(serverName, method, requestId, reason) {
+  _sendRequestCancellation(serverName, method, requestId, reason) {
     // The initialize handshake establishes the protocol/session needed for
     // later notifications, so it cannot itself be cancelled safely.
     if (method === "initialize") return;
@@ -1971,15 +3496,22 @@ export class MCPClient extends EventEmitter {
                 ? { "Last-Event-ID": stream.lastEventId }
                 : {}),
             };
-            const response = await _deps.fetch(entry.httpUrl, {
-              method: "GET",
-              headers,
-              ...(stream.controller
-                ? { signal: stream.controller.signal }
-                : {}),
-            });
-            if (response.status === 405) return;
+            const response = await _waitForHttpMessageStreamResponse(
+              _deps.fetch(entry.httpUrl, {
+                method: "GET",
+                headers,
+                ...(stream.controller
+                  ? { signal: stream.controller.signal }
+                  : {}),
+              }),
+              stream.controller?.signal,
+            );
+            if (response.status === 405) {
+              _cancelHttpResponseBody(response);
+              return;
+            }
             if (response.status === 401 || response.status === 403) {
+              _cancelHttpResponseBody(response);
               if (entry.config?.headersHelper && stream.authFailures === 0) {
                 stream.authFailures = 1;
                 continue;
@@ -1992,6 +3524,7 @@ export class MCPClient extends EventEmitter {
               return;
             }
             if (!response.ok) {
+              _cancelHttpResponseBody(response);
               throw new Error(
                 `MCP HTTP message stream returned ${response.status}`,
               );
@@ -2000,21 +3533,55 @@ export class MCPClient extends EventEmitter {
             const contentType = response.headers?.get
               ? String(response.headers.get("content-type") || "").toLowerCase()
               : "";
-            if (!contentType.includes("text/event-stream")) return;
-            const cap = Number.isFinite(entry.config?.maxBufferChars)
-              ? entry.config.maxBufferChars
-              : MCP_MAX_BUFFER_CHARS;
+            if (!contentType.includes("text/event-stream")) {
+              _cancelHttpResponseBody(response);
+              return;
+            }
+            const cap = _httpResponseByteLimit(entry.config?.maxBufferChars);
             await _consumeSseMessageStream(response, {
               cap,
               stream,
+              eventTimeoutMs: _sseEventTimeout(entry.config?.requestTimeoutMs),
+              onInbound: (bytes) => {
+                const error = recordMcpInboundTraffic(serverName, entry, bytes);
+                if (error) throw error;
+              },
+              parseJson: (text) => parseMcpJson(text, serverName, entry),
               onMessage: (message) => this._handleMessage(serverName, message),
             });
           } catch (error) {
-            if (stream.stopped || stream.controller?.signal.aborted) return;
+            if (stream.stopped) return;
             this.emit("server-stream-error", {
               name: serverName,
               error: error?.message || String(error),
+              ...(error?.code ? { code: error.code } : {}),
+              ...(error?.limitBytes != null
+                ? { limitBytes: error.limitBytes }
+                : {}),
+              ...(error?.timeoutMs != null
+                ? { timeoutMs: error.timeoutMs }
+                : {}),
+              ...(error?.limitMessages != null
+                ? { limitMessages: error.limitMessages }
+                : {}),
+              ...(error?.limitDepth != null
+                ? { limitDepth: error.limitDepth }
+                : {}),
+              ...(error?.limitNodes != null
+                ? { limitNodes: error.limitNodes }
+                : {}),
+              ...(error?.windowMs != null ? { windowMs: error.windowMs } : {}),
             });
+            if (stream.controller?.signal.aborted) return;
+            if (error?.code === "CC_MCP_HTTP_RESPONSE_TOO_LARGE") return;
+            if (error?.code === "CC_MCP_HTTP_RESPONSE_STREAM_REQUIRED") {
+              return;
+            }
+            if (error?.code === "CC_MCP_SSE_EVENT_TIMEOUT") return;
+            if (error?.code === "CC_MCP_INBOUND_RATE_EXCEEDED") return;
+            if (error?.code === "CC_MCP_INBOUND_TRAFFIC_EXCEEDED") return;
+            if (error?.code === "CC_MCP_JSON_DEPTH_EXCEEDED") return;
+            if (error?.code === "CC_MCP_JSON_NODES_EXCEEDED") return;
             if (String(error?.code || "").startsWith("CC_MCP_HEADERS_HELPER")) {
               return;
             }
@@ -2050,10 +3617,15 @@ export class MCPClient extends EventEmitter {
    * Accepts responses as either `application/json` or `text/event-stream`.
    * Captures `Mcp-Session-Id` header from the first response for reuse.
    */
-  async _sendHttpRequest(serverName, method, params) {
+  async _sendHttpRequest(serverName, method, params, options = {}) {
     const entry = this.servers.get(serverName);
     if (!entry || !entry.httpUrl) {
       throw new Error("Server not available");
+    }
+
+    const callerSignal = options?.signal || null;
+    if (callerSignal?.aborted) {
+      throw mcpRequestAbortedError(serverName, entry, false);
     }
 
     const id = this._nextId++;
@@ -2071,37 +3643,106 @@ export class MCPClient extends EventEmitter {
         entry.protocolVersion || this._protocolVersion;
     }
 
-    // Per-call timeout (parity with the 30s stdio timeout) so a hung or dead
-    // HTTP MCP server can't block the request forever. Servers flagged
-    // longRunning — e.g. the IDE bridge, whose openDiff blocks on human review
-    // (see ideServerToMcpConfig) — are exempt. Override per server with
-    // config.requestTimeoutMs (0 disables).
+    // Every request owns a controller so caller cancellation and disconnect
+    // remain enforceable even when its optional deadline is disabled.
+    // longRunning/requestTimeoutMs=0 suppress only the timeout timer.
     const longRunning = Boolean(entry.config && entry.config.longRunning);
     const timeoutMs = Number.isFinite(entry.config?.requestTimeoutMs)
       ? entry.config.requestTimeoutMs
       : HTTP_REQUEST_TIMEOUT_MS;
-    let controller = null;
+    const controller =
+      typeof AbortController === "function" ? new AbortController() : null;
+    const request = controller
+      ? {
+          controller,
+          abortKind: null,
+          dispatched: false,
+          response: null,
+        }
+      : null;
+    const requests =
+      entry._httpRequestControllers ||
+      (entry._httpRequestControllers = new Set());
+    if (request) requests.add(request);
     let timer = null;
+    let responseTimer = null;
+    let removeCallerAbort = null;
     const timeoutMessage = `Request timeout: ${method} (HTTP, no response in ${timeoutMs}ms)`;
-    if (
-      !longRunning &&
-      timeoutMs > 0 &&
-      typeof AbortController === "function"
-    ) {
-      controller = new AbortController();
+    const callerAbortMessage = `Request cancelled by caller: ${method}`;
+    const responseTimeoutMs = _httpResponseReadTimeout(
+      entry.config?.requestTimeoutMs,
+    );
+    const responseTimeoutMessage = `MCP HTTP response body for method "${method}" exceeded the ${responseTimeoutMs}ms host deadline`;
+
+    const throwIfAborted = () => {
+      if (!request?.abortKind) return;
+      const response = request.response;
+      request.response = null;
+      _cancelHttpResponseBody(response);
+      if (request.abortKind === "timeout") {
+        throw new Error(timeoutMessage);
+      }
+      if (request.abortKind === "response_timeout") {
+        throw mcpHttpResponseTimeoutError(
+          serverName,
+          entry,
+          method,
+          responseTimeoutMs,
+          request.dispatched,
+        );
+      }
+      if (request.abortKind === "caller") {
+        throw mcpRequestAbortedError(serverName, entry, request.dispatched);
+      }
+      throw mcpServerDisconnectingError(serverName, entry, {
+        dispatched: request.dispatched,
+      });
+    };
+
+    if (request && callerSignal?.addEventListener) {
+      const onCallerAbort = () => {
+        if (request.abortKind) return;
+        request.abortKind = "caller";
+        request.controller.abort();
+        if (request.dispatched) {
+          this._sendRequestCancellation(
+            serverName,
+            method,
+            id,
+            callerAbortMessage,
+          );
+        }
+      };
+      callerSignal.addEventListener("abort", onCallerAbort, { once: true });
+      removeCallerAbort = () =>
+        callerSignal.removeEventListener?.("abort", onCallerAbort);
+      // Cover a signal that changed between the preflight read and listener
+      // installation (custom AbortSignal implementations may be re-entrant).
+      if (callerSignal.aborted) onCallerAbort();
+    }
+
+    if (!longRunning && timeoutMs > 0 && request) {
       timer = setTimeout(() => {
-        controller.abort();
-        this._sendTimeoutCancellation(serverName, method, id, timeoutMessage);
+        if (request.abortKind) return;
+        request.abortKind = "timeout";
+        request.controller.abort();
+        this._sendRequestCancellation(serverName, method, id, timeoutMessage);
       }, timeoutMs);
+      timer.unref?.();
     }
 
     try {
-      const response = await _deps.fetch(entry.httpUrl, {
+      throwIfAborted();
+      const responsePromise = _deps.fetch(entry.httpUrl, {
         method: "POST",
         headers,
         body,
         ...(controller ? { signal: controller.signal } : {}),
       });
+      if (request) request.dispatched = true;
+      const response = await responsePromise;
+      if (request) request.response = response;
+      throwIfAborted();
 
       // Capture session id (server may emit on initialize response only)
       const sessionId =
@@ -2113,32 +3754,36 @@ export class MCPClient extends EventEmitter {
         entry.httpSessionId = sessionId;
       }
 
+      // This is a host-owned absolute byte limit. maxBufferChars remains a
+      // backwards-compatible way to request a smaller HTTP body limit, but 0
+      // no longer disables the HTTP ceiling (stdio retains its old semantics).
+      const cap = _httpResponseByteLimit(entry.config?.maxBufferChars);
+
       if (!response.ok) {
-        // Authentication bodies frequently echo token/debug material. When a
-        // dynamic helper is configured, any error body may reflect its opaque
-        // header values; structured HTTP status is sufficient and cannot leak
-        // freshly generated credentials into logs or exceptions.
-        const suppressBody =
-          Boolean(entry.config?.headersHelper) ||
-          response.status === 401 ||
-          response.status === 403;
-        const text = suppressBody
-          ? ""
-          : typeof response.text === "function"
-            ? await response.text()
-            : "";
-        const detail = text ? `: ${text.slice(0, 200)}` : "";
+        // An HTTP error body is untrusted peer data and can contain secrets,
+        // terminal controls, prompt-injection text, or reflected request
+        // headers. Never read or copy it into the Error object: downstream
+        // hosts surface error.message to stderr, tool results, models and
+        // sessions. Status + redacted endpoint are the complete diagnostic
+        // contract; cancel the body immediately for every non-2xx response.
+        _cancelHttpResponseBody(response);
         // 404 usually means a wrong/stale server URL — name it and point at the
         // MCP config (Claude-Code 2.1.191: "HTTP 404 errors now show the URL and
         // point to your MCP config") instead of a bare "HTTP 404".
         if (response.status === 404) {
-          throw new Error(
-            `HTTP 404${detail} — ${redactMcpUrl(entry.httpUrl)} returned Not Found; check this server's "url" in your MCP config`,
+          throw mcpTransportError(
+            "CC_MCP_HTTP_STATUS",
+            `HTTP 404 — ${redactMcpUrl(entry.httpUrl)} returned Not Found; check this server's "url" in your MCP config`,
+            {
+              transport: entry.transportKind,
+              url: entry.config?.url,
+              status: response.status,
+            },
           );
         }
         throw mcpTransportError(
           "CC_MCP_HTTP_STATUS",
-          `HTTP ${response.status}${detail}`,
+          `HTTP ${response.status}`,
           {
             transport: entry.transportKind,
             url: entry.config?.url,
@@ -2147,46 +3792,90 @@ export class MCPClient extends EventEmitter {
         );
       }
 
+      // The request-level timer is deliberately optional for long-running
+      // server work. Once success headers arrive, however, every finite JSON
+      // or request-scoped SSE body gets a fresh absolute deadline that server
+      // config may tighten but never disable or raise.
+      if (request) {
+        responseTimer = setTimeout(() => {
+          if (request.abortKind) return;
+          request.abortKind = "response_timeout";
+          request.controller.abort();
+          this._sendRequestCancellation(
+            serverName,
+            method,
+            id,
+            responseTimeoutMessage,
+          );
+        }, responseTimeoutMs);
+        responseTimer.unref?.();
+      }
+
       const contentType = response.headers?.get
         ? String(response.headers.get("content-type") || "").toLowerCase()
         : "";
-      // Bound the response body the same way the stdio path bounds its line
-      // buffer (per-server maxBufferChars override; 0 disables).
-      const cap = Number.isFinite(entry.config?.maxBufferChars)
-        ? entry.config.maxBufferChars
-        : MCP_MAX_BUFFER_CHARS;
-
       let envelope;
       if (contentType.includes("text/event-stream")) {
-        envelope = await _extractSseResponse(response, id, cap, (message) =>
-          this._handleMessage(serverName, message),
+        envelope = await _extractSseResponse(
+          response,
+          id,
+          cap,
+          (message) => this._handleMessage(serverName, message),
+          controller?.signal,
+          (text) => parseMcpJson(text, serverName, entry),
         );
       } else {
-        const text = await _readBodyCapped(response, cap);
-        envelope = text ? JSON.parse(text) : null;
+        const text = await _readBodyCapped(response, cap, controller?.signal);
+        try {
+          envelope = text ? parseMcpJson(text, serverName, entry) : null;
+        } catch (error) {
+          if (isMcpJsonBudgetError(error)) throw error;
+          // Modern JSON.parse diagnostics quote a slice of the malformed input.
+          // A peer can place secrets or retry/auth keywords there, so replace
+          // the SyntaxError without retaining it as a cause.
+          throw mcpRpcInvalidResponseError();
+        }
       }
 
-      if (!envelope || typeof envelope !== "object") {
-        throw new Error("Empty or invalid JSON-RPC response");
+      const wire = snapshotRpcMessage(envelope);
+      if (
+        !wire ||
+        !wire.hasJsonrpc ||
+        wire.jsonrpc !== "2.0" ||
+        !wire.hasId ||
+        wire.id !== id ||
+        wire.hasMethod ||
+        wire.hasResult === wire.hasError
+      ) {
+        throw mcpRpcInvalidResponseError();
       }
-      if (envelope.error) {
-        throw mcpRpcError(envelope.error);
+      if (wire.hasError) {
+        throw mcpRpcError(wire.error);
       }
-      return envelope.result;
+      throwIfAborted();
+      return wire.result;
     } catch (err) {
-      if (controller && controller.signal.aborted) {
-        throw new Error(timeoutMessage);
-      }
+      throwIfAborted();
       throw err;
     } finally {
       if (timer) clearTimeout(timer);
+      if (responseTimer) clearTimeout(responseTimer);
+      try {
+        removeCallerAbort?.();
+      } catch {
+        // Best-effort listener cleanup for non-native signal adapters.
+      }
+      if (request) {
+        request.response = null;
+        requests.delete(request);
+      }
     }
   }
 
   /** Fire-and-forget JSON-RPC notification over HTTP. Errors swallowed. */
   _sendHttpNotification(serverName, method, params) {
     const entry = this.servers.get(serverName);
-    if (!entry || !entry.httpUrl) return;
+    if (!entry || !entry.httpUrl || entry._httpDiscardStopping) return;
     const body = JSON.stringify({ jsonrpc: "2.0", method, params });
     const headers = {
       "Content-Type": "application/json",
@@ -2198,86 +3887,270 @@ export class MCPClient extends EventEmitter {
     }
     headers["MCP-Protocol-Version"] =
       entry.protocolVersion || this._protocolVersion;
-    try {
-      const p = _deps.fetch(entry.httpUrl, {
-        method: "POST",
-        headers,
-        body,
-      });
-      if (p && typeof p.catch === "function") p.catch(() => {});
-    } catch {
-      // ignore
-    }
+    _fetchAndDiscardHttpResponse(entry, {
+      method: "POST",
+      headers,
+      body,
+    }).catch(() => {
+      // Notifications are intentionally best-effort.
+    });
   }
 
   _handleData(serverName, data) {
     const entry = this.servers.get(serverName);
-    if (!entry) return;
+    if (!entry || entry._stdioFrameError) return;
 
-    entry._buffer += data;
+    const cap = stdioFrameByteLimit(entry.config?.maxBufferChars);
+    const text = typeof data === "string" ? data : String(data || "");
+    let offset = 0;
 
-    // Process complete JSON lines
-    const lines = entry._buffer.split("\n");
-    entry._buffer = lines.pop() || "";
+    // Scan before concatenation/JSON.parse so both a complete line delivered in
+    // one chunk and an unterminated multi-chunk tail obey the same byte budget.
+    // Newline separators are framing bytes and are not part of the JSON value.
+    while (offset < text.length) {
+      const newline = text.indexOf("\n", offset);
+      const end = newline < 0 ? text.length : newline;
+      const segment = text.slice(offset, end);
+      const segmentBytes = Buffer.byteLength(segment, "utf8");
+      const bufferedBytes = Number.isFinite(entry._bufferBytes)
+        ? entry._bufferBytes
+        : Buffer.byteLength(entry._buffer || "", "utf8");
 
-    for (const line of lines) {
+      if (bufferedBytes + segmentBytes > cap) {
+        this._failStdioFrameTooLarge(serverName, entry, cap);
+        return;
+      }
+
+      if (segment) entry._buffer += segment;
+      entry._bufferBytes = bufferedBytes + segmentBytes;
+      if (newline < 0) return;
+
+      const line = entry._buffer;
+      const frameBytes = entry._bufferBytes;
+      entry._buffer = "";
+      entry._bufferBytes = 0;
+      offset = newline + 1;
       const trimmed = line.trim();
       if (!trimmed) continue;
 
-      try {
-        const msg = JSON.parse(trimmed);
-        this._handleMessage(serverName, msg);
-      } catch {
-        // Skip malformed lines
+      const inboundError = recordMcpInboundTraffic(
+        serverName,
+        entry,
+        frameBytes,
+      );
+      if (inboundError) {
+        this._failStdioInput(serverName, entry, inboundError);
+        return;
       }
-    }
 
-    // Guard against unbounded buffer growth: a runaway / non-MCP server that
-    // streams without ever sending a newline would grow the unterminated tail
-    // forever and exhaust memory. If the leftover partial line exceeds the cap,
-    // treat it as a fatal transport error (drop the buffer, drain in-flight
-    // requests, kill the process) rather than letting it grow without limit.
-    const cap = Number.isFinite(entry.config?.maxBufferChars)
-      ? entry.config.maxBufferChars
-      : MCP_MAX_BUFFER_CHARS;
-    if (cap > 0 && entry._buffer.length > cap) {
-      entry._buffer = "";
-      entry.state = ServerState.ERROR;
-      const errMsg = `MCP server "${serverName}" exceeded the ${cap}-char line buffer with no newline (runaway or non-MCP output)`;
-      for (const [, pending] of entry._pending) {
+      let msg;
+      try {
+        msg = parseMcpJson(trimmed, serverName, entry);
+      } catch (error) {
+        if (isMcpJsonBudgetError(error)) {
+          this._failStdioInput(serverName, entry, error);
+          return;
+        }
+        if (this._recordMalformedStdioFrame(serverName, entry, frameBytes)) {
+          return;
+        }
+        continue;
+      }
+      this._handleMessage(serverName, msg);
+    }
+  }
+
+  _handleStdioStderr(serverName, data) {
+    const entry = this.servers.get(serverName);
+    if (!entry || entry._stdioFrameError) return;
+    const chunkBytes =
+      typeof data === "string"
+        ? Buffer.byteLength(data, "utf8")
+        : Number.isFinite(data?.byteLength)
+          ? data.byteLength
+          : Buffer.byteLength(String(data || ""), "utf8");
+    if (chunkBytes <= 0) return;
+    const totalBytes = (entry._stderrBytes || 0) + chunkBytes;
+    entry._stderrBytes = totalBytes;
+    if (totalBytes > MCP_STDIO_STDERR_MAX_BYTES) {
+      const dispatched =
+        entry._pending instanceof Map && entry._pending.size > 0;
+      return this._failStdioInput(
+        serverName,
+        entry,
+        mcpTransportError(
+          "CC_MCP_STDIO_STDERR_TOO_LARGE",
+          `MCP stdio server "${serverName}" exceeded the ${MCP_STDIO_STDERR_MAX_BYTES}-byte host stderr budget`,
+          {
+            transport: "stdio",
+            limitBytes: MCP_STDIO_STDERR_MAX_BYTES,
+            dispatched,
+            outcomeUnknown: dispatched,
+          },
+        ),
+      );
+    }
+    if (!entry._stderrNotified) {
+      entry._stderrNotified = true;
+      this.emit("server-error", {
+        name: serverName,
+        code: "CC_MCP_STDIO_STDERR_OUTPUT",
+        error: `MCP stdio server "${serverName}" wrote diagnostics to stderr`,
+        bytes: chunkBytes,
+      });
+    }
+    return null;
+  }
+
+  _recordMalformedStdioFrame(serverName, entry, frameBytes) {
+    entry._malformedFrameCount = (entry._malformedFrameCount || 0) + 1;
+    entry._malformedFrameBytes = (entry._malformedFrameBytes || 0) + frameBytes;
+    if (
+      entry._malformedFrameCount <= MCP_STDIO_MALFORMED_MAX_FRAMES &&
+      entry._malformedFrameBytes <= MCP_STDIO_MALFORMED_MAX_BYTES
+    ) {
+      return false;
+    }
+    const dispatched = entry._pending instanceof Map && entry._pending.size > 0;
+    this._failStdioInput(
+      serverName,
+      entry,
+      mcpTransportError(
+        "CC_MCP_STDIO_MALFORMED_BUDGET_EXCEEDED",
+        `MCP stdio server "${serverName}" exceeded the malformed stdout budget`,
+        {
+          transport: "stdio",
+          limitBytes: MCP_STDIO_MALFORMED_MAX_BYTES,
+          limitFrames: MCP_STDIO_MALFORMED_MAX_FRAMES,
+          dispatched,
+          outcomeUnknown: dispatched,
+        },
+      ),
+    );
+    return true;
+  }
+
+  _failStdioFrameTooLarge(serverName, entry, cap) {
+    if (entry._stdioFrameError) return entry._stdioFrameError;
+    const dispatched = entry._pending instanceof Map && entry._pending.size > 0;
+    const error = mcpTransportError(
+      "CC_MCP_STDIO_FRAME_TOO_LARGE",
+      `MCP stdio server "${serverName}" exceeded the ${cap}-byte host line frame cap`,
+      {
+        transport: "stdio",
+        limitBytes: cap,
+        dispatched,
+        outcomeUnknown: dispatched,
+      },
+    );
+    return this._failStdioInput(serverName, entry, error);
+  }
+
+  _failStdioInput(serverName, entry, error) {
+    if (entry._stdioFrameError) return entry._stdioFrameError;
+    entry._stdioFrameError = error;
+    entry._buffer = "";
+    entry._bufferBytes = 0;
+    entry.state = ServerState.ERROR;
+    if (entry._pending instanceof Map) {
+      for (const pending of entry._pending.values()) {
         if (pending.timeout) clearTimeout(pending.timeout);
         try {
-          pending.reject(new Error(errMsg));
+          pending.reject(error);
         } catch {
-          // already settled — ignore
+          // Already settled; the transport remains fatally closed.
         }
       }
       entry._pending.clear();
-      if (entry.process) {
-        try {
-          entry.process.kill();
-        } catch {
-          // best-effort — surfacing the error is what matters
-        }
-      }
-      this.emit("server-error", { name: serverName, error: errMsg });
     }
+    this._cancelServerElicitations(serverName);
+    this.emit("server-error", {
+      name: serverName,
+      code: error.code,
+      error: error.message,
+      ...(error.limitBytes != null ? { limitBytes: error.limitBytes } : {}),
+      ...(error.limitFrames != null ? { limitFrames: error.limitFrames } : {}),
+      ...(error.limitMessages != null
+        ? { limitMessages: error.limitMessages }
+        : {}),
+      ...(error.limitDepth != null ? { limitDepth: error.limitDepth } : {}),
+      ...(error.limitNodes != null ? { limitNodes: error.limitNodes } : {}),
+      ...(error.windowMs != null ? { windowMs: error.windowMs } : {}),
+    });
+    try {
+      entry.process?.kill?.();
+    } catch {
+      // Best-effort process teardown; the fixed host error is authoritative.
+    }
+    return error;
   }
 
   _handleMessage(serverName, msg) {
     const entry = this.servers.get(serverName);
     if (!entry) return;
 
-    // Response to a request
-    if (msg.id !== undefined && entry._pending.has(msg.id)) {
-      const { resolve, reject, timeout } = entry._pending.get(msg.id);
-      clearTimeout(timeout);
-      entry._pending.delete(msg.id);
+    const failMessage = (error) => {
+      entry.state = ServerState.ERROR;
+      if (entry._pending instanceof Map) {
+        for (const pending of entry._pending.values()) {
+          clearTimeout(pending.timeout);
+          pending.reject(error);
+        }
+        entry._pending.clear();
+      }
+      this.emit("server-error", {
+        name: serverName,
+        code: error.code,
+        error: error.message,
+        ...(error.limitDepth != null ? { limitDepth: error.limitDepth } : {}),
+        ...(error.limitNodes != null ? { limitNodes: error.limitNodes } : {}),
+      });
+      return error;
+    };
 
-      if (msg.error) {
-        reject(mcpRpcError(msg.error));
+    // Snapshot every top-level field before touching the pending registry.
+    // Although production transports JSON.parse their input, keeping this
+    // boundary descriptor-only prevents a custom adapter/getter/Proxy from
+    // consuming a pending request and then throwing before it can be rejected.
+    const wire = snapshotRpcMessage(msg);
+    if (!wire || !wire.hasJsonrpc || wire.jsonrpc !== "2.0") {
+      return failMessage(mcpRpcInvalidMessageError());
+    }
+
+    // Production messages are checked before JSON.parse. Keep the shared
+    // object boundary independently bounded for injected/custom adapters too;
+    // traversal is iterative and descriptor-only, so deep graphs, accessors,
+    // and Proxy values cannot consume the pending registry first.
+    const graphIssue = inspectMcpJsonGraphBudget(msg, entry.config);
+    if (graphIssue === "depth" || graphIssue === "nodes") {
+      return failMessage(mcpJsonBudgetError(serverName, entry, graphIssue));
+    }
+
+    // Response to a request
+    if (
+      wire.hasId &&
+      !wire.hasMethod &&
+      entry._pending instanceof Map &&
+      entry._pending.has(wire.id)
+    ) {
+      const { resolve, reject, timeout } = entry._pending.get(wire.id);
+      clearTimeout(timeout);
+      entry._pending.delete(wire.id);
+
+      if (wire.hasResult === wire.hasError) {
+        reject(mcpRpcInvalidResponseError());
+      } else if (wire.hasError) {
+        reject(mcpRpcError(wire.error));
       } else {
-        resolve(msg.result);
+        const resultIssue = inspectMcpJsonGraphBudget(
+          wire.result,
+          entry.config,
+        );
+        if (resultIssue === "invalid") {
+          reject(mcpRpcInvalidResponseError());
+        } else {
+          resolve(wire.result);
+        }
       }
       return;
     }
@@ -2286,44 +4159,62 @@ export class MCPClient extends EventEmitter {
     // one of ours). Previously these fell into the notification branch and
     // never got a response, so a server calling e.g. roots/list hung until its
     // own timeout. Answer the ones our advertised capabilities invite.
-    if (msg.id !== undefined && msg.method) {
-      this._handleServerRequest(serverName, msg);
+    if (wire.hasId && typeof wire.method === "string" && wire.method) {
+      if (
+        wire.hasParams &&
+        inspectMcpJsonGraphBudget(wire.params, entry.config) === "invalid"
+      ) {
+        failMessage(mcpRpcInvalidMessageError());
+        return;
+      }
+      this._handleServerRequest(serverName, {
+        id: wire.id,
+        method: wire.method,
+        params: wire.params,
+      });
       return;
     }
 
     // Server notification
-    if (msg.method) {
+    if (typeof wire.method === "string" && wire.method) {
+      if (
+        wire.hasParams &&
+        inspectMcpJsonGraphBudget(wire.params, entry.config) === "invalid"
+      ) {
+        failMessage(mcpRpcInvalidMessageError());
+        return;
+      }
       // tools/resources list_changed (gap 2026-07-11 MCP 生命周期): refetch
       // the changed list so entry.tools/entry.resources stay live —
       // `listTools()`, `/mcp` status and callTool routing all see the update.
       // (The LLM tool array of an in-flight turn is deliberately NOT mutated:
       // tool-search's prompt-cache stability depends on an append-only,
       // stable-prefix tool list.)
-      if (msg.method === "notifications/tools/list_changed") {
+      if (wire.method === "notifications/tools/list_changed") {
         this._refreshServerList(serverName, "tools");
-      } else if (msg.method === "notifications/resources/list_changed") {
+      } else if (wire.method === "notifications/resources/list_changed") {
         this._refreshServerList(serverName, "resources");
         this._refreshServerList(serverName, "resourceTemplates");
-      } else if (msg.method === "notifications/resources/updated") {
+      } else if (wire.method === "notifications/resources/updated") {
         this.emit("resource-updated", {
           server: serverName,
-          uri: msg.params?.uri || null,
-          params: msg.params || {},
+          uri: safeRpcProperty(wire.params, "uri") || null,
+          params: wire.params || {},
         });
-      } else if (msg.method === "notifications/message") {
+      } else if (wire.method === "notifications/message") {
         this.emit("log-message", {
           server: serverName,
-          level: msg.params?.level || "info",
-          logger: msg.params?.logger || null,
-          data: msg.params?.data,
+          level: safeRpcProperty(wire.params, "level") || "info",
+          logger: safeRpcProperty(wire.params, "logger") || null,
+          data: safeRpcProperty(wire.params, "data"),
         });
-      } else if (msg.method === "notifications/elicitation/complete") {
-        this._handleElicitationComplete(serverName, msg.params || {});
+      } else if (wire.method === "notifications/elicitation/complete") {
+        this._handleElicitationComplete(serverName, wire.params || {});
       }
       this.emit("notification", {
         server: serverName,
-        method: msg.method,
-        params: msg.params,
+        method: wire.method,
+        params: wire.params,
       });
     }
   }
@@ -2361,13 +4252,37 @@ export class MCPClient extends EventEmitter {
               : kind === "resourceTemplates"
                 ? result?.resourceTemplates
                 : result?.resources) || [];
-          entry[kind] = list;
-          if (kind === "tools") entry.toolsError = null;
+          if (kind === "tools") {
+            this._replaceToolInventory(serverName, entry, list);
+            entry.toolsError = null;
+          } else {
+            entry[kind] = list;
+          }
           this.emit(`${kind}-changed`, {
             server: serverName,
             count: list.length,
           });
-        } catch {
+        } catch (error) {
+          if (kind === "tools" && isMcpToolMetadataError(error)) {
+            entry.toolsError = error.message;
+            this.emit("server-error", {
+              name: serverName,
+              code: error.code,
+              error: error.message,
+              ...(error.limitBytes != null
+                ? { limitBytes: error.limitBytes }
+                : {}),
+              ...(error.limitDepth != null
+                ? { limitDepth: error.limitDepth }
+                : {}),
+              ...(error.limitNodes != null
+                ? { limitNodes: error.limitNodes }
+                : {}),
+              ...(error.limitTools != null
+                ? { limitTools: error.limitTools }
+                : {}),
+            });
+          }
           break; // keep the previous list; the next notification retries
         }
       } while (flags[`${kind}Dirty`]);
@@ -2412,7 +4327,7 @@ export class MCPClient extends EventEmitter {
   /** Write a JSON-RPC response back over stdio or Streamable HTTP POST. */
   _sendResponse(serverName, id, result, error) {
     const entry = this.servers.get(serverName);
-    if (!entry) return;
+    if (!entry || entry._httpDiscardStopping) return;
     const envelope =
       error !== undefined
         ? { jsonrpc: "2.0", id, error }
@@ -2427,24 +4342,19 @@ export class MCPClient extends EventEmitter {
           : {}),
         "MCP-Protocol-Version": entry.protocolVersion || this._protocolVersion,
       };
-      try {
-        const pending = _deps.fetch(entry.httpUrl, {
-          method: "POST",
-          headers,
-          body: JSON.stringify(envelope),
-        });
-        pending?.catch?.((cause) =>
-          this.emit("server-stream-error", {
-            name: serverName,
-            error: cause?.message || String(cause),
-          }),
-        );
-      } catch (cause) {
+      _fetchAndDiscardHttpResponse(entry, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(envelope),
+      }).catch((cause) => {
+        if (entry._httpDiscardStopping) return;
+        const code = safeRpcProperty(cause, "code");
         this.emit("server-stream-error", {
           name: serverName,
-          error: cause?.message || String(cause),
+          error: safeRpcErrorText(cause) || "MCP HTTP server response failed",
+          ...(code ? { code } : {}),
         });
-      }
+      });
       return;
     }
     if (entry.socket) {
@@ -2463,27 +4373,251 @@ export class MCPClient extends EventEmitter {
   }
 }
 
-/**
- * Read an HTTP response body to text with a hard size cap, mirroring the stdio
- * transport's MCP_MAX_BUFFER_CHARS guard. The per-call timeout bounds TIME but
- * not MEMORY: a malicious/buggy HTTP MCP server could stream a multi-GB body
- * within the timeout and OOM the client. When the body is a readable stream
- * (real fetch) we accumulate with a running cap and cancel on overflow; for a
- * non-stream response (test mocks) we fall back to text() + a post-hoc check.
- * A declared Content-Length over the cap is rejected before any read. cap<=0
- * disables the limit.
- */
-async function _readBodyCapped(response, cap) {
-  if (
-    cap > 0 &&
-    response.headers &&
-    typeof response.headers.get === "function"
-  ) {
-    const declared = Number(response.headers.get("content-length"));
-    if (Number.isFinite(declared) && declared > cap) {
-      throw new Error(
-        `MCP HTTP response exceeds the ${cap}-byte cap (content-length ${declared})`,
+function _httpDiscardTimeout(configuredTimeout) {
+  if (Number.isFinite(configuredTimeout) && configuredTimeout > 0) {
+    return Math.min(
+      MCP_HTTP_DISCARD_TIMEOUT_MS,
+      Math.max(1, Math.floor(configuredTimeout)),
+    );
+  }
+  return MCP_HTTP_DISCARD_TIMEOUT_MS;
+}
+
+function _httpResponseReadTimeout(configuredTimeout) {
+  if (Number.isFinite(configuredTimeout) && configuredTimeout > 0) {
+    return Math.min(
+      MCP_HTTP_RESPONSE_READ_TIMEOUT_MS,
+      Math.max(1, Math.floor(configuredTimeout)),
+    );
+  }
+  return MCP_HTTP_RESPONSE_READ_TIMEOUT_MS;
+}
+
+function _sseEventTimeout(configuredTimeout) {
+  if (Number.isFinite(configuredTimeout) && configuredTimeout > 0) {
+    return Math.min(
+      MCP_SSE_EVENT_TIMEOUT_MS,
+      Math.max(1, Math.floor(configuredTimeout)),
+    );
+  }
+  return MCP_SSE_EVENT_TIMEOUT_MS;
+}
+
+function _httpDiscardTimeoutError(entry, timeoutMs) {
+  return mcpTransportError(
+    "CC_MCP_HTTP_DISCARD_TIMEOUT",
+    `MCP HTTP discard request exceeded the ${timeoutMs}ms host deadline`,
+    { transport: entry?.transportKind, url: entry?.config?.url },
+  );
+}
+
+function _abortHttpRequests(entry) {
+  const requests = entry?._httpRequestControllers;
+  if (!requests) return;
+  for (const request of requests) {
+    // First abort cause wins: a timeout/caller cancellation racing disconnect
+    // must retain its original public classification.
+    if (!request.abortKind) request.abortKind = "disconnect";
+    const response = request.response;
+    request.response = null;
+    _cancelHttpResponseBody(response);
+    try {
+      if (!request.controller.signal.aborted) request.controller.abort();
+    } catch {
+      // The local abort classification still fences every later await/result.
+    }
+  }
+  // Production fetch settles on abort and its finally removes the record. The
+  // eager clear also prevents a non-standard adapter that ignores signal from
+  // pinning the host registry after disconnect.
+  requests.clear();
+}
+
+function _abortHttpDiscardRequests(entry) {
+  const controllers = entry?._httpDiscardControllers;
+  if (!controllers) return;
+  for (const controller of controllers) {
+    try {
+      controller.abort();
+    } catch {
+      // Best-effort teardown; every request also owns a bounded timer.
+    }
+  }
+  controllers.clear();
+}
+
+async function _fetchAndDiscardHttpResponse(entry, options) {
+  const controllers = entry?._httpDiscardControllers;
+  const controller =
+    typeof AbortController === "function" ? new AbortController() : null;
+  const timeoutMs = _httpDiscardTimeout(entry?.config?.requestTimeoutMs);
+  let timer = null;
+  let timedOut = false;
+  if (controller) {
+    controllers?.add(controller);
+    timer = setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+      // Production fetch rejects on abort and reaches finally. Delete here as
+      // well so a non-standard adapter that ignores AbortSignal cannot pin the
+      // host's in-flight controller registry past the deadline.
+      controllers?.delete(controller);
+    }, timeoutMs);
+    timer.unref?.();
+  }
+  try {
+    const response = await _deps.fetch(entry.httpUrl, {
+      ...options,
+      ...(controller ? { signal: controller.signal } : {}),
+    });
+    _cancelHttpResponseBody(response);
+    if (timedOut) {
+      throw _httpDiscardTimeoutError(entry, timeoutMs);
+    }
+    return response;
+  } catch (cause) {
+    if (
+      timedOut &&
+      safeRpcProperty(cause, "code") !== "CC_MCP_HTTP_DISCARD_TIMEOUT"
+    ) {
+      throw _httpDiscardTimeoutError(entry, timeoutMs);
+    }
+    throw cause;
+  } finally {
+    if (timer) clearTimeout(timer);
+    if (controller) controllers?.delete(controller);
+  }
+}
+
+function _httpResponseByteLimit(configuredLimit) {
+  if (Number.isFinite(configuredLimit) && configuredLimit > 0) {
+    return Math.min(
+      MCP_HTTP_RESPONSE_MAX_BYTES,
+      Math.max(1, Math.floor(configuredLimit)),
+    );
+  }
+  return MCP_HTTP_RESPONSE_MAX_BYTES;
+}
+
+function _cancelHttpResponseBody(response) {
+  try {
+    const pending = response?.body?.cancel?.();
+    pending?.catch?.(() => {});
+  } catch {
+    // Best-effort cleanup; callers still surface the bounded status/size error.
+  }
+}
+
+function _httpResponseTooLarge(cap, detail) {
+  const error = new Error(
+    `MCP HTTP response exceeded the ${cap}-byte cap${detail ? ` (${detail})` : ""}`,
+  );
+  error.code = "CC_MCP_HTTP_RESPONSE_TOO_LARGE";
+  error.limitBytes = cap;
+  return error;
+}
+
+function _httpResponseStreamRequired(response) {
+  _cancelHttpResponseBody(response);
+  const error = new Error(
+    "MCP HTTP response does not expose a readable byte stream",
+  );
+  error.code = "CC_MCP_HTTP_RESPONSE_STREAM_REQUIRED";
+  return error;
+}
+
+function _httpReadAbortedError() {
+  const error = new Error("MCP HTTP response read aborted");
+  error.code = "CC_MCP_HTTP_READ_ABORTED";
+  return error;
+}
+
+function _readHttpReaderChunk(reader, signal) {
+  if (!signal?.addEventListener) return reader.read();
+  if (signal.aborted) return Promise.reject(_httpReadAbortedError());
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const finish = (settle, value) => {
+      if (settled) return;
+      settled = true;
+      signal.removeEventListener?.("abort", onAbort);
+      settle(value);
+    };
+    const onAbort = () => finish(reject, _httpReadAbortedError());
+    signal.addEventListener("abort", onAbort, { once: true });
+    Promise.resolve()
+      .then(() => reader.read())
+      .then(
+        (result) => finish(resolve, result),
+        (error) => finish(reject, error),
       );
+    // Cover a custom signal that changes between the preflight read and
+    // listener installation.
+    if (signal.aborted) onAbort();
+  });
+}
+
+function _waitForHttpMessageStreamResponse(responsePromise, signal) {
+  if (!signal?.addEventListener) return Promise.resolve(responsePromise);
+  if (signal.aborted) {
+    Promise.resolve(responsePromise).then(
+      (response) => _cancelHttpResponseBody(response),
+      () => {},
+    );
+    return Promise.reject(_httpReadAbortedError());
+  }
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    let aborted = false;
+    const cleanup = () => signal.removeEventListener?.("abort", onAbort);
+    const finish = (settler, value) => {
+      if (settled) return false;
+      settled = true;
+      cleanup();
+      settler(value);
+      return true;
+    };
+    const onAbort = () => {
+      aborted = true;
+      finish(reject, _httpReadAbortedError());
+    };
+    signal.addEventListener("abort", onAbort, { once: true });
+    Promise.resolve(responsePromise).then(
+      (response) => {
+        if (!finish(resolve, response) && aborted) {
+          _cancelHttpResponseBody(response);
+        }
+      },
+      (error) => finish(reject, error),
+    );
+    // Cover a custom signal that changes between preflight and installation.
+    if (signal.aborted) onAbort();
+  });
+}
+
+/**
+ * Read a finite HTTP response body to text under a host-owned absolute byte
+ * ceiling. The per-call timeout bounds TIME but not MEMORY: a malicious or
+ * buggy MCP server could otherwise stream a multi-GB response body within the
+ * timeout and OOM the client. Fetch responses are accumulated
+ * only after a running byte check and their reader is cancelled on overflow.
+ * A non-standard Response-like adapter without a byte reader is rejected
+ * before text() because an after-the-fact string check cannot bound allocation.
+ * A declared Content-Length over the effective cap is rejected before any read.
+ */
+async function _readBodyCapped(response, cap, signal = null) {
+  cap = _httpResponseByteLimit(cap);
+  if (response.headers && typeof response.headers.get === "function") {
+    const declaredHeader = response.headers.get("content-length");
+    if (/^\d+$/.test(String(declaredHeader || "").trim())) {
+      const declared = BigInt(String(declaredHeader).trim());
+      if (declared > BigInt(cap)) {
+        _cancelHttpResponseBody(response);
+        throw _httpResponseTooLarge(
+          cap,
+          `content-length ${String(declaredHeader).trim()}`,
+        );
+      }
     }
   }
   if (response.body && typeof response.body.getReader === "function") {
@@ -2491,33 +4625,39 @@ async function _readBodyCapped(response, cap) {
     const decoder = new TextDecoder("utf-8");
     const chunks = [];
     let total = 0;
-    for (;;) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      total += value && value.length ? value.length : 0;
-      if (cap > 0 && total > cap) {
-        try {
-          await reader.cancel();
-        } catch {
-          /* best-effort — the throw below is what matters */
+    try {
+      for (;;) {
+        const { value, done } = await _readHttpReaderChunk(reader, signal);
+        if (done) break;
+        total += value?.byteLength || 0;
+        if (total > cap) {
+          try {
+            await reader.cancel();
+          } catch {
+            /* best-effort — the throw below is what matters */
+          }
+          throw _httpResponseTooLarge(cap, "runaway server");
         }
-        throw new Error(
-          `MCP HTTP response exceeded the ${cap}-byte cap (runaway server)`,
-        );
+        chunks.push(decoder.decode(value, { stream: true }));
       }
-      chunks.push(decoder.decode(value, { stream: true }));
+      chunks.push(decoder.decode());
+      return chunks.join("");
+    } catch (error) {
+      try {
+        await reader.cancel();
+      } catch {
+        // Best-effort cleanup; preserve the original read/limit error.
+      }
+      throw error;
+    } finally {
+      try {
+        reader.releaseLock?.();
+      } catch {
+        // The reader may already be detached after cancellation.
+      }
     }
-    chunks.push(decoder.decode());
-    return chunks.join("");
   }
-  if (typeof response.text !== "function") {
-    throw new Error("HTTP response is not readable");
-  }
-  const text = await response.text();
-  if (cap > 0 && text.length > cap) {
-    throw new Error(`MCP HTTP response exceeded the ${cap}-char cap`);
-  }
-  return text;
+  throw _httpResponseStreamRequired(response);
 }
 
 /**
@@ -2531,13 +4671,15 @@ async function _extractSseResponse(
   requestId,
   cap = 0,
   onMessage = null,
+  signal = null,
+  parseJson = JSON.parse,
 ) {
-  const text = await _readBodyCapped(response, cap);
+  const text = await _readBodyCapped(response, cap, signal);
 
   // Split into events on blank line, parse each event's concatenated `data:` lines.
   const events = text.split(/\r?\n\r?\n/);
   for (const event of events) {
-    const parsed = _parseSseEvent(event);
+    const parsed = _parseSseEvent(event, parseJson);
     if (!parsed?.message) continue;
     const payload = parsed.message;
     if (payload.jsonrpc === "2.0" && payload.id === requestId) {
@@ -2548,7 +4690,7 @@ async function _extractSseResponse(
   throw new Error(`SSE stream ended without a response for id ${requestId}`);
 }
 
-function _parseSseEvent(event) {
+function _parseSseEvent(event, parseJson = JSON.parse) {
   const dataLines = [];
   let id = null;
   let retry = null;
@@ -2566,9 +4708,10 @@ function _parseSseEvent(event) {
   let message = null;
   if (dataLines.some((line) => line.length > 0)) {
     try {
-      const candidate = JSON.parse(dataLines.join("\n"));
+      const candidate = parseJson(dataLines.join("\n"));
       if (candidate && typeof candidate === "object") message = candidate;
-    } catch {
+    } catch (error) {
+      if (isMcpJsonBudgetError(error)) throw error;
       // Non-JSON SSE events are transport metadata, not MCP messages.
     }
   }
@@ -2577,10 +4720,24 @@ function _parseSseEvent(event) {
 
 async function _consumeSseMessageStream(
   response,
-  { cap = 0, stream, onMessage },
+  {
+    cap = 0,
+    stream,
+    eventTimeoutMs = MCP_SSE_EVENT_TIMEOUT_MS,
+    onInbound = null,
+    parseJson = JSON.parse,
+    onMessage,
+  },
 ) {
+  cap = _httpResponseByteLimit(cap);
+  eventTimeoutMs = _sseEventTimeout(eventTimeoutMs);
   const dispatch = (rawEvent) => {
-    const parsed = _parseSseEvent(rawEvent);
+    const eventBytes = Buffer.byteLength(String(rawEvent || ""), "utf8");
+    if (eventBytes > cap) {
+      throw _httpResponseTooLarge(cap, "SSE event");
+    }
+    onInbound?.(eventBytes);
+    const parsed = _parseSseEvent(rawEvent, parseJson);
     if (parsed.id != null && parsed.id !== "") {
       stream.lastEventId = parsed.id;
     }
@@ -2589,7 +4746,11 @@ async function _consumeSseMessageStream(
   };
 
   if (!response.body || typeof response.body.getReader !== "function") {
-    const text = await _readBodyCapped(response, cap);
+    const text = await _readBodyCapped(
+      response,
+      cap,
+      stream.controller?.signal,
+    );
     for (const event of text.split(/\r?\n\r?\n/)) dispatch(event);
     return;
   }
@@ -2597,14 +4758,88 @@ async function _consumeSseMessageStream(
   const reader = response.body.getReader();
   const decoder = new TextDecoder("utf-8");
   let buffer = "";
+  let wireEventBytes = 0;
+  let wireTail = [];
+  let eventTimer = null;
+  let eventTimedOut = false;
+  const separators = [
+    [13, 10, 13, 10],
+    [13, 10, 10],
+    [10, 13, 10],
+    [10, 10],
+  ];
+  const endsWithBytes = (source, suffix) =>
+    suffix.length <= source.length &&
+    suffix.every(
+      (byte, index) => source[source.length - suffix.length + index] === byte,
+    );
+  const delimiterPrefixLength = () => {
+    let longest = 0;
+    for (const separator of separators) {
+      for (let length = 1; length < separator.length; length += 1) {
+        if (
+          length > longest &&
+          endsWithBytes(wireTail, separator.slice(0, length))
+        ) {
+          longest = length;
+        }
+      }
+    }
+    return longest;
+  };
+  const scanEventBytes = (value) => {
+    let sawBoundary = false;
+    const bytes = value
+      ? new Uint8Array(value.buffer, value.byteOffset, value.byteLength)
+      : [];
+    for (const byte of bytes) {
+      wireEventBytes += 1;
+      wireTail.push(byte);
+      if (wireTail.length > 4) wireTail.shift();
+      const separator = separators.find((candidate) =>
+        endsWithBytes(wireTail, candidate),
+      );
+      if (separator) {
+        const payloadBytes = wireEventBytes - separator.length;
+        if (payloadBytes > cap) {
+          throw _httpResponseTooLarge(cap, "SSE event");
+        }
+        wireEventBytes = 0;
+        wireTail = [];
+        sawBoundary = true;
+      } else if (wireEventBytes - delimiterPrefixLength() > cap) {
+        throw _httpResponseTooLarge(cap, "unterminated SSE event");
+      }
+    }
+    return sawBoundary;
+  };
+  const clearEventTimer = () => {
+    if (eventTimer) clearTimeout(eventTimer);
+    eventTimer = null;
+  };
+  const armEventTimer = () => {
+    if (wireEventBytes <= 0 || eventTimer) return;
+    eventTimer = setTimeout(() => {
+      eventTimedOut = true;
+      try {
+        stream.controller?.abort();
+      } catch {
+        // The local timeout classification remains authoritative.
+      }
+    }, eventTimeoutMs);
+    eventTimer.unref?.();
+  };
   try {
     for (;;) {
-      const { value, done } = await reader.read();
+      const { value, done } = await _readHttpReaderChunk(
+        reader,
+        stream.controller?.signal,
+      );
       if (done) break;
+      const sawBoundary = scanEventBytes(value);
+      if (sawBoundary) clearEventTimer();
+      armEventTimer();
       buffer += decoder.decode(value, { stream: true });
-      if (cap > 0 && buffer.length > cap) {
-        throw new Error(`MCP HTTP SSE event exceeded the ${cap}-char cap`);
-      }
       let boundary;
       while ((boundary = buffer.search(/\r?\n\r?\n/)) >= 0) {
         const separator = buffer.match(/\r?\n\r?\n/)[0];
@@ -2614,8 +4849,21 @@ async function _consumeSseMessageStream(
       }
     }
     buffer += decoder.decode();
+    if (wireEventBytes > cap) {
+      throw _httpResponseTooLarge(cap, "unterminated SSE event");
+    }
     if (buffer.trim()) dispatch(buffer);
+  } catch (error) {
+    try {
+      const pending = reader.cancel();
+      pending?.catch?.(() => {});
+    } catch {
+      // Best-effort cleanup; the bounded stream error remains authoritative.
+    }
+    if (eventTimedOut) throw mcpSseEventTimeoutError(eventTimeoutMs);
+    throw error;
   } finally {
+    clearEventTimer();
     try {
       reader.releaseLock?.();
     } catch {

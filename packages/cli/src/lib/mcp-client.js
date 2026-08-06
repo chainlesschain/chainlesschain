@@ -21,6 +21,7 @@ export {
   redactMcpUrl,
   isLikelyConnectionError,
   isMcpAuthenticationError,
+  isMcpRpcError,
   isTransientMcpError,
   _deps,
 } from "../harness/mcp-client.js";

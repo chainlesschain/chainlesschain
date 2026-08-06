@@ -16,7 +16,11 @@
 
 import fs from "fs";
 import path from "path";
-import { MCPClient, redactMcpUrl } from "../harness/mcp-client.js";
+import {
+  MCPClient,
+  inferTransport,
+  redactMcpUrl,
+} from "../harness/mcp-client.js";
 import { projectRootBase } from "../lib/project-root.cjs";
 import {
   discoverIdeServer,
@@ -36,6 +40,38 @@ import {
 import { collectPluginMcpServers } from "../lib/plugin-runtime/mcp.js";
 import { EventRuntimeStore } from "../lib/event-runtime-store.js";
 import { mcpEffectDescriptorFields } from "../lib/mcp-effect-contract.js";
+import {
+  admitMcpToolList,
+  isMcpToolMetadataError,
+} from "../lib/mcp-tool-metadata.js";
+import { issueMcpStdioExecutionAuthority } from "../lib/mcp-stdio-execution-authority.js";
+
+function authorizeStdioServers(
+  servers,
+  approvalKind,
+  sourceForServer,
+  { writeErr = () => {}, failFast = false } = {},
+) {
+  for (const [name, config] of Object.entries(servers || {})) {
+    if (!config || typeof config !== "object") continue;
+    if (inferTransport(config) !== "stdio") continue;
+    try {
+      config.mcpStdioExecutionAuthority = issueMcpStdioExecutionAuthority({
+        serverName: name,
+        config,
+        approvalKind,
+        approvalSource: sourceForServer(name, config),
+      });
+    } catch (error) {
+      if (failFast) throw error;
+      delete servers[name];
+      writeErr(
+        `  mcp: SKIPPING stdio server "${name}" because its local-code execution authority could not be issued.\n`,
+      );
+    }
+  }
+  return servers;
+}
 
 function headersHelperField(value) {
   return typeof value === "string" && value.trim()
@@ -64,6 +100,51 @@ export function parseMcpServers(raw) {
       transport: cfg.transport,
       headers:
         cfg.headers && typeof cfg.headers === "object" ? cfg.headers : {},
+      ...(Number.isFinite(cfg.maxPayloadBytes)
+        ? { maxPayloadBytes: cfg.maxPayloadBytes }
+        : {}),
+      ...(Number.isFinite(cfg.maxInboundMessagesPerSecond)
+        ? {
+            maxInboundMessagesPerSecond: cfg.maxInboundMessagesPerSecond,
+          }
+        : {}),
+      ...(Number.isFinite(cfg.maxInboundBytesPerMinute)
+        ? { maxInboundBytesPerMinute: cfg.maxInboundBytesPerMinute }
+        : {}),
+      ...(Number.isFinite(cfg.maxJsonDepth)
+        ? { maxJsonDepth: cfg.maxJsonDepth }
+        : {}),
+      ...(Number.isFinite(cfg.maxJsonNodes)
+        ? { maxJsonNodes: cfg.maxJsonNodes }
+        : {}),
+      ...(Number.isFinite(cfg.maxTools) ? { maxTools: cfg.maxTools } : {}),
+      ...(Number.isFinite(cfg.maxToolDescriptionBytes)
+        ? { maxToolDescriptionBytes: cfg.maxToolDescriptionBytes }
+        : {}),
+      ...(Number.isFinite(cfg.maxToolSchemaBytes)
+        ? { maxToolSchemaBytes: cfg.maxToolSchemaBytes }
+        : {}),
+      ...(Number.isFinite(cfg.maxToolSchemaDepth)
+        ? { maxToolSchemaDepth: cfg.maxToolSchemaDepth }
+        : {}),
+      ...(Number.isFinite(cfg.maxToolSchemaNodes)
+        ? { maxToolSchemaNodes: cfg.maxToolSchemaNodes }
+        : {}),
+      ...(Number.isFinite(cfg.maxToolDefinitionBytes)
+        ? { maxToolDefinitionBytes: cfg.maxToolDefinitionBytes }
+        : {}),
+      ...(Number.isFinite(cfg.maxToolMetadataBytes)
+        ? { maxToolMetadataBytes: cfg.maxToolMetadataBytes }
+        : {}),
+      ...(Number.isFinite(cfg.maxToolResultBytes)
+        ? { maxToolResultBytes: cfg.maxToolResultBytes }
+        : {}),
+      ...(Number.isFinite(cfg.maxToolResultDepth)
+        ? { maxToolResultDepth: cfg.maxToolResultDepth }
+        : {}),
+      ...(Number.isFinite(cfg.maxToolResultNodes)
+        ? { maxToolResultNodes: cfg.maxToolResultNodes }
+        : {}),
       ...headersHelperField(cfg.headersHelper),
       ...(cfg.configScope ? { configScope: cfg.configScope } : {}),
       ...(cfg.configSource ? { configSource: cfg.configSource } : {}),
@@ -83,6 +164,12 @@ export async function loadManagedMcp(settings, deps = {}) {
     config.configScope = "managed";
     config.configSource = deps.managedFile || "managed-settings";
   }
+  authorizeStdioServers(
+    servers,
+    "managed-settings",
+    (_name, config) => config.configSource,
+    { writeErr: deps.writeErr },
+  );
   if (Object.keys(servers).length === 0) return deps.into || null;
   (deps.writeErr || (() => {}))(
     `  mcp: ${Object.keys(servers).length} managed server(s) from ${deps.managedFile || "managed settings"}\n`,
@@ -210,6 +297,9 @@ export async function setupMcpFromConfig(servers, deps = {}) {
   ) {
     result.instructionsByServer = {};
   }
+  if (!Number.isSafeInteger(result._mcpToolMetadataBytes)) {
+    result._mcpToolMetadataBytes = 0;
+  }
   const {
     mcpClient,
     extraToolDefinitions,
@@ -290,7 +380,18 @@ export async function setupMcpFromConfig(servers, deps = {}) {
       writeErr(line);
       continue;
     }
-    const tools = Array.isArray(res?.tools) ? res.tools : [];
+    let tools = [];
+    let toolMetadataError = null;
+    try {
+      const admitted = admitMcpToolList(name, res?.tools ?? [], cfg, {
+        clientBytesUsed: result._mcpToolMetadataBytes,
+      });
+      tools = admitted.tools;
+      result._mcpToolMetadataBytes += admitted.metadataBytes;
+    } catch (error) {
+      if (!isMcpToolMetadataError(error)) throw error;
+      toolMetadataError = error;
+    }
     const resources = Array.isArray(res?.resources) ? res.resources : [];
     const prompts = Array.isArray(res?.prompts) ? res.prompts : [];
     // A server can connect (initialize OK) yet have its tools/list fail — the
@@ -303,6 +404,11 @@ export async function setupMcpFromConfig(servers, deps = {}) {
       const hint = mcpAuthHint(cfg.url, res.toolsError);
       if (hint) line += hint;
       writeErr(line);
+    }
+    if (toolMetadataError) {
+      writeErr(
+        `  mcp: "${name}" connected but tool metadata was rejected: ${toolMetadataError.message}\n`,
+      );
     }
     connected.push({
       server: name,
@@ -321,6 +427,18 @@ export async function setupMcpFromConfig(servers, deps = {}) {
       if (!p || !p.name) continue;
       result.prompts.push({ ...p, server: name });
     }
+    const toolResultConfig = Object.freeze({
+      ...(Number.isFinite(cfg.maxToolResultBytes)
+        ? { maxToolResultBytes: cfg.maxToolResultBytes }
+        : {}),
+      ...(Number.isFinite(cfg.maxToolResultDepth)
+        ? { maxToolResultDepth: cfg.maxToolResultDepth }
+        : {}),
+      ...(Number.isFinite(cfg.maxToolResultNodes)
+        ? { maxToolResultNodes: cfg.maxToolResultNodes }
+        : {}),
+    });
+    const hasToolResultConfig = Object.keys(toolResultConfig).length > 0;
     for (const t of tools) {
       if (!t || !t.name) continue;
       const full = mcpToolName(name, t.name);
@@ -337,6 +455,7 @@ export async function setupMcpFromConfig(servers, deps = {}) {
         kind: "mcp",
         serverName: name,
         toolName: t.name,
+        ...(hasToolResultConfig ? { toolResultConfig } : {}),
       };
       externalToolDescriptors[full] = {
         name: full,
@@ -510,6 +629,12 @@ export async function loadMcpConfig(filePath, deps = {}) {
         `(expected {"mcpServers": {"name": {"command": "..."}}}).`,
     );
   }
+  authorizeStdioServers(
+    servers,
+    "explicit-config",
+    () => path.resolve(filePath),
+    { failFast: true },
+  );
   return setupMcpFromConfig(servers, deps);
 }
 
@@ -555,6 +680,13 @@ export async function loadRegisteredMcp(rawDb, deps = {}) {
     };
   }
   if (Object.keys(servers).length === 0) return deps.into || null;
+  authorizeStdioServers(
+    servers,
+    "registered-config",
+    (name, config) =>
+      `${config.configScope || "user"}:${config.configSource || "user-database"}:${name}`,
+    { writeErr: deps.writeErr },
+  );
   return setupMcpFromConfig(servers, deps);
 }
 
@@ -786,14 +918,16 @@ export async function loadProjectMcp(opts = {}, deps = {}) {
         config.configScope = "project";
         config.configSource = file;
         config.projectPath = path.dirname(file);
-        if (config.headersHelper) {
-          if (typeof trust.issueProjectMcpWorkspaceAuthority !== "function") {
-            writeErr(
-              `  mcp: SKIPPING project headersHelper "${name}" — project execution authority is unavailable.\n`,
-            );
-            delete parsed[name];
-            continue;
-          }
+        const needsExecutionAuthority =
+          config.headersHelper || inferTransport(config) === "stdio";
+        if (
+          needsExecutionAuthority &&
+          typeof trust.issueProjectMcpWorkspaceAuthority !== "function"
+        ) {
+          delete parsed[name];
+          continue;
+        }
+        if (needsExecutionAuthority) {
           config.projectMcpWorkspaceAuthority =
             trust.issueProjectMcpWorkspaceAuthority({
               file,
@@ -812,6 +946,12 @@ export async function loadProjectMcp(opts = {}, deps = {}) {
   writeErr(
     `  mcp: ${Object.keys(servers).length} server(s) from project .mcp.json ` +
       `(${seenFiles.join(", ")}) — loaded via --project-mcp\n`,
+  );
+  authorizeStdioServers(
+    servers,
+    "project-config",
+    (name, config) => `${config.configSource}:${name}`,
+    { writeErr },
   );
   return setupMcpFromConfig(servers, deps);
 }
@@ -855,6 +995,13 @@ export async function loadPluginMcp(opts = {}, deps = {}) {
   if (names.length === 0) return deps.into || null;
   writeErr(
     `  mcp: ${names.length} server(s) from trusted plugin(s): ${names.join(", ")}\n`,
+  );
+  authorizeStdioServers(
+    servers,
+    "trusted-plugin",
+    (name, config) =>
+      `${config.pluginId || "plugin"}@${config.pluginVersion || "unknown"}:${config.pluginSource || "unknown"}:${name}`,
+    { writeErr },
   );
   return setupMcpFromConfig(servers, deps);
 }

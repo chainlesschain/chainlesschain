@@ -1,6 +1,11 @@
 import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import {
+  assertSkillFileSize,
+  assertSkillTotalSize,
+  resolveSkillLimits,
+} from "./skill-budget.js";
 
 export const SKILL_EXECUTION_IDENTITY_VERSION = 1;
 
@@ -56,6 +61,12 @@ function readStableRegularFile(file, options = {}) {
     );
   }
 
+  assertSkillFileSize(
+    options.component || path.basename(file),
+    before.size,
+    options.limits,
+  );
+
   const bytes = fs.readFileSync(file);
   const after = fs.lstatSync(file);
   if (
@@ -68,6 +79,11 @@ function readStableRegularFile(file, options = {}) {
       `Skill component changed while its identity was being captured: ${path.basename(file)}`,
     );
   }
+  assertSkillFileSize(
+    options.component || path.basename(file),
+    bytes.length,
+    options.limits,
+  );
   return Object.freeze({
     bytes,
     size: bytes.length,
@@ -85,10 +101,22 @@ export function captureSkillExecutionSnapshot(options = {}) {
     throw new TypeError("captureSkillExecutionSnapshot requires skillDir");
   }
   const rootRealPath = canonicalRealPath(options.skillDir);
+  const limits = resolveSkillLimits(options.limits);
   const skillMdPath = path.join(rootRealPath, "SKILL.md");
   const handlerPath = path.join(rootRealPath, "handler.js");
-  const skillMd = readStableRegularFile(skillMdPath);
-  const handler = readStableRegularFile(handlerPath, { optional: true });
+  const skillMd = readStableRegularFile(skillMdPath, {
+    component: "SKILL.md",
+    limits,
+  });
+  const handler = readStableRegularFile(handlerPath, {
+    optional: true,
+    component: "handler.js",
+    limits,
+  });
+  const componentBytes = assertSkillTotalSize(
+    skillMd.size + (handler?.size || 0),
+    limits,
+  );
   const skillId = String(options.skillId || path.basename(rootRealPath));
   const source = String(options.source || "unknown");
   const identityDigest = sha256([
@@ -112,6 +140,12 @@ export function captureSkillExecutionSnapshot(options = {}) {
     rootRealPath,
     handlerPresent: handler !== null,
     skillFileBytes: skillMd.size,
+    componentFileCount: handler === null ? 1 : 2,
+    componentBytes,
+    componentSizes: Object.freeze({
+      "SKILL.md": skillMd.size,
+      "handler.js": handler ? handler.size : null,
+    }),
     componentDigests: Object.freeze({
       "SKILL.md": skillMd.digest,
       "handler.js": handler?.digest || null,
@@ -130,6 +164,9 @@ export function executionIdentityMetadata(snapshot) {
     contentDigest: snapshot.contentDigest,
     rootRealPath: snapshot.rootRealPath,
     handlerPresent: snapshot.handlerPresent,
+    componentFileCount: snapshot.componentFileCount,
+    componentBytes: snapshot.componentBytes,
+    componentSizes: Object.freeze({ ...snapshot.componentSizes }),
     componentDigests: Object.freeze({ ...snapshot.componentDigests }),
   });
 }

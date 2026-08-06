@@ -277,7 +277,7 @@ export function registerAgentCommand(program) {
     )
     .option(
       "--bundle <path>",
-      "Agent bundle directory (chainless-agent.toml + AGENTS.md + skills/ + mcp.json + USER.md)",
+      "Agent bundle directory (may execute local MCP commands from mcp.json)",
     )
     // 鈹€鈹€ Headless / print mode (Claude-Code `claude -p` parity) 鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€鈹€
     .option(
@@ -1254,9 +1254,9 @@ export function registerAgentCommand(program) {
         const resumeRequested =
           Boolean(options.continue) || options.resume !== undefined;
         if (resumeRequested && options.session) {
-          const { sessionExists } =
+          const { sessionHasPersistedEvidence } =
             await import("../harness/jsonl-session-store.js");
-          if (!sessionExists(options.session)) {
+          if (!sessionHasPersistedEvidence(options.session)) {
             process.stderr.write(
               `Note: no headless transcript for session "${options.session}" 鈥?` +
                 "starting fresh (headless resume reads JSONL sessions only).\n",

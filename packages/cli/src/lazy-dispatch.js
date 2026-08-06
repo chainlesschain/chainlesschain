@@ -337,6 +337,43 @@ export function resolveCommandLifecycleInvocation(
   };
 }
 
+/**
+ * Build the bounded, content-free lifecycle usage dimensions for a migrated
+ * command. The original argv is inspected only to distinguish the retained
+ * top-level spelling from its virtual namespace replacement; arguments and
+ * nested command names are never copied into telemetry.
+ */
+export function resolveCommandLifecycleTelemetry(
+  argv,
+  manifestData = manifest,
+) {
+  const invocation = resolveCommandLifecycleInvocation(argv, manifestData);
+  let entry = null;
+  let route = null;
+  if (invocation.kind === "namespace-rewrite") {
+    entry = invocation.entry;
+    route = "replacement";
+  } else if (invocation.kind === "passthrough") {
+    const commandName = resolveCommandToken(argv);
+    entry = findManifestEntry(commandName, manifestData);
+    route = "legacy";
+  }
+  if (
+    entry?.lifecycle?.state !== "deprecated" ||
+    typeof entry.name !== "string" ||
+    !entry.replacement
+  ) {
+    return null;
+  }
+  return Object.freeze({
+    command: entry.name,
+    route,
+    version: packageMetadata.version,
+    deprecatedSince: entry.lifecycle.deprecatedSince,
+    removalNotBefore: entry.lifecycle.removalNotBefore,
+  });
+}
+
 export function formatCommandDeprecationWarning(entry, invokedName) {
   const lifecycle = entry?.lifecycle;
   if (lifecycle?.state !== "deprecated" || !entry.replacement) return null;
@@ -691,7 +728,7 @@ export async function dispatchCli(
   { manifestData = manifest, ...dispatchOptions } = {},
 ) {
   const commandName = resolveCommandToken(argv);
-  const entry = findManifestEntry(commandName, manifestData);
+  let entry = findManifestEntry(commandName, manifestData);
   if (!entry) {
     const program = await (
       dispatchOptions.loadFullProgram || defaultLoadFullProgram
@@ -699,20 +736,35 @@ export async function dispatchCli(
     await program.parseAsync(argv);
     return;
   }
+  const commandLocation = findCommandTokenLocation(argv);
+  if (entry.name === "session" && argv[commandLocation?.index + 1] === "show") {
+    entry = {
+      ...entry,
+      module: "./commands/session-show.js",
+      register: "registerSessionShowCommand",
+    };
+  }
   await dispatchManifestEntry(argv, entry, dispatchOptions);
 }
 
 export function isFastReadOnlyInvocation(argv, env = process.env) {
   const args = argv.slice(2);
-  return (
+  const explicitOtlp =
+    args.includes("--otlp-endpoint") ||
+    args.some((token) => token.startsWith("--otlp-endpoint=")) ||
+    env.OTEL_EXPORTER_OTLP_ENDPOINT ||
+    env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT ||
+    env.OTEL_EXPORTER_OTLP_METRICS_ENDPOINT;
+  const quickStatus =
     resolveCommandToken(argv) === "status" &&
     !args.includes("--deep") &&
-    !args.includes("--otlp-endpoint") &&
-    !args.some((token) => token.startsWith("--otlp-endpoint=")) &&
-    !env.OTEL_EXPORTER_OTLP_ENDPOINT &&
-    !env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT &&
-    !env.OTEL_EXPORTER_OTLP_METRICS_ENDPOINT
-  );
+    !explicitOtlp;
+  const commandLocation = findCommandTokenLocation(argv);
+  const sessionShow =
+    commandLocation?.token === "session" &&
+    argv[commandLocation.index + 1] === "show" &&
+    !explicitOtlp;
+  return quickStatus || sessionShow;
 }
 
 let processHandlersInstalled = false;
@@ -767,6 +819,10 @@ async function withInvocationOutputContext(argv, task) {
 }
 
 export async function runCli(argv, options = {}) {
+  const lifecycleTelemetry = resolveCommandLifecycleTelemetry(
+    argv,
+    options.manifestData || manifest,
+  );
   const prepared = await prepareInvocation(argv, options);
   if (prepared.handled) {
     if (prepared.exitCode) {
@@ -799,12 +855,24 @@ export async function runCli(argv, options = {}) {
     }
 
     const observability = await initializeCommandRuntime(dispatchArgv);
+    const lifecycleStartedAt = performance.now();
+    let lifecycleOutcome = "completed";
     try {
       return await withDefaultEventRuntimeLifecycle(
         () => dispatchCli(dispatchArgv, options),
         options,
       );
+    } catch (error) {
+      lifecycleOutcome = "error";
+      throw error;
     } finally {
+      if (lifecycleTelemetry) {
+        observability.exportCommandLifecycleInvocation({
+          ...lifecycleTelemetry,
+          outcome: lifecycleOutcome,
+          durationMs: performance.now() - lifecycleStartedAt,
+        });
+      }
       await observability.shutdown().catch(() => {});
     }
   });

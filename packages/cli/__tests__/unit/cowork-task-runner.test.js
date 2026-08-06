@@ -529,14 +529,19 @@ describe("cowork-task-runner", () => {
   // ─── MCP integration ──────────────────────────────────────
 
   it("calls mountTemplateMcpTools with the resolved template", async () => {
+    const approveMcpLocalCodeExecution = vi.fn(async () => true);
     await runCoworkTask({
       templateId: "doc-convert",
       userMessage: "转换文档",
+      approveMcpLocalCodeExecution,
     });
 
     expect(_mockMount).toHaveBeenCalledOnce();
-    const [template] = _mockMount.mock.calls[0];
+    const [template, mountOptions] = _mockMount.mock.calls[0];
     expect(template.id).toBe("doc-convert");
+    expect(mountOptions.approveLocalCodeExecution).toBe(
+      approveMcpLocalCodeExecution,
+    );
   });
 
   it("forwards MCP tool plumbing to SubAgentContext.create", async () => {

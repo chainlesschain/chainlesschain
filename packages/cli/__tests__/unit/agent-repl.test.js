@@ -189,6 +189,36 @@ describe("agent-repl module exports", () => {
     const mod = await import("../../src/repl/agent-repl.js");
     expect(typeof mod.startAgentRepl).toBe("function");
   }, 15000);
+
+  it("pauses core event consumption until the REPL output drain settles", async () => {
+    const { agentLoop } = await import("../../src/repl/agent-repl.js");
+    let produced = 0;
+    let releaseDrain;
+    const drain = new Promise((resolve) => {
+      releaseDrain = resolve;
+    });
+    const _coreLoop = async function* () {
+      produced += 1;
+      yield { type: "iteration-warning", message: "first" };
+      produced += 1;
+      yield { type: "response-complete", content: "done" };
+    };
+    const writes = [];
+    const running = agentLoop([], {
+      _coreLoop,
+      writeOut: (chunk) => {
+        writes.push(String(chunk));
+        return false;
+      },
+      waitForOutput: () => drain,
+    });
+
+    await vi.waitFor(() => expect(produced).toBe(1));
+    releaseDrain();
+    await expect(running).resolves.toMatchObject({ content: "done" });
+    expect(produced).toBe(2);
+    expect(writes.join("")).toContain("first");
+  });
 });
 
 describe("agent-repl TOOLS definition", () => {
@@ -566,6 +596,29 @@ describe("agent-repl thin wrapper contracts", () => {
     "agent-repl.js",
   );
 
+  it("defers an early EPIPE until the graceful close handler is ready", () => {
+    const content = readFileSync(agentReplPath, "utf8");
+    const guardStart = content.indexOf("// EPIPE guard:");
+    const startupStart = content.indexOf(
+      "const { useJsonl, candidate: _startupJsonlResume }",
+      guardStart,
+    );
+    const guard = content.slice(guardStart, startupStart);
+    const closeHandler = content.indexOf('rl.on("close", async () => {');
+    const closeReady = content.indexOf("_replCloseReady = true;", closeHandler);
+
+    expect(guardStart).toBeGreaterThanOrEqual(0);
+    expect(startupStart).toBeGreaterThan(guardStart);
+    expect(guard).toContain('error.code === "EPIPE" ? 0 : 1');
+    expect(guard).toContain("_replRl && _replCloseReady");
+    expect(guard).not.toContain("process.exit(");
+    expect(closeHandler).toBeGreaterThan(startupStart);
+    expect(closeReady).toBeGreaterThan(closeHandler);
+    expect(content.slice(closeHandler, closeReady)).toContain(
+      "if (_replCleanupStarted) return;",
+    );
+  });
+
   it("executeTool wrapper passes hookDb and cwd to coreExecuteTool", () => {
     const content = readFileSync(agentReplPath, "utf8");
     // executeTool should delegate to coreExecuteTool with hookDb and cwd
@@ -755,8 +808,9 @@ describe("agent-repl MCP host runtime manager", () => {
     const { createReplMcpHostRuntimeManager } =
       await import("../../src/repl/agent-repl.js");
     let runtimeId = 0;
+    const createSessionMcpLedgerSink = vi.fn(() => vi.fn());
     const manager = createReplMcpHostRuntimeManager({
-      createSessionMcpLedgerSink: vi.fn(() => vi.fn()),
+      createSessionMcpLedgerSink,
       createMcpHostRecoveryRuntime: vi.fn(({ rawClient }) => {
         runtimeId += 1;
         return {
@@ -768,17 +822,27 @@ describe("agent-repl MCP host runtime manager", () => {
       }),
     });
     const rawClient = { callTool: vi.fn() };
+    const oldRecovery = {
+      unsettled: [],
+      incidents: [],
+      replayDenied: [],
+    };
     const oldRuntime = manager.activate({
       adhocMcp: { mcpClient: rawClient },
       sessionId: "old-session",
       persistent: true,
-      recovery: { unsettled: [], incidents: [], replayDenied: [] },
+      recovery: oldRecovery,
     });
+    const newRecovery = {
+      unsettled: [],
+      incidents: [],
+      replayDenied: [],
+    };
     const preparedRuntime = manager.prepare({
       adhocMcp: { mcpClient: rawClient },
       sessionId: "new-session",
       persistent: true,
-      recovery: { unsettled: [], incidents: [], replayDenied: [] },
+      recovery: newRecovery,
     });
 
     expect(preparedRuntime).not.toBe(oldRuntime);
@@ -795,6 +859,16 @@ describe("agent-repl MCP host runtime manager", () => {
       oldRuntime.runtime.controller,
     );
     expect(manager.current.runtime.ledger).not.toBe(oldRuntime.runtime.ledger);
+    expect(createSessionMcpLedgerSink).toHaveBeenNthCalledWith(
+      1,
+      "old-session",
+      { recovery: oldRecovery },
+    );
+    expect(createSessionMcpLedgerSink).toHaveBeenNthCalledWith(
+      2,
+      "new-session",
+      { recovery: newRecovery },
+    );
   });
 
   it("prefers adhoc MCP, supports bundle fallback, and skips durable DB sinks", async () => {

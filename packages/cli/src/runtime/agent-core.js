@@ -36,6 +36,11 @@ import {
 } from "../lib/lsp/workspace-roots.js";
 import { getPlanModeManager } from "../lib/plan-mode.js";
 import { CLISkillLoader } from "../lib/skill-loader.js";
+import {
+  admitSkillPrompt,
+  debitSkillPromptBudget,
+  resolveSkillLimits,
+} from "../lib/skill-budget.js";
 import { executeHooks, HookEvents } from "../lib/hook-manager.js";
 import { detectPython } from "../lib/cli-anything-bridge.js";
 import { findProjectRoot, loadProjectConfig } from "../lib/project-detector.js";
@@ -52,7 +57,11 @@ import {
 } from "./coding-agent-contract.js";
 import { createToolContext } from "../tools/tool-context.js";
 import { createToolTelemetryRecord } from "../tools/tool-telemetry.js";
-import { isAbortError, throwIfAborted } from "../lib/abort-utils.js";
+import {
+  isAbortError,
+  raceWithAbort,
+  throwIfAborted,
+} from "../lib/abort-utils.js";
 import {
   classifyEditReplay,
   editIdempotencyKey,
@@ -101,6 +110,10 @@ import {
   snapshotMcpJsonRpcInput,
 } from "../lib/mcp-call-ledger.js";
 import {
+  admitMcpToolResult,
+  isMcpToolResultAdmissionError,
+} from "../lib/mcp-tool-result.js";
+import {
   MCP_OUTCOME_UNKNOWN_CODE,
   markMcpLedgerOutcomeUnknown,
 } from "../lib/mcp-ledger-recovery-admission.js";
@@ -112,6 +125,7 @@ import {
   buildExtractiveHandoff,
   formatStructuredHandoff,
 } from "../harness/structured-handoff.js";
+import { isMcpRpcError } from "../harness/mcp-client.js";
 import { projectCanonicalResumeMessages } from "../lib/session-message-provenance.js";
 
 export { formatProviderHttpError };
@@ -968,11 +982,16 @@ export function getAgentToolDescriptors(options = {}) {
 const _defaultSkillLoader = new CLISkillLoader();
 
 /**
- * Re-scan all skill layers (Claude-Code `/reload-skills` parity): drops the
- * default loader's cache so newly added/edited SKILL.md dirs are picked up
- * without restarting the session. Returns the resolved skill count.
+ * Re-scan all skill layers (Claude-Code `/reload-skills` parity): revokes this
+ * process's Skill execution generation, then drops the default loader cache so
+ * newly added/edited SKILL.md dirs are picked up without restarting. Returns
+ * the resolved skill count.
  */
 export function reloadSkills() {
+  _defaultSkillLoader.revokeExecutionAuthorizations({
+    message: "Skill execution authorization was revoked by /reload-skills",
+    reasonCode: "reload-skills",
+  });
   _defaultSkillLoader.clearCache();
   return _defaultSkillLoader.loadAll().length;
 }
@@ -1246,13 +1265,34 @@ export function buildSystemPrompt(cwd, opts = {}) {
       turnId: opts.turnId,
       loadedBecause: "persona_auto",
     });
+    // Re-admit custom/injected loader output at the final model boundary. Do
+    // the complete aggregate pass before appending anything so an oversized
+    // later persona cannot leave an earlier partial projection in the prompt.
+    const limits = resolveSkillLimits(loader.getLimits?.());
+    const promptBudget = { limits, bytes: 0, tokens: 0 };
+    const personaProjections = [];
+    for (const personaSkill of personaSkills) {
+      const displayName =
+        typeof personaSkill?.displayName === "string"
+          ? personaSkill.displayName
+          : typeof personaSkill?.id === "string"
+            ? personaSkill.id
+            : "Skill";
+      const body = personaSkill?.body;
+      admitSkillPrompt(body, limits);
+      if (!body.trim()) continue;
+      const projection = `\n\n## Persona: ${displayName}\n${body}`;
+      debitSkillPromptBudget(
+        promptBudget,
+        admitSkillPrompt(projection, limits),
+      );
+      personaProjections.push(projection);
+    }
     if (typeof opts.onSkillsLoaded === "function") {
       opts.onSkillsLoaded(personaSkills, loader.getCacheLedger());
     }
-    for (const p of personaSkills) {
-      if (p.body?.trim()) {
-        prompt += `\n\n## Persona: ${p.displayName}\n${p.body}`;
-      }
+    for (const projection of personaProjections) {
+      prompt += projection;
     }
   } catch {
     // Non-critical — skill loader may not be available
@@ -3354,26 +3394,55 @@ const MCP_PROTOCOL_RESULT_INVALID_CODE = "CC_MCP_PROTOCOL_RESULT_INVALID";
 const MCP_RESULT_PROJECTION_FAILED_CODE = "CC_MCP_RESULT_PROJECTION_FAILED";
 
 function safeMcpProperty(value, property) {
+  if (!value || (typeof value !== "object" && typeof value !== "function")) {
+    return undefined;
+  }
   try {
-    return value?.[property];
+    if (isProxy(value)) return undefined;
+    const descriptor = Object.getOwnPropertyDescriptor(value, property);
+    return descriptor && Object.hasOwn(descriptor, "value")
+      ? descriptor.value
+      : undefined;
   } catch {
     return undefined;
   }
 }
 
 function safeMcpErrorMessage(error) {
+  if (safeMcpProperty(error, "mcpErrorCode") === "CC_MCP_RPC_ERROR") {
+    const rpcCode = safeMcpProperty(error, "rpcCode");
+    return Number.isSafeInteger(rpcCode)
+      ? `MCP server returned a JSON-RPC error (code ${rpcCode})`
+      : "MCP server returned a JSON-RPC error";
+  }
+  // HTTP status bodies are peer-controlled. The production transport omits
+  // them at source, and this boundary independently prevents any MCP client
+  // honoring the stable transport error code from projecting one into tool
+  // results, models, or sessions.
+  if (safeMcpProperty(error, "code") === "CC_MCP_HTTP_STATUS") {
+    const status = safeMcpProperty(error, "status");
+    return Number.isInteger(status) && status >= 100 && status <= 599
+      ? `MCP HTTP request failed with status ${status}`
+      : "MCP HTTP request failed";
+  }
   const message = safeMcpProperty(error, "message");
   if (typeof message === "string" && message) return message;
-  try {
-    return String(error || "unknown error");
-  } catch {
-    return "unknown error";
-  }
+  if (typeof error === "string" && error) return error;
+  return "unknown error";
 }
 
 function safeMcpErrorCode(error, fallback) {
   const code = safeMcpProperty(error, "code");
   return typeof code === "string" && code ? code : fallback;
+}
+
+function projectMcpCallError(error) {
+  const projected = new Error(safeMcpErrorMessage(error));
+  const code = isMcpRpcError(error)
+    ? "CC_MCP_RPC_ERROR"
+    : safeMcpErrorCode(error, null);
+  if (code) projected.code = code;
+  return projected;
 }
 
 function invalidMcpProtocolResult(cause) {
@@ -5654,10 +5723,16 @@ async function executeToolInner(
     }
 
     case "run_skill": {
-      const allSkills = await filterSkillsByCwd(
-        skillLoader.getResolvedSkills().filter(skillAllowed),
-        cwd,
+      throwIfAborted(signal, "run_skill interrupted before discovery");
+      const allSkills = await raceWithAbort(
+        filterSkillsByCwd(
+          skillLoader.getResolvedSkills().filter(skillAllowed),
+          cwd,
+        ),
+        signal,
+        "run_skill interrupted during discovery",
       );
+      throwIfAborted(signal, "run_skill interrupted during discovery");
       if (allSkills.length === 0) {
         return attachDescriptor({
           error: _skillAllowlist
@@ -5668,28 +5743,57 @@ async function executeToolInner(
       let match = allSkills.find(
         (s) => s.id === args.skill_name || s.dirName === args.skill_name,
       );
+      let admittedSkillBody = "";
       if (!match || !match.hasHandler) {
         return attachDescriptor({
           error: `Skill "${args.skill_name}" not found or has no handler. Use list_skills to see available skills.`,
         });
       }
+      const skillExecutionLease = skillLoader.acquireSkillExecution?.(match, {
+        signal,
+      });
+      const skillExecutionSignal = skillExecutionLease?.signal || signal;
       try {
+        skillExecutionLease?.assertActive?.();
         if (typeof skillLoader.materializeSkillForExecution === "function") {
-          match = await skillLoader.materializeSkillForExecution(match, {
-            sessionId,
-            turnId,
-            loadedBecause: "run_skill",
-            bodyIncluded: false,
-          });
+          match = await raceWithAbort(
+            skillLoader.materializeSkillForExecution(match, {
+              sessionId,
+              turnId,
+              loadedBecause: "run_skill",
+              bodyIncluded: true,
+              signal: skillExecutionSignal,
+            }),
+            skillExecutionSignal,
+            "run_skill interrupted during authorization",
+          );
         } else if (typeof skillLoader.materializeSkill === "function") {
           match = skillLoader.materializeSkill(match, {
             sessionId,
             turnId,
             loadedBecause: "run_skill",
-            bodyIncluded: false,
+            bodyIncluded: true,
+            signal: skillExecutionSignal,
           });
         }
+        skillExecutionLease?.assertActive?.();
+        throwIfAborted(
+          skillExecutionSignal,
+          "run_skill interrupted during materialization",
+        );
+        // A custom loader is not an authority to raise host model-input caps.
+        // Re-admit at the final consumer before constructing the child task.
+        admittedSkillBody = match?.body;
+        admitSkillPrompt(admittedSkillBody, skillLoader.getLimits?.());
       } catch (error) {
+        skillExecutionLease?.release?.();
+        if (
+          signal?.aborted ||
+          skillExecutionSignal?.aborted ||
+          isAbortError(error)
+        ) {
+          throw error;
+        }
         return attachDescriptor({
           error: `Skill "${args.skill_name}" body could not be loaded: ${error.message}`,
           ...(error?.code ? { code: error.code } : {}),
@@ -5721,67 +5825,84 @@ async function executeToolInner(
           : null;
         let skillSubRef = null;
         // Run skill through isolated sub-agent context
-        const subCtx = SubAgentContext.create({
-          role: `skill-${args.skill_name}`,
-          task:
-            `Execute the "${args.skill_name}" skill using only the approved tools.\n\n` +
-            `Authoritative skill instructions:\n${String(match.body || "").substring(0, 48000)}\n\n` +
-            `User input:\n${String(args.input || "").substring(0, 8000)}`,
-          allowedTools: isolatedSkillTools,
-          hookParentTraceId: hookTraceId || null,
-          toolAdmission,
-          cwd,
-          llmOptions: llmOptions || null,
-          ...(sessionBudget ? { sessionBudget } : {}),
-          ...(permissionRules ? { permissionRules } : {}),
-          ...(hostManagedToolPolicy
-            ? {
-                hostManagedToolPolicy: {
-                  ...hostManagedToolPolicy,
-                  toolDefinitions: [],
-                },
-              }
-            : {}),
-          ...(planManager ? { planManager } : {}),
-          ...(sandbox ? { sandbox } : {}),
-          ...(Array.isArray(additionalDirectories)
-            ? { additionalDirectories: [...additionalDirectories] }
-            : {}),
-          ...(approvalGate ? { approvalGate } : {}),
-          ...(shellPolicyOverrides ? { shellPolicyOverrides } : {}),
-          ...(classifyAllShell ? { classifyAllShell: true } : {}),
-          ...(unattendedActionPolicy ? { unattendedActionPolicy } : {}),
-          ...(mcpCallLedger ? { mcpCallLedger } : {}),
-          ...(mcpConflictScheduler ? { mcpConflictScheduler } : {}),
-          onUsage: skillUsageSink
-            ? (u) => {
-                try {
-                  skillUsageSink.push(
-                    u && u.attribution
-                      ? u
-                      : {
-                          provider: u?.provider ?? null,
-                          model: u?.model ?? null,
-                          usage: u?.usage || null,
-                          ...(u?.source ? { source: u.source } : {}),
-                          attribution: {
-                            origin: "skill",
-                            skill: args.skill_name,
-                            subagentId: skillSubRef?.id || null,
-                            parentSessionId: sessionId || null,
-                            depth: (subAgentDepth || 0) + 1,
-                          },
-                        },
-                  );
-                } catch (_e) {
-                  // usage forwarding is best-effort
+        let subCtx;
+        try {
+          skillExecutionLease?.assertActive?.();
+          subCtx = SubAgentContext.create({
+            role: `skill-${args.skill_name}`,
+            task:
+              `Execute the "${args.skill_name}" skill using only the approved tools.\n\n` +
+              `Authoritative skill instructions:\n${admittedSkillBody}\n\n` +
+              `User input:\n${String(args.input || "").substring(0, 8000)}`,
+            allowedTools: isolatedSkillTools,
+            hookParentTraceId: hookTraceId || null,
+            signal: skillExecutionSignal,
+            toolAdmission,
+            cwd,
+            llmOptions: llmOptions || null,
+            ...(sessionBudget ? { sessionBudget } : {}),
+            ...(permissionRules ? { permissionRules } : {}),
+            ...(hostManagedToolPolicy
+              ? {
+                  hostManagedToolPolicy: {
+                    ...hostManagedToolPolicy,
+                    toolDefinitions: [],
+                  },
                 }
-              }
-            : null,
-        });
+              : {}),
+            ...(planManager ? { planManager } : {}),
+            ...(sandbox ? { sandbox } : {}),
+            ...(Array.isArray(additionalDirectories)
+              ? { additionalDirectories: [...additionalDirectories] }
+              : {}),
+            ...(approvalGate ? { approvalGate } : {}),
+            ...(shellPolicyOverrides ? { shellPolicyOverrides } : {}),
+            ...(classifyAllShell ? { classifyAllShell: true } : {}),
+            ...(unattendedActionPolicy ? { unattendedActionPolicy } : {}),
+            ...(mcpCallLedger ? { mcpCallLedger } : {}),
+            ...(mcpConflictScheduler ? { mcpConflictScheduler } : {}),
+            onUsage: skillUsageSink
+              ? (u) => {
+                  try {
+                    skillUsageSink.push(
+                      u && u.attribution
+                        ? u
+                        : {
+                            provider: u?.provider ?? null,
+                            model: u?.model ?? null,
+                            usage: u?.usage || null,
+                            ...(u?.source ? { source: u.source } : {}),
+                            attribution: {
+                              origin: "skill",
+                              skill: args.skill_name,
+                              subagentId: skillSubRef?.id || null,
+                              parentSessionId: sessionId || null,
+                              depth: (subAgentDepth || 0) + 1,
+                            },
+                          },
+                    );
+                  } catch (_e) {
+                    // usage forwarding is best-effort
+                  }
+                }
+              : null,
+          });
+        } catch (error) {
+          skillExecutionLease?.release?.();
+          throw error;
+        }
         skillSubRef = subCtx;
         try {
-          const result = await subCtx.run(args.input);
+          const result = await raceWithAbort(
+            subCtx.run(args.input),
+            skillExecutionSignal,
+            "run_skill interrupted while the isolated child was running",
+          );
+          skillExecutionLease?.assertActive?.();
+          throwIfAborted(
+            skillExecutionSignal,
+            "run_skill interrupted before child handoff",
+          );
           const resolvedFailure =
             subCtx.status === "failed" ||
             result?.success === false ||
@@ -5809,6 +5930,13 @@ async function executeToolInner(
             toolsUsed: result.toolsUsed,
           });
         } catch (err) {
+          if (
+            signal?.aborted ||
+            skillExecutionSignal?.aborted ||
+            isAbortError(err)
+          ) {
+            throw err;
+          }
           return attachDescriptor({
             success: false,
             isolated: true,
@@ -5816,6 +5944,8 @@ async function executeToolInner(
             code: err?.code || "CC_SKILL_ISOLATED_EXECUTION_FAILED",
             error: `Isolated skill execution failed: ${err.message}`,
           });
+        } finally {
+          skillExecutionLease?.release?.();
         }
       }
 
@@ -5823,6 +5953,7 @@ async function executeToolInner(
       // reaching here. Keep the runtime fence explicit so a custom/legacy
       // loader can never re-enable arbitrary handler.js imports in the CLI
       // process or hand a Skill the raw MCP client/process broker.
+      skillExecutionLease?.release?.();
       return attachDescriptor({
         error: `Skill "${args.skill_name}" cannot execute handler.js directly. Add isolation: true and use the controlled agent-tool path.`,
         code: "CC_SKILL_DIRECT_HANDLER_BLOCKED",
@@ -5907,13 +6038,15 @@ async function executeToolInner(
               error: `Could not resolve which MCP server owns resource "${uri}". Pass 'server' explicitly.`,
             });
           }
-          const result = await mcpClient.readResource(server, uri);
+          const result = signal
+            ? await mcpClient.readResource(server, uri, { signal })
+            : await mcpClient.readResource(server, uri);
           return attachDescriptor(
             result && typeof result === "object" ? result : { result },
           );
         } catch (err) {
           return attachDescriptor({
-            error: `MCP resource access failed: ${err.message}`,
+            error: `MCP resource access failed: ${safeMcpErrorMessage(err)}`,
           });
         }
       }
@@ -6015,19 +6148,31 @@ async function executeToolInner(
             });
           }
 
-          const transportFailure = async (callError) => {
-            if (mcpTransportOutcomeIsUnsafe(ledgerEffectContract)) {
+          const transportFailure = async (callError, phase = "call") => {
+            const definitiveRpcFailure = isMcpRpcError(callError);
+            if (
+              mcpTransportOutcomeIsUnsafe(ledgerEffectContract) &&
+              !definitiveRpcFailure
+            ) {
+              const resultAdmissionFailure =
+                isMcpToolResultAdmissionError(callError);
               return attachDescriptor(
                 mcpOutcomeUnknownPayload(ledger, ledgerTicket, {
-                  phase: "call",
-                  reasonCode: MCP_TRANSPORT_OUTCOME_UNKNOWN_CODE,
+                  phase,
+                  reasonCode: resultAdmissionFailure
+                    ? safeMcpErrorCode(
+                        callError,
+                        MCP_PROTOCOL_RESULT_INVALID_CODE,
+                      )
+                    : MCP_TRANSPORT_OUTCOME_UNKNOWN_CODE,
                 }),
               );
             }
+            const projectedError = projectMcpCallError(callError);
             try {
               await ledgerTicket.settle({
                 status: "failed",
-                error: callError,
+                error: projectedError,
               });
             } catch (ledgerError) {
               return attachDescriptor(
@@ -6041,20 +6186,29 @@ async function executeToolInner(
               );
             }
             return attachDescriptor({
-              error: `MCP tool execution failed: ${safeMcpErrorMessage(callError)}`,
+              error: `MCP tool execution failed: ${projectedError.message}`,
               mcpLedgerId: safeMcpProperty(ledgerTicket, "ledgerId") || null,
             });
           };
 
           let pendingResult;
           try {
-            pendingResult = Reflect.apply(mcpClient.callTool, mcpClient, [
+            const callArguments = [
               localToolExecutor.serverName,
               localToolExecutor.toolName,
               mcpWireInput,
-            ]);
+            ];
+            if (signal) callArguments.push({ signal });
+            pendingResult = Reflect.apply(
+              mcpClient.callTool,
+              mcpClient,
+              callArguments,
+            );
           } catch (callError) {
-            return await transportFailure(callError);
+            return await transportFailure(
+              callError,
+              isMcpToolResultAdmissionError(callError) ? "result" : "call",
+            );
           }
 
           let result;
@@ -6091,7 +6245,10 @@ async function executeToolInner(
               try {
                 result = await pendingResult;
               } catch (callError) {
-                return await transportFailure(callError);
+                return await transportFailure(
+                  callError,
+                  isMcpToolResultAdmissionError(callError) ? "result" : "call",
+                );
               }
             } else {
               let then;
@@ -6134,6 +6291,16 @@ async function executeToolInner(
             }
           } else {
             result = pendingResult;
+          }
+
+          try {
+            result = admitMcpToolResult(
+              localToolExecutor.serverName,
+              result,
+              localToolExecutor.toolResultConfig,
+            ).result;
+          } catch (resultError) {
+            return await transportFailure(resultError, "result");
           }
 
           let protocolError;
@@ -6683,12 +6850,21 @@ export const MAX_SUB_AGENTS_PER_RUN = 32;
  * `substring(0, 5000)` that sliced mid-content with no marker and undercut even
  * read_file's own 50k self-limit. Tools that self-limit (read_file, notebook
  * render) stay below this; it is the final safety net for the ones that don't
- * (run_shell, search_files, run_code, MCP). Override with CC_MAX_TOOL_RESULT_CHARS.
+ * (run_shell, search_files, run_code, MCP). CC_MAX_TOOL_RESULT_CHARS may only
+ * tighten the host ceiling; it cannot raise or disable it.
  */
-export const MAX_TOOL_RESULT_CHARS = (() => {
-  const n = Number(process.env.CC_MAX_TOOL_RESULT_CHARS);
-  return Number.isFinite(n) && n > 0 ? Math.floor(n) : 50000;
-})();
+export const MAX_TOOL_RESULT_CHARS_HARD_LIMIT = 50000;
+
+export function resolveMaxToolResultChars(configured) {
+  const value = Number(configured);
+  return Number.isFinite(value) && value > 0
+    ? Math.min(MAX_TOOL_RESULT_CHARS_HARD_LIMIT, Math.max(1, Math.floor(value)))
+    : MAX_TOOL_RESULT_CHARS_HARD_LIMIT;
+}
+
+export const MAX_TOOL_RESULT_CHARS = resolveMaxToolResultChars(
+  process.env.CC_MAX_TOOL_RESULT_CHARS,
+);
 
 /**
  * Cap a serialized tool result to `max` chars, appending a visible truncation
@@ -6698,10 +6874,11 @@ export const MAX_TOOL_RESULT_CHARS = (() => {
  */
 export function capToolResultString(serialized, max = MAX_TOOL_RESULT_CHARS) {
   const s = String(serialized ?? "");
-  if (s.length <= max) return s;
+  const effectiveMax = resolveMaxToolResultChars(max);
+  if (s.length <= effectiveMax) return s;
   return (
-    s.slice(0, max) +
-    `\n…[tool output truncated: showing the first ${max} of ${s.length} chars` +
+    s.slice(0, effectiveMax) +
+    `\n…[tool output truncated: showing the first ${effectiveMax} of ${s.length} chars` +
     ` — narrow the request (read a line range, grep, or paginate) to see the rest]`
   );
 }
@@ -8143,6 +8320,42 @@ function _ollamaInitState() {
   };
 }
 
+function _streamUiCallbacks(onToken, onThinking) {
+  let pending = [];
+  const capture = (callback) =>
+    typeof callback === "function"
+      ? (value) => {
+          try {
+            const result = callback(value);
+            if (result && typeof result.then === "function") {
+              pending.push(Promise.resolve(result));
+            }
+          } catch (error) {
+            pending.push(Promise.reject(error));
+          }
+        }
+      : callback;
+  return {
+    onToken: capture(onToken),
+    onThinking: capture(onThinking),
+    async settle() {
+      if (pending.length === 0) return;
+      const current = pending;
+      pending = [];
+      const outcomes = await Promise.allSettled(current);
+      const fatal = outcomes.find(
+        (outcome) =>
+          outcome.status === "rejected" &&
+          outcome.reason?.isOutputBackpressureFailure === true,
+      );
+      if (fatal) throw fatal.reason;
+      // Generic UI callback failures retain their historical best-effort
+      // semantics. Branded output failures are lifecycle failures and abort the
+      // provider stream instead of allowing its terminal queue to grow.
+    },
+  };
+}
+
 function _ollamaReduceLine(state, line, onToken) {
   const s = (line || "").trim();
   if (!s) return state;
@@ -8213,6 +8426,7 @@ export function _accumulateOllamaStream(lines, onToken) {
  * showing raw errors"). Pure + exported for unit tests.
  */
 export function _streamErrorDisposition(err, signal, partialText) {
+  if (err?.isOutputBackpressureFailure === true) return "rethrow";
   if (isAbortError(err)) return "rethrow";
   if (signal && signal.aborted) return "rethrow";
   if (typeof partialText === "string" && partialText.trim()) return "preserve";
@@ -8427,6 +8641,7 @@ async function _chatOllamaStreaming(
     throw new Error(await formatProviderResponseError("ollama", response));
   }
   const state = _ollamaInitState();
+  const ui = _streamUiCallbacks(onToken);
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let buf = "";
@@ -8439,11 +8654,15 @@ async function _chatOllamaStreaming(
       buf += decoder.decode(value, { stream: true });
       let idx;
       while ((idx = buf.indexOf("\n")) >= 0) {
-        _ollamaReduceLine(state, buf.slice(0, idx), onToken);
+        _ollamaReduceLine(state, buf.slice(0, idx), ui.onToken);
+        await ui.settle();
         buf = buf.slice(idx + 1);
       }
     }
-    if (buf.trim()) _ollamaReduceLine(state, buf, onToken);
+    if (buf.trim()) {
+      _ollamaReduceLine(state, buf, ui.onToken);
+      await ui.settle();
+    }
   } catch (err) {
     if (_streamErrorDisposition(err, signal, state.content) === "rethrow")
       throw err;
@@ -8613,6 +8832,7 @@ async function _chatAnthropicStreaming(
     throw new Error(await formatProviderResponseError("anthropic", response));
   }
   const state = _anthropicInitState();
+  const ui = _streamUiCallbacks(onToken, onThinking);
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let buf = "";
@@ -8625,10 +8845,15 @@ async function _chatAnthropicStreaming(
       buf += decoder.decode(value, { stream: true });
       const lines = buf.split("\n");
       buf = lines.pop() || "";
-      for (const line of lines)
-        _anthropicReduceLine(state, line, onToken, onThinking);
+      for (const line of lines) {
+        _anthropicReduceLine(state, line, ui.onToken, ui.onThinking);
+        await ui.settle();
+      }
     }
-    if (buf.trim()) _anthropicReduceLine(state, buf, onToken, onThinking);
+    if (buf.trim()) {
+      _anthropicReduceLine(state, buf, ui.onToken, ui.onThinking);
+      await ui.settle();
+    }
   } catch (err) {
     if (_streamErrorDisposition(err, signal, state.text) === "rethrow")
       throw err;
@@ -8765,6 +8990,7 @@ async function _chatOpenAIStreaming(
     throw new Error(await formatProviderResponseError(provider, response));
   }
   const state = _openaiInitState();
+  const ui = _streamUiCallbacks(onToken);
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let buf = "";
@@ -8777,9 +9003,15 @@ async function _chatOpenAIStreaming(
       buf += decoder.decode(value, { stream: true });
       const lines = buf.split("\n");
       buf = lines.pop() || "";
-      for (const line of lines) _openaiReduceLine(state, line, onToken);
+      for (const line of lines) {
+        _openaiReduceLine(state, line, ui.onToken);
+        await ui.settle();
+      }
     }
-    if (buf.trim()) _openaiReduceLine(state, buf, onToken);
+    if (buf.trim()) {
+      _openaiReduceLine(state, buf, ui.onToken);
+      await ui.settle();
+    }
   } catch (err) {
     if (_streamErrorDisposition(err, signal, state.text) === "rethrow")
       throw err;

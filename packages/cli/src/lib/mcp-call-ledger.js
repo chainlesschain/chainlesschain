@@ -1,5 +1,9 @@
 import { createHash, randomUUID as nodeRandomUUID } from "node:crypto";
 import { isProxy } from "node:util/types";
+import {
+  admitMcpToolResult,
+  resolveMcpToolResultLimits,
+} from "./mcp-tool-result.js";
 
 export const MCP_CALL_LEDGER_SCHEMA_VERSION = 1;
 
@@ -413,16 +417,41 @@ function frozenSnapshot(record) {
   return Object.freeze(snapshot);
 }
 
+function safeOwnDataProperty(value, property) {
+  if (!value || (typeof value !== "object" && typeof value !== "function")) {
+    return undefined;
+  }
+  try {
+    if (isProxy(value)) return undefined;
+    const descriptor = Object.getOwnPropertyDescriptor(value, property);
+    return descriptor && Object.hasOwn(descriptor, "value")
+      ? descriptor.value
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 function summarizeError(error) {
-  const message = String(error?.message || error || "unknown error");
+  const errorMessage = safeOwnDataProperty(error, "message");
+  const message =
+    typeof error === "string" && error
+      ? error
+      : typeof errorMessage === "string" && errorMessage
+        ? errorMessage
+        : "unknown error";
+  const errorName = safeOwnDataProperty(error, "name");
+  const errorCode = safeOwnDataProperty(error, "code");
   return Object.freeze({
     name: safeIdentifier(
-      error?.name,
+      typeof errorName === "string" ? errorName : null,
       "Error",
       MCP_CALL_LEDGER_PROTOCOL_LIMITS.errorName,
     ),
     code: safeIdentifier(
-      error?.code,
+      typeof errorCode === "string" || Number.isSafeInteger(errorCode)
+        ? errorCode
+        : null,
       null,
       MCP_CALL_LEDGER_PROTOCOL_LIMITS.errorCode,
     ),
@@ -431,19 +460,22 @@ function summarizeError(error) {
 }
 
 function normalizeStatus(outcome = {}) {
-  if (outcome.status) {
-    const status = String(outcome.status).toLowerCase();
+  const explicitStatus = safeOwnDataProperty(outcome, "status");
+  if (typeof explicitStatus === "string" && explicitStatus) {
+    const status = explicitStatus.toLowerCase();
     if (!TERMINAL_STATUSES.has(status)) {
-      throw new TypeError(
-        `Invalid MCP ledger terminal status "${outcome.status}"`,
-      );
+      throw new TypeError(`Invalid MCP ledger terminal status "${status}"`);
     }
     return status;
   }
-  if (outcome.cancelled === true || outcome.error?.name === "AbortError") {
+  const error = safeOwnDataProperty(outcome, "error");
+  if (
+    safeOwnDataProperty(outcome, "cancelled") === true ||
+    safeOwnDataProperty(error, "name") === "AbortError"
+  ) {
     return McpCallStatus.CANCELLED;
   }
-  return outcome.error ? McpCallStatus.FAILED : McpCallStatus.COMPLETED;
+  return error ? McpCallStatus.FAILED : McpCallStatus.COMPLETED;
 }
 
 function resolveSinkWriter(sink) {
@@ -492,6 +524,14 @@ export class McpCallLedger {
     this._randomUUID = options.randomUUID || nodeRandomUUID;
     this._sequence = 0;
     this._records = new Map();
+    const toolResultLimits = resolveMcpToolResultLimits(
+      options.toolResultConfig,
+    );
+    this._toolResultConfig = Object.freeze({
+      maxToolResultBytes: toolResultLimits.maxBytes,
+      maxToolResultDepth: toolResultLimits.maxDepth,
+      maxToolResultNodes: toolResultLimits.maxNodes,
+    });
 
     const requested = options.prewriteFailurePolicy || {};
     for (const [effect, action] of Object.entries(requested)) {
@@ -670,12 +710,17 @@ export class McpCallLedger {
       Object.prototype.hasOwnProperty.call(outcome, "result");
     const output = hasOutput
       ? summarizeMcpPayload(
-          Object.prototype.hasOwnProperty.call(outcome, "output")
-            ? outcome.output
-            : outcome.result,
+          admitMcpToolResult(
+            null,
+            Object.prototype.hasOwnProperty.call(outcome, "output")
+              ? outcome.output
+              : outcome.result,
+            this._toolResultConfig,
+          ).result,
         )
       : null;
-    const errorSummary = outcome.error ? summarizeError(outcome.error) : null;
+    const outcomeError = safeOwnDataProperty(outcome, "error");
+    const errorSummary = outcomeError ? summarizeError(outcomeError) : null;
     const settlementPersistence =
       current.prewritePersistence === "failed-open"
         ? "skipped-no-prewrite"

@@ -142,4 +142,86 @@ describe("MCP recovery adjudication with the real JSONL authority store", () => 
         .filter((event) => event.type === MCP_CALL_RECOVERY_ADJUDICATION_EVENT),
     ).toEqual([]);
   });
+
+  it("fences an old host after adjudication before its next ledger write", async () => {
+    const sessionId = "mcp-real-store-host-fence";
+    sessionStore.startSession(sessionId, { title: "MCP host fence test" });
+    const initial = readMcpRecoveryAuthority(sessionId);
+    const oldLedger = createMcpCallLedger({
+      sink: createSessionMcpLedgerSink(sessionId, { recovery: initial }),
+      randomUUID: () => "old-host",
+    });
+    const oldTicket = await oldLedger.begin({
+      sessionId,
+      turnId: "turn-old",
+      serverName: "repo",
+      toolName: "publish",
+      input: { release: 8 },
+      effectContract: { effect: "write" },
+    });
+    const beforeAdjudication = readMcpRecoveryAuthority(sessionId);
+
+    await adjudicateMcpRecovery({
+      sessionId,
+      ledgerId: oldTicket.ledgerId,
+      decision: "confirmed_not_applied",
+      expectedHeadHash: beforeAdjudication.headHash,
+      expectedRecoveryDigest: beforeAdjudication.recoveryDigest,
+      reason: "confirmed absent from the release registry",
+      requestId: "real-store-host-fence-adjudication",
+    });
+
+    await expect(
+      oldTicket.settle({ output: { published: true } }),
+    ).rejects.toSatisfy(
+      (error) =>
+        error?.code === "CC_MCP_LEDGER_SETTLE_FAILED" &&
+        error?.cause?.code === "CC_MCP_LEDGER_HOST_FENCE_STALE",
+    );
+    await expect(
+      oldLedger.begin({
+        sessionId,
+        turnId: "turn-old-next",
+        serverName: "repo",
+        toolName: "publish",
+        input: { release: 9 },
+        effectContract: { effect: "write" },
+      }),
+    ).rejects.toSatisfy(
+      (error) =>
+        error?.code === "CC_MCP_LEDGER_PREWRITE_FAILED" &&
+        error?.cause?.code === "CC_MCP_LEDGER_HOST_FENCE_STALE",
+    );
+
+    const resumed = readMcpRecoveryAuthority(sessionId);
+    const resumedLedger = createMcpCallLedger({
+      sink: createSessionMcpLedgerSink(sessionId, { recovery: resumed }),
+      randomUUID: () => "resumed-host",
+    });
+    const resumedTicket = await resumedLedger.begin({
+      sessionId,
+      turnId: "turn-resumed",
+      serverName: "repo",
+      toolName: "publish",
+      input: { release: 9 },
+      effectContract: { effect: "write" },
+    });
+    await expect(
+      resumedTicket.settle({ output: { published: true } }),
+    ).resolves.toMatchObject({ status: "completed" });
+
+    const ledgerEvents = sessionStore
+      .readVerifiedEvents(sessionId)
+      .filter((event) => event.type === "mcp_call_ledger");
+    expect(
+      ledgerEvents.filter(
+        (event) => event.data.record.ledgerId === oldTicket.ledgerId,
+      ),
+    ).toHaveLength(1);
+    expect(
+      ledgerEvents.filter(
+        (event) => event.data.record.ledgerId === resumedTicket.ledgerId,
+      ),
+    ).toHaveLength(2);
+  });
 });

@@ -6,6 +6,7 @@ import {
 } from "../../src/lib/mcp-call-ledger.js";
 import {
   MCP_CALL_LEDGER_EVENT,
+  computeMcpRecoveryFenceDigest,
   createMcpLedgerEventReducer,
   createSessionMcpLedgerSink,
   formatMcpLedgerRecoveryNotice,
@@ -62,6 +63,73 @@ function chained(events) {
 }
 
 describe("MCP call ledger session store", () => {
+  it("rotates the host fence only for recovery authority changes", () => {
+    const base = {
+      sessionId: "session-1",
+      headHash: "a".repeat(64),
+      unsettled: [{ ledgerId: "ledger-a" }],
+      incidents: [],
+      adjudications: [],
+      replayDenied: [],
+    };
+    const digest = computeMcpRecoveryFenceDigest(base);
+
+    expect(
+      computeMcpRecoveryFenceDigest({
+        ...base,
+        headHash: "b".repeat(64),
+        unsettled: [{ ledgerId: "ledger-b" }],
+      }),
+    ).toBe(digest);
+    expect(
+      computeMcpRecoveryFenceDigest({
+        ...base,
+        adjudications: [{ requestId: "adjudication-1" }],
+      }),
+    ).not.toBe(digest);
+    const publicAdjudication = {
+      requestId: "adjudication-1",
+      ledgerId: "ledger-a",
+      decision: "confirmed_not_applied",
+      authority: "human_operator",
+      confirmation: "external_side_effect_checked",
+      reasonDigest: `sha256:${"d".repeat(64)}`,
+    };
+    expect(
+      computeMcpRecoveryFenceDigest({
+        ...base,
+        adjudications: [
+          {
+            ...publicAdjudication,
+            sessionId: "session-1",
+            expectedHeadHash: "e".repeat(64),
+            expectedRecoveryDigest: `sha256:${"f".repeat(64)}`,
+          },
+        ],
+      }),
+    ).toBe(
+      computeMcpRecoveryFenceDigest({
+        ...base,
+        adjudications: [publicAdjudication],
+      }),
+    );
+    expect(
+      computeMcpRecoveryFenceDigest({
+        ...base,
+        incidents: [{ code: "CC_MCP_LEDGER_EVENT_CORRUPT" }],
+      }),
+    ).not.toBe(digest);
+    expect(
+      computeMcpRecoveryFenceDigest({
+        ...base,
+        replayDenied: [{ replayDigest: `sha256:${"c".repeat(64)}` }],
+      }),
+    ).not.toBe(digest);
+    expect(
+      computeMcpRecoveryFenceDigest({ ...base, sessionId: "session-2" }),
+    ).not.toBe(digest);
+  });
+
   it("appends content-free started and settled records to the canonical session", async () => {
     const appendEvent = vi.fn(() => true);
     const sink = createSessionMcpLedgerSink("session-1", { appendEvent });

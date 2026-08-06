@@ -158,6 +158,7 @@ describe("Phase 7 parity: plugin-installed skill via run_skill", () => {
         skillDir,
         source: "marketplace",
         mcpServers: [],
+        body: `# ${skillName}\n\nFixture body.`,
       },
     ]);
 
@@ -219,6 +220,7 @@ describe("Phase 7 parity: plugin-installed skill via run_skill", () => {
         skillDir,
         source: "marketplace",
         mcpServers: [],
+        body: `# ${skillName}\n\nFixture body.`,
       },
     ]);
 

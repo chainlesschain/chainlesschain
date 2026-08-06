@@ -13,6 +13,7 @@ import {
 } from "../../src/lib/mcp-ledger-recovery-admission.js";
 import {
   computeMcpExactReplayDigest,
+  createMcpCallLedger,
   summarizeMcpPayload,
 } from "../../src/lib/mcp-call-ledger.js";
 import { deriveMcpExactReplayDenies } from "../../src/lib/mcp-call-ledger-store.js";
@@ -771,6 +772,41 @@ describe("MCP ledger recovery admission", () => {
       3,
       expect.objectContaining({ status: "failed", error: transportError }),
     );
+  });
+
+  it("latches an oversized auxiliary result before it can leave the ledger boundary", async () => {
+    const canary = "AUXILIARY_MCP_RESULT_PRIVATE_CANARY";
+    const rawLedger = createMcpCallLedger({
+      toolResultConfig: { maxToolResultBytes: 64 },
+      randomUUID: () => "aux-result-budget",
+    });
+    const controller = createMcpRecoveryAdmissionController();
+    const client = createRecoveryGuardedMcpClient({
+      client: {
+        callTool: vi.fn(async () => ({ content: canary.repeat(32) })),
+      },
+      ledger: rawLedger,
+      controller,
+      resolveEffect: () => ({ effect: "write" }),
+    });
+
+    const error = await client
+      .callTool("repo", "publish", {})
+      .catch((cause) => cause);
+
+    expect(error).toMatchObject({
+      code: "CC_MCP_LEDGER_OUTCOME_UNKNOWN",
+      phase: "settled",
+      outcomeUnknown: true,
+      retryable: false,
+    });
+    expect(error.message).not.toContain(canary);
+    expect(rawLedger.list()[0]).toMatchObject({ status: "started" });
+    expect(JSON.stringify(rawLedger.list())).not.toContain(canary);
+    expect(controller.admission).toMatchObject({
+      blockMode: "unsafe",
+      reasonCode: "CC_MCP_TOOL_RESULT_TOO_LARGE",
+    });
   });
 
   it("rejects wire-equivalent ambiguous inputs before an exact replay can execute", async () => {

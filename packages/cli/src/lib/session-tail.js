@@ -10,7 +10,31 @@
 
 import { promises as fsp } from "node:fs";
 import { existsSync, statSync } from "node:fs";
-import { sessionPath } from "../harness/jsonl-session-store.js";
+import {
+  getSessionPresence,
+  SESSION_PRESENCE,
+  sessionPath,
+} from "../harness/jsonl-session-store.js";
+
+function assertLiveTranscriptReadable(sessionId) {
+  const presence = getSessionPresence(sessionId);
+  if (
+    presence === SESSION_PRESENCE.PRESENT ||
+    presence === SESSION_PRESENCE.ABSENT
+  ) {
+    return;
+  }
+  const error = new Error(
+    presence === SESSION_PRESENCE.TOMBSTONED
+      ? `Session ${sessionId} has been deleted`
+      : `Session ${sessionId} transcript cannot be verified for live tailing`,
+  );
+  error.code =
+    presence === SESSION_PRESENCE.TOMBSTONED
+      ? "SESSION_DELETED"
+      : "SESSION_TRANSCRIPT_UNVERIFIED";
+  throw error;
+}
 
 function parseLine(line) {
   const trimmed = line.trim();
@@ -53,6 +77,7 @@ function matchesFilter(event, { types, sinceMs }) {
  *   - fromEnd (default): current EOF, so only new events are yielded
  */
 export function initialOffset(sessionId, { fromStart = false } = {}) {
+  assertLiveTranscriptReadable(sessionId);
   const p = sessionPath(sessionId);
   if (!existsSync(p)) return 0;
   if (fromStart) return 0;
@@ -97,6 +122,11 @@ export async function* followSession(sessionId, options = {}) {
   // eslint-disable-next-line no-constant-condition
   while (true) {
     if (signal?.aborted) return;
+
+    // A long-lived tail is a live canonical reader. Re-check the durable
+    // sidecar witness on every poll so external deletion or a tombstoned path
+    // restoration cannot silently turn into empty output or stale replay.
+    assertLiveTranscriptReadable(sessionId);
 
     if (existsSync(filePath)) {
       const stat = await fsp.stat(filePath);

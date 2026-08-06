@@ -16,10 +16,15 @@
  * result or a session listing.
  */
 
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
-import { getHomeDir } from "./paths.js";
+import { writeFileSync } from "node:fs";
 import { executionBroker } from "./process-execution-broker/index.js";
+import {
+  getPrLinks,
+  prLinkLedgerPath,
+  readPrLinkLedger,
+} from "./pr-link-store.js";
+
+export { getPrLinks, prLinkLedgerPath, readPrLinkLedger };
 
 export const _deps = {
   execFile: (...args) => executionBroker.execFile(...args),
@@ -28,21 +33,6 @@ export const _deps = {
 
 const MAX_LINKS_PER_SESSION = 20;
 const MAX_SESSIONS = 500;
-
-export function prLinkLedgerPath() {
-  return join(getHomeDir(), "pr-links.json");
-}
-
-export function readPrLinkLedger() {
-  try {
-    const p = prLinkLedgerPath();
-    if (!existsSync(p)) return {};
-    const parsed = JSON.parse(readFileSync(p, "utf-8"));
-    return parsed && typeof parsed === "object" ? parsed : {};
-  } catch {
-    return {}; // corrupt ledger degrades to empty, never throws
-  }
-}
 
 function writeLedger(ledger) {
   const ids = Object.keys(ledger);
@@ -136,15 +126,6 @@ export function recordPrLink(sessionId, ref, options = {}) {
   ledger[sessionId] = links;
   writeLedger(ledger);
   return incoming;
-}
-
-/** Links for a session, newest first. */
-export function getPrLinks(sessionId) {
-  if (!sessionId) return [];
-  const links = readPrLinkLedger()[sessionId];
-  return Array.isArray(links)
-    ? [...links].sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
-    : [];
 }
 
 function ghPrForBranch(cwd, timeoutMs = 3000) {

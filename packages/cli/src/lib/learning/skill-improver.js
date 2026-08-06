@@ -14,6 +14,7 @@
 import fs from "fs";
 import { firstBalancedJson } from "../json-schema-output.js";
 import path from "path";
+import { assertSkillFileSize, resolveSkillLimits } from "../skill-budget.js";
 
 // ── _deps for test injection ────────────────────────────
 const _deps = { fs, path };
@@ -187,13 +188,14 @@ export class SkillImprover {
    * @param {import("better-sqlite3").Database} db
    * @param {function} llmChat — async (messages) => string
    * @param {import("./trajectory-store.js").TrajectoryStore} trajectoryStore
-   * @param {{skillsDir?:string}} [config]
+   * @param {{skillsDir?:string, limits?:object}} [config]
    */
   constructor(db, llmChat, trajectoryStore, config = {}) {
     this.db = db;
     this.llmChat = llmChat;
     this.trajectoryStore = trajectoryStore;
     this.skillsDir = config.skillsDir || null;
+    this.skillLimits = resolveSkillLimits(config.limits);
   }
 
   /**
@@ -392,7 +394,19 @@ export class SkillImprover {
     if (!this.skillsDir) return null;
     const skillFile = _deps.path.join(this.skillsDir, skillName, "SKILL.md");
     try {
-      return await _deps.fs.promises.readFile(skillFile, "utf-8");
+      if (typeof _deps.fs.promises.lstat === "function") {
+        const stat = await _deps.fs.promises.lstat(skillFile);
+        if (stat.isSymbolicLink() || !stat.isFile()) return null;
+        assertSkillFileSize("SKILL.md", stat.size, this.skillLimits);
+      }
+      const content = await _deps.fs.promises.readFile(skillFile, "utf-8");
+      if (typeof content !== "string") return null;
+      assertSkillFileSize(
+        "SKILL.md",
+        Buffer.byteLength(content, "utf8"),
+        this.skillLimits,
+      );
+      return content;
     } catch {
       return null;
     }
@@ -405,6 +419,11 @@ export class SkillImprover {
    */
   async _writeSkill(skillName, content) {
     if (!this.skillsDir) return;
+    assertSkillFileSize(
+      "SKILL.md",
+      Buffer.byteLength(String(content), "utf8"),
+      this.skillLimits,
+    );
     const skillDir = _deps.path.join(this.skillsDir, skillName);
     const skillFile = _deps.path.join(skillDir, "SKILL.md");
     await _deps.fs.promises.mkdir(skillDir, { recursive: true });

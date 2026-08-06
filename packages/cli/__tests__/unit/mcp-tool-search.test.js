@@ -373,6 +373,26 @@ describe("maybeApplyToolSearch", () => {
     expect(mcp.toolSearchRegistry.deferred.size).toBe(30);
   });
 
+  it("fails closed to byte accounting when the token estimator throws", () => {
+    const mcp = fakeMcp([mcpDef("w", "get")]);
+    const out = maybeApplyToolSearch(mcp, {
+      model: "qwen2.5:7b",
+      provider: "ollama",
+      estimate: () => {
+        throw new Error("estimator unavailable");
+      },
+      config: {
+        enabled: "auto",
+        thresholdRatio: 0.000001,
+        maxResults: 5,
+        alwaysLoad: [],
+      },
+    });
+
+    expect(out).not.toBeNull();
+    expect(out.deferredCount).toBe(1);
+  });
+
   it("enabled=true forces deferral regardless of size and reports via writeErr", () => {
     const mcp = fakeMcp([mcpDef("w", "get")]);
     const lines = [];
@@ -598,10 +618,18 @@ describe("buildToolSearchDefinition / estimateToolDefTokens", () => {
     expect(def.function.parameters.required).toEqual(["query"]);
   });
 
-  it("estimateToolDefTokens is positive for a real def and 0 for garbage", () => {
+  it("never returns zero when estimation or serialization fails", () => {
     expect(estimateToolDefTokens(mcpDef("w", "get"))).toBeGreaterThan(50);
+    expect(
+      estimateToolDefTokens(mcpDef("w", "get"), () => {
+        throw new Error("estimator unavailable");
+      }),
+    ).toBeGreaterThan(0);
+    expect(estimateToolDefTokens(mcpDef("w", "get"), () => 0)).toBeGreaterThan(
+      0,
+    );
     const cyclic = {};
     cyclic.self = cyclic;
-    expect(estimateToolDefTokens(cyclic)).toBe(0);
+    expect(estimateToolDefTokens(cyclic)).toBe(Number.MAX_SAFE_INTEGER);
   });
 });

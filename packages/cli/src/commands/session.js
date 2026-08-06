@@ -4,7 +4,6 @@
  */
 
 import fs from "fs";
-import { numericOption } from "../lib/cli-numeric.js";
 import path from "path";
 import chalk from "chalk";
 import { logger } from "../lib/logger.js";
@@ -52,8 +51,8 @@ import {
   rebuildMessages,
   getJsonlSessionMetadata,
   resolveSessionId,
+  sessionHasPersistedEvidence,
   deleteJsonlSession,
-  readEvents,
   migrateLegacySessions,
   migrateLegacySessionsBatch,
   validateJsonlSession,
@@ -66,6 +65,7 @@ import {
 } from "../lib/workflow-state-reader.js";
 import { executionBroker } from "../lib/process-execution-broker/index.js";
 import { registerSessionMcpRecoveryCommands } from "./session-mcp-recovery.js";
+import { registerSessionShowSubcommand } from "./session-show.js";
 
 export const _deps = {
   execFileSync: (...args) => executionBroker.execFileSync(...args),
@@ -492,106 +492,7 @@ export function registerSessionCommand(program) {
       }
     });
 
-  // session show
-  session
-    .command("show")
-    .description("Show a session's messages")
-    .argument("<id>", "Session ID (or prefix)")
-    .option("-n, --limit <n>", "Max messages to show")
-    .option("--json", "Output as JSON")
-    .action(async (id, options) => {
-      let ctx = null;
-      try {
-        let sess = null;
-
-        // Try JSONL first if enabled
-        const jsonlId = feature("JSONL_SESSION") ? resolveSessionId(id) : null;
-        if (jsonlId) {
-          const metadata = getJsonlSessionMetadata(jsonlId);
-          const msgs = rebuildMessages(jsonlId);
-          sess = {
-            id: jsonlId,
-            title: metadata?.title || "Untitled",
-            provider: metadata?.provider || "",
-            model: metadata?.model || "",
-            message_count: msgs.length,
-            messages: msgs,
-            _store: "jsonl",
-          };
-        }
-
-        // Version-0 DB adapter is loaded only when the canonical transcript is
-        // absent, keeping the JSONL hot path independent from native SQLite.
-        if (!sess) {
-          ctx = await bootstrap({ verbose: program.opts().verbose });
-        }
-        if (!sess && ctx?.db) {
-          const db = ctx.db.getDatabase();
-          sess = getSession(db, id);
-        }
-
-        if (!sess) {
-          logger.error(`Session not found: ${id}`);
-          process.exitCode = 1;
-          return;
-        }
-
-        // PR/session linking: surface PRs this session created/touched.
-        try {
-          const { getPrLinks } = await import("../lib/pr-link-ledger.js");
-          const prLinks = getPrLinks(sess.id);
-          if (prLinks.length > 0) sess.prLinks = prLinks;
-        } catch {
-          // PR decoration is cosmetic
-        }
-
-        if (options.json) {
-          console.log(JSON.stringify(sess, null, 2));
-        } else {
-          logger.log(chalk.bold(sess.title));
-          logger.log(
-            chalk.gray(
-              `ID: ${sess.id}  Provider: ${sess.provider}  Model: ${sess.model}  Messages: ${sess.message_count}`,
-            ),
-          );
-          if (sess.prLinks) {
-            for (const pr of sess.prLinks) {
-              logger.log(
-                chalk.magenta(
-                  `PR: #${pr.number}${pr.state ? ` ${pr.state}` : ""}${pr.url ? `  ${pr.url}` : ""}`,
-                ),
-              );
-            }
-          }
-          logger.log("");
-
-          let messages = sess.messages;
-          if (options.limit) {
-            messages = messages.slice(
-              -numericOption(options.limit, {
-                name: "--limit",
-                integer: true,
-                min: 1,
-              }),
-            );
-          }
-
-          for (const msg of messages) {
-            if (msg.role === "system") continue;
-            const label =
-              msg.role === "user" ? chalk.green("you> ") : chalk.blue("ai> ");
-            const content = (msg.content || "").substring(0, 500);
-            logger.log(`${label}${content}`);
-            logger.log("");
-          }
-        }
-      } catch (err) {
-        logger.error(`Failed: ${err.message}`);
-        process.exitCode = 1;
-      } finally {
-        if (ctx) await shutdown();
-      }
-    });
+  registerSessionShowSubcommand(session, program);
 
   // session pr-status — PR/CI monitor + controlled auto-merge decision (P1-4)
   // for a session's linked PR. Offline-testable via --checks-file; otherwise a
@@ -714,12 +615,36 @@ export function registerSessionCommand(program) {
 
         // Try JSONL first
         const jsonlId = feature("JSONL_SESSION") ? resolveSessionId(id) : null;
+        if (
+          !jsonlId &&
+          feature("JSONL_SESSION") &&
+          sessionHasPersistedEvidence(id)
+        ) {
+          logger.error(
+            `Session ${id} has canonical persistence evidence but no readable transcript.`,
+          );
+          logger.error(
+            "Refusing legacy fallback. Inspect or explicitly delete the damaged JSONL session before reusing its id.",
+          );
+          process.exitCode = 1;
+          return;
+        }
         if (jsonlId) {
           // Tamper gate: a broken hash chain means the transcript was edited
           // outside the store — never silently rebuild it as trusted context.
           const { verifySession } =
             await import("../harness/jsonl-session-store.js");
           const trust = verifySession(jsonlId);
+          if (["missing", "conflict"].includes(trust.status)) {
+            logger.error(
+              `Session ${jsonlId} transcript is unavailable: ${trust.reason}`,
+            );
+            logger.error(
+              "Refusing to resume without canonical history. Inspect or explicitly delete the damaged session before reusing its id.",
+            );
+            process.exitCode = 1;
+            return;
+          }
           if (trust.status === "tampered") {
             if (!options.allowTampered) {
               logger.error(
@@ -812,6 +737,11 @@ export function registerSessionCommand(program) {
         const store = await import("../harness/jsonl-session-store.js");
         const sid =
           id === "last" ? store.getLastSessionId() : store.resolveSessionId(id);
+        if (!sid && id !== "last" && store.sessionHasPersistedEvidence(id)) {
+          throw new Error(
+            `Session ${id} has canonical persistence evidence but no readable transcript`,
+          );
+        }
         if (sid) {
           const { renderAgentSessionMarkdown } =
             await import("../lib/agent-session-export.js");
@@ -991,7 +921,8 @@ export function registerSessionCommand(program) {
     .action(async (id, options) => {
       let ctx = null;
       try {
-        const jsonlId = resolveSessionId(id);
+        const jsonlId =
+          resolveSessionId(id) || (sessionHasPersistedEvidence(id) ? id : null);
         let db = null;
         try {
           ctx = await bootstrap({ verbose: program.opts().verbose });
@@ -1055,6 +986,11 @@ export function registerSessionCommand(program) {
         ).trim();
         if (!normalized) throw new Error("A non-empty title is required");
         const jsonlId = resolveSessionId(id);
+        if (!jsonlId && sessionHasPersistedEvidence(id)) {
+          throw new Error(
+            `Session ${id} has canonical persistence evidence but no readable transcript`,
+          );
+        }
         let result;
         if (jsonlId) {
           const { renameSession } =
@@ -1273,10 +1209,18 @@ export function registerSessionCommand(program) {
           }
         }
 
-        const anyTampered = (Array.isArray(result) ? result : [result]).some(
-          (item) => item.status === "tampered",
+        const hasVerificationFailure = (
+          Array.isArray(result) ? result : [result]
+        ).some((item) =>
+          [
+            "tampered",
+            "missing",
+            "conflict",
+            "not-found",
+            "invalid-id",
+          ].includes(item.status),
         );
-        if (anyTampered) process.exit(1);
+        if (hasVerificationFailure) process.exit(1);
       } catch (err) {
         logger.error(`Failed: ${err.message}`);
         process.exit(1);

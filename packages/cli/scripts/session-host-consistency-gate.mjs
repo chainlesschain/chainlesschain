@@ -11,7 +11,12 @@
  * independently rebuilt projection agree on the same content-free revision
  * and MCP recovery authority. A damaged sample must be rejected before any
  * host side effect or state transition. A separate two-process fixture proves
- * that one request id has one durable owner before model/tool execution.
+ * that one request id has one durable owner before model/tool execution. An
+ * MCP recovery-generation fixture proves an adjudicated host cannot write its
+ * old settlement or start another call before loading fresh authority. An
+ * external-deletion fixtures prove retained per-session meta/tombstone
+ * witnesses prevent silent transcript resurrection and every host refuses
+ * before side effects.
  */
 
 import { execFileSync, spawn } from "node:child_process";
@@ -35,10 +40,15 @@ import { interactiveAttach } from "../src/commands/background-session.js";
 import { WSAgentHandler } from "../src/gateways/ws/ws-agent-handler.js";
 import { handleSessionResume } from "../src/gateways/ws/session-protocol.js";
 import { startBackgroundSessionServer } from "../src/lib/background-session-transport.js";
+import { createMcpCallLedger } from "../src/lib/mcp-call-ledger.js";
 import {
   createSessionMcpLedgerSink,
   loadMcpLedgerRecovery,
 } from "../src/lib/mcp-call-ledger-store.js";
+import {
+  adjudicateMcpRecovery,
+  readMcpRecoveryAuthority,
+} from "../src/lib/mcp-recovery-adjudication.js";
 import { projectSessionHostObservation } from "../src/lib/session-host-snapshot.js";
 import {
   DURABLE_SYSTEM_MESSAGE_KINDS,
@@ -78,7 +88,9 @@ const GATE_SOURCE_PATHS = [
   "packages/cli/src/harness/session-list-index.js",
   "packages/cli/src/harness/transcript-integrity.js",
   "packages/cli/src/lib/jsonl-session-store.js",
+  "packages/cli/src/lib/doctor-checkup.js",
   "packages/cli/src/lib/session-host-snapshot.js",
+  "packages/cli/src/lib/session-tail.js",
   "packages/cli/src/lib/session-message-provenance.js",
   "packages/cli/src/lib/checkpoint-timeline-authority.js",
   "packages/cli/src/lib/checkpoint-restore-recovery.js",
@@ -93,6 +105,9 @@ const GATE_SOURCE_PATHS = [
   "packages/cli/src/lib/cowork-task-runner.js",
   "packages/cli/src/lib/background-session-transport.js",
   "packages/cli/src/commands/background-session.js",
+  "packages/cli/src/commands/agent.js",
+  "packages/cli/src/commands/session.js",
+  "packages/cli/src/commands/session-show.js",
   "packages/cli/src/commands/checkpoint.js",
   "packages/cli/src/commands/checkpoint-restore-recovery.js",
   "packages/cli/src/commands/compact.js",
@@ -106,6 +121,9 @@ const GATE_SOURCE_PATHS = [
   "packages/cli/scripts/session-host-consistency-gate.mjs",
   "packages/cli/__tests__/fixtures/session-host-ws-claim-race-worker.mjs",
   "packages/cli/__tests__/unit/jsonl-session-store.test.js",
+  "packages/cli/__tests__/unit/doctor-checkup.test.js",
+  "packages/cli/__tests__/unit/headless-runner.test.js",
+  "packages/cli/__tests__/unit/session-tail.test.js",
   "packages/cli/__tests__/unit/prompt-compressor.test.js",
   "packages/cli/__tests__/unit/prompt-compressor-structured-handoff.test.js",
   "packages/cli/__tests__/unit/checkpoint-timeline-authority.test.js",
@@ -116,6 +134,7 @@ const GATE_SOURCE_PATHS = [
   "packages/cli/__tests__/unit/agent-core.test.js",
   "packages/cli/__tests__/unit/cowork-task-runner.test.js",
   "packages/cli/__tests__/unit/mcp-recovery-adjudication.test.js",
+  "packages/cli/__tests__/unit/mcp-recovery-adjudication-store.test.js",
   "packages/cli/__tests__/unit/checkpoint-timeline-command.test.js",
   "packages/cli/__tests__/unit/compact-command.test.js",
   "packages/cli/__tests__/unit/ws-agent-handler.test.js",
@@ -148,6 +167,7 @@ const LIMITATIONS = Object.freeze([
   "no 1GB cold-process p95 or RSS evidence",
   "per-request claim and settlement verification remains O(N) under the writer lock",
   "no fsync, power-loss, or remote-host durability proof",
+  "external deletion refusal covers pre-write loss with the per-session meta/tombstone witness set intact, not concurrent path replacement or loss of either witness",
 ]);
 
 function git(...args) {
@@ -360,6 +380,7 @@ async function observeAuthenticatedBackgroundAttach(sessionId, home) {
 
 function headlessDependencies(store, observations = {}) {
   return {
+    sessionHasPersistedEvidence: store.sessionHasPersistedEvidence,
     sessionExists: store.sessionExists,
     readVerifiedEvents: store.readVerifiedEvents,
     rebuildMessages: store.rebuildMessages,
@@ -461,6 +482,124 @@ function startedMcpRecord(sessionId) {
     outputSummary: null,
     outputDigest: null,
     errorSummary: null,
+  };
+}
+
+function errorCodes(error) {
+  const codes = [];
+  let current = error;
+  while (current && typeof current === "object" && codes.length < 8) {
+    if (typeof current.code === "string") codes.push(current.code);
+    current = current.cause;
+  }
+  return codes;
+}
+
+async function runMcpRecoveryHostFenceScenario(store, home) {
+  process.env.CHAINLESSCHAIN_HOME = home;
+  const sessionId = "session-host-mcp-recovery-fence";
+  store.startSession(sessionId, {
+    title: "MCP recovery host fence fixture",
+    provider: "host-consistency",
+    model: "fixture",
+  });
+  const initialRecovery = readMcpRecoveryAuthority(sessionId);
+  const oldLedger = createMcpCallLedger({
+    sink: createSessionMcpLedgerSink(sessionId, {
+      recovery: initialRecovery,
+    }),
+    randomUUID: () => "old-host",
+  });
+  const oldTicket = await oldLedger.begin({
+    sessionId,
+    turnId: "old-host-turn",
+    serverName: "repo",
+    toolName: "publish",
+    input: { release: "host-fence" },
+    effectContract: { effect: "write" },
+  });
+  const beforeAdjudication = readMcpRecoveryAuthority(sessionId);
+  await adjudicateMcpRecovery({
+    sessionId,
+    ledgerId: oldTicket.ledgerId,
+    decision: "confirmed_not_applied",
+    expectedHeadHash: beforeAdjudication.headHash,
+    expectedRecoveryDigest: beforeAdjudication.recoveryDigest,
+    reason: "host consistency gate confirmed no external application",
+    requestId: "host-consistency-adjudication",
+  });
+
+  let settlementError = null;
+  try {
+    await oldTicket.settle({ output: { published: true } });
+  } catch (error) {
+    settlementError = error;
+  }
+  const settlementCodes = errorCodes(settlementError);
+  assert(
+    settlementCodes.includes("CC_MCP_LEDGER_HOST_FENCE_STALE"),
+    "old MCP host persisted a post-adjudication settlement",
+  );
+
+  let prewriteError = null;
+  try {
+    await oldLedger.begin({
+      sessionId,
+      turnId: "old-host-next-turn",
+      serverName: "repo",
+      toolName: "publish",
+      input: { release: "old-host-next" },
+      effectContract: { effect: "write" },
+    });
+  } catch (error) {
+    prewriteError = error;
+  }
+  const prewriteCodes = errorCodes(prewriteError);
+  assert(
+    prewriteCodes.includes("CC_MCP_LEDGER_HOST_FENCE_STALE"),
+    "old MCP host persisted a post-adjudication prewrite",
+  );
+
+  const resumedRecovery = readMcpRecoveryAuthority(sessionId);
+  const resumedLedger = createMcpCallLedger({
+    sink: createSessionMcpLedgerSink(sessionId, {
+      recovery: resumedRecovery,
+    }),
+    randomUUID: () => "resumed-host",
+  });
+  const resumedTicket = await resumedLedger.begin({
+    sessionId,
+    turnId: "resumed-host-turn",
+    serverName: "repo",
+    toolName: "publish",
+    input: { release: "resumed-host" },
+    effectContract: { effect: "write" },
+  });
+  await resumedTicket.settle({ output: { published: true } });
+
+  const ledgerEvents = store
+    .readVerifiedEvents(sessionId)
+    .filter((event) => event.type === "mcp_call_ledger");
+  const oldEvents = ledgerEvents.filter(
+    (event) => event.data.record.ledgerId === oldTicket.ledgerId,
+  );
+  const resumedEvents = ledgerEvents.filter(
+    (event) => event.data.record.ledgerId === resumedTicket.ledgerId,
+  );
+  assert(oldEvents.length === 1, "old MCP host wrote beyond its durable start");
+  assert(
+    resumedEvents.length === 2,
+    "resumed MCP host did not persist start and settlement",
+  );
+
+  return {
+    pass: true,
+    sessionId,
+    staleSettlementRefused: true,
+    stalePrewriteRefused: true,
+    resumedHostCompleted: true,
+    settlementCodes,
+    prewriteCodes,
   };
 }
 
@@ -1723,6 +1862,515 @@ async function runTamperScenario(store, home) {
   };
 }
 
+async function runMissingTranscriptScenario(store, home) {
+  process.env.CHAINLESSCHAIN_HOME = home;
+  const sessionId = "session-host-consistency-missing-transcript";
+  const original = "SESSION_HOST_MISSING_ORIGINAL_1d7cb4";
+  const stale = "SESSION_HOST_MISSING_STALE_98e00a";
+  const streamInput = "SESSION_HOST_MISSING_STREAM_INPUT_f221a7";
+  store.startSession(sessionId, { title: "missing transcript fixture" });
+  store.appendUserMessage(sessionId, original);
+
+  const transcript = store.sessionPath(sessionId);
+  const metaPath = join(dirname(transcript), `${sessionId}.meta.json`);
+  const anchoredMeta = readFileSync(metaPath, "utf8");
+  rmSync(transcript, { force: true });
+  assert(!existsSync(transcript), "missing transcript fixture was not deleted");
+  assert(
+    store.sessionHasPersistedEvidence(sessionId),
+    "live sidecar was not retained as known-session evidence",
+  );
+  assert(
+    !store.sessionExists(sessionId),
+    "missing transcript was exposed as directly readable",
+  );
+  assert(
+    store.verifySession(sessionId).status === "missing",
+    "missing transcript did not expose a stable verification status",
+  );
+
+  let appendError = null;
+  try {
+    store.appendUserMessage(sessionId, "must not resurrect");
+  } catch (error) {
+    appendError = error;
+  }
+  assert(
+    appendError?.code === "SESSION_TRANSCRIPT_UNVERIFIED",
+    "ordinary append did not refuse a missing anchored transcript",
+  );
+
+  let restartError = null;
+  try {
+    store.startSession(sessionId, { title: "must not restart" });
+  } catch (error) {
+    restartError = error;
+  }
+  assert(
+    restartError?.code === "SESSION_TRANSCRIPT_UNVERIFIED",
+    "session_start silently reused a missing live transcript identity",
+  );
+  assert(!existsSync(transcript), "refused write recreated the transcript");
+  assert(
+    readFileSync(metaPath, "utf8") === anchoredMeta,
+    "refused write changed the surviving sidecar anchor",
+  );
+
+  const replCandidate = prepareReplJsonlResumeCandidate(sessionId);
+  let replCommitCalls = 0;
+  const replCommitted = commitPreparedReplJsonlResume(replCandidate, () => {
+    replCommitCalls += 1;
+  });
+  assert(!replCandidate.ok, "REPL admitted a missing transcript");
+  assert(
+    !replCommitted && replCommitCalls === 0,
+    "REPL committed state from a missing transcript",
+  );
+
+  const configPath = join(home, "config.json");
+  const headlessObservations = {};
+  const headlessResult = await runAgentHeadless(
+    {
+      prompt: "/config llm.model=missing-transcript-model",
+      resume: sessionId,
+      outputFormat: "json",
+      cwd: REPOSITORY_ROOT,
+    },
+    headlessDependencies(store, headlessObservations),
+  );
+  assert(
+    headlessResult.exitCode === 1,
+    "headless admitted a missing transcript",
+  );
+  assert(
+    headlessResult.sessionSnapshot?.verified === false,
+    "headless omitted its content-free missing-transcript refusal",
+  );
+  for (const seam of ["bootstrap", "hooks", "slashMacro", "mcp", "model"]) {
+    assert(
+      Number(headlessObservations[seam] || 0) === 0,
+      `headless touched ${seam} before missing-transcript refusal`,
+    );
+  }
+  assert(
+    !existsSync(configPath),
+    "headless /config wrote before missing-transcript refusal",
+  );
+
+  const streamObservations = {};
+  const streamOutput = [];
+  async function* missingTranscriptInput() {
+    streamObservations.input = Number(streamObservations.input || 0) + 1;
+    yield `${JSON.stringify({ text: streamInput })}\n`;
+  }
+  const streamResult = await runAgentHeadlessStream(
+    {
+      sessionId,
+      cwd: REPOSITORY_ROOT,
+      expandFileRefs: false,
+    },
+    {
+      input: missingTranscriptInput(),
+      writeOut: (line) => streamOutput.push(line),
+      writeErr: () => {},
+      sessionExists: store.sessionHasPersistedEvidence,
+      readVerifiedEvents: store.readVerifiedEvents,
+      readVerifiedProjection: store.readVerifiedProjection,
+      bootstrap: async () => {
+        streamObservations.bootstrap =
+          Number(streamObservations.bootstrap || 0) + 1;
+        return { db: null };
+      },
+      executeHooksV2Event: async () => {
+        streamObservations.hooks = Number(streamObservations.hooks || 0) + 1;
+        return { blocked: false, decision: "allow" };
+      },
+      resolveAgentMcp: async () => {
+        streamObservations.mcp = Number(streamObservations.mcp || 0) + 1;
+        return null;
+      },
+      agentLoop: async function* () {
+        streamObservations.model = Number(streamObservations.model || 0) + 1;
+        yield { type: "response-complete", content: "must not execute" };
+      },
+      appendUserMessage: () => {
+        streamObservations.append = Number(streamObservations.append || 0) + 1;
+      },
+    },
+  );
+  assert(streamResult.exitCode === 1, "stream admitted a missing transcript");
+  for (const seam of [
+    "input",
+    "bootstrap",
+    "hooks",
+    "mcp",
+    "model",
+    "append",
+  ]) {
+    assert(
+      Number(streamObservations[seam] || 0) === 0,
+      `stream touched ${seam} before missing-transcript refusal`,
+    );
+  }
+  const streamEvidence = streamOutput.join("");
+  assert(
+    streamEvidence.includes("CC_SESSION_HOST_SNAPSHOT_UNVERIFIED"),
+    "stream missing-transcript refusal omitted the stable error code",
+  );
+
+  let backgroundError = null;
+  try {
+    await observeAuthenticatedBackgroundAttach(sessionId, home);
+  } catch (error) {
+    backgroundError = error;
+  }
+  const backgroundSnapshot = backgroundError?.sessionSnapshot || null;
+  assert(
+    backgroundError?.code === "CC_SESSION_HOST_SNAPSHOT_UNVERIFIED" &&
+      backgroundSnapshot?.verified === false,
+    "authenticated background attach admitted a missing transcript",
+  );
+
+  const wsHarness = createWsHarness(
+    sessionId,
+    stale,
+    "missing-transcript-system-prompt",
+  );
+  await handleSessionResume(
+    wsHarness.server,
+    "host-consistency-missing-transcript",
+    {},
+    { sessionId },
+  );
+  const wsError = wsHarness.sent.at(-1);
+  assert(wsError?.type === "error", "WebSocket admitted a missing transcript");
+  assert(
+    wsError?.payload?.code === "CC_SESSION_HOST_SNAPSHOT_UNVERIFIED",
+    "WebSocket missing-transcript refusal used the wrong error code",
+  );
+  assert(
+    wsHarness.resumeCalls() === 0 && wsHarness.emitted.length === 0,
+    "WebSocket resumed or emitted state from a missing transcript",
+  );
+
+  const publicEvidence = JSON.stringify({
+    replSnapshot: replCandidate.sessionSnapshot,
+    headlessSnapshot: headlessResult.sessionSnapshot,
+    backgroundSnapshot,
+    wsError,
+  });
+  for (const secret of [original, stale, streamInput]) {
+    assert(
+      !publicEvidence.includes(secret) && !streamEvidence.includes(secret),
+      "missing-transcript refusal evidence leaked content",
+    );
+  }
+
+  assert(
+    store.deleteJsonlSession(sessionId),
+    "explicit delete did not acknowledge the missing transcript generation",
+  );
+  assert(
+    !store.sessionExists(sessionId),
+    "explicit delete did not tombstone the missing transcript generation",
+  );
+  const tombstoneObservations = {};
+  const tombstoneResume = await runAgentHeadless(
+    {
+      prompt: "/config llm.model=tombstone-must-not-recreate",
+      resume: sessionId,
+      outputFormat: "json",
+      cwd: REPOSITORY_ROOT,
+    },
+    headlessDependencies(store, tombstoneObservations),
+  );
+  assert(
+    tombstoneResume.exitCode === 1 &&
+      tombstoneResume.sessionSnapshot?.verified === false,
+    "headless resume implicitly recreated a tombstoned session",
+  );
+  for (const seam of ["bootstrap", "hooks", "slashMacro", "mcp", "model"]) {
+    assert(
+      Number(tombstoneObservations[seam] || 0) === 0,
+      `headless touched ${seam} before tombstone refusal`,
+    );
+  }
+  assert(
+    !store.sessionExists(sessionId),
+    "headless resume recreated the tombstoned transcript",
+  );
+  store.startSession(sessionId, { title: "explicitly recreated" });
+  const recreated = store.readVerifiedEvents(sessionId);
+  assert(
+    recreated.length === 1 && recreated[0].type === "session_start",
+    "explicit recreation did not produce a clean anchored generation",
+  );
+
+  return {
+    pass: true,
+    sessionId,
+    errorCode: wsError.payload.code,
+    appendRefusedWithoutRecreation: true,
+    sessionStartRefusedWithoutRecreation: true,
+    survivingAnchorUnchanged: true,
+    replRefusedBeforeCommit: replCommitCalls === 0,
+    headlessRefusedBeforeSideEffects: true,
+    streamRefusedBeforeSideEffects: true,
+    configWritePrevented: true,
+    backgroundRefused: backgroundSnapshot.verified === false,
+    websocketRefusedBeforeResume: wsHarness.resumeCalls() === 0,
+    contentFreeFailureEvidence: true,
+    tombstoneResumeRefusedBeforeSideEffects: true,
+    explicitDeleteThenRecreateVerified: true,
+  };
+}
+
+async function runRestoredTranscriptConflictScenario(store, home) {
+  process.env.CHAINLESSCHAIN_HOME = home;
+  const olderId = "session-host-consistency-zz-older-live";
+  const sessionId = "session-host-consistency-aa-restored-conflict";
+  const original = "SESSION_HOST_CONFLICT_ORIGINAL_0a41cc";
+  const stale = "SESSION_HOST_CONFLICT_STALE_5a9b31";
+  const streamInput = "SESSION_HOST_CONFLICT_STREAM_INPUT_4c81d2";
+
+  const originalDateNow = Date.now;
+  let transcript;
+  let restoredTranscript;
+  try {
+    Date.now = () => 4_242;
+    store.startSession(olderId, { title: "older live fixture" });
+    store.startSession(sessionId, { title: "restored conflict fixture" });
+    store.appendUserMessage(sessionId, original);
+    transcript = store.sessionPath(sessionId);
+    restoredTranscript = readFileSync(transcript, "utf8");
+    assert(
+      store.deleteJsonlSession(sessionId),
+      "conflict fixture could not publish its tombstone",
+    );
+  } finally {
+    Date.now = originalDateNow;
+  }
+  writeFileSync(transcript, restoredTranscript, "utf8");
+  assert(
+    existsSync(join(dirname(transcript), `${sessionId}.tombstone`)),
+    "committed tombstone omitted its durable namespace witness",
+  );
+  assert(
+    store.getSessionPresence(sessionId) === "conflict" &&
+      store.verifySession(sessionId).status === "conflict",
+    "restored transcript was not fenced behind its tombstone",
+  );
+
+  // Prove --continue does not trust the disposable activity journal. Keep one
+  // valid but stale older snapshot while dropping every conflict record; the
+  // enumerable tombstone marker must still select the newer damaged identity.
+  const sessionsDir = dirname(transcript);
+  const olderMeta = JSON.parse(
+    readFileSync(join(sessionsDir, `${olderId}.meta.json`), "utf8"),
+  );
+  writeFileSync(
+    join(sessionsDir, ".sessions-index-v2.ndjson"),
+    `\n${JSON.stringify(olderMeta)}\n`,
+    "utf8",
+  );
+  assert(
+    store.getLastSessionId() === sessionId,
+    "latest conflict was hidden by a parseable stale activity journal",
+  );
+
+  const replCandidate = prepareReplJsonlResumeCandidate(sessionId);
+  let replCommitCalls = 0;
+  const replCommitted = commitPreparedReplJsonlResume(replCandidate, () => {
+    replCommitCalls += 1;
+  });
+  assert(!replCandidate.ok, "REPL admitted a restored transcript conflict");
+  assert(
+    !replCommitted && replCommitCalls === 0,
+    "REPL committed state from a restored transcript conflict",
+  );
+
+  const configPath = join(home, "config.json");
+  const continueObservations = {};
+  const continueDependencies = headlessDependencies(
+    store,
+    continueObservations,
+  );
+  continueDependencies.getLastSessionId = store.getLastSessionId;
+  const continueResult = await runAgentHeadless(
+    {
+      prompt: "/config llm.model=conflict-continue-must-not-write",
+      continueSession: true,
+      outputFormat: "json",
+      cwd: REPOSITORY_ROOT,
+    },
+    continueDependencies,
+  );
+  assert(
+    continueResult.exitCode === 1 &&
+      continueResult.sessionSnapshot?.verified === false,
+    "headless --continue admitted a restored transcript conflict",
+  );
+  for (const seam of ["bootstrap", "hooks", "slashMacro", "mcp", "model"]) {
+    assert(
+      Number(continueObservations[seam] || 0) === 0,
+      `headless --continue touched ${seam} before conflict refusal`,
+    );
+  }
+
+  const persistOnlyObservations = {};
+  const persistOnlyResult = await runAgentHeadless(
+    {
+      prompt: "/config llm.model=conflict-persist-must-not-write",
+      sessionId,
+      persistSession: true,
+      outputFormat: "json",
+      cwd: REPOSITORY_ROOT,
+    },
+    headlessDependencies(store, persistOnlyObservations),
+  );
+  assert(
+    persistOnlyResult.exitCode === 1 &&
+      persistOnlyResult.sessionSnapshot?.verified === false,
+    "headless persist-only admitted a restored transcript conflict",
+  );
+  for (const seam of ["bootstrap", "hooks", "slashMacro", "mcp", "model"]) {
+    assert(
+      Number(persistOnlyObservations[seam] || 0) === 0,
+      `headless persist-only touched ${seam} before conflict refusal`,
+    );
+  }
+  assert(
+    !existsSync(configPath),
+    "headless wrote config before restored-conflict refusal",
+  );
+
+  const streamObservations = {};
+  const streamOutput = [];
+  async function* conflictInput() {
+    streamObservations.input = Number(streamObservations.input || 0) + 1;
+    yield `${JSON.stringify({ text: streamInput })}\n`;
+  }
+  const streamResult = await runAgentHeadlessStream(
+    { sessionId, cwd: REPOSITORY_ROOT, expandFileRefs: false },
+    {
+      input: conflictInput(),
+      writeOut: (line) => streamOutput.push(line),
+      writeErr: () => {},
+      sessionHasPersistedEvidence: store.sessionHasPersistedEvidence,
+      sessionExists: store.sessionExists,
+      readVerifiedEvents: store.readVerifiedEvents,
+      readVerifiedProjection: store.readVerifiedProjection,
+      bootstrap: async () => {
+        streamObservations.bootstrap =
+          Number(streamObservations.bootstrap || 0) + 1;
+        return { db: null };
+      },
+      executeHooksV2Event: async () => {
+        streamObservations.hooks = Number(streamObservations.hooks || 0) + 1;
+        return { blocked: false, decision: "allow" };
+      },
+      resolveAgentMcp: async () => {
+        streamObservations.mcp = Number(streamObservations.mcp || 0) + 1;
+        return null;
+      },
+      agentLoop: async function* () {
+        streamObservations.model = Number(streamObservations.model || 0) + 1;
+        yield { type: "response-complete", content: "must not execute" };
+      },
+      appendUserMessage: () => {
+        streamObservations.append = Number(streamObservations.append || 0) + 1;
+      },
+    },
+  );
+  assert(
+    streamResult.exitCode === 1,
+    "stream admitted a restored transcript conflict",
+  );
+  for (const seam of [
+    "input",
+    "bootstrap",
+    "hooks",
+    "mcp",
+    "model",
+    "append",
+  ]) {
+    assert(
+      Number(streamObservations[seam] || 0) === 0,
+      `stream touched ${seam} before conflict refusal`,
+    );
+  }
+  const streamEvidence = streamOutput.join("");
+  assert(
+    streamEvidence.includes("CC_SESSION_HOST_SNAPSHOT_UNVERIFIED"),
+    "stream conflict refusal omitted the stable error code",
+  );
+
+  let backgroundError = null;
+  try {
+    await observeAuthenticatedBackgroundAttach(sessionId, home);
+  } catch (error) {
+    backgroundError = error;
+  }
+  const backgroundSnapshot = backgroundError?.sessionSnapshot || null;
+  assert(
+    backgroundError?.code === "CC_SESSION_HOST_SNAPSHOT_UNVERIFIED" &&
+      backgroundSnapshot?.verified === false,
+    "authenticated background attach admitted a restored conflict",
+  );
+
+  const wsHarness = createWsHarness(
+    sessionId,
+    stale,
+    "restored-conflict-system-prompt",
+  );
+  await handleSessionResume(
+    wsHarness.server,
+    "host-consistency-restored-conflict",
+    {},
+    { sessionId },
+  );
+  const wsError = wsHarness.sent.at(-1);
+  assert(wsError?.type === "error", "WebSocket admitted a restored conflict");
+  assert(
+    wsError?.payload?.code === "CC_SESSION_HOST_SNAPSHOT_UNVERIFIED",
+    "WebSocket conflict refusal used the wrong error code",
+  );
+  assert(
+    wsHarness.resumeCalls() === 0 && wsHarness.emitted.length === 0,
+    "WebSocket resumed or emitted state from a restored conflict",
+  );
+
+  const publicEvidence = JSON.stringify({
+    replSnapshot: replCandidate.sessionSnapshot,
+    continueSnapshot: continueResult.sessionSnapshot,
+    persistOnlySnapshot: persistOnlyResult.sessionSnapshot,
+    backgroundSnapshot,
+    wsError,
+  });
+  for (const secret of [original, stale, streamInput]) {
+    assert(
+      !publicEvidence.includes(secret) && !streamEvidence.includes(secret),
+      "restored-conflict refusal evidence leaked content",
+    );
+  }
+
+  return {
+    pass: true,
+    sessionId,
+    errorCode: wsError.payload.code,
+    parseableStaleJournalFenced: true,
+    equalTimestampRiskTieFenced: true,
+    replRefusedBeforeCommit: replCommitCalls === 0,
+    continueRefusedBeforeSideEffects: true,
+    persistOnlyRefusedBeforeSideEffects: true,
+    streamRefusedBeforeSideEffects: true,
+    configWritePrevented: true,
+    backgroundRefused: backgroundSnapshot.verified === false,
+    websocketRefusedBeforeResume: wsHarness.resumeCalls() === 0,
+    contentFreeFailureEvidence: true,
+  };
+}
+
 export async function runSessionHostConsistencyGate() {
   const started = performance.now();
   const resultFile = outputPath();
@@ -1740,7 +2388,8 @@ export async function runSessionHostConsistencyGate() {
     platform: process.platform,
     arch: process.arch,
     node: process.version,
-    proofScope: "host-adapter-conformance-plus-ws-request-claim-fencing",
+    proofScope:
+      "host-adapter-conformance-plus-ws-request-claim-mcp-recovery-and-missing-or-restored-conflict-fencing",
     limitations: [...LIMITATIONS],
     scenarios: {},
     violations: [],
@@ -1811,8 +2460,26 @@ export async function runSessionHostConsistencyGate() {
         join(root, "ws-model-tamper-home"),
       ),
     );
+    await runScenario("mcpRecoveryHostFence", () =>
+      runMcpRecoveryHostFenceScenario(
+        store,
+        join(root, "mcp-recovery-fence-home"),
+      ),
+    );
     await runScenario("tamperRefusal", () =>
       runTamperScenario(store, join(root, "tamper-home")),
+    );
+    await runScenario("missingTranscriptRefusal", () =>
+      runMissingTranscriptScenario(
+        store,
+        join(root, "missing-transcript-home"),
+      ),
+    );
+    await runScenario("restoredTranscriptConflictRefusal", () =>
+      runRestoredTranscriptConflictScenario(
+        store,
+        join(root, "restored-transcript-conflict-home"),
+      ),
     );
 
     for (const [name, scenario] of Object.entries(result.scenarios)) {

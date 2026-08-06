@@ -11,7 +11,21 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import { EventEmitter } from "events";
-import { MCPClient } from "../../src/lib/mcp-client.js";
+import { MCPClient, _deps } from "../../src/lib/mcp-client.js";
+
+beforeEach(() => {
+  _deps.consumeMcpStdioExecutionAuthority = () => ({
+    approvalKind: "test-fixture",
+  });
+  _deps.materializeApprovedMcpStdioInvocation = (_approval, { config }) =>
+    config;
+  _deps.prepareMcpStdioExecutableIdentity = ({ config }) => ({
+    command: config.command,
+    args: config.args || [],
+    identity: null,
+    authority: Object.freeze({}),
+  });
+});
 
 function handshakeResult(method) {
   switch (method) {
@@ -24,6 +38,8 @@ function handshakeResult(method) {
       return { tools: [{ name: "doit" }] };
     case "resources/list":
       return { resources: [] };
+    case "resources/templates/list":
+      return { resourceTemplates: [] };
     case "prompts/list":
       return { prompts: [] };
     default:
@@ -68,7 +84,9 @@ function makeFakeProc() {
         setImmediate(() => {
           proc.stdout.emit(
             "data",
-            Buffer.from(JSON.stringify({ jsonrpc: "2.0", id: msg.id, result }) + "\n"),
+            Buffer.from(
+              JSON.stringify({ jsonrpc: "2.0", id: msg.id, result }) + "\n",
+            ),
           );
         });
       }

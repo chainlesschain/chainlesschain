@@ -15,9 +15,39 @@
  * the teardown happened.
  */
 
-import { describe, it, expect, vi } from "vitest";
+import { afterEach, beforeEach, describe, it, expect, vi } from "vitest";
 import { EventEmitter } from "events";
-import { MCPClient } from "../../src/lib/mcp-client.js";
+import { MCPClient, _deps } from "../../src/lib/mcp-client.js";
+
+const originalSpawn = _deps.spawn;
+const originalFetch = _deps.fetch;
+const originalTerminator = _deps.terminateOwnedProcessTree;
+const originalConsume = _deps.consumeMcpStdioExecutionAuthority;
+const originalMaterialize = _deps.materializeApprovedMcpStdioInvocation;
+const originalPrepareIdentity = _deps.prepareMcpStdioExecutableIdentity;
+
+beforeEach(() => {
+  _deps.consumeMcpStdioExecutionAuthority = () => ({
+    approvalKind: "test-fixture",
+  });
+  _deps.materializeApprovedMcpStdioInvocation = (_approval, { config }) =>
+    config;
+  _deps.prepareMcpStdioExecutableIdentity = ({ config }) => ({
+    command: config.command,
+    args: config.args || [],
+    identity: null,
+    authority: Object.freeze({}),
+  });
+});
+
+afterEach(() => {
+  _deps.spawn = originalSpawn;
+  _deps.fetch = originalFetch;
+  _deps.terminateOwnedProcessTree = originalTerminator;
+  _deps.consumeMcpStdioExecutionAuthority = originalConsume;
+  _deps.materializeApprovedMcpStdioInvocation = originalMaterialize;
+  _deps.prepareMcpStdioExecutableIdentity = originalPrepareIdentity;
+});
 
 // A child whose stdin write fails — `_sendRequest("initialize")` rejects at once.
 function makeBrokenProc() {
@@ -38,10 +68,9 @@ function makeBrokenProc() {
 
 describe("MCPClient stdio — connect-failure cleanup", () => {
   it("kills the spawned child and removes its listeners when the handshake fails", async () => {
-    const mod = await import("../../src/lib/mcp-client.js");
     const client = new MCPClient();
     const proc = makeBrokenProc();
-    mod._deps.spawn = vi.fn(() => proc);
+    _deps.spawn = vi.fn(() => proc);
 
     await expect(
       client.connect("srv", {
@@ -50,7 +79,7 @@ describe("MCPClient stdio — connect-failure cleanup", () => {
       }),
     ).rejects.toThrow(/EPIPE/);
 
-    expect(mod._deps.spawn).toHaveBeenCalledWith(
+    expect(_deps.spawn).toHaveBeenCalledWith(
       "fake-mcp",
       ["--root", "path with spaces"],
       expect.objectContaining({
@@ -58,8 +87,15 @@ describe("MCPClient stdio — connect-failure cleanup", () => {
         policy: "allow",
         scope: "mcp",
         shell: false,
+        windowsHide: true,
+        detached: process.platform !== "win32",
       }),
     );
+    if (process.platform === "win32") {
+      expect(_deps.spawn.mock.calls[0][2]).toMatchObject({
+        requiredBoundaries: ["process-tree"],
+      });
+    }
 
     // The orphan-prevention invariant: process reaped, registry clean,
     // listeners dropped (no dangling stdout/stderr/close/error handlers).
@@ -74,14 +110,39 @@ describe("MCPClient stdio — connect-failure cleanup", () => {
   it("leaves no process to clean up for an http transport failure", async () => {
     // HTTP transport spawns no child; the same catch path must be a no-op for
     // entry.process === undefined (the `if (entry.process)` guard).
-    const mod = await import("../../src/lib/mcp-client.js");
     const client = new MCPClient();
-    mod._deps.fetch = async () => {
+    _deps.fetch = async () => {
       throw new Error("ECONNREFUSED");
     };
     await expect(
       client.connect("web", { url: "http://127.0.0.1:1/mcp" }),
     ).rejects.toThrow();
     expect(client.servers.has("web")).toBe(false);
+  });
+
+  it("fails an explicit disconnect when the owned tree misses its deadline", async () => {
+    const client = new MCPClient();
+    const proc = makeBrokenProc();
+    proc.pid = 4321;
+    client.servers.set("srv", {
+      state: "connected",
+      process: proc,
+      config: {},
+      tools: [],
+      _toolMetadataBytes: 0,
+    });
+    _deps.terminateOwnedProcessTree = vi.fn(async () => ({
+      pid: proc.pid,
+      verifiable: true,
+      closed: false,
+      treeTerminated: false,
+      confirmed: false,
+      deadlineExceeded: true,
+    }));
+
+    await expect(client.disconnect("srv")).rejects.toMatchObject({
+      code: "CC_MCP_STDIO_PROCESS_TREE_CLEANUP_TIMEOUT",
+    });
+    expect(client.servers.has("srv")).toBe(false);
   });
 });

@@ -27,16 +27,19 @@ import {
 } from "../../src/harness/mcp-client.js";
 import { _deps as ideDeps } from "../../src/lib/ide-bridge.js";
 import { loadIdeMcp } from "../../src/runtime/mcp-config.js";
+import { textByteStream } from "../helpers/mcp-http-response.js";
 
 // ─── fake Streamable-HTTP MCP endpoint (unit layer) ─────────────────────────
 
 function resp(status, jsonBody) {
+  const text = jsonBody == null ? "" : JSON.stringify(jsonBody);
   return {
     ok: status >= 200 && status < 300,
     status,
     headers: { get: () => null },
+    body: textByteStream(text),
     json: async () => jsonBody,
-    text: async () => (jsonBody == null ? "" : JSON.stringify(jsonBody)),
+    text: async () => text,
   };
 }
 const rpc = (id, result) => resp(200, { jsonrpc: "2.0", id, result });
@@ -74,7 +77,7 @@ function fakeEndpoint({ token = null, marker = "x", toolError = null } = {}) {
           return resp(200, {
             jsonrpc: "2.0",
             id: body.id,
-            error: { message: toolError },
+            error: { code: -32000, message: toolError },
           });
         }
         return rpc(body.id, {
@@ -209,8 +212,11 @@ describe("MCPClient hot reconnect (unit, fake fetch)", () => {
     const reconnector = vi.fn();
     client.setReconnector("ide", reconnector);
 
-    await expect(client.callTool("ide", "ping", {})).rejects.toThrow("boom");
+    await expect(client.callTool("ide", "ping", {})).rejects.toThrow(
+      "MCP server returned a JSON-RPC error",
+    );
     expect(reconnector).not.toHaveBeenCalled();
+    expect(a.calls).toBe(1);
   });
 
   it("does not retry without a reconnector", async () => {

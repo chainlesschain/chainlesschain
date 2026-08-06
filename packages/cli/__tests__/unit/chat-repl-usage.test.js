@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { Writable } from "node:stream";
 
 let tmpHome;
 const originalFetch = globalThis.fetch;
@@ -38,6 +39,14 @@ function stream(chunks) {
       };
     },
   };
+}
+
+function outputSink() {
+  return new Writable({
+    write(_chunk, _encoding, callback) {
+      callback();
+    },
+  });
 }
 
 describe("chat-repl — session autorecord", () => {
@@ -84,10 +93,16 @@ describe("chat-repl — session autorecord", () => {
       return capturedRl;
     };
 
+    const stdout = outputSink();
+    const stderr = outputSink();
+    const originalStdoutWrite = stdout.write;
+    const originalStderrWrite = stderr.write;
     await startChatRepl({
       provider: "ollama",
       model: "qwen2:7b",
       baseUrl: "http://localhost:11434",
+      stdout,
+      stderr,
     });
 
     // Trigger line handler synchronously, wait for async handler
@@ -129,6 +144,16 @@ describe("chat-repl — session autorecord", () => {
       model: "qwen2:7b",
       usage: { input_tokens: 20, output_tokens: 10 },
     });
+
+    const exit = vi.spyOn(process, "exit").mockImplementation(() => undefined);
+    try {
+      await capturedRl._handlers.close();
+      expect(exit).toHaveBeenCalledWith(0);
+      expect(stdout.write).toBe(originalStdoutWrite);
+      expect(stderr.write).toBe(originalStderrWrite);
+    } finally {
+      exit.mockRestore();
+    }
 
     vi.doUnmock("readline");
   });
