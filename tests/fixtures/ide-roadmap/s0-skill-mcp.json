@@ -15,6 +15,11 @@
   "expected": {
     "skillReauthorizationRequired": true,
     "directHandlerImports": 0,
+    "defaultConfirmationRequired": true,
+    "unapprovedTransportCalls": 0,
+    "unapprovedMutationCount": 0,
+    "claimedReadRemainsUnknownWithoutHostAuthorization": true,
+    "staleHostReadCannotDowngradeRisk": true,
     "unknownEffectsSerialized": true,
     "ledgerPrewriteRequired": true
   }
