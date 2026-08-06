@@ -1571,6 +1571,7 @@ function assertHostReadySignal({
   phase,
   extensionsDir,
   workspaceDir,
+  workspaceFolders,
 }) {
   let value;
   try {
@@ -1611,6 +1612,39 @@ function assertHostReadySignal({
   }
   if (signaledWorkspace !== expectedWorkspace) {
     throw new Error(`host ready signal workspace mismatch: ${phase}`);
+  }
+  if (workspaceFolders) {
+    if (!Array.isArray(value.workspaceFolders)) {
+      throw new Error(
+        `host ready signal has no multi-root workspace list: ${phase}`,
+      );
+    }
+    let signaledWorkspaceFolders;
+    let expectedWorkspaceFolders;
+    try {
+      signaledWorkspaceFolders = value.workspaceFolders.map((workspaceFolder) =>
+        normalizePathForCompare(fs.realpathSync(workspaceFolder || "")),
+      );
+      expectedWorkspaceFolders = workspaceFolders.map((workspaceFolder) =>
+        normalizePathForCompare(fs.realpathSync(workspaceFolder)),
+      );
+    } catch (error) {
+      throw new Error(
+        `host ready signal contains an unresolved multi-root path: ${phase}`,
+        { cause: error },
+      );
+    }
+    if (
+      signaledWorkspaceFolders.length !== expectedWorkspaceFolders.length ||
+      signaledWorkspaceFolders.some(
+        (workspaceFolder, index) =>
+          workspaceFolder !== expectedWorkspaceFolders[index],
+      )
+    ) {
+      throw new Error(
+        `host ready signal multi-root workspace mismatch: ${phase}`,
+      );
+    }
   }
   if (!isExactIsoTimestamp(value.readyAt)) {
     throw new Error(`host ready signal has no exact timestamp: ${phase}`);
@@ -1682,6 +1716,7 @@ function assertJourneyArtifacts({
   runtimeDir,
   extensionsDir,
   workspaceDir,
+  workspaceFolders,
 }) {
   const tracePath = path.join(artifactDir, "cdp-journey.jsonl");
   const cdpRecords = readJsonLines(tracePath);
@@ -1828,6 +1863,7 @@ function assertJourneyArtifacts({
       phase,
       extensionsDir,
       workspaceDir,
+      workspaceFolders,
     });
     const result = readJourneyResult(
       path.join(runtimeDir, `${phase}-cdp-result.json`),

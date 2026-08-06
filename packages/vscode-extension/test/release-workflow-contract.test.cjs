@@ -17,7 +17,9 @@ function workflowJob(workflow, jobId) {
   const start = normalized.indexOf(marker);
   assert.notEqual(start, -1, `workflow job ${jobId} must exist`);
   const bodyStart = start + marker.length;
-  const nextJob = normalized.slice(bodyStart).match(/\n  [a-z][a-z0-9-]*:\n/u);
+  const nextJob = normalized
+    .slice(bodyStart)
+    .match(/\n {2}[a-z][a-z0-9-]*:\n/u);
   const end = nextJob ? bodyStart + nextJob.index : normalized.length;
   return normalized.slice(start, end);
 }
@@ -273,7 +275,7 @@ test("IDE release tags are isolated and manual Marketplace backfill is tag-bound
 test("VS Code host gates pin macOS Intel and share the main-world relay", () => {
   const workflow = read(".github/workflows/ide-extensions.yml");
   const macGate = workflow.match(
-    /vscode-macos-smoke:[\s\S]*?(?=\n  [a-z][a-z0-9-]+:)/u,
+    /vscode-macos-smoke:[\s\S]*?(?=\n {2}[a-z][a-z0-9-]+:)/u,
   );
 
   assert.ok(macGate, "macOS host gate job must exist");
@@ -341,14 +343,14 @@ test("VS Code host gates pin macOS Intel and share the main-world relay", () => 
   );
   assert.equal(
     macGate[0].match(
-      /- name: Extension Host smoke \(macOS (?:stable|minimum 1\.85\.2)\)\n\s+(?:if: always\(\)\n\s+)?timeout-minutes: 15/gu,
+      /- name: Extension Host multi-root journey \(macOS (?:stable|minimum 1\.85\.2)\)\n\s+(?:if: always\(\)\n\s+)?timeout-minutes: 15/gu,
     )?.length,
     2,
     "both real-DOM host gates must fail within a diagnostic step deadline",
   );
   assert.match(
     macGate[0],
-    /- name: Extension Host smoke \(macOS minimum 1\.85\.2\)\n\s+if: always\(\)/u,
+    /- name: Extension Host multi-root journey \(macOS minimum 1\.85\.2\)\n\s+if: always\(\)/u,
     "minimum host evidence must still run after a stable-host failure",
   );
   assert.match(

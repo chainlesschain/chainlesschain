@@ -387,6 +387,7 @@ async function runDomRelayJourney({
   artifactDir,
   extensionPath,
   workspaceDir,
+  workspaceFolders,
 }) {
   assert.match(
     token || "",
@@ -427,6 +428,9 @@ async function runDomRelayJourney({
       mode: "dom-relay",
       extensionPath: fs.realpathSync(extensionPath),
       workspaceDir: fs.realpathSync(workspaceDir),
+      workspaceFolders: workspaceFolders.map((workspaceFolder) =>
+        fs.realpathSync(workspaceFolder),
+      ),
       readyAt: new Date().toISOString(),
     });
     await drivePhase(commands, token, phase, traceFile);

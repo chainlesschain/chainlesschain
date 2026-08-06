@@ -199,21 +199,22 @@ jobs:
           chainlesschain-ide.vsix manifest.json
 
       # Windows is a release gate because the bridge lockfile uses a native
-      # owner-only DACL. Exercise both the latest editor and engines.vscode's
-      # minimum supported release from the immutable candidate.
+      # owner-only DACL. Exercise an ordered two-root workspace in both the
+      # latest editor and engines.vscode's minimum supported release from the
+      # immutable candidate.
 
       - name: Install Extension Host test runtime
         run: >-
           npm install --no-save --no-package-lock
           @vscode/test-electron@3.1.0 ws@8.21.2
 
-      - name: Extension Host smoke (Windows stable)
+      - name: Extension Host multi-root journey (Windows stable)
         run: >-
           node test/extension-host/run.cjs --vsix chainlesschain-ide.vsix
           --release-commit ${{ env.IDE_RELEASE_COMMIT }}
           --artifact-dir build/reports/extension-host/windows-stable
 
-      - name: Extension Host smoke (Windows minimum 1.85.2)
+      - name: Extension Host multi-root journey (Windows minimum 1.85.2)
         run: >-
           node test/extension-host/run.cjs --vsix chainlesschain-ide.vsix
           --vscode-version 1.85.2
@@ -261,13 +262,13 @@ jobs:
         run: >-
           npm install --no-save --no-package-lock
           @vscode/test-electron@3.1.0
-      - name: Extension Host smoke (macOS stable)
+      - name: Extension Host multi-root journey (macOS stable)
         timeout-minutes: 15
         run: >-
           node test/extension-host/run.cjs --vsix chainlesschain-ide.vsix
           --release-commit ${{ env.IDE_RELEASE_COMMIT }}
           --artifact-dir build/reports/extension-host/macos-stable
-      - name: Extension Host smoke (macOS minimum 1.85.2)
+      - name: Extension Host multi-root journey (macOS minimum 1.85.2)
         if: always()
         timeout-minutes: 15
         run: >-
@@ -314,7 +315,7 @@ jobs:
       # fresh profile and verify activation, declared commands, and the local
       # IDE Bridge. This catches packaging/activation regressions that ZIP
       # metadata validation cannot detect.
-      - name: Extension Host smoke (Linux stable)
+      - name: Extension Host multi-root journey (Linux stable)
         run: |
           sudo apt-get update
           sudo apt-get install -y xvfb
@@ -324,7 +325,7 @@ jobs:
               --release-commit ${{ env.IDE_RELEASE_COMMIT }} \
               --artifact-dir build/reports/extension-host/linux-stable
 
-      - name: Extension Host smoke (Linux minimum 1.85.2)
+      - name: Extension Host multi-root journey (Linux minimum 1.85.2)
         run: |
           xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" \
             node test/extension-host/run.cjs --vsix chainlesschain-ide.vsix \

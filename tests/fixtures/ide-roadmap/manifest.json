@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "manifestVersion": "1.1.1",
+  "manifestVersion": "1.1.2",
   "baselineCommit": "eb0bc663b6eb794b1b62ba2bfc7a1267c699d25d",
   "releaseEvidence": {
     "commitSource": "git-head-at-run",
@@ -211,7 +211,7 @@
       "priority": "P0",
       "required": true,
       "fixture": "tests/fixtures/ide-roadmap/p0-host-evidence.json",
-      "fixtureDigest": "sha256:a7e941be524939e839116e031af101227074750c31236f46dd21a04a32e7cd94",
+      "fixtureDigest": "sha256:b89778987a362f19132f9143ee2ed87d2cbefc00ac694ff4e307b8a68eca4820",
       "seed": 2026080107,
       "minimumIndependentRuns": 100,
       "matrix": {
@@ -223,7 +223,9 @@
         "missingRequiredArtifactsFail": true,
         "credentialLeakCount": 0,
         "wrongCommitBindingCount": 0,
-        "evidenceReplacementCount": 0
+        "evidenceReplacementCount": 0,
+        "orderedWorkspaceRootsBound": true,
+        "workspaceRootCount": 2
       },
       "testFiles": [
         "packages/cli/__tests__/unit/ide-journey-evidence.test.js",

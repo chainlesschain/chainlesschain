@@ -31,6 +31,7 @@ const {
   resolveVsCodeHostVersion,
   runRealDomPhase,
   settleHostAfterCdp,
+  writeMultiRootWorkspace,
 } = require("./extension-host/run.cjs");
 const {
   CdpClient,
@@ -41,6 +42,7 @@ const {
   WORKBENCH_NEEDS_INPUT_SLA_MS,
   WORKBENCH_NEEDS_INPUT_WARMUP_COUNT,
   acceptJavaScriptDialog,
+  assertHostReadySignal,
   assertJourneyArtifacts,
   buildCdpWebSocketOptions,
   clickSessionsWorkbenchAction,
@@ -179,6 +181,96 @@ test("host phases share installed extensions but isolate user-data profiles", ()
   assert.throws(
     () => buildProfileArgs({ runRoot: root, extensionsDir, phase: "other" }),
     /unknown host profile phase/,
+  );
+});
+
+test("real host fixture opens an ordered two-root workspace with shared settings", () => {
+  const root = temporaryRoot();
+  const fixtureCliCommand = "node fixture-cli.cjs";
+  const layout = writeMultiRootWorkspace(root, fixtureCliCommand);
+
+  assert.equal(layout.workspaceFolders.length, 2);
+  assert.equal(layout.workspaceDir, layout.workspaceFolders[0]);
+  assert.equal(new Set(layout.workspaceFolders).size, 2);
+  assert.ok(
+    layout.workspaceFolders.every((folder) =>
+      fs.statSync(folder).isDirectory(),
+    ),
+  );
+  assert.equal(
+    fs.readFileSync(path.join(layout.workspaceDir, "hello.txt"), "utf8"),
+    "ChainlessChain Extension Host multi-root workspace 1\n",
+  );
+  assert.equal(
+    fs.readFileSync(
+      path.join(layout.workspaceFolders[1], "secondary.txt"),
+      "utf8",
+    ),
+    "ChainlessChain Extension Host multi-root workspace 2\n",
+  );
+
+  const workspace = JSON.parse(fs.readFileSync(layout.workspaceTarget, "utf8"));
+  assert.deepEqual(workspace.folders, [
+    { name: "primary", path: "workspace-primary" },
+    { name: "secondary", path: "workspace-secondary" },
+  ]);
+  assert.equal(
+    workspace.settings["chainlesschain.cli.path"],
+    fixtureCliCommand,
+  );
+  assert.equal(workspace.settings["chainlesschain.cli.managed.enabled"], false);
+});
+
+test("host-ready evidence binds the exact ordered multi-root workspace", () => {
+  const root = temporaryRoot();
+  const extensionsDir = path.join(root, "extensions");
+  const extensionPath = path.join(extensionsDir, "chainlesschain");
+  const workspaceFolders = [
+    path.join(root, "workspace-primary"),
+    path.join(root, "workspace-secondary"),
+  ];
+  for (const directory of [extensionPath, ...workspaceFolders]) {
+    fs.mkdirSync(directory, { recursive: true });
+  }
+  const readyFile = path.join(root, "initial-host-ready.json");
+  const signal = {
+    phase: "initial",
+    extensionPath,
+    workspaceDir: workspaceFolders[0],
+    workspaceFolders,
+    readyAt: "2026-08-06T00:00:00.000Z",
+  };
+  fs.writeFileSync(readyFile, `${JSON.stringify(signal)}\n`, "utf8");
+
+  assert.equal(
+    assertHostReadySignal({
+      readyFile,
+      phase: "initial",
+      extensionsDir,
+      workspaceDir: workspaceFolders[0],
+      workspaceFolders,
+    }).workspaceFolders.length,
+    2,
+  );
+
+  fs.writeFileSync(
+    readyFile,
+    `${JSON.stringify({
+      ...signal,
+      workspaceFolders: [...workspaceFolders].reverse(),
+    })}\n`,
+    "utf8",
+  );
+  assert.throws(
+    () =>
+      assertHostReadySignal({
+        readyFile,
+        phase: "initial",
+        extensionsDir,
+        workspaceDir: workspaceFolders[0],
+        workspaceFolders,
+      }),
+    /multi-root workspace mismatch/,
   );
 });
 

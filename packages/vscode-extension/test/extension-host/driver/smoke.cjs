@@ -50,8 +50,66 @@ function assertPathInside(child, parent) {
   );
 }
 
-async function waitForBridgeLock(profileHome, workspaceDir, timeoutMs) {
+function readExpectedWorkspaceFolders(rawValue, primaryWorkspaceDir) {
+  let workspaceFolders;
+  try {
+    workspaceFolders = JSON.parse(rawValue || "");
+  } catch (error) {
+    throw new Error(
+      "CHAINLESSCHAIN_SMOKE_WORKSPACE_FOLDERS is not valid JSON",
+      {
+        cause: error,
+      },
+    );
+  }
+  assert.ok(
+    Array.isArray(workspaceFolders) && workspaceFolders.length === 2,
+    "real host journey requires exactly two workspace roots",
+  );
+  const normalized = workspaceFolders.map((workspaceFolder) => {
+    assert.equal(
+      typeof workspaceFolder,
+      "string",
+      "workspace root must be a path string",
+    );
+    return normalizeForCompare(fs.realpathSync(workspaceFolder));
+  });
+  assert.equal(
+    new Set(normalized).size,
+    normalized.length,
+    "multi-root journey workspace roots must be distinct",
+  );
+  assert.equal(
+    normalized[0],
+    normalizeForCompare(fs.realpathSync(primaryWorkspaceDir)),
+    "primary workspace must be the first multi-root folder",
+  );
+  return workspaceFolders;
+}
+
+function assertOpenedWorkspaceFolders(expectedWorkspaceFolders) {
+  const actual = (vscode.workspace.workspaceFolders || []).map((folder) =>
+    normalizeForCompare(fs.realpathSync(folder.uri.fsPath)),
+  );
+  const expected = expectedWorkspaceFolders.map((workspaceFolder) =>
+    normalizeForCompare(fs.realpathSync(workspaceFolder)),
+  );
+  assert.deepEqual(
+    actual,
+    expected,
+    "VS Code did not open the exact ordered multi-root workspace",
+  );
+}
+
+async function waitForBridgeLock(
+  profileHome,
+  expectedWorkspaceFolders,
+  timeoutMs,
+) {
   const lockDir = path.join(profileHome, ".chainlesschain", "ide");
+  const expected = expectedWorkspaceFolders.map((workspaceFolder) =>
+    normalizeForCompare(fs.realpathSync(workspaceFolder)),
+  );
   const deadline = Date.now() + timeoutMs;
   let lastError;
   while (Date.now() < deadline) {
@@ -64,13 +122,18 @@ async function waitForBridgeLock(profileHome, workspaceDir, timeoutMs) {
           fs.readFileSync(path.join(lockDir, name), "utf8"),
         );
         const workspaces = Array.isArray(lock.workspaceFolders)
-          ? lock.workspaceFolders.map(normalizeForCompare)
+          ? lock.workspaceFolders.map((workspaceFolder) =>
+              normalizeForCompare(fs.realpathSync(workspaceFolder)),
+            )
           : [];
         if (
           lock.ide === "vscode" &&
           Number.isInteger(lock.port) &&
           lock.port > 0 &&
-          workspaces.includes(normalizeForCompare(workspaceDir))
+          workspaces.length === expected.length &&
+          workspaces.every(
+            (workspaceFolder, index) => workspaceFolder === expected[index],
+          )
         ) {
           return lock;
         }
@@ -204,6 +267,7 @@ async function revealChatAndWaitForDomJourney({
   resultFile,
   extensionPath,
   workspaceDir,
+  workspaceFolders,
 }) {
   assert.ok(phase, "missing CHAINLESSCHAIN_HOST_JOURNEY_PHASE");
   assert.match(phase, /^(?:initial|restart)$/);
@@ -218,6 +282,9 @@ async function revealChatAndWaitForDomJourney({
     phase,
     extensionPath: fs.realpathSync(extensionPath),
     workspaceDir: fs.realpathSync(workspaceDir),
+    workspaceFolders: workspaceFolders.map((workspaceFolder) =>
+      fs.realpathSync(workspaceFolder),
+    ),
     readyAt: new Date().toISOString(),
   });
   await waitForJourneyResult(resultFile, phase, 135_000);
@@ -230,6 +297,7 @@ async function revealChatForHostApiJourney({
   traceFile,
   extensionPath,
   workspaceDir,
+  workspaceFolders,
 }) {
   assert.ok(phase, "missing CHAINLESSCHAIN_HOST_JOURNEY_PHASE");
   assert.match(phase, /^(?:initial|restart)$/);
@@ -246,6 +314,9 @@ async function revealChatForHostApiJourney({
     mode: "host-api",
     extensionPath: fs.realpathSync(extensionPath),
     workspaceDir: fs.realpathSync(workspaceDir),
+    workspaceFolders: workspaceFolders.map((workspaceFolder) =>
+      fs.realpathSync(workspaceFolder),
+    ),
     readyAt: new Date().toISOString(),
   });
   writeSignal(resultFile, {
@@ -266,6 +337,7 @@ async function revealChatAndRunDomRelayJourney({
   token,
   extensionPath,
   workspaceDir,
+  workspaceFolders,
 }) {
   await activateMacHostWindow({
     log: (message) =>
@@ -287,6 +359,7 @@ async function revealChatAndRunDomRelayJourney({
     artifactDir,
     extensionPath,
     workspaceDir,
+    workspaceFolders,
   });
 }
 
@@ -294,6 +367,8 @@ async function run() {
   const extensionsDir = process.env.CHAINLESSCHAIN_SMOKE_EXTENSIONS_DIR;
   const expectedVersion = process.env.CHAINLESSCHAIN_SMOKE_EXPECTED_VERSION;
   const workspaceDir = process.env.CHAINLESSCHAIN_SMOKE_WORKSPACE;
+  const workspaceFoldersJson =
+    process.env.CHAINLESSCHAIN_SMOKE_WORKSPACE_FOLDERS;
   const profileHome = process.env.HOME || process.env.USERPROFILE;
   const journeyPhase = process.env.CHAINLESSCHAIN_HOST_JOURNEY_PHASE;
   const journeyMode = process.env.CHAINLESSCHAIN_HOST_JOURNEY_MODE || "dom";
@@ -305,7 +380,15 @@ async function run() {
   assert.ok(extensionsDir, "missing CHAINLESSCHAIN_SMOKE_EXTENSIONS_DIR");
   assert.ok(expectedVersion, "missing CHAINLESSCHAIN_SMOKE_EXPECTED_VERSION");
   assert.ok(workspaceDir, "missing CHAINLESSCHAIN_SMOKE_WORKSPACE");
+  assert.ok(
+    workspaceFoldersJson,
+    "missing CHAINLESSCHAIN_SMOKE_WORKSPACE_FOLDERS",
+  );
   assert.ok(profileHome, "missing isolated profile home");
+  const workspaceFolders = readExpectedWorkspaceFolders(
+    workspaceFoldersJson,
+    workspaceDir,
+  );
   assert.match(journeyMode, /^(?:dom|dom-relay|host-api)$/);
   if (journeyMode === "host-api" || journeyMode === "dom-relay") {
     assert.ok(traceFile, "missing CHAINLESSCHAIN_HOST_TRACE_FILE");
@@ -319,6 +402,10 @@ async function run() {
     );
   }
   console.log(`[extension-host-smoke] ${journeyPhase}: driver entered`);
+  assertOpenedWorkspaceFolders(workspaceFolders);
+  console.log(
+    `[extension-host-smoke] ${journeyPhase}: ${workspaceFolders.length} workspace roots verified`,
+  );
 
   const extension = vscode.extensions.getExtension(EXTENSION_ID);
   assert.ok(
@@ -380,7 +467,7 @@ async function run() {
   // the owner-only bridge-token ACL. The production publisher is asynchronous
   // and fail-closed with its own 30s deadline; leave enough outer-test margin
   // to capture that diagnostic instead of terminating the Extension Host first.
-  const lock = await waitForBridgeLock(profileHome, workspaceDir, 45_000);
+  const lock = await waitForBridgeLock(profileHome, workspaceFolders, 45_000);
   assert.match(lock.token, /^[a-f0-9]{64}$/, "bridge token is malformed");
   await assertPortListening(lock.port);
   console.log(`[extension-host-smoke] ${journeyPhase}: bridge verified`);
@@ -400,6 +487,7 @@ async function run() {
       traceFile,
       extensionPath: extension.extensionPath,
       workspaceDir,
+      workspaceFolders,
     });
   } else if (journeyMode === "dom-relay") {
     await revealChatAndRunDomRelayJourney({
@@ -411,6 +499,7 @@ async function run() {
       token: hostDomToken,
       extensionPath: extension.extensionPath,
       workspaceDir,
+      workspaceFolders,
     });
   } else {
     await revealChatAndWaitForDomJourney({
@@ -419,6 +508,7 @@ async function run() {
       resultFile,
       extensionPath: extension.extensionPath,
       workspaceDir,
+      workspaceFolders,
     });
   }
 

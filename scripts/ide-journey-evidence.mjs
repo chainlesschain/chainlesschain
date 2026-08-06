@@ -12,6 +12,7 @@ import {
   mkdirSync,
   openSync,
   readFileSync,
+  realpathSync,
   readSync,
   readdirSync,
   statSync,
@@ -274,6 +275,41 @@ function normalizeResult(value) {
   return "unknown";
 }
 
+function normalizeWorkspaceEvidence(value, incidents) {
+  if (value === undefined) return null;
+  if (!Array.isArray(value) || value.length === 0) {
+    incidents.push({ code: "workspace-coordinate-invalid" });
+    return null;
+  }
+  const roots = [];
+  for (const workspaceFolder of value) {
+    if (!requiredText(workspaceFolder)) {
+      incidents.push({ code: "workspace-coordinate-invalid" });
+      return null;
+    }
+    let resolved;
+    try {
+      resolved = realpathSync(workspaceFolder);
+    } catch {
+      incidents.push({ code: "workspace-coordinate-invalid" });
+      return null;
+    }
+    roots.push(
+      process.platform === "win32" ? resolved.toLowerCase() : resolved,
+    );
+  }
+  if (new Set(roots).size !== roots.length) {
+    incidents.push({ code: "workspace-coordinate-invalid" });
+    return null;
+  }
+  return {
+    layout: roots.length > 1 ? "multi-root" : "single-root",
+    rootCount: roots.length,
+    // Bind the ordered roots without publishing user workspace paths.
+    orderedRootsDigest: sha256Buffer(canonicalJson(roots)),
+  };
+}
+
 /** Build and atomically write one immutable, content-addressed evidence file. */
 export function writeIdeJourneyEvidence(options = {}) {
   const artifactDir = path.resolve(options.artifactDir);
@@ -295,6 +331,10 @@ export function writeIdeJourneyEvidence(options = {}) {
   );
   const artifacts = [...captured.records];
   const incidents = [...captured.incidents];
+  const workspace = normalizeWorkspaceEvidence(
+    options.workspaceFolders,
+    incidents,
+  );
 
   for (const rawPath of options.artifactPaths || []) {
     const filePath = path.resolve(rawPath);
@@ -348,6 +388,7 @@ export function writeIdeJourneyEvidence(options = {}) {
     "cli-version-invalid",
     "evidence-artifacts-missing",
     "host-diagnostics-missing",
+    "workspace-coordinate-invalid",
   ]);
 
   const result = normalizeResult(options.result);
@@ -372,6 +413,7 @@ export function writeIdeJourneyEvidence(options = {}) {
       architecture: options.architecture || process.arch,
       transport: options.transport || "local",
     },
+    ...(workspace ? { workspace } : {}),
     cliVersion: options.cliVersion || null,
     extensionVersion: options.extensionVersion || null,
     startedAt,

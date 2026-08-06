@@ -191,33 +191,57 @@ function recordHostProgress(progressPath, stage) {
   );
 }
 
-function writeWorkspace(workspaceDir, fixtureCliCommand) {
-  const vscodeDir = path.join(workspaceDir, ".vscode");
-  fs.mkdirSync(vscodeDir, { recursive: true });
+function hostWorkspaceSettings(fixtureCliCommand) {
+  return {
+    "chainlesschain.ide.enabled": true,
+    "chainlesschain.cli.managed.enabled": false,
+    "chainlesschain.cli.path": fixtureCliCommand,
+    "extensions.autoCheckUpdates": false,
+    "extensions.autoUpdate": false,
+    "telemetry.telemetryLevel": "off",
+    "update.mode": "none",
+  };
+}
+
+function writeMultiRootWorkspace(runRoot, fixtureCliCommand) {
+  const workspaceFolders = [
+    path.join(runRoot, "workspace-primary"),
+    path.join(runRoot, "workspace-secondary"),
+  ];
+  for (const [index, workspaceFolder] of workspaceFolders.entries()) {
+    fs.mkdirSync(workspaceFolder, { recursive: true });
+    fs.writeFileSync(
+      path.join(workspaceFolder, index === 0 ? "hello.txt" : "secondary.txt"),
+      `ChainlessChain Extension Host multi-root workspace ${index + 1}\n`,
+      "utf8",
+    );
+  }
+
+  const workspaceTarget = path.join(runRoot, "chainlesschain.code-workspace");
   fs.writeFileSync(
-    path.join(workspaceDir, "hello.txt"),
-    "ChainlessChain Extension Host smoke workspace\n",
-    "utf8",
-  );
-  // Keep activation deterministic and offline. The managed-CLI command still
-  // has to be registered; only its asynchronous startup probe is disabled.
-  fs.writeFileSync(
-    path.join(vscodeDir, "settings.json"),
+    workspaceTarget,
     `${JSON.stringify(
       {
-        "chainlesschain.ide.enabled": true,
-        "chainlesschain.cli.managed.enabled": false,
-        "chainlesschain.cli.path": fixtureCliCommand,
-        "extensions.autoCheckUpdates": false,
-        "extensions.autoUpdate": false,
-        "telemetry.telemetryLevel": "off",
-        "update.mode": "none",
+        folders: workspaceFolders.map((workspaceFolder, index) => ({
+          name: index === 0 ? "primary" : "secondary",
+          path: path.relative(runRoot, workspaceFolder),
+        })),
+        // Keep activation deterministic and offline. The managed-CLI command
+        // still has to be registered; only its asynchronous startup probe is
+        // disabled. Workspace-file settings make the same contract apply to
+        // both roots instead of relying on the first folder's local settings.
+        settings: hostWorkspaceSettings(fixtureCliCommand),
       },
       null,
       2,
     )}\n`,
     "utf8",
   );
+  return {
+    workspaceDir: workspaceFolders[0],
+    workspaceFolders,
+    workspaceTarget,
+  };
 }
 
 function hostPhaseSignalPaths(runtimeDir, phase) {
@@ -559,6 +583,8 @@ async function runRealDomPhase({
   runTests,
   vscodeExecutablePath,
   workspaceDir,
+  workspaceFolders,
+  workspaceTarget,
   profileArgs,
   extensionsDir,
   profileHome,
@@ -571,6 +597,8 @@ async function runRealDomPhase({
   useElectronMainInspector = false,
   useDomRelay = false,
 }) {
+  const launchTarget = workspaceTarget || workspaceDir;
+  const expectedWorkspaceFolders = workspaceFolders || [workspaceDir];
   if (
     [useCdpPipe, useElectronMainInspector, useDomRelay].filter(Boolean).length >
     1
@@ -600,7 +628,7 @@ async function runRealDomPhase({
             extensionDevelopmentPath: path.join(__dirname, "driver"),
             extensionTestsPath: path.join(__dirname, "driver", "smoke.cjs"),
             launchArgs: buildHostDomRelayLaunchArgs({
-              workspaceDir,
+              workspaceDir: launchTarget,
               profileArgs,
             }),
             extensionTestsEnv: {
@@ -609,6 +637,9 @@ async function runRealDomPhase({
               CHAINLESSCHAIN_SMOKE_EXTENSIONS_DIR: extensionsDir,
               CHAINLESSCHAIN_SMOKE_EXPECTED_VERSION: expectedVersion,
               CHAINLESSCHAIN_SMOKE_WORKSPACE: workspaceDir,
+              CHAINLESSCHAIN_SMOKE_WORKSPACE_FOLDERS: JSON.stringify(
+                expectedWorkspaceFolders,
+              ),
               CHAINLESSCHAIN_HOST_JOURNEY_PHASE: phase,
               CHAINLESSCHAIN_HOST_JOURNEY_MODE: "dom-relay",
               CHAINLESSCHAIN_HOST_READY_FILE: readyFile,
@@ -691,6 +722,9 @@ async function runRealDomPhase({
     CHAINLESSCHAIN_SMOKE_EXTENSIONS_DIR: extensionsDir,
     CHAINLESSCHAIN_SMOKE_EXPECTED_VERSION: expectedVersion,
     CHAINLESSCHAIN_SMOKE_WORKSPACE: workspaceDir,
+    CHAINLESSCHAIN_SMOKE_WORKSPACE_FOLDERS: JSON.stringify(
+      expectedWorkspaceFolders,
+    ),
     CHAINLESSCHAIN_HOST_JOURNEY_PHASE: phase,
     CHAINLESSCHAIN_HOST_READY_FILE: readyFile,
     CHAINLESSCHAIN_HOST_RESULT_FILE: resultFile,
@@ -700,7 +734,10 @@ async function runRealDomPhase({
   const pipeHost = useCdpPipe
     ? launchExtensionHostWithCdpPipe({
         vscodeExecutablePath,
-        launchArgs: buildHostPipeLaunchArgs({ workspaceDir, profileArgs }),
+        launchArgs: buildHostPipeLaunchArgs({
+          workspaceDir: launchTarget,
+          profileArgs,
+        }),
         extensionDevelopmentPath,
         extensionTestsPath,
         extensionTestsEnv,
@@ -749,12 +786,12 @@ async function runRealDomPhase({
             stderr: endpointCapture.stderr,
             launchArgs: useElectronMainInspector
               ? buildHostInspectorLaunchArgs({
-                  workspaceDir,
+                  workspaceDir: launchTarget,
                   profileArgs,
                   inspectorPort,
                 })
               : buildHostLaunchArgs({
-                  workspaceDir,
+                  workspaceDir: launchTarget,
                   profileArgs,
                   cdpPort,
                 }),
@@ -804,6 +841,8 @@ async function runHostApiPhase({
   runTests,
   vscodeExecutablePath,
   workspaceDir,
+  workspaceFolders,
+  workspaceTarget,
   profileArgs,
   extensionsDir,
   profileHome,
@@ -812,6 +851,8 @@ async function runHostApiPhase({
   runtimeDir,
   fixture,
 }) {
+  const launchTarget = workspaceTarget || workspaceDir;
+  const expectedWorkspaceFolders = workspaceFolders || [workspaceDir];
   const { readyFile, resultFile } = hostPhaseSignalPaths(runtimeDir, phase);
   const traceFile = path.join(runtimeDir, "host-api-trace.jsonl");
   await runTests({
@@ -819,7 +860,7 @@ async function runHostApiPhase({
     extensionDevelopmentPath: path.join(__dirname, "driver"),
     extensionTestsPath: path.join(__dirname, "driver", "smoke.cjs"),
     launchArgs: buildHostApiLaunchArgs({
-      workspaceDir,
+      workspaceDir: launchTarget,
       profileArgs,
     }),
     extensionTestsEnv: {
@@ -828,6 +869,9 @@ async function runHostApiPhase({
       CHAINLESSCHAIN_SMOKE_EXTENSIONS_DIR: extensionsDir,
       CHAINLESSCHAIN_SMOKE_EXPECTED_VERSION: expectedVersion,
       CHAINLESSCHAIN_SMOKE_WORKSPACE: workspaceDir,
+      CHAINLESSCHAIN_SMOKE_WORKSPACE_FOLDERS: JSON.stringify(
+        expectedWorkspaceFolders,
+      ),
       CHAINLESSCHAIN_HOST_JOURNEY_PHASE: phase,
       CHAINLESSCHAIN_HOST_JOURNEY_MODE: "host-api",
       CHAINLESSCHAIN_HOST_READY_FILE: readyFile,
@@ -844,6 +888,7 @@ function assertHostApiArtifacts({
   runtimeDir,
   extensionsDir,
   workspaceDir,
+  workspaceFolders,
   expectedVersion,
 }) {
   const traceFile = path.join(runtimeDir, "host-api-trace.jsonl");
@@ -864,6 +909,7 @@ function assertHostApiArtifacts({
       phase,
       extensionsDir,
       workspaceDir,
+      workspaceFolders,
     });
     if (ready.mode !== "host-api") {
       throw new Error(`host API ready signal mode mismatch: ${phase}`);
@@ -1058,7 +1104,6 @@ async function main() {
   const runRoot = makeFreshRunRoot(options.workDir);
   const extensionsDir = path.join(runRoot, "extensions");
   const profileHome = path.join(runRoot, "profile-home");
-  const workspaceDir = path.join(runRoot, "workspace");
   const journeyRuntimeDir = path.join(runRoot, "journey-runtime");
   const journeyArtifactDir = path.join(runRoot, "journey-artifacts");
   const artifactDir = path.resolve(
@@ -1072,19 +1117,15 @@ async function main() {
   const cliVersion = readJsonVersion(
     path.resolve(PACKAGE_ROOT, "..", "cli", "package.json"),
   );
-  for (const dir of [
-    extensionsDir,
-    profileHome,
-    workspaceDir,
-    journeyRuntimeDir,
-  ]) {
+  for (const dir of [extensionsDir, profileHome, journeyRuntimeDir]) {
     fs.mkdirSync(dir, { recursive: true });
   }
   const fixture = createFixtureCli(
     runRoot,
     path.resolve(PACKAGE_ROOT, "..", ".."),
   );
-  writeWorkspace(workspaceDir, fixture.command);
+  const { workspaceDir, workspaceFolders, workspaceTarget } =
+    writeMultiRootWorkspace(runRoot, fixture.command);
 
   process.stdout.write(`[extension-host-smoke] fresh run root: ${runRoot}\n`);
 
@@ -1141,6 +1182,8 @@ async function main() {
         runTests,
         vscodeExecutablePath,
         workspaceDir,
+        workspaceFolders,
+        workspaceTarget,
         profileArgs,
         extensionsDir,
         profileHome,
@@ -1160,6 +1203,7 @@ async function main() {
         runtimeDir: journeyRuntimeDir,
         extensionsDir,
         workspaceDir,
+        workspaceFolders,
         expectedVersion,
       });
     } else {
@@ -1169,6 +1213,7 @@ async function main() {
         runtimeDir: journeyRuntimeDir,
         extensionsDir,
         workspaceDir,
+        workspaceFolders,
       });
     }
     recordHostProgress(progressPath, "assertions_completed");
@@ -1208,13 +1253,14 @@ async function main() {
       const result = await writeJourneyEvidence({
         artifactDir,
         journeyId: hostApiMode
-          ? "vscode-installed-vsix-host-api-activation-view-relaunch"
-          : "vscode-installed-vsix-real-dom-control-workbench-restart",
+          ? "vscode-installed-vsix-multiroot-host-api-activation-view-relaunch"
+          : "vscode-installed-vsix-real-dom-multiroot-control-workbench-restart",
         host: "vscode",
         hostVersion: hostVersion || options.vscodeVersion,
         cliVersion,
         extensionVersion: expectedVersion,
         transport: hostJourneyTransport.evidenceTransport,
+        workspaceFolders,
         result: journeyResult,
         startedAt,
         finishedAt: new Date().toISOString(),
@@ -1274,6 +1320,7 @@ module.exports = {
   runHostApiPhase,
   runRealDomPhase,
   settleHostAfterCdp,
+  writeMultiRootWorkspace,
 };
 
 if (require.main === module) {
