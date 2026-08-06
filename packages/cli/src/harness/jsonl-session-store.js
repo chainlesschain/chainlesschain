@@ -973,10 +973,12 @@ export function appendEventIfHead(
   data,
   expectedHeadHash = null,
 ) {
-  return appendEventLocked(sessionId, type, data, {
-    expectedHeadHash,
-    compareHead: true,
-  });
+  return runClassifiedAppend(sessionId, "compare-and-append-event", () =>
+    appendEventLocked(sessionId, type, data, {
+      expectedHeadHash,
+      compareHead: true,
+    }),
+  );
 }
 
 /** Authority-bearing compare-and-append with a mandatory index anchor. */
@@ -986,11 +988,16 @@ export function appendAuthorityEventIfHead(
   data,
   expectedHeadHash = null,
 ) {
-  return appendEventLocked(sessionId, type, data, {
-    expectedHeadHash,
-    compareHead: true,
-    requireIndexAnchor: true,
-  });
+  return runClassifiedAppend(
+    sessionId,
+    "compare-and-append-authority-event",
+    () =>
+      appendEventLocked(sessionId, type, data, {
+        expectedHeadHash,
+        compareHead: true,
+        requireIndexAnchor: true,
+      }),
+  );
 }
 
 /**
@@ -1634,11 +1641,17 @@ export function startSession(sessionId, meta = {}) {
 }
 
 export function appendUserMessage(sessionId, content) {
-  appendEvent(sessionId, "user_message", { role: "user", content });
+  return appendEvent(sessionId, "user_message", {
+    role: "user",
+    content,
+  });
 }
 
 export function appendAssistantMessage(sessionId, content) {
-  appendEvent(sessionId, "assistant_message", { role: "assistant", content });
+  return appendEvent(sessionId, "assistant_message", {
+    role: "assistant",
+    content,
+  });
 }
 
 function wsTurnLifecycleResult(snapshot, overrides = {}) {

@@ -396,6 +396,7 @@ export async function runAgentHeadless(options = {}, deps = {}) {
       writeOut: deps.writeOut,
       writeErr: deps.writeErr,
       maxQueuedBytes: deps.outputBackpressureMaxBytes,
+      drainTimeoutMs: deps.outputBackpressureTimeoutMs,
       onFailure: (error) => {
         outputAbort?.abort(error);
         if (error?.code === "EPIPE") handlePipeClosed();

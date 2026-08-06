@@ -121,6 +121,30 @@ describe("output backpressure", () => {
     gate.dispose();
   });
 
+  it("fails within the host deadline when a writable never drains", async () => {
+    const stream = new ManualWritable();
+    const onFailure = vi.fn();
+    const gate = createWritableBackpressureGate(stream, {
+      drainTimeoutMs: 15,
+      onFailure,
+    });
+    gate.write("a");
+
+    await expect(gate.wait()).rejects.toMatchObject({
+      code: "CC_OUTPUT_BACKPRESSURE_TIMEOUT",
+      timeoutMs: 15,
+    });
+    expect(onFailure).toHaveBeenCalledWith(
+      expect.objectContaining({ code: "CC_OUTPUT_BACKPRESSURE_TIMEOUT" }),
+    );
+    expect(gate.snapshot()).toMatchObject({
+      failed: true,
+      failureCode: "CC_OUTPUT_BACKPRESSURE_TIMEOUT",
+      drainTimeoutMs: 15,
+    });
+    gate.dispose();
+  });
+
   it("preserves synchronous EPIPE as a clean-pipe signal", async () => {
     const cause = Object.assign(new Error("consumer gone"), { code: "EPIPE" });
     const stream = {

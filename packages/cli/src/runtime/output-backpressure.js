@@ -1,6 +1,15 @@
 import { Buffer } from "node:buffer";
 
 const DEFAULT_MAX_QUEUED_BYTES = 1024 * 1024;
+const HOST_OUTPUT_DRAIN_TIMEOUT_MS = 30_000;
+
+function normalizeDrainTimeoutMs(value) {
+  return Number.isFinite(value) &&
+    value > 0 &&
+    value <= HOST_OUTPUT_DRAIN_TIMEOUT_MS
+    ? Math.max(1, Math.floor(value))
+    : HOST_OUTPUT_DRAIN_TIMEOUT_MS;
+}
 
 function outputError(code, message, details = {}) {
   const error = new Error(message);
@@ -29,6 +38,7 @@ export function createWritableBackpressureGate(
   {
     label = "output",
     maxQueuedBytes = DEFAULT_MAX_QUEUED_BYTES,
+    drainTimeoutMs,
     onFailure = null,
   } = {},
 ) {
@@ -43,6 +53,7 @@ export function createWritableBackpressureGate(
       ? maxQueuedBytes
       : DEFAULT_MAX_QUEUED_BYTES;
   const queue = [];
+  const outputDrainTimeoutMs = normalizeDrainTimeoutMs(drainTimeoutMs);
   let queuedBytes = 0;
   let blocked = false;
   let failure = null;
@@ -51,6 +62,14 @@ export function createWritableBackpressureGate(
   let rejectWait = null;
   let disposed = false;
   let backpressureCount = 0;
+  let drainTimer = null;
+  let blockedAt = null;
+
+  const clearDrainDeadline = () => {
+    if (drainTimer !== null) clearTimeout(drainTimer);
+    drainTimer = null;
+    blockedAt = null;
+  };
 
   const notifyCallback = (callback, error) => {
     if (typeof callback !== "function") return;
@@ -75,6 +94,7 @@ export function createWritableBackpressureGate(
     waitPromise.catch(() => {});
   };
   const finishWait = () => {
+    clearDrainDeadline();
     const resolve = resolveWait;
     waitPromise = null;
     resolveWait = null;
@@ -83,6 +103,7 @@ export function createWritableBackpressureGate(
   };
   const fail = (error) => {
     if (failure) return;
+    clearDrainDeadline();
     failure = error;
     blocked = false;
     const discarded = queue.splice(0);
@@ -95,6 +116,25 @@ export function createWritableBackpressureGate(
     } catch {
       // Failure notification must never replace the original stream error.
     }
+  };
+  const startDrainDeadline = () => {
+    if (drainTimer !== null || failure || disposed) return;
+    blockedAt = Date.now();
+    drainTimer = setTimeout(() => {
+      const elapsedMs = Math.max(0, Date.now() - blockedAt);
+      fail(
+        outputError(
+          "CC_OUTPUT_BACKPRESSURE_TIMEOUT",
+          `${label} did not drain within ${outputDrainTimeoutMs} ms`,
+          {
+            timeoutMs: outputDrainTimeoutMs,
+            elapsedMs,
+            queuedBytes,
+            queuedChunks: queue.length,
+          },
+        ),
+      );
+    }, outputDrainTimeoutMs);
   };
   const writeNative = (chunk, encoding, callback) => {
     let accepted;
@@ -121,6 +161,7 @@ export function createWritableBackpressureGate(
       blocked = true;
       backpressureCount += 1;
       ensureWait();
+      startDrainDeadline();
     }
     return accepted !== false;
   };
@@ -199,6 +240,9 @@ export function createWritableBackpressureGate(
         queuedBytes,
         queuedChunks: queue.length,
         backpressureCount,
+        drainTimeoutMs: outputDrainTimeoutMs,
+        blockedForMs:
+          blockedAt === null ? 0 : Math.max(0, Date.now() - blockedAt),
         failed: failure != null,
         failureCode: failure?.code || null,
       });
@@ -274,12 +318,14 @@ export function installOutputBackpressure({
   stdout = process.stdout,
   stderr = process.stderr,
   maxQueuedBytes,
+  drainTimeoutMs,
   onFailure,
 } = {}) {
   if (stdout === stderr) {
     const shared = installWritableBackpressureGate(stdout, {
       label: "output",
       maxQueuedBytes,
+      drainTimeoutMs,
       onFailure,
     });
     return {
@@ -294,6 +340,7 @@ export function installOutputBackpressure({
   const out = installWritableBackpressureGate(stdout, {
     label: "stdout",
     maxQueuedBytes,
+    drainTimeoutMs,
     onFailure,
   });
   let err;
@@ -301,6 +348,7 @@ export function installOutputBackpressure({
     err = installWritableBackpressureGate(stderr, {
       label: "stderr",
       maxQueuedBytes,
+      drainTimeoutMs,
       onFailure,
     });
   } catch (error) {
@@ -336,6 +384,7 @@ export function createHeadlessOutputBackpressure({
   writeOut = null,
   writeErr = null,
   maxQueuedBytes,
+  drainTimeoutMs,
   onFailure,
 } = {}) {
   const out = writeOut
@@ -343,6 +392,7 @@ export function createHeadlessOutputBackpressure({
     : createWritableBackpressureGate(stdout, {
         label: "stdout",
         maxQueuedBytes,
+        drainTimeoutMs,
         onFailure,
       });
   const err = writeErr
@@ -350,6 +400,7 @@ export function createHeadlessOutputBackpressure({
     : createWritableBackpressureGate(stderr, {
         label: "stderr",
         maxQueuedBytes,
+        drainTimeoutMs,
         onFailure,
       });
 
@@ -364,3 +415,5 @@ export function createHeadlessOutputBackpressure({
     },
   };
 }
+
+export const MAX_OUTPUT_DRAIN_TIMEOUT_MS = HOST_OUTPUT_DRAIN_TIMEOUT_MS;

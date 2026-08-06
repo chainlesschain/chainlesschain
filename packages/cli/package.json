@@ -24,6 +24,7 @@
     "docs:cli-reference:check": "node scripts/gen-cli-reference.mjs --check ../../docs/cli/CLI_REFERENCE.generated.md",
     "commands:manifest": "node scripts/gen-command-manifest.mjs",
     "commands:manifest:check": "node scripts/gen-command-manifest.mjs --check",
+    "commands:lifecycle:report": "node scripts/command-lifecycle-report.mjs",
     "commands:help-index": "node scripts/gen-command-help-index.mjs",
     "commands:help-index:check": "node scripts/gen-command-help-index.mjs --check",
     "commands:completions": "node scripts/gen-shell-completions.mjs",
@@ -52,6 +53,7 @@
     "completions/",
     "scripts/postinstall.mjs",
     "scripts/build-windows-sandbox-helper.ps1",
+    "scripts/command-lifecycle-report.mjs",
     "README.md"
   ],
   "keywords": [

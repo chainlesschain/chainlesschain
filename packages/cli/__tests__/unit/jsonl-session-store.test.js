@@ -205,6 +205,82 @@ describe("jsonl-session-store", () => {
   });
 
   // ── path-traversal safety ─────────────────────────────────────────
+  describe("disk persistence commit state", () => {
+    it("reports EROFS before append as not committed without publishing bytes", () => {
+      const id = startSession("disk-erofs", { title: "disk" });
+      const previous = process.env.CC_SESSION_SCALE_FAULT_INJECTION;
+      process.env.CC_SESSION_SCALE_FAULT_INJECTION = "1";
+      _sessionScaleFaultHooks.beforeTranscriptAppend = ({ type }) => {
+        if (type !== "user_message") return;
+        const error = new Error("private path must not escape");
+        error.code = "EROFS";
+        throw error;
+      };
+
+      try {
+        expect(() => appendUserMessage(id, "must not commit")).toThrow(
+          expect.objectContaining({
+            code: "CC_SESSION_PERSISTENCE_FAILED",
+            fsCode: "EROFS",
+            operation: "append-event",
+            commitState: "not-committed",
+            retryable: false,
+          }),
+        );
+      } finally {
+        _sessionScaleFaultHooks.beforeTranscriptAppend = null;
+        if (previous === undefined) {
+          delete process.env.CC_SESSION_SCALE_FAULT_INJECTION;
+        } else {
+          process.env.CC_SESSION_SCALE_FAULT_INJECTION = previous;
+        }
+      }
+
+      expect(readEvents(id).map((event) => event.type)).toEqual([
+        "session_start",
+      ]);
+    });
+
+    it("reports ENOSPC after append as unknown and requires verification", () => {
+      const id = startSession("disk-enospc", { title: "disk" });
+      const previous = process.env.CC_SESSION_SCALE_FAULT_INJECTION;
+      process.env.CC_SESSION_SCALE_FAULT_INJECTION = "1";
+      _sessionScaleFaultHooks.afterTranscriptAppend = ({ type }) => {
+        if (type !== "assistant_message") return;
+        const error = new Error("private path must not escape");
+        error.code = "ENOSPC";
+        throw error;
+      };
+
+      try {
+        expect(() => appendAssistantMessage(id, "may have committed")).toThrow(
+          expect.objectContaining({
+            code: "CC_SESSION_PERSISTENCE_FAILED",
+            fsCode: "ENOSPC",
+            operation: "transcript-settlement",
+            commitState: "unknown",
+            retryable: true,
+          }),
+        );
+      } finally {
+        _sessionScaleFaultHooks.afterTranscriptAppend = null;
+        if (previous === undefined) {
+          delete process.env.CC_SESSION_SCALE_FAULT_INJECTION;
+        } else {
+          process.env.CC_SESSION_SCALE_FAULT_INJECTION = previous;
+        }
+      }
+
+      expect(readEvents(id).map((event) => event.type)).toEqual([
+        "session_start",
+        "assistant_message",
+      ]);
+      expect(() => readVerifiedEvents(id)).toThrow(
+        expect.objectContaining({ code: "SESSION_TRANSCRIPT_UNVERIFIED" }),
+      );
+    });
+  });
+
   describe("session id path-traversal safety", () => {
     it("flags separators / `..` / empty / non-string ids as unsafe", () => {
       for (const bad of [

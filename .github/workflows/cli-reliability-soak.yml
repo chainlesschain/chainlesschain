@@ -1,0 +1,100 @@
+name: CLI Reliability Soak
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/cli-reliability-soak.yml"
+      - ".github/actions/setup-node-deps/action.yml"
+      - "package.json"
+      - "package-lock.json"
+      - "packages/cli/package.json"
+      - "packages/cli/bin/chainlesschain.js"
+      - "packages/cli/src/runtime/headless-*.js"
+      - "packages/cli/src/runtime/output-backpressure.js"
+      - "packages/cli/src/runtime/cleanup-deadline.js"
+      - "packages/cli/src/runtime/pipe-safety.js"
+      - "packages/cli/src/harness/jsonl-session-store.js"
+      - "packages/cli/src/lib/session-persistence-failure.js"
+      - "packages/cli/scripts/cli-reliability-soak.mjs"
+      - "packages/cli/__tests__/unit/cli-reliability-soak.test.js"
+  schedule:
+    - cron: "17 2 * * 3"
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: "Exact full commit SHA to test (blank uses selected ref)"
+        required: false
+        type: string
+      duration_seconds:
+        description: "Minimum soak duration on each operating system"
+        required: true
+        default: "7200"
+        type: choice
+        options: ["600", "1800", "7200", "14400"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  reliability:
+    name: "pipe/TTY/SSH/resource soak (${{ matrix.os }})"
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 300
+    env:
+      CC_CLI_RELIABILITY_MODE: ${{ github.event_name == 'pull_request' && 'smoke' || 'formal' }}
+      CC_CLI_RELIABILITY_DURATION_SECONDS: ${{ github.event_name == 'pull_request' && '5' || inputs.duration_seconds || '7200' }}
+      CC_CLI_RELIABILITY_EXPECTED_SHA: ${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
+      CC_CLI_RELIABILITY_CLEANUP_DEADLINE_MS: "10000"
+      CC_CLI_RELIABILITY_MAX_RSS_GROWTH_MB: "128"
+      CC_CLI_RELIABILITY_MAX_RESOURCE_GROWTH: "8"
+    steps:
+      - name: Checkout exact reliability commit
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+
+      - uses: ./.github/actions/setup-node-deps
+
+      - name: Configure a real localhost SSH TTY
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y openssh-server
+          install -d -m 700 "${HOME}/.ssh"
+          ssh-keygen -q -t ed25519 -N '' -f "${HOME}/.ssh/cli-reliability"
+          cat "${HOME}/.ssh/cli-reliability.pub" >> "${HOME}/.ssh/authorized_keys"
+          chmod 600 "${HOME}/.ssh/authorized_keys"
+          sudo install -d -m 755 /run/sshd
+          sudo /usr/sbin/sshd
+          printf 'CC_CLI_RELIABILITY_SSH_TARGET=%s@127.0.0.1\n' "${USER}" >> "${GITHUB_ENV}"
+          printf 'CC_CLI_RELIABILITY_SSH_IDENTITY=%s/.ssh/cli-reliability\n' "${HOME}" >> "${GITHUB_ENV}"
+
+      - name: Run real CLI reliability gate
+        env:
+          CC_CLI_RELIABILITY_OUTPUT: ${{ runner.temp }}/cli-reliability-result.json
+        run: npm run test:cli-reliability-soak
+
+      - name: Upload exact-SHA reliability evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: cli-reliability-${{ matrix.os }}-${{ env.CC_CLI_RELIABILITY_EXPECTED_SHA }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/cli-reliability-result.json
+          if-no-files-found: error
+          retention-days: 30
