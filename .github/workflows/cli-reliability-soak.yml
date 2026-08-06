@@ -16,6 +16,7 @@ on:
       - "packages/cli/src/harness/jsonl-session-store.js"
       - "packages/cli/src/lib/session-persistence-failure.js"
       - "packages/cli/scripts/cli-reliability-soak.mjs"
+      - "packages/cli/scripts/cli-reliability-mcp-server.mjs"
       - "packages/cli/__tests__/unit/cli-reliability-soak.test.js"
   schedule:
     - cron: "17 2 * * 3"
@@ -41,7 +42,7 @@ concurrency:
 
 jobs:
   reliability:
-    name: "pipe/TTY/SSH/resource soak (${{ matrix.os }})"
+    name: "disk/pipe/TTY/SSH/MCP/resource soak (${{ matrix.os }})"
     strategy:
       fail-fast: false
       matrix:
@@ -85,10 +86,45 @@ jobs:
           printf 'CC_CLI_RELIABILITY_SSH_TARGET=%s@127.0.0.1\n' "${USER}" >> "${GITHUB_ENV}"
           printf 'CC_CLI_RELIABILITY_SSH_IDENTITY=%s/.ssh/cli-reliability\n' "${HOME}" >> "${GITHUB_ENV}"
 
+      - name: Configure real EROFS and ENOSPC session filesystems
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          disk_root="${RUNNER_TEMP}/cli-reliability-disk"
+          erofs_home="${disk_root}/erofs-home"
+          enospc_home="${disk_root}/enospc-home"
+          install -d -m 700 "${erofs_home}/sessions" "${enospc_home}/sessions"
+          owner_uid="$(id -u)"
+          owner_gid="$(id -g)"
+          sudo mount -t tmpfs -o "size=4m,uid=${owner_uid},gid=${owner_gid},mode=0700" tmpfs "${erofs_home}/sessions"
+          sudo mount -o remount,ro "${erofs_home}/sessions"
+          sudo mount -t tmpfs -o "size=1m,uid=${owner_uid},gid=${owner_gid},mode=0700" tmpfs "${enospc_home}/sessions"
+          set +e
+          dd if=/dev/zero of="${enospc_home}/sessions/full" bs=4096 status=none
+          fill_status="$?"
+          set -e
+          if [[ "${fill_status}" -eq 0 ]]; then
+            echo "ENOSPC fixture did not fill its tmpfs" >&2
+            exit 1
+          fi
+          printf 'CC_CLI_RELIABILITY_DISK_ROOT=%s\n' "${disk_root}" >> "${GITHUB_ENV}"
+          printf 'CC_CLI_RELIABILITY_DISK_EROFS_HOME=%s\n' "${erofs_home}" >> "${GITHUB_ENV}"
+          printf 'CC_CLI_RELIABILITY_DISK_ENOSPC_HOME=%s\n' "${enospc_home}" >> "${GITHUB_ENV}"
+
       - name: Run real CLI reliability gate
         env:
           CC_CLI_RELIABILITY_OUTPUT: ${{ runner.temp }}/cli-reliability-result.json
         run: npm run test:cli-reliability-soak
+
+      - name: Unmount reliability disk fixtures
+        if: always() && runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -u
+          sudo umount "${CC_CLI_RELIABILITY_DISK_EROFS_HOME}" || true
+          sudo umount "${CC_CLI_RELIABILITY_DISK_ENOSPC_HOME}" || true
+          rm -rf -- "${CC_CLI_RELIABILITY_DISK_ROOT}"
 
       - name: Upload exact-SHA reliability evidence
         if: always()
