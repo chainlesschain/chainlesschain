@@ -36,6 +36,7 @@ const {
   JOURNEY_PHASES,
   PHASE_DOM_MARKERS,
   PHASE_WORKBENCH_DOM_MARKERS,
+  acceptJavaScriptDialog,
   assertJourneyArtifacts,
   buildCdpWebSocketOptions,
   clickSessionsWorkbenchAction,
@@ -940,6 +941,11 @@ test("CDP workbench actions accept the real main-world prompt before polling", a
   const dialogClient = {
     async send(method, params) {
       dialogCommands.push({ method, params });
+      if (dialogCommands.length === 1) {
+        throw new Error(
+          "CDP Page.handleJavaScriptDialog failed: No dialog is showing",
+        );
+      }
       return {};
     },
   };
@@ -957,16 +963,33 @@ test("CDP workbench actions accept the real main-world prompt before polling", a
     frameCommands.map((command) => command.method),
     ["Input.dispatchMouseEvent", "Input.dispatchMouseEvent"],
   );
-  assert.deepEqual(dialogCommands, [
-    {
+  assert.equal(dialogCommands.length, 2);
+  for (const command of dialogCommands) {
+    assert.deepEqual(command, {
       method: "Page.handleJavaScriptDialog",
       params: {
         accept: true,
         promptText: "dispatch from VS Code Workbench",
       },
-    },
-  ]);
+    });
+  }
   assert.equal(evaluations.length, 0);
+});
+
+test("CDP workbench dialog acceptance fails closed on non-transient errors", async () => {
+  await assert.rejects(
+    acceptJavaScriptDialog(
+      {
+        async send() {
+          throw new Error(
+            "CDP Page.handleJavaScriptDialog failed: target closed",
+          );
+        },
+      },
+      "prompt",
+    ),
+    /target closed/,
+  );
 });
 
 test("CDP websocket failures retain the handshake diagnostic", async () => {

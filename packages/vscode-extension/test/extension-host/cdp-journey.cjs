@@ -1068,6 +1068,35 @@ async function waitForSessionsWorkbench({
   );
 }
 
+async function acceptJavaScriptDialog(
+  client,
+  promptText,
+  signal = null,
+  timeoutMs = 2_000,
+) {
+  const deadline = Date.now() + timeoutMs;
+  let lastError;
+  while (Date.now() < deadline) {
+    throwIfAborted(signal);
+    try {
+      await client.send("Page.handleJavaScriptDialog", {
+        accept: true,
+        promptText,
+      });
+      return Date.now();
+    } catch (error) {
+      lastError = error;
+      if (!/No dialog is showing/iu.test(String(error?.message || error))) {
+        throw error;
+      }
+    }
+    await delay(20, signal);
+  }
+  throw new Error(`Workbench input dialog did not open within ${timeoutMs}ms`, {
+    cause: lastError,
+  });
+}
+
 async function clickSessionsWorkbenchAction(
   client,
   action,
@@ -1111,11 +1140,7 @@ async function clickSessionsWorkbenchAction(
   // window.prompt override in the isolated world therefore cannot answer the
   // real dialog.  Submit it through the Page domain, exactly as a user would,
   // and begin the visibility SLA after that input has been accepted.
-  await dialogClient.send("Page.handleJavaScriptDialog", {
-    accept: true,
-    promptText: prompt,
-  });
-  return Date.now();
+  return acceptJavaScriptDialog(dialogClient, prompt, signal);
 }
 
 async function driveSessionsWorkbenchPhase(
@@ -1945,6 +1970,7 @@ module.exports = {
   assertHostReadySignal,
   assertJourneyArtifacts,
   buildCdpWebSocketOptions,
+  acceptJavaScriptDialog,
   clickSessionsWorkbenchAction,
   createCdpPipeSocket,
   createFixtureCli,
