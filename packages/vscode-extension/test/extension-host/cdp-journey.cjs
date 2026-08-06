@@ -1073,6 +1073,7 @@ async function clickSessionsWorkbenchAction(
   action,
   prompt,
   signal = null,
+  dialogClient = client,
 ) {
   await waitForSessionsWorkbench({
     client,
@@ -1110,7 +1111,7 @@ async function clickSessionsWorkbenchAction(
   // window.prompt override in the isolated world therefore cannot answer the
   // real dialog.  Submit it through the Page domain, exactly as a user would,
   // and begin the visibility SLA after that input has been accepted.
-  await client.send("Page.handleJavaScriptDialog", {
+  await dialogClient.send("Page.handleJavaScriptDialog", {
     accept: true,
     promptText: prompt,
   });
@@ -1122,6 +1123,7 @@ async function driveSessionsWorkbenchPhase(
   phase,
   tracePath,
   signal = null,
+  dialogClient = client,
 ) {
   const step = async (name, action) => {
     throwIfAborted(signal);
@@ -1151,6 +1153,7 @@ async function driveSessionsWorkbenchPhase(
         "dispatch",
         "dispatch from VS Code Workbench",
         signal,
+        dialogClient,
       );
       await waitForSessionsWorkbench({
         client,
@@ -1175,7 +1178,13 @@ async function driveSessionsWorkbenchPhase(
       }
     });
     await step("workbench-reply-artifact", async () => {
-      await clickSessionsWorkbenchAction(client, "reply", "beta", signal);
+      await clickSessionsWorkbenchAction(
+        client,
+        "reply",
+        "beta",
+        signal,
+        dialogClient,
+      );
       await waitForSessionsWorkbench({
         client,
         predicate: (snapshot) =>
@@ -1878,6 +1887,7 @@ async function runCdpHostJourney(options) {
       phase,
       tracePath,
       signal,
+      workbenchClient,
     );
     await captureWebview(
       sessionsWorkbenchClient,

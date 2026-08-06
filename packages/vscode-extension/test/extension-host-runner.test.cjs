@@ -926,13 +926,20 @@ test("CDP workbench actions accept the real main-world prompt before polling", a
     },
     { x: 120, y: 48 },
   ];
-  const commands = [];
+  const frameCommands = [];
+  const dialogCommands = [];
   const client = {
     async evaluate() {
       return evaluations.shift();
     },
     async send(method, params) {
-      commands.push({ method, params });
+      frameCommands.push({ method, params });
+      return {};
+    },
+  };
+  const dialogClient = {
+    async send(method, params) {
+      dialogCommands.push({ method, params });
       return {};
     },
   };
@@ -941,21 +948,24 @@ test("CDP workbench actions accept the real main-world prompt before polling", a
     client,
     "dispatch",
     "dispatch from VS Code Workbench",
+    null,
+    dialogClient,
   );
 
   assert.equal(Number.isFinite(acceptedAt), true);
   assert.deepEqual(
-    commands.map((command) => command.method),
-    [
-      "Input.dispatchMouseEvent",
-      "Input.dispatchMouseEvent",
-      "Page.handleJavaScriptDialog",
-    ],
+    frameCommands.map((command) => command.method),
+    ["Input.dispatchMouseEvent", "Input.dispatchMouseEvent"],
   );
-  assert.deepEqual(commands[2].params, {
-    accept: true,
-    promptText: "dispatch from VS Code Workbench",
-  });
+  assert.deepEqual(dialogCommands, [
+    {
+      method: "Page.handleJavaScriptDialog",
+      params: {
+        accept: true,
+        promptText: "dispatch from VS Code Workbench",
+      },
+    },
+  ]);
   assert.equal(evaluations.length, 0);
 });
 
