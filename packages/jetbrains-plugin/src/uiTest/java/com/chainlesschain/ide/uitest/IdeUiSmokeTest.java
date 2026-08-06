@@ -158,7 +158,7 @@ final class IdeUiSmokeTest {
                         + " and @accessiblename='ChainlessChain session dispatch']"),
                 FIND_BUDGET);
         waitUntilEnabled(dispatch, "session dispatch", FIND_BUDGET);
-        clickButton(dispatch);
+        openInputDialog(dispatch);
         long dispatchedAt = submitInputDialog(
                 robot, "Resume", "dispatch from JetBrains Workbench");
         waitForTableStatus(table, "needs_input", FIND_BUDGET);
@@ -169,7 +169,7 @@ final class IdeUiSmokeTest {
                         + " and @accessiblename='ChainlessChain session reply']"),
                 FIND_BUDGET);
         waitUntilEnabled(reply, "session reply", FIND_BUDGET);
-        clickButton(reply);
+        openInputDialog(reply);
         submitInputDialog(robot, "Reply to Session", "beta");
         waitForTableStatus(table, "done", FIND_BUDGET);
         waitForComponentText(detail, "workbench-result.md", FIND_BUDGET);
@@ -412,6 +412,23 @@ final class IdeUiSmokeTest {
      */
     private static void clickButton(ComponentFixture button) {
         button.runJs("component.doClick()", true);
+    }
+
+    /**
+     * Queue a real Swing button action after the current Remote Robot request
+     * returns. A synchronous doClick() cannot return while its production
+     * ActionListener is showing a modal input dialog, so the test client would
+     * otherwise be unable to reach and submit that dialog. ApplicationManager
+     * invokeLater is the Remote Robot project's documented Rhino-compatible
+     * pattern for modal actions and remains independent of screen overlays.
+     */
+    private static void openInputDialog(ComponentFixture button) {
+        button.runJs(
+                "importClass(com.intellij.openapi.application.ApplicationManager);"
+                        + "importClass(java.lang.Runnable);"
+                        + "const click = new Runnable({run:function(){component.doClick();}});"
+                        + "ApplicationManager.getApplication().invokeLater(click);",
+                true);
     }
 
     private static void waitUntilHidden(

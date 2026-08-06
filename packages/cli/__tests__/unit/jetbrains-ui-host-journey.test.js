@@ -112,6 +112,24 @@ describe("JetBrains real-host journey driver", () => {
     );
   });
 
+  it("queues modal Workbench actions after the Remote Robot request", () => {
+    const sourcePath = fileURLToPath(
+      new URL(
+        "../../../../packages/jetbrains-plugin/src/uiTest/java/com/chainlesschain/ide/uitest/IdeUiSmokeTest.java",
+        import.meta.url,
+      ),
+    );
+    const source = fs.readFileSync(sourcePath, "utf8");
+
+    expect(source).toContain("openInputDialog(dispatch);");
+    expect(source).toContain("openInputDialog(reply);");
+    expect(source).toContain(
+      "ApplicationManager.getApplication().invokeLater(click);",
+    );
+    expect(source).not.toContain("clickButton(dispatch);");
+    expect(source).not.toContain("clickButton(reply);");
+  });
+
   it("prepends an isolated fixture CLI without duplicating the PATH key", () => {
     const environment = prependPath(
       { Path: "original-bin", KEEP: "yes" },
