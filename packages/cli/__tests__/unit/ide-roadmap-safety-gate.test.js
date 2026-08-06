@@ -9,6 +9,7 @@ import {
   runSafetyGate,
   verifyEvidenceSet,
 } from "../../scripts/ide-roadmap-safety-gate.mjs";
+import { IDE_ROADMAP_MANIFEST_VERSION } from "../../scripts/verify-ide-roadmap-fixtures.mjs";
 
 const RELEASE_COMMIT = "a".repeat(40);
 let tempDir;
@@ -90,6 +91,7 @@ describe("IDE roadmap formal safety gate", () => {
     });
 
     expect(evidence.result).toBe("passed");
+    expect(evidence.fixture.manifestVersion).toBe(IDE_ROADMAP_MANIFEST_VERSION);
     expect(evidence.persistence.sampleCount).toBe(
       IDE_ROADMAP_SAFETY_KILL_POINTS.length,
     );
