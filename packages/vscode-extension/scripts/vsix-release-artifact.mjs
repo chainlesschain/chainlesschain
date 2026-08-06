@@ -408,6 +408,10 @@ function workflowRunFromEnvironment(env) {
   return env.CC_RELEASE_WORKFLOW_RUN || null;
 }
 
+export function releaseCommitFromEnvironment(env) {
+  return env.CC_RELEASE_COMMIT || env.GITHUB_SHA || null;
+}
+
 function sourceIdentity() {
   const sourcePath = path.join(EXTENSION_ROOT, "package.json");
   let source;
@@ -467,7 +471,7 @@ function main() {
       process.env.CC_RELEASE_PUBLISHER ||
       source.publisher,
     version: process.env.CC_RELEASE_VERSION || source.version,
-    commit: process.env.GITHUB_SHA || process.env.CC_RELEASE_COMMIT || null,
+    commit: releaseCommitFromEnvironment(process.env),
     workflowRun,
   };
 

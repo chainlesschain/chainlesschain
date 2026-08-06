@@ -37,6 +37,34 @@ test("JetBrains release hosts use the platform-required Java 21 toolchain", () =
   assert.match(build, /jvmToolchain\(21\)/u);
 });
 
+test("every IDE gate checks out and records the exact source commit", () => {
+  const workflow = read(".github/workflows/ide-extensions.yml");
+  assert.match(
+    workflow,
+    /IDE_RELEASE_COMMIT: \$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/u,
+  );
+  assert.match(
+    workflow,
+    /CC_RELEASE_COMMIT: \$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/u,
+  );
+  assert.equal(
+    workflow.match(/uses: actions\/checkout@v5/gu)?.length,
+    8,
+    "every IDE job must use the pinned checkout action",
+  );
+  assert.equal(
+    workflow.match(/ref: \$\{\{ env\.IDE_RELEASE_COMMIT \}\}/gu)?.length,
+    8,
+    "every IDE job must check out the explicit source commit",
+  );
+  assert.equal(
+    workflow.match(/--release-commit \$\{\{ env\.IDE_RELEASE_COMMIT \}\}/gu)
+      ?.length,
+    8,
+    "all six VS Code and two JetBrains host journeys must record that commit",
+  );
+});
+
 test("VS Code channel credentials are checked before their immutable publishes", () => {
   const workflow = read(".github/workflows/ide-extensions.yml");
   const openVsxPreflight = workflow.indexOf(
@@ -284,7 +312,14 @@ test("VS Code host gates pin macOS Intel and share the main-world relay", () => 
   );
   assert.match(hostRunner, /launchArgs: buildHostDomRelayLaunchArgs\(\{/u);
   assert.match(hostRunner, /CHAINLESSCHAIN_HOST_DOM_TOKEN/u);
-  assert.match(hostRunner, /waitForFile\(resultFile, 180_000\)/u);
+  assert.match(
+    hostRunner,
+    /const HOST_DOM_RELAY_RESULT_TIMEOUT_MS = 600_000;/u,
+  );
+  assert.match(
+    hostRunner,
+    /waitForFile\(\s*resultFile,\s*HOST_DOM_RELAY_RESULT_TIMEOUT_MS,\s*\)/u,
+  );
   assert.match(hostRunner, /No debugger transport is opened/u);
   assert.doesNotMatch(hostRunner, /ApplicationFirewall\/socketfilterfw/u);
   assert.match(relayJourney, /vscode-webview-message-relay/u);

@@ -69,6 +69,10 @@ on:
 permissions:
   contents: read
 
+env:
+  IDE_RELEASE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+  CC_RELEASE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+
 jobs:
   capability-manifest:
     name: Public IDE capability manifest (drift gate)
@@ -76,6 +80,8 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.IDE_RELEASE_COMMIT }}
       - uses: actions/setup-node@v5
         with:
           node-version: "22.12.0"
@@ -99,6 +105,8 @@ jobs:
         working-directory: packages/vscode-extension
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.IDE_RELEASE_COMMIT }}
 
       - name: Reject unsafe VS Code Marketplace backfill
         if: github.event_name == 'workflow_dispatch' && inputs.publish_vscode_marketplace
@@ -173,6 +181,8 @@ jobs:
         working-directory: packages/vscode-extension
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.IDE_RELEASE_COMMIT }}
       - uses: actions/setup-node@v5
         with:
           node-version: "22.12.0"
@@ -200,12 +210,14 @@ jobs:
       - name: Extension Host smoke (Windows stable)
         run: >-
           node test/extension-host/run.cjs --vsix chainlesschain-ide.vsix
+          --release-commit ${{ env.IDE_RELEASE_COMMIT }}
           --artifact-dir build/reports/extension-host/windows-stable
 
       - name: Extension Host smoke (Windows minimum 1.85.2)
         run: >-
           node test/extension-host/run.cjs --vsix chainlesschain-ide.vsix
           --vscode-version 1.85.2
+          --release-commit ${{ env.IDE_RELEASE_COMMIT }}
           --artifact-dir build/reports/extension-host/windows-minimum
 
       - name: Upload Windows host journey evidence
@@ -231,6 +243,8 @@ jobs:
         working-directory: packages/vscode-extension
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.IDE_RELEASE_COMMIT }}
       - uses: actions/setup-node@v5
         with:
           node-version: "22.12.0"
@@ -251,6 +265,7 @@ jobs:
         timeout-minutes: 15
         run: >-
           node test/extension-host/run.cjs --vsix chainlesschain-ide.vsix
+          --release-commit ${{ env.IDE_RELEASE_COMMIT }}
           --artifact-dir build/reports/extension-host/macos-stable
       - name: Extension Host smoke (macOS minimum 1.85.2)
         if: always()
@@ -258,6 +273,7 @@ jobs:
         run: >-
           node test/extension-host/run.cjs --vsix chainlesschain-ide.vsix
           --vscode-version 1.85.2
+          --release-commit ${{ env.IDE_RELEASE_COMMIT }}
           --artifact-dir build/reports/extension-host/macos-minimum
       - name: Upload macOS host journey evidence
         if: always()
@@ -277,6 +293,8 @@ jobs:
         working-directory: packages/vscode-extension
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.IDE_RELEASE_COMMIT }}
       - uses: actions/setup-node@v5
         with:
           node-version: "22.12.0"
@@ -303,6 +321,7 @@ jobs:
           npm install --no-save --no-package-lock @vscode/test-electron@3.1.0 ws@8.21.2
           xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" \
             node test/extension-host/run.cjs --vsix chainlesschain-ide.vsix \
+              --release-commit ${{ env.IDE_RELEASE_COMMIT }} \
               --artifact-dir build/reports/extension-host/linux-stable
 
       - name: Extension Host smoke (Linux minimum 1.85.2)
@@ -310,6 +329,7 @@ jobs:
           xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" \
             node test/extension-host/run.cjs --vsix chainlesschain-ide.vsix \
               --vscode-version 1.85.2 \
+              --release-commit ${{ env.IDE_RELEASE_COMMIT }} \
               --artifact-dir build/reports/extension-host/linux-minimum
 
       - name: Upload Linux host journey evidence
@@ -463,6 +483,8 @@ jobs:
             java: "21"
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.IDE_RELEASE_COMMIT }}
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
@@ -485,12 +507,14 @@ jobs:
           xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24"
           node packages/jetbrains-plugin/scripts/run-ui-host-journey.mjs
           --ide-version ${{ matrix.ide.version }}
+          --release-commit ${{ env.IDE_RELEASE_COMMIT }}
           --artifact-dir packages/jetbrains-plugin/build/reports/ide-journey/${{ runner.os }}-${{ matrix.ide.version }}
       - name: Run deterministic chat/control/resume journey (Windows/macOS)
         if: runner.os != 'Linux'
         run: >-
           node packages/jetbrains-plugin/scripts/run-ui-host-journey.mjs
           --ide-version ${{ matrix.ide.version }}
+          --release-commit ${{ env.IDE_RELEASE_COMMIT }}
           --artifact-dir packages/jetbrains-plugin/build/reports/ide-journey/${{ runner.os }}-${{ matrix.ide.version }}
       - name: Upload host journey evidence
         if: always()
@@ -519,6 +543,8 @@ jobs:
         working-directory: packages/jetbrains-plugin
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.IDE_RELEASE_COMMIT }}
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
@@ -636,6 +662,8 @@ jobs:
         working-directory: packages/jetbrains-plugin
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.IDE_RELEASE_COMMIT }}
       - uses: actions/setup-node@v5
         with:
           node-version: "22.12.0"

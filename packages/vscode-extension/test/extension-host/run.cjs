@@ -39,6 +39,10 @@ const { runElectronMainHostJourney } = require("./electron-main-journey.cjs");
 
 const EXTENSION_ID = "chainlesschain.chainlesschain-ide";
 const PACKAGE_ROOT = path.resolve(__dirname, "..", "..");
+// One warmup plus 100 real Workbench DOM cycles can exceed three minutes on
+// loaded macOS runners. Keep the per-sample 2s P95 gate strict, but allow the
+// complete evidence set to finish inside the workflow's 15-minute step limit.
+const HOST_DOM_RELAY_RESULT_TIMEOUT_MS = 600_000;
 
 function defaultVsixPath() {
   const manifest = JSON.parse(
@@ -62,6 +66,7 @@ function usage() {
     "  --vscode-version <value>   stable, insiders, or an exact version (default: stable)",
     "  --work-dir <path>          Parent for fresh profiles and diagnostic logs",
     "  --artifact-dir <path>      Immutable journey evidence output directory",
+    "  --release-commit <sha>     Exact source commit represented by the evidence",
     "  --host-api-only            Diagnostic activation/view check without DOM authority",
     "  --help                     Show this help",
   ].join("\n");
@@ -81,6 +86,7 @@ function parseArgs(argv) {
     vscodeVersion: "stable",
     workDir: null,
     artifactDir: null,
+    releaseCommit: null,
     hostApiOnly: false,
     help: false,
   };
@@ -99,6 +105,9 @@ function parseArgs(argv) {
       i += 1;
     } else if (arg === "--artifact-dir") {
       options.artifactDir = takeValue(argv, i, arg);
+      i += 1;
+    } else if (arg === "--release-commit") {
+      options.releaseCommit = takeValue(argv, i, arg);
       i += 1;
     } else if (arg === "--host-api-only") {
       options.hostApiOnly = true;
@@ -619,7 +628,10 @@ async function runRealDomPhase({
           (value) => ({ value }),
           (error) => ({ error }),
         );
-      const relayOutcome = waitForFile(resultFile, 180_000)
+      const relayOutcome = waitForFile(
+        resultFile,
+        HOST_DOM_RELAY_RESULT_TIMEOUT_MS,
+      )
         .then(() => readJourneyResult(resultFile, phase))
         .then(
           (value) => ({ value }),
@@ -1209,6 +1221,7 @@ async function main() {
         sourceRoots,
         artifactPaths: [vsixPath],
         repoRoot: path.resolve(PACKAGE_ROOT, "..", ".."),
+        releaseCommit: options.releaseCommit,
         env: process.env,
       });
       process.stdout.write(

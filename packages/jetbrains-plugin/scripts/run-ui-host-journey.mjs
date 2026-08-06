@@ -17,6 +17,9 @@ const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const PACKAGE_ROOT = path.resolve(SCRIPT_DIR, "..");
 const REPO_ROOT = path.resolve(PACKAGE_ROOT, "..", "..");
 const DEFAULT_ROBOT_URL = "http://127.0.0.1:8082";
+export const WORKBENCH_NEEDS_INPUT_SAMPLE_COUNT = 100;
+export const WORKBENCH_NEEDS_INPUT_WARMUP_COUNT = 1;
+export const WORKBENCH_NEEDS_INPUT_SLA_MS = 2_000;
 
 function usage() {
   return [
@@ -374,32 +377,46 @@ export function verifyWorkbenchFixtureLedger(tracePath) {
         );
       }
     });
-  const resume = records.findIndex(
-    (record) =>
-      record.direction === "command" &&
-      record.command === "daemon-resume" &&
-      record.stage === "needs_input",
-  );
-  const reply = records.findIndex(
-    (record) =>
-      record.direction === "command" &&
-      record.command === "daemon-reply" &&
-      record.stage === "done",
-  );
+  let cursor = -1;
+  const totalCycles =
+    WORKBENCH_NEEDS_INPUT_WARMUP_COUNT + WORKBENCH_NEEDS_INPUT_SAMPLE_COUNT;
+  for (let cycle = 0; cycle < totalCycles; cycle += 1) {
+    const resume = records.findIndex(
+      (record, index) =>
+        index > cursor &&
+        record.direction === "command" &&
+        record.command === "daemon-resume" &&
+        record.stage === "needs_input",
+    );
+    const reply = records.findIndex(
+      (record, index) =>
+        index > resume &&
+        record.direction === "command" &&
+        record.command === "daemon-reply" &&
+        record.stage === "done",
+    );
+    if (resume < 0 || reply <= resume) {
+      throw new Error(
+        `fixture ledger does not prove ordered Workbench lifecycle cycle ${cycle + 1}`,
+      );
+    }
+    cursor = reply;
+  }
   const recoveredProjection = records.findIndex(
     (record, index) =>
-      index > reply &&
+      index > cursor &&
       record.direction === "command" &&
       record.command === "session-projection",
   );
-  if (resume < 0 || reply <= resume || recoveredProjection <= reply) {
+  if (recoveredProjection <= cursor) {
     throw new Error(
       "fixture ledger does not prove dispatch -> needs_input -> reply -> restart projection",
     );
   }
   return {
-    resume,
-    reply,
+    samples: WORKBENCH_NEEDS_INPUT_SAMPLE_COUNT,
+    warmupSamples: WORKBENCH_NEEDS_INPUT_WARMUP_COUNT,
+    finalReply: cursor,
     recoveredProjection,
     coverage: "canonical-workbench-restart",
   };
@@ -425,27 +442,50 @@ export function verifyWorkbenchVisibilityMetrics(metricsPath) {
     (record) =>
       record.host === "jetbrains" && record.metric === "needs-input-visible",
   );
-  if (samples.length !== 1) {
+  if (samples.length !== WORKBENCH_NEEDS_INPUT_SAMPLE_COUNT) {
     throw new Error(
-      `Workbench metrics prove ${samples.length} needs_input visibility sample(s); expected 1`,
+      `Workbench metrics prove ${samples.length} needs_input visibility sample(s); expected ${WORKBENCH_NEEDS_INPUT_SAMPLE_COUNT}`,
     );
   }
-  const sample = samples[0];
-  if (
-    sample.thresholdMs !== 2_000 ||
-    !Number.isFinite(sample.latencyMs) ||
-    sample.latencyMs < 0 ||
-    sample.latencyMs >= 2_000
-  ) {
-    throw new Error(
-      `Workbench metrics violate the needs_input visibility SLA: ${JSON.stringify(sample)}`,
-    );
+  for (const [index, sample] of samples.entries()) {
+    if (
+      sample.sample !== index + 1 ||
+      sample.sampleCount !== WORKBENCH_NEEDS_INPUT_SAMPLE_COUNT ||
+      sample.thresholdMs !== WORKBENCH_NEEDS_INPUT_SLA_MS ||
+      !Number.isFinite(sample.latencyMs) ||
+      sample.latencyMs < 0
+    ) {
+      throw new Error(
+        `Workbench metrics contain an invalid needs_input visibility sample: ${JSON.stringify(sample)}`,
+      );
+    }
   }
-  return {
+  const sorted = samples
+    .map((sample) => sample.latencyMs)
+    .sort((left, right) => left - right);
+  const summary = {
     samples: samples.length,
-    p95LatencyMs: sample.latencyMs,
-    thresholdMs: 2_000,
+    minLatencyMs: sorted[0],
+    maxLatencyMs: sorted[sorted.length - 1],
+    p95LatencyMs: sorted[Math.ceil(sorted.length * 0.95) - 1],
+    thresholdMs: WORKBENCH_NEEDS_INPUT_SLA_MS,
+    warmupSamples: WORKBENCH_NEEDS_INPUT_WARMUP_COUNT,
+    networkCondition: "loopback fixture; no external network",
+    transport: "installed-plugin-remote-robot-production-route",
+    runnerEnvironment:
+      process.env.GITHUB_ACTIONS === "true" ? "github-hosted" : "local",
+    runnerName: process.env.RUNNER_NAME || null,
+    runnerOS: process.env.RUNNER_OS || process.platform,
+    runnerArch: process.env.RUNNER_ARCH || process.arch,
+    runnerImageOS: process.env.ImageOS || null,
+    runnerImageVersion: process.env.ImageVersion || null,
   };
+  if (summary.p95LatencyMs >= WORKBENCH_NEEDS_INPUT_SLA_MS) {
+    throw new Error(
+      `Workbench metrics violate the needs_input visibility P95 SLA: ${JSON.stringify(summary)}`,
+    );
+  }
+  return summary;
 }
 
 function firstPluginArchive() {
@@ -582,14 +622,28 @@ export async function runJourney(options) {
       }
       await waitForRobotStopped(options.robotUrl);
     }
+    const fixtureTracePath = path.join(logRoot, "fake-cli-protocol.jsonl");
+    const rewindCoverage = verifyRewindFixtureLedger(fixtureTracePath);
+    const workbenchCoverage = verifyWorkbenchFixtureLedger(fixtureTracePath);
+    const visibilitySummary = verifyWorkbenchVisibilityMetrics(metricsPath);
     writeFileSync(
       path.join(logRoot, "workbench-host-phases.json"),
-      `${JSON.stringify({ phases: hostPhases }, null, 2)}\n`,
+      `${JSON.stringify(
+        {
+          phases: hostPhases,
+          rewindCoverage,
+          workbenchCoverage,
+          visibilitySummary: {
+            ...visibilitySummary,
+            measurementStartedAt: hostPhases[0]?.startedAt,
+            measurementCompletedAt: hostPhases[0]?.completedAt,
+          },
+        },
+        null,
+        2,
+      )}\n`,
       { encoding: "utf8", mode: 0o600, flag: "wx" },
     );
-    verifyRewindFixtureLedger(path.join(logRoot, "fake-cli-protocol.jsonl"));
-    verifyWorkbenchFixtureLedger(path.join(logRoot, "fake-cli-protocol.jsonl"));
-    verifyWorkbenchVisibilityMetrics(metricsPath);
     result = "passed";
   } catch (error) {
     journeyError = error;

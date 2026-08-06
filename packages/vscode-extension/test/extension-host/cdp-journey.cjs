@@ -14,6 +14,8 @@ const path = require("node:path");
 
 const DEFAULT_TIMEOUT_MS = 60_000;
 const WORKBENCH_NEEDS_INPUT_SLA_MS = 2_000;
+const WORKBENCH_NEEDS_INPUT_SAMPLE_COUNT = 100;
+const WORKBENCH_NEEDS_INPUT_WARMUP_COUNT = 1;
 const JOURNEY_PHASES = Object.freeze({
   initial: Object.freeze([
     "stream",
@@ -1173,43 +1175,99 @@ async function driveSessionsWorkbenchPhase(
       if (initial.artifactVisible) {
         throw new Error("fresh Workbench unexpectedly contains an artifact");
       }
-      const dispatchedAt = await clickSessionsWorkbenchAction(
-        client,
-        "dispatch",
-        "dispatch from VS Code Workbench",
-        signal,
-        dialogClient,
-      );
-      await waitForSessionsWorkbench({
-        client,
-        predicate: (snapshot) =>
-          snapshot.backgroundState === "needs_input" &&
-          snapshot.replyEnabled === true,
-        label: "Sessions Workbench needs_input transition",
-        signal,
-      });
-      const latencyMs = Date.now() - dispatchedAt;
+      const latencies = [];
+      let measurementStartedAt;
+      const totalCycles =
+        WORKBENCH_NEEDS_INPUT_WARMUP_COUNT + WORKBENCH_NEEDS_INPUT_SAMPLE_COUNT;
+      for (let cycle = 0; cycle < totalCycles; cycle += 1) {
+        const sample = cycle - WORKBENCH_NEEDS_INPUT_WARMUP_COUNT + 1;
+        const measured = sample > 0;
+        if (measured && !measurementStartedAt) {
+          measurementStartedAt = new Date().toISOString();
+        }
+        const dispatchedAt = await clickSessionsWorkbenchAction(
+          client,
+          "dispatch",
+          measured
+            ? `dispatch from VS Code Workbench sample ${sample}`
+            : "dispatch from VS Code Workbench warmup",
+          signal,
+          dialogClient,
+        );
+        await waitForSessionsWorkbench({
+          client,
+          predicate: (snapshot) =>
+            snapshot.backgroundState === "needs_input" &&
+            snapshot.replyEnabled === true,
+          label: measured
+            ? `Sessions Workbench needs_input transition sample ${sample}`
+            : "Sessions Workbench needs_input transition warmup",
+          signal,
+        });
+        if (measured) {
+          const latencyMs = Date.now() - dispatchedAt;
+          latencies.push(latencyMs);
+          appendTrace(tracePath, {
+            phase,
+            metric: "needs-input-visible",
+            sample,
+            sampleCount: WORKBENCH_NEEDS_INPUT_SAMPLE_COUNT,
+            latencyMs,
+            thresholdMs: WORKBENCH_NEEDS_INPUT_SLA_MS,
+          });
+        }
+        await clickSessionsWorkbenchAction(
+          client,
+          "reply",
+          measured ? `beta-${sample}` : "beta-warmup",
+          signal,
+          dialogClient,
+        );
+        await waitForSessionsWorkbench({
+          client,
+          predicate: (snapshot) =>
+            snapshot.backgroundState === "done" &&
+            snapshot.artifactVisible === true &&
+            snapshot.prVisible === true,
+          label: measured
+            ? `Sessions Workbench reply projection sample ${sample}`
+            : "Sessions Workbench reply projection warmup",
+          signal,
+        });
+      }
+      const sorted = [...latencies].sort((left, right) => left - right);
+      const summary = {
+        samples: sorted.length,
+        minLatencyMs: sorted[0],
+        maxLatencyMs: sorted[sorted.length - 1],
+        p95LatencyMs: sorted[Math.ceil(sorted.length * 0.95) - 1],
+      };
       appendTrace(tracePath, {
         phase,
-        metric: "needs-input-visible",
-        latencyMs,
+        metric: "needs-input-visible-summary",
+        ...summary,
         thresholdMs: WORKBENCH_NEEDS_INPUT_SLA_MS,
+        warmupSamples: WORKBENCH_NEEDS_INPUT_WARMUP_COUNT,
+        measurementStartedAt,
+        measurementCompletedAt: new Date().toISOString(),
+        networkCondition: "loopback fixture; no external network",
+        transport: "installed-vsix-webview-production-route",
+        runnerEnvironment:
+          process.env.GITHUB_ACTIONS === "true" ? "github-hosted" : "local",
+        runnerName: process.env.RUNNER_NAME || null,
+        runnerOS: process.env.RUNNER_OS || process.platform,
+        runnerArch: process.env.RUNNER_ARCH || process.arch,
+        runnerImageOS: process.env.ImageOS || null,
+        runnerImageVersion: process.env.ImageVersion || null,
       });
-      if (latencyMs >= WORKBENCH_NEEDS_INPUT_SLA_MS) {
+      if (summary.p95LatencyMs >= WORKBENCH_NEEDS_INPUT_SLA_MS) {
         throw new Error(
-          `Sessions Workbench needs_input visibility took ${latencyMs}ms; ` +
+          `Sessions Workbench needs_input P95 visibility took ${summary.p95LatencyMs}ms; ` +
             `required <${WORKBENCH_NEEDS_INPUT_SLA_MS}ms`,
         );
       }
     });
     await step("workbench-reply-artifact", async () => {
-      await clickSessionsWorkbenchAction(
-        client,
-        "reply",
-        "beta",
-        signal,
-        dialogClient,
-      );
       await waitForSessionsWorkbench({
         client,
         predicate: (snapshot) =>
@@ -1581,6 +1639,38 @@ function hasFixtureEvent(records, predicate) {
   });
 }
 
+function assertOrderedWorkbenchCycles(records) {
+  let cursor = -1;
+  for (
+    let cycle = 0;
+    cycle <
+    WORKBENCH_NEEDS_INPUT_WARMUP_COUNT + WORKBENCH_NEEDS_INPUT_SAMPLE_COUNT;
+    cycle += 1
+  ) {
+    const resume = records.findIndex(
+      (record, index) =>
+        index > cursor &&
+        record.direction === "command" &&
+        record.command === "daemon-resume" &&
+        record.stage === "needs_input",
+    );
+    const reply = records.findIndex(
+      (record, index) =>
+        index > resume &&
+        record.direction === "command" &&
+        record.command === "daemon-reply" &&
+        record.stage === "done",
+    );
+    if (resume < 0 || reply <= resume) {
+      throw new Error(
+        `fixture ledger does not prove ordered Workbench lifecycle cycle ${cycle + 1}`,
+      );
+    }
+    cursor = reply;
+  }
+  return cursor;
+}
+
 /**
  * Fail-closed validation of the raw evidence produced by the two real hosts.
  * A DOM screenshot is best-effort across Electron versions; the DOM snapshot,
@@ -1609,20 +1699,65 @@ function assertJourneyArtifacts({
     (record) =>
       record.phase === "initial" && record.metric === "needs-input-visible",
   );
-  if (visibilityMetrics.length !== 1) {
+  if (visibilityMetrics.length !== WORKBENCH_NEEDS_INPUT_SAMPLE_COUNT) {
     throw new Error(
-      `CDP journey proves ${visibilityMetrics.length} needs_input visibility metric(s); expected 1`,
+      `CDP journey proves ${visibilityMetrics.length} needs_input visibility metric(s); expected ${WORKBENCH_NEEDS_INPUT_SAMPLE_COUNT}`,
     );
   }
-  const visibility = visibilityMetrics[0];
+  for (const [index, visibility] of visibilityMetrics.entries()) {
+    if (
+      visibility.sample !== index + 1 ||
+      visibility.sampleCount !== WORKBENCH_NEEDS_INPUT_SAMPLE_COUNT ||
+      visibility.thresholdMs !== WORKBENCH_NEEDS_INPUT_SLA_MS ||
+      !Number.isFinite(visibility.latencyMs) ||
+      visibility.latencyMs < 0
+    ) {
+      throw new Error(
+        `CDP journey has an invalid needs_input visibility sample: ${JSON.stringify(visibility)}`,
+      );
+    }
+  }
+  const sortedLatencies = visibilityMetrics
+    .map((record) => record.latencyMs)
+    .sort((left, right) => left - right);
+  const calculatedSummary = {
+    samples: sortedLatencies.length,
+    minLatencyMs: sortedLatencies[0],
+    maxLatencyMs: sortedLatencies[sortedLatencies.length - 1],
+    p95LatencyMs: sortedLatencies[Math.ceil(sortedLatencies.length * 0.95) - 1],
+  };
+  const visibilitySummaries = cdpRecords.filter(
+    (record) =>
+      record.phase === "initial" &&
+      record.metric === "needs-input-visible-summary",
+  );
+  if (visibilitySummaries.length !== 1) {
+    throw new Error(
+      `CDP journey proves ${visibilitySummaries.length} needs_input visibility summary record(s); expected 1`,
+    );
+  }
+  const visibilitySummary = visibilitySummaries[0];
   if (
-    visibility.thresholdMs !== WORKBENCH_NEEDS_INPUT_SLA_MS ||
-    !Number.isFinite(visibility.latencyMs) ||
-    visibility.latencyMs < 0 ||
-    visibility.latencyMs >= WORKBENCH_NEEDS_INPUT_SLA_MS
+    visibilitySummary.samples !== calculatedSummary.samples ||
+    visibilitySummary.minLatencyMs !== calculatedSummary.minLatencyMs ||
+    visibilitySummary.maxLatencyMs !== calculatedSummary.maxLatencyMs ||
+    visibilitySummary.p95LatencyMs !== calculatedSummary.p95LatencyMs ||
+    visibilitySummary.p95LatencyMs >= WORKBENCH_NEEDS_INPUT_SLA_MS ||
+    visibilitySummary.thresholdMs !== WORKBENCH_NEEDS_INPUT_SLA_MS ||
+    visibilitySummary.warmupSamples !== WORKBENCH_NEEDS_INPUT_WARMUP_COUNT ||
+    !isExactIsoTimestamp(visibilitySummary.measurementStartedAt) ||
+    !isExactIsoTimestamp(visibilitySummary.measurementCompletedAt) ||
+    visibilitySummary.networkCondition !==
+      "loopback fixture; no external network" ||
+    visibilitySummary.transport !== "installed-vsix-webview-production-route" ||
+    !["github-hosted", "local"].includes(visibilitySummary.runnerEnvironment) ||
+    typeof visibilitySummary.runnerOS !== "string" ||
+    !visibilitySummary.runnerOS ||
+    typeof visibilitySummary.runnerArch !== "string" ||
+    !visibilitySummary.runnerArch
   ) {
     throw new Error(
-      `CDP journey violates needs_input visibility SLA: ${JSON.stringify(visibility)}`,
+      `CDP journey violates needs_input visibility SLA contract: ${JSON.stringify(visibilitySummary)}`,
     );
   }
   for (const [phase, steps] of Object.entries(JOURNEY_PHASES)) {
@@ -1704,23 +1839,30 @@ function assertJourneyArtifacts({
   }
 
   const fixtureRecords = readJsonLines(fixtureTracePath);
-  for (const command of ["daemon-resume", "daemon-reply"]) {
-    if (
-      !fixtureRecords.some(
-        (record) =>
-          record.direction === "command" && record.command === command,
-      )
-    ) {
-      throw new Error(`fixture ledger does not prove ${command}`);
-    }
-  }
+  const finalWorkbenchReply = assertOrderedWorkbenchCycles(fixtureRecords);
   const projectionReads = fixtureRecords.filter(
     (record) =>
       record.direction === "command" && record.command === "session-projection",
   ).length;
-  if (projectionReads < 4) {
+  if (
+    projectionReads <
+    2 *
+      (WORKBENCH_NEEDS_INPUT_WARMUP_COUNT + WORKBENCH_NEEDS_INPUT_SAMPLE_COUNT)
+  ) {
     throw new Error(
       `fixture ledger proves only ${projectionReads} canonical projection read(s)`,
+    );
+  }
+  if (
+    !fixtureRecords.some(
+      (record, index) =>
+        index > finalWorkbenchReply &&
+        record.direction === "command" &&
+        record.command === "session-projection",
+    )
+  ) {
+    throw new Error(
+      "fixture ledger does not prove a recovered projection after the final Workbench reply",
     );
   }
   if (nativeTimeline) {
@@ -1806,6 +1948,7 @@ function assertJourneyArtifacts({
   return {
     tracePath,
     fixtureTracePath,
+    visibilitySummary,
     domPaths: [
       ...Object.keys(JOURNEY_PHASES).map((phase) =>
         path.join(artifactDir, `${phase}-dom.txt`),
@@ -1967,6 +2110,9 @@ module.exports = {
   JOURNEY_PHASES,
   PHASE_DOM_MARKERS,
   PHASE_WORKBENCH_DOM_MARKERS,
+  WORKBENCH_NEEDS_INPUT_SAMPLE_COUNT,
+  WORKBENCH_NEEDS_INPUT_SLA_MS,
+  WORKBENCH_NEEDS_INPUT_WARMUP_COUNT,
   assertHostReadySignal,
   assertJourneyArtifacts,
   buildCdpWebSocketOptions,

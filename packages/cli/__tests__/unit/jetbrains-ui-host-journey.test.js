@@ -10,7 +10,11 @@ import {
   prependPath,
   readPluginVersion,
   verifyRewindFixtureLedger,
+  verifyWorkbenchFixtureLedger,
   verifyWorkbenchVisibilityMetrics,
+  WORKBENCH_NEEDS_INPUT_SAMPLE_COUNT,
+  WORKBENCH_NEEDS_INPUT_SLA_MS,
+  WORKBENCH_NEEDS_INPUT_WARMUP_COUNT,
 } from "../../../../packages/jetbrains-plugin/scripts/run-ui-host-journey.mjs";
 
 const temporaryRoots = [];
@@ -77,39 +81,110 @@ describe("JetBrains real-host journey driver", () => {
     expect(() => readPluginVersion(pluginXml)).toThrow(/exactly one/);
   });
 
-  it("requires a measured sub-two-second needs_input visibility sample", () => {
+  it("requires 100 measured needs_input samples and gates nearest-rank P95", () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-jb-sla-"));
     temporaryRoots.push(root);
     const metricsPath = path.join(root, "workbench-metrics.jsonl");
-    fs.writeFileSync(
-      metricsPath,
-      `${JSON.stringify({
+    const samples = Array.from(
+      { length: WORKBENCH_NEEDS_INPUT_SAMPLE_COUNT },
+      (_, index) => ({
         host: "jetbrains",
         metric: "needs-input-visible",
-        latencyMs: 250,
-        thresholdMs: 2_000,
-      })}\n`,
+        sample: index + 1,
+        sampleCount: WORKBENCH_NEEDS_INPUT_SAMPLE_COUNT,
+        latencyMs: 101 + index,
+        thresholdMs: WORKBENCH_NEEDS_INPUT_SLA_MS,
+      }),
+    );
+    fs.writeFileSync(
+      metricsPath,
+      `${samples.map((sample) => JSON.stringify(sample)).join("\n")}\n`,
       "utf8",
     );
-    expect(verifyWorkbenchVisibilityMetrics(metricsPath)).toEqual({
-      samples: 1,
-      p95LatencyMs: 250,
-      thresholdMs: 2_000,
+    expect(verifyWorkbenchVisibilityMetrics(metricsPath)).toMatchObject({
+      samples: WORKBENCH_NEEDS_INPUT_SAMPLE_COUNT,
+      minLatencyMs: 101,
+      maxLatencyMs: 200,
+      p95LatencyMs: 195,
+      thresholdMs: WORKBENCH_NEEDS_INPUT_SLA_MS,
+      warmupSamples: WORKBENCH_NEEDS_INPUT_WARMUP_COUNT,
+      networkCondition: "loopback fixture; no external network",
+      transport: "installed-plugin-remote-robot-production-route",
     });
 
     fs.writeFileSync(
       metricsPath,
-      `${JSON.stringify({
-        host: "jetbrains",
-        metric: "needs-input-visible",
-        latencyMs: 2_000,
-        thresholdMs: 2_000,
-      })}\n`,
+      `${samples
+        .slice(0, -1)
+        .map((sample) => JSON.stringify(sample))
+        .join("\n")}\n`,
       "utf8",
     );
     expect(() => verifyWorkbenchVisibilityMetrics(metricsPath)).toThrow(
-      /visibility SLA/,
+      /expected 100/,
     );
+
+    const p95Failure = samples.map((sample, index) => ({
+      ...sample,
+      latencyMs: index >= 94 ? WORKBENCH_NEEDS_INPUT_SLA_MS : sample.latencyMs,
+    }));
+    fs.writeFileSync(
+      metricsPath,
+      `${p95Failure.map((sample) => JSON.stringify(sample)).join("\n")}\n`,
+      "utf8",
+    );
+    expect(() => verifyWorkbenchVisibilityMetrics(metricsPath)).toThrow(
+      /P95 SLA/,
+    );
+  });
+
+  it("requires 1 warmup plus 100 ordered Workbench lifecycle cycles", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-jb-ledger-"));
+    temporaryRoots.push(root);
+    const tracePath = path.join(root, "fake-cli-protocol.jsonl");
+    const records = [];
+    for (
+      let cycle = 0;
+      cycle <
+      WORKBENCH_NEEDS_INPUT_WARMUP_COUNT + WORKBENCH_NEEDS_INPUT_SAMPLE_COUNT;
+      cycle += 1
+    ) {
+      records.push({
+        direction: "command",
+        command: "daemon-resume",
+        stage: "needs_input",
+      });
+      records.push({
+        direction: "command",
+        command: "session-projection",
+      });
+      records.push({
+        direction: "command",
+        command: "daemon-reply",
+        stage: "done",
+      });
+    }
+    records.push({ direction: "command", command: "session-projection" });
+    fs.writeFileSync(
+      tracePath,
+      `${records.map((record) => JSON.stringify(record)).join("\n")}\n`,
+      "utf8",
+    );
+    expect(verifyWorkbenchFixtureLedger(tracePath)).toMatchObject({
+      samples: WORKBENCH_NEEDS_INPUT_SAMPLE_COUNT,
+      warmupSamples: WORKBENCH_NEEDS_INPUT_WARMUP_COUNT,
+      coverage: "canonical-workbench-restart",
+    });
+
+    fs.writeFileSync(
+      tracePath,
+      `${records
+        .filter((_, index) => index !== records.length - 2)
+        .map((record) => JSON.stringify(record))
+        .join("\n")}\n`,
+      "utf8",
+    );
+    expect(() => verifyWorkbenchFixtureLedger(tracePath)).toThrow(/cycle 101/);
   });
 
   it("queues modal Workbench actions after the Remote Robot request", () => {
@@ -126,6 +201,10 @@ describe("JetBrains real-host journey driver", () => {
     expect(source).toContain(
       "ApplicationManager.getApplication().invokeLater(click);",
     );
+    expect(source).toContain("setInputDialogText(dialog, title, text");
+    expect(source).toContain("current instanceof JTextComponent");
+    expect(source).toContain("current.isShowing() && current.isEditable()");
+    expect(source).not.toContain("component.getFocusOwner().setText");
     expect(source).not.toContain("clickButton(dispatch);");
     expect(source).not.toContain("clickButton(reply);");
   });

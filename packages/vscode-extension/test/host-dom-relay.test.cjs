@@ -21,6 +21,8 @@ const {
 } = require("../src/chat/host-dom-relay");
 const {
   runDomRelayJourney,
+  WORKBENCH_NEEDS_INPUT_SAMPLE_COUNT,
+  WORKBENCH_NEEDS_INPUT_WARMUP_COUNT,
 } = require("./extension-host/driver/dom-relay-journey.cjs");
 
 const TOKEN = "ab".repeat(32);
@@ -198,6 +200,8 @@ test("DOM relay driver produces the same auditable phase ledger and snapshots", 
     workbenchStage: "ready",
   };
   let streamCount = 0;
+  let dispatchCount = 0;
+  let replyCount = 0;
   const commands = {
     async executeCommand(command, token, request) {
       assert.equal(command, HOST_DOM_COMMAND);
@@ -213,19 +217,35 @@ test("DOM relay driver produces the same auditable phase ledger and snapshots", 
             rowCount: 5,
             kinds: ["local", "background", "remote", "team", "workflow"],
             backgroundState: needsInput ? "needs_input" : "done",
-            dispatchEnabled: state.workbenchStage === "ready",
+            dispatchEnabled: !needsInput,
             replyEnabled: needsInput,
             artifactVisible: completed,
             prVisible: completed,
           };
         }
         if (request.action === "click" && request.target === "dispatch") {
-          assert.equal(request.text, "dispatch from VS Code Workbench");
+          const sample = dispatchCount;
+          assert.equal(
+            request.text,
+            sample < WORKBENCH_NEEDS_INPUT_WARMUP_COUNT
+              ? "dispatch from VS Code Workbench warmup"
+              : `dispatch from VS Code Workbench sample ${
+                  sample - WORKBENCH_NEEDS_INPUT_WARMUP_COUNT + 1
+                }`,
+          );
+          dispatchCount += 1;
           state.workbenchStage = "needs_input";
           return { clicked: "dispatch" };
         }
         if (request.action === "click" && request.target === "reply") {
-          assert.equal(request.text, "beta");
+          const sample = replyCount;
+          assert.equal(
+            request.text,
+            sample < WORKBENCH_NEEDS_INPUT_WARMUP_COUNT
+              ? "beta-warmup"
+              : `beta-${sample - WORKBENCH_NEEDS_INPUT_WARMUP_COUNT + 1}`,
+          );
+          replyCount += 1;
           state.workbenchStage = "completed";
           return { clicked: "reply" };
         }
@@ -289,6 +309,26 @@ test("DOM relay driver produces the same auditable phase ledger and snapshots", 
   }
 
   const trace = fs.readFileSync(traceFile, "utf8");
+  const traceRecords = trace
+    .split(/\r?\n/u)
+    .filter(Boolean)
+    .map((line) => JSON.parse(line));
+  assert.equal(
+    dispatchCount,
+    WORKBENCH_NEEDS_INPUT_WARMUP_COUNT + WORKBENCH_NEEDS_INPUT_SAMPLE_COUNT,
+  );
+  assert.equal(replyCount, dispatchCount);
+  assert.equal(
+    traceRecords.filter((record) => record.metric === "needs-input-visible")
+      .length,
+    WORKBENCH_NEEDS_INPUT_SAMPLE_COUNT,
+  );
+  assert.equal(
+    traceRecords.find(
+      (record) => record.metric === "needs-input-visible-summary",
+    )?.samples,
+    WORKBENCH_NEEDS_INPUT_SAMPLE_COUNT,
+  );
   assert.match(trace, /"targetType":"vscode-webview-message-relay"/u);
   for (const step of [
     "stream",

@@ -43,6 +43,8 @@ final class IdeUiSmokeTest {
     private static final Duration FIND_BUDGET = Duration.ofSeconds(45);
     private static final Duration FIRST_POPUP_BUDGET = Duration.ofSeconds(15);
     private static final long NEEDS_INPUT_VISIBILITY_SLA_MILLIS = 2_000L;
+    private static final int NEEDS_INPUT_VISIBILITY_SAMPLE_COUNT = 100;
+    private static final int NEEDS_INPUT_VISIBILITY_WARMUP_COUNT = 1;
 
     /** Match new-UI and classic-UI stripe buttons. */
     private static final String STRIPE_XPATH =
@@ -157,21 +159,34 @@ final class IdeUiSmokeTest {
                 Locators.byXpath("//div[@text='Dispatch'"
                         + " and @accessiblename='ChainlessChain session dispatch']"),
                 FIND_BUDGET);
-        waitUntilEnabled(dispatch, "session dispatch", FIND_BUDGET);
-        openInputDialog(dispatch);
-        long dispatchedAt = submitInputDialog(
-                robot, "Resume", "dispatch from JetBrains Workbench");
-        waitForTableStatus(table, "needs_input", FIND_BUDGET);
-        recordNeedsInputVisibility(dispatchedAt);
-
         ComponentFixture reply = robot.find(ComponentFixture.class,
                 Locators.byXpath("//div[@text='Reply'"
                         + " and @accessiblename='ChainlessChain session reply']"),
                 FIND_BUDGET);
-        waitUntilEnabled(reply, "session reply", FIND_BUDGET);
-        openInputDialog(reply);
-        submitInputDialog(robot, "Reply to Session", "beta");
-        waitForTableStatus(table, "done", FIND_BUDGET);
+        int totalCycles = NEEDS_INPUT_VISIBILITY_WARMUP_COUNT
+                + NEEDS_INPUT_VISIBILITY_SAMPLE_COUNT;
+        for (int cycle = 0; cycle < totalCycles; cycle++) {
+            int sample = cycle - NEEDS_INPUT_VISIBILITY_WARMUP_COUNT + 1;
+            boolean measured = sample > 0;
+            waitUntilEnabled(dispatch, "session dispatch", FIND_BUDGET);
+            openInputDialog(dispatch);
+            long dispatchedAt = submitInputDialog(
+                    robot,
+                    "Resume",
+                    measured
+                            ? "dispatch from JetBrains Workbench sample " + sample
+                            : "dispatch from JetBrains Workbench warmup");
+            waitForTableStatus(table, "needs_input", FIND_BUDGET);
+            if (measured) recordNeedsInputVisibility(dispatchedAt, sample);
+
+            waitUntilEnabled(reply, "session reply", FIND_BUDGET);
+            openInputDialog(reply);
+            submitInputDialog(
+                    robot,
+                    "Reply to Session",
+                    measured ? "beta-" + sample : "beta-warmup");
+            waitForTableStatus(table, "done", FIND_BUDGET);
+        }
         waitForComponentText(detail, "workbench-result.md", FIND_BUDGET);
         waitForComponentText(detail, "PR #88 merged", FIND_BUDGET);
     }
@@ -252,9 +267,7 @@ final class IdeUiSmokeTest {
         ComponentFixture dialog = robot.find(ComponentFixture.class,
                 Locators.byXpath("//div[@visible='true' and @title="
                         + xpathString(title) + "]"), FIND_BUDGET);
-        dialog.runJs(
-                "component.getFocusOwner().setText(" + jsString(text) + ")",
-                true);
+        setInputDialogText(dialog, title, text, FIND_BUDGET);
         ComponentFixture ok = robot.find(ComponentFixture.class,
                 Locators.byXpath("//div[@text='OK']"), FIND_BUDGET);
         long submittedAt = System.nanoTime();
@@ -263,20 +276,59 @@ final class IdeUiSmokeTest {
         return submittedAt;
     }
 
-    private static void recordNeedsInputVisibility(long submittedAt) {
+    private static void setInputDialogText(
+            ComponentFixture dialog,
+            String title,
+            String text,
+            Duration budget) throws InterruptedException {
+        String script =
+                "importClass(java.awt.Container);"
+                        + "importClass(java.util.ArrayDeque);"
+                        + "importClass(javax.swing.text.JTextComponent);"
+                        + "var pending = new ArrayDeque();"
+                        + "pending.add(component);"
+                        + "var updated = false;"
+                        + "while (!pending.isEmpty() && !updated) {"
+                        + "var current = pending.removeFirst();"
+                        + "if (current instanceof JTextComponent"
+                        + " && current.isShowing() && current.isEditable()) {"
+                        + "current.setText(" + jsString(text) + ");"
+                        + "current.requestFocusInWindow();"
+                        + "updated = true;"
+                        + "} else if (current instanceof Container) {"
+                        + "var children = current.getComponents();"
+                        + "for (var index = 0; index < children.length; index += 1) {"
+                        + "pending.add(children[index]);"
+                        + "}"
+                        + "}"
+                        + "}"
+                        + "updated;";
+        long deadline = System.nanoTime() + budget.toNanos();
+        while (System.nanoTime() < deadline) {
+            Object updated = dialog.callJs(script);
+            if (Boolean.TRUE.equals(updated)
+                    || "true".equals(String.valueOf(updated))) return;
+            // On IDEA 2024.2/Linux the modal window can be discoverable a few
+            // EDT turns before its editor is attached. Traversing the dialog
+            // avoids relying on the equally transient Window focus owner.
+            Thread.sleep(100);
+        }
+        throw new AssertionError(title + " input editor did not become ready within "
+                + budget.toSeconds() + "s");
+    }
+
+    private static void recordNeedsInputVisibility(
+            long submittedAt, int sample) {
         long latencyMillis = Duration.ofNanos(
                 System.nanoTime() - submittedAt).toMillis();
-        if (latencyMillis >= NEEDS_INPUT_VISIBILITY_SLA_MILLIS) {
-            throw new AssertionError(
-                    "Workbench needs_input visibility took " + latencyMillis
-                            + "ms; required <"
-                            + NEEDS_INPUT_VISIBILITY_SLA_MILLIS + "ms");
-        }
         String metricsPath = System.getProperty("ui.metrics.path", "").trim();
         if (metricsPath.isEmpty()) return;
         String record = "{\"at\":\"" + Instant.now()
                 + "\",\"host\":\"jetbrains\""
                 + ",\"metric\":\"needs-input-visible\""
+                + ",\"sample\":" + sample
+                + ",\"sampleCount\":"
+                + NEEDS_INPUT_VISIBILITY_SAMPLE_COUNT
                 + ",\"latencyMs\":" + latencyMillis
                 + ",\"thresholdMs\":"
                 + NEEDS_INPUT_VISIBILITY_SLA_MILLIS + "}\n";
