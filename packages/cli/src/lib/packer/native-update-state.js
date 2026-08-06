@@ -703,9 +703,14 @@ export function recoverPendingNativeGeneration(options = {}) {
           "RECOVERY_FAILED",
         );
       }
-      const expectedBackup = journal.hadTarget
-        ? journal.targetBeforeSha256
-        : null;
+      const expectedBackup =
+        journal.operation === "rescue"
+          ? journal.hadBackup
+            ? journal.backupBeforeSha256
+            : null
+          : journal.hadTarget
+            ? journal.targetBeforeSha256
+            : null;
       if (
         stableRegularShaOrNull(
           statePaths.backupPath,

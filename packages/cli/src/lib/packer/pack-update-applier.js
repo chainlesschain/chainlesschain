@@ -536,7 +536,6 @@ function applyPosixUpdate(ctx) {
       "ROLLBACK_FAILED",
     );
   }
-  cleanupGenerationSnapshots(snapshotPaths);
   try {
     retireGenerationJournal(statePaths, journal, updateLock);
   } catch (error) {
@@ -545,6 +544,7 @@ function applyPosixUpdate(ctx) {
       "ROLLBACK_FAILED",
     );
   }
+  cleanupGenerationSnapshots(snapshotPaths);
 
   restartVerifiedExecutable(targetPath, restart, spawnImpl);
   return buildPlan({
@@ -1469,6 +1469,14 @@ export async function rollbackLastKnownGood(ctx = {}) {
       lineage.previousSha256,
       "last-known-good backup",
     );
+    const hadPriorBackup = Boolean(lstatOrNull(statePaths.backupPath));
+    const priorBackupSha = hadPriorBackup
+      ? stableSha256(statePaths.backupPath, "existing native backup")
+      : null;
+    const priorLineageSha = stableSha256(
+      statePaths.lineagePath,
+      "native update lineage before rescue",
+    );
 
     rescueStagingPath = uniqueSibling(layout.canonicalPath, "rescue");
     atomicCopyFile(backupPath, rescueStagingPath, {
@@ -1520,6 +1528,9 @@ export async function rollbackLastKnownGood(ctx = {}) {
       rescueSha: lineage.previousSha256,
       hadTarget,
       targetBeforeSha,
+      hadPriorBackup,
+      priorBackupSha,
+      priorLineageSha,
       restart: Boolean(restart),
       verify: Boolean(verify),
       spawnImpl,
@@ -1548,22 +1559,89 @@ function applyPosixRescue(ctx) {
     rescueSha,
     hadTarget,
     targetBeforeSha,
+    hadPriorBackup,
+    priorBackupSha,
+    priorLineageSha,
     restart,
     verify,
     spawnImpl,
     verifyImpl,
   } = ctx;
   const targetPath = layout.canonicalPath;
-  const currentSnapshotPath = uniqueSibling(targetPath, "rescue-current");
-  if (hadTarget) {
-    atomicCopyFile(targetPath, currentSnapshotPath, {
-      preserveModeFrom: targetPath,
+  const snapshotPaths = generationSnapshotPaths(targetPath, transactionId);
+  const journal = makeGenerationJournal({
+    transactionId,
+    operation: "rescue",
+    expectedSha: rescueSha,
+    hadTarget,
+    targetBeforeSha,
+    hadBackup: hadPriorBackup,
+    backupBeforeSha: priorBackupSha,
+    hadLineage: true,
+    lineageBeforeSha: priorLineageSha,
+  });
+
+  try {
+    if (hadTarget) {
+      atomicCopyFile(targetPath, snapshotPaths.priorTargetPath, {
+        preserveModeFrom: targetPath,
+        updateLock,
+      });
+      assertExpectedFileHash(
+        snapshotPaths.priorTargetPath,
+        targetBeforeSha,
+        "pre-rescue target generation snapshot",
+      );
+    }
+    if (hadPriorBackup) {
+      atomicCopyFile(statePaths.backupPath, snapshotPaths.priorBackupPath, {
+        preserveModeFrom: statePaths.backupPath,
+        updateLock,
+      });
+      assertExpectedFileHash(
+        snapshotPaths.priorBackupPath,
+        priorBackupSha,
+        "pre-rescue backup generation snapshot",
+      );
+    }
+    atomicCopyFile(statePaths.lineagePath, snapshotPaths.priorLineagePath, {
+      preserveModeFrom: statePaths.lineagePath,
       updateLock,
     });
     assertExpectedFileHash(
-      currentSnapshotPath,
-      targetBeforeSha,
-      "pre-rescue executable",
+      snapshotPaths.priorLineagePath,
+      priorLineageSha,
+      "pre-rescue lineage generation snapshot",
+    );
+  } catch (error) {
+    cleanupGenerationSnapshots(snapshotPaths);
+    throw asApplyError(
+      error,
+      "GENERATION_SNAPSHOT_FAILED",
+      "could not preserve the native rescue pre-state",
+    );
+  }
+
+  try {
+    writeGenerationJournalPhase(
+      statePaths.journalPath,
+      journal,
+      "prepared",
+      "rollback",
+      updateLock,
+    );
+  } catch (error) {
+    if (lstatOrNull(statePaths.journalPath)) {
+      throw new ApplyError(
+        `native rescue intent persistence is unknown: ${error.message}`,
+        "RESCUE_ROLLBACK_FAILED",
+      );
+    }
+    cleanupGenerationSnapshots(snapshotPaths);
+    throw asApplyError(
+      error,
+      "JOURNAL_WRITE_FAILED",
+      "could not persist native rescue intent",
     );
   }
 
@@ -1583,8 +1661,35 @@ function applyPosixRescue(ctx) {
     assertUpdateLockOwned(updateLock);
     fs.renameSync(rescueStagingPath, targetPath);
     fsyncDirectory(path.dirname(targetPath));
+    writeGenerationJournalPhase(
+      statePaths.journalPath,
+      journal,
+      "target-committed",
+      "rollback",
+      updateLock,
+    );
   } catch (error) {
-    removeRegularFileIfPresent(currentSnapshotPath);
+    try {
+      rollbackFailedPosixUpdate({
+        targetPath,
+        statePaths,
+        transactionId,
+        hadTarget,
+        targetBeforeSha,
+        hadPriorBackup,
+        hadPriorLineage: true,
+        priorBackupSha,
+        priorLineageSha,
+        snapshotPaths,
+        journal,
+        updateLock,
+      });
+    } catch (recoveryError) {
+      throw new ApplyError(
+        `rescue target commit failed and its generation journal could not be retired: ${recoveryError.message}`,
+        "RESCUE_ROLLBACK_FAILED",
+      );
+    }
     throw new ApplyError(
       `rescue rename failed: ${error.message}`,
       "RESCUE_RENAME_FAILED",
@@ -1609,6 +1714,22 @@ function applyPosixRescue(ctx) {
   }
   if (!failure) {
     try {
+      writeGenerationJournalPhase(
+        statePaths.journalPath,
+        journal,
+        "verified",
+        "rollback",
+        updateLock,
+      );
+    } catch (error) {
+      failure = new ApplyError(
+        `could not persist native rescue verification: ${error.message}`,
+        "JOURNAL_WRITE_FAILED",
+      );
+    }
+  }
+  if (!failure) {
+    try {
       atomicWriteJson(
         statePaths.lineagePath,
         makeLineage({
@@ -1617,6 +1738,13 @@ function applyPosixRescue(ctx) {
           currentSha256: rescueSha,
           previousSha256: rescueSha,
         }),
+        updateLock,
+      );
+      writeGenerationJournalPhase(
+        statePaths.journalPath,
+        journal,
+        "lineage-committed",
+        "rollback",
         updateLock,
       );
     } catch (error) {
@@ -1628,39 +1756,53 @@ function applyPosixRescue(ctx) {
   }
 
   if (failure) {
-    let restored = false;
     try {
-      if (hadTarget) {
-        atomicCopyFile(currentSnapshotPath, targetPath, {
-          preserveModeFrom: currentSnapshotPath,
-          updateLock,
-        });
-        assertExpectedFileHash(
-          targetPath,
-          targetBeforeSha,
-          "restored pre-rescue executable",
-        );
-      } else {
-        assertUpdateLockOwned(updateLock);
-        fs.renameSync(targetPath, uniqueSibling(targetPath, "failed-rescue"));
-      }
-      restored = true;
+      rollbackFailedPosixUpdate({
+        targetPath,
+        statePaths,
+        transactionId,
+        hadTarget,
+        targetBeforeSha,
+        hadPriorBackup,
+        hadPriorLineage: true,
+        priorBackupSha,
+        priorLineageSha,
+        snapshotPaths,
+        journal,
+        updateLock,
+      });
     } catch (error) {
       throw new ApplyError(
-        `rescue verification failed and pre-rescue restore failed; recovery snapshot preserved at ${currentSnapshotPath}: ${error.message}`,
+        `rescue verification failed and pre-rescue restoration failed: ${error.message}`,
         "RESCUE_ROLLBACK_FAILED",
       );
-    } finally {
-      if (restored) {
-        assertUpdateLockOwned(updateLock);
-        removeRegularFileIfPresent(currentSnapshotPath);
-      }
     }
     throw failure;
   }
 
-  assertUpdateLockOwned(updateLock);
-  removeRegularFileIfPresent(currentSnapshotPath);
+  try {
+    writeGenerationJournalPhase(
+      statePaths.journalPath,
+      journal,
+      "committed",
+      "commit",
+      updateLock,
+    );
+  } catch (error) {
+    throw new ApplyError(
+      `native rescue commit decision is unknown: ${error.message}`,
+      "RESCUE_ROLLBACK_FAILED",
+    );
+  }
+  try {
+    retireGenerationJournal(statePaths, journal, updateLock);
+  } catch (error) {
+    throw new ApplyError(
+      `native rescue committed but journal retirement failed: ${error.message}`,
+      "RESCUE_ROLLBACK_FAILED",
+    );
+  }
+  cleanupGenerationSnapshots(snapshotPaths);
   restartVerifiedExecutable(targetPath, restart, spawnImpl);
   return buildPlan({
     platform: "posix",
