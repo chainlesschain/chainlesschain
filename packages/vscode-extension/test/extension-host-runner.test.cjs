@@ -37,6 +37,9 @@ const {
   JOURNEY_PHASES,
   PHASE_DOM_MARKERS,
   PHASE_WORKBENCH_DOM_MARKERS,
+  WORKBENCH_NEEDS_INPUT_SAMPLE_COUNT,
+  WORKBENCH_NEEDS_INPUT_SLA_MS,
+  WORKBENCH_NEEDS_INPUT_WARMUP_COUNT,
   acceptJavaScriptDialog,
   assertJourneyArtifacts,
   buildCdpWebSocketOptions,
@@ -1229,12 +1232,44 @@ test("raw DOM and protocol evidence must prove every control and restart step", 
       completedAt: "2026-08-01T00:01:00.000Z",
     });
   }
+  const visibilityLatencies = [];
+  for (
+    let sample = 1;
+    sample <= WORKBENCH_NEEDS_INPUT_SAMPLE_COUNT;
+    sample += 1
+  ) {
+    const latencyMs = 100 + sample;
+    visibilityLatencies.push(latencyMs);
+    cdpRecords.push({
+      at: "2026-08-01T00:00:01.000Z",
+      phase: "initial",
+      metric: "needs-input-visible",
+      sample,
+      sampleCount: WORKBENCH_NEEDS_INPUT_SAMPLE_COUNT,
+      latencyMs,
+      thresholdMs: WORKBENCH_NEEDS_INPUT_SLA_MS,
+    });
+  }
   cdpRecords.push({
-    at: "2026-08-01T00:00:01.000Z",
+    at: "2026-08-01T00:00:02.000Z",
     phase: "initial",
-    metric: "needs-input-visible",
-    latencyMs: 125,
-    thresholdMs: 2_000,
+    metric: "needs-input-visible-summary",
+    samples: WORKBENCH_NEEDS_INPUT_SAMPLE_COUNT,
+    minLatencyMs: visibilityLatencies[0],
+    maxLatencyMs: visibilityLatencies.at(-1),
+    p95LatencyMs: visibilityLatencies[94],
+    thresholdMs: WORKBENCH_NEEDS_INPUT_SLA_MS,
+    warmupSamples: WORKBENCH_NEEDS_INPUT_WARMUP_COUNT,
+    measurementStartedAt: "2026-08-01T00:00:01.000Z",
+    measurementCompletedAt: "2026-08-01T00:00:02.000Z",
+    networkCondition: "loopback fixture; no external network",
+    transport: "installed-vsix-webview-production-route",
+    runnerEnvironment: "local",
+    runnerOS: "test-os",
+    runnerArch: "test-arch",
+    runnerName: null,
+    runnerImageOS: null,
+    runnerImageVersion: null,
   });
   writeJsonLines(path.join(artifactDir, "cdp-journey.jsonl"), cdpRecords);
   const fixtureRecords = [
@@ -1250,10 +1285,27 @@ test("raw DOM and protocol evidence must prove every control and restart step", 
     { direction: "in", event: { type: "interrupt" } },
     { direction: "out", event: { type: "system", resumed_messages: 10 } },
     { direction: "in", event: { type: "user", text: "journey:resume" } },
-    { direction: "command", command: "daemon-resume" },
-    { direction: "command", command: "daemon-reply" },
   ];
-  for (let index = 0; index < 4; index += 1) {
+  for (
+    let index = 0;
+    index <
+    WORKBENCH_NEEDS_INPUT_WARMUP_COUNT + WORKBENCH_NEEDS_INPUT_SAMPLE_COUNT;
+    index += 1
+  ) {
+    fixtureRecords.push({
+      direction: "command",
+      command: "daemon-resume",
+      stage: "needs_input",
+    });
+    fixtureRecords.push({
+      direction: "command",
+      command: "session-projection",
+    });
+    fixtureRecords.push({
+      direction: "command",
+      command: "daemon-reply",
+      stage: "done",
+    });
     fixtureRecords.push({
       direction: "command",
       command: "session-projection",
@@ -1292,6 +1344,39 @@ test("raw DOM and protocol evidence must prove every control and restart step", 
     workspaceDir,
   });
   assert.equal(evidence.domPaths.length, 5);
+  assert.deepEqual(
+    {
+      samples: evidence.visibilitySummary.samples,
+      p95LatencyMs: evidence.visibilitySummary.p95LatencyMs,
+      warmupSamples: evidence.visibilitySummary.warmupSamples,
+    },
+    {
+      samples: WORKBENCH_NEEDS_INPUT_SAMPLE_COUNT,
+      p95LatencyMs: visibilityLatencies[94],
+      warmupSamples: WORKBENCH_NEEDS_INPUT_WARMUP_COUNT,
+    },
+  );
+
+  writeJsonLines(
+    path.join(artifactDir, "cdp-journey.jsonl"),
+    cdpRecords.filter(
+      (record) =>
+        record.metric !== "needs-input-visible" ||
+        record.sample !== WORKBENCH_NEEDS_INPUT_SAMPLE_COUNT,
+    ),
+  );
+  assert.throws(
+    () =>
+      assertJourneyArtifacts({
+        artifactDir,
+        fixtureTracePath,
+        runtimeDir,
+        extensionsDir,
+        workspaceDir,
+      }),
+    /expected 100/,
+  );
+  writeJsonLines(path.join(artifactDir, "cdp-journey.jsonl"), cdpRecords);
 
   fs.writeFileSync(
     path.join(artifactDir, "restart-dom.txt"),

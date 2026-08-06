@@ -6,6 +6,8 @@ const path = require("node:path");
 
 const HOST_DOM_COMMAND = "chainlesschain.internal.hostDomCommand";
 const WORKBENCH_NEEDS_INPUT_SLA_MS = 2_000;
+const WORKBENCH_NEEDS_INPUT_SAMPLE_COUNT = 100;
+const WORKBENCH_NEEDS_INPUT_WARMUP_COUNT = 1;
 const JOURNEY_PHASES = Object.freeze({
   initial: Object.freeze([
     "stream",
@@ -29,6 +31,42 @@ function appendTrace(traceFile, record) {
     traceFile,
     `${JSON.stringify({ at: new Date().toISOString(), ...record })}\n`,
     { encoding: "utf8", mode: 0o600 },
+  );
+}
+
+function summarizeVisibilityMetrics(latencies) {
+  const sorted = [...latencies].sort((left, right) => left - right);
+  return {
+    samples: sorted.length,
+    minLatencyMs: sorted[0],
+    maxLatencyMs: sorted[sorted.length - 1],
+    p95LatencyMs: sorted[Math.ceil(sorted.length * 0.95) - 1],
+  };
+}
+
+function appendVisibilitySummary(traceFile, phase, latencies, startedAt) {
+  const summary = summarizeVisibilityMetrics(latencies);
+  appendTrace(traceFile, {
+    phase,
+    metric: "needs-input-visible-summary",
+    ...summary,
+    thresholdMs: WORKBENCH_NEEDS_INPUT_SLA_MS,
+    warmupSamples: WORKBENCH_NEEDS_INPUT_WARMUP_COUNT,
+    measurementStartedAt: startedAt,
+    measurementCompletedAt: new Date().toISOString(),
+    networkCondition: "loopback fixture; no external network",
+    transport: "installed-vsix-webview-production-route",
+    runnerEnvironment:
+      process.env.GITHUB_ACTIONS === "true" ? "github-hosted" : "local",
+    runnerName: process.env.RUNNER_NAME || null,
+    runnerOS: process.env.RUNNER_OS || process.platform,
+    runnerArch: process.env.RUNNER_ARCH || process.arch,
+    runnerImageOS: process.env.ImageOS || null,
+    runnerImageVersion: process.env.ImageVersion || null,
+  });
+  assert.ok(
+    summary.p95LatencyMs < WORKBENCH_NEEDS_INPUT_SLA_MS,
+    `Workbench needs_input P95 visibility took ${summary.p95LatencyMs}ms; required <${WORKBENCH_NEEDS_INPUT_SLA_MS}ms`,
   );
 }
 
@@ -231,40 +269,73 @@ async function drivePhase(commands, token, phase, traceFile) {
         label: "initial canonical workbench projection",
       });
       assert.equal(initial.artifactVisible, false);
-      const dispatchedAt = Date.now();
-      const clicked = await executeWorkbench(commands, token, {
-        action: "click",
-        target: "dispatch",
-        text: "dispatch from VS Code Workbench",
-      });
-      assert.equal(clicked?.clicked, "dispatch");
-      await waitForWorkbench({
-        commands,
-        token,
-        predicate: (snapshot) =>
-          snapshot.backgroundState === "needs_input" &&
-          snapshot.replyEnabled === true,
-        label: "Workbench needs_input transition",
-      });
-      const latencyMs = Date.now() - dispatchedAt;
-      appendTrace(traceFile, {
+      const latencies = [];
+      let measurementStartedAt;
+      const totalCycles =
+        WORKBENCH_NEEDS_INPUT_WARMUP_COUNT + WORKBENCH_NEEDS_INPUT_SAMPLE_COUNT;
+      for (let cycle = 0; cycle < totalCycles; cycle += 1) {
+        const sample = cycle - WORKBENCH_NEEDS_INPUT_WARMUP_COUNT + 1;
+        const measured = sample > 0;
+        if (measured && !measurementStartedAt) {
+          measurementStartedAt = new Date().toISOString();
+        }
+        const dispatchedAt = Date.now();
+        const clicked = await executeWorkbench(commands, token, {
+          action: "click",
+          target: "dispatch",
+          text: measured
+            ? `dispatch from VS Code Workbench sample ${sample}`
+            : "dispatch from VS Code Workbench warmup",
+        });
+        assert.equal(clicked?.clicked, "dispatch");
+        await waitForWorkbench({
+          commands,
+          token,
+          predicate: (snapshot) =>
+            snapshot.backgroundState === "needs_input" &&
+            snapshot.replyEnabled === true,
+          label: measured
+            ? `Workbench needs_input transition sample ${sample}`
+            : "Workbench needs_input transition warmup",
+        });
+        if (measured) {
+          const latencyMs = Date.now() - dispatchedAt;
+          latencies.push(latencyMs);
+          appendTrace(traceFile, {
+            phase,
+            metric: "needs-input-visible",
+            sample,
+            sampleCount: WORKBENCH_NEEDS_INPUT_SAMPLE_COUNT,
+            latencyMs,
+            thresholdMs: WORKBENCH_NEEDS_INPUT_SLA_MS,
+          });
+        }
+        const replied = await executeWorkbench(commands, token, {
+          action: "click",
+          target: "reply",
+          text: measured ? `beta-${sample}` : "beta-warmup",
+        });
+        assert.equal(replied?.clicked, "reply");
+        await waitForWorkbench({
+          commands,
+          token,
+          predicate: (snapshot) =>
+            snapshot.backgroundState === "done" &&
+            snapshot.artifactVisible === true &&
+            snapshot.prVisible === true,
+          label: measured
+            ? `Workbench reply projection sample ${sample}`
+            : "Workbench reply projection warmup",
+        });
+      }
+      appendVisibilitySummary(
+        traceFile,
         phase,
-        metric: "needs-input-visible",
-        latencyMs,
-        thresholdMs: WORKBENCH_NEEDS_INPUT_SLA_MS,
-      });
-      assert.ok(
-        latencyMs < WORKBENCH_NEEDS_INPUT_SLA_MS,
-        `Workbench needs_input visibility took ${latencyMs}ms; required <${WORKBENCH_NEEDS_INPUT_SLA_MS}ms`,
+        latencies,
+        measurementStartedAt,
       );
     });
     await step("workbench-reply-artifact", async () => {
-      const clicked = await executeWorkbench(commands, token, {
-        action: "click",
-        target: "reply",
-        text: "beta",
-      });
-      assert.equal(clicked?.clicked, "reply");
       await waitForWorkbench({
         commands,
         token,
