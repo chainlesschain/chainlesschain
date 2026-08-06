@@ -525,7 +525,10 @@ function descendantCount(pid) {
         "-NoProfile",
         "-NonInteractive",
         "-Command",
-        `(Get-CimInstance Win32_Process | Where-Object ParentProcessId -eq ${pid}).Count`,
+        `$ErrorActionPreference='Stop'; (` +
+          `Get-CimInstance -ClassName Win32_Process ` +
+          `-Filter 'ParentProcessId = ${pid}' -ErrorAction Stop | ` +
+          `Measure-Object).Count`,
       ],
       { encoding: "utf8", windowsHide: true },
     );
