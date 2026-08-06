@@ -37,6 +37,30 @@ test("JetBrains release hosts use the platform-required Java 21 toolchain", () =
   assert.match(build, /jvmToolchain\(21\)/u);
 });
 
+test("every IDE gate checks out and records the exact source commit", () => {
+  const workflow = read(".github/workflows/ide-extensions.yml");
+  assert.match(
+    workflow,
+    /IDE_RELEASE_COMMIT: \$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/u,
+  );
+  assert.equal(
+    workflow.match(/uses: actions\/checkout@v5/gu)?.length,
+    8,
+    "every IDE job must use the pinned checkout action",
+  );
+  assert.equal(
+    workflow.match(/ref: \$\{\{ env\.IDE_RELEASE_COMMIT \}\}/gu)?.length,
+    8,
+    "every IDE job must check out the explicit source commit",
+  );
+  assert.equal(
+    workflow.match(/--release-commit \$\{\{ env\.IDE_RELEASE_COMMIT \}\}/gu)
+      ?.length,
+    8,
+    "all six VS Code and two JetBrains host journeys must record that commit",
+  );
+});
+
 test("VS Code channel credentials are checked before their immutable publishes", () => {
   const workflow = read(".github/workflows/ide-extensions.yml");
   const openVsxPreflight = workflow.indexOf(
