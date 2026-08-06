@@ -269,6 +269,7 @@ describe("MCP stdio executable byte identity", () => {
     "rejects direct shebang launchers whose interpreter bytes are not bound",
     () => {
       fs.writeFileSync(script, "#!/bin/sh\nexit 0\n", { mode: 0o755 });
+      fs.chmodSync(script, 0o755);
       const invocation = approvedInvocation("shebang", {
         command: script,
         args: [],
