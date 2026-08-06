@@ -312,7 +312,14 @@ test("VS Code host gates pin macOS Intel and share the main-world relay", () => 
   );
   assert.match(hostRunner, /launchArgs: buildHostDomRelayLaunchArgs\(\{/u);
   assert.match(hostRunner, /CHAINLESSCHAIN_HOST_DOM_TOKEN/u);
-  assert.match(hostRunner, /waitForFile\(resultFile, 180_000\)/u);
+  assert.match(
+    hostRunner,
+    /const HOST_DOM_RELAY_RESULT_TIMEOUT_MS = 600_000;/u,
+  );
+  assert.match(
+    hostRunner,
+    /waitForFile\(\s*resultFile,\s*HOST_DOM_RELAY_RESULT_TIMEOUT_MS,\s*\)/u,
+  );
   assert.match(hostRunner, /No debugger transport is opened/u);
   assert.doesNotMatch(hostRunner, /ApplicationFirewall\/socketfilterfw/u);
   assert.match(relayJourney, /vscode-webview-message-relay/u);
