@@ -19,6 +19,7 @@ const sessionsDir = join(testDir, "sessions");
 
 vi.mock("../../src/lib/paths.js", () => ({
   getHomeDir: () => testDir,
+  getStatePath: () => join(testDir, "state"),
 }));
 
 const {

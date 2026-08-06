@@ -35,6 +35,10 @@ function approvedInvocation(serverName, config) {
   };
 }
 
+function canonicalRealPath(file) {
+  return fs.realpathSync.native?.(file) || fs.realpathSync(file);
+}
+
 describe("MCP stdio executable byte identity", () => {
   let root;
   let script;
@@ -71,8 +75,8 @@ describe("MCP stdio executable byte identity", () => {
     }
 
     expect(failure?.code).toBe(MCP_STDIO_EXECUTABLE_TRUST_REQUIRED_CODE);
-    expect(failure?.message).toContain(fs.realpathSync(process.execPath));
-    expect(failure?.message).toContain(fs.realpathSync(script));
+    expect(failure?.message).toContain(canonicalRealPath(process.execPath));
+    expect(failure?.message).toContain(canonicalRealPath(script));
     expect(failure?.message).toMatch(/sha256:[a-f0-9]{64}/);
     expect(fs.existsSync(storePath)).toBe(false);
   });
@@ -91,8 +95,8 @@ describe("MCP stdio executable byte identity", () => {
       storePath,
     });
 
-    expect(prepared.command).toBe(fs.realpathSync(process.execPath));
-    expect(prepared.args).toEqual([fs.realpathSync(script)]);
+    expect(prepared.command).toBe(canonicalRealPath(process.execPath));
+    expect(prepared.args).toEqual([canonicalRealPath(script)]);
     expect(prepared.identity.entrypoints[0].sha256).toMatch(/^[a-f0-9]{64}$/);
     expect(fs.readFileSync(storePath, "utf8")).not.toContain(
       "must-not-be-persisted",
