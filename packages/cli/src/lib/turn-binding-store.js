@@ -16,7 +16,7 @@
  */
 
 import {
-  appendEvent as storeAppendEvent,
+  appendAuthorityEvent as storeAppendAuthorityEvent,
   readEvents as storeReadEvents,
   findLatestEvent as storeFindLatestEvent,
 } from "../harness/jsonl-session-store.js";
@@ -33,7 +33,7 @@ export const TURN_BINDING_TIMELINE_EVENT = "checkpoint_timeline_commit";
 
 // Injected so tests can drive persistence without touching the real sessions dir.
 export const _deps = {
-  appendEvent: storeAppendEvent,
+  appendEvent: storeAppendAuthorityEvent,
   readEvents: storeReadEvents,
   findLatestEvent: storeFindLatestEvent,
 };

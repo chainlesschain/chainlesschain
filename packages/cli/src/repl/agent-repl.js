@@ -69,6 +69,17 @@ import {
   isVerifiedSessionHostSnapshot,
   readSessionHostResumeState,
 } from "../lib/session-host-snapshot.js";
+import { acquireSessionHostLease } from "../lib/session-host-lease.js";
+import {
+  SideEffectLedger,
+  classifyToolSideEffect,
+  reconcileSideEffects,
+} from "../lib/side-effect-ledger.js";
+import {
+  loadSideEffectLedger,
+  persistSideEffectLedger,
+} from "../lib/side-effect-ledger-store.js";
+import { operationIdempotencyKey } from "../lib/idempotency.js";
 import {
   preserveDurableSystemMessageProvenance,
   projectCanonicalResumeMessages,
@@ -359,6 +370,9 @@ export async function agentLoop(messages, options) {
   // The tool-result event carries no args; remember the last tool-executing
   // pair so a recorded denial can show what was attempted (/permissions denials).
   let _lastExec = null;
+  // The core loop runs tools serially. A classified non-MCP side effect stays
+  // live from its yielded `tool-executing` boundary until the matching result.
+  let _currentSideEffectOpId = null;
   for await (const event of runCoreLoop(messages, {
     ...options,
     // FORCE in-loop compaction off — the REPL runs its OWN post-turn compaction
@@ -407,12 +421,55 @@ export async function agentLoop(messages, options) {
         args: event.args,
         startedAt: options.now ? options.now() : Date.now(),
       };
+      _currentSideEffectOpId = null;
+      if (options.sideEffects) {
+        const sideEffect = classifyToolSideEffect(event.tool, event.args);
+        if (sideEffect) {
+          const opId = options.sideEffects.nextOpId();
+          _currentSideEffectOpId = opId;
+          options.sideEffects.ledger
+            .prepare(opId, {
+              kind: sideEffect.kind,
+              key: sideEffect.key,
+              meta: {
+                tool: event.tool,
+                idempotencyKey: operationIdempotencyKey({
+                  tool: event.tool,
+                  args: event.args,
+                }),
+              },
+            })
+            .start(opId);
+          // The generator has yielded before executing the tool. Persist the
+          // started marker and recheck the host lease before resuming it.
+          options.sideEffects.persist();
+          options.sideEffects.assert?.();
+        }
+      }
       writeOut(
         chalk.gray(
           `  [${event.tool}] ${formatToolArgs(event.tool, event.args)}\n`,
         ),
       );
     } else if (event.type === "tool-result") {
+      if (options.sideEffects && _currentSideEffectOpId) {
+        const sideEffectError = event.error || event.result?.error || null;
+        if (event.permission_decision) {
+          options.sideEffects.ledger.annotate(_currentSideEffectOpId, {
+            permissionDecision: event.permission_decision,
+          });
+        }
+        if (sideEffectError) {
+          options.sideEffects.ledger.fail(
+            _currentSideEffectOpId,
+            String(sideEffectError).slice(0, 200),
+          );
+        } else {
+          options.sideEffects.ledger.commit(_currentSideEffectOpId);
+        }
+        options.sideEffects.persist();
+        _currentSideEffectOpId = null;
+      }
       const durationMs =
         event.result?.toolTelemetryRecord?.durationMs ??
         (_lastExec?.tool === event.tool
@@ -2058,6 +2115,21 @@ export async function runReplStartupBoundary(options, startupDependencies) {
       "CC_REPL_STARTUP_DEPENDENCY_INVALID",
     );
   }
+  const acquireHostLease = dependencyDataFunction(
+    startupDependencies,
+    "acquireSessionHostLease",
+    null,
+  );
+  const leaseScope = options._sessionHostLeaseScope || null;
+  const leaseSessionId = startupCandidate?.sessionId || options.sessionId;
+  if (
+    leaseScope &&
+    !leaseScope.lease &&
+    leaseSessionId &&
+    typeof acquireHostLease === "function"
+  ) {
+    leaseScope.lease = acquireHostLease(leaseSessionId, { hostKind: "repl" });
+  }
   const trustedWorkspaceRoot = readCwd();
   return enterWorkspace(trustedWorkspaceRoot, () =>
     startWorkspace(options, startupAdmission),
@@ -2066,13 +2138,26 @@ export async function runReplStartupBoundary(options, startupDependencies) {
 
 /** Start the agentic REPL with non-overridable production bindings. */
 export async function startAgentRepl(options = {}) {
-  return runReplStartupBoundary(options, {
-    prepareReplStartupResume,
-    refuseReplStartupResume,
-    cwd: () => process.cwd(),
-    runWithHostHooksV2Workspace,
-    startAgentReplInWorkspace,
-  });
+  const sessionHostLeaseScope = { lease: null };
+  const runtimeOptions = {
+    ...options,
+    _sessionHostLeaseScope: sessionHostLeaseScope,
+  };
+  try {
+    const result = await runReplStartupBoundary(runtimeOptions, {
+      prepareReplStartupResume,
+      refuseReplStartupResume,
+      acquireSessionHostLease,
+      cwd: () => process.cwd(),
+      runWithHostHooksV2Workspace,
+      startAgentReplInWorkspace,
+    });
+    if (result?.started === false) sessionHostLeaseScope.lease?.release?.();
+    return result;
+  } catch (error) {
+    sessionHostLeaseScope.lease?.release?.();
+    throw error;
+  }
 }
 
 async function startAgentReplInWorkspace(options = {}, startupAdmission) {
@@ -2147,6 +2232,45 @@ async function startAgentReplInWorkspaceOwned(
       }
     }
   };
+  const _sessionHostLeaseScope = options._sessionHostLeaseScope || null;
+  let _sessionHostLeaseAbortListener = null;
+  let _sessionHostLeaseAbortSignal = null;
+  const _detachSessionHostLease = () => {
+    if (_sessionHostLeaseAbortListener && _sessionHostLeaseAbortSignal) {
+      _sessionHostLeaseAbortSignal.removeEventListener(
+        "abort",
+        _sessionHostLeaseAbortListener,
+      );
+    }
+    _sessionHostLeaseAbortListener = null;
+    _sessionHostLeaseAbortSignal = null;
+  };
+  const _attachSessionHostLease = () => {
+    const signal = _sessionHostLeaseScope?.lease?.signal;
+    if (!signal || _sessionHostLeaseAbortListener) return;
+    _sessionHostLeaseAbortListener = () =>
+      _requestReplOutputClose(
+        signal.reason ||
+          Object.assign(new Error("Session host lease was lost"), {
+            code: "CC_SESSION_HOST_LEASE_FENCED",
+          }),
+      );
+    _sessionHostLeaseAbortSignal = signal;
+    signal.addEventListener("abort", _sessionHostLeaseAbortListener, {
+      once: true,
+    });
+    if (signal.aborted) _sessionHostLeaseAbortListener();
+  };
+  const _replaceSessionHostLease = (lease) => {
+    if (!_sessionHostLeaseScope) return null;
+    const previous = _sessionHostLeaseScope.lease;
+    if (previous === lease) return previous;
+    _detachSessionHostLease();
+    _sessionHostLeaseScope.lease = lease;
+    _attachSessionHostLease();
+    return previous;
+  };
+  _attachSessionHostLease();
   const _replOutputFlow = outputScope.flow;
   outputScope.setFailureHandler(_requestReplOutputClose);
   const _disposeReplPipeSafety = installPipeSafety(undefined, () =>
@@ -2704,9 +2828,19 @@ async function startAgentReplInWorkspaceOwned(
     };
     if (useJsonl) {
       try {
-        sessionId = jsonlStartSession(null, meta);
+        sessionId = jsonlStartSession(options.sessionId || null, meta);
       } catch (_err) {
         // Non-critical
+      }
+      if (
+        sessionId &&
+        _sessionHostLeaseScope &&
+        !_sessionHostLeaseScope.lease
+      ) {
+        _sessionHostLeaseScope.lease = acquireSessionHostLease(sessionId, {
+          hostKind: "repl",
+        });
+        _attachSessionHostLease();
       }
     } else if (db) {
       try {
@@ -2845,6 +2979,79 @@ async function startAgentReplInWorkspaceOwned(
   let _replBaseSystem = _buildReplBaseSystem();
   let _activeOutputStyle = null; // { name, body }
   const messages = [{ role: "system", content: _replBaseSystem }];
+  let _replSideEffects = null;
+  const _prepareReplSideEffects = (
+    targetSessionId,
+    { recover = false } = {},
+  ) => {
+    if (!useJsonl || !targetSessionId) {
+      return Object.freeze({
+        sideEffects: null,
+        noticeMessage: null,
+        warning: null,
+      });
+    }
+    let ledger;
+    let loadError = null;
+    try {
+      ledger = loadSideEffectLedger(targetSessionId);
+    } catch (error) {
+      ledger = new SideEffectLedger();
+      loadError = error;
+    }
+    const runNonce = `${Date.now()}:${randomUUID()}`;
+    let sequence = 0;
+    let noticeMessage = null;
+    let warning = null;
+    if (recover && !loadError) {
+      const plan = reconcileSideEffects(ledger);
+      if (plan.inspect.length > 0) {
+        const lines = plan.plans
+          .filter((entry) => entry.action === "inspect")
+          .map((entry) => {
+            const operation = ledger.get(entry.opId);
+            const key = operation?.key ? ` (${operation.key})` : "";
+            return `  - [${operation?.kind || "unknown"}]${key} - ${entry.reason}`;
+          });
+        noticeMessage = Object.freeze({
+          role: "system",
+          content:
+            "Recovery notice: the previous REPL host stopped while irreversible operations were in flight. Their outcome is UNKNOWN. Do not blindly repeat them; verify whether each operation already took effect and ask the user when uncertain:\n" +
+            lines.join("\n"),
+        });
+        warning = `Recovery: ${plan.inspect.length} interrupted non-MCP side effect(s) require verification before replay.`;
+      }
+    } else if (recover && loadError) {
+      noticeMessage = Object.freeze({
+        role: "system",
+        content:
+          "Recovery notice: the durable non-MCP side-effect ledger is unavailable. Read-only work may continue, but irreversible tools are blocked until recovery authority is restored.",
+      });
+      warning = `Recovery: non-MCP side-effect ledger is unavailable for ${targetSessionId}; irreversible tools are fail-closed.`;
+    }
+    const sideEffects = Object.freeze({
+      ledger,
+      nextOpId: () => `${runNonce}:${sequence++}`,
+      persist: () => {
+        if (loadError) throw loadError;
+        const persisted = persistSideEffectLedger(targetSessionId, ledger);
+        if (persisted === false) {
+          const error = new Error(
+            `Side-effect ledger persistence was rejected for ${targetSessionId}`,
+          );
+          error.code = "SIDE_EFFECT_LEDGER_PERSIST_FAILED";
+          throw error;
+        }
+        return persisted;
+      },
+      assert: () => _sessionHostLeaseScope?.lease?.assert?.(),
+    });
+    return Object.freeze({ sideEffects, noticeMessage, warning });
+  };
+  const _startupReplSideEffects = _prepareReplSideEffects(sessionId, {
+    recover: Boolean(options.sessionId && _startupJsonlResume?.ok),
+  });
+  _replSideEffects = _startupReplSideEffects.sideEffects;
   let _mcpLedgerRecovery = null;
   let _mcpLedgerRecoveryError = null;
   const _prepareJsonlResumeCandidate = (targetSessionId) =>
@@ -3362,6 +3569,12 @@ async function startAgentReplInWorkspaceOwned(
           throw error;
         }
         messages.push(...prepared.canonicalSystemMessages);
+        if (_startupReplSideEffects.noticeMessage) {
+          messages.push(_startupReplSideEffects.noticeMessage);
+        }
+        if (_startupReplSideEffects.warning) {
+          logger.warn(_startupReplSideEffects.warning);
+        }
         _commitMcpRecoveryCandidate(messages, prepared.mcp);
         if (prepared.replayMessages.length > 0) {
           messages.push(...prepared.conversationMessages);
@@ -5835,39 +6048,87 @@ async function startAgentReplInWorkspaceOwned(
         const resumeId = sessionArg.slice(7).trim();
         try {
           if (useJsonl) {
-            const prepared = _prepareJsonlResumeCandidate(resumeId);
-            if (!prepared.ok) throw prepared.error;
-            const preparedMcpRuntime = _prepareMcpHostRuntime(
-              prepared.sessionId,
-              prepared.mcp,
-            );
-            const preparedMcpCommit = _prepareMcpRecoveryCommit(prepared.mcp);
-            const hostSystemMessages = _refreshHostSystemMessages();
-            const previousState = _captureResumeState();
-            const preparedState = Object.freeze({
-              sessionId: prepared.sessionId,
-              hostSystemMessages,
-              canonicalSystemMessages: prepared.canonicalSystemMessages,
-              conversationMessages: prepared.conversationMessages,
-              mcpCommit: preparedMcpCommit,
-              mcpRuntime: preparedMcpRuntime,
-              sanitizeRolesNextTurn:
-                prepared.conversationMessages.at(-1)?.role === "user",
-              logMessage: `Resumed JSONL session ${prepared.sessionId} (${prepared.rebuiltMessages.length} messages)`,
-            });
-            const committed = commitPreparedReplJsonlResume(
-              prepared,
-              () => _applyPreparedResumeState(preparedState),
-              () => _restoreResumeState(previousState),
-            );
-            if (!committed) {
-              const error = new Error(
-                "Prepared JSONL session resume was not committed",
+            const initialCandidate = _prepareJsonlResumeCandidate(resumeId);
+            if (!initialCandidate.ok) throw initialCandidate.error;
+            const currentLease = _sessionHostLeaseScope?.lease || null;
+            const reuseCurrentLease = initialCandidate.sessionId === sessionId;
+            let targetLease = reuseCurrentLease ? currentLease : null;
+            let adoptedTargetLease = reuseCurrentLease && Boolean(currentLease);
+            if (!targetLease) {
+              targetLease = acquireSessionHostLease(
+                initialCandidate.sessionId,
+                {
+                  hostKind: "repl",
+                },
               );
-              error.code = "CC_REPL_SESSION_RESUME_NOT_COMMITTED";
-              throw error;
             }
-            _replCompactPersistence.replace(prepared.rebuiltMessages);
+            let prepared;
+            try {
+              // Re-sample after acquiring the target's write authority. The
+              // first sample resolves/refuses the request; this one is the
+              // exact snapshot committed into the live REPL.
+              prepared = _prepareJsonlResumeCandidate(
+                initialCandidate.sessionId,
+              );
+              if (!prepared.ok) throw prepared.error;
+              const preparedSideEffects = _prepareReplSideEffects(
+                prepared.sessionId,
+                { recover: true },
+              );
+              const preparedMcpRuntime = _prepareMcpHostRuntime(
+                prepared.sessionId,
+                prepared.mcp,
+              );
+              const preparedMcpCommit = _prepareMcpRecoveryCommit(prepared.mcp);
+              const hostSystemMessages = _refreshHostSystemMessages();
+              const previousState = _captureResumeState();
+              const preparedState = Object.freeze({
+                sessionId: prepared.sessionId,
+                hostSystemMessages,
+                canonicalSystemMessages: Object.freeze([
+                  ...prepared.canonicalSystemMessages,
+                  ...(preparedSideEffects.noticeMessage
+                    ? [preparedSideEffects.noticeMessage]
+                    : []),
+                ]),
+                conversationMessages: prepared.conversationMessages,
+                mcpCommit: preparedMcpCommit,
+                mcpRuntime: preparedMcpRuntime,
+                sanitizeRolesNextTurn:
+                  prepared.conversationMessages.at(-1)?.role === "user",
+                logMessage: `Resumed JSONL session ${prepared.sessionId} (${prepared.rebuiltMessages.length} messages)`,
+              });
+              const committed = commitPreparedReplJsonlResume(
+                prepared,
+                () => _applyPreparedResumeState(preparedState),
+                () => _restoreResumeState(previousState),
+              );
+              if (!committed) {
+                const error = new Error(
+                  "Prepared JSONL session resume was not committed",
+                );
+                error.code = "CC_REPL_SESSION_RESUME_NOT_COMMITTED";
+                throw error;
+              }
+              const previousLease = _replaceSessionHostLease(targetLease);
+              adoptedTargetLease = true;
+              _replSideEffects = preparedSideEffects.sideEffects;
+              if (preparedSideEffects.warning) {
+                logger.warn(preparedSideEffects.warning);
+              }
+              if (previousLease && previousLease !== targetLease) {
+                try {
+                  previousLease.release?.();
+                } catch (releaseError) {
+                  logger.warn(
+                    `Session switch committed, but the prior host lease could not be released: ${releaseError.message}`,
+                  );
+                }
+              }
+              _replCompactPersistence.replace(prepared.rebuiltMessages);
+            } finally {
+              if (!adoptedTargetLease) targetLease?.release?.();
+            }
           } else if (db) {
             const existing = getSession(db, resumeId);
             if (existing && existing.messages) {
@@ -7913,6 +8174,9 @@ async function startAgentReplInWorkspaceOwned(
         // Explicit turn-binding producer (null unless a JSONL session): the
         // wrapper folds every loop event into the live table.
         turnBindingFeed: _turnBindingProducer,
+        // Non-MCP irreversible tools use the same prepare/start/settle ledger
+        // and final lease assertion as headless, stream, and WebSocket hosts.
+        sideEffects: _replSideEffects,
         denialLog: _recentDenials,
         persistRecentDenials: true,
         permissionMode: _sessionTier,
@@ -8497,6 +8761,12 @@ async function startAgentReplInWorkspaceOwned(
     }
 
     // Shutdown runtime
+    _detachSessionHostLease();
+    try {
+      _sessionHostLeaseScope?.lease?.release?.();
+    } catch (error) {
+      _replOutputFailure ||= error;
+    }
     try {
       await shutdown();
     } catch (_e) {

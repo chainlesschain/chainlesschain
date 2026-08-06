@@ -73,6 +73,7 @@ import {
 } from "../lib/mcp-call-ledger-store.js";
 import { createMcpHostRecoveryRuntime } from "../lib/mcp-host-recovery-runtime.js";
 import { readSessionHostResumeState } from "../lib/session-host-snapshot.js";
+import { acquireSessionHostLease } from "../lib/session-host-lease.js";
 import { TurnBindingLog, createTurnBindingFeed } from "../lib/turn-binding.js";
 import { TURN_BINDING_EVENT } from "../lib/turn-binding-store.js";
 import { operationIdempotencyKey } from "../lib/idempotency.js";
@@ -385,6 +386,67 @@ export function applyForkSession(opts = {}, store = {}) {
  * @param {object} [deps]                       Injection seam for tests.
  * @returns {Promise<{ exitCode:number, result:string, isError:boolean, sessionSnapshot?:object }>}
  */
+const HEADLESS_SESSION_RESOLUTION = Symbol("headlessSessionResolution");
+const HEADLESS_SESSION_HOST_LEASE = Symbol("headlessSessionHostLease");
+
+async function withHeadlessSessionHostLease(options, deps, task) {
+  const prompt = (options.prompt || "").trim();
+  if (!prompt) {
+    throw new Error(
+      "runAgentHeadless requires a non-empty prompt (use -p, a positional arg, or pipe stdin).",
+    );
+  }
+  const outputFormat = options.outputFormat || "text";
+  if (!VALID_OUTPUT_FORMATS.includes(outputFormat)) {
+    throw new Error(
+      `Invalid --output-format "${outputFormat}". Expected one of: ${VALID_OUTPUT_FORMATS.join(", ")}`,
+    );
+  }
+  const hasInjectedSessionStore =
+    typeof deps.sessionHasPersistedEvidence === "function" ||
+    typeof deps.sessionExists === "function" ||
+    typeof deps.rebuildMessages === "function" ||
+    typeof deps.appendEvent === "function" ||
+    typeof deps.appendAuthorityEvent === "function" ||
+    typeof deps.readVerifiedEvents === "function";
+  const resolution = resolveHeadlessSession(
+    options,
+    {
+      getLastSessionId: deps.getLastSessionId || jsonlGetLastSessionId,
+      resolveSessionAuthority:
+        deps.resolveSessionAuthority ||
+        (!hasInjectedSessionStore ? jsonlResolveSessionAuthority : undefined),
+    },
+    `headless-${Date.now()}-${process.pid}`,
+  );
+  const authoritySessionId =
+    resolution.resumeId || (resolution.persist ? resolution.sessionId : null);
+  const acquireHostLease =
+    deps.acquireSessionHostLease ||
+    (!hasInjectedSessionStore ? acquireSessionHostLease : null);
+  let lease = null;
+  try {
+    if (authoritySessionId && typeof acquireHostLease === "function") {
+      lease = acquireHostLease(authoritySessionId, { hostKind: "headless" });
+    }
+    const scopedOptions = lease?.signal
+      ? {
+          ...options,
+          signal: options.signal
+            ? AbortSignal.any([options.signal, lease.signal])
+            : lease.signal,
+        }
+      : options;
+    return await task(scopedOptions, {
+      ...deps,
+      [HEADLESS_SESSION_RESOLUTION]: resolution,
+      [HEADLESS_SESSION_HOST_LEASE]: lease,
+    });
+  } finally {
+    lease?.release?.();
+  }
+}
+
 export async function runAgentHeadless(options = {}, deps = {}) {
   const trustedWorkspaceRoot = options.cwd || process.cwd();
   const pipeState = { closed: false };
@@ -446,7 +508,12 @@ export async function runAgentHeadless(options = {}, deps = {}) {
   let failure = null;
   try {
     outcome = await runWithHostHooksV2Workspace(trustedWorkspaceRoot, () =>
-      runAgentHeadlessInWorkspace(runtimeOptions, runtimeDeps, pipeState),
+      withHeadlessSessionHostLease(
+        runtimeOptions,
+        runtimeDeps,
+        (scopedOptions, scopedDeps) =>
+          runAgentHeadlessInWorkspace(scopedOptions, scopedDeps, pipeState),
+      ),
     );
   } catch (error) {
     failure = error;
@@ -505,16 +572,19 @@ async function runAgentHeadlessInWorkspace(
     typeof deps.appendEvent === "function" ||
     typeof deps.appendAuthorityEvent === "function" ||
     typeof deps.readVerifiedEvents === "function";
-  const { sessionId, resumeId, persist } = resolveHeadlessSession(
-    options,
-    {
-      getLastSessionId: deps.getLastSessionId || jsonlGetLastSessionId,
-      resolveSessionAuthority:
-        deps.resolveSessionAuthority ||
-        (!hasInjectedSessionStore ? jsonlResolveSessionAuthority : undefined),
-    },
-    `headless-${Date.now()}-${process.pid}`,
-  );
+  const { sessionId, resumeId, persist } =
+    deps[HEADLESS_SESSION_RESOLUTION] ||
+    resolveHeadlessSession(
+      options,
+      {
+        getLastSessionId: deps.getLastSessionId || jsonlGetLastSessionId,
+        resolveSessionAuthority:
+          deps.resolveSessionAuthority ||
+          (!hasInjectedSessionStore ? jsonlResolveSessionAuthority : undefined),
+      },
+      `headless-${Date.now()}-${process.pid}`,
+    );
+  const sessionHostLease = deps[HEADLESS_SESSION_HOST_LEASE] || null;
 
   const emitHeadlessError = (resultMsg) => {
     if (isStream) {
@@ -576,8 +646,8 @@ async function runAgentHeadlessInWorkspace(
       sessionSnapshot: canonicalAdmission.snapshot,
     };
   }
-  // A persist-only target must pass the same canonical admission boundary, but
-  // it does not opt into replaying the target's prior conversation.
+  // A persist-only target must pass the same canonical admission boundary,
+  // but it does not opt into replaying the target's prior conversation.
   const canonicalResume = resumeId ? canonicalAdmission : null;
 
   // `let` (not const): a custom-command macro's `model:` frontmatter may
@@ -773,6 +843,7 @@ async function runAgentHeadlessInWorkspace(
       (hasInjectedSessionStore ? () => true : jsonlAppendEvent),
     appendAuthorityEvent:
       deps.appendAuthorityEvent ||
+      deps.appendEvent ||
       (hasInjectedSessionStore
         ? unavailableAuthorityCapability("appendAuthorityEvent")
         : jsonlAppendAuthorityEvent),
@@ -1058,7 +1129,7 @@ async function runAgentHeadlessInWorkspace(
     if (!persist) return;
     if (sideEffectLedgerLoadError) throw sideEffectLedgerLoadError;
     try {
-      const persisted = store.appendEvent(
+      const persisted = store.appendAuthorityEvent(
         sessionId,
         SIDE_EFFECT_LEDGER_EVENT,
         sideEffectLedger.toJSON(),
@@ -1113,13 +1184,16 @@ async function runAgentHeadlessInWorkspace(
   // (createTurnBindingFeed) so the interactive REPL producer can never drift
   // from this runner's mapping. No feed at all for non-persisted runs.
   const turnBindingFeed = persist
-    ? createTurnBindingFeed({ log: turnBindingLog, nonce: sideEffectRunNonce })
+    ? createTurnBindingFeed({
+        log: turnBindingLog,
+        nonce: sideEffectRunNonce,
+      })
     : null;
   const persistTurnBindingLog = () => {
     if (!turnBindingFeed || !turnBindingFeed.isDirty()) return;
     if (turnBindingLoadError) throw turnBindingLoadError;
     try {
-      const persisted = store.appendEvent(
+      const persisted = store.appendAuthorityEvent(
         sessionId,
         TURN_BINDING_EVENT,
         turnBindingLog.toJSON(),
@@ -1303,7 +1377,9 @@ async function runAgentHeadlessInWorkspace(
   }
 
   const budget = Number.isFinite(options.maxTurns)
-    ? new IterationBudget({ limit: Math.max(1, Math.floor(options.maxTurns)) })
+    ? new IterationBudget({
+        limit: Math.max(1, Math.floor(options.maxTurns)),
+      })
     : new IterationBudget();
 
   // Effective system prompt: built-in base, optionally replaced by
@@ -2358,6 +2434,7 @@ async function runAgentHeadlessInWorkspace(
   let cleanupFailure = null;
   try {
     while (true) {
+      sessionHostLease?.assert?.();
       // P1 turn→checkpoint binding: one drain of the loop = one turn. Anchor
       // the conversation offset before the model sees the new user turn. A
       // `--worktree` run stamps its isolation worktree (branch name, threaded
@@ -2381,7 +2458,11 @@ async function runAgentHeadlessInWorkspace(
           case "checkpoint": {
             if (isText)
               writeErr(`  ⎌ checkpoint ${event.id} (before ${event.tool})\n`);
-            emitStream({ type: "checkpoint", id: event.id, tool: event.tool });
+            emitStream({
+              type: "checkpoint",
+              id: event.id,
+              tool: event.tool,
+            });
             break;
           }
           case "tool-executing": {
@@ -2425,6 +2506,11 @@ async function runAgentHeadlessInWorkspace(
                   })
                   .start(opId);
                 persistSideEffectLedger();
+                // The generator executes the tool only after this yielded
+                // prewrite is handled. Recheck the same durable lease at that
+                // final host boundary so a fenced host never resumes into the
+                // external operation.
+                sessionHostLease?.assert?.();
               }
             }
             break;
@@ -3109,7 +3195,9 @@ async function runAgentHeadlessInWorkspace(
     if (isText) {
       writeErr(
         `\n  ${denials.length} tool call(s) were denied by policy this run:\n` +
-          formatDenials(denials, { now: deps.now ? deps.now() : Date.now() }) +
+          formatDenials(denials, {
+            now: deps.now ? deps.now() : Date.now(),
+          }) +
           "\n",
       );
     } else if (isStream) {

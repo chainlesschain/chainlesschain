@@ -219,6 +219,97 @@ describe("agent-repl module exports", () => {
     expect(produced).toBe(2);
     expect(writes.join("")).toContain("first");
   });
+
+  it("persists and fences a non-MCP side effect before the core executes it", async () => {
+    const [{ agentLoop }, { SideEffectLedger }] = await Promise.all([
+      import("../../src/repl/agent-repl.js"),
+      import("../../src/lib/side-effect-ledger.js"),
+    ]);
+    const ledger = new SideEffectLedger();
+    const order = [];
+    const snapshots = [];
+    const _coreLoop = async function* () {
+      yield {
+        type: "tool-executing",
+        tool: "write_file",
+        args: { path: "result.txt", content: "done" },
+      };
+      order.push("effect");
+      yield {
+        type: "tool-result",
+        tool: "write_file",
+        result: { success: true },
+      };
+      yield { type: "response-complete", content: "done" };
+    };
+
+    await agentLoop([], {
+      _coreLoop,
+      writeOut: () => true,
+      sideEffects: {
+        ledger,
+        nextOpId: () => "repl-op-1",
+        persist: () => {
+          snapshots.push(ledger.toJSON());
+          order.push(`persist:${ledger.get("repl-op-1")?.state}`);
+        },
+        assert: () => order.push("assert"),
+      },
+    });
+
+    expect(order).toEqual([
+      "persist:started",
+      "assert",
+      "effect",
+      "persist:committed",
+    ]);
+    expect(snapshots).toHaveLength(2);
+    expect(ledger.get("repl-op-1")).toMatchObject({
+      kind: "file-write",
+      key: "result.txt",
+      state: "committed",
+      meta: {
+        tool: "write_file",
+        idempotencyKey: expect.stringMatching(/^op_[0-9a-f]{40}$/),
+      },
+    });
+  });
+
+  it("does not resume the core into a side effect when its prewrite fails", async () => {
+    const [{ agentLoop }, { SideEffectLedger }] = await Promise.all([
+      import("../../src/repl/agent-repl.js"),
+      import("../../src/lib/side-effect-ledger.js"),
+    ]);
+    const ledger = new SideEffectLedger();
+    let executed = false;
+    const _coreLoop = async function* () {
+      yield {
+        type: "tool-executing",
+        tool: "run_shell",
+        args: { command: "publish something" },
+      };
+      executed = true;
+      yield { type: "response-complete", content: "unexpected" };
+    };
+
+    await expect(
+      agentLoop([], {
+        _coreLoop,
+        writeOut: () => true,
+        sideEffects: {
+          ledger,
+          nextOpId: () => "repl-op-fail",
+          persist: () => {
+            throw Object.assign(new Error("disk unavailable"), {
+              code: "SIDE_EFFECT_LEDGER_PERSIST_FAILED",
+            });
+          },
+          assert: vi.fn(),
+        },
+      }),
+    ).rejects.toMatchObject({ code: "SIDE_EFFECT_LEDGER_PERSIST_FAILED" });
+    expect(executed).toBe(false);
+  });
 });
 
 describe("agent-repl TOOLS definition", () => {
@@ -1057,6 +1148,55 @@ describe("agent-repl startup resume admission", () => {
     });
     expect(order).toEqual(["verified-state"]);
     expect(readFeature).not.toHaveBeenCalled();
+  });
+
+  it("acquires the canonical REPL host lease before entering the workspace", async () => {
+    const { prepareReplStartupResume, runReplStartupBoundary } =
+      await import("../../src/repl/agent-repl.js");
+    const admission = prepareReplStartupResume("target-session", {
+      readSessionHostResumeState: () =>
+        verifiedReplResumeState("target-session"),
+      formatMcpLedgerRecoveryNotice: () => null,
+    });
+    const order = [];
+    const lease = { release: vi.fn() };
+    const leaseScope = { lease: null };
+
+    const result = await runReplStartupBoundary(
+      {
+        sessionId: "target-session",
+        _sessionHostLeaseScope: leaseScope,
+      },
+      {
+        prepareReplStartupResume: () => admission,
+        acquireSessionHostLease: vi.fn((sessionId, options) => {
+          order.push(`lease:${sessionId}:${options.hostKind}`);
+          return lease;
+        }),
+        cwd: () => {
+          order.push("cwd");
+          return process.cwd();
+        },
+        runWithHostHooksV2Workspace: (_cwd, callback) => {
+          order.push("workspace");
+          return callback();
+        },
+        startAgentReplInWorkspace: (options) => {
+          order.push("start");
+          expect(options._sessionHostLeaseScope.lease).toBe(lease);
+          return { started: true };
+        },
+      },
+    );
+
+    expect(result).toEqual({ started: true });
+    expect(order).toEqual([
+      "lease:target-session:repl",
+      "cwd",
+      "workspace",
+      "start",
+    ]);
+    expect(lease.release).not.toHaveBeenCalled();
   });
 
   it("refuses a present unverified canonical session before config access", async () => {

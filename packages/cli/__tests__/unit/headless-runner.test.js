@@ -1260,6 +1260,45 @@ describe("headless-runner — session resume + persistence", () => {
     };
   }
 
+  it("holds one host lease across admission, the model loop, and cleanup", async () => {
+    const order = [];
+    const controller = new AbortController();
+    const lease = {
+      signal: controller.signal,
+      assert: vi.fn(() => order.push("assert")),
+      release: vi.fn(() => order.push("release")),
+    };
+    const store = makeStore();
+    const { deps } = makeDeps(replyText("done"));
+    Object.assign(deps, store.deps, {
+      acquireSessionHostLease: vi.fn((sessionId, options) => {
+        order.push(`acquire:${sessionId}:${options.hostKind}`);
+        return lease;
+      }),
+      agentLoop: async function* () {
+        order.push("model");
+        yield { type: "response-complete", content: "done" };
+        yield { type: "run-ended", reason: "complete" };
+      },
+    });
+
+    await expect(
+      runAgentHeadless(
+        { prompt: "leased turn", resume: "lease-session" },
+        deps,
+      ),
+    ).resolves.toMatchObject({ exitCode: 0, isError: false });
+
+    expect(deps.acquireSessionHostLease).toHaveBeenCalledWith("lease-session", {
+      hostKind: "headless",
+    });
+    expect(lease.assert).toHaveBeenCalled();
+    expect(lease.release).toHaveBeenCalledOnce();
+    expect(order[0]).toBe("acquire:lease-session:headless");
+    expect(order.indexOf("assert")).toBeLessThan(order.indexOf("model"));
+    expect(order.at(-1)).toBe("release");
+  });
+
   it("loads prior history into the message array on resume", async () => {
     const captured = {};
     const store = makeStore({

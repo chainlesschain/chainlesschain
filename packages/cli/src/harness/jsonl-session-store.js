@@ -62,6 +62,7 @@ import {
   SESSION_TOMBSTONE_MARKER_SUFFIX,
 } from "./session-list-index.js";
 import { createSessionPersistenceFailure } from "../lib/session-persistence-failure.js";
+import { withSessionHostWriteAuthority } from "../lib/session-host-lease.js";
 
 let securedSessionsDir = null;
 let securedSessionsDirIdentity = null;
@@ -765,9 +766,17 @@ function appendVerifiedWsAuthorityEventLocked(
   return Object.freeze({ hash, event });
 }
 
+function withSessionHostWriterLock(sessionId, filePath, task, options) {
+  return withFileLock(
+    filePath,
+    () => withSessionHostWriteAuthority(sessionId, task),
+    options,
+  );
+}
+
 function withVerifiedWsTurnLock(sessionId, task) {
   const filePath = sessionPath(sessionId);
-  return withFileLock(filePath, () => task(filePath), {
+  return withSessionHostWriterLock(sessionId, filePath, () => task(filePath), {
     failIfUnavailable: true,
     timeoutMs: 30_000,
     retryMs: 1,
@@ -981,7 +990,8 @@ function appendEventLocked(
   { expectedHeadHash, compareHead = false, requireIndexAnchor = false } = {},
 ) {
   const filePath = sessionPath(sessionId);
-  return withFileLock(
+  return withSessionHostWriterLock(
+    sessionId,
     filePath,
     () => {
       const existingMeta = readSessionMeta(getSessionsDir(), sessionId);
@@ -1260,7 +1270,8 @@ export function appendAuthorityEventWithVerifiedProjection(
     );
   }
   const filePath = sessionPath(sessionId);
-  return withFileLock(
+  return withSessionHostWriterLock(
+    sessionId,
     filePath,
     () => {
       const projection = createProjection();
@@ -1369,7 +1380,8 @@ export function withSessionAuthorityTransaction(
   }
 
   const filePath = sessionPath(sessionId);
-  return withFileLock(
+  return withSessionHostWriterLock(
+    sessionId,
     filePath,
     () => {
       const existingMeta = readSessionMeta(getSessionsDir(), sessionId);
@@ -2641,30 +2653,29 @@ export function readVerifiedWsTurnState(sessionId, requestId, options = {}) {
 }
 
 /**
- * Return the newest event matching a type/predicate using bounded reverse IO.
- * This is the recovery path for snapshots and ledgers: callers never need to
- * materialize a multi-gigabyte transcript merely to inspect its latest state.
+ * Return the newest event matching a type/predicate after authenticating the
+ * complete transcript and sidecar anchor. Heap remains bounded to one event;
+ * the forward integrity pass is intentionally O(N).
  */
 export function findLatestEvent(sessionId, type, predicate = null) {
   if (isUnsafeSessionId(sessionId)) return null;
-  const filePath = sessionPath(sessionId);
-  if (!existsSync(filePath)) return null;
   const wanted = Array.isArray(type) ? new Set(type) : null;
-  for (const { line } of iterateFileLinesReverseSync(filePath)) {
-    let event;
-    try {
-      event = JSON.parse(line);
-    } catch {
-      continue;
-    }
-    const typeMatches = wanted
-      ? wanted.has(event?.type)
-      : type == null || event?.type === type;
-    if (!typeMatches) continue;
-    if (typeof predicate === "function" && !predicate(event)) continue;
-    return event;
-  }
-  return null;
+  return readVerifiedProjection(sessionId, () => {
+    let latest = null;
+    return {
+      accept(event) {
+        const typeMatches = wanted
+          ? wanted.has(event?.type)
+          : type == null || event?.type === type;
+        if (!typeMatches) return;
+        if (typeof predicate === "function" && !predicate(event)) return;
+        latest = event;
+      },
+      finish() {
+        return latest;
+      },
+    };
+  });
 }
 
 /**
@@ -2933,7 +2944,8 @@ export function deleteJsonlSession(sessionId) {
   if (isUnsafeSessionId(sessionId)) return false;
   const filePath = sessionPath(sessionId);
   if (!existsSync(filePath) && !hasLiveSessionWitness(sessionId)) return false;
-  return withFileLock(
+  return withSessionHostWriterLock(
+    sessionId,
     filePath,
     () => {
       const transcriptExists = existsSync(filePath);

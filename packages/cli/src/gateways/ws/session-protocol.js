@@ -6,6 +6,7 @@ import {
 } from "../../runtime/runtime-events.js";
 import { createSessionRecord } from "../../runtime/contracts/session-record.js";
 import { loadSideEffectLedger } from "../../lib/side-effect-ledger-store.js";
+import { acquireSessionHostLease } from "../../lib/session-host-lease.js";
 import { reconcileSideEffects } from "../../lib/side-effect-ledger.js";
 import {
   formatMcpLedgerRecoveryNotice,
@@ -532,11 +533,20 @@ async function ensureSessionHandler(server, ws, session) {
     });
   } else {
     const { WSAgentHandler } = await import("./ws-agent-handler.js");
-    handler = new WSAgentHandler({
-      session,
-      interaction: session.interaction,
-      db: server.sessionManager.db,
+    const sessionHostLease = acquireSessionHostLease(session.id, {
+      hostKind: "ws",
     });
+    try {
+      handler = new WSAgentHandler({
+        session,
+        interaction: session.interaction,
+        db: server.sessionManager.db,
+        sessionHostLease,
+      });
+    } catch (error) {
+      sessionHostLease.release();
+      throw error;
+    }
   }
 
   server.sessionHandlers.set(session.id, handler);

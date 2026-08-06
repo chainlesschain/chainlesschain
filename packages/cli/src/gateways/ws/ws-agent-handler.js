@@ -79,6 +79,7 @@ export class WSAgentHandler {
     approvalGate,
     agentLoop: runAgentLoop,
     canonicalSessionStore,
+    sessionHostLease = null,
   }) {
     this.session = session;
     this.interaction = interaction;
@@ -86,6 +87,25 @@ export class WSAgentHandler {
     this._processing = false;
     this._abortController = null;
     this._activeRequestId = null;
+    this._sessionHostLease = sessionHostLease;
+    this._onSessionHostLeaseAbort = null;
+    if (sessionHostLease?.signal) {
+      this._onSessionHostLeaseAbort = () => {
+        const reason =
+          sessionHostLease.signal.reason ||
+          createAbortError("Session host lease was lost");
+        if (this._abortController && !this._abortController.signal.aborted) {
+          this._abortController.abort(reason);
+        }
+        this.interaction?.rejectAllPending?.(reason);
+      };
+      sessionHostLease.signal.addEventListener(
+        "abort",
+        this._onSessionHostLeaseAbort,
+        { once: true },
+      );
+      if (sessionHostLease.signal.aborted) this._onSessionHostLeaseAbort();
+    }
     // P0-2: monotonic sequence for crash-safe side-effect ledger op ids. The
     // session id + a per-op nonce keep ids unique across turns and processes.
     this._sideEffectSeq = 0;
@@ -486,6 +506,7 @@ export class WSAgentHandler {
 
     try {
       const { session } = this;
+      this._sessionHostLease?.assert?.();
 
       if (session.canonicalJsonlSession === true) {
         canonicalTurn = this._claimCanonicalTurn(userMessage, requestId);
@@ -648,6 +669,7 @@ export class WSAgentHandler {
                     })
                     .start(opId);
                   persistSideEffectLedger(session.id, sideEffectLedger);
+                  this._sessionHostLease?.assert?.();
                 }
               }
               break;
@@ -884,6 +906,15 @@ export class WSAgentHandler {
         reason: "session_closed",
       });
     }
+    if (this._sessionHostLease?.signal && this._onSessionHostLeaseAbort) {
+      this._sessionHostLease.signal.removeEventListener(
+        "abort",
+        this._onSessionHostLeaseAbort,
+      );
+    }
+    this._onSessionHostLeaseAbort = null;
+    this._sessionHostLease?.release?.();
+    this._sessionHostLease = null;
   }
 
   /**

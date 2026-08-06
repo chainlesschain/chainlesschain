@@ -10,7 +10,7 @@
  */
 
 import {
-  appendEvent as storeAppendEvent,
+  appendAuthorityEvent as storeAppendAuthorityEvent,
   readEvents as storeReadEvents,
   findLatestEvent as storeFindLatestEvent,
 } from "../harness/jsonl-session-store.js";
@@ -23,7 +23,7 @@ import {
 export const SIDE_EFFECT_LEDGER_EVENT = "side_effect_ledger";
 
 export const _deps = {
-  appendEvent: storeAppendEvent,
+  appendEvent: storeAppendAuthorityEvent,
   readEvents: storeReadEvents,
   findLatestEvent: storeFindLatestEvent,
 };

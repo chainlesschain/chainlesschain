@@ -127,6 +127,30 @@ describe("WSAgentHandler", () => {
       expect(handler.interaction).toBe(interaction);
       expect(handler._processing).toBe(false);
     });
+
+    it("checks and releases the session host lease", async () => {
+      const controller = new AbortController();
+      const sessionHostLease = {
+        signal: controller.signal,
+        assert: vi.fn(),
+        release: vi.fn(),
+      };
+      const leased = new WSAgentHandler({
+        session,
+        interaction,
+        db: null,
+        sessionHostLease,
+      });
+      agentLoop.mockReturnValue(
+        fakeAgentLoop([{ type: "response-complete", content: "done" }]),
+      );
+
+      await leased.handleMessage("leased request", "req-lease");
+      expect(sessionHostLease.assert).toHaveBeenCalled();
+
+      leased.destroy();
+      expect(sessionHostLease.release).toHaveBeenCalledOnce();
+    });
   });
 
   describe("handleMessage", () => {

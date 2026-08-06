@@ -240,7 +240,11 @@ describe("stream side-effect ledger — resume reconcile + recovery notice", () 
       code: "CC_MCP_LEDGER_RECOVERY_BLOCKED",
       blockMode: "unsafe",
     });
-    expect(appendAuthorityEvent).not.toHaveBeenCalled();
+    expect(appendAuthorityEvent).not.toHaveBeenCalledWith(
+      "chat-abc",
+      MCP_CALL_LEDGER_EVENT,
+      expect.anything(),
+    );
 
     await ledger.begin({
       sessionId: "chat-abc",
@@ -373,6 +377,56 @@ describe("stream side-effect ledger — resume reconcile + recovery notice", () 
 });
 
 describe("stream side-effect ledger — turn-time recording", () => {
+  it("keeps the stream host lease through the side-effect prewrite and cleanup", async () => {
+    const order = [];
+    const controller = new AbortController();
+    const ledger = new SideEffectLedger();
+    const lease = {
+      signal: controller.signal,
+      assert: vi.fn(() => order.push("assert")),
+      release: vi.fn(() => order.push("release")),
+    };
+    const h = harness({
+      options: { sessionId: "leased-stream" },
+      over: {
+        acquireSessionHostLease: vi.fn((sessionId, options) => {
+          order.push(`acquire:${sessionId}:${options.hostKind}`);
+          return lease;
+        }),
+        loadSideEffectLedger: () => ledger,
+        persistSideEffectLedger: () => {
+          order.push(`persist:${ledger.list().at(-1)?.state}`);
+          return true;
+        },
+      },
+      loop: async function* () {
+        yield {
+          type: "tool-executing",
+          tool: "write_file",
+          args: { path: "leased.txt", content: "done" },
+        };
+        order.push("effect");
+        yield {
+          type: "tool-result",
+          tool: "write_file",
+          result: { ok: true },
+        };
+        yield { type: "response-complete", content: "done" };
+        yield { type: "run-ended", reason: "complete" };
+      },
+    });
+
+    await expect(h.run()).resolves.toMatchObject({ exitCode: 0, turns: 1 });
+    expect(lease.assert).toHaveBeenCalled();
+    expect(lease.release).toHaveBeenCalledOnce();
+    expect(order[0]).toBe("acquire:leased-stream:headless-stream");
+    expect(order.indexOf("persist:started")).toBeLessThan(
+      order.indexOf("effect"),
+    );
+    expect(order.lastIndexOf("assert")).toBeLessThan(order.indexOf("effect"));
+    expect(order.at(-1)).toBe("release");
+  });
+
   it("records a dangerous tool prepare→start (persisted pre-settle) then commit", async () => {
     const ledger = new SideEffectLedger();
     // Capture the ledger STATE at each persist call: the started snapshot must

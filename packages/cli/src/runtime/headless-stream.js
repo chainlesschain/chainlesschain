@@ -98,6 +98,7 @@ import {
   isVerifiedSessionHostSnapshot,
   readSessionHostResumeState,
 } from "../lib/session-host-snapshot.js";
+import { acquireSessionHostLease } from "../lib/session-host-lease.js";
 import { classifyStreamRetryReason } from "../lib/stream-retry.js";
 import {
   SideEffectLedger,
@@ -897,6 +898,7 @@ async function runTurn(
               })
               .start(opId);
             sideEffects.persist();
+            sideEffects.assert?.();
           }
         }
         break;
@@ -1168,6 +1170,59 @@ function createHeadlessStreamCleanupScope({ input, timeoutMs, onReport }) {
   };
 }
 
+const STREAM_SESSION_ID = Symbol("streamSessionId");
+const STREAM_SESSION_HOST_LEASE = Symbol("streamSessionHostLease");
+
+async function withStreamSessionHostLease(options, deps, streamCleanup, task) {
+  const sessionId =
+    options.sessionId || `headless-stream-${Date.now()}-${process.pid}`;
+  const persist = Boolean(options.sessionId) && options.ephemeral !== true;
+  const hasInjectedSessionStore =
+    typeof deps.sessionHasPersistedEvidence === "function" ||
+    typeof deps.sessionExists === "function" ||
+    typeof deps.rebuildMessages === "function" ||
+    typeof deps.appendEvent === "function" ||
+    typeof deps.appendAuthorityEvent === "function" ||
+    typeof deps.readVerifiedEvents === "function" ||
+    typeof deps.readVerifiedProjection === "function";
+  const acquireHostLease =
+    deps.acquireSessionHostLease ||
+    (!hasInjectedSessionStore ? acquireSessionHostLease : null);
+  let lease = null;
+  let onLeaseAbort = null;
+  try {
+    if (persist && typeof acquireHostLease === "function") {
+      lease = acquireHostLease(sessionId, { hostKind: "headless-stream" });
+      if (lease?.signal) {
+        onLeaseAbort = () => {
+          streamCleanup.setReason("session_host_lease_lost");
+          streamCleanup.requestStop();
+        };
+        lease.signal.addEventListener("abort", onLeaseAbort, { once: true });
+        if (lease.signal.aborted) onLeaseAbort();
+      }
+    }
+    const scopedOptions = lease?.signal
+      ? {
+          ...options,
+          signal: options.signal
+            ? AbortSignal.any([options.signal, lease.signal])
+            : lease.signal,
+        }
+      : options;
+    return await task(scopedOptions, {
+      ...deps,
+      [STREAM_SESSION_ID]: sessionId,
+      [STREAM_SESSION_HOST_LEASE]: lease,
+    });
+  } finally {
+    if (lease?.signal && onLeaseAbort) {
+      lease.signal.removeEventListener("abort", onLeaseAbort);
+    }
+    lease?.release?.();
+  }
+}
+
 export async function runAgentHeadlessStream(options = {}, deps = {}) {
   const trustedWorkspaceRoot = options.cwd || process.cwd();
   const input = deps.input || process.stdin;
@@ -1245,11 +1300,17 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
       : null;
 
     outcome = await runWithHostHooksV2Workspace(trustedWorkspaceRoot, () =>
-      runAgentHeadlessStreamInWorkspace(
+      withStreamSessionHostLease(
         runtimeOptions,
         runtimeDeps,
-        pipeState,
         streamCleanup,
+        (scopedOptions, scopedDeps) =>
+          runAgentHeadlessStreamInWorkspace(
+            scopedOptions,
+            scopedDeps,
+            pipeState,
+            streamCleanup,
+          ),
       ),
     );
   } catch (error) {
@@ -1291,8 +1352,11 @@ async function runAgentHeadlessStreamInWorkspace(
   const writeErr = deps.writeErr;
 
   const sessionId =
-    options.sessionId || `headless-stream-${Date.now()}-${process.pid}`;
+    deps[STREAM_SESSION_ID] ||
+    options.sessionId ||
+    `headless-stream-${Date.now()}-${process.pid}`;
   const persist = Boolean(options.sessionId) && options.ephemeral !== true;
+  const sessionHostLease = deps[STREAM_SESSION_HOST_LEASE] || null;
   const traceId = resolveTraceId(options, process.env, deps);
   const fieldGate = {
     seq: true,
@@ -1680,6 +1744,7 @@ async function runAgentHeadlessStreamInWorkspace(
       (hasInjectedSessionStore ? () => true : jsonlAppendEvent),
     appendAuthorityEvent:
       deps.appendAuthorityEvent ||
+      deps.appendEvent ||
       (hasInjectedSessionStore
         ? unavailableAuthorityCapability("appendAuthorityEvent")
         : jsonlAppendAuthorityEvent),
@@ -1740,6 +1805,7 @@ async function runAgentHeadlessStreamInWorkspace(
           return persisted;
         },
         nextOpId: () => `${sideEffectRunNonce}:${sideEffectSeq++}`,
+        assert: () => sessionHostLease?.assert?.(),
       }
     : null;
 
@@ -1812,7 +1878,7 @@ async function runAgentHeadlessStreamInWorkspace(
     if (!turnBindingFeed?.isDirty()) return true;
     if (turnBindingPersistenceError) return false;
     try {
-      const persisted = store.appendEvent(
+      const persisted = store.appendAuthorityEvent(
         sessionId,
         TURN_BINDING_EVENT,
         turnBindingLog.toJSON(),
@@ -2874,6 +2940,7 @@ async function runAgentHeadlessStreamInWorkspace(
     await deps.outputFlow?.wait?.();
     const parsed = await nextEvent();
     if (parsed == null) break; // stdin closed
+    sessionHostLease?.assert?.();
     if (turnBindingPersistenceError) {
       emitTurnBindingFailure();
       sawError = true;

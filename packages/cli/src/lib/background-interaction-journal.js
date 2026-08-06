@@ -9,7 +9,7 @@
 
 import { createHash } from "node:crypto";
 import {
-  appendEvent as storeAppendEvent,
+  appendAuthorityEvent as storeAppendAuthorityEvent,
   readEvents as storeReadEvents,
   findLatestEvent as storeFindLatestEvent,
 } from "../harness/jsonl-session-store.js";
@@ -26,7 +26,7 @@ export const MAX_BACKGROUND_INTERACTION_RECORDS = 256;
 const TERMINAL_STATUSES = new Set(["resolved", "rejected", "cancelled"]);
 
 export const _deps = {
-  appendEvent: storeAppendEvent,
+  appendEvent: storeAppendAuthorityEvent,
   readEvents: storeReadEvents,
   findLatestEvent: storeFindLatestEvent,
 };
