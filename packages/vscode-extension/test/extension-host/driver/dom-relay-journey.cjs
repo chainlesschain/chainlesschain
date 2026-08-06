@@ -479,6 +479,8 @@ async function runDomRelayJourney({
 
 module.exports = {
   HOST_DOM_COMMAND,
+  WORKBENCH_NEEDS_INPUT_SAMPLE_COUNT,
+  WORKBENCH_NEEDS_INPUT_WARMUP_COUNT,
   assertSnapshot,
   drivePhase,
   runDomRelayJourney,
