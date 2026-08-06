@@ -1,10 +1,16 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 
-const fixtureScript = resolve(
+const repositoryRoot = resolve(
+  dirname(fileURLToPath(import.meta.url)),
+  "../../../..",
+);
+const fixtureScript = join(
+  repositoryRoot,
   "tests/fixtures/ide-roadmap/fake-stream-json-agent.mjs",
 );
 const temporaryRoots = [];
@@ -17,7 +23,7 @@ function createStatePath() {
 
 function runFixture(statePath, args) {
   const result = spawnSync(process.execPath, [fixtureScript, ...args], {
-    cwd: resolve("."),
+    cwd: repositoryRoot,
     encoding: "utf8",
     env: {
       ...process.env,
