@@ -10,6 +10,7 @@ import {
 } from "../../src/lib/mcp-stdio-execution-authority.js";
 import {
   consumeMcpStdioExecutableIdentityAuthority,
+  getMcpStdioExecutableTrustStorePath,
   MCP_STDIO_DYNAMIC_LAUNCHER_UNPINNED_CODE,
   MCP_STDIO_EXECUTABLE_AUTHORITY_REPLAYED_CODE,
   MCP_STDIO_EXECUTABLE_CHANGED_CODE,
@@ -117,6 +118,62 @@ describe("MCP stdio executable byte identity", () => {
         code: MCP_STDIO_EXECUTABLE_AUTHORITY_REPLAYED_CODE,
       }),
     );
+  });
+
+  it("keeps default trust outside CLI home and survives a home rollback", () => {
+    const homeDir = path.join(root, "configured-home");
+    const securityAnchorDir = path.join(root, "independent-security-state");
+    const originalHome = process.env.CHAINLESSCHAIN_HOME;
+    const originalSecurityAnchor =
+      process.env.CHAINLESSCHAIN_SECURITY_ANCHOR_HOME;
+    const originalTrustStore = process.env.CC_MCP_EXECUTABLE_TRUST_STORE;
+    try {
+      process.env.CHAINLESSCHAIN_HOME = homeDir;
+      process.env.CHAINLESSCHAIN_SECURITY_ANCHOR_HOME = securityAnchorDir;
+      delete process.env.CC_MCP_EXECUTABLE_TRUST_STORE;
+      const invocation = approvedInvocation("independent-store", {
+        command: process.execPath,
+        args: [script],
+        transport: "stdio",
+      });
+
+      const first = prepareMcpStdioExecutableIdentity({
+        serverName: "independent-store",
+        ...invocation,
+        retrust: true,
+      });
+      const defaultStore = getMcpStdioExecutableTrustStorePath();
+      expect(path.dirname(defaultStore)).toBe(path.resolve(securityAnchorDir));
+      expect(path.relative(homeDir, defaultStore)).toMatch(/^\.\./);
+      const trustedBytes = fs.readFileSync(defaultStore, "utf8");
+
+      fs.mkdirSync(homeDir, { recursive: true });
+      fs.writeFileSync(path.join(homeDir, "stale-state"), "rollback", "utf8");
+      fs.rmSync(homeDir, { recursive: true, force: true });
+      fs.mkdirSync(homeDir, { recursive: true });
+
+      const afterRollback = prepareMcpStdioExecutableIdentity({
+        serverName: "independent-store",
+        ...invocation,
+      });
+      expect(first.trustStatus).toBe("trusted-first-use");
+      expect(afterRollback.trustStatus).toBe("trusted");
+      expect(fs.readFileSync(defaultStore, "utf8")).toBe(trustedBytes);
+    } finally {
+      if (originalHome === undefined) delete process.env.CHAINLESSCHAIN_HOME;
+      else process.env.CHAINLESSCHAIN_HOME = originalHome;
+      if (originalSecurityAnchor === undefined) {
+        delete process.env.CHAINLESSCHAIN_SECURITY_ANCHOR_HOME;
+      } else {
+        process.env.CHAINLESSCHAIN_SECURITY_ANCHOR_HOME =
+          originalSecurityAnchor;
+      }
+      if (originalTrustStore === undefined) {
+        delete process.env.CC_MCP_EXECUTABLE_TRUST_STORE;
+      } else {
+        process.env.CC_MCP_EXECUTABLE_TRUST_STORE = originalTrustStore;
+      }
+    }
   });
 
   it("rejects changed entrypoint bytes until they are explicitly retrusted", () => {

@@ -6,6 +6,7 @@ import { Worker } from "node:worker_threads";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   DurableSkillExecutionAuthority,
+  getSkillExecutionAuthorityPath,
   SKILL_EXECUTION_AUTHORITY_ROLLBACK_CODE,
   SKILL_EXECUTION_AUTHORITY_UNAVAILABLE_CODE,
 } from "../../src/lib/skill-execution-authority.js";
@@ -91,6 +92,58 @@ afterEach(async () => {
 });
 
 describe("durable Skill execution authority", () => {
+  it("revokes leases across different CLI state roots through one machine authority", async () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-skill-multi-home-"));
+    roots.push(root);
+    const firstHome = path.join(root, "home-a");
+    const secondHome = path.join(root, "home-b");
+    const machineAuthority = path.join(root, "machine-security-state");
+    const originalHome = process.env.CHAINLESSCHAIN_HOME;
+    const originalMachineAuthority =
+      process.env.CHAINLESSCHAIN_SECURITY_ANCHOR_HOME;
+    let lease;
+    try {
+      process.env.CHAINLESSCHAIN_HOME = firstHome;
+      process.env.CHAINLESSCHAIN_SECURITY_ANCHOR_HOME = machineAuthority;
+      const firstPath = getSkillExecutionAuthorityPath();
+      const first = new DurableSkillExecutionAuthority({ pollIntervalMs: 10 });
+      lease = first.acquireLease({ skillId: "cross-home-skill" });
+      const aborted = new Promise((resolve) =>
+        lease.signal.addEventListener(
+          "abort",
+          () => resolve(lease.signal.reason),
+          {
+            once: true,
+          },
+        ),
+      );
+
+      process.env.CHAINLESSCHAIN_HOME = secondHome;
+      const secondPath = getSkillExecutionAuthorityPath();
+      expect(secondPath).toBe(firstPath);
+      expect(path.dirname(secondPath)).toBe(path.resolve(machineAuthority));
+      expect(path.relative(firstHome, secondPath)).toMatch(/^\.\./);
+      expect(path.relative(secondHome, secondPath)).toMatch(/^\.\./);
+
+      const second = new DurableSkillExecutionAuthority({ pollIntervalMs: 10 });
+      const revoked = second.revoke({ reasonCode: "cross-home-revocation" });
+      await expect(aborted).resolves.toMatchObject({
+        code: "CC_SKILL_EXECUTION_REVOKED",
+        generation: revoked.generation,
+      });
+    } finally {
+      lease?.release();
+      if (originalHome === undefined) delete process.env.CHAINLESSCHAIN_HOME;
+      else process.env.CHAINLESSCHAIN_HOME = originalHome;
+      if (originalMachineAuthority === undefined) {
+        delete process.env.CHAINLESSCHAIN_SECURITY_ANCHOR_HOME;
+      } else {
+        process.env.CHAINLESSCHAIN_SECURITY_ANCHOR_HOME =
+          originalMachineAuthority;
+      }
+    }
+  });
+
   it("persists a monotonic audit chain across restart and fails closed on corruption or rollback", () => {
     const filePath = createAuthorityPath();
     const first = new DurableSkillExecutionAuthority({ filePath });

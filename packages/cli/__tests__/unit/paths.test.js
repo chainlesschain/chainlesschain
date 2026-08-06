@@ -90,18 +90,18 @@ describe("paths", () => {
     expect(() => getMachineSecurityAnchorDir()).toThrow(/absolute path/i);
   });
 
-  it("rejects a session anti-rollback anchor nested in the configured home", async () => {
+  it("rejects any machine security anchor nested in the configured home", async () => {
     const configuredHome = join(tmpdir(), "cc-path-anchor-home");
     process.env.CHAINLESSCHAIN_HOME = configuredHome;
     process.env.CHAINLESSCHAIN_SECURITY_ANCHOR_HOME = join(
       configuredHome,
       "security-anchors",
     );
-    const { getSessionAntiRollbackDirectory } =
-      await import("../../src/lib/session-anti-rollback-anchor.js");
-    expect(() => getSessionAntiRollbackDirectory()).toThrow(
+    const { getMachineSecurityAnchorDir } =
+      await import("../../src/lib/paths.js");
+    expect(() => getMachineSecurityAnchorDir()).toThrow(
       expect.objectContaining({
-        code: "CC_SESSION_ANTI_ROLLBACK_UNAVAILABLE",
+        code: "CONFIG_HOME_UNSAFE",
       }),
     );
   });

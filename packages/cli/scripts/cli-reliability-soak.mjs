@@ -941,9 +941,9 @@ async function mcpOutputScenario(baseUrl, home, profile, llm) {
       home,
       env: {
         CC_MCP_EXECUTABLE_TRUST: "1",
-        CC_MCP_EXECUTABLE_TRUST_STORE: join(
-          home,
-          "mcp-executable-identities.json",
+        CHAINLESSCHAIN_SECURITY_ANCHOR_HOME: join(
+          dirname(home),
+          "mcp-security-anchors",
         ),
         CC_MANAGED_SETTINGS: configPath,
       },

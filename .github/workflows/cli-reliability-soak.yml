@@ -15,6 +15,8 @@ on:
       - "packages/cli/src/runtime/pipe-safety.js"
       - "packages/cli/src/harness/jsonl-session-store.js"
       - "packages/cli/src/lib/session-persistence-failure.js"
+      - "packages/cli/src/lib/mcp-stdio-executable-identity.js"
+      - "packages/cli/src/lib/paths.js"
       - "packages/cli/scripts/cli-reliability-soak.mjs"
       - "packages/cli/scripts/cli-reliability-mcp-server.mjs"
       - "packages/cli/__tests__/unit/cli-reliability-soak.test.js"

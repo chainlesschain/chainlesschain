@@ -4,13 +4,15 @@
  * A trusted config names code; it does not prove which bytes PATH or an
  * interpreter will open. This module resolves those paths, attests regular
  * files through open descriptors, persists the first explicitly trusted
- * identity, and issues a one-shot broker token for the final pre-spawn check.
+ * identity in OS user security state outside CHAINLESSCHAIN_HOME, and issues a
+ * one-shot broker token for the final pre-spawn check. Restoring the CLI home
+ * therefore cannot silently restore an older executable trust decision.
  */
 
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { getStatePath } from "./paths.js";
+import { getMachineSecurityAnchorDir } from "./paths.js";
 import { withFileLock } from "./with-file-lock.js";
 import { mutateSecurityStore } from "./durable-security-store.js";
 import { resolveMcpStdioExecutionApproval } from "./mcp-stdio-execution-authority.js";
@@ -61,11 +63,14 @@ function sha256(value) {
   return crypto.createHash("sha256").update(value).digest("hex");
 }
 
-function storePath(options = {}) {
+export function getMcpStdioExecutableTrustStorePath(options = {}) {
   return (
     options.storePath ||
     process.env.CC_MCP_EXECUTABLE_TRUST_STORE ||
-    path.join(getStatePath(), "mcp-stdio-executable-identities.json")
+    path.join(
+      getMachineSecurityAnchorDir(),
+      "mcp-stdio-executable-identities-v1.json",
+    )
   );
 }
 
@@ -464,7 +469,7 @@ function checkOrRecordTrust(
   attestation,
   options = {},
 ) {
-  const target = storePath(options);
+  const target = getMcpStdioExecutableTrustStorePath(options);
   const key = trustKey(approvalRecord);
   const requested =
     options.retrust === true || retrustRequested(options.env || process.env);

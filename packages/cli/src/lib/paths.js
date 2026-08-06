@@ -61,6 +61,7 @@ export function getStatePath() {
 /** User-local security state that survives rollback of CHAINLESSCHAIN_HOME. */
 export function getMachineSecurityAnchorDir() {
   const configured = process.env.CHAINLESSCHAIN_SECURITY_ANCHOR_HOME;
+  let anchorPath;
   if (configured) {
     if (!isAbsolute(configured)) {
       const error = new Error(
@@ -69,30 +70,45 @@ export function getMachineSecurityAnchorDir() {
       error.code = "CONFIG_HOME_UNSAFE";
       throw error;
     }
-    return resolve(configured);
+    anchorPath = resolve(configured);
+  } else {
+    const platform = getPlatform();
+    if (platform === "win32") {
+      anchorPath = join(
+        process.env.LOCALAPPDATA || join(homedir(), "AppData", "Local"),
+        "ChainlessChain",
+        "SecurityAnchors",
+      );
+    } else if (platform === "darwin") {
+      anchorPath = join(
+        homedir(),
+        "Library",
+        "Application Support",
+        "ChainlessChain",
+        "SecurityAnchors",
+      );
+    } else {
+      anchorPath = join(
+        process.env.XDG_STATE_HOME || join(homedir(), ".local", "state"),
+        "chainlesschain",
+        "security-anchors",
+      );
+    }
   }
-  const platform = getPlatform();
-  if (platform === "win32") {
-    return join(
-      process.env.LOCALAPPDATA || join(homedir(), "AppData", "Local"),
-      "ChainlessChain",
-      "SecurityAnchors",
+  const resolvedAnchor = resolve(anchorPath);
+  const resolvedHome = resolve(getHomeDir());
+  const relativeToHome = relative(resolvedHome, resolvedAnchor);
+  if (
+    relativeToHome === "" ||
+    (!relativeToHome.startsWith("..") && !isAbsolute(relativeToHome))
+  ) {
+    const error = new Error(
+      "CHAINLESSCHAIN_SECURITY_ANCHOR_HOME must be outside CHAINLESSCHAIN_HOME",
     );
+    error.code = "CONFIG_HOME_UNSAFE";
+    throw error;
   }
-  if (platform === "darwin") {
-    return join(
-      homedir(),
-      "Library",
-      "Application Support",
-      "ChainlessChain",
-      "SecurityAnchors",
-    );
-  }
-  return join(
-    process.env.XDG_STATE_HOME || join(homedir(), ".local", "state"),
-    "chainlesschain",
-    "security-anchors",
-  );
+  return resolvedAnchor;
 }
 
 export function getPidFilePath() {

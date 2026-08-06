@@ -1,20 +1,21 @@
 /**
  * Durable, same-machine Skill execution authority.
  *
- * Every CLI process that shares CHAINLESSCHAIN_HOME observes the same
- * monotonically increasing generation. Revocation is serialized by the
- * canonical cross-process state lock and persisted with an atomic rename
- * before any caller reports success. Active leases poll while they are alive,
- * and every authority-sensitive transition also re-reads the store as a hard
- * fence. Corruption, rollback observed by a live host, and lock/write failures
- * fail closed.
+ * Every CLI process for the same OS user observes the same monotonically
+ * increasing generation, even when processes use different
+ * CHAINLESSCHAIN_HOME roots. Revocation is serialized by the canonical
+ * cross-process state lock in independent OS user security state and persisted
+ * with an atomic rename before any caller reports success. Active leases poll
+ * while they are alive, and every authority-sensitive transition also re-reads
+ * the store as a hard fence. Corruption, rollback observed by a live host, and
+ * lock/write failures fail closed.
  */
 
 import fs from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { threadId } from "node:worker_threads";
-import { getStatePath } from "./paths.js";
+import { getMachineSecurityAnchorDir } from "./paths.js";
 import {
   mutateSecurityStore,
   readSecurityStore,
@@ -172,7 +173,10 @@ function safeMessage(options) {
 }
 
 export function getSkillExecutionAuthorityPath() {
-  return path.join(getStatePath(), "skill-execution-authority.json");
+  return path.join(
+    getMachineSecurityAnchorDir(),
+    "skill-execution-authority-v1.json",
+  );
 }
 
 export class DurableSkillExecutionAuthority {

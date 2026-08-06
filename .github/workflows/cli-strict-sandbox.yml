@@ -24,6 +24,13 @@ on:
       - "packages/cli/src/lib/mcp-host-recovery-runtime.js"
       - "packages/cli/src/lib/mcp-ledger-recovery-admission.js"
       - "packages/cli/src/lib/mcp-recovery-adjudication.js"
+      - "packages/cli/src/lib/mcp-stdio-execution-authority.js"
+      - "packages/cli/src/lib/mcp-stdio-executable-identity.js"
+      - "packages/cli/src/lib/skill-execution-authority.js"
+      - "packages/cli/src/lib/skill-loader.js"
+      - "packages/cli/src/lib/durable-security-store.js"
+      - "packages/cli/src/lib/paths.js"
+      - "packages/cli/src/lib/with-file-lock.js"
       - "packages/cli/src/lib/session-resource-budget.js"
       - "packages/cli/src/lib/cost-budget.js"
       - "packages/cli/src/lib/llm-pricing.js"
@@ -81,6 +88,15 @@ on:
       - "packages/cli/__tests__/unit/mcp-ledger-recovery-admission.test.js"
       - "packages/cli/__tests__/unit/mcp-recovery-adjudication.test.js"
       - "packages/cli/__tests__/unit/mcp-recovery-adjudication-store.test.js"
+      - "packages/cli/__tests__/unit/mcp-stdio-execution-authority.test.js"
+      - "packages/cli/__tests__/unit/mcp-stdio-executable-identity.test.js"
+      - "packages/cli/__tests__/unit/skill-execution-authority.test.js"
+      - "packages/cli/__tests__/unit/skill-loader.test.js"
+      - "packages/cli/__tests__/integration/agent-core-mcp-adversarial-stdio.test.js"
+      - "packages/cli/__tests__/integration/mcp-client-stdio-process-tree.test.js"
+      - "packages/cli/__tests__/fixtures/mcp-adversarial-effect-server.mjs"
+      - "packages/cli/__tests__/fixtures/mcp-headers-helper-process-tree.mjs"
+      - "packages/cli/__tests__/fixtures/skill-execution-authority-host.mjs"
       - "packages/cli/__tests__/unit/session-mcp-recovery.test.js"
       - "packages/cli/__tests__/unit/agent-core-mcp-ledger.test.js"
       - "packages/cli/__tests__/unit/agent-repl.test.js"
@@ -136,6 +152,13 @@ on:
       - "packages/cli/src/lib/mcp-host-recovery-runtime.js"
       - "packages/cli/src/lib/mcp-ledger-recovery-admission.js"
       - "packages/cli/src/lib/mcp-recovery-adjudication.js"
+      - "packages/cli/src/lib/mcp-stdio-execution-authority.js"
+      - "packages/cli/src/lib/mcp-stdio-executable-identity.js"
+      - "packages/cli/src/lib/skill-execution-authority.js"
+      - "packages/cli/src/lib/skill-loader.js"
+      - "packages/cli/src/lib/durable-security-store.js"
+      - "packages/cli/src/lib/paths.js"
+      - "packages/cli/src/lib/with-file-lock.js"
       - "packages/cli/src/lib/session-resource-budget.js"
       - "packages/cli/src/lib/cost-budget.js"
       - "packages/cli/src/lib/llm-pricing.js"
@@ -193,6 +216,15 @@ on:
       - "packages/cli/__tests__/unit/mcp-ledger-recovery-admission.test.js"
       - "packages/cli/__tests__/unit/mcp-recovery-adjudication.test.js"
       - "packages/cli/__tests__/unit/mcp-recovery-adjudication-store.test.js"
+      - "packages/cli/__tests__/unit/mcp-stdio-execution-authority.test.js"
+      - "packages/cli/__tests__/unit/mcp-stdio-executable-identity.test.js"
+      - "packages/cli/__tests__/unit/skill-execution-authority.test.js"
+      - "packages/cli/__tests__/unit/skill-loader.test.js"
+      - "packages/cli/__tests__/integration/agent-core-mcp-adversarial-stdio.test.js"
+      - "packages/cli/__tests__/integration/mcp-client-stdio-process-tree.test.js"
+      - "packages/cli/__tests__/fixtures/mcp-adversarial-effect-server.mjs"
+      - "packages/cli/__tests__/fixtures/mcp-headers-helper-process-tree.mjs"
+      - "packages/cli/__tests__/fixtures/skill-execution-authority-host.mjs"
       - "packages/cli/__tests__/unit/session-mcp-recovery.test.js"
       - "packages/cli/__tests__/unit/agent-core-mcp-ledger.test.js"
       - "packages/cli/__tests__/unit/agent-repl.test.js"
@@ -245,7 +277,7 @@ jobs:
         # hosted image that still exposes the declared production primitive.
         os: [ubuntu-24.04, macos-15, windows-latest]
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -341,6 +373,12 @@ jobs:
           __tests__/unit/mcp-ledger-recovery-admission.test.js
           __tests__/unit/mcp-recovery-adjudication.test.js
           __tests__/unit/mcp-recovery-adjudication-store.test.js
+          __tests__/unit/mcp-stdio-execution-authority.test.js
+          __tests__/unit/mcp-stdio-executable-identity.test.js
+          __tests__/unit/skill-execution-authority.test.js
+          __tests__/unit/skill-loader.test.js
+          __tests__/integration/agent-core-mcp-adversarial-stdio.test.js
+          __tests__/integration/mcp-client-stdio-process-tree.test.js
           __tests__/unit/session-mcp-recovery.test.js
           __tests__/unit/agent-core-mcp-ledger.test.js
           __tests__/unit/agent-repl.test.js
