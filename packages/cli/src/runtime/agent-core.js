@@ -1813,6 +1813,11 @@ export async function executeTool(name, args, context = {}) {
     typeof context.externalToolDescriptors === "object"
       ? context.externalToolDescriptors[name] || null
       : null;
+  const localToolExecutor =
+    context.externalToolExecutors &&
+    typeof context.externalToolExecutors === "object"
+      ? context.externalToolExecutors[name] || null
+      : null;
   const runtimeDescriptor =
     getRuntimeToolDescriptor(name) || localToolDescriptor;
   const admission = context.toolAdmission;
@@ -2084,6 +2089,69 @@ export async function executeTool(name, args, context = {}) {
     ruleAllowed = true; // confirmed → treat like allow downstream
   } else if (settingsVerdict.decision === "allow") {
     ruleAllowed = true;
+  }
+
+  // MCP annotations are peer-provided hints, never execution authority. A
+  // server that claims readOnlyHint=true therefore still needs a request-level
+  // approval unless the host independently authorized this exact tool as a
+  // trusted read. An explicit settings allow can suppress the default prompt,
+  // but it cannot suppress a host-owned `ask`/requiresConfirmation decision.
+  // Plan mode has already applied its stricter hard ceiling above, so this gate
+  // covers normal interactive/Auto execution without creating a Plan escape.
+  if (localToolExecutor?.kind === "mcp") {
+    const mcpEffectContract = mcpLedgerEffectContract(
+      localToolDescriptor,
+      hostToolPolicy,
+    );
+    const trustedHostRead =
+      mcpEffectContract.effect === McpEffect.READ &&
+      mcpEffectContract.trusted === true;
+    const settingsAskWasConfirmed =
+      settingsVerdict.decision === "ask" && ruleAllowed;
+    const hostRequiresConfirmation =
+      !settingsAskWasConfirmed &&
+      (hostToolPolicy?.requiresConfirmation === true ||
+        hostToolPolicy?.decision === "ask");
+    const defaultRequiresConfirmation = !trustedHostRead && !ruleAllowed;
+
+    if (hostRequiresConfirmation || defaultRequiresConfirmation) {
+      const approved = await requestInteractivePermission(
+        name,
+        args,
+        context,
+        cwd,
+        {
+          tool: name,
+          args,
+          rule: null,
+          reason: hostRequiresConfirmation
+            ? "host policy requires confirmation for this MCP tool"
+            : `MCP effect is ${mcpEffectContract.effect} and lacks a trusted host read authorization`,
+          source: hostRequiresConfirmation
+            ? "host-managed MCP policy"
+            : "MCP effect contract",
+          mcpEffect: mcpEffectContract.effect,
+          mcpTrusted: mcpEffectContract.trusted === true,
+        },
+      );
+      if (!approved) {
+        return {
+          error: `[MCP Permission] Tool "${name}" requires confirmation because its effect is ${mcpEffectContract.effect} and it does not have an applicable trusted host read authorization — denied.`,
+          policy: {
+            decision: "ask",
+            via: hostRequiresConfirmation
+              ? "host-mcp-policy"
+              : "mcp-effect-contract",
+            code: "CC_MCP_EFFECT_CONFIRMATION_REQUIRED",
+            effect: mcpEffectContract.effect,
+            trusted: mcpEffectContract.trusted === true,
+          },
+        };
+      }
+      // The approval is scoped to this request and also satisfies the later
+      // generic external-tool/ApprovalGate prompt for the same invocation.
+      ruleAllowed = true;
+    }
   }
 
   // Sensitive-file write guard (Claude-Code 2.1.160 parity): shell startup
@@ -3319,11 +3387,18 @@ function mcpLedgerEffectContract(descriptor, hostPolicy) {
   )
     ? descriptorContract.declaredEffect
     : "unknown";
+  // Host authority may raise an unknown/read declaration to a stricter effect,
+  // but it may never downgrade the conservative peer risk floor. In
+  // particular, an accidentally stale host `read` policy cannot turn a newly
+  // declared write/destructive tool into a trusted read.
   const effect =
-    authorizedEffect ||
-    (declaredEffect === "destructive" || declaredEffect === "write"
-      ? declaredEffect
-      : "unknown");
+    declaredEffect === "destructive" || authorizedEffect === "destructive"
+      ? "destructive"
+      : declaredEffect === "write" || authorizedEffect === "write"
+        ? "write"
+        : declaredEffect === "unknown"
+          ? "unknown"
+          : authorizedEffect || "unknown";
   const annotations = descriptorContract.annotations || {};
 
   return {
@@ -3341,7 +3416,15 @@ function mcpLedgerEffectContract(descriptor, hostPolicy) {
         : null,
     trusted:
       authorizedEffect != null &&
-      (hostContract.trusted === true || hostPolicy?.sourceTrusted === true),
+      (hostContract.trusted === true || hostPolicy?.sourceTrusted === true) &&
+      // Trust is valid only when the host authorization is at least as strict
+      // as the merged effect. A stale host `read` classification cannot lend
+      // trust to a server that now declares write/destructive behavior.
+      authorizedEffect === effect &&
+      // Trusted-read execution/parallelism requires the intersection promised
+      // by the roadmap: a server read declaration plus host authorization.
+      // An unmarked tool stays untrusted even when a host policy predicts read.
+      (effect !== "read" || declaredEffect === "read"),
     source:
       hostContract.provenance ||
       descriptorContract.provenance ||

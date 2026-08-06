@@ -81,6 +81,7 @@ function toolOptions(
     turnId: "turn-ledger",
     mcpClient,
     mcpCallLedger,
+    permissionConfirm: vi.fn(async () => true),
     externalToolDescriptors: {
       [TOOL_NAME]: {
         name: TOOL_NAME,
@@ -149,6 +150,181 @@ describe("agent-core MCP call ledger", () => {
   afterEach(() => {
     Object.assign(mcpDeps, originalMcpDeps);
     fs.rmSync(cwd, { recursive: true, force: true });
+  });
+
+  it.each([
+    ["unknown", { declaredEffect: "unknown" }],
+    ["write", { declaredEffect: "write" }],
+    [
+      "untrusted claimed read",
+      {
+        declaredEffect: "read",
+        sourceTrusted: false,
+        annotations: { readOnlyHint: true },
+      },
+    ],
+    [
+      "source-trusted but host-unauthorized claimed read",
+      {
+        declaredEffect: "read",
+        sourceTrusted: true,
+        authorizedEffect: "read",
+        annotations: { readOnlyHint: true },
+      },
+    ],
+  ])(
+    "blocks %s MCP effects before ledger or transport without a confirmer",
+    async (_label, effectContract) => {
+      const begin = vi.fn();
+      const callTool = vi.fn();
+      const options = toolOptions(cwd, { callTool }, { begin }, effectContract);
+      delete options.permissionConfirm;
+
+      const result = await executeTool(
+        TOOL_NAME,
+        { path: "never-written.txt" },
+        options,
+      );
+
+      expect(result).toMatchObject({
+        policy: {
+          decision: "ask",
+          via: "mcp-effect-contract",
+          code: "CC_MCP_EFFECT_CONFIRMATION_REQUIRED",
+          trusted: false,
+        },
+      });
+      expect(begin).not.toHaveBeenCalled();
+      expect(callTool).not.toHaveBeenCalled();
+    },
+  );
+
+  it("prompts once and executes an untrusted MCP tool after request approval", async () => {
+    const ledger = createMcpCallLedger();
+    const callTool = vi.fn(async () => ({ content: [] }));
+    const permissionConfirm = vi.fn(async () => true);
+    const options = toolOptions(cwd, { callTool }, ledger, {
+      declaredEffect: "read",
+      sourceTrusted: false,
+      annotations: { readOnlyHint: true },
+    });
+    options.permissionConfirm = permissionConfirm;
+
+    const result = await executeTool(
+      TOOL_NAME,
+      { path: "approved.txt" },
+      options,
+    );
+
+    expect(result.error).toBeUndefined();
+    expect(permissionConfirm).toHaveBeenCalledOnce();
+    expect(permissionConfirm).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tool: TOOL_NAME,
+        source: "MCP effect contract",
+        mcpEffect: "unknown",
+        mcpTrusted: false,
+      }),
+    );
+    expect(callTool).toHaveBeenCalledOnce();
+  });
+
+  it("does not prompt for a host-authorized trusted read", async () => {
+    const callTool = vi.fn(async () => ({ content: [] }));
+    const permissionConfirm = vi.fn(async () => true);
+    const options = toolOptions(
+      cwd,
+      { callTool },
+      createMcpCallLedger(),
+      { declaredEffect: "read", annotations: { readOnlyHint: true } },
+      hostEffectPolicy("read", true),
+    );
+    options.permissionConfirm = permissionConfirm;
+
+    const result = await executeTool(TOOL_NAME, {}, options);
+
+    expect(result.error).toBeUndefined();
+    expect(permissionConfirm).not.toHaveBeenCalled();
+    expect(callTool).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    ["unmarked", { declaredEffect: "unknown" }, "unknown"],
+    ["declared write", { declaredEffect: "write" }, "write"],
+    ["declared destructive", { declaredEffect: "destructive" }, "destructive"],
+  ])(
+    "does not let a host read authorization downgrade a %s MCP tool",
+    async (_label, effectContract, expectedEffect) => {
+      const callTool = vi.fn(async () => ({ content: [] }));
+      const options = toolOptions(
+        cwd,
+        { callTool },
+        createMcpCallLedger(),
+        effectContract,
+        hostEffectPolicy("read", true),
+      );
+      delete options.permissionConfirm;
+
+      const result = await executeTool(TOOL_NAME, {}, options);
+
+      expect(result).toMatchObject({
+        policy: {
+          decision: "ask",
+          via: "mcp-effect-contract",
+          effect: expectedEffect,
+          trusted: false,
+        },
+      });
+      expect(callTool).not.toHaveBeenCalled();
+    },
+  );
+
+  it("lets an explicit settings allow suppress the default MCP prompt", async () => {
+    const callTool = vi.fn(async () => ({ content: [] }));
+    const permissionConfirm = vi.fn(async () => false);
+    const options = toolOptions(cwd, { callTool }, createMcpCallLedger(), {
+      declaredEffect: "write",
+    });
+    options.permissionRules = { allow: [TOOL_NAME] };
+    options.permissionConfirm = permissionConfirm;
+
+    const result = await executeTool(TOOL_NAME, {}, options);
+
+    expect(result.error).toBeUndefined();
+    expect(permissionConfirm).not.toHaveBeenCalled();
+    expect(callTool).toHaveBeenCalledOnce();
+  });
+
+  it("keeps a host MCP ask stricter than a settings allow", async () => {
+    const callTool = vi.fn(async () => ({ content: [] }));
+    const permissionConfirm = vi.fn(async () => false);
+    const hostPolicy = {
+      ...hostEffectPolicy("read", true),
+      allowed: true,
+      decision: "ask",
+      requiresConfirmation: true,
+    };
+    const options = toolOptions(
+      cwd,
+      { callTool },
+      createMcpCallLedger(),
+      { declaredEffect: "read", annotations: { readOnlyHint: true } },
+      hostPolicy,
+    );
+    options.permissionRules = { allow: [TOOL_NAME] };
+    options.permissionConfirm = permissionConfirm;
+
+    const result = await executeTool(TOOL_NAME, {}, options);
+
+    expect(result).toMatchObject({
+      policy: {
+        decision: "ask",
+        via: "host-mcp-policy",
+        code: "CC_MCP_EFFECT_CONFIRMATION_REQUIRED",
+      },
+    });
+    expect(permissionConfirm).toHaveBeenCalledOnce();
+    expect(callTool).not.toHaveBeenCalled();
   });
 
   it("prewrites before execution, settles, and exposes the ledger id", async () => {

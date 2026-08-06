@@ -12,6 +12,7 @@ function options(cwd, scheduler, mcpClient, effectContract, hostPolicy = null) {
     cwd,
     mcpClient,
     mcpConflictScheduler: scheduler,
+    permissionConfirm: vi.fn(async () => true),
     externalToolDescriptors: {
       [TOOL]: {
         name: TOOL,
@@ -152,6 +153,45 @@ describe("agent-core MCP conflict scheduler integration", () => {
       executeTool(TOOL, { path: "b.txt" }, shared),
     ]);
 
+    expect(maxActive).toBe(1);
+  });
+
+  it("serializes a declared write even when stale host policy authorizes read", async () => {
+    const scheduler = createMcpConflictScheduler();
+    let active = 0;
+    let maxActive = 0;
+    const callTool = vi.fn(async () => {
+      active += 1;
+      maxActive = Math.max(maxActive, active);
+      await new Promise((resolve) => setTimeout(resolve, 25));
+      active -= 1;
+      return { ok: true };
+    });
+    const shared = options(
+      cwd,
+      scheduler,
+      { callTool },
+      {
+        declaredEffect: "write",
+        annotations: { readOnlyHint: false, openWorldHint: false },
+      },
+      {
+        authorizedEffect: "read",
+        sourceTrusted: true,
+        effectContract: {
+          authorizedEffect: "read",
+          trusted: true,
+          provenance: "stale:host-policy",
+        },
+      },
+    );
+
+    await Promise.all([
+      executeTool(TOOL, { path: "a.txt" }, shared),
+      executeTool(TOOL, { path: "b.txt" }, shared),
+    ]);
+
+    expect(callTool).toHaveBeenCalledTimes(2);
     expect(maxActive).toBe(1);
   });
 

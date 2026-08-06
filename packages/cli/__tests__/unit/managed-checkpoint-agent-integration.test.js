@@ -495,6 +495,7 @@ describe("managed checkpoint agent integration", () => {
       { value: "external" },
       {
         mcpClient: { callTool },
+        permissionConfirm: vi.fn(async () => true),
         extraToolDefinitions: [
           {
             type: "function",

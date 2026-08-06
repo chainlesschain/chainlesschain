@@ -146,6 +146,7 @@ describe("stream side-effect ledger — resume reconcile + recovery notice", () 
 
     const loopOptions = h.seenLoopOptions[0];
     expect(loopOptions.mcpCallLedger?.recoveryAdmission).toBeDefined();
+    loopOptions.permissionConfirm = vi.fn(async () => true);
     const first = await executeTool(toolName, { release: 1 }, loopOptions);
     expect(first).toMatchObject({
       code: "CC_MCP_LEDGER_OUTCOME_UNKNOWN",

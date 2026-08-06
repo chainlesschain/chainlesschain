@@ -1250,6 +1250,7 @@ describe("MCP ledger recovery admission", () => {
         turnId: "turn-recovery",
         mcpClient: { callTool },
         mcpCallLedger: ledger,
+        permissionConfirm: vi.fn(async () => true),
         externalToolDescriptors: {
           [toolName]: {
             name: toolName,

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "manifestVersion": "1.1.0",
+  "manifestVersion": "1.1.1",
   "baselineCommit": "eb0bc663b6eb794b1b62ba2bfc7a1267c699d25d",
   "releaseEvidence": {
     "commitSource": "git-head-at-run",
@@ -79,7 +79,7 @@
       "priority": "P0-S",
       "required": true,
       "fixture": "tests/fixtures/ide-roadmap/s0-skill-mcp.json",
-      "fixtureDigest": "sha256:732dd6c56e4ff8cbf1ccf50725041cdc6c1d760bc01af445440d4497dcc0c302",
+      "fixtureDigest": "sha256:a26d8980a8567c38d1968ca89d2c667bece38c0c84989a9c1f4c26e7948e8028",
       "seed": 2026080103,
       "minimumIndependentRuns": 1,
       "matrix": {
@@ -89,12 +89,21 @@
       },
       "expectedOutcome": {
         "directHandlerImports": 0,
+        "defaultConfirmationRequired": true,
+        "unapprovedTransportCalls": 0,
+        "unapprovedMutationCount": 0,
+        "claimedReadRemainsUnknownWithoutHostAuthorization": true,
+        "staleHostReadCannotDowngradeRisk": true,
         "unknownEffectsSerialized": true,
         "unsettledCallsHaveLedgerRecords": true
       },
       "testFiles": [
         "packages/cli/__tests__/unit/skill-execution-identity.test.js",
         "packages/cli/__tests__/unit/agent-core-skill-mcp.test.js",
+        "packages/cli/__tests__/unit/agent-core-mcp-ledger.test.js",
+        "packages/cli/__tests__/unit/agent-core-mcp-scheduler.test.js",
+        "packages/cli/__tests__/unit/ide-roadmap-mcp-security-gate.test.js",
+        "packages/cli/__tests__/integration/agent-core-mcp-adversarial-stdio.test.js",
         "packages/cli/__tests__/unit/mcp-call-ledger.test.js",
         "packages/cli/__tests__/unit/mcp-call-ledger-store.test.js",
         "packages/cli/__tests__/unit/mcp-conflict-scheduler.test.js",
@@ -106,6 +115,8 @@
       "requiredArtifacts": [
         "skill-identity-digest",
         "mcp-ledger",
+        "mcp-adversarial-stdio-evidence",
+        "policy-decisions",
         "exact-commit"
       ]
     },

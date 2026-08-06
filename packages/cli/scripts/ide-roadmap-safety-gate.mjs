@@ -1042,7 +1042,7 @@ function validateIndividualEvidence(evidence, expected = {}) {
   if (!evidence?.startedAt || !evidence?.finishedAt) issues.push("time window");
   if (!evidence?.runner?.operatingSystem) issues.push("operating system");
   if (!evidence?.runner?.architecture) issues.push("architecture");
-  if (evidence?.fixture?.manifestVersion !== "1.1.0") {
+  if (evidence?.fixture?.manifestVersion !== "1.1.1") {
     issues.push("manifest version");
   }
   const runs = evidence?.persistence?.requiredRunsPerKillPoint;
