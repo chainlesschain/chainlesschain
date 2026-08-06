@@ -191,6 +191,11 @@ test("DOM relay driver produces the same auditable phase ledger and snapshots", 
   temporaryRoots.push(root);
   const artifactDir = path.join(root, "artifacts");
   const traceFile = path.join(artifactDir, "cdp-journey.jsonl");
+  const workspaceFolders = [
+    path.join(root, "workspace-primary"),
+    path.join(root, "workspace-secondary"),
+  ];
+  workspaceFolders.forEach((workspaceFolder) => fs.mkdirSync(workspaceFolder));
   const state = {
     text: "",
     planVisible: false,
@@ -304,7 +309,8 @@ test("DOM relay driver produces the same auditable phase ledger and snapshots", 
       traceFile,
       artifactDir,
       extensionPath: root,
-      workspaceDir: root,
+      workspaceDir: workspaceFolders[0],
+      workspaceFolders,
     });
   }
 

@@ -44,7 +44,14 @@ describe("IDE journey evidence", () => {
     const diagnostics = path.join(root, "diagnostics-src");
     const artifactDir = path.join(root, "evidence");
     const vsix = path.join(root, "extension.vsix");
+    const workspaceFolders = [
+      path.join(root, "workspace-primary"),
+      path.join(root, "workspace-secondary"),
+    ];
     fs.mkdirSync(diagnostics);
+    workspaceFolders.forEach((workspaceFolder) =>
+      fs.mkdirSync(workspaceFolder),
+    );
     fs.writeFileSync(
       path.join(diagnostics, "extension.log"),
       "token=do-not-persist\nactivation complete\n",
@@ -60,6 +67,7 @@ describe("IDE journey evidence", () => {
       cliVersion: "0.200.0",
       extensionVersion: "0.40.0",
       transport: "local-bridge",
+      workspaceFolders,
       result: "passed",
       releaseCommit: "c".repeat(40),
       startedAt: "2026-08-01T00:00:00.000Z",
@@ -75,6 +83,10 @@ describe("IDE journey evidence", () => {
       releaseCommit: "c".repeat(40),
       result: "passed",
       evidenceComplete: true,
+      workspace: {
+        layout: "multi-root",
+        rootCount: 2,
+      },
     });
     expect(result.evidence.evidenceDigest).toBe(
       sha256Buffer(
@@ -174,5 +186,39 @@ describe("IDE journey evidence", () => {
         "evidence-artifacts-missing",
       ]),
     );
+  });
+
+  it("fails closed when workspace evidence repeats a root", () => {
+    const root = temporaryRoot();
+    const diagnostics = path.join(root, "diagnostics-src");
+    const vsix = path.join(root, "extension.vsix");
+    const workspace = path.join(root, "workspace");
+    fs.mkdirSync(diagnostics);
+    fs.mkdirSync(workspace);
+    fs.writeFileSync(
+      path.join(diagnostics, "extension.log"),
+      "ready\n",
+      "utf8",
+    );
+    fs.writeFileSync(vsix, "vsix bytes", "utf8");
+
+    const { evidence } = writeIdeJourneyEvidence({
+      artifactDir: path.join(root, "evidence"),
+      journeyId: "invalid-multi-root",
+      host: "vscode",
+      hostVersion: "1.110.0",
+      cliVersion: "0.200.0",
+      result: "passed",
+      releaseCommit: "c".repeat(40),
+      workspaceFolders: [workspace, workspace],
+      sourceRoots: [diagnostics],
+      artifactPaths: [vsix],
+    });
+
+    expect(evidence.evidenceComplete).toBe(false);
+    expect(evidence.workspace).toBeUndefined();
+    expect(evidence.incidents).toContainEqual({
+      code: "workspace-coordinate-invalid",
+    });
   });
 });

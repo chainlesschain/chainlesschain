@@ -1,13 +1,14 @@
 {
   "schemaVersion": 1,
   "case": "p0-host-evidence",
-  "description": "Real IDE journey runs emit immutable, redacted, exact-release evidence and fail when required coordinates or artifacts are missing.",
+  "description": "Real IDE journey runs bind the ordered multi-root workspace and emit immutable, redacted, exact-release evidence; missing or inconsistent coordinates fail closed.",
   "inputs": {
     "journeyId": "host-journey",
     "releaseCommit": "cccccccccccccccccccccccccccccccccccccccc",
     "hostVersion": "1.110.0",
     "cliVersion": "0.200.0",
     "result": "passed",
+    "workspaceRootCount": 2,
     "diagnostics": [
       "renderer.log",
       "extension-host.log",
@@ -20,6 +21,8 @@
     "evidenceComplete": true,
     "credentialsRetained": false,
     "exactCommitRequired": true,
+    "orderedWorkspaceRootsBound": true,
+    "workspaceRootCount": 2,
     "missingRequiredArtifactFails": true,
     "existingEvidenceMayBeReplaced": false
   }
