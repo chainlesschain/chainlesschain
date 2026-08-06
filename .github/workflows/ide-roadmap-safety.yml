@@ -1,0 +1,150 @@
+name: IDE Roadmap Safety Matrix
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/ide-roadmap-safety.yml"
+      - ".github/actions/setup-node-deps/action.yml"
+      - "package.json"
+      - "package-lock.json"
+      - "tests/fixtures/ide-roadmap/**"
+      - "packages/cli/package.json"
+      - "packages/cli/scripts/ide-roadmap-safety-gate.mjs"
+      - "packages/cli/src/harness/prompt-compressor.js"
+      - "packages/cli/src/harness/structured-handoff.js"
+      - "packages/cli/src/lib/plan-mode.js"
+      - "packages/cli/src/lib/plan-persistence.js"
+      - "packages/cli/src/lib/todo-manager.js"
+      - "packages/cli/src/lib/todo-persistence.js"
+      - "packages/cli/src/gateways/ws/ws-session-state.js"
+      - "packages/cli/src/runtime/agent-core.js"
+      - "packages/cli/__tests__/unit/ide-roadmap-safety-gate.test.js"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/ide-roadmap-safety.yml"
+      - ".github/actions/setup-node-deps/action.yml"
+      - "package.json"
+      - "package-lock.json"
+      - "tests/fixtures/ide-roadmap/**"
+      - "packages/cli/package.json"
+      - "packages/cli/scripts/ide-roadmap-safety-gate.mjs"
+      - "packages/cli/src/harness/prompt-compressor.js"
+      - "packages/cli/src/harness/structured-handoff.js"
+      - "packages/cli/src/lib/plan-mode.js"
+      - "packages/cli/src/lib/plan-persistence.js"
+      - "packages/cli/src/lib/todo-manager.js"
+      - "packages/cli/src/lib/todo-persistence.js"
+      - "packages/cli/src/gateways/ws/ws-session-state.js"
+      - "packages/cli/src/runtime/agent-core.js"
+  schedule:
+    - cron: "17 2 * * 4"
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: "Exact full commit SHA to test (blank uses selected ref)"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: false
+
+env:
+  IDE_ROADMAP_SAFETY_COMMIT: ${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
+  IDE_ROADMAP_SAFETY_RUNS: "100"
+
+jobs:
+  safety-matrix:
+    name: "P0-S formal recovery and handoff (${{ matrix.os }})"
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    steps:
+      - name: Checkout exact safety candidate
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ env.IDE_ROADMAP_SAFETY_COMMIT }}
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+
+      - uses: ./.github/actions/setup-node-deps
+
+      - name: Verify versioned roadmap fixtures
+        run: node packages/cli/scripts/verify-ide-roadmap-fixtures.mjs
+
+      - name: Run 100 independent injections per kill point and transport
+        shell: bash
+        run: |
+          set -euo pipefail
+          node packages/cli/scripts/ide-roadmap-safety-gate.mjs \
+            --runs "${IDE_ROADMAP_SAFETY_RUNS}" \
+            --release-commit "${IDE_ROADMAP_SAFETY_COMMIT}" \
+            --output "${RUNNER_TEMP}/ide-roadmap-safety-${RUNNER_OS}.json"
+
+      - name: Upload exact-SHA safety evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: ide-roadmap-safety-${{ runner.os }}-${{ env.IDE_ROADMAP_SAFETY_COMMIT }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/ide-roadmap-safety-${{ runner.os }}.json
+          if-no-files-found: error
+          retention-days: 90
+
+  aggregate:
+    name: P0-S formal safety gate
+    if: always()
+    needs: safety-matrix
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Refuse an incomplete platform matrix
+        if: needs.safety-matrix.result != 'success'
+        shell: bash
+        run: |
+          echo "::error::At least one formal safety platform failed or did not finish"
+          exit 1
+
+      - name: Checkout exact safety candidate
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ env.IDE_ROADMAP_SAFETY_COMMIT }}
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+
+      - uses: ./.github/actions/setup-node-deps
+
+      - uses: actions/download-artifact@v7
+        with:
+          pattern: ide-roadmap-safety-*-${{ env.IDE_ROADMAP_SAFETY_COMMIT }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/ide-roadmap-safety-evidence
+          merge-multiple: true
+
+      - name: Verify exact commit, three OSes, sample counts, and invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+          node packages/cli/scripts/ide-roadmap-safety-gate.mjs \
+            --verify-evidence-dir "${RUNNER_TEMP}/ide-roadmap-safety-evidence" \
+            --release-commit "${IDE_ROADMAP_SAFETY_COMMIT}" \
+            --output "${RUNNER_TEMP}/ide-roadmap-safety-aggregate.json"
+
+      - name: Upload immutable aggregate
+        uses: actions/upload-artifact@v6
+        with:
+          name: ide-roadmap-safety-aggregate-${{ env.IDE_ROADMAP_SAFETY_COMMIT }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/ide-roadmap-safety-aggregate.json
+          if-no-files-found: error
+          retention-days: 90
