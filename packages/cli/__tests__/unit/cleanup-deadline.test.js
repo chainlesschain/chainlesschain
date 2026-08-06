@@ -103,4 +103,28 @@ describe("cleanup deadline", () => {
       "timeout",
     ]);
   });
+
+  it("latches exhaustion when a platform timer fires before the monotonic deadline", async () => {
+    const later = vi.fn();
+    const deadline = createCleanupDeadline(
+      { timeoutMs: 10 },
+      {
+        now: () => 0,
+        setTimeout: (callback) => {
+          callback();
+          return 1;
+        },
+        clearTimeout: vi.fn(),
+      },
+    );
+
+    await deadline.run("first", () => new Promise(() => {}));
+    await deadline.run("later", later);
+
+    expect(later).toHaveBeenCalledOnce();
+    expect(deadline.report().steps.map((step) => step.status)).toEqual([
+      "timeout",
+      "timeout",
+    ]);
+  });
 });

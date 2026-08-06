@@ -49,6 +49,7 @@ export function createCleanupDeadline(
   const normalizedTimeoutMs = normalizeCleanupDeadlineMs(timeoutMs);
   let startedAt = null;
   let deadlineAt = null;
+  let exhausted = false;
   const steps = [];
 
   const ensureStarted = () => {
@@ -89,7 +90,8 @@ export function createCleanupDeadline(
       // Always observe a late rejection after a timeout.
       promise.catch(() => {});
       const remainingMs = Math.max(0, deadlineAt - now());
-      if (remainingMs === 0) {
+      if (exhausted || remainingMs === 0) {
+        exhausted = true;
         record(name, "timeout", stepStartedAt);
         return { status: "timeout" };
       }
@@ -107,6 +109,10 @@ export function createCleanupDeadline(
       ]);
       if (timer !== null) clearTimer(timer);
       if (settled?.timeout) {
+        // A platform timer can fire fractionally before performance.now()
+        // reaches deadlineAt. Latch exhaustion so later disposers are still
+        // invoked but never regain a sliver of cleanup budget.
+        exhausted = true;
         record(name, "timeout", stepStartedAt);
         return { status: "timeout" };
       }
