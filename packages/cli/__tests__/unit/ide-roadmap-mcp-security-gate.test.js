@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { verifyMcpSecurityEvidenceSet } from "../../scripts/ide-roadmap-mcp-security-gate.mjs";
+import { IDE_ROADMAP_MANIFEST_VERSION } from "../../scripts/verify-ide-roadmap-fixtures.mjs";
 
 const repoRoot = path.resolve(import.meta.dirname, "..", "..", "..", "..");
 const releaseCommit = "a".repeat(40);
@@ -63,7 +64,7 @@ function evidenceFor(operatingSystem) {
     runner: { operatingSystem, architecture: "x64", nodeVersion: "v22.12.0" },
     transport: "stdio-mcp",
     fixture: {
-      manifestVersion: "1.1.1",
+      manifestVersion: IDE_ROADMAP_MANIFEST_VERSION,
       digests: {
         manifest: sha256File(manifestPath),
         roadmapFixture: sha256File(roadmapFixturePath),
@@ -192,6 +193,17 @@ describe("IDE roadmap MCP security evidence verifier", () => {
     expect(() =>
       verifyMcpSecurityEvidenceSet({ evidenceDir, releaseCommit }),
     ).toThrow(/exactly linux, macos, windows/);
+  });
+
+  it("rejects evidence bound to a stale fixture manifest version", () => {
+    const windowsPath = path.join(evidenceDir, "windows.json");
+    const windows = JSON.parse(fs.readFileSync(windowsPath, "utf8"));
+    windows.fixture.manifestVersion = "1.1.1";
+    fs.writeFileSync(windowsPath, JSON.stringify(windows), "utf8");
+
+    expect(() =>
+      verifyMcpSecurityEvidenceSet({ evidenceDir, releaseCommit }),
+    ).toThrow(/manifest version/);
   });
 
   it("rejects a stale host read policy risk downgrade", () => {

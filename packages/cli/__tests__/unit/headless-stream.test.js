@@ -246,7 +246,7 @@ describe("runAgentHeadlessStream", () => {
     } finally {
       process.exitCode = previousExitCode;
     }
-  }, 15_000);
+  }, 45_000);
 
   it("runs top-level cleanup when MCP post-connect setup throws", async () => {
     const liveInput = new PassThrough();

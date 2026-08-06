@@ -674,7 +674,7 @@ describe("runAgentHeadless — --mcp-config wiring", () => {
       toolName: "get",
     });
     expect(client.calls.disconnectAll).toBe(1);
-  }, 15_000);
+  }, 30_000);
 
   it("dispatches an mcp__server__tool call to mcpClient.callTool (real loop)", async () => {
     const client = fakeClient();

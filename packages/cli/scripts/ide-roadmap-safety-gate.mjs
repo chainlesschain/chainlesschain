@@ -34,6 +34,7 @@ import {
   STRUCTURED_HANDOFF_FIELDS,
 } from "../src/harness/prompt-compressor.js";
 import { executionBroker } from "../src/lib/process-execution-broker/index.js";
+import { IDE_ROADMAP_MANIFEST_VERSION } from "./verify-ide-roadmap-fixtures.mjs";
 
 const scriptPath = fileURLToPath(import.meta.url);
 const scriptDir = path.dirname(scriptPath);
@@ -136,6 +137,11 @@ function validateFixtureContract() {
   const handoffEntry = manifest.cases?.find(
     (entry) => entry.id === "s0-semantic-handoff",
   );
+  if (manifest.manifestVersion !== IDE_ROADMAP_MANIFEST_VERSION) {
+    throw new Error(
+      `roadmap manifest version must equal ${IDE_ROADMAP_MANIFEST_VERSION}`,
+    );
+  }
   if (!persistenceEntry || !handoffEntry) {
     throw new Error("roadmap manifest is missing formal safety cases");
   }
@@ -1042,7 +1048,7 @@ function validateIndividualEvidence(evidence, expected = {}) {
   if (!evidence?.startedAt || !evidence?.finishedAt) issues.push("time window");
   if (!evidence?.runner?.operatingSystem) issues.push("operating system");
   if (!evidence?.runner?.architecture) issues.push("architecture");
-  if (evidence?.fixture?.manifestVersion !== "1.1.1") {
+  if (evidence?.fixture?.manifestVersion !== IDE_ROADMAP_MANIFEST_VERSION) {
     issues.push("manifest version");
   }
   const runs = evidence?.persistence?.requiredRunsPerKillPoint;
