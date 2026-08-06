@@ -154,6 +154,7 @@ const VALID_OUTPUT_FORMATS = Object.freeze(["text", "json", "stream-json"]);
 // the stream-json driver + REPL); re-exported here for existing importers.
 export { installPipeSafety } from "./pipe-safety.js";
 import { installPipeSafety } from "./pipe-safety.js";
+import { createHeadlessOutputBackpressure } from "./output-backpressure.js";
 
 /**
  * Normalize a public --permission-mode spelling to the canonical internal mode.
@@ -365,44 +366,84 @@ export function applyForkSession(opts = {}, store = {}) {
 export async function runAgentHeadless(options = {}, deps = {}) {
   const trustedWorkspaceRoot = options.cwd || process.cwd();
   const pipeState = { closed: false };
+  const stdout = deps.stdout || process.stdout;
+  const stderr = deps.stderr || process.stderr;
   const shouldInstallPipeSafety =
     typeof deps.installPipeSafety === "function" ||
     (!deps.writeOut && !deps.writeErr);
   const pipeAbort = shouldInstallPipeSafety ? new AbortController() : null;
-  const runtimeOptions = pipeAbort
-    ? {
-        ...options,
-        signal: options.signal
-          ? AbortSignal.any([options.signal, pipeAbort.signal])
-          : pipeAbort.signal,
-      }
-    : options;
+  const managesNativeOutput = !deps.writeOut || !deps.writeErr;
+  const outputAbort = managesNativeOutput ? new AbortController() : null;
+  const handlePipeClosed = () => {
+    if (pipeState.closed) return;
+    pipeState.closed = true;
+    process.exitCode = 0;
+    pipeAbort?.abort();
+  };
+  const outputFlow =
+    deps.outputFlow ||
+    createHeadlessOutputBackpressure({
+      stdout,
+      stderr,
+      writeOut: deps.writeOut,
+      writeErr: deps.writeErr,
+      maxQueuedBytes: deps.outputBackpressureMaxBytes,
+      onFailure: (error) => {
+        outputAbort?.abort(error);
+        if (error?.code === "EPIPE") handlePipeClosed();
+      },
+    });
+  const abortSignals = [
+    options.signal,
+    pipeAbort?.signal,
+    outputAbort?.signal,
+  ].filter(Boolean);
+  const runtimeOptions =
+    abortSignals.length === 0
+      ? options
+      : {
+          ...options,
+          signal:
+            abortSignals.length === 1
+              ? abortSignals[0]
+              : AbortSignal.any(abortSignals),
+        };
+  const runtimeDeps = {
+    ...deps,
+    writeOut: outputFlow.writeOut,
+    writeErr: outputFlow.writeErr,
+    outputFlow,
+  };
   const installSafety = deps.installPipeSafety || installPipeSafety;
   const disposePipeSafety = shouldInstallPipeSafety
-    ? installSafety(undefined, () => {
-        if (pipeState.closed) return;
-        pipeState.closed = true;
-        process.exitCode = 0;
-        pipeAbort.abort();
-      })
+    ? installSafety([stdout, stderr], handlePipeClosed)
     : null;
 
+  let outcome;
+  let failure = null;
   try {
-    const outcome = await runWithHostHooksV2Workspace(
-      trustedWorkspaceRoot,
-      () => runAgentHeadlessInWorkspace(runtimeOptions, deps, pipeState),
+    outcome = await runWithHostHooksV2Workspace(trustedWorkspaceRoot, () =>
+      runAgentHeadlessInWorkspace(runtimeOptions, runtimeDeps, pipeState),
     );
-    return pipeState.closed
-      ? { ...outcome, exitCode: 0, isError: false }
-      : outcome;
   } catch (error) {
-    if (pipeState.closed) {
-      return { exitCode: 0, result: "", isError: false };
-    }
-    throw error;
+    failure = error;
   } finally {
+    try {
+      await outputFlow.wait();
+    } catch (error) {
+      failure ||= error;
+    }
+    outputFlow.dispose();
     disposePipeSafety?.();
   }
+
+  if (pipeState.closed) {
+    return outcome
+      ? { ...outcome, exitCode: 0, isError: false }
+      : { exitCode: 0, result: "", isError: false };
+  }
+  if (failure) throw failure;
+  return outcome;
 }
 
 async function runAgentHeadlessInWorkspace(
@@ -427,8 +468,8 @@ async function runAgentHeadlessInWorkspace(
   const isStream = outputFormat === "stream-json";
   const isJson = outputFormat === "json";
   const isText = outputFormat === "text";
-  const writeOut = deps.writeOut || ((s) => process.stdout.write(s));
-  const writeErr = deps.writeErr || ((s) => process.stderr.write(s));
+  const writeOut = deps.writeOut;
+  const writeErr = deps.writeErr;
 
   const hasInjectedSessionStore =
     typeof deps.sessionHasPersistedEvidence === "function" ||
@@ -583,7 +624,7 @@ async function runAgentHeadlessInWorkspace(
           cwd,
           settingsFile: options.settingsFile,
         });
-        if (notice) process.stderr.write(notice + "\n");
+        if (notice) writeErr(notice + "\n");
       } catch {
         /* trust notice is best-effort */
       }
@@ -2474,6 +2515,7 @@ async function runAgentHeadlessInWorkspace(
             if (isStream && event.type) emitStream(event);
             break;
         }
+        await deps.outputFlow?.wait?.();
         // Hard cost cap reached: stop consuming the loop so no further paid LLM
         // call is made (break out of the for-await, not just the switch).
         if (stopForCost) break;
@@ -2992,12 +3034,10 @@ async function runAgentHeadlessInWorkspace(
         );
         if (!isStream) {
           const sum = _otlpRecorder.summary();
-          process.stderr.write(
-            `[otlp] ${sum.spanCount} span(s) → ${options.otlp}\n`,
-          );
+          writeErr(`[otlp] ${sum.spanCount} span(s) → ${options.otlp}\n`);
         }
       } catch (err) {
-        process.stderr.write(`[otlp] export failed: ${err.message}\n`);
+        writeErr(`[otlp] export failed: ${err.message}\n`);
       }
     }
     if (_collectorEnabled) {

@@ -124,6 +124,7 @@ import {
   parseSessionSlashCommandEvent,
 } from "./session-slash-commands.js";
 import { extractPluginUsageAttribution } from "../lib/plugin-usage-attribution.js";
+import { createHeadlessOutputBackpressure } from "./output-backpressure.js";
 
 function invalidMcpRecoveryTransaction(capability, expected) {
   const error = new TypeError(
@@ -779,6 +780,7 @@ async function runTurn(
     sideEffects,
     turnNumber,
     turnBindingFeed,
+    waitForOutput,
     now = Date.now,
   },
 ) {
@@ -1018,6 +1020,7 @@ async function runTurn(
         if (event.type) emit(event);
         break;
     }
+    await waitForOutput?.();
     // Hard cost cap reached — stop consuming the loop (break the for-await, not
     // just the switch) so no further paid LLM call is made.
     if (stopForCost) break;
@@ -1147,19 +1150,57 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
   const trustedWorkspaceRoot = options.cwd || process.cwd();
   const input = deps.input || process.stdin;
   const pipeState = { closed: false };
+  const streamCleanup = createHeadlessStreamCleanupScope({ input });
+  const stdout = deps.stdout || process.stdout;
+  const stderr = deps.stderr || process.stderr;
   const shouldInstallPipeSafety =
     typeof deps.installPipeSafety === "function" ||
     (!deps.writeOut && !deps.writeErr);
   const pipeAbort = shouldInstallPipeSafety ? new AbortController() : null;
-  const runtimeOptions = pipeAbort
-    ? {
-        ...options,
-        signal: options.signal
-          ? AbortSignal.any([options.signal, pipeAbort.signal])
-          : pipeAbort.signal,
-      }
-    : options;
-  const streamCleanup = createHeadlessStreamCleanupScope({ input });
+  const managesNativeOutput = !deps.writeOut || !deps.writeErr;
+  const outputAbort = managesNativeOutput ? new AbortController() : null;
+  const handlePipeClosed = () => {
+    if (pipeState.closed) return;
+    pipeState.closed = true;
+    streamCleanup.setReason("pipe_closed");
+    process.exitCode = 0;
+    pipeAbort?.abort();
+    streamCleanup.requestStop();
+  };
+  const outputFlow =
+    deps.outputFlow ||
+    createHeadlessOutputBackpressure({
+      stdout,
+      stderr,
+      writeOut: deps.writeOut,
+      writeErr: deps.writeErr,
+      maxQueuedBytes: deps.outputBackpressureMaxBytes,
+      onFailure: (error) => {
+        outputAbort?.abort(error);
+        if (error?.code === "EPIPE") handlePipeClosed();
+      },
+    });
+  const abortSignals = [
+    options.signal,
+    pipeAbort?.signal,
+    outputAbort?.signal,
+  ].filter(Boolean);
+  const runtimeOptions =
+    abortSignals.length === 0
+      ? options
+      : {
+          ...options,
+          signal:
+            abortSignals.length === 1
+              ? abortSignals[0]
+              : AbortSignal.any(abortSignals),
+        };
+  const runtimeDeps = {
+    ...deps,
+    writeOut: outputFlow.writeOut,
+    writeErr: outputFlow.writeErr,
+    outputFlow,
+  };
   const onCallerAbort = () => {
     streamCleanup.setReason("aborted");
     streamCleanup.requestStop();
@@ -1173,20 +1214,13 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
   let failure = null;
   try {
     disposePipeSafety = shouldInstallPipeSafety
-      ? installSafety(undefined, () => {
-          if (pipeState.closed) return;
-          pipeState.closed = true;
-          streamCleanup.setReason("pipe_closed");
-          process.exitCode = 0;
-          pipeAbort.abort();
-          streamCleanup.requestStop();
-        })
+      ? installSafety([stdout, stderr], handlePipeClosed)
       : null;
 
     outcome = await runWithHostHooksV2Workspace(trustedWorkspaceRoot, () =>
       runAgentHeadlessStreamInWorkspace(
         runtimeOptions,
-        deps,
+        runtimeDeps,
         pipeState,
         streamCleanup,
       ),
@@ -1195,6 +1229,12 @@ export async function runAgentHeadlessStream(options = {}, deps = {}) {
     failure = error;
   } finally {
     await streamCleanup.cleanup();
+    try {
+      await outputFlow.wait();
+    } catch (error) {
+      failure ||= error;
+    }
+    outputFlow.dispose();
     options.signal?.removeEventListener("abort", onCallerAbort);
     disposePipeSafety?.();
   }
@@ -1216,8 +1256,8 @@ async function runAgentHeadlessStreamInWorkspace(
   const provider = options.provider || "ollama";
   const baseUrl = options.baseUrl || "http://localhost:11434";
   const apiKey = options.apiKey || null;
-  const writeOut = deps.writeOut || ((s) => process.stdout.write(s));
-  const writeErr = deps.writeErr || ((s) => process.stderr.write(s));
+  const writeOut = deps.writeOut;
+  const writeErr = deps.writeErr;
 
   const sessionId =
     options.sessionId || `headless-stream-${Date.now()}-${process.pid}`;
@@ -1457,7 +1497,7 @@ async function runAgentHeadlessStreamInWorkspace(
           cwd,
           settingsFile: options.settingsFile,
         });
-        if (notice) process.stderr.write(notice + "\n");
+        if (notice) writeErr(notice + "\n");
       } catch {
         /* trust notice is best-effort */
       }
@@ -2776,6 +2816,7 @@ async function runAgentHeadlessStreamInWorkspace(
   };
 
   for (;;) {
+    await deps.outputFlow?.wait?.();
     const parsed = await nextEvent();
     if (parsed == null) break; // stdin closed
     if (turnBindingPersistenceError) {
@@ -3348,6 +3389,7 @@ async function runAgentHeadlessStreamInWorkspace(
           sideEffects,
           turnNumber: turns,
           turnBindingFeed,
+          waitForOutput: deps.outputFlow?.wait,
           now: deps.now || Date.now,
         },
       );
