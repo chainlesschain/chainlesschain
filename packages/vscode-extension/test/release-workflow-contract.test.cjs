@@ -43,6 +43,10 @@ test("every IDE gate checks out and records the exact source commit", () => {
     workflow,
     /IDE_RELEASE_COMMIT: \$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/u,
   );
+  assert.match(
+    workflow,
+    /CC_RELEASE_COMMIT: \$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/u,
+  );
   assert.equal(
     workflow.match(/uses: actions\/checkout@v5/gu)?.length,
     8,

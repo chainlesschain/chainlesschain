@@ -22,6 +22,7 @@ import { deflateRawSync } from "node:zlib";
 
 import {
   createVsixReleaseArtifactManifest,
+  releaseCommitFromEnvironment,
   verifyVsixReleaseArtifact,
 } from "./vsix-release-artifact.mjs";
 import {
@@ -356,6 +357,20 @@ test("release manifest create + verify bind raw bytes and identities", () => {
       true,
     );
   });
+});
+
+test("explicit release commit overrides the GitHub merge ref", () => {
+  assert.equal(
+    releaseCommitFromEnvironment({
+      CC_RELEASE_COMMIT: RELEASE_PROVENANCE.commit,
+      GITHUB_SHA: "f".repeat(40),
+    }),
+    RELEASE_PROVENANCE.commit,
+  );
+  assert.equal(
+    releaseCommitFromEnvironment({ GITHUB_SHA: "f".repeat(40) }),
+    "f".repeat(40),
+  );
 });
 
 test("release verification rejects raw VSIX tampering", () => {
