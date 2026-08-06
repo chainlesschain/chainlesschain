@@ -58,6 +58,43 @@ export function getStatePath() {
   return join(getHomeDir(), "state");
 }
 
+/** User-local security state that survives rollback of CHAINLESSCHAIN_HOME. */
+export function getMachineSecurityAnchorDir() {
+  const configured = process.env.CHAINLESSCHAIN_SECURITY_ANCHOR_HOME;
+  if (configured) {
+    if (!isAbsolute(configured)) {
+      const error = new Error(
+        "CHAINLESSCHAIN_SECURITY_ANCHOR_HOME must be an absolute path",
+      );
+      error.code = "CONFIG_HOME_UNSAFE";
+      throw error;
+    }
+    return resolve(configured);
+  }
+  const platform = getPlatform();
+  if (platform === "win32") {
+    return join(
+      process.env.LOCALAPPDATA || join(homedir(), "AppData", "Local"),
+      "ChainlessChain",
+      "SecurityAnchors",
+    );
+  }
+  if (platform === "darwin") {
+    return join(
+      homedir(),
+      "Library",
+      "Application Support",
+      "ChainlessChain",
+      "SecurityAnchors",
+    );
+  }
+  return join(
+    process.env.XDG_STATE_HOME || join(homedir(), ".local", "state"),
+    "chainlesschain",
+    "security-anchors",
+  );
+}
+
 export function getPidFilePath() {
   return join(getStatePath(), "app.pid");
 }

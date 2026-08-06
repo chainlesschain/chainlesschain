@@ -1491,19 +1491,17 @@ describe("jsonl-session-store", () => {
 
     it("keeps resume heap to the compact checkpoint and suffix", () => {
       const id = startSession("streaming-large-prefix", { title: "large" });
-      const events = [];
-      let previousHash = null;
+      // Preserve the store-owned genesis (including generation authority) and
+      // extend it directly so this scale fixture remains a valid forward move
+      // from the independent anti-rollback witness.
+      const events = readEvents(id);
+      let previousHash = events[0].hash;
       const add = (core) => {
         const hash = computeEventHash(previousHash, core);
         const chained = { ...core, prevHash: previousHash, hash };
         previousHash = hash;
         events.push(chained);
       };
-      add({
-        type: "session_start",
-        timestamp: 1,
-        data: { title: "large" },
-      });
       for (let index = 0; index < 4_000; index += 1) {
         add({
           type: index % 2 ? "assistant_message" : "user_message",
@@ -2096,6 +2094,89 @@ describe("jsonl-session-store", () => {
           eventCount: 1,
         },
       });
+    });
+
+    it("retains deletion authority after transcript, metadata, and marker are all lost", () => {
+      const id = startSession("external-only-tombstone");
+      const oldStart = readVerifiedEvents(id)[0];
+      const oldGeneration = oldStart.data[SESSION_GENERATION_AUTHORITY_FIELD];
+      expect(deleteJsonlSession(id)).toBe(true);
+
+      rmSync(sessionsDir, { recursive: true, force: true });
+      mkdirSync(sessionsDir, { recursive: true });
+
+      expect(getSessionPresence(id)).toBe("tombstoned");
+      expect(listSessionEvidenceIds()).toContain(id);
+      expect(resolveSessionAuthority("external-only-tomb")).toMatchObject({
+        id,
+        presence: "tombstoned",
+        readable: false,
+      });
+
+      startSession(id, { title: "replacement" });
+      expect(
+        readVerifiedEvents(id)[0].data[SESSION_GENERATION_AUTHORITY_FIELD],
+      ).toMatchObject({
+        ordinal: 2,
+        predecessor: {
+          kind: "tombstone",
+          generationId: oldGeneration.generationId,
+          headHash: oldStart.hash,
+          eventCount: 1,
+        },
+      });
+    });
+
+    it("rejects an internally consistent live transcript and meta rollback", () => {
+      const id = startSession("external-live-rollback");
+      const transcriptFile = sessionPath(id);
+      const metaFile = join(sessionsDir, `${id}.meta.json`);
+      const oldTranscript = readFileSync(transcriptFile, "utf8");
+      const oldMeta = JSON.parse(readFileSync(metaFile, "utf8"));
+      appendUserMessage(id, "advance external high-water mark");
+
+      writeFileSync(transcriptFile, oldTranscript, "utf8");
+      const restored = statSync(transcriptFile);
+      oldMeta.transcript = {
+        dev: String(restored.dev),
+        ino: String(restored.ino),
+        size: restored.size,
+        mtimeMs: restored.mtimeMs,
+        ctimeMs: restored.ctimeMs,
+      };
+      writeFileSync(metaFile, `${JSON.stringify(oldMeta)}\n`, "utf8");
+
+      expect(() => getSessionPresence(id)).toThrow(
+        expect.objectContaining({ code: "CC_SESSION_ANTI_ROLLBACK_DETECTED" }),
+      );
+      expect(() => readVerifiedEvents(id)).toThrow(
+        expect.objectContaining({ code: "CC_SESSION_ANTI_ROLLBACK_DETECTED" }),
+      );
+    });
+
+    it("rejects restoration of a predecessor after a successor generation commits", () => {
+      const id = startSession("external-generation-rollback");
+      const transcriptFile = sessionPath(id);
+      const metaFile = join(sessionsDir, `${id}.meta.json`);
+      const predecessorTranscript = readFileSync(transcriptFile, "utf8");
+      const predecessorMeta = JSON.parse(readFileSync(metaFile, "utf8"));
+      expect(deleteJsonlSession(id)).toBe(true);
+      startSession(id, { title: "successor" });
+
+      writeFileSync(transcriptFile, predecessorTranscript, "utf8");
+      const restored = statSync(transcriptFile);
+      predecessorMeta.transcript = {
+        dev: String(restored.dev),
+        ino: String(restored.ino),
+        size: restored.size,
+        mtimeMs: restored.mtimeMs,
+        ctimeMs: restored.ctimeMs,
+      };
+      writeFileSync(metaFile, `${JSON.stringify(predecessorMeta)}\n`, "utf8");
+
+      expect(() => getSessionPresence(id)).toThrow(
+        expect.objectContaining({ code: "CC_SESSION_ANTI_ROLLBACK_DETECTED" }),
+      );
     });
 
     it("blocks a restored transcript behind a marker even when metadata is lost", () => {

@@ -63,6 +63,12 @@ import {
 } from "./session-list-index.js";
 import { createSessionPersistenceFailure } from "../lib/session-persistence-failure.js";
 import { withSessionHostWriteAuthority } from "../lib/session-host-lease.js";
+import {
+  listSessionAntiRollbackIds,
+  publishSessionAntiRollbackAnchor,
+  readSessionAntiRollbackAnchor,
+  sessionAntiRollbackPredecessorWitness,
+} from "../lib/session-anti-rollback-anchor.js";
 
 let securedSessionsDir = null;
 let securedSessionsDirIdentity = null;
@@ -726,9 +732,16 @@ function appendVerifiedWsAuthorityEventLocked(
     expectedState,
   );
   try {
-    recordSessionEvent(getSessionsDir(), sessionId, event, hash, {
-      transcriptState,
-    });
+    const nextMeta = recordSessionEvent(
+      getSessionsDir(),
+      sessionId,
+      event,
+      hash,
+      {
+        transcriptState,
+      },
+    );
+    publishSessionAntiRollbackWitness(sessionId, nextMeta, filePath, "live");
   } catch (cause) {
     const error = new Error(
       `Session authority anchor could not be persisted: ${sessionId}`,
@@ -983,6 +996,111 @@ function encodeSessionGenerationData(data, authority = null) {
   return clean;
 }
 
+function sessionAntiRollbackCandidateFromWitness(witness, status = "live") {
+  if (!witness || typeof witness !== "object") return null;
+  const eventCount = Math.max(0, Number(witness.event_count) || 0);
+  const headHash =
+    typeof witness.last_hash === "string" &&
+    /^[0-9a-f]{64}$/.test(witness.last_hash)
+      ? witness.last_hash
+      : null;
+  const generation = normalizeSessionGenerationAuthority(witness.generation);
+  const legacyDeletion =
+    status === "deleted" && generation === null && headHash === null;
+  if (!legacyDeletion && (eventCount === 0) !== (headHash === null))
+    return null;
+  return Object.freeze({
+    status,
+    generation,
+    headHash,
+    eventCount,
+    deletedAtMs:
+      status === "deleted"
+        ? Math.max(
+            0,
+            Number(witness.deleted_at_ms || witness.updated_at_ms) || 0,
+          )
+        : null,
+  });
+}
+
+function antiRollbackAnchorMatchesCandidate(anchor, candidate) {
+  return (
+    anchor !== null &&
+    candidate !== null &&
+    anchor.status === candidate.status &&
+    JSON.stringify(anchor.generation) ===
+      JSON.stringify(candidate.generation) &&
+    anchor.headHash === candidate.headHash &&
+    anchor.eventCount === candidate.eventCount &&
+    anchor.deletedAtMs === candidate.deletedAtMs
+  );
+}
+
+function transcriptHashAtEventCount(filePath, eventCount) {
+  if (eventCount === 0) return null;
+  let count = 0;
+  for (const { line } of iterateFileLinesSync(filePath)) {
+    let event;
+    try {
+      event = JSON.parse(line);
+    } catch {
+      continue;
+    }
+    if (typeof event?.hash !== "string") continue;
+    count += 1;
+    if (count === eventCount) return event.hash;
+  }
+  return null;
+}
+
+function publishSessionAntiRollbackWitness(
+  sessionId,
+  witness,
+  filePath,
+  status = "live",
+) {
+  const candidate = sessionAntiRollbackCandidateFromWitness(witness, status);
+  if (candidate === null) {
+    const error = new Error(
+      `Session anti-rollback candidate is incomplete: ${sessionId}`,
+    );
+    error.code = "CC_SESSION_ANTI_ROLLBACK_UNAVAILABLE";
+    throw error;
+  }
+  return publishSessionAntiRollbackAnchor(sessionId, candidate, {
+    provePrefix: (current) =>
+      current.status === "live" &&
+      existsSync(filePath) &&
+      transcriptHashAtEventCount(filePath, current.eventCount) ===
+        current.headHash,
+  });
+}
+
+function assertSessionAntiRollbackBeforeWrite(
+  sessionId,
+  witness,
+  filePath,
+  status = "live",
+) {
+  const current = readSessionAntiRollbackAnchor(sessionId);
+  if (current === null && witness === null) return null;
+  const candidate = sessionAntiRollbackCandidateFromWitness(witness, status);
+  if (candidate === null) return current;
+  if (antiRollbackAnchorMatchesCandidate(current, candidate)) return current;
+
+  if (status === "live" && existsSync(filePath)) {
+    const verification = verifyTranscriptFile(filePath);
+    assertLocalVerifiedTranscriptAnchor(sessionId, verification);
+  }
+  return publishSessionAntiRollbackWitness(
+    sessionId,
+    witness,
+    filePath,
+    status,
+  );
+}
+
 function appendEventLocked(
   sessionId,
   type,
@@ -994,8 +1112,9 @@ function appendEventLocked(
     sessionId,
     filePath,
     () => {
-      const existingMeta = readSessionMeta(getSessionsDir(), sessionId);
+      let existingMeta = readSessionMeta(getSessionsDir(), sessionId);
       const marker = readSessionTombstoneMarker(getSessionsDir(), sessionId);
+      const externalAnchor = readSessionAntiRollbackAnchor(sessionId);
       const presence = getSessionPresence(sessionId);
       const transcriptExists = existsSync(filePath);
       const startsNewGeneration =
@@ -1076,6 +1195,24 @@ function appendEventLocked(
         // publish a count of one for a multi-event transcript. Restore the
         // projection under the same writer lock before advancing the chain.
         rebuildSessionMetaUnlocked(getSessionsDir(), sessionId, filePath);
+        existingMeta = readSessionMeta(getSessionsDir(), sessionId);
+      }
+      if (transcriptExists) {
+        assertSessionAntiRollbackBeforeWrite(
+          sessionId,
+          existingMeta,
+          filePath,
+          "live",
+        );
+      } else if (presence === SESSION_PRESENCE.TOMBSTONED) {
+        assertSessionAntiRollbackBeforeWrite(
+          sessionId,
+          existingMeta ||
+            marker ||
+            sessionAntiRollbackPredecessorWitness(externalAnchor),
+          filePath,
+          "deleted",
+        );
       }
       if (duplicateLiveStart) {
         const error = new Error(`Session already exists: ${sessionId}`);
@@ -1098,7 +1235,11 @@ function appendEventLocked(
         )
           ? createSessionGenerationAuthority(
               sessionId,
-              startsNewGeneration ? existingMeta || marker : null,
+              startsNewGeneration
+                ? existingMeta ||
+                    marker ||
+                    sessionAntiRollbackPredecessorWitness(externalAnchor)
+                : null,
             )
           : null;
       const persistedData = encodeSessionGenerationData(
@@ -1116,23 +1257,31 @@ function appendEventLocked(
         expectedTranscriptState,
       );
       try {
-        recordSessionEvent(getSessionsDir(), sessionId, event, hash, {
-          resetGeneration: startsNewGeneration,
-          transcriptState,
-        });
+        const nextMeta = recordSessionEvent(
+          getSessionsDir(),
+          sessionId,
+          event,
+          hash,
+          {
+            resetGeneration: startsNewGeneration,
+            transcriptState,
+          },
+        );
+        publishSessionAntiRollbackWitness(
+          sessionId,
+          nextMeta,
+          filePath,
+          "live",
+        );
       } catch (cause) {
-        if (requireIndexAnchor) {
-          const error = new Error(
-            `Session authority anchor could not be persisted: ${sessionId}`,
-            { cause },
-          );
-          error.code = "SESSION_INDEX_ANCHOR_FAILED";
-          error.sessionId = sessionId;
-          error.commitState = "unknown";
-          throw error;
-        }
-        // The metadata index is explicitly rebuildable. Never turn a committed
-        // transcript event into an apparent failure that a caller may retry.
+        const error = new Error(
+          `Session authority anchor could not be persisted: ${sessionId}`,
+          { cause },
+        );
+        error.code = "SESSION_INDEX_ANCHOR_FAILED";
+        error.sessionId = sessionId;
+        error.commitState = "unknown";
+        throw error;
       }
       if (requireIndexAnchor) {
         const verification = verifyTranscriptFile(filePath);
@@ -1858,8 +2007,8 @@ export function listSessionIds() {
  */
 export function listSessionEvidenceIds() {
   const dir = getSessionsDir();
-  if (!existsSync(dir)) return [];
-  const ids = new Set();
+  const ids = new Set(listSessionAntiRollbackIds());
+  if (!existsSync(dir)) return [...ids].sort();
   for (const file of readdirSync(dir)) {
     let id = null;
     if (file.endsWith(".jsonl")) {
@@ -2370,10 +2519,11 @@ function readSessionPersistenceWitness(sessionId) {
 
 function hasLiveSessionWitness(sessionId) {
   const witness = readSessionPersistenceWitness(sessionId);
-  return witness !== null && witness?.deleted !== true;
+  if (witness !== null && witness?.deleted !== true) return true;
+  return readSessionAntiRollbackAnchor(sessionId)?.status === "live";
 }
 
-function assertVerifiedTranscriptAnchor(
+function assertLocalVerifiedTranscriptAnchor(
   sessionId,
   verification,
   physicalState = null,
@@ -2405,6 +2555,25 @@ function assertVerifiedTranscriptAnchor(
   ) {
     throw unverifiedTranscriptError(sessionId, verification);
   }
+  return meta;
+}
+
+function assertVerifiedTranscriptAnchor(
+  sessionId,
+  verification,
+  physicalState = null,
+) {
+  const meta = assertLocalVerifiedTranscriptAnchor(
+    sessionId,
+    verification,
+    physicalState,
+  );
+  publishSessionAntiRollbackWitness(
+    sessionId,
+    meta,
+    sessionPath(sessionId),
+    "live",
+  );
 }
 
 /**
@@ -2419,8 +2588,8 @@ function assertVerifiedTranscriptAnchor(
  *
  * This removes the mandatory all-event array from resume projections. It does
  * not make verification IO sublinear: authenticating a plain chained JSONL
- * transcript remains O(N), and the local sidecar is not an anti-rollback
- * anchor or a cross-process lease.
+ * transcript remains O(N). The local sidecar is checked against an independent
+ * machine-local anti-rollback witness; it is not itself that witness.
  */
 export function readVerifiedProjection(
   sessionId,
@@ -2797,7 +2966,30 @@ function rebuildSessionMeta(sessionId) {
   if (!existsSync(filePath)) return null;
   return withFileLock(
     filePath,
-    () => rebuildSessionMetaUnlocked(dir, sessionId, filePath),
+    () => {
+      const verification = verifyTranscriptFile(filePath);
+      const externalAnchor = readSessionAntiRollbackAnchor(sessionId);
+      if (
+        externalAnchor === null &&
+        [
+          TRANSCRIPT_CHAIN_STATUS.LEGACY,
+          TRANSCRIPT_CHAIN_STATUS.PARTIAL,
+        ].includes(verification.status) &&
+        !verification.truncatedTail
+      ) {
+        return rebuildSessionMetaUnlocked(dir, sessionId, filePath);
+      }
+      if (
+        verification.status !== TRANSCRIPT_CHAIN_STATUS.VERIFIED ||
+        verification.malformedLines > 0 ||
+        verification.truncatedTail
+      ) {
+        throw unverifiedTranscriptError(sessionId, verification);
+      }
+      const meta = rebuildSessionMetaUnlocked(dir, sessionId, filePath);
+      assertVerifiedTranscriptAnchor(sessionId, verification);
+      return meta;
+    },
     {
       failIfUnavailable: true,
       timeoutMs: 30_000,
@@ -2949,21 +3141,78 @@ export function deleteJsonlSession(sessionId) {
     filePath,
     () => {
       const transcriptExists = existsSync(filePath);
-      const existingMeta = readSessionPersistenceWitness(sessionId);
+      let existingMeta = readSessionPersistenceWitness(sessionId);
+      const marker = readSessionTombstoneMarker(getSessionsDir(), sessionId);
+      const externalAnchor = readSessionAntiRollbackAnchor(sessionId);
       if (
         !transcriptExists &&
         (existingMeta === null || existingMeta?.deleted === true)
       ) {
         return false;
       }
+      const deletionWitness =
+        existingMeta?.deleted === true
+          ? existingMeta
+          : sessionAntiRollbackPredecessorWitness(externalAnchor) || marker;
+      if (
+        transcriptExists &&
+        existingMeta === null &&
+        deletionWitness === null
+      ) {
+        const verification = verifyTranscriptFile(filePath);
+        if (
+          verification.status !== TRANSCRIPT_CHAIN_STATUS.VERIFIED ||
+          verification.malformedLines > 0 ||
+          verification.truncatedTail
+        ) {
+          throw unverifiedTranscriptError(sessionId, verification);
+        }
+        rebuildSessionMetaUnlocked(getSessionsDir(), sessionId, filePath);
+        existingMeta = readSessionPersistenceWitness(sessionId);
+      }
+      if (deletionWitness === null) {
+        assertSessionAntiRollbackBeforeWrite(
+          sessionId,
+          existingMeta,
+          filePath,
+          "live",
+        );
+      } else if (existingMeta?.deleted !== true) {
+        existingMeta = replaceSessionMeta(getSessionsDir(), {
+          ...emptySessionMeta(sessionId),
+          id: sessionId,
+          generation: deletionWitness.generation || null,
+          last_hash: deletionWitness.last_hash || null,
+          event_count: Math.max(0, Number(deletionWitness.event_count) || 0),
+          updated_at_ms: Math.max(
+            0,
+            Number(deletionWitness.deleted_at_ms) || Date.now(),
+          ),
+          deleted_at_ms: Math.max(
+            0,
+            Number(deletionWitness.deleted_at_ms) || Date.now(),
+          ),
+          deleted: true,
+          transcript: null,
+        });
+      }
       if (transcriptExists) rmSync(filePath, { force: true });
       try {
-        recordSessionDeleted(getSessionsDir(), sessionId);
+        const tombstone = recordSessionDeleted(getSessionsDir(), sessionId);
+        publishSessionAntiRollbackWitness(
+          sessionId,
+          tombstone,
+          filePath,
+          "deleted",
+        );
       } catch (error) {
         // writeMetaAtomic precedes the activity-journal append. If only the
         // rebuildable journal lock/release failed, the durable sidecar still
         // prevents a stale writer from resurrecting this deleted session.
-        if (readSessionMeta(getSessionsDir(), sessionId)?.deleted !== true) {
+        if (
+          readSessionMeta(getSessionsDir(), sessionId)?.deleted !== true ||
+          readSessionAntiRollbackAnchor(sessionId)?.status !== "deleted"
+        ) {
           throw error;
         }
       }
@@ -3737,17 +3986,36 @@ export function getSessionPresence(sessionId) {
     join(dir, `${sessionId}${SESSION_TOMBSTONE_MARKER_SUFFIX}`),
   );
   const witness = readSessionPersistenceWitness(sessionId);
+  const externalAnchor = readSessionAntiRollbackAnchor(sessionId);
   if (
     transcriptExists &&
-    (witness?.deleted === true || tombstoneMarkerExists)
+    (witness?.deleted === true ||
+      tombstoneMarkerExists ||
+      externalAnchor?.status === "deleted")
   ) {
     return SESSION_PRESENCE.CONFLICT;
   }
-  if (transcriptExists) return SESSION_PRESENCE.PRESENT;
-  if (witness?.deleted === true || tombstoneMarkerExists) {
+  if (transcriptExists) {
+    if (witness !== null && witness?.deleted !== true) {
+      assertSessionAntiRollbackBeforeWrite(
+        sessionId,
+        witness,
+        sessionPath(sessionId),
+        "live",
+      );
+    }
+    return SESSION_PRESENCE.PRESENT;
+  }
+  if (
+    witness?.deleted === true ||
+    tombstoneMarkerExists ||
+    externalAnchor?.status === "deleted"
+  ) {
     return SESSION_PRESENCE.TOMBSTONED;
   }
-  if (witness !== null) return SESSION_PRESENCE.MISSING_TRANSCRIPT;
+  if (witness !== null || externalAnchor?.status === "live") {
+    return SESSION_PRESENCE.MISSING_TRANSCRIPT;
+  }
   return SESSION_PRESENCE.ABSENT;
 }
 
