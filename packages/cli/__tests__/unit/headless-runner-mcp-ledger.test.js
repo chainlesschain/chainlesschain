@@ -264,6 +264,7 @@ describe("headless MCP ledger persistence and recovery", () => {
     expect(
       setup.captured.options.mcpCallLedger?.recoveryAdmission,
     ).toBeDefined();
+    setup.captured.options.permissionConfirm = vi.fn(async () => true);
     const first = await executeTool(
       toolName,
       { release: 1 },

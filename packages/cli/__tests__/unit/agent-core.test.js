@@ -1053,6 +1053,7 @@ describe("executeTool", () => {
       {
         cwd: tempDir,
         mcpClient,
+        permissionConfirm: vi.fn(async () => true),
         externalToolDescriptors: {
           mcp_weather_get_forecast: {
             name: "mcp_weather_get_forecast",

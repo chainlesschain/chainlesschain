@@ -943,6 +943,7 @@ describe("agent-repl MCP host runtime manager", () => {
       sessionId: "db-session",
       mcpClient: rawClient,
       mcpCallLedger: runtime.runtime.ledger,
+      permissionConfirm: vi.fn(async () => true),
       externalToolExecutors: {
         [toolName]: {
           kind: "mcp",

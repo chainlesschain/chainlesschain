@@ -96,6 +96,10 @@ function buildLoopOptions({ mock, mcpClient, workDir }) {
       },
     },
     mcpClient,
+    // This parity suite targets transport/result behavior after the request
+    // has been approved; default-ask denial is covered by the adversarial MCP
+    // admission matrix.
+    permissionConfirm: vi.fn(async () => true),
   };
 }
 
