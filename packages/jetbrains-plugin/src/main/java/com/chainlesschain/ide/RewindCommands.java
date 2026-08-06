@@ -24,6 +24,12 @@ public final class RewindCommands {
     public static final int TIMELINE_ACTION_VERSION = 1;
     public static final String TIMELINE_RESULT_SCHEMA = "cc-checkpoint-timeline-result/v1";
     public static final int TIMELINE_RESULT_VERSION = 1;
+    public static final String TIMELINE_CONFIRMATION_SCHEMA =
+            "cc-checkpoint-timeline-confirmation/v1";
+    public static final int TIMELINE_CONFIRMATION_VERSION = 1;
+    public static final String WORKSPACE_BINDING_SCHEMA =
+            "cc-checkpoint-workspace-binding/v1";
+    public static final int WORKSPACE_BINDING_VERSION = 1;
     private static final int MAX_TIMELINE_ENTRIES = 1000;
     private static final int MAX_TIMELINE_LIST = 256;
     private static final Set<String> TIMELINE_COVERAGES = new HashSet<String>(Arrays.asList(
@@ -259,6 +265,17 @@ public final class RewindCommands {
         }
         Object checkpointId = submission.get("checkpointId");
         if (checkpointId != null && !(checkpointId instanceof String)) return null;
+        Object checkpointIdentity = submission.get("checkpointIdentity");
+        boolean needsCheckpointIdentity = "restore-code".equals(action)
+                || "restore-both".equals(action);
+        if ((needsCheckpointIdentity && !(checkpointIdentity instanceof String))
+                || (checkpointIdentity != null
+                    && (!(checkpointIdentity instanceof String)
+                        || !String.valueOf(checkpointIdentity).matches(
+                                "^(?:git:(?:[a-f0-9]{40}|[a-f0-9]{64})"
+                                + "|sha256:[a-f0-9]{64})$")))) {
+            return null;
+        }
         Object offset = submission.get("conversationOffset");
         if (offset != null && (!isNonNegativeInteger(offset))) return null;
         return copyMap(submission);
@@ -267,13 +284,25 @@ public final class RewindCommands {
     /** Serialize the exact embedded envelope for CLI preview/commit. */
     public static List<String> buildTimelineActionArgs(Map<String, Object> submission,
             boolean preview, boolean confirm) {
-        if (submission == null || preview == confirm
-                || !(submission.get("sessionId") instanceof String)) {
+        if (submission == null || preview == confirm) {
+            return new ArrayList<String>();
+        }
+        Map<String, Object> envelope = submission;
+        Object sessionId = submission.get("sessionId");
+        if (confirm) {
+            envelope = validConfirmation(submission);
+            if (envelope == null) return new ArrayList<String>();
+            @SuppressWarnings("unchecked")
+            Map<String, Object> nested =
+                    (Map<String, Object>) envelope.get("submission");
+            sessionId = nested.get("sessionId");
+        }
+        if (!(sessionId instanceof String) || ((String) sessionId).isEmpty()) {
             return new ArrayList<String>();
         }
         return new ArrayList<String>(Arrays.asList(
-                "checkpoint", "action", "-s", String.valueOf(submission.get("sessionId")),
-                "--submission", MiniJson.stringify(submission),
+                "checkpoint", "action", "-s", String.valueOf(sessionId),
+                "--submission", MiniJson.stringify(envelope),
                 preview ? "--preview" : "--confirm", "--json"));
     }
 
@@ -308,7 +337,87 @@ public final class RewindCommands {
         if (!TIMELINE_RESULT_SCHEMA.equals(result.get("schema"))
                 || !numberEquals(result.get("version"), TIMELINE_RESULT_VERSION)
                 || !(result.get("ok") instanceof Boolean)) return null;
+        if (result.get("ok") == Boolean.TRUE && "preview".equals(result.get("mode"))
+                && validConfirmation(result.get("confirmationSubmission")) == null) {
+            return null;
+        }
         return copyMap(result);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> validConfirmation(Object raw) {
+        if (!(raw instanceof Map)) return null;
+        Map<String, Object> confirmation = (Map<String, Object>) raw;
+        if (!TIMELINE_CONFIRMATION_SCHEMA.equals(confirmation.get("schema"))
+                || !numberEquals(confirmation.get("version"), TIMELINE_CONFIRMATION_VERSION)
+                || !"cli".equals(confirmation.get("authority"))
+                || !(confirmation.get("digest") instanceof String)
+                || !String.valueOf(confirmation.get("digest"))
+                        .matches("^sha256:[a-f0-9]{64}$")
+                || !(confirmation.get("submission") instanceof Map)) {
+            return null;
+        }
+        Set<String> keys = new HashSet<String>(confirmation.keySet());
+        if (!keys.equals(new HashSet<String>(Arrays.asList(
+                "schema", "version", "authority", "submission", "workspace", "digest")))) {
+            return null;
+        }
+        Map<String, Object> nested = (Map<String, Object>) confirmation.get("submission");
+        if (!(nested.get("sessionId") instanceof String)
+                || !(nested.get("revision") instanceof String)
+                || !(nested.get("turnId") instanceof String)
+                || !(nested.get("action") instanceof String)
+                || !TIMELINE_ACTIONS.contains(nested.get("action"))
+                || validSubmission(
+                        nested,
+                        (String) nested.get("sessionId"),
+                        (String) nested.get("revision"),
+                        (String) nested.get("turnId"),
+                        (String) nested.get("action")) == null) {
+            return null;
+        }
+        boolean needsWorkspace = "restore-code".equals(nested.get("action"))
+                || "restore-both".equals(nested.get("action"));
+        Map<String, Object> workspace = validWorkspaceBinding(confirmation.get("workspace"));
+        if ((needsWorkspace && workspace == null)
+                || (!needsWorkspace && confirmation.get("workspace") != null)) {
+            return null;
+        }
+        return copyMap(confirmation);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> validWorkspaceBinding(Object raw) {
+        if (!(raw instanceof Map)) return null;
+        Map<String, Object> value = (Map<String, Object>) raw;
+        if (!WORKSPACE_BINDING_SCHEMA.equals(value.get("schema"))
+                || !numberEquals(value.get("version"), WORKSPACE_BINDING_VERSION)
+                || !("git".equals(value.get("engine")) || "copy".equals(value.get("engine")))
+                || !digestString(value.get("scopeIdentity"))
+                || !digestString(value.get("writePlanIdentity"))) {
+            return null;
+        }
+        String statePattern = "git".equals(value.get("engine"))
+                ? "^git-tree:(?:[a-f0-9]{40}|[a-f0-9]{64})$"
+                : "^sha256:[a-f0-9]{64}$";
+        if (!(value.get("prestateIdentity") instanceof String)
+                || !(value.get("targetPoststateIdentity") instanceof String)
+                || !String.valueOf(value.get("prestateIdentity")).matches(statePattern)
+                || !String.valueOf(value.get("targetPoststateIdentity")).matches(statePattern)) {
+            return null;
+        }
+        Set<String> keys = new HashSet<String>(value.keySet());
+        if (!keys.equals(new HashSet<String>(Arrays.asList(
+                "schema", "version", "engine", "scopeIdentity",
+                "prestateIdentity", "writePlanIdentity", "targetPoststateIdentity")))) {
+            return null;
+        }
+        return copyMap(value);
+    }
+
+    private static boolean digestString(Object value) {
+        return value instanceof String
+                && String.valueOf(value).matches("^sha256:[a-f0-9]{64}$");
     }
 
     /** Readable body for the preview dialog; warnings are never hidden. */

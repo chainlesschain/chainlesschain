@@ -5,6 +5,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const HOST_DOM_COMMAND = "chainlesschain.internal.hostDomCommand";
+const WORKBENCH_NEEDS_INPUT_SLA_MS = 2_000;
 const JOURNEY_PHASES = Object.freeze({
   initial: Object.freeze([
     "stream",
@@ -12,8 +13,10 @@ const JOURNEY_PHASES = Object.freeze({
     "plan-approval",
     "permission",
     "interrupt",
+    "workbench-dispatch-needs-input",
+    "workbench-reply-artifact",
   ]),
-  restart: Object.freeze(["ide-restart-resume"]),
+  restart: Object.freeze(["ide-restart-resume", "workbench-restart-recovery"]),
 });
 
 function delay(milliseconds) {
@@ -111,6 +114,45 @@ async function clickWhenReady({ commands, token, target, snapshotKey, label }) {
   assert.equal(result?.clicked, target, `could not click ${label}`);
 }
 
+async function executeWorkbench(commands, token, request) {
+  return executeRelay(commands, token, {
+    surface: "sessions-workbench",
+    ...request,
+  });
+}
+
+async function waitForWorkbench({
+  commands,
+  token,
+  predicate = () => true,
+  label,
+  timeoutMs = 45_000,
+}) {
+  const deadline = Date.now() + timeoutMs;
+  let last;
+  let lastError;
+  while (Date.now() < deadline) {
+    try {
+      last = await executeWorkbench(commands, token, { action: "snapshot" });
+      if (
+        last &&
+        typeof last.text === "string" &&
+        Number(last.rowCount) >= 5 &&
+        predicate(last)
+      ) {
+        return last;
+      }
+    } catch (error) {
+      lastError = error;
+    }
+    await delay(100);
+  }
+  throw new Error(
+    `${label} did not become true within ${timeoutMs}ms; last=${JSON.stringify(last)}`,
+    { cause: lastError },
+  );
+}
+
 async function drivePhase(commands, token, phase, traceFile) {
   const step = async (name, action) => {
     appendTrace(traceFile, { phase, step: name, status: "started" });
@@ -176,6 +218,63 @@ async function drivePhase(commands, token, phase, traceFile) {
       });
       await waitForText("interrupted", "interrupt result");
     });
+    await step("workbench-dispatch-needs-input", async () => {
+      const initial = await waitForWorkbench({
+        commands,
+        token,
+        predicate: (snapshot) =>
+          snapshot.backgroundState === "done" &&
+          snapshot.dispatchEnabled === true &&
+          ["local", "background", "remote", "team", "workflow"].every((kind) =>
+            snapshot.kinds.includes(kind),
+          ),
+        label: "initial canonical workbench projection",
+      });
+      assert.equal(initial.artifactVisible, false);
+      const dispatchedAt = Date.now();
+      const clicked = await executeWorkbench(commands, token, {
+        action: "click",
+        target: "dispatch",
+        text: "dispatch from VS Code Workbench",
+      });
+      assert.equal(clicked?.clicked, "dispatch");
+      await waitForWorkbench({
+        commands,
+        token,
+        predicate: (snapshot) =>
+          snapshot.backgroundState === "needs_input" &&
+          snapshot.replyEnabled === true,
+        label: "Workbench needs_input transition",
+      });
+      const latencyMs = Date.now() - dispatchedAt;
+      appendTrace(traceFile, {
+        phase,
+        metric: "needs-input-visible",
+        latencyMs,
+        thresholdMs: WORKBENCH_NEEDS_INPUT_SLA_MS,
+      });
+      assert.ok(
+        latencyMs < WORKBENCH_NEEDS_INPUT_SLA_MS,
+        `Workbench needs_input visibility took ${latencyMs}ms; required <${WORKBENCH_NEEDS_INPUT_SLA_MS}ms`,
+      );
+    });
+    await step("workbench-reply-artifact", async () => {
+      const clicked = await executeWorkbench(commands, token, {
+        action: "click",
+        target: "reply",
+        text: "beta",
+      });
+      assert.equal(clicked?.clicked, "reply");
+      await waitForWorkbench({
+        commands,
+        token,
+        predicate: (snapshot) =>
+          snapshot.backgroundState === "done" &&
+          snapshot.artifactVisible === true &&
+          snapshot.prVisible === true,
+        label: "Workbench artifact and PR projection",
+      });
+    });
     return;
   }
 
@@ -190,6 +289,17 @@ async function drivePhase(commands, token, phase, traceFile) {
         "fixture stream complete #6",
         "post-restart streamed turn",
       );
+    });
+    await step("workbench-restart-recovery", async () => {
+      await waitForWorkbench({
+        commands,
+        token,
+        predicate: (snapshot) =>
+          snapshot.backgroundState === "done" &&
+          snapshot.artifactVisible === true &&
+          snapshot.prVisible === true,
+        label: "Workbench restart recovery",
+      });
     });
     return;
   }
@@ -230,6 +340,17 @@ async function runDomRelayJourney({
       targetUrl:
         initialSnapshot.url || "vscode-webview://chainlesschainIdeChat",
     });
+    await waitForWorkbench({
+      commands,
+      token,
+      label: "Sessions Workbench webview relay",
+    });
+    appendTrace(traceFile, {
+      phase,
+      status: "sessions-workbench-found",
+      targetType: "vscode-webview-message-relay",
+      targetUrl: "vscode-webview://chainlesschainSessionsWorkbench",
+    });
     writeSignal(readyFile, {
       phase,
       mode: "dom-relay",
@@ -243,10 +364,20 @@ async function runDomRelayJourney({
       token,
       label: "final chat webview snapshot",
     });
+    const finalWorkbenchSnapshot = await waitForWorkbench({
+      commands,
+      token,
+      label: "final Sessions Workbench snapshot",
+    });
     fs.mkdirSync(artifactDir, { recursive: true, mode: 0o700 });
     fs.writeFileSync(
       path.join(artifactDir, `${phase}-dom.txt`),
       finalSnapshot.text.slice(-128 * 1024),
+      { encoding: "utf8", mode: 0o600, flag: "wx" },
+    );
+    fs.writeFileSync(
+      path.join(artifactDir, `${phase}-workbench-dom.txt`),
+      finalWorkbenchSnapshot.text.slice(-128 * 1024),
       { encoding: "utf8", mode: 0o600, flag: "wx" },
     );
     writeSignal(resultFile, {

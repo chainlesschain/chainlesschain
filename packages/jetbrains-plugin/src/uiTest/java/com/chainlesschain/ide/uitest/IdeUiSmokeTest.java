@@ -12,7 +12,9 @@ import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.time.Duration;
+import java.time.Instant;
 
 /**
  * Real-host chat/control journey driven through Remote Robot.
@@ -24,7 +26,11 @@ import java.time.Duration;
  * replies all use the normal plugin path.
  *
  * <p>The journey covers streaming, retry, plan approval, tool permission,
- * interrupt escalation, child restart, and session resume. It is not
+ * interrupt escalation, child restart, session resume, the canonical
+ * Sessions Workbench lifecycle, a full IDE restart/recovery, and the canonical
+ * partial-coverage checkpoint timeline. The latter executes code-only,
+ * conversation-only, combined, both summary directions, and branch actions
+ * through the production chooser/preview/confirmation path. It is not
  * live-provider evidence and does not claim Diff, Preview, remote transport,
  * or plugin-lifecycle coverage; those remain separate P0 host journeys.
  */
@@ -35,12 +41,19 @@ final class IdeUiSmokeTest {
     private static final Duration CONNECT_BUDGET = Duration.ofMinutes(3);
     private static final Duration FRAME_BUDGET = Duration.ofMinutes(5);
     private static final Duration FIND_BUDGET = Duration.ofSeconds(45);
+    private static final Duration FIRST_POPUP_BUDGET = Duration.ofSeconds(15);
+    private static final long NEEDS_INPUT_VISIBILITY_SLA_MILLIS = 2_000L;
 
     /** Match new-UI and classic-UI stripe buttons. */
     private static final String STRIPE_XPATH =
             "//div[(@class='SquareStripeButton' or @class='StripeButton')"
                     + " and (@text='ChainlessChain' or @tooltiptext='ChainlessChain'"
                     + " or @accessiblename='ChainlessChain')]";
+    private static final String SESSIONS_STRIPE_XPATH =
+            "//div[(@class='SquareStripeButton' or @class='StripeButton')"
+                    + " and (@text='ChainlessChain Sessions'"
+                    + " or @tooltiptext='ChainlessChain Sessions'"
+                    + " or @accessiblename='ChainlessChain Sessions')]";
 
     @Test
     void chainlessChainChatAndControlJourney() throws Exception {
@@ -48,6 +61,11 @@ final class IdeUiSmokeTest {
         try {
             robot.find(ComponentFixture.class,
                     Locators.byXpath("//div[@class='IdeFrameImpl']"), FRAME_BUDGET);
+
+            if ("restart".equals(System.getProperty("ui.journey.phase"))) {
+                runSessionsWorkbenchJourney(robot, true);
+                return;
+            }
 
             ComponentFixture stripe = robot.find(ComponentFixture.class,
                     Locators.byXpath(STRIPE_XPATH), FIND_BUDGET);
@@ -91,15 +109,297 @@ final class IdeUiSmokeTest {
             waitForTranscript(
                     transcript, "resumed previous conversation", FIND_BUDGET);
             waitForTranscript(transcript, "fixture stream complete #6", FIND_BUDGET);
+
+            runRewindAction(robot, input, send, transcript,
+                    0, "Restore code");
+            runRewindAction(robot, input, send, transcript,
+                    1, "Restore conversation");
+            runRewindAction(robot, input, send, transcript,
+                    2, "Restore code + conversation");
+            runRewindAction(robot, input, send, transcript,
+                    3, "Summarize from here");
+            runRewindAction(robot, input, send, transcript,
+                    4, "Summarize up to here");
+            runRewindAction(robot, input, send, transcript,
+                    5, "Branch from here");
+            runSessionsWorkbenchJourney(robot, false);
         } catch (Throwable t) {
             saveScreenshot(robot, "chat-control-journey");
             throw t;
         }
     }
 
+    private static void runSessionsWorkbenchJourney(
+            RemoteRobot robot, boolean restartPhase) throws InterruptedException {
+        ComponentFixture stripe = robot.find(ComponentFixture.class,
+                Locators.byXpath(SESSIONS_STRIPE_XPATH), FIND_BUDGET);
+        stripe.click();
+        ComponentFixture table = robot.find(ComponentFixture.class,
+                Locators.byXpath("//div[@class='JBTable'"
+                        + " and @accessiblename='ChainlessChain sessions table']"),
+                FIND_BUDGET);
+        waitForCanonicalWorkbenchRows(table, FIND_BUDGET);
+        selectWorkbenchBackground(table);
+
+        ComponentFixture detail = robot.find(ComponentFixture.class,
+                Locators.byXpath("//div[@class='JTextArea'"
+                        + " and @accessiblename='ChainlessChain session detail']"),
+                FIND_BUDGET);
+        if (restartPhase) {
+            waitForTableStatus(table, "done", FIND_BUDGET);
+            waitForComponentText(detail, "workbench-result.md", FIND_BUDGET);
+            waitForComponentText(detail, "PR #88 merged", FIND_BUDGET);
+            return;
+        }
+
+        waitForTableStatus(table, "done", FIND_BUDGET);
+        ComponentFixture dispatch = robot.find(ComponentFixture.class,
+                Locators.byXpath("//div[@text='Dispatch'"
+                        + " and @accessiblename='ChainlessChain session dispatch']"),
+                FIND_BUDGET);
+        waitUntilEnabled(dispatch, "session dispatch", FIND_BUDGET);
+        openInputDialog(dispatch);
+        long dispatchedAt = submitInputDialog(
+                robot, "Resume", "dispatch from JetBrains Workbench");
+        waitForTableStatus(table, "needs_input", FIND_BUDGET);
+        recordNeedsInputVisibility(dispatchedAt);
+
+        ComponentFixture reply = robot.find(ComponentFixture.class,
+                Locators.byXpath("//div[@text='Reply'"
+                        + " and @accessiblename='ChainlessChain session reply']"),
+                FIND_BUDGET);
+        waitUntilEnabled(reply, "session reply", FIND_BUDGET);
+        openInputDialog(reply);
+        submitInputDialog(robot, "Reply to Session", "beta");
+        waitForTableStatus(table, "done", FIND_BUDGET);
+        waitForComponentText(detail, "workbench-result.md", FIND_BUDGET);
+        waitForComponentText(detail, "PR #88 merged", FIND_BUDGET);
+    }
+
+    private static void waitForCanonicalWorkbenchRows(
+            ComponentFixture table, Duration budget) throws InterruptedException {
+        long deadline = System.nanoTime() + budget.toNanos();
+        String last = "";
+        while (System.nanoTime() < deadline) {
+            int count = intValue(table.callJs("component.getRowCount()"));
+            StringBuilder kinds = new StringBuilder();
+            for (int row = 0; row < count; row++) {
+                Object kind = table.callJs(
+                        "component.getValueAt(" + row + ", 0)");
+                kinds.append(String.valueOf(kind)).append(',');
+            }
+            last = kinds.toString();
+            if (count >= 5
+                    && last.contains("local")
+                    && last.contains("background")
+                    && last.contains("remote")
+                    && last.contains("team")
+                    && last.contains("workflow")) return;
+            Thread.sleep(250);
+        }
+        throw new AssertionError(
+                "canonical Workbench kinds did not render within "
+                        + budget.toSeconds() + "s; kinds=" + last);
+    }
+
+    private static void selectWorkbenchBackground(ComponentFixture table) {
+        int count = intValue(table.callJs("component.getRowCount()"));
+        for (int row = 0; row < count; row++) {
+            Object title = table.callJs(
+                    "component.getValueAt(" + row + ", 1)");
+            if (String.valueOf(title).contains("Workbench lifecycle fixture")) {
+                table.runJs(
+                        "component.setRowSelectionInterval(" + row + ", " + row + ");"
+                                + "component.scrollRectToVisible(component.getCellRect("
+                                + row + ", 0, true));",
+                        true);
+                return;
+            }
+        }
+        throw new AssertionError("Workbench background fixture row is missing");
+    }
+
+    private static void waitForTableStatus(
+            ComponentFixture table, String expected, Duration budget)
+            throws InterruptedException {
+        long deadline = System.nanoTime() + budget.toNanos();
+        String last = "";
+        while (System.nanoTime() < deadline) {
+            int selected = intValue(table.callJs("component.getSelectedRow()"));
+            if (selected >= 0) {
+                Object value = table.callJs(
+                        "component.getValueAt(" + selected + ", 2)");
+                last = String.valueOf(value);
+                // The real Workbench decorates needs-input/blocked states with
+                // an approval marker in the status cell.  The lifecycle state
+                // is still the first token; keep the journey strict about that
+                // state without rejecting the independently rendered marker.
+                if (expected.equals(last)
+                        || last.startsWith(expected + " ")) return;
+            } else {
+                selectWorkbenchBackground(table);
+            }
+            Thread.sleep(250);
+        }
+        throw new AssertionError(
+                "Workbench status did not become '" + expected + "' within "
+                        + budget.toSeconds() + "s; last=" + last);
+    }
+
+    private static long submitInputDialog(
+            RemoteRobot robot, String title, String text)
+            throws InterruptedException {
+        ComponentFixture dialog = robot.find(ComponentFixture.class,
+                Locators.byXpath("//div[@visible='true' and @title="
+                        + xpathString(title) + "]"), FIND_BUDGET);
+        dialog.runJs(
+                "component.getFocusOwner().setText(" + jsString(text) + ")",
+                true);
+        ComponentFixture ok = robot.find(ComponentFixture.class,
+                Locators.byXpath("//div[@text='OK']"), FIND_BUDGET);
+        long submittedAt = System.nanoTime();
+        clickButton(ok);
+        waitUntilHidden(dialog, title + " input dialog", FIND_BUDGET);
+        return submittedAt;
+    }
+
+    private static void recordNeedsInputVisibility(long submittedAt) {
+        long latencyMillis = Duration.ofNanos(
+                System.nanoTime() - submittedAt).toMillis();
+        if (latencyMillis >= NEEDS_INPUT_VISIBILITY_SLA_MILLIS) {
+            throw new AssertionError(
+                    "Workbench needs_input visibility took " + latencyMillis
+                            + "ms; required <"
+                            + NEEDS_INPUT_VISIBILITY_SLA_MILLIS + "ms");
+        }
+        String metricsPath = System.getProperty("ui.metrics.path", "").trim();
+        if (metricsPath.isEmpty()) return;
+        String record = "{\"at\":\"" + Instant.now()
+                + "\",\"host\":\"jetbrains\""
+                + ",\"metric\":\"needs-input-visible\""
+                + ",\"latencyMs\":" + latencyMillis
+                + ",\"thresholdMs\":"
+                + NEEDS_INPUT_VISIBILITY_SLA_MILLIS + "}\n";
+        try {
+            Files.writeString(
+                    Paths.get(metricsPath),
+                    record,
+                    StandardOpenOption.CREATE,
+                    StandardOpenOption.APPEND);
+        } catch (IOException error) {
+            throw new AssertionError(
+                    "could not persist Workbench visibility metric", error);
+        }
+    }
+
+    private static void waitUntilEnabled(
+            ComponentFixture component, String label, Duration budget)
+            throws InterruptedException {
+        long deadline = System.nanoTime() + budget.toNanos();
+        while (System.nanoTime() < deadline) {
+            Object enabled = component.callJs("component.isEnabled()");
+            if (Boolean.TRUE.equals(enabled)
+                    || "true".equals(String.valueOf(enabled))) return;
+            Thread.sleep(100);
+        }
+        throw new AssertionError(label + " did not become enabled within "
+                + budget.toSeconds() + "s");
+    }
+
+    private static void waitForComponentText(
+            ComponentFixture component, String expected, Duration budget)
+            throws InterruptedException {
+        long deadline = System.nanoTime() + budget.toNanos();
+        String last = "";
+        while (System.nanoTime() < deadline) {
+            Object value = component.callJs("component.getText()");
+            last = value == null ? "" : String.valueOf(value);
+            if (last.contains(expected)) return;
+            Thread.sleep(250);
+        }
+        throw new AssertionError(
+                "component did not contain '" + expected + "' within "
+                        + budget.toSeconds() + "s; text=" + tail(last, 1200));
+    }
+
+    private static int intValue(Object value) {
+        return value instanceof Number
+                ? ((Number) value).intValue()
+                : Integer.parseInt(String.valueOf(value));
+    }
+
+    private static String xpathString(String value) {
+        if (!value.contains("'")) return "'" + value + "'";
+        if (!value.contains("\"")) return "\"" + value + "\"";
+        throw new IllegalArgumentException("unsupported XPath string");
+    }
+
+    private static void runRewindAction(
+            RemoteRobot robot,
+            ComponentFixture input,
+            ComponentFixture send,
+            ComponentFixture transcript,
+            int actionIndex,
+            String actionLabel) throws InterruptedException {
+        send(input, send, "/rewind");
+        try {
+            choosePopupIndex(
+                    robot, 1, FIRST_POPUP_BUDGET); // canonical partial row
+        } catch (RuntimeException firstPopupMissed) {
+            // IDEA 2025.2 on a loaded Linux EDT has occasionally completed the
+            // CLI timeline read without presenting its queued first chooser.
+            // Re-enter through the same real /rewind UI path once; the second
+            // attempt still has to render and complete under the full budget.
+            send(input, send, "/rewind");
+            choosePopupIndex(robot, 1, FIND_BUDGET);
+        }
+        choosePopupIndex(robot, actionIndex);
+        ComponentFixture confirm = robot.find(ComponentFixture.class,
+                Locators.byXpath("//div[@text='Confirm action']"), FIND_BUDGET);
+        clickButton(confirm);
+        waitUntilHidden(confirm, "timeline confirmation", FIND_BUDGET);
+        waitForTranscript(
+                transcript,
+                actionLabel + " completed at turn-2",
+                FIND_BUDGET);
+    }
+
+    private static void choosePopupIndex(RemoteRobot robot, int index)
+            throws InterruptedException {
+        choosePopupIndex(robot, index, FIND_BUDGET);
+    }
+
+    private static void choosePopupIndex(
+            RemoteRobot robot, int index, Duration budget)
+            throws InterruptedException {
+        ComponentFixture list = robot.find(ComponentFixture.class,
+                Locators.byXpath("//div[@class='JBList' and @visible='true']"),
+                budget);
+        list.runJs(
+                "component.setSelectedIndex(" + index + ");"
+                        + "component.requestFocusInWindow();"
+                        + "component.dispatchEvent(new java.awt.event.KeyEvent("
+                        + "component, java.awt.event.KeyEvent.KEY_PRESSED,"
+                        + "java.lang.System.currentTimeMillis(), 0,"
+                        + "java.awt.event.KeyEvent.VK_ENTER,"
+                        + "java.awt.event.KeyEvent.CHAR_UNDEFINED));"
+                        + "component.dispatchEvent(new java.awt.event.KeyEvent("
+                        + "component, java.awt.event.KeyEvent.KEY_RELEASED,"
+                        + "java.lang.System.currentTimeMillis(), 0,"
+                        + "java.awt.event.KeyEvent.VK_ENTER,"
+                        + "java.awt.event.KeyEvent.CHAR_UNDEFINED));",
+                true);
+        // The next timeline stage also uses a JBList. On a loaded Linux EDT,
+        // a fixed sleep could let the next lookup bind to the outgoing list,
+        // eventually leaving a hidden popup stack that suppressed later
+        // actions. Require the selected popup to be disposed before looking
+        // for the next stage.
+        waitUntilHidden(list, "selected timeline popup", FIND_BUDGET);
+    }
+
     private static void send(
             ComponentFixture input, ComponentFixture send, String text) {
-        input.runJs("component.setText(" + jsString(text) + ")");
+        input.runJs("component.setText(" + jsString(text) + ")", true);
         clickButton(send);
     }
 
@@ -111,7 +411,44 @@ final class IdeUiSmokeTest {
      * exercises the production ActionListener and protocol path.
      */
     private static void clickButton(ComponentFixture button) {
-        button.runJs("component.doClick()");
+        button.runJs("component.doClick()", true);
+    }
+
+    /**
+     * Queue a real Swing button action after the current Remote Robot request
+     * returns. A synchronous doClick() cannot return while its production
+     * ActionListener is showing a modal input dialog, so the test client would
+     * otherwise be unable to reach and submit that dialog. ApplicationManager
+     * invokeLater is the Remote Robot project's documented Rhino-compatible
+     * pattern for modal actions and remains independent of screen overlays.
+     */
+    private static void openInputDialog(ComponentFixture button) {
+        button.runJs(
+                "importClass(com.intellij.openapi.application.ApplicationManager);"
+                        + "importClass(java.lang.Runnable);"
+                        + "const click = new Runnable({run:function(){component.doClick();}});"
+                        + "ApplicationManager.getApplication().invokeLater(click);",
+                true);
+    }
+
+    private static void waitUntilHidden(
+            ComponentFixture component, String label, Duration budget)
+            throws InterruptedException {
+        long deadline = System.nanoTime() + budget.toNanos();
+        while (System.nanoTime() < deadline) {
+            try {
+                Object hidden = component.callJs("!component.isShowing()");
+                if (Boolean.TRUE.equals(hidden)
+                        || "true".equals(String.valueOf(hidden))) return;
+            } catch (Throwable disposed) {
+                // A disposed fixture is no longer visible, which is exactly
+                // the transition this helper is waiting for.
+                return;
+            }
+            Thread.sleep(100);
+        }
+        throw new AssertionError(label + " did not close within "
+                + budget.toSeconds() + "s");
     }
 
     private static void waitForTranscript(

@@ -2609,22 +2609,42 @@ class ChatViewProvider {
         });
         await this.vscode.window.showTextDocument(doc, { preview: true });
       } catch {
-        /* modal confirmation below still gates the CLI write */
+        /* the confirmation picker below still gates the CLI write */
       }
     }
-    const risks = [
-      ...(preview.excludedPaths || []),
-      ...(preview.irreversibleSideEffects || []),
-    ];
-    const proceed = await this.vscode.window.showWarningMessage(
-      `${pickedAction.label} at ${entry.turnId}?` +
-        (risks.length
-          ? ` Review ${risks.length} excluded/irreversible item(s).`
-          : ""),
-      { modal: true },
-      "Confirm action",
+    const excludedPaths = preview.excludedPaths || [];
+    const irreversibleSideEffects = preview.irreversibleSideEffects || [];
+    const riskDetails = [
+      excludedPaths.length
+        ? ` Excluded paths: ${excludedPaths.join(", ")}.`
+        : "",
+      irreversibleSideEffects.length
+        ? ` Irreversible side effects: ${irreversibleSideEffects.join(", ")}.`
+        : "",
+    ].join("");
+    const confirmationDetail =
+      riskDetails.trim() || "No additional risks reported.";
+    const proceed = await this.vscode.window.showQuickPick(
+      [
+        {
+          label: "Confirm action",
+          description: `${pickedAction.label} at ${entry.turnId}`,
+          detail: confirmationDetail,
+          confirmed: true,
+        },
+        {
+          label: "Cancel",
+          description: "No changes will be made",
+          confirmed: false,
+        },
+      ],
+      {
+        title: `Confirm ${pickedAction.label} at ${entry.turnId}`,
+        placeHolder: confirmationDetail,
+        ignoreFocusOut: true,
+      },
     );
-    if (proceed !== "Confirm action") {
+    if (proceed?.confirmed !== true) {
       this._post({
         kind: "info",
         text: "/rewind: cancelled — no changes made",

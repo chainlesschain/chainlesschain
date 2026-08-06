@@ -152,6 +152,125 @@ async function loadSupervisor() {
   return import("../lib/background-agent-supervisor.js");
 }
 
+/**
+ * Queue one bounded follow-up prompt through the authenticated background
+ * transport and wait for the worker's acceptance receipt. This is the
+ * non-interactive authority route used by the Sessions Workbench: IDEs never
+ * read or forward the transport token themselves.
+ */
+export async function replyBackgroundAgent(id, prompt, dependencies = {}) {
+  const sessionId = String(id || "").trim();
+  const text = String(prompt || "").trim();
+  if (!sessionId) throw new Error("background agent id is required");
+  if (!text) throw new Error("background reply prompt is required");
+
+  const supervisor = dependencies.supervisor || (await loadSupervisor());
+  const state = supervisor.effectiveBackgroundAgentState(
+    supervisor.readBackgroundAgentState(sessionId),
+  );
+  if (!state) throw new Error(`Background agent not found: ${sessionId}`);
+  if (state.status !== "running") {
+    throw new Error(
+      `Background agent ${sessionId} is ${state.status || "not running"}; use daemon resume for a terminal session`,
+    );
+  }
+  if (!state.transport?.pipe || !state.transport?.token) {
+    throw new Error(
+      `Background agent ${sessionId} has no authenticated interactive transport`,
+    );
+  }
+
+  const connector =
+    dependencies.connectBackgroundSession ||
+    (await import("../lib/background-session-transport.js"))
+      .connectBackgroundSession;
+  const timeoutMs = Math.max(
+    100,
+    Math.min(15_000, Number(dependencies.timeoutMs) || 5_000),
+  );
+  let settled = false;
+  let connection = null;
+  let timer = null;
+  let resolveReceipt;
+  let rejectReceipt;
+  const receipt = new Promise((resolve, reject) => {
+    resolveReceipt = resolve;
+    rejectReceipt = reject;
+  });
+  const finish = (error, value) => {
+    if (settled) return;
+    settled = true;
+    if (timer) clearTimeout(timer);
+    if (error) rejectReceipt(error);
+    else resolveReceipt(value);
+  };
+
+  try {
+    connection = await connector({
+      pipePath: state.transport.pipe,
+      token: state.transport.token,
+      onEvent: (message) => {
+        if (message?.type === "accepted") {
+          finish(null, {
+            id: sessionId,
+            sessionId: state.sessionId || null,
+            accepted: true,
+            queued: Number(message.queued) || 1,
+            priorPhase: state.phase || null,
+          });
+        } else if (message?.type === "error") {
+          finish(
+            new Error(
+              String(message.message || "background worker rejected reply"),
+            ),
+          );
+        }
+      },
+      onClose: () =>
+        finish(
+          new Error(
+            `Background agent ${sessionId} transport closed before accepting the reply`,
+          ),
+        ),
+    });
+
+    // The authenticated worker and canonical transcript must agree before a
+    // new prompt crosses the authority boundary. A missing snapshot remains
+    // compatible with older sessions; a present but unverified one fails
+    // closed exactly like interactive attach.
+    const snapshotReader =
+      dependencies.readSessionSnapshot || readBackgroundAttachSessionSnapshot;
+    const snapshot = snapshotReader(state, dependencies.snapshotDependencies);
+    if (snapshot && snapshot.verified !== true) {
+      const error = new Error(
+        "Background reply refused an unverified canonical JSONL session",
+      );
+      error.code = "CC_SESSION_HOST_SNAPSHOT_UNVERIFIED";
+      throw error;
+    }
+
+    timer = setTimeout(
+      () =>
+        finish(
+          new Error(
+            `Background agent ${sessionId} did not acknowledge the reply within ${timeoutMs}ms`,
+          ),
+        ),
+      timeoutMs,
+    );
+    timer.unref?.();
+    connection.send({ type: "prompt", text });
+    return await receipt;
+  } finally {
+    if (timer) clearTimeout(timer);
+    try {
+      connection?.close();
+    } catch {
+      // The worker may close immediately after accepting the final prompt.
+    }
+  }
+}
+
 export const LOG_TRUNCATION_NOTICE =
   "--- log truncated/rotated, resuming from tail ---";
 const TRUNCATION_RESUME_TAIL_BYTES = 4096;
@@ -822,6 +941,32 @@ export function registerBackgroundSessionCommands(program) {
         );
         logger.log(chalk.gray(`  session ${state.sessionId}`));
         logger.log(chalk.gray(`  attach: cc attach ${state.id}`));
+      } catch (error) {
+        logger.error(chalk.red(error.message));
+        process.exitCode = 1;
+      }
+    });
+
+  daemon
+    .command("reply <id> <prompt...>")
+    .description(
+      "Queue a reply on a running interactive background session and wait for worker acceptance",
+    )
+    .option("--json", "Output as JSON")
+    .action(async (id, prompt, options) => {
+      try {
+        const result = await replyBackgroundAgent(
+          id,
+          Array.isArray(prompt) ? prompt.join(" ") : prompt,
+        );
+        if (options.json) {
+          console.log(JSON.stringify(result, null, 2));
+          return;
+        }
+        logger.log(
+          chalk.green(`Reply queued for background agent ${result.id}`),
+        );
+        logger.log(chalk.gray(`  queue position ${result.queued}`));
       } catch (error) {
         logger.error(chalk.red(error.message));
         process.exitCode = 1;

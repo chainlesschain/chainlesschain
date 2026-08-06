@@ -39,7 +39,7 @@ class SessionProjectionTest {
         SessionProjection.Snapshot snapshot = SessionProjection.parse(fixture());
         assertTrue(snapshot.connected);
         assertFalse(snapshot.stale);
-        assertEquals("sha256:503dda21cca770369a2e5ad0a25a300ab079d09cd9cedc342ae1b5d4b637c0be",
+        assertEquals("sha256:a8e6e8f46d7d4467d994a5e67b97cfb49955446f74453e719ba510cbb573b4e5",
                 snapshot.revision);
         List<SessionsWorkbench.Row> rows = SessionsWorkbench.projectionRows(snapshot);
         assertEquals(List.of("workflow", "background", "team", "remote", "local"),
@@ -50,6 +50,9 @@ class SessionProjectionTest {
         assertEquals("bg-fixture", rows.get(1).sourceId);
         assertEquals(18800L, rows.get(3).port);
         assertEquals(snapshot.revision, rows.get(1).projectionRevision);
+        assertTrue(rows.get(1).detail.contains("owner local-user:alice"));
+        assertTrue(rows.get(1).detail.contains("artifacts 1 · report.md"));
+        assertTrue(rows.get(1).detail.contains("PR #42 open"));
     }
 
     @Test

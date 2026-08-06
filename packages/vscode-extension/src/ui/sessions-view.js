@@ -8,6 +8,10 @@ const fs = require("node:fs");
 const { hardenedEnv } = require("../hardened-env");
 const { escapeCmdArgs } = require("../win-shell");
 const {
+  hostDomTokensEqual,
+  normalizeHostDomToken,
+} = require("../chat/host-dom-relay");
+const {
   buildWorkbenchArgs,
   parseSessionProjection,
   canRunProjectionAction,
@@ -32,6 +36,9 @@ let _query = "";
 let _hooks = {};
 let _deliveryController = null;
 let _deliveryError = "";
+let _hostDomToken = null;
+let _hostDomReady = false;
+const _hostDomPending = new Map();
 let _snapshot = {
   connected: false,
   revision: null,
@@ -367,6 +374,28 @@ async function runAction(vscode, msg) {
 
 async function handleMessage(vscode, msg) {
   if (!msg || typeof msg !== "object") return;
+  if (msg.type === "hostWorkbenchDomReady") {
+    if (_hostDomToken && hostDomTokensEqual(_hostDomToken, msg.token)) {
+      _hostDomReady = true;
+    }
+    return;
+  }
+  if (msg.type === "hostWorkbenchDomResult") {
+    if (
+      !_hostDomToken ||
+      !hostDomTokensEqual(_hostDomToken, msg.token) ||
+      typeof msg.requestId !== "string"
+    ) {
+      return;
+    }
+    const pending = _hostDomPending.get(msg.requestId);
+    if (!pending) return;
+    _hostDomPending.delete(msg.requestId);
+    clearTimeout(pending.timer);
+    if (msg.error) pending.reject(new Error(String(msg.error)));
+    else pending.resolve(msg.result);
+    return;
+  }
   switch (msg.command) {
     case "ready":
       postRows();
@@ -402,6 +431,7 @@ async function handleMessage(vscode, msg) {
 
 function openSessionsWorkbench(vscode, hooks = {}) {
   _hooks = hooks || {};
+  _hostDomToken = normalizeHostDomToken(_hooks.hostDomToken);
   if (_panel) {
     _panel.reveal();
     loadData(vscode);
@@ -413,7 +443,7 @@ function openSessionsWorkbench(vscode, hooks = {}) {
     vscode.ViewColumn.Active,
     { enableScripts: true, retainContextWhenHidden: true },
   );
-  _panel.webview.html = renderPageHtml();
+  _panel.webview.html = renderPageHtml(_hostDomToken);
   ensureDeliveryController(vscode);
   _panel.webview.onDidReceiveMessage((msg) => handleMessage(vscode, msg));
   _panel.onDidDispose(() => {
@@ -427,6 +457,13 @@ function openSessionsWorkbench(vscode, hooks = {}) {
     _query = "";
     _deliveryController = null;
     _deliveryError = "";
+    _hostDomToken = null;
+    _hostDomReady = false;
+    for (const pending of _hostDomPending.values()) {
+      clearTimeout(pending.timer);
+      pending.reject(new Error("Sessions Workbench DOM relay was disposed"));
+    }
+    _hostDomPending.clear();
     _snapshot = {
       connected: false,
       revision: null,
@@ -442,12 +479,69 @@ function openSessionsWorkbench(vscode, hooks = {}) {
   return _panel;
 }
 
+async function waitForHostDomReady(timeoutMs = 15_000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (_panel && _hostDomReady) return;
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+  throw new Error("Sessions Workbench DOM relay did not become ready");
+}
+
+/** Token-gated, fixed-semantics relay for signed macOS real-host journeys. */
+async function runSessionsWorkbenchHostDomCommand(request) {
+  if (!_panel || !_hostDomToken) {
+    throw new Error("Sessions Workbench DOM relay is unavailable");
+  }
+  await waitForHostDomReady();
+  const requestId = require("node:crypto").randomUUID();
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      _hostDomPending.delete(requestId);
+      reject(new Error("Sessions Workbench DOM relay timed out"));
+    }, 15_000);
+    timer.unref?.();
+    _hostDomPending.set(requestId, { resolve, reject, timer });
+    Promise.resolve(
+      _panel.webview.postMessage({
+        kind: "hostWorkbenchDomCommand",
+        token: _hostDomToken,
+        requestId,
+        request,
+      }),
+    ).then(
+      (posted) => {
+        if (posted !== false) return;
+        const pending = _hostDomPending.get(requestId);
+        if (!pending) return;
+        _hostDomPending.delete(requestId);
+        clearTimeout(timer);
+        reject(
+          new Error("Sessions Workbench DOM relay message was not posted"),
+        );
+      },
+      (error) => {
+        const pending = _hostDomPending.get(requestId);
+        if (!pending) return;
+        _hostDomPending.delete(requestId);
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
+
+function isSessionsWorkbenchOpen() {
+  return Boolean(_panel);
+}
+
 function nonce() {
   return require("crypto").randomBytes(16).toString("hex");
 }
 
-function renderPageHtml() {
+function renderPageHtml(hostDomToken = null) {
   const n = nonce();
+  const relayToken = normalizeHostDomToken(hostDomToken);
   const csp = `default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${n}';`;
   return `<!DOCTYPE html>
 <html lang="en">
@@ -473,6 +567,7 @@ function renderPageHtml() {
   .kind { opacity:.7; font-size:10px; text-transform:uppercase; letter-spacing:.05em; border:1px solid
           var(--vscode-widget-border,#555); border-radius:3px; padding:0 4px; }
   .muted { opacity:.55; }
+  .details { margin-top:3px; font-size:11px; color:var(--vscode-descriptionForeground); }
   .warn { color: var(--vscode-editorWarning-foreground, orange); margin-bottom:6px; }
   #delivery { border:1px solid var(--vscode-widget-border,#555); border-radius:5px; padding:10px; margin:0 0 12px; }
   .delivery-head { display:flex; align-items:center; justify-content:space-between; gap:8px; }
@@ -504,6 +599,7 @@ function renderPageHtml() {
   <div id="list"><p class="muted">Loading…</p></div>
 <script nonce="${n}">
   const vscode = acquireVsCodeApi();
+  const hostDomToken = ${JSON.stringify(relayToken)};
   document.getElementById('refresh').addEventListener('click', ()=>vscode.postMessage({command:'refresh'}));
   document.getElementById('q').addEventListener('input', (e)=>vscode.postMessage({command:'filter', query: e.target.value}));
   document.getElementById('list').addEventListener('click', (e)=>{
@@ -513,8 +609,9 @@ function renderPageHtml() {
                   kind: b.getAttribute('data-kind'), sessionId: b.getAttribute('data-session'),
                   port: b.getAttribute('data-port'), revision: b.getAttribute('data-revision'),
                   itemRevision: b.getAttribute('data-item-revision') };
-    if (msg.act==='dispatch' && msg.kind==='background'){
-      const t=prompt('Prompt to dispatch this finished session with'); if(!t) return; msg.text=t;
+    if ((msg.act==='dispatch' || msg.act==='reply') && msg.kind==='background'){
+      const label=msg.act==='reply' ? 'Reply to this waiting session' : 'Prompt to dispatch this finished session with';
+      const t=prompt(label); if(!t) return; msg.text=t;
     }
     vscode.postMessage(msg);
   });
@@ -533,14 +630,56 @@ function renderPageHtml() {
   });
   window.addEventListener('message', (ev)=>{
     const m = ev.data || {};
+    if (hostDomToken && m.kind==='hostWorkbenchDomCommand' && m.token===hostDomToken && typeof m.requestId==='string') {
+      const request=m.request || {};
+      try {
+        let result;
+        if (request.action==='snapshot') {
+          const rows=[...document.querySelectorAll('#list tbody tr')];
+          const background=rows.find((row)=>row.querySelector('[data-source-id="ui-workbench-background"]')) || null;
+          const kinds=[...new Set(rows.map((row)=>row.querySelector('.kind')?.textContent?.trim()).filter(Boolean))];
+          result={
+            text:document.body?.innerText || '',
+            rowCount:rows.length,
+            kinds,
+            backgroundState:background?.querySelector('.st')?.textContent?.trim() || null,
+            dispatchEnabled:Boolean(background?.querySelector('button[data-act="dispatch"]')),
+            replyEnabled:Boolean(background?.querySelector('button[data-act="reply"]')),
+            artifactVisible:Boolean(background && (background.textContent || '').includes('workbench-result.md')),
+            prVisible:Boolean(background && (background.textContent || '').includes('PR #88 merged')),
+          };
+        } else if (request.action==='click' && (request.target==='dispatch' || request.target==='reply')) {
+          const button=document.querySelector('#list button[data-source-id="ui-workbench-background"][data-act="'+request.target+'"]');
+          if (!button) throw new Error('requested workbench action is unavailable: '+request.target);
+          const originalPrompt=window.prompt;
+          window.prompt=()=>String(request.text || '');
+          try { button.click(); } finally { window.prompt=originalPrompt; }
+          result={clicked:request.target};
+        } else if (request.action==='refresh') {
+          document.getElementById('refresh').click();
+          result={refreshed:true};
+        } else {
+          throw new Error('unsupported Sessions Workbench host DOM action');
+        }
+        vscode.postMessage({type:'hostWorkbenchDomResult',token:hostDomToken,requestId:m.requestId,result});
+      } catch (error) {
+        vscode.postMessage({type:'hostWorkbenchDomResult',token:hostDomToken,requestId:m.requestId,error:String(error && error.message || error)});
+      }
+      return;
+    }
     if (m.type==='rows') document.getElementById('list').innerHTML = m.html;
     else if (m.type==='delivery') document.getElementById('delivery').innerHTML = m.html;
     else if (m.type==='info') document.getElementById('info').textContent = m.text || '';
   });
+  if (hostDomToken) vscode.postMessage({type:'hostWorkbenchDomReady',token:hostDomToken});
   vscode.postMessage({command:'ready'});
 </script>
 </body>
 </html>`;
 }
 
-module.exports = { openSessionsWorkbench };
+module.exports = {
+  openSessionsWorkbench,
+  isSessionsWorkbenchOpen,
+  runSessionsWorkbenchHostDomCommand,
+};
