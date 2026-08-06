@@ -2,6 +2,16 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.44] - Canonical Workbench host journey (2026-08-06)
+
+- Render canonical owner, worktree, pending-input, artifact, and pull-request
+  bindings in Sessions Workbench without giving the IDE direct write authority.
+- Route background-session replies through the CLI-owned authenticated
+  transport with projection and item revision rechecks.
+- Exercise local, background, remote, team, and workflow projections through
+  real VS Code controls, including dispatch, `needs_input`, reply, artifact/PR,
+  and full IDE restart recovery on Windows, Linux, and macOS.
+
 ## [0.37.43] - Rewind host-journey closure (2026-08-05)
 
 - Drive all six CLI-authored rewind actions through native VS Code timeline,

@@ -19,7 +19,7 @@ plugins {
 }
 
 group = "com.chainlesschain"
-version = "0.4.80"
+version = "0.4.81"
 val ideVersion = providers.gradleProperty("ideVersion").orElse("2024.2")
 val hostIdeVersion = providers.gradleProperty("hostIdeVersion").orElse(ideVersion)
 
@@ -281,6 +281,8 @@ tasks.register<Test>("uiSmokeTest") {
     jvmArgs("--add-opens", "java.base/java.lang=ALL-UNNAMED")
     // The robot endpoint of the IDE started by runIdeForUiTests.
     systemProperty("ui.robot.url", System.getProperty("ui.robot.url") ?: "http://127.0.0.1:8082")
+    systemProperty("ui.journey.phase", System.getProperty("ui.journey.phase") ?: "initial")
+    systemProperty("ui.metrics.path", System.getProperty("ui.metrics.path") ?: "")
     systemProperty("file.encoding", "UTF-8")
     maxParallelForks = 1 // one live IDE + one robot client, never parallelize
     outputs.upToDateWhen { false } // always re-drive the live IDE

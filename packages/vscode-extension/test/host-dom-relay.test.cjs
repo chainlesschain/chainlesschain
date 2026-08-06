@@ -195,12 +195,42 @@ test("DOM relay driver produces the same auditable phase ledger and snapshots", 
     planApproveEnabled: false,
     approvalApproveEnabled: false,
     stopEnabled: true,
+    workbenchStage: "ready",
   };
   let streamCount = 0;
   const commands = {
     async executeCommand(command, token, request) {
       assert.equal(command, HOST_DOM_COMMAND);
       assert.equal(token, TOKEN);
+      if (request.surface === "sessions-workbench") {
+        if (request.action === "snapshot") {
+          const needsInput = state.workbenchStage === "needs_input";
+          const completed = state.workbenchStage === "completed";
+          return {
+            text: completed
+              ? "Workbench lifecycle fixture workbench-result.md PR #88 merged"
+              : "Workbench lifecycle fixture",
+            rowCount: 5,
+            kinds: ["local", "background", "remote", "team", "workflow"],
+            backgroundState: needsInput ? "needs_input" : "done",
+            dispatchEnabled: state.workbenchStage === "ready",
+            replyEnabled: needsInput,
+            artifactVisible: completed,
+            prVisible: completed,
+          };
+        }
+        if (request.action === "click" && request.target === "dispatch") {
+          assert.equal(request.text, "dispatch from VS Code Workbench");
+          state.workbenchStage = "needs_input";
+          return { clicked: "dispatch" };
+        }
+        if (request.action === "click" && request.target === "reply") {
+          assert.equal(request.text, "beta");
+          state.workbenchStage = "completed";
+          return { clicked: "reply" };
+        }
+        throw new Error("unsupported Workbench relay request");
+      }
       if (request.action === "snapshot") {
         return {
           readyState: "complete",
@@ -266,7 +296,10 @@ test("DOM relay driver produces the same auditable phase ledger and snapshots", 
     "plan-approval",
     "permission",
     "interrupt",
+    "workbench-dispatch-needs-input",
+    "workbench-reply-artifact",
     "ide-restart-resume",
+    "workbench-restart-recovery",
   ]) {
     assert.match(trace, new RegExp(`"step":"${step}","status":"passed"`, "u"));
   }
@@ -277,5 +310,19 @@ test("DOM relay driver produces the same auditable phase ledger and snapshots", 
   assert.match(
     fs.readFileSync(path.join(artifactDir, "restart-dom.txt"), "utf8"),
     /resumed previous conversation[\s\S]*fixture stream complete #6/u,
+  );
+  assert.match(
+    fs.readFileSync(
+      path.join(artifactDir, "initial-workbench-dom.txt"),
+      "utf8",
+    ),
+    /workbench-result\.md[\s\S]*PR #88 merged/u,
+  );
+  assert.match(
+    fs.readFileSync(
+      path.join(artifactDir, "restart-workbench-dom.txt"),
+      "utf8",
+    ),
+    /workbench-result\.md[\s\S]*PR #88 merged/u,
   );
 });

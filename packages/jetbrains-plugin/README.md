@@ -108,9 +108,11 @@ manifest below.
 The editor-glue layer (`com.chainlesschain.ide.intellij`) compiles against the
 SDK downloaded by Gradle. Repository release gates run the unit/smoke suites,
 package the plugin, verify the archive, and run a deterministic production-path
-chat/control/resume journey in stock IntelliJ 2024.2 and 2025.2 across Windows,
-Linux, and macOS. Live-provider and remote-host journeys remain separate
-release-environment checks.
+chat/control plus canonical Sessions Workbench journey in stock IntelliJ
+2024.2 and 2025.2 across Windows, Linux, and macOS. The gate closes the first
+IDE, launches a second process, and verifies persisted artifact/PR recovery.
+Live-provider and remote-host journeys remain separate release-environment
+checks.
 
 ## Status
 
@@ -118,9 +120,10 @@ release-environment checks.
   interop tests against the CLI client.
 - IntelliJ glue (facade/lifecycle/actions): covered by Gradle build, smoke and
   plugin-package verification gates.
-- Stock-IDE chat/control/resume is a required real-host matrix with immutable
-  evidence. Remote Development, Marketplace installation, live-provider, Diff,
-  and Preview journeys are not replaced by that deterministic test.
+- Stock-IDE chat/control, Workbench lifecycle, and restart recovery are a
+  required real-host matrix with immutable evidence. Remote Development,
+  Marketplace installation, live-provider, Diff, and Preview journeys are not
+  replaced by that deterministic test.
 
 <!-- chainlesschain-public-ide-capabilities:start -->
 

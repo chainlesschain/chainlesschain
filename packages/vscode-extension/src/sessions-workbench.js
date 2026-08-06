@@ -111,12 +111,23 @@ function parseSessionProjection(input, { expectedRevision = null } = {}) {
   try {
     root = typeof input === "string" ? JSON.parse(input) : input;
   } catch {
+    const raw = typeof input === "string" ? input : String(input ?? "");
+    const codePoint = (value) =>
+      value == null
+        ? "empty"
+        : `U+${value.toString(16).toUpperCase().padStart(4, "0")}`;
     return {
       connected: false,
       stale: false,
       revision: null,
       rows: [],
-      error: "invalid session projection JSON",
+      // Keep transport diagnostics content-free: length and endpoint code
+      // points distinguish empty/BOM/truncated output without reflecting CLI
+      // stdout into the privileged IDE UI.
+      error:
+        `invalid session projection JSON (stdout ${raw.length} chars; ` +
+        `first ${codePoint(raw.codePointAt(0))}; ` +
+        `last ${codePoint(raw.codePointAt(Math.max(0, raw.length - 1)))})`,
     };
   }
   if (
@@ -650,10 +661,41 @@ function renderWorkbenchHtml(rows, { now = Date.now(), errors = [] } = {}) {
         ? ' <span class="badge alt">remote-controlled</span>'
         : "";
       const meta = [r.id, r.workspace].filter(Boolean).map(escapeHtml);
+      const details = [];
+      if (r.owner?.type) {
+        details.push(
+          `owner ${escapeHtml(r.owner.type)}${r.owner.id ? `:${escapeHtml(r.owner.id)}` : ""}`,
+        );
+      }
+      if (r.worktree?.branch || r.worktree?.path) {
+        details.push(
+          `worktree ${escapeHtml(r.worktree.branch || r.worktree.path)}`,
+        );
+      }
+      if (Number(r.artifact?.count) > 0) {
+        details.push(
+          `artifacts ${escapeHtml(r.artifact.count)}${r.artifact.latest?.title ? ` · ${escapeHtml(r.artifact.latest.title)}` : ""}`,
+        );
+      }
+      if (r.approval?.pending) {
+        details.push(
+          `input ${escapeHtml(r.approval.type || "pending")}${Number(r.approval.count) > 0 ? ` (${escapeHtml(r.approval.count)})` : ""}`,
+        );
+      }
+      if (Number(r.pr?.count) > 0) {
+        const latest = r.pr.latest || {};
+        details.push(
+          `PR ${latest.number ? `#${escapeHtml(latest.number)}` : escapeHtml(r.pr.count)}${latest.state ? ` ${escapeHtml(latest.state)}` : ""}`,
+        );
+      }
       return (
         `<tr><td><span class="st ${escapeHtml(r.status)}">${escapeHtml(r.status)}</span>${badge}</td>` +
         `<td><span class="kind ${escapeHtml(r.kind)}">${escapeHtml(r.kind)}</span> ${escapeHtml(r.title || r.id)}${remote}` +
-        `<div class="muted">${meta.join(" · ")}</div></td>` +
+        `<div class="muted">${meta.join(" · ")}</div>` +
+        (details.length
+          ? `<div class="details">${details.join(" · ")}</div>`
+          : "") +
+        `</td>` +
         `<td>${escapeHtml(formatRelativeTime(r.lastActivity, now))}</td>` +
         `<td>${acts}</td></tr>`
       );

@@ -242,7 +242,7 @@ test("IDE release tags are isolated and manual Marketplace backfill is tag-bound
   );
 });
 
-test("VS Code macOS host gate pins the validated Intel runner image", () => {
+test("VS Code host gates pin macOS Intel and share the main-world relay", () => {
   const workflow = read(".github/workflows/ide-extensions.yml");
   const macGate = workflow.match(
     /vscode-macos-smoke:[\s\S]*?(?=\n  [a-z][a-z0-9-]+:)/u,
@@ -275,7 +275,12 @@ test("VS Code macOS host gate pins the validated Intel runner image", () => {
   );
   assert.match(
     hostRunner,
-    /useDomRelay: !hostApiMode && process\.platform === "darwin"/u,
+    /function resolveHostJourneyTransport\(hostApiMode\)/u,
+  );
+  assert.match(hostRunner, /useDomRelay: hostJourneyTransport\.useDomRelay/u);
+  assert.doesNotMatch(
+    hostRunner,
+    /useDomRelay:.*process\.platform === "darwin"/u,
   );
   assert.match(hostRunner, /launchArgs: buildHostDomRelayLaunchArgs\(\{/u);
   assert.match(hostRunner, /CHAINLESSCHAIN_HOST_DOM_TOKEN/u);

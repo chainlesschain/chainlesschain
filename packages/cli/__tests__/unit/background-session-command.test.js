@@ -7,6 +7,7 @@ import {
   formatBackgroundAgentDetails,
   formatBackgroundAgentLine,
   readLogFromOffset,
+  replyBackgroundAgent,
   summarizeSideEffects,
 } from "../../src/commands/background-session.js";
 
@@ -117,6 +118,85 @@ describe("background-session command helpers", () => {
       unknown: 1,
       unsettled: 2,
     });
+  });
+
+  it("queues a background reply through the authenticated transport and waits for acceptance", async () => {
+    const sent = [];
+    let closed = false;
+    const state = {
+      id: "bg-reply",
+      status: "running",
+      phase: "needs_input",
+      sessionId: "session-reply",
+      transport: { pipe: "fixture-pipe", token: "fixture-token" },
+    };
+    const result = await replyBackgroundAgent("bg-reply", "  answer beta  ", {
+      supervisor: {
+        readBackgroundAgentState: () => state,
+        effectiveBackgroundAgentState: (value) => value,
+      },
+      readSessionSnapshot: () => ({ verified: true }),
+      connectBackgroundSession: async ({ onEvent }) => ({
+        send(message) {
+          sent.push(message);
+          queueMicrotask(() => onEvent({ type: "accepted", queued: 2 }));
+        },
+        close() {
+          closed = true;
+        },
+      }),
+      timeoutMs: 500,
+    });
+
+    expect(sent).toEqual([{ type: "prompt", text: "answer beta" }]);
+    expect(result).toEqual({
+      id: "bg-reply",
+      sessionId: "session-reply",
+      accepted: true,
+      queued: 2,
+      priorPhase: "needs_input",
+    });
+    expect(closed).toBe(true);
+  });
+
+  it("fails closed before sending when the canonical transcript is unverified", async () => {
+    let sent = false;
+    const state = {
+      id: "bg-unverified",
+      status: "running",
+      transport: { pipe: "fixture-pipe", token: "fixture-token" },
+    };
+    await expect(
+      replyBackgroundAgent("bg-unverified", "answer", {
+        supervisor: {
+          readBackgroundAgentState: () => state,
+          effectiveBackgroundAgentState: (value) => value,
+        },
+        readSessionSnapshot: () => ({ verified: false }),
+        connectBackgroundSession: async () => ({
+          send() {
+            sent = true;
+          },
+          close() {},
+        }),
+      }),
+    ).rejects.toMatchObject({
+      code: "CC_SESSION_HOST_SNAPSHOT_UNVERIFIED",
+    });
+    expect(sent).toBe(false);
+  });
+
+  it("refuses terminal or non-interactive sessions instead of inventing a reply route", async () => {
+    const supervisor = {
+      readBackgroundAgentState: () => ({
+        id: "bg-done",
+        status: "completed",
+      }),
+      effectiveBackgroundAgentState: (value) => value,
+    };
+    await expect(
+      replyBackgroundAgent("bg-done", "answer", { supervisor }),
+    ).rejects.toThrow(/use daemon resume/u);
   });
 });
 

@@ -4,7 +4,13 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const test = require("node:test");
-const { openSessionsWorkbench } = require("../src/ui/sessions-view.js");
+const {
+  isSessionsWorkbenchOpen,
+  openSessionsWorkbench,
+  runSessionsWorkbenchHostDomCommand,
+} = require("../src/ui/sessions-view.js");
+
+const HOST_TOKEN = "ab".repeat(32);
 
 const fixture = JSON.parse(
   fs.readFileSync(
@@ -25,7 +31,7 @@ function disconnectedSessions() {
   };
 }
 
-function createHost({ deliveryOutputs }) {
+function createHost({ deliveryOutputs, hostDomToken = null }) {
   const posts = [];
   const deliveryCalls = [];
   const outputQueue = [...deliveryOutputs];
@@ -78,6 +84,7 @@ function createHost({ deliveryOutputs }) {
   };
 
   openSessionsWorkbench(vscode, {
+    hostDomToken,
     readSessionProjection: async () => disconnectedSessions(),
     runDeliveryCli: async (args) => {
       deliveryCalls.push([...args]);
@@ -105,6 +112,45 @@ function createHost({ deliveryOutputs }) {
     },
   };
 }
+
+test("token-gated Workbench relay exposes only fixed rendered-DOM semantics", async (t) => {
+  const host = createHost({ deliveryOutputs: [], hostDomToken: HOST_TOKEN });
+  t.after(() => host.dispose());
+
+  assert.equal(isSessionsWorkbenchOpen(), true);
+  assert.match(host.panel.webview.html, /hostWorkbenchDomCommand/u);
+  assert.match(host.panel.webview.html, new RegExp(HOST_TOKEN, "u"));
+  assert.doesNotMatch(host.panel.webview.html, /\beval\s*\(/u);
+  await host.send({ type: "hostWorkbenchDomReady", token: HOST_TOKEN });
+
+  const pending = runSessionsWorkbenchHostDomCommand({
+    surface: "sessions-workbench",
+    action: "snapshot",
+  });
+  await new Promise((resolve) => setImmediate(resolve));
+  const request = host.posts.find(
+    (message) => message.kind === "hostWorkbenchDomCommand",
+  );
+  assert.ok(request);
+  assert.deepEqual(request.request, {
+    surface: "sessions-workbench",
+    action: "snapshot",
+  });
+  await host.send({
+    type: "hostWorkbenchDomResult",
+    token: HOST_TOKEN,
+    requestId: request.requestId,
+    result: { rowCount: 5, artifactVisible: true },
+  });
+  assert.deepEqual(await pending, { rowCount: 5, artifactVisible: true });
+});
+
+test("Workbench open-state probe tracks panel disposal", () => {
+  const host = createHost({ deliveryOutputs: [] });
+  assert.equal(isSessionsWorkbenchOpen(), true);
+  host.dispose();
+  assert.equal(isSessionsWorkbenchOpen(), false);
+});
 
 function lastDeliveryPost(host) {
   return host.posts.filter((message) => message.type === "delivery").at(-1);

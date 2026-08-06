@@ -84,6 +84,7 @@ public final class SessionsWorkbenchToolWindowFactory implements ToolWindowFacto
         private final AtomicBoolean deliveryInFlight = new AtomicBoolean(false);
         private final DeliveryWorkflowController deliveryController;
         private final JTextArea deliveryText = new JTextArea(7, 80);
+        private final JTextArea sessionDetail = new JTextArea(4, 80);
         private final JPanel deliveryActions =
                 new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
         private final JButton deliverySelectBtn = new JButton("Select state…");
@@ -135,11 +136,28 @@ public final class SessionsWorkbenchToolWindowFactory implements ToolWindowFacto
             top.add(actions, BorderLayout.SOUTH);
 
             table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+            table.setName("chainlesschain.sessions.table");
+            table.getAccessibleContext().setAccessibleName(
+                    "ChainlessChain sessions table");
             table.getSelectionModel().addListSelectionListener(ev -> syncButtons());
+            sessionDetail.setEditable(false);
+            sessionDetail.setName("chainlesschain.sessions.detail");
+            sessionDetail.getAccessibleContext().setAccessibleName(
+                    "ChainlessChain session detail");
+            sessionDetail.setLineWrap(true);
+            sessionDetail.setWrapStyleWord(true);
+            sessionDetail.setFont(new Font(
+                    Font.MONOSPACED, Font.PLAIN, sessionDetail.getFont().getSize()));
 
             resumeBtn.addActionListener(ev -> onResume());
+            resumeBtn.setName("chainlesschain.sessions.dispatch");
+            resumeBtn.getAccessibleContext().setAccessibleName(
+                    "ChainlessChain session dispatch");
             attachBtn.addActionListener(ev -> onAttach());
             replyBtn.addActionListener(ev -> onReply());
+            replyBtn.setName("chainlesschain.sessions.reply");
+            replyBtn.getAccessibleContext().setAccessibleName(
+                    "ChainlessChain session reply");
             stopBtn.addActionListener(ev -> onStop());
             logsBtn.addActionListener(ev -> onLogs());
             checkpointBtn.addActionListener(ev -> onCheckpoint());
@@ -167,6 +185,7 @@ public final class SessionsWorkbenchToolWindowFactory implements ToolWindowFacto
             JPanel center = new JPanel(new BorderLayout(6, 6));
             center.add(deliveryPanel, BorderLayout.NORTH);
             center.add(new JBScrollPane(table), BorderLayout.CENTER);
+            center.add(new JBScrollPane(sessionDetail), BorderLayout.SOUTH);
 
             root.add(top, BorderLayout.NORTH);
             root.add(center, BorderLayout.CENTER);
@@ -427,6 +446,10 @@ public final class SessionsWorkbenchToolWindowFactory implements ToolWindowFacto
             stopBtn.setEnabled(acts.contains(SessionsWorkbench.ACT_STOP));
             logsBtn.setEnabled(acts.contains(SessionsWorkbench.ACT_PEEK));
             checkpointBtn.setEnabled(acts.contains(SessionsWorkbench.ACT_CHECKPOINT));
+            sessionDetail.setText(r == null ? "Select a session to inspect its "
+                    + "canonical owner, worktree, input, artifact and PR bindings."
+                    : SessionsWorkbench.describe(r, System.currentTimeMillis()));
+            sessionDetail.setCaretPosition(0);
         }
 
         private SessionsWorkbench.Row selectedFor(String action) {
@@ -467,7 +490,13 @@ public final class SessionsWorkbenchToolWindowFactory implements ToolWindowFacto
 
         private void onReply() {
             SessionsWorkbench.Row r = selectedFor(SessionsWorkbench.ACT_REPLY);
-            if (r != null) terminalPreviewAction(r, SessionsWorkbench.ACT_REPLY);
+            if (r == null) return;
+            String prompt = Messages.showInputDialog(project,
+                    "Reply to this waiting background session",
+                    "Reply to Session", null);
+            if (prompt == null || prompt.trim().isEmpty()) return;
+            cliPreviewAction(r, SessionsWorkbench.ACT_REPLY,
+                    prompt.trim(), false);
         }
 
         private void onStop() {

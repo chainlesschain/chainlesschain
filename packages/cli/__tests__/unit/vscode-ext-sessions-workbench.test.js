@@ -446,7 +446,7 @@ describe("canonical CLI projection parity and fail-closed dispatch", () => {
     const snapshot = parseSessionProjection(fixtureText);
     expect(snapshot.connected).toBe(true);
     expect(snapshot.revision).toBe(
-      "sha256:503dda21cca770369a2e5ad0a25a300ab079d09cd9cedc342ae1b5d4b637c0be",
+      "sha256:a8e6e8f46d7d4467d994a5e67b97cfb49955446f74453e719ba510cbb573b4e5",
     );
     expect(snapshot.rows.map((row) => row.kind)).toEqual([
       "workflow",
@@ -544,6 +544,19 @@ describe("canonical CLI projection parity and fail-closed dispatch", () => {
     expect(
       previewProjectionAction(snapshot, {
         id: background.id,
+        action: "reply",
+        revision: snapshot.revision,
+        itemRevision: background.revision,
+      }).preview,
+    ).toEqual({
+      executor: "cli",
+      argv: ["daemon", "reply", "bg-fixture", "$prompt", "--json"],
+      mutates: true,
+      input: "prompt",
+    });
+    expect(
+      previewProjectionAction(snapshot, {
+        id: background.id,
         action: "stop",
         revision: snapshot.revision,
         itemRevision: background.revision,
@@ -595,6 +608,9 @@ describe("canonical CLI projection parity and fail-closed dispatch", () => {
     expect(html).toContain(`data-revision="${snapshot.revision}"`);
     expect(html).toContain('data-act="reply"');
     expect(html).toContain('data-act="checkpoint"');
+    expect(html).toContain("owner local-user:alice");
+    expect(html).toContain("artifacts 1 · report.md");
+    expect(html).toContain("PR #42 open");
     expect(html).not.toContain('data-act="detach"');
     expect(html).not.toContain('data-act="archive"');
   });
@@ -624,5 +640,6 @@ describe("manifest wiring", () => {
     const src = readFileSync(ext("src/extension.js"), "utf-8");
     expect(src).toContain('"chainlesschain.sessions.workbench"');
     expect(src).toContain("openSessionsWorkbench");
+    expect(src).toContain("sessionsView.isSessionsWorkbenchOpen()");
   });
 });

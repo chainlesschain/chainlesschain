@@ -260,7 +260,11 @@ function actionPreviews(kind, state, source, sourceId, linkedSessionId) {
       );
     }
     if (active && interactive) {
-      routes.reply = preview("terminal", ["attach", sourceId]);
+      routes.reply = preview(
+        "cli",
+        ["daemon", "reply", sourceId, PROJECTION_PROMPT_PLACEHOLDER, "--json"],
+        { mutates: true, input: "prompt" },
+      );
       routes.attach = preview("terminal", ["attach", sourceId]);
     }
     if (active) {

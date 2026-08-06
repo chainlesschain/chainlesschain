@@ -27,6 +27,7 @@ const {
   parseDevToolsBrowserEndpoint,
   parseElectronInspectorEndpoint,
   recordHostProgress,
+  resolveHostJourneyTransport,
   resolveVsCodeHostVersion,
   runRealDomPhase,
   settleHostAfterCdp,
@@ -35,8 +36,11 @@ const {
   CdpClient,
   JOURNEY_PHASES,
   PHASE_DOM_MARKERS,
+  PHASE_WORKBENCH_DOM_MARKERS,
+  acceptJavaScriptDialog,
   assertJourneyArtifacts,
   buildCdpWebSocketOptions,
+  clickSessionsWorkbenchAction,
   createCdpPipeSocket,
   createFixtureCli,
   findWorkbenchWindow,
@@ -393,6 +397,17 @@ test("macOS DOM relay launches without a debugger transport", async () => {
     launch.extensionTestsEnv.CHAINLESSCHAIN_HOST_TRACE_FILE,
     path.join(artifactDir, "cdp-journey.jsonl"),
   );
+});
+
+test("release real-host journeys use one main-world DOM relay on every OS", () => {
+  assert.deepEqual(resolveHostJourneyTransport(false), {
+    useDomRelay: true,
+    evidenceTransport: "local-ide-bridge+vscode-webview-message-dom",
+  });
+  assert.deepEqual(resolveHostJourneyTransport(true), {
+    useDomRelay: false,
+    evidenceTransport: "local-ide-bridge+vscode-extension-test-api",
+  });
 });
 
 test("macOS fallback driver exposes one fixed command and deduplicates the journey", () => {
@@ -910,6 +925,85 @@ test("CDP child sessions preserve flattened target identity", async () => {
   assert.equal(sent[0].params.contextId, 41);
 });
 
+test("CDP workbench actions accept the real main-world prompt before polling", async () => {
+  const evaluations = [
+    {
+      text: "Sessions Workbench",
+      rowCount: 5,
+      kinds: ["local", "background", "remote", "team", "workflow"],
+      backgroundState: "done",
+      dispatchEnabled: true,
+      replyEnabled: false,
+      artifactVisible: false,
+      prVisible: false,
+    },
+    { x: 120, y: 48 },
+  ];
+  const frameCommands = [];
+  const dialogCommands = [];
+  const client = {
+    async evaluate() {
+      return evaluations.shift();
+    },
+    async send(method, params) {
+      frameCommands.push({ method, params });
+      return {};
+    },
+  };
+  const dialogClient = {
+    async send(method, params) {
+      dialogCommands.push({ method, params });
+      if (dialogCommands.length === 1) {
+        throw new Error(
+          "CDP Page.handleJavaScriptDialog failed: No dialog is showing",
+        );
+      }
+      return {};
+    },
+  };
+
+  const acceptedAt = await clickSessionsWorkbenchAction(
+    client,
+    "dispatch",
+    "dispatch from VS Code Workbench",
+    null,
+    dialogClient,
+  );
+
+  assert.equal(Number.isFinite(acceptedAt), true);
+  assert.deepEqual(
+    frameCommands.map((command) => command.method),
+    ["Input.dispatchMouseEvent", "Input.dispatchMouseEvent"],
+  );
+  assert.equal(dialogCommands.length, 2);
+  for (const command of dialogCommands) {
+    assert.deepEqual(command, {
+      method: "Page.handleJavaScriptDialog",
+      params: {
+        accept: true,
+        promptText: "dispatch from VS Code Workbench",
+      },
+    });
+  }
+  assert.equal(evaluations.length, 0);
+});
+
+test("CDP workbench dialog acceptance fails closed on non-transient errors", async () => {
+  await assert.rejects(
+    acceptJavaScriptDialog(
+      {
+        async send() {
+          throw new Error(
+            "CDP Page.handleJavaScriptDialog failed: target closed",
+          );
+        },
+      },
+      "prompt",
+    ),
+    /target closed/,
+  );
+});
+
 test("CDP websocket failures retain the handshake diagnostic", async () => {
   class RejectedWebSocket {
     addEventListener(name, listener) {
@@ -1072,6 +1166,12 @@ test("raw DOM and protocol evidence must prove every control and restart step", 
       targetType: "iframe",
       targetUrl: `vscode-webview://chainlesschain/${phase}`,
     });
+    cdpRecords.push({
+      phase,
+      status: "sessions-workbench-found",
+      targetType: "iframe",
+      targetUrl: `vscode-webview://chainlesschain/${phase}/sessions-workbench`,
+    });
     if (phase === "initial") {
       cdpRecords.push({
         phase,
@@ -1105,6 +1205,11 @@ test("raw DOM and protocol evidence must prove every control and restart step", 
         : PHASE_DOM_MARKERS[phase].join("\n"),
       "utf8",
     );
+    fs.writeFileSync(
+      path.join(artifactDir, `${phase}-workbench-dom.txt`),
+      PHASE_WORKBENCH_DOM_MARKERS[phase].join("\n"),
+      "utf8",
+    );
     if (phase === "initial") {
       fs.writeFileSync(
         path.join(artifactDir, "initial-before-rewind-dom.txt"),
@@ -1124,6 +1229,13 @@ test("raw DOM and protocol evidence must prove every control and restart step", 
       completedAt: "2026-08-01T00:01:00.000Z",
     });
   }
+  cdpRecords.push({
+    at: "2026-08-01T00:00:01.000Z",
+    phase: "initial",
+    metric: "needs-input-visible",
+    latencyMs: 125,
+    thresholdMs: 2_000,
+  });
   writeJsonLines(path.join(artifactDir, "cdp-journey.jsonl"), cdpRecords);
   const fixtureRecords = [
     { direction: "in", event: { type: "user", text: "journey:stream" } },
@@ -1138,7 +1250,15 @@ test("raw DOM and protocol evidence must prove every control and restart step", 
     { direction: "in", event: { type: "interrupt" } },
     { direction: "out", event: { type: "system", resumed_messages: 10 } },
     { direction: "in", event: { type: "user", text: "journey:resume" } },
+    { direction: "command", command: "daemon-resume" },
+    { direction: "command", command: "daemon-reply" },
   ];
+  for (let index = 0; index < 4; index += 1) {
+    fixtureRecords.push({
+      direction: "command",
+      command: "session-projection",
+    });
+  }
   for (let index = 0; index < 6; index += 1) {
     fixtureRecords.push({
       direction: "command",
@@ -1171,7 +1291,7 @@ test("raw DOM and protocol evidence must prove every control and restart step", 
     extensionsDir,
     workspaceDir,
   });
-  assert.equal(evidence.domPaths.length, 3);
+  assert.equal(evidence.domPaths.length, 5);
 
   fs.writeFileSync(
     path.join(artifactDir, "restart-dom.txt"),

@@ -1,5 +1,15 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.81] - Canonical Workbench host journey (2026-08-06)
+
+- Show canonical session ownership, worktree, pending input, artifact, and PR
+  detail in the native Sessions Workbench table selection.
+- Route background replies through the CLI-authored action preview and
+  authenticated background transport with revision rechecks.
+- Drive the five canonical session kinds through Dispatch, `needs_input`,
+  Reply, artifact/PR rendering, and a second independent IntelliJ process that
+  verifies restart recovery in the Remote Robot host gate.
+
 ## [0.4.80] - Rewind host-journey closure (2026-08-05)
 
 - Exercise code, conversation, combined, summary-from, summary-to, and branch
