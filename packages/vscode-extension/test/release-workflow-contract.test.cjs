@@ -274,6 +274,8 @@ test("IDE release tags are isolated and manual Marketplace backfill is tag-bound
 
 test("VS Code host gates pin macOS Intel and share the main-world relay", () => {
   const workflow = read(".github/workflows/ide-extensions.yml");
+  const windowsGate = workflowJob(workflow, "vscode-windows-smoke");
+  const linuxGate = workflowJob(workflow, "vscode");
   const macGate = workflow.match(
     /vscode-macos-smoke:[\s\S]*?(?=\n {2}[a-z][a-z0-9-]+:)/u,
   );
@@ -341,13 +343,27 @@ test("VS Code host gates pin macOS Intel and share the main-world relay", () => 
     productionExtension,
     /executeCommand\(HOST_DOM_DRIVER_COMMAND\)/u,
   );
-  assert.equal(
-    macGate[0].match(
-      /- name: Extension Host multi-root \+ multi-window journey \(macOS (?:stable|minimum 1\.85\.2)\)\n\s+(?:if: always\(\)\n\s+)?timeout-minutes: 15/gu,
-    )?.length,
-    2,
-    "both real-DOM host gates must fail within a diagnostic step deadline",
-  );
+  for (const [platform, gate] of [
+    ["Windows", windowsGate],
+    ["macOS", macGate[0]],
+    ["Linux", linuxGate],
+  ]) {
+    assert.match(
+      gate,
+      /runs-on: [^\n]+\n\s+timeout-minutes: 70/u,
+      `${platform} must budget both isolated host profiles and evidence upload`,
+    );
+    assert.equal(
+      gate.match(
+        new RegExp(
+          `- name: Extension Host multi-root \\+ multi-window journey \\(${platform} (?:stable|minimum 1\\.85\\.2)\\)\\n\\s+(?:if: always\\(\\)\\n\\s+)?timeout-minutes: 25`,
+          "gu",
+        ),
+      )?.length,
+      2,
+      `${platform} host gates must retain a bounded diagnostic deadline`,
+    );
+  }
   assert.match(
     macGate[0],
     /- name: Extension Host multi-root \+ multi-window journey \(macOS minimum 1\.85\.2\)\n\s+if: always\(\)/u,
