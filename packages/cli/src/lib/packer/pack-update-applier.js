@@ -148,6 +148,12 @@ export async function scheduleReplace(ctx = {}) {
       "RESULT_PENDING",
     );
   }
+  if (lstatOrNull(statePaths.journalPath)) {
+    throw new ApplyError(
+      `an interrupted native generation requires restart recovery: ${statePaths.journalPath}`,
+      "RECOVERY_REQUIRED",
+    );
+  }
 
   const updateLock = acquireUpdateLock(statePaths.lockPath, platform);
   const transactionId = crypto.randomUUID();
@@ -207,7 +213,9 @@ export async function scheduleReplace(ctx = {}) {
         hadTarget,
         hadAlias,
         hadPriorBackup,
+        hadPriorLineage,
         priorBackupSha,
+        priorLineageSha,
         parentPid,
         restart: Boolean(restart),
         verify: Boolean(verify),
@@ -680,7 +688,9 @@ function scheduleWindowsTransaction(ctx) {
     hadTarget,
     hadAlias,
     hadPriorBackup = false,
+    hadPriorLineage = false,
     priorBackupSha = null,
+    priorLineageSha = null,
     parentPid,
     restart,
     verify,
@@ -698,6 +708,7 @@ function scheduleWindowsTransaction(ctx) {
       aliasPath: layout.aliasPath,
       backupPath: statePaths.backupPath,
       lineagePath: statePaths.lineagePath,
+      journalPath: statePaths.journalPath,
       lockPath: statePaths.lockPath,
       resultPath: statePaths.resultPath,
       lockToken: updateLock.token,
@@ -708,7 +719,9 @@ function scheduleWindowsTransaction(ctx) {
       hadTarget,
       hadAlias,
       hadPriorBackup,
+      hadPriorLineage,
       priorBackupSha256: priorBackupSha,
+      priorLineageSha256: priorLineageSha,
       parentPid,
       restart,
       verify,
@@ -757,11 +770,6 @@ function scheduleWindowsTransaction(ctx) {
       // post-transfer paths always consume the ChildProcess error event.
       child.once("error", (error) => {
         childError = error;
-        if (ready) {
-          removeOwnedLockFile(updateLock);
-          removeRegularFileIfPresent(sidecarPath);
-          removeRegularFileIfPresent(readyPath);
-        }
       });
     }
     try {
@@ -812,6 +820,7 @@ function scheduleWindowsTransaction(ctx) {
     });
   } catch (error) {
     if (sidecarPath) removeRegularFileIfPresent(sidecarPath);
+    if (sidecarPath) removeRegularFileIfPresent(`${sidecarPath}.journal.ps1`);
     if (sidecarPath) removeRegularFileIfPresent(`${sidecarPath}.ready`);
     if (error instanceof ApplyError) throw error;
     throw new ApplyError(
@@ -819,6 +828,167 @@ function scheduleWindowsTransaction(ctx) {
       "SIDECAR_FAILED",
     );
   }
+}
+
+function windowsGenerationJournalHelperSource() {
+  return String.raw`param()
+$ErrorActionPreference = 'Stop'
+$Action = [string]$env:JOURNAL_ACTION
+$JournalPath = [string]$env:JOURNAL_FILE
+$RetiredPath = [string]$env:JOURNAL_RETIRED
+$TransactionId = [string]$env:TRANSACTION_ID
+$Phase = [string]$env:JOURNAL_PHASE
+$Decision = [string]$env:JOURNAL_DECISION
+$HashPattern = '^[a-f0-9]{64}$'
+$AllowedPhases = @('prepared','target-committed','alias-committed','verified','backup-committed','lineage-committed','committed')
+$AllowedActions = @('write','retire')
+$ParsedId = [guid]::Empty
+if ($AllowedActions -notcontains $Action) { throw 'Invalid journal action' }
+if (-not [guid]::TryParse($TransactionId, [ref]$ParsedId)) { throw 'Invalid transaction identifier' }
+if ($AllowedPhases -notcontains $Phase) { throw 'Invalid transaction phase' }
+if (@('rollback','commit') -notcontains $Decision) { throw 'Invalid transaction decision' }
+if (($Phase -eq 'committed') -ne ($Decision -eq 'commit')) { throw 'Invalid phase decision' }
+
+if ($Action -eq 'write' -and $Phase -eq 'prepared') {
+  if ([IO.File]::Exists($JournalPath)) { throw 'A generation journal already exists' }
+  $Bytes = [Convert]::FromBase64String([string]$env:JOURNAL_INITIAL_BASE64)
+  $Journal = [Text.Encoding]::UTF8.GetString($Bytes) | ConvertFrom-Json
+  $ParentSource = @'
+using System;
+using System.Runtime.InteropServices;
+public static class CcParentProcess {
+  [StructLayout(LayoutKind.Sequential)]
+  private struct PBI {
+    public IntPtr Reserved1;
+    public IntPtr PebBaseAddress;
+    public IntPtr Reserved2_0;
+    public IntPtr Reserved2_1;
+    public IntPtr UniqueProcessId;
+    public IntPtr InheritedFromUniqueProcessId;
+  }
+  [DllImport("ntdll.dll")]
+  private static extern int NtQueryInformationProcess(IntPtr process, int infoClass, ref PBI info, int size, out int returned);
+  [DllImport("kernel32.dll")]
+  private static extern IntPtr GetCurrentProcess();
+  public static int Get() {
+    PBI info = new PBI();
+    int returned;
+    int status = NtQueryInformationProcess(GetCurrentProcess(), 0, ref info, Marshal.SizeOf(info), out returned);
+    if (status != 0) { throw new InvalidOperationException("Parent process query failed"); }
+    return info.InheritedFromUniqueProcessId.ToInt32();
+  }
+}
+'@
+  Add-Type -TypeDefinition $ParentSource -Language CSharp
+  $Journal | Add-Member -NotePropertyName ownerPid -NotePropertyValue ([CcParentProcess]::Get())
+} else {
+  if (-not [IO.File]::Exists($JournalPath)) { throw 'Generation journal is missing' }
+  $Journal = Get-Content -Raw -LiteralPath $JournalPath | ConvertFrom-Json
+}
+
+$ValidBefore = {
+  param($Present, $Digest)
+  return (($Present -is [bool]) -and ((-not $Present -and $null -eq $Digest) -or ($Present -and [string]$Digest -match $HashPattern)))
+}
+$Valid = (
+  [string]$Journal.schema -eq 'chainlesschain.native-install-transaction.v1' -and
+  [string]$Journal.transactionId -eq $TransactionId -and
+  @('update','rescue') -contains [string]$Journal.operation -and
+  ($Journal.ownerPid -is [int] -or $Journal.ownerPid -is [long]) -and
+  [int64]$Journal.ownerPid -gt 0 -and
+  $AllowedPhases -contains [string]$Journal.phase -and
+  @('rollback','commit') -contains [string]$Journal.decision -and
+  [string]$Journal.expectedSha256 -match $HashPattern -and
+  (& $ValidBefore $Journal.hadTarget $Journal.targetBeforeSha256) -and
+  (& $ValidBefore $Journal.hadAlias $Journal.aliasBeforeSha256) -and
+  (& $ValidBefore $Journal.hadBackup $Journal.backupBeforeSha256) -and
+  (& $ValidBefore $Journal.hadLineage $Journal.lineageBeforeSha256)
+)
+if (-not $Valid) { throw 'Generation journal failed schema validation' }
+if ([string]$Journal.transactionId -ne $TransactionId) { throw 'Generation journal ownership changed' }
+
+if ($Action -eq 'retire') {
+  if ([string]$Journal.phase -ne $Phase -or [string]$Journal.decision -ne $Decision) {
+    throw 'Generation journal decision changed before retirement'
+  }
+  $ReplacedPath = Join-Path (Split-Path -Parent $JournalPath) ('.chainlesschain.journal-retired-previous-' + [guid]::NewGuid().ToString('N'))
+  try {
+    if ([IO.File]::Exists($RetiredPath)) {
+      [IO.File]::Replace($JournalPath, $RetiredPath, $ReplacedPath, $true)
+    } else {
+      [IO.File]::Move($JournalPath, $RetiredPath)
+    }
+    $Final = [IO.File]::Open($RetiredPath, [IO.FileMode]::Open, [IO.FileAccess]::ReadWrite, [IO.FileShare]::Read)
+    try { $Final.Flush($true) } finally { $Final.Dispose() }
+  } finally {
+    if ([IO.File]::Exists($ReplacedPath)) {
+      try { [IO.File]::Delete($ReplacedPath) } catch { }
+    }
+  }
+  exit 0
+}
+
+if ($Phase -eq 'prepared') {
+  $Snapshots = [Collections.Generic.Dictionary[string,string]]::new([StringComparer]::OrdinalIgnoreCase)
+  if ($Journal.hadTarget) { $Snapshots.Add([string]$env:TARGET_SNAPSHOT, [string]$Journal.targetBeforeSha256) }
+  if ($Journal.hadAlias) { $Snapshots.Add([string]$env:ALIAS_BACKUP, [string]$Journal.aliasBeforeSha256) }
+  if ($Journal.hadBackup) { $Snapshots.Add([string]$env:BACKUP_SNAPSHOT, [string]$Journal.backupBeforeSha256) }
+  if ($Journal.hadLineage) { $Snapshots.Add([string]$env:LINEAGE_SNAPSHOT, [string]$Journal.lineageBeforeSha256) }
+  foreach ($Snapshot in $Snapshots.GetEnumerator()) {
+    if (-not [IO.File]::Exists($Snapshot.Key)) { throw 'A recovery snapshot is missing' }
+    $SnapshotStream = [IO.File]::Open($Snapshot.Key, [IO.FileMode]::Open, [IO.FileAccess]::ReadWrite, [IO.FileShare]::Read)
+    try {
+      $Hasher = [Security.Cryptography.SHA256]::Create()
+      try {
+        $Observed = ([BitConverter]::ToString($Hasher.ComputeHash($SnapshotStream))).Replace('-', '').ToLowerInvariant()
+      } finally { $Hasher.Dispose() }
+      if ($Observed -ne $Snapshot.Value) { throw 'A recovery snapshot changed while staging' }
+      $SnapshotStream.Flush($true)
+    } finally { $SnapshotStream.Dispose() }
+  }
+}
+
+if ($Phase -ne 'prepared') {
+  $Transitions = @{
+    'prepared' = @('target-committed')
+    'target-committed' = @('alias-committed','verified')
+    'alias-committed' = @('verified')
+    'verified' = @('backup-committed','lineage-committed')
+    'backup-committed' = @('lineage-committed')
+    'lineage-committed' = @('committed')
+  }
+  if ($Transitions[[string]$Journal.phase] -notcontains $Phase) {
+    throw 'Generation journal phase transition is invalid'
+  }
+}
+
+$Journal.phase = $Phase
+$Journal.decision = $Decision
+$Journal.updatedAt = [DateTimeOffset]::UtcNow.ToString('o')
+$Directory = Split-Path -Parent $JournalPath
+$StagingPath = Join-Path $Directory ('.chainlesschain.journal-' + [guid]::NewGuid().ToString('N'))
+$ReplacedPath = Join-Path $Directory ('.chainlesschain.journal-previous-' + [guid]::NewGuid().ToString('N'))
+try {
+  $Payload = $Journal | ConvertTo-Json -Compress -Depth 8
+  $PayloadBytes = [Text.UTF8Encoding]::new($false).GetBytes($Payload + [Environment]::NewLine)
+  $Stream = [IO.File]::Open($StagingPath, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write, [IO.FileShare]::None)
+  try {
+    $Stream.Write($PayloadBytes, 0, $PayloadBytes.Length)
+    $Stream.Flush($true)
+  } finally { $Stream.Dispose() }
+  if ([IO.File]::Exists($JournalPath)) {
+    [IO.File]::Replace($StagingPath, $JournalPath, $ReplacedPath, $true)
+    [IO.File]::Delete($ReplacedPath)
+  } else {
+    [IO.File]::Move($StagingPath, $JournalPath)
+  }
+  $Final = [IO.File]::Open($JournalPath, [IO.FileMode]::Open, [IO.FileAccess]::ReadWrite, [IO.FileShare]::Read)
+  try { $Final.Flush($true) } finally { $Final.Dispose() }
+} finally {
+  if ([IO.File]::Exists($StagingPath)) { [IO.File]::Delete($StagingPath) }
+  if ([IO.File]::Exists($ReplacedPath)) { [IO.File]::Delete($ReplacedPath) }
+}
+`;
 }
 
 /**
@@ -833,6 +1003,7 @@ export function writeWindowsSidecar(ctx) {
     aliasPath = null,
     backupPath = `${targetExePath}.previous`,
     lineagePath = `${targetExePath}.update-lineage.json`,
+    journalPath = `${targetExePath}.update-transaction.json`,
     lockPath = `${targetExePath}.update.lock`,
     resultPath = `${targetExePath}.update-result.json`,
     lockToken,
@@ -843,7 +1014,9 @@ export function writeWindowsSidecar(ctx) {
     hadTarget,
     hadAlias = false,
     hadPriorBackup = false,
+    hadPriorLineage = false,
     priorBackupSha256 = null,
+    priorLineageSha256 = null,
     parentPid,
     restart,
     verify = true,
@@ -871,19 +1044,37 @@ export function writeWindowsSidecar(ctx) {
       "MISSING_PRESTATE",
     );
   }
+  if (typeof hadPriorLineage !== "boolean") {
+    throw new ApplyError(
+      "sidecar requires explicit prior lineage state",
+      "MISSING_PRESTATE",
+    );
+  }
   const expectedSha = validateExpectedSha(expectedSha256);
   if (hadTarget) validateExpectedSha(targetBeforeSha256, "targetBeforeSha256");
   if (hadAlias) validateExpectedSha(aliasBeforeSha256, "aliasBeforeSha256");
   if (hadPriorBackup) {
     validateExpectedSha(priorBackupSha256, "priorBackupSha256");
   }
-  if (!lockToken || !/^[0-9]+:[0-9a-f-]{32,36}$/i.test(lockToken)) {
+  if (hadPriorLineage) {
+    validateExpectedSha(priorLineageSha256, "priorLineageSha256");
+  }
+  if (
+    !lockToken ||
+    !/^[1-9][0-9]*:(?:[0-9a-f]{32}|[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/i.test(
+      lockToken,
+    )
+  ) {
     throw new ApplyError(
       "a valid lock ownership token is required",
       "BAD_LOCK_TOKEN",
     );
   }
-  if (!/^[0-9a-f-]{36}$/i.test(transactionId)) {
+  if (
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      transactionId,
+    )
+  ) {
     throw new ApplyError(
       "a valid transactionId is required",
       "BAD_TRANSACTION_ID",
@@ -927,16 +1118,31 @@ export function writeWindowsSidecar(ctx) {
   }
   const readyPath = `${sidecarPath}.ready`;
   const readyTempPath = `${readyPath}.tmp-${suffix}`;
+  const journalHelperPath = `${sidecarPath}.journal.ps1`;
   const parentProbePath = `${sidecarPath}.parent`;
+  const targetSnapshotPath = path.join(
+    path.dirname(targetExePath),
+    `.chainlesschain.target-prior-${transactionId}.exe`,
+  );
+  const backupSnapshotPath = path.join(
+    path.dirname(targetExePath),
+    `.chainlesschain.backup-prior-${transactionId}.exe`,
+  );
+  const lineageSnapshotPath = path.join(
+    path.dirname(targetExePath),
+    `.chainlesschain.lineage-prior-${transactionId}.json`,
+  );
+  const journalRetiredPath = `${journalPath}.last`;
   const backupTempPath = `${backupPath}.tmp-${suffix}`;
-  const currentTempPath = `${targetExePath}.rescue-current-${suffix}`;
+  const currentTempPath = targetSnapshotPath;
   const rollbackTempPath = `${targetExePath}.rollback-${suffix}`;
+  const backupRollbackPath = `${backupPath}.rollback-${suffix}`;
   const failedPath = `${targetExePath}.failed-${suffix}`;
   const aliasCandidatePath = aliasPath
     ? `${aliasPath}.candidate-${suffix}`
     : targetExePath;
   const aliasBackupPath = aliasPath
-    ? `${aliasPath}.previous-${suffix}`
+    ? path.join(path.dirname(aliasPath), `.cc.previous-${transactionId}.exe`)
     : targetExePath;
   const aliasRollbackPath = aliasPath
     ? `${aliasPath}.rollback-${suffix}`
@@ -952,6 +1158,7 @@ export function writeWindowsSidecar(ctx) {
     // spelling before READY_FILE is published and lock ownership transfers.
     rawTempRoot,
     sidecarPath,
+    journalHelperPath,
     readyPath,
     readyTempPath,
     parentProbePath,
@@ -959,11 +1166,17 @@ export function writeWindowsSidecar(ctx) {
     targetExePath,
     backupPath,
     lineagePath,
+    journalPath,
+    journalRetiredPath,
     lockPath,
     resultPath,
     backupTempPath,
     currentTempPath,
+    targetSnapshotPath,
+    backupSnapshotPath,
+    lineageSnapshotPath,
     rollbackTempPath,
+    backupRollbackPath,
     failedPath,
     lineageTempPath,
     resultTempPath,
@@ -991,16 +1204,32 @@ export function writeWindowsSidecar(ctx) {
           : null
         : expectedSha,
   });
-  const rolledBackLineage = hadTarget
-    ? makeLineage({
-        transactionId,
-        operation: "rolled-back",
-        currentSha256: targetBeforeSha256,
-        previousSha256: targetBeforeSha256,
-      })
-    : null;
-  const rollbackSourcePath =
-    operation === "update" ? backupTempPath : currentTempPath;
+  const rollbackSourcePath = targetSnapshotPath;
+  const initialJournal = {
+    schema: NATIVE_GENERATION_TRANSACTION_SCHEMA,
+    transactionId,
+    operation,
+    phase: "prepared",
+    decision: "rollback",
+    expectedSha256: expectedSha,
+    hadTarget,
+    targetBeforeSha256: hadTarget ? targetBeforeSha256 : null,
+    hadAlias,
+    aliasBeforeSha256: hadAlias ? aliasBeforeSha256 : null,
+    hadBackup: hadPriorBackup,
+    backupBeforeSha256: hadPriorBackup ? priorBackupSha256 : null,
+    hadLineage: hadPriorLineage,
+    lineageBeforeSha256: hadPriorLineage ? priorLineageSha256 : null,
+    updatedAt: null,
+  };
+  const initialJournalBase64 = Buffer.from(
+    JSON.stringify(initialJournal),
+    "utf8",
+  ).toString("base64");
+  const successLineageSha = crypto
+    .createHash("sha256")
+    .update(`${JSON.stringify(successLineage)}\r\n`, "utf8")
+    .digest("hex");
   const reparseChecks = buildWindowsReparseChecks(Object.values(allPaths));
   const startupCheck = buildWindowsTimedStartupCheckLines();
 
@@ -1020,12 +1249,23 @@ export function writeWindowsSidecar(ctx) {
     `set "CURRENT_TEMP=${currentTempPath}"`,
     `set "ROLLBACK_SOURCE=${rollbackSourcePath}"`,
     `set "ROLLBACK_TEMP=${rollbackTempPath}"`,
+    `set "BACKUP_ROLLBACK=${backupRollbackPath}"`,
     `set "FAILED_EXE=${failedPath}"`,
     `set "ALIAS_CANDIDATE=${aliasCandidatePath}"`,
     `set "ALIAS_BACKUP=${aliasBackupPath}"`,
     `set "ALIAS_ROLLBACK=${aliasRollbackPath}"`,
     `set "LINEAGE_FILE=${lineagePath}"`,
     `set "LINEAGE_TEMP=${lineageTempPath}"`,
+    `set "LINEAGE_SNAPSHOT=${lineageSnapshotPath}"`,
+    `set "TARGET_SNAPSHOT=${targetSnapshotPath}"`,
+    `set "BACKUP_SNAPSHOT=${backupSnapshotPath}"`,
+    `set "JOURNAL_FILE=${journalPath}"`,
+    `set "JOURNAL_RETIRED=${journalRetiredPath}"`,
+    `set "JOURNAL_HELPER=${journalHelperPath}"`,
+    `set "JOURNAL_INITIAL_BASE64=${initialJournalBase64}"`,
+    'set "JOURNAL_ACTION=write"',
+    'set "JOURNAL_PHASE=prepared"',
+    'set "JOURNAL_DECISION=rollback"',
     `set "LOCK_FILE=${lockPath}"`,
     `set "LOCK_TOKEN=${lockToken}"`,
     `set "LOCK_TOKEN_SHA=${lockTokenSha}"`,
@@ -1041,6 +1281,9 @@ export function writeWindowsSidecar(ctx) {
     `set "HAD_ALIAS=${hadAlias ? "1" : "0"}"`,
     `set "HAD_BACKUP=${hadPriorBackup ? "1" : "0"}"`,
     `set "BACKUP_BEFORE_SHA=${priorBackupSha256 || ""}"`,
+    `set "HAD_LINEAGE=${hadPriorLineage ? "1" : "0"}"`,
+    `set "LINEAGE_BEFORE_SHA=${priorLineageSha256 || ""}"`,
+    `set "LINEAGE_TRANSACTION_SHA=${successLineageSha}"`,
     `set "MANAGE_ALIAS=${aliasPath ? "1" : "0"}"`,
     'set "TARGET_COMMITTED=0"',
     'set "ALIAS_COMMITTED=0"',
@@ -1095,27 +1338,53 @@ export function writeWindowsSidecar(ctx) {
     "if errorlevel 1 goto hashfailed",
     'if /I not "%OBSERVED_SHA%"=="%EXPECTED_SHA%" goto hashmismatch',
     'if "%OPERATION%"=="rescue" goto stagerescue',
-    'if "%HAD_TARGET%"=="0" goto stagealias',
-    'copy /B /Y "%TARGET_EXE%" "%BACKUP_TEMP%" >NUL',
+    'if "%HAD_TARGET%"=="0" goto stagepriorstate',
+    'copy /B /Y "%TARGET_EXE%" "%TARGET_SNAPSHOT%" >NUL',
+    "if errorlevel 1 goto backupfailed",
+    'set "HASH_PATH=%TARGET_SNAPSHOT%"',
+    "call :hashpath",
+    "if errorlevel 1 goto backupfailed",
+    'if /I not "%OBSERVED_SHA%"=="%TARGET_BEFORE_SHA%" goto backupfailed',
+    'copy /B /Y "%TARGET_SNAPSHOT%" "%BACKUP_TEMP%" >NUL',
     "if errorlevel 1 goto backupfailed",
     'set "HASH_PATH=%BACKUP_TEMP%"',
     "call :hashpath",
     "if errorlevel 1 goto backupfailed",
     'if /I not "%OBSERVED_SHA%"=="%TARGET_BEFORE_SHA%" goto backupfailed',
-    "goto stagealias",
+    "goto stagepriorstate",
     ":stagerescue",
-    'if "%HAD_TARGET%"=="0" goto stagealias',
+    'if "%HAD_TARGET%"=="0" goto stagepriorstate',
     'copy /B /Y "%TARGET_EXE%" "%CURRENT_TEMP%" >NUL',
     "if errorlevel 1 goto backupfailed",
     'set "HASH_PATH=%CURRENT_TEMP%"',
     "call :hashpath",
     "if errorlevel 1 goto backupfailed",
     'if /I not "%OBSERVED_SHA%"=="%TARGET_BEFORE_SHA%" goto backupfailed',
+    ":stagepriorstate",
+    'if "%HAD_BACKUP%"=="0" goto stagepriorlineage',
+    'copy /B /Y "%BACKUP_EXE%" "%BACKUP_SNAPSHOT%" >NUL',
+    "if errorlevel 1 goto backupfailed",
+    'set "HASH_PATH=%BACKUP_SNAPSHOT%"',
+    "call :hashpath",
+    "if errorlevel 1 goto backupfailed",
+    'if /I not "%OBSERVED_SHA%"=="%BACKUP_BEFORE_SHA%" goto backupfailed',
+    ":stagepriorlineage",
+    'if "%HAD_LINEAGE%"=="0" goto stagealias',
+    'copy /B /Y "%LINEAGE_FILE%" "%LINEAGE_SNAPSHOT%" >NUL',
+    "if errorlevel 1 goto backupfailed",
+    'set "HASH_PATH=%LINEAGE_SNAPSHOT%"',
+    "call :hashpath",
+    "if errorlevel 1 goto backupfailed",
+    'if /I not "%OBSERVED_SHA%"=="%LINEAGE_BEFORE_SHA%" goto backupfailed',
     ":stagealias",
-    'if "%MANAGE_ALIAS%"=="0" goto precommitcheck',
+    'if "%MANAGE_ALIAS%"=="0" goto persistprepared',
     'if "%HAD_ALIAS%"=="0" goto makealiascandidate',
     'copy /B /Y "%ALIAS_EXE%" "%ALIAS_BACKUP%" >NUL',
     "if errorlevel 1 goto aliasstagefailed",
+    'set "HASH_PATH=%ALIAS_BACKUP%"',
+    "call :hashpath",
+    "if errorlevel 1 goto aliasstagefailed",
+    'if /I not "%OBSERVED_SHA%"=="%ALIAS_BEFORE_SHA%" goto aliasstagefailed',
     ":makealiascandidate",
     'copy /B /Y "%NEW_EXE%" "%ALIAS_CANDIDATE%" >NUL',
     "if errorlevel 1 goto aliasstagefailed",
@@ -1123,6 +1392,12 @@ export function writeWindowsSidecar(ctx) {
     "call :hashpath",
     "if errorlevel 1 goto aliasstagefailed",
     'if /I not "%OBSERVED_SHA%"=="%EXPECTED_SHA%" goto aliasstagefailed',
+    ":persistprepared",
+    'set "JOURNAL_PHASE=prepared"',
+    'set "JOURNAL_DECISION=rollback"',
+    "call :writejournal",
+    "if errorlevel 1 goto journalpreparefailed",
+    'set "JOURNAL_INITIAL_BASE64="',
     ":precommitcheck",
     // Re-hash after all potentially slow backup work, immediately before move.
     'set "HASH_PATH=%NEW_EXE%"',
@@ -1139,10 +1414,16 @@ export function writeWindowsSidecar(ctx) {
     'move /Y "%NEW_EXE%" "%TARGET_EXE%" >NUL',
     "if errorlevel 1 goto movefailed",
     'set "TARGET_COMMITTED=1"',
+    'set "JOURNAL_PHASE=target-committed"',
+    "call :writejournal",
+    "if errorlevel 1 goto journalphasefailed",
     'if "%MANAGE_ALIAS%"=="0" goto verifytransaction',
     'move /Y "%ALIAS_CANDIDATE%" "%ALIAS_EXE%" >NUL',
     "if errorlevel 1 goto aliascommitfailed",
     'set "ALIAS_COMMITTED=1"',
+    'set "JOURNAL_PHASE=alias-committed"',
+    "call :writejournal",
+    "if errorlevel 1 goto journalphasefailed",
     ":verifytransaction",
     // Hash committed pathnames before executing either binary or persisting
     // backup/lineage. This catches a candidate pathname exchange in the final
@@ -1161,22 +1442,46 @@ export function writeWindowsSidecar(ctx) {
       ? [
           'set "VERIFY_PATH=%TARGET_EXE%"',
           ...startupCheck,
-          'if "%MANAGE_ALIAS%"=="0" goto writelineage',
+          'if "%MANAGE_ALIAS%"=="0" goto persistverified',
           'set "VERIFY_PATH=%ALIAS_EXE%"',
           ...startupCheck,
         ]
       : ["REM post-replace verification disabled"]),
+    ":persistverified",
+    'set "JOURNAL_PHASE=verified"',
+    "call :writejournal",
+    "if errorlevel 1 goto journalphasefailed",
     ":writelineage",
     'if not "%OPERATION%"=="update" goto persistlineage',
     'if "%HAD_TARGET%"=="0" goto persistlineage',
     'move /Y "%BACKUP_TEMP%" "%BACKUP_EXE%" >NUL',
     "if errorlevel 1 goto backupcommitfailed",
     'set "BACKUP_COMMITTED=1"',
-    'set "ROLLBACK_SOURCE=%BACKUP_EXE%"',
+    'set "HASH_PATH=%BACKUP_EXE%"',
+    "call :hashpath",
+    "if errorlevel 1 goto backupcommitfailed",
+    'if /I not "%OBSERVED_SHA%"=="%TARGET_BEFORE_SHA%" goto backupcommitfailed',
+    'set "JOURNAL_PHASE=backup-committed"',
+    "call :writejournal",
+    "if errorlevel 1 goto journalphasefailed",
     ":persistlineage",
     `> "%LINEAGE_TEMP%" echo ${JSON.stringify(successLineage)}`,
     'move /Y "%LINEAGE_TEMP%" "%LINEAGE_FILE%" >NUL',
     "if errorlevel 1 goto lineagefailed",
+    'set "HASH_PATH=%LINEAGE_FILE%"',
+    "call :hashpath",
+    "if errorlevel 1 goto lineagefailed",
+    'if /I not "%OBSERVED_SHA%"=="%LINEAGE_TRANSACTION_SHA%" goto lineagefailed',
+    'set "JOURNAL_PHASE=lineage-committed"',
+    "call :writejournal",
+    "if errorlevel 1 goto journalphasefailed",
+    'set "JOURNAL_PHASE=committed"',
+    'set "JOURNAL_DECISION=commit"',
+    "call :writejournal",
+    "if errorlevel 1 goto journalcommitfailed",
+    'set "JOURNAL_ACTION=retire"',
+    "call :writejournal",
+    "if errorlevel 1 goto journalretirefailed",
     restart
       ? "REM restart deferred until result persistence"
       : "REM restart not requested",
@@ -1195,8 +1500,36 @@ export function writeWindowsSidecar(ctx) {
     ":lineagefailed",
     'set "FAIL_STATUS=lineage-write-failed"',
     "goto rollbacktransaction",
+    ":journalphasefailed",
+    'set "FAIL_STATUS=journal-phase-write-failed"',
+    "goto rollbacktransaction",
+    ":journalpreparefailed",
+    'if exist "%JOURNAL_FILE%" goto journalrecoveryrequired',
+    'set "RESULT_STATUS=journal-prepare-failed"',
+    "goto cleanup",
+    ":journalcommitfailed",
+    'set "RESULT_STATUS=journal-commit-write-failed"',
+    "goto journalrecoveryrequired",
+    ":journalretirefailed",
+    'set "RESULT_STATUS=journal-retirement-failed"',
+    "goto journalrecoveryrequired",
     ":rollbacktransaction",
-    'if not "%TARGET_COMMITTED%"=="1" goto rollbackalias',
+    'if "%TARGET_COMMITTED%"=="1" goto rollbackcommittedtarget',
+    'if exist "%TARGET_EXE%" goto inspectrollbacktarget',
+    'if "%HAD_TARGET%"=="1" goto targetrollbackfailed',
+    "goto rollbackalias",
+    ":inspectrollbacktarget",
+    'set "HASH_PATH=%TARGET_EXE%"',
+    "call :hashpath",
+    "if errorlevel 1 goto targetrollbackfailed",
+    'if /I "%OBSERVED_SHA%"=="%TARGET_BEFORE_SHA%" goto rollbackalias',
+    'if /I not "%OBSERVED_SHA%"=="%EXPECTED_SHA%" goto targetrollbackfailed',
+    'set "TARGET_COMMITTED=1"',
+    ":rollbackcommittedtarget",
+    'set "HASH_PATH=%TARGET_EXE%"',
+    "call :hashpath",
+    "if errorlevel 1 goto targetrollbackfailed",
+    'if /I not "%OBSERVED_SHA%"=="%EXPECTED_SHA%" goto targetrollbackfailed',
     'copy /B /Y "%TARGET_EXE%" "%FAILED_EXE%" >NUL 2>&1',
     'if "%HAD_TARGET%"=="0" goto removefreshcanonical',
     'copy /B /Y "%ROLLBACK_SOURCE%" "%ROLLBACK_TEMP%" >NUL',
@@ -1215,7 +1548,23 @@ export function writeWindowsSidecar(ctx) {
     ":targetrollbackfailed",
     'set "ROLLBACK_OK=0"',
     ":rollbackalias",
-    'if not "%ALIAS_COMMITTED%"=="1" goto finishrollback',
+    'if "%MANAGE_ALIAS%"=="0" goto finishrollback',
+    'if "%ALIAS_COMMITTED%"=="1" goto rollbackcommittedalias',
+    'if exist "%ALIAS_EXE%" goto inspectrollbackalias',
+    'if "%HAD_ALIAS%"=="1" goto aliasrollbackfailed',
+    "goto finishrollback",
+    ":inspectrollbackalias",
+    'set "HASH_PATH=%ALIAS_EXE%"',
+    "call :hashpath",
+    "if errorlevel 1 goto aliasrollbackfailed",
+    'if /I "%OBSERVED_SHA%"=="%ALIAS_BEFORE_SHA%" goto finishrollback',
+    'if /I not "%OBSERVED_SHA%"=="%EXPECTED_SHA%" goto aliasrollbackfailed',
+    'set "ALIAS_COMMITTED=1"',
+    ":rollbackcommittedalias",
+    'set "HASH_PATH=%ALIAS_EXE%"',
+    "call :hashpath",
+    "if errorlevel 1 goto aliasrollbackfailed",
+    'if /I not "%OBSERVED_SHA%"=="%EXPECTED_SHA%" goto aliasrollbackfailed',
     'if "%HAD_ALIAS%"=="0" goto removefreshalias',
     'copy /B /Y "%ALIAS_BACKUP%" "%ALIAS_ROLLBACK%" >NUL',
     "if errorlevel 1 goto aliasrollbackfailed",
@@ -1234,28 +1583,28 @@ export function writeWindowsSidecar(ctx) {
     'set "ROLLBACK_OK=0"',
     ":finishrollback",
     'if "%ROLLBACK_OK%"=="0" goto rollbackfailed',
-    ...(operation === "update" && rolledBackLineage
-      ? [
-          'if "%BACKUP_COMMITTED%"=="1" goto writerolledbacklineage',
-          'if "%HAD_BACKUP%"=="1" goto rollbackstatecomplete',
-          'move /Y "%BACKUP_TEMP%" "%BACKUP_EXE%" >NUL',
-          "if errorlevel 1 goto rollbackstatecomplete",
-          'set "BACKUP_COMMITTED=1"',
-          ":writerolledbacklineage",
-          `> "%LINEAGE_TEMP%" echo ${JSON.stringify(rolledBackLineage)}`,
-          'move /Y "%LINEAGE_TEMP%" "%LINEAGE_FILE%" >NUL 2>&1',
-          "if errorlevel 1 goto rollbacklineagefailed",
-          ":rollbackstatecomplete",
-        ]
-      : []),
+    "call :restorebackupstate",
+    "if errorlevel 1 goto rollbackstatefailed",
+    "call :restorelineagestate",
+    "if errorlevel 1 goto rollbacklineagefailed",
+    'set "JOURNAL_ACTION=retire"',
+    "call :writejournal",
+    "if errorlevel 1 goto rollbackjournalretirefailed",
     'set "RESULT_STATUS=%FAIL_STATUS%-rolled-back"',
     "goto cleanup",
     ":rollbackfailed",
     'set "RESULT_STATUS=%FAIL_STATUS%-rollback-failed"',
-    "goto cleanup",
+    "goto journalrecoveryrequired",
     ":rollbacklineagefailed",
     'set "ROLLBACK_OK=0"',
     'set "FAIL_STATUS=rollback-lineage-write-failed"',
+    "goto rollbackfailed",
+    ":rollbackstatefailed",
+    'set "ROLLBACK_OK=0"',
+    'set "FAIL_STATUS=rollback-state-restore-failed"',
+    "goto rollbackfailed",
+    ":rollbackjournalretirefailed",
+    'set "FAIL_STATUS=rollback-journal-retirement-failed"',
     "goto rollbackfailed",
     ":parenttimeout",
     'set "RESULT_STATUS=parent-timeout"',
@@ -1275,13 +1624,22 @@ export function writeWindowsSidecar(ctx) {
     "goto cleanup",
     ":stateconflict",
     'set "RESULT_STATUS=prestate-conflict"',
+    'if exist "%JOURNAL_FILE%" goto journalrecoveryrequired',
     "goto cleanup",
     ":hashfailed",
     'set "RESULT_STATUS=hash-check-failed"',
+    'if exist "%JOURNAL_FILE%" goto hashfailedafterjournal',
     "goto cleanup",
+    ":hashfailedafterjournal",
+    'set "FAIL_STATUS=hash-check-failed"',
+    "goto rollbacktransaction",
     ":hashmismatch",
     'set "RESULT_STATUS=sha256-mismatch"',
+    'if exist "%JOURNAL_FILE%" goto hashmismatchafterjournal',
     "goto cleanup",
+    ":hashmismatchafterjournal",
+    'set "FAIL_STATUS=sha256-mismatch"',
+    "goto rollbacktransaction",
     ":backupfailed",
     'set "RESULT_STATUS=backup-failed"',
     "goto cleanup",
@@ -1292,23 +1650,35 @@ export function writeWindowsSidecar(ctx) {
     'set "RESULT_STATUS=alias-stage-failed"',
     "goto cleanup",
     ":movefailed",
-    'set "RESULT_STATUS=move-failed"',
-    "goto cleanup",
+    'set "FAIL_STATUS=move-failed"',
+    "goto rollbacktransaction",
     ":locklost",
     'set "RESULT_STATUS=lock-ownership-lost"',
-    'set "WRITE_RESULT=0"',
-    "goto cleanup",
+    "goto journalrecoveryrequired",
     ":readyfailed",
     'set "WRITE_RESULT=0"',
     'set "SKIP_PATH_CLEANUP=1"',
     "goto cleanup",
+    ":journalrecoveryrequired",
+    'set "EXIT_CODE=1"',
+    'set "WRITE_RESULT=0"',
+    'set "SKIP_PATH_CLEANUP=1"',
+    'set "ROLLBACK_OK=0"',
+    "goto cleanup",
     ":cleanup",
     'if "%SKIP_PATH_CLEANUP%"=="1" goto unsafeexit',
-    'if "%ROLLBACK_OK%"=="1" del /F /Q "%BACKUP_TEMP%" >NUL 2>&1',
-    'if "%ROLLBACK_OK%"=="1" del /F /Q "%CURRENT_TEMP%" >NUL 2>&1',
+    'if exist "%JOURNAL_FILE%" goto cleanupvolatile',
+    'del /F /Q "%BACKUP_TEMP%" >NUL 2>&1',
+    'del /F /Q "%CURRENT_TEMP%" >NUL 2>&1',
+    'del /F /Q "%TARGET_SNAPSHOT%" >NUL 2>&1',
+    'del /F /Q "%BACKUP_SNAPSHOT%" >NUL 2>&1',
+    'del /F /Q "%LINEAGE_SNAPSHOT%" >NUL 2>&1',
+    'if "%MANAGE_ALIAS%"=="1" del /F /Q "%ALIAS_BACKUP%" >NUL 2>&1',
+    'del /F /Q "%JOURNAL_HELPER%" >NUL 2>&1',
+    ":cleanupvolatile",
     'if "%ROLLBACK_OK%"=="1" del /F /Q "%ROLLBACK_TEMP%" >NUL 2>&1',
+    'if "%ROLLBACK_OK%"=="1" del /F /Q "%BACKUP_ROLLBACK%" >NUL 2>&1',
     'if "%MANAGE_ALIAS%"=="1" del /F /Q "%ALIAS_CANDIDATE%" >NUL 2>&1',
-    'if "%ROLLBACK_OK%"=="1" if "%MANAGE_ALIAS%"=="1" del /F /Q "%ALIAS_BACKUP%" >NUL 2>&1',
     'if "%ROLLBACK_OK%"=="1" if "%MANAGE_ALIAS%"=="1" del /F /Q "%ALIAS_ROLLBACK%" >NUL 2>&1',
     'del /F /Q "%LINEAGE_TEMP%" >NUL 2>&1',
     'del /F /Q "%READY_TEMP%" >NUL 2>&1',
@@ -1331,6 +1701,76 @@ export function writeWindowsSidecar(ctx) {
     'if not errorlevel 1 del /F /Q "%LOCK_FILE%" >NUL 2>&1',
     'if "%EXIT_CODE%"=="0" if "%RESTART_REQUESTED%"=="1" start "" "%TARGET_EXE%"',
     '(goto) 2>NUL & del /F /Q "%~f0" & exit /b %EXIT_CODE%',
+    ":writejournal",
+    '"%CC_SYSTEM_ROOT%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "%JOURNAL_HELPER%" >NUL 2>&1',
+    "exit /b %ERRORLEVEL%",
+    ":restorebackupstate",
+    'if "%HAD_BACKUP%"=="0" goto restorebackupabsent',
+    'if not exist "%BACKUP_EXE%" goto restorebackupfromsnapshot',
+    'set "HASH_PATH=%BACKUP_EXE%"',
+    "call :hashpath",
+    "if errorlevel 1 exit /b 1",
+    'if /I "%OBSERVED_SHA%"=="%BACKUP_BEFORE_SHA%" exit /b 0',
+    'if "%OPERATION%"=="rescue" exit /b 1',
+    'if /I not "%OBSERVED_SHA%"=="%TARGET_BEFORE_SHA%" exit /b 1',
+    ":restorebackupfromsnapshot",
+    'if not exist "%BACKUP_SNAPSHOT%" exit /b 1',
+    'set "HASH_PATH=%BACKUP_SNAPSHOT%"',
+    "call :hashpath",
+    "if errorlevel 1 exit /b 1",
+    'if /I not "%OBSERVED_SHA%"=="%BACKUP_BEFORE_SHA%" exit /b 1',
+    'copy /B /Y "%BACKUP_SNAPSHOT%" "%BACKUP_ROLLBACK%" >NUL',
+    "if errorlevel 1 exit /b 1",
+    'move /Y "%BACKUP_ROLLBACK%" "%BACKUP_EXE%" >NUL',
+    "if errorlevel 1 exit /b 1",
+    'set "HASH_PATH=%BACKUP_EXE%"',
+    "call :hashpath",
+    "if errorlevel 1 exit /b 1",
+    'if /I not "%OBSERVED_SHA%"=="%BACKUP_BEFORE_SHA%" exit /b 1',
+    "exit /b 0",
+    ":restorebackupabsent",
+    'if not exist "%BACKUP_EXE%" exit /b 0',
+    'if "%OPERATION%"=="rescue" exit /b 1',
+    'if "%HAD_TARGET%"=="0" exit /b 1',
+    'set "HASH_PATH=%BACKUP_EXE%"',
+    "call :hashpath",
+    "if errorlevel 1 exit /b 1",
+    'if /I not "%OBSERVED_SHA%"=="%TARGET_BEFORE_SHA%" exit /b 1',
+    'del /F /Q "%BACKUP_EXE%" >NUL 2>&1',
+    'if exist "%BACKUP_EXE%" exit /b 1',
+    "exit /b 0",
+    ":restorelineagestate",
+    'if "%HAD_LINEAGE%"=="0" goto restorelineageabsent',
+    'if not exist "%LINEAGE_FILE%" goto restorelineagefromsnapshot',
+    'set "HASH_PATH=%LINEAGE_FILE%"',
+    "call :hashpath",
+    "if errorlevel 1 exit /b 1",
+    'if /I "%OBSERVED_SHA%"=="%LINEAGE_BEFORE_SHA%" exit /b 0',
+    'if /I not "%OBSERVED_SHA%"=="%LINEAGE_TRANSACTION_SHA%" exit /b 1',
+    ":restorelineagefromsnapshot",
+    'if not exist "%LINEAGE_SNAPSHOT%" exit /b 1',
+    'set "HASH_PATH=%LINEAGE_SNAPSHOT%"',
+    "call :hashpath",
+    "if errorlevel 1 exit /b 1",
+    'if /I not "%OBSERVED_SHA%"=="%LINEAGE_BEFORE_SHA%" exit /b 1',
+    'copy /B /Y "%LINEAGE_SNAPSHOT%" "%LINEAGE_TEMP%" >NUL',
+    "if errorlevel 1 exit /b 1",
+    'move /Y "%LINEAGE_TEMP%" "%LINEAGE_FILE%" >NUL',
+    "if errorlevel 1 exit /b 1",
+    'set "HASH_PATH=%LINEAGE_FILE%"',
+    "call :hashpath",
+    "if errorlevel 1 exit /b 1",
+    'if /I not "%OBSERVED_SHA%"=="%LINEAGE_BEFORE_SHA%" exit /b 1',
+    "exit /b 0",
+    ":restorelineageabsent",
+    'if not exist "%LINEAGE_FILE%" exit /b 0',
+    'set "HASH_PATH=%LINEAGE_FILE%"',
+    "call :hashpath",
+    "if errorlevel 1 exit /b 1",
+    'if /I not "%OBSERVED_SHA%"=="%LINEAGE_TRANSACTION_SHA%" exit /b 1',
+    'del /F /Q "%LINEAGE_FILE%" >NUL 2>&1',
+    'if exist "%LINEAGE_FILE%" exit /b 1',
+    "exit /b 0",
     ":hashpath",
     'set "OBSERVED_SHA="',
     'for /f "usebackq delims=" %%H in (`%CC_SYSTEM_ROOT%\\System32\\certutil.exe -hashfile "%HASH_PATH%" SHA256 ^| %CC_SYSTEM_ROOT%\\System32\\findstr.exe /R /X /I "[0-9A-F][0-9A-F]*"`) do if not defined OBSERVED_SHA set "OBSERVED_SHA=%%H"',
@@ -1366,21 +1806,46 @@ export function writeWindowsSidecar(ctx) {
     ":prestate_backup",
     'if "%HAD_BACKUP%"=="1" goto prestate_backup_present',
     'if exist "%BACKUP_EXE%" exit /b 1',
-    "exit /b 0",
+    "goto prestate_lineage",
     ":prestate_backup_present",
     'if not exist "%BACKUP_EXE%" exit /b 1',
     'set "HASH_PATH=%BACKUP_EXE%"',
     "call :hashpath",
     "if errorlevel 1 exit /b 1",
     'if /I not "%OBSERVED_SHA%"=="%BACKUP_BEFORE_SHA%" exit /b 1',
+    ":prestate_lineage",
+    'if "%HAD_LINEAGE%"=="1" goto prestate_lineage_present',
+    'if exist "%LINEAGE_FILE%" exit /b 1',
+    "exit /b 0",
+    ":prestate_lineage_present",
+    'if not exist "%LINEAGE_FILE%" exit /b 1',
+    'set "HASH_PATH=%LINEAGE_FILE%"',
+    "call :hashpath",
+    "if errorlevel 1 exit /b 1",
+    'if /I not "%OBSERVED_SHA%"=="%LINEAGE_BEFORE_SHA%" exit /b 1',
     "exit /b 0",
   ].join("\r\n");
 
-  fs.writeFileSync(sidecarPath, `\uFEFF${cmd}`, {
-    encoding: "utf8",
-    flag: "wx",
-    mode: 0o600,
-  });
+  try {
+    fs.writeFileSync(
+      journalHelperPath,
+      windowsGenerationJournalHelperSource(),
+      {
+        encoding: "utf8",
+        flag: "wx",
+        mode: 0o600,
+      },
+    );
+    fs.writeFileSync(sidecarPath, `\uFEFF${cmd}`, {
+      encoding: "utf8",
+      flag: "wx",
+      mode: 0o600,
+    });
+  } catch (error) {
+    removeRegularFileIfPresent(sidecarPath);
+    removeRegularFileIfPresent(journalHelperPath);
+    throw error;
+  }
   return sidecarPath;
 }
 
@@ -1425,11 +1890,26 @@ export async function rollbackLastKnownGood(ctx = {}) {
       "BACKUP_NOT_SIBLING",
     );
   }
+  if (
+    platform === "win32" &&
+    !samePath(backupPath, statePaths.backupPath, platform)
+  ) {
+    throw new ApplyError(
+      "Windows restart recovery requires the canonical .previous backup",
+      "BACKUP_NOT_CANONICAL",
+    );
+  }
   assertApplyPath(backupPath, "last-known-good backup", false, platform);
   assertApplyPath(statePaths.lineagePath, "update lineage", false, platform);
   assertApplyPath(layout.canonicalPath, "canonical executable", true, platform);
   if (layout.aliasPath) {
     assertApplyPath(layout.aliasPath, "managed CLI alias", true, platform);
+  }
+  if (lstatOrNull(statePaths.journalPath)) {
+    throw new ApplyError(
+      `an interrupted native generation requires restart recovery: ${statePaths.journalPath}`,
+      "RECOVERY_REQUIRED",
+    );
   }
 
   const updateLock = acquireUpdateLock(statePaths.lockPath, platform);
@@ -1507,8 +1987,10 @@ export async function rollbackLastKnownGood(ctx = {}) {
         aliasBeforeSha,
         hadTarget,
         hadAlias,
-        hadPriorBackup: true,
-        priorBackupSha: lineage.previousSha256,
+        hadPriorBackup,
+        hadPriorLineage: true,
+        priorBackupSha,
+        priorLineageSha,
         parentPid,
         restart: Boolean(restart),
         verify: Boolean(verify),
@@ -2021,6 +2503,16 @@ function validateExpectedSha(value, label = "expectedSha256") {
 function sameDirectory(firstPath, secondPath, platform = process.platform) {
   let first = path.dirname(path.resolve(firstPath));
   let second = path.dirname(path.resolve(secondPath));
+  if (platform === "win32") {
+    first = first.toLowerCase();
+    second = second.toLowerCase();
+  }
+  return first === second;
+}
+
+function samePath(firstPath, secondPath, platform = process.platform) {
+  let first = path.resolve(firstPath);
+  let second = path.resolve(secondPath);
   if (platform === "win32") {
     first = first.toLowerCase();
     second = second.toLowerCase();

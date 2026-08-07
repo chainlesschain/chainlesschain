@@ -1,6 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
+import os from "node:os";
+import { spawn } from "node:child_process";
 
 export const NATIVE_UPDATE_LINEAGE_SCHEMA =
   "chainlesschain.native-update-lineage.v1";
@@ -50,6 +52,7 @@ export function assertSafePathAncestors(filePath, options = {}) {
     platform = process.platform,
     leaf = "any",
     allowMissingLeaf = true,
+    allowPathAliases = false,
   } = options;
   const resolved = path.resolve(filePath);
   const parsed = path.parse(resolved);
@@ -80,7 +83,7 @@ export function assertSafePathAncestors(filePath, options = {}) {
         `${label} ancestor is not a directory: ${current}`,
       );
     }
-    if (!isLeaf && stat.isDirectory()) {
+    if (!allowPathAliases && !isLeaf && stat.isDirectory()) {
       let real;
       try {
         real = fs.realpathSync.native(current);
@@ -364,6 +367,8 @@ function parseGenerationJournal(journalPath, platform) {
     value?.schema === NATIVE_GENERATION_TRANSACTION_SCHEMA &&
     UUID.test(value.transactionId || "") &&
     ["install", "update", "rescue"].includes(value.operation) &&
+    (platform !== "win32" ||
+      (Number.isSafeInteger(value.ownerPid) && value.ownerPid > 0)) &&
     GENERATION_PHASES.has(value.phase) &&
     ["rollback", "commit"].includes(value.decision) &&
     (value.phase === "committed") === (value.decision === "commit") &&
@@ -633,11 +638,281 @@ function releaseGenerationRecoveryLock(lock, success) {
   }
 }
 
-/**
- * Resolve a durable POSIX installer/OTA generation decision before normal CLI
- * startup. Windows executable replacement remains sidecar-owned because a
- * running PE image cannot safely replace itself.
- */
+function windowsRecoveryWrapperSource() {
+  return [
+    "@echo off",
+    "setlocal EnableExtensions DisableDelayedExpansion",
+    'set "CC_RECOVERY_EXIT=1"',
+    '> "%CC_RECOVERY_READY_TEMP%" echo %CC_RECOVERY_TRANSACTION_ID%',
+    "if errorlevel 1 goto cleanup",
+    'move /Y "%CC_RECOVERY_READY_TEMP%" "%CC_RECOVERY_READY%" >NUL 2>&1',
+    "if errorlevel 1 goto cleanup",
+    "set /a CC_RECOVERY_ATTEMPTS=0",
+    ":waitloop",
+    '"%CC_RECOVERY_SYSTEM_ROOT%\\System32\\tasklist.exe" /FI "PID eq %CC_RECOVERY_PARENT_PID%" /FO CSV /NH > "%CC_RECOVERY_PARENT_PROBE%" 2>NUL',
+    "if errorlevel 1 goto cleanup",
+    '"%CC_RECOVERY_SYSTEM_ROOT%\\System32\\findstr.exe" /L /C:"%CC_RECOVERY_PARENT_PID%" "%CC_RECOVERY_PARENT_PROBE%" >NUL 2>&1',
+    "if errorlevel 1 goto runrecovery",
+    "set /a CC_RECOVERY_ATTEMPTS=%CC_RECOVERY_ATTEMPTS%+1",
+    "if %CC_RECOVERY_ATTEMPTS% GEQ 120 goto cleanup",
+    '"%CC_RECOVERY_SYSTEM_ROOT%\\System32\\ping.exe" -n 2 -w 1000 127.0.0.1 >NUL',
+    "if errorlevel 1 goto cleanup",
+    "goto waitloop",
+    ":runrecovery",
+    'set "CC_CLI_INSTALL_DIR=%CC_RECOVERY_INSTALL_DIR%"',
+    'set "CC_CLI_INSTALL_RECOVERY_ONLY=1"',
+    '"%CC_RECOVERY_POWERSHELL%" -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "%CC_RECOVERY_INSTALLER%"',
+    'set "CC_RECOVERY_EXIT=%ERRORLEVEL%"',
+    ":cleanup",
+    'del /F /Q "%CC_RECOVERY_READY_TEMP%" >NUL 2>&1',
+    'del /F /Q "%CC_RECOVERY_READY%" >NUL 2>&1',
+    'del /F /Q "%CC_RECOVERY_PARENT_PROBE%" >NUL 2>&1',
+    'del /F /Q "%CC_RECOVERY_INSTALLER%" >NUL 2>&1',
+    '(goto) 2>NUL & del /F /Q "%~f0" & exit /b %CC_RECOVERY_EXIT%',
+  ].join("\r\n");
+}
+
+function waitForWindowsRecoveryReady(readyPath, transactionId, timeoutMs) {
+  const sleeper = new Int32Array(new SharedArrayBuffer(4));
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    try {
+      const value = fs.readFileSync(readyPath, "utf8").trim();
+      if (value === transactionId) return true;
+      if (value) return false;
+    } catch (error) {
+      if (error?.code !== "ENOENT") throw error;
+    }
+    Atomics.wait(sleeper, 0, 0, 25);
+  }
+  return false;
+}
+
+function resolveTrustedWindowsPowerShell() {
+  if (process.platform !== "win32") {
+    return {
+      powershellPath: String.raw`C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`,
+      systemRoot: String.raw`C:\Windows`,
+    };
+  }
+  let systemRoot;
+  try {
+    systemRoot = path.win32.resolve(
+      fs.realpathSync.native(String.raw`\\?\GLOBALROOT\SystemRoot`),
+    );
+  } catch (error) {
+    throw new NativeUpdateStateError(
+      `could not resolve the trusted Windows system root: ${error.message}`,
+      "WINDOWS_SYSTEM_ROOT_UNAVAILABLE",
+    );
+  }
+  if (!/^[A-Za-z]:\\/.test(systemRoot) || systemRoot.includes("\0")) {
+    throw new NativeUpdateStateError(
+      "the trusted Windows system root resolved to an invalid path",
+      "WINDOWS_SYSTEM_ROOT_UNAVAILABLE",
+    );
+  }
+  return {
+    powershellPath: path.win32.join(
+      systemRoot,
+      "System32",
+      "WindowsPowerShell",
+      "v1.0",
+      "powershell.exe",
+    ),
+    systemRoot,
+  };
+}
+
+function scheduleWindowsGenerationRecovery(options) {
+  const {
+    canonicalPath,
+    statePaths,
+    journal,
+    stderr,
+    spawnImpl = spawn,
+    tmpRoot = os.tmpdir(),
+    installerBytes,
+    powershellPath,
+    cmdPath,
+    readyTimeoutMs = 10_000,
+    waitForReadyImpl = waitForWindowsRecoveryReady,
+  } = options;
+  try {
+    process.kill(journal.ownerPid, 0);
+    throw new NativeUpdateStateError(
+      `native generation owner PID ${journal.ownerPid} is still live`,
+      "RECOVERY_OWNER_LIVE",
+    );
+  } catch (error) {
+    if (error instanceof NativeUpdateStateError) throw error;
+    if (error?.code !== "ESRCH") {
+      throw new NativeUpdateStateError(
+        `could not prove native generation owner retirement: ${error.message}`,
+        "RECOVERY_OWNER_LIVE",
+      );
+    }
+  }
+
+  const lock = acquireGenerationRecoveryLock(statePaths.lockPath, "win32");
+  let child = null;
+  let scheduled = false;
+  let wrapperPath = null;
+  let installerPath = null;
+  let readyPath = null;
+  let readyTempPath = null;
+  let parentProbePath = null;
+  try {
+    const suffix = journal.transactionId.replaceAll("-", "");
+    const rawTmpRoot = path.resolve(tmpRoot);
+    assertSafePathAncestors(rawTmpRoot, {
+      label: "raw Windows recovery temporary root",
+      allowMissingLeaf: false,
+      allowPathAliases: true,
+      leaf: "directory",
+      platform: "win32",
+    });
+    const canonicalTmpRoot = fs.realpathSync.native(rawTmpRoot);
+    assertSafePathAncestors(canonicalTmpRoot, {
+      label: "canonical Windows recovery temporary root",
+      allowMissingLeaf: false,
+      leaf: "directory",
+      platform: "win32",
+    });
+    wrapperPath = path.join(
+      canonicalTmpRoot,
+      `cc-native-recovery-${suffix}.cmd`,
+    );
+    installerPath = path.join(
+      canonicalTmpRoot,
+      `cc-native-recovery-installer-${suffix}.ps1`,
+    );
+    readyPath = `${wrapperPath}.ready`;
+    readyTempPath = `${readyPath}.tmp-${journal.transactionId}`;
+    parentProbePath = `${wrapperPath}.parent`;
+    const trustedPowerShell = resolveTrustedWindowsPowerShell();
+    const resolvedPowerShell =
+      powershellPath || trustedPowerShell.powershellPath;
+    const resolvedCmd =
+      cmdPath ||
+      path.win32.join(trustedPowerShell.systemRoot, "System32", "cmd.exe");
+    for (const [label, filePath] of Object.entries({
+      "Windows recovery wrapper": wrapperPath,
+      "Windows recovery installer": installerPath,
+      "Windows recovery readiness marker": readyPath,
+      "Windows recovery readiness staging": readyTempPath,
+      "Windows recovery parent probe": parentProbePath,
+    })) {
+      assertSafeRegularFile(filePath, {
+        label,
+        allowMissingLeaf: true,
+        platform: "win32",
+      });
+      if (lstatOrNull(filePath)) {
+        throw new NativeUpdateStateError(
+          `${label} already exists`,
+          "RECOVERY_SCHEDULE_FAILED",
+        );
+      }
+    }
+    assertSafeRegularFile(resolvedPowerShell, {
+      label: "trusted Windows PowerShell",
+      allowMissingLeaf: false,
+      platform: "win32",
+    });
+    assertSafeRegularFile(resolvedCmd, {
+      label: "trusted Windows command processor",
+      allowMissingLeaf: false,
+      platform: "win32",
+    });
+    const recoveryInstallerBytes =
+      installerBytes ||
+      fs.readFileSync(new URL("../../../install/install.ps1", import.meta.url));
+    fs.writeFileSync(installerPath, recoveryInstallerBytes, {
+      flag: "wx",
+      mode: 0o600,
+    });
+    const installerFd = fs.openSync(installerPath, "r+");
+    try {
+      fsyncNativeFileDescriptor(installerFd);
+    } finally {
+      fs.closeSync(installerFd);
+    }
+    fs.writeFileSync(wrapperPath, windowsRecoveryWrapperSource(), {
+      encoding: "utf8",
+      flag: "wx",
+      mode: 0o600,
+    });
+    const wrapperFd = fs.openSync(wrapperPath, "r+");
+    try {
+      fsyncNativeFileDescriptor(wrapperFd);
+    } finally {
+      fs.closeSync(wrapperFd);
+    }
+    fsyncNativeDirectory(canonicalTmpRoot);
+    child = spawnImpl(resolvedCmd, ["/d", "/c", wrapperPath], {
+      detached: true,
+      stdio: "ignore",
+      windowsHide: true,
+      shell: false,
+      env: {
+        ...process.env,
+        SystemRoot: trustedPowerShell.systemRoot,
+        windir: trustedPowerShell.systemRoot,
+        CC_RECOVERY_SYSTEM_ROOT: trustedPowerShell.systemRoot,
+        CC_RECOVERY_POWERSHELL: resolvedPowerShell,
+        CC_RECOVERY_PARENT_PID: String(process.pid),
+        CC_RECOVERY_INSTALL_DIR: path.dirname(canonicalPath),
+        CC_RECOVERY_INSTALLER: installerPath,
+        CC_RECOVERY_READY: readyPath,
+        CC_RECOVERY_READY_TEMP: readyTempPath,
+        CC_RECOVERY_PARENT_PROBE: parentProbePath,
+        CC_RECOVERY_TRANSACTION_ID: journal.transactionId,
+      },
+    });
+    child.on?.("error", () => {});
+    if (!waitForReadyImpl(readyPath, journal.transactionId, readyTimeoutMs)) {
+      child.kill?.();
+      child.unref?.();
+      throw new NativeUpdateStateError(
+        "Windows recovery sidecar did not publish readiness",
+        "RECOVERY_SCHEDULE_FAILED",
+      );
+    }
+    child.unref?.();
+    scheduled = true;
+    stderr.write(
+      `Scheduled Windows native generation recovery; rerun the CLI after transaction=${journal.transactionId}\n`,
+    );
+    return {
+      outcome: "scheduled",
+      transactionId: journal.transactionId,
+      requiresRestart: true,
+    };
+  } finally {
+    releaseGenerationRecoveryLock(lock, false);
+    if (!scheduled) {
+      for (const filePath of [readyPath, readyTempPath, parentProbePath].filter(
+        Boolean,
+      )) {
+        try {
+          if (lstatOrNull(filePath)?.isFile()) fs.unlinkSync(filePath);
+        } catch {
+          /* retain ambiguous transient evidence */
+        }
+      }
+      for (const filePath of [wrapperPath, installerPath].filter(Boolean)) {
+        try {
+          if (lstatOrNull(filePath)?.isFile()) fs.unlinkSync(filePath);
+        } catch {
+          /* retain ambiguous recovery evidence */
+        }
+      }
+    }
+  }
+}
+
+/** Resolve a durable installer/OTA generation decision before normal startup. */
 export function recoverPendingNativeGeneration(options = {}) {
   const {
     targetExePath = process.execPath,
@@ -654,17 +929,19 @@ export function recoverPendingNativeGeneration(options = {}) {
   );
   const statePaths = nativeUpdatePaths(canonicalPath);
   if (!lstatOrNull(statePaths.journalPath)) return null;
-  if (normalizedPlatform === "win32") {
-    throw new NativeUpdateStateError(
-      `a Windows native generation requires installer/sidecar recovery: ${statePaths.journalPath}`,
-      "WINDOWS_RECOVERY_REQUIRED",
-    );
-  }
-
   const journal = parseGenerationJournal(
     statePaths.journalPath,
     normalizedPlatform,
   );
+  if (normalizedPlatform === "win32") {
+    return scheduleWindowsGenerationRecovery({
+      ...options,
+      canonicalPath,
+      statePaths,
+      journal,
+      stderr,
+    });
+  }
   const directory = path.dirname(canonicalPath);
   const aliasPath = path.join(directory, "cc");
   const transactionId = journal.transactionId;

@@ -17,6 +17,7 @@ const fixtureDirectoryPrefixes = [
   "cc-sh-install-tx-",
   "cc-ps-install-tx-",
   "cc-ps-install-crash-",
+  "cc-ps-sidecar-",
   "cc-ps-install-fresh-",
   "cc-ps-stale-lock-",
 ];
@@ -59,6 +60,16 @@ function pathLexists(filePath) {
     }
     throw error;
   }
+}
+
+function waitForPathVisibility(filePath, timeoutMs = 2_000) {
+  const sleeper = new Int32Array(new SharedArrayBuffer(4));
+  const deadline = Date.now() + timeoutMs;
+  do {
+    if (pathLexists(filePath)) return true;
+    Atomics.wait(sleeper, 0, 0, 25);
+  } while (Date.now() < deadline);
+  return pathLexists(filePath);
 }
 
 function writeShellTool(directory, name, source) {
@@ -2434,7 +2445,11 @@ describe("native installer transaction contracts", () => {
           fixture.run.status,
           fixture.run.stderr || fixture.run.stdout,
         ).not.toBe(0);
-        expect(pathLexists(fixture.mutationRaceSentinel)).toBe(true);
+        expect(
+          viaWsl
+            ? waitForPathVisibility(fixture.mutationRaceSentinel)
+            : pathLexists(fixture.mutationRaceSentinel),
+        ).toBe(true);
         expect(pathLexists(fixture.targetPath)).toBe(false);
         expect(fs.readFileSync(fixture.prestate.orphanPath, "utf8")).toBe(
           `successor-orphan-${orphanKind}-must-survive`,
@@ -2828,10 +2843,20 @@ describe("native installer transaction contracts", () => {
     expect(source).toContain(
       "[IO.File]::Replace($CandidatePath, $TargetPath, $BackupPath, $true)",
     );
+    expect(source).toContain("Test-RetryableFileReplaceFailure");
+    expect(source).toContain("$Win32Code -eq 32 -or $Win32Code -eq 33");
+    expect(source).toContain("$TargetReplaceAttempt -ge 10");
+    expect(source).toContain(
+      "Install generations changed after a transient target replacement failure",
+    );
     expect(source).toContain("Invoke-BinaryStartupCheck $TargetPath");
     expect(source).toContain("$Process.WaitForExit(30000)");
     expect(source).toContain("$Process.WaitForExit(5000)");
     expect(source).toContain("$Process.Kill()");
+    expect(source).toContain("Test-RetryableFileReplaceFailure");
+    expect(source).toContain(
+      "Install generations changed after a transient target replacement failure",
+    );
     expect(source).toContain("if ($Swapped -and -not $Committed)");
     expect(source).toContain(
       "[IO.File]::Replace($RollbackTempPath, $TargetPath, $FailedPath, $true)",
@@ -2850,9 +2875,14 @@ describe("native installer transaction contracts", () => {
     const aliasCommit = source.indexOf(
       "[IO.File]::Replace($AliasCandidatePath, $AliasPath",
     );
-    const transactionCatch = source.indexOf("} catch {", transactionStart);
+    const transactionError = source.indexOf(
+      "$TransactionError = $_.Exception.Message",
+      transactionStart,
+    );
+    const transactionCatch = source.lastIndexOf("} catch {", transactionError);
     expect(transactionStart).toBeGreaterThan(-1);
     expect(aliasCommit).toBeGreaterThan(transactionStart);
+    expect(transactionError).toBeGreaterThan(aliasCommit);
     expect(aliasCommit).toBeLessThan(transactionCatch);
     expect(source.indexOf("$Committed = $true")).toBeLessThan(transactionCatch);
   });
@@ -3078,8 +3108,13 @@ describe("native installer transaction contracts", () => {
         { encoding: "utf8", timeout: 90_000 },
       );
       expect(crashed.status, crashed.stderr || crashed.stdout).not.toBe(0);
-      expect(fs.existsSync(journalPath)).toBe(true);
-      expect(fs.existsSync(`${targetPath}.update.lock`)).toBe(true);
+      expect(fs.existsSync(journalPath), crashed.stderr || crashed.stdout).toBe(
+        true,
+      );
+      expect(
+        fs.existsSync(`${targetPath}.update.lock`),
+        crashed.stderr || crashed.stdout,
+      ).toBe(true);
 
       const recovered = spawnSync(
         "powershell.exe",
@@ -3100,6 +3135,15 @@ describe("native installer transaction contracts", () => {
       );
       expect(recovered.status, recovered.stderr || recovered.stdout).toBe(0);
       expect(fs.existsSync(journalPath)).toBe(false);
+      const retiredJournalPath = `${journalPath}.last`;
+      expect(fs.existsSync(retiredJournalPath)).toBe(true);
+      expect(
+        JSON.parse(fs.readFileSync(retiredJournalPath, "utf8")),
+      ).toMatchObject({
+        operation: "install",
+        phase,
+        decision,
+      });
       expect(fs.existsSync(`${targetPath}.update.lock`)).toBe(false);
 
       if (decision === "rollback") {
@@ -3130,10 +3174,12 @@ describe("native installer transaction contracts", () => {
 
       const remaining = fs.readdirSync(targetDir);
       expect(
-        remaining.filter((name) =>
-          /(?:update-transaction|\.new-|\.recovery-|\.rejected-|lineage-prior-|backup-prior-|\.cc\.previous-)/.test(
-            name,
-          ),
+        remaining.filter(
+          (name) =>
+            name !== path.basename(retiredJournalPath) &&
+            /(?:update-transaction|\.new-|\.recovery-|\.rejected-|lineage-prior-|backup-prior-|\.cc\.previous-)/.test(
+              name,
+            ),
         ),
       ).toEqual([]);
       expect(
@@ -3141,6 +3187,155 @@ describe("native installer transaction contracts", () => {
       ).toBe(true);
     },
     180_000,
+  );
+
+  it.runIf(process.platform === "win32").each([
+    ["update", "rollback"],
+    ["update", "commit"],
+    ["rescue", "rollback"],
+    ["rescue", "commit"],
+  ])(
+    "PowerShell installer recovers a sidecar %s journal with a %s decision",
+    (operation, decision) => {
+      const root = fs.mkdtempSync(
+        path.join(os.tmpdir(), `cc-ps-sidecar-${operation}-${decision}-`),
+      );
+      temporaryDirectories.push(root);
+      const targetDir = path.join(root, "bin");
+      fs.mkdirSync(targetDir, { recursive: true });
+
+      const transactionId = crypto.randomUUID();
+      const targetPath = path.join(targetDir, "chainlesschain.exe");
+      const aliasPath = path.join(targetDir, "cc.exe");
+      const backupPath = `${targetPath}.previous`;
+      const lineagePath = `${targetPath}.update-lineage.json`;
+      const journalPath = `${targetPath}.update-transaction.json`;
+      const lockPath = `${targetPath}.update.lock`;
+      const beforeTarget = "target-before-sidecar";
+      const beforeAlias = "alias-before-sidecar";
+      const beforeBackup =
+        operation === "rescue"
+          ? "known-good-rescue-generation"
+          : "backup-before-sidecar";
+      const candidate =
+        operation === "rescue"
+          ? beforeBackup
+          : "candidate-after-sidecar-update";
+      const digest = (value) =>
+        crypto.createHash("sha256").update(value).digest("hex");
+      const beforeLineage = `${JSON.stringify({
+        schema: "chainlesschain.native-update-lineage.v1",
+        transactionId: crypto.randomUUID(),
+        operation: "update",
+        currentSha256: digest(beforeTarget),
+        previousSha256: digest(beforeBackup),
+        updatedAt: "2026-01-01T00:00:00.000Z",
+      })}\n`;
+      const transactionLineage = `${JSON.stringify({
+        schema: "chainlesschain.native-update-lineage.v1",
+        transactionId,
+        operation,
+        currentSha256: digest(candidate),
+        previousSha256:
+          operation === "rescue" ? digest(candidate) : digest(beforeTarget),
+        updatedAt: "2026-01-02T00:00:00.000Z",
+      })}\n`;
+      const publicBackup = operation === "rescue" ? beforeBackup : beforeTarget;
+
+      fs.writeFileSync(targetPath, candidate);
+      fs.writeFileSync(aliasPath, candidate);
+      fs.writeFileSync(backupPath, publicBackup);
+      fs.writeFileSync(lineagePath, transactionLineage);
+      fs.writeFileSync(
+        path.join(
+          targetDir,
+          `.chainlesschain.target-prior-${transactionId}.exe`,
+        ),
+        beforeTarget,
+      );
+      fs.writeFileSync(
+        path.join(targetDir, `.cc.previous-${transactionId}.exe`),
+        beforeAlias,
+      );
+      fs.writeFileSync(
+        path.join(
+          targetDir,
+          `.chainlesschain.backup-prior-${transactionId}.exe`,
+        ),
+        beforeBackup,
+      );
+      fs.writeFileSync(
+        path.join(
+          targetDir,
+          `.chainlesschain.lineage-prior-${transactionId}.json`,
+        ),
+        beforeLineage,
+      );
+      fs.writeFileSync(
+        journalPath,
+        `${JSON.stringify({
+          schema: "chainlesschain.native-install-transaction.v1",
+          transactionId,
+          operation,
+          ownerPid: 2147483647,
+          phase: decision === "commit" ? "committed" : "lineage-committed",
+          decision,
+          expectedSha256: digest(candidate),
+          hadTarget: true,
+          targetBeforeSha256: digest(beforeTarget),
+          hadAlias: true,
+          aliasBeforeSha256: digest(beforeAlias),
+          hadBackup: true,
+          backupBeforeSha256: digest(beforeBackup),
+          hadLineage: true,
+          lineageBeforeSha256: digest(beforeLineage),
+          updatedAt: "2026-01-02T00:00:01.000Z",
+        })}\n`,
+      );
+      fs.writeFileSync(`${journalPath}.last`, "prior-retired-evidence");
+      fs.writeFileSync(lockPath, `2147483647:${transactionId}`);
+
+      const recovered = spawnSync(
+        "powershell.exe",
+        [
+          "-NoProfile",
+          "-NonInteractive",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-Command",
+          [
+            `$env:CC_CLI_INSTALL_DIR = ${psQuote(targetDir)}`,
+            `$env:CC_CLI_INSTALL_RECOVERY_ONLY = '1'`,
+            `. ${psQuote(ps1Path)}`,
+          ].join("; "),
+        ],
+        { encoding: "utf8", timeout: 90_000 },
+      );
+      expect(recovered.status, recovered.stderr || recovered.stdout).toBe(0);
+      expect(fs.existsSync(journalPath)).toBe(false);
+      expect(fs.existsSync(lockPath)).toBe(false);
+      expect(
+        JSON.parse(fs.readFileSync(`${journalPath}.last`, "utf8")),
+      ).toMatchObject({ operation, decision });
+
+      if (decision === "rollback") {
+        expect(fs.readFileSync(targetPath, "utf8")).toBe(beforeTarget);
+        expect(fs.readFileSync(aliasPath, "utf8")).toBe(beforeAlias);
+        expect(fs.readFileSync(backupPath, "utf8")).toBe(beforeBackup);
+        expect(fs.readFileSync(lineagePath, "utf8")).toBe(beforeLineage);
+      } else {
+        expect(fs.readFileSync(targetPath, "utf8")).toBe(candidate);
+        expect(fs.readFileSync(aliasPath, "utf8")).toBe(candidate);
+        expect(fs.readFileSync(backupPath, "utf8")).toBe(publicBackup);
+        expect(fs.readFileSync(lineagePath, "utf8")).toBe(transactionLineage);
+      }
+      expect(
+        fs
+          .readdirSync(targetDir)
+          .some((name) => /(?:target|backup|lineage)-prior-/.test(name)),
+      ).toBe(false);
+    },
+    90_000,
   );
 
   it.runIf(process.platform === "win32")(
@@ -3278,6 +3473,8 @@ describe("native installer transaction contracts", () => {
   it("packed CLI startup consumes detached native update results", () => {
     const source = fs.readFileSync(binPath, "utf8");
     expect(source).toContain("recoverPendingNativeGeneration();");
+    expect(source).toContain("nativeRecovery?.requiresRestart");
+    expect(source).toContain("process.exitCode = 75");
     expect(source).toContain("reportPendingNativeUpdateResult();");
     expect(source.indexOf("recoverPendingNativeGeneration();")).toBeLessThan(
       source.indexOf("reportPendingNativeUpdateResult();"),

@@ -9,9 +9,13 @@ import {
   reportPendingNativeUpdateResult,
 } from "../src/lib/packer/native-update-state.js";
 
-recoverPendingNativeGeneration();
-reportPendingNativeUpdateResult();
-runCli(process.argv).catch(async (error) => {
-  const { reportFatal } = await import("../src/lib/fatal-handler.js");
-  reportFatal(error);
-});
+const nativeRecovery = recoverPendingNativeGeneration();
+if (nativeRecovery?.requiresRestart) {
+  process.exitCode = 75;
+} else {
+  reportPendingNativeUpdateResult();
+  runCli(process.argv).catch(async (error) => {
+    const { reportFatal } = await import("../src/lib/fatal-handler.js");
+    reportFatal(error);
+  });
+}

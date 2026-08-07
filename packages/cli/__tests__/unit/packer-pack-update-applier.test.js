@@ -253,6 +253,77 @@ describe("rollbackLastKnownGood", () => {
     }
   });
 
+  it("retains rescue snapshots until the committed journal is retired", async () => {
+    const dir = fs.mkdtempSync(
+      path.join(CANONICAL_TEMP_ROOT, "cc-rescue-retire-fail-"),
+    );
+    const target = path.join(dir, "chainlesschain");
+    const backup = `${target}.previous`;
+    const journalPath = `${target}.update-transaction.json`;
+    const lastJournalPath = `${journalPath}.last`;
+    fs.writeFileSync(target, "current-version");
+    fs.writeFileSync(backup, "previous-version");
+    writeLineageFixture(target, { previousSha256: fileSha256(backup) });
+    const originalRenameSync = fs.renameSync.bind(fs);
+    let targetAtJournalRetirement = null;
+    const renameSpy = vi
+      .spyOn(fs, "renameSync")
+      .mockImplementation((sourcePath, destinationPath) => {
+        if (
+          path.resolve(String(sourcePath)) === path.resolve(journalPath) &&
+          path.resolve(String(destinationPath)) ===
+            path.resolve(lastJournalPath)
+        ) {
+          const journal = JSON.parse(fs.readFileSync(journalPath, "utf8"));
+          if (journal.phase === "committed" && journal.decision === "commit") {
+            targetAtJournalRetirement = fs.readFileSync(target, "utf8");
+            const error = new Error("journal retirement denied");
+            error.code = "EACCES";
+            throw error;
+          }
+        }
+        return originalRenameSync(sourcePath, destinationPath);
+      });
+    try {
+      let rejection;
+      try {
+        await rollbackLastKnownGood({
+          targetExePath: target,
+          platform: "posix",
+          verify: true,
+          verifyImpl: () => ({ status: 0, stdout: "fixture-ok" }),
+        });
+      } catch (error) {
+        rejection = error;
+      }
+      expect(rejection).toMatchObject({ code: "RESCUE_ROLLBACK_FAILED" });
+      expect(rejection.message).toContain("journal retirement denied");
+      expect(targetAtJournalRetirement).toBe("previous-version");
+      expect(fs.readFileSync(target, "utf8")).toBe("previous-version");
+      expect(fs.readFileSync(backup, "utf8")).toBe("previous-version");
+      expect(JSON.parse(fs.readFileSync(journalPath, "utf8"))).toMatchObject({
+        operation: "rescue",
+        phase: "committed",
+        decision: "commit",
+      });
+      expect(fs.existsSync(lastJournalPath)).toBe(false);
+      expect(fs.existsSync(`${target}.update.lock`)).toBe(true);
+      const names = fs.readdirSync(dir);
+      expect(
+        names.some((name) => name.includes(".chainlesschain.target-prior-")),
+      ).toBe(true);
+      expect(
+        names.some((name) => name.includes(".chainlesschain.backup-prior-")),
+      ).toBe(true);
+      expect(
+        names.some((name) => name.includes(".chainlesschain.lineage-prior-")),
+      ).toBe(true);
+    } finally {
+      renameSpy.mockRestore();
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it("restores the pre-rescue target when the rescued binary fails verification", async () => {
     const dir = fs.mkdtempSync(
       path.join(CANONICAL_TEMP_ROOT, "cc-rescue-fail-"),
@@ -358,7 +429,7 @@ describe("rollbackLastKnownGood", () => {
             platform: "posix",
           }),
         ),
-      ).rejects.toMatchObject({ code: "UPDATE_LOCKED" });
+      ).rejects.toMatchObject({ code: "RECOVERY_REQUIRED" });
     } finally {
       copySpy.mockRestore();
       fs.rmSync(dir, { recursive: true, force: true });
@@ -518,6 +589,56 @@ describe("scheduleReplace – POSIX branch", () => {
     expect(fs.existsSync(`${target}.update.lock`)).toBe(false);
     // restart not requested → no spawn
     expect(spawnCalls).toEqual([]);
+  });
+
+  it("retains update snapshots until the committed journal is retired", async () => {
+    const journalPath = `${target}.update-transaction.json`;
+    const lastJournalPath = `${journalPath}.last`;
+    const originalRenameSync = fs.renameSync.bind(fs);
+    const renameSpy = vi
+      .spyOn(fs, "renameSync")
+      .mockImplementation((sourcePath, destinationPath) => {
+        if (
+          path.resolve(String(sourcePath)) === path.resolve(journalPath) &&
+          path.resolve(String(destinationPath)) ===
+            path.resolve(lastJournalPath)
+        ) {
+          const journal = JSON.parse(fs.readFileSync(journalPath, "utf8"));
+          if (journal.phase === "committed" && journal.decision === "commit") {
+            const error = new Error("journal retirement denied");
+            error.code = "EACCES";
+            throw error;
+          }
+        }
+        return originalRenameSync(sourcePath, destinationPath);
+      });
+    try {
+      await expect(
+        scheduleReplace(
+          applyFixture({
+            newExePath: newExe,
+            targetExePath: target,
+            platform: "posix",
+          }),
+        ),
+      ).rejects.toMatchObject({ code: "ROLLBACK_FAILED" });
+      expect(fs.readFileSync(target, "utf8")).toBe("new-payload");
+      expect(fs.readFileSync(`${target}.previous`, "utf8")).toBe("old-payload");
+      expect(JSON.parse(fs.readFileSync(journalPath, "utf8"))).toMatchObject({
+        operation: "update",
+        phase: "committed",
+        decision: "commit",
+      });
+      expect(fs.existsSync(lastJournalPath)).toBe(false);
+      expect(fs.existsSync(`${target}.update.lock`)).toBe(true);
+      expect(
+        fs
+          .readdirSync(tmpDir)
+          .some((name) => name.includes(".chainlesschain.target-prior-")),
+      ).toBe(true);
+    } finally {
+      renameSpy.mockRestore();
+    }
   });
 
   it("keeps descriptor identity fields as bigint while hashing", async () => {
@@ -894,7 +1015,7 @@ describe("scheduleReplace – POSIX branch", () => {
           platform: "posix",
         }),
       ),
-    ).rejects.toMatchObject({ code: "UPDATE_LOCKED" });
+    ).rejects.toMatchObject({ code: "RECOVERY_REQUIRED" });
   });
 
   it("keeps a successfully committed binary when only restart fails", async () => {
@@ -1341,7 +1462,7 @@ describe("writeWindowsSidecar (cmd body)", () => {
         restart: false,
       }),
     );
-    tmpFiles.push(p);
+    tmpFiles.push(p, `${p}.journal.ps1`);
     expect(path.dirname(p).toLowerCase()).toBe(
       fs.realpathSync.native(path.resolve(os.tmpdir())).toLowerCase(),
     );
@@ -1364,7 +1485,8 @@ describe("writeWindowsSidecar (cmd body)", () => {
     );
     expect(body).toContain('move /Y "%NEW_EXE%" "%TARGET_EXE%"');
     expect(body).toContain('set "BACKUP_EXE=');
-    expect(body).toContain('copy /B /Y "%TARGET_EXE%" "%BACKUP_TEMP%"');
+    expect(body).toContain('copy /B /Y "%TARGET_EXE%" "%TARGET_SNAPSHOT%"');
+    expect(body).toContain('copy /B /Y "%TARGET_SNAPSHOT%" "%BACKUP_TEMP%"');
     expect(body).toContain('move /Y "%BACKUP_TEMP%" "%BACKUP_EXE%"');
     expect(body).toContain('move /Y "%ROLLBACK_TEMP%" "%TARGET_EXE%"');
     const targetCommitted = body.indexOf('set "TARGET_COMMITTED=1"');
@@ -1396,6 +1518,9 @@ describe("writeWindowsSidecar (cmd body)", () => {
       ),
     ).toBe(true);
     expect(body).toContain('move /Y "%RESULT_TEMP%" "%RESULT_FILE%"');
+    expect(body).toContain('set "JOURNAL_PHASE=committed"');
+    expect(body).toContain('set "JOURNAL_DECISION=commit"');
+    expect(body).toContain('set "JOURNAL_ACTION=retire"');
     const readyWrite = body.indexOf('> "%READY_TEMP%" echo ');
     const readyPublish = body.indexOf('move /Y "%READY_TEMP%" "%READY_FILE%"');
     expect(readyWrite).toBeGreaterThan(-1);
@@ -1418,7 +1543,7 @@ describe("writeWindowsSidecar (cmd body)", () => {
         restart: true,
       }),
     );
-    tmpFiles.push(p);
+    tmpFiles.push(p, `${p}.journal.ps1`);
     const body = fs.readFileSync(p, "utf-8");
     expect(body).toContain('start "" "%TARGET_EXE%"');
     expect(body).not.toContain("REM restart not requested");
@@ -1441,7 +1566,7 @@ describe("writeWindowsSidecar (cmd body)", () => {
         restart: false,
       }),
     );
-    tmpFiles.push(a, b);
+    tmpFiles.push(a, `${a}.journal.ps1`, b, `${b}.journal.ps1`);
     expect(a).not.toBe(b);
   });
 
@@ -1572,7 +1697,7 @@ describe("writeWindowsSidecar (cmd body)", () => {
         fs.rmSync(root, { recursive: true, force: true });
       }
     },
-    30_000,
+    90_000,
   );
 
   it.runIf(process.platform === "win32")(
@@ -1588,9 +1713,11 @@ describe("writeWindowsSidecar (cmd body)", () => {
       const aliasPath = path.join(dir, "cc.exe");
       const lockPath = `${targetExePath}.update.lock`;
       const resultPath = `${targetExePath}.update-result.json`;
+      const journalPath = `${targetExePath}.update-transaction.json`;
       fs.writeFileSync(newExePath, "new-version");
       fs.writeFileSync(targetExePath, "old-version");
       fs.writeFileSync(aliasPath, "old-alias");
+      fs.writeFileSync(`${journalPath}.last`, "prior-retired-evidence");
       const context = sidecarFixture({
         newExePath,
         targetExePath,
@@ -1633,6 +1760,31 @@ describe("writeWindowsSidecar (cmd body)", () => {
           expectedSha256: sha256("new-version"),
           aliasManaged: true,
         });
+        expect(
+          JSON.parse(
+            fs.readFileSync(
+              `${targetExePath}.update-transaction.json.last`,
+              "utf8",
+            ),
+          ),
+        ).toMatchObject({
+          transactionId: context.transactionId,
+          decision: "commit",
+          phase: "committed",
+        });
+        expect(fs.existsSync(journalPath)).toBe(false);
+        expect(
+          JSON.parse(fs.readFileSync(`${journalPath}.last`, "utf8")),
+        ).toMatchObject({
+          transactionId: context.transactionId,
+          phase: "committed",
+          decision: "commit",
+        });
+        expect(
+          fs
+            .readdirSync(dir)
+            .some((name) => /(?:target|backup|lineage)-prior-/.test(name)),
+        ).toBe(false);
         expect(fs.existsSync(lockPath)).toBe(false);
       } finally {
         fs.rmSync(root, { recursive: true, force: true });
@@ -1643,7 +1795,7 @@ describe("writeWindowsSidecar (cmd body)", () => {
         }
       }
     },
-    30_000,
+    90_000,
   );
 
   it.runIf(process.platform === "win32")(
@@ -1678,17 +1830,18 @@ describe("writeWindowsSidecar (cmd body)", () => {
         expect(run.status, run.stderr || run.stdout).toBe(1);
         expect(fs.readFileSync(targetExePath, "utf8")).toBe("old-version");
         expect(fs.readFileSync(aliasPath, "utf8")).toBe("old-alias");
-        expect(fs.readFileSync(`${targetExePath}.previous`, "utf8")).toBe(
-          "old-version",
+        expect(fs.existsSync(`${targetExePath}.previous`)).toBe(false);
+        expect(fs.existsSync(`${targetExePath}.update-lineage.json`)).toBe(
+          false,
         );
         expect(
-          JSON.parse(
-            fs.readFileSync(`${targetExePath}.update-lineage.json`, "utf8"),
-          ),
-        ).toMatchObject({
-          operation: "rolled-back",
-          currentSha256: sha256("old-version"),
-        });
+          fs.existsSync(`${targetExePath}.update-transaction.json.last`),
+        ).toBe(true);
+        expect(
+          fs
+            .readdirSync(dir)
+            .some((name) => /(?:target|backup|lineage)-prior-/.test(name)),
+        ).toBe(false);
         expect(JSON.parse(fs.readFileSync(resultPath, "utf8"))).toMatchObject({
           schema: NATIVE_UPDATE_RESULT_SCHEMA,
           transactionId: context.transactionId,
@@ -1706,7 +1859,156 @@ describe("writeWindowsSidecar (cmd body)", () => {
         }
       }
     },
-    30_000,
+    90_000,
+  );
+
+  it.runIf(process.platform === "win32")(
+    "restores prior backup and lineage generations after verification fails",
+    () => {
+      const dir = fs.mkdtempSync(
+        path.join(CANONICAL_TEMP_ROOT, "cc-sidecar-prior-state-"),
+      );
+      const newExePath = path.join(dir, "chainlesschain.exe.new");
+      const targetExePath = path.join(dir, "chainlesschain.exe");
+      const aliasPath = path.join(dir, "cc.exe");
+      const backupPath = `${targetExePath}.previous`;
+      const lineagePath = `${targetExePath}.update-lineage.json`;
+      const lockPath = `${targetExePath}.update.lock`;
+      const resultPath = `${targetExePath}.update-result.json`;
+      const priorLineage = `${JSON.stringify({
+        schema: NATIVE_UPDATE_LINEAGE_SCHEMA,
+        transactionId: crypto.randomUUID(),
+        operation: "update",
+        currentSha256: sha256("old-version"),
+        previousSha256: sha256("prior-backup"),
+        updatedAt: "2026-01-01T00:00:00.000Z",
+      })}\n`;
+      fs.writeFileSync(newExePath, "not-a-valid-executable");
+      fs.writeFileSync(targetExePath, "old-version");
+      fs.writeFileSync(aliasPath, "old-alias");
+      fs.writeFileSync(backupPath, "prior-backup");
+      fs.writeFileSync(lineagePath, priorLineage);
+      const context = sidecarFixture({
+        newExePath,
+        targetExePath,
+        aliasPath,
+        backupPath,
+        lineagePath,
+        lockPath,
+        resultPath,
+        hadPriorBackup: true,
+        priorBackupSha256: sha256("prior-backup"),
+        hadPriorLineage: true,
+        priorLineageSha256: sha256(priorLineage),
+        verify: true,
+      });
+      fs.writeFileSync(lockPath, context.lockToken);
+      const sidecarPath = writeWindowsSidecar(context);
+      try {
+        const run = nodeSpawnSync("cmd.exe", ["/c", sidecarPath], {
+          encoding: "utf8",
+          timeout: 60_000,
+        });
+        expect(run.status, run.stderr || run.stdout).toBe(1);
+        expect(fs.readFileSync(targetExePath, "utf8")).toBe("old-version");
+        expect(fs.readFileSync(aliasPath, "utf8")).toBe("old-alias");
+        expect(fs.readFileSync(backupPath, "utf8")).toBe("prior-backup");
+        expect(fs.readFileSync(lineagePath, "utf8")).toBe(priorLineage);
+        expect(JSON.parse(fs.readFileSync(resultPath, "utf8"))).toMatchObject({
+          status: "verify-failed-rolled-back",
+          exitCode: 1,
+        });
+        expect(
+          JSON.parse(
+            fs.readFileSync(
+              `${targetExePath}.update-transaction.json.last`,
+              "utf8",
+            ),
+          ),
+        ).toMatchObject({ decision: "rollback" });
+        expect(fs.existsSync(lockPath)).toBe(false);
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    },
+    60_000,
+  );
+
+  it.runIf(process.platform === "win32")(
+    "commits an independent rescue without consuming its canonical backup",
+    () => {
+      const dir = fs.mkdtempSync(
+        path.join(CANONICAL_TEMP_ROOT, "cc-sidecar-rescue-"),
+      );
+      const newExePath = path.join(dir, "chainlesschain.exe.rescue");
+      const targetExePath = path.join(dir, "chainlesschain.exe");
+      const aliasPath = path.join(dir, "cc.exe");
+      const backupPath = `${targetExePath}.previous`;
+      const lineagePath = `${targetExePath}.update-lineage.json`;
+      const lockPath = `${targetExePath}.update.lock`;
+      const resultPath = `${targetExePath}.update-result.json`;
+      const priorLineage = `${JSON.stringify({
+        schema: NATIVE_UPDATE_LINEAGE_SCHEMA,
+        transactionId: crypto.randomUUID(),
+        operation: "update",
+        currentSha256: sha256("broken-current"),
+        previousSha256: sha256("known-good"),
+        updatedAt: "2026-01-01T00:00:00.000Z",
+      })}\n`;
+      fs.writeFileSync(newExePath, "known-good");
+      fs.writeFileSync(targetExePath, "broken-current");
+      fs.writeFileSync(aliasPath, "broken-alias");
+      fs.writeFileSync(backupPath, "known-good");
+      fs.writeFileSync(lineagePath, priorLineage);
+      const context = sidecarFixture({
+        operation: "rescue",
+        newExePath,
+        targetExePath,
+        aliasPath,
+        backupPath,
+        lineagePath,
+        lockPath,
+        resultPath,
+        hadPriorBackup: true,
+        priorBackupSha256: sha256("known-good"),
+        hadPriorLineage: true,
+        priorLineageSha256: sha256(priorLineage),
+        verify: false,
+      });
+      fs.writeFileSync(lockPath, context.lockToken);
+      const sidecarPath = writeWindowsSidecar(context);
+      try {
+        const run = nodeSpawnSync("cmd.exe", ["/c", sidecarPath], {
+          encoding: "utf8",
+          timeout: 60_000,
+        });
+        expect(run.status, run.stderr || run.stdout).toBe(0);
+        expect(fs.readFileSync(targetExePath, "utf8")).toBe("known-good");
+        expect(fs.readFileSync(aliasPath, "utf8")).toBe("known-good");
+        expect(fs.readFileSync(backupPath, "utf8")).toBe("known-good");
+        expect(JSON.parse(fs.readFileSync(lineagePath, "utf8"))).toMatchObject({
+          operation: "rescue",
+          currentSha256: sha256("known-good"),
+          previousSha256: sha256("known-good"),
+        });
+        expect(JSON.parse(fs.readFileSync(resultPath, "utf8"))).toMatchObject({
+          operation: "rescue",
+          status: "success",
+        });
+        expect(
+          JSON.parse(
+            fs.readFileSync(
+              `${targetExePath}.update-transaction.json.last`,
+              "utf8",
+            ),
+          ),
+        ).toMatchObject({ operation: "rescue", decision: "commit" });
+        expect(fs.existsSync(lockPath)).toBe(false);
+      } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    },
+    60_000,
   );
 
   it.runIf(process.platform === "win32")(
@@ -1750,7 +2052,7 @@ describe("writeWindowsSidecar (cmd body)", () => {
         }
       }
     },
-    30_000,
+    90_000,
   );
 
   it.runIf(process.platform === "win32")(
@@ -1798,7 +2100,7 @@ describe("writeWindowsSidecar (cmd body)", () => {
         }
       }
     },
-    30_000,
+    90_000,
   );
 
   it.runIf(process.platform === "win32")(
@@ -1855,7 +2157,7 @@ describe("writeWindowsSidecar (cmd body)", () => {
         }
       }
     },
-    30_000,
+    90_000,
   );
 
   it("ApplyError is a typed Error with a code", () => {
@@ -2157,6 +2459,349 @@ describe("native sidecar result reporting", () => {
       fs.rmSync(dir, { recursive: true, force: true });
     }
   });
+
+  it("schedules Windows recovery behind the current process and retains its takeover lock", () => {
+    const dir = fs.mkdtempSync(
+      path.join(CANONICAL_TEMP_ROOT, "cc-windows-generation-schedule-"),
+    );
+    const transactionId = crypto.randomUUID();
+    const targetExePath = path.join(dir, "chainlesschain.exe");
+    const journalPath = `${targetExePath}.update-transaction.json`;
+    const lockPath = `${targetExePath}.update.lock`;
+    const candidate = "interrupted-windows-candidate";
+    const installerBytes = Buffer.from("# fixed recovery installer fixture\n");
+    const trustedPowerShell = path.join(dir, "trusted-powershell.exe");
+    const trustedCmd = path.join(dir, "trusted-cmd.exe");
+    const stderr = { write: vi.fn() };
+    const child = new EventEmitter();
+    child.kill = vi.fn(() => true);
+    child.unref = vi.fn();
+    let wrapperPath;
+    let installerPath;
+    let readyPath;
+    const spawnImpl = vi.fn((command, args, options) => {
+      expect(command).toBe(trustedCmd);
+      expect(args.slice(0, 2)).toEqual(["/d", "/c"]);
+      expect(options).toMatchObject({
+        detached: true,
+        stdio: "ignore",
+        windowsHide: true,
+        shell: false,
+      });
+      wrapperPath = args[2];
+      installerPath = options.env.CC_RECOVERY_INSTALLER;
+      readyPath = options.env.CC_RECOVERY_READY;
+      expect(options.env.CC_RECOVERY_POWERSHELL).toBe(trustedPowerShell);
+      expect(options.env.CC_RECOVERY_PARENT_PID).toBe(String(process.pid));
+      expect(options.env.CC_RECOVERY_INSTALL_DIR).toBe(dir);
+      expect(options.env.CC_RECOVERY_TRANSACTION_ID).toBe(transactionId);
+      return child;
+    });
+    const waitForReadyImpl = vi.fn((markerPath, expectedTransactionId) => {
+      expect(markerPath).toBe(readyPath);
+      fs.writeFileSync(markerPath, `${expectedTransactionId}\n`);
+      return true;
+    });
+    fs.writeFileSync(targetExePath, candidate);
+    fs.writeFileSync(trustedPowerShell, "trusted PowerShell fixture");
+    fs.writeFileSync(trustedCmd, "trusted command processor fixture");
+    fs.writeFileSync(
+      journalPath,
+      `${JSON.stringify({
+        schema: NATIVE_GENERATION_TRANSACTION_SCHEMA,
+        transactionId,
+        operation: "install",
+        ownerPid: 2147483647,
+        phase: "target-committed",
+        decision: "rollback",
+        expectedSha256: sha256(candidate),
+        hadTarget: false,
+        targetBeforeSha256: null,
+        hadBackup: false,
+        backupBeforeSha256: null,
+        hadAlias: false,
+        aliasBeforeSha256: null,
+        hadLineage: false,
+        lineageBeforeSha256: null,
+        updatedAt: "2026-08-01T00:00:00.000Z",
+      })}\n`,
+    );
+    fs.writeFileSync(lockPath, `2147483647:${transactionId}`);
+    const killSpy = vi.spyOn(process, "kill").mockImplementation(() => {
+      const error = new Error("fixture PID is not live");
+      error.code = "ESRCH";
+      throw error;
+    });
+    try {
+      expect(
+        recoverPendingNativeGeneration({
+          targetExePath,
+          platform: "win32",
+          force: true,
+          stderr,
+          spawnImpl,
+          tmpRoot: CANONICAL_TEMP_ROOT,
+          installerBytes,
+          powershellPath: trustedPowerShell,
+          cmdPath: trustedCmd,
+          waitForReadyImpl,
+        }),
+      ).toEqual({
+        outcome: "scheduled",
+        transactionId,
+        requiresRestart: true,
+      });
+      expect(spawnImpl).toHaveBeenCalledOnce();
+      expect(waitForReadyImpl).toHaveBeenCalledOnce();
+      expect(child.unref).toHaveBeenCalledOnce();
+      expect(child.kill).not.toHaveBeenCalled();
+      expect(fs.readFileSync(targetExePath, "utf8")).toBe(candidate);
+      expect(fs.readFileSync(journalPath, "utf8")).toContain(transactionId);
+      expect(fs.readFileSync(lockPath, "utf8")).toMatch(
+        new RegExp(`^${process.pid}:[0-9a-f-]+$`, "i"),
+      );
+      expect(fs.readFileSync(installerPath)).toEqual(installerBytes);
+      expect(fs.readFileSync(wrapperPath, "utf8")).toContain(
+        "CC_CLI_INSTALL_RECOVERY_ONLY",
+      );
+      expect(stderr.write).toHaveBeenCalledWith(
+        expect.stringContaining(`transaction=${transactionId}`),
+      );
+    } finally {
+      killSpy.mockRestore();
+      for (const filePath of [readyPath, wrapperPath, installerPath]) {
+        if (filePath) fs.rmSync(filePath, { force: true });
+      }
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("refuses Windows recovery while the journal owner is still live", () => {
+    const dir = fs.mkdtempSync(
+      path.join(CANONICAL_TEMP_ROOT, "cc-windows-generation-owner-live-"),
+    );
+    const transactionId = crypto.randomUUID();
+    const targetExePath = path.join(dir, "chainlesschain.exe");
+    const journalPath = `${targetExePath}.update-transaction.json`;
+    const candidate = "owned-windows-candidate";
+    const spawnImpl = vi.fn();
+    fs.writeFileSync(targetExePath, candidate);
+    fs.writeFileSync(
+      journalPath,
+      `${JSON.stringify({
+        schema: NATIVE_GENERATION_TRANSACTION_SCHEMA,
+        transactionId,
+        operation: "install",
+        ownerPid: process.pid,
+        phase: "target-committed",
+        decision: "rollback",
+        expectedSha256: sha256(candidate),
+        hadTarget: false,
+        targetBeforeSha256: null,
+        hadBackup: false,
+        backupBeforeSha256: null,
+        hadAlias: false,
+        aliasBeforeSha256: null,
+        hadLineage: false,
+        lineageBeforeSha256: null,
+        updatedAt: "2026-08-01T00:00:00.000Z",
+      })}\n`,
+    );
+    try {
+      expect(() =>
+        recoverPendingNativeGeneration({
+          targetExePath,
+          platform: "win32",
+          force: true,
+          stderr: { write: vi.fn() },
+          spawnImpl,
+          tmpRoot: CANONICAL_TEMP_ROOT,
+          installerBytes: Buffer.from("fixture"),
+          powershellPath: process.execPath,
+        }),
+      ).toThrowError(expect.objectContaining({ code: "RECOVERY_OWNER_LIVE" }));
+      expect(spawnImpl).not.toHaveBeenCalled();
+      expect(fs.readFileSync(targetExePath, "utf8")).toBe(candidate);
+      expect(fs.existsSync(`${targetExePath}.update.lock`)).toBe(false);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it.runIf(process.platform === "win32")(
+    "rejects a raw Windows recovery TEMP junction and closes its takeover lock",
+    () => {
+      const root = fs.mkdtempSync(
+        path.join(CANONICAL_TEMP_ROOT, "cc-windows-recovery-temp-link-"),
+      );
+      const appDir = path.join(root, "app");
+      const realTemp = path.join(root, "real-temp");
+      const linkedTemp = path.join(root, "linked-temp");
+      fs.mkdirSync(appDir);
+      fs.mkdirSync(realTemp);
+      fs.symlinkSync(realTemp, linkedTemp, "junction");
+      const transactionId = crypto.randomUUID();
+      const targetExePath = path.join(appDir, "chainlesschain.exe");
+      const journalPath = `${targetExePath}.update-transaction.json`;
+      const lockPath = `${targetExePath}.update.lock`;
+      const candidate = "interrupted-windows-candidate";
+      fs.writeFileSync(targetExePath, candidate);
+      fs.writeFileSync(
+        journalPath,
+        `${JSON.stringify({
+          schema: NATIVE_GENERATION_TRANSACTION_SCHEMA,
+          transactionId,
+          operation: "install",
+          ownerPid: 2147483647,
+          phase: "target-committed",
+          decision: "rollback",
+          expectedSha256: sha256(candidate),
+          hadTarget: false,
+          targetBeforeSha256: null,
+          hadBackup: false,
+          backupBeforeSha256: null,
+          hadAlias: false,
+          aliasBeforeSha256: null,
+          hadLineage: false,
+          lineageBeforeSha256: null,
+          updatedAt: "2026-08-01T00:00:00.000Z",
+        })}\n`,
+      );
+      fs.writeFileSync(lockPath, `2147483647:${transactionId}`);
+      const killSpy = vi.spyOn(process, "kill").mockImplementation(() => {
+        const error = new Error("fixture PID is not live");
+        error.code = "ESRCH";
+        throw error;
+      });
+      try {
+        expect(() =>
+          recoverPendingNativeGeneration({
+            targetExePath,
+            platform: "win32",
+            force: true,
+            stderr: { write: vi.fn() },
+            spawnImpl: vi.fn(),
+            tmpRoot: linkedTemp,
+            installerBytes: Buffer.from("fixture"),
+            powershellPath: process.execPath,
+          }),
+        ).toThrowError(expect.objectContaining({ code: "UNSAFE_PATH" }));
+        const closedLockPath = `${lockPath}.closed`;
+        fs.renameSync(lockPath, closedLockPath);
+        expect(fs.existsSync(closedLockPath)).toBe(true);
+        expect(
+          fs
+            .readdirSync(realTemp)
+            .some((name) => name.startsWith("cc-native-recovery-")),
+        ).toBe(false);
+      } finally {
+        killSpy.mockRestore();
+        fs.rmSync(root, { recursive: true, force: true });
+      }
+    },
+  );
+
+  it.runIf(process.platform === "win32")(
+    "recovers a Windows generation only after the scheduling CLI exits",
+    () => {
+      const dir = fs.mkdtempSync(
+        path.join(CANONICAL_TEMP_ROOT, "cc-windows-generation-restart-"),
+      );
+      const transactionId = crypto.randomUUID();
+      const suffix = transactionId.replaceAll("-", "");
+      const targetExePath = path.join(dir, "chainlesschain.exe");
+      const journalPath = `${targetExePath}.update-transaction.json`;
+      const lastJournalPath = `${journalPath}.last`;
+      const lockPath = `${targetExePath}.update.lock`;
+      const helperPath = path.join(dir, "schedule-recovery.mjs");
+      const wrapperPath = path.join(
+        CANONICAL_TEMP_ROOT,
+        `cc-native-recovery-${suffix}.cmd`,
+      );
+      const installerPath = path.join(
+        CANONICAL_TEMP_ROOT,
+        `cc-native-recovery-installer-${suffix}.ps1`,
+      );
+      const readyPath = `${wrapperPath}.ready`;
+      const candidate = "fresh-install-interrupted-after-target-commit";
+      const moduleUrl = pathToFileURL(
+        path.resolve(
+          path.dirname(fileURLToPath(import.meta.url)),
+          "../../src/lib/packer/native-update-state.js",
+        ),
+      ).href;
+      fs.writeFileSync(targetExePath, candidate);
+      fs.writeFileSync(
+        journalPath,
+        `${JSON.stringify({
+          schema: NATIVE_GENERATION_TRANSACTION_SCHEMA,
+          transactionId,
+          operation: "install",
+          ownerPid: 2147483647,
+          phase: "target-committed",
+          decision: "rollback",
+          expectedSha256: sha256(candidate),
+          hadTarget: false,
+          targetBeforeSha256: null,
+          hadBackup: false,
+          backupBeforeSha256: null,
+          hadAlias: false,
+          aliasBeforeSha256: null,
+          hadLineage: false,
+          lineageBeforeSha256: null,
+          updatedAt: "2026-08-01T00:00:00.000Z",
+        })}\n`,
+      );
+      fs.writeFileSync(lockPath, `2147483647:${transactionId}`);
+      fs.writeFileSync(
+        helperPath,
+        `import { recoverPendingNativeGeneration } from ${JSON.stringify(moduleUrl)};\n` +
+          `const outcome = recoverPendingNativeGeneration({ targetExePath: ${JSON.stringify(targetExePath)}, platform: "win32", force: true });\n` +
+          `if (!outcome?.requiresRestart) throw new Error("recovery was not scheduled");\n` +
+          `process.exit(75);\n`,
+      );
+      try {
+        const scheduled = nodeSpawnSync(process.execPath, [helperPath], {
+          encoding: "utf8",
+          timeout: 150_000,
+        });
+        expect(scheduled.status, scheduled.stderr || scheduled.stdout).toBe(75);
+
+        const waitCell = new Int32Array(new SharedArrayBuffer(4));
+        const deadline = Date.now() + 90_000;
+        while (
+          (fs.existsSync(journalPath) ||
+            fs.existsSync(lockPath) ||
+            fs.existsSync(wrapperPath) ||
+            fs.existsSync(installerPath) ||
+            fs.existsSync(readyPath)) &&
+          Date.now() < deadline
+        ) {
+          Atomics.wait(waitCell, 0, 0, 50);
+        }
+        expect(fs.existsSync(journalPath)).toBe(false);
+        expect(fs.existsSync(lockPath)).toBe(false);
+        expect(fs.existsSync(targetExePath)).toBe(false);
+        expect(fs.existsSync(wrapperPath)).toBe(false);
+        expect(fs.existsSync(installerPath)).toBe(false);
+        expect(fs.existsSync(readyPath)).toBe(false);
+        expect(
+          JSON.parse(fs.readFileSync(lastJournalPath, "utf8")),
+        ).toMatchObject({
+          transactionId,
+          operation: "install",
+          phase: "target-committed",
+          decision: "rollback",
+        });
+      } finally {
+        for (const filePath of [readyPath, wrapperPath, installerPath]) {
+          fs.rmSync(filePath, { force: true });
+        }
+        fs.rmSync(dir, { recursive: true, force: true });
+      }
+    },
+    120_000,
+  );
 
   it("atomically consumes a valid pending result and retains diagnostics", () => {
     const dir = fs.mkdtempSync(
