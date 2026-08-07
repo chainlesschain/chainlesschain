@@ -852,6 +852,8 @@ function buildCapsule({
     staging,
     `.capsule-meta-${crypto.randomUUID()}.json`,
   );
+  const realpath = _deps.fs.realpathSync.native || _deps.fs.realpathSync;
+  const canonicalSnapshotRoot = realpath(snapshotRoot);
   _deps.fs.mkdirSync(capsuleRoot, { recursive: false, mode: 0o700 });
   try {
     const snapshotEntrypoint = resolveContainedPath(
@@ -859,6 +861,16 @@ function buildCapsule({
       entrypointRelative,
       "MCP capsule entrypoint",
     );
+    const canonicalEntrypointRelative = path
+      .relative(canonicalSnapshotRoot, realpath(snapshotEntrypoint))
+      .split(path.sep)
+      .join("/");
+    if (canonicalEntrypointRelative !== entrypointRelative) {
+      throw new Error("MCP capsule entrypoint changed through a path alias");
+    }
+    const builderEntrypoint = `.${path.sep}${entrypointRelative
+      .split("/")
+      .join(path.sep)}`;
     const builder = resolveCapsuleBuilderBinary();
     const runThroughProcessBroker =
       processBrokerRunSync || _deps.processBrokerRunSync;
@@ -870,7 +882,7 @@ function buildCapsule({
     const result = runThroughProcessBroker(
       builder.binary,
       [
-        snapshotEntrypoint,
+        builderEntrypoint,
         "--bundle",
         "--charset=utf8",
         "--format=cjs",
@@ -887,7 +899,7 @@ function buildCapsule({
         `--banner:js=${capsuleRuntimeGuard()}`,
       ],
       {
-        cwd: snapshotRoot,
+        cwd: canonicalSnapshotRoot,
         env: sanitizeMcpStdioHostEnvironment(env),
         encoding: "utf8",
         shell: false,
@@ -918,8 +930,6 @@ function buildCapsule({
     const sourceByPath = new Map(
       closure.files.map((record) => [record.path, record]),
     );
-    const realpath = _deps.fs.realpathSync.native || _deps.fs.realpathSync;
-    const canonicalSnapshotRoot = realpath(snapshotRoot);
     const inputs = Object.keys(metafile.inputs)
       .map((input) => input.split(path.sep).join("/"))
       .sort()

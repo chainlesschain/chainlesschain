@@ -218,6 +218,15 @@ describe("MCP stdio fixed npm package materialization", () => {
   );
 
   it("locks the complete transitive tree and replaces a launcher with a direct Node entrypoint", () => {
+    const builderInvocations = [];
+    _deps.processBrokerRunSync = (command, args, options) => {
+      const realpath = fs.realpathSync.native || fs.realpathSync;
+      builderInvocations.push({
+        args,
+        cwdIsCanonical: options.cwd === realpath(options.cwd),
+      });
+      return spawnSync(command, args, options);
+    };
     const config = {
       command: "bunx",
       args: ["--yes", "@scope/mcp-server@1.2.3", "--stdio"],
@@ -268,6 +277,14 @@ describe("MCP stdio fixed npm package materialization", () => {
     });
     expect(repeated.generation).toBe(result.generation);
     expect(repeated.manifestDigest).toBe(result.manifestDigest);
+    expect(builderInvocations).toHaveLength(2);
+    for (const invocation of builderInvocations) {
+      expect(invocation.cwdIsCanonical).toBe(true);
+      expect(path.isAbsolute(invocation.args[0])).toBe(false);
+      expect(invocation.args[0]).toBe(
+        `.${path.sep}node_modules${path.sep}@scope${path.sep}mcp-server${path.sep}bin${path.sep}server.js`,
+      );
+    }
 
     const resolved = resolveMcpStdioPackageMaterialization({
       approvalRecord: authority.approvalRecord,
@@ -303,7 +320,9 @@ describe("MCP stdio fixed npm package materialization", () => {
       closureDigest: result.identity.closureDigest,
       capsule: { sha256: result.identity.capsule.sha256 },
     });
-    expect(prepared.workingDirectory).toBe(path.join(result.root, "capsule"));
+    expect(prepared.workingDirectory).toBe(
+      fs.realpathSync(path.join(result.root, "capsule")),
+    );
     expect(prepared.env).not.toHaveProperty("NODE_OPTIONS");
     expect(prepared.sandboxExecutionContract).toMatchObject({
       contractVersion: 1,
