@@ -132,7 +132,6 @@ jobs:
       id-token: write
     env:
       UPDATE_PUBLIC_KEY_B64: ${{ vars.CLI_UPDATE_ED25519_PUBLIC_KEY_B64 }}
-      PKG_CACHE_PATH: ${{ runner.temp }}/pkg-cache
     steps:
       - uses: actions/checkout@v5
         with:
@@ -169,6 +168,8 @@ jobs:
           node -e 'require("fs").writeFileSync(process.argv[1], Buffer.from(process.env.UPDATE_PUBLIC_KEY_B64, "base64"))' "$RUNNER_TEMP/cli-update-public-key.pem"
       - name: Require a published pkg base binary
         shell: bash
+        env:
+          PKG_CACHE_PATH: ${{ runner.temp }}/pkg-cache
         run: |
           node node_modules/@yao-pkg/pkg-fetch/lib-es5/bin.js \
             --node-range node22 \
@@ -177,6 +178,8 @@ jobs:
             --force-fetch
       - name: Build standalone CLI with trusted update key
         shell: bash
+        env:
+          PKG_CACHE_PATH: ${{ runner.temp }}/pkg-cache
         run: |
           set -euo pipefail
           node packages/cli/bin/chainlesschain.js pack \

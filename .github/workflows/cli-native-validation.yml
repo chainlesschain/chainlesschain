@@ -63,8 +63,6 @@ jobs:
             expected_arch: arm64
     runs-on: ${{ matrix.os }}
     timeout-minutes: 90
-    env:
-      PKG_CACHE_PATH: ${{ runner.temp }}/pkg-cache
     steps:
       - uses: actions/checkout@v5
         with:
@@ -115,6 +113,8 @@ jobs:
 
       - name: Require a published pkg base binary
         shell: bash
+        env:
+          PKG_CACHE_PATH: ${{ runner.temp }}/pkg-cache
         run: |
           node node_modules/@yao-pkg/pkg-fetch/lib-es5/bin.js \
             --node-range node22 \
@@ -124,6 +124,8 @@ jobs:
 
       - name: Build standalone CLI on its matching native host
         shell: bash
+        env:
+          PKG_CACHE_PATH: ${{ runner.temp }}/pkg-cache
         run: |
           set -euo pipefail
           node packages/cli/bin/chainlesschain.js pack \
