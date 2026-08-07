@@ -933,6 +933,7 @@ async function runHostApiPhase({
   fixture,
   companionWorkspace,
   multiWindowEvidenceFile,
+  progressPath,
   includeMultiWindow = false,
 }) {
   const launchTarget = workspaceTarget || workspaceDir;
@@ -972,6 +973,7 @@ async function runHostApiPhase({
             CHAINLESSCHAIN_MULTI_WINDOW_REQUIRED: "1",
             CHAINLESSCHAIN_SMOKE_COMPANION_WORKSPACE: companionWorkspace,
             CHAINLESSCHAIN_MULTI_WINDOW_EVIDENCE_FILE: multiWindowEvidenceFile,
+            CHAINLESSCHAIN_MULTI_WINDOW_PROGRESS_FILE: progressPath,
             CHAINLESSCHAIN_SMOKE_VSCODE_EXECUTABLE: vscodeExecutablePath,
             CHAINLESSCHAIN_SMOKE_USER_DATA_DIR: userDataDir,
           }
@@ -1298,6 +1300,7 @@ async function main() {
         fixture,
         companionWorkspace,
         multiWindowEvidenceFile,
+        progressPath,
         includeMultiWindow: true,
       });
       recordHostProgress(progressPath, "multi_window_completed");
@@ -1322,6 +1325,7 @@ async function main() {
         fixture,
         companionWorkspace,
         multiWindowEvidenceFile,
+        progressPath,
         includeMultiWindow: hostApiMode && phase === "initial",
         useCdpPipe: false,
         useElectronMainInspector: false,

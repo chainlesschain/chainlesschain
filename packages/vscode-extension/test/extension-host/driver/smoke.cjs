@@ -129,6 +129,7 @@ async function runCompanionWindow({
   companionWorkspace,
   primaryResultFile,
   journeyPhase,
+  multiWindowProgressFile,
 }) {
   const extension = vscode.extensions.getExtension(EXTENSION_ID);
   assert.ok(
@@ -155,6 +156,11 @@ async function runCompanionWindow({
   console.log(
     `[extension-host-smoke] companion: installed VSIX bridge verified on ${lock.port}`,
   );
+  appendMultiWindowProgress(
+    multiWindowProgressFile,
+    "multi_window_companion_bridge_verified",
+    { actor: "companion" },
+  );
   // The extension-test path is inherited by every new VS Code window. Recent
   // VS Code hosts wait for every window's test promise before closing the
   // isolated desktop, so an intentionally pending companion would deadlock
@@ -162,6 +168,23 @@ async function runCompanionWindow({
   // simultaneous bridge proof, then release this window only after the
   // primary has atomically published its validated result.
   await waitForJourneyResult(primaryResultFile, journeyPhase, 135_000);
+  appendMultiWindowProgress(
+    multiWindowProgressFile,
+    "multi_window_companion_primary_result_observed",
+    { actor: "companion" },
+  );
+  if (process.platform === "darwin") {
+    // VS Code 1.132 keeps the macOS app alive after both inherited test
+    // promises settle while the companion window remains open. At this point
+    // the primary has already published success, so closing only this window
+    // cannot preempt the journey and lets @vscode/test-electron complete.
+    appendMultiWindowProgress(
+      multiWindowProgressFile,
+      "multi_window_companion_close_requested",
+      { actor: "companion" },
+    );
+    void vscode.commands.executeCommand("workbench.action.closeWindow");
+  }
 }
 
 async function waitForBridgeLock(
@@ -289,6 +312,20 @@ function appendHostTrace(traceFile, phase, stage, details = {}) {
     traceFile,
     `${JSON.stringify({
       phase,
+      stage,
+      at: new Date().toISOString(),
+      ...details,
+    })}\n`,
+    { encoding: "utf8", mode: 0o600 },
+  );
+}
+
+function appendMultiWindowProgress(progressFile, stage, details = {}) {
+  assert.ok(progressFile, "missing multi-window progress file");
+  assert.match(stage, /^multi_window_[a-z0-9_]+$/u);
+  fs.appendFileSync(
+    progressFile,
+    `${JSON.stringify({
       stage,
       at: new Date().toISOString(),
       ...details,
@@ -446,6 +483,8 @@ async function run() {
     process.env.CHAINLESSCHAIN_SMOKE_COMPANION_WORKSPACE;
   const multiWindowEvidenceFile =
     process.env.CHAINLESSCHAIN_MULTI_WINDOW_EVIDENCE_FILE;
+  const multiWindowProgressFile =
+    process.env.CHAINLESSCHAIN_MULTI_WINDOW_PROGRESS_FILE;
   const vscodeExecutablePath =
     process.env.CHAINLESSCHAIN_SMOKE_VSCODE_EXECUTABLE;
   const userDataDir = process.env.CHAINLESSCHAIN_SMOKE_USER_DATA_DIR;
@@ -486,6 +525,7 @@ async function run() {
       companionWorkspace,
       primaryResultFile: resultFile,
       journeyPhase,
+      multiWindowProgressFile,
     });
   }
   assertOpenedWorkspaceFolders(workspaceFolders);
@@ -563,6 +603,11 @@ async function run() {
   }
 
   if (journeyPhase === "initial" && multiWindowRequired) {
+    appendMultiWindowProgress(
+      multiWindowProgressFile,
+      "multi_window_primary_bridge_verified",
+      { actor: "primary" },
+    );
     assert.ok(
       companionWorkspace,
       "missing CHAINLESSCHAIN_SMOKE_COMPANION_WORKSPACE",
@@ -580,6 +625,11 @@ async function run() {
       companionWorkspace,
       evidenceFile: multiWindowEvidenceFile,
     });
+    appendMultiWindowProgress(
+      multiWindowProgressFile,
+      "multi_window_evidence_written",
+      { actor: "primary" },
+    );
     console.log(
       `[extension-host-smoke] ${journeyPhase}: simultaneous second window bridge verified`,
     );
@@ -602,6 +652,13 @@ async function run() {
       workspaceDir,
       workspaceFolders,
     });
+    if (journeyPhase === "initial" && multiWindowRequired) {
+      appendMultiWindowProgress(
+        multiWindowProgressFile,
+        "multi_window_primary_result_published",
+        { actor: "primary" },
+      );
+    }
   } else if (journeyMode === "dom-relay") {
     await revealChatAndRunDomRelayJourney({
       phase: journeyPhase,

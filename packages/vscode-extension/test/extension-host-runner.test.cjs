@@ -621,6 +621,7 @@ test("multi-window gate uses a dedicated host-API profile and explicit contract"
     },
     companionWorkspace,
     multiWindowEvidenceFile: path.join(root, "multi-window-evidence.json"),
+    progressPath: path.join(root, "progress.jsonl"),
     includeMultiWindow: true,
   });
 
@@ -631,6 +632,10 @@ test("multi-window gate uses a dedicated host-API profile and explicit contract"
   assert.equal(
     launch.extensionTestsEnv.CHAINLESSCHAIN_SMOKE_COMPANION_WORKSPACE,
     companionWorkspace,
+  );
+  assert.equal(
+    launch.extensionTestsEnv.CHAINLESSCHAIN_MULTI_WINDOW_PROGRESS_FILE,
+    path.join(root, "progress.jsonl"),
   );
   assert.match(
     launch.launchArgs.find((argument) =>
@@ -657,6 +662,16 @@ test("multi-window gate uses a dedicated host-API profile and explicit contract"
     smokeDriver,
     /primaryResultFile: resultFile,\s+journeyPhase,/u,
     "the companion must receive the phase-scoped primary result contract",
+  );
+  assert.match(
+    smokeDriver,
+    /if \(process\.platform === "darwin"\) \{[\s\S]*?multi_window_companion_close_requested[\s\S]*?void vscode\.commands\.executeCommand\("workbench\.action\.closeWindow"\);/u,
+    "macOS must close only the synchronized companion window",
+  );
+  assert.match(
+    smokeDriver,
+    /multi_window_primary_result_published/u,
+    "the companion close must remain auditable against primary success",
   );
 });
 
