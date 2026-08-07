@@ -23,6 +23,7 @@ const {
   findDiagnosticLogs,
   hostPhaseSignalPaths,
   launchExtensionHostWithCdpPipe,
+  launchManagedExtensionHost,
   makeFreshRunRoot,
   parseArgs,
   parseDevToolsBrowserEndpoint,
@@ -950,6 +951,47 @@ test("pipe host launch inherits Chromium's FD 3/4 contract", async () => {
   assert.equal(await launched.outcome, 0);
   launched.browserClient.close();
   for (const stream of child.stdio.slice(1)) stream.destroy();
+});
+
+test("managed host launch owns bounded process termination", async () => {
+  const child = new EventEmitter();
+  child.stdout = new PassThrough();
+  child.stderr = new PassThrough();
+  const signals = [];
+  child.kill = (signal) => {
+    signals.push(signal);
+    return true;
+  };
+  let spawnCall;
+  const launched = launchManagedExtensionHost({
+    vscodeExecutablePath: "/tmp/Code",
+    launchArgs: buildHostApiLaunchArgs({
+      workspaceDir: "/tmp/workspace",
+      profileArgs: [],
+    }),
+    extensionDevelopmentPath: "/tmp/driver",
+    extensionTestsPath: "/tmp/driver/smoke.cjs",
+    extensionTestsEnv: { CHAINLESSCHAIN_HOST_JOURNEY_PHASE: "initial" },
+    stdout: new PassThrough(),
+    stderr: new PassThrough(),
+    spawnProcess(executable, args, options) {
+      spawnCall = { executable, args, options };
+      return child;
+    },
+  });
+  assert.equal(spawnCall.executable, "/tmp/Code");
+  assert.deepEqual(spawnCall.options.stdio, ["ignore", "pipe", "pipe"]);
+  assert.equal(
+    spawnCall.options.env.CHAINLESSCHAIN_HOST_JOURNEY_PHASE,
+    "initial",
+  );
+  launched.requestStop();
+  launched.requestStop();
+  assert.deepEqual(signals, ["SIGINT", "SIGKILL"]);
+  child.emit("close", 0, null);
+  assert.equal(await launched.outcome, 0);
+  child.stdout.destroy();
+  child.stderr.destroy();
 });
 
 test("host-API evidence proves both fresh host launches in order", () => {

@@ -502,6 +502,54 @@ function launchExtensionHostWithCdpPipe({
   };
 }
 
+function launchManagedExtensionHost({
+  vscodeExecutablePath,
+  launchArgs,
+  extensionDevelopmentPath,
+  extensionTestsPath,
+  extensionTestsEnv,
+  stdout = process.stdout,
+  stderr = process.stderr,
+  spawnProcess = spawn,
+}) {
+  const child = spawnProcess(
+    vscodeExecutablePath,
+    buildExtensionTestLaunchArgs({
+      launchArgs,
+      extensionDevelopmentPath,
+      extensionTestsPath,
+    }),
+    {
+      env: { ...process.env, ...extensionTestsEnv },
+      shell: false,
+      stdio: ["ignore", "pipe", "pipe"],
+    },
+  );
+  child.stdout?.on("data", (chunk) => stdout.write(chunk));
+  child.stderr?.on("data", (chunk) => stderr.write(chunk));
+  const outcome = new Promise((resolve, reject) => {
+    child.once("error", reject);
+    child.once("close", (code, signal) => {
+      if (code === 0) resolve(code);
+      else {
+        reject(
+          new Error(
+            `VS Code managed host failed (code=${String(code)}, signal=${String(signal)})`,
+          ),
+        );
+      }
+    });
+  });
+  let stopRequests = 0;
+  return {
+    outcome,
+    requestStop() {
+      stopRequests += 1;
+      child.kill(stopRequests === 1 ? "SIGINT" : "SIGKILL");
+    },
+  };
+}
+
 function parseDevToolsBrowserEndpoint(value, expectedPort) {
   if (
     !Number.isInteger(expectedPort) ||
@@ -944,7 +992,7 @@ async function runHostApiPhase({
   if (!userDataDir) throw new Error("host profile has no user-data directory");
   const { readyFile, resultFile } = hostPhaseSignalPaths(runtimeDir, phase);
   const traceFile = path.join(runtimeDir, "host-api-trace.jsonl");
-  await runTests({
+  const launchOptions = {
     vscodeExecutablePath,
     extensionDevelopmentPath: path.join(__dirname, "driver"),
     extensionTestsPath: path.join(__dirname, "driver", "smoke.cjs"),
@@ -979,7 +1027,51 @@ async function runHostApiPhase({
           }
         : {}),
     },
-  });
+  };
+  if (includeMultiWindow && process.platform === "darwin") {
+    const managedHost = launchManagedExtensionHost(launchOptions);
+    const hostOutcome = managedHost.outcome.then(
+      (value) => ({ value }),
+      (error) => ({ error }),
+    );
+    const journeyOutcome = waitForFile(resultFile, 135_000)
+      .then(() => readJourneyResult(resultFile, phase))
+      .then(
+        (value) => ({ value }),
+        (error) => ({ error }),
+      );
+    const first = await Promise.race([
+      hostOutcome.then((outcome) => ({ source: "host", outcome })),
+      journeyOutcome.then((outcome) => ({ source: "journey", outcome })),
+    ]);
+    let host;
+    let journey;
+    let managedTermination = false;
+    if (first.source === "host") {
+      host = first.outcome;
+      journey = await journeyOutcome;
+    } else {
+      journey = first.outcome;
+      ({ host, managedTermination } = await settleHostAfterCdp({
+        hostOutcome,
+        phase,
+        emitSigint: managedHost.requestStop,
+        journeyLabel: "host API multi-window journey",
+      }));
+    }
+    const hostError =
+      managedTermination && !journey.error ? null : host && host.error;
+    if (hostError && journey.error) {
+      throw new AggregateError(
+        [hostError, journey.error],
+        `VS Code managed host and multi-window journey failed during ${phase}`,
+      );
+    }
+    if (hostError) throw hostError;
+    if (journey.error) throw journey.error;
+    return journey.value;
+  }
+  await runTests(launchOptions);
   return readJourneyResult(resultFile, phase);
 }
 
@@ -1448,6 +1540,7 @@ module.exports = {
   hostPhaseSignalPaths,
   makeFreshRunRoot,
   launchExtensionHostWithCdpPipe,
+  launchManagedExtensionHost,
   parseArgs,
   parseDevToolsBrowserEndpoint,
   parseElectronInspectorEndpoint,
