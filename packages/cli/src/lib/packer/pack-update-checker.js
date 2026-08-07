@@ -21,7 +21,7 @@
  *     }
  *   }
  *
- * `target` matches pkg's `node20-<os>-<arch>` convention.
+ * `target` matches pkg's `node22-<os>-<arch>` convention.
  */
 
 import semver from "semver";
@@ -36,7 +36,7 @@ const DEFAULT_TIMEOUT_MS = 10_000;
  * @param {object} ctx
  * @param {string} ctx.manifestUrl          absolute http(s) URL
  * @param {string} ctx.currentVersion       e.g. BAKED.packedCliVersion or VERSION
- * @param {string} [ctx.target]             e.g. "node20-win-x64"; if set, the
+ * @param {string} [ctx.target]             e.g. "node22-win-x64"; if set, the
  *                                          returned artifact matches it
  * @param {number} [ctx.timeoutMs=10000]
  * @param {typeof fetch} [ctx.fetchImpl]    injected for tests

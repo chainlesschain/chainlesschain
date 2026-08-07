@@ -144,7 +144,7 @@ function runWslOrphanRaceFixture({ posixShell, orphanState }) {
       latest: {
         artifacts: [
           {
-            target: "node20-linux-x64",
+            target: "node22-linux-x64",
             url: "https://fixture/artifact",
             sha256: artifactSha256,
             signature: "https://fixture/artifact.sigstore.json",
@@ -341,7 +341,7 @@ function runPosixInstallerFixture({
       latest: {
         artifacts: [
           {
-            target: "node20-linux-x64",
+            target: "node22-linux-x64",
             url: "https://fixture/artifact",
             sha256: artifactSha256,
             signature: "https://fixture/artifact.sigstore.json",
@@ -2962,7 +2962,7 @@ describe("native installer transaction contracts", () => {
         .update(fs.readFileSync(artifactPath))
         .digest("hex");
       const target =
-        process.arch === "arm64" ? "node20-win-arm64" : "node20-win-x64";
+        process.arch === "arm64" ? "node22-win-arm64" : "node22-win-x64";
       const manifestPath = path.join(fixtureDir, "manifest.json");
       const bundlePath = path.join(fixtureDir, "bundle.json");
       fs.writeFileSync(
@@ -3055,7 +3055,7 @@ describe("native installer transaction contracts", () => {
         .update(fs.readFileSync(artifactPath))
         .digest("hex");
       const target =
-        process.arch === "arm64" ? "node20-win-arm64" : "node20-win-x64";
+        process.arch === "arm64" ? "node22-win-arm64" : "node22-win-x64";
       const manifestPath = path.join(fixtureDir, "manifest.json");
       const bundlePath = path.join(fixtureDir, "bundle.json");
       fs.writeFileSync(
@@ -3372,7 +3372,7 @@ describe("native installer transaction contracts", () => {
         .update(fs.readFileSync(artifactPath))
         .digest("hex");
       const target =
-        process.arch === "arm64" ? "node20-win-arm64" : "node20-win-x64";
+        process.arch === "arm64" ? "node22-win-arm64" : "node22-win-x64";
       const manifestPath = path.join(fixtureDir, "manifest.json");
       const bundlePath = path.join(fixtureDir, "bundle.json");
       fs.writeFileSync(

@@ -2047,13 +2047,13 @@ cc audit mtc {emit | reconcile | reconcile-check | status}  # 双轨流转
 ```bash
 # 基础模式：通用 ChainlessChain 便携 exe
 cc pack --skip-web-panel-build --allow-dirty
-# → dist/chainlesschain-portable-node20-win-x64.exe (~58 MB)
+# → dist/chainlesschain-portable-node22-win-x64.exe (~58 MB)
 
 # 项目模式：CWD 的 .chainlesschain/ 自动内嵌（自动检测）
 mkdir my-medical-agent && cd my-medical-agent
 cc init -t medical-triage
 cc pack
-# → dist/my-medical-agent-portable-node20-win-x64.exe
+# → dist/my-medical-agent-portable-node22-win-x64.exe
 #   + 同目录的 .pack-manifest.json（含 bundledSkills 审计清单）
 ```
 

@@ -1922,13 +1922,13 @@ Scheduled remote agent `trig_013pjiuMPAUkNyoE4QxVdee8` fires 2026-05-10 09:00 As
 ```bash
 # Base mode: generic ChainlessChain portable exe
 cc pack --skip-web-panel-build --allow-dirty
-# → dist/chainlesschain-portable-node20-win-x64.exe (~58 MB)
+# → dist/chainlesschain-portable-node22-win-x64.exe (~58 MB)
 
 # Project mode: CWD's .chainlesschain/ auto-embedded (auto-detected)
 mkdir my-medical-agent && cd my-medical-agent
 cc init -t medical-triage
 cc pack
-# → dist/my-medical-agent-portable-node20-win-x64.exe
+# → dist/my-medical-agent-portable-node22-win-x64.exe
 #   + same-dir .pack-manifest.json (with a bundledSkills audit list)
 ```
 

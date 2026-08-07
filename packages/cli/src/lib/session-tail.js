@@ -16,8 +16,31 @@ import {
   sessionPath,
 } from "../harness/jsonl-session-store.js";
 
+export function readLiveTranscriptPresence(
+  sessionId,
+  readPresence = getSessionPresence,
+) {
+  let presence;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      presence = readPresence(sessionId);
+      break;
+    } catch (error) {
+      if (error?.code !== "ENOENT") throw error;
+    }
+  }
+  if (presence === undefined) {
+    const error = new Error(
+      `Session ${sessionId} transcript cannot be verified for live tailing`,
+    );
+    error.code = "SESSION_TRANSCRIPT_UNVERIFIED";
+    throw error;
+  }
+  return presence;
+}
+
 function assertLiveTranscriptReadable(sessionId) {
-  const presence = getSessionPresence(sessionId);
+  const presence = readLiveTranscriptPresence(sessionId);
   if (
     presence === SESSION_PRESENCE.PRESENT ||
     presence === SESSION_PRESENCE.ABSENT

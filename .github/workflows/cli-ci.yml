@@ -16,6 +16,8 @@ on:
       - "packages/vscode-extension/package.nls*.json"
       - "packages/vscode-extension/l10n/**"
       - ".github/workflows/cli-ci.yml"
+      - ".github/workflows/cli-native-release.yml"
+      - ".github/workflows/cli-native-validation.yml"
       - ".github/workflows/_cli-test.yml"
       - ".github/actions/setup-node-deps/action.yml"
   pull_request:
@@ -27,6 +29,8 @@ on:
       - "packages/vscode-extension/package.nls*.json"
       - "packages/vscode-extension/l10n/**"
       - ".github/workflows/cli-ci.yml"
+      - ".github/workflows/cli-native-release.yml"
+      - ".github/workflows/cli-native-validation.yml"
       - ".github/workflows/_cli-test.yml"
       - ".github/actions/setup-node-deps/action.yml"
   workflow_dispatch:
@@ -125,7 +129,7 @@ jobs:
         run: |
           node bin/chainlesschain.js pack \
             --dry-run \
-            --targets node20-linux-x64 \
+            --targets node22-linux-x64 \
             --allow-dirty \
             --skip-web-panel-build \
             --no-smoke-test

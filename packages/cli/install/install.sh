@@ -20,7 +20,7 @@ case "$(uname -m)" in
   arm64|aarch64) ARCH=arm64 ;;
   *) echo "unsupported architecture: $(uname -m)" >&2; exit 2 ;;
 esac
-TARGET="node20-$OS-$ARCH"
+TARGET="node22-$OS-$ARCH"
 
 STAGING=""
 LOCK_PATH=""

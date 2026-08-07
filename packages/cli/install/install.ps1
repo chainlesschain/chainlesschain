@@ -622,7 +622,7 @@ $Arch = switch ([System.Runtime.InteropServices.RuntimeInformation]::OSArchitect
   "Arm64" { "arm64" }
   default { throw "Unsupported architecture: $_" }
 }
-$Target = "node20-win-$Arch"
+$Target = "node22-win-$Arch"
 $Staging = Join-Path ([IO.Path]::GetTempPath()) ("chainlesschain-install-" + [guid]::NewGuid().ToString("N"))
 $InstallLock = $null
 $CandidatePath = $null

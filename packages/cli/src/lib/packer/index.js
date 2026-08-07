@@ -46,7 +46,7 @@ export async function runPack(cliOpts, deps = {}) {
   };
 
   const projectRoot = path.resolve(cliOpts.cwd || process.cwd());
-  const targets = (cliOpts.targets || "node20-win-x64")
+  const targets = (cliOpts.targets || "node22-win-x64")
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);

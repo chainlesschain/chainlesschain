@@ -35,7 +35,7 @@ const TARGET_MODULES = [
 /**
  * @param {object} ctx
  * @param {string} ctx.cliRoot
- * @param {string[]} ctx.targets         e.g. ["node20-win-x64"]
+ * @param {string[]} ctx.targets         e.g. ["node22-win-x64"]
  * @param {string} ctx.tempDir           build temp dir
  * @returns {{ prebuildsDir: string|null, collected: Array, missing: Array }}
  */
@@ -117,11 +117,11 @@ function collectSqlJsAssets(cliRoot, prebuildsDir) {
 }
 
 /**
- * Map "node20-win-x64" -> "win32-x64".
+ * Map "node22-win-x64" -> "win32-x64".
  * Returns null for unrecognized targets.
  */
 export function pkgTargetToPlatformKey(target) {
-  // node20-win-x64
+  // node22-win-x64
   const m = /^node\d+-([a-z]+)-([a-z0-9]+)$/.exec(target);
   if (!m) return null;
   const osMap = {
