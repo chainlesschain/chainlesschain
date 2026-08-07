@@ -1,0 +1,1000 @@
+{
+  "schema": "chainlesschain.command-lifecycle-report.v1",
+  "generatedAt": "2026-08-07T17:05:01.057Z",
+  "manifestSchema": "chainlesschain.command-manifest.v3",
+  "policy": {
+    "minimumObservedMinorCycles": 2,
+    "minimumEligibleInstallations": 50,
+    "minimumReportingInstallations": 30,
+    "minimumCollectorCoverageRatio": 0.5,
+    "minimumSampleRate": 0.1,
+    "minimumCommandInvocations": 200,
+    "minimumReplacementInvocations": 100,
+    "maximumLegacyShareForRemoval": 0.01,
+    "requiredPlatforms": ["linux", "macos", "windows"]
+  },
+  "coverage": {
+    "ready": false,
+    "blockers": [
+      "collector-bias-blocking:no-approved-public-cohort-export",
+      "collector-bias-blocking:opt-in-collector",
+      "collector-coverage-too-low",
+      "eligible-installation-cohort-too-small",
+      "platform-coverage-missing:linux",
+      "platform-coverage-missing:macos",
+      "platform-coverage-missing:windows",
+      "release-observation-window-incomplete",
+      "reporting-installation-cohort-too-small",
+      "sample-rate-too-low-or-invalid"
+    ],
+    "decisionVersion": "0.162.200",
+    "observedReleases": ["0.162.198", "0.162.200"],
+    "observedMinorCycles": ["0.162"],
+    "window": {
+      "startedAt": "2026-08-06T07:47:36.861Z",
+      "endedAt": "2026-08-07T16:55:32.069Z"
+    },
+    "collector": {
+      "eligibleInstallations": 0,
+      "reportingInstallations": 0,
+      "coverageRatio": 0,
+      "sampleRate": 0,
+      "platforms": {
+        "linux": 0,
+        "macos": 0,
+        "windows": 0
+      },
+      "knownBiases": [
+        {
+          "id": "opt-in-collector",
+          "description": "Only installations that explicitly configure an OTLP endpoint can report lifecycle metrics.",
+          "blocking": true
+        },
+        {
+          "id": "no-approved-public-cohort-export",
+          "description": "No approved representative Collector export was available for this release snapshot.",
+          "blocking": true
+        }
+      ]
+    }
+  },
+  "ingestion": {
+    "payloadCount": 1,
+    "acceptedPoints": 0,
+    "rejectedPoints": 0,
+    "ready": false,
+    "violations": ["no-lifecycle-metric-points"]
+  },
+  "summary": {
+    "retain": 0,
+    "remove": 0,
+    "insufficient-data": 25
+  },
+  "decisions": [
+    {
+      "command": "bm25",
+      "replacement": "lab bm25",
+      "deprecatedSince": "0.162.194",
+      "removalNotBefore": "0.164.0",
+      "legacy": {
+        "invocations": 0,
+        "completed": 0,
+        "error": 0
+      },
+      "replacementRoute": {
+        "invocations": 0,
+        "completed": 0,
+        "error": 0
+      },
+      "observedVersions": [],
+      "decision": "insufficient-data",
+      "reasons": [
+        "collector-bias-blocking:no-approved-public-cohort-export",
+        "collector-bias-blocking:opt-in-collector",
+        "collector-coverage-too-low",
+        "command-release-window-incomplete",
+        "command-sample-too-small",
+        "eligible-installation-cohort-too-small",
+        "platform-coverage-missing:linux",
+        "platform-coverage-missing:macos",
+        "platform-coverage-missing:windows",
+        "release-observation-window-incomplete",
+        "removal-version-not-reached",
+        "reporting-installation-cohort-too-small",
+        "sample-rate-too-low-or-invalid",
+        "telemetry-input-invalid"
+      ],
+      "totalInvocations": 0,
+      "legacyShare": null,
+      "observedMinorCycles": ["0.162"]
+    },
+    {
+      "command": "ccron",
+      "replacement": "lab ccron",
+      "deprecatedSince": "0.162.194",
+      "removalNotBefore": "0.164.0",
+      "legacy": {
+        "invocations": 0,
+        "completed": 0,
+        "error": 0
+      },
+      "replacementRoute": {
+        "invocations": 0,
+        "completed": 0,
+        "error": 0
+      },
+      "observedVersions": [],
+      "decision": "insufficient-data",
+      "reasons": [
+        "collector-bias-blocking:no-approved-public-cohort-export",
+        "collector-bias-blocking:opt-in-collector",
+        "collector-coverage-too-low",
+        "command-release-window-incomplete",
+        "command-sample-too-small",
+        "eligible-installation-cohort-too-small",
+        "platform-coverage-missing:linux",
+        "platform-coverage-missing:macos",
+        "platform-coverage-missing:windows",
+        "release-observation-window-incomplete",
+        "removal-version-not-reached",
+        "reporting-installation-cohort-too-small",
+        "sample-rate-too-low-or-invalid",
+        "telemetry-input-invalid"
+      ],
+      "totalInvocations": 0,
+      "legacyShare": null,
+      "observedMinorCycles": ["0.162"]
+    },
+    {
+      "command": "compt",
+      "replacement": "lab compt",
+      "deprecatedSince": "0.162.194",
+      "removalNotBefore": "0.164.0",
+      "legacy": {
+        "invocations": 0,
+        "completed": 0,
+        "error": 0
+      },
+      "replacementRoute": {
+        "invocations": 0,
+        "completed": 0,
+        "error": 0
+      },
+      "observedVersions": [],
+      "decision": "insufficient-data",
+      "reasons": [
+        "collector-bias-blocking:no-approved-public-cohort-export",
+        "collector-bias-blocking:opt-in-collector",
+        "collector-coverage-too-low",
+        "command-release-window-incomplete",
+        "command-sample-too-small",
+        "eligible-installation-cohort-too-small",
+        "platform-coverage-missing:linux",
+        "platform-coverage-missing:macos",
+        "platform-coverage-missing:windows",
+        "release-observation-window-incomplete",
+        "removal-version-not-reached",
+        "reporting-installation-cohort-too-small",
+        "sample-rate-too-low-or-invalid",
+        "telemetry-input-invalid"
+      ],
+      "totalInvocations": 0,
+      "legacyShare": null,
+      "observedMinorCycles": ["0.162"]
+    },
+    {
+      "command": "consol",
+      "replacement": "lab consol",
+      "deprecatedSince": "0.162.194",
+      "removalNotBefore": "0.164.0",
+      "legacy": {
+        "invocations": 0,
+        "completed": 0,
+        "error": 0
+      },
+      "replacementRoute": {
+        "invocations": 0,
+        "completed": 0,
+        "error": 0
+      },
+      "observedVersions": [],
+      "decision": "insufficient-data",
+      "reasons": [
+        "collector-bias-blocking:no-approved-public-cohort-export",
+        "collector-bias-blocking:opt-in-collector",
+        "collector-coverage-too-low",
+        "command-release-window-incomplete",
+        "command-sample-too-small",
+        "eligible-installation-cohort-too-small",
+        "platform-coverage-missing:linux",
+        "platform-coverage-missing:macos",
+        "platform-coverage-missing:windows",
+        "release-observation-window-incomplete",
+        "removal-version-not-reached",
+        "reporting-installation-cohort-too-small",
+        "sample-rate-too-low-or-invalid",
+        "telemetry-input-invalid"
+      ],
+      "totalInvocations": 0,
+      "legacyShare": null,
+      "observedMinorCycles": ["0.162"]
+    },
+    {
+      "command": "dao",
+      "replacement": "lab dao",
+      "deprecatedSince": "0.162.189",
+      "removalNotBefore": "0.164.0",
+      "legacy": {
+        "invocations": 0,
+        "completed": 0,
+        "error": 0
+      },
+      "replacementRoute": {
+        "invocations": 0,
+        "completed": 0,
+        "error": 0
+      },
+      "observedVersions": [],
+      "decision": "insufficient-data",
+      "reasons": [
+        "collector-bias-blocking:no-approved-public-cohort-export",
+        "collector-bias-blocking:opt-in-collector",
+        "collector-coverage-too-low",
+        "command-release-window-incomplete",
+        "command-sample-too-small",
+        "eligible-installation-cohort-too-small",
+        "platform-coverage-missing:linux",
+        "platform-coverage-missing:macos",
+        "platform-coverage-missing:windows",
+        "release-observation-window-incomplete",
+        "removal-version-not-reached",
+        "reporting-installation-cohort-too-small",
+        "sample-rate-too-low-or-invalid",
+        "telemetry-input-invalid"
+      ],
+      "totalInvocations": 0,
+      "legacyShare": null,
+      "observedMinorCycles": ["0.162"]
+    },
+    {
+      "command": "evomap",
+      "replacement": "lab evomap",
+      "deprecatedSince": "0.162.189",
+      "removalNotBefore": "0.164.0",
+      "legacy": {
+        "invocations": 0,
+        "completed": 0,
+        "error": 0
+      },
+      "replacementRoute": {
+        "invocations": 0,
+        "completed": 0,
+        "error": 0
+      },
+      "observedVersions": [],
+      "decision": "insufficient-data",
+      "reasons": [
+        "collector-bias-blocking:no-approved-public-cohort-export",
+        "collector-bias-blocking:opt-in-collector",
+        "collector-coverage-too-low",
+        "command-release-window-incomplete",
+        "command-sample-too-small",
+        "eligible-installation-cohort-too-small",
+        "platform-coverage-missing:linux",
+        "platform-coverage-missing:macos",
+        "platform-coverage-missing:windows",
+        "release-observation-window-incomplete",
+        "removal-version-not-reached",
+        "reporting-installation-cohort-too-small",
+        "sample-rate-too-low-or-invalid",
+        "telemetry-input-invalid"
+      ],
+      "totalInvocations": 0,
+      "legacyShare": null,
+      "observedMinorCycles": ["0.162"]
+    },
+    {
+      "command": "execbe",
+      "replacement": "lab execbe",
+      "deprecatedSince": "0.162.194",
+      "removalNotBefore": "0.164.0",
+      "legacy": {
+        "invocations": 0,
+        "completed": 0,
+        "error": 0
+      },
+      "replacementRoute": {
+        "invocations": 0,
+        "completed": 0,
+        "error": 0
+      },
+      "observedVersions": [],
+      "decision": "insufficient-data",
+      "reasons": [
+        "collector-bias-blocking:no-approved-public-cohort-export",
+        "collector-bias-blocking:opt-in-collector",
+        "collector-coverage-too-low",
+        "command-release-window-incomplete",
+        "command-sample-too-small",
+        "eligible-installation-cohort-too-small",
+        "platform-coverage-missing:linux",
+        "platform-coverage-missing:macos",
+        "platform-coverage-missing:windows",
+        "release-observation-window-incomplete",
+        "removal-version-not-reached",
+        "reporting-installation-cohort-too-small",
+        "sample-rate-too-low-or-invalid",
+        "telemetry-input-invalid"
+      ],
+      "totalInvocations": 0,
+      "legacyShare": null,
+      "observedMinorCycles": ["0.162"]
+    },
+    {
+      "command": "fflag",
+      "replacement": "lab fflag",
+      "deprecatedSince": "0.162.194",
+      "removalNotBefore": "0.164.0",
+      "legacy": {
+        "invocations": 0,
+        "completed": 0,
+        "error": 0
+      },
+      "replacementRoute": {
+        "invocations": 0,
+        "completed": 0,
+        "error": 0
+      },
+      "observedVersions": [],
+      "decision": "insufficient-data",
+      "reasons": [
+        "collector-bias-blocking:no-approved-public-cohort-export",
+        "collector-bias-blocking:opt-in-collector",
+        "collector-coverage-too-low",
+        "command-release-window-incomplete",
+        "command-sample-too-small",
+        "eligible-installation-cohort-too-small",
+        "platform-coverage-missing:linux",
+        "platform-coverage-missing:macos",
+        "platform-coverage-missing:windows",
+        "release-observation-window-incomplete",
+        "removal-version-not-reached",
+        "reporting-installation-cohort-too-small",
+        "sample-rate-too-low-or-invalid",
+        "telemetry-input-invalid"
+      ],
+      "totalInvocations": 0,
+      "legacyShare": null,
+      "observedMinorCycles": ["0.162"]
+    },
+    {
+      "command": "itbudget",
+      "replacement": "lab itbudget",
+      "deprecatedSince": "0.162.194",
+      "removalNotBefore": "0.164.0",
+      "legacy": {
+        "invocations": 0,
+        "completed": 0,
+        "error": 0
+      },
+      "replacementRoute": {
+        "invocations": 0,
+        "completed": 0,
+        "error": 0
+      },
+      "observedVersions": [],
+      "decision": "insufficient-data",
+      "reasons": [
+        "collector-bias-blocking:no-approved-public-cohort-export",
+        "collector-bias-blocking:opt-in-collector",
+        "collector-coverage-too-low",
+        "command-release-window-incomplete",
+        "command-sample-too-small",
+        "eligible-installation-cohort-too-small",
+        "platform-coverage-missing:linux",
+        "platform-coverage-missing:macos",
+        "platform-coverage-missing:windows",
+        "release-observation-window-incomplete",
+        "removal-version-not-reached",
+        "reporting-installation-cohort-too-small",
+        "sample-rate-too-low-or-invalid",
+        "telemetry-input-invalid"
+      ],
+      "totalInvocations": 0,
+      "legacyShare": null,
+      "observedMinorCycles": ["0.162"]
+    },
+    {
+      "command": "mcpscaf",
+      "replacement": "lab mcpscaf",
+      "deprecatedSince": "0.162.194",
+      "removalNotBefore": "0.164.0",
+      "legacy": {
+        "invocations": 0,
+        "completed": 0,
+        "error": 0
+      },
+      "replacementRoute": {
+        "invocations": 0,
+        "completed": 0,
+        "error": 0
+      },
+      "observedVersions": [],
+      "decision": "insufficient-data",
+      "reasons": [
+        "collector-bias-blocking:no-approved-public-cohort-export",
+        "collector-bias-blocking:opt-in-collector",
+        "collector-coverage-too-low",
+        "command-release-window-incomplete",
+        "command-sample-too-small",
+        "eligible-installation-cohort-too-small",
+        "platform-coverage-missing:linux",
+        "platform-coverage-missing:macos",
+        "platform-coverage-missing:windows",
+        "release-observation-window-incomplete",
+        "removal-version-not-reached",
+        "reporting-installation-cohort-too-small",
+        "sample-rate-too-low-or-invalid",
+        "telemetry-input-invalid"
+      ],
+      "totalInvocations": 0,
+      "legacyShare": null,
+      "observedMinorCycles": ["0.162"]
+    },
+    {
+      "command": "meminj",
+      "replacement": "lab meminj",
+      "deprecatedSince": "0.162.194",
+      "removalNotBefore": "0.164.0",
+      "legacy": {
+        "invocations": 0,
+        "completed": 0,
+        "error": 0
+      },
+      "replacementRoute": {
+        "invocations": 0,
+        "completed": 0,
+        "error": 0
+      },
+      "observedVersions": [],
+      "decision": "insufficient-data",
+      "reasons": [
+        "collector-bias-blocking:no-approved-public-cohort-export",
+        "collector-bias-blocking:opt-in-collector",
+        "collector-coverage-too-low",
+        "command-release-window-incomplete",
+        "command-sample-too-small",
+        "eligible-installation-cohort-too-small",
+        "platform-coverage-missing:linux",
+        "platform-coverage-missing:macos",
+        "platform-coverage-missing:windows",
+        "release-observation-window-incomplete",
+        "removal-version-not-reached",
+        "reporting-installation-cohort-too-small",
+        "sample-rate-too-low-or-invalid",
+        "telemetry-input-invalid"
+      ],
+      "totalInvocations": 0,
+      "legacyShare": null,
+      "observedMinorCycles": ["0.162"]
+    },
+    {
+      "command": "orchgov",
+      "replacement": "lab orchgov",
+      "deprecatedSince": "0.162.194",
+      "removalNotBefore": "0.164.0",
+      "legacy": {
+        "invocations": 0,
+        "completed": 0,
+        "error": 0
+      },
+      "replacementRoute": {
+        "invocations": 0,
+        "completed": 0,
+        "error": 0
+      },
+      "observedVersions": [],
+      "decision": "insufficient-data",
+      "reasons": [
+        "collector-bias-blocking:no-approved-public-cohort-export",
+        "collector-bias-blocking:opt-in-collector",
+        "collector-coverage-too-low",
+        "command-release-window-incomplete",
+        "command-sample-too-small",
+        "eligible-installation-cohort-too-small",
+        "platform-coverage-missing:linux",
+        "platform-coverage-missing:macos",
+        "platform-coverage-missing:windows",
+        "release-observation-window-incomplete",
+        "removal-version-not-reached",
+        "reporting-installation-cohort-too-small",
+        "sample-rate-too-low-or-invalid",
+        "telemetry-input-invalid"
+      ],
+      "totalInvocations": 0,
+      "legacyShare": null,
+      "observedMinorCycles": ["0.162"]
+    },
+    {
+      "command": "pdfp",
+      "replacement": "lab pdfp",
+      "deprecatedSince": "0.162.194",
+      "removalNotBefore": "0.164.0",
+      "legacy": {
+        "invocations": 0,
+        "completed": 0,
+        "error": 0
+      },
+      "replacementRoute": {
+        "invocations": 0,
+        "completed": 0,
+        "error": 0
+      },
+      "observedVersions": [],
+      "decision": "insufficient-data",
+      "reasons": [
+        "collector-bias-blocking:no-approved-public-cohort-export",
+        "collector-bias-blocking:opt-in-collector",
+        "collector-coverage-too-low",
+        "command-release-window-incomplete",
+        "command-sample-too-small",
+        "eligible-installation-cohort-too-small",
+        "platform-coverage-missing:linux",
+        "platform-coverage-missing:macos",
+        "platform-coverage-missing:windows",
+        "release-observation-window-incomplete",
+        "removal-version-not-reached",
+        "reporting-installation-cohort-too-small",
+        "sample-rate-too-low-or-invalid",
+        "telemetry-input-invalid"
+      ],
+      "totalInvocations": 0,
+      "legacyShare": null,
+      "observedMinorCycles": ["0.162"]
+    },
+    {
+      "command": "promcomp",
+      "replacement": "lab promcomp",
+      "deprecatedSince": "0.162.194",
+      "removalNotBefore": "0.164.0",
+      "legacy": {
+        "invocations": 0,
+        "completed": 0,
+        "error": 0
+      },
+      "replacementRoute": {
+        "invocations": 0,
+        "completed": 0,
+        "error": 0
+      },
+      "observedVersions": [],
+      "decision": "insufficient-data",
+      "reasons": [
+        "collector-bias-blocking:no-approved-public-cohort-export",
+        "collector-bias-blocking:opt-in-collector",
+        "collector-coverage-too-low",
+        "command-release-window-incomplete",
+        "command-sample-too-small",
+        "eligible-installation-cohort-too-small",
+        "platform-coverage-missing:linux",
+        "platform-coverage-missing:macos",
+        "platform-coverage-missing:windows",
+        "release-observation-window-incomplete",
+        "removal-version-not-reached",
+        "reporting-installation-cohort-too-small",
+        "sample-rate-too-low-or-invalid",
+        "telemetry-input-invalid"
+      ],
+      "totalInvocations": 0,
+      "legacyShare": null,
+      "observedMinorCycles": ["0.162"]
+    },
+    {
+      "command": "seshhook",
+      "replacement": "lab seshhook",
+      "deprecatedSince": "0.162.194",
+      "removalNotBefore": "0.164.0",
+      "legacy": {
+        "invocations": 0,
+        "completed": 0,
+        "error": 0
+      },
+      "replacementRoute": {
+        "invocations": 0,
+        "completed": 0,
+        "error": 0
+      },
+      "observedVersions": [],
+      "decision": "insufficient-data",
+      "reasons": [
+        "collector-bias-blocking:no-approved-public-cohort-export",
+        "collector-bias-blocking:opt-in-collector",
+        "collector-coverage-too-low",
+        "command-release-window-incomplete",
+        "command-sample-too-small",
+        "eligible-installation-cohort-too-small",
+        "platform-coverage-missing:linux",
+        "platform-coverage-missing:macos",
+        "platform-coverage-missing:windows",
+        "release-observation-window-incomplete",
+        "removal-version-not-reached",
+        "reporting-installation-cohort-too-small",
+        "sample-rate-too-low-or-invalid",
+        "telemetry-input-invalid"
+      ],
+      "totalInvocations": 0,
+      "legacyShare": null,
+      "observedMinorCycles": ["0.162"]
+    },
+    {
+      "command": "seshsearch",
+      "replacement": "lab seshsearch",
+      "deprecatedSince": "0.162.194",
+      "removalNotBefore": "0.164.0",
+      "legacy": {
+        "invocations": 0,
+        "completed": 0,
+        "error": 0
+      },
+      "replacementRoute": {
+        "invocations": 0,
+        "completed": 0,
+        "error": 0
+      },
+      "observedVersions": [],
+      "decision": "insufficient-data",
+      "reasons": [
+        "collector-bias-blocking:no-approved-public-cohort-export",
+        "collector-bias-blocking:opt-in-collector",
+        "collector-coverage-too-low",
+        "command-release-window-incomplete",
+        "command-sample-too-small",
+        "eligible-installation-cohort-too-small",
+        "platform-coverage-missing:linux",
+        "platform-coverage-missing:macos",
+        "platform-coverage-missing:windows",
+        "release-observation-window-incomplete",
+        "removal-version-not-reached",
+        "reporting-installation-cohort-too-small",
+        "sample-rate-too-low-or-invalid",
+        "telemetry-input-invalid"
+      ],
+      "totalInvocations": 0,
+      "legacyShare": null,
+      "observedMinorCycles": ["0.162"]
+    },
+    {
+      "command": "seshtail",
+      "replacement": "lab seshtail",
+      "deprecatedSince": "0.162.194",
+      "removalNotBefore": "0.164.0",
+      "legacy": {
+        "invocations": 0,
+        "completed": 0,
+        "error": 0
+      },
+      "replacementRoute": {
+        "invocations": 0,
+        "completed": 0,
+        "error": 0
+      },
+      "observedVersions": [],
+      "decision": "insufficient-data",
+      "reasons": [
+        "collector-bias-blocking:no-approved-public-cohort-export",
+        "collector-bias-blocking:opt-in-collector",
+        "collector-coverage-too-low",
+        "command-release-window-incomplete",
+        "command-sample-too-small",
+        "eligible-installation-cohort-too-small",
+        "platform-coverage-missing:linux",
+        "platform-coverage-missing:macos",
+        "platform-coverage-missing:windows",
+        "release-observation-window-incomplete",
+        "removal-version-not-reached",
+        "reporting-installation-cohort-too-small",
+        "sample-rate-too-low-or-invalid",
+        "telemetry-input-invalid"
+      ],
+      "totalInvocations": 0,
+      "legacyShare": null,
+      "observedMinorCycles": ["0.162"]
+    },
+    {
+      "command": "seshu",
+      "replacement": "lab seshu",
+      "deprecatedSince": "0.162.194",
+      "removalNotBefore": "0.164.0",
+      "legacy": {
+        "invocations": 0,
+        "completed": 0,
+        "error": 0
+      },
+      "replacementRoute": {
+        "invocations": 0,
+        "completed": 0,
+        "error": 0
+      },
+      "observedVersions": [],
+      "decision": "insufficient-data",
+      "reasons": [
+        "collector-bias-blocking:no-approved-public-cohort-export",
+        "collector-bias-blocking:opt-in-collector",
+        "collector-coverage-too-low",
+        "command-release-window-incomplete",
+        "command-sample-too-small",
+        "eligible-installation-cohort-too-small",
+        "platform-coverage-missing:linux",
+        "platform-coverage-missing:macos",
+        "platform-coverage-missing:windows",
+        "release-observation-window-incomplete",
+        "removal-version-not-reached",
+        "reporting-installation-cohort-too-small",
+        "sample-rate-too-low-or-invalid",
+        "telemetry-input-invalid"
+      ],
+      "totalInvocations": 0,
+      "legacyShare": null,
+      "observedMinorCycles": ["0.162"]
+    },
+    {
+      "command": "sganal",
+      "replacement": "lab sganal",
+      "deprecatedSince": "0.162.194",
+      "removalNotBefore": "0.164.0",
+      "legacy": {
+        "invocations": 0,
+        "completed": 0,
+        "error": 0
+      },
+      "replacementRoute": {
+        "invocations": 0,
+        "completed": 0,
+        "error": 0
+      },
+      "observedVersions": [],
+      "decision": "insufficient-data",
+      "reasons": [
+        "collector-bias-blocking:no-approved-public-cohort-export",
+        "collector-bias-blocking:opt-in-collector",
+        "collector-coverage-too-low",
+        "command-release-window-incomplete",
+        "command-sample-too-small",
+        "eligible-installation-cohort-too-small",
+        "platform-coverage-missing:linux",
+        "platform-coverage-missing:macos",
+        "platform-coverage-missing:windows",
+        "release-observation-window-incomplete",
+        "removal-version-not-reached",
+        "reporting-installation-cohort-too-small",
+        "sample-rate-too-low-or-invalid",
+        "telemetry-input-invalid"
+      ],
+      "totalInvocations": 0,
+      "legacyShare": null,
+      "observedMinorCycles": ["0.162"]
+    },
+    {
+      "command": "slotfill",
+      "replacement": "lab slotfill",
+      "deprecatedSince": "0.162.194",
+      "removalNotBefore": "0.164.0",
+      "legacy": {
+        "invocations": 0,
+        "completed": 0,
+        "error": 0
+      },
+      "replacementRoute": {
+        "invocations": 0,
+        "completed": 0,
+        "error": 0
+      },
+      "observedVersions": [],
+      "decision": "insufficient-data",
+      "reasons": [
+        "collector-bias-blocking:no-approved-public-cohort-export",
+        "collector-bias-blocking:opt-in-collector",
+        "collector-coverage-too-low",
+        "command-release-window-incomplete",
+        "command-sample-too-small",
+        "eligible-installation-cohort-too-small",
+        "platform-coverage-missing:linux",
+        "platform-coverage-missing:macos",
+        "platform-coverage-missing:windows",
+        "release-observation-window-incomplete",
+        "removal-version-not-reached",
+        "reporting-installation-cohort-too-small",
+        "sample-rate-too-low-or-invalid",
+        "telemetry-input-invalid"
+      ],
+      "totalInvocations": 0,
+      "legacyShare": null,
+      "observedMinorCycles": ["0.162"]
+    },
+    {
+      "command": "svccont",
+      "replacement": "lab svccont",
+      "deprecatedSince": "0.162.194",
+      "removalNotBefore": "0.164.0",
+      "legacy": {
+        "invocations": 0,
+        "completed": 0,
+        "error": 0
+      },
+      "replacementRoute": {
+        "invocations": 0,
+        "completed": 0,
+        "error": 0
+      },
+      "observedVersions": [],
+      "decision": "insufficient-data",
+      "reasons": [
+        "collector-bias-blocking:no-approved-public-cohort-export",
+        "collector-bias-blocking:opt-in-collector",
+        "collector-coverage-too-low",
+        "command-release-window-incomplete",
+        "command-sample-too-small",
+        "eligible-installation-cohort-too-small",
+        "platform-coverage-missing:linux",
+        "platform-coverage-missing:macos",
+        "platform-coverage-missing:windows",
+        "release-observation-window-incomplete",
+        "removal-version-not-reached",
+        "reporting-installation-cohort-too-small",
+        "sample-rate-too-low-or-invalid",
+        "telemetry-input-invalid"
+      ],
+      "totalInvocations": 0,
+      "legacyShare": null,
+      "observedMinorCycles": ["0.162"]
+    },
+    {
+      "command": "tms",
+      "replacement": "lab tms",
+      "deprecatedSince": "0.162.194",
+      "removalNotBefore": "0.164.0",
+      "legacy": {
+        "invocations": 0,
+        "completed": 0,
+        "error": 0
+      },
+      "replacementRoute": {
+        "invocations": 0,
+        "completed": 0,
+        "error": 0
+      },
+      "observedVersions": [],
+      "decision": "insufficient-data",
+      "reasons": [
+        "collector-bias-blocking:no-approved-public-cohort-export",
+        "collector-bias-blocking:opt-in-collector",
+        "collector-coverage-too-low",
+        "command-release-window-incomplete",
+        "command-sample-too-small",
+        "eligible-installation-cohort-too-small",
+        "platform-coverage-missing:linux",
+        "platform-coverage-missing:macos",
+        "platform-coverage-missing:windows",
+        "release-observation-window-incomplete",
+        "removal-version-not-reached",
+        "reporting-installation-cohort-too-small",
+        "sample-rate-too-low-or-invalid",
+        "telemetry-input-invalid"
+      ],
+      "totalInvocations": 0,
+      "legacyShare": null,
+      "observedMinorCycles": ["0.162"]
+    },
+    {
+      "command": "topiccls",
+      "replacement": "lab topiccls",
+      "deprecatedSince": "0.162.194",
+      "removalNotBefore": "0.164.0",
+      "legacy": {
+        "invocations": 0,
+        "completed": 0,
+        "error": 0
+      },
+      "replacementRoute": {
+        "invocations": 0,
+        "completed": 0,
+        "error": 0
+      },
+      "observedVersions": [],
+      "decision": "insufficient-data",
+      "reasons": [
+        "collector-bias-blocking:no-approved-public-cohort-export",
+        "collector-bias-blocking:opt-in-collector",
+        "collector-coverage-too-low",
+        "command-release-window-incomplete",
+        "command-sample-too-small",
+        "eligible-installation-cohort-too-small",
+        "platform-coverage-missing:linux",
+        "platform-coverage-missing:macos",
+        "platform-coverage-missing:windows",
+        "release-observation-window-incomplete",
+        "removal-version-not-reached",
+        "reporting-installation-cohort-too-small",
+        "sample-rate-too-low-or-invalid",
+        "telemetry-input-invalid"
+      ],
+      "totalInvocations": 0,
+      "legacyShare": null,
+      "observedMinorCycles": ["0.162"]
+    },
+    {
+      "command": "uprof",
+      "replacement": "lab uprof",
+      "deprecatedSince": "0.162.194",
+      "removalNotBefore": "0.164.0",
+      "legacy": {
+        "invocations": 0,
+        "completed": 0,
+        "error": 0
+      },
+      "replacementRoute": {
+        "invocations": 0,
+        "completed": 0,
+        "error": 0
+      },
+      "observedVersions": [],
+      "decision": "insufficient-data",
+      "reasons": [
+        "collector-bias-blocking:no-approved-public-cohort-export",
+        "collector-bias-blocking:opt-in-collector",
+        "collector-coverage-too-low",
+        "command-release-window-incomplete",
+        "command-sample-too-small",
+        "eligible-installation-cohort-too-small",
+        "platform-coverage-missing:linux",
+        "platform-coverage-missing:macos",
+        "platform-coverage-missing:windows",
+        "release-observation-window-incomplete",
+        "removal-version-not-reached",
+        "reporting-installation-cohort-too-small",
+        "sample-rate-too-low-or-invalid",
+        "telemetry-input-invalid"
+      ],
+      "totalInvocations": 0,
+      "legacyShare": null,
+      "observedMinorCycles": ["0.162"]
+    },
+    {
+      "command": "vcheck",
+      "replacement": "lab vcheck",
+      "deprecatedSince": "0.162.194",
+      "removalNotBefore": "0.164.0",
+      "legacy": {
+        "invocations": 0,
+        "completed": 0,
+        "error": 0
+      },
+      "replacementRoute": {
+        "invocations": 0,
+        "completed": 0,
+        "error": 0
+      },
+      "observedVersions": [],
+      "decision": "insufficient-data",
+      "reasons": [
+        "collector-bias-blocking:no-approved-public-cohort-export",
+        "collector-bias-blocking:opt-in-collector",
+        "collector-coverage-too-low",
+        "command-release-window-incomplete",
+        "command-sample-too-small",
+        "eligible-installation-cohort-too-small",
+        "platform-coverage-missing:linux",
+        "platform-coverage-missing:macos",
+        "platform-coverage-missing:windows",
+        "release-observation-window-incomplete",
+        "removal-version-not-reached",
+        "reporting-installation-cohort-too-small",
+        "sample-rate-too-low-or-invalid",
+        "telemetry-input-invalid"
+      ],
+      "totalInvocations": 0,
+      "legacyShare": null,
+      "observedMinorCycles": ["0.162"]
+    }
+  ]
+}

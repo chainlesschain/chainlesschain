@@ -1119,6 +1119,14 @@ clean implementation SHA 在 Windows x64 / Node `22.22.2` 上复跑全部 `mcp-c
 - 该提交在 Windows x64 / Node `22.22.2` 上的 materialization 对抗矩阵为 **26/26 passed**，覆盖完整 transitive bundle 实际启动、generation 确定性、原树与 capsule 替换、构建期间原树竞态、动态 `require`/`import()`、native `.node`、lock integrity、index rollback、Broker npm/esbuild argv 与环境注入；扩大 identity/lazy-dispatch/MCP client/sandbox policy 为 **5 files / 124 passed / 1 个既有平台 skip**。目标 Prettier、ESLint、Node syntax、help-index drift 与 `git diff --check` 通过；lockfile 的 production `esbuild@0.28.1` 解析和 npm pack dry-run 通过。它关闭的是受限 exact npm + direct Node bin 的常规模块依赖闭包，不关闭最终 OS `exec/open` 原子绑定、自定义 runtime/native executable/DLL、远端 revoke 或三平台恶意 race/soak，因此第 16.8(3) 项整体仍为 **NO-GO**。
 - 以上是实现和本地 smoke 证据，不是产品级 formal closure。仍须在同一个最终 clean exact SHA 上取得 Ubuntu/macOS/Windows artifact；formal 每格不得低于 2 小时、1,000 turns、20 concurrent Agents、20 broken/slow pipe cases、5 disconnect cases和 2 秒 slow-consumer stall。Linux 还必须完成真实磁盘和 SSH；screen reader、Windows/macOS clipboard 与键盘布局继续属于独立真实交互矩阵。因此第 16.8(6) 项在三平台 artifact 形成前仍为 **NO-GO**，也不授权新的 CLI npm 发布。
 
+### 16.10 2026-08-08 Session Host Consistency 正式关闭
+
+第 16.8(2) 项现由最终公开发布提交 `dbb06e16fef0600e41d25d383c5595c7945f60ff` 的三平台 exact-SHA 权威证据关闭：[CLI Session Host Consistency `31191709454`](https://github.com/chainlesschain/chainlesschain/actions/runs/31191709454) 的 Ubuntu、macOS、Windows 三格均成功，逐格执行精确 checkout、lease/anti-rollback 聚焦回归与 cross-host JSONL consistency gate。artifact 分别为 `cli-session-host-consistency-ubuntu-latest-dbb06e16fef0600e41d25d383c5595c7945f60ff-1`（ID `8999192080`）、`cli-session-host-consistency-macos-latest-dbb06e16fef0600e41d25d383c5595c7945f60ff-1`（ID `8999214920`）和 `cli-session-host-consistency-windows-latest-dbb06e16fef0600e41d25d383c5595c7945f60ff-1`（ID `8999535513`）；三件 artifact 生成时均未过期。该提交随后以不可变 tag `v-npm-0-162-200` 公开发布。因此第 16.8(2) 项从本节起状态为 **已完成**；第 16.8 中早先的“部分完成”文字保留为当时的历史判定，不再代表当前状态。本证据不替代第 3、4、5、6 项各自的 formal 矩阵。
+
+### 16.11 2026-08-08 `0.162.200` 命令生命周期决策快照
+
+已生成 content-free [JSON 汇总](cli/evidence/command-lifecycle/0.162.200.json)与[逐命令审阅表](cli/evidence/command-lifecycle/0.162.200.md)。npm 公网时间证明 `0.162.198`（`2026-08-06T07:47:36.861Z`）至 `0.162.200`（`2026-08-07T16:55:32.069Z`）仍只有 `0.162` 一个 minor cycle；同时没有可批准为代表性用户 cohort 的 Collector export，因此汇总明确记录 opt-in/no-export sampling bias、三平台 coverage 缺失、零 accepted metric points 与 25/25 `insufficient-data`。本轮 operational alias 决策为 **25 个全部保留、0 个删除**，manifest 未修改。该快照完成了当前可诚实执行的 telemetry 汇总和 alias 决策，但不冒充第 16.8(5) 项要求的长期观察窗；只有后续 `0.163.x` 第二个 minor cycle、`0.164.0` removal floor 和真实覆盖/样本门同时成立后，才允许重新评估删除。
+
 ## 17. 2026-08-06 `0.162.198` 发布闭环与继续执行边界
 
 `0.162.198` 是第 16 节之后的 CLI-only 补丁发布，纳入 P0-1 canonical session workbench、P0-2 rewind/branch 宿主绑定、P0-3 发布可靠性跟进，以及 REPL/headless/provider/TTY 输出背压和跨平台 release fixture 修复。它不改变第 16.8 节产品级未完成项的授权边界。

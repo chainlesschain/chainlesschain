@@ -60,3 +60,22 @@ any `remove` recommendation, regenerate the command manifest/help/completions,
 and run the full exact-SHA CLI release gates. Collector exports and installation
 counts may be sensitive operational data and must remain outside the repository;
 only the content-free aggregate report should be retained as release evidence.
+
+## `0.162.200` decision snapshot
+
+The content-free [JSON report](evidence/command-lifecycle/0.162.200.json) and
+[review table](evidence/command-lifecycle/0.162.200.md) record the first public
+decision snapshot. npm published `0.162.198` at `2026-08-06T07:47:36.861Z` and
+`0.162.200` at `2026-08-07T16:55:32.069Z`; both releases belong to the single
+`0.162` minor cycle. No approved representative Collector cohort export was
+available, so the report records zero accepted metric points and explicitly
+marks the opt-in/no-export sampling biases as blocking. The zero cohort fields
+mean "no approved cohort evidence", not "zero public installations".
+
+All 25 compatibility entries therefore have the evidence decision
+`insufficient-data`. The operational alias decision is to retain every entry:
+there are zero removal recommendations and the manifest is unchanged. A future
+report may reconsider removal only after `0.163.x` supplies a second observed
+minor cycle, the decision version reaches each entry's `0.164.0`
+`removalNotBefore` floor, and the documented coverage and per-command sample
+gates pass with a real approved export.
