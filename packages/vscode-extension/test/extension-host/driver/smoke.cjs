@@ -122,6 +122,32 @@ async function dismissFreshInstallReloadPrompt() {
   await vscode.commands.executeCommand("notifications.clearAll");
 }
 
+async function launchMacCompanionWindow({
+  companionWorkspace,
+  multiWindowProgressFile,
+}) {
+  appendMultiWindowProgress(
+    multiWindowProgressFile,
+    "multi_window_companion_launch_requested",
+    { actor: "primary", transport: "vscode.openFolder" },
+  );
+  // Spawning the Electron executable with the inherited IPC hook remains
+  // reliable on the minimum supported host, but current macOS VS Code may
+  // accept the process launch without creating the requested workbench. Use
+  // the public workbench command so the running isolated host owns creation
+  // of the second window and carries the extension-test contract into it.
+  await vscode.commands.executeCommand(
+    "vscode.openFolder",
+    vscode.Uri.file(companionWorkspace),
+    { forceNewWindow: true },
+  );
+  appendMultiWindowProgress(
+    multiWindowProgressFile,
+    "multi_window_companion_launch_completed",
+    { actor: "primary", transport: "vscode.openFolder" },
+  );
+}
+
 async function runCompanionWindow({
   extensionsDir,
   expectedVersion,
@@ -624,6 +650,15 @@ async function run() {
       primaryFolders: workspaceFolders,
       companionWorkspace,
       evidenceFile: multiWindowEvidenceFile,
+      ...(process.platform === "darwin"
+        ? {
+            launchCompanion: ({ companionWorkspace: workspace }) =>
+              launchMacCompanionWindow({
+                companionWorkspace: workspace,
+                multiWindowProgressFile,
+              }),
+          }
+        : {}),
     });
     appendMultiWindowProgress(
       multiWindowProgressFile,

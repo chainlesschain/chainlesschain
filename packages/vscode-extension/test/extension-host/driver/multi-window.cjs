@@ -215,6 +215,7 @@ async function runMultiWindowJourney({
   primaryFolders,
   companionWorkspace,
   evidenceFile,
+  launchCompanion = launchCompanionWindow,
 }) {
   assert.ok(vscodeExecutablePath, "VS Code executable path is unavailable");
   assert.ok(userDataDir, "VS Code user-data directory is unavailable");
@@ -230,7 +231,7 @@ async function runMultiWindowJourney({
     "companion workspace must be distinct from every primary root",
   );
 
-  await launchCompanionWindow({
+  await launchCompanion({
     vscodeExecutablePath,
     userDataDir,
     extensionsDir,

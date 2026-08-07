@@ -665,6 +665,21 @@ test("multi-window gate uses a dedicated host-API profile and explicit contract"
   );
   assert.match(
     smokeDriver,
+    /process\.platform === "darwin"[\s\S]*?launchMacCompanionWindow/u,
+    "macOS must select the workbench-owned companion launcher",
+  );
+  assert.match(
+    smokeDriver,
+    /"vscode\.openFolder",\s+vscode\.Uri\.file\(companionWorkspace\),\s+\{ forceNewWindow: true \}/u,
+    "macOS must open the companion through the public new-window command",
+  );
+  assert.match(
+    smokeDriver,
+    /multi_window_companion_launch_requested[\s\S]*?multi_window_companion_launch_completed/u,
+    "the macOS companion launch must remain auditable",
+  );
+  assert.match(
+    smokeDriver,
     /if \(process\.platform === "darwin"\) \{[\s\S]*?multi_window_companion_close_requested[\s\S]*?void vscode\.commands\.executeCommand\("workbench\.action\.closeWindow"\);/u,
     "macOS must close only the synchronized companion window",
   );
