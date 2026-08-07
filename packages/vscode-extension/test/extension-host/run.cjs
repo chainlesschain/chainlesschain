@@ -146,7 +146,7 @@ function makeFreshRunRoot(parent) {
 }
 
 function buildProfileArgs({ runRoot, extensionsDir, phase }) {
-  if (!/^(?:install|initial|restart)$/.test(phase)) {
+  if (!/^(?:install|initial|multi-window|restart)$/.test(phase)) {
     throw new Error(`unknown host profile phase: ${phase}`);
   }
   return [
@@ -674,18 +674,12 @@ async function runRealDomPhase({
   runtimeDir,
   journeyArtifactDir,
   fixture,
-  companionWorkspace,
-  multiWindowEvidenceFile,
   useCdpPipe = false,
   useElectronMainInspector = false,
   useDomRelay = false,
 }) {
   const launchTarget = workspaceTarget || workspaceDir;
   const expectedWorkspaceFolders = workspaceFolders || [workspaceDir];
-  const userDataDir = profileArgs
-    .find((argument) => argument.startsWith("--user-data-dir="))
-    ?.slice("--user-data-dir=".length);
-  if (!userDataDir) throw new Error("host profile has no user-data directory");
   if (
     [useCdpPipe, useElectronMainInspector, useDomRelay].filter(Boolean).length >
     1
@@ -724,7 +718,6 @@ async function runRealDomPhase({
               CHAINLESSCHAIN_SMOKE_EXTENSIONS_DIR: extensionsDir,
               CHAINLESSCHAIN_SMOKE_EXPECTED_VERSION: expectedVersion,
               CHAINLESSCHAIN_SMOKE_WORKSPACE: workspaceDir,
-              CHAINLESSCHAIN_SMOKE_WORKSPACE_TARGET: launchTarget,
               CHAINLESSCHAIN_SMOKE_WORKSPACE_FOLDERS: JSON.stringify(
                 expectedWorkspaceFolders,
               ),
@@ -740,17 +733,6 @@ async function runRealDomPhase({
               CHAINLESSCHAIN_HOST_DOM_TOKEN: hostDomToken,
               CC_UI_FIXTURE_STATE: fixture.statePath,
               CC_UI_FIXTURE_TRACE: fixture.tracePath,
-              ...(phase === "initial"
-                ? {
-                    CHAINLESSCHAIN_SMOKE_COMPANION_WORKSPACE:
-                      companionWorkspace,
-                    CHAINLESSCHAIN_MULTI_WINDOW_EVIDENCE_FILE:
-                      multiWindowEvidenceFile,
-                    CHAINLESSCHAIN_SMOKE_VSCODE_EXECUTABLE:
-                      vscodeExecutablePath,
-                    CHAINLESSCHAIN_SMOKE_USER_DATA_DIR: userDataDir,
-                  }
-                : {}),
             },
           }),
         )
@@ -821,7 +803,6 @@ async function runRealDomPhase({
     CHAINLESSCHAIN_SMOKE_EXTENSIONS_DIR: extensionsDir,
     CHAINLESSCHAIN_SMOKE_EXPECTED_VERSION: expectedVersion,
     CHAINLESSCHAIN_SMOKE_WORKSPACE: workspaceDir,
-    CHAINLESSCHAIN_SMOKE_WORKSPACE_TARGET: launchTarget,
     CHAINLESSCHAIN_SMOKE_WORKSPACE_FOLDERS: JSON.stringify(
       expectedWorkspaceFolders,
     ),
@@ -830,14 +811,6 @@ async function runRealDomPhase({
     CHAINLESSCHAIN_HOST_RESULT_FILE: resultFile,
     CC_UI_FIXTURE_STATE: fixture.statePath,
     CC_UI_FIXTURE_TRACE: fixture.tracePath,
-    ...(phase === "initial"
-      ? {
-          CHAINLESSCHAIN_SMOKE_COMPANION_WORKSPACE: companionWorkspace,
-          CHAINLESSCHAIN_MULTI_WINDOW_EVIDENCE_FILE: multiWindowEvidenceFile,
-          CHAINLESSCHAIN_SMOKE_VSCODE_EXECUTABLE: vscodeExecutablePath,
-          CHAINLESSCHAIN_SMOKE_USER_DATA_DIR: userDataDir,
-        }
-      : {}),
   };
   const pipeHost = useCdpPipe
     ? launchExtensionHostWithCdpPipe({
@@ -960,6 +933,7 @@ async function runHostApiPhase({
   fixture,
   companionWorkspace,
   multiWindowEvidenceFile,
+  includeMultiWindow = false,
 }) {
   const launchTarget = workspaceTarget || workspaceDir;
   const expectedWorkspaceFolders = workspaceFolders || [workspaceDir];
@@ -983,7 +957,6 @@ async function runHostApiPhase({
       CHAINLESSCHAIN_SMOKE_EXTENSIONS_DIR: extensionsDir,
       CHAINLESSCHAIN_SMOKE_EXPECTED_VERSION: expectedVersion,
       CHAINLESSCHAIN_SMOKE_WORKSPACE: workspaceDir,
-      CHAINLESSCHAIN_SMOKE_WORKSPACE_TARGET: launchTarget,
       CHAINLESSCHAIN_SMOKE_WORKSPACE_FOLDERS: JSON.stringify(
         expectedWorkspaceFolders,
       ),
@@ -994,8 +967,9 @@ async function runHostApiPhase({
       CHAINLESSCHAIN_HOST_TRACE_FILE: traceFile,
       CC_UI_FIXTURE_STATE: fixture.statePath,
       CC_UI_FIXTURE_TRACE: fixture.tracePath,
-      ...(phase === "initial"
+      ...(includeMultiWindow
         ? {
+            CHAINLESSCHAIN_MULTI_WINDOW_REQUIRED: "1",
             CHAINLESSCHAIN_SMOKE_COMPANION_WORKSPACE: companionWorkspace,
             CHAINLESSCHAIN_MULTI_WINDOW_EVIDENCE_FILE: multiWindowEvidenceFile,
             CHAINLESSCHAIN_SMOKE_VSCODE_EXECUTABLE: vscodeExecutablePath,
@@ -1303,6 +1277,31 @@ async function main() {
       options.vscodeVersion,
     );
     recordHostProgress(progressPath, "download_completed");
+    if (!hostApiMode) {
+      recordHostProgress(progressPath, "multi_window_started");
+      await runHostApiPhase({
+        runTests,
+        vscodeExecutablePath,
+        workspaceDir,
+        workspaceFolders,
+        workspaceTarget,
+        profileArgs: buildProfileArgs({
+          runRoot,
+          extensionsDir,
+          phase: "multi-window",
+        }),
+        extensionsDir,
+        profileHome,
+        expectedVersion,
+        phase: "initial",
+        runtimeDir: path.join(journeyRuntimeDir, "multi-window-gate"),
+        fixture,
+        companionWorkspace,
+        multiWindowEvidenceFile,
+        includeMultiWindow: true,
+      });
+      recordHostProgress(progressPath, "multi_window_completed");
+    }
     for (const phase of ["initial", "restart"]) {
       const profileArgs = buildProfileArgs({ runRoot, extensionsDir, phase });
       recordHostProgress(progressPath, `${phase}_started`);
@@ -1323,6 +1322,7 @@ async function main() {
         fixture,
         companionWorkspace,
         multiWindowEvidenceFile,
+        includeMultiWindow: hostApiMode && phase === "initial",
         useCdpPipe: false,
         useElectronMainInspector: false,
         useDomRelay: hostJourneyTransport.useDomRelay,

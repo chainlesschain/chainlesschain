@@ -64,32 +64,6 @@ function launchCompanionWindow({
   });
 }
 
-async function requestPrimaryWorkspaceFocus({
-  vscodeExecutablePath,
-  userDataDir,
-  extensionsDir,
-  primaryWorkspaceTarget,
-  platform = process.platform,
-  launch = launchCompanionWindow,
-  settleMs = 1_500,
-}) {
-  if (platform !== "darwin") return false;
-  assert.ok(primaryWorkspaceTarget, "primary workspace target is unavailable");
-  // Re-opening an already-open workspace with --new-window makes VS Code
-  // raise that exact existing workbench window instead of whichever window
-  // most recently became active. Keep the same isolated profile/IPC instance.
-  await launch({
-    vscodeExecutablePath,
-    userDataDir,
-    extensionsDir,
-    companionWorkspace: primaryWorkspaceTarget,
-  });
-  if (settleMs > 0) {
-    await new Promise((resolve) => setTimeout(resolve, settleMs));
-  }
-  return true;
-}
-
 function normalizeForCompare(value) {
   const resolved = path.resolve(value);
   return process.platform === "win32" ? resolved.toLowerCase() : resolved;
@@ -239,7 +213,6 @@ async function runMultiWindowJourney({
   extensionsDir,
   profileHome,
   primaryFolders,
-  primaryWorkspaceTarget,
   companionWorkspace,
   evidenceFile,
 }) {
@@ -287,16 +260,6 @@ async function runMultiWindowJourney({
     assertPortListening(primary.port),
     assertPortListening(companion.port),
   ]);
-  await requestPrimaryWorkspaceFocus({
-    vscodeExecutablePath,
-    userDataDir,
-    extensionsDir,
-    primaryWorkspaceTarget,
-  });
-  await Promise.all([
-    assertPortListening(primary.port),
-    assertPortListening(companion.port),
-  ]);
 
   const evidence = Object.freeze({
     version: MULTI_WINDOW_EVIDENCE_VERSION,
@@ -327,7 +290,6 @@ module.exports = {
   buildCompanionLaunchEnvironment,
   launchCompanionWindow,
   readBridgeLocks,
-  requestPrimaryWorkspaceFocus,
   runMultiWindowJourney,
   selectMultiWindowLocks,
   waitForMultiWindowLocks,

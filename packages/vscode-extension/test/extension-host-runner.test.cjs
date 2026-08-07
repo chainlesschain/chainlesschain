@@ -30,6 +30,7 @@ const {
   recordHostProgress,
   resolveHostJourneyTransport,
   resolveVsCodeHostVersion,
+  runHostApiPhase,
   runRealDomPhase,
   settleHostAfterCdp,
   writeCompanionWorkspace,
@@ -38,7 +39,6 @@ const {
 const {
   buildCompanionLaunchArgs,
   buildCompanionLaunchEnvironment,
-  requestPrimaryWorkspaceFocus,
   selectMultiWindowLocks,
   workspaceDigest,
 } = require("./extension-host/driver/multi-window.cjs");
@@ -271,42 +271,6 @@ test("companion host launch reuses the isolated profile in a new window", () => 
       VSCODE_IPC_HOOK: "isolated-main-process",
     }),
     { VSCODE_IPC_HOOK: "isolated-main-process" },
-  );
-});
-
-test("macOS multi-window handoff reopens the exact primary workspace", async () => {
-  const root = temporaryRoot();
-  const calls = [];
-  const input = {
-    vscodeExecutablePath: path.join(root, "Visual Studio Code"),
-    userDataDir: path.join(root, "user-data-initial"),
-    extensionsDir: path.join(root, "extensions"),
-    primaryWorkspaceTarget: path.join(root, "chainlesschain.code-workspace"),
-  };
-  assert.equal(
-    await requestPrimaryWorkspaceFocus({
-      ...input,
-      platform: "darwin",
-      settleMs: 0,
-      launch: async (options) => calls.push(options),
-    }),
-    true,
-  );
-  assert.deepEqual(calls, [
-    {
-      vscodeExecutablePath: input.vscodeExecutablePath,
-      userDataDir: input.userDataDir,
-      extensionsDir: input.extensionsDir,
-      companionWorkspace: input.primaryWorkspaceTarget,
-    },
-  ]);
-  assert.equal(
-    await requestPrimaryWorkspaceFocus({
-      ...input,
-      platform: "win32",
-      launch: async () => assert.fail("Windows must not request focus"),
-    }),
-    false,
   );
 });
 
@@ -610,6 +574,72 @@ test("host-API launch keeps the real extension-test profile without CDP", () => 
   );
 });
 
+test("multi-window gate uses a dedicated host-API profile and explicit contract", async () => {
+  const root = temporaryRoot();
+  const runtimeDir = path.join(root, "multi-window-runtime");
+  const workspaceDir = path.join(root, "workspace");
+  const extensionsDir = path.join(root, "extensions");
+  const profileHome = path.join(root, "home");
+  const companionWorkspace = path.join(root, "workspace-companion");
+  for (const directory of [
+    workspaceDir,
+    extensionsDir,
+    profileHome,
+    companionWorkspace,
+  ]) {
+    fs.mkdirSync(directory, { recursive: true });
+  }
+  let launch;
+  await runHostApiPhase({
+    runTests: async (options) => {
+      launch = options;
+      writeJsonSignal(
+        options.extensionTestsEnv.CHAINLESSCHAIN_HOST_RESULT_FILE,
+        {
+          ok: true,
+          phase: "initial",
+          mode: "host-api",
+          completedAt: "2026-08-07T00:00:00.000Z",
+        },
+      );
+    },
+    vscodeExecutablePath: path.join(root, "Code"),
+    workspaceDir,
+    profileArgs: buildProfileArgs({
+      runRoot: root,
+      extensionsDir,
+      phase: "multi-window",
+    }),
+    extensionsDir,
+    profileHome,
+    expectedVersion: "0.37.45",
+    phase: "initial",
+    runtimeDir,
+    fixture: {
+      statePath: path.join(root, "fixture-state.json"),
+      tracePath: path.join(root, "fixture-trace.jsonl"),
+    },
+    companionWorkspace,
+    multiWindowEvidenceFile: path.join(root, "multi-window-evidence.json"),
+    includeMultiWindow: true,
+  });
+
+  assert.equal(
+    launch.extensionTestsEnv.CHAINLESSCHAIN_MULTI_WINDOW_REQUIRED,
+    "1",
+  );
+  assert.equal(
+    launch.extensionTestsEnv.CHAINLESSCHAIN_SMOKE_COMPANION_WORKSPACE,
+    companionWorkspace,
+  );
+  assert.match(
+    launch.launchArgs.find((argument) =>
+      argument.startsWith("--user-data-dir="),
+    ),
+    /user-data-multi-window$/u,
+  );
+});
+
 test("macOS DOM relay launches without a debugger transport", async () => {
   const root = temporaryRoot();
   const runtimeDir = path.join(root, "runtime");
@@ -690,6 +720,14 @@ test("macOS DOM relay launches without a debugger transport", async () => {
   assert.equal(
     launch.extensionTestsEnv.CHAINLESSCHAIN_HOST_JOURNEY_MODE,
     "dom-relay",
+  );
+  assert.equal(
+    launch.extensionTestsEnv.CHAINLESSCHAIN_MULTI_WINDOW_REQUIRED,
+    undefined,
+  );
+  assert.equal(
+    launch.extensionTestsEnv.CHAINLESSCHAIN_SMOKE_COMPANION_WORKSPACE,
+    undefined,
   );
   assert.equal(
     launch.extensionTestsEnv.CHAINLESSCHAIN_HOST_TRACE_FILE,

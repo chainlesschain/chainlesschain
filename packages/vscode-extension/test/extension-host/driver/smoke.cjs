@@ -427,7 +427,8 @@ async function run() {
   const workspaceDir = process.env.CHAINLESSCHAIN_SMOKE_WORKSPACE;
   const workspaceFoldersJson =
     process.env.CHAINLESSCHAIN_SMOKE_WORKSPACE_FOLDERS;
-  const workspaceTarget = process.env.CHAINLESSCHAIN_SMOKE_WORKSPACE_TARGET;
+  const multiWindowRequired =
+    process.env.CHAINLESSCHAIN_MULTI_WINDOW_REQUIRED === "1";
   const profileHome = process.env.HOME || process.env.USERPROFILE;
   const journeyPhase = process.env.CHAINLESSCHAIN_HOST_JOURNEY_PHASE;
   const journeyMode = process.env.CHAINLESSCHAIN_HOST_JOURNEY_MODE || "dom";
@@ -450,7 +451,6 @@ async function run() {
     workspaceFoldersJson,
     "missing CHAINLESSCHAIN_SMOKE_WORKSPACE_FOLDERS",
   );
-  assert.ok(workspaceTarget, "missing CHAINLESSCHAIN_SMOKE_WORKSPACE_TARGET");
   assert.ok(profileHome, "missing isolated profile home");
   const workspaceFolders = readExpectedWorkspaceFolders(
     workspaceFoldersJson,
@@ -469,7 +469,11 @@ async function run() {
     );
   }
   console.log(`[extension-host-smoke] ${journeyPhase}: driver entered`);
-  if (journeyPhase === "initial" && isCompanionWindow(companionWorkspace)) {
+  if (
+    journeyPhase === "initial" &&
+    multiWindowRequired &&
+    isCompanionWindow(companionWorkspace)
+  ) {
     return runCompanionWindow({
       extensionsDir,
       expectedVersion,
@@ -551,7 +555,7 @@ async function run() {
     appendHostTrace(traceFile, journeyPhase, "bridge-verified");
   }
 
-  if (journeyPhase === "initial") {
+  if (journeyPhase === "initial" && multiWindowRequired) {
     assert.ok(
       companionWorkspace,
       "missing CHAINLESSCHAIN_SMOKE_COMPANION_WORKSPACE",
@@ -566,7 +570,6 @@ async function run() {
       extensionsDir,
       profileHome,
       primaryFolders: workspaceFolders,
-      primaryWorkspaceTarget: workspaceTarget,
       companionWorkspace,
       evidenceFile: multiWindowEvidenceFile,
     });
