@@ -6,9 +6,12 @@ import { TurnBindingLog } from "../../src/lib/turn-binding.js";
 
 const testDir = join(tmpdir(), `cc-checkpoint-timeline-${process.pid}`);
 const sessionsDir = join(testDir, "sessions");
+const securityAnchorDir = `${testDir}-security-anchors`;
 
 vi.mock("../../src/lib/paths.js", () => ({
   getHomeDir: () => testDir,
+  getStatePath: () => join(testDir, "state"),
+  getMachineSecurityAnchorDir: () => securityAnchorDir,
 }));
 
 const store = await import("../../src/harness/jsonl-session-store.js");
@@ -18,6 +21,7 @@ describe("checkpoint timeline atomic session commit", () => {
   beforeEach(() => mkdirSync(sessionsDir, { recursive: true }));
   afterEach(() => {
     if (existsSync(testDir)) rmSync(testDir, { recursive: true, force: true });
+    rmSync(securityAnchorDir, { recursive: true, force: true });
   });
 
   it("compare-and-appends only at the exact transcript head", () => {

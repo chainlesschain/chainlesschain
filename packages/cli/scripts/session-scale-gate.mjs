@@ -713,17 +713,6 @@ function createValidTranscript(
       `valid transcript size ${stat.size} != requested ${transcriptBytes}`,
     );
   }
-  const latestCompact = store.findLatestEvent(sessionId, "compact");
-  const latestSuffix = store.findLatestEvent(sessionId, "user_message");
-  const tailChainVerified =
-    latestCompact?.hash ===
-      computeEventHash(latestCompact?.prevHash, compactCore) &&
-    latestSuffix?.prevHash === latestCompact?.hash &&
-    latestSuffix?.hash === computeEventHash(latestCompact?.hash, suffixCore) &&
-    latestSuffix?.hash === prevHash;
-  if (!tailChainVerified) {
-    throw new Error("valid transcript checkpoint tail failed chain validation");
-  }
   const verificationStarted = performance.now();
   const fullChainVerification = store.verifySession(sessionId);
   const fullChainVerificationDurationMs =
@@ -750,6 +739,21 @@ function createValidTranscript(
     Number(rawMetadata?.event_count) !== fullChainVerification.chainedEvents
   ) {
     throw new Error("valid transcript production metadata anchor is missing");
+  }
+  // Production tail readers deliberately fail closed until both the local
+  // metadata sidecar and the independent anti-rollback witness are published.
+  // The synthetic fixture writes its transcript directly, so establish those
+  // authorities before proving the checkpoint fast path.
+  const latestCompact = store.findLatestEvent(sessionId, "compact");
+  const latestSuffix = store.findLatestEvent(sessionId, "user_message");
+  const tailChainVerified =
+    latestCompact?.hash ===
+      computeEventHash(latestCompact?.prevHash, compactCore) &&
+    latestSuffix?.prevHash === latestCompact?.hash &&
+    latestSuffix?.hash === computeEventHash(latestCompact?.hash, suffixCore) &&
+    latestSuffix?.hash === prevHash;
+  if (!tailChainVerified) {
+    throw new Error("valid transcript checkpoint tail failed chain validation");
   }
   return {
     sessionId,
@@ -1355,6 +1359,10 @@ export async function runSessionScaleGate() {
     }
 
     root = mkdtempSync(join(tmpdir(), "cc-session-scale-"));
+    process.env.CHAINLESSCHAIN_SECURITY_ANCHOR_HOME = join(
+      root,
+      "security-anchors",
+    );
     const firstHome = join(root, "concurrency-home");
     mkdirSync(firstHome, { recursive: true });
     process.env.CHAINLESSCHAIN_HOME = firstHome;

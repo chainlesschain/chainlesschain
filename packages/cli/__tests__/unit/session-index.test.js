@@ -10,10 +10,15 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { DatabaseSync } from "node:sqlite";
+import Database from "better-sqlite3";
 
 const testHome = join(tmpdir(), `cc-sidx-${Date.now()}`);
-vi.mock("../../src/lib/paths.js", () => ({ getHomeDir: () => testHome }));
+const securityAnchorDir = `${testHome}-security-anchors`;
+vi.mock("../../src/lib/paths.js", () => ({
+  getHomeDir: () => testHome,
+  getStatePath: () => join(testHome, "state"),
+  getMachineSecurityAnchorDir: () => securityAnchorDir,
+}));
 
 const {
   openIndex,
@@ -29,27 +34,7 @@ const { createMirror, createFsMirror, createHttpMirror } =
 const { computeEventHash } =
   await import("../../src/harness/transcript-integrity.js");
 
-class TestDatabase extends DatabaseSync {
-  pragma(statement) {
-    this.exec(`PRAGMA ${statement}`);
-  }
-
-  transaction(task) {
-    return (...args) => {
-      this.exec("BEGIN");
-      try {
-        const result = task(...args);
-        this.exec("COMMIT");
-        return result;
-      } catch (error) {
-        this.exec("ROLLBACK");
-        throw error;
-      }
-    };
-  }
-}
-
-sessionIndexDeps.Database = TestDatabase;
+sessionIndexDeps.Database = Database;
 
 let sessionsDir;
 beforeEach(() => {
@@ -57,7 +42,10 @@ beforeEach(() => {
   sessionsDir = join(testHome, "sessions");
   mkdirSync(sessionsDir, { recursive: true });
 });
-afterEach(() => rmSync(testHome, { recursive: true, force: true }));
+afterEach(() => {
+  rmSync(testHome, { recursive: true, force: true });
+  rmSync(securityAnchorDir, { recursive: true, force: true });
+});
 
 /** Write one fully chained and physically anchored JSONL session. */
 function writeSession(id, { title = "T", ts = 1000, msgs = [] } = {}) {

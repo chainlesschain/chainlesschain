@@ -1475,7 +1475,10 @@ describe("native installer transaction contracts", () => {
       ).not.toBe(0);
       expect(pathLexists(journalPath)).toBe(true);
       expect(pathLexists(`${fixture.targetPath}.update.lock`)).toBe(true);
-      expect(JSON.parse(fs.readFileSync(journalPath, "utf8"))).toMatchObject({
+      expect(
+        JSON.parse(fs.readFileSync(journalPath, "utf8")),
+        fixture.run.stderr || fixture.run.stdout,
+      ).toMatchObject({
         phase: "lineage-committed",
         decision: "rollback",
       });
@@ -2689,7 +2692,10 @@ describe("native installer transaction contracts", () => {
         fixture.run.status,
         fixture.run.stderr || fixture.run.stdout,
       ).not.toBe(0);
-      expect(sha256File(fixture.targetPath)).toBe(fixture.artifactSha256);
+      expect(
+        sha256File(fixture.targetPath),
+        fixture.run.stderr || fixture.run.stdout,
+      ).toBe(fixture.artifactSha256);
       expect(fs.readFileSync(fixture.backupPath)).toEqual(
         fixture.prestate.targetBytes,
       );
@@ -2723,7 +2729,10 @@ describe("native installer transaction contracts", () => {
           fixture.run.status,
           fixture.run.stderr || fixture.run.stdout,
         ).not.toBe(0);
-        expect(pathLexists(fixture.lockEvidenceReplacedSentinel)).toBe(true);
+        expect(
+          pathLexists(fixture.lockEvidenceReplacedSentinel),
+          fixture.run.stderr || fixture.run.stdout,
+        ).toBe(true);
         expect(pathLexists(`${fixture.targetPath}.update.lock`)).toBe(false);
         const anchorName = names.find((name) =>
           name.startsWith(".chainlesschain.lock-anchor-"),
@@ -2768,7 +2777,10 @@ describe("native installer transaction contracts", () => {
         fixture.run.status,
         fixture.run.stderr || fixture.run.stdout,
       ).not.toBe(0);
-      expect(sha256File(fixture.targetPath)).toBe(fixture.artifactSha256);
+      expect(
+        sha256File(fixture.targetPath),
+        fixture.run.stderr || fixture.run.stdout,
+      ).toBe(fixture.artifactSha256);
       expect(pathLexists(`${fixture.targetPath}.update.lock`)).toBe(true);
       expect(
         names.some((name) => name.startsWith(".chainlesschain.lock-anchor-")),
@@ -2795,7 +2807,10 @@ describe("native installer transaction contracts", () => {
         fixture.run.status,
         fixture.run.stderr || fixture.run.stdout,
       ).not.toBe(0);
-      expect(pathLexists(fixture.lockReplacedSentinel)).toBe(true);
+      expect(
+        pathLexists(fixture.lockReplacedSentinel),
+        fixture.run.stderr || fixture.run.stdout,
+      ).toBe(true);
       expect(fs.readFileSync(lockPath, "utf8")).toBe(
         fixture.successorLockValue,
       );

@@ -8,7 +8,7 @@
  * `started` and is persisted. Run 2 resumes the same session and must inject a
  * "Recovery notice" system message + emit a stderr warning.
  */
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { runAgentHeadless } from "../../src/runtime/headless-runner.js";
 import {
   SideEffectLedger,
@@ -43,6 +43,9 @@ function makeStore() {
       appendCompactEvent: () => {},
       appendToolCallCompact: () => {},
       appendEvent: (_sid, type, data) => {
+        events.push({ type, data });
+      },
+      appendAuthorityEvent: (_sid, type, data) => {
         events.push({ type, data });
       },
       readEvents: () => events.slice(),
@@ -233,7 +236,7 @@ describe("headless side-effect ledger — record + resume reconcile", () => {
       };
     };
     const deps = baseDeps(store, loop);
-    deps.appendEvent = (_sessionId, type, data) => {
+    deps.appendAuthorityEvent = (_sessionId, type, data) => {
       if (type === "side_effect_ledger") throw new Error("ledger disk full");
       store.events.push({ type, data });
     };

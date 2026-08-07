@@ -115,6 +115,7 @@ function makeDeps() {
     appendToolCallCompact: (id, rec) => writes.toolCalls.push({ id, rec }),
     appendLlmRetryCompact: (id, rec) => writes.llmRetries.push({ id, rec }),
     appendCompactEvent: () => {},
+    appendAuthorityEvent: () => true,
     getLastSessionId: () => null,
     verifySession: () => ({ status: "verified" }),
   };

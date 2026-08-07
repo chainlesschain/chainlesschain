@@ -16,10 +16,13 @@ import { tmpdir } from "node:os";
 
 // ── Shared temp directory ──────────────────────────────────────────────
 const testDir = join(tmpdir(), `cc-ext-test-${Date.now()}`);
+const securityAnchorDir = `${testDir}-security-anchors`;
 
 vi.mock("../../src/lib/paths.js", () => ({
   getHomeDir: () => testDir,
   getConfigPath: () => join(testDir, "config.json"),
+  getStatePath: () => join(testDir, "state"),
+  getMachineSecurityAnchorDir: () => securityAnchorDir,
 }));
 
 // setFeature serializes its write via withFileLock; in this unit test the
@@ -87,6 +90,7 @@ afterEach(() => {
   if (existsSync(testDir)) {
     rmSync(testDir, { recursive: true, force: true });
   }
+  rmSync(securityAnchorDir, { recursive: true, force: true });
 });
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -458,22 +462,24 @@ describe("JSONL Session Store — Extended", () => {
       // Manually inject a bad line
       const filePath = join(testDir, "sessions", "malformed-test.jsonl");
       appendFileSync(filePath, "NOT VALID JSON\n", "utf-8");
-      appendUserMessage(id, "valid msg");
 
       const events = readEvents(id);
-      // Should have session_start + valid msg (malformed line skipped)
-      expect(events.length).toBe(2);
-      expect(events[1].data.content).toBe("valid msg");
+      expect(events).toHaveLength(1);
+      expect(() => appendUserMessage(id, "valid msg")).toThrow(
+        /transcript (identity changed|is not fully verified)/i,
+      );
     });
 
     it("handles empty lines in JSONL", () => {
       const id = startSession("empty-lines");
       const filePath = join(testDir, "sessions", "empty-lines.jsonl");
       appendFileSync(filePath, "\n\n\n", "utf-8");
-      appendUserMessage(id, "after blanks");
 
       const events = readEvents(id);
-      expect(events.length).toBe(2);
+      expect(events).toHaveLength(1);
+      expect(() => appendUserMessage(id, "after blanks")).toThrow(
+        /transcript (identity changed|is not fully verified)/i,
+      );
     });
   });
 

@@ -17,11 +17,14 @@ import { execSync } from "node:child_process";
 // ── Shared temp directory ───────────────────────────────────────────────
 
 const testDir = join(tmpdir(), `cc-integ-opt-${Date.now()}`);
+const securityAnchorDir = `${testDir}-security-anchors`;
 
 // Mock paths for both modules that need it
 vi.mock("../../src/lib/paths.js", () => ({
   getHomeDir: () => testDir,
   getConfigPath: () => join(testDir, "config.json"),
+  getStatePath: () => join(testDir, "state"),
+  getMachineSecurityAnchorDir: () => securityAnchorDir,
 }));
 
 // setFeature serializes its write via withFileLock; pass it through so the
@@ -78,6 +81,7 @@ describe("Agent Optimization — Integration", () => {
     if (existsSync(testDir)) {
       rmSync(testDir, { recursive: true, force: true });
     }
+    rmSync(securityAnchorDir, { recursive: true, force: true });
   });
 
   // ── 1. Feature Flags → Prompt Compressor ──────────────────────────

@@ -26,6 +26,7 @@ function mockPaths() {
     getBinDir: () => path.join(tmpHome, "bin"),
     getConfigPath: () => path.join(tmpHome, "config.json"),
     getStatePath: () => path.join(tmpHome, "state"),
+    getMachineSecurityAnchorDir: () => `${tmpHome}-security-anchors`,
     getPidFilePath: () => path.join(tmpHome, "state", "app.pid"),
     getServicesDir: () => path.join(tmpHome, "services"),
     getLogsDir: () => path.join(tmpHome, "logs"),
@@ -57,6 +58,7 @@ beforeEach(() => {
 
 afterEach(() => {
   fs.rmSync(tmpHome, { recursive: true, force: true });
+  fs.rmSync(`${tmpHome}-security-anchors`, { recursive: true, force: true });
   vi.doUnmock("../../src/lib/paths.js");
 });
 

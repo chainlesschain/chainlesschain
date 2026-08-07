@@ -30,6 +30,7 @@ function baseDeps(overrides = {}) {
     appendAssistantMessage: () => {},
     appendTokenUsage: () => {},
     appendCompactEvent: () => {},
+    appendAuthorityEvent: () => true,
     getLastSessionId: () => "sid",
     ...overrides,
   };

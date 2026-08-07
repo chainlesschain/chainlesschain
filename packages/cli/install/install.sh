@@ -66,6 +66,8 @@ COMMITTED=0
 BACKUP_COMMITTED=0
 ALIAS_COMMITTED=0
 LINEAGE_COMMIT_STARTED=0
+COMMIT_DECISION_STARTED=0
+ASYNC_TERMINATION=0
 PRESERVE_RECOVERY=0
 CLEANUP_PENDING=0
 RETAINED_EVIDENCE_PATHS=""
@@ -118,7 +120,9 @@ cleanup() {
   # race an in-process rollback against the journal write. Keep the journal,
   # recovery set, and lock together so the next process applies whichever
   # decision reached durable storage.
-  if [ "$COMMITTED" -eq 1 ] && [ -n "$JOURNAL_PATH" ] && \
+  if [ "$ASYNC_TERMINATION" -eq 1 ] && \
+    [ "$COMMIT_DECISION_STARTED" -eq 1 ] && \
+    [ -n "$JOURNAL_PATH" ] && \
     { [ -e "$JOURNAL_PATH" ] || [ -L "$JOURNAL_PATH" ]; }; then
     PRESERVE_RECOVERY=1
   fi
@@ -263,9 +267,9 @@ cleanup() {
   exit "$status"
 }
 trap cleanup 0
-trap 'exit 129' HUP
-trap 'exit 130' INT
-trap 'exit 143' TERM
+trap 'ASYNC_TERMINATION=1; exit 129' HUP
+trap 'ASYNC_TERMINATION=1; exit 130' INT
+trap 'ASYNC_TERMINATION=1; exit 143' TERM
 
 die() {
   echo "$1" >&2
@@ -3278,6 +3282,7 @@ else
 fi
 write_install_transaction_journal lineage-committed rollback || { PRESERVE_RECOVERY=1; die "could not persist lineage commit phase"; }
 crash_after_install_phase lineage-committed
+COMMIT_DECISION_STARTED=1
 crash_after_install_phase commit-decision-started
 write_install_transaction_journal committed commit || { PRESERVE_RECOVERY=1; die "could not persist native install commit decision"; }
 COMMITTED=1

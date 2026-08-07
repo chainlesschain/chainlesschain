@@ -41,6 +41,7 @@ function makeDeps(seeded = {}) {
     appendAssistantMessage: () => {},
     appendTokenUsage: () => {},
     appendEvent: (id, type, data) => appended.push({ id, type, data }),
+    appendAuthorityEvent: (id, type, data) => appended.push({ id, type, data }),
     readEvents: (id) => seeded[id] || [],
     getLastSessionId: () => null,
   };
@@ -231,7 +232,7 @@ describe("headless-runner — turn→checkpoint binding feed + persistence", () 
   it("fails the run when a critical turn-binding snapshot cannot persist", async () => {
     const { deps } = makeDeps();
     deps.agentLoop = loopWith([]);
-    deps.appendEvent = (_id, type) => {
+    deps.appendAuthorityEvent = (_id, type) => {
       if (type === TURN_BINDING_EVENT) {
         throw new Error("binding lock unavailable");
       }

@@ -260,22 +260,20 @@ describe("Phase 7 parity: JSONL session resume round-trip", () => {
     const filePath = join(getHomeDir(), "sessions", `${id}.jsonl`);
     appendFileSync(filePath, "this is not json\n", "utf-8");
 
-    appendAssistantMessage(id, "after");
-
     // rebuildMessages skips the malformed line silently
     const rebuilt = rebuildMessages(id);
-    expect(rebuilt).toEqual([
-      { role: "user", content: "before" },
-      { role: "assistant", content: "after" },
-    ]);
+    expect(rebuilt).toEqual([{ role: "user", content: "before" }]);
+    expect(() => appendAssistantMessage(id, "after")).toThrow(
+      /transcript (identity changed|is not fully verified)/i,
+    );
 
     // But validateJsonlSession surfaces it
     const report = validateJsonlSession(id);
     expect(report.valid).toBe(false);
     expect(report.malformedLines).toBe(1);
-    // Start event + 2 valid messages, malformed line not counted
-    expect(report.eventCount).toBe(3);
-    expect(report.messageCount).toBe(2);
+    // Start event + one valid message, malformed line not counted
+    expect(report.eventCount).toBe(2);
+    expect(report.messageCount).toBe(1);
 
     // Verify the raw file still exists at the expected location
     expect(existsSync(filePath)).toBe(true);

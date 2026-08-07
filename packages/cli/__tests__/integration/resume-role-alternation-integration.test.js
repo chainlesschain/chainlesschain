@@ -29,9 +29,8 @@ vi.mock("../../src/lib/skill-loader.js", () => ({
   }),
 }));
 
-const { runAgentHeadless } = await import(
-  "../../src/runtime/headless-runner.js"
-);
+const { runAgentHeadless } =
+  await import("../../src/runtime/headless-runner.js");
 
 function fakeGate() {
   return {
@@ -55,6 +54,7 @@ function resumeStoreDeps(history) {
     appendAssistantMessage: () => {},
     appendTokenUsage: () => {},
     appendCompactEvent: () => {},
+    appendAuthorityEvent: () => true,
     getLastSessionId: () => "sid",
   };
 }

@@ -21,10 +21,13 @@ import { tmpdir } from "node:os";
 import { createTaskRecord } from "../../src/runtime/contracts/task-record.js";
 
 const testDir = join(tmpdir(), `cc-v50210-integ-${Date.now()}`);
+const securityAnchorDir = `${testDir}-security-anchors`;
 
 vi.mock("../../src/lib/paths.js", () => ({
   getHomeDir: () => testDir,
   getConfigPath: () => join(testDir, "config.json"),
+  getStatePath: () => join(testDir, "state"),
+  getMachineSecurityAnchorDir: () => securityAnchorDir,
 }));
 
 // setFeature serializes its write via withFileLock; pass it through so the
@@ -87,6 +90,7 @@ afterEach(() => {
   if (existsSync(testDir)) {
     rmSync(testDir, { recursive: true, force: true });
   }
+  rmSync(securityAnchorDir, { recursive: true, force: true });
 });
 
 // ═══════════════════════════════════════════════════════════════════════

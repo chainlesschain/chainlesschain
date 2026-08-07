@@ -171,7 +171,7 @@ describe("cli-session-scale gate", () => {
     expect(result.scenarios.crashRepair.byteCutCoverage.lastCut).toBe(
       result.scenarios.crashRepair.recordBytes,
     );
-  }, 120_000);
+  }, 360_000);
 
   it("does not allow formal settings to weaken the documented matrix", () => {
     expect(

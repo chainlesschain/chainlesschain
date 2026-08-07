@@ -47,8 +47,10 @@ export const CLI_BIN = join(
 export function testHome(label = "e2e") {
   const root = mkdtempSync(join(tmpdir(), `cc-${label}-`));
   const configHome = join(root, "config");
+  const securityAnchorHome = join(root, "security-anchors");
   const workspace = join(root, "workspace");
   mkdirSync(configHome, { recursive: true });
+  mkdirSync(securityAnchorHome, { recursive: true });
   mkdirSync(workspace, { recursive: true });
   return {
     // Keep `home` as the config-home compatibility alias used by older tests.
@@ -64,6 +66,7 @@ export function testHome(label = "e2e") {
     env: (extra = {}) => ({
       ...process.env,
       CHAINLESSCHAIN_HOME: configHome,
+      CHAINLESSCHAIN_SECURITY_ANCHOR_HOME: securityAnchorHome,
       HOME: configHome,
       USERPROFILE: configHome,
       ...extra,

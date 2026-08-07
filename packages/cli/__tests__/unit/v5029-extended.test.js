@@ -22,10 +22,12 @@ import { tmpdir } from "node:os";
 
 // ── Shared temp directory ──────────────────────────────────────────────
 const testDir = join(tmpdir(), `cc-v5029ext-${Date.now()}`);
+const securityAnchorDir = `${testDir}-security-anchors`;
 
 vi.mock("../../src/lib/paths.js", () => ({
   getHomeDir: () => testDir,
   getStatePath: () => join(testDir, "state"),
+  getMachineSecurityAnchorDir: () => securityAnchorDir,
 }));
 
 let mockConfig = { features: {} };
@@ -89,6 +91,7 @@ afterEach(() => {
   if (existsSync(testDir)) {
     rmSync(testDir, { recursive: true, force: true });
   }
+  rmSync(securityAnchorDir, { recursive: true, force: true });
 });
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -261,13 +264,15 @@ describe("JSONL Session Store Extended", () => {
         '{"type":"assistant_message","data":{"role"\n',
         "utf-8",
       );
-      appendUserMessage(sid, "after recovery");
 
       const events = readEvents(sid);
-      // Should have: session_start + user_message + user_message (skipped malformed)
-      expect(events.length).toBe(3);
-      expect(events[2].type).toBe("user_message");
-      expect(events[2].data.content).toBe("after recovery");
+      // Reads remain inspectable, but strict authority must not append after
+      // an out-of-band transcript mutation until an explicit repair occurs.
+      expect(events.length).toBe(2);
+      expect(events[1].data.content).toBe("before crash");
+      expect(() => appendUserMessage(sid, "after recovery")).toThrow(
+        /transcript (identity changed|is not fully verified)/i,
+      );
     });
 
     it("readEvents handles empty file", () => {

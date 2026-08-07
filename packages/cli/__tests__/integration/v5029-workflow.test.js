@@ -16,9 +16,12 @@ import { tmpdir } from "node:os";
 
 // ── Shared temp directory ───────────────────────────────────────────────
 const testDir = join(tmpdir(), `cc-v5029-integ-${Date.now()}`);
+const securityAnchorDir = `${testDir}-security-anchors`;
 
 vi.mock("../../src/lib/paths.js", () => ({
   getHomeDir: () => testDir,
+  getStatePath: () => join(testDir, "state"),
+  getMachineSecurityAnchorDir: () => securityAnchorDir,
 }));
 
 let mockConfig = { features: {} };
@@ -75,6 +78,7 @@ afterEach(() => {
   if (existsSync(testDir)) {
     rmSync(testDir, { recursive: true, force: true });
   }
+  rmSync(securityAnchorDir, { recursive: true, force: true });
 });
 
 // ═══════════════════════════════════════════════════════════════════════

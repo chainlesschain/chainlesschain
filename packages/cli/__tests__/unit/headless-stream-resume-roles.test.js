@@ -25,6 +25,8 @@ const noopStore = {
   startSession: () => {},
   appendUserMessage: () => {},
   appendAssistantMessage: () => {},
+  appendEvent: () => true,
+  appendAuthorityEvent: () => true,
 };
 
 function verifiedResume(messages, sessionId) {
