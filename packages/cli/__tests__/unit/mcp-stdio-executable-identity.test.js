@@ -14,6 +14,7 @@ import {
   MCP_STDIO_DYNAMIC_LAUNCHER_UNPINNED_CODE,
   MCP_STDIO_EXECUTABLE_AUTHORITY_REPLAYED_CODE,
   MCP_STDIO_EXECUTABLE_CHANGED_CODE,
+  MCP_STDIO_EXECUTABLE_IDENTITY_ROLLBACK_CODE,
   MCP_STDIO_EXECUTABLE_TRUST_REQUIRED_CODE,
   prepareMcpStdioExecutableIdentity,
 } from "../../src/lib/mcp-stdio-executable-identity.js";
@@ -207,6 +208,123 @@ describe("MCP stdio executable byte identity", () => {
       storePath,
     });
     expect(retrusted.trustStatus).toBe("retrusted");
+  });
+
+  it("rejects a trust-store snapshot restored behind its independent witness", () => {
+    const invocation = approvedInvocation("rollback", {
+      command: process.execPath,
+      args: [script],
+      transport: "stdio",
+    });
+    prepareMcpStdioExecutableIdentity({
+      serverName: "rollback",
+      ...invocation,
+      retrust: true,
+      storePath,
+    });
+    const originalScript = fs.readFileSync(script);
+    const originalStore = fs.readFileSync(storePath);
+    const witnessPath = `${storePath}.anti-rollback-v1.json`;
+
+    fs.appendFileSync(script, "// explicitly retrusted successor\n", "utf8");
+    prepareMcpStdioExecutableIdentity({
+      serverName: "rollback",
+      ...invocation,
+      retrust: true,
+      storePath,
+    });
+
+    fs.writeFileSync(script, originalScript);
+    fs.writeFileSync(storePath, originalStore);
+    expect(() =>
+      prepareMcpStdioExecutableIdentity({
+        serverName: "rollback",
+        ...invocation,
+        storePath,
+      }),
+    ).toThrow(
+      expect.objectContaining({
+        code: MCP_STDIO_EXECUTABLE_IDENTITY_ROLLBACK_CODE,
+      }),
+    );
+    expect(JSON.parse(fs.readFileSync(witnessPath, "utf8"))).toMatchObject({
+      version: 1,
+      generation: "2",
+    });
+  });
+
+  it("deterministically recovers both sides of an interrupted trust mutation", () => {
+    const invocation = approvedInvocation("pending-recovery", {
+      command: process.execPath,
+      args: [script],
+      transport: "stdio",
+    });
+    prepareMcpStdioExecutableIdentity({
+      serverName: "pending-recovery",
+      ...invocation,
+      retrust: true,
+      storePath,
+    });
+    const witnessPath = `${storePath}.anti-rollback-v1.json`;
+    const scriptBefore = fs.readFileSync(script);
+    const storeBefore = fs.readFileSync(storePath);
+    const witnessBefore = JSON.parse(fs.readFileSync(witnessPath, "utf8"));
+
+    fs.appendFileSync(script, "// successor bytes\n", "utf8");
+    prepareMcpStdioExecutableIdentity({
+      serverName: "pending-recovery",
+      ...invocation,
+      retrust: true,
+      storePath,
+    });
+    const scriptAfter = fs.readFileSync(script);
+    const storeAfter = fs.readFileSync(storePath);
+    const witnessAfter = JSON.parse(fs.readFileSync(witnessPath, "utf8"));
+    const pending = { ...witnessAfter.events.at(-1) };
+    delete pending.committedAt;
+
+    fs.writeFileSync(script, scriptBefore);
+    fs.writeFileSync(storePath, storeBefore);
+    fs.writeFileSync(
+      witnessPath,
+      `${JSON.stringify({ ...witnessBefore, pending }, null, 2)}\n`,
+      "utf8",
+    );
+    expect(() =>
+      prepareMcpStdioExecutableIdentity({
+        serverName: "pending-recovery",
+        ...invocation,
+        storePath,
+      }),
+    ).toThrow(
+      expect.objectContaining({ code: MCP_STDIO_EXECUTABLE_CHANGED_CODE }),
+    );
+    expect(JSON.parse(fs.readFileSync(witnessPath, "utf8"))).toMatchObject({
+      generation: "1",
+      pending: null,
+    });
+
+    fs.writeFileSync(script, scriptAfter);
+    fs.writeFileSync(storePath, storeAfter);
+    fs.writeFileSync(
+      witnessPath,
+      `${JSON.stringify({ ...witnessBefore, pending }, null, 2)}\n`,
+      "utf8",
+    );
+    expect(() =>
+      prepareMcpStdioExecutableIdentity({
+        serverName: "pending-recovery",
+        ...invocation,
+        storePath,
+      }),
+    ).toThrow(
+      expect.objectContaining({ code: MCP_STDIO_EXECUTABLE_CHANGED_CODE }),
+    );
+    expect(JSON.parse(fs.readFileSync(witnessPath, "utf8"))).toMatchObject({
+      generation: "2",
+      pending: null,
+      events: [witnessBefore.events[0], expect.objectContaining(pending)],
+    });
   });
 
   it("re-attests immediately before spawn and rejects a post-approval change", () => {

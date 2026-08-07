@@ -7,9 +7,13 @@ const testHome = join(
   tmpdir(),
   `cc-mcp-recovery-store-${process.pid}-${Date.now()}`,
 );
+const testSecurityAnchor = `${testHome}-security-anchor`;
 
-vi.mock("../../src/lib/paths.js", () => ({
+vi.mock("../../src/lib/paths.js", async (importOriginal) => ({
+  ...(await importOriginal()),
   getHomeDir: () => testHome,
+  getStatePath: () => join(testHome, "state"),
+  getMachineSecurityAnchorDir: () => testSecurityAnchor,
 }));
 
 const sessionStore = await import("../../src/harness/jsonl-session-store.js");
@@ -43,6 +47,9 @@ describe("MCP recovery adjudication with the real JSONL authority store", () => 
   afterEach(() => {
     if (existsSync(testHome)) {
       rmSync(testHome, { recursive: true, force: true });
+    }
+    if (existsSync(testSecurityAnchor)) {
+      rmSync(testSecurityAnchor, { recursive: true, force: true });
     }
   });
 

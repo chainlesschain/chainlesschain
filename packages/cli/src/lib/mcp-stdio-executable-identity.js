@@ -14,7 +14,10 @@ import fs from "node:fs";
 import path from "node:path";
 import { getMachineSecurityAnchorDir } from "./paths.js";
 import { withFileLock } from "./with-file-lock.js";
-import { mutateSecurityStore } from "./durable-security-store.js";
+import {
+  readSecurityStore,
+  writeSecurityStore,
+} from "./durable-security-store.js";
 import { resolveMcpStdioExecutionApproval } from "./mcp-stdio-execution-authority.js";
 
 export const MCP_STDIO_EXECUTABLE_TRUST_REQUIRED_CODE =
@@ -27,8 +30,12 @@ export const MCP_STDIO_DYNAMIC_LAUNCHER_UNPINNED_CODE =
   "CC_MCP_STDIO_DYNAMIC_LAUNCHER_UNPINNED";
 export const MCP_STDIO_EXECUTABLE_AUTHORITY_REPLAYED_CODE =
   "CC_MCP_STDIO_EXECUTABLE_AUTHORITY_REPLAYED";
+export const MCP_STDIO_EXECUTABLE_IDENTITY_ROLLBACK_CODE =
+  "CC_MCP_STDIO_EXECUTABLE_IDENTITY_ROLLBACK";
 
 const STORE_LABEL = "MCP stdio executable identity";
+const WITNESS_LABEL = "MCP stdio executable identity anti-rollback witness";
+const WITNESS_VERSION = 1;
 const MAX_EXECUTABLE_BYTES = 256 * 1024 * 1024;
 const MAX_ENTRYPOINT_BYTES = 64 * 1024 * 1024;
 const HASH_CHUNK_BYTES = 1024 * 1024;
@@ -71,6 +78,290 @@ export function getMcpStdioExecutableTrustStorePath(options = {}) {
       getMachineSecurityAnchorDir(),
       "mcp-stdio-executable-identities-v1.json",
     )
+  );
+}
+
+export function getMcpStdioExecutableTrustWitnessPath(options = {}) {
+  return (
+    options.witnessPath ||
+    process.env.CC_MCP_EXECUTABLE_TRUST_WITNESS ||
+    `${getMcpStdioExecutableTrustStorePath(options)}.anti-rollback-v1.json`
+  );
+}
+
+function storeDigest(store) {
+  return sha256(JSON.stringify(store));
+}
+
+function parseWitnessGeneration(value, label) {
+  if (typeof value !== "string" || !/^(?:0|[1-9]\d*)$/.test(value)) {
+    throw new TypeError(`${label} must be a canonical non-negative integer`);
+  }
+  return BigInt(value);
+}
+
+function validateStoreDigest(value, label) {
+  if (typeof value !== "string" || !/^[a-f0-9]{64}$/.test(value)) {
+    throw new TypeError(`${label} must be a SHA-256 digest`);
+  }
+  return value;
+}
+
+function validateWitnessTransition(value, expectedPrevious, label) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new TypeError(`${label} must be an object`);
+  }
+  const generation = parseWitnessGeneration(
+    value.generation,
+    `${label}.generation`,
+  );
+  const previousGeneration = parseWitnessGeneration(
+    value.previousGeneration,
+    `${label}.previousGeneration`,
+  );
+  if (
+    previousGeneration !== expectedPrevious.generation ||
+    generation !== previousGeneration + 1n
+  ) {
+    throw new TypeError(`${label} breaks the generation chain`);
+  }
+  const previousStoreDigest = validateStoreDigest(
+    value.previousStoreDigest,
+    `${label}.previousStoreDigest`,
+  );
+  if (previousStoreDigest !== expectedPrevious.storeDigest) {
+    throw new TypeError(`${label} breaks the store digest chain`);
+  }
+  const nextStoreDigest = validateStoreDigest(
+    value.storeDigest,
+    `${label}.storeDigest`,
+  );
+  if (nextStoreDigest === previousStoreDigest) {
+    throw new TypeError(`${label} does not advance the store digest`);
+  }
+  if (
+    typeof value.mutationId !== "string" ||
+    !/^[a-f0-9-]{16,64}$/i.test(value.mutationId)
+  ) {
+    throw new TypeError(`${label}.mutationId is invalid`);
+  }
+  if (
+    typeof value.preparedAt !== "string" ||
+    !Number.isFinite(Date.parse(value.preparedAt))
+  ) {
+    throw new TypeError(`${label}.preparedAt is invalid`);
+  }
+  if (
+    value.committedAt !== undefined &&
+    (typeof value.committedAt !== "string" ||
+      !Number.isFinite(Date.parse(value.committedAt)))
+  ) {
+    throw new TypeError(`${label}.committedAt is invalid`);
+  }
+  return Object.freeze({
+    generation,
+    previousGeneration,
+    previousStoreDigest,
+    storeDigest: nextStoreDigest,
+    mutationId: value.mutationId,
+    preparedAt: value.preparedAt,
+    ...(value.committedAt ? { committedAt: value.committedAt } : {}),
+  });
+}
+
+function validateWitness(witness) {
+  if (witness.version !== WITNESS_VERSION) {
+    throw new TypeError(
+      `unsupported MCP executable trust witness version: ${String(witness.version)}`,
+    );
+  }
+  const generation = parseWitnessGeneration(
+    witness.generation,
+    "witness.generation",
+  );
+  const initialStoreDigest = validateStoreDigest(
+    witness.initialStoreDigest,
+    "witness.initialStoreDigest",
+  );
+  if (!Array.isArray(witness.events)) {
+    throw new TypeError("witness.events must be an array");
+  }
+  let previous = Object.freeze({
+    generation: 0n,
+    storeDigest: initialStoreDigest,
+  });
+  for (const [index, event] of witness.events.entries()) {
+    const transition = validateWitnessTransition(
+      event,
+      previous,
+      `witness.events[${index}]`,
+    );
+    if (!transition.committedAt) {
+      throw new TypeError(`witness.events[${index}] is not committed`);
+    }
+    previous = Object.freeze({
+      generation: transition.generation,
+      storeDigest: transition.storeDigest,
+    });
+  }
+  if (generation !== previous.generation) {
+    throw new TypeError("witness generation does not match its event chain");
+  }
+  const committedStoreDigest = validateStoreDigest(
+    witness.storeDigest,
+    "witness.storeDigest",
+  );
+  if (committedStoreDigest !== previous.storeDigest) {
+    throw new TypeError("witness store digest does not match its event chain");
+  }
+  const pending =
+    witness.pending == null
+      ? null
+      : validateWitnessTransition(witness.pending, previous, "witness.pending");
+  if (pending?.committedAt) {
+    throw new TypeError("witness.pending must not already be committed");
+  }
+  return Object.freeze({
+    generation,
+    initialStoreDigest,
+    storeDigest: committedStoreDigest,
+    events: Object.freeze([...witness.events]),
+    pending,
+  });
+}
+
+function initialWitness(digest) {
+  return {
+    version: WITNESS_VERSION,
+    generation: "0",
+    initialStoreDigest: digest,
+    storeDigest: digest,
+    events: [],
+    pending: null,
+  };
+}
+
+function rollbackError(message, details = {}) {
+  return identityError(
+    MCP_STDIO_EXECUTABLE_IDENTITY_ROLLBACK_CODE,
+    `MCP stdio executable trust rollback detected: ${message}`,
+    details,
+  );
+}
+
+function recoverWitness(witnessPath, witness, currentStoreDigest) {
+  const snapshot = validateWitness(witness);
+  if (!snapshot.pending) {
+    if (currentStoreDigest !== snapshot.storeDigest) {
+      throw rollbackError(
+        "the trust store does not match its committed witness",
+        {
+          expectedStoreDigest: snapshot.storeDigest,
+          observedStoreDigest: currentStoreDigest,
+        },
+      );
+    }
+    return snapshot;
+  }
+
+  if (currentStoreDigest === snapshot.storeDigest) {
+    witness.pending = null;
+    writeSecurityStore(witnessPath, WITNESS_LABEL, witness);
+    return validateWitness(witness);
+  }
+  if (currentStoreDigest !== snapshot.pending.storeDigest) {
+    throw rollbackError(
+      "the trust store matches neither side of a pending mutation",
+      {
+        previousStoreDigest: snapshot.storeDigest,
+        pendingStoreDigest: snapshot.pending.storeDigest,
+        observedStoreDigest: currentStoreDigest,
+      },
+    );
+  }
+
+  const committed = {
+    ...witness.pending,
+    committedAt: new Date().toISOString(),
+  };
+  witness.generation = committed.generation;
+  witness.storeDigest = committed.storeDigest;
+  witness.events = [...witness.events, committed];
+  witness.pending = null;
+  writeSecurityStore(witnessPath, WITNESS_LABEL, witness);
+  return validateWitness(witness);
+}
+
+function mutateExecutableTrustStore(target, mutator, options = {}) {
+  const witnessPath = getMcpStdioExecutableTrustWitnessPath({
+    ...options,
+    storePath: target,
+  });
+  if (path.resolve(witnessPath) === path.resolve(target)) {
+    throw new TypeError(
+      "MCP stdio executable trust store and witness must use different paths",
+    );
+  }
+  try {
+    _deps.fs.mkdirSync(path.dirname(witnessPath), {
+      recursive: true,
+      mode: 0o700,
+    });
+  } catch (cause) {
+    throw identityError(
+      MCP_STDIO_EXECUTABLE_UNATTESTED_CODE,
+      "MCP stdio executable trust witness could not be prepared",
+      { cause, witnessPath },
+    );
+  }
+
+  return _deps.withFileLock(
+    witnessPath,
+    () => {
+      const store = readSecurityStore(target, STORE_LABEL);
+      const currentStoreDigest = storeDigest(store);
+      const witnessExists = _deps.fs.existsSync(witnessPath);
+      const witness = witnessExists
+        ? readSecurityStore(witnessPath, WITNESS_LABEL)
+        : initialWitness(currentStoreDigest);
+      const snapshot = witnessExists
+        ? recoverWitness(witnessPath, witness, currentStoreDigest)
+        : validateWitness(witness);
+      const draft = structuredClone(store);
+      const result = mutator(draft);
+      const nextStoreDigest = storeDigest(draft);
+
+      if (nextStoreDigest === currentStoreDigest) {
+        if (!witnessExists) {
+          writeSecurityStore(witnessPath, WITNESS_LABEL, witness);
+        }
+        return result;
+      }
+
+      const transition = {
+        generation: String(snapshot.generation + 1n),
+        previousGeneration: String(snapshot.generation),
+        previousStoreDigest: currentStoreDigest,
+        storeDigest: nextStoreDigest,
+        mutationId: crypto.randomUUID(),
+        preparedAt: new Date().toISOString(),
+      };
+      witness.pending = transition;
+      writeSecurityStore(witnessPath, WITNESS_LABEL, witness);
+      writeSecurityStore(target, STORE_LABEL, draft);
+
+      const committed = {
+        ...transition,
+        committedAt: new Date().toISOString(),
+      };
+      witness.generation = committed.generation;
+      witness.storeDigest = committed.storeDigest;
+      witness.events = [...witness.events, committed];
+      witness.pending = null;
+      writeSecurityStore(witnessPath, WITNESS_LABEL, witness);
+      return result;
+    },
+    { timeoutMs: 2000, staleMs: 30000, failIfUnavailable: true },
   );
 }
 
@@ -473,9 +764,8 @@ function checkOrRecordTrust(
   const key = trustKey(approvalRecord);
   const requested =
     options.retrust === true || retrustRequested(options.env || process.env);
-  return mutateSecurityStore(
+  return mutateExecutableTrustStore(
     target,
-    STORE_LABEL,
     (store) => {
       const existing = store[key] || null;
       if (
@@ -516,7 +806,7 @@ function checkOrRecordTrust(
         key,
       };
     },
-    { lock: _deps.withFileLock },
+    options,
   );
 }
 
@@ -528,6 +818,7 @@ export function prepareMcpStdioExecutableIdentity({
   env = process.env,
   retrust = false,
   storePath: explicitStorePath,
+  witnessPath: explicitWitnessPath,
 }) {
   const approvalRecord = resolveMcpStdioExecutionApproval(approval);
   if (!approvalRecord) {
@@ -546,6 +837,7 @@ export function prepareMcpStdioExecutableIdentity({
     env,
     retrust,
     ...(explicitStorePath ? { storePath: explicitStorePath } : {}),
+    ...(explicitWitnessPath ? { witnessPath: explicitWitnessPath } : {}),
   });
   const authority = Object.freeze({});
   issuedLaunchAuthorities.set(
