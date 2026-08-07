@@ -87,6 +87,10 @@ describe("CLI reliability soak gate", () => {
     expect(workflow).toContain("Configure real EROFS and ENOSPC");
     expect(workflow).toContain("mount -t tmpfs");
     expect(workflow).toContain("CC_CLI_RELIABILITY_DISK_EROFS_HOME");
+    expect(workflow).toContain(
+      "Verify macOS node-pty spawn helper is executable",
+    );
+    expect(workflow).toContain('[[ ! -x "${helper}" ]]');
     expect(workflow).toContain("cli-reliability-mcp-server.mjs");
     expect(workflow).toContain("actions/upload-artifact@v6");
 

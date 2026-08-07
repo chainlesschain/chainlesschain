@@ -9,6 +9,8 @@ on:
       - "package-lock.json"
       - "packages/cli/package.json"
       - "packages/cli/bin/chainlesschain.js"
+      - "packages/cli/scripts/postinstall.mjs"
+      - "packages/cli/scripts/repair-node-pty.mjs"
       - "packages/cli/src/runtime/headless-*.js"
       - "packages/cli/src/runtime/output-backpressure.js"
       - "packages/cli/src/runtime/cleanup-deadline.js"
@@ -22,6 +24,7 @@ on:
       - "packages/cli/scripts/cli-reliability-soak.mjs"
       - "packages/cli/scripts/cli-reliability-mcp-server.mjs"
       - "packages/cli/__tests__/unit/cli-reliability-soak.test.js"
+      - "packages/cli/__tests__/unit/repair-node-pty.test.js"
       - "packages/cli/__tests__/unit/mcp-stdio-package-materialization.test.js"
   schedule:
     - cron: "17 2 * * 3"
@@ -74,6 +77,19 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - uses: ./.github/actions/setup-node-deps
+
+      - name: Verify macOS node-pty spawn helper is executable
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          helper="$(node -e 'const path=require("node:path");const root=path.dirname(require.resolve("node-pty/package.json"));process.stdout.write(path.join(root,"prebuilds","darwin-"+process.arch,"spawn-helper"))')"
+          if [[ ! -x "${helper}" ]]; then
+            ls -l "${helper}"
+            echo "node-pty spawn-helper is not executable after CLI postinstall" >&2
+            exit 1
+          fi
+          echo "Verified executable node-pty helper: ${helper}"
 
       - name: Configure a real localhost SSH TTY
         if: runner.os == 'Linux'

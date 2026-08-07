@@ -2,11 +2,27 @@
 // Runs after `npm install`. Best-effort only — must never fail the install.
 // Cross-platform: no shell redirects, no `|| true`.
 
+import { repairMacNodePtySpawnHelper } from "./repair-node-pty.mjs";
+
+// node-pty 1.1.0's npm tarball strips the executable bit from its macOS
+// spawn-helper. Repair that upstream packaging defect before any PTY launch.
+try {
+  const repair = repairMacNodePtySpawnHelper();
+  if (repair.status === "repaired") {
+    process.stderr.write(
+      `[chainlesschain] Repaired node-pty macOS spawn-helper permissions: ${repair.helperPath}\n`,
+    );
+  }
+} catch (error) {
+  process.stderr.write(
+    `[chainlesschain] Warning: could not repair node-pty macOS spawn-helper permissions: ${error.message}\n`,
+  );
+}
+
 // 1) Pre-generate the CLI skill packs (best-effort).
 try {
-  const { generateCliPacks } = await import(
-    "../src/lib/skill-packs/generator.js"
-  );
+  const { generateCliPacks } =
+    await import("../src/lib/skill-packs/generator.js");
   await generateCliPacks({ force: false });
 } catch {
   // Intentionally silent: skill pack generation is best-effort during install.

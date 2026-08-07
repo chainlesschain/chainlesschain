@@ -52,6 +52,7 @@
     "src/",
     "completions/",
     "scripts/postinstall.mjs",
+    "scripts/repair-node-pty.mjs",
     "scripts/build-windows-sandbox-helper.ps1",
     "scripts/command-lifecycle-report.mjs",
     "README.md"
