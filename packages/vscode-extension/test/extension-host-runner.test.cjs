@@ -715,7 +715,7 @@ test("multi-window gate uses a dedicated host-API profile and explicit contract"
   );
 });
 
-test("macOS multi-window gate orchestrates two bounded real hosts", async () => {
+test("non-Windows multi-window gate orchestrates two bounded real hosts", async () => {
   const root = temporaryRoot();
   const runtimeDir = path.join(root, "multi-window-runtime");
   const workspaceDir = path.join(root, "workspace");
@@ -736,7 +736,7 @@ test("macOS multi-window gate orchestrates two bounded real hosts", async () => 
   const stopRequests = [];
   const { resultFile } = hostPhaseSignalPaths(runtimeDir, "initial");
   const result = await runHostApiPhase({
-    runTests: async () => assert.fail("macOS must use managed hosts"),
+    runTests: async () => assert.fail("non-Windows hosts must be managed"),
     vscodeExecutablePath: path.join(root, "Code"),
     workspaceDir,
     profileArgs: buildProfileArgs({
@@ -757,7 +757,7 @@ test("macOS multi-window gate orchestrates two bounded real hosts", async () => 
     multiWindowEvidenceFile: path.join(root, "multi-window-evidence.json"),
     progressPath,
     includeMultiWindow: true,
-    platform: "darwin",
+    platform: "linux",
     launchManagedHost(options) {
       const index = launches.push(options) - 1;
       if (launches.length === 2) {

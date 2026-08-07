@@ -646,9 +646,10 @@ async function run() {
       evidenceFile: multiWindowEvidenceFile,
       ...(externalCompanionManaged
         ? {
-            // The macOS outer runner owns a second isolated real VS Code
-            // process because stable VS Code no longer activates inherited
-            // extension tests when vscode.openFolder creates a new window.
+            // The non-Windows outer runner owns a second isolated real VS Code
+            // process because current hosts do not reliably activate inherited
+            // extension tests in a child workbench. Windows retains the
+            // same-instance path that its real-host matrix proves directly.
             launchCompanion: async () => {},
           }
         : {}),

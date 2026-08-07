@@ -1014,7 +1014,7 @@ async function runHostApiPhase({
   if (!userDataDir) throw new Error("host profile has no user-data directory");
   const { readyFile, resultFile } = hostPhaseSignalPaths(runtimeDir, phase);
   const traceFile = path.join(runtimeDir, "host-api-trace.jsonl");
-  const useExternalCompanion = includeMultiWindow && platform === "darwin";
+  const useExternalCompanion = includeMultiWindow && platform !== "win32";
   const launchOptions = {
     vscodeExecutablePath,
     extensionDevelopmentPath: path.join(__dirname, "driver"),
