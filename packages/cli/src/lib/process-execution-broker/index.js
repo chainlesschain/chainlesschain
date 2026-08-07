@@ -48,7 +48,11 @@ import { consumeIssuedPluginSandboxExecutionContract } from "../plugin-runtime/b
 import runtimeProvenanceLedger from "../runtime-provenance-ledger.js";
 import { credentialAgent } from "./credential-agent.js";
 import { WorkspaceTransactionManager } from "./workspace-transaction.js";
-import { consumeMcpStdioExecutableIdentityAuthority } from "../mcp-stdio-executable-identity.js";
+import {
+  consumeMcpStdioCapsuleSandboxExecutionContract,
+  consumeMcpStdioExecutableIdentityAuthority,
+  MCP_STDIO_CAPSULE_SANDBOX_CONTRACT_KIND,
+} from "../mcp-stdio-executable-identity.js";
 
 const SUPPORTED_SANDBOX_BOUNDARIES = new Set(Object.values(SANDBOX_BOUNDARIES));
 const SUPPORTED_SANDBOX_PROFILES = new Set([
@@ -706,22 +710,35 @@ class ProcessExecutionBroker extends EventEmitter {
       }
       return admitted;
     }
-    if (
-      !consumeIssuedPluginSandboxExecutionContract(raw, {
-        origin: options.origin,
-        command: launch?.command,
-        args: launch?.args,
-        cwd: options.cwd,
-        pluginId: options.pluginId,
-        pluginVersion: options.pluginVersion,
-        pluginSource: options.pluginSource,
-        pluginExecutableIdentity: options.pluginExecutableIdentity,
-        requiredBoundaries,
-        sync: launch?.sync === true,
-      })
-    ) {
+    const mcpCapsule = raw?.kind === MCP_STDIO_CAPSULE_SANDBOX_CONTRACT_KIND;
+    const consumed = mcpCapsule
+      ? consumeMcpStdioCapsuleSandboxExecutionContract(raw, {
+          origin: options.origin,
+          command: launch?.command,
+          args: launch?.args,
+          cwd: options.cwd,
+          shell: options.shell,
+          requiredBoundaries,
+          sync: launch?.sync === true,
+          identityDigest: options.mcpStdioExecutableIdentityDigest,
+        })
+      : consumeIssuedPluginSandboxExecutionContract(raw, {
+          origin: options.origin,
+          command: launch?.command,
+          args: launch?.args,
+          cwd: options.cwd,
+          pluginId: options.pluginId,
+          pluginVersion: options.pluginVersion,
+          pluginSource: options.pluginSource,
+          pluginExecutableIdentity: options.pluginExecutableIdentity,
+          requiredBoundaries,
+          sync: launch?.sync === true,
+        });
+    if (!consumed) {
       return invalid(
-        "sandboxExecutionContract was not issued for this plugin launch provenance",
+        mcpCapsule
+          ? "sandboxExecutionContract was not issued for this MCP capsule launch provenance"
+          : "sandboxExecutionContract was not issued for this plugin launch provenance",
       );
     }
     if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
@@ -751,18 +768,22 @@ class ProcessExecutionBroker extends EventEmitter {
         "strict-plugin-node-bin",
         "strict-plugin-native-static-elf-bin",
         "strict-plugin-native-elf-bin",
+        MCP_STDIO_CAPSULE_SANDBOX_CONTRACT_KIND,
       ].includes(raw.kind)
     ) {
       return invalid("unsupported sandboxExecutionContract kind or version");
     }
     if (
-      options.origin !== "plugin:bin" ||
-      typeof options.pluginId !== "string" ||
-      !options.pluginId ||
-      options.shell !== false
+      options.shell !== false ||
+      (!mcpCapsule &&
+        (options.origin !== "plugin:bin" ||
+          typeof options.pluginId !== "string" ||
+          !options.pluginId))
     ) {
       return invalid(
-        "sandboxExecutionContract is restricted to direct plugin:bin shell:false launches",
+        mcpCapsule
+          ? "sandboxExecutionContract is restricted to direct MCP capsule shell:false launches"
+          : "sandboxExecutionContract is restricted to direct plugin:bin shell:false launches",
       );
     }
 
@@ -804,17 +825,19 @@ class ProcessExecutionBroker extends EventEmitter {
       );
     }
 
-    const provenanceIdentity = this._normalizePluginExecutableIdentity(
-      options.pluginExecutableIdentity,
-    );
-    if (
-      !provenanceIdentity ||
-      provenanceIdentity.realPath !== entryIdentity.realPath ||
-      provenanceIdentity.sha256 !== entryIdentity.sha256
-    ) {
-      return invalid(
-        "sandboxExecutionContract entry identity does not match plugin provenance",
+    if (!mcpCapsule) {
+      const provenanceIdentity = this._normalizePluginExecutableIdentity(
+        options.pluginExecutableIdentity,
       );
+      if (
+        !provenanceIdentity ||
+        provenanceIdentity.realPath !== entryIdentity.realPath ||
+        provenanceIdentity.sha256 !== entryIdentity.sha256
+      ) {
+        return invalid(
+          "sandboxExecutionContract entry identity does not match plugin provenance",
+        );
+      }
     }
     const entryRelative = path.relative(
       path.resolve(raw.pluginRoot),
@@ -1181,6 +1204,9 @@ class ProcessExecutionBroker extends EventEmitter {
         "pluginTreeSnapshotContractBound",
         "pluginTreeSnapshotAtomic",
         "initialDynamicLoadClosureDescriptorBound",
+        "sharedLibraryClosure",
+        "entrySnapshotAtomic",
+        "runtimeLaunchAtomic",
       ]) {
         if (
           plan.runtimeProbe[field] !== undefined &&
@@ -1197,6 +1223,9 @@ class ProcessExecutionBroker extends EventEmitter {
         "pluginTreeContentSnapshotBytes",
         "initialDynamicDependencyCount",
         "initialDynamicRuntimeFileCount",
+        "runtimeSnapshotBytes",
+        "runtimeAttestedBytes",
+        "entrySnapshotBytes",
       ]) {
         if (
           plan.runtimeProbe[field] !== undefined &&
@@ -1206,6 +1235,22 @@ class ProcessExecutionBroker extends EventEmitter {
           throw this._sandboxError(
             "invalid_sandbox_plan",
             `Sandbox runtime probe ${field} must be a non-negative safe integer`,
+          );
+        }
+      }
+      for (const field of [
+        "runtimeSnapshotSha256",
+        "runtimeAttestedSha256",
+        "entrySnapshotSha256",
+      ]) {
+        if (
+          plan.runtimeProbe[field] !== undefined &&
+          (typeof plan.runtimeProbe[field] !== "string" ||
+            !/^[a-f0-9]{64}$/.test(plan.runtimeProbe[field]))
+        ) {
+          throw this._sandboxError(
+            "invalid_sandbox_plan",
+            `Sandbox runtime probe ${field} must be a lowercase SHA-256 value`,
           );
         }
       }
@@ -1510,6 +1555,78 @@ class ProcessExecutionBroker extends EventEmitter {
           "Sandbox runtime probe successful dynamic ELF evidence requires a descriptor-bound initial direct system set",
         );
       }
+      const codeSnapshotGuaranteed = guarantees.includes(
+        SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
+      );
+      if (codeSnapshotGuaranteed) {
+        const exactSnapshotEvidence =
+          plan.applied === true &&
+          candidateBackend === null &&
+          plan.runtimeProbe.attempted === true &&
+          plan.runtimeProbe.runnable === true &&
+          plan.runtimeProbe.reason === null &&
+          plan.runtimeProbe.probeRuntime === "node" &&
+          plan.runtimeProbe.targetRuntime === "node" &&
+          plan.runtimeProbe.contentSnapshot === true &&
+          plan.runtimeProbe.sharedLibraryClosure === false &&
+          /^[a-f0-9]{64}$/.test(plan.runtimeProbe.entrySnapshotSha256 || "") &&
+          Number.isSafeInteger(plan.runtimeProbe.entrySnapshotBytes) &&
+          plan.runtimeProbe.entrySnapshotBytes >= 0 &&
+          plan.runtimeProbe.entrySnapshotBytes <= 64 * 1024 * 1024;
+        const linuxSnapshotEvidence =
+          plan.platform === "linux" &&
+          backend === "linux-fd-code-snapshot" &&
+          plan.enforcement === "linux-fd-code-snapshot" &&
+          policyAttested === true &&
+          policyDigest !== null &&
+          plan.runtimeProbe.kind === "linux-mcp-capsule-code-snapshot-v1" &&
+          plan.runtimeProbe.contentSnapshotScope ===
+            "mcp-capsule-entry-and-node-runtime" &&
+          plan.runtimeProbe.contentSnapshotMechanism ===
+            "verified-o_tmpfile-copy-inherited-fd-exec-v1" &&
+          plan.runtimeProbe.handleAtomic === true &&
+          /^[a-f0-9]{64}$/.test(
+            plan.runtimeProbe.runtimeSnapshotSha256 || "",
+          ) &&
+          Number.isSafeInteger(plan.runtimeProbe.runtimeSnapshotBytes) &&
+          plan.runtimeProbe.runtimeSnapshotBytes > 0 &&
+          plan.runtimeProbe.runtimeSnapshotBytes <= 256 * 1024 * 1024 &&
+          /^\/proc\/self\/fd\/\d+$/.test(plan.command) &&
+          /^\/proc\/self\/fd\/\d+$/.test(plan.args[0] || "");
+        const windowsSnapshotEvidence =
+          plan.platform === "win32" &&
+          [
+            "windows-job-restricted-token",
+            "windows-appcontainer-job-restricted-token",
+          ].includes(backend) &&
+          plan.enforcement === backend &&
+          [
+            "windows-plugin-node-entry-snapshot-v1",
+            "windows-appcontainer-launch-attestation-v1",
+          ].includes(plan.runtimeProbe.kind) &&
+          plan.runtimeProbe.contentSnapshotScope ===
+            "mcp-capsule-entry-source" &&
+          plan.runtimeProbe.contentSnapshotMechanism ===
+            "verified-handle-inherited-pipe-module-compile-v1" &&
+          plan.runtimeProbe.handleAtomic === false &&
+          plan.runtimeProbe.entrySnapshotAtomic === true &&
+          plan.runtimeProbe.runtimeLaunchAtomic === false &&
+          /^[a-f0-9]{64}$/.test(
+            plan.runtimeProbe.runtimeAttestedSha256 || "",
+          ) &&
+          Number.isSafeInteger(plan.runtimeProbe.runtimeAttestedBytes) &&
+          plan.runtimeProbe.runtimeAttestedBytes > 0 &&
+          plan.runtimeProbe.runtimeAttestedBytes <= 256 * 1024 * 1024;
+        if (
+          !exactSnapshotEvidence ||
+          (!linuxSnapshotEvidence && !windowsSnapshotEvidence)
+        ) {
+          throw this._sandboxError(
+            "invalid_sandbox_plan",
+            "Code snapshot guarantee requires typed atomic MCP capsule evidence",
+          );
+        }
+      }
       const genericWorkspaceEvidenceFields = [
         "contractDigest",
         "policyDigest",
@@ -1799,6 +1916,26 @@ class ProcessExecutionBroker extends EventEmitter {
           ? {
               contentSnapshotMechanism:
                 plan.runtimeProbe.contentSnapshotMechanism,
+            }
+          : {}),
+        ...(plan.runtimeProbe.runtimeSnapshotSha256 !== undefined
+          ? {
+              runtimeSnapshotSha256: plan.runtimeProbe.runtimeSnapshotSha256,
+              runtimeSnapshotBytes: plan.runtimeProbe.runtimeSnapshotBytes,
+              entrySnapshotSha256: plan.runtimeProbe.entrySnapshotSha256,
+              entrySnapshotBytes: plan.runtimeProbe.entrySnapshotBytes,
+              sharedLibraryClosure: plan.runtimeProbe.sharedLibraryClosure,
+            }
+          : {}),
+        ...(plan.runtimeProbe.runtimeAttestedSha256 !== undefined
+          ? {
+              runtimeAttestedSha256: plan.runtimeProbe.runtimeAttestedSha256,
+              runtimeAttestedBytes: plan.runtimeProbe.runtimeAttestedBytes,
+              entrySnapshotSha256: plan.runtimeProbe.entrySnapshotSha256,
+              entrySnapshotBytes: plan.runtimeProbe.entrySnapshotBytes,
+              entrySnapshotAtomic: plan.runtimeProbe.entrySnapshotAtomic,
+              runtimeLaunchAtomic: plan.runtimeProbe.runtimeLaunchAtomic,
+              sharedLibraryClosure: plan.runtimeProbe.sharedLibraryClosure,
             }
           : {}),
       };
@@ -2820,6 +2957,7 @@ class ProcessExecutionBroker extends EventEmitter {
     this._stripWorkspaceTransactionOptions(spawnOpts);
     this._stripAuditControlOptions(spawnOpts);
     delete spawnOpts.mcpStdioExecutableIdentityAuthority;
+    delete spawnOpts.mcpStdioExecutableIdentityDigest;
     if (traceCtx) {
       spawnOpts.env = { ...(spawnOpts.env || process.env) };
       spawnOpts.env.TRACEPARENT = traceCtx.traceparent;
@@ -2938,15 +3076,16 @@ class ProcessExecutionBroker extends EventEmitter {
     if (
       sandboxPlan.applied === true &&
       (sandboxPlan.backend === "linux-bwrap-workspace" ||
-        sandboxPlan.backend === "linux-bwrap") &&
+        sandboxPlan.backend === "linux-bwrap" ||
+        sandboxPlan.backend === "linux-fd-code-snapshot") &&
       sandboxPlan.postSpawn.required === false
     ) {
       // child_process.spawn() has synchronously duplicated every stdio entry
-      // into the launched bwrap process before returning. Both the generic
-      // workspace backend and direct Plugin-bin bwrap backend are complete
+      // into the launched process before returning. The generic/direct bwrap
+      // backends and the MCP anonymous-code snapshot backend are complete
       // pre-spawn plans with no parent-side enforcement handle. Retaining
-      // their pinned mount/seccomp/supervisor descriptors until a long-lived
-      // process exits would turn each child into an avoidable FD leak.
+      // their pinned descriptors until a long-lived process exits would turn
+      // each child into an avoidable FD leak.
       cleanupSandbox();
     }
     try {

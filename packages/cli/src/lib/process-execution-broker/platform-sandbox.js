@@ -37,6 +37,7 @@ import {
  * the selected backend; it does not merely describe a configured intent.
  */
 export const SANDBOX_BOUNDARIES = Object.freeze({
+  CODE_SNAPSHOT: "code-snapshot",
   FILESYSTEM: "filesystem",
   NETWORK: "network",
   PROCESS_EXEC: "process-exec",
@@ -105,6 +106,7 @@ const WINDOWS_IDENTITY_WAIT = new Int32Array(new SharedArrayBuffer(4));
 const WINDOWS_RESTRICTED_TOKEN_BACKEND = "windows-job-restricted-token";
 const WINDOWS_APPCONTAINER_BACKEND =
   "windows-appcontainer-job-restricted-token";
+const MCP_STDIO_CAPSULE_SANDBOX_CONTRACT_KIND = "strict-mcp-node-capsule";
 const WINDOWS_ADAPTER_IDLE_TTL_MS = 60_000;
 // Every native helper operation starts a trusted System32 PowerShell host and
 // byte-loads the checked-in assembly. Hosted Windows runners can spend well
@@ -163,6 +165,11 @@ const LINUX_ATTESTATION_HASH_CHUNK_BYTES = 1024 * 1024;
 const LINUX_ENTRY_SNAPSHOT_MECHANISM =
   "verified-o_tmpfile-copy-bwrap-ro-bind-data-v1";
 const LINUX_ENTRY_SNAPSHOT_SOURCE_MODE = 0o400;
+const LINUX_EXECUTABLE_SNAPSHOT_SOURCE_MODE = 0o500;
+const LINUX_MCP_CAPSULE_BACKEND = "linux-fd-code-snapshot";
+const LINUX_MCP_RUNTIME_SNAPSHOT_SCOPE = "mcp-node-runtime-executable";
+const LINUX_MCP_CAPSULE_SNAPSHOT_MECHANISM =
+  "verified-o_tmpfile-copy-inherited-fd-exec-v1";
 const LINUX_NODE_ENTRY_SNAPSHOT_SCOPE = "plugin-entry-source";
 const LINUX_NATIVE_ENTRY_SNAPSHOT_SCOPE = "plugin-entry-executable";
 const LINUX_NODE_PLUGIN_TREE_SNAPSHOT_SCOPE = "all-pinned-plugin-regular-files";
@@ -1884,13 +1891,18 @@ function windowsSandboxHostEnvironment(runtime) {
 function windowsPluginNodeEntrySnapshot(invocation, sandboxOpts, spawnOpts) {
   const contract = sandboxOpts.executionContract;
   if (!contract) return { locks: null, reason: null };
-  if (contract.kind !== "strict-plugin-node-bin") {
+  const capsuleContract =
+    contract.kind === MCP_STDIO_CAPSULE_SANDBOX_CONTRACT_KIND;
+  if (contract.kind !== "strict-plugin-node-bin" && !capsuleContract) {
     return {
       locks: null,
       reason: "windows_plugin_execution_contract_unsupported",
     };
   }
-  if (sandboxOpts.sync !== true || spawnOpts?.detached === true) {
+  if (
+    (!capsuleContract && sandboxOpts.sync !== true) ||
+    spawnOpts?.detached === true
+  ) {
     return {
       locks: null,
       reason: "windows_plugin_launch_path_lock_requires_sync_foreground",
@@ -2586,10 +2598,34 @@ export function applyWindowsSandbox(
     ? {
         ...(appContainerRuntimeProbe || nodeSnapshotRuntimeProbe),
         contentSnapshot: true,
-        contentSnapshotScope: "plugin-entry-source",
+        contentSnapshotScope:
+          sandboxOpts.executionContract?.kind ===
+          MCP_STDIO_CAPSULE_SANDBOX_CONTRACT_KIND
+            ? "mcp-capsule-entry-source"
+            : "plugin-entry-source",
         contentSnapshotMechanism:
           "verified-handle-inherited-pipe-module-compile-v1",
         handleAtomic: false,
+        ...(sandboxOpts.executionContract?.kind ===
+        MCP_STDIO_CAPSULE_SANDBOX_CONTRACT_KIND
+          ? {
+              runtimeAttestedSha256: entrySnapshot.locks.find(
+                ({ role }) => role === "runtime",
+              )?.sha256,
+              runtimeAttestedBytes: entrySnapshot.locks.find(
+                ({ role }) => role === "runtime",
+              )?.bytes,
+              entrySnapshotSha256: entrySnapshot.locks.find(
+                ({ role }) => role === "entry",
+              )?.sha256,
+              entrySnapshotBytes: entrySnapshot.locks.find(
+                ({ role }) => role === "entry",
+              )?.bytes,
+              entrySnapshotAtomic: true,
+              runtimeLaunchAtomic: false,
+              sharedLibraryClosure: false,
+            }
+          : {}),
       }
     : appContainerRuntimeProbe;
   return createSandboxPlan({
@@ -2599,13 +2635,20 @@ export function applyWindowsSandbox(
     policyAttested: requiresAppContainer ? true : null,
     policyDigest: appContainerPolicyDigest,
     runtimeProbe: entrySnapshotRuntimeProbe,
-    guarantees: requiresAppContainer
-      ? appContainerGuarantees
-      : [
-          SANDBOX_BOUNDARIES.PROCESS_TREE,
-          SANDBOX_BOUNDARIES.RESOURCE_LIMITS,
-          SANDBOX_BOUNDARIES.PRIVILEGE_REDUCTION,
-        ],
+    guarantees: [
+      ...(requiresAppContainer
+        ? appContainerGuarantees
+        : [
+            SANDBOX_BOUNDARIES.PROCESS_TREE,
+            SANDBOX_BOUNDARIES.RESOURCE_LIMITS,
+            SANDBOX_BOUNDARIES.PRIVILEGE_REDUCTION,
+          ]),
+      ...(entrySnapshot.locks &&
+      sandboxOpts.executionContract?.kind ===
+        MCP_STDIO_CAPSULE_SANDBOX_CONTRACT_KIND
+        ? [SANDBOX_BOUNDARIES.CODE_SNAPSHOT]
+        : []),
+    ],
     command: helperInvocation.command,
     args: helperInvocation.args,
     options,
@@ -3042,7 +3085,10 @@ function validateLinuxPluginContract(
   sync,
   { sealedEntry = false } = {},
 ) {
-  const nodeContract = contract?.kind === "strict-plugin-node-bin";
+  const capsuleContract =
+    contract?.kind === MCP_STDIO_CAPSULE_SANDBOX_CONTRACT_KIND;
+  const nodeContract =
+    contract?.kind === "strict-plugin-node-bin" || capsuleContract;
   const legacyStaticNativeContract =
     contract?.kind === "strict-plugin-native-static-elf-bin";
   const nativeContract =
@@ -3060,7 +3106,7 @@ function validateLinuxPluginContract(
   if (
     (sync !== true && sync !== false) ||
     spawnOpts?.shell !== false ||
-    spawnOpts?.detached === true ||
+    (spawnOpts?.detached === true && !capsuleContract) ||
     !linuxStdioIsNarrow(spawnOpts?.stdio) ||
     spawnOpts?.serialization !== undefined ||
     spawnOpts?.argv0 !== undefined ||
@@ -3274,6 +3320,7 @@ function linuxEntrySnapshotContract(targetRuntime) {
     return {
       scope: LINUX_NATIVE_ENTRY_SNAPSHOT_SCOPE,
       targetMode: LINUX_NATIVE_ENTRY_SNAPSHOT_TARGET_MODE,
+      sourceMode: LINUX_ENTRY_SNAPSHOT_SOURCE_MODE,
       minimumBytes: LINUX_ELF64_HEADER_BYTES,
       errorPrefix: "native_entry_snapshot",
     };
@@ -3282,6 +3329,7 @@ function linuxEntrySnapshotContract(targetRuntime) {
     return {
       scope: LINUX_NODE_ENTRY_SNAPSHOT_SCOPE,
       targetMode: LINUX_NODE_ENTRY_SNAPSHOT_TARGET_MODE,
+      sourceMode: LINUX_ENTRY_SNAPSHOT_SOURCE_MODE,
       minimumBytes: 0,
       errorPrefix: "node_entry_snapshot",
     };
@@ -3296,8 +3344,19 @@ function linuxNodePluginTreeFileSnapshotContract(sourceMode) {
   return {
     scope: LINUX_NODE_PLUGIN_TREE_SNAPSHOT_SCOPE,
     targetMode: (sourceMode & 0o111) !== 0 ? "0500" : "0400",
+    sourceMode: LINUX_ENTRY_SNAPSHOT_SOURCE_MODE,
     minimumBytes: 0,
     errorPrefix: "node_plugin_tree_snapshot",
+  };
+}
+
+function linuxMcpRuntimeSnapshotContract() {
+  return {
+    scope: LINUX_MCP_RUNTIME_SNAPSHOT_SCOPE,
+    targetMode: "0500",
+    sourceMode: LINUX_EXECUTABLE_SNAPSHOT_SOURCE_MODE,
+    minimumBytes: 1,
+    errorPrefix: "mcp_node_runtime_snapshot",
   };
 }
 
@@ -3311,10 +3370,16 @@ function createLinuxRegularFileSnapshot(
   let probeFd;
   let finalFd;
   try {
+    const snapshotSourceMode = snapshotContract?.sourceMode;
     if (
       !snapshotContract ||
       typeof snapshotContract.scope !== "string" ||
       typeof snapshotContract.targetMode !== "string" ||
+      !Number.isSafeInteger(snapshotSourceMode) ||
+      ![
+        LINUX_ENTRY_SNAPSHOT_SOURCE_MODE,
+        LINUX_EXECUTABLE_SNAPSHOT_SOURCE_MODE,
+      ].includes(snapshotSourceMode) ||
       !Number.isSafeInteger(snapshotContract.minimumBytes) ||
       typeof snapshotContract.errorPrefix !== "string"
     ) {
@@ -3369,7 +3434,8 @@ function createLinuxRegularFileSnapshot(
       throw snapshotError("source_mode_changed");
     }
     if (
-      snapshotContract.scope === LINUX_NATIVE_ENTRY_SNAPSHOT_SCOPE &&
+      (snapshotContract.scope === LINUX_NATIVE_ENTRY_SNAPSHOT_SCOPE ||
+        snapshotContract.scope === LINUX_MCP_RUNTIME_SNAPSHOT_SCOPE) &&
       (sourceFileMode & 0o111) === 0
     ) {
       throw snapshotError("source_mode_changed");
@@ -3382,11 +3448,7 @@ function createLinuxRegularFileSnapshot(
       Number(constants.O_TMPFILE ?? LINUX_O_TMPFILE) |
       Number(constants.O_NOFOLLOW || 0) |
       Number(constants.O_NONBLOCK || 0);
-    writerFd = runtime.fs.openSync(
-      "/tmp",
-      writerFlags,
-      LINUX_ENTRY_SNAPSHOT_SOURCE_MODE,
-    );
+    writerFd = runtime.fs.openSync("/tmp", writerFlags, snapshotSourceMode);
 
     const sourceDigest = crypto.createHash("sha256");
     const chunk = Buffer.allocUnsafe(
@@ -3455,15 +3517,14 @@ function createLinuxRegularFileSnapshot(
       throw snapshotError("identity_changed");
     }
 
-    runtime.fs.fchmodSync(writerFd, LINUX_ENTRY_SNAPSHOT_SOURCE_MODE);
+    runtime.fs.fchmodSync(writerFd, snapshotSourceMode);
     runtime.fs.fsyncSync(writerFd);
     const sealedBeforeRead = runtime.fs.fstatSync(writerFd);
     if (
       !sealedBeforeRead.isFile() ||
       Number(sealedBeforeRead.nlink) !== 0 ||
       Number(sealedBeforeRead.size) !== entryIdentity.bytes ||
-      (Number(sealedBeforeRead.mode) & 0o777) !==
-        LINUX_ENTRY_SNAPSHOT_SOURCE_MODE
+      (Number(sealedBeforeRead.mode) & 0o777) !== snapshotSourceMode
     ) {
       throw snapshotError("readonly_mode_unattested");
     }
@@ -3513,7 +3574,7 @@ function createLinuxRegularFileSnapshot(
       }),
       sourceMtimeMs: Number(entryIdentity.mtimeMs),
       sourceFileMode: sourceFileMode.toString(8).padStart(4, "0"),
-      sourceMode: LINUX_ENTRY_SNAPSHOT_SOURCE_MODE.toString(8).padStart(4, "0"),
+      sourceMode: snapshotSourceMode.toString(8).padStart(4, "0"),
       targetMode: snapshotContract.targetMode,
     });
     const descriptor = (fd) => {
@@ -3581,12 +3642,13 @@ function attestLinuxRegularFileSnapshot(
   snapshotContract,
 ) {
   const errorPrefix = snapshotContract.errorPrefix;
+  const snapshotSourceMode = snapshotContract.sourceMode;
   const before = runtime.fs.fstatSync(mount?.fd);
   if (
     attestation?.scope !== snapshotContract.scope ||
     attestation?.mechanism !== LINUX_ENTRY_SNAPSHOT_MECHANISM ||
     attestation?.sourceMode !==
-      LINUX_ENTRY_SNAPSHOT_SOURCE_MODE.toString(8).padStart(4, "0") ||
+      snapshotSourceMode.toString(8).padStart(4, "0") ||
     typeof attestation?.sourceFileMode !== "string" ||
     !/^[0-7]{4}$/.test(attestation.sourceFileMode) ||
     attestation?.targetMode !== snapshotContract.targetMode ||
@@ -3595,7 +3657,7 @@ function attestLinuxRegularFileSnapshot(
     mount?.contentSnapshot !== attestation ||
     !before.isFile() ||
     Number(before.nlink) !== 0 ||
-    (Number(before.mode) & 0o777) !== LINUX_ENTRY_SNAPSHOT_SOURCE_MODE ||
+    (Number(before.mode) & 0o777) !== snapshotSourceMode ||
     String(before.dev) !== String(mount?.snapshotIdentity?.fileId?.dev) ||
     String(before.ino) !== String(mount?.snapshotIdentity?.fileId?.ino) ||
     Number(before.size) !== Number(attestation?.bytes) ||
@@ -3622,6 +3684,200 @@ function attestLinuxEntrySnapshot(runtime, mount, attestation, targetRuntime) {
     attestation,
     linuxEntrySnapshotContract(targetRuntime),
   );
+}
+
+function linuxIdentityExpectedStat(identity) {
+  return {
+    dev: identity?.fileId?.dev,
+    ino: identity?.fileId?.ino,
+    size: identity?.bytes,
+    mtimeMs: identity?.mtimeMs,
+  };
+}
+
+function applyLinuxMcpCapsuleCodeSnapshot(
+  command,
+  args,
+  spawnOpts,
+  sandboxOpts,
+  runtime,
+  base,
+) {
+  const contract = sandboxOpts.executionContract;
+  const validation = validateLinuxPluginContract(
+    command,
+    args,
+    spawnOpts,
+    contract,
+    runtime,
+    sandboxOpts.sync,
+  );
+  const unavailable = (reason, runtimeProbe = null) =>
+    createSandboxPlan({
+      ...base,
+      backend: null,
+      candidateBackend: LINUX_MCP_CAPSULE_BACKEND,
+      policyAttested: false,
+      runtimeProbe: runtimeProbe
+        ? {
+            kind: "linux-mcp-capsule-code-snapshot-v1",
+            attempted: runtimeProbe.attempted !== false,
+            probeRuntime: "node",
+            targetRuntime: "node",
+            ...runtimeProbe,
+          }
+        : null,
+      reason,
+      guarantees: [],
+    });
+  if (
+    contract?.kind !== MCP_STDIO_CAPSULE_SANDBOX_CONTRACT_KIND ||
+    !validation.ok
+  ) {
+    return unavailable("linux_mcp_capsule_execution_contract_invalid", {
+      attempted: false,
+      runnable: false,
+      reason: validation.reason,
+      contentSnapshot: false,
+      handleAtomic: false,
+    });
+  }
+
+  const invocation = normalizeWrappedInvocation(
+    command,
+    args,
+    spawnOpts,
+    runtime.platform,
+  );
+  let runtimePin;
+  let entryPin;
+  let runtimeSnapshot;
+  let entrySnapshot;
+  try {
+    runtimePin = pinLinuxRegularFile(
+      runtime,
+      contract.runtimeIdentity.realPath,
+      contract.runtimeIdentity.realPath,
+      linuxIdentityExpectedStat(contract.runtimeIdentity),
+      { requireSingleLink: true },
+    );
+    entryPin = pinLinuxRegularFile(
+      runtime,
+      contract.entryIdentity.realPath,
+      contract.entryIdentity.realPath,
+      linuxIdentityExpectedStat(contract.entryIdentity),
+      { requireSingleLink: true },
+    );
+    runtimeSnapshot = createLinuxRegularFileSnapshot(
+      runtime,
+      runtimePin,
+      contract.runtimeIdentity,
+      linuxMcpRuntimeSnapshotContract(),
+    );
+    entrySnapshot = createLinuxEntrySnapshot(
+      runtime,
+      entryPin,
+      contract.entryIdentity,
+      "node",
+    );
+    attestLinuxRegularFileSnapshot(
+      runtime,
+      runtimeSnapshot.finalMount,
+      runtimeSnapshot.attestation,
+      linuxMcpRuntimeSnapshotContract(),
+    );
+    attestLinuxEntrySnapshot(
+      runtime,
+      entrySnapshot.finalMount,
+      entrySnapshot.attestation,
+      "node",
+    );
+  } catch (error) {
+    closeLinuxPinnedMounts(runtime, [
+      runtimePin,
+      entryPin,
+      runtimeSnapshot?.probeMount,
+      runtimeSnapshot?.finalMount,
+      entrySnapshot?.probeMount,
+      entrySnapshot?.finalMount,
+    ]);
+    return unavailable("linux_mcp_capsule_code_snapshot_unavailable", {
+      runnable: false,
+      reason: error.message || "snapshot_unattested",
+      contentSnapshot: false,
+      handleAtomic: false,
+    });
+  }
+
+  closeLinuxPinnedMounts(runtime, [
+    runtimePin,
+    entryPin,
+    runtimeSnapshot.probeMount,
+    entrySnapshot.probeMount,
+  ]);
+  const descriptors = [runtimeSnapshot.finalMount, entrySnapshot.finalMount];
+  const runtimeFd = 3;
+  const entryFd = 4;
+  const snapshotIdentity = Object.freeze({
+    runtimeSnapshotSha256: runtimeSnapshot.attestation.sha256,
+    runtimeSnapshotBytes: runtimeSnapshot.attestation.bytes,
+    entrySnapshotSha256: entrySnapshot.attestation.sha256,
+    entrySnapshotBytes: entrySnapshot.attestation.bytes,
+  });
+  const policyDigest = sha256(
+    JSON.stringify({
+      version: 1,
+      backend: LINUX_MCP_CAPSULE_BACKEND,
+      contractKind: contract.kind,
+      requiredBoundaries: [
+        ...new Set(sandboxOpts.requiredBoundaries || []),
+      ].sort(),
+      identity: snapshotIdentity,
+      cwd: invocation.options.cwd,
+      passthroughArgsDigest: sha256(JSON.stringify(invocation.args.slice(1))),
+    }),
+  );
+  let closed = false;
+  const cleanup = () => {
+    if (closed) return;
+    closed = true;
+    closeLinuxPinnedMounts(runtime, descriptors);
+  };
+  return createSandboxPlan({
+    ...base,
+    applied: true,
+    enforcement: LINUX_MCP_CAPSULE_BACKEND,
+    backend: LINUX_MCP_CAPSULE_BACKEND,
+    candidateBackend: null,
+    policyAttested: true,
+    policyDigest,
+    runtimeProbe: {
+      kind: "linux-mcp-capsule-code-snapshot-v1",
+      attempted: true,
+      runnable: true,
+      reason: null,
+      probeRuntime: "node",
+      targetRuntime: "node",
+      contentSnapshot: true,
+      contentSnapshotScope: "mcp-capsule-entry-and-node-runtime",
+      contentSnapshotMechanism: LINUX_MCP_CAPSULE_SNAPSHOT_MECHANISM,
+      handleAtomic: true,
+      sharedLibraryClosure: false,
+      ...snapshotIdentity,
+    },
+    reason: null,
+    guarantees: [SANDBOX_BOUNDARIES.CODE_SNAPSHOT],
+    command: `/proc/self/fd/${runtimeFd}`,
+    args: [`/proc/self/fd/${entryFd}`, ...invocation.args.slice(1)],
+    options: {
+      ...invocation.options,
+      shell: false,
+      stdio: Object.freeze(
+        linuxStdioWithPinnedMounts(invocation.options.stdio, descriptors),
+      ),
+    },
+    cleanup,
+  });
 }
 
 function buildLinuxNodePluginTreeSnapshotAttestation(mounts, entryDestination) {
@@ -5438,6 +5694,17 @@ export function applyLinuxSandbox(
       boundary === SANDBOX_BOUNDARIES.NETWORK ||
       boundary === SANDBOX_BOUNDARIES.PROCESS_TREE,
   );
+
+  if (requiredBoundaries.includes(SANDBOX_BOUNDARIES.CODE_SNAPSHOT)) {
+    return applyLinuxMcpCapsuleCodeSnapshot(
+      command,
+      args,
+      spawnOpts,
+      sandboxOpts,
+      runtime,
+      base,
+    );
+  }
 
   if (requiresStrongLinuxBoundary) {
     if (isLinuxGenericWorkspaceContract(sandboxOpts.executionContract)) {

@@ -34,7 +34,10 @@ import {
   materializeApprovedMcpStdioInvocation,
   renewMcpStdioExecutionAuthority,
 } from "../lib/mcp-stdio-execution-authority.js";
-import { prepareMcpStdioExecutableIdentity } from "../lib/mcp-stdio-executable-identity.js";
+import {
+  MCP_STDIO_CAPSULE_CODE_SNAPSHOT_BOUNDARY,
+  prepareMcpStdioExecutableIdentity,
+} from "../lib/mcp-stdio-executable-identity.js";
 
 /**
  * Injectable dependencies — overridable from tests.
@@ -1858,6 +1861,8 @@ export class MCPClient extends EventEmitter {
     let stdioExecutableIdentityAuthority = null;
     let stdioExecutableEnvironment = null;
     let stdioExecutableWorkingDirectory = null;
+    let stdioExecutableIdentityDigest = null;
+    let stdioCapsuleSandboxExecutionContract = null;
     let runtimeConfig = sourceConfig;
     if (transportKind === "stdio") {
       const isPlugin = sourceConfig.origin === "plugin:mcp";
@@ -1897,6 +1902,9 @@ export class MCPClient extends EventEmitter {
       stdioExecutableIdentityAuthority = prepared.authority;
       stdioExecutableEnvironment = prepared.env;
       stdioExecutableWorkingDirectory = prepared.workingDirectory;
+      stdioExecutableIdentityDigest = prepared.identityDigest;
+      stdioCapsuleSandboxExecutionContract =
+        prepared.sandboxExecutionContract || null;
     }
     const connectionHeaders = await this._connectionHeaders(
       name,
@@ -2317,8 +2325,16 @@ export class MCPClient extends EventEmitter {
           // Broker's Job Object boundary so an unexpectedly exiting MCP root
           // cannot orphan grandchildren before taskkill can enumerate them.
           detached: process.platform !== "win32",
-          ...(process.platform === "win32"
-            ? { requiredBoundaries: ["process-tree"] }
+          ...(process.platform === "win32" ||
+          stdioCapsuleSandboxExecutionContract
+            ? {
+                requiredBoundaries: [
+                  ...(process.platform === "win32" ? ["process-tree"] : []),
+                  ...(stdioCapsuleSandboxExecutionContract
+                    ? [MCP_STDIO_CAPSULE_CODE_SNAPSHOT_BOUNDARY]
+                    : []),
+                ],
+              }
             : {}),
           pluginId: config.pluginId,
           pluginVersion: config.pluginVersion,
@@ -2327,9 +2343,11 @@ export class MCPClient extends EventEmitter {
             ? { sandboxPolicy: config.sandboxPolicy }
             : {}),
           mcpStdioExecutableIdentityAuthority: stdioExecutableIdentityAuthority,
+          mcpStdioExecutableIdentityDigest: stdioExecutableIdentityDigest,
         };
         const sandboxExecutionContract =
-          !isPlugin || pluginWorkspaceRoot
+          stdioCapsuleSandboxExecutionContract ||
+          (!isPlugin || pluginWorkspaceRoot
             ? executionBroker.issueLinuxWorkspaceSandboxExecutionContract(
                 config.command,
                 config.args || [],
@@ -2338,10 +2356,16 @@ export class MCPClient extends EventEmitter {
                   pluginWorkspaceRoot ||
                   process.cwd(),
               )
-            : null;
+            : null);
+        const capsuleUsesPosixProcessGroup =
+          Boolean(stdioCapsuleSandboxExecutionContract) &&
+          process.platform !== "win32";
         const launchOptions = {
           ...spawnOptions,
-          detached: sandboxExecutionContract ? false : spawnOptions.detached,
+          detached:
+            sandboxExecutionContract && !capsuleUsesPosixProcessGroup
+              ? false
+              : spawnOptions.detached,
           ...(sandboxExecutionContract ? { sandboxExecutionContract } : {}),
         };
         const proc = _deps.spawn(config.command, config.args || [], {
@@ -2350,7 +2374,7 @@ export class MCPClient extends EventEmitter {
 
         entry.process = proc;
         entry._stdioTreeMode =
-          sandboxExecutionContract ||
+          (sandboxExecutionContract && !capsuleUsesPosixProcessGroup) ||
           (process.platform === "win32" && proc?.sandboxReady?.then)
             ? "sandbox"
             : process.platform === "win32"

@@ -1361,7 +1361,6 @@ export function resolveMcpStdioPackageMaterialization({
   return Object.freeze({
     command: process.execPath,
     args: Object.freeze([
-      "--no-global-search-paths",
       verified.entrypoint,
       ...(verified.manifest.passthroughArgs || []),
     ]),

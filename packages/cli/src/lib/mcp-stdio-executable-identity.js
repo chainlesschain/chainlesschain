@@ -41,6 +41,9 @@ export const MCP_STDIO_EXECUTABLE_AUTHORITY_REPLAYED_CODE =
   "CC_MCP_STDIO_EXECUTABLE_AUTHORITY_REPLAYED";
 export const MCP_STDIO_EXECUTABLE_IDENTITY_ROLLBACK_CODE =
   "CC_MCP_STDIO_EXECUTABLE_IDENTITY_ROLLBACK";
+export const MCP_STDIO_CAPSULE_SANDBOX_CONTRACT_KIND =
+  "strict-mcp-node-capsule";
+export const MCP_STDIO_CAPSULE_CODE_SNAPSHOT_BOUNDARY = "code-snapshot";
 
 const STORE_LABEL = "MCP stdio executable identity";
 const WITNESS_LABEL = "MCP stdio executable identity anti-rollback witness";
@@ -49,6 +52,7 @@ const MAX_EXECUTABLE_BYTES = 256 * 1024 * 1024;
 const MAX_ENTRYPOINT_BYTES = 64 * 1024 * 1024;
 const HASH_CHUNK_BYTES = 1024 * 1024;
 const issuedLaunchAuthorities = new WeakMap();
+const issuedCapsuleSandboxContracts = new WeakMap();
 
 const DYNAMIC_LAUNCHERS = new Set([
   "bunx",
@@ -725,6 +729,115 @@ function identityDigest(identity) {
   return sha256(JSON.stringify(comparableIdentity(identity)));
 }
 
+function capsuleSandboxFileIdentity(identity, requestedPath) {
+  return Object.freeze({
+    ...(requestedPath ? { requestedPath } : {}),
+    realPath: identity.realPath,
+    sha256: identity.sha256,
+    bytes: identity.bytes,
+    dev: identity.dev,
+    ino: identity.ino,
+    mtimeMs: Number(identity.mtimeNs) / 1_000_000,
+    mode: identity.mode,
+  });
+}
+
+function attestCapsuleRoot(capsuleRoot) {
+  const realpath = _deps.fs.realpathSync.native || _deps.fs.realpathSync;
+  const root = realpath(path.resolve(capsuleRoot));
+  const before = _deps.fs.lstatSync(root, { bigint: true });
+  const after = _deps.fs.statSync(root, { bigint: true });
+  if (
+    before.isSymbolicLink() ||
+    !before.isDirectory() ||
+    !after.isDirectory() ||
+    before.dev !== after.dev ||
+    before.ino !== after.ino
+  ) {
+    throw new Error("MCP capsule root identity changed during attestation");
+  }
+  return Object.freeze({
+    realPath: root,
+    dev: String(after.dev),
+    ino: String(after.ino),
+  });
+}
+
+function issueCapsuleSandboxExecutionContract({
+  serverName,
+  config,
+  attestation,
+  materialization,
+}) {
+  if (!materialization) return null;
+  const capsuleRoot = attestCapsuleRoot(materialization.capsuleRoot);
+  const entryIdentity = attestation.identity.entrypoints.find(
+    (entry) => entry.argIndex === 0,
+  );
+  if (
+    attestation.identity.entrypoints.length !== 1 ||
+    !entryIdentity ||
+    path.dirname(entryIdentity.realPath) !== capsuleRoot.realPath ||
+    entryIdentity.realPath !== attestation.launchArgs[0]
+  ) {
+    throw new Error(
+      "MCP materialized capsule launch is not one direct Node entrypoint",
+    );
+  }
+  const contract = Object.freeze({
+    contractVersion: 1,
+    kind: MCP_STDIO_CAPSULE_SANDBOX_CONTRACT_KIND,
+    pluginRoot: capsuleRoot.realPath,
+    workingDirectory: capsuleRoot.realPath,
+    runtimePath: attestation.identity.command.realPath,
+    rootIdentity: capsuleRoot,
+    entryIdentity: capsuleSandboxFileIdentity(entryIdentity),
+    runtimeIdentity: capsuleSandboxFileIdentity(
+      attestation.identity.command,
+      path.resolve(process.execPath),
+    ),
+  });
+  issuedCapsuleSandboxContracts.set(
+    contract,
+    Object.freeze({
+      origin: config.origin || `mcp:server:${serverName}`,
+      command: attestation.launchCommand,
+      args: Object.freeze([...attestation.launchArgs]),
+      cwd: capsuleRoot.realPath,
+      identityDigest: attestation.identityDigest,
+    }),
+  );
+  return contract;
+}
+
+export function consumeMcpStdioCapsuleSandboxExecutionContract(
+  contract,
+  provenance = {},
+) {
+  const issued =
+    contract && typeof contract === "object"
+      ? issuedCapsuleSandboxContracts.get(contract)
+      : null;
+  if (!issued) return false;
+  issuedCapsuleSandboxContracts.delete(contract);
+  const args = Array.isArray(provenance.args) ? provenance.args : [];
+  const requiredBoundaries = Array.isArray(provenance.requiredBoundaries)
+    ? provenance.requiredBoundaries
+    : [];
+  return (
+    contract.kind === MCP_STDIO_CAPSULE_SANDBOX_CONTRACT_KIND &&
+    provenance.origin === issued.origin &&
+    provenance.command === issued.command &&
+    provenance.cwd === issued.cwd &&
+    provenance.shell === false &&
+    provenance.sync === false &&
+    provenance.identityDigest === issued.identityDigest &&
+    requiredBoundaries.includes(MCP_STDIO_CAPSULE_CODE_SNAPSHOT_BOUNDARY) &&
+    args.length === issued.args.length &&
+    args.every((value, index) => value === issued.args[index])
+  );
+}
+
 export function attestMcpStdioExecutableIdentity({
   command,
   args = [],
@@ -935,6 +1048,12 @@ export function prepareMcpStdioExecutableIdentity({
     ...(explicitStorePath ? { storePath: explicitStorePath } : {}),
     ...(explicitWitnessPath ? { witnessPath: explicitWitnessPath } : {}),
   });
+  const sandboxExecutionContract = issueCapsuleSandboxExecutionContract({
+    serverName,
+    config,
+    attestation,
+    materialization,
+  });
   const authority = Object.freeze({});
   issuedLaunchAuthorities.set(
     authority,
@@ -953,6 +1072,7 @@ export function prepareMcpStdioExecutableIdentity({
     identityDigest: attestation.identityDigest,
     env: launchEnv,
     workingDirectory: materialization?.capsuleRoot || cwd,
+    ...(sandboxExecutionContract ? { sandboxExecutionContract } : {}),
     authority,
     trustStatus: trust.status,
   });

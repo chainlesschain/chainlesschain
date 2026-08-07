@@ -71,6 +71,50 @@ afterEach(() => {
 });
 
 describe("MCPClient plugin sandbox policy", () => {
+  it("prioritizes a materialized capsule snapshot contract at spawn", async () => {
+    const proc = makeFakeMcpProcess();
+    _deps.spawn = vi.fn(() => proc);
+    const contract = Object.freeze({ kind: "strict-mcp-node-capsule" });
+    const identityAuthority = Object.freeze({});
+    _deps.prepareMcpStdioExecutableIdentity = () => ({
+      command: process.execPath,
+      args: ["C:\\capsule\\server.cjs", "--stdio"],
+      identity: Object.freeze({}),
+      identityDigest: "a".repeat(64),
+      authority: identityAuthority,
+      env: { PATH: "trusted" },
+      workingDirectory: "C:\\capsule",
+      sandboxExecutionContract: contract,
+    });
+    const issueAuthority = vi.spyOn(
+      executionBroker,
+      "issueLinuxWorkspaceSandboxExecutionContract",
+    );
+    const client = new MCPClient();
+
+    await client.connect("materialized-package", {
+      command: "npx",
+      args: ["server@1.0.0"],
+      origin: "mcp:configured",
+    });
+
+    expect(_deps.spawn).toHaveBeenCalledWith(
+      process.execPath,
+      ["C:\\capsule\\server.cjs", "--stdio"],
+      expect.objectContaining({
+        cwd: "C:\\capsule",
+        shell: false,
+        env: { PATH: "trusted" },
+        requiredBoundaries: expect.arrayContaining(["code-snapshot"]),
+        sandboxExecutionContract: contract,
+        mcpStdioExecutableIdentityAuthority: identityAuthority,
+        mcpStdioExecutableIdentityDigest: "a".repeat(64),
+      }),
+    );
+    expect(issueAuthority).not.toHaveBeenCalled();
+    await client.disconnectAll();
+  });
+
   it("forwards explicit stdio requirements to the process broker boundary", async () => {
     const proc = makeFakeMcpProcess();
     _deps.spawn = vi.fn(() => proc);

@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { executionBroker } from "../../src/lib/process-execution-broker/index.js";
 import {
   consumeMcpStdioExecutionAuthority,
   issueMcpStdioExecutionAuthority,
@@ -11,6 +12,8 @@ import {
 } from "../../src/lib/mcp-stdio-execution-authority.js";
 import {
   consumeMcpStdioExecutableIdentityAuthority,
+  MCP_STDIO_CAPSULE_CODE_SNAPSHOT_BOUNDARY,
+  MCP_STDIO_CAPSULE_SANDBOX_CONTRACT_KIND,
   MCP_STDIO_EXECUTABLE_CHANGED_CODE,
   prepareMcpStdioExecutableIdentity,
 } from "../../src/lib/mcp-stdio-executable-identity.js";
@@ -272,11 +275,10 @@ describe("MCP stdio fixed npm package materialization", () => {
       indexPath,
     });
     expect(resolved.command).toBe(process.execPath);
-    expect(resolved.args[0]).toBe("--no-global-search-paths");
-    expect(resolved.args[1]).toBe(
+    expect(resolved.args[0]).toBe(
       path.join(result.root, "capsule", "server.cjs"),
     );
-    expect(resolved.args.slice(2)).toEqual(["--stdio"]);
+    expect(resolved.args.slice(1)).toEqual(["--stdio"]);
     expect(resolved.capsuleRoot).toBe(path.join(result.root, "capsule"));
     expect(
       spawnSync(resolved.command, resolved.args, {
@@ -303,6 +305,65 @@ describe("MCP stdio fixed npm package materialization", () => {
     });
     expect(prepared.workingDirectory).toBe(path.join(result.root, "capsule"));
     expect(prepared.env).not.toHaveProperty("NODE_OPTIONS");
+    expect(prepared.sandboxExecutionContract).toMatchObject({
+      contractVersion: 1,
+      kind: MCP_STDIO_CAPSULE_SANDBOX_CONTRACT_KIND,
+      pluginRoot: prepared.workingDirectory,
+      workingDirectory: prepared.workingDirectory,
+      runtimePath: prepared.command,
+      entryIdentity: {
+        realPath: prepared.args[0],
+        sha256: result.identity.capsule.sha256,
+      },
+    });
+    const sandboxProvenance = {
+      origin: "mcp:server:package-server",
+      command: prepared.command,
+      args: prepared.args,
+      cwd: prepared.workingDirectory,
+      shell: false,
+      sync: false,
+      identityDigest: prepared.identityDigest,
+      requiredBoundaries: [MCP_STDIO_CAPSULE_CODE_SNAPSHOT_BOUNDARY],
+    };
+    expect(
+      executionBroker._normalizeSandboxExecutionContract(
+        prepared.sandboxExecutionContract,
+        {
+          origin: sandboxProvenance.origin,
+          cwd: sandboxProvenance.cwd,
+          shell: sandboxProvenance.shell,
+          mcpStdioExecutableIdentityDigest: sandboxProvenance.identityDigest,
+        },
+        sandboxProvenance.requiredBoundaries,
+        {
+          command: sandboxProvenance.command,
+          args: sandboxProvenance.args,
+          sync: false,
+        },
+      ),
+    ).toMatchObject({
+      kind: MCP_STDIO_CAPSULE_SANDBOX_CONTRACT_KIND,
+      pluginRoot: prepared.workingDirectory,
+      entryIdentity: { sha256: result.identity.capsule.sha256 },
+    });
+    expect(() =>
+      executionBroker._normalizeSandboxExecutionContract(
+        prepared.sandboxExecutionContract,
+        {
+          origin: sandboxProvenance.origin,
+          cwd: sandboxProvenance.cwd,
+          shell: sandboxProvenance.shell,
+          mcpStdioExecutableIdentityDigest: sandboxProvenance.identityDigest,
+        },
+        sandboxProvenance.requiredBoundaries,
+        {
+          command: sandboxProvenance.command,
+          args: sandboxProvenance.args,
+          sync: false,
+        },
+      ),
+    ).toThrow(/was not issued/);
     expect(
       consumeMcpStdioExecutableIdentityAuthority(prepared.authority, {
         command: prepared.command,
@@ -504,11 +565,7 @@ describe("MCP stdio fixed npm package materialization", () => {
       }
       const execution = spawnSync(
         process.execPath,
-        [
-          "--no-global-search-paths",
-          path.join(result.root, "capsule", "server.cjs"),
-          "./late-external.js",
-        ],
+        [path.join(result.root, "capsule", "server.cjs"), "./late-external.js"],
         { cwd: path.join(result.root, "capsule"), encoding: "utf8" },
       );
       expect(execution.status).not.toBe(0);
