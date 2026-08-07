@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — cc CLI 0.162.199: session authority, MCP capsules, and recovery reliability
+
+> `chainlesschain` **0.162.198 → 0.162.199** (release candidate,
+> 2026-08-07). CLI-only release metadata; `@chainlesschain/personal-data-hub`
+> remains **0.4.57** and `@chainlesschain/agent-sdk` remains **0.1.7**.
+
+- **Command lifecycle telemetry**: manifest-driven lifecycle metadata now
+  records legacy and replacement routes, aggregates usage without changing
+  aliases automatically, and keeps compatibility entries until their stated
+  observation window and release-cycle requirements are satisfied.
+- **Canonical session authority**: host leases, transcript witnesses,
+  anti-rollback anchors, compare-and-swap persistence, bounded cleanup, and
+  descendant retirement harden concurrent resume and long-running session
+  behavior across the covered CLI, background, and remote-host paths.
+- **Fixed MCP package execution**: approved JavaScript launchers are resolved
+  to exact npm versions and complete transitive closures, then bundled into a
+  guarded, content-addressed Node capsule. Runtime execution no longer depends
+  on a live dynamic package launcher or mutable `node_modules` entrypoint.
+- **Native update recovery**: Windows and POSIX installer/OTA generations can
+  recover interrupted activation, rollback, and rescue state while preserving
+  exact lineage, owner-private locks, and Windows path/handle identity under
+  Node 22.12 device projection.
+- **Portable reliability gates**: disk/pipe failure injection, process-tree
+  cleanup, resource accounting, session stress, and platform path aliases are
+  covered by the release matrices. Real hardware, terminal, SSH, and extended
+  soak observations remain ongoing evidence rather than compatibility claims.
+- **Candidate evidence**: implementation SHA `7e7ce9182746` passed
+  [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/31181229942),
+  [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/31181328955),
+  [CLI Background Interaction E2E](https://github.com/chainlesschain/chainlesschain/actions/runs/31181258842),
+  and [CLI Session Host Consistency](https://github.com/chainlesschain/chainlesschain/actions/runs/31181258424)
+  on Ubuntu, Windows, and macOS. The final `0.162.199` version commit must pass
+  the exact-SHA release gates again before tag `v-npm-0-162-199` is created.
+
 ### Fixed — cc CLI 0.162.198: interactive streaming and release portability
 
 > `chainlesschain` **0.162.197 → 0.162.198** (published, 2026-08-06).
