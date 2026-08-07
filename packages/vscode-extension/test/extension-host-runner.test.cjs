@@ -638,6 +638,26 @@ test("multi-window gate uses a dedicated host-API profile and explicit contract"
     ),
     /user-data-multi-window$/u,
   );
+
+  const smokeDriver = fs.readFileSync(
+    path.join(__dirname, "extension-host", "driver", "smoke.cjs"),
+    "utf8",
+  );
+  assert.doesNotMatch(
+    smokeDriver,
+    /await new Promise\(\(\) => \{\}\)/u,
+    "a companion window must not leave the process-wide test promise pending",
+  );
+  assert.match(
+    smokeDriver,
+    /await waitForJourneyResult\(primaryResultFile, journeyPhase, 135_000\)/u,
+    "the companion must settle only after the primary publishes success",
+  );
+  assert.match(
+    smokeDriver,
+    /primaryResultFile: resultFile,\s+journeyPhase,/u,
+    "the companion must receive the phase-scoped primary result contract",
+  );
 });
 
 test("macOS DOM relay launches without a debugger transport", async () => {

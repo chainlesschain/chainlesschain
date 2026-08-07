@@ -127,6 +127,8 @@ async function runCompanionWindow({
   expectedVersion,
   profileHome,
   companionWorkspace,
+  primaryResultFile,
+  journeyPhase,
 }) {
   const extension = vscode.extensions.getExtension(EXTENSION_ID);
   assert.ok(
@@ -153,10 +155,13 @@ async function runCompanionWindow({
   console.log(
     `[extension-host-smoke] companion: installed VSIX bridge verified on ${lock.port}`,
   );
-  // The extension-test path is inherited by every new VS Code window. Only
-  // the primary window may settle the process-wide test result; remain alive
-  // until its successful completion closes the isolated desktop instance.
-  await new Promise(() => {});
+  // The extension-test path is inherited by every new VS Code window. Recent
+  // VS Code hosts wait for every window's test promise before closing the
+  // isolated desktop, so an intentionally pending companion would deadlock
+  // runTests even after the primary journey succeeded. Keep both live for the
+  // simultaneous bridge proof, then release this window only after the
+  // primary has atomically published its validated result.
+  await waitForJourneyResult(primaryResultFile, journeyPhase, 135_000);
 }
 
 async function waitForBridgeLock(
@@ -479,6 +484,8 @@ async function run() {
       expectedVersion,
       profileHome,
       companionWorkspace,
+      primaryResultFile: resultFile,
+      journeyPhase,
     });
   }
   assertOpenedWorkspaceFolders(workspaceFolders);
