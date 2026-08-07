@@ -653,6 +653,7 @@ test("multi-window gate uses a dedicated host-API profile and explicit contract"
     multiWindowEvidenceFile: path.join(root, "multi-window-evidence.json"),
     progressPath: path.join(root, "progress.jsonl"),
     includeMultiWindow: true,
+    platform: "win32",
   });
 
   assert.equal(
