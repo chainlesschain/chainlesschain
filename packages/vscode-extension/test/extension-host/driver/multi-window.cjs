@@ -69,25 +69,21 @@ function normalizeForCompare(value) {
   return process.platform === "win32" ? resolved.toLowerCase() : resolved;
 }
 
+function canonicalWorkspacePath(value) {
+  return normalizeForCompare(fs.realpathSync(value));
+}
+
 function workspaceDigest(workspaceFolders) {
   return crypto
     .createHash("sha256")
-    .update(
-      JSON.stringify(
-        workspaceFolders.map((workspaceFolder) =>
-          normalizeForCompare(fs.realpathSync(workspaceFolder)),
-        ),
-      ),
-    )
+    .update(JSON.stringify(workspaceFolders.map(canonicalWorkspacePath)))
     .digest("hex");
 }
 
 function normalizedLockWorkspaces(lock) {
   if (!Array.isArray(lock?.workspaceFolders)) return [];
   try {
-    return lock.workspaceFolders.map((workspaceFolder) =>
-      normalizeForCompare(fs.realpathSync(workspaceFolder)),
-    );
+    return lock.workspaceFolders.map(canonicalWorkspacePath);
   } catch {
     return [];
   }
@@ -128,8 +124,8 @@ function readBridgeLocks(profileHome) {
 }
 
 function selectMultiWindowLocks(locks, primaryFolders, companionFolders) {
-  const expectedPrimary = primaryFolders.map(normalizeForCompare);
-  const expectedCompanion = companionFolders.map(normalizeForCompare);
+  const expectedPrimary = primaryFolders.map(canonicalWorkspacePath);
+  const expectedCompanion = companionFolders.map(canonicalWorkspacePath);
   const matches = (lock, expected) => {
     const actual = normalizedLockWorkspaces(lock);
     return (

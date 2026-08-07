@@ -311,6 +311,21 @@ test("multi-window lock selection binds distinct exact workspace identities", ()
     workspaceDigest(primaryFolders),
     workspaceDigest(companionFolders),
   );
+  const primaryAlias = path.join(root, "workspace-primary-alias");
+  fs.symlinkSync(
+    primaryFolders[0],
+    primaryAlias,
+    process.platform === "win32" ? "junction" : "dir",
+  );
+  assert.equal(
+    selectMultiWindowLocks(
+      locks,
+      [primaryAlias, primaryFolders[1]],
+      companionFolders,
+    ).primary,
+    locks[0],
+    "workspace identity must survive platform path aliases such as macOS /tmp -> /private/tmp",
+  );
   assert.deepEqual(
     selectMultiWindowLocks(
       [{ ...locks[0], workspaceFolders: [...primaryFolders].reverse() }],
