@@ -119,7 +119,6 @@ export async function* followSession(sessionId, options = {}) {
   // held bytes are reassembled instead of corrupted into U+FFFD.
   let decoder = new TextDecoder("utf-8");
 
-  // eslint-disable-next-line no-constant-condition
   while (true) {
     if (signal?.aborted) return;
 
@@ -129,31 +128,41 @@ export async function* followSession(sessionId, options = {}) {
     assertLiveTranscriptReadable(sessionId);
 
     if (existsSync(filePath)) {
-      const stat = await fsp.stat(filePath);
-      if (stat.size < offset) {
-        // File was truncated / rotated — restart from beginning
-        offset = 0;
-        buffer = "";
-        decoder = new TextDecoder("utf-8"); // drop any held partial-char bytes
-      }
-      if (stat.size > offset) {
-        const fd = await fsp.open(filePath, "r");
-        try {
-          const length = stat.size - offset;
-          const buf = Buffer.alloc(length);
-          await fd.read(buf, 0, length, offset);
-          offset = stat.size;
-          buffer += decoder.decode(buf, { stream: true });
-        } finally {
-          await fd.close();
+      try {
+        const stat = await fsp.stat(filePath);
+        if (stat.size < offset) {
+          // File was truncated / rotated — restart from beginning
+          offset = 0;
+          buffer = "";
+          decoder = new TextDecoder("utf-8"); // drop any held partial-char bytes
         }
-        const { events, rest } = parseChunk(buffer);
-        buffer = rest;
-        for (const evt of events) {
-          if (matchesFilter(evt, { types, sinceMs })) {
-            yield { event: evt, offset };
+        if (stat.size > offset) {
+          const fd = await fsp.open(filePath, "r");
+          try {
+            const length = stat.size - offset;
+            const buf = Buffer.alloc(length);
+            await fd.read(buf, 0, length, offset);
+            offset = stat.size;
+            buffer += decoder.decode(buf, { stream: true });
+          } finally {
+            await fd.close();
+          }
+          const { events, rest } = parseChunk(buffer);
+          buffer = rest;
+          for (const evt of events) {
+            if (matchesFilter(evt, { types, sinceMs })) {
+              yield { event: evt, offset };
+            }
           }
         }
+      } catch (error) {
+        if (error?.code !== "ENOENT") throw error;
+        // The transcript can disappear between exists/stat/open while another
+        // host deletes or rotates it. Re-evaluate the durable witness after the
+        // race so callers receive SESSION_DELETED / SESSION_TRANSCRIPT_UNVERIFIED
+        // instead of a platform-dependent raw filesystem error. A genuinely
+        // absent, unwitnessed path remains followable and is retried next poll.
+        assertLiveTranscriptReadable(sessionId);
       }
     }
 

@@ -19,6 +19,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   as permanently accumulated system messages. A 2,000-turn regression keeps
   compaction state bounded while preserving checkpoint and other trusted host
   provenance.
+- **Race-safe live session tails**: transcript deletion or restoration between
+  the path check and asynchronous `stat`/`open` is reclassified through the
+  durable session witness. Followers now fail closed with the governed deleted
+  or unverified-transcript error instead of leaking a platform-dependent raw
+  `ENOENT`.
 - **Atomic Windows MCP runtime launch**: the strict sandbox holds verified
   runtime and entry identities through suspended process image creation, then
   re-attests before resume. A real pathname-replacement race fails closed
