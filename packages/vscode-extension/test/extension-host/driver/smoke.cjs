@@ -374,6 +374,24 @@ function appendMultiWindowProgress(progressFile, stage, details = {}) {
   );
 }
 
+async function waitForMultiWindowProgressStage(
+  progressFile,
+  expectedStage,
+  timeoutMs,
+) {
+  const deadline = Date.now() + timeoutMs;
+  const marker = `"stage":"${expectedStage}"`;
+  while (Date.now() < deadline) {
+    try {
+      if (fs.readFileSync(progressFile, "utf8").includes(marker)) return true;
+    } catch (error) {
+      if (error?.code !== "ENOENT") throw error;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  return false;
+}
+
 async function waitForJourneyResult(resultFile, phase, timeoutMs) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
@@ -707,6 +725,35 @@ async function run() {
         "multi_window_primary_result_published",
         { actor: "primary" },
       );
+      if (process.platform === "darwin") {
+        const companionObserved = await waitForMultiWindowProgressStage(
+          multiWindowProgressFile,
+          "multi_window_companion_primary_result_observed",
+          3_000,
+        );
+        // Current macOS VS Code keeps the application process alive after the
+        // isolated primary and companion test promises settle. The immutable
+        // primary result and simultaneous live-Bridge evidence are already on
+        // disk, so request a clean application exit after a bounded companion
+        // synchronization grace period.
+        appendMultiWindowProgress(
+          multiWindowProgressFile,
+          "multi_window_primary_quit_requested",
+          { actor: "primary", companionObserved },
+        );
+        void vscode.commands
+          .executeCommand("workbench.action.quit")
+          .catch((error) => {
+            appendMultiWindowProgress(
+              multiWindowProgressFile,
+              "multi_window_primary_quit_rejected",
+              {
+                actor: "primary",
+                error: String(error?.message || error),
+              },
+            );
+          });
+      }
     }
   } else if (journeyMode === "dom-relay") {
     await revealChatAndRunDomRelayJourney({

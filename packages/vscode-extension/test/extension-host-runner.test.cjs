@@ -688,6 +688,11 @@ test("multi-window gate uses a dedicated host-API profile and explicit contract"
     /multi_window_primary_result_published/u,
     "the companion close must remain auditable against primary success",
   );
+  assert.match(
+    smokeDriver,
+    /multi_window_primary_result_published[\s\S]*?waitForMultiWindowProgressStage\([\s\S]*?multi_window_companion_primary_result_observed[\s\S]*?3_000[\s\S]*?multi_window_primary_quit_requested[\s\S]*?workbench\.action\.quit/u,
+    "macOS must bound companion synchronization before clean application exit",
+  );
 });
 
 test("macOS DOM relay launches without a debugger transport", async () => {
