@@ -1,6 +1,6 @@
 # 检查点 / 回滚（cc checkpoint）
 
-> **当前稳定版: 0.162.198 | npm latest 与生产推荐一致 | 双引擎 (git-plumbing + copy fallback) | 持久 Restore Saga + 保守 Recovery CLI**
+> **当前稳定版: 0.163.0 | npm latest 与生产推荐一致 | 双引擎 (git-plumbing + copy fallback) | 持久 Restore Saga + 保守 Recovery CLI**
 >
 > `cc checkpoint` 提供**文件状态快照与回滚**能力，对标 Claude Code 的 rewind。它采用**双引擎**设计：在 git 工作树中默认走 git-plumbing 影子提交（零触真实索引/工作区），非 git 目录则退回基于复制的快照。配合 `cc agent --checkpoint`，可在 agent 每次改文件前自动快照，随时回滚。
 
@@ -152,23 +152,23 @@ npx vitest run __tests__/unit/checkpoint-store.test.js
 | `commit-tree` 报缺用户配置 | git 身份未配置                                          | 引擎已用 `GIT_*_NAME/EMAIL` 强制注入；确认环境未被清空 |
 | 自动检查点没生成           | 工具是只读，或非 git 目录                               | 只读工具跳过、非 git no-op 均为预期；改文件工具才快照  |
 | 找不到快照                 | `--session` 不匹配                                      | 用 `cc checkpoint list --session <s>` 确认会话         |
-| `recovery` 子命令不存在     | 使用的是早于 `0.162.197` 的 CLI                          | 升级并固定 `chainlesschain@0.162.198`                  |
-| `FENCE_MISMATCH`           | `show` 后 seq/head/owner authority 已变化                | 重新运行 `recovery show`，不要复用旧 fence             |
-| `ACTION_NOT_ELIGIBLE`      | 当前 recovery phase 不允许所选动作                       | 以 `show` 返回的 eligible actions 为准，不强制绕过      |
+| `recovery` 子命令不存在    | 使用的是早于 `0.162.197` 的 CLI                         | 升级并固定 `chainlesschain@0.163.0`                    |
+| `FENCE_MISMATCH`           | `show` 后 seq/head/owner authority 已变化               | 重新运行 `recovery show`，不要复用旧 fence             |
+| `ACTION_NOT_ELIGIBLE`      | 当前 recovery phase 不允许所选动作                      | 以 `show` 返回的 eligible actions 为准，不强制绕过     |
 
 ## 关键文件
 
-| 文件                                                   | 说明                                                                   |
-| ------------------------------------------------------ | ---------------------------------------------------------------------- |
-| `packages/cli/src/lib/checkpoint-store.js`             | git-plumbing 引擎（临时索引捕获、影子提交、回滚、dry-run、安全检查点） |
-| `packages/cli/src/lib/file-checkpoint.js`              | copy 兜底引擎（非 git 目录，按显式路径快照）                           |
-| `packages/cli/src/commands/checkpoint.js`              | `cc checkpoint` 命令 + 引擎选择/归一化适配器                           |
-| `packages/cli/src/lib/checkpoint-restore-saga.js`       | direct/timeline restore 的持久 phase journal、CAS 与 workspace binding  |
-| `packages/cli/src/lib/checkpoint-restore-recovery.js`   | recovery projection、list/show 与 action eligibility                    |
-| `packages/cli/src/lib/checkpoint-restore-recovery-controller.js` | abort/release 等保守恢复控制器                               |
-| `packages/cli/src/commands/checkpoint-restore-recovery.js` | `recovery list/show/abort/resume/rollback/release` 命令与 fence 校验 |
-| `packages/cli/src/ai/agent-core.js`                    | `agentLoop` 自动检查点钩子（yield `checkpoint` 事件）                  |
-| `packages/cli/__tests__/unit/checkpoint-store.test.js` | 14 单元测试（真实临时仓库）                                            |
+| 文件                                                             | 说明                                                                   |
+| ---------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `packages/cli/src/lib/checkpoint-store.js`                       | git-plumbing 引擎（临时索引捕获、影子提交、回滚、dry-run、安全检查点） |
+| `packages/cli/src/lib/file-checkpoint.js`                        | copy 兜底引擎（非 git 目录，按显式路径快照）                           |
+| `packages/cli/src/commands/checkpoint.js`                        | `cc checkpoint` 命令 + 引擎选择/归一化适配器                           |
+| `packages/cli/src/lib/checkpoint-restore-saga.js`                | direct/timeline restore 的持久 phase journal、CAS 与 workspace binding |
+| `packages/cli/src/lib/checkpoint-restore-recovery.js`            | recovery projection、list/show 与 action eligibility                   |
+| `packages/cli/src/lib/checkpoint-restore-recovery-controller.js` | abort/release 等保守恢复控制器                                         |
+| `packages/cli/src/commands/checkpoint-restore-recovery.js`       | `recovery list/show/abort/resume/rollback/release` 命令与 fence 校验   |
+| `packages/cli/src/ai/agent-core.js`                              | `agentLoop` 自动检查点钩子（yield `checkpoint` 事件）                  |
+| `packages/cli/__tests__/unit/checkpoint-store.test.js`           | 14 单元测试（真实临时仓库）                                            |
 
 ## 使用示例
 

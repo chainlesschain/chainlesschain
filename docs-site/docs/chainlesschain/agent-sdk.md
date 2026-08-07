@@ -81,7 +81,7 @@ Python 包已在 [PyPI](https://pypi.org/project/chainlesschain-agent-sdk/) 公�
 Python 3.10、3.11、3.12、3.13。SDK 通过子进程驱动 `cc agent`，因此 CLI 需要单独安装：
 
 ```bash
-npm install --global "chainlesschain@0.162.198"
+npm install --global "chainlesschain@0.163.0"
 cc --version
 ```
 

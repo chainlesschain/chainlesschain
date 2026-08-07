@@ -5,6 +5,34 @@
 
 ## [Unreleased]
 
+#### Fixed — CLI 0.163.1 源码候选：会话尾部竞态、有界长会话、Windows MCP 原子启动与可靠性门
+
+> 当前源码包元数据为 `chainlesschain@0.163.1`，HEAD 为 [`a29eb4203d`](https://github.com/chainlesschain/chainlesschain/commit/a29eb4203d333756fc258b493b0c43af4fc36759)。该 SHA 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/31219886076) 与 [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/31219890201) 已成功，但[发布 workflow](https://github.com/chainlesschain/chainlesschain/actions/runs/31221549835)只运行 dry-run，exact-SHA、制品与 publish job 均跳过；`v-npm-0-163-1` 和 registry `0.163.1` 均不存在，生产安装继续固定 `0.163.0`。
+
+- **有界长会话压缩**：既有 durable summary 与 compacted tool record 折入下一份摘要；2,000 turn 回归验证状态有界，同时保留 checkpoint 等可信 host provenance。
+- **会话尾部竞态**：transcript 在路径检查与异步 `stat` / `open` 之间被删除或恢复时，follow 操作经 durable session witness 重新分类并失败闭合，不再泄漏平台相关的原始 `ENOENT`。
+- **Windows MCP 原子启动**：严格沙箱从挂起进程 image 创建起持有 runtime/entry identity，恢复前再次复核；真实路径替换竞态在不可信 entry code 执行前失败闭合。
+- **真实可靠性探针**：矩阵新增 EROFS/ENOSPC、bounded pipe、原生 TTY screen-reader、多语言键盘、Unicode 剪贴板、localhost SSH 断线、超大 MCP 输出、并发 Agent 与两小时资源核算。
+- **原生发行凭据**：Linux signing、Windows Authenticode、macOS signing/notarization 与 updater key 缺失时，六目标 native workflow 启动前失败闭合；这不表示原生发行链已经完成。
+
+#### Fixed — CLI 0.163.0 正式发布：macOS PTY、原生宿主与第二观察周期
+
+> `chainlesschain@0.163.0` 已于 2026-08-08 成为 npm `latest` 与生产推荐版。`v-npm-0-163-0` 精确指向 [`aed0a3ae53`](https://github.com/chainlesschain/chainlesschain/commit/aed0a3ae5327917ce0490a5decbddd777f66f33b)。
+
+- **承接 `0.162.200`**：canonical session host lease、anti-rollback witness、CAS 持久化、有界 cleanup、固定 MCP npm 执行 capsule 与原生更新 recovery 已进入公开 tarball。`0.162.199` 在上传前失败，其 tag 保持不可变。
+- **macOS PTY 安装修复**：postinstall 只对窄范围解析出的 regular-file `node-pty` helper 修复并验证执行位，拒绝 symlink，修复 fresh ARM64/Intel 安装的 `posix_spawnp failed`。
+- **匹配架构宿主**：Linux、Windows、macOS x64/ARM64 六个 native target 使用匹配架构 runner，并要求制品在自身架构执行；签名、notarization 和公开 native distribution 仍是独立边界。
+- **命令生命周期观察**：`0.163.0` 开启第二个 minor cycle；代表性 opt-in cohort、三平台 coverage 与逐命令样本门仍未满足，25 个兼容 alias 全部保留。
+- **发布证据**：[CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/31205224902)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/31205231874)与[专用 npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/31209345410)均绑定同一 SHA 并成功；正式 workflow 完成 exact-SHA、immutable tarball、CycloneDX SBOM、Trusted Publishing、SLSA provenance、公开 registry 回读与 npmmirror 同步。
+
+#### Added — Open VSX 0.37.45：VS Code 多窗口真实宿主门
+
+> `ide-vscode-v0.37.45` 精确指向 [`aed0a3ae53`](https://github.com/chainlesschain/chainlesschain/commit/aed0a3ae5327917ce0490a5decbddd777f66f33b)，Open VSX 已公开并精确回读；JetBrains Marketplace 保持 `0.4.81`。
+
+- 同一干净 profile 下启动两个真实 workspace host，要求不同 Extension Host PID、bridge port 与 token，且两个 loopback 端口同时可连接。
+- [发布门](https://github.com/chainlesschain/chainlesschain/actions/runs/31207738786)覆盖 stable/minimum `1.85.2` × Windows、macOS、Linux 六格、多根与多窗口 journey、不可变 VSIX、Open VSX 发布和 listing 校验。
+- Microsoft VS Code Marketplace 仍未发布；Remote/SSH/WSL/devcontainer、ARM64、网络抖动、fresh-profile 升降级与八小时 soak 不因本子门成功而宣称完成。
+
 #### Fixed — CLI 0.162.198 正式发布：交互输出背压、Canonical Workbench 路由与三平台可移植性
 
 > `chainlesschain@0.162.198` 已于 2026-08-06 正式发布，当前 npm `latest` 与生产推荐版一致。包元数据仍为 `0.162.198` 的源码 HEAD 已继续前进，发布后的可靠性提交不反向计入该不可变 tarball。
