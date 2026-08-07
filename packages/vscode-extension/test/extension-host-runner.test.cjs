@@ -670,12 +670,12 @@ test("multi-window gate uses a dedicated host-API profile and explicit contract"
   );
   assert.match(
     smokeDriver,
-    /"vscode\.openFolder",\s+vscode\.Uri\.file\(companionWorkspace\),\s+\{ forceNewWindow: true \}/u,
+    /void vscode\.commands\s+\.executeCommand\(\s*"vscode\.openFolder",\s+vscode\.Uri\.file\(companionWorkspace\),\s+\{\s+forceNewWindow: true,\s+\}\)/u,
     "macOS must open the companion through the public new-window command",
   );
   assert.match(
     smokeDriver,
-    /multi_window_companion_launch_requested[\s\S]*?multi_window_companion_launch_completed/u,
+    /multi_window_companion_launch_requested[\s\S]*?multi_window_companion_launch_rejected[\s\S]*?multi_window_companion_launch_dispatched/u,
     "the macOS companion launch must remain auditable",
   );
   assert.match(

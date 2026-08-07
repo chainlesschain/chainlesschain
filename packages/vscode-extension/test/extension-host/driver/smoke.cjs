@@ -136,14 +136,28 @@ async function launchMacCompanionWindow({
   // accept the process launch without creating the requested workbench. Use
   // the public workbench command so the running isolated host owns creation
   // of the second window and carries the extension-test contract into it.
-  await vscode.commands.executeCommand(
-    "vscode.openFolder",
-    vscode.Uri.file(companionWorkspace),
-    { forceNewWindow: true },
-  );
+  // Current VS Code keeps this command's thenable pending while the new
+  // workbench remains open. Dispatch it without turning command settlement
+  // into a lifecycle gate; the two exact live Bridge locks below remain the
+  // authoritative proof that the companion actually opened and activated.
+  void vscode.commands
+    .executeCommand("vscode.openFolder", vscode.Uri.file(companionWorkspace), {
+      forceNewWindow: true,
+    })
+    .catch((error) => {
+      appendMultiWindowProgress(
+        multiWindowProgressFile,
+        "multi_window_companion_launch_rejected",
+        {
+          actor: "primary",
+          transport: "vscode.openFolder",
+          error: String(error?.message || error),
+        },
+      );
+    });
   appendMultiWindowProgress(
     multiWindowProgressFile,
-    "multi_window_companion_launch_completed",
+    "multi_window_companion_launch_dispatched",
     { actor: "primary", transport: "vscode.openFolder" },
   );
 }
