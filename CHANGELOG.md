@@ -34,6 +34,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   clipboard round trips, localhost SSH disconnects, oversized MCP output,
   concurrent agents, and two-hour resource accounting. Disk mounts are retired
   from their actual `sessions` targets during cleanup.
+- **Deterministic two-hour workload**: the required 1,000 duplex turns are
+  paced across the complete soak window instead of becoming a platform-speed
+  stress loop with millions of extra turns. The RSS/FD/handle thresholds remain
+  unchanged, and the screen-reader probe waits for the real REPL prompt before
+  injecting multilingual keyboard input.
 - **Native release credentials fail closed**: the six-target native workflow
   refuses to build a release until Linux signing, Windows Authenticode, macOS
   signing/notarization, and updater keys are all configured. This npm release

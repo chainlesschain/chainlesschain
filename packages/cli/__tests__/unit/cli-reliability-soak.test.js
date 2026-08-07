@@ -6,6 +6,7 @@ import {
   descendantPidsFromProcessRows,
   percentile,
   recordBoundedSample,
+  reliabilityTurnDelayMs,
   resolveReliabilityProfile,
 } from "../../scripts/cli-reliability-soak.mjs";
 
@@ -54,6 +55,15 @@ describe("CLI reliability soak gate", () => {
     }
     expect(samples).toHaveLength(3);
     expect([...samples].sort((left, right) => left - right)).toEqual([5, 6, 7]);
+  });
+
+  it("spreads the required turns across the complete soak duration", () => {
+    expect(reliabilityTurnDelayMs(0, 1_000, 7_200_000, 0)).toBe(7_200);
+    expect(reliabilityTurnDelayMs(499, 1_000, 7_200_000, 3_590_000)).toBe(
+      10_000,
+    );
+    expect(reliabilityTurnDelayMs(999, 1_000, 7_200_000, 7_200_000)).toBe(0);
+    expect(reliabilityTurnDelayMs(3, 0, 7_200_000, 0)).toBe(0);
   });
 
   it("walks a bounded process snapshot transitively and cycle-safely", () => {
@@ -115,6 +125,8 @@ describe("CLI reliability soak gate", () => {
     expect(gate).toContain("reliability-disk-${expectedFsCode.toLowerCase()}");
     expect(gate).toContain("--ax-screen-reader");
     expect(gate).toContain("screen-reader-键盘-مرحبا-שלום");
+    expect(gate).toContain("readinessObserved");
+    expect(gate).toContain('mode: "duration-spread"');
     expect(gate).toContain("ansiColorObserved");
     expect(gate).toContain("repaintObserved");
     expect(gate).toContain("CC_CLI_RELIABILITY_CLIPBOARD_REQUIRED");
