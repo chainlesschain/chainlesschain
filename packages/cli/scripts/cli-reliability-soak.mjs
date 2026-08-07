@@ -181,6 +181,15 @@ export function resolveReliabilityProfile(env = process.env) {
       ),
       formal ? 1_000 : 1,
     ),
+    warmupTurns: floor(
+      positiveNumber(
+        env.CC_CLI_RELIABILITY_WARMUP_TURNS,
+        formal ? 20 : 2,
+        "warmup turn count",
+        { integer: true },
+      ),
+      formal ? 20 : 1,
+    ),
     concurrentAgents: floor(
       positiveNumber(
         env.CC_CLI_RELIABILITY_AGENTS,
@@ -1389,20 +1398,10 @@ async function duplexSoakScenario(
 
   const latencies = [];
   await new Promise((resolvePromise) => setTimeout(resolvePromise, 250));
-  const resourcesBefore = resourceCount(child.pid);
-  const rssBefore = rssBytes(child.pid);
-  const ioBefore = ioSnapshot(child.pid);
-  let resourcesMaximum = resourcesBefore.count;
-  let rssMaximum = rssBefore;
-  const deadline = performance.now() + profile.durationSeconds * 1_000;
-  const scenarioStarted = performance.now();
-  let lastMetricSampleAt = 0;
-  let lastCheckpointAt = performance.now();
-  let turns = 0;
-  while (turns < profile.turns || performance.now() < deadline) {
-    const started = performance.now();
+  let sentCount = 0;
+  const sendTurn = async (text) => {
     const accepted = child.stdin.write(
-      `${JSON.stringify({ type: "user", text: `soak-${turns}` })}\n`,
+      `${JSON.stringify({ type: "user", text })}\n`,
     );
     if (!accepted) {
       await new Promise((resolvePromise, rejectPromise) => {
@@ -1418,8 +1417,31 @@ async function duplexSoakScenario(
         child.stdin.once("error", onError);
       });
     }
+    sentCount += 1;
+    await waitForResults(sentCount);
+  };
+
+  // Exercise lazy provider, HTTP, and compaction initialization before the
+  // resource baseline. The following formal two-hour window still enforces the
+  // original turn and duration floors, so bounded startup handles are separated
+  // from genuine steady-state growth without weakening the leak thresholds.
+  for (let turn = 0; turn < profile.warmupTurns; turn += 1) {
+    await sendTurn(`warmup-${turn}`);
+  }
+  const resourcesBefore = resourceCount(child.pid);
+  const rssBefore = rssBytes(child.pid);
+  const ioBefore = ioSnapshot(child.pid);
+  let resourcesMaximum = resourcesBefore.count;
+  let rssMaximum = rssBefore;
+  const deadline = performance.now() + profile.durationSeconds * 1_000;
+  const scenarioStarted = performance.now();
+  let lastMetricSampleAt = 0;
+  let lastCheckpointAt = performance.now();
+  let turns = 0;
+  while (turns < profile.turns || performance.now() < deadline) {
+    const started = performance.now();
+    await sendTurn(`soak-${turns}`);
     turns += 1;
-    await waitForResults(turns);
     const now = performance.now();
     recordBoundedSample(latencies, now - started, turns);
     if (now - lastMetricSampleAt >= 1_000) {
@@ -1438,6 +1460,7 @@ async function duplexSoakScenario(
       lastCheckpointAt = now;
       checkpoint({
         status: "running",
+        warmupTurns: profile.warmupTurns,
         turns,
         resultCount,
         continuousDurationSeconds: (now - scenarioStarted) / 1_000,
@@ -1488,7 +1511,7 @@ async function duplexSoakScenario(
   return {
     pass:
       exit.code === 0 &&
-      resultCount === turns &&
+      resultCount === profile.warmupTurns + turns &&
       resultErrorCount === 0 &&
       (resourceGrowth == null || resourceGrowth <= profile.maxResourceGrowth) &&
       (rssGrowthBytes == null ||
@@ -1496,6 +1519,10 @@ async function duplexSoakScenario(
       (!descendantsBeforeExit.available || allDescendantsRetired) &&
       (profile.mode !== "formal" || requiredMeasurementsAvailable),
     turns,
+    warmup: {
+      configuredTurns: profile.warmupTurns,
+      completedTurns: Math.min(resultCount, profile.warmupTurns),
+    },
     configuredDurationSeconds: profile.durationSeconds,
     continuousDurationSeconds: (performance.now() - scenarioStarted) / 1_000,
     latency: {
@@ -1547,6 +1574,7 @@ async function duplexSoakScenario(
     exit,
     results: {
       count: resultCount,
+      measuredCount: Math.max(0, resultCount - profile.warmupTurns),
       errorCount: resultErrorCount,
       subtypeCounts: Object.fromEntries(resultSubtypeCounts),
       lengthMinimum: resultLengthMinimum,

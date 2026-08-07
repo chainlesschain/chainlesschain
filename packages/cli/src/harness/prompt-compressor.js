@@ -13,6 +13,7 @@ import { createHash } from "node:crypto";
 import { feature, featureVariant } from "../lib/feature-flags.js";
 import {
   DURABLE_SYSTEM_MESSAGE_KINDS,
+  getDurableSystemMessageProvenance,
   markDurableSystemMessage,
 } from "../lib/session-message-provenance.js";
 import {
@@ -33,6 +34,14 @@ const DEDUP_FUZZY_WINDOW = 100;
 export const SUMMARY_INPUT_DEFAULT_MAX_CHARS = 24000;
 export const SUMMARY_INPUT_HARD_MAX_CHARS = 32000;
 const SUMMARY_INPUT_MIN_CHARS = 1024;
+
+function isCompactionArtifact(message) {
+  const kind = getDurableSystemMessageProvenance(message)?.kind;
+  return (
+    kind === DURABLE_SYSTEM_MESSAGE_KINDS.COMPACT_SUMMARY ||
+    kind === DURABLE_SYSTEM_MESSAGE_KINDS.COMPACT_TOOL_COLLAPSE
+  );
+}
 
 function boundedPositiveInteger(value, fallback, minimum, maximum) {
   const number = Math.floor(Number(value));
@@ -508,9 +517,13 @@ export class PromptCompressor {
   }
 
   _truncate(messages) {
-    const system = messages.filter((m) => m.role === "system");
+    const system = messages.filter(
+      (m) => m.role === "system" && !isCompactionArtifact(m),
+    );
     const last = [...messages].reverse().find((m) => m.role === "user");
-    const rest = messages.filter((m) => m.role !== "system" && m !== last);
+    const rest = messages.filter(
+      (m) => (m.role !== "system" || isCompactionArtifact(m)) && m !== last,
+    );
 
     let slots = this.maxMessages - system.length;
     if (last) slots -= 1;
@@ -522,10 +535,15 @@ export class PromptCompressor {
   }
 
   async _summarize(messages) {
-    const system = messages.filter((m) => m.role === "system");
+    // Compaction summaries and collapsed tool groups are derived history, not
+    // immutable host instructions. Fold them into the next summary so a long
+    // session cannot retain one additional durable system message per cycle.
+    const system = messages.filter(
+      (m) => m.role === "system" && !isCompactionArtifact(m),
+    );
     const last = [...messages].reverse().find((m) => m.role === "user");
     const toSummarize = messages.filter(
-      (m) => m.role !== "system" && m !== last,
+      (m) => (m.role !== "system" || isCompactionArtifact(m)) && m !== last,
     );
 
     if (toSummarize.length < 3) {

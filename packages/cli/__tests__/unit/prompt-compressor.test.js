@@ -8,8 +8,11 @@ vi.mock("../../src/lib/feature-flags.js", () => ({
 
 const { PromptCompressor, estimateTokens, estimateMessagesTokens } =
   await import("../../src/lib/prompt-compressor.js");
-const { DURABLE_SYSTEM_MESSAGE_KINDS, getDurableSystemMessageProvenance } =
-  await import("../../src/lib/session-message-provenance.js");
+const {
+  DURABLE_SYSTEM_MESSAGE_KINDS,
+  getDurableSystemMessageProvenance,
+  markDurableSystemMessage,
+} = await import("../../src/lib/session-message-provenance.js");
 
 // ── Helpers ─────────────────────────────────────────────────────────────
 
@@ -269,6 +272,54 @@ describe("PromptCompressor", () => {
       const { messages } = await compressor.compress(msgs);
       // Should still return something, just without summarization
       expect(messages.length).toBeGreaterThan(0);
+    });
+
+    it("keeps repeated compaction bounded while preserving durable host context", async () => {
+      const mockLlm = vi.fn().mockRejectedValue(new Error("offline"));
+      const bounded = new PromptCompressor({
+        maxMessages: 6,
+        maxTokens: 1e9,
+        llmQuery: mockLlm,
+      });
+      const checkpoint = markDurableSystemMessage(
+        { role: "system", content: "checkpoint context" },
+        DURABLE_SYSTEM_MESSAGE_KINDS.CHECKPOINT_SUMMARY,
+      );
+      const oldCollapse = markDurableSystemMessage(
+        { role: "system", content: "[Collapsed old tool history]" },
+        DURABLE_SYSTEM_MESSAGE_KINDS.COMPACT_TOOL_COLLAPSE,
+      );
+      let messages = [
+        { role: "system", content: "host instructions" },
+        checkpoint,
+        oldCollapse,
+      ];
+
+      for (let turn = 0; turn < 2_000; turn += 1) {
+        messages.push(
+          { role: "user", content: `bounded user ${turn}` },
+          { role: "assistant", content: `bounded response ${turn}` },
+        );
+        ({ messages } = await bounded.compress(messages));
+        expect(messages.length).toBeLessThanOrEqual(6);
+      }
+
+      const compactionKinds = messages
+        .map((message) => getDurableSystemMessageProvenance(message)?.kind)
+        .filter((kind) =>
+          [
+            DURABLE_SYSTEM_MESSAGE_KINDS.COMPACT_SUMMARY,
+            DURABLE_SYSTEM_MESSAGE_KINDS.COMPACT_TOOL_COLLAPSE,
+          ].includes(kind),
+        );
+      expect(compactionKinds).toEqual([
+        DURABLE_SYSTEM_MESSAGE_KINDS.COMPACT_SUMMARY,
+      ]);
+      expect(messages).toContain(checkpoint);
+      expect(getDurableSystemMessageProvenance(checkpoint)).toMatchObject({
+        kind: DURABLE_SYSTEM_MESSAGE_KINDS.CHECKPOINT_SUMMARY,
+      });
+      expect(mockLlm.mock.calls.length).toBeLessThan(1_000);
     });
   });
 
