@@ -168,6 +168,10 @@ describe("CLI release workflow contracts", () => {
     expect(readback).toContain("pull_request:");
     expect(readback).toContain("actions: read");
     expect(readback).toContain(
+      'if [ "${{ github.event_name }}" = "pull_request" ]',
+    );
+    expect(readback).toContain("npm view chainlesschain version");
+    expect(readback).toContain(
       "npm audit signatures --include-attestations --json",
     );
     expect(readback).toContain("verify-npm-release-provenance.mjs");

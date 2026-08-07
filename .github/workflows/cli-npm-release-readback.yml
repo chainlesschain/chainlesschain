@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Published CLI version; empty uses packages/cli/package.json"
+        description: "Published CLI version; empty uses package.json (manual) or npm latest (PR)"
         required: false
         type: string
   pull_request:
@@ -56,7 +56,11 @@ jobs:
           set -euo pipefail
           VERSION="${{ inputs.version }}"
           if [ -z "$VERSION" ]; then
-            VERSION=$(node -p "require('./packages/cli/package.json').version")
+            if [ "${{ github.event_name }}" = "pull_request" ]; then
+              VERSION=$(npm view chainlesschain version)
+            else
+              VERSION=$(node -p "require('./packages/cli/package.json').version")
+            fi
           fi
           TAG="v-npm-${VERSION//./-}"
           TAG_SHA=$(git rev-parse "${TAG}^{commit}")
