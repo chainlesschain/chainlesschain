@@ -1127,6 +1127,13 @@ clean implementation SHA 在 Windows x64 / Node `22.22.2` 上复跑全部 `mcp-c
 
 已生成 content-free [JSON 汇总](cli/evidence/command-lifecycle/0.162.200.json)与[逐命令审阅表](cli/evidence/command-lifecycle/0.162.200.md)。npm 公网时间证明 `0.162.198`（`2026-08-06T07:47:36.861Z`）至 `0.162.200`（`2026-08-07T16:55:32.069Z`）仍只有 `0.162` 一个 minor cycle；同时没有可批准为代表性用户 cohort 的 Collector export，因此汇总明确记录 opt-in/no-export sampling bias、三平台 coverage 缺失、零 accepted metric points 与 25/25 `insufficient-data`。本轮 operational alias 决策为 **25 个全部保留、0 个删除**，manifest 未修改。该快照完成了当前可诚实执行的 telemetry 汇总和 alias 决策，但不冒充第 16.8(5) 项要求的长期观察窗；只有后续 `0.163.x` 第二个 minor cycle、`0.164.0` removal floor 和真实覆盖/样本门同时成立后，才允许重新评估删除。
 
+### 16.12 2026-08-08 `0.163.0` CLI npm 发布闭环与第二观察周期起点
+
+- 轻量 tag `v-npm-0-163-0` 精确指向 release SHA `aed0a3ae5327917ce0490a5decbddd777f66f33b`。同 SHA 的 [CLI CI `31205224902`](https://github.com/chainlesschain/chainlesschain/actions/runs/31205224902) 完成全部 Linux、macOS、Windows 分片和三平台 `verify-cli`，最终为 **49 success / 1 conditional skip**；[CLI Strict Sandbox `31205231874`](https://github.com/chainlesschain/chainlesschain/actions/runs/31205231874) 的 Ubuntu、macOS、Windows 三格全部成功。稳定 release ref 只用于避免 `main` 后续提交触发 `cancel-in-progress`，两个门禁和 tag 均绑定上述同一不可变 SHA。
+- 同一 SHA 的专用 [npm dry-run `31208255735`](https://github.com/chainlesschain/chainlesschain/actions/runs/31208255735) 成功完成完整测试、dry-run 打包和发布前校验；tag 触发的正式 [npm release `31209345410`](https://github.com/chainlesschain/chainlesschain/actions/runs/31209345410) 随后完成 exact-SHA gate、完整测试、immutable tarball、CycloneDX SBOM、npm Trusted Publishing、SLSA provenance、公开 registry 回读与 npmmirror 同步。release gate、immutable tarball 和公网回读 artifact ID 分别为 `9006034102`、`9006517503`、`9006584938`。
+- npm 公网于 `2026-08-07T19:16:58.467Z` 发布 `chainlesschain@0.163.0`；公开 tarball 为 `https://registry.npmjs.org/chainlesschain/-/chainlesschain-0.163.0.tgz`，integrity 为 `sha512-EFi1IZQC1AB+bAz0OOWI+TKY7WQNt1tcyy7mMtARHUlx8ZKZPjMfdEXyYfozdsm/gYVcmU48sv+HDa0ATswsAg==`，registry attestations 声明 `https://slsa.dev/provenance/v1`。因此本版本的 **CLI npm exact-SHA 发布子闭环为 GO**。
+- `0.163.0` 只启动第 16.8(5) 项要求的第二个 minor observation cycle，不会把没有代表性 collector export 的时间跨度解释为真实 adoption evidence。当前 25 个兼容 alias 继续全部保留，删除数仍为 0；只有代表性 cohort、三平台 coverage、抽样与逐命令 invocation/replacement 门同时成立，且版本达到既定 `0.164.0` removal floor 后，才能重新评估删除。因此第 16.8(5) 项继续 **NO-GO**；本次 CLI npm 发布也不替代第 16.8(3)、(4)、(6) 的恶意 Skill/MCP、六目标 native 签名发行或真实长期可靠性证据。
+
 ## 17. 2026-08-06 `0.162.198` 发布闭环与继续执行边界
 
 `0.162.198` 是第 16 节之后的 CLI-only 补丁发布，纳入 P0-1 canonical session workbench、P0-2 rewind/branch 宿主绑定、P0-3 发布可靠性跟进，以及 REPL/headless/provider/TTY 输出背压和跨平台 release fixture 修复。它不改变第 16.8 节产品级未完成项的授权边界。
