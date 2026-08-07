@@ -2,7 +2,7 @@
 
 - 评估日期：2026-08-01
 - ChainlessChain 仓库快照：`eb0bc663b6eb794b1b62ba2bfc7a1267c699d25d`
-- ChainlessChain 版本基线：CLI `0.162.194` release candidate（`0.162.190` / `0.162.191` / `0.162.192` 未发布；`0.162.193` 被非权威通用 workflow 发布，npm `latest` 为 `0.162.193`）、Open VSX `0.37.44`、JetBrains Marketplace `0.4.81`；Microsoft Marketplace 尚未发布
+- ChainlessChain 版本基线：CLI `0.162.194` release candidate（`0.162.190` / `0.162.191` / `0.162.192` 未发布；`0.162.193` 被非权威通用 workflow 发布，npm `latest` 为 `0.162.193`）、Open VSX `0.37.45`、JetBrains Marketplace `0.4.81`；Microsoft Marketplace 尚未发布
 - Claude Code 基线：[CLI `2.1.220`](https://code.claude.com/docs/en/changelog)；官方文档回读日期 2026-08-01
 
 > 本文是一份面向下一阶段决策的“净差距”报告，不重复罗列已经完成的能力。
@@ -734,25 +734,38 @@ release gate 已完成。
   `v-npm-0-162-195`～`v-npm-0-162-197` 保留不可变引用。当前仅保留受保护的 `main` 与自动化需要的
   `chore/auto-docs`；未根据 GitHub 证据推断删除 Gitee 或本地共享工作树分支。
 
-P0-1、P0-2、P0-3 保持完成；Open VSX `0.37.44` 与 JetBrains `0.4.81` 的公开发布子范围为 GO。整体产品
+P0-1、P0-2、P0-3 保持完成；Open VSX `0.37.45` 与 JetBrains `0.4.81` 的公开发布子范围为 GO。整体产品
 release 仍为 NO-GO：Microsoft Marketplace、Desktop/native 签名与 fresh-profile 安装/升级/回滚、ARM64、
-remote/SSH/WSL/devcontainer、多窗口、网络抖动、8 小时 soak、完整冷进程恢复及其余 R4/R5 产品旅程
-尚未关闭。CLI npm 或两家 IDE 渠道成功均不得外推为这些范围已经交付。
+remote/SSH/WSL/devcontainer、网络抖动、8 小时 soak、完整冷进程恢复及其余 R4/R5 产品旅程尚未关闭。
+CLI npm 或两家 IDE 渠道成功均不得外推为这些范围已经交付。
 
-### 2026-08-07 VS Code 多窗口真实宿主候选
+### 2026-08-07 VS Code 多窗口真实宿主与 Open VSX `0.37.45` 发布
 
-- VS Code `0.37.45` 候选把已安装不可变 VSIX 的初始真实宿主旅程扩展为同一干净 profile 下的两个
-  实际 workspace window。主窗口保留有序双根，伴随窗口使用独立单根；门禁必须同时观测到两份精确
-  workspace identity 的 owner-only Bridge lock，并证明 Extension Host PID、端口和 256-bit token 均不同、
-  两个 loopback 端口同时可连接。公开 evidence 只保留 PID、端口、root count 与 workspace digest，
-  不写入 token 或工作区路径。
-- 本地 Windows 已使用打包 VSIX 完成 host-API 两进程重启旅程和完整 real-DOM/Webview/Workbench/重启
-  旅程；后者包含 100 次 `needs-input-visible` 采样且 P95 低于 2 秒。本地结果只是补充证据，不能替代
-  最终提交在 GitHub Actions 上的 stable + minimum `1.85.2` × Windows/Linux/macOS 六格门禁。
-- 只有 exact release SHA 的六格门禁、不可变候选校验和 tag workflow 全绿并完成 Open VSX 公开回读后，
-  才能关闭 P0-4 的 VS Code 多窗口子范围。Remote/SSH/WSL/devcontainer、网络抖动、ARM64、fresh-profile
-  安装/升级/回滚和 8 小时 soak 仍保持未完成；不得把多窗口子门外推为整个 P0-4 或 product release GO。
-- 本轮按发布决策只准备 Open VSX；Microsoft Marketplace 不发布，仍保留为 R0/Q4b 的明确缺口。
+- PR [#102](https://github.com/chainlesschain/chainlesschain/pull/102) 的 final head
+  `a7db8c2df2ac6f3b5899809fc08dcd3092f23f78` 关闭 VS Code 多窗口真实宿主子门。IDE Extensions
+  [31201770460](https://github.com/chainlesschain/chainlesschain/actions/runs/31201770460) attempt 2
+  整体成功：stable `1.132.0` 与 minimum `1.85.2` × Windows、macOS、Linux 六格均完成
+  initial/restart journey。Windows 验证同一真实宿主实例的多个窗口；macOS/Linux 由外层 runner 显式管理
+  第二个隔离真实 VS Code 宿主。不可变 evidence 证明两个宿主具有不同 PID、CDP 端口和受认证 token，且在
+  断言窗口内同时监听。提交前 VS Code unit 为 79/79。attempt 1 的 macOS Node 下载 DNS 失败与
+  JetBrains Windows 2025.2 owner ACL 准备超时均发生在产品旅程之前；failed-job rerun 后完整矩阵成功，
+  不把首次基础设施红灯抹除。
+- PR 以 squash commit `aed0a3ae5327917ce0490a5decbddd777f66f33b` 合并。该 main SHA 的发布前
+  IDE Extensions [31204896161](https://github.com/chainlesschain/chainlesschain/actions/runs/31204896161)
+  整体成功，再次覆盖 VS Code 六格、JetBrains `2024.2`/`2025.2` × 三 OS、不可变 VSIX、插件 build 与
+  compatibility；因此没有使用 PR 旧 SHA 或局部矩阵授权发布。
+- 轻量 tag `ide-vscode-v0.37.45` 精确指向上述 merge SHA；tag workflow
+  [31207738786](https://github.com/chainlesschain/chainlesschain/actions/runs/31207738786) 整体成功。
+  Open VSX credential preflight、publish 和公开 listing verify 均成功；公开 API 回读为 latest
+  `0.37.45`、listed、downloadable。registry VSIX 与 workflow 不可变候选归档 SHA-256 均为
+  `0b6347c1d16a4a9fe3b1f03cc3ad3c71f99310348088a357194e08aed9ee3e5a`，规范化内容 SHA-256 为
+  `130531b8e33650508a44e098cd0107f79a88ee585c6c58fdc068a70ea4f38dc1`。Microsoft Marketplace
+  credential preflight、publish 与 exact VSIX verify 全部为 `skipped`；本轮未发布 Microsoft
+  Marketplace。VS Code tag 下 JetBrains build/publish/verify 也全部为 `skipped`，JetBrains 公开版本保持
+  `0.4.81`。
+- 本证据只新增关闭 **VS Code 多窗口** 子范围，并将 Open VSX 公开版本前进到 `0.37.45`。它不关闭
+  Remote/SSH/WSL/devcontainer、网络抖动、fresh-profile 安装/升级/回滚、ARM64、8 小时 soak 或完整
+  冷进程恢复，也不授权 Microsoft Marketplace 发布。
 
 ### 2026-08-02 恢复安全检查点
 
@@ -863,4 +876,12 @@ remote/SSH/WSL/devcontainer、多窗口、网络抖动、8 小时 soak、完整�
 - 已结算候选 `fb39e2cbe6` 完成最终 host/CI 取证：IDE Extensions `30965289911` 整体 success；Windows job `92177910508`、macOS job `92177910568` 和 Linux/package job `92178949946` 均让 stable + minimum 完整通过，JetBrains 六格及 build/compatibility 也成功。macOS `1.131.0` 与 `1.85.2` 的 evidence 均为 `result=passed`、`evidenceComplete=true`、15 个 artifact。CLI CI `30965290031` 与 CLI Strict Sandbox `30965296663` 同 SHA 成功，staleness gate `30965289905` 成功。
 - 在没有形成新的发布授权时，GitHub tag `v-npm-0-162-194` 随后被创建并固定指向 `fb39e2cbe6`。正式 npm workflow `30966796114` 的 `exact-sha-gate` 成功，但 `test` job 在 Agent SDK build 中因 `packages/agent-sdk/node_modules/.bin/tsc` 不存在而失败；`dry-run`、`package-cli` 和 `publish` 全部跳过。npm registry 回读仍为 `0.162.193` / `gitHead=e8e7ba274b487ed491c04ec3359841a0e545debb`。失败 tag 不移动、不删除、不重跑 publish；若修复后继续发布，版本与 tag 身份必须前进。
 
-P0-4/Q4a 的 required local-host gate 已由 `fb39e2cbe6` 关闭；CLI 后续前进到 `0.162.197`，发布 SHA `a03ad1b548` 的 required CLI/IDE 门成功，`v-npm-0-162-197` 已发布到 npm。原 workflow `30979565206` 在 npm 接受上传后因注册表即时回读传播延迟红灯；不得把红灯抹成成功，但 npm 公开状态已由 PR `#86` 的只读 run `30983536627` 独立闭合：npm 11 签名/SLSA、精确 tag/SHA/workflow、原 run artifact、manifest 双摘要与公开 tarball 逐字节一致均通过。当前 **CLI npm 子范围为 GO**；VS Code 多根子门随后由 PR `#99` 关闭。整体路线图仍为 **product release NO-GO**，因为 Microsoft Marketplace `0.37.41` exact-version/digest、Desktop/native 签名与 fresh-profile 安装/升级/回滚、ARM64、remote/SSH/WSL/devcontainer、多窗口、网络抖动、8 小时 soak、完整冷进程恢复和 R1/R2/R4/R5 产品旅程仍未关闭。不得把 CLI npm 或 VS Code 多根子门成功外推为这些范围已经交付。
+P0-4/Q4a 的 required local-host gate 已由 `fb39e2cbe6` 关闭；CLI 后续前进到 `0.162.197`，发布 SHA
+`a03ad1b548` 的 required CLI/IDE 门成功，`v-npm-0-162-197` 已发布到 npm。原 workflow
+`30979565206` 在 npm 接受上传后因注册表即时回读传播延迟红灯；不得把红灯抹成成功，但 npm 公开状态已由
+PR `#86` 的只读 run `30983536627` 独立闭合：npm 11 签名/SLSA、精确 tag/SHA/workflow、原 run
+artifact、manifest 双摘要与公开 tarball 逐字节一致均通过。当前 **CLI npm 子范围为 GO**；VS Code
+多根与多窗口子门分别由 PR `#99`、PR `#102` 关闭，Open VSX 已发布并精确回读 `0.37.45`。整体路线图
+仍为 **product release NO-GO**，因为 Microsoft Marketplace、Desktop/native 签名与 fresh-profile
+安装/升级/回滚、ARM64、remote/SSH/WSL/devcontainer、网络抖动、8 小时 soak、完整冷进程恢复和
+R4/R5 产品旅程仍未关闭。不得把 CLI npm、Open VSX 或 VS Code 本地宿主子门成功外推为这些范围已经交付。
