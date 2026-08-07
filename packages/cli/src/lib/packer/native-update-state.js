@@ -6,6 +6,7 @@ import { spawn } from "node:child_process";
 import {
   sameFileStatIdentity,
   samePathHandleFileIdentity,
+  samePathHandleStableFileIdentity,
   withTrustedFileParentSync,
 } from "../secure-file-identity.js";
 
@@ -318,6 +319,7 @@ function readStableRegularAtPath(filePath, parentDevice, options) {
     return {
       bytes: capture ? Buffer.concat(chunks) : null,
       sha256: hash.digest("hex"),
+      parentDevice,
       stat: after,
     };
   } finally {
@@ -561,7 +563,7 @@ function lineageMatchesGeneration(
 function acquireGenerationRecoveryLock(lockPath, platform) {
   const current = lstatOrNull(lockPath);
   if (current) {
-    const { bytes, stat } = readStableRegular(lockPath, {
+    const { bytes, parentDevice, stat } = readStableRegular(lockPath, {
       capture: true,
       maxBytes: 128,
       label: "stale native update lock",
@@ -593,7 +595,7 @@ function acquireGenerationRecoveryLock(lockPath, platform) {
     const orphanPath = `${lockPath}.orphaned-${crypto.randomUUID()}`;
     fs.renameSync(lockPath, orphanPath);
     const orphan = fs.lstatSync(orphanPath, { bigint: true });
-    if (orphan.dev !== stat.dev || orphan.ino !== stat.ino) {
+    if (!samePathHandleStableFileIdentity(orphan, stat, parentDevice)) {
       throw new NativeUpdateStateError(
         "stale native update lock changed during quarantine",
         "RECOVERY_LOCK_CHANGED",
