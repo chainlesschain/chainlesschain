@@ -7,10 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — cc CLI 0.163.0: macOS PTY launch and native host validation
+
+> `chainlesschain` **0.162.200 → 0.163.0** (release candidate,
+> 2026-08-08). CLI-only release metadata;
+> `@chainlesschain/personal-data-hub` remains **0.4.57** and
+> `@chainlesschain/agent-sdk` remains **0.1.7**.
+
+- **macOS PTY installation repair**: `node-pty@1.1.0` publishes its macOS
+  `spawn-helper` prebuilds without executable bits, which made fresh ARM64 and
+  Intel installs fail with `posix_spawnp failed`. The CLI postinstall now
+  repairs and verifies that narrowly resolved regular file, rejects symlinked
+  helpers, and the reliability workflow fails early if the executable bit is
+  missing before running a real PTY scenario.
+- **Real native target hosts**: the standalone native release matrix now maps
+  Linux, Windows, and macOS x64/ARM64 targets to six matching GitHub-hosted
+  runners and requires each artifact to execute on its own architecture. The
+  previous cross-target smoke-test skip is removed. This improves native
+  evidence readiness but does not claim signing, notarization, or public native
+  distribution is complete.
+- **Second command-observation cycle starts**: `0.163.0` begins the second minor
+  release cycle for lifecycle telemetry. All 25 deprecated compatibility
+  aliases remain retained because representative opt-in collector coverage,
+  per-command sample floors, and the `0.164.0` removal floor are not yet met.
+- **Pre-release evidence**: implementation SHA `38cd849ed16f` passed
+  [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/31202334570)
+  on Ubuntu, Windows, and macOS. This final version commit must independently
+  pass exact-SHA `CLI CI` and `CLI Strict Sandbox` before publication.
+
 ### Fixed — cc CLI 0.162.200: release-gate isolation and carried reliability fixes
 
-> `chainlesschain` **0.162.198 → 0.162.200** (release candidate,
-> 2026-08-07; `0.162.199` failed before npm upload and its tag remains
+> `chainlesschain` **0.162.198 → 0.162.200** (published,
+> 2026-08-07 from exact SHA `dbb06e16fef0`.
+> `0.162.199` failed before npm upload and its tag remains
 > immutable). CLI-only release metadata; `@chainlesschain/personal-data-hub`
 > remains **0.4.57** and `@chainlesschain/agent-sdk` remains **0.1.7**.
 

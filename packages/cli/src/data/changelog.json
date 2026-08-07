@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.163.0",
+      "cliVersions": ["0.162.200", "0.163.0"],
+      "date": "2026-08-08",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed — cc CLI 0.163.0: macOS PTY launch and native host validation",
+          "body": "> `chainlesschain` **0.162.200 → 0.163.0** (release candidate,\n> 2026-08-08). CLI-only release metadata;\n> `@chainlesschain/personal-data-hub` remains **0.4.57** and\n> `@chainlesschain/agent-sdk` remains **0.1.7**.\n\n- **macOS PTY installation repair**: `node-pty@1.1.0` publishes its macOS\n  `spawn-helper` prebuilds without executable bits, which made fresh ARM64 and\n  Intel installs fail with `posix_spawnp failed`. The CLI postinstall now\n  repairs and verifies that narrowly resolved regular file, rejects symlinked\n  helpers, and the reliability workflow fails early if the executable bit is\n  missing before running a real PTY scenario.\n- **Real native target hosts**: the standalone native release matrix now maps\n  Linux, Windows, and macOS x64/ARM64 targets to six matching GitHub-hosted\n  runners and requires each artifact to execute on its own architecture. The\n  previous cross-target smoke-test skip is removed. This improves native\n  evidence readiness but does not claim signing, notarization, or public native\n  distribution is complete.\n- **Second command-observation cycle starts**: `0.163.0` begins the second minor\n  release cycle for lifecycle telemetry. All 25 deprecated compatibility\n  aliases remain retained because representative opt-in collector coverage,\n  per-command sample floors, and the `0.164.0` removal floor are not yet met.\n- **Pre-release evidence**: implementation SHA `38cd849ed16f` passed\n  [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/31202334570)\n  on Ubuntu, Windows, and macOS. This final version commit must independently\n  pass exact-SHA `CLI CI` and `CLI Strict Sandbox` before publication."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.162.200",
       "cliVersions": ["0.162.198", "0.162.200"],
       "date": "2026-08-07",
@@ -10,7 +23,7 @@
       "sections": [
         {
           "heading": "Fixed — cc CLI 0.162.200: release-gate isolation and carried reliability fixes",
-          "body": "> `chainlesschain` **0.162.198 → 0.162.200** (release candidate,\n> 2026-08-07; `0.162.199` failed before npm upload and its tag remains\n> immutable). CLI-only release metadata; `@chainlesschain/personal-data-hub`\n> remains **0.4.57** and `@chainlesschain/agent-sdk` remains **0.1.7**.\n\n- **Carries the complete 0.162.199 candidate**: command lifecycle telemetry and\n  alias observation policy, canonical session authority, fixed MCP package\n  capsules, native update recovery, and portable reliability gates are all\n  included because `0.162.199` never reached npm.\n- **Release-gate isolation**: the Agent SDK real-CLI E2E now places its\n  rollback-resistant security anchor beside, rather than inside,\n  `CHAINLESSCHAIN_HOME`. The fixture therefore matches the production\n  fail-closed layout after redirecting `HOME` and no longer hides the `agent`\n  command behind compatibility registration.\n- **Pre-release evidence**: implementation SHA `bf6924013d1c` passed the full\n  [npm release dry-run](https://github.com/chainlesschain/chainlesschain/actions/runs/31189959290),\n  including core packages, Agent SDK real-CLI E2E, Personal Data Hub, Web Panel,\n  the complete CLI suite, and credential-free npm package validation. The final\n  `0.162.200` version commit must pass the exact-SHA CLI CI and CLI Strict\n  Sandbox matrices before tag `v-npm-0-162-200` is created."
+          "body": "> `chainlesschain` **0.162.198 → 0.162.200** (published,\n> 2026-08-07 from exact SHA `dbb06e16fef0`.\n> `0.162.199` failed before npm upload and its tag remains\n> immutable). CLI-only release metadata; `@chainlesschain/personal-data-hub`\n> remains **0.4.57** and `@chainlesschain/agent-sdk` remains **0.1.7**.\n\n- **Carries the complete 0.162.199 candidate**: command lifecycle telemetry and\n  alias observation policy, canonical session authority, fixed MCP package\n  capsules, native update recovery, and portable reliability gates are all\n  included because `0.162.199` never reached npm.\n- **Release-gate isolation**: the Agent SDK real-CLI E2E now places its\n  rollback-resistant security anchor beside, rather than inside,\n  `CHAINLESSCHAIN_HOME`. The fixture therefore matches the production\n  fail-closed layout after redirecting `HOME` and no longer hides the `agent`\n  command behind compatibility registration.\n- **Pre-release evidence**: implementation SHA `bf6924013d1c` passed the full\n  [npm release dry-run](https://github.com/chainlesschain/chainlesschain/actions/runs/31189959290),\n  including core packages, Agent SDK real-CLI E2E, Personal Data Hub, Web Panel,\n  the complete CLI suite, and credential-free npm package validation. The final\n  `0.162.200` version commit must pass the exact-SHA CLI CI and CLI Strict\n  Sandbox matrices before tag `v-npm-0-162-200` is created."
         }
       ]
     },
