@@ -151,6 +151,42 @@ describe("jsonl-session-store", () => {
   });
 
   describe("disk persistence commit state", () => {
+    it("accepts a legacy physical witness and upgrades it on append", () => {
+      const id = startSession("disk-legacy-witness", { title: "disk" });
+      const metaFile = join(sessionsDir, `${id}.meta.json`);
+      const meta = JSON.parse(readFileSync(metaFile, "utf8"));
+      const legacyTranscript = { ...meta.transcript };
+      for (const field of [
+        "devExact",
+        "inoExact",
+        "sizeExact",
+        "mtimeNs",
+        "ctimeNs",
+      ]) {
+        delete legacyTranscript[field];
+      }
+      writeFileSync(
+        metaFile,
+        `${JSON.stringify({ ...meta, transcript: legacyTranscript })}\n`,
+        "utf8",
+      );
+
+      expect(readVerifiedEvents(id)).toHaveLength(1);
+      appendUserMessage(id, "upgrade witness");
+
+      const upgradedMeta = JSON.parse(readFileSync(metaFile, "utf8"));
+      expect(upgradedMeta.transcript).toMatchObject({
+        dev: legacyTranscript.dev,
+        ino: legacyTranscript.ino,
+        devExact: expect.any(String),
+        inoExact: expect.any(String),
+        sizeExact: expect.any(String),
+        mtimeNs: expect.any(String),
+        ctimeNs: expect.any(String),
+      });
+      expect(readVerifiedEvents(id)).toHaveLength(2);
+    });
+
     it("reports EROFS before append as not committed without publishing bytes", () => {
       const id = startSession("disk-erofs", { title: "disk" });
       const previous = process.env.CC_SESSION_SCALE_FAULT_INJECTION;

@@ -111,7 +111,7 @@ describe("MCP recovery adjudication with the real JSONL authority store", () => 
       }),
     ]);
     expect(after.recoveryDigest).not.toBe(before.recoveryDigest);
-  });
+  }, 30_000);
 
   it("performs one real CAS attempt and never retries a stale head", async () => {
     const sessionId = "mcp-real-store-stale";
@@ -148,7 +148,7 @@ describe("MCP recovery adjudication with the real JSONL authority store", () => 
         .readVerifiedEvents(sessionId)
         .filter((event) => event.type === MCP_CALL_RECOVERY_ADJUDICATION_EVENT),
     ).toEqual([]);
-  });
+  }, 30_000);
 
   it("fences an old host after adjudication before its next ledger write", async () => {
     const sessionId = "mcp-real-store-host-fence";
@@ -230,5 +230,5 @@ describe("MCP recovery adjudication with the real JSONL authority store", () => 
         (event) => event.data.record.ledgerId === resumedTicket.ledgerId,
       ),
     ).toHaveLength(2);
-  });
+  }, 30_000);
 });

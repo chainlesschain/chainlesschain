@@ -533,17 +533,35 @@ export function sessionPath(sessionId) {
 }
 
 function physicalTranscriptStateFromStats(stats) {
+  const exact = (value) =>
+    typeof value === "bigint" ? String(value) : undefined;
+  const legacyNumber = (value) => Number(value);
+  const timeMs = (name) => {
+    const nanoseconds = stats[`${name}Ns`];
+    return typeof nanoseconds === "bigint"
+      ? Number(nanoseconds / 1_000_000n) +
+          Number(nanoseconds % 1_000_000n) / 1_000_000
+      : Number(stats[`${name}Ms`]);
+  };
   return Object.freeze({
-    dev: String(stats.dev),
-    ino: String(stats.ino),
-    size: Number(stats.size),
-    mtimeMs: Number(stats.mtimeMs),
-    ctimeMs: Number(stats.ctimeMs),
+    // Keep the rounded legacy fields so metadata produced by older releases
+    // remains readable. BigIntStats supplies the exact witness used by new
+    // writers; this avoids Node 22.12 Windows fstat/lstat precision drift.
+    dev: String(legacyNumber(stats.dev)),
+    ino: String(legacyNumber(stats.ino)),
+    size: legacyNumber(stats.size),
+    mtimeMs: timeMs("mtime"),
+    ctimeMs: timeMs("ctime"),
+    devExact: exact(stats.dev),
+    inoExact: exact(stats.ino),
+    sizeExact: exact(stats.size),
+    mtimeNs: exact(stats.mtimeNs),
+    ctimeNs: exact(stats.ctimeNs),
   });
 }
 
 function readPhysicalTranscriptState(filePath) {
-  const stats = lstatSync(filePath);
+  const stats = lstatSync(filePath, { bigint: true });
   if (stats.isSymbolicLink() || !stats.isFile()) {
     const error = new Error("Session transcript path is not a regular file");
     error.code = "SESSION_TRANSCRIPT_IDENTITY_CHANGED";
@@ -555,13 +573,21 @@ function readPhysicalTranscriptState(filePath) {
 
 function samePhysicalTranscriptState(left, right, { content = true } = {}) {
   if (!left || !right) return left === right;
+  const sameField = (exactField, legacyField, { numeric = false } = {}) => {
+    if (left[exactField] != null && right[exactField] != null) {
+      return String(left[exactField]) === String(right[exactField]);
+    }
+    return numeric
+      ? Number(left[legacyField]) === Number(right[legacyField])
+      : String(left[legacyField]) === String(right[legacyField]);
+  };
   return (
-    String(left.dev) === String(right.dev) &&
-    String(left.ino) === String(right.ino) &&
+    sameField("devExact", "dev") &&
+    sameField("inoExact", "ino") &&
     (!content ||
-      (Number(left.size) === Number(right.size) &&
-        Number(left.mtimeMs) === Number(right.mtimeMs) &&
-        Number(left.ctimeMs) === Number(right.ctimeMs)))
+      (sameField("sizeExact", "size", { numeric: true }) &&
+        sameField("mtimeNs", "mtimeMs", { numeric: true }) &&
+        sameField("ctimeNs", "ctimeMs", { numeric: true })))
   );
 }
 
@@ -845,7 +871,9 @@ function appendTranscriptEvent(
       flags |= fsConstants.O_NOFOLLOW;
     }
     fd = openSync(filePath, flags, 0o600);
-    const openedState = physicalTranscriptStateFromStats(fstatSync(fd));
+    const openedState = physicalTranscriptStateFromStats(
+      fstatSync(fd, { bigint: true }),
+    );
     if (
       expectedState !== null &&
       !samePhysicalTranscriptState(expectedState, openedState)
@@ -867,7 +895,9 @@ function appendTranscriptEvent(
     }
     appendCompleted = true;
     runSessionScaleFaultHook("afterTranscriptAppend", payload);
-    const descriptorState = physicalTranscriptStateFromStats(fstatSync(fd));
+    const descriptorState = physicalTranscriptStateFromStats(
+      fstatSync(fd, { bigint: true }),
+    );
     const pathState = readPhysicalTranscriptState(filePath);
     if (
       !samePhysicalTranscriptState(descriptorState, pathState, {
@@ -2722,7 +2752,9 @@ export function readVerifiedTranscriptBytes(sessionId) {
       }
       const fd = openSync(filePath, flags);
       try {
-        const before = physicalTranscriptStateFromStats(fstatSync(fd));
+        const before = physicalTranscriptStateFromStats(
+          fstatSync(fd, { bigint: true }),
+        );
         if (
           !samePhysicalTranscriptState(
             before,
@@ -2735,7 +2767,9 @@ export function readVerifiedTranscriptBytes(sessionId) {
           );
         }
         const text = readFileSync(fd, "utf8");
-        const after = physicalTranscriptStateFromStats(fstatSync(fd));
+        const after = physicalTranscriptStateFromStats(
+          fstatSync(fd, { bigint: true }),
+        );
         const published = readPhysicalTranscriptState(filePath);
         if (
           !samePhysicalTranscriptState(before, after) ||

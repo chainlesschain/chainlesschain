@@ -74,6 +74,43 @@ describe("rebuildable session listing index", () => {
     });
   });
 
+  it("persists exact transcript identity while retaining legacy fields", () => {
+    const dir = temporaryDirectory();
+    recordSessionEvent(
+      dir,
+      "exact-identity",
+      { type: "session_start", timestamp: 100, data: { title: "Exact" } },
+      "h1",
+      {
+        transcriptState: {
+          dev: "42",
+          ino: "9007199254740992",
+          size: 128,
+          mtimeMs: 100.25,
+          ctimeMs: 99.5,
+          devExact: "42",
+          inoExact: "9007199254740993",
+          sizeExact: "128",
+          mtimeNs: "100250000",
+          ctimeNs: "99500000",
+        },
+      },
+    );
+
+    expect(readSessionMeta(dir, "exact-identity")?.transcript).toEqual({
+      dev: "42",
+      ino: "9007199254740992",
+      size: 128,
+      mtimeMs: 100.25,
+      ctimeMs: 99.5,
+      devExact: "42",
+      inoExact: "9007199254740993",
+      sizeExact: "128",
+      mtimeNs: "100250000",
+      ctimeNs: "99500000",
+    });
+  });
+
   it("honors tombstones, live-file checks, limits, and malformed journal tails", () => {
     const dir = temporaryDirectory();
     for (let i = 1; i <= 3; i += 1) {

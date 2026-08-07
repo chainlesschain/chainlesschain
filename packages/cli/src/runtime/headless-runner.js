@@ -843,7 +843,6 @@ async function runAgentHeadlessInWorkspace(
       (hasInjectedSessionStore ? () => true : jsonlAppendEvent),
     appendAuthorityEvent:
       deps.appendAuthorityEvent ||
-      deps.appendEvent ||
       (hasInjectedSessionStore
         ? unavailableAuthorityCapability("appendAuthorityEvent")
         : jsonlAppendAuthorityEvent),

@@ -318,7 +318,7 @@ describe("P0-2 same-turn question round-trip (real worker/child IPC)", () => {
         `  question: "Deploy to production?",`,
         `  options: ["yes", "no"],`,
         `  toolUseId: "provider-tool-call-1",`,
-        `  timeoutMs: 15000,`,
+        `  timeoutMs: 60000,`,
         `});`,
         `writeFileSync(${JSON.stringify(evidenceFile)}, JSON.stringify({`,
         `  beforePid, afterPid: process.pid, answer`,

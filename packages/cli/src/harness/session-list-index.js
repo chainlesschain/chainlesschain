@@ -296,6 +296,21 @@ export function recordSessionEvent(
         size: Number(transcriptState.size),
         mtimeMs: Number(transcriptState.mtimeMs),
         ctimeMs: Number(transcriptState.ctimeMs),
+        ...(transcriptState.devExact != null
+          ? { devExact: String(transcriptState.devExact) }
+          : {}),
+        ...(transcriptState.inoExact != null
+          ? { inoExact: String(transcriptState.inoExact) }
+          : {}),
+        ...(transcriptState.sizeExact != null
+          ? { sizeExact: String(transcriptState.sizeExact) }
+          : {}),
+        ...(transcriptState.mtimeNs != null
+          ? { mtimeNs: String(transcriptState.mtimeNs) }
+          : {}),
+        ...(transcriptState.ctimeNs != null
+          ? { ctimeNs: String(transcriptState.ctimeNs) }
+          : {}),
       }
     : null;
   writeMetaSnapshot(dir, next);

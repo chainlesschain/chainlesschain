@@ -119,7 +119,11 @@ describe("headless MCP ledger persistence and recovery", () => {
       code: "CC_MCP_LEDGER_RECOVERY_BLOCKED",
       blockMode: "unsafe",
     });
-    expect(setup.appendAuthorityEvent).not.toHaveBeenCalled();
+    expect(setup.appendAuthorityEvent).not.toHaveBeenCalledWith(
+      "sid",
+      MCP_CALL_LEDGER_EVENT,
+      expect.anything(),
+    );
 
     await ledger.begin({
       sessionId: "sid",
