@@ -7,11 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — cc CLI 0.162.200: release-gate isolation and carried reliability fixes
+
+> `chainlesschain` **0.162.198 → 0.162.200** (release candidate,
+> 2026-08-07; `0.162.199` failed before npm upload and its tag remains
+> immutable). CLI-only release metadata; `@chainlesschain/personal-data-hub`
+> remains **0.4.57** and `@chainlesschain/agent-sdk` remains **0.1.7**.
+
+- **Carries the complete 0.162.199 candidate**: command lifecycle telemetry and
+  alias observation policy, canonical session authority, fixed MCP package
+  capsules, native update recovery, and portable reliability gates are all
+  included because `0.162.199` never reached npm.
+- **Release-gate isolation**: the Agent SDK real-CLI E2E now places its
+  rollback-resistant security anchor beside, rather than inside,
+  `CHAINLESSCHAIN_HOME`. The fixture therefore matches the production
+  fail-closed layout after redirecting `HOME` and no longer hides the `agent`
+  command behind compatibility registration.
+- **Pre-release evidence**: implementation SHA `bf6924013d1c` passed the full
+  [npm release dry-run](https://github.com/chainlesschain/chainlesschain/actions/runs/31189959290),
+  including core packages, Agent SDK real-CLI E2E, Personal Data Hub, Web Panel,
+  the complete CLI suite, and credential-free npm package validation. The final
+  `0.162.200` version commit must pass the exact-SHA CLI CI and CLI Strict
+  Sandbox matrices before tag `v-npm-0-162-200` is created.
+
 ### Fixed — cc CLI 0.162.199: session authority, MCP capsules, and recovery reliability
 
-> `chainlesschain` **0.162.198 → 0.162.199** (release candidate,
-> 2026-08-07). CLI-only release metadata; `@chainlesschain/personal-data-hub`
-> remains **0.4.57** and `@chainlesschain/agent-sdk` remains **0.1.7**.
+> `chainlesschain` **0.162.198 → 0.162.199** (not published, 2026-08-07;
+> the release workflow failed before package creation or npm upload and tag
+> `v-npm-0-162-199` remains immutable). CLI-only release metadata;
+> `@chainlesschain/personal-data-hub` remains **0.4.57** and
+> `@chainlesschain/agent-sdk` remains **0.1.7**.
 
 - **Command lifecycle telemetry**: manifest-driven lifecycle metadata now
   records legacy and replacement routes, aggregates usage without changing
@@ -38,8 +63,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/31181328955),
   [CLI Background Interaction E2E](https://github.com/chainlesschain/chainlesschain/actions/runs/31181258842),
   and [CLI Session Host Consistency](https://github.com/chainlesschain/chainlesschain/actions/runs/31181258424)
-  on Ubuntu, Windows, and macOS. The final `0.162.199` version commit must pass
-  the exact-SHA release gates again before tag `v-npm-0-162-199` is created.
+  on Ubuntu, Windows, and macOS. Final SHA `23bd2e6e5758` also passed the
+  exact-SHA release gates, but the
+  [dedicated npm release](https://github.com/chainlesschain/chainlesschain/actions/runs/31187599603)
+  stopped before package creation because its Agent SDK fixture placed the
+  security anchor inside the redirected CLI home.
 
 ### Fixed — cc CLI 0.162.198: interactive streaming and release portability
 
