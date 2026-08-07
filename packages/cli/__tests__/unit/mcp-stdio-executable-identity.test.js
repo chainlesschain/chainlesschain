@@ -351,6 +351,45 @@ describe("MCP stdio executable byte identity", () => {
     );
   });
 
+  it("strips ambient runtime injection and rejects configured injection", () => {
+    const invocation = approvedInvocation("environment", {
+      command: process.execPath,
+      args: [script],
+      transport: "stdio",
+    });
+    const prepared = prepareMcpStdioExecutableIdentity({
+      serverName: "environment",
+      ...invocation,
+      retrust: true,
+      storePath,
+      env: {
+        PATH: process.env.PATH || "",
+        NODE_OPTIONS: "--require ambient-evil.js",
+        LD_PRELOAD: "/tmp/ambient-evil.so",
+      },
+    });
+    expect(prepared.env).toEqual({ PATH: process.env.PATH || "" });
+
+    const configured = approvedInvocation("configured-environment", {
+      command: process.execPath,
+      args: [script],
+      env: { NODE_OPTIONS: "--require configured-evil.js" },
+      transport: "stdio",
+    });
+    expect(() =>
+      prepareMcpStdioExecutableIdentity({
+        serverName: "configured-environment",
+        ...configured,
+        retrust: true,
+        storePath,
+      }),
+    ).toThrow(
+      expect.objectContaining({
+        code: "CC_MCP_STDIO_EXECUTABLE_UNATTESTED",
+      }),
+    );
+  });
+
   it("lets the Broker consume the private token and strips it from native spawn", () => {
     const invocation = approvedInvocation("broker", {
       command: process.execPath,

@@ -19,6 +19,9 @@ on:
       - "packages/cli/src/lib/mcp-effect-contract.js"
       - "packages/cli/src/lib/mcp-ledger-recovery-admission.js"
       - "packages/cli/src/lib/mcp-stdio-execution-authority.js"
+      - "packages/cli/src/lib/mcp-stdio-environment.js"
+      - "packages/cli/src/lib/mcp-stdio-executable-identity.js"
+      - "packages/cli/src/lib/mcp-stdio-package-materialization.js"
       - "packages/cli/src/lib/plan-mode.js"
       - "packages/cli/src/lib/plan-persistence.js"
       - "packages/cli/src/lib/todo-manager.js"
@@ -31,6 +34,7 @@ on:
       - "packages/cli/__tests__/unit/agent-core-mcp-ledger.test.js"
       - "packages/cli/__tests__/unit/agent-core-mcp-scheduler.test.js"
       - "packages/cli/__tests__/unit/ide-roadmap-mcp-security-gate.test.js"
+      - "packages/cli/__tests__/unit/mcp-stdio-package-materialization.test.js"
       - "packages/cli/__tests__/unit/ide-roadmap-safety-gate.test.js"
   push:
     branches: [main]
@@ -51,6 +55,9 @@ on:
       - "packages/cli/src/lib/mcp-effect-contract.js"
       - "packages/cli/src/lib/mcp-ledger-recovery-admission.js"
       - "packages/cli/src/lib/mcp-stdio-execution-authority.js"
+      - "packages/cli/src/lib/mcp-stdio-environment.js"
+      - "packages/cli/src/lib/mcp-stdio-executable-identity.js"
+      - "packages/cli/src/lib/mcp-stdio-package-materialization.js"
       - "packages/cli/src/lib/plan-mode.js"
       - "packages/cli/src/lib/plan-persistence.js"
       - "packages/cli/src/lib/todo-manager.js"
@@ -63,6 +70,7 @@ on:
       - "packages/cli/__tests__/unit/agent-core-mcp-ledger.test.js"
       - "packages/cli/__tests__/unit/agent-core-mcp-scheduler.test.js"
       - "packages/cli/__tests__/unit/ide-roadmap-mcp-security-gate.test.js"
+      - "packages/cli/__tests__/unit/mcp-stdio-package-materialization.test.js"
   schedule:
     - cron: "17 2 * * 4"
   workflow_dispatch:

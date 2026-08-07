@@ -44,8 +44,14 @@ import {
   MCP_STDIO_LOCAL_CODE_TRUST_REQUIRED_CODE,
   issueMcpStdioExecutionAuthority,
   materializeApprovedMcpStdioInvocation,
+  resolveMcpStdioExecutionApproval,
 } from "../lib/mcp-stdio-execution-authority.js";
 import { prepareMcpStdioExecutableIdentity } from "../lib/mcp-stdio-executable-identity.js";
+import {
+  materializeMcpStdioNpmPackage,
+  parseExactNpmPackageSpec,
+} from "../lib/mcp-stdio-package-materialization.js";
+import { executionBroker } from "../lib/process-execution-broker/index.js";
 import {
   CATALOG as REGISTRY_CATALOG,
   CATEGORIES as REGISTRY_CATEGORIES,
@@ -804,6 +810,116 @@ export function registerMcpCommand(program) {
       } catch (err) {
         logger.error(`Failed: ${err.message}`);
         process.exit(1);
+      }
+    });
+
+  mcp
+    .command("materialize-package <name>")
+    .description(
+      "Replace one exact npx package with a content-addressed, transitive-integrity-locked local generation",
+    )
+    .requiredOption(
+      "--package <name@version>",
+      "Exact npm registry package version to install (ranges and tags are rejected)",
+    )
+    .option(
+      "--bin <name>",
+      "Select one exported bin when the package has several",
+    )
+    .option(
+      "--scope <scope>",
+      `Configuration scope: ${MCP_CONFIG_SCOPES.join(" | ")}`,
+    )
+    .option(
+      "--json",
+      "Output the materialized generation and closure identity as JSON",
+    )
+    .action(async (name, options) => {
+      try {
+        const exact = parseExactNpmPackageSpec(options.package);
+        const ctx = await bootstrap({ verbose: program.opts().verbose });
+        if (!ctx.db) throw new Error("Database not available");
+        const configStore = new MCPServerConfig(ctx.db.getDatabase());
+        const scope = options.scope
+          ? normalizeMcpConfigScope(options.scope)
+          : undefined;
+        const rows = await effectiveMcpRows(configStore, { scope });
+        const row = rows.find((entry) => entry.name === name);
+        if (!row) {
+          throw new Error(
+            `${notFoundWithSuggestion(
+              name,
+              rows.map((entry) => entry.name),
+              { noun: "Server" },
+            )}. Use 'mcp add' first.`,
+          );
+        }
+        if (inferTransport(row) !== "stdio") {
+          throw new Error(
+            `MCP server "${name}" does not use the stdio transport`,
+          );
+        }
+
+        const authorized = authorizeMcpRowForConnect(row);
+        const approval = consumeMcpStdioExecutionAuthority(
+          authorized.mcpStdioExecutionAuthority,
+          { serverName: name, config: authorized },
+        );
+        const invocation = materializeApprovedMcpStdioInvocation(approval);
+        const approvalRecord = resolveMcpStdioExecutionApproval(approval);
+        const materialized = materializeMcpStdioNpmPackage({
+          approvalRecord,
+          config: invocation,
+          packageSpec: exact.spec,
+          ...(options.bin ? { binName: options.bin } : {}),
+          env: process.env,
+          processBrokerRunSync: (command, args, spawnOptions) =>
+            executionBroker.spawnSync(command, args, {
+              ...spawnOptions,
+              origin: `mcp:package-materialization:${name}`,
+              policy: "allow",
+              scope: "mcp",
+              shell: false,
+            }),
+        });
+        const prepared = prepareMcpStdioExecutableIdentity({
+          serverName: name,
+          config: invocation,
+          approval,
+          cwd: process.cwd(),
+          env: process.env,
+          retrust: true,
+        });
+        const result = {
+          name,
+          package: exact.spec,
+          generation: materialized.generation,
+          manifestDigest: materialized.manifestDigest,
+          identityDigest: prepared.identityDigest,
+          closure: materialized.identity,
+          command: prepared.identity.command,
+          entrypoints: prepared.identity.entrypoints,
+        };
+        if (options.json) {
+          console.log(JSON.stringify(result, null, 2));
+        } else {
+          logger.log(
+            chalk.green(
+              `Materialized and trusted ${exact.spec} for MCP server "${name}".`,
+            ),
+          );
+          logger.log(
+            `  ${chalk.gray("Generation:")} ${materialized.generation}`,
+          );
+          logger.log(
+            `  ${chalk.gray("Dependency closure:")} sha256:${materialized.identity.closureDigest} (${materialized.identity.fileCount} files, ${materialized.identity.totalBytes} bytes)`,
+          );
+        }
+        await shutdown();
+      } catch (err) {
+        logger.error(`Failed: ${err.message}`);
+        process.exitCode = 1;
+        await shutdown();
       }
     });
 

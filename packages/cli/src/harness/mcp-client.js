@@ -1856,6 +1856,8 @@ export class MCPClient extends EventEmitter {
     let pluginWorkspaceRoot = null;
     let stdioExecutableIdentity = null;
     let stdioExecutableIdentityAuthority = null;
+    let stdioExecutableEnvironment = null;
+    let stdioExecutableWorkingDirectory = null;
     let runtimeConfig = sourceConfig;
     if (transportKind === "stdio") {
       const isPlugin = sourceConfig.origin === "plugin:mcp";
@@ -1884,7 +1886,7 @@ export class MCPClient extends EventEmitter {
         config: sourceConfig,
         approval: stdioExecutionApproval,
         cwd: pluginWorkspaceRoot || process.cwd(),
-        env: process.env,
+        env: { ...process.env, ...this._agentIdentityEnv() },
       });
       runtimeConfig = {
         ...sourceConfig,
@@ -1893,6 +1895,8 @@ export class MCPClient extends EventEmitter {
       };
       stdioExecutableIdentity = prepared.identity;
       stdioExecutableIdentityAuthority = prepared.authority;
+      stdioExecutableEnvironment = prepared.env;
+      stdioExecutableWorkingDirectory = prepared.workingDirectory;
     }
     const connectionHeaders = await this._connectionHeaders(
       name,
@@ -2292,11 +2296,14 @@ export class MCPClient extends EventEmitter {
         }
         const isPlugin = config.origin === "plugin:mcp";
         const spawnOptions = {
-          cwd: pluginWorkspaceRoot || process.cwd(),
+          cwd:
+            stdioExecutableWorkingDirectory ||
+            pluginWorkspaceRoot ||
+            process.cwd(),
           stdio: ["pipe", "pipe", "pipe"],
           // process.env < agent identity (CLAUDECODE / session id) < the
           // server's own config.env, so an explicit per-server override wins.
-          env: {
+          env: stdioExecutableEnvironment || {
             ...process.env,
             ...this._agentIdentityEnv(),
             ...(config.env || {}),
@@ -2327,7 +2334,9 @@ export class MCPClient extends EventEmitter {
                 config.command,
                 config.args || [],
                 { ...spawnOptions, detached: false },
-                pluginWorkspaceRoot || process.cwd(),
+                stdioExecutableWorkingDirectory ||
+                  pluginWorkspaceRoot ||
+                  process.cwd(),
               )
             : null;
         const launchOptions = {

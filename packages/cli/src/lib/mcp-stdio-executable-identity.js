@@ -19,6 +19,15 @@ import {
   writeSecurityStore,
 } from "./durable-security-store.js";
 import { resolveMcpStdioExecutionApproval } from "./mcp-stdio-execution-authority.js";
+import {
+  MCP_STDIO_PACKAGE_MATERIALIZATION_REQUIRED_CODE,
+  reattestMcpStdioPackageMaterialization,
+  resolveMcpStdioPackageMaterialization,
+} from "./mcp-stdio-package-materialization.js";
+import {
+  isMcpStdioCodeInjectionEnvironmentKey,
+  sanitizeMcpStdioHostEnvironment,
+} from "./mcp-stdio-environment.js";
 
 export const MCP_STDIO_EXECUTABLE_TRUST_REQUIRED_CODE =
   "CC_MCP_STDIO_EXECUTABLE_TRUST_REQUIRED";
@@ -377,6 +386,38 @@ function executableBasename(value) {
     .toLowerCase();
 }
 
+function materializeLaunchEnvironment(hostEnv, configEnv) {
+  const launch = sanitizeMcpStdioHostEnvironment(hostEnv);
+  for (const [key, value] of Object.entries(configEnv || {})) {
+    if (isMcpStdioCodeInjectionEnvironmentKey(key)) {
+      throw identityError(
+        MCP_STDIO_EXECUTABLE_UNATTESTED_CODE,
+        `MCP stdio config environment may load unattested code through ${key}`,
+      );
+    }
+    if (typeof value !== "string") {
+      throw identityError(
+        MCP_STDIO_EXECUTABLE_UNATTESTED_CODE,
+        `MCP stdio config environment value must be a string: ${key}`,
+      );
+    }
+    launch[key] = value;
+  }
+  return Object.freeze(launch);
+}
+
+export function assertMcpStdioExecutableEnvironmentSafe(env) {
+  for (const key of Object.keys(env || {})) {
+    if (isMcpStdioCodeInjectionEnvironmentKey(key)) {
+      throw identityError(
+        MCP_STDIO_EXECUTABLE_UNATTESTED_CODE,
+        `MCP stdio launch environment may load unattested code through ${key}`,
+      );
+    }
+  }
+  return true;
+}
+
 function candidateFiles(command, cwd, env, platform) {
   const value = String(command || "");
   if (!value || value.includes("\0")) return [];
@@ -673,6 +714,9 @@ function comparableIdentity(identity) {
   return {
     command: identity.command,
     entrypoints: identity.entrypoints,
+    ...(identity.materialization
+      ? { materialization: identity.materialization }
+      : {}),
   };
 }
 
@@ -746,12 +790,32 @@ function trustMessage(serverName, attestation, status) {
   const entrypoints = attestation.identity.entrypoints
     .map((entry) => `${entry.realPath} sha256:${entry.sha256}`)
     .join(", ");
+  const materialization = attestation.identity.materialization;
   return (
     `MCP stdio executable identity ${status} for "${serverName}": ` +
     `${attestation.identity.command.realPath} sha256:${attestation.identity.command.sha256}` +
     (entrypoints ? `; ${entrypoints}` : "") +
+    (materialization
+      ? `; npm ${materialization.package.name}@${materialization.package.version} closure sha256:${materialization.closureDigest}`
+      : "") +
     ". Review these bytes, then run 'cc mcp trust-executable <name>' or set CC_MCP_EXECUTABLE_TRUST=1 for this run"
   );
+}
+
+function materializedAttestation(attestation, materialization) {
+  if (!materialization) return attestation;
+  const identity = Object.freeze({
+    version: 2,
+    command: attestation.identity.command,
+    entrypoints: attestation.identity.entrypoints,
+    materialization: materialization.identity,
+  });
+  return Object.freeze({
+    launchCommand: attestation.launchCommand,
+    launchArgs: attestation.launchArgs,
+    identity,
+    identityDigest: identityDigest(identity),
+  });
 }
 
 function checkOrRecordTrust(
@@ -819,6 +883,8 @@ export function prepareMcpStdioExecutableIdentity({
   retrust = false,
   storePath: explicitStorePath,
   witnessPath: explicitWitnessPath,
+  materializationRoot,
+  materializationIndexPath,
 }) {
   const approvalRecord = resolveMcpStdioExecutionApproval(approval);
   if (!approvalRecord) {
@@ -827,12 +893,41 @@ export function prepareMcpStdioExecutableIdentity({
       `MCP stdio executable identity for "${serverName}" requires a valid execution approval`,
     );
   }
-  const attestation = attestMcpStdioExecutableIdentity({
-    command: config.command,
-    args: config.args || [],
-    env: config.env || {},
-    cwd,
-  });
+  let materialization = null;
+  let effectiveCommand = config.command;
+  let effectiveArgs = config.args || [];
+  if (DYNAMIC_LAUNCHERS.has(executableBasename(config.command))) {
+    try {
+      materialization = resolveMcpStdioPackageMaterialization({
+        approvalRecord,
+        ...(materializationRoot ? { root: materializationRoot } : {}),
+        ...(materializationIndexPath
+          ? { indexPath: materializationIndexPath }
+          : {}),
+      });
+      effectiveCommand = materialization.command;
+      effectiveArgs = [...materialization.args];
+    } catch (cause) {
+      if (cause?.code === MCP_STDIO_PACKAGE_MATERIALIZATION_REQUIRED_CODE) {
+        throw identityError(
+          MCP_STDIO_DYNAMIC_LAUNCHER_UNPINNED_CODE,
+          cause.message,
+          { cause },
+        );
+      }
+      throw cause;
+    }
+  }
+  const attestation = materializedAttestation(
+    attestMcpStdioExecutableIdentity({
+      command: effectiveCommand,
+      args: effectiveArgs,
+      env: config.env || {},
+      cwd,
+    }),
+    materialization,
+  );
+  const launchEnv = materializeLaunchEnvironment(env, config.env || {});
   const trust = checkOrRecordTrust(serverName, approvalRecord, attestation, {
     env,
     retrust,
@@ -847,6 +942,7 @@ export function prepareMcpStdioExecutableIdentity({
       args: Object.freeze([...attestation.launchArgs]),
       identity: attestation.identity,
       identityDigest: attestation.identityDigest,
+      materialization,
     }),
   );
   return Object.freeze({
@@ -854,6 +950,8 @@ export function prepareMcpStdioExecutableIdentity({
     args: Object.freeze([...attestation.launchArgs]),
     identity: attestation.identity,
     identityDigest: attestation.identityDigest,
+    env: launchEnv,
+    workingDirectory: materialization?.treeRoot || cwd,
     authority,
     trustStatus: trust.status,
   });
@@ -861,7 +959,7 @@ export function prepareMcpStdioExecutableIdentity({
 
 export function consumeMcpStdioExecutableIdentityAuthority(
   authority,
-  { command, args = [] },
+  { command, args = [], env = {} },
 ) {
   const issued = issuedLaunchAuthorities.get(authority);
   if (!issued) {
@@ -871,6 +969,7 @@ export function consumeMcpStdioExecutableIdentityAuthority(
     );
   }
   issuedLaunchAuthorities.delete(authority);
+  assertMcpStdioExecutableEnvironmentSafe(env);
   if (
     command !== issued.command ||
     JSON.stringify(args) !== JSON.stringify(issued.args)
@@ -880,11 +979,26 @@ export function consumeMcpStdioExecutableIdentityAuthority(
       "MCP stdio launch changed after executable identity approval",
     );
   }
-  const current = attestMcpStdioExecutableIdentity({
+  let current = attestMcpStdioExecutableIdentity({
     command,
     args,
     cwd: process.cwd(),
   });
+  if (issued.materialization) {
+    const verified = reattestMcpStdioPackageMaterialization(
+      issued.materialization,
+    );
+    if (
+      JSON.stringify(verified.identity) !==
+      JSON.stringify(issued.materialization.identity)
+    ) {
+      throw identityError(
+        MCP_STDIO_EXECUTABLE_CHANGED_CODE,
+        "MCP stdio materialized package identity changed before spawn",
+      );
+    }
+    current = materializedAttestation(current, issued.materialization);
+  }
   if (current.identityDigest !== issued.identityDigest) {
     throw identityError(
       MCP_STDIO_EXECUTABLE_CHANGED_CODE,

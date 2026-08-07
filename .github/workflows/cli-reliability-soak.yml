@@ -16,10 +16,13 @@ on:
       - "packages/cli/src/harness/jsonl-session-store.js"
       - "packages/cli/src/lib/session-persistence-failure.js"
       - "packages/cli/src/lib/mcp-stdio-executable-identity.js"
+      - "packages/cli/src/lib/mcp-stdio-environment.js"
+      - "packages/cli/src/lib/mcp-stdio-package-materialization.js"
       - "packages/cli/src/lib/paths.js"
       - "packages/cli/scripts/cli-reliability-soak.mjs"
       - "packages/cli/scripts/cli-reliability-mcp-server.mjs"
       - "packages/cli/__tests__/unit/cli-reliability-soak.test.js"
+      - "packages/cli/__tests__/unit/mcp-stdio-package-materialization.test.js"
   schedule:
     - cron: "17 2 * * 3"
   workflow_dispatch:

@@ -2896,7 +2896,11 @@ class ProcessExecutionBroker extends EventEmitter {
       if (mcpStdioExecutableIdentityAuthority !== undefined) {
         const admitted = consumeMcpStdioExecutableIdentityAuthority(
           mcpStdioExecutableIdentityAuthority,
-          { command: identityCommand, args: identityArgs },
+          {
+            command: identityCommand,
+            args: identityArgs,
+            env: optsForSpawn.env || {},
+          },
         );
         auditEntry.mcpStdioExecutableIdentityDigest = admitted.identityDigest;
       }
