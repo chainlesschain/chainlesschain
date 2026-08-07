@@ -66,26 +66,38 @@ jobs:
             target: node20-linux-x64
             file: chainlesschain-node20-linux-x64
             platform_signature: sigstore-keyless
-          - os: ubuntu-latest
+            expected_platform: linux
+            expected_arch: x64
+          - os: ubuntu-24.04-arm
             target: node20-linux-arm64
             file: chainlesschain-node20-linux-arm64
             platform_signature: sigstore-keyless
+            expected_platform: linux
+            expected_arch: arm64
           - os: windows-latest
             target: node20-win-x64
             file: chainlesschain-node20-win-x64.exe
             platform_signature: authenticode+sigstore
-          - os: windows-latest
+            expected_platform: win32
+            expected_arch: x64
+          - os: windows-11-arm
             target: node20-win-arm64
             file: chainlesschain-node20-win-arm64.exe
             platform_signature: authenticode+sigstore
-          - os: macos-15
+            expected_platform: win32
+            expected_arch: arm64
+          - os: macos-15-intel
             target: node20-macos-x64
             file: chainlesschain-node20-macos-x64
             platform_signature: codesign+sigstore
+            expected_platform: darwin
+            expected_arch: x64
           - os: macos-15
             target: node20-macos-arm64
             file: chainlesschain-node20-macos-arm64
             platform_signature: codesign+sigstore
+            expected_platform: darwin
+            expected_arch: arm64
     runs-on: ${{ matrix.os }}
     permissions:
       contents: read
@@ -99,6 +111,25 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: "22.14.0"
+      - name: Verify real native target host
+        shell: bash
+        env:
+          EXPECTED_PLATFORM: ${{ matrix.expected_platform }}
+          EXPECTED_ARCH: ${{ matrix.expected_arch }}
+          EXPECTED_TARGET: ${{ matrix.target }}
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          const { EXPECTED_PLATFORM, EXPECTED_ARCH, EXPECTED_TARGET } = process.env;
+          if (process.platform !== EXPECTED_PLATFORM || process.arch !== EXPECTED_ARCH) {
+            throw new Error(
+              `native target ${EXPECTED_TARGET} requires ${EXPECTED_PLATFORM}/${EXPECTED_ARCH}; runner is ${process.platform}/${process.arch}`,
+            );
+          }
+          process.stdout.write(
+            `${EXPECTED_TARGET} host verified: ${process.platform}/${process.arch}\n`,
+          );
+          NODE
       - name: Install workspace dependencies
         run: npm install --legacy-peer-deps
       - name: Materialize trusted update public key
@@ -172,7 +203,7 @@ jobs:
             "native-dist/${{ matrix.file }}.sigstore.json" \
             "${{ matrix.platform_signature }}"
 
-      - name: Smoke-test executable when target matches the runner
+      - name: Smoke-test executable on its matching real host
         shell: bash
         run: |
           node --input-type=module - "${{ matrix.target }}" "native-dist/${{ matrix.file }}" <<'NODE'
@@ -182,8 +213,9 @@ jobs:
           const os = { linux: "linux", darwin: "macos", win32: "win" }[process.platform];
           const arch = process.arch === "arm64" ? "arm64" : "x64";
           if (target !== `node20-${os}-${arch}`) {
-            process.stdout.write(`cross target ${target}; host smoke test skipped\n`);
-            process.exit(0);
+            throw new Error(
+              `native artifact ${target} cannot be tested on ${process.platform}/${process.arch}`,
+            );
           }
           const result = spawnSync(path.resolve(file), ["--version"], {
             encoding: "utf8",

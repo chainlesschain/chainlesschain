@@ -359,6 +359,19 @@ describe("CLI release workflow contracts", () => {
     ]) {
       expect(text).toContain(target);
     }
+    for (const runner of [
+      "ubuntu-latest",
+      "ubuntu-24.04-arm",
+      "windows-latest",
+      "windows-11-arm",
+      "macos-15-intel",
+      "macos-15",
+    ]) {
+      expect(text).toContain(`os: ${runner}`);
+    }
+    expect(text).toContain("Verify real native target host");
+    expect(text).toContain("Smoke-test executable on its matching real host");
+    expect(text).not.toContain("host smoke test skipped");
     expect(text).toContain("verify-release-gates.mjs");
     expect(text).toContain("signtool.exe");
     expect(text).toContain("codesign --verify");
