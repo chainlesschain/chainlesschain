@@ -321,7 +321,9 @@ describe("MCP stdio fixed npm package materialization", () => {
       capsule: { sha256: result.identity.capsule.sha256 },
     });
     expect(prepared.workingDirectory).toBe(
-      fs.realpathSync(path.join(result.root, "capsule")),
+      (fs.realpathSync.native || fs.realpathSync)(
+        path.join(result.root, "capsule"),
+      ),
     );
     expect(prepared.env).not.toHaveProperty("NODE_OPTIONS");
     expect(prepared.sandboxExecutionContract).toMatchObject({
