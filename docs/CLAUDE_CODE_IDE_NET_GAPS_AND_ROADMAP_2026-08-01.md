@@ -793,13 +793,16 @@ CLI npm 或两家 IDE 渠道成功均不得外推为这些范围已经交付。
   已在外层 `stat/open` 竞态后重新读取 durable witness；其 CLI Strict Sandbox
   [31219890201](https://github.com/chainlesschain/chainlesschain/actions/runs/31219890201) 与 Session Host
   [31219691603](https://github.com/chainlesschain/chainlesschain/actions/runs/31219691603) 与 CLI CI
-  [31219886076](https://github.com/chainlesschain/chainlesschain/actions/runs/31219886076) 已成功；截至本次取证，
-  两小时 CLI Reliability Soak
-  [31219797408](https://github.com/chainlesschain/chainlesschain/actions/runs/31219797408) 尚在运行。当前增量继续对
-  witness presence 读取自身的瞬态 `ENOENT` 做三次有界重试；持续歧义仍 fail closed 为稳定的
-  `SESSION_TRANSCRIPT_UNVERIFIED`，并新增纯函数回归。修复后的最终 exact SHA 必须重新取得完整 CLI
-  CI/Strict 门，reliability formal 也必须在该 SHA 从头运行；失败 SHA、旧 SHA 局部门与未结算 run 不得拼接为
-  release GO。
+  [31219886076](https://github.com/chainlesschain/chainlesschain/actions/runs/31219886076) 已成功。两小时 CLI
+  Reliability Soak [31219797408](https://github.com/chainlesschain/chainlesschain/actions/runs/31219797408)
+  随后在三平台全部失败：screen-reader probe 在 REPL prompt 就绪前注入输入后超时；duplex loop 又因
+  `turns < 1000 || elapsed < 2h` 在达到 1,000 次后继续无界执行，实际产生 122 万～443 万 turn，并使 RSS
+  增长 140～206MiB，超过 128MiB 门槛。该失败不能解释为基础设施绿灯或被旧门拼接覆盖。
+- 当前增量继续对 witness presence 读取自身的瞬态 `ENOENT` 做三次有界重试；持续歧义仍 fail closed 为稳定的
+  `SESSION_TRANSCRIPT_UNVERIFIED`。`9ef2b8390e` 又将正式 1,000 turn 确定性均匀铺到完整两小时，并等待真实
+  REPL prompt 后再注入多语 screen-reader 输入，RSS/FD/handle 阈值保持不变；Windows 本地真实 TTY +
+  duplex smoke 通过，但 dirty-tree smoke 不是发布证据。最终 exact SHA 必须重新取得完整 CLI CI/Strict 门，
+  reliability formal 也必须在该 SHA 从头运行；失败 SHA、旧 SHA 局部门与未结算 run 不得拼接为 release GO。
 - 新增只读 `CLI Native Validation` workflow，解决正式 native release 在宿主证据形成前即阻断全部 build 的
   循环依赖。该门只允许手工指定 exact SHA，在 Linux/Windows/macOS 的 x64 + ARM64 六个匹配真实 runner 上
   构建并执行 standalone binary 的 `--version` 与 `status --json`，逐文件运行 installer/updater transaction
