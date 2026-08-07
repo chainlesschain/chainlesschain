@@ -435,6 +435,25 @@ describe("owner-only filesystem helpers", () => {
     ).toBe(0o700);
   });
 
+  it("does not rewrite ctime-equivalent modes for secure POSIX paths", () => {
+    const directoryFs = fakeFs(0o700, true);
+    const fileFs = fakeFs(0o600, false);
+    directoryFs.chmodSync = vi.fn(directoryFs.chmodSync);
+    fileFs.chmodSync = vi.fn(fileFs.chmodSync);
+
+    ensurePrivateDirectory("/private", {
+      platform: "linux",
+      deps: { fs: directoryFs, platform: () => "linux" },
+    });
+    ensurePrivateFile("/private/state.json", {
+      platform: "linux",
+      deps: { fs: fileFs, platform: () => "linux" },
+    });
+
+    expect(directoryFs.chmodSync).not.toHaveBeenCalled();
+    expect(fileFs.chmodSync).not.toHaveBeenCalled();
+  });
+
   it("accepts only the root-owned canonical macOS /var system alias", () => {
     let mode = 0o755;
     const target = "/var/folders/cc-private";

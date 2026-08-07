@@ -33,6 +33,10 @@ const IDENTITY_FIELDS = Object.freeze([
 const IDENTITY_FIELDS_EXCEPT_DEVICE = Object.freeze(
   IDENTITY_FIELDS.filter((field) => field !== "dev"),
 );
+const STABLE_FILE_IDENTITY_FIELDS = Object.freeze(["dev", "ino", "mode"]);
+const STABLE_FILE_IDENTITY_FIELDS_EXCEPT_DEVICE = Object.freeze(
+  STABLE_FILE_IDENTITY_FIELDS.filter((field) => field !== "dev"),
+);
 const DIRECTORY_IDENTITY_FIELDS = Object.freeze(["dev", "ino", "mode"]);
 const DIRECTORY_IDENTITY_FIELDS_EXCEPT_DEVICE = Object.freeze(
   DIRECTORY_IDENTITY_FIELDS.filter((field) => field !== "dev"),
@@ -181,6 +185,49 @@ export function samePathHandleFileIdentity(
     pathIdentity.dev !== handleIdentity.dev &&
     handleIdentity.dev !== "0" &&
     sameFields(pathIdentity, handleIdentity, IDENTITY_FIELDS_EXCEPT_DEVICE)
+  );
+}
+
+/**
+ * Compare only the immutable/type portion of a path/handle file identity.
+ *
+ * This is for appenders: size and timestamps are expected to change while the
+ * descriptor is held, but the published name must continue to designate that
+ * exact regular file. The independently opened parent/volume device keeps the
+ * narrow Node 22.12 Windows device-projection bridge fail-closed.
+ */
+export function samePathHandleStableFileIdentity(
+  pathStat,
+  handleStat,
+  expectedDevice,
+  runtime = undefined,
+) {
+  const pathIdentity = fileStatIdentity(pathStat);
+  const handleIdentity = fileStatIdentity(handleStat);
+  const trustedDevice =
+    expectedDevice === undefined || expectedDevice === null
+      ? null
+      : String(expectedDevice);
+  if (
+    !hasFields(pathIdentity, STABLE_FILE_IDENTITY_FIELDS) ||
+    !hasFields(handleIdentity, STABLE_FILE_IDENTITY_FIELDS) ||
+    trustedDevice === null ||
+    handleIdentity.dev !== trustedDevice
+  ) {
+    return false;
+  }
+  if (sameFields(pathIdentity, handleIdentity, STABLE_FILE_IDENTITY_FIELDS)) {
+    return true;
+  }
+  return (
+    isAffectedWindowsZeroDeviceStatRuntime(runtime) &&
+    pathIdentity.dev !== handleIdentity.dev &&
+    handleIdentity.dev !== "0" &&
+    sameFields(
+      pathIdentity,
+      handleIdentity,
+      STABLE_FILE_IDENTITY_FIELDS_EXCEPT_DEVICE,
+    )
   );
 }
 

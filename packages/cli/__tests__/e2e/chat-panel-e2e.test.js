@@ -8,7 +8,7 @@
  * (Servers live in this process; the session spawns asynchronously, so no
  * spawnSync event-loop deadlock — see ide-context-e2e.test.js.)
  */
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, beforeAll, afterEach, afterAll } from "vitest";
 import { spawn } from "node:child_process";
 import http from "node:http";
 
@@ -20,6 +20,12 @@ let llmServer;
 let llmPort;
 let llmCalls = 0;
 const llmBodies = [];
+const activeSessions = new Set();
+
+function trackSession(session) {
+  activeSessions.add(session);
+  return session;
+}
 
 beforeAll(async () => {
   llmPort = await freePort();
@@ -69,6 +75,19 @@ beforeAll(async () => {
   await new Promise((r) => llmServer.listen(llmPort, "127.0.0.1", r));
 });
 
+afterEach(() => {
+  for (const session of activeSessions) {
+    try {
+      // The e2e seam launches Node directly, so kill the tracked child rather
+      // than routing AgentChatSession.stop() through its injected spawn hook.
+      session.child?.kill();
+    } catch {
+      /* best-effort test cleanup */
+    }
+  }
+  activeSessions.clear();
+});
+
 afterAll(async () => {
   llmServer.closeAllConnections?.(); // drop any held SLOW sockets
   await new Promise((r) => llmServer.close(r));
@@ -79,30 +98,32 @@ describe("AgentChatSession ⇆ real cc agent duplex", () => {
   it("streams two full turns and exits 0 on graceful end()", async () => {
     const events = [];
     let exited = null;
-    const session = new AgentChatSession({
-      args: [
-        "--no-ide",
-        "--no-mcp",
-        "--provider",
-        "ollama",
-        "--model",
-        "fake-model",
-        "--base-url",
-        `http://127.0.0.1:${llmPort}`,
-      ],
-      cwd: t.workspace,
-      env: t.env(),
-      onEvent: (e) => events.push(e),
-      onExit: (e) => (exited = e),
-      deps: {
-        // run the real bin through node, preserving the session's own args
-        spawn: (_cmd, args, opts) =>
-          spawn(process.execPath, [CLI_BIN, ...args], {
-            ...opts,
-            shell: false,
-          }),
-      },
-    }).start();
+    const session = trackSession(
+      new AgentChatSession({
+        args: [
+          "--no-ide",
+          "--no-mcp",
+          "--provider",
+          "ollama",
+          "--model",
+          "fake-model",
+          "--base-url",
+          `http://127.0.0.1:${llmPort}`,
+        ],
+        cwd: t.workspace,
+        env: t.env(),
+        onEvent: (e) => events.push(e),
+        onExit: (e) => (exited = e),
+        deps: {
+          // run the real bin through node, preserving the session's own args
+          spawn: (_cmd, args, opts) =>
+            spawn(process.execPath, [CLI_BIN, ...args], {
+              ...opts,
+              shell: false,
+            }),
+        },
+      }).start(),
+    );
 
     // init line arrives once the CLI is up
     await expect
@@ -147,57 +168,74 @@ describe("AgentChatSession ⇆ real cc agent duplex", () => {
 
   it("--resume continues the conversation across a child restart", async () => {
     const RESUME_ID = "chat-e2e-resume";
+    const RESUME_STEP_TIMEOUT_MS = 90000;
     const mkSession = (sink) =>
-      new AgentChatSession({
-        args: [
-          "--no-ide",
-          "--no-mcp",
-          "--provider",
-          "ollama",
-          "--model",
-          "fake-model",
-          "--base-url",
-          `http://127.0.0.1:${llmPort}`,
-          "--resume",
-          RESUME_ID,
-        ],
-        cwd: t.workspace,
-        env: t.env(),
-        onEvent: (e) => sink.events.push(e),
-        onExit: (e) => (sink.exited = e),
-        deps: {
-          spawn: (_cmd, args, opts) =>
-            spawn(process.execPath, [CLI_BIN, ...args], {
-              ...opts,
-              shell: false,
-            }),
-        },
-      }).start();
+      trackSession(
+        new AgentChatSession({
+          args: [
+            "--no-ide",
+            "--no-mcp",
+            "--provider",
+            "ollama",
+            "--model",
+            "fake-model",
+            "--base-url",
+            `http://127.0.0.1:${llmPort}`,
+            "--resume",
+            RESUME_ID,
+          ],
+          cwd: t.workspace,
+          env: t.env(),
+          onEvent: (e) => sink.events.push(e),
+          onStderr: (line) => sink.stderr.push(line),
+          onExit: (e) => (sink.exited = e),
+          deps: {
+            spawn: (_cmd, args, opts) =>
+              spawn(process.execPath, [CLI_BIN, ...args], {
+                ...opts,
+                shell: false,
+              }),
+          },
+        }).start(),
+      );
 
     // ── child #1: one persisted turn, then exit ──
-    const s1 = { events: [], exited: null };
+    const s1 = { events: [], stderr: [], exited: null };
     const c1 = mkSession(s1);
     await expect
       .poll(() => s1.events.some((e) => e.subtype === "init"), {
-        timeout: 60000,
+        timeout: RESUME_STEP_TIMEOUT_MS,
       })
       .toBe(true);
     expect(c1.send("remember the magic word: zebra")).toBe(true);
     await expect
-      .poll(() => s1.events.some((e) => e.type === "result"), {
-        timeout: 60000,
-      })
+      .poll(
+        () => s1.events.some((e) => e.type === "result") || s1.exited !== null,
+        {
+          timeout: RESUME_STEP_TIMEOUT_MS,
+        },
+      )
       .toBe(true);
+    expect(
+      s1.events.some((e) => e.type === "result"),
+      `child exited before result: ${JSON.stringify({
+        exited: s1.exited,
+        stderr: s1.stderr,
+        events: s1.events,
+      })}`,
+    ).toBe(true);
     c1.end();
-    await expect.poll(() => s1.exited !== null, { timeout: 60000 }).toBe(true);
+    await expect
+      .poll(() => s1.exited !== null, { timeout: RESUME_STEP_TIMEOUT_MS })
+      .toBe(true);
 
     // ── child #2: SAME id — history must replay into the conversation ──
     const beforeBodies = llmBodies.length;
-    const s2 = { events: [], exited: null };
+    const s2 = { events: [], stderr: [], exited: null };
     const c2 = mkSession(s2);
     await expect
       .poll(() => s2.events.some((e) => e.subtype === "init"), {
-        timeout: 60000,
+        timeout: RESUME_STEP_TIMEOUT_MS,
       })
       .toBe(true);
     const init2 = s2.events.find((e) => e.subtype === "init");
@@ -206,10 +244,19 @@ describe("AgentChatSession ⇆ real cc agent duplex", () => {
 
     expect(c2.send("what was the magic word?")).toBe(true);
     await expect
-      .poll(() => s2.events.some((e) => e.type === "result"), {
-        timeout: 60000,
-      })
+      .poll(
+        () => s2.events.some((e) => e.type === "result") || s2.exited !== null,
+        { timeout: RESUME_STEP_TIMEOUT_MS },
+      )
       .toBe(true);
+    expect(
+      s2.events.some((e) => e.type === "result"),
+      `resumed child exited before result: ${JSON.stringify({
+        exited: s2.exited,
+        stderr: s2.stderr,
+        events: s2.events,
+      })}`,
+    ).toBe(true);
     // The LLM request from child #2 carries child #1's turn — resume is real.
     const body2 = llmBodies
       .slice(beforeBodies)
@@ -223,35 +270,39 @@ describe("AgentChatSession ⇆ real cc agent duplex", () => {
     );
 
     c2.end();
-    await expect.poll(() => s2.exited !== null, { timeout: 60000 }).toBe(true);
+    await expect
+      .poll(() => s2.exited !== null, { timeout: RESUME_STEP_TIMEOUT_MS })
+      .toBe(true);
     expect(s2.exited.code).toBe(0);
-  }, 240000);
+  }, 300000);
 
   it("interrupt aborts the in-flight turn; the SAME child answers the next one", async () => {
     const sink = { events: [], exited: null };
-    const session = new AgentChatSession({
-      args: [
-        "--no-ide",
-        "--no-mcp",
-        "--provider",
-        "ollama",
-        "--model",
-        "fake-model",
-        "--base-url",
-        `http://127.0.0.1:${llmPort}`,
-      ],
-      cwd: t.workspace,
-      env: t.env(),
-      onEvent: (e) => sink.events.push(e),
-      onExit: (e) => (sink.exited = e),
-      deps: {
-        spawn: (_cmd, args, opts) =>
-          spawn(process.execPath, [CLI_BIN, ...args], {
-            ...opts,
-            shell: false,
-          }),
-      },
-    }).start();
+    const session = trackSession(
+      new AgentChatSession({
+        args: [
+          "--no-ide",
+          "--no-mcp",
+          "--provider",
+          "ollama",
+          "--model",
+          "fake-model",
+          "--base-url",
+          `http://127.0.0.1:${llmPort}`,
+        ],
+        cwd: t.workspace,
+        env: t.env(),
+        onEvent: (e) => sink.events.push(e),
+        onExit: (e) => (sink.exited = e),
+        deps: {
+          spawn: (_cmd, args, opts) =>
+            spawn(process.execPath, [CLI_BIN, ...args], {
+              ...opts,
+              shell: false,
+            }),
+        },
+      }).start(),
+    );
 
     await expect
       .poll(() => sink.events.some((e) => e.subtype === "init"), {

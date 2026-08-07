@@ -1004,6 +1004,7 @@ export function ensurePrivateDirectory(target, options = {}) {
     platform,
   );
   let existed = deps.fs.existsSync(target);
+  let existingMode = null;
   if (existed) {
     const pathEntry = readPrivatePathEntry(
       target,
@@ -1013,6 +1014,7 @@ export function ensurePrivateDirectory(target, options = {}) {
     );
     existed = pathEntry.exists;
     const existing = pathEntry.entry;
+    existingMode = existing ? Number(existing.mode) : null;
     if (existed && existing.isSymbolicLink()) {
       throw new Error(
         `Refusing owner-only directory through a symbolic link: ${target}`,
@@ -1031,7 +1033,16 @@ export function ensurePrivateDirectory(target, options = {}) {
     mode: PRIVATE_DIRECTORY_MODE,
   });
   if ((options.platform || deps.platform()) !== "win32") {
-    deps.fs.chmodSync(target, PRIVATE_DIRECTORY_MODE);
+    // chmod updates ctime even when the mode is already correct. Session and
+    // security stores use ctime as part of their physical witness, so avoid
+    // invalidating an otherwise unchanged owner-only directory.
+    if (
+      !existed ||
+      !Number.isFinite(existingMode) ||
+      (existingMode & 0o7777) !== PRIVATE_DIRECTORY_MODE
+    ) {
+      deps.fs.chmodSync(target, PRIVATE_DIRECTORY_MODE);
+    }
   } else if (
     options.applyWindowsAcl === true ||
     (!existed && options.applyWindowsAcl !== false)
@@ -1071,7 +1082,15 @@ export function ensurePrivateFile(target, options = {}) {
     throw new Error(`Expected a file for owner-only storage: ${target}`);
   }
   if (platform !== "win32") {
-    deps.fs.chmodSync(target, PRIVATE_FILE_MODE);
+    // Preserve ctime for an already-secure file. Rejected CAS writes and
+    // read-only preflights must not make a persisted physical witness stale.
+    const existingMode = Number(existing.mode);
+    if (
+      !Number.isFinite(existingMode) ||
+      (existingMode & 0o7777) !== PRIVATE_FILE_MODE
+    ) {
+      deps.fs.chmodSync(target, PRIVATE_FILE_MODE);
+    }
   } else if (
     options.applyWindowsAcl === true &&
     (options.deps || !securedWindowsPaths.has(target))

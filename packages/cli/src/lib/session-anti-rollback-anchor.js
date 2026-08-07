@@ -22,6 +22,11 @@ import {
   readSecurityStore,
 } from "./durable-security-store.js";
 import { ensurePrivateDirectory } from "./secure-fs.js";
+import {
+  isAffectedWindowsZeroDeviceStatRuntime,
+  samePathHandleStableFileIdentity,
+  withTrustedFileParentSync,
+} from "./secure-file-identity.js";
 import { withFileLock } from "./with-file-lock.js";
 import { iterateFileLinesReverseSync } from "./file-lines.js";
 
@@ -612,18 +617,30 @@ function ensureNamespaceEntry(location) {
 }
 
 function appendRecord(location, record) {
+  if (isAffectedWindowsZeroDeviceStatRuntime()) {
+    return withTrustedFileParentSync(
+      fs,
+      location.recordPath,
+      ({ canonicalPath, parentDevice }) =>
+        appendRecordAtPath(canonicalPath, record, parentDevice),
+    );
+  }
+  return appendRecordAtPath(location.recordPath, record, null);
+}
+
+function appendRecordAtPath(recordPath, record, parentDevice) {
   let descriptor = null;
   try {
     let flags = fs.constants.O_WRONLY | fs.constants.O_APPEND;
-    const createsRecord = !fs.existsSync(location.recordPath);
+    const createsRecord = !fs.existsSync(recordPath);
     if (createsRecord) {
       flags |= fs.constants.O_CREAT | fs.constants.O_EXCL;
     }
     if (typeof fs.constants.O_NOFOLLOW === "number") {
       flags |= fs.constants.O_NOFOLLOW;
     }
-    descriptor = fs.openSync(location.recordPath, flags, 0o600);
-    const opened = fs.fstatSync(descriptor);
+    descriptor = fs.openSync(recordPath, flags, 0o600);
+    const opened = fs.fstatSync(descriptor, { bigint: true });
     const payload = Buffer.from(`${JSON.stringify(record)}\n`, "utf8");
     let offset = 0;
     while (offset < payload.length) {
@@ -641,17 +658,17 @@ function appendRecord(location, record) {
       offset += written;
     }
     fs.fsyncSync(descriptor);
-    const published = fs.lstatSync(location.recordPath);
-    if (
-      published.isSymbolicLink() ||
-      !published.isFile() ||
-      String(opened.dev) !== String(published.dev) ||
-      String(opened.ino) !== String(published.ino)
-    ) {
+    const published = fs.lstatSync(recordPath, { bigint: true });
+    const identityMatches =
+      parentDevice === null
+        ? String(opened.dev) === String(published.dev) &&
+          String(opened.ino) === String(published.ino)
+        : samePathHandleStableFileIdentity(published, opened, parentDevice);
+    if (published.isSymbolicLink() || !published.isFile() || !identityMatches) {
       throw new Error("session anti-rollback record identity changed");
     }
     if (createsRecord && process.platform !== "win32") {
-      const directoryDescriptor = fs.openSync(location.recordDirectory, "r");
+      const directoryDescriptor = fs.openSync(path.dirname(recordPath), "r");
       try {
         fs.fsyncSync(directoryDescriptor);
       } finally {

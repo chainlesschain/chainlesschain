@@ -918,17 +918,21 @@ function buildCapsule({
     const sourceByPath = new Map(
       closure.files.map((record) => [record.path, record]),
     );
+    const realpath = _deps.fs.realpathSync.native || _deps.fs.realpathSync;
+    const canonicalSnapshotRoot = realpath(snapshotRoot);
     const inputs = Object.keys(metafile.inputs)
       .map((input) => input.split(path.sep).join("/"))
       .sort()
       .map((input) => {
-        const absolute = path.resolve(snapshotRoot, ...input.split("/"));
+        const absolute = realpath(
+          path.resolve(snapshotRoot, ...input.split("/")),
+        );
         const relative = path
-          .relative(snapshotRoot, absolute)
+          .relative(canonicalSnapshotRoot, absolute)
           .split(path.sep)
           .join("/");
         const record = sourceByPath.get(relative);
-        if (!record || input !== relative) {
+        if (!record) {
           throw new Error(
             `MCP capsule build used an unattested input: ${input}`,
           );
@@ -939,6 +943,9 @@ function buildCapsule({
           sha256: record.sha256,
         };
       });
+    if (new Set(inputs.map((input) => input.path)).size !== inputs.length) {
+      throw new Error("MCP capsule build reported duplicate input aliases");
+    }
     if (
       inputs.length === 0 ||
       !inputs.some((input) => input.path === entrypointRelative)

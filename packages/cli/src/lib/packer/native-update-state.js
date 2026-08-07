@@ -3,6 +3,11 @@ import path from "node:path";
 import crypto from "node:crypto";
 import os from "node:os";
 import { spawn } from "node:child_process";
+import {
+  sameFileStatIdentity,
+  samePathHandleFileIdentity,
+  withTrustedFileParentSync,
+} from "../secure-file-identity.js";
 
 export const NATIVE_UPDATE_LINEAGE_SCHEMA =
   "chainlesschain.native-update-lineage.v1";
@@ -252,12 +257,21 @@ const GENERATION_PHASES = new Set([
 ]);
 
 function readStableRegular(filePath, options = {}) {
-  const { capture = false, maxBytes = 1024 * 1024 } = options;
   assertSafeRegularFile(filePath, {
     label: options.label || "native generation state",
     allowMissingLeaf: false,
     platform: options.platform || process.platform,
   });
+  return withTrustedFileParentSync(
+    fs,
+    filePath,
+    ({ canonicalPath, parentDevice }) =>
+      readStableRegularAtPath(canonicalPath, parentDevice, options),
+  );
+}
+
+function readStableRegularAtPath(filePath, parentDevice, options) {
+  const { capture = false, maxBytes = 1024 * 1024 } = options;
   const fd = fs.openSync(filePath, "r");
   try {
     const before = fs.fstatSync(fd, { bigint: true });
@@ -292,15 +306,9 @@ function readStableRegular(filePath, options = {}) {
       after.isFile() &&
       pathAfter.isFile() &&
       before.nlink > 0n &&
-      before.dev === pathBefore.dev &&
-      before.ino === pathBefore.ino &&
-      before.dev === after.dev &&
-      before.ino === after.ino &&
-      after.dev === pathAfter.dev &&
-      after.ino === pathAfter.ino &&
-      before.size === after.size &&
-      before.mtimeNs === after.mtimeNs &&
-      before.ctimeNs === after.ctimeNs;
+      samePathHandleFileIdentity(pathBefore, before, parentDevice) &&
+      sameFileStatIdentity(before, after) &&
+      samePathHandleFileIdentity(pathAfter, after, parentDevice);
     if (!stable) {
       throw new NativeUpdateStateError(
         `${options.label || "native generation state"} changed while read`,

@@ -2,7 +2,7 @@
  * JSONL Session Store — append-only session persistence.
  */
 
-import {
+import fs, {
   constants as fsConstants,
   existsSync,
   appendFileSync,
@@ -24,6 +24,11 @@ import { createHash, randomUUID } from "node:crypto";
 import { TextDecoder } from "node:util";
 import { getHomeDir } from "../lib/paths.js";
 import { ensurePrivateDirectory, ensurePrivateFile } from "../lib/secure-fs.js";
+import {
+  isAffectedWindowsZeroDeviceStatRuntime,
+  samePathHandleStableFileIdentity,
+  withTrustedFileParentSync,
+} from "../lib/secure-file-identity.js";
 import {
   computeEventHash,
   latestChainHash,
@@ -560,7 +565,7 @@ function physicalTranscriptStateFromStats(stats) {
   });
 }
 
-function readPhysicalTranscriptState(filePath) {
+function readPhysicalTranscriptStats(filePath) {
   const stats = lstatSync(filePath, { bigint: true });
   if (stats.isSymbolicLink() || !stats.isFile()) {
     const error = new Error("Session transcript path is not a regular file");
@@ -568,7 +573,13 @@ function readPhysicalTranscriptState(filePath) {
     error.commitState = "not-committed";
     throw error;
   }
-  return physicalTranscriptStateFromStats(stats);
+  return stats;
+}
+
+function readPhysicalTranscriptState(filePath) {
+  return physicalTranscriptStateFromStats(
+    readPhysicalTranscriptStats(filePath),
+  );
 }
 
 function samePhysicalTranscriptState(left, right, { content = true } = {}) {
@@ -589,6 +600,28 @@ function samePhysicalTranscriptState(left, right, { content = true } = {}) {
         sameField("mtimeNs", "mtimeMs", { numeric: true }) &&
         sameField("ctimeNs", "ctimeMs", { numeric: true })))
   );
+}
+
+function samePhysicalTranscriptContentState(left, right) {
+  if (!left || !right) return left === right;
+  const sameField = (exactField, legacyField) => {
+    if (left[exactField] != null && right[exactField] != null) {
+      return String(left[exactField]) === String(right[exactField]);
+    }
+    return Number(left[legacyField]) === Number(right[legacyField]);
+  };
+  return (
+    sameField("sizeExact", "size") &&
+    sameField("mtimeNs", "mtimeMs") &&
+    sameField("ctimeNs", "ctimeMs")
+  );
+}
+
+function withTranscriptFileParent(filePath, task) {
+  if (!isAffectedWindowsZeroDeviceStatRuntime()) {
+    return task({ canonicalPath: filePath, parentDevice: null });
+  }
+  return withTrustedFileParentSync(fs, filePath, task);
 }
 
 function transcriptIdentityError(commitState, reason) {
@@ -859,6 +892,43 @@ function appendTranscriptEvent(
       commitState: "not-committed",
     });
   }
+  try {
+    return withTranscriptFileParent(
+      filePath,
+      ({ canonicalPath, parentDevice }) =>
+        appendTranscriptEventAtPath({
+          sessionId,
+          event,
+          payload,
+          filePath: canonicalPath,
+          expectedState,
+          parentDevice,
+        }),
+    );
+  } catch (cause) {
+    if (
+      cause?.code === "SESSION_TRANSCRIPT_IDENTITY_CHANGED" ||
+      cause?.operation === "transcript-append" ||
+      cause?.operation === "transcript-settlement"
+    ) {
+      throw cause;
+    }
+    throw createSessionPersistenceFailure(cause, {
+      sessionId,
+      operation: "transcript-settlement",
+      commitState: "unknown",
+    });
+  }
+}
+
+function appendTranscriptEventAtPath({
+  sessionId,
+  event,
+  payload,
+  filePath,
+  expectedState,
+  parentDevice,
+}) {
   let fd = null;
   let wroteBytes = false;
   let appendCompleted = false;
@@ -871,17 +941,34 @@ function appendTranscriptEvent(
       flags |= fsConstants.O_NOFOLLOW;
     }
     fd = openSync(filePath, flags, 0o600);
-    const openedState = physicalTranscriptStateFromStats(
-      fstatSync(fd, { bigint: true }),
-    );
-    if (
-      expectedState !== null &&
-      !samePhysicalTranscriptState(expectedState, openedState)
-    ) {
-      throw transcriptIdentityError(
-        "not-committed",
-        "the append descriptor does not match the verified path",
-      );
+    const openedStats = fstatSync(fd, { bigint: true });
+    const openedState = physicalTranscriptStateFromStats(openedStats);
+    if (expectedState !== null) {
+      if (parentDevice === null) {
+        if (!samePhysicalTranscriptState(expectedState, openedState)) {
+          throw transcriptIdentityError(
+            "not-committed",
+            "the append descriptor does not match the verified path",
+          );
+        }
+      } else {
+        const publishedBeforeStats = readPhysicalTranscriptStats(filePath);
+        const publishedBeforeState =
+          physicalTranscriptStateFromStats(publishedBeforeStats);
+        if (
+          !samePhysicalTranscriptState(expectedState, publishedBeforeState) ||
+          !samePathHandleStableFileIdentity(
+            publishedBeforeStats,
+            openedStats,
+            parentDevice,
+          )
+        ) {
+          throw transcriptIdentityError(
+            "not-committed",
+            "the append descriptor does not match the verified path",
+          );
+        }
+      }
     }
     const bytes = Buffer.from(`${JSON.stringify(event)}\n`, "utf8");
     let offset = 0;
@@ -895,21 +982,27 @@ function appendTranscriptEvent(
     }
     appendCompleted = true;
     runSessionScaleFaultHook("afterTranscriptAppend", payload);
-    const descriptorState = physicalTranscriptStateFromStats(
-      fstatSync(fd, { bigint: true }),
-    );
-    const pathState = readPhysicalTranscriptState(filePath);
-    if (
-      !samePhysicalTranscriptState(descriptorState, pathState, {
-        content: false,
-      })
-    ) {
+    const descriptorStats = fstatSync(fd, { bigint: true });
+    const descriptorState = physicalTranscriptStateFromStats(descriptorStats);
+    const pathStats = readPhysicalTranscriptStats(filePath);
+    const pathState = physicalTranscriptStateFromStats(pathStats);
+    const publishedIdentityMatches =
+      parentDevice === null
+        ? samePhysicalTranscriptState(descriptorState, pathState, {
+            content: false,
+          })
+        : samePathHandleStableFileIdentity(
+            pathStats,
+            descriptorStats,
+            parentDevice,
+          );
+    if (!publishedIdentityMatches) {
       throw transcriptIdentityError(
         "unknown",
         "the published path no longer names the appended descriptor",
       );
     }
-    return descriptorState;
+    return pathState;
   } catch (cause) {
     if (cause?.code === "SESSION_TRANSCRIPT_IDENTITY_CHANGED") throw cause;
     throw createSessionPersistenceFailure(cause, {
@@ -2560,11 +2653,15 @@ function assertLocalVerifiedTranscriptAnchor(
 ) {
   const meta = readSessionMeta(getSessionsDir(), sessionId);
   let physicalAnchorMatches = true;
+  let currentPhysicalState = physicalState;
   if (meta?.transcript) {
     try {
+      currentPhysicalState ||= readPhysicalTranscriptState(
+        sessionPath(sessionId),
+      );
       physicalAnchorMatches = samePhysicalTranscriptState(
         meta.transcript,
-        physicalState || readPhysicalTranscriptState(sessionPath(sessionId)),
+        currentPhysicalState,
       );
     } catch {
       physicalAnchorMatches = false;
@@ -2572,10 +2669,13 @@ function assertLocalVerifiedTranscriptAnchor(
   }
   const trustedStatus =
     verification.status === TRANSCRIPT_CHAIN_STATUS.VERIFIED;
+  const headMatches = meta?.last_hash === verification.lastHash;
+  const eventCountMatches =
+    Number(meta?.event_count) === verification.chainedEvents;
   const anchoredHead =
     meta?.deleted !== true &&
-    meta?.last_hash === verification.lastHash &&
-    Number(meta?.event_count) === verification.chainedEvents &&
+    headMatches &&
+    eventCountMatches &&
     physicalAnchorMatches;
   if (
     !trustedStatus ||
@@ -2583,7 +2683,21 @@ function assertLocalVerifiedTranscriptAnchor(
     verification.malformedLines > 0 ||
     verification.truncatedTail
   ) {
-    throw unverifiedTranscriptError(sessionId, verification);
+    const error = unverifiedTranscriptError(sessionId, verification);
+    error.anchor = Object.freeze({
+      metadataPresent: meta !== null,
+      metadataDeleted: meta?.deleted === true,
+      headMatches,
+      eventCountMatches,
+      physicalAnchorMatches,
+      metadataHeadHash: meta?.last_hash ?? null,
+      metadataEventCount: Number.isSafeInteger(Number(meta?.event_count))
+        ? Number(meta.event_count)
+        : null,
+      metadataTranscript: meta?.transcript ?? null,
+      currentTranscript: currentPhysicalState ?? null,
+    });
+    throw error;
   }
   return meta;
 }
@@ -2746,49 +2860,15 @@ export function readVerifiedTranscriptBytes(sessionId) {
           transcriptAnchorMismatchVerification(),
         );
       }
-      let flags = fsConstants.O_RDONLY;
-      if (typeof fsConstants.O_NOFOLLOW === "number") {
-        flags |= fsConstants.O_NOFOLLOW;
-      }
-      const fd = openSync(filePath, flags);
-      try {
-        const before = physicalTranscriptStateFromStats(
-          fstatSync(fd, { bigint: true }),
-        );
-        if (
-          !samePhysicalTranscriptState(
-            before,
-            readPhysicalTranscriptState(filePath),
-          )
-        ) {
-          throw transcriptIdentityError(
-            "not-committed",
-            "the read descriptor does not match the canonical path",
-          );
-        }
-        const text = readFileSync(fd, "utf8");
-        const after = physicalTranscriptStateFromStats(
-          fstatSync(fd, { bigint: true }),
-        );
-        const published = readPhysicalTranscriptState(filePath);
-        if (
-          !samePhysicalTranscriptState(before, after) ||
-          !samePhysicalTranscriptState(after, published)
-        ) {
-          throw transcriptIdentityError(
-            "unknown",
-            "the transcript changed while verified bytes were read",
-          );
-        }
-        const verification = {
-          ...verifyTranscriptText(text),
-          lastHash: latestChainHash(text),
-        };
-        assertVerifiedTranscriptAnchor(sessionId, verification, after);
-        return text;
-      } finally {
-        closeSync(fd);
-      }
+      return withTranscriptFileParent(
+        filePath,
+        ({ canonicalPath, parentDevice }) =>
+          readVerifiedTranscriptBytesAtPath(
+            sessionId,
+            canonicalPath,
+            parentDevice,
+          ),
+      );
     },
     {
       failIfUnavailable: true,
@@ -2799,6 +2879,62 @@ export function readVerifiedTranscriptBytes(sessionId) {
       yieldAfterReleaseMs: 2,
     },
   );
+}
+
+function readVerifiedTranscriptBytesAtPath(sessionId, filePath, parentDevice) {
+  let flags = fsConstants.O_RDONLY;
+  if (typeof fsConstants.O_NOFOLLOW === "number") {
+    flags |= fsConstants.O_NOFOLLOW;
+  }
+  const fd = openSync(filePath, flags);
+  try {
+    const beforeStats = fstatSync(fd, { bigint: true });
+    const before = physicalTranscriptStateFromStats(beforeStats);
+    const publishedBeforeStats = readPhysicalTranscriptStats(filePath);
+    const publishedBefore =
+      physicalTranscriptStateFromStats(publishedBeforeStats);
+    const descriptorMatchesPublished =
+      parentDevice === null
+        ? samePhysicalTranscriptState(before, publishedBefore)
+        : samePathHandleStableFileIdentity(
+            publishedBeforeStats,
+            beforeStats,
+            parentDevice,
+          ) && samePhysicalTranscriptContentState(before, publishedBefore);
+    if (!descriptorMatchesPublished) {
+      throw transcriptIdentityError(
+        "not-committed",
+        "the read descriptor does not match the canonical path",
+      );
+    }
+    const text = readFileSync(fd, "utf8");
+    const afterStats = fstatSync(fd, { bigint: true });
+    const after = physicalTranscriptStateFromStats(afterStats);
+    const publishedStats = readPhysicalTranscriptStats(filePath);
+    const published = physicalTranscriptStateFromStats(publishedStats);
+    const publishedStillMatches =
+      parentDevice === null
+        ? samePhysicalTranscriptState(after, published)
+        : samePathHandleStableFileIdentity(
+            publishedStats,
+            afterStats,
+            parentDevice,
+          ) && samePhysicalTranscriptContentState(after, published);
+    if (!samePhysicalTranscriptState(before, after) || !publishedStillMatches) {
+      throw transcriptIdentityError(
+        "unknown",
+        "the transcript changed while verified bytes were read",
+      );
+    }
+    const verification = {
+      ...verifyTranscriptText(text),
+      lastHash: latestChainHash(text),
+    };
+    assertVerifiedTranscriptAnchor(sessionId, verification, published);
+    return text;
+  } finally {
+    closeSync(fd);
+  }
 }
 
 /**

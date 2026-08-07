@@ -9,6 +9,7 @@ import {
   sameFileStatIdentity,
   samePathHandleDirectoryIdentity,
   samePathHandleFileIdentity,
+  samePathHandleStableFileIdentity,
   SECURE_FILE_IDENTITY_ERROR,
   withTrustedFileParentSync,
 } from "../../src/lib/secure-file-identity.js";
@@ -155,6 +156,41 @@ describe("secure file identity", () => {
       ).toBe(false);
     },
   );
+
+  it("keeps append identity stable while allowing content fields to advance", () => {
+    const opened = identity();
+    const published = identity({
+      dev: "0",
+      size: "42",
+      mtimeNs: "2000000001",
+      ctimeNs: "2000000002",
+    });
+
+    expect(
+      samePathHandleStableFileIdentity(
+        published,
+        opened,
+        opened.dev,
+        NODE_22_12_WINDOWS,
+      ),
+    ).toBe(true);
+    expect(
+      samePathHandleStableFileIdentity(
+        { ...published, ino: "9876" },
+        opened,
+        opened.dev,
+        NODE_22_12_WINDOWS,
+      ),
+    ).toBe(false);
+    expect(
+      samePathHandleStableFileIdentity(
+        published,
+        opened,
+        "88",
+        NODE_22_12_WINDOWS,
+      ),
+    ).toBe(false);
+  });
 
   it("keeps exact handle snapshots fail-closed", () => {
     const before = identity();

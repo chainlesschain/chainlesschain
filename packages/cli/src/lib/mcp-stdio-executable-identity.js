@@ -1071,7 +1071,10 @@ export function prepareMcpStdioExecutableIdentity({
     identity: attestation.identity,
     identityDigest: attestation.identityDigest,
     env: launchEnv,
-    workingDirectory: materialization?.capsuleRoot || cwd,
+    workingDirectory:
+      sandboxExecutionContract?.workingDirectory ||
+      materialization?.capsuleRoot ||
+      cwd,
     ...(sandboxExecutionContract ? { sandboxExecutionContract } : {}),
     authority,
     trustStatus: trust.status,
