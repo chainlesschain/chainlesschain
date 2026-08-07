@@ -396,10 +396,8 @@ async function revealChatAndRunDomRelayJourney({
   extensionPath,
   workspaceDir,
   workspaceFolders,
-  workspaceTarget,
 }) {
   await activateMacHostWindow({
-    workspaceTarget,
     log: (message) =>
       console.log(`[extension-host-smoke] ${phase}: ${message}`),
   });
@@ -568,6 +566,7 @@ async function run() {
       extensionsDir,
       profileHome,
       primaryFolders: workspaceFolders,
+      primaryWorkspaceTarget: workspaceTarget,
       companionWorkspace,
       evidenceFile: multiWindowEvidenceFile,
     });
@@ -604,7 +603,6 @@ async function run() {
       extensionPath: extension.extensionPath,
       workspaceDir,
       workspaceFolders,
-      workspaceTarget,
     });
   } else {
     await revealChatAndWaitForDomJourney({

@@ -38,6 +38,7 @@ const {
 const {
   buildCompanionLaunchArgs,
   buildCompanionLaunchEnvironment,
+  requestPrimaryWorkspaceFocus,
   selectMultiWindowLocks,
   workspaceDigest,
 } = require("./extension-host/driver/multi-window.cjs");
@@ -270,6 +271,42 @@ test("companion host launch reuses the isolated profile in a new window", () => 
       VSCODE_IPC_HOOK: "isolated-main-process",
     }),
     { VSCODE_IPC_HOOK: "isolated-main-process" },
+  );
+});
+
+test("macOS multi-window handoff reopens the exact primary workspace", async () => {
+  const root = temporaryRoot();
+  const calls = [];
+  const input = {
+    vscodeExecutablePath: path.join(root, "Visual Studio Code"),
+    userDataDir: path.join(root, "user-data-initial"),
+    extensionsDir: path.join(root, "extensions"),
+    primaryWorkspaceTarget: path.join(root, "chainlesschain.code-workspace"),
+  };
+  assert.equal(
+    await requestPrimaryWorkspaceFocus({
+      ...input,
+      platform: "darwin",
+      settleMs: 0,
+      launch: async (options) => calls.push(options),
+    }),
+    true,
+  );
+  assert.deepEqual(calls, [
+    {
+      vscodeExecutablePath: input.vscodeExecutablePath,
+      userDataDir: input.userDataDir,
+      extensionsDir: input.extensionsDir,
+      companionWorkspace: input.primaryWorkspaceTarget,
+    },
+  ]);
+  assert.equal(
+    await requestPrimaryWorkspaceFocus({
+      ...input,
+      platform: "win32",
+      launch: async () => assert.fail("Windows must not request focus"),
+    }),
+    false,
   );
 });
 
@@ -1340,7 +1377,6 @@ test("macOS host activation targets the outer app bundle without a shell", async
     await activateMacHostWindow({
       platform: "darwin",
       executablePath,
-      workspaceTarget: "/tmp/chainlesschain.code-workspace",
       execFileProcess(file, args, options, callback) {
         calls.push({ file, args, options });
         callback(null);
@@ -1351,7 +1387,7 @@ test("macOS host activation targets the outer app bundle without a shell", async
   assert.deepEqual(calls, [
     {
       file: "/usr/bin/open",
-      args: ["-a", "/tmp/VS Code.app", "/tmp/chainlesschain.code-workspace"],
+      args: ["/tmp/VS Code.app"],
       options: { timeout: 10_000, windowsHide: true },
     },
   ]);

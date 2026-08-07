@@ -37,7 +37,6 @@ function findOuterMacAppBundle(executablePath) {
 async function activateMacHostWindow({
   platform = process.platform,
   executablePath = process.execPath,
-  workspaceTarget,
   execFileProcess = execFile,
   timeoutMs = 10_000,
   log = () => {},
@@ -50,21 +49,14 @@ async function activateMacHostWindow({
     );
   }
   await new Promise((resolve, reject) => {
-    const args = workspaceTarget
-      ? ["-a", appBundle, workspaceTarget]
-      : [appBundle];
     execFileProcess(
       "/usr/bin/open",
-      args,
+      [appBundle],
       { timeout: timeoutMs, windowsHide: true },
       (error) => (error ? reject(error) : resolve()),
     );
   });
-  log(
-    workspaceTarget
-      ? `activated macOS host workspace ${workspaceTarget}`
-      : `activated macOS host app ${appBundle}`,
-  );
+  log(`activated macOS host app ${appBundle}`);
   return true;
 }
 
