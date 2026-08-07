@@ -3,6 +3,19 @@
   "releases": [
     {
       "productVersion": null,
+      "cliVersion": "0.163.1",
+      "cliVersions": ["0.163.0", "0.163.1"],
+      "date": "2026-08-08",
+      "title": "",
+      "sections": [
+        {
+          "heading": "Fixed — cc CLI 0.163.1: bounded long sessions and reliability gates",
+          "body": "> `chainlesschain` **0.163.0 → 0.163.1** (release candidate,\n> 2026-08-08). CLI-only release metadata;\n> `@chainlesschain/personal-data-hub` remains **0.4.57** and\n> `@chainlesschain/agent-sdk` remains **0.1.7**.\n\n- **Bounded long-session compaction**: prior durable conversation summaries and\n  compacted tool records are folded into the next summary instead of remaining\n  as permanently accumulated system messages. A 2,000-turn regression keeps\n  compaction state bounded while preserving checkpoint and other trusted host\n  provenance.\n- **Atomic Windows MCP runtime launch**: the strict sandbox holds verified\n  runtime and entry identities through suspended process image creation, then\n  re-attests before resume. A real pathname-replacement race fails closed\n  before untrusted entry code executes.\n- **Real cross-platform reliability probes**: the formal matrix now includes\n  persisted EROFS/ENOSPC sessions, bounded pipe consumers, native TTY\n  screen-reader mode with multilingual keyboard input, Windows/macOS Unicode\n  clipboard round trips, localhost SSH disconnects, oversized MCP output,\n  concurrent agents, and two-hour resource accounting. Disk mounts are retired\n  from their actual `sessions` targets during cleanup.\n- **Native release credentials fail closed**: the six-target native workflow\n  refuses to build a release until Linux signing, Windows Authenticode, macOS\n  signing/notarization, and updater keys are all configured. This npm release\n  does not claim the separate native distribution chain is complete.\n- **Release condition**: publication remains blocked until this exact version\n  commit passes the complete Linux, Windows, and macOS `CLI CI` and `CLI Strict\nSandbox` matrices; the two-hour reliability matrix is recorded separately as\n  product evidence and cannot be replaced by local smoke tests."
+        }
+      ]
+    },
+    {
+      "productVersion": null,
       "cliVersion": "0.163.0",
       "cliVersions": ["0.162.200", "0.163.0"],
       "date": "2026-08-08",

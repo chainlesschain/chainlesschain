@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — cc CLI 0.163.1: bounded long sessions and reliability gates
+
+> `chainlesschain` **0.163.0 → 0.163.1** (release candidate,
+> 2026-08-08). CLI-only release metadata;
+> `@chainlesschain/personal-data-hub` remains **0.4.57** and
+> `@chainlesschain/agent-sdk` remains **0.1.7**.
+
+- **Bounded long-session compaction**: prior durable conversation summaries and
+  compacted tool records are folded into the next summary instead of remaining
+  as permanently accumulated system messages. A 2,000-turn regression keeps
+  compaction state bounded while preserving checkpoint and other trusted host
+  provenance.
+- **Atomic Windows MCP runtime launch**: the strict sandbox holds verified
+  runtime and entry identities through suspended process image creation, then
+  re-attests before resume. A real pathname-replacement race fails closed
+  before untrusted entry code executes.
+- **Real cross-platform reliability probes**: the formal matrix now includes
+  persisted EROFS/ENOSPC sessions, bounded pipe consumers, native TTY
+  screen-reader mode with multilingual keyboard input, Windows/macOS Unicode
+  clipboard round trips, localhost SSH disconnects, oversized MCP output,
+  concurrent agents, and two-hour resource accounting. Disk mounts are retired
+  from their actual `sessions` targets during cleanup.
+- **Native release credentials fail closed**: the six-target native workflow
+  refuses to build a release until Linux signing, Windows Authenticode, macOS
+  signing/notarization, and updater keys are all configured. This npm release
+  does not claim the separate native distribution chain is complete.
+- **Release condition**: publication remains blocked until this exact version
+  commit passes the complete Linux, Windows, and macOS `CLI CI` and `CLI Strict
+Sandbox` matrices; the two-hour reliability matrix is recorded separately as
+  product evidence and cannot be replaced by local smoke tests.
+
 ### Fixed — cc CLI 0.163.0: macOS PTY launch and native host validation
 
 > `chainlesschain` **0.162.200 → 0.163.0** (release candidate,
