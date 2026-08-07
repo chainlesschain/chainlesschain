@@ -5,14 +5,16 @@
  * identities. An explicitly approved materialization normalizes supported
  * npx/npm/pnpm/yarn/bunx/corepack source invocations to one exact npm package
  * version, installs it with lifecycle scripts disabled, verifies every
- * transitive lock entry has registry integrity, and publishes a private
- * generation whose complete file closure is hashed. Runtime resolution never
- * invokes the dynamic launcher: it re-verifies the generation and returns the
- * current Node runtime plus the pinned package entrypoint.
+ * transitive lock entry has registry integrity, snapshots the exact installed
+ * bytes, and bundles the reachable JavaScript closure into one guarded CJS
+ * capsule. Runtime resolution never invokes the dynamic launcher or the live
+ * node_modules entrypoint: it re-verifies both the provenance tree and capsule,
+ * then returns the current Node runtime plus the pinned capsule.
  */
 
 import crypto from "node:crypto";
 import fs from "node:fs";
+import { builtinModules, createRequire } from "node:module";
 import path from "node:path";
 import { getCacheDir, getMachineSecurityAnchorDir } from "./paths.js";
 import {
@@ -32,8 +34,55 @@ export const MCP_STDIO_PACKAGE_MATERIALIZATION_CHANGED_CODE =
   "CC_MCP_STDIO_PACKAGE_MATERIALIZATION_CHANGED";
 
 const MATERIALIZATION_SCHEMA =
-  "chainlesschain.mcp-stdio-package-materialization/v1";
-const MATERIALIZATION_VERSION = 1;
+  "chainlesschain.mcp-stdio-package-materialization/v2";
+const MATERIALIZATION_VERSION = 2;
+const CAPSULE_SCHEMA = "chainlesschain.mcp-stdio-node-capsule/v1";
+const CAPSULE_RELATIVE_PATH = "capsule/server.cjs";
+const CAPSULE_BUILDER = "esbuild";
+const CAPSULE_BUILDER_VERSION = "0.28.1";
+const CAPSULE_BUILDER_BINARIES = Object.freeze({
+  "darwin-arm64": Object.freeze({
+    packageName: "@esbuild/darwin-arm64",
+    relativePath: "bin/esbuild",
+    sha256: "e2dc9a52440a2a34f09434a2f4843cb1e30f84e40dcf238976ec61ef8cd7f36a",
+  }),
+  "darwin-x64": Object.freeze({
+    packageName: "@esbuild/darwin-x64",
+    relativePath: "bin/esbuild",
+    sha256: "dd53ccf32f9b5b3ab30d41388ef1fc8f81c44ca57ee7a32a7364a1753308d009",
+  }),
+  "linux-arm64": Object.freeze({
+    packageName: "@esbuild/linux-arm64",
+    relativePath: "bin/esbuild",
+    sha256: "51e829ba36f36be6d9aea6e329ddc4f9350302339b16aaca96a3cb97f64a8ebb",
+  }),
+  "linux-ia32": Object.freeze({
+    packageName: "@esbuild/linux-ia32",
+    relativePath: "bin/esbuild",
+    sha256:
+      "9cd7515a75d6f96b0aa055861cf987888b4765c890501b6274f4bdff4061a5e0d9fd",
+  }),
+  "linux-x64": Object.freeze({
+    packageName: "@esbuild/linux-x64",
+    relativePath: "bin/esbuild",
+    sha256: "0c6588b092a2c291a72bab90659f3c9e0e25e0fe59c9ac12b4dae4d945e5548c",
+  }),
+  "win32-arm64": Object.freeze({
+    packageName: "@esbuild/win32-arm64",
+    relativePath: "esbuild.exe",
+    sha256: "bfb8798ab678f1ce4a723739f4a3eabab3244d7a04eeb12be2eb9f58095c13ef",
+  }),
+  "win32-ia32": Object.freeze({
+    packageName: "@esbuild/win32-ia32",
+    relativePath: "esbuild.exe",
+    sha256: "8fa99b6e0945830fce8d7e208fdb21763aa4aea875751f4a0eec7f6e262af1dd",
+  }),
+  "win32-x64": Object.freeze({
+    packageName: "@esbuild/win32-x64",
+    relativePath: "esbuild.exe",
+    sha256: "ec02ee9b14ab332416fedd10614dfb80eed5304d94f67745067c011934a8c3c3",
+  }),
+});
 const INDEX_LABEL = "MCP stdio package materialization index";
 const MANIFEST_LABEL = "MCP stdio package materialization manifest";
 const MAX_FILES = 50_000;
@@ -49,6 +98,14 @@ export const _deps = {
   fs,
   processBrokerRunSync: null,
 };
+
+const require = createRequire(import.meta.url);
+const NODE_BUILTINS = new Set(
+  builtinModules.flatMap((name) => [
+    name,
+    name.startsWith("node:") ? name : `node:${name}`,
+  ]),
+);
 
 function materializationError(code, message, details = {}) {
   const error = new Error(message);
@@ -84,7 +141,7 @@ export function getMcpStdioPackageMaterializationRoot(options = {}) {
   return path.resolve(
     options.root ||
       process.env.CC_MCP_PACKAGE_MATERIALIZATION_ROOT ||
-      path.join(getCacheDir(), "mcp-stdio-package-materializations-v1"),
+      path.join(getCacheDir(), "mcp-stdio-package-materializations-v2"),
   );
 }
 
@@ -94,7 +151,7 @@ export function getMcpStdioPackageMaterializationIndexPath(options = {}) {
       process.env.CC_MCP_PACKAGE_MATERIALIZATION_INDEX ||
       path.join(
         getMachineSecurityAnchorDir(),
-        "mcp-stdio-package-materializations-v1.json",
+        "mcp-stdio-package-materializations-v2.json",
       ),
   );
 }
@@ -569,6 +626,373 @@ function collectTree(root) {
   });
 }
 
+function resolveContainedPath(root, relative, label) {
+  if (
+    typeof relative !== "string" ||
+    !relative ||
+    relative.includes("\0") ||
+    relative.split("/").some((part) => !part || part === "." || part === "..")
+  ) {
+    throw new Error(`${label} has an invalid relative path`);
+  }
+  const resolved = path.resolve(root, ...relative.split("/"));
+  const observed = path.relative(path.resolve(root), resolved);
+  if (
+    observed === "" ||
+    observed === ".." ||
+    observed.startsWith(`..${path.sep}`) ||
+    path.isAbsolute(observed)
+  ) {
+    throw new Error(`${label} escapes its root`);
+  }
+  return resolved;
+}
+
+function copyAttestedFile(sourceRoot, snapshotRoot, record) {
+  const source = resolveContainedPath(
+    sourceRoot,
+    record.path,
+    "MCP capsule source",
+  );
+  const destination = resolveContainedPath(
+    snapshotRoot,
+    record.path,
+    "MCP capsule snapshot",
+  );
+  _deps.fs.mkdirSync(path.dirname(destination), {
+    recursive: true,
+    mode: 0o700,
+  });
+  let sourceDescriptor;
+  let destinationDescriptor;
+  try {
+    sourceDescriptor = _deps.fs.openSync(
+      source,
+      Number(_deps.fs.constants.O_RDONLY) |
+        Number(_deps.fs.constants.O_NOFOLLOW || 0) |
+        Number(_deps.fs.constants.O_NONBLOCK || 0),
+    );
+    const before = _deps.fs.fstatSync(sourceDescriptor, { bigint: true });
+    if (!before.isFile() || before.size !== BigInt(record.bytes)) {
+      throw new Error(`MCP capsule source changed before copy: ${record.path}`);
+    }
+    destinationDescriptor = _deps.fs.openSync(
+      destination,
+      Number(_deps.fs.constants.O_WRONLY) |
+        Number(_deps.fs.constants.O_CREAT) |
+        Number(_deps.fs.constants.O_EXCL) |
+        Number(_deps.fs.constants.O_NOFOLLOW || 0),
+      0o600,
+    );
+    const digest = crypto.createHash("sha256");
+    const chunk = Buffer.allocUnsafe(
+      Math.max(1, Math.min(record.bytes, HASH_CHUNK_BYTES)),
+    );
+    let offset = 0;
+    while (offset < record.bytes) {
+      const count = _deps.fs.readSync(
+        sourceDescriptor,
+        chunk,
+        0,
+        Math.min(chunk.length, record.bytes - offset),
+        offset,
+      );
+      if (count <= 0) {
+        throw new Error(`MCP capsule source ended during copy: ${record.path}`);
+      }
+      digest.update(chunk.subarray(0, count));
+      let written = 0;
+      while (written < count) {
+        const writeCount = _deps.fs.writeSync(
+          destinationDescriptor,
+          chunk,
+          written,
+          count - written,
+          offset + written,
+        );
+        if (writeCount <= 0) {
+          throw new Error(
+            `MCP capsule snapshot ended during copy: ${record.path}`,
+          );
+        }
+        written += writeCount;
+      }
+      offset += count;
+    }
+    const after = _deps.fs.fstatSync(sourceDescriptor, { bigint: true });
+    if (
+      after.dev !== before.dev ||
+      after.ino !== before.ino ||
+      after.size !== before.size ||
+      after.mtimeNs !== before.mtimeNs ||
+      after.ctimeNs !== before.ctimeNs ||
+      digest.digest("hex") !== record.sha256
+    ) {
+      throw new Error(`MCP capsule source changed during copy: ${record.path}`);
+    }
+    _deps.fs.fchmodSync(destinationDescriptor, record.mode & 0o777);
+    _deps.fs.fsyncSync(destinationDescriptor);
+  } finally {
+    if (destinationDescriptor !== undefined) {
+      _deps.fs.closeSync(destinationDescriptor);
+    }
+    if (sourceDescriptor !== undefined) _deps.fs.closeSync(sourceDescriptor);
+  }
+  if (hashFile(destination, record.bytes) !== record.sha256) {
+    throw new Error(`MCP capsule snapshot copy is invalid: ${record.path}`);
+  }
+}
+
+function createAttestedSnapshot(treeRoot, closure, staging) {
+  const snapshotRoot = path.join(
+    staging,
+    `.capsule-source-${crypto.randomUUID()}`,
+  );
+  _deps.fs.mkdirSync(snapshotRoot, { recursive: false, mode: 0o700 });
+  for (const record of closure.files) {
+    copyAttestedFile(treeRoot, snapshotRoot, record);
+  }
+  const observed = collectTree(snapshotRoot);
+  if (
+    observed.fileCount !== closure.fileCount ||
+    observed.totalBytes !== closure.totalBytes ||
+    observed.closureDigest !== closure.closureDigest ||
+    canonicalJson(observed.files) !== canonicalJson(closure.files)
+  ) {
+    throw new Error(
+      "MCP capsule source snapshot does not match its attestation",
+    );
+  }
+  return snapshotRoot;
+}
+
+function resolveCapsuleBuilderBinary() {
+  const platform = `${process.platform}-${process.arch}`;
+  const expected = CAPSULE_BUILDER_BINARIES[platform];
+  if (!expected) {
+    throw new Error(`MCP capsule builder does not support ${platform}`);
+  }
+  const packageJsonPath = require.resolve(
+    `${expected.packageName}/package.json`,
+  );
+  const packageJson = JSON.parse(
+    _deps.fs.readFileSync(packageJsonPath, "utf8"),
+  );
+  if (
+    packageJson.name !== expected.packageName ||
+    packageJson.version !== CAPSULE_BUILDER_VERSION
+  ) {
+    throw new Error(
+      `MCP capsule builder must be ${expected.packageName}@${CAPSULE_BUILDER_VERSION}`,
+    );
+  }
+  const candidate = path.join(
+    path.dirname(packageJsonPath),
+    ...expected.relativePath.split("/"),
+  );
+  const realpath = _deps.fs.realpathSync.native || _deps.fs.realpathSync;
+  const binary = realpath(candidate);
+  const stat = _deps.fs.lstatSync(binary);
+  if (
+    stat.isSymbolicLink() ||
+    !stat.isFile() ||
+    stat.size <= 0 ||
+    stat.size > MAX_FILE_BYTES ||
+    hashFile(binary, stat.size) !== expected.sha256
+  ) {
+    throw new Error("MCP capsule builder binary identity is invalid");
+  }
+  return Object.freeze({
+    binary,
+    platform,
+    sha256: expected.sha256,
+  });
+}
+
+function capsuleRuntimeGuard() {
+  return `;(() => {
+  const Module = require("node:module");
+  const allowed = new Set(Module.builtinModules.flatMap((name) => [name, name.startsWith("node:") ? name : "node:" + name]));
+  const originalLoad = Module._load;
+  const blocked = (kind, request) => {
+    const error = new Error("MCP stdio capsule blocked " + kind + (request === undefined ? "" : ": " + String(request)));
+    error.code = kind === "native module loading" ? "CC_MCP_STDIO_NATIVE_MODULE_BLOCKED" : "CC_MCP_STDIO_EXTERNAL_MODULE_BLOCKED";
+    throw error;
+  };
+  Object.defineProperty(Module, "_load", {
+    configurable: false,
+    enumerable: false,
+    writable: false,
+    value: function(request) {
+      if (typeof request !== "string" || !allowed.has(request)) blocked("external module loading", request);
+      return Reflect.apply(originalLoad, this, arguments);
+    },
+  });
+  Object.defineProperty(process, "dlopen", {
+    configurable: false,
+    enumerable: false,
+    writable: false,
+    value: function() { blocked("native module loading"); },
+  });
+})();`;
+}
+
+function buildCapsule({
+  treeRoot,
+  entrypointRelative,
+  closure,
+  staging,
+  processBrokerRunSync,
+  env,
+}) {
+  const snapshotRoot = createAttestedSnapshot(treeRoot, closure, staging);
+  const capsuleRoot = path.join(staging, "capsule");
+  const capsulePath = path.join(staging, ...CAPSULE_RELATIVE_PATH.split("/"));
+  const metafilePath = path.join(
+    staging,
+    `.capsule-meta-${crypto.randomUUID()}.json`,
+  );
+  _deps.fs.mkdirSync(capsuleRoot, { recursive: false, mode: 0o700 });
+  try {
+    const snapshotEntrypoint = resolveContainedPath(
+      snapshotRoot,
+      entrypointRelative,
+      "MCP capsule entrypoint",
+    );
+    const builder = resolveCapsuleBuilderBinary();
+    const runThroughProcessBroker =
+      processBrokerRunSync || _deps.processBrokerRunSync;
+    if (typeof runThroughProcessBroker !== "function") {
+      throw new Error(
+        "MCP capsule construction requires a host-owned Process Broker runner",
+      );
+    }
+    const result = runThroughProcessBroker(
+      builder.binary,
+      [
+        snapshotEntrypoint,
+        "--bundle",
+        "--charset=utf8",
+        "--format=cjs",
+        "--legal-comments=none",
+        "--log-level=warning",
+        `--metafile=${metafilePath}`,
+        `--outfile=${capsulePath}`,
+        "--packages=bundle",
+        "--platform=node",
+        "--preserve-symlinks",
+        "--supported:dynamic-import=false",
+        "--target=node22",
+        "--tree-shaking=false",
+        `--banner:js=${capsuleRuntimeGuard()}`,
+      ],
+      {
+        cwd: snapshotRoot,
+        env: sanitizeMcpStdioHostEnvironment(env),
+        encoding: "utf8",
+        shell: false,
+        windowsHide: true,
+        maxBuffer: 8 * 1024 * 1024,
+      },
+    );
+    const stderr = String(result?.stderr || "").trim();
+    if (result?.error || result?.status !== 0 || stderr) {
+      const detail = String(
+        result?.error?.message || stderr || "esbuild failed",
+      )
+        .trim()
+        .slice(0, 2000);
+      throw new Error(`MCP capsule build failed closed: ${detail}`);
+    }
+    const metafile = JSON.parse(_deps.fs.readFileSync(metafilePath, "utf8"));
+    if (
+      !metafile ||
+      typeof metafile !== "object" ||
+      !metafile.inputs ||
+      typeof metafile.inputs !== "object" ||
+      !metafile.outputs ||
+      typeof metafile.outputs !== "object"
+    ) {
+      throw new Error("MCP capsule build metadata is invalid");
+    }
+    const sourceByPath = new Map(
+      closure.files.map((record) => [record.path, record]),
+    );
+    const inputs = Object.keys(metafile.inputs)
+      .map((input) => input.split(path.sep).join("/"))
+      .sort()
+      .map((input) => {
+        const absolute = path.resolve(snapshotRoot, ...input.split("/"));
+        const relative = path
+          .relative(snapshotRoot, absolute)
+          .split(path.sep)
+          .join("/");
+        const record = sourceByPath.get(relative);
+        if (!record || input !== relative) {
+          throw new Error(
+            `MCP capsule build used an unattested input: ${input}`,
+          );
+        }
+        return {
+          path: relative,
+          bytes: record.bytes,
+          sha256: record.sha256,
+        };
+      });
+    if (
+      inputs.length === 0 ||
+      !inputs.some((input) => input.path === entrypointRelative)
+    ) {
+      throw new Error("MCP capsule build did not bind its approved entrypoint");
+    }
+    const externalBuiltins = [];
+    for (const output of Object.values(metafile.outputs)) {
+      for (const imported of output.imports || []) {
+        if (!imported.external || !NODE_BUILTINS.has(imported.path)) {
+          throw new Error(
+            `MCP capsule build retained an external dependency: ${imported.path}`,
+          );
+        }
+        externalBuiltins.push(imported.path);
+      }
+    }
+    const postBuildClosure = collectTree(treeRoot);
+    if (
+      postBuildClosure.fileCount !== closure.fileCount ||
+      postBuildClosure.totalBytes !== closure.totalBytes ||
+      postBuildClosure.closureDigest !== closure.closureDigest ||
+      canonicalJson(postBuildClosure.files) !== canonicalJson(closure.files)
+    ) {
+      throw new Error("MCP package dependency closure changed during bundling");
+    }
+    const capsuleClosure = collectTree(capsuleRoot);
+    if (
+      capsuleClosure.fileCount !== 1 ||
+      capsuleClosure.files[0]?.path !== path.basename(capsulePath)
+    ) {
+      throw new Error("MCP capsule output is not one regular file");
+    }
+    return Object.freeze({
+      schema: CAPSULE_SCHEMA,
+      relativePath: CAPSULE_RELATIVE_PATH,
+      sha256: capsuleClosure.files[0].sha256,
+      bytes: capsuleClosure.files[0].bytes,
+      closureDigest: capsuleClosure.closureDigest,
+      builder: CAPSULE_BUILDER,
+      builderVersion: CAPSULE_BUILDER_VERSION,
+      builderPlatform: builder.platform,
+      builderBinarySha256: builder.sha256,
+      nodeTarget: "node22",
+      inputCount: inputs.length,
+      inputDigest: sha256(canonicalJson(inputs)),
+      externalBuiltins: Object.freeze([...new Set(externalBuiltins)].sort()),
+    });
+  } finally {
+    if (_deps.fs.existsSync(metafilePath)) _deps.fs.rmSync(metafilePath);
+    _deps.fs.rmSync(snapshotRoot, { recursive: true, force: true });
+  }
+}
+
 function assertSafeGeneration(root, generation) {
   if (typeof generation !== "string" || !/^[a-f0-9]{64}$/.test(generation)) {
     throw new TypeError("MCP materialization generation is invalid");
@@ -595,6 +1019,30 @@ function validateManifest(manifest) {
     typeof manifest.lockSha256 !== "string" ||
     !/^[a-f0-9]{64}$/.test(manifest.lockSha256) ||
     typeof manifest.entrypointRelative !== "string" ||
+    manifest.capsule?.schema !== CAPSULE_SCHEMA ||
+    manifest.capsule?.relativePath !== CAPSULE_RELATIVE_PATH ||
+    typeof manifest.capsule?.sha256 !== "string" ||
+    !/^[a-f0-9]{64}$/.test(manifest.capsule.sha256) ||
+    !Number.isSafeInteger(manifest.capsule?.bytes) ||
+    manifest.capsule.bytes <= 0 ||
+    manifest.capsule.bytes > MAX_FILE_BYTES ||
+    typeof manifest.capsule?.closureDigest !== "string" ||
+    !/^[a-f0-9]{64}$/.test(manifest.capsule.closureDigest) ||
+    manifest.capsule?.builder !== CAPSULE_BUILDER ||
+    manifest.capsule?.builderVersion !== CAPSULE_BUILDER_VERSION ||
+    typeof manifest.capsule?.builderPlatform !== "string" ||
+    !CAPSULE_BUILDER_BINARIES[manifest.capsule.builderPlatform] ||
+    manifest.capsule?.builderBinarySha256 !==
+      CAPSULE_BUILDER_BINARIES[manifest.capsule.builderPlatform]?.sha256 ||
+    manifest.capsule?.nodeTarget !== "node22" ||
+    !Number.isSafeInteger(manifest.capsule?.inputCount) ||
+    manifest.capsule.inputCount <= 0 ||
+    typeof manifest.capsule?.inputDigest !== "string" ||
+    !/^[a-f0-9]{64}$/.test(manifest.capsule.inputDigest) ||
+    !Array.isArray(manifest.capsule?.externalBuiltins) ||
+    manifest.capsule.externalBuiltins.some(
+      (name) => typeof name !== "string" || !NODE_BUILTINS.has(name),
+    ) ||
     !Array.isArray(manifest.files) ||
     !Number.isSafeInteger(manifest.fileCount) ||
     !Number.isSafeInteger(manifest.totalBytes) ||
@@ -610,6 +1058,9 @@ function validateManifest(manifest) {
     manifest.fileCount !== manifest.files.length ||
     manifest.files.length > MAX_FILES ||
     manifest.totalBytes > MAX_TOTAL_BYTES ||
+    manifest.capsule.inputCount > manifest.fileCount ||
+    canonicalJson(manifest.capsule.externalBuiltins) !==
+      canonicalJson([...new Set(manifest.capsule.externalBuiltins)].sort()) ||
     sha256(canonicalJson(manifest.files)) !== manifest.closureDigest
   ) {
     throw materializationError(
@@ -656,25 +1107,69 @@ function verifyPublishedGeneration(root, record, expectedFingerprint) {
       "MCP package materialization dependency closure changed",
     );
   }
-  const entrypoint = path.resolve(
-    treeRoot,
-    ...manifest.entrypointRelative.split("/"),
-  );
-  const relative = path.relative(treeRoot, entrypoint);
+  let sourceEntrypoint;
+  let entrypoint;
+  try {
+    sourceEntrypoint = resolveContainedPath(
+      treeRoot,
+      manifest.entrypointRelative,
+      "MCP package materialization source entrypoint",
+    );
+    entrypoint = resolveContainedPath(
+      generationRoot,
+      manifest.capsule.relativePath,
+      "MCP package materialization capsule",
+    );
+  } catch (cause) {
+    throw materializationError(
+      MCP_STDIO_PACKAGE_MATERIALIZATION_INVALID_CODE,
+      cause.message,
+      { cause },
+    );
+  }
   if (
-    relative === "" ||
-    relative === ".." ||
-    relative.startsWith(`..${path.sep}`) ||
-    path.isAbsolute(relative)
+    !manifest.files.some(
+      (file) =>
+        file.path === manifest.entrypointRelative &&
+        resolveContainedPath(
+          treeRoot,
+          file.path,
+          "MCP package materialization source file",
+        ) === sourceEntrypoint,
+    )
   ) {
     throw materializationError(
       MCP_STDIO_PACKAGE_MATERIALIZATION_INVALID_CODE,
-      "MCP package materialization entrypoint escapes its tree",
+      "MCP package materialization source entrypoint is outside its closure",
+    );
+  }
+  const capsuleRoot = path.dirname(entrypoint);
+  let capsuleClosure;
+  try {
+    capsuleClosure = collectTree(capsuleRoot);
+  } catch (cause) {
+    throw materializationError(
+      MCP_STDIO_PACKAGE_MATERIALIZATION_CHANGED_CODE,
+      `MCP package capsule could not be re-attested: ${cause.message}`,
+      { cause },
+    );
+  }
+  if (
+    capsuleClosure.fileCount !== 1 ||
+    capsuleClosure.totalBytes !== manifest.capsule.bytes ||
+    capsuleClosure.closureDigest !== manifest.capsule.closureDigest ||
+    capsuleClosure.files[0]?.path !== path.basename(entrypoint) ||
+    capsuleClosure.files[0]?.sha256 !== manifest.capsule.sha256
+  ) {
+    throw materializationError(
+      MCP_STDIO_PACKAGE_MATERIALIZATION_CHANGED_CODE,
+      "MCP package capsule changed",
     );
   }
   return Object.freeze({
     generationRoot,
     treeRoot,
+    capsuleRoot,
     entrypoint,
     manifest: Object.freeze(manifest),
     identity: Object.freeze({
@@ -686,6 +1181,10 @@ function verifyPublishedGeneration(root, record, expectedFingerprint) {
       lockSha256: manifest.lockSha256,
       packageCount: manifest.packageCount,
       entrypointRelative: manifest.entrypointRelative,
+      capsule: Object.freeze({
+        ...manifest.capsule,
+        externalBuiltins: Object.freeze([...manifest.capsule.externalBuiltins]),
+      }),
       closureDigest: manifest.closureDigest,
       fileCount: manifest.fileCount,
       totalBytes: manifest.totalBytes,
@@ -747,6 +1246,14 @@ export function materializeMcpStdioNpmPackage({
     const lock = validateNpmLock(treeRoot, source);
     const entry = resolvePackageEntrypoint(treeRoot, source, binName);
     const closure = collectTree(treeRoot);
+    const capsule = buildCapsule({
+      treeRoot,
+      entrypointRelative: entry.entrypointRelative,
+      closure,
+      staging,
+      processBrokerRunSync,
+      env,
+    });
     const generation = sha256(
       canonicalJson({
         sourceFingerprint: approvalRecord.fingerprint,
@@ -755,6 +1262,7 @@ export function materializeMcpStdioNpmPackage({
         passthroughArgs: source.passthroughArgs,
         lockSha256: lock.lockSha256,
         closureDigest: closure.closureDigest,
+        capsule,
       }),
     );
     const manifest = {
@@ -768,6 +1276,7 @@ export function materializeMcpStdioNpmPackage({
       lockSha256: lock.lockSha256,
       packageCount: lock.packageCount,
       entrypointRelative: entry.entrypointRelative,
+      capsule,
       closureDigest: closure.closureDigest,
       fileCount: closure.fileCount,
       totalBytes: closure.totalBytes,
@@ -859,6 +1368,7 @@ export function resolveMcpStdioPackageMaterialization({
     identity: verified.identity,
     generationRoot: verified.generationRoot,
     treeRoot: verified.treeRoot,
+    capsuleRoot: verified.capsuleRoot,
     manifestDigest: record.manifestDigest,
   });
 }

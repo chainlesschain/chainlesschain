@@ -952,7 +952,7 @@ export function prepareMcpStdioExecutableIdentity({
     identity: attestation.identity,
     identityDigest: attestation.identityDigest,
     env: launchEnv,
-    workingDirectory: materialization?.treeRoot || cwd,
+    workingDirectory: materialization?.capsuleRoot || cwd,
     authority,
     trustStatus: trust.status,
   });

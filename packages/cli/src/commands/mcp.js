@@ -816,7 +816,7 @@ export function registerMcpCommand(program) {
   mcp
     .command("materialize-package <name>")
     .description(
-      "Replace one exact JavaScript package launcher with a content-addressed, transitive-integrity-locked local generation",
+      "Replace one exact JavaScript package launcher with a content-addressed, guarded dependency capsule",
     )
     .requiredOption(
       "--package <name@version>",
@@ -913,6 +913,9 @@ export function registerMcpCommand(program) {
           );
           logger.log(
             `  ${chalk.gray("Dependency closure:")} sha256:${materialized.identity.closureDigest} (${materialized.identity.fileCount} files, ${materialized.identity.totalBytes} bytes)`,
+          );
+          logger.log(
+            `  ${chalk.gray("Execution capsule:")} sha256:${materialized.identity.capsule.sha256} (${materialized.identity.capsule.bytes} bytes, ${materialized.identity.capsule.inputCount} bundled inputs)`,
           );
         }
         await shutdown();
