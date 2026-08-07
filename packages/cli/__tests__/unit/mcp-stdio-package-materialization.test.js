@@ -19,6 +19,7 @@ import {
   MCP_STDIO_PACKAGE_MATERIALIZATION_CHANGED_CODE,
   MCP_STDIO_PACKAGE_MATERIALIZATION_INVALID_CODE,
   parseExactNpmPackageSpec,
+  parseNpmPackageLauncherInvocation,
   parseNpxMaterializationInvocation,
   resolveMcpStdioPackageMaterialization,
 } from "../../src/lib/mcp-stdio-package-materialization.js";
@@ -164,10 +165,55 @@ describe("MCP stdio fixed npm package materialization", () => {
     );
   });
 
-  it("locks the complete transitive tree and replaces npx with a direct Node entrypoint", () => {
+  it.each([
+    ["npx", ["-y", "pkg@1.2.3", "--stdio"], "npx"],
+    ["npm", ["exec", "--yes", "--", "pkg@1.2.3", "--stdio"], "npm-exec"],
+    ["bunx", ["--yes", "pkg@1.2.3", "--stdio"], "bunx"],
+    ["pnpx", ["pkg@1.2.3", "--stdio"], "pnpx"],
+    ["pnpm", ["dlx", "pkg@1.2.3", "--stdio"], "pnpm-dlx"],
+    ["yarn", ["dlx", "pkg@1.2.3", "--stdio"], "yarn-dlx"],
+    ["yarnpkg", ["dlx", "pkg@1.2.3", "--stdio"], "yarnpkg-dlx"],
+    ["corepack", ["pnpm", "dlx", "pkg@1.2.3", "--stdio"], "corepack-pnpm-dlx"],
+    ["corepack", ["yarn", "dlx", "pkg@1.2.3", "--stdio"], "corepack-yarn-dlx"],
+  ])(
+    "normalizes the exact JavaScript package launcher %s",
+    (command, args, launcher) => {
+      expect(
+        parseNpmPackageLauncherInvocation({ command, args }, "pkg@1.2.3"),
+      ).toEqual({
+        name: "pkg",
+        version: "1.2.3",
+        spec: "pkg@1.2.3",
+        launcher,
+        passthroughArgs: ["--stdio"],
+      });
+    },
+  );
+
+  it.each([
+    ["npm", ["install", "pkg@1.2.3"]],
+    ["bunx", ["--bun", "pkg@1.2.3"]],
+    ["pnpm", ["--package", "pkg@1.2.3", "dlx", "pkg"]],
+    ["corepack", ["npm", "exec", "pkg@1.2.3"]],
+    ["uvx", ["pkg@1.2.3"]],
+    ["pipx", ["run", "pkg@1.2.3"]],
+  ])(
+    "fails closed on unsupported or ambiguous launcher argv for %s",
+    (command, args) => {
+      expect(() =>
+        parseNpmPackageLauncherInvocation({ command, args }, "pkg@1.2.3"),
+      ).toThrow(
+        expect.objectContaining({
+          code: MCP_STDIO_PACKAGE_MATERIALIZATION_INVALID_CODE,
+        }),
+      );
+    },
+  );
+
+  it("locks the complete transitive tree and replaces a launcher with a direct Node entrypoint", () => {
     const config = {
-      command: "npx",
-      args: ["-y", "@scope/mcp-server@1.2.3", "--stdio"],
+      command: "bunx",
+      args: ["--yes", "@scope/mcp-server@1.2.3", "--stdio"],
       transport: "stdio",
     };
     const authority = approved(config);

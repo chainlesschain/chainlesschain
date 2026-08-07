@@ -1,13 +1,14 @@
 /**
  * Fixed-version, content-addressed npm materialization for MCP stdio servers.
  *
- * `npx` is a package resolver and downloader, not an executable identity. An
- * explicitly approved materialization installs one exact package version with
- * lifecycle scripts disabled, verifies every transitive lock entry has
- * registry integrity, and publishes a private generation whose complete file
- * closure is hashed. Runtime resolution never invokes the dynamic launcher:
- * it re-verifies the generation and returns the current Node runtime plus the
- * pinned package entrypoint.
+ * JavaScript package launchers are resolvers and downloaders, not executable
+ * identities. An explicitly approved materialization normalizes supported
+ * npx/npm/pnpm/yarn/bunx/corepack source invocations to one exact npm package
+ * version, installs it with lifecycle scripts disabled, verifies every
+ * transitive lock entry has registry integrity, and publishes a private
+ * generation whose complete file closure is hashed. Runtime resolution never
+ * invokes the dynamic launcher: it re-verifies the generation and returns the
+ * current Node runtime plus the pinned package entrypoint.
  */
 
 import crypto from "node:crypto";
@@ -125,30 +126,73 @@ export function parseExactNpmPackageSpec(value) {
   return Object.freeze({ name, version, spec: `${name}@${version}` });
 }
 
-export function parseNpxMaterializationInvocation(config, packageSpec) {
-  const launcher = executableBasename(config?.command);
-  if (launcher !== "npx") {
-    throw materializationError(
-      MCP_STDIO_PACKAGE_MATERIALIZATION_INVALID_CODE,
-      `MCP fixed npm materialization currently requires an npx source invocation, not ${String(config?.command)}`,
-    );
-  }
-  const exact = parseExactNpmPackageSpec(packageSpec);
+function skipYesFlag(args, start) {
+  let index = start;
+  while (args[index] === "-y" || args[index] === "--yes") index += 1;
+  return index;
+}
+
+function packageArgumentIndex(config) {
+  const command = executableBasename(config?.command);
   const args = Array.isArray(config?.args) ? [...config.args] : [];
   let index = 0;
-  while (args[index] === "-y" || args[index] === "--yes") index += 1;
-  if (args[index] !== exact.spec) {
+  let launcher = command;
+
+  if (["npx", "bunx", "pnpx"].includes(command)) {
+    index = skipYesFlag(args, 0);
+  } else if (command === "npm") {
+    if (args[index] !== "exec") return null;
+    launcher = "npm-exec";
+    index = skipYesFlag(args, index + 1);
+    if (args[index] === "--") index += 1;
+  } else if (command === "pnpm") {
+    if (args[index] !== "dlx") return null;
+    launcher = "pnpm-dlx";
+    index = skipYesFlag(args, index + 1);
+  } else if (command === "yarn" || command === "yarnpkg") {
+    if (args[index] !== "dlx") return null;
+    launcher = `${command}-dlx`;
+    index = skipYesFlag(args, index + 1);
+  } else if (command === "corepack") {
+    const manager = executableBasename(args[index]);
+    if (!["pnpm", "yarn", "yarnpkg"].includes(manager)) return null;
+    if (args[index + 1] !== "dlx") return null;
+    launcher = `corepack-${manager}-dlx`;
+    index = skipYesFlag(args, index + 2);
+  } else {
+    return null;
+  }
+
+  return Object.freeze({ args, index, launcher });
+}
+
+export function parseNpmPackageLauncherInvocation(config, packageSpec) {
+  const exact = parseExactNpmPackageSpec(packageSpec);
+  const parsed = packageArgumentIndex(config);
+  if (!parsed) {
     throw materializationError(
       MCP_STDIO_PACKAGE_MATERIALIZATION_INVALID_CODE,
-      `npx source invocation must name the same exact package spec ${exact.spec}`,
+      `MCP fixed npm materialization does not support source launcher ${String(config?.command)}`,
+    );
+  }
+  if (parsed.args[parsed.index] !== exact.spec) {
+    throw materializationError(
+      MCP_STDIO_PACKAGE_MATERIALIZATION_INVALID_CODE,
+      `MCP package launcher must name the same exact package spec ${exact.spec} without unbound resolver flags`,
     );
   }
   return Object.freeze({
     ...exact,
-    launcher,
-    passthroughArgs: Object.freeze(args.slice(index + 1)),
+    launcher: parsed.launcher,
+    passthroughArgs: Object.freeze(parsed.args.slice(parsed.index + 1)),
   });
 }
+
+// Compatibility export for callers introduced with the original npx-only
+// materializer. Its semantics intentionally expand to all normalized npm
+// package launchers while retaining the stable API name.
+export const parseNpxMaterializationInvocation =
+  parseNpmPackageLauncherInvocation;
 
 function resolveNpmCli(options = {}) {
   const candidates = [
@@ -672,7 +716,7 @@ export function materializeMcpStdioNpmPackage({
       "MCP package materialization requires a valid execution approval",
     );
   }
-  const source = parseNpxMaterializationInvocation(config, packageSpec);
+  const source = parseNpmPackageLauncherInvocation(config, packageSpec);
   const root = getMcpStdioPackageMaterializationRoot({ root: explicitRoot });
   const indexPath = getMcpStdioPackageMaterializationIndexPath({
     indexPath: explicitIndexPath,

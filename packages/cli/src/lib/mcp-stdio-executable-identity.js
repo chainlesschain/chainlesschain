@@ -57,6 +57,7 @@ const DYNAMIC_LAUNCHERS = new Set([
   "npx",
   "pipx",
   "pnpm",
+  "pnpx",
   "uvx",
   "yarn",
   "yarnpkg",

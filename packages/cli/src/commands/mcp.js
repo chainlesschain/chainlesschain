@@ -816,7 +816,7 @@ export function registerMcpCommand(program) {
   mcp
     .command("materialize-package <name>")
     .description(
-      "Replace one exact npx package with a content-addressed, transitive-integrity-locked local generation",
+      "Replace one exact JavaScript package launcher with a content-addressed, transitive-integrity-locked local generation",
     )
     .requiredOption(
       "--package <name@version>",
