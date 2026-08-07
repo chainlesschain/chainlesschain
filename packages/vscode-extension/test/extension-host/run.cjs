@@ -15,6 +15,7 @@
  *   npm run test:extension-host -- --vsix chainlesschain-ide.vsix
  */
 
+const assert = require("node:assert/strict");
 const crypto = require("node:crypto");
 const fs = require("node:fs");
 const os = require("node:os");
@@ -145,7 +146,7 @@ function makeFreshRunRoot(parent) {
 }
 
 function buildProfileArgs({ runRoot, extensionsDir, phase }) {
-  if (!/^(?:install|initial|restart)$/.test(phase)) {
+  if (!/^(?:install|initial|multi-window|restart)$/.test(phase)) {
     throw new Error(`unknown host profile phase: ${phase}`);
   }
   return [
@@ -180,13 +181,13 @@ function createHostProgressJournal(artifactDir) {
   return progressPath;
 }
 
-function recordHostProgress(progressPath, stage) {
+function recordHostProgress(progressPath, stage, details = {}) {
   if (!/^[a-z][a-z0-9_]*$/.test(stage)) {
     throw new Error(`invalid host progress stage: ${stage}`);
   }
   fs.appendFileSync(
     progressPath,
-    `${JSON.stringify({ stage, at: new Date().toISOString() })}\n`,
+    `${JSON.stringify({ ...details, stage, at: new Date().toISOString() })}\n`,
     "utf8",
   );
 }
@@ -242,6 +243,86 @@ function writeMultiRootWorkspace(runRoot, fixtureCliCommand) {
     workspaceFolders,
     workspaceTarget,
   };
+}
+
+function writeCompanionWorkspace(runRoot, fixtureCliCommand) {
+  const workspaceDir = path.join(runRoot, "workspace-companion");
+  const settingsDir = path.join(workspaceDir, ".vscode");
+  fs.mkdirSync(settingsDir, { recursive: true });
+  fs.writeFileSync(
+    path.join(workspaceDir, "companion.txt"),
+    "ChainlessChain Extension Host companion window\n",
+    "utf8",
+  );
+  fs.writeFileSync(
+    path.join(settingsDir, "settings.json"),
+    `${JSON.stringify(hostWorkspaceSettings(fixtureCliCommand), null, 2)}\n`,
+    "utf8",
+  );
+  return workspaceDir;
+}
+
+function assertMultiWindowEvidence(filePath) {
+  const evidence = JSON.parse(fs.readFileSync(filePath, "utf8"));
+  const exactKeys = (value, expected, label) => {
+    const actual = Object.keys(value || {}).sort();
+    assert.deepEqual(
+      actual,
+      [...expected].sort(),
+      `${label} contains sensitive or unknown fields`,
+    );
+  };
+  exactKeys(
+    evidence,
+    [
+      "version",
+      "result",
+      "observedAt",
+      "primary",
+      "companion",
+      "simultaneousListening",
+      "distinctBridgeTokens",
+    ],
+    "multi-window evidence",
+  );
+  if (
+    evidence?.version !== 1 ||
+    evidence?.result !== "passed" ||
+    evidence?.simultaneousListening !== true ||
+    evidence?.distinctBridgeTokens !== true ||
+    !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u.test(
+      evidence?.observedAt || "",
+    )
+  ) {
+    throw new Error("multi-window evidence header is invalid");
+  }
+  for (const label of ["primary", "companion"]) {
+    const row = evidence[label];
+    exactKeys(
+      row,
+      ["port", "pid", "rootCount", "workspaceDigest"],
+      `multi-window ${label} identity`,
+    );
+    if (
+      !Number.isInteger(row?.port) ||
+      row.port < 1 ||
+      !Number.isInteger(row?.pid) ||
+      row.pid < 1 ||
+      !Number.isInteger(row?.rootCount) ||
+      row.rootCount < 1 ||
+      !/^[a-f0-9]{64}$/u.test(row?.workspaceDigest || "")
+    ) {
+      throw new Error(`multi-window ${label} identity is invalid`);
+    }
+  }
+  if (
+    evidence.primary.port === evidence.companion.port ||
+    evidence.primary.pid === evidence.companion.pid ||
+    evidence.primary.workspaceDigest === evidence.companion.workspaceDigest
+  ) {
+    throw new Error("multi-window identities are not distinct");
+  }
+  return evidence;
 }
 
 function hostPhaseSignalPaths(runtimeDir, phase) {
@@ -309,6 +390,26 @@ function buildHostApiLaunchArgs({ workspaceDir, profileArgs }) {
     "--disable-crash-reporter",
     workspaceDir,
   ];
+}
+
+function buildExternalCompanionHostLaunchArgs({ workspaceDir, profileArgs }) {
+  let userDataArgumentCount = 0;
+  const companionProfileArgs = profileArgs.map((argument) => {
+    if (!argument.startsWith("--user-data-dir=")) return argument;
+    userDataArgumentCount += 1;
+    return `${argument}-companion`;
+  });
+  if (userDataArgumentCount !== 1) {
+    throw new Error(
+      "external companion profile requires exactly one user-data directory",
+    );
+  }
+  const launchArgs = buildHostApiLaunchArgs({
+    workspaceDir,
+    profileArgs: companionProfileArgs,
+  });
+  launchArgs.splice(-1, 0, "--new-window");
+  return launchArgs;
 }
 
 function buildHostDomRelayLaunchArgs({ workspaceDir, profileArgs }) {
@@ -413,6 +514,54 @@ function launchExtensionHostWithCdpPipe({
   let stopRequests = 0;
   return {
     browserClient: new CdpClient(createCdpPipeSocket(pipeWrite, pipeRead)),
+    outcome,
+    requestStop() {
+      stopRequests += 1;
+      child.kill(stopRequests === 1 ? "SIGINT" : "SIGKILL");
+    },
+  };
+}
+
+function launchManagedExtensionHost({
+  vscodeExecutablePath,
+  launchArgs,
+  extensionDevelopmentPath,
+  extensionTestsPath,
+  extensionTestsEnv,
+  stdout = process.stdout,
+  stderr = process.stderr,
+  spawnProcess = spawn,
+}) {
+  const child = spawnProcess(
+    vscodeExecutablePath,
+    buildExtensionTestLaunchArgs({
+      launchArgs,
+      extensionDevelopmentPath,
+      extensionTestsPath,
+    }),
+    {
+      env: { ...process.env, ...extensionTestsEnv },
+      shell: false,
+      stdio: ["ignore", "pipe", "pipe"],
+    },
+  );
+  child.stdout?.on("data", (chunk) => stdout.write(chunk));
+  child.stderr?.on("data", (chunk) => stderr.write(chunk));
+  const outcome = new Promise((resolve, reject) => {
+    child.once("error", reject);
+    child.once("close", (code, signal) => {
+      if (code === 0) resolve(code);
+      else {
+        reject(
+          new Error(
+            `VS Code managed host failed (code=${String(code)}, signal=${String(signal)})`,
+          ),
+        );
+      }
+    });
+  });
+  let stopRequests = 0;
+  return {
     outcome,
     requestStop() {
       stopRequests += 1;
@@ -850,12 +999,23 @@ async function runHostApiPhase({
   phase,
   runtimeDir,
   fixture,
+  companionWorkspace,
+  multiWindowEvidenceFile,
+  progressPath,
+  includeMultiWindow = false,
+  platform = process.platform,
+  launchManagedHost = launchManagedExtensionHost,
 }) {
   const launchTarget = workspaceTarget || workspaceDir;
   const expectedWorkspaceFolders = workspaceFolders || [workspaceDir];
+  const userDataDir = profileArgs
+    .find((argument) => argument.startsWith("--user-data-dir="))
+    ?.slice("--user-data-dir=".length);
+  if (!userDataDir) throw new Error("host profile has no user-data directory");
   const { readyFile, resultFile } = hostPhaseSignalPaths(runtimeDir, phase);
   const traceFile = path.join(runtimeDir, "host-api-trace.jsonl");
-  await runTests({
+  const useExternalCompanion = includeMultiWindow && platform !== "win32";
+  const launchOptions = {
     vscodeExecutablePath,
     extensionDevelopmentPath: path.join(__dirname, "driver"),
     extensionTestsPath: path.join(__dirname, "driver", "smoke.cjs"),
@@ -879,8 +1039,87 @@ async function runHostApiPhase({
       CHAINLESSCHAIN_HOST_TRACE_FILE: traceFile,
       CC_UI_FIXTURE_STATE: fixture.statePath,
       CC_UI_FIXTURE_TRACE: fixture.tracePath,
+      ...(includeMultiWindow
+        ? {
+            CHAINLESSCHAIN_MULTI_WINDOW_REQUIRED: "1",
+            CHAINLESSCHAIN_SMOKE_COMPANION_WORKSPACE: companionWorkspace,
+            CHAINLESSCHAIN_MULTI_WINDOW_EVIDENCE_FILE: multiWindowEvidenceFile,
+            CHAINLESSCHAIN_MULTI_WINDOW_PROGRESS_FILE: progressPath,
+            CHAINLESSCHAIN_SMOKE_VSCODE_EXECUTABLE: vscodeExecutablePath,
+            CHAINLESSCHAIN_SMOKE_USER_DATA_DIR: userDataDir,
+            ...(useExternalCompanion
+              ? { CHAINLESSCHAIN_MULTI_WINDOW_EXTERNAL_COMPANION: "1" }
+              : {}),
+          }
+        : {}),
     },
-  });
+  };
+  if (useExternalCompanion) {
+    recordHostProgress(
+      progressPath,
+      "multi_window_companion_launch_requested",
+      { actor: "orchestrator", transport: "managed-extension-host" },
+    );
+    const companionHost = launchManagedHost({
+      ...launchOptions,
+      launchArgs: buildExternalCompanionHostLaunchArgs({
+        workspaceDir: companionWorkspace,
+        profileArgs,
+      }),
+    });
+    recordHostProgress(
+      progressPath,
+      "multi_window_companion_launch_dispatched",
+      { actor: "orchestrator", transport: "managed-extension-host" },
+    );
+    const primaryHost = launchManagedHost(launchOptions);
+    const managedHosts = [
+      { label: "companion", launched: companionHost },
+      { label: "primary", launched: primaryHost },
+    ];
+    const journey = await waitForFile(resultFile, 135_000)
+      .then(() => readJourneyResult(resultFile, phase))
+      .then(
+        (value) => ({ value }),
+        (error) => ({ error }),
+      );
+    const hosts = await Promise.all(
+      managedHosts.map(async ({ label, launched }) => {
+        const hostOutcome = launched.outcome.then(
+          (value) => ({ value }),
+          (error) => ({ error }),
+        );
+        const settled = await settleHostAfterCdp({
+          hostOutcome,
+          phase,
+          emitSigint: launched.requestStop,
+          journeyLabel: `host API multi-window ${label}`,
+        });
+        return { label, ...settled };
+      }),
+    );
+    const hostErrors = hosts
+      .filter(
+        ({ host, managedTermination }) =>
+          host?.error && !(managedTermination && !journey.error),
+      )
+      .map(
+        ({ label, host }) =>
+          new Error(`${label} VS Code host failed: ${host.error.message}`, {
+            cause: host.error,
+          }),
+      );
+    const errors = [...hostErrors, ...(journey.error ? [journey.error] : [])];
+    if (errors.length > 1) {
+      throw new AggregateError(
+        errors,
+        `VS Code managed hosts and multi-window journey failed during ${phase}`,
+      );
+    }
+    if (errors.length === 1) throw errors[0];
+    return journey.value;
+  }
+  await runTests(launchOptions);
   return readJourneyResult(resultFile, phase);
 }
 
@@ -893,14 +1132,6 @@ function assertHostApiArtifacts({
 }) {
   const traceFile = path.join(runtimeDir, "host-api-trace.jsonl");
   const records = readJsonLines(traceFile);
-  const requiredStages = [
-    "installed-vsix-discovered",
-    "vsix-activated",
-    "commands-verified",
-    "bridge-verified",
-    "view-command-dispatched",
-    "phase-completed",
-  ];
   const results = [];
   for (const phase of ["initial", "restart"]) {
     const { readyFile, resultFile } = hostPhaseSignalPaths(runtimeDir, phase);
@@ -923,6 +1154,15 @@ function assertHostApiArtifacts({
     }
 
     const phaseRecords = records.filter((record) => record.phase === phase);
+    const requiredStages = [
+      "installed-vsix-discovered",
+      "vsix-activated",
+      "commands-verified",
+      "bridge-verified",
+      ...(phase === "initial" ? ["multi-window-verified"] : []),
+      "view-command-dispatched",
+      "phase-completed",
+    ];
     let previousIndex = -1;
     for (const stage of requiredStages) {
       const index = phaseRecords.findIndex((record) => record.stage === stage);
@@ -1126,6 +1366,11 @@ async function main() {
   );
   const { workspaceDir, workspaceFolders, workspaceTarget } =
     writeMultiRootWorkspace(runRoot, fixture.command);
+  const companionWorkspace = writeCompanionWorkspace(runRoot, fixture.command);
+  const multiWindowEvidenceFile = path.join(
+    journeyRuntimeDir,
+    "multi-window-evidence.json",
+  );
 
   process.stdout.write(`[extension-host-smoke] fresh run root: ${runRoot}\n`);
 
@@ -1174,6 +1419,32 @@ async function main() {
       options.vscodeVersion,
     );
     recordHostProgress(progressPath, "download_completed");
+    if (!hostApiMode) {
+      recordHostProgress(progressPath, "multi_window_started");
+      await runHostApiPhase({
+        runTests,
+        vscodeExecutablePath,
+        workspaceDir,
+        workspaceFolders,
+        workspaceTarget,
+        profileArgs: buildProfileArgs({
+          runRoot,
+          extensionsDir,
+          phase: "multi-window",
+        }),
+        extensionsDir,
+        profileHome,
+        expectedVersion,
+        phase: "initial",
+        runtimeDir: path.join(journeyRuntimeDir, "multi-window-gate"),
+        fixture,
+        companionWorkspace,
+        multiWindowEvidenceFile,
+        progressPath,
+        includeMultiWindow: true,
+      });
+      recordHostProgress(progressPath, "multi_window_completed");
+    }
     for (const phase of ["initial", "restart"]) {
       const profileArgs = buildProfileArgs({ runRoot, extensionsDir, phase });
       recordHostProgress(progressPath, `${phase}_started`);
@@ -1192,6 +1463,10 @@ async function main() {
         runtimeDir: journeyRuntimeDir,
         journeyArtifactDir,
         fixture,
+        companionWorkspace,
+        multiWindowEvidenceFile,
+        progressPath,
+        includeMultiWindow: hostApiMode && phase === "initial",
         useCdpPipe: false,
         useElectronMainInspector: false,
         useDomRelay: hostJourneyTransport.useDomRelay,
@@ -1216,6 +1491,7 @@ async function main() {
         workspaceFolders,
       });
     }
+    assertMultiWindowEvidence(multiWindowEvidenceFile);
     recordHostProgress(progressPath, "assertions_completed");
     journeyResult = "passed";
     process.stdout.write(
@@ -1253,8 +1529,8 @@ async function main() {
       const result = await writeJourneyEvidence({
         artifactDir,
         journeyId: hostApiMode
-          ? "vscode-installed-vsix-multiroot-host-api-activation-view-relaunch"
-          : "vscode-installed-vsix-real-dom-multiroot-control-workbench-restart",
+          ? "vscode-installed-vsix-multiroot-multiwindow-host-api-activation-view-relaunch"
+          : "vscode-installed-vsix-real-dom-multiroot-multiwindow-control-workbench-restart",
         host: "vscode",
         hostVersion: hostVersion || options.vscodeVersion,
         cliVersion,
@@ -1298,12 +1574,14 @@ async function main() {
 module.exports = {
   buildProfileArgs,
   buildExtensionTestLaunchArgs,
+  buildExternalCompanionHostLaunchArgs,
   buildHostApiLaunchArgs,
   buildHostDomRelayLaunchArgs,
   buildHostInspectorLaunchArgs,
   buildHostLaunchArgs,
   buildHostPipeLaunchArgs,
   assertHostApiArtifacts,
+  assertMultiWindowEvidence,
   createDevToolsEndpointCapture,
   createElectronInspectorEndpointCapture,
   createHostProgressJournal,
@@ -1311,6 +1589,7 @@ module.exports = {
   hostPhaseSignalPaths,
   makeFreshRunRoot,
   launchExtensionHostWithCdpPipe,
+  launchManagedExtensionHost,
   parseArgs,
   parseDevToolsBrowserEndpoint,
   parseElectronInspectorEndpoint,
@@ -1321,6 +1600,7 @@ module.exports = {
   runRealDomPhase,
   settleHostAfterCdp,
   writeMultiRootWorkspace,
+  writeCompanionWorkspace,
 };
 
 if (require.main === module) {

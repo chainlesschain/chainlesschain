@@ -12,6 +12,7 @@ const {
   withTimeout,
 } = require("./view-control.cjs");
 const { runDomRelayJourney } = require("./dom-relay-journey.cjs");
+const { runMultiWindowJourney } = require("./multi-window.cjs");
 
 const EXTENSION_ID = "chainlesschain.chainlesschain-ide";
 const REQUIRED_COMMANDS = [
@@ -99,6 +100,91 @@ function assertOpenedWorkspaceFolders(expectedWorkspaceFolders) {
     expected,
     "VS Code did not open the exact ordered multi-root workspace",
   );
+}
+
+function isCompanionWindow(companionWorkspace) {
+  if (!companionWorkspace) return false;
+  const actual = (vscode.workspace.workspaceFolders || []).map((folder) =>
+    normalizeForCompare(fs.realpathSync(folder.uri.fsPath)),
+  );
+  return (
+    actual.length === 1 &&
+    actual[0] === normalizeForCompare(fs.realpathSync(companionWorkspace))
+  );
+}
+
+async function dismissFreshInstallReloadPrompt() {
+  // Every host phase uses a brand-new profile, so no retained Webview can
+  // exist. Dismiss the production first-seen-version notification before the
+  // visible local/CI desktop can accidentally choose its Reload action and
+  // terminate the extension-test contract mid-journey.
+  await new Promise((resolve) => setTimeout(resolve, 250));
+  await vscode.commands.executeCommand("notifications.clearAll");
+}
+
+async function runCompanionWindow({
+  extensionsDir,
+  expectedVersion,
+  profileHome,
+  companionWorkspace,
+  primaryResultFile,
+  journeyPhase,
+  multiWindowProgressFile,
+}) {
+  const extension = vscode.extensions.getExtension(EXTENSION_ID);
+  assert.ok(
+    extension,
+    `installed extension ${EXTENSION_ID} was not discovered in companion window`,
+  );
+  assertPathInside(
+    fs.realpathSync(extension.extensionPath),
+    fs.realpathSync(extensionsDir),
+  );
+  assert.equal(extension.packageJSON.version, expectedVersion);
+  await withTimeout(
+    Promise.resolve().then(() => extension.activate()),
+    30_000,
+    `${EXTENSION_ID} companion activation`,
+  );
+  await dismissFreshInstallReloadPrompt();
+  const lock = await waitForBridgeLock(
+    profileHome,
+    [companionWorkspace],
+    45_000,
+  );
+  await assertPortListening(lock.port);
+  console.log(
+    `[extension-host-smoke] companion: installed VSIX bridge verified on ${lock.port}`,
+  );
+  appendMultiWindowProgress(
+    multiWindowProgressFile,
+    "multi_window_companion_bridge_verified",
+    { actor: "companion" },
+  );
+  // The extension-test path is inherited by every new VS Code window. Recent
+  // VS Code hosts wait for every window's test promise before closing the
+  // isolated desktop, so an intentionally pending companion would deadlock
+  // runTests even after the primary journey succeeded. Keep both live for the
+  // simultaneous bridge proof, then release this window only after the
+  // primary has atomically published its validated result.
+  await waitForJourneyResult(primaryResultFile, journeyPhase, 135_000);
+  appendMultiWindowProgress(
+    multiWindowProgressFile,
+    "multi_window_companion_primary_result_observed",
+    { actor: "companion" },
+  );
+  if (process.platform === "darwin") {
+    // VS Code 1.132 keeps the macOS app alive after both inherited test
+    // promises settle while the companion window remains open. At this point
+    // the primary has already published success, so closing only this window
+    // cannot preempt the journey and lets @vscode/test-electron complete.
+    appendMultiWindowProgress(
+      multiWindowProgressFile,
+      "multi_window_companion_close_requested",
+      { actor: "companion" },
+    );
+    void vscode.commands.executeCommand("workbench.action.closeWindow");
+  }
 }
 
 async function waitForBridgeLock(
@@ -232,6 +318,38 @@ function appendHostTrace(traceFile, phase, stage, details = {}) {
     })}\n`,
     { encoding: "utf8", mode: 0o600 },
   );
+}
+
+function appendMultiWindowProgress(progressFile, stage, details = {}) {
+  assert.ok(progressFile, "missing multi-window progress file");
+  assert.match(stage, /^multi_window_[a-z0-9_]+$/u);
+  fs.appendFileSync(
+    progressFile,
+    `${JSON.stringify({
+      stage,
+      at: new Date().toISOString(),
+      ...details,
+    })}\n`,
+    { encoding: "utf8", mode: 0o600 },
+  );
+}
+
+async function waitForMultiWindowProgressStage(
+  progressFile,
+  expectedStage,
+  timeoutMs,
+) {
+  const deadline = Date.now() + timeoutMs;
+  const marker = `"stage":"${expectedStage}"`;
+  while (Date.now() < deadline) {
+    try {
+      if (fs.readFileSync(progressFile, "utf8").includes(marker)) return true;
+    } catch (error) {
+      if (error?.code !== "ENOENT") throw error;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  return false;
 }
 
 async function waitForJourneyResult(resultFile, phase, timeoutMs) {
@@ -369,6 +487,10 @@ async function run() {
   const workspaceDir = process.env.CHAINLESSCHAIN_SMOKE_WORKSPACE;
   const workspaceFoldersJson =
     process.env.CHAINLESSCHAIN_SMOKE_WORKSPACE_FOLDERS;
+  const multiWindowRequired =
+    process.env.CHAINLESSCHAIN_MULTI_WINDOW_REQUIRED === "1";
+  const externalCompanionManaged =
+    process.env.CHAINLESSCHAIN_MULTI_WINDOW_EXTERNAL_COMPANION === "1";
   const profileHome = process.env.HOME || process.env.USERPROFILE;
   const journeyPhase = process.env.CHAINLESSCHAIN_HOST_JOURNEY_PHASE;
   const journeyMode = process.env.CHAINLESSCHAIN_HOST_JOURNEY_MODE || "dom";
@@ -377,6 +499,15 @@ async function run() {
   const traceFile = process.env.CHAINLESSCHAIN_HOST_TRACE_FILE;
   const artifactDir = process.env.CHAINLESSCHAIN_HOST_ARTIFACT_DIR;
   const hostDomToken = process.env.CHAINLESSCHAIN_HOST_DOM_TOKEN;
+  const companionWorkspace =
+    process.env.CHAINLESSCHAIN_SMOKE_COMPANION_WORKSPACE;
+  const multiWindowEvidenceFile =
+    process.env.CHAINLESSCHAIN_MULTI_WINDOW_EVIDENCE_FILE;
+  const multiWindowProgressFile =
+    process.env.CHAINLESSCHAIN_MULTI_WINDOW_PROGRESS_FILE;
+  const vscodeExecutablePath =
+    process.env.CHAINLESSCHAIN_SMOKE_VSCODE_EXECUTABLE;
+  const userDataDir = process.env.CHAINLESSCHAIN_SMOKE_USER_DATA_DIR;
   assert.ok(extensionsDir, "missing CHAINLESSCHAIN_SMOKE_EXTENSIONS_DIR");
   assert.ok(expectedVersion, "missing CHAINLESSCHAIN_SMOKE_EXPECTED_VERSION");
   assert.ok(workspaceDir, "missing CHAINLESSCHAIN_SMOKE_WORKSPACE");
@@ -402,6 +533,21 @@ async function run() {
     );
   }
   console.log(`[extension-host-smoke] ${journeyPhase}: driver entered`);
+  if (
+    journeyPhase === "initial" &&
+    multiWindowRequired &&
+    isCompanionWindow(companionWorkspace)
+  ) {
+    return runCompanionWindow({
+      extensionsDir,
+      expectedVersion,
+      profileHome,
+      companionWorkspace,
+      primaryResultFile: resultFile,
+      journeyPhase,
+      multiWindowProgressFile,
+    });
+  }
   assertOpenedWorkspaceFolders(workspaceFolders);
   console.log(
     `[extension-host-smoke] ${journeyPhase}: ${workspaceFolders.length} workspace roots verified`,
@@ -437,6 +583,7 @@ async function run() {
     `${EXTENSION_ID} activation`,
   );
   assert.equal(extension.isActive, true, "extension did not become active");
+  await dismissFreshInstallReloadPrompt();
   console.log(`[extension-host-smoke] ${journeyPhase}: VSIX activated`);
   if (journeyMode !== "dom") {
     appendHostTrace(traceFile, journeyPhase, "vsix-activated");
@@ -475,6 +622,51 @@ async function run() {
     appendHostTrace(traceFile, journeyPhase, "bridge-verified");
   }
 
+  if (journeyPhase === "initial" && multiWindowRequired) {
+    appendMultiWindowProgress(
+      multiWindowProgressFile,
+      "multi_window_primary_bridge_verified",
+      { actor: "primary" },
+    );
+    assert.ok(
+      companionWorkspace,
+      "missing CHAINLESSCHAIN_SMOKE_COMPANION_WORKSPACE",
+    );
+    assert.ok(
+      multiWindowEvidenceFile,
+      "missing CHAINLESSCHAIN_MULTI_WINDOW_EVIDENCE_FILE",
+    );
+    await runMultiWindowJourney({
+      vscodeExecutablePath,
+      userDataDir,
+      extensionsDir,
+      profileHome,
+      primaryFolders: workspaceFolders,
+      companionWorkspace,
+      evidenceFile: multiWindowEvidenceFile,
+      ...(externalCompanionManaged
+        ? {
+            // The non-Windows outer runner owns a second isolated real VS Code
+            // process because current hosts do not reliably activate inherited
+            // extension tests in a child workbench. Windows retains the
+            // same-instance path that its real-host matrix proves directly.
+            launchCompanion: async () => {},
+          }
+        : {}),
+    });
+    appendMultiWindowProgress(
+      multiWindowProgressFile,
+      "multi_window_evidence_written",
+      { actor: "primary" },
+    );
+    console.log(
+      `[extension-host-smoke] ${journeyPhase}: simultaneous second window bridge verified`,
+    );
+    if (journeyMode !== "dom") {
+      appendHostTrace(traceFile, journeyPhase, "multi-window-verified");
+    }
+  }
+
   // Open the production-contributed view through VS Code's real workbench
   // command. DOM mode hands off to the external CDP peer for actual Webview
   // interaction. Host-API mode ends at the production command boundary and
@@ -489,6 +681,42 @@ async function run() {
       workspaceDir,
       workspaceFolders,
     });
+    if (journeyPhase === "initial" && multiWindowRequired) {
+      appendMultiWindowProgress(
+        multiWindowProgressFile,
+        "multi_window_primary_result_published",
+        { actor: "primary" },
+      );
+      if (process.platform === "darwin") {
+        const companionObserved = await waitForMultiWindowProgressStage(
+          multiWindowProgressFile,
+          "multi_window_companion_primary_result_observed",
+          3_000,
+        );
+        // Current macOS VS Code keeps the application process alive after the
+        // isolated primary and companion test promises settle. The immutable
+        // primary result and simultaneous live-Bridge evidence are already on
+        // disk, so request a clean application exit after a bounded companion
+        // synchronization grace period.
+        appendMultiWindowProgress(
+          multiWindowProgressFile,
+          "multi_window_primary_quit_requested",
+          { actor: "primary", companionObserved },
+        );
+        void vscode.commands
+          .executeCommand("workbench.action.quit")
+          .catch((error) => {
+            appendMultiWindowProgress(
+              multiWindowProgressFile,
+              "multi_window_primary_quit_rejected",
+              {
+                actor: "primary",
+                error: String(error?.message || error),
+              },
+            );
+          });
+      }
+    }
   } else if (journeyMode === "dom-relay") {
     await revealChatAndRunDomRelayJourney({
       phase: journeyPhase,

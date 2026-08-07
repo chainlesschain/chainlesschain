@@ -652,7 +652,7 @@ VS Code / JetBrains / Desktop / Web / Mobile
 - [Desktop coding agent bootstrap](../desktop-app-vue/src/main/bootstrap/coding-agent-bootstrap.js)
 - [现有完整差距审计](./IDE_VS_PLUGIN_CLAUDE_GAPS_AND_OPTIMIZATIONS_2026-07-22.md)
 
-## 十二、实施状态快照（更新至 2026-08-06）
+## 十二、实施状态快照（更新至 2026-08-07）
 
 本节记录原始审计快照之后的实施进展。状态严格区分“仓库实现”“本地定向验证”“真实宿主/远程矩阵”和
 “公开发布回读”：前两者不能替代后两者，也不能据此宣称 Microsoft Marketplace 发布、真实 PR/merge 或完整
@@ -738,6 +738,21 @@ P0-1、P0-2、P0-3 保持完成；Open VSX `0.37.44` 与 JetBrains `0.4.81` 的�
 release 仍为 NO-GO：Microsoft Marketplace、Desktop/native 签名与 fresh-profile 安装/升级/回滚、ARM64、
 remote/SSH/WSL/devcontainer、多窗口、网络抖动、8 小时 soak、完整冷进程恢复及其余 R4/R5 产品旅程
 尚未关闭。CLI npm 或两家 IDE 渠道成功均不得外推为这些范围已经交付。
+
+### 2026-08-07 VS Code 多窗口真实宿主候选
+
+- VS Code `0.37.45` 候选把已安装不可变 VSIX 的初始真实宿主旅程扩展为同一干净 profile 下的两个
+  实际 workspace window。主窗口保留有序双根，伴随窗口使用独立单根；门禁必须同时观测到两份精确
+  workspace identity 的 owner-only Bridge lock，并证明 Extension Host PID、端口和 256-bit token 均不同、
+  两个 loopback 端口同时可连接。公开 evidence 只保留 PID、端口、root count 与 workspace digest，
+  不写入 token 或工作区路径。
+- 本地 Windows 已使用打包 VSIX 完成 host-API 两进程重启旅程和完整 real-DOM/Webview/Workbench/重启
+  旅程；后者包含 100 次 `needs-input-visible` 采样且 P95 低于 2 秒。本地结果只是补充证据，不能替代
+  最终提交在 GitHub Actions 上的 stable + minimum `1.85.2` × Windows/Linux/macOS 六格门禁。
+- 只有 exact release SHA 的六格门禁、不可变候选校验和 tag workflow 全绿并完成 Open VSX 公开回读后，
+  才能关闭 P0-4 的 VS Code 多窗口子范围。Remote/SSH/WSL/devcontainer、网络抖动、ARM64、fresh-profile
+  安装/升级/回滚和 8 小时 soak 仍保持未完成；不得把多窗口子门外推为整个 P0-4 或 product release GO。
+- 本轮按发布决策只准备 Open VSX；Microsoft Marketplace 不发布，仍保留为 R0/Q4b 的明确缺口。
 
 ### 2026-08-02 恢复安全检查点
 
