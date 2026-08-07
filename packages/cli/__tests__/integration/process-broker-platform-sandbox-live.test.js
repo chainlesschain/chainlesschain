@@ -1238,6 +1238,206 @@ describe.runIf(LIVE && SUPPORTED)(
       300_000,
     );
 
+    it.runIf(process.platform === "win32")(
+      "fails closed when a Windows MCP capsule runtime replacement races launch",
+      async () => {
+        const workspace = fs.mkdtempSync(
+          path.join(os.tmpdir(), "cc-windows-mcp-runtime-race-"),
+        );
+        const runtimePath = path.join(workspace, "node.exe");
+        const replacementRuntime = path.join(workspace, "replacement.exe");
+        const entryPath = path.join(workspace, "server.cjs");
+        const snapshotGateToken = crypto.randomBytes(32).toString("hex");
+        const snapshotReleasePath = path.join(workspace, "snapshot-release");
+        const attackerFixture = fileURLToPath(
+          new URL(
+            "../fixtures/process-broker-windows-posix-replace.ps1",
+            import.meta.url,
+          ),
+        );
+        const commandRuntime = path.join(
+          process.env.SystemRoot || process.env.WINDIR,
+          "System32",
+          "cmd.exe",
+        );
+        let plan = null;
+        let helper = null;
+        let attacker = null;
+        let helperExit = null;
+        let attackerExit = null;
+        const helperStdout = [];
+        const helperStderr = [];
+        const attackerStdout = [];
+        const attackerStderr = [];
+
+        try {
+          fs.copyFileSync(process.execPath, runtimePath);
+          fs.copyFileSync(commandRuntime, replacementRuntime);
+          fs.writeFileSync(
+            entryPath,
+            'process.stdout.write("verified-runtime-executed");\n',
+            "utf8",
+          );
+          const canonicalRuntime = fs.realpathSync.native(runtimePath);
+          const canonicalEntry = fs.realpathSync.native(entryPath);
+          plan = applyWindowsSandbox(
+            canonicalRuntime,
+            [canonicalEntry, "--stdio"],
+            {
+              cwd: workspace,
+              shell: false,
+              detached: false,
+              env: process.env,
+              stdio: ["ignore", "pipe", "pipe"],
+              windowsHide: true,
+            },
+            {
+              profileName: "default",
+              sync: false,
+              requiredBoundaries: [
+                SANDBOX_BOUNDARIES.PROCESS_TREE,
+                SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
+              ],
+              executionContract: {
+                kind: "strict-mcp-node-capsule",
+                runtimePath: canonicalRuntime,
+                runtimeIdentity: fileIdentity(canonicalRuntime),
+                entryIdentity: fileIdentity(canonicalEntry),
+              },
+            },
+            {
+              platform: "win32",
+              windowsSnapshotTestGate: {
+                token: snapshotGateToken,
+                releasePath: snapshotReleasePath,
+              },
+            },
+          );
+          expect(plan).toMatchObject({
+            applied: true,
+            backend: "windows-job-restricted-token",
+            guarantees: expect.arrayContaining([
+              SANDBOX_BOUNDARIES.PROCESS_TREE,
+              SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
+            ]),
+            runtimeProbe: {
+              contentSnapshot: true,
+              contentSnapshotScope: "mcp-capsule-entry-source",
+              entrySnapshotAtomic: true,
+              runtimeLaunchAtomic: true,
+              runtimeLaunchMechanism:
+                "filter-oplock-locked-createprocess-suspended-image-v1",
+              sharedLibraryClosure: false,
+            },
+          });
+
+          helper = nativeSpawn(plan.command, plan.args, plan.options);
+          helperExit = once(helper, "close");
+          helper.stdout.on("data", (chunk) => helperStdout.push(chunk));
+          helper.stderr.on("data", (chunk) => helperStderr.push(chunk));
+          await waitForJsonLine(
+            helper,
+            helper.stdout,
+            (record) =>
+              record?.eventName === "SNAPSHOT_CAPTURED" &&
+              record?.token === snapshotGateToken,
+            "MCP runtime snapshot gate",
+            30_000,
+            () => helperStderr.join(""),
+          );
+
+          attacker = nativeSpawn(
+            path.join(
+              process.env.SystemRoot || process.env.WINDIR,
+              "System32",
+              "WindowsPowerShell",
+              "v1.0",
+              "powershell.exe",
+            ),
+            [
+              "-NoLogo",
+              "-NoProfile",
+              "-NonInteractive",
+              "-ExecutionPolicy",
+              "Bypass",
+              "-File",
+              attackerFixture,
+              "-SourcePath",
+              replacementRuntime,
+              "-DestinationPath",
+              canonicalRuntime,
+            ],
+            {
+              cwd: workspace,
+              env: process.env,
+              stdio: ["ignore", "pipe", "pipe"],
+              windowsHide: true,
+            },
+          );
+          attackerExit = once(attacker, "close");
+          attacker.stdout.on("data", (chunk) => attackerStdout.push(chunk));
+          attacker.stderr.on("data", (chunk) => attackerStderr.push(chunk));
+          await waitForJsonLine(
+            attacker,
+            attacker.stdout,
+            (record) => record?.state === "ATTEMPTING",
+            "runtime replacement ATTEMPTING",
+            30_000,
+            () => attackerStderr.join(""),
+          );
+
+          const attackerCompletedWhileRuntimeLocked = await Promise.race([
+            attackerExit.then(() => true),
+            new Promise((resolve) => setTimeout(() => resolve(false), 2_000)),
+          ]);
+          expect(attackerCompletedWhileRuntimeLocked).toBe(false);
+          expect(helper.exitCode).toBeNull();
+
+          fs.writeFileSync(snapshotReleasePath, "release", "utf8");
+          const [helperCode, helperSignal] = await helperExit;
+          const [attackerCode, attackerSignal] = await attackerExit;
+          expect(
+            { helperCode, helperSignal },
+            `${helperStdout.join("")}\n${helperStderr.join("")}`,
+          ).not.toEqual({ helperCode: 0, helperSignal: null });
+          expect(helperStdout.join("")).not.toContain(
+            "verified-runtime-executed",
+          );
+          expect(helperStderr.join("")).toMatch(
+            /Filter oplock broke before target resume/i,
+          );
+          expect(
+            { attackerCode, attackerSignal },
+            `${attackerStdout.join("")}\n${attackerStderr.join("")}`,
+          ).toEqual({ attackerCode: 0, attackerSignal: null });
+          expect(attackerStdout.join("")).toContain('"state":"REPLACED"');
+          expect(fileSha256(canonicalRuntime)).toBe(fileSha256(commandRuntime));
+          expect(fs.existsSync(replacementRuntime)).toBe(false);
+        } finally {
+          if (
+            helper &&
+            helper.exitCode === null &&
+            helper.signalCode === null
+          ) {
+            helper.kill();
+          }
+          if (helperExit && helper) await waitForChildClose(helperExit);
+          if (
+            attacker &&
+            attacker.exitCode === null &&
+            attacker.signalCode === null
+          ) {
+            attacker.kill();
+          }
+          if (attackerExit && attacker) await waitForChildClose(attackerExit);
+          if (typeof plan?.cleanup === "function") plan.cleanup();
+          fs.rmSync(snapshotReleasePath, { force: true });
+          fs.rmSync(workspace, { recursive: true, force: true });
+        }
+      },
+      300_000,
+    );
+
     it.runIf(process.platform === "linux")(
       "runs and tears down a direct policy-bearing Plugin Node background tree without retaining parent mount descriptors",
       () => {

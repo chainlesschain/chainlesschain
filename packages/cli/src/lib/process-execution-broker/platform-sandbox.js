@@ -2041,6 +2041,16 @@ function windowsAppContainerPolicyDigest({
             ? "verified-handle-inherited-pipe-module-compile-v1"
             : null,
         handleAtomic: false,
+        ...(snapshotLocks.length > 0 &&
+        executionContract?.kind === MCP_STDIO_CAPSULE_SANDBOX_CONTRACT_KIND
+          ? {
+              entrySnapshotAtomic: true,
+              runtimeLaunchAtomic: true,
+              runtimeLaunchMechanism:
+                "filter-oplock-locked-createprocess-suspended-image-v1",
+              sharedLibraryClosure: false,
+            }
+          : {}),
         launchPathLocks: snapshotLocks,
       },
     }),
@@ -2622,7 +2632,9 @@ export function applyWindowsSandbox(
                 ({ role }) => role === "entry",
               )?.bytes,
               entrySnapshotAtomic: true,
-              runtimeLaunchAtomic: false,
+              runtimeLaunchAtomic: true,
+              runtimeLaunchMechanism:
+                "filter-oplock-locked-createprocess-suspended-image-v1",
               sharedLibraryClosure: false,
             }
           : {}),

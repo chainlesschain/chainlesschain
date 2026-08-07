@@ -1179,6 +1179,7 @@ class ProcessExecutionBroker extends EventEmitter {
         "targetRuntime",
         "contentSnapshotScope",
         "contentSnapshotMechanism",
+        "runtimeLaunchMechanism",
         "pluginTreeContentSnapshotScope",
         "pluginTreeContentSnapshotMechanism",
         "pluginTreeSnapshotConsistency",
@@ -1610,7 +1611,9 @@ class ProcessExecutionBroker extends EventEmitter {
             "verified-handle-inherited-pipe-module-compile-v1" &&
           plan.runtimeProbe.handleAtomic === false &&
           plan.runtimeProbe.entrySnapshotAtomic === true &&
-          plan.runtimeProbe.runtimeLaunchAtomic === false &&
+          plan.runtimeProbe.runtimeLaunchAtomic === true &&
+          plan.runtimeProbe.runtimeLaunchMechanism ===
+            "filter-oplock-locked-createprocess-suspended-image-v1" &&
           /^[a-f0-9]{64}$/.test(
             plan.runtimeProbe.runtimeAttestedSha256 || "",
           ) &&
@@ -1935,6 +1938,7 @@ class ProcessExecutionBroker extends EventEmitter {
               entrySnapshotBytes: plan.runtimeProbe.entrySnapshotBytes,
               entrySnapshotAtomic: plan.runtimeProbe.entrySnapshotAtomic,
               runtimeLaunchAtomic: plan.runtimeProbe.runtimeLaunchAtomic,
+              runtimeLaunchMechanism: plan.runtimeProbe.runtimeLaunchMechanism,
               sharedLibraryClosure: plan.runtimeProbe.sharedLibraryClosure,
             }
           : {}),

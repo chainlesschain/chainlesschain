@@ -5500,7 +5500,9 @@ describe("platform sandbox adapter contract", () => {
           "verified-handle-inherited-pipe-module-compile-v1",
         handleAtomic: false,
         entrySnapshotAtomic: true,
-        runtimeLaunchAtomic: false,
+        runtimeLaunchAtomic: true,
+        runtimeLaunchMechanism:
+          "filter-oplock-locked-createprocess-suspended-image-v1",
         sharedLibraryClosure: false,
       },
     });
@@ -9495,6 +9497,76 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
     await expect(child.sandboxReady).resolves.toMatchObject({
       applied: true,
       backend: "linux-fd-code-snapshot",
+    });
+  });
+
+  it("accepts and audits typed atomic Windows MCP runtime launch evidence", async () => {
+    const child = createChild();
+    const nativeSpawn = vi.fn(() => child);
+    executionBroker._native = { spawn: nativeSpawn };
+    executionBroker._sandboxAdapter = {
+      applySandbox: vi.fn((_command, _args, options) =>
+        appliedPlan("windows-helper.exe", ["payload"], options, {
+          platform: "win32",
+          enforcement: "windows-job-restricted-token",
+          backend: "windows-job-restricted-token",
+          candidateBackend: null,
+          policyAttested: true,
+          policyDigest: "8".repeat(64),
+          guarantees: [SANDBOX_BOUNDARIES.CODE_SNAPSHOT],
+          runtimeProbe: {
+            kind: "windows-plugin-node-entry-snapshot-v1",
+            attempted: true,
+            runnable: true,
+            reason: null,
+            probeRuntime: "node",
+            targetRuntime: "node",
+            contentSnapshot: true,
+            contentSnapshotScope: "mcp-capsule-entry-source",
+            contentSnapshotMechanism:
+              "verified-handle-inherited-pipe-module-compile-v1",
+            handleAtomic: false,
+            runtimeAttestedSha256: "a".repeat(64),
+            runtimeAttestedBytes: 100,
+            entrySnapshotSha256: "b".repeat(64),
+            entrySnapshotBytes: 200,
+            entrySnapshotAtomic: true,
+            runtimeLaunchAtomic: true,
+            runtimeLaunchMechanism:
+              "filter-oplock-locked-createprocess-suspended-image-v1",
+            sharedLibraryClosure: false,
+          },
+        }),
+      ),
+      postSpawnSandbox: vi.fn(),
+    };
+
+    executionBroker.spawn("node", ["server.cjs", "--stdio"], {
+      origin: "test:windows-mcp-code-snapshot",
+      policy: "allow",
+      shell: false,
+      requiredBoundaries: [SANDBOX_BOUNDARIES.CODE_SNAPSHOT],
+    });
+
+    expect(nativeSpawn).toHaveBeenCalledOnce();
+    expect(executionBroker.getAuditLog(1)[0]).toMatchObject({
+      sandboxed: true,
+      sandboxBackend: "windows-job-restricted-token",
+      sandboxRequired: [SANDBOX_BOUNDARIES.CODE_SNAPSHOT],
+      sandboxGuarantees: [SANDBOX_BOUNDARIES.CODE_SNAPSHOT],
+      sandboxRuntimeProbe: {
+        entrySnapshotAtomic: true,
+        runtimeLaunchAtomic: true,
+        runtimeLaunchMechanism:
+          "filter-oplock-locked-createprocess-suspended-image-v1",
+        sharedLibraryClosure: false,
+        runtimeAttestedSha256: "a".repeat(64),
+        entrySnapshotSha256: "b".repeat(64),
+      },
+    });
+    await expect(child.sandboxReady).resolves.toMatchObject({
+      applied: true,
+      backend: "windows-job-restricted-token",
     });
   });
 
