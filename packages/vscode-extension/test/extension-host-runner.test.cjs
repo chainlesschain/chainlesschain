@@ -9,6 +9,7 @@ const { PassThrough, Readable } = require("node:stream");
 const { afterEach, test } = require("node:test");
 const {
   assertHostApiArtifacts,
+  assertMultiWindowEvidence,
   buildExtensionTestLaunchArgs,
   buildHostApiLaunchArgs,
   buildHostDomRelayLaunchArgs,
@@ -31,8 +32,15 @@ const {
   resolveVsCodeHostVersion,
   runRealDomPhase,
   settleHostAfterCdp,
+  writeCompanionWorkspace,
   writeMultiRootWorkspace,
 } = require("./extension-host/run.cjs");
+const {
+  buildCompanionLaunchArgs,
+  buildCompanionLaunchEnvironment,
+  selectMultiWindowLocks,
+  workspaceDigest,
+} = require("./extension-host/driver/multi-window.cjs");
 const {
   CdpClient,
   JOURNEY_PHASES,
@@ -219,6 +227,145 @@ test("real host fixture opens an ordered two-root workspace with shared settings
     fixtureCliCommand,
   );
   assert.equal(workspace.settings["chainlesschain.cli.managed.enabled"], false);
+});
+
+test("real host fixture creates an isolated companion-window workspace", () => {
+  const root = temporaryRoot();
+  const fixtureCliCommand = "node fixture-cli.cjs";
+  const workspaceDir = writeCompanionWorkspace(root, fixtureCliCommand);
+
+  assert.equal(
+    fs.readFileSync(path.join(workspaceDir, "companion.txt"), "utf8"),
+    "ChainlessChain Extension Host companion window\n",
+  );
+  const settings = JSON.parse(
+    fs.readFileSync(
+      path.join(workspaceDir, ".vscode", "settings.json"),
+      "utf8",
+    ),
+  );
+  assert.equal(settings["chainlesschain.cli.path"], fixtureCliCommand);
+  assert.equal(settings["chainlesschain.cli.managed.enabled"], false);
+});
+
+test("companion host launch reuses the isolated profile in a new window", () => {
+  const root = temporaryRoot();
+  const args = buildCompanionLaunchArgs({
+    userDataDir: path.join(root, "user-data-initial"),
+    extensionsDir: path.join(root, "extensions"),
+    companionWorkspace: path.join(root, "workspace-companion"),
+  });
+
+  assert.deepEqual(args.slice(0, 3), [
+    `--user-data-dir=${path.join(root, "user-data-initial")}`,
+    `--extensions-dir=${path.join(root, "extensions")}`,
+    "--new-window",
+  ]);
+  assert.ok(args.includes("--disable-workspace-trust"));
+  assert.equal(args.at(-1), path.join(root, "workspace-companion"));
+  assert.equal(args.includes("--reuse-window"), false);
+  assert.deepEqual(
+    buildCompanionLaunchEnvironment({
+      ELECTRON_RUN_AS_NODE: "1",
+      VSCODE_IPC_HOOK: "isolated-main-process",
+    }),
+    { VSCODE_IPC_HOOK: "isolated-main-process" },
+  );
+});
+
+test("multi-window lock selection binds distinct exact workspace identities", () => {
+  const root = temporaryRoot();
+  const primaryFolders = [
+    path.join(root, "workspace-primary"),
+    path.join(root, "workspace-secondary"),
+  ];
+  const companionFolders = [path.join(root, "workspace-companion")];
+  for (const directory of [...primaryFolders, ...companionFolders]) {
+    fs.mkdirSync(directory, { recursive: true });
+  }
+  const locks = [
+    {
+      ide: "vscode",
+      port: 41001,
+      pid: 51001,
+      token: "a".repeat(64),
+      workspaceFolders: primaryFolders,
+    },
+    {
+      ide: "vscode",
+      port: 41002,
+      pid: 51002,
+      token: "b".repeat(64),
+      workspaceFolders: companionFolders,
+    },
+  ];
+
+  const selected = selectMultiWindowLocks(
+    locks,
+    primaryFolders,
+    companionFolders,
+  );
+  assert.equal(selected.primary, locks[0]);
+  assert.equal(selected.companion, locks[1]);
+  assert.notEqual(
+    workspaceDigest(primaryFolders),
+    workspaceDigest(companionFolders),
+  );
+  assert.deepEqual(
+    selectMultiWindowLocks(
+      [{ ...locks[0], workspaceFolders: [...primaryFolders].reverse() }],
+      primaryFolders,
+      companionFolders,
+    ),
+    { primary: null, companion: null },
+  );
+});
+
+test("multi-window evidence requires simultaneous distinct sanitized identities", () => {
+  const root = temporaryRoot();
+  const evidenceFile = path.join(root, "multi-window-evidence.json");
+  const evidence = {
+    version: 1,
+    result: "passed",
+    observedAt: "2026-08-07T00:00:00.000Z",
+    primary: {
+      port: 41001,
+      pid: 51001,
+      rootCount: 2,
+      workspaceDigest: "a".repeat(64),
+    },
+    companion: {
+      port: 41002,
+      pid: 51002,
+      rootCount: 1,
+      workspaceDigest: "b".repeat(64),
+    },
+    simultaneousListening: true,
+    distinctBridgeTokens: true,
+  };
+  const write = (value) =>
+    fs.writeFileSync(evidenceFile, `${JSON.stringify(value)}\n`, "utf8");
+
+  write(evidence);
+  assert.equal(assertMultiWindowEvidence(evidenceFile).result, "passed");
+  write({
+    ...evidence,
+    companion: { ...evidence.companion, port: evidence.primary.port },
+  });
+  assert.throws(
+    () => assertMultiWindowEvidence(evidenceFile),
+    /identities are not distinct/,
+  );
+  write({ ...evidence, observedAt: "2026-08-07" });
+  assert.throws(
+    () => assertMultiWindowEvidence(evidenceFile),
+    /evidence header is invalid/,
+  );
+  write({ ...evidence, bridgeToken: "c".repeat(64) });
+  assert.throws(
+    () => assertMultiWindowEvidence(evidenceFile),
+    /contains sensitive or unknown fields/,
+  );
 });
 
 test("host-ready evidence binds the exact ordered multi-root workspace", () => {
@@ -676,6 +823,7 @@ test("host-API evidence proves both fresh host launches in order", () => {
     "vsix-activated",
     "commands-verified",
     "bridge-verified",
+    "multi-window-verified",
     "view-command-dispatched",
     "phase-completed",
   ];
@@ -694,7 +842,9 @@ test("host-API evidence proves both fresh host launches in order", () => {
       mode: "host-api",
       completedAt: "2026-08-01T00:01:00.000Z",
     });
-    for (const stage of stages) {
+    for (const stage of stages.filter(
+      (stage) => phase === "initial" || stage !== "multi-window-verified",
+    )) {
       records.push({
         phase,
         stage,

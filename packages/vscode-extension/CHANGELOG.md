@@ -2,6 +2,17 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.45] - Multi-window release-host gate (2026-08-07)
+
+- Launch a second real VS Code workspace window from the same clean profile
+  and installed immutable VSIX, then require distinct Extension Host process,
+  bridge port, and bridge token identities with both ports listening at once.
+- Bind sanitized multi-window evidence to the immutable host journey and make
+  it part of every stable/minimum Windows, Linux, and macOS release gate.
+- Keep the inherited companion test driver passive after activation and clear
+  the fresh-profile reload notification so only the primary window can settle
+  the process-wide real-host journey.
+
 ## [0.37.44] - Canonical Workbench host journey (2026-08-06)
 
 - Render canonical owner, worktree, pending-input, artifact, and pull-request

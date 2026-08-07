@@ -12,6 +12,7 @@ const {
   withTimeout,
 } = require("./view-control.cjs");
 const { runDomRelayJourney } = require("./dom-relay-journey.cjs");
+const { runMultiWindowJourney } = require("./multi-window.cjs");
 
 const EXTENSION_ID = "chainlesschain.chainlesschain-ide";
 const REQUIRED_COMMANDS = [
@@ -99,6 +100,63 @@ function assertOpenedWorkspaceFolders(expectedWorkspaceFolders) {
     expected,
     "VS Code did not open the exact ordered multi-root workspace",
   );
+}
+
+function isCompanionWindow(companionWorkspace) {
+  if (!companionWorkspace) return false;
+  const actual = (vscode.workspace.workspaceFolders || []).map((folder) =>
+    normalizeForCompare(fs.realpathSync(folder.uri.fsPath)),
+  );
+  return (
+    actual.length === 1 &&
+    actual[0] === normalizeForCompare(fs.realpathSync(companionWorkspace))
+  );
+}
+
+async function dismissFreshInstallReloadPrompt() {
+  // Every host phase uses a brand-new profile, so no retained Webview can
+  // exist. Dismiss the production first-seen-version notification before the
+  // visible local/CI desktop can accidentally choose its Reload action and
+  // terminate the extension-test contract mid-journey.
+  await new Promise((resolve) => setTimeout(resolve, 250));
+  await vscode.commands.executeCommand("notifications.clearAll");
+}
+
+async function runCompanionWindow({
+  extensionsDir,
+  expectedVersion,
+  profileHome,
+  companionWorkspace,
+}) {
+  const extension = vscode.extensions.getExtension(EXTENSION_ID);
+  assert.ok(
+    extension,
+    `installed extension ${EXTENSION_ID} was not discovered in companion window`,
+  );
+  assertPathInside(
+    fs.realpathSync(extension.extensionPath),
+    fs.realpathSync(extensionsDir),
+  );
+  assert.equal(extension.packageJSON.version, expectedVersion);
+  await withTimeout(
+    Promise.resolve().then(() => extension.activate()),
+    30_000,
+    `${EXTENSION_ID} companion activation`,
+  );
+  await dismissFreshInstallReloadPrompt();
+  const lock = await waitForBridgeLock(
+    profileHome,
+    [companionWorkspace],
+    45_000,
+  );
+  await assertPortListening(lock.port);
+  console.log(
+    `[extension-host-smoke] companion: installed VSIX bridge verified on ${lock.port}`,
+  );
+  // The extension-test path is inherited by every new VS Code window. Only
+  // the primary window may settle the process-wide test result; remain alive
+  // until its successful completion closes the isolated desktop instance.
+  await new Promise(() => {});
 }
 
 async function waitForBridgeLock(
@@ -377,6 +435,13 @@ async function run() {
   const traceFile = process.env.CHAINLESSCHAIN_HOST_TRACE_FILE;
   const artifactDir = process.env.CHAINLESSCHAIN_HOST_ARTIFACT_DIR;
   const hostDomToken = process.env.CHAINLESSCHAIN_HOST_DOM_TOKEN;
+  const companionWorkspace =
+    process.env.CHAINLESSCHAIN_SMOKE_COMPANION_WORKSPACE;
+  const multiWindowEvidenceFile =
+    process.env.CHAINLESSCHAIN_MULTI_WINDOW_EVIDENCE_FILE;
+  const vscodeExecutablePath =
+    process.env.CHAINLESSCHAIN_SMOKE_VSCODE_EXECUTABLE;
+  const userDataDir = process.env.CHAINLESSCHAIN_SMOKE_USER_DATA_DIR;
   assert.ok(extensionsDir, "missing CHAINLESSCHAIN_SMOKE_EXTENSIONS_DIR");
   assert.ok(expectedVersion, "missing CHAINLESSCHAIN_SMOKE_EXPECTED_VERSION");
   assert.ok(workspaceDir, "missing CHAINLESSCHAIN_SMOKE_WORKSPACE");
@@ -402,6 +467,14 @@ async function run() {
     );
   }
   console.log(`[extension-host-smoke] ${journeyPhase}: driver entered`);
+  if (journeyPhase === "initial" && isCompanionWindow(companionWorkspace)) {
+    return runCompanionWindow({
+      extensionsDir,
+      expectedVersion,
+      profileHome,
+      companionWorkspace,
+    });
+  }
   assertOpenedWorkspaceFolders(workspaceFolders);
   console.log(
     `[extension-host-smoke] ${journeyPhase}: ${workspaceFolders.length} workspace roots verified`,
@@ -437,6 +510,7 @@ async function run() {
     `${EXTENSION_ID} activation`,
   );
   assert.equal(extension.isActive, true, "extension did not become active");
+  await dismissFreshInstallReloadPrompt();
   console.log(`[extension-host-smoke] ${journeyPhase}: VSIX activated`);
   if (journeyMode !== "dom") {
     appendHostTrace(traceFile, journeyPhase, "vsix-activated");
@@ -473,6 +547,32 @@ async function run() {
   console.log(`[extension-host-smoke] ${journeyPhase}: bridge verified`);
   if (journeyMode !== "dom") {
     appendHostTrace(traceFile, journeyPhase, "bridge-verified");
+  }
+
+  if (journeyPhase === "initial") {
+    assert.ok(
+      companionWorkspace,
+      "missing CHAINLESSCHAIN_SMOKE_COMPANION_WORKSPACE",
+    );
+    assert.ok(
+      multiWindowEvidenceFile,
+      "missing CHAINLESSCHAIN_MULTI_WINDOW_EVIDENCE_FILE",
+    );
+    await runMultiWindowJourney({
+      vscodeExecutablePath,
+      userDataDir,
+      extensionsDir,
+      profileHome,
+      primaryFolders: workspaceFolders,
+      companionWorkspace,
+      evidenceFile: multiWindowEvidenceFile,
+    });
+    console.log(
+      `[extension-host-smoke] ${journeyPhase}: simultaneous second window bridge verified`,
+    );
+    if (journeyMode !== "dom") {
+      appendHostTrace(traceFile, journeyPhase, "multi-window-verified");
+    }
   }
 
   // Open the production-contributed view through VS Code's real workbench

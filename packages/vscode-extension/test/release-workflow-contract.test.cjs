@@ -343,14 +343,14 @@ test("VS Code host gates pin macOS Intel and share the main-world relay", () => 
   );
   assert.equal(
     macGate[0].match(
-      /- name: Extension Host multi-root journey \(macOS (?:stable|minimum 1\.85\.2)\)\n\s+(?:if: always\(\)\n\s+)?timeout-minutes: 15/gu,
+      /- name: Extension Host multi-root \+ multi-window journey \(macOS (?:stable|minimum 1\.85\.2)\)\n\s+(?:if: always\(\)\n\s+)?timeout-minutes: 15/gu,
     )?.length,
     2,
     "both real-DOM host gates must fail within a diagnostic step deadline",
   );
   assert.match(
     macGate[0],
-    /- name: Extension Host multi-root journey \(macOS minimum 1\.85\.2\)\n\s+if: always\(\)/u,
+    /- name: Extension Host multi-root \+ multi-window journey \(macOS minimum 1\.85\.2\)\n\s+if: always\(\)/u,
     "minimum host evidence must still run after a stable-host failure",
   );
   assert.match(
