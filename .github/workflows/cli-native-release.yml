@@ -24,11 +24,33 @@ jobs:
     steps:
       - name: Require completed native host release evidence
         shell: bash
+        env:
+          UPDATE_PUBLIC_KEY_B64: ${{ vars.CLI_UPDATE_ED25519_PUBLIC_KEY_B64 }}
+          UPDATE_PRIVATE_KEY_B64: ${{ secrets.CLI_UPDATE_ED25519_PRIVATE_KEY_B64 }}
+          WINDOWS_CERT_B64: ${{ secrets.CLI_WINDOWS_SIGNING_CERT_PFX_B64 }}
+          WINDOWS_CERT_PASSWORD: ${{ secrets.CLI_WINDOWS_SIGNING_CERT_PASSWORD }}
+          MAC_CERT_B64: ${{ secrets.CLI_MACOS_SIGNING_CERT_P12_B64 }}
+          MAC_CERT_PASSWORD: ${{ secrets.CLI_MACOS_SIGNING_CERT_PASSWORD }}
+          MAC_SIGNING_IDENTITY: ${{ secrets.CLI_MACOS_SIGNING_IDENTITY }}
+          MAC_NOTARY_APPLE_ID: ${{ secrets.CLI_MACOS_NOTARY_APPLE_ID }}
+          MAC_NOTARY_TEAM_ID: ${{ secrets.CLI_MACOS_NOTARY_TEAM_ID }}
+          MAC_NOTARY_APP_PASSWORD: ${{ secrets.CLI_MACOS_NOTARY_APP_PASSWORD }}
         run: |
+          set -euo pipefail
           if [ "$CLI_NATIVE_RELEASE_IMPLEMENTATION_STATUS" != "ready" ]; then
             echo "Native CLI publication is blocked pending ARM execution, macOS notarization and transactional updater evidence." >&2
             exit 1
           fi
+          for name in \
+            UPDATE_PUBLIC_KEY_B64 UPDATE_PRIVATE_KEY_B64 \
+            WINDOWS_CERT_B64 WINDOWS_CERT_PASSWORD \
+            MAC_CERT_B64 MAC_CERT_PASSWORD MAC_SIGNING_IDENTITY \
+            MAC_NOTARY_APPLE_ID MAC_NOTARY_TEAM_ID MAC_NOTARY_APP_PASSWORD; do
+            if [ -z "${!name:-}" ]; then
+              echo "Native CLI publication prerequisite is missing: $name" >&2
+              exit 1
+            fi
+          done
 
   exact-sha-gate:
     runs-on: ubuntu-latest
@@ -57,7 +79,7 @@ jobs:
           retention-days: 90
 
   build:
-    needs: [exact-sha-gate]
+    needs: [release-readiness, exact-sha-gate]
     strategy:
       fail-fast: false
       matrix:
@@ -89,13 +111,13 @@ jobs:
           - os: macos-15-intel
             target: node20-macos-x64
             file: chainlesschain-node20-macos-x64
-            platform_signature: codesign+sigstore
+            platform_signature: codesign+notarized+sigstore
             expected_platform: darwin
             expected_arch: x64
           - os: macos-15
             target: node20-macos-arm64
             file: chainlesschain-node20-macos-arm64
-            platform_signature: codesign+sigstore
+            platform_signature: codesign+notarized+sigstore
             expected_platform: darwin
             expected_arch: arm64
     runs-on: ${{ matrix.os }}
@@ -188,6 +210,46 @@ jobs:
           security list-keychains -d user -s "$KEYCHAIN" login.keychain-db
           codesign --force --timestamp --options runtime --sign "$MAC_SIGNING_IDENTITY" "native-dist/${{ matrix.file }}"
           codesign --verify --strict --verbose=2 "native-dist/${{ matrix.file }}"
+
+      - name: Notarize and assess macOS executable
+        if: runner.os == 'macOS'
+        shell: bash
+        env:
+          MAC_NOTARY_APPLE_ID: ${{ secrets.CLI_MACOS_NOTARY_APPLE_ID }}
+          MAC_NOTARY_TEAM_ID: ${{ secrets.CLI_MACOS_NOTARY_TEAM_ID }}
+          MAC_NOTARY_APP_PASSWORD: ${{ secrets.CLI_MACOS_NOTARY_APP_PASSWORD }}
+        run: |
+          set -euo pipefail
+          test -n "$MAC_NOTARY_APPLE_ID"
+          test -n "$MAC_NOTARY_TEAM_ID"
+          test -n "$MAC_NOTARY_APP_PASSWORD"
+          ARTIFACT="native-dist/${{ matrix.file }}"
+          ARCHIVE="$RUNNER_TEMP/${{ matrix.file }}.zip"
+          RESULT="native-dist/${{ matrix.file }}.notarization.json"
+          LOG="native-dist/${{ matrix.file }}.notarization-log.json"
+          ditto -c -k --sequesterRsrc --keepParent "$ARTIFACT" "$ARCHIVE"
+          xcrun notarytool submit "$ARCHIVE" \
+            --apple-id "$MAC_NOTARY_APPLE_ID" \
+            --team-id "$MAC_NOTARY_TEAM_ID" \
+            --password "$MAC_NOTARY_APP_PASSWORD" \
+            --wait --output-format json > "$RESULT"
+          SUBMISSION_ID=$(node --input-type=module - "$RESULT" <<'NODE'
+          import fs from "node:fs";
+          const result = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
+          if (result.status !== "Accepted" || !/^[0-9a-f-]{36}$/i.test(result.id || "")) {
+            throw new Error(`macOS notarization was not accepted: ${JSON.stringify(result)}`);
+          }
+          process.stdout.write(result.id);
+          NODE
+          )
+          xcrun notarytool log "$SUBMISSION_ID" \
+            --apple-id "$MAC_NOTARY_APPLE_ID" \
+            --team-id "$MAC_NOTARY_TEAM_ID" \
+            --password "$MAC_NOTARY_APP_PASSWORD" \
+            "$LOG"
+          codesign --verify --strict --verbose=2 "$ARTIFACT"
+          spctl --assess --type execute --verbose=4 "$ARTIFACT"
+          rm -f "$ARCHIVE"
 
       - uses: sigstore/cosign-installer@v3
       - name: Attach keyless Sigstore signature
