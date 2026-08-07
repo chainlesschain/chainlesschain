@@ -143,8 +143,8 @@ jobs:
         shell: bash
         run: |
           set -u
-          sudo umount "${CC_CLI_RELIABILITY_DISK_EROFS_HOME}" || true
-          sudo umount "${CC_CLI_RELIABILITY_DISK_ENOSPC_HOME}" || true
+          sudo umount "${CC_CLI_RELIABILITY_DISK_EROFS_HOME}/sessions" || true
+          sudo umount "${CC_CLI_RELIABILITY_DISK_ENOSPC_HOME}/sessions" || true
           rm -rf -- "${CC_CLI_RELIABILITY_DISK_ROOT}"
 
       - name: Upload exact-SHA reliability evidence

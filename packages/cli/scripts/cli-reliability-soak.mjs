@@ -28,6 +28,16 @@ const RESULT_SCHEMA = "chainlesschain.cli-reliability-soak.v2";
 const MIB = 1024 * 1024;
 const MCP_PRIVATE_CANARY = "CC_RELIABILITY_MCP_PRIVATE_CANARY";
 const MAX_RETAINED_LATENCY_SAMPLES = 10_000;
+const ANSI_COLOR_SUFFIX_PATTERN =
+  /^\[(?:3[0-7]|9[0-7]|38(?:;|:)|4[0-7]|10[0-7]|48(?:;|:))/u;
+const STATUS_LINE_PATTERN = /⛁.*\bturn\s+\d+/iu;
+
+function hasAnsiColor(value) {
+  return String(value)
+    .split(String.fromCharCode(27))
+    .slice(1)
+    .some((suffix) => ANSI_COLOR_SUFFIX_PATTERN.test(suffix));
+}
 const WINDOWS_TOOLHELP32_SNAPSHOT_COMMAND = String.raw`
 $ErrorActionPreference = 'Stop'
 $source = @'
@@ -443,8 +453,12 @@ async function startFakeOllama() {
       const send = () => {
         if (response.destroyed || response.writableEnded) return;
         if (index < chunks) {
+          const content =
+            slowPipeProbe || disconnectProbe || pipeProbe
+              ? "x".repeat(256)
+              : "reliability-ok";
           const accepted = response.write(
-            `${JSON.stringify({ message: { role: "assistant", content: "x".repeat(256) }, done: false })}\n`,
+            `${JSON.stringify({ message: { role: "assistant", content }, done: false })}\n`,
           );
           index += 1;
           if (accepted) setImmediate(send);
@@ -1055,9 +1069,12 @@ async function runDiskFailureCase(
   }
 
   const callsBefore = modelCalls();
+  const sessionId = `reliability-disk-${expectedFsCode.toLowerCase()}-${process.pid}-${Date.now()}`;
   const child = spawnCli(
     [
       ...commonArgs(baseUrl),
+      "--session",
+      sessionId,
       "--input-format",
       "stream-json",
       "--output-format",
@@ -1101,6 +1118,7 @@ async function runDiskFailureCase(
       callsAfter === callsBefore,
     expectedFsCode,
     observedHostCode,
+    sessionId,
     modelCalls: callsAfter - callsBefore,
     durationMs: performance.now() - started,
     exit,
@@ -1704,6 +1722,74 @@ async function ttyScenario(baseUrl, home, profile) {
     diagnosticCodes: diagnosticCodes(output),
     processRetired: normalProcessRetired,
   };
+  const screenReaderStarted = performance.now();
+  const screenReaderPrompt = "screen-reader-键盘-مرحبا-שלום";
+  const screenReaderTerminal = pty.spawn(
+    process.execPath,
+    [...commonArgs(baseUrl), "--ax-screen-reader"],
+    {
+      cwd: REPOSITORY_ROOT,
+      env: childEnvironment(join(home, "screen-reader")),
+      cols: 48,
+      rows: 20,
+      ...nativeOptions,
+    },
+  );
+  const screenReaderPid = screenReaderTerminal.pid;
+  let screenReaderOutput = "";
+  let screenReaderExitRequested = false;
+  screenReaderTerminal.onData((chunk) => {
+    if (screenReaderOutput.length < 256 * 1024) {
+      screenReaderOutput += chunk;
+    }
+    if (
+      !screenReaderExitRequested &&
+      screenReaderOutput.includes("reliability-ok")
+    ) {
+      screenReaderExitRequested = true;
+      screenReaderTerminal.write("/exit\r");
+    }
+  });
+  screenReaderTerminal.write(`${screenReaderPrompt}\r`);
+  const screenReaderExit = await new Promise((resolvePromise) => {
+    const timer = setTimeout(() => {
+      try {
+        screenReaderTerminal.kill();
+      } catch {
+        // The timeout result remains authoritative.
+      }
+      resolvePromise({ exitCode: null, signal: "timeout" });
+    }, profile.cleanupDeadlineMs + 60_000);
+    screenReaderTerminal.onExit((event) => {
+      clearTimeout(timer);
+      resolvePromise(event);
+    });
+  });
+  const screenReaderProcessRetired = processExists(screenReaderPid) === false;
+  const screenReader = {
+    pass:
+      screenReaderExit.exitCode === 0 &&
+      screenReaderExitRequested &&
+      screenReaderOutput.includes(screenReaderPrompt) &&
+      screenReaderOutput.includes("reliability-ok") &&
+      !hasAnsiColor(screenReaderOutput) &&
+      !STATUS_LINE_PATTERN.test(screenReaderOutput) &&
+      screenReaderProcessRetired,
+    durationMs: performance.now() - screenReaderStarted,
+    exitCode: screenReaderExit.exitCode,
+    signal: screenReaderExit.signal,
+    exitRequested: screenReaderExitRequested,
+    unicodePromptEchoed: screenReaderOutput.includes(screenReaderPrompt),
+    responseObserved: screenReaderOutput.includes("reliability-ok"),
+    ansiColorObserved: hasAnsiColor(screenReaderOutput),
+    repaintObserved: STATUS_LINE_PATTERN.test(screenReaderOutput),
+    outputBytes: Buffer.byteLength(screenReaderOutput),
+    diagnosticCodes: diagnosticCodes(screenReaderOutput),
+    processRetired: screenReaderProcessRetired,
+    ...(process.env.CC_CLI_RELIABILITY_DEBUG === "1"
+      ? { debugOutput: screenReaderOutput.slice(-4_000) }
+      : {}),
+  };
   const disconnects = [];
   for (let index = 0; index < profile.disconnectCases; index += 1) {
     const disconnectedAt = performance.now();
@@ -1771,10 +1857,88 @@ async function ttyScenario(baseUrl, home, profile) {
     });
   }
   return {
-    pass: normal.pass && disconnects.every((sample) => sample.pass),
+    pass:
+      normal.pass &&
+      screenReader.pass &&
+      disconnects.every((sample) => sample.pass),
     supported: true,
     normal,
+    screenReader,
     disconnects,
+  };
+}
+
+async function clipboardScenario(profile) {
+  const supported = new Set(["win32", "darwin"]).has(process.platform);
+  const required = profile.mode === "formal" && supported;
+  const configured =
+    required || process.env.CC_CLI_RELIABILITY_CLIPBOARD_REQUIRED === "1";
+  if (!supported) {
+    return {
+      pass: true,
+      supported: false,
+      required: false,
+      configured: false,
+      reason: "platform-not-required",
+    };
+  }
+  if (!configured) {
+    return {
+      pass: true,
+      supported: true,
+      required: false,
+      configured: false,
+      reason: "smoke-opt-in-not-set",
+    };
+  }
+
+  const started = performance.now();
+  const marker = `cc-clipboard-${process.pid}-键盘-مرحبا`;
+  const { copyToClipboard } = await import("../src/repl/clipboard-copy.js");
+  let writeResult;
+  let readResult;
+  let cleanupResult;
+  try {
+    writeResult = copyToClipboard(marker);
+    readResult =
+      process.platform === "win32"
+        ? spawnSync(
+            "powershell",
+            [
+              "-NoProfile",
+              "-Command",
+              "[Console]::OutputEncoding=[Text.Encoding]::UTF8; Get-Clipboard -Raw",
+            ],
+            {
+              encoding: "utf8",
+              timeout: 10_000,
+              windowsHide: true,
+            },
+          )
+        : spawnSync("pbpaste", [], {
+            encoding: "utf8",
+            timeout: 10_000,
+          });
+  } finally {
+    cleanupResult = copyToClipboard("");
+  }
+  const readText = String(readResult?.stdout || "").replace(/[\r\n]+$/u, "");
+  const matched = readText === marker;
+  return {
+    pass:
+      writeResult?.ok === true &&
+      readResult?.status === 0 &&
+      matched &&
+      cleanupResult?.ok === true,
+    supported: true,
+    required,
+    configured: true,
+    durationMs: performance.now() - started,
+    writeTool: writeResult?.tool || null,
+    writeSucceeded: writeResult?.ok === true,
+    readExitCode: readResult?.status ?? null,
+    unicodeRoundTripMatched: matched,
+    cleanupSucceeded: cleanupResult?.ok === true,
   };
 }
 
@@ -2125,6 +2289,9 @@ async function main() {
         await runScenario("tty", () =>
           ttyScenario(llm.baseUrl, join(root, "tty"), profile),
         );
+      }
+      if (shouldRun("clipboard")) {
+        await runScenario("clipboard", () => clipboardScenario(profile));
       }
       if (shouldRun("ssh")) {
         await runScenario("ssh", () =>

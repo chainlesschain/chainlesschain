@@ -90,6 +90,9 @@ describe("CLI reliability soak gate", () => {
     expect(workflow).toContain("mount -t tmpfs");
     expect(workflow).toContain("CC_CLI_RELIABILITY_DISK_EROFS_HOME");
     expect(workflow).toContain(
+      'umount "${CC_CLI_RELIABILITY_DISK_EROFS_HOME}/sessions"',
+    );
+    expect(workflow).toContain(
       "Verify macOS node-pty spawn helper is executable",
     );
     expect(workflow).toContain('[[ ! -x "${helper}" ]]');
@@ -108,6 +111,16 @@ describe("CLI reliability soak gate", () => {
     expect(gate).toContain("remoteRetired");
     expect(gate).toContain("CC_MCP_TOOL_RESULT_TOO_LARGE");
     expect(gate).toContain("CreateToolhelp32Snapshot");
+    expect(gate).toContain('"--session",');
+    expect(gate).toContain("reliability-disk-${expectedFsCode.toLowerCase()}");
+    expect(gate).toContain("--ax-screen-reader");
+    expect(gate).toContain("screen-reader-键盘-مرحبا-שלום");
+    expect(gate).toContain("ansiColorObserved");
+    expect(gate).toContain("repaintObserved");
+    expect(gate).toContain("CC_CLI_RELIABILITY_CLIPBOARD_REQUIRED");
+    expect(gate).toContain("Get-Clipboard -Raw");
+    expect(gate).toContain('spawnSync("pbpaste"');
+    expect(gate).toContain("unicodeRoundTripMatched");
 
     const mcpFixture = readFileSync(
       resolve(
