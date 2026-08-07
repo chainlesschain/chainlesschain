@@ -396,8 +396,10 @@ async function revealChatAndRunDomRelayJourney({
   extensionPath,
   workspaceDir,
   workspaceFolders,
+  workspaceTarget,
 }) {
   await activateMacHostWindow({
+    workspaceTarget,
     log: (message) =>
       console.log(`[extension-host-smoke] ${phase}: ${message}`),
   });
@@ -427,6 +429,7 @@ async function run() {
   const workspaceDir = process.env.CHAINLESSCHAIN_SMOKE_WORKSPACE;
   const workspaceFoldersJson =
     process.env.CHAINLESSCHAIN_SMOKE_WORKSPACE_FOLDERS;
+  const workspaceTarget = process.env.CHAINLESSCHAIN_SMOKE_WORKSPACE_TARGET;
   const profileHome = process.env.HOME || process.env.USERPROFILE;
   const journeyPhase = process.env.CHAINLESSCHAIN_HOST_JOURNEY_PHASE;
   const journeyMode = process.env.CHAINLESSCHAIN_HOST_JOURNEY_MODE || "dom";
@@ -449,6 +452,7 @@ async function run() {
     workspaceFoldersJson,
     "missing CHAINLESSCHAIN_SMOKE_WORKSPACE_FOLDERS",
   );
+  assert.ok(workspaceTarget, "missing CHAINLESSCHAIN_SMOKE_WORKSPACE_TARGET");
   assert.ok(profileHome, "missing isolated profile home");
   const workspaceFolders = readExpectedWorkspaceFolders(
     workspaceFoldersJson,
@@ -600,6 +604,7 @@ async function run() {
       extensionPath: extension.extensionPath,
       workspaceDir,
       workspaceFolders,
+      workspaceTarget,
     });
   } else {
     await revealChatAndWaitForDomJourney({

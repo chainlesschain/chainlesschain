@@ -724,6 +724,7 @@ async function runRealDomPhase({
               CHAINLESSCHAIN_SMOKE_EXTENSIONS_DIR: extensionsDir,
               CHAINLESSCHAIN_SMOKE_EXPECTED_VERSION: expectedVersion,
               CHAINLESSCHAIN_SMOKE_WORKSPACE: workspaceDir,
+              CHAINLESSCHAIN_SMOKE_WORKSPACE_TARGET: launchTarget,
               CHAINLESSCHAIN_SMOKE_WORKSPACE_FOLDERS: JSON.stringify(
                 expectedWorkspaceFolders,
               ),
@@ -820,6 +821,7 @@ async function runRealDomPhase({
     CHAINLESSCHAIN_SMOKE_EXTENSIONS_DIR: extensionsDir,
     CHAINLESSCHAIN_SMOKE_EXPECTED_VERSION: expectedVersion,
     CHAINLESSCHAIN_SMOKE_WORKSPACE: workspaceDir,
+    CHAINLESSCHAIN_SMOKE_WORKSPACE_TARGET: launchTarget,
     CHAINLESSCHAIN_SMOKE_WORKSPACE_FOLDERS: JSON.stringify(
       expectedWorkspaceFolders,
     ),
@@ -981,6 +983,7 @@ async function runHostApiPhase({
       CHAINLESSCHAIN_SMOKE_EXTENSIONS_DIR: extensionsDir,
       CHAINLESSCHAIN_SMOKE_EXPECTED_VERSION: expectedVersion,
       CHAINLESSCHAIN_SMOKE_WORKSPACE: workspaceDir,
+      CHAINLESSCHAIN_SMOKE_WORKSPACE_TARGET: launchTarget,
       CHAINLESSCHAIN_SMOKE_WORKSPACE_FOLDERS: JSON.stringify(
         expectedWorkspaceFolders,
       ),

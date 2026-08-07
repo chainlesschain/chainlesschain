@@ -1340,6 +1340,7 @@ test("macOS host activation targets the outer app bundle without a shell", async
     await activateMacHostWindow({
       platform: "darwin",
       executablePath,
+      workspaceTarget: "/tmp/chainlesschain.code-workspace",
       execFileProcess(file, args, options, callback) {
         calls.push({ file, args, options });
         callback(null);
@@ -1350,7 +1351,7 @@ test("macOS host activation targets the outer app bundle without a shell", async
   assert.deepEqual(calls, [
     {
       file: "/usr/bin/open",
-      args: ["/tmp/VS Code.app"],
+      args: ["-a", "/tmp/VS Code.app", "/tmp/chainlesschain.code-workspace"],
       options: { timeout: 10_000, windowsHide: true },
     },
   ]);
