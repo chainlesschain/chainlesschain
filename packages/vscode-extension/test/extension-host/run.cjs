@@ -181,13 +181,13 @@ function createHostProgressJournal(artifactDir) {
   return progressPath;
 }
 
-function recordHostProgress(progressPath, stage) {
+function recordHostProgress(progressPath, stage, details = {}) {
   if (!/^[a-z][a-z0-9_]*$/.test(stage)) {
     throw new Error(`invalid host progress stage: ${stage}`);
   }
   fs.appendFileSync(
     progressPath,
-    `${JSON.stringify({ stage, at: new Date().toISOString() })}\n`,
+    `${JSON.stringify({ ...details, stage, at: new Date().toISOString() })}\n`,
     "utf8",
   );
 }
@@ -390,6 +390,26 @@ function buildHostApiLaunchArgs({ workspaceDir, profileArgs }) {
     "--disable-crash-reporter",
     workspaceDir,
   ];
+}
+
+function buildExternalCompanionHostLaunchArgs({ workspaceDir, profileArgs }) {
+  let userDataArgumentCount = 0;
+  const companionProfileArgs = profileArgs.map((argument) => {
+    if (!argument.startsWith("--user-data-dir=")) return argument;
+    userDataArgumentCount += 1;
+    return `${argument}-companion`;
+  });
+  if (userDataArgumentCount !== 1) {
+    throw new Error(
+      "external companion profile requires exactly one user-data directory",
+    );
+  }
+  const launchArgs = buildHostApiLaunchArgs({
+    workspaceDir,
+    profileArgs: companionProfileArgs,
+  });
+  launchArgs.splice(-1, 0, "--new-window");
+  return launchArgs;
 }
 
 function buildHostDomRelayLaunchArgs({ workspaceDir, profileArgs }) {
@@ -983,6 +1003,8 @@ async function runHostApiPhase({
   multiWindowEvidenceFile,
   progressPath,
   includeMultiWindow = false,
+  platform = process.platform,
+  launchManagedHost = launchManagedExtensionHost,
 }) {
   const launchTarget = workspaceTarget || workspaceDir;
   const expectedWorkspaceFolders = workspaceFolders || [workspaceDir];
@@ -992,6 +1014,7 @@ async function runHostApiPhase({
   if (!userDataDir) throw new Error("host profile has no user-data directory");
   const { readyFile, resultFile } = hostPhaseSignalPaths(runtimeDir, phase);
   const traceFile = path.join(runtimeDir, "host-api-trace.jsonl");
+  const useExternalCompanion = includeMultiWindow && platform === "darwin";
   const launchOptions = {
     vscodeExecutablePath,
     extensionDevelopmentPath: path.join(__dirname, "driver"),
@@ -1024,51 +1047,76 @@ async function runHostApiPhase({
             CHAINLESSCHAIN_MULTI_WINDOW_PROGRESS_FILE: progressPath,
             CHAINLESSCHAIN_SMOKE_VSCODE_EXECUTABLE: vscodeExecutablePath,
             CHAINLESSCHAIN_SMOKE_USER_DATA_DIR: userDataDir,
+            ...(useExternalCompanion
+              ? { CHAINLESSCHAIN_MULTI_WINDOW_EXTERNAL_COMPANION: "1" }
+              : {}),
           }
         : {}),
     },
   };
-  if (includeMultiWindow && process.platform === "darwin") {
-    const managedHost = launchManagedExtensionHost(launchOptions);
-    const hostOutcome = managedHost.outcome.then(
-      (value) => ({ value }),
-      (error) => ({ error }),
+  if (useExternalCompanion) {
+    recordHostProgress(
+      progressPath,
+      "multi_window_companion_launch_requested",
+      { actor: "orchestrator", transport: "managed-extension-host" },
     );
-    const journeyOutcome = waitForFile(resultFile, 135_000)
+    const companionHost = launchManagedHost({
+      ...launchOptions,
+      launchArgs: buildExternalCompanionHostLaunchArgs({
+        workspaceDir: companionWorkspace,
+        profileArgs,
+      }),
+    });
+    recordHostProgress(
+      progressPath,
+      "multi_window_companion_launch_dispatched",
+      { actor: "orchestrator", transport: "managed-extension-host" },
+    );
+    const primaryHost = launchManagedHost(launchOptions);
+    const managedHosts = [
+      { label: "companion", launched: companionHost },
+      { label: "primary", launched: primaryHost },
+    ];
+    const journey = await waitForFile(resultFile, 135_000)
       .then(() => readJourneyResult(resultFile, phase))
       .then(
         (value) => ({ value }),
         (error) => ({ error }),
       );
-    const first = await Promise.race([
-      hostOutcome.then((outcome) => ({ source: "host", outcome })),
-      journeyOutcome.then((outcome) => ({ source: "journey", outcome })),
-    ]);
-    let host;
-    let journey;
-    let managedTermination = false;
-    if (first.source === "host") {
-      host = first.outcome;
-      journey = await journeyOutcome;
-    } else {
-      journey = first.outcome;
-      ({ host, managedTermination } = await settleHostAfterCdp({
-        hostOutcome,
-        phase,
-        emitSigint: managedHost.requestStop,
-        journeyLabel: "host API multi-window journey",
-      }));
-    }
-    const hostError =
-      managedTermination && !journey.error ? null : host && host.error;
-    if (hostError && journey.error) {
+    const hosts = await Promise.all(
+      managedHosts.map(async ({ label, launched }) => {
+        const hostOutcome = launched.outcome.then(
+          (value) => ({ value }),
+          (error) => ({ error }),
+        );
+        const settled = await settleHostAfterCdp({
+          hostOutcome,
+          phase,
+          emitSigint: launched.requestStop,
+          journeyLabel: `host API multi-window ${label}`,
+        });
+        return { label, ...settled };
+      }),
+    );
+    const hostErrors = hosts
+      .filter(
+        ({ host, managedTermination }) =>
+          host?.error && !(managedTermination && !journey.error),
+      )
+      .map(
+        ({ label, host }) =>
+          new Error(`${label} VS Code host failed: ${host.error.message}`, {
+            cause: host.error,
+          }),
+      );
+    const errors = [...hostErrors, ...(journey.error ? [journey.error] : [])];
+    if (errors.length > 1) {
       throw new AggregateError(
-        [hostError, journey.error],
-        `VS Code managed host and multi-window journey failed during ${phase}`,
+        errors,
+        `VS Code managed hosts and multi-window journey failed during ${phase}`,
       );
     }
-    if (hostError) throw hostError;
-    if (journey.error) throw journey.error;
+    if (errors.length === 1) throw errors[0];
     return journey.value;
   }
   await runTests(launchOptions);
@@ -1526,6 +1574,7 @@ async function main() {
 module.exports = {
   buildProfileArgs,
   buildExtensionTestLaunchArgs,
+  buildExternalCompanionHostLaunchArgs,
   buildHostApiLaunchArgs,
   buildHostDomRelayLaunchArgs,
   buildHostInspectorLaunchArgs,

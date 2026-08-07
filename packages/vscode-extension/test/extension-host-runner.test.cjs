@@ -10,6 +10,7 @@ const { afterEach, test } = require("node:test");
 const {
   assertHostApiArtifacts,
   assertMultiWindowEvidence,
+  buildExternalCompanionHostLaunchArgs,
   buildExtensionTestLaunchArgs,
   buildHostApiLaunchArgs,
   buildHostDomRelayLaunchArgs,
@@ -575,6 +576,34 @@ test("host-API launch keeps the real extension-test profile without CDP", () => 
   );
 });
 
+test("external companion launch uses a distinct real VS Code profile", () => {
+  const root = temporaryRoot();
+  const extensionsDir = path.join(root, "extensions");
+  const userDataDir = path.join(root, "user-data-multi-window");
+  const companionWorkspace = path.join(root, "workspace-companion");
+  const args = buildExternalCompanionHostLaunchArgs({
+    workspaceDir: companionWorkspace,
+    profileArgs: [
+      `--extensions-dir=${extensionsDir}`,
+      `--user-data-dir=${userDataDir}`,
+      "--disable-workspace-trust",
+    ],
+  });
+
+  assert.ok(args.includes(`--extensions-dir=${extensionsDir}`));
+  assert.ok(args.includes(`--user-data-dir=${userDataDir}-companion`));
+  assert.ok(args.includes("--new-window"));
+  assert.equal(args.at(-1), companionWorkspace);
+  assert.throws(
+    () =>
+      buildExternalCompanionHostLaunchArgs({
+        workspaceDir: companionWorkspace,
+        profileArgs: [`--extensions-dir=${extensionsDir}`],
+      }),
+    /exactly one user-data directory/u,
+  );
+});
+
 test("multi-window gate uses a dedicated host-API profile and explicit contract", async () => {
   const root = temporaryRoot();
   const runtimeDir = path.join(root, "multi-window-runtime");
@@ -666,18 +695,8 @@ test("multi-window gate uses a dedicated host-API profile and explicit contract"
   );
   assert.match(
     smokeDriver,
-    /process\.platform === "darwin"[\s\S]*?launchMacCompanionWindow/u,
-    "macOS must select the workbench-owned companion launcher",
-  );
-  assert.match(
-    smokeDriver,
-    /void vscode\.commands\s+\.executeCommand\(\s*"vscode\.openFolder",\s+vscode\.Uri\.file\(companionWorkspace\),\s+\{\s+forceNewWindow: true,\s+\}\)/u,
-    "macOS must open the companion through the public new-window command",
-  );
-  assert.match(
-    smokeDriver,
-    /multi_window_companion_launch_requested[\s\S]*?multi_window_companion_launch_rejected[\s\S]*?multi_window_companion_launch_dispatched/u,
-    "the macOS companion launch must remain auditable",
+    /CHAINLESSCHAIN_MULTI_WINDOW_EXTERNAL_COMPANION[\s\S]*?launchCompanion: async \(\) => \{\}/u,
+    "an externally managed companion must not launch a third window",
   );
   assert.match(
     smokeDriver,
@@ -694,6 +713,98 @@ test("multi-window gate uses a dedicated host-API profile and explicit contract"
     /multi_window_primary_result_published[\s\S]*?waitForMultiWindowProgressStage\([\s\S]*?multi_window_companion_primary_result_observed[\s\S]*?3_000[\s\S]*?multi_window_primary_quit_requested[\s\S]*?workbench\.action\.quit/u,
     "macOS must bound companion synchronization before clean application exit",
   );
+});
+
+test("macOS multi-window gate orchestrates two bounded real hosts", async () => {
+  const root = temporaryRoot();
+  const runtimeDir = path.join(root, "multi-window-runtime");
+  const workspaceDir = path.join(root, "workspace");
+  const extensionsDir = path.join(root, "extensions");
+  const profileHome = path.join(root, "home");
+  const companionWorkspace = path.join(root, "workspace-companion");
+  const progressPath = path.join(root, "progress.jsonl");
+  for (const directory of [
+    workspaceDir,
+    extensionsDir,
+    profileHome,
+    companionWorkspace,
+  ]) {
+    fs.mkdirSync(directory, { recursive: true });
+  }
+  fs.writeFileSync(progressPath, "", "utf8");
+  const launches = [];
+  const stopRequests = [];
+  const { resultFile } = hostPhaseSignalPaths(runtimeDir, "initial");
+  const result = await runHostApiPhase({
+    runTests: async () => assert.fail("macOS must use managed hosts"),
+    vscodeExecutablePath: path.join(root, "Code"),
+    workspaceDir,
+    profileArgs: buildProfileArgs({
+      runRoot: root,
+      extensionsDir,
+      phase: "multi-window",
+    }),
+    extensionsDir,
+    profileHome,
+    expectedVersion: "0.37.45",
+    phase: "initial",
+    runtimeDir,
+    fixture: {
+      statePath: path.join(root, "fixture-state.json"),
+      tracePath: path.join(root, "fixture-trace.jsonl"),
+    },
+    companionWorkspace,
+    multiWindowEvidenceFile: path.join(root, "multi-window-evidence.json"),
+    progressPath,
+    includeMultiWindow: true,
+    platform: "darwin",
+    launchManagedHost(options) {
+      const index = launches.push(options) - 1;
+      if (launches.length === 2) {
+        writeJsonSignal(resultFile, {
+          ok: true,
+          phase: "initial",
+          mode: "host-api",
+          completedAt: "2026-08-07T00:00:00.000Z",
+        });
+      }
+      return {
+        outcome: Promise.resolve(0),
+        requestStop() {
+          stopRequests.push(index);
+        },
+      };
+    },
+  });
+
+  assert.equal(result.ok, true);
+  assert.equal(launches.length, 2);
+  assert.equal(launches[0].launchArgs.at(-1), companionWorkspace);
+  assert.ok(launches[0].launchArgs.includes("--new-window"));
+  assert.match(
+    launches[0].launchArgs.find((argument) =>
+      argument.startsWith("--user-data-dir="),
+    ),
+    /user-data-multi-window-companion$/u,
+  );
+  assert.equal(launches[1].launchArgs.at(-1), workspaceDir);
+  assert.ok(
+    launches.every(
+      (launch) =>
+        launch.extensionTestsEnv
+          .CHAINLESSCHAIN_MULTI_WINDOW_EXTERNAL_COMPANION === "1",
+    ),
+  );
+  assert.deepEqual(stopRequests, []);
+  const progressStages = fs
+    .readFileSync(progressPath, "utf8")
+    .trim()
+    .split("\n")
+    .map((line) => JSON.parse(line).stage);
+  assert.deepEqual(progressStages, [
+    "multi_window_companion_launch_requested",
+    "multi_window_companion_launch_dispatched",
+  ]);
 });
 
 test("macOS DOM relay launches without a debugger transport", async () => {
