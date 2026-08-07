@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed — cc CLI 0.162.198: interactive streaming and release portability
 
-> `chainlesschain` **0.162.197 → 0.162.198** (release candidate, 2026-08-06).
+> `chainlesschain` **0.162.197 → 0.162.198** (published, 2026-08-06).
 > CLI-only release metadata; `@chainlesschain/personal-data-hub` remains
 > **0.4.57** and `@chainlesschain/agent-sdk` remains **0.1.7**.
 
@@ -27,12 +27,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Release readback hardening**: public npm verification remains independent
   of undeclared runtime dependencies, retries bounded registry propagation,
   and binds provenance and registry bytes to the immutable publish artifact.
-- **Candidate evidence**: merged implementation SHA `0b7a5471e7a9` passed
-  [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/31071519048)
-  and [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/31071522429)
-  on Ubuntu, Windows, and macOS. The final `0.162.198` version commit must pass
-  both gates again on its own exact SHA before tag `v-npm-0-162-198` is
-  created; local, older-SHA, and partial results remain supplementary only.
+- **Exact release evidence**: tag `v-npm-0-162-198` points to final release SHA
+  [`3c0f62fa17242cfa3123ab502a9bf5d1cbed8481`](https://github.com/chainlesschain/chainlesschain/commit/3c0f62fa17242cfa3123ab502a9bf5d1cbed8481).
+  The same SHA passed [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/31078499968)
+  and [CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/31078499270)
+  on Ubuntu, Windows, and macOS. The
+  [dedicated npm release](https://github.com/chainlesschain/chainlesschain/actions/runs/31081337370)
+  completed the exact-SHA gate, immutable tarball, CycloneDX SBOM, Trusted
+  Publishing, signed provenance, registry readback, and npmmirror sync; the
+  [independent public readback](https://github.com/chainlesschain/chainlesschain/actions/runs/31082366544)
+  re-downloaded the package and matched registry bytes and publishing identity.
 
 ### Added — cc CLI 0.162.197: durable sessions, MCP recovery, and checkpoint safety
 

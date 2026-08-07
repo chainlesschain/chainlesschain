@@ -455,7 +455,7 @@ const packs = [
           175 条顶层命令，覆盖从知识库到链上治理的完整生命周期。零 GUI 依赖，纯文本输入输出，可管道可脚本可 CI。
         </p>
         <p class="mt-4 text-sm text-muted max-w-3xl">
-          官网推荐完整通过 Linux / Windows / macOS 门禁的 <strong class="text-ink">{CLI_VERSION}</strong>。npm 最新与源码版本均为 <strong class="text-ink">{NPM_LATEST_CLI_VERSION}</strong>；exact-SHA、不可变制品、SBOM、provenance 与 registry 回读已核验，安装命令固定到该已验证版本。
+          官网推荐完整通过 Linux / Windows / macOS 门禁的 <strong class="text-ink">{CLI_VERSION}</strong>，npm latest 同为 <strong class="text-ink">{NPM_LATEST_CLI_VERSION}</strong>。源码包元数据是 <strong class="text-ink">{SOURCE_CLI_VERSION}</strong>，但 HEAD 含发布后加固；安装命令固定到 exact-SHA、不可变制品、SBOM、provenance 与 registry 回读均已核验的发布标签。
         </p>
 
         <!-- Install tabs -->
@@ -632,7 +632,7 @@ const packs = [
           当前 CLI 搭载 PDH 0.4.57：来源别名、raw observation、字段级冲突决策、引用重写与最终实体在同一事务提交；桌面端、Web Panel 与命令行共用实时采集协议，临时 Cookie/OAuth 不落配置；部分读取、不可读数据库或不完整分页保留旧水位，可在下一轮安全续扫。
         </p>
         <p class="mt-4 text-lg text-muted">
-          稳定版 <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">{SOURCE_CLI_VERSION}</code> 已包含规范化会话投影、MCP ws/wss 与可信动态请求头、计划/Todo 修订上限，以及可审计的 checkpoint restore saga。恢复命令要求 <code class="font-mono text-sm">--yes</code>、期望序列号和 head hash；能力边界只覆盖验证过的文件恢复闭包，不扩写为外部副作用回滚。
+          稳定版 <code class="font-mono text-sm bg-paper border border-line px-2 py-0.5 rounded">{CLI_VERSION}</code> 已包含规范化会话投影、MCP ws/wss 与可信动态请求头、计划/Todo 修订上限、可审计的 checkpoint restore saga、交互输出背压与 canonical IDE action route。恢复命令要求 <code class="font-mono text-sm">--yes</code>、期望序列号和 head hash；能力边界只覆盖验证过的文件恢复闭包。HEAD 上的 session anti-rollback、MCP/Skill trust generation 与 native generation recovery 等加固仍等待后续版本发布门。
         </p>
       </div>
     </div>

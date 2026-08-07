@@ -1,8 +1,8 @@
 # ChainlessChain 系统概述
 
-> **当前版本（2026-08-05）：v5.0.3.135 | CLI 0.162.197（源码 / npm latest / 生产推荐一致）| PDH 0.4.57（92 个采集契约 / 18 类来源）| Agent SDK 0.1.7 | Open VSX 0.37.42 | JetBrains Marketplace 0.4.79 | Android versionCode 503135 | iOS build 135**
+> **当前版本（2026-08-07）：v5.0.3.135 | CLI 0.162.198（npm latest / 生产推荐一致；源码 HEAD 含发布后加固）| PDH 0.4.57（92 个采集契约 / 18 类来源）| Agent SDK 0.1.7 | Open VSX 0.37.44 | JetBrains Marketplace 0.4.81 | Android versionCode 503135 | iOS build 135**
 >
-> **当前能力与发布边界**：CLI `0.162.197` 已公开 canonical session/budget、MCP `ws/wss` 与不确定结果恢复、受控 Skill 子 Agent、签名更新恢复，以及绑定 workspace prestate、owner、seq/head fence 和持久 Git/copy engine 的 checkpoint restore saga。`cc checkpoint recovery` 只结算验证通过的恢复状态，外部副作用仍不在文件回滚保证内。生产安装建议固定 `chainlesschain@0.162.197`。
+> **当前能力与发布边界**：CLI `0.162.198` 已公开 canonical session/budget、MCP `ws/wss` 与不确定结果恢复、受控 Skill 子 Agent、checkpoint restore saga、交互输出背压和 canonical IDE action route。`cc checkpoint recovery` 只结算验证通过的恢复状态，外部副作用仍不在文件回滚保证内。生产安装建议固定 `chainlesschain@0.162.198`；HEAD 上的 session anti-rollback、MCP/Skill trust generation、native generation recovery 与 reliability soak 等加固仍等待后续版本自己的发布门。
 >
 > **v5.0.3.127–130 QQ空间一键采集 + 微信朋友圈采集 + §8.3 学习层备份上设备 + 个人助手 UX 收口（2026-06-24）**：QQ空间（Qzone）本地无库走 API——新增 `pdh/lib/forensics/qzone-collect.js`（`g_tk`=bkn hash over qzone 域 `p_skey`；说说/留言板/相册 → EVENT）+ `cc hub collect-qzone` + Android「QQ空间」一键采集卡（内嵌 WebView ptlogin2 登录 → 抓 cookie → in-APK 采集，真机 404 事件）；微信朋友圈 `SnsMicroMsg.db` 明文采集（`parseSnsEvents`，真机 2824 条）；§8.3 学习层备份命令上设备（`cc memory/instinct/learning export/import` → vault + 记忆 + 习惯 + 自进化轨迹全资产端到端备份）；个人助手 UX——卡死静默看门狗（20s 安抚/120s 友好超时+重试/进程退出自动重启）+ 待裁决信任卡固定（sticky）可见不再被消息流滚走。`pdh` 0.4.33→**0.4.36** + `chainlesschain` 0.162.101→**0.162.117** 已发 npm；Android cc bundle `internal-binaries-android-v20260624`（USR_VERSION 58）。
 >

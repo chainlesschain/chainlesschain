@@ -5,6 +5,31 @@
 
 ## [Unreleased]
 
+#### Fixed — CLI 0.162.198 正式发布：交互输出背压、Canonical Workbench 路由与三平台可移植性
+
+> `chainlesschain@0.162.198` 已于 2026-08-06 正式发布，当前 npm `latest` 与生产推荐版一致。包元数据仍为 `0.162.198` 的源码 HEAD 已继续前进，发布后的可靠性提交不反向计入该不可变 tarball。
+
+- **交互输出背压**：REPL、headless streaming、provider pacing 与 TTY writer 在输出饱和时等待 drain，并在完成、中断与会话切换时清理监听器。
+- **Canonical IDE 路由**：CLI-owned session projection 和有界 reply/action route 支持 VS Code / JetBrains Sessions Workbench 与 rewind journey，持久 mutation 仍由 CLI authority 持有。
+- **发布可移植性**：Windows path alias、状态路径、Skill metadata、POSIX executable bit 与兼容 shim 夹具已对齐 Ubuntu、Windows、macOS 的 CLI CI 和 Strict Sandbox。
+- **发布证据**：`v-npm-0-162-198` 精确指向 [`3c0f62fa17`](https://github.com/chainlesschain/chainlesschain/commit/3c0f62fa17242cfa3123ab502a9bf5d1cbed8481)；[CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/31078499968)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/31078499270)与[专用 npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/31081337370)均成功，[独立公网回读](https://github.com/chainlesschain/chainlesschain/actions/runs/31082366544)再次核对 registry 字节、签名 provenance 与 workflow identity。
+
+#### Added — IDE 正式发布：Open VSX 0.37.44 / JetBrains Marketplace 0.4.81
+
+> Open VSX `0.37.44` 与 JetBrains Marketplace `0.4.81` 已公开并与源码版本对齐；双标签精确指向 [`b5177f13c9`](https://github.com/chainlesschain/chainlesschain/commit/b5177f13c950fcc74be8a2a4aa573f5c422a1b13)。
+
+- Sessions Workbench 显示 canonical owner、worktree、pending input、artifact 与 pull request binding，不向 IDE 下放直接写权威。
+- background reply 经 CLI-authored action preview、认证 transport 与 projection/item revision 复核后发送。
+- local、background、remote、team、workflow 五类投影已在真实双端宿主走完 Dispatch → `needs_input` → Reply → done、artifact/PR 回读和独立 IDE 进程重启恢复。
+- [VS Code 发布门](https://github.com/chainlesschain/chainlesschain/actions/runs/31090450115)完成不可变 VSIX、三平台真实 Extension Host、Open VSX 发布与回读；[JetBrains 发布门](https://github.com/chainlesschain/chainlesschain/actions/runs/31090452195)完成 2024.2/2025.2 三平台宿主、上传与 Marketplace 回读。微软 VS Code Marketplace 仍未发布。
+
+#### Changed — 0.162.198 发布后的源码可靠性加固（尚未重新发版）
+
+- session host lease、canonical authority 和 anti-rollback witness 防止并发宿主或旧 generation 恢复权威；持久化失败分类、有界 cleanup 与 descendant 资源测量进入 fault/soak 矩阵。
+- 未受信 MCP 副作用必须审批；MCP executable identity 与 Skill authority 使用 owner-private 外部状态、trust generation/re-attestation，npm-backed MCP 固定直接和传递依赖闭包。
+- POSIX/Windows installer、rescue 与 OTA 记录 durable generation state，可在 activation/pointer swap/rollback 窗口恢复上一代。
+- 以上能力必须在未来版本自己的 exact-SHA 三平台发布矩阵通过后，才会成为生产安装契约。
+
 #### Added — CLI 0.162.197 正式发布：可恢复会话、MCP 裁决与 Checkpoint Restore Saga
 
 > `chainlesschain@0.162.197` 已于 2026-08-05 正式发布，当前源码、npm `latest` 与生产推荐版一致。`0.162.193` 保留为被正式版本取代的历史非权威记录；失败的 `0.162.194`、`0.162.195`、`0.162.196` tag 保持不可变。

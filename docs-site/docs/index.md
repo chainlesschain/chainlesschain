@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人 AI 管理平台
-  tagline: "v5.0.3.135 | CLI 0.162.197 | Open VSX 0.37.42 · JetBrains 0.4.79 | 可恢复会话与 Checkpoint Restore Saga"
+  tagline: "v5.0.3.135 | CLI 0.162.198 | Open VSX 0.37.44 · JetBrains 0.4.81 | 可恢复会话与 Checkpoint Restore Saga"
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -28,7 +28,7 @@ features:
     details: 依赖 DAG、fenced lease、四维预算、每任务 worktree、本地 v6 authority 与分布式 queue v1 已完成三平台短门及长期 soak。
   - icon: 🧑‍💻
     title: 双 IDE 会话与交付
-    details: Open VSX 0.37.42 下载已突破 2 万，提供内联聊天、CLI-owned Sessions Workbench、可恢复交付与 canonical rewind；JetBrains Marketplace 0.4.79 已公开。
+    details: Open VSX 0.37.44 下载已突破 2 万，提供内联聊天、CLI-owned Sessions Workbench、可恢复交付与 canonical rewind；JetBrains Marketplace 0.4.81 已公开，双端已覆盖 canonical reply、artifact/PR 与重启恢复。
   - icon: 🔐
     title: 安全优先
     details: 本地优先、权限控制、会话恢复、Process Broker 与跨平台沙箱共同保护 Agent 执行边界。
@@ -37,10 +37,10 @@ features:
     details: 92 个采集契约覆盖 18 类来源，支持事务化事实归并、显式游标、有界分页与部分结果失败闭合。
   - icon: 🧪
     title: 发布证据分层
-    details: CLI 0.162.197 已完成 exact-SHA 三平台 CLI CI、Strict Sandbox、不可变制品、SBOM、provenance 与 registry 回读；历史失败 tag 保持不可变。
+    details: CLI 0.162.198 已完成 exact-SHA 三平台 CLI CI、Strict Sandbox、不可变制品、SBOM、provenance 与 registry 回读；历史失败 tag 保持不可变。
 ---
 
-> **2026-08-05 当前主线快照**：桌面、Android 与 iOS 源码版本保持 `5.0.3.135`；CLI 源码、npm `latest` 与生产推荐版已对齐为 `0.162.197`。精确发布提交 `a03ad1b548` 的三平台 CLI CI、CLI Strict Sandbox、专用 npm 发布、exact-SHA gate、不可变 tarball/SBOM 与 provenance 均成功，发布后 registry bytes 与 workflow identity 回读也已通过。Open VSX `0.37.42` 和 JetBrains Marketplace `0.4.79` 已公开，双标签指向 `0844f1cb85` 并完成各自三平台宿主、制品、上传与 registry 回读。稳定能力包括 canonical session/budget、MCP 不确定结果恢复、受控 Skill 子 Agent、签名更新恢复、checkpoint restore saga、IDE Sessions Workbench/可恢复交付/canonical rewind，以及 VS Code 内联聊天。详细入口：[CLI Runtime 当前实现](/chainlesschain/cli-runtime-current)、[检查点恢复](/chainlesschain/checkpoint)、[IDE 插件使用指南](/chainlesschain/ide-plugin)、[个人数据中台](/chainlesschain/personal-data-hub)与[更新日志](/changelog)。
+> **2026-08-07 当前主线快照**：桌面、Android 与 iOS 源码版本保持 `5.0.3.135`；npm `latest` 与生产推荐 CLI 为 `0.162.198`。精确发布提交 `3c0f62fa17` 的三平台 CLI CI、CLI Strict Sandbox、专用 npm 发布、exact-SHA gate、不可变 tarball/CycloneDX SBOM、Trusted Publishing 与 provenance 均成功，独立 registry bytes 与 workflow identity 回读也已通过。当前源码包元数据仍为 `0.162.198`，但 HEAD 已包含会话 anti-rollback、MCP/Skill trust generation、native generation recovery 与 reliability soak 等发布后加固，不能把它们反向计入公开 tarball。Open VSX `0.37.44` 和 JetBrains Marketplace `0.4.81` 已公开，双标签指向 `b5177f13c9` 并完成各自三平台宿主、制品、上传与 registry 回读。详细入口：[CLI Runtime 当前实现](/chainlesschain/cli-runtime-current)、[检查点恢复](/chainlesschain/checkpoint)、[IDE 插件使用指南](/chainlesschain/ide-plugin)、[个人数据中台](/chainlesschain/personal-data-hub)与[更新日志](/changelog)。
 
 > 2026-04-08 更新：文档站已对齐 CLI Agent Runtime 重构、统一 runtime event、session record、后台任务增强、Worktree 合并助手、压缩观测、会话迁移，以及 **Coding Agent Phase 5 最小 Harness + 真实 interrupt**。
 >
