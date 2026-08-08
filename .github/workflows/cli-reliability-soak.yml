@@ -23,7 +23,10 @@ on:
       - "packages/cli/src/lib/paths.js"
       - "packages/cli/scripts/cli-reliability-soak.mjs"
       - "packages/cli/scripts/cli-reliability-mcp-server.mjs"
+      - "packages/cli/scripts/cli-mcp-security-soak.mjs"
+      - "packages/cli/scripts/ide-roadmap-mcp-security-gate.mjs"
       - "packages/cli/__tests__/unit/cli-reliability-soak.test.js"
+      - "packages/cli/__tests__/unit/cli-mcp-security-soak.test.js"
       - "packages/cli/__tests__/unit/repair-node-pty.test.js"
       - "packages/cli/__tests__/unit/mcp-stdio-package-materialization.test.js"
   schedule:
@@ -155,3 +158,95 @@ jobs:
           path: ${{ runner.temp }}/cli-reliability-result.json
           if-no-files-found: error
           retention-days: 30
+
+  mcp-security-soak:
+    name: "malicious MCP host/race soak (${{ matrix.os }})"
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 300
+    env:
+      CC_CLI_MCP_SECURITY_SOAK_MODE: ${{ github.event_name == 'pull_request' && 'smoke' || 'formal' }}
+      CC_CLI_MCP_SECURITY_SOAK_DURATION_SECONDS: ${{ github.event_name == 'pull_request' && '5' || inputs.duration_seconds || '7200' }}
+      CC_CLI_MCP_SECURITY_SOAK_CYCLES: ${{ github.event_name == 'pull_request' && '2' || '100' }}
+      CC_CLI_MCP_SECURITY_SOAK_EXPECTED_SHA: ${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
+      CC_CLI_MCP_SECURITY_SOAK_CHECKPOINT_INTERVAL_SECONDS: "30"
+    steps:
+      - name: Checkout exact MCP security soak commit
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ env.CC_CLI_MCP_SECURITY_SOAK_EXPECTED_SHA }}
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+
+      - uses: ./.github/actions/setup-node-deps
+
+      - name: Run time-based malicious MCP host and pathname race soak
+        env:
+          CC_CLI_MCP_SECURITY_SOAK_OUTPUT: ${{ runner.temp }}/cli-mcp-security-soak-${{ runner.os }}.json
+        run: npm run test:cli-mcp-security-soak
+
+      - name: Upload exact-SHA MCP security soak evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: cli-mcp-security-soak-${{ runner.os }}-${{ env.CC_CLI_MCP_SECURITY_SOAK_EXPECTED_SHA }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/cli-mcp-security-soak-${{ runner.os }}.json
+          if-no-files-found: error
+          retention-days: 90
+
+  mcp-security-soak-aggregate:
+    name: Malicious MCP security soak aggregate
+    if: always()
+    needs: mcp-security-soak
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CC_CLI_MCP_SECURITY_SOAK_EXPECTED_SHA: ${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Refuse an incomplete MCP security soak platform matrix
+        if: needs.mcp-security-soak.result != 'success'
+        shell: bash
+        run: |
+          echo "::error::At least one MCP security soak platform failed or did not finish"
+          exit 1
+
+      - name: Checkout exact MCP security soak commit
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ env.CC_CLI_MCP_SECURITY_SOAK_EXPECTED_SHA }}
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+
+      - uses: ./.github/actions/setup-node-deps
+
+      - uses: actions/download-artifact@v7
+        with:
+          pattern: cli-mcp-security-soak-*-${{ env.CC_CLI_MCP_SECURITY_SOAK_EXPECTED_SHA }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/cli-mcp-security-soak-evidence
+          merge-multiple: true
+
+      - name: Verify exact commit, three operating systems, time, cycles, and invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+          node packages/cli/scripts/cli-mcp-security-soak.mjs \
+            --verify-evidence-dir "${RUNNER_TEMP}/cli-mcp-security-soak-evidence" \
+            --release-commit "${CC_CLI_MCP_SECURITY_SOAK_EXPECTED_SHA}" \
+            --output "${RUNNER_TEMP}/cli-mcp-security-soak-aggregate.json"
+
+      - name: Upload immutable MCP security soak aggregate
+        uses: actions/upload-artifact@v6
+        with:
+          name: cli-mcp-security-soak-aggregate-${{ env.CC_CLI_MCP_SECURITY_SOAK_EXPECTED_SHA }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/cli-mcp-security-soak-aggregate.json
+          if-no-files-found: error
+          retention-days: 90

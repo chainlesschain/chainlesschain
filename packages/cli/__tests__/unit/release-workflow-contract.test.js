@@ -398,7 +398,10 @@ describe("CLI release workflow contracts", () => {
     expect(text).not.toContain("releases/latest");
     expect(text).toContain("releases/download/cli-stable");
     expect(text).toContain("group: cli-native-release-stable");
-    expect(text).toContain("blocked-pending-native-host-matrix");
+    expect(text).toContain(
+      "blocked-pending-signing-and-public-distribution-evidence",
+    );
+    expect(text).not.toContain("blocked-pending-native-host-matrix");
     expect(text).toMatch(
       /build:\s*\n\s*needs: \[release-readiness, exact-sha-gate\]/,
     );
