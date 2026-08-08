@@ -96,6 +96,14 @@ jobs:
           NODE
 
       - uses: ./.github/actions/setup-node-deps
+        with:
+          # This validation only needs the repository's JS toolchain. Running
+          # unrelated monorepo lifecycle scripts makes Windows ARM64 fall back
+          # to legacy node-gyp builds (for example classic-level via Python
+          # 3.13, where distutils no longer exists) even though those addons
+          # are never loaded by this workflow. The Web Panel still performs
+          # its own isolated, lockfile-clean install during the native build.
+          install-command: npm ci --legacy-peer-deps --ignore-scripts
 
       - name: Create validation-only update key
         shell: bash
