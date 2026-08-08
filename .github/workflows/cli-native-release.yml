@@ -13,10 +13,11 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  # Keep tag-triggered publication fail-closed until native ARM execution,
-  # macOS notarization/Gatekeeper, installer recovery and updater crash tests
+  # Six-target unsigned build/execution evidence exists. Keep tag-triggered
+  # publication fail-closed until signing credentials, signed-artifact
+  # install/upgrade/rollback, package-manager publication and public readback
   # have produced exact-commit evidence on this workflow.
-  CLI_NATIVE_RELEASE_IMPLEMENTATION_STATUS: blocked-pending-native-host-matrix
+  CLI_NATIVE_RELEASE_IMPLEMENTATION_STATUS: blocked-pending-signing-and-public-distribution-evidence
 
 jobs:
   release-readiness:
@@ -38,7 +39,7 @@ jobs:
         run: |
           set -euo pipefail
           if [ "$CLI_NATIVE_RELEASE_IMPLEMENTATION_STATUS" != "ready" ]; then
-            echo "Native CLI publication is blocked pending ARM execution, macOS notarization and transactional updater evidence." >&2
+            echo "Native CLI publication is blocked pending signing credentials, notarization, signed install/upgrade/rollback, package-manager publication and public readback evidence." >&2
             exit 1
           fi
           for name in \
