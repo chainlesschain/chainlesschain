@@ -156,12 +156,34 @@ final class IdeUiSmokeTest {
                 "importClass(com.intellij.openapi.application.ApplicationInfo); "
                         + "ApplicationInfo.getInstance().getStrictVersion();");
         String actual = String.valueOf(actualValue);
-        if (!required.equals(actual)) {
+        if (!equivalentNumericVersion(required, actual)) {
             throw new AssertionError(
                     "JetBrains IDE version mismatch: expected "
                             + required + ", got " + actual);
         }
         System.out.println("[ui-smoke] verified IDE version: " + actual);
+    }
+
+    private static boolean equivalentNumericVersion(String expected, String actual) {
+        if (!expected.matches("\\d+(?:\\.\\d+)*")
+                || !actual.matches("\\d+(?:\\.\\d+)*")) {
+            return false;
+        }
+        String[] expectedParts = expected.split("\\.");
+        String[] actualParts = actual.split("\\.");
+        int length = Math.max(expectedParts.length, actualParts.length);
+        try {
+            for (int index = 0; index < length; index++) {
+                int expectedPart = index < expectedParts.length
+                        ? Integer.parseInt(expectedParts[index]) : 0;
+                int actualPart = index < actualParts.length
+                        ? Integer.parseInt(actualParts[index]) : 0;
+                if (expectedPart != actualPart) return false;
+            }
+            return true;
+        } catch (NumberFormatException ignored) {
+            return false;
+        }
     }
 
     private static void runSessionsWorkbenchJourney(

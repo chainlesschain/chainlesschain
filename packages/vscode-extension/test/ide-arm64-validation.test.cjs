@@ -344,6 +344,10 @@ test("the ARM64 workflow binds exact hosts, versions, and aggregate evidence", (
     jetbrainsHostDriver,
     /CC_IDE_REQUIRED_HOST_VERSION[\s\S]*?ApplicationInfo\.getInstance\(\)\.getStrictVersion/u,
   );
+  assert.match(
+    jetbrainsHostDriver,
+    /equivalentNumericVersion[\s\S]*?Math\.max\(expectedParts\.length, actualParts\.length\)/u,
+  );
 
   const vscodeHostRunner = fs.readFileSync(
     path.join(
