@@ -320,9 +320,9 @@ Runtime audit: brokered: 184, audited-exemption: 31, non-executable: 39, unrevie
 | `desktop-app-vue/scripts/verify-coding-agent-parity.js` | 1 | `const { spawnSync } = require("child_process");` |
 | `desktop-app-vue/scripts/verify-coding-agent-parity.js` | 247 | `const result = spawnSync(step.command, step.args, {` |
 | `packages/cli/scripts/build-web-panel.mjs` | 15 | `import { execFileSync, execSync } from "node:child_process";` |
-| `packages/cli/scripts/build-web-panel.mjs` | 194 | `execSync("npm ci --include=dev --include=optional --legacy-peer-deps", {` |
-| `packages/cli/scripts/build-web-panel.mjs` | 205 | `execFileSync(` |
-| `packages/cli/scripts/build-web-panel.mjs` | 221 | `execSync("npm run build:no-sync", {` |
+| `packages/cli/scripts/build-web-panel.mjs` | 200 | `execSync("npm ci --include=dev --include=optional --legacy-peer-deps", {` |
+| `packages/cli/scripts/build-web-panel.mjs` | 211 | `execFileSync(` |
+| `packages/cli/scripts/build-web-panel.mjs` | 227 | `execSync("npm run build:no-sync", {` |
 | `packages/cli/scripts/check-cli-startup.mjs` | 3 | `import { spawnSync } from "node:child_process";` |
 | `packages/cli/scripts/check-cli-startup.mjs` | 64 | `const result = spawnSync(process.execPath, [bin, ...entry.args], {` |
 | `packages/cli/scripts/cli-reliability-soak.mjs` | 14 | `import { spawn, spawnSync } from "node:child_process";` |

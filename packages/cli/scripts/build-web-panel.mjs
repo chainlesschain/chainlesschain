@@ -129,7 +129,13 @@ function runBuild() {
     env.NODE_ENV = "development";
     return env;
   })();
-  const tmpBase = fs.mkdtempSync(path.join(os.tmpdir(), "cc-web-panel-"));
+  // Hosted Windows runners can expose TEMP through an 8.3 short path such as
+  // C:\\Users\\RUNNER~1 while Vite later canonicalizes imported files to the
+  // long path. Mixing those spellings makes vite:build-html calculate an
+  // invalid ../../-prefixed emitted asset name. Canonicalize before creating
+  // the isolated tree so the child process and Vite see one root spelling.
+  const canonicalTmpRoot = fs.realpathSync.native(os.tmpdir());
+  const tmpBase = fs.mkdtempSync(path.join(canonicalTmpRoot, "cc-web-panel-"));
   const tmpRepo = path.join(tmpBase, "repo");
   const tmpWp = path.join(tmpRepo, "packages", "web-panel");
   try {
@@ -207,7 +213,7 @@ function runBuild() {
       [
         "--input-type=module",
         "--eval",
-        'for (const name of ["@intlify/shared", "@vitejs/plugin-vue", "vite"]) import.meta.resolve(name);',
+        'for (const name of ["@ant-design/colors", "@intlify/shared", "@vitejs/plugin-vue", "vite"]) import.meta.resolve(name);',
       ],
       {
         cwd: tmpWp,

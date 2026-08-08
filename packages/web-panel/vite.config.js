@@ -67,6 +67,13 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": resolve(process.cwd(), "src"),
+      // ant-design-vue imports this transitive package by name. Hosted Linux
+      // npm installs have returned success while Vite still could not resolve
+      // that import, so promote and pin it above and bind its public ESM file.
+      "@ant-design/colors": resolve(
+        process.cwd(),
+        "node_modules/@ant-design/colors/dist/index.esm.js",
+      ),
       // Keep vue-i18n's runtime import deterministic across hosted runners.
       // Linux and Windows native packaging have both observed Rollup failing
       // to follow @intlify/shared's nested conditional export even though npm

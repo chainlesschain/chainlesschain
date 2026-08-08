@@ -36,13 +36,23 @@ describe("web-panel isolated build contract", () => {
     expect(script).toContain(
       "npm ci --include=dev --include=optional --legacy-peer-deps",
     );
+    expect(script).toContain("fs.realpathSync.native(os.tmpdir())");
+    expect(script).toContain('"@ant-design/colors"');
     expect(script).toContain('"@intlify/shared"');
     expect(script).toContain('execSync("npm run build:no-sync"');
+    expect(packageJson.dependencies["@ant-design/colors"]).toBe("6.0.0");
     expect(packageJson.dependencies["@intlify/shared"]).toBe("9.14.5");
+    expect(packageLock.packages[""].dependencies["@ant-design/colors"]).toBe(
+      "6.0.0",
+    );
     expect(packageLock.packages[""].dependencies["@intlify/shared"]).toBe(
       "9.14.5",
     );
     expect(viteConfig).toContain('"@intlify/shared": resolve(');
+    expect(viteConfig).toContain('"@ant-design/colors": resolve(');
+    expect(viteConfig).toContain(
+      '"node_modules/@ant-design/colors/dist/index.esm.js"',
+    );
     expect(viteConfig).toContain(
       '"node_modules/@intlify/shared/dist/shared.mjs"',
     );
