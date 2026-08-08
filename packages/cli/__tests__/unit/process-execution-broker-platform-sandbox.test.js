@@ -17,6 +17,8 @@ import {
 import {
   applySandbox,
   applyWindowsSandbox,
+  MCP_STDIO_FD_ENTRY_BOOTSTRAP,
+  MCP_STDIO_FD_ENTRY_BOOTSTRAP_SHA256,
   resetWindowsSandboxAdapterCache,
   SANDBOX_BOUNDARIES,
 } from "../../src/lib/process-execution-broker/platform-sandbox.js";
@@ -1863,12 +1865,14 @@ describe("platform sandbox adapter contract", () => {
       policyAttested: true,
       guarantees: [SANDBOX_BOUNDARIES.CODE_SNAPSHOT],
       command: "/proc/self/fd/3",
-      args: ["/proc/self/fd/4", "--label", "ready"],
+      args: ["-e", MCP_STDIO_FD_ENTRY_BOOTSTRAP, "--", "--label", "ready"],
       runtimeProbe: {
         runnable: true,
         contentSnapshot: true,
         contentSnapshotScope: "mcp-capsule-entry-and-node-runtime",
         handleAtomic: true,
+        entrySnapshotAtomic: true,
+        runtimeLaunchAtomic: true,
         sharedLibraryClosure: false,
       },
     });
@@ -9438,7 +9442,7 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
       applySandbox: vi.fn((_command, _args, options) =>
         appliedPlan(
           "/proc/self/fd/3",
-          ["/proc/self/fd/4", "--stdio"],
+          ["-e", MCP_STDIO_FD_ENTRY_BOOTSTRAP, "--", "--stdio"],
           options,
           {
             platform: "linux",
@@ -9459,8 +9463,12 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
               contentSnapshot: true,
               contentSnapshotScope: "mcp-capsule-entry-and-node-runtime",
               contentSnapshotMechanism:
-                "verified-o_tmpfile-copy-inherited-fd-exec-v1",
+                "verified-o_tmpfile-copy-inherited-fd-module-compile-v1",
               handleAtomic: true,
+              entrySnapshotAtomic: true,
+              runtimeLaunchAtomic: true,
+              runtimeLaunchMechanism: "inherited-executable-fd-v1",
+              entrySnapshotBootstrapSha256: MCP_STDIO_FD_ENTRY_BOOTSTRAP_SHA256,
               sharedLibraryClosure: false,
               runtimeSnapshotSha256: "a".repeat(64),
               runtimeSnapshotBytes: 100,
@@ -9497,6 +9505,84 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
     await expect(child.sandboxReady).resolves.toMatchObject({
       applied: true,
       backend: "linux-fd-code-snapshot",
+    });
+  });
+
+  it("accepts and audits typed atomic macOS MCP capsule evidence", async () => {
+    const child = createChild();
+    const nativeSpawn = vi.fn(() => child);
+    const cleanup = vi.fn();
+    executionBroker._native = { spawn: nativeSpawn };
+    executionBroker._sandboxAdapter = {
+      applySandbox: vi.fn((_command, _args, options) =>
+        appliedPlan(
+          "/private/tmp/chainlesschain-node-snapshot",
+          ["-e", MCP_STDIO_FD_ENTRY_BOOTSTRAP, "--", "--stdio"],
+          options,
+          {
+            platform: "darwin",
+            enforcement: "macos-fd-code-snapshot",
+            backend: "macos-fd-code-snapshot",
+            candidateBackend: null,
+            policyAttested: true,
+            policyDigest: "7".repeat(64),
+            guarantees: [SANDBOX_BOUNDARIES.CODE_SNAPSHOT],
+            cleanup,
+            runtimeProbe: {
+              kind: "darwin-mcp-capsule-code-snapshot-v1",
+              attempted: true,
+              runnable: true,
+              reason: null,
+              probeRuntime: "node",
+              targetRuntime: "node",
+              contentSnapshot: true,
+              contentSnapshotScope: "mcp-capsule-entry-and-node-runtime",
+              contentSnapshotMechanism:
+                "verified-private-runtime-copy-and-unlinked-entry-fd-module-compile-v1",
+              handleAtomic: false,
+              entrySnapshotAtomic: true,
+              runtimeLaunchAtomic: false,
+              runtimeLaunchMechanism:
+                "verified-private-tempfile-synchronous-spawn-unlink-v1",
+              entrySnapshotBootstrapSha256: MCP_STDIO_FD_ENTRY_BOOTSTRAP_SHA256,
+              sharedLibraryClosure: false,
+              runtimeSnapshotSha256: "a".repeat(64),
+              runtimeSnapshotBytes: 100,
+              entrySnapshotSha256: "b".repeat(64),
+              entrySnapshotBytes: 200,
+            },
+          },
+        ),
+      ),
+      postSpawnSandbox: vi.fn(),
+    };
+
+    executionBroker.spawn("node", ["server.cjs", "--stdio"], {
+      origin: "test:macos-mcp-code-snapshot",
+      policy: "allow",
+      shell: false,
+      requiredBoundaries: [SANDBOX_BOUNDARIES.CODE_SNAPSHOT],
+    });
+
+    expect(nativeSpawn).toHaveBeenCalledOnce();
+    expect(cleanup).toHaveBeenCalledOnce();
+    expect(executionBroker.getAuditLog(1)[0]).toMatchObject({
+      sandboxed: true,
+      sandboxBackend: "macos-fd-code-snapshot",
+      sandboxRequired: [SANDBOX_BOUNDARIES.CODE_SNAPSHOT],
+      sandboxGuarantees: [SANDBOX_BOUNDARIES.CODE_SNAPSHOT],
+      sandboxRuntimeProbe: {
+        handleAtomic: false,
+        entrySnapshotAtomic: true,
+        runtimeLaunchAtomic: false,
+        sharedLibraryClosure: false,
+        runtimeSnapshotSha256: "a".repeat(64),
+        entrySnapshotSha256: "b".repeat(64),
+      },
+    });
+    await expect(child.sandboxReady).resolves.toMatchObject({
+      applied: true,
+      backend: "macos-fd-code-snapshot",
     });
   });
 

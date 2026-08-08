@@ -37,6 +37,7 @@ const require = createRequire(import.meta.url);
 import {
   applySandbox as _applySandbox,
   postSpawnSandbox as _postSpawnSandbox,
+  MCP_STDIO_FD_ENTRY_BOOTSTRAP_SHA256,
   SANDBOX_BOUNDARIES,
 } from "./platform-sandbox.js";
 import {
@@ -1584,8 +1585,14 @@ class ProcessExecutionBroker extends EventEmitter {
           plan.runtimeProbe.contentSnapshotScope ===
             "mcp-capsule-entry-and-node-runtime" &&
           plan.runtimeProbe.contentSnapshotMechanism ===
-            "verified-o_tmpfile-copy-inherited-fd-exec-v1" &&
+            "verified-o_tmpfile-copy-inherited-fd-module-compile-v1" &&
           plan.runtimeProbe.handleAtomic === true &&
+          plan.runtimeProbe.entrySnapshotAtomic === true &&
+          plan.runtimeProbe.runtimeLaunchAtomic === true &&
+          plan.runtimeProbe.runtimeLaunchMechanism ===
+            "inherited-executable-fd-v1" &&
+          plan.runtimeProbe.entrySnapshotBootstrapSha256 ===
+            MCP_STDIO_FD_ENTRY_BOOTSTRAP_SHA256 &&
           /^[a-f0-9]{64}$/.test(
             plan.runtimeProbe.runtimeSnapshotSha256 || "",
           ) &&
@@ -1593,7 +1600,12 @@ class ProcessExecutionBroker extends EventEmitter {
           plan.runtimeProbe.runtimeSnapshotBytes > 0 &&
           plan.runtimeProbe.runtimeSnapshotBytes <= 256 * 1024 * 1024 &&
           /^\/proc\/self\/fd\/\d+$/.test(plan.command) &&
-          /^\/proc\/self\/fd\/\d+$/.test(plan.args[0] || "");
+          plan.args[0] === "-e" &&
+          crypto
+            .createHash("sha256")
+            .update(plan.args[1] || "")
+            .digest("hex") === MCP_STDIO_FD_ENTRY_BOOTSTRAP_SHA256 &&
+          plan.args[2] === "--";
         const windowsSnapshotEvidence =
           plan.platform === "win32" &&
           [
@@ -1620,9 +1632,42 @@ class ProcessExecutionBroker extends EventEmitter {
           Number.isSafeInteger(plan.runtimeProbe.runtimeAttestedBytes) &&
           plan.runtimeProbe.runtimeAttestedBytes > 0 &&
           plan.runtimeProbe.runtimeAttestedBytes <= 256 * 1024 * 1024;
+        const macSnapshotEvidence =
+          plan.platform === "darwin" &&
+          backend === "macos-fd-code-snapshot" &&
+          plan.enforcement === "macos-fd-code-snapshot" &&
+          policyAttested === true &&
+          policyDigest !== null &&
+          plan.runtimeProbe.kind === "darwin-mcp-capsule-code-snapshot-v1" &&
+          plan.runtimeProbe.contentSnapshotScope ===
+            "mcp-capsule-entry-and-node-runtime" &&
+          plan.runtimeProbe.contentSnapshotMechanism ===
+            "verified-private-runtime-copy-and-unlinked-entry-fd-module-compile-v1" &&
+          plan.runtimeProbe.handleAtomic === false &&
+          plan.runtimeProbe.entrySnapshotAtomic === true &&
+          plan.runtimeProbe.runtimeLaunchAtomic === false &&
+          plan.runtimeProbe.runtimeLaunchMechanism ===
+            "verified-private-tempfile-synchronous-spawn-unlink-v1" &&
+          plan.runtimeProbe.entrySnapshotBootstrapSha256 ===
+            MCP_STDIO_FD_ENTRY_BOOTSTRAP_SHA256 &&
+          /^[a-f0-9]{64}$/.test(
+            plan.runtimeProbe.runtimeSnapshotSha256 || "",
+          ) &&
+          Number.isSafeInteger(plan.runtimeProbe.runtimeSnapshotBytes) &&
+          plan.runtimeProbe.runtimeSnapshotBytes > 0 &&
+          plan.runtimeProbe.runtimeSnapshotBytes <= 256 * 1024 * 1024 &&
+          path.posix.isAbsolute(plan.command) &&
+          plan.args[0] === "-e" &&
+          crypto
+            .createHash("sha256")
+            .update(plan.args[1] || "")
+            .digest("hex") === MCP_STDIO_FD_ENTRY_BOOTSTRAP_SHA256 &&
+          plan.args[2] === "--";
         if (
           !exactSnapshotEvidence ||
-          (!linuxSnapshotEvidence && !windowsSnapshotEvidence)
+          (!linuxSnapshotEvidence &&
+            !windowsSnapshotEvidence &&
+            !macSnapshotEvidence)
         ) {
           throw this._sandboxError(
             "invalid_sandbox_plan",
@@ -1927,6 +1972,11 @@ class ProcessExecutionBroker extends EventEmitter {
               runtimeSnapshotBytes: plan.runtimeProbe.runtimeSnapshotBytes,
               entrySnapshotSha256: plan.runtimeProbe.entrySnapshotSha256,
               entrySnapshotBytes: plan.runtimeProbe.entrySnapshotBytes,
+              entrySnapshotAtomic: plan.runtimeProbe.entrySnapshotAtomic,
+              runtimeLaunchAtomic: plan.runtimeProbe.runtimeLaunchAtomic,
+              runtimeLaunchMechanism: plan.runtimeProbe.runtimeLaunchMechanism,
+              entrySnapshotBootstrapSha256:
+                plan.runtimeProbe.entrySnapshotBootstrapSha256,
               sharedLibraryClosure: plan.runtimeProbe.sharedLibraryClosure,
             }
           : {}),
@@ -3081,7 +3131,8 @@ class ProcessExecutionBroker extends EventEmitter {
       sandboxPlan.applied === true &&
       (sandboxPlan.backend === "linux-bwrap-workspace" ||
         sandboxPlan.backend === "linux-bwrap" ||
-        sandboxPlan.backend === "linux-fd-code-snapshot") &&
+        sandboxPlan.backend === "linux-fd-code-snapshot" ||
+        sandboxPlan.backend === "macos-fd-code-snapshot") &&
       sandboxPlan.postSpawn.required === false
     ) {
       // child_process.spawn() has synchronously duplicated every stdio entry
