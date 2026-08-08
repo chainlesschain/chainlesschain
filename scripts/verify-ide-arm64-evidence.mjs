@@ -28,7 +28,16 @@ export const IDE_ARM64_VALIDATION_SCHEMA =
   "chainlesschain.ide-arm64-validation.v1";
 export const IDE_ARM64_REQUIRED_ARCHITECTURE = "arm64";
 export const IDE_ARM64_MINIMUM_VSCODE_VERSION = "1.85.2";
-export const IDE_ARM64_JETBRAINS_VERSIONS = Object.freeze(["2024.2", "2025.2"]);
+export const IDE_ARM64_JETBRAINS_VERSIONS_BY_OS = Object.freeze({
+  darwin: Object.freeze(["2024.2", "2025.2"]),
+  linux: Object.freeze(["2024.2", "2025.2"]),
+  // JetBrains did not publish Windows ARM64 distributions for 2024.2/2025.2.
+  // This exact unified IDEA release has a vendor windowsARM64 installer.
+  win32: Object.freeze(["2026.2.0.1"]),
+});
+export const IDE_ARM64_JETBRAINS_WINDOWS_NATIVE_RELEASE = "2026.2.0.1";
+export const IDE_ARM64_JETBRAINS_RELEASES_SOURCE =
+  "https://data.services.jetbrains.com/products/releases?code=IIU&type=release";
 
 const EXACT_COMMIT = /^[a-f0-9]{40}$/;
 const EXACT_VSCODE_VERSION = /^\d+\.\d+\.\d+$/;
@@ -163,9 +172,11 @@ function classifyEvidence(value) {
     };
   }
   if (host === "jetbrains") {
+    const supportedVersions =
+      IDE_ARM64_JETBRAINS_VERSIONS_BY_OS[operatingSystem] || [];
     if (
       value.journeyId !== JETBRAINS_JOURNEY_ID ||
-      !IDE_ARM64_JETBRAINS_VERSIONS.includes(version)
+      !supportedVersions.includes(version)
     ) {
       throw new Error("invalid JetBrains ARM64 journey identity");
     }
@@ -185,7 +196,7 @@ function requiredMatrixKeys() {
   for (const operatingSystem of OPERATING_SYSTEMS) {
     keys.push(`vscode:${operatingSystem}:stable`);
     keys.push(`vscode:${operatingSystem}:minimum`);
-    for (const version of IDE_ARM64_JETBRAINS_VERSIONS) {
+    for (const version of IDE_ARM64_JETBRAINS_VERSIONS_BY_OS[operatingSystem]) {
       keys.push(`jetbrains:${operatingSystem}:${version}`);
     }
   }
@@ -349,7 +360,19 @@ export function verifyIdeArm64EvidenceSet({
     architecture: IDE_ARM64_REQUIRED_ARCHITECTURE,
     operatingSystems: [...OPERATING_SYSTEMS].sort(),
     vscodeVersionsPerOs: 2,
-    jetbrainsVersionsPerOs: [...IDE_ARM64_JETBRAINS_VERSIONS],
+    jetbrainsVersionsByOs: Object.fromEntries(
+      OPERATING_SYSTEMS.map((operatingSystem) => [
+        operatingSystem,
+        [...IDE_ARM64_JETBRAINS_VERSIONS_BY_OS[operatingSystem]],
+      ]),
+    ),
+    vendorSupportBoundaries: {
+      jetbrainsWindowsArm64: {
+        validatedNativeVersion: IDE_ARM64_JETBRAINS_WINDOWS_NATIVE_RELEASE,
+        distributionKey: "windowsARM64",
+        source: IDE_ARM64_JETBRAINS_RELEASES_SOURCE,
+      },
+    },
     evidenceCount: entries.length,
     matrix: entries,
   };

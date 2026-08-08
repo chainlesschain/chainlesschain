@@ -511,6 +511,8 @@ async function run() {
     process.env.CHAINLESSCHAIN_MULTI_WINDOW_EVIDENCE_FILE;
   const multiWindowProgressFile =
     process.env.CHAINLESSCHAIN_MULTI_WINDOW_PROGRESS_FILE;
+  const multiWindowPrimaryReadyFile =
+    process.env.CHAINLESSCHAIN_MULTI_WINDOW_PRIMARY_READY_FILE;
   const vscodeExecutablePath =
     process.env.CHAINLESSCHAIN_SMOKE_VSCODE_EXECUTABLE;
   const userDataDir = process.env.CHAINLESSCHAIN_SMOKE_USER_DATA_DIR;
@@ -629,6 +631,27 @@ async function run() {
   }
 
   if (journeyPhase === "initial" && multiWindowRequired) {
+    if (externalCompanionManaged) {
+      assert.ok(
+        multiWindowPrimaryReadyFile,
+        "missing CHAINLESSCHAIN_MULTI_WINDOW_PRIMARY_READY_FILE",
+      );
+      writeSignal(multiWindowPrimaryReadyFile, {
+        phase: journeyPhase,
+        role: "primary",
+        hostArchitecture: process.arch,
+        extensionPath: fs.realpathSync(extension.extensionPath),
+        workspaceFolders: workspaceFolders.map((workspaceFolder) =>
+          fs.realpathSync(workspaceFolder),
+        ),
+        readyAt: new Date().toISOString(),
+      });
+      appendMultiWindowProgress(
+        multiWindowProgressFile,
+        "multi_window_primary_activation_ready",
+        { actor: "primary" },
+      );
+    }
     appendMultiWindowProgress(
       multiWindowProgressFile,
       "multi_window_primary_bridge_verified",

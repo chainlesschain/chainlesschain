@@ -64,6 +64,7 @@ final class IdeUiSmokeTest {
             ComponentFixture frame = robot.find(ComponentFixture.class,
                     Locators.byXpath("//div[@class='IdeFrameImpl']"), FRAME_BUDGET);
             assertRequiredHostArchitecture(frame);
+            assertRequiredHostVersion(frame);
 
             if ("restart".equals(System.getProperty("ui.journey.phase"))) {
                 runSessionsWorkbenchJourney(robot, true);
@@ -146,6 +147,21 @@ final class IdeUiSmokeTest {
                             + required + ", got " + actual);
         }
         System.out.println("[ui-smoke] verified IDE JVM architecture: " + actual);
+    }
+
+    private static void assertRequiredHostVersion(ComponentFixture frame) {
+        String required = System.getenv("CC_IDE_REQUIRED_HOST_VERSION");
+        if (required == null || required.isBlank()) return;
+        Object actualValue = frame.callJs(
+                "importClass(com.intellij.openapi.application.ApplicationInfo); "
+                        + "ApplicationInfo.getInstance().getStrictVersion();");
+        String actual = String.valueOf(actualValue);
+        if (!required.equals(actual)) {
+            throw new AssertionError(
+                    "JetBrains IDE version mismatch: expected "
+                            + required + ", got " + actual);
+        }
+        System.out.println("[ui-smoke] verified IDE version: " + actual);
     }
 
     private static void runSessionsWorkbenchJourney(

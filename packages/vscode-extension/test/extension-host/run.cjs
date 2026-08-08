@@ -1067,6 +1067,10 @@ async function runHostApiPhase({
   if (!userDataDir) throw new Error("host profile has no user-data directory");
   const { readyFile, resultFile } = hostPhaseSignalPaths(runtimeDir, phase);
   const traceFile = path.join(runtimeDir, "host-api-trace.jsonl");
+  const primaryActivationReadyFile = path.join(
+    runtimeDir,
+    "multi-window-primary-activation-ready.json",
+  );
   const useExternalCompanion = includeMultiWindow && platform !== "win32";
   const launchOptions = {
     vscodeExecutablePath,
@@ -1098,6 +1102,8 @@ async function runHostApiPhase({
             CHAINLESSCHAIN_SMOKE_COMPANION_WORKSPACE: companionWorkspace,
             CHAINLESSCHAIN_MULTI_WINDOW_EVIDENCE_FILE: multiWindowEvidenceFile,
             CHAINLESSCHAIN_MULTI_WINDOW_PROGRESS_FILE: progressPath,
+            CHAINLESSCHAIN_MULTI_WINDOW_PRIMARY_READY_FILE:
+              primaryActivationReadyFile,
             CHAINLESSCHAIN_SMOKE_VSCODE_EXECUTABLE: vscodeExecutablePath,
             CHAINLESSCHAIN_SMOKE_USER_DATA_DIR: userDataDir,
             ...(useExternalCompanion
@@ -1108,6 +1114,43 @@ async function runHostApiPhase({
     },
   };
   if (useExternalCompanion) {
+    recordHostProgress(progressPath, "multi_window_primary_launch_requested", {
+      actor: "orchestrator",
+      transport: "managed-extension-host",
+    });
+    const primaryHost = launchManagedHost(launchOptions);
+    recordHostProgress(progressPath, "multi_window_primary_launch_dispatched", {
+      actor: "orchestrator",
+      transport: "managed-extension-host",
+    });
+    const primaryReadyOutcome = waitForFile(
+      primaryActivationReadyFile,
+      90_000,
+    ).then(
+      () => ({ source: "ready" }),
+      (error) => ({ source: "ready", error }),
+    );
+    const primaryHostOutcome = primaryHost.outcome.then(
+      (value) => ({ source: "host", value }),
+      (error) => ({ source: "host", error }),
+    );
+    const firstPrimaryOutcome = await Promise.race([
+      primaryReadyOutcome,
+      primaryHostOutcome,
+    ]);
+    if (firstPrimaryOutcome.error || firstPrimaryOutcome.source === "host") {
+      primaryHost.requestStop();
+      await primaryHost.outcome.catch(() => {});
+      if (firstPrimaryOutcome.error) throw firstPrimaryOutcome.error;
+      throw new Error(
+        "primary VS Code host exited before its activation-ready signal",
+      );
+    }
+    recordHostProgress(
+      progressPath,
+      "multi_window_primary_activation_ready_observed",
+      { actor: "orchestrator", transport: "managed-extension-host" },
+    );
     recordHostProgress(
       progressPath,
       "multi_window_companion_launch_requested",
@@ -1125,10 +1168,9 @@ async function runHostApiPhase({
       "multi_window_companion_launch_dispatched",
       { actor: "orchestrator", transport: "managed-extension-host" },
     );
-    const primaryHost = launchManagedHost(launchOptions);
     const managedHosts = [
-      { label: "companion", launched: companionHost },
       { label: "primary", launched: primaryHost },
+      { label: "companion", launched: companionHost },
     ];
     const journey = await waitForFile(resultFile, 135_000)
       .then(() => readJourneyResult(resultFile, phase))

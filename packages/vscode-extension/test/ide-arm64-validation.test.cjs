@@ -129,7 +129,9 @@ async function createCompleteMatrix(testContext) {
         slot: "minimum",
       }),
     );
-    for (const version of ["2024.2", "2025.2"]) {
+    for (const version of modules.verifier.IDE_ARM64_JETBRAINS_VERSIONS_BY_OS[
+      operatingSystem
+    ]) {
       files.push(
         writeJourney({
           root,
@@ -153,7 +155,7 @@ function rewriteEvidence(filePath, evidence, mutate) {
   fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`);
 }
 
-test("a complete 12-cell IDE ARM64 evidence set produces one immutable aggregate", async (t) => {
+test("a complete 11-cell IDE ARM64 evidence set produces one immutable aggregate", async (t) => {
   const { root, verifier } = await createCompleteMatrix(t);
   const output = path.join(root, "aggregate.json");
   const aggregate = verifier.verifyIdeArm64EvidenceSet({
@@ -163,8 +165,17 @@ test("a complete 12-cell IDE ARM64 evidence set produces one immutable aggregate
   });
 
   assert.equal(aggregate.result, "passed");
-  assert.equal(aggregate.evidenceCount, 12);
-  assert.equal(aggregate.matrix.length, 12);
+  assert.equal(aggregate.evidenceCount, 11);
+  assert.equal(aggregate.matrix.length, 11);
+  assert.deepEqual(aggregate.jetbrainsVersionsByOs, {
+    darwin: ["2024.2", "2025.2"],
+    linux: ["2024.2", "2025.2"],
+    win32: ["2026.2.0.1"],
+  });
+  assert.equal(
+    aggregate.vendorSupportBoundaries.jetbrainsWindowsArm64.distributionKey,
+    "windowsARM64",
+  );
   assert.match(aggregate.aggregateDigest, /^sha256:[a-f0-9]{64}$/u);
   assert.ok(fs.statSync(output).isFile());
   assert.throws(
@@ -184,7 +195,7 @@ test("the IDE ARM64 aggregate rejects a missing matrix cell", async (t) => {
   assert.throws(
     () =>
       verifier.verifyIdeArm64EvidenceSet({ evidenceDir: root, releaseCommit }),
-    /requires 12 evidence files, found 11/u,
+    /requires 11 evidence files, found 10/u,
   );
 });
 
@@ -197,6 +208,21 @@ test("the IDE ARM64 aggregate rejects a self-consistent wrong architecture", asy
     () =>
       verifier.verifyIdeArm64EvidenceSet({ evidenceDir: root, releaseCommit }),
     /invalid IDE ARM64 journey evidence/u,
+  );
+});
+
+test("the IDE ARM64 aggregate rejects a nonexistent Windows compatibility cell", async (t) => {
+  const { root, files, evidence, verifier } = await createCompleteMatrix(t);
+  const windowsJetbrains = files.find((filePath) =>
+    filePath.includes("jetbrains-win32"),
+  );
+  rewriteEvidence(windowsJetbrains, evidence, (value) => {
+    value.host.version = "2025.2";
+  });
+  assert.throws(
+    () =>
+      verifier.verifyIdeArm64EvidenceSet({ evidenceDir: root, releaseCommit }),
+    /invalid JetBrains ARM64 journey identity/u,
   );
 });
 
@@ -222,8 +248,9 @@ test("the ARM64 workflow binds exact hosts, versions, and aggregate evidence", (
   assert.match(workflow, /ubuntu-24\.04-arm/u);
   assert.match(workflow, /windows-11-arm/u);
   assert.match(workflow, /runner: macos-15\s+platform: darwin/u);
-  assert.equal(workflow.match(/ide_version: "2024\.2"/gu)?.length, 3);
-  assert.equal(workflow.match(/ide_version: "2025\.2"/gu)?.length, 3);
+  assert.equal(workflow.match(/ide_version: "2024\.2"/gu)?.length, 2);
+  assert.equal(workflow.match(/ide_version: "2025\.2"/gu)?.length, 2);
+  assert.equal(workflow.match(/ide_version: "2026\.2\.0\.1"/gu)?.length, 1);
   assert.equal(workflow.match(/--vscode-version 1\.85\.2/gu)?.length, 2);
   assert.equal(workflow.match(/--assert-host/gu)?.length, 2);
   assert.equal(workflow.match(/--expected-arch arm64/gu)?.length, 2);
@@ -239,7 +266,9 @@ test("the ARM64 workflow binds exact hosts, versions, and aggregate evidence", (
     /IDE_ARM64_RELEASE_COMMIT: \$\{\{ inputs\.commit_sha \|\| github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/u,
   );
   assert.match(workflow, /needs: \[vscode-arm64-host, jetbrains-arm64-host\]/u);
-  assert.match(workflow, /Aggregate 12-cell IDE ARM64 evidence/u);
+  assert.match(workflow, /Aggregate 11-cell IDE ARM64 evidence/u);
+  assert.match(workflow, /downloads\.windowsARM64/u);
+  assert.match(workflow, /Get-FileHash -Algorithm SHA256/u);
   assert.match(workflow, /verify-ide-arm64-evidence\.mjs\s+--evidence-dir/u);
   assert.match(workflow, /merge-multiple: true/u);
   assert.doesNotMatch(workflow, /continue-on-error/u);
@@ -265,6 +294,10 @@ test("the ARM64 workflow binds exact hosts, versions, and aggregate evidence", (
     ),
     "utf8",
   );
+  const jetbrainsBuild = fs.readFileSync(
+    path.join(repositoryRoot, "packages/jetbrains-plugin/build.gradle.kts"),
+    "utf8",
+  );
   assert.match(
     vscodeHostDriver,
     /value\.hostArchitecture !== requiredArchitecture/u,
@@ -280,6 +313,18 @@ test("the ARM64 workflow binds exact hosts, versions, and aggregate evidence", (
   assert.match(
     jetbrainsJourneyRunner,
     /CC_JETBRAINS_GRADLE_EXECUTABLE[\s\S]*?"--no-configuration-cache"/u,
+  );
+  assert.match(
+    jetbrainsJourneyRunner,
+    /CC_JETBRAINS_IDE_LOCAL_PATH[\s\S]*?-PhostIdeLocalPath=/u,
+  );
+  assert.match(
+    jetbrainsBuild,
+    /hostIdeLocalPath\.isPresent[\s\S]*?localPath\.set/u,
+  );
+  assert.match(
+    jetbrainsHostDriver,
+    /CC_IDE_REQUIRED_HOST_VERSION[\s\S]*?ApplicationInfo\.getInstance\(\)\.getStrictVersion/u,
   );
 
   const vscodeHostRunner = fs.readFileSync(
@@ -303,5 +348,13 @@ test("the ARM64 workflow binds exact hosts, versions, and aggregate evidence", (
   assert.equal(
     vscodeSmokeDriver.match(/EXTENSION_ACTIVATION_TIMEOUT_MS/gu)?.length,
     3,
+  );
+  assert.match(
+    vscodeHostRunner,
+    /multi-window-primary-activation-ready\.json[\s\S]*?Promise\.race[\s\S]*?multi_window_companion_launch_requested/u,
+  );
+  assert.match(
+    vscodeSmokeDriver,
+    /CHAINLESSCHAIN_MULTI_WINDOW_PRIMARY_READY_FILE[\s\S]*?role: "primary"/u,
   );
 });
