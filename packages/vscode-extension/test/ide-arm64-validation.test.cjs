@@ -287,6 +287,10 @@ test("the ARM64 workflow binds exact hosts, versions, and aggregate evidence", (
   assert.match(workflow, /Aggregate 11-cell IDE ARM64 evidence/u);
   assert.match(workflow, /downloads\.windowsARM64/u);
   assert.match(workflow, /Get-FileHash -Algorithm SHA256/u);
+  assert.match(
+    workflow,
+    /New-NetFirewallRule[\s\S]*?-Direction Inbound[\s\S]*?-Action Block/u,
+  );
   assert.match(workflow, /verify-ide-arm64-evidence\.mjs\s+--evidence-dir/u);
   assert.match(workflow, /merge-multiple: true/u);
   assert.doesNotMatch(workflow, /continue-on-error/u);

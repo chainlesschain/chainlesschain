@@ -267,6 +267,15 @@ jobs:
           if ($process.ExitCode -ne 0 -or -not (Test-Path -LiteralPath (Join-Path $installDir 'bin\idea64.exe'))) {
             throw "Windows ARM64 IDE installation failed with exit code $($process.ExitCode)"
           }
+          $jbrJava = Join-Path $installDir 'jbr\bin\java.exe'
+          if (-not (Test-Path -LiteralPath $jbrJava)) {
+            throw "Windows ARM64 IDE has no bundled JBR executable"
+          }
+          # A newly installed JBR otherwise opens a native Defender prompt over
+          # the IDE. An explicit inbound block suppresses that prompt without
+          # granting public/private network access; loopback remains available.
+          New-NetFirewallRule -DisplayName "ChainlessChain ARM64 IDE test JBR" `
+            -Direction Inbound -Program $jbrJava -Action Block -Profile Any | Out-Null
           "CC_JETBRAINS_IDE_LOCAL_PATH=$installDir" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
       - name: Make Gradle wrapper executable
         if: runner.os != 'Windows'
