@@ -56,7 +56,7 @@ function evidenceFor(operatingSystem) {
     })),
   ).flat();
   return {
-    schema: "chainlesschain.ide-roadmap-mcp-security-evidence.v1",
+    schema: "chainlesschain.ide-roadmap-mcp-security-evidence.v2",
     releaseCommit,
     result: "passed",
     startedAt: "2026-08-06T00:00:00.000Z",
@@ -125,6 +125,35 @@ function evidenceFor(operatingSystem) {
         },
       ],
     },
+    codeSnapshotRaceProbe:
+      operatingSystem === "windows"
+        ? {
+            required: false,
+            pass: true,
+            reason: "windows-atomic-launch-covered-by-filter-oplock-gate",
+          }
+        : {
+            required: true,
+            pass: true,
+            backend:
+              operatingSystem === "linux"
+                ? "linux-fd-code-snapshot"
+                : "macos-fd-code-snapshot",
+            mechanism:
+              operatingSystem === "linux"
+                ? "verified-o_tmpfile-copy-inherited-fd-module-compile-v1"
+                : "verified-private-runtime-copy-and-unlinked-entry-fd-module-compile-v1",
+            handleAtomic: operatingSystem === "linux",
+            entrySnapshotAtomic: true,
+            runtimeLaunchAtomic: operatingSystem === "linux",
+            sharedLibraryClosure: false,
+            sourceReplacementObserved: true,
+            originalSnapshotExecuted: true,
+            maliciousPathExecuted: false,
+            exitCode: 0,
+            stdoutBytes: 14,
+            stderrBytes: 0,
+          },
     invariants: {
       annotationsAreHintsOnly: true,
       defaultConfirmationRequired: true,
@@ -172,6 +201,9 @@ describe("IDE roadmap MCP security evidence verifier", () => {
       unapprovedLedgerRecordCount: 0,
       approvedProbeCount: 3,
       staleHostReadPolicyProbeCount: 3,
+      codeSnapshotRaceOperatingSystems: ["linux", "macos"],
+      codeSnapshotRaceProbeCount: 2,
+      atomicPathReplacementEscapeCount: 0,
       staleHostReadCannotDowngradeRisk: true,
     });
   });
@@ -215,5 +247,16 @@ describe("IDE roadmap MCP security evidence verifier", () => {
     expect(() =>
       verifyMcpSecurityEvidenceSet({ evidenceDir, releaseCommit }),
     ).toThrow(/stale host read policy probe/);
+  });
+
+  it("rejects a pathname replacement that escapes the atomic snapshot", () => {
+    const macPath = path.join(evidenceDir, "macos.json");
+    const mac = JSON.parse(fs.readFileSync(macPath, "utf8"));
+    mac.codeSnapshotRaceProbe.maliciousPathExecuted = true;
+    fs.writeFileSync(macPath, JSON.stringify(mac), "utf8");
+
+    expect(() =>
+      verifyMcpSecurityEvidenceSet({ evidenceDir, releaseCommit }),
+    ).toThrow(/code snapshot race probe/);
   });
 });

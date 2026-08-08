@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
@@ -11,6 +11,10 @@ import { MCPClient } from "../src/harness/mcp-client.js";
 import { createMcpCallLedger } from "../src/lib/mcp-call-ledger.js";
 import { mcpEffectDescriptorFields } from "../src/lib/mcp-effect-contract.js";
 import { issueMcpStdioExecutionAuthority } from "../src/lib/mcp-stdio-execution-authority.js";
+import {
+  applySandbox,
+  SANDBOX_BOUNDARIES,
+} from "../src/lib/process-execution-broker/platform-sandbox.js";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const cliRoot = path.resolve(scriptDir, "..");
@@ -24,9 +28,9 @@ const serverFixturePath = path.join(
   "fixtures",
   "mcp-adversarial-effect-server.mjs",
 );
-const evidenceSchema = "chainlesschain.ide-roadmap-mcp-security-evidence.v1";
+const evidenceSchema = "chainlesschain.ide-roadmap-mcp-security-evidence.v2";
 const aggregateSchema =
-  "chainlesschain.ide-roadmap-mcp-security-evidence-aggregate.v1";
+  "chainlesschain.ide-roadmap-mcp-security-evidence-aggregate.v2";
 const releaseCommitPattern = /^[0-9a-f]{40}$/;
 const serverName = "adversarial";
 const toolCases = Object.freeze([
@@ -46,6 +50,192 @@ function readJson(filePath) {
 
 function sha256File(filePath) {
   return `sha256:${crypto.createHash("sha256").update(fs.readFileSync(filePath)).digest("hex")}`;
+}
+
+function executableIdentity(filePath) {
+  const realpath = fs.realpathSync.native || fs.realpathSync;
+  const realPath = realpath(path.resolve(filePath));
+  const stat = fs.statSync(realPath);
+  return Object.freeze({
+    contractVersion: 1,
+    realPath,
+    sha256: crypto
+      .createHash("sha256")
+      .update(fs.readFileSync(realPath))
+      .digest("hex"),
+    bytes: stat.size,
+    fileId: Object.freeze({
+      dev: String(stat.dev),
+      ino: String(stat.ino),
+    }),
+    mtimeMs: stat.mtimeMs,
+    attestation: "realpath-file-id-sha256",
+  });
+}
+
+function directoryIdentity(directoryPath) {
+  const realpath = fs.realpathSync.native || fs.realpathSync;
+  const realPath = realpath(path.resolve(directoryPath));
+  const stat = fs.statSync(realPath);
+  return Object.freeze({
+    contractVersion: 1,
+    realPath,
+    fileId: Object.freeze({
+      dev: String(stat.dev),
+      ino: String(stat.ino),
+    }),
+  });
+}
+
+function spawnCodeSnapshotProbe(plan) {
+  return new Promise((resolvePromise) => {
+    const child = spawn(plan.command, plan.args, plan.options);
+    const stdout = [];
+    const stderr = [];
+    let settled = false;
+    let timer = null;
+    const settle = (value) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolvePromise({
+        stdout: Buffer.concat(stdout).toString("utf8"),
+        stderr: Buffer.concat(stderr).toString("utf8"),
+        ...value,
+      });
+    };
+    const retain = (target, chunk) => {
+      const bytes = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+      if (
+        target.reduce((total, value) => total + value.length, 0) <
+        64 * 1024
+      ) {
+        target.push(bytes);
+      }
+    };
+    child.stdout?.on("data", (chunk) => retain(stdout, chunk));
+    child.stderr?.on("data", (chunk) => retain(stderr, chunk));
+    child.once("error", (error) =>
+      settle({
+        status: null,
+        signal: null,
+        errorCode: error?.code || error?.name || "spawn-error",
+      }),
+    );
+    child.once("close", (status, signal) =>
+      settle({ status, signal, errorCode: null }),
+    );
+    timer = setTimeout(() => {
+      try {
+        child.kill("SIGKILL");
+      } catch {
+        // The timeout remains authoritative.
+      }
+      settle({ status: null, signal: "timeout", errorCode: "ETIMEDOUT" });
+    }, 30_000);
+    timer.unref?.();
+  });
+}
+
+async function runCodeSnapshotRaceProbe(workspace) {
+  const operatingSystem = normalizeOperatingSystem();
+  if (operatingSystem === "windows") {
+    return Object.freeze({
+      required: false,
+      pass: true,
+      reason: "windows-atomic-launch-covered-by-filter-oplock-gate",
+    });
+  }
+  if (!new Set(["linux", "macos"]).has(operatingSystem)) {
+    throw new Error(`unsupported MCP code snapshot host: ${operatingSystem}`);
+  }
+
+  const realpath = fs.realpathSync.native || fs.realpathSync;
+  const root = realpath(
+    fs.mkdtempSync(path.join(workspace, "code-snapshot-race-")),
+  );
+  const entryPath = path.join(root, "server.cjs");
+  const markerPath = path.join(root, "malicious-marker.txt");
+  fs.writeFileSync(entryPath, 'process.stdout.write("safe-snapshot\\n");\n');
+  const runtimeIdentity = executableIdentity(process.execPath);
+  const entryIdentity = executableIdentity(entryPath);
+  const contract = Object.freeze({
+    contractVersion: 1,
+    kind: "strict-mcp-node-capsule",
+    pluginRoot: root,
+    workingDirectory: root,
+    runtimePath: runtimeIdentity.realPath,
+    rootIdentity: directoryIdentity(root),
+    entryIdentity,
+    runtimeIdentity,
+  });
+  const plan = applySandbox(
+    runtimeIdentity.realPath,
+    [entryIdentity.realPath],
+    { cwd: root, shell: false, stdio: "pipe" },
+    {
+      profile: "default",
+      requiredBoundaries: [SANDBOX_BOUNDARIES.CODE_SNAPSHOT],
+      executionContract: contract,
+      sync: true,
+    },
+  );
+  try {
+    const expectedHandleAtomic = operatingSystem === "linux";
+    const expectedRuntimeLaunchAtomic = operatingSystem === "linux";
+    if (
+      plan.applied !== true ||
+      !plan.guarantees.includes(SANDBOX_BOUNDARIES.CODE_SNAPSHOT) ||
+      plan.runtimeProbe?.handleAtomic !== expectedHandleAtomic ||
+      plan.runtimeProbe?.entrySnapshotAtomic !== true ||
+      plan.runtimeProbe?.runtimeLaunchAtomic !== expectedRuntimeLaunchAtomic ||
+      plan.runtimeProbe?.sharedLibraryClosure !== false
+    ) {
+      const probeReason = plan.runtimeProbe?.reason
+        ? ` (${plan.runtimeProbe.reason})`
+        : "";
+      throw new Error(
+        `MCP code snapshot unavailable: ${plan.reason || "unknown"}${probeReason}`,
+      );
+    }
+
+    fs.writeFileSync(
+      entryPath,
+      `require("node:fs").writeFileSync(${JSON.stringify(markerPath)}, "executed");\n`,
+    );
+    const replacementDigest = executableIdentity(entryPath).sha256;
+    const result = await spawnCodeSnapshotProbe(plan);
+    const originalSnapshotExecuted = result.stdout === "safe-snapshot\n";
+    const maliciousPathExecuted = fs.existsSync(markerPath);
+    const pass =
+      result.status === 0 &&
+      replacementDigest !== entryIdentity.sha256 &&
+      originalSnapshotExecuted &&
+      !maliciousPathExecuted;
+    if (!pass) {
+      throw new Error(
+        `MCP code snapshot pathname race escaped on ${operatingSystem}: status=${result.status} signal=${result.signal || "none"} error=${result.errorCode || "none"} stdout=${JSON.stringify(result.stdout)} stderr=${JSON.stringify(result.stderr)}`,
+      );
+    }
+    return Object.freeze({
+      required: true,
+      pass: true,
+      backend: plan.backend,
+      mechanism: plan.runtimeProbe.contentSnapshotMechanism,
+      handleAtomic: plan.runtimeProbe.handleAtomic,
+      entrySnapshotAtomic: plan.runtimeProbe.entrySnapshotAtomic,
+      runtimeLaunchAtomic: plan.runtimeProbe.runtimeLaunchAtomic,
+      sharedLibraryClosure: false,
+      sourceReplacementObserved: true,
+      originalSnapshotExecuted: true,
+      maliciousPathExecuted: false,
+      exitCode: result.status,
+      stdoutBytes: Buffer.byteLength(result.stdout || ""),
+      stderrBytes: Buffer.byteLength(result.stderr || ""),
+    });
+  } finally {
+    plan.cleanup?.();
+  }
 }
 
 function writeJson(filePath, value) {
@@ -380,6 +570,7 @@ export async function runMcpSecurityMatrix(options = {}) {
         "approved adversarial MCP probe did not preserve unknown-effect evidence",
       );
     }
+    const codeSnapshotRaceProbe = await runCodeSnapshotRaceProbe(workspace);
 
     evidence = {
       schema: evidenceSchema,
@@ -427,6 +618,7 @@ export async function runMcpSecurityMatrix(options = {}) {
         ledgerRecordCount: 0,
         samples: staleHostReadSamples,
       },
+      codeSnapshotRaceProbe,
       invariants: {
         annotationsAreHintsOnly: true,
         defaultConfirmationRequired: true,
@@ -607,6 +799,30 @@ function validateEvidence(value, { releaseCommit, minimumRuns = 100 } = {}) {
   ) {
     issues.push("stale host read policy probe");
   }
+  const codeSnapshotRaceProbe = value?.codeSnapshotRaceProbe;
+  const codeSnapshotRequired = new Set(["linux", "macos"]).has(
+    value?.runner?.operatingSystem,
+  );
+  const expectedHandleAtomic = value?.runner?.operatingSystem === "linux";
+  if (
+    codeSnapshotRaceProbe?.pass !== true ||
+    codeSnapshotRaceProbe?.required !== codeSnapshotRequired ||
+    (codeSnapshotRequired &&
+      (codeSnapshotRaceProbe?.backend !==
+        (value.runner.operatingSystem === "linux"
+          ? "linux-fd-code-snapshot"
+          : "macos-fd-code-snapshot") ||
+        codeSnapshotRaceProbe?.handleAtomic !== expectedHandleAtomic ||
+        codeSnapshotRaceProbe?.entrySnapshotAtomic !== true ||
+        codeSnapshotRaceProbe?.runtimeLaunchAtomic !== expectedHandleAtomic ||
+        codeSnapshotRaceProbe?.sharedLibraryClosure !== false ||
+        codeSnapshotRaceProbe?.sourceReplacementObserved !== true ||
+        codeSnapshotRaceProbe?.originalSnapshotExecuted !== true ||
+        codeSnapshotRaceProbe?.maliciousPathExecuted !== false ||
+        codeSnapshotRaceProbe?.exitCode !== 0))
+  ) {
+    issues.push("code snapshot race probe");
+  }
   if (
     !Array.isArray(value?.approvedProbe?.resourceScopes) ||
     !value.approvedProbe.resourceScopes.includes(
@@ -672,6 +888,11 @@ export function verifyMcpSecurityEvidenceSet(options = {}) {
     unapprovedLedgerRecordCount: 0,
     approvedProbeCount: entries.length,
     staleHostReadPolicyProbeCount: entries.length,
+    codeSnapshotRaceOperatingSystems: ["linux", "macos"],
+    codeSnapshotRaceProbeCount: entries.filter(
+      (entry) => entry.value.codeSnapshotRaceProbe?.required === true,
+    ).length,
+    atomicPathReplacementEscapeCount: 0,
     annotationsAreHintsOnly: true,
     defaultConfirmationRequired: true,
     claimedReadRemainsUnknownWithoutHostAuthorization: true,
