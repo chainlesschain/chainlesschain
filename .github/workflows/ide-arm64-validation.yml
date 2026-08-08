@@ -225,6 +225,15 @@ jobs:
         with:
           distribution: temurin
           java-version: "21"
+      # Gradle itself first supports Windows AArch64 in 9.2. Keep the existing
+      # project wrapper unchanged for release compatibility and select 9.2.1
+      # only on the native Windows ARM64 validation host.
+      - name: Setup Windows ARM-compatible Gradle
+        if: runner.os == 'Windows'
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: "9.2.1"
+          cache-disabled: true
       - name: Make Gradle wrapper executable
         if: runner.os != 'Windows'
         working-directory: packages/jetbrains-plugin
@@ -244,6 +253,8 @@ jobs:
           --artifact-dir packages/jetbrains-plugin/build/ide-arm64-evidence/jetbrains-${{ matrix.slug }}-${{ matrix.ide_version }}
       - name: Deterministic chat/control/resume journey (Windows/macOS)
         if: runner.os != 'Linux'
+        env:
+          CC_JETBRAINS_GRADLE_EXECUTABLE: ${{ runner.os == 'Windows' && 'gradle' || '' }}
         run: >-
           node packages/jetbrains-plugin/scripts/run-ui-host-journey.mjs
           --ide-version ${{ matrix.ide_version }}

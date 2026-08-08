@@ -228,6 +228,12 @@ test("the ARM64 workflow binds exact hosts, versions, and aggregate evidence", (
   assert.equal(workflow.match(/--assert-host/gu)?.length, 2);
   assert.equal(workflow.match(/--expected-arch arm64/gu)?.length, 2);
   assert.equal(workflow.match(/CC_IDE_REQUIRED_HOST_ARCH: arm64/gu)?.length, 2);
+  assert.match(workflow, /uses: gradle\/actions\/setup-gradle@v6/u);
+  assert.match(workflow, /gradle-version: "9\.2\.1"/u);
+  assert.match(
+    workflow,
+    /CC_JETBRAINS_GRADLE_EXECUTABLE: \$\{\{ runner\.os == 'Windows' && 'gradle' \|\| '' \}\}/u,
+  );
   assert.match(
     workflow,
     /IDE_ARM64_RELEASE_COMMIT: \$\{\{ inputs\.commit_sha \|\| github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/u,
@@ -252,9 +258,23 @@ test("the ARM64 workflow binds exact hosts, versions, and aggregate evidence", (
     ),
     "utf8",
   );
+  const jetbrainsJourneyRunner = fs.readFileSync(
+    path.join(
+      repositoryRoot,
+      "packages/jetbrains-plugin/scripts/run-ui-host-journey.mjs",
+    ),
+    "utf8",
+  );
   assert.match(
     vscodeHostDriver,
     /value\.hostArchitecture !== requiredArchitecture/u,
   );
-  assert.match(jetbrainsHostDriver, /System\.getProperty\('os\.arch'\)/u);
+  assert.match(
+    jetbrainsHostDriver,
+    /Object actualValue = frame\.callJs[\s\S]*?System\.getProperty\('os\.arch'\)/u,
+  );
+  assert.match(
+    jetbrainsJourneyRunner,
+    /configured !== "gradle"[\s\S]*?return configured/u,
+  );
 });

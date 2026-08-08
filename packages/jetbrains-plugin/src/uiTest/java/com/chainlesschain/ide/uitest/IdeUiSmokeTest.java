@@ -135,8 +135,9 @@ final class IdeUiSmokeTest {
     private static void assertRequiredHostArchitecture(ComponentFixture frame) {
         String required = System.getenv("CC_IDE_REQUIRED_HOST_ARCH");
         if (required == null || required.isBlank()) return;
-        String actual = String.valueOf(frame.callJs(
-                "importClass(java.lang.System); System.getProperty('os.arch');"));
+        Object actualValue = frame.callJs(
+                "importClass(java.lang.System); System.getProperty('os.arch');");
+        String actual = String.valueOf(actualValue);
         String normalizedActual = "aarch64".equalsIgnoreCase(actual)
                 ? "arm64" : actual.toLowerCase();
         if (!required.equalsIgnoreCase(normalizedActual)) {

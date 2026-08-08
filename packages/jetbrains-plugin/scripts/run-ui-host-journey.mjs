@@ -100,6 +100,17 @@ export function parseArgs(argv) {
 }
 
 function gradleExecutable() {
+  const configured = String(
+    process.env.CC_JETBRAINS_GRADLE_EXECUTABLE || "",
+  ).trim();
+  if (configured) {
+    if (configured !== "gradle") {
+      throw new Error(
+        "CC_JETBRAINS_GRADLE_EXECUTABLE accepts only the setup-gradle command",
+      );
+    }
+    return configured;
+  }
   return path.join(
     PACKAGE_ROOT,
     process.platform === "win32" ? "gradlew.bat" : "gradlew",
