@@ -1719,6 +1719,30 @@ test("host ready is not blocked by VS Code's pending chat focus promise", async 
   settleFocus();
 });
 
+test("pending activity reveal settlement defers to the downstream host proof", async () => {
+  const calls = [];
+  const logs = [];
+  const commands = {
+    executeCommand(command) {
+      calls.push(command);
+      return command === ACTIVITY_VIEW_COMMAND
+        ? new Promise(() => {})
+        : Promise.resolve();
+    },
+  };
+
+  await requestChatViewForDomJourney({
+    commands,
+    timeoutMs: 10,
+    log: (message) => logs.push(message),
+  });
+  assert.deepEqual(calls, [ACTIVITY_VIEW_COMMAND, CHAT_VIEW_FOCUS_COMMAND]);
+  assert.deepEqual(logs, [
+    "ChainlessChain activity view reveal command is still pending after 10ms; continuing to downstream host proof",
+    "ChainlessChain chat webview focus command settled",
+  ]);
+});
+
 test("macOS host activation targets the outer app bundle without a shell", async () => {
   const executablePath =
     "/tmp/VS Code.app/Contents/Frameworks/Code Helper (Plugin).app/Contents/MacOS/Code Helper (Plugin)";
