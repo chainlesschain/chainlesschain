@@ -682,6 +682,7 @@ export function getTemplatesForUI() {
               name: s.name,
               command: s.command,
               args: Array.isArray(s.args) ? s.args : [],
+              ...(s.runtimeKind ? { runtimeKind: s.runtimeKind } : {}),
             })),
           }
         : {}),

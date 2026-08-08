@@ -114,6 +114,23 @@ describe("MCP stdio local-code execution authority", () => {
     );
   });
 
+  it("binds declared runtime semantics into the one-shot approval", () => {
+    const approved = config({ runtimeKind: "node" });
+    const token = issue("runtime-bound", approved);
+    approved.runtimeKind = "native";
+
+    expect(() =>
+      consumeMcpStdioExecutionAuthority(token, {
+        serverName: "runtime-bound",
+        config: approved,
+      }),
+    ).toThrow(
+      expect.objectContaining({
+        code: MCP_STDIO_EXECUTION_AUTHORITY_STALE_CODE,
+      }),
+    );
+  });
+
   it("renews the same approved invocation for reconnect but rejects drift", () => {
     const approved = config();
     const approval = consumeMcpStdioExecutionAuthority(
@@ -157,6 +174,7 @@ describe("MCP stdio local-code execution authority", () => {
       command: "node",
       args: ["server.mjs"],
       env: { MODE: "test" },
+      runtimeKind: null,
     });
   });
 

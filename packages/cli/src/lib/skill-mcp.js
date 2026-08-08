@@ -31,6 +31,7 @@ import {
   MCP_STDIO_LOCAL_CODE_TRUST_REQUIRED_CODE,
   issueMcpStdioExecutionAuthority,
 } from "./mcp-stdio-execution-authority.js";
+import { MCP_STDIO_RUNTIME_KINDS } from "./mcp-stdio-executable-identity.js";
 
 /**
  * Parse MCP server declarations from a SKILL.md body.
@@ -93,6 +94,14 @@ export function validateMcpServerConfig(entry) {
   if (entry.env && typeof entry.env === "object" && !Array.isArray(entry.env)) {
     normalized.env = { ...entry.env };
   }
+  if (
+    typeof entry.runtimeKind === "string" &&
+    MCP_STDIO_RUNTIME_KINDS.includes(entry.runtimeKind)
+  ) {
+    normalized.runtimeKind = entry.runtimeKind;
+  } else if (entry.runtimeKind !== undefined) {
+    return null;
+  }
   if (typeof entry.cwd === "string" && entry.cwd.length > 0) {
     normalized.cwd = entry.cwd;
   }
@@ -145,6 +154,7 @@ export async function mountSkillMcpServers(mcpClient, skill, opts = {}) {
           serverName: normalized.name,
           command: normalized.command,
           args: [...normalized.args],
+          runtimeKind: normalized.runtimeKind || null,
           cwd: normalized.cwd || null,
           envKeys: Object.keys(normalized.env || {}).sort(),
         })) === true;

@@ -46,7 +46,10 @@ import {
   materializeApprovedMcpStdioInvocation,
   resolveMcpStdioExecutionApproval,
 } from "../lib/mcp-stdio-execution-authority.js";
-import { prepareMcpStdioExecutableIdentity } from "../lib/mcp-stdio-executable-identity.js";
+import {
+  MCP_STDIO_RUNTIME_KINDS,
+  prepareMcpStdioExecutableIdentity,
+} from "../lib/mcp-stdio-executable-identity.js";
 import {
   materializeMcpStdioNpmPackage,
   parseExactNpmPackageSpec,
@@ -297,6 +300,7 @@ async function readManagedMcpRows() {
       command: config.command || null,
       args: Array.isArray(config.args) ? config.args : [],
       env: config.env && typeof config.env === "object" ? config.env : {},
+      runtimeKind: config.runtimeKind || null,
       url: config.url || null,
       transport: inferTransport(config),
       headers:
@@ -366,6 +370,7 @@ export function readProjectMcpRows(cwd = process.cwd()) {
         command: config.command || null,
         args: Array.isArray(config.args) ? config.args : [],
         env: config.env && typeof config.env === "object" ? config.env : {},
+        runtimeKind: config.runtimeKind || null,
         url: config.url || null,
         transport: inferTransport(config),
         headers:
@@ -413,6 +418,7 @@ export function writeProjectMcpServer(name, server, cwd = process.cwd()) {
   if (server.command) config.command = server.command;
   if (server.args?.length) config.args = server.args;
   if (server.env && Object.keys(server.env).length > 0) config.env = server.env;
+  if (server.runtimeKind) config.runtimeKind = server.runtimeKind;
   if (server.url) config.url = server.url;
   if (server.transport) config.transport = server.transport;
   if (server.headers && Object.keys(server.headers).length > 0) {
@@ -1013,6 +1019,10 @@ export function registerMcpCommand(program) {
     .option("-c, --command <cmd>", "Server command to run (stdio transport)")
     .option("-a, --args <args>", "Command arguments (comma-separated)")
     .option(
+      "--runtime-kind <kind>",
+      "stdio runtime semantics: native | node | python | posix-shell | powershell | java | dotnet",
+    )
+    .option(
       "-u, --url <url>",
       "Server URL (http / https / ws / wss transports)",
     )
@@ -1050,6 +1060,17 @@ export function registerMcpCommand(program) {
         if (options.command && options.url) {
           logger.error("Use either -c <command> or -u <url>, not both.");
           process.exit(1);
+        }
+        if (options.runtimeKind && !options.command) {
+          throw new Error("--runtime-kind is only supported with --command");
+        }
+        if (
+          options.runtimeKind &&
+          !MCP_STDIO_RUNTIME_KINDS.includes(options.runtimeKind)
+        ) {
+          throw new Error(
+            `Invalid --runtime-kind; expected one of: ${MCP_STDIO_RUNTIME_KINDS.join(", ")}`,
+          );
         }
 
         const ctx = await bootstrap({ verbose: program.opts().verbose });
@@ -1144,6 +1165,7 @@ export function registerMcpCommand(program) {
         const storedConfig = {
           command: options.command || null,
           args,
+          runtimeKind: options.command ? options.runtimeKind || null : null,
           url: options.url || null,
           transport,
           env: {},
@@ -1190,6 +1212,7 @@ export function registerMcpCommand(program) {
           name,
           command: options.command || null,
           args,
+          runtimeKind: storedConfig.runtimeKind,
           url: options.url || null,
           transport,
           autoConnect: !!options.autoConnect,
@@ -1212,6 +1235,11 @@ export function registerMcpCommand(program) {
             logger.log(
               `  ${chalk.gray("Command:")} ${options.command} ${args.join(" ")}`,
             );
+            if (storedConfig.runtimeKind) {
+              logger.log(
+                `  ${chalk.gray("Runtime kind:")} ${storedConfig.runtimeKind}`,
+              );
+            }
           }
           if (configScope === "project") {
             logger.log(

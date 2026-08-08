@@ -16,6 +16,8 @@ import {
   MCP_STDIO_EXECUTABLE_CHANGED_CODE,
   MCP_STDIO_EXECUTABLE_IDENTITY_ROLLBACK_CODE,
   MCP_STDIO_EXECUTABLE_TRUST_REQUIRED_CODE,
+  MCP_STDIO_RUNTIME_KIND_INVALID_CODE,
+  MCP_STDIO_RUNTIME_KIND_REQUIRED_CODE,
   prepareMcpStdioExecutableIdentity,
 } from "../../src/lib/mcp-stdio-executable-identity.js";
 import { executionBroker } from "../../src/lib/process-execution-broker/index.js";
@@ -118,6 +120,67 @@ describe("MCP stdio executable byte identity", () => {
       expect.objectContaining({
         code: MCP_STDIO_EXECUTABLE_AUTHORITY_REPLAYED_CODE,
       }),
+    );
+  });
+
+  it("requires explicit semantics for a renamed runtime and binds its script", () => {
+    const renamedRuntime = path.join(
+      root,
+      process.platform === "win32" ? "custom-runtime.exe" : "custom-runtime",
+    );
+    fs.copyFileSync(process.execPath, renamedRuntime);
+
+    const ambiguous = approvedInvocation("renamed-ambiguous", {
+      command: renamedRuntime,
+      args: [script],
+      transport: "stdio",
+    });
+    expect(() =>
+      prepareMcpStdioExecutableIdentity({
+        serverName: "renamed-ambiguous",
+        ...ambiguous,
+        retrust: true,
+        storePath,
+      }),
+    ).toThrow(
+      expect.objectContaining({ code: MCP_STDIO_RUNTIME_KIND_REQUIRED_CODE }),
+    );
+
+    const declared = approvedInvocation("renamed-node", {
+      command: renamedRuntime,
+      args: [script],
+      runtimeKind: "node",
+      transport: "stdio",
+    });
+    const prepared = prepareMcpStdioExecutableIdentity({
+      serverName: "renamed-node",
+      ...declared,
+      retrust: true,
+      storePath,
+    });
+    expect(prepared.identity.runtimeKind).toBe("node");
+    expect(prepared.identity.entrypoints).toHaveLength(1);
+    expect(prepared.identity.entrypoints[0].realPath).toBe(
+      canonicalRealPath(script),
+    );
+  });
+
+  it("rejects a runtime declaration that downgrades a recognized interpreter", () => {
+    const invocation = approvedInvocation("downgrade", {
+      command: process.execPath,
+      args: [script],
+      runtimeKind: "native",
+      transport: "stdio",
+    });
+    expect(() =>
+      prepareMcpStdioExecutableIdentity({
+        serverName: "downgrade",
+        ...invocation,
+        retrust: true,
+        storePath,
+      }),
+    ).toThrow(
+      expect.objectContaining({ code: MCP_STDIO_RUNTIME_KIND_INVALID_CODE }),
     );
   });
 

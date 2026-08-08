@@ -449,10 +449,15 @@ describe("MCP Client", () => {
     });
 
     it("stores a stdio server with transport='stdio' default", () => {
-      config.add("local", { command: "npx", args: ["-y", "foo"] });
+      config.add("local", {
+        command: "custom-node",
+        args: ["server.mjs"],
+        runtimeKind: "node",
+      });
       const s = config.get("local");
       expect(s.transport).toBe("stdio");
       expect(s.url).toBeNull();
+      expect(s.runtimeKind).toBe("node");
     });
 
     it("rejects config with neither command nor url", () => {

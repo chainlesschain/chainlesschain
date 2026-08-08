@@ -138,6 +138,7 @@ export async function mountTemplateMcpTools(template, opts = {}) {
           serverName: server.name,
           command: server.command,
           args: [...server.args],
+          runtimeKind: server.runtimeKind || null,
           cwd: server.cwd || null,
           envKeys: Object.keys(server.env || {}).sort(),
         })) === true;

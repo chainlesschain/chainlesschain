@@ -41,6 +41,10 @@ export const MCP_STDIO_EXECUTABLE_AUTHORITY_REPLAYED_CODE =
   "CC_MCP_STDIO_EXECUTABLE_AUTHORITY_REPLAYED";
 export const MCP_STDIO_EXECUTABLE_IDENTITY_ROLLBACK_CODE =
   "CC_MCP_STDIO_EXECUTABLE_IDENTITY_ROLLBACK";
+export const MCP_STDIO_RUNTIME_KIND_REQUIRED_CODE =
+  "CC_MCP_STDIO_RUNTIME_KIND_REQUIRED";
+export const MCP_STDIO_RUNTIME_KIND_INVALID_CODE =
+  "CC_MCP_STDIO_RUNTIME_KIND_INVALID";
 export const MCP_STDIO_CAPSULE_SANDBOX_CONTRACT_KIND =
   "strict-mcp-node-capsule";
 export const MCP_STDIO_CAPSULE_CODE_SNAPSHOT_BOUNDARY = "code-snapshot";
@@ -53,6 +57,17 @@ const MAX_ENTRYPOINT_BYTES = 64 * 1024 * 1024;
 const HASH_CHUNK_BYTES = 1024 * 1024;
 const issuedLaunchAuthorities = new WeakMap();
 const issuedCapsuleSandboxContracts = new WeakMap();
+
+export const MCP_STDIO_RUNTIME_KINDS = Object.freeze([
+  "native",
+  "node",
+  "python",
+  "posix-shell",
+  "powershell",
+  "java",
+  "dotnet",
+]);
+const MCP_STDIO_RUNTIME_KIND_SET = new Set(MCP_STDIO_RUNTIME_KINDS);
 
 const DYNAMIC_LAUNCHERS = new Set([
   "bunx",
@@ -391,6 +406,46 @@ function executableBasename(value) {
     .toLowerCase();
 }
 
+function inferredRuntimeKind(commandPath) {
+  const name = executableBasename(commandPath);
+  if (["node", "nodejs"].includes(name)) return "node";
+  if (/^python(?:w)?(?:\d+(?:\.\d+)*)?$/.test(name)) return "python";
+  if (["bash", "dash", "ksh", "sh", "zsh"].includes(name)) {
+    return "posix-shell";
+  }
+  if (["powershell", "pwsh"].includes(name)) return "powershell";
+  if (name === "java") return "java";
+  if (name === "dotnet") return "dotnet";
+  return null;
+}
+
+export function resolveMcpStdioRuntimeKind(commandPath, requestedKind = null) {
+  const inferred = inferredRuntimeKind(commandPath);
+  if (requestedKind != null) {
+    if (
+      typeof requestedKind !== "string" ||
+      !MCP_STDIO_RUNTIME_KIND_SET.has(requestedKind)
+    ) {
+      throw identityError(
+        MCP_STDIO_RUNTIME_KIND_INVALID_CODE,
+        `MCP stdio runtimeKind must be one of: ${MCP_STDIO_RUNTIME_KINDS.join(", ")}`,
+      );
+    }
+    if (inferred && requestedKind !== inferred) {
+      throw identityError(
+        MCP_STDIO_RUNTIME_KIND_INVALID_CODE,
+        `MCP stdio runtimeKind "${requestedKind}" conflicts with recognized ${inferred} executable "${executableBasename(commandPath)}"`,
+      );
+    }
+    return requestedKind;
+  }
+  if (inferred) return inferred;
+  throw identityError(
+    MCP_STDIO_RUNTIME_KIND_REQUIRED_CODE,
+    `MCP stdio executable "${executableBasename(commandPath)}" has no recognized runtime semantics; set runtimeKind explicitly before trusting it`,
+  );
+}
+
 function materializeLaunchEnvironment(hostEnv, configEnv) {
   const launch = sanitizeMcpStdioHostEnvironment(hostEnv);
   for (const [key, value] of Object.entries(configEnv || {})) {
@@ -617,8 +672,7 @@ function localEntrypoint(value, cwd, label) {
     : path.resolve(cwd, value);
 }
 
-function interpreterEntrypoints(commandPath, args, cwd) {
-  const name = executableBasename(commandPath);
+function interpreterEntrypoints(runtimeKind, args, cwd) {
   const values = [...args];
   const entry = (index, role = "entrypoint") => [
     {
@@ -627,7 +681,7 @@ function interpreterEntrypoints(commandPath, args, cwd) {
       role,
     },
   ];
-  if (["node", "nodejs"].includes(name)) {
+  if (runtimeKind === "node") {
     for (let index = 0; index < values.length; index += 1) {
       const value = values[index];
       if (["-e", "--eval", "-p", "--print"].includes(value)) return [];
@@ -655,7 +709,7 @@ function interpreterEntrypoints(commandPath, args, cwd) {
       "MCP stdio Node launch must provide a script or inline program",
     );
   }
-  if (["python", "python3", "pythonw", "pythonw3"].includes(name)) {
+  if (runtimeKind === "python") {
     for (let index = 0; index < values.length; index += 1) {
       const value = values[index];
       if (value === "-c") return [];
@@ -673,7 +727,7 @@ function interpreterEntrypoints(commandPath, args, cwd) {
       "MCP stdio Python launch must provide a script or inline program",
     );
   }
-  if (["bash", "dash", "ksh", "sh", "zsh"].includes(name)) {
+  if (runtimeKind === "posix-shell") {
     const inline = values.findIndex((value) => value === "-c");
     if (inline >= 0) return [];
     const index = values.findIndex((value) => !value.startsWith("-"));
@@ -683,7 +737,7 @@ function interpreterEntrypoints(commandPath, args, cwd) {
       "MCP stdio shell launch must provide a script or inline command",
     );
   }
-  if (["powershell", "pwsh"].includes(name)) {
+  if (runtimeKind === "powershell") {
     const fileIndex = values.findIndex((value) => /^-file$/i.test(value));
     if (fileIndex >= 0) return entry(fileIndex + 1, "powershell-script");
     if (values.some((value) => /^-(?:command|encodedcommand)$/i.test(value))) {
@@ -694,7 +748,7 @@ function interpreterEntrypoints(commandPath, args, cwd) {
       "MCP stdio PowerShell launch must use -File or an inline command",
     );
   }
-  if (name === "java") {
+  if (runtimeKind === "java") {
     const jarIndex = values.findIndex((value) => value === "-jar");
     if (jarIndex >= 0) return entry(jarIndex + 1, "java-jar");
     throw identityError(
@@ -702,7 +756,7 @@ function interpreterEntrypoints(commandPath, args, cwd) {
       "MCP stdio Java classpath launches are not bound to one entrypoint file",
     );
   }
-  if (name === "dotnet") {
+  if (runtimeKind === "dotnet") {
     const index = values.findIndex((value) => !value.startsWith("-"));
     if (index >= 0 && /\.dll$/i.test(values[index])) {
       return entry(index, "dotnet-assembly");
@@ -844,6 +898,7 @@ export function attestMcpStdioExecutableIdentity({
   env = {},
   cwd = process.cwd(),
   platform = process.platform,
+  runtimeKind: requestedRuntimeKind = null,
 }) {
   const name = executableBasename(command);
   if (DYNAMIC_LAUNCHERS.has(name)) {
@@ -868,8 +923,12 @@ export function attestMcpStdioExecutableIdentity({
       "MCP stdio direct shebang commands do not bind the interpreter bytes; configure the interpreter and script as command + args",
     );
   }
+  const runtimeKind = resolveMcpStdioRuntimeKind(
+    commandIdentity.realPath,
+    requestedRuntimeKind,
+  );
   const launchArgs = [...args];
-  const entrypoints = interpreterEntrypoints(commandPath, launchArgs, cwd).map(
+  const entrypoints = interpreterEntrypoints(runtimeKind, launchArgs, cwd).map(
     ({ argIndex, path: entryPath, role }) => {
       const identity = attestFile(
         entryPath,
@@ -882,7 +941,8 @@ export function attestMcpStdioExecutableIdentity({
     },
   );
   const identity = Object.freeze({
-    version: 1,
+    version: 2,
+    runtimeKind,
     command: commandIdentity,
     entrypoints: Object.freeze(entrypoints),
   });
@@ -919,7 +979,8 @@ function trustMessage(serverName, attestation, status) {
 function materializedAttestation(attestation, materialization) {
   if (!materialization) return attestation;
   const identity = Object.freeze({
-    version: 2,
+    version: 3,
+    runtimeKind: attestation.identity.runtimeKind,
     command: attestation.identity.command,
     entrypoints: attestation.identity.entrypoints,
     materialization: materialization.identity,
@@ -1038,6 +1099,7 @@ export function prepareMcpStdioExecutableIdentity({
       args: effectiveArgs,
       env: config.env || {},
       cwd,
+      runtimeKind: materialization ? "node" : config.runtimeKind,
     }),
     materialization,
   );
@@ -1063,6 +1125,7 @@ export function prepareMcpStdioExecutableIdentity({
       identity: attestation.identity,
       identityDigest: attestation.identityDigest,
       materialization,
+      runtimeKind: attestation.identity.runtimeKind,
     }),
   );
   return Object.freeze({
@@ -1107,6 +1170,7 @@ export function consumeMcpStdioExecutableIdentityAuthority(
     command,
     args,
     cwd: process.cwd(),
+    runtimeKind: issued.runtimeKind,
   });
   if (issued.materialization) {
     const verified = reattestMcpStdioPackageMaterialization(
