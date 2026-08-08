@@ -7,6 +7,57 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — cc CLI 0.163.2: fail-closed MCP capsule sandbox composition
+
+> `chainlesschain` **0.163.1 → 0.163.2** (release candidate,
+> 2026-08-09). CLI-only release metadata;
+> `@chainlesschain/personal-data-hub` remains **0.4.57** and
+> `@chainlesschain/agent-sdk` remains **0.1.7**.
+
+- **Explicit MCP runtime identity**: stdio MCP configuration now supports
+  `--runtime-kind` for `native`, `node`, `python`, `posix-shell`, `powershell`,
+  `java`, and `dotnet`. Recognized runtimes cannot be relabeled, while renamed
+  or custom runtime executables must declare their semantics before trust is
+  granted. The declaration persists through local, project, managed, Skill, and
+  Cowork configuration sources.
+- **Descriptor-bound Linux MCP capsules**: fixed npm/Node MCP servers now keep
+  the verified Node runtime and entry source bound through launch. The direct
+  inherited-FD path and the `bwrap` filesystem/network/process-tree path both
+  validate the exact runtime, entry, and passthrough arguments; ambiguous
+  separators, path traversal, mixed evidence families, and pathname replacement
+  fail closed.
+- **One-launch Windows MCP authority**: restricted-token and AppContainer plans
+  are issued only by the production adapter and admitted only by the built-in
+  Broker. The private capability binds the original contract, helper payload,
+  environment, stdio handles, and post-spawn closure; validation and post-spawn
+  authority are delete-before-use, cleanup revokes abandoned plans, and replay
+  or injected-adapter plans are rejected before native spawn.
+- **Honest macOS boundary**: public Darwin exec/spawn APIs cannot atomically bind
+  the verified runtime descriptor to the launched image, so strict MCP capsule
+  startup now returns a typed fail-closed result instead of claiming a
+  pathname-based code snapshot. A root-owned/signed broker or equivalent atomic
+  exec design remains a separate roadmap requirement.
+- **Malicious-host evidence v4**: repeated Linux descriptor-bound
+  pathname-replacement probes, explicit macOS fail-closed evidence, and the
+  separately enforced Windows strict gate now use distinct evidence contracts.
+  Formal soak workflows bind their inputs and aggregate artifacts to an exact
+  source SHA.
+- **Accurate native release status**: the unsigned six-target native build/run
+  validation is no longer reported as missing. Native publication remains
+  fail-closed pending Linux signing, Windows Authenticode, macOS
+  signing/notarization, signed install/upgrade/rollback validation,
+  package-manager publication, and public artifact readback.
+- **Scope remains narrow**: this patch does not claim arbitrary native/shared
+  library closure, remote distributed revocation, permissioned or unrestricted
+  Node-builtin modes, the complete malicious Skill matrix, or signed native
+  distribution. All 25 deprecated command aliases remain retained; the
+  `0.164.0` removal floor and representative opt-in telemetry are still unmet.
+- **Release condition**: publication remains blocked until the exact release
+  SHA passes every configured Linux, Windows, and macOS job in `CLI CI` and the
+  `CLI Strict Sandbox` matrix. Because this patch changes MCP isolation, tag
+  `v-npm-0-163-2` additionally waits for exact-SHA three-platform safety and
+  formal two-hour reliability/malicious MCP soak evidence.
+
 ### Fixed — cc CLI 0.163.1: bounded long sessions and reliability gates
 
 > `chainlesschain` **0.163.0 → 0.163.1** (published from exact SHA
