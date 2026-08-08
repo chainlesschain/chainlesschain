@@ -61,6 +61,7 @@ describe("web-panel isolated build contract", () => {
       expect(packageLock.packages[""].dependencies[name]).toBe(version);
     }
     expect(viteConfig).toContain('"@intlify/shared": resolve(');
+    expect(viteConfig).toContain("maxParallelFileOps: 64");
     expect(viteConfig).toContain('"@ant-design/colors": resolve(');
     expect(viteConfig).toContain(
       '"node_modules/@ant-design/colors/dist/index.esm.js"',

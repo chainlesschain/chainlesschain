@@ -59,6 +59,11 @@ export default defineConfig({
     outDir: "dist",
     assetsDir: "assets",
     rollupOptions: {
+      // Linux ARM64 hosted runners can expose a much lower open-file limit
+      // than x64/macOS/Windows. Rollup's high default parallelism exhausted
+      // that limit while loading the panel's asset graph. Keep the build
+      // bounded without changing chunking or runtime output semantics.
+      maxParallelFileOps: 64,
       output: {
         manualChunks,
       },
