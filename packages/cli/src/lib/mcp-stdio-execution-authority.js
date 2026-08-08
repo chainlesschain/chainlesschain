@@ -155,6 +155,10 @@ function invocationSnapshot(serverName, config) {
     command,
     args: Object.freeze(args),
     env: Object.freeze(env.map((entry) => Object.freeze(entry))),
+    runtimeKind: scalar(
+      dataProperty(config, "runtimeKind", null),
+      "runtimeKind",
+    ),
     transport: scalar(dataProperty(config, "transport", null), "transport"),
     origin: scalar(dataProperty(config, "origin", null), "origin"),
     policy: scalar(dataProperty(config, "policy", null), "policy"),
@@ -225,6 +229,7 @@ function materializeSnapshot(snapshot) {
     command: snapshot.command,
     args: [...snapshot.args],
     env: Object.fromEntries(snapshot.env),
+    runtimeKind: snapshot.runtimeKind,
     transport: snapshot.transport,
     origin: snapshot.origin,
     policy: snapshot.policy,

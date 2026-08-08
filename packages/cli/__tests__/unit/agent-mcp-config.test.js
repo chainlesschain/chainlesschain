@@ -62,9 +62,19 @@ function fakeClient(toolsByServer = {}) {
 describe("parseMcpServers", () => {
   it("accepts the Claude-Code {mcpServers} shape", () => {
     const out = parseMcpServers({
-      mcpServers: { weather: { command: "npx", args: ["-y", "w"] } },
+      mcpServers: {
+        weather: {
+          command: "custom-node",
+          args: ["server.mjs"],
+          runtimeKind: "node",
+        },
+      },
     });
-    expect(out.weather).toMatchObject({ command: "npx", args: ["-y", "w"] });
+    expect(out.weather).toMatchObject({
+      command: "custom-node",
+      args: ["server.mjs"],
+      runtimeKind: "node",
+    });
   });
 
   it("accepts the {servers} bundle shape and a bare map", () => {

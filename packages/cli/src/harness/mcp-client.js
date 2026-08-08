@@ -4925,6 +4925,7 @@ export class MCPServerConfig {
         command TEXT,
         args TEXT DEFAULT '[]',
         env TEXT DEFAULT '{}',
+        runtime_kind TEXT,
         auto_connect INTEGER DEFAULT 0,
         url TEXT,
         transport TEXT DEFAULT 'stdio',
@@ -4955,6 +4956,9 @@ export class MCPServerConfig {
       const cols = new Set(info.map((c) => c.name));
       if (!cols.has("url")) {
         this.db.exec("ALTER TABLE mcp_servers ADD COLUMN url TEXT");
+      }
+      if (!cols.has("runtime_kind")) {
+        this.db.exec("ALTER TABLE mcp_servers ADD COLUMN runtime_kind TEXT");
       }
       if (!cols.has("transport")) {
         this.db.exec(
@@ -5025,13 +5029,14 @@ export class MCPServerConfig {
         : `${configScope}:${Buffer.from(projectPath || "managed", "utf8").toString("base64url")}:${name}`;
     this.db
       .prepare(
-        "INSERT OR REPLACE INTO mcp_servers (name, command, args, env, auto_connect, url, transport, headers, headers_helper, config_scope, config_source, project_path, display_name, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))",
+        "INSERT OR REPLACE INTO mcp_servers (name, command, args, env, runtime_kind, auto_connect, url, transport, headers, headers_helper, config_scope, config_source, project_path, display_name, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))",
       )
       .run(
         storageName,
         config.command || null,
         JSON.stringify(config.args || []),
         JSON.stringify(config.env || {}),
+        config.runtimeKind || null,
         config.autoConnect ? 1 : 0,
         url,
         transport,
@@ -5076,6 +5081,7 @@ export class MCPServerConfig {
       // MCP server list (`|| "[]"` only guards NULL, not a corrupt non-empty string).
       args: safeJsonParse(row.args, []),
       env: safeJsonParse(row.env, {}),
+      runtimeKind: row.runtime_kind || null,
       autoConnect: row.auto_connect === 1,
       url: row.url || null,
       transport:

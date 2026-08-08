@@ -43,6 +43,12 @@ describe("cc mcp add scope default", () => {
     expect(parseMcpAddOptions().scope).toBe("local");
   });
 
+  it("parses explicit stdio runtime semantics", () => {
+    expect(parseMcpAddOptions(["--runtime-kind", "node"]).runtimeKind).toBe(
+      "node",
+    );
+  });
+
   it("honours an explicit user scope", () => {
     expect(parseMcpAddOptions(["--scope", "user"]).scope).toBe("user");
   });
@@ -171,9 +177,10 @@ describe("MCP configuration scopes", () => {
       const source = writeProjectMcpServer(
         "shared-project",
         {
-          url: "wss://example.test/mcp",
-          transport: "wss",
-          headers: { "X-Tenant": "test" },
+          command: "custom-node",
+          args: ["server.mjs"],
+          runtimeKind: "node",
+          transport: "stdio",
         },
         nested,
       );
@@ -184,6 +191,7 @@ describe("MCP configuration scopes", () => {
           configScope: "project",
           configSource: source,
           projectPath: root,
+          runtimeKind: "node",
         }),
       ]);
       expect(removeProjectMcpServer("shared-project", nested)).toBe(true);

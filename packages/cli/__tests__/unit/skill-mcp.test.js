@@ -105,6 +105,24 @@ describe("parseSkillMcpServers", () => {
     expect(result[0].cwd).toBe("/tmp");
   });
 
+  it("preserves recognized runtime semantics and rejects unknown kinds", () => {
+    expect(
+      validateMcpServerConfig({
+        name: "renamed-node",
+        command: "custom-runtime",
+        args: ["server.mjs"],
+        runtimeKind: "node",
+      }),
+    ).toMatchObject({ runtimeKind: "node" });
+    expect(
+      validateMcpServerConfig({
+        name: "unknown",
+        command: "custom-runtime",
+        runtimeKind: "anything",
+      }),
+    ).toBeNull();
+  });
+
   it("ignores the block if indented inside another fence", () => {
     // Only top-level ```mcp-servers fences match. This is a weaker guarantee —
     // we don't fully parse nested fences, but a simple regex is good enough

@@ -96,6 +96,9 @@ export function parseMcpServers(raw) {
       command: cfg.command,
       args: Array.isArray(cfg.args) ? cfg.args : [],
       env: cfg.env && typeof cfg.env === "object" ? cfg.env : {},
+      ...(typeof cfg.runtimeKind === "string"
+        ? { runtimeKind: cfg.runtimeKind }
+        : {}),
       url: cfg.url,
       transport: cfg.transport,
       headers:
