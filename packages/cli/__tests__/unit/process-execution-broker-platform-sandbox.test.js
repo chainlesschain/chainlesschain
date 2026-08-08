@@ -17,6 +17,7 @@ import {
 import {
   applySandbox,
   applyWindowsSandbox,
+  consumeWindowsMcpCodeSnapshotPlanBinding,
   MCP_STDIO_FD_ENTRY_BOOTSTRAP,
   MCP_STDIO_FD_ENTRY_BOOTSTRAP_SHA256,
   resetWindowsSandboxAdapterCache,
@@ -36,6 +37,10 @@ const platformSandboxSource = readFileSync(
     "../../src/lib/process-execution-broker/platform-sandbox.js",
     import.meta.url,
   ),
+  "utf8",
+);
+const processExecutionBrokerSource = readFileSync(
+  new URL("../../src/lib/process-execution-broker/index.js", import.meta.url),
   "utf8",
 );
 
@@ -5627,8 +5632,7 @@ describe("platform sandbox adapter contract", () => {
         runtimeLaunchMechanism:
           "filter-oplock-locked-createprocess-suspended-image-v1",
         sharedLibraryClosure: false,
-        planBindingMechanism:
-          "windows-mcp-code-snapshot-plan-binding-v1",
+        planBindingMechanism: "windows-mcp-code-snapshot-plan-binding-v1",
         planBindingDigest: expect.stringMatching(/^[a-f0-9]{64}$/),
       },
     });
@@ -5746,8 +5750,7 @@ describe("platform sandbox adapter contract", () => {
         runtimeLaunchMechanism:
           "filter-oplock-locked-createprocess-suspended-image-v1",
         sharedLibraryClosure: false,
-        planBindingMechanism:
-          "windows-mcp-code-snapshot-plan-binding-v1",
+        planBindingMechanism: "windows-mcp-code-snapshot-plan-binding-v1",
         planBindingDigest: expect.stringMatching(/^[a-f0-9]{64}$/),
       },
       postSpawn: { required: true, mode: "sync" },
@@ -7408,6 +7411,86 @@ describe("platform sandbox adapter contract", () => {
     );
   });
 
+  it("keeps Windows MCP plan issuance private and revokes it before cleanup", () => {
+    const windowsApplyStart = platformSandboxSource.indexOf(
+      "export function applyWindowsSandbox(",
+    );
+    const windowsApplyEnd = platformSandboxSource.indexOf(
+      "export function postSpawnWindowsSandbox(",
+      windowsApplyStart,
+    );
+    const windowsApplySource = platformSandboxSource.slice(
+      windowsApplyStart,
+      windowsApplyEnd,
+    );
+    const cleanupStart = windowsApplySource.indexOf("const cleanup = () => {");
+    const revokeIndex = windowsApplySource.indexOf(
+      "issuedWindowsMcpCodeSnapshotPlans.delete(issuedWindowsMcpPlan)",
+      cleanupStart,
+    );
+    const cleanupWorkIndex = windowsApplySource.indexOf(
+      "const failures = []",
+      cleanupStart,
+    );
+
+    expect(windowsApplySource).toContain(
+      "planBindingAuthority === WINDOWS_MCP_CODE_SNAPSHOT_ISSUER",
+    );
+    expect(cleanupStart).toBeGreaterThanOrEqual(0);
+    expect(revokeIndex).toBeGreaterThan(cleanupStart);
+    expect(revokeIndex).toBeLessThan(cleanupWorkIndex);
+
+    const unifiedApplyStart = platformSandboxSource.indexOf(
+      "export function applySandbox(",
+    );
+    const unifiedApplySource = platformSandboxSource.slice(unifiedApplyStart);
+    expect(unifiedApplySource).toContain(
+      "runtimeInjected ? null : WINDOWS_MCP_CODE_SNAPSHOT_ISSUER",
+    );
+
+    const consumeStart = platformSandboxSource.indexOf(
+      "export function consumeWindowsMcpCodeSnapshotPlanBinding(",
+    );
+    const consumeEnd = platformSandboxSource.indexOf(
+      "function windowsFileIdentity(",
+      consumeStart,
+    );
+    const consumeSource = platformSandboxSource.slice(consumeStart, consumeEnd);
+    expect(
+      consumeSource.indexOf("issuedWindowsMcpCodeSnapshotPlans.delete(plan)"),
+    ).toBeLessThan(consumeSource.indexOf("return ("));
+
+    const postSpawnStart = processExecutionBrokerSource.indexOf(
+      "_runPostSpawnSandbox(proc, plan, auditEntry) {",
+    );
+    const postSpawnEnd = processExecutionBrokerSource.indexOf(
+      "_credentialBoundaryEnabled() {",
+      postSpawnStart,
+    );
+    const postSpawnSource = processExecutionBrokerSource.slice(
+      postSpawnStart,
+      postSpawnEnd,
+    );
+    expect(postSpawnSource).toContain('"windows_mcp_plan_binding_consumed"');
+    expect(
+      postSpawnSource.indexOf(
+        "admittedWindowsMcpCodeSnapshotPlans.delete(plan)",
+      ),
+    ).toBeLessThan(postSpawnSource.indexOf("postSpawnAdapter(proc, plan)"));
+    expect(processExecutionBrokerSource).toContain(
+      "admittedWindowsMcpCodeSnapshotPlans.delete(assertedPlan)",
+    );
+    expect(processExecutionBrokerSource).not.toContain(
+      "applySandboxAdapter.call(",
+    );
+    expect(processExecutionBrokerSource).toMatch(
+      /builtInSandboxAdapter\s*\?\s*_applySandbox\(/,
+    );
+    expect(consumeSource).toContain(
+      "sameWindowsStdio(issued.helperStdio, plan.options?.stdio)",
+    );
+  });
+
   it("reapplies restricted-token policy idempotently for nested workers", () => {
     const runStart = windowsSandboxSource.indexOf("public static int Run(");
     const runEnd = windowsSandboxSource.indexOf(
@@ -8965,6 +9048,41 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
     });
   });
 
+  it("does not dispatch an injected adapter through its mutable call property", () => {
+    const child = createChild();
+    const nativeSpawn = vi.fn(() => child);
+    const poisonedCall = vi.fn(() => {
+      throw new Error("poisoned Function.call must not run");
+    });
+    const apply = vi.fn((command, args, options) =>
+      appliedPlan("sandbox-wrapper", ["--", command, ...args], options),
+    );
+    Object.defineProperty(apply, "call", {
+      configurable: true,
+      value: poisonedCall,
+    });
+    let getterReads = 0;
+    executionBroker._native = { spawn: nativeSpawn };
+    executionBroker._sandboxAdapter = {
+      get applySandbox() {
+        getterReads += 1;
+        return apply;
+      },
+      postSpawnSandbox: vi.fn(),
+    };
+
+    expect(
+      executionBroker.spawn("tool", ["run"], {
+        origin: "test:poisoned-adapter-call",
+        policy: "allow",
+      }),
+    ).toBe(child);
+    expect(getterReads).toBe(1);
+    expect(apply).toHaveBeenCalledOnce();
+    expect(poisonedCall).not.toHaveBeenCalled();
+    expect(nativeSpawn).toHaveBeenCalledOnce();
+  });
+
   it("releases direct Linux bwrap descriptors immediately after async spawn duplication", () => {
     const child = createChild();
     const nativeSpawn = vi.fn(() => child);
@@ -10181,9 +10299,8 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
     expect(nativeSpawn).not.toHaveBeenCalled();
   });
 
-  it("accepts composed Windows AppContainer and MCP snapshot evidence", async () => {
-    const child = createChild();
-    const nativeSpawn = vi.fn(() => child);
+  it("rejects Windows MCP authority minted through an injected runtime adapter", () => {
+    const nativeSpawn = vi.fn();
     const runtimePath = "C:\\runtime\\node.exe";
     const entryPath = "C:\\capsule\\server.cjs";
     const appContainerSid = "S-1-15-2-71-72-73-74-75-76-77";
@@ -10241,7 +10358,7 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
         }),
       ),
     });
-    const issuedPlan = applyWindowsSandbox(
+    const injectedPlan = applyWindowsSandbox(
       runtimePath,
       [entryPath, "--stdio"],
       {
@@ -10268,68 +10385,28 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
         spawnSync: harness.spawnSync,
       },
     );
+    expect(injectedPlan.runtimeProbe).toMatchObject({
+      planBindingMechanism: "windows-mcp-code-snapshot-plan-binding-v1",
+      planBindingDigest: expect.stringMatching(/^[a-f0-9]{64}$/),
+    });
+    expect(Object.isFrozen(injectedPlan.options.stdio)).toBe(true);
+    expect(() => {
+      injectedPlan.options.stdio[0] = 17;
+    }).toThrow(TypeError);
+    expect(consumeWindowsMcpCodeSnapshotPlanBinding(injectedPlan, {})).toBe(
+      false,
+    );
     executionBroker._native = { spawn: nativeSpawn };
     executionBroker._sandboxAdapter = {
-      applySandbox: vi.fn(() => issuedPlan),
+      applySandbox: vi.fn(() => injectedPlan),
       postSpawnSandbox: vi.fn(() => {
         throw new Error("injected post-spawn adapter must not be used");
       }),
     };
 
-    executionBroker.spawn(runtimePath, [entryPath, "--stdio"], {
-      origin: "test:windows-mcp-code-snapshot",
-      policy: "allow",
-      shell: false,
-      cwd: "C:\\capsule",
-      detached: false,
-      requiredBoundaries,
-      sandboxExecutionContract: Object.freeze({}),
-    });
-
-    expect(nativeSpawn).toHaveBeenCalledOnce();
-    expect(
-      executionBroker._sandboxAdapter.postSpawnSandbox,
-    ).not.toHaveBeenCalled();
-    expect(executionBroker.getAuditLog(1)[0]).toMatchObject({
-      sandboxed: true,
-      sandboxBackend: "windows-appcontainer-job-restricted-token",
-      sandboxRequired: [
-        SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
-        SANDBOX_BOUNDARIES.FILESYSTEM,
-        SANDBOX_BOUNDARIES.NETWORK,
-      ],
-      sandboxGuarantees: [
-        SANDBOX_BOUNDARIES.FILESYSTEM,
-        SANDBOX_BOUNDARIES.NETWORK,
-        SANDBOX_BOUNDARIES.PROCESS_TREE,
-        SANDBOX_BOUNDARIES.RESOURCE_LIMITS,
-        SANDBOX_BOUNDARIES.PRIVILEGE_REDUCTION,
-        SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
-      ],
-      sandboxRuntimeProbe: {
-        entrySnapshotAtomic: true,
-        runtimeLaunchAtomic: true,
-        runtimeLaunchMechanism:
-          "filter-oplock-locked-createprocess-suspended-image-v1",
-        sharedLibraryClosure: false,
-        planBindingMechanism: "windows-mcp-code-snapshot-plan-binding-v1",
-        runtimeAttestedSha256: "a".repeat(64),
-        entrySnapshotSha256: "b".repeat(64),
-      },
-    });
-    await expect(child.sandboxReady).resolves.toMatchObject({
-      applied: true,
-      backend: "windows-appcontainer-job-restricted-token",
-    });
-    expect(child).toMatchObject({
-      pid: 5103,
-      sandboxWrapperPid: 4102,
-      sandboxTargetPid: 5103,
-      sandboxAppContainerSid: appContainerSid,
-    });
     expect(() =>
       executionBroker.spawn(runtimePath, [entryPath, "--stdio"], {
-        origin: "test:replayed-windows-mcp-code-snapshot",
+        origin: "test:injected-windows-mcp-code-snapshot",
         policy: "allow",
         shell: false,
         cwd: "C:\\capsule",
@@ -10340,9 +10417,51 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
     ).toThrow(
       "Code snapshot guarantee requires typed atomic MCP capsule evidence",
     );
-    expect(nativeSpawn).toHaveBeenCalledOnce();
-    child.emit("close", 0, null);
+
+    expect(nativeSpawn).not.toHaveBeenCalled();
+    expect(
+      executionBroker._sandboxAdapter.postSpawnSandbox,
+    ).not.toHaveBeenCalled();
+    expect(executionBroker.getAuditLog(1)[0]).toMatchObject({
+      sandboxed: false,
+      sandboxState: "denied",
+      sandboxReason: "invalid_sandbox_plan",
+    });
     expect(resetWindowsSandboxAdapterCache()).toBe(true);
+  });
+
+  it("fails closed instead of re-entering a consumed Windows MCP post-spawn plan", () => {
+    const child = createChild();
+    const postSpawnWindows = vi.fn();
+    const injectedPostSpawn = vi.fn();
+    const plan = appliedPlan(
+      "windows-helper.exe",
+      ["payload"],
+      {},
+      {
+        platform: "win32",
+        backend: "windows-job-restricted-token",
+        enforcement: "windows-job-restricted-token",
+        guarantees: [SANDBOX_BOUNDARIES.CODE_SNAPSHOT],
+        requiredBoundaries: [SANDBOX_BOUNDARIES.CODE_SNAPSHOT],
+        runtimeProbe: {
+          planBindingMechanism: "windows-mcp-code-snapshot-plan-binding-v1",
+        },
+        postSpawn: { required: true, mode: "sync" },
+        postSpawnWindows,
+      },
+    );
+    executionBroker._sandboxAdapter = {
+      applySandbox: vi.fn(),
+      postSpawnSandbox: injectedPostSpawn,
+    };
+
+    expect(() => executionBroker._runPostSpawnSandbox(child, plan, {})).toThrow(
+      "Windows MCP sandbox plan binding is unavailable or already consumed",
+    );
+    expect(postSpawnWindows).not.toHaveBeenCalled();
+    expect(injectedPostSpawn).not.toHaveBeenCalled();
+    expect(child.kill).toHaveBeenCalledOnce();
   });
 
   it("rejects an unissued Windows helper plan even when evidence matches the launch contract", () => {
@@ -10423,19 +10542,17 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
     expect(nativeSpawn).not.toHaveBeenCalled();
     expect(cleanup).toHaveBeenCalledOnce();
 
-    executionBroker._sandboxAdapter.applySandbox = vi.fn(
-      (...adapterArgs) => {
-        const unissuedPlan = createUnissuedWindowsPlan(...adapterArgs);
-        return Object.freeze({
-          ...unissuedPlan,
-          runtimeProbe: Object.freeze({
-            ...unissuedPlan.runtimeProbe,
-            runtimeSnapshotSha256: "a".repeat(64),
-            runtimeSnapshotBytes: 100,
-          }),
-        });
-      },
-    );
+    executionBroker._sandboxAdapter.applySandbox = vi.fn((...adapterArgs) => {
+      const unissuedPlan = createUnissuedWindowsPlan(...adapterArgs);
+      return Object.freeze({
+        ...unissuedPlan,
+        runtimeProbe: Object.freeze({
+          ...unissuedPlan.runtimeProbe,
+          runtimeSnapshotSha256: "a".repeat(64),
+          runtimeSnapshotBytes: 100,
+        }),
+      });
+    });
     expect(() =>
       executionBroker.spawn(runtimePath, [entryPath, "--stdio"], {
         origin: "test:mixed-windows-runtime-evidence-family",
@@ -10454,18 +10571,16 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
     expect(nativeSpawn).not.toHaveBeenCalled();
     expect(cleanup).toHaveBeenCalledTimes(2);
 
-    executionBroker._sandboxAdapter.applySandbox = vi.fn(
-      (...adapterArgs) => {
-        const unissuedPlan = createUnissuedWindowsPlan(...adapterArgs);
-        return Object.freeze({
-          ...unissuedPlan,
-          runtimeProbe: Object.freeze({
-            ...unissuedPlan.runtimeProbe,
-            kind: "windows-plugin-node-entry-snapshot-v1",
-          }),
-        });
-      },
-    );
+    executionBroker._sandboxAdapter.applySandbox = vi.fn((...adapterArgs) => {
+      const unissuedPlan = createUnissuedWindowsPlan(...adapterArgs);
+      return Object.freeze({
+        ...unissuedPlan,
+        runtimeProbe: Object.freeze({
+          ...unissuedPlan.runtimeProbe,
+          kind: "windows-plugin-node-entry-snapshot-v1",
+        }),
+      });
+    });
     expect(() =>
       executionBroker.spawn(runtimePath, [entryPath, "--stdio"], {
         origin: "test:mismatched-windows-backend-probe-kind",

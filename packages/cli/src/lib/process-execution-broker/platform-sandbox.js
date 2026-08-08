@@ -291,6 +291,13 @@ const windowsTemporaryCleanupBacklog = new Set();
 let windowsTemporaryCleanupRetryTimer = null;
 const windowsAppContainerCleanupBacklog = new Set();
 const issuedWindowsMcpCodeSnapshotPlans = new WeakMap();
+// Only the unified production adapter can register a Windows MCP launch
+// capability. Direct callers of the exported platform-specific helper (and
+// callers that inject a test/runtime facade into applySandbox) may exercise
+// plan construction, but cannot mint a Broker-admissible capability.
+const WINDOWS_MCP_CODE_SNAPSHOT_ISSUER = Symbol(
+  "windows-mcp-code-snapshot-issuer",
+);
 // Each AppContainer retry starts a synchronous, digest-attested PowerShell
 // helper. Bound automatic retries so a permanently unsupported Windows host
 // cannot repeatedly block a long-lived CLI; explicit cleanup/reset and process
@@ -902,6 +909,36 @@ function sameStringArray(left, right) {
   );
 }
 
+function captureWindowsStdio(stdio) {
+  if (Array.isArray(stdio)) return Object.freeze([...stdio]);
+  return stdio ?? null;
+}
+
+function sameWindowsStdio(left, right) {
+  const normalizedRight = right ?? null;
+  if (Array.isArray(left) || Array.isArray(normalizedRight)) {
+    return (
+      Array.isArray(left) &&
+      Array.isArray(normalizedRight) &&
+      left.length === normalizedRight.length &&
+      left.every((entry, index) => Object.is(entry, normalizedRight[index]))
+    );
+  }
+  return Object.is(left, normalizedRight);
+}
+
+function windowsStdioDigestContract(stdio) {
+  const normalizeEntry = (entry) => {
+    if (entry === null || entry === undefined) return ["null"];
+    if (typeof entry === "string") return ["string", entry];
+    if (Number.isInteger(entry)) return ["fd", entry];
+    return [typeof entry];
+  };
+  return Array.isArray(stdio)
+    ? ["array", ...stdio.map(normalizeEntry)]
+    : ["scalar", ...normalizeEntry(stdio)];
+}
+
 function windowsEnvironmentDigest(env) {
   const entries = Object.entries(env || {})
     .map(([key, value]) => [key, String(value)])
@@ -973,6 +1010,7 @@ function createWindowsMcpCodeSnapshotPlanBinding({
   postSpawnWindows,
 }) {
   const helperEnvDigest = windowsEnvironmentDigest(helperOptions.env);
+  const helperStdio = captureWindowsStdio(helperOptions.stdio);
   const originalArgs = Object.freeze([...(args || [])]);
   const helperArgs = Object.freeze([...(helperInvocation.args || [])]);
   const normalizedPostSpawn = Object.freeze({
@@ -1006,6 +1044,7 @@ function createWindowsMcpCodeSnapshotPlanBinding({
       shell: helperOptions.shell ?? null,
       detached: helperOptions.detached ?? null,
       envDigest: helperEnvDigest,
+      stdio: windowsStdioDigestContract(helperStdio),
     },
     postSpawn: normalizedPostSpawn,
   };
@@ -1028,6 +1067,7 @@ function createWindowsMcpCodeSnapshotPlanBinding({
     helperShell: helperOptions.shell ?? null,
     helperDetached: helperOptions.detached ?? null,
     helperEnvDigest,
+    helperStdio,
     postSpawn: normalizedPostSpawn,
     postSpawnWindows: postSpawnWindows || null,
     planBindingDigest: sha256(JSON.stringify(digestPayload)),
@@ -1062,6 +1102,7 @@ export function consumeWindowsMcpCodeSnapshotPlanBinding(plan, expected = {}) {
     plan.options?.shell === issued.helperShell &&
     plan.options?.detached === issued.helperDetached &&
     windowsEnvironmentDigest(plan.options?.env) === issued.helperEnvDigest &&
+    sameWindowsStdio(issued.helperStdio, plan.options?.stdio) &&
     plan.postSpawn?.required === issued.postSpawn.required &&
     plan.postSpawn?.mode === issued.postSpawn.mode &&
     (plan.postSpawnWindows || null) === issued.postSpawnWindows &&
@@ -2417,6 +2458,7 @@ export function applyWindowsSandbox(
   spawnOpts,
   sandboxOpts = {},
   runtimeOverrides = {},
+  planBindingAuthority = null,
 ) {
   let runtime = resolveRuntime(runtimeOverrides);
   const requiredBoundaries = Array.isArray(sandboxOpts.requiredBoundaries)
@@ -2847,10 +2889,14 @@ export function applyWindowsSandbox(
     detached: false,
     shell: false,
     cwd: helperWorkingDirectory,
-    env: hostEnvironment,
+    env: Object.freeze({ ...hostEnvironment }),
+    stdio: Array.isArray(invocation.options.stdio)
+      ? Object.freeze([...invocation.options.stdio])
+      : invocation.options.stdio,
   };
   let appContainerCleanupVerified = false;
   let appContainerCleanupRecord = null;
+  let issuedWindowsMcpPlan = null;
   const cleanupAppContainer = () => {
     if (!appContainer || appContainerCleanupVerified) return true;
     if (appContainerCleanupRecord) {
@@ -2888,6 +2934,10 @@ export function applyWindowsSandbox(
     return false;
   };
   const cleanup = () => {
+    if (issuedWindowsMcpPlan) {
+      issuedWindowsMcpCodeSnapshotPlans.delete(issuedWindowsMcpPlan);
+      issuedWindowsMcpPlan = null;
+    }
     const failures = [];
     const attempt = (label, action) => {
       try {
@@ -3035,7 +3085,11 @@ export function applyWindowsSandbox(
     ...identityContract,
     cleanup,
   });
-  if (windowsMcpPlanBinding) {
+  if (
+    windowsMcpPlanBinding &&
+    planBindingAuthority === WINDOWS_MCP_CODE_SNAPSHOT_ISSUER
+  ) {
+    issuedWindowsMcpPlan = plan;
     issuedWindowsMcpCodeSnapshotPlans.set(plan, windowsMcpPlanBinding);
   }
   return plan;
@@ -6897,9 +6951,10 @@ export function applySandbox(
   args,
   spawnOpts,
   profileOrRequest = "default",
-  runtimeOverrides = {},
+  runtimeOverrides = undefined,
   explicitRequest = null,
 ) {
+  const runtimeInjected = runtimeOverrides !== undefined;
   const runtime = resolveRuntime(runtimeOverrides);
   const sandboxRequest = normalizeSandboxRequest(
     profileOrRequest,
@@ -6963,6 +7018,7 @@ export function applySandbox(
       spawnOpts,
       profile,
       runtimeOverrides,
+      runtimeInjected ? null : WINDOWS_MCP_CODE_SNAPSHOT_ISSUER,
     );
   }
   if (runtime.platform === "linux") {

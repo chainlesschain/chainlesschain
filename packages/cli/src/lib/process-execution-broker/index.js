@@ -62,6 +62,9 @@ const SUPPORTED_SANDBOX_PROFILES = new Set([
   "strict",
   "network-only",
 ]);
+// Broker-private admission state. Public runtime-probe fields are audit
+// evidence, not authority to invoke a privileged post-spawn closure.
+const admittedWindowsMcpCodeSnapshotPlans = new WeakSet();
 
 // 延迟导入避免循环依赖
 let _traceCtx = null;
@@ -1161,6 +1164,7 @@ class ProcessExecutionBroker extends EventEmitter {
     let sanitizedNetworkPolicy = null;
     let sanitizedProcessTreePolicy = null;
     let sanitizedPtyPolicy = null;
+    let windowsPlanBindingConsumed = false;
     if (plan.runtimeProbe !== null && plan.runtimeProbe !== undefined) {
       if (
         typeof plan.runtimeProbe !== "object" ||
@@ -1587,6 +1591,26 @@ class ProcessExecutionBroker extends EventEmitter {
         const launchArgs = Array.isArray(launchContext.args)
           ? launchContext.args
           : [];
+        const windowsPlanBindingDeclared =
+          plan.platform === "win32" &&
+          (plan.runtimeProbe.planBindingMechanism !== undefined ||
+            plan.runtimeProbe.planBindingDigest !== undefined);
+        // Consume before evaluating any other Windows evidence. A genuine
+        // one-launch plan is therefore burned by its first admission attempt,
+        // including an attempt with a mismatched command or contract.
+        windowsPlanBindingConsumed = windowsPlanBindingDeclared
+          ? consumeWindowsMcpCodeSnapshotPlanBinding(plan, {
+              command: launchContext.command,
+              args: launchArgs,
+              cwd: launchContext.cwd,
+              shell: launchContext.shell,
+              detached: launchContext.detached,
+              executionContract,
+              profile: launchContext.profile,
+              requiredBoundaries: launchContext.requiredBoundaries,
+              sync: launchContext.sync,
+            })
+          : false;
         const passthroughArgsMatch = (candidateArgs) =>
           candidateArgs.length === Math.max(0, launchArgs.length - 1) &&
           candidateArgs.every(
@@ -1766,17 +1790,8 @@ class ProcessExecutionBroker extends EventEmitter {
           Number.isSafeInteger(plan.runtimeProbe.runtimeAttestedBytes) &&
           plan.runtimeProbe.runtimeAttestedBytes > 0 &&
           plan.runtimeProbe.runtimeAttestedBytes <= 256 * 1024 * 1024 &&
-          consumeWindowsMcpCodeSnapshotPlanBinding(plan, {
-            command: launchContext.command,
-            args: launchArgs,
-            cwd: launchContext.cwd,
-            shell: launchContext.shell,
-            detached: launchContext.detached,
-            executionContract,
-            profile: launchContext.profile,
-            requiredBoundaries: launchContext.requiredBoundaries,
-            sync: launchContext.sync,
-          });
+          launchContext.builtInSandboxAdapter === true &&
+          windowsPlanBindingConsumed;
         if (
           !exactSnapshotEvidence ||
           (!linuxSnapshotEvidence &&
@@ -2212,7 +2227,7 @@ class ProcessExecutionBroker extends EventEmitter {
         "Required post-spawn enforcement must declare sync or async mode",
       );
     }
-    return {
+    const validatedPlan = {
       ...plan,
       args: [...plan.args],
       options: { ...plan.options },
@@ -2232,6 +2247,15 @@ class ProcessExecutionBroker extends EventEmitter {
         : {}),
       postSpawn: { ...postSpawn },
     };
+    if (windowsPlanBindingConsumed) {
+      const upstreamCleanup = validatedPlan.cleanup;
+      validatedPlan.cleanup = (...args) => {
+        admittedWindowsMcpCodeSnapshotPlans.delete(validatedPlan);
+        return upstreamCleanup?.(...args);
+      };
+      admittedWindowsMcpCodeSnapshotPlans.add(validatedPlan);
+    }
+    return validatedPlan;
   }
 
   _assertRequiredSandboxBoundaries(plan, requiredBoundaries) {
@@ -2266,10 +2290,20 @@ class ProcessExecutionBroker extends EventEmitter {
         },
       );
     }
-    return {
+    const assertedPlan = {
       ...plan,
       requiredBoundaries: [...requiredBoundaries],
     };
+    if (admittedWindowsMcpCodeSnapshotPlans.has(plan)) {
+      admittedWindowsMcpCodeSnapshotPlans.delete(plan);
+      const upstreamCleanup = assertedPlan.cleanup;
+      assertedPlan.cleanup = (...args) => {
+        admittedWindowsMcpCodeSnapshotPlans.delete(assertedPlan);
+        return upstreamCleanup?.(...args);
+      };
+      admittedWindowsMcpCodeSnapshotPlans.add(assertedPlan);
+    }
+    return assertedPlan;
   }
 
   _prepareSandboxPlan(
@@ -2323,14 +2357,30 @@ class ProcessExecutionBroker extends EventEmitter {
     // Keep the legacy string profile in argument four. The built-in adapter
     // reserves argument five for runtime injection, so the typed request is
     // additive in argument six and legacy injected adapters can ignore it.
-    const rawPlan = this._sandboxAdapter.applySandbox(
-      command,
-      args || [],
-      options,
-      profile,
-      undefined,
-      adapterRequest,
-    );
+    const sandboxAdapter = this._sandboxAdapter;
+    const applySandboxAdapter = sandboxAdapter.applySandbox;
+    const builtInSandboxAdapter = applySandboxAdapter === _applySandbox;
+    // Never dispatch the built-in through a mutable Function property or a
+    // global reflective helper after consulting an injected adapter getter.
+    // The lexical import is the identity we checked and the implementation we
+    // invoke. Legacy adapters retain their historical `this` receiver.
+    const rawPlan = builtInSandboxAdapter
+      ? _applySandbox(
+          command,
+          args || [],
+          options,
+          profile,
+          undefined,
+          adapterRequest,
+        )
+      : Reflect.apply(applySandboxAdapter, sandboxAdapter, [
+          command,
+          args || [],
+          options,
+          profile,
+          undefined,
+          adapterRequest,
+        ]);
     let plan;
     try {
       plan = this._validateSandboxPlan(rawPlan, {
@@ -2343,6 +2393,7 @@ class ProcessExecutionBroker extends EventEmitter {
         profile,
         requiredBoundaries: Object.freeze([...requiredBoundaries]),
         sync,
+        builtInSandboxAdapter,
       });
       plan = this._assertRequiredSandboxBoundaries(plan, requiredBoundaries);
 
@@ -2357,9 +2408,7 @@ class ProcessExecutionBroker extends EventEmitter {
 
       if (plan.applied && plan.postSpawn.required) {
         const builtInWindowsMcpPostSpawn =
-          plan.platform === "win32" &&
-          plan.runtimeProbe?.planBindingMechanism ===
-            "windows-mcp-code-snapshot-plan-binding-v1";
+          admittedWindowsMcpCodeSnapshotPlans.has(plan);
         if (
           !builtInWindowsMcpPostSpawn &&
           typeof this._sandboxAdapter.postSpawnSandbox !== "function"
@@ -2578,12 +2627,27 @@ class ProcessExecutionBroker extends EventEmitter {
 
     let postSpawnResult;
     try {
-      const postSpawnAdapter =
+      const windowsMcpPlanBindingDeclared =
         plan.platform === "win32" &&
         plan.runtimeProbe?.planBindingMechanism ===
-          "windows-mcp-code-snapshot-plan-binding-v1"
-          ? (child, boundPlan) => boundPlan.postSpawnWindows(child)
-          : this._sandboxAdapter.postSpawnSandbox;
+          "windows-mcp-code-snapshot-plan-binding-v1";
+      const builtInWindowsMcpPlan =
+        admittedWindowsMcpCodeSnapshotPlans.has(plan);
+      if (windowsMcpPlanBindingDeclared && !builtInWindowsMcpPlan) {
+        throw this._sandboxError(
+          "windows_mcp_plan_binding_consumed",
+          "Windows MCP sandbox plan binding is unavailable or already consumed",
+        );
+      }
+      if (builtInWindowsMcpPlan) {
+        // Burn the one-launch post-spawn authority before invoking untrusted
+        // process-facing code. Success, failure, cleanup, and reentry all
+        // observe the capability as consumed.
+        admittedWindowsMcpCodeSnapshotPlans.delete(plan);
+      }
+      const postSpawnAdapter = builtInWindowsMcpPlan
+        ? (child, boundPlan) => boundPlan.postSpawnWindows(child)
+        : this._sandboxAdapter.postSpawnSandbox;
       postSpawnResult = postSpawnAdapter(proc, plan);
     } catch (error) {
       this._applySandboxAudit(auditEntry, plan, false);
