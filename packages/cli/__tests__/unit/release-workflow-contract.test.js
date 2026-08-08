@@ -502,8 +502,11 @@ describe("CLI release workflow contracts", () => {
     expect(text).not.toMatch(/push:\s*\n\s*tags:/u);
     expect(text).toContain("Verify exact source and matching native host");
     expect(text).toContain(
-      "install-command: npm ci --legacy-peer-deps --ignore-scripts",
+      "install-command: npm ci --workspace packages/cli --include-workspace-root=false --legacy-peer-deps --ignore-scripts",
     );
+    expect(text).toContain("install-workspace: packages/cli");
+    expect(setupAction).toContain("INSTALL_WORKSPACE");
+    expect(setupAction).toContain('--workspace "$INSTALL_WORKSPACE"');
     expect(text).toContain("Require a published pkg base binary");
     expect(text).toContain("--node-range node22");
     expect(text).toContain("--force-fetch");

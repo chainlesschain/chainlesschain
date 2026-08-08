@@ -103,7 +103,8 @@ jobs:
           # 3.13, where distutils no longer exists) even though those addons
           # are never loaded by this workflow. The Web Panel still performs
           # its own isolated, lockfile-clean install during the native build.
-          install-command: npm ci --legacy-peer-deps --ignore-scripts
+          install-command: npm ci --workspace packages/cli --include-workspace-root=false --legacy-peer-deps --ignore-scripts
+          install-workspace: packages/cli
 
       - name: Create validation-only update key
         shell: bash
