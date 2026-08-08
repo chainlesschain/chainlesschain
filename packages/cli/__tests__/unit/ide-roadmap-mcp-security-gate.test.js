@@ -130,7 +130,8 @@ function evidenceFor(operatingSystem) {
         ? {
             required: false,
             pass: true,
-            reason: "windows-atomic-launch-covered-by-filter-oplock-gate",
+            reason:
+              "windows-code-snapshot-covered-by-separate-strict-gate-not-evaluated",
             requiredRuns: 0,
             sampleCount: 0,
             passCount: 0,

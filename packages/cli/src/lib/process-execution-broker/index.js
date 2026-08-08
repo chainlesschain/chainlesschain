@@ -36,6 +36,7 @@ const require = createRequire(import.meta.url);
 // platform-sandbox.js exports: applySandbox, postSpawnSandbox
 import {
   applySandbox as _applySandbox,
+  consumeWindowsMcpCodeSnapshotPlanBinding,
   postSpawnSandbox as _postSpawnSandbox,
   MCP_STDIO_FD_ENTRY_BOOTSTRAP_SHA256,
   SANDBOX_BOUNDARIES,
@@ -1066,7 +1067,7 @@ class ProcessExecutionBroker extends EventEmitter {
     return error;
   }
 
-  _validateSandboxPlan(plan) {
+  _validateSandboxPlan(plan, launchContext = {}) {
     if (!plan || typeof plan !== "object") {
       throw this._sandboxError(
         "invalid_sandbox_plan",
@@ -1181,6 +1182,7 @@ class ProcessExecutionBroker extends EventEmitter {
         "contentSnapshotScope",
         "contentSnapshotMechanism",
         "runtimeLaunchMechanism",
+        "planBindingMechanism",
         "runtimeLaunchPath",
         "entrySnapshotPath",
         "pluginTreeContentSnapshotScope",
@@ -1247,6 +1249,7 @@ class ProcessExecutionBroker extends EventEmitter {
         "runtimeSnapshotSha256",
         "runtimeAttestedSha256",
         "entrySnapshotSha256",
+        "planBindingDigest",
       ]) {
         if (
           plan.runtimeProbe[field] !== undefined &&
@@ -1258,6 +1261,22 @@ class ProcessExecutionBroker extends EventEmitter {
             `Sandbox runtime probe ${field} must be a lowercase SHA-256 value`,
           );
         }
+      }
+      const planBindingDeclared =
+        plan.runtimeProbe.planBindingMechanism !== undefined ||
+        plan.runtimeProbe.planBindingDigest !== undefined;
+      if (
+        planBindingDeclared &&
+        (plan.platform !== "win32" ||
+          !guarantees.includes(SANDBOX_BOUNDARIES.CODE_SNAPSHOT) ||
+          plan.runtimeProbe.planBindingMechanism !==
+            "windows-mcp-code-snapshot-plan-binding-v1" ||
+          !/^[a-f0-9]{64}$/.test(plan.runtimeProbe.planBindingDigest || ""))
+      ) {
+        throw this._sandboxError(
+          "invalid_sandbox_plan",
+          "Sandbox runtime probe plan binding must use the typed Windows MCP code-snapshot contract",
+        );
       }
       if (
         plan.runtimeProbe.pluginTreeContentSnapshotDigest !== undefined &&
@@ -1564,9 +1583,69 @@ class ProcessExecutionBroker extends EventEmitter {
         SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
       );
       if (codeSnapshotGuaranteed) {
+        const executionContract = launchContext.executionContract;
+        const launchArgs = Array.isArray(launchContext.args)
+          ? launchContext.args
+          : [];
+        const passthroughArgsMatch = (candidateArgs) =>
+          candidateArgs.length === Math.max(0, launchArgs.length - 1) &&
+          candidateArgs.every(
+            (candidateArg, index) => candidateArg === launchArgs[index + 1],
+          );
+        const contractBoundSnapshotEvidence =
+          executionContract?.contractVersion === 1 &&
+          executionContract.kind === MCP_STDIO_CAPSULE_SANDBOX_CONTRACT_KIND &&
+          typeof launchContext.command === "string" &&
+          launchContext.command === executionContract.runtimePath &&
+          launchContext.command ===
+            executionContract.runtimeIdentity?.realPath &&
+          launchArgs.length >= 1 &&
+          launchArgs[0] === executionContract.entryIdentity?.realPath &&
+          /^[a-f0-9]{64}$/.test(
+            executionContract.runtimeIdentity?.sha256 || "",
+          ) &&
+          Number.isSafeInteger(executionContract.runtimeIdentity?.bytes) &&
+          executionContract.runtimeIdentity.bytes > 0 &&
+          /^[a-f0-9]{64}$/.test(
+            executionContract.entryIdentity?.sha256 || "",
+          ) &&
+          Number.isSafeInteger(executionContract.entryIdentity?.bytes) &&
+          executionContract.entryIdentity.bytes >= 0 &&
+          plan.runtimeProbe.entrySnapshotSha256 ===
+            executionContract.entryIdentity.sha256 &&
+          plan.runtimeProbe.entrySnapshotBytes ===
+            executionContract.entryIdentity.bytes;
+        const linuxRuntimeSnapshotContractBound =
+          plan.runtimeProbe.runtimeSnapshotSha256 ===
+            executionContract?.runtimeIdentity?.sha256 &&
+          plan.runtimeProbe.runtimeSnapshotBytes ===
+            executionContract?.runtimeIdentity?.bytes &&
+          plan.runtimeProbe.runtimeAttestedSha256 === undefined &&
+          plan.runtimeProbe.runtimeAttestedBytes === undefined;
+        const windowsRuntimeAttestationContractBound =
+          plan.runtimeProbe.runtimeAttestedSha256 ===
+            executionContract?.runtimeIdentity?.sha256 &&
+          plan.runtimeProbe.runtimeAttestedBytes ===
+            executionContract?.runtimeIdentity?.bytes &&
+          plan.runtimeProbe.runtimeSnapshotSha256 === undefined &&
+          plan.runtimeProbe.runtimeSnapshotBytes === undefined;
+        const contractEntryRelative = executionContract
+          ? path.posix.relative(
+              executionContract.pluginRoot,
+              executionContract.entryIdentity.realPath,
+            )
+          : null;
+        const expectedLinuxBubblewrapEntry =
+          contractEntryRelative &&
+          contractEntryRelative !== ".." &&
+          !contractEntryRelative.startsWith("../") &&
+          !path.posix.isAbsolute(contractEntryRelative)
+            ? path.posix.join("/opt/chainless/plugin", contractEntryRelative)
+            : null;
         const exactSnapshotEvidence =
           plan.applied === true &&
           candidateBackend === null &&
+          contractBoundSnapshotEvidence &&
           plan.runtimeProbe.attempted === true &&
           plan.runtimeProbe.runnable === true &&
           plan.runtimeProbe.reason === null &&
@@ -1598,6 +1677,7 @@ class ProcessExecutionBroker extends EventEmitter {
             "inherited-executable-fd-v1" &&
           plan.runtimeProbe.entrySnapshotBootstrapSha256 ===
             MCP_STDIO_FD_ENTRY_BOOTSTRAP_SHA256 &&
+          linuxRuntimeSnapshotContractBound &&
           /^[a-f0-9]{64}$/.test(
             plan.runtimeProbe.runtimeSnapshotSha256 || "",
           ) &&
@@ -1610,8 +1690,9 @@ class ProcessExecutionBroker extends EventEmitter {
             .createHash("sha256")
             .update(plan.args[1] || "")
             .digest("hex") === MCP_STDIO_FD_ENTRY_BOOTSTRAP_SHA256 &&
-          plan.args[2] === "--";
-        const linuxBubblewrapTargetSeparator = plan.args.lastIndexOf("--");
+          plan.args[2] === "--" &&
+          passthroughArgsMatch(plan.args.slice(3));
+        const linuxBubblewrapTargetSeparator = plan.args.indexOf("--");
         const linuxBubblewrapSnapshotEvidence =
           plan.platform === "linux" &&
           backend === "linux-bwrap" &&
@@ -1632,10 +1713,10 @@ class ProcessExecutionBroker extends EventEmitter {
           plan.runtimeProbe.pluginTreeContentSnapshot === true &&
           plan.runtimeProbe.runtimeLaunchPath ===
             "/opt/chainless/runtime/node" &&
-          typeof plan.runtimeProbe.entrySnapshotPath === "string" &&
-          plan.runtimeProbe.entrySnapshotPath.startsWith(
-            "/opt/chainless/plugin/",
-          ) &&
+          expectedLinuxBubblewrapEntry !== null &&
+          plan.runtimeProbe.entrySnapshotPath ===
+            expectedLinuxBubblewrapEntry &&
+          linuxRuntimeSnapshotContractBound &&
           /^[a-f0-9]{64}$/.test(
             plan.runtimeProbe.runtimeSnapshotSha256 || "",
           ) &&
@@ -1647,7 +1728,10 @@ class ProcessExecutionBroker extends EventEmitter {
           plan.args[linuxBubblewrapTargetSeparator + 1] ===
             plan.runtimeProbe.runtimeLaunchPath &&
           plan.args[linuxBubblewrapTargetSeparator + 2] ===
-            plan.runtimeProbe.entrySnapshotPath;
+            plan.runtimeProbe.entrySnapshotPath &&
+          passthroughArgsMatch(
+            plan.args.slice(linuxBubblewrapTargetSeparator + 3),
+          );
         const windowsSnapshotEvidence =
           plan.platform === "win32" &&
           [
@@ -1655,10 +1739,14 @@ class ProcessExecutionBroker extends EventEmitter {
             "windows-appcontainer-job-restricted-token",
           ].includes(backend) &&
           plan.enforcement === backend &&
-          [
-            "windows-plugin-node-entry-snapshot-v1",
-            "windows-appcontainer-launch-attestation-v1",
-          ].includes(plan.runtimeProbe.kind) &&
+          ((backend === "windows-job-restricted-token" &&
+            plan.runtimeProbe.kind ===
+              "windows-plugin-node-entry-snapshot-v1") ||
+            (backend === "windows-appcontainer-job-restricted-token" &&
+              plan.runtimeProbe.kind ===
+                "windows-appcontainer-launch-attestation-v1" &&
+              policyAttested === true &&
+              policyDigest !== null)) &&
           plan.runtimeProbe.contentSnapshotScope ===
             "mcp-capsule-entry-source" &&
           plan.runtimeProbe.contentSnapshotMechanism ===
@@ -1668,12 +1756,27 @@ class ProcessExecutionBroker extends EventEmitter {
           plan.runtimeProbe.runtimeLaunchAtomic === true &&
           plan.runtimeProbe.runtimeLaunchMechanism ===
             "filter-oplock-locked-createprocess-suspended-image-v1" &&
+          plan.runtimeProbe.planBindingMechanism ===
+            "windows-mcp-code-snapshot-plan-binding-v1" &&
+          /^[a-f0-9]{64}$/.test(plan.runtimeProbe.planBindingDigest || "") &&
+          windowsRuntimeAttestationContractBound &&
           /^[a-f0-9]{64}$/.test(
             plan.runtimeProbe.runtimeAttestedSha256 || "",
           ) &&
           Number.isSafeInteger(plan.runtimeProbe.runtimeAttestedBytes) &&
           plan.runtimeProbe.runtimeAttestedBytes > 0 &&
-          plan.runtimeProbe.runtimeAttestedBytes <= 256 * 1024 * 1024;
+          plan.runtimeProbe.runtimeAttestedBytes <= 256 * 1024 * 1024 &&
+          consumeWindowsMcpCodeSnapshotPlanBinding(plan, {
+            command: launchContext.command,
+            args: launchArgs,
+            cwd: launchContext.cwd,
+            shell: launchContext.shell,
+            detached: launchContext.detached,
+            executionContract,
+            profile: launchContext.profile,
+            requiredBoundaries: launchContext.requiredBoundaries,
+            sync: launchContext.sync,
+          });
         if (
           !exactSnapshotEvidence ||
           (!linuxSnapshotEvidence &&
@@ -1966,6 +2069,22 @@ class ProcessExecutionBroker extends EventEmitter {
         ...(plan.runtimeProbe.handleAtomic !== undefined
           ? { handleAtomic: plan.runtimeProbe.handleAtomic }
           : {}),
+        ...(plan.runtimeProbe.entrySnapshotAtomic !== undefined
+          ? { entrySnapshotAtomic: plan.runtimeProbe.entrySnapshotAtomic }
+          : {}),
+        ...(plan.runtimeProbe.runtimeLaunchAtomic !== undefined
+          ? { runtimeLaunchAtomic: plan.runtimeProbe.runtimeLaunchAtomic }
+          : {}),
+        ...(plan.runtimeProbe.runtimeLaunchMechanism !== undefined
+          ? {
+              runtimeLaunchMechanism: plan.runtimeProbe.runtimeLaunchMechanism,
+            }
+          : {}),
+        ...(plan.runtimeProbe.sharedLibraryClosure !== undefined
+          ? {
+              sharedLibraryClosure: plan.runtimeProbe.sharedLibraryClosure,
+            }
+          : {}),
         ...(plan.runtimeProbe.contentSnapshotScope !== undefined
           ? {
               contentSnapshotScope: plan.runtimeProbe.contentSnapshotScope,
@@ -1975,6 +2094,12 @@ class ProcessExecutionBroker extends EventEmitter {
           ? {
               contentSnapshotMechanism:
                 plan.runtimeProbe.contentSnapshotMechanism,
+            }
+          : {}),
+        ...(plan.runtimeProbe.planBindingMechanism !== undefined
+          ? {
+              planBindingMechanism: plan.runtimeProbe.planBindingMechanism,
+              planBindingDigest: plan.runtimeProbe.planBindingDigest,
             }
           : {}),
         ...(plan.runtimeProbe.runtimeSnapshotSha256 !== undefined
@@ -2208,7 +2333,17 @@ class ProcessExecutionBroker extends EventEmitter {
     );
     let plan;
     try {
-      plan = this._validateSandboxPlan(rawPlan);
+      plan = this._validateSandboxPlan(rawPlan, {
+        command,
+        args: Object.freeze([...(args || [])]),
+        cwd: options.cwd,
+        shell: options.shell,
+        detached: options.detached,
+        executionContract: sandboxPolicy.executionContract || null,
+        profile,
+        requiredBoundaries: Object.freeze([...requiredBoundaries]),
+        sync,
+      });
       plan = this._assertRequiredSandboxBoundaries(plan, requiredBoundaries);
 
       if (!plan.applied && strict) {
@@ -2221,7 +2356,14 @@ class ProcessExecutionBroker extends EventEmitter {
       }
 
       if (plan.applied && plan.postSpawn.required) {
-        if (typeof this._sandboxAdapter.postSpawnSandbox !== "function") {
+        const builtInWindowsMcpPostSpawn =
+          plan.platform === "win32" &&
+          plan.runtimeProbe?.planBindingMechanism ===
+            "windows-mcp-code-snapshot-plan-binding-v1";
+        if (
+          !builtInWindowsMcpPostSpawn &&
+          typeof this._sandboxAdapter.postSpawnSandbox !== "function"
+        ) {
           throw this._sandboxError(
             "post_spawn_adapter_unavailable",
             "Required post-spawn sandbox adapter is unavailable",
@@ -2436,7 +2578,13 @@ class ProcessExecutionBroker extends EventEmitter {
 
     let postSpawnResult;
     try {
-      postSpawnResult = this._sandboxAdapter.postSpawnSandbox(proc, plan);
+      const postSpawnAdapter =
+        plan.platform === "win32" &&
+        plan.runtimeProbe?.planBindingMechanism ===
+          "windows-mcp-code-snapshot-plan-binding-v1"
+          ? _postSpawnSandbox
+          : this._sandboxAdapter.postSpawnSandbox;
+      postSpawnResult = postSpawnAdapter(proc, plan);
     } catch (error) {
       this._applySandboxAudit(auditEntry, plan, false);
       auditEntry.sandboxState = "failed";

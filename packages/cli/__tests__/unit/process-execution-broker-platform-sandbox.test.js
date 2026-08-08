@@ -1703,6 +1703,46 @@ function createLinuxDynamicNativeRuntimeProbe(overrides = {}) {
   });
 }
 
+function normalizedMcpCapsuleContract({
+  runtimePath,
+  entryPath,
+  runtimeSha256 = "a".repeat(64),
+  runtimeBytes = 100,
+  entrySha256 = "b".repeat(64),
+  entryBytes = 200,
+}) {
+  const pluginRoot = /^[A-Za-z]:\\/.test(entryPath)
+    ? path.win32.dirname(entryPath)
+    : path.posix.dirname(entryPath);
+  return Object.freeze({
+    contractVersion: 1,
+    kind: "strict-mcp-node-capsule",
+    pluginRoot,
+    workingDirectory: pluginRoot,
+    runtimePath,
+    rootIdentity: Object.freeze({
+      realPath: pluginRoot,
+      fileId: Object.freeze({ dev: "1", ino: "1" }),
+    }),
+    runtimeIdentity: Object.freeze({
+      contractVersion: 1,
+      realPath: runtimePath,
+      sha256: runtimeSha256,
+      bytes: runtimeBytes,
+      fileId: Object.freeze({ dev: "1", ino: "2" }),
+      mtimeMs: 1,
+    }),
+    entryIdentity: Object.freeze({
+      contractVersion: 1,
+      realPath: entryPath,
+      sha256: entrySha256,
+      bytes: entryBytes,
+      fileId: Object.freeze({ dev: "1", ino: "3" }),
+      mtimeMs: 1,
+    }),
+  });
+}
+
 function appliedPlan(command, args, options, overrides = {}) {
   return {
     contractVersion: 1,
@@ -8833,6 +8873,7 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
   let originalDisable;
   let originalStrict;
   let emitWarning;
+  let normalizeSandboxExecutionContract;
 
   beforeEach(() => {
     originalNative = executionBroker._native;
@@ -8852,6 +8893,7 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
     executionBroker._credentialAgentEnabled = false;
     executionBroker.flushAuditLog();
     emitWarning = vi.spyOn(process, "emitWarning").mockImplementation(() => {});
+    normalizeSandboxExecutionContract = null;
   });
 
   afterEach(() => {
@@ -8872,6 +8914,7 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
       process.env.CC_SANDBOX_STRICT = originalStrict;
     }
     executionBroker.flushAuditLog();
+    normalizeSandboxExecutionContract?.mockRestore();
     emitWarning.mockRestore();
   });
 
@@ -9634,6 +9677,13 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
     const child = createChild();
     const nativeSpawn = vi.fn(() => child);
     const cleanup = vi.fn();
+    const runtimePath = "/runtime/node";
+    const entryPath = "/plugin/server.cjs";
+    normalizeSandboxExecutionContract = vi
+      .spyOn(executionBroker, "_normalizeSandboxExecutionContract")
+      .mockReturnValue(
+        normalizedMcpCapsuleContract({ runtimePath, entryPath }),
+      );
     executionBroker._native = { spawn: nativeSpawn };
     executionBroker._sandboxAdapter = {
       applySandbox: vi.fn((_command, _args, options) =>
@@ -9678,11 +9728,12 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
       postSpawnSandbox: vi.fn(),
     };
 
-    executionBroker.spawn("node", ["server.cjs", "--stdio"], {
+    executionBroker.spawn(runtimePath, [entryPath, "--stdio"], {
       origin: "test:mcp-code-snapshot",
       policy: "allow",
       shell: false,
       requiredBoundaries: [SANDBOX_BOUNDARIES.CODE_SNAPSHOT],
+      sandboxExecutionContract: Object.freeze({}),
     });
 
     expect(nativeSpawn).toHaveBeenCalledOnce();
@@ -9703,6 +9754,79 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
       applied: true,
       backend: "linux-fd-code-snapshot",
     });
+
+    normalizeSandboxExecutionContract.mockReturnValue(
+      normalizedMcpCapsuleContract({
+        runtimePath,
+        entryPath,
+        entrySha256: "c".repeat(64),
+      }),
+    );
+    expect(() =>
+      executionBroker.spawn(runtimePath, [entryPath, "--stdio"], {
+        origin: "test:mismatched-mcp-code-snapshot-contract",
+        policy: "allow",
+        shell: false,
+        requiredBoundaries: [SANDBOX_BOUNDARIES.CODE_SNAPSHOT],
+        sandboxExecutionContract: Object.freeze({}),
+      }),
+    ).toThrow(
+      "Code snapshot guarantee requires typed atomic MCP capsule evidence",
+    );
+    expect(nativeSpawn).toHaveBeenCalledOnce();
+
+    normalizeSandboxExecutionContract.mockReturnValue(
+      normalizedMcpCapsuleContract({ runtimePath, entryPath }),
+    );
+    const applyValidPlan = executionBroker._sandboxAdapter.applySandbox;
+    executionBroker._sandboxAdapter.applySandbox = vi.fn((...adapterArgs) => {
+      const validPlan = applyValidPlan(...adapterArgs);
+      return Object.freeze({
+        ...validPlan,
+        args: Object.freeze([
+          "-e",
+          MCP_STDIO_FD_ENTRY_BOOTSTRAP,
+          "--",
+          "--tampered",
+        ]),
+      });
+    });
+    expect(() =>
+      executionBroker.spawn(runtimePath, [entryPath, "--stdio"], {
+        origin: "test:tampered-mcp-code-snapshot-args",
+        policy: "allow",
+        shell: false,
+        requiredBoundaries: [SANDBOX_BOUNDARIES.CODE_SNAPSHOT],
+        sandboxExecutionContract: Object.freeze({}),
+      }),
+    ).toThrow(
+      "Code snapshot guarantee requires typed atomic MCP capsule evidence",
+    );
+    expect(nativeSpawn).toHaveBeenCalledOnce();
+
+    executionBroker._sandboxAdapter.applySandbox = vi.fn((...adapterArgs) => {
+      const validPlan = applyValidPlan(...adapterArgs);
+      return Object.freeze({
+        ...validPlan,
+        runtimeProbe: Object.freeze({
+          ...validPlan.runtimeProbe,
+          runtimeAttestedSha256: "a".repeat(64),
+          runtimeAttestedBytes: 100,
+        }),
+      });
+    });
+    expect(() =>
+      executionBroker.spawn(runtimePath, [entryPath, "--stdio"], {
+        origin: "test:mixed-runtime-evidence-family",
+        policy: "allow",
+        shell: false,
+        requiredBoundaries: [SANDBOX_BOUNDARIES.CODE_SNAPSHOT],
+        sandboxExecutionContract: Object.freeze({}),
+      }),
+    ).toThrow(
+      "Code snapshot guarantee requires typed atomic MCP capsule evidence",
+    );
+    expect(nativeSpawn).toHaveBeenCalledOnce();
   });
 
   it("accepts only typed Linux bwrap plus MCP capsule snapshot evidence", async () => {
@@ -9710,6 +9834,16 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
     const nativeSpawn = vi.fn(() => child);
     const runtimePath = "/opt/chainless/runtime/node";
     const entryPath = "/opt/chainless/plugin/server.cjs";
+    const sourceRuntimePath = "/runtime/node";
+    const sourceEntryPath = "/plugin/server.cjs";
+    normalizeSandboxExecutionContract = vi
+      .spyOn(executionBroker, "_normalizeSandboxExecutionContract")
+      .mockReturnValue(
+        normalizedMcpCapsuleContract({
+          runtimePath: sourceRuntimePath,
+          entryPath: sourceEntryPath,
+        }),
+      );
     const runtimeProbe = createLinuxPluginTreeRuntimeProbe({
       mcpCapsuleCodeSnapshot: true,
       entrySnapshotAtomic: true,
@@ -9728,7 +9862,7 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
       applySandbox: vi.fn((_command, _args, options) =>
         appliedLinuxBwrapPluginTreePlan(
           runtimePath,
-          [entryPath, "--stdio"],
+          [entryPath, "--", "--stdio"],
           options,
           {
             guarantees: [
@@ -9744,16 +9878,21 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
       postSpawnSandbox: vi.fn(),
     };
 
-    executionBroker.spawn("node", ["server.cjs", "--stdio"], {
-      origin: "test:linux-bwrap-mcp-code-snapshot",
-      policy: "allow",
-      shell: false,
-      requiredBoundaries: [
-        SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
-        SANDBOX_BOUNDARIES.FILESYSTEM,
-        SANDBOX_BOUNDARIES.NETWORK,
-      ],
-    });
+    executionBroker.spawn(
+      sourceRuntimePath,
+      [sourceEntryPath, "--", "--stdio"],
+      {
+        origin: "test:linux-bwrap-mcp-code-snapshot",
+        policy: "allow",
+        shell: false,
+        requiredBoundaries: [
+          SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
+          SANDBOX_BOUNDARIES.FILESYSTEM,
+          SANDBOX_BOUNDARIES.NETWORK,
+        ],
+        sandboxExecutionContract: Object.freeze({}),
+      },
+    );
 
     expect(nativeSpawn).toHaveBeenCalledOnce();
     expect(executionBroker.getAuditLog(1)[0]).toMatchObject({
@@ -9782,7 +9921,7 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
       (_command, _args, options) =>
         appliedLinuxBwrapPluginTreePlan(
           runtimePath,
-          [entryPath, "--stdio"],
+          [entryPath, "--", "--stdio"],
           options,
           {
             guarantees: [
@@ -9799,16 +9938,113 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
         ),
     );
     expect(() =>
-      executionBroker.spawn("node", ["server.cjs", "--stdio"], {
-        origin: "test:forged-linux-bwrap-mcp-code-snapshot",
-        policy: "allow",
-        shell: false,
-        requiredBoundaries: [
-          SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
-          SANDBOX_BOUNDARIES.FILESYSTEM,
-          SANDBOX_BOUNDARIES.NETWORK,
-        ],
-      }),
+      executionBroker.spawn(
+        sourceRuntimePath,
+        [sourceEntryPath, "--", "--stdio"],
+        {
+          origin: "test:forged-linux-bwrap-mcp-code-snapshot",
+          policy: "allow",
+          shell: false,
+          requiredBoundaries: [
+            SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
+            SANDBOX_BOUNDARIES.FILESYSTEM,
+            SANDBOX_BOUNDARIES.NETWORK,
+          ],
+          sandboxExecutionContract: Object.freeze({}),
+        },
+      ),
+    ).toThrow(
+      "Code snapshot guarantee requires typed atomic MCP capsule evidence",
+    );
+    expect(nativeSpawn).toHaveBeenCalledOnce();
+
+    executionBroker._sandboxAdapter.applySandbox = vi.fn(
+      (_command, _args, options) => {
+        const validPlan = appliedLinuxBwrapPluginTreePlan(
+          runtimePath,
+          [entryPath, "--", "--stdio"],
+          options,
+          {
+            guarantees: [
+              SANDBOX_BOUNDARIES.FILESYSTEM,
+              SANDBOX_BOUNDARIES.NETWORK,
+              SANDBOX_BOUNDARIES.PROCESS_TREE,
+              SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
+            ],
+            runtimeProbe,
+          },
+        );
+        return Object.freeze({
+          ...validPlan,
+          args: Object.freeze([
+            "--",
+            "/bin/evil",
+            "--",
+            runtimePath,
+            entryPath,
+            "--",
+            "--stdio",
+          ]),
+        });
+      },
+    );
+    expect(() =>
+      executionBroker.spawn(
+        sourceRuntimePath,
+        [sourceEntryPath, "--", "--stdio"],
+        {
+          origin: "test:double-separator-linux-bwrap-code-snapshot",
+          policy: "allow",
+          shell: false,
+          requiredBoundaries: [
+            SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
+            SANDBOX_BOUNDARIES.FILESYSTEM,
+            SANDBOX_BOUNDARIES.NETWORK,
+          ],
+          sandboxExecutionContract: Object.freeze({}),
+        },
+      ),
+    ).toThrow(
+      "Code snapshot guarantee requires typed atomic MCP capsule evidence",
+    );
+    expect(nativeSpawn).toHaveBeenCalledOnce();
+
+    executionBroker._sandboxAdapter.applySandbox = vi.fn(
+      (_command, _args, options) =>
+        appliedLinuxBwrapPluginTreePlan(
+          runtimePath,
+          ["/opt/chainless/plugin/../evil", "--", "--stdio"],
+          options,
+          {
+            guarantees: [
+              SANDBOX_BOUNDARIES.FILESYSTEM,
+              SANDBOX_BOUNDARIES.NETWORK,
+              SANDBOX_BOUNDARIES.PROCESS_TREE,
+              SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
+            ],
+            runtimeProbe: {
+              ...runtimeProbe,
+              entrySnapshotPath: "/opt/chainless/plugin/../evil",
+            },
+          },
+        ),
+    );
+    expect(() =>
+      executionBroker.spawn(
+        sourceRuntimePath,
+        [sourceEntryPath, "--", "--stdio"],
+        {
+          origin: "test:escaping-linux-bwrap-entry-snapshot",
+          policy: "allow",
+          shell: false,
+          requiredBoundaries: [
+            SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
+            SANDBOX_BOUNDARIES.FILESYSTEM,
+            SANDBOX_BOUNDARIES.NETWORK,
+          ],
+          sandboxExecutionContract: Object.freeze({}),
+        },
+      ),
     ).toThrow(
       "Code snapshot guarantee requires typed atomic MCP capsule evidence",
     );
@@ -9877,66 +10113,177 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
     expect(cleanup).toHaveBeenCalledOnce();
   });
 
-  it("accepts composed Windows AppContainer and MCP snapshot evidence", async () => {
-    const child = createChild();
-    const nativeSpawn = vi.fn(() => child);
+  it("preserves macOS fail-closed atomic evidence before native spawn", () => {
+    const nativeSpawn = vi.fn();
     executionBroker._native = { spawn: nativeSpawn };
     executionBroker._sandboxAdapter = {
-      applySandbox: vi.fn((_command, _args, options) =>
-        appliedPlan("windows-helper.exe", ["payload"], options, {
-          platform: "win32",
-          enforcement: "windows-appcontainer-job-restricted-token",
-          backend: "windows-appcontainer-job-restricted-token",
-          candidateBackend: null,
-          policyAttested: true,
-          policyDigest: "8".repeat(64),
-          guarantees: [
-            SANDBOX_BOUNDARIES.FILESYSTEM,
-            SANDBOX_BOUNDARIES.NETWORK,
-            SANDBOX_BOUNDARIES.PROCESS_TREE,
-            SANDBOX_BOUNDARIES.RESOURCE_LIMITS,
-            SANDBOX_BOUNDARIES.PRIVILEGE_REDUCTION,
-            SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
-          ],
-          runtimeProbe: {
-            kind: "windows-plugin-node-entry-snapshot-v1",
-            attempted: true,
-            runnable: true,
-            reason: null,
-            probeRuntime: "node",
-            targetRuntime: "node",
-            contentSnapshot: true,
-            contentSnapshotScope: "mcp-capsule-entry-source",
-            contentSnapshotMechanism:
-              "verified-handle-inherited-pipe-module-compile-v1",
-            handleAtomic: false,
-            runtimeAttestedSha256: "a".repeat(64),
-            runtimeAttestedBytes: 100,
-            entrySnapshotSha256: "b".repeat(64),
-            entrySnapshotBytes: 200,
-            entrySnapshotAtomic: true,
-            runtimeLaunchAtomic: true,
-            runtimeLaunchMechanism:
-              "filter-oplock-locked-createprocess-suspended-image-v1",
-            sharedLibraryClosure: false,
-          },
-        }),
-      ),
+      applySandbox: vi.fn((command, args, options) => ({
+        ...appliedPlan(command, args, options),
+        applied: false,
+        enforcement: null,
+        backend: null,
+        candidateBackend: "macos-fd-code-snapshot",
+        policyAttested: false,
+        policyDigest: null,
+        guarantees: [],
+        reason: "macos_atomic_runtime_exec_unavailable",
+        runtimeProbe: {
+          kind: "darwin-mcp-capsule-code-snapshot-v1",
+          attempted: true,
+          runnable: false,
+          reason: "public_api_has_no_descriptor_bound_exec",
+          probeRuntime: "node",
+          targetRuntime: "node",
+          contentSnapshot: false,
+          handleAtomic: false,
+          entrySnapshotAtomic: false,
+          runtimeLaunchAtomic: false,
+          runtimeLaunchMechanism: "darwin-public-api-pathname-exec-only-v1",
+          sharedLibraryClosure: false,
+        },
+      })),
       postSpawnSandbox: vi.fn(),
     };
 
-    executionBroker.spawn("node", ["server.cjs", "--stdio"], {
+    let error;
+    try {
+      executionBroker.spawn("node", ["server.cjs"], {
+        origin: "test:macos-code-snapshot-fail-closed",
+        policy: "allow",
+        shell: false,
+        requiredBoundaries: [SANDBOX_BOUNDARIES.CODE_SNAPSHOT],
+      });
+    } catch (caught) {
+      error = caught;
+    }
+
+    expect(error).toMatchObject({
+      code: "ERR_PROCESS_SANDBOX_BOUNDARY_UNSATISFIED",
+      sandboxCandidateBackend: "macos-fd-code-snapshot",
+      sandboxCandidateReason: "macos_atomic_runtime_exec_unavailable",
+      sandboxRuntimeProbe: {
+        attempted: true,
+        runnable: false,
+        reason: "public_api_has_no_descriptor_bound_exec",
+        contentSnapshot: false,
+        entrySnapshotAtomic: false,
+        runtimeLaunchAtomic: false,
+        runtimeLaunchMechanism: "darwin-public-api-pathname-exec-only-v1",
+        sharedLibraryClosure: false,
+      },
+    });
+    expect(nativeSpawn).not.toHaveBeenCalled();
+  });
+
+  it("accepts composed Windows AppContainer and MCP snapshot evidence", async () => {
+    const child = createChild();
+    const nativeSpawn = vi.fn(() => child);
+    const runtimePath = "C:\\runtime\\node.exe";
+    const entryPath = "C:\\capsule\\server.cjs";
+    const appContainerSid = "S-1-15-2-71-72-73-74-75-76-77";
+    const requiredBoundaries = [
+      SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
+      SANDBOX_BOUNDARIES.FILESYSTEM,
+      SANDBOX_BOUNDARIES.NETWORK,
+    ];
+    const contract = normalizedMcpCapsuleContract({
+      runtimePath,
+      entryPath,
+    });
+    normalizeSandboxExecutionContract = vi
+      .spyOn(executionBroker, "_normalizeSandboxExecutionContract")
+      .mockReturnValue(contract);
+    const helperSpawnSync = vi.fn((_helper, helperArgs) => {
+      if (helperArgs[0] === "--prepare-appcontainer") {
+        return {
+          status: 0,
+          stdout: JSON.stringify({
+            ready: true,
+            profileName: helperArgs[1],
+            appContainerSid,
+            capabilityCount: 0,
+            tokenAttested: true,
+            restrictedTokenAttested: true,
+            probeRuntime: "node",
+            targetRuntime: "node",
+          }),
+          stderr: "",
+        };
+      }
+      if (helperArgs[0] === "--delete-appcontainer") {
+        return {
+          status: 0,
+          stdout: JSON.stringify({
+            deleted: true,
+            absent: true,
+            profileName: helperArgs[1],
+          }),
+          stderr: "",
+        };
+      }
+      throw new Error(`Unexpected helper invocation: ${helperArgs}`);
+    });
+    const harness = createWindowsAdapterHarness({
+      helperSpawnSync,
+      readFileSync: vi.fn(() =>
+        JSON.stringify({
+          targetPid: 5103,
+          helperPid: 4102,
+          appContainer: true,
+          appContainerSid,
+          capabilityCount: 0,
+        }),
+      ),
+    });
+    const issuedPlan = applyWindowsSandbox(
+      runtimePath,
+      [entryPath, "--stdio"],
+      {
+        cwd: "C:\\capsule",
+        shell: false,
+        detached: false,
+        stdio: ["pipe", "pipe", "pipe"],
+      },
+      {
+        profileName: "default",
+        requiredBoundaries,
+        sync: false,
+        executionContract: contract,
+      },
+      {
+        platform: "win32",
+        fs: harness.fsRuntime,
+        windowsAdapterContent: "param()",
+        tmpdir: () => "C:\\temp",
+        now: vi.fn(() => 100),
+        sleepSync: vi.fn(),
+        randomBytes: (size) => Buffer.alloc(size, 0x7b),
+        joinPath: path.win32.join,
+        spawnSync: harness.spawnSync,
+      },
+    );
+    executionBroker._native = { spawn: nativeSpawn };
+    executionBroker._sandboxAdapter = {
+      applySandbox: vi.fn(() => issuedPlan),
+      postSpawnSandbox: vi.fn(() => {
+        throw new Error("injected post-spawn adapter must not be used");
+      }),
+    };
+
+    executionBroker.spawn(runtimePath, [entryPath, "--stdio"], {
       origin: "test:windows-mcp-code-snapshot",
       policy: "allow",
       shell: false,
-      requiredBoundaries: [
-        SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
-        SANDBOX_BOUNDARIES.FILESYSTEM,
-        SANDBOX_BOUNDARIES.NETWORK,
-      ],
+      cwd: "C:\\capsule",
+      detached: false,
+      requiredBoundaries,
+      sandboxExecutionContract: Object.freeze({}),
     });
 
     expect(nativeSpawn).toHaveBeenCalledOnce();
+    expect(
+      executionBroker._sandboxAdapter.postSpawnSandbox,
+    ).not.toHaveBeenCalled();
     expect(executionBroker.getAuditLog(1)[0]).toMatchObject({
       sandboxed: true,
       sandboxBackend: "windows-appcontainer-job-restricted-token",
@@ -9959,6 +10306,7 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
         runtimeLaunchMechanism:
           "filter-oplock-locked-createprocess-suspended-image-v1",
         sharedLibraryClosure: false,
+        planBindingMechanism: "windows-mcp-code-snapshot-plan-binding-v1",
         runtimeAttestedSha256: "a".repeat(64),
         entrySnapshotSha256: "b".repeat(64),
       },
@@ -9967,6 +10315,99 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
       applied: true,
       backend: "windows-appcontainer-job-restricted-token",
     });
+    expect(() =>
+      executionBroker.spawn(runtimePath, [entryPath, "--stdio"], {
+        origin: "test:replayed-windows-mcp-code-snapshot",
+        policy: "allow",
+        shell: false,
+        cwd: "C:\\capsule",
+        detached: false,
+        requiredBoundaries,
+        sandboxExecutionContract: Object.freeze({}),
+      }),
+    ).toThrow(
+      "Code snapshot guarantee requires typed atomic MCP capsule evidence",
+    );
+    expect(nativeSpawn).toHaveBeenCalledOnce();
+    child.emit("close", 0, null);
+    expect(resetWindowsSandboxAdapterCache()).toBe(true);
+  });
+
+  it("rejects an unissued Windows helper plan even when evidence matches the launch contract", () => {
+    const nativeSpawn = vi.fn();
+    const cleanup = vi.fn();
+    const runtimePath = "C:\\runtime\\node.exe";
+    const entryPath = "C:\\capsule\\server.cjs";
+    normalizeSandboxExecutionContract = vi
+      .spyOn(executionBroker, "_normalizeSandboxExecutionContract")
+      .mockReturnValue(
+        normalizedMcpCapsuleContract({ runtimePath, entryPath }),
+      );
+    executionBroker._native = { spawn: nativeSpawn };
+    executionBroker._sandboxAdapter = {
+      applySandbox: vi.fn((_command, _args, options) =>
+        appliedPlan("windows-helper.exe", ["payload"], options, {
+          platform: "win32",
+          enforcement: "windows-appcontainer-job-restricted-token",
+          backend: "windows-appcontainer-job-restricted-token",
+          candidateBackend: null,
+          policyAttested: true,
+          policyDigest: "8".repeat(64),
+          guarantees: [
+            SANDBOX_BOUNDARIES.FILESYSTEM,
+            SANDBOX_BOUNDARIES.NETWORK,
+            SANDBOX_BOUNDARIES.PROCESS_TREE,
+            SANDBOX_BOUNDARIES.RESOURCE_LIMITS,
+            SANDBOX_BOUNDARIES.PRIVILEGE_REDUCTION,
+            SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
+          ],
+          runtimeProbe: {
+            kind: "windows-appcontainer-launch-attestation-v1",
+            attempted: true,
+            runnable: true,
+            reason: null,
+            probeRuntime: "node",
+            targetRuntime: "node",
+            contentSnapshot: true,
+            contentSnapshotScope: "mcp-capsule-entry-source",
+            contentSnapshotMechanism:
+              "verified-handle-inherited-pipe-module-compile-v1",
+            handleAtomic: false,
+            runtimeAttestedSha256: "a".repeat(64),
+            runtimeAttestedBytes: 100,
+            entrySnapshotSha256: "b".repeat(64),
+            entrySnapshotBytes: 200,
+            entrySnapshotAtomic: true,
+            runtimeLaunchAtomic: true,
+            runtimeLaunchMechanism:
+              "filter-oplock-locked-createprocess-suspended-image-v1",
+            sharedLibraryClosure: false,
+            planBindingMechanism: "windows-mcp-code-snapshot-plan-binding-v1",
+            planBindingDigest: "9".repeat(64),
+          },
+          cleanup,
+        }),
+      ),
+      postSpawnSandbox: vi.fn(),
+    };
+
+    expect(() =>
+      executionBroker.spawn(runtimePath, [entryPath, "--stdio"], {
+        origin: "test:forged-windows-mcp-code-snapshot",
+        policy: "allow",
+        shell: false,
+        requiredBoundaries: [
+          SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
+          SANDBOX_BOUNDARIES.FILESYSTEM,
+          SANDBOX_BOUNDARIES.NETWORK,
+        ],
+        sandboxExecutionContract: Object.freeze({}),
+      }),
+    ).toThrow(
+      "Code snapshot guarantee requires typed atomic MCP capsule evidence",
+    );
+    expect(nativeSpawn).not.toHaveBeenCalled();
+    expect(cleanup).toHaveBeenCalledOnce();
   });
 
   it("rejects a forged code snapshot guarantee before native spawn", () => {

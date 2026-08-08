@@ -313,7 +313,8 @@ async function runCodeSnapshotRaceProbe(workspace, runs) {
     return Object.freeze({
       required: false,
       pass: true,
-      reason: "windows-atomic-launch-covered-by-filter-oplock-gate",
+      reason:
+        "windows-code-snapshot-covered-by-separate-strict-gate-not-evaluated",
       requiredRuns: 0,
       sampleCount: 0,
       passCount: 0,
@@ -976,7 +977,7 @@ function validateEvidence(value, { releaseCommit, minimumRuns = 100 } = {}) {
   const windowsSkipValid =
     evidenceOperatingSystem !== "windows" ||
     codeSnapshotRaceProbe?.reason ===
-      "windows-atomic-launch-covered-by-filter-oplock-gate";
+      "windows-code-snapshot-covered-by-separate-strict-gate-not-evaluated";
   if (
     codeSnapshotRaceProbe?.pass !== true ||
     codeSnapshotRaceProbe?.required !== codeSnapshotRequired ||

@@ -290,6 +290,7 @@ const windowsAdapterCacheEntries = new Set();
 const windowsTemporaryCleanupBacklog = new Set();
 let windowsTemporaryCleanupRetryTimer = null;
 const windowsAppContainerCleanupBacklog = new Set();
+const issuedWindowsMcpCodeSnapshotPlans = new WeakMap();
 // Each AppContainer retry starts a synchronous, digest-attested PowerShell
 // helper. Bound automatic retries so a permanently unsupported Windows host
 // cannot repeatedly block a long-lived CLI; explicit cleanup/reset and process
@@ -890,6 +891,184 @@ function cleanupWindowsTemporaryDirectory(
 
 function sha256(value) {
   return crypto.createHash("sha256").update(value).digest("hex");
+}
+
+function sameStringArray(left, right) {
+  return (
+    Array.isArray(left) &&
+    Array.isArray(right) &&
+    left.length === right.length &&
+    left.every((value, index) => value === right[index])
+  );
+}
+
+function windowsEnvironmentDigest(env) {
+  const entries = Object.entries(env || {})
+    .map(([key, value]) => [key, String(value)])
+    .sort(([leftKey, leftValue], [rightKey, rightValue]) => {
+      if (leftKey !== rightKey) return leftKey < rightKey ? -1 : 1;
+      if (leftValue === rightValue) return 0;
+      return leftValue < rightValue ? -1 : 1;
+    });
+  return sha256(JSON.stringify(entries));
+}
+
+function windowsMcpBindingIdentity(identity) {
+  if (!identity) return null;
+  return {
+    contractVersion: identity.contractVersion ?? null,
+    realPath: identity.realPath ?? null,
+    sha256: identity.sha256 ?? null,
+    bytes: identity.bytes ?? null,
+    fileId: identity.fileId
+      ? {
+          dev: identity.fileId.dev ?? null,
+          ino: identity.fileId.ino ?? null,
+        }
+      : null,
+    mtimeMs: identity.mtimeMs ?? null,
+    attestation: identity.attestation ?? null,
+  };
+}
+
+function windowsMcpBindingContract(contract) {
+  return {
+    contractVersion: contract?.contractVersion ?? null,
+    kind: contract?.kind ?? null,
+    pluginRoot: contract?.pluginRoot ?? null,
+    workingDirectory: contract?.workingDirectory ?? null,
+    runtimePath: contract?.runtimePath ?? null,
+    rootIdentity: contract?.rootIdentity
+      ? {
+          realPath: contract.rootIdentity.realPath ?? null,
+          fileId: contract.rootIdentity.fileId
+            ? {
+                dev: contract.rootIdentity.fileId.dev ?? null,
+                ino: contract.rootIdentity.fileId.ino ?? null,
+              }
+            : null,
+          attestation: contract.rootIdentity.attestation ?? null,
+        }
+      : null,
+    entryIdentity: windowsMcpBindingIdentity(contract?.entryIdentity),
+    runtimeIdentity: windowsMcpBindingIdentity(contract?.runtimeIdentity),
+  };
+}
+
+function createWindowsMcpCodeSnapshotPlanBinding({
+  executionContract,
+  command,
+  args,
+  spawnOpts,
+  profile,
+  requiredBoundaries,
+  sync,
+  backend,
+  policyAttested,
+  policyDigest,
+  adapterSource,
+  helperInvocation,
+  helperOptions,
+  postSpawn,
+  postSpawnWindows,
+}) {
+  const helperEnvDigest = windowsEnvironmentDigest(helperOptions.env);
+  const originalArgs = Object.freeze([...(args || [])]);
+  const helperArgs = Object.freeze([...(helperInvocation.args || [])]);
+  const normalizedPostSpawn = Object.freeze({
+    required: postSpawn?.required === true,
+    mode: postSpawn?.mode || "none",
+  });
+  const digestPayload = {
+    version: 1,
+    kind: "windows-mcp-code-snapshot-plan-binding-v1",
+    executionContract: windowsMcpBindingContract(executionContract),
+    originalLaunch: {
+      command,
+      args: originalArgs,
+      cwd: spawnOpts?.cwd ?? null,
+      shell: spawnOpts?.shell ?? null,
+      detached: spawnOpts?.detached ?? null,
+      profile,
+      requiredBoundaries: [...requiredBoundaries],
+      sync,
+    },
+    policy: { backend, policyAttested, policyDigest },
+    adapter: {
+      loaderMode: adapterSource.loaderMode,
+      sourceDigest: adapterSource.sourceDigest,
+      sourceContractDigest: adapterSource.sourceContractDigest,
+    },
+    helperInvocation: {
+      command: helperInvocation.command,
+      args: helperArgs,
+      cwd: helperOptions.cwd ?? null,
+      shell: helperOptions.shell ?? null,
+      detached: helperOptions.detached ?? null,
+      envDigest: helperEnvDigest,
+    },
+    postSpawn: normalizedPostSpawn,
+  };
+  return Object.freeze({
+    executionContract,
+    originalCommand: command,
+    originalArgs,
+    originalCwd: spawnOpts?.cwd ?? null,
+    originalShell: spawnOpts?.shell ?? null,
+    originalDetached: spawnOpts?.detached ?? null,
+    profile,
+    requiredBoundaries: Object.freeze([...requiredBoundaries]),
+    sync,
+    backend,
+    policyAttested,
+    policyDigest,
+    helperCommand: helperInvocation.command,
+    helperArgs,
+    helperCwd: helperOptions.cwd ?? null,
+    helperShell: helperOptions.shell ?? null,
+    helperDetached: helperOptions.detached ?? null,
+    helperEnvDigest,
+    postSpawn: normalizedPostSpawn,
+    postSpawnWindows: postSpawnWindows || null,
+    planBindingDigest: sha256(JSON.stringify(digestPayload)),
+  });
+}
+
+/**
+ * Consume the one-launch capability attached to a real built-in Windows MCP
+ * code-snapshot plan. The issuer stays module-private so an injected adapter
+ * cannot make a structurally similar helper payload authoritative.
+ */
+export function consumeWindowsMcpCodeSnapshotPlanBinding(plan, expected = {}) {
+  const issued = issuedWindowsMcpCodeSnapshotPlans.get(plan);
+  if (!issued) return false;
+  issuedWindowsMcpCodeSnapshotPlans.delete(plan);
+  return (
+    issued.executionContract === expected.executionContract &&
+    issued.originalCommand === expected.command &&
+    sameStringArray(issued.originalArgs, expected.args) &&
+    issued.originalCwd === (expected.cwd ?? null) &&
+    issued.originalShell === (expected.shell ?? null) &&
+    issued.originalDetached === (expected.detached ?? null) &&
+    issued.profile === expected.profile &&
+    sameStringArray(issued.requiredBoundaries, expected.requiredBoundaries) &&
+    issued.sync === (expected.sync === true) &&
+    plan.backend === issued.backend &&
+    plan.policyAttested === issued.policyAttested &&
+    plan.policyDigest === issued.policyDigest &&
+    plan.command === issued.helperCommand &&
+    sameStringArray(plan.args, issued.helperArgs) &&
+    plan.options?.cwd === issued.helperCwd &&
+    plan.options?.shell === issued.helperShell &&
+    plan.options?.detached === issued.helperDetached &&
+    windowsEnvironmentDigest(plan.options?.env) === issued.helperEnvDigest &&
+    plan.postSpawn?.required === issued.postSpawn.required &&
+    plan.postSpawn?.mode === issued.postSpawn.mode &&
+    (plan.postSpawnWindows || null) === issued.postSpawnWindows &&
+    plan.runtimeProbe?.planBindingMechanism ===
+      "windows-mcp-code-snapshot-plan-binding-v1" &&
+    plan.runtimeProbe?.planBindingDigest === issued.planBindingDigest
+  );
 }
 
 function windowsFileIdentity(stat) {
@@ -2769,6 +2948,28 @@ export function applyWindowsSandbox(
         },
       }
     : {};
+  const windowsMcpPlanBinding =
+    entrySnapshot.locks &&
+    sandboxOpts.executionContract?.kind ===
+      MCP_STDIO_CAPSULE_SANDBOX_CONTRACT_KIND
+      ? createWindowsMcpCodeSnapshotPlanBinding({
+          executionContract: sandboxOpts.executionContract,
+          command,
+          args,
+          spawnOpts,
+          profile,
+          requiredBoundaries,
+          sync: sandboxOpts.sync === true,
+          backend,
+          policyAttested: requiresAppContainer ? true : null,
+          policyDigest: appContainerPolicyDigest,
+          adapterSource,
+          helperInvocation,
+          helperOptions: options,
+          postSpawn: identityContract.postSpawn,
+          postSpawnWindows: identityContract.postSpawnWindows,
+        })
+      : null;
   const entrySnapshotRuntimeProbe = entrySnapshot.locks
     ? {
         ...(appContainerRuntimeProbe || nodeSnapshotRuntimeProbe),
@@ -2801,11 +3002,13 @@ export function applyWindowsSandbox(
               runtimeLaunchMechanism:
                 "filter-oplock-locked-createprocess-suspended-image-v1",
               sharedLibraryClosure: false,
+              planBindingMechanism: "windows-mcp-code-snapshot-plan-binding-v1",
+              planBindingDigest: windowsMcpPlanBinding.planBindingDigest,
             }
           : {}),
       }
     : appContainerRuntimeProbe;
-  return createSandboxPlan({
+  const plan = createSandboxPlan({
     ...base,
     applied: true,
     enforcement: backend,
@@ -2832,6 +3035,10 @@ export function applyWindowsSandbox(
     ...identityContract,
     cleanup,
   });
+  if (windowsMcpPlanBinding) {
+    issuedWindowsMcpCodeSnapshotPlans.set(plan, windowsMcpPlanBinding);
+  }
+  return plan;
 }
 
 /**
