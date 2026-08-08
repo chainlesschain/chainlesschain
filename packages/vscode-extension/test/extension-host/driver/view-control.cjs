@@ -66,11 +66,24 @@ async function requestChatViewForDomJourney({
   waitForFocus = false,
   log = () => {},
 }) {
-  await withTimeout(
-    commands.executeCommand(ACTIVITY_VIEW_COMMAND),
-    timeoutMs,
-    "ChainlessChain activity view reveal",
-  );
+  // Current stable VS Code can dispatch the activity-view reveal successfully
+  // while leaving the command Promise pending until the workbench has focus.
+  // Do not turn that settlement detail into a false failure: every caller
+  // immediately performs a bounded, real DOM/host-API proof that still fails
+  // closed if the view was not actually revealed.
+  const activityReveal = commands.executeCommand(ACTIVITY_VIEW_COMMAND);
+  let activityRevealTimer;
+  const activityRevealSettled = await Promise.race([
+    Promise.resolve(activityReveal).then(() => true),
+    new Promise((resolve) => {
+      activityRevealTimer = setTimeout(() => resolve(false), timeoutMs);
+    }),
+  ]).finally(() => clearTimeout(activityRevealTimer));
+  if (!activityRevealSettled) {
+    log(
+      `ChainlessChain activity view reveal command is still pending after ${timeoutMs}ms; continuing to downstream host proof`,
+    );
+  }
 
   // VS Code's generated `<webview-id>.focus` command can keep its returned
   // Promise pending until the Webview has received workbench focus. External

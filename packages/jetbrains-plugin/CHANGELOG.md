@@ -1,5 +1,16 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.82] - Native ARM64 release-host certification (2026-08-08)
+
+- Validate the plugin on native Linux and macOS ARM64 hosts for IntelliJ IDEA
+  2024.2 and 2025.2, plus the exact Windows ARM64 2026.2.0.1 distribution and
+  bundled JetBrains Runtime.
+- Bind chat, control, canonical rewind, Sessions Workbench, and restart recovery
+  evidence into the exact 11-cell IDE ARM64 aggregate shared with VS Code.
+- Harden the Windows ARM64 GUI journey against runner privacy, console, WSL
+  updater, firewall, and first-run overlays while preserving fail-closed host
+  and artifact checks.
+
 ## [0.4.81] - Canonical Workbench host journey (2026-08-06)
 
 - Show canonical session ownership, worktree, pending input, artifact, and PR

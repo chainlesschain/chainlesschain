@@ -2,6 +2,18 @@
 
 All notable changes to this extension are documented here.
 
+## [0.37.46] - Native ARM64 release-host certification (2026-08-08)
+
+- Validate the same architecture-neutral VSIX on native Linux, Windows, and
+  macOS ARM64 runners across stable VS Code and the minimum supported 1.85.2
+  host, including multi-root, multi-window, control, and restart journeys.
+- Bind the VS Code evidence into the exact 11-cell IDE ARM64 aggregate alongside
+  the JetBrains host matrix so incomplete or mismatched release evidence fails
+  closed.
+- Keep the macOS stable host gate compatible with a successfully dispatched
+  activity-view command whose Promise remains pending, while requiring the
+  downstream real-DOM journey to prove that the view actually opened.
+
 ## [0.37.45] - Multi-window release-host gate (2026-08-07)
 
 - Launch a second real VS Code workspace window from the same clean profile
