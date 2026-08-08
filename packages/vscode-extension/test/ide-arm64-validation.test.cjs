@@ -277,4 +277,31 @@ test("the ARM64 workflow binds exact hosts, versions, and aggregate evidence", (
     jetbrainsJourneyRunner,
     /configured !== "gradle"[\s\S]*?return configured/u,
   );
+  assert.match(
+    jetbrainsJourneyRunner,
+    /CC_JETBRAINS_GRADLE_EXECUTABLE[\s\S]*?"--no-configuration-cache"/u,
+  );
+
+  const vscodeHostRunner = fs.readFileSync(
+    path.join(
+      repositoryRoot,
+      "packages/vscode-extension/test/extension-host/run.cjs",
+    ),
+    "utf8",
+  );
+  assert.match(vscodeHostRunner, /TRANSIENT_NETWORK_ERROR_CODES/u);
+  assert.match(vscodeHostRunner, /retryTransientNetworkOperation/u);
+
+  const vscodeSmokeDriver = fs.readFileSync(
+    path.join(
+      repositoryRoot,
+      "packages/vscode-extension/test/extension-host/driver/smoke.cjs",
+    ),
+    "utf8",
+  );
+  assert.match(vscodeSmokeDriver, /EXTENSION_ACTIVATION_TIMEOUT_MS = 60_000/u);
+  assert.equal(
+    vscodeSmokeDriver.match(/EXTENSION_ACTIVATION_TIMEOUT_MS/gu)?.length,
+    3,
+  );
 });

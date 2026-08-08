@@ -30,6 +30,8 @@ const {
   parseDevToolsBrowserEndpoint,
   parseElectronInspectorEndpoint,
   recordHostProgress,
+  isTransientNetworkError,
+  retryTransientNetworkOperation,
   resolveHostJourneyTransport,
   resolveVsCodeHostVersion,
   runHostApiPhase,
@@ -78,6 +80,46 @@ const {
 } = require("./extension-host/driver/view-control.cjs");
 
 const temporaryRoots = [];
+
+test("transient VS Code download failures retry without broadening the allowlist", async () => {
+  let attempts = 0;
+  const waits = [];
+  const value = await retryTransientNetworkOperation(
+    async () => {
+      attempts += 1;
+      if (attempts < 3) {
+        throw new AggregateError([
+          Object.assign(new Error("download timed out"), { code: "ETIMEDOUT" }),
+        ]);
+      }
+      return "downloaded";
+    },
+    {
+      label: "test download",
+      wait: async (milliseconds) => waits.push(milliseconds),
+    },
+  );
+
+  assert.equal(value, "downloaded");
+  assert.equal(attempts, 3);
+  assert.deepEqual(waits, [5_000, 10_000]);
+  assert.equal(isTransientNetworkError({ code: "EACCES" }), false);
+});
+
+test("non-network VS Code host failures remain fail-closed", async () => {
+  let attempts = 0;
+  await assert.rejects(
+    retryTransientNetworkOperation(
+      async () => {
+        attempts += 1;
+        throw Object.assign(new Error("permission denied"), { code: "EACCES" });
+      },
+      { label: "test install", wait: async () => {} },
+    ),
+    /permission denied/u,
+  );
+  assert.equal(attempts, 1);
+});
 
 function temporaryRoot() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-vscode-host-runner-"));

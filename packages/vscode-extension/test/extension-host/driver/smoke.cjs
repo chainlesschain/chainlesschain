@@ -15,6 +15,10 @@ const { runDomRelayJourney } = require("./dom-relay-journey.cjs");
 const { runMultiWindowJourney } = require("./multi-window.cjs");
 
 const EXTENSION_ID = "chainlesschain.chainlesschain-ide";
+// Cold ARM64 macOS hosts can spend more than 30 seconds activating the first
+// installed VSIX while the stable Workbench initializes its extension graph.
+// Keep this bounded, but leave enough room for the exact activation to finish.
+const EXTENSION_ACTIVATION_TIMEOUT_MS = 60_000;
 const REQUIRED_COMMANDS = [
   "chainlesschain.ide.showStatus",
   "chainlesschain.cli.installManaged",
@@ -143,7 +147,7 @@ async function runCompanionWindow({
   assert.equal(extension.packageJSON.version, expectedVersion);
   await withTimeout(
     Promise.resolve().then(() => extension.activate()),
-    30_000,
+    EXTENSION_ACTIVATION_TIMEOUT_MS,
     `${EXTENSION_ID} companion activation`,
   );
   await dismissFreshInstallReloadPrompt();
@@ -581,7 +585,7 @@ async function run() {
   console.log(`[extension-host-smoke] ${journeyPhase}: activating VSIX`);
   await withTimeout(
     Promise.resolve().then(() => extension.activate()),
-    30_000,
+    EXTENSION_ACTIVATION_TIMEOUT_MS,
     `${EXTENSION_ID} activation`,
   );
   assert.equal(extension.isActive, true, "extension did not become active");

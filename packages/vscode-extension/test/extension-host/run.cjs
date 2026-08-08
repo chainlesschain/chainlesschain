@@ -134,6 +134,59 @@ function requireTestElectron() {
   }
 }
 
+const TRANSIENT_NETWORK_ERROR_CODES = new Set([
+  "ECONNREFUSED",
+  "ECONNRESET",
+  "EHOSTUNREACH",
+  "ENETUNREACH",
+  "ENOTFOUND",
+  "ETIMEDOUT",
+]);
+
+function isTransientNetworkError(error, seen = new Set()) {
+  if (!error || (typeof error !== "object" && typeof error !== "function")) {
+    return false;
+  }
+  if (seen.has(error)) return false;
+  seen.add(error);
+  if (TRANSIENT_NETWORK_ERROR_CODES.has(error.code)) return true;
+  if (isTransientNetworkError(error.cause, seen)) return true;
+  if (Array.isArray(error.errors)) {
+    return error.errors.some((entry) => isTransientNetworkError(entry, seen));
+  }
+  return false;
+}
+
+async function retryTransientNetworkOperation(
+  operation,
+  {
+    label,
+    attempts = 3,
+    wait = (milliseconds) =>
+      new Promise((resolve) => setTimeout(resolve, milliseconds)),
+  },
+) {
+  assert.ok(typeof operation === "function", "operation must be a function");
+  assert.ok(label, "retry label is required");
+  assert.ok(
+    Number.isInteger(attempts) && attempts > 0,
+    "attempts must be positive",
+  );
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      return await operation();
+    } catch (error) {
+      if (attempt === attempts || !isTransientNetworkError(error)) throw error;
+      const delayMs = attempt * 5_000;
+      process.stderr.write(
+        `[extension-host-smoke] transient network failure during ${label}; retrying in ${delayMs}ms (${attempt}/${attempts})\n`,
+      );
+      await wait(delayMs);
+    }
+  }
+  throw new Error(`unreachable retry state for ${label}`);
+}
+
 function makeFreshRunRoot(parent) {
   // VS Code places its macOS main-process Unix socket below --user-data-dir.
   // The Darwin sockaddr_un path limit is 103 bytes, while os.tmpdir() expands
@@ -1391,9 +1444,13 @@ async function main() {
     const { downloadAndUnzipVSCode, runTests, runVSCodeCommand } =
       requireTestElectron();
     recordHostProgress(progressPath, "install_started");
-    const install = await runVSCodeCommand(
-      [...installProfileArgs, "--install-extension", vsixPath, "--force"],
-      downloadOptions,
+    const install = await retryTransientNetworkOperation(
+      () =>
+        runVSCodeCommand(
+          [...installProfileArgs, "--install-extension", vsixPath, "--force"],
+          downloadOptions,
+        ),
+      { label: `VS Code ${options.vscodeVersion} download/install` },
     );
     recordHostProgress(progressPath, "install_completed");
     if (install.stdout.trim()) {
@@ -1404,16 +1461,23 @@ async function main() {
     }
 
     recordHostProgress(progressPath, "list_started");
-    const listed = await runVSCodeCommand(
-      [...installProfileArgs, "--list-extensions", "--show-versions"],
-      downloadOptions,
+    const listed = await retryTransientNetworkOperation(
+      () =>
+        runVSCodeCommand(
+          [...installProfileArgs, "--list-extensions", "--show-versions"],
+          downloadOptions,
+        ),
+      { label: `VS Code ${options.vscodeVersion} extension listing` },
     );
     assertInstalled(listed.stdout, expectedVersion);
     recordHostProgress(progressPath, "list_completed");
 
     // Reuses the exact version already downloaded by the install command.
     recordHostProgress(progressPath, "download_started");
-    const vscodeExecutablePath = await downloadAndUnzipVSCode(downloadOptions);
+    const vscodeExecutablePath = await retryTransientNetworkOperation(
+      () => downloadAndUnzipVSCode(downloadOptions),
+      { label: `VS Code ${options.vscodeVersion} executable resolution` },
+    );
     hostVersion = await resolveVsCodeHostVersion(
       vscodeExecutablePath,
       options.vscodeVersion,
@@ -1594,6 +1658,8 @@ module.exports = {
   parseDevToolsBrowserEndpoint,
   parseElectronInspectorEndpoint,
   recordHostProgress,
+  isTransientNetworkError,
+  retryTransientNetworkOperation,
   resolveHostJourneyTransport,
   resolveVsCodeHostVersion,
   runHostApiPhase,

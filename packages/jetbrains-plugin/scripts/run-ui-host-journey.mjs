@@ -578,6 +578,9 @@ export async function runJourney(options) {
     `-PhostIdeVersion=${options.ideVersion}`,
     "--no-daemon",
     "--stacktrace",
+    ...(process.env.CC_JETBRAINS_GRADLE_EXECUTABLE
+      ? ["--no-configuration-cache"]
+      : []),
   ];
   let ideProcess = null;
   let journeyError = null;
