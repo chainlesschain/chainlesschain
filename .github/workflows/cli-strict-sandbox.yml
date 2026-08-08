@@ -424,6 +424,7 @@ jobs:
           npx vitest run --reporter=json
           --outputFile=strict-sandbox-result.json
           __tests__/integration/process-broker-platform-sandbox-live.test.js
+          __tests__/unit/mcp-stdio-macos-code-snapshot.test.js
 
       - name: Capture macOS sandbox diagnostics
         if: failure() && runner.os == 'macOS'

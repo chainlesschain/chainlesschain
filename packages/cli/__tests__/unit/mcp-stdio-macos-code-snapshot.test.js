@@ -11,6 +11,8 @@ import {
 } from "../../src/lib/process-execution-broker/platform-sandbox.js";
 
 const temporaryRoots = [];
+const HAS_MACOS_SEATBELT =
+  process.platform === "darwin" && fs.existsSync("/usr/bin/sandbox-exec");
 
 function fileIdentity(filePath) {
   const realPath = fs.realpathSync(filePath);
@@ -155,7 +157,7 @@ describe("macOS MCP anonymous code snapshots", () => {
     },
   );
 
-  it.runIf(process.platform === "darwin")(
+  it.runIf(HAS_MACOS_SEATBELT)(
     "composes the capsule snapshot with filesystem and network Seatbelt boundaries",
     () => {
       const root = fs.realpathSync(

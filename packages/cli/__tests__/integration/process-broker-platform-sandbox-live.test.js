@@ -914,6 +914,169 @@ describe.runIf(LIVE && SUPPORTED)(
     );
 
     it.runIf(process.platform === "win32")(
+      "runs a verified MCP entry snapshot inside the zero-capability AppContainer boundary",
+      async () => {
+        const workspace = fs.realpathSync.native(
+          fs.mkdtempSync(
+            path.join(os.tmpdir(), "cc-windows-mcp-appcontainer-"),
+          ),
+        );
+        const entryPath = path.join(workspace, "server.cjs");
+        const secretPath = path.join(
+          os.tmpdir(),
+          `.cc-mcp-appcontainer-secret-${process.pid}-${Date.now()}`,
+        );
+        const markerPath = `${secretPath}.write`;
+        const server = net.createServer((socket) => {
+          socket.on("error", () => {});
+          socket.end("host-network-visible");
+        });
+        let plan = null;
+
+        await new Promise((resolve, reject) => {
+          const onError = (error) => reject(error);
+          server.once("error", onError);
+          server.listen(0, "127.0.0.1", () => {
+            server.off("error", onError);
+            resolve();
+          });
+        });
+
+        try {
+          const address = server.address();
+          expect(address && typeof address === "object").toBe(true);
+          fs.writeFileSync(secretPath, "host-only-secret", "utf8");
+          fs.rmSync(markerPath, { force: true });
+          fs.writeFileSync(
+            entryPath,
+            [
+              'const fs = require("node:fs");',
+              'const net = require("node:net");',
+              "const report = {",
+              "  appContainer: process.env.CC_WINDOWS_APPCONTAINER,",
+              "  readDenied: false,",
+              "  writeDenied: false,",
+              "  networkDenied: false,",
+              "};",
+              `try { fs.readFileSync(${JSON.stringify(secretPath)}, "utf8"); } catch (error) { report.readDenied = Boolean(error); }`,
+              `try { fs.writeFileSync(${JSON.stringify(markerPath)}, "escape", "utf8"); } catch (error) { report.writeDenied = Boolean(error); }`,
+              "let finished = false;",
+              "let socket;",
+              "const finish = (networkDenied) => {",
+              "  if (finished) return;",
+              "  finished = true;",
+              "  clearTimeout(timer);",
+              "  socket?.destroy();",
+              "  report.networkDenied = networkDenied;",
+              "  process.stdout.write(JSON.stringify(report));",
+              "};",
+              "const timer = setTimeout(() => finish(false), 3000);",
+              "try {",
+              "  socket = net.connect({",
+              "    host: '127.0.0.1',",
+              `    port: ${address.port},`,
+              "  });",
+              "  socket.once('connect', () => finish(false));",
+              "  socket.once('error', () => finish(true));",
+              "} catch {",
+              "  finish(true);",
+              "}",
+            ].join("\n"),
+            "utf8",
+          );
+
+          const runtimePath = fs.realpathSync.native(process.execPath);
+          const canonicalEntry = fs.realpathSync.native(entryPath);
+          const requiredBoundaries = [
+            SANDBOX_BOUNDARIES.FILESYSTEM,
+            SANDBOX_BOUNDARIES.NETWORK,
+            SANDBOX_BOUNDARIES.PROCESS_TREE,
+            SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
+          ];
+          plan = applyWindowsSandbox(
+            runtimePath,
+            [canonicalEntry, "--stdio"],
+            {
+              cwd: workspace,
+              shell: false,
+              detached: false,
+              env: process.env,
+              stdio: ["ignore", "pipe", "pipe"],
+              windowsHide: true,
+            },
+            {
+              profileName: "strict",
+              requiredBoundaries,
+              sync: true,
+              executionContract: {
+                kind: "strict-mcp-node-capsule",
+                runtimePath,
+                runtimeIdentity: fileIdentity(runtimePath),
+                entryIdentity: fileIdentity(canonicalEntry),
+              },
+            },
+            { platform: "win32" },
+          );
+
+          expect(
+            plan,
+            JSON.stringify({
+              applied: plan.applied,
+              backend: plan.backend,
+              candidateBackend: plan.candidateBackend,
+              reason: plan.reason,
+              runtimeProbe: plan.runtimeProbe,
+            }),
+          ).toMatchObject({
+            applied: true,
+            backend: "windows-appcontainer-job-restricted-token",
+            guarantees: expect.arrayContaining(requiredBoundaries),
+            runtimeProbe: {
+              kind: "windows-appcontainer-launch-attestation-v1",
+              runnable: true,
+              contentSnapshotScope: "mcp-capsule-entry-source",
+              entrySnapshotAtomic: true,
+              runtimeLaunchAtomic: true,
+              runtimeLaunchMechanism:
+                "filter-oplock-locked-createprocess-suspended-image-v1",
+              sharedLibraryClosure: false,
+            },
+          });
+
+          const result = nativeSpawnSync(plan.command, plan.args, {
+            ...plan.options,
+            encoding: "utf8",
+            timeout: 180_000,
+          });
+          const failureContext = JSON.stringify({
+            status: result.status,
+            signal: result.signal,
+            error: result.error?.message,
+            stdout: String(result.stdout || ""),
+            stderr: String(result.stderr || ""),
+          });
+          expect(result.error, failureContext).toBeUndefined();
+          expect(result.status, failureContext).toBe(0);
+          expect(JSON.parse(result.stdout)).toEqual({
+            appContainer: "1",
+            readDenied: true,
+            writeDenied: true,
+            networkDenied: true,
+          });
+          expect(fs.existsSync(markerPath)).toBe(false);
+          expect(fs.readFileSync(secretPath, "utf8")).toBe("host-only-secret");
+        } finally {
+          plan?.cleanup?.();
+          await new Promise((resolve) => server.close(resolve));
+          fs.rmSync(secretPath, { force: true });
+          fs.rmSync(markerPath, { force: true });
+          fs.rmSync(workspace, { recursive: true, force: true });
+        }
+      },
+      300_000,
+    );
+
+    it.runIf(process.platform === "win32")(
       "keeps executing the verified entry snapshot after a POSIX path replacement",
       async () => {
         const workspace = fs.mkdtempSync(
