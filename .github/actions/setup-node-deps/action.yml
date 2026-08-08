@@ -15,6 +15,10 @@ inputs:
     description: "Primary install command (defaults to a lockfile-clean npm ci)"
     required: false
     default: "npm ci --legacy-peer-deps"
+  install-workspace:
+    description: "Optional npm workspace to scope the platform package install to"
+    required: false
+    default: ""
   extra-packages:
     description: "Space-separated extra npm packages to install alongside the rollup binary (e.g. 'electron-installer-debian')"
     required: false
@@ -89,20 +93,29 @@ runs:
       working-directory: ${{ inputs.working-directory }}
       env:
         EXTRA_PACKAGES: ${{ inputs.extra-packages }}
+        INSTALL_WORKSPACE: ${{ inputs.install-workspace }}
       run: |
         # Pick the rollup native binary for this runner.
         # Workaround for https://github.com/npm/cli/issues/4828 — npm sometimes
         # skips optional platform deps, leaving vite/vitest unable to resolve rollup.
         case "${RUNNER_OS}-${RUNNER_ARCH}" in
-          Linux-X64)   pkg="@rollup/rollup-linux-x64-gnu" ;;
-          Windows-X64) pkg="@rollup/rollup-win32-x64-msvc" ;;
-          macOS-ARM64) pkg="@rollup/rollup-darwin-arm64" ;;
-          macOS-X64)   pkg="@rollup/rollup-darwin-x64" ;;
-          *)           pkg="" ;;
+          Linux-X64)     pkg="@rollup/rollup-linux-x64-gnu" ;;
+          Linux-ARM64)   pkg="@rollup/rollup-linux-arm64-gnu" ;;
+          Windows-X64)   pkg="@rollup/rollup-win32-x64-msvc" ;;
+          Windows-ARM64) pkg="@rollup/rollup-win32-arm64-msvc" ;;
+          macOS-ARM64)   pkg="@rollup/rollup-darwin-arm64" ;;
+          macOS-X64)     pkg="@rollup/rollup-darwin-x64" ;;
+          *)             pkg="" ;;
         esac
         packages="$pkg $EXTRA_PACKAGES"
         packages=$(echo "$packages" | xargs) # trim
         if [ -n "$packages" ]; then
           echo "Installing: $packages"
-          npm install $packages --no-save --legacy-peer-deps || true
+          if [ -n "$INSTALL_WORKSPACE" ]; then
+            npm install $packages --no-save --legacy-peer-deps \
+              --workspace "$INSTALL_WORKSPACE" \
+              --include-workspace-root=false || true
+          else
+            npm install $packages --no-save --legacy-peer-deps || true
+          fi
         fi

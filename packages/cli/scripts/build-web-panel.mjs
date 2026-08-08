@@ -12,7 +12,7 @@
  *   node scripts/build-web-panel.mjs --force   # 强制重建
  */
 
-import { execSync } from "node:child_process";
+import { execFileSync, execSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
@@ -129,7 +129,13 @@ function runBuild() {
     env.NODE_ENV = "development";
     return env;
   })();
-  const tmpBase = fs.mkdtempSync(path.join(os.tmpdir(), "cc-web-panel-"));
+  // Hosted Windows runners can expose TEMP through an 8.3 short path such as
+  // C:\\Users\\RUNNER~1 while Vite later canonicalizes imported files to the
+  // long path. Mixing those spellings makes vite:build-html calculate an
+  // invalid ../../-prefixed emitted asset name. Canonicalize before creating
+  // the isolated tree so the child process and Vite see one root spelling.
+  const canonicalTmpRoot = fs.realpathSync.native(os.tmpdir());
+  const tmpBase = fs.mkdtempSync(path.join(canonicalTmpRoot, "cc-web-panel-"));
   const tmpRepo = path.join(tmpBase, "repo");
   const tmpWp = path.join(tmpRepo, "packages", "web-panel");
   try {
@@ -188,16 +194,37 @@ function runBuild() {
     }
 
     console.log(`[build-web-panel] 隔离构建目录: ${tmpWp}`);
-    console.log("[build-web-panel] 安装依赖 (scrubbed npm_config_* env)...");
-    execSync("npm install --legacy-peer-deps", {
+    console.log(
+      "[build-web-panel] 按锁文件安装依赖 (scrubbed npm_config_* env)...",
+    );
+    execSync("npm ci --include=dev --include=optional --legacy-peer-deps", {
       cwd: tmpWp,
       stdio: "inherit",
       encoding: "utf-8",
       env: childEnv,
     });
 
+    // npm has previously returned success on a hosted ARM64 runner while a
+    // required transitive package was absent. Resolve the build toolchain from
+    // the isolated tree before Vite starts so an incomplete install fails with
+    // an actionable dependency name instead of a late Rollup error.
+    execFileSync(
+      process.execPath,
+      [
+        "--input-type=module",
+        "--eval",
+        'for (const name of ["@ant-design/colors", "@ant-design/icons-svg", "@babel/runtime/helpers/extends", "@ctrl/tinycolor", "@emotion/hash", "@emotion/unitless", "@intlify/core-base", "@intlify/message-compiler", "@intlify/shared", "@simonwep/pickr", "@vitejs/plugin-vue", "@vue/devtools-api", "vite"]) import.meta.resolve(name);',
+      ],
+      {
+        cwd: tmpWp,
+        stdio: "inherit",
+        encoding: "utf-8",
+        env: childEnv,
+      },
+    );
+
     console.log("[build-web-panel] 执行 vite build...");
-    execSync("npm run build", {
+    execSync("npm run build:no-sync", {
       cwd: tmpWp,
       stdio: "inherit",
       encoding: "utf-8",
@@ -237,7 +264,9 @@ function main() {
 
   const currentHash = computeInputHash();
   const previousHash = readPreviousHash();
-  const distExists = fs.existsSync(ASSETS_DIR) && fs.existsSync(path.join(ASSETS_DIR, "index.html"));
+  const distExists =
+    fs.existsSync(ASSETS_DIR) &&
+    fs.existsSync(path.join(ASSETS_DIR, "index.html"));
 
   if (!FORCE && distExists && previousHash === currentHash) {
     console.log(

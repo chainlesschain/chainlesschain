@@ -468,6 +468,16 @@ describe("CLI release workflow contracts", () => {
 
   it("collects six-target native host evidence without granting release authority", () => {
     const text = workflow("cli-native-validation.yml");
+    const setupAction = fs.readFileSync(
+      path.join(
+        repositoryRoot,
+        ".github",
+        "actions",
+        "setup-node-deps",
+        "action.yml",
+      ),
+      "utf8",
+    );
     for (const target of [
       "node22-linux-x64",
       "node22-linux-arm64",
@@ -491,6 +501,12 @@ describe("CLI release workflow contracts", () => {
     expect(text).toContain("workflow_dispatch:");
     expect(text).not.toMatch(/push:\s*\n\s*tags:/u);
     expect(text).toContain("Verify exact source and matching native host");
+    expect(text).toContain(
+      "install-command: npm ci --workspace packages/cli --include-workspace-root=false --legacy-peer-deps --ignore-scripts",
+    );
+    expect(text).toContain("install-workspace: packages/cli");
+    expect(setupAction).toContain("INSTALL_WORKSPACE");
+    expect(setupAction).toContain('--workspace "$INSTALL_WORKSPACE"');
     expect(text).toContain("Require a published pkg base binary");
     expect(text).toContain("--node-range node22");
     expect(text).toContain("--force-fetch");
@@ -509,5 +525,15 @@ describe("CLI release workflow contracts", () => {
     expect(text).not.toContain("gh release");
     expect(text).not.toContain("contents: write");
     expect(text).not.toContain("id-token: write");
+    for (const rollupBinary of [
+      "@rollup/rollup-linux-x64-gnu",
+      "@rollup/rollup-linux-arm64-gnu",
+      "@rollup/rollup-win32-x64-msvc",
+      "@rollup/rollup-win32-arm64-msvc",
+      "@rollup/rollup-darwin-x64",
+      "@rollup/rollup-darwin-arm64",
+    ]) {
+      expect(setupAction).toContain(rollupBinary);
+    }
   });
 });

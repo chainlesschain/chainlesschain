@@ -37,10 +37,13 @@ export function ensureWebPanel(ctx) {
     fs.existsSync(path.join(d, "index.html")),
   );
 
-  // Decide if a rebuild is needed
+  // A clean source checkout intentionally contains only the tracked
+  // index.html placeholder; the generated asset tree is gitignored. Treat
+  // that placeholder as missing output so native/package builds actually run
+  // build:web-panel instead of failing the asset-count guard below.
   let rebuilt = false;
-  let needsBuild = !distDir;
-  if (distDir && !skipBuild) {
+  let needsBuild = !distDir || countAssets(distDir) < 2;
+  if (!needsBuild && distDir && !skipBuild) {
     needsBuild = isDistStale(distDir);
   }
 
