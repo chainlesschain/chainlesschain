@@ -134,6 +134,59 @@ function requireTestElectron() {
   }
 }
 
+const TRANSIENT_NETWORK_ERROR_CODES = new Set([
+  "ECONNREFUSED",
+  "ECONNRESET",
+  "EHOSTUNREACH",
+  "ENETUNREACH",
+  "ENOTFOUND",
+  "ETIMEDOUT",
+]);
+
+function isTransientNetworkError(error, seen = new Set()) {
+  if (!error || (typeof error !== "object" && typeof error !== "function")) {
+    return false;
+  }
+  if (seen.has(error)) return false;
+  seen.add(error);
+  if (TRANSIENT_NETWORK_ERROR_CODES.has(error.code)) return true;
+  if (isTransientNetworkError(error.cause, seen)) return true;
+  if (Array.isArray(error.errors)) {
+    return error.errors.some((entry) => isTransientNetworkError(entry, seen));
+  }
+  return false;
+}
+
+async function retryTransientNetworkOperation(
+  operation,
+  {
+    label,
+    attempts = 3,
+    wait = (milliseconds) =>
+      new Promise((resolve) => setTimeout(resolve, milliseconds)),
+  },
+) {
+  assert.ok(typeof operation === "function", "operation must be a function");
+  assert.ok(label, "retry label is required");
+  assert.ok(
+    Number.isInteger(attempts) && attempts > 0,
+    "attempts must be positive",
+  );
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      return await operation();
+    } catch (error) {
+      if (attempt === attempts || !isTransientNetworkError(error)) throw error;
+      const delayMs = attempt * 5_000;
+      process.stderr.write(
+        `[extension-host-smoke] transient network failure during ${label}; retrying in ${delayMs}ms (${attempt}/${attempts})\n`,
+      );
+      await wait(delayMs);
+    }
+  }
+  throw new Error(`unreachable retry state for ${label}`);
+}
+
 function makeFreshRunRoot(parent) {
   // VS Code places its macOS main-process Unix socket below --user-data-dir.
   // The Darwin sockaddr_un path limit is 103 bytes, while os.tmpdir() expands
@@ -1014,6 +1067,10 @@ async function runHostApiPhase({
   if (!userDataDir) throw new Error("host profile has no user-data directory");
   const { readyFile, resultFile } = hostPhaseSignalPaths(runtimeDir, phase);
   const traceFile = path.join(runtimeDir, "host-api-trace.jsonl");
+  const primaryActivationReadyFile = path.join(
+    runtimeDir,
+    "multi-window-primary-activation-ready.json",
+  );
   const useExternalCompanion = includeMultiWindow && platform !== "win32";
   const launchOptions = {
     vscodeExecutablePath,
@@ -1045,6 +1102,8 @@ async function runHostApiPhase({
             CHAINLESSCHAIN_SMOKE_COMPANION_WORKSPACE: companionWorkspace,
             CHAINLESSCHAIN_MULTI_WINDOW_EVIDENCE_FILE: multiWindowEvidenceFile,
             CHAINLESSCHAIN_MULTI_WINDOW_PROGRESS_FILE: progressPath,
+            CHAINLESSCHAIN_MULTI_WINDOW_PRIMARY_READY_FILE:
+              primaryActivationReadyFile,
             CHAINLESSCHAIN_SMOKE_VSCODE_EXECUTABLE: vscodeExecutablePath,
             CHAINLESSCHAIN_SMOKE_USER_DATA_DIR: userDataDir,
             ...(useExternalCompanion
@@ -1055,6 +1114,43 @@ async function runHostApiPhase({
     },
   };
   if (useExternalCompanion) {
+    recordHostProgress(progressPath, "multi_window_primary_launch_requested", {
+      actor: "orchestrator",
+      transport: "managed-extension-host",
+    });
+    const primaryHost = launchManagedHost(launchOptions);
+    recordHostProgress(progressPath, "multi_window_primary_launch_dispatched", {
+      actor: "orchestrator",
+      transport: "managed-extension-host",
+    });
+    const primaryReadyOutcome = waitForFile(
+      primaryActivationReadyFile,
+      90_000,
+    ).then(
+      () => ({ source: "ready" }),
+      (error) => ({ source: "ready", error }),
+    );
+    const primaryHostOutcome = primaryHost.outcome.then(
+      (value) => ({ source: "host", value }),
+      (error) => ({ source: "host", error }),
+    );
+    const firstPrimaryOutcome = await Promise.race([
+      primaryReadyOutcome,
+      primaryHostOutcome,
+    ]);
+    if (firstPrimaryOutcome.error || firstPrimaryOutcome.source === "host") {
+      primaryHost.requestStop();
+      await primaryHost.outcome.catch(() => {});
+      if (firstPrimaryOutcome.error) throw firstPrimaryOutcome.error;
+      throw new Error(
+        "primary VS Code host exited before its activation-ready signal",
+      );
+    }
+    recordHostProgress(
+      progressPath,
+      "multi_window_primary_activation_ready_observed",
+      { actor: "orchestrator", transport: "managed-extension-host" },
+    );
     recordHostProgress(
       progressPath,
       "multi_window_companion_launch_requested",
@@ -1072,10 +1168,9 @@ async function runHostApiPhase({
       "multi_window_companion_launch_dispatched",
       { actor: "orchestrator", transport: "managed-extension-host" },
     );
-    const primaryHost = launchManagedHost(launchOptions);
     const managedHosts = [
-      { label: "companion", launched: companionHost },
       { label: "primary", launched: primaryHost },
+      { label: "companion", launched: companionHost },
     ];
     const journey = await waitForFile(resultFile, 135_000)
       .then(() => readJourneyResult(resultFile, phase))
@@ -1391,9 +1486,13 @@ async function main() {
     const { downloadAndUnzipVSCode, runTests, runVSCodeCommand } =
       requireTestElectron();
     recordHostProgress(progressPath, "install_started");
-    const install = await runVSCodeCommand(
-      [...installProfileArgs, "--install-extension", vsixPath, "--force"],
-      downloadOptions,
+    const install = await retryTransientNetworkOperation(
+      () =>
+        runVSCodeCommand(
+          [...installProfileArgs, "--install-extension", vsixPath, "--force"],
+          downloadOptions,
+        ),
+      { label: `VS Code ${options.vscodeVersion} download/install` },
     );
     recordHostProgress(progressPath, "install_completed");
     if (install.stdout.trim()) {
@@ -1404,16 +1503,23 @@ async function main() {
     }
 
     recordHostProgress(progressPath, "list_started");
-    const listed = await runVSCodeCommand(
-      [...installProfileArgs, "--list-extensions", "--show-versions"],
-      downloadOptions,
+    const listed = await retryTransientNetworkOperation(
+      () =>
+        runVSCodeCommand(
+          [...installProfileArgs, "--list-extensions", "--show-versions"],
+          downloadOptions,
+        ),
+      { label: `VS Code ${options.vscodeVersion} extension listing` },
     );
     assertInstalled(listed.stdout, expectedVersion);
     recordHostProgress(progressPath, "list_completed");
 
     // Reuses the exact version already downloaded by the install command.
     recordHostProgress(progressPath, "download_started");
-    const vscodeExecutablePath = await downloadAndUnzipVSCode(downloadOptions);
+    const vscodeExecutablePath = await retryTransientNetworkOperation(
+      () => downloadAndUnzipVSCode(downloadOptions),
+      { label: `VS Code ${options.vscodeVersion} executable resolution` },
+    );
     hostVersion = await resolveVsCodeHostVersion(
       vscodeExecutablePath,
       options.vscodeVersion,
@@ -1594,6 +1700,8 @@ module.exports = {
   parseDevToolsBrowserEndpoint,
   parseElectronInspectorEndpoint,
   recordHostProgress,
+  isTransientNetworkError,
+  retryTransientNetworkOperation,
   resolveHostJourneyTransport,
   resolveVsCodeHostVersion,
   runHostApiPhase,

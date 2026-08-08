@@ -82,7 +82,7 @@ export function parseArgs(argv) {
   if (!options.help && !options.artifactDir) {
     throw new Error("--artifact-dir is required");
   }
-  if (!/^\d{4}\.\d+(?:\.\d+)?$/.test(options.ideVersion)) {
+  if (!/^\d{4}\.\d+(?:\.\d+)*$/.test(options.ideVersion)) {
     throw new Error("--ide-version must be an exact IntelliJ version");
   }
   try {
@@ -100,6 +100,17 @@ export function parseArgs(argv) {
 }
 
 function gradleExecutable() {
+  const configured = String(
+    process.env.CC_JETBRAINS_GRADLE_EXECUTABLE || "",
+  ).trim();
+  if (configured) {
+    if (configured !== "gradle") {
+      throw new Error(
+        "CC_JETBRAINS_GRADLE_EXECUTABLE accepts only the setup-gradle command",
+      );
+    }
+    return configured;
+  }
   return path.join(
     PACKAGE_ROOT,
     process.platform === "win32" ? "gradlew.bat" : "gradlew",
@@ -563,10 +574,25 @@ export async function runJourney(options) {
     `${options.ideVersion}-${Date.now()}`,
   );
   const metricsPath = path.join(logRoot, "workbench-metrics.jsonl");
+  const localIdePath = String(
+    process.env.CC_JETBRAINS_IDE_LOCAL_PATH || "",
+  ).trim();
+  if (
+    localIdePath &&
+    (!path.isAbsolute(localIdePath) || !existsSync(localIdePath))
+  ) {
+    throw new Error(
+      "CC_JETBRAINS_IDE_LOCAL_PATH must name an existing absolute directory",
+    );
+  }
   const gradleOptions = [
     `-PhostIdeVersion=${options.ideVersion}`,
+    ...(localIdePath ? [`-PhostIdeLocalPath=${localIdePath}`] : []),
     "--no-daemon",
     "--stacktrace",
+    ...(process.env.CC_JETBRAINS_GRADLE_EXECUTABLE
+      ? ["--no-configuration-cache"]
+      : []),
   ];
   let ideProcess = null;
   let journeyError = null;

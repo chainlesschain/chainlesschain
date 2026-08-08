@@ -1,0 +1,475 @@
+name: IDE ARM64 Host Validation
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/ide-arm64-validation.yml"
+      - "packages/vscode-extension/**"
+      - "packages/jetbrains-plugin/**"
+      - "scripts/ide-journey-evidence.mjs"
+      - "scripts/verify-ide-arm64-evidence.mjs"
+  pull_request:
+    paths:
+      - ".github/workflows/ide-arm64-validation.yml"
+      - "packages/vscode-extension/**"
+      - "packages/jetbrains-plugin/**"
+      - "scripts/ide-journey-evidence.mjs"
+      - "scripts/verify-ide-arm64-evidence.mjs"
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: "Exact full commit SHA to validate (blank uses selected ref)"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ide-arm64-validation-${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: false
+
+env:
+  IDE_ARM64_RELEASE_COMMIT: ${{ inputs.commit_sha || github.event.pull_request.head.sha || github.sha }}
+
+jobs:
+  vscode-package:
+    name: VS Code architecture-neutral candidate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: packages/vscode-extension
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.IDE_ARM64_RELEASE_COMMIT }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+      - name: Verify exact candidate checkout
+        shell: bash
+        working-directory: .
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$IDE_ARM64_RELEASE_COMMIT"
+          test -z "$(git status --porcelain --untracked-files=all)"
+      - name: Run release contract tests
+        run: npm run test:unit
+      - name: Package immutable VSIX candidate
+        run: |
+          node scripts/sync-elicitation-schema.mjs --check
+          npx --yes @vscode/vsce@3.9.2 package --no-dependencies --out chainlesschain-ide.vsix
+          node scripts/verify-vsix.mjs chainlesschain-ide.vsix
+          node scripts/vsix-release-artifact.mjs create chainlesschain-ide.vsix manifest.json
+      - name: Upload immutable VSIX candidate
+        uses: actions/upload-artifact@v6
+        with:
+          name: ide-arm64-vscode-candidate-${{ env.IDE_ARM64_RELEASE_COMMIT }}-${{ github.run_attempt }}
+          path: |
+            packages/vscode-extension/chainlesschain-ide.vsix
+            packages/vscode-extension/manifest.json
+          if-no-files-found: error
+          retention-days: 90
+
+  vscode-arm64-host:
+    name: VS Code ARM64 (${{ matrix.slug }})
+    needs: vscode-package
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 80
+    env:
+      CC_IDE_REQUIRED_HOST_ARCH: arm64
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04-arm
+            platform: linux
+            slug: linux
+          - runner: windows-11-arm
+            platform: win32
+            slug: windows
+          - runner: macos-15
+            platform: darwin
+            slug: macos
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.IDE_ARM64_RELEASE_COMMIT }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+      - name: Assert exact clean ARM64 host
+        run: >-
+          node scripts/verify-ide-arm64-evidence.mjs --assert-host
+          --release-commit ${{ env.IDE_ARM64_RELEASE_COMMIT }}
+          --expected-platform ${{ matrix.platform }} --expected-arch arm64
+          --repository-root .
+      - name: Download immutable VSIX candidate
+        uses: actions/download-artifact@v7
+        with:
+          name: ide-arm64-vscode-candidate-${{ env.IDE_ARM64_RELEASE_COMMIT }}-${{ github.run_attempt }}
+          path: packages/vscode-extension
+      - name: Verify immutable VSIX candidate
+        working-directory: packages/vscode-extension
+        run: >-
+          node scripts/vsix-release-artifact.mjs verify
+          chainlesschain-ide.vsix manifest.json
+      - name: Install Extension Host test runtime
+        working-directory: packages/vscode-extension
+        run: >-
+          npm install --no-save --no-package-lock
+          @vscode/test-electron@3.1.0 ws@8.21.2
+      - name: Install Linux virtual display
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb
+      - name: Real-DOM multi-root/multi-window journey (stable, Linux)
+        if: runner.os == 'Linux'
+        working-directory: packages/vscode-extension
+        timeout-minutes: 25
+        run: >-
+          xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24"
+          node test/extension-host/run.cjs --vsix chainlesschain-ide.vsix
+          --release-commit ${{ env.IDE_ARM64_RELEASE_COMMIT }}
+          --artifact-dir build/ide-arm64-evidence/vscode-${{ matrix.slug }}-stable
+      - name: Real-DOM multi-root/multi-window journey (stable, Windows/macOS)
+        if: runner.os != 'Linux'
+        working-directory: packages/vscode-extension
+        timeout-minutes: 25
+        run: >-
+          node test/extension-host/run.cjs --vsix chainlesschain-ide.vsix
+          --release-commit ${{ env.IDE_ARM64_RELEASE_COMMIT }}
+          --artifact-dir build/ide-arm64-evidence/vscode-${{ matrix.slug }}-stable
+      - name: Real-DOM multi-root/multi-window journey (minimum 1.85.2, Linux)
+        if: ${{ always() && runner.os == 'Linux' }}
+        working-directory: packages/vscode-extension
+        timeout-minutes: 25
+        run: >-
+          xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24"
+          node test/extension-host/run.cjs --vsix chainlesschain-ide.vsix
+          --vscode-version 1.85.2
+          --release-commit ${{ env.IDE_ARM64_RELEASE_COMMIT }}
+          --artifact-dir build/ide-arm64-evidence/vscode-${{ matrix.slug }}-minimum
+      - name: Real-DOM multi-root/multi-window journey (minimum 1.85.2, Windows/macOS)
+        if: ${{ always() && runner.os != 'Linux' }}
+        working-directory: packages/vscode-extension
+        timeout-minutes: 25
+        run: >-
+          node test/extension-host/run.cjs --vsix chainlesschain-ide.vsix
+          --vscode-version 1.85.2
+          --release-commit ${{ env.IDE_ARM64_RELEASE_COMMIT }}
+          --artifact-dir build/ide-arm64-evidence/vscode-${{ matrix.slug }}-minimum
+      - name: Upload ARM64 VS Code journey evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: ide-arm64-evidence-vscode-${{ matrix.slug }}-${{ env.IDE_ARM64_RELEASE_COMMIT }}-${{ github.run_attempt }}
+          path: packages/vscode-extension/build/ide-arm64-evidence/
+          if-no-files-found: error
+          retention-days: 90
+
+  jetbrains-arm64-host:
+    name: JetBrains ARM64 (${{ matrix.slug }}, ${{ matrix.ide_version }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 130
+    env:
+      CC_IDE_REQUIRED_HOST_ARCH: arm64
+      CC_IDE_REQUIRED_HOST_VERSION: ${{ matrix.ide_version }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04-arm
+            platform: linux
+            slug: linux
+            ide_version: "2024.2"
+          - runner: ubuntu-24.04-arm
+            platform: linux
+            slug: linux
+            ide_version: "2025.2"
+          # JetBrains did not ship native Windows ARM64 distributions for the
+          # 2024.2/2025.2 compatibility releases. Validate those releases on
+          # Linux/macOS ARM64 and use the exact vendor-native unified IDEA
+          # release for the Windows ARM64 cell.
+          - runner: windows-11-arm
+            platform: win32
+            slug: windows
+            ide_version: "2026.2.0.1"
+          - runner: macos-15
+            platform: darwin
+            slug: macos
+            ide_version: "2024.2"
+          - runner: macos-15
+            platform: darwin
+            slug: macos
+            ide_version: "2025.2"
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.IDE_ARM64_RELEASE_COMMIT }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+      - name: Assert exact clean ARM64 host
+        run: >-
+          node scripts/verify-ide-arm64-evidence.mjs --assert-host
+          --release-commit ${{ env.IDE_ARM64_RELEASE_COMMIT }}
+          --expected-platform ${{ matrix.platform }} --expected-arch arm64
+          --repository-root .
+      # The hosted windows-11-arm image can launch the first-logon privacy
+      # experience over GUI tests (actions/runner-images#14069). Apply the
+      # documented OOBE policy before starting the IDE and close only an
+      # already-running privacy host. Killing WWAHost can reveal the Start
+      # menu, so dismiss that shell surface without accepting privacy defaults.
+      - name: Prepare Windows ARM64 runner GUI session
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $policyPath = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\OOBE'
+          New-Item -Path $policyPath -Force | Out-Null
+          New-ItemProperty -Path $policyPath -Name DisablePrivacyExperience `
+            -PropertyType DWord -Value 1 -Force | Out-Null
+          Get-Process -Name WWAHost -ErrorAction SilentlyContinue |
+            Stop-Process -Force
+          Start-Sleep -Seconds 2
+          (New-Object -ComObject WScript.Shell).SendKeys('{ESC}')
+          # The desktop image also leaves its runner console in front of GUI
+          # applications. Preserve that process and minimize only windows whose
+          # title binds them to the exact GitHub HostedComputeAgent executable.
+          Add-Type -TypeDefinition @'
+          using System;
+          using System.Runtime.InteropServices;
+          public static class ChainlessChainCiWindow {
+              [DllImport("user32.dll")]
+              public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);
+          }
+          '@
+          $agentWindows = @(Get-Process -ErrorAction SilentlyContinue |
+            Where-Object {
+              $_.MainWindowHandle -ne 0 -and
+              $_.MainWindowTitle -like '*\GitHub\HostedComputeAgent\hosted-compute-agent*'
+            })
+          foreach ($agentWindow in $agentWindows) {
+            [ChainlessChainCiWindow]::ShowWindowAsync(
+              $agentWindow.MainWindowHandle,
+              6
+            ) | Out-Null
+          }
+          # The same image can launch this exact updater minutes after logon
+          # (actions/runner-images#14264). Keep a bounded watchdog alive only
+          # for this job: terminate that updater command, then minimize only
+          # its WSL-titled terminal instead of disabling WSL or Windows Terminal.
+          $guardSource = @'
+          $ErrorActionPreference = 'Continue'
+          Add-Type -TypeDefinition @"
+          using System;
+          using System.Runtime.InteropServices;
+          public static class ChainlessChainWslUpdateWindow {
+              [DllImport("user32.dll")]
+              public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);
+          }
+          "@
+          $guardLog = Join-Path $env:RUNNER_TEMP 'chainlesschain-windows-gui-guard.log'
+          $deadline = [DateTime]::UtcNow.AddMinutes(30)
+          $suppressTerminalUntil = [DateTime]::MinValue
+          Add-Content -LiteralPath $guardLog -Value "guard-started=$([DateTime]::UtcNow.ToString('o'))"
+          while ([DateTime]::UtcNow -lt $deadline) {
+            $updates = @(Get-CimInstance Win32_Process -Filter "Name = 'wsl.exe'" -ErrorAction SilentlyContinue |
+              Where-Object {
+                $commandLine = [string]$_.CommandLine
+                $commandLine -match '(?i)(^|\s)--update(\s|$)' -and
+                $commandLine -match '(?i)(^|\s)--confirm(\s|$)' -and
+                $commandLine -match '(?i)(^|\s)--prompt-before-exit(\s|$)'
+              })
+            if ($updates.Count -gt 0) {
+              $suppressTerminalUntil = [DateTime]::UtcNow.AddSeconds(5)
+              foreach ($update in $updates) {
+                Add-Content -LiteralPath $guardLog -Value "terminated-wsl-update-pid=$($update.ProcessId)"
+                Invoke-CimMethod -InputObject $update -MethodName Terminate -ErrorAction SilentlyContinue | Out-Null
+              }
+            }
+            if ([DateTime]::UtcNow -lt $suppressTerminalUntil) {
+              Get-Process -Name WindowsTerminal,WindowsTerminalPreview -ErrorAction SilentlyContinue |
+                Where-Object {
+                  $_.MainWindowHandle -ne 0 -and
+                  $_.MainWindowTitle -match '(?i)wsl\.exe'
+                } |
+                ForEach-Object {
+                  [ChainlessChainWslUpdateWindow]::ShowWindowAsync($_.MainWindowHandle, 6) | Out-Null
+                }
+            }
+            Start-Sleep -Milliseconds 250
+          }
+          '@
+          $encodedGuard = [Convert]::ToBase64String(
+            [Text.Encoding]::Unicode.GetBytes($guardSource)
+          )
+          $guardExecutable = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
+          $guard = Start-Process -FilePath $guardExecutable `
+            -ArgumentList @('-NoLogo', '-NoProfile', '-NonInteractive', '-EncodedCommand', $encodedGuard) `
+            -WindowStyle Hidden -PassThru
+          $guard.Refresh()
+          "CC_WINDOWS_GUI_GUARD_PID=$($guard.Id)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "CC_WINDOWS_GUI_GUARD_STARTED=$($guard.StartTime.ToFileTimeUtc())" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+      # Gradle itself first supports Windows AArch64 in 9.2. Keep the existing
+      # project wrapper unchanged for release compatibility and select 9.2.1
+      # only on the native Windows ARM64 validation host.
+      - name: Setup Windows ARM-compatible Gradle
+        if: runner.os == 'Windows'
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: "9.2.1"
+          cache-disabled: true
+      # IntelliJ Platform Gradle Plugin 2.7.2 predates the Windows ARM64
+      # installer classifier. Resolve, checksum, and install the exact official
+      # ARM64 distribution, then provide that local IDE to the real-host task.
+      - name: Install exact JetBrains Windows ARM64 host
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $version = '${{ matrix.ide_version }}'
+          $metadataUrl = "https://data.services.jetbrains.com/products/releases?code=IIU&version=$version&type=release"
+          $releases = @(Invoke-RestMethod -Uri $metadataUrl).IIU |
+            Where-Object { $_.version -eq $version }
+          if ($releases.Count -ne 1) {
+            throw "Expected one exact IntelliJ IDEA $version release, found $($releases.Count)"
+          }
+          $asset = $releases[0].downloads.windowsARM64
+          if (-not $asset.link -or -not $asset.checksumLink) {
+            throw "IntelliJ IDEA $version has no vendor Windows ARM64 distribution"
+          }
+          $installer = Join-Path $env:RUNNER_TEMP "idea-$version-aarch64.exe"
+          curl.exe --fail --location --retry 5 --retry-all-errors --output $installer $asset.link
+          if ($LASTEXITCODE -ne 0) { throw "Windows ARM64 IDE download failed" }
+          $expectedSha = ((Invoke-RestMethod -Uri $asset.checksumLink).Trim() -split '\s+')[0].ToLowerInvariant()
+          $actualSha = (Get-FileHash -Algorithm SHA256 -LiteralPath $installer).Hash.ToLowerInvariant()
+          if ($actualSha -ne $expectedSha) {
+            throw "Windows ARM64 IDE checksum mismatch: expected $expectedSha, got $actualSha"
+          }
+          $installDir = Join-Path $env:RUNNER_TEMP "intellij-$version-arm64"
+          $process = Start-Process -FilePath $installer -ArgumentList @('/S', "/D=$installDir") -Wait -PassThru -WindowStyle Hidden
+          if ($process.ExitCode -ne 0 -or -not (Test-Path -LiteralPath (Join-Path $installDir 'bin\idea64.exe'))) {
+            throw "Windows ARM64 IDE installation failed with exit code $($process.ExitCode)"
+          }
+          $jbrJava = Join-Path $installDir 'jbr\bin\java.exe'
+          if (-not (Test-Path -LiteralPath $jbrJava)) {
+            throw "Windows ARM64 IDE has no bundled JBR executable"
+          }
+          # A newly installed JBR otherwise opens a native Defender prompt over
+          # the IDE. An explicit inbound block suppresses that prompt without
+          # granting public/private network access; loopback remains available.
+          New-NetFirewallRule -DisplayName "ChainlessChain ARM64 IDE test JBR" `
+            -Direction Inbound -Program $jbrJava -Action Block -Profile Any | Out-Null
+          "CC_JETBRAINS_IDE_LOCAL_PATH=$installDir" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Make Gradle wrapper executable
+        if: runner.os != 'Windows'
+        working-directory: packages/jetbrains-plugin
+        run: chmod +x ./gradlew
+      - name: Install Linux virtual display
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb
+      - name: Deterministic chat/control/resume journey (Linux)
+        if: runner.os == 'Linux'
+        run: >-
+          xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24"
+          node packages/jetbrains-plugin/scripts/run-ui-host-journey.mjs
+          --ide-version ${{ matrix.ide_version }}
+          --release-commit ${{ env.IDE_ARM64_RELEASE_COMMIT }}
+          --artifact-dir packages/jetbrains-plugin/build/ide-arm64-evidence/jetbrains-${{ matrix.slug }}-${{ matrix.ide_version }}
+      - name: Deterministic chat/control/resume journey (Windows/macOS)
+        if: runner.os != 'Linux'
+        env:
+          CC_JETBRAINS_GRADLE_EXECUTABLE: ${{ runner.os == 'Windows' && 'gradle' || '' }}
+        run: >-
+          node packages/jetbrains-plugin/scripts/run-ui-host-journey.mjs
+          --ide-version ${{ matrix.ide_version }}
+          --release-commit ${{ env.IDE_ARM64_RELEASE_COMMIT }}
+          --artifact-dir packages/jetbrains-plugin/build/ide-arm64-evidence/jetbrains-${{ matrix.slug }}-${{ matrix.ide_version }}
+      - name: Stop Windows ARM64 GUI watchdog
+        if: ${{ always() && runner.os == 'Windows' }}
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:CC_WINDOWS_GUI_GUARD_PID) {
+            $guard = Get-Process -Id ([int]$env:CC_WINDOWS_GUI_GUARD_PID) -ErrorAction SilentlyContinue
+            if ($guard) {
+              $expectedPath = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
+              $sameStart = $guard.StartTime.ToFileTimeUtc() -eq [long]$env:CC_WINDOWS_GUI_GUARD_STARTED
+              if ($guard.Path -ne $expectedPath -or -not $sameStart) {
+                throw "Refusing to stop an unverified GUI watchdog process"
+              }
+              Stop-Process -Id $guard.Id -Force
+            }
+          }
+          $guardLog = Join-Path $env:RUNNER_TEMP 'chainlesschain-windows-gui-guard.log'
+          if (Test-Path -LiteralPath $guardLog) {
+            Get-Content -LiteralPath $guardLog
+            $evidenceDir = 'packages/jetbrains-plugin/build/ide-arm64-evidence/runner-diagnostics'
+            New-Item -ItemType Directory -Path $evidenceDir -Force | Out-Null
+            Copy-Item -LiteralPath $guardLog -Destination $evidenceDir
+          }
+      - name: Upload ARM64 JetBrains journey evidence
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: ide-arm64-evidence-jetbrains-${{ matrix.slug }}-${{ matrix.ide_version }}-${{ env.IDE_ARM64_RELEASE_COMMIT }}-${{ github.run_attempt }}
+          path: packages/jetbrains-plugin/build/ide-arm64-evidence/
+          if-no-files-found: error
+          retention-days: 90
+
+  aggregate:
+    name: Aggregate 11-cell IDE ARM64 evidence
+    if: always()
+    needs: [vscode-arm64-host, jetbrains-arm64-host]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Refuse an incomplete host matrix
+        if: >-
+          needs.vscode-arm64-host.result != 'success' ||
+          needs.jetbrains-arm64-host.result != 'success'
+        shell: bash
+        run: |
+          echo "::error::At least one required IDE ARM64 host journey failed or did not finish"
+          exit 1
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.IDE_ARM64_RELEASE_COMMIT }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.12.0"
+      - name: Download every ARM64 journey artifact
+        uses: actions/download-artifact@v7
+        with:
+          pattern: ide-arm64-evidence-*-${{ env.IDE_ARM64_RELEASE_COMMIT }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/ide-arm64-evidence
+          merge-multiple: true
+      - name: Verify exact SHA, architecture, matrix, and artifact digests
+        shell: bash
+        run: >-
+          node scripts/verify-ide-arm64-evidence.mjs
+          --evidence-dir "${RUNNER_TEMP}/ide-arm64-evidence"
+          --release-commit "${IDE_ARM64_RELEASE_COMMIT}"
+          --output "${RUNNER_TEMP}/ide-arm64-validation-aggregate.json"
+      - name: Upload immutable aggregate
+        uses: actions/upload-artifact@v6
+        with:
+          name: ide-arm64-validation-aggregate-${{ env.IDE_ARM64_RELEASE_COMMIT }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/ide-arm64-validation-aggregate.json
+          if-no-files-found: error
+          retention-days: 90

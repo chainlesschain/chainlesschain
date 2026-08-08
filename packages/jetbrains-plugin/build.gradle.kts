@@ -22,6 +22,7 @@ group = "com.chainlesschain"
 version = "0.4.81"
 val ideVersion = providers.gradleProperty("ideVersion").orElse("2024.2")
 val hostIdeVersion = providers.gradleProperty("hostIdeVersion").orElse(ideVersion)
+val hostIdeLocalPath = providers.gradleProperty("hostIdeLocalPath")
 
 repositories {
     mavenCentral()
@@ -301,8 +302,12 @@ runCatching {
         // launch that exact artifact in each declared real-host version. Newer
         // IDEs bundle newer Kotlin metadata, so compiling the plugin itself
         // against 2025.2 would no longer prove 2024.2 binary compatibility.
-        type = IntelliJPlatformType.IntellijIdeaCommunity
-        version = hostIdeVersion
+        if (hostIdeLocalPath.isPresent) {
+            localPath.set(file(hostIdeLocalPath.get()))
+        } else {
+            type = IntelliJPlatformType.IntellijIdeaCommunity
+            version = hostIdeVersion
+        }
         task {
             jvmArgumentProviders += org.gradle.process.CommandLineArgumentProvider {
                 listOf(

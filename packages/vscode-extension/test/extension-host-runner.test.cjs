@@ -30,6 +30,8 @@ const {
   parseDevToolsBrowserEndpoint,
   parseElectronInspectorEndpoint,
   recordHostProgress,
+  isTransientNetworkError,
+  retryTransientNetworkOperation,
   resolveHostJourneyTransport,
   resolveVsCodeHostVersion,
   runHostApiPhase,
@@ -78,6 +80,46 @@ const {
 } = require("./extension-host/driver/view-control.cjs");
 
 const temporaryRoots = [];
+
+test("transient VS Code download failures retry without broadening the allowlist", async () => {
+  let attempts = 0;
+  const waits = [];
+  const value = await retryTransientNetworkOperation(
+    async () => {
+      attempts += 1;
+      if (attempts < 3) {
+        throw new AggregateError([
+          Object.assign(new Error("download timed out"), { code: "ETIMEDOUT" }),
+        ]);
+      }
+      return "downloaded";
+    },
+    {
+      label: "test download",
+      wait: async (milliseconds) => waits.push(milliseconds),
+    },
+  );
+
+  assert.equal(value, "downloaded");
+  assert.equal(attempts, 3);
+  assert.deepEqual(waits, [5_000, 10_000]);
+  assert.equal(isTransientNetworkError({ code: "EACCES" }), false);
+});
+
+test("non-network VS Code host failures remain fail-closed", async () => {
+  let attempts = 0;
+  await assert.rejects(
+    retryTransientNetworkOperation(
+      async () => {
+        attempts += 1;
+        throw Object.assign(new Error("permission denied"), { code: "EACCES" });
+      },
+      { label: "test install", wait: async () => {} },
+    ),
+    /permission denied/u,
+  );
+  assert.equal(attempts, 1);
+});
 
 function temporaryRoot() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-vscode-host-runner-"));
@@ -418,6 +460,48 @@ test("host-ready evidence binds the exact ordered multi-root workspace", () => {
     2,
   );
 
+  const previousRequiredArchitecture = process.env.CC_IDE_REQUIRED_HOST_ARCH;
+  try {
+    process.env.CC_IDE_REQUIRED_HOST_ARCH = "arm64";
+    fs.writeFileSync(
+      readyFile,
+      `${JSON.stringify({ ...signal, hostArchitecture: "x64" })}\n`,
+      "utf8",
+    );
+    assert.throws(
+      () =>
+        assertHostReadySignal({
+          readyFile,
+          phase: "initial",
+          extensionsDir,
+          workspaceDir: workspaceFolders[0],
+          workspaceFolders,
+        }),
+      /Extension Host architecture mismatch/u,
+    );
+    fs.writeFileSync(
+      readyFile,
+      `${JSON.stringify({ ...signal, hostArchitecture: "arm64" })}\n`,
+      "utf8",
+    );
+    assert.equal(
+      assertHostReadySignal({
+        readyFile,
+        phase: "initial",
+        extensionsDir,
+        workspaceDir: workspaceFolders[0],
+        workspaceFolders,
+      }).hostArchitecture,
+      "arm64",
+    );
+  } finally {
+    if (previousRequiredArchitecture === undefined) {
+      delete process.env.CC_IDE_REQUIRED_HOST_ARCH;
+    } else {
+      process.env.CC_IDE_REQUIRED_HOST_ARCH = previousRequiredArchitecture;
+    }
+  }
+
   fs.writeFileSync(
     readyFile,
     `${JSON.stringify({
@@ -735,6 +819,7 @@ test("non-Windows multi-window gate orchestrates two bounded real hosts", async 
   fs.writeFileSync(progressPath, "", "utf8");
   const launches = [];
   const stopRequests = [];
+  const hostResolvers = [];
   const { resultFile } = hostPhaseSignalPaths(runtimeDir, "initial");
   const result = await runHostApiPhase({
     runTests: async () => assert.fail("non-Windows hosts must be managed"),
@@ -761,6 +846,22 @@ test("non-Windows multi-window gate orchestrates two bounded real hosts", async 
     platform: "linux",
     launchManagedHost(options) {
       const index = launches.push(options) - 1;
+      let resolveHost;
+      const outcome = new Promise((resolve) => {
+        resolveHost = resolve;
+      });
+      hostResolvers.push(resolveHost);
+      if (launches.length === 1) {
+        writeJsonSignal(
+          options.extensionTestsEnv
+            .CHAINLESSCHAIN_MULTI_WINDOW_PRIMARY_READY_FILE,
+          {
+            phase: "initial",
+            role: "primary",
+            hostArchitecture: process.arch,
+          },
+        );
+      }
       if (launches.length === 2) {
         writeJsonSignal(resultFile, {
           ok: true,
@@ -768,9 +869,10 @@ test("non-Windows multi-window gate orchestrates two bounded real hosts", async 
           mode: "host-api",
           completedAt: "2026-08-07T00:00:00.000Z",
         });
+        for (const resolve of hostResolvers) resolve(0);
       }
       return {
-        outcome: Promise.resolve(0),
+        outcome,
         requestStop() {
           stopRequests.push(index);
         },
@@ -780,15 +882,15 @@ test("non-Windows multi-window gate orchestrates two bounded real hosts", async 
 
   assert.equal(result.ok, true);
   assert.equal(launches.length, 2);
-  assert.equal(launches[0].launchArgs.at(-1), companionWorkspace);
-  assert.ok(launches[0].launchArgs.includes("--new-window"));
+  assert.equal(launches[0].launchArgs.at(-1), workspaceDir);
+  assert.equal(launches[1].launchArgs.at(-1), companionWorkspace);
+  assert.ok(launches[1].launchArgs.includes("--new-window"));
   assert.match(
-    launches[0].launchArgs.find((argument) =>
+    launches[1].launchArgs.find((argument) =>
       argument.startsWith("--user-data-dir="),
     ),
     /user-data-multi-window-companion$/u,
   );
-  assert.equal(launches[1].launchArgs.at(-1), workspaceDir);
   assert.ok(
     launches.every(
       (launch) =>
@@ -803,6 +905,9 @@ test("non-Windows multi-window gate orchestrates two bounded real hosts", async 
     .split("\n")
     .map((line) => JSON.parse(line).stage);
   assert.deepEqual(progressStages, [
+    "multi_window_primary_launch_requested",
+    "multi_window_primary_launch_dispatched",
+    "multi_window_primary_activation_ready_observed",
     "multi_window_companion_launch_requested",
     "multi_window_companion_launch_dispatched",
   ]);

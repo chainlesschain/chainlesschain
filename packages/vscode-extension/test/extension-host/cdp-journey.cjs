@@ -1584,6 +1584,14 @@ function assertHostReadySignal({
   if (!value || value.phase !== phase) {
     throw new Error(`host ready signal phase mismatch: ${phase}`);
   }
+  const requiredArchitecture = String(
+    process.env.CC_IDE_REQUIRED_HOST_ARCH || "",
+  ).trim();
+  if (requiredArchitecture && value.hostArchitecture !== requiredArchitecture) {
+    throw new Error(
+      `VS Code Extension Host architecture mismatch: expected ${requiredArchitecture}, got ${String(value.hostArchitecture || "missing")}`,
+    );
+  }
   let installedPath;
   let isolatedExtensions;
   let signaledWorkspace;

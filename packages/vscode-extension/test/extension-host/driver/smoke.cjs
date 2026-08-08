@@ -15,6 +15,10 @@ const { runDomRelayJourney } = require("./dom-relay-journey.cjs");
 const { runMultiWindowJourney } = require("./multi-window.cjs");
 
 const EXTENSION_ID = "chainlesschain.chainlesschain-ide";
+// Cold ARM64 macOS hosts can spend more than 30 seconds activating the first
+// installed VSIX while the stable Workbench initializes its extension graph.
+// Keep this bounded, but leave enough room for the exact activation to finish.
+const EXTENSION_ACTIVATION_TIMEOUT_MS = 60_000;
 const REQUIRED_COMMANDS = [
   "chainlesschain.ide.showStatus",
   "chainlesschain.cli.installManaged",
@@ -143,7 +147,7 @@ async function runCompanionWindow({
   assert.equal(extension.packageJSON.version, expectedVersion);
   await withTimeout(
     Promise.resolve().then(() => extension.activate()),
-    30_000,
+    EXTENSION_ACTIVATION_TIMEOUT_MS,
     `${EXTENSION_ID} companion activation`,
   );
   await dismissFreshInstallReloadPrompt();
@@ -398,6 +402,7 @@ async function revealChatAndWaitForDomJourney({
   });
   writeSignal(readyFile, {
     phase,
+    hostArchitecture: process.arch,
     extensionPath: fs.realpathSync(extensionPath),
     workspaceDir: fs.realpathSync(workspaceDir),
     workspaceFolders: workspaceFolders.map((workspaceFolder) =>
@@ -430,6 +435,7 @@ async function revealChatForHostApiJourney({
   writeSignal(readyFile, {
     phase,
     mode: "host-api",
+    hostArchitecture: process.arch,
     extensionPath: fs.realpathSync(extensionPath),
     workspaceDir: fs.realpathSync(workspaceDir),
     workspaceFolders: workspaceFolders.map((workspaceFolder) =>
@@ -505,6 +511,8 @@ async function run() {
     process.env.CHAINLESSCHAIN_MULTI_WINDOW_EVIDENCE_FILE;
   const multiWindowProgressFile =
     process.env.CHAINLESSCHAIN_MULTI_WINDOW_PROGRESS_FILE;
+  const multiWindowPrimaryReadyFile =
+    process.env.CHAINLESSCHAIN_MULTI_WINDOW_PRIMARY_READY_FILE;
   const vscodeExecutablePath =
     process.env.CHAINLESSCHAIN_SMOKE_VSCODE_EXECUTABLE;
   const userDataDir = process.env.CHAINLESSCHAIN_SMOKE_USER_DATA_DIR;
@@ -579,7 +587,7 @@ async function run() {
   console.log(`[extension-host-smoke] ${journeyPhase}: activating VSIX`);
   await withTimeout(
     Promise.resolve().then(() => extension.activate()),
-    30_000,
+    EXTENSION_ACTIVATION_TIMEOUT_MS,
     `${EXTENSION_ID} activation`,
   );
   assert.equal(extension.isActive, true, "extension did not become active");
@@ -623,6 +631,27 @@ async function run() {
   }
 
   if (journeyPhase === "initial" && multiWindowRequired) {
+    if (externalCompanionManaged) {
+      assert.ok(
+        multiWindowPrimaryReadyFile,
+        "missing CHAINLESSCHAIN_MULTI_WINDOW_PRIMARY_READY_FILE",
+      );
+      writeSignal(multiWindowPrimaryReadyFile, {
+        phase: journeyPhase,
+        role: "primary",
+        hostArchitecture: process.arch,
+        extensionPath: fs.realpathSync(extension.extensionPath),
+        workspaceFolders: workspaceFolders.map((workspaceFolder) =>
+          fs.realpathSync(workspaceFolder),
+        ),
+        readyAt: new Date().toISOString(),
+      });
+      appendMultiWindowProgress(
+        multiWindowProgressFile,
+        "multi_window_primary_activation_ready",
+        { actor: "primary" },
+      );
+    }
     appendMultiWindowProgress(
       multiWindowProgressFile,
       "multi_window_primary_bridge_verified",
