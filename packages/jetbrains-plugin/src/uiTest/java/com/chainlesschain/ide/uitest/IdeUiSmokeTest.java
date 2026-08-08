@@ -41,6 +41,7 @@ final class IdeUiSmokeTest {
     private static final Duration CONNECT_BUDGET = Duration.ofMinutes(3);
     private static final Duration FRAME_BUDGET = Duration.ofMinutes(5);
     private static final Duration FIND_BUDGET = Duration.ofSeconds(45);
+    private static final Duration OPTIONAL_ONBOARDING_BUDGET = Duration.ofSeconds(2);
     private static final Duration FIRST_POPUP_BUDGET = Duration.ofSeconds(15);
     private static final long NEEDS_INPUT_VISIBILITY_SLA_MILLIS = 2_000L;
     private static final int NEEDS_INPUT_VISIBILITY_SAMPLE_COUNT = 100;
@@ -65,6 +66,7 @@ final class IdeUiSmokeTest {
                     Locators.byXpath("//div[@class='IdeFrameImpl']"), FRAME_BUDGET);
             assertRequiredHostArchitecture(frame);
             assertRequiredHostVersion(frame);
+            dismissVendorOnboarding(robot);
 
             if ("restart".equals(System.getProperty("ui.journey.phase"))) {
                 runSessionsWorkbenchJourney(robot, true);
@@ -183,6 +185,36 @@ final class IdeUiSmokeTest {
             return true;
         } catch (NumberFormatException ignored) {
             return false;
+        }
+    }
+
+    /**
+     * Close vendor-owned first-launch surfaces that can cover the real tool
+     * window stripe on a fresh IDE profile. These controls are optional and
+     * deliberately choose the non-enrolling actions: dismiss the trial notice
+     * and skip the theme tour without accepting a trial or changing settings.
+     */
+    private static void dismissVendorOnboarding(RemoteRobot robot)
+            throws InterruptedException {
+        dismissOptionalTextControl(robot, "Close");
+        dismissOptionalTextControl(robot, "Skip");
+    }
+
+    private static void dismissOptionalTextControl(
+            RemoteRobot robot, String text) throws InterruptedException {
+        try {
+            ComponentFixture control = robot.find(
+                    ComponentFixture.class,
+                    Locators.byXpath("//div[@text='" + text + "']"),
+                    OPTIONAL_ONBOARDING_BUDGET);
+            control.click();
+            Thread.sleep(500);
+            System.out.println("[ui-smoke] dismissed vendor onboarding: " + text);
+        } catch (RuntimeException notFound) {
+            if (!notFound.getClass().getName()
+                    .endsWith("WaitForConditionTimeoutException")) {
+                throw notFound;
+            }
         }
     }
 

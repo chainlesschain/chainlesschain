@@ -360,6 +360,10 @@ test("the ARM64 workflow binds exact hosts, versions, and aggregate evidence", (
     jetbrainsHostDriver,
     /equivalentNumericVersion[\s\S]*?Math\.max\(expectedParts\.length, actualParts\.length\)/u,
   );
+  assert.match(
+    jetbrainsHostDriver,
+    /dismissVendorOnboarding\(robot\)[\s\S]*?dismissOptionalTextControl\(robot, "Close"\)[\s\S]*?dismissOptionalTextControl\(robot, "Skip"\)[\s\S]*?WaitForConditionTimeoutException/u,
+  );
 
   const vscodeHostRunner = fs.readFileSync(
     path.join(
