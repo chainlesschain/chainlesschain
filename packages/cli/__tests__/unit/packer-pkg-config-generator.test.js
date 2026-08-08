@@ -154,13 +154,15 @@ describe("generatePkgConfig", () => {
     expect(entry).toContain("'1'");
   });
 
-  it("pack-entry.js statically imports the real CLI bootstrap (not dynamic)", () => {
+  it("pack-entry.js statically imports the lazy CLI bootstrap without top-level-await index.js", () => {
     const r = callGenerator();
     const entry = fs.readFileSync(r.entryScript, "utf-8");
-    // Must use static imports — pkg's snapshot has no dynamic-import callback.
+    // The eager compatibility index uses top-level await, which pkg's CJS
+    // bootstrap cannot require on Node 22.
     expect(entry).toMatch(/import\s+\{\s*ensureUtf8\s*\}\s+from/);
-    expect(entry).toMatch(/import\s+\{\s*createProgram\s*\}\s+from/);
-    expect(entry).toContain("program.parse(process.argv)");
+    expect(entry).toMatch(/import\s+\{\s*runCli\s*\}\s+from/);
+    expect(entry).toContain("runCli(process.argv).catch(_handleFatal)");
+    expect(entry).not.toContain("src/index.js");
     expect(entry).not.toMatch(/\bimport\(/);
   });
 

@@ -10,7 +10,7 @@
  *   CC_PACK_E2E=1 npx vitest run __tests__/e2e/pack-artifact.test.js
  *
  * The test also skips outside Windows since our default target is
- * node20-win-x64 (cross-target tests live in the integration suite).
+ * node22-win-x64 (cross-target tests live in the integration suite).
  *
  * What we verify:
  *   1. `cc pack` produces an .exe + matching pack-manifest.json
@@ -65,7 +65,7 @@ describeE2E("E2E — cc pack — real artifact + WS handshake", () => {
       // richer probe below, and the builtin smoke clashes on ports).
       execSync(
         `node "${bin}" pack --skip-web-panel-build --allow-dirty ` +
-          `--targets node20-win-x64 --output "${outputPath}" --no-smoke-test`,
+          `--targets node22-win-x64 --output "${outputPath}" --no-smoke-test`,
         {
           cwd: cliRoot,
           encoding: "utf-8",
@@ -104,7 +104,7 @@ describeE2E("E2E — cc pack — real artifact + WS handshake", () => {
     expect(fs.existsSync(manifestPath)).toBe(true);
     const mf = JSON.parse(fs.readFileSync(manifestPath, "utf-8"));
     expect(mf.schema).toBe(1);
-    expect(mf.targets).toEqual(["node20-win-x64"]);
+    expect(mf.targets).toEqual(["node22-win-x64"]);
     expect(mf.sha256).toMatch(/^[0-9a-f]{64}$/);
   });
 
@@ -180,7 +180,6 @@ describeE2E("E2E — cc pack — real artifact + WS handshake", () => {
 
       // Diagnostic output if the assertions ever fail on a new CI host.
       if (httpStatus !== 200 || upgradeStatus !== 101) {
-        // eslint-disable-next-line no-console
         console.error(
           "[pack-e2e] diagnostics:\nstdout:\n" +
             stdout +

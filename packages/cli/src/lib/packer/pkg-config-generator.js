@@ -8,7 +8,7 @@
  *   {
  *     "scripts": ["src/**\/*.js"],
  *     "assets":  ["src/assets/web-panel/**\/*", "templates/**\/*", "prebuilds/**\/*"],
- *     "targets": ["node20-win-x64"],
+ *     "targets": ["node22-win-x64"],
  *     "outputPath": "dist"
  *   }
  *
@@ -160,15 +160,16 @@ export function generatePkgConfig(ctx) {
     ...(projectBaked || {}),
   };
 
-  // Inline the real bin's logic directly. We can't use `import('...')`
-  // because pkg's snapshot bootstrap does not register a dynamic-import
-  // callback (ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING). Static ESM
-  // imports compile fine via yao-pkg's ESM mode.
+  // Inline the real bin's logic directly. Import the phase-0 lazy dispatcher,
+  // not src/index.js: that eager compatibility module uses top-level await and
+  // cannot be loaded by pkg's CommonJS bootstrap on Node 22.
   const entryScript = path.join(pkgConfigDir, "pack-entry.js");
   const ensureUtf8Path = posixify(
     path.join(cliRoot, "src", "lib", "ensure-utf8.js"),
   );
-  const indexPath = posixify(path.join(cliRoot, "src", "index.js"));
+  const lazyDispatchPath = posixify(
+    path.join(cliRoot, "src", "lazy-dispatch.js"),
+  );
   fs.writeFileSync(
     entryScript,
     [
@@ -181,7 +182,7 @@ export function generatePkgConfig(ctx) {
       "import os from 'node:os';",
       "import path from 'node:path';",
       `import { ensureUtf8 } from '${ensureUtf8Path}';`,
-      `import { createProgram } from '${indexPath}';`,
+      `import { runCli } from '${lazyDispatchPath}';`,
       "ensureUtf8();",
       "// Build-time defaults baked by the packer. Each is overridable at",
       "// runtime either via the matching env var or by passing the flag.",
@@ -374,15 +375,15 @@ export function generatePkgConfig(ctx) {
       "// When launched from Explorer, Node exits as soon as the event loop",
       "// drains. If something throws before the UI server starts listening,",
       "// we want the user to see the error — pause on fatal errors.",
-      "process.on('uncaughtException', (err) => {",
+      "function _handleFatal(err) {",
       "  console.error('\\n[cc-pack] Fatal error:', err && err.stack || err);",
       "  if (process.stdin.isTTY) {",
       "    console.error('\\nPress any key to exit...');",
       "    try { process.stdin.setRawMode(true); process.stdin.resume(); process.stdin.once('data', () => process.exit(1)); } catch { process.exit(1); }",
       "  } else { process.exit(1); }",
-      "});",
-      "const program = createProgram();",
-      "program.parse(process.argv);",
+      "}",
+      "process.on('uncaughtException', _handleFatal);",
+      "runCli(process.argv).catch(_handleFatal);",
       "",
     ].join("\n"),
     "utf-8",

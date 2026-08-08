@@ -34,14 +34,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   clipboard round trips, localhost SSH disconnects, oversized MCP output,
   concurrent agents, and two-hour resource accounting. Disk mounts are retired
   from their actual `sessions` targets during cleanup.
+- **Deterministic two-hour workload**: the required 1,000 duplex turns are
+  paced across the complete soak window instead of becoming a platform-speed
+  stress loop with millions of extra turns. The RSS/FD/handle thresholds remain
+  unchanged, and the screen-reader probe waits for the real REPL prompt before
+  injecting multilingual keyboard input.
 - **Native release credentials fail closed**: the six-target native workflow
   refuses to build a release until Linux signing, Windows Authenticode, macOS
   signing/notarization, and updater keys are all configured. This npm release
   does not claim the separate native distribution chain is complete.
-- **Release condition**: publication remains blocked until this exact version
-  commit passes the complete Linux, Windows, and macOS `CLI CI` and `CLI Strict
-Sandbox` matrices; the two-hour reliability matrix is recorded separately as
-  product evidence and cannot be replaced by local smoke tests.
+- **Release status**: exact source commit `a29eb4203d` passed the complete Linux,
+  Windows, and macOS `CLI CI` and `CLI Strict Sandbox` matrices. The dedicated
+  release workflow then ran in dry-run mode, with the exact-SHA, artifact, and
+  publish jobs skipped; neither `v-npm-0-163-1` nor registry version `0.163.1`
+  exists. The two-hour reliability matrix is recorded separately as product
+  evidence and cannot be replaced by local smoke tests.
 
 ### Fixed — cc CLI 0.163.0: macOS PTY launch and native host validation
 

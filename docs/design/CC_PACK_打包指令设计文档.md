@@ -31,6 +31,12 @@
   - `__tests__/unit/packer-smoke-runner.test.js`（8 条）—— HTTP 200 + WS 握手 + `/api/skills` 实断言 + 404 软容忍
   - `__tests__/integration/packer-pipeline.integration.test.js` 扩展到 8 条 + `packer-dry-run.test.js` 3 条
 
+### v0.4（2026-08-08）—— Node 22 原生六目标可执行门
+
+- 默认 target、正式/验证矩阵、installer 与包管理器 manifest 统一为 `node22-<os>-<arch>`，匹配仓库 Node.js `>=22.12.0` 基线。
+- 六目标构建先用 `@yao-pkg/pkg-fetch --force-fetch` 取得并校验发布基座；缓存缺失直接失败，不允许静默退回宿主源码编译。
+- 合成入口不再静态导入带 top-level await 的 `src/index.js`，改由 phase-0 `lazy-dispatch.js` 启动；真实 Windows x64 artifact 已通过版本、status、HTTP 与 WebSocket 握手回归。
+
 ### v0.3（2026-04-24）—— Phase 4a: Linux x64 流水线可用
 
 - **host-aware 默认 target**：`cc pack -t` 默认值从硬编码 `node20-win-x64` 改为 `defaultPkgTarget()`（Windows→win-x64、Linux→linux-x64、macOS x64/arm64 都识别）。代码级的跨平台阻塞点已清零 —— packer 里唯一的平台分支是 `smoke-runner` 的 `taskkill`（已守卫 `process.platform === "win32"`）和 `ensureUtf8()` 的 `chcp 65001`（已守卫），这两条都在 Linux 上自动变成 no-op
@@ -163,7 +169,7 @@ cc pack [options]
 | 参数                     | 默认值                                             | 说明                                    |
 | ------------------------ | -------------------------------------------------- | --------------------------------------- |
 | `-o, --output <path>`    | `./dist/chainlesschain-portable-<ver>-<os>-<arch>` | 输出路径，无扩展名由 pkg 自动加         |
-| `-t, --targets <list>`   | 当前平台（P0：`node20-win-x64`）                   | 逗号分隔多目标                          |
+| `-t, --targets <list>`   | 当前平台（`node22-<os>-<arch>`）                   | 逗号分隔多目标                          |
 | `--ws-port <n>`          | `18800`                                            | 内嵌 WS 默认端口（运行时可被用户改）    |
 | `--ui-port <n>`          | `18810`                                            | 内嵌 Web UI 默认端口                    |
 | `--token <str\|auto>`    | `auto`                                             | 访问令牌；`auto` 首次启动生成并打印     |
@@ -270,9 +276,9 @@ chainlesschain-portable-win-x64.exe
   "gitCommit": "2630582aa",
   "gitDirty": false,
   "buildHost": "win32",
-  "nodeVersion": "v20.17.0",
-  "pkgVersion": "@yao-pkg/pkg@5.x",
-  "targets": ["node20-win-x64"],
+  "nodeVersion": "v22.23.1",
+  "pkgVersion": "@yao-pkg/pkg@6.21.0",
+  "targets": ["node22-win-x64"],
   "ports": { "ws": 18800, "ui": 18810 },
   "includeDb": true,
   "includeModels": false,
@@ -621,7 +627,7 @@ Web UI 连接 WS 时自动根据访问 URL 协议（http/https）选择 ws/wss�
 `packages/cli/src/lib/packer/native-prebuild-collector.js` 做的事：
 
 ```
-输入: targets = ['node20-win-x64']
+输入: targets = ['node22-win-x64']
 步骤:
   1. 读取 node_modules/better-sqlite3/build/Release/*.node
   2. 校验 ABI：
@@ -910,15 +916,16 @@ chainlesschain-portable.exe --diagnose
 
 v0.2 期间抓出并修掉的典型症状，遇到时的定位方式：
 
-| 症状                                                               | 根因                                                                                 | 定位 / 处理                                                                                                                                                     |
-| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 双击 exe 黑窗一闪而过                                              | 合成入口无 subcommand 时 commander 默认只打印 help 就退出                            | Phase 2 已在入口合成 `!_hasSub && !_shortCircuits → argv.push('ui')`；如有复现检查 `pack-entry.js` 是否被回滚到 `import('...')` 版本                            |
-| `ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING`                           | pkg 的 snapshot bootstrap 没给 V8 注册 import callback，`import('...')` 直接崩       | 合成入口**必须**用静态 ESM 导入；unit test `packer-pkg-config-generator.test.js` 里有一条明确断言「entry 不得含 `import(`」                                     |
-| 启动时报 `NODE_MODULE_VERSION 127 ... requires 115` 然后 UI 起不来 | 宿主机 native `.node` 是 Node 22 编译，pkg target node20-win-x64 打进的是 Node 20    | `loadSQLiteDriver` 探针会自动 fallback 到 sql.js（v0.2 已修）；如果看到 `"[DatabaseManager] Using sql.js (WASM fallback)"` 且随后 `Database initialized` 则正常 |
-| sql.js 选中但 `this.db.prepare(...).all is not a function`         | 历史 fallback 路径只切 driver 不做 API 适配，sql.js 的 Statement 是 step/getAsObject | `createSqlJsCompat` 已补齐 better-sqlite3 外形；如果报错没消失，检查 `DatabaseManager.initialize` 里的 wasm 分支是不是被改回裸 `new SQL.Database(...)`          |
-| Auth: disabled 即使 `--token auto`                                 | 合成入口的 `--token` 注入条件被破坏，或者用户手动传了 `--token ""`                   | `packer-pkg-config-generator.test.js` 有三条测试覆盖 `auto` / 空串 / 字面量 三种模式；对照 BAKED 常量                                                           |
-| 事务里的 INSERT 被 "cannot commit - no transaction is active" 打断 | sql.js `export()` 在 BEGIN…COMMIT 之间被调用会隐式结束事务                           | `createSqlJsCompat` 用 `txDepth` 计数禁止 in-txn auto-persist；相关单测 `transaction commits on success` / `transaction rolls back on thrown error`             |
-| pkg 抱怨找不到 `@yao-pkg/pkg`                                      | 根 node_modules 存在但 cliRoot 的 require 找不到                                     | `pkg-runner.locatePkgBinary` 已改用 `createRequire` 按 node 解析算法定位，monorepo hoist 透明处理                                                               |
+| 症状                                                               | 根因                                                                                 | 定位 / 处理                                                                                                                                                                            |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 双击 exe 黑窗一闪而过                                              | 合成入口无 subcommand 时 commander 默认只打印 help 就退出                            | Phase 2 已在入口合成 `!_hasSub && !_shortCircuits → argv.push('ui')`；如有复现检查 `pack-entry.js` 是否被回滚到 `import('...')` 版本                                                   |
+| `ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING`                           | pkg 的 snapshot bootstrap 没给 V8 注册 import callback，`import('...')` 直接崩       | 合成入口**必须**用静态 ESM 导入；unit test `packer-pkg-config-generator.test.js` 里有一条明确断言「entry 不得含 `import(`」                                                            |
+| `ERR_REQUIRE_ASYNC_MODULE` 指向 `src/index.js`                     | pkg 的 CommonJS bootstrap 不能 `require()` 含 top-level await 的 eager 入口          | 合成入口必须静态导入 phase-0 `lazy-dispatch.js`，并以 `runCli(process.argv)` 启动；真实 artifact 的 `status --json` 与 UI/WS 旅程负责阻断回归                                          |
+| 启动时报 `NODE_MODULE_VERSION ...` 然后 UI 起不来                  | 宿主机 native `.node` 与 pkg target 的 Node ABI 不一致                               | 正式 target 已统一为 Node 22；`loadSQLiteDriver` 探针仍会自动 fallback 到 sql.js。如果看到 `"[DatabaseManager] Using sql.js (WASM fallback)"` 且随后 `Database initialized` 则功能可用 |
+| sql.js 选中但 `this.db.prepare(...).all is not a function`         | 历史 fallback 路径只切 driver 不做 API 适配，sql.js 的 Statement 是 step/getAsObject | `createSqlJsCompat` 已补齐 better-sqlite3 外形；如果报错没消失，检查 `DatabaseManager.initialize` 里的 wasm 分支是不是被改回裸 `new SQL.Database(...)`                                 |
+| Auth: disabled 即使 `--token auto`                                 | 合成入口的 `--token` 注入条件被破坏，或者用户手动传了 `--token ""`                   | `packer-pkg-config-generator.test.js` 有三条测试覆盖 `auto` / 空串 / 字面量 三种模式；对照 BAKED 常量                                                                                  |
+| 事务里的 INSERT 被 "cannot commit - no transaction is active" 打断 | sql.js `export()` 在 BEGIN…COMMIT 之间被调用会隐式结束事务                           | `createSqlJsCompat` 用 `txDepth` 计数禁止 in-txn auto-persist；相关单测 `transaction commits on success` / `transaction rolls back on thrown error`                                    |
+| pkg 抱怨找不到 `@yao-pkg/pkg`                                      | 根 node_modules 存在但 cliRoot 的 require 找不到                                     | `pkg-runner.locatePkgBinary` 已改用 `createRequire` 按 node 解析算法定位，monorepo hoist 透明处理                                                                                      |
 
 ---
 
@@ -987,17 +994,17 @@ v0.2 期间抓出并修掉的典型症状，遇到时的定位方式：
     "releaseNotes": "https://releases.chainlesschain.com/v5.0.3.0/notes.md",
     "artifacts": [
       {
-        "target": "node20-win-x64",
+        "target": "node22-win-x64",
         "url": "https://.../chainlesschain-portable-win-x64.exe",
         "sha256": "..."
       },
       {
-        "target": "node20-linux-x64",
+        "target": "node22-linux-x64",
         "url": "https://.../chainlesschain-portable-linux-x64.exe",
         "sha256": "..."
       },
       {
-        "target": "node20-macos-arm64",
+        "target": "node22-macos-arm64",
         "url": "https://.../chainlesschain-portable-macos-arm64",
         "sha256": "..."
       }

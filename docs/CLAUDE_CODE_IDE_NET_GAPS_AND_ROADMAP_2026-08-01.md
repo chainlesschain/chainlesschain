@@ -767,6 +767,59 @@ CLI npm 或两家 IDE 渠道成功均不得外推为这些范围已经交付。
   Remote/SSH/WSL/devcontainer、网络抖动、fresh-profile 安装/升级/回滚、ARM64、8 小时 soak 或完整
   冷进程恢复，也不授权 Microsoft Marketplace 发布。
 
+### 2026-08-08 CLI 冷恢复、Session authority、原生验证与可靠性门增量
+
+- 上一节保留了当时“完整冷进程恢复未关闭”的判断；较新的 exact-SHA 证据已经关闭该子项。实现提交
+  `f99f18e4cb3832b8848534186ba32756e98c66c9` 的 CLI Session Scale
+  [31085110318](https://github.com/chainlesschain/chainlesschain/actions/runs/31085110318) 在 Ubuntu、macOS、
+  Windows 三格全部成功。每格都验证 20 writers × 1,000 append、10,000 sessions、1 GiB 完整 hash-chain
+  transcript、15 个完整 CLI 冷进程样本、8 次真实强杀和 344 个 exhaustive byte cuts；cold-process P95
+  分别为 `222.56ms`、`219.04ms`、`286.66ms`，峰值 RSS 均低于 `76MiB`。因此
+  **P0-5/P1-6 的冷进程规模与 `<2s` / `<100MiB` SLO 子项已关闭**；这不关闭任意断电/fsync、远端宿主、
+  同时回滚 transcript 与外部 anchor 或长期 IDE soak。
+- Session Host Consistency 也已由公开 release SHA
+  `dbb06e16fef0600e41d25d383c5595c7945f60ff` 的三平台 run
+  [31191709454](https://github.com/chainlesschain/chainlesschain/actions/runs/31191709454) 正式关闭，并由不可变
+  `v-npm-0-162-200` 保留。随后 `chainlesschain@0.163.0` 从 exact SHA
+  `aed0a3ae5327917ce0490a5decbddd777f66f33b` 完成 CLI CI、CLI Strict Sandbox、不可变 tarball/SBOM、
+  npm Trusted Publishing、SLSA provenance 和公网回读。上述证据只更新 CLI Session/npm 子范围，不外推到
+  Microsoft Marketplace、Desktop/native 或远程 IDE。
+- `0.163.1` 候选 SHA `f56a27b9376e3c15f30322c3d60c8e3a93bd6405` 的 CLI Strict Sandbox
+  [31217225572](https://github.com/chainlesschain/chainlesschain/actions/runs/31217225572)、Session Host
+  [31217225397](https://github.com/chainlesschain/chainlesschain/actions/runs/31217225397) 与 IDE Roadmap Safety
+  Matrix [31217225550](https://github.com/chainlesschain/chainlesschain/actions/runs/31217225550) 成功，但 CLI CI
+  [31217225565](https://github.com/chainlesschain/chainlesschain/actions/runs/31217225565) 在 macOS unit 3/4
+  真实暴露 `session-tail` 删除/恢复竞态。后续 SHA `a29eb4203d333756fc258b493b0c43af4fc36759`
+  已在外层 `stat/open` 竞态后重新读取 durable witness；其 CLI Strict Sandbox
+  [31219890201](https://github.com/chainlesschain/chainlesschain/actions/runs/31219890201) 与 Session Host
+  [31219691603](https://github.com/chainlesschain/chainlesschain/actions/runs/31219691603) 与 CLI CI
+  [31219886076](https://github.com/chainlesschain/chainlesschain/actions/runs/31219886076) 已成功。两小时 CLI
+  Reliability Soak [31219797408](https://github.com/chainlesschain/chainlesschain/actions/runs/31219797408)
+  随后在三平台全部失败：screen-reader probe 在 REPL prompt 就绪前注入输入后超时；duplex loop 又因
+  `turns < 1000 || elapsed < 2h` 在达到 1,000 次后继续无界执行，实际产生 122 万～443 万 turn，并使 RSS
+  增长 140～206MiB，超过 128MiB 门槛。该失败不能解释为基础设施绿灯或被旧门拼接覆盖。
+- 当前增量继续对 witness presence 读取自身的瞬态 `ENOENT` 做三次有界重试；持续歧义仍 fail closed 为稳定的
+  `SESSION_TRANSCRIPT_UNVERIFIED`。`9ef2b8390e` 又将正式 1,000 turn 确定性均匀铺到完整两小时，并等待真实
+  REPL prompt 后再注入多语 screen-reader 输入，RSS/FD/handle 阈值保持不变；Windows 本地真实 TTY +
+  duplex smoke 通过，但 dirty-tree smoke 不是发布证据。最终 exact SHA 必须重新取得完整 CLI CI/Strict 门，
+  reliability formal 也必须在该 SHA 从头运行；失败 SHA、旧 SHA 局部门与未结算 run 不得拼接为 release GO。
+- 新增只读 `CLI Native Validation` workflow，解决正式 native release 在宿主证据形成前即阻断全部 build 的
+  循环依赖。该门只允许手工指定 exact SHA，在 Linux/Windows/macOS 的 x64 + ARM64 六个匹配真实 runner 上
+  构建并执行 standalone binary 的 `--version` 与 `status --json`，逐文件运行 installer/updater transaction
+  回归，并聚合 content-free `chainlesschain.cli-native-validation.v1` 证据。它不申请 `contents: write` /
+  `id-token: write`，所有记录固定 `signed=false`、`releaseEligible=false`，不能发布或替代签名门。
+- 首次真实 Windows x64 诊断同时发现旧 `node20-*` 目标在锁定的 `@yao-pkg/pkg-fetch@3.6.4`
+  [v3.6 cache](https://github.com/yao-pkg/pkg-fetch/releases/tag/v3.6) 中没有六平台基座，以及生成入口静态导入
+  top-level-await `src/index.js` 后不能由 pkg 的 CommonJS bootstrap 启动。正式/验证矩阵、installer、包管理器
+  manifest 和 host-aware 默认值现统一为 `node22-*`；构建前 `--force-fetch` 使缺失基座直接失败，不再退回
+  不可控的源码编译；生成入口改用无 top-level await 的 phase-0 lazy dispatcher。本地 dirty-tree 诊断已真实生成
+  Windows x64 exe，并成功执行 `0.163.1` 版本与 `chainlesschain.status.v1` 状态回读；该结果只是实现调试，不是
+  exact-SHA release evidence。尚无 GitHub 六格 artifact，因此 **ARM64/六目标真实执行仍未关闭**。
+- 2026-08-08 的仓库 secret/variable 名称只读回读仍没有 `VSCE_PAT`、native updater key、Windows
+  Authenticode 或 macOS signing/notarization 凭据；代码不能伪造这些外部授权。Microsoft Marketplace、六目标
+  签名发行、fresh install/upgrade/rollback 公网回读、Remote/SSH/WSL/devcontainer、网络抖动、8 小时 IDE
+  soak 与其余 R4/R5 旅程继续 **NO-GO**。
+
 ### 2026-08-02 恢复安全检查点
 
 - `5c828517df` 是首批 MCP ledger admission，不再单独作为“所有入口已经阻断”的完成证据。

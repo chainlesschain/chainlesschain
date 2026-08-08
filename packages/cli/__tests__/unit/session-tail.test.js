@@ -53,6 +53,33 @@ describe("session-tail", () => {
     expect(events[0].type).toBe("ok");
   });
 
+  it("retries transient ENOENT presence races and fails closed if they persist", async () => {
+    const { readLiveTranscriptPresence } =
+      await import("../../src/lib/session-tail.js");
+    let attempts = 0;
+    const transientPresence = readLiveTranscriptPresence("tail-race", () => {
+      attempts += 1;
+      if (attempts < 3) {
+        const error = new Error("transient rename");
+        error.code = "ENOENT";
+        throw error;
+      }
+      return "conflict";
+    });
+    expect(transientPresence).toBe("conflict");
+    expect(attempts).toBe(3);
+
+    expect(() =>
+      readLiveTranscriptPresence("tail-race", () => {
+        const error = new Error("persistent rename ambiguity");
+        error.code = "ENOENT";
+        throw error;
+      }),
+    ).toThrowError(
+      expect.objectContaining({ code: "SESSION_TRANSCRIPT_UNVERIFIED" }),
+    );
+  });
+
   it("followSession with fromStart+once drains existing events and stops", async () => {
     const { appendEvent } =
       await import("../../src/harness/jsonl-session-store.js");

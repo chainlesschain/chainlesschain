@@ -1,6 +1,6 @@
-# CLI Runtime 当前实现（0.162.198）
+# CLI Runtime 当前实现（0.163.0）
 
-> 更新时间：2026-08-07。npm `latest` 与生产推荐基线当前均为 `0.162.198`。当前源码包元数据仍为 `0.162.198`，但 HEAD 已含发布后的可靠性加固；稳定能力以 `v-npm-0-162-198` 的精确 SHA 为准。该 SHA 的 CLI CI、CLI Strict Sandbox、专用发布、不可变制品、SBOM 与 provenance 已完成核验；后续版本仍不能只凭 registry 或 package.json 版本号判断发布权威。
+> 更新时间：2026-08-08。npm `latest` 与生产推荐基线当前均为 `0.163.0`。当前源码包元数据为 `0.163.1`，HEAD 为 [`a29eb4203d`](https://github.com/chainlesschain/chainlesschain/commit/a29eb4203d333756fc258b493b0c43af4fc36759)，但仍是发布后候选；稳定能力以 `v-npm-0-163-0` 的精确 SHA 为准。该 SHA 的 CLI CI、CLI Strict Sandbox、专用发布、不可变制品、SBOM、provenance 与 registry 回读已完成核验；后续版本仍不能只凭 registry 或 package.json 版本号判断发布权威。
 
 ## 概述
 
@@ -8,19 +8,19 @@
 
 ## 安装版本怎么选
 
-| 用途                | 版本        | 说明                                                                                                                        |
-| ------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------- |
-| 生产 / 日常稳定使用 | `0.162.198` | `v-npm-0-162-198` 的同一 exact SHA 已完成 Linux、Windows、macOS CLI CI、Strict Sandbox、不可变制品、SBOM、provenance 与发布 |
-| npm `latest`        | `0.162.198` | registry、tag、attestation、tarball bytes 与授权 workflow 已交叉回读                                                        |
-| 源码开发 / 调试     | `0.162.198` | 包元数据与公开版相同，但 HEAD 含发布后加固；运行时能力仍以发布 SHA 为稳定契约                                               |
+| 用途                | 版本      | 说明                                                                                                                      |
+| ------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------- |
+| 生产 / 日常稳定使用 | `0.163.0` | `v-npm-0-163-0` 的同一 exact SHA 已完成 Linux、Windows、macOS CLI CI、Strict Sandbox、不可变制品、SBOM、provenance 与发布 |
+| npm `latest`        | `0.163.0` | registry、tag、attestation、tarball bytes 与授权 workflow 已交叉回读                                                      |
+| 源码开发 / 调试     | `0.163.1` | 当前是候选源码；运行时能力仍以 `0.163.0` 发布 SHA 为稳定契约                                                              |
 
 生产安装建议显式固定：
 
 ```bash
-npm i -g chainlesschain@0.162.198
+npm i -g chainlesschain@0.163.0
 ```
 
-已安装 `0.162.198` 的用户就是当前生产推荐版。`0.162.197` 是上一完整门禁基线；`0.162.193` 是已被正式版本取代的历史非权威记录，失败的 `0.162.194`、`0.162.195`、`0.162.196` tag 保持不可变，不移动或复用。
+已安装 `0.163.0` 的用户就是当前生产推荐版。`0.162.200` 是上一完整门禁基线，并承接了上传前失败的 `0.162.199` 候选；失败 tag 保持不可变，不移动或复用。`0.162.193` 继续作为历史非权威记录保留。
 
 ## 核心特性
 
@@ -33,8 +33,9 @@ npm i -g chainlesschain@0.162.198
 - MCP `ws/wss`、可信动态 header、timeout notification 与不确定结果恢复：REPL、stream、Cowork/host、WebSocket 使用共享 recovery authority，结果不明确时要求核验或裁决，不盲目 replay。
 - Canonical session 与持久预算：REPL、stream、WebSocket、headless 使用可验证 transcript projection 与事务化 summary/compaction；后台/Team adapter 使用 fenced token、USD 与 wall-clock 预算。
 - Agent 工作流：plan/todo revision 与 authority ceiling、受控 Skill 子 Agent、后台 launch profile、semantic handoff、`/btw` 临时旁路、manifest-driven help 与 shell completion 已进入当前源码。
-- `0.162.198` 交互可靠性：REPL、headless streaming、provider pacing 与 TTY writer 在输出饱和时等待 drain，并在完成、中断和会话切换时清理监听器；canonical session action/reply route 支持公开 IDE Workbench 与 rewind journey。
-- 发布后源码加固：session host lease 与 anti-rollback witness、持久化失败分类和有界 cleanup、未受信 MCP 副作用审批、MCP 可执行身份 trust generation 与 npm 依赖闭包固定、POSIX/Windows installer/OTA 代际恢复和跨平台 reliability soak 已进入 HEAD，但尚未由新版本的 exact-SHA 发布门授权。
+- `0.162.200` 会话与 MCP 权威：session host lease、anti-rollback witness、持久化失败分类与有界 cleanup 已公开；npm-backed MCP 固定精确版本和完整传递依赖闭包，物化为内容寻址的受守护 capsule；POSIX/Windows installer/OTA generation recovery 已进入稳定版。
+- `0.163.0` 安装与原生宿主：macOS postinstall 窄范围修复并验证 `node-pty` helper 执行位且拒绝 symlink；Linux、Windows、macOS x64/ARM64 六个目标改由匹配架构 runner 执行验证；命令生命周期进入第二个观察周期，25 个兼容 alias 继续保留。
+- 源码 `0.163.1` 候选：live session tail 在 transcript 路径检查与异步 `stat` / `open` 之间遇到删除或恢复时，改由 durable session witness 重新分类并失败闭合，不再泄漏平台相关的原始 `ENOENT`；长会话摘要和 compacted tool record 改为有界折叠；Windows 严格沙箱在挂起创建到恢复前持有并复核 MCP runtime/entry identity；矩阵新增 EROFS/ENOSPC、原生 TTY、多语言键盘、Unicode 剪贴板、SSH 断线、超大 MCP 输出、并发 Agent 与两小时资源核算。原生签名/notarization/updater 凭据缺失时也会启动前失败闭合。`a29eb4203d` 的 CLI CI 与 Strict Sandbox 已成功，但发布 workflow 只运行 dry-run；没有 `v-npm-0-163-1`、正式制品或 registry `0.163.1`，这些能力仍不属于生产安装契约。
 - 跨平台 sandbox 与 credential agent：前台、后台、hook、MCP、monitor、LSP、PTY 和插件 bin 都通过统一 broker 执行。
 - 强执行路径补齐：插件异步/后台进程、通用后台任务、CLI PTY 与桌面项目 PTY 共用失败闭合边界；未经证明的项目根和远端 metadata 不能获得本机 PTY 权限。
 - 技能执行边界：production `skill run` 不在 CLI 主进程导入生成的 `handler.js`，也不向 Skill 注入 MCP client、Process Broker 或 `child_process`；隔离 Skill 只获得与父级 ceiling 相交后的 `read_file`、`search_files`、`list_dir`。历史 `shell-exec` metadata 与 legacy handler 不产生当前运行权限。
@@ -109,7 +110,7 @@ cc
 
 ## 在 IDE 中查看质量、插件、Worktree 与 Agent Teams
 
-Open VSX 当前公开 VS Code `0.37.44`，JetBrains Marketplace 当前公开 `0.4.81`；IDE 源码与公开版本一致。生产建议搭配 CLI `0.162.198`：
+Open VSX 当前公开 VS Code `0.37.45`，JetBrains Marketplace 当前公开 `0.4.81`；IDE 源码与公开版本一致。生产建议搭配 CLI `0.163.0`：
 
 - 质量上下文只发送有界的测试结果、覆盖率与调试器快照，并标注新鲜度；VS Code Notebook 使用当前 notebook 的真实执行上下文。
 - Installation Doctor 会同时检查 Node/Java、managed CLI 与插件 registry 离线恢复状态，不从工作区目录探测可执行文件。
@@ -118,7 +119,7 @@ Open VSX 当前公开 VS Code `0.37.44`，JetBrains Marketplace 当前公开 `0.
 - Team Monitor 只读观察本地 v6 或 queue v1 原始状态；takeover、managed checkpoint recovery 与 side-effect adjudication 通过解析出的 CLI 执行，并绑定精确 authority digest、lease 和 evidence fence。IDE 不直接改写权威 JSON。
 - 用量视图显示真实工具耗时、观测重试与实际 provider/model 的脱敏 retry 原因。
 - Sessions Workbench 只消费 CLI-owned session projection，并按 exact revision 决定 resume、attach、delivery 与 remote-control 动作；可恢复 delivery 覆盖 GitHub、Gitee、configured remote 与 manual handoff，rewind/branch timeline 绑定 session、workspace、repository head、checkpoint revision 与 manifest digest。
-- VS Code `0.37.44` / JetBrains `0.4.81` 公开版把 local/background/remote/team/workflow 五类 canonical session 走完 Dispatch → `needs_input` → Reply → done、artifact/PR 回读与独立 IDE 进程重启恢复；VS Code 继续提供编辑器内联聊天、选区上下文、流式回复和代码块复制/插入/替换。两个发布标签均已完成三平台真实宿主、发布与 registry 回读。
+- VS Code `0.37.45` / JetBrains `0.4.81` 公开版把 local/background/remote/team/workflow 五类 canonical session 走完 Dispatch → `needs_input` → Reply → done、artifact/PR 回读与独立 IDE 进程重启恢复。VS Code 继续提供编辑器内联聊天、选区上下文、流式回复和代码块复制/插入/替换，并新增 stable/minimum × 三平台的多窗口真实宿主隔离门；两个窗口的 Extension Host PID、bridge port 与 token 必须不同且同时可连接。
 
 ## 托管回滚与 Agent Team 边界
 
@@ -192,15 +193,15 @@ cc checkpoint recovery list --json
 
 ## 故障排查
 
-| 症状                                             | 排查与处理                                                                                                        |
-| ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------- |
-| `cc` 命令或帮助与源码不一致                      | 比较 `cc --version` 与 `packages/cli/package.json`；源码运行使用 `node packages/cli/bin/chainlesschain.js --help` |
-| 后台 `attach` 只能跟随日志                       | 检查 session 状态与本地控制通道；worker 已退出或通道不可用时降级为日志跟随是预期行为                              |
-| strict sandbox 启动即拒绝                        | 运行 `cc doctor`，检查 Docker/bubblewrap/AppContainer 与平台证明；不要通过降低策略掩盖生产配置错误                |
-| checkpoint 显示 `partial` / `none`               | 检查 writer 是否由 Broker 管理、是否位于声明 workspace，以及是否存在外部副作用                                    |
-| Team task 停在 adjudication                      | 重新读取 status、authority digest、attempt 和 evidence，再显式 retry、accept 或 cancel                            |
-| `CC_SKILL_DIRECT_HANDLER_BLOCKED`                | 当前 production 不执行 direct handler；改用受支持的隔离 Skill 工具，不要修改 handler 绕过检查                    |
-| 会话或预算状态异常                               | 在同一 `CHAINLESSCHAIN_HOME` 下检查 session JSONL、状态日志和目录权限，避免混用多个运行目录                       |
+| 症状                               | 排查与处理                                                                                                        |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `cc` 命令或帮助与源码不一致        | 比较 `cc --version` 与 `packages/cli/package.json`；源码运行使用 `node packages/cli/bin/chainlesschain.js --help` |
+| 后台 `attach` 只能跟随日志         | 检查 session 状态与本地控制通道；worker 已退出或通道不可用时降级为日志跟随是预期行为                              |
+| strict sandbox 启动即拒绝          | 运行 `cc doctor`，检查 Docker/bubblewrap/AppContainer 与平台证明；不要通过降低策略掩盖生产配置错误                |
+| checkpoint 显示 `partial` / `none` | 检查 writer 是否由 Broker 管理、是否位于声明 workspace，以及是否存在外部副作用                                    |
+| Team task 停在 adjudication        | 重新读取 status、authority digest、attempt 和 evidence，再显式 retry、accept 或 cancel                            |
+| `CC_SKILL_DIRECT_HANDLER_BLOCKED`  | 当前 production 不执行 direct handler；改用受支持的隔离 Skill 工具，不要修改 handler 绕过检查                     |
+| 会话或预算状态异常                 | 在同一 `CHAINLESSCHAIN_HOME` 下检查 session JSONL、状态日志和目录权限，避免混用多个运行目录                       |
 
 ## 测试覆盖
 
@@ -213,7 +214,7 @@ npm run test:integration
 npm run test:e2e
 ```
 
-`0.162.198` 的权威发布提交为 [`3c0f62fa17242cfa3123ab502a9bf5d1cbed8481`](https://github.com/chainlesschain/chainlesschain/commit/3c0f62fa17242cfa3123ab502a9bf5d1cbed8481)。同一 `head_sha` 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/31078499968)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/31078499270) 与 [npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/31081337370) 均成功；发布后的 [registry/provenance 回读](https://github.com/chainlesschain/chainlesschain/actions/runs/31082366544) 进一步核对 artifact bytes、签名 provenance 与授权 workflow identity。Linux、Windows、macOS 的权威矩阵必须绑定精确提交；本地结果只能补充，不能替代发布门。
+`0.163.0` 的权威发布提交为 [`aed0a3ae5327917ce0490a5decbddd777f66f33b`](https://github.com/chainlesschain/chainlesschain/commit/aed0a3ae5327917ce0490a5decbddd777f66f33b)。同一 `head_sha` 的 [CLI CI](https://github.com/chainlesschain/chainlesschain/actions/runs/31205224902)、[CLI Strict Sandbox](https://github.com/chainlesschain/chainlesschain/actions/runs/31205231874) 与 [npm 发布](https://github.com/chainlesschain/chainlesschain/actions/runs/31209345410) 均成功；正式 workflow 进一步核对 immutable tarball、CycloneDX SBOM、Trusted Publishing、SLSA provenance、registry bytes、授权 workflow identity 与 npmmirror 同步。Linux、Windows、macOS 的权威矩阵必须绑定精确提交；本地结果只能补充，不能替代发布门。
 
 ## 相关文档
 

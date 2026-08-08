@@ -28,7 +28,7 @@ import { VERSION } from "../constants.js";
 
 /**
  * Default pkg target string for the host platform+arch. Falls back to
- * `node20-win-x64` for unknown combos so users on uncommon hosts still get
+ * `node22-win-x64` for unknown combos so users on uncommon hosts still get
  * a sensible string to edit with `--targets`.
  */
 export function defaultPkgTarget() {
@@ -42,8 +42,8 @@ export function defaultPkgTarget() {
           : null;
   const archSlug =
     process.arch === "x64" ? "x64" : process.arch === "arm64" ? "arm64" : null;
-  if (!osSlug || !archSlug) return "node20-win-x64";
-  return `node20-${osSlug}-${archSlug}`;
+  if (!osSlug || !archSlug) return "node22-win-x64";
+  return `node22-${osSlug}-${archSlug}`;
 }
 
 export function registerPackCommand(program) {
@@ -201,7 +201,7 @@ export function registerPackCommand(program) {
     )
     .option(
       "--target <slug>",
-      "pkg target to match against manifest.latest.artifacts (e.g. node20-win-x64); defaults to current host",
+      "pkg target to match against manifest.latest.artifacts (e.g. node22-win-x64); defaults to current host",
     )
     .option(
       "--current <version>",

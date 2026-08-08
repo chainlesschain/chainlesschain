@@ -168,6 +168,10 @@ describe("CLI release workflow contracts", () => {
     expect(readback).toContain("pull_request:");
     expect(readback).toContain("actions: read");
     expect(readback).toContain(
+      'if [ "${{ github.event_name }}" = "pull_request" ]',
+    );
+    expect(readback).toContain("npm view chainlesschain version");
+    expect(readback).toContain(
       "npm audit signatures --include-attestations --json",
     );
     expect(readback).toContain("verify-npm-release-provenance.mjs");
@@ -350,12 +354,12 @@ describe("CLI release workflow contracts", () => {
   it("requires all six signed native targets before publishing", () => {
     const text = workflow("cli-native-release.yml");
     for (const target of [
-      "node20-linux-x64",
-      "node20-linux-arm64",
-      "node20-win-x64",
-      "node20-win-arm64",
-      "node20-macos-x64",
-      "node20-macos-arm64",
+      "node22-linux-x64",
+      "node22-linux-arm64",
+      "node22-win-x64",
+      "node22-win-arm64",
+      "node22-macos-x64",
+      "node22-macos-arm64",
     ]) {
       expect(text).toContain(target);
     }
@@ -370,7 +374,12 @@ describe("CLI release workflow contracts", () => {
       expect(text).toContain(`os: ${runner}`);
     }
     expect(text).toContain("Verify real native target host");
+    expect(text).toContain("Require a published pkg base binary");
+    expect(text).toContain("--node-range node22");
+    expect(text).toContain("--force-fetch");
+    expect(text).not.toContain("node20-");
     expect(text).toContain("Smoke-test executable on its matching real host");
+    expect(text).toContain('["status", "--json"]');
     expect(text).not.toContain("host smoke test skipped");
     expect(text).toContain("verify-release-gates.mjs");
     expect(text).toContain("signtool.exe");
@@ -455,5 +464,50 @@ describe("CLI release workflow contracts", () => {
     ).toBeLessThan(
       stable.lastIndexOf("native-assets/chainlesschain-update.json"),
     );
+  });
+
+  it("collects six-target native host evidence without granting release authority", () => {
+    const text = workflow("cli-native-validation.yml");
+    for (const target of [
+      "node22-linux-x64",
+      "node22-linux-arm64",
+      "node22-win-x64",
+      "node22-win-arm64",
+      "node22-macos-x64",
+      "node22-macos-arm64",
+    ]) {
+      expect(text).toContain(target);
+    }
+    for (const runner of [
+      "ubuntu-latest",
+      "ubuntu-24.04-arm",
+      "windows-latest",
+      "windows-11-arm",
+      "macos-15-intel",
+      "macos-15",
+    ]) {
+      expect(text).toContain(`os: ${runner}`);
+    }
+    expect(text).toContain("workflow_dispatch:");
+    expect(text).not.toMatch(/push:\s*\n\s*tags:/u);
+    expect(text).toContain("Verify exact source and matching native host");
+    expect(text).toContain("Require a published pkg base binary");
+    expect(text).toContain("--node-range node22");
+    expect(text).toContain("--force-fetch");
+    expect(text).not.toContain("node20-");
+    expect(text).toContain(
+      "Execute binary version and status on the matching host",
+    );
+    expect(text).toContain('["status", "--json"]');
+    expect(text).toContain("native-installers-transaction.test.js");
+    expect(text).toContain("packer-pack-update-applier.test.js");
+    expect(text).toContain("chainlesschain.cli-native-validation.v1");
+    expect(text).toContain("Aggregate six-target native validation evidence");
+    expect(text).toContain("releaseEligible: false");
+    expect(text).toContain("signed: false");
+    expect(text).not.toContain("CLI_NATIVE_RELEASE_IMPLEMENTATION_STATUS");
+    expect(text).not.toContain("gh release");
+    expect(text).not.toContain("contents: write");
+    expect(text).not.toContain("id-token: write");
   });
 });

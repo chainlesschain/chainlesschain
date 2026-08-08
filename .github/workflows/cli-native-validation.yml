@@ -1,0 +1,301 @@
+name: CLI Native Validation
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: "Exact full commit SHA to validate (blank uses selected ref)"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cli-native-validation-${{ inputs.commit_sha || github.sha }}
+  cancel-in-progress: false
+
+env:
+  CLI_NATIVE_VALIDATION_SHA: ${{ inputs.commit_sha || github.sha }}
+
+jobs:
+  build-and-test:
+    name: "unsigned native validation (${{ matrix.target }})"
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: node22-linux-x64
+            file: chainlesschain-node22-linux-x64
+            pkg_platform: linux
+            expected_platform: linux
+            expected_arch: x64
+          - os: ubuntu-24.04-arm
+            target: node22-linux-arm64
+            file: chainlesschain-node22-linux-arm64
+            pkg_platform: linux
+            expected_platform: linux
+            expected_arch: arm64
+          - os: windows-latest
+            target: node22-win-x64
+            file: chainlesschain-node22-win-x64.exe
+            pkg_platform: win
+            expected_platform: win32
+            expected_arch: x64
+          - os: windows-11-arm
+            target: node22-win-arm64
+            file: chainlesschain-node22-win-arm64.exe
+            pkg_platform: win
+            expected_platform: win32
+            expected_arch: arm64
+          - os: macos-15-intel
+            target: node22-macos-x64
+            file: chainlesschain-node22-macos-x64
+            pkg_platform: macos
+            expected_platform: darwin
+            expected_arch: x64
+          - os: macos-15
+            target: node22-macos-arm64
+            file: chainlesschain-node22-macos-arm64
+            pkg_platform: macos
+            expected_platform: darwin
+            expected_arch: arm64
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.CLI_NATIVE_VALIDATION_SHA }}
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22.14.0"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Verify exact source and matching native host
+        shell: bash
+        env:
+          EXPECTED_PLATFORM: ${{ matrix.expected_platform }}
+          EXPECTED_ARCH: ${{ matrix.expected_arch }}
+          EXPECTED_TARGET: ${{ matrix.target }}
+        run: |
+          set -euo pipefail
+          actual_sha="$(git rev-parse HEAD)"
+          test "$actual_sha" = "$CLI_NATIVE_VALIDATION_SHA"
+          test -z "$(git status --porcelain --untracked-files=no)"
+          node --input-type=module <<'NODE'
+          const { EXPECTED_PLATFORM, EXPECTED_ARCH, EXPECTED_TARGET } = process.env;
+          if (process.platform !== EXPECTED_PLATFORM || process.arch !== EXPECTED_ARCH) {
+            throw new Error(
+              `native target ${EXPECTED_TARGET} requires ${EXPECTED_PLATFORM}/${EXPECTED_ARCH}; runner is ${process.platform}/${process.arch}`,
+            );
+          }
+          NODE
+
+      - uses: ./.github/actions/setup-node-deps
+
+      - name: Create validation-only update key
+        shell: bash
+        run: |
+          node --input-type=module - "$RUNNER_TEMP/cli-validation-public-key.pem" <<'NODE'
+          import { writeFileSync } from "node:fs";
+          import { generateKeyPairSync } from "node:crypto";
+          const { publicKey } = generateKeyPairSync("ed25519");
+          writeFileSync(
+            process.argv[2],
+            publicKey.export({ type: "spki", format: "pem" }),
+            { mode: 0o600 },
+          );
+          NODE
+
+      - name: Require a published pkg base binary
+        shell: bash
+        env:
+          PKG_CACHE_PATH: ${{ runner.temp }}/pkg-cache
+        run: |
+          node node_modules/@yao-pkg/pkg-fetch/lib-es5/bin.js \
+            --node-range node22 \
+            --platform "${{ matrix.pkg_platform }}" \
+            --arch "${{ matrix.expected_arch }}" \
+            --force-fetch
+
+      - name: Build standalone CLI on its matching native host
+        shell: bash
+        env:
+          PKG_CACHE_PATH: ${{ runner.temp }}/pkg-cache
+        run: |
+          set -euo pipefail
+          node packages/cli/bin/chainlesschain.js pack \
+            --cwd packages/cli \
+            --no-project \
+            --targets "${{ matrix.target }}" \
+            --output "native-dist/chainlesschain-${{ matrix.target }}" \
+            --update-manifest-url "https://validation.invalid/chainlesschain-update.json" \
+            --update-public-key "$RUNNER_TEMP/cli-validation-public-key.pem" \
+            --no-smoke-test
+
+      - name: Execute binary version and status on the matching host
+        shell: bash
+        run: |
+          node --input-type=module - "native-dist/${{ matrix.file }}" <<'NODE'
+          import path from "node:path";
+          import { spawnSync } from "node:child_process";
+          import { createRequire } from "node:module";
+          const require = createRequire(import.meta.url);
+          const expectedVersion = require("./packages/cli/package.json").version;
+          const executable = path.resolve(process.argv[2]);
+          function run(args) {
+            const result = spawnSync(executable, args, {
+              encoding: "utf8",
+              stdio: "pipe",
+              windowsHide: true,
+            });
+            if (result.error || result.status !== 0) {
+              throw result.error || new Error(result.stderr || `exit ${result.status}`);
+            }
+            return String(result.stdout);
+          }
+          if (!run(["--version"]).includes(expectedVersion)) {
+            throw new Error(`native binary did not report version ${expectedVersion}`);
+          }
+          const status = JSON.parse(run(["status", "--json"]));
+          if (status.schema !== "chainlesschain.status.v1" || status.version !== expectedVersion) {
+            throw new Error("native binary status probe returned the wrong schema or version");
+          }
+          NODE
+
+      - name: Run native installer and updater transaction regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          for test_file in \
+            packages/cli/__tests__/unit/native-installers-transaction.test.js \
+            packages/cli/__tests__/unit/packer-pack-update-applier.test.js \
+            packages/cli/__tests__/unit/native-release-manifest.test.js; do
+            node node_modules/vitest/vitest.mjs run "$test_file" --maxWorkers=1
+          done
+
+      - name: Write content-free exact-SHA validation evidence
+        shell: bash
+        env:
+          VALIDATION_TARGET: ${{ matrix.target }}
+          VALIDATION_FILE: native-dist/${{ matrix.file }}
+          EXPECTED_PLATFORM: ${{ matrix.expected_platform }}
+          EXPECTED_ARCH: ${{ matrix.expected_arch }}
+        run: |
+          node --input-type=module <<'NODE'
+          import { createHash } from "node:crypto";
+          import { mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+          import { execFileSync } from "node:child_process";
+          import { createRequire } from "node:module";
+          const require = createRequire(import.meta.url);
+          const file = process.env.VALIDATION_FILE;
+          const bytes = readFileSync(file);
+          const headSha = execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+          const tree = execFileSync("git", ["rev-parse", "HEAD^{tree}"], { encoding: "utf8" }).trim();
+          const evidence = {
+            schema: "chainlesschain.cli-native-validation.v1",
+            exactSha: headSha,
+            expectedSha: process.env.CLI_NATIVE_VALIDATION_SHA,
+            tree,
+            version: require("./packages/cli/package.json").version,
+            target: process.env.VALIDATION_TARGET,
+            platform: process.platform,
+            arch: process.arch,
+            expectedPlatform: process.env.EXPECTED_PLATFORM,
+            expectedArch: process.env.EXPECTED_ARCH,
+            binary: {
+              size: statSync(file).size,
+              sha256: createHash("sha256").update(bytes).digest("hex"),
+              executedOnMatchingHost: true,
+              commandProbe: "status --json",
+            },
+            transactionTests: [
+              "native-installers-transaction",
+              "packer-pack-update-applier",
+              "native-release-manifest",
+            ],
+            signed: false,
+            releaseEligible: false,
+            boundary:
+              "validation-only artifact; not signed, notarized, publishable, or a substitute for the native release workflow",
+          };
+          if (
+            evidence.exactSha !== evidence.expectedSha ||
+            evidence.platform !== evidence.expectedPlatform ||
+            evidence.arch !== evidence.expectedArch
+          ) {
+            throw new Error("native validation evidence identity mismatch");
+          }
+          mkdirSync("native-validation-evidence", { recursive: true });
+          writeFileSync(
+            `native-validation-evidence/${evidence.target}.json`,
+            `${JSON.stringify(evidence, null, 2)}\n`,
+            { mode: 0o600 },
+          );
+          NODE
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: cli-native-validation-${{ matrix.target }}-${{ env.CLI_NATIVE_VALIDATION_SHA }}
+          path: native-validation-evidence/${{ matrix.target }}.json
+          if-no-files-found: error
+          retention-days: 90
+
+  aggregate:
+    name: Aggregate six-target native validation evidence
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v6
+        with:
+          pattern: cli-native-validation-*-${{ env.CLI_NATIVE_VALIDATION_SHA }}
+          path: native-validation-evidence
+          merge-multiple: true
+
+      - name: Verify exact six-target evidence set
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import { readdirSync, readFileSync, writeFileSync } from "node:fs";
+          const expected = new Set([
+            "node22-linux-x64",
+            "node22-linux-arm64",
+            "node22-win-x64",
+            "node22-win-arm64",
+            "node22-macos-x64",
+            "node22-macos-arm64",
+          ]);
+          const records = readdirSync("native-validation-evidence")
+            .filter((name) => name.endsWith(".json"))
+            .map((name) => JSON.parse(readFileSync(`native-validation-evidence/${name}`, "utf8")));
+          if (records.length !== expected.size) throw new Error(`expected 6 evidence files, got ${records.length}`);
+          for (const record of records) {
+            if (record.schema !== "chainlesschain.cli-native-validation.v1") throw new Error("unexpected evidence schema");
+            if (record.exactSha !== process.env.CLI_NATIVE_VALIDATION_SHA) throw new Error("evidence SHA mismatch");
+            if (!expected.delete(record.target)) throw new Error(`unexpected or duplicate target ${record.target}`);
+            if (record.binary?.executedOnMatchingHost !== true) throw new Error(`target ${record.target} was not executed`);
+            if (record.signed !== false || record.releaseEligible !== false) throw new Error("validation evidence claimed release authority");
+          }
+          if (expected.size) throw new Error(`missing targets: ${[...expected].join(", ")}`);
+          records.sort((left, right) => left.target.localeCompare(right.target));
+          writeFileSync(
+            "cli-native-validation-aggregate.json",
+            `${JSON.stringify({
+              schema: "chainlesschain.cli-native-validation-aggregate.v1",
+              exactSha: process.env.CLI_NATIVE_VALIDATION_SHA,
+              targets: records,
+              releaseEligible: false,
+            }, null, 2)}\n`,
+          );
+          NODE
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: cli-native-validation-aggregate-${{ env.CLI_NATIVE_VALIDATION_SHA }}
+          path: cli-native-validation-aggregate.json
+          if-no-files-found: error
+          retention-days: 90

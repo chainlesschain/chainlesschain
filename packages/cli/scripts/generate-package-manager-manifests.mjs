@@ -15,10 +15,10 @@ function artifactFor(manifest, target) {
 export function generatePackageManagerManifests(manifest) {
   const version = manifest?.latest?.cliVersion;
   if (!version) throw new Error("manifest.latest.cliVersion is required");
-  const macX64 = artifactFor(manifest, "node20-macos-x64");
-  const macArm64 = artifactFor(manifest, "node20-macos-arm64");
-  const winX64 = artifactFor(manifest, "node20-win-x64");
-  const winArm64 = artifactFor(manifest, "node20-win-arm64");
+  const macX64 = artifactFor(manifest, "node22-macos-x64");
+  const macArm64 = artifactFor(manifest, "node22-macos-arm64");
+  const winX64 = artifactFor(manifest, "node22-win-x64");
+  const winArm64 = artifactFor(manifest, "node22-win-arm64");
   const homebrew = `class Chainlesschain < Formula
   desc "Local-first AI coding agent and collaboration CLI"
   homepage "https://github.com/chainlesschain/chainlesschain"
@@ -37,7 +37,7 @@ export function generatePackageManagerManifests(manifest) {
   end
 
   def install
-    artifact = Dir["chainlesschain-node20-macos-*"].first
+    artifact = Dir["chainlesschain-node22-macos-*"].first
     bin.install artifact => "chainlesschain"
     bin.install_symlink "chainlesschain" => "cc"
   end

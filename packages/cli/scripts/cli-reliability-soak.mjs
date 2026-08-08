@@ -290,6 +290,27 @@ export function recordBoundedSample(
   values[(observedCount - 1) % limit] = value;
 }
 
+export function reliabilityTurnDelayMs(
+  completedTurns,
+  targetTurns,
+  durationMs,
+  elapsedMs,
+) {
+  if (
+    !Number.isFinite(completedTurns) ||
+    !Number.isFinite(targetTurns) ||
+    targetTurns <= 0 ||
+    !Number.isFinite(durationMs) ||
+    durationMs <= 0 ||
+    !Number.isFinite(elapsedMs)
+  ) {
+    return 0;
+  }
+  const scheduledElapsedMs =
+    ((Math.max(0, completedTurns) + 1) / targetTurns) * durationMs;
+  return Math.max(0, scheduledElapsedMs - Math.max(0, elapsedMs));
+}
+
 function atomicWriteJson(filePath, value) {
   mkdirSync(dirname(filePath), { recursive: true });
   const temporary = `${filePath}.${process.pid}.tmp`;
@@ -1457,6 +1478,27 @@ async function duplexSoakScenario(
   let lastCheckpointAt = performance.now();
   let turns = 0;
   while (turns < profile.turns || performance.now() < deadline) {
+    const beforeTurn = performance.now();
+    if (turns >= profile.turns) {
+      const remainingMs = deadline - beforeTurn;
+      if (remainingMs > 0) {
+        await new Promise((resolvePromise) =>
+          setTimeout(resolvePromise, remainingMs),
+        );
+      }
+      continue;
+    }
+    const scheduledDelayMs = reliabilityTurnDelayMs(
+      turns,
+      profile.turns,
+      profile.durationSeconds * 1_000,
+      beforeTurn - scenarioStarted,
+    );
+    if (scheduledDelayMs > 0) {
+      await new Promise((resolvePromise) =>
+        setTimeout(resolvePromise, scheduledDelayMs),
+      );
+    }
     const started = performance.now();
     await sendTurn(`soak-${turns}`);
     turns += 1;
@@ -1543,6 +1585,12 @@ async function duplexSoakScenario(
     },
     configuredDurationSeconds: profile.durationSeconds,
     continuousDurationSeconds: (performance.now() - scenarioStarted) / 1_000,
+    schedule: {
+      mode: "duration-spread",
+      targetTurns: profile.turns,
+      targetIntervalMs:
+        (profile.durationSeconds * 1_000) / Math.max(1, profile.turns),
+    },
     latency: {
       p95Ms: percentile(latencies, 95),
       observedCount: turns,
@@ -1738,9 +1786,30 @@ async function ttyScenario(baseUrl, home, profile) {
   const screenReaderPid = screenReaderTerminal.pid;
   let screenReaderOutput = "";
   let screenReaderExitRequested = false;
+  let screenReaderReadinessObserved = false;
+  const screenReaderExited = new Promise((resolvePromise) => {
+    screenReaderTerminal.onExit(resolvePromise);
+  });
+  let resolveScreenReaderReady = () => {};
+  const screenReaderReady = new Promise((resolvePromise) => {
+    let settled = false;
+    const settle = (value) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolvePromise(value);
+    };
+    const timer = setTimeout(() => settle(false), 60_000);
+    resolveScreenReaderReady = () => settle(true);
+    screenReaderExited.then(() => settle(false));
+  });
   screenReaderTerminal.onData((chunk) => {
     if (screenReaderOutput.length < 256 * 1024) {
       screenReaderOutput += chunk;
+    }
+    if (!screenReaderReadinessObserved && screenReaderOutput.includes("> ")) {
+      screenReaderReadinessObserved = true;
+      resolveScreenReaderReady();
     }
     if (
       !screenReaderExitRequested &&
@@ -1750,25 +1819,52 @@ async function ttyScenario(baseUrl, home, profile) {
       screenReaderTerminal.write("/exit\r");
     }
   });
-  screenReaderTerminal.write(`${screenReaderPrompt}\r`);
-  const screenReaderExit = await new Promise((resolvePromise) => {
-    const timer = setTimeout(() => {
-      try {
-        screenReaderTerminal.kill();
-      } catch {
-        // The timeout result remains authoritative.
-      }
-      resolvePromise({ exitCode: null, signal: "timeout" });
-    }, profile.cleanupDeadlineMs + 60_000);
-    screenReaderTerminal.onExit((event) => {
+  const readinessObserved = await screenReaderReady;
+  if (readinessObserved) {
+    screenReaderTerminal.write(`${screenReaderPrompt}\r`);
+  } else {
+    try {
+      screenReaderTerminal.kill();
+    } catch {
+      // The readiness failure remains authoritative.
+    }
+  }
+  const screenReaderOutcome = await new Promise((resolvePromise) => {
+    let settled = false;
+    const settle = (value) => {
+      if (settled) return;
+      settled = true;
       clearTimeout(timer);
-      resolvePromise(event);
-    });
+      resolvePromise(value);
+    };
+    const timer = setTimeout(
+      () => settle({ event: null, timedOut: true }),
+      readinessObserved ? profile.cleanupDeadlineMs + 60_000 : 0,
+    );
+    screenReaderExited.then((event) => settle({ event, timedOut: false }));
   });
+  if (screenReaderOutcome.timedOut) {
+    try {
+      screenReaderTerminal.kill();
+    } catch {
+      // The response timeout remains authoritative.
+    }
+    await waitForLocalProcessRetirement(
+      screenReaderPid,
+      profile.cleanupDeadlineMs,
+    );
+  }
+  const screenReaderExit = screenReaderOutcome.timedOut
+    ? {
+        exitCode: null,
+        signal: readinessObserved ? "timeout" : "readiness-timeout",
+      }
+    : screenReaderOutcome.event;
   const screenReaderProcessRetired = processExists(screenReaderPid) === false;
   const screenReader = {
     pass:
       screenReaderExit.exitCode === 0 &&
+      screenReaderReadinessObserved &&
       screenReaderExitRequested &&
       screenReaderOutput.includes(screenReaderPrompt) &&
       screenReaderOutput.includes("reliability-ok") &&
@@ -1778,6 +1874,7 @@ async function ttyScenario(baseUrl, home, profile) {
     durationMs: performance.now() - screenReaderStarted,
     exitCode: screenReaderExit.exitCode,
     signal: screenReaderExit.signal,
+    readinessObserved: screenReaderReadinessObserved,
     exitRequested: screenReaderExitRequested,
     unicodePromptEchoed: screenReaderOutput.includes(screenReaderPrompt),
     responseObserved: screenReaderOutput.includes("reliability-ok"),
