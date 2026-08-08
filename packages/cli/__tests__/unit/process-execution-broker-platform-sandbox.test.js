@@ -5627,6 +5627,9 @@ describe("platform sandbox adapter contract", () => {
         runtimeLaunchMechanism:
           "filter-oplock-locked-createprocess-suspended-image-v1",
         sharedLibraryClosure: false,
+        planBindingMechanism:
+          "windows-mcp-code-snapshot-plan-binding-v1",
+        planBindingDigest: expect.stringMatching(/^[a-f0-9]{64}$/),
       },
     });
     expect(decodeWindowsLaunchSpec(harness, plan)).toMatchObject({
@@ -5743,6 +5746,9 @@ describe("platform sandbox adapter contract", () => {
         runtimeLaunchMechanism:
           "filter-oplock-locked-createprocess-suspended-image-v1",
         sharedLibraryClosure: false,
+        planBindingMechanism:
+          "windows-mcp-code-snapshot-plan-binding-v1",
+        planBindingDigest: expect.stringMatching(/^[a-f0-9]{64}$/),
       },
       postSpawn: { required: true, mode: "sync" },
     });
@@ -10315,6 +10321,12 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
       applied: true,
       backend: "windows-appcontainer-job-restricted-token",
     });
+    expect(child).toMatchObject({
+      pid: 5103,
+      sandboxWrapperPid: 4102,
+      sandboxTargetPid: 5103,
+      sandboxAppContainerSid: appContainerSid,
+    });
     expect(() =>
       executionBroker.spawn(runtimePath, [entryPath, "--stdio"], {
         origin: "test:replayed-windows-mcp-code-snapshot",
@@ -10390,6 +10402,8 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
       ),
       postSpawnSandbox: vi.fn(),
     };
+    const createUnissuedWindowsPlan =
+      executionBroker._sandboxAdapter.applySandbox;
 
     expect(() =>
       executionBroker.spawn(runtimePath, [entryPath, "--stdio"], {
@@ -10408,6 +10422,67 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
     );
     expect(nativeSpawn).not.toHaveBeenCalled();
     expect(cleanup).toHaveBeenCalledOnce();
+
+    executionBroker._sandboxAdapter.applySandbox = vi.fn(
+      (...adapterArgs) => {
+        const unissuedPlan = createUnissuedWindowsPlan(...adapterArgs);
+        return Object.freeze({
+          ...unissuedPlan,
+          runtimeProbe: Object.freeze({
+            ...unissuedPlan.runtimeProbe,
+            runtimeSnapshotSha256: "a".repeat(64),
+            runtimeSnapshotBytes: 100,
+          }),
+        });
+      },
+    );
+    expect(() =>
+      executionBroker.spawn(runtimePath, [entryPath, "--stdio"], {
+        origin: "test:mixed-windows-runtime-evidence-family",
+        policy: "allow",
+        shell: false,
+        requiredBoundaries: [
+          SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
+          SANDBOX_BOUNDARIES.FILESYSTEM,
+          SANDBOX_BOUNDARIES.NETWORK,
+        ],
+        sandboxExecutionContract: Object.freeze({}),
+      }),
+    ).toThrow(
+      "Code snapshot guarantee requires typed atomic MCP capsule evidence",
+    );
+    expect(nativeSpawn).not.toHaveBeenCalled();
+    expect(cleanup).toHaveBeenCalledTimes(2);
+
+    executionBroker._sandboxAdapter.applySandbox = vi.fn(
+      (...adapterArgs) => {
+        const unissuedPlan = createUnissuedWindowsPlan(...adapterArgs);
+        return Object.freeze({
+          ...unissuedPlan,
+          runtimeProbe: Object.freeze({
+            ...unissuedPlan.runtimeProbe,
+            kind: "windows-plugin-node-entry-snapshot-v1",
+          }),
+        });
+      },
+    );
+    expect(() =>
+      executionBroker.spawn(runtimePath, [entryPath, "--stdio"], {
+        origin: "test:mismatched-windows-backend-probe-kind",
+        policy: "allow",
+        shell: false,
+        requiredBoundaries: [
+          SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
+          SANDBOX_BOUNDARIES.FILESYSTEM,
+          SANDBOX_BOUNDARIES.NETWORK,
+        ],
+        sandboxExecutionContract: Object.freeze({}),
+      }),
+    ).toThrow(
+      "Code snapshot guarantee requires typed atomic MCP capsule evidence",
+    );
+    expect(nativeSpawn).not.toHaveBeenCalled();
+    expect(cleanup).toHaveBeenCalledTimes(3);
   });
 
   it("rejects a forged code snapshot guarantee before native spawn", () => {

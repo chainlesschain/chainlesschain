@@ -2582,7 +2582,7 @@ class ProcessExecutionBroker extends EventEmitter {
         plan.platform === "win32" &&
         plan.runtimeProbe?.planBindingMechanism ===
           "windows-mcp-code-snapshot-plan-binding-v1"
-          ? _postSpawnSandbox
+          ? (child, boundPlan) => boundPlan.postSpawnWindows(child)
           : this._sandboxAdapter.postSpawnSandbox;
       postSpawnResult = postSpawnAdapter(proc, plan);
     } catch (error) {
