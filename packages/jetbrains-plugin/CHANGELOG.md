@@ -1,5 +1,17 @@
 # Changelog — ChainlessChain IDE Bridge (JetBrains)
 
+## [0.4.83] - Deterministic native ARM64 release gate (2026-08-09)
+
+- Carry forward the 0.4.82 native ARM64 host certification after that immutable
+  tag was canceled before upload when the exact merge-commit matrix exposed a
+  Windows Stop/resume fixture race.
+- Wait for the fixture's persisted in-flight Stop response before invoking the
+  second-click force-stop path, then require the resumed stream to continue at
+  the exact next turn.
+- Preserve the exact Windows 2026.2.0.1 ARM64, Linux/macOS 2024.2 and 2025.2,
+  restart, rewind, artifact, and 11-cell aggregate gates without moving or
+  reusing the canceled 0.4.82 tag.
+
 ## [0.4.82] - Native ARM64 release-host certification (2026-08-08)
 
 - Validate the plugin on native Linux and macOS ARM64 hosts for IntelliJ IDEA

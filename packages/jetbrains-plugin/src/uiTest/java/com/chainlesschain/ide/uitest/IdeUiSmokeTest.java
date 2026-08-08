@@ -110,6 +110,7 @@ final class IdeUiSmokeTest {
             waitForTranscript(transcript, "fixture permission approved #4", FIND_BUDGET);
 
             send(input, send, "journey:stop");
+            waitForTranscript(transcript, "fixture stop waiting #5", FIND_BUDGET);
             clickButton(stop);
             clickButton(stop);
             waitForTranscript(
