@@ -171,11 +171,6 @@ const LINUX_MCP_RUNTIME_SNAPSHOT_SCOPE = "mcp-node-runtime-executable";
 const LINUX_MCP_CAPSULE_SNAPSHOT_MECHANISM =
   "verified-o_tmpfile-copy-inherited-fd-module-compile-v1";
 const MACOS_MCP_CAPSULE_BACKEND = "macos-fd-code-snapshot";
-const MACOS_MCP_CAPSULE_SEATBELT_BACKEND = "macos-seatbelt-fd-code-snapshot";
-const MACOS_MCP_CAPSULE_SNAPSHOT_MECHANISM =
-  "verified-private-runtime-copy-and-unlinked-entry-fd-module-compile-v1";
-const MACOS_MCP_CAPSULE_SEATBELT_MECHANISM =
-  "sandbox-exec-inline-profile-fd-entry-v1";
 export const MCP_STDIO_FD_ENTRY_BOOTSTRAP =
   'const fs=require("node:fs");const Module=require("node:module");const filename="/chainlesschain/mcp-capsule.cjs";const source=fs.readFileSync(4,"utf8");process.argv.splice(1,0,filename);const target=new Module(filename,module);target.filename=filename;target.paths=[];target._compile(source,filename);';
 export const MCP_STDIO_FD_ENTRY_BOOTSTRAP_SHA256 = crypto
@@ -455,8 +450,6 @@ function createSandboxPlan(input) {
  * @param {string[]} opts.allowWrite - Paths allowed for write (includes read)
  * @param {boolean} [opts.allowNetwork=false] - Allow network access
  * @param {boolean} [opts.allowExec=true] - Allow process exec (subprocess spawning)
- * @param {boolean} [opts.allowBootstrapExecutables=true] - Allow legacy shell bootstrap paths
- * @param {string[]} [opts.allowExecPaths=[]] - Exact executable paths allowed when allowExec=false
  * @returns {string} sandbox profile content
  */
 export function generateMacSeatbeltProfile(opts = {}, runtimeOverrides = {}) {
@@ -466,10 +459,7 @@ export function generateMacSeatbeltProfile(opts = {}, runtimeOverrides = {}) {
     allowWrite = [],
     allowNetwork = false,
     allowExec = true,
-    allowBootstrapExecutables = true,
-    allowExecPaths = [],
   } = opts;
-
   const seatbeltLiteral = (value) =>
     String(value).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 
@@ -482,20 +472,12 @@ export function generateMacSeatbeltProfile(opts = {}, runtimeOverrides = {}) {
     '(import "system.sb")',
     // Basic system operations always allowed
     "(allow signal (target self))",
+    '(allow process-exec (literal "/usr/bin/env"))',
+    '(allow process-exec (literal "/bin/sh"))',
+    '(allow process-exec (literal "/bin/bash"))',
     "(allow sysctl-read)",
     "(allow mach-lookup)",
   ];
-
-  if (allowBootstrapExecutables) {
-    lines.push('(allow process-exec (literal "/usr/bin/env"))');
-    lines.push('(allow process-exec (literal "/bin/sh"))');
-    lines.push('(allow process-exec (literal "/bin/bash"))');
-  }
-
-  for (const executable of allowExecPaths) {
-    const abs = seatbeltLiteral(runtime.resolvePath(executable));
-    lines.push(`(allow process-exec (literal "${abs}"))`);
-  }
 
   if (allowExec) {
     lines.push("(allow process-fork)");
@@ -536,35 +518,6 @@ export function generateMacSeatbeltProfile(opts = {}, runtimeOverrides = {}) {
   lines.push('(allow file-read* (literal "/etc/passwd"))');
 
   return lines.join("\n");
-}
-
-export function generateMacMcpCapsuleSeatbeltProfile(
-  runtimeSnapshotPath,
-  denyNetwork,
-) {
-  if (
-    typeof runtimeSnapshotPath !== "string" ||
-    !path.posix.isAbsolute(runtimeSnapshotPath) ||
-    path.posix.normalize(runtimeSnapshotPath) !== runtimeSnapshotPath ||
-    runtimeSnapshotPath.includes("\0") ||
-    typeof denyNetwork !== "boolean"
-  ) {
-    throw new Error("macos_mcp_capsule_seatbelt_profile_input_invalid");
-  }
-  return generateMacSeatbeltProfile(
-    {
-      allowRead: [runtimeSnapshotPath],
-      allowWrite: [],
-      allowNetwork: !denyNetwork,
-      allowExec: false,
-      allowBootstrapExecutables: false,
-      allowExecPaths: [runtimeSnapshotPath],
-    },
-    {
-      platform: "darwin",
-      resolvePath: (value) => path.posix.normalize(value),
-    },
-  );
 }
 
 function validateMacMcpCapsuleContract(
@@ -639,191 +592,6 @@ function validateMacMcpCapsuleContract(
   return { ok: true };
 }
 
-function createMacAnonymousCodeSnapshot(
-  runtime,
-  sourcePin,
-  identity,
-  { executable, label, retainPath = false },
-) {
-  let writerFd;
-  let readerFd;
-  let snapshotPath;
-  const fail = (reason) => new Error(`${label}_${reason}`);
-  try {
-    for (const method of [
-      "openSync",
-      "unlinkSync",
-      "readSync",
-      "writeSync",
-      "fchmodSync",
-      "fsyncSync",
-      "fstatSync",
-      "closeSync",
-    ]) {
-      if (typeof runtime.fs[method] !== "function") {
-        throw fail(`${method}_unavailable`);
-      }
-    }
-    if (
-      !Number.isInteger(sourcePin?.fd) ||
-      !identity?.fileId ||
-      typeof identity.sha256 !== "string" ||
-      !/^[a-f0-9]{64}$/.test(identity.sha256) ||
-      !Number.isSafeInteger(identity.bytes) ||
-      identity.bytes < (executable ? 1 : 0) ||
-      identity.bytes > LINUX_ATTESTED_FILE_MAX_BYTES
-    ) {
-      throw fail("identity_invalid");
-    }
-    const sourceBefore = runtime.fs.fstatSync(sourcePin.fd);
-    if (
-      !sourceBefore.isFile() ||
-      Number(sourceBefore.nlink) !== 1 ||
-      String(sourceBefore.dev) !== String(identity.fileId.dev) ||
-      String(sourceBefore.ino) !== String(identity.fileId.ino) ||
-      Number(sourceBefore.size) !== identity.bytes ||
-      Number(sourceBefore.mtimeMs) !== Number(identity.mtimeMs) ||
-      (executable && (Number(sourceBefore.mode) & 0o111) === 0)
-    ) {
-      throw fail("source_changed");
-    }
-
-    const constants = runtime.fs.constants || fs.constants;
-    snapshotPath = runtime.joinPath(
-      runtime.tmpdir(),
-      `.chainlesschain-mcp-${runtime.randomBytes(16).toString("hex")}`,
-    );
-    writerFd = runtime.fs.openSync(
-      snapshotPath,
-      Number(constants.O_CREAT) |
-        Number(constants.O_EXCL) |
-        Number(constants.O_RDWR) |
-        Number(constants.O_NOFOLLOW || 0),
-      0o600,
-    );
-    if (!retainPath) {
-      runtime.fs.unlinkSync(snapshotPath);
-      snapshotPath = undefined;
-    }
-
-    const sourceDigest = crypto.createHash("sha256");
-    const chunk = Buffer.allocUnsafe(
-      Math.max(1, Math.min(LINUX_ATTESTATION_HASH_CHUNK_BYTES, identity.bytes)),
-    );
-    let copied = 0;
-    while (copied < identity.bytes) {
-      const read = runtime.fs.readSync(
-        sourcePin.fd,
-        chunk,
-        0,
-        Math.min(chunk.length, identity.bytes - copied),
-        copied,
-      );
-      if (read <= 0) throw fail("source_ended_early");
-      sourceDigest.update(chunk.subarray(0, read));
-      let written = 0;
-      while (written < read) {
-        const count = runtime.fs.writeSync(
-          writerFd,
-          chunk,
-          written,
-          read - written,
-          copied + written,
-        );
-        if (count <= 0) throw fail("write_failed");
-        written += count;
-      }
-      copied += read;
-    }
-    const sourceAfter = runtime.fs.fstatSync(sourcePin.fd);
-    const sourceSha256 = sourceDigest.digest("hex");
-    if (
-      !linuxOpenStatMatches(sourceBefore, sourceAfter) ||
-      sourceSha256 !== identity.sha256
-    ) {
-      throw fail("source_changed");
-    }
-
-    const targetMode = executable ? 0o500 : 0o400;
-    runtime.fs.fchmodSync(writerFd, targetMode);
-    runtime.fs.fsyncSync(writerFd);
-    const writerBefore = runtime.fs.fstatSync(writerFd);
-    const expectedLinks = retainPath ? 1 : 0;
-    if (
-      !writerBefore.isFile() ||
-      Number(writerBefore.nlink) !== expectedLinks ||
-      Number(writerBefore.size) !== identity.bytes ||
-      (Number(writerBefore.mode) & 0o777) !== targetMode ||
-      hashLinuxOpenFile(runtime, writerFd, identity.bytes) !== sourceSha256
-    ) {
-      throw fail("snapshot_changed");
-    }
-    const writerAfter = runtime.fs.fstatSync(writerFd);
-    if (!linuxOpenStatMatches(writerBefore, writerAfter)) {
-      throw fail("snapshot_changed");
-    }
-
-    readerFd = runtime.fs.openSync(
-      `/dev/fd/${writerFd}`,
-      Number(constants.O_RDONLY) | Number(constants.O_NOFOLLOW || 0),
-    );
-    const readerBefore = runtime.fs.fstatSync(readerFd);
-    if (
-      !linuxOpenStatMatches(writerAfter, readerBefore) ||
-      Number(readerBefore.nlink) !== expectedLinks ||
-      hashLinuxOpenFile(runtime, readerFd, identity.bytes) !== sourceSha256
-    ) {
-      throw fail("reader_identity_changed");
-    }
-    const readerAfter = runtime.fs.fstatSync(readerFd);
-    if (!linuxOpenStatMatches(readerBefore, readerAfter)) {
-      throw fail("reader_identity_changed");
-    }
-    runtime.fs.closeSync(writerFd);
-    writerFd = undefined;
-
-    const retainedPath = snapshotPath
-      ? linuxRealpath(runtime, snapshotPath)
-      : null;
-    if (retainedPath) {
-      const retainedStat = runtime.fs.lstatSync(retainedPath);
-      if (
-        retainedStat.isSymbolicLink() ||
-        !linuxOpenStatMatches(readerAfter, retainedStat) ||
-        Number(retainedStat.nlink) !== 1
-      ) {
-        throw fail("retained_path_identity_changed");
-      }
-    }
-    const result = {
-      fd: readerFd,
-      sha256: sourceSha256,
-      bytes: identity.bytes,
-      ...(retainedPath ? { path: retainedPath } : {}),
-    };
-    readerFd = undefined;
-    snapshotPath = undefined;
-    return result;
-  } catch (error) {
-    for (const fd of [readerFd, writerFd]) {
-      if (!Number.isInteger(fd)) continue;
-      try {
-        runtime.fs.closeSync(fd);
-      } catch {
-        // Preserve the original fail-closed reason.
-      }
-    }
-    if (snapshotPath) {
-      try {
-        runtime.fs.unlinkSync(snapshotPath);
-      } catch {
-        // Preserve the original fail-closed reason.
-      }
-    }
-    throw error;
-  }
-}
-
 function applyMacMcpCapsuleCodeSnapshot(
   command,
   args,
@@ -841,15 +609,11 @@ function applyMacMcpCapsuleCodeSnapshot(
     runtime,
     sandboxOpts.sync,
   );
-  const unavailable = (
-    reason,
-    runtimeProbe = null,
-    candidateBackend = MACOS_MCP_CAPSULE_BACKEND,
-  ) =>
+  const unavailable = (reason, runtimeProbe = null) =>
     createSandboxPlan({
       ...base,
       backend: null,
-      candidateBackend,
+      candidateBackend: MACOS_MCP_CAPSULE_BACKEND,
       policyAttested: false,
       runtimeProbe: runtimeProbe
         ? {
@@ -870,198 +634,27 @@ function applyMacMcpCapsuleCodeSnapshot(
       reason: validation.reason,
       contentSnapshot: false,
       handleAtomic: false,
-    });
-  }
-
-  let runtimePin;
-  let entryPin;
-  let runtimeSnapshot;
-  let entrySnapshot;
-  try {
-    runtimePin = pinLinuxRegularFile(
-      runtime,
-      contract.runtimeIdentity.realPath,
-      contract.runtimeIdentity.realPath,
-      linuxIdentityExpectedStat(contract.runtimeIdentity),
-      { requireSingleLink: true },
-    );
-    entryPin = pinLinuxRegularFile(
-      runtime,
-      contract.entryIdentity.realPath,
-      contract.entryIdentity.realPath,
-      linuxIdentityExpectedStat(contract.entryIdentity),
-      { requireSingleLink: true },
-    );
-    runtimeSnapshot = createMacAnonymousCodeSnapshot(
-      runtime,
-      runtimePin,
-      contract.runtimeIdentity,
-      {
-        executable: true,
-        label: "mcp_node_runtime_snapshot",
-        retainPath: true,
-      },
-    );
-    entrySnapshot = createMacAnonymousCodeSnapshot(
-      runtime,
-      entryPin,
-      contract.entryIdentity,
-      { executable: false, label: "mcp_node_entry_snapshot" },
-    );
-  } catch (error) {
-    closeLinuxPinnedMounts(runtime, [
-      runtimePin,
-      entryPin,
-      runtimeSnapshot,
-      entrySnapshot,
-    ]);
-    if (runtimeSnapshot?.path) {
-      try {
-        runtime.fs.unlinkSync(runtimeSnapshot.path);
-      } catch {
-        // Preserve the original fail-closed snapshot reason.
-      }
-    }
-    return unavailable("macos_mcp_capsule_code_snapshot_unavailable", {
-      runnable: false,
-      reason: error.message || "snapshot_unattested",
-      contentSnapshot: false,
-      handleAtomic: false,
-    });
-  }
-  closeLinuxPinnedMounts(runtime, [runtimePin, entryPin]);
-
-  const descriptors = [runtimeSnapshot, entrySnapshot];
-  const snapshotIdentity = Object.freeze({
-    runtimeSnapshotSha256: runtimeSnapshot.sha256,
-    runtimeSnapshotBytes: runtimeSnapshot.bytes,
-    entrySnapshotSha256: entrySnapshot.sha256,
-    entrySnapshotBytes: entrySnapshot.bytes,
-  });
-  const requiredBoundaries = [...new Set(sandboxOpts.requiredBoundaries || [])];
-  const composeSeatbelt = requiredBoundaries.some(
-    (boundary) =>
-      boundary === SANDBOX_BOUNDARIES.FILESYSTEM ||
-      boundary === SANDBOX_BOUNDARIES.NETWORK,
-  );
-  const backend = composeSeatbelt
-    ? MACOS_MCP_CAPSULE_SEATBELT_BACKEND
-    : MACOS_MCP_CAPSULE_BACKEND;
-  const sandboxExecutable = "/usr/bin/sandbox-exec";
-  const seatbeltProfile = composeSeatbelt
-    ? generateMacMcpCapsuleSeatbeltProfile(
-        runtimeSnapshot.path,
-        requiredBoundaries.includes(SANDBOX_BOUNDARIES.NETWORK),
-      )
-    : null;
-  let closed = false;
-  const cleanup = () => {
-    if (closed) return;
-    closed = true;
-    closeLinuxPinnedMounts(runtime, descriptors);
-    try {
-      runtime.fs.unlinkSync(runtimeSnapshot.path);
-    } catch {
-      // The runtime copy is already unreachable or cleanup will be retried by
-      // the owning temporary-directory lifecycle.
-    }
-  };
-  if (composeSeatbelt && !runtime.fs.existsSync(sandboxExecutable)) {
-    cleanup();
-    return unavailable(
-      "macos_sandbox_exec_unavailable",
-      {
-        runnable: false,
-        reason: "sandbox_exec_missing",
-        contentSnapshot: true,
-        handleAtomic: false,
-      },
-      MACOS_MCP_CAPSULE_SEATBELT_BACKEND,
-    );
-  }
-  const policyDigest = sha256(
-    JSON.stringify({
-      version: 1,
-      backend,
-      contractKind: contract.kind,
-      requiredBoundaries: [...requiredBoundaries].sort(),
-      identity: snapshotIdentity,
-      cwd: spawnOpts.cwd,
-      entrySnapshotBootstrapSha256: MCP_STDIO_FD_ENTRY_BOOTSTRAP_SHA256,
-      runtimeLaunchMechanism:
-        "verified-private-tempfile-synchronous-spawn-unlink-v1",
-      passthroughArgsDigest: sha256(JSON.stringify(args.slice(1))),
-      ...(seatbeltProfile
-        ? {
-            platformSandboxMechanism: MACOS_MCP_CAPSULE_SEATBELT_MECHANISM,
-            platformSandboxProfileSha256: sha256(seatbeltProfile),
-            runtimeSnapshotPath: runtimeSnapshot.path,
-          }
-        : {}),
-    }),
-  );
-  const targetArgs = [
-    "-e",
-    MCP_STDIO_FD_ENTRY_BOOTSTRAP,
-    "--",
-    ...args.slice(1),
-  ];
-  return createSandboxPlan({
-    ...base,
-    applied: true,
-    enforcement: backend,
-    backend,
-    candidateBackend: null,
-    policyAttested: true,
-    policyDigest,
-    runtimeProbe: {
-      kind: "darwin-mcp-capsule-code-snapshot-v1",
-      attempted: true,
-      runnable: true,
-      reason: null,
-      probeRuntime: "node",
-      targetRuntime: "node",
-      contentSnapshot: true,
-      contentSnapshotScope: "mcp-capsule-entry-and-node-runtime",
-      contentSnapshotMechanism: MACOS_MCP_CAPSULE_SNAPSHOT_MECHANISM,
-      handleAtomic: false,
-      entrySnapshotAtomic: true,
+      entrySnapshotAtomic: false,
       runtimeLaunchAtomic: false,
-      runtimeLaunchMechanism:
-        "verified-private-tempfile-synchronous-spawn-unlink-v1",
-      entrySnapshotBootstrapSha256: MCP_STDIO_FD_ENTRY_BOOTSTRAP_SHA256,
       sharedLibraryClosure: false,
-      ...(seatbeltProfile
-        ? {
-            platformSandboxComposed: true,
-            platformSandboxMechanism: MACOS_MCP_CAPSULE_SEATBELT_MECHANISM,
-            platformSandboxProfileSha256: sha256(seatbeltProfile),
-            runtimeSnapshotPath: runtimeSnapshot.path,
-          }
-        : {}),
-      ...snapshotIdentity,
-    },
-    reason: null,
-    guarantees: [
-      SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
-      ...(composeSeatbelt ? [SANDBOX_BOUNDARIES.FILESYSTEM] : []),
-      ...(composeSeatbelt &&
-      requiredBoundaries.includes(SANDBOX_BOUNDARIES.NETWORK)
-        ? [SANDBOX_BOUNDARIES.NETWORK]
-        : []),
-    ],
-    command: composeSeatbelt ? sandboxExecutable : runtimeSnapshot.path,
-    args: composeSeatbelt
-      ? ["-p", seatbeltProfile, runtimeSnapshot.path, ...targetArgs]
-      : targetArgs,
-    options: {
-      ...(spawnOpts || {}),
-      shell: false,
-      stdio: Object.freeze(
-        linuxStdioWithPinnedMounts(spawnOpts?.stdio, descriptors),
-      ),
-    },
-    cleanup,
+    });
+  }
+
+  // Darwin exposes only pathname-based exec/spawn APIs to an unprivileged
+  // process. An inherited descriptor can bind the entry source, but public
+  // APIs cannot bind the verified Node runtime descriptor to the image that
+  // executes. Private temporary paths and Seatbelt still leave a same-UID
+  // pathname-replacement window, so they cannot satisfy CODE_SNAPSHOT.
+  return unavailable("macos_atomic_runtime_exec_unavailable", {
+    attempted: true,
+    runnable: false,
+    reason: "public_api_has_no_descriptor_bound_exec",
+    contentSnapshot: false,
+    handleAtomic: false,
+    entrySnapshotAtomic: false,
+    runtimeLaunchAtomic: false,
+    runtimeLaunchMechanism: "darwin-public-api-pathname-exec-only-v1",
+    sharedLibraryClosure: false,
   });
 }
 

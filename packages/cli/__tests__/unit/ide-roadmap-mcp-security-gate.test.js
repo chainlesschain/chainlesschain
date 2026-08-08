@@ -56,7 +56,7 @@ function evidenceFor(operatingSystem) {
     })),
   ).flat();
   return {
-    schema: "chainlesschain.ide-roadmap-mcp-security-evidence.v3",
+    schema: "chainlesschain.ide-roadmap-mcp-security-evidence.v4",
     releaseCommit,
     result: "passed",
     startedAt: "2026-08-06T00:00:00.000Z",
@@ -136,42 +136,53 @@ function evidenceFor(operatingSystem) {
             passCount: 0,
             samples: [],
           }
-        : {
-            required: true,
-            pass: true,
-            backend:
-              operatingSystem === "linux"
-                ? "linux-fd-code-snapshot"
-                : "macos-fd-code-snapshot",
-            mechanism:
-              operatingSystem === "linux"
-                ? "verified-o_tmpfile-copy-inherited-fd-module-compile-v1"
-                : "verified-private-runtime-copy-and-unlinked-entry-fd-module-compile-v1",
-            handleAtomic: operatingSystem === "linux",
-            entrySnapshotAtomic: true,
-            runtimeLaunchAtomic: operatingSystem === "linux",
-            sharedLibraryClosure: false,
-            sourceReplacementObserved: true,
-            originalSnapshotExecuted: true,
-            maliciousPathExecuted: false,
-            exitCode: 0,
-            requiredRuns: 100,
-            sampleCount: 100,
-            passCount: 100,
-            stdoutBytes: 1690,
-            stderrBytes: 0,
-            samples: Array.from({ length: 100 }, (_, iteration) => ({
-              id: `code-snapshot-race-${iteration}`,
-              iteration,
+        : operatingSystem === "macos"
+          ? {
+              required: false,
               pass: true,
+              reason: "macos-atomic-runtime-exec-unavailable-fail-closed",
+              failClosed: true,
+              candidateBackend: "macos-fd-code-snapshot",
+              adapterReason: "macos_atomic_runtime_exec_unavailable",
+              runtimeProbeReason: "public_api_has_no_descriptor_bound_exec",
+              entrySnapshotAtomic: false,
+              runtimeLaunchAtomic: false,
+              requiredRuns: 0,
+              sampleCount: 0,
+              passCount: 0,
+              samples: [],
+            }
+          : {
+              required: true,
+              pass: true,
+              backend: "linux-fd-code-snapshot",
+              mechanism:
+                "verified-o_tmpfile-copy-inherited-fd-module-compile-v1",
+              handleAtomic: true,
+              entrySnapshotAtomic: true,
+              runtimeLaunchAtomic: true,
+              sharedLibraryClosure: false,
               sourceReplacementObserved: true,
               originalSnapshotExecuted: true,
               maliciousPathExecuted: false,
               exitCode: 0,
-              stdoutBytes: Buffer.byteLength(`safe-snapshot-${iteration}\n`),
+              requiredRuns: 100,
+              sampleCount: 100,
+              passCount: 100,
+              stdoutBytes: 1690,
               stderrBytes: 0,
-            })),
-          },
+              samples: Array.from({ length: 100 }, (_, iteration) => ({
+                id: `code-snapshot-race-${iteration}`,
+                iteration,
+                pass: true,
+                sourceReplacementObserved: true,
+                originalSnapshotExecuted: true,
+                maliciousPathExecuted: false,
+                exitCode: 0,
+                stdoutBytes: Buffer.byteLength(`safe-snapshot-${iteration}\n`),
+                stderrBytes: 0,
+              })),
+            },
     invariants: {
       annotationsAreHintsOnly: true,
       defaultConfirmationRequired: true,
@@ -219,10 +230,12 @@ describe("IDE roadmap MCP security evidence verifier", () => {
       unapprovedLedgerRecordCount: 0,
       approvedProbeCount: 3,
       staleHostReadPolicyProbeCount: 3,
-      codeSnapshotRaceOperatingSystems: ["linux", "macos"],
-      codeSnapshotRaceProbeCount: 2,
+      codeSnapshotRaceOperatingSystems: ["linux"],
+      codeSnapshotFailClosedOperatingSystems: ["macos"],
+      codeSnapshotRaceProbeCount: 1,
+      codeSnapshotFailClosedProbeCount: 1,
       requiredCodeSnapshotRaceRunsPerOperatingSystem: 100,
-      codeSnapshotRaceSampleCount: 200,
+      codeSnapshotRaceSampleCount: 100,
       atomicPathReplacementEscapeCount: 0,
       staleHostReadCannotDowngradeRisk: true,
     });
@@ -270,9 +283,20 @@ describe("IDE roadmap MCP security evidence verifier", () => {
   });
 
   it("rejects a pathname replacement that escapes the atomic snapshot", () => {
+    const linuxPath = path.join(evidenceDir, "linux.json");
+    const linux = JSON.parse(fs.readFileSync(linuxPath, "utf8"));
+    linux.codeSnapshotRaceProbe.maliciousPathExecuted = true;
+    fs.writeFileSync(linuxPath, JSON.stringify(linux), "utf8");
+
+    expect(() =>
+      verifyMcpSecurityEvidenceSet({ evidenceDir, releaseCommit }),
+    ).toThrow(/code snapshot race probe/);
+  });
+
+  it("rejects macOS evidence that does not attest the fail-closed reason", () => {
     const macPath = path.join(evidenceDir, "macos.json");
     const mac = JSON.parse(fs.readFileSync(macPath, "utf8"));
-    mac.codeSnapshotRaceProbe.maliciousPathExecuted = true;
+    mac.codeSnapshotRaceProbe.reason = "macos-fd-code-snapshot-passed";
     fs.writeFileSync(macPath, JSON.stringify(mac), "utf8");
 
     expect(() =>

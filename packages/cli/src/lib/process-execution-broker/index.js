@@ -37,7 +37,6 @@ const require = createRequire(import.meta.url);
 import {
   applySandbox as _applySandbox,
   postSpawnSandbox as _postSpawnSandbox,
-  generateMacMcpCapsuleSeatbeltProfile,
   MCP_STDIO_FD_ENTRY_BOOTSTRAP_SHA256,
   SANDBOX_BOUNDARIES,
 } from "./platform-sandbox.js";
@@ -1184,8 +1183,6 @@ class ProcessExecutionBroker extends EventEmitter {
         "runtimeLaunchMechanism",
         "runtimeLaunchPath",
         "entrySnapshotPath",
-        "platformSandboxMechanism",
-        "runtimeSnapshotPath",
         "pluginTreeContentSnapshotScope",
         "pluginTreeContentSnapshotMechanism",
         "pluginTreeSnapshotConsistency",
@@ -1215,7 +1212,6 @@ class ProcessExecutionBroker extends EventEmitter {
         "entrySnapshotAtomic",
         "runtimeLaunchAtomic",
         "mcpCapsuleCodeSnapshot",
-        "platformSandboxComposed",
       ]) {
         if (
           plan.runtimeProbe[field] !== undefined &&
@@ -1251,7 +1247,6 @@ class ProcessExecutionBroker extends EventEmitter {
         "runtimeSnapshotSha256",
         "runtimeAttestedSha256",
         "entrySnapshotSha256",
-        "platformSandboxProfileSha256",
       ]) {
         if (
           plan.runtimeProbe[field] !== undefined &&
@@ -1578,6 +1573,8 @@ class ProcessExecutionBroker extends EventEmitter {
           plan.runtimeProbe.probeRuntime === "node" &&
           plan.runtimeProbe.targetRuntime === "node" &&
           plan.runtimeProbe.contentSnapshot === true &&
+          plan.runtimeProbe.entrySnapshotAtomic === true &&
+          plan.runtimeProbe.runtimeLaunchAtomic === true &&
           plan.runtimeProbe.sharedLibraryClosure === false &&
           /^[a-f0-9]{64}$/.test(plan.runtimeProbe.entrySnapshotSha256 || "") &&
           Number.isSafeInteger(plan.runtimeProbe.entrySnapshotBytes) &&
@@ -1677,98 +1674,11 @@ class ProcessExecutionBroker extends EventEmitter {
           Number.isSafeInteger(plan.runtimeProbe.runtimeAttestedBytes) &&
           plan.runtimeProbe.runtimeAttestedBytes > 0 &&
           plan.runtimeProbe.runtimeAttestedBytes <= 256 * 1024 * 1024;
-        const macSnapshotEvidence =
-          plan.platform === "darwin" &&
-          backend === "macos-fd-code-snapshot" &&
-          plan.enforcement === "macos-fd-code-snapshot" &&
-          policyAttested === true &&
-          policyDigest !== null &&
-          plan.runtimeProbe.kind === "darwin-mcp-capsule-code-snapshot-v1" &&
-          plan.runtimeProbe.contentSnapshotScope ===
-            "mcp-capsule-entry-and-node-runtime" &&
-          plan.runtimeProbe.contentSnapshotMechanism ===
-            "verified-private-runtime-copy-and-unlinked-entry-fd-module-compile-v1" &&
-          plan.runtimeProbe.handleAtomic === false &&
-          plan.runtimeProbe.entrySnapshotAtomic === true &&
-          plan.runtimeProbe.runtimeLaunchAtomic === false &&
-          plan.runtimeProbe.runtimeLaunchMechanism ===
-            "verified-private-tempfile-synchronous-spawn-unlink-v1" &&
-          plan.runtimeProbe.entrySnapshotBootstrapSha256 ===
-            MCP_STDIO_FD_ENTRY_BOOTSTRAP_SHA256 &&
-          /^[a-f0-9]{64}$/.test(
-            plan.runtimeProbe.runtimeSnapshotSha256 || "",
-          ) &&
-          Number.isSafeInteger(plan.runtimeProbe.runtimeSnapshotBytes) &&
-          plan.runtimeProbe.runtimeSnapshotBytes > 0 &&
-          plan.runtimeProbe.runtimeSnapshotBytes <= 256 * 1024 * 1024 &&
-          path.posix.isAbsolute(plan.command) &&
-          plan.args[0] === "-e" &&
-          crypto
-            .createHash("sha256")
-            .update(plan.args[1] || "")
-            .digest("hex") === MCP_STDIO_FD_ENTRY_BOOTSTRAP_SHA256 &&
-          plan.args[2] === "--";
-        const macSeatbeltSnapshotEvidence =
-          plan.platform === "darwin" &&
-          backend === "macos-seatbelt-fd-code-snapshot" &&
-          plan.enforcement === "macos-seatbelt-fd-code-snapshot" &&
-          policyAttested === true &&
-          policyDigest !== null &&
-          plan.runtimeProbe.kind === "darwin-mcp-capsule-code-snapshot-v1" &&
-          plan.runtimeProbe.contentSnapshotScope ===
-            "mcp-capsule-entry-and-node-runtime" &&
-          plan.runtimeProbe.contentSnapshotMechanism ===
-            "verified-private-runtime-copy-and-unlinked-entry-fd-module-compile-v1" &&
-          plan.runtimeProbe.handleAtomic === false &&
-          plan.runtimeProbe.entrySnapshotAtomic === true &&
-          plan.runtimeProbe.runtimeLaunchAtomic === false &&
-          plan.runtimeProbe.runtimeLaunchMechanism ===
-            "verified-private-tempfile-synchronous-spawn-unlink-v1" &&
-          plan.runtimeProbe.entrySnapshotBootstrapSha256 ===
-            MCP_STDIO_FD_ENTRY_BOOTSTRAP_SHA256 &&
-          plan.runtimeProbe.platformSandboxComposed === true &&
-          plan.runtimeProbe.platformSandboxMechanism ===
-            "sandbox-exec-inline-profile-fd-entry-v1" &&
-          /^[a-f0-9]{64}$/.test(
-            plan.runtimeProbe.platformSandboxProfileSha256 || "",
-          ) &&
-          typeof plan.runtimeProbe.runtimeSnapshotPath === "string" &&
-          path.posix.isAbsolute(plan.runtimeProbe.runtimeSnapshotPath) &&
-          path.posix.normalize(plan.runtimeProbe.runtimeSnapshotPath) ===
-            plan.runtimeProbe.runtimeSnapshotPath &&
-          !plan.runtimeProbe.runtimeSnapshotPath.includes("\0") &&
-          /^[a-f0-9]{64}$/.test(
-            plan.runtimeProbe.runtimeSnapshotSha256 || "",
-          ) &&
-          Number.isSafeInteger(plan.runtimeProbe.runtimeSnapshotBytes) &&
-          plan.runtimeProbe.runtimeSnapshotBytes > 0 &&
-          plan.runtimeProbe.runtimeSnapshotBytes <= 256 * 1024 * 1024 &&
-          plan.command === "/usr/bin/sandbox-exec" &&
-          plan.args[0] === "-p" &&
-          plan.args[1] ===
-            generateMacMcpCapsuleSeatbeltProfile(
-              plan.runtimeProbe.runtimeSnapshotPath,
-              guarantees.includes(SANDBOX_BOUNDARIES.NETWORK),
-            ) &&
-          crypto
-            .createHash("sha256")
-            .update(plan.args[1] || "")
-            .digest("hex") === plan.runtimeProbe.platformSandboxProfileSha256 &&
-          plan.args[2] === plan.runtimeProbe.runtimeSnapshotPath &&
-          plan.args[3] === "-e" &&
-          crypto
-            .createHash("sha256")
-            .update(plan.args[4] || "")
-            .digest("hex") === MCP_STDIO_FD_ENTRY_BOOTSTRAP_SHA256 &&
-          plan.args[5] === "--" &&
-          guarantees.includes(SANDBOX_BOUNDARIES.FILESYSTEM);
         if (
           !exactSnapshotEvidence ||
           (!linuxSnapshotEvidence &&
             !linuxBubblewrapSnapshotEvidence &&
-            !windowsSnapshotEvidence &&
-            !macSnapshotEvidence &&
-            !macSeatbeltSnapshotEvidence)
+            !windowsSnapshotEvidence)
         ) {
           throw this._sandboxError(
             "invalid_sandbox_plan",
@@ -2088,17 +1998,6 @@ class ProcessExecutionBroker extends EventEmitter {
                       plan.runtimeProbe.mcpCapsuleCodeSnapshot,
                   }
                 : {}),
-              ...(plan.runtimeProbe.platformSandboxComposed !== undefined
-                ? {
-                    platformSandboxComposed:
-                      plan.runtimeProbe.platformSandboxComposed,
-                    platformSandboxMechanism:
-                      plan.runtimeProbe.platformSandboxMechanism,
-                    platformSandboxProfileSha256:
-                      plan.runtimeProbe.platformSandboxProfileSha256,
-                    runtimeSnapshotPath: plan.runtimeProbe.runtimeSnapshotPath,
-                  }
-                : {}),
               entrySnapshotBootstrapSha256:
                 plan.runtimeProbe.entrySnapshotBootstrapSha256,
               sharedLibraryClosure: plan.runtimeProbe.sharedLibraryClosure,
@@ -2161,6 +2060,15 @@ class ProcessExecutionBroker extends EventEmitter {
           gid: supervisorIdentity.gid,
         };
       }
+    }
+    if (
+      guarantees.includes(SANDBOX_BOUNDARIES.CODE_SNAPSHOT) &&
+      runtimeProbe === null
+    ) {
+      throw this._sandboxError(
+        "invalid_sandbox_plan",
+        "Code snapshot guarantee requires typed atomic MCP capsule evidence",
+      );
     }
     if (backend === "linux-bwrap-workspace" && !genericWorkspaceProbe) {
       throw this._sandboxError(
@@ -3255,8 +3163,7 @@ class ProcessExecutionBroker extends EventEmitter {
       sandboxPlan.applied === true &&
       (sandboxPlan.backend === "linux-bwrap-workspace" ||
         sandboxPlan.backend === "linux-bwrap" ||
-        sandboxPlan.backend === "linux-fd-code-snapshot" ||
-        sandboxPlan.backend === "macos-fd-code-snapshot") &&
+        sandboxPlan.backend === "linux-fd-code-snapshot") &&
       sandboxPlan.postSpawn.required === false
     ) {
       // child_process.spawn() has synchronously duplicated every stdio entry

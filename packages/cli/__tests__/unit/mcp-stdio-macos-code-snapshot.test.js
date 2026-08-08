@@ -11,8 +11,6 @@ import {
 } from "../../src/lib/process-execution-broker/platform-sandbox.js";
 
 const temporaryRoots = [];
-const HAS_MACOS_SEATBELT =
-  process.platform === "darwin" && fs.existsSync("/usr/bin/sandbox-exec");
 
 function fileIdentity(filePath) {
   const realPath = fs.realpathSync(filePath);
@@ -53,7 +51,7 @@ afterEach(() => {
   }
 });
 
-describe("macOS MCP anonymous code snapshots", () => {
+describe("MCP inherited-FD entry bootstrap and macOS fail-closed policy", () => {
   it("compiles the exact entry source from inherited fd 4 with direct-script argv", () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-mcp-fd-entry-"));
     temporaryRoots.push(root);
@@ -85,111 +83,16 @@ describe("macOS MCP anonymous code snapshots", () => {
   });
 
   it.runIf(process.platform === "darwin")(
-    "executes the attested runtime and entry FDs after the source pathname is replaced",
+    "fails closed when macOS cannot bind the verified runtime to exec",
     () => {
       const root = fs.realpathSync(
         fs.mkdtempSync(path.join(os.tmpdir(), "cc-mcp-macos-fd-")),
       );
       temporaryRoots.push(root);
       const entryPath = path.join(root, "server.cjs");
-      const markerPath = path.join(root, "malicious-marker.txt");
       fs.writeFileSync(
         entryPath,
-        'process.stdout.write("safe-snapshot\\n");\n',
-      );
-
-      const runtime = fileIdentity(process.execPath);
-      const entry = fileIdentity(entryPath);
-      const contract = Object.freeze({
-        contractVersion: 1,
-        kind: "strict-mcp-node-capsule",
-        pluginRoot: root,
-        workingDirectory: root,
-        runtimePath: runtime.realPath,
-        rootIdentity: rootIdentity(root),
-        entryIdentity: entry,
-        runtimeIdentity: runtime,
-      });
-      const plan = applyMacSandbox(
-        runtime.realPath,
-        [entry.realPath],
-        { cwd: root, shell: false, stdio: "pipe" },
-        {
-          profileName: "default",
-          requiredBoundaries: [SANDBOX_BOUNDARIES.CODE_SNAPSHOT],
-          executionContract: contract,
-          sync: true,
-        },
-      );
-
-      try {
-        expect(plan).toMatchObject({
-          applied: true,
-          backend: "macos-fd-code-snapshot",
-          guarantees: [SANDBOX_BOUNDARIES.CODE_SNAPSHOT],
-          runtimeProbe: {
-            kind: "darwin-mcp-capsule-code-snapshot-v1",
-            handleAtomic: false,
-            entrySnapshotAtomic: true,
-            runtimeLaunchAtomic: false,
-            sharedLibraryClosure: false,
-          },
-        });
-        expect(plan.command).not.toBe(runtime.realPath);
-        expect(path.isAbsolute(plan.command)).toBe(true);
-        expect(plan.args.slice(0, 3)).toEqual(["-e", expect.any(String), "--"]);
-
-        fs.writeFileSync(
-          entryPath,
-          `require("node:fs").writeFileSync(${JSON.stringify(markerPath)}, "executed");\n`,
-        );
-        const result = spawnSync(plan.command, plan.args, {
-          ...plan.options,
-          encoding: "utf8",
-        });
-        expect(result.status).toBe(0);
-        expect(result.stdout).toBe("safe-snapshot\n");
-        expect(result.stderr).toBe("");
-        expect(fs.existsSync(markerPath)).toBe(false);
-      } finally {
-        plan.cleanup?.();
-      }
-    },
-  );
-
-  it.runIf(HAS_MACOS_SEATBELT)(
-    "composes the capsule snapshot with filesystem and network Seatbelt boundaries",
-    () => {
-      const root = fs.realpathSync(
-        fs.mkdtempSync(path.join(os.tmpdir(), "cc-mcp-macos-seatbelt-")),
-      );
-      temporaryRoots.push(root);
-      const entryPath = path.join(root, "server.cjs");
-      const outsideReadPath = path.join(
-        os.tmpdir(),
-        `.cc-mcp-seatbelt-outside-read-${process.pid}-${Date.now()}`,
-      );
-      const outsideWritePath = `${outsideReadPath}.write`;
-      fs.writeFileSync(outsideReadPath, "host-only", "utf8");
-      temporaryRoots.push(outsideReadPath, outsideWritePath);
-      fs.writeFileSync(
-        entryPath,
-        [
-          'const fs = require("node:fs");',
-          'const net = require("node:net");',
-          `const readPath = ${JSON.stringify(outsideReadPath)};`,
-          `const writePath = ${JSON.stringify(outsideWritePath)};`,
-          "const denied = (error) => ['EACCES', 'EPERM'].includes(error?.code);",
-          "const outcome = { readDenied: false, writeDenied: false, networkDenied: false };",
-          "try { fs.readFileSync(readPath); } catch (error) { outcome.readDenied = denied(error); }",
-          "try { fs.writeFileSync(writePath, 'escape'); } catch (error) { outcome.writeDenied = denied(error); }",
-          "let settled = false;",
-          "const finish = () => { if (settled) return; settled = true; socket?.destroy(); process.stdout.write(JSON.stringify(outcome)); };",
-          "const socket = net.createConnection({ host: '127.0.0.1', port: 9 });",
-          "socket.once('connect', () => { socket.destroy(); finish(); });",
-          "socket.once('error', (error) => { outcome.networkDenied = denied(error); finish(); });",
-          "setTimeout(finish, 2000).unref();",
-        ].join("\n"),
+        'process.stdout.write("must-not-execute\\n");\n',
       );
 
       const runtime = fileIdentity(process.execPath);
@@ -220,43 +123,30 @@ describe("macOS MCP anonymous code snapshots", () => {
         },
       );
 
-      try {
-        expect(plan).toMatchObject({
-          applied: true,
-          command: "/usr/bin/sandbox-exec",
-          backend: "macos-seatbelt-fd-code-snapshot",
-          guarantees: [
-            SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
-            SANDBOX_BOUNDARIES.FILESYSTEM,
-            SANDBOX_BOUNDARIES.NETWORK,
-          ],
-          runtimeProbe: {
-            platformSandboxComposed: true,
-            platformSandboxMechanism: "sandbox-exec-inline-profile-fd-entry-v1",
-            platformSandboxProfileSha256:
-              expect.stringMatching(/^[a-f0-9]{64}$/),
-          },
-        });
-        expect(plan.args[0]).toBe("-p");
-        expect(plan.args[1]).toContain("(deny network*)");
-        expect(plan.args[1]).not.toContain(outsideReadPath);
-
-        const result = spawnSync(plan.command, plan.args, {
-          ...plan.options,
-          encoding: "utf8",
-          timeout: 10_000,
-        });
-        expect(result.status, result.stderr).toBe(0);
-        expect(JSON.parse(result.stdout)).toEqual({
-          readDenied: true,
-          writeDenied: true,
-          networkDenied: true,
-        });
-        expect(fs.existsSync(outsideWritePath)).toBe(false);
-      } finally {
-        plan.cleanup?.();
-      }
+      expect(plan).toMatchObject({
+        applied: false,
+        backend: null,
+        candidateBackend: "macos-fd-code-snapshot",
+        policyAttested: false,
+        reason: "macos_atomic_runtime_exec_unavailable",
+        guarantees: [],
+        command: runtime.realPath,
+        args: [entry.realPath],
+        runtimeProbe: {
+          kind: "darwin-mcp-capsule-code-snapshot-v1",
+          attempted: true,
+          runnable: false,
+          reason: "public_api_has_no_descriptor_bound_exec",
+          contentSnapshot: false,
+          handleAtomic: false,
+          entrySnapshotAtomic: false,
+          runtimeLaunchAtomic: false,
+          runtimeLaunchMechanism: "darwin-public-api-pathname-exec-only-v1",
+          sharedLibraryClosure: false,
+        },
+      });
+      expect(plan.command).not.toBe("/usr/bin/sandbox-exec");
+      expect(plan.cleanup).toBeUndefined();
     },
-    20_000,
   );
 });

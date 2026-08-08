@@ -17,7 +17,6 @@ import {
 import {
   applySandbox,
   applyWindowsSandbox,
-  generateMacMcpCapsuleSeatbeltProfile,
   MCP_STDIO_FD_ENTRY_BOOTSTRAP,
   MCP_STDIO_FD_ENTRY_BOOTSTRAP_SHA256,
   resetWindowsSandboxAdapterCache,
@@ -9816,9 +9815,8 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
     expect(nativeSpawn).toHaveBeenCalledOnce();
   });
 
-  it("accepts and audits typed atomic macOS MCP capsule evidence", async () => {
-    const child = createChild();
-    const nativeSpawn = vi.fn(() => child);
+  it("rejects macOS CODE_SNAPSHOT evidence without an atomic runtime launch", () => {
+    const nativeSpawn = vi.fn();
     const cleanup = vi.fn();
     executionBroker._native = { spawn: nativeSpawn };
     executionBroker._sandboxAdapter = {
@@ -9865,156 +9863,18 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
       postSpawnSandbox: vi.fn(),
     };
 
-    executionBroker.spawn("node", ["server.cjs", "--stdio"], {
-      origin: "test:macos-mcp-code-snapshot",
-      policy: "allow",
-      shell: false,
-      requiredBoundaries: [SANDBOX_BOUNDARIES.CODE_SNAPSHOT],
-    });
-
-    expect(nativeSpawn).toHaveBeenCalledOnce();
-    expect(cleanup).toHaveBeenCalledOnce();
-    expect(executionBroker.getAuditLog(1)[0]).toMatchObject({
-      sandboxed: true,
-      sandboxBackend: "macos-fd-code-snapshot",
-      sandboxRequired: [SANDBOX_BOUNDARIES.CODE_SNAPSHOT],
-      sandboxGuarantees: [SANDBOX_BOUNDARIES.CODE_SNAPSHOT],
-      sandboxRuntimeProbe: {
-        handleAtomic: false,
-        entrySnapshotAtomic: true,
-        runtimeLaunchAtomic: false,
-        sharedLibraryClosure: false,
-        runtimeSnapshotSha256: "a".repeat(64),
-        entrySnapshotSha256: "b".repeat(64),
-      },
-    });
-    await expect(child.sandboxReady).resolves.toMatchObject({
-      applied: true,
-      backend: "macos-fd-code-snapshot",
-    });
-  });
-
-  it("binds a macOS MCP snapshot to its inline Seatbelt profile", async () => {
-    const child = createChild();
-    const nativeSpawn = vi.fn(() => child);
-    const runtimeSnapshotPath =
-      "/private/tmp/.chainlesschain-mcp-runtime-snapshot";
-    const profile = generateMacMcpCapsuleSeatbeltProfile(
-      runtimeSnapshotPath,
-      true,
-    );
-    const profileSha256 = crypto
-      .createHash("sha256")
-      .update(profile)
-      .digest("hex");
-    const runtimeProbe = {
-      kind: "darwin-mcp-capsule-code-snapshot-v1",
-      attempted: true,
-      runnable: true,
-      reason: null,
-      probeRuntime: "node",
-      targetRuntime: "node",
-      contentSnapshot: true,
-      contentSnapshotScope: "mcp-capsule-entry-and-node-runtime",
-      contentSnapshotMechanism:
-        "verified-private-runtime-copy-and-unlinked-entry-fd-module-compile-v1",
-      handleAtomic: false,
-      entrySnapshotAtomic: true,
-      runtimeLaunchAtomic: false,
-      runtimeLaunchMechanism:
-        "verified-private-tempfile-synchronous-spawn-unlink-v1",
-      entrySnapshotBootstrapSha256: MCP_STDIO_FD_ENTRY_BOOTSTRAP_SHA256,
-      sharedLibraryClosure: false,
-      runtimeSnapshotSha256: "a".repeat(64),
-      runtimeSnapshotBytes: 100,
-      entrySnapshotSha256: "b".repeat(64),
-      entrySnapshotBytes: 200,
-      platformSandboxComposed: true,
-      platformSandboxMechanism: "sandbox-exec-inline-profile-fd-entry-v1",
-      platformSandboxProfileSha256: profileSha256,
-      runtimeSnapshotPath,
-    };
-    const seatbeltPlan = (inlineProfile, options) =>
-      appliedPlan(
-        "/usr/bin/sandbox-exec",
-        [
-          "-p",
-          inlineProfile,
-          runtimeSnapshotPath,
-          "-e",
-          MCP_STDIO_FD_ENTRY_BOOTSTRAP,
-          "--",
-          "--stdio",
-        ],
-        options,
-        {
-          platform: "darwin",
-          enforcement: "macos-seatbelt-fd-code-snapshot",
-          backend: "macos-seatbelt-fd-code-snapshot",
-          candidateBackend: null,
-          policyAttested: true,
-          policyDigest: "7".repeat(64),
-          guarantees: [
-            SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
-            SANDBOX_BOUNDARIES.FILESYSTEM,
-            SANDBOX_BOUNDARIES.NETWORK,
-          ],
-          runtimeProbe,
-        },
-      );
-    executionBroker._native = { spawn: nativeSpawn };
-    executionBroker._sandboxAdapter = {
-      applySandbox: vi.fn((_command, _args, options) =>
-        seatbeltPlan(profile, options),
-      ),
-      postSpawnSandbox: vi.fn(),
-    };
-
-    executionBroker.spawn("node", ["server.cjs", "--stdio"], {
-      origin: "test:macos-seatbelt-mcp-code-snapshot",
-      policy: "allow",
-      shell: false,
-      requiredBoundaries: [
-        SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
-        SANDBOX_BOUNDARIES.FILESYSTEM,
-        SANDBOX_BOUNDARIES.NETWORK,
-      ],
-    });
-
-    expect(nativeSpawn).toHaveBeenCalledOnce();
-    expect(executionBroker.getAuditLog(1)[0]).toMatchObject({
-      sandboxed: true,
-      sandboxBackend: "macos-seatbelt-fd-code-snapshot",
-      sandboxRuntimeProbe: {
-        platformSandboxComposed: true,
-        platformSandboxProfileSha256: profileSha256,
-        runtimeSnapshotPath,
-      },
-    });
-    await expect(child.sandboxReady).resolves.toMatchObject({
-      applied: true,
-      backend: "macos-seatbelt-fd-code-snapshot",
-    });
-
-    executionBroker._sandboxAdapter.applySandbox = vi.fn(
-      (_command, _args, options) =>
-        seatbeltPlan(`${profile}\n(allow network*)`, options),
-    );
     expect(() =>
       executionBroker.spawn("node", ["server.cjs", "--stdio"], {
-        origin: "test:forged-macos-seatbelt-profile",
+        origin: "test:macos-mcp-code-snapshot",
         policy: "allow",
         shell: false,
-        requiredBoundaries: [
-          SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
-          SANDBOX_BOUNDARIES.FILESYSTEM,
-          SANDBOX_BOUNDARIES.NETWORK,
-        ],
+        requiredBoundaries: [SANDBOX_BOUNDARIES.CODE_SNAPSHOT],
       }),
     ).toThrow(
       "Code snapshot guarantee requires typed atomic MCP capsule evidence",
     );
-    expect(nativeSpawn).toHaveBeenCalledOnce();
+    expect(nativeSpawn).not.toHaveBeenCalled();
+    expect(cleanup).toHaveBeenCalledOnce();
   });
 
   it("accepts composed Windows AppContainer and MCP snapshot evidence", async () => {
@@ -10156,6 +10016,40 @@ describe("ProcessExecutionBroker sandbox-plan consumption", () => {
       "Code snapshot guarantee requires typed atomic MCP capsule evidence",
     );
     expect(nativeSpawn).not.toHaveBeenCalled();
+  });
+
+  it("rejects a code snapshot guarantee with no runtime evidence", () => {
+    const nativeSpawn = vi.fn();
+    const cleanup = vi.fn();
+    executionBroker._native = { spawn: nativeSpawn };
+    executionBroker._sandboxAdapter = {
+      applySandbox: vi.fn((_command, _args, options) =>
+        appliedPlan("/proc/self/fd/3", ["/proc/self/fd/4"], options, {
+          platform: "linux",
+          enforcement: "linux-fd-code-snapshot",
+          backend: "linux-fd-code-snapshot",
+          candidateBackend: null,
+          policyAttested: true,
+          policyDigest: "9".repeat(64),
+          guarantees: [SANDBOX_BOUNDARIES.CODE_SNAPSHOT],
+          cleanup,
+        }),
+      ),
+      postSpawnSandbox: vi.fn(),
+    };
+
+    expect(() =>
+      executionBroker.spawn("node", ["server.cjs"], {
+        origin: "test:missing-code-snapshot-evidence",
+        policy: "allow",
+        shell: false,
+        requiredBoundaries: [SANDBOX_BOUNDARIES.CODE_SNAPSHOT],
+      }),
+    ).toThrow(
+      "Code snapshot guarantee requires typed atomic MCP capsule evidence",
+    );
+    expect(nativeSpawn).not.toHaveBeenCalled();
+    expect(cleanup).toHaveBeenCalledOnce();
   });
 
   it("fails closed before spawn when actual guarantees miss a required boundary", () => {
