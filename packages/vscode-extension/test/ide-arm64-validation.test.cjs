@@ -366,7 +366,11 @@ test("the ARM64 workflow binds exact hosts, versions, and aggregate evidence", (
   );
   assert.match(
     jetbrainsHostDriver,
-    /ensureSessionsWorkbenchVisible[\s\S]*?SESSIONS_TABLE_XPATH[\s\S]*?PANEL_VISIBILITY_PROBE_BUDGET[\s\S]*?SESSIONS_STRIPE_XPATH[\s\S]*?stripe\.click\(\)[\s\S]*?SESSIONS_TABLE_XPATH[\s\S]*?FIND_BUDGET/u,
+    /ensureSessionsWorkbenchVisible[\s\S]*?SESSIONS_TABLE_XPATH[\s\S]*?PANEL_VISIBILITY_PROBE_BUDGET[\s\S]*?SESSIONS_STRIPE_XPATH[\s\S]*?clickStripe\(stripe\)[\s\S]*?SESSIONS_TABLE_XPATH[\s\S]*?FIND_BUDGET/u,
+  );
+  assert.match(
+    jetbrainsHostDriver,
+    /clickStripe[\s\S]*?instanceof AbstractButton[\s\S]*?component\.doClick\(\)[\s\S]*?component\.click\(\)/u,
   );
 
   const vscodeHostRunner = fs.readFileSync(

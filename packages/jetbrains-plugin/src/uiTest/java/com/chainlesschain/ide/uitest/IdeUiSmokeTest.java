@@ -79,7 +79,7 @@ final class IdeUiSmokeTest {
 
             ComponentFixture stripe = robot.find(ComponentFixture.class,
                     Locators.byXpath(STRIPE_XPATH), FIND_BUDGET);
-            stripe.click();
+            clickStripe(stripe);
 
             robot.find(ComponentFixture.class,
                     Locators.byXpath("//div[@class='JBTabbedPane']"), FIND_BUDGET);
@@ -300,7 +300,7 @@ final class IdeUiSmokeTest {
 
         ComponentFixture stripe = robot.find(ComponentFixture.class,
                 Locators.byXpath(SESSIONS_STRIPE_XPATH), FIND_BUDGET);
-        stripe.click();
+        clickStripe(stripe);
         ComponentFixture opened = robot.find(
                 ComponentFixture.class,
                 Locators.byXpath(SESSIONS_TABLE_XPATH),
@@ -582,6 +582,20 @@ final class IdeUiSmokeTest {
      */
     private static void clickButton(ComponentFixture button) {
         button.runJs("component.doClick()", true);
+    }
+
+    /**
+     * Invoke the native tool-window action without depending on screen
+     * coordinates. New-UI SquareStripeButton exposes ActionButton.click(),
+     * while the classic StripeButton is a Swing AbstractButton.
+     */
+    private static void clickStripe(ComponentFixture stripe) {
+        stripe.runJs(
+                "importClass(javax.swing.AbstractButton);"
+                        + "if (component instanceof AbstractButton) {"
+                        + "component.doClick();"
+                        + "} else { component.click(); }",
+                true);
     }
 
     /**
