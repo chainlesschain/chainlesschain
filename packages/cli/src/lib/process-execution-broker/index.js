@@ -37,6 +37,7 @@ const require = createRequire(import.meta.url);
 import {
   applySandbox as _applySandbox,
   postSpawnSandbox as _postSpawnSandbox,
+  generateMacMcpCapsuleSeatbeltProfile,
   MCP_STDIO_FD_ENTRY_BOOTSTRAP_SHA256,
   SANDBOX_BOUNDARIES,
 } from "./platform-sandbox.js";
@@ -1181,6 +1182,10 @@ class ProcessExecutionBroker extends EventEmitter {
         "contentSnapshotScope",
         "contentSnapshotMechanism",
         "runtimeLaunchMechanism",
+        "runtimeLaunchPath",
+        "entrySnapshotPath",
+        "platformSandboxMechanism",
+        "runtimeSnapshotPath",
         "pluginTreeContentSnapshotScope",
         "pluginTreeContentSnapshotMechanism",
         "pluginTreeSnapshotConsistency",
@@ -1209,6 +1214,8 @@ class ProcessExecutionBroker extends EventEmitter {
         "sharedLibraryClosure",
         "entrySnapshotAtomic",
         "runtimeLaunchAtomic",
+        "mcpCapsuleCodeSnapshot",
+        "platformSandboxComposed",
       ]) {
         if (
           plan.runtimeProbe[field] !== undefined &&
@@ -1244,6 +1251,7 @@ class ProcessExecutionBroker extends EventEmitter {
         "runtimeSnapshotSha256",
         "runtimeAttestedSha256",
         "entrySnapshotSha256",
+        "platformSandboxProfileSha256",
       ]) {
         if (
           plan.runtimeProbe[field] !== undefined &&
@@ -1606,6 +1614,43 @@ class ProcessExecutionBroker extends EventEmitter {
             .update(plan.args[1] || "")
             .digest("hex") === MCP_STDIO_FD_ENTRY_BOOTSTRAP_SHA256 &&
           plan.args[2] === "--";
+        const linuxBubblewrapTargetSeparator = plan.args.lastIndexOf("--");
+        const linuxBubblewrapSnapshotEvidence =
+          plan.platform === "linux" &&
+          backend === "linux-bwrap" &&
+          plan.enforcement === "linux-bwrap" &&
+          policyAttested === true &&
+          policyDigest !== null &&
+          plan.runtimeProbe.kind === "linux-bwrap-plugin-node-policy-v1" &&
+          plan.runtimeProbe.mcpCapsuleCodeSnapshot === true &&
+          plan.runtimeProbe.contentSnapshotScope === "plugin-entry-source" &&
+          plan.runtimeProbe.contentSnapshotMechanism ===
+            "verified-o_tmpfile-copy-bwrap-ro-bind-data-v1" &&
+          plan.runtimeProbe.handleAtomic === false &&
+          plan.runtimeProbe.entrySnapshotAtomic === true &&
+          plan.runtimeProbe.runtimeLaunchAtomic === true &&
+          plan.runtimeProbe.runtimeLaunchMechanism ===
+            "bwrap-descriptor-mount-node-runtime-exec-v1" &&
+          plan.runtimeProbe.supervisorDescriptorBound === true &&
+          plan.runtimeProbe.pluginTreeContentSnapshot === true &&
+          plan.runtimeProbe.runtimeLaunchPath ===
+            "/opt/chainless/runtime/node" &&
+          typeof plan.runtimeProbe.entrySnapshotPath === "string" &&
+          plan.runtimeProbe.entrySnapshotPath.startsWith(
+            "/opt/chainless/plugin/",
+          ) &&
+          /^[a-f0-9]{64}$/.test(
+            plan.runtimeProbe.runtimeSnapshotSha256 || "",
+          ) &&
+          Number.isSafeInteger(plan.runtimeProbe.runtimeSnapshotBytes) &&
+          plan.runtimeProbe.runtimeSnapshotBytes > 0 &&
+          plan.runtimeProbe.runtimeSnapshotBytes <= 256 * 1024 * 1024 &&
+          /^\/proc\/self\/fd\/\d+$/.test(plan.command) &&
+          linuxBubblewrapTargetSeparator >= 0 &&
+          plan.args[linuxBubblewrapTargetSeparator + 1] ===
+            plan.runtimeProbe.runtimeLaunchPath &&
+          plan.args[linuxBubblewrapTargetSeparator + 2] ===
+            plan.runtimeProbe.entrySnapshotPath;
         const windowsSnapshotEvidence =
           plan.platform === "win32" &&
           [
@@ -1663,11 +1708,67 @@ class ProcessExecutionBroker extends EventEmitter {
             .update(plan.args[1] || "")
             .digest("hex") === MCP_STDIO_FD_ENTRY_BOOTSTRAP_SHA256 &&
           plan.args[2] === "--";
+        const macSeatbeltSnapshotEvidence =
+          plan.platform === "darwin" &&
+          backend === "macos-seatbelt-fd-code-snapshot" &&
+          plan.enforcement === "macos-seatbelt-fd-code-snapshot" &&
+          policyAttested === true &&
+          policyDigest !== null &&
+          plan.runtimeProbe.kind === "darwin-mcp-capsule-code-snapshot-v1" &&
+          plan.runtimeProbe.contentSnapshotScope ===
+            "mcp-capsule-entry-and-node-runtime" &&
+          plan.runtimeProbe.contentSnapshotMechanism ===
+            "verified-private-runtime-copy-and-unlinked-entry-fd-module-compile-v1" &&
+          plan.runtimeProbe.handleAtomic === false &&
+          plan.runtimeProbe.entrySnapshotAtomic === true &&
+          plan.runtimeProbe.runtimeLaunchAtomic === false &&
+          plan.runtimeProbe.runtimeLaunchMechanism ===
+            "verified-private-tempfile-synchronous-spawn-unlink-v1" &&
+          plan.runtimeProbe.entrySnapshotBootstrapSha256 ===
+            MCP_STDIO_FD_ENTRY_BOOTSTRAP_SHA256 &&
+          plan.runtimeProbe.platformSandboxComposed === true &&
+          plan.runtimeProbe.platformSandboxMechanism ===
+            "sandbox-exec-inline-profile-fd-entry-v1" &&
+          /^[a-f0-9]{64}$/.test(
+            plan.runtimeProbe.platformSandboxProfileSha256 || "",
+          ) &&
+          typeof plan.runtimeProbe.runtimeSnapshotPath === "string" &&
+          path.posix.isAbsolute(plan.runtimeProbe.runtimeSnapshotPath) &&
+          path.posix.normalize(plan.runtimeProbe.runtimeSnapshotPath) ===
+            plan.runtimeProbe.runtimeSnapshotPath &&
+          !plan.runtimeProbe.runtimeSnapshotPath.includes("\0") &&
+          /^[a-f0-9]{64}$/.test(
+            plan.runtimeProbe.runtimeSnapshotSha256 || "",
+          ) &&
+          Number.isSafeInteger(plan.runtimeProbe.runtimeSnapshotBytes) &&
+          plan.runtimeProbe.runtimeSnapshotBytes > 0 &&
+          plan.runtimeProbe.runtimeSnapshotBytes <= 256 * 1024 * 1024 &&
+          plan.command === "/usr/bin/sandbox-exec" &&
+          plan.args[0] === "-p" &&
+          plan.args[1] ===
+            generateMacMcpCapsuleSeatbeltProfile(
+              plan.runtimeProbe.runtimeSnapshotPath,
+              guarantees.includes(SANDBOX_BOUNDARIES.NETWORK),
+            ) &&
+          crypto
+            .createHash("sha256")
+            .update(plan.args[1] || "")
+            .digest("hex") === plan.runtimeProbe.platformSandboxProfileSha256 &&
+          plan.args[2] === plan.runtimeProbe.runtimeSnapshotPath &&
+          plan.args[3] === "-e" &&
+          crypto
+            .createHash("sha256")
+            .update(plan.args[4] || "")
+            .digest("hex") === MCP_STDIO_FD_ENTRY_BOOTSTRAP_SHA256 &&
+          plan.args[5] === "--" &&
+          guarantees.includes(SANDBOX_BOUNDARIES.FILESYSTEM);
         if (
           !exactSnapshotEvidence ||
           (!linuxSnapshotEvidence &&
+            !linuxBubblewrapSnapshotEvidence &&
             !windowsSnapshotEvidence &&
-            !macSnapshotEvidence)
+            !macSnapshotEvidence &&
+            !macSeatbeltSnapshotEvidence)
         ) {
           throw this._sandboxError(
             "invalid_sandbox_plan",
@@ -1975,6 +2076,29 @@ class ProcessExecutionBroker extends EventEmitter {
               entrySnapshotAtomic: plan.runtimeProbe.entrySnapshotAtomic,
               runtimeLaunchAtomic: plan.runtimeProbe.runtimeLaunchAtomic,
               runtimeLaunchMechanism: plan.runtimeProbe.runtimeLaunchMechanism,
+              ...(plan.runtimeProbe.runtimeLaunchPath !== undefined
+                ? { runtimeLaunchPath: plan.runtimeProbe.runtimeLaunchPath }
+                : {}),
+              ...(plan.runtimeProbe.entrySnapshotPath !== undefined
+                ? { entrySnapshotPath: plan.runtimeProbe.entrySnapshotPath }
+                : {}),
+              ...(plan.runtimeProbe.mcpCapsuleCodeSnapshot !== undefined
+                ? {
+                    mcpCapsuleCodeSnapshot:
+                      plan.runtimeProbe.mcpCapsuleCodeSnapshot,
+                  }
+                : {}),
+              ...(plan.runtimeProbe.platformSandboxComposed !== undefined
+                ? {
+                    platformSandboxComposed:
+                      plan.runtimeProbe.platformSandboxComposed,
+                    platformSandboxMechanism:
+                      plan.runtimeProbe.platformSandboxMechanism,
+                    platformSandboxProfileSha256:
+                      plan.runtimeProbe.platformSandboxProfileSha256,
+                    runtimeSnapshotPath: plan.runtimeProbe.runtimeSnapshotPath,
+                  }
+                : {}),
               entrySnapshotBootstrapSha256:
                 plan.runtimeProbe.entrySnapshotBootstrapSha256,
               sharedLibraryClosure: plan.runtimeProbe.sharedLibraryClosure,

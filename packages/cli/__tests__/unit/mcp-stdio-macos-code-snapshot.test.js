@@ -154,4 +154,107 @@ describe("macOS MCP anonymous code snapshots", () => {
       }
     },
   );
+
+  it.runIf(process.platform === "darwin")(
+    "composes the capsule snapshot with filesystem and network Seatbelt boundaries",
+    () => {
+      const root = fs.realpathSync(
+        fs.mkdtempSync(path.join(os.tmpdir(), "cc-mcp-macos-seatbelt-")),
+      );
+      temporaryRoots.push(root);
+      const entryPath = path.join(root, "server.cjs");
+      const outsideReadPath = path.join(
+        os.tmpdir(),
+        `.cc-mcp-seatbelt-outside-read-${process.pid}-${Date.now()}`,
+      );
+      const outsideWritePath = `${outsideReadPath}.write`;
+      fs.writeFileSync(outsideReadPath, "host-only", "utf8");
+      temporaryRoots.push(outsideReadPath, outsideWritePath);
+      fs.writeFileSync(
+        entryPath,
+        [
+          'const fs = require("node:fs");',
+          'const net = require("node:net");',
+          `const readPath = ${JSON.stringify(outsideReadPath)};`,
+          `const writePath = ${JSON.stringify(outsideWritePath)};`,
+          "const denied = (error) => ['EACCES', 'EPERM'].includes(error?.code);",
+          "const outcome = { readDenied: false, writeDenied: false, networkDenied: false };",
+          "try { fs.readFileSync(readPath); } catch (error) { outcome.readDenied = denied(error); }",
+          "try { fs.writeFileSync(writePath, 'escape'); } catch (error) { outcome.writeDenied = denied(error); }",
+          "let settled = false;",
+          "const finish = () => { if (settled) return; settled = true; socket?.destroy(); process.stdout.write(JSON.stringify(outcome)); };",
+          "const socket = net.createConnection({ host: '127.0.0.1', port: 9 });",
+          "socket.once('connect', () => { socket.destroy(); finish(); });",
+          "socket.once('error', (error) => { outcome.networkDenied = denied(error); finish(); });",
+          "setTimeout(finish, 2000).unref();",
+        ].join("\n"),
+      );
+
+      const runtime = fileIdentity(process.execPath);
+      const entry = fileIdentity(entryPath);
+      const contract = Object.freeze({
+        contractVersion: 1,
+        kind: "strict-mcp-node-capsule",
+        pluginRoot: root,
+        workingDirectory: root,
+        runtimePath: runtime.realPath,
+        rootIdentity: rootIdentity(root),
+        entryIdentity: entry,
+        runtimeIdentity: runtime,
+      });
+      const plan = applyMacSandbox(
+        runtime.realPath,
+        [entry.realPath],
+        { cwd: root, shell: false, stdio: "pipe" },
+        {
+          profileName: "strict",
+          requiredBoundaries: [
+            SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
+            SANDBOX_BOUNDARIES.FILESYSTEM,
+            SANDBOX_BOUNDARIES.NETWORK,
+          ],
+          executionContract: contract,
+          sync: true,
+        },
+      );
+
+      try {
+        expect(plan).toMatchObject({
+          applied: true,
+          command: "/usr/bin/sandbox-exec",
+          backend: "macos-seatbelt-fd-code-snapshot",
+          guarantees: [
+            SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
+            SANDBOX_BOUNDARIES.FILESYSTEM,
+            SANDBOX_BOUNDARIES.NETWORK,
+          ],
+          runtimeProbe: {
+            platformSandboxComposed: true,
+            platformSandboxMechanism: "sandbox-exec-inline-profile-fd-entry-v1",
+            platformSandboxProfileSha256:
+              expect.stringMatching(/^[a-f0-9]{64}$/),
+          },
+        });
+        expect(plan.args[0]).toBe("-p");
+        expect(plan.args[1]).toContain("(deny network*)");
+        expect(plan.args[1]).not.toContain(outsideReadPath);
+
+        const result = spawnSync(plan.command, plan.args, {
+          ...plan.options,
+          encoding: "utf8",
+          timeout: 10_000,
+        });
+        expect(result.status, result.stderr).toBe(0);
+        expect(JSON.parse(result.stdout)).toEqual({
+          readDenied: true,
+          writeDenied: true,
+          networkDenied: true,
+        });
+        expect(fs.existsSync(outsideWritePath)).toBe(false);
+      } finally {
+        plan.cleanup?.();
+      }
+    },
+    20_000,
+  );
 });

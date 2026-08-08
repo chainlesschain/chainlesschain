@@ -21,6 +21,7 @@ import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 import { executionBroker } from "../../src/lib/process-execution-broker/index.js";
 import { executeBackgroundTaskCommand } from "../../src/harness/background-task-command-runner.js";
 import {
+  applySandbox,
   applyWindowsSandbox,
   resetWindowsSandboxAdapterCache,
   SANDBOX_BOUNDARIES,
@@ -68,6 +69,7 @@ function fileIdentity(filePath) {
   const realPath = fs.realpathSync.native(filePath);
   const stat = fs.statSync(realPath, { bigint: true });
   return {
+    contractVersion: 1,
     realPath,
     sha256: fileSha256(realPath),
     bytes: Number(stat.size),
@@ -75,6 +77,8 @@ function fileIdentity(filePath) {
       dev: String(stat.dev),
       ino: String(stat.ino),
     },
+    mtimeMs: Number(stat.mtimeNs) / 1_000_000,
+    attestation: "realpath-file-id-sha256",
   };
 }
 
@@ -1436,6 +1440,119 @@ describe.runIf(LIVE && SUPPORTED)(
         }
       },
       300_000,
+    );
+
+    it.runIf(process.platform === "linux")(
+      "runs a fixed MCP capsule with code, filesystem, network, and process-tree boundaries",
+      () => {
+        const capsuleRoot = fs.realpathSync.native(
+          fs.mkdtempSync(path.join(os.tmpdir(), "cc-linux-mcp-capsule-")),
+        );
+        const entryPath = path.join(capsuleRoot, "server.cjs");
+        const outsideReadPath = path.join(
+          os.tmpdir(),
+          `.cc-linux-mcp-outside-${process.pid}-${Date.now()}`,
+        );
+        const outsideWritePath = `${outsideReadPath}.write`;
+        let plan = null;
+        try {
+          fs.writeFileSync(outsideReadPath, "host-only", "utf8");
+          fs.writeFileSync(
+            entryPath,
+            [
+              'const fs = require("node:fs");',
+              'const net = require("node:net");',
+              `const readPath = ${JSON.stringify(outsideReadPath)};`,
+              `const writePath = ${JSON.stringify(outsideWritePath)};`,
+              "const outcome = { readHidden: false, writeContained: false, networkDenied: false };",
+              "try { fs.readFileSync(readPath); } catch (error) { outcome.readHidden = error?.code === 'ENOENT'; }",
+              "try { fs.writeFileSync(writePath, 'sandbox-only'); outcome.writeContained = true; } catch {}",
+              "const socket = new net.Socket();",
+              "socket.once('error', (error) => { outcome.networkDenied = error?.code === 'EPERM'; process.stdout.write(JSON.stringify(outcome)); });",
+              "socket.connect(9, '127.0.0.1');",
+            ].join("\n"),
+            "utf8",
+          );
+          const rootStat = fs.statSync(capsuleRoot, { bigint: true });
+          const runtimeIdentity = fileIdentity(process.execPath);
+          const entryIdentity = fileIdentity(entryPath);
+          const requiredBoundaries = [
+            SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
+            SANDBOX_BOUNDARIES.FILESYSTEM,
+            SANDBOX_BOUNDARIES.NETWORK,
+          ];
+          plan = applySandbox(
+            runtimeIdentity.realPath,
+            [entryIdentity.realPath, "--stdio"],
+            {
+              cwd: capsuleRoot,
+              shell: false,
+              detached: false,
+              stdio: ["ignore", "pipe", "pipe"],
+            },
+            {
+              profile: "strict",
+              requiredBoundaries,
+              sync: true,
+              executionContract: {
+                contractVersion: 1,
+                kind: "strict-mcp-node-capsule",
+                pluginRoot: capsuleRoot,
+                workingDirectory: capsuleRoot,
+                runtimePath: runtimeIdentity.realPath,
+                rootIdentity: {
+                  realPath: capsuleRoot,
+                  fileId: {
+                    dev: String(rootStat.dev),
+                    ino: String(rootStat.ino),
+                  },
+                },
+                entryIdentity,
+                runtimeIdentity,
+              },
+            },
+          );
+
+          expect(plan).toMatchObject({
+            applied: true,
+            backend: "linux-bwrap",
+            policyAttested: true,
+            guarantees: [
+              SANDBOX_BOUNDARIES.FILESYSTEM,
+              SANDBOX_BOUNDARIES.NETWORK,
+              SANDBOX_BOUNDARIES.PROCESS_TREE,
+              SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
+            ],
+            runtimeProbe: {
+              runnable: true,
+              mcpCapsuleCodeSnapshot: true,
+              entrySnapshotAtomic: true,
+              runtimeLaunchAtomic: true,
+              sharedLibraryClosure: false,
+            },
+          });
+          const result = nativeSpawnSync(plan.command, plan.args, {
+            ...plan.options,
+            encoding: "utf8",
+            timeout: 30_000,
+          });
+          expect(result.error).toBeUndefined();
+          expect(result.status, result.stderr).toBe(0);
+          expect(JSON.parse(result.stdout)).toEqual({
+            readHidden: true,
+            writeContained: true,
+            networkDenied: true,
+          });
+          expect(fs.readFileSync(outsideReadPath, "utf8")).toBe("host-only");
+          expect(fs.existsSync(outsideWritePath)).toBe(false);
+        } finally {
+          plan?.cleanup?.();
+          fs.rmSync(outsideReadPath, { force: true });
+          fs.rmSync(outsideWritePath, { force: true });
+          fs.rmSync(capsuleRoot, { recursive: true, force: true });
+        }
+      },
+      60_000,
     );
 
     it.runIf(process.platform === "linux")(

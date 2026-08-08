@@ -171,8 +171,11 @@ const LINUX_MCP_RUNTIME_SNAPSHOT_SCOPE = "mcp-node-runtime-executable";
 const LINUX_MCP_CAPSULE_SNAPSHOT_MECHANISM =
   "verified-o_tmpfile-copy-inherited-fd-module-compile-v1";
 const MACOS_MCP_CAPSULE_BACKEND = "macos-fd-code-snapshot";
+const MACOS_MCP_CAPSULE_SEATBELT_BACKEND = "macos-seatbelt-fd-code-snapshot";
 const MACOS_MCP_CAPSULE_SNAPSHOT_MECHANISM =
   "verified-private-runtime-copy-and-unlinked-entry-fd-module-compile-v1";
+const MACOS_MCP_CAPSULE_SEATBELT_MECHANISM =
+  "sandbox-exec-inline-profile-fd-entry-v1";
 export const MCP_STDIO_FD_ENTRY_BOOTSTRAP =
   'const fs=require("node:fs");const Module=require("node:module");const filename="/chainlesschain/mcp-capsule.cjs";const source=fs.readFileSync(4,"utf8");process.argv.splice(1,0,filename);const target=new Module(filename,module);target.filename=filename;target.paths=[];target._compile(source,filename);';
 export const MCP_STDIO_FD_ENTRY_BOOTSTRAP_SHA256 = crypto
@@ -452,6 +455,8 @@ function createSandboxPlan(input) {
  * @param {string[]} opts.allowWrite - Paths allowed for write (includes read)
  * @param {boolean} [opts.allowNetwork=false] - Allow network access
  * @param {boolean} [opts.allowExec=true] - Allow process exec (subprocess spawning)
+ * @param {boolean} [opts.allowBootstrapExecutables=true] - Allow legacy shell bootstrap paths
+ * @param {string[]} [opts.allowExecPaths=[]] - Exact executable paths allowed when allowExec=false
  * @returns {string} sandbox profile content
  */
 export function generateMacSeatbeltProfile(opts = {}, runtimeOverrides = {}) {
@@ -461,7 +466,12 @@ export function generateMacSeatbeltProfile(opts = {}, runtimeOverrides = {}) {
     allowWrite = [],
     allowNetwork = false,
     allowExec = true,
+    allowBootstrapExecutables = true,
+    allowExecPaths = [],
   } = opts;
+
+  const seatbeltLiteral = (value) =>
+    String(value).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 
   const lines = [
     "(version 1)",
@@ -472,12 +482,20 @@ export function generateMacSeatbeltProfile(opts = {}, runtimeOverrides = {}) {
     '(import "system.sb")',
     // Basic system operations always allowed
     "(allow signal (target self))",
-    '(allow process-exec (literal "/usr/bin/env"))',
-    '(allow process-exec (literal "/bin/sh"))',
-    '(allow process-exec (literal "/bin/bash"))',
     "(allow sysctl-read)",
     "(allow mach-lookup)",
   ];
+
+  if (allowBootstrapExecutables) {
+    lines.push('(allow process-exec (literal "/usr/bin/env"))');
+    lines.push('(allow process-exec (literal "/bin/sh"))');
+    lines.push('(allow process-exec (literal "/bin/bash"))');
+  }
+
+  for (const executable of allowExecPaths) {
+    const abs = seatbeltLiteral(runtime.resolvePath(executable));
+    lines.push(`(allow process-exec (literal "${abs}"))`);
+  }
 
   if (allowExec) {
     lines.push("(allow process-fork)");
@@ -494,12 +512,12 @@ export function generateMacSeatbeltProfile(opts = {}, runtimeOverrides = {}) {
 
   // Allow read/write to specific paths
   for (const p of allowRead) {
-    const abs = runtime.resolvePath(p);
+    const abs = seatbeltLiteral(runtime.resolvePath(p));
     lines.push(`(allow file-read* (subpath "${abs}"))`);
   }
 
   for (const p of allowWrite) {
-    const abs = runtime.resolvePath(p);
+    const abs = seatbeltLiteral(runtime.resolvePath(p));
     lines.push(`(allow file-read* file-write* (subpath "${abs}"))`);
   }
 
@@ -518,6 +536,35 @@ export function generateMacSeatbeltProfile(opts = {}, runtimeOverrides = {}) {
   lines.push('(allow file-read* (literal "/etc/passwd"))');
 
   return lines.join("\n");
+}
+
+export function generateMacMcpCapsuleSeatbeltProfile(
+  runtimeSnapshotPath,
+  denyNetwork,
+) {
+  if (
+    typeof runtimeSnapshotPath !== "string" ||
+    !path.posix.isAbsolute(runtimeSnapshotPath) ||
+    path.posix.normalize(runtimeSnapshotPath) !== runtimeSnapshotPath ||
+    runtimeSnapshotPath.includes("\0") ||
+    typeof denyNetwork !== "boolean"
+  ) {
+    throw new Error("macos_mcp_capsule_seatbelt_profile_input_invalid");
+  }
+  return generateMacSeatbeltProfile(
+    {
+      allowRead: [runtimeSnapshotPath],
+      allowWrite: [],
+      allowNetwork: !denyNetwork,
+      allowExec: false,
+      allowBootstrapExecutables: false,
+      allowExecPaths: [runtimeSnapshotPath],
+    },
+    {
+      platform: "darwin",
+      resolvePath: (value) => path.posix.normalize(value),
+    },
+  );
 }
 
 function validateMacMcpCapsuleContract(
@@ -794,11 +841,15 @@ function applyMacMcpCapsuleCodeSnapshot(
     runtime,
     sandboxOpts.sync,
   );
-  const unavailable = (reason, runtimeProbe = null) =>
+  const unavailable = (
+    reason,
+    runtimeProbe = null,
+    candidateBackend = MACOS_MCP_CAPSULE_BACKEND,
+  ) =>
     createSandboxPlan({
       ...base,
       backend: null,
-      candidateBackend: MACOS_MCP_CAPSULE_BACKEND,
+      candidateBackend,
       policyAttested: false,
       runtimeProbe: runtimeProbe
         ? {
@@ -887,22 +938,22 @@ function applyMacMcpCapsuleCodeSnapshot(
     entrySnapshotSha256: entrySnapshot.sha256,
     entrySnapshotBytes: entrySnapshot.bytes,
   });
-  const policyDigest = sha256(
-    JSON.stringify({
-      version: 1,
-      backend: MACOS_MCP_CAPSULE_BACKEND,
-      contractKind: contract.kind,
-      requiredBoundaries: [
-        ...new Set(sandboxOpts.requiredBoundaries || []),
-      ].sort(),
-      identity: snapshotIdentity,
-      cwd: spawnOpts.cwd,
-      entrySnapshotBootstrapSha256: MCP_STDIO_FD_ENTRY_BOOTSTRAP_SHA256,
-      runtimeLaunchMechanism:
-        "verified-private-tempfile-synchronous-spawn-unlink-v1",
-      passthroughArgsDigest: sha256(JSON.stringify(args.slice(1))),
-    }),
+  const requiredBoundaries = [...new Set(sandboxOpts.requiredBoundaries || [])];
+  const composeSeatbelt = requiredBoundaries.some(
+    (boundary) =>
+      boundary === SANDBOX_BOUNDARIES.FILESYSTEM ||
+      boundary === SANDBOX_BOUNDARIES.NETWORK,
   );
+  const backend = composeSeatbelt
+    ? MACOS_MCP_CAPSULE_SEATBELT_BACKEND
+    : MACOS_MCP_CAPSULE_BACKEND;
+  const sandboxExecutable = "/usr/bin/sandbox-exec";
+  const seatbeltProfile = composeSeatbelt
+    ? generateMacMcpCapsuleSeatbeltProfile(
+        runtimeSnapshot.path,
+        requiredBoundaries.includes(SANDBOX_BOUNDARIES.NETWORK),
+      )
+    : null;
   let closed = false;
   const cleanup = () => {
     if (closed) return;
@@ -915,11 +966,51 @@ function applyMacMcpCapsuleCodeSnapshot(
       // the owning temporary-directory lifecycle.
     }
   };
+  if (composeSeatbelt && !runtime.fs.existsSync(sandboxExecutable)) {
+    cleanup();
+    return unavailable(
+      "macos_sandbox_exec_unavailable",
+      {
+        runnable: false,
+        reason: "sandbox_exec_missing",
+        contentSnapshot: true,
+        handleAtomic: false,
+      },
+      MACOS_MCP_CAPSULE_SEATBELT_BACKEND,
+    );
+  }
+  const policyDigest = sha256(
+    JSON.stringify({
+      version: 1,
+      backend,
+      contractKind: contract.kind,
+      requiredBoundaries: [...requiredBoundaries].sort(),
+      identity: snapshotIdentity,
+      cwd: spawnOpts.cwd,
+      entrySnapshotBootstrapSha256: MCP_STDIO_FD_ENTRY_BOOTSTRAP_SHA256,
+      runtimeLaunchMechanism:
+        "verified-private-tempfile-synchronous-spawn-unlink-v1",
+      passthroughArgsDigest: sha256(JSON.stringify(args.slice(1))),
+      ...(seatbeltProfile
+        ? {
+            platformSandboxMechanism: MACOS_MCP_CAPSULE_SEATBELT_MECHANISM,
+            platformSandboxProfileSha256: sha256(seatbeltProfile),
+            runtimeSnapshotPath: runtimeSnapshot.path,
+          }
+        : {}),
+    }),
+  );
+  const targetArgs = [
+    "-e",
+    MCP_STDIO_FD_ENTRY_BOOTSTRAP,
+    "--",
+    ...args.slice(1),
+  ];
   return createSandboxPlan({
     ...base,
     applied: true,
-    enforcement: MACOS_MCP_CAPSULE_BACKEND,
-    backend: MACOS_MCP_CAPSULE_BACKEND,
+    enforcement: backend,
+    backend,
     candidateBackend: null,
     policyAttested: true,
     policyDigest,
@@ -940,12 +1031,29 @@ function applyMacMcpCapsuleCodeSnapshot(
         "verified-private-tempfile-synchronous-spawn-unlink-v1",
       entrySnapshotBootstrapSha256: MCP_STDIO_FD_ENTRY_BOOTSTRAP_SHA256,
       sharedLibraryClosure: false,
+      ...(seatbeltProfile
+        ? {
+            platformSandboxComposed: true,
+            platformSandboxMechanism: MACOS_MCP_CAPSULE_SEATBELT_MECHANISM,
+            platformSandboxProfileSha256: sha256(seatbeltProfile),
+            runtimeSnapshotPath: runtimeSnapshot.path,
+          }
+        : {}),
       ...snapshotIdentity,
     },
     reason: null,
-    guarantees: [SANDBOX_BOUNDARIES.CODE_SNAPSHOT],
-    command: runtimeSnapshot.path,
-    args: ["-e", MCP_STDIO_FD_ENTRY_BOOTSTRAP, "--", ...args.slice(1)],
+    guarantees: [
+      SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
+      ...(composeSeatbelt ? [SANDBOX_BOUNDARIES.FILESYSTEM] : []),
+      ...(composeSeatbelt &&
+      requiredBoundaries.includes(SANDBOX_BOUNDARIES.NETWORK)
+        ? [SANDBOX_BOUNDARIES.NETWORK]
+        : []),
+    ],
+    command: composeSeatbelt ? sandboxExecutable : runtimeSnapshot.path,
+    args: composeSeatbelt
+      ? ["-p", seatbeltProfile, runtimeSnapshot.path, ...targetArgs]
+      : targetArgs,
     options: {
       ...(spawnOpts || {}),
       shell: false,
@@ -2557,6 +2665,10 @@ export function applyWindowsSandbox(
     SANDBOX_BOUNDARIES.RESOURCE_LIMITS,
     SANDBOX_BOUNDARIES.PRIVILEGE_REDUCTION,
   ];
+  const appContainerSupportedBoundaries = [
+    ...appContainerGuarantees,
+    SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
+  ];
   const base = {
     platform: runtime.platform,
     profile: sandboxOpts.profileName || "default",
@@ -2603,7 +2715,7 @@ export function applyWindowsSandbox(
   if (
     requiresAppContainer &&
     requiredBoundaries.some(
-      (boundary) => !appContainerGuarantees.includes(boundary),
+      (boundary) => !appContainerSupportedBoundaries.includes(boundary),
     )
   ) {
     return unavailablePlan("windows_appcontainer_boundary_unsupported");
@@ -6177,7 +6289,10 @@ export function applyLinuxSandbox(
       boundary === SANDBOX_BOUNDARIES.PROCESS_TREE,
   );
 
-  if (requiredBoundaries.includes(SANDBOX_BOUNDARIES.CODE_SNAPSHOT)) {
+  if (
+    requiredBoundaries.includes(SANDBOX_BOUNDARIES.CODE_SNAPSHOT) &&
+    !requiresStrongLinuxBoundary
+  ) {
     return applyLinuxMcpCapsuleCodeSnapshot(
       command,
       args,
@@ -6839,17 +6954,36 @@ export function applyLinuxSandbox(
     const supervisorBinding = supervisorPin.attestation;
     closeLinuxPinnedMounts(runtime, [supervisorPin]);
     supervisorPin = null;
+    const capsuleContract =
+      validation.contract.kind === MCP_STDIO_CAPSULE_SANDBOX_CONTRACT_KIND;
+    const baseRuntimeProbe = linuxBubblewrapProbe(
+      true,
+      true,
+      null,
+      validation.entryRuntime,
+      entrySnapshot?.attestation,
+      supervisorBinding,
+      pluginTreeSnapshot,
+      nativeDynamicClosure,
+    );
     const runtimeProbe = Object.freeze(
-      linuxBubblewrapProbe(
-        true,
-        true,
-        null,
-        validation.entryRuntime,
-        entrySnapshot?.attestation,
-        supervisorBinding,
-        pluginTreeSnapshot,
-        nativeDynamicClosure,
-      ),
+      capsuleContract
+        ? {
+            ...baseRuntimeProbe,
+            mcpCapsuleCodeSnapshot: true,
+            entrySnapshotAtomic: true,
+            runtimeLaunchAtomic: true,
+            runtimeLaunchMechanism:
+              "bwrap-descriptor-mount-node-runtime-exec-v1",
+            sharedLibraryClosure: false,
+            runtimeSnapshotSha256: validation.contract.runtimeIdentity.sha256,
+            runtimeSnapshotBytes: validation.contract.runtimeIdentity.bytes,
+            entrySnapshotSha256: entrySnapshot.attestation.sha256,
+            entrySnapshotBytes: entrySnapshot.attestation.bytes,
+            runtimeLaunchPath: "/opt/chainless/runtime/node",
+            entrySnapshotPath: sandboxEntry,
+          }
+        : baseRuntimeProbe,
     );
     const options = {
       ...spawnOpts,
@@ -6887,6 +7021,7 @@ export function applyLinuxSandbox(
         SANDBOX_BOUNDARIES.FILESYSTEM,
         SANDBOX_BOUNDARIES.NETWORK,
         SANDBOX_BOUNDARIES.PROCESS_TREE,
+        ...(capsuleContract ? [SANDBOX_BOUNDARIES.CODE_SNAPSHOT] : []),
       ],
       command: finalLaunch.command,
       args: [...policyArgs, "--", ...targetArgs],

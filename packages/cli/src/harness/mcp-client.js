@@ -2357,9 +2357,16 @@ export class MCPClient extends EventEmitter {
                   process.cwd(),
               )
             : null);
+        const capsuleUsesLinuxProcessTreeSandbox =
+          Boolean(stdioCapsuleSandboxExecutionContract) &&
+          process.platform === "linux" &&
+          sourceConfig.sandboxPolicy?.requiredBoundaries?.some((boundary) =>
+            ["filesystem", "network", "process-tree"].includes(boundary),
+          );
         const capsuleUsesPosixProcessGroup =
           Boolean(stdioCapsuleSandboxExecutionContract) &&
-          process.platform !== "win32";
+          process.platform !== "win32" &&
+          !capsuleUsesLinuxProcessTreeSandbox;
         const launchOptions = {
           ...spawnOptions,
           detached:
