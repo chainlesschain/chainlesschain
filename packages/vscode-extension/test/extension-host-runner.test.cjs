@@ -418,6 +418,48 @@ test("host-ready evidence binds the exact ordered multi-root workspace", () => {
     2,
   );
 
+  const previousRequiredArchitecture = process.env.CC_IDE_REQUIRED_HOST_ARCH;
+  try {
+    process.env.CC_IDE_REQUIRED_HOST_ARCH = "arm64";
+    fs.writeFileSync(
+      readyFile,
+      `${JSON.stringify({ ...signal, hostArchitecture: "x64" })}\n`,
+      "utf8",
+    );
+    assert.throws(
+      () =>
+        assertHostReadySignal({
+          readyFile,
+          phase: "initial",
+          extensionsDir,
+          workspaceDir: workspaceFolders[0],
+          workspaceFolders,
+        }),
+      /Extension Host architecture mismatch/u,
+    );
+    fs.writeFileSync(
+      readyFile,
+      `${JSON.stringify({ ...signal, hostArchitecture: "arm64" })}\n`,
+      "utf8",
+    );
+    assert.equal(
+      assertHostReadySignal({
+        readyFile,
+        phase: "initial",
+        extensionsDir,
+        workspaceDir: workspaceFolders[0],
+        workspaceFolders,
+      }).hostArchitecture,
+      "arm64",
+    );
+  } finally {
+    if (previousRequiredArchitecture === undefined) {
+      delete process.env.CC_IDE_REQUIRED_HOST_ARCH;
+    } else {
+      process.env.CC_IDE_REQUIRED_HOST_ARCH = previousRequiredArchitecture;
+    }
+  }
+
   fs.writeFileSync(
     readyFile,
     `${JSON.stringify({

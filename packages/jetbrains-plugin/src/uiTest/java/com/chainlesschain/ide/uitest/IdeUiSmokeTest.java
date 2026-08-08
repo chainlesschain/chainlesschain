@@ -61,8 +61,9 @@ final class IdeUiSmokeTest {
     void chainlessChainChatAndControlJourney() throws Exception {
         RemoteRobot robot = connectWithRetry();
         try {
-            robot.find(ComponentFixture.class,
+            ComponentFixture frame = robot.find(ComponentFixture.class,
                     Locators.byXpath("//div[@class='IdeFrameImpl']"), FRAME_BUDGET);
+            assertRequiredHostArchitecture(frame);
 
             if ("restart".equals(System.getProperty("ui.journey.phase"))) {
                 runSessionsWorkbenchJourney(robot, true);
@@ -129,6 +130,21 @@ final class IdeUiSmokeTest {
             saveScreenshot(robot, "chat-control-journey");
             throw t;
         }
+    }
+
+    private static void assertRequiredHostArchitecture(ComponentFixture frame) {
+        String required = System.getenv("CC_IDE_REQUIRED_HOST_ARCH");
+        if (required == null || required.isBlank()) return;
+        String actual = String.valueOf(frame.callJs(
+                "importClass(java.lang.System); System.getProperty('os.arch');"));
+        String normalizedActual = "aarch64".equalsIgnoreCase(actual)
+                ? "arm64" : actual.toLowerCase();
+        if (!required.equalsIgnoreCase(normalizedActual)) {
+            throw new AssertionError(
+                    "JetBrains IDE JVM architecture mismatch: expected "
+                            + required + ", got " + actual);
+        }
+        System.out.println("[ui-smoke] verified IDE JVM architecture: " + actual);
     }
 
     private static void runSessionsWorkbenchJourney(

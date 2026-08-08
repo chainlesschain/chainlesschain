@@ -398,6 +398,7 @@ async function revealChatAndWaitForDomJourney({
   });
   writeSignal(readyFile, {
     phase,
+    hostArchitecture: process.arch,
     extensionPath: fs.realpathSync(extensionPath),
     workspaceDir: fs.realpathSync(workspaceDir),
     workspaceFolders: workspaceFolders.map((workspaceFolder) =>
@@ -430,6 +431,7 @@ async function revealChatForHostApiJourney({
   writeSignal(readyFile, {
     phase,
     mode: "host-api",
+    hostArchitecture: process.arch,
     extensionPath: fs.realpathSync(extensionPath),
     workspaceDir: fs.realpathSync(workspaceDir),
     workspaceFolders: workspaceFolders.map((workspaceFolder) =>

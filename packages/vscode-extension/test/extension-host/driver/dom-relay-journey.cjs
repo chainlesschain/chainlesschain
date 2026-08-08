@@ -426,6 +426,7 @@ async function runDomRelayJourney({
     writeSignal(readyFile, {
       phase,
       mode: "dom-relay",
+      hostArchitecture: process.arch,
       extensionPath: fs.realpathSync(extensionPath),
       workspaceDir: fs.realpathSync(workspaceDir),
       workspaceFolders: workspaceFolders.map((workspaceFolder) =>
