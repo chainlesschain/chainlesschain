@@ -15,9 +15,13 @@ import { pathToFileURL } from "url";
 import { isProxy } from "node:util/types";
 import WebSocket from "ws";
 import { safeJsonParse } from "../lib/safe-json.js";
+import {
+  MCP_SANDBOX_POLICY_INVALID_CODE,
+  normalizeMcpSandboxPolicy,
+  readMcpStdioCwd,
+} from "../lib/mcp-sandbox-policy.js";
 import { EventRuntimeProducer } from "../lib/event-runtime-producer.js";
 import { currentHostHooksV2WorkspaceBinding } from "../lib/hooks-v2-workspace-context.js";
-import { resolvePluginWorkspaceAuthority } from "../lib/plugin-runtime/sandbox-policy.js";
 import {
   admitMcpToolList,
   isMcpToolMetadataError,
@@ -33,11 +37,13 @@ import {
   consumeMcpStdioExecutionAuthority,
   materializeApprovedMcpStdioInvocation,
   renewMcpStdioExecutionAuthority,
+  verifyMcpStdioApprovedWorkingDirectory,
 } from "../lib/mcp-stdio-execution-authority.js";
 import {
   MCP_STDIO_CAPSULE_CODE_SNAPSHOT_BOUNDARY,
   prepareMcpStdioExecutableIdentity,
 } from "../lib/mcp-stdio-executable-identity.js";
+import { resolveMcpStdioSandboxContext } from "../lib/mcp-stdio-workspace-authority.js";
 
 /**
  * Injectable dependencies — overridable from tests.
@@ -53,7 +59,9 @@ export const _deps = {
   consumeMcpStdioExecutionAuthority,
   materializeApprovedMcpStdioInvocation,
   renewMcpStdioExecutionAuthority,
+  verifyMcpStdioApprovedWorkingDirectory,
   prepareMcpStdioExecutableIdentity,
+  resolveMcpStdioSandboxContext,
   // Backoff sleep seam (tests override with a no-op so retries don't wait).
   sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
 };
@@ -114,6 +122,60 @@ export function normalizeMcpConfigScope(scope = "user") {
     );
   }
   return normalized;
+}
+
+const INVALID_MCP_CONFIG_ROW = Symbol("invalidMcpConfigRow");
+const INVALID_MCP_CONFIG_ERROR = Symbol("invalidMcpConfigError");
+const INVALID_MCP_CONFIG_RAW_ROW = Symbol("invalidMcpConfigRawRow");
+
+function rawMcpRowValue(row, key) {
+  if (!row || typeof row !== "object" || isProxy(row)) return undefined;
+  const descriptor = Object.getOwnPropertyDescriptor(row, key);
+  return descriptor && "value" in descriptor ? descriptor.value : undefined;
+}
+
+function mcpRowVisibility(row, { invalid = false, error = null } = {}) {
+  const displayName = rawMcpRowValue(row, "display_name");
+  const storageName = rawMcpRowValue(row, "name");
+  const name =
+    typeof displayName === "string" && displayName.length > 0
+      ? displayName
+      : typeof storageName === "string" && storageName.length > 0
+        ? storageName
+        : null;
+  if (!name) return null;
+
+  let configScope;
+  try {
+    configScope = normalizeMcpConfigScope(
+      rawMcpRowValue(row, "config_scope") || "user",
+    );
+  } catch {
+    // An unparseable scope cannot safely be treated as the lowest tier.
+    configScope = "managed";
+  }
+  const rawProjectPath = rawMcpRowValue(row, "project_path");
+  const visibility = {
+    name,
+    configScope,
+    projectPath:
+      typeof rawProjectPath === "string" && rawProjectPath.length > 0
+        ? rawProjectPath
+        : null,
+    autoConnect: rawMcpRowValue(row, "auto_connect") === 1,
+    [INVALID_MCP_CONFIG_ROW]: invalid,
+  };
+  if (invalid) {
+    Object.defineProperties(visibility, {
+      [INVALID_MCP_CONFIG_ERROR]: { value: error },
+      [INVALID_MCP_CONFIG_RAW_ROW]: { value: row },
+    });
+  }
+  return visibility;
+}
+
+function isInvalidMcpConfigRow(config) {
+  return config?.[INVALID_MCP_CONFIG_ROW] === true;
 }
 
 /**
@@ -1775,6 +1837,11 @@ export class MCPClient extends EventEmitter {
     else this._reconnectors.delete(name);
   }
 
+  /** Return the opaque host authority used to resolve policy-bearing MCP cwd. */
+  executionWorkspaceBinding() {
+    return this._workspaceBinding;
+  }
+
   async _connectionHeaders(name, config, transportKind) {
     const staticHeaders = { ...(config?.headers || {}) };
     if (!config?.headersHelper) return staticHeaders;
@@ -1853,7 +1920,8 @@ export class MCPClient extends EventEmitter {
       mcpStdioExecutionAuthority: _stdioExecutionAuthority,
       ...untrustedSourceConfig
     } = config;
-    const sourceConfig = approvedStdioInvocation
+    void _stdioExecutionAuthority;
+    let sourceConfig = approvedStdioInvocation
       ? { ...untrustedSourceConfig, ...approvedStdioInvocation }
       : untrustedSourceConfig;
     let pluginWorkspaceRoot = null;
@@ -1863,34 +1931,34 @@ export class MCPClient extends EventEmitter {
     let stdioExecutableWorkingDirectory = null;
     let stdioExecutableIdentityDigest = null;
     let stdioCapsuleSandboxExecutionContract = null;
+    let stdioTrustedWorkingDirectory = null;
     let runtimeConfig = sourceConfig;
     if (transportKind === "stdio") {
-      const isPlugin = sourceConfig.origin === "plugin:mcp";
-      pluginWorkspaceRoot = isPlugin
-        ? resolvePluginWorkspaceAuthority(
-            sourceConfig.pluginWorkspaceAuthority,
-            {
-              origin: sourceConfig.origin,
-              pluginId: sourceConfig.pluginId,
-              pluginVersion: sourceConfig.pluginVersion,
-              pluginSource: sourceConfig.pluginSource,
-            },
-          )
-        : null;
-      if (
-        isPlugin &&
-        sourceConfig.sandboxPolicy?.requiredBoundaries?.length > 0 &&
-        !pluginWorkspaceRoot
-      ) {
-        throw new Error(
-          `plugin MCP server "${name}" is missing its trusted workspace authority`,
+      const sandboxContext = _deps.resolveMcpStdioSandboxContext({
+        serverName: name,
+        config: sourceConfig,
+        workspaceBinding: this._workspaceBinding,
+      });
+      pluginWorkspaceRoot = sandboxContext.pluginWorkspaceRoot;
+      stdioTrustedWorkingDirectory = sandboxContext.workingDirectory;
+      if (sandboxContext.sandboxPolicy && sourceConfig.cwd) {
+        _deps.verifyMcpStdioApprovedWorkingDirectory(
+          stdioExecutionApproval,
+          stdioTrustedWorkingDirectory,
         );
+      }
+      if (sandboxContext.sandboxPolicy) {
+        sourceConfig = {
+          ...sourceConfig,
+          sandboxPolicy: sandboxContext.sandboxPolicy,
+        };
       }
       const prepared = _deps.prepareMcpStdioExecutableIdentity({
         serverName: name,
         config: sourceConfig,
         approval: stdioExecutionApproval,
-        cwd: pluginWorkspaceRoot || process.cwd(),
+        cwd:
+          stdioTrustedWorkingDirectory || pluginWorkspaceRoot || process.cwd(),
         env: { ...process.env, ...this._agentIdentityEnv() },
       });
       runtimeConfig = {
@@ -2306,6 +2374,7 @@ export class MCPClient extends EventEmitter {
         const spawnOptions = {
           cwd:
             stdioExecutableWorkingDirectory ||
+            stdioTrustedWorkingDirectory ||
             pluginWorkspaceRoot ||
             process.cwd(),
           stdio: ["pipe", "pipe", "pipe"],
@@ -2353,6 +2422,7 @@ export class MCPClient extends EventEmitter {
                 config.args || [],
                 { ...spawnOptions, detached: false },
                 stdioExecutableWorkingDirectory ||
+                  stdioTrustedWorkingDirectory ||
                   pluginWorkspaceRoot ||
                   process.cwd(),
               )
@@ -4933,6 +5003,8 @@ export class MCPServerConfig {
         args TEXT DEFAULT '[]',
         env TEXT DEFAULT '{}',
         runtime_kind TEXT,
+        cwd TEXT,
+        sandbox_policy TEXT,
         auto_connect INTEGER DEFAULT 0,
         url TEXT,
         transport TEXT DEFAULT 'stdio',
@@ -4949,9 +5021,9 @@ export class MCPServerConfig {
   }
 
   /**
-   * Idempotent schema migration for databases that predate url/transport
-   * columns. Silently skipped on mocks or anything that doesn't expose
-   * `pragma()`.
+   * Idempotent schema migration for databases that predate runtime, transport,
+   * sandbox-policy, and scope columns. Silently skipped on mocks or anything
+   * that doesn't expose `pragma()`.
    */
   _migrateSchema() {
     try {
@@ -4966,6 +5038,12 @@ export class MCPServerConfig {
       }
       if (!cols.has("runtime_kind")) {
         this.db.exec("ALTER TABLE mcp_servers ADD COLUMN runtime_kind TEXT");
+      }
+      if (!cols.has("cwd")) {
+        this.db.exec("ALTER TABLE mcp_servers ADD COLUMN cwd TEXT");
+      }
+      if (!cols.has("sandbox_policy")) {
+        this.db.exec("ALTER TABLE mcp_servers ADD COLUMN sandbox_policy TEXT");
       }
       if (!cols.has("transport")) {
         this.db.exec(
@@ -5000,6 +5078,13 @@ export class MCPServerConfig {
   }
 
   add(name, config) {
+    if (isProxy(config)) {
+      const error = new TypeError(
+        `MCP server "${name}" config must not be a Proxy`,
+      );
+      error.code = MCP_SANDBOX_POLICY_INVALID_CODE;
+      throw error;
+    }
     const url = config.url || null;
     const transport =
       config.transport || (url ? inferTransport({ url }) : "stdio");
@@ -5027,6 +5112,17 @@ export class MCPServerConfig {
       typeof config.headersHelper === "string" && config.headersHelper.trim()
         ? config.headersHelper
         : null;
+    const sandboxPolicyDescriptor = Object.getOwnPropertyDescriptor(
+      config,
+      "sandboxPolicy",
+    );
+    if (sandboxPolicyDescriptor && !("value" in sandboxPolicyDescriptor)) {
+      const error = new TypeError(
+        `MCP server "${name}" sandboxPolicy must be an own data property`,
+      );
+      error.code = MCP_SANDBOX_POLICY_INVALID_CODE;
+      throw error;
+    }
     // The legacy table uses `name` as its primary key. Encode workspace-bound
     // identities in that key so `foo` can coexist at local/project/user scope
     // while retaining the old key for user rows and backwards compatibility.
@@ -5034,9 +5130,32 @@ export class MCPServerConfig {
       configScope === "user"
         ? name
         : `${configScope}:${Buffer.from(projectPath || "managed", "utf8").toString("base64url")}:${name}`;
+    const existingRow = this.db
+      .prepare("SELECT * FROM mcp_servers WHERE name = ?")
+      .get(storageName);
+    const cwdUpdate = readMcpStdioCwd(config, {
+      label: `MCP server "${name}"`,
+    });
+    const storedCwd = existingRow
+      ? readMcpStdioCwd(existingRow, {
+          label: `Stored MCP server "${name}"`,
+        }).cwd
+      : null;
+    let workingDirectory = storedCwd;
+    if (cwdUpdate.present) workingDirectory = cwdUpdate.cwd;
+    let sandboxPolicy;
+    if (sandboxPolicyDescriptor) {
+      sandboxPolicy = normalizeMcpSandboxPolicy(sandboxPolicyDescriptor.value, {
+        label: `MCP server "${name}" sandboxPolicy`,
+      });
+    } else {
+      sandboxPolicy = existingRow
+        ? this._rowToConfig(existingRow).sandboxPolicy || null
+        : null;
+    }
     this.db
       .prepare(
-        "INSERT OR REPLACE INTO mcp_servers (name, command, args, env, runtime_kind, auto_connect, url, transport, headers, headers_helper, config_scope, config_source, project_path, display_name, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))",
+        "INSERT OR REPLACE INTO mcp_servers (name, command, args, env, runtime_kind, cwd, sandbox_policy, auto_connect, url, transport, headers, headers_helper, config_scope, config_source, project_path, display_name, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))",
       )
       .run(
         storageName,
@@ -5044,6 +5163,8 @@ export class MCPServerConfig {
         JSON.stringify(config.args || []),
         JSON.stringify(config.env || {}),
         config.runtimeKind || null,
+        workingDirectory,
+        sandboxPolicy ? JSON.stringify(sandboxPolicy) : null,
         config.autoConnect ? 1 : 0,
         url,
         transport,
@@ -5080,6 +5201,26 @@ export class MCPServerConfig {
   }
 
   _rowToConfig(row) {
+    const { cwd } = readMcpStdioCwd(row, {
+      label: `Stored MCP server "${row?.display_name || row?.name || "unknown"}"`,
+    });
+    let sandboxPolicy = null;
+    if (row.sandbox_policy != null && row.sandbox_policy !== "") {
+      let parsedPolicy;
+      try {
+        parsedPolicy = JSON.parse(row.sandbox_policy);
+      } catch (cause) {
+        const error = new TypeError(
+          `Stored MCP sandbox policy for "${row.display_name || row.name}" is not valid JSON`,
+          { cause },
+        );
+        error.code = MCP_SANDBOX_POLICY_INVALID_CODE;
+        throw error;
+      }
+      sandboxPolicy = normalizeMcpSandboxPolicy(parsedPolicy, {
+        label: `Stored MCP sandbox policy for "${row.display_name || row.name}"`,
+      });
+    }
     const config = {
       name: row.display_name || row.name,
       command: row.command || null,
@@ -5089,6 +5230,8 @@ export class MCPServerConfig {
       args: safeJsonParse(row.args, []),
       env: safeJsonParse(row.env, {}),
       runtimeKind: row.runtime_kind || null,
+      ...(cwd ? { cwd } : {}),
+      ...(sandboxPolicy ? { sandboxPolicy } : {}),
       autoConnect: row.auto_connect === 1,
       url: row.url || null,
       transport:
@@ -5116,39 +5259,96 @@ export class MCPServerConfig {
     return this.list(options).find((config) => config.name === name) || null;
   }
 
+  _rowsToConfigs(rows, options = {}) {
+    const configs = [];
+    for (const row of rows) {
+      const visibility = mcpRowVisibility(row);
+      if (!visibility || !this._isVisible(visibility, options)) continue;
+      let config;
+      try {
+        config = this._rowToConfig(row);
+      } catch (error) {
+        const invalid = mcpRowVisibility(row, { invalid: true, error });
+        if (invalid) configs.push(invalid);
+        continue;
+      }
+      configs.push(config);
+    }
+    return configs;
+  }
+
+  _publicConfigs(configs) {
+    return configs.filter((config) => !isInvalidMcpConfigRow(config));
+  }
+
+  _reportInvalidConfigs(configs, options = {}) {
+    if (typeof options.onInvalidRow !== "function") return;
+    for (const config of configs) {
+      if (!isInvalidMcpConfigRow(config)) continue;
+      try {
+        options.onInvalidRow(
+          config[INVALID_MCP_CONFIG_ERROR],
+          config[INVALID_MCP_CONFIG_RAW_ROW],
+        );
+      } catch {
+        // Diagnostics must not turn one corrupt row into a global outage.
+      }
+    }
+  }
+
   list(options = {}) {
     const rows = this.db
       .prepare("SELECT * FROM mcp_servers ORDER BY name")
       .all();
-    const visible = rows
-      .map((row) => this._rowToConfig(row))
-      .filter((config) => this._isVisible(config, options));
-    return options.allScopes === true || options.scope
-      ? visible
-      : this._effectiveByName(visible);
+    const visible = this._rowsToConfigs(rows, options);
+    const selected =
+      options.allScopes === true ? visible : this._effectiveByName(visible);
+    this._reportInvalidConfigs(selected, options);
+    return this._publicConfigs(selected);
   }
 
   getAutoConnect(options = {}) {
     const rows = this.db
-      .prepare("SELECT * FROM mcp_servers WHERE auto_connect = ? ORDER BY name")
-      .all(1);
-    const visible = rows
-      .map((row) => this._rowToConfig(row))
-      .filter((config) => this._isVisible(config, options));
-    return options.allScopes === true || options.scope
-      ? visible
-      : this._effectiveByName(visible);
+      .prepare("SELECT * FROM mcp_servers ORDER BY name")
+      .all();
+    const visible = this._rowsToConfigs(rows, options);
+    const selected =
+      options.allScopes === true ? visible : this._effectiveByName(visible);
+    this._reportInvalidConfigs(selected, options);
+    return this._publicConfigs(selected).filter(
+      (config) => config.autoConnect === true,
+    );
   }
 
   _effectiveByName(configs) {
     const priority = { managed: 4, local: 3, project: 2, user: 1 };
+    const specificity = (config) => {
+      if (config.configScope !== "local" && config.configScope !== "project") {
+        return 0;
+      }
+      if (typeof config.projectPath !== "string") return 0;
+      try {
+        return pathToFileURL(config.projectPath).href.length;
+      } catch {
+        return 0;
+      }
+    };
     const selected = new Map();
     for (const config of configs) {
       const current = selected.get(config.name);
+      const candidatePriority = priority[config.configScope] || 0;
+      const currentPriority = current ? priority[current.configScope] || 0 : -1;
+      const candidateSpecificity = specificity(config);
+      const currentSpecificity = current ? specificity(current) : -1;
       if (
         !current ||
-        (priority[config.configScope] || 0) >
-          (priority[current.configScope] || 0)
+        candidatePriority > currentPriority ||
+        (candidatePriority === currentPriority &&
+          candidateSpecificity > currentSpecificity) ||
+        (candidatePriority === currentPriority &&
+          candidateSpecificity === currentSpecificity &&
+          isInvalidMcpConfigRow(config) &&
+          !isInvalidMcpConfigRow(current))
       ) {
         selected.set(config.name, config);
       }

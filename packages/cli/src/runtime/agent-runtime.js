@@ -29,6 +29,7 @@ import { findProjectRoot, loadProjectConfig } from "../lib/project-detector.js";
 import { loadConfig } from "../lib/config-manager.js";
 import { collectWorkspacePluginBinSandboxPolicy } from "../lib/plugin-runtime/bin.js";
 import { issueMcpStdioExecutionAuthority } from "../lib/mcp-stdio-execution-authority.js";
+import { registerHostHooksV2Workspace } from "../lib/hooks-v2-workspace-context.js";
 
 const {
   DEFAULT_ALLOWED_MCP_SERVER_NAMES,
@@ -71,7 +72,8 @@ export class AgentRuntime {
         ((options) => new WSSessionManager(options)),
       createPtyManager:
         deps.createPtyManager || ((options) => new PtyManager(options)),
-      createMcpClient: deps.createMcpClient || (() => new MCPClient()),
+      createMcpClient:
+        deps.createMcpClient || ((options) => new MCPClient(options)),
       createMcpServerConfig:
         deps.createMcpServerConfig || ((db) => new MCPServerConfig(db)),
       mcpServerRegistry:
@@ -81,6 +83,8 @@ export class AgentRuntime {
       findProjectRoot: deps.findProjectRoot || findProjectRoot,
       loadProjectConfig: deps.loadProjectConfig || loadProjectConfig,
       loadConfig: deps.loadConfig || loadConfig,
+      loadAgentBundle: deps.loadAgentBundle || null,
+      resolveAgentBundle: deps.resolveAgentBundle || null,
       openBrowser: deps.openBrowser || openBrowser,
       runTurn: deps.runTurn || null,
       logger: deps.logger || logger,
@@ -226,6 +230,8 @@ export class AgentRuntime {
       host = "0.0.0.0";
     }
 
+    const mcpWorkspaceRoot = path.resolve(project || process.cwd());
+
     let db = null;
     let rawDb = null;
     try {
@@ -243,6 +249,7 @@ export class AgentRuntime {
     const appConfig = this.deps.loadConfig();
     const mcpClient = await this._initializeCodingAgentMcpClient(rawDb, {
       logger: runtimeLogger,
+      workspaceRoot: mcpWorkspaceRoot,
     });
 
     // Deep Agents Deploy: load agent bundle if --bundle provided.
@@ -252,10 +259,17 @@ export class AgentRuntime {
     let bundleMcpClient = mcpClient;
     if (this.policy.bundlePath) {
       try {
-        const { loadBundle } =
-          await import("@chainlesschain/session-core/agent-bundle-loader");
-        const { resolveBundle } =
-          await import("@chainlesschain/session-core/agent-bundle-resolver");
+        let loadBundle = this.deps.loadAgentBundle;
+        let resolveBundle = this.deps.resolveAgentBundle;
+        if (
+          typeof loadBundle !== "function" ||
+          typeof resolveBundle !== "function"
+        ) {
+          ({ loadBundle } =
+            await import("@chainlesschain/session-core/agent-bundle-loader"));
+          ({ resolveBundle } =
+            await import("@chainlesschain/session-core/agent-bundle-resolver"));
+        }
         const bundle = loadBundle(this.policy.bundlePath);
         bundleResolved = resolveBundle(bundle);
 
@@ -266,8 +280,10 @@ export class AgentRuntime {
             ([, cfg]) => cfg && cfg.command,
           );
           if (entries.length > 0) {
+            const mcpWorkspace =
+              this._resolveCodingAgentMcpWorkspace(mcpWorkspaceRoot);
             if (!bundleMcpClient) {
-              bundleMcpClient = this.deps.createMcpClient();
+              bundleMcpClient = this._createCodingAgentMcpClient(mcpWorkspace);
             }
             for (const [name, cfg] of entries) {
               try {
@@ -278,6 +294,7 @@ export class AgentRuntime {
                     config: authorizedConfig,
                     approvalKind: "explicit-config",
                     approvalSource: `agent-bundle:${path.resolve(this.policy.bundlePath)}`,
+                    workspaceRoot: mcpWorkspace.workspaceRoot,
                   });
                 await bundleMcpClient.connect(name, authorizedConfig);
               } catch (mcpErr) {
@@ -484,6 +501,7 @@ export class AgentRuntime {
     const appConfig = this.deps.loadConfig();
     const mcpClient = await this._initializeCodingAgentMcpClient(rawDb, {
       logger: runtimeLogger,
+      workspaceRoot: workspacePolicyCwd,
     });
     const sessionManager = this.deps.createSessionManager({
       db,
@@ -766,10 +784,27 @@ export class AgentRuntime {
     const trustedMcpServers = createTrustedMcpServerMap(
       this.deps.mcpServerRegistry,
     );
+    const mcpWorkspace = this._resolveCodingAgentMcpWorkspace(
+      options.workspaceRoot || this.policy?.project || process.cwd(),
+    );
     const configStore = this.deps.createMcpServerConfig(db);
     const autoConnectServers =
       typeof configStore?.getAutoConnect === "function"
-        ? configStore.getAutoConnect()
+        ? configStore.getAutoConnect({
+            cwd: mcpWorkspace.workspaceRoot,
+            onInvalidRow: (error, row) => {
+              const rawName = row?.display_name || row?.name || "unknown";
+              const safeName = String(rawName).replace(/[\r\n]/g, " ");
+              const reason = String(
+                error?.code || error?.message || "invalid configuration",
+              ).replace(/[\r\n]/g, " ");
+              options.logger?.log?.(
+                chalk.yellow(
+                  `  Warning: MCP server "${safeName}" was skipped: ${reason}`,
+                ),
+              );
+            },
+          })
         : [];
     const eligibleServers = autoConnectServers.filter(
       (server) =>
@@ -787,7 +822,7 @@ export class AgentRuntime {
       return null;
     }
 
-    const mcpClient = this.deps.createMcpClient();
+    const mcpClient = this._createCodingAgentMcpClient(mcpWorkspace);
     let connectedCount = 0;
 
     for (const server of eligibleServers) {
@@ -800,6 +835,7 @@ export class AgentRuntime {
               config: authorizedServer,
               approvalKind: "registered-config",
               approvalSource: `${server.configScope || "user"}:${server.configSource || "database"}:${server.name}`,
+              workspaceRoot: mcpWorkspace.workspaceRoot,
             });
         }
         await mcpClient.connect(server.name, authorizedServer);
@@ -821,5 +857,22 @@ export class AgentRuntime {
     }
 
     return mcpClient;
+  }
+
+  _resolveCodingAgentMcpWorkspace(workspaceRoot) {
+    const workspaceBinding = registerHostHooksV2Workspace(
+      path.resolve(workspaceRoot || process.cwd()),
+    );
+    return Object.freeze({
+      workspaceBinding,
+      workspaceRoot: workspaceBinding.workspaceRoot,
+    });
+  }
+
+  _createCodingAgentMcpClient(workspace) {
+    return this.deps.createMcpClient({
+      workspaceBinding: workspace.workspaceBinding,
+      roots: [workspace.workspaceRoot],
+    });
   }
 }

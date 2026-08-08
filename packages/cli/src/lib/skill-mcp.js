@@ -32,6 +32,47 @@ import {
   issueMcpStdioExecutionAuthority,
 } from "./mcp-stdio-execution-authority.js";
 import { MCP_STDIO_RUNTIME_KINDS } from "./mcp-stdio-executable-identity.js";
+import { isProxy } from "node:util/types";
+import {
+  MCP_SANDBOX_POLICY_INVALID_CODE,
+  normalizeMcpSandboxPolicy,
+  readMcpStdioCwd,
+} from "./mcp-sandbox-policy.js";
+
+function invalidSandboxPolicy(message) {
+  const error = new TypeError(message);
+  error.code = MCP_SANDBOX_POLICY_INVALID_CODE;
+  return error;
+}
+
+function sandboxPolicyFromEntry(entry) {
+  if (!entry || typeof entry !== "object" || isProxy(entry)) {
+    throw invalidSandboxPolicy(
+      "skill MCP server config must be a non-Proxy object",
+    );
+  }
+  const descriptor = Object.getOwnPropertyDescriptor(entry, "sandboxPolicy");
+  if (!descriptor) return null;
+  if (!("value" in descriptor)) {
+    throw invalidSandboxPolicy(
+      "skill MCP server sandboxPolicy must be an own data property",
+    );
+  }
+  return normalizeMcpSandboxPolicy(descriptor.value, {
+    label: "skill MCP server sandboxPolicy",
+  });
+}
+
+function safeServerName(entry) {
+  if (!entry || typeof entry !== "object" || isProxy(entry)) return "(invalid)";
+  const descriptor = Object.getOwnPropertyDescriptor(entry, "name");
+  return descriptor &&
+    "value" in descriptor &&
+    typeof descriptor.value === "string" &&
+    descriptor.value.length > 0
+    ? descriptor.value
+    : "(invalid)";
+}
 
 /**
  * Parse MCP server declarations from a SKILL.md body.
@@ -77,6 +118,10 @@ export function parseSkillMcpServers(body) {
  */
 export function validateMcpServerConfig(entry) {
   if (!entry || typeof entry !== "object") return null;
+  const sandboxPolicy = sandboxPolicyFromEntry(entry);
+  const { cwd } = readMcpStdioCwd(entry, {
+    label: "skill MCP server config",
+  });
   if (typeof entry.name !== "string" || entry.name.trim().length === 0) {
     return null;
   }
@@ -102,9 +147,8 @@ export function validateMcpServerConfig(entry) {
   } else if (entry.runtimeKind !== undefined) {
     return null;
   }
-  if (typeof entry.cwd === "string" && entry.cwd.length > 0) {
-    normalized.cwd = entry.cwd;
-  }
+  if (cwd) normalized.cwd = cwd;
+  if (sandboxPolicy) normalized.sandboxPolicy = sandboxPolicy;
   return Object.freeze(normalized);
 }
 
@@ -131,7 +175,19 @@ export async function mountSkillMcpServers(mcpClient, skill, opts = {}) {
   }
 
   for (const server of declared) {
-    const normalized = validateMcpServerConfig(server);
+    let normalized;
+    try {
+      normalized = validateMcpServerConfig(server);
+    } catch (error) {
+      const name = safeServerName(server);
+      const message = error?.message || String(error);
+      skipped.push({ name, error: message });
+      opts.onWarn?.(
+        `[skill-mcp] Skipped "${name}" for skill "${skill?.id || skill?.name}": ${message}`,
+        error,
+      );
+      continue;
+    }
     if (!normalized) {
       const name = server?.name || "(invalid)";
       skipped.push({ name, error: "invalid config" });
@@ -157,6 +213,7 @@ export async function mountSkillMcpServers(mcpClient, skill, opts = {}) {
           runtimeKind: normalized.runtimeKind || null,
           cwd: normalized.cwd || null,
           envKeys: Object.keys(normalized.env || {}).sort(),
+          sandboxPolicy: normalized.sandboxPolicy || null,
         })) === true;
     } catch (error) {
       const message = error?.message || String(error);
@@ -182,6 +239,10 @@ export async function mountSkillMcpServers(mcpClient, skill, opts = {}) {
         config,
         approvalKind: "explicit-config",
         approvalSource: `skill:${skill?.id || skill?.name || "unknown"}:${normalized.name}`,
+        workspaceBinding:
+          typeof mcpClient.executionWorkspaceBinding === "function"
+            ? mcpClient.executionWorkspaceBinding()
+            : null,
       });
       await mcpClient.connect(normalized.name, config);
       mounted.push(normalized.name);

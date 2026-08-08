@@ -1,10 +1,17 @@
 import { describe, it, expect, vi } from "vitest";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import {
   parseSkillMcpServers,
   validateMcpServerConfig,
   mountSkillMcpServers,
   unmountSkillMcpServers,
 } from "../../src/lib/skill-mcp.js";
+import {
+  registerHostHooksV2Workspace,
+  releaseRegisteredHostHooksV2Workspace,
+} from "../../src/lib/hooks-v2-workspace-context.js";
 
 describe("parseSkillMcpServers", () => {
   it("returns empty array for missing body", () => {
@@ -175,6 +182,64 @@ describe("validateMcpServerConfig", () => {
     const r2 = validateMcpServerConfig({ name: "x", command: "y", env: "str" });
     expect(r2.env).toBeUndefined();
   });
+
+  it("normalizes and deeply freezes a declarative sandbox policy", () => {
+    const result = validateMcpServerConfig({
+      name: "x",
+      command: "custom-node",
+      runtimeKind: "node",
+      cwd: "/workspace/service",
+      sandboxPolicy: {
+        requiredBoundaries: ["network", "filesystem", "network"],
+      },
+    });
+
+    expect(result).toMatchObject({
+      runtimeKind: "node",
+      cwd: "/workspace/service",
+      sandboxPolicy: {
+        requiredBoundaries: ["filesystem", "network"],
+      },
+    });
+    expect(Object.isFrozen(result.sandboxPolicy)).toBe(true);
+    expect(Object.isFrozen(result.sandboxPolicy.requiredBoundaries)).toBe(true);
+  });
+
+  it("rejects invalid and accessor sandbox policies without invoking accessors", () => {
+    expect(() =>
+      validateMcpServerConfig({
+        name: "x",
+        command: "node",
+        sandboxPolicy: { requiredBoundaries: ["process-tree"] },
+      }),
+    ).toThrow(
+      expect.objectContaining({ code: "CC_MCP_SANDBOX_POLICY_INVALID" }),
+    );
+
+    const getter = vi.fn(() => ({ requiredBoundaries: ["network"] }));
+    const config = { name: "x", command: "node" };
+    Object.defineProperty(config, "sandboxPolicy", {
+      enumerable: true,
+      get: getter,
+    });
+    expect(() => validateMcpServerConfig(config)).toThrow(
+      expect.objectContaining({ code: "CC_MCP_SANDBOX_POLICY_INVALID" }),
+    );
+    expect(getter).not.toHaveBeenCalled();
+  });
+
+  it("rejects an invalid cwd instead of widening a strict skill server", () => {
+    expect(() =>
+      validateMcpServerConfig({
+        name: "x",
+        command: "node",
+        cwd: { intended: "/workspace/narrow" },
+        sandboxPolicy: { requiredBoundaries: ["filesystem"] },
+      }),
+    ).toThrow(
+      expect.objectContaining({ code: "CC_MCP_STDIO_SANDBOX_CWD_INVALID" }),
+    );
+  });
 });
 
 describe("mountSkillMcpServers", () => {
@@ -218,6 +283,109 @@ describe("mountSkillMcpServers", () => {
       "fs",
       expect.objectContaining({ name: "fs", command: "node" }),
     );
+  });
+
+  it("includes sandbox requirements in approval and connect without enabling implicit approval", async () => {
+    const client = fakeClient();
+    const approveLocalCodeExecution = vi.fn(async () => true);
+    await mountSkillMcpServers(
+      client,
+      {
+        id: "strict-skill",
+        mcpServers: [
+          {
+            name: "strict",
+            command: "node",
+            sandboxPolicy: {
+              requiredBoundaries: ["network", "filesystem"],
+            },
+          },
+        ],
+      },
+      { approveLocalCodeExecution },
+    );
+
+    expect(approveLocalCodeExecution).toHaveBeenCalledWith(
+      expect.objectContaining({
+        serverName: "strict",
+        sandboxPolicy: {
+          requiredBoundaries: ["filesystem", "network"],
+        },
+      }),
+    );
+    expect(client.connect).toHaveBeenCalledWith(
+      "strict",
+      expect.objectContaining({
+        sandboxPolicy: {
+          requiredBoundaries: ["filesystem", "network"],
+        },
+      }),
+    );
+  });
+
+  it("binds a relative strict cwd to an explicit MCPClient workspace authority outside ALS", async () => {
+    const root = fs.realpathSync.native(
+      fs.mkdtempSync(path.join(os.tmpdir(), "cc-skill-mcp-workspace-")),
+    );
+    fs.mkdirSync(path.join(root, "service"));
+    const workspaceBinding = registerHostHooksV2Workspace(root);
+    const client = fakeClient({
+      executionWorkspaceBinding: () => workspaceBinding,
+    });
+
+    try {
+      const result = await mountSkillMcpServers(
+        client,
+        {
+          id: "strict-relative-skill",
+          mcpServers: [
+            {
+              name: "strict",
+              command: "node",
+              cwd: "service",
+              sandboxPolicy: { requiredBoundaries: ["filesystem"] },
+            },
+          ],
+        },
+        { approveLocalCodeExecution: async () => true },
+      );
+
+      expect(result.mounted).toEqual(["strict"]);
+      expect(client.connect).toHaveBeenCalledWith(
+        "strict",
+        expect.objectContaining({ cwd: "service" }),
+      );
+    } finally {
+      releaseRegisteredHostHooksV2Workspace(workspaceBinding.bindingId);
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("warns and refuses invalid policy before approval or connect", async () => {
+    const client = fakeClient();
+    const onWarn = vi.fn();
+    const approveLocalCodeExecution = vi.fn(async () => true);
+    const result = await mountSkillMcpServers(
+      client,
+      {
+        id: "unsafe-skill",
+        mcpServers: [
+          {
+            name: "unsafe",
+            command: "node",
+            sandboxPolicy: { profile: "strict" },
+          },
+        ],
+      },
+      { onWarn, approveLocalCodeExecution },
+    );
+
+    expect(result.mounted).toEqual([]);
+    expect(result.skipped[0]).toMatchObject({ name: "unsafe" });
+    expect(result.skipped[0].error).toMatch(/unsupported field/);
+    expect(approveLocalCodeExecution).not.toHaveBeenCalled();
+    expect(client.connect).not.toHaveBeenCalled();
+    expect(onWarn).toHaveBeenCalledOnce();
   });
 
   it("records failures in skipped and calls onWarn", async () => {

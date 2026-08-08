@@ -258,6 +258,149 @@ describe("MCP Client", () => {
 
     it("should create mcp_servers table", () => {
       expect(db.tables.has("mcp_servers")).toBe(true);
+      expect(db.tables.get("mcp_servers").columns).toContain(
+        "sandbox_policy TEXT",
+      );
+    });
+
+    it("round-trips a normalized sandbox policy without losing runtimeKind", () => {
+      config.add("strict-node", {
+        command: "custom-node",
+        args: ["server.mjs"],
+        runtimeKind: "node",
+        sandboxPolicy: {
+          requiredBoundaries: ["network", "filesystem", "network"],
+        },
+      });
+
+      const server = config.get("strict-node");
+      expect(server.runtimeKind).toBe("node");
+      expect(server.sandboxPolicy).toEqual({
+        requiredBoundaries: ["filesystem", "network"],
+      });
+      expect(Object.isFrozen(server.sandboxPolicy)).toBe(true);
+      expect(Object.isFrozen(server.sandboxPolicy.requiredBoundaries)).toBe(
+        true,
+      );
+    });
+
+    it("rejects invalid or accessor-backed sandbox policies before storage", () => {
+      expect(() =>
+        config.add("invalid", {
+          command: "node",
+          sandboxPolicy: { requiredBoundaries: ["process-tree"] },
+        }),
+      ).toThrow(
+        expect.objectContaining({ code: "CC_MCP_SANDBOX_POLICY_INVALID" }),
+      );
+
+      let getterCalls = 0;
+      const accessorConfig = { command: "node" };
+      Object.defineProperty(accessorConfig, "sandboxPolicy", {
+        get() {
+          getterCalls += 1;
+          return { requiredBoundaries: ["filesystem"] };
+        },
+      });
+      expect(() => config.add("accessor", accessorConfig)).toThrow(
+        expect.objectContaining({ code: "CC_MCP_SANDBOX_POLICY_INVALID" }),
+      );
+      expect(getterCalls).toBe(0);
+    });
+
+    it("fails closed when a persisted sandbox policy is corrupt", () => {
+      config.add("corrupt-policy", {
+        command: "node",
+        sandboxPolicy: { requiredBoundaries: ["filesystem"] },
+      });
+      const row = db.data
+        .get("mcp_servers")
+        .find((entry) => entry.name === "corrupt-policy");
+      row.sandbox_policy = "{truncated";
+
+      const invalidRows = [];
+      expect(
+        config.get("corrupt-policy", {
+          onInvalidRow: (error, invalidRow) =>
+            invalidRows.push({ error, invalidRow }),
+        }),
+      ).toBeNull();
+      expect(invalidRows).toHaveLength(1);
+      expect(invalidRows[0].error).toMatchObject({
+        code: "CC_MCP_SANDBOX_POLICY_INVALID",
+      });
+      expect(invalidRows[0].invalidRow.name).toBe("corrupt-policy");
+    });
+
+    it("fails closed when a persisted strict cwd has a non-text SQLite type", () => {
+      config.add("corrupt-cwd", {
+        command: "node",
+        cwd: "services/narrow",
+        sandboxPolicy: { requiredBoundaries: ["filesystem"] },
+      });
+      const row = db.data
+        .get("mcp_servers")
+        .find((entry) => entry.name === "corrupt-cwd");
+      row.cwd = Buffer.from("services/narrow");
+      const invalidRows = [];
+
+      expect(
+        config.get("corrupt-cwd", {
+          onInvalidRow: (error, invalidRow) =>
+            invalidRows.push({ error, invalidRow }),
+        }),
+      ).toBeNull();
+      expect(invalidRows).toHaveLength(1);
+      expect(invalidRows[0].error).toMatchObject({
+        code: "CC_MCP_STDIO_SANDBOX_CWD_INVALID",
+      });
+    });
+
+    it("preserves stored policy on update unless an explicit null clears it", () => {
+      config.add("policy-update", {
+        command: "old-node",
+        sandboxPolicy: { requiredBoundaries: ["network"] },
+      });
+      config.add("policy-update", { command: "new-node" });
+      expect(config.get("policy-update")).toMatchObject({
+        command: "new-node",
+        sandboxPolicy: { requiredBoundaries: ["network"] },
+      });
+
+      config.add("policy-update", {
+        command: "new-node",
+        sandboxPolicy: null,
+      });
+      expect(config.get("policy-update")).not.toHaveProperty("sandboxPolicy");
+    });
+
+    it("migrates an existing MCP table with sandbox_policy storage", () => {
+      const exec = vi.fn();
+      const legacyDb = {
+        exec,
+        pragma: () =>
+          [
+            "name",
+            "command",
+            "args",
+            "env",
+            "runtime_kind",
+            "auto_connect",
+            "url",
+            "transport",
+            "headers",
+            "headers_helper",
+            "config_scope",
+            "config_source",
+            "project_path",
+            "display_name",
+          ].map((name) => ({ name })),
+      };
+
+      new MCPServerConfig(legacyDb);
+      expect(exec).toHaveBeenCalledWith(
+        "ALTER TABLE mcp_servers ADD COLUMN sandbox_policy TEXT",
+      );
     });
 
     it("should add a server config", () => {

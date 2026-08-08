@@ -11,7 +11,14 @@
  */
 
 import crypto from "node:crypto";
+import fs from "node:fs";
+import path from "node:path";
 import { isProxy } from "node:util/types";
+import {
+  currentHostHooksV2WorkspaceBinding,
+  resolveHostHooksV2WorkspaceBinding,
+} from "./hooks-v2-workspace-context.js";
+import { resolvePluginWorkspaceAuthority } from "./plugin-runtime/sandbox-policy.js";
 
 export const MCP_STDIO_LOCAL_CODE_TRUST_REQUIRED_CODE =
   "CC_MCP_STDIO_LOCAL_CODE_TRUST_REQUIRED";
@@ -175,6 +182,7 @@ function invocationSnapshot(serverName, config) {
       dataProperty(config, "projectPath", null),
       "projectPath",
     ),
+    cwd: scalar(dataProperty(config, "cwd", null), "cwd"),
     pluginId: scalar(dataProperty(config, "pluginId", null), "pluginId"),
     pluginVersion: scalar(
       dataProperty(config, "pluginVersion", null),
@@ -205,6 +213,8 @@ function comparableSnapshot(snapshot) {
     projectMcpWorkspaceAuthority: _projectAuthority,
     ...plain
   } = snapshot;
+  void _pluginAuthority;
+  void _projectAuthority;
   return plain;
 }
 
@@ -224,6 +234,116 @@ function sameSnapshot(expected, actual) {
   );
 }
 
+function directoryGeneration(stat) {
+  return stat.birthtimeNs > 0n
+    ? `birth:${stat.birthtimeNs.toString()}`
+    : `ctime:${stat.ctimeNs.toString()}`;
+}
+
+function captureDirectoryIdentity(value, base, label) {
+  if (typeof value !== "string" || value.length === 0 || value.includes("\0")) {
+    throw new TypeError(`${label} must be a non-empty directory path`);
+  }
+  const requestedPath = path.isAbsolute(value)
+    ? path.resolve(value)
+    : path.resolve(base, value);
+  let canonicalRoot;
+  let stat;
+  try {
+    const implementation = fs.realpathSync.native || fs.realpathSync;
+    canonicalRoot = implementation.call(fs.realpathSync, requestedPath);
+    stat = fs.statSync(canonicalRoot, { bigint: true });
+  } catch (cause) {
+    throw new TypeError(`${label} must resolve to an existing directory`, {
+      cause,
+    });
+  }
+  if (!stat.isDirectory()) {
+    throw new TypeError(`${label} must resolve to a directory`);
+  }
+  return Object.freeze({
+    requestedPath,
+    canonicalRoot,
+    device: stat.dev,
+    inode: stat.ino,
+    generation: directoryGeneration(stat),
+  });
+}
+
+function sameDirectoryIdentity(expected, actual) {
+  return (
+    expected.canonicalRoot === actual.canonicalRoot &&
+    expected.device === actual.device &&
+    expected.inode === actual.inode &&
+    expected.generation === actual.generation
+  );
+}
+
+function verifyDirectoryIdentity(binding) {
+  try {
+    return sameDirectoryIdentity(
+      binding,
+      captureDirectoryIdentity(
+        binding.requestedPath,
+        process.cwd(),
+        "approved MCP stdio cwd",
+      ),
+    );
+  } catch {
+    return false;
+  }
+}
+
+function approvedWorkspaceRoot(snapshot, workspaceRoot, workspaceBinding) {
+  if (snapshot.origin === "plugin:mcp") {
+    const pluginRoot = resolvePluginWorkspaceAuthority(
+      snapshot.pluginWorkspaceAuthority,
+      {
+        origin: snapshot.origin,
+        pluginId: snapshot.pluginId,
+        pluginVersion: snapshot.pluginVersion,
+        pluginSource: snapshot.pluginSource,
+      },
+    );
+    if (pluginRoot) return pluginRoot;
+  }
+  if (workspaceBinding != null) {
+    const resolvedBinding =
+      resolveHostHooksV2WorkspaceBinding(workspaceBinding);
+    if (!resolvedBinding?.workspaceRoot) {
+      throw new TypeError(
+        "approved MCP stdio workspace binding is invalid or stale",
+      );
+    }
+    return resolvedBinding.workspaceRoot;
+  }
+  if (typeof workspaceRoot === "string" && workspaceRoot.length > 0) {
+    return workspaceRoot;
+  }
+  const hostRoot = currentHostHooksV2WorkspaceBinding()?.workspaceRoot;
+  if (hostRoot) return hostRoot;
+  if (typeof snapshot.projectPath === "string" && snapshot.projectPath) {
+    return snapshot.projectPath;
+  }
+  return process.cwd();
+}
+
+function captureApprovedCwd(snapshot, workspaceRoot, workspaceBinding) {
+  if (snapshot.sandboxPolicy == null || snapshot.cwd == null) return null;
+  return captureDirectoryIdentity(
+    snapshot.cwd,
+    approvedWorkspaceRoot(snapshot, workspaceRoot, workspaceBinding),
+    "approved MCP stdio cwd",
+  );
+}
+
+function staleDirectoryError(serverName) {
+  return authorityError(
+    MCP_STDIO_EXECUTION_AUTHORITY_STALE_CODE,
+    `MCP stdio working directory for "${String(serverName)}" changed after approval`,
+  );
+}
+
 function materializeSnapshot(snapshot) {
   return {
     command: snapshot.command,
@@ -237,6 +357,7 @@ function materializeSnapshot(snapshot) {
     configScope: snapshot.configScope,
     configSource: snapshot.configSource,
     projectPath: snapshot.projectPath,
+    cwd: snapshot.cwd,
     pluginId: snapshot.pluginId,
     pluginVersion: snapshot.pluginVersion,
     pluginSource: snapshot.pluginSource,
@@ -254,6 +375,8 @@ export function issueMcpStdioExecutionAuthority({
   config,
   approvalKind,
   approvalSource,
+  workspaceRoot,
+  workspaceBinding,
 }) {
   if (!APPROVAL_KINDS.has(approvalKind)) {
     throw new TypeError("MCP stdio approval kind is not recognized");
@@ -261,6 +384,11 @@ export function issueMcpStdioExecutionAuthority({
   const source = scalar(approvalSource, "approvalSource", { nullable: false });
   if (!source.trim()) throw new TypeError("approvalSource must not be empty");
   const snapshot = invocationSnapshot(serverName, config);
+  const cwdIdentity = captureApprovedCwd(
+    snapshot,
+    workspaceRoot,
+    workspaceBinding,
+  );
   const token = Object.freeze({});
   issuedAuthorities.set(
     token,
@@ -269,6 +397,7 @@ export function issueMcpStdioExecutionAuthority({
       approvalSource: source,
       fingerprint: snapshotDigest(snapshot),
       snapshot,
+      cwdIdentity,
     }),
   );
   return token;
@@ -309,6 +438,9 @@ export function consumeMcpStdioExecutionAuthority(
       `MCP stdio invocation for "${String(serverName)}" changed after approval`,
     );
   }
+  if (issued.cwdIdentity && !verifyDirectoryIdentity(issued.cwdIdentity)) {
+    throw staleDirectoryError(serverName);
+  }
   const approval = Object.freeze({
     approvalKind: issued.approvalKind,
     approvalSource: issued.approvalSource,
@@ -336,6 +468,9 @@ export function renewMcpStdioExecutionAuthority(
       `MCP stdio reconnect invocation for "${String(serverName)}" changed after approval`,
     );
   }
+  if (issued.cwdIdentity && !verifyDirectoryIdentity(issued.cwdIdentity)) {
+    throw staleDirectoryError(serverName);
+  }
   const token = Object.freeze({});
   issuedAuthorities.set(token, issued);
   return token;
@@ -350,6 +485,34 @@ export function materializeApprovedMcpStdioInvocation(approval) {
     );
   }
   return materializeSnapshot(issued.snapshot);
+}
+
+export function verifyMcpStdioApprovedWorkingDirectory(
+  approval,
+  workingDirectory,
+) {
+  const issued = renewableApprovals.get(approval);
+  if (!issued) {
+    throw authorityError(
+      MCP_STDIO_LOCAL_CODE_TRUST_REQUIRED_CODE,
+      "MCP stdio working directory requires a consumed execution approval",
+    );
+  }
+  if (!issued.cwdIdentity) return true;
+  let actual;
+  try {
+    actual = captureDirectoryIdentity(
+      workingDirectory,
+      process.cwd(),
+      "materialized MCP stdio cwd",
+    );
+  } catch {
+    throw staleDirectoryError(issued.snapshot.serverName);
+  }
+  if (!sameDirectoryIdentity(issued.cwdIdentity, actual)) {
+    throw staleDirectoryError(issued.snapshot.serverName);
+  }
+  return true;
 }
 
 /**

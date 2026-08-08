@@ -1,22 +1,35 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import {
   buildToolName,
   toAgentTool,
   mountTemplateMcpTools,
   _deps,
 } from "../../src/lib/cowork-mcp-tools.js";
+import {
+  consumeMcpStdioExecutionAuthority,
+  materializeApprovedMcpStdioInvocation,
+  verifyMcpStdioApprovedWorkingDirectory,
+} from "../../src/lib/mcp-stdio-execution-authority.js";
+import { resolveMcpStdioSandboxContext } from "../../src/lib/mcp-stdio-workspace-authority.js";
+import { releaseRegisteredHostHooksV2Workspace } from "../../src/lib/hooks-v2-workspace-context.js";
 
 // ─── Fake MCPClient ──────────────────────────────────────────────────────────
 
 function makeFakeClient({ connectFail = {}, tools = {} } = {}) {
   const connected = new Set();
+  const configs = new Map();
   const disconnected = [];
   return {
     connected,
+    configs,
     disconnected,
-    async connect(name) {
+    async connect(name, config) {
       if (connectFail[name]) throw new Error(connectFail[name]);
       connected.add(name);
+      configs.set(name, config);
     },
     listTools(name) {
       return tools[name] || [];
@@ -168,6 +181,144 @@ describe("cowork-mcp-tools", () => {
         "fetch",
       );
       expect(fake.connected.has("fetch")).toBe(true);
+    });
+
+    it("propagates sandbox requirements through approval and connect", async () => {
+      const fake = makeFakeClient({ tools: { strict: [{ name: "ping" }] } });
+      _deps.importMcpClient = async () =>
+        function MockClient() {
+          return fake;
+        };
+      const approveLocalCodeExecution = vi.fn(async () => true);
+
+      const result = await mountTemplateMcpTools(
+        {
+          id: "strict-template",
+          mcpServers: [
+            {
+              name: "strict",
+              command: "node",
+              cwd: process.cwd(),
+              sandboxPolicy: {
+                requiredBoundaries: ["network", "filesystem", "network"],
+              },
+            },
+          ],
+        },
+        { approveLocalCodeExecution },
+      );
+
+      expect(result.mounted).toEqual(["strict"]);
+      expect(approveLocalCodeExecution).toHaveBeenCalledWith(
+        expect.objectContaining({
+          cwd: process.cwd(),
+          sandboxPolicy: {
+            requiredBoundaries: ["filesystem", "network"],
+          },
+        }),
+      );
+      expect(fake.configs.get("strict")).toMatchObject({
+        cwd: process.cwd(),
+        sandboxPolicy: {
+          requiredBoundaries: ["filesystem", "network"],
+        },
+      });
+    });
+
+    it("binds policy-bearing Cowork MCP to the task cwd outside host ALS", async () => {
+      const root = fs.realpathSync.native(
+        fs.mkdtempSync(path.join(os.tmpdir(), "cc-cowork-mcp-workspace-")),
+      );
+      const service = path.join(root, "service");
+      fs.mkdirSync(service);
+      let observedContext = null;
+      let observedOptions = null;
+      _deps.importMcpClient = async () =>
+        class AuthorityCheckingClient {
+          constructor(options) {
+            observedOptions = options;
+          }
+
+          async connect(name, config) {
+            const approval = consumeMcpStdioExecutionAuthority(
+              config.mcpStdioExecutionAuthority,
+              { serverName: name, config },
+            );
+            const invocation = materializeApprovedMcpStdioInvocation(approval);
+            observedContext = resolveMcpStdioSandboxContext({
+              serverName: name,
+              config: invocation,
+              workspaceBinding: observedOptions.workspaceBinding,
+            });
+            verifyMcpStdioApprovedWorkingDirectory(
+              approval,
+              observedContext.workingDirectory,
+            );
+          }
+
+          listTools() {
+            return [];
+          }
+
+          async disconnectAll() {}
+        };
+
+      try {
+        const result = await mountTemplateMcpTools(
+          {
+            id: "strict-cowork",
+            mcpServers: [
+              {
+                name: "strict",
+                command: "node",
+                cwd: "service",
+                sandboxPolicy: { requiredBoundaries: ["filesystem"] },
+              },
+            ],
+          },
+          {
+            workspaceRoot: root,
+            approveLocalCodeExecution: async () => true,
+          },
+        );
+
+        expect(result.mounted).toEqual(["strict"]);
+        expect(observedOptions.roots).toEqual([root]);
+        expect(observedContext.workingDirectory).toBe(
+          fs.realpathSync.native(service),
+        );
+      } finally {
+        if (observedOptions?.workspaceBinding?.bindingId) {
+          releaseRegisteredHostHooksV2Workspace(
+            observedOptions.workspaceBinding.bindingId,
+          );
+        }
+        fs.rmSync(root, { recursive: true, force: true });
+      }
+    });
+
+    it("warns and refuses invalid policy without creating a client", async () => {
+      const onWarn = vi.fn();
+      const approveLocalCodeExecution = vi.fn(async () => true);
+      const result = await mountTemplateMcpTools(
+        {
+          mcpServers: [
+            {
+              name: "unsafe",
+              command: "node",
+              sandboxPolicy: { requiredBoundaries: ["process-tree"] },
+            },
+          ],
+        },
+        { onWarn, approveLocalCodeExecution },
+      );
+
+      expect(result.mcpClient).toBeNull();
+      expect(result.mounted).toEqual([]);
+      expect(result.skipped[0]).toMatchObject({ name: "unsafe" });
+      expect(result.skipped[0].error).toMatch(/unsupported boundary/);
+      expect(approveLocalCodeExecution).not.toHaveBeenCalled();
+      expect(onWarn).toHaveBeenCalledOnce();
     });
 
     it("tolerates server connect failures (skipped list) and continues", async () => {

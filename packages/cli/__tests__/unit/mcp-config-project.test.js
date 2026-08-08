@@ -88,6 +88,86 @@ describe("loadProjectMcp", () => {
     expect(connect.cfg.command).toBe("LOCAL");
   });
 
+  it("lets a valid cwd server replace an invalid same-name root server", async () => {
+    write(path.join(root, ".mcp.json"), {
+      mcpServers: {
+        dup: {
+          command: "ROOT",
+          sandboxPolicy: { requiredBoundaries: ["process-tree"] },
+        },
+      },
+    });
+    write(path.join(sub, ".mcp.json"), {
+      mcpServers: { dup: { command: "CWD_VALID" } },
+    });
+    const reservations = new Set();
+
+    const result = await loadProjectMcp(
+      { cwd: sub },
+      {
+        createClient: fakeClientFactory(),
+        mcpServerNameReservations: reservations,
+      },
+    );
+
+    expect(result.mcpClient.connects).toEqual([
+      expect.objectContaining({
+        name: "dup",
+        cfg: expect.objectContaining({ command: "CWD_VALID" }),
+      }),
+    ]);
+    expect(reservations.has("dup")).toBe(true);
+  });
+
+  it("uses an invalid cwd server as a tombstone over a valid same-name root server", async () => {
+    write(path.join(root, ".mcp.json"), {
+      mcpServers: { dup: { command: "ROOT_VALID" } },
+    });
+    write(path.join(sub, ".mcp.json"), {
+      mcpServers: {
+        dup: {
+          command: "CWD_INVALID",
+          sandboxPolicy: { requiredBoundaries: ["process-tree"] },
+        },
+      },
+    });
+    const reservations = new Set();
+
+    const result = await loadProjectMcp(
+      { cwd: sub },
+      {
+        createClient: fakeClientFactory(),
+        mcpServerNameReservations: reservations,
+      },
+    );
+
+    expect(result).toBeNull();
+    expect(reservations.has("dup")).toBe(true);
+  });
+
+  it("reserves a project server when workspace authority cannot be issued", async () => {
+    write(path.join(root, ".mcp.json"), {
+      mcpServers: { strict: { command: "node" } },
+    });
+    const reservations = new Set();
+    const projectMcpTrust = {
+      checkProjectMcpTrust: () => ({ status: "trusted" }),
+      projectMcpRetrustRequested: () => false,
+    };
+
+    const result = await loadProjectMcp(
+      { cwd: sub },
+      {
+        createClient: fakeClientFactory(),
+        mcpServerNameReservations: reservations,
+        projectMcpTrust,
+      },
+    );
+
+    expect(result).toBeNull();
+    expect(reservations.has("strict")).toBe(true);
+  });
+
   it("returns into unchanged when no .mcp.json exists", async () => {
     const into = { mcpClient: {}, connected: [], extraToolDefinitions: [] };
     const res = await loadProjectMcp({ cwd: sub }, { into });
@@ -126,6 +206,54 @@ describe("loadProjectMcp", () => {
     );
     expect(res).toBeNull();
     expect(warnings.join("")).toMatch(/malformed/);
+  });
+
+  it("retains a canonical sandbox policy on a trusted project server", async () => {
+    fs.mkdirSync(path.join(root, "service"));
+    write(path.join(root, ".mcp.json"), {
+      mcpServers: {
+        strict: {
+          command: "node",
+          cwd: path.join(root, "service"),
+          sandboxPolicy: {
+            requiredBoundaries: ["network", "filesystem", "network"],
+          },
+        },
+      },
+    });
+
+    const result = await loadProjectMcp(
+      { cwd: sub },
+      { createClient: fakeClientFactory() },
+    );
+    expect(result.mcpClient.connects[0].cfg).toMatchObject({
+      cwd: path.join(root, "service"),
+      sandboxPolicy: {
+        requiredBoundaries: ["filesystem", "network"],
+      },
+    });
+  });
+
+  it("warns and skips a project file containing an invalid policy", async () => {
+    write(path.join(root, ".mcp.json"), {
+      mcpServers: {
+        unsafe: {
+          command: "node",
+          sandboxPolicy: { requiredBoundaries: ["process-tree"] },
+        },
+      },
+    });
+    const warnings = [];
+    const result = await loadProjectMcp(
+      { cwd: sub },
+      {
+        createClient: fakeClientFactory(),
+        writeErr: (message) => warnings.push(message),
+      },
+    );
+
+    expect(result).toBeNull();
+    expect(warnings.join(" ")).toMatch(/SKIPPING.*sandbox policy is invalid/i);
   });
 
   it("merges an explicit `into` so --mcp-config / registered win on a clash", async () => {

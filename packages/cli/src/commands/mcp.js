@@ -5,6 +5,7 @@
 
 import fs from "fs";
 import path from "path";
+import { isProxy } from "node:util/types";
 import chalk from "chalk";
 import ora from "ora";
 import { logger } from "../lib/logger.js";
@@ -45,11 +46,19 @@ import {
   issueMcpStdioExecutionAuthority,
   materializeApprovedMcpStdioInvocation,
   resolveMcpStdioExecutionApproval,
+  verifyMcpStdioApprovedWorkingDirectory,
 } from "../lib/mcp-stdio-execution-authority.js";
 import {
   MCP_STDIO_RUNTIME_KINDS,
   prepareMcpStdioExecutableIdentity,
 } from "../lib/mcp-stdio-executable-identity.js";
+import { resolveMcpStdioSandboxContext } from "../lib/mcp-stdio-workspace-authority.js";
+import {
+  MCP_SANDBOX_BOUNDARIES,
+  MCP_SANDBOX_POLICY_INVALID_CODE,
+  normalizeMcpSandboxPolicy,
+  readMcpStdioCwd,
+} from "../lib/mcp-sandbox-policy.js";
 import {
   materializeMcpStdioNpmPackage,
   parseExactNpmPackageSpec,
@@ -116,12 +125,32 @@ export function authorizeMcpRowForConnect(row, overrides = {}) {
     config,
     approvalKind,
     approvalSource: `${row?.configScope || "user"}:${row?.configSource || "database"}:${row.name}`,
+    workspaceRoot: projectMcpLocation(process.cwd()).root,
   });
   return config;
 }
 
 function commandWorkspaceBinding() {
   return registerHostHooksV2Workspace(projectMcpLocation(process.cwd()).root);
+}
+
+export function resolveMcpCommandStdioWorkingDirectory(
+  serverName,
+  config,
+  approval,
+  workspaceBinding = commandWorkspaceBinding(),
+) {
+  const context = resolveMcpStdioSandboxContext({
+    serverName,
+    config,
+    workspaceBinding,
+  });
+  if (context.sandboxPolicy && config.cwd) {
+    verifyMcpStdioApprovedWorkingDirectory(approval, context.workingDirectory);
+  }
+  return (
+    context.workingDirectory || context.pluginWorkspaceRoot || process.cwd()
+  );
 }
 
 function getClient() {
@@ -287,32 +316,95 @@ function headersHelperField(value) {
     : {};
 }
 
-async function readManagedMcpRows() {
-  const { loadManagedSettings } = await import("../lib/settings-loader.cjs");
-  const loaded = loadManagedSettings({ env: process.env });
-  const block =
-    loaded.settings?.managedMcpServers || loaded.settings?.mcpServers || {};
+function invalidMcpSandboxPolicy(message) {
+  const error = new TypeError(message);
+  error.code = MCP_SANDBOX_POLICY_INVALID_CODE;
+  return error;
+}
+
+function readMcpSandboxPolicy(owner, label) {
+  if (!owner || typeof owner !== "object" || isProxy(owner)) {
+    throw invalidMcpSandboxPolicy(`${label} must be a non-Proxy object`);
+  }
+  const descriptor = Object.getOwnPropertyDescriptor(owner, "sandboxPolicy");
+  if (!descriptor) return { present: false, policy: null };
+  if (!("value" in descriptor)) {
+    throw invalidMcpSandboxPolicy(
+      `${label}.sandboxPolicy must be an own data property`,
+    );
+  }
+  return {
+    present: true,
+    policy: normalizeMcpSandboxPolicy(descriptor.value, {
+      label: `${label}.sandboxPolicy`,
+    }),
+  };
+}
+
+function collectMcpSandboxBoundary(value, previous = []) {
+  return [...previous, value];
+}
+
+export function mcpSandboxPolicyUpdateFromAddOptions(options = {}) {
+  const boundaries = options.sandboxBoundary;
+  if (boundaries !== undefined && !Array.isArray(boundaries)) {
+    throw invalidMcpSandboxPolicy(
+      "--sandbox-boundary must be supplied as a repeatable option",
+    );
+  }
+  if (options.clearSandboxBoundaries && boundaries?.length > 0) {
+    throw invalidMcpSandboxPolicy(
+      "--clear-sandbox-boundaries cannot be combined with --sandbox-boundary",
+    );
+  }
+  if (options.clearSandboxBoundaries) return null;
+  if (!boundaries || boundaries.length === 0) return undefined;
+  return normalizeMcpSandboxPolicy(
+    { requiredBoundaries: boundaries },
+    { label: "--sandbox-boundary" },
+  );
+}
+
+export function managedMcpRowsFromSettings(settings, file) {
+  const block = settings?.managedMcpServers || settings?.mcpServers || {};
   if (!block || typeof block !== "object" || Array.isArray(block)) return [];
   return Object.entries(block)
     .filter(([, config]) => config && typeof config === "object")
-    .map(([name, config]) => ({
-      name,
-      command: config.command || null,
-      args: Array.isArray(config.args) ? config.args : [],
-      env: config.env && typeof config.env === "object" ? config.env : {},
-      runtimeKind: config.runtimeKind || null,
-      url: config.url || null,
-      transport: inferTransport(config),
-      headers:
-        config.headers && typeof config.headers === "object"
-          ? config.headers
-          : {},
-      ...headersHelperField(config.headersHelper),
-      autoConnect: config.autoConnect !== false,
-      configScope: "managed",
-      configSource: loaded.file,
-      projectPath: null,
-    }));
+    .map(([name, config]) => {
+      const { policy: sandboxPolicy } = readMcpSandboxPolicy(
+        config,
+        `Managed MCP server "${name}"`,
+      );
+      const { cwd } = readMcpStdioCwd(config, {
+        label: `Managed MCP server "${name}"`,
+      });
+      return {
+        name,
+        command: config.command || null,
+        args: Array.isArray(config.args) ? config.args : [],
+        env: config.env && typeof config.env === "object" ? config.env : {},
+        runtimeKind: config.runtimeKind || null,
+        ...(cwd ? { cwd } : {}),
+        ...(sandboxPolicy ? { sandboxPolicy } : {}),
+        url: config.url || null,
+        transport: inferTransport(config),
+        headers:
+          config.headers && typeof config.headers === "object"
+            ? config.headers
+            : {},
+        ...headersHelperField(config.headersHelper),
+        autoConnect: config.autoConnect !== false,
+        configScope: "managed",
+        configSource: file,
+        projectPath: null,
+      };
+    });
+}
+
+async function readManagedMcpRows() {
+  const { loadManagedSettings } = await import("../lib/settings-loader.cjs");
+  const loaded = loadManagedSettings({ env: process.env });
+  return managedMcpRowsFromSettings(loaded.settings, loaded.file);
 }
 
 function projectMcpLocation(cwd = process.cwd()) {
@@ -365,12 +457,21 @@ export function readProjectMcpRows(cwd = process.cwd()) {
   return Object.entries(document.mcpServers)
     .filter(([, config]) => config && typeof config === "object")
     .map(([name, config]) => {
+      const { policy: sandboxPolicy } = readMcpSandboxPolicy(
+        config,
+        `Project MCP server "${name}"`,
+      );
+      const { cwd } = readMcpStdioCwd(config, {
+        label: `Project MCP server "${name}"`,
+      });
       const row = {
         name,
         command: config.command || null,
         args: Array.isArray(config.args) ? config.args : [],
         env: config.env && typeof config.env === "object" ? config.env : {},
         runtimeKind: config.runtimeKind || null,
+        ...(cwd ? { cwd } : {}),
+        ...(sandboxPolicy ? { sandboxPolicy } : {}),
         url: config.url || null,
         transport: inferTransport(config),
         headers:
@@ -384,7 +485,7 @@ export function readProjectMcpRows(cwd = process.cwd()) {
         projectPath: root,
       };
       Object.defineProperty(row, PROJECT_MCP_FILE_TRUST, { value: trusted });
-      if (trusted && row.headersHelper) {
+      if (trusted && (row.headersHelper || inferTransport(row) === "stdio")) {
         row.projectMcpWorkspaceAuthority = issueProjectMcpWorkspaceAuthority({
           file,
           content,
@@ -414,11 +515,44 @@ function writeProjectMcpDocument(file, document) {
 
 export function writeProjectMcpServer(name, server, cwd = process.cwd()) {
   const { file, document } = readProjectMcpDocument(cwd);
+  if (!server || typeof server !== "object" || isProxy(server)) {
+    throw invalidMcpSandboxPolicy(
+      `Project MCP server "${name}" must be a non-Proxy object`,
+    );
+  }
+  const existing = document.mcpServers[name];
+  const requestedPolicy = readMcpSandboxPolicy(
+    server,
+    `Project MCP server "${name}" update`,
+  );
+  const retainedPolicy = requestedPolicy.present
+    ? requestedPolicy
+    : existing && typeof existing === "object" && !Array.isArray(existing)
+      ? readMcpSandboxPolicy(existing, `Existing project MCP server "${name}"`)
+      : { present: false, policy: null };
+  const requestedCwd = readMcpStdioCwd(server, {
+    label: `Project MCP server "${name}" update`,
+  });
+  const existingCwd =
+    existing && typeof existing === "object" && !Array.isArray(existing)
+      ? readMcpStdioCwd(existing, {
+          label: `Existing project MCP server "${name}"`,
+        })
+      : { present: false, cwd: null };
+  const retainedCwd = requestedCwd.present
+    ? requestedCwd.cwd
+    : existingCwd.present
+      ? existingCwd.cwd
+      : null;
   const config = {};
   if (server.command) config.command = server.command;
   if (server.args?.length) config.args = server.args;
   if (server.env && Object.keys(server.env).length > 0) config.env = server.env;
   if (server.runtimeKind) config.runtimeKind = server.runtimeKind;
+  if (typeof retainedCwd === "string" && retainedCwd.length > 0) {
+    config.cwd = retainedCwd;
+  }
+  if (retainedPolicy.policy) config.sandboxPolicy = retainedPolicy.policy;
   if (server.url) config.url = server.url;
   if (server.transport) config.transport = server.transport;
   if (server.headers && Object.keys(server.headers).length > 0) {
@@ -872,6 +1006,11 @@ export function registerMcpCommand(program) {
           { serverName: name, config: authorized },
         );
         const invocation = materializeApprovedMcpStdioInvocation(approval);
+        const approvedCwd = resolveMcpCommandStdioWorkingDirectory(
+          name,
+          invocation,
+          approval,
+        );
         const approvalRecord = resolveMcpStdioExecutionApproval(approval);
         const materialized = materializeMcpStdioNpmPackage({
           approvalRecord,
@@ -892,7 +1031,7 @@ export function registerMcpCommand(program) {
           serverName: name,
           config: invocation,
           approval,
-          cwd: process.cwd(),
+          cwd: approvedCwd,
           env: process.env,
           retrust: true,
         });
@@ -973,11 +1112,16 @@ export function registerMcpCommand(program) {
           { serverName: name, config: authorized },
         );
         const invocation = materializeApprovedMcpStdioInvocation(approval);
+        const approvedCwd = resolveMcpCommandStdioWorkingDirectory(
+          name,
+          invocation,
+          approval,
+        );
         const prepared = prepareMcpStdioExecutableIdentity({
           serverName: name,
           config: invocation,
           approval,
-          cwd: process.cwd(),
+          cwd: approvedCwd,
           env: process.env,
           retrust: true,
         });
@@ -1021,6 +1165,15 @@ export function registerMcpCommand(program) {
     .option(
       "--runtime-kind <kind>",
       "stdio runtime semantics: native | node | python | posix-shell | powershell | java | dotnet",
+    )
+    .option(
+      "--sandbox-boundary <boundary>",
+      `Require a stdio sandbox boundary (${MCP_SANDBOX_BOUNDARIES.join(" | ")}); repeatable`,
+      collectMcpSandboxBoundary,
+    )
+    .option(
+      "--clear-sandbox-boundaries",
+      "Explicitly remove previously configured stdio sandbox boundaries",
     )
     .option(
       "-u, --url <url>",
@@ -1070,6 +1223,13 @@ export function registerMcpCommand(program) {
         ) {
           throw new Error(
             `Invalid --runtime-kind; expected one of: ${MCP_STDIO_RUNTIME_KINDS.join(", ")}`,
+          );
+        }
+        const sandboxPolicyUpdate =
+          mcpSandboxPolicyUpdateFromAddOptions(options);
+        if (sandboxPolicyUpdate !== undefined && !options.command) {
+          throw new Error(
+            "--sandbox-boundary and --clear-sandbox-boundaries are only supported with --command",
           );
         }
 
@@ -1158,14 +1318,28 @@ export function registerMcpCommand(program) {
         }
 
         const workspaceRoot = projectMcpLocation(process.cwd()).root;
-        const previousLocal =
-          configScope === "local"
-            ? config.get(name, { scope: "local", cwd: workspaceRoot })
-            : null;
+        const previousStored =
+          configScope === "project"
+            ? null
+            : config.get(name, {
+                scope: configScope,
+                cwd: workspaceRoot,
+              });
+        const previousLocal = configScope === "local" ? previousStored : null;
+        const effectiveSandboxPolicy =
+          sandboxPolicyUpdate === undefined
+            ? previousStored?.sandboxPolicy || null
+            : sandboxPolicyUpdate;
+        let configuredSandboxPolicy = effectiveSandboxPolicy;
         const storedConfig = {
           command: options.command || null,
           args,
           runtimeKind: options.command ? options.runtimeKind || null : null,
+          ...(sandboxPolicyUpdate !== undefined
+            ? { sandboxPolicy: sandboxPolicyUpdate }
+            : effectiveSandboxPolicy
+              ? { sandboxPolicy: effectiveSandboxPolicy }
+              : {}),
           url: options.url || null,
           transport,
           env: {},
@@ -1182,6 +1356,9 @@ export function registerMcpCommand(program) {
             storedConfig,
             process.cwd(),
           );
+          configuredSandboxPolicy =
+            readProjectMcpRows(process.cwd()).find((row) => row.name === name)
+              ?.sandboxPolicy || null;
         } else {
           if (configScope === "local" && previousLocal?.headersHelper) {
             revokeLocalMcpHeadersHelperTrust({
@@ -1213,6 +1390,11 @@ export function registerMcpCommand(program) {
           command: options.command || null,
           args,
           runtimeKind: storedConfig.runtimeKind,
+          ...(configuredSandboxPolicy
+            ? { sandboxPolicy: configuredSandboxPolicy }
+            : sandboxPolicyUpdate === null
+              ? { sandboxPolicy: null }
+              : {}),
           url: options.url || null,
           transport,
           autoConnect: !!options.autoConnect,
@@ -1238,6 +1420,11 @@ export function registerMcpCommand(program) {
             if (storedConfig.runtimeKind) {
               logger.log(
                 `  ${chalk.gray("Runtime kind:")} ${storedConfig.runtimeKind}`,
+              );
+            }
+            if (configuredSandboxPolicy) {
+              logger.log(
+                `  ${chalk.gray("Sandbox boundaries:")} ${configuredSandboxPolicy.requiredBoundaries.join(", ")}`,
               );
             }
           }

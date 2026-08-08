@@ -19,12 +19,29 @@
  *
  * @module cowork-mcp-tools
  */
+import { isProxy } from "node:util/types";
 import { validateMcpServerConfig } from "./skill-mcp.js";
 import { mcpEffectDescriptorFields } from "./mcp-effect-contract.js";
 import {
   MCP_STDIO_LOCAL_CODE_TRUST_REQUIRED_CODE,
   issueMcpStdioExecutionAuthority,
 } from "./mcp-stdio-execution-authority.js";
+import {
+  currentHostHooksV2WorkspaceBinding,
+  registerHostHooksV2Workspace,
+  resolveHostHooksV2WorkspaceBinding,
+} from "./hooks-v2-workspace-context.js";
+
+function safeServerName(entry) {
+  if (!entry || typeof entry !== "object" || isProxy(entry)) return "(invalid)";
+  const descriptor = Object.getOwnPropertyDescriptor(entry, "name");
+  return descriptor &&
+    "value" in descriptor &&
+    typeof descriptor.value === "string" &&
+    descriptor.value.length > 0
+    ? descriptor.value
+    : "(invalid)";
+}
 
 export const _deps = {
   importMcpClient: async () => {
@@ -121,12 +138,31 @@ export async function mountTemplateMcpTools(template, opts = {}) {
     : [];
   if (declared.length === 0) return empty;
 
-  const validated = declared
-    .map((entry) => validateMcpServerConfig(entry))
-    .filter(Boolean);
-  if (validated.length === 0) return empty;
-
   const skipped = [];
+  const validated = [];
+  for (const entry of declared) {
+    try {
+      const normalized = validateMcpServerConfig(entry);
+      if (normalized) validated.push(normalized);
+    } catch (error) {
+      const name = safeServerName(entry);
+      const message = error?.message || String(error);
+      skipped.push({ name, error: message });
+      opts.onWarn?.(`[cowork-mcp] Skipped "${name}": ${message}`, error);
+    }
+  }
+  if (validated.length === 0) return { ...empty, skipped };
+
+  const workspaceBinding = opts.workspaceRoot
+    ? registerHostHooksV2Workspace(opts.workspaceRoot)
+    : opts.workspaceBinding || currentHostHooksV2WorkspaceBinding();
+  const resolvedWorkspace = workspaceBinding
+    ? resolveHostHooksV2WorkspaceBinding(workspaceBinding)
+    : null;
+  if (workspaceBinding && !resolvedWorkspace) {
+    throw new TypeError("Cowork MCP workspace authority is invalid or stale");
+  }
+
   const authorized = [];
   for (const server of validated) {
     let approved = false;
@@ -141,6 +177,7 @@ export async function mountTemplateMcpTools(template, opts = {}) {
           runtimeKind: server.runtimeKind || null,
           cwd: server.cwd || null,
           envKeys: Object.keys(server.env || {}).sort(),
+          sandboxPolicy: server.sandboxPolicy || null,
         })) === true;
     } catch (error) {
       const message = error?.message || String(error);
@@ -163,13 +200,21 @@ export async function mountTemplateMcpTools(template, opts = {}) {
       config,
       approvalKind: "explicit-config",
       approvalSource: `cowork-template:${template?.id || "unknown"}:${server.name}`,
+      workspaceBinding,
     });
     authorized.push(config);
   }
   if (authorized.length === 0) return { ...empty, skipped };
 
   const MCPClient = await _deps.importMcpClient();
-  const mcpClient = new MCPClient();
+  const mcpClient = new MCPClient(
+    resolvedWorkspace
+      ? {
+          workspaceBinding,
+          roots: [resolvedWorkspace.workspaceRoot],
+        }
+      : {},
+  );
   const mounted = [];
   const extraToolDefinitions = [];
   const externalToolDescriptors = {};
