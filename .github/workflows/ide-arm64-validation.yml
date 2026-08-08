@@ -227,7 +227,7 @@ jobs:
       # documented OOBE policy before starting the IDE and close only an
       # already-running privacy host. Killing WWAHost can reveal the Start
       # menu, so dismiss that shell surface without accepting privacy defaults.
-      - name: Suppress Windows ARM64 runner privacy OOBE
+      - name: Prepare Windows ARM64 runner GUI session
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
@@ -262,6 +262,62 @@ jobs:
               6
             ) | Out-Null
           }
+          # The same image can launch this exact updater minutes after logon
+          # (actions/runner-images#14264). Keep a bounded watchdog alive only
+          # for this job: terminate that updater command, then minimize only
+          # its WSL-titled terminal instead of disabling WSL or Windows Terminal.
+          $guardSource = @'
+          $ErrorActionPreference = 'Continue'
+          Add-Type -TypeDefinition @"
+          using System;
+          using System.Runtime.InteropServices;
+          public static class ChainlessChainWslUpdateWindow {
+              [DllImport("user32.dll")]
+              public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);
+          }
+          "@
+          $guardLog = Join-Path $env:RUNNER_TEMP 'chainlesschain-windows-gui-guard.log'
+          $deadline = [DateTime]::UtcNow.AddMinutes(30)
+          $suppressTerminalUntil = [DateTime]::MinValue
+          Add-Content -LiteralPath $guardLog -Value "guard-started=$([DateTime]::UtcNow.ToString('o'))"
+          while ([DateTime]::UtcNow -lt $deadline) {
+            $updates = @(Get-CimInstance Win32_Process -Filter "Name = 'wsl.exe'" -ErrorAction SilentlyContinue |
+              Where-Object {
+                $commandLine = [string]$_.CommandLine
+                $commandLine -match '(?i)(^|\s)--update(\s|$)' -and
+                $commandLine -match '(?i)(^|\s)--confirm(\s|$)' -and
+                $commandLine -match '(?i)(^|\s)--prompt-before-exit(\s|$)'
+              })
+            if ($updates.Count -gt 0) {
+              $suppressTerminalUntil = [DateTime]::UtcNow.AddSeconds(5)
+              foreach ($update in $updates) {
+                Add-Content -LiteralPath $guardLog -Value "terminated-wsl-update-pid=$($update.ProcessId)"
+                Invoke-CimMethod -InputObject $update -MethodName Terminate -ErrorAction SilentlyContinue | Out-Null
+              }
+            }
+            if ([DateTime]::UtcNow -lt $suppressTerminalUntil) {
+              Get-Process -Name WindowsTerminal,WindowsTerminalPreview -ErrorAction SilentlyContinue |
+                Where-Object {
+                  $_.MainWindowHandle -ne 0 -and
+                  $_.MainWindowTitle -match '(?i)wsl\.exe'
+                } |
+                ForEach-Object {
+                  [ChainlessChainWslUpdateWindow]::ShowWindowAsync($_.MainWindowHandle, 6) | Out-Null
+                }
+            }
+            Start-Sleep -Milliseconds 250
+          }
+          '@
+          $encodedGuard = [Convert]::ToBase64String(
+            [Text.Encoding]::Unicode.GetBytes($guardSource)
+          )
+          $guardExecutable = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
+          $guard = Start-Process -FilePath $guardExecutable `
+            -ArgumentList @('-NoLogo', '-NoProfile', '-NonInteractive', '-EncodedCommand', $encodedGuard) `
+            -WindowStyle Hidden -PassThru
+          $guard.Refresh()
+          "CC_WINDOWS_GUI_GUARD_PID=$($guard.Id)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "CC_WINDOWS_GUI_GUARD_STARTED=$($guard.StartTime.ToFileTimeUtc())" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
@@ -343,6 +399,29 @@ jobs:
           --ide-version ${{ matrix.ide_version }}
           --release-commit ${{ env.IDE_ARM64_RELEASE_COMMIT }}
           --artifact-dir packages/jetbrains-plugin/build/ide-arm64-evidence/jetbrains-${{ matrix.slug }}-${{ matrix.ide_version }}
+      - name: Stop Windows ARM64 GUI watchdog
+        if: ${{ always() && runner.os == 'Windows' }}
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:CC_WINDOWS_GUI_GUARD_PID) {
+            $guard = Get-Process -Id ([int]$env:CC_WINDOWS_GUI_GUARD_PID) -ErrorAction SilentlyContinue
+            if ($guard) {
+              $expectedPath = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
+              $sameStart = $guard.StartTime.ToFileTimeUtc() -eq [long]$env:CC_WINDOWS_GUI_GUARD_STARTED
+              if ($guard.Path -ne $expectedPath -or -not $sameStart) {
+                throw "Refusing to stop an unverified GUI watchdog process"
+              }
+              Stop-Process -Id $guard.Id -Force
+            }
+          }
+          $guardLog = Join-Path $env:RUNNER_TEMP 'chainlesschain-windows-gui-guard.log'
+          if (Test-Path -LiteralPath $guardLog) {
+            Get-Content -LiteralPath $guardLog
+            $evidenceDir = 'packages/jetbrains-plugin/build/ide-arm64-evidence/runner-diagnostics'
+            New-Item -ItemType Directory -Path $evidenceDir -Force | Out-Null
+            Copy-Item -LiteralPath $guardLog -Destination $evidenceDir
+          }
       - name: Upload ARM64 JetBrains journey evidence
         if: always()
         uses: actions/upload-artifact@v6
