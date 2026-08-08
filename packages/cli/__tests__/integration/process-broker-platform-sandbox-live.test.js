@@ -67,17 +67,18 @@ function fileSha256(filePath) {
 
 function fileIdentity(filePath) {
   const realPath = fs.realpathSync.native(filePath);
-  const stat = fs.statSync(realPath, { bigint: true });
+  const stat = fs.statSync(realPath);
+  const preciseStat = fs.statSync(realPath, { bigint: true });
   return {
     contractVersion: 1,
     realPath,
     sha256: fileSha256(realPath),
-    bytes: Number(stat.size),
+    bytes: Number(preciseStat.size),
     fileId: {
-      dev: String(stat.dev),
-      ino: String(stat.ino),
+      dev: String(preciseStat.dev),
+      ino: String(preciseStat.ino),
     },
-    mtimeMs: Number(stat.mtimeNs) / 1_000_000,
+    mtimeMs: stat.mtimeMs,
     attestation: "realpath-file-id-sha256",
   };
 }
@@ -1221,7 +1222,16 @@ describe.runIf(LIVE && SUPPORTED)(
               },
             },
           );
-          expect(plan).toMatchObject({
+          expect(
+            plan,
+            JSON.stringify({
+              applied: plan.applied,
+              backend: plan.backend,
+              candidateBackend: plan.candidateBackend,
+              reason: plan.reason,
+              runtimeProbe: plan.runtimeProbe,
+            }),
+          ).toMatchObject({
             applied: true,
             backend: "windows-job-restricted-token",
             runtimeProbe: {
