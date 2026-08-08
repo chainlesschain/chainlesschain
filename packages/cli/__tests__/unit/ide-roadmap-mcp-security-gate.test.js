@@ -56,7 +56,7 @@ function evidenceFor(operatingSystem) {
     })),
   ).flat();
   return {
-    schema: "chainlesschain.ide-roadmap-mcp-security-evidence.v2",
+    schema: "chainlesschain.ide-roadmap-mcp-security-evidence.v3",
     releaseCommit,
     result: "passed",
     startedAt: "2026-08-06T00:00:00.000Z",
@@ -131,6 +131,10 @@ function evidenceFor(operatingSystem) {
             required: false,
             pass: true,
             reason: "windows-atomic-launch-covered-by-filter-oplock-gate",
+            requiredRuns: 0,
+            sampleCount: 0,
+            passCount: 0,
+            samples: [],
           }
         : {
             required: true,
@@ -151,8 +155,22 @@ function evidenceFor(operatingSystem) {
             originalSnapshotExecuted: true,
             maliciousPathExecuted: false,
             exitCode: 0,
-            stdoutBytes: 14,
+            requiredRuns: 100,
+            sampleCount: 100,
+            passCount: 100,
+            stdoutBytes: 1690,
             stderrBytes: 0,
+            samples: Array.from({ length: 100 }, (_, iteration) => ({
+              id: `code-snapshot-race-${iteration}`,
+              iteration,
+              pass: true,
+              sourceReplacementObserved: true,
+              originalSnapshotExecuted: true,
+              maliciousPathExecuted: false,
+              exitCode: 0,
+              stdoutBytes: Buffer.byteLength(`safe-snapshot-${iteration}\n`),
+              stderrBytes: 0,
+            })),
           },
     invariants: {
       annotationsAreHintsOnly: true,
@@ -203,6 +221,8 @@ describe("IDE roadmap MCP security evidence verifier", () => {
       staleHostReadPolicyProbeCount: 3,
       codeSnapshotRaceOperatingSystems: ["linux", "macos"],
       codeSnapshotRaceProbeCount: 2,
+      requiredCodeSnapshotRaceRunsPerOperatingSystem: 100,
+      codeSnapshotRaceSampleCount: 200,
       atomicPathReplacementEscapeCount: 0,
       staleHostReadCannotDowngradeRisk: true,
     });
@@ -254,6 +274,17 @@ describe("IDE roadmap MCP security evidence verifier", () => {
     const mac = JSON.parse(fs.readFileSync(macPath, "utf8"));
     mac.codeSnapshotRaceProbe.maliciousPathExecuted = true;
     fs.writeFileSync(macPath, JSON.stringify(mac), "utf8");
+
+    expect(() =>
+      verifyMcpSecurityEvidenceSet({ evidenceDir, releaseCommit }),
+    ).toThrow(/code snapshot race probe/);
+  });
+
+  it("rejects an incomplete repeated pathname race matrix", () => {
+    const linuxPath = path.join(evidenceDir, "linux.json");
+    const linux = JSON.parse(fs.readFileSync(linuxPath, "utf8"));
+    linux.codeSnapshotRaceProbe.samples.pop();
+    fs.writeFileSync(linuxPath, JSON.stringify(linux), "utf8");
 
     expect(() =>
       verifyMcpSecurityEvidenceSet({ evidenceDir, releaseCommit }),

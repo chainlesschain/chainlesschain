@@ -28,9 +28,9 @@ const serverFixturePath = path.join(
   "fixtures",
   "mcp-adversarial-effect-server.mjs",
 );
-const evidenceSchema = "chainlesschain.ide-roadmap-mcp-security-evidence.v2";
+const evidenceSchema = "chainlesschain.ide-roadmap-mcp-security-evidence.v3";
 const aggregateSchema =
-  "chainlesschain.ide-roadmap-mcp-security-evidence-aggregate.v2";
+  "chainlesschain.ide-roadmap-mcp-security-evidence-aggregate.v3";
 const releaseCommitPattern = /^[0-9a-f]{40}$/;
 const serverName = "adversarial";
 const toolCases = Object.freeze([
@@ -137,15 +137,8 @@ function spawnCodeSnapshotProbe(plan) {
   });
 }
 
-async function runCodeSnapshotRaceProbe(workspace) {
+async function runCodeSnapshotRaceAttempt(workspace, iteration) {
   const operatingSystem = normalizeOperatingSystem();
-  if (operatingSystem === "windows") {
-    return Object.freeze({
-      required: false,
-      pass: true,
-      reason: "windows-atomic-launch-covered-by-filter-oplock-gate",
-    });
-  }
   if (!new Set(["linux", "macos"]).has(operatingSystem)) {
     throw new Error(`unsupported MCP code snapshot host: ${operatingSystem}`);
   }
@@ -156,7 +149,11 @@ async function runCodeSnapshotRaceProbe(workspace) {
   );
   const entryPath = path.join(root, "server.cjs");
   const markerPath = path.join(root, "malicious-marker.txt");
-  fs.writeFileSync(entryPath, 'process.stdout.write("safe-snapshot\\n");\n');
+  const expectedStdout = `safe-snapshot-${iteration}\n`;
+  fs.writeFileSync(
+    entryPath,
+    `process.stdout.write(${JSON.stringify(expectedStdout)});\n`,
+  );
   const runtimeIdentity = executableIdentity(process.execPath);
   const entryIdentity = executableIdentity(entryPath);
   const contract = Object.freeze({
@@ -205,7 +202,7 @@ async function runCodeSnapshotRaceProbe(workspace) {
     );
     const replacementDigest = executableIdentity(entryPath).sha256;
     const result = await spawnCodeSnapshotProbe(plan);
-    const originalSnapshotExecuted = result.stdout === "safe-snapshot\n";
+    const originalSnapshotExecuted = result.stdout === expectedStdout;
     const maliciousPathExecuted = fs.existsSync(markerPath);
     const pass =
       result.status === 0 &&
@@ -218,7 +215,8 @@ async function runCodeSnapshotRaceProbe(workspace) {
       );
     }
     return Object.freeze({
-      required: true,
+      id: `code-snapshot-race-${iteration}`,
+      iteration,
       pass: true,
       backend: plan.backend,
       mechanism: plan.runtimeProbe.contentSnapshotMechanism,
@@ -236,6 +234,88 @@ async function runCodeSnapshotRaceProbe(workspace) {
   } finally {
     plan.cleanup?.();
   }
+}
+
+async function runCodeSnapshotRaceProbe(workspace, runs) {
+  const operatingSystem = normalizeOperatingSystem();
+  if (operatingSystem === "windows") {
+    return Object.freeze({
+      required: false,
+      pass: true,
+      reason: "windows-atomic-launch-covered-by-filter-oplock-gate",
+      requiredRuns: 0,
+      sampleCount: 0,
+      passCount: 0,
+      samples: Object.freeze([]),
+    });
+  }
+  const samples = [];
+  for (let iteration = 0; iteration < runs; iteration += 1) {
+    samples.push(await runCodeSnapshotRaceAttempt(workspace, iteration));
+  }
+  const first = samples[0];
+  const stableMetadata = [
+    "backend",
+    "mechanism",
+    "handleAtomic",
+    "entrySnapshotAtomic",
+    "runtimeLaunchAtomic",
+    "sharedLibraryClosure",
+  ];
+  if (
+    !first ||
+    samples.some((sample) =>
+      stableMetadata.some((field) => sample[field] !== first[field]),
+    )
+  ) {
+    throw new Error("MCP code snapshot race matrix changed launch semantics");
+  }
+  return Object.freeze({
+    required: true,
+    pass: true,
+    backend: first.backend,
+    mechanism: first.mechanism,
+    handleAtomic: first.handleAtomic,
+    entrySnapshotAtomic: first.entrySnapshotAtomic,
+    runtimeLaunchAtomic: first.runtimeLaunchAtomic,
+    sharedLibraryClosure: first.sharedLibraryClosure,
+    requiredRuns: runs,
+    sampleCount: samples.length,
+    passCount: samples.filter((sample) => sample.pass).length,
+    sourceReplacementObserved: samples.every(
+      (sample) => sample.sourceReplacementObserved,
+    ),
+    originalSnapshotExecuted: samples.every(
+      (sample) => sample.originalSnapshotExecuted,
+    ),
+    maliciousPathExecuted: samples.some(
+      (sample) => sample.maliciousPathExecuted,
+    ),
+    exitCode: samples.every((sample) => sample.exitCode === 0) ? 0 : null,
+    stdoutBytes: samples.reduce(
+      (total, sample) => total + sample.stdoutBytes,
+      0,
+    ),
+    stderrBytes: samples.reduce(
+      (total, sample) => total + sample.stderrBytes,
+      0,
+    ),
+    samples: Object.freeze(
+      samples.map((sample) =>
+        Object.freeze({
+          id: sample.id,
+          iteration: sample.iteration,
+          pass: sample.pass,
+          sourceReplacementObserved: sample.sourceReplacementObserved,
+          originalSnapshotExecuted: sample.originalSnapshotExecuted,
+          maliciousPathExecuted: sample.maliciousPathExecuted,
+          exitCode: sample.exitCode,
+          stdoutBytes: sample.stdoutBytes,
+          stderrBytes: sample.stderrBytes,
+        }),
+      ),
+    ),
+  });
 }
 
 function writeJson(filePath, value) {
@@ -570,7 +650,10 @@ export async function runMcpSecurityMatrix(options = {}) {
         "approved adversarial MCP probe did not preserve unknown-effect evidence",
       );
     }
-    const codeSnapshotRaceProbe = await runCodeSnapshotRaceProbe(workspace);
+    const codeSnapshotRaceProbe = await runCodeSnapshotRaceProbe(
+      workspace,
+      runs,
+    );
 
     evidence = {
       schema: evidenceSchema,
@@ -804,9 +887,15 @@ function validateEvidence(value, { releaseCommit, minimumRuns = 100 } = {}) {
     value?.runner?.operatingSystem,
   );
   const expectedHandleAtomic = value?.runner?.operatingSystem === "linux";
+  const expectedCodeSnapshotRuns = codeSnapshotRequired ? runs : 0;
+  const codeSnapshotSamples = codeSnapshotRaceProbe?.samples;
   if (
     codeSnapshotRaceProbe?.pass !== true ||
     codeSnapshotRaceProbe?.required !== codeSnapshotRequired ||
+    codeSnapshotRaceProbe?.requiredRuns !== expectedCodeSnapshotRuns ||
+    codeSnapshotRaceProbe?.sampleCount !== expectedCodeSnapshotRuns ||
+    codeSnapshotRaceProbe?.passCount !== expectedCodeSnapshotRuns ||
+    codeSnapshotSamples?.length !== expectedCodeSnapshotRuns ||
     (codeSnapshotRequired &&
       (codeSnapshotRaceProbe?.backend !==
         (value.runner.operatingSystem === "linux"
@@ -819,7 +908,30 @@ function validateEvidence(value, { releaseCommit, minimumRuns = 100 } = {}) {
         codeSnapshotRaceProbe?.sourceReplacementObserved !== true ||
         codeSnapshotRaceProbe?.originalSnapshotExecuted !== true ||
         codeSnapshotRaceProbe?.maliciousPathExecuted !== false ||
-        codeSnapshotRaceProbe?.exitCode !== 0))
+        codeSnapshotRaceProbe?.exitCode !== 0 ||
+        codeSnapshotRaceProbe?.stdoutBytes !==
+          codeSnapshotSamples.reduce(
+            (total, sample) => total + sample.stdoutBytes,
+            0,
+          ) ||
+        codeSnapshotRaceProbe?.stderrBytes !==
+          codeSnapshotSamples.reduce(
+            (total, sample) => total + sample.stderrBytes,
+            0,
+          ) ||
+        codeSnapshotSamples.some(
+          (sample, iteration) =>
+            sample?.id !== `code-snapshot-race-${iteration}` ||
+            sample?.iteration !== iteration ||
+            sample?.pass !== true ||
+            sample?.sourceReplacementObserved !== true ||
+            sample?.originalSnapshotExecuted !== true ||
+            sample?.maliciousPathExecuted !== false ||
+            sample?.exitCode !== 0 ||
+            !Number.isSafeInteger(sample?.stdoutBytes) ||
+            sample.stdoutBytes <= 0 ||
+            sample?.stderrBytes !== 0,
+        )))
   ) {
     issues.push("code snapshot race probe");
   }
@@ -892,6 +1004,15 @@ export function verifyMcpSecurityEvidenceSet(options = {}) {
     codeSnapshotRaceProbeCount: entries.filter(
       (entry) => entry.value.codeSnapshotRaceProbe?.required === true,
     ).length,
+    requiredCodeSnapshotRaceRunsPerOperatingSystem:
+      entries.find(
+        (entry) => entry.value.codeSnapshotRaceProbe?.required === true,
+      )?.value.codeSnapshotRaceProbe.requiredRuns || 0,
+    codeSnapshotRaceSampleCount: entries.reduce(
+      (total, entry) =>
+        total + (entry.value.codeSnapshotRaceProbe?.sampleCount || 0),
+      0,
+    ),
     atomicPathReplacementEscapeCount: 0,
     annotationsAreHintsOnly: true,
     defaultConfirmationRequired: true,
