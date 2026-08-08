@@ -28,9 +28,9 @@ const serverFixturePath = path.join(
   "fixtures",
   "mcp-adversarial-effect-server.mjs",
 );
-const evidenceSchema = "chainlesschain.ide-roadmap-mcp-security-evidence.v3";
+const evidenceSchema = "chainlesschain.ide-roadmap-mcp-security-evidence.v4";
 const aggregateSchema =
-  "chainlesschain.ide-roadmap-mcp-security-evidence-aggregate.v3";
+  "chainlesschain.ide-roadmap-mcp-security-evidence-aggregate.v4";
 const releaseCommitPattern = /^[0-9a-f]{40}$/;
 const serverName = "adversarial";
 const toolCases = Object.freeze([
@@ -139,7 +139,7 @@ function spawnCodeSnapshotProbe(plan) {
 
 async function runCodeSnapshotRaceAttempt(workspace, iteration) {
   const operatingSystem = normalizeOperatingSystem();
-  if (!new Set(["linux", "macos"]).has(operatingSystem)) {
+  if (operatingSystem !== "linux") {
     throw new Error(`unsupported MCP code snapshot host: ${operatingSystem}`);
   }
 
@@ -178,14 +178,12 @@ async function runCodeSnapshotRaceAttempt(workspace, iteration) {
     },
   );
   try {
-    const expectedHandleAtomic = operatingSystem === "linux";
-    const expectedRuntimeLaunchAtomic = operatingSystem === "linux";
     if (
       plan.applied !== true ||
       !plan.guarantees.includes(SANDBOX_BOUNDARIES.CODE_SNAPSHOT) ||
-      plan.runtimeProbe?.handleAtomic !== expectedHandleAtomic ||
+      plan.runtimeProbe?.handleAtomic !== true ||
       plan.runtimeProbe?.entrySnapshotAtomic !== true ||
-      plan.runtimeProbe?.runtimeLaunchAtomic !== expectedRuntimeLaunchAtomic ||
+      plan.runtimeProbe?.runtimeLaunchAtomic !== true ||
       plan.runtimeProbe?.sharedLibraryClosure !== false
     ) {
       const probeReason = plan.runtimeProbe?.reason
@@ -236,18 +234,95 @@ async function runCodeSnapshotRaceAttempt(workspace, iteration) {
   }
 }
 
+function runMacCodeSnapshotFailClosedProbe(workspace) {
+  const realpath = fs.realpathSync.native || fs.realpathSync;
+  const root = realpath(
+    fs.mkdtempSync(path.join(workspace, "code-snapshot-fail-closed-")),
+  );
+  const entryPath = path.join(root, "server.cjs");
+  fs.writeFileSync(entryPath, 'process.stdout.write("must-not-execute\\n");\n');
+  const runtimeIdentity = executableIdentity(process.execPath);
+  const entryIdentity = executableIdentity(entryPath);
+  const contract = Object.freeze({
+    contractVersion: 1,
+    kind: "strict-mcp-node-capsule",
+    pluginRoot: root,
+    workingDirectory: root,
+    runtimePath: runtimeIdentity.realPath,
+    rootIdentity: directoryIdentity(root),
+    entryIdentity,
+    runtimeIdentity,
+  });
+  const plan = applySandbox(
+    runtimeIdentity.realPath,
+    [entryIdentity.realPath],
+    { cwd: root, shell: false, stdio: "pipe" },
+    {
+      profile: "strict",
+      requiredBoundaries: [
+        SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
+        SANDBOX_BOUNDARIES.FILESYSTEM,
+        SANDBOX_BOUNDARIES.NETWORK,
+      ],
+      executionContract: contract,
+      sync: true,
+    },
+  );
+  try {
+    if (
+      plan.applied !== false ||
+      plan.backend !== null ||
+      plan.candidateBackend !== "macos-fd-code-snapshot" ||
+      plan.policyAttested !== false ||
+      plan.reason !== "macos_atomic_runtime_exec_unavailable" ||
+      plan.guarantees.length !== 0 ||
+      plan.runtimeProbe?.attempted !== true ||
+      plan.runtimeProbe?.runnable !== false ||
+      plan.runtimeProbe?.reason !== "public_api_has_no_descriptor_bound_exec" ||
+      plan.runtimeProbe?.contentSnapshot !== false ||
+      plan.runtimeProbe?.entrySnapshotAtomic !== false ||
+      plan.runtimeProbe?.runtimeLaunchAtomic !== false
+    ) {
+      throw new Error(
+        `macOS MCP CODE_SNAPSHOT did not fail closed: ${plan.reason || "unknown"}`,
+      );
+    }
+    return Object.freeze({
+      required: false,
+      pass: true,
+      reason: "macos-atomic-runtime-exec-unavailable-fail-closed",
+      failClosed: true,
+      candidateBackend: plan.candidateBackend,
+      adapterReason: plan.reason,
+      runtimeProbeReason: plan.runtimeProbe.reason,
+      entrySnapshotAtomic: false,
+      runtimeLaunchAtomic: false,
+      requiredRuns: 0,
+      sampleCount: 0,
+      passCount: 0,
+      samples: Object.freeze([]),
+    });
+  } finally {
+    plan.cleanup?.();
+  }
+}
+
 async function runCodeSnapshotRaceProbe(workspace, runs) {
   const operatingSystem = normalizeOperatingSystem();
   if (operatingSystem === "windows") {
     return Object.freeze({
       required: false,
       pass: true,
-      reason: "windows-atomic-launch-covered-by-filter-oplock-gate",
+      reason:
+        "windows-code-snapshot-covered-by-separate-strict-gate-not-evaluated",
       requiredRuns: 0,
       sampleCount: 0,
       passCount: 0,
       samples: Object.freeze([]),
     });
+  }
+  if (operatingSystem === "macos") {
+    return runMacCodeSnapshotFailClosedProbe(workspace);
   }
   const samples = [];
   for (let iteration = 0; iteration < runs; iteration += 1) {
@@ -883,12 +958,26 @@ function validateEvidence(value, { releaseCommit, minimumRuns = 100 } = {}) {
     issues.push("stale host read policy probe");
   }
   const codeSnapshotRaceProbe = value?.codeSnapshotRaceProbe;
-  const codeSnapshotRequired = new Set(["linux", "macos"]).has(
-    value?.runner?.operatingSystem,
-  );
-  const expectedHandleAtomic = value?.runner?.operatingSystem === "linux";
+  const evidenceOperatingSystem = value?.runner?.operatingSystem;
+  const codeSnapshotRequired = evidenceOperatingSystem === "linux";
   const expectedCodeSnapshotRuns = codeSnapshotRequired ? runs : 0;
   const codeSnapshotSamples = codeSnapshotRaceProbe?.samples;
+  const macFailClosedValid =
+    evidenceOperatingSystem !== "macos" ||
+    (codeSnapshotRaceProbe?.reason ===
+      "macos-atomic-runtime-exec-unavailable-fail-closed" &&
+      codeSnapshotRaceProbe?.failClosed === true &&
+      codeSnapshotRaceProbe?.candidateBackend === "macos-fd-code-snapshot" &&
+      codeSnapshotRaceProbe?.adapterReason ===
+        "macos_atomic_runtime_exec_unavailable" &&
+      codeSnapshotRaceProbe?.runtimeProbeReason ===
+        "public_api_has_no_descriptor_bound_exec" &&
+      codeSnapshotRaceProbe?.entrySnapshotAtomic === false &&
+      codeSnapshotRaceProbe?.runtimeLaunchAtomic === false);
+  const windowsSkipValid =
+    evidenceOperatingSystem !== "windows" ||
+    codeSnapshotRaceProbe?.reason ===
+      "windows-code-snapshot-covered-by-separate-strict-gate-not-evaluated";
   if (
     codeSnapshotRaceProbe?.pass !== true ||
     codeSnapshotRaceProbe?.required !== codeSnapshotRequired ||
@@ -896,14 +985,13 @@ function validateEvidence(value, { releaseCommit, minimumRuns = 100 } = {}) {
     codeSnapshotRaceProbe?.sampleCount !== expectedCodeSnapshotRuns ||
     codeSnapshotRaceProbe?.passCount !== expectedCodeSnapshotRuns ||
     codeSnapshotSamples?.length !== expectedCodeSnapshotRuns ||
+    !macFailClosedValid ||
+    !windowsSkipValid ||
     (codeSnapshotRequired &&
-      (codeSnapshotRaceProbe?.backend !==
-        (value.runner.operatingSystem === "linux"
-          ? "linux-fd-code-snapshot"
-          : "macos-fd-code-snapshot") ||
-        codeSnapshotRaceProbe?.handleAtomic !== expectedHandleAtomic ||
+      (codeSnapshotRaceProbe?.backend !== "linux-fd-code-snapshot" ||
+        codeSnapshotRaceProbe?.handleAtomic !== true ||
         codeSnapshotRaceProbe?.entrySnapshotAtomic !== true ||
-        codeSnapshotRaceProbe?.runtimeLaunchAtomic !== expectedHandleAtomic ||
+        codeSnapshotRaceProbe?.runtimeLaunchAtomic !== true ||
         codeSnapshotRaceProbe?.sharedLibraryClosure !== false ||
         codeSnapshotRaceProbe?.sourceReplacementObserved !== true ||
         codeSnapshotRaceProbe?.originalSnapshotExecuted !== true ||
@@ -1000,7 +1088,13 @@ export function verifyMcpSecurityEvidenceSet(options = {}) {
     unapprovedLedgerRecordCount: 0,
     approvedProbeCount: entries.length,
     staleHostReadPolicyProbeCount: entries.length,
-    codeSnapshotRaceOperatingSystems: ["linux", "macos"],
+    codeSnapshotRaceOperatingSystems: ["linux"],
+    codeSnapshotFailClosedOperatingSystems: ["macos"],
+    codeSnapshotFailClosedProbeCount: entries.filter(
+      (entry) =>
+        entry.value.codeSnapshotRaceProbe?.failClosed === true &&
+        entry.value.runner.operatingSystem === "macos",
+    ).length,
     codeSnapshotRaceProbeCount: entries.filter(
       (entry) => entry.value.codeSnapshotRaceProbe?.required === true,
     ).length,

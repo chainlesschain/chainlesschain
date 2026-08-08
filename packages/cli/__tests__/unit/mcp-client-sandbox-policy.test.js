@@ -115,6 +115,56 @@ describe("MCPClient plugin sandbox policy", () => {
     await client.disconnectAll();
   });
 
+  it("combines an explicit strict policy with the capsule snapshot boundary", async () => {
+    const proc = makeFakeMcpProcess();
+    _deps.spawn = vi.fn(() => proc);
+    const contract = Object.freeze({ kind: "strict-mcp-node-capsule" });
+    _deps.prepareMcpStdioExecutableIdentity = () => ({
+      command: process.execPath,
+      args: ["C:\\capsule\\server.cjs", "--stdio"],
+      identity: Object.freeze({}),
+      identityDigest: "b".repeat(64),
+      authority: Object.freeze({}),
+      env: { PATH: "trusted" },
+      workingDirectory: "C:\\capsule",
+      sandboxExecutionContract: contract,
+    });
+    const client = new MCPClient();
+
+    await client.connect("strict-materialized-package", {
+      command: "npx",
+      args: ["server@1.0.0"],
+      origin: "mcp:configured",
+      sandboxPolicy: {
+        profile: "strict",
+        requiredBoundaries: ["filesystem", "network"],
+      },
+    });
+
+    expect(_deps.spawn).toHaveBeenCalledWith(
+      process.execPath,
+      ["C:\\capsule\\server.cjs", "--stdio"],
+      expect.objectContaining({
+        requiredBoundaries: expect.arrayContaining(["code-snapshot"]),
+        sandboxPolicy: {
+          profile: "strict",
+          requiredBoundaries: ["filesystem", "network"],
+        },
+        sandboxExecutionContract: contract,
+      }),
+    );
+    const launchOptions = _deps.spawn.mock.calls[0][2];
+    const connection = client.servers.get("strict-materialized-package");
+    if (!["linux", "win32"].includes(process.platform)) {
+      expect(launchOptions.detached).toBe(true);
+      expect(connection._stdioTreeMode).toBe("posix-group");
+    } else {
+      expect(launchOptions.detached).toBe(false);
+      expect(connection._stdioTreeMode).toBe("sandbox");
+    }
+    await client.disconnectAll();
+  });
+
   it("forwards explicit stdio requirements to the process broker boundary", async () => {
     const proc = makeFakeMcpProcess();
     _deps.spawn = vi.fn(() => proc);

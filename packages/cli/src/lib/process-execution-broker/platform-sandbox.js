@@ -171,8 +171,6 @@ const LINUX_MCP_RUNTIME_SNAPSHOT_SCOPE = "mcp-node-runtime-executable";
 const LINUX_MCP_CAPSULE_SNAPSHOT_MECHANISM =
   "verified-o_tmpfile-copy-inherited-fd-module-compile-v1";
 const MACOS_MCP_CAPSULE_BACKEND = "macos-fd-code-snapshot";
-const MACOS_MCP_CAPSULE_SNAPSHOT_MECHANISM =
-  "verified-private-runtime-copy-and-unlinked-entry-fd-module-compile-v1";
 export const MCP_STDIO_FD_ENTRY_BOOTSTRAP =
   'const fs=require("node:fs");const Module=require("node:module");const filename="/chainlesschain/mcp-capsule.cjs";const source=fs.readFileSync(4,"utf8");process.argv.splice(1,0,filename);const target=new Module(filename,module);target.filename=filename;target.paths=[];target._compile(source,filename);';
 export const MCP_STDIO_FD_ENTRY_BOOTSTRAP_SHA256 = crypto
@@ -292,6 +290,14 @@ const windowsAdapterCacheEntries = new Set();
 const windowsTemporaryCleanupBacklog = new Set();
 let windowsTemporaryCleanupRetryTimer = null;
 const windowsAppContainerCleanupBacklog = new Set();
+const issuedWindowsMcpCodeSnapshotPlans = new WeakMap();
+// Only the unified production adapter can register a Windows MCP launch
+// capability. Direct callers of the exported platform-specific helper (and
+// callers that inject a test/runtime facade into applySandbox) may exercise
+// plan construction, but cannot mint a Broker-admissible capability.
+const WINDOWS_MCP_CODE_SNAPSHOT_ISSUER = Symbol(
+  "windows-mcp-code-snapshot-issuer",
+);
 // Each AppContainer retry starts a synchronous, digest-attested PowerShell
 // helper. Bound automatic retries so a permanently unsupported Windows host
 // cannot repeatedly block a long-lived CLI; explicit cleanup/reset and process
@@ -462,6 +468,8 @@ export function generateMacSeatbeltProfile(opts = {}, runtimeOverrides = {}) {
     allowNetwork = false,
     allowExec = true,
   } = opts;
+  const seatbeltLiteral = (value) =>
+    String(value).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 
   const lines = [
     "(version 1)",
@@ -494,12 +502,12 @@ export function generateMacSeatbeltProfile(opts = {}, runtimeOverrides = {}) {
 
   // Allow read/write to specific paths
   for (const p of allowRead) {
-    const abs = runtime.resolvePath(p);
+    const abs = seatbeltLiteral(runtime.resolvePath(p));
     lines.push(`(allow file-read* (subpath "${abs}"))`);
   }
 
   for (const p of allowWrite) {
-    const abs = runtime.resolvePath(p);
+    const abs = seatbeltLiteral(runtime.resolvePath(p));
     lines.push(`(allow file-read* file-write* (subpath "${abs}"))`);
   }
 
@@ -592,191 +600,6 @@ function validateMacMcpCapsuleContract(
   return { ok: true };
 }
 
-function createMacAnonymousCodeSnapshot(
-  runtime,
-  sourcePin,
-  identity,
-  { executable, label, retainPath = false },
-) {
-  let writerFd;
-  let readerFd;
-  let snapshotPath;
-  const fail = (reason) => new Error(`${label}_${reason}`);
-  try {
-    for (const method of [
-      "openSync",
-      "unlinkSync",
-      "readSync",
-      "writeSync",
-      "fchmodSync",
-      "fsyncSync",
-      "fstatSync",
-      "closeSync",
-    ]) {
-      if (typeof runtime.fs[method] !== "function") {
-        throw fail(`${method}_unavailable`);
-      }
-    }
-    if (
-      !Number.isInteger(sourcePin?.fd) ||
-      !identity?.fileId ||
-      typeof identity.sha256 !== "string" ||
-      !/^[a-f0-9]{64}$/.test(identity.sha256) ||
-      !Number.isSafeInteger(identity.bytes) ||
-      identity.bytes < (executable ? 1 : 0) ||
-      identity.bytes > LINUX_ATTESTED_FILE_MAX_BYTES
-    ) {
-      throw fail("identity_invalid");
-    }
-    const sourceBefore = runtime.fs.fstatSync(sourcePin.fd);
-    if (
-      !sourceBefore.isFile() ||
-      Number(sourceBefore.nlink) !== 1 ||
-      String(sourceBefore.dev) !== String(identity.fileId.dev) ||
-      String(sourceBefore.ino) !== String(identity.fileId.ino) ||
-      Number(sourceBefore.size) !== identity.bytes ||
-      Number(sourceBefore.mtimeMs) !== Number(identity.mtimeMs) ||
-      (executable && (Number(sourceBefore.mode) & 0o111) === 0)
-    ) {
-      throw fail("source_changed");
-    }
-
-    const constants = runtime.fs.constants || fs.constants;
-    snapshotPath = runtime.joinPath(
-      runtime.tmpdir(),
-      `.chainlesschain-mcp-${runtime.randomBytes(16).toString("hex")}`,
-    );
-    writerFd = runtime.fs.openSync(
-      snapshotPath,
-      Number(constants.O_CREAT) |
-        Number(constants.O_EXCL) |
-        Number(constants.O_RDWR) |
-        Number(constants.O_NOFOLLOW || 0),
-      0o600,
-    );
-    if (!retainPath) {
-      runtime.fs.unlinkSync(snapshotPath);
-      snapshotPath = undefined;
-    }
-
-    const sourceDigest = crypto.createHash("sha256");
-    const chunk = Buffer.allocUnsafe(
-      Math.max(1, Math.min(LINUX_ATTESTATION_HASH_CHUNK_BYTES, identity.bytes)),
-    );
-    let copied = 0;
-    while (copied < identity.bytes) {
-      const read = runtime.fs.readSync(
-        sourcePin.fd,
-        chunk,
-        0,
-        Math.min(chunk.length, identity.bytes - copied),
-        copied,
-      );
-      if (read <= 0) throw fail("source_ended_early");
-      sourceDigest.update(chunk.subarray(0, read));
-      let written = 0;
-      while (written < read) {
-        const count = runtime.fs.writeSync(
-          writerFd,
-          chunk,
-          written,
-          read - written,
-          copied + written,
-        );
-        if (count <= 0) throw fail("write_failed");
-        written += count;
-      }
-      copied += read;
-    }
-    const sourceAfter = runtime.fs.fstatSync(sourcePin.fd);
-    const sourceSha256 = sourceDigest.digest("hex");
-    if (
-      !linuxOpenStatMatches(sourceBefore, sourceAfter) ||
-      sourceSha256 !== identity.sha256
-    ) {
-      throw fail("source_changed");
-    }
-
-    const targetMode = executable ? 0o500 : 0o400;
-    runtime.fs.fchmodSync(writerFd, targetMode);
-    runtime.fs.fsyncSync(writerFd);
-    const writerBefore = runtime.fs.fstatSync(writerFd);
-    const expectedLinks = retainPath ? 1 : 0;
-    if (
-      !writerBefore.isFile() ||
-      Number(writerBefore.nlink) !== expectedLinks ||
-      Number(writerBefore.size) !== identity.bytes ||
-      (Number(writerBefore.mode) & 0o777) !== targetMode ||
-      hashLinuxOpenFile(runtime, writerFd, identity.bytes) !== sourceSha256
-    ) {
-      throw fail("snapshot_changed");
-    }
-    const writerAfter = runtime.fs.fstatSync(writerFd);
-    if (!linuxOpenStatMatches(writerBefore, writerAfter)) {
-      throw fail("snapshot_changed");
-    }
-
-    readerFd = runtime.fs.openSync(
-      `/dev/fd/${writerFd}`,
-      Number(constants.O_RDONLY) | Number(constants.O_NOFOLLOW || 0),
-    );
-    const readerBefore = runtime.fs.fstatSync(readerFd);
-    if (
-      !linuxOpenStatMatches(writerAfter, readerBefore) ||
-      Number(readerBefore.nlink) !== expectedLinks ||
-      hashLinuxOpenFile(runtime, readerFd, identity.bytes) !== sourceSha256
-    ) {
-      throw fail("reader_identity_changed");
-    }
-    const readerAfter = runtime.fs.fstatSync(readerFd);
-    if (!linuxOpenStatMatches(readerBefore, readerAfter)) {
-      throw fail("reader_identity_changed");
-    }
-    runtime.fs.closeSync(writerFd);
-    writerFd = undefined;
-
-    const retainedPath = snapshotPath
-      ? linuxRealpath(runtime, snapshotPath)
-      : null;
-    if (retainedPath) {
-      const retainedStat = runtime.fs.lstatSync(retainedPath);
-      if (
-        retainedStat.isSymbolicLink() ||
-        !linuxOpenStatMatches(readerAfter, retainedStat) ||
-        Number(retainedStat.nlink) !== 1
-      ) {
-        throw fail("retained_path_identity_changed");
-      }
-    }
-    const result = {
-      fd: readerFd,
-      sha256: sourceSha256,
-      bytes: identity.bytes,
-      ...(retainedPath ? { path: retainedPath } : {}),
-    };
-    readerFd = undefined;
-    snapshotPath = undefined;
-    return result;
-  } catch (error) {
-    for (const fd of [readerFd, writerFd]) {
-      if (!Number.isInteger(fd)) continue;
-      try {
-        runtime.fs.closeSync(fd);
-      } catch {
-        // Preserve the original fail-closed reason.
-      }
-    }
-    if (snapshotPath) {
-      try {
-        runtime.fs.unlinkSync(snapshotPath);
-      } catch {
-        // Preserve the original fail-closed reason.
-      }
-    }
-    throw error;
-  }
-}
-
 function applyMacMcpCapsuleCodeSnapshot(
   command,
   args,
@@ -819,141 +642,27 @@ function applyMacMcpCapsuleCodeSnapshot(
       reason: validation.reason,
       contentSnapshot: false,
       handleAtomic: false,
-    });
-  }
-
-  let runtimePin;
-  let entryPin;
-  let runtimeSnapshot;
-  let entrySnapshot;
-  try {
-    runtimePin = pinLinuxRegularFile(
-      runtime,
-      contract.runtimeIdentity.realPath,
-      contract.runtimeIdentity.realPath,
-      linuxIdentityExpectedStat(contract.runtimeIdentity),
-      { requireSingleLink: true },
-    );
-    entryPin = pinLinuxRegularFile(
-      runtime,
-      contract.entryIdentity.realPath,
-      contract.entryIdentity.realPath,
-      linuxIdentityExpectedStat(contract.entryIdentity),
-      { requireSingleLink: true },
-    );
-    runtimeSnapshot = createMacAnonymousCodeSnapshot(
-      runtime,
-      runtimePin,
-      contract.runtimeIdentity,
-      {
-        executable: true,
-        label: "mcp_node_runtime_snapshot",
-        retainPath: true,
-      },
-    );
-    entrySnapshot = createMacAnonymousCodeSnapshot(
-      runtime,
-      entryPin,
-      contract.entryIdentity,
-      { executable: false, label: "mcp_node_entry_snapshot" },
-    );
-  } catch (error) {
-    closeLinuxPinnedMounts(runtime, [
-      runtimePin,
-      entryPin,
-      runtimeSnapshot,
-      entrySnapshot,
-    ]);
-    if (runtimeSnapshot?.path) {
-      try {
-        runtime.fs.unlinkSync(runtimeSnapshot.path);
-      } catch {
-        // Preserve the original fail-closed snapshot reason.
-      }
-    }
-    return unavailable("macos_mcp_capsule_code_snapshot_unavailable", {
-      runnable: false,
-      reason: error.message || "snapshot_unattested",
-      contentSnapshot: false,
-      handleAtomic: false,
-    });
-  }
-  closeLinuxPinnedMounts(runtime, [runtimePin, entryPin]);
-
-  const descriptors = [runtimeSnapshot, entrySnapshot];
-  const snapshotIdentity = Object.freeze({
-    runtimeSnapshotSha256: runtimeSnapshot.sha256,
-    runtimeSnapshotBytes: runtimeSnapshot.bytes,
-    entrySnapshotSha256: entrySnapshot.sha256,
-    entrySnapshotBytes: entrySnapshot.bytes,
-  });
-  const policyDigest = sha256(
-    JSON.stringify({
-      version: 1,
-      backend: MACOS_MCP_CAPSULE_BACKEND,
-      contractKind: contract.kind,
-      requiredBoundaries: [
-        ...new Set(sandboxOpts.requiredBoundaries || []),
-      ].sort(),
-      identity: snapshotIdentity,
-      cwd: spawnOpts.cwd,
-      entrySnapshotBootstrapSha256: MCP_STDIO_FD_ENTRY_BOOTSTRAP_SHA256,
-      runtimeLaunchMechanism:
-        "verified-private-tempfile-synchronous-spawn-unlink-v1",
-      passthroughArgsDigest: sha256(JSON.stringify(args.slice(1))),
-    }),
-  );
-  let closed = false;
-  const cleanup = () => {
-    if (closed) return;
-    closed = true;
-    closeLinuxPinnedMounts(runtime, descriptors);
-    try {
-      runtime.fs.unlinkSync(runtimeSnapshot.path);
-    } catch {
-      // The runtime copy is already unreachable or cleanup will be retried by
-      // the owning temporary-directory lifecycle.
-    }
-  };
-  return createSandboxPlan({
-    ...base,
-    applied: true,
-    enforcement: MACOS_MCP_CAPSULE_BACKEND,
-    backend: MACOS_MCP_CAPSULE_BACKEND,
-    candidateBackend: null,
-    policyAttested: true,
-    policyDigest,
-    runtimeProbe: {
-      kind: "darwin-mcp-capsule-code-snapshot-v1",
-      attempted: true,
-      runnable: true,
-      reason: null,
-      probeRuntime: "node",
-      targetRuntime: "node",
-      contentSnapshot: true,
-      contentSnapshotScope: "mcp-capsule-entry-and-node-runtime",
-      contentSnapshotMechanism: MACOS_MCP_CAPSULE_SNAPSHOT_MECHANISM,
-      handleAtomic: false,
-      entrySnapshotAtomic: true,
+      entrySnapshotAtomic: false,
       runtimeLaunchAtomic: false,
-      runtimeLaunchMechanism:
-        "verified-private-tempfile-synchronous-spawn-unlink-v1",
-      entrySnapshotBootstrapSha256: MCP_STDIO_FD_ENTRY_BOOTSTRAP_SHA256,
       sharedLibraryClosure: false,
-      ...snapshotIdentity,
-    },
-    reason: null,
-    guarantees: [SANDBOX_BOUNDARIES.CODE_SNAPSHOT],
-    command: runtimeSnapshot.path,
-    args: ["-e", MCP_STDIO_FD_ENTRY_BOOTSTRAP, "--", ...args.slice(1)],
-    options: {
-      ...(spawnOpts || {}),
-      shell: false,
-      stdio: Object.freeze(
-        linuxStdioWithPinnedMounts(spawnOpts?.stdio, descriptors),
-      ),
-    },
-    cleanup,
+    });
+  }
+
+  // Darwin exposes only pathname-based exec/spawn APIs to an unprivileged
+  // process. An inherited descriptor can bind the entry source, but public
+  // APIs cannot bind the verified Node runtime descriptor to the image that
+  // executes. Private temporary paths and Seatbelt still leave a same-UID
+  // pathname-replacement window, so they cannot satisfy CODE_SNAPSHOT.
+  return unavailable("macos_atomic_runtime_exec_unavailable", {
+    attempted: true,
+    runnable: false,
+    reason: "public_api_has_no_descriptor_bound_exec",
+    contentSnapshot: false,
+    handleAtomic: false,
+    entrySnapshotAtomic: false,
+    runtimeLaunchAtomic: false,
+    runtimeLaunchMechanism: "darwin-public-api-pathname-exec-only-v1",
+    sharedLibraryClosure: false,
   });
 }
 
@@ -1189,6 +898,218 @@ function cleanupWindowsTemporaryDirectory(
 
 function sha256(value) {
   return crypto.createHash("sha256").update(value).digest("hex");
+}
+
+function sameStringArray(left, right) {
+  return (
+    Array.isArray(left) &&
+    Array.isArray(right) &&
+    left.length === right.length &&
+    left.every((value, index) => value === right[index])
+  );
+}
+
+function captureWindowsStdio(stdio) {
+  if (Array.isArray(stdio)) return Object.freeze([...stdio]);
+  return stdio ?? null;
+}
+
+function sameWindowsStdio(left, right) {
+  const normalizedRight = right ?? null;
+  if (Array.isArray(left) || Array.isArray(normalizedRight)) {
+    return (
+      Array.isArray(left) &&
+      Array.isArray(normalizedRight) &&
+      left.length === normalizedRight.length &&
+      left.every((entry, index) => Object.is(entry, normalizedRight[index]))
+    );
+  }
+  return Object.is(left, normalizedRight);
+}
+
+function windowsStdioDigestContract(stdio) {
+  const normalizeEntry = (entry) => {
+    if (entry === null || entry === undefined) return ["null"];
+    if (typeof entry === "string") return ["string", entry];
+    if (Number.isInteger(entry)) return ["fd", entry];
+    return [typeof entry];
+  };
+  return Array.isArray(stdio)
+    ? ["array", ...stdio.map(normalizeEntry)]
+    : ["scalar", ...normalizeEntry(stdio)];
+}
+
+function windowsEnvironmentDigest(env) {
+  const entries = Object.entries(env || {})
+    .map(([key, value]) => [key, String(value)])
+    .sort(([leftKey, leftValue], [rightKey, rightValue]) => {
+      if (leftKey !== rightKey) return leftKey < rightKey ? -1 : 1;
+      if (leftValue === rightValue) return 0;
+      return leftValue < rightValue ? -1 : 1;
+    });
+  return sha256(JSON.stringify(entries));
+}
+
+function windowsMcpBindingIdentity(identity) {
+  if (!identity) return null;
+  return {
+    contractVersion: identity.contractVersion ?? null,
+    realPath: identity.realPath ?? null,
+    sha256: identity.sha256 ?? null,
+    bytes: identity.bytes ?? null,
+    fileId: identity.fileId
+      ? {
+          dev: identity.fileId.dev ?? null,
+          ino: identity.fileId.ino ?? null,
+        }
+      : null,
+    mtimeMs: identity.mtimeMs ?? null,
+    attestation: identity.attestation ?? null,
+  };
+}
+
+function windowsMcpBindingContract(contract) {
+  return {
+    contractVersion: contract?.contractVersion ?? null,
+    kind: contract?.kind ?? null,
+    pluginRoot: contract?.pluginRoot ?? null,
+    workingDirectory: contract?.workingDirectory ?? null,
+    runtimePath: contract?.runtimePath ?? null,
+    rootIdentity: contract?.rootIdentity
+      ? {
+          realPath: contract.rootIdentity.realPath ?? null,
+          fileId: contract.rootIdentity.fileId
+            ? {
+                dev: contract.rootIdentity.fileId.dev ?? null,
+                ino: contract.rootIdentity.fileId.ino ?? null,
+              }
+            : null,
+          attestation: contract.rootIdentity.attestation ?? null,
+        }
+      : null,
+    entryIdentity: windowsMcpBindingIdentity(contract?.entryIdentity),
+    runtimeIdentity: windowsMcpBindingIdentity(contract?.runtimeIdentity),
+  };
+}
+
+function createWindowsMcpCodeSnapshotPlanBinding({
+  executionContract,
+  command,
+  args,
+  spawnOpts,
+  profile,
+  requiredBoundaries,
+  sync,
+  backend,
+  policyAttested,
+  policyDigest,
+  adapterSource,
+  helperInvocation,
+  helperOptions,
+  postSpawn,
+  postSpawnWindows,
+}) {
+  const helperEnvDigest = windowsEnvironmentDigest(helperOptions.env);
+  const helperStdio = captureWindowsStdio(helperOptions.stdio);
+  const originalArgs = Object.freeze([...(args || [])]);
+  const helperArgs = Object.freeze([...(helperInvocation.args || [])]);
+  const normalizedPostSpawn = Object.freeze({
+    required: postSpawn?.required === true,
+    mode: postSpawn?.mode || "none",
+  });
+  const digestPayload = {
+    version: 1,
+    kind: "windows-mcp-code-snapshot-plan-binding-v1",
+    executionContract: windowsMcpBindingContract(executionContract),
+    originalLaunch: {
+      command,
+      args: originalArgs,
+      cwd: spawnOpts?.cwd ?? null,
+      shell: spawnOpts?.shell ?? null,
+      detached: spawnOpts?.detached ?? null,
+      profile,
+      requiredBoundaries: [...requiredBoundaries],
+      sync,
+    },
+    policy: { backend, policyAttested, policyDigest },
+    adapter: {
+      loaderMode: adapterSource.loaderMode,
+      sourceDigest: adapterSource.sourceDigest,
+      sourceContractDigest: adapterSource.sourceContractDigest,
+    },
+    helperInvocation: {
+      command: helperInvocation.command,
+      args: helperArgs,
+      cwd: helperOptions.cwd ?? null,
+      shell: helperOptions.shell ?? null,
+      detached: helperOptions.detached ?? null,
+      envDigest: helperEnvDigest,
+      stdio: windowsStdioDigestContract(helperStdio),
+    },
+    postSpawn: normalizedPostSpawn,
+  };
+  return Object.freeze({
+    executionContract,
+    originalCommand: command,
+    originalArgs,
+    originalCwd: spawnOpts?.cwd ?? null,
+    originalShell: spawnOpts?.shell ?? null,
+    originalDetached: spawnOpts?.detached ?? null,
+    profile,
+    requiredBoundaries: Object.freeze([...requiredBoundaries]),
+    sync,
+    backend,
+    policyAttested,
+    policyDigest,
+    helperCommand: helperInvocation.command,
+    helperArgs,
+    helperCwd: helperOptions.cwd ?? null,
+    helperShell: helperOptions.shell ?? null,
+    helperDetached: helperOptions.detached ?? null,
+    helperEnvDigest,
+    helperStdio,
+    postSpawn: normalizedPostSpawn,
+    postSpawnWindows: postSpawnWindows || null,
+    planBindingDigest: sha256(JSON.stringify(digestPayload)),
+  });
+}
+
+/**
+ * Consume the one-launch capability attached to a real built-in Windows MCP
+ * code-snapshot plan. The issuer stays module-private so an injected adapter
+ * cannot make a structurally similar helper payload authoritative.
+ */
+export function consumeWindowsMcpCodeSnapshotPlanBinding(plan, expected = {}) {
+  const issued = issuedWindowsMcpCodeSnapshotPlans.get(plan);
+  if (!issued) return false;
+  issuedWindowsMcpCodeSnapshotPlans.delete(plan);
+  return (
+    issued.executionContract === expected.executionContract &&
+    issued.originalCommand === expected.command &&
+    sameStringArray(issued.originalArgs, expected.args) &&
+    issued.originalCwd === (expected.cwd ?? null) &&
+    issued.originalShell === (expected.shell ?? null) &&
+    issued.originalDetached === (expected.detached ?? null) &&
+    issued.profile === expected.profile &&
+    sameStringArray(issued.requiredBoundaries, expected.requiredBoundaries) &&
+    issued.sync === (expected.sync === true) &&
+    plan.backend === issued.backend &&
+    plan.policyAttested === issued.policyAttested &&
+    plan.policyDigest === issued.policyDigest &&
+    plan.command === issued.helperCommand &&
+    sameStringArray(plan.args, issued.helperArgs) &&
+    plan.options?.cwd === issued.helperCwd &&
+    plan.options?.shell === issued.helperShell &&
+    plan.options?.detached === issued.helperDetached &&
+    windowsEnvironmentDigest(plan.options?.env) === issued.helperEnvDigest &&
+    sameWindowsStdio(issued.helperStdio, plan.options?.stdio) &&
+    plan.postSpawn?.required === issued.postSpawn.required &&
+    plan.postSpawn?.mode === issued.postSpawn.mode &&
+    (plan.postSpawnWindows || null) === issued.postSpawnWindows &&
+    plan.runtimeProbe?.planBindingMechanism ===
+      "windows-mcp-code-snapshot-plan-binding-v1" &&
+    plan.runtimeProbe?.planBindingDigest === issued.planBindingDigest
+  );
 }
 
 function windowsFileIdentity(stat) {
@@ -2537,6 +2458,7 @@ export function applyWindowsSandbox(
   spawnOpts,
   sandboxOpts = {},
   runtimeOverrides = {},
+  planBindingAuthority = null,
 ) {
   let runtime = resolveRuntime(runtimeOverrides);
   const requiredBoundaries = Array.isArray(sandboxOpts.requiredBoundaries)
@@ -2556,6 +2478,10 @@ export function applyWindowsSandbox(
     SANDBOX_BOUNDARIES.PROCESS_TREE,
     SANDBOX_BOUNDARIES.RESOURCE_LIMITS,
     SANDBOX_BOUNDARIES.PRIVILEGE_REDUCTION,
+  ];
+  const appContainerSupportedBoundaries = [
+    ...appContainerGuarantees,
+    SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
   ];
   const base = {
     platform: runtime.platform,
@@ -2603,7 +2529,7 @@ export function applyWindowsSandbox(
   if (
     requiresAppContainer &&
     requiredBoundaries.some(
-      (boundary) => !appContainerGuarantees.includes(boundary),
+      (boundary) => !appContainerSupportedBoundaries.includes(boundary),
     )
   ) {
     return unavailablePlan("windows_appcontainer_boundary_unsupported");
@@ -2963,10 +2889,14 @@ export function applyWindowsSandbox(
     detached: false,
     shell: false,
     cwd: helperWorkingDirectory,
-    env: hostEnvironment,
+    env: Object.freeze({ ...hostEnvironment }),
+    stdio: Array.isArray(invocation.options.stdio)
+      ? Object.freeze([...invocation.options.stdio])
+      : invocation.options.stdio,
   };
   let appContainerCleanupVerified = false;
   let appContainerCleanupRecord = null;
+  let issuedWindowsMcpPlan = null;
   const cleanupAppContainer = () => {
     if (!appContainer || appContainerCleanupVerified) return true;
     if (appContainerCleanupRecord) {
@@ -3004,6 +2934,10 @@ export function applyWindowsSandbox(
     return false;
   };
   const cleanup = () => {
+    if (issuedWindowsMcpPlan) {
+      issuedWindowsMcpCodeSnapshotPlans.delete(issuedWindowsMcpPlan);
+      issuedWindowsMcpPlan = null;
+    }
     const failures = [];
     const attempt = (label, action) => {
       try {
@@ -3064,6 +2998,28 @@ export function applyWindowsSandbox(
         },
       }
     : {};
+  const windowsMcpPlanBinding =
+    entrySnapshot.locks &&
+    sandboxOpts.executionContract?.kind ===
+      MCP_STDIO_CAPSULE_SANDBOX_CONTRACT_KIND
+      ? createWindowsMcpCodeSnapshotPlanBinding({
+          executionContract: sandboxOpts.executionContract,
+          command,
+          args,
+          spawnOpts,
+          profile,
+          requiredBoundaries,
+          sync: sandboxOpts.sync === true,
+          backend,
+          policyAttested: requiresAppContainer ? true : null,
+          policyDigest: appContainerPolicyDigest,
+          adapterSource,
+          helperInvocation,
+          helperOptions: options,
+          postSpawn: identityContract.postSpawn,
+          postSpawnWindows: identityContract.postSpawnWindows,
+        })
+      : null;
   const entrySnapshotRuntimeProbe = entrySnapshot.locks
     ? {
         ...(appContainerRuntimeProbe || nodeSnapshotRuntimeProbe),
@@ -3096,11 +3052,13 @@ export function applyWindowsSandbox(
               runtimeLaunchMechanism:
                 "filter-oplock-locked-createprocess-suspended-image-v1",
               sharedLibraryClosure: false,
+              planBindingMechanism: "windows-mcp-code-snapshot-plan-binding-v1",
+              planBindingDigest: windowsMcpPlanBinding.planBindingDigest,
             }
           : {}),
       }
     : appContainerRuntimeProbe;
-  return createSandboxPlan({
+  const plan = createSandboxPlan({
     ...base,
     applied: true,
     enforcement: backend,
@@ -3127,6 +3085,14 @@ export function applyWindowsSandbox(
     ...identityContract,
     cleanup,
   });
+  if (
+    windowsMcpPlanBinding &&
+    planBindingAuthority === WINDOWS_MCP_CODE_SNAPSHOT_ISSUER
+  ) {
+    issuedWindowsMcpPlan = plan;
+    issuedWindowsMcpCodeSnapshotPlans.set(plan, windowsMcpPlanBinding);
+  }
+  return plan;
 }
 
 /**
@@ -6177,7 +6143,10 @@ export function applyLinuxSandbox(
       boundary === SANDBOX_BOUNDARIES.PROCESS_TREE,
   );
 
-  if (requiredBoundaries.includes(SANDBOX_BOUNDARIES.CODE_SNAPSHOT)) {
+  if (
+    requiredBoundaries.includes(SANDBOX_BOUNDARIES.CODE_SNAPSHOT) &&
+    !requiresStrongLinuxBoundary
+  ) {
     return applyLinuxMcpCapsuleCodeSnapshot(
       command,
       args,
@@ -6839,17 +6808,36 @@ export function applyLinuxSandbox(
     const supervisorBinding = supervisorPin.attestation;
     closeLinuxPinnedMounts(runtime, [supervisorPin]);
     supervisorPin = null;
+    const capsuleContract =
+      validation.contract.kind === MCP_STDIO_CAPSULE_SANDBOX_CONTRACT_KIND;
+    const baseRuntimeProbe = linuxBubblewrapProbe(
+      true,
+      true,
+      null,
+      validation.entryRuntime,
+      entrySnapshot?.attestation,
+      supervisorBinding,
+      pluginTreeSnapshot,
+      nativeDynamicClosure,
+    );
     const runtimeProbe = Object.freeze(
-      linuxBubblewrapProbe(
-        true,
-        true,
-        null,
-        validation.entryRuntime,
-        entrySnapshot?.attestation,
-        supervisorBinding,
-        pluginTreeSnapshot,
-        nativeDynamicClosure,
-      ),
+      capsuleContract
+        ? {
+            ...baseRuntimeProbe,
+            mcpCapsuleCodeSnapshot: true,
+            entrySnapshotAtomic: true,
+            runtimeLaunchAtomic: true,
+            runtimeLaunchMechanism:
+              "bwrap-descriptor-mount-node-runtime-exec-v1",
+            sharedLibraryClosure: false,
+            runtimeSnapshotSha256: validation.contract.runtimeIdentity.sha256,
+            runtimeSnapshotBytes: validation.contract.runtimeIdentity.bytes,
+            entrySnapshotSha256: entrySnapshot.attestation.sha256,
+            entrySnapshotBytes: entrySnapshot.attestation.bytes,
+            runtimeLaunchPath: "/opt/chainless/runtime/node",
+            entrySnapshotPath: sandboxEntry,
+          }
+        : baseRuntimeProbe,
     );
     const options = {
       ...spawnOpts,
@@ -6887,6 +6875,7 @@ export function applyLinuxSandbox(
         SANDBOX_BOUNDARIES.FILESYSTEM,
         SANDBOX_BOUNDARIES.NETWORK,
         SANDBOX_BOUNDARIES.PROCESS_TREE,
+        ...(capsuleContract ? [SANDBOX_BOUNDARIES.CODE_SNAPSHOT] : []),
       ],
       command: finalLaunch.command,
       args: [...policyArgs, "--", ...targetArgs],
@@ -6962,9 +6951,10 @@ export function applySandbox(
   args,
   spawnOpts,
   profileOrRequest = "default",
-  runtimeOverrides = {},
+  runtimeOverrides = undefined,
   explicitRequest = null,
 ) {
+  const runtimeInjected = runtimeOverrides !== undefined;
   const runtime = resolveRuntime(runtimeOverrides);
   const sandboxRequest = normalizeSandboxRequest(
     profileOrRequest,
@@ -7028,6 +7018,7 @@ export function applySandbox(
       spawnOpts,
       profile,
       runtimeOverrides,
+      runtimeInjected ? null : WINDOWS_MCP_CODE_SNAPSHOT_ISSUER,
     );
   }
   if (runtime.platform === "linux") {

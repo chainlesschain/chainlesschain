@@ -51,7 +51,7 @@ afterEach(() => {
   }
 });
 
-describe("macOS MCP anonymous code snapshots", () => {
+describe("MCP inherited-FD entry bootstrap and macOS fail-closed policy", () => {
   it("compiles the exact entry source from inherited fd 4 with direct-script argv", () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), "cc-mcp-fd-entry-"));
     temporaryRoots.push(root);
@@ -83,17 +83,16 @@ describe("macOS MCP anonymous code snapshots", () => {
   });
 
   it.runIf(process.platform === "darwin")(
-    "executes the attested runtime and entry FDs after the source pathname is replaced",
+    "fails closed when macOS cannot bind the verified runtime to exec",
     () => {
       const root = fs.realpathSync(
         fs.mkdtempSync(path.join(os.tmpdir(), "cc-mcp-macos-fd-")),
       );
       temporaryRoots.push(root);
       const entryPath = path.join(root, "server.cjs");
-      const markerPath = path.join(root, "malicious-marker.txt");
       fs.writeFileSync(
         entryPath,
-        'process.stdout.write("safe-snapshot\\n");\n',
+        'process.stdout.write("must-not-execute\\n");\n',
       );
 
       const runtime = fileIdentity(process.execPath);
@@ -113,45 +112,41 @@ describe("macOS MCP anonymous code snapshots", () => {
         [entry.realPath],
         { cwd: root, shell: false, stdio: "pipe" },
         {
-          profileName: "default",
-          requiredBoundaries: [SANDBOX_BOUNDARIES.CODE_SNAPSHOT],
+          profileName: "strict",
+          requiredBoundaries: [
+            SANDBOX_BOUNDARIES.CODE_SNAPSHOT,
+            SANDBOX_BOUNDARIES.FILESYSTEM,
+            SANDBOX_BOUNDARIES.NETWORK,
+          ],
           executionContract: contract,
           sync: true,
         },
       );
 
-      try {
-        expect(plan).toMatchObject({
-          applied: true,
-          backend: "macos-fd-code-snapshot",
-          guarantees: [SANDBOX_BOUNDARIES.CODE_SNAPSHOT],
-          runtimeProbe: {
-            kind: "darwin-mcp-capsule-code-snapshot-v1",
-            handleAtomic: false,
-            entrySnapshotAtomic: true,
-            runtimeLaunchAtomic: false,
-            sharedLibraryClosure: false,
-          },
-        });
-        expect(plan.command).not.toBe(runtime.realPath);
-        expect(path.isAbsolute(plan.command)).toBe(true);
-        expect(plan.args.slice(0, 3)).toEqual(["-e", expect.any(String), "--"]);
-
-        fs.writeFileSync(
-          entryPath,
-          `require("node:fs").writeFileSync(${JSON.stringify(markerPath)}, "executed");\n`,
-        );
-        const result = spawnSync(plan.command, plan.args, {
-          ...plan.options,
-          encoding: "utf8",
-        });
-        expect(result.status).toBe(0);
-        expect(result.stdout).toBe("safe-snapshot\n");
-        expect(result.stderr).toBe("");
-        expect(fs.existsSync(markerPath)).toBe(false);
-      } finally {
-        plan.cleanup?.();
-      }
+      expect(plan).toMatchObject({
+        applied: false,
+        backend: null,
+        candidateBackend: "macos-fd-code-snapshot",
+        policyAttested: false,
+        reason: "macos_atomic_runtime_exec_unavailable",
+        guarantees: [],
+        command: runtime.realPath,
+        args: [entry.realPath],
+        runtimeProbe: {
+          kind: "darwin-mcp-capsule-code-snapshot-v1",
+          attempted: true,
+          runnable: false,
+          reason: "public_api_has_no_descriptor_bound_exec",
+          contentSnapshot: false,
+          handleAtomic: false,
+          entrySnapshotAtomic: false,
+          runtimeLaunchAtomic: false,
+          runtimeLaunchMechanism: "darwin-public-api-pathname-exec-only-v1",
+          sharedLibraryClosure: false,
+        },
+      });
+      expect(plan.command).not.toBe("/usr/bin/sandbox-exec");
+      expect(plan.cleanup).toBeUndefined();
     },
   );
 });

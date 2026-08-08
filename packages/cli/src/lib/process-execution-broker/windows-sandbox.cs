@@ -3540,10 +3540,11 @@ namespace ChainlessChain.WindowsSandbox
                     ThrowLastError("AssignProcessToJobObject");
                 }
                 ReattestLaunchPaths(launchPathLocks);
-                // The suspended process has already created its image section.
-                // Release all remaining runtime stream guards before resume so
-                // target code can never deadlock waiting for a break owned by
-                // the helper. This is not a pathname-atomic runtime launch.
+                // The suspended process has already created its image section
+                // while the attested pathname remained protected by its Filter
+                // oplock. Reattestation above completes the pathname-to-image
+                // atomic handoff; release the stream guards before resume so
+                // target code cannot deadlock on a break owned by the helper.
                 ReleaseLaunchPathLocks(launchPathLocks);
                 if (ResumeThread(processInfo.hThread) == UInt32.MaxValue)
                 {

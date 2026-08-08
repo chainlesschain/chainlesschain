@@ -16,24 +16,15 @@ const releaseCommit = "a".repeat(40);
 
 function innerEvidence(operatingSystem) {
   const race =
-    operatingSystem === "windows"
+    operatingSystem === "linux"
       ? {
-          required: false,
-          pass: true,
-          reason: "windows-atomic-launch-covered-by-filter-oplock-gate",
-          requiredRuns: 0,
-          sampleCount: 0,
-          passCount: 0,
-          samples: [],
-        }
-      : {
           required: true,
           pass: true,
-          backend: `${operatingSystem}-capsule`,
-          mechanism: `${operatingSystem}-entry-snapshot`,
-          handleAtomic: operatingSystem === "linux",
+          backend: "linux-fd-code-snapshot",
+          mechanism: "verified-o_tmpfile-copy-inherited-fd-module-compile-v1",
+          handleAtomic: true,
           entrySnapshotAtomic: true,
-          runtimeLaunchAtomic: operatingSystem === "linux",
+          runtimeLaunchAtomic: true,
           sharedLibraryClosure: false,
           requiredRuns: 1,
           sampleCount: 1,
@@ -41,15 +32,51 @@ function innerEvidence(operatingSystem) {
           sourceReplacementObserved: true,
           originalSnapshotExecuted: true,
           maliciousPathExecuted: false,
+          exitCode: 0,
+          stdoutBytes: 16,
+          stderrBytes: 0,
           samples: [
             {
+              id: "code-snapshot-race-0",
+              iteration: 0,
               pass: true,
+              sourceReplacementObserved: true,
+              originalSnapshotExecuted: true,
               maliciousPathExecuted: false,
+              exitCode: 0,
+              stdoutBytes: 16,
+              stderrBytes: 0,
             },
           ],
-        };
+        }
+      : operatingSystem === "macos"
+        ? {
+            required: false,
+            pass: true,
+            reason: "macos-atomic-runtime-exec-unavailable-fail-closed",
+            failClosed: true,
+            candidateBackend: "macos-fd-code-snapshot",
+            adapterReason: "macos_atomic_runtime_exec_unavailable",
+            runtimeProbeReason: "public_api_has_no_descriptor_bound_exec",
+            entrySnapshotAtomic: false,
+            runtimeLaunchAtomic: false,
+            requiredRuns: 0,
+            sampleCount: 0,
+            passCount: 0,
+            samples: [],
+          }
+        : {
+            required: false,
+            pass: true,
+            reason:
+              "windows-code-snapshot-covered-by-separate-strict-gate-not-evaluated",
+            requiredRuns: 0,
+            sampleCount: 0,
+            passCount: 0,
+            samples: [],
+          };
   return {
-    schema: "chainlesschain.ide-roadmap-mcp-security-evidence.v3",
+    schema: "chainlesschain.ide-roadmap-mcp-security-evidence.v4",
     releaseCommit,
     result: "passed",
     runner: { operatingSystem },
@@ -92,7 +119,8 @@ function innerEvidence(operatingSystem) {
 }
 
 function soakEvidence(operatingSystem, cycles = 2) {
-  const codeSnapshotRaceSamples = operatingSystem === "windows" ? 0 : cycles;
+  const codeSnapshotRaceSamples = operatingSystem === "linux" ? cycles : 0;
+  const codeSnapshotFailClosedProbes = operatingSystem === "macos" ? cycles : 0;
   return {
     schema: "chainlesschain.cli-mcp-security-soak.v1",
     status: "passed",
@@ -127,6 +155,7 @@ function soakEvidence(operatingSystem, cycles = 2) {
       approvedMutationProbes: cycles,
       staleHostReadPolicySamples: cycles * 2,
       codeSnapshotRaceSamples,
+      codeSnapshotFailClosedProbes,
       atomicPathReplacementEscapes: 0,
     },
     violations: [],
@@ -180,11 +209,37 @@ describe("CLI malicious MCP security soak", () => {
         unapprovedLedgerWrites: 0,
         approvedMutationProbes: 6,
         staleHostReadPolicySamples: 12,
-        codeSnapshotRaceOperatingSystems: ["linux", "macos"],
-        codeSnapshotRaceSamples: 4,
+        codeSnapshotRaceOperatingSystems: ["linux"],
+        codeSnapshotRaceSamples: 2,
+        codeSnapshotFailClosedOperatingSystems: ["macos"],
+        codeSnapshotFailClosedProbes: 2,
         atomicPathReplacementEscapes: 0,
       });
       expect(aggregate.evidence).toHaveLength(3);
+    } finally {
+      rmSync(directory, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects macOS evidence that claims a non-atomic snapshot succeeded", () => {
+    const directory = mkdtempSync(join(tmpdir(), "cc-mcp-security-soak-test-"));
+    try {
+      for (const operatingSystem of ["linux", "macos", "windows"]) {
+        const evidence = soakEvidence(operatingSystem);
+        if (operatingSystem === "macos") {
+          evidence.cycles[0].evidence.codeSnapshotRaceProbe.failClosed = false;
+        }
+        writeFileSync(
+          join(directory, `${operatingSystem}.json`),
+          JSON.stringify(evidence),
+        );
+      }
+      expect(() =>
+        verifyMcpSecuritySoakEvidenceSet({
+          evidenceDir: directory,
+          releaseCommit,
+        }),
+      ).toThrow("macOS fail-closed snapshot probe");
     } finally {
       rmSync(directory, { recursive: true, force: true });
     }
