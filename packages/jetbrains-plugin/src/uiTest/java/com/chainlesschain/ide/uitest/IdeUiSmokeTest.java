@@ -42,6 +42,7 @@ final class IdeUiSmokeTest {
     private static final Duration FRAME_BUDGET = Duration.ofMinutes(5);
     private static final Duration FIND_BUDGET = Duration.ofSeconds(45);
     private static final Duration OPTIONAL_ONBOARDING_BUDGET = Duration.ofSeconds(2);
+    private static final Duration PANEL_VISIBILITY_PROBE_BUDGET = Duration.ofSeconds(2);
     private static final Duration FIRST_POPUP_BUDGET = Duration.ofSeconds(15);
     private static final long NEEDS_INPUT_VISIBILITY_SLA_MILLIS = 2_000L;
     private static final int NEEDS_INPUT_VISIBILITY_SAMPLE_COUNT = 100;
@@ -57,6 +58,9 @@ final class IdeUiSmokeTest {
                     + " and (@text='ChainlessChain Sessions'"
                     + " or @tooltiptext='ChainlessChain Sessions'"
                     + " or @accessiblename='ChainlessChain Sessions')]";
+    private static final String SESSIONS_TABLE_XPATH =
+            "//div[@class='JBTable' and @visible='true'"
+                    + " and @accessiblename='ChainlessChain sessions table']";
 
     @Test
     void chainlessChainChatAndControlJourney() throws Exception {
@@ -220,13 +224,7 @@ final class IdeUiSmokeTest {
 
     private static void runSessionsWorkbenchJourney(
             RemoteRobot robot, boolean restartPhase) throws InterruptedException {
-        ComponentFixture stripe = robot.find(ComponentFixture.class,
-                Locators.byXpath(SESSIONS_STRIPE_XPATH), FIND_BUDGET);
-        stripe.click();
-        ComponentFixture table = robot.find(ComponentFixture.class,
-                Locators.byXpath("//div[@class='JBTable'"
-                        + " and @accessiblename='ChainlessChain sessions table']"),
-                FIND_BUDGET);
+        ComponentFixture table = ensureSessionsWorkbenchVisible(robot);
         waitForCanonicalWorkbenchRows(table, FIND_BUDGET);
         selectWorkbenchBackground(table);
 
@@ -276,6 +274,39 @@ final class IdeUiSmokeTest {
         }
         waitForComponentText(detail, "workbench-result.md", FIND_BUDGET);
         waitForComponentText(detail, "PR #88 merged", FIND_BUDGET);
+    }
+
+    /**
+     * IDEA restores the active tool window across process restarts. Clicking
+     * its stripe unconditionally therefore closes the already-restored
+     * Sessions Workbench on the restart phase. Reuse the visible native table
+     * when it is present; otherwise open it through the real stripe control.
+     */
+    private static ComponentFixture ensureSessionsWorkbenchVisible(
+            RemoteRobot robot) throws InterruptedException {
+        try {
+            ComponentFixture restored = robot.find(
+                    ComponentFixture.class,
+                    Locators.byXpath(SESSIONS_TABLE_XPATH),
+                    PANEL_VISIBILITY_PROBE_BUDGET);
+            System.out.println("[ui-smoke] reused visible Sessions Workbench");
+            return restored;
+        } catch (RuntimeException notVisible) {
+            if (!notVisible.getClass().getName()
+                    .endsWith("WaitForConditionTimeoutException")) {
+                throw notVisible;
+            }
+        }
+
+        ComponentFixture stripe = robot.find(ComponentFixture.class,
+                Locators.byXpath(SESSIONS_STRIPE_XPATH), FIND_BUDGET);
+        stripe.click();
+        ComponentFixture opened = robot.find(
+                ComponentFixture.class,
+                Locators.byXpath(SESSIONS_TABLE_XPATH),
+                FIND_BUDGET);
+        System.out.println("[ui-smoke] opened Sessions Workbench from stripe");
+        return opened;
     }
 
     private static void waitForCanonicalWorkbenchRows(
