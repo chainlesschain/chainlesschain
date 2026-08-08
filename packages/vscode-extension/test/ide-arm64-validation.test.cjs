@@ -239,6 +239,24 @@ test("the IDE ARM64 aggregate rehashes path-backed host artifacts", async (t) =>
   );
 });
 
+test("the JetBrains host runner accepts exact four-component IDE versions", async () => {
+  const runner = await import(
+    pathToFileURL(
+      path.join(
+        repositoryRoot,
+        "packages/jetbrains-plugin/scripts/run-ui-host-journey.mjs",
+      ),
+    ).href
+  );
+  const options = runner.parseArgs([
+    "--ide-version",
+    "2026.2.0.1",
+    "--artifact-dir",
+    "evidence",
+  ]);
+  assert.equal(options.ideVersion, "2026.2.0.1");
+});
+
 test("the ARM64 workflow binds exact hosts, versions, and aggregate evidence", () => {
   const workflow = fs.readFileSync(
     path.join(repositoryRoot, ".github/workflows/ide-arm64-validation.yml"),

@@ -82,7 +82,7 @@ export function parseArgs(argv) {
   if (!options.help && !options.artifactDir) {
     throw new Error("--artifact-dir is required");
   }
-  if (!/^\d{4}\.\d+(?:\.\d+)?$/.test(options.ideVersion)) {
+  if (!/^\d{4}\.\d+(?:\.\d+)*$/.test(options.ideVersion)) {
     throw new Error("--ide-version must be an exact IntelliJ version");
   }
   try {
