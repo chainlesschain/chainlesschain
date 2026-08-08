@@ -74,11 +74,18 @@ export default defineConfig({
         process.cwd(),
         "node_modules/@ant-design/colors/dist/index.esm.js",
       ),
-      // Keep vue-i18n's runtime import deterministic across hosted runners.
-      // Linux and Windows native packaging have both observed Rollup failing
-      // to follow @intlify/shared's nested conditional export even though npm
-      // installed it and Node's preflight resolved it. The exact dependency is
-      // pinned in package.json, so bind Vite to that package's public ESM file.
+      // Keep vue-i18n's complete runtime chain deterministic across hosted
+      // Linux runners. npm reports a successful locked install, but Rollup has
+      // failed to resolve these nested conditional exports one at a time. Pin
+      // the exact 9.14.5 chain and bind each package's public ESM file.
+      "@intlify/core-base": resolve(
+        process.cwd(),
+        "node_modules/@intlify/core-base/dist/core-base.mjs",
+      ),
+      "@intlify/message-compiler": resolve(
+        process.cwd(),
+        "node_modules/@intlify/message-compiler/dist/message-compiler.mjs",
+      ),
       "@intlify/shared": resolve(
         process.cwd(),
         "node_modules/@intlify/shared/dist/shared.mjs",

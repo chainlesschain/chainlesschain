@@ -38,13 +38,25 @@ describe("web-panel isolated build contract", () => {
     );
     expect(script).toContain("fs.realpathSync.native(os.tmpdir())");
     expect(script).toContain('"@ant-design/colors"');
+    expect(script).toContain('"@intlify/core-base"');
+    expect(script).toContain('"@intlify/message-compiler"');
     expect(script).toContain('"@intlify/shared"');
     expect(script).toContain('execSync("npm run build:no-sync"');
     expect(packageJson.dependencies["@ant-design/colors"]).toBe("6.0.0");
+    expect(packageJson.dependencies["@intlify/core-base"]).toBe("9.14.5");
+    expect(packageJson.dependencies["@intlify/message-compiler"]).toBe(
+      "9.14.5",
+    );
     expect(packageJson.dependencies["@intlify/shared"]).toBe("9.14.5");
     expect(packageLock.packages[""].dependencies["@ant-design/colors"]).toBe(
       "6.0.0",
     );
+    expect(packageLock.packages[""].dependencies["@intlify/core-base"]).toBe(
+      "9.14.5",
+    );
+    expect(
+      packageLock.packages[""].dependencies["@intlify/message-compiler"],
+    ).toBe("9.14.5");
     expect(packageLock.packages[""].dependencies["@intlify/shared"]).toBe(
       "9.14.5",
     );
@@ -52,6 +64,14 @@ describe("web-panel isolated build contract", () => {
     expect(viteConfig).toContain('"@ant-design/colors": resolve(');
     expect(viteConfig).toContain(
       '"node_modules/@ant-design/colors/dist/index.esm.js"',
+    );
+    expect(viteConfig).toContain('"@intlify/core-base": resolve(');
+    expect(viteConfig).toContain(
+      '"node_modules/@intlify/core-base/dist/core-base.mjs"',
+    );
+    expect(viteConfig).toContain('"@intlify/message-compiler": resolve(');
+    expect(viteConfig).toContain(
+      '"node_modules/@intlify/message-compiler/dist/message-compiler.mjs"',
     );
     expect(viteConfig).toContain(
       '"node_modules/@intlify/shared/dist/shared.mjs"',
